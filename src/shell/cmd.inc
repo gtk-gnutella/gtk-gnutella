@@ -6,6 +6,8 @@
  * ls *.c | grep -v shell.c | sed 's,^\(.*\)[.]c,SHELL_CMD(\1),'
  */
 
+SHELL_CMD(command)
+SHELL_CMD(date)
 SHELL_CMD(download)
 SHELL_CMD(downloads)
 SHELL_CMD(echo)
@@ -13,14 +15,12 @@ SHELL_CMD(help)
 SHELL_CMD(horizon)
 SHELL_CMD(intr)
 SHELL_CMD(log)
-#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES) || \
-	defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 SHELL_CMD(memory)
-#endif
 SHELL_CMD(node)
 SHELL_CMD(nodes)
 SHELL_CMD(offline)
 SHELL_CMD(online)
+SHELL_CMD(pid)
 SHELL_CMD(print)
 SHELL_CMD(props)
 SHELL_CMD(quit)
@@ -31,4 +31,5 @@ SHELL_CMD(shutdown)
 SHELL_CMD(stats)
 SHELL_CMD(status)
 SHELL_CMD(uploads)
+SHELL_CMD(version)
 SHELL_CMD(whatis)

@@ -241,7 +241,7 @@ local_hostname(void)
 	static char name[256 + 1];
 
 	if (-1 == gethostname(name, sizeof name))
-		g_warning("gethostname() failed: %s", g_strerror(errno));
+		g_warning("gethostname() failed: %m");
 
 	name[sizeof(name) - 1] = '\0';
 	return name;
@@ -1504,8 +1504,8 @@ dump_hex(FILE *out, const char *title, gconstpointer data, int length)
 	int i;
 
 	if (length < 0 || data == NULL) {
-		g_carp("dump_hex: value out of range [data=0x%lx, length=%d] for %s",
-			(gulong) data, length, title);
+		g_carp("dump_hex: value out of range [data=%p, length=%d] for %s",
+			data, length, title);
 		return;
 	}
 
@@ -1657,7 +1657,7 @@ finish:
 	return is_directory(dir) ? 0 : -1;
 
 failure:
-	g_warning("mkdir(\"%s\") failed: %s", dir, g_strerror(error));
+	g_warning("mkdir(\"%s\") failed: %m", dir);
 	errno = error;
 	return -1;
 }

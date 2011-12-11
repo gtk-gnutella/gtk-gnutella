@@ -57,38 +57,54 @@ darwin|Darwin)
 osxbundle)
 	build_so_suffix='dylib'
 	build_osxbundle='true'
-	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION"
+	CPPFLAGS="$CPPFLAGS -DHAVE_GTKOSXAPPLICATION "
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
-	LIBS="$LIBS -ligemacintegration -liconv -lz"
+	LIBS="$LIBS -lgtkmacintegration -liconv -lz"
 	LIBS="${LIBS# *}"           # strip leading spaces
 	PREFIX=`dirname ${PWD}/$0`/osx/bundle
 	echo $PREFIX
 	;;
 MINGW*)
-    # FIXME: The MingW installation prefix is hardcoded (as default) for now,
-    # This could be detected maybe. On Ubuntu and Debian it is
-    # /usr/i586-mingw32msvc, so --ldflags must be used manually.
-	mingwlib=/mingw/lib
-	PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin"
-	export PATH
-    CC="${CC:-gcc}"
-	CPPFLAGS="$CPPFLAGS -DMINGW32"
-	CPPFLAGS="$CPPFLAGS -I${mingwlib}/regex/include -I${mingwlib}/gtk/include"
-	CPPFLAGS="$CPPFLAGS -I${mingwlib}/zlib/include"
-    CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
-	# It's necessary to statically link gtk-gnutella to libz.a or it crashes
-	# randomly in pre-compiled zlib1.dll from GTK.
-	# Compile zlib-1.2.5 with -O3 -g using "make -f win32/makefile.gcc"
-	# and install after editing the makefile accordingly.
-	# We use the file libz.a path to make sure it fails if that file is missing
-	# since zlib1.dll must stay in place and we don't want -lz to fallback
-	# to libz.dll.a.
-	# Also one needs to rename gtk/include/zlib.h as gtk/include/zlib.h.gtk to
-	# make sure this header is not picked when including <zlib.h>
-	LDFLAGS="$LDFLAGS ${mingwlib}/zlib/lib/libz.a"
-	LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/regex/lib -L${mingwlib}/gtk/lib"
-    LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
-	LIBS="$LIBS -lwsock32 -lws2_32 -lregex -liconv -limagehlp -liphlpapi"
+	CC="${CC:-gcc}"
+	CPPFLAGS="$CPPFLAGS -DMINGW32 "
+
+	PREFIX="`readlink -f $0`"
+	PREFIX="`dirname $PREFIX`/win32/bundle"
+	build_bindir="${PREFIX}"
+
+	if [ "X$build_target" = XMINGW7 ]; then
+		# Uses the environment settings to avoid any hard coded paths, 
+		# for example put in your ~/.profile:
+		# export PATH=/mingw/local/bin:$PATH
+		# export LIBRARY_PATH=/mingw/local/lib
+		# export CPATH=/mingw/local/include
+
+		LDFLAGS="$LDFLAGS -mwindows -lz"
+	else
+		# FIXME: The MingW installation prefix is hardcoded (as default) for now,
+		# This could be detected maybe. On Ubuntu and Debian it is
+		# /usr/i586-mingw32msvc, so --ldflags must be used manually.
+		mingwlib=/mingw/lib
+		PATH="$PATH${PATH:+:}${mingwlib}/gtk/bin"
+		export PATH
+		CPPFLAGS="$CPPFLAGS -I${mingwlib}/gtk/include"
+		CPPFLAGS="$CPPFLAGS -I${mingwlib}/zlib/include"
+		# It's necessary to statically link gtk-gnutella to libz.a or it crashes
+		# randomly in pre-compiled zlib1.dll from GTK.
+		# Compile zlib-1.2.5 with -O3 -g using "make -f win32/makefile.gcc"
+		# and install after editing the makefile accordingly.
+		# We use the file libz.a path to make sure it fails if that file is missing
+		# since zlib1.dll must stay in place and we don't want -lz to fallback
+		# to libz.dll.a.
+		# Also one needs to rename gtk/include/zlib.h as gtk/include/zlib.h.gtk to
+		# make sure this header is not picked when including <zlib.h>
+		LDFLAGS="$LDFLAGS ${mingwlib}/zlib/lib/libz.a"
+		LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/gtk/lib"
+    fi
+
+	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
+	LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
+	LIBS="$LIBS -lwsock32 -lws2_32 -liconv -limagehlp -liphlpapi"
 	LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
     LIBS="${LIBS# *}"           # strip leading spaces
 	;;
@@ -286,12 +302,18 @@ ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 if [ "X$build_osxbundle" = Xtrue ]
 then
+	. ./scripts/git-version.sh
+	
+	sed -e "s/CFBundleShortVersionStringPlaceHolder/${VMajor}.${VMinor}.${VPatch}${revchar}/" \
+		-e "s/CFBundleVersionPlaceHolder/${VMajor}.${VMinor}.${VPatch}r${VRev}/" \
+		osx/Info-gtk-gnutella.plist.tpl > osx/Info-gtk-gnutella.plist
+	
 	rm -rf osx/bundle
 	make install &&
-	ige-mac-bundler osx/gtk-gnutella.bundle &&
+	gtk-mac-bundler osx/gtk-gnutella.bundle &&
 	rm -rf osx/bundle &&
 	ln -s /Applications osx/image/Applications &&
-	dmg="${HOME}/Desktop/Gtk-Gnutella-`./scripts/git-version.sh`.dmg" &&
+	dmg="${HOME}/Desktop/Gtk-Gnutella-${VN}.dmg" &&
 	hdiutil create -srcfolder osx/image -volname Gtk-Gnutella "${dmg}" &&
 	hdiutil internet-enable -yes "${dmg}"
 	rm -rf osx/image

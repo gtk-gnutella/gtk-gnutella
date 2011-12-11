@@ -33,14 +33,15 @@
 
 #include "common.h"
 
-#include "glib-missing.h"
+#include "walloc.h"
+#include "halloc.h"
+#include "log.h"
 #include "pow2.h"
 #include "unsigned.h"
-#include "halloc.h"
 #include "unsigned.h"
-#include "walloc.h"
-#include "zalloc.h"
 #include "vmm.h"
+#include "xmalloc.h"
+#include "zalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -49,12 +50,6 @@
 #undef walloc0
 #undef wrealloc
 #endif
-
-/**
- * Maximum size for a walloc().  Anything larger is allocated by using
- * either halloc() or malloc().
- */
-#define WALLOC_MAX		4096
 
 #define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
 
@@ -98,13 +93,16 @@ wzone_get(size_t rounded)
 
 	g_assert(rounded == zalloc_round(rounded));
 
+	if G_UNLIKELY((size_t) -1 == halloc_threshold)
+		walloc_init();
+
 	/*
 	 * We're paying this computation/allocation cost once per size!
 	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
 	 */
 
 	if (!(zone = zget(rounded, WALLOC_MINCOUNT)))
-		g_error("zget() failed?");
+		s_error("zget() failed?");
 
 	return zone;
 }
@@ -114,7 +112,7 @@ wzone_get(size_t rounded)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to halloc()/malloc() if size is greater than WALLOC_MAX.
+ * and to halloc()/xpmalloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -130,11 +128,7 @@ walloc(size_t size)
 
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		void *p = size >= halloc_threshold ? halloc(size) : malloc(size);
-		if (NULL == p)
-			g_error("out of memory");
-
-		return p;
+		return size >= halloc_threshold ? halloc(size) : xpmalloc(size);
 	}
 
 	idx = wzone_index(rounded);
@@ -163,7 +157,7 @@ walloc0(size_t size)
  * Free a block allocated via walloc().
  *
  * The size is used to find the zone from which the block was allocated, or
- * to determine that we actually malloc()'ed it so it gets free()'ed.
+ * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
  */
 void
 wfree(gpointer ptr, size_t size)
@@ -178,12 +172,12 @@ wfree(gpointer ptr, size_t size)
 	if (rounded > WALLOC_MAX) {
 #ifdef TRACK_ZALLOC
 		/* halloc_track() is going to walloc_track() which uses malloc() */ 
-		free(ptr);
+		xfree(ptr);
 #else
 		if (rounded >= halloc_threshold) {
 			hfree(ptr);
 		} else {
-			free(ptr);
+			xfree(ptr);
 		}
 #endif
 		return;
@@ -306,11 +300,8 @@ walloc_track(size_t size, const char *file, int line)
 			malloc_track(size, file, line);
 #else
 			/* Can't reroute to halloc() since it may come back here */
-			malloc(size);
+			xpmalloc(size);
 #endif
-			if (NULL == p)
-				g_error("out of memory");
-
 			return p;
 	}
 
@@ -326,7 +317,7 @@ walloc_track(size_t size, const char *file, int line)
 		 */
 
 		if (!(zone = wzone[idx] = zget(rounded, WALLOC_MINCOUNT)))
-			g_error("zget() failed?");
+			s_error("zget() failed?");
 	}
 
 	return zalloc_track(zone, file, line);
@@ -395,6 +386,8 @@ wdestroy(void)
 {
 	size_t i;
 
+	xmalloc_stop_wfree();
+
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
 			zdestroy(wzone[i]);
@@ -406,17 +399,28 @@ wdestroy(void)
 /**
  * Initialize the width-based allocator.
  */
-void
+G_GNUC_COLD void
 walloc_init(void)
 {
+	int sp;
+
+	if G_UNLIKELY((size_t) -1 != halloc_threshold)
+		return;			/* Already done */
+
 	/*
 	 * We know that halloc() will redirect to walloc() if the size of the
-	 * block is slightly smaller than the system's page size.  If the maximum
-	 * size of blocks we can handle via walloc() is equal to the page size
-	 * or larger, then it is safe to halloc() the larger blocks.
+	 * block is slightly smaller than the halloc_threshold computed below.
+	 * It is safe to call halloc() on blocks larger than this threshold.
 	 */
 
 	halloc_threshold = MAX(WALLOC_MAX, compat_pagesize());
+
+	/*
+	 * Make sure the layers on top of which we are built are initialized.
+	 */
+
+	vmm_init(&sp);
+	zinit();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

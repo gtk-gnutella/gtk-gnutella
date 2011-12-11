@@ -80,6 +80,7 @@
 #include "file.h"
 #include "host_addr.h"
 #include "glib-missing.h"
+#include "log.h"
 #include "misc.h"
 #include "parse.h"
 #include "random.h"
@@ -504,8 +505,8 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 
 	len = sizeof sin4;
 	if (getsockname(fd, cast_to_gpointer(&sin4), &len) != 0) {
-		g_warning("getsockname(accepted emulated UNIX socket #%d) failed: %s",
-			fd, g_strerror(errno));
+		s_warning("getsockname(accepted emulated UNIX socket #%d) failed: %m",
+			fd);
 		goto bad_protocol;
 	} else {
 		host_addr_t ha;
@@ -657,7 +658,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 * Open "socket" rendez-vous file to extract the connection information.
 	 */
 
-	fd = file_open(saddr->sun_path, O_RDONLY, 0);
+	fd = file_open_missing(saddr->sun_path, O_RDONLY);
 	if (-1 == fd)
 		return -1;
 
@@ -836,8 +837,8 @@ compat_socket_close(int sd)
 
 	if (sun->listening) {
 		if (-1 == unlink(sun->path)) {
-			g_warning("cannot unlink emulated UNIX socket file \"%s\": %s",
-				sun->path, g_strerror(errno));
+			s_warning("cannot unlink emulated UNIX socket file \"%s\": %m",
+				sun->path);
 		}
 	}
 

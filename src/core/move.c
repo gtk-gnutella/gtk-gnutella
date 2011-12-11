@@ -134,8 +134,7 @@ d_sighandler(struct bgtask *unused_h, gpointer u, bgsig_t sig)
 		 */
 
 		if (md->target != NULL && -1 == unlink(md->target))
-			g_warning("cannot unlink \"%s\": %s",
-				md->target, g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %m", md->target);
 		break;
 	default:
 		break;
@@ -208,8 +207,7 @@ d_start(struct bgtask *h, gpointer ctx, gpointer item)
 
 	if (file_object_fstat(md->rd, &buf)) {
 		md->error = errno;
-		g_warning("can't fstat \"%s\": %s",
-			download_pathname(d), g_strerror(errno));
+		g_warning("can't fstat \"%s\": %m", download_pathname(d));
 		goto abort_read;
 	}
 
@@ -276,8 +274,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 	file_object_release(&md->rd);
 	if (fd_forget_and_close(&md->wd)) {
 		md->error = errno;
-		g_warning("error whilst closing copy target \"%s\": %s",
-			md->target, g_strerror(errno));
+		g_warning("error whilst closing copy target \"%s\": %m", md->target);
 	}
 
 	/*
@@ -302,8 +299,7 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 
 		if (-1 == stat(md->target, &buf)) {
 			md->error = errno;
-			g_warning("cannot stat copy target \"%s\": %s",
-				md->target, g_strerror(errno));
+			g_warning("cannot stat copy target \"%s\": %m", md->target);
 			goto error;
 		}
 
@@ -318,13 +314,11 @@ d_end(struct bgtask *h, gpointer ctx, gpointer item)
 		}
 
 		if (!file_object_moved(download_pathname(md->d), md->target)) {
-			g_warning("cannot unlink \"%s\": %s",
-				download_basename(md->d), g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %m", download_basename(md->d));
 		}
 	} else {
 		if (md->target != NULL && -1 == unlink(md->target))
-			g_warning("cannot unlink \"%s\": %s",
-				md->target, g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %m", md->target);
 	}
 
 	/* FALL THROUGH */
@@ -334,8 +328,9 @@ error:
 	elapsed = MAX(1, elapsed);		/* time warp? clock not monotic? */
 
 	if (GNET_PROPERTY(move_debug) > 1)
-		g_debug("MOVE moved file \"%s\" at %lu bytes/sec [error=%d]\n",
-			download_basename(md->d), (gulong) md->size / elapsed, md->error);
+		g_debug("MOVE moved file \"%s\" at %s bytes/sec [error=%d]\n",
+			download_basename(md->d),
+			filesize_to_string(md->size / elapsed), md->error);
  
 	/* FALL THROUGH */
 
@@ -392,8 +387,8 @@ again:		/* Avoids indenting all this code */
 	r = file_object_pread(md->rd, md->buffer, amount, md->copied);
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
-		g_warning("error while reading \"%s\" for moving: %s",
-			file_object_get_pathname(md->rd), g_strerror(errno));
+		g_warning("error while reading \"%s\" for moving: %m",
+			file_object_get_pathname(md->rd));
 		return BGR_DONE;
 	} else if (r == 0) {
 		g_warning("EOF while reading \"%s\" for moving!",
@@ -416,8 +411,8 @@ again:		/* Avoids indenting all this code */
 	r = write(md->wd, md->buffer, amount);
 	if ((ssize_t) -1 == r) {
 		md->error = errno;
-		g_warning("error while writing for moving \"%s\": %s",
-			download_basename(md->d), g_strerror(errno));
+		g_warning("error while writing for moving \"%s\": %m",
+			download_basename(md->d));
 		return BGR_DONE;
 	} else if ((size_t) r < amount) {
 		md->error = -1;

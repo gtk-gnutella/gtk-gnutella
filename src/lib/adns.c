@@ -347,8 +347,8 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
 
 	while (n > 0) {
 		if (common_dbg > 2)
-			g_debug("adns_do_transfer (%s): n=%lu",
-			    do_write ? "write" : "read", (unsigned long) n);
+			g_debug("adns_do_transfer (%s): n=%zu",
+			    do_write ? "write" : "read", n);
 
 		if (do_write)
 			ret = write(fd, buf, n);

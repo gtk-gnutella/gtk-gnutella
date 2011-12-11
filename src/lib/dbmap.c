@@ -55,6 +55,7 @@
 #include "pmsg.h"
 #include "stringify.h"			/* For compact_time() */
 #include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 enum dbmap_magic { DBMAP_MAGIC = 0x5890dc4fU };
@@ -250,8 +251,7 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
 	if (0 == sdbm_delete(sdbm, key))
 		return TRUE;
 
-	g_warning("SDBM \"%s\": cannot strip superblock: %s",
-		sdbm_name(sdbm), g_strerror(errno));
+	g_warning("SDBM \"%s\": cannot strip superblock: %m", sdbm_name(sdbm));
 
 	return FALSE;
 }
@@ -744,8 +744,8 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 					}
 					dm->count = dbmap_sdbm_count_keys(dm, FALSE);
 					g_warning("DBMAP on sdbm \"%s\": "
-						"key count reset to %lu after counting",
-						sdbm_name(dm->u.s.sdbm), (gulong) dm->count);
+						"key count reset to %zu after counting",
+						sdbm_name(dm->u.s.sdbm), dm->count);
 				} else {
 					dm->count--;
 				}
@@ -1115,8 +1115,8 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 				dmw->count = count;
 			}
 			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
-					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;
@@ -1190,8 +1190,8 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 				dmw->count = count;
 			}
 			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %lu invalid key%s",
-					sdbm_name(sdbm), (gulong) invalid, 1 == invalid ? "" : "s");
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
 			}
 		}
 		break;
@@ -1204,7 +1204,7 @@ static void
 unlink_sdbm(const char *file)
 {
 	if (-1 == unlink(file) && errno != ENOENT)
-		g_warning("cannot unlink SDBM file %s: %s", file, g_strerror(errno));
+		g_warning("cannot unlink SDBM file %s: %m", file);
 }
 
 /**
@@ -1261,8 +1261,8 @@ dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 			return ok;
 		}
 
-		g_warning("SDBM \"%s\": cannot store superblock: %s",
-			sdbm_name(dm->u.s.sdbm), g_strerror(errno));
+		g_warning("SDBM \"%s\": cannot store superblock: %m",
+			sdbm_name(dm->u.s.sdbm));
 
 		/* FALL THROUGH */
 	}
@@ -1274,8 +1274,8 @@ dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
 		O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (!ndm) {
-		g_warning("SDBM \"%s\": cannot store to %s: %s",
-			sdbm_name(dm->u.s.sdbm), base, g_strerror(errno));
+		g_warning("SDBM \"%s\": cannot store to %s: %m",
+			sdbm_name(dm->u.s.sdbm), base);
 		return FALSE;
 	}
 

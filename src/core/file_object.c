@@ -596,10 +596,10 @@ reopen:
 
 			if (!is_valid_fd(fo->fd)) {
 				g_warning("cannot reopen \"%s\" mode 0%o "
-					"after %s %s of \"%s\": %s",
+					"after %s %s of \"%s\": %m",
 					fo->pathname, fo->accmode,
 					ok ? "successful" : "failed", file_object_op_to_string(op),
-					old_name, g_strerror(errno));
+					old_name);
 			}
 		}
 	}

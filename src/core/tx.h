@@ -125,6 +125,9 @@ void tx_eager_mode(txdrv_t *tx, gboolean on);
 
 struct bio_source *tx_no_source(txdrv_t *tx);
 
+void tx_debug_set_addrs(const char *s);
+gboolean tx_debug_host(gnet_host_t *h);
+
 #endif	/* _core_tx_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -34,6 +34,7 @@
 #include "gui.h"
 
 #include "icon.h"
+#include "misc.h"		/* For gui_save_window() / gui_restore_window() */
 
 #ifdef USE_GTK2
 
@@ -333,37 +334,63 @@ icon_timer(time_t unused_now)
     gdk_window_invalidate_rect(canvas->window, &rect, FALSE);
 }
 
+static GtkStatusIcon *status_icon;
+
 #if GTK_CHECK_VERSION(2,10,0)
 static void
-on_status_icon_activate(GtkStatusIcon *status_icon, gpointer unused_udata)
+on_status_icon_activate(GtkStatusIcon *sicon, gpointer unused_udata)
 {
-	(void) status_icon;
+	static gboolean hidden;
+
+	(void) sicon;
 	(void) unused_udata;
 
+	/*
+	 * Start from known state: force de-iconification of the Window if we
+	 * haven't hidden it through the tray icon previously.
+	 *
+	 * On Windows, hiding the window via the tray icon when the main window
+	 * is in the iconified state results in a window that can no longer
+	 * be restored to the screen!
+	 *
+	 * De-iconifying first is a hack because we don't want to trap the state
+	 * change events on the window to know whether it is already iconified.
+	 * The de-iconification will be visible by users, but it's better than
+	 * the alternative: not being able to restore the window later.
+	 *		--RAM, 2011-11-16.
+	 */
+
+	if (!hidden)
+		gtk_window_deiconify(GTK_WINDOW(gui_main_window()));
+
 	if (GTK_WIDGET_VISIBLE(gui_main_window())) {
+		gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 		gtk_widget_hide(gui_main_window());
+		hidden = TRUE;
 	} else {
 		gtk_widget_show(gui_main_window());
+		gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
+		hidden = FALSE;
 	}
 }
 
 static gboolean
-on_status_icon_size_changed(GtkStatusIcon *status_icon,
+on_status_icon_size_changed(GtkStatusIcon *sicon,
 	gint unused_size, gpointer unused_udata)
 {
-	(void) status_icon;
+	(void) sicon;
 	(void) unused_size;
 	(void) unused_udata;
 	return FALSE;	/* Let Gtk+ scale the icon */
 }
 
 static void
-on_status_icon_popup_menu(GtkStatusIcon *status_icon, guint button,
+on_status_icon_popup_menu(GtkStatusIcon *sicon, guint button,
 	guint activate_time, gpointer unused_udata)
 {
 	static GtkWidget *popup_tray;
 
-	(void) status_icon;
+	(void) sicon;
 	(void) unused_udata;
 
 	if (!popup_tray) {
@@ -373,7 +400,13 @@ on_status_icon_popup_menu(GtkStatusIcon *status_icon, guint button,
 		button, activate_time);
 }
 
-static GtkStatusIcon *status_icon;
+static void
+status_icon_set_visible(gboolean visible)
+{
+	if (status_icon != NULL) {
+		gtk_status_icon_set_visible(status_icon, visible);
+	}
+}
 
 static void
 status_icon_enable(void)
@@ -401,7 +434,7 @@ status_icon_enable(void)
 
 	gtk_status_icon_set_tooltip(status_icon,
 		_("gtk-gnutella: Click to minimize/restore"));
-	gtk_status_icon_set_visible(status_icon, TRUE);
+	status_icon_set_visible(TRUE);
 	gui_signal_connect(status_icon, "activate",
 		on_status_icon_activate, NULL);
 	gui_signal_connect(status_icon, "size-changed",
@@ -449,6 +482,7 @@ status_icon_init(void)
 		gui_dlg_prefs_lookup("checkbutton_status_icon_enabled"),
 		FALSE);
 }
+#define status_icon_set_visible(v)
 #endif	/* Gtk+ >= 2.10.0 */
 
 /**
@@ -503,6 +537,11 @@ icon_close(void)
 		 */
 		gtk_widget_destroy(icon);
 		icon = NULL;
+	}
+
+	if (status_icon != NULL) {
+		status_icon_set_visible(FALSE);
+		g_object_unref(status_icon);
 	}
 }
 

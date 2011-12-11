@@ -83,7 +83,11 @@ last word on this. This option is a traditional command-line switch
 supported by most X11 applications.
 .TP
 .B "\-\-minimized"
-Launches gtk-gnutella with a minimized main window. Recommended when starting gtk-gnutella in the background on login. 
+Launches
+.I gtk\-gnutella
+with a minimized main window. Recommended when starting
+.I gtk\-gnutella in
+the background on login.
 .TP
 .B "\-\-help"
 Show a summary of all supported options.
@@ -103,6 +107,12 @@ them or delete them periodically. After moving or deleting the log
 files, you can send
 .I gtk\-gnutella
 a SIGHUP signal to create new log files.
+.TP
+.B "\-\-no\-restart"
+Prevents
+.I gtk\-gnutella
+from auto-restarting itself when crashing on a platform where core dumps
+are not possible or disabled.
 .TP
 .B "\-\-no\-xshm"
 Disable MIT shared memory extension, when running with the X graphical
@@ -124,6 +134,19 @@ This allows you to use the following code to start
 from a cron job or window manager menu and avoid starting it twice:
 
     gtk\-gnutella \-\-ping || gtk\-gnutella
+.TP
+.B "\-\-restart\-on\-crash"
+Asks
+.I gtk\-gnutella
+to auto-restart itself after crashing on a platform where core dumps
+are allowed.
+
+Regardless of core dumping options,
+.B "\-\-no\-restart"
+will always prevent a restart whilst
+.B "\-\-restart\-on\-crash"
+will always request one if possible.  It is not allowed to supply both
+options at the same time.
 .TP
 .B "\-\-shell"
 When this option is used to connect to an already running 

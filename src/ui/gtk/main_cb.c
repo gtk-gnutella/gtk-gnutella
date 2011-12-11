@@ -124,10 +124,11 @@ load_faq(void)
 	}
 }
 
+static gboolean quitting;
+
 static void
 quit(gboolean force)
 {
-	static gboolean quitting;
 	gboolean confirm;
 
 	/*
@@ -174,6 +175,48 @@ on_button_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
     quit(FALSE);
 }
 
+
+#ifdef HAVE_GTKOSXAPPLICATION
+gboolean
+on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_event,
+							gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
+	gtk_widget_hide(gui_main_window());
+	
+	return TRUE;
+}
+
+gboolean
+on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
+						 gpointer user_data)
+{
+	(void) app;
+	(void) path;
+	(void) user_data;
+	
+	gtk_widget_show(gui_main_window());
+	
+	return TRUE;	
+}
+
+gboolean
+on_NSApplicationDidBecomeActive(GtkOSXApplication *app, gpointer user_data)
+{
+	(void) app;
+	(void) user_data;
+	
+	if (!quitting)
+		gtk_widget_show(gui_main_window());
+	
+	return TRUE;
+}
+
+#endif
+
 /***
  *** Tray menu
  ***/
@@ -185,7 +228,8 @@ on_popup_tray_preferences_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	main_gui_show_prefences();
+	if (!quitting)
+		main_gui_show_prefences();
 }
 
 void
@@ -243,7 +287,7 @@ on_menu_keyboard_shortcuts_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
-	g_message("on_menu_keyboard_shortcuts_activate(): This is a stub");
+	g_carp("%s(): this is a stub", G_STRFUNC);
 }
 
 

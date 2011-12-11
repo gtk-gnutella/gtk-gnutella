@@ -42,9 +42,9 @@
 #include "lib/atoms.h"
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
+#include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
-#include "lib/file.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -381,8 +381,8 @@ verify_next_file(struct verify *ctx)
 				}
 			}
 			if (NULL == ctx->file) {
-				g_warning("failed to open \"%s\" for %s hashing: %s",
-					verify_hash_name(ctx), item->pathname, g_strerror(errno));
+				g_warning("failed to open \"%s\" for %s hashing: %m",
+					verify_hash_name(ctx), item->pathname);
 			}
 		} else {
 			if (GNET_PROPERTY(verify_debug)) {
@@ -451,7 +451,8 @@ verify_update(struct verify *ctx)
 
 	if ((ssize_t) -1 == r) {
 		if (!is_temporary_error(errno)) {
-			g_warning("Error while reading file: %s", g_strerror(errno));
+			g_warning("error while reading \"%s\": %m",
+				file_object_get_pathname(ctx->file));
 			goto error;
 		}
 	} else if (0 == r) {
@@ -460,7 +461,7 @@ verify_update(struct verify *ctx)
 		ctx->offset += (size_t) r;
 
 		if (verify_hash_update(ctx, ctx->buffer, r)) {
-			g_warning("%s computation error for %s",
+			g_warning("%s computation error for \"%s\"",
 				verify_hash_name(ctx), file_object_get_pathname(ctx->file));
 			goto error;
 		}

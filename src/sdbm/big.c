@@ -28,6 +28,7 @@
 #include "lib/pow2.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef BIGDATA
@@ -351,7 +352,7 @@ flush_bitbuf(DBM *db)
 		return TRUE;
 	}
 
-	g_warning("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
+	g_critical("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
 		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
 		-1 == w ? g_strerror(errno) : "partial write");
 
@@ -381,8 +382,8 @@ fetch_bitbuf(DBM *db, long num)
 		dbg->bitread++;
 		got = compat_pread(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(bno));
 		if (got < 0) {
-			g_warning("sdbm: \"%s\": could not read bitmap block #%ld: %s",
-				sdbm_name(db), num, g_strerror(errno));
+			g_critical("sdbm: \"%s\": could not read bitmap block #%ld: %m",
+				sdbm_name(db), num);
 			ioerr(db, FALSE);
 			return FALSE;
 		}
@@ -438,8 +439,8 @@ big_check_end(DBM *db)
 
 				flush_bitbuf(db);
 
-				g_warning("sdbm: \"%s\": adjusted %lu bit%s in bitmap #%ld",
-					sdbm_name(db), (unsigned long) adj, 1 == adj ? "" : "s", i);
+				g_warning("sdbm: \"%s\": adjusted %zu bit%s in bitmap #%ld",
+					sdbm_name(db), adj, 1 == adj ? "" : "s", i);
 			}
 		}
 	}
@@ -765,9 +766,9 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 		dbg->bigread++;
 		if (-1 == compat_pread(dbg->fd, q, toread, OFF_DAT(bno))) {
-			g_warning("sdbm: \"%s\": "
-				"could not read %lu bytes starting at data block #%u: %s",
-				sdbm_name(db), (unsigned long) toread, bno, g_strerror(errno));
+			g_critical("sdbm: \"%s\": "
+				"could not read %zu bytes starting at data block #%u: %m",
+				sdbm_name(db), toread, bno);
 
 			ioerr(db, FALSE);
 			return -1;
@@ -783,12 +784,12 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	return 0;
 
 corrupted_database:
-	g_warning("sdbm: \"%s\": cannot read unallocated data block #%u",
+	g_critical("sdbm: \"%s\": cannot read unallocated data block #%u",
 		sdbm_name(db), prev_bno);
 	goto fault;
 
 corrupted_page:
-	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+	g_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
 		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
 
 	/* FALL THROUGH */
@@ -846,7 +847,12 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	size_t len = big_length(bkey);
 	DBMBIG *dbg = db->big;
 
-	g_assert(bigkey_length(len) == blen);
+	if G_UNLIKELY(bigkey_length(len) != blen) {
+		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
+			"(%zu byte%s on page instead of %zu)",
+			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
+		return FALSE;
+	}
 
 	/*
 	 * Comparing a key in memory with a big key on disk is potentially a
@@ -904,8 +910,8 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 		0 != memcmp(db->big->scratch + (siz-BIG_KEYSAVED),
 				bigkey_tail(bkey), BIG_KEYSAVED)
 	) {
-		g_warning("sdbm: \"%s\": found %lu-byte key page/data inconsistency",
-			sdbm_name(db), (unsigned long) siz);
+		g_critical("sdbm: \"%s\": found %zu-byte key page/data inconsistency",
+			sdbm_name(db), siz);
 		return FALSE;
 	}
 
@@ -915,6 +921,38 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	}
 
 	return FALSE;
+}
+
+/**
+ * Compute hash of big key, stored at bkey in an SDBM .pag file.
+ *
+ * @param db		the sdbm database
+ * @param bkey		start of big key in the page
+ * @param blen		length of big key in the page
+ *
+ * @return hashed value.
+ */
+long
+bigkey_hash(DBM *db, const char *bkey, size_t blen)
+{
+	size_t len = big_length(bkey);
+
+	if G_UNLIKELY(bigkey_length(len) != blen) {
+		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
+			"(%zu byte%s on page instead of %zu)",
+			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
+		ioerr(db, FALSE);
+		return 0;
+	}
+
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), len)) {
+		g_warning("sdbm: \"%s\": returning hash of 0, corrupting database",
+			sdbm_name(db));
+		ioerr(db, FALSE);
+		return 0;
+	}
+
+	return sdbm_hash(db->big->scratch, len);
 }
 
 /**
@@ -981,9 +1019,9 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 		dbg->bigwrite++;
 		if (-1 == compat_pwrite(dbg->fd, q, towrite, OFF_DAT(bno))) {
-			g_warning("sdbm: \"%s\": "
-				"could not write %lu bytes starting at data block #%u: %s",
-				sdbm_name(db), (unsigned long) towrite, bno, g_strerror(errno));
+			g_critical("sdbm: \"%s\": "
+				"could not write %zu bytes starting at data block #%u: %m",
+				sdbm_name(db), towrite, bno);
 
 			ioerr(db, TRUE);
 			return -1;
@@ -999,7 +1037,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 	return 0;
 
 corrupted_page:
-	g_warning("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
+	g_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
 		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
 
 	ioerr(db, FALSE);
@@ -1201,9 +1239,9 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 	DBMBIG *dbg = db->big;
 
 	if (bigkey_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
-			"bigkey_get: inconsistent key length %lu in .pag",
-			sdbm_name(db), (unsigned long) len);
+		g_critical("sdbm: \"%s\": "
+			"bigkey_get: inconsistent key length %zu in .pag",
+			sdbm_name(db), len);
 		return NULL;
 	}
 
@@ -1229,9 +1267,9 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 	DBMBIG *dbg = db->big;
 
 	if (bigval_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
-			"bigval_get: inconsistent value length %lu in .pag",
-			sdbm_name(db), (unsigned long) len);
+		g_critical("sdbm: \"%s\": "
+			"bigval_get: inconsistent value length %zu in .pag",
+			sdbm_name(db), len);
 		return NULL;
 	}
 
@@ -1256,9 +1294,9 @@ bigkey_free(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
-			"bigkey_free: inconsistent key length %lu in .pag",
-			sdbm_name(db), (unsigned long) len);
+		g_critical("sdbm: \"%s\": "
+			"bigkey_free: inconsistent key length %zu in .pag",
+			sdbm_name(db), len);
 		return FALSE;
 	}
 
@@ -1281,9 +1319,9 @@ bigval_free(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		g_warning("sdbm: \"%s\": "
-			"bigval_free: inconsistent key length %lu in .pag",
-			sdbm_name(db), (unsigned long) len);
+		g_critical("sdbm: \"%s\": "
+			"bigval_free: inconsistent key length %zu in .pag",
+			sdbm_name(db), len);
 		return FALSE;
 	}
 
@@ -1320,8 +1358,8 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 
 		if (!big_block_is_allocated(db, bno)) {
 			g_warning("sdbm: \"%s\": "
-				"%s from .pag refers to unallocated block %lu in .dat",
-				sdbm_name(db), what, (unsigned long) bno);
+				"%s from .pag refers to unallocated block %zu in .dat",
+				sdbm_name(db), what, bno);
 			return FALSE;
 		}
 		if (prev_bno != 0 && bno <= prev_bno) {
@@ -1349,8 +1387,8 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 		map = ptr_add_offset(db->big->bitcheck, bmap * BIG_BLKSIZE);
 		if (bit_field_get(map, bit)) {
 			g_warning("sdbm: \"%s\": "
-				"%s from .pag refers to already seen block %lu in .dat",
-				sdbm_name(db), what, (unsigned long) bno);
+				"%s from .pag refers to already seen block %zu in .dat",
+				sdbm_name(db), what, bno);
 			return FALSE;
 		}
 	}
@@ -1373,10 +1411,9 @@ bigkey_check(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		g_warning("sdbm: \"%s\": found inconsistent key length %lu, "
-			"would span %lu bytes in .pag instead of the %lu present",
-			sdbm_name(db), (unsigned long) len,
-			(unsigned long) bigkey_length(len), (unsigned long) blen);
+		g_warning("sdbm: \"%s\": found inconsistent key length %zu, "
+			"would span %zu bytes in .pag instead of the %zu present",
+			sdbm_name(db), len, bigkey_length(len), blen);
 		return FALSE;
 	}
 
@@ -1398,10 +1435,9 @@ bigval_check(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		g_warning("sdbm: \"%s\": found inconsistent value length %lu, "
-			"would span %lu bytes in .pag instead of the %lu present",
-			sdbm_name(db), (unsigned long) len,
-			(unsigned long) bigkey_length(len), (unsigned long) blen);
+		g_warning("sdbm: \"%s\": found inconsistent value length %zu, "
+			"would span %zu bytes in .pag instead of the %zu present",
+			sdbm_name(db), len, bigkey_length(len), blen);
 		return FALSE;
 	}
 
@@ -1464,8 +1500,8 @@ bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		g_carp("sdbm: \"%s\": %s: inconsistent key length %lu in .pag",
-			sdbm_name(db), G_STRFUNC, (unsigned long) len);
+		g_carp("sdbm: \"%s\": %s: inconsistent key length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return;
 	}
 
@@ -1486,8 +1522,8 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		g_carp("sdbm: \"%s\": %s: inconsistent value length %lu in .pag",
-			sdbm_name(db), G_STRFUNC, (unsigned long) len);
+		g_carp("sdbm: \"%s\": %s: inconsistent value length %zu in .pag",
+			sdbm_name(db), G_STRFUNC, len);
 		return;
 	}
 
@@ -1688,7 +1724,7 @@ big_shrink(DBM *db)
 		bno = bit_field_last_set(dbg->bitbuf, 0, BIG_BITCOUNT - 1);
 
 		if ((size_t) -1 == bno) {
-			g_warning("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",
+			g_critical("sdbm: \"%s\": corrupted bitmap #%ld, considered empty",
 				sdbm_name(db), i);
 		} else if (bno != 0) {
 			bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));

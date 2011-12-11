@@ -36,8 +36,8 @@
 #include "geo_ip.h"
 #include "settings.h"
 
-#include "lib/file.h"
 #include "lib/ascii.h"
+#include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
@@ -113,7 +113,6 @@ static G_GNUC_COLD guint
 gip_load(FILE *f)
 {
 	char line[1024];
-	char *p;
 	int linenum = 0;
 	const char *end;
 	guint16 code;
@@ -123,26 +122,25 @@ gip_load(FILE *f)
 
 	geo_db = iprange_new();
 	if (-1 == fstat(fileno(f), &buf)) {
-		g_warning("cannot stat %s: %s", gip_file, g_strerror(errno));
+		g_warning("cannot stat %s: %m", gip_file);
 	} else {
 		geo_mtime = buf.st_mtime;
 	}
 
-	while (fgets(line, sizeof(line), f)) {
+	while (fgets(line, sizeof line, f)) {
 		linenum++;
-		if (*line == '\0' || *line == '#')
-			continue;
 
 		/*
 		 * Remove all trailing spaces in string.
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		p = strchr(line, '\0');
-		while (p-- != line && is_ascii_space(*p)) {
-			*p = '\0';
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+			g_warning("%s: line %d too long, aborting", G_STRFUNC, linenum);
+			break;
 		}
-		if ('\0' == *line)
+
+		if (file_line_is_skipable(line))
 			continue;
 
 		/*

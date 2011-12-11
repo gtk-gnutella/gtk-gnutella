@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -554,6 +554,15 @@ msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
 msgstr[0] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] "UDP ホストキャッシュ %2$s から %1$d 基のホストを取得しました。"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "不正な大きさ"
 
@@ -608,6 +617,10 @@ msgid "Duplicate message"
 msgstr "重複メッセージ"
 
 msgid "Message to banned GUID"
+msgstr "禁止GUIDへのメッセージ"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "禁止GUIDへのメッセージ"
 
 # FIXME: Node -> Peer
@@ -786,6 +799,10 @@ msgstr "ネットワークのメンバーではありません"
 msgid "Too frequent crawling"
 msgstr "クローリングの頻度が多過ぎます"
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "既に接続しています"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "このベンダーはスロットの予約分 (%d%%) を越えます"
@@ -889,8 +906,12 @@ msgstr "読込み失敗 (入力例外が発生しました)"
 msgid "Read error: %s"
 msgstr "読込エラー: %s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "書き込みに失敗しました: %s"
 
 msgid "Can't find your home directory!"
@@ -1748,7 +1769,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "通常ピアキャッシュの現在のホスト数です。"
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "ウルトラピアキャッシュの現在のホスト数です。"
 
 msgid "Current number of hosts in bad node caches."
@@ -1757,7 +1779,8 @@ msgstr "不正ピアキャッシュの現在のホスト数です。"
 msgid "Maximum number of hosts in the regular node cache."
 msgstr "リーフピアのキャッシュの最大ホスト数です。"
 
-msgid "Maximum number of hosts in the ultra node cache."
+#, fuzzy
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "ウルトラピアのキャッシュの最大ホスト数です。"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -3271,19 +3294,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "リーフピアのキャッシュの最大ホスト数です。"
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "通常ピアキャッシュの現在のホスト数です。"
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "G2ノードのキャッシュの最大ホスト数です。"
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "ウルトラピアキャッシュの現在のホスト数です。"
 
 #, fuzzy
@@ -3352,6 +3375,69 @@ msgstr "ホスト参照リクエストで表示する最大数です。"
 #, fuzzy
 msgid "Maximum number of results to show in a passive search request."
 msgstr "ホスト参照リクエストで表示する最大数です。"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "ウルトラピアのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "ウルトラピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "通常ピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "ウルトラピアキャッシュの現在のホスト数です。"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "リーフピアのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "G2ノードのキャッシュの最大ホスト数です。"
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "シェルのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "メッセージ経路制御のデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "ホスト管理機能のデバッグレベルです。"
 
 msgid "disable"
 msgstr "表示しない"
@@ -4680,6 +4766,22 @@ msgstr "%s (%s バイト)"
 msgid "B/s"
 msgstr "B/秒"
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "ja"
 
@@ -4733,6 +4835,38 @@ msgstr "インタラクティブモードが有効になりました。"
 
 msgid "Interactive mode turned off."
 msgstr "インタラクティブモードが無効になりました。"
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "ホームフォルダが見つかりません！"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "不明なプロパティ \"%s\""
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "GIV を送信できません"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "不明な操作です"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "不明な操作です"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "不明な操作です"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "不明な操作です"
 
 msgid "Invalid IP/Port"
 msgstr "無効なIP/ポート"
@@ -4788,6 +4922,14 @@ msgstr "不明なプロパティ"
 
 msgid "Value missing"
 msgstr "値がありません"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "値が見つかりましたので設定します"
@@ -5365,6 +5507,16 @@ msgstr ""
 msgid "Routing errors"
 msgstr "経路制御エラー"
 
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "検索クエリー経路制御テーブルの生成番号です。"
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
 # XXX: wtf
 msgid "Duplicates with higher TTL"
 msgstr "高TTLでの重複"
@@ -5481,7 +5633,14 @@ msgstr "生成検索クエリー数"
 msgid "GUESS queries"
 msgstr "UTF8検索クエリー"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF8検索クエリー"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5616,6 +5775,9 @@ msgstr "競合しているGUID"
 
 msgid "Detected collisions with our own GUID"
 msgstr "競合しているGTKGのGUID"
+
+msgid "GUID dynamically banned"
+msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
 msgstr ""
@@ -8177,6 +8339,11 @@ msgid "Query queued..."
 msgstr "検索クエリーをキューに入れました..."
 
 #, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "%u 件の検索クエリー"
+
+#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Pixmap ファイルがありません: %s"
 
@@ -8460,11 +8627,6 @@ msgstr "逆引き検索を実行中..."
 msgid "Size:"
 msgstr "大きさ:"
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "%u 件の検索クエリー"
-
 # FIXME:
 msgid "Done"
 msgstr "終了"
@@ -8478,11 +8640,23 @@ msgid "Valid regular"
 msgstr "有効な通常ピア"
 
 # FIXME: messy
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "新規のウルトラピア"
 
 # FIXME: messy
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "有効なウルトラピア"
+
+# FIXME: messy
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "新規のウルトラピア"
+
+# FIXME: messy
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "有効なウルトラピア"
 
 msgid "Unstable"
@@ -8492,10 +8666,16 @@ msgstr "不安定"
 msgid "Alien"
 msgstr "別名"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8625,9 +8805,9 @@ msgstr ""
 "古い検索ファイルがあります。検索情報は新しい XML 形式で保管\n"
 "されますので、この古いファイルは %s に名前変更されます。"
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "%s を %s に名前変更できませんでした: %s \n"

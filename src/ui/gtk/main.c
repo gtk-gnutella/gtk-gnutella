@@ -39,11 +39,9 @@
 #endif /* I_PWD */
 
 #ifdef HAVE_GTKOSXAPPLICATION
-#include <igemacintegration/gtkosxapplication.h>
+#include <gtkmacintegration/gtkosxapplication.h>
 #include "settings_cb.h"
 #endif
-
-#include "gtk-gnutella.h"
 
 #include "notebooks.h"
 #include "main.h"
@@ -70,12 +68,15 @@
 
 #include "if/bridge/ui2c.h"
 
+#include "lib/crash.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/tm.h"
-#include "lib/utf8.h"
 #include "lib/omalloc.h"
 #include "lib/path.h"
+#include "lib/product.h"
+#include "lib/tm.h"
+#include "lib/utf8.h"
+
 #include "lib/override.h"			/* Must be the last header included */
 
 /***
@@ -142,13 +143,15 @@ static void
 gui_init_window_title(void)
 {
 	gchar title[256];
+	const char *revision = product_get_revision();
 
-#ifdef GTA_REVISION
-	gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
-		GTA_VERSION_NUMBER, GTA_REVISION);
-#else
-	gm_snprintf(title, sizeof(title), "gtk-gnutella %s", GTA_VERSION_NUMBER);
-#endif
+	if (revision[0] != '\0') {
+		gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
+			product_get_version(), revision);
+	} else {
+		gm_snprintf(title, sizeof(title), "gtk-gnutella %s",
+			product_get_version());
+	}
 
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
 }
@@ -559,47 +562,6 @@ main_gui_gtkrc_init(void)
  *** Public functions
  ***/
 
-
-#ifdef HAVE_GTKOSXAPPLICATION
-gboolean
-on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_event,
-							gpointer unused_udata)
-{
-	(void) unused_widget;
-	(void) unused_event;
-	(void) unused_udata;
-	
-	gtk_widget_hide(gui_main_window());
-	
-	return TRUE;
-}
-
-gboolean
-on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
-						 gpointer user_data)
-{
-	(void) app;
-	(void) path;
-	(void) user_data;
-	
-	gtk_widget_show(gui_main_window());
-	
-	return TRUE;	
-}
-
-gboolean
-on_NSApplicationDidBecomeActive(GtkOSXApplication *app, gpointer user_data)
-{
-	(void) app;
-	(void) user_data;
-	
-	gtk_widget_show(gui_main_window());
-	
-	return TRUE;
-}
-
-#endif
-
 void
 main_gui_show_prefences(void)
 {
@@ -616,8 +578,8 @@ void main_gui_init_osx()
 	GError *err = NULL;
 	GtkOSXApplication *theApp = g_object_new(GTK_TYPE_OSX_APPLICATION, NULL);
 	GtkUIManager *mgr = gtk_ui_manager_new();
-	GtkOSXApplicationMenuGroup *group;
 	GtkWidget *item;
+	GtkWidget *sep;
 	GtkWidget *menubar;
 	
 	g_signal_connect(theApp, "NSApplicationBlockTermination",
@@ -804,12 +766,13 @@ void main_gui_init_osx()
 	gtk_widget_hide(GTK_WIDGET(item));
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/Help/About");
-	group = gtk_osxapplication_add_app_menu_group (theApp);
-	gtk_osxapplication_add_app_menu_item  (theApp, group, GTK_MENU_ITEM (item));
+	gtk_osxapplication_insert_app_menu_item  (theApp, item, 0);
+	sep = gtk_separator_menu_item_new();
+	g_object_ref(sep);
+	gtk_osxapplication_insert_app_menu_item  (theApp, sep, 1);	
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/File/Preferences");
-	group = gtk_osxapplication_add_app_menu_group (theApp);
-	gtk_osxapplication_add_app_menu_item  (theApp, group, GTK_MENU_ITEM (item));
+	gtk_osxapplication_insert_app_menu_item  (theApp, item, 2);
 	
 	
 	GtkWidget *dock_menu = gtk_menu_new();
@@ -853,8 +816,10 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 #endif
 
 	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
-	if (tmp != NULL)
+	if (tmp != NULL) {
 		add_pixmap_directory(ostrdup(tmp));
+		HFREE_NULL(tmp);
+	}
 #ifdef MINGW32
 	add_pixmap_directory(mingw_filename_nearby("pixmaps"));
 #endif
@@ -895,13 +860,12 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 		gui_main_window_lookup("combo_search")));
 
 	clipboard_attach(gui_main_window());
-
-	HFREE_NULL(tmp);
 }
 
 void
 main_gui_exit(int n)
 {
+	crash_close();
 	gtk_exit(n);
 }
 

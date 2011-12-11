@@ -68,6 +68,7 @@
 #include "endian.h"
 #include "halloc.h"
 #include "misc.h"
+#include "path.h"
 #include "random.h"
 #include "debug.h"
 #include "glib-missing.h"
@@ -1672,10 +1673,11 @@ textdomain_init(const char *codeset)
 {
 #ifdef ENABLE_NLS
 	{
-		const char *nlspath;
+		char *nlspath;
 
-		nlspath = getenv("NLSPATH");
-		bindtextdomain(PACKAGE, nlspath ? nlspath : LOCALE_EXP);
+		nlspath = get_folder_path(NLS_PATH, NULL);
+		bindtextdomain(PACKAGE, nlspath);
+		HFREE_NULL(nlspath);
 	}
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
@@ -1824,7 +1826,11 @@ locale_init(void)
 	BINARY_ARRAY_SORTED(utf32_general_category_lut,
 		struct utf32_general_category, uc, CMP, uint32_to_string);
 
+#ifdef MINGW32
+	setlocale(LC_ALL, g_win32_getlocale());
+#else
 	setlocale(LC_ALL, "");
+#endif
 	charset = deconstify_gpointer(locale_get_charset());
 
 	/*
@@ -2011,7 +2017,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 			int e = errno;
 
 			if (common_dbg > 1)
-				g_warning("complete_iconv: iconv() failed: %s", g_strerror(e));
+				g_warning("complete_iconv: iconv() failed: %m");
 
 			g_assert(E2BIG != e);
 			g_assert(EINVAL == e || EILSEQ == e);

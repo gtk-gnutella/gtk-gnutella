@@ -71,12 +71,14 @@
 #include "common.h"		/* For RCSID */
 
 #include "omalloc.h"
+#include "dump_options.h"
+#include "glib-missing.h"
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
-#include "glib-missing.h"
 
 #include "override.h"	/* Must be the last header included */
 
@@ -135,7 +137,9 @@ static struct {
 	size_t objects;			/**< Total amount of objects allocated */
 	size_t memory;			/**< Total amount of memory allocated */
 	size_t chunks;			/**< Total amount of chunks still present */
-} stats;
+	size_t zeroed;			/**< Zeroed objects at allocation time */
+	size_t wasted;			/**< Wasted memory at the tail of chunks */
+} ostats;
 
 /**
  * Remaining free space in the chunk (including header).
@@ -382,14 +386,14 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		 */
 
 		omalloc_chunk_unlink(ck);
-		stats.chunks--;
+		ostats.chunks--;
 
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC dissolving chunk header on %lu-byte allocation",
-				(unsigned long) size);
+			s_debug("OMALLOC dissolving chunk header on %zu-byte allocation",
+				size);
 			if (csize != size) {
-				s_debug("OMALLOC %lu trailing bytes lost",
-					(unsigned long) (csize - size));
+				s_debug("OMALLOC %zu trailing bytes lost", csize - size);
+				ostats.wasted += csize - size;
 			}
 		}
 	}
@@ -414,8 +418,8 @@ omalloc(size_t size)
 	g_assert(size_is_positive(size));
 
 	rounded = omalloc_round(size);		/* Alignment requirements */
-	stats.memory += rounded;
-	stats.objects++;
+	ostats.memory += rounded;
+	ostats.objects++;
 	g_assert(rounded >= size);
 
 	/*
@@ -427,21 +431,20 @@ omalloc(size_t size)
 		return omalloc_chunk_allocate_from(ck, rounded);
 
 	/*
-	 * Request new memory.
+	 * Request new "core" memory.
 	 */
 
-	result = vmm_alloc_not_leaking(rounded);
+	result = vmm_core_alloc(rounded);
 	allocated = round_pagesize(rounded);
 
 	if (omalloc_debug > 2) {
 		size_t pages = allocated / compat_pagesize();
-		s_debug("OMALLOC allocated %lu page%s (%lu total for %lu object%s)",
-			(unsigned long) pages, 1 == pages ? "" : "s",
-			(unsigned long) stats.pages, (unsigned long) stats.objects,
-			1 == stats.objects ? "" : "s");
+		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu object%s)",
+			pages, 1 == pages ? "" : "s",
+			ostats.pages, ostats.objects, 1 == ostats.objects ? "" : "s");
 	}
 
-	stats.pages += allocated / compat_pagesize();
+	ostats.pages += allocated / compat_pagesize();
 
 	/*
 	 * If we have enough memory at the tail to create a new chunk, do so.
@@ -455,18 +458,17 @@ omalloc(size_t size)
 		ck = ptr_add_offset(result, rounded);
 		ck->end = ptr_add_offset(result, allocated);
 		omalloc_chunk_link(ck);
-		stats.chunks++;
+		ostats.chunks++;
 
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC adding %lu byte-long chunk (%lu chunk%s total)",
-				(unsigned long) omalloc_chunk_size(ck),
-				(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s");
+			s_debug("OMALLOC adding %zu byte-long chunk (%zu chunk%s total)",
+				omalloc_chunk_size(ck),
+				ostats.chunks, 1 == ostats.chunks ? "" : "s");
 		}
 	} else if (allocated != rounded) {
 		if (omalloc_debug > 2) {
-			s_debug("OMALLOC %lu trailing bytes lost on %lu-byte allocation",
-				(unsigned long) (allocated - rounded),
-				(unsigned long) rounded);
+			s_debug("OMALLOC %zu trailing bytes lost on %zu-byte allocation",
+				allocated - rounded, rounded);
 		}
 	}
 
@@ -487,6 +489,7 @@ omalloc0(size_t size)
 
 	p = omalloc(size);
 	memset(p, 0, size);
+	ostats.zeroed++;
 
 	return p;
 }
@@ -519,7 +522,7 @@ ostrdup(const char *str)
 size_t
 omalloc_page_count(void)
 {
-	return stats.pages;
+	return ostats.pages;
 }
 
 /**
@@ -543,14 +546,34 @@ omalloc_close(void)
 	 */
 
 	if (omalloc_debug) {
-		s_debug("omalloc() allocated %lu object%s spread on %lu page%s",
-			(unsigned long) stats.objects, 1 == stats.objects ? "" : "s",
-			(unsigned long) stats.pages, 1 == stats.pages ? "" : "s");
-		s_debug("omalloc() allocated %s, %lu partial page%s remain%s",
-			short_size(stats.memory, FALSE),
-			(unsigned long) stats.chunks, 1 == stats.chunks ? "" : "s",
-			1 == stats.chunks ? "s" : "");
+		s_debug("omalloc() allocated %zu object%s spread on %zu page%s",
+			ostats.objects, 1 == ostats.objects ? "" : "s",
+			ostats.pages, 1 == ostats.pages ? "" : "s");
+		s_debug("omalloc() allocated %s, %zu partial page%s remain%s",
+			short_size(ostats.memory, FALSE),
+			ostats.chunks, 1 == ostats.chunks ? "" : "s",
+			1 == ostats.chunks ? "s" : "");
 	}
+}
+
+/**
+ * Dump omalloc() statistics for run-time inspection.
+ */
+G_GNUC_COLD void
+omalloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+#define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
+	(options & DUMP_OPT_PRETTY) ?					\
+		size_t_to_gstring(ostats.x) : size_t_to_string(ostats.x))
+
+	DUMP(pages);
+	DUMP(objects);
+	DUMP(memory);
+	DUMP(chunks);
+	DUMP(zeroed);
+	DUMP(wasted);
+
+#undef DUMP
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

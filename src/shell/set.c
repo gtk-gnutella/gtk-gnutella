@@ -36,7 +36,6 @@
 #include "cmd.h"
 
 #include "if/gnet_property.h"
-#include "if/gnet_property_priv.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -78,17 +77,15 @@ shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	if (verbose) {
-		shell_write(sh, "100-Previous value was ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
+		shell_write_linef(sh, REPLY_READY, _("Previous value was %s"),
+			gnet_prop_to_string(prop));
 	}
 
 	gnet_prop_set_from_string(prop,	argv[1]);
 
 	if (verbose) {
-		shell_write(sh, "100-New value is ");
-		shell_write(sh, gnet_prop_to_string(prop));
-		shell_write(sh, "\n");
+		shell_write_linef(sh, REPLY_READY, _("New value is %s"),
+			gnet_prop_to_string(prop));
 	}
 
 	shell_set_msg(sh, _("Value found and set"));

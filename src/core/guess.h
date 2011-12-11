@@ -35,6 +35,7 @@
 #define _core_guess_h_
 
 #include "common.h"
+#include "hcache.h"		/* For host_net_t */
 
 #include "lib/gnet_host.h"
 
@@ -70,7 +71,7 @@ gboolean guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, guint16 len);
 
-int guess_fill_caught_array(gnet_host_t *hosts, int hcount);
+int guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount);
 
 /**
  * Is GUESS querying enabled?

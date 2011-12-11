@@ -55,13 +55,21 @@ struct logstat {
 struct logthread;
 typedef struct logthread logthread_t;
 
+struct logagent;
+typedef struct logagent logagent_t;
+
 /*
  * Public interface.
  */
 
+struct str;
+
 logthread_t *log_thread_alloc(void);
+const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
+void log_abort(void) G_GNUC_NORETURN;
 
 void log_init(void);
+void log_crashing(struct str *str);
 void log_atoms_inited(void);
 void log_close(void);
 void log_set_disabled(enum log_file which, gboolean disabled);
@@ -76,6 +84,9 @@ gboolean log_is_disabled(enum log_file which);
 gboolean log_stdout_is_distinct(void);
 gboolean log_printable(enum log_file which);
 gboolean log_file_printable(const FILE *out);
+void log_set_duplicate(enum log_file which, int dupfd);
+void log_force_fd(enum log_file which, int fd);
+int log_get_fd(enum log_file which);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).
@@ -84,11 +95,16 @@ gboolean log_file_printable(const FILE *out);
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
 void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void s_error_from(const char *file, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
 
 /*
  * Thread-safe logging interface.
@@ -97,10 +113,30 @@ void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_critical(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_error(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_carp(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void t_carp_once(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_warning(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_message(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void t_error_from(const char *file,
+	logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(3, 4);
+
+/*
+ * Polymorphic logging interface.
+ */
+
+logagent_t *log_agent_stderr_get(void);
+logagent_t *log_agent_string_make(size_t size, const char *prefix);
+void log_agent_string_reset(logagent_t *la);
+const char *log_agent_string_get(const logagent_t *la);
+char *log_agent_string_get_null(logagent_t **la_ptr);
+void log_agent_free_null(logagent_t **la_ptr);
+
+void log_critical(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_warning(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_message(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_info(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_debug(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
 
 #endif /* _log_h_ */
 

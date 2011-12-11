@@ -188,8 +188,11 @@ gtk_main_flush(void)
 			break;
 	}
 
-	if (i > GTK_ITERATION_MAX && !val)
-		g_warning("gtk_main_flush: too much work");
+	if (i > GTK_ITERATION_MAX && !val) {
+		if (GUI_PROPERTY(gui_debug)) {
+			g_warning("gtk_main_flush: too much work");
+		}
+	}
 
     return val;
 }

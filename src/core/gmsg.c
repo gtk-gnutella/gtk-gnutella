@@ -819,7 +819,7 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 		return;
 	case ROUTE_ALL_BUT_ONE:
 		g_assert(n == rt_node);
-		gmsg_split_routeto_all_but_one(n, node_all_nodes(), rt_node,
+		gmsg_split_routeto_all_but_one(n, node_all_ultranodes(), rt_node,
 			&n->header, n->data, n->size + GTA_HEADER_SIZE);
 		return;
 	case ROUTE_MULTI:
@@ -1194,7 +1194,8 @@ gmsg_infostr(gconstpointer msg)
  * that node and being routed or processed).
  *
  * The advantage over calling gmsg_infostr(&n->header) is that the node
- * information is also printed if by chance the hop count of the message is 1.
+ * information is also printed if by chance the hop count of the message is 1
+ * or 0 (for UDP messages).
  *
  * @returns formatted static string:
  *
@@ -1209,12 +1210,12 @@ gmsg_infostr(gconstpointer msg)
 const char *
 gmsg_node_infostr(const gnutella_node_t *n)
 {
-	static char buf[120];
+	static char buf[160];
 	size_t w;
 
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
 
-	if (gnutella_header_get_hops(n->header) == 1) {
+	if (gnutella_header_get_hops(n->header) <= 1) {
 		gm_snprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
 	}
 

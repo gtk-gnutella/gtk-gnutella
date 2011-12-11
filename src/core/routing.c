@@ -243,7 +243,8 @@ static void free_route_list(struct message *m);
 static inline gboolean
 is_banned_push(const struct guid *guid)
 {
-	return NULL != g_hash_table_lookup(ht_banned_push, guid);
+	return NULL != g_hash_table_lookup(ht_banned_push, guid) ||
+		guid_is_banned(guid);
 }
 
 struct node_magic {
@@ -804,6 +805,7 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 		entry->slot = entryp;
 		entry->chunk_idx = chunk_idx;	/* 8-bit value, must fit */
 		routing.count++;
+		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, +1);
 		goto done;
 	}
 
@@ -858,7 +860,8 @@ routing_chunk_move(struct message **chunk, unsigned chunk_idx)
 	 */
 
 	if (GNET_PROPERTY(routing_debug)) {
-		g_debug("RT moving chunk #%u from %p to %p", chunk_idx, chunk, nchunk);
+		g_debug("RT moving chunk #%u from %p to %p",
+			chunk_idx, (void *) chunk, (void *) nchunk);
 	}
 
 	for (p = &nchunk[0], i = 0; i < CHUNK_MESSAGES; i++, p++) {
@@ -941,22 +944,45 @@ get_next_slot(gboolean advance, unsigned *cidx)
 	chunk = routing.chunks[chunk_idx];
 
 	/*
+	 * If we get back here with a next index of zero and the chunk is
+	 * allocated, it means we've naturally cycled over.  There is nothing
+	 * to free up (or we would discard the whole table).
+	 */
+
+	if G_UNLIKELY(0 == idx && NULL != chunk) {
+		if (GNET_PROPERTY(routing_debug)) {
+			g_debug("RT cycled naturally over table, elapsed=%u, holds %d / %d",
+				(unsigned) elapsed, routing.count, routing.capacity);
+		}
+		routing.last_rotation = now;	/* Just cycled over */
+		elapsed = 0;
+	}
+
+	/*
 	 * If we've taken more than TABLE_MIN_CYCLE seconds since the last
 	 * rotation and reach the start of an allocated chunk, it means we
 	 * have more chunks than we need.  Discard all remaining chunks before
 	 * rotating.
 	 */
 
-	if (chunk != NULL && elapsed > TABLE_MIN_CYCLE && 0 == ENTRY_INDEX(idx)) {
+	if G_UNLIKELY(elapsed > TABLE_MIN_CYCLE) {
 		size_t i;
+
+		/*
+		 * 0 != ENTRY_INDEX(idx): means we're not at the start of a chunk.
+		 * chunk == NULL: means we've reached an empty chunk, nothing to free.
+		 */
+
+		if G_LIKELY(0 != ENTRY_INDEX(idx) || NULL == chunk)
+			goto get_slot;
 
 		for (i = chunk_idx; i < routing.nchunks; i++) {
 			struct message **rchunk = routing.chunks[i];
 			size_t j;
 
 			if (GNET_PROPERTY(routing_debug)) {
-				g_debug("RT freeing chunk #%lu at %p, now holds %d / %d",
-					(unsigned long) i, rchunk, routing.count, routing.capacity);
+				g_debug("RT freeing chunk #%zu at %p, now holds %d / %d",
+					i, (void *) rchunk, routing.count, routing.capacity);
 			}
 
 			for (j = 0; j < CHUNK_MESSAGES; j++) {
@@ -977,6 +1003,9 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 		chunk = NULL;
 		routing.nchunks = chunk_idx;
+		gnet_stats_set_general(GNR_ROUTING_TABLE_CHUNKS, routing.nchunks);
+		gnet_stats_set_general(GNR_ROUTING_TABLE_CAPACITY, routing.capacity);
+		gnet_stats_set_general(GNR_ROUTING_TABLE_COUNT, routing.count);
 
 		g_assert(uint_is_non_negative(routing.nchunks));
 
@@ -989,6 +1018,8 @@ get_next_slot(gboolean advance, unsigned *cidx)
 
 		/* FALL THROUGH */
 	}
+
+get_slot:
 
 	if (chunk == NULL) {
 
@@ -1024,9 +1055,13 @@ get_next_slot(gboolean advance, unsigned *cidx)
 			routing.chunks[chunk_idx] =
 				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
+			gnet_stats_count_general(GNR_ROUTING_TABLE_CHUNKS, +1);
+			gnet_stats_count_general(GNR_ROUTING_TABLE_CAPACITY,
+				CHUNK_MESSAGES);
+
 			if (GNET_PROPERTY(routing_debug)) {
 				g_debug("RT created new chunk #%d at %p, now holds %d / %d",
-					chunk_idx, routing.chunks[chunk_idx],
+					chunk_idx, (void *) routing.chunks[chunk_idx],
 					routing.count, routing.capacity);
 			}
 
@@ -1141,6 +1176,7 @@ revitalize_entry(struct message *entry, gboolean force)
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
+		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, -1);
 	}
 
 	/*
@@ -1349,8 +1385,6 @@ routing_init(void)
 
 	routing.messages_hashed =
 		g_hash_table_new(message_hash_func, message_compare_func);
-	routing.next_idx = 0;
-	routing.capacity = 0;
 	routing.last_rotation = tm_time();
 
 	/*
@@ -1622,6 +1656,49 @@ purge_dangling_references(struct message *m)
 			sl = g_slist_next(sl);
 			if (t)
 				t = g_slist_next(t);
+		}
+	}
+}
+
+/**
+ * Forget that node sent given message.
+ *
+ * @param muid is the message MUID
+ * @param function is the message type
+ * @param node is the node from which we got the message
+ */
+void
+message_forget(const struct guid *muid, guint8 function, gnutella_node_t *node)
+{
+	gboolean found;
+	struct message *m;
+	GSList *sl;
+	GSList *t;
+	struct route_data *route;
+
+	g_assert(muid != NULL);
+	node_check(node);
+
+	found = find_message(muid, function, &m);
+	g_return_unless(found);
+	g_assert(m != NULL);
+
+	route = get_routing_data(node);
+	g_return_unless(route != NULL);
+
+	for (
+		sl = m->routes, t = m->ttls;
+		sl != NULL;
+		sl = g_slist_next(sl), t = g_slist_next(t)
+	) {
+		struct route_data *rd = sl->data;
+
+		if (route == rd) {
+			m->routes = g_slist_remove_link(m->routes, sl);
+			if (t != NULL)
+				m->ttls = g_slist_remove_link(m->ttls, t);
+			remove_one_message_reference(rd);
+			break;
 		}
 	}
 }
@@ -2133,12 +2210,15 @@ route_push(struct route_log *route_log,
 				node_addr(sender), guid_hex_str(guid));
 		}
 		routing_log_extra(route_log, "to banned GUID %s", guid_hex_str(guid));
-		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
+		gnet_stats_count_dropped(sender, MSG_DROP_TO_BANNED);
 		return FALSE;
 	}
 
 	/*
 	 * If IP address is among the hostile set, drop.
+	 *
+	 * FIXME: need to check for "6" for IPv6-Ready because it may not be
+	 * an IPv4 target.
 	 */
 
 	if (hostiles_check(host_addr_peek_ipv4(&sender->data[20]))) {
@@ -2169,7 +2249,7 @@ route_push(struct route_log *route_log,
 
 		/*
 		 * Since we have a direct connection to the target, relay the message
-		 * directly withou using the known routes.
+		 * directly without using the known routes.
 		 */
 
 		forward_message(route_log, node, neighbour, dest, NULL);
@@ -2460,6 +2540,7 @@ route_query_hit(struct route_log *route_log,
 	 */
 	{
 		GSList *sl;
+		gboolean skipped_transient = FALSE;
 
 		found = NULL;
 		for (sl = m->routes; sl; sl = g_slist_next(sl)) {
@@ -2471,12 +2552,37 @@ route_query_hit(struct route_log *route_log,
 			if (route->node == sender)
 				continue;
 
-			if (
-				route_node_is_gnutella(route->node) &&
-				node_guid(route->node) &&
-				guid_eq(node_guid(route->node), origin_guid)
-			) {
-				continue;
+			if (route_node_is_gnutella(route->node)) {
+				if (
+					node_guid(route->node) &&
+					guid_eq(node_guid(route->node), origin_guid)
+				)
+					continue;
+
+				/*
+				 * Don't waste bandwidth nor lose the hit: try to find a route
+				 * which is not through a transient node, if we can.
+				 *
+				 * Otherwise, the DH layer will drop the hit later and it
+				 * will be logged as a message targeted to a transient node.
+				 */
+
+				if (NULL != g_slist_next(sl)) {
+					gnutella_node_t *rn;
+
+					rn = route_node_get_gnutella(route->node);
+					if (NODE_IS_TRANSIENT(rn)) {
+						skipped_transient = TRUE;
+						continue;
+					}
+
+					/* Count non-transient route found after skipping */
+
+					if (skipped_transient) {
+						gnet_stats_count_general(
+							GNR_ROUTING_TRANSIENT_AVOIDED, 1);
+					}
+				}
 			}
 
 			found = route_node_get_gnutella(route->node);
@@ -2725,6 +2831,18 @@ route_exists_for_reply(const struct guid *muid, guint8 function)
 		return FALSE;
 
 	return TRUE;
+}
+
+/**
+ * Check whether GUID is routable through a PUSH request.
+ *
+ * @return TRUE if GUID is routable, FALSE if no PUSH could ever properly
+ * reach the target node.
+ */
+gboolean
+route_guid_pushable(const struct guid *guid)
+{
+	return !is_banned_push(guid);
 }
 
 /**

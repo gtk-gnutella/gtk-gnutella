@@ -249,7 +249,7 @@ http_send_status(
 
 	if (body) {
 		rw += gm_snprintf(&header[rw], header_size - rw,
-						"Content-Length: %lu\r\n", (gulong) strlen(body));
+						"Content-Length: %zu\r\n", strlen(body));
 	}
 	if (rw < header_size) {
 		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
@@ -270,8 +270,8 @@ http_send_status(
 	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
 		if (GNET_PROPERTY(http_debug) > 1)
-			g_warning("unable to send back HTTP status %d (%s) to %s: %s",
-			code, status_msg, host_addr_to_string(s->addr), g_strerror(errno));
+			g_warning("unable to send back HTTP status %d (%s) to %s: %m",
+			code, status_msg, host_addr_to_string(s->addr));
 		return FALSE;
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(http_debug)) g_warning(
@@ -1263,25 +1263,24 @@ http_range_parse(
 
 			if (!minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %lu (no range?): "
-					"%s", field, vendor, (unsigned long) (str - value) - 1,
-					value);
+					"weird %s header from <%s>, offset %zu (no range?): "
+					"%s", field, vendor, (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %lu "
+					"weird %s header from <%s>, offset %zu "
 					"(incomplete negative range): %s",
-					field, vendor, (unsigned long) (str - value) - 1, value);
+					field, vendor, (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start > end) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %lu "
+					"weird %s header from <%s>, offset %zu "
 					"(swapped range?): %s", field, vendor,
-					(unsigned long) (str - value) - 1, value);
+					(str - value) - 1, value);
 				goto reset;
 			}
 
@@ -1291,10 +1290,9 @@ http_range_parse(
 
 			if (ignored) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %lu "
+					"weird %s header from <%s>, offset %zu "
 					"(ignored range #%d): %s",
-					field, vendor, (unsigned long) (str - value) - 1,
-					count, value);
+					field, vendor, (str - value) - 1, count, value);
 			}
 
 			goto reset;
@@ -1306,18 +1304,17 @@ http_range_parse(
 		if (c == '-') {
 			if (minus_seen) {
 				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %lu (spurious '-'): %s",
-					field, vendor, (unsigned long) (str - value) - 1, value);
+					"weird %s header from <%s>, offset %zu (spurious '-'): %s",
+					field, vendor, (str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
 			if (!has_start) {		/* Negative range */
 				if (!request) {
 					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %lu "
+						g_warning("weird %s header from <%s>, offset %zu "
 							"(negative range in reply): %s",
-							field, vendor, (unsigned long) (str - value) - 1,
-							value);
+							field, vendor, (str - value) - 1, value);
 					goto resync;
 				}
 				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
@@ -1338,9 +1335,9 @@ http_range_parse(
 
 			if (has_end) {
 				if (GNET_PROPERTY(http_debug))
-					g_warning("weird %s header from <%s>, offset %lu "
+					g_warning("weird %s header from <%s>, offset %zu "
 						"(spurious boundary %s): %s",
-						field, vendor, (unsigned long) (str - value) - 1,
+						field, vendor, (str - value) - 1,
 						uint64_to_string(val), value);
 				goto resync;
 			}
@@ -1356,9 +1353,9 @@ http_range_parse(
 			if (has_start) {
 				if (!minus_seen) {
 					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %lu "
+						g_warning("weird %s header from <%s>, offset %zu "
 							"(no '-' before boundary %s): %s",
-							field, vendor, (unsigned long) (str - value) - 1,
+							field, vendor, (str - value) - 1,
 							uint64_to_string(val), value);
 					goto resync;
 				}
@@ -3286,8 +3283,8 @@ next_buffer:
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
-		g_warning("HTTP request sending to %s failed: %s",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+		g_warning("HTTP request sending to %s failed: %m",
+			host_addr_port_to_string(s->addr, s->port));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
@@ -3384,8 +3381,8 @@ http_async_connected(http_async_t *ha)
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, req, rw);
 
 	if ((ssize_t) -1 == sent) {
-		g_warning("HTTP request sending to %s failed: %s",
-			host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+		g_warning("HTTP request sending to %s failed: %m",
+			host_addr_port_to_string(s->addr, s->port));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
@@ -3429,17 +3426,17 @@ http_async_connected(http_async_t *ha)
 		sent = bws_write(BSCHED_BWS_OUT, &s->wio, ha->data, ha->datalen);
 
 		if ((ssize_t) -1 == sent) {
-			g_warning("HTTP data sending to %s failed: %s",
-				host_addr_port_to_string(s->addr, s->port), g_strerror(errno));
+			g_warning("HTTP data sending to %s failed: %m",
+				host_addr_port_to_string(s->addr, s->port));
 			http_async_syserr(ha, errno);
 			return;
 		} else if ((size_t) sent < ha->datalen) {
 			http_buffer_t *r;
 
 			g_warning("partial HTTP data write to %s: "
-				"only %d of %lu bytes sent",
+				"only %zu of %zu bytes sent",
 				host_addr_port_to_string(s->addr, s->port),
-				(int) sent, (unsigned long) ha->datalen);
+				sent, ha->datalen);
 
 			g_assert(ha->delayed == NULL);
 
@@ -3498,9 +3495,9 @@ http_async_log_error_dbg(http_async_t *handle,
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
-		g_message("%s: aborting \"%s %s\" at %s on system error: %s",
-			what, req, url, host_addr_port_to_string(addr, port),
-			g_strerror(error));
+		errno = error;
+		g_message("%s: aborting \"%s %s\" at %s on system error: %m",
+			what, req, url, host_addr_port_to_string(addr, port));
 		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
@@ -4038,8 +4035,8 @@ http_transaction_failed(char *data, size_t len, int code, header_t *h, void *a)
 		g_message("HTTP expected-to-fail wget of \"%s\" OK (HTTP %d)",
 			url, code);
 	} else {
-		g_warning("HTTP expected-to-fail wget of \"%s\" FAILED: got %lu bytes",
-			url, (unsigned long) len);
+		g_warning("HTTP expected-to-fail wget of \"%s\" FAILED: got %zu bytes",
+			url, len);
 	}
 }
 
@@ -4053,8 +4050,8 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 	} else {
 		void *ha;
 
-		g_message("HTTP async wget of \"%s\" SUCCEEDED (%lu byte%s)",
-			url, (unsigned long) len, 1 == len ? "" : "s");
+		g_message("HTTP async wget of \"%s\" SUCCEEDED (%zu byte%s)",
+			url, len, 1 == len ? "" : "s");
 		g_debug("---- Begin HTTP Header ----");
 		header_dump(stderr, h, NULL);
 		g_debug("---- End HTTP Header ----");

@@ -104,7 +104,7 @@ pattern_compile(const char *pattern)
  * and its length is known upon entry.
  *
  * @attention
- * NB: There is no pattern_free_fast(), just call zfree() on the result.
+ * NB: There is no pattern_free_fast(), just call pattern_free() on the result.
  */
 G_GNUC_HOT cpattern_t *
 pattern_compile_fast(const char *pattern, size_t plen)
@@ -147,6 +147,20 @@ pattern_free(cpattern_t *cpat)
 }
 
 /**
+ * Dispose of compiled pattern and nullify its pointer.
+ */
+void
+pattern_free_null(cpattern_t **cpat_ptr)
+{
+	cpattern_t *cpat = *cpat_ptr;
+
+	if (cpat != NULL) {
+		pattern_free(cpat);
+		*cpat_ptr = NULL;
+	}
+}
+
+/**
  * Quick substring search algorithm.  It looks for the compiled pattern
  * with `text', from left to right.  The `tlen' argument is the length
  * of the text, and can left to 0, in which case it will be computed.
@@ -155,7 +169,7 @@ pattern_free(cpattern_t *cpat)
  */
 G_GNUC_HOT const char *
 pattern_qsearch(
-	cpattern_t *cpat,		/**< Compiled pattern */
+	const cpattern_t *cpat,	/**< Compiled pattern */
 	const char *text,		/**< Text we're scanning */
 	size_t tlen,			/**< Text length, 0 = compute strlen(text) */
 	size_t toffset,			/**< Offset within text for search start */

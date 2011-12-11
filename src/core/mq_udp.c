@@ -315,7 +315,7 @@ again:
 	size = pmsg_size(mb);
 
 	if (size == 0) {
-		g_warning("mq_udp_putq: called with empty message");
+		g_carp("%s: called with empty message", G_STRFUNC);
 		goto cleanup;
 	}
 
@@ -331,8 +331,8 @@ again:
 		pmsg_t *extended;
 
 		if (debugging(20))
-			g_warning("mq_udp_putq: %s recursion detected (%d already pending)",
-				mq_info(q), slist_length(q->qwait));
+			g_warning("%s: %s recursion detected (%u already pending)",
+				G_STRFUNC, mq_info(q), slist_length(q->qwait));
 
 		/*
 		 * We insert extended messages into the waiting queue since we need
@@ -400,9 +400,8 @@ again:
 
 		if (written > 0) {
 			g_warning(
-				"partial UDP write (%lu bytes) to %s for %lu-byte datagram",
-				(unsigned long) written, gnet_host_to_string(to),
-				(unsigned long) size);
+				"partial UDP write (%zu bytes) to %s for %zu-byte datagram",
+				written, gnet_host_to_string(to), size);
 			goto cleanup;
 		}
 
@@ -466,8 +465,8 @@ cleanup:
 
 			if (debugging(20))
 				g_warning(
-					"mq_udp_putq: %s flushing waiting to %s (%d still pending)",
-					mq_info(q), gnet_host_to_string(to),
+					"%s: %s flushing waiting to %s (%u still pending)",
+					G_STRFUNC, mq_info(q), gnet_host_to_string(to),
 					slist_length(q->qwait));
 
 			goto again;
@@ -500,8 +499,25 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
 }
 
+/**
+ * Is the last enqueued message still unwritten?
+ */
+static gboolean
+mq_udp_flushed(const mqueue_t *unused_q)
+{
+	(void) unused_q;
+
+	/*
+	 * This is always TRUE with UDP, since we either write the whole
+	 * message or send nothing.
+	 */
+
+	return TRUE;
+}
+
 static const struct mq_ops mq_udp_ops = {
 	mq_no_putq,			/* putq */
+	mq_udp_flushed,		/* flushed */
 };
 
 /* vi: set ts=4 sw=4 cindent: */

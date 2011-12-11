@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -22,26 +22,52 @@
  */
 
 /**
- * @ingroup core
+ * @ingroup lib
  * @file
  *
- * Long Running Host Cache.
+ * Exit wrapper.
+ *
+ * Our own exit() wrapper makes sure anything allocated by the libc startup
+ * will not be freed, as it could not have proper block sizes when xmalloc()
+ * supersedes malloc(): at startup time, we had no chance to initialize the
+ * necessary constants to compute page size alignments.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2011
  */
-
-#ifndef _core_lrhc_h_
-#define _core_lrhc_h_
 
 #include "common.h"
 
-/*
- * Public interface.
+#include "exit.h"
+#include "crash.h"
+#include "xmalloc.h"
+
+#include "override.h"			/* Must be the last header included */
+
+#undef exit
+#undef _exit
+
+/**
+ * Exit with given status for the parent process.
  */
+G_GNUC_COLD void
+do_exit(int status)
+{
+	xmalloc_stop_freeing();
+	crash_close();
+	exit(status);
+}
 
-void lrhc_init(void);
-void lrhc_close(void);
+/**
+ * Exit with given status for the parent process.
+ *
+ * Handlers registered with atexit() are not invoked.
+ */
+G_GNUC_COLD void
+do__exit(int status)
+{
+	xmalloc_stop_freeing();
+	_exit(status);
+}
 
-#endif /* _core_lrhc_h_ */
-
+/* vi: set ts=4 sw=4 cindent: */

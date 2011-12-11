@@ -43,6 +43,7 @@
 #include "ascii.h"
 #include "compat_poll.h"
 #include "iovec.h"
+#include "log.h"			/* For s_minicarp() */
 #include "misc.h"			/* For clamp_strcpy() */
 #include "str.h"
 #include "unsigned.h"
@@ -239,8 +240,9 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 #ifdef HAS_VSNPRINTF
 {
 	int retval;	/* printf()-functions really return int, not size_t */
-	
-	g_assert(size > 0);	
+	int truncated = 0;
+
+	g_assert(size_is_positive(size));	
 
 	dst[0] = '\0';
 	retval = vsnprintf(dst, size, fmt, args);
@@ -248,10 +250,17 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 		/* Old versions of vsnprintf() */
 		dst[size - 1] = '\0';
 		retval = strlen(dst);
+		truncated = (size - 1 == (size_t) retval) ? 1 : 0;
 	} else if ((size_t) retval >= size) {
 		/* New versions (compliant with C99) */
 		dst[size - 1] = '\0';
+		truncated = retval - size + 1;
 		retval = size - 1;
+	}
+	if G_UNLIKELY(truncated != 0) {
+		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
+			"with \"%s\"", truncated, 1 == truncated ? "" : "s",
+			size, fmt);
 	}
 	return retval;
 }
@@ -268,23 +277,6 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	return clamp_strcpy(dst, size, str_2c(s));
 }
 #endif	/* HAS_VSNPRINTF */
-
-/**
- * Whether gm_vsnprintf() or gm_snprintf() can safely be called from
- * a signal handler.
- *
- * @return TRUE if a gm_vsnprintf() or gm_snprintf() would not cause any
- * memory allocation and therefore can be safely used in a signal handler.
- */
-gboolean
-gm_xprintf_is_signal_safe(void)
-{
-#ifdef	HAS_VSNPRINTF
-	return TRUE;
-#else
-	return FALSE;
-#endif
-}
 
 /**
  * This is the smallest common denominator between the g_vsnprintf() from
@@ -356,6 +348,33 @@ gm_snprintf(char *dst, size_t size, const char *fmt, ...)
 	return len;
 }
 
+/**
+ * Same as gm_snprintf() but with unchecked format string.
+ *
+ * @attention
+ * Do not use unless ``fmt'' is a variable that cannot be used for
+ * static argument list checking by gcc.
+ */
+size_t
+gm_snprintf_unchecked(char *dst, size_t size, const char *fmt, ...)
+{
+	va_list args;
+	size_t len;
+
+	g_return_val_if_fail(dst != NULL, 0);
+	g_return_val_if_fail(fmt != NULL, 0);
+	g_return_val_if_fail(size_is_positive(size), 0);
+	g_return_val_if_fail(size <= (size_t) INT_MAX, 0);
+
+	va_start(args, fmt);
+	len = buf_vprintf(dst, size, fmt, args);
+	va_end(args);
+
+	g_assert(len < size);
+
+	return len;
+}
+
 static int orig_argc;
 static char **orig_argv;
 static char **orig_env;
@@ -372,7 +391,7 @@ gm_savemain(int argc, char **argv, char **env)
 }
 
 static inline size_t
-str_vec_count(char *strv[])
+string_vec_count(char *strv[])
 {
 	size_t i = 0;
 
@@ -380,6 +399,91 @@ str_vec_count(char *strv[])
 		i++;
 	}
 	return i;
+}
+
+static inline size_t
+string_vec_size(char *strv[])
+{
+	size_t i = 0;
+	size_t bytes = 0;
+
+	while (strv[i]) {
+		bytes += strlen(strv[i]) + 1;	/* Include trailing NUL */
+		i++;
+	}
+
+	return bytes;
+}
+
+static void *
+string_vec_strdup(char *orig[], int count, const char *dest[], void *mem)
+{
+	int i;
+
+	for (i = 0; i < count; i++) {
+		size_t len = strlen(orig[i]) + 1;
+		void *p = mem;		/* Linearily increased allocation pointer */
+
+		mem = ptr_add_offset(mem, len);
+		clamp_strncpy(p, len, orig[i], len - 1);
+		dest[i] = p;
+	}
+
+	dest[count] = NULL;
+	return mem;
+}
+
+/**
+ * Duplicate the original main() arguments + environment into read-only
+ * memory, returning pointers to the argument vector, the environment and
+ * the size of the argument vector.
+ *
+ * The gm_savemain() routine must be called first to record the original
+ * argument pointers and gm_dupmain() must be called as soon as possible,
+ * before alteration of the argument list or the passed environment.
+ *
+ * @param argv_ptr		where the allocated argment vector is returned
+ * @param env_ptr		where the allocated environment is returned
+ *
+ * @return the amount of entries in the returned argv[]
+ */
+int
+gm_dupmain(const char ***argv_ptr, const char ***env_ptr)
+{
+	size_t env_count, arg_count;
+	size_t env_size, arg_size;
+	size_t total_size;
+	void *p, *q;
+	const char **argv;
+	const char **env;
+
+	g_assert(orig_argv != NULL);	/* gm_savemain() was called */
+
+	env_count = string_vec_count(orig_env);
+	env_size = string_vec_size(orig_env);
+	arg_count = orig_argc;
+	arg_size = string_vec_size(orig_argv);
+
+	total_size = (arg_count + env_count + 2) * sizeof(char *) +
+		env_size + arg_size;
+
+	p = vmm_alloc_not_leaking(total_size);
+	argv = p;
+	env = ptr_add_offset(argv, (arg_count + 1) * sizeof(char *));
+	q = ptr_add_offset(env, (env_count + 1) * sizeof(char *));
+
+	q = string_vec_strdup(orig_argv, arg_count, argv, q);
+	q = string_vec_strdup(orig_env, env_count, env, q);
+
+	g_assert(ptr_diff(q, p) == total_size);
+
+	if (-1 == mprotect(p, total_size, PROT_READ))
+		s_warning("%s(): cannot protect memory as read-only: %m", G_STRFUNC);
+
+	*argv_ptr = argv;
+	*env_ptr = env;
+
+	return arg_count;
 }
 
 #if !defined(HAS_SETPROCTITLE)
@@ -400,7 +504,7 @@ gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 	g_assert(argv);
 	g_assert(env_ptr);
 
-	env_count = str_vec_count(env_ptr);
+	env_count = string_vec_count(env_ptr);
 	n = argc + env_count;
 	iov = iov_alloc_n(n);
 
@@ -416,7 +520,7 @@ gm_setproctitle_init(int argc, char *argv[], char *env_ptr[])
 		size_t size;
 		
 		size = iov_contiguous_size(iov, n);
-		g_info("%lu bytes available for gm_setproctitle().", (gulong) size);
+		g_info("%zu bytes available for gm_setproctitle().", size);
 	}
 
 	/*
@@ -696,8 +800,8 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
  *** undefine malloc, g_malloc, etc... which are possibly set up by override.h.
  ***/
 
-#if defined(USE_GLIB1) && \
-	(defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+#ifdef USE_GLIB1
+#if (defined(USE_HALLOC) || defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
 		defined(REMAP_ZALLOC))
 
 static GMemVTable gm_vtable;
@@ -889,6 +993,27 @@ g_mem_is_system_malloc(void)
 		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
 			cast_pointer_to_func(malloc);
 }
+#else
+/**
+ * Sets the GMemVTable to use for memory allocation.
+ */
+void
+g_mem_set_vtable(GMemVTable *vtable)
+{
+	(void) vtable;
+
+	g_error("%s() not supported in glib1", G_STRFUNC);
+}
+
+/**
+ * Are we using system's malloc?
+ */
+gboolean
+g_mem_is_system_malloc(void)
+{
+	return TRUE;		/* Remapping is not possible natively with glib1 */
+}
+#endif	/* USE_HALLOC || TRACK_MALLOC || TRACK_ZALLOC || REMAP_ZALLOC */
 #endif	/* USE_GLIB1 */
 
 /**

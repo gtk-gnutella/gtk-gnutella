@@ -36,6 +36,8 @@
 
 #include "common.h"
 
+#include "lib/host_addr.h"
+
 /*
  * Public interface.
  */
@@ -49,7 +51,7 @@ void uhc_get_hosts(void);
 gboolean uhc_is_waiting(void);
 
 void uhc_ipp_extract(
-	struct gnutella_node *n, const char *payload, int paylen);
+	struct gnutella_node *n, const char *payload, int paylen, enum net_type nt);
 
 #endif /* _core_uhc_h_ */
 

@@ -78,6 +78,8 @@
 	unsigned print_str_iov_cnt_ = 0; \
 	iovec_t print_str_iov_[(num_iov)]
 
+#define TRUNCATION_STR	"TRUNCATION AT " _WHERE_ ":" STRINGIFY(__LINE__) "\n"
+
 #define print_str(text) \
 G_STMT_START { \
 	const char *print_str_text_ = (text); \
@@ -90,6 +92,11 @@ G_STMT_START { \
 		iovec_set_len(&print_str_iov_[print_str_iov_cnt_], \
 			strlen(print_str_text_)); \
 		print_str_iov_cnt_++; \
+	} else { \
+		iovec_set_base(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+			TRUNCATION_STR); \
+		iovec_set_len(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+			sizeof(TRUNCATION_STR) - 1); \
 	} \
 } G_STMT_END
 
@@ -135,29 +142,74 @@ print_number(char *dst, size_t size, unsigned long value)
 	return p;
 }
 
+/**
+ * Print an "unsigned long" as hexadecimal NUL-terminated string into supplied
+ * buffer and returns the address within that buffer where the printed string
+ * starts (value is generated backwards from the end of the buffer).
+ *
+ * @note This routine can be used safely in signal handlers.
+ * @param dst The destination buffer.
+ * @param size The length of dst; should be ULONG_HEX_BUFLEN or larger.
+ * @param value The value to print.
+ * @return The start of the NUL-terminated string, usually not dst!
+ */
+static inline WARN_UNUSED_RESULT const char *
+print_hex(char *dst, size_t size, unsigned long value)
+{
+	char *p = &dst[size];
+	extern const char hex_alphabet_lower[];
+
+	if (size > 0) {
+		*--p = '\0';
+	}
+	while (p != dst) {
+		*--p = hex_alphabet_lower[value & 0xf];
+		value >>= 4;
+		if (0 == value)
+			break;
+	}
+	return p;
+}
+
+
+/**
+ * Signature of a crash hook.
+ */
+typedef void (*crash_hook_t)(void);
+
 /*
  * Public interface.
  */
 
 #define CRASH_F_PAUSE	(1 << 0)
 #define CRASH_F_GDB		(1 << 1)
+#define CRASH_F_RESTART	(1 << 2)
 
 struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path);
+void crash_close(void);
 void crash_time(char *buf, size_t buflen);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
+void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setbuild(unsigned build);
+void crash_setmain(int argc, const char *argv[], const char *env[]);
 void crash_assert_failure(const struct assertion_data *a);
-void crash_save_current_stackframe(void);
+const char *crash_assert_logv(const char * const fmt, va_list ap);
+void crash_set_filename(const char * const filename);
+void crash_set_error(const char * const msg);
+void crash_append_error(const char * const msg);
+void crash_save_current_stackframe(unsigned offset);
 void crash_save_stackframe(void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
+void crash_hook_add(const char *filename, const crash_hook_t hook);
+void crash_reexec(void) G_GNUC_NORETURN;
 
 #endif	/* _crash_h_ */
 

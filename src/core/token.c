@@ -368,6 +368,36 @@ static const char *keys_097_1[] = {
 	"0c93 3ee1 f48f 3653 7a9c f338 8d2e 8868",
 };
 
+static const char *keys_098[] = {
+	"3248 b31b 8cf3 763c 552a d42c d833 1d79",
+	"9dbb 43d8 c217 0ecf 743d 4ac4 02ec 9aed",
+	"4165 dbb9 2afb 61d9 9a7e d13c b65a 05e2",
+	"4971 e904 c448 9802 2eb6 b9e4 d177 83c2",
+	"0bbe a4cb 17be 4427 cad0 2d48 c39f 5464",
+	"110b 8553 bd5d a1da ae75 d863 c652 3d37",
+	"7c19 9b64 b003 55c9 391e 8740 5697 035b",
+	"3e5d f6de fb0e 72aa c25b a9f4 5295 78e8",
+	"e681 10b1 8958 7b54 428b 8c50 1c5b 7c5c",
+	"7f74 ee30 0392 a474 3cdb 7d23 47dd 9956",
+	"6751 4a3c 3a4d 2889 edb2 23fb 14c4 6b8d",
+	"3efa ba6b 0d92 a890 0ee4 676d 0ec6 8884",
+	"6a4b 0ed9 6ca4 771e 2fd9 c14b ea65 f661",
+	"aa57 742b 6ea7 843b 08a4 8228 fcc1 ff1f",
+	"4e42 81bf 8e15 54f5 62bc d970 e456 2345",
+	"194d 052b 25b5 0731 14e8 372a 952a 8535",
+	"1af5 7651 8c7b 8aed ee9d a752 167e d735",
+	"40a8 a0f0 8432 30ba d2ba d297 9b81 6542",
+	"c761 e6cd 1829 8056 7bb0 ffab 6fee 4867",
+	"a498 e32b d8ff 954d f68c 1bfd 6d65 9ff2",
+	"ffb0 3a61 6795 6b47 f7ef 7c9c d08b 913c",
+	"8f62 d747 2f8c 9a2f 019e 3bc0 9c62 7374",
+	"fd79 60f5 9ac7 f1e9 3cde c3c8 8cad bd36",
+	"01a9 c262 e5e5 0c10 fabb d81c 54b9 e9f0",
+	"764c 89cb 4a1b 978f 2217 ec5d 38d7 33f7",
+	"e3b6 8589 dfd1 829a 41f3 b371 0555 80bb",
+	"5376 c257 21cb 0f2b 2f56 f1f3 a772 afd0",
+};
+
 /**
  * Describes the keys to use depending on the version.
  */
@@ -426,6 +456,10 @@ struct tokkey {
 		{ 0, 97, 1, '\0', 0, 0, GIT_SWITCH },		/* 2011-09-11 */
 		keys_097_1, G_N_ELEMENTS(keys_097_1),
 	},
+	{
+		{ 0, 98, 0, '\0', 0, 0, 1323558000 },		/* 2011-12-11 */
+		keys_098, G_N_ELEMENTS(keys_098),
+	},
 };
 
 /**
@@ -478,8 +512,8 @@ find_tokkey_upto(time_t now, size_t count)
 	guint i;
 
 	if (GNET_PROPERTY(version_debug) > 4) {
-		g_debug("%s: count=%lu, from %s()",
-			G_STRFUNC, (unsigned long) count, stacktrace_caller_name(1));
+		g_debug("%s: count=%zu, from %s()",
+			G_STRFUNC, count, stacktrace_caller_name(1));
 	}
 
 	g_assert(count <= G_N_ELEMENTS(token_keys));
@@ -600,8 +634,8 @@ find_tokkey_version(const version_t *ver, time_t now)
 	}
 
 	if (GNET_PROPERTY(version_debug) > 4) {
-		g_debug("%s: fallback max=%u (/%lu)",
-			G_STRFUNC, i, (unsigned long) G_N_ELEMENTS(token_keys));
+		g_debug("%s: fallback max=%u (/%zu)",
+			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
 	}
 
 	i++;									/* We need a count, not an index */

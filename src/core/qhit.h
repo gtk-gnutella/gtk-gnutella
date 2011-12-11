@@ -38,20 +38,28 @@
 
 typedef void (*qhit_process_t)(gpointer data, size_t len, gpointer udata);
 
+/**
+ * Query hit generation flags.
+ */
+#define QHIT_F_GGEP_H		(1U << 0)	/**< Host supports GGEP "H" */
+#define QHIT_F_IPV6			(1U << 1)	/**< Host accepts IPv6 addresses */
+#define QHIT_F_IPV6_ONLY	(1U << 2)	/**< Host only wants IPv6 addresses */
+
 /*
  * Public interface.
  */
 
 struct gnutella_node;
 struct array; 
+struct guid;
 
 void qhit_init(void);
 void qhit_close(void);
 
 void qhit_send_results(struct gnutella_node *n, GSList *files, int count,
-	const struct guid *muid, gboolean ggep_h);
+	const struct guid *muid, unsigned flags);
 void qhit_build_results(const GSList *files, int count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const struct guid *muid, gboolean ggep_h,
+	qhit_process_t cb, gpointer udata, const struct guid *muid, unsigned flags,
 	const struct array *token);
 
 #endif /* _core_qhit_h_ */

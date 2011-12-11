@@ -106,6 +106,7 @@ fd_set_nonblocking(int fd)
 
 #include "lib/misc.h"
 #include "lib/fd.h"
+#include "lib/log.h"
 #include "lib/compat_poll.h"
 #include "lib/compat_un.h"
 
@@ -114,6 +115,14 @@ fd_set_nonblocking(int fd)
 static inline ssize_t
 unix_read(int fd, void *buf, size_t size)
 {
+	/*
+	 * On Windows, we have to call s_read() for sockets, not read(),
+	 * or it does not work since winsock descriptors are distinct
+	 * from other file objects and the Windows kernel is too stupid
+	 * to do the dirty work for us.
+	 *		--RAM, 2011-01-05
+	 */
+
 	if (is_running_on_mingw()) {
 		ssize_t ret = s_read(fd, buf, size);
 		if (ret >= 0 || ENOTSOCK != errno)
@@ -127,6 +136,12 @@ unix_read(int fd, void *buf, size_t size)
 static inline ssize_t
 unix_write(int fd, const void *buf, size_t size)
 {
+	/*
+	 * On Windows, we have to call s_write() for sockets, not write().
+	 * API fragmentation (winsocks versus other handles) at its best.
+	 *		--RAM, 2011-01-05
+	 */
+
 	if (is_running_on_mingw()) {
 		ssize_t ret = s_write(fd, buf, size);
 		if (ret >= 0 || ENOTSOCK != errno)
@@ -136,6 +151,9 @@ unix_write(int fd, const void *buf, size_t size)
 
 	return write(fd, buf, size);
 }
+
+#undef perror
+#define perror(x)	s_warning("%s: %m", (x));
 
 #endif	/* LOCAL_SHELL_STANDALONE */
 
@@ -176,14 +194,6 @@ read_data(int fd, struct shell_buf *sb)
 	}
 	if (0 == sb->fill && sb->readable) {
 		ssize_t ret;
-
-		/*
-		 * On Windows, we have to call s_read() for sockets, not read(),
-		 * or it does not work since winsock descriptors are distinct
-		 * from other file objects and the Windows kernel is too stupid
-		 * to do the dirty work for us.
-		 *		--RAM, 2011-01-05
-		 */
 
 		ret = unix_read(fd, sb->buf, sb->size);
 		switch (ret) {
@@ -269,12 +279,6 @@ write_data(int fd, struct shell_buf *sb)
 	sb->wrote = 0;
 	if (sb->fill > 0 && sb->writable) {
 		ssize_t ret;
-
-		/*
-		 * On Windows, we have to call s_write() for sockets, not write().
-		 * API fragmentation (winsocks versus other handles) at its best.
-		 *		--RAM, 2011-01-05
-		 */
 
 		ret = unix_write(fd, &sb->buf[sb->pos], sb->fill);
 		switch (ret) {

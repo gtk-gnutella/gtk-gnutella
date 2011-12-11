@@ -153,10 +153,6 @@ extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
 extra_files/magnet.svg
-osx/Info-gtk-gnutella.plist
-osx/gtk-gnutella.bundle
-osx/gtk-gnutella.icns
-osx/launcher.sh
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
@@ -165,6 +161,10 @@ gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
 makensis.sh                  Wrapper for the makensis Windows command
 mingw/config.sh.xmingw
+osx/Info-gtk-gnutella.plist.tpl
+osx/gtk-gnutella.bundle
+osx/gtk-gnutella.icns
+osx/launcher.sh
 pixmaps/Jmakefile
 pixmaps/Makefile.SH
 pixmaps/arrow_down.xpm
@@ -240,13 +240,13 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
 scripts/gtkg-version
 scripts/magnet-handler.sh
 scripts/sha1_cache.pl
 scripts/sha1_cache.sh
-scripts/svn-revision
 src/Jmakefile
 src/Makefile.SH
 src/casts.h
@@ -330,6 +330,8 @@ src/core/ioheader.c
 src/core/ioheader.h
 src/core/ipp_cache.c
 src/core/ipp_cache.h
+src/core/ipv6-ready.c
+src/core/ipv6-ready.h
 src/core/local_shell.c
 src/core/local_shell.h
 src/core/matching.c
@@ -601,6 +603,7 @@ src/lib/debug.c
 src/lib/debug.h
 src/lib/dualhash.c
 src/lib/dualhash.h
+src/lib/dump_options.h
 src/lib/endian.h
 src/lib/entropy.c
 src/lib/entropy.h
@@ -608,6 +611,8 @@ src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c
 src/lib/event.h
+src/lib/exit.c
+src/lib/exit.h
 src/lib/fast_assert.c
 src/lib/fast_assert.h
 src/lib/fd.c
@@ -620,6 +625,11 @@ src/lib/filehead.c
 src/lib/filehead.h
 src/lib/filename.c
 src/lib/filename.h
+src/lib/float-dragon_out.bz2
+src/lib/float-test.c
+src/lib/float.c
+src/lib/float.h
+src/lib/floats.bz2
 src/lib/fragcheck.c
 src/lib/fragcheck.h
 src/lib/fs_free_space.c
@@ -635,6 +645,8 @@ src/lib/getphysmemsize.c
 src/lib/getphysmemsize.h
 src/lib/glib-missing.c
 src/lib/glib-missing.h
+src/lib/glog.c
+src/lib/glog.h
 src/lib/gnet_host.c
 src/lib/gnet_host.h
 src/lib/halloc.c
@@ -670,6 +682,8 @@ src/lib/malloc.c
 src/lib/malloc.h
 src/lib/map.c
 src/lib/map.h
+src/lib/memusage.c
+src/lib/memusage.h
 src/lib/mime_type.c
 src/lib/mime_type.h
 src/lib/mime_types.h
@@ -708,10 +722,14 @@ src/lib/pmsg.c
 src/lib/pmsg.h
 src/lib/pow2.c
 src/lib/pow2.h
+src/lib/product.c
+src/lib/product.h
 src/lib/prop.c
 src/lib/prop.h
 src/lib/random.c
 src/lib/random.h
+src/lib/regex.c
+src/lib/regex.h
 src/lib/sbool.h
 src/lib/sectoken.c
 src/lib/sectoken.h
@@ -774,6 +792,8 @@ src/lib/wordvec.c
 src/lib/wordvec.h
 src/lib/wq.c
 src/lib/wq.h
+src/lib/xmalloc.c
+src/lib/xmalloc.h
 src/lib/zalloc.c
 src/lib/zalloc.h
 src/lib/zlib_util.c
@@ -791,6 +811,7 @@ src/sdbm/dba.c
 src/sdbm/dbd.c
 src/sdbm/dbe.1
 src/sdbm/dbe.c
+src/sdbm/dbt.c
 src/sdbm/dbu.c
 src/sdbm/hash.c
 src/sdbm/lru.c
@@ -809,6 +830,8 @@ src/shell/Jmakefile
 src/shell/Makefile.SH
 src/shell/cmd.h
 src/shell/cmd.inc
+src/shell/command.c
+src/shell/date.c
 src/shell/download.c
 src/shell/downloads.c
 src/shell/echo.c
@@ -821,6 +844,7 @@ src/shell/node.c
 src/shell/nodes.c
 src/shell/offline.c
 src/shell/online.c
+src/shell/pid.c
 src/shell/print.c
 src/shell/props.c
 src/shell/quit.c
@@ -833,6 +857,7 @@ src/shell/shutdown.c
 src/shell/stats.c
 src/shell/status.c
 src/shell/uploads.c
+src/shell/version.c
 src/shell/whatis.c
 src/ui/Jmakefile
 src/ui/Makefile.SH

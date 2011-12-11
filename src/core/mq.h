@@ -53,6 +53,7 @@ typedef struct mqueue mqueue_t;
 
 struct mq_ops {
 	void (*putq)(mqueue_t *q, pmsg_t *mb);
+	gboolean (*flushed)(const mqueue_t *q);
 };
 
 struct mq_cops {
@@ -146,20 +147,21 @@ void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
 
 #endif /* MQ_INTERNAL */
 
-mq_status_t mq_status(const mqueue_t *q);
-gboolean mq_is_flow_controlled(const mqueue_t *q);
-gboolean mq_is_swift_controlled(const mqueue_t *q);
-gboolean mq_would_flow_control(const mqueue_t *q, size_t additional);
-gboolean mq_above_low_watermark(const mqueue_t *q);
-guint32 mq_debug(const mqueue_t *q);
-int mq_maxsize(const mqueue_t *q);
-int mq_size(const mqueue_t *q);
-int mq_lowat(const mqueue_t *q);
-int mq_hiwat(const mqueue_t *q);
-int mq_count(const mqueue_t *q);
+mq_status_t mq_status(const mqueue_t *q) G_GNUC_PURE;
+gboolean mq_is_flow_controlled(const mqueue_t *q) G_GNUC_PURE;
+gboolean mq_is_swift_controlled(const mqueue_t *q) G_GNUC_PURE;
+gboolean mq_would_flow_control(const mqueue_t *q, size_t) G_GNUC_PURE;
+gboolean mq_above_low_watermark(const mqueue_t *q) G_GNUC_PURE;
+guint32 mq_debug(const mqueue_t *q) G_GNUC_PURE;
+int mq_maxsize(const mqueue_t *q) G_GNUC_PURE;
+int mq_size(const mqueue_t *q) G_GNUC_PURE;
+int mq_lowat(const mqueue_t *q) G_GNUC_PURE;
+int mq_hiwat(const mqueue_t *q) G_GNUC_PURE;
+int mq_count(const mqueue_t *q) G_GNUC_PURE;
 int mq_pending(const mqueue_t *q);
+int mq_tx_pending(const mqueue_t *q);
 struct bio_source *mq_bio(const mqueue_t *q);
-struct gnutella_node *mq_node(const mqueue_t *q);
+struct gnutella_node *mq_node(const mqueue_t *q) G_GNUC_PURE;
 
 /*
  * Public interface
@@ -173,7 +175,7 @@ void mq_discard(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 
-const struct mq_cops *mq_get_cops(void);
+const struct mq_cops *mq_get_cops(void) G_GNUC_CONST;
 const char *mq_info(const mqueue_t *q);
 
 #endif	/* _core_mq_h_ */

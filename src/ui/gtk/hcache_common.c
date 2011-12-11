@@ -35,16 +35,20 @@ const gchar *
 get_hcache_name(hcache_type_t type)
 {
 	switch (type) {
-	case HCACHE_FRESH_ANY:   return _("Fresh regular");
-	case HCACHE_VALID_ANY:   return _("Valid regular");
-	case HCACHE_FRESH_ULTRA: return _("Fresh ultra");
-	case HCACHE_VALID_ULTRA: return _("Valid ultra");
-	case HCACHE_TIMEOUT:     return _("Timeout");
-	case HCACHE_BUSY:        return _("Busy");
-	case HCACHE_UNSTABLE:    return _("Unstable");
-	case HCACHE_ALIEN:       return _("Alien");
-	case HCACHE_GUESS:       return _("GUESS (running)");
-	case HCACHE_GUESS_INTRO: return _("GUESS (introductions)");
+	case HCACHE_FRESH_ANY:    return _("Fresh regular");
+	case HCACHE_VALID_ANY:    return _("Valid regular");
+	case HCACHE_FRESH_ULTRA:  return _("Fresh IPv4 ultra");
+	case HCACHE_VALID_ULTRA:  return _("Valid IPv4 ultra");
+	case HCACHE_FRESH_ULTRA6: return _("Fresh IPv6 ultra");
+	case HCACHE_VALID_ULTRA6: return _("Valid IPv6 ultra");
+	case HCACHE_TIMEOUT:      return _("Timeout");
+	case HCACHE_BUSY:         return _("Busy");
+	case HCACHE_UNSTABLE:     return _("Unstable");
+	case HCACHE_ALIEN:        return _("Alien");
+	case HCACHE_GUESS:        return _("GUESS (IPv4 running)");
+	case HCACHE_GUESS_INTRO:  return _("GUESS (IPv4 introductions)");
+	case HCACHE_GUESS6:       return _("GUESS (IPv6 running)");
+	case HCACHE_GUESS6_INTRO: return _("GUESS (IPv6 introductions)");
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;

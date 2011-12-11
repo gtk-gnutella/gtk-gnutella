@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010, 2011 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -36,19 +36,23 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010
+ * @date 1996-2000, 2007, 2010, 2011
  */
 
 #include "common.h"
 
 #include <math.h>		/* For frexp() and isfinite() */
 
+#include "str.h"
 #include "ascii.h"
 #include "ckalloc.h"
-#include "str.h"
+#include "float.h"
 #include "glib-missing.h"
-#include "misc.h"			/* For clamp_strcpy */
 #include "halloc.h"
+#include "log.h"
+#include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
+#include "omalloc.h"
+#include "stringify.h"		/* For logging */
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -59,28 +63,12 @@
 #define STR_MAXGROW		4096	/* Above this size, increase by STR_CHUNK */
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
-enum str_magic { STR_MAGIC = 0x04ed2baa };
+#define FPREC			17		/* IEEE 64-bit double maximum digit precision */
+#define FPDIG			10		/* For free format, max # of digits before %e */
 
-/**
- * A dynamic string. That string is not NUL-terminated and is expanded
- * as necessary. To get the final C version, a call to str_2c() is mandatory:
- * It ensures the string is NUL-terminated and returns a pointer to it.
- */
-struct str {
-	enum str_magic s_magic;
-	guint32 s_flags;		/**< General flags */
-	char *s_data;			/**< Where string data is held */
-	size_t s_len;			/**< String length (amount of chars held) */
-	size_t s_size;			/**< Size of the data arena */
-};
-
-static inline void
-str_check(const struct str * const s)
-{
-	g_assert(s != NULL);
-	g_assert(STR_MAGIC == s->s_magic);
-	g_assert(s->s_len <= s->s_size);
-}
+static gboolean tests_completed;	/* Controls truncation warnings */
+static gboolean format_verbose;		/* Controls debugging of formatting */
+static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 
 /**
  * Flags for s_flags
@@ -121,8 +109,19 @@ str_new_not_leaking(size_t szhint)
 {
 	str_t *str;
 
-	str = NOT_LEAKING_Z(str_new(szhint));
+	/*
+	 * We don't want something from a zone here to allow this object to be
+	 * use throughout the lifetime of the process, including after a zclose().
+	 * In other words, walloc() is forbidden!
+	 *
+	 * Because the memory will never be freed, it's best to use omalloc().
+	 */
+
+	str = omalloc(sizeof *str);
+	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
+
+	/* Note: STR_OBJECT not set because structure allocated via xpmalloc() */
 
 	return str;
 }
@@ -155,7 +154,7 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 */
 
 	arena = ck_alloc(ck, size);
-	if (NULL == arena)
+	if G_UNLIKELY(NULL == arena)
 		return NULL;
 
 	/*
@@ -165,8 +164,15 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	 */
 
 	str = ck_alloc_critical(ck, sizeof *str);
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		return NULL;
+
+	/*
+	 * Detect harmful asynchronous ck_restore() between two allocations.
+	 */
+
+	g_assert_log(ptr_diff(str, arena) >= size,
+		"str=%p, arena=%p, size=%zu", (void *) str, arena, size);
 
 	/*
 	 * Don't set the STR_OBJECT because the object is non-freeable.
@@ -261,11 +267,11 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 	g_assert(size_is_non_negative(len + 1));
 	g_assert(size_is_non_negative(size));
 
-	if (str->s_data && !(str->s_flags & STR_FOREIGN_PTR))
+	if (str->s_data != NULL && !(str->s_flags & STR_FOREIGN_PTR))
 		str_free(str);
 
 	if ((size_t) -1 == len)
-		len = strlen(ptr);
+		len = (0 == size) ? strlen(ptr) : clamp_strlen(ptr, size);
 
 	if (0 == size)
 		size = len + 1;			/* Must include hidden NUL in foreign string */
@@ -279,16 +285,34 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 /**
  * Like str_foreign(), but string structure has not been initialized yet
  * and is a static buffer.
+ *
+ * To create a string on the stack with no memory allocation:
+ *
+ *    str_t str;
+ *    char data[80];
+ *
+ *    str_new_buffer(&str, data, 0, sizeof data);
+ *
+ * @param str	pointer to uninitialized existing string object
+ * @param ptr	start of fix sized buffer where string data will be held
+ * @param len	length of existing string, computed if (size_t) -1
+ * @param size	size (positive) of buffer starting at ptr
  */
 void
-str_from_foreign(str_t *str, char *ptr, size_t len, size_t size)
+str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
 {
 	g_assert(str != NULL);
+	g_assert(ptr != NULL);
+	g_assert(size_is_non_negative(len + 1));
+	g_assert(size_is_positive(size));
 
 	str->s_magic = STR_MAGIC;
-	str->s_flags = 0;
-	str->s_data = NULL;
-	str_foreign(str, ptr, len, size);
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = ptr;
+	str->s_len = ((size_t) -1 == len) ? clamp_strlen(ptr, size) : len;
+	str->s_size = size;
+
+	g_assert(str->s_len <= str->s_size);
 }
 
 /**
@@ -364,8 +388,8 @@ str_destroy(str_t *str)
 {
 	str_check(str);
 
-	if (!(str->s_flags & STR_OBJECT))
-		g_error("str_destroy() called on \"static\" string object");
+	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
+		s_error("str_destroy() called on \"static\" string object");
 
 	str_free(str);
 	str->s_magic = 0;
@@ -401,10 +425,10 @@ str_resize(str_t *str, size_t newsize)
 	 * are called to expand that space.
 	 */
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (str->s_size >= newsize)
 			return;
-		g_error("str_resize() would expand \"foreign\" string");
+		s_error("str_resize() would expand \"foreign\" string");
 	}
 
 	/*
@@ -423,8 +447,6 @@ str_resize(str_t *str, size_t newsize)
 	str->s_size = newsize;
 	if (str->s_len > newsize)
 		str->s_len = newsize;
-
-	return;
 }
 
 /*
@@ -438,7 +460,7 @@ str_makeroom(str_t *s, size_t len)
 {
 	size_t n = size_saturate_add(len, s->s_len);
 
-	if (s->s_size < n) {
+	if G_UNLIKELY(s->s_size < n) {
 		size_t newsize = s->s_size;
 
 		while (newsize < n) {
@@ -460,11 +482,11 @@ str_grow(str_t *str, size_t size)
 	str_check(str);
 	g_assert(size_is_non_negative(size));
 
-	if (str->s_size >= size)
+	if G_LIKELY(str->s_size >= size)
 		return;					/* Nothing to do */
 
-	if (str->s_flags & STR_FOREIGN_PTR)
-		g_error("str_grow() called on \"foreign\" string");
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
+		s_error("str_grow() called on \"foreign\" string");
 
 	str->s_data = hrealloc(str->s_data, size);
 	str->s_size = size;
@@ -481,7 +503,7 @@ str_setlen(str_t *str, size_t len)
 	str_check(str);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len) {
+	if G_UNLIKELY(0 == len) {
 		str_reset(str);
 		return;
 	}
@@ -504,7 +526,7 @@ str_setlen(str_t *str, size_t len)
 }
 
 /**
- * Returns a pointer to the data, as a `C' string (NUL-terminated).
+ * @return a pointer to the data, as a `C' string (NUL-terminated).
  *
  * As a convenience, returns NULL if "str" is NULL.
  *
@@ -516,7 +538,7 @@ str_2c(str_t *str)
 {
 	size_t len;
 
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		return NULL;
 
 	str_check(str);
@@ -524,7 +546,7 @@ str_2c(str_t *str)
 	len = str->s_len;
 
 	if (len == str->s_size) {
-		if (str->s_flags & STR_FOREIGN_PTR) {
+		if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 			len--;						/* Truncate the string */
 			str->s_len = len;
 		} else {
@@ -559,12 +581,12 @@ str_s2c(str_t *str)
 
 	str_check(str);
 
-	if (!(str->s_flags & STR_OBJECT))
-		g_error("str_s2c() called on \"static\" string object");
+	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
+		s_error("str_s2c() called on \"static\" string object");
 
 	len = str->s_len;
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (len == str->s_size)
 			len--;						/* Truncate the string */
 	} else {
@@ -601,7 +623,7 @@ str_s2c_null(str_t **s_ptr)
 
 /**
  * Create a pure C string copy of the string currently held in the arena.
- * Returns pointer to the copied string location.
+ * @return pointer to the copied string location.
  *
  * NB: The str_t object is not disposed of. If the object is no longer needed,
  * use str_s2c() to dispose of it whilst retaining its arena.
@@ -685,7 +707,7 @@ str_cat_len(str_t *str, const char *string, size_t len)
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
@@ -708,7 +730,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
@@ -727,34 +749,44 @@ str_ncat(str_t *str, const char *string, size_t len)
  * Append specified amount of bytes into the string, or less if the
  * string is shorter than `len' or if the string arena is foreign and not
  * large enough to hold all the data.
+ *
+ * The routine is "safe" in that it will never trigger an error when the
+ * foreign string is too small, silently truncating instead.
+ *
+ * When the string arena can be resized, this routine behaves as str_ncat().
+ *
+ * @return TRUE if written normally, FALSE when clamping was done.
  */
-static void
-str_ncat_foreign(str_t *str, const char *string, size_t len)
+gboolean
+str_ncat_safe(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	const char *q;
 	char c;
+	gboolean fits = TRUE;
 
 	str_check(str);
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
-	if (0 == len)
-		return;
+	if G_UNLIKELY(0 == len)
+		return TRUE;
 
-	if (str->s_flags & STR_FOREIGN_PTR) {
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		size_t n;
 
-		if (str->s_len == str->s_size)
-			return;		/* Nothing can fit */
+		if (str->s_len == str->s_size) {
+			return FALSE;		/* Nothing can fit */
+		} else {
+			n = size_saturate_add(len, str->s_len);
 
-		n = size_saturate_add(len, str->s_len);
-
-		if (n >= str->s_size)
-			len = str->s_size - str->s_len - 1;		/* -1 for trailing NUL */
-
-		if (0 == len)
-			return;
+			if (n >= str->s_size) {
+				fits = FALSE;
+				len = str->s_size - str->s_len - 1;	/* -1 for trailing NUL */
+				if (0 == len)
+					return FALSE;
+			}
+		}
 	} else {
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
 	}
@@ -768,6 +800,7 @@ str_ncat_foreign(str_t *str, const char *string, size_t len)
 	}
 
 	str->s_len = p - str->s_data;
+	return fits;
 }
 
 /**
@@ -782,7 +815,7 @@ str_shift(str_t *str, size_t n)
 	str_check(str);
 	g_assert(size_is_non_negative(n));
 
-	if (0 == n)
+	if G_UNLIKELY(0 == n)
 		return;
 
 	if (n >= str->s_len) {
@@ -814,7 +847,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)		/* Off string */
 		return FALSE;
 
 	str_makeroom(str, 1);
@@ -857,13 +890,13 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 
 	len = str->s_len;
 
-	if (0 == n)							/* Empty string */
+	if G_UNLIKELY(0 == n)				/* Empty string */
 		return TRUE;					/* Did nothing but nothing to do */
 
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
 		return FALSE;
 
 	str_makeroom(str, n);
@@ -889,7 +922,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 
 	len = str->s_len;
 
-	if (!n)								/* Nothing to remove */
+	if G_UNLIKELY(0 == n)				/* Nothing to remove */
 		return;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -935,7 +968,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if (idx < 0 || (size_t) idx >= len)			/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
 		return FALSE;
 
 	if (amount > (len - idx))			/* More than what remains afterwards */
@@ -1021,7 +1054,7 @@ str_escape(str_t *str, char c, char e)
 
 	len = str->s_len;
 
-	if (0 == len)
+	if G_UNLIKELY(0 == len)
 		return;
 
 	for (idx = 0; idx < len; idx++) {
@@ -1034,42 +1067,82 @@ str_escape(str_t *str, char c, char e)
 }
 
 /**
- * Wrapper over vsnprintf() to avoid GCC warning on the use of printf()
- * routines with a non-litteral string format buffer.
+ * Round up floating-point mantissa, with leading extra carry digit.
  *
- * Do NOT add a G_GNUC_PRINTF(3, 4) attribute for this routine.
+ * For instance, given "314159" with a rounding position of 2, the routine
+ * returns "0314".  However, given "9995", it would return "1000".
  *
- * NOTE: this routine is only called to format floating point numbers from
- * within str_vncatf().
+ * This routine is used internally by str_nvcatf() to format floats.
+ *
+ * @param mbuf		the mantissa
+ * @param mlen		the length of the mantissa
+ * @param pos		rounding position (index of first digit to exclude in mbuf)
+ * @param rbuf		where rounded mantissa is writen
+ * @param rlen		length of rounded mantissa (at least mlen + 1)
+ *
+ * @return number of characters written in the rounded mantissa buffer
  */
-static void
-str_snprintf(char *dst, size_t size, const char *fmt, ...)
+static size_t
+str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 {
-	va_list args;
+	g_assert(mbuf != NULL);
+	g_assert(size_is_non_negative(mlen));
+	g_assert(size_is_non_negative(pos));
+	g_assert(pos <= mlen);
+	g_assert(rbuf != NULL);
+	g_assert(rlen >= mlen + 1);
 
-	g_assert(dst != NULL);
-	g_assert(fmt != NULL);
+	if (pos == mlen) {
+		/* Nothing to round, copy whole mantissa, leading carry is '0' */
+		rbuf[0] = '0';
+		clamp_memcpy(&rbuf[1], rlen - 1, mbuf, mlen);
+	} else if (0 == pos) {
+		char c = mbuf[0];
+		/* Look adhead next digit to round approximated mantissa */
+		if (mlen > 1) {
+			if (mbuf[1] >= '5' && '9' != c)
+				c++;
+		}
+		rbuf[0] = c < '5' ? '0' : '1';
+	} else if (mbuf[pos] < '5') {
+		/* Nothing to round, copy truncated mantissa, leading carry is '0' */
+		rbuf[0] = '0';
+		clamp_memcpy(&rbuf[1], rlen - 1, mbuf, pos);
+	} else {
+		const char *p = &mbuf[pos - 1];
+		char *q = &rbuf[pos];
+		size_t n = pos - 1;
 
-	va_start(args, fmt);
+		do {
+			char c = *p--;
+			if ('9' == c) {
+				*q-- = '0';
+			} else {
+				*q-- = c + 1;
+				break;				/* No more carry over */
+			}
+		} while (n--);
 
-	/*
-	 * Do not use gm_vsnprintf() here, because if vsnprintf() is missing,
-	 * it could get back here as it relies on str_vncatf().
-	 *
-	 * Better avoid any overhead and directly call the routines we need.
-	 */
+		g_assert(ptr_cmp(p + 1, mbuf) >= 0);		/* No underflow */
+		g_assert(ptr_cmp(q + 1, rbuf) >= 0);
 
-#ifdef HAS_VSNPRINTF
-	vsnprintf(dst, size, fmt, args);
-#else
-	{
-		char *buf = g_strdup_vprintf(fmt, args);
-		clamp_strcpy(dst, size, buf);
-		G_FREE_NULL(buf);
+		if (size_is_non_negative(n)) {
+			/* Broken up from loop without carrying over till the end */
+			rbuf[0] = '0';
+			clamp_memcpy(&rbuf[1], rlen - 1, mbuf, n);	/* Leading mantissa */
+		} else {
+			g_assert(0 == ptr_cmp(q, rbuf));
+			rbuf[0] = '1';
+		}
 	}
-#endif	/* HAS_VSNPRINTF */
 
-	va_end(args);
+	if G_UNLIKELY(format_verbose && 1 == format_recursion) {
+		s_debug("%s(): m=\"%.*s\" (len=%zu), pos=%zu, r=\"%.*s\" (len=%zu)",
+			G_STRFUNC, (int) mlen, mbuf, mlen, pos,
+			(int) pos + 1, rbuf, pos + 1);
+	}
+
+	return pos + 1;		/* Includes extra leading carry digit */
 }
 
 /*
@@ -1080,6 +1153,643 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
 #define bool			int
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
+
+/**
+ * Append formatted floating point value.
+ *
+ * @param str			string to which fomatting occurs
+ * @param maxlen		maximum amount of bytes to print
+ * @param nv			floating point value
+ * @param f				format letter: 'f', 'g', 'e' or upper-cased version
+ * @param has_precis	whether precision was requested
+ * @param precision		precision for formatting (0 if !has_precis)
+ * @param width			field width (0 if none enforced)
+ * @param plus			the leading '+' sign to use, or '\0' for none.
+ * @param left			whether to left-justify the field
+ * @param alt			whether to use "alternate" float formatting
+ * @param written		set with amount of bytes appended to string
+ *
+ * @return TRUE if written normally, FALSE when clamping was done.
+ */
+static size_t
+str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
+	gboolean has_precis, const size_t precision, const size_t width,
+	const char plus, const bool left, const bool alt, size_t *written)
+{
+	size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
+	size_t dzeros = 0;		/* Trailing zeros before dot */
+	size_t azeros = 0;		/* After-dot zeros, before value */
+	size_t fzeros = 0;		/* Trailing fixed zeros */
+	size_t dot = 0;			/* Emit floating point "." if 1, "0." if 2 */
+	size_t digits = 0;
+
+	char esignbuf[4];
+	int esignlen = 0;
+	char expbuf[6];
+	int explen = 0;
+
+	const char *eptr = NULL;
+	const char *expptr = NULL;
+	char *mptr;
+	size_t elen = 0;
+	char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
+	char *p, *q;
+
+	size_t have;
+	size_t need;
+	size_t gap;
+
+	char c = f;
+	size_t origlen = str->s_len;
+	size_t precis = precision;
+	size_t remain = maxlen;
+
+	str_check(str);
+	g_assert(size_is_non_negative(maxlen));
+
+	/*
+	 * Sanity check of the ``maxlen'' parameter.
+	 */
+
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
+		size_t avail = str->s_size - str->s_len;
+		if G_UNLIKELY(avail <= 1)
+			goto clamped;
+		avail--;					/* Leave room for trailing NUL */
+		remain = MIN(maxlen, avail);
+	}
+
+	/*
+	 * Ensure nv is a valid number, and not NaN, +Inf or -Inf
+	 * before calling the formatting routine.
+	 */
+
+	mptr = ebuf + sizeof ebuf;
+
+	switch (fpclassify(nv)) {
+	case FP_NAN:
+		if (is_ascii_upper(c)) {
+			elen = 4;
+			eptr = "NAN*";
+		} else {
+			elen = 3;
+			eptr = "nan";
+		}
+		break;
+	case FP_INFINITE:
+		mptr -= 3;
+		clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
+		if (nv < 0)
+			*--mptr = '-';
+		else if (plus)
+			*--mptr = plus;
+		eptr = mptr;
+		elen = (ebuf + sizeof ebuf) - eptr;
+		break;
+	default:
+		{
+			int e;
+			char m[32], r[33];
+			size_t mlen, rlen, asked;
+			gboolean dragon_fmt = FALSE;
+			gboolean asked_dragon = FALSE;
+
+			if ('F' == c) {
+				asked_dragon = TRUE;
+				if (has_precis)
+					c = 'G';
+				else
+					dragon_fmt = TRUE;
+			}
+
+			/*
+			 * For %g, the precision is the number of digits displayed,
+			 * whereas for %e it's the number of digits after the
+			 * decimal point.
+			 */
+
+			if ('g' == c || 'G' == c) {
+				/* A non-zero digits value flags %g or %G */
+				digits = MAX(1, precis);
+				precis = (0 == precis) ? 0 : precis - 1;
+			}
+
+			if (nv >= 0) {
+				if (plus)
+					esignbuf[esignlen++] = plus;
+			} else {
+				nv = -nv;
+				esignbuf[esignlen++] = '-';
+			}
+
+			/*
+			 * We cap the precision at FPREC since this is the maximum
+			 * supported by 64-bit IEEE numbers with a 52-bit mantissa.
+			 */
+
+			if ('f' == c) {
+				asked = FPREC;		/* Will do rounding ourselves */
+			} else if (digits) {
+				asked = MIN(FPREC, digits);
+			} else {
+				asked = 1 + MIN(FPREC, precis);
+			}
+
+			/*
+			 * Format the floating point number, separating the
+			 * mantissa and the exponent.
+			 *
+			 * The returned values are such that one presentation
+			 * of the number would be the output of:
+			 *
+			 *		printf("0.%se%d", m, e + 1);
+			 */
+
+			if (asked_dragon) {
+				mlen = float_dragon(m, sizeof m, nv, &e);
+			} else {
+				mlen = float_fixed(m, sizeof m, nv, asked, &e);
+			}
+
+			g_assert(size_is_positive(mlen));
+			g_assert(mlen < sizeof m);
+
+			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
+				char buf[32];
+				gm_snprintf(buf, sizeof buf, "%g", nv);
+				s_debug("%s with \"%%%c\": m=\"%.*s\" "
+					"(len=%zu, asked=%s), e=%d "
+					"[precis=%zu, digits=%zu, alt=%s]",
+					buf, c, (int) mlen, m, mlen,
+					asked_dragon ? "none" : size_t_to_string(asked),
+					e, precis, digits, alt ? "y" : "n");
+			}
+
+			/*
+			 * %g is turned into %e (and %G to %E) when the exponent
+			 * is less than -4 or when it is greater than or equal
+			 * to the precision.
+			 *
+			 * %F is our special "free format":
+			 * - If e = 0, we show the mantissa as-is.
+			 * - If e > 0, we switch to scientific notation as soon
+			 *   as the digits in the mantissa + trailing zeros would
+			 *   lead to a number with more than FPDIG digits.
+			 * - If e < 0, we switch to scientific notation when
+			 *   the number of leading zeros + the mantissa would be
+			 *   larger than FPREC digits (deemed harder to read at
+			 *   that time), or when e < -5.
+			 */
+
+			if ('g' == c || 'G' == c) {
+				if (e < -4 || e >= (int) precis + 1)
+					c = 'g' == c ? 'e' : 'E';
+			} else if (dragon_fmt) {
+				c = 'f';				/* For logging only */
+				if (e > 0) {
+					size_t v = e;
+					if (MAX(v, mlen) > FPDIG)		c = 'E';
+				} else if (e < 0) {
+					if (e < -5 || mlen - e > FPREC)	c = 'E';
+				}
+			}
+
+			if ('e' == c || 'E' == c) {
+				size_t v;
+				size_t start;
+				bool non_zero;
+
+				/* Exponent */
+
+				mptr = expbuf + sizeof expbuf;
+
+				v = (e >= 0) ? e : -e;
+				do {
+					unsigned dig = v % 10;
+					*--mptr = '0' + dig;
+				} while (v /= 10);
+				v = (e >= 0) ? e : -e;
+				if (v < 10 && !asked_dragon)
+					*--mptr = '0';
+				*--mptr = (e >= 0) ? '+' : '-';
+				*--mptr = is_ascii_upper(c) ? 'E' : 'e';
+
+				g_assert(ptr_cmp(mptr, expbuf) >= 0);
+
+				expptr = mptr;
+				explen = (expbuf + sizeof expbuf) - expptr;
+
+				/* Mantissa */
+
+				mptr = ebuf + sizeof ebuf;
+
+				if (dragon_fmt) {
+					v = mlen - 1;
+					do {
+						if (0 == v && mlen > 1)
+							*--mptr = '.';
+						*--mptr = m[v];
+					} while (v--);
+
+					/* Trailing mantissa filler if has precision */
+					if (has_precis && mlen < precis + 1)
+						ezeros = precis + 1 - mlen;
+
+				} else {
+					v = precis + 1;
+					v = MIN(mlen, v);
+					start = v; 			/* Starting index */
+					non_zero = alt || 0 == digits;
+
+					rlen = str_fround(m, mlen, v, r, sizeof r);
+
+					do {
+						if (1 == v && (alt || start != 1))
+							*--mptr = '.';
+						if (r[v] != '0')
+							non_zero = TRUE;
+						if (1 == v || non_zero)
+							*--mptr = r[v];
+					} while (--v);
+
+					/* Trailing mantissa zeros if %e or %E or %#[gG] */
+					if (mlen < precis + 1 && (alt || 0 == digits))
+						ezeros = precis + 1 - mlen;
+				}
+			} else {
+				size_t i;
+				char *t;
+				size_t d;	/* Dot position */
+
+				/* %f or %F -- THE FUN BEGINS! */
+
+				if (dragon_fmt) {
+					if (e < 0) {
+						azeros = -e - 1;	/* Zeros after dot */
+						g_assert(mlen <= sizeof ebuf);
+						mptr -= mlen;
+						memcpy(mptr, m, mlen);
+						if (0 == azeros) {
+							*--mptr = '.';
+							*--mptr = '0';
+						} else {
+							dot = 2;		/* Will emit "0." later */
+						}
+					} else {
+						size_t v = e;
+
+						if (v < mlen) {
+							d = e + 1;		/* Dot position */
+							i = mlen - 1;
+							do {
+								*--mptr = m[i];
+								if (i == d)
+									*--mptr = '.';
+							} while (i--);
+							/* Ensure trailing dot present if %# */
+							dot = (alt && d > mlen - 1) ? 1 : 0;
+						} else {
+							size_t x = e - mlen + 1;	/* Extra 10s */
+
+							dzeros = x; /* Before the decimal point */
+							g_assert(mlen <= sizeof ebuf);
+							mptr -= mlen;
+							memcpy(mptr, m, mlen);
+							/* Ensure trailing dot present if %# */
+							dot = alt ? 1 : 0;
+						}
+					}
+				} else if (e < 0) {
+					size_t v = -e;
+					size_t z = v - 1;	/* Amount of zeros after dot */
+
+					/* Formatted as 0.xxxx */
+
+					if (z >= precis && 0 == digits) {
+						i = 0;
+					} else {
+						/* How many trailing zeros? (none for %g) */
+						if (precis > z + mlen && (0 == digits || alt))
+							fzeros = precis - z - mlen;
+
+						i = (0 == digits) ? precis - z : mlen;
+						i = MIN(i, mlen);
+					}
+
+					/*
+					 * How many after-dot zeros? (0.000xxx)
+					 *
+					 * We remove one after-dot zero due to the leading carry
+					 * digit, which is known to be 0.  However, if we were
+					 * about to emit just one zero, we need to emit the
+					 * dot ourselves in the printing loop below.
+					 */
+
+					if (z != 0) {
+						azeros = z - 1;
+						dot = (z > 1) ? 2 : 0;	/* Will emit "0." later */
+					}
+
+					/* Rounding for the precision digit */
+					rlen = str_fround(m, mlen, i, r, sizeof r);
+
+					/* Don't emit if we're down to printing 0.0 */
+					if (0 == azeros || azeros < precis) {
+						bool has_non_zero = 0 == digits || alt;
+						/* Compute position of digital dot */
+						d = (z != 0) ? 0 : 1;
+						for (i = rlen, t = r + rlen; i > 0;) {
+							char dig = *--t;
+							if (has_non_zero || dig != '0') {
+								*--mptr = dig;
+								has_non_zero = TRUE;
+							}
+							if (--i == d) {
+								/* Leading "0.0" done later?*/
+								if (0 == dot) {
+									/* No, emit now */
+									*--mptr = '.';
+									*--mptr = '0';
+								}
+								break;
+							}
+						}
+					}
+				} else {
+					unsigned v = e;
+
+					if (v < mlen) {
+						size_t subdot;
+						bool has_non_zero;
+
+						/* Formatted as y.xxxx with y >= 0 */
+
+						d = e + 1;	/* Dot position */
+
+						if (0 != digits) {
+							/* Formatting from %g or %G */
+							has_non_zero = alt;	/* %#g wants dot */
+							subdot = digits > d ? digits - d : 0;
+						} else {
+							subdot = precis;
+							has_non_zero = TRUE;
+						}
+
+						/* Rounding for the precision digit */
+						i = d + subdot;		/* First excluded */
+						i = MIN(i, mlen);
+
+						/* Trailing fixed zeros to emit */
+						if (i < precis)
+							fzeros = precis - i;
+
+						rlen = str_fround(m, mlen, i, r, sizeof r);
+
+						i = rlen - 1;
+						d++;		/* Extra carry digit in r[] */
+
+						do {
+							/* No leading zero carry? */
+							if (0 == i && i < d - 1 && '0' == r[0])
+								break;
+							/* Skip trailing zeros if %g or %G */
+							/* Trailing zeros kept with %#g (alt) */
+							if (digits && !alt && i >= d) {
+								if (r[i] != '0') {
+									*--mptr = r[i];
+									has_non_zero = TRUE;
+								}
+							} else {
+								*--mptr = r[i];
+							}
+							if (i == d && has_non_zero)
+								*--mptr = '.';
+						} while (i--);
+
+						/* Ensure trailing dot present if %# */
+						dot = (alt && d > rlen - 1) ? 1 : 0;
+					} else {
+						size_t x = e - mlen + 1;	/* Extra 10s */
+						size_t subdot;
+
+						if (digits) {
+							if (alt) {
+								/* Formatting from %#g or %#G */
+								subdot = precis;
+							} else {
+								/* Formatting from %g or %G */
+								subdot = precis > v ? precis - v : 0;
+							}
+						} else {
+							subdot = precis;
+						}
+
+						dzeros = x; /* Zeros before the decimal point */
+						fzeros = subdot;	/* Zeros after the dot */
+
+						/* Emit a dot? */
+						dot = (0 == subdot && !alt) ? 0 : 1;
+
+						g_assert(mlen <= sizeof ebuf);
+
+						mptr -= mlen;
+						memcpy(mptr, m, mlen);
+					}
+				}
+			}
+		}
+		g_assert(ptr_cmp(mptr, ebuf) >= 0);		/* No underflow */
+		eptr = mptr;
+		elen = (ebuf + sizeof ebuf) - eptr;
+
+		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
+			char buf[32];
+			gm_snprintf(buf, sizeof buf, "%g", nv);
+			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
+				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
+				"a=%zu, f=%zu>",
+				buf, c, elen, (int) elen, eptr, explen, expptr,
+				2 == dot ? "0." :
+				1 == dot ? "." : "",
+				ezeros, dzeros, azeros, fzeros);
+		}
+		break;
+	}
+
+	have = esignlen + elen + ezeros + explen + dzeros + dot + azeros + fzeros;
+	need = MAX(have, width);
+	gap = need - have;
+
+	/*
+	 * Now, append item inside string, mangling freely with str_t
+	 * internals for efficient appending...
+	 *
+	 * It would be very inefficient to check for maxlen before appending
+	 * each char, so that check is performed once and for all at the
+	 * beginning, and only when we do need to be careful do we check
+	 * more precisely.
+	 */
+
+	if (remain <= need)				/* Cannot fit entirely */
+		goto careful;
+
+	/*
+	 * CAUTION: code duplication with "careful" below. Any change made
+	 * here NEEDS TO BE REPORTED to the next section.
+	 */
+
+	str_makeroom(str, need);		/* we do not NUL terminate it */
+	p = str->s_data + str->s_len;	/* next "free" char in arena */
+	if (gap && !left) {
+		memset(p, ' ', gap);
+		p += gap;
+	}
+	if (esignlen) {
+		memcpy(p, esignbuf, esignlen);
+		p += esignlen;
+	}
+	if (elen && 0 == azeros) {
+		memcpy(p, eptr, elen);
+		p += elen;
+	}
+	if (ezeros) {
+		memset(p, '0', ezeros);
+		p += ezeros;
+	}
+	if (explen) {
+		memcpy(p, expptr, explen);
+		p += explen;
+	}
+	if (dzeros) {
+		memset(p, '0', dzeros);
+		p += dzeros;
+	}
+	if (dot) {
+		if (2 == dot)
+			*p++ = '0';
+		*p++ = '.';
+	}
+	if (azeros) {
+		memset(p, '0', azeros);
+		p += azeros;
+	}
+	if (elen && 0 != azeros) {
+		memcpy(p, eptr, elen);
+		p += elen;
+	}
+	if (fzeros) {
+		memset(p, '0', fzeros);
+		p += fzeros;
+	}
+	if (gap && left) {
+		memset(p, ' ', gap);
+		p += gap;
+	}
+	str->s_len = p - str->s_data;	/* trailing NUL does not count */
+	g_assert(str->s_len <= str->s_size);
+	goto done;
+
+careful:
+	/*
+	 * Have to be careful, because current field will be only partially
+	 * printed (remain is less or equal to the amount of chars we need).
+	 * In particular, one cannot expect the trailing NUL char to be
+	 * present in the string.
+	 *
+	 * CAUTION: code duplication with previous section. Any change made
+	 * to code here MAY NEED TO BE REPORTED to the above section.
+	 */
+
+	str_makeroom(str, remain);			/* we do not NUL terminate it */
+	p = str->s_data + str->s_len;		/* next "free" char in arena */
+	str->s_len += remain;				/* know how much we'll append */
+	q = p + remain;						/* first char past limit */
+	if (gap && !left) {
+		p += clamp_memset(p, q - p, ' ', gap);
+		if (p >= q)
+			goto clamped;
+		remain -= gap;
+	}
+	if (esignlen) {
+		p += clamp_memcpy(p, q - p, esignbuf, esignlen);
+		if (p >= q)
+			goto clamped;
+		remain -= esignlen;
+	}
+	if (elen && 0 == azeros) {
+		p += clamp_memcpy(p, q - p, eptr, elen);
+		if (p >= q)
+			goto clamped;
+		remain -= elen;
+	}
+	if (ezeros) {
+		p += clamp_memset(p, q - p, '0', ezeros);
+		if (p >= q)
+			goto clamped;
+		remain -= ezeros;
+	}
+	if (explen) {
+		p += clamp_memcpy(p, q - p, expptr, explen);
+		if (p >= q)
+			goto clamped;
+		remain -= explen;
+	}
+	if (dzeros) {
+		p += clamp_memset(p, q - p, '0', dzeros);
+		if (p >= q)
+			goto clamped;
+		remain -= dzeros;
+	}
+	if (dot) {
+		if (0 == remain)
+			goto clamped;
+		if (2 == dot) {
+			*p++ = '0';
+			if (0 == --remain)
+				goto clamped;
+		}
+		*p++ = '.';
+		remain--;
+	}
+	if (azeros) {
+		p += clamp_memset(p, q - p, '0', azeros);
+		if (p >= q)
+			goto clamped;
+		remain -= azeros;
+	}
+	if (elen && 0 != azeros) {
+		p += clamp_memcpy(p, q - p, eptr, elen);
+		if (p >= q)
+			goto clamped;
+		remain -= elen;
+	}
+	if (fzeros) {
+		p += clamp_memset(p, q - p, '0', fzeros);
+		if (p >= q)
+			goto clamped;
+		remain -= fzeros;
+	}
+	if (gap && left) {
+		p += clamp_memset(p, q - p, ' ', gap);
+		if (p >= q)
+			goto clamped;
+		remain -= gap;
+	}
+
+	/*
+	 * At this point, `remain' can only be zero anyway.
+	 */
+
+	g_assert(0 == remain);
+
+done:
+	*written = str->s_len - origlen;
+	return TRUE;
+
+clamped:
+	*written = str->s_len - origlen;
+	return FALSE;
+}
 
 /**
  * Append to string the variable formatted argument list, just like sprintf()
@@ -1094,14 +1804,14 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * the string buffer.
  *
  * This routine can be safely called from a signal handler provided the
- * following conditions are met:
+ * string is a foreign buffer.
  *
- * - The string is a foreign buffer.
- * - No floating-point formatting is attempted (%f, %e, %g, %F, %E or %G)
+ * Adpated from Perl 5.004_04 by Raphael Manfredi:
  *
- * Adpated from Perl 5.004_04 by Raphael Manfredi to use str_t intead of SV,
- * removing Perlism such as %_ and %V. Also added the `maxlen' constraint and
- * handling of "foreign" strings.
+ * - use str_t intead of SV, removing Perlism such as %_ and %V.
+ * - added the `maxlen' constraint and handling of "foreign" strings.
+ * - added the %' formatting directive to group integers by thousands.
+ * - added native floating point formatting.
  *
  * Here are the supported universally-known conversions:
  *
@@ -1116,7 +1826,7 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %f   a floating-point number, in fixed decimal notation
  * %g   a floating-point number, in %e or %f notation
  *
- * The routine alos allows the following widely-supported conversions:
+ * The routine also allows the following widely-supported conversions:
  *
  * %X   like %x, but using upper-case letters
  * %E   like %e, but using an upper-case "E"
@@ -1125,6 +1835,11 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %n   special: *stores* the number of characters output so far
  *      into the next variable in the parameter list
  *
+ * The routine understands the following extensions, correctly parsed by gcc:
+ *
+ * %m   replaced by symbolic errno value + message: "EIO (I/O error)"
+ * %F   "free format" for floats, almost similar to %G if precision is given
+ *
  * Finally, for backward compatibility, the following unnecessary but
  * widely-supported conversions are allowed:
  *
@@ -1132,7 +1847,6 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * %D   a synonym for %ld
  * %U   a synonym for %lu
  * %O   a synonym for %lo
- * %F   a synonym for %f
  *
  * The routine permits the following universally-known flags between the
  * % and the conversion letter:
@@ -1142,17 +1856,27 @@ str_snprintf(char *dst, size_t size, const char *fmt, ...)
  * -        left-justify within the field
  * 0        use zeros, not spaces, to right-justify
  * #        prefix octal with "0", hex with "0x"
+ *          force trailing dot for floats, don't strip trailing zeros for %[gG]
+ * '        use thousands groupping in decimal integers with ","
  * number   minimum field width
  * .number  precision: digits after decimal point for floating-point,
  *          max length for string, minimum length for integer
  * l        interpret integer as C type "long" or "unsigned long"
  * h        interpret integer as C type "short" or "unsigned short"
+ * z        interpret integer as C type "size_t" or "ssize_t"
  *
  * Where a number would appear in the flags, an asterisk ("*") may be
  * instead, in which case the routine uses the next item in the parameter
  * list as the given number (that is, as the field width or precision).
  * If a field width obtained through "*" is negative, it has the same effect
  * as the '-' flag: left-justification.
+ *
+ * @param str		string to which fomatting occurs
+ * @param maxlen	maximum amount of bytes to print
+ * @param fmt		format string
+ * @param args		variable arguments
+ *
+ * @return amount of bytes appended to string.
  */
 size_t
 str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
@@ -1165,6 +1889,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	size_t fmtlen;
 	size_t origlen;
 	size_t remain = maxlen;
+	size_t processed = 0;
 
 	str_check(str);
 	g_assert(size_is_non_negative(maxlen));
@@ -1174,6 +1899,26 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	origlen = str->s_len;
 
 	/*
+	 * Special-case "" and "%s".
+	 */
+
+	if G_UNLIKELY(0 == fmtlen)
+		return 0;
+
+	format_recursion++;
+
+	if G_UNLIKELY(2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
+		const char *s = va_arg(args, char*);
+		size_t len;
+		processed++;
+		s = s ? s : nullstr;
+		len = strlen(s);
+		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len) || len > maxlen)
+			goto clamped;
+		goto done;
+	}
+
+	/*
 	 * Clamp available space for foreign strings, which cannot be resized.
 	 *
 	 * We still allow calls to str_makeroom() on such strings though, because
@@ -1181,34 +1926,40 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	 * of the foreign buffer, so we use that as assertions that our logic
 	 * is correct.
 	 *
-	 * However, this routine uses str_ncat_foreign() instead of str_ncat()
+	 * However, this routine uses str_ncat_safe() instead of str_ncat()
 	 * to be able to truncate the output if there is not enough space.
 	 */
 
-	if (str->s_flags & STR_FOREIGN_PTR)
-		remain = str->s_size - str->s_len;
+	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
+		size_t avail = str->s_size - str->s_len;
+		if G_UNLIKELY(avail <= 1)
+			goto clamped;
+		avail--;					/* Leave room for trailing NUL */
+		remain = MIN(maxlen, avail);
+	}
+
+#define STR_APPEND(x, l) \
+G_STMT_START {									\
+	if G_UNLIKELY((l) > remain) {				\
+		str_ncat_safe(str, (x), remain);		\
+		goto clamped;	/* Reached maxlen */	\
+	} else {									\
+		if (!str_ncat_safe(str, (x), (l))) 		\
+			goto clamped;	/* Full! */			\
+		remain -= (l);							\
+	}											\
+} G_STMT_END
 
 	/*
-	 * Special-case "" and "%s".
+	 * Here we go, process the whole format string.
 	 */
-
-	if (0 == fmtlen)
-		return 0;
-
-	if (2 == fmtlen && fmt[0] == '%' && fmt[1] == 's') {
-		const char *s = va_arg(args, char*);
-		size_t len;
-		s = s ? s : nullstr;
-		len = strlen(s);
-		str_ncat_foreign(str, s, len > maxlen ? maxlen : len);
-		goto done;
-	}
 
 	fmtend = fmt + fmtlen;
 
 	for (f = fmt; f < fmtend; f = q) {
 		bool alt = FALSE;
 		bool left = FALSE;
+		bool group = FALSE;
 		char fill = ' ';
 		char plus = 0;
 		char intsize = 0;
@@ -1225,9 +1976,6 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		size_t elen = 0;
 		char ebuf[TYPE_DIGITS(long) * 2 + 16]; /* large enough for "%#.#f" */
 
-		static char *efloatbuf = NULL;
-		static size_t efloatsize = 0;
-
 		char c;
 		unsigned base;
 		long iv;
@@ -1243,13 +1991,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 		if (q > f) {
 			size_t len = q - f;
-			if (len > remain) {
-				str_ncat_foreign(str, f, remain);
-				goto done;						/* Reached maxlen */
-			} else {
-				str_ncat_foreign(str, f, len);
-				remain -= len;
-			}
+			STR_APPEND(f, len);
 			f = q;
 		}
 		if (q++ >= fmtend)
@@ -1278,6 +2020,11 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				q++;
 				continue;
 
+			case '\'':
+				group = TRUE;
+				q++;
+				continue;
+
 			default:
 				break;
 			}
@@ -1302,6 +2049,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				int i = va_arg(args, int);
 				left |= (i < 0);
 				width = (i < 0) ? -UNSIGNED(i) : UNSIGNED(i);
+				processed++;
 				q++;
 			}
 			break;
@@ -1314,6 +2062,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			if (*q == '*') {
 				int i = va_arg(args, int);
 				precis = (i < 0) ? 0 : i;
+				processed++;
 				q++;
 			} else {
 				precis = 0;
@@ -1331,6 +2080,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		case 'l':
 			/* FALL THROUGH */
 		case 'h':
+			/* FALL THROUGH */
+		case 'z':
 			intsize = *q++;
 			break;
 		}
@@ -1350,10 +2101,27 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			c = va_arg(args, int) & MAX_INT_VAL(unsigned char);
 			eptr = &c;
 			elen = 1;
+			processed++;
 			goto string;
+
+		case 'm':
+			{
+				const char *e = symbolic_errno(errno);
+				const char *s = g_strerror(errno);
+				size_t len;
+
+				len = strlen(e);
+				STR_APPEND(e, len);
+				STR_APPEND(" (", 2);
+				len = strlen(s);
+				STR_APPEND(s, len);
+				STR_APPEND(")", 1);
+			}
+			continue;
 
 		case 's':
 			eptr = va_arg(args, char*);
+			processed++;
 			if (NULL == eptr)
 				eptr = nullstr;
 			if (has_precis) {
@@ -1362,6 +2130,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			} else {
 				elen = strlen(eptr);
 			}
+			/* FALL THROUGH */
 
 		string:
 			if (has_precis && elen > precis)
@@ -1374,6 +2143,8 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			uv = (unsigned long) va_arg(args, void*);
 			base = 16;
 			c = 'x';		/* Request lower-cased pointer */
+			alt = TRUE;		/* Request leading "0x" */
+			processed++;
 			goto integer;
 
 		case 'D':
@@ -1384,8 +2155,10 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			switch (intsize) {
 			case 'h':		iv = (short) va_arg(args, int); break;
 			case 'l':		iv = va_arg(args, long); break;
+			case 'z':		iv = va_arg(args, ssize_t); break;
 			default:		iv = va_arg(args, int); break;
 			}
+			processed++;
 			if (iv >= 0) {
 				uv = iv;
 				if (plus)
@@ -1415,13 +2188,16 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		case 'X':
 		case 'x':
 			base = 16;
+			/* FALL THROUGH */
 
 		uns_integer:
 			switch (intsize) {
 			case 'h':  uv = (unsigned short) va_arg(args, unsigned); break;
 			case 'l':  uv = va_arg(args, unsigned long); break;
+			case 'z':  uv = va_arg(args, size_t); break;
 			default:   uv = va_arg(args, unsigned); break;
 			}
+			processed++;
 
 		/* FALL THROUGH */
 
@@ -1450,10 +2226,21 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 					*--mptr = '0';
 				break;
 			case 10:
-				do {
-					dig = uv % base;
-					*--mptr = '0' + dig;
-				} while (uv /= base);
+				if G_UNLIKELY(group) {
+					/* Highlight thousands groups with "," */
+					unsigned d = 0;
+					do {
+						dig = uv % base;
+						if (0 == d++ % 3 && d != 1)
+							*--mptr = ',';
+						*--mptr = '0' + dig;
+					} while (uv /= base);
+				} else {
+					do {
+						dig = uv % base;
+						*--mptr = '0' + dig;
+					} while (uv /= base);
+				}
 				break;
 			default:
 				g_assert_not_reached();
@@ -1467,74 +2254,27 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 
 			/* FLOATING POINT */
 
-		case 'F':
-			c = 'f';			/* maybe %F isn't supported here */
-			/* FALL THROUGH */
 		case 'e': case 'E':
-		case 'f':
+		case 'f': case 'F':
 		case 'g': case 'G':
+			{
+				size_t written;
+				gboolean ok;
 
-			/*
-			 * This is evil, but floating point is even more evil.
-			 * Formatting of floats is delegated to system's snprintf().
-			 */
+				nv = va_arg(args, double);
+				processed++;
+				if (!has_precis)
+					precis = 6;					/* Default precision */
 
-			nv = va_arg(args, double);
+				/* Floating point formatting is complex, handle separately */
 
-			/*
-			 * Ensure nv is a valid number, and not NaN, +Inf or -Inf,
-			 * since frexp() has undefined behaviour for these three
-			 * special values.
-			 */
-
-			need = 0;
-			if (c != 'e' && c != 'E' && isfinite(nv)) {
-				int i = INT_MIN;
-				(void) frexp(nv, &i);
-				if (i == INT_MIN)
-					g_error("frexp");
-				if (i > 0)
-					need = BIT_DIGITS(i);
+				ok = str_fcat_safe(str, remain, nv, c,
+						has_precis, precis, width, plus, left, alt, &written);
+				if (!ok)
+					goto clamped;
+				remain -= written;
 			}
-			need += has_precis ? precis : 6;	/* known default */
-			if (need < width)
-				need = width;
-
-			need += 20; /* fudge factor */
-			if (efloatsize < need) {
-				efloatsize = need + 20;			/* more fudge */
-				efloatbuf = NOT_LEAKING(hrealloc(efloatbuf, efloatsize));
-			}
-
-			mptr = ebuf + sizeof ebuf;
-			*--mptr = '\0';
-			*--mptr = c;
-			if (has_precis) {
-				base = precis;
-				do { *--mptr = '0' + (base % 10); } while (base /= 10);
-				*--mptr = '.';
-			}
-			if (width) {
-				base = width;
-				do { *--mptr = '0' + (base % 10); } while (base /= 10);
-			}
-			if (fill == '0')
-				*--mptr = fill;
-			if (left)
-				*--mptr = '-';
-			if (plus)
-				*--mptr = plus;
-			if (alt)
-				*--mptr = '#';
-			*--mptr = '%';
-
-			/* should be big enough */
-			str_snprintf(efloatbuf, efloatsize, mptr, nv);
-
-			eptr = efloatbuf;
-			elen = strlen(efloatbuf);
-
-			break;
+			continue;	/* not "break" */
 
 			/* SPECIAL */
 
@@ -1544,18 +2284,23 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 				switch (intsize) {
 				case 'h': *(va_arg(args, short*)) = MIN(n, SHRT_MAX); break;
 				case 'l': *(va_arg(args, long*)) = MIN(n, LONG_MAX); break;
+				case 'z': *(va_arg(args, ssize_t*)) = MIN(n, SSIZE_MAX); break;
 				default:  *(va_arg(args, int*)) = MIN(n, INT_MAX); break;
 				}
+				processed++;
 			}
 			continue;	/* not "break" */
 
 			/* UNKNOWN */
 
 		default:
-			if (c)
-				g_warning("str_vncatf(): invalid conversion \"%%%c\"", c & 0xff);
-			else
-				g_warning("str_vncatf(): invalid end of string");
+			if (c) {
+				s_minicarp("%s(): invalid conversion \"%%%c\"",
+					G_STRFUNC, c & 0xff);
+			} else {
+				s_minicarp("%s(): invalid end of format string \"%s\"",
+					G_STRFUNC, fmt);
+			}
 
 			/* output mangled stuff ... */
 			if (c == '\0')
@@ -1564,18 +2309,12 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			elen = q - f;
 
 			/* ... right here, because formatting flags should not apply */
-			if (elen > remain) {
-				str_ncat_foreign(str, eptr, remain);
-				goto done;						/* Reached maxlen */
-			} else {
-				str_ncat_foreign(str, eptr, elen);
-				remain -= elen;
-			}
+			STR_APPEND(eptr, elen);
 			continue;	/* not "break" */
 		}
 
 		have = esignlen + zeros + elen;
-		need = (have > width ? have : width);
+		need = MAX(have, width);
 		gap = need - have;
 
 		/*
@@ -1623,6 +2362,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 			p += gap;
 		}
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
+		g_assert(str->s_len <= str->s_size);
 		remain -= need;
 		continue;
 
@@ -1644,49 +2384,37 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		if (esignlen && fill == '0') {
 			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= esignlen;
 		}
 		if (gap && !left) {
-			if (gap >= remain) {
-				memset(p, fill, remain);
-				goto done;
-			} else {
-				memset(p, fill, gap);
-				p += gap;
-			}
+			p += clamp_memset(p, q - p, fill, gap);
+			if (p >= q)
+				goto clamped;
 			remain -= gap;
 		}
 		if (esignlen && fill != '0') {
 			p += clamp_memcpy(p, q - p, esignbuf, esignlen);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= esignlen;
 		}
 		if (zeros) {
 			p += clamp_memset(p, q - p, '0', zeros);
 			if (p >= q)
-				goto done;
+				goto clamped;
 			remain -= zeros;
 		}
 		if (elen) {
-			if (elen >= remain) {
-				memcpy(p, eptr, remain);
-				goto done;
-			} else {
-				memcpy(p, eptr, elen);
-				p += elen;
-			}
+			p += clamp_memcpy(p, q - p, eptr, elen);
+			if (p >= q)
+				goto clamped;
 			remain -= elen;
 		}
 		if (gap && left) {
-			if (gap >= remain) {
-				memset(p, ' ', remain);
-				goto done;
-			} else {
-				memset(p, ' ', gap);
-				p += gap;
-			}
+			p += clamp_memset(p, q - p, ' ', gap);
+			if (p >= q)
+				goto clamped;
 			remain -= gap;
 		}
 
@@ -1700,7 +2428,34 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	}
 
 done:
+	format_recursion--;
 	return str->s_len - origlen;
+
+clamped:
+	{
+		static gboolean recursion;
+
+		/*
+		 * This routine MUST be recursion-safe since it is used indirectly
+		 * by s_minicarp() through the str_vprintf() call and we're about
+		 * to call the former now!
+		 */
+
+		if (!recursion && tests_completed) {
+			recursion = TRUE;
+			s_minicarp("truncated output within %zu-byte buffer "
+				"(%zu max, %zu written, %zu available) with \"%s\" "
+				"(%zu arg%s processed)",
+				str->s_size, maxlen, str->s_len - origlen,
+				str->s_size - str->s_len,
+				fmt, processed, 1 == processed ? "" : "s");
+			recursion = FALSE;
+		}
+	}
+
+	goto done;
+
+#undef STR_APPEND
 }
 
 /*
@@ -1710,7 +2465,7 @@ done:
 
 /**
  * Append to string the variable formatted argument list, just like sprintf().
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_vcatf(str_t *str, const char *fmt, va_list args)
@@ -1720,7 +2475,7 @@ str_vcatf(str_t *str, const char *fmt, va_list args)
 
 /**
  * Like str_vcatf(), but resets the string first.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_vprintf(str_t *str, const char *fmt, va_list args)
@@ -1733,7 +2488,7 @@ str_vprintf(str_t *str, const char *fmt, va_list args)
 
 /**
  * Append result of "printf(fmt, ...)" to string.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_catf(str_t *str, const char *fmt, ...)
@@ -1750,7 +2505,7 @@ str_catf(str_t *str, const char *fmt, ...)
 
 /**
  * Append result of "nprintf(fmt, ...)" to string.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_ncatf(str_t *str, size_t n, const char *fmt, ...)
@@ -1767,7 +2522,7 @@ str_ncatf(str_t *str, size_t n, const char *fmt, ...)
 
 /**
  * A regular sprintf() without fear of buffer overflow...
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_printf(str_t *str, const char *fmt, ...)
@@ -1788,7 +2543,7 @@ str_printf(str_t *str, const char *fmt, ...)
 
 /**
  * Like str_printf(), but formats at most `n' characters.
- * Returns the amount of formatted chars.
+ * @return the amount of formatted chars.
  */
 size_t
 str_nprintf(str_t *str, size_t n, const char *fmt, ...)
@@ -1809,7 +2564,7 @@ str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 
 /**
  * Create a new string, and sprintf() the arguments inside.
- * Returns the new string item, which may be disposed of with str_destroy().
+ * @return the new string item, which may be disposed of with str_destroy().
  */
 str_t *
 str_msg(const char *fmt, ...)
@@ -1833,12 +2588,30 @@ str_msg(const char *fmt, ...)
  * freshly allocated C string, which needs to be disposed of by hfree().
  */
 char *
+str_vcmsg(const char *fmt, va_list args)
+{
+	static str_t *str;
+	
+	if G_UNLIKELY(NULL == str)
+		str = str_new_not_leaking(0);
+
+	str->s_len = 0;
+	str_vncatf(str, INT_MAX, fmt, args);
+
+	return str_dup(str);
+}
+
+/**
+ * sprintf() the arguments inside a dynamic string and return the result in a
+ * freshly allocated C string, which needs to be disposed of by hfree().
+ */
+char *
 str_cmsg(const char *fmt, ...)
 {
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
@@ -1862,7 +2635,7 @@ str_smsg(const char *fmt, ...)
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
@@ -1882,7 +2655,7 @@ str_smsg2(const char *fmt, ...)
 	static str_t *str;
 	va_list args;
 	
-	if (NULL == str)
+	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(0);
 
 	str->s_len = 0;
@@ -1891,6 +2664,512 @@ str_smsg2(const char *fmt, ...)
 	va_end(args);
 
 	return str_2c(str);
+}
+
+/**
+ * A regular sprintf() into a fix sized buffer without fear of overflow...
+ * @return the amount of formatted chars.
+ */
+size_t
+str_bprintf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+	size_t formatted;
+
+	str_new_buffer(&str, dst, 0, size);
+
+	va_start(args, fmt);
+	formatted = str_vncatf(&str, size - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/**
+ * A regular vsprintf() into a fix sized buffer without fear of overflow...
+ * @return the amount of formatted chars.
+ */
+size_t
+str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
+{
+	str_t str;
+	size_t formatted;
+
+	str_new_buffer(&str, dst, 0, size);
+
+	formatted = str_vncatf(&str, size - 1, fmt, args);
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/**
+ * Append formatted string to previous string in fix sized buffer.
+ * @return the amount of formatted chars.
+ */
+size_t
+str_bcatf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+	size_t len, formatted;
+
+	len = clamp_strlen(dst, size);
+	str_new_buffer(&str, dst, len, size);
+
+	va_start(args, fmt);
+	formatted = str_vncatf(&str, size - len - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/**
+ * Append formatted string to previous string in fix sized buffer.
+ * @return the amount of formatted chars.
+ */
+size_t
+str_vbcatf(char *dst, size_t size, const char *fmt, va_list args)
+{
+	str_t str;
+	size_t len, formatted;
+
+	len = clamp_strlen(dst, size);
+	str_new_buffer(&str, dst, len, size);
+
+	formatted = str_vncatf(&str, size - len - 1, fmt, args);
+	str_putc(&str, '\0');
+
+	return formatted;
+}
+
+/***
+ *** Non-regression tests for str_vncatf().
+ ***/
+
+/**
+ * str_bprintf() without any format argument checking, for testing purposes.
+ */
+static void
+str_tprintf(char *dst, size_t size, const char *fmt, ...)
+{
+	str_t str;
+	va_list args;
+
+	str_new_buffer(&str, dst, 0, size);
+
+	va_start(args, fmt);
+	str_vncatf(&str, size - 1, fmt, args);
+	va_end(args);
+
+	str_putc(&str, '\0');
+}
+
+/**
+ * Non-regression tests for the str_vncatf() formatting routine.
+ *
+ * Aborts execution on failure.
+ *
+ * @param verbose		whether to log differences with snprintf()
+ *
+ * @return amount of discrepancies found with the system's snprintf().
+ */
+G_GNUC_COLD size_t
+str_test(gboolean verbose)
+{
+#define MLEN		64
+#define DEADBEEF	((void *) 0xdeadbeef)
+#define INTEGER		345000
+#define LONG		345000L
+#define PI			3.141592654
+#define DOUBLE		3.45e8
+#define LN2			0.69314718056
+#define INF			HUGE_VAL
+#define S			TRUE			/* Standard */
+#define X			FALSE			/* Excluded from snprintf() consistency */
+
+	size_t discrepancies = 0;
+	static const char ANYTHING[] = "anything";
+	static const char INTSTR[] = "345000";
+	static const char INThex[] = "543a8";
+	static const char INTHEX[] = "543A8";
+	static const struct tstring {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		const char *value;
+		const char *result;
+	} test_strings[] = {
+		{ "",			S, 10,		ANYTHING,	"" },
+		{ "%%",			S, 10,		ANYTHING,	"%" },
+		{ "s%st",		S, MLEN,	"tar",		"start" },
+		{ "%s",			S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%s",			S, 5,		ANYTHING,	"anyt" },
+		{ "%.2s",		S, 5,		ANYTHING,	"an" },
+		{ "%.15s",		S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%15s",		S, MLEN,	ANYTHING,	"       anything" },
+		{ "%15s",		S, 9,		ANYTHING,	"       a" },
+		{ "%-15s",		S, MLEN,	ANYTHING,	"anything       " },
+		{ "%-15s.",		S, MLEN,	ANYTHING,	"anything       ." },
+		{ "%015s.",		X, MLEN,	ANYTHING,	"0000000anything." },
+		{ "%-5s",		S, MLEN,	ANYTHING,	ANYTHING },
+		{ "%-5s.",		S, MLEN,	ANYTHING,	"anything." },
+	};
+	static const struct tchar {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		const char value;
+		const char *result;
+	} test_chars[] = {
+		{ "%c",			S, 10,		'\0',		"" },
+		{ "%c",			S, 10,		'A',		"A" },
+		{ "%c",			S, 1,		'A',		"" },
+	};
+	static const struct tpointer {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		void *value;
+		const char *result;
+	} test_pointers[] = {
+		{ "%p",			S, MLEN,	DEADBEEF,	"0xdeadbeef" },
+		{ "%p",			S, 5,		DEADBEEF,	"0xde" },
+	};
+	static const struct tint {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		int value;
+		const char *result;
+	} test_ints[] = {
+		{ "%d",			S, MLEN,	INTEGER,	INTSTR },
+		{ "%x",			S, MLEN,	INTEGER,	INThex },
+		{ "%X",			S, MLEN,	INTEGER,	INTHEX },
+		{ "%x",			S, 5,		INTEGER,	"543a" },
+		{ "%#x",		S, 5,		INTEGER,	"0x54" },
+		{ "%#x",		S, MLEN,	INTEGER,	"0x543a8" },
+		{ "%#X",		S, MLEN,	INTEGER,	"0X543A8" },
+		{ "%.2d",		S, MLEN,	INTEGER,	INTSTR },
+		{ "%2d",		S, MLEN,	INTEGER,	INTSTR },
+		{ "%'d",		X, MLEN,	INTEGER,	"345,000" },
+		{ "%-8d.",		S, MLEN,	INTEGER,	"345000  ." },
+		{ "%-8d.",		S, MLEN,	INTEGER,	"345000  ." },
+		{ "%8d",		S, MLEN,	INTEGER,	"  345000" },
+		{ "%8d",		S, 5,		INTEGER,	"  34" },
+		{ "%d",			S, MLEN,	-INTEGER,	"-345000" },
+		{ "%-8d.",		S, MLEN,	-INTEGER,	"-345000 ." },
+		{ "%.08d",		S, MLEN,	INTEGER,	"00345000" },
+	};
+	static const struct tlong {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		long value;
+		const char *result;
+	} test_longs[] = {
+		{ "%ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%lx",		S, MLEN,	LONG,		INThex },
+		{ "%lX",		S, MLEN,	LONG,		INTHEX },
+		{ "%lx",		S, 5,		LONG,		"543a" },
+		{ "%#lx",		S, 5,		LONG,		"0x54" },
+		{ "%#lx",		S, MLEN,	LONG,		"0x543a8" },
+		{ "%#lX",		S, MLEN,	LONG,		"0X543A8" },
+		{ "%.2ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%2ld",		S, MLEN,	LONG,		INTSTR },
+		{ "%'d",		X, MLEN,	LONG,		"345,000" },
+		{ "%-8ld.",		S, MLEN,	LONG,		"345000  ." },
+		{ "%-8ld.",		S, MLEN,	LONG,		"345000  ." },
+		{ "%8ld",		S, MLEN,	LONG,		"  345000" },
+		{ "%8ld",		S, 5,		LONG,		"  34" },
+		{ "%ld",		S, MLEN,	-LONG,		"-345000" },
+		{ "%-8ld.",		S, MLEN,	-LONG,		"-345000 ." },
+		{ "%.08ld",		S, MLEN,	LONG,		"00345000" },
+	};
+	static const struct tdouble {
+		const char *fmt;
+		gboolean std;
+		size_t buflen;
+		double value;
+		const char *result;
+	} test_doubles[] = {
+		/* #1 */
+		{ "%g",			S, MLEN,	INF,		"inf" },
+		{ "%G",			S, MLEN,	INF,		"INF" },
+		{ "%g",			S, MLEN,	-INF,		"-inf" },
+		{ "%G",			S, MLEN,	-INF,		"-INF" },
+		{ "%f",			S, MLEN,	PI,			"3.141593" },
+		{ "%g",			S, MLEN,	PI,			"3.14159" },
+		{ "%.1g",		S, MLEN,	PI,			"3" },
+		{ "%e",			S, MLEN,	PI,			"3.141593e+00" },
+		{ "%e",			S, MLEN,	-PI,		"-3.141593e+00" },
+		/* #10 */
+		{ "%.2e",		S, MLEN,	-PI,		"-3.14e+00" },
+		{ "%.2f",		S, MLEN,	-PI,		"-3.14" },
+		{ "%8.2f",		S, MLEN,	-PI,		"   -3.14" },
+		{ "%g",			S, MLEN,	DOUBLE,		"3.45e+08" },
+		{ "%g",			S, MLEN,	-DOUBLE,	"-3.45e+08" },
+		{ "%G",			S, MLEN,	DOUBLE,		"3.45E+08" },
+		{ "%e",			S, MLEN,	DOUBLE,		"3.450000e+08" },
+		{ "%E",			S, MLEN,	DOUBLE,		"3.450000E+08" },
+		{ "%e",			S, MLEN,	LN2,		"6.931472e-01" },
+		{ "%.0e",		S, MLEN,	LN2,		"7e-01" },
+		/* #20 */
+		{ "%.17f",		S, MLEN,	LN2,		"0.69314718056000002" },
+		{ "%.0f",		S, MLEN,	LN2,		"1" },
+		{ "%.1f",		S, MLEN,	LN2,		"0.7" },
+		{ "%f",			S, MLEN,	LN2,		"0.693147" },
+		{ "%.5f",		S, MLEN,	LN2,		"0.69315" },
+		{ "%.5f",		S, 5,		LN2,		"0.69" },
+		{ "%f",			S, MLEN,	-LN2,		"-0.693147" },
+		{ "%.5f",		S, MLEN,	-LN2,		"-0.69315" },
+		{ "%.5f",		S, 5,		-LN2,		"-0.6" },
+		{ "%g",			S, MLEN,	5434e-9,	"5.434e-06" },
+		/* #30 */
+		{ "%.3e",		S, MLEN,	-5434e-9,	"-5.434e-06" },
+		{ "%.2g",		S, MLEN,	5434e-9,	"5.4e-06" },
+		{ "%.0g",		S, MLEN,	5434e-9,	"5e-06" },
+		{ "%.14f",		S, MLEN,	5434e-9,	"0.00000543400000" },
+		{ "%f",			S, MLEN,	1e-7,		"0.000000" },
+		{ "%f",			S, MLEN,	9e-7,		"0.000001" },
+		{ "%f",			S, MLEN,	5.01e-7,	"0.000001" },
+		{ "%f",			S, MLEN,	4e-7,		"0.000000" },
+		{ "%f",			S, MLEN,	4e-6,		"0.000004" },
+		{ "%f",			S, MLEN,	9e-6,		"0.000009" },
+		/* #40 */
+		{ "%f",			S, MLEN,	94e-7,		"0.000009" },
+		{ "%f",			S, MLEN,	95e-7,		"0.000010" },
+		{ "%f",			S, MLEN,	150,		"150.000000" },
+		{ "%.0f",		S, MLEN,	150,		"150" },
+		{ "%.0f",		S, MLEN,	180,		"180" },
+		{ "%g",			S, MLEN,	150,		"150" },
+		{ "%e",			S, MLEN,	150,		"1.500000e+02" },
+		{ "%.15e",		S, MLEN,	150,		"1.500000000000000e+02" },
+		{ "%.0e",		S, MLEN,	150,		"2e+02" },
+		{ "%.0e",		S, MLEN,	180,		"2e+02" },
+		/* #50 */
+		{ "%.0e",		S, MLEN,	140,		"1e+02" },
+		{ "%.0e",		S, MLEN,	149,		"1e+02" },
+		{ "%.0e",		S, MLEN,	151,		"2e+02" },
+		{ "%g",			S, MLEN,	15000,		"15000" },
+		{ "%g",			S, MLEN,	15000.4,	"15000.4" },
+		{ "%.10e",		S, MLEN,	150000.04,	"1.5000004000e+05" },
+		{ "%.0f",		S, MLEN,	15000.9,	"15001" },
+		{ "%.0f",		S, MLEN,	0.899,		"1" },
+		{ "%.1f",		S, MLEN,	0.899,		"0.9" },
+		{ "%.3f",		S, MLEN,	0.899,		"0.899" },
+		/* #60 */
+		{ "%.2f",		S, MLEN,	0.899,		"0.90" },
+		{ "%g",			S, MLEN,	150000,		"150000" },
+		{ "%g",			S, MLEN,	1500000,	"1.5e+06" },
+		{ "%g",			S, MLEN,	1.5e-200,	"1.5e-200" },
+		{ "%+g",		S, MLEN,	1.5e200,	"+1.5e+200" },
+		{ "%+g",		S, MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%12g",		S, MLEN,	-1.5e200,	"   -1.5e+200" },
+		{ "%-12g.",		S, MLEN,	-1.5e200,	"-1.5e+200   ." },
+		{ "%-12g.",		S, MLEN,	-1.5e20,	"-1.5e+20    ." },
+		{ "%-12g.",		S, MLEN,	-1.5e09,	"-1.5e+09    ." },
+		/* #70 */
+		{ "%-12g.",		S, MLEN,	-1.5e-09,	"-1.5e-09    ." },
+		{ "%-12g.",		S, MLEN,	+1.5e-09,	"1.5e-09     ." },
+		{ "%+12g",		S, MLEN,	+1.5e-09,	"    +1.5e-09" },
+		{ "%.4g",		S, MLEN,	-1.5e200,	"-1.5e+200" },
+		{ "%.5g",		S, MLEN,	15000,		"15000" },
+		{ "%.4g",		S, MLEN,	15000,		"1.5e+04" },
+		{ "%.0f",		S, MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.20g",		S, MLEN,	2e+19,		"20000000000000000000" },
+		{ "%.51g",		X, MLEN,	2e+50,		"20000000000000002000000000"
+												"0000000000000000000000000" },
+		{ "%5.4f",		S, MLEN,	4561056.99,	"4561056.9900" },
+		/* #80 */
+		{ "%5.2f",		S, MLEN,	4561056.99,	"4561056.99" },
+		{ "%5.1f",		S, MLEN,	4561056.99,	"4561057.0" },
+		{ "%5.2f",		S, MLEN,	-61056.99,	"-61056.99" },
+		{ "%5.1f",		S, MLEN,	-61056.99,	"-61057.0" },
+		{ "%#f",		S, MLEN,	-61056.99,	"-61056.990000" },
+		{ "%#g",		S, MLEN,	5434e-9,	"5.43400e-06" },
+		{ "%#e",		S, MLEN,	5434e-9,	"5.434000e-06" },
+		{ "%#.0g",		S, MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.0e",		S, MLEN,	5434e-9,	"5.e-06" },
+		{ "%#.3g",		S, MLEN,	100.0,		"100." },
+		/* #90 */
+		{ "%#.0e",		S, MLEN,	0.0,		"0.e+00" },
+		{ "%#.0f",		S, MLEN,	0.0,		"0." },
+		{ "%#.0g",		S, MLEN,	0.0,		"0." },
+		{ "%g",			S, MLEN,	.00012435395457,	"0.000124354" },
+		{ "%.11g",		S, MLEN,	.00012435395457,	"0.00012435395457" },
+		{ "%.11g",		S, MLEN,	12435.3954575763,	"12435.395458" },
+		{ "%g",			S, MLEN,	12435.3954575763,	"12435.4" },
+		{ "%.17g",		S, MLEN,	12435.3954575763,	"12435.3954575763" },
+		{ "%.17g",		S, MLEN,	124353954575.763,	"124353954575.763" },
+		{ "%.10g",		S, MLEN,	124353954575.763,	"1.243539546e+11" },
+		/* #100 */
+		{ "%.11g",		S, MLEN,	124353954575.763,	"1.2435395458e+11" },
+		{ "%.12g",		S, MLEN,	124353954575.763,	"124353954576" },
+		{ "%.13g",		S, MLEN,	124353954575.763,	"124353954575.8" },
+		{ "%.14g",		S, MLEN,	124353954575.763,	"124353954575.76" },
+		{ "%F",			X, MLEN,	0,			"0" },
+		{ "%F",			X, MLEN,	1,			"1" },
+		{ "%F",			X, MLEN,	-1,			"-1" },
+		{ "%F",			X, MLEN,	1.5,		"1.5" },
+		{ "%F",			X, MLEN,	-1.5,		"-1.5" },
+		{ "%F",			X, MLEN,	.5,			"0.5" },
+		/* #110 */
+		{ "%F",			X, MLEN,	.05,			"0.05" },
+		{ "%F",			X, MLEN,	.005,			"0.005" },
+		{ "%F",			X, MLEN,	.0005,			"0.0005" },
+		{ "%F",			X, MLEN,	.00005,			"0.00005" },
+		{ "%F",			X, MLEN,	.000005,		"5E-6" },
+		{ "%F",			X, MLEN,	-.0000005,		"-5E-7" },
+		{ "%F",			X, MLEN,	.0005342532345,	"0.0005342532345" },
+		{ "%F",			X, MLEN,	.0005342532345536986,
+													"5.342532345536986E-4" },
+		{ "%F",			X, MLEN,	50,				"50" },
+		{ "%F",			X, MLEN,	500,			"500" },
+		/* #120 */
+		{ "%F",			X, MLEN,	50000000000,	"50000000000" },
+		{ "%F",			X, MLEN,	500000000000,	"5E+11" },
+		{ "%F",			X, MLEN,	50000000000.25,	"5.000000000025E+10" },
+		{ "%F",			X, MLEN,	54321987654,	"5.4321987654E+10" },
+		{ "%F",			X, MLEN,	54321987654.999,"5.4321987654999E+10" },
+		{ "%.1F",		X, MLEN,	4561056.99,		"5E+6" },
+		{ "%.1F",		X, MLEN,	500000000000,	"5E+11" },
+		{ "%.12F",		X, MLEN,	500000000000,	"500000000000" },
+		{ "%.8F",		X, MLEN,	4561056.99,		"4561057" },
+		{ "%.9F",		X, MLEN,	4561056.99,		"4561056.99" },
+		/* #130 */
+		{ "%F",			X, MLEN,	5.12345678901e4,"5.12345678901E+4" },
+		{ "%F",			X, MLEN,	1.2342543e200,	"1.2342543E+200" },
+		{ "%#F",		X, MLEN,	0,				"0." },
+		{ "%#F",		X, MLEN,	-1,				"-1." },
+		{ "%#F",		X, MLEN,	.5,				"0.5" },
+		{ "%#F",		X, MLEN,	500,			"500." },
+		{ "%#F",		X, MLEN,	50000000000,	"50000000000." },
+		{ "%#F",		X, MLEN,	500000000.1,	"500000000.1" },
+		{ "%#.1F",		X, MLEN,	4561056.99,		"5.E+6" },
+		{ "%g",			S, MLEN,	0.009999997868, "0.01" },
+		/* #140 */
+		{ "%g",			S, MLEN,	0.000999999868, "0.001" },
+		{ "%g",			S, MLEN,	0.000099999998, "0.0001" },
+		{ "%g",			S, MLEN,	0.1, 			"0.1" },
+		{ "%g",			S, MLEN,	0.01, 			"0.01" },
+		{ "%g",			S, MLEN,	0.001, 			"0.001" },
+		{ "%g",			S, MLEN,	0.0001, 		"0.0001" },
+		{ "%f",			S, MLEN,	0.1, 			"0.100000" },
+		{ "%f",			S, MLEN,	0.01, 			"0.010000" },
+		{ "%f",			S, MLEN,	0.001, 			"0.001000" },
+		{ "%f",			S, MLEN,	0.0001, 		"0.000100" },
+		/* #150 */
+		{ "%f",			S, MLEN,	0.00001, 		"0.000010" },
+		{ "%f",			S, MLEN,	0.000001, 		"0.000001" },
+		{ "%f",			S, MLEN,	0.0000001, 		"0.000000" },
+		{ "%#g",		S, MLEN,	0.1, 			"0.100000" },
+		{ "%#g",		S, MLEN,	0.01, 			"0.0100000" },
+	};
+
+#define TEST(what, vfmt) G_STMT_START {							\
+	unsigned i;													\
+																\
+	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {		\
+		char buf[MLEN];											\
+		const struct t##what *t = &test_##what##s[i];			\
+																\
+		g_assert(sizeof buf >= t->buflen);						\
+																\
+		str_tprintf(buf, t->buflen, t->fmt, t->value);			\
+																\
+		if (0 != strcmp(buf, t->result) && !format_verbose) {	\
+			/* Retry with debugging before crashing */			\
+			format_verbose = TRUE;								\
+			str_tprintf(buf, t->buflen, t->fmt, t->value);		\
+		}														\
+																\
+		g_assert_log(0 == strcmp(buf, t->result),				\
+			"%s test #%u/%zu fmt=\"%s\", len=%zu, "				\
+			"returned=\"%s\", expected=\"%s\"",					\
+			#what, i + 1, G_N_ELEMENTS(test_##what##s),			\
+			t->fmt, t->buflen, buf, t->result);					\
+																\
+		if (t->std) {											\
+			char std[MLEN];										\
+			char value[MLEN];									\
+			/* Avoid truncation warning in logs */				\
+			gm_snprintf_unchecked(std, sizeof std,				\
+				t->fmt, t->value);								\
+			std[t->buflen - 1] = '\0';	/* Truncate here */		\
+			gm_snprintf(value, sizeof value, vfmt, t->value);	\
+			if (0 != strcmp(std, buf)) {						\
+				discrepancies++;								\
+				if (verbose) g_message(							\
+					"formatting %s \"%s\" in test #%u/%zu "		\
+					"with \"%s\" yields "						\
+					"\"%s\" with snprintf() but "				\
+					"\"%s\" with str_vncatf()",					\
+					#what, value,								\
+					i + 1, G_N_ELEMENTS(test_##what##s),		\
+					t->fmt, std, buf);							\
+			}													\
+		}														\
+	}															\
+} G_STMT_END
+
+	tests_completed = FALSE;	/* Disables warnings on truncations */
+
+	TEST(string,	"%s");
+	TEST(char,		"%c");
+	TEST(pointer,	"%p");
+	TEST(int,		"%d");
+	TEST(long,		"%ld");
+	TEST(double,	"%.17g");
+
+	tests_completed = TRUE;		/* Allow warnings on truncations */
+
+	/*
+	 * Make sure gm_snprintf() and str_bprintf() behave similarily.
+	 *
+	 * The gm_snprintf() call is a wrapper on top of libc's vsnprintf().
+	 * The str_bprintf() call is a wrapper on top of our str_vncatf().
+	 */
+
+#define FORMAT	"\"%s\" on %u-byte buffer"
+#define ARGS	"Testing", (unsigned) sizeof vsnp
+
+	{
+		char vsnp[28], ours[28];
+		size_t vsn_count, our_count;
+
+		STATIC_ASSERT(sizeof vsnp == sizeof ours);
+
+		vsn_count = gm_snprintf(vsnp, sizeof vsnp, FORMAT, ARGS);
+		our_count = str_bprintf(ours, sizeof ours, FORMAT, ARGS);
+
+		g_assert_log(0 == strcmp(vsnp, ours),
+			"vsnprintf() returned \"%s\", str_vncatf() returned \"%s\"",
+			vsnp, ours);
+		g_assert_log(vsn_count == our_count,
+			"vsnprintf() returned %zu, str_vncatf() returned %zu",
+			vsn_count, our_count);
+		g_assert(strlen(vsnp) == vsn_count);	/* Consistency check */
+		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
+	}
+
+	return discrepancies;
+
+#undef MLEN
+#undef TEST
+#undef DEADBEEF
+#undef INTEGER
+#undef LONG
+#undef PI
+#undef DOUBLE
+#undef LN2
+#undef FORMAT
+#undef ARGS
 }
 
 /* vi: set ts=4 sw=4 cindent: */

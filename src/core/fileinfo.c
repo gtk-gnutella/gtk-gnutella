@@ -741,9 +741,10 @@ file_info_fd_store_binary(fileinfo_t *fi, const struct file_object *fo)
 	/* Flush buffer at current position */
 	tbuf_write(fo, fi->size);
 
-	if (0 != ftruncate(file_object_get_fd(fo), fi->size + length))
-		g_warning("file_info_fd_store_binary(): truncate() failed: %s",
-			g_strerror(errno));
+	if (0 != ftruncate(file_object_get_fd(fo), fi->size + length)) {
+		g_warning("%s(): truncate() failed for \"%s\": %m",
+			G_STRFUNC, file_info_readable_filename(fi));
+	}
 
 	fi->dirty = FALSE;
 	fileinfo_dirty = TRUE;
@@ -876,8 +877,7 @@ file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 		if (ENOENT == errno) {
 			file_info_mark_stripped(fi);
 		}
-		g_warning("could not chop fileinfo trailer off \"%s\": %s",
-			pathname, g_strerror(errno));
+		g_warning("could not chop fileinfo trailer off \"%s\": %m", pathname);
 	} else {
 		file_info_mark_stripped(fi);
 	}
@@ -1127,7 +1127,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 	g_assert(tb);
 
 	if (-1 == fstat(fd, &buf)) {
-		g_warning("error fstat()ing \"%s\": %s", name, g_strerror(errno));
+		g_warning("error fstat()ing \"%s\": %m", name);
 		return FALSE;
 	}
 
@@ -1154,15 +1154,13 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 
 	/* No wrapper because this is a native fileoffset_t value. */
 	if (offset != lseek(fd, offset, SEEK_SET)) {
-		g_warning("file_info_get_trailer(): "
-			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
+		g_warning("%s(): error seek()ing in file \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
 	}
 
 	r = read(fd, tr, sizeof tr);
 	if ((ssize_t) -1 == r) {
-		g_warning("file_info_get_trailer(): "
-			"error reading trailer in  \"%s\": %s", name, g_strerror(errno));
+		g_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
 	}
 
@@ -1646,9 +1644,8 @@ G_STMT_START {				\
 			ret = seek_to_filepos(fd, trailer.filesize);
 		}
 		if (0 != ret) {
-			g_warning("seek to position %s within \"%s\" failed: %s",
-				uint64_to_string(trailer.filesize),
-				pathname, g_strerror(errno));
+			g_warning("seek to position %s within \"%s\" failed: %m",
+				uint64_to_string(trailer.filesize), pathname);
 			goto eof;
 		}
 	}
@@ -1658,9 +1655,9 @@ G_STMT_START {				\
 	 */
 
 	if (-1 == tbuf_read(fd, trailer.length)) {
-		g_warning("file_info_retrieve_binary(): "
-			"unable to read whole trailer %s bytes) from \"%s\": %s",
-			uint64_to_string(trailer.filesize), pathname, g_strerror(errno));
+		g_warning("%s(): "
+			"unable to read whole trailer %s bytes) from \"%s\": %m",
+			G_STRFUNC, uint64_to_string(trailer.filesize), pathname);
 		goto eof;
 	}
 
@@ -2353,7 +2350,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		xfi = g_hash_table_lookup(fi_by_sha1, fi->sha1);
 
 		if (NULL != xfi && xfi != fi)		/* See comment above */
-			g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+			g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 		if (NULL == xfi)
 			gm_hash_table_insert_const(fi_by_sha1, fi->sha1, fi);
@@ -2380,7 +2377,7 @@ transient:
 	xfi = g_hash_table_lookup(fi_by_guid, fi->guid);
 
 	if (NULL != xfi && xfi != fi)		/* See comment above */
-		g_error("xfi = 0x%lx, fi = 0x%lx", (gulong) xfi, (gulong) fi);
+		g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 	if (NULL == xfi)
 		gm_hash_table_insert_const(fi_by_guid, fi->guid, fi);
@@ -2412,9 +2409,8 @@ file_info_hash_remove(fileinfo_t *fi)
 	g_assert(fi->guid);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 4) {
-		g_debug("FILEINFO remove 0x%lx \"%s\" "
-			"(%s/%s bytes done) sha1=%s\n",
-			(gulong) fi, fi->pathname,
+		g_debug("FILEINFO remove %p \"%s\" (%s/%s bytes done) sha1=%s",
+			(void *) fi, fi->pathname,
 			uint64_to_string(fi->done), uint64_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
@@ -2563,8 +2559,7 @@ file_info_unlink(fileinfo_t *fi)
 		 */
 
 		if (fi->done)
-			g_warning("cannot unlink \"%s\": %s",
-				fi->pathname, g_strerror(errno));
+			g_warning("cannot unlink \"%s\": %m", fi->pathname);
 	} else {
 		g_warning("unlinked \"%s\" (%s/%s bytes or %u%% done, %s SHA1%s%s)",
 			fi->pathname,
@@ -2900,14 +2895,11 @@ file_info_retrieve(void)
 		return;
 
 	while (fgets(line, sizeof line, f)) {
-		size_t len;
 		int error;
 		gboolean truncated = FALSE, damaged;
 		const char *ep;
 		char *value;
 		guint64 v;
-
-		if ('#' == *line) continue;
 
 		/*
 		 * The following semi-complex logic attempts to determine whether
@@ -2919,9 +2911,7 @@ file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		len = strlen(line);
-		if (sizeof line - 1 == len)
-			truncated = '\n' != line[sizeof line - 2];
+		truncated = !file_line_chomp_tail(line, sizeof line, NULL);
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
@@ -2933,12 +2923,12 @@ file_info_retrieve(void)
 			continue;
 		}
 
+		if (file_line_is_comment(line))
+			continue;
+
 		/*
-		 * Remove trailing "\n" from line, then parse it.
 		 * Reaching an empty line means the end of the fileinfo description.
 		 */
-
-		strchomp(line, len);
 
 		if ('\0' == *line && fi) {
 			fileinfo_t *dfi;
@@ -3037,8 +3027,8 @@ file_info_retrieve(void)
 						fi->pathname, new_pathname);
 					atom_str_change(&fi->pathname, new_pathname);
 				} else {
-					g_warning("cannot rename \"%s\" into \"%s\": %s",
-						fi->pathname, new_pathname, g_strerror(errno));
+					g_warning("cannot rename \"%s\" into \"%s\": %m",
+						fi->pathname, new_pathname);
 				}
 				atom_str_free_null(&new_pathname);
 			}
@@ -3061,8 +3051,8 @@ file_info_retrieve(void)
 			if (dfi != NULL && reload_chunks) {
 				fi_copy_chunks(fi, dfi);
 				if (fi->chunklist) g_message(
-					"recovered %lu downloaded bytes from trailer of \"%s\"",
-						(gulong) fi->done, fi->pathname);
+					"recovered %s downloaded bytes from trailer of \"%s\"",
+						filesize_to_string(fi->done), fi->pathname);
 			} else if (reload_chunks)
 				g_warning("lost all CHNK info for \"%s\" -- downloading again",
 					fi->pathname);
@@ -3623,8 +3613,8 @@ fi_rename_dead(fileinfo_t *fi, const char *pathname)
 	if (dead && 0 == rename(pathname, dead)) {
 		file_info_strip_trailer(fi, dead);
 	} else {
-		g_warning("cannot rename \"%s\" as \"%s\": %s",
-			pathname, NULL_STRING(dead), g_strerror(errno));
+		g_warning("cannot rename \"%s\" as \"%s\": %m",
+			pathname, NULL_STRING(dead));
 	}
 	HFREE_NULL(dead);
 	HFREE_NULL(path);
@@ -5143,7 +5133,7 @@ fi_find_aggressive_candidate(
 	*chunk = fc;
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_debug("aggressively requesting %s@%s [%ld, %ld] "
+		g_debug("aggressively requesting %s@%s [%lu, %lu] "
 			"for \"%s\" using %s source from %s",
 			filesize_to_string(*to - *from), short_size(*from, FALSE),
 			(unsigned long) *from, (unsigned long) *to - 1,
@@ -5645,7 +5635,7 @@ file_info_scandir(const char *dir)
 
 	d = opendir(dir);
 	if (NULL == d) {
-		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
+		g_warning("can't open directory %s: %m", dir);
 		return;
 	}
 
@@ -5678,7 +5668,7 @@ file_info_scandir(const char *dir)
 			filestat_t sb;
 
 			if (-1 == stat(pathname, &sb)) {
-				g_warning("cannot stat %s: %s", pathname, g_strerror(errno));
+				g_warning("cannot stat %s: %m", pathname);
 				continue;
 			}
 			if (!S_ISREG(sb.st_mode))			/* Only regular files */

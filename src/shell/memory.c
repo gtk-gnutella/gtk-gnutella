@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, Christian Biere
+ * Copyright (c) 2011, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,6 +30,8 @@
  *
  * @author Christian Biere
  * @date 2009
+ * @author Raphael Manfredi
+ * @date 2011
  */
 
 #include "common.h"
@@ -36,14 +39,26 @@
 #include "cmd.h"
 
 #include "lib/ascii.h"
+#include "lib/dump_options.h"
 #include "lib/fd.h"
-#include "lib/parse.h"
+#include "lib/file.h"
+#include "lib/glib-missing.h"
+#include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/omalloc.h"
+#include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
-#include "lib/file.h"
+#include "lib/vmm.h"
+#include "lib/xmalloc.h"
+#include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#if defined(MALLOC_STATS) || defined(MALLOC_FRAMES) || \
+	defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#define ALLOW_DUMP
+#endif
 
 /**
  * Reads a piece of memory from the process address space using a pipe. As
@@ -79,7 +94,7 @@ read_memory(int fd[2], const unsigned char *addr, size_t length,
 	}
 }
 
-static enum shell_reply
+static inline enum shell_reply	/* "inline" to avoid warning if unused */
 shell_exec_memory_dump(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -93,16 +108,16 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (4 != argc) {
-		shell_set_msg(sh, "Invalid parameter count");
+	if (2 != argc) {
+		shell_set_formatted(sh, "Invalid parameter count (%d)", argc);
 		goto failure;
 	}
-	addr = parse_pointer(argv[2], &endptr, &error);
+	addr = parse_pointer(argv[0], &endptr, &error);
 	if (error || NULL == addr || '\0' != *endptr) {
 		shell_set_msg(sh, "Bad address");
 		goto failure;
 	}
-	length = parse_size(argv[3], &endptr, 10, &error);
+	length = parse_size(argv[1], &endptr, 10, &error);
 	if (error || '\0' != *endptr) {
 		shell_set_msg(sh, "Bad length");
 		goto failure;
@@ -169,6 +184,361 @@ failure:
 	return REPLY_ERROR;
 }
 
+static void
+shell_vtable_settings_log(logagent_t *la)
+{
+	log_info(la, "glib's g_malloc() is %s the system's malloc()",
+		g_mem_is_system_malloc() ? "using" : "distinct from");
+}
+
+typedef void (*shower_cb_t)(logagent_t *la);
+typedef void (*shower_opt_cb_t)(logagent_t *la, unsigned options);
+
+typedef struct show_vec {
+	shower_cb_t cb;
+	const char *prefix;
+} show_vec_t;
+
+typedef struct show_opt_vec {
+	shower_opt_cb_t cb;
+	const char *prefix;
+	unsigned options;
+} show_opt_vec_t;
+
+static enum shell_reply
+memory_run_showerv(struct gnutella_shell *sh, show_vec_t *sv, unsigned sv_cnt)
+{
+	unsigned i;
+
+	shell_check(sh);
+
+	shell_write(sh, "100~\n");
+
+	for (i = 0; i < sv_cnt; i++) {
+		show_vec_t *v = &sv[i];
+		logagent_t *la = log_agent_string_make(0, v->prefix);
+		(*v->cb)(la);
+		shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	}
+
+	shell_write(sh, ".\n");
+
+	return REPLY_READY;
+}
+
+static enum shell_reply
+memory_run_opt_showerv(struct gnutella_shell *sh,
+	show_opt_vec_t *sv, unsigned sv_cnt)
+{
+	unsigned i;
+
+	shell_check(sh);
+
+	shell_write(sh, "100~\n");
+
+	for (i = 0; i < sv_cnt; i++) {
+		show_opt_vec_t *v = &sv[i];
+		logagent_t *la = log_agent_string_make(0, v->prefix);
+		(*v->cb)(la, v->options);
+		shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	}
+
+	shell_write(sh, ".\n");
+
+	return REPLY_READY;
+}
+
+static enum shell_reply
+memory_run_shower(struct gnutella_shell *sh,
+	shower_cb_t cb, const char *prefix)
+{
+	show_vec_t v;
+
+	shell_check(sh);
+
+	v.cb = cb;
+	v.prefix = prefix;
+
+	return memory_run_showerv(sh, &v, 1);
+}
+
+static enum shell_reply
+memory_run_opt_shower(struct gnutella_shell *sh,
+	shower_opt_cb_t cb, const char *prefix, gboolean options)
+{
+	show_opt_vec_t v;
+
+	shell_check(sh);
+
+	v.cb = cb;
+	v.prefix = prefix;
+	v.options = options;
+ 
+	return memory_run_opt_showerv(sh, &v, 1);
+}
+
+static enum shell_reply
+shell_exec_memory_show_options(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	show_vec_t v[3];
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	v[0].cb = xmalloc_show_settings_log;
+	v[0].prefix = NULL;
+	v[1].cb = malloc_show_settings_log;
+	v[1].prefix = "malloc ";
+	v[2].cb = shell_vtable_settings_log;
+	v[2].prefix = NULL;
+
+	return memory_run_showerv(sh, v, G_N_ELEMENTS(v));
+}
+
+static enum shell_reply
+shell_exec_memory_show_pmap(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, vmm_dump_pmap_log, "VMM ");
+}
+
+static enum shell_reply
+shell_exec_memory_show_xmalloc(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, xmalloc_dump_freelist_log, "XM ");
+}
+
+static enum shell_reply
+shell_exec_memory_show_zones(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	return memory_run_shower(sh, zalloc_dump_zones_log, "ZALLOC ");
+}
+
+static enum shell_reply
+shell_exec_memory_show(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 2)
+		return REPLY_ERROR;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_memory_show_## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
+
+	CMD(options);
+	CMD(pmap);
+	CMD(xmalloc);
+	CMD(zones);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"show %s\""), argv[1]);
+	return REPLY_ERROR;
+}
+
+#define STATS_USAGE		(1 << 0)
+
+static const char STATS_USAGE_STR[] = "usage";
+
+static enum shell_reply
+memory_stats_unsupported(struct gnutella_shell *sh,
+	const char *layer, const char *which)
+{
+	shell_set_formatted(sh, "The %s layer is not offering %s statistics",
+		layer, which);
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_memory_stats_vmm(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_run_opt_shower(sh, vmm_dump_usage_log, "VMM ", opt);
+
+	return memory_run_opt_shower(sh, vmm_dump_stats_log, "VMM ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats_xmalloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_run_opt_shower(sh, xmalloc_dump_usage_log, "XM ", opt);
+
+	return memory_run_opt_shower(sh, xmalloc_dump_stats_log, "XM ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats_zalloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_run_opt_shower(sh, zalloc_dump_usage_log, NULL, opt);
+
+	return memory_run_opt_shower(sh, zalloc_dump_stats_log, "ZALLOC ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats_omalloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_stats_unsupported(sh, "omalloc", STATS_USAGE_STR);
+
+	return memory_run_opt_shower(sh, omalloc_dump_stats_log, "OMALLOC ", opt);
+}
+
+static enum shell_reply
+shell_exec_memory_stats(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	const char *pretty, *usage;
+	const option_t options[] = {
+		{ "p", &pretty },		/* pretty-print */
+		{ "u", &usage },		/* usage stats, if available */
+	};
+	int parsed;
+	unsigned opt = 0;
+	unsigned which = 0;
+
+	shell_check(sh);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
+
+	if (argc < 1)
+		return REPLY_ERROR;
+
+	if (pretty != NULL)
+		opt |= DUMP_OPT_PRETTY;
+	if (usage != NULL)
+		which |= STATS_USAGE;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[0], #name)) \
+		return shell_exec_memory_stats_## name(sh, opt, which); \
+} G_STMT_END
+
+	CMD(vmm);
+	CMD(xmalloc);
+	CMD(zalloc);
+	CMD(omalloc);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"stats %s\""), argv[0]);
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_memory_usage_zone(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	size_t size;
+	const char *endptr;
+	int error;
+	gboolean ok;
+
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 3)
+		return REPLY_ERROR;
+
+	/*
+	 * Parse the zone size.
+	 */
+
+	size = parse_size(argv[1], &endptr, 10, &error);
+	if (error || '\0' != *endptr) {
+		shell_set_formatted(sh, "Cannot parse zone size \"%s\"", argv[1]);
+		goto failed;
+	}
+
+	/*
+	 * Action: on, off or show.
+	 */
+
+	if (0 == ascii_strcasecmp(argv[2], "on")) {
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, TRUE);
+	} else if (0 == ascii_strcasecmp(argv[2], "off")) {
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, FALSE);
+	} else if (0 == ascii_strcasecmp(argv[2], "show")) {
+		logagent_t *la = log_agent_string_make(65536, NULL);
+		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SHOW, la);
+		if (ok)
+			shell_write(sh, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	} else {
+		shell_set_formatted(sh, "Unknown action \"%s\" on zone %zu",
+			argv[2], size);
+		goto failed;
+	}
+
+	if (!ok) {
+		shell_set_formatted(sh, "Operation failed");
+		return REPLY_ERROR;
+	}
+
+	return REPLY_READY;
+
+failed:
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
+shell_exec_memory_usage(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	shell_check(sh);
+	g_assert(argv);
+	g_assert(argc > 0);
+
+	if (argc < 2)
+		return REPLY_ERROR;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_memory_usage_## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
+
+	CMD(zone);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"usage %s\""), argv[1]);
+	return REPLY_ERROR;
+}
+
 /**
  * Handles the memory command.
  */
@@ -180,20 +550,23 @@ shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argc > 0);
 
 	if (argc < 2)
-		goto error;
+		return REPLY_ERROR;
 
 #define CMD(name) G_STMT_START { \
 	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_ ## name(sh, argc, argv); \
+		return shell_exec_memory_ ## name(sh, argc - 1, argv + 1); \
 } G_STMT_END
 
+#ifdef ALLOW_DUMP
 	CMD(dump);
+#endif
+	CMD(show);
+	CMD(stats);
+	CMD(usage);
+
 #undef CMD
 	
-	shell_set_msg(sh, _("Unknown operation"));
-	goto error;
-
-error:
+	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }
 
@@ -210,11 +583,38 @@ shell_help_memory(int argc, const char *argv[])
 	g_assert(argc > 0);
 
 	if (argc > 1) {
-		/* FIXME */
-		return NULL;
+#ifdef ALLOW_DUMP
+		if (0 == ascii_strcasecmp(argv[1], "dump")) {
+			return "memory dump ADDRESS LENGTH\n"
+				"dumps LENGTH bytes of memory starting at ADDRESS\n";
+		} else
+#endif
+		if (0 == ascii_strcasecmp(argv[1], "show")) {
+			return
+				"memory show options   # display memory options\n"
+				"memory show pmap      # display VMM pmap\n"
+				"memory show xmalloc   # display xmalloc() freelist info\n"
+				"memory show zones     # display zone usage\n";
+		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
+			return "memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
+				"show statistics about specified memory sub-system\n"
+				"-p : pretty-print numbers with thousands separators\n"
+				"-u : show allocation usage statistics, if available\n";
+		} else if (0 == ascii_strcasecmp(argv[1], "usage")) {
+			return "memory usage zone <size> on|off|show\n"
+				"show or turn on/off usage statistics for given zone\n";
+		}
 	} else {
-		return "memory dump ADDRESS LENGTH\n";
+		return
+#ifdef ALLOW_DUMP
+		"memory dump ADDRESS LENGTH\n"
+#endif
+		"memory show options|pmap|xmalloc|zones\n"
+		"memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
+		"memory usage zone <size> on|off|show\n"
+		;
 	}
+	return NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

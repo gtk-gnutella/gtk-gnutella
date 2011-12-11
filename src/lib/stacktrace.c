@@ -45,10 +45,12 @@
 #include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "base16.h"
+#include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "log.h"
 #include "offtime.h"
 #include "omalloc.h"
@@ -92,6 +94,7 @@ static struct {
 	unsigned stale:1;			/**< Pre-computed nm file was stale */
 	unsigned mismatch:1;		/**< Symbol mismatches were identified */
 	unsigned garbage:1;			/**< Symbols are probably pure garbage */
+	unsigned sorted:1;			/**< Symbols were sorted */
 } trace_array;
 
 /**
@@ -101,6 +104,7 @@ static char *local_path;		/**< Path before a chdir() */
 static char *program_path;		/**< Absolute program path */
 static time_t program_mtime;	/**< Last modification time of executable */
 static gboolean symbols_loaded;
+static gboolean stacktrace_inited;
 
 /**
  * "nm" output parsing context.
@@ -121,15 +125,48 @@ static size_t stack_auto_offset;
 static hash_table_t *stack_atoms;
 static const char NM_FILE[] = "gtk-gnutella.nm";
 
-#ifndef HAS_BACKTRACE
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
+
+/**
+ * Is PC a valid routine address?
+ */
+static inline gboolean G_GNUC_CONST
+stack_is_text(const void *pc)
+{
+	return pointer_to_ulong(pc) >= 0x1000;
+}
+
+/**
+ * Is PC a routine address for something within our code?
+ */
+static inline gboolean G_GNUC_CONST
+stack_is_our_text(const void *pc)
+{
+#if defined(HAS_ETEXT_SYMBOL)
+	extern const int etext;		/* linker-defined symbol */
+
+	/* The address of "etext" marks the end of the text segment */
+	return ptr_cmp(pc, &etext) < 0;
+
+#elif defined(HAS_END_SYMBOL)
+	extern const int end;		/* linker-defined symbol */
+
+	/* The address of "end" marks the end of the BSS segment */
+	return ptr_cmp(pc, &end) < 0;
+
+#else
+	(void) pc;
+	return TRUE;
 #endif
+}
 
 /**
  * Unwind current stack into supplied stacktrace array.
  *
- * If possible, do not inline stacktrace_unwind() as this would perturb
+ * This routine stops unwinding as soon as it reaches a non-text address.
+ *
+ * If possible, do not inline stacktrace_gcc_unwind() as this would perturb
  * offsetting of stack elements to ignore.
  *
  * @param stack		array where stack should be written
@@ -138,48 +175,8 @@ static void *getframeaddr(size_t level);
  *
  * @return the amount of entries filled in stack[].
  */
-NO_INLINE size_t
-stacktrace_unwind(void *stack[], size_t count, size_t offset)
-#ifdef HAS_BACKTRACE
-{
-	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
-	int depth;
-    size_t amount;		/* Amount of entries we can copy in result */
-	size_t idx;
-
-	g_assert(size_is_non_negative(offset));
-
-	/*
-	 * When the size of stack[] is greater than the size of trace[], we
-	 * backtrace directly into stack[], then copy over the result to be
-	 * able to perform the offsetting.
-	 *
-	 * This is required for "safe" partial unwinding if coming from
-	 * stacktrace_where_cautious_print_offset(): if we get a signal, the
-	 * backtrace() operation will be aborted the hard way but hopefully we
-	 * will have already filled some items in stack[].
-	 */
-
-	if (count >= G_N_ELEMENTS(trace)) {
-		depth = backtrace(stack, G_N_ELEMENTS(trace));
-		memcpy(trace, stack, depth * sizeof trace[0]);
-	} else {
-		depth = backtrace(trace, G_N_ELEMENTS(trace));
-	}
-	idx = size_saturate_add(offset, stack_auto_offset);
-
-	g_assert(size_is_non_negative(idx));
-
-	if (UNSIGNED(depth) <= idx)
-		return 0;
-
-	amount = idx - UNSIGNED(depth);
-	amount = MIN(amount, count);
-	memcpy(stack, &trace[idx], amount * sizeof trace[0]);
-
-	return amount;
-}
-#else	/* !HAS_BACKTRACE */
+static NO_INLINE size_t
+stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
@@ -227,7 +224,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 		if (NULL == nframe || i - offset >= count)
 			break;
 
-        if (NULL == (stack[i - offset] = getreturnaddr(i)))
+        if (!stack_is_text(stack[i - offset] = getreturnaddr(i)))
 			break;
 
 		/*
@@ -244,7 +241,135 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 
 	return i - offset;
 }
+
+/**
+ * Unwind current stack into supplied stacktrace array.
+ *
+ * This routine stops unwinding as soon as it reaches a non-text address.
+ *
+ * If possible, do not inline stacktrace_unwind() as this would perturb
+ * offsetting of stack elements to ignore.
+ *
+ * @param stack		array where stack should be written
+ * @param count		amount of items in stack[]
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ *
+ * @return the amount of entries filled in stack[].
+ */
+NO_INLINE size_t
+stacktrace_unwind(void *stack[], size_t count, size_t offset)
+#ifdef HAS_BACKTRACE
+{
+	static gboolean in_unwind;
+	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
+	int depth;
+    size_t amount;		/* Amount of entries we can copy in result */
+	size_t i, idx;
+
+	g_assert(size_is_non_negative(offset));
+
+	/*
+	 * backtrace() can call malloc(), which can cause fatal recursion here when
+	 * compiled with xmalloc() trapping malloc()...
+	 */
+
+	if (in_unwind) {
+		/*
+		 * Don't "return" here, to avoid tail recursion since we increase the
+		 * stack offsetting.
+		 *
+		 * Since stacktrace_gcc_unwind() will stop at the first non-text
+		 * address it reaches, there is no need to post-process the result.
+		 */
+
+		i = stacktrace_gcc_unwind(stack, count, offset + 1);
+		goto done;
+	}
+
+	/*
+	 * When the size of stack[] is greater than the size of trace[], we
+	 * backtrace directly into stack[], then copy over the result to be
+	 * able to perform the offsetting.
+	 *
+	 * This is required for "safe" partial unwinding if coming from
+	 * stacktrace_where_cautious_print_offset(): if we get a signal, the
+	 * backtrace() operation will be aborted the hard way but hopefully we
+	 * will have already filled some items in stack[].
+	 */
+
+	in_unwind = TRUE;
+
+	if (count >= G_N_ELEMENTS(trace)) {
+		depth = backtrace(stack, count);
+		memcpy(trace, stack, depth * sizeof trace[0]);
+	} else {
+		depth = backtrace(trace, G_N_ELEMENTS(trace));
+	}
+
+	in_unwind = FALSE;
+	idx = size_saturate_add(offset, stack_auto_offset);
+
+	g_assert(size_is_non_negative(idx));
+
+	if (UNSIGNED(depth) <= idx)
+		return 0;
+
+	amount = idx - UNSIGNED(depth);
+	amount = MIN(amount, count);
+
+	/*
+	 * Only copy entries that are likely to be "text" addresses.
+	 */
+
+	for (i = 0; i < amount && stack_is_text(trace[idx]); i++) {
+		stack[i] = trace[idx++];
+	}
+
+done:
+	return i;		/* Amount of copied entries */
+}
+#else	/* !HAS_BACKTRACE */
+{
+	/*
+	 * Don't increase offset, this is tail recursion and it can be optimized
+	 * away.  At worst we'll see this call in the stack.
+	 */
+	return stacktrace_gcc_unwind(stack, count, offset);
+}
 #endif	/* HAS_BACKTRACE */
+
+/**
+ * Return self-assessed symbol quality.
+ */
+enum stacktrace_sym_quality
+stacktrace_quality(void)
+{
+	if (trace_array.garbage)
+		return STACKTRACE_SYM_GARBAGE;
+	else if (trace_array.mismatch)
+		return STACKTRACE_SYM_MISMATCH;
+	else if (trace_array.stale)
+		return STACKTRACE_SYM_STALE;
+	else
+		return STACKTRACE_SYM_GOOD;
+}
+
+/**
+ * Return string version of the self-assessed symbol quality.
+ */
+const char *
+stacktrace_quality_string(const enum stacktrace_sym_quality sq)
+{
+	switch (sq) {
+	case STACKTRACE_SYM_GOOD:		return "good";
+	case STACKTRACE_SYM_STALE:		return "stale";
+	case STACKTRACE_SYM_MISMATCH:	return "mismatch";
+	case STACKTRACE_SYM_GARBAGE:	return "garbage";
+	case STACKTRACE_SYM_MAX:		break;
+	}
+
+	return "UNKNOWN";
+}
 
 /**
  * Compare two trace entries -- qsort() callback.
@@ -302,9 +427,11 @@ trace_sort(void)
 	if (old_count != trace_array.count) {
 		size_t delta = old_count - trace_array.count;
 		g_assert(size_is_non_negative(delta));
-		s_warning("stripped %lu duplicate symbol%s",
-			(unsigned long) delta, 1 == delta ? "" : "s");
+		s_warning("stripped %zu duplicate symbol%s",
+			delta, 1 == delta ? "" : "s");
 	}
+
+	trace_array.sorted = TRUE;
 }
 
 /**
@@ -435,7 +562,7 @@ trace_name(const void *pc, gboolean offset)
 {
 	static char buf[256];
 
-	if (0 == trace_array.count) {
+	if (!trace_array.sorted || 0 == trace_array.count) {
 		trace_fmt_pointer(buf, sizeof buf, pc);
 	} else {
 		struct trace *t;
@@ -491,10 +618,11 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	const char *result;
 
 	/*
-	 * On Windows, there is an obnoxious '_' prepended to all routine names.
+	 * On Windows and OS X, there is an obnoxious '_' prepended to all
+	 * routine names.
 	 */
 
-	if (is_running_on_mingw() && '_' == name[0])
+	if ('_' == name[0])
 		name++;
 
 	result = hash_table_lookup(ctx->atoms, name);
@@ -725,12 +853,12 @@ stacktrace_open_symbols(const char *exe, const char *nm)
 	trace_array.stale = FALSE;
 
 	if (-1 == stat(nm, &nbuf)) {
-		s_warning("can't stat \"%s\": %s", nm, g_strerror(errno));
+		s_warning("can't stat \"%s\": %m", nm);
 		return NULL;
 	}
 
 	if (-1 == stat(exe, &ebuf)) {
-		s_warning("can't stat \"%s\": %s", exe, g_strerror(errno));
+		s_warning("can't stat \"%s\": %m", exe);
 		trace_array.stale = TRUE;
 		goto open_file;
 	}
@@ -746,7 +874,7 @@ open_file:
 	f = fopen(nm, is_running_on_mingw() ? "rb" : "r");
 
 	if (NULL == f)
-		s_warning("can't open \"%s\": %s", nm, g_strerror(errno));
+		s_warning("can't open \"%s\": %m", nm);
 
 	return f;
 }
@@ -806,7 +934,7 @@ load_symbols(const char *path, const  char *lpath)
 		f = popen(tmp, "r");
 
 		if (NULL == f) {
-			s_warning("can't run \"%s\": %s", tmp, g_strerror(errno));
+			s_warning("can't run \"%s\": %m", tmp);
 			goto done;
 		}
 
@@ -868,13 +996,20 @@ program_path_allocate(const char *argv0)
 {
 	filestat_t buf;
 	const char *file = argv0;
+	char filepath[MAX_PATH_LEN + 1];
 
-	if (-1 == stat(argv0, &buf)) {
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL);
+	} else {
+		clamp_strcpy(filepath, sizeof filepath, argv0);
+	}
+
+	if (-1 == stat(filepath, &buf)) {
 		int saved_errno = errno;
 		file = file_locate_from_path(argv0);
 		if (NULL == file) {
-			s_warning("could not stat() \"%s\": %s",
-				argv0, g_strerror(saved_errno));
+			errno = saved_errno;
+			s_warning("could not stat() \"%s\": %m", filepath);
 			s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
 			goto error;
 		}
@@ -901,7 +1036,7 @@ program_path_allocate(const char *argv0)
 	if (file != NULL && file != argv0)
 		return deconstify_gpointer(file);
 
-	return h_strdup(argv0);
+	return h_strdup(filepath);
 
 error:
 	if (file != NULL && file != argv0)
@@ -960,6 +1095,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 
 	g_assert(argv0 != NULL);
 
+	stacktrace_inited = TRUE;
 	path = program_path_allocate(argv0);
 
 	if (NULL == path)
@@ -969,7 +1105,7 @@ stacktrace_init(const char *argv0, gboolean deferred)
 		filestat_t buf;
 
 		if (-1 == stat(path, &buf)) {
-			s_warning("cannot stat \"%s\": %s", path, g_strerror(errno));
+			s_warning("cannot stat \"%s\": %m", path);
 			s_warning("will not be loading symbols for %s", argv0);
 			goto done;
 		}
@@ -1004,7 +1140,7 @@ stacktrace_memory_used(void)
 
 	res = trace_array.size * sizeof trace_array.base[0];
 	if (stack_atoms != NULL) {
-		res += hash_table_memory_size(stack_atoms);
+		res += hash_table_arena_memory(stack_atoms);
 	}
 
 	return res;
@@ -1035,7 +1171,7 @@ stacktrace_close(void)
 G_GNUC_COLD void
 stacktrace_load_symbols(void)
 {
-	if (symbols_loaded)
+	if G_UNLIKELY(symbols_loaded || !stacktrace_inited)
 		return;
 
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
@@ -1049,8 +1185,7 @@ stacktrace_load_symbols(void)
 		filestat_t buf;
 
 		if (-1 == stat(program_path, &buf)) {
-			s_warning("cannot stat \"%s\": %s",
-				program_path, g_strerror(errno));
+			s_warning("cannot stat \"%s\": %m", program_path);
 			goto error;
 		}
 
@@ -1108,7 +1243,7 @@ stacktrace_post_init(void)
  * Fill supplied stacktrace structure with the backtrace.
  * Trace will start with our caller.
  */
-void
+void NO_INLINE
 stacktrace_get(struct stacktrace *st)
 {
 	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
@@ -1118,7 +1253,7 @@ stacktrace_get(struct stacktrace *st)
  * Fill supplied stacktrace structure with the backtrace, removing ``offset''
  * amount of immediate callers (0 will make our caller be the first item).
  */
-void
+void NO_INLINE
 stacktrace_get_offset(struct stacktrace *st, size_t offset)
 {
 	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
@@ -1158,7 +1293,36 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i], TRUE);
 
+		if (!stack_is_text(stack[i]))
+			break;
+
 		fprintf(f, "\t%s\n", where);
+		if (stack_reached_main(where))
+			break;
+	}
+}
+
+/**
+ * Log array of PCs to logging agent, using symbolic names if possible.
+ *
+ * @param la		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ */
+static void
+stack_log(logagent_t *la, void * const *stack, size_t count)
+{
+	size_t i;
+
+	stacktrace_load_symbols();
+
+	for (i = 0; i < count; i++) {
+		const char *where = trace_name(stack[i], TRUE);
+
+		if (!stack_is_text(stack[i]))
+			break;
+
+		log_info(la, "\t%s", where);
 		if (stack_reached_main(where))
 			break;
 	}
@@ -1185,6 +1349,9 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		print_str("\n");		/* 2 */
 		flush_str(fd);
 
+		if (!stack_is_text(stack[i]))
+			break;
+
 		if (stack_reached_main(where))
 			break;
 	}
@@ -1210,6 +1377,17 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 	g_assert(st != NULL);
 
 	stack_print(f, st->stack, st->len);
+}
+
+/**
+ * Log stack trace atom to logging agent, using symbolic names if possible.
+ */
+void
+stacktrace_atom_log(logagent_t *la, const struct stackatom *st)
+{
+	g_assert(st != NULL);
+
+	stack_log(la, st->stack, st->len);
 }
 
 /**
@@ -1275,7 +1453,7 @@ static gboolean
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return trace_array.count != 0;
+	return trace_array.sorted;
 }
 
 /**
@@ -1398,9 +1576,12 @@ stacktrace_cautious_was_logged(void)
 static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
-	DECLARE_STR(4);
+	char time_buf[18];
+	DECLARE_STR(5);
 
-	print_str("WARNING: got ");
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);
+	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
 	print_str(" during stack ");
 	if (print_context.unwinded) {
@@ -1439,9 +1620,12 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 #endif
 
 	if (printing) {
-		DECLARE_STR(4);
+		char time_buf[18];
+		DECLARE_STR(5);
 
-		print_str("WARNING: ignoring ");
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: ignoring ");
 		print_str("recursive ");
 		print_str(G_STRFUNC);
 		print_str("() call\n");
@@ -1468,7 +1652,11 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	print_context.fd = fd;
 
 	if (Sigsetjmp(print_context.env, TRUE)) {
-		DECLARE_STR(1);
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
 		print_str("WARNING: truncated stack unwinding\n");
 		flush_str(fd);
 
@@ -1499,15 +1687,23 @@ print_stack:
 	print_context.unwinded = TRUE;
 
 	if (Sigsetjmp(print_context.env, TRUE)) {
-		DECLARE_STR(1);
-		print_str("WARNING: truncated stack printing\n");
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: truncated stack printing\n");
 		flush_str(fd);
 		goto restore;
 	}
 
 	if (0 == count) {
-		DECLARE_STR(1);
-		print_str("WARNING: corrupted stack\n");
+		char time_buf[18];
+		DECLARE_STR(2);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);
+		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
 		if (!signal_in_handler())
@@ -1531,7 +1727,7 @@ restore:
 }
 
 /**
- * Hashing routine for a "struct stacktracea".
+ * Hashing routine for a "struct stacktrace".
  */
 size_t
 stack_hash(const void *key)
@@ -1545,7 +1741,7 @@ stack_hash(const void *key)
 }
 
 /**
- * Comparison of two "struct stacktracea" structures.
+ * Comparison of two "struct stacktrace" structures.
  */
 int
 stack_eq(const void *a, const void *b)
@@ -1556,42 +1752,134 @@ stack_eq(const void *a, const void *b)
 		0 == memcmp(sa->stack, sb->stack, sa->len * sizeof sa->stack[0]);
 }
 
-/**
- * Get a stack trace atom (never freed).
+/*
+ * Adjust the length of the stack: any trailing address not belonging
+ * to our text segment is that of shared libraries, i.e. not code for
+ * which we have symbols.
+ *
+ * By chopping these trailing addresses off, we keep only the relevant
+ * parts and also considerably limit the amount of stack atoms we have
+ * to keep around during a session (since this memory is never freed).
+ *
+ * @param st		full stacktrace
+ *
+ * @return amount of topmost items we should keep in the stack.
  */
-struct stackatom *
-stacktrace_get_atom(const struct stacktrace *st)
+static size_t
+stacktrace_chop_length(const struct stacktrace *st)
+{
+	size_t len;
+
+	len = st->len;
+	while (len > 0) {
+		if (stack_is_our_text(st->stack[len - 1]))
+			break;
+		len--;
+	}
+
+	return len;
+}
+
+/**
+ * Lookup stacktrace to see whether we already have an atom for it.
+ *
+ * @param st		full stacktrace
+ * @param len		amount of topmoar items to consider from stack
+ *
+ * @return stack atom if we have one, NULL if it is unknown.
+ */
+static struct stackatom *
+stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 {
 	struct stackatom key;
 	struct stackatom *result;
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
-	if (NULL == stack_atoms) {
+	if G_UNLIKELY(NULL == stack_atoms) {
 		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
 	}
 
 	key.stack = deconstify_gpointer(st->stack);
-	key.len = st->len;
+	key.len = len;
 
-	result = hash_table_lookup(stack_atoms, &key);
+	return hash_table_lookup(stack_atoms, &key);
+}
 
-	if (NULL == result) {
-		/* These objects will be never freed */
-		result = omalloc0(sizeof *result);
-		if (st->len != 0) {
-			result->stack = omalloc(st->len * sizeof st->stack[0]);
-			memcpy(result->stack, st->stack, st->len * sizeof st->stack[0]);
-		} else {
-			result->stack = NULL;
-		}
-		result->len = st->len;
+/**
+ * Allocate and record a new stack trace atom from given stacktrace.
+ */
+static struct stackatom *
+stacktrace_atom_record(const struct stacktrace *st, size_t len)
+{
+	struct stackatom *result;
 
-		if (!hash_table_insert(stack_atoms, result, result))
-			g_error("cannot record stack trace atom");
+	/* These objects will be never freed */
+	result = omalloc0(sizeof *result);
+	if (len != 0) {
+		result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
+	} else {
+		result->stack = NULL;
+	}
+	result->len = len;
+
+	if (!hash_table_insert(stack_atoms, result, result))
+		g_error("cannot record stack trace atom");
+
+	return result;
+}
+
+/**
+ * Get a stack trace atom (never freed).
+ */
+struct stackatom *
+stacktrace_get_atom(const struct stacktrace *st)
+{
+	struct stackatom *result;
+	size_t len;
+
+	len = stacktrace_chop_length(st);
+	result = stacktrace_atom_lookup(st, len);
+
+	if G_UNLIKELY(NULL == result) {
+		result = stacktrace_atom_record(st, len);
 	}
 
 	return result;
+}
+
+/**
+ * Check whether current stack is known, recording it as a side effect.
+ *
+ * This can be used to emit warnings once for a given calling stack.
+ * The allocated objects are never freed so this should rather be used
+ * for uncommon paths, which warning paths are.
+ *
+ * @param offset		additional stackframes to skip
+ *
+ * @return whether calling stack was known
+ */
+gboolean
+stacktrace_caller_known(size_t offset)
+{
+	struct stacktrace t;
+	size_t len;
+	struct stackatom *result;
+
+	stacktrace_get_offset(&t, offset + 1);	/* Skip ourselves */
+	len = stacktrace_chop_length(&t);
+
+	if G_UNLIKELY(0 == len)
+		return FALSE;
+
+	result = stacktrace_atom_lookup(&t, len);
+
+	if G_UNLIKELY(NULL == result) {
+		(void) stacktrace_atom_record(&t, len);
+		return FALSE;
+	} else {
+		return TRUE;
+	}
 }
 
 /***
@@ -1615,8 +1903,6 @@ stacktrace_get_atom(const struct stacktrace *st)
  ***
  ***		--RAM, 2010-10-24
  ***/
-
-#ifndef HAS_BACKTRACE
 
 /*
  * getreturnaddr() and getframeaddr() are:
@@ -1956,7 +2242,5 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
-
-#endif	/* !HAS_BACKTRACE */
 
 /* vi: set ts=4 sw=4 cindent:  */

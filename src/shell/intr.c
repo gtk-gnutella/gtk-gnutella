@@ -68,7 +68,7 @@ shell_exec_intr(struct gnutella_shell *sh, int argc, const char *argv[])
 const char *
 shell_summary_intr(void)
 {
-	return "Toggles interactive mode";
+	return "Toggle interactive mode";
 }
 
 const char *

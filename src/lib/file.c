@@ -33,16 +33,18 @@
 
 #include "common.h"
 
+#include "ascii.h"
 #include "concat.h"			/* For concat_strings() */
-#include "file.h"
 #include "debug.h"
 #include "fd.h"
+#include "file.h"
+#include "glib-missing.h"
 #include "halloc.h"
-#include "log.h"			/* For s_warning() */
+#include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
 #include "timestamp.h"
 #include "tm.h"
-#include "glib-missing.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static const char orig_ext[] = "orig";
@@ -95,10 +97,15 @@ file_locate_from_path(const char *argv0)
 	char *tok;
 	char filepath[MAX_PATH_LEN + 1];
 	char *result = NULL;
+	char *ext = "";
+
+	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
+		ext = ".exe";
+	}
 
 	if (filepath_basename(argv0) != argv0) {
 		if (!already_done) {
-			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
+			g_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 				argv0,
 				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
 		}
@@ -108,7 +115,7 @@ file_locate_from_path(const char *argv0)
 	path = getenv("PATH");
 	if (NULL == path) {
 		if (!already_done) {
-			s_warning("can't locate \"%s\" in PATH: "
+			g_warning("can't locate \"%s\" in PATH: "
 				"no such environment variable", argv0);
 		}
 		goto done;
@@ -124,7 +131,7 @@ file_locate_from_path(const char *argv0)
 		if ('\0' == *dir)
 			dir = ".";
 		concat_strings(filepath, sizeof filepath,
-			dir, G_DIR_SEPARATOR_S, argv0, NULL);
+			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL);
 
 		if (-1 != stat(filepath, &buf)) {
 			if (S_ISREG(buf.st_mode) && -1 != access(filepath, X_OK)) {
@@ -190,8 +197,8 @@ open_read(
 			in = NULL;
 		}
 		if (renaming && -1 == rename(path, path_orig)) {
-			g_warning("[%s] could not rename \"%s\" as \"%s\": %s",
-				what, path, path_orig, g_strerror(errno));
+			g_warning("[%s] could not rename \"%s\" as \"%s\": %m",
+				what, path, path_orig);
 		}
 		if (NULL == in) {
 			in = fopen(path_orig, "r");
@@ -204,8 +211,7 @@ open_read(
 			}
 		} else {
 			instead = instead_str;			/* Regular file was present */
-			g_warning("[%s] failed to retrieve from \"%s\": %s", what, path,
-				g_strerror(errno));
+			g_warning("[%s] failed to retrieve from \"%s\": %m", what, path);
 		}
         if (fvcnt > 1 && common_dbg > 0)
             g_debug("[%s] trying to load from alternate locations...", what);
@@ -367,7 +373,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 	gboolean success = FALSE;
 
 	if (0 != fclose(out)) {
-		g_warning("could not flush \"%s\": %s", fv->name, g_strerror(errno));
+		g_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
 
@@ -378,8 +384,7 @@ file_config_close(FILE *out, const file_path_t *fv)
 		goto failed;
 
 	if (-1 == rename(path_new, path)) {
-		g_warning("could not rename \"%s\" as \"%s\": %s",
-			path_new, path, g_strerror(errno));
+		g_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
 		goto failed;
 	}
 
@@ -491,8 +496,7 @@ do_open(const char *path, int flags, int mode,
 	}
 
 	if (!missing || errno != ENOENT) {
-		g_warning("do_open(): can't %s file \"%s\": %s",
-			what, path, g_strerror(errno));
+		g_warning("do_open(): can't %s file \"%s\": %m", what, path);
 	}
 
 	return -1;
@@ -602,7 +606,7 @@ do_fopen(const char *path, const char *mode, gboolean missing)
 	}
 
 	if (!missing || errno != ENOENT)
-		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
+		g_warning("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }
@@ -626,6 +630,44 @@ FILE *
 file_fopen_missing(const char *path, const char *mode)
 {
 	return do_fopen(path, mode, TRUE);
+}
+
+/**
+ * Remove trailing white space from line held within buffer.
+ *
+ * This is meant to be used to validate the line returned by fgets() and to
+ * remove final "\n", or "\r\n" markers as well as any other trailing white
+ * space.
+ *
+ * @param line		buffer where line is held
+ * @param size		buffer size
+ * @paran lenptr	if non-NULL, the final string length is written there
+ *
+ * @return TRUE if we were facing a line terminated by "\n", FALSE otherwise.
+ */
+gboolean
+file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
+{
+	size_t len;
+	char *p;
+
+	len = clamp_strlen(line, size);
+
+	if (size == len || 0 == len)
+		return FALSE;		/* No NUL found or empty string */
+
+	if ('\n' != line[len - 1])
+		return FALSE;		/* Truncated line, reading buffer was too small */
+
+	p = &line[len - 1];
+	do {
+		*p = '\0';
+	} while (p != line && is_ascii_space(*--p));
+
+	if (lenptr != NULL)
+		*lenptr = p - line + ('\0' == *p ? 0 : 1);
+
+	return TRUE;
 }
 
 /* vi: set ts=4: */

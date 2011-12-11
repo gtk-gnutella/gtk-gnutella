@@ -41,7 +41,6 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
-#include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/override.h"				/* Must be the last header included */
 
@@ -141,8 +140,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 	g_info("NTP detected at %s", host_addr_to_string(addr));
 
 	if (len != NTP_MINSIZE && len != NTP_MAXSIZE) {
-		g_warning("got weird reply from NTP server (%lu bytes)",
-			(unsigned long) len);
+		g_warning("got weird reply from NTP server (%zu bytes)", len);
 		return;
 	}
 
@@ -183,12 +181,12 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 	clock_offset = tm2f(&offset) / 2;		/* Should be close to 0 */
 
 	if (GNET_PROPERTY(tsync_debug) > 1)
-		g_debug("NTP local clock offset is %.6f secs",
+		g_debug("NTP local clock offset is %g secs",
 			(double) clock_offset);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
 
-	g_info("detected NTP-%u, stratum %u, offset %.6f secs",
+	g_info("detected NTP-%u, stratum %u, offset %g secs",
 		version, m->stratum, (double) clock_offset);
 }
 
@@ -260,10 +258,9 @@ ntp_send_probes(void)
 			 * does not guarantee anything. */
 			sent = TRUE;
 		} else if (GNET_PROPERTY(tsync_debug)) {
-			g_debug("NTP ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %s",
+			g_debug("NTP ntp_probe(): sendto() failed for \"%s\" (\"%s\"): %m",
 				hosts[i].addr,
-				host_addr_to_string(addr),
-				g_strerror(errno));
+				host_addr_to_string(addr));
 		}
 	}
 

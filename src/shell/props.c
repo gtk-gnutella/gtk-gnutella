@@ -36,7 +36,6 @@
 #include "cmd.h"
 
 #include "if/gnet_property.h"
-#include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
 
@@ -72,6 +71,8 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 		return REPLY_ERROR;
 	}
 
+	shell_write(sh, "100~\n");
+
 	for (sl = props; NULL != sl; sl = g_slist_next(sl)) {
 		property_t prop;
 	   
@@ -85,6 +86,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 	gm_slist_free_null(&props);
 
+	shell_write(sh, ".\n");
 	return REPLY_READY;
 }
 

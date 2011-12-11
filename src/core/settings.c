@@ -38,7 +38,6 @@
 #include <netdb.h>
 #endif
 
-#include "settings.h"
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
@@ -50,8 +49,10 @@
 #include "pdht.h"
 #include "routing.h"			/* For gnet_reset_guid() */
 #include "search.h"
+#include "settings.h"
 #include "share.h"
 #include "sockets.h"
+#include "tx.h"					/* For tx_debug_set_addrs() */
 #include "udp.h"				/* For udp_received() */
 #include "upload_stats.h"
 
@@ -90,6 +91,7 @@
 #include "lib/sha1.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
+#include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -188,6 +190,47 @@ listen_addr6(void)
 	}
 }
 
+/**
+ * @return the primary listening address we should advertise in PUSH,
+ * query hits, etc...
+ */
+host_addr_t
+listen_addr_primary(void)
+{
+	host_addr_t ipv4 = listen_addr();
+
+	/*
+	 * IPv6-Ready: if we have both a valid IPv4 and IPv6 address, use the IPv4
+	 * one, otherwise use the actual sole listening address.
+	 */
+
+	if (is_host_addr(ipv4)) {
+		return ipv4;
+	} else {
+		return listen_addr6();
+	}
+}
+
+/**
+ * @return the primary listening address we should advertise in alt-locs,
+ * based on the address type they want.
+ */
+host_addr_t
+listen_addr_primary_net(host_net_t net)
+{
+	switch (net) {
+	case HOST_NET_BOTH:
+		return listen_addr_primary();
+	case HOST_NET_IPV4:
+		return listen_addr();
+	case HOST_NET_IPV6:
+		return listen_addr6();
+	case HOST_NET_MAX:
+		g_assert_not_reached();
+	}
+	return zero_host_addr;
+}
+
 host_addr_t
 listen_addr_by_net(enum net_type net)
 {
@@ -234,13 +277,9 @@ ensure_unicity(const char *file, int *fd_ptr)
 
 	fd = file_create(file, O_RDWR, PID_FILE_MODE);
 	if (fd < 0) {
-		int saved_errno = errno;
-
 		if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-			g_warning("could not create \"%s\": %s", file, g_strerror(errno));
+			s_warning("could not create \"%s\": %m", file);
 		}
-
-		errno = saved_errno;
 		return -1;
 	}
 
@@ -270,8 +309,8 @@ ensure_unicity(const char *file, int *fd_ptr)
 			int saved_errno = errno;
 
 			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				g_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %s",
-					fd, file, g_strerror(saved_errno));
+				s_warning("fcntl(%d, F_SETLK, ...) failed for \"%s\": %m",
+					fd, file);
 				/*
 				 * Use F_GETLK to determine the PID of the process, the
 				 * reinitialization of "fl" might be unnecessary but who
@@ -286,8 +325,8 @@ ensure_unicity(const char *file, int *fd_ptr)
 							"be using \"%s\" (pid=%lu)",
 							file, (gulong) fl.l_pid);
 				} else {
-					g_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %s",
-						fd, file, g_strerror(errno));
+					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
+						fd, file);
 				}
 			}
 
@@ -316,8 +355,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 		if ((ssize_t) -1 == r) {
 			/* This would be odd */
 			if (fd_ptr || GNET_PROPERTY(lockfile_debug)) {
-				g_warning("could not read file \"%s\": %s",
-					file, g_strerror(errno));
+				s_warning("could not read file \"%s\": %m", file);
 			}
 			goto failed;
 		}
@@ -400,16 +438,15 @@ save_pid(int fd, const char *path)
 			path, (gulong) getpid(), fd);
 	}
 	if (-1 == ftruncate(fd, 0))	{
-		g_warning("ftruncate() failed for \"%s\": %s",
-			path, g_strerror(errno));
+		s_warning("ftruncate() failed for \"%s\": %m", path);
 		return;
 	}
 	if (0 != lseek(fd, 0, SEEK_SET))	{
-		g_warning("lseek() failed for \"%s\": %s", path, g_strerror(errno));
+		s_warning("lseek() failed for \"%s\": %m", path);
 		return;
 	}
 	if (len != (size_t) write(fd, buf, len)) {
-		g_warning("could not flush \"%s\": %s", path, g_strerror(errno));
+		s_warning("could not flush \"%s\": %m", path);
 	}
 }
 
@@ -425,11 +462,9 @@ settings_mkdir(const char *path, gboolean fatal)
 {
 	if (-1 == mkdir(path, CONFIG_DIR_MODE)) {
 		if (fatal) {
-			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: \"%s\""),
-				path, g_strerror(errno));
+			s_fatal_exit(EXIT_FAILURE, _("mkdir(\"%s\") failed: %m"), path);
 		} else {
-			s_warning(_("mkdir(\"%s\") failed: \"%s\""),
-				path, g_strerror(errno));
+			s_warning(_("mkdir(\"%s\") failed: %m"), path);
 		}
 		return FALSE;
 	} else {
@@ -699,8 +734,7 @@ settings_init(void)
 			short_kb_size(amount, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use %u file descriptors", max_fd);
 		g_info("max I/O vector size is %d items", MAX_IOV_COUNT);
-		g_info("virtual memory page size is %lu bytes",
-			(gulong) compat_pagesize());
+		g_info("virtual memory page size is %zu bytes", compat_pagesize());
 		g_info("core dumps are %s",
 			crash_coredumps_disabled() ? "disabled" : "enabled");
 
@@ -852,6 +886,116 @@ settings_is_ultra(void)
 }
 
 /**
+ * Can we use IPv4?
+ */
+gboolean
+settings_use_ipv4(void)
+{
+	return
+		NET_USE_IPV4 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol);
+}
+
+/**
+ * Can we use IPv6?
+ */
+gboolean
+settings_use_ipv6(void)
+{
+	return
+		NET_USE_IPV6 == GNET_PROPERTY(network_protocol) ||
+		NET_USE_BOTH == GNET_PROPERTY(network_protocol);
+}
+
+/**
+ * Are we running with a valid IPv4 address?
+ */
+gboolean
+settings_running_ipv4(void)
+{
+	host_addr_t ha = listen_addr();
+
+	return host_addr_is_ipv4(ha) && is_host_addr(ha);
+}
+
+/**
+ * Are we running with a valid IPv6 address?
+ */
+gboolean
+settings_running_ipv6(void)
+{
+	host_addr_t ha = listen_addr6();
+
+	return host_addr_is_ipv6(ha) && is_host_addr(ha);
+}
+
+/**
+ * Are we running with both IPv4 and IPv6 addresses?
+ */
+gboolean
+settings_running_ipv4_and_ipv6(void)
+{
+	return settings_running_ipv6() && settings_running_ipv4();
+}
+
+/**
+ * Are we running with only an IPv6 address?
+ */
+gboolean
+settings_running_ipv6_only(void)
+{
+	return settings_running_ipv6() && !settings_running_ipv4();
+}
+
+/**
+ * Are we running with only an IP address on the same network as the one
+ * given as argument?
+ */
+gboolean
+settings_running_same_net(const host_addr_t addr)
+{
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		return settings_running_ipv4();
+	case NET_TYPE_IPV6:
+		return settings_running_ipv6();
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Are they allowing connections to a given IP address?
+ *
+ * When only IPv4 or IPv6 is allowed, the connection to an address not
+ * belonging to that allowed protocol is not permitted.
+ */
+gboolean
+settings_can_connect(const host_addr_t addr)
+{
+	static gboolean warned = FALSE;
+
+	switch (GNET_PROPERTY(network_protocol)) {
+	case NET_USE_BOTH:
+		return TRUE;
+	case NET_USE_IPV4:
+		return NET_TYPE_IPV4 == host_addr_net(addr);
+	case NET_USE_IPV6:
+		return NET_TYPE_IPV6 == host_addr_net(addr);
+	default:
+		if (!warned) {
+			g_carp("%s: invalid network_protocol property value: %u",
+				G_STRFUNC, GNET_PROPERTY(network_protocol));
+			warned = TRUE;
+		}
+		return TRUE;	/* Assume connection is permitted */
+	}
+}
+
+/**
  * Gets the path of the local socket.
  */
 const char *
@@ -899,8 +1043,7 @@ settings_remove_lockfile(const char *path, const char *lockfile)
 
 	file = make_pathname(path, lockfile);
 	if (-1 == unlink(file)) {
-		g_warning("could not remove lockfile \"%s\": %s",
-			file, g_strerror(errno));
+		s_warning("could not remove lockfile \"%s\": %m", file);
 	}
 	HFREE_NULL(file);
 }
@@ -1133,6 +1276,15 @@ settings_close(void)
 	HFREE_NULL(crash_dir);
 	HFREE_NULL(dht_db_dir);
 	HFREE_NULL(gnet_db_dir);
+}
+
+/**
+ * Last memory cleanup during final shutdown sequence.
+ */
+void
+settings_terminate(void)
+{
+	tx_debug_set_addrs("");		/* Free up any registered addresses */
 }
 
 static void
@@ -1574,6 +1726,16 @@ query_answer_partials_changed(property_t prop)
 }
 
 static gboolean
+tx_debug_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	tx_debug_set_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static gboolean
 enable_local_socket_changed(property_t prop)
 {
 	gboolean enabled;
@@ -1590,8 +1752,7 @@ enable_local_socket_changed(property_t prop)
 				socket_path = settings_local_socket_path();
 				s_local_listen = socket_local_listen(socket_path);
 			} else {
-				g_warning("mkdir(\"%s\") failed: %s (errno = %d)",
-					ipc_dir, g_strerror(errno), errno);
+				s_warning("mkdir(\"%s\") failed: %m", ipc_dir);
 			}
 
 			if (!s_local_listen) {
@@ -1633,10 +1794,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	 * If UDP is enabled, also listen on the same UDP port.
 	 */
 
-	if (
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
-		NET_USE_IPV4 == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv4()) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV4);
 
 		s_tcp_listen = socket_tcp_listen(bind_addr, port);
@@ -1651,10 +1809,7 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 			}
 		}
 	}
-	if (
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol) ||
-		NET_USE_IPV6 == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv6()) {
 		host_addr_t bind_addr = get_bind_addr(NET_TYPE_IPV6);
 
 		s_tcp_listen6 = socket_tcp_listen(bind_addr, port);
@@ -1891,8 +2046,7 @@ request_directory(const char *pathname)
 	if (0 == create_directory(pathname, DEFAULT_DIRECTORY_MODE))
 		return 0;
 
-	g_message("attempt to create directory \"%s\" failed: %s",
-		pathname, g_strerror(errno));
+	s_message("attempt to create directory \"%s\" failed: %m", pathname);
 
 	return -1;
 }
@@ -2276,6 +2430,17 @@ vxml_debug_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_vxml_debug(val);
+
+    return FALSE;
+}
+
+static gboolean
+xmalloc_debug_changed(property_t prop)
+{
+	guint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_xmalloc_debug(val);
 
     return FALSE;
 }
@@ -2736,6 +2901,11 @@ static prop_map_t property_map[] = {
         TRUE
     },
     {
+        PROP_XMALLOC_DEBUG,
+        xmalloc_debug_changed,
+        TRUE
+    },
+    {
         PROP_ZALLOC_DEBUG,
         zalloc_debug_changed,
         TRUE
@@ -2900,6 +3070,11 @@ static prop_map_t property_map[] = {
 		query_answer_partials_changed,
 		FALSE,
 	},
+	{
+		PROP_TX_DEBUG_ADDRS,
+		tx_debug_addrs_changed,
+		TRUE,
+	},
 };
 
 /***
@@ -2919,7 +3094,7 @@ settings_callbacks_init(void)
         init_list[n] = FALSE;
 
     if (GNET_PROPERTY(dbg) >= 2) {
-        printf("settings_callbacks_init: property_map size: %u\n",
+        g_debug("settings_callbacks_init: property_map size: %u",
             (guint) PROPERTY_MAP_SIZE);
     }
 
@@ -2938,7 +3113,7 @@ settings_callbacks_init(void)
                 property_map[n].cb,
                 property_map[n].init);
         } else if (GNET_PROPERTY(dbg) >= 10) {
-            printf("settings_callbacks_init: property ignored: %s\n",
+            g_warning("settings_callbacks_init: property ignored: %s",
 				gnet_prop_name(prop));
         }
     }
@@ -2946,7 +3121,7 @@ settings_callbacks_init(void)
     if (GNET_PROPERTY(dbg) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
-                printf("settings_callbacks_init: unmapped property: %s\n",
+                g_message("settings_callbacks_init: unmapped property: %s",
 					gnet_prop_name(n+GNET_PROPERTY_MIN));
         }
     }

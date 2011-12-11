@@ -68,6 +68,8 @@ void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
 unsigned bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type);
+gboolean bio_set_favour(bio_source_t *bio, gboolean on);
+unsigned bio_add_allocated(bio_source_t *bio, unsigned bw);
 ssize_t bio_write(bio_source_t *bio, gconstpointer data, size_t len);
 ssize_t bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt);
 ssize_t bio_sendto(bio_source_t *bio, const gnet_host_t *to,

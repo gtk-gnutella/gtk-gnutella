@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2006, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,6 +22,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Endiannes peek/poke routines.
+ *
+ * @author Raphael Manfredi
+ * @date 2001-2003
+ * @author Christian Biere
+ * @date 2006
+ */
+
 #ifndef _endian_h_
 #define _endian_h_
 
@@ -31,11 +44,11 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE G_GNUC_PURE unsigned char
+static inline ALWAYS_INLINE G_GNUC_PURE guint8
 peek_u8(const void *p)
 {
-	const unsigned char *q = p;
-	return q[0] & 0xff;
+	const guint8 *q = p;
+	return q[0];
 }
 
 static inline ALWAYS_INLINE G_GNUC_PURE guint16

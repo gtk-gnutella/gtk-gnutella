@@ -34,13 +34,14 @@
 #include "common.h"
 
 #include "map.h"
+#include "atoms.h"				/* For tests */
 #include "debug.h"
-#include "random.h"
 #include "ohash_table.h"
 #include "patricia.h"
-#include "walloc.h"
+#include "random.h"
 #include "tm.h"					/* For tests */
-#include "atoms.h"				/* For tests */
+#include "walloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 /**
@@ -657,9 +658,8 @@ timeit(
 	elapsed = tm_elapsed_f(&end, &start);
 
 	if (verbose)
-		g_debug("%s (%lu items, %lu loop%s): %f s (average: %f s)", what,
-			(unsigned long) count, (gulong) iter, iter == 1 ? "" : "s",
-			elapsed, elapsed / iter);
+		g_debug("%s (%zu items, %zu loop%s): %F s (average: %F s)", what,
+			count, iter, iter == 1 ? "" : "s", elapsed, elapsed / iter);
 
 	return elapsed;
 }
@@ -713,8 +713,8 @@ map_test(void)
 			1, "map PATRICIA reloading", verbose);
 
 		if (verbose)
-			g_info("PATRICIA insertion %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA insertion %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.insertion++;
@@ -726,8 +726,8 @@ map_test(void)
 			LOOPS, "map PATRICIA contains", verbose);
 
 		if (verbose)
-			g_info("PATRICIA contains %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA contains %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.contains++;
@@ -739,8 +739,8 @@ map_test(void)
 			1, "map PATRICIA remove", verbose);
 
 		if (verbose)
-			g_info("PATRICIA remove %s than hash with %lu items",
-				ptime < htime ? "faster" : "slower", (unsigned long) count);
+			g_info("PATRICIA remove %s than hash with %zu items",
+				ptime < htime ? "faster" : "slower", count);
 
 		if (ptime < htime)
 			faster.removal++;

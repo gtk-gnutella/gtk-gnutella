@@ -371,6 +371,17 @@ ssize_t mingw_writev(int fd, const iovec_t *iov, int iov_cnt);
 ssize_t mingw_pwritev(int fd, const iovec_t *iov, int iov_cnt, filesize_t pos);
 
 /*
+ * sbrk() emulation.
+ */
+#ifndef HAS_SBRK
+#define HAS_SBRK			/* We emulate it */
+#define EMULATE_SBRK
+#define sbrk mingw_sbrk
+
+void *mingw_sbrk(long incr);
+#endif	/* !HAS_SBRK */
+
+/*
  * Socket functions
  *
  * Under windows, socket descriptors are not the same as file descriptiors.

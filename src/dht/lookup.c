@@ -661,9 +661,8 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, guint level)
 	lookup_check(nl);
 
 	count = patricia_count(pt);
-	g_debug("DHT LOOKUP[%s] %s contains %lu item%s:",
-		nid_to_string(&nl->lid), what, (gulong) count,
-		count == 1 ? "" : "s");
+	g_debug("DHT LOOKUP[%s] %s contains %zu item%s:",
+		nid_to_string(&nl->lid), what, count, 1 == count ? "" : "s");
 
 	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
 
@@ -695,7 +694,7 @@ lookup_final_stats(const nlookup_t *nl)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_debug("DHT LOOKUP[%s] type %s, took %f secs, "
+		g_debug("DHT LOOKUP[%s] type %s, took %g secs, "
 			"hops=%u, path=%u, in=%d bytes, out=%d bytes, %d RPC repl%s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			tm_elapsed_f(&end, &nl->start),
@@ -947,12 +946,11 @@ lookup_value_terminate(nlookup_t *nl,
 			GNET_PROPERTY(dht_publish_debug) > 2
 		) {
 			g_debug("DHT LOOKUP[%s] "
-				"not caching %d \"%s\" value%s for %s: local=%s, path size=%lu",
+				"not caching %d \"%s\" value%s for %s: local=%s, path size=%zu",
 				nid_to_string(&nl->lid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
 				1 == vcnt ? "" : "s",
-				kuid_to_hex_string(nl->kuid), local ? "y" : "n",
-				(unsigned long)  count);
+				kuid_to_hex_string(nl->kuid), local ? "y" : "n", count);
 		}
 	}
 
@@ -1385,7 +1383,7 @@ lookup_value_done(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, ending secondary key fetch from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, ending secondary key fetch from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &fv->start),
 			knode_to_string(sk->kn));
 	}
@@ -1472,7 +1470,7 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
 		g_assert(remain > 0);
 
 		g_debug("DHT LOOKUP[%s] expiring secondary key fetching in "
-			"%s lookup (%s) for %s after %f secs, %d key%s remaining",
+			"%s lookup (%s) for %s after %g secs, %d key%s remaining",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
@@ -1650,7 +1648,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] (remote load = %.2f) "
+		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"got %d value%s of type %s and %d secondary key%s from %s",
 			nid_to_string(&nl->lid), load, vcnt, 1 == vcnt ? "" : "s",
 			dht_value_type_to_string(type),
@@ -1720,9 +1718,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1989,8 +1987,15 @@ lookup_reset_closest(nlookup_t *nl, const knode_t *kn)
 	lookup_check(nl);
 	knode_check(kn);
 
-	if (nl->closest == kn)
+	if (nl->closest == kn) {
 		nl->closest = patricia_closest(nl->ball, nl->kuid);
+
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_debug("DHT LOOKUP[%s] removing closest node, new closest is %s",
+				nid_to_string(&nl->lid),
+				NULL == nl->closest ? "empty" : knode_to_string(nl->closest));
+		}
+	}
 
 	if (nl->prev_closest == kn)
 		nl->prev_closest = patricia_closest(nl->path, nl->kuid);
@@ -2155,8 +2160,8 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 			g_debug("DHT LOOKUP[%s] %u-bit prefix: "
-				"freq = %f (%u/%u node%s, log2=%f), theoric = %f => "
-				"K-L contribution: %f",
+				"freq = %g (%u/%u node%s, log2=%g), theoric = %g => "
+				"K-L contribution: %g",
 				nid_to_string(&nl->lid), (unsigned) (i + bmin),
 				M[i], (unsigned) prefix[i], (unsigned) nodes,
 				1 == prefix[i] ? "" : "s",
@@ -2288,7 +2293,7 @@ compute:
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %f",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence to %s = %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path),
 			1 == nodes ? "" : "s", kuid_to_hex_string(nl->kuid), dkl);
@@ -2425,9 +2430,9 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] largest K-L divergence %f from %lu-bit prefix",
+		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %zu-bit prefix",
 			nid_to_string(&nl->lid), items[0].contrib,
-			(unsigned long) items[0].prefix);
+			items[0].prefix);
 	}
 
 	/*
@@ -2471,7 +2476,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 	dkl = kullback_leibler_div(nl, nodes, min_common_bits, prefix, items);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
-		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %f",
+		g_debug("DHT LOOKUP[%s] with %u/%u node%s, K-L divergence down to %g",
 			nid_to_string(&nl->lid), (unsigned) nodes,
 			(unsigned) patricia_count(nl->path), 1 == nodes ? "" : "s", dkl);
 	}
@@ -2518,7 +2523,7 @@ done:
 
 	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT LOOKUP[%s] after counter-measures: path holds %u node%s, "
-			"K-L divergence is %f (%u node%s in window, stripped %u)",
+			"K-L divergence is %g (%u node%s in window, stripped %u)",
 			nid_to_string(&nl->lid),
 			(unsigned) patricia_count(nl->path),
 			1 == patricia_count(nl->path) ? "" : "s", dkl,
@@ -2602,7 +2607,7 @@ log_status(nlookup_t *nl)
 
 	tm_now_exact(&now);
 
-	g_debug("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %f secs",
+	g_debug("DHT LOOKUP[%s] %s lookup status for %s at hop %u after %g secs",
 		nid_to_string(&nl->lid), kuid_to_hex_string(nl->kuid),
 		lookup_type_to_string(nl), nl->hops,
 		tm_elapsed_f(&now, &nl->start));
@@ -2615,10 +2620,16 @@ log_status(nlookup_t *nl)
 		nl->rpc_timeouts, nl->rpc_bad, nl->rpc_replies);
 	g_debug("DHT LOOKUP[%s] B/W incoming=%d bytes, outgoing=%d bytes",
 		nid_to_string(&nl->lid), nl->bw_incoming, nl->bw_outgoing);
-	g_debug("DHT LOOKUP[%s] current %s closest node: %s",
-		nid_to_string(&nl->lid),
-		map_contains(nl->queried, nl->closest->id) ? "queried" : "unqueried",
-		knode_to_string(nl->closest));
+	if (NULL == nl->closest) {
+		g_debug("DHT LOOKUP[%s] no current closest node",
+			nid_to_string(&nl->lid));
+	} else {
+		g_debug("DHT LOOKUP[%s] current %s closest node: %s",
+			nid_to_string(&nl->lid),
+			map_contains(nl->queried, nl->closest->id) ?
+				"queried" : "unqueried",
+			knode_to_string(nl->closest));
+	}
 }
 
 /**
@@ -2960,7 +2971,7 @@ lookup_handle_reply(
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, handling hop %u reply from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, handling hop %u reply from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &nl->start),
 		 	hop, knode_to_string(kn));
 	}
@@ -3321,9 +3332,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_NODE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_NODE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
+			 len, len == 1 ? "" : "s", knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	if (token != NULL)
@@ -3387,11 +3398,11 @@ lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
 refusing:
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		g_debug("DHT LOOKUP[%s] %s lookup for %s refusing (proba = %.3f%%) "
-			"value at node with only %lu common bits (k-ball at %lu bits): %s",
+			"value at node with only %zu common bits (k-ball at %zu bits): %s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			kuid_to_hex_string(nl->kuid),
-			(double) proba / (NL_KBALL_FACTOR / 100), (unsigned long) common,
-			(unsigned long) kball, knode_to_string(kn));
+			(double) proba / (NL_KBALL_FACTOR / 100), common,
+			kball, knode_to_string(kn));
 	}
 
 	return FALSE;
@@ -3399,10 +3410,10 @@ refusing:
 accepting:
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		g_debug("DHT LOOKUP[%s] %s lookup for %s accepting value "
-			"(%lu common bits, k-ball at %lu bits, proba = %.3f%%) from %s",
+			"(%zu common bits, k-ball at %zu bits, proba = %.3f%%) from %s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
-			kuid_to_hex_string(nl->kuid), (unsigned long) common,
-			(unsigned long) kball, (double) proba / (NL_KBALL_FACTOR / 100),
+			kuid_to_hex_string(nl->kuid), common,
+			kball, (double) proba / (NL_KBALL_FACTOR / 100),
 			knode_to_string(kn));
 	}
 
@@ -3682,15 +3693,32 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 	if (patricia_count(nl->shortlist)) {
 		knode_t *closest = patricia_closest(nl->shortlist, nl->kuid);
 
-		knode_check(nl->closest);
 		g_assert(knode_is_shared(closest, TRUE));
 
-		if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
+		/*
+		 * Due to active node removal from the path, we could have a NULL
+		 * closest node here.
+		 *		--RAM, 2011-11-05
+		 */
+
+		if (NULL == nl->closest) {
 			nl->closest = closest;
 
-			if (GNET_PROPERTY(dht_lookup_debug) > 2)
-				g_debug("DHT LOOKUP[%s] new shortlist closest %s",
+			if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+				g_debug("DHT LOOKUP[%s] reset shortlist closest to %s",
 					nid_to_string(&nl->lid), knode_to_string(closest));
+			}
+		} else {
+			knode_check(nl->closest);
+
+			if (kuid_cmp3(nl->kuid, closest->id, nl->closest->id) < 0) {
+				nl->closest = closest;
+
+				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
+					g_debug("DHT LOOKUP[%s] new shortlist closest %s",
+						nid_to_string(&nl->lid), knode_to_string(closest));
+				}
+			}
 		}
 	}
 
@@ -3909,7 +3937,7 @@ lookup_delay(nlookup_t *nl)
 	g_assert(!(nl->flags & NL_F_DELAYED));
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] delaying next iteration by %f seconds",
+		g_debug("DHT LOOKUP[%s] delaying next iteration by %g seconds",
 			nid_to_string(&nl->lid), NL_FIND_DELAY / 1000.0);
 
 	nl->flags |= NL_F_DELAYED;
@@ -4649,7 +4677,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
-		g_debug("DHT LOOKUP[%s] (remote load = %.2f) "
+		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"value for secondary key #%u is %s",
 			nid_to_string(&nl->lid), load, sk->next_skey + 1,
 			dht_value_to_string(v));
@@ -4671,10 +4699,9 @@ bad:
 	 */
 
 	if (GNET_PROPERTY(dht_debug))
-		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%lu byte%s) "
+		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s%s%s",
-			 (unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			 reason,
+			 len, len == 1 ? "" : "s", knode_to_string(kn), reason,
 			 bstr_has_error(bs) ? ": " : "",
 			 bstr_has_error(bs) ? bstr_error(bs) : "");
 
@@ -4971,7 +4998,7 @@ lookup_value_iterate(nlookup_t *nl)
 		tm_t now;
 
 		tm_now_exact(&now);
-		g_debug("DHT LOOKUP[%s] %f secs, asking %ssecondary key %d/%d from %s",
+		g_debug("DHT LOOKUP[%s] %g secs, asking %ssecondary key %d/%d from %s",
 			nid_to_string(&nl->lid), tm_elapsed_f(&now, &fv->start),
 			map_contains(fv->seen, sk->skeys[sk->next_skey]) ?
 				"duplicate " : "",

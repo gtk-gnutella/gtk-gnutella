@@ -74,7 +74,7 @@ static size_t chunks_allocated;	/* Amount of chunks allocated */
 static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
-size_t page_threshold;
+static size_t walloc_threshold;		/* walloc() size upper limit */
 
 union align {
   size_t	size;
@@ -148,13 +148,13 @@ halloc_get_size(void *p)
 
 	size = page_lookup(p);
 	if (size) {
-		RUNTIME_ASSERT(size >= page_threshold);
+		RUNTIME_ASSERT(size >= walloc_threshold);
 	} else {
 		union align *head = p;
 
 		head--;
 		RUNTIME_ASSERT(head->size > 0);
-		RUNTIME_ASSERT(head->size < page_threshold);
+		RUNTIME_ASSERT(head->size < walloc_threshold);
 		size = head->size;
 	}
 	return size;
@@ -179,7 +179,10 @@ halloc(size_t size)
 	if (0 == size)
 		return NULL;
 
-	if (size < page_threshold) {
+	if G_UNLIKELY(0 == walloc_threshold)
+		halloc_init(TRUE);
+
+	if (size < walloc_threshold) {
 		union align *head;
 
 		allocated = size + sizeof head[0];
@@ -246,7 +249,7 @@ hfree(void *p)
 	size = halloc_get_size(p);
 	RUNTIME_ASSERT(size > 0);
 
-	if (size < page_threshold) {
+	if (size < walloc_threshold) {
 		union align *head = p;
 
 		head--;
@@ -290,11 +293,11 @@ hrealloc(void *old, size_t new_size)
 
 	rounded_new_size = round_pagesize(new_size);
 
-	if (old_size >= page_threshold) {
+	if (old_size >= walloc_threshold) {
 		if (vmm_is_relocatable(old, rounded_new_size))
 			goto relocate;
 	} else {
-		if (new_size < page_threshold) {
+		if (new_size < walloc_threshold) {
 			union align *old_head = old;
 			union align *new_head;
 			size_t old_allocated = old_size + sizeof old_head[0];
@@ -308,7 +311,7 @@ hrealloc(void *old, size_t new_size)
 		}
 	}
 
-	if (new_size >= page_threshold && rounded_new_size == old_size)
+	if (new_size >= walloc_threshold && rounded_new_size == old_size)
 		return old;
 
 	if (old_size >= new_size && old_size / 2 < new_size)
@@ -340,6 +343,32 @@ hdestroy(void)
 {
 	/* EMPTY */
 }
+
+#ifdef REMAP_ZALLOC
+void *
+halloc(size_t size)
+{
+	return g_malloc(size);
+}
+
+void *
+halloc0(size_t size)
+{
+	return g_malloc0(size);
+}
+
+void
+hfree(void *ptr)
+{
+	g_free(ptr);
+}
+
+void *
+hrealloc(void *old, size_t size)
+{
+	return g_realloc(old, size);
+}
+#endif	/* REMAP_ZALLOC */
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
@@ -431,13 +460,16 @@ void
 halloc_init(gboolean replace_malloc)
 {
 	static int initialized;
+	int sp;
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
 	replacing_malloc = replace_malloc;
 
-	use_page_table = (size_t)-1 == (guint32)-1 && compat_pagesize() == 4096;
-	page_threshold = compat_pagesize() - sizeof(union align);
+	vmm_init(&sp);		/* Just in case, since we're built on top of VMM */
+
+	use_page_table = (size_t) -1 == (guint32) -1 && 4096 == compat_pagesize();
+	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
 
 	if (use_page_table) {
 		pt_pages = page_table_new();

@@ -52,11 +52,11 @@ enum bgtask_magic {
 	BGTASK_DEAD_MAGIC = 0x6f5c8a03U
 };
 
-#define MAX_LIFE		100000UL		/**< In usecs, MUST be << 400 ms */
+#define MAX_LIFE		50000UL			/**< In usecs, MUST be << 250 ms */
 #define DELTA_FACTOR	2				/**< Max variations are 200% */
 
 #define BG_TICK_IDLE	1000			/**< Tick every second when idle */
-#define BG_TICK_BUSY	400				/**< Tick every 400 ms when busy */
+#define BG_TICK_BUSY	250				/**< Tick every 250 ms when busy */
 
 static struct {
 	cperiodic_t *pev;		/**< Ticker periodic event */
@@ -293,7 +293,7 @@ bg_task_suspend(struct bgtask *bt, int target)
 		if (bg_debug > 4) {
 			g_debug("BGTASK \"%s\" total=%d msecs, "
 				"elapsed=%lu usecs (targeted %d), "
-				"ticks=%d, used=%d, tick_cost=%f usecs (was %f)",
+				"ticks=%d, used=%d, tick_cost=%g usecs (was %g)",
 				bt->name, bt->wtime, (gulong) elapsed, target,
 				bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
@@ -911,8 +911,7 @@ bg_task_ended(struct bgtask *bt)
 	item = bt->wq->data;
 
 	if (bg_debug > 2) {
-		g_debug("BGTASK daemon \"%s\" done with item 0x%lx",
-			bt->name, (gulong) item);
+		g_debug("BGTASK daemon \"%s\" done with item %p", bt->name, item);
 	}
 
 	(*bt->end_cb)(bt, bt->ucontext, item);
@@ -1104,9 +1103,10 @@ bg_sched_timer(void *unused_arg)
 
 			item = bt->wq->data;
 
-			if (bg_debug > 2)
-				g_debug("BGTASK daemon \"%s\" starting with item 0x%lx",
-					bt->name, (gulong) item);
+			if (bg_debug > 2) {
+				g_debug("BGTASK daemon \"%s\" starting with item %p",
+					bt->name, item);
+			}
 
 			(*bt->start_cb)(bt, bt->ucontext, item);
 		}

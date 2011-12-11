@@ -478,6 +478,17 @@ extern const gboolean gnet_property_variable_log_new_gnutella;
 extern const gboolean gnet_property_variable_log_gnutella_routing;
 extern const gboolean gnet_property_variable_log_bad_gnutella;
 extern const gboolean gnet_property_variable_log_spam_query_hit;
+extern const guint32  gnet_property_variable_max_ultra6_hosts_cached;
+extern const guint32  gnet_property_variable_hosts_in_ultra6_catcher;
+extern const guint32  gnet_property_variable_hosts_in_guess6_catcher;
+extern const guint32  gnet_property_variable_hosts_in_guess6_intro_catcher;
+extern const guint32  gnet_property_variable_max_guess6_hosts_cached;
+extern const guint32  gnet_property_variable_max_guess6_intro_hosts_cached;
+extern const guint32  gnet_property_variable_xmalloc_debug;
+extern const guint32  gnet_property_variable_qhit_bad_debug;
+extern const guint32  gnet_property_variable_guid_debug;
+extern const guint32  gnet_property_variable_tx_deflate_debug;
+extern const char   *gnet_property_variable_tx_debug_addrs;
 
 
 prop_set_t *gnet_prop_init(void);

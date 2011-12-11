@@ -50,11 +50,13 @@
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "guid.h"
+#include "hcache.h"		/* For HOST_NET_* flags */
 #include "hostiles.h"
 #include "hosts.h"
 #include "http.h"
 #include "huge.h"
 #include "ignore.h"
+#include "inet.h"		/* For INET_IP_V6READY */
 #include "ioheader.h"
 #include "ipp_cache.h"
 #include "move.h"
@@ -104,8 +106,9 @@
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
-#include "lib/strtok.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -1020,6 +1023,7 @@ download_free(struct download **d_ptr)
 	download_check(d);
 
 	g_hash_table_remove(dl_by_id, d->id);
+	dualhash_remove_key(dl_thex, d->id);
 	atom_guid_free_null(&d->id);
 	d->magic = 0;
 	WFREE(d);
@@ -1168,6 +1172,25 @@ dl_random_guid_atom(void)
 	return NULL;
 }
 
+/**
+ * Determine the set of networks we can return for alt-locs and push-proxies.
+ */
+static host_net_t
+dl_server_net(const struct dl_server *server)
+{
+	host_net_t net;
+
+	g_assert(dl_server_valid(server));
+
+	net = HOST_NET_IPV4;
+	if (server->attrs & DLS_A_IPV6_ONLY)
+		net = HOST_NET_IPV6;
+	else if (server->attrs & DLS_A_CAN_IPV6)
+		net = HOST_NET_BOTH;
+
+	return net;
+}
+
 /* ----------------------------------------- */
 
 /**
@@ -1290,6 +1313,18 @@ download_init(void)
 	header_features_add_guarded_function(FEATURES_DOWNLOADS,
 		"fwalt", FWALT_VERSION_MAJOR, FWALT_VERSION_MINOR,
 		dmesh_can_use_fwalt);
+
+	/*
+	 * IPv6-Ready:
+	 * - advertise "IP/6.4" if we don't run IPv4.
+	 * - advertise "IP/6.0" if we run both IPv4 and IPv6.
+	 * - advertise nothing otherwise (running IPv4 only)
+	 */
+
+	header_features_add_guarded_function(FEATURES_DOWNLOADS, "IP",
+		INET_IP_V6READY, INET_IP_NOV4, settings_running_ipv6_only);
+	header_features_add_guarded_function(FEATURES_DOWNLOADS, "IP",
+		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);
@@ -6510,9 +6545,9 @@ download_got_push_proxies(const struct guid *guid,
 
 	if (added > 0) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_debug("PUSH found %lu new push prox%s in query hit "
+			g_debug("PUSH found %zu new push prox%s in query hit "
 				"for GUID %s at %s",
-				(unsigned long) added, 1 == added ? "y" : "ies",
+				added, 1 == added ? "y" : "ies",
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_count_general(GNR_COLLECTED_PUSH_PROXIES, +1);
@@ -8526,8 +8561,8 @@ download_overlap_check(struct download *d)
 			fo = file_object_new(fd, fi->pathname, O_RDONLY);
 		} else {
 			const char *error = g_strerror(errno);
-			g_warning("cannot check resuming for \"%s\": %s",
-				filepath_basename(fi->pathname), error);
+			g_warning("cannot check resuming for \"%s\": %m",
+				filepath_basename(fi->pathname));
 			download_stop(d, GTA_DL_ERROR, _("Can't check resume data: %s"),
 				error);
 		}
@@ -8543,7 +8578,7 @@ download_overlap_check(struct download *d)
 		if (-1 == fstat(file_object_get_fd(fo), &sb)) {
 			/* Should never happen */
 			const char *error = g_strerror(errno);
-			g_warning("cannot stat opened \"%s\": %s", fi->pathname, error);
+			g_warning("cannot stat opened \"%s\": %m", fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Can't stat opened file: %s"),
 				error);
 			goto out;
@@ -8574,17 +8609,16 @@ download_overlap_check(struct download *d)
 
 		if ((ssize_t) -1 == r) {
 			const char *error = g_strerror(errno);
-			g_warning("cannot read resuming data for \"%s\": %s",
-					fi->pathname, error);
+			g_warning("cannot read resuming data for \"%s\": %m",
+					fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Can't read resume data: %s"),
 				error);
 			goto out;
 		} else if ((size_t) r != d->chunk.overlap) {
 			g_warning(
-				"short read (got %u instead of %u bytes at offset %lu) "
+				"short read (got %zu instead of %zu bytes at offset %zu) "
 				"on resuming data for \"%s\"",
-				(guint) r, (guint) d->chunk.overlap,
-				(unsigned long) d->chunk.start - d->chunk.overlap,
+				r, d->chunk.overlap, (size_t) d->chunk.start - d->chunk.overlap,
 				fi->pathname);
 			download_stop(d, GTA_DL_ERROR, _("Short read on resume data"));
 			goto out;
@@ -8798,15 +8832,14 @@ download_flush(struct download *d, gboolean *trimmed, gboolean may_stop)
 		case EIO:		/* I/O error */
 			if (!download_queue_is_frozen()) {
 				download_freeze_queue();
-				g_warning("freezing download queue due to write error: %s",
-					g_strerror(errno));
+				g_warning("freezing download queue due to write error: %m");
 			}
 			break;
 		}
 	
 	   	error = g_strerror(errno);
-		g_warning("write of %lu bytes to file \"%s\" failed: %s",
-			(gulong) b->held, download_basename(d), error);
+		g_warning("write of %lu bytes to file \"%s\" failed: %m",
+			(gulong) b->held, download_basename(d));
 
 		/* FIXME: We should never discard downloaded data! This
 		 * causes a re-download of the same data. Instead we should
@@ -10967,6 +11000,22 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		d->server->attrs |= DLS_A_FWALT;
 
 	/*
+	 * IPv6-Ready: check remote support of IPv6.
+	 */
+
+	{
+		unsigned major, minor;
+
+		if (header_get_feature("IP", header, &major, &minor)) {
+			if (INET_IP_V6READY == major) {
+				d->server->attrs |= DLS_A_CAN_IPV6;
+				d->server->attrs |=
+					(INET_IP_NOV4 == minor) ? DLS_A_IPV6_ONLY : 0;
+			}
+		}
+	}
+
+	/*
 	 * Check status.
 	 */
 
@@ -12834,7 +12883,9 @@ picked:
 		GNET_PROPERTY(is_firewalled) &&
 		!(d->server->attrs & (DLS_A_MINIMAL_HTTP | DLS_A_FAKE_G2))
 	) {
-		rw += node_http_fw_node_info_add(&request_buf[rw], maxsize - rw, TRUE);
+
+		rw += node_http_fw_node_info_add(
+			&request_buf[rw], maxsize - rw, TRUE, dl_server_net(d->server));
 	}
 
 	/*
@@ -12905,7 +12956,8 @@ picked:
 				download_addr(d), d->last_dmesh, download_vendor(d),
 				file_info, TRUE,
 				(d->server->attrs & DLS_A_FWALT) ?
-					download_guid(d) : NULL);
+					download_guid(d) : NULL,
+				dl_server_net(d->server));
 			rw += wmesh;
 
 			if (wmesh > 0)
@@ -13903,10 +13955,8 @@ download_retrieve_magnets(FILE *f)
 
 		buffer = halloc(buffer_size);
 		while (fgets(buffer, buffer_size, f)) {
-			char *endptr;
 
-			endptr = strchr(buffer, '\n');
-			if (NULL == endptr) {
+			if (!file_line_chomp_tail(buffer, buffer_size, NULL)) {
 				g_warning("%s, line %u: line too long or unterminated",
 					download_file, line);
 				truncated = TRUE;
@@ -13918,14 +13968,8 @@ download_retrieve_magnets(FILE *f)
 				continue;
 			}
 
-			do {
-				*endptr = '\0';
-			} while (endptr != buffer && is_ascii_space(*--endptr));
-
-			if ('#' == buffer[0] || '\0' == buffer[0]) {
-				/* Skip comments and empty lines */
-				continue;
-			}
+			if (file_line_is_skipable(buffer))
+				continue;	/* Skip comments and empty lines */
 
 			if (expect_old_format && is_strprefix(buffer, "RECLINES=")) {
 				g_message("detected old downloads format");
@@ -13966,7 +14010,7 @@ download_retrieve_old(FILE *f)
 	char d_hexguid[33];
 	char d_hostname[256];	/* Server hostname */
 	int recline;			/* Record line number */
-	guint line;				/* File line number */
+	unsigned line;			/* File line number */
 	struct guid d_guid;
 	struct sha1 sha1;
 	gboolean has_sha1 = FALSE;
@@ -13995,7 +14039,12 @@ download_retrieve_old(FILE *f)
 	while (fgets(dl_tmp, sizeof dl_tmp, f)) {
 		line++;
 
-		if (dl_tmp[0] == '#' && allow_comments)
+		if (!file_line_chomp_tail(dl_tmp, sizeof dl_tmp, NULL)) {
+			g_warning("%s: line %u too long, aborting", G_STRFUNC, line);
+			break;
+		}
+
+		if (allow_comments && file_line_is_comment(dl_tmp))
 			continue;				/* Skip comments */
 
 		/*
@@ -14011,12 +14060,12 @@ download_retrieve_old(FILE *f)
 			}
 		}
 
-		if (dl_tmp[0] == '\n') {
+		if (file_line_is_empty(dl_tmp)) {
 			if (recline == 0)
 				continue;			/* Allow arbitrary blank lines */
 
-			g_warning("download_retrieve(): "
-				"unexpected empty line #%u, aborting", line);
+			g_warning("%s(): unexpected empty line #%u, aborting",
+				G_STRFUNC, line);
 			goto out;
 		}
 
@@ -14027,8 +14076,8 @@ download_retrieve_old(FILE *f)
 			strchomp(dl_tmp, 0);
 			/* Un-escape in place */
 			if (!url_unescape(dl_tmp, TRUE)) {
-				g_warning("download_retrieve(): "
-					"invalid escaping in line #%u, aborting", line);
+				g_warning("%s(): invalid escaping in line #%u, aborting",
+					G_STRFUNC, line);
 				goto out;
 			}
 			d_name = atom_str_get(dl_tmp);
@@ -14050,15 +14099,15 @@ download_retrieve_old(FILE *f)
 
 			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
 			if (error || ',' != *endptr) {
-				g_warning("download_retrieve(): "
-					"cannot parse line #%u: %s", line, dl_tmp);
+				g_warning("%s(): cannot parse line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
 			d_size = size64;
 			if ((guint64) d_size != size64) {
-				g_warning("download_retrieve(): "
-					"filesize is too large in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): filesize is too large in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
@@ -14069,8 +14118,8 @@ download_retrieve_old(FILE *f)
 
 			parse_uint32(endptr, &endptr, 10, &error);
 			if (error || NULL == strchr(":,", *endptr)) {
-				g_warning("download_retrieve(): "
-					"cannot parse index in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): cannot parse index in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 
@@ -14085,15 +14134,15 @@ download_retrieve_old(FILE *f)
 			}
 
 			if (',' != *endptr) {
-				g_warning("download_retrieve(): "
-					"expected ',' in line #%u: %s", line, dl_tmp);
+				g_warning("%s(): expected ',' in line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				goto out;
 			}
 			endptr = skip_ascii_blanks(++endptr);
 
 			if (!string_to_host_addr_port(endptr, &endptr, &d_addr, &d_port)) {
-				g_warning("download_retrieve(): "
-					"bad IP:port at line #%u: %s", line, dl_tmp);
+				g_warning("%s(): bad IP:port at line #%u: %s",
+					G_STRFUNC, line, dl_tmp);
 				d_port = 0;
 				d_addr = ipv4_unspecified;
 				/* Will drop download when scheduling it */
@@ -14124,9 +14173,8 @@ download_retrieve_old(FILE *f)
 				SHA1_RAW_SIZE != base32_decode(sha1.data, sizeof sha1.data,
 									dl_tmp, SHA1_BASE32_SIZE)
 			) {
-				g_warning("download_retrieve(): "
-					"bad base32 SHA1 '%32s' at line #%u, ignoring",
-					dl_tmp, line);
+				g_warning("%s(): bad base32 SHA1 '%32s' at line #%u, ignoring",
+					G_STRFUNC, dl_tmp, line);
 			} else
 				has_sha1 = TRUE;
 		no_sha1:
@@ -14135,8 +14183,8 @@ download_retrieve_old(FILE *f)
 			continue;
 		case 4:						/* PARQ id, or "*" if none */
 			if (maxlines != 4) {
-				g_warning("download_retrieve(): "
-					"can't handle %d lines in records, aborting", maxlines);
+				g_warning("%s(): can't handle %d lines in records, aborting",
+					G_STRFUNC, maxlines);
 				goto out;
 			}
 			if (dl_tmp[0] != '*') {
@@ -14145,8 +14193,8 @@ download_retrieve_old(FILE *f)
 			}
 			break;
 		default:
-			g_warning("download_retrieve(): "
-				"too many lines for record at line #%u, aborting", line);
+			g_warning("%s(): too many lines for record at line #%u, aborting",
+				G_STRFUNC, line);
 			goto out;
 		}
 
@@ -14155,8 +14203,8 @@ download_retrieve_old(FILE *f)
 		 */
 
 		if (!hex_to_guid(d_hexguid, &d_guid)) {
-			g_warning("download_rerieve(): malformed GUID %s near line #%u",
-				d_hexguid, line);
+			g_warning("%s(): malformed GUID %s near line #%u",
+				G_STRFUNC, d_hexguid, line);
         }
 
 		/*
@@ -14213,8 +14261,7 @@ download_retrieve(void)
 		if (!download_retrieve_magnets(f)) {
 			clearerr(f);
 			if (fseek(f, 0, SEEK_SET)) {
-				g_warning("fseek(f, 0, SEEK_SET) failed: %s",
-					g_strerror(errno));
+				g_carp("fseek(f, 0, SEEK_SET) failed: %m");
 			} else {
 				download_retrieve_old(f);
 			}
@@ -14380,8 +14427,7 @@ download_move(struct download *d, const char *dir, const char *ext)
 	goto cleanup;
 
 error:
-	g_warning("could not rename \"%s\" as \"%s\": %s",
-		fi->pathname, dest, g_strerror(errno));
+	g_warning("could not rename \"%s\" as \"%s\": %m", fi->pathname, dest);
 	download_move_error(d);
 	goto cleanup;
 
@@ -14499,8 +14545,8 @@ download_move_error(struct download *d)
 	file_info_strip_binary(fi);
 
 	if (NULL == dest || !file_object_rename(fi->pathname, dest)) {
-		g_warning("could not rename completed file \"%s\" as \"%s\": %s",
-			fi->pathname, dest, g_strerror(errno));
+		g_warning("could not rename completed file \"%s\" as \"%s\": %m",
+			fi->pathname, dest);
 		download_set_status(d, GTA_DL_DONE);
 	} else {
 		g_message("completed \"%s\" left at \"%s\"", name, dest);
@@ -14827,9 +14873,8 @@ download_tigertree_sweep(struct download *d,
 
 		if (!tth_eq(&leaves[i], &fi->tigertree.leaves[i])) {
 			g_warning("TTH tree sweep: "
-				"bad slice #%lu (%s-%s) in \"%s\" (%s bytes)",
-				(unsigned long) i,
-				filesize_to_string(offset),
+				"bad slice #%zu (%s-%s) in \"%s\" (%s bytes)",
+				i, filesize_to_string(offset),
 				uint64_to_string(next - 1),
 				download_basename(d),
 				filesize_to_string2(download_filesize(d)));
@@ -14841,14 +14886,13 @@ download_tigertree_sweep(struct download *d,
 	}
 	if (bad_slices > 0) {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_warning("TTH tree sweep: %lu/%lu bad slice%s",
-				(unsigned long) bad_slices, (unsigned long) num_leaves,
-				1 == bad_slices ? "" : "s");
+			g_warning("TTH tree sweep: %zu/%zu bad slice%s",
+				bad_slices, num_leaves, 1 == bad_slices ? "" : "s");
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_debug("TTH tree sweep: all %lu slice%s okay",
-				(unsigned long) num_leaves, 1 == num_leaves ? "" : "s");
+			g_debug("TTH tree sweep: all %zu slice%s okay",
+				num_leaves, 1 == num_leaves ? "" : "s");
 		}
 	}
 	HFREE_NULL(nodes);
@@ -15414,11 +15458,11 @@ download_browse_start(const char *hostname,
 	{
 		char *dname;
 
-		dname = g_strdup_printf(_("<Browse Host %s>"),
+		dname = str_cmsg(_("<Browse Host %s>"),
 					host_port_to_string(hostname, addr, port));
 
 		fi = file_info_get_transient(dname);
-		G_FREE_NULL(dname);
+		HFREE_NULL(dname);
 	}
 
 	d = create_download(filepath_basename(fi->pathname), "/",
@@ -15544,12 +15588,12 @@ download_thex_start(const char *uri,
 
 		fi = file_info_by_sha1(sha1);
 		
-		dname = g_strdup_printf(_("<THEX data for %s>"),
+		dname = str_cmsg(_("<THEX data for %s>"),
 					fi ? filepath_basename(fi->pathname)
 					   : bitprint_to_urn_string(sha1, tth));
 
 		fi = file_info_get_transient(dname);
-		G_FREE_NULL(dname);
+		HFREE_NULL(dname);
 	}
 
 	d = create_download(filepath_basename(fi->pathname),

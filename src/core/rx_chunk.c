@@ -42,6 +42,7 @@
 
 #include "lib/ascii.h"
 #include "lib/pmsg.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -280,8 +281,8 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 
 		if (CHUNK_STATE_DATA == attr->state) {
 			if (GNET_PROPERTY(rx_debug) > 9)
-				g_debug("parse_chunk: chunk size %lu bytes",
-					(gulong) attr->data_remain);
+				g_debug("parse_chunk: chunk size %s bytes",
+					uint64_to_string(attr->data_remain));
 			break;
 		}
 

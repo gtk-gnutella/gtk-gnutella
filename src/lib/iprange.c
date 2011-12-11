@@ -98,7 +98,7 @@ iprange_strerror(iprange_err_t errnum)
 	return iprange_errstr[errnum];
 }
 
-static inline G_GNUC_HOT int
+static G_GNUC_HOT int
 iprange_net_cmp(const void *p, const void *q)
 {
 	const struct iprange_net *a = p, *b = q;

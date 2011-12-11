@@ -59,12 +59,13 @@ hold IPv4 addresses only: Pong, Query Hit, Push.
 To expand them so that they can hold an additional IPv6 address or simply
 a single IPv6 one, one strategic GGEP extension is introduced:
 
-The "6" extension holds a full IPv6 address, in raw binary big-endian
-format, that is 16 bytes.  Its presence in Pong, Push or Query Hit
-trailer indicates that the servent is running both on IPv6.
-
 The regular IPv4 field is filled normally if the servent also runs on IPv4,
 and is set to 127.0.0.0 if the servent does not have a valid IPv4 address.
+
+The "6" extension holds a full IPv6 address, in raw binary big-endian
+format, that is 16 bytes.  Its presence in Pong, Push or Query Hit
+trailer indicates that the servent is running both on IPv4 and IPv6, unless
+the IPv4 field is set to 127.0.0.0.
 
 This design has the following properties:
 

@@ -31,7 +31,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * that running config_h.SH again will wipe out any changes you've made.
  * For a more permanent change edit $CONFIG_SH and rerun config_h.SH.
  *
- * \$Id$
+ * \$Id: Config_h.U 1 2006-08-24 12:32:52Z rmanfredi $
  */
 
 /*
@@ -107,6 +107,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_gettblsz getdtablesize() $tablesize	/**/
 
+/* HAS_ALARM:
+ *	This symbol, if defined, indicates that the alarm routine is
+ *	available.
+ */
+#$d_alarm HAS_ALARM		/**/
+
 /* HAS_ARC4RANDOM:
  *	This symbol, if defined, indicates that the arc4random routine is
  *	available.
@@ -129,6 +135,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_backtrace HAS_BACKTRACE	/**/
 
+/* HAS_BCMP:
+ *	This symbol is defined if the bcmp() routine is available to
+ *	compare blocks of memory.
+ */
+#$d_bcmp HAS_BCMP	/**/
+
 /* HAS_BCOPY:
  *	This symbol is defined if the bcopy() routine is available to
  *	copy blocks of memory.
@@ -146,6 +158,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available to compute the amount of '1' bits in a word.
  */
 #$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
+
+/* HAS_BZERO:
+ *	This symbol is defined if the bzero() routine is available to
+ *	set a memory block to 0.
+ */
+#$d_bzero HAS_BZERO	/**/
 
 /* HAS_CLOSEFROM:
  *	This symbol is defined when closefrom() can be used.
@@ -174,10 +192,24 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
+/* HAS_END_SYMBOL:
+ *	This symbol, if defined, indicates that the C program can declare
+ *		extern const int end;
+ *	and then use &end to know the end of the BSS segment.
+ */
+#$d_end_symbol HAS_END_SYMBOL	/**/
+
 /* HAS_EPOLL:
  *	This symbol is defined when epoll() can be used.
  */
 #$d_epoll HAS_EPOLL
+
+/* HAS_ETEXT_SYMBOL:
+ *	This symbol, if defined, indicates that the C program can declare
+ *		extern const int etext;
+ *	and then use &etext to know the end of the text segment.
+ */
+#$d_etext_symbol HAS_ETEXT_SYMBOL	/**/
 
 /* FAST_ASSERTIONS:
  *	This symbol, when defined, indicates that the program should make
@@ -405,6 +437,15 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_recvmsg HAS_RECVMSG		/**/
 
+/* HAS_REGCOMP:
+ *	This symbol, if defined, indicates that the regcomp() routine is
+ *	available to do some regular patern matching (usually on POSIX.2
+ *	conforming systems).
+ *	When regcomp() exists, it is safe to assume regexec() and regfree()
+ *	are also available.
+ */
+#$d_regcomp HAS_REGCOMP	/**/
+
 /* HAS_REGPARM:
  *	This symbol is defined when __attribute__((__regparm__(n))) can be used.
  */
@@ -416,6 +457,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Inclusion of <sys/resource.h> and <sys/time.h> may be necessary.
  */
 #$d_rusage HAS_GETRUSAGE		/**/
+
+/* HAS_SBRK:
+ *	This symbol, if defined, indicates that the sbrk system call is
+ *	available to add/relase core. Always true on Unix.
+ */
+#$d_sbrk HAS_SBRK	/**/
 
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
@@ -495,12 +542,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_socker_get HAS_SOCKER_GET
 
-/* HAS_SOCKET:
- *	This symbol, if defined, indicates that the BSD socket interface is
- *	supported.
- */
-#$d_socket HAS_SOCKET		/**/
-
 /* HAS_STATFS:
  *	This symbol, if defined, indicates that the Linux statfs() system call
  *	is available to get filesystem statistics.
@@ -512,6 +553,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	is available to get filesystem statistics.
  */
 #$d_statvfs HAS_STATVFS		/**/
+
+/* HAS_INDEX:
+ *	This symbol is defined to indicate that the index()/rindex()
+ *	functions are available for string searching.
+ */
+#$d_index HAS_INDEX	/**/
 
 /* HAS_STRLCAT:
  *	This symbol, if defined, indicates that the strlcat routine is
@@ -590,6 +637,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Native Language Support (NLS) for internationalization (I18N).
  */
 #$d_enablenls ENABLE_NLS	/**/
+
+/* I_ALLOCA:
+ *	This symbol, if defined, indicates that <alloca.h> exists and should
+ *	be included.
+ */
+#$i_alloca I_ALLOCA	/**/
 
 /* I_ARPA_INET:
  *	This symbol, if defined, indicates to the C program that it should

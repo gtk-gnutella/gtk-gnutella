@@ -1,3 +1,95 @@
+# v 0.98   2011-12-11  [stable]
+
+This is a major release, adding "IPv6-Ready" features.  It also fixes
+long-lasting bugs in various areas and contains some other low-level
+improvements.
+
+During the building of this release, Dennis MacAlistair Ritchie passed away.
+Gtk-gnutella would not exist in its current form without the earlier work
+of Dennis, the co-inventor of C.  This release is dedicated to the memory
+of that great computer scientist.  Farewell, Dennis!
+
+New Features:
+- Added "IPv6-Ready" support.
+- Enhanced the shell "memory" command to display various allocator stats.
+- Added the "pid" and "version" shell commands.
+- Added the "command" shell command to print the server's command line.
+- Added -r option to "shutdown" shell command to request a restart.
+- Added the --no-restart and --restart-on-crash gtk-gnutella options.
+- Added the shell "date" command displaying ISO time with ms accuracy.
+
+Improvements:
+- Ignore Bitzi ticket timeouts on missing entries for explicit user retries.
+- Added routing table statistics.
+- GUI: show file creation times for local searches in the info summary.
+- Optimized page cache coalescing by avoiding two successive binary lookups.
+- Added -f option to "shutdown" shell command to initiate a fast shutdown.
+- Allow "echo command | gtk-gnutella --shell" a chance to work on Windows.
+- Ban duplicate GUIDs to avoid them being the target of PUSH requests.
+- Updated French translation for 0.98.
+- Revisited TX stack flow-control logic when there is a compressing layer.
+- Don't send Hops-Flow messages to nodes not supporting it.
+- Use full compression for ultra <-> ultra connections.
+- Internationalization now works on Windows.
+
+Bug Fixes:
+- Fixed harmful cleanup of routing table when cycling over naturally.
+- Fixed bug in add_file() when adding multiple partial files to a query hit.
+- Fixed DHT lookup when path protection kicks in and clears the closest node.
+- Fixed handling of relative position lists, causing unfair PARQ scheduling.
+- Prevent preferences from being shown from tray icon when already shutdowning,
+  fixing bug #3376952.
+- Hide tray icon at shutdown time.
+- Enabled loading of hostiles file on Windows.
+- Fixed crash on mis-parsed IPv6 address.
+- Make sure node is still connected before routing its queries.
+- Avoid crashes when asked to deflate 0 bytes.
+- Fixed dynamic querying to avoid duplicate messages to probed nodes.
+- GUESS must forget about query if the query key was not correct.
+- Do not send translated messages in node handshaking replies.
+- dualhash_insert_key(): fixed insertion to avoid possible assertion failures.
+- Avoid wrong "activity timeout" indications for ultra <-> ultra connections.
+- Make sure we do not include "non-shareable" files in query hits.
+- Fixed the "node add" and "node drop" shell commands.
+
+Under the Hood:
+- Fixed remote token validation for git versions.
+- Count and report in statistics the amount of cached GUESS 0.2 hosts.
+- Fixed improper message queue status computation (warn zone / delay).
+- XML parser was not handling illegal byte sequences in UTF-8 buffers.
+- Fixed creation time (GGEP "CT") to send actual filesystem creation time, not
+  the filesystem last modification time.
+- Enforce configured IP protocols, preventing connection to other protocols.
+- Added malloc() replacement.
+- Clear "last dmesh sent" timestamp in uploads when client switches resources.
+- Construct build date from git's HEAD commit, if available.
+- Added options to the "shutdown" shell command to trigger the crash handler.
+- Propagate Windows exception information into the crash log.
+- On Windows, propagate the PC at which the exception occurs in the crash log.
+- Force "idle" tasks to be scheduled once in a while.
+- Increased frequency of the main callout queue heartbeats by 4.
+- Arrange for a crash log to be generated even when fork() fails.
+- Loudly warn when string formatting leads to truncation of the message.
+- Added regression tests for str_vncatf().
+- Added floating point formatting routine from Robert G. Burger, allowing
+  str_vncatf() to format floating point numbers natively.
+- Added Windows startup debugging support and fixed Cygwin startup.
+- Remap all g_xxx() logging routines to our own message logging layer.
+- Added "update-potfiles" target to refresh the POTFILES.in list.
+- Frozen PARQ upload queue slots don't count as "wanted" by the queue.
+- Added "qhit_bad_debug" property to control logging of bad query hits.
+- Stack unwinding routines now stop at the first non-text address they reach.
+- Added dynamic memory usage statistics collection.
+- Propagate self-assessed symbol quality into the crash log, if not good.
+- Make sure we open all files in binary mode on Windows.
+- Packaged regex 0.12 to supply POSIX regcomp() on systems lacking it.
+- Raise the default number of allowed fds to 2048 on OS X.
+- Added SDBM testing and benchmarking program.
+- Don't publish NOPE entries in the DHT for nodes with a bad GUID.
+- Added "tx_deflate_debug" and "tx_debug_addrs" properties.
+- TX deflating layer can postpone Nagle flushing up to 2 seconds.
+- Updated Geo IP database.
+
 # v 0.97.1   2011-09-11  [stable]
 
 This is a bug-fixing release, addressing critical bugs that slipped through

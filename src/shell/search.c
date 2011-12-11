@@ -68,7 +68,7 @@ shell_exec_search(struct gnutella_shell *sh, int argc, const char *argv[])
 			goto error;
 		}
 	} else {
-		shell_set_msg(sh, _("Unknown operation"));
+		shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 		goto error;
 	}
 	return REPLY_READY;

@@ -62,18 +62,19 @@
 #include "adns.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
-#include "crash.h"
 #include "cq.h"
+#include "crash.h"
 #include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
-#include "gtk-gnutella.h"		/* For GTA_PRODUCT_NAME */
 #include "glib-missing.h"
 #include "halloc.h"
 #include "iovec.h"
 #include "log.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
+#include "product.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
@@ -83,6 +84,9 @@
 
 #if 0
 #define MINGW_SYSCALL_DEBUG		/**< Trace all Windows API call errors */
+#endif
+#if 0
+#define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
 #endif
 
 #undef signal
@@ -132,6 +136,7 @@
 #endif
 
 static HINSTANCE libws2_32;
+static gboolean mingw_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -302,10 +307,11 @@ mingw_wsa_last_error(void)
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
 	case WSAEINTR:			result = EINTR; break;
+	case WSAENOTSOCK:		result = ENOTSOCK; break;
 	}
 
 	if (mingw_syscall_debug()) {
-		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+		s_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
 			symbolic_errno(result), error);
 	}
 
@@ -376,7 +382,13 @@ mingw_win2posix(int error)
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 		return EINVAL;
-	/* The following remapped because their number is in the POSIX range */
+	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
+		return ENOTDIR;				/* Seems the closest mapping */
+	case WSAENOTSOCK:				/* For fstat() calls */
+		return ENOTSOCK;
+	/*
+	 * The following remapped because their number is in the POSIX range
+	 */
 	case ERROR_ARENA_TRASHED:
 		return EFAULT;
 	case ERROR_INVALID_BLOCK:
@@ -417,7 +429,7 @@ mingw_win2posix(int error)
 		return ENOSPC;
 	default:
 		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
-			g_warning("Windows error code %d (%s) not remapped to a POSIX one",
+			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 			g_hash_table_insert(warned, int_to_pointer(error), NULL);
 		}
@@ -437,7 +449,7 @@ mingw_last_error(void)
 	int result = mingw_win2posix(error);
 
 	if (mingw_syscall_debug()) {
-		g_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
+		s_debug("%s() failed: %s (%d)", stacktrace_caller_name(1),
 			symbolic_errno(result), error);
 	}
 
@@ -660,7 +672,7 @@ mingw_gethome(void)
 		ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
 
 		if (E_INVALIDARG == ret) {
-			g_warning("could not determine home directory");
+			s_warning("could not determine home directory");
 			g_strlcpy(pathname, "/", sizeof pathname);
 		}
 	}
@@ -680,7 +692,7 @@ mingw_getpersonal(void)
 		ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
 
 		if (E_INVALIDARG == ret) {
-			g_warning("could not determine personal document directory");
+			s_warning("could not determine personal document directory");
 			g_strlcpy(pathname, "/", sizeof pathname);
 		}
 	}
@@ -711,7 +723,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 		goto fallback;
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
-	clamp_strcat(dest, size, GTA_PRODUCT_NAME);
+	clamp_strcat(dest, size, product_get_name());
 
 	/*
 	 * Can't use mingw_mkdir() as we can't allocate memory here.
@@ -797,7 +809,7 @@ mingw_patch_personal_path(const char *pathname)
 			 */
 
 			patched = h_strconcat(mingw_getpersonal(),
-				G_DIR_SEPARATOR_S, GTA_PRODUCT_NAME, p, (void *) 0);
+				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
 		return patched;
@@ -1221,6 +1233,10 @@ mingw_socket(int domain, int type, int protocol)
 {
 	socket_fd_t res;
 
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
 	/*
 	 * Use WSASocket() to avoid creating "overlapped" sockets (i.e. sockets
 	 * that can support asynchronous I/O).  This normally allows sockets to be
@@ -1241,7 +1257,13 @@ mingw_socket(int domain, int type, int protocol)
 int
 mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {
-	int res = bind(sockfd, addr, addrlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = bind(sockfd, addr, addrlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1251,7 +1273,13 @@ socket_fd_t
 mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	  socklen_t addrlen)
 {
-	socket_fd_t res = connect(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = connect(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1260,7 +1288,13 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 int
 mingw_listen(socket_fd_t sockfd, int backlog)
 {
-	int res = listen(sockfd, backlog);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = listen(sockfd, backlog);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1269,7 +1303,13 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 socket_fd_t
 mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 {
-	socket_fd_t res = accept(sockfd, addr, addrlen);
+	socket_fd_t res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = accept(sockfd, addr, addrlen);
 	if (INVALID_SOCKET == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1279,7 +1319,13 @@ int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
 
-	int res = shutdown(sockfd, how);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = shutdown(sockfd, how);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1289,7 +1335,13 @@ int
 mingw_getsockopt(socket_fd_t sockfd, int level, int optname,
 	void *optval, socklen_t *optlen)
 {
-	int res = getsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = getsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1299,7 +1351,13 @@ int
 mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
-	int res = setsockopt(sockfd, level, optname, optval, optlen);
+	int res;
+	
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = setsockopt(sockfd, level, optname, optval, optlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
@@ -1480,17 +1538,17 @@ mingw_valloc(void *hint, size_t size)
 			VirtualFree(mem_later, 0, MEM_RELEASE);
 
 			if (NULL == mingw_vmm_res_mem) {
-				g_error("could not reserve %s of memory",
+				s_error("could not reserve %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			} else if (vmm_is_debugging(0)) {
-				g_debug("reserved %s of memory",
+				s_debug("reserved %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
 		} else {
 			size_t n;
 
 			if (vmm_is_debugging(0))
-				g_debug("no hint given for %s allocation",
+				s_debug("no hint given for %s allocation",
 					compact_size(size, FALSE));
 
 			n = mingw_getpagesize();
@@ -1500,8 +1558,8 @@ mingw_valloc(void *hint, size_t size)
 		if (NULL == p) {
 			errno = mingw_last_error();
 			if (vmm_is_debugging(0))
-				g_debug("could not allocate %s of memory: %s",
-					compact_size(size, FALSE), g_strerror(errno));
+				s_debug("could not allocate %s of memory: %m",
+					compact_size(size, FALSE));
 		}
 	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
 		/*
@@ -1593,9 +1651,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 	if (!res) {
 		errno = mingw_last_error();
 		if (vmm_is_debugging(0)) {
-			g_debug("VMM mprotect(0x%lx, %lu) failed: errno=%d (%s)",
-				(unsigned long) addr, (unsigned long) len, errno,
-				symbolic_errno(errno));
+			s_debug("VMM mprotect(%p, %zu) failed: errno=%m", addr, len);
 		}
 		return -1;
 	}
@@ -1752,15 +1808,24 @@ FILE *
 mingw_fopen(const char *pathname, const char *mode)
 {
 	pncs_t wpathname;
+	char bin_mode[14];
 	wchar_t wmode[32];
 	FILE *res;
 
+	if (NULL == strchr(mode, 'b')) {
+		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+		bin_mode[l++] = 'b';
+		bin_mode[l] = '\0';
+		mode = bin_mode;
+	}
+	
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
+			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -1777,15 +1842,24 @@ FILE *
 mingw_freopen(const char *pathname, const char *mode, FILE *file)
 {
 	pncs_t wpathname;
+	char bin_mode[14];
 	wchar_t wmode[32];
 	FILE *res;
 
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
+	if (NULL == strchr(mode, 'b')) {
+		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+		bin_mode[l++] = 'b';
+		bin_mode[l] = '\0';
+		mode = bin_mode;
+	}
+	
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >= G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
+			G_N_ELEMENTS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -2024,13 +2098,12 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		errno = mingw_last_error();
-		g_carp("could not set timer, unable to nanosleep(): %s (%s)",
-			g_strerror(errno), symbolic_errno(errno));
+		s_carp("could not set timer, unable to nanosleep(): %m");
 		return -1;
 	}
 
 	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
-		g_warning("timer returned an unexpected value, nanosleep() failed");
+		s_warning("timer returned an unexpected value, nanosleep() failed");
 		errno = EINTR;
 		return -1;
 	}
@@ -2229,7 +2302,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	unsigned i;
 
 	if (common_dbg > 2)
-		g_debug("mingw_adns_getaddrinfo_cb");
+		s_debug("mingw_adns_getaddrinfo_cb");
 		
 	g_assert(ad);
 	g_assert(ad->user_data);
@@ -2245,7 +2318,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 
 		addrs[i] = addrinfo_to_addr(response);						
 		if (common_dbg) {	
-			g_debug("ADNS got %s for hostname %s",
+			s_debug("ADNS got %s for hostname %s",
 				host_addr_to_string(addrs[i]),
 				(const char *) ad->thread_arg_data);
 		}
@@ -2256,7 +2329,7 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 		adns_callback_t func = (adns_callback_t) req->common.user_callback;
 		g_assert(NULL != func);
 		if (common_dbg) {
-			g_debug("ADNS performing user-callback to %p with %u results", 
+			s_debug("ADNS performing user-callback to %p with %u results", 
 				req->common.user_data, i);
 		}
 		func(addrs, i, req->common.user_data);		
@@ -2291,7 +2364,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 	struct async_data *ad;
 	
 	if (common_dbg > 2) {
-		g_debug("%s", G_STRFUNC);
+		s_debug("%s", G_STRFUNC);
 	}	
 	g_assert(req);
 	g_assert(req->common.user_callback);
@@ -2332,13 +2405,13 @@ mingw_adns_getnameinfo_cb(struct async_data *ad)
 	struct arg_data *arg_data = ad->thread_arg_data;
 
 	if (common_dbg) {	
-		g_debug("ADNS resolved to %s", arg_data->hostname);
+		s_debug("ADNS resolved to %s", arg_data->hostname);
 	}
 	
 	{
 		adns_reverse_callback_t func =
 			(adns_reverse_callback_t) req->common.user_callback;
-		g_debug("ADNS getnameinfo performing user-callback to %p with %s", 
+		s_debug("ADNS getnameinfo performing user-callback to %p with %s", 
 			req->common.user_data, arg_data->hostname);
 		func(arg_data->hostname, req->common.user_data);
 	}
@@ -2468,7 +2541,7 @@ mingw_adns_timer(void *unused_arg)
 	
 	if (NULL != ad) {
 		if (common_dbg) {
-			g_debug("performing callback to func @%p", ad->callback_func);
+			s_debug("performing callback to func @%p", ad->callback_func);
 		}
 		ad->callback_func(ad);
 	} 
@@ -2523,6 +2596,28 @@ mingw_adns_close(void)
 
 /*** End of ADNS section ***/
 
+static const char *
+mingw_get_folder_basepath(enum special_folder which_folder)
+{
+	const char *special_path = NULL;
+
+	switch (which_folder) {
+	case PRIVLIB_PATH:
+		special_path = mingw_filename_nearby(
+			"share" G_DIR_SEPARATOR_S PACKAGE);
+		break;
+	case NLS_PATH:
+		special_path = mingw_filename_nearby(
+			"share" G_DIR_SEPARATOR_S "locale");
+		break;
+	default:
+		s_warning("%s() needs implementation for foldertype %d",
+			G_STRFUNC, which_folder);
+	}
+
+	return special_path;
+}
+
 /**
  * Build pathname of file located nearby our executable.
  *
@@ -2543,7 +2638,7 @@ mingw_filename_nearby(const char *filename)
 			if (!done) {
 				done = TRUE;
 				errno = mingw_last_error();
-				g_warning("cannot locate my executable: %s", g_strerror(errno));
+				s_warning("cannot locate my executable: %m");
 			}
 		}
 		offset = filepath_basename(pathname) - pathname;
@@ -2569,7 +2664,7 @@ mingw_fifo_pending(int fd)
 		errno = mingw_last_error();
 		if (EPIPE == errno)
 			return TRUE;		/* Let them read EOF */
-		g_warning("peek failed for fd #%d: %s", fd, g_strerror(errno));
+		s_warning("peek failed for fd #%d: %m", fd);
 		return FALSE;
 	}
 
@@ -2662,9 +2757,14 @@ void
 mingw_init(void)
 {
 	WSADATA wsaData;
-	
+
+	if G_UNLIKELY(mingw_inited)
+		return;
+
+	mingw_inited = TRUE;
+
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-		g_error("WSAStartup() failed");
+		s_error("WSAStartup() failed");
 		
 	libws2_32 = LoadLibrary(WS2_LIBRARY);
     if (libws2_32 != NULL) {
@@ -2810,6 +2910,21 @@ mingw_exception_log(int code, const void *pc)
 	flush_err_str();
 	if (log_stdout_is_distinct())
 		flush_str(STDOUT_FILENO);
+
+	/*
+	 * Format an error message to propagate into the crash log.
+	 */
+
+	{
+		char data[128];
+
+		str_bprintf(data, sizeof data, "%s at PC=%p%s%s%s",
+			mingw_exception_to_string(code), pc,
+			NULL == name ? "" : " (",
+			NULL == name ? "" : name,
+			NULL == name ? "" : ")");
+		crash_set_error(data);
+	}
 }
 
 /**
@@ -2844,6 +2959,17 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 	flush_err_str();
 	if (log_stdout_is_distinct())
 		flush_str(STDOUT_FILENO);
+
+	/*
+	 * Format an additional error message to propagate into the crash log.
+	 */
+
+	{
+		char data[80];
+
+		str_bprintf(data, sizeof data, "; %s fault at VA=%p", prot, va);
+		crash_append_error(data);
+	}
 }
 
 static volatile sig_atomic_t in_exception_handler;
@@ -2998,21 +3124,190 @@ void mingw_invalid_parameter(const wchar_t * expression,
 	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
 }
 
-static void
-mingw_stdio_reset(void)
+#ifdef EMULATE_SBRK
+static void *initial_break;
+static void *current_break;
+
+/**
+ * @return the initial break value, as defined by the first memory address
+ * where HeapAlloc() allocates memory from.
+ */
+static void *
+mingw_get_break(void)
 {
-	fclose(stdin);
-	fclose(stdout);
-	fclose(stderr);
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
+	void *p;
+
+	p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, 1);
+
+	if (NULL == p) {
+		errno = ENOMEM;
+		return (void *) -1;
+	}
+
+	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, p);
+	return p;
+}
+
+/**
+ * Add/remove specified amount of new core.
+ *
+ * The aim here is not to be able to do a malloc() but rather to mimic
+ * what can be achieved on UNIX systems with sbrk().
+ *
+ * @return the prior break position.
+ */
+void *
+mingw_sbrk(long incr)
+{
+	void *p;
+	void *end;
+
+	if (0 == incr) {
+		p = mingw_get_break();
+		if G_UNLIKELY(NULL == initial_break) {
+			initial_break = current_break = p;
+		}
+		return p;
+	} else if (incr > 0) {
+		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
+
+		if (NULL == p) {
+			errno = ENOMEM;
+			return (void *) -1;
+		}
+
+		end = ptr_add_offset(p, incr);
+
+		if G_UNLIKELY(NULL == initial_break)
+			initial_break = current_break = p;
+
+		if (ptr_cmp(end, current_break) > 0)
+			current_break = end;
+
+		return p;
+	} else if (incr < 0) {
+
+		/*
+		 * Don't release memory.  We have no idea how HeapAlloc() and
+		 * HeapFree() work, and if they are like malloc(), then HeapFree()
+		 * will frown upon a request for releasing core coming from coalesced
+		 * blocks.
+		 *
+		 * That's OK, since sbrk() is only used in gtk-gnutella by xmalloc()
+		 * to be able to allocate memory at startup time until the VMM layer
+		 * is up.  The unfreed memory won't be lost.
+		 *
+		 * On Windows, the C runtime should not depend on malloc() however,
+		 * so very little memory, if any, should be allocated on the heap
+		 * before the VMM layer can be brought up.
+		 */
+
+		/* No memory was released, but fake a successful break decrease */
+		return ptr_add_offset(current_break, -incr);
+	}
+
+	g_assert_not_reached();
+}
+#endif 	/* EMULATE_SBRK */
+
+#ifdef MINGW_STARTUP_DEBUG
+static FILE *
+getlog(gboolean initial)
+{
+	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
+}
+
+#define STARTUP_DEBUG(...)	G_STMT_START {	\
+	if (lf != NULL) {						\
+		fprintf(lf, __VA_ARGS__);			\
+		fputc('\n', lf);					\
+	}										\
+} G_STMT_END
+
+#else	/* !MINGW_STARTUP_DEBUG */
+#define getlog(x)	NULL
+#define STARTUP_DEBUG(...)
+#endif	/* MINGW_STARTUP_DEBUG */
+
+static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
+
+static G_GNUC_COLD void
+mingw_stdio_reset(FILE *lf, gboolean console)
+{
+	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
+
+	/*
+	 * A note on setvbuf():
+	 *
+	 * Setting _IONBF on Windows for output is a really bad idea because
+	 * this results in a write for every character emitted.
+	 *
+	 * Setting _IOLBF on output for "binary" I/O is not working as expected
+	 * because of the lack of "\r\n" termination.  It will require explicit
+	 * fflush() calls in the logging layer.
+	 */
+
+	if (console) {
+		int tty;
+		
+		tty = isatty(STDIN_FILENO);
+		STARTUP_DEBUG("stdin is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stdin);
+			close(STDIN_FILENO);
+			freopen("CONIN$", "rb", stdin);
+		} else {
+			setmode(fileno(stdin), O_BINARY);
+			STARTUP_DEBUG("forced stdin (fd=%d) to binary mode",
+				fileno(stdout));
+		}
+		setvbuf(stdin, NULL, _IONBF, 0);	/* stdin must be unbuffered */
+		tty = isatty(STDOUT_FILENO);
+		STARTUP_DEBUG("stdout is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stdout);
+			close(STDOUT_FILENO);
+			freopen("CONOUT$", "w", stdout);	/* Not "wb" */
+			/* stdout to a terminal is line-buffered */
+			setvbuf(stdout, mingw_stdout_buf, _IOLBF, sizeof mingw_stdout_buf);
+			STARTUP_DEBUG("forced stdout (fd=%d) to buffered "
+				"(%zu bytes) binary mode",
+				fileno(stdout), sizeof mingw_stdout_buf);
+		} else {
+			setmode(fileno(stdout), O_BINARY);
+			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
+				fileno(stdout));
+		}
+		tty = isatty(STDERR_FILENO);
+		STARTUP_DEBUG("stderr is%s a tty", tty ? "" : "n't");
+		if (tty) {
+			fclose(stderr);
+			close(STDERR_FILENO);
+			freopen("CONOUT$", "w", stderr);	/* Not "wb" */
+			setvbuf(stderr, NULL, _IOLBF, 0);
+		} else {
+			setmode(fileno(stderr), O_BINARY);
+			STARTUP_DEBUG("forced stderr (fd=%d) to binary mode",
+				fileno(stderr));
+		}
+	} else {
+		fclose(stdin);
+		fclose(stdout);
+		fclose(stderr);
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+		STARTUP_DEBUG("stdio fully reset");
+	}
 }
 
 G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
+	FILE *lf = getlog(TRUE);
+
+	STARTUP_DEBUG("starting");
 
 #if __MSVCRT_VERSION__ >= 0x800
 	_set_invalid_parameter_handler(mingw_invalid_parameter);
@@ -3027,19 +3322,22 @@ mingw_early_init(void)
 
 	_fcloseall();
 
+	lf = getlog(FALSE);
+	STARTUP_DEBUG("attempting AttachConsole()...");
+
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		mingw_stdio_reset();
-		freopen("CONIN$", "rb", stdin);
-		freopen("CONOUT$", "wb", stdout);
-		freopen("CONOUT$", "wb", stderr);
+		STARTUP_DEBUG("AttachConsole() succeeded");
+		mingw_stdio_reset(lf, TRUE);
 	} else {
 		console_err = GetLastError();
+
+		STARTUP_DEBUG("AttachConsole() failed, error = %d", console_err);
 
 		switch (console_err) {
 		case ERROR_INVALID_HANDLE:
 		case ERROR_GEN_FAILURE:
 			/* We had no console, and we got no console. */
-			mingw_stdio_reset();
+			mingw_stdio_reset(lf, FALSE);
 			freopen("NUL", "rb", stdin);
 			{
 				const char *pathname;
@@ -3047,17 +3345,28 @@ mingw_early_init(void)
 				pathname = mingw_getstdout_path();
 				freopen(pathname, "wb", stdout);
 				log_set(LOG_STDOUT, pathname);
+				STARTUP_DEBUG("stdout (unbuffered) sent to %s", pathname);
 
 				pathname = mingw_getstderr_path();
 				freopen(pathname, "wb", stderr);
 				log_set(LOG_STDERR, pathname);
+				STARTUP_DEBUG("stderr (unbuffered) sent to %s", pathname);
 			}
 			break;
 		case ERROR_ACCESS_DENIED:
 			/* Ignore, we already have a console */
+			STARTUP_DEBUG("AttachConsole() denied");
+			break;
+		default:
+			STARTUP_DEBUG("AttachConsole() has unhandled error");
 			break;
 		}
 	}
+
+	if (lf != NULL)
+		fclose(lf);
+
+	set_folder_basepath_func(mingw_get_folder_basepath);
 }
 
 void 

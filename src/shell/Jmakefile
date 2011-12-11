@@ -28,6 +28,8 @@
 ;# $Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
 
 SRC = \
+	command.c \
+	date.c \
 	download.c \
 	downloads.c \
 	echo.c \
@@ -40,6 +42,7 @@ SRC = \
 	nodes.c \
 	offline.c \
 	online.c \
+	pid.c \
 	print.c \
 	props.c \
 	quit.c \
@@ -51,6 +54,7 @@ SRC = \
 	stats.c \
 	status.c \
 	uploads.c \
+	version.c \
 	whatis.c
 
 OBJ = \

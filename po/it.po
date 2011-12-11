@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -504,6 +504,16 @@ msgid_plural "%u DHT lookups"
 msgstr[0] ""
 msgstr[1] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] "Ricerca cache dell'host UDP %s"
+msgstr[1] "Ricerca cache dell'host UDP %s"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "Dimensione errata"
 
@@ -557,6 +567,10 @@ msgid "Duplicate message"
 msgstr "Duplica messaggio"
 
 msgid "Message to banned GUID"
+msgstr "Messaggio ai GUID esclusi"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "Messaggio ai GUID esclusi"
 
 msgid "Node shutting down"
@@ -731,6 +745,10 @@ msgstr "Modalità rete Gnutella"
 msgid "Too frequent crawling"
 msgstr ""
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "Già connesso"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr "L'offerente eccederebbe di %d%% delle nostre posizioni"
@@ -832,8 +850,12 @@ msgstr "Lettura fallita (eccezione in input)"
 msgid "Read error: %s"
 msgstr "Errore lettura: %s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "Scrittura fallita : %s"
 
 msgid "Can't find your home directory!"
@@ -1722,7 +1744,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "Numero attuale degli host nelle cache dei nodi regolari."
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "Numero attuale degli host nelle cache degli ultra-nodi"
 
 msgid "Current number of hosts in bad node caches."
@@ -1733,7 +1756,7 @@ msgid "Maximum number of hosts in the regular node cache."
 msgstr "Numero massimo degli host nel contenitore dei nodi regolari."
 
 #, fuzzy
-msgid "Maximum number of hosts in the ultra node cache."
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "Numero massimo degli host nel contenitore degli ultra-nodi"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -3323,19 +3346,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "Numero massimo degli host nel contenitore dei nodi regolari."
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "Numero attuale degli host nelle cache dei nodi regolari."
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Numero massimo degli host nel contenitore degli ultra-nodi"
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Numero attuale degli host nelle cache degli ultra-nodi"
 
 #, fuzzy
@@ -3408,6 +3431,69 @@ msgid "Maximum number of results to show in a passive search request."
 msgstr ""
 "Massimo numero di risultati da mostrare in una richiesta di una "
 "consultazione host."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "Livello di collaudo per i messaggi Gnutella."
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "Numero massimo degli host nel contenitore degli ultra-nodi"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "Numero attuale degli host nelle cache degli ultra-nodi"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "Numero attuale degli host nelle cache dei nodi regolari."
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Numero attuale degli host nelle cache degli ultra-nodi"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "Numero massimo degli host nel contenitore dei nodi regolari."
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Numero massimo degli host nel contenitore degli ultra-nodi"
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "Livello di collaudo per l'interfaccia utente."
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "Livello di collaudo per l'interfaccia utente."
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "Livello di collaudo per la gestione del gruppo scarocato."
 
 msgid "disable"
 msgstr "disabilita"
@@ -4814,6 +4900,22 @@ msgstr "%s (%s byte)"
 msgid "B/s"
 msgstr ""
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "it"
 
@@ -4869,6 +4971,38 @@ msgstr "Sorgenti inattive"
 #, fuzzy
 msgid "Interactive mode turned off."
 msgstr "Sorgenti inattive"
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "Non riesco a trovare la tua cartella personale!"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "Proprietà sconoscìuta"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "Non posso inviare GIV"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Operazione sconosciuta"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Operazione sconosciuta"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "Operazione sconosciuta"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "Operazione sconosciuta"
 
 msgid "Invalid IP/Port"
 msgstr "IP/Porta invalidi"
@@ -4928,6 +5062,14 @@ msgstr "Proprietà sconoscìuta"
 
 msgid "Value missing"
 msgstr "Valore assente"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "Valore trovato e impostato"
@@ -5444,6 +5586,16 @@ msgstr ""
 msgid "Routing errors"
 msgstr "Errore instradamento"
 
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "Numero di generazione della tabella di instradamento delle query."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr ""
 
@@ -5544,7 +5696,14 @@ msgstr "Query generate"
 msgid "GUESS queries"
 msgstr "Query RX"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "Query RX"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5670,6 +5829,9 @@ msgid "Detected GUID collisions"
 msgstr ""
 
 msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
 msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
@@ -8219,6 +8381,12 @@ msgid "Query queued..."
 msgstr "Query accodata..."
 
 #, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "%u termine contato"
+msgstr[1] "%u termini contati"
+
+#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Non riesco a trovare il file pixmap: %s"
 
@@ -8483,12 +8651,6 @@ msgstr "Inversione DNS in progressione..."
 msgid "Size:"
 msgstr "Dimensione:"
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "%u termine contato"
-msgstr[1] "%u termini contati"
-
 msgid "Done"
 msgstr "Terminato"
 
@@ -8498,10 +8660,20 @@ msgstr "Fresco regolare"
 msgid "Valid regular"
 msgstr "Valido regolare"
 
-msgid "Fresh ultra"
+#, fuzzy
+msgid "Fresh IPv4 ultra"
 msgstr "Fresco ultra"
 
-msgid "Valid ultra"
+#, fuzzy
+msgid "Valid IPv4 ultra"
+msgstr "Valido ultra"
+
+#, fuzzy
+msgid "Fresh IPv6 ultra"
+msgstr "Fresco ultra"
+
+#, fuzzy
+msgid "Valid IPv6 ultra"
 msgstr "Valido ultra"
 
 msgid "Unstable"
@@ -8511,10 +8683,16 @@ msgstr "Instabile"
 msgid "Alien"
 msgstr "Sininimi"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8646,9 +8824,9 @@ msgstr ""
 "sono state salvate nel nuovo formato XML e il vecchio file\n"
 "è stato rinominato a %s"
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "non è possibile rinominare %s come %s: %s\n"

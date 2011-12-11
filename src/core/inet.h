@@ -38,6 +38,14 @@
 #include "lib/host_addr.h"
 
 /*
+ * IPv6-Ready: values for the "IP" feature versions.
+ */
+
+#define INET_IP_V6READY	6		/* Major number */
+#define INET_IP_V4V6	0		/* 6.0 indicates IPv4 and IPv6 support */
+#define INET_IP_NOV4	4		/* 6.4 indicates IPv6 support only */
+
+/*
  * Public interface.
  */
 

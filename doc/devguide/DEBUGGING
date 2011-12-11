@@ -240,6 +240,13 @@ The following CPP symbols govern assertions that are not enabled by default.
 		especially meant to check the Windows port.  It is being turned off
 		for 0.97.
 
+	ZALLOC_SAFETY_ASSERT
+		If enabled, adds more costly assertions to make sure we are not
+		corrupting zones by releasing objects to the wrong zones.  Contrary
+		to ZONE_SAFE, this does not add any overhead to each allocated
+		object and therefore it does not change the allocation patterns
+		or the size of the objects requested.
+
 
 5. Automatic crash dump collection
 ==================================

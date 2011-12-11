@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2011, Raphael Manfredi
+ * Copyright (c) 2005-2011, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +29,9 @@
  * Main functions for gtk-gnutella.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2011
+ * @author Christian Biere
+ * @date 2005-2011
  */
 
 #include "common.h"
@@ -117,6 +120,7 @@
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
+#include "lib/exit.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -128,9 +132,11 @@
 #include "lib/patricia.h"
 #include "lib/pattern.h"
 #include "lib/pow2.h"
+#include "lib/product.h"
 #include "lib/random.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
@@ -144,6 +150,7 @@
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
 #include "lib/wq.h"
+#include "lib/xmalloc.h"
 #include "lib/zalloc.h"
 #include "shell/shell.h"
 #include "upnp/upnp.h"
@@ -177,8 +184,13 @@ static volatile sig_atomic_t from_atexit;
 static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
+static gboolean asynchronous_exit;
+static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
+static unsigned shutdown_user_flags;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
+
+static gboolean main_timer(void *);
 
 #ifdef SIGALRM
 /**
@@ -238,64 +250,6 @@ sig_malloc(int n)
 #endif /* MALLOC_STATS */
 
 /**
- * Get build number.
- */
-guint32
-main_get_build(void)
-{
-	static guint32 build;
-	static int initialized;
-
-	if (build)
-		return build;
-
-	if (!initialized) {
-		const char *p;
-
-		initialized = TRUE;
-		p = is_strprefix(GTA_BUILD, "$Revision: ");
-		if (p) {
-			int error;
-			build = parse_uint32(p, NULL, 10, &error);
-		}
-	}
-	return build;
-}
-
-/**
- * Get full build number string.
- */
-const char *
-main_get_build_full(void)
-{
-	static char *result;
-
-	if (NULL == result) {
-		const char *p;
-		p = is_strprefix(GTA_BUILD, "$Revision: ");
-		if (p != NULL) {
-			char *tmp;
-			char *q;
-			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
-
-			tmp = halloc(len);
-			g_strlcpy(tmp + 1, p, len - 1);
-			*tmp = '-';
-			q = strchr(tmp, ' ');
-			if (q != NULL)
-				*q = '\0';		/* Truncate at first space */
-
-			result = ostrdup(tmp);
-			HFREE_NULL(tmp);
-		} else {
-			result = "";		/* No change since last git tag */
-		}
-	}
-
-	return result;
-}
-
-/**
  * Are we debugging anything at a level greater than some threshold "t"?
  */
 gboolean
@@ -332,18 +286,13 @@ debugging(guint t)
 		GNET_PROPERTY(udp_debug) > t ||
 		GNET_PROPERTY(upload_debug) > t ||
 		GNET_PROPERTY(url_debug) > t ||
+		GNET_PROPERTY(xmalloc_debug) > t ||
 		GNET_PROPERTY(vmm_debug) > t ||
 		GNET_PROPERTY(vmsg_debug) > t ||
 		GNET_PROPERTY(zalloc_debug) > t ||
 
 		/* Above line left blank for easy "!}sort" under vi */
 		0;
-}
-
-const char *
-gtk_gnutella_interface(void)
-{
-	return running_topless ? "Topless" : GTA_INTERFACE;
 }
 
 /**
@@ -373,11 +322,11 @@ gtk_gnutella_atexit(void)
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}
-#ifndef MINGW32	/* FIXME MINGW32 */
+#ifdef HAS_ALARM
 		alarm(ATEXIT_TIMEOUT);
 #endif
 		gtk_gnutella_exit(1);	/* Won't exit() since from_atexit is set */
-#ifndef MINGW32	
+#ifdef HAS_ALARM
 		alarm(0);
 #endif
 		g_warning("cleanup all done.");
@@ -425,9 +374,11 @@ log_cpu_usage(tm_t *since_time, double *prev_user, double *prev_sys)
 }
 
 void
-gtk_gnutella_request_shutdown(void)
+gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags)
 {
 	shutdown_requested = 1;
+	shutdown_user_mode = mode;
+	shutdown_user_flags = flags;
 }
 
 /**
@@ -445,6 +396,53 @@ main_dispatch(void)
 
 	inputevt_dispatch();
 	cq_dispatch();
+
+	/*
+	 * If gtk_gnutella_exit() was called from main_timer(), the callout
+	 * queue will no longer schedule invocations (since the event callback
+	 * has not returned yet), but we need them to be done each second.
+	 */
+
+	if (asynchronous_exit) {
+		static time_t last_call;
+		time_t now = time(NULL);
+
+		if (last_call != now) {
+			last_call = now;
+			main_timer(NULL);
+		}
+	}
+}
+
+/*
+ * If they requested abnormal termination after shutdown, comply now.
+ */
+static G_GNUC_COLD void
+handle_user_shutdown_request(enum shutdown_mode mode)
+{
+	const char *msg = "crashing at your request";
+	const char *trigger = "shutdown completed, triggering";
+	volatile int *p = uint_to_pointer(0xdeadbeefU);
+
+	switch (mode) {
+	case GTKG_SHUTDOWN_NORMAL:
+		break;
+	case GTKG_SHUTDOWN_ASSERT:
+		s_message("%s assertion failure", trigger);
+		g_assert_log(FALSE, "%s", msg);
+	case GTKG_SHUTDOWN_ERROR:
+		s_message("%s error", trigger);
+		s_error("%s", msg);
+		break;
+	case GTKG_SHUTDOWN_MEMORY:
+		s_message("%s memory access error", trigger);
+		*p = 0xc001;
+		break;
+	case GTKG_SHUTDOWN_SIGNAL:
+		s_message("%s SIGILL", trigger);
+		raise(SIGILL);
+		break;
+	}
 }
 
 /**
@@ -453,12 +451,13 @@ main_dispatch(void)
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-void
+G_GNUC_COLD void
 gtk_gnutella_exit(int exit_code)
 {
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
+	gboolean byeall = TRUE;
 
 	if (exiting) {
 		if (safe_to_exit) {
@@ -470,6 +469,9 @@ gtk_gnutella_exit(int exit_code)
 		return;
 	}
 
+	if (shutdown_requested && (shutdown_user_flags & GTKG_SHUTDOWN_OFAST))
+		byeall = FALSE;
+
 	exiting = TRUE;
 
 #define DO(fn) 	do {					\
@@ -479,17 +481,19 @@ gtk_gnutella_exit(int exit_code)
 	fn();								\
 } while (0)
 
-#define DO_ARG(fn, arg)	do {			\
-	exit_step = STRINGIFY(fn);					\
-	if (GNET_PROPERTY(shutdown_debug))	\
-		g_debug("SHUTDOWN calling %s(%s)", exit_step, STRINGIFY(arg));	\
-	fn(arg);							\
+#define DO_BOOL(fn, arg)	do {			\
+	exit_step = STRINGIFY(fn);				\
+	if (GNET_PROPERTY(shutdown_debug)) {	\
+		g_debug("SHUTDOWN calling %s(%s)",	\
+			exit_step, (arg) ? "TRUE" : "FALSE"); \
+	}										\
+	fn(arg);								\
 } while (0)
 
 	DO(shell_close);
 	DO(file_info_store_if_dirty);	/* For safety, will run again below */
 	DO(file_info_close_pre);
-	DO(node_bye_all);
+	DO_BOOL(node_bye_all, byeall);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
 	DO(parq_close_pre);
@@ -506,7 +510,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(publisher_close);
 	DO(pdht_close);
 	DO(guess_close);
-	DO_ARG(dht_close, TRUE);
+	DO(guid_close);
+	DO_BOOL(dht_close, TRUE);
 	DO(ipp_cache_save_all);
 	DO(bg_close);
 
@@ -526,6 +531,16 @@ gtk_gnutella_exit(int exit_code)
 
 	if (from_atexit)
 		return;
+
+	/*
+	 * Before running final cleanup, show allocation statistics.
+	 */
+
+	if (debugging(0)) {
+		DO(vmm_dump_stats);
+		DO(xmalloc_dump_stats);
+		DO(zalloc_dump_stats);
+	}
 
 	/*
 	 * When halloc() is replacing malloc(), we need to make sure no memory
@@ -551,7 +566,9 @@ gtk_gnutella_exit(int exit_code)
 	 *		--RAM, 2010-02-19
 	 */
 
-	DO(vmm_stop_freeing);
+	DO(vmm_stop_freeing);		/* Also stops memusage monitoring */
+	DO(xmalloc_stop_freeing);	/* Ditto */
+	DO(zalloc_memusage_close);	/* No longer needed */
 
 	if (!running_topless) {
 		DO(settings_gui_save_if_dirty);
@@ -622,6 +639,7 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
 
+	DO(settings_terminate);	/* Entering the final sequence */
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
@@ -694,20 +712,29 @@ gtk_gnutella_exit(int exit_code)
 	DO(malloc_close);
 	DO(hdestroy);
 	DO(omalloc_close);
-	DO(signal_close);
+	DO(xmalloc_pre_close);
 	DO(vmm_close);
+	DO(signal_close);
 
-	if (debugging(0) || signal_received || shutdown_requested) {
+	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("gtk-gnutella shut down cleanly.");
+
+	if (shutdown_requested) {
+		handle_user_shutdown_request(shutdown_user_mode);
+		if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+			g_info("gtk-gnutella will now restart itself.");
+			crash_reexec();
+		}
 	}
+
 	if (!running_topless) {
 		main_gui_exit(exit_code);
 	}
+
 	exit(exit_code);
 
 #undef DO
 #undef DO_ARG
-
 }
 
 static void
@@ -732,9 +759,11 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_minimized,
 	main_arg_no_halloc,
+	main_arg_no_restart,
 	main_arg_no_xshm,
 	main_arg_pause_on_crash,
 	main_arg_ping,
+	main_arg_restart_on_crash,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -793,9 +822,11 @@ static struct {
 #else
 	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
 #endif	/* USE_HALLOC */
+	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
 	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -1029,6 +1060,28 @@ parse_arguments(int argc, char **argv)
 }
 
 /**
+ * Validate combination of arguments, rejecting those that do not make sense.
+ */
+static void
+validate_arguments(void)
+{
+	if (
+		options[main_arg_no_restart].used &&
+		options[main_arg_restart_on_crash].used)
+	{
+		fputs("Say either --restart-on-crash or --no-restart\n", stderr);
+		exit(EXIT_FAILURE);
+	}
+#ifndef HAS_FORK
+	if (
+		options[main_arg_restart_on_crash].used && !crash_coredumps_disabled()
+	) {
+		fputs("--restart-on-crash has no effect on this platform\n", stderr);
+	}
+#endif	/* !HAS_FORK */
+}
+
+/**
  * Collect more randomness, periodically.
  */
 static void
@@ -1042,7 +1095,7 @@ more_randomness(void)
 static void
 slow_main_timer(time_t now)
 {
-	static unsigned i = 0;
+	static unsigned i = 0, j = 0;
 
 	if (GNET_PROPERTY(cpu_debug)) {
 		static tm_t since = { 0, 0 };
@@ -1093,7 +1146,18 @@ slow_main_timer(time_t now)
 	download_slow_timer(now);
 	node_slow_timer(now);
 	ignore_timer(now);
-	more_randomness();
+
+	/*
+	 * Our "idle" tasks need to be scheduled at least once in a while.
+	 *
+	 * We don't know how busy the callout queue is going to get, so forcing
+	 * its "idle" tasks to run may be the only option to ensure these
+	 * background but important operations get a chance to be run at all.
+	 */
+
+	if (0 == j++ % 2) {
+		cq_idle(callout_queue);
+	}
 }
 
 /**
@@ -1187,7 +1251,7 @@ check_cpu_usage(void)
 	avg = load_avg / 100;
 
 	if (GNET_PROPERTY(cpu_debug) > 1 && last_cpu > 0.0)
-		g_debug("CPU: %.3f secs in %.3f secs (~%.3f%% @ cover=%.2f) avg=%d%%",
+		g_debug("CPU: %g secs in %g secs (~%.3f%% @ cover=%g) avg=%d%%",
 			cpu - last_cpu, elapsed, cpu_percent, coverage, avg);
 
 	/*
@@ -1226,11 +1290,13 @@ main_timer(void *unused_data)
 	time_t now;
 
 	(void) unused_data;
-	if (signal_received || shutdown_requested) {
+
+	if G_UNLIKELY((signal_received || shutdown_requested) && !exiting) {
 		if (signal_received) {
 			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
-		gtk_gnutella_exit(EXIT_FAILURE);
+		asynchronous_exit = TRUE;
+ 		gtk_gnutella_exit(EXIT_FAILURE);
 	}
 
 	now = check_cpu_usage();
@@ -1313,13 +1379,13 @@ callout_queue_idle(void *unused_data)
 /**
  * Scan files when the GUI is up.
  */
-static gboolean
-scan_files_once(void *unused_data)
+static void
+scan_files_once(cqueue_t *unused_cq, void *unused_data)
 {
+	(void) unused_cq;
 	(void) unused_data;
-	share_scan();
 
-	return FALSE;
+	share_scan();
 }
 
 /**
@@ -1495,22 +1561,66 @@ handle_arguments(void)
 	}
 }
 
+/*
+ * Duplicated main() arguments, in read-only memory.
+ */
+static int main_argc;
+static const char **main_argv;
+static const char **main_env;
+
+/**
+ * Allocate new string containing the original command line that launched us.
+ *
+ * @return command line string, which must be freed with hfree().
+ */
+char *
+main_command_line(void)
+{
+	str_t *s;
+	int i;
+
+	g_assert(main_argv != NULL);		/* gm_dupmain() called */
+
+	s = str_new(1024);
+
+	for (i = 0; i < main_argc; i++) {
+		if (i != 0)
+			str_putc(s, ' ');
+		str_cat(s, main_argv[i]);
+	}
+
+	return str_s2c_null(&s);
+}
+
+#ifndef GTA_PATCHLEVEL
+#define GTA_PATCHLEVEL 0
+#endif
+#ifndef GTA_REVISION
+#define GTA_REVISION NULL
+#endif
+
 int
 main(int argc, char **argv)
 {
 	int sp;
+	size_t str_discrepancies;
+
+	product_init(GTA_PRODUCT_NAME,
+		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
+		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
+	product_set_website(GTA_WEBSITE);
+	product_set_interface(GTA_INTERFACE);
 
 	mingw_early_init();
-	
+	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
+	tm_init();
+
 	if (compat_is_superuser()) {
 		fprintf(stderr, "Never ever run this as root! You may use:\n\n");
 		fprintf(stderr, "    su - username -c 'gtk-gnutella --daemonize'\n\n");
 		fprintf(stderr, "where 'username' stands for a regular user name.\n");
 		exit(EXIT_FAILURE);
 	}
-
-	tm_init();
-	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 
 	/*
 	 * This must be run before we allocate memory because we might
@@ -1565,13 +1675,35 @@ main(int argc, char **argv)
 	/* Early inits */
 
 	log_init();
+	main_argc = gm_dupmain(&main_argv, &main_env);
+	str_discrepancies = str_test(FALSE);
 	parse_arguments(argc, argv);
+	validate_arguments();
 	initialize_logfiles();
 	{
 		int flags = 0;
 
 		flags |= options[main_arg_pause_on_crash].used ? CRASH_F_PAUSE : 0;
 		flags |= options[main_arg_gdb_on_crash].used ? CRASH_F_GDB : 0;
+
+		/*
+		 * With no core dumps, we want to auto-restart by default, unless
+		 * they say --no-restart.
+		 *
+		 * With core dumps enabled, we dump a core of course.
+		 * To get an additional restart, users may say --restart-on-crash.
+		 *
+		 * Regardless of the core dumping condition, saying --no-restart will
+		 * prevent restarts and saying --restart-on-crash will enable them,
+		 * given that supplying both is forbidden.
+		 */
+
+		if (crash_coredumps_disabled()) {
+			flags |= options[main_arg_no_restart].used ? 0 : CRASH_F_RESTART;
+		} else {
+			flags |=
+				options[main_arg_restart_on_crash].used ? CRASH_F_RESTART : 0;
+		}
 
 		/*
 		 * If core dumps are disabled, force gdb execution on crash
@@ -1581,9 +1713,10 @@ main(int argc, char **argv)
 
 		flags |= crash_coredumps_disabled() ? CRASH_F_GDB : 0;
 
-		crash_init(argv[0], GTA_PRODUCT_NAME,
+		crash_init(argv[0], product_get_name(),
 			flags, options[main_arg_exec_on_crash].arg);
-		crash_setbuild(main_get_build());
+		crash_setbuild(product_get_build());
+		crash_setmain(main_argc, main_argv, main_env);
 	}	
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
@@ -1606,8 +1739,13 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
-	malloc_show_settings();
+	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
+	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
+	vmm_memusage_init();	/* After callouut queue is up */
+	zalloc_memusage_init();
 	version_init();
+	xmalloc_show_settings();
+	malloc_show_settings();
 	crash_setver(version_get_string());
 	crash_post_init();		/* Done with crash initialization */
 
@@ -1618,6 +1756,13 @@ main(int argc, char **argv)
 		_("unofficial build, accessing files from"),
 		PACKAGE_SOURCE_DIR);
 #endif
+
+	if (main_argc > 1) {
+		char *cmd = main_command_line();
+
+		g_info("running %s", cmd);
+		HFREE_NULL(cmd);
+	}
 
 	/*
 	 * If one of the two below fails, the GLib installation is broken.
@@ -1633,7 +1778,6 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
-	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
@@ -1673,10 +1817,17 @@ main(int argc, char **argv)
 	 * Routines requiring access to properties should therefore be put below.
 	 */
 
+	xmalloc_post_init();	/* after settings_init() */
 	vmm_post_init();		/* after settings_init() */
 
 	if (debugging(0) || is_running_on_mingw())
 		stacktrace_load_symbols();
+
+	if (str_discrepancies && debugging(0)) {
+		g_info("found %zu discrepanc%s in string formatting:",
+			str_discrepancies, 1 == str_discrepancies ? "y" : "ies");
+		str_test(TRUE);
+	}
 
 	map_test();
 	ipp_cache_load_all();
@@ -1747,10 +1898,9 @@ main(int argc, char **argv)
 	signal_set(SIGXFSZ, SIG_IGN);
 #endif
 
-	/* Setup the main timers */
+	/* Setup the main timer */
 
-	(void) g_timeout_add(1000, main_timer, NULL);
-	(void) g_timeout_add(1000, scan_files_once, NULL);
+	cq_periodic_main_add(1000, main_timer, NULL);
 
 	/* Prepare against X connection losses -> exit() */
 
@@ -1759,6 +1909,7 @@ main(int argc, char **argv)
 	/* Okay, here we go */
 
 	(void) tm_time_exact();
+	cq_main_insert(1000, scan_files_once, NULL);
 	bsched_enable_all();
 	version_ancient_warn();
 	dht_attempt_bootstrap();

@@ -54,6 +54,7 @@
 #include "stringify.h"	/* For uint64_to_string() and short_time() */
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
+#include "xmalloc.h"
 
 /*
  * The following setups are more or less independent from each other.
@@ -450,9 +451,9 @@ block_check_trailer(gconstpointer o, size_t size,
 	if (MALLOC_END_MARK != peek_be32(const_ptr_add_offset(o, size))) {
 		error = TRUE;
 		g_warning(
-			"MALLOC (%s:%d) block 0x%lx (%lu bytes) from %s:%d "
+			"MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
 			"has corrupted end mark",
-			op_file, op_line, (gulong) o, (unsigned long) size, file, line);
+			op_file, op_line, o, size, file, line);
 		goto done;
 	}
 
@@ -461,9 +462,9 @@ block_check_trailer(gconstpointer o, size_t size,
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
 			g_warning(
-				"MALLOC (%s:%d) block 0x%lx (%lu bytes) from %s:%d "
+				"MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
 				"has corrupted trailer",
-				op_file, op_line, (gulong) o, (unsigned long) size, file, line);
+				op_file, op_line, o, size, file, line);
 			break;
 		}
 	}
@@ -505,8 +506,8 @@ block_check_marks(gconstpointer o, struct block *b,
 			error = TRUE;
 			b->corrupted = TRUE;
 			g_warning(
-				"MALLOC (%s:%d) block 0x%lx from %s:%d has corrupted start mark",
-				file, line, (gulong) o, b->file, b->line);
+				"MALLOC (%s:%d) block %p from %s:%d has corrupted start mark",
+				file, line, o, b->file, b->line);
 		}
 	}
 #endif /* MALLOC_SAFE_HEAD */
@@ -670,7 +671,7 @@ real_check(const void *key, void *value, void *ctx)
 		rb->corrupted = TRUE;
 	}
 	if (block_is_dead(p, rb->size)) {
-		g_warning("MALLOC allocated block 0x%lx marked as DEAD", (gulong) p);
+		g_warning("MALLOC allocated block %p marked as DEAD", p);
 	}
 
 #ifdef MALLOC_SAFE
@@ -679,17 +680,15 @@ real_check(const void *key, void *value, void *ctx)
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
 			rb->header_corrupted = TRUE;
 			bc->new_corrupted++;
-			g_warning("MALLOC corrupted real block magic at 0x%lx (%lu byte%s)",
-				(unsigned long) p,
-				(unsigned long) rb->size, 1 == rb->size ? "" : "s");
+			g_warning("MALLOC corrupted real block magic at %p (%zu byte%s)",
+				p, rb->size, 1 == rb->size ? "" : "s");
 		} else if (rmh->size != rb->size) {
 			/* Can indicate memory corruption as well */
 			bc->new_corrupted++;
 			rb->header_corrupted = TRUE;
-			g_warning("MALLOC size mismatch for real block 0x%lx: "
-				"hashtable says %lu byte%s, header says %u",
-				(unsigned long) p, (unsigned long) rb->size,
-				1 == rb->size ? "" : "s", rmh->size);
+			g_warning("MALLOC size mismatch for real block %p: "
+				"hashtable says %zu byte%s, header says %zu",
+				p, rb->size, 1 == rb->size ? "" : "s", rmh->size);
 		}
 	}
 #endif	/* MALLOC_SAFE */
@@ -785,10 +784,10 @@ block_check_missed_free(const void *p, const char *file, int line)
 
 	b = hash_table_lookup(blocks, p);
 	if (b != NULL) {
-		g_warning("MALLOC (%s:%d) reusing %sblock 0x%lx (%lu byte%s) "
+		g_warning("MALLOC (%s:%d) reusing %sblock %p (%zu byte%s) "
 			"from %s:%d, missed its freeing",
 			file, line, b->owned ? "owned " : "foreign ",
-			(gulong) p, (gulong) b->size, 1 == b->size ? "" : "s",
+			p, b->size, 1 == b->size ? "" : "s",
 			b->file, b->line);
 		stacktrace_where_print(stderr);
 
@@ -824,19 +823,19 @@ real_check_missed_free(void *p)
 				 * reuse the address and need to track it.
 				 */
 
-				g_warning("MALLOC reusing %s block 0x%lx (%lu byte%s) "
+				g_warning("MALLOC reusing %s block %p (%zu byte%s) "
 					"from %s:%d, missed its freeing",
 					b->owned ? "owned" : "foreign",
-					(gulong) p, (gulong) rb->size, 1 == rb->size ? "" : "s",
+					p, rb->size, 1 == rb->size ? "" : "s",
 					b->file, b->line);
 				b->owned = FALSE;
 				free_record(p, _WHERE_, __LINE__);
 			}
 		}
 #else	/* !TRACK_MALLOC */
-		g_warning("MALLOC reusing real block 0x%lx (%lu byte%s), "
+		g_warning("MALLOC reusing real block %p (%zu byte%s), "
 			"missed its freeing",
-			(gulong) p, (gulong) rb->size, 1 == rb->size ? "" : "s");
+			p, rb->size, 1 == rb->size ? "" : "s");
 #endif	/* TRACK_MALLOC */
 		g_warning("current_frame:");
 		stacktrace_where_print(stderr);
@@ -871,7 +870,7 @@ real_malloc(size_t size)
 		rmh = malloc(len);
 
 		if (rmh == NULL)
-			g_error("unable to allocate %lu bytes", (gulong) size);
+			g_error("unable to allocate %zu bytes", size);
 
 		rmh->magic = REAL_MALLOC_MAGIC;
 		rmh->size = size;
@@ -885,7 +884,7 @@ real_malloc(size_t size)
 #endif /* MALLOC_SAFE */
 
 	if (o == NULL)
-		g_error("unable to allocate %lu bytes", (gulong) size);
+		g_error("unable to allocate %zu bytes", size);
 
 	block_clear_dead(o, size);
 
@@ -897,7 +896,7 @@ real_malloc(size_t size)
 		rb->size = size;
 		real_check_missed_free(o);
 		if (!hash_table_insert(reals, o, rb)) {
-			g_error("MALLOC cannot record real block 0x%lx", (gulong) o);
+			g_error("MALLOC cannot record real block %p", o);
 		}
 #ifdef MALLOC_TIME
 		rb->atime = tm_time();
@@ -921,7 +920,8 @@ real_malloc(size_t size)
 	return o;
 }
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(MALLOC_VTABLE)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
+	defined(TRACK_VMM) || defined(MALLOC_VTABLE)
 
 #ifdef MALLOC_SAFE
 /**
@@ -933,8 +933,7 @@ real_check_free(void *p)
 	struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 
 	if (REAL_MALLOC_MAGIC != rmh->magic)
-		g_warning("MALLOC free(): corrupted real block magic at 0x%lx",
-			(unsigned long) p);
+		g_warning("MALLOC free(): corrupted real block magic at %p", p);
 
 	free(rmh);
 }
@@ -1013,7 +1012,7 @@ real_free(void *p)
 			real = TRUE;		/* Was allocated via real_malloc() */
 		} else {
 			if (block_is_dead(start, sizeof(guint))) {
-				g_warning("MALLOC probable duplicate free of 0x%lx", (gulong) p);
+				g_warning("MALLOC probable duplicate free of %p", p);
 				stacktrace_where_print(stderr);
 				g_error("MALLOC invalid free()");
 			} else {
@@ -1023,8 +1022,7 @@ real_free(void *p)
 				ok = hash_table_lookup(unknowns, p) != NULL;
 #endif
 				if (!ok) {
-					g_warning("MALLOC freeing unknown block 0x%lx",
-						(unsigned long) p);
+					g_warning("MALLOC freeing unknown block %p", p);
 					stacktrace_where_print(stderr);
 				}
 			}
@@ -1057,9 +1055,9 @@ real_free(void *p)
 		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
 }
-#endif /* TRACK_MALLOC || TRACK_ZALLOC || MALLOC_VTABLE */
+#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
+#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
@@ -1078,7 +1076,7 @@ real_strdup(const char *s)
 
 	return p;
 }
-#endif	/* TRACK_MALLOC || TRACK_ZALLOC */
+#endif	/* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 /**
@@ -1127,9 +1125,10 @@ real_realloc(void *ptr, size_t size)
 			struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
 			size_t len = real_malloc_safe_size(size);
 
-			if (REAL_MALLOC_MAGIC != rmh->magic)
-				g_error("MALLOC realloc(): corrupted real block magic at 0x%lx",
-					(unsigned long) p);
+			if (REAL_MALLOC_MAGIC != rmh->magic) {
+				g_error("MALLOC realloc(): corrupted real block magic at %p",
+					p);
+			}
 
 			block_check_trailer(p, rmh->size,
 				"FAKED", 0, _WHERE_, __LINE__, TRUE);
@@ -1163,7 +1162,7 @@ real_realloc(void *ptr, size_t size)
 #endif	/* MALLOC_SAFE */
 
 		if (n == NULL)
-			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+			g_error("cannot realloc block into a %zu-byte one", size);
 
 #ifdef TRACK_MALLOC
 		if (n != p && not_leaking != NULL) {
@@ -1178,8 +1177,7 @@ real_realloc(void *ptr, size_t size)
 				hash_table_remove(blocks, p);
 				block_check_missed_free(n, "FAKED", 0);
 				if (!hash_table_insert(blocks, n, b)) {
-					g_error("MALLOC cannot track reallocated block 0x%lx",
-						(gulong) n);
+					g_error("MALLOC cannot track reallocated block %p", n);
 				}
 			}
 		}
@@ -1188,8 +1186,7 @@ real_realloc(void *ptr, size_t size)
 			struct realblock *rb = hash_table_lookup(reals, ptr);
 
 			if (NULL == rb) {
-				g_warning("MALLOC reallocated unknown block 0x%lx",
-					(unsigned long) p);
+				g_warning("MALLOC reallocated unknown block %p", p);
 				stacktrace_where_print(stderr);
 				g_error("MALLOC invalid realloc()");
 			}
@@ -1198,8 +1195,8 @@ real_realloc(void *ptr, size_t size)
 				hash_table_remove(reals, ptr);
 				real_check_missed_free(result);
 				if (!hash_table_insert(reals, result, rb)) {
-					g_error("MALLOC cannot record reallocated block 0x%lx",
-						(gulong) result);
+					g_error("MALLOC cannot record reallocated block %p",
+						result);
 				}
 			}
 			rb->size = size;
@@ -1278,8 +1275,8 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
 
-	g_warning("leaked block 0x%lx (%lu bytes) from \"%s:%d\"%s",
-		(gulong) k, (gulong) b->size, b->file, b->line, ago);
+	g_warning("leaked block %p (%zu bytes) from \"%s:%d\"%s",
+		k, b->size, b->file, b->line, ago);
 
 	leak_add(leaksort, b->size, b->file, b->line);
 
@@ -1297,11 +1294,11 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 
 		fr = hash_table_lookup(alloc_points, k);
 		if (fr == NULL)
-			g_warning("no allocation record for 0x%lx from %s:%d?",
-				(gulong) k, b->file, b->line);
+			g_warning("no allocation record for %p from %s:%d?",
+				k, b->file, b->line);
 		else {
-			g_message("block 0x%lx (out of %u) allocated from:",
-				(gulong) k, (unsigned) fr->blocks);
+			g_message("block %p (out of %u) allocated from:",
+				k, (unsigned) fr->blocks);
 			stacktrace_atom_print(stderr, fr->ast);
 		}
 	}
@@ -1371,14 +1368,13 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
 	ago[0] = '\0';
 #endif	/* MALLOC_TIME */
 
-	g_warning("leaked block 0x%lx (%lu bytes)%s",
-		(gulong) p, (gulong) rb->size, ago);
+	g_warning("leaked block %p (%zu bytes)%s", p, rb->size, ago);
 
 	leak_add(leaksort, rb->size, "FAKED", 0);
 
 #ifdef MALLOC_FRAMES
-	g_message("block 0x%lx (out of %u) allocated from:",
-		(gulong) p, (unsigned) rb->alloc->blocks);
+	g_message("block %p (out of %u) allocated from:",
+		p, (unsigned) rb->alloc->blocks);
 	stacktrace_atom_print(stderr, rb->alloc->ast);
 #endif	/* MALLOC_FRAMES */
 }
@@ -1423,8 +1419,7 @@ malloc_not_leaking(gconstpointer o)
 	 * something we know nothing about.
 	 */
 
-	g_warning("MALLOC asked to ignore leaks on unknown address 0x%lx",
-		(gulong) o);
+	g_warning("MALLOC asked to ignore leaks on unknown address %p", o);
 	stacktrace_where_print(stderr);
 #endif
 
@@ -1478,7 +1473,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	block_check_missed_free(o, file, line);
 
 	if (!hash_table_insert(blocks, o, b)) {
-		g_error("MALLOC cannot track block 0x%lx", (gulong) o);
+		g_error("MALLOC cannot track block %p", o);
 	}
 
 #ifdef MALLOC_STATS
@@ -1539,7 +1534,7 @@ malloc_track(size_t size, const char *file, int line)
 		mh = real_malloc(len);
 
 		if (mh == NULL)
-			g_error("unable to allocate %lu bytes", (gulong) size);
+			g_error("unable to allocate %zu bytes", size);
 
 		mh->start = MALLOC_START_MARK;
 		o = mh->arena;
@@ -1553,7 +1548,7 @@ malloc_track(size_t size, const char *file, int line)
 #endif /* MALLOC_SAFE */
 
 	if (o == NULL)
-		g_error("unable to allocate %lu bytes", (gulong) size);
+		g_error("unable to allocate %zu bytes", size);
 
 	block_clear_dead(o, size);
 
@@ -1598,14 +1593,13 @@ free_record(gconstpointer o, const char *file, int line)
 			return FALSE;
 
 		if (block_is_dead(o, 4)) {
-			g_error("MALLOC (%s:%d) duplicate free of 0x%lx",
-				file, line, (gulong) o);
+			g_error("MALLOC (%s:%d) duplicate free of %p", file, line, o);
 		}
 
-		g_warning("MALLOC (%s:%d) attempt to free block at 0x%lx twice?",
-			file, line, (gulong) o);
+		g_warning("MALLOC (%s:%d) attempt to free block at %p twice?",
+			file, line, o);
 		stacktrace_where_print(stderr);
-		g_error("MALLOC free() of unknown address 0x%lx", (gulong) o);
+		g_error("MALLOC free() of unknown address %p", o);
 		return FALSE;
 	}
 
@@ -1642,8 +1636,8 @@ free_record(gconstpointer o, const char *file, int line)
 
 		if (st == NULL)
 			g_warning(
-				"MALLOC (%s:%d) no alloc record of block 0x%lx from %s:%d?",
-				file, line, (gulong) o, b->file, b->line);
+				"MALLOC (%s:%d) no alloc record of block %p from %s:%d?",
+				file, line, o, b->file, b->line);
 		else {
 			/* Count present block size, after possible realloc() */
 			st->freed += b->size;
@@ -1782,8 +1776,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 		if (NULL != (b = hash_table_lookup(blocks, n))) {
 			blocks_updated = TRUE;
 		} else {
-			g_error("MALLOC (%s:%d) attempt to realloc freed block at 0x%lx?",
-				file, line, (gulong) o);
+			g_error("MALLOC (%s:%d) attempt to realloc freed block at %p?",
+				file, line, o);
 			/* In case the g_error() above is non-fatal or is a g_warning() */
 			return malloc_record(n, size, FALSE, file, line);
 		}
@@ -1807,8 +1801,7 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 		if (!blocks_updated) {
 			block_check_missed_free(n, file, line);
 			if (!hash_table_insert(blocks, n, b)) {
-				g_error("MALLOC cannot track reallocated block 0x%lx",
-					(gulong) n);
+				g_error("MALLOC cannot track reallocated block %p", n);
 			}
 		}
 		if (not_leaking != NULL && hash_table_remove(not_leaking, o)) {
@@ -1827,8 +1820,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 
 		if (st == NULL)
 			g_warning(
-				"MALLOC (%s:%d) no alloc record of block 0x%lx from %s:%d?",
-				file, line, (gulong) o, b->file, b->line);
+				"MALLOC (%s:%d) no alloc record of block %p from %s:%d?",
+				file, line, o, b->file, b->line);
 		else {
 			/* We store variations in size, as algebric quantities */
 			st->reallocated += b->size - r->size;
@@ -1854,9 +1847,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 			hash_table_remove(alloc_points, o);
 			hash_table_insert(alloc_points, n, fra);
 		} else {
-			g_warning(
-				"MALLOC lost allocation frame for 0x%lx at %s:%d -> 0x%lx",
-				(gulong) o, b->file, b->line, (gulong) n);
+			g_warning("MALLOC lost allocation frame for %p at %s:%d -> %p",
+				o, b->file, b->line, n);
 		}
 	}
 #endif /* MALLOC_FRAMES */
@@ -1892,8 +1884,7 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 				mh = real_realloc(mh, total);
 
 				if (mh == NULL) {
-					g_error("cannot realloc block into a %lu-byte one",
-						(gulong) size);
+					g_error("cannot realloc block into a %zu-byte one", size);
 				}
 
 				mh->start = MALLOC_START_MARK;
@@ -1914,7 +1905,7 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 #endif /* MALLOC_SAFE */
 
 		if (n == NULL)
-			g_error("cannot realloc block into a %lu-byte one", (gulong) size);
+			g_error("cannot realloc block into a %zu-byte one", size);
 
 		return realloc_record(o, n, size, file, line);
 	}
@@ -2756,9 +2747,8 @@ leak_dump(gpointer o)
 
 	for (i = 0; i < count; i++) {
 		struct leak *l = &filler.leaks[i];
-		g_warning("%lu bytes (%lu block%s) from \"%s\"",
-			(gulong) l->lr->size, (gulong) l->lr->count,
-			l->lr->count == 1 ? "" : "s", l->place);
+		g_warning("%zu bytes (%zu block%s) from \"%s\"",
+			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
 	}
 
 	real_free(filler.leaks);
@@ -3077,7 +3067,7 @@ malloc_glib12_check(void)
 		p = g_strdup("");
 		if (hash_table_size(reals) == old_size) {
 			static GMemVTable zero_vtable;
-			fprintf(stderr, "WARNING: resetting g_mem_set_vtable\n");
+			s_warning("resetting g_mem_set_vtable()");
 			g_mem_set_vtable(&zero_vtable);
 			vtable_works = FALSE;
 		} else {
@@ -3087,6 +3077,34 @@ malloc_glib12_check(void)
 #endif	/* GLib < 2.0.0 */
 }
 #endif	/* MALLOC_VTABLE */
+
+/*
+ * Sanity checks of malloc settings.
+ */
+static G_GNUC_COLD void
+malloc_sanity_checks(void)
+{
+	static const char test_string[] = "test string";
+	gchar *p = g_strdup(test_string);
+
+	if (0 != strcmp(test_string, p))
+		s_error("g_strdup() is not working");
+	G_FREE_NULL(p);
+
+	p = g_malloc(CONST_STRLEN(test_string) + 20);
+	memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
+	if (0 != strcmp(test_string, p))
+		s_error("g_malloc() is not working");
+
+	p = g_realloc(p, CONST_STRLEN(test_string) + 1);
+	if (0 != strcmp(test_string, p))
+		s_error("g_realloc() is not working");
+
+	p = g_realloc(p, CONST_STRLEN(test_string) + 512);
+	if (0 != strcmp(test_string, p))
+		s_error("g_realloc() is not working");
+	G_FREE_NULL(p);
+}
 
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
@@ -3122,41 +3140,37 @@ malloc_init_vtable(void)
 		g_mem_set_vtable(&vtable);
 		malloc_glib12_check();
 	}
-
+#else	/* !MALLOC_VTABLE */
 	/*
-	 * Sanity checks of malloc settings
+	 * On Windows, when xmalloc() is actually malloc(), redirect all glib
+	 * memory allocation to malloc() / free().
 	 */
 
-	{
-		static const char test_string[] = "test string";
-		gchar *p = g_strdup(test_string);
+	if (is_running_on_mingw() && xmalloc_is_malloc()) {
+		static GMemVTable vtable;
 
-		if (0 != strcmp(test_string, p))
-			s_error("g_strdup() is not working");
-		G_FREE_NULL(p);
+#if GLIB_CHECK_VERSION(2,0,0)
+		vtable.malloc = malloc;
+		vtable.realloc = realloc;
+		vtable.free = free;
+#else	/* GLib < 2.0.0 */
+		vtable.gmvt_malloc = malloc;
+		vtable.gmvt_realloc = realloc;
+		vtable.gmvt_free = free;
+#endif	/* GLib >= 2.0.0 */
 
-		p = g_malloc(CONST_STRLEN(test_string) + 20);
-		memcpy(p, test_string, CONST_STRLEN(test_string) + 1);
-		if (0 != strcmp(test_string, p))
-			s_error("g_malloc() is not working");
-
-		p = g_realloc(p, CONST_STRLEN(test_string) + 1);
-		if (0 != strcmp(test_string, p))
-			s_error("g_realloc() is not working");
-
-		p = g_realloc(p, CONST_STRLEN(test_string) + 512);
-		if (0 != strcmp(test_string, p))
-			s_error("g_realloc() is not working");
-		G_FREE_NULL(p);
+		g_mem_set_vtable(&vtable);
 	}
 #endif	/* MALLOC_VTABLE */
+
+	malloc_sanity_checks();
 }
 
 /**
  * Called from main() to log settings at startup.
  */
 G_GNUC_COLD void
-malloc_show_settings(void)
+malloc_show_settings_log(logagent_t *la)
 {
 	gboolean has_setting = FALSE;
 	struct malloc_settings {
@@ -3259,7 +3273,7 @@ malloc_show_settings(void)
 #endif
 
 	if (has_setting) {
-		g_message("malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+		log_message(la, "malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 			settings.track_vmm ? "TRACK_VMM " : "",
 			settings.track_malloc ? "TRACK_MALLOC " : "",
 			settings.track_zalloc ? "TRACK_ZALLOC " : "",
@@ -3277,20 +3291,29 @@ malloc_show_settings(void)
 	}
 
 	if (settings.malloc_safe)
-		g_message("malloc variable MALLOC_TRAILER_LEN = %lu",
+		log_message(la, "malloc variable MALLOC_TRAILER_LEN = %lu",
 			settings.malloc_trailer_len);
 
 	if (settings.malloc_periodic)
-		g_message("malloc variable MALLOC_PERIOD = %lu",
+		log_message(la, "malloc variable MALLOC_PERIOD = %lu",
 			settings.malloc_period);
 
 	if (settings.malloc_vtable)
-		g_message("malloc setting MALLOC_VTABLE %s",
+		log_message(la, "malloc setting MALLOC_VTABLE %s",
 			settings.vtable_works ? "works" : "does NOT work!");
 }
 
 /**
- * @return amount of memory used by internal tracking structures.
+ * Called from main() to log settings at startup.
+ */
+G_GNUC_COLD void
+malloc_show_settings(void)
+{
+	malloc_show_settings_log(log_agent_stderr_get());
+}
+
+/**
+ * @return amount of VMM memory used by internal tracking structures.
  */
 G_GNUC_COLD size_t
 malloc_memory_used(void)
@@ -3299,15 +3322,15 @@ malloc_memory_used(void)
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 
 	if (reals != NULL)
-		res += hash_table_memory_size(reals);
+		res += hash_table_arena_memory(reals);
 	if (unknowns != NULL)
-		res += hash_table_memory_size(unknowns);
+		res += hash_table_arena_memory(unknowns);
 #endif
 #if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 	if (blocks != NULL)
-		res += hash_table_memory_size(blocks);
+		res += hash_table_arena_memory(blocks);
 	if (not_leaking != NULL)
-		res += hash_table_memory_size(not_leaking);
+		res += hash_table_arena_memory(not_leaking);
 #endif
 
 	return res;

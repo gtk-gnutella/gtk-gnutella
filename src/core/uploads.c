@@ -52,6 +52,7 @@
 #include "http.h"
 #include "huge.h"
 #include "ignore.h"
+#include "inet.h"		/* For INET_IP_V6READY */
 #include "ioheader.h"
 #include "nodes.h"
 #include "parq.h"
@@ -78,23 +79,25 @@
 #include "if/dht/dht.h"		/* For dht_enabled() */
 
 #include "lib/aging.h"
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/idtable.h"
-#include "lib/iso3166.h"
+#include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
-#include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/idtable.h"
+#include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/parse.h"
-#include "lib/strtok.h"
+#include "lib/product.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/url.h"
@@ -103,6 +106,7 @@
 #include "lib/vmm.h"
 #include "lib/walloc.h"
 #include "lib/wd.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
@@ -438,14 +442,18 @@ use_sendfile(struct upload *u)
 }
 
 /**
- * Summary host information for uploader.
+ * Generate summary host information for uploading host.
+ *
+ * @return pointer to static buffer.
  */
-static const char *
+const char *
 upload_host_info(const struct upload *u)
 {
 	static char info[256];
 	char host[128];
-	
+
+	upload_check(u);
+
 	host_addr_to_string_buf(u->addr, host, sizeof host);
 	concat_strings(info, sizeof info,
 		"<", host, " \'", upload_vendor_str(u), "\'>",
@@ -983,8 +991,9 @@ handle_push_request(struct gnutella_node *n)
 			extvec_t *e = &exv[i];
 
 			switch (e->ext_token) {
-			case EXT_T_GGEP_GTKG_IPV6:
-				{
+			case EXT_T_GGEP_6:
+			case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
+				if (settings_running_ipv6() && 0 != ext_paylen(e)) {
 					host_addr_t addr;
 
 					switch (ggept_gtkg_ipv6_extract(e, &addr)) {
@@ -997,9 +1006,10 @@ handle_push_request(struct gnutella_node *n)
 					case GGEP_INVALID:
 					case GGEP_NOT_FOUND:
 					case GGEP_BAD_SIZE:
+					case GGEP_DUPLICATE:
 						if (GNET_PROPERTY(ggep_debug) > 3) {
-							g_warning("%s bad GGEP \"GTKG.IPV6\" (dumping)",
-									gmsg_node_infostr(n));
+							g_warning("%s bad GGEP \"%s\" (dumping)",
+									gmsg_node_infostr(n), ext_ggep_id_str(e));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
 						}
 						break;
@@ -1007,15 +1017,15 @@ handle_push_request(struct gnutella_node *n)
 				}
 				break;
 			case EXT_T_GGEP_TLS:
-			case EXT_T_GGEP_GTKG_TLS:
+			case EXT_T_GGEP_GTKG_TLS:	/* Deprecated for 0.97 */
 				flags |= SOCK_F_TLS;
 				break;
 			default:
 				if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 					size_t paylen = ext_paylen(e);
-					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%lu byte%s)",
+					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%zu byte%s)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						(gulong) paylen, paylen == 1 ? "" : "s");
+						paylen, paylen == 1 ? "" : "s");
 				}
 				break;
 			}
@@ -1414,12 +1424,18 @@ upload_xguid_add(char *buf, size_t size,
 	guid_t guid;
 
 	/*
-	 * If we don't use the DHT (hence we won't be publishing any push-proxy
-	 * information) or are TCP-firewalled there's no need to generate
-	 * the header (would be redundant with X-FW-Node-Info).
+	 * If we are TCP-firewalled there's no need to generate the header
+	 * (would be redundant with X-FW-Node-Info).
+	 *
+	 * IPv6-Ready: must generate X-GUID even if the DHT is disabled in order
+	 * for downloaders to spot multiple downloading when we're running on
+	 * both IPv4 and IPv6.
 	 */
 
-	if (GNET_PROPERTY(is_firewalled) || !dht_enabled())
+	if (
+		GNET_PROPERTY(is_firewalled) ||
+		!(dht_enabled() || settings_running_ipv4_and_ipv6())
+	)
 		return 0;
 
 	/*
@@ -1623,7 +1639,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 		mesh_len = dmesh_alternate_location(sha1,
 					alt_locs, sizeof alt_locs, u->socket->addr,
 					last_sent, u->user_agent, NULL, FALSE,
-					u->fwalt ? u->guid : NULL);
+					u->fwalt ? u->guid : NULL, u->net);
 
 		if (size - rw > mesh_len) {
 			size_t len;
@@ -1673,7 +1689,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
 		len = dmesh_alternate_location(sha1,
 					&buf[rw], avail, u->socket->addr,
 					last_sent, u->user_agent, NULL, FALSE,
-					u->fwalt ? u->guid : NULL);
+					u->fwalt ? u->guid : NULL, u->net);
 		rw += len;
 		u->last_dmesh = tm_time();
 	}
@@ -1993,7 +2009,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		upload_http_extra_callback_add_once(u, upload_xfeatures_add, NULL);
 	}
 
-	upload_http_extra_callback_add_once(u, node_http_proxies_add, NULL);
+	upload_http_extra_callback_add_once(u, node_http_proxies_add, &u->net);
 
 	/*
 	 * If the download got queued, also add the queueing information
@@ -2054,13 +2070,13 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				"</script>"
 				"</head>"
 				"<body onload=\"main();\">"
-				"<h1>" GTA_PRODUCT_NAME "</h1>"
+				"<h1>%s</h1>"
 				"<p>The download starts in <em id=\"x\">%ld</em> seconds.</p>"
 				"</body>"
 				"</html>"
 					"\r\n",
 					retry, '\0' != href[0] ? index_href : "", href,
-					retry, retry);
+					retry, product_get_name(), retry);
 			upload_http_extra_line_add(u,
 				"Content-Type: text/html; charset=utf-8\r\n");
 			upload_http_extra_body_add(u, buf);
@@ -2702,8 +2718,8 @@ upload_connect_conf(struct upload *u)
 			u->name, host_addr_to_string(s->addr), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"only sent %lu out of %lu bytes of GIV for \"%s\" to %s",
-			(gulong) sent, (gulong) rw, u->name, host_addr_to_string(s->addr));
+			"only sent %zu out of %zu bytes of GIV for \"%s\" to %s",
+			sent, rw, u->name, host_addr_to_string(s->addr));
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent GIV to %s:", host_addr_to_string(s->addr));
 		dump_string(stderr, giv, rw, "----");
@@ -3377,6 +3393,7 @@ upload_tx_error(gpointer obj, const char *reason, ...)
 static const struct tx_deflate_cb upload_tx_deflate_cb = {
 	NULL,				/* add_tx_deflated */
 	upload_tx_error,	/* shutdown */
+	NULL,				/* flow_control */
 };
 
 static void
@@ -3836,6 +3853,15 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			switched = TRUE;
 			gnet_stats_count_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
 		}
+	}
+
+	/*
+	 * When changing resources, clear u->last_demsh since this relates
+	 * to the previous resource.
+	 */
+
+	if (switched) {
+		u->last_dmesh = 0;
 	}
 
 	/*
@@ -4551,9 +4577,9 @@ upload_request_special(struct upload *u, const header_t *header)
 	} else if (u->thex) {
 		char *name;
 		
-		name = g_strdup_printf(_("<THEX data for %s>"), u->name);
+		name = str_cmsg(_("<THEX data for %s>"), u->name);
 		atom_str_change(&u->name, name);
-		G_FREE_NULL(name);
+		HFREE_NULL(name);
 
 		upload_http_extra_line_add(u, "Content-Type: application/dime\r\n");
 
@@ -4759,6 +4785,23 @@ upload_request(struct upload *u, header_t *header)
 	u->fwalt |= header_get_feature("fwalt", header, NULL, NULL);
 
 	/*
+	 * IPv6-Ready: check remote support of IPv6.
+	 */
+
+	u->net = HOST_NET_IPV4;
+
+	{
+		unsigned major, minor;
+
+		if (header_get_feature("IP", header, &major, &minor)) {
+			if (INET_IP_V6READY == major) {
+				u->net = (INET_IP_NOV4 == minor) ?
+					HOST_NET_IPV6 : HOST_NET_BOTH;
+			}
+		}
+	}
+
+	/*
 	 * Make sure there is the HTTP/x.x tag at the end of the request,
 	 * thereby ruling out the HTTP/0.9 requests.
 	 *
@@ -4937,7 +4980,7 @@ upload_request(struct upload *u, header_t *header)
 		}
 	} else if (GNET_PROPERTY(is_firewalled)) {
 		/* Send X-Push-Proxy each time: might have changed! */
-		upload_http_extra_callback_add(u, node_http_proxies_add, NULL);
+		upload_http_extra_callback_add(u, node_http_proxies_add, &u->net);
 	}
 	
 	/*
@@ -5416,6 +5459,18 @@ upload_init(void)
 
 	header_features_add(FEATURES_UPLOADS, "fwalt",
 		FWALT_VERSION_MAJOR, FWALT_VERSION_MINOR);
+
+	/*
+	 * IPv6-Ready:
+	 * - advertise "IP/6.4" if we don't run IPv4.
+	 * - advertise "IP/6.0" if we run both IPv4 and IPv6.
+	 * - advertise nothing otherwise (running IPv4 only)
+	 */
+
+	header_features_add_guarded_function(FEATURES_UPLOADS, "IP",
+		INET_IP_V6READY, INET_IP_NOV4, settings_running_ipv6_only);
+	header_features_add_guarded_function(FEATURES_UPLOADS, "IP",
+		INET_IP_V6READY, INET_IP_V4V6, settings_running_ipv4_and_ipv6);
 
 	early_stall_wd = wd_make("upload early stalling",
 		IO_STALL_WATCH, upload_no_more_early_stalling, NULL, FALSE);

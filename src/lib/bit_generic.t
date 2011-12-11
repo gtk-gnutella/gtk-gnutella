@@ -94,7 +94,7 @@ bit_generic_init(bit_generic_t *base, size_t n)
  * @param n The index of the bit to set counting from zero.
  * @note: For optimum performance, there are no checks at all.
  */
-static inline void
+static inline ALWAYS_INLINE void
 bit_generic_set(bit_generic_t *base, size_t i)
 {
 	BIT_GENERIC_WORD(base, i) |= BIT_GENERIC_BIT(base, i);
@@ -106,7 +106,7 @@ bit_generic_set(bit_generic_t *base, size_t i)
  * @param n The index of the bit to clear counting from zero.
  * @note: For optimum performance, there are no checks at all.
  */
-static inline void 
+static inline ALWAYS_INLINE void 
 bit_generic_clear(bit_generic_t *base, size_t i)
 {
 	BIT_GENERIC_WORD(base, i) &= ~BIT_GENERIC_BIT(base, i);
@@ -120,7 +120,7 @@ bit_generic_clear(bit_generic_t *base, size_t i)
  * @param n The index of the bit to flip counting from zero.
  * @return The new state of the bit.
  */
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 bit_generic_flip(bit_generic_t *base, size_t i)
 {
 	return BIT_GENERIC_WORD(base, i) ^= BIT_GENERIC_BIT(base, i);
@@ -133,7 +133,7 @@ bit_generic_flip(bit_generic_t *base, size_t i)
  * @param n The index of the bit to read counting from zero.
  * @return TRUE if the bit is set, FALSE otherwise.
  */
-static inline gboolean
+static inline ALWAYS_INLINE gboolean
 bit_generic_get(const bit_generic_t *base, size_t i)
 {
 	return 0 != (BIT_GENERIC_WORD(base, i) & BIT_GENERIC_BIT(base, i));

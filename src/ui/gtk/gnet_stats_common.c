@@ -100,6 +100,10 @@ general_type_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Routing errors"),
+		N_("Routing table chunks"),
+		N_("Routing table message capacity"),
+		N_("Routing table message count"),
+		N_("Routing through transient node avoided"),
 		N_("Duplicates with higher TTL"),
 		N_("SPAM SHA1 database hits"),
 		N_("SPAM filename and size hits"),
@@ -132,7 +136,9 @@ general_type_str(gint value)
 		N_("SHA1 queries"),
 		N_("\"What's New?\" queries"),
 		N_("GUESS queries"),
+		N_("GUESS queries (0.2)"),
 		N_("GUESS cached query keys held"),
+		N_("GUESS cached 0.2 hosts held"),
 		N_("GUESS locally generated queries"),
 		N_("GUESS currently running queries"),
 		N_("GUESS hits received for locally generated queries"),
@@ -174,6 +180,7 @@ general_type_str(gint value)
 		N_("Changed server GUIDs"),
 		N_("Detected GUID collisions"),
 		N_("Detected collisions with our own GUID"),
+		N_("GUID dynamically banned"),
 		N_("Firewalled node info for known hosts received in upload requests"),
 		N_("Revitalized PUSH routes"),
 		N_("Collected new PUSH proxies from other query hits"),

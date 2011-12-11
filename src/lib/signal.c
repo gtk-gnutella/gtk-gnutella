@@ -384,7 +384,7 @@ signal_leave_critical(const sigset_t *oset)
 #ifdef HAS_SIGPROCMASK
 	if (!in_critical_section) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
-			s_error("cannot leave critical section: %s", g_strerror(errno));
+			s_error("cannot leave critical section: %m");
 	}
 #else
 	(void) oset;
@@ -404,7 +404,14 @@ signal_init(void)
 			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 		}
 
-		sig_chunk = ck_init(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+		/* 
+		 * Chunk allocated as non-leaking because the signal chunk must
+		 * remain active up to the very end, way past the point where we're
+		 * supposed to have freed everything and leak detection kicks in.
+		 */
+
+		sig_chunk =
+			ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
 	}
 
 	g_assert(sig_chunk != NULL);	/* We're initialized now */
@@ -416,7 +423,7 @@ signal_init(void)
 void
 signal_close(void)
 {
-	ck_destroy_null(&sig_chunk);
+	/* Nothing to do */
 }
 
 /* vi: set ts=4 sw=4 cindent:  */

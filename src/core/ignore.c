@@ -159,17 +159,20 @@ sha1_parse(FILE *f, const char *file)
 	int line = 0;
 	struct sha1 sha1;
 	char *p;
-	int len;
+	size_t len;
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
+	while (fgets(ign_tmp, sizeof ign_tmp, f)) {
 		line++;
 
-		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
-			continue;			/* Skip comments and blank lines */
+		if (!file_line_chomp_tail(ign_tmp, sizeof ign_tmp, &len)) {
+			g_warning("%s: line %d too long, aborting", G_STRFUNC, line);
+			break;
+		}
 
-		len = strchomp(ign_tmp, 0);		/* Remove final "\n" */
+		if (file_line_is_skipable(ign_tmp))
+			continue;			/* Skip comments and blank lines */
 
 		/*
 		 * Decode leading base32 encoded SHA1.
@@ -238,13 +241,16 @@ namesize_parse(FILE *f, const char *file)
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
+	while (fgets(ign_tmp, sizeof ign_tmp, f)) {
 		line++;
 
-		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
-			continue;			/* Skip comments and blank lines */
+		if (!file_line_chomp_tail(ign_tmp, sizeof ign_tmp, NULL)) {
+			g_warning("%s: line %d too long, aborting", G_STRFUNC, line);
+			break;
+		}
 
-		strchomp(ign_tmp, 0);	/* Remove final "\n" */
+		if (file_line_is_skipable(ign_tmp))
+			continue;			/* Skip comments and blank lines */
 
 		size = parse_uint64(ign_tmp, &p, 10, &error);
 		if (error || !is_ascii_blank(*p)) {

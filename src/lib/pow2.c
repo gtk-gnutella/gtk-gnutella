@@ -150,7 +150,7 @@ highest_bit_set(guint32 n)
 int
 highest_bit_set64(guint64 n)
 {
-	if (n <= 0xffffffffU)
+	if G_LIKELY(n <= 0xffffffffU)
 		return highest_bit_set(n);
 	else
 		return 32 + highest_bit_set(n >> 32);

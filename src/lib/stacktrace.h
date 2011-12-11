@@ -57,15 +57,30 @@ struct stackatom {
 };
 
 /**
+ * Self-assessed stacktrace symbol quality.
+ */
+enum stacktrace_sym_quality {
+	STACKTRACE_SYM_GOOD = 0,
+	STACKTRACE_SYM_STALE,
+	STACKTRACE_SYM_MISMATCH,
+	STACKTRACE_SYM_GARBAGE,
+
+	STACKTRACE_SYM_MAX
+};
+
+/**
  * Hashing /equality functions for "struct stacktracea" atomic traces.
  */
 size_t stack_hash(const void *key) G_GNUC_PURE;
 int stack_eq(const void *a, const void *b) G_GNUC_PURE;
 
+struct logagent;
+
 void stacktrace_get(struct stacktrace *st);
 void stacktrace_get_offset(struct stacktrace *st, size_t offset);
 void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
+void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
 const char *stacktrace_routine_name(const void *pc, gboolean offset);
@@ -81,12 +96,15 @@ void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
 gboolean stacktrace_cautious_was_logged(void);
 
 struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
+gboolean stacktrace_caller_known(size_t offset);
 
 void stacktrace_init(const char *argv0, gboolean deferred);
 void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);
 size_t stacktrace_memory_used(void);
+enum stacktrace_sym_quality stacktrace_quality(void);
+const char *stacktrace_quality_string(const enum stacktrace_sym_quality sq);
 
 #endif /* _stacktrace_h_ */
 

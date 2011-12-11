@@ -219,7 +219,6 @@ static int
 hostiles_load(FILE *f, hostiles_t which)
 {
 	char line[1024];
-	char *p;
 	guint32 ip, netmask;
 	int linenum = 0;
 	int bits;
@@ -230,24 +229,20 @@ hostiles_load(FILE *f, hostiles_t which)
 
 	hostile_db[which] = iprange_new();
 
-	while (fgets(line, sizeof(line), f)) {
+	while (fgets(line, sizeof line, f)) {
 		linenum++;
-		if (*line == '\0' || *line == '#')
-			continue;
 
 		/*
 		 * Remove all trailing spaces in string.
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		p = strchr(line, '\0');
-		while (--p >= line) {
-			guchar c = (guchar) *p;
-			if (!is_ascii_space(c))
-				break;
-			*p = '\0';
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+			g_warning("%s: line %d too long, aborting", G_STRFUNC, linenum);
+			break;
 		}
-		if ('\0' == *line)
+
+		if (file_line_is_skipable(line))
 			continue;
 
 		if (!string_to_ip_and_mask(line, &ip, &netmask)) {
@@ -370,25 +365,33 @@ hostiles_retrieve(hostiles_t which)
 
 	case HOSTILE_GLOBAL:
 		{
-			/* FIXME: Load also the hostiles from get_folder_path */
-	
+			file_path_t fp[3];
 			FILE *f;
 			int idx;
-			static const file_path_t fp[] = {
+			char *tmp;
+			unsigned int length = 0;
+			
 #ifndef OFFICIAL_BUILD
-				{ PACKAGE_EXTRA_SOURCE_DIR, hostiles_file },
+			file_path_set(&fp[length++],
+				PACKAGE_EXTRA_SOURCE_DIR, hostiles_file);
 #endif
-				{ PRIVLIB_EXP, hostiles_file },
-			};
+			file_path_set(&fp[length++], PRIVLIB_EXP, hostiles_file);
 
+			tmp = get_folder_path(PRIVLIB_PATH, NULL);
+			if (tmp != NULL)
+				file_path_set(&fp[length++], tmp, hostiles_file);
+
+			g_assert(length <= G_N_ELEMENTS(fp));
 
 			f = file_config_open_read_norename_chosen(
-					hostiles_what[HOSTILE_GLOBAL], fp, G_N_ELEMENTS(fp), &idx);
+					hostiles_what[HOSTILE_GLOBAL], fp, length, &idx);
+					
 			if (f) {
 				hostiles_retrieve_from_file(f,
 				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
 				fclose(f);
 			}
+			HFREE_NULL(tmp);
 		}
 		break;
 
@@ -854,7 +857,7 @@ spam_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	if (GNET_PROPERTY(spam_debug) > 5) {
 		g_debug("SPAM cached %s life=%s last_seen=%s, p=%.2f%%%s",
 			host_addr_to_string(gnet_host_get_addr(h)),
-			compact_time(delta_time(sd->create_time, sd->last_time)),
+			compact_time(delta_time(sd->last_time, sd->create_time)),
 			compact_time2(d), p * 100.0,
 			expired ? " [EXPIRED]" : "");
 	}
@@ -869,16 +872,15 @@ static void
 hostiles_spam_prune_old(void)
 {
 	if (GNET_PROPERTY(spam_debug)) {
-		g_debug("SPAM pruning expired hosts (%lu)",
-			(unsigned long) dbmw_count(db_spam));
+		g_debug("SPAM pruning expired hosts (%zu)", dbmw_count(db_spam));
 	}
 
 	dbmw_foreach_remove(db_spam, spam_prune_old, NULL);
 	gnet_stats_set_general(GNR_SPAM_IP_HELD, dbmw_count(db_spam));
 
 	if (GNET_PROPERTY(spam_debug)) {
-		g_debug("SPAM pruned expired hosts (%lu remaining)",
-			(unsigned long) dbmw_count(db_spam));
+		g_debug("SPAM pruned expired hosts (%zu remaining)",
+			dbmw_count(db_spam));
 	}
 }
 

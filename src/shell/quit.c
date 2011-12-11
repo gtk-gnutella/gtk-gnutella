@@ -37,7 +37,6 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-
 enum shell_reply
 shell_exec_quit(struct gnutella_shell *sh, int argc, const char *argv[])
 {

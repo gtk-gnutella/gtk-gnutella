@@ -47,6 +47,7 @@ const struct txdrv_ops *tx_deflate_get_ops(void);
 struct tx_deflate_cb {
 	void (*add_tx_deflated)(gpointer owner, int amount);
 	void (*shutdown)(gpointer owner, const char *reason, ...);
+	void (*flow_control)(gpointer owner, size_t amount);
 };
 
 /**
@@ -59,6 +60,7 @@ struct tx_deflate_args {
 	size_t buffer_flush;		/**< Flush after that many bytes */
 	gboolean nagle;				/**< Whether to use Nagle or not */
 	gboolean gzip;				/**< Whether to use gzip encapsulation */
+	gboolean reduced;			/**< Whether to use reduced compression */
 };
 
 #endif	/* _core_tx_deflate_h_ */

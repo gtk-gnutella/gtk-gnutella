@@ -73,13 +73,15 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Max TTL exceeded"),				 /**< MSG_DROP_MAX_TTL_EXCEEDED */
 		N_("Message throttle"),				 /**< MSG_DROP_THROTTLE */
 		N_("Message matched limits"),		 /**< MSG_DROP_LIMIT */
+		N_("Transient node"),				 /**< MSG_DROP_TRANSIENT */
 		N_("Unusable Pong"),				 /**< MSG_DROP_PONG_UNUSABLE */
 		N_("Hard TTL limit reached"),		 /**< MSG_DROP_HARD_TTL_LIMIT */
 		N_("Max hop count reached"),		 /**< MSG_DROP_MAX_HOP_COUNT */
 		N_("Route lost"),					 /**< MSG_DROP_ROUTE_LOST */
 		N_("No route"),						 /**< MSG_DROP_NO_ROUTE */
 		N_("Duplicate message"),			 /**< MSG_DROP_DUPLICATE */
-		N_("Message to banned GUID"),		 /**< MSG_DROP_BANNED */
+		N_("Message to banned GUID"),		 /**< MSG_DROP_TO_BANNED */
+		N_("Message from banned GUID"),		 /**< MSG_DROP_FROM_BANNED */
 		N_("Node shutting down"),			 /**< MSG_DROP_SHUTDOWN */
 		N_("TX flow control"),				 /**< MSG_DROP_FLOW_CONTROL */
 		N_("Query text had no trailing NUL"),/**< MSG_DROP_QUERY_NO_NUL */
@@ -121,6 +123,10 @@ gnet_stats_general_to_string(gnr_stats_t type)
 
 	static const char * const type_string[] = {
 		"routing_errors",
+		"routing_table_chunks",
+		"routing_table_capacity",
+		"routing_table_count",
+		"routing_transient_avoided",
 		"dups_with_higher_ttl",
 		"spam_sha1_hits",
 		"spam_name_hits",
@@ -153,7 +159,9 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"query_sha1",
 		"query_whats_new",
 		"query_guess",
+		"query_guess_02",
 		"guess_cached_query_keys_held",
+		"guess_cached_02_hosts_held",
 		"guess_local_queries",
 		"guess_local_running",
 		"guess_local_query_hits",
@@ -195,6 +203,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"changed_server_guid",
 		"guid_collisions",
 		"own_guid_collisions",
+		"banned_guid_held",
 		"received_known_fw_node_info",
 		"revitalized_push_routes",
 		"collected_push_proxies",

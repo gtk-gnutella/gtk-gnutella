@@ -53,6 +53,7 @@
 #include "hosts.h"
 #include "huge.h"
 #include "ignore.h"
+#include "ipv6-ready.h"
 #include "nodes.h"
 #include "oob.h"
 #include "oob_proxy.h"
@@ -145,11 +146,13 @@ struct search_request_info {
 		struct sha1 sha1;
 		gboolean matched;
 	} exv_sha1[MAX_EXTVEC];
+	host_addr_t addr;				/**< Reply address for OOB */
 	const char *extended_query;		/**< String in GGEP "XQ" */
 	int exv_sha1cnt;				/**< Amount of SHA1 to search for */
 	size_t search_len;				/**< Length of query string */
 	guint32 media_types;			/**< Media types from GGEP "M" */
 	guint16 flags;					/**< Query flags */
+	guint16 port;					/**< Reply port for OOB */
 	unsigned oob:1;					/**< Wants out-of-band hit delivery */
 	unsigned secure_oob:1;			/**< OOB v3 used? */
 	unsigned whats_new:1;			/**< This ia a "What's New?" query */
@@ -157,6 +160,8 @@ struct search_request_info {
 	unsigned may_oob_proxy:1;		/**< Can we OOB-proxy the query? */
 	unsigned partials:1;			/**< Do they want partial results? */
 	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
+	unsigned ipv6:1;				/**< Do they support IPv6? */
+	unsigned ipv6_only:1;			/**< Do they support IPv6 only? */
 };
 
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
@@ -1765,6 +1770,8 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		int exvcnt = 0;
 		extvec_t exv[MAX_EXTVEC];
 		gboolean seen_ggep = FALSE;
+		gnet_host_vec_t *hvec = NULL;		/* For GGEP "PUSH" */
+
 		int i;
 
 		if (trailer_size >= (size_t) open_size + 5) {
@@ -1794,7 +1801,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				rs->status |= ST_FW2FW;
 				break;
 			case EXT_T_GGEP_TLS:
-			case EXT_T_GGEP_GTKG_TLS:
+			case EXT_T_GGEP_GTKG_TLS:	/* Deprecated for 0.97 */
 				rs->status |= ST_TLS;
 				break;
 			case EXT_T_GGEP_SO:
@@ -1803,13 +1810,25 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					has_token = TRUE;
 				}
 				break;
-			case EXT_T_GGEP_GTKG_IPV6:
+			case EXT_T_GGEP_6:			/* IPv6-Ready */
+			case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
 				if (has_ipv6_addr) {
 					search_log_multiple_ggep(n, e, vendor);
-				} else {
+				} else if (ext_paylen(e) != 0) {
 					ret = ggept_gtkg_ipv6_extract(e, &ipv6_addr);
 					if (GGEP_OK == ret) {
 						has_ipv6_addr = TRUE;
+						/*
+						 * The extracted IPv6 address supersedes the IPv4 one
+						 * when it is 127.0.0.0, per IPv6-Ready specs, or
+						 * when they have not configured IPv4 support.
+						 */
+						if (
+							ipv6_ready_no_ipv4_addr(rs->addr) ||
+							!settings_use_ipv4()
+						) {
+							rs->addr = ipv6_addr;
+						}
 					} else if (ret == GGEP_INVALID) {
 						search_log_bad_ggep(n, e, vendor);
 					}
@@ -1865,20 +1884,33 @@ search_results_handle_trailer(const gnutella_node_t *n,
 						ver.osname = vi.osname;		/* Static string */
 						ver.dirty = vi.dirty;
 
-						rs->version = atom_str_get(version_ext_str(&ver));
+						rs->version = atom_str_get(version_ext_str(&ver, TRUE));
 					} else if (ret == GGEP_INVALID) {
 						search_log_bad_ggep(n, e, vendor);
 					}
 				}
 				break;
 			case EXT_T_GGEP_PUSH:
-				if (NULL != rs->proxies) {
+				if (NULL != rs->proxies && rs->proxies->n_ipv4 != 0) {
 					search_log_multiple_ggep(n, e, vendor);
-				} else {
-					gnet_host_vec_t *hvec = NULL;
-
+				} else if (settings_running_ipv4()) {
 					rs->status |= ST_PUSH_PROXY;
-					ret = ggept_push_extract(e, &hvec);
+					/* Allocates new hvec or reuses existing one */
+					ret = ggept_push_extract(e, &hvec, NET_TYPE_IPV4);
+					if (ret == GGEP_OK) {
+						rs->proxies = hvec;
+					} else {
+						search_log_bad_ggep(n, e, vendor);
+					}
+				}
+				break;
+			case EXT_T_GGEP_PUSH6:
+				if (NULL != rs->proxies && rs->proxies->n_ipv6 != 0) {
+					search_log_multiple_ggep(n, e, vendor);
+				} else if (settings_running_ipv6()) {
+					rs->status |= ST_PUSH_PROXY;
+					/* Allocates new hvec or reuses existing one */
+					ret = ggept_push_extract(e, &hvec, NET_TYPE_IPV6);
 					if (ret == GGEP_OK) {
 						rs->proxies = hvec;
 					} else {
@@ -2003,6 +2035,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		has_ipv6_addr &&
 		rs->port > 0 &&
 		is_host_addr(ipv6_addr) &&
+		settings_running_ipv6() &&
 		!hostiles_check(ipv6_addr)
 	) {
 		search_add_push_proxy(rs, ipv6_addr, rs->port);
@@ -2091,6 +2124,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	char *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_ggep_alt = FALSE;
+	gboolean seen_ggep_alt6 = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
 	gboolean multiple_alt = FALSE;
@@ -2469,12 +2503,14 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						search_log_ggep(n, e, NULL, "SHA1-less");
 					}
 					break;
-				case EXT_T_GGEP_ALT:		/* Alternate locations */
-					if (hvec != NULL) {		/* Already saw one for record! */
+				case EXT_T_GGEP_ALT:		/* Alternate locations (IPv4) */
+					if (hvec != NULL && hvec->n_ipv4 != 0) {
+						/* Already saw one for record! */
 						multiple_alt = TRUE;
 						break;
 					}
-					ret = ggept_alt_extract(e, &hvec);
+					/* Allocates new hvec or reuses existing one */
+					ret = ggept_alt_extract(e, &hvec, NET_TYPE_IPV4);
 					if (ret == GGEP_OK) {
 						seen_ggep_alt = TRUE;
 					} else {
@@ -2482,7 +2518,23 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 						search_log_bad_ggep(n, e, NULL);
 					}
 					break;
+				case EXT_T_GGEP_ALT6:		/* Alternate locations (IPv6) */
+					if (hvec != NULL && hvec->n_ipv6 != 0) {
+						/* Already saw one for record! */
+						multiple_alt = TRUE;
+						break;
+					}
+					/* Allocates new hvec or reuses existing one */
+					ret = ggept_alt_extract(e, &hvec, NET_TYPE_IPV6);
+					if (ret == GGEP_OK) {
+						seen_ggep_alt6 = TRUE;
+					} else {
+						alt_errors++;
+						search_log_bad_ggep(n, e, NULL);
+					}
+					break;
 				case EXT_T_GGEP_ALT_TLS:	/* TLS-capability bitmap for ALT */
+				case EXT_T_GGEP_ALT6_TLS:	/* TLS-capability bitmap for ALT6 */
 					/* FIXME: Handle this */	
 					break;
 				case EXT_T_GGEP_LF:			/* Large File */
@@ -2639,10 +2691,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		} else {
 			if (GNET_PROPERTY(search_debug)) {
 				g_warning(
-					"UNKNOWN %lu-byte trailer at offset %lu in %s from %s "
+					"UNKNOWN %zu-byte trailer at offset %zu in %s from %s "
 					"(%u/%u records parsed)",
-					(unsigned long) trailer_len,
-					(unsigned long) (s - n->data),
+					trailer_len, s - n->data,
 					gmsg_node_infostr(n),
 					node_addr(n), (guint) nr, (guint) rs->num_recs);
 			}
@@ -2728,6 +2779,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		goto bad_packet;		
 	}
 
+	if ((rs->status & ST_FIREWALL) && !route_guid_pushable(rs->guid)) {
+        gnet_stats_count_dropped(n, MSG_DROP_FROM_BANNED);
+		badmsg = "firewalled origin & banned GUID";
+		goto bad_packet;		
+	}
+
 	/*
 	 * At this point we finished processing of the query hit, successfully.
 	 */
@@ -2787,6 +2844,9 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (seen_ggep_alt && GNET_PROPERTY(search_debug) > 3)
 			g_debug("%s from %s used GGEP \"ALT\" extension",
+					gmsg_node_infostr(n), vendor ? vendor : "????");
+		if (seen_ggep_alt6 && GNET_PROPERTY(search_debug) > 3)
+			g_debug("%s from %s used GGEP \"ALT6\" extension",
 					gmsg_node_infostr(n), vendor ? vendor : "????");
 		if (seen_bitprint && GNET_PROPERTY(search_debug) > 3)
 			g_debug("%s from %s used urn:bitprint",
@@ -2918,12 +2978,12 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	 */
 
 bad_packet:
-	if (GNET_PROPERTY(search_debug)) {
+	if (GNET_PROPERTY(qhit_bad_debug)) {
 		g_warning(
 			"BAD %s from %s (via %s) -- %u/%u record%s parsed: %s",
 			 gmsg_node_infostr(n), vendor ? vendor : "????", node_infostr(n),
 			 nr, rs->num_recs, 1 == rs->num_recs ? "" : "s", badmsg);
-		if (GNET_PROPERTY(search_debug) > 1)
+		if (GNET_PROPERTY(qhit_bad_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
 
@@ -3011,25 +3071,13 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	/*
-	 * Save node's GUID.
+	 * Save node's GUID, extracted from the search results.
+	 *
+	 * If we already know the GUID of that node, this will also make
+	 * sure that it is not changing.
 	 */
 
-	if (node_guid(n)) {
-		if (!guid_eq(node_guid(n), rs->guid)) {
-			n->n_weird++;
-			if (GNET_PROPERTY(search_debug) > 1) {
-				char guid_buf[GUID_HEX_SIZE + 1];
-
-				guid_to_string_buf(rs->guid, guid_buf, sizeof guid_buf);
-				g_warning("[weird #%d] %s has GUID %s but used %s in %s",
-					n->n_weird, node_infostr(n),
-					guid_hex_str(node_guid(n)), guid_buf,
-					gmsg_node_infostr(n));
-			}
-		}
-	} else {
-		node_set_guid(n, rs->guid);
-	}
+	node_set_guid(n, rs->guid, TRUE);
 
 	/*
 	 * We don't declare any weirdness if the address in the results matches
@@ -3112,6 +3160,7 @@ build_search_message(const guid_t *muid, const char *query,
 	struct sha1 sha1;
 	ggep_stream_t gs;
 	size_t glen;
+	gboolean need_6 = FALSE;
 
 	g_assert(NULL == query_key || 0 != length);
 	g_assert(NULL != query_key || 0 == length);
@@ -3180,15 +3229,27 @@ build_search_message(const guid_t *muid, const char *query,
 		GNET_PROPERTY(send_oob_queries) &&
 		!GNET_PROPERTY(is_udp_firewalled)
 	) {
+		host_addr_t primary = listen_addr_primary();
+		guint32 ipv4 = ipv6_ready_advertised_ipv4(primary);
 		host_addr_t addr;
 		guint16 port;
 
-		guid_oob_get_addr_port(
-			gnutella_header_get_muid(gnutella_msg_search_header(&msg.data)),
-			&addr, &port);
+		guid_oob_get_addr_port(muid, &addr, &port);
 
-		if (is_my_address_and_port(addr, port))
+		/*
+		 * IPv6-Ready: we only compare the trailing part of our IPv6 address
+		 * here, which should be fine most of the time since we're only
+		 * handling MUIDs we generate and we'll prepare for OOB-compatible
+		 * MUIDs as soon as UDP is active.
+		 */
+
+		if (
+			port == GNET_PROPERTY(listen_port) &&
+			host_addr_ipv4(addr) == ipv4
+		) {
 			flags |= QUERY_F_OOB_REPLY;
+			need_6 = ipv6_ready_has_no_ipv4(ipv4);
+		}
 	}
 
 	gnutella_msg_search_set_flags(&msg.data, flags);
@@ -3323,13 +3384,28 @@ build_search_message(const guid_t *muid, const char *query,
 
 	if (query_key != NULL) {
 		gboolean ok;
+		guint8 scp = 0;
+		size_t scp_len;
+
+		/*
+		 * IPv6-Ready: tell them whether we accept IPv6 and whether we want
+		 * to see IPv4 addresses at all.
+		 */
+
+		if (settings_running_ipv4_and_ipv6())
+			scp = SCP_F_IPV6;
+		else if (settings_running_ipv6_only())
+			scp = SCP_F_IPV6 | SCP_F_NO_IPV4;
+
+		scp_len = 0 == scp ? 0 : sizeof scp;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(QK), query_key, length, 0);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(SCP), NULL, 0, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(SCP), &scp, scp_len, 0);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(Z), NULL, 0, 0);
 
 		if (!ok) {
-			g_carp("could not add GGEP \"QK\" to GUESS query");
+			g_carp("could not add GGEP \"QK\", "
+				"\"SCP\" and \"Z\" to GUESS query");
 			goto error;
 		}
 	}
@@ -3385,6 +3461,68 @@ build_search_message(const guid_t *muid, const char *query,
 		}
 	}
 
+	/*
+	 * IPv6-Ready: if we're sending a query requesting OOB hit delivery
+	 * to an IPv6 address, we must supply the GGEP "6" extension.
+	 */
+
+	if (need_6) {
+		gboolean ok;
+		host_addr_t primary = listen_addr_primary();
+		const guint8 *data = host_addr_ipv6(&primary);
+
+		g_assert(host_addr_is_ipv6(primary));
+
+		ok = ggep_stream_pack(&gs, GGEP_NAME(6), data, 16, 0);
+
+		if (!ok) {
+			g_carp("could not add GGEP \"6\" to query");
+			goto error;
+		}
+	}
+
+	/*
+	 * IPv6-Ready:
+	 *
+	 * It's important to indicate whether remote hosts should send back
+	 * IPv6 results, or whether we are not interested in IPv4 results.
+	 * We can't rely on the presence of "6" to convey that meaning, since
+	 * that extension is tied to OOB replies, and the OOB flag can be stripped
+	 * out, or the query could be OOB-proxied by a servent running both IPv4
+	 * and IPv6 and which would therefore not include "6" at all.
+	 *
+	 * By default, searches request IPv4-only hits.  If one wants IPv6 hits
+	 * as well as IPv4 ones, an empty "I6" will do.  However if the host is
+	 * only running on an IPv6 address (meaning it has no IPv4), then we only
+	 * want to return IPv6 hits: a single byte payload holding a 1 signals that.
+	 */
+
+	if (settings_running_ipv4()) {
+		if (settings_running_ipv6()) {
+			/*
+			 * Our primary listening address is IPv4, but when we also have
+			 * IPv6, let them know that we can accept IPv6 results and proxies
+			 * by including an empty "I6".
+			 */
+
+			if (!ggep_stream_pack(&gs, GGEP_NAME(I6), NULL, 0, 0)) {
+				g_carp("could not add GGEP \"I6\" to query");
+				/* It's OK, "I6" is not critical and can be missing */
+			}
+		}
+	} else if (settings_running_ipv6()) {
+		guint8 b = 1;
+
+		/*
+		 * Only running IPv6, let them know we're not interested in IPv4.
+		 */
+
+		if (!ggep_stream_pack(&gs, GGEP_NAME(I6), &b, sizeof b, 0)) {
+			g_carp("could not add GGEP \"I6\" to query");
+			/* It's OK, "I6" is not critical and can be missing */
+		}
+	}
+
 	msize += (glen = ggep_stream_close(&gs));
 
 	/*
@@ -3419,6 +3557,10 @@ build_search_message(const guid_t *muid, const char *query,
 
 	if (size != NULL)
 		*size = msize;
+
+if (GNET_PROPERTY(guess_client_debug) > 18 && query_key != NULL) {
+	dump_hex(stderr, "GUESS query", &msg.bytes, msize);
+}
 
 	return wcopy(&msg.bytes, msize);
 
@@ -3794,6 +3936,7 @@ search_new_muid(gboolean initial)
 {
 	struct guid *muid;
 	host_addr_t addr;
+	guint32 ipv4;
 	int i;
 
 	WALLOC(muid);
@@ -3807,19 +3950,22 @@ search_new_muid(gboolean initial)
 	 * we can encode an OOB-compatible MUID.  Likewise, we ignore the
 	 * `is_udp_firewalled' yet, as this can change between now and the time
 	 * we emit the query.
+	 *
+	 * IPv6-Ready: if our primary address is IPv6, the full IPv6 address will
+	 * be given via an additional GGEP "6" extension, added when we're building
+	 * the query message.
 	 */
 
-	addr = listen_addr();
+	addr = listen_addr_primary();
+	ipv4 = ipv6_ready_advertised_ipv4(addr);
 
 	for (i = 0; i < 100; i++) {
-		if (
-			udp_active() &&
-			host_addr_is_ipv4(addr) &&
-			host_addr_is_routable(addr)
-		)
-			guid_query_oob_muid(muid, addr, socket_listen_port(), initial);
-		else
+		if (udp_active() && host_addr_is_routable(addr)) {
+			guid_query_oob_muid(muid, host_addr_get_ipv4(ipv4),
+				socket_listen_port(), initial);
+		} else {
 			guid_query_muid(muid, initial);
+		}
 
 		if (NULL == g_hash_table_lookup(search_by_muid, muid))
 			return muid;
@@ -5083,7 +5229,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 
 	if (NULL != (endptr = is_strprefix(query, "urn:sha1:"))) {
 		if (SHA1_BASE32_SIZE != strlen(endptr) || !urn_get_sha1(query, NULL)) {
-			g_warning("Rejected invalid urn:sha1 search");
+			g_warning("rejected invalid urn:sha1 search");
 			qdup = NULL;
 			result = SEARCH_NEW_INVALID_URN;
 			goto failure;
@@ -5745,8 +5891,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	}
 	rc->tag = atom_str_get(shared_file_path(sf));
 
-	/* FIXME: Create time != modification time */
-	rc->create_time = shared_file_modification_time(sf);
+	rc->create_time = shared_file_creation_time(sf);
 	rs->records = g_slist_prepend(rs->records, rc);
 	rs->num_recs++;
 }
@@ -6338,19 +6483,23 @@ search_request_preprocess(struct gnutella_node *n,
 	static char stmp_1[4096];
 	char *search;
 	struct sha1 *last_sha1_digest = NULL;
+	host_addr_t ipv6_addr;
+	const guid_t *muid;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(sri != NULL);
 
+	muid = gnutella_header_get_muid(&n->header);
+
 	if (GNET_PROPERTY(guess_server_debug) > 18) {
 		if (NODE_IS_UDP(n)) {
 			g_debug("GUESS got %s, GUID=%s",
-			gmsg_node_infostr(n),
-			guid_hex_str(gnutella_header_get_muid(&n->header)));
+				gmsg_node_infostr(n), guid_hex_str(muid));
 		}
 	}
 
 	sri->duplicate = booleanize(isdup);
+	ZERO(&ipv6_addr);
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -6453,6 +6602,7 @@ search_request_preprocess(struct gnutella_node *n,
 		gboolean seen_query_key = FALSE;
 		gboolean wants_ipp = FALSE;
 		gboolean has_unknown = FALSE;
+		host_net_t ipp_net = HOST_NET_IPV4;
 
 	   	extra = n->size - 3 - sri->search_len;	/* Amount of extra data */
 		ext_prepare(exv, MAX_EXTVEC);
@@ -6470,13 +6620,13 @@ search_request_preprocess(struct gnutella_node *n,
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
 			g_debug("QUERY %s%s [hops=%u, TTL=%u] with extensions: "
-				"\"%s\" (%lu byte%s)",
+				"\"%s\" (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
-				(unsigned long) extra, 1 == extra ? "" : "s");
+				extra, 1 == extra ? "" : "s");
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
 		}
@@ -6516,7 +6666,17 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_GGEP_SCP:		/* Wants GUESS pongs in "IPP" */
-				wants_ipp = TRUE;
+				wants_ipp = TRUE;		/* GUESS >= v0.2 */
+				/* IPV6-Ready: check which addresses they want */
+				if (ext_paylen(e) > 0) {
+					const guint8 *payload = ext_payload(e);
+					guint8 flags = payload[0];
+
+					if (flags & SCP_F_NO_IPV4)
+						ipp_net = HOST_NET_IPV6;
+					else if (flags & SCP_F_IPV6)
+						ipp_net = HOST_NET_BOTH;
+				}
 				break;
 
 			case EXT_T_GGEP_WH:			/* Feature Query (What's New?) */
@@ -6673,6 +6833,44 @@ search_request_preprocess(struct gnutella_node *n,
 					n->attrs |= NODE_A_CAN_INFLATE;
 				break;
 
+			case EXT_T_GGEP_6:			/* IPv6-Ready -- has IPv6 OOB return */
+				if (
+					0 != ext_paylen(e) &&
+					GGEP_OK == ggept_gtkg_ipv6_extract(e, &ipv6_addr)
+				) {
+					/*
+					 * When present, "6" indicates that the querying servent
+					 * wants OOB.  The OOB flag could have been cleared by
+					 * a relaying servent not IPv6-Ready who would think the
+					 * IPv4 in the GUID is invalid.  Hence, force it locally
+					 * (without re-installing it in the message itself).
+					 */
+
+					sri->flags |= QUERY_F_OOB_REPLY;
+				}
+				/*
+				 * Always request cleanup in case we have to strip the OOB
+				 * flag for some reason.
+				 */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;
+				break;
+
+			case EXT_T_GGEP_I6:			/* IPv6-Ready -- supports IPv6 */
+				/*
+				 * If payload is empty, then it simply flags that IPv6 is
+				 * supported in addition to IPv4.  If non-empty (1 byte set
+				 * to TRUE) it means the host supports IPv6 only, so no IPv4
+				 * results should be sent back.
+				 */
+				sri->ipv6 = TRUE;
+				if (ext_paylen(e) > 0) {
+					const guint8 *b = ext_payload(e);
+					if (*b) {
+						sri->ipv6_only = TRUE;
+					}
+				}
+				break;
+
 			case EXT_T_UNKNOWN_GGEP:
 				search_log_ggep(n, e, NULL, "unknown");
 				break;
@@ -6787,13 +6985,24 @@ search_request_preprocess(struct gnutella_node *n,
 				goto drop;
 			} else if (!valid_query_key) {
 				gnet_stats_count_dropped(n, MSG_DROP_GUESS_INVALID_TOKEN);
-				/* Send new query key */
-				pcache_guess_acknowledge(n, FALSE, wants_ipp);
+				/*
+				 * Send new query key and forget we saw this message to be
+				 * able to handle it again when it comes back with the
+				 * proper query key this time.
+				 */
+				pcache_guess_acknowledge(n, FALSE, wants_ipp, ipp_net);
+				message_forget(muid, GTA_MSG_SEARCH, n);
 				goto drop;
 			} else {
-				gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+				if (wants_ipp) {
+					/* This is a GUESS 0.2 query, at least */
+					gnet_stats_count_general(GNR_QUERY_GUESS_02, 1);
+				} else {
+					/* This is a GUESS query from a legacy servent */
+					gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+				}
 				/* Send back a pong */
-				pcache_guess_acknowledge(n, TRUE, wants_ipp);
+				pcache_guess_acknowledge(n, TRUE, wants_ipp, ipp_net);
 			}
 
 			/*
@@ -6992,6 +7201,25 @@ skip_throttling:
 	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
 
 	/*
+	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
+	 */
+
+	if (sri->oob) {
+		host_addr_t addr;
+		guint16 port;
+
+		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
+			&addr, &port);
+
+		if (sri->ipv6_only && host_addr_is_ipv6(ipv6_addr)) {
+			sri->addr = ipv6_addr;
+		} else {
+			sri->addr = addr;
+		}
+		sri->port = port;
+	}
+
+	/*
 	 * If query comes from GTKG 0.91 or later, it understands GGEP "H".
 	 * Otherwise, it's an old servent or one unwilling to support this new
 	 * extension, so it will get its SHA1 URNs in ASCII form.
@@ -7016,12 +7244,8 @@ skip_throttling:
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
 				if (sri->oob) {
-					host_addr_t addr;
-					guint16 port;
-					guid_oob_get_addr_port(
-						gnutella_header_get_muid(&n->header), &addr, &port);
 					gm_snprintf(origin, sizeof origin, " from %s",
-						host_addr_port_to_string(addr, port));
+						host_addr_port_to_string(sri->addr, sri->port));
 				}
 				g_debug("GTKG %s%squery from %d.%d%s [MUID=%s]%s",
 					sri->oob ? "OOB " : "", requery ? "re-" : "",
@@ -7045,22 +7269,16 @@ skip_throttling:
 	 */
 
 	if (sri->oob) {
-		host_addr_t addr;
-		guint16 port;
-
-		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
-			&addr, &port);
-
 		/*
 		 * Verify against the hostile IP addresses...
 		 */
 
-		if (hostiles_check(addr)) {
+		if (hostiles_check(sri->addr)) {
 			gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 			goto drop;		/* Drop the message! */
 		}
 
-		if (is_my_address_and_port(addr, port)) {
+		if (is_my_address_and_port(sri->addr, sri->port)) {
 			gnet_stats_count_dropped(n, MSG_DROP_OWN_QUERY);
 			goto drop;
 		}
@@ -7070,12 +7288,18 @@ skip_throttling:
 		 * matches what we know about the listening IP for the node.
 		 * The UDP port can be different from the TCP port, so we can't
 		 * check that.
+		 *
+		 * IPv6-Ready: we can be connected to a leaf node via IPv6 because
+		 * we only support IPv6, but the leaf has both IPv4 and IPv6 and is
+		 * advertising IPv4...  Hence we must make sure the address is on
+		 * the same network before testing for equality.
 		 */
 
 		if (
 			(NODE_IS_LEAF(n) || NODE_IS_UDP(n)) &&
 			is_host_addr(n->gnet_addr) &&
-			!host_addr_equal(addr, n->gnet_addr)
+			host_addr_net(n->gnet_addr) == host_addr_net(sri->addr) && 
+			!host_addr_equal(sri->addr, n->gnet_addr)
 		) {
 			if (NODE_IS_UDP(n)) {
 				query_strip_oob_flag(n, n->data);
@@ -7084,7 +7308,7 @@ skip_throttling:
 					g_debug("QUERY (GUESS) %s from %s: removed OOB flag "
 						"(mismatching return address %s versus UDP %s)",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						node_infostr(n), host_addr_to_string(addr),
+						node_infostr(n), host_addr_to_string(sri->addr),
 						host_addr_to_string2(n->addr));
 				}
 			} else {
@@ -7097,7 +7321,8 @@ skip_throttling:
 					g_debug("QUERY dropped from %s: invalid OOB flag "
 						"(return address mismatch: %s, node: %s)",
 						node_infostr(n),
-						host_addr_port_to_string(addr, port), node_gnet_addr(n));
+						host_addr_port_to_string(sri->addr, sri->port),
+						node_gnet_addr(n));
 				}
 				goto drop;
 			}
@@ -7105,40 +7330,24 @@ skip_throttling:
 
 		/*
 		 * If the query contains an invalid IP:port, clear the OOB flag
-		 * if it comes from a leaf node (and we may then OOB-proxy it)
-		 * or UDP.  Drop it if it comes from an ultra node (results cannot
-		 * be sent back, no need to propagate further).
+		 * If it comes from a leaf node, we may then OOB-proxy it.
 		 */
 
-		if (!host_is_valid(addr, port)) {
-			if (NODE_IS_LEAF(n) || NODE_IS_UDP(n)) {
-				query_strip_oob_flag(n, n->data);
-				sri->oob = FALSE;
+		if (!host_is_valid(sri->addr, sri->port)) {
+			query_strip_oob_flag(n, n->data);
+			sri->oob = FALSE;
 
-				if (
-					GNET_PROPERTY(query_debug) ||
-					GNET_PROPERTY(oob_proxy_debug) ||
-					(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
-				) {
-					g_debug("QUERY %s%s from %s: removed OOB flag "
-						"(invalid return address: %s)",
-						NODE_IS_UDP(n) ? "(GUESS) " : "",
-						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						node_infostr(n), host_addr_port_to_string(addr, port));
-				}
-			} else {
-				gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
-
-				if (
-					GNET_PROPERTY(query_debug) ||
-					GNET_PROPERTY(oob_proxy_debug)
-				) {
-					g_debug("QUERY dropped, relayed via %s: "
-						"invalid return address: %s",
-						node_infostr(n), host_addr_port_to_string(addr, port));
-				}
-
-				goto drop;
+			if (
+				GNET_PROPERTY(query_debug) ||
+				GNET_PROPERTY(oob_proxy_debug) ||
+				(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
+			) {
+				g_debug("QUERY %s%s from %s: removed OOB flag "
+					"(invalid return address: %s)",
+					NODE_IS_UDP(n) ? "(GUESS) " : "",
+					guid_hex_str(gnutella_header_get_muid(&n->header)),
+					node_infostr(n),
+					host_addr_port_to_string(sri->addr, sri->port));
 			}
 		}
 	} else if (1 == gnutella_header_get_hops(&n->header)) {
@@ -7300,16 +7509,10 @@ search_request(struct gnutella_node *n,
 	 */
 
 	if (oob) {
-		host_addr_t addr;
-		guint16 port;
-
-		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
-			&addr, &port);
-
-		if (ctl_limit(addr, CTL_D_QUERY)) {
+		if (ctl_limit(sri->addr, CTL_D_QUERY)) {
 			if (GNET_PROPERTY(ctl_debug) > 3) {
 				g_debug("CTL ignoring OOB query to be answered at %s [%s]",
-					host_addr_to_string(addr), gip_country_cc(addr));
+					host_addr_to_string(sri->addr), gip_country_cc(sri->addr));
 			}
 			goto finish;
 		}
@@ -7325,6 +7528,20 @@ search_request(struct gnutella_node *n,
 			}
 			goto finish;
 		}
+	}
+
+	/*
+	 * Check IP address requirements.
+	 */
+
+	if (sri->ipv6_only && !settings_running_ipv6()) {
+		if (GNET_PROPERTY(query_debug) > 9) {
+			g_debug("QUERY %s%s \"%s\" ignored: wants only IPv6",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				sri->whats_new ? WHATS_NEW : safe_search);
+		}
+		goto finish;
 	}
 
 	/*
@@ -7434,8 +7651,15 @@ search_request(struct gnutella_node *n,
 								sri->exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
-				g_debug("\tflags=0x%04x ttl=%u hops=%u",
+				g_debug("\tflags=0x%04x (%s%s%s%s%s%s%s) ttl=%u hops=%u",
 						(guint) sri->flags,
+						(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
+						(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
+						(sri->flags & QUERY_F_XML) ? " XML" : "",
+						(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+						(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+						(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+						(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
 						gnutella_header_get_ttl(&n->header),
 						gnutella_header_get_hops(&n->header));
 			}
@@ -7460,20 +7684,25 @@ search_request(struct gnutella_node *n,
 		 */
 
 		if (qctx->found) {
-			gboolean ggep_h, should_oob;
+			gboolean should_oob;
+			unsigned flags = 0;
 
-			ggep_h = 0 != (sri->flags & QUERY_F_GGEP_H);
+			flags |= (sri->flags & QUERY_F_GGEP_H) ? QHIT_F_GGEP_H : 0;
+			flags |= sri->ipv6 ? QHIT_F_IPV6 : 0;
+			flags |= sri->ipv6_only ? QHIT_F_IPV6_ONLY : 0;
+
 			should_oob = oob &&
 							GNET_PROPERTY(process_oob_queries) && 
 							GNET_PROPERTY(recv_solicited_udp) && 
 							udp_active() &&
-							gnutella_header_get_hops(&n->header) > 1;
+							gnutella_header_get_hops(&n->header) > 1 &&
+							settings_running_same_net(sri->addr);
 
 			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
-					sri->secure_oob, ggep_h);
+					sri->addr, sri->port, sri->secure_oob, flags);
 			} else {
-				qhit_send_results(n, qctx->files, qctx->found, &muid, ggep_h);
+				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
 			}
 		}
 
@@ -7558,6 +7787,7 @@ search_compact(struct gnutella_node *n)
 	gboolean has_ggep = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
+	g_assert(n->data != NULL);
 
 	search = n->data + 2;	/* skip flags */
 	search_len = clamp_strlen(search, n->size - 2);
@@ -7801,6 +8031,15 @@ search_compact(struct gnutella_node *n)
 				continue;
 
 			switch (e->ext_token) {
+			case EXT_T_GGEP_6:
+				if (16 != ext_paylen(e))
+					continue;	/* Strip improperly sized value */
+				if (n->msg_flags & NODE_M_FINISH_IPV6)
+					continue;	/* We'll emit one for our own address */
+				if (QUERY_F_OOB_REPLY & search_request_get_flags(n))
+					break;
+				/* "6" only required for OOB replies to an IPv6 address */
+				continue;
 			case EXT_T_GGEP_u:
 				if (n->msg_flags & (NODE_M_STRIP_GGEP_u | NODE_M_WHATS_NEW))
 					continue;
@@ -7819,6 +8058,7 @@ search_compact(struct gnutella_node *n)
 			default:
 				if (n->msg_flags & NODE_M_WHATS_NEW)
 					continue;
+				/* Other GGEP extensions kept if not a "What's New?" */
 				break;
 			}
 
@@ -7834,6 +8074,27 @@ search_compact(struct gnutella_node *n)
 					g_warning("QUERY %s could not write GGEP \"%s\"",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
 						ext_ggep_id_str(e));
+				}
+			}
+		}
+
+		/*
+		 * IPv6-Ready: if we're OOB-proxying a query and we're running on IPv6,
+		 * so we must add our IPv6 listening address.
+		 */
+
+		if (n->msg_flags & NODE_M_FINISH_IPV6) {
+			gboolean ok;
+			const host_addr_t addr6 = listen_addr6();
+			const guint8 *ipv6 = host_addr_ipv6(&addr6);
+
+			ok = ggep_stream_pack(&gs, GGEP_NAME(6), ipv6, 16, 0);
+
+			if (!ok) {
+				if (GNET_PROPERTY(query_debug)) {
+					g_warning("QUERY %s could not write GGEP \"6\" "
+						"for our address",
+						guid_hex_str(gnutella_header_get_muid(&n->header)));
 				}
 			}
 		}
@@ -7859,10 +8120,10 @@ search_compact(struct gnutella_node *n)
 				GNET_PROPERTY(guess_server_debug) > 5
 			)
 		) {
-			g_debug("QUERY %s%s search extension part %lu -> %lu bytes",
+			g_debug("QUERY %s%s search extension part %zu -> %zu bytes",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) extra, (unsigned long) newlen);
+				extra, newlen);
 		}
 
 		/*
@@ -7889,10 +8150,10 @@ search_compact(struct gnutella_node *n)
 		if (GNET_PROPERTY(query_debug) > 13) {
 			if (newlen > 0) {
 				exvcnt = ext_parse(start, newlen, exv, MAX_EXTVEC);
-				g_debug("QUERY %s%s rewritten extensions (%lu byte%s)",
+				g_debug("QUERY %s%s rewritten extensions (%zu byte%s)",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					(unsigned long) newlen, 1 == newlen ? "" : "s");
+					newlen, 1 == newlen ? "" : "s");
 				ext_dump(stderr, exv, exvcnt, "> ", "\n",
 					GNET_PROPERTY(query_debug) > 14);
 				ext_reset(exv, MAX_EXTVEC);
@@ -7904,18 +8165,17 @@ search_compact(struct gnutella_node *n)
 		}
 	} else if (newlen > extra) {
 		if (GNET_PROPERTY(query_debug)) {
-			g_warning("QUERY %s%s not rewritten: new size %lu byte%s > old %lu",
+			g_warning("QUERY %s%s not rewritten: new size %zu byte%s > old %zu",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) newlen, 1 == newlen ? "" : "s",
-				(unsigned long) extra);
+				newlen, 1 == newlen ? "" : "s", extra);
 		}
 	} else {
 		if (GNET_PROPERTY(query_debug) > 13) {
-			g_info("QUERY %s%s not rewritten: no change in size (%lu byte%s)",
+			g_info("QUERY %s%s not rewritten: no change in size (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				(unsigned long) newlen, 1 == newlen ? "" : "s");
+				newlen, 1 == newlen ? "" : "s");
 		}
 	}
 

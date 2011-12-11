@@ -20,11 +20,12 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
+#include "lib/log.h"
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 const datum nullitem = {0, 0};
@@ -372,7 +373,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 
 #ifdef LRU
 	/* Initialize LRU cache on the first page requested */
-	if (G_UNLIKELY(NULL == db->cache)) {
+	if G_UNLIKELY(NULL == db->cache) {
 		lru_init(db);
 	}
 #endif
@@ -388,7 +389,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 		{
 			gboolean loaded;
 
-			if (!readbuf(db, pagnum, &loaded)) {
+			if G_UNLIKELY(!readbuf(db, pagnum, &loaded)) {
 				db->pagbno = -1;
 				return FALSE;
 			}
@@ -410,21 +411,21 @@ fetch_pagbuf(DBM *db, long pagnum)
 
 		db->pagread++;
 		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
-		if (got < 0) {
-			g_warning("sdbm: \"%s\": cannot read page #%ld: %s",
-				sdbm_name(db), pagnum, g_strerror(errno));
+		if G_UNLIKELY(got < 0) {
+			g_critical("sdbm: \"%s\": cannot read page #%ld: %m",
+				sdbm_name(db), pagnum);
 			ioerr(db, FALSE);
 			db->pagbno = -1;
 			return FALSE;
 		}
-		if (got < DBM_PBLKSIZ) {
+		if G_UNLIKELY(got < DBM_PBLKSIZ) {
 			if (got > 0)
-				g_warning("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
+				g_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
 					sdbm_name(db), (unsigned) got, pagnum);
 			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
 		}
-		if (!sdbm_internal_chkpage(db->pagbuf)) {
-			g_warning("sdbm: \"%s\": corrupted page #%ld, clearing",
+		if G_UNLIKELY(!sdbm_internal_chkpage(db->pagbuf)) {
+			g_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
 				sdbm_name(db), pagnum);
 			memset(db->pagbuf, 0, DBM_PBLKSIZ);
 			db->bad_pages++;
@@ -486,8 +487,8 @@ flush_dirbuf(DBM *db)
 	}
 #endif
 
-	if (w != DBM_DBLKSIZ) {
-		g_warning("sdbm: \"%s\": cannot flush dir block #%ld: %s",
+	if G_UNLIKELY(w != DBM_DBLKSIZ) {
+		g_critical("sdbm: \"%s\": cannot flush dir block #%ld: %s",
 			sdbm_name(db), db->dirbno,
 			-1 == w ? g_strerror(errno) : "partial write");
 
@@ -501,7 +502,7 @@ flush_dirbuf(DBM *db)
 void
 sdbm_close(DBM *db)
 {
-	if (db == NULL)
+	if G_UNLIKELY(db == NULL)
 		errno = EINVAL;
 	else {
 #ifdef LRU
@@ -526,13 +527,22 @@ sdbm_close(DBM *db)
 	}
 }
 
+#define SDBM_WARN_ITERATING(db) G_STMT_START {			\
+	if G_UNLIKELY((db)->flags & DBM_ITERATING) {		\
+		s_carp_once("%s() called "						\
+			"whilst iterating on SDBM database \"%s\"",	\
+			G_STRFUNC, sdbm_name(db));					\
+	}													\
+} G_STMT_END
+
 datum
 sdbm_fetch(DBM *db, datum key)
 {
-	if (db == NULL || bad(key)) {
+	if G_UNLIKELY(db == NULL || bad(key)) {
 		errno = EINVAL;
 		return nullitem;
 	}
+	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
 
@@ -543,10 +553,11 @@ sdbm_fetch(DBM *db, datum key)
 int
 sdbm_exists(DBM *db, datum key)
 {
-	if (db == NULL || bad(key)) {
+	if G_UNLIKELY(db == NULL || bad(key)) {
 		errno = EINVAL;
 		return -1;
 	}
+	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
 
@@ -557,19 +568,20 @@ sdbm_exists(DBM *db, datum key)
 int
 sdbm_delete(DBM *db, datum key)
 {
-	if (db == NULL || bad(key)) {
+	if G_UNLIKELY(db == NULL || bad(key)) {
 		errno = EINVAL;
 		return -1;
 	}
-	if (db->flags & DBM_RDONLY) {
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR_W) {
+	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
-	if (!getpage(db, exhash(key))) {
+	SDBM_WARN_ITERATING(db);
+	if G_UNLIKELY(!getpage(db, exhash(key))) {
 		ioerr(db, FALSE);
 		return -1;
 	}
@@ -582,7 +594,7 @@ sdbm_delete(DBM *db, datum key)
 	 * update the page file
 	 */
 
-	if (!flush_pagbuf(db))
+	if G_UNLIKELY(!flush_pagbuf(db))
 		return -1;
 
 	return 0;
@@ -596,18 +608,18 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	gboolean need_split = FALSE;
 	int result = 0;
 
-	if (0 == val.dsize) {
+	if G_UNLIKELY(0 == val.dsize) {
 		val.dptr = "";
 	}
-	if (db == NULL || bad(key) || bad(val)) {
+	if G_UNLIKELY(db == NULL || bad(key) || bad(val)) {
 		errno = EINVAL;
 		return -1;
 	}
-	if (db->flags & DBM_RDONLY) {
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR_W) {
+	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
@@ -616,13 +628,13 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	 * is the pair too big (or too small) for this database ?
 	 */
 
-	if (!sdbm_storage_needs(key.dsize, val.dsize, &need)) {
+	if G_UNLIKELY(!sdbm_storage_needs(key.dsize, val.dsize, &need)) {
 		errno = EINVAL;
 		return -1;
 	}
 
 	hash = exhash(key);
-	if (!getpage(db, hash)) {
+	if G_UNLIKELY(!getpage(db, hash)) {
 		ioerr(db, FALSE);
 		return -1;
 	}
@@ -653,17 +665,17 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 			db->repl_stores++;
 			if (replaceable(val.dsize, valsize, big)) {
 				db->repl_inplace++;
-				if (0 != replpair(db, db->pagbuf, idx, val))
+				if G_UNLIKELY(0 != replpair(db, db->pagbuf, idx, val))
 					return -1;
 				goto inserted;
 			} else {
-				if (!delipair(db, db->pagbuf, idx, TRUE))
+				if G_UNLIKELY(!delipair(db, db->pagbuf, idx, TRUE))
 					return -1;
 			}
 		}
 	}
 #ifdef SEEDUPS
-	else if (duppair(db, db->pagbuf, key))
+	else if G_UNLIKELY(duppair(db, db->pagbuf, key))
 		return 1;
 #endif
 
@@ -673,7 +685,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 
 	need_split = !fitpair(db->pagbuf, need);
 
-	if (need_split && !makroom(db, hash, need))
+	if G_UNLIKELY(need_split && !makroom(db, hash, need))
 		return -1;
 
 	/*
@@ -684,7 +696,7 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	 * In any case, we continue to mark the page as dirty if we did a split.
 	 */
 
-	if (!putpair(db, db->pagbuf, key, val))
+	if G_UNLIKELY(!putpair(db, db->pagbuf, key, val))
 		result = -1;
 
 inserted:
@@ -696,10 +708,10 @@ inserted:
 	 */
 
 #ifdef LRU
-	if (!force_flush_pagbuf(db, need_split && !db->is_volatile))
+	if G_UNLIKELY(!force_flush_pagbuf(db, need_split && !db->is_volatile))
 		return -1;
 #else
-	if (!flush_pagbuf(db))
+	if G_UNLIKELY(!flush_pagbuf(db))
 		return -1;
 #endif
 
@@ -709,12 +721,14 @@ inserted:
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
+	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, flags, NULL);
 }
 
 int
 sdbm_replace(DBM *db, datum key, datum val, gboolean *existed)
 {
+	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, DBM_REPLACE, existed);
 }
 
@@ -750,7 +764,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * split the current page
 		 */
 
-		splpage(cur, pag, New, db->hmask + 1);
+		splpage(db, cur, pag, New, db->hmask + 1);
 
 		/*
 		 * address of the new page
@@ -803,14 +817,14 @@ makroom(DBM *db, long int hash, size_t need)
 			 */
 
 #ifdef LRU
-			if (!force_flush_pagbuf(db, !db->is_volatile)) {
+			if G_UNLIKELY(!force_flush_pagbuf(db, !db->is_volatile)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 				db->spl_errors++;
 				goto aborted;
 			}
 
 			/* Get new page address from LRU cache */
-			if (!readbuf(db, newp, NULL)) {
+			if G_UNLIKELY(!readbuf(db, newp, NULL)) {
 				/*
 				 * Cannot happen if database is not volatile: we have at least
 				 * one clean page, the page we just successfully flushed above.
@@ -831,7 +845,7 @@ makroom(DBM *db, long int hash, size_t need)
 			}
 			pag = db->pagbuf;		/* Must refresh pointer to current page */
 #else
-			if (!flush_pagbuf(db)) {
+			if G_UNLIKELY(!flush_pagbuf(db)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 				db->spl_errors++;
 				goto aborted;
@@ -861,19 +875,19 @@ makroom(DBM *db, long int hash, size_t need)
 			 * volatile.
 			 */
 
-			if (!cachepag(db, New, newp)) {
+			if G_UNLIKELY(!cachepag(db, New, newp)) {
 				memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 				db->spl_errors++;
 				goto aborted;
 			}
 		}
 #endif	/* LRU */
-		else if (
+		else if G_UNLIKELY((
 			db->pagwrite++,
-			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0
+			compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0)
 		) {
-			g_warning("sdbm: \"%s\": cannot flush new page #%ld: %s",
-				sdbm_name(db), newp, g_strerror(errno));
+			g_warning("sdbm: \"%s\": cannot flush new page #%ld: %m",
+				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			memcpy(pag, cur, DBM_PBLKSIZ);	/* Undo split */
 			db->spl_errors++;
@@ -906,7 +920,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * page flush or mark the page dirty.
 		 */
 
-		if (!fits) {
+		if G_UNLIKELY(!fits) {
 #ifdef LRU
 			if (!force_flush_pagbuf(db, !db->is_volatile))
 				goto restore;
@@ -928,8 +942,9 @@ makroom(DBM *db, long int hash, size_t need)
 		 * DB has reached 32 MiB.
 		 */
 
-		if (!setdbit(db, db->curbit)) {
-			g_warning("sdbm: \"%s\": cannot set bit in forest bitmap for 0x%lx",
+		if G_UNLIKELY(!setdbit(db, db->curbit)) {
+			g_critical("sdbm: \"%s\": "
+				"cannot set bit in forest bitmap for 0x%lx",
 				sdbm_name(db), db->curbit);
 			db->spl_errors++;
 			db->spl_corrupt++;
@@ -954,7 +969,7 @@ makroom(DBM *db, long int hash, size_t need)
 	 * we still cannot fit the key. say goodnight.
 	 */
 
-	g_warning("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
+	g_critical("sdbm: \"%s\": cannot insert after DBM_SPLTMAX (%d) attempts",
 		sdbm_name(db), DBM_SPLTMAX);
 
 	return FALSE;
@@ -1003,8 +1018,8 @@ restore:
 		if (failed) {
 			db->spl_errors++;
 			db->spl_corrupt++;
-			g_warning("sdbm: \"%s\": cannot undo split of page #%lu: %s",
-				sdbm_name(db), curbno, g_strerror(errno));
+			g_critical("sdbm: \"%s\": cannot undo split of page #%lu: %m",
+				sdbm_name(db), curbno);
 		}
 	} else {
 		/*
@@ -1020,8 +1035,8 @@ restore:
 #endif
 		memset(New, 0, DBM_PBLKSIZ);
 		if (compat_pwrite(db->pagf, New, DBM_PBLKSIZ, OFF_PAG(newp)) < 0) {
-			g_warning("sdbm: \"%s\": cannot zero-back new split page #%ld: %s",
-				sdbm_name(db), newp, g_strerror(errno));
+			g_critical("sdbm: \"%s\": cannot zero-back new split page #%ld: %m",
+				sdbm_name(db), newp);
 			ioerr(db, TRUE);
 			db->spl_errors++;
 			db->spl_corrupt++;
@@ -1053,7 +1068,7 @@ iteration_done(DBM *db)
 	}
 #endif
 
-	db->flags &= ~DBM_KEYCHECK;		/* Iteration done */
+	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 	return nullitem;
 }
 
@@ -1064,13 +1079,17 @@ iteration_done(DBM *db)
 datum
 sdbm_firstkey(DBM *db)
 {
-	if (db == NULL) {
+	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return iteration_done(db);
 	}
 
+	if G_UNLIKELY(db->flags & DBM_ITERATING)
+		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
+
+	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
-	if (db->pagtail < 0)
+	if G_UNLIKELY(db->pagtail < 0)
 		return iteration_done(db);
 
 	/*
@@ -1098,6 +1117,16 @@ sdbm_firstkey_safe(DBM *db)
 {
 	if (db != NULL) {
 		db->flags |= DBM_KEYCHECK;
+
+		/*
+		 * Loudly warn if called on a read-only database since this will
+		 * not allow any fixup to happen should the database be corrupted.
+		 */
+
+		if G_UNLIKELY(db->flags & DBM_RDONLY) {
+			g_carp("%s() called on read-only SDBM database \"%s\"",
+				G_STRFUNC, sdbm_name(db));
+		}
 	}
 	return sdbm_firstkey(db);
 }
@@ -1105,7 +1134,7 @@ sdbm_firstkey_safe(DBM *db)
 datum
 sdbm_nextkey(DBM *db)
 {
-	if (db == NULL) {
+	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return iteration_done(db);
 	}
@@ -1160,7 +1189,7 @@ getpage(DBM *db, long int hash)
 
 	pagb = getpageb(db, hash, TRUE);
 
-	if (!fetch_pagbuf(db, pagb))
+	if G_UNLIKELY(!fetch_pagbuf(db, pagb))
 		return FALSE;
 
 	return TRUE;
@@ -1192,7 +1221,7 @@ validpage(DBM *db, long pagb)
 		hash = exhash(key);
 		kpag = getpageb(db, hash, FALSE);
 
-		if (kpag != pagb) {
+		if G_UNLIKELY(kpag != pagb) {
 			if (delipair(db, pag, i, TRUE)) {
 				removed++;
 			} else {
@@ -1201,7 +1230,7 @@ validpage(DBM *db, long pagb)
 					"not belonging to page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
-		} else if (!chkipair(db, pag, i)) {
+		} else if G_UNLIKELY(!chkipair(db, pag, i)) {
 			/* Don't delete big data here, bitmap will be fixed later */
 			if (delipair(db, pag, i, FALSE)) {
 				corrupted++;
@@ -1213,7 +1242,7 @@ validpage(DBM *db, long pagb)
 		}
 	}
 
-	if (removed > 0 || corrupted > 0) {
+	if G_UNLIKELY(removed > 0 || corrupted > 0) {
 		if (removed > 0) {
 			db->removed_keys += removed;
 			g_warning("sdbm: \"%s\": removed %d/%d key%s "
@@ -1249,14 +1278,14 @@ fetch_dirbuf(DBM *db, long dirb)
 
 		db->dirread++;
 		got = compat_pread(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(dirb));
-		if (got < 0) {
-			g_warning("sdbm: \"%s\": could not read dir page #%ld: %s",
-				sdbm_name(db), dirb, g_strerror(errno));
+		if G_UNLIKELY(got < 0) {
+			g_critical("sdbm: \"%s\": could not read dir page #%ld: %m",
+				sdbm_name(db), dirb);
 			ioerr(db, FALSE);
 			return FALSE;
 		}
 
-		if (0 == got) {
+		if G_UNLIKELY(0 == got) {
 			memset(db->dirbuf, 0, DBM_DBLKSIZ);
 		}
 		db->dirbno = dirb;
@@ -1277,7 +1306,7 @@ getdbit(DBM *db, long int dbit)
 	c = dbit / BYTESIZ;
 	dirb = c / DBM_DBLKSIZ;
 
-	if (!fetch_dirbuf(db, dirb))
+	if G_UNLIKELY(!fetch_dirbuf(db, dirb))
 		return FALSE;
 
 	return 0 != (db->dirbuf[c % DBM_DBLKSIZ] & (1 << dbit % BYTESIZ));
@@ -1292,7 +1321,7 @@ setdbit(DBM *db, long int dbit)
 	c = dbit / BYTESIZ;
 	dirb = c / DBM_DBLKSIZ;
 
-	if (!fetch_dirbuf(db, dirb))
+	if G_UNLIKELY(!fetch_dirbuf(db, dirb))
 		return FALSE;
 
 	db->dirbuf[c % DBM_DBLKSIZ] |= (1 << dbit % BYTESIZ);
@@ -1301,7 +1330,7 @@ setdbit(DBM *db, long int dbit)
 	if (dbit >= db->maxbno)
 		db->maxbno += DBM_DBLKSIZ * BYTESIZ;
 #else
-	if (OFF_DIR((dirb+1)) * BYTESIZ > db->maxbno) 
+	if G_UNLIKELY(OFF_DIR((dirb+1)) * BYTESIZ > db->maxbno) 
 		db->maxbno = OFF_DIR((dirb+1)) * BYTESIZ;
 #endif
 
@@ -1311,7 +1340,7 @@ setdbit(DBM *db, long int dbit)
 		db->dirwdelayed++;
 	} else
 #endif
-	if (!flush_dirbuf(db))
+	if G_UNLIKELY(!flush_dirbuf(db))
 		return FALSE;
 
 	return TRUE;
@@ -1351,9 +1380,9 @@ getnext(DBM *db)
 		db->keyptr = 0;
 		db->blkptr++;
 
-		if (OFF_PAG(db->blkptr) > db->pagtail)
+		if G_UNLIKELY(OFF_PAG(db->blkptr) > db->pagtail)
 			break;
-		else if (!fetch_pagbuf(db, db->blkptr))
+		else if G_UNLIKELY(!fetch_pagbuf(db, db->blkptr))
 			goto next_page;		/* Skip faulty page */
 
 		if (db->flags & DBM_KEYCHECK)
@@ -1372,27 +1401,27 @@ getnext(DBM *db)
 int
 sdbm_deletekey(DBM *db)
 {
-	if (db == NULL) {
+	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
-	if (db->flags & DBM_RDONLY) {
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
 	}
-	if (db->flags & DBM_IOERR_W) {
+	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
 		return -1;
 	}
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
-	if (0 == db->keyptr) {
+	if G_UNLIKELY(0 == db->keyptr) {
 		errno = ENOENT;
 		return -1;
 	}
 
-	if (!delnpair(db, db->pagbuf, db->keyptr))
+	if G_UNLIKELY(!delnpair(db, db->pagbuf, db->keyptr))
 		return -1;
 
 	db->keyptr--;
@@ -1401,7 +1430,7 @@ sdbm_deletekey(DBM *db)
 	 * update the page file
 	 */
 
-	if (!flush_pagbuf(db))
+	if G_UNLIKELY(!flush_pagbuf(db))
 		return -1;
 
 	return 0;
@@ -1416,20 +1445,20 @@ sdbm_value(DBM *db)
 {
 	datum val;
 
-	if (db == NULL) {
+	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return nullitem;
 	}
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
-	if (0 == db->keyptr) {
+	if G_UNLIKELY(0 == db->keyptr) {
 		errno = ENOENT;
 		return nullitem;
 	}
 
 	val = getnval(db, db->pagbuf, db->keyptr);
-	if (NULL == val.dptr) {
+	if G_UNLIKELY(NULL == val.dptr) {
 		errno = ENOENT;
 		return nullitem;
 	}
@@ -1451,11 +1480,11 @@ sdbm_sync(DBM *db)
 
 #ifdef LRU
 	npag = flush_dirtypag(db);
-	if (-1 == npag)
+	if G_UNLIKELY(-1 == npag)
 		return -1;
 
 	if (db->dirbuf_dirty) {
-		if (!flush_dirbuf(db))
+		if G_UNLIKELY(!flush_dirbuf(db))
 			return -1;
 		npag++;
 	}
@@ -1485,8 +1514,13 @@ sdbm_shrink(DBM *db)
 	filestat_t buf;
 	filesize_t offset;
 
-	if (-1 == fstat(db->pagf, &buf))
+	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
 		return FALSE;
+
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
+		g_carp("%s() called on read-only SDBM database \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+	}
 
 	/*
 	 * Look how many full pages we need in the .pag file by remembering the
@@ -1524,7 +1558,7 @@ sdbm_shrink(DBM *db)
 #endif
 
 		r = compat_pread(db->pagf, &count, sizeof count, offset);
-		if (-1 == r || r != sizeof count)
+		if G_UNLIKELY(-1 == r || r != sizeof count)
 			return FALSE;
 
 	computed:
@@ -1565,7 +1599,7 @@ sdbm_shrink(DBM *db)
 		filesize = (maxsize + mask) & ~mask;
 		filesize = MAX(filesize, DBM_DBLKSIZ);	/* Ensure 1 block at least */
 
-		if (-1 == fstat(db->dirf, &buf))
+		if G_UNLIKELY(-1 == fstat(db->dirf, &buf))
 			return FALSE;
 
 		/*
@@ -1576,7 +1610,7 @@ sdbm_shrink(DBM *db)
 			goto no_idx_change;		/* File smaller than needed, full of 0s */
 
 		if (filesize < buf.st_size) {
-			if (-1 == ftruncate(db->dirf, filesize))
+			if G_UNLIKELY(-1 == ftruncate(db->dirf, filesize))
 				return FALSE;
 			db->maxbno = filesize * BYTESIZ;
 		}
@@ -1590,7 +1624,7 @@ sdbm_shrink(DBM *db)
 		if (db->dirbno > dirb)
 			db->dirbno = -1;	/* Discard since after our truncation point */
 
-		if (!fetch_dirbuf(db, dirb))
+		if G_UNLIKELY(!fetch_dirbuf(db, dirb))
 			return FALSE;
 
 		g_assert(filesize - maxsize < DBM_DBLKSIZ);
@@ -1628,13 +1662,13 @@ sdbm_shrink(DBM *db)
 		db->dirwdelayed++;
 	} else
 #endif
-	if (!flush_dirbuf(db))
+	if G_UNLIKELY(!flush_dirbuf(db))
 		return FALSE;
 
 no_idx_change:
 
 #ifdef BIGDATA
-	if (!big_shrink(db))
+	if G_UNLIKELY(!big_shrink(db))
 		return FALSE;
 #endif
 
@@ -1649,19 +1683,19 @@ no_idx_change:
 int
 sdbm_clear(DBM *db)
 {
-	if (db == NULL) {
+	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
-	if (db->flags & DBM_RDONLY) {
+	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
 	}
-	if (-1 == ftruncate(db->pagf, 0))
+	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
 		return -1;
 	db->pagbno = -1;
 	db->pagtail = 0L;
-	if (-1 == ftruncate(db->dirf, 0))
+	if G_UNLIKELY(-1 == ftruncate(db->dirf, 0))
 		return -1;
 	db->dirbno = -1;
 	db->maxbno = 0;
@@ -1674,7 +1708,7 @@ sdbm_clear(DBM *db)
 #endif
 	sdbm_clearerr(db);
 #ifdef BIGDATA
-	if (!big_clear(db))
+	if G_UNLIKELY(!big_clear(db))
 		return -1;
 #endif
 	return 0;

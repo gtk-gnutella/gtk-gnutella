@@ -34,8 +34,6 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
-
 #include "bh_upload.h"
 #include "share.h"
 #include "bsched.h"
@@ -57,6 +55,7 @@
 #include "lib/gnet_host.h"
 #include "lib/concat.h"
 #include "lib/halloc.h"
+#include "lib/product.h"
 #include "lib/unsigned.h"
 #include "lib/stringify.h"
 #include "lib/url.h"
@@ -217,7 +216,7 @@ browse_host_read_html(struct special_upload *ctx,
 		case BH_STATE_LIBRARY_INFO:
 			if (!bh->b_data) {
 				bh->w_buf_size = w_concat_strings(&bh->w_buf,
-					"<h1>" GTA_PRODUCT_NAME "</h1>\r\n"
+					"<h1>", product_get_name(), "</h1>\r\n"
 					"<h3>", version_get_string(),
 				   	" sharing ",
 					uint64_to_string(shared_files_scanned()),
@@ -618,6 +617,7 @@ browse_host_open(
 		args.cq = callout_queue;
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
+		args.reduced = FALSE;
 		args.gzip = 0 != (flags & BH_F_GZIP);
 		args.buffer_flush = INT_MAX;		/* Flush only at the end */
 		args.buffer_size = BH_BUFSIZ;

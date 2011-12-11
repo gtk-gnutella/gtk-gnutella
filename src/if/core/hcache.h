@@ -36,17 +36,22 @@ typedef enum {
     HCACHE_VALID_ANY,     /**< All the Gnet nodes to which we were able to
                                connect and transmit at least one packet
                                (indicating a successful handshake). */
-	HCACHE_FRESH_ULTRA,	  /**< Fresh ultra nodes to which we did not
+	HCACHE_FRESH_ULTRA,	  /**< Fresh IPv4 ultra nodes to which we did not
                                yet try to connect. (X-Try-Ultrapeer)*/
-    HCACHE_VALID_ULTRA,   /**< Valid ultra nodes */
+    HCACHE_VALID_ULTRA,   /**< Valid IPv4 ultra nodes */
+	HCACHE_FRESH_ULTRA6,  /**< Fresh IPv6 ultra nodes to which we did not
+                               yet try to connect. (X-Try-Ultrapeer)*/
+    HCACHE_VALID_ULTRA6,  /**< Valid IPv6 ultra nodes */
     HCACHE_TIMEOUT,       /**< We put in this list all the Gnet nodes which
                                gave us a timeout during connection. */
     HCACHE_BUSY,          /**< We put in this list all the Gnet nodes which
                                gave us a 503 (busy) during connection. */
     HCACHE_UNSTABLE,      /**< Unstable IPs */
     HCACHE_ALIEN,         /**< Alien networks (protected by auth challenges) */
-    HCACHE_GUESS,         /**< Running GUESS cache (MRU-managed) */
-    HCACHE_GUESS_INTRO,   /**< GUESS introduction cache (LRU-managed) */
+    HCACHE_GUESS,         /**< Running GUESS IPv4 cache (MRU-managed) */
+    HCACHE_GUESS_INTRO,   /**< GUESS IPv4 introduction cache (LRU-managed) */
+    HCACHE_GUESS6,        /**< Running GUESS IPv6 cache (MRU-managed) */
+    HCACHE_GUESS6_INTRO,  /**< GUESS IPv6 introduction cache (LRU-managed) */
 	HCACHE_NONE,
     HCACHE_MAX
 } hcache_type_t;
@@ -54,9 +59,18 @@ typedef enum {
 typedef enum {
     HOST_ANY,
     HOST_ULTRA,
+    HOST_ULTRA6,
     HOST_GUESS,
+    HOST_GUESS6,
     HOST_MAX
 } host_type_t;
+
+typedef enum {
+    HOST_NET_IPV4,
+    HOST_NET_IPV6,
+    HOST_NET_BOTH,
+    HOST_NET_MAX
+} host_net_t;
 
 typedef enum {
 	HCACHE_CLASS_HOST,		/**< Classic Gnutella host cache */

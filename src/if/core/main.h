@@ -26,16 +26,33 @@
 
 #include "common.h"
 
-guint32 main_get_build(void);
-const char *main_get_build_full(void);
-
 #ifdef CORE_SOURCES
 
-void gtk_gnutella_exit(int n);
-void gtk_gnutella_request_shutdown(void);
-gboolean debugging(guint t);
-const char *gtk_gnutella_interface(void);
+/**
+ * Mode for gtk_gnutella_request_shutdown().
+ */
 
+enum shutdown_mode {
+	GTKG_SHUTDOWN_NORMAL = 1,
+	GTKG_SHUTDOWN_ASSERT,
+	GTKG_SHUTDOWN_ERROR,
+	GTKG_SHUTDOWN_MEMORY,
+	GTKG_SHUTDOWN_SIGNAL
+};
+
+/**
+ * Shutdown options.
+ */
+
+#define GTKG_SHUTDOWN_OFAST		(1U << 0) /**< BYE sent to supporting nodes */
+#define GTKG_SHUTDOWN_ORESTART	(1U << 1) /**< Restart gtk-gnutella */
+
+void gtk_gnutella_exit(int n);
+void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);
+gboolean debugging(guint t);
+
+char *main_command_line(void);
+ 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_main_h_ */
 

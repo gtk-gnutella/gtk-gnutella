@@ -121,12 +121,14 @@ void gm_slist_free_null(GSList **sl_ptr);
 void gm_list_free_null(GList **l_ptr);
 void gm_hash_table_destroy_null(GHashTable **h_ptr);
 
-gboolean gm_xprintf_is_signal_safe(void);
 size_t gm_vsnprintf(char *str, size_t n, char const *fmt, va_list args);
 size_t gm_snprintf(char *str, size_t n,
 	char const *fmt, ...) G_GNUC_PRINTF(3, 4);
+size_t gm_snprintf_unchecked(char *dst, size_t size,
+	const char *fmt, ...); /* No G_GNUC_PRINTF here, on purpose! */
 
 void gm_savemain(int argc, char **argv, char **env);
+int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
 
@@ -237,73 +239,5 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define GM_LIST_FOREACH(list, iter) \
 	for ((iter) = (list); NULL != (iter); (iter) = g_list_next(iter))
 
-/***
- *** Extra logging conveniences not defined by glib-1.x or glib-2.x.
- ***/
-
-#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define g_carp(...)					\
-	G_STMT_START {					\
-		g_log (G_LOG_DOMAIN,		\
-   			G_LOG_LEVEL_WARNING,	\
-   			__VA_ARGS__);			\
-		stacktrace_where_sym_print(stderr); \
-	} G_STMT_END
-#define g_info(...)		g_log (G_LOG_DOMAIN,		\
-							   G_LOG_LEVEL_INFO,	\
-							   __VA_ARGS__)
-#if !GLIB_CHECK_VERSION(2,0,0)
-#define g_debug(...)	g_log (G_LOG_DOMAIN,		\
-							   G_LOG_LEVEL_DEBUG,	\
-							   __VA_ARGS__)
-#endif
-#elif defined (__GNUC__)
-#define g_carp(format...)			\
-	G_STMT_START {					\
-		g_log (G_LOG_DOMAIN,		\
-   			G_LOG_LEVEL_WARNING,	\
-   			format);				\
-		stacktrace_where_sym_print(stderr); \
-	} G_STMT_END
-#define g_info(format...)	g_log (G_LOG_DOMAIN,		\
-								   G_LOG_LEVEL_INFO,	\
-								   format)
-#if !GLIB_CHECK_VERSION(2,0,0)
-#define g_debug(format...)	g_log (G_LOG_DOMAIN,		\
-								   G_LOG_LEVEL_DEBUG,	\
-								   format)
-#endif
-#else	/* !__GNUC__ */
-static inline G_GNUC_PRINTF(1, 2) void
-g_carp(const char *format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, format, args);
-  va_end(args);
-  stacktrace_where_sym_print(stderr);
-}
-
-static inline G_GNUC_PRINTF(1, 2) void
-g_info(const char *format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, format, args);
-  va_end(args);
-}
-
-#if !GLIB_CHECK_VERSION(2,0,0)
-static inline G_GNUC_PRINTF(1, 2) void
-g_debug(const char *format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  g_logv(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, format, args);
-  va_end(args);
-}
-#endif
-#endif	/* !__GNUC__ */
-
-/* vi: set ts=4 sw=4: */
 #endif	/* _glib_missing_h_ */
+/* vi: set ts=4 sw=4: */

@@ -428,7 +428,7 @@ publish_final_stats(publish_t *pb)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1 || GNET_PROPERTY(dht_debug) > 1)
-		g_debug("DHT PUBLISH[%s] %f secs published %d/%d (%d error%s) "
+		g_debug("DHT PUBLISH[%s] %g secs published %d/%d (%d error%s) "
 			"in=%d bytes, out=%d bytes",
 			nid_to_string(&pb->pid), tm_elapsed_f(&end, &pb->start),
 			pb->published, pb->cnt, pb->errors, 1 == pb->errors ? "" : "s",
@@ -493,9 +493,9 @@ publish_roots_update(const publish_t *pb)
 path_loaded:
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		size_t count = patricia_count(path);
-		g_debug("DHT PUBLISH[%s] updating roots cache with %lu entr%s near %s",
-			nid_to_string(&pb->pid), (unsigned long) count,
-			1 == count ? "y" : "ies", kuid_to_hex_string(pb->key));
+		g_debug("DHT PUBLISH[%s] updating roots cache with %zu entr%s near %s",
+			nid_to_string(&pb->pid), count, 1 == count ? "y" : "ies",
+			kuid_to_hex_string(pb->key));
 	}
 
 	roots_record(path, pb->key);
@@ -744,7 +744,7 @@ log_status(publish_t *pb)
 
 	tm_now_exact(&now);
 	g_debug("DHT PUBLISH[%s] "
-		"%s%s%s publish status for %s at hop %u after %f secs",
+		"%s%s%s publish status for %s at hop %u after %g secs",
 		nid_to_string(&pb->pid),
 		(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
 		(pb->flags & PB_F_BACKGROUND) ? "background " : "",
@@ -848,7 +848,7 @@ publish_delay(publish_t *pb)
 	g_assert(!(pb->flags & PB_F_DELAYED));
 
 	if (GNET_PROPERTY(dht_publish_debug) > 2)
-		g_debug("DHT PUBLISH[%s] delaying next iteration by %f seconds",
+		g_debug("DHT PUBLISH[%s] delaying next iteration by %g seconds",
 			nid_to_string(&pb->pid), PB_DELAY / 1000.0);
 
 	pb->flags |= PB_F_DELAYED;
@@ -1102,10 +1102,9 @@ bad:
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT PUBLISH[%s] improper STORE_RESPONSE payload "
-			"(%lu byte%s) from %s: %s%s%s",
+			"(%zu byte%s) from %s: %s%s%s",
 			nid_to_string(&pb->pid),
-			(unsigned long) len, len == 1 ? "" : "s", knode_to_string(kn),
-			reason,
+			len, len == 1 ? "" : "s", knode_to_string(kn), reason,
 			bstr_has_error(bs) ? ": " : "",
 			bstr_has_error(bs) ? bstr_error(bs) : "");
 
@@ -1787,7 +1786,7 @@ pb_offload_child_done(gpointer obj, int count, int published, int errors,
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("DHT PUBLISH[%s] %f secs, hop %u: "
+		g_debug("DHT PUBLISH[%s] %g secs, hop %u: "
 			"offload child published %d/%d item%s (%d error%s) "
 			"in=%d bytes, out=%d bytes",
 			nid_to_string(&pb->pid),
@@ -1856,7 +1855,7 @@ publish_offload_iterate(publish_t *pb)
 			tm_t now;
 			tm_now_exact(&now);
 			g_debug("DHT PUBLISH[%s] "
-				"%f secs, hop %u: offloaded key %s has %d value%s",
+				"%g secs, hop %u: offloaded key %s has %d value%s",
 				nid_to_string(&pb->pid),
 				tm_elapsed_f(&now, &pb->start), pb->hops,
 				kuid_to_hex_string(key), valcnt, 1 == valcnt ? "" : "s");
@@ -2245,7 +2244,7 @@ pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("DHT PUBLISH[%s] %f secs, "
+		g_debug("DHT PUBLISH[%s] %g secs, "
 			"offloading got security token (%d byte%s) for %s",
 			nid_to_string(&pb->pid),
 			tm_elapsed_f(&now, &pb->start),

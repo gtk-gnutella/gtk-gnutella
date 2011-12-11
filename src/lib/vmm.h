@@ -44,10 +44,17 @@
  */
 
 #if defined(TRACK_VMM) && !defined(VMM_SOURCE)
-#define vmm_alloc(s)		vmm_alloc_track((s), _WHERE_, __LINE__)
+#define vmm_alloc(s)		vmm_alloc_track((s), TRUE, _WHERE_, __LINE__)
+#define vmm_core_alloc(s)	vmm_alloc_track((s), FALSE, _WHERE_, __LINE__)
 #define vmm_alloc0(s)		vmm_alloc0_track((s), _WHERE_, __LINE__)
-#define vmm_free(p,s)		vmm_free_track((p), (s), _WHERE_, __LINE__)
-#define vmm_shrink(p,s,n)	vmm_shrink_track((p), (s), (n), _WHERE_, __LINE__)
+#define vmm_free(p,s)		vmm_free_track((p), (s), TRUE, _WHERE_, __LINE__)
+#define vmm_core_free(p,s)	vmm_free_track((p), (s), FALSE, _WHERE_, __LINE__)
+
+#define vmm_shrink(p,s,n) \
+	vmm_shrink_track((p), (s), (n), TRUE, _WHERE_, __LINE__)
+
+#define vmm_core_shrink(p,s,n) \
+	vmm_shrink_track((p), (s), (n), FALSE, _WHERE_, __LINE__)
 
 #define vmm_alloc_not_leaking(s) \
 	vmm_alloc_track_not_leaking((s), _WHERE_, __LINE__)
@@ -55,14 +62,16 @@
 #endif	/* TRACK_VMM && !VMM_SOURCE */
 
 #ifdef TRACK_VMM
-void *vmm_alloc_track(size_t size,
+void *vmm_alloc_track(size_t size, gboolean user_mem,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc_track_not_leaking(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0_track(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void vmm_free_track(void *p, size_t size, const char *file, int line);
-void vmm_shrink_track(void *p, size_t o, size_t n, const char *file, int line);
+void vmm_free_track(void *p, size_t size, gboolean user_mem,
+	const char *file, int line);
+void vmm_shrink_track(void *p, size_t o, size_t n, gboolean user_mem,
+	const char *file, int line);
 
 void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free_notrack(void *p, size_t size);
@@ -73,26 +82,40 @@ void vmm_free_notrack(void *p, size_t size);
 
 #if defined(VMM_SOURCE) || !defined(TRACK_VMM)
 void *vmm_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_core_alloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free(void *p, size_t size);
+void vmm_core_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
+void vmm_core_shrink(void *p, size_t size, size_t new_size);
 #endif	/* VMM_SOURCE || !TRACK_VMM */
+
+struct logagent;
 
 size_t round_pagesize(size_t n) G_GNUC_PURE;
 size_t compat_pagesize(void) G_GNUC_PURE;
+const void *vmm_page_start(const void *p) G_GNUC_PURE;
 const void *vmm_trap_page(void);
+size_t vmm_page_count(size_t size) G_GNUC_PURE;
 gboolean vmm_is_fragment(const void *base, size_t size);
 gboolean vmm_is_relocatable(const void *base, size_t size);
+gboolean vmm_is_native_pointer(const void *p);
 gboolean vmm_grows_upwards(void) G_GNUC_PURE;
 
 void set_vmm_debug(guint32 level);
 gboolean vmm_is_debugging(guint32 level) G_GNUC_PURE;
 void vmm_init(const void *sp);
+void vmm_memusage_init(void);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);
 void vmm_pre_close(void);
 void vmm_stop_freeing(void);
 void vmm_close(void);
+void vmm_dump_pmap(void);
+void vmm_dump_pmap_log(struct logagent *la);
+void vmm_dump_stats(void);
+void vmm_dump_stats_log(struct logagent *la, unsigned options);
+void vmm_dump_usage_log(struct logagent *la, unsigned options);
 
 void vmm_madvise_free(void *p, size_t size);
 void vmm_madvise_normal(void *p, size_t size);

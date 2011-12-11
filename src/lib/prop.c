@@ -23,8 +23,6 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
-
 #include "ascii.h"
 #include "concat.h"
 #include "getdate.h"
@@ -35,6 +33,7 @@
 #include "halloc.h"
 #include "parse.h"
 #include "path.h"
+#include "product.h"
 #include "sha1.h"
 #include "str.h"
 #include "stringify.h"
@@ -1612,16 +1611,15 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	if (config == NULL)
 		goto end;
 
-	fprintf(config,
-			"#\n# gtk-gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
-			GTA_VERSION_NUMBER,
-#ifdef GTA_REVISION
-			" " GTA_REVISION,
-#else
-			"",
-#endif
-			GTA_RELEASE, GTA_WEBSITE);
+	{
+		const char *revision = product_get_revision();
 
+		fprintf(config,
+			"#\n# gtk-gnutella %s%s%s (%s) by Olrick & Co.\n# %s\n#\n",
+			product_get_version(),
+			*revision != '\0' ? " " : "", revision,
+			product_get_date(), product_get_website());
+	}
 	{
 		char *comment = config_comment(ps->desc);
 
@@ -1984,10 +1982,9 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		int c;
 		property_t prop;
 
-		s = strchr(prop_tmp, '\n');
-		if (!s) {
-			g_warning("config file, line %u: line too long or unterminated, "
-				"ignored", n);
+		if (!file_line_chomp_tail(prop_tmp, sizeof prop_tmp, NULL)) {
+			g_warning("config file \"%s\", line %u: too long a line, ignored",
+				filename, n);
 			truncated = TRUE;
 			continue;
 		}
@@ -1996,7 +1993,6 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			truncated = FALSE;
 			continue;
 		}
-		*s = '\0';
 
 		k = v = NULL;
 		s = prop_tmp;

@@ -404,11 +404,9 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 	if (n_nodes < start + n_leaves) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH hashtree has too few nodes "
-				"(filesize=%s depth=%u nodes=%lu expected=%lu)",
+				"(filesize=%s depth=%u nodes=%zu expected=%zu)",
 				filesize_to_string(ctx->filesize),
-				ctx->depth,
-				(unsigned long) n_nodes,
-				(unsigned long) n_leaves * 2 - 1);
+				ctx->depth, n_nodes, n_leaves * 2 - 1);
 		}
 		goto finish;
 	}

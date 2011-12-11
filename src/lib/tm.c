@@ -38,6 +38,7 @@
 #endif
 
 #include "tm.h"
+
 #include "override.h"		/* Must be the last header included */
 
 tm_t tm_cached_now;			/* Currently cached time */
@@ -185,11 +186,10 @@ clock_hz(void)
 
 	if (freq <= 0) {
 #ifdef _SC_CLK_TCK
-		errno = 0;
+		errno = ENOTSUP;
 		freq = sysconf(_SC_CLK_TCK);
 		if (-1L == freq)
-			g_warning("sysconf(_SC_CLK_TCK) failed: %s",
-				errno ? g_strerror(errno) : "unsupported");
+			g_warning("sysconf(_SC_CLK_TCK) failed: %m");
 #endif
 	}
 
@@ -227,12 +227,11 @@ tm_cputime(double *user, double *sys)
 #if defined(HAS_GETRUSAGE)
 		struct rusage usage;
 
-		errno = 0;
-		if (-1 == getrusage(RUSAGE_SELF, &usage)) {
+		errno = ENOTSUP;
+		if G_UNLIKELY(-1 == getrusage(RUSAGE_SELF, &usage)) {
 			u = 0;
 			s = 0;
-			g_warning("getrusage(RUSAGE_SELF, ...) failed: %s",
-				errno ? g_strerror(errno) : "unsupported");
+			g_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
 		} else {
 			u = tm2f(&usage.ru_utime);
 			s = tm2f(&usage.ru_stime);

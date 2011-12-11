@@ -78,7 +78,6 @@
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
-
 #include "lib/override.h"		/* Must be the last header included */
 
 #define SHARE_RECENT_THRESH		(2 * 7 * 24 * 60 * 60)	/* 2 weeks */
@@ -103,6 +102,7 @@ struct shared_file {
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
 
 	time_t mtime;				/**< Last modif. time, for SHA1 computation */
+	time_t ctime;				/**< File creation time */
 
 	filesize_t file_size;		/**< File size in Bytes */
 	guint32 file_index;			/**< the files index within our local DB */
@@ -629,7 +629,7 @@ shared_special(const char *path)
 		return NULL;
 
 	if (-1 == stat(sf->file_path, &file_stat)) {
-		g_warning("can't stat %s: %s", sf->file_path, g_strerror(errno));
+		g_warning("can't stat %s: %m", sf->file_path);
 		return NULL;
 	}
 
@@ -645,6 +645,7 @@ shared_special(const char *path)
 
 	sf->file_size = file_stat.st_size;
 	sf->mtime = file_stat.st_mtime;
+	sf->ctime = file_stat.st_ctime;
 
 	return sf;
 }
@@ -1074,6 +1075,7 @@ share_scan_add_file(const char *relative_path,
 	sf->relative_path = relative_path ? atom_str_get(relative_path) : NULL;
 	sf->file_size = sb->st_size;
 	sf->mtime = sb->st_mtime;
+	sf->ctime = sb->st_ctime;
 
 	if (shared_file_set_names(sf, name)) {
 		shared_file_free(&sf);
@@ -1422,7 +1424,7 @@ recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 	 *		  must be used to get the Unicode filenames.		
 	 */
 	if (!(ctx->directory = opendir(dir))) {
-		g_warning("can't open directory %s: %s", dir, g_strerror(errno));
+		g_warning("can't open directory %s: %m", dir);
 		return;
 	}
 
@@ -1503,12 +1505,12 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		fullpath = make_pathname(ctx->current_dir, filename);
 		if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
-				g_warning("stat() failed %s: %s", fullpath, g_strerror(errno));
+				g_warning("stat() failed %s: %m", fullpath);
 				goto finish;
 			}
 		} else if (!S_ISLNK(sb.st_mode)) {
 			if (lstat(fullpath, &sb)) {
-				g_warning("lstat() failed %s: %s", fullpath, g_strerror(errno));
+				g_warning("lstat() failed %s: %m", fullpath);
 				goto finish;
 			}
 
@@ -1532,7 +1534,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 		/* Get info on the symlinked file */
 		if (S_ISLNK(sb.st_mode)) {
 			if (stat(fullpath, &sb)) {
-				g_warning("broken symlink %s: %s", fullpath, g_strerror(errno));
+				g_warning("broken symlink %s: %m", fullpath);
 				goto finish;
 			}
 			
@@ -2409,14 +2411,14 @@ sha1_hash_is_uptodate(shared_file_t *sf)
 	}
 
 	if (-1 == stat(sf->file_path, &buf)) {
-		g_warning("can't stat shared file #%d \"%s\": %s",
-			sf->file_index, sf->file_path, g_strerror(errno));
+		g_warning("can't stat shared file #%d \"%s\": %m",
+			sf->file_index, sf->file_path);
 		shared_file_set_sha1(sf, NULL);
 		return FALSE;
 	}
 
 	if (too_big_for_gnutella(buf.st_size)) {
-		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
+		g_warning("file is too big to be shared: \"%s\"", sf->file_path);
 		shared_file_set_sha1(sf, NULL);
 		return FALSE;
 	}
@@ -2460,6 +2462,26 @@ shared_file_is_partial(const shared_file_t *sf)
 	return NULL != sf->fi;
 }
 
+gboolean
+shared_file_is_shareable(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	/*
+	 * A zeroed file_index indicates we called shared_file_deindex(),
+	 * most probably through shared_file_remove().
+	 *
+	 * We don't want to include this file in query hits even though the
+	 * file entry happens to be still listed in search bins (for instance
+	 * because it was removed dynamically as we discovered it was spam).
+	 *
+	 * Thanks to Dmitry Butskoy for investigating this corner case.
+	 *		--RAM, 2011-11-30
+	 */
+
+	return sf->file_index != 0;
+}
+
 filesize_t
 shared_file_size(const shared_file_t *sf)
 {
@@ -2473,6 +2495,7 @@ shared_file_index(const shared_file_t *sf)
 	shared_file_check(sf);
 
 	g_assert(sf->file_index != 0);		/* Either PARTIAL_FILE or > 0 */
+	g_assert(PARTIAL_FILE != sf->file_index || NULL != sf->fi);
 
 	return sf->file_index;
 }
@@ -2548,11 +2571,31 @@ shared_file_path(const shared_file_t *sf)
 	return sf->file_path;
 }
 
+/**
+ * @return the last modification time of the shared file.
+ */
 time_t
 shared_file_modification_time(const shared_file_t *sf)
 {
 	shared_file_check(sf);
-	return sf->mtime;
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily.
+	 */
+
+	return NULL == sf->fi ? sf->mtime : sf->fi->modified;
+}
+
+/**
+ * @return the creation time of the shared file.
+ */
+time_t
+shared_file_creation_time(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return sf->ctime;
 }
 
 guint32
@@ -2605,6 +2648,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
 	sf->mtime = fi->last_flush;
+	sf->ctime = fi->created;
 	sf->sha1 = atom_sha1_get(fi->sha1);
 
 	/* FIXME: DOWNLOAD_SIZE:

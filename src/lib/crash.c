@@ -2,7 +2,7 @@
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
  * All rights reserved.
  *
- * Copyright (c) 2009 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,11 +41,12 @@
  * in the field where core dumps are usually not allowed and where people
  * do not necessarily know how to launch a debugger anyway.
  *
- * There are two aspects to crash handling:
+ * There are three aspects to crash handling:
  *
  * - Logging of the crash condition (cause, call stack if possible).
  * - Capturing a debugging stack with local variable in case there is
  *   no persistent logging.
+ * - Providing contextual side information that can assist forensics.
  *
  * Note that when crashing with an assertion failure, we usually already
  * have the stack trace, but crash handling is triggered anyway to collect
@@ -61,10 +62,15 @@
  * When using "fast assertions", there is also a hook to record the
  * fatal failing assertion through crash_assert_failure().
  *
+ * Side information can be provided through crash hooks: these routines are
+ * invoked when an assertion failure happens in a specific file.  The purpose
+ * of the crash hook is to dump all the information it can to assist tracking
+ * of the assertion failure.
+ *
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2011
  */
 
 #include "common.h"
@@ -76,10 +82,13 @@
 #include "fd.h"
 #include "file.h"
 #include "halloc.h"
+#include "hashtable.h"
+#include "iovec.h"
 #include "log.h"
 #include "offtime.h"
 #include "path.h"
 #include "signal.h"
+#include "str.h"
 #include "stringify.h"
 #include "timestamp.h"
 #include "tm.h"
@@ -88,7 +97,11 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define PARENT_STDERR_FILENO	3
+#define PARENT_STDOUT_FILENO	3
+#define PARENT_STDERR_FILENO	4
+#define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
+#define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
+#define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
 
 #ifdef HAS_FORK
 #define has_fork() 1
@@ -102,6 +115,9 @@ struct crash_vars {
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
 	ckhunk_t *mem2;			/**< Reserved memory, read-only */
 	ckhunk_t *mem3;			/**< Reserved memory, read-only */
+	ckhunk_t *logck;		/**< Reserved memory, read-only */
+	ckhunk_t *fmtck;		/**< Reserved memory, read-only */
+	ckhunk_t *hookmem;		/**< Reserved memory, read-only */
 	const char *argv0;		/**< The original argv[0]. */
 	const char *progname;	/**< The program name */
 	const char *exec_path;	/**< Path of program (optional, may be NULL) */
@@ -110,14 +126,32 @@ struct crash_vars {
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
+	const char *message;	/**< Additional error messsage, NULL if none */
+	const char *filename;	/**< Filename where error occurred, NULL if node */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
+	str_t *logstr;			/**< String to build and hold error message */
+	str_t *fmtstr;			/**< String to allow log formatting during crash */
+	hash_table_t *hooks;	/**< Records crash hooks by file name */
+	const char * const *argv;	/**< Saved argv[] array */
+	const char * const *envp;	/**< Saved environment array */
+	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
+	guint8 crash_mode;		/**< True when we enter crash mode */
+	guint8 recursive;		/**< True when we are in a recursive crash */
+	guint8 closed;			/**< True when crash_close() was called */
+	guint8 invoke_inspector;
 	unsigned pause_process:1;
-	unsigned invoke_inspector:1;
 	unsigned dumps_core:1;
+	unsigned may_restart:1;
 };
+
+#define crash_set_var(name, src) \
+G_STMT_START { \
+	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
+	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
+} G_STMT_END
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 
@@ -237,6 +271,7 @@ crash_time(char *buf, size_t size)
 	const size_t num_reserved = 1;
 	struct tm tm;
 	cursor_t cursor;
+	time_delta_t gmtoff;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -245,7 +280,14 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
+	/*
+	 * If called very early from the logging layer, crash_init() may not have
+	 * been invoked yet, so vars would still be NULL.
+	 */
+
+	gmtoff = (vars != NULL) ? vars->gmtoff : 0;
+
+	if (!off_time(time(NULL) + gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -361,6 +403,140 @@ crash_run_time(char *buf, size_t size)
 }
 
 /**
+ * Get the hook function that we have to run in order to log more context.
+ *
+ * @return the hook function to run, NULL if nothing.
+ */
+static G_GNUC_COLD crash_hook_t
+crash_get_hook(void)
+{
+	const char *file;
+
+	if (NULL == vars)
+		return NULL;		/* No crash_init() yet */
+
+	if (vars->recursive)
+		return NULL;		/* Already recursed, maybe through hook? */
+
+	/*
+	 * File name can come from an assertion failure or from an explict
+	 * call to crash_set_filename().
+	 */
+
+	if (vars->failure != NULL)
+		file = vars->failure->file;
+	else if (vars->filename != NULL)
+		file = vars->filename;
+	else
+		file = NULL;
+
+	if (NULL == file)
+		return NULL;		/* Nothing to lookup against */
+
+	return cast_pointer_to_func(hash_table_lookup(vars->hooks, file));
+}
+
+/**
+ * Run crash hooks if we have an identified assertion failure.
+ *
+ * @param logfile		if non-NULL, redirect messages there as well.
+ * @param logfd			if not -1, the already opened file where we should log ot
+ */
+static G_GNUC_COLD void
+crash_run_hooks(const char *logfile, int logfd)
+{
+	crash_hook_t hook;
+	const char *routine;
+	char pid_buf[22];
+	char time_buf[18];
+	DECLARE_STR(7);
+	int fd = logfd;
+
+	hook = crash_get_hook();
+	if (NULL == hook)
+		return;
+
+	/*
+	 * Let them know we're going to run a hook.
+	 *
+	 * Because we can be called from the child prorcess, we do not
+	 * hardwire the stderr file descriptor but get it from the log layer.
+	 */
+
+	routine = stacktrace_routine_name(func_to_pointer(hook), FALSE);
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);					/* 0 */
+	print_str(" CRASH (pid=");				/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") ");						/* 3 */
+	print_str(" invoking crash hook \"");	/* 4 */
+	print_str(routine);						/* 5 */
+	print_str("\"...\n");					/* 6 */
+	flush_str(log_get_fd(LOG_STDERR));
+	rewind_str(0);
+
+	/*
+	 * If there is a crash filename given, open it for appending and
+	 * configure the stderr logfile with a duplicate logging to that file.
+	 */
+
+	if (logfile != NULL && -1 == logfd) {
+		fd = open(logfile, O_WRONLY | O_APPEND, 0);
+		if (-1 == fd) {
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" WARNING: cannot reopen ");	/* 1 */
+			print_str(logfile);						/* 2 */
+			print_str(" for appending: ");			/* 3 */
+			print_str(symbolic_errno(errno));		/* 4 */
+			print_str("\n");						/* 5 */
+			flush_str(log_get_fd(LOG_STDERR));
+			rewind_str(0);
+		}
+	}
+
+	/*
+	 * Invoke hook, then log a message indicating we're done.
+	 */
+
+	if (-1 != fd) {
+		log_set_duplicate(LOG_STDERR, fd);
+		print_str("invoking crash hook \"");	/* 0 */
+		print_str(routine);						/* 1 */
+		print_str("\"...\n");					/* 2 */
+		flush_str(fd);
+		rewind_str(0);
+	}
+
+	(*hook)();
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);					/* 0 */
+	print_str(" CRASH (pid=");				/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") ");						/* 3 */
+	print_str("done with hook \"");			/* 4 */
+	print_str(routine);						/* 5 */
+	print_str("\"\n");						/* 6 */
+	flush_str(log_get_fd(LOG_STDERR));
+
+	if (fd != -1) {
+		rewind_str(0);
+		print_str("done with hook \"");			/* 0 */
+		print_str(routine);						/* 1 */
+		print_str("\".\n");						/* 2 */
+		flush_str(fd);
+	}
+
+	/*
+	 * We do not close the file if opened so as to continue logging
+	 * duplicate information until the end should anyone call g_logv()
+	 * or s_logv().
+	 */
+}
+
+/**
  * Emit leading crash information: who crashed and why.
  */
 static G_GNUC_COLD void
@@ -405,8 +581,11 @@ crash_message(const char *signame, gboolean trace, gboolean recursive)
 	print_str(signame);					/* 6 */
 	print_str(" after ");				/* 7 */
 	print_str(runtime_buf);				/* 8 */
-	if (trace)
+	if (vars->closed) {
+		print_str(" during final exit()");	/* 9 */
+	} else if (trace) {
 		print_str(" -- stack was:");	/* 9 */
+	}
 	print_str("\n");					/* 10, at most */
 	flush_err_str();
 	if (log_stdout_is_distinct())
@@ -423,13 +602,18 @@ crash_end_of_line(void)
 	char pid_buf[22];
 	char time_buf[18];
 
+	if (!vars->invoke_inspector && !vars->closed)
+		crash_run_hooks(NULL, -1);
+
 	crash_time(time_buf, sizeof time_buf);
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars->invoke_inspector) {
+	if (vars->closed) {
+		print_str("end of line.");	/* 4 */
+	} else if (vars->invoke_inspector) {
 		if (NULL != vars->exec_path) {
 			print_str("calling ");				/* 4 */
 			print_str(vars->exec_path);			/* 5 */
@@ -461,7 +645,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	 */
 
 	if (0 != vars->build) {
-		char build_buf[22];
+		char build_buf[ULONG_DEC_BUFLEN + 2];
 		const char *build_str;
 
 		build_str = print_number(build_buf, sizeof build_buf, vars->build);
@@ -471,6 +655,21 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 
 	clamp_strcat(buf, len, "-crash.");
 	clamp_strcat(buf, len, pidstr);
+
+	/*
+	 * Because we can re-execute ourselves (at user's request after an upgrade
+	 * or after a crash), we need to include our starting time as well.
+	 */
+
+	{
+		char time_buf[ULONG_HEX_BUFLEN];
+		const char *time_str;
+
+		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
+		clamp_strcat(buf, len, ".");
+		clamp_strcat(buf, len, time_str);
+	}
+
 	clamp_strcat(buf, len, ".log");
 }
 
@@ -490,10 +689,125 @@ crash_stack_print(int fd, size_t offset)
 }
 
 /**
- * Invoke the inspector process (gdb, or any other program specified at
- * initialization time).
+ * Reset the handler of all the signals we trap, and unblock them.
  */
 static G_GNUC_COLD void
+crash_reset_signals(void)
+{
+	unsigned i;
+
+	/*
+	 * The signal mask is preserved across execve(), therefore it is
+	 * important to also unblock all the signals we trap in case we
+	 * are about to re-exec() ourselves from a signal handler!
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+		signal_set(signals[i], SIG_DFL);
+		signal_unblock(signals[i]);
+	}
+}
+
+#ifdef HAS_FORK
+static Sigjmp_buf crash_fork_env;
+
+/**
+ * Handle fork() timeouts.
+ */
+static G_GNUC_COLD void
+crash_fork_timeout(int signo)
+{
+	DECLARE_STR(2);
+	char time_buf[18];
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);
+	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
+	flush_err_str();
+
+	Siglongjmp(crash_fork_env, signo);
+}
+#endif	/* HAS_FORK */
+
+/**
+ * A fork() wrapper to work around libc6 bugs causing hangs within fork().
+ */
+static G_GNUC_COLD pid_t
+crash_fork(void)
+{
+#ifdef HAS_FORK
+	pid_t pid;
+	signal_handler_t old_sigalrm;
+#ifdef HAS_ALARM
+	unsigned remain;
+#endif
+
+#ifdef SIGPROF
+	/*
+	 * We're forking following a crash, we're going to abort() or exit()
+	 * abnormally, we could not care less about profiling at this stage.
+	 *
+	 * SIGPROF could also be the cause of the libc6 hangs I've been witnessing
+	 * on Linux, since I'm often running with profiling enabled.
+	 *		--RAM, 2011-11-02
+	 */
+
+	signal_set(SIGPROF, SIG_IGN);
+#endif
+
+#ifdef HAS_ALARM
+	old_sigalrm = signal_set(SIGALRM, crash_fork_timeout);
+	remain = alarm(15);		/* Guess, large enough to withstand system load */
+#endif
+
+	if (Sigsetjmp(crash_fork_env, TRUE)) {
+		errno = EDEADLK;	/* Probable deadlock in the libc */
+		pid = -1;
+		goto restore;
+	}
+
+	pid = fork();
+	/* FALL THROUGH */
+restore:
+#ifdef HAS_ALARM
+	alarm(remain);
+	signal_set(SIGALRM, old_sigalrm);
+#endif
+
+	return pid;
+#else
+	return 0;			/* Act as if we were in a child upon return */
+#endif	/* HAS_FORK */
+}
+
+/*
+ * Carefully close opened file descriptor.
+ *
+ * We must be careful for OS X: we cannot close random UNIX file descriptors
+ * or we get sanctionned with:
+ * BUG IN CLIENT OF LIBDISPATCH: Do not close random Unix descriptors
+ *		--RAM, 2011-11-17
+ *
+ * @param fd		file descriptor to close
+ *
+ * @return -1 if an error occured, 0 if OK.
+ */
+static inline int
+crash_fd_close(int fd)
+{
+	if (is_open_fd(fd))
+		return close(fd);
+
+	return 0;	/* Nothing done */
+}
+
+/**
+ * Invoke the inspector process (gdb, or any other program specified at
+ * initialization time).
+ *
+ * @return TRUE if we were able to invoke the crash hooks.
+ */
+static G_GNUC_COLD gboolean
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -501,16 +815,37 @@ crash_invoke_inspector(int signo, const char *cwd)
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
+	gboolean retried_child = FALSE;
+	gboolean could_fork = has_fork();
+	int fork_errno = 0;
+	int parent_stdout = STDOUT_FILENO;
 
 	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+
+#ifdef HAS_WAITPID
+retry_child:
+#endif
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
 	close_file_descriptors(3);
 
 	if (has_fork()) {
+		/* In case fork() fails, make sure we leave stdout open */
+		if (PARENT_STDOUT_FILENO != dup(STDOUT_FILENO)) {
+			stage = "parent's stdout duplication";
+			goto parent_failure;
+		}
+		parent_stdout = PARENT_STDOUT_FILENO;
+
+		/* Make sure child will get access to the stderr of its parent */
+		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+			stage = "parent's stderr duplication";
+			goto parent_failure;
+		}
+
 		if (
-			close(STDIN_FILENO) ||
-			close(STDOUT_FILENO) ||
+			crash_fd_close(STDIN_FILENO) ||
+			crash_fd_close(STDOUT_FILENO) ||
 			pipe(fd) ||
 			STDIN_FILENO != fd[0] ||
 			STDOUT_FILENO != fd[1]
@@ -518,37 +853,51 @@ crash_invoke_inspector(int signo, const char *cwd)
 			stage = "pipe setup";
 			goto parent_failure;
 		}
-
-		/* Make sure child will get access to the stderr of its parent */
-		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
-			stage = "parent's stderr duplication";
-			goto parent_failure;
-		}
 	} else {
 		DECLARE_STR(2);
 		char time_buf[18];
-
-		(void) signo;
-		(void) cwd;
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);
 		print_str(" (WARNING): cannot fork() on this platform\n");
 		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
 	}
 
 #ifdef SIGCHLD
 	signal_set(SIGCHLD, SIG_DFL);
 #endif
 
-	pid = fork();
+	pid = crash_fork();
 	switch (pid) {
 	case -1:
-		stage = "fork()";
-		goto parent_failure;
+		fork_errno = errno;
+		could_fork = FALSE;
+		{
+			DECLARE_STR(6);
+			char time_buf[18];
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" (WARNING): fork() failed: ");
+			print_str(symbolic_errno(errno));
+			print_str(" (");
+			print_str(g_strerror(errno));
+			print_str(")\n");
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
+		}
+		/*
+		 * Even though we could not fork() for some reason, we're going
+		 * to continue as if we were in the "child process" to create
+		 * the crash log file and save important information.
+		 */
+		/* FALL THROUGH */
 	case 0:	/* executed by child */
 		{
-			const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+			int flags;
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
@@ -560,6 +909,27 @@ crash_invoke_inspector(int signo, const char *cwd)
 			time_delta_t t;
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
+
+			/*
+			 * Immediately unplug the crash handler in case we do something
+			 * bad in the child: we want it to crash immediately and have
+			 * the parent see the failure.
+			 */
+
+			if (could_fork) {
+				crash_reset_signals();
+			}
+
+			/*
+			 * If we are retrying the child, don't discard what we can
+			 * have already from a previous run.
+			 */
+
+			if (retried_child) {
+				flags = O_WRONLY | O_APPEND;
+			} else {
+				flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+			}
 
 			if (vars->exec_path) {
 				argv[0] = vars->exec_path;
@@ -605,29 +975,40 @@ crash_invoke_inspector(int signo, const char *cwd)
 			crash_run_time(rbuf, sizeof rbuf);
 			t = delta_time(time(NULL), vars->start_time);
 
-			if (has_fork()) {
+			if (could_fork) {
 				/* STDIN must be kept open when piping to gdb */
 				if (vars->exec_path != NULL) {
 					if (
-						close(STDIN_FILENO) ||
+						crash_fd_close(STDIN_FILENO) ||
 						STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
 					)
 						goto child_failure;
 				}
 
 				set_close_on_exec(PARENT_STDERR_FILENO);
+				set_close_on_exec(PARENT_STDOUT_FILENO);
 			}
 
-			if (has_fork()) {
+			if (could_fork) {
 				if (
-					close(STDOUT_FILENO) ||
-					close(STDERR_FILENO) ||
+					crash_fd_close(STDOUT_FILENO) ||
+					crash_fd_close(STDERR_FILENO) ||
 					STDOUT_FILENO != open(filename, flags, mode) ||
 					STDERR_FILENO != dup(STDOUT_FILENO)
 				)
 					goto child_failure;
 			} else {
 				clf = open(filename, flags, mode);
+			}
+
+			/*
+			 * When retrying, issue a blank line, and mark retrying attempt.
+			 */
+
+			if (retried_child) {
+				print_str("\n---- Retrying:\n\n");	/* 0 */
+				flush_str(clf);
+				rewind_str(0);
 			}
 
 			/*
@@ -657,7 +1038,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str(tbuf);					/* 1 */
 			print_str("\n");					/* 2 */
 			print_str("Core-Dump: ");			/* 3 */
-			print_str(vars->dumps_core ? "enabled" : "disabled");
+			print_str(vars->dumps_core ? "enabled" : "disabled");	/* 4 */
 			print_str("\n");					/* 5 */
 			if (NULL != vars->cwd) {
 				print_str("Working-Directory: ");	/* 6 */
@@ -695,11 +1076,42 @@ crash_invoke_inspector(int signo, const char *cwd)
 					print_str(failure->expr);		/* 8 */
 					print_str("\n");				/* 9 */
 				}
+				if (vars->message != NULL) {
+					print_str("Assertion-Info: ");	/* 10 */
+					print_str(vars->message);		/* 11 */
+					print_str("\n");				/* 12 */
+				}
+			} else if (vars->message != NULL) {
+				print_str("Error-Message: ");		/* 3 */
+				print_str(vars->message);			/* 4 */
+				print_str("\n");					/* 5 */
 			}
 			flush_str(clf);
 
 			rewind_str(0);
-			print_str("Stacktrace:\n");			/* 0 */
+			print_str("Auto-Restart: ");		/* 0 */
+			print_str(vars->may_restart ? "enabled" : "disabled"); /* 1 */
+			if (t <= CRASH_MIN_ALIVE) {
+				char rtbuf[ULONG_DEC_BUFLEN];
+				print_str("; run time threshold of ");	/* 2 */
+				print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
+				print_str("s not reached");				/* 4 */
+			} else {
+				print_str("; ");				/* 2 */
+				print_str(vars->may_restart ? "will" : "would"); /* 3 */
+				print_str(" be attempted");		/* 4 */
+			}
+			print_str("\n");					/* 5 */
+			{
+				enum stacktrace_sym_quality sq = stacktrace_quality();
+				if (STACKTRACE_SYM_GOOD != sq) {
+					const char *quality = stacktrace_quality_string(sq);
+					print_str("Stacktrace-Symbols: ");		/* 6 */
+					print_str(quality);						/* 7 */
+					print_str("\n");						/* 8 */
+				}
+			}
+			print_str("Stacktrace:\n");			/* 9 */
 			flush_str(clf);
 			crash_stack_print(clf, 2);
 
@@ -708,17 +1120,44 @@ crash_invoke_inspector(int signo, const char *cwd)
 			flush_str(clf);
 
 			/*
-			 * If we don't have fork() on this platform, we've logged the
-			 * essential stuff, we can now execute what is normally
-			 * done by the parent process.
+			 * If we don't have fork() on this platform (or could not fork)
+			 * we've now logged the essential stuff: we can execute what is
+			 * normally done by the parent process.
 			 */
 
-			if (!has_fork()) {
+			if (!could_fork) {
 				rewind_str(0);
-				print_str("No fork() on this platform.\n");
+				if (!has_fork()) {
+					print_str("No fork() on this platform.\n");
+				} else {
+					print_str("fork() failed: ");
+					print_str(symbolic_errno(fork_errno));
+					print_str(" (");
+					print_str(g_strerror(fork_errno));
+					print_str(")\n");
+				}
 				flush_str(clf);
-				close(clf);
+				crash_fd_close(clf);
 				goto parent_process;
+			}
+
+			/*
+			 * Since we have fork(), and we're in the crash inspector,
+			 * run the crash hooks, directing output into the crash file.
+			 * But first, we have to force stderr to use a new file descriptor
+			 * since we're in the child process and stdout has been remapped
+			 * to the crash file.
+			 *
+			 * If we have already been trough the child, don't attempt to
+			 * run hooks again in case they were responsible for the crash
+			 * of the process already.
+			 */
+
+			if (!retried_child) {
+				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
+				log_set_disabled(LOG_STDOUT, TRUE);
+				crash_run_hooks(NULL, STDOUT_FILENO);
+				log_set_disabled(LOG_STDOUT, FALSE);
 			}
 
 #ifdef HAS_SETSID
@@ -767,9 +1206,13 @@ crash_invoke_inspector(int signo, const char *cwd)
 			print_str(") ");					/* 3 */
 			print_str("exec() error: ");		/* 4 */
 			print_str(symbolic_errno(errno));	/* 5 */
-			print_str("\n");					/* 6 */
+			print_str(" (");					/* 6 */
+			print_str(g_strerror(errno));		/* 7 */
+			print_str(")\n");					/* 8 */
 			flush_str(PARENT_STDERR_FILENO);
 			flush_str(STDOUT_FILENO);			/* into crash file as well */
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
 
 		child_failure:
 			_exit(EXIT_FAILURE);
@@ -793,7 +1236,7 @@ parent_process:
 		gboolean child_ok = FALSE;
 
 		if (has_fork()) {
-			close(PARENT_STDERR_FILENO);
+			crash_fd_close(PARENT_STDERR_FILENO);
 		}
 
 		/*
@@ -802,7 +1245,7 @@ parent_process:
 		 * succeed or get EPIPE if the child dies and closes its end.
 		 */
 
-		if (has_fork()) {
+		if (could_fork) {
 			static const char commands[] = "bt\nbt full\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
@@ -838,7 +1281,7 @@ parent_process:
 		print_str(") ");					/* 3 */
 		iov_prolog = getpos_str();
 
-		if (!has_fork()) {
+		if (!could_fork) {
 			child_ok = TRUE;
 			goto no_fork;
 		}
@@ -861,17 +1304,42 @@ parent_process:
 					WEXITSTATUS(status)));				/* 5 */
 				print_str("\n");						/* 6 */
 				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
 			}
 		} else {
+			gboolean may_retry = FALSE;
+
 			if (WIFSIGNALED(status)) {
 				int sig = WTERMSIG(status);
 				print_str("child got a ");			/* 4 */
 				print_str(signal_name(sig));		/* 5 */
+				if (!retried_child && NULL != crash_get_hook()) {
+					may_retry = TRUE;
+				}
 			} else {
 				print_str("child exited abnormally");	/* 4 */
 			}
 			print_str("\n");						/* 6, at most */
 			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(parent_stdout);
+
+			/*
+			 * If we have hooks to run and the child crashed with a signal,
+			 * attempt to run the child again without the hooks to make sure
+			 * we get the full gdb stack.
+			 */
+
+			if (may_retry) {
+				rewind_str(iov_prolog);
+				print_str("retrying child fork without hooks\n");
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
+				retried_child = TRUE;
+				goto retry_child;
+			}
 		}
 #else
 		(void) status;
@@ -889,11 +1357,19 @@ no_fork:
 		{
 			char buf[64];
 
+			/*
+			 * If there are crashing hooks recorded that we can invoke, run
+			 * them and redirect a copy of the messages to the crash log.
+			 */
+
+			crash_logname(buf, sizeof buf, pid_str);
+			if (!could_fork)
+				crash_run_hooks(buf, -1);
+
 			rewind_str(iov_prolog);
 			if (!child_ok)
 				print_str("possibly incomplete ");		/* 4 */
 			print_str("trace left in ");				/* 5 */
-			crash_logname(buf, sizeof buf, pid_str);
 			if (*cwd != '\0') {
 				print_str(cwd);					/* 6 */
 				print_str(G_DIR_SEPARATOR_S);	/* 7 */
@@ -904,7 +1380,7 @@ no_fork:
 			print_str("\n");					/* 9, at most */
 			flush_err_str();
 			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+				flush_str(parent_stdout);
 		}
 
 		/*
@@ -920,7 +1396,7 @@ no_fork:
 			print_str("\n");				/* 6 */
 			flush_err_str();
 			if (log_stdout_is_distinct())
-				flush_str(STDOUT_FILENO);
+				flush_str(parent_stdout);
 		}
 
 		/*
@@ -930,18 +1406,19 @@ no_fork:
 
 		if (has_fork()) {
 			if (
-				close(STDOUT_FILENO) ||
-				STDOUT_FILENO != open("/dev/null", O_WRONLY, 0)
+				crash_fd_close(STDOUT_FILENO) ||
+				-1 == dup2(PARENT_STDOUT_FILENO, STDOUT_FILENO) ||
+				crash_fd_close(PARENT_STDOUT_FILENO)
 			) {
-				stage = "stdout closing";
+				stage = "stdout restore";
 				goto parent_failure;
 			}
 
 			if (
-				close(STDIN_FILENO) ||
+				crash_fd_close(STDIN_FILENO) ||
 				STDIN_FILENO != open("/dev/null", O_RDONLY, 0)
 			) {
-				stage = "stdin closing";
+				stage = "final stdin closing";
 				goto parent_failure;
 			}
 		}
@@ -958,7 +1435,7 @@ no_fork:
 			flush_str(STDOUT_FILENO);
 	}
 
-	return;
+	return TRUE;
 
 parent_failure:
 	{
@@ -973,6 +1450,278 @@ parent_failure:
 		print_str(EMPTY_STRING(stage));			/* 4 */
 		print_str("\n");						/* 5 */
 		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(parent_stdout);
+	}
+
+	return FALSE;
+}
+
+/**
+ * Entering crash mode.
+ */
+static G_GNUC_COLD void
+crash_mode(void)
+{
+	if (vars != NULL) {
+		if (!vars->crash_mode) {
+			guint8 t = TRUE;
+
+			crash_set_var(crash_mode, t);
+
+			/*
+			 * Configuring crash mode logging requires a formatting string.
+			 *
+			 * In crashing mode, logging will avoid fprintf() and will use
+			 * the pre-allocated string to format message, calling write()
+			 * to emit the message.
+			 */
+
+			ck_writable(vars->fmtck);		/* Chunk holding vars->fmtstr */
+			log_crashing(vars->fmtstr);
+		}
+		if (ck_is_readonly(vars->fmtck)) {
+			char time_buf[18];
+			DECLARE_STR(2);
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" WARNING: formatting string held in read-only chunk\n");
+			flush_err_str();
+		}
+	} else {
+		static gboolean warned;
+
+		if (!warned) {
+			char time_buf[18];
+			DECLARE_STR(2);
+
+			warned = TRUE;
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);
+			print_str(" WARNING: crashing before any crash_init() call\n");
+			flush_err_str();
+		}
+	}
+}
+
+/**
+ * Re-execute the same process with the same arguments.
+ *
+ * This function only returns when exec()ing fails.
+ */
+static G_GNUC_COLD void
+crash_try_reexec(void)
+{
+	char dir[MAX_PATH_LEN];
+
+	if (NULL == vars) {
+		s_carp("%s(): no crash_init() yet!", G_STRFUNC);
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * They may have specified a relative path for the program (argv0)
+	 * or for some of the arguments (--log-stderr file) so go back to the
+	 * initial working directory before launching the new process.
+	 */
+
+	if (NULL != vars->cwd) {
+		gboolean gotcwd = NULL != getcwd(dir, sizeof dir);
+
+		if (-1 == chdir(vars->cwd)) {
+			s_warning("%s(): cannot chdir() to \"%s\": %m",
+				G_STRFUNC, vars->cwd);
+		} else if (gotcwd && 0 != strcmp(dir, vars->cwd)) {
+			s_message("switched back to directory %s", vars->cwd);
+		}
+	}
+
+	if (vars->logstr != NULL) {
+		int i;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable.
+		 * Since we're about to exec(), we don't bother turning it back to
+		 * the read-only status.
+		 */
+
+		ck_writable(vars->logck);
+		str_reset(vars->logstr);
+
+		for (i = 0; i < vars->argc; i++) {
+			if (i != 0)
+				str_putc(vars->logstr, ' ');
+			str_cat(vars->logstr, vars->argv[i]);
+		}
+
+		s_message("launching %s", str_2c(vars->logstr));
+	} else {
+		s_message("launching %s with %d argument%s", vars->argv0,
+			vars->argc, 1 == vars->argc ? "" : "s");
+	}
+
+	/*
+	 * Off we go...
+	 */
+
+#ifdef SIGPROF
+	signal_set(SIGPROF, SIG_IGN);	/* In case we're running under profiler */
+#endif
+
+	close_file_descriptors(3);
+	crash_reset_signals();
+	execve(vars->argv0,
+		(const void *) vars->argv, (const void *) vars->envp);
+
+	/* Log exec() failure */
+
+	{
+		char tbuf[22];
+		DECLARE_STR(6);
+
+		crash_time(tbuf, sizeof tbuf);
+		print_str(tbuf);							/* 0 */
+		print_str(" (CRITICAL) exec() error: ");	/* 1 */
+		print_str(symbolic_errno(errno));			/* 2 */
+		print_str(" (");							/* 3 */
+		print_str(g_strerror(errno));				/* 4 */
+		print_str(")\n");							/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		rewind_str(1);
+		print_str(" (CRITICAL) executable file was: ");	/* 1 */
+		print_str(vars->argv0);							/* 2 */
+		print_str("\n");								/* 3 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		if (NULL != getcwd(dir, sizeof dir)) {
+			rewind_str(1);
+			print_str(" (CRITICAL) current directory was: ");	/* 1 */
+			print_str(dir);										/* 2 */
+			print_str("\n");									/* 3 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+	}
+}
+
+/**
+ * Handle possible auto-restart, if configured.
+ * This function does not return when auto-restart succeeds
+ */
+static G_GNUC_COLD void
+crash_auto_restart(void)
+{
+	/*
+	 * When the process has been alive for some time (CRASH_MIN_ALIVE secs,
+	 * to avoid repetitive frequent failures), we can consider auto-restarts
+	 * if CRASH_F_RESTART was given.
+	 */
+
+	if (delta_time(time(NULL), vars->start_time) <= CRASH_MIN_ALIVE) {
+		if (vars->may_restart) {
+			char time_buf[18];
+			char runtime_buf[22];
+			DECLARE_STR(5);
+
+			crash_time(time_buf, sizeof time_buf);
+			crash_run_time(runtime_buf, sizeof runtime_buf);
+			print_str(time_buf);							/* 0 */
+			print_str(" (WARNING) not auto-restarting ");	/* 1 */
+			print_str("since process was only up for ");	/* 2 */
+			print_str(runtime_buf);							/* 3 */
+			print_str("\n");								/* 4 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
+		return;
+	}
+
+	if (vars->may_restart) {
+		char time_buf[18];
+		char runtime_buf[22];
+		DECLARE_STR(6);
+
+		crash_time(time_buf, sizeof time_buf);
+		crash_run_time(runtime_buf, sizeof runtime_buf);
+		print_str(time_buf);					/* 0 */
+		print_str(" (INFO) ");					/* 1 */
+		if (vars->dumps_core) {
+			print_str("auto-restart was requested");	/* 2 */
+		} else {
+			print_str("core dumps are disabled");		/* 2 */
+		}
+		print_str(" and process was up for ");	/* 3 */
+		print_str(runtime_buf);					/* 4 */
+		print_str("\n");						/* 5 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		rewind_str(1);
+		print_str(" (MESSAGE) ");					/* 1 */
+		print_str("attempting auto-restart...");	/* 2 */
+		print_str("\n");							/* 3 */
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+
+		/*
+		 * We want to preserve our ability to dump a core, so fork() a child
+		 * to perform the exec() and keep the parent going for core dumping.
+		 */
+
+		if (vars->dumps_core) {
+			pid_t pid = crash_fork();
+			switch (pid) {
+			case -1:	/* fork() error */
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);						/* 0 */
+				print_str(" (CRITICAL) fork() error: ");	/* 1 */
+				print_str(symbolic_errno(errno));			/* 2 */
+				print_str(" (");							/* 3 */
+				print_str(g_strerror(errno));				/* 4 */
+				print_str(")\n");							/* 5 */
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
+
+				rewind_str(1);
+				print_str(" (CRITICAL) ");			/* 1 */
+				print_str("core dump suppressed");	/* 2 */
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(STDOUT_FILENO);
+				/* FALL THROUGH */
+			case 0:		/* Child process */
+				break;
+			default:	/* Parent process */
+				return;
+			}
+			/* FALL THROUGH */
+		}
+
+		crash_try_reexec();
+
+		/* The exec() failed, we may dump a core then */
+
+		if (vars->dumps_core) {
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" (CRITICAL) ");				/* 1 */
+			print_str("core dump re-enabled");		/* 2 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+		}
 	}
 }
 
@@ -1010,7 +1759,7 @@ crash_handler(int signo)
 		} else if (3 == crashed) {
 			raise(signo);
 		}
-		exit(1);	/* Die, die, die! */
+		_exit(EXIT_FAILURE);	/* Die, die, die! */
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
@@ -1046,6 +1795,39 @@ crash_handler(int signo)
 	}
 
 	/*
+	 * Crashing early means we can't be called from a signal handler: rather
+	 * we were called manually, from crash_abort().
+	 */
+
+	if (NULL == vars)
+		return;
+
+	/*
+	 * Enter crash mode and configure safe logging parameters.
+	 */
+
+	crash_mode();
+
+	if (recursive) {
+		if (!vars->recursive) {
+			guint8 t = TRUE;
+			crash_set_var(recursive, t);
+		}
+	}
+
+	/*
+	 * When crash_close() was called, print minimal error message and exit.
+	 */
+
+	name = signal_name(signo);
+
+	if (vars->closed) {
+		crash_message(name, FALSE, recursive);
+		crash_end_of_line();
+		_exit(EXIT_FAILURE);
+	}
+
+	/*
 	 * Try to go back to the crashing directory, if configured, when we're
 	 * about to exec() a process, so that the core dump happens there,
 	 * even if we're daemonized.
@@ -1068,7 +1850,6 @@ crash_handler(int signo)
 	}
 
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
-	name = signal_name(signo);
 
 	crash_message(name, trace, recursive);
 	if (trace) {
@@ -1078,9 +1859,19 @@ crash_handler(int signo)
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
-		crash_invoke_inspector(signo, cwd);
+		gboolean hooks = crash_invoke_inspector(signo, cwd);
+		if (!hooks) {
+			guint8 f = FALSE;
+			crash_run_hooks(NULL, -1);
+			crash_set_var(invoke_inspector, f);
+			crash_end_of_line();
+		}
 	}
-
+	if (vars->pause_process && vars->invoke_inspector) {
+		guint8 f = FALSE;
+		crash_set_var(invoke_inspector, f);
+		crash_end_of_line();
+	}
 	if (vars->pause_process)
 #if defined(HAS_SIGPROCMASK)
 	{
@@ -1102,7 +1893,20 @@ crash_handler(int signo)
 	}
 #endif	/* HAS_SIGPROCMASK || HAS_PAUSE */
 
-	raise(SIGABRT);
+	crash_auto_restart();
+	raise(SIGABRT);			/* This is the end of our road */
+}
+
+static size_t
+str_hash(const void *p)
+{
+	return g_str_hash(p);
+}
+
+static void *
+crash_ck_allocator(void *allocator, size_t len)
+{
+	return ck_alloc(allocator, len);
 }
 
 /**
@@ -1211,6 +2015,7 @@ crash_init(const char *argv0, const char *progname,
 
 	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
 	iv.invoke_inspector = booleanize(CRASH_F_GDB & flags) || NULL != exec_path;
+	iv.may_restart = booleanize(CRASH_F_RESTART & flags);
 	iv.dumps_core = booleanize(!crash_coredumps_disabled());
 	iv.start_time = time(NULL);
 
@@ -1223,13 +2028,69 @@ crash_init(const char *argv0, const char *progname,
 
 	if (executable != argv0)
 		HFREE_NULL(executable);
-}
 
-#define crash_set_var(name, src) \
-G_STMT_START { \
-	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
-	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
-} G_STMT_END
+	/*
+	 * This chunk is used to save error messages and to hold a string object
+	 * that can be used to format an error message.
+	 *
+	 * After initialization, the chunk is turned read-only to avoid accidental
+	 * corruption until the time we need to use the string object.
+	 */
+
+	{
+		ckhunk_t *logck;
+		str_t *logstr;
+
+		logck = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(logck, logck);
+
+		logstr = str_new_in_chunk(logck, CRASH_MSG_MAXLEN);
+		crash_set_var(logstr, logstr);
+
+		ck_readonly(vars->logck);
+	}
+
+	/*
+	 * This chunk is used to hold a string object that can be used to format
+	 * logs during crashes to bypass fprintf().
+	 *
+	 * After initialization, the chunk is turned read-only to avoid accidental
+	 * corruption until the time we need to use the string object during a
+	 * crash.
+	 */
+
+	{
+		ckhunk_t *fmtck;
+		str_t *str;
+
+		fmtck = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(fmtck, fmtck);
+
+		str = str_new_in_chunk(fmtck, CRASH_MSG_MAXLEN);
+		crash_set_var(fmtstr, str);
+
+		ck_readonly(vars->fmtck);
+	}
+
+	/*
+	 * This chunk is used to record "on-crash" handlers.
+	 */
+
+	{
+		ckhunk_t *hookmem;
+		hash_table_t *ht;
+
+		hookmem = ck_init_not_leaking(compat_pagesize(), 0);
+		crash_set_var(hookmem, hookmem);
+
+		ht = hash_table_new_special_full(crash_ck_allocator, hookmem,
+			str_hash, g_str_equal);
+		crash_set_var(hooks, ht);
+
+		hash_table_readonly(ht);
+		ck_readonly(vars->hookmem);
+	}
+}
 
 /**
  * @param dst The destination buffer, may be NULL for dry run.
@@ -1369,13 +2230,217 @@ crash_setbuild(unsigned build)
 }
 
 /**
- * Record failed assertion data.
+ * Save original argc/argv and environment.
+ *
+ * These should not be the original argv[] and environ pointer but rather
+ * copies that point to read-only memory to prevent tampering.
+ *
+ * The gm_dupmain() routine handles this duplication into a read-only memory
+ * region and it should ideally be called before calling this routine.
  */
 void
+crash_setmain(int argc, const char *argv[], const char *env[])
+{
+	crash_set_var(argc, argc);
+	crash_set_var(argv, argv);
+	crash_set_var(envp, env);
+}
+
+/**
+ * Record a crash hook for a file.
+ */
+void
+crash_hook_add(const char *filename, const crash_hook_t hook)
+{
+	g_assert(filename != NULL);
+	g_assert(hook != NULL);
+	g_assert(vars != NULL);			/* Must have run crash_init() */
+
+	/*
+	 * Only one crash hook can be added per file.
+	 */
+
+	if (hash_table_contains(vars->hooks, filename)) {
+		const void *oldhook = hash_table_lookup(vars->hooks, filename);
+		s_carp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
+			stacktrace_routine_name(func_to_pointer(hook), FALSE),
+			filename, stacktrace_routine_name(oldhook, FALSE));
+	} else {
+		ck_writable(vars->hookmem);			/* Holds the hash table object */
+		hash_table_writable(vars->hooks);
+		hash_table_insert(vars->hooks, filename, func_to_pointer(hook));
+		hash_table_readonly(vars->hooks);
+		ck_readonly(vars->hookmem);
+	}
+}
+
+/**
+ * Final call to signal that crash initialization is done and we can now
+ * shrink the pre-sized data structures to avoid wasting too much space.
+ */
+void
+crash_post_init(void)
+{
+	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
+	ck_shrink(vars->mem2, 0);
+}
+
+/**
+ * Called at exit() time, when all the program data structures have been
+ * released and when we give control back to possible atexit() handlers.
+ *
+ * When xmalloc() is malloc(), it is possible to get occasional SIGSEGV
+ * in exit handlers from gdk_exit() in the XCloseDisplay() sequence.
+ *
+ * When that happens, we don't want to pause() or dump a core.
+ */
+void
+crash_close(void)
+{
+	if (vars != NULL) {
+		guint8 t = TRUE;
+		crash_set_var(closed, t);
+	}
+}
+
+/**
+ * Abort execution, synchronously.
+ */
+void
+crash_abort(void)
+{
+	crash_handler(SIGABRT);
+	abort();
+}
+
+/**
+ * Re-execute the same process with the same arguments.
+ *
+ * This function does not return: either it succeeds exec()ing or it exits.
+ */
+G_GNUC_COLD void
+crash_reexec(void)
+{
+	crash_mode();		/* Not really, but prevents any memory allocation */
+
+	crash_try_reexec();
+	_exit(EXIT_FAILURE);
+}
+
+/***
+ *** Calling any of the following routines means we're about to crash.
+ ***/
+
+/**
+ * Record failed assertion data.
+ */
+G_GNUC_COLD void
 crash_assert_failure(const struct assertion_data *a)
 {
+	crash_mode();
+
 	if (vars != NULL)
 		crash_set_var(failure, a);
+}
+
+/**
+ * Record additional assertion message.
+ *
+ * @return formatted message string, NULL if it could not be built
+ */
+G_GNUC_COLD const char *
+crash_assert_logv(const char * const fmt, va_list ap)
+{
+	crash_mode();
+
+	if (vars != NULL && vars->logstr != NULL) {
+		const char *msg;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
+		 */
+
+		ck_writable(vars->logck);
+		str_vprintf(vars->logstr, fmt, ap);
+		msg = str_2c(vars->logstr);
+		ck_readonly(vars->logck);
+		crash_set_var(message, msg);
+		return msg;
+	} else {
+		static char msg[CRASH_MSG_SAFELEN];
+
+		str_vbprintf(msg, sizeof msg, fmt, ap);
+		return msg;
+	}
+}
+
+/**
+ * Record crash filename (static string).
+ *
+ * This allows triggering of crash hooks, if any defined for the file.
+ */
+G_GNUC_COLD void
+crash_set_filename(const char * const filename)
+{
+	crash_mode();
+
+	if (vars != NULL && vars->logck != NULL) {
+		const char *f = ck_strdup_readonly(vars->logck, filename);
+		crash_set_var(filename, f);
+	}
+}
+
+/**
+ * Record crash error message.
+ */
+G_GNUC_COLD void
+crash_set_error(const char * const msg)
+{
+	crash_mode();
+
+	if (vars != NULL && vars->logck != NULL) {
+		const char *m;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
+		 */
+
+		ck_writable(vars->logck);
+		str_reset(vars->logstr);
+		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		m = str_2c(vars->logstr);
+		ck_readonly(vars->logck);
+		crash_set_var(message, m);
+	}
+}
+
+/**
+ * Append information to existing error message.
+ */
+G_GNUC_COLD void
+crash_append_error(const char * const msg)
+{
+	crash_mode();
+
+	if (vars != NULL && vars->logck != NULL) {
+		const char *m;
+
+		/*
+		 * The string we use for formatting is held in a read-only chunk.
+		 * Before formatting inside, we must therfore make the chunk writable,
+		 * turning it back to read-only after formatting to prevent tampering.
+		 */
+
+		ck_writable(vars->logck);
+		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		m = str_2c(vars->logstr);
+		ck_readonly(vars->logck);
+		crash_set_var(message, m);
+	}
 }
 
 /**
@@ -1385,6 +2450,8 @@ crash_assert_failure(const struct assertion_data *a)
 G_GNUC_COLD void
 crash_save_stackframe(void *stack[], size_t count)
 {
+	crash_mode();
+
 	if (count > G_N_ELEMENTS(vars->stack))
 		count = G_N_ELEMENTS(vars->stack);
 
@@ -1403,26 +2470,17 @@ crash_save_stackframe(void *stack[], size_t count)
  * signal stack.
  */
 G_GNUC_COLD void
-crash_save_current_stackframe(void)
+crash_save_current_stackframe(unsigned offset)
 {
+	crash_mode();
+
 	if (vars != NULL) {
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 2);
+		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
-}
-
-/**
- * Final call to signal that crash initialization is done and we can now
- * shrink the pre-sized data structures to avoid wasting too much space.
- */
-void
-crash_post_init(void)
-{
-	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
-	ck_shrink(vars->mem2, 0);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

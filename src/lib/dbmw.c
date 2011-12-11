@@ -75,9 +75,9 @@ struct dbmw {
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
 	int error;					/**< Last errno value */
-	guint8 ioerr;				/**< Had I/O error */
-	guint8 count_needs_sync;	/**< Whether we need to sync to get count */
-	guint8 is_volatile;			/**< Whether database dies when map dies */
+	unsigned ioerr:1;			/**< Had I/O error */
+	unsigned count_needs_sync:1;/**< Whether we need to sync to get count */
+	unsigned is_volatile:1;		/**< Whether database dies when map dies */
 };
 
 static inline void
@@ -276,12 +276,10 @@ dbmw_create(dbmap_t *dm, const char *name,
 
 	if (common_dbg)
 		g_debug("DBMW created \"%s\" with %s back-end "
-			"(max cached = %lu, key=%lu bytes, value=%lu bytes, "
-			"%lu max serialized)",
+			"(max cached = %zu, key=%zu bytes, value=%zu bytes, "
+			"%zu max serialized)",
 			dw->name, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
-			(gulong) dw->max_cached,
-			(gulong) dw->key_size, (gulong) dw->value_size,
-			(gulong) dw->value_data_size);
+			dw->max_cached, dw->key_size, dw->value_size, dw->value_data_size);
 
 	return dw;
 }
@@ -323,7 +321,7 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 
 			if (dval.len > dw->value_data_size) {
 				/* Don't g_carp() as this is asynchronous wrt data change */
-				g_warning("DBMW \"%s\" serialization overflow in %s() "
+				g_critical("DBMW \"%s\" serialization overflow in %s() "
 					"whilst %s dirty entry",
 					dw->name,
 					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE),
@@ -344,9 +342,9 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
 	 */
 
 	if (common_dbg > 4)
-		g_debug("DBMW \"%s\" %s dirty value (%lu byte%s)",
+		g_debug("DBMW \"%s\" %s dirty value (%zu byte%s)",
 			dw->name, value->absent ? "deleting" : "flushing",
-			(unsigned long) dval.len, 1 == dval.len ? "" : "s");
+			dval.len, 1 == dval.len ? "" : "s");
 
 	dw->ioerr = FALSE;
 	ok = value->absent ?
@@ -974,9 +972,13 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
 	 *
 	 * Therefore, it makes sense to cache existence checks.  A data read
 	 * will also correctly return a null item from the cache.
+	 *
+	 * If the value length is not 0, we only cache negative lookups (i.e.
+	 * the value was not found) because we did not get any value so it is
+	 * possible to record an absent cache entry.
 	 */
 
-	if (0 == dw->value_size) {
+	if (0 == dw->value_size || !ret) {
 		WALLOC0(entry);
 		entry->absent = !ret;
 		(void) allocate_entry(dw, key, entry);

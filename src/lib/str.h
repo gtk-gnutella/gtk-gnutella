@@ -36,8 +36,42 @@
 
 #include "common.h"
 
-struct str;
-typedef struct str str_t;
+/*
+ * The string structure is public to allow static string objects.
+ */
+
+enum str_magic { STR_MAGIC = 0x04ed2baa };
+
+/**
+ * A dynamic string. That string is not NUL-terminated and is expanded
+ * as necessary. To get the final C version, a call to str_2c() is mandatory:
+ * It ensures the string is NUL-terminated and returns a pointer to it.
+ */
+typedef struct str {
+	enum str_magic s_magic;
+	guint32 s_flags;		/**< General flags */
+	char *s_data;			/**< Where string data is held */
+	size_t s_len;			/**< String length (amount of chars held) */
+	size_t s_size;			/**< Size of the data arena */
+} str_t;
+
+static inline void
+str_check(const struct str * const s)
+{
+	g_assert(s != NULL);
+	g_assert(STR_MAGIC == s->s_magic);
+	g_assert(s->s_len <= s->s_size);
+}
+
+/**
+ * @return available bytes in current string's buffer.
+ */
+static inline size_t
+str_avail(const struct str * const s)
+{
+	str_check(s);
+	return s->s_size - s->s_len;
+}
 
 struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
 
@@ -53,7 +87,7 @@ str_t *str_new_in_chunk(struct ckhunk *ck, size_t size);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
-void str_from_foreign(str_t *str, char *ptr, size_t len, size_t size);
+void str_new_buffer(str_t *str, char *ptr, size_t len, size_t size);
 void str_free(str_t *str);
 void str_destroy(str_t *str);
 void str_destroy_null(str_t **s_ptr);
@@ -69,6 +103,7 @@ void str_cpy(str_t *str, const char *string);
 void str_cat(str_t *str, const char *string);
 void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
+gboolean str_ncat_safe(str_t *str, const char *string, size_t len);
 void str_shift(str_t *str, size_t len);
 gboolean str_ichar(str_t *str, ssize_t idx, char c);
 gboolean str_istr(str_t *str, ssize_t idx, const char *string);
@@ -89,8 +124,17 @@ size_t str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 str_t *str_msg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 char *str_cmsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+char *str_vcmsg(const char *fmt, va_list args);
 const char *str_smsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
 const char *str_smsg2(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+size_t str_bprintf(char *dst, size_t size, const char *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
+size_t str_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
+size_t str_bcatf(char *dst, size_t size, const char *fmt, ...)
+	G_GNUC_PRINTF(3, 4);
+size_t str_vbcatf(char *dst, size_t size, const char *fmt, va_list args);
+
+size_t str_test(gboolean verbose);
 
 #endif /* _str_h_ */
 

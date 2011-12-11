@@ -221,7 +221,7 @@ upload_stats_load_history(void)
 		goto done;
 
 	/* parse, insert names into ul_stats_clist */
-	while (fgets(line, sizeof(line), upload_stats_file)) {
+	while (fgets(line, sizeof line, upload_stats_file)) {
 		static const struct ul_stats zero_item;
 		struct ul_stats item;
 		struct sha1 sha1_buf;
@@ -229,7 +229,13 @@ upload_stats_load_history(void)
 		size_t i;
 
 		lineno++;
-		if (line[0] == '#' || line[0] == '\n')
+
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+			g_warning("%s: line %u too long, aborting", G_STRFUNC, lineno);
+			break;
+		}
+
+		if (file_line_is_skipable(line))
 			continue;
 
 		p = strchr(line, '\t');

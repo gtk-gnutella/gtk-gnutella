@@ -144,10 +144,10 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 	g_assert(final || ((size_t) -1 != len && len > 0));
 
 	if (GNET_PROPERTY(tx_debug) > 9)
-		g_debug("chunk_begin: %s chunk %lu byte%s",
-			final ? "final" :
+		g_debug("TX %s: %s chunk %zu byte%s",
+			G_STRFUNC, final ? "final" :
 			attr->first ? "first" :
-			"next", (gulong) len, len == 1 ? "" : "s");
+			"next", len, len == 1 ? "" : "s");
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.

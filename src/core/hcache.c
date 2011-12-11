@@ -124,9 +124,11 @@ static cperiodic_t *hcache_save_ev;
 static cperiodic_t *hcache_timer_ev;
 static gboolean hcache_close_running = FALSE;
 
-static const char HOSTS_FILE[]	= "hosts";
-static const char ULTRAS_FILE[]	= "ultras";
-static const char GUESS_FILE[]	= "guess";
+static const char HOSTS_FILE[]		= "hosts";
+static const char ULTRAS_FILE[]		= "ultras";
+static const char ULTRAS6_FILE[]	= "ultras6";
+static const char GUESS_FILE[]		= "guess";
+static const char GUESS6_FILE[]		= "guess6";
 
 /**
  * Names of the host caches.
@@ -138,8 +140,10 @@ static const char GUESS_FILE[]	= "guess";
 static const char * const names[HCACHE_MAX] = {
     "fresh regular",
     "valid regular",
-    "fresh ultra",
-    "valid ultra",
+    "fresh IPv4 ultra",
+    "valid IPv4 ultra",
+    "fresh IPv6 ultra",
+    "valid IPv6 ultra",
     "timeout",
     "busy",
     "unstable",
@@ -175,6 +179,8 @@ hcache_class(hcache_type_t type)
 	case HCACHE_VALID_ANY:
 	case HCACHE_FRESH_ULTRA:
 	case HCACHE_VALID_ULTRA:
+	case HCACHE_FRESH_ULTRA6:
+	case HCACHE_VALID_ULTRA6:
 	case HCACHE_TIMEOUT:
 	case HCACHE_BUSY:
 	case HCACHE_UNSTABLE:
@@ -182,6 +188,8 @@ hcache_class(hcache_type_t type)
 		return HCACHE_CLASS_HOST;
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
 		return HCACHE_CLASS_GUESS;
 	case HCACHE_NONE:
 	case HCACHE_MAX:
@@ -224,6 +232,11 @@ stop_mass_update(hostcache_t *hc)
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
 				hcache_size(HOST_ULTRA));
             break;
+        case HCACHE_FRESH_ULTRA6:
+        case HCACHE_VALID_ULTRA6:
+            gnet_prop_set_guint32_val(hc->hosts_in_catcher,
+				hcache_size(HOST_ULTRA6));
+            break;
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
@@ -236,6 +249,11 @@ stop_mass_update(hostcache_t *hc)
             break;
         case HCACHE_GUESS:
         case HCACHE_GUESS_INTRO:
+            gnet_prop_set_guint32_val(hc->hosts_in_catcher,
+                hash_list_length(caches[hc->type]->hostlist));
+			break;
+        case HCACHE_GUESS6:
+        case HCACHE_GUESS6_INTRO:
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 hash_list_length(caches[hc->type]->hostlist));
 			break;
@@ -272,6 +290,26 @@ hcache_update_low_on_pongs(void)
 {
     host_low_on_pongs = hcache_size(HOST_ANY) <
 							(GNET_PROPERTY(max_hosts_cached) / 8);
+}
+
+/**
+ * @return TRUE if address falls within the host cache network specification.
+ */
+gboolean
+hcache_addr_within_net(const host_addr_t addr, host_net_t net)
+{
+	switch (net) {
+	case HOST_NET_BOTH:
+		return TRUE;
+	case HOST_NET_IPV4:
+		return host_addr_is_ipv4(addr);
+	case HOST_NET_IPV6:
+		return host_addr_is_ipv6(addr);
+	case HOST_NET_MAX:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
 }
 
 /***
@@ -441,6 +479,8 @@ hcache_node_is_bad(const host_addr_t addr)
     case HCACHE_VALID_ANY:
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
+    case HCACHE_FRESH_ULTRA6:
+    case HCACHE_VALID_ULTRA6:
         return FALSE;
     default:
         return TRUE;
@@ -513,6 +553,12 @@ hcache_require_caught(hostcache_t *hc)
             hcache_move_entries(caches[hc->type], caches[HCACHE_VALID_ULTRA]);
         }
         return hash_list_length(caches[hc->type]->hostlist) != 0;
+    case HCACHE_FRESH_ULTRA6:
+    case HCACHE_VALID_ULTRA6:
+        if (hash_list_length(caches[hc->type]->hostlist) == 0) {
+            hcache_move_entries(caches[hc->type], caches[HCACHE_VALID_ULTRA6]);
+        }
+        return hash_list_length(caches[hc->type]->hostlist) != 0;
     default:
         return hash_list_length(hc->hostlist) != 0;
     }
@@ -583,6 +629,9 @@ hcache_slots_max(hcache_type_t type)
     case HCACHE_FRESH_ULTRA:
     case HCACHE_VALID_ULTRA:
         return GNET_PROPERTY(max_ultra_hosts_cached);
+    case HCACHE_FRESH_ULTRA6:
+    case HCACHE_VALID_ULTRA6:
+        return GNET_PROPERTY(max_ultra6_hosts_cached);
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
@@ -592,6 +641,10 @@ hcache_slots_max(hcache_type_t type)
 		return GNET_PROPERTY(max_guess_hosts_cached);
 	case HCACHE_GUESS_INTRO:
 		return GNET_PROPERTY(max_guess_intro_hosts_cached);
+	case HCACHE_GUESS6:
+		return GNET_PROPERTY(max_guess6_hosts_cached);
+	case HCACHE_GUESS6_INTRO:
+		return GNET_PROPERTY(max_guess6_intro_hosts_cached);
 	case HCACHE_NONE:
 	case HCACHE_MAX:
 		break;
@@ -624,12 +677,18 @@ hcache_slots_left(hcache_type_t type)
     case HCACHE_VALID_ULTRA:
         current = hcache_size(HOST_ULTRA);
 		break;
+    case HCACHE_FRESH_ULTRA6:
+    case HCACHE_VALID_ULTRA6:
+        current = hcache_size(HOST_ULTRA6);
+		break;
 	case HCACHE_BUSY:
 	case HCACHE_TIMEOUT:
 	case HCACHE_UNSTABLE:
 	case HCACHE_ALIEN:
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
 		current = hash_list_length(caches[type]->hostlist);
 		break;
 	case HCACHE_NONE:
@@ -712,8 +771,10 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	switch (type) {
 	case HCACHE_FRESH_ANY:
 	case HCACHE_FRESH_ULTRA:
+	case HCACHE_FRESH_ULTRA6:
 	case HCACHE_VALID_ANY:
 	case HCACHE_VALID_ULTRA:
+	case HCACHE_VALID_ULTRA6:
 		if (node_host_is_connected(addr, port)) {
 			stats[HCACHE_ALREADY_CONNECTED]++;
 			return FALSE;			/* Connected to that host? */
@@ -788,6 +849,8 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 		case HCACHE_VALID_ULTRA:
 		case HCACHE_FRESH_ULTRA:
+		case HCACHE_VALID_ULTRA6:
+		case HCACHE_FRESH_ULTRA6:
 			/*
 			 * Move the host to the "ultra" cache if it's in the "any" ones.
 			 */
@@ -803,6 +866,8 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 		case HCACHE_GUESS:
 		case HCACHE_GUESS_INTRO:
+		case HCACHE_GUESS6:
+		case HCACHE_GUESS6_INTRO:
 			/*
 			 * ID Smearing Alogrithm to limit pong cache poisonning:
 			 * When attempting to add a host already present, we actually
@@ -871,6 +936,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
     switch (type) {
     case HCACHE_FRESH_ANY:
     case HCACHE_FRESH_ULTRA:
+    case HCACHE_FRESH_ULTRA6:
 		/*
 		 * Prepend, so that we use the freshest entries.
 		 */
@@ -879,6 +945,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
     case HCACHE_VALID_ANY:
     case HCACHE_VALID_ULTRA:
+    case HCACHE_VALID_ULTRA6:
         /*
          * We prepend to the list instead of appending because the day
          * we switch it as HCACHE_FRESH_XXX, we'll start reading from there,
@@ -889,6 +956,8 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
         hash_list_prepend(hc->hostlist, host_atom);
         break;
 
@@ -947,9 +1016,17 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
     case HOST_ANY:
     	return hcache_add(HCACHE_FRESH_ANY, addr, port, what);
     case HOST_ULTRA:
-    	return hcache_add(HCACHE_FRESH_ULTRA, addr, port, what);
+    case HOST_ULTRA6:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_FRESH_ULTRA, addr, port, what);
+		else
+			return hcache_add(HCACHE_FRESH_ULTRA6, addr, port, what);
     case HOST_GUESS:
-    	return hcache_add(HCACHE_GUESS, addr, port, what);
+    case HOST_GUESS6:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_GUESS, addr, port, what);
+		else
+			return hcache_add(HCACHE_GUESS6, addr, port, what);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -972,9 +1049,17 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
     case HOST_ANY:
     	return hcache_add(HCACHE_VALID_ANY, addr, port, what);
     case HOST_ULTRA:
-    	return hcache_add(HCACHE_VALID_ULTRA, addr, port, what);
+    case HOST_ULTRA6:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_VALID_ULTRA, addr, port, what);
+		else
+			return hcache_add(HCACHE_VALID_ULTRA6, addr, port, what);
     case HOST_GUESS:
-    	return hcache_add(HCACHE_GUESS_INTRO, addr, port, what);
+    case HOST_GUESS6:
+		if (host_addr_is_ipv4(addr))
+			return hcache_add(HCACHE_GUESS_INTRO, addr, port, what);
+		else
+			return hcache_add(HCACHE_GUESS6_INTRO, addr, port, what);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -1021,11 +1106,15 @@ hcache_purge(hcache_class_t class, const host_addr_t addr, guint16 port)
 		case HCACHE_VALID_ANY:
 		case HCACHE_FRESH_ULTRA:
 		case HCACHE_VALID_ULTRA:
+		case HCACHE_FRESH_ULTRA6:
+		case HCACHE_VALID_ULTRA6:
 			g_soft_assert(HCACHE_CLASS_HOST == class);
 			hcache_remove(HCACHE_CLASS_HOST, host);
 			break;
 		case HCACHE_GUESS:
 		case HCACHE_GUESS_INTRO:
+		case HCACHE_GUESS6:
+		case HCACHE_GUESS6_INTRO:
 			g_soft_assert(HCACHE_CLASS_GUESS == class);
 			hcache_remove(HCACHE_CLASS_GUESS, host);
 		default:
@@ -1087,9 +1176,19 @@ hcache_clear_host_type(host_type_t type)
         hcache_remove_all(caches[HCACHE_VALID_ULTRA]);
 		valid = TRUE;
         break;
+    case HOST_ULTRA6:
+        hcache_remove_all(caches[HCACHE_FRESH_ULTRA6]);
+        hcache_remove_all(caches[HCACHE_VALID_ULTRA6]);
+		valid = TRUE;
+        break;
     case HOST_GUESS:
         hcache_remove_all(caches[HCACHE_GUESS]);
         hcache_remove_all(caches[HCACHE_GUESS_INTRO]);
+		valid = TRUE;
+		break;
+    case HOST_GUESS6:
+        hcache_remove_all(caches[HCACHE_GUESS6]);
+        hcache_remove_all(caches[HCACHE_GUESS6_INTRO]);
 		valid = TRUE;
 		break;
     case HOST_MAX:
@@ -1127,9 +1226,15 @@ hcache_size(host_type_t type)
     case HOST_ULTRA:
         return hash_list_length(caches[HCACHE_FRESH_ULTRA]->hostlist) +
             hash_list_length(caches[HCACHE_VALID_ULTRA]->hostlist);
+    case HOST_ULTRA6:
+        return hash_list_length(caches[HCACHE_FRESH_ULTRA6]->hostlist) +
+            hash_list_length(caches[HCACHE_VALID_ULTRA6]->hostlist);
     case HOST_GUESS:
         return hash_list_length(caches[HCACHE_GUESS]->hostlist) +
         	hash_list_length(caches[HCACHE_GUESS_INTRO]->hostlist);
+    case HOST_GUESS6:
+        return hash_list_length(caches[HCACHE_GUESS6]->hostlist) +
+        	hash_list_length(caches[HCACHE_GUESS6_INTRO]->hostlist);
     case HOST_MAX:
 		g_assert_not_reached();
     }
@@ -1224,11 +1329,17 @@ hcache_prune(hcache_type_t type)
     case HCACHE_VALID_ULTRA:
 		HALF_PRUNE(HCACHE_FRESH_ULTRA);
         break;
+    case HCACHE_VALID_ULTRA6:
+		HALF_PRUNE(HCACHE_FRESH_ULTRA6);
+        break;
     case HCACHE_FRESH_ANY:
 		HALF_PRUNE(HCACHE_VALID_ANY);
 		break;
     case HCACHE_FRESH_ULTRA:
 		HALF_PRUNE(HCACHE_VALID_ULTRA);
+		break;
+    case HCACHE_FRESH_ULTRA6:
+		HALF_PRUNE(HCACHE_VALID_ULTRA6);
 		break;
     default:
         break;
@@ -1258,7 +1369,10 @@ hcache_prune(hcache_type_t type)
 		 * use normal LRU replacement.
 		 */
 
-		if (HCACHE_GUESS == hc->type && random_u32() % 100 < 70) {
+		if (
+			(HCACHE_GUESS == hc->type || HCACHE_GUESS6 == hc->type) &&
+			random_u32() % 100 < 70
+		) {
 			/*
 			 * The newest entry is the one we just added to the cache.
 			 * Remove the next one, unless there is none and pruning means
@@ -1289,37 +1403,88 @@ hcache_prune(hcache_type_t type)
  * `hcount' hosts from out caught list, without removing those hosts from
  * the list.
  *
+ * @param net		network preference (for HOST_ULTRA and HOST_GUESS)
+ * @param type		type of host to fill in
+ * @param hosts		base of vector to fill
+ * @param hcount	size of host vector
+ *
  * @return amount of hosts filled
  */
 int
-hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
+hcache_fill_caught_array(host_net_t net, host_type_t type,
+	gnet_host_t *hosts, int hcount)
 {
 	int i;
 	hostcache_t *hc = NULL;
+	hostcache_t *hc2 = NULL;
 	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 	hash_list_iter_t *iter;
 
     switch (type) {
     case HOST_ANY:
-        hc = caches[HCACHE_FRESH_ANY];
+		switch (net) {
+		case HOST_NET_IPV4:
+		case HOST_NET_IPV6:
+			g_carp("net type should only be HOST_NET_BOTH for HOST_ANY hosts");
+			/* FALL THROUGH */
+		case HOST_NET_BOTH:
+			hc = caches[HCACHE_FRESH_ANY];
+			break;
+		case HOST_NET_MAX:
+			g_assert_not_reached();
+		}
         break;
     case HOST_ULTRA:
-        hc = caches[HCACHE_FRESH_ULTRA];
+    case HOST_ULTRA6:
+		switch (net) {
+		case HOST_NET_BOTH:
+			hc = caches[HCACHE_FRESH_ULTRA6];
+			hc2 = caches[HCACHE_FRESH_ULTRA];
+			break;
+		case HOST_NET_IPV4:
+			hc = caches[HCACHE_FRESH_ULTRA];
+			break;
+		case HOST_NET_IPV6:
+			hc = caches[HCACHE_FRESH_ULTRA6];
+			break;
+		case HOST_NET_MAX:
+			g_assert_not_reached();
+		}
         break;
     case HOST_GUESS:
-        hc = caches[HCACHE_GUESS];
-		if (0 == hash_list_length(hc->hostlist))
-			hc = caches[HCACHE_GUESS_INTRO];
-        break;
+    case HOST_GUESS6:
+		switch (net) {
+		case HOST_NET_BOTH:
+			hc = caches[HCACHE_GUESS6];
+			if (0 == hash_list_length(hc->hostlist))
+				hc = caches[HCACHE_GUESS6_INTRO];
+			hc2 = caches[HCACHE_GUESS];
+			if (0 == hash_list_length(hc2->hostlist))
+				hc2 = caches[HCACHE_GUESS_INTRO];
+			break;
+		case HOST_NET_IPV4:
+			hc = caches[HCACHE_GUESS];
+			if (0 == hash_list_length(hc->hostlist))
+				hc = caches[HCACHE_GUESS_INTRO];
+			break;
+		case HOST_NET_IPV6:
+			hc = caches[HCACHE_GUESS6];
+			if (0 == hash_list_length(hc->hostlist))
+				hc = caches[HCACHE_GUESS6_INTRO];
+			break;
+		case HOST_NET_MAX:
+			g_assert_not_reached();
+		}
+		break;
     case HOST_MAX:
 		g_assert_not_reached();
     }
 
-	if (!hc)
+	if (NULL == hc)
         g_error("hcache_get_caught: unknown host type: %d", type);
 
 	/*
-	 * Not enough fresh pongs, get some from our reserve.
+	 * We first try to fill IPv6 addresses, or IPv4 if they only want that.
 	 */
 
 	iter = hash_list_iterator(hc->hostlist);
@@ -1343,6 +1508,38 @@ hcache_fill_caught_array(host_type_t type, gnet_host_t *hosts, int hcount)
 		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
 	}
 	hash_list_iter_release(&iter);
+
+	/*
+	 * If we have an alternate cache and if we're missing entries, iterate
+	 * once again to fill up the vector.
+	 */
+
+	if (NULL == hc2 || i == hcount)
+		goto done;
+
+	iter = hash_list_iterator(hc2->hostlist);
+	for (/* empty */; i < hcount; i++) {
+		gnet_host_t *h;
+
+		h = hash_list_iter_next(iter);
+		if (NULL == h)
+			break;
+
+		if (g_hash_table_lookup(seen_host, h))
+			continue;
+
+		/*
+		 * Cannot do a struct copy, the host atom may be shorter than
+		 * the structure when holding an IPv4 address.
+		 */
+
+		gnet_host_copy(&hosts[i], h);
+
+		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
+	}
+	hash_list_iter_release(&iter);
+
+done:
 	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
 
 	return i;				/* Amount of hosts we filled */
@@ -1368,8 +1565,13 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
     case HOST_ULTRA:
         hc = caches[HCACHE_FRESH_ULTRA];
 		break;
+    case HOST_ULTRA6:
+        hc = caches[HCACHE_FRESH_ULTRA6];
+		break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
+    case HOST_GUESS6:
+        hc = caches[HCACHE_GUESS6];
 		break;
     case HOST_MAX:
 		g_assert_not_reached();
@@ -1469,10 +1671,18 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
     case HOST_ULTRA:
         hc = caches[HCACHE_FRESH_ULTRA];
         break;
+    case HOST_ULTRA6:
+        hc = caches[HCACHE_FRESH_ULTRA6];
+        break;
     case HOST_GUESS:
         hc = caches[HCACHE_GUESS];
 		if (0 == hash_list_length(hc->hostlist))
 			hc = caches[HCACHE_GUESS_INTRO];
+        break;
+    case HOST_GUESS6:
+        hc = caches[HCACHE_GUESS6];
+		if (0 == hash_list_length(hc->hostlist))
+			hc = caches[HCACHE_GUESS6_INTRO];
         break;
     case HOST_MAX:
 		g_assert_not_reached();
@@ -1708,6 +1918,15 @@ hcache_timer(gpointer unused_obj)
         hcache_dump_info(caches[HCACHE_FRESH_ULTRA], "timer");
         hcache_dump_info(caches[HCACHE_VALID_ULTRA], "timer");
 
+        hcache_dump_info(caches[HCACHE_FRESH_ULTRA6], "timer");
+        hcache_dump_info(caches[HCACHE_VALID_ULTRA6], "timer");
+
+        hcache_dump_info(caches[HCACHE_GUESS],        "timer");
+        hcache_dump_info(caches[HCACHE_GUESS_INTRO],  "timer");
+
+        hcache_dump_info(caches[HCACHE_GUESS6],       "timer");
+        hcache_dump_info(caches[HCACHE_GUESS6_INTRO], "timer");
+
         hcache_dump_info(caches[HCACHE_TIMEOUT],  "timer");
         hcache_dump_info(caches[HCACHE_BUSY],     "timer");
         hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");
@@ -1740,10 +1959,20 @@ hcache_store_if_dirty(host_type_t type)
 		second = HCACHE_FRESH_ULTRA;
 		file = ULTRAS_FILE;
 		break;
+    case HOST_ULTRA6:
+		first = HCACHE_VALID_ULTRA6;
+		second = HCACHE_FRESH_ULTRA6;
+		file = ULTRAS6_FILE;
+		break;
     case HOST_GUESS:
 		first = HCACHE_GUESS_INTRO;
 		second = HCACHE_GUESS;
 		file = GUESS_FILE;
+		break;
+    case HOST_GUESS6:
+		first = HCACHE_GUESS6_INTRO;
+		second = HCACHE_GUESS6;
+		file = GUESS6_FILE;
 		break;
 	default:
 		g_error("can't store cache for host type %d", type);
@@ -1772,10 +2001,12 @@ hcache_periodic_save(gpointer unused_obj)
 	case 0: hcache_store_if_dirty(HOST_ANY); break;
 	case 1: hcache_store_if_dirty(HOST_ULTRA); break;
 	case 2: hcache_store_if_dirty(HOST_GUESS); break;
+	case 3: hcache_store_if_dirty(HOST_ULTRA6); break;
+	case 4: hcache_store_if_dirty(HOST_GUESS6); break;
 	default:
 		g_assert_not_reached();
 	}
-	i = (i + 1) % 3;
+	i = (i + 1) % 5;
 
 	return TRUE;		/* Keep calling */
 }
@@ -1800,6 +2031,11 @@ hcache_init(void)
         PROP_HOSTS_IN_ULTRA_CATCHER,
         "hosts.fresh.ultra");
 
+    caches[HCACHE_FRESH_ULTRA6] = hcache_alloc(
+        HCACHE_FRESH_ULTRA6,
+        PROP_HOSTS_IN_ULTRA6_CATCHER,
+        "hosts.fresh.ultra6");
+
     caches[HCACHE_VALID_ANY] = hcache_alloc(
         HCACHE_VALID_ANY,
         PROP_HOSTS_IN_CATCHER,
@@ -1809,6 +2045,11 @@ hcache_init(void)
         HCACHE_VALID_ULTRA,
         PROP_HOSTS_IN_ULTRA_CATCHER,
         "hosts.valid.ultra");
+
+    caches[HCACHE_VALID_ULTRA6] = hcache_alloc(
+        HCACHE_VALID_ULTRA6,
+        PROP_HOSTS_IN_ULTRA6_CATCHER,
+        "hosts.valid.ultra6");
 
     caches[HCACHE_TIMEOUT] = hcache_alloc(
         HCACHE_TIMEOUT,
@@ -1838,9 +2079,19 @@ hcache_init(void)
         PROP_HOSTS_IN_GUESS_CATCHER,
         "hosts.guess.running");
 
+    caches[HCACHE_GUESS6] = hcache_alloc(
+        HCACHE_GUESS6,
+        PROP_HOSTS_IN_GUESS6_CATCHER,
+        "hosts.guess6.running");
+
     caches[HCACHE_GUESS_INTRO] = hcache_alloc(
         HCACHE_GUESS_INTRO,
         PROP_HOSTS_IN_GUESS_INTRO_CATCHER,
+        "hosts.guess.intro");
+
+    caches[HCACHE_GUESS6_INTRO] = hcache_alloc(
+        HCACHE_GUESS6_INTRO,
+        PROP_HOSTS_IN_GUESS6_INTRO_CATCHER,
         "hosts.guess.intro");
 
 	hcache_save_ev = cq_periodic_main_add(
@@ -1856,7 +2107,9 @@ hcache_retrieve_all(void)
 {
 	hcache_retrieve(caches[HCACHE_FRESH_ANY], HOSTS_FILE);
 	hcache_retrieve(caches[HCACHE_FRESH_ULTRA], ULTRAS_FILE);
+	hcache_retrieve(caches[HCACHE_FRESH_ULTRA6], ULTRAS6_FILE);
 	hcache_retrieve(caches[HCACHE_GUESS], GUESS_FILE);
+	hcache_retrieve(caches[HCACHE_GUESS6], GUESS6_FILE);
 }
 
 /**
@@ -1868,7 +2121,9 @@ hcache_shutdown(void)
 	cq_periodic_remove(&hcache_save_ev);
 	hcache_store(HCACHE_VALID_ANY, HOSTS_FILE, HCACHE_FRESH_ANY);
 	hcache_store(HCACHE_VALID_ULTRA, ULTRAS_FILE, HCACHE_FRESH_ULTRA);
+	hcache_store(HCACHE_VALID_ULTRA6, ULTRAS6_FILE, HCACHE_FRESH_ULTRA6);
 	hcache_store(HCACHE_GUESS, GUESS_FILE, HCACHE_GUESS_INTRO);
+	hcache_store(HCACHE_GUESS6, GUESS6_FILE, HCACHE_GUESS6_INTRO);
 }
 
 /**
@@ -1882,12 +2137,16 @@ hcache_close(void)
         HCACHE_VALID_ANY,
         HCACHE_FRESH_ULTRA,
         HCACHE_VALID_ULTRA,
+        HCACHE_FRESH_ULTRA6,
+        HCACHE_VALID_ULTRA6,
         HCACHE_TIMEOUT,
         HCACHE_BUSY,
         HCACHE_UNSTABLE,
         HCACHE_ALIEN,
         HCACHE_GUESS,
         HCACHE_GUESS_INTRO,
+        HCACHE_GUESS6,
+        HCACHE_GUESS6_INTRO,
     };
 	guint i;
 

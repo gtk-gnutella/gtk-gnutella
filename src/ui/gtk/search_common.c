@@ -1656,7 +1656,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 		uri = NULL;
 		guc_search_associate_sha1(sh, rc->sha1);
 	} else {
-		uri = g_strdup_printf("/get/%lu/%s", (gulong) rc->file_index, rc->name);
+		uri = str_cmsg("/get/%lu/%s", (gulong) rc->file_index, rc->name);
 	}
 
 	guc_download_new(rc->name,
@@ -1676,7 +1676,7 @@ search_gui_download(record_t *rc, gnet_search_t sh)
 
 	rc->flags |= SR_DOWNLOADED;
 	search_gui_check_alt_locs(rc);
-	G_FREE_NULL(uri);
+	HFREE_NULL(uri);
 }
 
 /**
@@ -1717,10 +1717,9 @@ search_gui_real_store_searches(void)
             	"stored in the new XML format and the old file is renamed to\n"
             	"%s"), path_old);
         	if (-1 == rename(path, path_old))
-          		g_warning(_("could not rename %s as %s: %s\n"
+          		g_warning(_("could not rename %s as %s: %m\n"
                 	"The XML file will not be used "
-					"unless this problem is resolved."),
-                path, path_old, g_strerror(errno));
+					"unless this problem is resolved."), path, path_old);
 			HFREE_NULL(path_old);
 		}
     }
@@ -3879,11 +3878,12 @@ search_gui_set_details(const record_t *rc)
 		if (ST_ALIEN & rs->status) {
 			search_gui_append_detail(_("Alien IP"), _("Yes"));
 		}
-		search_gui_append_detail(_("Created"),
-			(time_t) -1 != rc->create_time
-			? timestamp_to_string(rc->create_time)
-			: _("Unknown"));
 	}
+
+	search_gui_append_detail(_("Created"),
+		(time_t) -1 != rc->create_time
+		? timestamp_to_string(rc->create_time)
+		: _("Unknown"));
 
 	if (rc->alt_locs) {
 		gchar *hosts = gnet_host_vec_to_string(rc->alt_locs);

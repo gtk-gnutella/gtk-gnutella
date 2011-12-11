@@ -26,7 +26,7 @@ extern gboolean chkipair(DBM *, char *, int);
 extern gboolean infopair(DBM *, char *, datum, size_t *, int *, gboolean *);
 extern datum getnkey(DBM *, char *, int);
 extern datum getnval(DBM *, char *, int);
-extern void splpage(char *, char *, char *, long);
+extern void splpage(DBM *, char *, char *, char *, long);
 extern gboolean replaceable(size_t, size_t, gboolean);
 extern int replpair(DBM *, char *, int, datum);
 #ifdef SEEDUPS

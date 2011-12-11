@@ -333,16 +333,16 @@ static void
 tcache_prune_old(void)
 {
 	if (GNET_PROPERTY(dht_tcache_debug)) {
-		g_debug("DHT TCACHE pruning expired tokens (%lu)",
-			(unsigned long) dbmw_count(db_tokdata));
+		g_debug("DHT TCACHE pruning expired tokens (%zu)",
+			dbmw_count(db_tokdata));
 	}
 
 	dbmw_foreach_remove(db_tokdata, tk_prune_old, NULL);
 	gnet_stats_set_general(GNR_DHT_CACHED_TOKENS_HELD, dbmw_count(db_tokdata));
 
 	if (GNET_PROPERTY(dht_tcache_debug)) {
-		g_debug("DHT TCACHE pruned expired tokens (%lu remaining)",
-			(unsigned long) dbmw_count(db_tokdata));
+		g_debug("DHT TCACHE pruned expired tokens (%zu remaining)",
+			dbmw_count(db_tokdata));
 	}
 }
 

@@ -173,10 +173,7 @@ is_local_addr(const host_addr_t addr)
 	 *		 cause blocking of several seconds which is not acceptable
 	 *		 except during the startup phase.
 	 */
-	if (
-		NET_USE_IPV4 == GNET_PROPERTY(network_protocol) ||
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv4()) {
 		if (!is_host_addr(our_addr)) {
 			static gboolean tried;
 
@@ -203,10 +200,7 @@ is_local_addr(const host_addr_t addr)
 		}
 	}
 	
-	if (
-		NET_USE_IPV6 == GNET_PROPERTY(network_protocol) ||
-		NET_USE_BOTH == GNET_PROPERTY(network_protocol)
-	) {
+	if (settings_use_ipv6()) {
 		if (!is_host_addr(our_addr_v6)) {
 			static gboolean tried;
 

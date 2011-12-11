@@ -61,6 +61,7 @@
 #include "lib/strtok.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPNP_PORT		1900
@@ -238,8 +239,8 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
 
 		if (GNET_PROPERTY(upnp_debug) > 3) {
 			size_t count = g_slist_length(mcb->devices);
-			g_message("UPNP discovery completed: kept %lu device%s",
-				(unsigned long) count, 1 == count ? "" : "s");
+			g_message("UPNP discovery completed: kept %zu device%s",
+				count, 1 == count ? "" : "s");
 		}
 
 		/*
@@ -518,8 +519,8 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	}
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
-		g_debug("UPNP probe of \"%s\" returned %lu byte%s",
-			ud->desc_url, (unsigned long) len, 1 == len ? "" : "s");
+		g_debug("UPNP probe of \"%s\" returned %zu byte%s",
+			ud->desc_url, len, 1 == len ? "" : "s");
 		if (GNET_PROPERTY(upnp_debug) > 9) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
@@ -855,12 +856,12 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 		}
 	} else {
 		if (GNET_PROPERTY(upnp_debug) > 5) {
-			g_debug("UPNP sent M-SEARCH (%lu bytes) for %s to %s",
-				(unsigned long) len, type, host_addr_to_string(addr));
+			g_debug("UPNP sent M-SEARCH (%zu bytes) for %s to %s",
+				len, type, host_addr_to_string(addr));
 		}
 		if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
-			g_debug("----Sent HTTP request (UDP) to %s (%u bytes):",
-				host_addr_port_to_string(addr, UPNP_PORT), (unsigned) len);
+			g_debug("----Sent HTTP request (UDP) to %s (%zu bytes):",
+				host_addr_port_to_string(addr, UPNP_PORT), len);
 			dump_string(stderr, req, len, "----");
 		}
 	}
@@ -956,9 +957,8 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 	if (NULL == s) {
 		if (GNET_PROPERTY(upnp_debug)) {
 			g_warning("unable to create anonymous UDP %s socket for "
-				"UPnP discovery: %s",
-				net_type_to_string(host_addr_net(bind_addr)),
-				g_strerror(errno));
+				"UPnP discovery: %m",
+				net_type_to_string(host_addr_net(bind_addr)));
 		}
 		goto failed;
 	}

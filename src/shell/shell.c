@@ -50,7 +50,6 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
-#include "lib/halloc.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
@@ -71,8 +70,14 @@ enum shell_magic {
 	SHELL_MAGIC = 0x33f3e711U
 };
 
+struct shell_pending {
+	enum shell_reply code;	/**< Reply code */
+	char *msg;				/**< Line of text (no trailing new-line) */
+};
+
 struct gnutella_shell {
-	enum shell_magic	magic;
+	enum shell_magic magic;
+	struct shell_pending pending;
 	struct gnutella_socket *socket;
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
@@ -103,13 +108,11 @@ shell_has_pending_output(struct gnutella_shell *sh)
 static struct gnutella_shell *
 shell_new(struct gnutella_socket *s)
 {
-	static const struct gnutella_shell zero_shell;
 	struct gnutella_shell *sh;
 
 	socket_check(s);
 
-	WALLOC(sh);
-	*sh = zero_shell;
+	WALLOC0(sh);
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
@@ -130,6 +133,7 @@ shell_free(struct gnutella_shell *sh)
 	g_assert(NULL == sh->socket); /* must have called shell_destroy before */
 	g_assert(NULL == sh->output); /* must have called shell_destroy before */
 	HFREE_NULL(sh->msg);
+	HFREE_NULL(sh->pending.msg);
 
 	sh->magic = 0;
 	WFREE(sh);
@@ -168,6 +172,19 @@ shell_set_msg(struct gnutella_shell *sh, const char *text)
 
 	HFREE_NULL(sh->msg);
 	sh->msg = h_strdup(text);
+}
+
+void
+shell_set_formatted(struct gnutella_shell *sh, const char *fmt, ...)
+{
+	va_list args;
+
+	shell_check(sh);
+
+	HFREE_NULL(sh->msg);
+	va_start(args, fmt);
+	sh->msg = str_vcmsg(fmt, args);
+	va_end(args);
 }
 
 static void
@@ -308,9 +325,8 @@ shell_options_parse(struct gnutella_shell *sh,
 
 	ret = options_parse(argv, ovec, ovcnt);
 	if (ret < 0) {
-		shell_write(sh, "400-Syntax error: ");
-		shell_write(sh, options_parse_last_error());
-		shell_write(sh, "\n");
+		shell_write_linef(sh, REPLY_ERROR, "Syntax error: %s",
+			options_parse_last_error());
 		shell_set_msg(sh, _("Invalid command syntax"));
 	}
 	return ret;
@@ -468,6 +484,27 @@ shell_cmd_get_handler(const char *cmd)
 }
 
 /**
+ * Flush any pending line.
+ */
+static void
+shell_pending_flush(struct gnutella_shell *sh, gboolean last)
+{
+	shell_check(sh);
+	g_return_if_fail(sh->output);
+
+	if (sh->pending.msg != NULL) {
+		char buf[5];
+
+		gm_snprintf(buf, sizeof buf, "%03d%c",
+			sh->pending.code, last ? ' ' : '-');
+		shell_write(sh, buf);
+		shell_write(sh, sh->pending.msg);
+		shell_write(sh, "\n");
+		HFREE_NULL(sh->pending.msg);
+	}
+}
+
+/**
  * Takes a command string and tries to parse and execute it.
  */
 static enum shell_reply
@@ -497,7 +534,9 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 
 		handler = shell_cmd_get_handler(argv[0]);
 		if (handler) {
+			HFREE_NULL(sh->pending.msg);
 			reply_code = (*handler)(sh, argc, argv);
+			shell_pending_flush(sh, !sh->interactive);
 			if (NULL == sh->msg) {
 				switch (reply_code) {
 				case REPLY_ERROR:
@@ -587,7 +626,7 @@ shell_read_data(struct gnutella_shell *sh)
 	s = sh->socket;
 
 	if (s->buf_size - s->pos < 1) {
-		g_warning("Remote shell: Read more than buffer size.\n");
+		g_warning("SHELL read more than buffer size (%zu bytes)", s->buf_size);
 	} else {
 		size_t size = s->buf_size - s->pos - 1;
 		ssize_t ret;
@@ -603,7 +642,7 @@ shell_read_data(struct gnutella_shell *sh)
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("Receiving data failed: %s\n", g_strerror(errno));
+				g_warning("receiving data failed: %m");
 				shell_shutdown(sh);
 				goto finish;
 			}
@@ -746,6 +785,42 @@ shell_write(struct gnutella_shell *sh, const char *text)
 		}
 		pmsg_slist_append(sh->output, text, len);
 	}
+}
+
+/**
+ * Writes single line of text, appending final trailing "\n".
+ */
+void
+shell_write_line(struct gnutella_shell *sh, int code, const char *text)
+{
+	shell_check(sh);
+	g_return_if_fail(text);
+
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = h_strdup(text);
+	sh->pending.code = code;
+}
+
+/**
+ * Writes single formatted line of text, appending final trailing "\n".
+ */
+void
+shell_write_linef(struct gnutella_shell *sh, int code, const char *fmt, ...)
+{
+	va_list args;
+	char *s;
+
+	shell_check(sh);
+	g_return_if_fail(sh->output);
+	g_return_if_fail(fmt);
+
+	va_start(args, fmt);
+	s = str_vcmsg(fmt, args);
+	va_end(args);
+
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = s;
+	sh->pending.code = code;
 }
 
 void

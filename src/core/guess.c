@@ -301,6 +301,13 @@ static char db_qkdata_base[] = "guess_hosts";
 static char db_qkdata_what[] = "GUESS hosts & query keys";
 
 /**
+ * Keeps track of the amount of GUESS 0.2 hosts in the cache.
+ * Those are identified when they are returning hosts in GGEP "IPP" on pings
+ * sent by GUESS 0.2 clients (which we are).
+ */
+static guint64 guess_02_hosts;
+
+/**
  * Information about a host that is stored to disk.
  * The structure is serialized first, not written as-is.
  */
@@ -747,9 +754,12 @@ guess_host_set_flags(const gnet_host_t *h, guint32 flags)
 	struct qkdata *qk;
 
 	qk = get_qkdata(h);
+
 	if (qk != NULL) {
-		qk->flags |= flags;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		if ((qk->flags & flags) != flags) {
+			qk->flags |= flags;
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
 	}
 }
 
@@ -762,9 +772,52 @@ guess_host_clear_flags(const gnet_host_t *h, guint32 flags)
 	struct qkdata *qk;
 
 	qk = get_qkdata(h);
+
 	if (qk != NULL) {
-		qk->flags &= ~flags;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		if (qk->flags & flags) {
+			qk->flags &= ~flags;
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
+	}
+}
+
+/**
+ * Mark host as being at least a GUESS 0.2 one.
+ */
+static void
+guess_host_set_v2(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		if (!(qk->flags & GUESS_F_PONG_IPP)) {
+			qk->flags |= GUESS_F_PONG_IPP;
+			guess_02_hosts++;
+			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, +1);
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
+	}
+}
+
+/**
+ * Clear indication that host is a GUESS 0.2 one.
+ */
+static void
+guess_host_clear_v2(const gnet_host_t *h)
+{
+	struct qkdata *qk;
+
+	qk = get_qkdata(h);
+
+	if (qk != NULL) {
+		if (qk->flags & GUESS_F_PONG_IPP) {
+			qk->flags &= ~GUESS_F_PONG_IPP;
+			guess_02_hosts--;
+			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, -1);
+			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		}
 	}
 }
 
@@ -785,11 +838,8 @@ guess_traffic_from(const gnet_host_t *h)
 	qk = get_qkdata(h);
 
 	if (NULL == qk) {
+		ZERO(&new_qk);				/* Precaution */
 		new_qk.first_seen = new_qk.last_update = tm_time();
-		new_qk.last_timeout = 0;
-		new_qk.flags = 0;
-		new_qk.timeouts = 0;
-		new_qk.length = 0;
 		new_qk.query_key = NULL;	/* Query key unknown */
 		qk = &new_qk;
 		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
@@ -916,9 +966,9 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		hash_list_prepend(link_cache, atom_host_get(h));
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_info("GUESS adding %s to link cache (p=%d%%, n=%lu)",
+			g_info("GUESS adding %s to link cache (p=%d%%, n=%zu)",
 				gnet_host_to_string(h), p,
-				(unsigned long) hash_list_length(link_cache));
+				hash_list_length(link_cache));
 		}
 	}
 
@@ -1170,21 +1220,23 @@ guess_extract_host_addr(const struct gnutella_node *n)
 	node_check(n);
 	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
 
+	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 	ipv6_addr = zero_host_addr;
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
 
 		switch (e->ext_token) {
-		case EXT_T_GGEP_GTKG_IPV6:
-			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+		case EXT_T_GGEP_6:
+		case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
+			if (ext_paylen(e) != 0) {
+				ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+			}
 			break;
 		default:
 			break;
 		}
 	}
-
-	ipv4_addr = host_addr_peek_ipv4(&n->data[2]);
 
 	/*
 	 * We give preference to the IPv4 address unless it's unusable and there
@@ -1193,7 +1245,8 @@ guess_extract_host_addr(const struct gnutella_node *n)
 
 	if (
 		!host_address_is_usable(ipv4_addr) &&
-		host_address_is_usable(ipv6_addr)
+		host_address_is_usable(ipv6_addr) &&
+		settings_running_ipv6()
 	) {
 		return ipv6_addr;
 	}
@@ -1235,7 +1288,7 @@ guess_extract_ipp(guess_t *gq,
 					}
 				}
 
-				guess_host_set_flags(h, GUESS_F_PONG_IPP);
+				guess_host_set_v2(h);	/* Replied with IPP, is GUESS 0.2 */
 
 				for (i = 0; i < cnt; i++) {
 					host_addr_t addr;
@@ -1624,7 +1677,8 @@ guess_request_hosts(host_addr_t addr, guint16 port)
 		atom_host_free(h);
 	else {
 		guess_host_set_flags(h, GUESS_F_PINGED);
-		guess_host_clear_flags(h, GUESS_F_OTHER_HOST | GUESS_F_PONG_IPP);
+		guess_host_clear_flags(h, GUESS_F_OTHER_HOST);
+		guess_host_clear_v2(h);
 	}
 
 	return sent;
@@ -1641,6 +1695,7 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 	const struct qkdata *qk = value;
 	time_delta_t d;
 	gboolean expired, hostile;
+	unsigned minor;
 	double p;
 
 	(void) u_len;
@@ -1668,9 +1723,19 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 		expired = p < GUESS_STABLE_PROBA;
 	}
 
+	/*
+	 * Use this opportunity where we're looping to update the amount
+	 * of GUESS 0.2 hosts present in the cache.
+	 */
+
+	minor = (qk->flags & GUESS_F_PONG_IPP) ? 2 : 1;
+
+	if (!expired && minor > 1)
+		guess_02_hosts++;
+
 	if (GNET_PROPERTY(guess_client_debug) > 5) {
-		g_debug("GUESS QKCACHE node %s life=%s last_seen=%s, p=%.2f%%%s",
-			gnet_host_to_string(h),
+		g_debug("GUESS QKCACHE node %s v%u life=%s last_seen=%s, p=%.2f%%%s",
+			gnet_host_to_string(h), minor,
 			compact_time(delta_time(qk->last_seen, qk->first_seen)),
 			compact_time2(d), p * 100.0,
 			hostile ? " [HOSTILE]" : expired ? " [EXPIRED]" : "");
@@ -1686,17 +1751,20 @@ static void
 guess_qk_prune_old(void)
 {
 	if (GNET_PROPERTY(guess_client_debug)) {
-		g_debug("GUESS QKCACHE pruning expired query keys (%lu)",
-			(unsigned long) dbmw_count(db_qkdata));
+		g_debug("GUESS QKCACHE pruning expired query keys (%zu)",
+			dbmw_count(db_qkdata));
 	}
+
+	guess_02_hosts = 0;		/* Will be updated by qk_prune_old() */
 
 	dbmw_foreach_remove(db_qkdata, qk_prune_old, NULL);
 	gnet_stats_set_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD,
 		dbmw_count(db_qkdata));
+	gnet_stats_set_general(GNR_GUESS_CACHED_02_HOSTS_HELD, guess_02_hosts);
 
 	if (GNET_PROPERTY(guess_client_debug)) {
-		g_debug("GUESS QKCACHE pruned expired query keys (%lu remaining)",
-			(unsigned long) dbmw_count(db_qkdata));
+		g_debug("GUESS QKCACHE pruned expired query keys (%zu remaining)",
+			dbmw_count(db_qkdata));
 	}
 
 	dbstore_shrink(db_qkdata);
@@ -1981,18 +2049,16 @@ guess_final_stats(const guess_t *gq)
 	tm_now_exact(&end);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] \"%s\" took %f secs, "
-			"queried_set=%lu, pool_set=%lu, "
-			"queried=%lu, acks=%lu, max_ultras=%lu, kept_results=%u/%u, "
+		g_debug("GUESS QUERY[%s] \"%s\" took %g secs, "
+			"queried_set=%zu, pool_set=%zu, "
+			"queried=%zu, acks=%zu, max_ultras=%zu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
 			nid_to_string(&gq->gid),
 			lazy_safe_search(gq->query),
 			tm_elapsed_f(&end, &gq->start),
-			(unsigned long) map_count(gq->queried),
-			(unsigned long) hash_list_length(gq->pool),
-			(unsigned long) gq->queried_nodes,
-			(unsigned long) gq->query_acks,
-			(unsigned long) gq->max_ultrapeers,
+			map_count(gq->queried),
+			hash_list_length(gq->pool),
+			gq->queried_nodes, gq->query_acks, gq->max_ultrapeers,
 			gq->kept_results, gq->recv_results,
 			gq->bw_out_qk, gq->bw_out_query);
 	}
@@ -2005,7 +2071,6 @@ static gboolean
 guess_should_terminate(guess_t *gq)
 {
 	const char *reason = NULL;
-	tm_t now;
 
 	guess_check(gq);
 
@@ -2013,8 +2078,6 @@ guess_should_terminate(guess_t *gq)
 		reason = "GUESS disabled";
 		goto terminate;
 	}
-
-	tm_now(&now);
 
 	if (gq->query_acks >= gq->max_ultrapeers) {
 		reason = "max amount of successfully queried ultrapeers reached";
@@ -2318,9 +2381,8 @@ guess_load_more_hosts(guess_t *gq)
 	added = guess_load_pool(gq, FALSE);
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
-		g_debug("GUESS QUERY[%s] loaded %lu more host%s in the pool",
-			nid_to_string(&gq->gid), (unsigned long) added,
-			1 == added ? "" : "s");
+		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool",
+			nid_to_string(&gq->gid), added, 1 == added ? "" : "s");
 	}
 }
 
@@ -2357,6 +2419,13 @@ guess_load_host_added(void *data, void *hostinfo)
 	switch (nhost->type) {
 	case HCACHE_GUESS:
 	case HCACHE_GUESS_INTRO:
+		if (!settings_use_ipv4())
+			return WQ_SLEEP;
+		break;
+	case HCACHE_GUESS6:
+	case HCACHE_GUESS6_INTRO:
+		if (!settings_use_ipv6())
+			return WQ_SLEEP;
 		break;
 	default:
 		return WQ_SLEEP;		/* Still waiting for a GUESS host */
@@ -2423,7 +2492,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 	/*
 	 * If the RPC callback triggered before processing by the UDP queue,
 	 * then we don't need to further process: it was already handled by
-	 * the RPC time out.
+	 * the RPC timeout.
 	 */
 
 	if (pmi->rpc_done)
@@ -2772,7 +2841,7 @@ guess_handle_ack(guess_t *gq,
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
 			tm_t now;
 			tm_now_exact(&now);
-			g_debug("GUESS QUERY[%s] %f secs, hop %u, "
+			g_debug("GUESS QUERY[%s] %g secs, hop %u, "
 				"got acknowledgement pong from %s for %s at hop %u",
 				nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
 				gq->hops, gnet_host_to_string(host),
@@ -3135,12 +3204,12 @@ guess_iterate(guess_t *gq)
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
 		tm_t now;
 		tm_now_exact(&now);
-		g_debug("GUESS QUERY[%s] iterating, %f secs, hop %u, "
-		"[acks/pool: %lu/%u] "
+		g_debug("GUESS QUERY[%s] iterating, %g secs, hop %u, "
+		"[acks/pool: %zu/%u] "
 		"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
-			gq->hops, (unsigned long) gq->query_acks,
-			hash_list_length(gq->pool), guess_mode_to_string(gq->mode),
+			gq->hops, gq->query_acks, hash_list_length(gq->pool),
+			guess_mode_to_string(gq->mode),
 			alpha, 1 == alpha ? "" : "s", gq->rpc_pending);
 	}
 
@@ -3457,16 +3526,20 @@ guess_cancel(guess_t **gq_ptr, gboolean callback)
  * Fill `hosts', an array of `hcount' hosts already allocated with at most
  *  `hcount' hosts from out caught list.
  *
+ * @param net		network preference
+ * @param hosts		base of vector to fill
+ * @param hcount	size of host vector
+ *
  * @return amount of hosts filled
  */
 int
-guess_fill_caught_array(gnet_host_t *hosts, int hcount)
+guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 {
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
 	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
 
-	filled = hcache_fill_caught_array(HOST_GUESS, hosts, hcount);
+	filled = hcache_fill_caught_array(net, HOST_GUESS, hosts, hcount);
 	iter = hash_list_iterator(link_cache);
 
 	for (i = 0; i < hcount; i++) {
@@ -3479,6 +3552,13 @@ guess_fill_caught_array(gnet_host_t *hosts, int hcount)
 
 		if (gm_hash_table_contains(seen_host, h))
 			goto next;
+
+		if (net != HOST_NET_BOTH) {
+			if (HOST_NET_IPV4 == net && !gnet_host_is_ipv4(h))
+				goto next;
+			else if (HOST_NET_IPV6 == net && !gnet_host_is_ipv6(h))
+				goto next;
+		}
 
 		/*
 		 * Hosts from the link cache have a 65% chance of superseding hosts
@@ -3525,7 +3605,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 	 */
 
 	if (len < 3)
-		return;
+		return;			/* Not a GUESS 0.2 ping */
 
 	port = peek_le16(&buf[1]);
 	hcache_add_valid(HOST_GUESS, n->addr, port, "introduction ping");
@@ -3538,6 +3618,7 @@ guess_introduction_ping(const struct gnutella_node *n,
 
 	gnet_host_set(&host, n->addr, port);
 	guess_traffic_from(&host);
+	guess_host_set_v2(&host);
 }
 
 /**

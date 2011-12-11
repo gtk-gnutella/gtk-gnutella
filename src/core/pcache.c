@@ -44,6 +44,7 @@
 #include "hostiles.h"
 #include "hosts.h"
 #include "inet.h"
+#include "ipv6-ready.h"
 #include "nodes.h"
 #include "pcache.h"
 #include "routing.h"
@@ -97,18 +98,38 @@ enum ping_flag {
 	PING_F_DHTIPP		= (1 << 4),	/**< GGEP DHTIPP, wants DHT hosts */
 	PING_F_QK			= (1 << 5),	/**< GGEP QK, wants GUESS Query Key */
 	PING_F_GUE			= (1 << 6),	/**< GGEP GUE, wants GUESS hosts in IPP */
+	PING_F_IPV6			= (1 << 7),	/**< Will accept IPv6 addresses */
+	PING_F_NO_IPV4		= (1 << 8),	/**< Does not want IPv4 addresses */
 
 	PING_LAST_ENUM_FLAG
 };
 
 static pong_meta_t local_meta;
 
+/**
+ * Compute the proper net type when requesting cached hosts, depending on the
+ * ping flags (what the remote party said it wanted).
+ */
+static host_net_t
+ping_net(enum ping_flag flags)
+{
+	host_net_t net;
+
+	net = HOST_NET_IPV4;
+	if (flags & PING_F_NO_IPV4)
+		net = HOST_NET_IPV6;
+	else if (flags & PING_F_IPV6)
+		net = HOST_NET_BOTH;
+
+	return net;
+}
+
 /***
  *** Messages
  ***/
 
 /**
- * Sends a ping to given node, or broadcast to everyone if `n' is NULL.
+ * Sends a ping to given node.
  */
 static void
 send_ping(struct gnutella_node *n, guint8 ttl)
@@ -116,33 +137,15 @@ send_ping(struct gnutella_node *n, guint8 ttl)
 	gnutella_msg_init_t *m;
 	guint32 size;
 
+	node_check(n);
+	g_assert(!NODE_IS_UDP(n));
+
 	STATIC_ASSERT(23 == sizeof *m);	
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
-	if (n) {
-		g_assert(!NODE_IS_UDP(n));
-
-		if (NODE_IS_WRITABLE(n)) {
-			n->n_ping_sent++;
-			gmsg_sendto_one(n, m, size);
-		}
-	} else {
-		const GSList *sl_nodes = node_all_nodes();
-		const GSList *sl;
-
-		/*
-		 * XXX Have to loop to count pings sent.
-		 * XXX Need to do that more generically, to factorize code.
-		 */
-
-		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-			n = sl->data;
-			if (!NODE_IS_WRITABLE(n))
-				continue;
-			n->n_ping_sent++;
-		}
-
-		gmsg_sendto_all(sl_nodes, m, size);
+	if (NODE_IS_WRITABLE(n)) {
+		n->n_ping_sent++;
+		gmsg_sendto_one(n, m, size);
 	}
 }
 
@@ -199,8 +202,13 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 		ggep = cast_to_gpointer(&m[1]);
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
-		spp = settings_is_leaf() ? 0x0 : 0x1;
-		spp |= tls_enabled() ? 0x02 : 0;
+		spp = settings_is_leaf() ? 0 : SCP_F_ULTRA;
+		spp |= tls_enabled() ? SCP_F_TLS : 0;
+
+		/* IPv6-Ready: just request the addresses we want */
+
+		spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
+		spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 		g_assert(ok);
@@ -292,14 +300,19 @@ build_guess_ping_msg(const struct guid *muid,
 
 			/*
 			 * A "QK" query with "SCP" requests more GUESS hosts packed in
-			 * and "IPP" extension, not sent as separate pongs.
+			 * an "IPP" extension, not sent as separate pongs.
 			 *
 			 * If "SCP" is not present along "QK", then no extra hosts will
 			 * be sent back, only the proper query key in a single pong.
 			 */
 
-			spp = settings_is_leaf() ? 0x0 : 0x1;
-			spp |= tls_enabled() ? 0x02 : 0;
+			spp = settings_is_leaf() ? 0 : SCP_F_ULTRA;
+			spp |= tls_enabled() ? SCP_F_TLS : 0;
+
+			/* IPv6-Ready: just request the addresses we want */
+
+			spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
+			spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
 			g_assert(ok);
@@ -364,6 +377,8 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	ggep_stream_t gs;
 	guchar *ggep;
 	guint32 sz;
+	guint32 ipv4;
+	gboolean ipv6_included = FALSE;
 
 	STATIC_ASSERT(37 == sizeof *pong);
 	ggep = cast_to_gpointer(&pong[1]);
@@ -381,12 +396,14 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	gnutella_msg_init_response_set_files_count(pong, info->files_count);
 	gnutella_msg_init_response_set_kbytes_count(pong, info->kbytes_count);
 
-	{
-		host_addr_t addr;
+	/*
+	 * IPv6-Ready support: the PONG message is architected with an IPv4 address.
+	 * When the address we want to send is an IPv6 one, it needs to be sent
+	 * in a GGEP "6" field, the IPv4 being forced to 127.0.0.0.
+	 */
 
-		host_addr_convert(info->addr, &addr, NET_TYPE_IPV4);
-		gnutella_msg_init_response_set_host_ip(pong, host_addr_ipv4(addr));
-	}
+	ipv4 = ipv6_ready_advertised_ipv4(info->addr);
+	gnutella_msg_init_response_set_host_ip(pong, ipv4);
 
 	sz = sizeof *pong - GTA_HEADER_SIZE;
 
@@ -397,7 +414,18 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 	ggep_stream_init(&gs, ggep, sizeof msg_pong.buf - sizeof *pong);
 
 	/*
-	 * First, start with metadata about the host.
+	 * IPv6-Ready support: No IPv4 address means we need to send the IPv6
+	 * address in a GGEP "6" extension.
+	 */
+
+	if (ipv6_ready_has_no_ipv4(ipv4) && host_addr_is_ipv6(info->addr)) {
+		ggep_stream_pack(&gs, GGEP_NAME(6),
+			info->addr.addr.ipv6, sizeof info->addr.addr.ipv6, 0);
+		ipv6_included = TRUE;
+	}
+
+	/*
+	 * Include metadata about the host.
 	 */
 
 	if (meta != NULL) {
@@ -443,8 +471,12 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
-		if (meta->flags & PONG_META_HAS_IPV6) {
-			ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6),
+		/*
+		 * Ensure we only include one GGEP "6" extension.
+		 */
+
+		if ((meta->flags & PONG_META_HAS_IPV6) && !ipv6_included) {
+			ggep_stream_pack(&gs, GGEP_NAME(6),
 				host_addr_ipv6(&meta->ipv6_addr), 16, 0);
 		}
 
@@ -476,12 +508,14 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		(GNET_PROPERTY(enable_guess) && (flags & PING_F_GUE))
 	) {
 		/*
-		 * XXX For this first implementation, ignore their desire.  Just
-		 * XXX fill a bunch of hosts as we would for an X-Try-Ultrapeer header.
+		 * FIXME:
+		 * For this first implementation, ignore their desire.  Just
+		 * fill a bunch of hosts as we would for an X-Try-Ultrapeer header.
 		 */
 
 		gnet_host_t host[PCACHE_UHC_MAX_IP];
 		int hcount;
+		host_net_t net = ping_net(flags);
 
 		/*
 		 * For GUESS 0.2, if there is a "QK" extension in the ping as well,
@@ -489,71 +523,25 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		 */
 
 		if (GNET_PROPERTY(enable_guess) && (flags & (PING_F_QK | PING_F_GUE))) {
-			hcount = guess_fill_caught_array(host, PCACHE_UHC_MAX_IP);
+			hcount = guess_fill_caught_array(net, host, PCACHE_UHC_MAX_IP);
 		} else {
-			hcount = hcache_fill_caught_array(HOST_ULTRA,
+			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
 				host, PCACHE_UHC_MAX_IP);
 		}
 
 		if (hcount > 0) {
-			guchar tls_bytes[(G_N_ELEMENTS(host) + 7) / 8];
-			guint tls_index, tls_length;
-			gboolean ok;
-			int i;
+			gnet_host_t evec[2];
 
 			/*
-			 * The binary data that makes up IPP does not deflate well.
-			 * The 180 bytes of data for 30 addresses typically end up
-			 * being 175 bytes after compression.  It's not worth the
-			 * pain and the CPU overhead.
+			 * Skip hosts that have already been included in the pong
+			 * info part or which correspond to the recipient of the pong.
 			 */
 
-			ZERO(&tls_bytes);
-			tls_index = 0;
-			tls_length = 0;
+			gnet_host_set(&evec[0], info->addr, info->port);
+			gnet_host_set(&evec[1], sender_addr, sender_port);
 
-			ok = ggep_stream_begin(&gs, GGEP_NAME(IPP), 0);
-
-			for (i = 0; ok && i < hcount; i++) {
-				char addr_buf[6];
-				host_addr_t addr;
-				guint16 port;
-
-				/* @todo TODO: IPv6 */
-				if (!gnet_host_is_ipv4(&host[i]))
-					continue;
-				
-				addr = gnet_host_get_addr(&host[i]);
-				port = gnet_host_get_port(&host[i]);
-
-				/*
-				 * Skip hosts that have already been included in the pong
-				 * info part or which correspond to the recipient of the pong.
-				 */
-
-				if (port == info->port && host_addr_equal(addr, info->addr))
-					continue;
-
-				if (port == sender_port && host_addr_equal(addr, sender_addr))
-					continue;
-
-				poke_be32(&addr_buf[0], host_addr_ipv4(addr));
-				poke_le16(&addr_buf[4], port);
-
-				ok = ggep_stream_write(&gs, addr_buf, sizeof addr_buf);
-
-				if (tls_cache_lookup(addr, port)) {
-					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
-					tls_length = (tls_index >> 3) + 1;
-				}
-				tls_index++;
-			}
-
-			ok = ok && ggep_stream_end(&gs);
-			if (ok && tls_length > 0) {
-				ok = ggep_stream_pack(&gs, GGEP_NAME(IPP_TLS),
-						tls_bytes, tls_length, 0);
-			}
+			ggept_ipp_pack(&gs, host, hcount, evec, G_N_ELEMENTS(evec),
+				flags & PING_F_IPV6, flags & PING_F_NO_IPV4);
 		}
 	}
 
@@ -572,48 +560,33 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		hcount = dht_fill_random(host, G_N_ELEMENTS(host));
 
 		if (hcount > 0) {
-			gboolean ok;
-			int i;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(DHTIPP), 0);
-
-			for (i = 0; ok && i < hcount; i++) {
-				char addr_buf[6];
-				host_addr_t addr;
-				guint16 port;
-
-				/* @todo TODO: IPv6 */
-				if (!gnet_host_is_ipv4(&host[i]))
-					continue;
-				
-				addr = gnet_host_get_addr(&host[i]);
-				port = gnet_host_get_port(&host[i]);
-				poke_be32(&addr_buf[0], host_addr_ipv4(addr));
-				poke_le16(&addr_buf[4], port);
-
-				ok = ggep_stream_write(&gs, addr_buf, sizeof addr_buf);
-			}
-
-			ok = ok && ggep_stream_end(&gs);
+			ggept_dhtipp_pack(&gs, host, hcount,
+				flags & PING_F_IPV6, flags & PING_F_NO_IPV4);
 		}
 	}
 
 	/*
-	 * The "IP" GGEP extension in the ping requests that the IPv4 IP:port
+	 * The "IP" GGEP extension in the ping requests that the IP:port
 	 * of the sending host be echoed back.
+	 *
+	 * We echo either an IPv4:port or an IPv6:port here, and the recipient
+	 * must use the size of the payload to discriminate: a 6-byte payload
+	 * will indicate an IPv4:port, as opposed to a 18-byte payload for
+	 * an IPv6:port.
 	 */
 
-	if ((flags & PING_F_IP) && host_addr_is_ipv4(sender_addr)) {
-		char ip_port[6];
+	if (flags & PING_F_IP) {
+		char ip_port[18];
+		size_t len;
 
-		/* Ip Port (not UHC IPP!)*/
-		if (GNET_PROPERTY(pcache_debug) > 1 || GNET_PROPERTY(ggep_debug) > 1)
+		/* IP + Port (not UHC IPP!)*/
+		if (GNET_PROPERTY(pcache_debug) > 1 || GNET_PROPERTY(ggep_debug) > 1) {
 			g_debug("adding GGEP IP to pong for %s",
 				host_addr_port_to_string(sender_addr, sender_port));
+		}
 
-		poke_be32(&ip_port[0], host_addr_ipv4(sender_addr));
-		poke_le16(&ip_port[4], sender_port);
-		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, sizeof ip_port, 0);
+		host_ip_port_poke(ip_port, sender_addr, sender_port, &len);
+		ggep_stream_pack(&gs, GGEP_NAME(IP), ip_port, len, 0);
 	}
 
 	/*
@@ -666,12 +639,10 @@ send_pong(
 			control ? NULL : meta, flags, &size);
 	n->n_pong_sent++;
 
-	g_assert(!control || size == sizeof *r);	/* control => no extensions */
-
 	if (NODE_IS_UDP(n))
 		udp_send_msg(n, r, size);
 	else if (control)
-		gmsg_ctrl_sendto_one(n, r, sizeof *r);
+		gmsg_ctrl_sendto_one(n, r, size);
 	else
 		gmsg_sendto_one(n, r, size);
 }
@@ -695,27 +666,27 @@ ping_type(const gnutella_node_t *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
-		guint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_SCP:
 			/*
 		 	 * Look whether they want leaf slots, ultra slots, or don't care.
+			 * Also determine which IP addresses they want.
 		 	 */
 
 			/* Accept only the first SCP, just in case there are multiple */
-			if (!(flags & PING_F_UHC)) {
-				flags |= PING_F_UHC;
-
-				paylen = ext_paylen(e);
-				if (paylen >= 1) {
-					const guchar *payload = ext_payload(e);
-					guint8 mask = payload[0];
-					flags |= (mask & 0x1) ? PING_F_UHC_ULTRA : PING_F_UHC_LEAF;
-				} else {
-					flags |= PING_F_UHC_ANY;
-				}
+			if (!(flags & PING_F_UHC) && ext_paylen(e) >= 1) {
+				const guchar *payload = ext_payload(e);
+				guint8 mask = payload[0];
+				flags |= (mask & SCP_F_ULTRA) ?
+					PING_F_UHC_ULTRA : PING_F_UHC_LEAF;
+				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
+				flags |= (mask & SCP_F_NO_IPV4) ? PING_F_NO_IPV4 : 0;
+			} else if (!(flags & PING_F_UHC)) {
+				/* No payload, assume they want any host */
+				flags |= PING_F_UHC_ANY;
 			}
+			flags |= PING_F_UHC;
 			break;
 
 		case EXT_T_GGEP_IP:
@@ -731,8 +702,14 @@ ping_type(const gnutella_node_t *n)
 			break;
 
 		case EXT_T_GGEP_DHTIPP:
-			if (0 == ext_paylen(e))
-				flags |= PING_F_DHTIPP;
+			/* Accept only the first DHTIPP, just in case there are multiple */
+			if (ext_paylen(e) >= 1 && !(flags & PING_F_DHTIPP)) {
+				const guchar *payload = ext_payload(e);
+				guint8 mask = payload[0];
+				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
+				flags |= (mask & SCP_F_NO_IPV4) ? PING_F_NO_IPV4 : 0;
+			}
+			flags |= PING_F_DHTIPP;
 			break;
 
 		case EXT_T_GGEP_GUE:
@@ -821,9 +798,15 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 	 * up to a maximum of max_ttl.	Note that we rely on the hop count being
 	 * accurate.
 	 *				--RAM, 15/09/2001
+	 *
+	 * IPv6-Ready: if running with an IPv4 address, supply it and list a
+	 * possible IPv6 address in GGEP "6".  Otherwise, if running only with
+	 * an IPv6 address, advertise it in GGEP "6" and set the legacy IPv4
+	 * field to 127.0.0.0.
+	 *				--RAM, 2011-06-16
 	 */
 
-	info.addr = listen_addr();
+	info.addr = listen_addr_primary();
 	info.port = socket_listen_port();
 	info.files_count = files;
 	info.kbytes_count = kbytes;
@@ -863,10 +846,13 @@ send_personal_info(struct gnutella_node *n, gboolean control,
 		local_meta.sender_port = n->port;
 	}
 
-	if (
-		NET_TYPE_IPV6 == host_addr_net(listen_addr6()) &&
-		is_host_addr(listen_addr6())
-	) {
+	/*
+	 * IPv6-Ready:
+	 * We're supplying the IPv6 address when running both IPv4 and IPv6.
+	 * If we're only running IPv6, the legacy IPv4 address will be 127.0.0.0.
+	 */
+
+	if (settings_running_ipv6() && !host_addr_is_ipv6(info.addr)) {
 		local_meta.ipv6_addr = listen_addr6();
 		local_meta.flags |= PONG_META_HAS_IPV6;
 	}
@@ -909,11 +895,14 @@ send_neighbouring_info(struct gnutella_node *n)
 	g_assert(gnutella_header_get_hops(&n->header) == 0);
 	g_assert(gnutella_header_get_ttl(&n->header) == 2);	/* "Crawler" ping */
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
 		struct pong_info info;
 
 		if (!NODE_IS_WRITABLE(cn))
+			continue;
+
+		if (n == cn)
 			continue;
 
 		/*
@@ -963,7 +952,7 @@ send_neighbouring_info(struct gnutella_node *n)
  */
 void
 pcache_guess_acknowledge(struct gnutella_node *n,
-	gboolean good_query_key, gboolean wants_ipp)
+	gboolean good_query_key, gboolean wants_ipp, host_net_t net)
 {
 	struct pong_info info;
 	pong_meta_t meta;
@@ -974,7 +963,8 @@ pcache_guess_acknowledge(struct gnutella_node *n,
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	hcount = guess_fill_caught_array(host, wants_ipp ? G_N_ELEMENTS(host) : 2);
+	hcount = guess_fill_caught_array(net, host,
+		wants_ipp ? G_N_ELEMENTS(host) : 2);
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;
@@ -1519,7 +1509,7 @@ ping_all_neighbours(void)
 	 *		--RAM, 12/01/2004
 	 */
 
-	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+	for (sl = node_all_ultranodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
@@ -2082,8 +2072,9 @@ pong_extract_metadata(struct gnutella_node *n)
 					meta->version_ua = payload[4];
 			}
 			break;
-		case EXT_T_GGEP_GTKG_IPV6:
-			{
+		case EXT_T_GGEP_6:			/* IPv6-Ready */
+		case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
+			if (ext_paylen(e) != 0) {
 				host_addr_t addr;
 
 				if (GGEP_OK == ggept_gtkg_ipv6_extract(e, &addr)) {
@@ -2137,7 +2128,7 @@ record_fresh_pong(
 	struct gnutella_node *n,
 	guint8 hops, host_addr_t addr, guint16 port,
 	guint32 files_count, guint32 kbytes_count,
-	gboolean get_meta)
+	pong_meta_t *meta)
 {
 	struct cache_line *cl;
 	struct cached_pong *cp;
@@ -2153,7 +2144,7 @@ record_fresh_pong(
 	cp->info.port = port;
 	cp->info.files_count = files_count;
 	cp->info.kbytes_count = kbytes_count;
-	cp->meta = get_meta ? pong_extract_metadata(n) : NULL;
+	cp->meta = meta;
 
 	hop = CACHE_HOP_IDX(hops);		/* Trim high values to MAX_CACHE_HOPS */
 	cl = &pong_cache[hop];
@@ -2396,34 +2387,56 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		switch (e->ext_token) {
 		case EXT_T_GGEP_IPP:
 		case EXT_T_GGEP_DHTIPP:
+		case EXT_T_GGEP_IPP6:
+		case EXT_T_GGEP_DHTIPP6:
+		{
+			int len;
+			enum net_type nt;
+
 			paylen = ext_paylen(e);
 			payload = ext_payload(e);
 
-			if (paylen % 6) {
+			switch (e->ext_token) {
+			case EXT_T_GGEP_IPP:		len = 6;	nt = NET_TYPE_IPV4; break;	
+			case EXT_T_GGEP_DHTIPP:		len = 6;	nt = NET_TYPE_IPV4; break;	
+			case EXT_T_GGEP_IPP6:		len = 18;	nt = NET_TYPE_IPV6; break;	
+			case EXT_T_GGEP_DHTIPP6:	len = 18;	nt = NET_TYPE_IPV6; break;	
+			default:
+				g_assert_not_reached();
+			}
+
+			if (paylen % len) {
 				if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(ggep_debug)) {
 					g_warning("%s (UDP): "
-						"bad length for GGEP \"%s\" (%d byte%s)",
+						"bad length for GGEP \"%s\" "
+						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, paylen == 1 ? "" : "s");
+						paylen, paylen == 1 ? "" : "s", len);
 				}
 			} else {
 				switch (e->ext_token) {
 				case EXT_T_GGEP_IPP:
-					uhc_ipp_extract(n, payload, paylen); 
+				case EXT_T_GGEP_IPP6:
+					uhc_ipp_extract(n, payload, paylen, nt); 
 					break;
 				case EXT_T_GGEP_DHTIPP:
-					dht_ipp_extract(n, payload, paylen); 
+				case EXT_T_GGEP_DHTIPP6:
+					dht_ipp_extract(n, payload, paylen, nt); 
 					break;
 				default:
 					g_assert_not_reached();
 				}
 			}
 			break;
-		case EXT_T_GGEP_GTKG_IPV6:
-			ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+		}
+		case EXT_T_GGEP_6:			/* IPv6-Ready */
+		case EXT_T_GGEP_GTKG_IPV6:	/* Deprecated for 0.97 */
+			if (ext_paylen(e) != 0) {
+				ggept_gtkg_ipv6_extract(e, &ipv6_addr);
+			}
 			break;
 		case EXT_T_GGEP_TLS:
-		case EXT_T_GGEP_GTKG_TLS:
+		case EXT_T_GGEP_GTKG_TLS:	/* Deprecated for 0.97 */
 			supports_tls = TRUE;
 			break;
 		case EXT_T_GGEP_DHT:
@@ -2502,6 +2515,7 @@ pcache_pong_received(struct gnutella_node *n)
 	struct cached_pong *cp;
 	host_type_t ptype;
 	host_addr_t addr;
+	pong_meta_t *meta;
 
 	n->n_pong_received++;
 
@@ -2519,16 +2533,23 @@ pcache_pong_received(struct gnutella_node *n)
 	files_count = peek_le32(&n->data[6]);
 	kbytes_count = peek_le32(&n->data[10]);
 	
-	/* Check for an IPv6 address */
-	if (gnutella_header_get_hops(&n->header) == 0) {
-		pong_meta_t *meta;
-		
-		meta = pong_extract_metadata(n);
-		if (meta && meta->flags & PONG_META_HAS_IPV6) {
-			addr = meta->ipv6_addr;
-		}
-		if (meta != NULL)
-			WFREE(meta);
+	meta = pong_extract_metadata(n);
+
+	/*
+	 * IPv6-Ready: if there is an IPv6 address supplied in a GGEP "6" extension
+	 * and the IPv4 address in the legacy pong field is 127.0.0.0 to indicate
+	 * that there is no IPv4 support, force the address to be the IPv6 one.
+	 *
+	 * Likewise, if the host is not configured for IPv4, use the IPv6 address
+	 * and discard the IPv4 address we cannot use anyway since they are only
+	 * on the IPv6 network.
+	 */
+
+	if (
+		meta != NULL && (meta->flags & PONG_META_HAS_IPV6) &&
+		(ipv6_ready_no_ipv4_addr(addr) || !settings_use_ipv4())
+	) {
+		addr = meta->ipv6_addr;		/* IPv6-Ready support */
 	}
 
 	/*
@@ -2549,7 +2570,7 @@ pcache_pong_received(struct gnutella_node *n)
 					"large file count %u (0x%x), dropped",
 					node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
-			return;
+			goto done;
 		} else {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
 				g_warning("%s sent us a pong with suspect file count %u "
@@ -2604,6 +2625,7 @@ pcache_pong_received(struct gnutella_node *n)
 		if (n->n_pong_received == 1 || host_addr_equal(addr, n->gnet_addr)) {
 			n->gnet_files_count = files_count;
 			n->gnet_kbytes_count = kbytes_count;
+			n->flags |= NODE_F_SHARED_INFO;
 		}
 
 		/*
@@ -2631,7 +2653,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 */
 
 		if (alive_ack_ping(n->alive_pings, gnutella_header_get_muid(&n->header)))
-			return;
+			goto done;
 	}
 
 	/*
@@ -2640,7 +2662,7 @@ pcache_pong_received(struct gnutella_node *n)
 
 	if (!host_is_valid(addr, port)) {
 		gnet_stats_count_dropped(n, MSG_DROP_PONG_UNUSABLE);
-		return;
+		goto done;
 	}
 
 	/*
@@ -2649,7 +2671,7 @@ pcache_pong_received(struct gnutella_node *n)
 
 	if (hostiles_check(addr)) {
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
-		return;
+		goto done;
 	}
 
 	/*
@@ -2658,7 +2680,7 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (is_my_address_and_port(addr, port))
-		return;
+		goto done;
 
 	/*
 	 * Add pong to our reserve, and possibly try to connect.
@@ -2681,7 +2703,7 @@ pcache_pong_received(struct gnutella_node *n)
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					node_addr(n));
-			return;
+			goto done;
 		}
 	}
 
@@ -2690,7 +2712,8 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	cp = record_fresh_pong(HOST_ANY, n, gnutella_header_get_hops(&n->header),
-			addr, port, files_count, kbytes_count, TRUE);
+			addr, port, files_count, kbytes_count, meta);
+	meta = NULL;	/* Metadata now owned by cached pong */
 
 	ptype = pong_type((gpointer) n->data);
 	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_UP))
@@ -2749,6 +2772,11 @@ pcache_pong_received(struct gnutella_node *n)
 		cp->meta->dht_mode == DHT_MODE_ACTIVE
 	)
 		dht_bootstrap_if_needed(addr, port);
+
+done:
+	if (meta != NULL) {
+		WFREE(meta);
+	}
 }
 
 /**
@@ -2769,7 +2797,7 @@ pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, guint16 port)
 		return;
 
 	host_add(addr, port, FALSE);
-	(void) record_fresh_pong(HOST_ULTRA, n, 1, addr, port, 0, 0, FALSE);
+	(void) record_fresh_pong(HOST_ULTRA, n, 1, addr, port, 0, 0, NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

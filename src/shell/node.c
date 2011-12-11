@@ -58,10 +58,10 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc < 3)
+	if (argc < 2)
 		goto error;
 
-	host = argv[2];
+	host = argv[1];
 	endptr = is_strprefix(host, "tls:");
 	if (endptr) {
 		host = endptr;
@@ -89,8 +89,8 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	default:
 		goto error;
 	}
-	if (argc > 3 && !port_str) {
-		port_str = argv[3];
+	if (argc > 2 && !port_str) {
+		port_str = argv[2];
 	}
 	if (port_str) {
 		int error;
@@ -122,10 +122,10 @@ shell_exec_node_drop(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc < 3)
+	if (argc < 2)
 		goto error;
 
-	if (!string_to_host_addr(argv[2], &endptr, &addr)) {
+	if (!string_to_host_addr(argv[1], &endptr, &addr)) {
 		/* Bad address. */
 		shell_set_msg(sh, _("Invalid IP"));
 		goto error;
@@ -135,7 +135,7 @@ shell_exec_node_drop(struct gnutella_shell *sh, int argc, const char *argv[])
 		port_str = &endptr[1];
 		break;
 	case '\0':
-		port_str = argv[3];
+		port_str = argv[2];
 		break;
 	default:
 		goto error;
@@ -154,15 +154,9 @@ shell_exec_node_drop(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 	
 	{
-		char buf[256];
-		unsigned n;
-		
-		n = node_remove_by_addr(addr, port);
-		gm_snprintf(buf, sizeof buf,
+		unsigned n = node_remove_by_addr(addr, port);
+		shell_write_linef(sh, REPLY_READY,
 			NG_("Removed %u node", "Removed %u nodes", n), n);
-		shell_write(sh, "100-");
-		shell_write(sh, buf);
-		shell_write(sh, "\n");
 	}
 
 	return REPLY_READY;
@@ -177,27 +171,22 @@ error:
 enum shell_reply
 shell_exec_node(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	enum shell_reply reply_code;
-
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
 	if (argc < 2)
-		goto error;
+		return REPLY_ERROR;
 
-	if (0 == ascii_strcasecmp(argv[1], "add")) {
-		reply_code = shell_exec_node_add(sh, argc, argv);
-	} else if (0 == ascii_strcasecmp(argv[1], "drop")){
-		reply_code = shell_exec_node_drop(sh, argc, argv);
-	} else {
-		shell_set_msg(sh, _("Unknown operation"));
-		goto error;
-	}
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[1], #name)) \
+		return shell_exec_node_ ## name(sh, argc - 1, argv + 1); \
+} G_STMT_END
 
-	return reply_code;
+	CMD(add);
+	CMD(drop);
 
-error:
+	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }
 

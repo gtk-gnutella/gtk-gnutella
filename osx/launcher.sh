@@ -34,7 +34,7 @@ export GTK_IM_MODULE_FILE="$bundle_etc/gtk-2.0/gtk.immodules"
 export GDK_PIXBUF_MODULE_FILE="$bundle_etc/gtk-2.0/gdk-pixbuf.loaders"
 export PANGO_RC_FILE="$bundle_etc/pango/pangorc"
 
-APP=name
+APP=gtk-gnutella
 I18NDIR="$bundle_data/locale"
 # Set the locale-related variables appropriately:
 unset LANG LC_MESSAGES LC_MONETARY LC_COLLATE
@@ -167,5 +167,10 @@ fi
 
 cd "$bundle_contents/Resources/"
 
-$EXEC "$bundle_contents/MacOS/$name-bin" $* $EXTRA_ARGS
+export NLSPATH="$I18NDIR"
+
+# Number of allowed file descriptors
+ulimit -n 2048
+
+$EXEC "$bundle_contents/MacOS/$name-bin" $* --no-restart $EXTRA_ARGS
 #$EXEC "$bundle_res/gtk-gnutella" $* $EXTRA_ARGS

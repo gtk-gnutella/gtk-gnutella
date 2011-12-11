@@ -77,7 +77,7 @@ mq_status(const mqueue_t *q)
 	if (q->flags & MQ_FLOWC)
 		return MQ_S_FLOWC;
 
-	return (q->count > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
+	return (q->size > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
 }
 
 guint32 mq_debug(const mqueue_t *q)
@@ -133,6 +133,12 @@ mq_pending(const mqueue_t *q)
 	return q->size + tx_pending(q->tx_drv);
 }
 
+int
+mq_tx_pending(const mqueue_t *q)
+{
+	return tx_pending(q->tx_drv);
+}
+
 struct bio_source *
 mq_bio(const mqueue_t *q)
 {
@@ -173,13 +179,13 @@ mq_info(const mqueue_t *q)
 
 	if (q->magic != MQ_MAGIC) {
 		gm_snprintf(buf, sizeof(buf),
-			"queue 0x%lx INVALID (bad magic)", (gulong) q);
+			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
 		gboolean udp = NODE_IS_UDP(q->node);
 
 		gm_snprintf(buf, sizeof(buf),
-			"queue 0x%lx [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
-			(gulong) q, udp ? "UDP" : "TCP",
+			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
+			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :
 			udp ? "remote" : "leaf", node_addr(q->node),
 			(q->flags & MQ_FLOWC) ? " FLOWC" : "",
@@ -217,11 +223,11 @@ mq_add_linkable(mqueue_t *q, GList *l)
 
 	owner = g_hash_table_lookup(qown, l);
 	if (owner) {
-		g_carp("BUG: added linkable 0x%lx already owned by %s%s",
-			(gulong) l, owner == q ? "ourselves" : "other", mq_info(owner));
+		g_carp("BUG: added linkable %p already owned by %s%s",
+			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
 		if (owner != q)
-			g_warning("BUG: will make linkable 0x%lx belong to %s",
-				(gulong) l, mq_info(q));
+			g_warning("BUG: will make linkable %p belong to %s",
+				(void *) l, mq_info(q));
 		g_assert_not_reached();
 	}
 
@@ -243,11 +249,11 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 	owner = g_hash_table_lookup(qown, l);
 
 	if (owner == NULL)
-		g_error("BUG: removed linkable 0x%lx from %s belongs to no queue!",
-			(gulong) l, mq_info(q));
+		g_error("BUG: removed linkable %p from %s belongs to no queue!",
+			(void *) l, mq_info(q));
 	else if (owner != q)
-		g_error("BUG: removed linkable 0x%lx from %s is from another queue!",
-			(gulong) l, mq_info(q));
+		g_error("BUG: removed linkable %p from %s is from another queue!",
+			(void *) l, mq_info(q));
 	else
 		g_hash_table_remove(qown, l);
 }
@@ -320,7 +326,8 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
  * Polymorphic operations.
  */
 
-#define MQ_PUTQ(o,m)		((o)->ops->putq((o), (m)))
+#define MQ_PUTQ(o,m)	((o)->ops->putq((o), (m)))
+#define MQ_FLUSHED(o)	((o)->ops->flushed(o))
 
 /**
  * Free queue and all enqueued messages.
@@ -401,9 +408,19 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	int extra;
 
 	g_assert(q->flags & MQ_FLOWC);
-	g_assert(q->size > q->lowat);	/* Or we would have left FC */
 
 	q->swift_ev = NULL;				/* Event fired, we may not reinstall it */
+
+	/*
+	 * We do not necessarily leave the flow-control state when q->size
+	 * drops below q->lowat for TCP queues, where we want to reach a
+	 * state where we're not in the middle of sending one large message.
+	 *
+	 * When we're below the low watermark, there's nothing for us to do.
+	 */
+
+	if (q->size <= q->lowat)
+		goto done;
 
 	/*
 	 * For next period, the elapsed time will be...
@@ -520,6 +537,7 @@ mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		}
 	}
 
+done:
 	mq_update_flowc(q);		/* May cause us to leave "swift" mode */
 
 	/*
@@ -629,7 +647,8 @@ static void
 mq_update_flowc(mqueue_t *q)
 {
 	if (q->flags & MQ_FLOWC) {
-		if (q->size <= q->lowat) {
+	 	/* Never leave flow-control when the last message is partially sent */
+		if (q->size <= q->lowat && MQ_FLUSHED(q)) {
 			mq_leave_flowc(q);
 			q->flags &= ~MQ_WARNZONE;		/* no flow-control */
 		}
@@ -778,8 +797,8 @@ qlink_create(mqueue_t *q)
 	}
 
 	if (l || n != q->count)
-		g_error("BUG: queue count of %d for 0x%lx is wrong (has %d)",
-			q->count, (gulong) q, g_list_length(q->qhead));
+		g_error("BUG: queue count of %d for %p is wrong (has %d)",
+			q->count, (void *) q, g_list_length(q->qhead));
 
 	/*
 	 * We use `n' and not `q->count' in case the warning above is emitted,
@@ -1059,9 +1078,9 @@ qlink_remove(mqueue_t *q, GList *l)
 		/* Should have been found -- FALL THROUGH */
 	}
 
-	g_error("BUG: linkable 0x%lx for %s not found "
+	g_error("BUG: linkable %p for %s not found "
 		"(qlink has %d slots, queue has %d counted items, really %d) at %s:%d",
-		(gulong) l, mq_info(q),
+		(void *) l, mq_info(q),
 		q->qlink_count, q->count, g_list_length(q->qhead),
 		_WHERE_, __LINE__);
 }
@@ -1096,9 +1115,9 @@ make_room_internal(mqueue_t *q,
 	mq_check(q, 0);
 
 	if (MQ_DEBUG_LVL(q) > 5)
-		g_debug("MQ %s try to make room for %d bytes in queue 0x%lx (node %s)",
+		g_debug("MQ %s try to make room for %d bytes in queue %p (node %s)",
 			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-			needed, (gulong) q, node_addr(q->node));
+			needed, (void *) q, node_addr(q->node));
 
 	if (q->qhead == NULL)			/* Queue is empty */
 		return FALSE;
@@ -1427,12 +1446,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		guint prio = pmsg_prio(mb);
 		gboolean inserted = FALSE;
 
-		/*
-		 * Unfortunately, there's no g_list_insert_after() or equivalent,
-		 * so we break the GList encapsulation.
-		 */
-
-		for (l = q->qtail; l; l = l->prev) {
+		for (l = q->qtail; l; l = g_list_previous(l)) {
 			pmsg_t *m = l->data;
 
 			if (
@@ -1444,19 +1458,11 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				 * we are, then leave the loop.
 				 */
 
-				new = g_list_alloc();
+				q->qhead = gm_list_insert_after(q->qhead, l, mb);
+				new = g_list_next(l);
 
-				new->data = mb;
-				new->prev = l;
-				new->next = l->next;
-
-				if (l->next)
-					l->next->prev = new;
-				else {
-					g_assert(l == q->qtail);	/* Inserted at tail */
+				if (l == q->qtail)				/* Inserted at tail */
 					q->qtail = new;				/* New tail */
-				}
-				l->next = new;
 
 				inserted = TRUE;
 				break;

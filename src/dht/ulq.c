@@ -357,7 +357,7 @@ ulq_lookup_stats(const kuid_t *kuid,
 	sched.msg_dropped -= sched.msg_dropped >> 1;	/* Halve the count */
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 1)
-		g_debug("DHT ULQ %s lookup completed in %.3f secs (in=%d, out=%d)",
+		g_debug("DHT ULQ %s lookup completed in %g secs (in=%d, out=%d)",
 			ui->uq->name, ls->elapsed, ls->bw_incoming, ls->bw_outgoing);
 
 	if (GNET_PROPERTY(dht_ulq_debug) > 2)

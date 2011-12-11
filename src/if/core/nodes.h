@@ -95,7 +95,7 @@ typedef struct rnode_info {
 
 #define RNODE_RQ_GGEP_DU	0x00000001	/**< Include GGEP "DU" */
 #define RNODE_RQ_GGEP_LOC	0x00000002	/**< Include GGEP "LOC" */
-#define RNODE_RQ_GGEP_IPV6	0x00000004	/**< Include GGEP "GTKG.IPV6" */
+#define RNODE_RQ_GGEP_IPV6	0x00000004	/**< Include GGEP "6" */
 #define RNODE_RQ_GGEP_UA	0x00000008	/**< Include GGEP "UA" */
 #define RNODE_RQ_BW_INFO	0x00000010	/**< Include bandwidth information */
 #define RNODE_RQ_DROP_INFO	0x00000020	/**< Include TX/RX dropped packets */

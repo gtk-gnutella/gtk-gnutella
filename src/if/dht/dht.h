@@ -40,7 +40,8 @@ void dht_close(gboolean exiting);
 void dht_initialize(gboolean post_init);
 void dht_reset_kuid(void);
 void dht_ipp_extract(
-	const struct gnutella_node *n, const char *payload, int paylen);
+	const struct gnutella_node *n,
+	const char *payload, int paylen, enum net_type nt);
 int dht_fill_random(gnet_host_t *hvec, int hcnt);
 
 void dht_route_store_if_dirty(void);

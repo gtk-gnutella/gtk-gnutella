@@ -11,22 +11,67 @@
 
 char *progname;
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
-void sdump(int);
+void sdump(int, long);
 void bdump(int);
+
+#define bool int
+
+static bool summary_only;
+static bool on_tty;
+
+static void G_GNUC_NORETURN
+usage(void)
+{
+	fprintf(stderr,
+		"Usage: %s [-s] dbname\n"
+		"  -s : display summary info only\n"
+		, progname
+	);
+	exit(EXIT_FAILURE);
+}
+
+static void
+show_progress(long n, long count)
+{
+	if (on_tty) {
+		static int c = 0;
+
+		printf("%c (%02ld%%)\r", "-\\|/"[c++ % 4], n * 100 / count);
+		fflush(stdout);
+	}
+}
 
 int
 main(int argc, char **argv)
 {
+	extern int optind;
+	extern char *optarg;
 	char *p;
+	int c;
 
 	progname = argv[0];
 	(void) argc;
 
-	if ((p = argv[1])) {
+	on_tty = isatty(STDOUT_FILENO);
+
+	while ((c = getopt(argc, argv, "s")) != EOF) {
+		switch (c) {
+		case 's':			/* summary info only */
+			summary_only++;
+			break;
+		default:
+			usage();
+			break;
+		}
+	}
+
+	if ((p = argv[optind])) {
 		int pagf;
 		int datf;
 		char *name;
 		int n;
+		long npag;
+		filestat_t buf;
 
 		name = (char *) malloc((n = strlen(p)) + sizeof(DBM_PAGFEXT));
 		if (!name)
@@ -38,7 +83,11 @@ main(int argc, char **argv)
 		if ((pagf = open(name, O_RDONLY)) < 0)
 			oops("cannot open %s.", name);
 
-		sdump(pagf);
+		if (-1 == fstat(pagf, &buf))
+			oops("cannot fstat opened %s", name);
+
+		npag = buf.st_size / DBM_PBLKSIZ;
+		sdump(pagf, npag);
 		free(name);
 
 		name = (char *) malloc(n + sizeof(DBM_DATFEXT));
@@ -54,7 +103,7 @@ main(int argc, char **argv)
 		free(name);
 	}
 	else
-		oops("usage: %s dbname", progname);
+		usage();
 
 	return 0;
 }
@@ -81,9 +130,10 @@ pagestat(char *pag,
 	int lk = 0, lv = 0;
 	int keysize = 0, valsize = 0;
 
-	if (!(n = ino[0]))
-		printf("no entries.\n");
-	else {
+	if (!(n = ino[0])) {
+		if (!summary_only)
+			printf("no entries.\n");
+	} else {
 		unsigned i;
 		unsigned off = DBM_PBLKSIZ;
 
@@ -100,18 +150,17 @@ pagestat(char *pag,
 
 		pfree = offset(ino[n]) - (n + 1) * sizeof(short);
 
-		printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s",
-			n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
-			keysize, valsize, pfree,
-			(DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
-				" (LOW)" : "");
+		if (!summary_only) {
+			printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s",
+				n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
+				keysize, valsize, pfree,
+				(DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
+					" (LOW)" : "");
 
-		if (lk != 0)
-			printf(" (LKEY %d)", lk);
-		if (lv != 0)
-			printf(" (LVAL %d)", lv);
-
-		putc('\n', stdout);
+			if (lk != 0) printf(" (LKEY %d)", lk);
+			if (lv != 0) printf(" (LVAL %d)", lv);
+			putc('\n', stdout);
+		}
 	}
 	if (large_keys)		*large_keys = lk;
 	if (large_values)	*large_values = lv;
@@ -121,7 +170,7 @@ pagestat(char *pag,
 }
 
 void
-sdump(int pagf)
+sdump(int pagf, long npag)
 {
 	int b;
 	int n = 0;
@@ -130,17 +179,20 @@ sdump(int pagf)
 	int tlk = 0;
 	int tlv = 0;
 	int e;
+	int bad = 0;
 	unsigned ksize = 0, vsize = 0;
 	char pag[DBM_PBLKSIZ];
 
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
 		unsigned ks, vs;
-		printf("#%d: ", n);
-		if (!sdbm_internal_chkpage(pag))
-			printf("bad\n");
-		else {
-			printf("ok. ");
+		if (summary_only && 0 == n % 1000) show_progress(n, npag);
+		if (!summary_only) printf("#%d: ", n);
+		if (!sdbm_internal_chkpage(pag)) {
+			bad++;
+			if (!summary_only) printf("bad\n");
+		} else {
+			if (!summary_only) printf("ok. ");
 			if (!(e = pagestat(pag, &ks, &vs, &lk, &lv))) {
 			    o++;
 			} else {
@@ -156,6 +208,7 @@ sdump(int pagf)
 
 	if (b == 0) {
 		printf("%d pages (%d holes):  %d entries\n", n, o, t);
+		if (bad != 0) printf("%d bad pages\n", bad);
 		printf("keys: %u bytes, values: %u bytes\n", ksize, vsize);
 		if (tlk || tlv)
 			printf("%d large key%s, %d large value%s\n",

@@ -76,9 +76,10 @@ typedef enum {
 
 
 #include "stringify.h"
-#include "misc.h"
 #include "glib-missing.h"
+#include "log.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -158,7 +159,7 @@ mem_pool_new(size_t size, size_t hold)
   ps = compat_pagesize();
   len = hold * size;
   
-  mp = vmm_alloc(len);
+  mp = vmm_core_alloc(len);
   if (mp) {
     size_t i, step = size / sizeof mp->chunks[0];
     
@@ -184,7 +185,7 @@ mem_new(size_t size)
 
   g_assert(size > 0);
   
-  mc = g_malloc(sizeof *mc);
+  mc = xpmalloc(sizeof *mc);
   if (mc) {
     union mem_chunk chunk;
     
@@ -216,7 +217,7 @@ mem_alloc(struct mem_cache *mc)
     if (mp) {
       void *q;
       
-      q = g_realloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
+      q = xprealloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
       if (q) {
         mc->pools = q;
         mc->pools[mc->num_pools++] = mp;
@@ -225,7 +226,7 @@ mem_alloc(struct mem_cache *mc)
         p = mc->avail;
         mc->avail = mc->avail->next;
       } else {
-        free(mp);
+        vmm_core_free(mp, compat_pagesize() * mc->hold);
       }
     }
   }
@@ -280,8 +281,8 @@ mem_protect(gpointer ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
-		g_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %s",
-			p, size, g_strerror(errno));
+		s_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %m",
+			p, size);
 }
 
 /**
@@ -299,8 +300,8 @@ mem_unprotect(gpointer ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
-		g_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %s",
-			p, size, g_strerror(errno));
+		s_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %m",
+			p, size);
 }
 
 /**
@@ -802,6 +803,9 @@ atoms_init(void)
 	} settings;
 	guint i;
 
+	if G_UNLIKELY(ht_all_atoms != NULL)
+		return;		/* Already initialized */
+
 	ZERO(&settings);
 
 	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
@@ -882,6 +886,9 @@ atom_exists(enum atom_type type, gconstpointer key)
 {
 	g_assert(key != NULL);
 
+	if G_UNLIKELY(NULL == ht_all_atoms)
+		return 0;
+
 	return atom_is_registered(type, key) > 0 ||
 		gm_hash_table_contains(atoms[type].table, key);
 }
@@ -904,6 +911,9 @@ atom_get(enum atom_type type, gconstpointer key)
 	
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+
+	if G_UNLIKELY(NULL == ht_all_atoms)
+		atoms_init();
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -1142,8 +1152,8 @@ dump_tracking_table(gpointer atom, GHashTable *h, char *what)
 {
 	guint count = g_hash_table_size(h);
 
-	g_warning("all %u %s spot%s for 0x%lx:",
-		count, what, count == 1 ? "" : "s", (gulong) atom);
+	g_warning("all %u %s spot%s for %p:",
+		count, what, count == 1 ? "" : "s", atom);
 
 	g_hash_table_foreach(h, dump_tracking_entry, what);
 }
@@ -1161,8 +1171,8 @@ atom_warn_free(gpointer key, gpointer unused_value, gpointer udata)
 
 	(void) unused_value;
 
-	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
-		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
+	g_warning("found remaining %s atom %p, refcnt=%d: \"%s\"",
+		td->type, key, a->refcnt, (*td->str_func)(key));
 
 #ifdef TRACK_ATOMS
 	dump_tracking_table(key, a->get, "get");

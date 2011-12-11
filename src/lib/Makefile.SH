@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-95]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-103]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -39,9 +39,12 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
+_EXE = $_exe
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JCPPFLAGS = $cppflags
+JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
+LIBS = $libs
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --
 MV = $mv
 RANLIB = $ranlib
@@ -53,10 +56,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-SOURCES =  \$(LSRC)
-OBJECTS =  \$(LOBJ)
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  float-test.c
+OBJECTS =  \$(LOBJ)  float-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
+COMMON_LIBS =  $libs
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -69,7 +74,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,7 +86,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 19084 2011-05-14 16:11:32Z rmanfredi $
+# $X-Id$
 
 GENERIC = bit_array.h bit_field.h
 
@@ -130,12 +135,14 @@ LSRC = \
 	entropy.c \
 	eval.c \
 	event.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	fifo.c \
 	file.c \
 	filehead.c \
 	filename.c \
+	float.c \
 	fragcheck.c \
 	fs_free_space.c \
 	getdate.c \
@@ -143,6 +150,7 @@ LSRC = \
 	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
+	glog.c \
 	gnet_host.c \
 	halloc.c \
 	hashlist.c \
@@ -159,6 +167,7 @@ LSRC = \
 	magnet.c \
 	malloc.c \
 	map.c \
+	memusage.c \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
@@ -177,8 +186,10 @@ LSRC = \
 	pattern.c \
 	pmsg.c \
 	pow2.c \
+	product.c \
 	prop.c \
 	random.c \
+	regex.c \
 	sectoken.c \
 	sequence.c \
 	sha1.c \
@@ -208,6 +219,7 @@ LSRC = \
 	wd.c \
 	wordvec.c \
 	wq.c \
+	xmalloc.c \
 	zalloc.c \
 	zlib_util.c
 
@@ -243,12 +255,14 @@ LOBJ = \
 	entropy.o \
 	eval.o \
 	event.o \
+	exit.o \
 	fast_assert.o \
 	fd.o \
 	fifo.o \
 	file.o \
 	filehead.o \
 	filename.o \
+	float.o \
 	fragcheck.o \
 	fs_free_space.o \
 	getdate.o \
@@ -256,6 +270,7 @@ LOBJ = \
 	getgateway.o \
 	getphysmemsize.o \
 	glib-missing.o \
+	glog.o \
 	gnet_host.o \
 	halloc.o \
 	hashlist.o \
@@ -272,6 +287,7 @@ LOBJ = \
 	magnet.o \
 	malloc.o \
 	map.o \
+	memusage.o \
 	mime_type.o \
 	mingw32.o \
 	misc.o \
@@ -290,8 +306,10 @@ LOBJ = \
 	pattern.o \
 	pmsg.o \
 	pow2.o \
+	product.o \
 	prop.o \
 	random.o \
+	regex.o \
 	sectoken.o \
 	sequence.o \
 	sha1.o \
@@ -321,6 +339,7 @@ LOBJ = \
 	wd.o \
 	wordvec.o \
 	wq.o \
+	xmalloc.o \
 	zalloc.o \
 	zlib_util.o 
 
@@ -361,6 +380,55 @@ getdate.c: getdate.y
 		$(YACC) $(JYFLAGS) $<; \
 		echo "	$(MV) y.tab.c $@"; \
 		$(MV) y.tab.c $@; else touch $@; fi
+
+#
+# Floating point formatting tests
+#
+# The "bad-fixed" target show formatting errors: the output file MUST be empty
+# or there are bugs in the floating point formatting routine.
+#
+
+LDFLAGS =
+LIBS = $(GLIB_LDFLAGS) $(COMMON_LIBS)
+
+floats: floats.bz2
+	bzip2 -c -d floats.bz2 >$@
+
+float-dragon.out: float-dragon_out.bz2
+	bzip2 -c -d float-dragon_out.bz2 >$@
+
+bad-fixed: float-test floats
+	./float-test floats compare >$@
+
+bad-free: float-test floats float-dragon.out
+	./float-test floats dragon | diff -u - float-dragon.out >$@
+
+float-times: float-test floats
+	uname -a >$@
+	echo -n "base:    " >>$@
+	sh -c "time ./float-test floats base" >>$@ 2>&1
+	echo -n "sprintf: " >>$@
+	sh -c "time ./float-test floats sprintf" >>$@ 2>&1
+	echo -n "printf:  " >>$@
+	sh -c "time ./float-test floats printf > /dev/null" >>$@ 2>&1
+	echo -n "fixed:   " >>$@
+	sh -c "time ./float-test floats fixed > /dev/null" >>$@ 2>&1
+	echo -n "free:    " >>$@
+	sh -c "time ./float-test floats dragon > /dev/null" >>$@ 2>&1
+
+local_clean::
+	$(RM) floats float-dragon.out bad-fixed float-times
+
+all:: float-test
+
+local_realclean::
+	$(RM) float-test$(_EXE)
+
+float-test:  float-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

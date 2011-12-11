@@ -26,6 +26,7 @@
 #include "lib/stacktrace.h"
 #include "lib/vmm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef LRU
@@ -566,7 +567,7 @@ lru_invalidate(DBM *db, long bno)
 		 */
 
 		if (cache->dirty[idx]) {
-			g_warning("sdbm: \"%s\": %s() invalidating dirty page #%ld",
+			g_critical("sdbm: \"%s\": %s() invalidating dirty page #%ld",
 				db->name, stacktrace_caller_name(1), bno);
 		}
 
@@ -688,7 +689,7 @@ cachepag(DBM *db, char *pag, long num)
 				db->name, num);
 		}
 		if (weird > 0) {
-			g_warning("sdbm: \"%s\": previous warning%s indicate possible "
+			g_critical("sdbm: \"%s\": previous warning%s indicate possible "
 				"corruption in the bitmap forest",
 				db->name, 1 == weird ? "" : "s");
 		}
@@ -739,12 +740,15 @@ flushpag(DBM *db, char *pag, long num)
 	w = compat_pwrite(db->pagf, pag, DBM_PBLKSIZ, OFF_PAG(num));
 
 	if (w < 0 || w != DBM_PBLKSIZ) {
-		if (w < 0)
-			g_warning("sdbm: \"%s\": cannot flush page #%ld: %s",
-				sdbm_name(db), num, g_strerror(errno));
-		else
-			g_warning("sdbm: \"%s\": could only flush %u bytes from page #%ld",
+		if (w < 0) {
+			if G_UNLIKELY(db->flags & DBM_RDONLY)
+				errno = EPERM;		/* Instead of EBADF on linux */
+			g_warning("sdbm: \"%s\": cannot flush page #%ld: %m",
+				sdbm_name(db), num);
+		} else {
+			g_critical("sdbm: \"%s\": could only flush %u bytes from page #%ld",
 				sdbm_name(db), (unsigned) w, num);
+		}
 		ioerr(db, TRUE);
 		db->flush_errors++;
 		return FALSE;

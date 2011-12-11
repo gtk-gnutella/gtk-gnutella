@@ -64,6 +64,7 @@
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "palloc.h"
+#include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -359,10 +360,8 @@ pfree(pool_t *p, gpointer obj)
 	if (p->is_frag(obj)) {
 		g_assert(uint_is_positive(p->allocated));
 
-		if (palloc_debug > 1) {
-			g_debug("PGC pool \"%s\": buffer 0x%lx is a fragment",
-				p->name, (unsigned long) obj);
-		}
+		if (palloc_debug > 1)
+			g_debug("PGC pool \"%s\": buffer %p is a fragment", p->name, obj);
 
 		p->dealloc(obj, TRUE);
 		p->allocated--;
@@ -514,10 +513,21 @@ reset:
 void
 pgc(void)
 {
+	static time_t last_run;
+	time_t now;
 	hash_list_iter_t *iter;
 
 	if (NULL == pool_gc)
 		return;
+
+	/*
+	 * Limit iterations to one per second.
+	 */
+
+	now = tm_time();
+	if (last_run == now)
+		return;
+	last_run = now;
 
 	iter = hash_list_iterator(pool_gc);
 

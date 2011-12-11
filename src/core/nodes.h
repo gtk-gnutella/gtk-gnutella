@@ -67,10 +67,10 @@ typedef enum {
 #define NODE_RX_FC_HALF_PERIOD	300		/**< 5 minutes */
 
 struct node_rxfc_mon {
-	time_t start_half_period;	/**< When half period started */
-	time_t fc_last_half;		/**< Time spent in FC last half period */
-	time_t fc_accumulator;		/**< Time spent in FC this period */
-	time_t fc_start;			/**< Time when FC started, 0 if not in FC */
+	time_t start_half_period;		/**< When half period started */
+	time_t fc_start;				/**< Time when FC started, 0 if not in FC */
+	time_delta_t fc_last_half;		/**< Time spent in FC last half period */
+	time_delta_t fc_accumulator;	/**< Time spent in FC this period */
 };
 
 /**
@@ -278,6 +278,10 @@ typedef struct gnutella_node {
  * Node flags.
  */
 enum {
+	NODE_F_SHARED_INFO	= 1 << 31,	/**< Got pong describing shared files */
+	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
+	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
+	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
 	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
@@ -312,6 +316,11 @@ enum {
  * Node attributes.
  */
 enum {
+	NODE_A_HOPS_FLOW	= 1 << 31,	/**< Node supports "hops-flow" messages */
+	NODE_A_CAN_OOB		= 1 << 30,	/**< Node can send OOB replies */
+	NODE_A_BAD_GUID		= 1 << 29,	/**< Node has bad GUID */
+	NODE_A_IPV6_ONLY	= 1 << 28,	/**< Node does not want any IPv4 */
+	NODE_A_CAN_IPV6		= 1 << 27,	/**< Node supports IPv6 */
 	NODE_A_CAN_WHAT		= 1 << 26,	/**< Node supports "What's New?" queries? */
 	NODE_A_GUESS		= 1 << 25,	/**< Node advertized GUESS support */
 	NODE_A_CAN_DHT		= 1 << 24,	/**< Indicated support for DHT */
@@ -345,10 +354,11 @@ enum {
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_FINISH_IPV6	= 1 << 5,	/**< Add GGEP "6" extension for our IPv6 */
 	NODE_M_WHATS_NEW	= 1 << 4,	/**< Facing a "What's New?" query */
 	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
-	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup extensions */
+	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup / rewrite extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
 };
  
@@ -440,12 +450,25 @@ enum {
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
+#define NODE_IS_GENUINE(n)		(!((n)->flags & NODE_F_NOT_GENUINE))
+
+#define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
 #define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
 #define NODE_LEAF_GUIDE(n)		((n)->attrs & NODE_A_GUIDANCE)
 #define NODE_CAN_INFLATE(n)		((n)->attrs & NODE_A_CAN_INFLATE)
 #define NODE_USES_UDP(n)		((n)->attrs & NODE_A_UDP)
 #define NODE_CAN_WHAT(n)		((n)->attrs & NODE_A_CAN_WHAT)
+#define NODE_HAS_BAD_GUID(n)	((n)->attrs & NODE_A_BAD_GUID)
+#define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
+#define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
+#define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+
+#define NODE_HAS_FAKE_NAME(n)	\
+	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)
+
+#define NODE_IS_TRANSIENT(n)	(NODE_HAS_FAKE_NAME(n) || !NODE_IS_GENUINE(n))
 
 /*
  * Peer inspection macros
@@ -569,7 +592,7 @@ void node_tx_leave_flowc(struct gnutella_node *n);
 void node_tx_enter_warnzone(struct gnutella_node *n);
 void node_tx_leave_warnzone(struct gnutella_node *n);
 void node_tx_swift_changed(struct gnutella_node *n);
-void node_bye_all(void);
+void node_bye_all(gboolean all);
 gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_worst(gboolean non_local);
@@ -606,12 +629,12 @@ void node_proxying_remove(gnutella_node_t *n);
 gboolean node_proxying_add(gnutella_node_t *n, const struct guid *guid);
 void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
 void node_proxy_cancel_all(void);
-size_t node_http_fw_node_info_add(char *buf, size_t size, gboolean);
-size_t node_http_proxies_add(char *buf, size_t size,
-			gpointer arg, guint32 flags);
+size_t node_http_fw_node_info_add(char *buf, size_t size, gboolean, host_net_t);
+size_t node_http_proxies_add(char *buf, size_t size, void *arg, guint32 flags);
 sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
+const GSList *node_all_ultranodes(void);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
 gnutella_node_t *node_active_by_id(const struct nid *node_id);
@@ -651,6 +674,8 @@ void node_supports_tls(struct gnutella_node *);
 void node_supports_whats_new(struct gnutella_node *);
 void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
+void node_supported_vmsg(struct gnutella_node *, const char *str, size_t len);
+void node_supported_feats(struct gnutella_node *, const char *str, size_t len);
 
 const struct nid *node_id_get_self(void);
 gboolean node_id_self(const struct nid *node_id);
@@ -676,7 +701,8 @@ node_get_id(const struct gnutella_node * const n)
 	return n->id;
 }
 
-gboolean node_set_guid(struct gnutella_node *n, const struct guid *guid);
+gboolean node_set_guid(struct gnutella_node *n,
+	const struct guid *guid, gboolean gnet);
 struct gnutella_node *node_by_guid(const struct guid *guid);
 
 #endif /* _core_nodes_h_ */

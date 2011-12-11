@@ -33,21 +33,20 @@
 
 #include "common.h"
 
-#include "gtk-gnutella.h"
-
+#include "qhit.h"
 #include "bsched.h"
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
 #include "ggep.h"
 #include "ggep_type.h"
 #include "gmsg.h"
 #include "gnutella.h"
+#include "ipp_cache.h"
+#include "ipv6-ready.h"
 #include "nodes.h"
-#include "qhit.h"
 #include "settings.h"	/* For listen_ip() */
 #include "share.h"
-#include "ipp_cache.h"
-#include "uploads.h"	/* For count_uploads */
 #include "sockets.h"	/* For socket_listen_port() */
+#include "uploads.h"	/* For count_uploads */
 #include "version.h"	/* For version_get_commit() and version_is_dirty() */
 
 #include "if/gnet_property_priv.h"
@@ -57,6 +56,8 @@
 #include "lib/getdate.h"
 #include "lib/endian.h"
 #include "lib/misc.h"
+#include "lib/random.h"
+#include "lib/product.h"
 #include "lib/sequence.h"
 #include "lib/tm.h"
 #include "lib/override.h"			/* Must be the last header included */
@@ -96,7 +97,7 @@ struct found_struct {
 	qhit_process_t process;		/**< processor once query hit is built */
 	gpointer udata;				/**< processor argument */
 	gboolean open;				/**< Set if found_open() was used */
-	gboolean use_ggep_h;        /**< whether to use GGEP "H" to send SHA-1 */
+	unsigned flags;				/**< Set of QHIT_F_* flags */
 };
 
 static struct found_struct *
@@ -127,7 +128,13 @@ found_add_files(size_t n)
 static gboolean
 found_ggep_h(void)
 {
-	return found_get()->use_ggep_h;
+	return booleanize(found_get()->flags & QHIT_F_GGEP_H);
+}
+
+static unsigned
+found_flags(void)
+{
+	return found_get()->flags;
 }
 
 static char *
@@ -139,6 +146,21 @@ found_open(void)
 	f->open = TRUE;
 	g_assert(f->pos <= sizeof f->data);
 	return &f->data[f->pos];
+}
+
+static host_addr_t
+found_listen_addr(void)
+{
+	host_addr_t ha = listen_addr_primary();
+
+	/* IPv6-Ready */
+
+	if ((found_flags() & QHIT_F_IPV6_ONLY) && !host_addr_is_ipv6(ha)) {
+		host_addr_t ha6 = listen_addr6();
+		return is_host_addr(ha6) ? ha6 : ha;
+	}
+
+	return ha;
 }
 
 static void
@@ -199,6 +221,7 @@ found_set_header(void)
 	struct found_struct *f = found_get();
 	gnutella_msg_search_results_t *msg;
 	guint32 connect_speed;		/* Connection speed, in kbits/s */
+	guint32 ipv4;
 	size_t len;
 
 	g_assert(!f->open);
@@ -243,8 +266,16 @@ found_set_header(void)
 	/* Upload speed expected per slot */
 	connect_speed /= MAX(1, GNET_PROPERTY(max_uploads));
 
+	/*
+	 * IPv6-Ready support: the QHIT message is architected with an IPv4 address.
+	 * When the address we want to send is an IPv6 one, it needs to be sent
+	 * in a GGEP "6" field and the IPv4 field be set to 127.0.0.0.
+	 */
+
+	ipv4 = ipv6_ready_advertised_ipv4(found_listen_addr());
+
 	gnutella_msg_search_results_set_host_port(msg, socket_listen_port());
-	gnutella_msg_search_results_set_host_ip(msg, host_addr_ipv4(listen_addr()));
+	gnutella_msg_search_results_set_host_ip(msg, ipv4);
 	gnutella_msg_search_results_set_host_speed(msg, connect_speed);
 }
 
@@ -276,7 +307,7 @@ found_token(void)
 }
 
 static void
-found_init(size_t max_size, const struct guid *xuid, gboolean ggep_h,
+found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	qhit_process_t proc, gpointer udata, const struct array *token)
 {
 	struct found_struct *f = found_get();
@@ -289,7 +320,7 @@ found_init(size_t max_size, const struct guid *xuid, gboolean ggep_h,
 
 	f->max_size = max_size;
 	f->muid = xuid;
-	f->use_ggep_h = ggep_h;
+	f->flags = flags;
 	f->process = proc;
 	f->udata = udata;
 	f->open = FALSE;
@@ -311,6 +342,14 @@ found_contains(const void *key)
 	struct found_struct *f = found_get();
 
 	return gm_hash_table_contains(f->ht, key);
+}
+
+static size_t
+found_contains_count(void)
+{
+	struct found_struct *f = found_get();
+
+	return g_hash_table_size(f->ht);
 }
 
 static void
@@ -426,11 +465,10 @@ flush_match(void)
 	 */
 
 	{
-		guint8 major = GTA_VERSION;
-		guint8 minor = GTA_SUBVERSION;
-		const char *revp = GTA_REVCHAR;
-		guint8 revchar = (guint8) revp[0];
-		guint8 patch;
+		guint8 major = product_get_major();
+		guint8 minor = product_get_minor();
+		guint8 revchar = product_get_revchar();
+		guint8 patch = product_get_patchlevel();
 		guint32 release;
 		guint32 date = release_date;
 		guint32 build;
@@ -442,18 +480,12 @@ flush_match(void)
 		const sha1_t *commit;
 		gboolean ok;
 
-#ifdef GTA_PATCHLEVEL
-		patch = GTA_PATCHLEVEL;
-#else
-		patch = 0;
-#endif
-
 		flags = GTKGV_F_GIT | GTKGV_F_OS;
 		if (version_is_dirty())
 			flags |= GTKGV_F_DIRTY;
 
 		poke_be32(&release, date);
-		poke_be32(&build, main_get_build());
+		poke_be32(&build, product_get_build());
 
 		commit = version_get_commit(&commit_len);
 		commit_bytes = (1 + commit_len) / 2;
@@ -491,64 +523,15 @@ flush_match(void)
 
 	/*
 	 * Look whether we'll need a "PUSH" GGEP extension to give out
-	 * our current push proxies.  Prepare payload in `proxies'.
+	 * our current push proxies.
 	 */
 
 	if (GNET_PROPERTY(is_firewalled)) {
 		sequence_t *seq = node_push_proxies();
+		unsigned flags = found_flags();
 
-		if (!sequence_is_empty(seq)) {
-			guchar tls_bytes[(QHIT_MAX_PROXIES + 7) / 8];
-			guint tls_index, tls_length;
-			sequence_iter_t *iter;
-			gboolean ok;
-
-			ok = ggep_stream_begin(&gs, GGEP_NAME(PUSH), 0);
-			ZERO(&tls_bytes);
-			tls_index = 0;
-			tls_length = 0;
-
-			/*
-			 * We iterate backwards to get the most stable of our push proxies,
-			 * namely those to which we've been connected for the longest time.
-			 */
-
-			iter = sequence_backward_iterator(seq, TRUE);
-
-			while (ok && sequence_iter_has_previous(iter)) {
-				const gnet_host_t *host = sequence_iter_previous(iter);
-				host_addr_t addr = gnet_host_get_addr(host);
-				guint16 port = gnet_host_get_port(host);
-				char proxy[6];
-
-				if (!host_addr_is_ipv4(addr))
-					continue;
-
-				poke_be32(&proxy[0], host_addr_ipv4(addr));
-				poke_le16(&proxy[4], port);
-				ok = ggep_stream_write(&gs, proxy, sizeof proxy);
-				if (tls_cache_lookup(addr, port)) {
-					tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
-					tls_length = (tls_index >> 3) + 1;
-				}
-				tls_index++;
-				if (tls_index >= QHIT_MAX_PROXIES)
-					break;
-			}
-
-			ok = ok && ggep_stream_end(&gs);
-			sequence_iterator_release(&iter);
-
-			if (!ok)
-				qhit_log_ggep_write_failure("PUSH");
-
-			if (ok && tls_length > 0) {
-				ok = ggep_stream_pack(&gs, GGEP_NAME(PUSH_TLS),
-						tls_bytes, tls_length, 0);
-				if (!ok)
-					qhit_log_ggep_write_failure("PUSH_TLS");
-			}
-		}
+		if (GGEP_OK != ggept_push_pack(&gs, seq, QHIT_MAX_PROXIES, flags))
+			qhit_log_ggep_write_failure("PUSH");
 		sequence_release(&seq);
 	}
 
@@ -573,30 +556,29 @@ flush_match(void)
 			qhit_log_ggep_write_failure("HNAME");
 	}
 
+	/*
+	 * IPv6-Ready support: if our primary listening address is IPv6, then emit
+	 * the GGEP "6" extension.  Likewise if we are also listening on IPv6.
+	 */
+
 	{
-		const host_addr_t addr = listen_addr6();
+		host_addr_t addr;
+		host_addr_t ipv6;
 
-		if (host_addr_is_ipv6(addr)) {
-			const guint8 *ipv6 = host_addr_ipv6(&addr);
+		addr = found_listen_addr();
 
-			if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(IPV6), ipv6, 16, 0))
-				qhit_log_ggep_write_failure("GTKG.IPV6");
+		ipv6 = host_addr_is_ipv6(addr) ? addr : listen_addr6();
+
+		if (is_host_addr(ipv6) && host_addr_is_ipv6(ipv6)) {
+			const guint8 *data = host_addr_ipv6(&ipv6);
+			if (!ggep_stream_pack(&gs, GGEP_NAME(6), data, 16, 0))
+				qhit_log_ggep_write_failure("6");
 		}
 	}
 
 	if (tls_enabled()) {
 		if (!ggep_stream_pack(&gs, GGEP_NAME(TLS), NULL, 0, 0))
 			qhit_log_ggep_write_failure("TLS");
-
-		/*
-		 * FIXME TODO: Drop sending GTKG.TLS after 0.96.7 is out, only
-		 * sending the now standardized "TLS" extension which GTKG has been
-		 * understanding since 0.96.6.
-		 *		--RAM, 2009-10-24
-		 */
-
-		if (!ggep_stream_pack(&gs, GGEP_GTKG_NAME(TLS), NULL, 0, 0))
-			qhit_log_ggep_write_failure("GTKG.TLS");
 	}
 
 	/*
@@ -659,6 +641,8 @@ add_file(const shared_file_t *sf)
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
 	sha1_available = sha1_hash_available(sf);
 
+	g_return_val_unless(!is_partial || sha1_available, FALSE);
+
 	/*
 	 * Make sure we never insert duplicate indices in a query hit.
 	 *
@@ -669,8 +653,32 @@ add_file(const shared_file_t *sf)
 
 	file_index = shared_file_index(sf);
 
-	g_assert(!found_contains(uint_to_pointer(file_index)));
+	if (!is_partial) {
+		g_assert_log(
+			!found_contains(uint_to_pointer(file_index)),
+			"file_index=%u (%s SHA1), qhit_contains=%zu, qhit_files=%zu",
+			(unsigned) file_index, sha1_available ? "has" : "no",
+			found_contains_count(), found_file_count());
+	} else {
+		unsigned i;
 
+		/*
+		 * Generate a random file index, unique to this query hit.
+		 *
+		 * This is for the sake of our own spam detector which will
+		 * frown upon duplicate file indices.
+		 */
+
+		for (i = 0; i < 100; i++) {
+			file_index = 1 + random_value(INT_MAX - 1);
+
+			if (!found_contains(uint_to_pointer(file_index)))
+				goto unique_file_index;
+		}
+		g_error("no luck with random number generator");
+	}
+
+unique_file_index:
 	found_insert(uint_to_pointer(file_index));
 
 	/*
@@ -703,7 +711,7 @@ add_file(const shared_file_t *sf)
 
 		needed += 9 + SHA1_BASE32_SIZE;
 		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
-		needed += hcnt * 6 + 6;
+		needed += hcnt * 18 + 6;	/* Conservative, assumes IPv6 only */
 	}
 
 	/*
@@ -853,50 +861,12 @@ add_file(const shared_file_t *sf)
 	 */
 
 	if (hcnt > 0) {
-		guchar tls_bytes[(G_N_ELEMENTS(hvec) + 7) / 8];
-		guint tls_index, tls_length;
-		int i;
+		unsigned flags = found_flags();
 
 		g_assert(hcnt <= QHIT_MAX_ALT);
-		ZERO(&tls_bytes);
-		tls_index = 0;
-		tls_length = 0;
 
-		ok = ggep_stream_begin(&gs, GGEP_NAME(ALT), GGEP_W_COBS);
-
-		for (i = 0; ok && i < hcnt; i++) {
-			host_addr_t addr;
-			guint16 port;
-			char alt[6];
-
-			g_assert(start == gs.outbuf);
-			if (!gnet_host_is_ipv4(&hvec[i]))
-				continue;
-
-			addr = gnet_host_get_addr(&hvec[i]);
-			port = gnet_host_get_port(&hvec[i]);
-			poke_be32(&alt[0], host_addr_ipv4(addr));
-			poke_le16(&alt[4], port);
-			ok = ggep_stream_write(&gs, &alt, sizeof alt);
-
-			if (tls_cache_lookup(addr, port)) {
-				tls_bytes[tls_index >> 3] |= 0x80U >> (tls_index & 7);
-				tls_length = (tls_index >> 3) + 1;
-			}
-			tls_index++;
-		}
-
-		ok = ok && ggep_stream_end(&gs);
-
-		if (!ok)
+		if (GGEP_OK != ggept_alt_pack(&gs, hvec, hcnt, flags))
 			qhit_log_ggep_write_failure("ALT");
-
-		if (ok && tls_length > 0) {
-			ok = ggep_stream_pack(&gs, GGEP_NAME(ALT_TLS),
-					tls_bytes, tls_length, GGEP_W_COBS);
-			if (!ok)
-				qhit_log_ggep_write_failure("ALT_TLS");
-		}
 	}
 
 	{
@@ -910,11 +880,10 @@ add_file(const shared_file_t *sf)
 	}
 
 	{
-		time_t mtime;	
+		time_t create_time;	
 
-		/* FIXME: Create time != modification time */
-		mtime = shared_file_modification_time(sf);
-		if ((time_t) -1 != mtime) {
+		create_time = shared_file_creation_time(sf);
+		if ((time_t) -1 != create_time) {
 			char buf[sizeof(guint64)];
 			int len;
 
@@ -922,9 +891,9 @@ add_file(const shared_file_t *sf)
 			 * Suppress negative values (if time_t is signed) as this would
 			 * be interpreted as a date far in this future.
 			 */
-			mtime = MAX(0, mtime);
+			create_time = MAX(0, create_time);
 
-			len = ggept_ct_encode(mtime, buf);
+			len = ggept_ct_encode(create_time, buf);
 			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
@@ -981,12 +950,12 @@ add_file(const shared_file_t *sf)
  * have to be sent out-of-bound
  */
 static void
-found_reset(size_t max_size, const struct guid *muid, gboolean ggep_h,
+found_reset(size_t max_size, const struct guid *muid, unsigned flags,
 	qhit_process_t process, gpointer udata, const struct array *token)
 {
 	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
-	found_init(max_size, muid, ggep_h, process, udata, token);
+	found_init(max_size, muid, flags, process, udata, token);
 	found_clear();
 }
 
@@ -998,10 +967,11 @@ found_reset(size_t max_size, const struct guid *muid, gboolean ggep_h,
  * @param files			the list of shared_file_t entries that make up results
  * @param count			the amount of results
  * @param muid			the query's MUID
+ * @param flags			a combination of QHIT_F_* flags
  */
 void
 qhit_send_results(struct gnutella_node *n, GSList *files, int count,
-	const struct guid *muid, gboolean ggep_h)
+	const struct guid *muid, unsigned flags)
 {
 	GSList *sl;
 	int sent = 0;
@@ -1014,7 +984,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	 * to forward to other nodes).
 	 */
 
-	found_reset(QHIT_SIZE_THRESHOLD, muid, ggep_h, qhit_send_node, n,
+	found_reset(QHIT_SIZE_THRESHOLD, muid, flags, qhit_send_node, n,
 		&zero_array);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
@@ -1056,10 +1026,12 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
  * @param cb			the processor callback to invoke on each built hit
  * @param udata			argument to pass to callback
  * @param muid			the MUID to use on each generated hit
+ * @param flags			a combination of QHIT_F_* flags
+ * @param token			secure OOBv3 token to include in reply
  */
 void
 qhit_build_results(const GSList *files, int count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const struct guid *muid, gboolean ggep_h,
+	qhit_process_t cb, gpointer udata, const struct guid *muid, unsigned flags,
 	const struct array *token)
 {
 	const GSList *sl;
@@ -1068,7 +1040,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 	g_assert(cb != NULL);
 	g_assert(token);
 
-	found_reset(max_msgsize, muid, ggep_h, cb, udata, token);
+	found_reset(max_msgsize, muid, flags, cb, udata, token);
 
 	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
 		const shared_file_t *sf = sl->data;
@@ -1093,7 +1065,7 @@ qhit_build_results(const GSList *files, int count, size_t max_msgsize,
 void
 qhit_init(void)
 {
-	release_date = date2time(GTA_RELEASE, tm_time());
+	release_date = date2time(product_get_date(), tm_time());
 }
 
 /**

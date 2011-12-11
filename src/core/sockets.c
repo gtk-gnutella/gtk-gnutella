@@ -44,23 +44,23 @@
 #endif
 
 #include "sockets.h"
+#include "ban.h"
+#include "bsched.h"
+#include "ctl.h"
 #include "downloads.h"
 #include "features.h"
-#include "uploads.h"
-#include "parq.h"
-#include "nodes.h"
-#include "bsched.h"
-#include "ban.h"
+#include "geo_ip.h"
+#include "gnet_stats.h"
+#include "hostiles.h"
 #include "http.h"
 #include "inet.h"
-#include "hostiles.h"
-#include "pproxy.h"
-#include "udp.h"
-#include "settings.h"
 #include "ipp_cache.h"
-#include "gnet_stats.h"
-#include "geo_ip.h"
-#include "ctl.h"
+#include "nodes.h"
+#include "parq.h"
+#include "pproxy.h"
+#include "settings.h"
+#include "udp.h"
+#include "uploads.h"
 
 #include "shell/shell.h"
 
@@ -72,10 +72,10 @@
 #include "lib/adns.h"
 #include "lib/ascii.h"
 #include "lib/compat_un.h"
+#include "lib/endian.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
-#include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/random.h"
@@ -274,8 +274,7 @@ socket_evt_set(struct gnutella_socket *s,
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("socket_evt_set: flush error: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+			g_warning("socket_evt_set: flush error: %m");
 		}
 	}
 }
@@ -443,8 +442,8 @@ socket_tos(const struct gnutella_socket *s, int tos)
 			} else {
 				g_assert_not_reached();
 			}
-			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %s",
-				name, tos, s->file_desc, g_strerror(errno));
+			g_warning("unable to set IP_TOS to %s (%d) on fd#%d: %m",
+				name, tos, s->file_desc);
 		}
 		return -1;
 	}
@@ -703,8 +702,7 @@ recv_socks4(struct gnutella_socket *s)
 
 	ret = s_read(s->file_desc, cast_to_gpointer(&reply), size);
 	if ((ssize_t) -1 == ret) {
-		g_warning("Error attempting to receive SOCKS reply (%s)",
-			g_strerror(errno));
+		g_warning("error attempting to receive SOCKS reply: %m");
 		return ECONNREFUSED;
 	}
 	if ((size_t) ret != size) {
@@ -779,7 +777,7 @@ connect_http(struct gnutella_socket *s)
 
 			ret = s_writev(s->file_desc, iov, G_N_ELEMENTS(iov));
 			if ((size_t) ret != size) {
-				g_warning("Sending info to HTTP proxy failed: %s",
+				g_warning("sending info to HTTP proxy failed: %s",
 					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 				return -1;
 			}
@@ -790,8 +788,7 @@ connect_http(struct gnutella_socket *s)
 	case 1:
 		ret = s_read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
-			g_warning("Receiving answer from HTTP proxy failed: %s",
-				g_strerror(errno));
+			g_warning("receiving answer from HTTP proxy failed: %m");
 			return -1;
 		}
 		if (!s->getline)
@@ -847,8 +844,7 @@ connect_http(struct gnutella_socket *s)
 	case 2:
 		ret = s_read(s->file_desc, s->buf, s->buf_size - 1);
 		if (ret == (ssize_t) -1) {
-			g_warning("Receiving answer from HTTP proxy failed: %s",
-				g_strerror(errno));
+			g_warning("receiving answer from HTTP proxy failed: %m");
 			return -1;
 		}
 		while (ret != 0) {
@@ -932,7 +928,7 @@ connect_socksv5(struct gnutella_socket *s)
 		size = sizeof verstring;
 		ret = s_write(sockid, verstring, size);
 		if ((size_t) ret != size) {
-			g_warning("Sending SOCKS method negotiation failed: %s",
+			g_warning("sending SOCKS method negotiation failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 			return -1;
 		}
@@ -944,8 +940,7 @@ connect_socksv5(struct gnutella_socket *s)
 		size = 2;
 		ret = s_read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
-			g_warning("Receiving SOCKS method negotiation reply failed: %s",
-				g_strerror(errno));
+			g_warning("receiving SOCKS method negotiation reply failed: %m");
 			return ECONNREFUSED;
 		}
 
@@ -1013,8 +1008,7 @@ connect_socksv5(struct gnutella_socket *s)
 		size = 2;
 		ret = s_read(sockid, s->buf, size);
 		if (ret == (ssize_t) -1) {
-			g_warning("Receiving SOCKS authentication reply failed: %s",
-				g_strerror(errno));
+			g_warning("receiving SOCKS authentication reply failed: %m");
 			return ECONNREFUSED;
 		}
 
@@ -1077,13 +1071,11 @@ connect_socksv5(struct gnutella_socket *s)
 		size = 10;
 		ret = s_read(sockid, s->buf, size);
 		if ((ssize_t) -1 == ret) {
-			g_warning("Receiving SOCKS connection reply failed: %s",
-				g_strerror(errno));
+			g_warning("receiving SOCKS connection reply failed: %m");
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_debug("connect_socksv5: Step 5, bytes recv'd %lu\n",
-				(unsigned long) ret);
+			g_debug("connect_socksv5: Step 5, bytes recv'd %zu\n", ret);
 		}
 		if ((size_t) ret != size) {
 			g_warning("Short reply from SOCKS server");
@@ -1386,8 +1378,7 @@ socket_free(struct gnutella_socket *s)
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (compat_socket_close(s->file_desc)) {
-			g_warning("socket_free: close(%d) failed: %s",
-				s->file_desc, g_strerror(errno));
+			g_warning("socket_free: close(%d) failed: %m", s->file_desc);
 		}
 		s->file_desc = INVALID_SOCKET;
 	}
@@ -2131,8 +2122,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 
 		if (fd < 0) {
 			if (errno != ECONNABORTED && !is_temporary_error(errno)) {
-				g_warning("accept() failed: %s (%s)",
-					symbolic_errno(errno), g_strerror(errno));
+				g_warning("accept() failed: %m");
 				if (errno == EMFILE || errno == ENFILE) {
 					/*
 					 * Disable accept() temporarily to prevent spinning
@@ -2178,8 +2168,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 
 	if ((SOCK_F_TCP & t->flags) && !is_host_addr(t->addr)) {
 		if (socket_addr_getpeername(&addr, t->file_desc)) {
-			g_warning("getpeername() failed: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+			g_warning("getpeername() failed: %m");
 			socket_free_null(&t);
 			return;
 		}
@@ -2492,8 +2481,8 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		socklen_t error_len = sizeof error;
 
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
-		g_warning("Input Exception for UDP listening socket #%d: %s",
-				  s->file_desc, g_strerror(error));
+		g_warning("input exception for UDP listening socket #%d: %m",
+			s->file_desc);
 		return;
 	}
 
@@ -2517,8 +2506,7 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		if ((ssize_t) -1 == r) {
 			/* ECONNRESET is meaningless with UDP but happens on Windows */
 			if (!is_temporary_error(errno) && errno != ECONNRESET) {
-				g_warning("ignoring datagram reception error: %s (%s)",
-					symbolic_errno(errno), g_strerror(errno));
+				g_warning("ignoring datagram reception error: %m");
 			}
 			break;
 		}
@@ -2537,18 +2525,18 @@ socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
 		if (s->flags & SOCK_F_SINGLE)
 			break;
 
-		/* Do not monopolize CPU for too long -- break out after 150 ms */
+		/* Do not monopolize CPU for too long -- break out after 37 ms */
 		tm_now_exact(&end);
-		if (tm_elapsed_ms(&end, &start) > 150)
+		if (tm_elapsed_ms(&end, &start) > 37)
 			break;
 
 	} while (i < MAX_UDP_RECV_LOOP);
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug(
-			"socket_udp_event() iterated %u times, read %lu bytes in %u usecs",
-			i, (unsigned long) rd, (unsigned) tm_elapsed_us(&end, &start));
+		g_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
+			G_STRFUNC, i, (unsigned long) rd,
+			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
 
@@ -2565,8 +2553,7 @@ socket_set_linger(int fd)
 		int timeout = 20;	/* timeout in seconds for FIN_WAIT_2 */
 
 		if (setsockopt(fd, sol_tcp(), TCP_LINGER2, &timeout, sizeof timeout))
-			g_warning("setsockopt() for TCP_LINGER2 failed: %s",
-				g_strerror(errno));
+			g_warning("setsockopt() for TCP_LINGER2 failed: %m");
 	}
 #else
 	{
@@ -2577,8 +2564,7 @@ socket_set_linger(int fd)
 		lb.l_onoff = 1;
 		lb.l_linger = 0;	/* closes connections with RST */
 		if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb))
-			g_warning("setsockopt() for SO_LINGER failed: %s",
-				g_strerror(errno));
+			g_warning("setsockopt() for SO_LINGER failed: %m");
 	}
 #endif /* TCP_LINGER */
 }
@@ -2601,8 +2587,8 @@ socket_set_accept_filters(struct gnutella_socket *s)
 			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT,
 				&timeout, sizeof timeout)
 		) {
-			g_warning("setsockopt() for TCP_DEFER_ACCEPT(%d) failed: %s",
-				timeout, g_strerror(errno));
+			g_warning("setsockopt() for TCP_DEFER_ACCEPT(%d) failed: %m",
+				timeout);
 		}
 	}
 #endif /* TCP_DEFER_ACCEPT */
@@ -2622,8 +2608,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 			/* This is usually not supported for IPv6. Thus suppress
 			 * the warning by default. */
 			if (NET_TYPE_IPV6 != s->net || GNET_PROPERTY(socket_debug) > 0) {
-				g_warning("Cannot set SO_ACCEPTFILTER (%s): %s",
-					name, g_strerror(errno));
+				g_warning("cannot set SO_ACCEPTFILTER (%s): %m", name);
 			}
 		}
 	}
@@ -2644,8 +2629,7 @@ socket_set_fastack(struct gnutella_socket *s)
 	(void) on;
 #if defined(TCP_FASTACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
-		g_warning("could not set TCP_FASTACK (fd=%d): %s",
-			s->file_desc, g_strerror(errno));
+		g_warning("could not set TCP_FASTACK (fd=%d): %m", s->file_desc);
 	}
 #endif /* TCP_FASTACK */
 }
@@ -2667,8 +2651,7 @@ socket_set_quickack(struct gnutella_socket *s, int on)
 	(void) on;
 #if defined(TCP_QUICKACK)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, &on, sizeof on)) {
-		g_warning("could not set TCP_QUICKACK (fd=%d): %s",
-			s->file_desc, g_strerror(errno));
+		g_warning("could not set TCP_QUICKACK (fd=%d): %m", s->file_desc);
 	}
 #endif	/* TCP_QUICKACK*/
 }
@@ -2761,6 +2744,26 @@ socket_connect_prepare(struct gnutella_socket *s,
 		return -1;
 	}
 
+	/*
+	 * If they configured IPv4 or IPv6 only, make sure we're not attempting
+	 * a connection to a forbidden network (even though the network protocol
+	 * is understood by the kernel).
+	 */
+
+	if (!settings_can_connect(addr)) {
+		host_addr_t to;
+		enum net_type target;
+
+		target = settings_use_ipv6() ? NET_TYPE_IPV6 : NET_TYPE_IPV4;
+
+		if (host_addr_convert(addr, &to, target)) {
+			addr = to;
+		} else {
+			errno = EPERM;
+			return -1;
+		}
+	}
+
 	fd = socket(family, SOCK_STREAM, 0);
 	if (fd < 0) {
 		/*
@@ -2776,11 +2779,8 @@ socket_connect_prepare(struct gnutella_socket *s,
 		}
 
 		if (fd < 0) {
-			int saved_errno = errno;
-			g_warning("unable to create %s socket: %s (%s)",
-				socket_type_to_string(type), symbolic_errno(saved_errno),
-				g_strerror(saved_errno));
-			errno = saved_errno;
+			g_warning("unable to create %s socket: %m",
+				socket_type_to_string(type));
 			return -1;
 		}
 
@@ -2916,9 +2916,8 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 			goto failure;	/* Check the proxy configuration */
 		}
 
-		g_warning("unable to connect to %s: %s (%s)",
-			host_addr_port_to_string(s->addr, s->port),
-			symbolic_errno(errno), g_strerror(errno));
+		g_warning("unable to connect to %s: %m",
+			host_addr_port_to_string(s->addr, s->port));
 		goto failure;
 	}
 
@@ -3134,8 +3133,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 			host_addr_is_ipv6(bind_addr) &&
 			setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &enable, sizeof enable)
 		) {
-			g_warning("setsockopt() failed for IPV6_V6ONLY: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+			g_warning("setsockopt() failed for IPV6_V6ONLY: %m");
 		}
 #endif /* HAS_IPV6 && IPV6_V6ONLY */
 
@@ -3158,8 +3156,7 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
 		fd = socker_get(family, type, 0, addr_str, port);
 		if (!is_valid_fd(fd)) {
-			g_warning("socker_get() failed: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+			g_warning("socker_get() failed: %m");
 		}
 	}
 #else
@@ -3171,16 +3168,15 @@ socket_create_and_bind(const host_addr_t bind_addr,
 		const char *net_str = net_type_to_string(host_addr_net(bind_addr));
 
 		if (socket_failed) {
-			g_warning("unable to create the %s (%s) socket: %s (%s)",
-				type_str, net_str, symbolic_errno(errno), g_strerror(errno));
+			g_warning("unable to create the %s (%s) socket: %m",
+				type_str, net_str);
 		} else {
 			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
 			host_addr_port_to_string_buf(bind_addr, port,
 				bind_addr_str, sizeof bind_addr_str);
-			g_warning("unable to bind() the %s (%s) socket to %s: %s (%s)",
-				type_str, net_str, bind_addr_str, symbolic_errno(errno),
-				g_strerror(errno));
+			g_warning("unable to bind() the %s (%s) socket to %s: %m",
+				type_str, net_str, bind_addr_str);
 		}
 	} else {
 		fd = get_non_stdio_fd(fd);
@@ -3215,8 +3211,7 @@ socket_is_local(const struct gnutella_socket *s)
 
 		if (compat_getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): getsockname() failed: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+			g_warning("socket_is_local(): getsockname() failed: %m");
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
 			g_warning("socket_is_local(): "
@@ -3256,8 +3251,7 @@ socket_local_listen(const char *pathname)
 
 	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (fd < 0) {
-		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %s (%s)",
-			symbolic_errno(errno), g_strerror(errno));
+		g_warning("socket(PF_LOCAL, SOCK_STREAM, 0) failed: %m");
 		return NULL;
 	}
 	fd = get_non_stdio_fd(fd);
@@ -3275,8 +3269,8 @@ socket_local_listen(const char *pathname)
 		(void) umask(mask);
 
 		if (0 != ret) {
-			g_warning("socket_local_listen(): bind() failed: %s (%s)",
-				symbolic_errno(saved_errno), g_strerror(saved_errno));
+			errno = saved_errno;
+			g_warning("socket_local_listen(): bind() failed: %m");
 			compat_socket_close(fd);
 			return NULL;
 		}
@@ -3301,8 +3295,7 @@ socket_local_listen(const char *pathname)
 	/* listen() the socket */
 
 	if (compat_listen(fd, 5) == -1) {
-		g_warning("unable to listen() on the socket: %s (%s)",
-			symbolic_errno(errno), g_strerror(errno));
+		g_warning("unable to listen() on the socket: %m");
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
@@ -3347,8 +3340,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 	/* listen() the socket */
 
 	if (listen(fd, 5) == -1) {
-		g_warning("unable to listen() on the socket: %s (%s)",
-			symbolic_errno(errno), g_strerror(errno));
+		g_warning("unable to listen() on the socket: %m");
 		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
@@ -3364,8 +3356,7 @@ socket_tcp_listen(host_addr_t bind_addr, guint16 port)
 
 		if (0 != socket_addr_getsockname(&addr, fd)) {
 			g_warning("unable to get the port of the socket: "
-				"getsockname() failed: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+				"getsockname() failed: %m");
 			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
@@ -3395,8 +3386,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 #if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, &on, sizeof on)) {
 			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IP_RECVDSTADDR failed: %s",
-				g_strerror(errno));
+				"setsockopt() for IP_RECVDSTADDR failed: %m");
 		}
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
 		break;
@@ -3405,8 +3395,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 #if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
 		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, &on, sizeof on)) {
 			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IPV6_RECVPKTINFO failed: %s",
-				g_strerror(errno));
+				"setsockopt() for IPV6_RECVPKTINFO failed: %m");
 		}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		break;
@@ -3487,8 +3476,7 @@ socket_udp_listen(host_addr_t bind_addr, guint16 port,
 
 		if (0 != socket_addr_getsockname(&addr, fd)) {
 			g_warning("unable to get the port of the socket: "
-				"getsockname() failed: %s (%s)",
-				symbolic_errno(errno), g_strerror(errno));
+				"getsockname() failed: %m");
 			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
@@ -3552,8 +3540,8 @@ socket_cork(struct gnutella_socket *s, gboolean on)
 
 	if (setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
 		if (ECONNRESET != errno) {
-			g_warning("unable to %s TCP_CORK on fd#%d: %s",
-				on ? "set" : "clear", s->file_desc, g_strerror(errno));
+			g_warning("unable to %s TCP_CORK on fd#%d: %m",
+				on ? "set" : "clear", s->file_desc);
 		}
 	} else {
 		s->flags &= ~SOCK_F_CORKED;
@@ -3598,8 +3586,7 @@ socket_set_intern(int fd, int option, unsigned size,
 
 	len = sizeof(old_len);
 	if (-1 == getsockopt(fd, SOL_SOCKET, option, &old_len, &len))
-		g_warning("cannot read old %s buffer length on fd #%d: %s",
-			type, fd, g_strerror(errno));
+		g_warning("cannot read old %s buffer length on fd #%d: %m", type, fd);
 
 /* FIXME: needs to add metaconfig test */
 #ifdef LINUX_SYSTEM
@@ -3615,13 +3602,12 @@ socket_set_intern(int fd, int option, unsigned size,
 	}
 
 	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
-		g_warning("cannot set new %s buffer length to %u on fd #%d: %s",
-			type, size, fd, g_strerror(errno));
+		g_warning("cannot set new %s buffer length to %u on fd #%d: %m",
+			type, size, fd);
 
 	len = sizeof(new_len);
 	if (-1 == getsockopt(fd, SOL_SOCKET, option, &new_len, &len))
-		g_warning("cannot read new %s buffer length on fd #%d: %s",
-			type, fd, g_strerror(errno));
+		g_warning("cannot read new %s buffer length on fd #%d: %m", type, fd);
 
 #ifdef LINUX_SYSTEM
 	new_len >>= 1;		/* Linux returns twice the real amount */
@@ -3683,8 +3669,8 @@ socket_nodelay(struct gnutella_socket *s, gboolean on)
 
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)) {
 		if (errno != ECONNRESET)
-			g_warning("unable to %s TCP_NODELAY on fd#%d: %s",
-				on ? "set" : "clear", s->file_desc, g_strerror(errno));
+			g_warning("unable to %s TCP_NODELAY on fd#%d: %m",
+				on ? "set" : "clear", s->file_desc);
 	} else {
 		s->flags &= ~SOCK_F_NODELAY;
 		s->flags |= on ? SOCK_F_NODELAY : 0;
@@ -3714,8 +3700,7 @@ socket_tx_shutdown(struct gnutella_socket *s)
 		ENOTCONN != errno &&
 		ECONNRESET != errno
 	) {
-		g_warning("unable to shutdown TX on fd#%d: %s",
-			s->file_desc, g_strerror(errno));
+		g_warning("unable to shutdown TX on fd#%d: %m", s->file_desc);
 	}
 	s->flags |= SOCK_F_SHUTDOWN;
 }
@@ -3810,9 +3795,7 @@ socket_plain_sendto(
 
 	if ((ssize_t) -1 == ret && GNET_PROPERTY(udp_debug)) {
 		int e = errno;
-
-		g_warning("sendto() failed: %s (%s)",
-			symbolic_errno(errno), g_strerror(errno));
+		g_warning("sendto() failed: %m");
 		errno = e;
 	}
 	return ret;

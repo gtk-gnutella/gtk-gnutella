@@ -1,13 +1,10 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
-and which are not already implemented in SVN, by loose order of decreasing
-priority.
+and which are not already implemented, by loose order of decreasing priority.
 
-0.97.1
-	* Implement "IPv6-Ready" specifications.
+0.99
 	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
 	* Firewalled to firewalled transfers (reverse engineer LimeWire specs)
 	* Configurable SOCKS usage: Gnutella connections, downloads and/or uploads.
-	* Area-specific logging?
 	* Disk space monitoring (~/.gtk-gnutella, download incomplete / complete)?
 	* Keep track of long-running ultrapeers for faster startup after inactivity
 	* PARQ: PFS aware
@@ -15,14 +12,23 @@ priority.
 	* PARQ: 'Rotating' queue by filename?
 	* Meta data support (locally)
 
-0.98
+0.100
 	* Optional gtk-gnutella clustering
 	* Optional locale preferencing support
+	* XML: Extraction of metadata for results sorting
+	* XML: Filtering on metadata
+	* XML: Generation of metadata in query hits
+	* GUI display and sorting of A/V attributes (bitrate, video size)
 
 Possible other changes
+	* Extend inter UP QRP tables from 128 Ki slots to 2 Mi slots?
 	* Smaller memory footprint by using sdbm for:
 	  - PARQ?
 	  - Host cache?
+	* Area-specific logging?
+	* User-visible logging, traced in GUI?
+	* Chat support?
+	* Specific "Library" pane showing meta-information about shared files?
 
 -- Raphael
 

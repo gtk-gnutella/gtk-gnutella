@@ -264,8 +264,8 @@ soap_process_reply(soap_rpc_t *sr)
 	}
 
 	if (GNET_PROPERTY(soap_debug) > 2) {
-		g_debug("SOAP \"%s\" at \"%s\": processing reply (%lu byte%s) HTTP %d",
-			sr->action, sr->url, (unsigned long) sr->reply_len,
+		g_debug("SOAP \"%s\" at \"%s\": processing reply (%zu byte%s) HTTP %d",
+			sr->action, sr->url, sr->reply_len,
 			1 == sr->reply_len ? "" : "s", sr->http_code);
 	}
 
@@ -499,10 +499,11 @@ soap_header_ind(http_async_t *ha, header_t *header,
 		len = parse_uint32(buf, NULL, 10, &error);
 		if (error) {
 			if (GNET_PROPERTY(soap_debug)) {
+				errno = error;
 				g_warning("SOAP \"%s\" at \"%s\": "
 					"cannot parse Content-Length header: "
-					"value is \"%s\", error is %s",
-					sr->action, sr->url, buf, g_strerror(error));
+					"value is \"%s\", error is %m",
+					sr->action, sr->url, buf);
 			}
 			http_async_error(ha, HTTP_ASYNC_BAD_HEADER);
 			return FALSE;

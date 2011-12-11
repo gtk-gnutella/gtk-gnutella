@@ -347,9 +347,8 @@ wq_notify(hash_list_t *hl, void *data)
 
 		if (i++ >= count) {
 			/* Something is odd, let them know about the calling stack */
-			g_carp("stopping after processing %lu item%s (list now has %lu)",
-				(unsigned long) count, 1 == count ? "" : "s",
-				(unsigned long) hash_list_length(hl));
+			g_carp("stopping after processing %zu item%s (list now has %zu)",
+				count, 1 == count ? "" : "s", hash_list_length(hl));
 		}
 
 		status = (*we->cb)(we->arg, data);

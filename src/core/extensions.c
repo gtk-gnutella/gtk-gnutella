@@ -163,29 +163,37 @@ static const struct rwtable ggeptable[] =
 #define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
 #define GGEP_GTKG_ID(x) { "GTKG." #x, EXT_T_GGEP_GTKG_ ## x }
 
-	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' */
+	GGEP_ID(6),			/**< IPv6 address */
+	{ "<", EXT_T_GGEP_LIME_XML }, /**< '<' is less that 'A' but more than '6' */
 	GGEP_ID(A),			/**< Same as GGEP ALT but used in HEAD Pongs */
-	GGEP_ID(ALT),		/**< Alt-locs in qhits */
+	GGEP_ID(A6),		/**< Same as GGEP ALT6 but used in HEAD Pongs */
+	GGEP_ID(ALT),		/**< IPv4:port alt-locs in qhits */
+	GGEP_ID(ALT6),		/**< IPv6:port alt-locs in qhits */
+	GGEP_ID(ALT6_TLS),	/**< TLS-capability bitmap for GGEP ALT6 */
 	GGEP_ID(ALT_TLS),	/**< TLS-capability bitmap for GGEP ALT */
 	GGEP_ID(BH),		/**< Browseable host indication */
 	GGEP_ID(C),			/**< Result Code in HEAD Pongs */
 	GGEP_ID(CHAT),		/**< CHAT indication in query hit trailer */
 	GGEP_ID(CT),		/**< Resource creation time */
 	GGEP_ID(DHT),		/**< DHT version and flags, in pongs */
-	GGEP_ID(DHTIPP),	/**< DHT nodes in packed IP:Port format (pongs) */
+	GGEP_ID(DHTIPP),	/**< DHT nodes in packed IPv4:Port format (pongs) */
+	GGEP_ID(DHTIPP6),	/**< DHT nodes in packed IPv6:Port format (pongs) */
 	GGEP_ID(DU),		/**< Average servent uptime */
 	GGEP_ID(F),			/**< Flags in HEAD Pongs */
 	GGEP_ID(FW),		/**< Firewalled-to-Firewalled protocol version */
 	GGEP_ID(GGEP),		/**< GGEP extension names known, NUL-separated */
-	GGEP_GTKG_ID(IPV6),	/**< GTKG IPv6 address */
-	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication */
+	GGEP_GTKG_ID(IPV6),	/**< GTKG IPv6 address (deprecated @0.97) */
+	GGEP_GTKG_ID(TLS),	/**< GTKG TLS support indication (deprecated @0.97) */
 	GGEP_ID(GTKGV),		/**< GTKG complete version number (binary) */
 	GGEP_ID(GTKGV1),	/**< GTKG complete version (bin, deprecated @0.97) */
 	GGEP_ID(GUE),		/**< GUESS support */
 	GGEP_ID(H),			/**< Hashes in binary form */
 	GGEP_ID(HNAME),		/**< Hostname */
-	GGEP_ID(IP),		/**< Ip:Port in ping and pongs (F2F) */
-	GGEP_ID(IPP),		/**< IP:Port in pongs (UHC) */
+	GGEP_ID(I6),		/**< IPv6 support indication (can flag no IPv4) */
+	GGEP_ID(IP),		/**< IP:Port in ping and pongs (F2F) */
+	GGEP_ID(IPP),		/**< IPv4:Port in pongs (UHC) */
+	GGEP_ID(IPP6),		/**< IPv6:Port in pongs (UHC) */
+	GGEP_ID(IPP6_TLS),	/**< TLS-capability bitmap for GGEP IPP6 */
 	GGEP_ID(IPP_TLS),	/**< TLS-capability bitmap for GGEP IPP */
 	GGEP_ID(LF),		/**< Large file size in qhits */
 	GGEP_ID(LOC),		/**< Locale preferences, for clustering  */
@@ -201,13 +209,16 @@ static const struct rwtable ggeptable[] =
 	GGEP_ID(PR3),		/**< Partial intervals coded on 3 bytes */
 	GGEP_ID(PR4),		/**< Partial intervals coded on 4 bytes */
 	GGEP_ID(PRU),		/**< Partial Result Unverified (query hits) */
-	GGEP_ID(PUSH),		/**< Push proxy info, in qhits */
+	GGEP_ID(PUSH),		/**< IPv4:port push proxy info array, in qhits */
+	GGEP_ID(PUSH6),		/**< IPv6:port push proxy info array, in qhits */
+	GGEP_ID(PUSH6_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(PUSH_TLS),	/**< TLS-capability bitmap for GGEP PUSH */
 	GGEP_ID(Q),			/**< Queue status in HEAD Pongs */
 	GGEP_ID(QK),		/**< GUESS Query Key */
 	GGEP_ID(SCP),		/**< Supports cached pongs, in pings (UHC) */
 	GGEP_ID(SO),		/**< Secure OOB */
 	GGEP_ID(T),			/**< Same as ALT_TLS but for HEAD Pongs */
+	GGEP_ID(T6),		/**< Same as ALT6_TLS but for HEAD Pongs */
 	GGEP_ID(TLS),		/**< TLS support indication */
 	GGEP_ID(TT),		/**< Tigertree root hash (TTH); binary */
 	GGEP_ID(UA),		/**< User-Agent string */
@@ -290,16 +301,18 @@ rw_is_sorted(const char *name,
 			prev->rw_token >= e->rw_token ||
 			strcmp(prev->rw_name, e->rw_name) >= 0
 		)
-			g_error("reserved word table \"%s\" unsorted (near item \"%s\")",
-				name, e->rw_name);
+			g_error("reserved word table \"%s\" unsorted "
+				"(item #%zu \"%s\" = %d follows \"%s\" = %d)",
+				name, i + 1, e->rw_name, e->rw_token,
+				prev->rw_name, prev->rw_token);
 
 		if (ggeptable == table) {
 			const char *s;
 
 		   	s = ext_ggep_name(e->rw_token);
 			if (0 != strcmp(s, e->rw_name)) {
-				g_error("table \"%s\" has wrong GGEP ID (near item \"%s\")",
-					name, e->rw_name);
+				g_error("table \"%s\" has wrong GGEP ID \"%s\" (item \"%s\")",
+					name, s, e->rw_name);
 			}
 		}
 	}
@@ -1402,9 +1415,8 @@ ext_ggep_stripkey(char *buf, int len, const char *key,
 			 */
 
 			if (GNET_PROPERTY(ggep_debug) > 5) {
-				g_debug("GGEP stripping \"%s\" %skey (%lu bytes)",
-					key, (flags & GGEP_F_LAST) ? "last " : "",
-					(unsigned long) elen);
+				g_debug("GGEP stripping \"%s\" %skey (%zu bytes)",
+					key, (flags & GGEP_F_LAST) ? "last " : "", elen);
 			}
 
 			if (flags & GGEP_F_LAST) {

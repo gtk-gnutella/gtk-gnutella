@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>Gtk-Gnutella</string>
     <key>CFBundleGetInfoString</key>
-    <string>0.97, (C) 2000-2011 gtk-gnutella http://gtk-gnutella.sourceforge.net</string>
+    <string>CFBundleShortVersionStringPlaceHolder, (C) 2000-2011 gtk-gnutella http://gtk-gnutella.sourceforge.net</string>
     <key>CFBundleIconFile</key>
     <string>gtk-gnutella.icns</string>
     <key>CFBundleIdentifier</key>
@@ -17,14 +17,14 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.97.0</string>
+    <string>CFBundleShortVersionStringPlaceHolder</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleVersion</key>
-    <string>19367</string>
+    <string>CFBundleVersionPlaceHolder</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright 2000-2011 gtk-gnutella Team, GNU General Public License.</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.4</string>
+    <string>10.5</string>
 </dict>
 </plist>

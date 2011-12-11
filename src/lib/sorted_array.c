@@ -25,6 +25,8 @@
  * @ingroup lib
  * @file
  *
+ * Sorted array of fixed-size items.
+ *
  * @author Christian Biere
  * @date 2007
  */
@@ -39,7 +41,7 @@
 #include "override.h"		/* Must be the last header included */
 
 struct sorted_array {
-	void *items;		/** The actual array data */
+	void *items;		/**< The actual array data */
 	size_t num_items;	/**< Number of valid items */
 	size_t num_size;	/**< Number of allocated items */
 	size_t num_added;	/**< Number of items added */
@@ -47,6 +49,14 @@ struct sorted_array {
 	int (*cmp_func)(const void *a, const void *b); /**< Defines the order */
 };
 
+/**
+ * Create new sorted array.
+ *
+ * @param item_size		size of each (expanded) item
+ * @param cmp_func		item comparison function
+ *
+ * @return created array.
+ */
 struct sorted_array *
 sorted_array_new(size_t item_size,
 	int (*cmp_func)(const void *a, const void *b))
@@ -64,6 +74,9 @@ sorted_array_new(size_t item_size,
 	return tab;
 }
 
+/**
+ * Free and dispose of the sorted array, nullifying the given pointer.
+ */
 void
 sorted_array_free(struct sorted_array **tab_ptr)
 {
@@ -84,6 +97,11 @@ sorted_array_item_intern(const struct sorted_array *tab, size_t i)
 	return &base[tab->item_size * i];
 }
 
+/**
+ * Fetch item in array by index, with boundary checks.
+ *
+ * @return item at given index within the array.
+ */
 void *
 sorted_array_item(const struct sorted_array *tab, size_t i)
 {
@@ -93,6 +111,11 @@ sorted_array_item(const struct sorted_array *tab, size_t i)
 	return sorted_array_item_intern(tab, i);
 }
 
+/**
+ * Lookup key in sorted array.
+ *
+ * @return pointer to the start of item if found, NULL otherwise.
+ */
 G_GNUC_HOT void *
 sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
@@ -112,6 +135,13 @@ sorted_array_lookup(struct sorted_array *tab, const void *key)
 	return NULL;
 }
 
+/**
+ * Add item at the end of array, without re-sorting the array.
+ *
+ * @attention
+ * Call sorted_array_sync() to re-sort after a batch of insertions.
+ * Until then, sorted_array_lookup() will simply ignore added items.
+ */
 void
 sorted_array_add(struct sorted_array *tab, const void *item)
 {

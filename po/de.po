@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-06-04 16:18+0200\n"
+"POT-Creation-Date: 2011-11-22 18:27+0100\n"
 "PO-Revision-Date: 2008-07-05 13:20+0200\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -479,6 +479,16 @@ msgid_plural "%u DHT lookups"
 msgstr[0] ""
 msgstr[1] ""
 
+#, fuzzy, c-format
+msgid "Got %d host from %s"
+msgid_plural "Got %d hosts from %s"
+msgstr[0] "%d Hostadresse von UDP-Hostcache %s erhalten"
+msgstr[1] "%d Hostadressen von UDP-Hostcache %s erhalten"
+
+#, c-format
+msgid "Bootstrapping from %s"
+msgstr ""
+
 msgid "Bad size"
 msgstr "Falsche Größe"
 
@@ -532,6 +542,10 @@ msgid "Duplicate message"
 msgstr "Paketduplikat"
 
 msgid "Message to banned GUID"
+msgstr "Paket an verbannten GUID"
+
+#, fuzzy
+msgid "Message from banned GUID"
 msgstr "Paket an verbannten GUID"
 
 msgid "Node shutting down"
@@ -703,6 +717,10 @@ msgstr "Gnutella Netzwerkmodus"
 msgid "Too frequent crawling"
 msgstr "Zu häufige Crawl-Anfragen"
 
+#, fuzzy
+msgid "Already connected to this GUID"
+msgstr "Bereits verbunden"
+
 #, c-format
 msgid "Vendor would exceed %d%% of our slots"
 msgstr ""
@@ -804,8 +822,12 @@ msgstr "Lesefehler (Input-Ausnahme)"
 msgid "Read error: %s"
 msgstr "Lesefehler: %s"
 
+#, c-format
+msgid "Must wait %u more seconds before resending \"What's New\""
+msgstr ""
+
 #, fuzzy, c-format
-msgid "mkdir(\"%s\") failed: \"%s\""
+msgid "mkdir(\"%s\") failed: %m"
 msgstr "Schreiben fehlgeschlagen: %s"
 
 msgid "Can't find your home directory!"
@@ -1639,7 +1661,8 @@ msgstr ""
 msgid "Current number of hosts in regular node caches."
 msgstr "Derzeitige Anzahl Peers im Peer-Cache"
 
-msgid "Current number of hosts in ultra node caches."
+#, fuzzy
+msgid "Current number of IPv4 hosts in ultra node caches."
 msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
 
 msgid "Current number of hosts in bad node caches."
@@ -1650,7 +1673,7 @@ msgid "Maximum number of hosts in the regular node cache."
 msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
 
 #, fuzzy
-msgid "Maximum number of hosts in the ultra node cache."
+msgid "Maximum number of IPv4 hosts in the ultra node cache."
 msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
 
 msgid "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists."
@@ -3153,19 +3176,19 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Maximum number of hosts in the regular GUESS cache."
+msgid "Maximum number of IPv4 hosts in the regular GUESS cache."
 msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
 
 #, fuzzy
-msgid "Current number of hosts in the regular GUESS cache."
+msgid "Current number of IPv4 hosts in the regular GUESS cache."
 msgstr "Derzeitige Anzahl Peers im Peer-Cache"
 
 #, fuzzy
-msgid "Maximum number of hosts in the introduction GUESS cache."
+msgid "Maximum number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
 
 #, fuzzy
-msgid "Current number of hosts in the introduction GUESS cache."
+msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
 
 #, fuzzy
@@ -3236,6 +3259,69 @@ msgstr ""
 #, fuzzy
 msgid "Maximum number of results to show in a passive search request."
 msgstr "Maximale Anzahl angezeigter Anfragen im Suchmonitor."
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages from same node."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages with a higher TTL."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+#, fuzzy
+msgid "Whether to log duplicate Gnutella messages (not from same node)."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+#, fuzzy
+msgid "Whether to log new Gnutella messages, never seen before."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+#, fuzzy
+msgid "Whether to log Gnutella routing decisions."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+#, fuzzy
+msgid "Whether to log bad Gnutella messages, corrupted or unexpected."
+msgstr "Debug-Level für Gnutella-Pakete"
+
+msgid "Whether to log conditions triggering query hit spam flagging."
+msgstr ""
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the ultra node cache."
+msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in ultra node caches."
+msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the regular GUESS cache."
+msgstr "Derzeitige Anzahl Peers im Peer-Cache"
+
+#, fuzzy
+msgid "Current number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Derzeitige Anzahl von Ultrapeers im Peer-Cache"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the regular GUESS cache."
+msgstr "Maximale Anzahl Legacy-Peers im Host-Cache"
+
+#, fuzzy
+msgid "Maximum number of IPv6 hosts in the introduction GUESS cache."
+msgstr "Maximale Anzahl an Ultrapeers im Host-Cache"
+
+#, fuzzy
+msgid "Debug level for the malloc() replacement allocator."
+msgstr "Debug-Level für die Suchanfragen"
+
+#, fuzzy
+msgid "Debug level for bad query hit messages."
+msgstr "Debug-Level für die Oberfläche"
+
+#, fuzzy
+msgid "Debug level for GUID management."
+msgstr "Debug-Level für Download-Mesh-Management."
 
 msgid "disable"
 msgstr "deaktiviert"
@@ -4584,6 +4670,22 @@ msgstr "%s (%s Bytes)"
 msgid "B/s"
 msgstr ""
 
+#, c-format
+msgid "%ud %uh"
+msgstr ""
+
+#, c-format
+msgid "%uh %um"
+msgstr ""
+
+#, c-format
+msgid "%um %us"
+msgstr ""
+
+#, c-format
+msgid "%us"
+msgstr ""
+
 msgid "locale_get_language|en"
 msgstr "de"
 
@@ -4636,6 +4738,38 @@ msgstr "Interaktiver Modus aktiviert."
 
 msgid "Interactive mode turned off."
 msgstr "Interaktiver Modus deaktiviert."
+
+#, fuzzy
+msgid "Cannot determine current working directory"
+msgstr "Kann das Heimatverzeichnis nicht finden!"
+
+#, fuzzy, c-format
+msgid "Unknown logfile name \"%s\""
+msgstr "Unbekannte Eigenschaft"
+
+#, fuzzy
+msgid "Unable to reopen"
+msgstr "Konnte GIV nicht senden"
+
+#, c-format
+msgid "Could not rename logfile as \"%s\": %m"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Unknown operation \"%s\""
+msgstr "Unbekannte Operation"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"show %s\""
+msgstr "Unbekannte Operation"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"stats %s\""
+msgstr "Unbekannte Operation"
+
+#, fuzzy, c-format
+msgid "Unknown operation \"usage %s\""
+msgstr "Unbekannte Operation"
 
 msgid "Invalid IP/Port"
 msgstr "IP/Port fehlerhaft"
@@ -4692,6 +4826,14 @@ msgstr "Unbekannte Eigenschaft"
 
 msgid "Value missing"
 msgstr "Wert fehlt"
+
+#, c-format
+msgid "Previous value was %s"
+msgstr ""
+
+#, c-format
+msgid "New value is %s"
+msgstr ""
 
 msgid "Value found and set"
 msgstr "Wert gefunden und gesetzt"
@@ -5205,6 +5347,16 @@ msgstr ""
 msgid "Routing errors"
 msgstr "Routing-Fehler"
 
+#, fuzzy
+msgid "Routing table chunks"
+msgstr "Laufende Nummer der Routing-Tabellengenerierung."
+
+msgid "Routing table message capacity"
+msgstr ""
+
+msgid "Routing table message count"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr "Dupletten mit höherer TTL"
 
@@ -5305,7 +5457,14 @@ msgstr "Generierte Anfragen"
 msgid "GUESS queries"
 msgstr "UTF8-Anfragen"
 
+#, fuzzy
+msgid "GUESS queries (0.2)"
+msgstr "UTF8-Anfragen"
+
 msgid "GUESS cached query keys held"
+msgstr ""
+
+msgid "GUESS cached 0.2 hosts held"
 msgstr ""
 
 #, fuzzy
@@ -5431,6 +5590,9 @@ msgid "Detected GUID collisions"
 msgstr ""
 
 msgid "Detected collisions with our own GUID"
+msgstr ""
+
+msgid "GUID dynamically banned"
 msgstr ""
 
 msgid "Firewalled node info for known hosts received in upload requests"
@@ -7929,6 +8091,12 @@ msgid "Query queued..."
 msgstr "In Warteschlange gestellt"
 
 #, c-format
+msgid "%u term counted"
+msgid_plural "%u terms counted"
+msgstr[0] "%u gezählter Begriff"
+msgstr[1] "%u gezählte Begriffe"
+
+#, c-format
 msgid "Couldn't find pixmap file: %s"
 msgstr "Kann Pixmap-Datei nicht finden: %s"
 
@@ -8191,12 +8359,6 @@ msgstr ""
 msgid "Size:"
 msgstr "Größe:"
 
-#, c-format
-msgid "%u term counted"
-msgid_plural "%u terms counted"
-msgstr[0] "%u gezählter Begriff"
-msgstr[1] "%u gezählte Begriffe"
-
 msgid "Done"
 msgstr "Fertig"
 
@@ -8206,10 +8368,16 @@ msgstr ""
 msgid "Valid regular"
 msgstr ""
 
-msgid "Fresh ultra"
+msgid "Fresh IPv4 ultra"
 msgstr ""
 
-msgid "Valid ultra"
+msgid "Valid IPv4 ultra"
+msgstr ""
+
+msgid "Fresh IPv6 ultra"
+msgstr ""
+
+msgid "Valid IPv6 ultra"
 msgstr ""
 
 msgid "Unstable"
@@ -8219,10 +8387,16 @@ msgstr "Instabil"
 msgid "Alien"
 msgstr "Aliase"
 
-msgid "GUESS (running)"
+msgid "GUESS (IPv4 running)"
 msgstr ""
 
-msgid "GUESS (introductions)"
+msgid "GUESS (IPv4 introductions)"
+msgstr ""
+
+msgid "GUESS (IPv6 running)"
+msgstr ""
+
+msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
@@ -8351,9 +8525,9 @@ msgstr ""
 "konvertiert und die alte Datei umbenannt in\n"
 "%s"
 
-#, c-format
+#, fuzzy, c-format
 msgid ""
-"could not rename %s as %s: %s\n"
+"could not rename %s as %s: %m\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 "konnte Datei %s nicht in %s umbenennen: %s\n"

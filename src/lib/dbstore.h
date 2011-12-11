@@ -39,6 +39,13 @@
 
 /**
  * Key/value description.
+ *
+ * When key_len is NULL, key_size is the expected constant key length.
+ * When key_len is not NULL, key_size is the expected maximum key length
+ * and the key_len routine is used to compute the actual size of the key
+ * based on its serialized form.
+ *
+ * When value_data_size is 0, it is taken as being identical to value_size.
  */
 typedef struct dbstore_kv {
 	size_t key_size;			/**< Constant key size, in bytes */

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-72]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-104]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -66,7 +66,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 64 2011-01-01 21:57:17Z rmanfredi $
+# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -81,6 +81,8 @@ all:: .FORCE_DEPEND
 # $X-Id: Jmakefile 14365 2007-08-08 05:05:08Z cbiere $
 
 SRC = \
+	command.c \
+	date.c \
 	download.c \
 	downloads.c \
 	echo.c \
@@ -93,6 +95,7 @@ SRC = \
 	nodes.c \
 	offline.c \
 	online.c \
+	pid.c \
 	print.c \
 	props.c \
 	quit.c \
@@ -104,9 +107,12 @@ SRC = \
 	stats.c \
 	status.c \
 	uploads.c \
+	version.c \
 	whatis.c
 
 OBJ = \
+	command.o \
+	date.o \
 	download.o \
 	downloads.o \
 	echo.o \
@@ -119,6 +125,7 @@ OBJ = \
 	nodes.o \
 	offline.o \
 	online.o \
+	pid.o \
 	print.o \
 	props.o \
 	quit.o \
@@ -130,6 +137,7 @@ OBJ = \
 	stats.o \
 	status.o \
 	uploads.o \
+	version.o \
 	whatis.o 
 
 # Those extra flags are expected to be user-defined

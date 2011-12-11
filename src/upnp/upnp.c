@@ -56,12 +56,11 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "if/core/main.h"		/* For main_get_build() */
-
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
+#include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
 #include "lib/walloc.h"
 
@@ -158,6 +157,17 @@ upnp_igd_ip_routed(void)
 gboolean
 upnp_delete_pending(void)
 {
+	if (GNET_PROPERTY(shutdown_debug) > 1) {
+		static time_t last;
+		if (last != tm_time()) {
+			unsigned nat = natpmp_pending();
+			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
+				igd.delete_pending, 1 == igd.delete_pending ? "" : "s",
+				nat, 1 == nat ? "" : "s");
+			last = tm_time();
+		}
+	}
+
 	return igd.delete_pending != 0 || natpmp_pending();
 }
 
@@ -172,7 +182,7 @@ upnp_mapping_description(void)
 	static char buf[32];
 
 	if ('\0' == buf[0])
-		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", main_get_build());
+		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
 
 	return buf;
 }
@@ -446,8 +456,8 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 		if (selected != NULL) {
 			if (GNET_PROPERTY(upnp_debug) > 2) {
 				g_message("UPNP selecting device \"%s\" among the "
-					"%lu discovered, bearing known external IP %s",
-					selected->desc_url, (unsigned long) count,
+					"%zu discovered, bearing known external IP %s",
+					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		} else {
@@ -455,8 +465,8 @@ upnp_discovered(GSList *devlist, void *unused_arg)
 
 			if (GNET_PROPERTY(upnp_debug) > 2) {
 				g_message("UPNP randomly picking device \"%s\" among the "
-					"%lu discovered, has external IP %s",
-					selected->desc_url, (unsigned long) count,
+					"%zu discovered, has external IP %s",
+					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		}
@@ -978,6 +988,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 
 	g_assert(NULL == value);
 	g_assert(0 == size);
+	upnp_mapping_check(um);
 
 	um->rpc = NULL;		/* RPC completed */
 
@@ -1027,6 +1038,8 @@ upnp_map_natpmp_publish_reply(int code,
 	guint16 port, unsigned lifetime, void *arg)
 {
 	struct upnp_mapping *um = arg;
+
+	upnp_mapping_check(um);
 
 	if (NATPMP_E_OK == code && port == um->port) {
 		if (GNET_PROPERTY(upnp_debug) > 2) {
@@ -1308,6 +1321,7 @@ upnp_map_remove(enum upnp_map_proto proto, guint16 port)
 				upnp_map_proto_to_string(proto), port);
 		}
 	} else {
+		upnp_mapping_check(um);
 		g_hash_table_remove(upnp_mappings, um);
 
 		if (upnp_map_unpublish(um)) {

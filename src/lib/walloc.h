@@ -37,6 +37,13 @@
 #include "common.h"
 #include "malloc.h"
 
+/**
+ * Maximum size for a walloc().  Anything larger is allocated by using
+ * either halloc() or xpmalloc().
+ */
+#define WALLOC_MAX_SHIFT	13	/* 2^13 = 8192 bytes */
+#define WALLOC_MAX			(1 << WALLOC_MAX_SHIFT)
+
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  * Under TRACK_ZALLOC, we keep track of the allocation places.
@@ -168,6 +175,7 @@ G_STMT_START {				\
 } G_STMT_END
 
 #define WMOVE(p)			wmove(p, sizeof *p)
+#define WCOPY(p)			wcopy(p, sizeof *p)
 
 #define WFREE(p)			\
 G_STMT_START {				\

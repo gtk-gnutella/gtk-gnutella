@@ -68,12 +68,6 @@ ggep_stream_is_valid(ggep_stream_t *gs)
 	if (NULL == gs->o || gs->o < gs->outbuf || gs->o > gs->end)
 		return FALSE;
 
-	if (gs->magic_emitted != TRUE && gs->magic_emitted != FALSE)
-		return FALSE;
-
-	if (gs->begun != TRUE && gs->begun != FALSE)
-		return FALSE;
-
 	if (gs->begun) {
 		if ((gs->flags & GGEP_F_COBS) && !cobs_stream_is_valid(&gs->cs))
 			return FALSE;
@@ -108,7 +102,7 @@ ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len)
 	gs->end = &gs->outbuf[len];
 	gs->o = data;
 	gs->last_fp = gs->fp = gs->lp = NULL;
-	gs->magic_emitted = FALSE;
+	gs->magic_sent = FALSE;
 	gs->begun = FALSE;
 	gs->zd = NULL;
 
@@ -206,10 +200,10 @@ ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags)
 	 * Emit leading magic byte if not done already.
 	 */
 
-	if (!gs->magic_emitted) {
+	if (!gs->magic_sent) {
 		if (!ggep_stream_appendc(gs, GGEP_MAGIC))
 			return FALSE;
-		gs->magic_emitted = TRUE;
+		gs->magic_sent = TRUE;
 	}
 
 	idlen = strlen(id);
@@ -228,6 +222,7 @@ ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags)
 	flags |= idlen & GGEP_F_IDLEN;
 
 	gs->flags = flags;
+	gs->strip_empty = booleanize(wflags & GGEP_W_STRIP);
 
 	/*
 	 * Emit the flags, keeping track of the position where they were
@@ -438,9 +433,13 @@ ggep_stream_end(ggep_stream_t *gs)
 					(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
 					(int) ilen, (int) plen);
 
-			data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
-			if (data == NULL)
-				goto cleanup;
+			if (ilen != 0) {
+				data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
+				if (data == NULL)
+					goto cleanup;
+			} else {
+				data = NULL;
+			}
 
 			/*
 			 * Remove any deflate indication.
@@ -461,7 +460,7 @@ ggep_stream_end(ggep_stream_t *gs)
 			gs->o = gs->lp + 1;		/* Rewind after NUL "length" byte */
 			/* No overwriting */
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
-			ok = ggep_stream_write(gs, data, ilen);
+			ok = 0 == ilen ? TRUE : ggep_stream_write(gs, data, ilen);
 			HFREE_NULL(data);
 
 			if (!ok)
@@ -536,9 +535,10 @@ ggep_stream_end(ggep_stream_t *gs)
 			gs->o = &gs->lp[1 + plen];	/* +1 to skip NUL "length" byte */
 			/* No overwriting */
 			g_assert((size_t) (gs->end - gs->o) <= gs->size);
-		} else if (GNET_PROPERTY(ggep_debug) > 3)
+		} else if (GNET_PROPERTY(ggep_debug) > 3) {
 			g_debug("GGEP \"%.*s\" COBS-ed into %d bytes",
 				(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1, (int) plen);
+		}
 	}
 
 	/*
@@ -548,7 +548,24 @@ ggep_stream_end(ggep_stream_t *gs)
 
 	if (!(gs->flags & (GGEP_F_COBS|GGEP_F_DEFLATE)))
 		plen = (gs->o - gs->lp) - 1;		/* -1 to skip NUL "length" byte */
-		g_assert((size_t) plen <= gs->size);
+
+	/*
+	 * The final length of the payload is now known.
+	 *
+	 * If GGEP_W_STRIP was set, they don't want to emit the extension if
+	 * its payload is empty.
+	 */
+
+	g_assert((size_t) plen <= gs->size);
+
+	if (0 == plen && gs->strip_empty) {
+		if (GNET_PROPERTY(ggep_debug) > 3) {
+			g_debug("GGEP \"%.*s\" stripped since payload is empty",
+				(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1);
+		}
+		ggep_stream_cleanup(gs);	/* Restore previous state */
+		return TRUE;				/* Success, but payload was empty */
+	}
 
 	/*
 	 * Now that we have the final payload data in the buffer, we may have
@@ -556,10 +573,11 @@ ggep_stream_end(ggep_stream_t *gs)
 	 * stored at the beginning.  We only reserved 1 byte for the length.
 	 */
 
-	if (GNET_PROPERTY(ggep_debug) > 7)
+	if (GNET_PROPERTY(ggep_debug) > 7) {
 		g_debug("GGEP \"%.*s\" payload holds %d byte%s",
 			(int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1,
 			(int) plen, plen == 1 ? "" : "s");
+	}
 
 	if (plen <= 63) {
 		slen = 1;
@@ -684,6 +702,9 @@ ggep_stream_packv(ggep_stream_t *gs,
  * If `GGEP_W_DEFLATE' is set, we attempt to deflate the payload.  If the
  * output is larger than the initial size, we emit the original payload
  * instead.
+ *
+ * If `GGEP_W_STRIP' is set, the extension is kept only if its payload ends
+ * up being non-empty.
  *
  * @return TRUE if written successfully.  On error, the stream is reset as
  * if the write attempt had not taken place, so one may continue writing

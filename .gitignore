@@ -4,6 +4,9 @@ Makefile
 Makefile.bak
 MANIFEST.new
 
+# ignore backup file (e.g. Makefile.SH~)
+*~
+
 # For Windows, on case-insensitive filesystems
 *.exe
 makefile
@@ -19,6 +22,18 @@ gtk-gnutella.nsh
 /gtk-gnutella.spec
 /config.sh.old
 /install
+
+# Files that can be left over by metaconfig
+/Obsolete
+/Wanted
+
+# Floating point tests
+src/lib/float-test
+src/lib/float-times
+src/lib/floats
+src/lib/bad-fixed
+src/lib/bad-free
+src/lib/float-dragon.out
 
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
@@ -36,6 +51,12 @@ gtk-gnutella.nsh
 # SDBM
 /src/sdbm/dba
 /src/sdbm/dbu
+/src/sdbm/dbe
+/src/sdbm/dbt
+
+# Generated from template
+osx/Info-gtk-gnutella.plist
 
 /po/*.gmo
 /po/stamp-po
+/po/remove-potcdate.sed

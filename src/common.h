@@ -213,6 +213,7 @@
 typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #include "lib/mingw32.h"
+#include "lib/exit.h"		/* Transparent exit() trapping */
 
 #ifndef MINGW32
 
@@ -280,9 +281,14 @@ typedef int socket_fd_t;
 #include <stdarg.h>
 #endif
 
+#ifdef HAS_REGCOMP
 #ifdef I_REGEX
 #include <regex.h>
 #endif
+#else	/* !HAS_REGCOMP */
+/* We embed regex 0.12, used as fallback */
+#include "lib/regex.h"
+#endif	/* HAS_REGCOMP */
 
 #ifdef USE_GLIB1
 typedef void (*GCallback) (void);
@@ -397,6 +403,10 @@ typedef void (*GCallback) (void);
 
 #ifndef SIZE_MAX
 #define SIZE_MAX MAX_INT_VAL(size_t)
+#endif
+
+#ifndef SSIZE_MAX
+#define SSIZE_MAX MAX_INT_VAL(ssize_t)
 #endif
 
 /*
@@ -586,16 +596,58 @@ typedef void (*GCallback) (void);
 #define REGPARM(n)
 #endif	/* HAS_REGPARM */
 
+/*
+ * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
+ * This ensures that "%m" is recognized as valid since the GNU libc supports it.
+ */
+#if defined(HASATTRIBUTE) && HAS_GCC(4, 4)
+#undef G_GNUC_PRINTF
+#define G_GNUC_PRINTF(_fmt_, _arg_) \
+	 __attribute__((__format__ (__gnu_printf__, _fmt_, _arg_)))
+#endif
+
+/**
+ * IS_CONSTANT() returns TRUE if the expression is a compile-time constant.
+ */
+#if HAS_GCC(3, 0)
+#define IS_CONSTANT(x)	__builtin_constant_p(x)
+#else
+#define IS_CONSTANT(x)	FALSE
+#endif
+
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
  */
-#define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
+#define CMP(a, b) (G_UNLIKELY((a) == (b)) ? 0 : (a) > (b) ? 1 : (-1))
 
 /**
  * SIGN() returns the sign of an integer value.
  */
-#define SIGN(x) ((x) == 0 ? 0 : (x) > 0 ? 1 : (-1))
+#define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
 
+/**
+ * GUINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
+ * If the value is a variable, use GUINT32_SWAP().
+ */
+#define GUINT32_SWAP_CONSTANT(x_) ((guint32) ( \
+    (((guint32) (x_) & (guint32) 0x000000ffU) << 24) | \
+    (((guint32) (x_) & (guint32) 0x0000ff00U) <<  8) | \
+    (((guint32) (x_) & (guint32) 0x00ff0000U) >>  8) | \
+    (((guint32) (x_) & (guint32) 0xff000000U) >> 24)))
+
+/**
+ * GUINT32_SWAP() byte-swaps a 32-bit word.
+ *
+ * Avoid using glib's GUINT32_SWAP_LE_BE(): it triggers compile-time
+ * warnings on a wrong __asm__ statement with glib 1.2.  This version
+ * should be as efficient as the one defined by glib.
+ */
+#if HAS_GCC(4, 0)
+#define GUINT32_SWAP(x_) \
+	(IS_CONSTANT(x_) ? GUINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
+#else
+#define GUINT32_SWAP(x_) GUINT32_SWAP_CONSTANT(x_)
+#endif
 
 /**
  * STATIC_ASSERT() can be used to verify conditions at compile-time. For
@@ -698,21 +750,6 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
 #define NG_(Single, Plural, Number) ngettext_((Single), (Plural), (Number))
 
 /**
- * Stores a RCS ID tag inside the object file. Every .c source file should
- * use this macro once as `RCSID("<dollar>Id$")' on top. The ID tag is
- * automagically updated each time the file is committed to the CVS repository.
- * The RCS IDs can be looked up from the compiled binary with e.g. `what',
- * `ident' or `strings'. See also rcs(1) and ident(1).
- */
-#define RCSID(x) \
-static KEEP_FUNCTION inline const char *	\
-get_rcsid_string(void)	\
-{	\
-	static const char rcsid[] = "@(#) " x;	\
-	return rcsid;	\
-}
-
-/**
  * Composes a 32-bit native endian integer from four characters (bytes) given
  * in big endian byte order.
  */
@@ -729,6 +766,7 @@ get_rcsid_string(void)	\
 
 #include "casts.h"
 #include "lib/fast_assert.h"
+#include "lib/glog.h"
 
 #endif /* _common_h_ */
 

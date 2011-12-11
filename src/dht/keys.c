@@ -477,7 +477,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 1)
 		g_debug("DHT STORE key %s holds %d/%d value%s, "
-			"load avg: get = %.2f [%s], store = %.2f [%s], expire in %s",
+			"load avg: get = %g [%s], store = %g [%s], expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
 			1 == ki->values ? "" : "s",
 			(int) (ki->get_req_load * 100) / 100.0,
@@ -701,9 +701,9 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		in_kball = bits_within_kball(common);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_debug("DHT STORE new %s %s (%lu common bit%s) with creator %s",
+			g_debug("DHT STORE new %s %s (%zu common bit%s) with creator %s",
 				in_kball ? "key" : "cached key",
-				kuid_to_hex_string(id), (gulong) common, 1 == common ? "" : "s",
+				kuid_to_hex_string(id), common, 1 == common ? "" : "s",
 				kuid_to_hex_string2(cid));
 
 		WALLOC(ki);
@@ -741,9 +741,9 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		g_assert(kd->values < MAX_VALUES);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_debug("DHT STORE existing key %s (%lu common bit%s) "
+			g_debug("DHT STORE existing key %s (%zu common bit%s) "
 				"has new creator %s",
-				kuid_to_hex_string(id), (gulong) ki->common_bits,
+				kuid_to_hex_string(id), ki->common_bits,
 				1 == ki->common_bits ? "" : "s",
 				kuid_to_hex_string2(cid));
 
@@ -898,7 +898,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(ki);	/* If called, we know the key exists */
 
 	if (GNET_PROPERTY(dht_storage_debug) > 5)
-		g_debug("DHT FETCH key %s (load = %.2f, current reqs = %u) type %s"
+		g_debug("DHT FETCH key %s (load = %g, current reqs = %u) type %s"
 			" with %d secondary key%s",
 			kuid_to_hex_string(id), ki->get_req_load, ki->get_requests,
 			dht_value_type_to_string(type),
@@ -1123,9 +1123,9 @@ keys_periodic_load(gpointer unused_obj)
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		size_t keys_count = g_hash_table_size(keys);
-		g_debug("DHT holding %lu value%s spread over %lu key%s",
-			(gulong) ctx.values, 1 == ctx.values ? "" : "s",
-			(gulong) keys_count, 1 == keys_count ? "" : "s");
+		g_debug("DHT holding %zu value%s spread over %zu key%s",
+			ctx.values, 1 == ctx.values ? "" : "s",
+			keys_count, 1 == keys_count ? "" : "s");
 	}
 
 	return TRUE;		/* Keep calling */
@@ -1189,11 +1189,11 @@ keys_update_kball(void)
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
 				width, 1 == width ? "" : "s", kball.width);
-			g_debug("DHT k-ball closest (%lu common bit%s) is %s",
-				(unsigned long) cbits, 1 == cbits ? "" : "s",
+			g_debug("DHT k-ball closest (%zu common bit%s) is %s",
+				cbits, 1 == cbits ? "" : "s",
 				knode_to_string(closest));
-			g_debug("DHT k-ball furthest (%lu common bit%s) is %s",
-				(unsigned long) fbits, 1 == fbits ? "" : "s",
+			g_debug("DHT k-ball furthest (%zu common bit%s) is %s",
+				fbits, 1 == fbits ? "" : "s",
 				knode_to_string(furthest));
 		}
 

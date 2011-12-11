@@ -69,6 +69,8 @@ void zdestroy(zone_t *zone);
 #error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
 #endif	/* REMAP_ZALLOC && TRACK_ZALLOC */
 
+struct logagent;
+
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
@@ -78,6 +80,22 @@ void zinit(void);
 void zclose(void);
 void set_zalloc_debug(guint32 level);
 void set_zalloc_always_gc(gboolean val);
+void zalloc_memusage_init(void);
+void zalloc_memusage_close(void);
+void zalloc_dump_stats(void);
+void zalloc_dump_usage_log(struct logagent *la, unsigned options);
+void zalloc_dump_stats_log(struct logagent *la, unsigned options);
+void zalloc_dump_zones_log(struct logagent *la);
+
+enum zalloc_stack_ctrl {
+	ZALLOC_SA_SET = 0,		/**< Turn stack accounting on/off */
+	ZALLOC_SA_SHOW,			/**< Show statistics on specified logger */
+
+	ZALLOC_SA_MAX
+};
+
+gboolean zalloc_stack_accounting_ctrl(size_t size,
+	enum zalloc_stack_ctrl op, ...);
 
 #ifdef TRACK_ZALLOC
 

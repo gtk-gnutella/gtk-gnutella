@@ -35,18 +35,23 @@
 #define _core_ggep_type_h_
 
 #include "common.h"
+
 #include "lib/host_addr.h"
+#include "lib/sequence.h"
 #include "if/core/search.h"
+
+#include "ggep.h"
 
 /**
  * Extraction interface return types.
  */
 
 typedef enum ggept_status {
-	GGEP_OK = 0,					/**< OK, extracted what was asked */
-	GGEP_NOT_FOUND = 1,				/**< OK, but did not find it */
-	GGEP_INVALID = 2,				/**< Error, found something invalid */
-	GGEP_BAD_SIZE = 3				/**< Error, buffer not correctly sized */
+	GGEP_OK = 0,				/**< OK, extracted what was asked */
+	GGEP_NOT_FOUND,				/**< OK, but did not find it */
+	GGEP_INVALID,				/**< Error, found something invalid */
+	GGEP_DUPLICATE,				/**< Error, duplicate extension */
+	GGEP_BAD_SIZE				/**< Error, buffer not correctly sized */
 } ggept_status_t;
 
 /*
@@ -104,14 +109,30 @@ ggept_status_t ggept_du_extract(const extvec_t *, guint32 *uptime);
 ggept_status_t ggept_ct_extract(const extvec_t *, time_t *stamp_ptr);
 ggept_status_t ggept_gtkg_ipv6_extract(const extvec_t *, host_addr_t *addr);
 
-ggept_status_t ggept_alt_extract(const extvec_t *, gnet_host_vec_t **hvec);
-ggept_status_t ggept_push_extract(const extvec_t *, gnet_host_vec_t **hvec);
+ggept_status_t ggept_alt_extract(const extvec_t *,
+	gnet_host_vec_t **hvec, enum net_type net);
+ggept_status_t ggept_push_extract(const extvec_t *,
+	gnet_host_vec_t **hvec, enum net_type net);
 ggept_status_t ggept_utf8_string_extract(const extvec_t *, char *b, size_t l);
 
 guint ggept_filesize_encode(guint64 filesize, char *data);
 guint ggept_du_encode(guint32 uptime, char *data);
 guint ggept_ct_encode(time_t stamp, char *data);
 guint ggept_m_encode(guint32 mtype, char *data);
+
+ggept_status_t ggept_ipp_pack(ggep_stream_t *gs,
+	const gnet_host_t *hvec, size_t hcnt,
+	const gnet_host_t *evec, size_t ecnt,
+	gboolean add_ipv6, gboolean no_ipv4);
+ggept_status_t ggept_dhtipp_pack(ggep_stream_t *gs,
+	const gnet_host_t *hvec, size_t hcnt,
+	gboolean add_ipv6, gboolean no_ipv4);
+ggept_status_t ggept_push_pack(ggep_stream_t *gs,
+	const sequence_t *hseq, size_t max, unsigned flags);
+ggept_status_t ggept_a_pack(ggep_stream_t *gs,
+	const gnet_host_t *hvec, size_t hcnt);
+ggept_status_t ggept_alt_pack(ggep_stream_t *gs,
+	const gnet_host_t *hvec, size_t hcnt, unsigned flags);
 
 #endif	/* _core_ggep_type_h_ */
 

@@ -700,6 +700,9 @@ st_search(
 
 		sf = e->sf;
 
+		if (!shared_file_is_shareable(sf))
+			continue;		/* Cannot be shared */
+
 		canonic_len = shared_file_name_canonic_len(sf);
 		if (canonic_len < minlen)
 			continue;		/* Can't match */

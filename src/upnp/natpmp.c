@@ -283,12 +283,12 @@ natpmp_rpc_free(struct natpmp_rpc *rd)
 }
 
 /**
- * Do we have pending NAT-PMP requests?
+ * How many pending NAT-PMP requests do we have?
  */
-gboolean
+unsigned
 natpmp_pending(void)
 {
-	return 0 != natpmp_rpc_pending;
+	return natpmp_rpc_pending;
 }
 
 /**
@@ -461,11 +461,11 @@ error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%lu byte%s): %s",
-				(unsigned long) len, 1 == len ? "" : "s", bstr_error(bs));
+				"(%zu byte%s): %s",
+				len, 1 == len ? "" : "s", bstr_error(bs));
 		} else {
-			g_warning("NATPMP inconsistent discovery reply (%lu byte%s)",
-				(unsigned long) len, 1 == len ? "" : "s");
+			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
+				len, 1 == len ? "" : "s");
 		}
 	}
 	bstr_free(&bs);
@@ -578,11 +578,11 @@ error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%lu byte%s): %s",
-				(unsigned long) len, 1 == len ? "" : "s", bstr_error(bs));
+				"(%zu byte%s): %s",
+				len, 1 == len ? "" : "s", bstr_error(bs));
 		} else {
-			g_warning("NATPMP inconsistent discovery reply (%lu byte%s)",
-				(unsigned long) len, 1 == len ? "" : "s");
+			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
+				len, 1 == len ? "" : "s");
 		}
 	}
 	bstr_free(&bs);
@@ -676,10 +676,9 @@ natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj)
 
 	if (0 != ret) {
 		if (GNET_PROPERTY(natpmp_debug)) {
-			g_warning("NATPMP could not send \"%s\" #%u to %s: %s",
+			g_warning("NATPMP could not send \"%s\" #%u to %s: %m",
 				natpmp_op_to_string(rd->op), rd->count,
-				host_addr_port_to_string(rd->gateway, NATPMP_SRV_PORT),
-				g_strerror(errno));
+				host_addr_port_to_string(rd->gateway, NATPMP_SRV_PORT));
 		}
 		goto finished;
 	} else {

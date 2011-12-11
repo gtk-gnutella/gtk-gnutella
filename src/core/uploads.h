@@ -39,6 +39,7 @@
 
 #include "common.h"
 #include "bsched.h"
+#include "hcache.h"
 #include "http.h"
 
 #include "if/core/uploads.h"
@@ -119,6 +120,8 @@ struct upload {
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
 
+	host_net_t net;				/**< IPv6-Ready: type of addresses they want */
+
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
 	unsigned push:1;
 	unsigned queue:1;			/**< Similar to PUSH, but for PARQ's QUEUE */
@@ -194,6 +197,8 @@ void upload_free_info_list(GSList **sl_ptr);
 
 struct upload *upload_alloc(void);
 void upload_free(struct upload **ptr);
+
+const char *upload_host_info(const struct upload *u);
 
 #endif /* _core_uploads_h_ */
 

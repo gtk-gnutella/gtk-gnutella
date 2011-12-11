@@ -315,8 +315,8 @@ ctl_error(const struct ctl_string *s,
 	const struct ctl_tok *at, const char *expected)
 {
 	if (GNET_PROPERTY(ctl_debug)) {
-		g_warning("CTL syntax error (position %lu, near \"%s\") in \"%s\"",
-			(unsigned long) (at->start - s->str), ctl_tok2str(at), s->str);
+		g_warning("CTL syntax error (position %zu, near \"%s\") in \"%s\"",
+			at->start - s->str, ctl_tok2str(at), s->str);
 		if (expected != NULL) {
 			g_warning("CTL expected %s", expected);
 		}
@@ -330,8 +330,8 @@ static void
 ctl_warn(const struct ctl_string *s, const struct ctl_tok *at, const char *msg)
 {
 	if (GNET_PROPERTY(ctl_debug)) {
-		g_warning("CTL (position %lu, near \"%s\") in \"%s\": %s",
-			(unsigned long) (at->start - s->str), ctl_tok2str(at), s->str, msg);
+		g_warning("CTL (position %zu, near \"%s\") in \"%s\": %s",
+			at->start - s->str, ctl_tok2str(at), s->str, msg);
 	}
 }
 

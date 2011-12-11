@@ -3550,11 +3550,11 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_debug("DHT dsum is %s = %f", kuid_to_hex_string(&dsum), ds);
-		g_debug("DHT squares is %s = %f (%d)",
+		g_debug("DHT dsum is %s = %F", kuid_to_hex_string(&dsum), ds);
+		g_debug("DHT squares is %s = %F (%d)",
 			kuid_to_hex_string(&sq), s, squares);
 
-		g_debug("DHT sparseness over %u nodes is %s = %f (%f)",
+		g_debug("DHT sparseness over %u nodes is %s = %F (%F)",
 			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
 			kuid_to_double(&sparseness), ds / s);
 	}
@@ -3724,8 +3724,8 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	estimate = (guint64) (retained * pow(2.0, bits));
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average common prefix is %f bits over %lu node%s",
-			bits, (unsigned long) retained, 1 == retained ? "" : "s");
+		g_debug("DHT average common prefix is %f bits over %zu node%s",
+			bits, retained, 1 == retained ? "" : "s");
 	}
 
 	return estimate;
@@ -3811,7 +3811,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	kuid_divide(&accum, &prev, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT average distance of %u KUIDs near %s is %s (%f)",
+		g_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
 			(unsigned) count - 1,
 			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
 			kuid_to_double(&avg));
@@ -3973,7 +3973,7 @@ update_cached_size_estimate(void)
 			stats.kball_furthest, 1 == stats.kball_furthest ? "" : "s");
 		if (n > 1) {
 			g_debug(
-				"DHT collected average is %.0f (%d points), avg_stderr = %.2f",
+				"DHT collected average is %.0f (%d points), avg_stderr = %g",
 				statx_avg(stats.lookdata), n, statx_stderr(stats.lookdata));
 		}
 	}
@@ -5093,24 +5093,26 @@ dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
  * Collect packed IP:port DHT hosts from "DHTIPP" we get in a pong.
  */
 void
-dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen)
+dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
+	enum net_type type)
 {
 	int i, cnt;
+	int len = NET_TYPE_IPV6 == type ? 18 : 6;
+	const void *p;
 
-	g_assert(0 == paylen % 6);
+	g_assert(0 == paylen % len);
 
-	cnt = paylen / 6;
+	cnt = paylen / len;
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
 			cnt, cnt == 1 ? "" : "s", node_addr(n));
 
-	for (i = 0; i < cnt; i++) {
+	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
 		guint16 port;
 
-		ha = host_addr_peek_ipv4(&payload[i * 6]);
-		port = peek_le16(&payload[i * 6 + 4]);
+		host_ip_port_peek(p, type, &ha, &port);
 
 		if (GNET_PROPERTY(bootstrap_debug) > 1)
 			g_debug("BOOT collected DHT node %s from DHTIPP pong from %s",
@@ -5190,7 +5192,7 @@ dht_route_parse(FILE *f)
 {
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_DHT_ROUTE_TAGS + 1)];
 	char line[1024];
-	guint line_no = 0;
+	unsigned line_no = 0;
 	gboolean done = FALSE;
 	time_delta_t most_recent = REFRESH_PERIOD;
 	time_t now = tm_time();
@@ -5212,27 +5214,23 @@ dht_route_parse(FILE *f)
 
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
-		char *sp, *nl;
+		char *sp;
 		dht_route_tag_t tag;
 
 		line_no++;
 
-		nl = strchr(line, '\n');
-		if (!nl) {
+		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
 			/*
 			 * Line was too long or the file was corrupted or manually
 			 * edited without consideration for the advertised format.
 			 */
 
-			g_warning("dht_route_parse(): "
-				"line too long or missing newline in line %u", line_no);
+			g_warning("%s(): line %u too long, aborting", G_STRFUNC, line_no);
 			break;
 		}
-		*nl = '\0';		/* Terminate string properly */
 
 		/* Skip comments and empty lines */
-
-		if (*line == '#' || *line == '\0')
+		if (file_line_is_skipable(line))
 			continue;
 
 		sp = strchr(line, ' ');		/* End of tag, normally */

@@ -1,5 +1,16 @@
 #!/bin/sh
 
+# Can be sourced to set two variables:
+#
+# Vrev, the git version number.
+# DATE, the ISO date of the HEAD commit.
+#
+# Otherwise, when executed it prints the full version number.
+#
+# If there is a version file (included in release tarballs) at the top of
+# the sources, it will be used when "git describe" fails or there is no .git
+# repository available.
+
 DIR=scripts
 
 if test -d $DIR; then TOP=.;
@@ -24,14 +35,6 @@ DEF_VER=$version.$subversion.$patchlevel$revchar
 
 LF='
 '
-
-# First see if there is a version file (included in release tarballs),
-# then try git-describe, then default.
-if test -s $TOP/version
-then
-	VN=`cat $TOP/version` || VN="$DEF_VER"
-fi
-
 if test -d $TOP/.git && git describe >/dev/null 2>&1 &&
 	VN=`git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null` &&
 	case "$VN" in
@@ -43,6 +46,13 @@ if test -d $TOP/.git && git describe >/dev/null 2>&1 &&
 	esac
 then
 	VN="$VN"
+	case "$revchar" in
+	'') BRANCH=master;;
+	*) BRANCH=devel;;
+	esac
+	DATE=`git show --format="%ai" $BRANCH 2>/dev/null | head -1 | cut -f1 -d ' '`
+elif test -s $TOP/version; then
+	VN=`cat $TOP/version`
 else
 	VN="$DEF_VER"
 fi

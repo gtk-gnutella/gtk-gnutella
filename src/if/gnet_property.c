@@ -1000,6 +1000,28 @@ gboolean gnet_property_variable_log_bad_gnutella     = FALSE;
 static const gboolean gnet_property_variable_log_bad_gnutella_default = FALSE;
 gboolean gnet_property_variable_log_spam_query_hit     = FALSE;
 static const gboolean gnet_property_variable_log_spam_query_hit_default = FALSE;
+guint32  gnet_property_variable_max_ultra6_hosts_cached     = 10000;
+static const guint32  gnet_property_variable_max_ultra6_hosts_cached_default = 10000;
+guint32  gnet_property_variable_hosts_in_ultra6_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_ultra6_catcher_default = 0;
+guint32  gnet_property_variable_hosts_in_guess6_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_guess6_catcher_default = 0;
+guint32  gnet_property_variable_hosts_in_guess6_intro_catcher     = 0;
+static const guint32  gnet_property_variable_hosts_in_guess6_intro_catcher_default = 0;
+guint32  gnet_property_variable_max_guess6_hosts_cached     = 1000;
+static const guint32  gnet_property_variable_max_guess6_hosts_cached_default = 1000;
+guint32  gnet_property_variable_max_guess6_intro_hosts_cached     = 5000;
+static const guint32  gnet_property_variable_max_guess6_intro_hosts_cached_default = 5000;
+guint32  gnet_property_variable_xmalloc_debug     = 0;
+static const guint32  gnet_property_variable_xmalloc_debug_default = 0;
+guint32  gnet_property_variable_qhit_bad_debug     = 0;
+static const guint32  gnet_property_variable_qhit_bad_debug_default = 0;
+guint32  gnet_property_variable_guid_debug     = 0;
+static const guint32  gnet_property_variable_guid_debug_default = 0;
+guint32  gnet_property_variable_tx_deflate_debug     = 0;
+static const guint32  gnet_property_variable_tx_deflate_debug_default = 0;
+char   *gnet_property_variable_tx_debug_addrs     = "";
+static const char   *gnet_property_variable_tx_debug_addrs_default = "";
 
 static prop_set_t *gnet_property;
 
@@ -3378,7 +3400,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[123].name = "hosts_in_ultra_catcher";
-    gnet_property->props[123].desc = _("Current number of hosts in ultra node caches.");
+    gnet_property->props[123].desc = _("Current number of IPv4 hosts in ultra node caches.");
     gnet_property->props[123].ev_changed = event_new("hosts_in_ultra_catcher_changed");
     gnet_property->props[123].save = FALSE;
     gnet_property->props[123].vector_size = 1;
@@ -3438,7 +3460,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[126].name = "max_ultra_hosts_cached";
-    gnet_property->props[126].desc = _("Maximum number of hosts in the ultra node cache.");
+    gnet_property->props[126].desc = _("Maximum number of IPv4 hosts in the ultra node cache.");
     gnet_property->props[126].ev_changed = event_new("max_ultra_hosts_cached_changed");
     gnet_property->props[126].save = TRUE;
     gnet_property->props[126].vector_size = 1;
@@ -8745,7 +8767,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[405].name = "max_guess_hosts_cached";
-    gnet_property->props[405].desc = _("Maximum number of hosts in the regular GUESS cache.");
+    gnet_property->props[405].desc = _("Maximum number of IPv4 hosts in the regular GUESS cache.");
     gnet_property->props[405].ev_changed = event_new("max_guess_hosts_cached_changed");
     gnet_property->props[405].save = TRUE;
     gnet_property->props[405].vector_size = 1;
@@ -8765,7 +8787,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[406].name = "hosts_in_guess_catcher";
-    gnet_property->props[406].desc = _("Current number of hosts in the regular GUESS cache.");
+    gnet_property->props[406].desc = _("Current number of IPv4 hosts in the regular GUESS cache.");
     gnet_property->props[406].ev_changed = event_new("hosts_in_guess_catcher_changed");
     gnet_property->props[406].save = FALSE;
     gnet_property->props[406].vector_size = 1;
@@ -8785,7 +8807,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[407].name = "max_guess_intro_hosts_cached";
-    gnet_property->props[407].desc = _("Maximum number of hosts in the introduction GUESS cache.");
+    gnet_property->props[407].desc = _("Maximum number of IPv4 hosts in the introduction GUESS cache.");
     gnet_property->props[407].ev_changed = event_new("max_guess_intro_hosts_cached_changed");
     gnet_property->props[407].save = TRUE;
     gnet_property->props[407].vector_size = 1;
@@ -8805,7 +8827,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[408].name = "hosts_in_guess_intro_catcher";
-    gnet_property->props[408].desc = _("Current number of hosts in the introduction GUESS cache.");
+    gnet_property->props[408].desc = _("Current number of IPv4 hosts in the introduction GUESS cache.");
     gnet_property->props[408].ev_changed = event_new("hosts_in_guess_intro_catcher_changed");
     gnet_property->props[408].save = FALSE;
     gnet_property->props[408].vector_size = 1;
@@ -9174,6 +9196,227 @@ gnet_prop_init(void) {
     gnet_property->props[428].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[428].data.boolean.def   = (void *) &gnet_property_variable_log_spam_query_hit_default;
     gnet_property->props[428].data.boolean.value = (void *) &gnet_property_variable_log_spam_query_hit;
+
+
+    /*
+     * PROP_MAX_ULTRA6_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[429].name = "max_ultra6_hosts_cached";
+    gnet_property->props[429].desc = _("Maximum number of IPv6 hosts in the ultra node cache.");
+    gnet_property->props[429].ev_changed = event_new("max_ultra6_hosts_cached_changed");
+    gnet_property->props[429].save = TRUE;
+    gnet_property->props[429].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[429].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[429].data.guint32.def   = (void *) &gnet_property_variable_max_ultra6_hosts_cached_default;
+    gnet_property->props[429].data.guint32.value = (void *) &gnet_property_variable_max_ultra6_hosts_cached;
+    gnet_property->props[429].data.guint32.choices = NULL;
+    gnet_property->props[429].data.guint32.max   = 50000;
+    gnet_property->props[429].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_HOSTS_IN_ULTRA6_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[430].name = "hosts_in_ultra6_catcher";
+    gnet_property->props[430].desc = _("Current number of IPv6 hosts in ultra node caches.");
+    gnet_property->props[430].ev_changed = event_new("hosts_in_ultra6_catcher_changed");
+    gnet_property->props[430].save = FALSE;
+    gnet_property->props[430].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[430].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[430].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_ultra6_catcher_default;
+    gnet_property->props[430].data.guint32.value = (void *) &gnet_property_variable_hosts_in_ultra6_catcher;
+    gnet_property->props[430].data.guint32.choices = NULL;
+    gnet_property->props[430].data.guint32.max   = INT_MAX;
+    gnet_property->props[430].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_HOSTS_IN_GUESS6_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[431].name = "hosts_in_guess6_catcher";
+    gnet_property->props[431].desc = _("Current number of IPv6 hosts in the regular GUESS cache.");
+    gnet_property->props[431].ev_changed = event_new("hosts_in_guess6_catcher_changed");
+    gnet_property->props[431].save = FALSE;
+    gnet_property->props[431].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[431].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[431].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_guess6_catcher_default;
+    gnet_property->props[431].data.guint32.value = (void *) &gnet_property_variable_hosts_in_guess6_catcher;
+    gnet_property->props[431].data.guint32.choices = NULL;
+    gnet_property->props[431].data.guint32.max   = INT_MAX;
+    gnet_property->props[431].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_HOSTS_IN_GUESS6_INTRO_CATCHER:
+     *
+     * General data:
+     */
+    gnet_property->props[432].name = "hosts_in_guess6_intro_catcher";
+    gnet_property->props[432].desc = _("Current number of IPv6 hosts in the introduction GUESS cache.");
+    gnet_property->props[432].ev_changed = event_new("hosts_in_guess6_intro_catcher_changed");
+    gnet_property->props[432].save = FALSE;
+    gnet_property->props[432].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[432].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[432].data.guint32.def   = (void *) &gnet_property_variable_hosts_in_guess6_intro_catcher_default;
+    gnet_property->props[432].data.guint32.value = (void *) &gnet_property_variable_hosts_in_guess6_intro_catcher;
+    gnet_property->props[432].data.guint32.choices = NULL;
+    gnet_property->props[432].data.guint32.max   = INT_MAX;
+    gnet_property->props[432].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_MAX_GUESS6_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[433].name = "max_guess6_hosts_cached";
+    gnet_property->props[433].desc = _("Maximum number of IPv6 hosts in the regular GUESS cache.");
+    gnet_property->props[433].ev_changed = event_new("max_guess6_hosts_cached_changed");
+    gnet_property->props[433].save = TRUE;
+    gnet_property->props[433].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[433].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[433].data.guint32.def   = (void *) &gnet_property_variable_max_guess6_hosts_cached_default;
+    gnet_property->props[433].data.guint32.value = (void *) &gnet_property_variable_max_guess6_hosts_cached;
+    gnet_property->props[433].data.guint32.choices = NULL;
+    gnet_property->props[433].data.guint32.max   = 10000;
+    gnet_property->props[433].data.guint32.min   = 100;
+
+
+    /*
+     * PROP_MAX_GUESS6_INTRO_HOSTS_CACHED:
+     *
+     * General data:
+     */
+    gnet_property->props[434].name = "max_guess6_intro_hosts_cached";
+    gnet_property->props[434].desc = _("Maximum number of IPv6 hosts in the introduction GUESS cache.");
+    gnet_property->props[434].ev_changed = event_new("max_guess6_intro_hosts_cached_changed");
+    gnet_property->props[434].save = TRUE;
+    gnet_property->props[434].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[434].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[434].data.guint32.def   = (void *) &gnet_property_variable_max_guess6_intro_hosts_cached_default;
+    gnet_property->props[434].data.guint32.value = (void *) &gnet_property_variable_max_guess6_intro_hosts_cached;
+    gnet_property->props[434].data.guint32.choices = NULL;
+    gnet_property->props[434].data.guint32.max   = 50000;
+    gnet_property->props[434].data.guint32.min   = 1000;
+
+
+    /*
+     * PROP_XMALLOC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[435].name = "xmalloc_debug";
+    gnet_property->props[435].desc = _("Debug level for the malloc() replacement allocator.");
+    gnet_property->props[435].ev_changed = event_new("xmalloc_debug_changed");
+    gnet_property->props[435].save = TRUE;
+    gnet_property->props[435].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[435].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[435].data.guint32.def   = (void *) &gnet_property_variable_xmalloc_debug_default;
+    gnet_property->props[435].data.guint32.value = (void *) &gnet_property_variable_xmalloc_debug;
+    gnet_property->props[435].data.guint32.choices = NULL;
+    gnet_property->props[435].data.guint32.max   = 20;
+    gnet_property->props[435].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_QHIT_BAD_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[436].name = "qhit_bad_debug";
+    gnet_property->props[436].desc = _("Debug level for bad query hit messages.");
+    gnet_property->props[436].ev_changed = event_new("qhit_bad_debug_changed");
+    gnet_property->props[436].save = TRUE;
+    gnet_property->props[436].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[436].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[436].data.guint32.def   = (void *) &gnet_property_variable_qhit_bad_debug_default;
+    gnet_property->props[436].data.guint32.value = (void *) &gnet_property_variable_qhit_bad_debug;
+    gnet_property->props[436].data.guint32.choices = NULL;
+    gnet_property->props[436].data.guint32.max   = 20;
+    gnet_property->props[436].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_GUID_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[437].name = "guid_debug";
+    gnet_property->props[437].desc = _("Debug level for GUID management.");
+    gnet_property->props[437].ev_changed = event_new("guid_debug_changed");
+    gnet_property->props[437].save = TRUE;
+    gnet_property->props[437].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[437].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[437].data.guint32.def   = (void *) &gnet_property_variable_guid_debug_default;
+    gnet_property->props[437].data.guint32.value = (void *) &gnet_property_variable_guid_debug;
+    gnet_property->props[437].data.guint32.choices = NULL;
+    gnet_property->props[437].data.guint32.max   = 20;
+    gnet_property->props[437].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_DEFLATE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[438].name = "tx_deflate_debug";
+    gnet_property->props[438].desc = _("Debug level for the TX (transmit) deflating network layer.");
+    gnet_property->props[438].ev_changed = event_new("tx_deflate_debug_changed");
+    gnet_property->props[438].save = TRUE;
+    gnet_property->props[438].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[438].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[438].data.guint32.def   = (void *) &gnet_property_variable_tx_deflate_debug_default;
+    gnet_property->props[438].data.guint32.value = (void *) &gnet_property_variable_tx_deflate_debug;
+    gnet_property->props[438].data.guint32.choices = NULL;
+    gnet_property->props[438].data.guint32.max   = 20;
+    gnet_property->props[438].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_DEBUG_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[439].name = "tx_debug_addrs";
+    gnet_property->props[439].desc = _("Comma-separated list of TX debugging host (IP addresses only)");
+    gnet_property->props[439].ev_changed = event_new("tx_debug_addrs_changed");
+    gnet_property->props[439].save = TRUE;
+    gnet_property->props[439].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[439].type               = PROP_TYPE_STRING;
+    gnet_property->props[439].data.string.def    = (void *) &gnet_property_variable_tx_debug_addrs_default;
+    gnet_property->props[439].data.string.value  = (void *) &gnet_property_variable_tx_debug_addrs;
+    if (gnet_property->props[439].data.string.def) {
+        *gnet_property->props[439].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[439].data.string.def));
+    }
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
