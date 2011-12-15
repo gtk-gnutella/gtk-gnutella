@@ -2534,8 +2534,11 @@ zalloc_memusage_set(const void *key, void *value, void *data)
 	zone_check(zone);
 
 	if (*set) {
-		g_assert(NULL == zone->zn_mem);
-		zone->zn_mem = memusage_alloc("zone", zone->zn_size);
+		if (NULL == zone->zn_mem) {
+			zone->zn_mem = memusage_alloc("zone", zone->zn_size);
+		} else {
+			g_assert(memusage_is_valid(zone->zn_mem));
+		}
 	} else {
 		memusage_free_null(&zone->zn_mem);
 	}

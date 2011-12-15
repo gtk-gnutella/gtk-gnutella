@@ -132,6 +132,15 @@ memusage_counter_check(const struct memusage_counter * const mc)
 }
 
 /**
+ * Check whether memory usage tracker is valid.
+ */
+gboolean
+memusage_is_valid(const memusage_t * const mu)
+{
+	return mu != NULL && MEMUSAGE_MAGIC == mu->magic;
+}
+
+/**
  * Allocate a new memusage counter.
  */
 static struct memusage_counter *
