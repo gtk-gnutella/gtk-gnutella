@@ -4093,10 +4093,21 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		addr = pointer_to_ulong(p);
 
+		if (xmalloc_debugging(2)) {
+			t_debug(NULL, "XM alignement requirement %zu, "
+				"allocated %zu at %p (%s aligned)",
+				alignment, nalloc, p, (addr & ~mask) == addr ? "is" : "not");
+		}
+
 		if ((addr & ~mask) == addr) {
 			end = ptr_add_offset(p, rsize);
 			vmm_core_free(end, size_saturate_sub(nalloc, rsize));
 			truncation = TRUNCATION_AFTER;
+
+			if (xmalloc_debugging(2)) {
+				t_debug(NULL, "XM freed trailing %zu bytes at %p",
+					size_saturate_sub(nalloc, rsize), end);
+			}
 		} else {
 			void *q, *qend;
 
@@ -4107,6 +4118,11 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			addr = size_saturate_add(addr, mask) & ~mask;
 			q = ulong_to_pointer(addr);
 			end = ptr_add_offset(p, nalloc);
+
+			if (xmalloc_debugging(2)) {
+				t_debug(NULL, "XM aligned %p to 0x%x yields %p",
+					p, alignment, q);
+			}
 
 			g_assert(ptr_cmp(q, end) <= 0);
 			g_assert(ptr_cmp(ptr_add_offset(q, rsize), end) <= 0);
@@ -4119,9 +4135,20 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 			vmm_core_free(p, ptr_diff(q, p));				/* Beginning */
 			qend = ptr_add_offset(q, rsize);
+
+			if (xmalloc_debugging(2)) {
+				t_debug(NULL, "XM freed leading %zu bytes at %p",
+					ptr_diff(q, p), p);
+			}
+
 			if (qend != end) {
 				vmm_core_free(qend, ptr_diff(end, qend));	/* End */
 				truncation = TRUNCATION_BOTH;
+
+				if (xmalloc_debugging(2)) {
+					t_debug(NULL, "XM freed trailing %zu bytes at %p",
+						ptr_diff(end, qend), qend);
+				}
 			} else {
 				truncation = TRUNCATION_BEFORE;
 			}
