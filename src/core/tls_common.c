@@ -33,7 +33,22 @@
 #ifdef HAS_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+
+#ifdef GNUTLS_VERSION_MAJOR
+#define HAS_TLS(major, minor) \
+	((GNUTLS_VERSION_MAJOR > (major) || \
+	 (GNUTLS_VERSION_MAJOR == (major) && GNUTLS_VERSION_MINOR >= (minor))))
+#else
+#define HAS_TLS(major, minor) 0
+#endif
+
+#else
+#define HAS_TLS(major, minor) 0
 #endif /* HAS_GNUTLS */
+
+#if HAS_TLS(2, 12)
+#include <gnutls/abstract.h>
+#endif
 
 #include "tls_common.h"
 #include "features.h"
@@ -55,14 +70,6 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef HAS_GNUTLS
-
-#ifdef GNUTLS_VERSION_MAJOR
-#define HAS_TLS(major, minor) \
-	((GNUTLS_VERSION_MAJOR > (major) || \
-	 (GNUTLS_VERSION_MAJOR == (major) && GNUTLS_VERSION_MINOR >= (minor))))
-#else
-#define HAS_TLS(major, minor) 0
-#endif
 
 #define USE_TLS_CUSTOM_IO
 #define TLS_DH_BITS 768
@@ -397,11 +404,14 @@ tls_init(struct gnutella_socket *s)
 	gnutls_transport_set_ptr(ctx->session, s);
 	gnutls_transport_set_push_function(ctx->session, tls_push);
 	gnutls_transport_set_pull_function(ctx->session, tls_pull);
-#if !HAS_TLS(3,0)
+#if !HAS_TLS(2, 12)
 	/*
 	 * This routine has been removed starting TLS 3.0.  It was used to disable
 	 * the lowat feature, and apparently this is now always the case in recent
 	 * TLS versions.	--RAM, 2011-09-28
+	 *
+	 * It's also flagged as deprecated in 2.12.x, so don't use it there.
+	 *		--RAM, 2011-12-15
 	 */
 	gnutls_transport_set_lowat(ctx->session, 0);
 #endif
