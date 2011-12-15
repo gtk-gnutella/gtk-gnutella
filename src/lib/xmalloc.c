@@ -86,8 +86,15 @@
 
 /**
  * Memory alignment constraints.
+ *
+ * Glib-2.30.2 does masking on pointer values with 0x7, relying on the
+ * assumption that the system's malloc() will return pointers aligned on
+ * 8 bytes.
+ *
+ * To be able to work successfully on systems with such a glib, we have no
+ * other option but to remain speachless... and comply with that assumption.
  */
-#define XMALLOC_ALIGNBYTES	MEM_ALIGNBYTES
+#define XMALLOC_ALIGNBYTES	8		/* Forced to 8 thanks to glib */
 #define XMALLOC_MASK		(XMALLOC_ALIGNBYTES - 1)
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
@@ -129,7 +136,7 @@ struct xheader {
  * sizing strategy operates is called the "cut-over" index.
  */
 #define XMALLOC_FACTOR_MAXSIZE	1024
-#define XMALLOC_BUCKET_FACTOR	MAX(MEM_ALIGNBYTES, XHEADER_SIZE)
+#define XMALLOC_BUCKET_FACTOR	MAX(XMALLOC_ALIGNBYTES, XHEADER_SIZE)
 #define XMALLOC_BLOCK_SIZE		256
 #define XMALLOC_MAXSIZE			32768	/**< Largest block size in free list */
 
@@ -4032,7 +4039,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 	xstats.allocations_aligned++;
 
-	if G_UNLIKELY(alignment <= MEM_ALIGNBYTES) {
+	if G_UNLIKELY(alignment <= XMALLOC_ALIGNBYTES) {
 		p = xmalloc(size);
 		xstats.aligned_via_xmalloc++;
 		goto done;
