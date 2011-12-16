@@ -1564,6 +1564,11 @@ xmalloc_freelist_lookup(size_t len, struct xfreelist **flp)
 		if (flp != NULL)
 			*flp = fl;
 
+		if (xmalloc_debugging(8)) {
+			t_debug(NULL, "XM selected %zu-byte block %p in bucket %p "
+				"(#%zu, %zu bytes)", len, p, (void *) fl, i, fl->blocksize);
+		}
+
 		assert_valid_freelist_pointer(fl, p);
 		break;
 	}
