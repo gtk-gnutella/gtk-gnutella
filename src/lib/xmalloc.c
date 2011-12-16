@@ -94,7 +94,7 @@
  * To be able to work successfully on systems with such a glib, we have no
  * other option but to remain speachless... and comply with that assumption.
  */
-#define XMALLOC_ALIGNBYTES	8		/* Forced to 8 thanks to glib */
+#define XMALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* Forced thanks to glib */
 #define XMALLOC_MASK		(XMALLOC_ALIGNBYTES - 1)
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
