@@ -1,3 +1,7 @@
+# v 0.98.1   2011-12-16  [stable]
+
+This is a minor patch to support systems running glib-2.30.2 and above.
+
 # v 0.98   2011-12-11  [stable]
 
 This is a major release, adding "IPv6-Ready" features.  It also fixes

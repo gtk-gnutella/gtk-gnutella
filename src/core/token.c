@@ -368,7 +368,7 @@ static const char *keys_097_1[] = {
 	"0c93 3ee1 f48f 3653 7a9c f338 8d2e 8868",
 };
 
-static const char *keys_098[] = {
+static const char *keys_098_0[] = {
 	"3248 b31b 8cf3 763c 552a d42c d833 1d79",
 	"9dbb 43d8 c217 0ecf 743d 4ac4 02ec 9aed",
 	"4165 dbb9 2afb 61d9 9a7e d13c b65a 05e2",
@@ -396,6 +396,41 @@ static const char *keys_098[] = {
 	"764c 89cb 4a1b 978f 2217 ec5d 38d7 33f7",
 	"e3b6 8589 dfd1 829a 41f3 b371 0555 80bb",
 	"5376 c257 21cb 0f2b 2f56 f1f3 a772 afd0",
+};
+
+static const char *keys_098_1[] = {
+	"64e2 7991 d384 b6bf 2bbe 7741 152c 8b93",
+	"0ba4 8379 63d4 e789 575c 9035 e3a4 93be",
+	"dfb4 08fe ec3a 2aa3 6018 37be 2a68 06d0",
+	"3e31 23c5 526f 564b 8da9 5315 687e d437",
+	"0728 cfa5 43af e2ae 46ed d9b0 af49 a64a",
+	"2fa9 fff7 57d9 5b5a 46af b557 e388 7826",
+	"b8a5 0059 6464 87a5 dba1 79d1 373f 5966",
+	"150e 70ac 19c8 1040 912e 5cc4 7d37 db12",
+	"3ab0 72d9 9436 4be3 3bea 77fe 409f 3e37",
+	"f5ed 6af6 9fa1 c9af 3ea0 d652 2ac0 5d75",
+	"6a9a 0d02 2abc a36d 0cc8 ae53 8292 c608",
+	"4284 5952 4a2c 8399 cbaa ade3 e320 0712",
+	"9aec 465a f6ec 175a e384 1d22 8570 56be",
+	"234f f3cc c451 cead 33df 5e5d dce7 e492",
+	"8b42 74bc 7703 492c 5ba2 83f5 65eb 4ed3",
+	"9991 5c43 5400 48d4 fab3 65a1 33e0 c102",
+	"e280 ca7d 0143 f98a 3131 4031 a147 b16c",
+	"0211 f8b4 aa81 e9c6 5d93 f9e1 e853 7ca7",
+	"eaf5 5569 653a a80d a730 d528 7512 7bff",
+	"540e b603 96b8 db6b 0a71 2d80 b44f 524f",
+	"98c8 6092 0929 30fb 63bb 177f ebf4 9db9",
+	"cf06 0c7a a6ac 0ed9 9c4c bae3 3a63 3075",
+	"5743 93c2 b5d2 9be4 7fa0 62e2 c3e9 6f22",
+	"d6eb 0f97 2792 e548 aac0 34d5 26e2 4cb2",
+	"b8e6 d222 2e81 e91a ec37 63d0 471e 17b4",
+	"e1ed 3bb0 0efc a215 b3af 560f cd50 fcdf",
+	"7827 f3ef ac6d 92cb aa1e 5696 33a1 2c66",
+	"8091 baf1 4b68 dd57 244b 644b 6639 5ede",
+	"e3bd 34aa b8aa 4bf8 2aa3 0886 f8a7 f645",
+	"e6c7 79b9 a976 7d3b a542 f538 a35f afd7",
+	"8dd7 e6f4 a16a 6287 ccff 1aa8 8a4c 61aa",
+	"d3c8 ed48 c580 8e04 cf55 14f0 a97a d084",
 };
 
 /**
@@ -458,7 +493,11 @@ struct tokkey {
 	},
 	{
 		{ 0, 98, 0, '\0', 0, 0, 1323558000 },		/* 2011-12-11 */
-		keys_098, G_N_ELEMENTS(keys_098),
+		keys_098_0, G_N_ELEMENTS(keys_098_0),
+	},
+	{
+		{ 0, 98, 1, '\0', 0, 0, 1323990000 },		/* 2011-12-16 */
+		keys_098_1, G_N_ELEMENTS(keys_098_1),
 	},
 };
 
