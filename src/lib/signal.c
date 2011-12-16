@@ -35,11 +35,12 @@
 
 #include "signal.h"
 #include "ckalloc.h"
+#include "crash.h"
+#include "glib-missing.h"       /* For g_strlcpy() */
 #include "log.h"
 #include "misc.h"
-#include "crash.h"
+#include "str.h"
 #include "unsigned.h"
-#include "glib-missing.h"       /* For g_strlcpy() */
 
 #include "override.h"	/* Must be the last header included */
 
@@ -221,6 +222,36 @@ signal_trampoline(int signo)
 	}
 }
 
+#ifdef SA_SIGINFO
+/**
+ * Extended trapping for harmful signals for which we can gather extra
+ * information from the siginfo_t structure.
+ */
+static void
+signal_trampoline_extended(int signo, siginfo_t *si, void *u)
+{
+	(void) u;
+
+	/*
+	 * Log faulting address and propagate that information in the
+	 * crash log as an error message.
+	 */
+
+	in_signal_handler++;
+	{
+		char data[80];
+
+		str_bprintf(data, sizeof data, "got %s for VA=%p",
+			signal_name(signo), si->si_addr);
+		s_critical("%s", data);
+		crash_set_error(data);
+	}
+	in_signal_handler--;
+
+	signal_trampoline(signo);
+}
+#endif	/* SA_SIGINFO */
+
 /**
  * Installs a signal handler.
  *
@@ -264,7 +295,6 @@ signal_set(int signo, signal_handler_t handler)
 		struct sigaction sa, osa;
 		
 		sa = zero_sa;
-		sa.sa_handler = trampoline;
 		sigemptyset(&sa.sa_mask);
 		sa.sa_flags = signo != SIGALRM ? SA_RESTART : 0;
 
@@ -272,13 +302,31 @@ signal_set(int signo, signal_handler_t handler)
 #ifdef SIGBUS
 		case SIGBUS:
 #endif
+#ifdef SIGTRAP
+		case SIGTRAP:
+#endif
 		case SIGSEGV:
+		case SIGFPE:
+		case SIGILL:
+#ifdef SA_SIGINFO
+			if (signal_trampoline == trampoline) {
+				sa.sa_flags |= SA_SIGINFO;
+				sa.sa_sigaction = signal_trampoline_extended;
+			} else {
+				sa.sa_handler = trampoline;
+			}
+#else
+			sa.sa_handler = trampoline;
+#endif
 #ifdef SA_NODEFER
 			sa.sa_flags |= SA_NODEFER;
 #endif
 #ifdef SA_RESETHAND
 			sa.sa_flags |= SA_RESETHAND;
 #endif
+			break;
+		default:
+			sa.sa_handler = trampoline;
 			break;
 		}
 

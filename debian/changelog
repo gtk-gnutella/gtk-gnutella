@@ -1,3 +1,9 @@
+gtk-gnutella (0.98-1) unstable; urgency=critical
+
+  * Avoid crashes when running with glib-2.30.2 and above.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Fri, 16 Dec 2011 12:19:00 +0000
+
 gtk-gnutella (0.98-0) unstable; urgency=high
 
   * New upstream major release + important bug fixes.
