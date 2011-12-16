@@ -2520,28 +2520,40 @@ zinit(void)
 }
 
 /**
- * Hash table iterator -- setup memory usage stats on allocated zones.
+ * Hash table iterator -- turn off memory usage stats on allocated zones.
  */
 static void
-zalloc_memusage_set(const void *key, void *value, void *data)
+zalloc_memusage_off(const void *key, void *value, void *udata)
 {
 	zone_t *zone = value;
-	gboolean *set = data;
 
 	(void) key;
-	(void) data;
+	(void) udata;
 
 	zone_check(zone);
+	memusage_free_null(&zone->zn_mem);
+}
 
-	if (*set) {
-		if (NULL == zone->zn_mem) {
-			zone->zn_mem = memusage_alloc("zone", zone->zn_size);
-		} else {
-			g_assert(memusage_is_valid(zone->zn_mem));
-		}
-	} else {
-		memusage_free_null(&zone->zn_mem);
-	}
+struct zone_init {
+	zone_t **zones;
+	size_t count;
+	size_t i;
+};
+
+/**
+ * Hash table iterator -- turn off memory usage stats on allocated zones.
+ */
+static void
+zalloc_memusage_fill(const void *key, void *value, void *udata)
+{
+	zone_t *zone = value;
+	struct zone_init *zi = udata;
+
+	(void) key;
+
+	g_assert(zi->i < zi->count);
+
+	zi->zones[zi->i++] = zone;
 }
 
 /**
@@ -2550,12 +2562,45 @@ zalloc_memusage_set(const void *key, void *value, void *data)
 G_GNUC_COLD void
 zalloc_memusage_init(void)
 {
+	struct zone_init zi;
+	size_t i;
+
 	zalloc_memusage_ok = TRUE;
 
 	if (NULL == zt)
 		return;
 
-	hash_table_foreach(zt, zalloc_memusage_set, &zalloc_memusage_ok);
+	/*
+	 * Can't iterate on the "zt" hash table directly because our process of
+	 * setting up memory usage can allocate memory through zalloc() which
+	 * may insert a new zone in the "zt" hash table.
+	 *
+	 * So fill an array with all the known zones so far, then iterate over
+	 * the array.  The array is allocated with xpmalloc() to prevent any
+	 * memory allocation through zalloc().
+	 */
+
+	zi.count = hash_table_size(zt);
+	zi.zones = xpmalloc(zi.count * sizeof zi.zones[0]);
+	zi.i = 0;
+
+	hash_table_foreach(zt, zalloc_memusage_fill, &zi);
+
+	g_assert(zi.count == zi.i);
+
+	for (i = 0; i < zi.count; i++) {
+		zone_t *zn = zi.zones[i];
+
+		zone_check(zn);
+
+		if (NULL == zn->zn_mem) {
+			zn->zn_mem = memusage_alloc("zone", zn->zn_size);
+		} else {
+			g_assert(memusage_is_valid(zn->zn_mem));
+		}
+	}
+
+	xfree(zi.zones);
 }
 
 /**
@@ -2569,7 +2614,7 @@ zalloc_memusage_close(void)
 	if (NULL == zt)
 		return;
 
-	hash_table_foreach(zt, zalloc_memusage_set, &zalloc_memusage_ok);
+	hash_table_foreach(zt, zalloc_memusage_off, &zalloc_memusage_ok);
 }
 
 /**
