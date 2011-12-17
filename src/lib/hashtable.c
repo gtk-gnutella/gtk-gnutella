@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * All rights reserved.
  *
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
@@ -38,7 +38,7 @@
  * A simple hashtable implementation.
  *
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2011
  * @author Christian Biere
  * @date 2006
  */
@@ -360,8 +360,13 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 	return NULL;
 }
 
+/**
+ * Iterate over the hashtable, invoking the "func" callback on each item
+ * with the additional "data" argument.
+ */
 void
-hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func, void *data)
+hash_table_foreach(const hash_table_t *ht,
+	hash_table_foreach_func func, void *data)
 {
 	size_t i, n;
 
@@ -739,6 +744,95 @@ hash_table_memory(const hash_table_t *ht)
 		hash_table_check(ht);
 		return sizeof(*ht) + hash_table_arena_memory(ht);
 	}
+}
+
+struct ht_linearize {
+	void **array;
+	size_t count;
+	size_t i;
+	gboolean keys;
+};
+
+/**
+ * Hash table iterator -- linearize the keys/values.
+ */
+static void
+hash_table_linearize_item(const void *key, void *value, void *data)
+{
+	struct ht_linearize *htl = data;
+
+	g_assert(htl->i < htl->count);
+
+	htl->array[htl->i++] = htl->keys ? deconstify_gpointer(key) : value;
+}
+
+/**
+ * Linearize the keys/values into dynamically allocated array.
+ */
+static void **
+hash_table_linearize(const hash_table_t *ht, size_t *count, gboolean keys)
+{
+	struct ht_linearize htl;
+
+	htl.count = hash_table_size(ht);
+	htl.i = 0;
+	htl.keys = keys;
+
+	/*
+	 * We want to avoid calling xpmalloc() here, but since xmalloc() can
+	 * call walloc() which can create a new zone, we have to be careful.
+	 * Indeed, zalloc() uses a hash table to store its zones by size, and
+	 * we could be linearizing this specific hash table!
+	 *
+	 * For most hash tables our logic will have no impact and does not add
+	 * significant overhead (just another hash_table_size() call).  However,
+	 * it can prevent having to allocate more core since small-enough objects
+	 * will be allocated using walloc().
+	 */
+
+	htl.array = xmalloc(htl.count * sizeof htl.array[0]);
+	while (hash_table_size(ht) != htl.count) {
+		htl.count = hash_table_size(ht);
+		htl.array = xrealloc(htl.array, htl.count * sizeof htl.array[0]);
+	}
+
+	hash_table_foreach(ht, hash_table_linearize_item, &htl);
+
+	g_assert(htl.count == htl.i);
+
+	if (count != NULL)
+		*count = htl.count;
+
+	return htl.array;
+}
+
+/**
+ * Allocate an array of keys which will have to be freed via xfree().
+ *
+ * @param ht		the hash table
+ * @param count		where amount of allocated items is returned if non-NULL
+ *
+ * @return array of keys (read-only, since any change in keys could change
+ * its hashed value and make the table inconsistent).
+ */
+const void **
+hash_table_keys(const hash_table_t *ht, size_t *count)
+{
+	return (const void **) hash_table_linearize(ht, count, TRUE);
+}
+
+/**
+ * Allocate an array of values which will have to be freed via xfree().
+ *
+ * @param ht		the hash table
+ * @param count		where amount of allocated items is returned if non-NULL
+ *
+ * @return array of values.
+ */
+void **
+hash_table_values(const hash_table_t *ht, size_t *count)
+{
+	return hash_table_linearize(ht, count, FALSE);
 }
 
 /**

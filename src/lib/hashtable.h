@@ -86,8 +86,11 @@ gboolean hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp);
 gboolean hash_table_contains(const hash_table_t *ht, const void *key);
 gboolean hash_table_remove(hash_table_t *ht, const void *key);
-void hash_table_foreach(hash_table_t *ht, hash_table_foreach_func func,
+void hash_table_foreach(const hash_table_t *ht, hash_table_foreach_func func,
 		void *data);
+
+const void **hash_table_keys(const hash_table_t *ht, size_t *count);
+void **hash_table_values(const hash_table_t *ht, size_t *count);
 
 #endif /* _hash_table_h_ */
 /* vi: set ts=4 sw=4 cindent: */
