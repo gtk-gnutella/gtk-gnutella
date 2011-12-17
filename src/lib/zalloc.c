@@ -2360,17 +2360,13 @@ found:
 }
 
 /**
- * Hash table iterator to identify oversized zones.
+ * Identify oversized zones.
  */
 static void
-spot_oversized_zone(const void *u_key, void *value, void *u_data)
+spot_oversized_zone(zone_t *zone)
 {
-	zone_t *zone = value;
-
 	g_assert(uint_is_positive(zone->zn_refcnt));
 	g_assert(zone->zn_cnt <= zone->zn_blocks);
-	(void) u_key;
-	(void) u_data;
 
 	/*
 	 * A zone is oversized if it contains more than 1 subzone and if it has
@@ -2461,6 +2457,8 @@ zgc(gboolean overloaded)
 	static time_t last_run;
 	time_t now;
 	tm_t start;
+	size_t i, count;
+	zone_t **zones;
 
 	if (NULL == zt)
 		return;
@@ -2487,8 +2485,20 @@ zgc(gboolean overloaded)
 
 	zgc_context.subzone_freed = overloaded ? ZGC_SUBZONE_OVERBASE : 0;
 
+	/*
+	 * Because spot_oversized_zone() can allocate memeory, we cannot iterate
+	 * over the hash table in case it would be modified during the iteration.
+	 * Linearize it first.
+	 */
+
 	zgc_context.running = TRUE;
-	hash_table_foreach(zt, spot_oversized_zone, NULL);
+
+	zones = (zone_t **) hash_table_values(zt, &count);
+	for (i = 0; i < count; i++) {
+		spot_oversized_zone(zones[i]);
+	}
+	xfree(zones);
+
 	zgc_context.running = FALSE;
 
 	if (zalloc_debugging(2)) {
@@ -2520,50 +2530,13 @@ zinit(void)
 }
 
 /**
- * Hash table iterator -- turn off memory usage stats on allocated zones.
- */
-static void
-zalloc_memusage_off(const void *key, void *value, void *udata)
-{
-	zone_t *zone = value;
-
-	(void) key;
-	(void) udata;
-
-	zone_check(zone);
-	memusage_free_null(&zone->zn_mem);
-}
-
-struct zone_init {
-	zone_t **zones;
-	size_t count;
-	size_t i;
-};
-
-/**
- * Hash table iterator -- turn off memory usage stats on allocated zones.
- */
-static void
-zalloc_memusage_fill(const void *key, void *value, void *udata)
-{
-	zone_t *zone = value;
-	struct zone_init *zi = udata;
-
-	(void) key;
-
-	g_assert(zi->i < zi->count);
-
-	zi->zones[zi->i++] = zone;
-}
-
-/**
  * Turn on dynamic memory usage stats collection.
  */
 G_GNUC_COLD void
 zalloc_memusage_init(void)
 {
-	struct zone_init zi;
-	size_t i;
+	zone_t **zones;
+	size_t i, count;
 
 	zalloc_memusage_ok = TRUE;
 
@@ -2575,21 +2548,15 @@ zalloc_memusage_init(void)
 	 * setting up memory usage can allocate memory through zalloc() which
 	 * may insert a new zone in the "zt" hash table.
 	 *
-	 * So fill an array with all the known zones so far, then iterate over
+	 * So get an array with all the known zones so far, then iterate over
 	 * the array.  The array is allocated with xpmalloc() to prevent any
 	 * memory allocation through zalloc().
 	 */
 
-	zi.count = hash_table_size(zt);
-	zi.zones = xpmalloc(zi.count * sizeof zi.zones[0]);
-	zi.i = 0;
+	zones = (zone_t **) hash_table_values(zt, &count);
 
-	hash_table_foreach(zt, zalloc_memusage_fill, &zi);
-
-	g_assert(zi.count == zi.i);
-
-	for (i = 0; i < zi.count; i++) {
-		zone_t *zn = zi.zones[i];
+	for (i = 0; i < count; i++) {
+		zone_t *zn = zones[i];
 
 		zone_check(zn);
 
@@ -2600,7 +2567,7 @@ zalloc_memusage_init(void)
 		}
 	}
 
-	xfree(zi.zones);
+	xfree(zones);
 }
 
 /**
@@ -2609,12 +2576,24 @@ zalloc_memusage_init(void)
 G_GNUC_COLD void
 zalloc_memusage_close(void)
 {
+	zone_t **zones;
+	size_t i, count;
+
 	zalloc_memusage_ok = FALSE;
 
 	if (NULL == zt)
 		return;
 
-	hash_table_foreach(zt, zalloc_memusage_off, &zalloc_memusage_ok);
+	zones = (zone_t **) hash_table_values(zt, &count);
+
+	for (i = 0; i < count; i++) {
+		zone_t *zn = zones[i];
+
+		zone_check(zn);
+		memusage_free_null(&zn->zn_mem);
+	}
+
+	xfree(zones);
 }
 
 /**
@@ -2741,6 +2720,11 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	}
 	fill->capacity = zcount;
 	fill->count = 0;
+
+	/*
+	 * Safe to iterate, the callback zalloc_filler_add() does not allocate
+	 * any memory so there cannot be any alteration to the "zt" hash.
+	 */
 
 	hash_table_foreach(zt, zalloc_filler_add, fill);
 
