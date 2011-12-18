@@ -1007,8 +1007,8 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 		if (!size_is_positive(len)) {
 			t_error_from(_WHERE_, NULL,
 				"detected free block corruption at %p: "
-				"block in a bucket handling %zu bytes has corrupted length %ld",
-				p, fl->blocksize, (long) len);
+				"block in a bucket handling %zu bytes has corrupted length %zd",
+				p, fl->blocksize, len);
 		} else {
 			t_error_from(_WHERE_, NULL,
 				"detected free block corruption at %p: "
@@ -1453,6 +1453,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 */
 
 	g_assert(fl->pointers != NULL);
+	g_assert(idx <= fl->count);
 
 	if G_LIKELY(idx < fl->count) {
 		memmove(&fl->pointers[idx + 1], &fl->pointers[idx],
@@ -1565,8 +1566,9 @@ xmalloc_freelist_lookup(size_t len, struct xfreelist **flp)
 			*flp = fl;
 
 		if (xmalloc_debugging(8)) {
-			t_debug(NULL, "XM selected %zu-byte block %p in bucket %p "
-				"(#%zu, %zu bytes)", len, p, (void *) fl, i, fl->blocksize);
+			t_debug(NULL, "XM selected block %p in bucket %p "
+				"(#%zu, %zu bytes) for %zu bytes",
+				p, (void *) fl, i, fl->blocksize, len);
 		}
 
 		assert_valid_freelist_pointer(fl, p);
@@ -2736,8 +2738,8 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 				q != NULL && newlen == fl->blocksize &&
 				(xmalloc_grows_up ? +1 : -1) * ptr_cmp(q, xh) < 0
 			) {
-				np = xmalloc_block_setup(q, newlen);
 				xfl_remove_selected(fl);
+				np = xmalloc_block_setup(q, newlen);
 				xstats.realloc_relocate_smart_success++;
 
 				if (xmalloc_debugging(1)) {
@@ -3664,6 +3666,7 @@ xa_insert(const void *p, void *pdesc)
 	 */
 
 	g_assert(aligned != NULL);
+	g_assert(idx <= aligned_count);
 
 	if G_LIKELY(idx < aligned_count) {
 		memmove(&aligned[idx + 1], &aligned[idx],
@@ -4448,6 +4451,7 @@ xmalloc_crash_hook(void)
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
 		const void *prev;
+		gboolean bad = FALSE;
 
 		if (NULL == fl->pointers)
 			continue;
@@ -4455,6 +4459,7 @@ xmalloc_crash_hook(void)
 		if (fl->capacity < fl->count) {
 			s_warning("XM freelist #%zu has corrupted count %zu (capacity %zu)",
 				i, fl->count, fl->capacity);
+			bad = TRUE;
 		}
 
 		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
@@ -4467,26 +4472,38 @@ xmalloc_crash_hook(void)
 
 		for (j = 0, prev = NULL; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
+			size_t len;
 
 			if (ptr_cmp(p, prev) <= 0) {
 				s_warning("XM item #%zu p=%p in freelist #%zu <= prev %p",
 					j, p, i, prev);
+				bad = TRUE;
 			}
+
+			prev = p;
 
 			if (!xmalloc_is_valid_pointer(p)) {
 				s_warning("XM item #%zu p=%p in freelist #%zu is invalid",
 					j, p, i);
+				bad = TRUE;
+				continue;
 			}
 
-			prev = p;
+			len = *(size_t *) p;
+			if (len != fl->blocksize) {
+				s_warning("XM item #%zu p=%p in freelist #%zu (%zu bytes) "
+					"has improper length %zu", j, p, i, fl->blocksize, len);
+				bad = TRUE;
+			}
 		}
 
 		if (i > xfreelist_maxidx && fl->count != 0) {
 			s_warning("XM freelist #%zu has %zu items and is above maxidx=%zu",
 				i, fl->count, xfreelist_maxidx);
+			bad = TRUE;
 		}
 
-		s_debug("XM freelist #%zu OK", i);
+		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
 
 		next:
 			continue;
