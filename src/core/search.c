@@ -6577,7 +6577,16 @@ search_request_preprocess(struct gnutella_node *n,
 	}
 
 	/*
-	 * Look whether we're facing an UTF-8 query.
+	 * Don't waste resources issuing queries from transient leaves.
+	 */
+
+	if (NODE_IS_LEAF(n) && NODE_IS_TRANSIENT(n)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TRANSIENT);
+		goto drop;		/* Drop the message! */
+	}
+
+	/*
+	 * Look whether we're facing a UTF-8 query.
 	 */
 
 	if (!query_utf8_decode(search, NULL)) {
