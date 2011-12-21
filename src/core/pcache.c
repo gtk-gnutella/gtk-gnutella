@@ -1066,7 +1066,7 @@ static struct recent recent_pongs[HOST_MAX];
 #define CACHE_LEAF_LIFESPAN	120		/**< seconds -- leaf mode */
 #define MAX_PONGS			10		/**< Max pongs returned per ping */
 #define OLD_PING_PERIOD		45		/**< Pinging period for "old" clients */
-#define OLD_CACHE_RATIO		20		/**< % of pongs from "old" clients we cache */
+#define OLD_CACHE_RATIO		20		/**< % of cached pongs from "old" clients */
 #define RECENT_PING_SIZE	50		/**< remember last 50 pongs we saw */
 #define MIN_UP_PING			3		/**< ping at least 3 neighbours */
 #define UP_PING_RATIO		20		/**< ping 20% of UP, at random */
@@ -1918,7 +1918,7 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
 
-		if (!NODE_IS_LEAF(cn))
+		if (!NODE_IS_LEAF(cn) || NODE_IS_TRANSIENT(cn))
 			continue;
 
 		if (NODE_IN_TX_FLOW_CONTROL(cn))	/* Already overwhelmed */
