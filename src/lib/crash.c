@@ -2410,7 +2410,8 @@ crash_set_error(const char * const msg)
 		 */
 
 		ck_writable(vars->logck);
-		str_reset(vars->logstr);
+		if (0 != str_len(vars->logstr))
+			str_ncat_safe(vars->logstr, ", ", 2);
 		str_ncat_safe(vars->logstr, msg, strlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
