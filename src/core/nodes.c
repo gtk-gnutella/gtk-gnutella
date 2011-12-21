@@ -153,6 +153,7 @@
 #define ALIVE_PERIOD_LEAF		120	  /**< Idem, for leaves <-> ultrapeers */
 #define ALIVE_MAX_PENDING		6	  /**< Max unanswered pings in a row */
 #define ALIVE_MAX_PENDING_LEAF	4 /**< Max unanswered pings in a row (leaves) */
+#define ALIVE_TRANSIENT			4     /**< Adjustment factor for transients */
 
 #define NODE_MIN_UP_CONNECTIONS	25	   /**< Min 25 peer connections for UP */
 #define NODE_MIN_UPTIME			3600   /**< Minumum uptime to become an UP */
@@ -1420,6 +1421,9 @@ node_timer(time_t now)
 				alive_get_roundtrip_ms(n->alive_pings, &avg, &last);
 				last = MAX(avg, last) / 1000;	/* Convert ms to seconds */
 				period = MAX(n->alive_period, (time_delta_t) last);
+
+				if (NODE_IS_TRANSIENT(n))
+					period *= ALIVE_TRANSIENT;
 
 				if (
 					delta_time(now, n->last_alive_ping) > period &&
