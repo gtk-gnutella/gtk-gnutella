@@ -1637,15 +1637,18 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	 * Install signal handlers for most of the harmful signals that
 	 * could happen during stack unwinding in case the stack is corrupted
 	 * and we start following wrong frame pointers.
+	 *
+	 * We use signal_catch() and not signal_set() to avoid extra information
+	 * from being collected should these signals occur.
 	 */
 
-	old_sigsegv = signal_set(SIGSEGV, stacktrace_got_signal);
+	old_sigsegv = signal_catch(SIGSEGV, stacktrace_got_signal);
 
 #ifdef SIGBUS
-	old_sigbus = signal_set(SIGBUS, stacktrace_got_signal);
+	old_sigbus = signal_catch(SIGBUS, stacktrace_got_signal);
 #endif
 #ifdef SIGTRAP
-	old_sigtrap = signal_set(SIGTRAP, stacktrace_got_signal);
+	old_sigtrap = signal_catch(SIGTRAP, stacktrace_got_signal);
 #endif
 
 	printing = TRUE;
