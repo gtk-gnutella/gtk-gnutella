@@ -685,9 +685,9 @@ static void NO_INLINE
 s_stacktrace(gboolean no_stdio, unsigned offset)
 {
 	if (no_stdio) {
-		stacktrace_where_cautious_print_offset(STDERR_FILENO, offset + 1);
+		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
 		if (log_stdout_is_distinct())
-			stacktrace_where_cautious_print_offset(STDOUT_FILENO, offset + 1);
+			stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
 	} else {
 		stacktrace_where_sym_print_offset(stderr, offset + 1);
 		if (log_stdout_is_distinct())

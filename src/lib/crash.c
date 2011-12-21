@@ -2479,7 +2479,7 @@ crash_save_current_stackframe(unsigned offset)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
 }

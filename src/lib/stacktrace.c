@@ -338,6 +338,83 @@ done:
 }
 #endif	/* HAS_BACKTRACE */
 
+static Sigjmp_buf stacktrace_safe_env;
+
+/**
+ * Invoked when a fatal signal is received during stack unwinding.
+ */
+static G_GNUC_COLD void
+stacktrace_safe_got_signal(int signo)
+{
+	Siglongjmp(stacktrace_safe_env, signo);
+}
+
+/**
+ * Safely unwind current stack into supplied stacktrace array.
+ *
+ * This routine stops unwinding as soon as it reaches a non-text address.
+ *
+ * @param stack		array where stack should be written
+ * @param count		amount of items in stack[]
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ *
+ * @return the amount of entries filled in stack[].
+ */
+NO_INLINE size_t
+stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
+{
+	volatile size_t n;
+	signal_handler_t old_sigsegv;
+#ifdef SIGBUS
+	signal_handler_t old_sigbus;
+#endif
+
+	/*
+	 * Install signal handlers for most of the harmful signals that
+	 * could happen during stack unwinding in case the stack is corrupted
+	 * and we start following wrong frame pointers.
+	 *
+	 * We use signal_catch() and not signal_set() to avoid extra information
+	 * from being collected should these signals occur.
+	 */
+
+	old_sigsegv = signal_catch(SIGSEGV, stacktrace_safe_got_signal);
+#ifdef SIGBUS
+	old_sigbus = signal_catch(SIGBUS, stacktrace_safe_got_signal);
+#endif
+
+	if (Sigsetjmp(stacktrace_safe_env, TRUE)) {
+		/*
+		 * Becasue we zeroed the stack[] array before attempting the
+		 * unwinding we can now go back and count the amount of items that
+		 * were put there in case we got interrupted by a signal, to be
+		 * able to save the part of the stack we were able to unwind
+		 * correctly.
+		 */
+
+		n = 0;
+		while (n < count && stack[n] != NULL)
+			n++;
+	} else {
+		/*
+		 * Prepare for possible harmful signal during stack unwinding:
+		 * we zero the stack to be able to determine the amount of filled
+		 * items in case the operation is aborted and stacktrace_unwind()
+		 * does not return normally.
+		 */
+
+		memset(stack, 0, count * sizeof stack[0]);
+		n = stacktrace_unwind(stack, count, offset + 1);
+	}
+
+	signal_set(SIGSEGV, old_sigsegv);
+#ifdef SIGBUS
+	signal_set(SIGBUS, old_sigbus);
+#endif
+
+	return n;
+}
+
 /**
  * Return self-assessed symbol quality.
  */
@@ -1442,7 +1519,7 @@ stacktrace_where_print(FILE *f)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1468,7 +1545,7 @@ stacktrace_where_sym_print(FILE *f)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1484,7 +1561,7 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
 }
 
@@ -1504,7 +1581,7 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	stack_print(f, stack, count);
 }
 
@@ -1524,7 +1601,7 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 	if (!signal_in_handler())
 		stacktrace_load_symbols();
 	stack_safe_print(fd, stack, count);
