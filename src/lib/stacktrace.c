@@ -1634,7 +1634,6 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 static struct {
 	int fd;
 	Sigjmp_buf env;
-	unsigned unwinded:1;
 	unsigned done:1;
 } print_context;
 
@@ -1654,18 +1653,13 @@ static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
 	char time_buf[18];
-	DECLARE_STR(5);
+	DECLARE_STR(4);
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);
 	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
-	print_str(" during stack ");
-	if (print_context.unwinded) {
-		print_str("printing\n");
-	} else {
-		print_str("unwinding\n");
-	}
+	print_str(" during stack printing\n");
 	flush_str(print_context.fd);
 
 	Siglongjmp(print_context.env, signo);
@@ -1676,7 +1670,8 @@ stacktrace_got_signal(int signo)
  *
  * Caution comes from the fact that we trap all SIGSEGV and other harmful
  * signals that could result from improper memory access during stack
- * unwinding (due to a corrupted stack).
+ * unwinding (due to a corrupted stack) and printing (due to possible bugs
+ * in our symbol mapping logic).
  *
  * @param fd		file descriptor where stack should be printed
  * @param offset	amount of immediate callers to remove (ourselves excluded)
@@ -1685,15 +1680,11 @@ G_GNUC_COLD void
 stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
-	volatile size_t count;
-
+	size_t count;
 	static volatile sig_atomic_t printing;
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
-#endif
-#ifdef SIGTRAP
-	signal_handler_t old_sigtrap;
 #endif
 
 	if (printing) {
@@ -1710,61 +1701,22 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		return;
 	}
 
-	/*
-	 * Install signal handlers for most of the harmful signals that
-	 * could happen during stack unwinding in case the stack is corrupted
-	 * and we start following wrong frame pointers.
-	 *
-	 * We use signal_catch() and not signal_set() to avoid extra information
-	 * from being collected should these signals occur.
-	 */
-
-	old_sigsegv = signal_catch(SIGSEGV, stacktrace_got_signal);
-
-#ifdef SIGBUS
-	old_sigbus = signal_catch(SIGBUS, stacktrace_got_signal);
-#endif
-#ifdef SIGTRAP
-	old_sigtrap = signal_catch(SIGTRAP, stacktrace_got_signal);
-#endif
-
 	printing = TRUE;
 	print_context.fd = fd;
 
-	if (Sigsetjmp(print_context.env, TRUE)) {
-		char time_buf[18];
-		DECLARE_STR(2);
-
-		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);
-		print_str("WARNING: truncated stack unwinding\n");
-		flush_str(fd);
-
-		/*
-		 * Becasue we zeroed the stack[] array before attempting the unwinding
-		 * we can now go back and count the amount of items that were put
-		 * there in case we got interrupted by a signal, to be able to dump
-		 * the part of the stack we were able to unwind correctly.
-		 */
-
-		count = 0;
-		while (count < G_N_ELEMENTS(stack) && stack[count] != NULL)
-			count++;
-		goto print_stack;
-	}
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
 	/*
-	 * Prepare for possible harmful signal during stack unwinding: we zero
-	 * the stack to be able to determine the amount of filled items in case
-	 * the operation is aborted and stacktrace_unwind() does not return.
+	 * Protect stack printing.
+	 *
+	 * Using signal_catch() instead of signal_set() because we don't need
+	 * extra information about the signal context.
 	 */
 
-	ZERO(&stack);
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-
-print_stack:
-
-	print_context.unwinded = TRUE;
+	old_sigsegv = signal_catch(SIGSEGV, stacktrace_got_signal);
+#ifdef SIGBUS
+	old_sigbus = signal_catch(SIGBUS, stacktrace_got_signal);
+#endif
 
 	if (Sigsetjmp(print_context.env, TRUE)) {
 		char time_buf[18];
@@ -1797,12 +1749,8 @@ restore:
 	printing = FALSE;
 
 	signal_set(SIGSEGV, old_sigsegv);
-
 #ifdef SIGBUS
 	signal_set(SIGBUS, old_sigbus);
-#endif
-#ifdef SIGTRAP
-	signal_set(SIGTRAP, old_sigtrap);
 #endif
 }
 
