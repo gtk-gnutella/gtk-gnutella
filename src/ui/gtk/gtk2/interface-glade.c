@@ -1604,7 +1604,7 @@ create_main_window (void)
   gtk_widget_show (menu_prefs);
   gtk_container_add (GTK_CONTAINER (menu_file_menu), menu_prefs);
   gtk_widget_add_accelerator (menu_prefs, "activate", accel_group,
-                              GDK_p, GDK_CONTROL_MASK,
+                              GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
   image2240 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
@@ -1623,7 +1623,7 @@ create_main_window (void)
   gtk_widget_show (quit);
   gtk_container_add (GTK_CONTAINER (menu_file_menu), quit);
   gtk_widget_add_accelerator (quit, "activate", accel_group,
-                              GDK_q, GDK_CONTROL_MASK,
+                              GDK_q, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
   image2241 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
@@ -1645,7 +1645,7 @@ create_main_window (void)
   gtk_widget_show (menu_searchbar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_searchbar_visible);
   gtk_widget_add_accelerator (menu_searchbar_visible, "activate", accel_group,
-                              GDK_F2, 0,
+                              GDK_F2, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
   menu_sidebar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Sidebar"));
@@ -1653,7 +1653,7 @@ create_main_window (void)
   gtk_widget_show (menu_sidebar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_sidebar_visible);
   gtk_widget_add_accelerator (menu_sidebar_visible, "activate", accel_group,
-                              GDK_F8, 0,
+                              GDK_F8, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
   menu_menubar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Menubar"));
@@ -1661,7 +1661,7 @@ create_main_window (void)
   gtk_widget_show (menu_menubar_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_menubar_visible);
   gtk_widget_add_accelerator (menu_menubar_visible, "activate", accel_group,
-                              GDK_F9, 0,
+                              GDK_F9, (GdkModifierType) 0,
                               GTK_ACCEL_VISIBLE);
 
   menu_statusbar_visible = gtk_check_menu_item_new_with_mnemonic (_("Show _Statusbar"));
@@ -1889,7 +1889,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox9350), button_search_whats_new, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, button_search_whats_new, _("Look for newest files shared by nodes in the network vicinity"), NULL);
   gtk_widget_add_accelerator (button_search_whats_new, "clicked", accel_group,
-                              GDK_p, GDK_CONTROL_MASK,
+                              GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
   gtk_button_set_relief (GTK_BUTTON (button_search_whats_new), GTK_RELIEF_NONE);
 
@@ -1919,7 +1919,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox9350), button_search_passive, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, button_search_passive, _("A passive search matches any search results routed through this node"), NULL);
   gtk_widget_add_accelerator (button_search_passive, "clicked", accel_group,
-                              GDK_p, GDK_CONTROL_MASK,
+                              GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
   gtk_button_set_relief (GTK_BUTTON (button_search_passive), GTK_RELIEF_NONE);
 
@@ -1970,7 +1970,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox9346), button_search_media_type_any, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, button_search_media_type_any, _("Do not specify any media type (will match any kind of files remotely)"), NULL);
   gtk_widget_add_accelerator (button_search_media_type_any, "clicked", accel_group,
-                              GDK_p, GDK_CONTROL_MASK,
+                              GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
   gtk_button_set_relief (GTK_BUTTON (button_search_media_type_any), GTK_RELIEF_NONE);
 
@@ -4029,6 +4029,7 @@ create_main_window_search_tab (void)
   GtkObject *spinbutton_whats_new_search_max_results_adj;
   GtkWidget *spinbutton_whats_new_search_max_results;
   GtkWidget *checkbutton_search_discard_alien_ip;
+  GtkWidget *checkbutton_search_discard_banned_guid;
   GtkWidget *label1011;
   GtkWidget *hbox215;
   GtkWidget *viewport56;
@@ -4248,7 +4249,7 @@ create_main_window_search_tab (void)
   gtk_widget_show (label1029);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 2), label1029);
 
-  table78 = gtk_table_new (6, 4, FALSE);
+  table78 = gtk_table_new (7, 4, FALSE);
   gtk_widget_set_name (table78, "table78");
   gtk_widget_show (table78);
   gtk_container_add (GTK_CONTAINER (notebook1), table78);
@@ -4413,6 +4414,13 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  checkbutton_search_discard_banned_guid = gtk_check_button_new_with_mnemonic (_("Discard results bearing a banned GUID"));
+  gtk_widget_set_name (checkbutton_search_discard_banned_guid, "checkbutton_search_discard_banned_guid");
+  gtk_widget_show (checkbutton_search_discard_banned_guid);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_discard_banned_guid, 2, 3, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label1011 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label1011, "label1011");
   gtk_widget_show (label1011);
@@ -4528,7 +4536,7 @@ create_main_window_search_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox154), button_search_clear, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_search_clear, FALSE);
   gtk_widget_add_accelerator (button_search_clear, "clicked", accel_group,
-                              GDK_c, GDK_CONTROL_MASK,
+                              GDK_c, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
   alignment25 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -4610,6 +4618,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment149, "alignment149");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_whats_new_search_max_results, "spinbutton_whats_new_search_max_results");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_alien_ip, "checkbutton_search_discard_alien_ip");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_banned_guid, "checkbutton_search_discard_banned_guid");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label1011, "label1011");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox215, "hbox215");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport56, "viewport56");

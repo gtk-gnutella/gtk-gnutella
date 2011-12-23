@@ -1932,13 +1932,14 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			/*
 			 * We already have that result displayed.
 			 *
-			 * We don't want to count as "kept" something that is spam.
+			 * We don't want to count as "kept" something that is (likely) spam.
 			 * It can be shown in the results if they don't want to
 			 * discard the spam, but it's certainly not a valuable entry!
 			 */
 
 			if (
-				0 == ((ST_HOSTILE | ST_SPAM | ST_ALIEN) & rs->status) &&
+				0 == ((ST_HOSTILE | ST_SPAM | ST_ALIEN |
+					ST_BANNED_GUID) & rs->status) &&
 				0 == (SR_SPAM & rc->flags)
 			) {
 				results_kept++;		/* Counts for measuring popularity */
@@ -1973,6 +1974,10 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				(
 					GUI_PROPERTY(search_discard_alien_ip) &&
 					(ST_ALIEN & rs->status)
+				) ||
+				(
+					GUI_PROPERTY(search_discard_banned_guid) &&
+					(ST_BANNED_GUID & rs->status)
 				)
 			) {
 				sch->ignored++;

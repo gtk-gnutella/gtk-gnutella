@@ -165,6 +165,7 @@ extern const gboolean gui_property_variable_search_media_type_image;
 extern const gboolean gui_property_variable_search_media_type_archive;
 extern const gboolean gui_property_variable_search_discard_alien_ip;
 extern const gboolean gui_property_variable_search_restart_when_pending;
+extern const gboolean gui_property_variable_search_discard_banned_guid;
 
 
 prop_set_t *gui_prop_init(void);

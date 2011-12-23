@@ -5730,6 +5730,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_DISCARD_BANNED_GUID,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_discard_banned_guid",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         gui_dlg_prefs,
         PROP_SEARCH_JUMP_TO_CREATED,
         update_togglebutton,
