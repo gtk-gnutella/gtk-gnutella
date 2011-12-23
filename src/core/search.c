@@ -1374,6 +1374,9 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 	} else if (is_odd_guid(rs->guid)) {
 		search_results_mark_fake_spam(rs);
 		search_log_spam(n, rs, "odd GUID %s", guid_hex_str(rs->guid));
+	} else if (guid_is_banned(rs->guid)) {
+		rs->status |= ST_BANNED_GUID;
+		search_log_spam(n, rs, "banned GUID %s", guid_hex_str(rs->guid));
 	} else if (!(ST_SPAM & rs->status)) {
 		/*
 		 * Avoid costly checks if already marked as spam.

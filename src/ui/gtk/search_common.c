@@ -145,6 +145,7 @@ static struct {
 	{ "#FC000D", GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } }, /* flashy red */
 	{ "#7f0000", GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } }, /* dark red */
 	{ "#CD1076", GUI_COLOR_ALIEN, 		{ 0, 0, 0, 0 } }, /* deep pink */
+	{ "#FF69B4", GUI_COLOR_BANNED_GUID,	{ 0, 0, 0, 0 } }, /* hot pink */
 	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
@@ -1782,6 +1783,8 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_MAYBE_SPAM;
 	} else if (rs->status & ST_UNREQUESTED) {
 		return GUI_COLOR_UNREQUESTED;
+	} else if (rs->status & ST_BANNED_GUID) {
+		return GUI_COLOR_BANNED_GUID;
 	} else if (rc->flags & SR_MEDIA) {
 		return GUI_COLOR_MEDIA;
 	} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
@@ -3945,7 +3948,16 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Host information"), NULL);
 
 		search_gui_append_detail(_("Hostname"), rs->hostname);
-		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		if (rs->status & ST_BANNED_GUID) {
+			char buf[80];
+
+			str_bprintf(buf, sizeof buf, "%s [%s]",
+				guid_to_string(rs->guid), _("banned"));
+
+			search_gui_append_detail(_("Servent ID"), buf);
+		} else {
+			search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		}
 		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
 		search_gui_append_detail(_("Browsable"),
 				ST_BH & rs->status ? _("Yes") : _("No"));
