@@ -272,6 +272,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	guint32 flags = 0;
 	char host[MAX_HOSTLEN];
 	const char *hostname = NULL;
+	gboolean has_valid_guid = FALSE;
 
 	g_assert(DHT_VT_ALOC == rc->type);
 
@@ -286,8 +287,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_client_id:
-			if (GUID_RAW_SIZE == ext_paylen(e))
+			if (GUID_RAW_SIZE == ext_paylen(e)) {
 				memcpy(guid.v, ext_payload(e), GUID_RAW_SIZE);
+				has_valid_guid = TRUE;
+			}
 			break;
 		case EXT_T_GGEP_firewalled:
 			if (1 == ext_paylen(e)) {
@@ -370,12 +373,49 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	}
 
 	/*
+	 * Make sure firewalled servents list their GUID.
+	 */
+
+	if (firewalled && !has_valid_guid) {
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for %s: firewalled host, no GUID",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				fi->pathname);
+		goto cleanup;
+	}
+
+	/*
 	 * Discard hostile sources.
 	 */
 
 	if (hostiles_check(rc->addr)) {
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for %s: hostile IP",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				fi->pathname);
+		goto cleanup;
+	}
+
+	/*
+	 * Rule out on GUID collision: alt-loc cannot bear our own GUID.
+	 *
+	 * This is done after checking for hostile sources of course since
+	 * anything can happen with hostiles
+	 */
+
+	if (has_valid_guid && guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
+		has_valid_guid = FALSE;
+
+		/*
+		 * Make sure the server address is not ours, otherwise we don't count
+		 * that as a GUID collision.
+		 */
+
+		if (!is_my_address_and_port(rc->addr, port))
+			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for %s: host bears our GUID",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname);
 		goto cleanup;
@@ -446,7 +486,7 @@ cleanup:
 	 * we can flag the server as publishing in the DHT.
 	 */
 
-	if (!guid_is_blank(&guid)) {
+	if (has_valid_guid) {
 		download_server_publishes_in_dht(&guid);
 	}
 	if (exvcnt) {
