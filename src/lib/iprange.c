@@ -134,6 +134,30 @@ iprange_net6_cmp(const void *p, const void *q)
 }
 
 /**
+ * Discard IPv4 set from database.
+ */
+void
+iprange_reset_ipv4(struct iprange_db *idb)
+{
+	iprange_db_check(idb);
+
+	sorted_array_free(&idb->tab4);
+	idb->tab4 = sorted_array_new(sizeof(struct iprange_net4), iprange_net4_cmp);
+}
+
+/**
+ * Discard IPv6 set from database.
+ */
+void
+iprange_reset_ipv6(struct iprange_db *idb)
+{
+	iprange_db_check(idb);
+
+	sorted_array_free(&idb->tab6);
+	idb->tab6 = sorted_array_new(sizeof(struct iprange_net6), iprange_net6_cmp);
+}
+
+/**
  * Create a new IP range database.
  */
 struct iprange_db *
@@ -143,8 +167,8 @@ iprange_new(void)
 
 	WALLOC0(idb);
 	idb->magic = IPRANGE_DB_MAGIC;
-	idb->tab4 = sorted_array_new(sizeof(struct iprange_net4), iprange_net4_cmp);
-	idb->tab6 = sorted_array_new(sizeof(struct iprange_net6), iprange_net6_cmp);
+	iprange_reset_ipv4(idb);
+	iprange_reset_ipv6(idb);
 	return idb;
 }
 

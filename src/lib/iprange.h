@@ -68,6 +68,8 @@ guint16 iprange_get(const struct iprange_db *db, guint32 ip);
 guint16 iprange_get6(const struct iprange_db *db, const guint8 *ip6);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
+void iprange_reset_ipv4(struct iprange_db *idb);
+void iprange_reset_ipv6(struct iprange_db *idb);
 
 unsigned iprange_get_item_count(const struct iprange_db *idb);
 unsigned iprange_get_host_count(const struct iprange_db *idb);
