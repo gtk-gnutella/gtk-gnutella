@@ -355,7 +355,14 @@ gip_country(const host_addr_t ha)
 		guint32 ip;
 
 		ip = host_addr_ipv4(to);
-		if (geo_db && 0 != (code = iprange_get(geo_db, ip)))
+		if (geo_db != NULL && 0 != (code = iprange_get(geo_db, ip)))
+			return (code >> 1) - 1;
+	} else if (host_addr_is_ipv6(ha)) {
+		guint16 code;
+		const guint8 *ip6;
+
+		ip6 = host_addr_ipv6(&ha);
+		if (geo_db != NULL && 0 != (code = iprange_get6(geo_db, ip6)))
 			return (code >> 1) - 1;
 	}
 	return ISO3166_INVALID;

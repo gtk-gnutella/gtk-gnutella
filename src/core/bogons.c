@@ -248,8 +248,12 @@ bogons_check(const host_addr_t ha)
 	} else if (host_addr_is_ipv6(ha)) {
 		host_addr_t to;
 
-		if (host_addr_convert(ha, &to, NET_TYPE_IPV4))
+		if (host_addr_convert(ha, &to, NET_TYPE_IPV4)) {
 			return bogons_check(to);
+		} else {
+			const guint8 *ip6 = host_addr_ipv6(&ha);
+			return bogons_db && iprange_get6(bogons_db, ip6);
+		}
 	}
 
 	return FALSE;
