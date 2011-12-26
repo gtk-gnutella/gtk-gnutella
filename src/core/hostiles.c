@@ -90,12 +90,21 @@ static struct iprange_db *hostile_db[NUM_HOSTILES];	/**< The hostile database */
  * a more efficient "iprange_db" from it.
  */
 static hash_list_t *hl_dynamic_ipv4;
+static hash_list_t *hl_dynamic_ipv6;
 
 #define HOSTILES_DYNAMIC_PERIOD_MS	60161	/**< [ms]; about 1 minute (prime) */
 #define HOSTILES_DYNAMIC_PENALTY	43201	/**< [s]; about 12 hours (prime) */
 
-struct hostiles_dynamic_entry {
+struct hostiles_dynamic_entry4 {
 	guint32 ipv4;	/* MUST be at offset 0 due to uint32_hash/eq */
+	unsigned long relative_time;
+};
+
+#define HOSTILES_IPV6_ZEROED	8	/**< Trailing 8 bytes are zeroed */
+#define HOSTILES_IPV6_LEN		(16 - HOSTILES_IPV6_ZEROED)
+
+struct hostiles_dynamic_entry6 {
+	guint8 ip[HOSTILES_IPV6_LEN];	/* MUST be at offset 0 for hash/eq */
 	unsigned long relative_time;
 };
 
@@ -418,10 +427,10 @@ use_global_hostiles_txt_changed(property_t unused_prop)
     return FALSE;
 }
 
-static struct hostiles_dynamic_entry *
-hostiles_dynamic_new(guint32 ipv4)
+static struct hostiles_dynamic_entry4 *
+hostiles_dynamic_new4(guint32 ipv4)
 {
-	struct hostiles_dynamic_entry entry;
+	struct hostiles_dynamic_entry4 entry;
 
 	entry.ipv4 = ipv4;
 	entry.relative_time = tm_relative_time();
@@ -429,23 +438,44 @@ hostiles_dynamic_new(guint32 ipv4)
 }
 
 static void
-hostiles_dynamic_free(struct hostiles_dynamic_entry **entry_ptr)
+hostiles_dynamic_free4(struct hostiles_dynamic_entry4 **entry_ptr)
 {
-	struct hostiles_dynamic_entry *entry = *entry_ptr;
+	struct hostiles_dynamic_entry4 *entry = *entry_ptr;
 
-	if (entry) {
-		wfree(entry, sizeof *entry);
+	if (entry != NULL) {
+		WFREE(entry);
+		*entry_ptr = NULL;
+	}
+}
+
+static struct hostiles_dynamic_entry6 *
+hostiles_dynamic_new6(const guint8 *ipv6)
+{
+	struct hostiles_dynamic_entry6 entry;
+
+	memcpy(&entry.ip[0], ipv6, sizeof entry.ip);
+	entry.relative_time = tm_relative_time();
+	return wcopy(&entry, sizeof entry);
+}
+
+static void
+hostiles_dynamic_free6(struct hostiles_dynamic_entry6 **entry_ptr)
+{
+	struct hostiles_dynamic_entry6 *entry = *entry_ptr;
+
+	if (entry != NULL) {
+		WFREE(entry);
 		*entry_ptr = NULL;
 	}
 }
 
 static void
-hostiles_dynamic_expire(gboolean forced)
+hostiles_dynamic_expire4(gboolean forced)
 {
 	unsigned long now = tm_relative_time();
 
 	for (;;) {
-		struct hostiles_dynamic_entry *entry;
+		struct hostiles_dynamic_entry4 *entry;
 
 		entry = hash_list_head(hl_dynamic_ipv4);
 		if (NULL == entry)
@@ -465,7 +495,35 @@ hostiles_dynamic_expire(gboolean forced)
 			g_info("removing dynamically caught hostile: %s", buf);
 		}
 		hash_list_remove_head(hl_dynamic_ipv4);
-		hostiles_dynamic_free(&entry);
+		hostiles_dynamic_free4(&entry);
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, -1);
+	}
+}
+
+static void
+hostiles_dynamic_expire6(gboolean forced)
+{
+	unsigned long now = tm_relative_time();
+
+	for (;;) {
+		struct hostiles_dynamic_entry6 *entry;
+
+		entry = hash_list_head(hl_dynamic_ipv6);
+		if (NULL == entry)
+			break;
+
+		if (
+			!forced &&
+			delta_time(now, entry->relative_time) < HOSTILES_DYNAMIC_PENALTY
+		)
+			break;
+
+		if (!forced && GNET_PROPERTY(ban_debug > 0)) {
+			g_info("removing dynamically caught hostile: %s",
+				ipv6_to_string(entry->ip));
+		}
+		hash_list_remove_head(hl_dynamic_ipv6);
+		hostiles_dynamic_free6(&entry);
 		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, -1);
 	}
 }
@@ -479,29 +537,53 @@ hostiles_dynamic_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
-	hostiles_dynamic_expire(FALSE);
+	hostiles_dynamic_expire4(FALSE);
+	hostiles_dynamic_expire6(FALSE);
+
 	return TRUE;		/* Keep calling */
 }
 
 static void
 hostiles_dynamic_add_ipv4(guint32 ipv4)
 {
-	struct hostiles_dynamic_entry *entry;
+	struct hostiles_dynamic_entry4 *entry;
 
 	if (hash_list_find(hl_dynamic_ipv4, &ipv4, cast_to_void_ptr(&entry))) {
 		entry->relative_time = tm_relative_time();
 		hash_list_moveto_tail(hl_dynamic_ipv4, entry);
 	} else {
-		entry = hostiles_dynamic_new(ipv4);
+		entry = hostiles_dynamic_new4(ipv4);
 		hash_list_append(hl_dynamic_ipv4, entry);
 
 		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
 		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, +1);
+
 		if (GNET_PROPERTY(ban_debug > 0)) {
 			char buf[HOST_ADDR_BUFLEN];
 
 			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
 			g_info("dynamically caught hostile: %s", buf);
+		}
+	}
+}
+
+static void
+hostiles_dynamic_add_ipv6(const guint8 *ipv6)
+{
+	struct hostiles_dynamic_entry6 *entry;
+
+	if (hash_list_find(hl_dynamic_ipv6, ipv6, cast_to_void_ptr(&entry))) {
+		entry->relative_time = tm_relative_time();
+		hash_list_moveto_tail(hl_dynamic_ipv6, entry);
+	} else {
+		entry = hostiles_dynamic_new6(ipv6);
+		hash_list_append(hl_dynamic_ipv6, entry);
+
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
+		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, +1);
+
+		if (GNET_PROPERTY(ban_debug > 0)) {
+			g_info("dynamically caught hostile: %s", ipv6_to_string(ipv6));
 		}
 	}
 }
@@ -521,17 +603,17 @@ hostiles_static_check_ipv4(guint32 ipv4)
 	return FALSE;
 }
 
+static gboolean
+hostiles_static_check_ipv6(const guint8 *ipv6)
+{
+	(void) ipv6;
+
+	return FALSE;	/* static IPv6 hostiles not supported yet */
+}
+
 /**
  * Adds an IP address temporarily to the list of hostile addresses.
  * The address is forgotten when the process terminates.
- *
- * @note Only IPv4 addresses are handled, others are ignored.
- *		 While this could easily handle IPv6 addresses, too,
- *		 it must be considered that complete prefixes have to
- *		 banned because the list could quickly grow out of
- *		 proportion. In case of Teredo and 6to4 they're already
- *		 handled and indeed these equal IPv6 prefixes not just
- *		 individual addresses.
  *
  * @param addr 		the address to blacklist.
  * @param reason	how we detected that the address was hostile
@@ -555,6 +637,19 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 					host_addr_to_string(ipv4_addr), reason);
 			}
 		}
+	} else if (host_addr_is_ipv6(addr)) {
+		const guint8 *ip;
+
+		ip = host_addr_ipv6(&addr);
+
+		if (!hostiles_static_check_ipv6(ip)) {
+			hostiles_dynamic_add_ipv6(ip);
+
+			if (GNET_PROPERTY(spam_debug) > 1) {
+				g_debug("SPAM dynamically caught hostile %s: %s",
+					ipv6_to_string(ip), reason);
+			}
+		}
 	}
 }
 
@@ -566,6 +661,16 @@ hostiles_dynamic_check_ipv4(guint32 ipv4)
 	 * frequently expired and the timeout is arbitrary anyway.
 	 */
 	return hash_list_contains(hl_dynamic_ipv4, &ipv4);
+}
+
+static inline gboolean
+hostiles_dynamic_check_ipv6(const guint8 *ipv6)
+{
+	/**
+	 * We could check relative_time here but entries are sufficiently
+	 * frequently expired and the timeout is arbitrary anyway.
+	 */
+	return hash_list_contains(hl_dynamic_ipv6, ipv6);
 }
 
 /**
@@ -587,6 +692,13 @@ hostiles_check(const host_addr_t ha)
 
 		return hostiles_dynamic_check_ipv4(ip) ||
 			hostiles_static_check_ipv4(ip);
+	} else if (host_addr_is_ipv6(ha)) {
+		const guint8 *ip;
+
+		ip = host_addr_ipv6(&ha);
+
+		return hostiles_dynamic_check_ipv6(ip) ||
+			hostiles_static_check_ipv6(ip);
 	}
 
 	return FALSE;
@@ -904,6 +1016,18 @@ hostiles_spam_periodic_sync(void *unused_obj)
 	return TRUE;		/* Keep calling */
 }
 
+static guint
+hostiles_ipv6_hash(const void *key)
+{
+	return binary_hash(key, HOSTILES_IPV6_LEN);
+}
+
+static int
+hostiles_ipv6_eq(const void *a, const void *b)
+{
+	return a == b || 0 == memcmp(a, b, HOSTILES_IPV6_LEN);
+}
+
 /**
  * Called on startup. Loads the hostiles.txt into memory.
  */
@@ -929,6 +1053,8 @@ hostiles_init(void)
 		SPAM_SYNC_PERIOD, hostiles_spam_periodic_sync, NULL);
 
 	hl_dynamic_ipv4 = hash_list_new(uint32_hash, uint32_eq);
+	hl_dynamic_ipv6 = hash_list_new(hostiles_ipv6_hash, hostiles_ipv6_eq);
+
 	cq_periodic_main_add(
 		HOSTILES_DYNAMIC_PERIOD_MS, hostiles_dynamic_timer, NULL);
 	hostiles_retrieve(HOSTILE_PRIVATE);
@@ -950,8 +1076,10 @@ hostiles_close(void)
 
 	gnet_prop_remove_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
 		use_global_hostiles_txt_changed);
-	hostiles_dynamic_expire(TRUE);
+	hostiles_dynamic_expire4(TRUE);
+	hostiles_dynamic_expire6(TRUE);
 	hash_list_free(&hl_dynamic_ipv4);
+	hash_list_free(&hl_dynamic_ipv6);
 
 	dbstore_close(db_spam, settings_gnet_db_dir(), db_spam_base);
 	db_spam = NULL;
