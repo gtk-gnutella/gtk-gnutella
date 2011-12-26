@@ -61,13 +61,16 @@ const char *iprange_strerror(iprange_err_t errnum);
 
 struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(
-	struct iprange_db *db, guint32 net, guint bits, guint16 value);
+	struct iprange_db *db, guint32 net, unsigned bits, guint16 value);
+iprange_err_t iprange_add_cidr6(
+	struct iprange_db *db, const guint8 *net, unsigned bits, guint16 value);
 guint16 iprange_get(const struct iprange_db *db, guint32 ip);
+guint16 iprange_get6(const struct iprange_db *db, const guint8 *ip6);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
 
-guint iprange_get_item_count(const struct iprange_db *idb);
-guint iprange_get_host_count(const struct iprange_db *idb);
+unsigned iprange_get_item_count(const struct iprange_db *idb);
+unsigned iprange_get_host_count(const struct iprange_db *idb);
 
 #endif	/* _iprange_h_ */
 
