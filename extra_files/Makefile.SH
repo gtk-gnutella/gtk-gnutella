@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-30]
-: $X-Id: Jmake.tmpl 30 2009-10-28 07:45:28Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-107]
+: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -56,12 +56,12 @@ SUBDIRS = el en ja
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 18 2006-12-27 10:35:09Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 15901 2009-01-16 17:56:49Z rmanfredi $
+# $X-Id$
 
 all::
 
@@ -69,6 +69,7 @@ EXTRA_FILES = \
 	bogons.txt \
 	favicon.png \
 	geo-ip.txt \
+	geo-ipv6.txt \
 	hostiles.txt \
 	robots.txt \
 	spam.txt \
@@ -145,7 +146,7 @@ local_deinstall::
 # Update the bogons and GeoIp databases
 #
 
-update: update_bogons update_geoip
+update: update_bogons update_geoip update_geoipv6
 
 update_bogons:
 # Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
@@ -158,6 +159,11 @@ update_geoip:
 	rm -f GeoIPCountryWhois.csv
 	unzip GeoIPCountryCSV.zip
 	$(TOP)/scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+
+update_geoipv6:
+	rm -f ipv6geodb.csv
+	wget http://www.tcpiputils.com/download/ipv6geodb.csv
+	$(TOP)/scripts/geo6-to-db.pl ipv6geodb.csv >geo-ipv6.txt
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
@@ -178,6 +184,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install sub_install
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man
@@ -207,6 +215,8 @@ tags::
 
 local_clobber::
 	$(RM) tags
+
+depend::
 
 ########################################################################
 # Rules for building in sub-directories -- do not edit

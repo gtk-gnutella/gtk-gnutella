@@ -140,6 +140,7 @@ extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
 extra_files/favicon.png      GTKG's favorite web icon
 extra_files/geo-ip.txt
+extra_files/geo-ipv6.txt
 extra_files/gtk-gnutella.128.png
 extra_files/gtk-gnutella.16.png
 extra_files/gtk-gnutella.256.png
@@ -240,6 +241,7 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/geo6-to-db.pl
 scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py

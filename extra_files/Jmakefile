@@ -33,6 +33,7 @@ EXTRA_FILES = \
 	bogons.txt \
 	favicon.png \
 	geo-ip.txt \
+	geo-ipv6.txt \
 	hostiles.txt \
 	robots.txt \
 	spam.txt \
@@ -58,7 +59,7 @@ SetSubdirs(el en ja)
 ;# Update the bogons and GeoIp databases
 ;#
 
-update: update_bogons update_geoip
+update: update_bogons update_geoip update_geoipv6
 
 update_bogons:
 ;# Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
@@ -71,4 +72,9 @@ update_geoip:
 	rm -f GeoIPCountryWhois.csv
 	unzip GeoIPCountryCSV.zip
 	$(TOP)/scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+
+update_geoipv6:
+	rm -f ipv6geodb.csv
+	wget http://www.tcpiputils.com/download/ipv6geodb.csv
+	$(TOP)/scripts/geo6-to-db.pl ipv6geodb.csv >geo-ipv6.txt
 
