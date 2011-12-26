@@ -252,8 +252,7 @@ hostiles_load(FILE *f, hostiles_t which)
 		}
 
 		bits = netmask_to_cidr(netmask);
-		error = iprange_add_cidr(hostile_db[which], ip, bits,
-					deconstify_gchar(hostile));
+		error = iprange_add_cidr(hostile_db[which], ip, bits, 1);
 
 		switch (error) {
 		case IPR_ERR_OK:
@@ -516,10 +515,7 @@ hostiles_static_check_ipv4(guint32 ipv4)
 		if (i == HOSTILE_GLOBAL && !GNET_PROPERTY(use_global_hostiles_txt))
 			continue;
 
-		if (
-			NULL != hostile_db[i] &&
-			NULL != iprange_get(hostile_db[i], ipv4)
-		)
+		if (NULL != hostile_db[i] && 0 != iprange_get(hostile_db[i], ipv4))
 			return TRUE;
 	}
 	return FALSE;

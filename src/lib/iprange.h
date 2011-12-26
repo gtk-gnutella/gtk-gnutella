@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
+ * IP address "database", associating a 16-bit token to a network range.
  *
  * @author Raphael Manfredi
  * @date 2004
@@ -61,8 +61,8 @@ const char *iprange_strerror(iprange_err_t errnum);
 
 struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(
-	struct iprange_db *db, guint32 net, guint bits, void *value);
-void *iprange_get(const struct iprange_db *db, guint32 ip);
+	struct iprange_db *db, guint32 net, guint bits, guint16 value);
+guint16 iprange_get(const struct iprange_db *db, guint32 ip);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
 

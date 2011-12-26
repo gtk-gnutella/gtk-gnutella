@@ -106,8 +106,7 @@ bogons_load(FILE *f)
 		}
 
 		bits = netmask_to_cidr(netmask);
-		error = iprange_add_cidr(bogons_db, ip, bits,
-					deconstify_gpointer(bogon));
+		error = iprange_add_cidr(bogons_db, ip, bits, 1);
 
 		switch (error) {
 		case IPR_ERR_OK:

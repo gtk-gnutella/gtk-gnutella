@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2011, Raphael Manfredi
+ * Copyright (c) 2007, Chritian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,11 +26,13 @@
  * @ingroup lib
  * @file
  *
- * Lookup IPv4 addresses from a set of IPv4 ranges defined
- * by a list of addresses in CIDR (Classless Internet Domain Routing) format.
+ * IP address "database", associating a 16-bit token to a network range.
+ *
+ * Lookup IP addresses from a set of IP ranges defined by a list of addresses
+ * in CIDR (Classless Internet Domain Routing) format.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2011
  * @author Christian Biere
  * @date 2007
  */
@@ -49,12 +52,12 @@ enum iprange_db_magic {
 };
 
 /**
- * A CIDR network description.
+ * A CIDR network description for IPv4 addresses.
  */
-struct iprange_net {
+struct iprange_net4 {
 	guint32 ip;		/**< The IP of the network */
 	guint32 mask;	/**< The network bit mask, selecting meaningful bits */
-	gpointer value;
+	guint16 value;	/**< Associated token value */
 };
 
 /*
@@ -99,9 +102,9 @@ iprange_strerror(iprange_err_t errnum)
 }
 
 static G_GNUC_HOT int
-iprange_net_cmp(const void *p, const void *q)
+iprange_net4_cmp(const void *p, const void *q)
 {
-	const struct iprange_net *a = p, *b = q;
+	const struct iprange_net4 *a = p, *b = q;
 	guint32 mask, a_key, b_key;
 
 	mask = a->mask & b->mask;
@@ -122,7 +125,7 @@ iprange_new(void)
 	WALLOC(idb);
 	*idb = zero_idb;
 	idb->magic = IPRANGE_DB_MAGIC;
-	idb->tab = sorted_array_new(sizeof(struct iprange_net), iprange_net_cmp);
+	idb->tab = sorted_array_new(sizeof(struct iprange_net4), iprange_net4_cmp);
 	return idb;
 }
 
@@ -151,19 +154,20 @@ iprange_free(struct iprange_db **idb_ptr)
  *
  * @param db	the IP range database
  * @param ip	the IPv4 address to lookup
- * @return The data associated with the IPv address or NULL if not found.
+ *
+ * @return The data associated with the IP address or 0 if not found.
  */
-void *
+guint16
 iprange_get(const struct iprange_db *idb, guint32 ip)
 {
-	struct iprange_net key, *item;
+	struct iprange_net4 key, *item;
 
 	iprange_db_check(idb);
 
 	key.ip = ip;
 	key.mask = cidr_to_netmask(32);
 	item = sorted_array_lookup(idb->tab, &key);
-	return item ? item->value : NULL;
+	return item != NULL ? item->value : 0;
 }
 
 /**
@@ -172,17 +176,18 @@ iprange_get(const struct iprange_db *idb, guint32 ip)
  * @param db	the IP range database
  * @param net	the network prefix
  * @param bits	the amount of bits in the network prefix
- * @param value	value associated to this IP network
+ * @param value	value associated to this IP network (must be non-zero)
  *
  * @return IPR_ERR_OK if successful, an error code otherwise.
  */
 iprange_err_t
 iprange_add_cidr(struct iprange_db *idb,
-	guint32 net, guint bits, void *value)
+	guint32 net, guint bits, guint16 value)
 {
-	struct iprange_net item;
+	struct iprange_net4 item;
 	
 	iprange_db_check(idb);
+	g_assert(value != 0);
 	g_return_val_if_fail(bits > 0, IPR_ERR_BAD_PREFIX);
 	g_return_val_if_fail(bits <= 32, IPR_ERR_BAD_PREFIX);
 
@@ -199,9 +204,9 @@ iprange_add_cidr(struct iprange_db *idb,
 }
 
 static inline int
-iprange_net_collision(const void *p, const void *q)
+iprange_net4_collision(const void *p, const void *q)
 {
-	const struct iprange_net *a = p, *b = q;
+	const struct iprange_net4 *a = p, *b = q;
 
 	g_warning("iprange_sync(): %s/0x%x overlaps with %s/0x%x",
 		ip_to_string(a->ip), a->mask,
@@ -222,7 +227,7 @@ void
 iprange_sync(struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	sorted_array_sync(idb->tab, iprange_net_collision);
+	sorted_array_sync(idb->tab, iprange_net4_collision);
 }
 
 /**
@@ -253,7 +258,7 @@ iprange_get_host_count(const struct iprange_db *idb)
 	n = iprange_get_item_count(idb);
 
 	for (i = 0; i < n; i++) {
-		struct iprange_net *item = sorted_array_item(idb->tab, i);
+		struct iprange_net4 *item = sorted_array_item(idb->tab, i);
 		hosts += ~item->mask + 1;
 	}
 	return hosts;

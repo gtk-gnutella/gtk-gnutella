@@ -81,16 +81,14 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 {
 	struct range_context *ctx = udata;
 	iprange_err_t error;
-	gpointer ccode;
-	guint cc;
+	guint16 cc;
 
 	if (GNET_PROPERTY(reload_debug) > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
 			ip_to_string(ip), bits, ctx->line);
 
 	cc = ctx->country;
-	ccode = GUINT_TO_POINTER(cc);
-	error = iprange_add_cidr(geo_db, ip, bits, ccode);
+	error = iprange_add_cidr(geo_db, ip, bits, cc);
 
 	switch (error) {
 	case IPR_ERR_OK:
@@ -217,7 +215,7 @@ gip_load(FILE *f)
 			continue;
 		}
 
-		/* code must no be zero and the LSB must be zero due to using it as
+		/* code must not be zero and the LSB must be zero due to using it as
 		 * as key for ipranges */
 		ctx.country = (code + 1) << 1;
 		ctx.line = line;
@@ -353,12 +351,12 @@ gip_country(const host_addr_t ha)
 		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
 		host_addr_tunnel_client(ha, &to)
 	) {
-		gpointer code;
+		guint16 code;
 		guint32 ip;
 
 		ip = host_addr_ipv4(to);
-		if (geo_db && NULL != (code = iprange_get(geo_db, ip)))
-			return (GPOINTER_TO_UINT(code) >> 1) - 1;
+		if (geo_db && 0 != (code = iprange_get(geo_db, ip)))
+			return (code >> 1) - 1;
 	}
 	return ISO3166_INVALID;
 }
