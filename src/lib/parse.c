@@ -153,6 +153,8 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 	guchar c = 0, last;
 	int dc_start = -1;
 	int error;
+	gboolean leading_bracket = FALSE;
+	gboolean ok = TRUE;
 
 	g_assert(s != NULL);
 
@@ -160,8 +162,9 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 	 * IPv6 address may also be formed like [2001::1].
 	 *	-- JA 24/7/2011
 	 */
-	/* FIXME: Should also check for leading ] */
+
 	if ('[' == *s) {
+		leading_bracket = TRUE;
 		p++;
 	}
 	
@@ -185,16 +188,12 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 			continue;
 		}
 
-		if (!is_ascii_xdigit(c)) {
-			/* "Expected hexdigit" */
-			break;
-		}
+		if (!is_ascii_xdigit(c))
+			break;		/* "Expected hexdigit" */
 
 		v = parse_uint32(p, &ep, 16, &error);
-		if (error || v > 0xffff) {
-			/* parse_uint32() failed */
-			break;
-		}
+		if (error || v > 0xffff)
+			break;		/* parse_uint32() failed */
 
 		if (*ep == '.' && i <= 12) {
 			guint32 ip;
@@ -204,8 +203,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 				poke_be32(&buf[i], ip);
 				i += 4;
 			}
-			/* IPv4 found */
-			break;
+			break;		/* IPv4 found */
 		}
 
 		buf[i++] = v >> 8;
@@ -213,16 +211,25 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 
 		p = ep;
 
-		if ('\0' == *p) {
-			/* NUL reached */
-			break;
-		}
+		if ('\0' == *p)
+			break;			/* NUL reached */
 
 		last = 0;
 	}
 
+	if (leading_bracket) {
+		if (']' == *p) {
+			p++;
+		} else {
+			ok = FALSE;		/* Missing closing ']' */
+		}
+	}
+
 	if (endptr)
 		*endptr = p;
+
+	if (!ok)
+		return FALSE;
 
 	if (dc_start >= 0) {
 		int z, n, j;
