@@ -290,6 +290,7 @@ guint32 html_decode_entity(const char *src, const char **endptr);
 const char *symbolic_errno(int errnum);
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
+int bitcmp(const void *s1, const void *s2, size_t n);
 
 unsigned pointer_hash_func(const void *p);
 
