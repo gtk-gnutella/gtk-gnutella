@@ -119,6 +119,7 @@ const char *pointer_to_string(const void *);
 const char *filesize_to_string(filesize_t);
 const char *filesize_to_string2(filesize_t);
 const char *ipv6_to_string(const guint8 *ipv6);
+const char *ipv6_to_string2(const guint8 *ipv6);
 size_t ipv6_to_string_buf(const guint8 *ipv6, char *dst, size_t size);
 
 char *hex_escape(const char *name, gboolean strict);

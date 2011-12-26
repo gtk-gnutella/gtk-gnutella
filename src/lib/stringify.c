@@ -246,6 +246,17 @@ ipv6_to_string(const guint8 *ipv6)
 }
 
 const char *
+ipv6_to_string2(const guint8 *ipv6)
+{
+	static char buf[IPV6_ADDR_BUFLEN];
+	size_t n;
+
+	n = ipv6_to_string_buf(ipv6, buf, sizeof buf);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
 ip_to_string(guint32 ip)
 {
 	static char buf[IPV4_ADDR_BUFLEN];
