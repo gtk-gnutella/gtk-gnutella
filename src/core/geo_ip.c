@@ -399,13 +399,4 @@ gip_country_cc(const host_addr_t ha)
 	return iso3166_country_cc(gip_country(ha));
 }
 
-/**
- * Returns the modification time of the loaded geo_ip file.
- */
-time_t
-gip_mtime(void)
-{
-	return geo_mtime;
-}
-
 /* vi: set ts=4 sw=4 cindent: */
