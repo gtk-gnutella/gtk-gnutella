@@ -241,6 +241,31 @@ iprange_get6(const struct iprange_db *idb, const guint8 *ip6)
 }
 
 /**
+ * Retrieve value associated with an IP address, i.e. that of the range
+ * containing it.
+ *
+ * @param db	the IP range database
+ * @param ha	the IP address to lookup
+ *
+ * @return The data associated with the IP address or 0 if not found.
+ */
+guint16
+iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha)
+{
+	host_addr_t to;
+
+	if (
+		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
+		host_addr_tunnel_client(ha, &to)
+	) {
+		return iprange_get(idb, host_addr_ipv4(to));
+	} else if (host_addr_is_ipv6(ha)) {
+		return iprange_get6(idb, host_addr_ipv6(&ha));
+	}
+	return 0;
+}
+
+/**
  * Add CIDR IPv4 network to the database.
  *
  * @param db	the IP range database
