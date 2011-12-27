@@ -78,6 +78,8 @@ struct iprange_db {
 	enum iprange_db_magic magic;	/**< Magic number */
 	struct sorted_array *tab4;		/**< IPv4 */
 	struct sorted_array *tab6;		/**< IPv6 */
+	unsigned tab4_unsorted:1;
+	unsigned tab6_unsorted:1;
 };
 
 static inline void
@@ -143,6 +145,7 @@ iprange_reset_ipv4(struct iprange_db *idb)
 
 	sorted_array_free(&idb->tab4);
 	idb->tab4 = sorted_array_new(sizeof(struct iprange_net4), iprange_net4_cmp);
+	idb->tab4_unsorted = FALSE;
 }
 
 /**
@@ -155,6 +158,7 @@ iprange_reset_ipv6(struct iprange_db *idb)
 
 	sorted_array_free(&idb->tab6);
 	idb->tab6 = sorted_array_new(sizeof(struct iprange_net6), iprange_net6_cmp);
+	idb->tab6_unsorted = FALSE;
 }
 
 /**
@@ -268,6 +272,7 @@ iprange_add_cidr(struct iprange_db *idb,
 		return IPR_ERR_BAD_PREFIX;
 	} else {
 		sorted_array_add(idb->tab4, &item);
+		idb->tab4_unsorted = TRUE;
 		return IPR_ERR_OK;
 	}
 }
@@ -319,6 +324,8 @@ iprange_add_cidr6(struct iprange_db *idb,
 	}
 
 	sorted_array_add(idb->tab6, &item);
+	idb->tab6_unsorted = TRUE;
+
 	return IPR_ERR_OK;
 }
 
@@ -357,36 +364,73 @@ void
 iprange_sync(struct iprange_db *idb)
 {
 	iprange_db_check(idb);
-	sorted_array_sync(idb->tab4, iprange_net4_collision);
-	sorted_array_sync(idb->tab6, iprange_net6_collision);
+
+	if (idb->tab4_unsorted) {
+		sorted_array_sync(idb->tab4, iprange_net4_collision);
+		idb->tab4_unsorted = FALSE;
+	}
+	if (idb->tab6_unsorted) {
+		sorted_array_sync(idb->tab6, iprange_net6_collision);
+		idb->tab6_unsorted = FALSE;
+	}
 }
 
 /**
  * Get the number of ranges in the database.
  *
  * @param db	the IP range database
- * @return The number of items.
+ *
+ * @return The total number of items.
  */
 unsigned
 iprange_get_item_count(const struct iprange_db *idb)
+{
+	iprange_db_check(idb);
+	return sorted_array_size(idb->tab4) + sorted_array_size(idb->tab6);
+}
+
+/**
+ * Get the number of IPv4 ranges in the database.
+ *
+ * @param db	the IP range database
+ *
+ * @return The number of IPv4 items.
+ */
+unsigned
+iprange_get_item_count4(const struct iprange_db *idb)
 {
 	iprange_db_check(idb);
 	return sorted_array_size(idb->tab4);
 }
 
 /**
+ * Get the number of IPv6 ranges in the database.
+ *
+ * @param db	the IP range database
+ *
+ * @return The total number of IPv6 items.
+ */
+unsigned
+iprange_get_item_count6(const struct iprange_db *idb)
+{
+	iprange_db_check(idb);
+	return sorted_array_size(idb->tab6);
+}
+
+/**
  * Calculate the number of hosts covered by the ranges in the database.
  *
  * @param db	the IP range database
- * @return The number of hosts listed.
+ *
+ * @return The number of IPv4 hosts listed.
  */
 unsigned
-iprange_get_host_count(const struct iprange_db *idb)
+iprange_get_host_count4(const struct iprange_db *idb)
 {
 	size_t i, n;
 	unsigned hosts = 0;
 
-	n = iprange_get_item_count(idb);
+	n = sorted_array_size(idb->tab4);
 
 	for (i = 0; i < n; i++) {
 		struct iprange_net4 *item = sorted_array_item(idb->tab4, i);

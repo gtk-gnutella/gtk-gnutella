@@ -72,7 +72,10 @@ void iprange_reset_ipv4(struct iprange_db *idb);
 void iprange_reset_ipv6(struct iprange_db *idb);
 
 unsigned iprange_get_item_count(const struct iprange_db *idb);
-unsigned iprange_get_host_count(const struct iprange_db *idb);
+unsigned iprange_get_item_count4(const struct iprange_db *idb);
+unsigned iprange_get_item_count6(const struct iprange_db *idb);
+
+unsigned iprange_get_host_count4(const struct iprange_db *idb);
 
 #endif	/* _iprange_h_ */
 

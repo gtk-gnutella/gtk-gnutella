@@ -282,7 +282,7 @@ hostiles_load(FILE *f, hostiles_t which)
 	if (GNET_PROPERTY(reload_debug)) {
 		g_debug("loaded %u addresses/netmasks from %s (%u hosts)",
 			iprange_get_item_count(hostile_db[which]), hostiles_what[which],
-			iprange_get_host_count(hostile_db[which]));
+			iprange_get_host_count4(hostile_db[which]));
 	}
 	return iprange_get_item_count(hostile_db[which]);
 }
