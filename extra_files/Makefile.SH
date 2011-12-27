@@ -161,9 +161,11 @@ update_geoip:
 	$(TOP)/scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
 
 update_geoipv6:
-	rm -f ipv6geodb.csv
-	wget http://www.tcpiputils.com/download/ipv6geodb.csv
-	$(TOP)/scripts/geo6-to-db.pl ipv6geodb.csv >geo-ipv6.txt
+	rm -f GeoIPv6.csv.gz
+	wget http://geolite.maxmind.com/download/geoip/database/GeoIPv6.csv.gz
+	rm -f GeoIPv6.csv
+	gunzip GeoIPv6.csv.gz
+	$(TOP)/scripts/geo6-to-db.pl -g GeoIPv6.csv >geo-ipv6.txt
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
