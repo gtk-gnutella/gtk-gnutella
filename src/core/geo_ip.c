@@ -474,27 +474,14 @@ gip_close(void)
 guint16
 gip_country(const host_addr_t ha)
 {
-	host_addr_t to;
+	guint16 code;
 
-	if (
-		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
-		host_addr_tunnel_client(ha, &to)
-	) {
-		guint16 code;
-		guint32 ip;
+	if G_UNLIKELY(NULL == geo_db)
+		return ISO3166_INVALID;
+		
+	code = iprange_get_addr(geo_db, ha);
 
-		ip = host_addr_ipv4(to);
-		if (geo_db != NULL && 0 != (code = iprange_get(geo_db, ip)))
-			return (code >> 1) - 1;
-	} else if (host_addr_is_ipv6(ha)) {
-		guint16 code;
-		const guint8 *ip6;
-
-		ip6 = host_addr_ipv6(&ha);
-		if (geo_db != NULL && 0 != (code = iprange_get6(geo_db, ip6)))
-			return (code >> 1) - 1;
-	}
-	return ISO3166_INVALID;
+	return 0 == code ? ISO3166_INVALID : (code >> 1) - 1;
 }
 
 /**

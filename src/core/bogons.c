@@ -232,6 +232,9 @@ bogons_close(void)
 gboolean
 bogons_check(const host_addr_t ha)
 {
+	if G_UNLIKELY(NULL == bogons_db)
+		return FALSE;
+
 	/*
 	 * If the bogons file is too ancient, there is a risk it may flag an
 	 * IP as bogus whereas it is no longer reserved.  IPv4 address shortage
@@ -242,21 +245,7 @@ bogons_check(const host_addr_t ha)
 	if (delta_time(tm_time(), bogons_mtime) > 15552000)	/* ~6 months */
 		return !host_addr_is_routable(ha);
 
-	if (host_addr_is_ipv4(ha)) {
-		guint32 ip = host_addr_ipv4(ha);
-		return bogons_db && iprange_get(bogons_db, ip);
-	} else if (host_addr_is_ipv6(ha)) {
-		host_addr_t to;
-
-		if (host_addr_convert(ha, &to, NET_TYPE_IPV4)) {
-			return bogons_check(to);
-		} else {
-			const guint8 *ip6 = host_addr_ipv6(&ha);
-			return bogons_db && iprange_get6(bogons_db, ip6);
-		}
-	}
-
-	return FALSE;
+	return 0 != iprange_get_addr(bogons_db, ha);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
