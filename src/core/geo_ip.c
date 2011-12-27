@@ -282,7 +282,7 @@ gip_parse_ipv6(const char *line, int linenum)
 		return;
 	}
 
-	error = iprange_add_cidr6(geo_db, ip, bits, code);
+	error = iprange_add_cidr6(geo_db, ip, bits, (code + 1) << 1);
 
 	if (IPR_ERR_OK != error) {
 		g_warning("%s, line %d: cannot insert %s/%u: %s",
