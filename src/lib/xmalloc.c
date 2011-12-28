@@ -327,14 +327,12 @@ static void *current_break;			/**< Current known heap break */
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
-static void xmalloc_freelist_add(void *p, size_t len,
-	const struct xfreelist *locked, guint32 coalesce);
+static void xmalloc_freelist_add(void *p, size_t len, guint32 coalesce);
 static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
 static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
-static void xmalloc_freelist_insert(void *p, size_t len,
-	const struct xfreelist *locked, guint32 coalesce);
+static void xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce);
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
 	size_t size, gboolean core, size_t *allocated);
 static void xmalloc_crash_hook(void);
@@ -875,7 +873,7 @@ xfl_shrink(struct xfreelist *fl)
 				"freelist #%zu", new_ptr, allocated_size, xfl_index(fl));
 		}
 
-		xmalloc_freelist_add(new_ptr, allocated_size, fl, XM_COALESCE_ALL);
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
 		return;
 	}
 
@@ -896,7 +894,7 @@ xfl_shrink(struct xfreelist *fl)
 				"freelist #%zu: same size as old bucket",
 				new_ptr, allocated_size, xfl_index(fl));
 		}
-		xmalloc_freelist_add(new_ptr, allocated_size, fl, XM_COALESCE_ALL);
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
 		return;
 	}
 
@@ -922,7 +920,7 @@ xfl_shrink(struct xfreelist *fl)
 	 * we just shrank.
 	 */
 
-	xmalloc_freelist_add(old_ptr, old_size, fl, XM_COALESCE_ALL);
+	xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 }
 
 /*
@@ -1146,8 +1144,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_insert(split, split_len,
-					NULL, XM_COALESCE_NONE);
+				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 				blksize = len;		/* We shrank the allocted block */
 			} else {
 				xstats.freelist_nosplit++;
@@ -1292,7 +1289,7 @@ xfl_extend(struct xfreelist *fl)
 				"freelist #%zu", new_ptr, allocated_size, xfl_index(fl));
 		}
 
-		xmalloc_freelist_add(new_ptr, allocated_size, NULL, XM_COALESCE_ALL);
+		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
 		return;
 	}
 
@@ -1336,7 +1333,7 @@ xfl_extend(struct xfreelist *fl)
 	 */
 
 	if (old_ptr != NULL) {
-		xmalloc_freelist_add(old_ptr, old_size, NULL, XM_COALESCE_ALL);
+		xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 	}
 }
 
@@ -1445,14 +1442,12 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
  * Insert address in the free list.
  */
 static void
-xfl_insert(struct xfreelist *fl, void *p, const struct xfreelist *locked)
+xfl_insert(struct xfreelist *fl, void *p)
 {
 	size_t idx;
-	gboolean need_mutex;
 
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
-	g_assert(NULL == locked || mutex_is_owned(&locked->lock));
 
 	/*
 	 * Since the extension can use the freelist's own blocks, it could
@@ -1464,10 +1459,13 @@ xfl_insert(struct xfreelist *fl, void *p, const struct xfreelist *locked)
 	while (fl->count >= fl->capacity)
 		xfl_extend(fl);
 
-	need_mutex = NULL == locked || locked != fl;
+	/*
+	 * We use a mutex and not a plain spinlock because we can recurse here
+	 * through freelist bucket allocations.  A mutex allows us to relock
+	 * an object we already locked in the same thread.
+	 */
 
-	if (need_mutex)
-		mutex_get(&fl->lock);
+	mutex_get(&fl->lock);
 
 	/*
 	 * Compute insertion index in the sorted array.
@@ -1477,8 +1475,7 @@ xfl_insert(struct xfreelist *fl, void *p, const struct xfreelist *locked)
 	 */
 
 	if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
-		if (need_mutex)
-			mutex_release(&fl->lock);
+		mutex_release(&fl->lock);
 		t_error_from(_WHERE_, NULL,
 			"block %p already in free list #%zu (%zu bytes)",
 			p, xfl_index(fl), fl->blocksize);
@@ -1538,8 +1535,7 @@ xfl_insert(struct xfreelist *fl, void *p, const struct xfreelist *locked)
 			p, xfl_index(fl), fl->blocksize);
 	}
 
-	if (need_mutex)
-		mutex_release(&fl->lock);
+	mutex_release(&fl->lock);
 }
 
 /**
@@ -1890,8 +1886,7 @@ xmalloc_free_pages(void *p, size_t len,
  * Insert block in free list, with optional block coalescing.
  */
 static void
-xmalloc_freelist_insert(void *p, size_t len,
-	const struct xfreelist *locked, guint32 coalesce)
+xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
 {
 	struct xfreelist *fl;
 
@@ -1932,7 +1927,7 @@ xmalloc_freelist_insert(void *p, size_t len,
 				fl = &xfreelist[XMALLOC_FREELIST_COUNT - 2];
 			}
 
-			xfl_insert(fl, p, locked);
+			xfl_insert(fl, p);
 			p = ptr_add_offset(p, fl->blocksize);
 			len -= fl->blocksize;
 		}
@@ -1977,7 +1972,7 @@ xmalloc_freelist_insert(void *p, size_t len,
 			}
 
 			fl = xfl_find_freelist(multiple);
-			xfl_insert(fl, p, locked);
+			xfl_insert(fl, p);
 			p = ptr_add_offset(p, multiple);
 			len -= multiple;
 		}
@@ -2025,15 +2020,14 @@ xmalloc_freelist_insert(void *p, size_t len,
 	}
 
 	fl = xfl_find_freelist(len);
-	xfl_insert(fl, p, locked);
+	xfl_insert(fl, p);
 }
 
 /**
  * Add memory chunk to free list, possibly releasing core.
  */
 static void
-xmalloc_freelist_add(void *p, size_t len,
-	const struct xfreelist *locked, guint32 coalesce)
+xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
 {
 	gboolean coalesced = FALSE;
 
@@ -2120,12 +2114,10 @@ xmalloc_freelist_add(void *p, size_t len,
 				}
 				if (coalesce & XM_COALESCE_BEFORE) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(head, head_len,
-						locked, XM_COALESCE_NONE);
+					xmalloc_freelist_insert(head, head_len, XM_COALESCE_NONE);
 				} else {
 					/* Maybe there is enough before to free core again? */
-					xmalloc_freelist_add(head, head_len,
-						locked, XM_COALESCE_BEFORE);
+					xmalloc_freelist_add(head, head_len, XM_COALESCE_BEFORE);
 				}
 			}
 			if (tail_len != 0) {
@@ -2137,12 +2129,10 @@ xmalloc_freelist_add(void *p, size_t len,
 				}
 				if (coalesce & XM_COALESCE_AFTER) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(tail, tail_len,
-						locked, XM_COALESCE_NONE);
+					xmalloc_freelist_insert(tail, tail_len, XM_COALESCE_NONE);
 				} else {
 					/* Maybe there is enough after to free core again? */
-					xmalloc_freelist_add(head, head_len,
-						locked, XM_COALESCE_AFTER);
+					xmalloc_freelist_add(head, head_len, XM_COALESCE_AFTER);
 				}
 			}
 			return;
@@ -2157,7 +2147,7 @@ xmalloc_freelist_add(void *p, size_t len,
 	 * as much as possible.
 	 */
 
-	xmalloc_freelist_insert(p, len, locked, XM_COALESCE_NONE);
+	xmalloc_freelist_insert(p, len, XM_COALESCE_NONE);
 }
 
 /**
@@ -2215,8 +2205,7 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_insert(split, split_len,
-					NULL, XM_COALESCE_NONE);
+				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
 			} else {
 				if (xmalloc_debugging(3)) {
 					t_debug(NULL, "XM NOT splitting large %zu-byte block at %p"
@@ -2437,7 +2426,7 @@ xallocate(size_t size, gboolean can_walloc)
 			if (xmalloc_should_split(pagesize, len)) {
 				void *split = ptr_add_offset(p, len);
 				xmalloc_freelist_insert(split,
-					pagesize - len, NULL, XM_COALESCE_AFTER);
+					pagesize - len, XM_COALESCE_AFTER);
 				xstats.vmm_split_pages++;
 				return xmalloc_block_setup(p, len);
 			} else {
@@ -2661,8 +2650,7 @@ xfree(void *p)
 	xstats.user_blocks--;
 	memusage_remove(xstats.user_mem, xh->length);
 
-	xmalloc_freelist_add(xh, xh->length,
-		NULL, XM_COALESCE_ALL | XM_COALESCE_SMART);
+	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL | XM_COALESCE_SMART);
 }
 
 /**
@@ -2866,7 +2854,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 					xh->length, (void *) xh, newlen, end);
 			}
 
-			xmalloc_freelist_add(end, extra, NULL, XM_COALESCE_AFTER);
+			xmalloc_freelist_add(end, extra, XM_COALESCE_AFTER);
 			xstats.realloc_inplace_shrinking++;
 			xstats.user_memory -= extra;
 			memusage_remove(xstats.user_mem, extra);
@@ -2981,7 +2969,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_add(split, split_len, NULL, XM_COALESCE_AFTER);
+				xmalloc_freelist_add(split, split_len, XM_COALESCE_AFTER);
 			} else {
 				/* Actual size ends up being larger than requested */
 				newlen = ptr_diff(end, xh);
@@ -3086,7 +3074,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_add(split, split_len, NULL, XM_COALESCE_AFTER);
+				xmalloc_freelist_add(split, split_len, XM_COALESCE_AFTER);
 			} else {
 				/* Actual size ends up being larger than requested */
 				newlen = ptr_diff(end, xh);
@@ -4415,8 +4403,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			g_assert(size_is_non_negative(split_len));
 
 			if (split_len >= XMALLOC_SPLIT_MIN) {
-				xmalloc_freelist_insert(split, split_len,
-					NULL, XM_COALESCE_AFTER);
+				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
 				truncation = TRUNCATION_AFTER;
 			} else {
 				blen = ptr_diff(end, p);
@@ -4451,7 +4438,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				g_assert(before >= XMALLOC_SPLIT_MIN);
 
 				/* Beginning of block, in excess */
-				xmalloc_freelist_insert(p, before, NULL, XM_COALESCE_BEFORE);
+				xmalloc_freelist_insert(p, before, XM_COALESCE_BEFORE);
 				truncation |= TRUNCATION_BEFORE;
 			}
 
@@ -4462,8 +4449,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 				if (after >= XMALLOC_SPLIT_MIN) {
 					/* End of block, in excess */
-					xmalloc_freelist_insert(uend, after,
-						NULL, XM_COALESCE_AFTER);
+					xmalloc_freelist_insert(uend, after, XM_COALESCE_AFTER);
 					truncation |= TRUNCATION_AFTER;
 				} else {
 					blen += after;	/* Not truncated */
