@@ -139,6 +139,10 @@ spinlock_init(spinlock_t *s)
 
 	s->magic = SPINLOCK_MAGIC;
 	s->lock = 0;
+#ifdef SPINLOCK_DEBUG
+	s->file = NULL;
+	s->line = 0;
+#endif
 }
 
 /**
