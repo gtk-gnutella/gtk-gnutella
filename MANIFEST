@@ -554,6 +554,7 @@ src/lib/arc4random.h
 src/lib/array.h
 src/lib/ascii.c
 src/lib/ascii.h
+src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
 src/lib/base16.c
@@ -745,6 +746,8 @@ src/lib/slist.c
 src/lib/slist.h
 src/lib/sorted_array.c
 src/lib/sorted_array.h
+src/lib/spinlock.c
+src/lib/spinlock.h
 src/lib/stacktrace.c
 src/lib/stacktrace.h
 src/lib/stats.c

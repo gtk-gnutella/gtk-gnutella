@@ -572,6 +572,14 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_strlcpy HAS_STRLCPY		/**/
 
+/* HAS_SYNC_ATOMIC:
+ *	This symbol, if defined, indicates that __sync_xxx() atomic operations
+ *	are made available by the compiler, namely __sync_synchronize() to
+ *	issue a memory barrieer, __sync_bool_compare_and_swap() for issuing a
+ *	test-and-set and __sync_fetch_and_add() for atomic increases of values.
+ */
+#$d_sync_atomic HAS_SYNC_ATOMIC	/**/
+
 /* HAS_SYSCTL:
  *	This symbol, if defined, indicates that the sysctl routine is
  *	available.
