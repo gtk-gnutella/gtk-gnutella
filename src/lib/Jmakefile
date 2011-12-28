@@ -114,6 +114,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	mutex.c \
 	nid.c \
 	nv.c \
 	offtime.c \

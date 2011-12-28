@@ -694,6 +694,8 @@ src/lib/mingw32.c
 src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
+src/lib/mutex.c
+src/lib/mutex.h
 src/lib/nid.c
 src/lib/nid.h
 src/lib/nv.c
