@@ -54,18 +54,6 @@ spinlock_check(const volatile struct spinlock * const slock)
 }
 
 /**
- * Attempt to acquire the lock.
- *
- * @return TRUE if lock was acquired.
- */
-static inline gboolean
-spinlock_acquire(volatile int *lock)
-{
-	atomic_mb();
-	return atomic_test_and_set(lock);
-}
-
-/**
  * Warn of possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
@@ -104,7 +92,7 @@ spinlock_loop(volatile spinlock_t *s, int loops)
 					i);
 			}
 
-			if (spinlock_acquire(&s->lock)) {
+			if (atomic_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
 					s_minilog(G_LOG_LEVEL_INFO,
@@ -170,7 +158,7 @@ spinlock_destroy(spinlock_t *s)
 {
 	spinlock_check(s);
 
-	if (spinlock_acquire(&s->lock)) {
+	if (atomic_acquire(&s->lock)) {
 		g_assert(SPINLOCK_MAGIC == s->magic);
 	}
 
@@ -197,7 +185,7 @@ spinlock_grab_try(spinlock_t *s)
 {
 	spinlock_check(s);
 
-	return spinlock_acquire(&s->lock);
+	return atomic_acquire(&s->lock);
 }
 
 #ifdef SPINLOCK_DEBUG
@@ -222,7 +210,7 @@ spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line)
 {
 	spinlock_check(s);
 
-	if (spinlock_acquire(&s->lock)) {
+	if (atomic_acquire(&s->lock)) {
 		s->file = file;
 		s->line = line;
 		return TRUE;

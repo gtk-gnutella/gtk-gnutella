@@ -62,6 +62,18 @@ atomic_test_and_set(volatile int *p)
 #define atomic_ops_available()		0
 #endif	/* HAS_SYNC_ATOMIC */
 
+/**
+ * Attempt to acquire the lock.
+ *
+ * @return TRUE if lock was acquired.
+ */
+static inline gboolean
+atomic_acquire(volatile int *lock)
+{
+	atomic_mb();
+	return atomic_test_and_set(lock);
+}
+
 #endif /* _atomic_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
