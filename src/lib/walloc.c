@@ -37,7 +37,7 @@
 #include "halloc.h"
 #include "log.h"
 #include "pow2.h"
-#include "unsigned.h"
+#include "spinlock.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
@@ -120,6 +120,7 @@ wzone_get(size_t rounded)
 G_GNUC_HOT gpointer
 walloc(size_t size)
 {
+	static spinlock_t walloc_slk = SPINLOCK_INIT;
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
 	size_t idx;
@@ -133,8 +134,19 @@ walloc(size_t size)
 
 	idx = wzone_index(rounded);
 
-	if (!(zone = wzone[idx]))
-		zone = wzone[idx] = wzone_get(rounded);
+	/*
+	 * Must be made thread-safe because xmalloc() uses walloc() and when
+	 * xmalloc() replaces the system malloc(), we can be in a multi-threaded
+	 * environment due to GTK.
+	 *		--RAM, 2011-12-28
+	 */
+
+	if (NULL == (zone = wzone[idx])) {
+		spinlock(&walloc_slk);
+		if (NULL == (zone = wzone[idx]))
+			zone = wzone[idx] = wzone_get(rounded);
+		spinunlock(&walloc_slk);
+	}
 
 	return zalloc(zone);
 }
