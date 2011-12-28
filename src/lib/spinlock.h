@@ -38,7 +38,10 @@
 #define SPINLOCK_DEBUG
 #endif
 
-enum spinlock_magic { SPINLOCK_MAGIC = 0x3918493e };
+enum spinlock_magic {
+	SPINLOCK_MAGIC = 0x3918493e,
+	SPINLOCK_DESTROYED = 0x132842f9
+};
 
 /**
  * A spinlock is just a memory location holding an integer value.
@@ -87,6 +90,7 @@ gboolean spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 #endif	/* SPINLOCK_DEBUG */
 
 void spinlock_init(spinlock_t *s);
+void spinlock_destroy(spinlock_t *s);
 void spinunlock(spinlock_t *s);
 gboolean spinlock_is_held(const spinlock_t *s);
 

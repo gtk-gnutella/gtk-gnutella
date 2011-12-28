@@ -1193,7 +1193,7 @@ zdestroy(zone_t *zone)
 		spinunlock(&zalloc_global_slk);
 	}
 
-	spinunlock(&zone->lock);
+	spinlock_destroy(&zone->lock);
 	xfree(zone);
 }
 
@@ -2175,7 +2175,7 @@ zgc_dispose(zone_t *zone)
 	 */
 
 	xfree(zg->zg_subzinfo);
-	spinunlock(&zg->lock);
+	spinlock_destroy(&zg->lock);
 	xfree(zg);
 	zone->zn_gc = NULL;			/* Back to regular zalloc() */
 	zgc_zone_cnt--;

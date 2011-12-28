@@ -47,7 +47,7 @@
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
 static inline void
-spinlock_check(const struct spinlock * const slock)
+spinlock_check(const volatile struct spinlock * const slock)
 {
 	g_assert(slock != NULL);
 	g_assert(SPINLOCK_MAGIC == slock->magic);
@@ -71,7 +71,7 @@ spinlock_acquire(volatile int *lock)
  * Don't inline to provide a suitable breakpoint.
  */
 static NO_INLINE void
-spinlock_deadlock(const spinlock_t *s, unsigned count)
+spinlock_deadlock(const volatile spinlock_t *s, unsigned count)
 {
 #ifdef SPINLOCK_DEBUG
 	s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p already held by %s:%u",
@@ -85,7 +85,7 @@ spinlock_deadlock(const spinlock_t *s, unsigned count)
  * Obtain a lock, spinning first then spleeping.
  */
 static void
-spinlock_loop(spinlock_t *s, int loops)
+spinlock_loop(volatile spinlock_t *s, int loops)
 {
 	unsigned i;
 	time_t start = 0;
@@ -97,6 +97,13 @@ spinlock_loop(spinlock_t *s, int loops)
 		int j;
 
 		for (j = 0; j < loops; j++) {
+			if G_UNLIKELY(SPINLOCK_MAGIC != s->magic) {
+				s_error("spinlock %p %s whilst waiting, at attempt #%u",
+					(void *) s,
+					SPINLOCK_DESTROYED == s->magic ? "destroyed" : "corrupted",
+					i);
+			}
+
 			if (spinlock_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
@@ -143,6 +150,32 @@ spinlock_init(spinlock_t *s)
 	s->file = NULL;
 	s->line = 0;
 #endif
+	atomic_mb();
+}
+
+/**
+ * Destroy a spinlock.
+ *
+ * It is not necessary to hold the lock on the spinlock to do this, although
+ * one must be careful to not destroy a spinlock that could be used by another
+ * thread.
+ *
+ * If not already locked, the spinlock is grabbed before being destroyed to
+ * make sure nobody attempts to grab it whilst we're invalidating it.
+ *
+ * Any further attempt to use this spinlock will cause an assertion failure.
+ */
+void
+spinlock_destroy(spinlock_t *s)
+{
+	spinlock_check(s);
+
+	if (spinlock_acquire(&s->lock)) {
+		g_assert(SPINLOCK_MAGIC == s->magic);
+	}
+
+	s->magic = SPINLOCK_DESTROYED;		/* Now invalid */
+	atomic_mb();
 }
 
 /**
