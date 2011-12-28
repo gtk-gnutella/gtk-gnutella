@@ -76,6 +76,7 @@
 #include "common.h"
 
 #include "crash.h"
+#include "atomic.h"
 #include "ckalloc.h"
 #include "compat_sleep_ms.h"
 #include "fast_assert.h"
@@ -1086,6 +1087,12 @@ retry_child:
 				print_str(vars->message);			/* 4 */
 				print_str("\n");					/* 5 */
 			}
+			flush_str(clf);
+
+			rewind_str(0);
+			print_str("Atomic-Operations: ");					/* 0 */
+			print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
+			print_str("\n");									/* 2 */
 			flush_str(clf);
 
 			rewind_str(0);

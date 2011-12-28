@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-103]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-107]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -74,7 +74,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -196,6 +196,7 @@ LSRC = \
 	signal.c \
 	slist.c \
 	sorted_array.c \
+	spinlock.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
@@ -316,6 +317,7 @@ LOBJ = \
 	signal.o \
 	slist.o \
 	sorted_array.o \
+	spinlock.o \
 	stacktrace.o \
 	stats.o \
 	str.o \
@@ -449,6 +451,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man

@@ -139,6 +139,7 @@ LSRC = \
 	signal.c \
 	slist.c \
 	sorted_array.c \
+	spinlock.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
