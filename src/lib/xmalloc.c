@@ -252,6 +252,7 @@ static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 /**
  * Internal statistics collected.
  */
+/* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
 static struct {
 	guint64 allocations;				/**< Total # of allocations */
 	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
@@ -1528,6 +1529,7 @@ xfl_insert(struct xfreelist *fl, void *p, const struct xfreelist *locked)
 	 * beginning of the block itself.
 	 */
 
+	/* FIXME: may need atomicity or memory barrier --RAM, 2011-12-28 */
 	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {

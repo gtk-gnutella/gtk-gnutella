@@ -298,6 +298,7 @@ static void *z_leakset;
 /**
  * Internal statistics collected.
  */
+/* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
 static struct {
 	guint64 allocations;			/**< Total amount of allocations */
 	guint64 freeings;				/**< Total amount of freeings */
@@ -1164,6 +1165,7 @@ zdestroy(zone_t *zone)
 
 	spinlock(&zone->lock);
 
+	/* FIXME: add atomic decrement -- RAM, 2011-12-28 */
 	if (zone->zn_refcnt-- > 1) {
 		spinunlock(&zone->lock);
 		return;
@@ -1234,6 +1236,7 @@ zget(size_t size, unsigned hint)
 
 	if G_LIKELY(zone != NULL) {
 		spinlock(&zone->lock);
+		/* FIXME: add atomic increment -- RAM, 2011-12-28 */
 		zone->zn_refcnt++;
 		spinunlock(&zone->lock);
 		goto found;					/* Found a zone for matching size! */
