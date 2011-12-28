@@ -3436,8 +3436,10 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		bytes += fl->blocksize * fl->count;
 		blocks = size_saturate_add(blocks, fl->count);
 
-		log_info(la, "XM freelist #%zu (%zu bytes): capacity=%zu, count=%zu",
-			i, fl->blocksize, fl->capacity, fl->count);
+		log_info(la, "XM freelist #%zu (%zu bytes): capacity=%zu, count=%zu, "
+			"lock=%zu",
+			i, fl->blocksize, fl->capacity, fl->count,
+			mutex_held_depth(&fl->lock));
 	}
 
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",

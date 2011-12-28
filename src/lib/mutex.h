@@ -96,6 +96,7 @@ void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
 void mutex_release(mutex_t *m);
 gboolean mutex_is_owned(const mutex_t *m);
+size_t mutex_held_depth(const mutex_t *m);
 
 #ifdef I_PTHREAD
 #include <pthread.h>

@@ -276,4 +276,17 @@ mutex_release(mutex_t *m)
 	atomic_mb();
 }
 
+/**
+ * Check whether someone holds the mutex and at which depth.
+ *
+ * @return the depth at which the mutex belongs to a thread.
+ */
+size_t
+mutex_held_depth(const mutex_t *m)
+{
+	mutex_check(m);
+
+	return 0 == m->lock ? 0 : m->depth;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
