@@ -2493,8 +2493,12 @@ spot_oversized_zone(zone_t *zone)
 				zn_shrink(zone);
 			} else {
 				zgc_allocate(zone);
-				if (1 == zone->zn_subzones && !zgc_always(zone))
+				spinlock(&zone->zn_gc->lock);
+				if (1 == zone->zn_subzones && !zgc_always(zone)) {
 					zgc_dispose(zone);
+				} else {
+					spinunlock(&zone->zn_gc->lock);
+				}
 			}
 
 			if (zalloc_debugging(4)) {
