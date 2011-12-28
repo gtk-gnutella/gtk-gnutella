@@ -770,6 +770,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_poll I_POLL	/**/
 
+/* I_PTHREAD:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <pthread.h> for POSIX threads.
+ */
+#$i_pthread I_PTHREAD		/**/
+
 /* I_PWD:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <pwd.h>.
