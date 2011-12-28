@@ -54,7 +54,7 @@ spinlock_check(const volatile struct spinlock * const slock)
 }
 
 /**
- * Warn of possible deadlock condition.
+ * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */

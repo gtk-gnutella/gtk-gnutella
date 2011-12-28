@@ -54,7 +54,7 @@ mutex_check(const volatile struct mutex * const mutex)
 }
 
 /**
- * Warn of possible deadlock condition.
+ * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
