@@ -113,6 +113,7 @@ ckinit(size_t size, size_t reserved, gboolean leaking)
 
 	arena = leaking ? vmm_alloc(size) : vmm_alloc_not_leaking(size);
 	ck = arena;
+	ZERO(&ck);
 	ck->magic = CKHUNK_MAGIC;
 	ck->size = round_pagesize(size);	/* Size allocated by the VMM layer */
 	ck->reserved = reserved;
