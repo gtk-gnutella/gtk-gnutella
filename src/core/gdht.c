@@ -185,11 +185,12 @@ gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
 static const char *
 value_infostr(const lookup_val_rc_t *rc)
 {
-	static char info[60];
+	static char info[64];
 
-	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s)",
+	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
-		(gulong) rc->length, 1 == rc->length ? "" : "s");
+		(gulong) rc->length, 1 == rc->length ? "" : "s",
+		vendor_to_string(rc->vcode));
 
 	return info;
 }
