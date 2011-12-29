@@ -37,6 +37,7 @@
 #include "atomic.h"
 #include "compat_sleep_ms.h"
 #include "log.h"
+#include "thread.h"
 #include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -150,9 +151,12 @@ mutex_init(mutex_t *m)
 gboolean
 mutex_is_owned(const mutex_t *m)
 {
+	thread_t t;
+
 	mutex_check(m);
 
-	return m->lock && mutex_current_thread() == m->owner;
+	t = thread_current();
+	return m->lock && thread_eq(t, m->owner);
 }
 
 /**
@@ -190,13 +194,15 @@ mutex_grab(mutex_t *m)
 	mutex_check(m);
 
 	if (atomic_acquire(&m->lock)) {
-		m->owner = mutex_current_thread();
+		thread_t t = thread_current();
+		thread_set(m->owner, t);
 		m->depth = 1;
 	} else if (mutex_is_owned(m)) {
 		m->depth++;
 	} else {
+		thread_t t = thread_current();
 		mutex_loop(m, MUTEX_LOOP);
-		m->owner = mutex_current_thread();
+		thread_set(m->owner, t);
 		m->depth = 1;
 	}
 	atomic_mb();
@@ -213,7 +219,8 @@ mutex_grab_try(mutex_t *m)
 	mutex_check(m);
 
 	if (atomic_acquire(&m->lock)) {
-		m->owner = mutex_current_thread();
+		thread_t t = thread_current();
+		thread_set(m->owner, t);
 		m->depth = 1;
 	} else if (mutex_is_owned(m)) {
 		m->depth++;
@@ -274,6 +281,20 @@ mutex_release(mutex_t *m)
 		m->lock = 0;
 	}
 	atomic_mb();
+}
+
+/**
+ * Convenience routine for locks that are part of a "const" structure.
+ */
+void
+mutex_release_const(const mutex_t *m)
+{
+	/*
+	 * A lock is not part of the abstract data type, so it's OK to
+	 * de-constify it now: no mutex is really read-only.
+	 */
+
+	mutex_release(deconstify_gpointer(m));
 }
 
 /**

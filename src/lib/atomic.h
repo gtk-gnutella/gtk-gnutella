@@ -45,10 +45,39 @@
 
 #ifdef HAS_SYNC_ATOMIC
 #define atomic_mb()					__sync_synchronize()
-#define atomic_test_and_set(p)		__sync_bool_compare_and_swap((p), 0, 1)
 #define atomic_ops_available()		1
+
+static inline ALWAYS_INLINE gboolean
+atomic_test_and_set(volatile int *p)
+{
+	return __sync_bool_compare_and_swap((p), 0, 1);
+}
+
+static inline ALWAYS_INLINE void
+atomic_int_inc(int *p)
+{
+	(void) __sync_fetch_and_add(p, 1);
+}
+
+static inline ALWAYS_INLINE void
+atomic_uint_inc(unsigned *p)
+{
+	(void) __sync_fetch_and_add(p, 1);
+}
+
+static inline ALWAYS_INLINE gboolean
+atomic_int_dec_is_zero(int *p)
+{
+	return 1 == __sync_fetch_and_sub(p, 1);
+}
+
+static inline ALWAYS_INLINE gboolean
+atomic_uint_dec_is_zero(unsigned *p)
+{
+	return 1 == __sync_fetch_and_sub(p, 1);
+}
 #else	/* !HAS_SYNC_ATOMIC */
-#define atomic_mb()
+#define atomic_mb()					(void) 0
 
 static inline gboolean
 atomic_test_and_set(volatile int *p)
@@ -59,6 +88,10 @@ atomic_test_and_set(volatile int *p)
 	return ok;
 }
 
+#define atomic_int_inc(p)			((*(p))++)
+#define atomic_uint_inc(p)			((*(p))++)
+#define atomic_int_dec_is_zero(p)	(0 == --(*(p)))
+#define atomic_uint_dec_is_zero(p)	(0 == --(*(p)))
 #define atomic_ops_available()		0
 #endif	/* HAS_SYNC_ATOMIC */
 

@@ -148,6 +148,7 @@ LSRC = \
 	strtok.c \
 	symtab.c \
 	tea.c \
+	thread.c \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \

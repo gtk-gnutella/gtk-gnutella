@@ -205,6 +205,7 @@ LSRC = \
 	strtok.c \
 	symtab.c \
 	tea.c \
+	thread.c \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
@@ -327,6 +328,7 @@ LOBJ = \
 	strtok.o \
 	symtab.o \
 	tea.o \
+	thread.o \
 	tiger.o \
 	tigertree.o \
 	timestamp.o \

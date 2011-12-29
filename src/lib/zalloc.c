@@ -77,6 +77,7 @@
 #endif
 
 #include "zalloc.h"
+#include "atomic.h"
 #include "dump_options.h"
 #include "hashtable.h"
 #include "log.h"			/* For statistics logging */
@@ -201,8 +202,6 @@ static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
 static gboolean zalloc_memusage_ok;	/**< Whether we can enable memusage stats */
-
-static spinlock_t zalloc_global_slk = SPINLOCK_INIT;
 
 #ifdef MALLOC_FRAMES
 static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
@@ -1165,8 +1164,7 @@ zdestroy(zone_t *zone)
 
 	spinlock(&zone->lock);
 
-	/* FIXME: add atomic decrement -- RAM, 2011-12-28 */
-	if (zone->zn_refcnt-- > 1) {
+	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
 		spinunlock(&zone->lock);
 		return;
 	}
@@ -1189,11 +1187,8 @@ zdestroy(zone_t *zone)
 	zn_free_additional_subzones(zone);
 	subzone_free_arena(&zone->zn_arena);
 
-	if (!zalloc_closing) {
-		spinlock(&zalloc_global_slk);
+	if (!zalloc_closing)
 		hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
-		spinunlock(&zalloc_global_slk);
-	}
 
 	spinlock_destroy(&zone->lock);
 	xfree(zone);
@@ -1211,16 +1206,19 @@ zdestroy(zone_t *zone)
 zone_t *
 zget(size_t size, unsigned hint)
 {
+	static spinlock_t zget_slk = SPINLOCK_INIT;
 	zone_t *zone;
 
 	/*
 	 * Allocate hash table if not already done!
 	 */
 
-	spinlock(&zalloc_global_slk);
+	spinlock(&zget_slk);
 
-	if G_UNLIKELY(zt == NULL)
+	if G_UNLIKELY(zt == NULL) {
 		zt = hash_table_new();
+		hash_table_thread_safe(zt);
+	}
 
 	/*
 	 * Adjust the requested size to ensure proper alignment of allocated
@@ -1235,10 +1233,7 @@ zget(size_t size, unsigned hint)
 	 */
 
 	if G_LIKELY(zone != NULL) {
-		spinlock(&zone->lock);
-		/* FIXME: add atomic increment -- RAM, 2011-12-28 */
-		zone->zn_refcnt++;
-		spinunlock(&zone->lock);
+		atomic_uint_inc(&zone->zn_refcnt);
 		goto found;					/* Found a zone for matching size! */
 	}
 
@@ -1258,7 +1253,7 @@ zget(size_t size, unsigned hint)
 	hash_table_insert(zt, ulong_to_pointer(size), zone);
 
 found:
-	spinunlock(&zalloc_global_slk);
+	spinunlock(&zget_slk);
 	return zone;
 }
 
@@ -2582,9 +2577,7 @@ zgc(gboolean overloaded)
 
 	zgc_context.running = TRUE;
 
-	spinlock(&zalloc_global_slk);
 	zones = (zone_t **) hash_table_values(zt, &count);
-	spinunlock(&zalloc_global_slk);
 
 	for (i = 0; i < count; i++) {
 		spot_oversized_zone(zones[i]);
@@ -2645,9 +2638,7 @@ zalloc_memusage_init(void)
 	 * memory allocation through zalloc().
 	 */
 
-	spinlock(&zalloc_global_slk);
 	zones = (zone_t **) hash_table_values(zt, &count);
-	spinunlock(&zalloc_global_slk);
 
 	for (i = 0; i < count; i++) {
 		zone_t *zn = zones[i];
@@ -2678,9 +2669,7 @@ zalloc_memusage_close(void)
 	if (NULL == zt)
 		return;
 
-	spinlock(&zalloc_global_slk);
 	zones = (zone_t **) hash_table_values(zt, &count);
-	spinunlock(&zalloc_global_slk);
 
 	for (i = 0; i < count; i++) {
 		zone_t *zn = zones[i];
@@ -2712,9 +2701,7 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 
 	size = adjust_size(size, &hint);
 
-	spinlock(&zalloc_global_slk);
 	zone = hash_table_lookup(zt, ulong_to_pointer(size));
-	spinunlock(&zalloc_global_slk);
 
 	if (NULL == zone)
 		return FALSE;
@@ -2811,7 +2798,7 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	 * avoid creating new core.
 	 */
 
-	spinlock(&zalloc_global_slk);
+	hash_table_lock(zt);
 	zcount = hash_table_size(zt);
 	fill->array = xmalloc(zcount * sizeof fill->array[0]);
 	while (hash_table_size(zt) != zcount) {
@@ -2827,7 +2814,7 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	 */
 
 	hash_table_foreach(zt, zalloc_filler_add, fill);
-	spinunlock(&zalloc_global_slk);
+	hash_table_unlock(zt);
 
 	g_assert(fill->count == fill->capacity);
 
