@@ -766,9 +766,10 @@ zfree(zone_t *zone, void *ptr)
 
 	g_assert(ptr);
 	zone_check(zone);
-	safety_assert(zbelongs(zone, ptr));
 
 	spinlock(&zone->lock);
+
+	safety_assert(zbelongs(zone, ptr));
 
 	zstats.freeings++;
 	memusage_remove_one(zone->zn_mem);
@@ -1064,6 +1065,8 @@ zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
 
+	g_assert(spinlock_is_held(&zone->lock));
+
 	sz = xpmalloc(sizeof *sz);			/* Plain malloc */
 	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
 	zrange_clear(zone);
@@ -1093,6 +1096,7 @@ zn_shrink(zone_t *zone)
 {
 	unsigned old_subzones;
 
+	g_assert(spinlock_is_held(&zone->lock));
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
 	if (zalloc_debugging(1)) {
@@ -2645,8 +2649,22 @@ zalloc_memusage_init(void)
 
 		zone_check(zn);
 
+		/*
+		 * Allocate the memusage object before locking the zone in case
+		 * the creation of the object re-enters zalloc() for the zone we
+		 * just locked!
+		 */
+
 		if (NULL == zn->zn_mem) {
-			zn->zn_mem = memusage_alloc("zone", zn->zn_size);
+			memusage_t *mu = memusage_alloc("zone", zn->zn_size);
+			spinlock(&zn->lock);
+			if (NULL == zn->zn_mem) {
+				zn->zn_mem = mu;
+			} else {
+				memusage_free_null(&mu);
+				g_assert(memusage_is_valid(zn->zn_mem));
+			}
+			spinunlock(&zn->lock);
 		} else {
 			g_assert(memusage_is_valid(zn->zn_mem));
 		}
@@ -2673,9 +2691,23 @@ zalloc_memusage_close(void)
 
 	for (i = 0; i < count; i++) {
 		zone_t *zn = zones[i];
+		memusage_t *mu = zn->zn_mem;
 
 		zone_check(zn);
-		memusage_free_null(&zn->zn_mem);
+
+		/*
+		 * Careful here, since freeing the memusage object can call zfree()
+		 * and we don't want to renter zfree() with a lock on the zone as
+		 * that would deadlock us.
+		 */
+
+		if (mu != NULL) {
+			spinlock(&zn->lock);
+			g_assert(zn->zn_mem == mu);
+			zn->zn_mem = NULL;
+			spinunlock(&zn->lock);
+			memusage_free_null(&mu);
+		}
 	}
 
 	xfree(zones);
