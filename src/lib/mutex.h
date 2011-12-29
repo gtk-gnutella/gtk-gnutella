@@ -87,14 +87,20 @@ gboolean mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 
 #define mutex_get(x)		mutex_grab_from((x), _WHERE_, __LINE__)
 #define mutex_get_try(x)	mutex_grab_try_from((x), _WHERE_, __LINE__)
+
+#define mutex_get_const(x)	\
+	mutex_grab_from(deconstify_gpointer(x), _WHERE_, __LINE__)
+
 #else
 #define mutex_get(x)		mutex_grab((x))
 #define mutex_get_try(x)	mutex_grab_try((x))
+#define mutex_get_const(x)	mutex_grab(deconstify_gpointer(x))
 #endif	/* SPINLOCK_DEBUG */
 
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
 void mutex_release(mutex_t *m);
+void mutex_release_const(const mutex_t *m);
 gboolean mutex_is_owned(const mutex_t *m);
 size_t mutex_held_depth(const mutex_t *m);
 

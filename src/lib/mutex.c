@@ -284,6 +284,20 @@ mutex_release(mutex_t *m)
 }
 
 /**
+ * Convenience routine for locks that are part of a "const" structure.
+ */
+void
+mutex_release_const(const mutex_t *m)
+{
+	/*
+	 * A lock is not part of the abstract data type, so it's OK to
+	 * de-constify it now: no mutex is really read-only.
+	 */
+
+	mutex_release(deconstify_gpointer(m));
+}
+
+/**
  * Check whether someone holds the mutex and at which depth.
  *
  * @return the depth at which the mutex belongs to a thread.
