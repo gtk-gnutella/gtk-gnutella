@@ -77,7 +77,7 @@ atomic_uint_dec_is_zero(unsigned *p)
 	return 1 == __sync_fetch_and_sub(p, 1);
 }
 #else	/* !HAS_SYNC_ATOMIC */
-#define atomic_mb()
+#define atomic_mb()					(void) 0
 
 static inline gboolean
 atomic_test_and_set(volatile int *p)
