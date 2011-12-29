@@ -37,6 +37,16 @@
  *
  * A simple hashtable implementation.
  *
+ * There are two interesting properties in this hash table:
+ *
+ * - The items and the internal data structures are allocated out of a
+ *   same contiguous memory region (aka the "arena").
+ *
+ * - Memory for the arena is allocated directly through the VMM layer.
+ *
+ * As such, this hash table is suitable for being used by low-level memory
+ * allocators.
+ *
  * @author Raphael Manfredi
  * @date 2009-2011
  * @author Christian Biere
@@ -46,6 +56,8 @@
 #include "common.h"
 
 #include "lib/hashtable.h"
+#include "lib/atomic.h"
+#include "lib/mutex.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 
@@ -78,6 +90,8 @@ enum hashtable_magic { HASHTABLE_MAGIC = 0x54452ad4 };
 
 struct hash_table {
 	enum hashtable_magic magic; /* Magic number */
+	mutex_t lock;				/* Lock for thread-safe operations */
+	mutex_t external_lock;		/* Lock for external atomic operations */
 	size_t num_items;			/* Array length of "items" */
 	size_t num_bins;			/* Number of bins */
 	size_t num_held;			/* Number of items actually in the table */
@@ -98,6 +112,7 @@ struct hash_table {
 #endif
 	unsigned special:1;			/* Set if structure allocated specially */
 	unsigned readonly:1;		/* Set if data structures protected */
+	unsigned thread_safe:1;		/* Set if table must be thread-safe */
 };
 
 static inline void *
@@ -236,7 +251,6 @@ hash_table_new_intern(hash_table_t *ht,
 
 	g_assert(ht);
 	g_assert(num_bins > 1);
-	g_assert(!ht->readonly);
 
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
@@ -301,8 +315,41 @@ size_t
 hash_table_size(const hash_table_t *ht)
 {
 	hash_table_check(ht);
+
+	if (ht->thread_safe)
+		atomic_mb();
+
 	return ht->num_held;
 }
+
+/**
+ * Synchronize access to hash table if thread-safe.
+ */
+static inline ALWAYS_INLINE void
+ht_synchronize(const hash_table_t *ht)
+{
+	if (ht->thread_safe) {
+		hash_table_t *wht = deconstify_gpointer(ht);
+		mutex_get(&wht->lock);
+		g_assert(HASHTABLE_MAGIC == ht->magic);
+	}
+}
+
+#define ht_return(ht,v) G_STMT_START {					\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_gpointer(ht);	\
+		mutex_release(&wht->lock);						\
+	}													\
+	return v;											\
+} G_STMT_END
+
+#define ht_return_void(ht) G_STMT_START {				\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_gpointer(ht);	\
+		mutex_release(&wht->lock);						\
+	}													\
+	return;												\
+} G_STMT_END
 
 /**
  * @return amount of memory used by the hash table arena.
@@ -310,7 +357,11 @@ hash_table_size(const hash_table_t *ht)
 size_t
 hash_table_arena_memory(const hash_table_t *ht)
 {
-	return round_pagesize(hash_bins_items_arena_size(ht, NULL));
+	size_t ret;
+
+	ht_synchronize(ht);
+	ret = round_pagesize(hash_bins_items_arena_size(ht, NULL));
+	ht_return(ht, ret);
 }
 
 /**
@@ -363,6 +414,10 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 /**
  * Iterate over the hashtable, invoking the "func" callback on each item
  * with the additional "data" argument.
+ *
+ * @attention
+ * This call is not thread-safe atomically and requires explicit locking
+ * to perform mutual exclusion.
  */
 void
 hash_table_foreach(const hash_table_t *ht,
@@ -397,6 +452,7 @@ hash_table_clear(hash_table_t *ht)
 	size_t n;
 
 	hash_table_check(ht);
+	ht_synchronize(ht);
 
 	n = ht->num_held;
 	i = ht->num_bins;
@@ -418,6 +474,8 @@ hash_table_clear(hash_table_t *ht)
 
 	ht->num_held = 0;
 	ht->bin_fill = 0;
+
+	ht_return_void(ht);
 }
 
 /**
@@ -429,6 +487,7 @@ hash_table_reset(hash_table_t *ht)
 	size_t arena;
 
 	hash_table_check(ht);
+	g_assert(!ht->readonly);
 
 	arena = hash_bins_items_arena_size(ht, NULL);
 
@@ -496,9 +555,18 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_copy_real_flag(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
+
 	g_assert(ht->num_held == tmp.num_held);
+
 	hash_table_reset(ht);
-	*ht = tmp;
+
+	ht->bins = tmp.bins;
+	ht->items = tmp.items;
+	ht->num_bins = tmp.num_bins;
+	ht->num_items = tmp.num_items;
+	ht->num_held = tmp.num_held;
+	ht->bin_fill = tmp.bin_fill;
+	ht->free_list = tmp.free_list;
 }
 
 static inline void
@@ -537,11 +605,15 @@ hash_table_resize_on_insert(hash_table_t *ht)
 gboolean
 hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 {
+	gboolean ret;
+
 	hash_table_check(ht);
+	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
 	hash_table_resize_on_insert(ht);
-	return hash_table_insert_no_resize(ht, key, value);
+	ret = hash_table_insert_no_resize(ht, key, value);
+	ht_return(ht, ret);
 }
 
 #if 0	/* UNUSED */
@@ -567,6 +639,7 @@ hash_table_remove(hash_table_t *ht, const void *key)
 	size_t bin;
 
 	hash_table_check(ht);
+	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
 	item = hash_table_find(ht, key, &bin);
@@ -600,10 +673,10 @@ hash_table_remove(hash_table_t *ht, const void *key)
 
 		hash_table_resize_on_remove(ht);
 
-		return TRUE;
+		ht_return(ht, TRUE);
 	}
 	safety_assert(!hash_table_lookup(ht, key));
-	return FALSE;
+	ht_return(ht, FALSE);
 }
 
 void
@@ -612,6 +685,7 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 	hash_item_t *item;
 
 	hash_table_check(ht);
+	ht_synchronize(ht);
 	g_assert(!ht->readonly);
 
 	item = hash_table_find(ht, key, NULL);
@@ -621,6 +695,8 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 		item->key = key;
 		item->value = value;
 	}
+
+	ht_return_void(ht);
 }
 
 void *
@@ -629,9 +705,11 @@ hash_table_lookup(const hash_table_t *ht, const void *key)
 	hash_item_t *item;
 
 	hash_table_check(ht);
+	ht_synchronize(ht);
+
 	item = hash_table_find(ht, key, NULL);
 
-	return item ? deconstify_gpointer(item->value) : NULL;
+	ht_return(ht, item ? deconstify_gpointer(item->value) : NULL);
 }
 
 gboolean
@@ -641,17 +719,19 @@ hash_table_lookup_extended(const hash_table_t *ht,
 	hash_item_t *item;
 
 	hash_table_check(ht);
+	ht_synchronize(ht);
+
 	item = hash_table_find(ht, key, NULL);
 
-	if (item == NULL)
-		return FALSE;
+	if (NULL == item)
+		ht_return(ht, FALSE);
 
 	if (kp)
 		*kp = item->key;
 	if (vp)
 		*vp = deconstify_gpointer(item->value);
 
-	return TRUE;
+	ht_return(ht, TRUE);
 }
 
 /**
@@ -661,9 +741,13 @@ hash_table_lookup_extended(const hash_table_t *ht,
 gboolean
 hash_table_contains(const hash_table_t *ht, const void *key)
 {
-	hash_table_check(ht);
+	gboolean ret;
 
-	return NULL != hash_table_find(ht, key, NULL);
+	hash_table_check(ht);
+	ht_synchronize(ht);
+
+	ret = NULL != hash_table_find(ht, key, NULL);
+	ht_return(ht, ret);
 }
 
 /**
@@ -673,9 +757,14 @@ void
 hash_table_destroy(hash_table_t *ht)
 {
 	hash_table_check(ht);
+	ht_synchronize(ht);
 	g_assert(!ht->special);
 
 	hash_table_reset(ht);
+	if (ht->thread_safe) {
+		mutex_destroy(&ht->external_lock);
+		mutex_destroy(&ht->lock);
+	}
 	ht->magic = 0;
 	xfree(ht);
 }
@@ -703,6 +792,7 @@ void
 hash_table_readonly(hash_table_t *ht)
 {
 	hash_table_check(ht);
+	ht_synchronize(ht);
 
 	if (!ht->readonly) {
 		size_t arena = hash_bins_items_arena_size(ht, NULL);
@@ -710,6 +800,8 @@ hash_table_readonly(hash_table_t *ht)
 		ht->readonly = booleanize(TRUE);
 		mprotect(ht->bins, round_pagesize(arena), PROT_READ);
 	}
+
+	ht_return_void(ht);
 }
 
 /**
@@ -719,6 +811,7 @@ void
 hash_table_writable(hash_table_t *ht)
 {
 	hash_table_check(ht);
+	ht_synchronize(ht);
 
 	if (ht->readonly) {
 		size_t arena = hash_bins_items_arena_size(ht, NULL);
@@ -726,6 +819,60 @@ hash_table_writable(hash_table_t *ht)
 		ht->readonly = booleanize(FALSE);
 		mprotect(ht->bins, round_pagesize(arena), PROT_READ | PROT_WRITE);
 	}
+
+	ht_return_void(ht);
+}
+
+/**
+ * Mark hash table as being thread-safe.
+ *
+ * This is a once operation which enables all further operations on the
+ * hash table to be protected against concurrent accesses.
+ */
+void
+hash_table_thread_safe(hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if (!ht->thread_safe) {
+		mutex_init(&ht->lock);
+		mutex_init(&ht->external_lock);
+		ht->thread_safe = TRUE;
+		atomic_mb();
+	}
+}
+
+/**
+ * Grab a mutex on the hash table to allow a sequence of operations to be
+ * atomically conducted.
+ *
+ * It is possible to lock the table several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The table must have been marked thread-safe already.
+ */
+void
+hash_table_lock(hash_table_t *ht)
+{
+	hash_table_check(ht);
+	g_assert(ht->thread_safe);
+
+	mutex_get(&ht->external_lock);
+}
+
+/**
+ * Release a mutex on a locked hash table.
+ *
+ * The table must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+hash_table_unlock(hash_table_t *ht)
+{
+	hash_table_check(ht);
+	g_assert(ht->thread_safe);
+
+	mutex_release(&ht->external_lock);
 }
 
 /**
@@ -741,8 +888,13 @@ hash_table_memory(const hash_table_t *ht)
 	if (NULL == ht) {
 		return 0;
 	} else {
+		size_t ret;
+
 		hash_table_check(ht);
-		return sizeof(*ht) + hash_table_arena_memory(ht);
+		ht_synchronize(ht);
+
+		ret = sizeof(*ht) + hash_table_arena_memory(ht);
+		ht_return(ht, ret);
 	}
 }
 
@@ -774,6 +926,9 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, gboolean keys)
 {
 	struct ht_linearize htl;
 
+	hash_table_check(ht);
+	ht_synchronize(ht);
+
 	htl.count = hash_table_size(ht);
 	htl.i = 0;
 	htl.keys = keys;
@@ -803,7 +958,7 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, gboolean keys)
 	if (count != NULL)
 		*count = htl.count;
 
-	return htl.array;
+	ht_return(ht, htl.array);
 }
 
 /**
@@ -895,8 +1050,13 @@ void
 hash_table_destroy_real(hash_table_t *ht)
 {
 	hash_table_check(ht);
+	ht_synchronize(ht);
 
 	hash_table_reset(ht);
+	if (ht->thread_safe) {
+		mutex_destroy(&ht->external_lock);
+		mutex_destroy(&ht->lock);
+	}
 	ht->magic = 0;
 	free(ht);
 }

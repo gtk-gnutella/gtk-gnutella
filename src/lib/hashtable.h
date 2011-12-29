@@ -92,5 +92,10 @@ void hash_table_foreach(const hash_table_t *ht, hash_table_foreach_func func,
 const void **hash_table_keys(const hash_table_t *ht, size_t *count);
 void **hash_table_values(const hash_table_t *ht, size_t *count);
 
+void hash_table_thread_safe(hash_table_t *ht);
+void hash_table_lock(hash_table_t *ht);
+void hash_table_unlock(hash_table_t *ht);
+
 #endif /* _hash_table_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */
