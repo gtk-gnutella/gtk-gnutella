@@ -806,7 +806,6 @@ xfl_find_freelist(size_t len)
 static void
 xfl_shrink(struct xfreelist *fl)
 {
-	static spinlock_t shrink_slk = SPINLOCK_INIT;
 	void *new_ptr;
 	void *old_ptr;
 	size_t old_size, old_used, new_size, allocated_size;
@@ -848,10 +847,10 @@ xfl_shrink(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	spinlock(&shrink_slk);
+	mutex_get(&fl->lock);
 
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		spinunlock(&shrink_slk);
+		mutex_release(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug(NULL, "XM recursion during shrinking of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -888,7 +887,7 @@ xfl_shrink(struct xfreelist *fl)
 	 */
 
 	if G_UNLIKELY(old_size == allocated_size) {
-		spinunlock(&shrink_slk);
+		mutex_release(&fl->lock);
 		if (xmalloc_debugging(1)) {
 			t_debug(NULL, "XM discarding allocated bucket %p (%zu bytes) for "
 				"freelist #%zu: same size as old bucket",
@@ -902,7 +901,7 @@ xfl_shrink(struct xfreelist *fl)
 
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
-	spinunlock(&shrink_slk);
+	mutex_release(&fl->lock);
 
 	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
 
@@ -1212,7 +1211,6 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 static void
 xfl_extend(struct xfreelist *fl)
 {
-	static spinlock_t extend_slk = SPINLOCK_INIT;
 	void *new_ptr;
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
@@ -1263,10 +1261,10 @@ xfl_extend(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	spinlock(&extend_slk);
+	mutex_get(&fl->lock);
 
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		spinunlock(&extend_slk);
+		mutex_release(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug(NULL, "XM recursion during extension of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -1315,7 +1313,7 @@ xfl_extend(struct xfreelist *fl)
 	memcpy(new_ptr, old_ptr, old_used);
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
-	spinunlock(&extend_slk);
+	mutex_release(&fl->lock);
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
@@ -1624,7 +1622,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 	}
 
 	/*
-	 * If block was found, spinlock on fl->lock is held and will be cleared
+	 * If block was found, mutex on fl->lock is held and will be cleared
 	 * by xfl_remove_selected().
 	 */
 
