@@ -89,15 +89,18 @@ MINGW*)
 		export PATH
 		CPPFLAGS="$CPPFLAGS -I${mingwlib}/gtk/include"
 		CPPFLAGS="$CPPFLAGS -I${mingwlib}/zlib/include"
+		# Need -march=i686 to get atomic intrinsics: the default processor
+		# target on mingw32 is i386, which lacks the atomic test-and-set.
+		CFLAGS="-march=i686"
 		# It's necessary to statically link gtk-gnutella to libz.a or it crashes
 		# randomly in pre-compiled zlib1.dll from GTK.
 		# Compile zlib-1.2.5 with -O3 -g using "make -f win32/makefile.gcc"
 		# and install after editing the makefile accordingly.
-		# We use the file libz.a path to make sure it fails if that file is missing
-		# since zlib1.dll must stay in place and we don't want -lz to fallback
-		# to libz.dll.a.
-		# Also one needs to rename gtk/include/zlib.h as gtk/include/zlib.h.gtk to
-		# make sure this header is not picked when including <zlib.h>
+		# We use the file libz.a path to make sure it fails if that file is
+		# missing since zlib1.dll must stay in place and we don't want -lz
+		# to fallback to libz.dll.a.
+		# Also one needs to rename gtk/include/zlib.h as gtk/include/zlib.h.gtk
+		# to make sure this header is not picked when including <zlib.h>
 		LDFLAGS="$LDFLAGS ${mingwlib}/zlib/lib/libz.a"
 		LDFLAGS="$LDFLAGS -mwindows -L${mingwlib}/gtk/lib"
     fi
