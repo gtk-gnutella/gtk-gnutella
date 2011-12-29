@@ -203,7 +203,7 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_sr_vendor:
 		if (!(ST_LOCAL & rs->status))
-			text = vendor_get_name(rs->vendor);
+			text = vendor_code_get_name(rs->vendor);
 		break;
 	case c_sr_info:
 		text = data->record->info;

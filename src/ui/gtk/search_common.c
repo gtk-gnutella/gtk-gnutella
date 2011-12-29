@@ -3767,7 +3767,7 @@ search_gui_get_vendor(const struct results_set *rs)
 
 	g_assert(rs);
 
-	vendor = vendor_get_name(rs->vendor);
+	vendor = vendor_code_get_name(rs->vendor);
 	if (vendor) {
 		if (rs->version) {
 			static gchar buf[128];

@@ -1047,7 +1047,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				break;
 	 		case c_sr_vendor:
 				if (!(ST_LOCAL & rs->status))
-					text = vendor_get_name(rs->vendor);
+					text = vendor_code_get_name(rs->vendor);
 				break;
 	 		case c_sr_info:
 				text = rc->info;
