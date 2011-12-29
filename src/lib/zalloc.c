@@ -77,6 +77,7 @@
 #endif
 
 #include "zalloc.h"
+#include "atomic.h"
 #include "dump_options.h"
 #include "hashtable.h"
 #include "log.h"			/* For statistics logging */
@@ -1163,8 +1164,7 @@ zdestroy(zone_t *zone)
 
 	spinlock(&zone->lock);
 
-	/* FIXME: add atomic decrement -- RAM, 2011-12-28 */
-	if (zone->zn_refcnt-- > 1) {
+	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
 		spinunlock(&zone->lock);
 		return;
 	}
@@ -1233,10 +1233,7 @@ zget(size_t size, unsigned hint)
 	 */
 
 	if G_LIKELY(zone != NULL) {
-		spinlock(&zone->lock);
-		/* FIXME: add atomic increment -- RAM, 2011-12-28 */
-		zone->zn_refcnt++;
-		spinunlock(&zone->lock);
+		atomic_uint_inc(&zone->zn_refcnt);
 		goto found;					/* Found a zone for matching size! */
 	}
 
