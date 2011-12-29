@@ -632,6 +632,11 @@ hash_table_status(const hash_table_t *ht)
 }
 #endif	/* UNUSED */
 
+/**
+ * Remove item from the hash table.
+ *
+ * @return TRUE if item was present in the hash table.
+ */
 gboolean
 hash_table_remove(hash_table_t *ht, const void *key)
 {
@@ -679,6 +684,9 @@ hash_table_remove(hash_table_t *ht, const void *key)
 	ht_return(ht, FALSE);
 }
 
+/**
+ * Add key/value tuple to the hash table, replacing any existing key/value.
+ */
 void
 hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 {
@@ -699,6 +707,9 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 	ht_return_void(ht);
 }
 
+/**
+ * @return value associated with the key.
+ */
 void *
 hash_table_lookup(const hash_table_t *ht, const void *key)
 {
@@ -712,6 +723,12 @@ hash_table_lookup(const hash_table_t *ht, const void *key)
 	ht_return(ht, item ? deconstify_gpointer(item->value) : NULL);
 }
 
+/**
+ * Lookup key in the hash table, returning physical pointers to the key/value
+ * items into ``kp'' and ``vp'' respectively, if non-NULL.
+ *
+ * @return TRUE if item was found.
+ */
 gboolean
 hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp)
