@@ -70,6 +70,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
@@ -418,11 +419,15 @@ log_thread_alloc(void)
 static logthread_t *
 logthread_object(logthread_t *lt)
 {
-	if G_UNLIKELY(NULL == lt) {
-		static logthread_t *ltp;
+	if (NULL == lt) {
+		logthread_t *ltp;
 
-		if G_UNLIKELY(NULL == ltp)
+		ltp = thread_private_get(func_to_pointer(logthread_object));
+
+		if G_UNLIKELY(NULL == ltp) {
 			ltp = log_thread_alloc();
+			thread_private_add(func_to_pointer(logthread_object), ltp);
+		}
 
 		return ltp;
 	} else {
