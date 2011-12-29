@@ -98,19 +98,6 @@ void mutex_release(mutex_t *m);
 gboolean mutex_is_owned(const mutex_t *m);
 size_t mutex_held_depth(const mutex_t *m);
 
-#ifdef I_PTHREAD
-#include <pthread.h>
-static inline unsigned long
-mutex_current_thread(void)
-{
-	STATIC_ASSERT(sizeof(unsigned long) <= sizeof(pthread_t));
-	pthread_t t = pthread_self();
-	return *(unsigned long *) &t;	/* Structure on Windows, grab first ptr */
-}
-#else
-#define mutex_current_thread()	0xc5db8dd2U
-#endif
-
 #endif /* _mutex_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
