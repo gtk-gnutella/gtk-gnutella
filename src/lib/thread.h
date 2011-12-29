@@ -42,17 +42,42 @@ typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 #ifdef I_PTHREAD
 #include <pthread.h>
 
-typedef pthread_t thread_t;
+typedef unsigned long thread_t;
 
+#if 0
+/* General macros, optimized by GCC usually */
 #define thread_eq(a, b)	(0 == memcmp(&(a), &(b), sizeof(thread_t)))
 #define thread_set(t,v)	memcpy(&(t), &(v), sizeof(thread_t))
+#else
+/* Specific macros, suitable when we know thread_t is an unsigned long */
+#define thread_eq(a, b)	((a) == (b))
+#define thread_set(t,v)	((t) = (v))
+#endif
 
 static inline thread_t
 thread_current(void)
 {
-	pthread_t v = pthread_self();
+	union {
+		thread_t t;
+		pthread_t pt;
+	} u;
 
-	return *(thread_t *) &v;	/* struct copy */
+	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
+
+	/*
+	 * We truncate the pthread_t to the first "unsigned long" bytes.
+	 *
+	 * On Linux, pthread_t is already an unsigned long.
+	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
+	 *
+	 * On Windows, pthread_t is a structure, whose first member is a pointer.
+	 * And we don't want to use the whole pthread_t structure there, because
+	 * the second member is changing over time and we want a unique thread
+	 * identifier.
+	 */
+
+	u.pt = pthread_self();
+	return u.t;
 }
 
 #else

@@ -302,6 +302,7 @@ int mingw_uname(struct utsname *buf);
 /* Mingw-w64 defines a timespec */
 #ifndef _TIMESPEC_DEFINED
 #define _TIMESPEC_DEFINED
+#define HAVE_STRUCT_TIMESPEC	/* For <pthread.h> */
 struct timespec {
 	time_t tv_sec;				/* seconds */
 	long tv_nsec;				/* nanoseconds */
