@@ -479,6 +479,7 @@ void mingw_adns_close(void);
 gboolean mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
+const char *mingw_native_path(const char *pathname);
 
 #else	/* !MINGW32 */
 
