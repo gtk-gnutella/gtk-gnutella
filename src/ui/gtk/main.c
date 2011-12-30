@@ -817,7 +817,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 
 	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
 	if (tmp != NULL) {
-		add_pixmap_directory(ostrdup(tmp));
+		add_pixmap_directory(tmp);
 		HFREE_NULL(tmp);
 	}
 #ifdef MINGW32
