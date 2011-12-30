@@ -112,6 +112,7 @@ typedef struct {
 #include "hashlist.h"
 #include "inputevt.h"
 #include "glib-missing.h"
+#include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"

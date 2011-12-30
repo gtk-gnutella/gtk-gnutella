@@ -45,6 +45,7 @@
 #include "lib/iso3166.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/stringify.h"		/* For ipv6_to_string() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -54,17 +55,27 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static const char gip_file[] = "geo-ip.txt";
-static const char gip_what[] = "Geographic IP mappings";
+#define GIP_IPV4	0
+#define GIP_IPV6	1
+
+struct gip_source {
+	const char *file;		/**< Source file */
+	const char *what;		/**< English description of file */
+	time_t mtime;			/**< Modification time of loaded file */
+};
+
+static struct gip_source gip_source[] = {
+	{ "geo-ip.txt",		"Geographic IPv4 mappings", 0 },
+	{ "geo-ipv6.txt",	"Geographic IPv6 mappings", 0 },
+};
 
 static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
-static time_t geo_mtime;			/**< Modification time of loaded file */
 
 /**
  * Context used during ip_range_split() calls.
  */
 struct range_context {
-	char *line;				/**< The line from the input file */
+	const char *line;			/**< The line from the input file */
 	int linenum;				/**< Line number in input file, for errors */
 	guint32 ip1;				/**< Original lower IP in global range */
 	guint32 ip2;				/**< Original upper IP in global range */
@@ -81,16 +92,14 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 {
 	struct range_context *ctx = udata;
 	iprange_err_t error;
-	gpointer ccode;
-	guint cc;
+	guint16 cc;
 
 	if (GNET_PROPERTY(reload_debug) > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
 			ip_to_string(ip), bits, ctx->line);
 
 	cc = ctx->country;
-	ccode = GUINT_TO_POINTER(cc);
-	error = iprange_add_cidr(geo_db, ip, bits, ccode);
+	error = iprange_add_cidr(geo_db, ip, bits, cc);
 
 	switch (error) {
 	case IPR_ERR_OK:
@@ -98,9 +107,187 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
 		/* FALL THROUGH */
 	default:
 		g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
-			gip_file, ctx->linenum, ctx->line, ip_to_string(ip), bits,
-			iprange_strerror(error));
+			gip_source[GIP_IPV4].file, ctx->linenum,
+			ctx->line, ip_to_string(ip), bits, iprange_strerror(error));
 		return;
+	}
+}
+
+/**
+ * Parse an IPv4 Geo IP line and record the range in the database.
+ */
+static void
+gip_parse_ipv4(const char *line, int linenum)
+{
+	const char *end;
+	guint16 code;
+	int c;
+	struct range_context ctx;
+
+	/*
+	 * Each line looks like:
+	 *
+	 *    15.0.0.0 - 15.130.191.255 fr
+	 *
+	 * So we just have to parse the two IP addresses, then compute
+	 * all the ranges they cover in order to insert them into
+	 * the IP database.
+	 */
+
+	end = strchr(line, '-');
+	if (end == NULL) {
+		g_warning("%s, line %d: no IP address separator in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	if (!string_to_ip_strict(line, &ctx.ip1, NULL)) {
+		g_warning("%s, line %d: invalid first IP in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	/*
+	 * Skip spaces until the second IP.
+	 */
+
+	end++;			/* Go past the minus, parsing the second IP */
+
+	while ((c = *end)) {
+		if (!is_ascii_space(c))
+			break;
+		end++;
+	}
+
+	if (!string_to_ip_strict(end, &ctx.ip2, &end)) {
+		g_warning("%s, line %d: invalid second IP in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	/*
+	 * Make sure the IP addresses are ordered correctly
+	 */
+
+	if (ctx.ip1 > ctx.ip2) {
+		g_warning("%s, line %d: invalid IP order in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	/*
+	 * Skip spaces until the country code.
+	 */
+
+	while ((c = *end)) {
+		if (!is_ascii_space(c))
+			break;
+		end++;
+	}
+
+	if (c == '\0') {
+		g_warning("%s, line %d: missing country code in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	code = iso3166_encode_cc(end);
+	if (ISO3166_INVALID == code) {
+		g_warning("%s, line %d: bad country code in \"%s\"",
+			gip_source[GIP_IPV4].file, linenum, line);
+		return;
+	}
+
+	/* code must not be zero and the LSB must be zero due to using it as
+	 * as key for ipranges */
+	ctx.country = (code + 1) << 1;
+	ctx.line = line;
+	ctx.linenum = linenum;
+
+	/*
+	 * Now compute the CIDR ranges between the ip1 and ip2 addresses
+	 * and insert each range into the database, linking it to the
+	 * country code.
+	 */
+
+	ip_range_split(ctx.ip1, ctx.ip2, gip_add_cidr, &ctx);
+}
+
+/**
+ * Parse an IPv6 Geo IP line and record the range in the database.
+ */
+static void
+gip_parse_ipv6(const char *line, int linenum)
+{
+	const char *end;
+	guint16 code;
+	int error;
+	guint8 ip[16];
+	unsigned bits;
+
+	/*
+	 * Each line looks like:
+	 *
+	 *    2a03:be00::/32 nl
+	 *
+	 * The leading part up to the space is the IPv6 network in CIDR format.
+	 * The trailing word is the 2-letter ISO country code.
+	 */
+
+	if (!parse_ipv6_addr(line, ip, &end)) {
+		g_warning("%s, line %d: bad IPv6 network address \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	if ('/' != *end) {
+		g_warning("%s, line %d: missing network separator in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	bits = parse_uint(end + 1, &end, 10, &error);
+
+	if (error) {
+		g_warning("%s, line %d: cannot parse network bit amount in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	if (bits > 128) {
+		g_warning("%s, line %d: invalid bit amount %u in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, bits, line);
+		return;
+	}
+
+	if (!is_ascii_space(*end)) {
+		g_warning("%s, line %d: missing spaces after network in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	while (is_ascii_space(*end))
+		end++;
+
+	if ('\0' == *end) {
+		g_warning("%s, line %d: missing country code in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	code = iso3166_encode_cc(end);
+	if (ISO3166_INVALID == code) {
+		g_warning("%s, line %d: bad country code in \"%s\"",
+			gip_source[GIP_IPV6].file, linenum, line);
+		return;
+	}
+
+	error = iprange_add_cidr6(geo_db, ip, bits, (code + 1) << 1);
+
+	if (IPR_ERR_OK != error) {
+		g_warning("%s, line %d: cannot insert %s/%u: %s",
+			gip_source[GIP_IPV6].file, linenum, ipv6_to_string(ip),
+			bits, iprange_strerror(error));
 	}
 }
 
@@ -110,21 +297,31 @@ gip_add_cidr(guint32 ip, guint bits, gpointer udata)
  * @return The amount of entries loaded.
  */
 static G_GNUC_COLD guint
-gip_load(FILE *f)
+gip_load(FILE *f, unsigned idx)
 {
 	char line[1024];
 	int linenum = 0;
-	const char *end;
-	guint16 code;
-	int c;
-	struct range_context ctx;
 	filestat_t buf;
 
-	geo_db = iprange_new();
+	g_assert(f != NULL);
+	g_assert(uint_is_non_negative(idx));
+	g_assert(idx < G_N_ELEMENTS(gip_source));
+
+	switch (idx) {
+	case GIP_IPV4:
+		iprange_reset_ipv4(geo_db);
+		break;
+	case GIP_IPV6:
+		iprange_reset_ipv6(geo_db);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
 	if (-1 == fstat(fileno(f), &buf)) {
-		g_warning("cannot stat %s: %m", gip_file);
+		g_warning("cannot stat %s: %m", gip_source[idx].file);
 	} else {
-		geo_mtime = buf.st_mtime;
+		gip_source[idx].mtime = buf.st_mtime;
 	}
 
 	while (fgets(line, sizeof line, f)) {
@@ -136,110 +333,36 @@ gip_load(FILE *f)
 		 */
 
 		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
-			g_warning("%s: line %d too long, aborting", G_STRFUNC, linenum);
+			g_warning("%s: line %d too long, aborting",
+				gip_source[idx].file, linenum);
 			break;
 		}
 
 		if (file_line_is_skipable(line))
 			continue;
 
-		/*
-		 * Each line looks like:
-		 *
-		 *    15.0.0.0 - 15.130.191.255 fr
-		 *
-		 * So we just have to parse the two IP addresses, then compute
-		 * all the ranges they cover in order to insert them into
-		 * the IP database.
-		 */
+		if (GIP_IPV4 == idx)
+			gip_parse_ipv4(line, linenum);
+		else
+			gip_parse_ipv6(line, linenum);
 
-		end = strchr(line, '-');
-		if (end == NULL) {
-			g_warning("%s, line %d: no IP address separator in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		if (!string_to_ip_strict(line, &ctx.ip1, NULL)) {
-			g_warning("%s, line %d: invalid first IP in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		/*
-		 * Skip spaces until the second IP.
-		 */
-
-		end++;			/* Go past the minus, parsing the second IP */
-
-		while ((c = *end)) {
-			if (!is_ascii_space(c))
-				break;
-			end++;
-		}
-
-		if (!string_to_ip_strict(end, &ctx.ip2, &end)) {
-			g_warning("%s, line %d: invalid second IP in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		/*
-		 * Make sure the IP addresses are ordered correctly
-		 */
-
-		if (ctx.ip1 > ctx.ip2) {
-			g_warning("%s, line %d: invalid IP order in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		/*
-		 * Skip spaces until the country code.
-		 */
-
-		while ((c = *end)) {
-			if (!is_ascii_space(c))
-				break;
-			end++;
-		}
-
-		if (c == '\0') {
-			g_warning("%s, line %d: missing country code in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		code = iso3166_encode_cc(end);
-		if (ISO3166_INVALID == code) {
-			g_warning("%s, line %d: bad country code in \"%s\"",
-				gip_file, linenum, line);
-			continue;
-		}
-
-		/* code must no be zero and the LSB must be zero due to using it as
-		 * as key for ipranges */
-		ctx.country = (code + 1) << 1;
-		ctx.line = line;
-		ctx.linenum = linenum;
-
-		/*
-		 * Now compute the CIDR ranges between the ip1 and ip2 addresses
-		 * and insert each range into the database, linking it to the
-		 * country code.
-		 */
-
-		ip_range_split(ctx.ip1, ctx.ip2, gip_add_cidr, &ctx);
 	}
 
 	iprange_sync(geo_db);
 
 	if (GNET_PROPERTY(reload_debug)) {
-		g_debug("loaded %u geographical IP ranges (%u hosts)",
-			iprange_get_item_count(geo_db),
-			iprange_get_host_count(geo_db));
+		if (GIP_IPV4 == idx) {
+			g_debug("loaded %u geographical IPv4 ranges (%u hosts)",
+				iprange_get_item_count4(geo_db),
+				iprange_get_host_count4(geo_db));
+		} else {
+			g_debug("loaded %u geographical IPv6 ranges",
+				iprange_get_item_count6(geo_db));
+		}
 	}
-	return iprange_get_item_count(geo_db);
+
+	return GIP_IPV4 == idx ?
+		iprange_get_item_count4(geo_db) : iprange_get_item_count6(geo_db);
 }
 
 /**
@@ -247,23 +370,23 @@ gip_load(FILE *f)
  * geographic IP mappings changed.
  */
 static void
-gip_changed(const char *filename, gpointer unused)
+gip_changed(const char *filename, gpointer idx_ptr)
 {
 	FILE *f;
 	char buf[80];
 	guint count;
-
-	(void) unused;
+	unsigned idx = pointer_to_uint(idx_ptr);
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)
 		return;
 
-	gip_close();
-	count = gip_load(f);
+	count = gip_load(f, idx);
 	fclose(f);
 
-	gm_snprintf(buf, sizeof(buf), "Reloaded %u geographic IP ranges.", count);
+	gm_snprintf(buf, sizeof buf, "Reloaded %u geographic IPv%c ranges.",
+		count, GIP_IPV4 == idx ? '4' : '6');
+
 	gcu_statusbar_message(buf);
 }
 
@@ -281,7 +404,7 @@ gip_changed(const char *filename, gpointer unused)
  * shortly after a modification.
  */
 static void
-gip_retrieve(void)
+gip_retrieve(unsigned n)
 {
 	FILE *f;
 	int idx;
@@ -290,29 +413,30 @@ gip_retrieve(void)
 	unsigned length = 0;
 	char *tmp;
 	
-	file_path_set(&fp[length++], settings_config_dir(), gip_file);
+	file_path_set(&fp[length++], settings_config_dir(), gip_source[n].file);
 	
 	tmp = get_folder_path(PRIVLIB_PATH, NULL);
 	if (tmp != NULL)
-		file_path_set(&fp[length++], tmp, gip_file);
+		file_path_set(&fp[length++], tmp, gip_source[n].file);
 	
-	file_path_set(&fp[length++], PRIVLIB_EXP, gip_file);
+	file_path_set(&fp[length++], PRIVLIB_EXP, gip_source[n].file);
 #ifndef OFFICIAL_BUILD
-	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, gip_file);
+	file_path_set(&fp[length++], PACKAGE_EXTRA_SOURCE_DIR, gip_source[n].file);
 #endif
 
 	g_assert(length <= G_N_ELEMENTS(fp));
 
-	f = file_config_open_read_norename_chosen(gip_what, fp, length, &idx);
+	f = file_config_open_read_norename_chosen(gip_source[n].what,
+			fp, length, &idx);
 
 	if (NULL == f)
 	   goto done;
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
-	watcher_register(filename, gip_changed, NULL);
+	watcher_register(filename, gip_changed, uint_to_pointer(n));
 	HFREE_NULL(filename);
 
-	gip_load(f);
+	gip_load(f, n);
 	fclose(f);
 
 done:
@@ -325,7 +449,10 @@ done:
 void
 gip_init(void)
 {
-	gip_retrieve();
+	geo_db = iprange_new();
+
+	gip_retrieve(GIP_IPV4);
+	gip_retrieve(GIP_IPV6);
 }
 
 /**
@@ -347,20 +474,14 @@ gip_close(void)
 guint16
 gip_country(const host_addr_t ha)
 {
-	host_addr_t to;
+	guint16 code;
 
-	if (
-		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
-		host_addr_tunnel_client(ha, &to)
-	) {
-		gpointer code;
-		guint32 ip;
+	if G_UNLIKELY(NULL == geo_db)
+		return ISO3166_INVALID;
+		
+	code = iprange_get_addr(geo_db, ha);
 
-		ip = host_addr_ipv4(to);
-		if (geo_db && NULL != (code = iprange_get(geo_db, ip)))
-			return (GPOINTER_TO_UINT(code) >> 1) - 1;
-	}
-	return ISO3166_INVALID;
+	return 0 == code ? ISO3166_INVALID : (code >> 1) - 1;
 }
 
 /**
@@ -370,7 +491,12 @@ gip_country(const host_addr_t ha)
 guint16
 gip_country_safe(const host_addr_t ha)
 {
-	if (delta_time(tm_time(), geo_mtime) > 15552000)	/* ~6 months */
+	/* We allow them to be ~6 months behind */
+
+	if (
+		delta_time(tm_time(), gip_source[GIP_IPV4].mtime) > 15552000 ||
+		delta_time(tm_time(), gip_source[GIP_IPV6].mtime) > 15552000
+	)
 		return ISO3166_INVALID;
 
 	return gip_country(ha);
@@ -392,15 +518,6 @@ const char *
 gip_country_cc(const host_addr_t ha)
 {
 	return iso3166_country_cc(gip_country(ha));
-}
-
-/**
- * Returns the modification time of the loaded geo_ip file.
- */
-time_t
-gip_mtime(void)
-{
-	return geo_mtime;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

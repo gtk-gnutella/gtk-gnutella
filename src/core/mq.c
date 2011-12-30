@@ -1394,7 +1394,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
 		} else {
-			if (MQ_DEBUG_LVL(q) > 4)
+			if (MQ_DEBUG_LVL(q) > 0)
 				gmsg_log_dropped_pmsg(mb,
 					"to %s %s node %s, %d bytes queued [KILLING]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
@@ -1416,6 +1416,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 			if (!NODE_IS_UDP(q->node)) {
 				node_bye(q->node, 502, "Send queue reached %d bytes",
 					q->maxsize);
+			} else {
+				node_inc_txdrop(q->node);	/* Dropped during TX */
 			}
 		}
 

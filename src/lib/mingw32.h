@@ -302,6 +302,7 @@ int mingw_uname(struct utsname *buf);
 /* Mingw-w64 defines a timespec */
 #ifndef _TIMESPEC_DEFINED
 #define _TIMESPEC_DEFINED
+#define HAVE_STRUCT_TIMESPEC	/* For <pthread.h> */
 struct timespec {
 	time_t tv_sec;				/* seconds */
 	long tv_nsec;				/* nanoseconds */
@@ -478,6 +479,7 @@ void mingw_adns_close(void);
 gboolean mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
+const char *mingw_native_path(const char *pathname);
 
 #else	/* !MINGW32 */
 

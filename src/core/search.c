@@ -1374,6 +1374,9 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 	} else if (is_odd_guid(rs->guid)) {
 		search_results_mark_fake_spam(rs);
 		search_log_spam(n, rs, "odd GUID %s", guid_hex_str(rs->guid));
+	} else if (guid_is_banned(rs->guid)) {
+		rs->status |= ST_BANNED_GUID;
+		search_log_spam(n, rs, "banned GUID %s", guid_hex_str(rs->guid));
 	} else if (!(ST_SPAM & rs->status)) {
 		/*
 		 * Avoid costly checks if already marked as spam.
@@ -1709,7 +1712,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (!trailer || trailer_size < 7)
 		return FALSE;
 
-	vendor = vendor_get_name(rs->vcode.u32);
+	vendor = vendor_get_name(rs->vcode);
 	vendor = vendor != NULL ? vendor : "unknown vendor";
 	open_size = trailer[4];
 	open_parsing_size = trailer[4];
@@ -2684,7 +2687,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 
 		if (trailer) {
 			rs->vcode.u32 = peek_be32(trailer);
-			vendor = vendor_get_name(rs->vcode.u32);
+			vendor = vendor_get_name(rs->vcode);
 			if (vendor != NULL && is_vendor_known(rs->vcode)) {
 				rs->status |= ST_KNOWN_VENDOR;
 			}
@@ -3004,7 +3007,7 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
-	vendor = vendor_get_name(rs->vcode.u32);
+	vendor = vendor_get_name(rs->vcode);
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
@@ -4336,7 +4339,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	search_free_alt_locs(rc);
 
 	if (ignored) {
-		const char *vendor = vendor_get_name(rs->vcode.u32);
+		const char *vendor = vendor_get_name(rs->vcode);
 		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
 			ignored, ignored == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
@@ -6577,7 +6580,16 @@ search_request_preprocess(struct gnutella_node *n,
 	}
 
 	/*
-	 * Look whether we're facing an UTF-8 query.
+	 * Don't waste resources issuing queries from transient leaves.
+	 */
+
+	if (NODE_IS_LEAF(n) && NODE_IS_TRANSIENT(n)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TRANSIENT);
+		goto drop;		/* Drop the message! */
+	}
+
+	/*
+	 * Look whether we're facing a UTF-8 query.
 	 */
 
 	if (!query_utf8_decode(search, NULL)) {

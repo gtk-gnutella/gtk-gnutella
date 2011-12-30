@@ -106,8 +106,7 @@ bogons_load(FILE *f)
 		}
 
 		bits = netmask_to_cidr(netmask);
-		error = iprange_add_cidr(bogons_db, ip, bits,
-					deconstify_gpointer(bogon));
+		error = iprange_add_cidr(bogons_db, ip, bits, 1);
 
 		switch (error) {
 		case IPR_ERR_OK:
@@ -126,7 +125,7 @@ bogons_load(FILE *f)
 	if (GNET_PROPERTY(reload_debug)) {
 		g_debug("loaded %u bogus IP ranges (%u hosts)",
 			iprange_get_item_count(bogons_db),
-			iprange_get_host_count(bogons_db));
+			iprange_get_host_count4(bogons_db));
 	}
 
 	return iprange_get_item_count(bogons_db);
@@ -233,6 +232,9 @@ bogons_close(void)
 gboolean
 bogons_check(const host_addr_t ha)
 {
+	if G_UNLIKELY(NULL == bogons_db)
+		return FALSE;
+
 	/*
 	 * If the bogons file is too ancient, there is a risk it may flag an
 	 * IP as bogus whereas it is no longer reserved.  IPv4 address shortage
@@ -243,17 +245,7 @@ bogons_check(const host_addr_t ha)
 	if (delta_time(tm_time(), bogons_mtime) > 15552000)	/* ~6 months */
 		return !host_addr_is_routable(ha);
 
-	if (host_addr_is_ipv4(ha)) {
-		guint32 ip = host_addr_ipv4(ha);
-		return bogons_db && iprange_get(bogons_db, ip);
-	} else if (host_addr_is_ipv6(ha)) {
-		host_addr_t to;
-
-		if (host_addr_convert(ha, &to, NET_TYPE_IPV4))
-			return bogons_check(to);
-	}
-
-	return FALSE;
+	return 0 != iprange_get_addr(bogons_db, ha);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

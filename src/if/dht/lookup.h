@@ -35,6 +35,7 @@
 #define _if_dht_lookup_h_
 
 #include "lib/host_addr.h"
+#include "lib/vendors.h"
 #include "kuid.h"
 #include "value.h"
 
@@ -66,6 +67,7 @@ typedef struct lookup_value_rc {
 	guint16 port;				/**< Port of creator */
 	guint8 major;				/**< Major version of value */
 	guint8 minor;				/**< Minor version of value */
+	vendor_code_t vcode;		/**< Vendor code of creator (informative) */
 } lookup_val_rc_t;
 
 /**

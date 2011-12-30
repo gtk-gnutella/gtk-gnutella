@@ -264,13 +264,14 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
  * system calls fail with EINTR. Handlers for other all signals are installed
  * so that interrupted system calls are restarted instead.
  *
- * @param signo the signal number.
- * @param handler the signal handler to install.
+ * @param signo		the signal number.
+ * @param handler	the signal handler to install.
+ * @param extra		whether to grab extra signal context
  *
  * @return the previous signal handler or SIG_ERR on failure.
  */
-signal_handler_t
-signal_set(int signo, signal_handler_t handler)
+static signal_handler_t
+signal_trap_with(int signo, signal_handler_t handler, gboolean extra)
 {
 	signal_handler_t ret, old_handler, trampoline;
 
@@ -309,7 +310,7 @@ signal_set(int signo, signal_handler_t handler)
 		case SIGFPE:
 		case SIGILL:
 #ifdef SA_SIGINFO
-			if (signal_trampoline == trampoline) {
+			if (extra && signal_trampoline == trampoline) {
 				sa.sa_flags |= SA_SIGINFO;
 				sa.sa_sigaction = signal_trampoline_extended;
 			} else {
@@ -330,7 +331,13 @@ signal_set(int signo, signal_handler_t handler)
 			break;
 		}
 
-		ret = sigaction(signo, &sa, &osa) ? SIG_ERR : osa.sa_handler;
+		ret = sigaction(signo, &sa, &osa) ? SIG_ERR :
+#ifdef SA_SIGINFO
+			(osa.sa_flags & SA_SIGINFO) ? signal_trampoline : osa.sa_handler
+#else
+			osa.sa_handler
+#endif
+		;
 	}
 #else
 	/* FIXME WIN32, probably: We can't just ignore all signal logic */
@@ -343,6 +350,39 @@ signal_set(int signo, signal_handler_t handler)
 	signal_handler[signo] = handler;
 
 	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
+}
+
+/**
+ * Installs a signal handler.
+ *
+ * The signal handler is not reset to the default handler after delivery unless
+ * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
+ * handler reset but further occurrence of the signal will retrigger even
+ * within signal delivery.
+ *
+ * If the signal is SIGALRM, the handler is installed so that interrupted
+ * system calls fail with EINTR. Handlers for other all signals are installed
+ * so that interrupted system calls are restarted instead.
+ *
+ * @param signo the signal number.
+ * @param handler the signal handler to install.
+ *
+ * @return the previous signal handler or SIG_ERR on failure.
+ */
+signal_handler_t
+signal_set(int signo, signal_handler_t handler)
+{
+	return signal_trap_with(signo, handler, TRUE);
+}
+
+/**
+ * Installs a signal handler but without any special handling for harmful
+ * signals to capture extra contextual information.
+ */
+signal_handler_t
+signal_catch(int signo, signal_handler_t handler)
+{
+	return signal_trap_with(signo, handler, FALSE);
 }
 
 /**

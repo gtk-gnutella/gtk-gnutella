@@ -40,6 +40,7 @@
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
+#include "lib/misc.h"			/* For bitcmp() */
 #include "lib/random.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -196,26 +197,7 @@ kuid_eq(const void *k1, const void *k2)
 gboolean
 kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits)
 {
-	int bytes;
-	guchar mask;
-	int remain;
-	int i;
-
-	bytes = bits / 8;						/* First bytes to compare */
-
-	for (i = 0; i < bytes; i++) {
-		if (k1->v[i] != k2->v[i])
-			return FALSE;
-	}
-
-	remain = bits - 8 * bytes;			/* Bits in next byte */
-
-	if (0 == remain)
-		return TRUE;
-
-	mask = ~((1 << (8 - remain)) - 1);	/* Mask for next byte */
-
-	return (k1->v[bytes] & mask) == (k2->v[bytes] & mask);
+	return 0 == bitcmp(k1->v, k2->v, bits);
 }
 
 /**

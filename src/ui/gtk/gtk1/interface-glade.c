@@ -243,6 +243,7 @@ create_main_window (void)
   GtkObject *spinbutton_whats_new_search_max_results_adj;
   GtkWidget *spinbutton_whats_new_search_max_results;
   GtkWidget *checkbutton_search_discard_alien_ip;
+  GtkWidget *checkbutton_search_discard_banned_guid;
   GtkWidget *label789;
   GtkWidget *hbox147;
   GtkWidget *viewport_fix_flashing_1;
@@ -2395,7 +2396,7 @@ create_main_window (void)
   gtk_widget_show (label8010);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 2), label8010);
 
-  table68 = gtk_table_new (6, 4, FALSE);
+  table68 = gtk_table_new (7, 4, FALSE);
   gtk_widget_set_name (table68, "table68");
   gtk_widget_ref (table68);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table68", table68,
@@ -2632,6 +2633,16 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_discard_alien_ip);
   gtk_table_attach (GTK_TABLE (table68), checkbutton_search_discard_alien_ip, 2, 3, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_search_discard_banned_guid = gtk_check_button_new_with_label (_("Discard results bearing a banned GUID"));
+  gtk_widget_set_name (checkbutton_search_discard_banned_guid, "checkbutton_search_discard_banned_guid");
+  gtk_widget_ref (checkbutton_search_discard_banned_guid);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_discard_banned_guid", checkbutton_search_discard_banned_guid,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_discard_banned_guid);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_discard_banned_guid, 2, 3, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

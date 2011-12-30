@@ -2460,7 +2460,7 @@
 		      <class>GtkTable</class>
 		      <name>table68</name>
 		      <border_width>2</border_width>
-		      <rows>6</rows>
+		      <rows>7</rows>
 		      <columns>4</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
@@ -2932,6 +2932,29 @@
 			  <right_attach>3</right_attach>
 			  <top_attach>5</top_attach>
 			  <bottom_attach>6</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_search_discard_banned_guid</name>
+			<can_focus>True</can_focus>
+			<label>Discard results bearing a banned GUID</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>6</top_attach>
+			  <bottom_attach>7</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>

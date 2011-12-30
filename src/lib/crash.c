@@ -76,6 +76,7 @@
 #include "common.h"
 
 #include "crash.h"
+#include "atomic.h"
 #include "ckalloc.h"
 #include "compat_sleep_ms.h"
 #include "fast_assert.h"
@@ -1086,6 +1087,12 @@ retry_child:
 				print_str(vars->message);			/* 4 */
 				print_str("\n");					/* 5 */
 			}
+			flush_str(clf);
+
+			rewind_str(0);
+			print_str("Atomic-Operations: ");					/* 0 */
+			print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
+			print_str("\n");									/* 2 */
 			flush_str(clf);
 
 			rewind_str(0);
@@ -2410,7 +2417,8 @@ crash_set_error(const char * const msg)
 		 */
 
 		ck_writable(vars->logck);
-		str_reset(vars->logstr);
+		if (0 != str_len(vars->logstr))
+			str_ncat_safe(vars->logstr, ", ", 2);
 		str_ncat_safe(vars->logstr, msg, strlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
@@ -2478,7 +2486,7 @@ crash_save_current_stackframe(unsigned offset)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
 }

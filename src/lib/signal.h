@@ -53,6 +53,7 @@ typedef void (*signal_handler_t)(int signo);
  */
 
 signal_handler_t signal_set(int signo, signal_handler_t handler);
+signal_handler_t signal_catch(int signo, signal_handler_t handler);
 const char *signal_name(int signo);
 gboolean signal_in_handler(void);
 struct ckhunk *signal_chunk(void);

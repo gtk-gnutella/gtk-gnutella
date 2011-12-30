@@ -145,6 +145,25 @@ gdht_kuid_from_guid(const guid_t *guid)
 }
 
 /**
+ * Is IP:port pointing back at us?
+ */
+static gboolean
+gdht_is_our_ip_port(const host_addr_t addr, guint16 port)
+{
+	return is_my_address_and_port(addr, port) ||
+		local_addr_cache_lookup(addr, port);
+}
+
+/**
+ * Was result published by ourselves
+ */
+static gboolean
+gdht_published_by_ourselves(const lookup_val_rc_t *rc)
+{
+	return gdht_is_our_ip_port(rc->addr, rc->port);
+}
+
+/**
  * Free SHA1 lookup context.
  */
 static void
@@ -185,11 +204,12 @@ gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
 static const char *
 value_infostr(const lookup_val_rc_t *rc)
 {
-	static char info[60];
+	static char info[64];
 
-	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s)",
+	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
-		(gulong) rc->length, 1 == rc->length ? "" : "s");
+		(gulong) rc->length, 1 == rc->length ? "" : "s",
+		vendor_to_string(rc->vcode));
 
 	return info;
 }
@@ -272,6 +292,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	guint32 flags = 0;
 	char host[MAX_HOSTLEN];
 	const char *hostname = NULL;
+	gboolean has_valid_guid = FALSE;
 
 	g_assert(DHT_VT_ALOC == rc->type);
 
@@ -286,8 +307,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_client_id:
-			if (GUID_RAW_SIZE == ext_paylen(e))
+			if (GUID_RAW_SIZE == ext_paylen(e)) {
 				memcpy(guid.v, ext_payload(e), GUID_RAW_SIZE);
+				has_valid_guid = TRUE;
+			}
 			break;
 		case EXT_T_GGEP_firewalled:
 			if (1 == ext_paylen(e)) {
@@ -370,12 +393,49 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	}
 
 	/*
+	 * Make sure firewalled servents list their GUID.
+	 */
+
+	if (firewalled && !has_valid_guid) {
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for %s: firewalled host, no GUID",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				fi->pathname);
+		goto cleanup;
+	}
+
+	/*
 	 * Discard hostile sources.
 	 */
 
 	if (hostiles_check(rc->addr)) {
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for %s: hostile IP",
+				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
+				fi->pathname);
+		goto cleanup;
+	}
+
+	/*
+	 * Rule out on GUID collision: alt-loc cannot bear our own GUID.
+	 *
+	 * This is done after checking for hostile sources of course since
+	 * anything can happen with hostiles
+	 */
+
+	if (has_valid_guid && guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
+		has_valid_guid = FALSE;
+
+		/*
+		 * Make sure the server address is not ours, otherwise we don't count
+		 * that as a GUID collision.
+		 */
+
+		if (!gdht_is_our_ip_port(rc->addr, port))
+			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+
+		if (GNET_PROPERTY(download_debug))
+			g_warning("discarding %s from %s for %s: host bears our GUID",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
 				fi->pathname);
 		goto cleanup;
@@ -446,7 +506,7 @@ cleanup:
 	 * we can flag the server as publishing in the DHT.
 	 */
 
-	if (!guid_is_blank(&guid)) {
+	if (has_valid_guid) {
 		download_server_publishes_in_dht(&guid);
 	}
 	if (exvcnt) {
@@ -492,9 +552,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-		if (is_my_address_and_port(rc->addr, rc->port))
-			continue;
-		if (local_addr_cache_lookup(rc->addr, rc->port))
+		if (gdht_published_by_ourselves(rc))
 			continue;
 		seen_foreign = TRUE;		/* ALOC not published by ourselves */
 		gdht_handle_aloc(rc, fi);
@@ -841,9 +899,9 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 0)
-		g_debug("adding %s (NOPE creator) as push-proxy for %s (%s)",
+		g_debug("adding %s [%s] (NOPE creator) as push-proxy for %s (%s)",
 			host_addr_port_to_string(rc->addr, port),
-			guid_to_string(glk->guid),
+			vendor_to_string(rc->vcode), guid_to_string(glk->guid),
 			host_addr_port_to_string2(glk->addr, glk->port));
 
 	download_add_push_proxy(glk->guid, rc->addr, port);
@@ -886,6 +944,8 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
+		if (gdht_published_by_ourselves(rc))
+			continue;
 		switch (rc->type) {
 		case DHT_VT_PROX:
 			prox = TRUE;

@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
+ * IP address "database", associating a 16-bit token to a network range.
  *
  * @author Raphael Manfredi
  * @date 2004
@@ -35,6 +35,8 @@
 #define _iprange_h_
 
 #include "common.h"
+
+#include "lib/host_addr.h"
 
 /**
  * Error codes.
@@ -61,13 +63,22 @@ const char *iprange_strerror(iprange_err_t errnum);
 
 struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(
-	struct iprange_db *db, guint32 net, guint bits, void *value);
-void *iprange_get(const struct iprange_db *db, guint32 ip);
+	struct iprange_db *db, guint32 net, unsigned bits, guint16 value);
+iprange_err_t iprange_add_cidr6(
+	struct iprange_db *db, const guint8 *net, unsigned bits, guint16 value);
+guint16 iprange_get(const struct iprange_db *db, guint32 ip);
+guint16 iprange_get6(const struct iprange_db *db, const guint8 *ip6);
+guint16 iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
+void iprange_reset_ipv4(struct iprange_db *idb);
+void iprange_reset_ipv6(struct iprange_db *idb);
 
-guint iprange_get_item_count(const struct iprange_db *idb);
-guint iprange_get_host_count(const struct iprange_db *idb);
+unsigned iprange_get_item_count(const struct iprange_db *idb);
+unsigned iprange_get_item_count4(const struct iprange_db *idb);
+unsigned iprange_get_item_count6(const struct iprange_db *idb);
+
+unsigned iprange_get_host_count4(const struct iprange_db *idb);
 
 #endif	/* _iprange_h_ */
 

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-103]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-109]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -74,7 +74,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 99 2011-11-05 13:27:37Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -171,6 +171,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	mutex.c \
 	nid.c \
 	nv.c \
 	offtime.c \
@@ -196,6 +197,7 @@ LSRC = \
 	signal.c \
 	slist.c \
 	sorted_array.c \
+	spinlock.c \
 	stacktrace.c \
 	stats.c \
 	str.c \
@@ -203,6 +205,7 @@ LSRC = \
 	strtok.c \
 	symtab.c \
 	tea.c \
+	thread.c \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
@@ -291,6 +294,7 @@ LOBJ = \
 	mime_type.o \
 	mingw32.o \
 	misc.o \
+	mutex.o \
 	nid.o \
 	nv.o \
 	offtime.o \
@@ -316,6 +320,7 @@ LOBJ = \
 	signal.o \
 	slist.o \
 	sorted_array.o \
+	spinlock.o \
 	stacktrace.o \
 	stats.o \
 	str.o \
@@ -323,6 +328,7 @@ LOBJ = \
 	strtok.o \
 	symtab.o \
 	tea.o \
+	thread.o \
 	tiger.o \
 	tigertree.o \
 	timestamp.o \
@@ -449,6 +455,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man

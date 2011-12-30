@@ -710,6 +710,7 @@ dht_value_fill_record(const dht_value_t *v, lookup_val_rc_t *rc)
 	rc->port = v->creator->port;
 	rc->major = v->major;
 	rc->minor = v->minor;
+	rc->vcode = v->creator->vcode;	/* struct copy */
 }
 
 /**

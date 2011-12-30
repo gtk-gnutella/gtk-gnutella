@@ -140,6 +140,7 @@ extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
 extra_files/favicon.png      GTKG's favorite web icon
 extra_files/geo-ip.txt
+extra_files/geo-ipv6.txt
 extra_files/gtk-gnutella.128.png
 extra_files/gtk-gnutella.16.png
 extra_files/gtk-gnutella.256.png
@@ -240,6 +241,7 @@ po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
 scripts/geo-to-db.pl
+scripts/geo6-to-db.pl
 scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
@@ -552,6 +554,7 @@ src/lib/arc4random.h
 src/lib/array.h
 src/lib/ascii.c
 src/lib/ascii.h
+src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
 src/lib/base16.c
@@ -691,6 +694,8 @@ src/lib/mingw32.c
 src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
+src/lib/mutex.c
+src/lib/mutex.h
 src/lib/nid.c
 src/lib/nid.h
 src/lib/nv.c
@@ -743,6 +748,8 @@ src/lib/slist.c
 src/lib/slist.h
 src/lib/sorted_array.c
 src/lib/sorted_array.h
+src/lib/spinlock.c
+src/lib/spinlock.h
 src/lib/stacktrace.c
 src/lib/stacktrace.h
 src/lib/stats.c
@@ -757,6 +764,8 @@ src/lib/symtab.c
 src/lib/symtab.h
 src/lib/tea.c
 src/lib/tea.h
+src/lib/thread.c
+src/lib/thread.h
 src/lib/tiger.c
 src/lib/tiger.h
 src/lib/tiger_sboxes.h

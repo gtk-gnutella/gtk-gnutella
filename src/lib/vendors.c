@@ -232,7 +232,7 @@ vendor_code_to_string(guint32 code)
  * consists only of printable characters, return the code as a string.
  */
 const char *
-vendor_get_name(guint32 code)
+vendor_code_get_name(guint32 code)
 {
 	const char *name;
 
@@ -255,6 +255,48 @@ vendor_get_name(guint32 code)
 		bytes[i] = '\0';
 		return bytes;
 	}
+}
+
+/**
+ * Make up a printable version of the vendor code.
+ *
+ * @param vendor	The vendor code.
+ *
+ * @return pointer to static data.
+ */
+const char *
+vendor_to_string(const vendor_code_t vendor)
+{
+	static char buf[5];
+
+	vendor_code_to_string_buf(vendor.u32, buf, sizeof buf);
+	return buf;
+}
+
+/**
+ * Make up a printable version of the vendor code.
+ *
+ * @param vendor 	The vendor code.
+ * @param buf  		The destination buffer to hold the string.
+ * @param size 		The size of buf in bytes.
+ *
+ * @return Length of the resulting string before potential truncation.
+ */
+size_t
+vendor_to_string_buf(const vendor_code_t vendor, char *buf, size_t size)
+{
+	return vendor_code_to_string_buf(vendor.u32, buf, size);
+}
+
+/**
+ * Return the "human readable" name associated with the 4-byte vendor code.
+ * If we can't understand the code return NULL or if the 4-byte code
+ * consists only of printable characters, return the code as a string.
+ */
+const char *
+vendor_get_name(const vendor_code_t vendor)
+{
+	return vendor_code_get_name(vendor.u32);
 }
 
 /**

@@ -71,15 +71,15 @@ void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
-int tm_cmp(const tm_t *a, const tm_t *b);
+int tm_cmp(const tm_t *a, const tm_t *b) G_GNUC_PURE;
 
 void tm_now(tm_t *tm);
 void tm_now_exact(tm_t *tm);
 time_t tm_time_exact(void);
 double tm_cputime(double *user, double *sys);
 
-guint tm_hash(gconstpointer key);
-int tm_equal(gconstpointer a, gconstpointer b);
+guint tm_hash(gconstpointer key) G_GNUC_PURE;
+int tm_equal(gconstpointer a, gconstpointer b) G_GNUC_PURE;
 
 /*
  * We use the direct difference of time_t values instead of difftime()
@@ -120,7 +120,7 @@ time_t_check(void)
  * @param delta the amount of seconds to advance.
  * @return the advanced timestamp or TIME_T_MAX.
  */
-static inline time_t
+static inline time_t G_GNUC_CONST
 time_advance(time_t t, gulong delta)
 {
 	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
@@ -147,7 +147,7 @@ time_advance(time_t t, gulong delta)
 /**
  * Add delta to a time_delta_t, saturating towards TIME_DELTA_T_MAX.
  */
-static inline time_delta_t
+static inline time_delta_t G_GNUC_CONST
 time_delta_add(time_delta_t td, gulong delta)
 {
 	do {
@@ -211,13 +211,13 @@ extern tm_t tm_cached_now;			/* Currently cached time */
 /**
  * Get current time, at the second granularity (cached).
  */
-static inline time_t
+static inline time_t G_GNUC_PURE
 tm_time(void)
 {
 	return (time_t) tm_cached_now.tv_sec;
 }
 
-tm_t tm_start_time(void);
+tm_t tm_start_time(void) G_GNUC_PURE;
 
 /**
  * Returns the current time relative to the startup time (cached).

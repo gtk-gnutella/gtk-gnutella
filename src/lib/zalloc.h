@@ -42,7 +42,7 @@
  * use walloc() to allocate small blocks, we have to force 8-byte alignment
  * for zalloc() as well now.
  */
-#define ZALLOC_ALIGNBYTES	8	/* Forced to 8 thanks to glib */
+#define ZALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* 8 at least for glib */
 
 /*
  * Object size rounding.

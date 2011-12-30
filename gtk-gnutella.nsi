@@ -18,7 +18,7 @@
 !insertmacro Script 'echo \"!define MINGW $MINGW\"'
 
 ; gtk installer name for embedding
-!define GTK_INSTALLER_EXE "gtk2-runtime-2.22.0-2010-10-21-ash.exe"
+!define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
 !include gtk-gnutella.nsh
 !define PRODUCT_NAME "gtk-gnutella"
 !define PRODUCT_NAME_SMALL "gtk-gnutella"
@@ -169,7 +169,7 @@ SectionIn 1 RO
 	File pixmaps\icon.ico
 
 	File ${MINGW}\bin\libiconv-2.dll
-	File ${MINGW}\bin\libpthread-2.dll
+	File ${MINGW}\bin\pthreadGC2.dll
 
 	; Include gnutls
 	File ${DLLDIR_GNUTLS}\libgnutls-26.dll
@@ -427,9 +427,7 @@ Section Uninstall
 	Delete "$INSTDIR\gtk-gnutella.nm"
 	Delete "$INSTDIR\icon.ico"
 	Delete "$INSTDIR\libiconv-2.dll"
-	Delete "$INSTDIR\libpthread-2.dll"
-	Delete "$INSTDIR\libiconv.dll"
-	Delete "$INSTDIR\iconv.dll"
+	Delete "$INSTDIR\pthreadGC2.dll"
 	Delete "$INSTDIR\pixmaps\*.xpm"
 	Delete "$INSTDIR\pixmaps\*.png"
 	Delete "$INSTDIR\extra_files\*.txt"

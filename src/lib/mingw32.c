@@ -193,7 +193,7 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
 }
 
 /*
- * Convert pathname to a UTF-16 representation.
+ * Build a native path for the underlying OS.
  *
  * When launched from a Cygwin or MinGW environment, we can face
  * paths like "/x/file" which really mean "x:/file" in Windows parlance.
@@ -208,19 +208,15 @@ locale_to_wchar(const char *src, wchar_t *dest, size_t dest_size)
  * we will wrongly interpret is as X:/path.  The chance they create
  * single-letter top-level directories is small in practice.
  *
- * On success, the member utf16 points to the converted pathname that can be
- * used in Unicode-aware Windows calls.
- *
- * @return 0 on success, -1 on error with errno set.
+ * @return pointer to static data containing the "native" path or NULL on
+ * error, with the error code returned in ``error''.
  */
-static int
-pncs_convert(pncs_t *pncs, const char *pathname)
+static const char *
+get_native_path(const char *pathname, int *error)
 {
-	char pathname_buf[MAX_PATH_LEN];
+	static char pathname_buf[MAX_PATH_LEN];
+	const char *npath = pathname;
 	char *p;
-
-	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
-	STATIC_ASSERT(sizeof(guint16) == sizeof(wchar_t));
 
 	/*
 	 * Skip leading "/cygdrive/" string, up to the second "/".
@@ -233,9 +229,9 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	 * the MinGW environment.
 	 */
 
-	p = is_strcaseprefix(pathname, "/cygdrive/");
+	p = is_strcaseprefix(npath, "/cygdrive/");
 	if (NULL != p)
-		pathname = p - 1;			/* Go back to ending "/" */
+		npath = p - 1;			/* Go back to ending "/" */
 
 	/*
 	 * Replace /x/file with x:/file.
@@ -250,27 +246,67 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	 */
 
 	if (
-		is_dir_separator(pathname[0]) &&
-		is_ascii_alpha(pathname[1]) &&
-		(is_dir_separator(pathname[2]) || '\0' == pathname[2])
+		is_dir_separator(npath[0]) &&
+		is_ascii_alpha(npath[1]) &&
+		(is_dir_separator(npath[2]) || '\0' == npath[2])
 	) {
-		size_t plen = strlen(pathname);
+		size_t plen = strlen(npath);
 
 		if (sizeof pathname_buf <= plen) {
-			errno = ENAMETOOLONG;
-			return -1;
+			*error = ENAMETOOLONG;
+			return NULL;
 		}
 
-		clamp_strncpy(pathname_buf, sizeof pathname_buf, pathname, plen);
-		pathname_buf[0] = pathname[1]; /* Replace with correct drive letter */
+		clamp_strncpy(pathname_buf, sizeof pathname_buf, npath, plen);
+		pathname_buf[0] = npath[1]; /* Replace with correct drive letter */
 		pathname_buf[1] = ':';
-		pathname = pathname_buf;
+		npath = pathname_buf;
 	}
 
-	if (utf8_is_valid_string(pathname)) {
+	return npath;
+}
+
+/**
+ * @return native path corresponding to the given path, as pointer to
+ * static data.
+ */
+const char *
+mingw_native_path(const char *pathname)
+{
+	const char *npath;		/* Native path */
+	int error;
+
+	npath = get_native_path(pathname, &error);
+
+	return NULL == npath ? pathname : npath;
+}
+
+/**
+ * Convert pathname to a UTF-16 representation.
+ *
+ * On success, the member utf16 points to the converted pathname that can be
+ * used in Unicode-aware Windows calls.
+ *
+ * @return 0 on success, -1 on error with errno set.
+ */
+static int
+pncs_convert(pncs_t *pncs, const char *pathname)
+{
+	const char *npath;		/* Native path */
+	int error;
+
+	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
+	STATIC_ASSERT(sizeof(guint16) == sizeof(wchar_t));
+
+	if (NULL == (npath = get_native_path(pathname, &error))) {
+		errno = error;
+		return -1;
+	}
+
+	if (utf8_is_valid_string(npath)) {
 		size_t ret;
 
-		ret = utf8_to_utf16(pathname, pncs->buf, G_N_ELEMENTS(pncs->buf));
+		ret = utf8_to_utf16(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
 		if (ret < G_N_ELEMENTS(pncs->buf)) {
 			pncs->utf16 = pncs->buf;
 		} else {
@@ -278,8 +314,8 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 			pncs->utf16 = NULL;
 		}
 	} else {
-		pncs->utf16 = locale_to_wchar(pathname,
-						pncs->buf, G_N_ELEMENTS(pncs->buf));
+		pncs->utf16 =
+			locale_to_wchar(npath, pncs->buf, G_N_ELEMENTS(pncs->buf));
 	}
 
 	return NULL != pncs->utf16 ? 0 : -1;
@@ -2295,7 +2331,6 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 static void
 mingw_adns_getaddrinfo_cb(struct async_data *ad)
 {
-	struct addrinfo *results;
 	struct adns_request *req;
 	struct addrinfo *response;
 	host_addr_t addrs[10];
@@ -2308,7 +2343,6 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	g_assert(ad->user_data);
 	g_assert(ad->thread_arg_data);
 	
-	results = ad->thread_return_data;
 	req = ad->user_data;
 	response = ad->thread_return_data;
 	

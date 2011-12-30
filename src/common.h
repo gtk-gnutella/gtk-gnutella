@@ -89,13 +89,15 @@
 
 #ifdef MINGW32
 
-/* Provided for convenience to reduce ifdef hell */
-#define is_running_on_mingw() 1
+/* Provided for convenience to reduce #ifdef hell */
+#define is_running_on_mingw()	1
+#define native_path(x)			mingw_native_path(x)
 
 #else /* !MINGW32 */
 
-/* Provided for convenience to reduce ifdef hell */
-#define is_running_on_mingw() 0
+/* Provided for convenience to reduce #ifdef hell */
+#define is_running_on_mingw()	0
+#define native_path(x)			(x)
 
 #include <sys/uio.h>		/* For writev(), readv(), struct iovec */
 #include <sys/wait.h>

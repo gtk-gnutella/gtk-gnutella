@@ -1969,6 +1969,40 @@ memcmp_diff(const void *a, const void *b, size_t size)
 }
 
 /**
+ * Compare first n bits of the memory areas s1 and s2.
+ *
+ * @return 0 on equality, -1 if s1 < s2 and +1 if s1 > s2.
+ */
+G_GNUC_HOT int
+bitcmp(const void *s1, const void *s2, size_t n)
+{
+	int i, bytes, remain;
+	const guint8 *p1 = s1, *p2 = s2;
+	guint8 mask, c1, c2;
+
+	bytes = n / 8;				/* First bytes to compare */
+
+	for (i = 0; i < bytes; i++) {
+		c1 = *p1++;
+		c2 = *p2++;
+		if (c1 != c2)
+			return c1 < c2 ? -1 : +1;
+	}
+
+	remain = n - 8 * bytes;		/* Bits in next byte */
+
+	if (0 == remain)
+		return 0;
+
+	mask = (guint8) -1 << (8 - remain);
+
+	c1 = *p1 & mask;
+	c2 = *p2 & mask;
+
+	return CMP(c1, c2);
+}
+
+/**
  * Replaces all G_DIR_SEPARATOR characters with the canonic path component
  * separator '/' (a slash). The string is modified in-place.
  *

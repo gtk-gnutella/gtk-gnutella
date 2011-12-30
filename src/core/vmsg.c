@@ -3158,42 +3158,40 @@ handle_messages_supported(struct gnutella_node *n,
 			g_debug("VMSG ...%s/%dv%d",
 				vendor_code_to_string(vendor.u32), id, version);
 
-		g_hash_table_insert(handlers, vm.handler, NULL);
+		g_hash_table_insert(handlers, func_to_pointer(vm.handler), NULL);
 	}
 
-	if (
-		gm_hash_table_contains(handlers, handle_qstat_req) ||
-		gm_hash_table_contains(handlers, handle_qstat_answer)
-	) {
+#define CAN(x)	(gm_hash_table_contains(handlers, func_to_pointer(x)))
+
+	if (CAN(handle_qstat_req) || CAN(handle_qstat_answer)) {
 		node_set_leaf_guidance(NODE_ID(n), TRUE);
 	}
 
-	if (
-		gm_hash_table_contains(handlers, handle_time_sync_req) ||
-		gm_hash_table_contains(handlers, handle_time_sync_reply)
-	) {
+	if (CAN(handle_time_sync_req) || CAN(handle_time_sync_reply)) {
 		node_can_tsync(n);				/* Time synchronization support */
 	}
 
-	if (gm_hash_table_contains(handlers, handle_udp_crawler_ping))
+	if (CAN(handle_udp_crawler_ping))
 		n->attrs |= NODE_A_CRAWLABLE;   /* UDP-crawling support */
 
-	if (gm_hash_table_contains(handlers, handle_head_ping))
+	if (CAN(handle_head_ping))
 		n->attrs |= NODE_A_CAN_HEAD;
 
-	if (gm_hash_table_contains(handlers, handle_svn_release_notify)) {
+	if (CAN(handle_svn_release_notify)) {
 		n->attrs |= NODE_A_CAN_SVN_NOTIFY;
 		vmsg_send_svn_release_notify(n);
 	}
 
-	if (gm_hash_table_contains(handlers, handle_oob_reply_ind))
+	if (CAN(handle_oob_reply_ind))
 		n->attrs |= NODE_A_CAN_OOB;
 
-	if (gm_hash_table_contains(handlers, handle_hops_flow))
+	if (CAN(handle_hops_flow))
 		n->attrs |= NODE_A_HOPS_FLOW;
 
 	if (!NODE_IS_TRANSIENT(n))
 		node_supported_vmsg(n, str_2c(msgs), str_len(msgs));
+
+#undef CAN
 
 	str_destroy(msgs);
 	g_hash_table_destroy(handlers);

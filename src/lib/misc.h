@@ -290,6 +290,7 @@ guint32 html_decode_entity(const char *src, const char **endptr);
 const char *symbolic_errno(int errnum);
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
+int bitcmp(const void *s1, const void *s2, size_t n);
 
 unsigned pointer_hash_func(const void *p);
 
@@ -533,7 +534,7 @@ netmask_to_cidr(guint32 netmask)
  * @param bits A value between 1..32.
  * @return The equivalent netmask in host byte order.
  */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT guint32
+static inline ALWAYS_INLINE G_GNUC_CONST WARN_UNUSED_RESULT guint32
 cidr_to_netmask(guint bits)
 {
 	return (guint32)-1 << (32 - bits);

@@ -1,3 +1,9 @@
+gtk-gnutella (0.98-2) unstable; urgency=critical
+
+  * Avoid crashes when X programs run multi-threaded (as on recent Ubuntu).
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Fri, 30 Dec 2011 13:40:22 +0000
+
 gtk-gnutella (0.98-1) unstable; urgency=critical
 
   * Avoid crashes when running with glib-2.30.2 and above.

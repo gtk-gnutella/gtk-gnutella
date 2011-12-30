@@ -810,14 +810,15 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	if (disable_xshm)
 		gdk_set_use_xshm(FALSE);
 
-	add_pixmap_directory(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps");
+	add_pixmap_directory(native_path(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps"));
 #ifndef OFFICIAL_BUILD
-	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
+	add_pixmap_directory(
+		native_path(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps"));
 #endif
 
 	tmp = get_folder_path(PRIVLIB_PATH, "pixmaps");
 	if (tmp != NULL) {
-		add_pixmap_directory(ostrdup(tmp));
+		add_pixmap_directory(native_path(tmp));
 		HFREE_NULL(tmp);
 	}
 #ifdef MINGW32

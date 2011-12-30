@@ -145,6 +145,7 @@ static struct {
 	{ "#FC000D", GUI_COLOR_MAYBE_SPAM, 	{ 0, 0, 0, 0 } }, /* flashy red */
 	{ "#7f0000", GUI_COLOR_SPAM, 		{ 0, 0, 0, 0 } }, /* dark red */
 	{ "#CD1076", GUI_COLOR_ALIEN, 		{ 0, 0, 0, 0 } }, /* deep pink */
+	{ "#FF69B4", GUI_COLOR_BANNED_GUID,	{ 0, 0, 0, 0 } }, /* hot pink */
 	{ "#7E5029", GUI_COLOR_UNREQUESTED,	{ 0, 0, 0, 0 } }, /* marroon */
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
@@ -1782,6 +1783,8 @@ search_gui_color_for_record(const record_t * const rc)
 		return GUI_COLOR_MAYBE_SPAM;
 	} else if (rs->status & ST_UNREQUESTED) {
 		return GUI_COLOR_UNREQUESTED;
+	} else if (rs->status & ST_BANNED_GUID) {
+		return GUI_COLOR_BANNED_GUID;
 	} else if (rc->flags & SR_MEDIA) {
 		return GUI_COLOR_MEDIA;
 	} else if (rc->flags & (SR_IGNORED | SR_OWNED | SR_SHARED)) {
@@ -1929,13 +1932,14 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 			/*
 			 * We already have that result displayed.
 			 *
-			 * We don't want to count as "kept" something that is spam.
+			 * We don't want to count as "kept" something that is (likely) spam.
 			 * It can be shown in the results if they don't want to
 			 * discard the spam, but it's certainly not a valuable entry!
 			 */
 
 			if (
-				0 == ((ST_HOSTILE | ST_SPAM | ST_ALIEN) & rs->status) &&
+				0 == ((ST_HOSTILE | ST_SPAM | ST_ALIEN |
+					ST_BANNED_GUID) & rs->status) &&
 				0 == (SR_SPAM & rc->flags)
 			) {
 				results_kept++;		/* Counts for measuring popularity */
@@ -1970,6 +1974,10 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 				(
 					GUI_PROPERTY(search_discard_alien_ip) &&
 					(ST_ALIEN & rs->status)
+				) ||
+				(
+					GUI_PROPERTY(search_discard_banned_guid) &&
+					(ST_BANNED_GUID & rs->status)
 				)
 			) {
 				sch->ignored++;
@@ -3759,7 +3767,7 @@ search_gui_get_vendor(const struct results_set *rs)
 
 	g_assert(rs);
 
-	vendor = vendor_get_name(rs->vendor);
+	vendor = vendor_code_get_name(rs->vendor);
 	if (vendor) {
 		if (rs->version) {
 			static gchar buf[128];
@@ -3945,7 +3953,16 @@ search_gui_set_details(const record_t *rc)
 		search_gui_append_detail(_("Host information"), NULL);
 
 		search_gui_append_detail(_("Hostname"), rs->hostname);
-		search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		if (rs->status & ST_BANNED_GUID) {
+			char buf[80];
+
+			str_bprintf(buf, sizeof buf, "%s [%s]",
+				guid_to_string(rs->guid), _("banned"));
+
+			search_gui_append_detail(_("Servent ID"), buf);
+		} else {
+			search_gui_append_detail(_("Servent ID"), guid_to_string(rs->guid));
+		}
 		search_gui_append_detail(_("Vendor"), search_gui_get_vendor(rs));
 		search_gui_append_detail(_("Browsable"),
 				ST_BH & rs->status ? _("Yes") : _("No"));
