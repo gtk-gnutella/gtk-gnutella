@@ -145,6 +145,25 @@ gdht_kuid_from_guid(const guid_t *guid)
 }
 
 /**
+ * Is IP:port pointing back at us?
+ */
+static gboolean
+gdht_is_our_ip_port(const host_addr_t addr, guint16 port)
+{
+	return is_my_address_and_port(addr, port) ||
+		local_addr_cache_lookup(addr, port);
+}
+
+/**
+ * Was result published by ourselves
+ */
+static gboolean
+gdht_published_by_ourselves(const lookup_val_rc_t *rc)
+{
+	return gdht_is_our_ip_port(rc->addr, rc->port);
+}
+
+/**
  * Free SHA1 lookup context.
  */
 static void
@@ -412,7 +431,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		 * that as a GUID collision.
 		 */
 
-		if (!is_my_address_and_port(rc->addr, port))
+		if (!gdht_is_our_ip_port(rc->addr, port))
 			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
 
 		if (GNET_PROPERTY(download_debug))
@@ -533,9 +552,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
-		if (is_my_address_and_port(rc->addr, rc->port))
-			continue;
-		if (local_addr_cache_lookup(rc->addr, rc->port))
+		if (gdht_published_by_ourselves(rc))
 			continue;
 		seen_foreign = TRUE;		/* ALOC not published by ourselves */
 		gdht_handle_aloc(rc, fi);
@@ -882,9 +899,9 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 0)
-		g_debug("adding %s (NOPE creator) as push-proxy for %s (%s)",
+		g_debug("adding %s [%s] (NOPE creator) as push-proxy for %s (%s)",
 			host_addr_port_to_string(rc->addr, port),
-			guid_to_string(glk->guid),
+			vendor_to_string(rc->vcode), guid_to_string(glk->guid),
 			host_addr_port_to_string2(glk->addr, glk->port));
 
 	download_add_push_proxy(glk->guid, rc->addr, port);
@@ -927,6 +944,8 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
 
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
+		if (gdht_published_by_ourselves(rc))
+			continue;
 		switch (rc->type) {
 		case DHT_VT_PROX:
 			prox = TRUE;
