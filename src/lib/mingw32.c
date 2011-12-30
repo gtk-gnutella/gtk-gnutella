@@ -2295,7 +2295,6 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 static void
 mingw_adns_getaddrinfo_cb(struct async_data *ad)
 {
-	struct addrinfo *results;
 	struct adns_request *req;
 	struct addrinfo *response;
 	host_addr_t addrs[10];
@@ -2308,7 +2307,6 @@ mingw_adns_getaddrinfo_cb(struct async_data *ad)
 	g_assert(ad->user_data);
 	g_assert(ad->thread_arg_data);
 	
-	results = ad->thread_return_data;
 	req = ad->user_data;
 	response = ad->thread_return_data;
 	
