@@ -9653,6 +9653,25 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, gboolean gnet)
 		goto error;
 	}
 
+	/*
+	 * Here we know no other node to which we are connected bears the same
+	 * GUID, but nonetheless that GUID could already have been identified
+	 * as being banned.  Just flag the node as potentially having a bad
+	 * GUID but still record the node in our table.
+	 */
+
+	if (guid_is_banned(guid)) {
+		if (GNET_PROPERTY(node_debug)) {
+			g_message("%s uses banned GUID %s",
+				node_infostr(n), guid_hex_str(guid));
+		}
+		/*
+		 * Don't refresh the "last-seen" time as the GUID could have made it
+		 * to our banned list after an IP address change or some other glitch.
+		 */
+		n->attrs |= NODE_A_BAD_GUID;
+	}
+
 	n->guid = atom_guid_get(guid);
 	gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
 	return FALSE;
