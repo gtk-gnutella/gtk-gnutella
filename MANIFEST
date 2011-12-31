@@ -83,6 +83,7 @@ doc/gnutella/msg/node_info
 doc/gnutella/msg/proxy_cancel
 doc/gnutella/msg/route_lost
 doc/gnutella/msg/time_sync
+doc/gnutella/oob-shortcut
 doc/gnutella/out-of-band
 doc/gnutella/ping-pong
 doc/gnutella/push_proxy
