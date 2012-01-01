@@ -251,7 +251,7 @@ random_add(const void *data, size_t datalen)
 void
 random_init(void)
 {
-	arc4random_stir();
+	arc4random_stir_once();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

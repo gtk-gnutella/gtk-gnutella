@@ -42,6 +42,8 @@ void arc4random_stir(void);
 void arc4random_addrandom(const unsigned char *dat, int datlen);
 #endif
 
+void arc4random_stir_once(void);
+
 #endif /* _arc4random_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

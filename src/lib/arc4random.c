@@ -76,8 +76,8 @@ struct arc4_stream {
 };
 
 static struct arc4_stream rs;
-static int rs_initialized;
-static int rs_stired;
+static gboolean rs_initialized;
+static gboolean rs_stired;
 
 static inline guint8 arc4_getbyte(struct arc4_stream *);
 static void arc4_stir(struct arc4_stream *);
@@ -109,12 +109,23 @@ arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 	}
 }
 
+static inline void
+arc4_check_init(void)
+{
+	if G_UNLIKELY(!rs_initialized) {
+		arc4_init(&rs);
+		rs_initialized = TRUE;
+	}
+}
+
 static void
 arc4_stir(struct arc4_stream *as)
 {
 	int n;
 	sha1_t entropy;
-	
+
+	arc4_check_init();
+
 	entropy_collect(&entropy);
 	arc4_addrandom(as, cast_to_gpointer(&entropy), sizeof entropy);
 
@@ -157,21 +168,12 @@ arc4_getword(struct arc4_stream *as)
 	return (val);
 }
 
-static inline void
-arc4_check_init(void)
-{
-	if G_UNLIKELY(!rs_initialized) {
-		arc4_init(&rs);
-		rs_initialized = 1;
-	}
-}
-
-static inline void
+static inline ALWAYS_INLINE void
 arc4_check_stir(void)
 {
 	if G_UNLIKELY(!rs_stired) {
 		arc4_stir(&rs);
-		rs_stired = 1;
+		rs_stired = TRUE;
 	}
 }
 
@@ -186,9 +188,17 @@ void
 arc4random_stir(void)
 {
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_stir(&rs);
 	/* THREAD_UNLOCK(); */
+}
+
+/**
+ * Perform random initialization if not already done.
+ */
+G_GNUC_COLD void
+arc4random_stir_once(void)
+{
+	arc4_check_stir();
 }
 
 /**
@@ -204,7 +214,6 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	g_assert(datlen > 0);
 
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_check_stir();
 	arc4_addrandom(&rs, dat, datlen);
 	/* THREAD_UNLOCK(); */
@@ -219,12 +228,30 @@ arc4random(void)
 	guint32 rnd;
 
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_check_stir();
 	rnd = arc4_getword(&rs);
 	/* THREAD_UNLOCK(); */
 
 	return rnd;
+}
+
+#else	/* HAS_ARC4RANDOM */
+
+/**
+ * Perform random initialization if not already done.
+ *
+ * @attention
+ * This is a non-standard call, specific to this library.
+ */
+G_GNUC_COLD void
+arc4random_stir_once(void)
+{
+	static int done;
+
+	if G_UNLIKELY(!done) {
+		arc4random_stir();
+		done = TRUE;
+	}
 }
 
 #endif	/* !HAS_ARC4RANDOM */
