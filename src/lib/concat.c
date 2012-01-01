@@ -125,9 +125,11 @@ size_t
 w_concat_strings(char **dst_ptr, const char *first, ...)
 {
 	va_list ap;
+	va_list ap2;
 	size_t len;
 
 	va_start(ap, first);
+	VA_COPY(ap2, ap);
 	len = concat_strings_v(NULL, 0, first, ap);
 	va_end(ap);
 
@@ -135,9 +137,8 @@ w_concat_strings(char **dst_ptr, const char *first, ...)
 		size_t ret;
 
 		*dst_ptr = walloc(len + 1);
-		va_start(ap, first);
-		ret = concat_strings_v(*dst_ptr, len + 1, first, ap);
-		va_end(ap);
+		ret = concat_strings_v(*dst_ptr, len + 1, first, ap2);
+		va_end(ap2);
 		g_assert(ret == len);
 	}
 
