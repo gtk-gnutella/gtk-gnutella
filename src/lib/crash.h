@@ -197,6 +197,7 @@ void crash_handler(int signo);
 void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
+void crash_setnumbers(guint8 major, guint8 minor, guint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(int argc, const char *argv[], const char *env[]);
 void crash_assert_failure(const struct assertion_data *a);

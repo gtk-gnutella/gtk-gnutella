@@ -1041,12 +1041,6 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_gc = NULL;
 	spinlock_init(&zone->lock);
 
-	if (zalloc_memusage_ok) {
-		zone->zn_mem = memusage_alloc("zone", size);
-	} else {
-		zone->zn_mem = NULL;
-	}
-
 	zn_cram(zone, zone->zn_arena.sz_base);
 	safety_assert(zbelongs(zone, zone->zn_free));
 
@@ -2439,6 +2433,32 @@ no_change:
 }
 
 /**
+ * Add memory usage monitoring to zone.
+ */
+static void
+zn_memusage_init(zone_t *zone)
+{
+	memusage_t *mu;
+
+	/*
+	 * Allocate the memusage object before locking the zone in case
+	 * the creation of the object re-enters zalloc() for that same zone.
+	 */
+
+	mu = memusage_alloc("zone", zone->zn_size);
+
+	spinlock(&zone->lock);
+	if (NULL == zone->zn_mem) {
+		zone->zn_mem = mu;
+		spinunlock(&zone->lock);
+	} else {
+		spinunlock(&zone->lock);
+		memusage_free_null(&mu);
+		g_assert(memusage_is_valid(zone->zn_mem));
+	}
+}
+
+/**
  * Identify oversized zones.
  */
 static void
@@ -2449,6 +2469,18 @@ spot_oversized_zone(zone_t *zone)
 
 	if (!spinlock_try(&zone->lock))
 		return;
+
+	/*
+	 * It's not possible to create this object at zn_create() time because
+	 * there is a danger of deadlocking from walloc() when the size of
+	 * the objects to create match the zone we're attempting to allocate.
+	 */
+
+	if G_UNLIKELY(NULL == zone->zn_mem && zalloc_memusage_ok) {
+		spinunlock(&zone->lock);
+		zn_memusage_init(zone);
+		spinlock(&zone->lock);
+	}
 
 	/*
 	 * A zone is oversized if it contains more than 1 subzone and if it has
@@ -2649,22 +2681,8 @@ zalloc_memusage_init(void)
 
 		zone_check(zn);
 
-		/*
-		 * Allocate the memusage object before locking the zone in case
-		 * the creation of the object re-enters zalloc() for the zone we
-		 * just locked!
-		 */
-
 		if (NULL == zn->zn_mem) {
-			memusage_t *mu = memusage_alloc("zone", zn->zn_size);
-			spinlock(&zn->lock);
-			if (NULL == zn->zn_mem) {
-				zn->zn_mem = mu;
-			} else {
-				memusage_free_null(&mu);
-				g_assert(memusage_is_valid(zn->zn_mem));
-			}
-			spinunlock(&zn->lock);
+			zn_memusage_init(zn);
 		} else {
 			g_assert(memusage_is_valid(zn->zn_mem));
 		}

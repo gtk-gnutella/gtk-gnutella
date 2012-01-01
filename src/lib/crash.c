@@ -139,10 +139,14 @@ struct crash_vars {
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
+	guint8 major;			/**< Major version */
+	guint8 minor;			/**< Minor version */
+	guint8 patchlevel;		/**< Patchlevel version */
 	guint8 crash_mode;		/**< True when we enter crash mode */
 	guint8 recursive;		/**< True when we are in a recursive crash */
 	guint8 closed;			/**< True when crash_close() was called */
 	guint8 invoke_inspector;
+	guint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
 	unsigned pause_process:1;
 	unsigned dumps_core:1;
 	unsigned may_restart:1;
@@ -639,6 +643,21 @@ static G_GNUC_COLD void
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
 	clamp_strcpy(buf, len, EMPTY_STRING(vars->progname));
+
+	if (0 != vars->has_numbers) {
+		char num_buf[ULONG_DEC_BUFLEN + 2];
+		const char *num_str;
+
+		num_str = print_number(num_buf, sizeof num_buf, vars->major);
+		clamp_strcat(buf, len, "-");
+		clamp_strcat(buf, len, num_str);
+		num_str = print_number(num_buf, sizeof num_buf, vars->minor);
+		clamp_strcat(buf, len, ".");
+		clamp_strcat(buf, len, num_str);
+		num_str = print_number(num_buf, sizeof num_buf, vars->patchlevel);
+		clamp_strcat(buf, len, ".");
+		clamp_strcat(buf, len, num_str);
+	}
 
 	/*
 	 * File is opened with O_EXCL so we need to make the filename as unique
@@ -2225,6 +2244,20 @@ crash_setver(const char *version)
 
 	if (vars->mem3 != NULL)
 		ck_readonly(vars->mem3);
+}
+
+/**
+ * Set program's numbers (major, minor and patchlevel).
+ */
+void
+crash_setnumbers(guint8 major, guint8 minor, guint8 patchlevel)
+{
+	guint8 t = TRUE;
+
+	crash_set_var(major, major);
+	crash_set_var(minor, minor);
+	crash_set_var(patchlevel, patchlevel);
+	crash_set_var(has_numbers, t);
 }
 
 /**

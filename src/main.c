@@ -1715,6 +1715,8 @@ main(int argc, char **argv)
 
 		crash_init(argv[0], product_get_name(),
 			flags, options[main_arg_exec_on_crash].arg);
+		crash_setnumbers(product_get_major(), product_get_minor(),
+			product_get_patchlevel());
 		crash_setbuild(product_get_build());
 		crash_setmain(main_argc, main_argv, main_env);
 	}	
