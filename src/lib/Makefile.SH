@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-109]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-110]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -145,6 +145,7 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	getcpucount.c \
 	getdate.c \
 	getline.c \
 	getgateway.c \
@@ -268,6 +269,7 @@ LOBJ = \
 	float.o \
 	fragcheck.o \
 	fs_free_space.o \
+	getcpucount.o \
 	getdate.o \
 	getline.o \
 	getgateway.o \
