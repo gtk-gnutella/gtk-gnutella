@@ -93,7 +93,7 @@ int log_get_fd(enum log_file which);
  */
 
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
@@ -102,8 +102,10 @@ void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void s_error_from(const char *file, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+void s_fatal_exit(int status, const char *format, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+void s_error_from(const char *file, const char *fmt, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
 void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
 
 /*
@@ -111,15 +113,16 @@ void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
  */
 
 void t_critical(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void t_error(logthread_t *lt, const char *format, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
 void t_carp(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_carp_once(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_warning(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_message(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
 void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error_from(const char *file,
-	logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(3, 4);
+void t_error_from(const char *file, logthread_t *lt, const char *format, ...)
+	G_GNUC_PRINTF(3, 4) G_GNUC_NORETURN;
 
 /*
  * Polymorphic logging interface.
