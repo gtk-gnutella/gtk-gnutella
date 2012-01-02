@@ -416,7 +416,7 @@ compat_pagesize(void)
 	static int initialized;
 	static size_t psize;
 
-	if (!initialized) {
+	if G_UNLIKELY(!initialized) {
 		long n;
 		
 		initialized = 1;
