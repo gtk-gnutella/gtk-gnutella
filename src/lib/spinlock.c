@@ -37,6 +37,8 @@
 #include <sched.h>
 #endif
 
+#define SPINLOCK_SOURCE
+
 #include "spinlock.h"
 #include "atomic.h"
 #include "compat_sleep_ms.h"
@@ -47,7 +49,7 @@
 #include "override.h"			/* Must be the last header included */
 
 #define SPINLOCK_LOOP		100		/* Loop iterations before sleeping */
-#define SPINLOCK_DELAY		1		/* Wait 1 ms before looping again */
+#define SPINLOCK_DELAY		2		/* Wait 2 ms before looping again */
 #define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
@@ -59,33 +61,72 @@ spinlock_check(const volatile struct spinlock * const slock)
 }
 
 /**
+ * @return string for spinlock source.
+ */
+const char *
+spinlock_source_string(enum spinlock_source src)
+{
+	switch (src) {
+	case SPINLOCK_SRC_SPINLOCK:	return "spinlock";
+	case SPINLOCK_SRC_MUTEX:	return "mutex";
+	}
+	g_assert_not_reached();
+}
+
+/**
  * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
 static NO_INLINE void
-spinlock_deadlock(const volatile spinlock_t *s, unsigned count)
+spinlock_deadlock(const volatile void *obj, unsigned count)
 {
+	const volatile spinlock_t *s = obj;
+
+	spinlock_check(s);
+
 #ifdef SPINLOCK_DEBUG
 	s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p already held by %s:%u",
-		(void *) s, s->file, s->line);
+		obj, s->file, s->line);
 #endif
 
-	s_minicarp("possible spinlock deadlock #%u on %p", count, (void *) s);
+	s_minicarp("possible spinlock deadlock #%u on %p", count, obj);
+}
+
+/**
+ * Abort on deadlock condition.
+ *
+ * Don't inline to provide a suitable breakpoint.
+ */
+static NO_INLINE void G_GNUC_NORETURN
+spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
+{
+	const volatile spinlock_t *s = obj;
+
+	spinlock_check(s);
+
+#ifdef SPINLOCK_DEBUG
+	s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p still held by %s:%u",
+		obj, s->file, s->line);
+#endif
+
+	s_error("deadlocked on spinlock %p (after %u secs)", obj, elapsed);
 }
 
 /**
  * Obtain a lock, spinning first then spleeping.
  */
-static void
-spinlock_loop(volatile spinlock_t *s, int loops)
+void
+spinlock_loop(volatile spinlock_t *s,
+	enum spinlock_source src, const volatile void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked)
 {
 	static long cpus;
 	unsigned i;
 	time_t start = 0;
+	int loops = SPINLOCK_LOOP;
 
 	spinlock_check(s);
-	g_assert(loops >= 1);
 
 	if G_UNLIKELY(0 == cpus)
 		cpus = getcpucount();
@@ -100,18 +141,17 @@ spinlock_loop(volatile spinlock_t *s, int loops)
 
 		for (j = 0; j < loops; j++) {
 			if G_UNLIKELY(SPINLOCK_MAGIC != s->magic) {
-				s_error("spinlock %p %s whilst waiting, at attempt #%u",
-					(void *) s,
+				s_error("spinlock %s whilst waiting on %s %p, at attempt #%u",
 					SPINLOCK_DESTROYED == s->magic ? "destroyed" : "corrupted",
-					i);
+					spinlock_source_string(src), src_object, i);
 			}
 
 			if (atomic_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
 					s_minilog(G_LOG_LEVEL_INFO,
-						"finally grabbed spinlock %p after %u attempts",
-						(void *) s, i);
+						"finally grabbed %s %p after %u attempts",
+						spinlock_source_string(src), src_object, i);
 				}
 #endif	/* SPINLOCK_DEBUG */
 				return;
@@ -122,21 +162,14 @@ spinlock_loop(volatile spinlock_t *s, int loops)
 #endif
 		}
 
-		if G_UNLIKELY(i != 0 && 0 == i % SPINLOCK_DEAD) {
-			spinlock_deadlock(s, i / SPINLOCK_DEAD);
-		}
+		if G_UNLIKELY(i != 0 && 0 == i % SPINLOCK_DEAD)
+			(*deadlock)(src_object, i / SPINLOCK_DEAD);
 
 		if G_UNLIKELY(0 == start)
 			start = tm_time();
 
-		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT) {
-#ifdef SPINLOCK_DEBUG
-			s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p still held by %s:%u",
-				(void *) s, s->file, s->line);
-#endif
-			s_error("deadlocked on spinlock %p (after %u secs)",
-				(void *) s, (unsigned) delta_time(tm_time(), start));
-		}
+		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT)
+			(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
 
 		compat_sleep_ms(SPINLOCK_DELAY);
 	}
@@ -190,7 +223,8 @@ spinlock_destroy(spinlock_t *s)
 void
 spinlock_grab(spinlock_t *s)
 {
-	spinlock_loop(s, SPINLOCK_LOOP);
+	spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+		spinlock_deadlock, spinlock_deadlocked);
 }
 
 /**
@@ -213,7 +247,8 @@ spinlock_grab_try(spinlock_t *s)
 void
 spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
 {
-	spinlock_loop(s, SPINLOCK_LOOP);
+	spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+		spinlock_deadlock, spinlock_deadlocked);
 	s->file = file;
 	s->line = line;
 }
