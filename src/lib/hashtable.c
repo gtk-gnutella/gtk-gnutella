@@ -105,7 +105,6 @@ struct hash_table {
 	hash_item_t **bins;			/* Array of bins of size ``num_bins'' */
 	hash_item_t *free_list;		/* List of free hash items */
 	hash_item_t *items;			/* Array of items */
-#ifdef TRACK_VMM
 	/*
 	 * Since we use these data structures during tracking, be careful:
 	 * if the table is created with the _real variant, it is used by
@@ -113,7 +112,7 @@ struct hash_table {
 	 * layer specially.
 	 */
 	unsigned real:1;			/* If TRUE, created as "real" */
-#endif
+	unsigned not_leaking:1;		/* Don't track allocated VMM regions */
 	unsigned special:1;			/* Set if structure allocated specially */
 	unsigned readonly:1;		/* Set if data structures protected */
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
@@ -156,50 +155,43 @@ static inline void *
 hash_vmm_alloc(const struct hash_table *ht, size_t size)
 {
 #ifdef TRACK_VMM
-	if (ht->real)
+	if (ht->real || ht->not_leaking)
 		return vmm_alloc_notrack(size);
 	else
-		return vmm_alloc(size);
 #else
-	(void) ht;
-	return vmm_alloc(size);
-#endif
+	{
+		(void) ht;
+		return vmm_alloc(size);
+	}
+#endif	/* TRACK_VMM */
 }
 
 static inline void
 hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
 {
 #ifdef TRACK_VMM
-	if (ht->real)
+	if (ht->real || ht->not_leaking)
 		vmm_free_notrack(p, size);
 	else
-		vmm_free(p, size);
 #else
-	(void) ht;
-	vmm_free(p, size);
-#endif
+	{
+		(void) ht;
+		vmm_free(p, size);
+	}
+#endif	/* TRACK_VMM */
 }
 
 static inline void
 hash_mark_real(hash_table_t * ht, gboolean is_real)
 {
-#ifdef TRACK_VMM
 	ht->real = booleanize(is_real);
-#else
-	(void) ht;
-	(void) is_real;
-#endif
 }
 
 static inline void
-hash_copy_real_flag(hash_table_t *dest, const hash_table_t *src)
+hash_copy_flags(hash_table_t *dest, const hash_table_t *src)
 {
-#ifdef TRACK_VMM
 	dest->real = src->real;
-#else
-	(void) dest;
-	(void) src;
-#endif
+	dest->not_leaking = src->not_leaking;
 }
 
 static inline void
@@ -329,11 +321,10 @@ hash_table_new_intern(hash_table_t *ht,
 hash_table_t *
 hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
-	hash_table_t *ht = xpmalloc(sizeof *ht);
+	hash_table_t *ht = xpmalloc0(sizeof *ht);
 
 	g_assert(ht);
 
-	ZERO(ht);
 	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
@@ -591,7 +582,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_table_t tmp;
 
 	ZERO(&tmp);
-	hash_copy_real_flag(&tmp, ht);
+	hash_copy_flags(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 
@@ -1068,6 +1059,23 @@ hash_table_t *
 hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
 {
 	return hash_table_new_special_full(alloc, obj, NULL, NULL);
+}
+
+hash_table_t *
+hash_table_new_full_not_leaking(
+	hash_table_hash_func hash, hash_table_eq_func eq)
+{
+	hash_table_t *ht = NOT_LEAKING(xpmalloc0(sizeof *ht));
+
+	ht->not_leaking = booleanize(TRUE);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	return ht;
+}
+
+hash_table_t *
+hash_table_new_not_leaking(void)
+{
+	return hash_table_new_full_not_leaking(NULL, NULL);
 }
 
 /*
