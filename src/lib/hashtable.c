@@ -66,6 +66,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define HASH_ITEMS_BINS			2	/* Initial amount of bins */
 #define HASH_ITEMS_PER_BIN		4
 #define HASH_ITEMS_GROW			56
 
@@ -333,7 +334,7 @@ hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 	g_assert(ht);
 
 	ZERO(ht);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 
@@ -1059,7 +1060,7 @@ hash_table_new_special_full(const hash_table_alloc_t alloc, void *obj,
 
 	ZERO(ht);
 	ht->special = booleanize(TRUE);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 
@@ -1091,7 +1092,7 @@ hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 
 	ZERO(ht);
 	hash_mark_real(ht, TRUE);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 
