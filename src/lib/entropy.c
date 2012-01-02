@@ -43,7 +43,7 @@
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
 #include "endian.h"
-#include "eval.h"
+#include "gethomedir.h"
 #include "misc.h"
 #include "sha1.h"
 #include "tm.h"
@@ -288,8 +288,8 @@ entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
 #endif	/* HAS_GETUID */
 
 	if (can_malloc) {
-		sha1_feed_string(&ctx, eval_subst("~"));
-		sha1_feed_stat(&ctx, eval_subst("~"));
+		sha1_feed_string(&ctx, gethomedir());
+		sha1_feed_stat(&ctx, gethomedir());
 		sha1_feed_stat(&ctx, ".");
 		sha1_feed_stat(&ctx, "..");
 		sha1_feed_stat(&ctx, "/");
@@ -327,7 +327,7 @@ entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
 	sha1_feed_fstat(&ctx, STDERR_FILENO);
 
 	if (can_malloc) {
-		sha1_feed_double(&ctx, fs_free_space_pct(eval_subst("~")));
+		sha1_feed_double(&ctx, fs_free_space_pct(gethomedir()));
 		sha1_feed_double(&ctx, fs_free_space_pct("/"));
 		sha1_feed_double(&ctx, fs_free_space_pct("."));
 	}

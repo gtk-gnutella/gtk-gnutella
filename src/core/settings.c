@@ -81,6 +81,7 @@
 #include "lib/file.h"
 #include "lib/getcpucount.h"
 #include "lib/getgateway.h"
+#include "lib/gethomedir.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
@@ -104,7 +105,7 @@ static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
 static const mode_t CONFIG_DIR_MODE =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
-static char *home_dir;
+static const char *home_dir;
 static char *config_dir;
 static char *crash_dir;
 static char *dht_db_dir;
@@ -480,7 +481,7 @@ G_GNUC_COLD void
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
-	home_dir = h_strdup(eval_subst("~"));
+	home_dir = gethomedir();
 
 	if (home_dir != NULL) {
 		if (!is_absolute_path(home_dir)) {
@@ -1274,7 +1275,6 @@ settings_close(void)
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();
 
-	HFREE_NULL(home_dir);
 	HFREE_NULL(config_dir);
 	HFREE_NULL(crash_dir);
 	HFREE_NULL(dht_db_dir);
@@ -2068,12 +2068,12 @@ tilda_expand(property_t prop)
 		return;
 
 	if (0 == strcmp(pathname, "~")) {
-		gnet_prop_set_string(prop, eval_subst("~"));
+		gnet_prop_set_string(prop, gethomedir());
 	} else if (
 		is_strprefix(pathname, "~/") ||
 		is_strprefix(pathname, "~" G_DIR_SEPARATOR_S)
 	) {
-		const char *home = eval_subst("~");
+		const char *home = gethomedir();
 		char *expanded;
 
 		expanded = h_strconcat(home,

@@ -682,7 +682,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(pmsg_close);
 	DO(version_close);
 	DO(ignore_close);
-	DO(eval_close);
 	DO(iso3166_close);
 	atom_str_free_null(&start_rfc822_date);
 	DO(adns_close);
@@ -1726,7 +1725,6 @@ main(int argc, char **argv)
 	mingw_init();
 	atoms_init();
 	log_atoms_inited();		/* Atom layer is up */
-	eval_init();
 	settings_early_init();
 
 	/*
