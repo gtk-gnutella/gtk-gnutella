@@ -4570,11 +4570,20 @@ xmalloc_crash_hook(void)
 		}
 
 		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
-			if ((size_t) -1 != xfl_lookup(&xfreelist[j], fl->pointers, NULL)) {
+			struct xfreelist *flo = &xfreelist[j];
+
+			if (!mutex_get_try(&flo->lock))
+				continue;
+
+			if ((size_t) -1 != xfl_lookup(flo, fl->pointers, NULL)) {
 				s_warning("XM freelist #%zu bucket %p listed in freelist #%zu!",
 					i, (void *) fl->pointers, j);
+				bad = TRUE;
+				mutex_release(&flo->lock);
 				goto next;
 			}
+
+			mutex_release(&flo->lock);
 		}
 
 		for (j = 0, prev = NULL; j < fl->count; j++) {
@@ -4610,10 +4619,9 @@ xmalloc_crash_hook(void)
 			bad = TRUE;
 		}
 
+	next:
 		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
-
-		next:
-			continue;
+		continue;
 	}
 }
 
