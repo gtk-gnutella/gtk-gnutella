@@ -122,6 +122,7 @@ LSRC = \
 	compat_sleep_ms.c \
 	compat_un.c \
 	concat.c \
+	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
@@ -246,6 +247,7 @@ LOBJ = \
 	compat_sleep_ms.o \
 	compat_un.o \
 	concat.o \
+	constants.o \
 	cpufreq.o \
 	cq.o \
 	crash.o \
