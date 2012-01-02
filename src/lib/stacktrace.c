@@ -705,7 +705,7 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	result = hash_table_lookup(ctx->atoms, name);
 
 	if (NULL == result) {
-		result = ostrdup(name);		/* Never freed */
+		result = ostrdup_readonly(name);	/* Never freed */
 		hash_table_insert(ctx->atoms, result, result);
 	}
 
