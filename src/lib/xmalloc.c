@@ -1525,7 +1525,6 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 * beginning of the block itself.
 	 */
 
-	/* FIXME: may need atomicity or memory barrier --RAM, 2011-12-28 */
 	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {
@@ -1533,7 +1532,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 			p, xfl_index(fl), fl->blocksize);
 	}
 
-	mutex_release(&fl->lock);
+	mutex_release(&fl->lock);	/* Issues final memory barrier */
 }
 
 /**
