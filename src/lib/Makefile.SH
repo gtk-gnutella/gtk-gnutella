@@ -148,6 +148,7 @@ LSRC = \
 	fs_free_space.c \
 	getcpucount.c \
 	getdate.c \
+	gethomedir.c \
 	getline.c \
 	getgateway.c \
 	getphysmemsize.c \
@@ -273,6 +274,7 @@ LOBJ = \
 	fs_free_space.o \
 	getcpucount.o \
 	getdate.o \
+	gethomedir.o \
 	getline.o \
 	getgateway.o \
 	getphysmemsize.o \

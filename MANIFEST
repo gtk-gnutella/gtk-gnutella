@@ -647,6 +647,8 @@ src/lib/getdate.h
 src/lib/getdate.y
 src/lib/getgateway.c
 src/lib/getgateway.h
+src/lib/gethomedir.c
+src/lib/gethomedir.h
 src/lib/getline.c
 src/lib/getline.h
 src/lib/getphysmemsize.c
