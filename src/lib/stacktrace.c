@@ -1132,7 +1132,7 @@ stacktrace_auto_tune(void)
 	size_t count;
 	size_t i;
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 0);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 0);
 
 	/*
 	 * Look at the first item in the stack that is after ourselves.
