@@ -37,6 +37,8 @@
 struct sha1;
 
 void entropy_collect(struct sha1 *digest);
+void entropy_minimal_collect(struct sha1 *digest);
+unsigned entropy_reduce(const struct sha1 *digest);
 
 #endif /* _entropy_h_ */
 
