@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Fri Dec 30 11:48:34 CET 2011 [metaconfig 3.5-110]
+# Generated on Mon Jan  2 13:35:13 CET 2012 [metaconfig 3.5-110]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -375,6 +375,7 @@ d_regcomp=''
 d_regparm=''
 d_rusage=''
 d_sbrk=''
+d_sched_yield=''
 d_select=''
 d_sendfile=''
 d_setproctitle=''
@@ -476,6 +477,7 @@ d_pwexpire=''
 d_pwquota=''
 i_pwd=''
 i_regex=''
+i_sched=''
 i_stdlib=''
 i_string=''
 strings=''
@@ -6725,6 +6727,20 @@ cyn=sbrk
 set d_sbrk
 eval $trylink
 
+: see if sched_yield exists
+$cat >try.c <<EOC
+#include <sched.h>
+int main(void)
+{
+	static int ret;
+	ret |= sched_yield();
+	return ret ? 0 : 1;
+}
+EOC
+cyn=sched_yield
+set d_sched_yield
+eval $trylink
+
 : see if select exists
 $cat >try.c <<EOC
 #$i_unistd I_UNISTD
@@ -9392,6 +9408,10 @@ esac
 set regex.h i_regex
 eval $inhdr
 
+: see if this is a sched.h system
+set sched.h i_sched
+eval $inhdr
+
 : see if stdarg is available
 echo " "
 if $test `./findhdr stdarg.h`; then
@@ -10112,6 +10132,7 @@ d_regparm='$d_regparm'
 d_remotectrl='$d_remotectrl'
 d_rusage='$d_rusage'
 d_sbrk='$d_sbrk'
+d_sched_yield='$d_sched_yield'
 d_select='$d_select'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
@@ -10220,6 +10241,7 @@ i_poll='$i_poll'
 i_pthread='$i_pthread'
 i_pwd='$i_pwd'
 i_regex='$i_regex'
+i_sched='$i_sched'
 i_stdarg='$i_stdarg'
 i_stdlib='$i_stdlib'
 i_string='$i_string'

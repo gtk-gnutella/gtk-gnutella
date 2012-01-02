@@ -33,9 +33,14 @@
 
 #include "common.h"
 
+#ifdef I_SCHED
+#include <sched.h>
+#endif
+
 #include "mutex.h"
 #include "atomic.h"
 #include "compat_sleep_ms.h"
+#include "getcpucount.h"
 #include "log.h"
 #include "thread.h"
 #include "tm.h"
@@ -76,11 +81,20 @@ mutex_deadlock(const volatile mutex_t *m, unsigned count)
 static void
 mutex_loop(volatile mutex_t *m, int loops)
 {
+	static long cpus;
 	unsigned i;
 	time_t start = 0;
 
 	mutex_check(m);
 	g_assert(loops >= 1);
+
+	if G_UNLIKELY(0 == cpus)
+		cpus = getcpucount();
+
+#ifdef HAS_SCHED_YIELD
+	if (1 == cpus)
+		loops /= 10;
+#endif
 
 	for (i = 0; /* empty */; i++) {
 		int j;
@@ -103,6 +117,10 @@ mutex_loop(volatile mutex_t *m, int loops)
 #endif	/* MUTEX_DEBUG */
 				return;
 			}
+#ifdef HAS_SCHED_YIELD
+			if (1 == cpus)
+				sched_yield();
+#endif
 		}
 
 		if G_UNLIKELY(i != 0 && 0 == i % MUTEX_DEAD) {

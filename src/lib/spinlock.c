@@ -33,9 +33,14 @@
 
 #include "common.h"
 
+#ifdef I_SCHED
+#include <sched.h>
+#endif
+
 #include "spinlock.h"
 #include "atomic.h"
 #include "compat_sleep_ms.h"
+#include "getcpucount.h"
 #include "log.h"
 #include "tm.h"
 
@@ -75,11 +80,20 @@ spinlock_deadlock(const volatile spinlock_t *s, unsigned count)
 static void
 spinlock_loop(volatile spinlock_t *s, int loops)
 {
+	static long cpus;
 	unsigned i;
 	time_t start = 0;
 
 	spinlock_check(s);
 	g_assert(loops >= 1);
+
+	if G_UNLIKELY(0 == cpus)
+		cpus = getcpucount();
+
+#ifdef HAS_SCHED_YIELD
+	if (1 == cpus)
+		loops /= 10;
+#endif
 
 	for (i = 0; /* empty */; i++) {
 		int j;
@@ -102,6 +116,10 @@ spinlock_loop(volatile spinlock_t *s, int loops)
 #endif	/* SPINLOCK_DEBUG */
 				return;
 			}
+#ifdef HAS_SCHED_YIELD
+			if (1 == cpus)
+				sched_yield();
+#endif
 		}
 
 		if G_UNLIKELY(i != 0 && 0 == i % SPINLOCK_DEAD) {
