@@ -1875,6 +1875,14 @@ crash_handler(int signo)
 		}
 	}
 
+	if (recursive && NULL != vars->crashdir) {
+		/*
+		 * We've likely chdir-ed back there when recursing.  It's a better
+		 * default value than "" anyway.
+		 */
+		cwd = vars->crashdir;
+	}
+
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
 
 	crash_message(name, trace, recursive);
