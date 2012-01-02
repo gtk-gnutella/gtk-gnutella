@@ -57,7 +57,10 @@
 
 #include "lib/hashtable.h"
 #include "lib/atomic.h"
+#include "lib/entropy.h"
+#include "lib/misc.h"			/* For struct sha1 */
 #include "lib/mutex.h"
+#include "lib/spinlock.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 
@@ -114,6 +117,39 @@ struct hash_table {
 	unsigned readonly:1;		/* Set if data structures protected */
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
 };
+
+/**
+ * Avoid complexity attacks on the hash table.
+ *
+ * A random number is used to perturb the hash value for all the keys so
+ * that no attack on the hash table insertion complexity can be make, such
+ * as presenting a set of keys that will pathologically make insertions
+ * O(n) instead of O(1) on average.
+ */
+static unsigned hash_offset;
+
+/**
+ * Initialize hash offset if not already done.
+ */
+static G_GNUC_COLD void
+hash_offset_init(void)
+{
+	static spinlock_t offset_slk = SPINLOCK_INIT;
+	static gboolean done;
+
+	if G_UNLIKELY(!done) {
+		spinlock(&offset_slk);
+		if (!done) {
+			struct sha1 digest;
+			/* Don't allocate any memory, hence can't call arc4random() */
+			entropy_minimal_collect(&digest);
+			hash_offset = entropy_reduce(&digest);
+			done = TRUE;
+			/* Memory barrier will be done by spinunlock() */
+		}
+		spinunlock(&offset_slk);
+	}
+}
 
 static inline void *
 hash_vmm_alloc(const struct hash_table *ht, size_t size)
@@ -252,11 +288,13 @@ hash_table_new_intern(hash_table_t *ht,
 	g_assert(ht);
 	g_assert(num_bins > 1);
 
+	hash_offset_init();
+
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
 	ht->bin_fill = 0;
-	ht->hash = hash ? hash : hash_id_key;
-	ht->eq = eq ? eq : hash_id_eq;
+	ht->hash = hash != NULL ? hash : hash_id_key;
+	ht->eq = eq != NULL ? eq : hash_id_eq;
 
 	ht->num_bins = num_bins;
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
@@ -371,7 +409,7 @@ hash_table_arena_memory(const hash_table_t *ht)
 static inline size_t
 hash_key(const hash_table_t *ht, const void *key)
 {
-	return (*ht->hash)(key);
+	return (*ht->hash)(key) + hash_offset;
 }
 
 static inline gboolean
