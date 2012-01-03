@@ -1252,6 +1252,12 @@ zget(size_t size, unsigned hint)
 
 found:
 	spinunlock(&zget_slk);
+
+	if (zalloc_debugging(1)) {
+		s_info("clustering in zalloc()'s zone table is %F",
+			hash_table_clustering(zt));
+	}
+
 	return zone;
 }
 
