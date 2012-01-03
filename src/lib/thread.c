@@ -91,6 +91,17 @@ thread_get_global_hash(void)
 }
 
 /**
+ * Structure used to record association between a thread and its private
+ * hash table.
+ */
+struct thread_priv_cache {
+	thread_t t;
+	hash_table_t *pht;
+};
+
+static spinlock_t thread_priv_slk = SPINLOCK_INIT;
+
+/**
  * Get the thread-private hash table storing the per-thread keys.
  */
 static hash_table_t *
@@ -99,6 +110,20 @@ thread_get_private_hash(void)
 	thread_t t = thread_current();
 	hash_table_t *ght;
 	hash_table_t *pht;
+	static struct thread_priv_cache cached;
+
+	/*
+	 * Look whether we already determined the thread-private hash table
+	 * for this thread earlier.
+	 */
+
+	spinlock(&thread_priv_slk);
+	if (thread_eq(t, cached.t)) {
+		pht = cached.pht;
+		spinunlock(&thread_priv_slk);
+		return pht;
+	}
+	spinunlock(&thread_priv_slk);
 
 	ght = thread_get_global_hash();
 	pht = hash_table_lookup(ght, &t);
@@ -113,6 +138,17 @@ thread_get_private_hash(void)
 		pht = hash_table_new_real();
 		hash_table_insert(ght, WCOPY(&t), pht);
 	}
+
+	/*
+	 * Cache result to speed-up things next time if we come back for the
+	 * same thread, either before a context switch or before another thread
+	 * uses this routine.
+	 */
+
+	spinlock(&thread_priv_slk);
+	cached.t = t;
+	cached.pht = pht;
+	spinunlock(&thread_priv_slk);
 
 	return pht;
 }
