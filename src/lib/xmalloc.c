@@ -259,6 +259,7 @@ static struct {
 	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
 	guint64 allocations_aligned;		/**< Total # of aligned allocations */
 	guint64 allocations_plain;			/**< Total # of xpmalloc() calls */
+	guint64 allocations_heap;			/**< Total # of xhmalloc() calls */
 	guint64 alloc_via_freelist;			/**< Allocations from freelist */
 	guint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	guint64 alloc_via_vmm;				/**< Allocations from VMM */
@@ -481,11 +482,12 @@ xmalloc_walloc_size(size_t len)
  * with a negative increment.  See xmalloc_freecore().
  *
  * @param len		amount of bytes requested
+ * @param can_log	whether we're allowed to issue a log message
  *
  * @return pointer to more memory of at least ``len'' bytes.
  */
 static void *
-xmalloc_addcore_from_heap(size_t len)
+xmalloc_addcore_from_heap(size_t len, gboolean can_log)
 {
 	void *p;
 
@@ -552,7 +554,7 @@ xmalloc_addcore_from_heap(size_t len)
 	xstats.sbrk_alloc_bytes += len;
 	spinunlock(&xmalloc_sbrk_slk);
 
-	if (xmalloc_debugging(1)) {
+	if (xmalloc_debugging(1) && can_log) {
 		t_debug(NULL, "XM added %zu bytes of heap core at %p", len, p);
 	}
 
@@ -1213,7 +1215,7 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 		p = vmm_core_alloc(len);
 		xstats.vmm_alloc_pages += vmm_page_count(len);
 	} else {
-		p = xmalloc_addcore_from_heap(len);
+		p = xmalloc_addcore_from_heap(len, TRUE);
 	}
 
 	*allocated = len;
@@ -2327,11 +2329,12 @@ static gboolean xalign_free(const void *p);
  *
  * @param size			minimal size of block to allocate (user space)
  * @param can_walloc	whether small blocks can be allocated via walloc()
+ * @param can_vmm		whether we can allocate core via the VMM layer
  *
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, gboolean can_walloc)
+xallocate(size_t size, gboolean can_walloc, gboolean can_vmm)
 {
 	size_t len;
 	void *p;
@@ -2373,7 +2376,7 @@ xallocate(size_t size, gboolean can_walloc)
 	 * Need to allocate more core.
 	 */
 
-	if G_LIKELY(xmalloc_vmm_is_up) {
+	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
 		static size_t pagesize;
 
 		if G_UNLIKELY(0 == pagesize) {
@@ -2449,17 +2452,17 @@ xallocate(size_t size, gboolean can_walloc)
 		/*
 		 * VMM layer not up yet, this must be very early memory allocation
 		 * from the libc startup.  Allocate memory from the heap.
+		 *
+		 * When ``can_vmm'' is FALSE, we do not want to log anything since
+		 * we are probably allocating memory from a logging routine and
+		 * do not want any recursion to happen.
 		 */
 
-		p = xmalloc_addcore_from_heap(len);
+		p = xmalloc_addcore_from_heap(len, can_vmm);
 		xstats.alloc_via_sbrk++;
 		xstats.user_blocks++;
 		xstats.user_memory += len;
 		memusage_add(xstats.user_mem, len);
-
-		if (xmalloc_debugging(0)) {
-			t_debug(NULL, "XM added %zu bytes of heap core at %p", len, p);
-		}
 
 		return xmalloc_block_setup(p, len);
 	}
@@ -2477,11 +2480,11 @@ xallocate(size_t size, gboolean can_walloc)
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, TRUE);
+	return xallocate(size, TRUE, TRUE);
 }
 
 /**
- * Allocate a memory chunk capable of holding ``size'' bytes.
+ * Allocate a plain memory chunk capable of holding ``size'' bytes.
  *
  * If no memory is available, crash with a fatal error message.
  *
@@ -2495,7 +2498,30 @@ void *
 xpmalloc(size_t size)
 {
 	xstats.allocations_plain++;
-	return xallocate(size, FALSE);
+	return xallocate(size, FALSE, TRUE);
+}
+
+/**
+ * Allocate a heap memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * This is a "heap" malloc, explicitly using the heap to grab more memory.
+ * Its use should be reserved to situations where we might be within a
+ * memory allocation routine and we need to allocate more memory.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xhmalloc(size_t size)
+{
+	/*
+	 * This routine MUST NOT log anything, either here nor in one of the
+	 * routines being called.
+	 */
+
+	xstats.allocations_heap++;
+	return xallocate(size, FALSE, FALSE);
 }
 
 /**
@@ -2687,7 +2713,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 	void *np;
 
 	if (NULL == p)
-		return xallocate(size, can_walloc);
+		return xallocate(size, can_walloc, TRUE);
 
 	if (0 == size) {
 		xfree(p);
@@ -3119,7 +3145,7 @@ skip_coalescing:
 		struct xheader *nxh;
 		gboolean converted;
 
-		np = xallocate(size, can_walloc);
+		np = xallocate(size, can_walloc, TRUE);
 		xstats.realloc_regular_strategy++;
 
 		/*
