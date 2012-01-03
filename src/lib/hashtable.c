@@ -1038,6 +1038,49 @@ hash_table_values(const hash_table_t *ht, size_t *count)
 }
 
 /**
+ * Compute the clustering factor of the hash table.
+ *
+ * If there are ``n'' items spread overe ``m'' bins, each bin should have
+ * n/m items.
+ *
+ * We can measure the clustering factor ``c'' by computing for each bin i the
+ * value Bi = size(bin #i)^2 / n.  Then c = (Sum Bi) - n/m + 1.
+ *
+ * If each bin has the theoretical value, Bi = (n/m)^2 / n = n/m^2.
+ * Hence c = m * n/m^2 - n/m + 1 = 1.
+ *
+ * If c > 1, then it means there is clustering occurring, the higher the value
+ * the higher the clustering.  If c < 1, then the hash function disperses
+ * values more efficiently than a pure random function!
+ */
+double
+hash_table_clustering(const hash_table_t *ht)
+{
+	size_t i, n, m;
+	double c = 0.0;
+
+	hash_table_check(ht);
+
+	ht_synchronize(ht);
+
+	n = ht->num_held;
+	m = i = ht->num_bins;
+
+	while (i-- > 0) {
+		hash_item_t *item;
+		size_t j = 0;
+
+		for (item = ht->bins[i]; NULL != item; item = item->next)
+			j++;
+
+		if (j != 0)
+			c += j*j / (double) n;
+	}
+
+	ht_return(ht, 1.0 + c - n / (0 == m ? 1.0 : (double) m));
+}
+
+/**
  * Create "special" hash table, where the object is allocated through the
  * specified allocator.
  */

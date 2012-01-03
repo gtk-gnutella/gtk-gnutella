@@ -100,6 +100,8 @@ void hash_table_thread_safe(hash_table_t *ht);
 void hash_table_lock(hash_table_t *ht);
 void hash_table_unlock(hash_table_t *ht);
 
+double hash_table_clustering(const hash_table_t *ht) G_GNUC_PURE;
+
 #endif /* _hash_table_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
