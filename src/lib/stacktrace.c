@@ -1836,20 +1836,25 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 
 /**
  * Allocate and record a new stack trace atom from given stacktrace.
+ *
+ * @return read-only atom object.
  */
-static struct stackatom *
+static const struct stackatom *
 stacktrace_atom_record(const struct stacktrace *st, size_t len)
 {
-	struct stackatom *result;
+	const struct stackatom *result;
+	struct stackatom local;
 
 	/* These objects will be never freed */
-	result = omalloc0(sizeof *result);
 	if (len != 0) {
-		result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
+		const void *p = ocopy_readonly(st->stack, len * sizeof st->stack[0]);
+		local.stack = deconstify_gpointer(p);
 	} else {
-		result->stack = NULL;
+		local.stack = NULL;
 	}
-	result->len = len;
+	local.len = len;
+
+	result = ocopy_readonly(&local, sizeof local);
 
 	if (!hash_table_insert(stack_atoms, result, result))
 		g_error("cannot record stack trace atom");
@@ -1858,12 +1863,12 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 }
 
 /**
- * Get a stack trace atom (never freed).
+ * Get a stack trace atom (read-only, never freed).
  */
-struct stackatom *
+const struct stackatom *
 stacktrace_get_atom(const struct stacktrace *st)
 {
-	struct stackatom *result;
+	const struct stackatom *result;
 	size_t len;
 
 	len = stacktrace_chop_length(st);
