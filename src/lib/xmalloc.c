@@ -271,6 +271,7 @@ static struct {
 	guint64 free_walloc;				/**< Freeing a walloc()'ed block */
 	guint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	guint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
+	guint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
 	guint64 vmm_alloc_pages;			/**< Pages allocated via VMM */
 	guint64 vmm_split_pages;			/**< VMM pages that were split */
 	guint64 vmm_freed_pages;			/**< Pages released via VMM */
@@ -517,6 +518,20 @@ xmalloc_addcore_from_heap(size_t len)
 #ifdef HAS_SBRK
 	spinlock(&xmalloc_sbrk_slk);
 	p = sbrk(len);
+
+	/*
+	 * Ensure pointer is aligned.
+	 */
+
+	if G_UNLIKELY(xmalloc_round(p) != (size_t) p) {
+		size_t missing = xmalloc_round(p) - (size_t) p;
+		char *q;
+		g_assert(size_is_positive(missing));
+		q = sbrk(missing);
+		g_assert(ptr_add_offset(p, len) == q);	/* Contiguous zone */
+		p = ptr_add_offset(p, missing);
+		xstats.sbrk_wasted_bytes += missing;
+	}
 #else
 	t_error(NULL, "cannot allocate core on this platform (%zu bytes)", len);
 	return p = NULL;
@@ -3366,6 +3381,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_walloc);
 	DUMP(sbrk_alloc_bytes);
 	DUMP(sbrk_freed_bytes);
+	DUMP(sbrk_wasted_bytes);
 	DUMP(vmm_alloc_pages);
 	DUMP(vmm_split_pages);
 	DUMP(vmm_freed_pages);
