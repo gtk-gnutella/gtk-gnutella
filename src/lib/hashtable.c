@@ -444,10 +444,6 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 /**
  * Iterate over the hashtable, invoking the "func" callback on each item
  * with the additional "data" argument.
- *
- * @attention
- * This call is not thread-safe atomically and requires explicit locking
- * to perform mutual exclusion.
  */
 void
 hash_table_foreach(const hash_table_t *ht,
@@ -457,6 +453,8 @@ hash_table_foreach(const hash_table_t *ht,
 
 	hash_table_check(ht);
 	g_assert(func != NULL);
+
+	ht_synchronize(ht);
 
 	n = ht->num_held;
 	i = ht->num_bins;
@@ -470,6 +468,8 @@ hash_table_foreach(const hash_table_t *ht,
 		}
 	}
 	g_assert(0 == n);
+
+	ht_return_void(ht);
 }
 
 /**
