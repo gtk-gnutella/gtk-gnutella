@@ -158,6 +158,7 @@ LSRC = \
 	glog.c \
 	gnet_host.c \
 	halloc.c \
+	hashing.c \
 	hashlist.c \
 	hashtable.c \
 	header.c \
@@ -289,6 +290,7 @@ LOBJ = \
 	glog.o \
 	gnet_host.o \
 	halloc.o \
+	hashing.o \
 	hashlist.o \
 	hashtable.o \
 	header.o \

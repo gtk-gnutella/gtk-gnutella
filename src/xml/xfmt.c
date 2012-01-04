@@ -39,13 +39,14 @@
 
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/log.h"		/* For log_file_printable() */
 #include "lib/misc.h"		/* For CONST_STRLEN() */
 #include "lib/nv.h"
 #include "lib/ostream.h"
-#include "lib/unsigned.h"
 #include "lib/stacktrace.h"
 #include "lib/symtab.h"
+#include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 

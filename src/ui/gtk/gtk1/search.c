@@ -55,6 +55,7 @@
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
 #include "lib/stringify.h"

@@ -34,14 +34,15 @@
 #include "common.h"
 
 #include "sectoken.h"
-#include "atoms.h"			/* For binary_hash() */
 #include "cq.h"
 #include "endian.h"
+#include "hashing.h"			/* For binary_hash() */
 #include "host_addr.h"
 #include "random.h"
 #include "tea.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum sectoken_gen_magic { SECTOKEN_GEN_MAGIC = 0x2a7f3219 };

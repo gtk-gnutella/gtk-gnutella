@@ -40,6 +40,7 @@
 
 #include "atoms.h"
 #include "endian.h"
+#include "misc.h"
 
 #if 0
 #define PROTECT_ATOMS
@@ -77,6 +78,7 @@ typedef enum {
 
 #include "stringify.h"
 #include "glib-missing.h"
+#include "hashing.h"
 #include "log.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -465,42 +467,6 @@ static const char *
 str_str(const void *v)
 {
 	return (const char *) v;
-}
-
-/**
- * Hash `len' bytes starting from `data'.
- */
-G_GNUC_HOT uint
-binary_hash(const void *data, size_t len)
-{
-	const unsigned char *key = data;
-	size_t i, remain, t4;
-	uint32 hash;
-
-	remain = len & 0x3;
-	t4 = len & ~0x3U;
-
-	g_assert(remain + t4 == len);
-	g_assert(remain <= 3);
-
-	hash = len;
-	for (i = 0; i < t4; i += 4) {
-		static const uint32 x[] = {
-			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
-			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
-		};
-		hash ^= peek_le32(&key[i]);
-		hash += x[(i >> 2) & 0x7];
-		hash = (hash << 24) ^ (hash >> 8);
-	}
-
-	for (i = 0; i < remain; i++) {
-		hash += key[t4 + i];
-		hash ^= key[t4 + i] << (i * 8);
-		hash = (hash << 24) ^ (hash >> 8);
-	}
-
-	return pointer_hash_func((void *) (size_t) hash);
 }
 
 /**

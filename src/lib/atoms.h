@@ -268,7 +268,6 @@ uint uint64_hash(const void *key) G_GNUC_CONST;
 int uint64_eq(const void *a, const void *b) G_GNUC_PURE;
 uint uint64_mem_hash(const void *key) G_GNUC_PURE;
 int uint64_mem_eq(const void *a, const void *b) G_GNUC_PURE;
-uint binary_hash(const void *key, size_t len) G_GNUC_PURE;
 uint uint32_hash(const void *key) G_GNUC_PURE;
 int uint32_eq(const void *a, const void *b) G_GNUC_PURE;
 

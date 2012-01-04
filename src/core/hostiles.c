@@ -46,7 +46,7 @@
 #include "dht/stable.h"
 
 #include "lib/ascii.h"
-#include "lib/atoms.h"
+#include "lib/atoms.h"			/* For uint32_hash() */
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
@@ -54,6 +54,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"

@@ -47,11 +47,11 @@
 #endif /* I_NETDB */
 
 #include "ascii.h"
-#include "atoms.h"				/* For binary_hash */
 #include "host_addr.h"
 #include "concat.h"
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
+#include "hashing.h"			/* For binary_hash() */
 #include "parse.h"
 #include "random.h"
 #include "stringify.h"

@@ -38,7 +38,7 @@
 #define THREAD_SOURCE			/* We want hash_table_new_real() */
 
 #include "thread.h"
-#include "atoms.h"				/* For binary_hash() */
+#include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "spinlock.h"
 #include "walloc.h"

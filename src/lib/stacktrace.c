@@ -42,7 +42,6 @@
 #include "common.h"		/* For RCSID */
 
 #include "stacktrace.h"
-#include "atoms.h"		/* For binary_hash() */
 #include "ascii.h"
 #include "base16.h"
 #include "concat.h"
@@ -50,8 +49,9 @@
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
-#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
+#include "hashing.h"	/* For binary_hash() */
 #include "log.h"
+#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "offtime.h"
 #include "omalloc.h"
 #include "parse.h"

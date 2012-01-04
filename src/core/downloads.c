@@ -98,6 +98,7 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"

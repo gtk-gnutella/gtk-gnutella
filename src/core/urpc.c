@@ -41,6 +41,7 @@
 
 #include "lib/cq.h"
 #include "lib/gnet_host.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */

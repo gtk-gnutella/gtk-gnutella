@@ -54,6 +54,7 @@
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
 #include "lib/misc.h"

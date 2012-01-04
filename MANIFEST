@@ -666,6 +666,8 @@ src/lib/gnet_host.c
 src/lib/gnet_host.h
 src/lib/halloc.c
 src/lib/halloc.h
+src/lib/hashing.c
+src/lib/hashing.h
 src/lib/hashlist.c
 src/lib/hashlist.h
 src/lib/hashtable.c

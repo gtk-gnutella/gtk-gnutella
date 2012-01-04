@@ -52,6 +52,7 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"

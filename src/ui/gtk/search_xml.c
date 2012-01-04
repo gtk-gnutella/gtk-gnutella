@@ -51,12 +51,14 @@
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define GLOBAL_PRE 0

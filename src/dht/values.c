@@ -83,6 +83,7 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/log.h"				/* For log_file_printable() */
 #include "lib/mempcpy.h"
@@ -93,6 +94,7 @@
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*

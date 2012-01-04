@@ -55,7 +55,7 @@
 #include "lib/array.h"
 #include "lib/getdate.h"
 #include "lib/endian.h"
-#include "lib/misc.h"
+#include "lib/hashing.h"
 #include "lib/random.h"
 #include "lib/product.h"
 #include "lib/sequence.h"

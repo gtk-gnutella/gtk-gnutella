@@ -87,6 +87,7 @@
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -105,8 +106,8 @@
 #include "lib/vector.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
-#include "lib/wordvec.h"
 #include "lib/wd.h"
+#include "lib/wordvec.h"
 #include "lib/wq.h"
 
 #include "lib/override.h"		/* Must be the last header included */

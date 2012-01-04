@@ -38,8 +38,8 @@
 #include "cq.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "hashing.h"
 #include "log.h"
-#include "misc.h"
 #include "tm.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */

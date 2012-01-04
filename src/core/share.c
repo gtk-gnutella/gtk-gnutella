@@ -70,6 +70,7 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/listener.h"
 #include "lib/mime_type.h"

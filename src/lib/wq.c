@@ -71,8 +71,8 @@
 #include "wq.h"
 #include "cq.h"
 #include "glib-missing.h"
+#include "hashing.h"
 #include "hashlist.h"
-#include "misc.h"
 #include "stacktrace.h"
 #include "walloc.h"
 

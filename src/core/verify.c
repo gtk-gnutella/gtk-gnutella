@@ -44,6 +44,7 @@
 #include "lib/compat_misc.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"

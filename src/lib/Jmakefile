@@ -101,6 +101,7 @@ LSRC = \
 	glog.c \
 	gnet_host.c \
 	halloc.c \
+	hashing.c \
 	hashlist.c \
 	hashtable.c \
 	header.c \

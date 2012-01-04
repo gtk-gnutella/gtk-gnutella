@@ -69,9 +69,9 @@
 #include "lib/base16.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/mempcpy.h"
-#include "lib/misc.h"			/* For pointer_hash_func() */
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"

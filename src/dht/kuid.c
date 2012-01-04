@@ -41,6 +41,7 @@
 #include "lib/bigint.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
+#include "lib/hashing.h"
 #include "lib/misc.h"			/* For bitcmp() */
 #include "lib/random.h"
 #include "lib/override.h"		/* Must be the last header included */
