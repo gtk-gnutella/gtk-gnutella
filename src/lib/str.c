@@ -1554,7 +1554,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 							/* Skip trailing zeros if %g or %G */
 							/* Trailing zeros kept with %#g (alt) */
 							if (digits && !alt && i >= d) {
-								if (r[i] != '0') {
+								if (r[i] != '0' || has_non_zero) {
 									*--mptr = r[i];
 									has_non_zero = TRUE;
 								}
@@ -3077,6 +3077,10 @@ str_test(gboolean verbose)
 		/* #160 */
 		{ "%F",			X, MLEN,	1300595238.0952381,	"1300595238.0952382" },
 		{ "%F",			X, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%.17F",		X, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%.17F",		X, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%.17g",		S, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%.17g",		S, MLEN,	13005952380.952381,	"13005952380.952381" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\
