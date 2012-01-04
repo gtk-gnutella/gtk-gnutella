@@ -64,7 +64,6 @@
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
 #define FPREC			17		/* IEEE 64-bit double maximum digit precision */
-#define FPDIG			10		/* For free format, max # of digits before %e */
 
 static gboolean tests_completed;	/* Controls truncation warnings */
 static gboolean format_verbose;		/* Controls debugging of formatting */
@@ -1332,9 +1331,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			 *
 			 * %F is our special "free format":
 			 * - If e = 0, we show the mantissa as-is.
-			 * - If e > 0, we switch to scientific notation as soon
-			 *   as the digits in the mantissa + trailing zeros would
-			 *   lead to a number with more than FPDIG digits.
+			 * - If e > 0, we switch to scientific notation as soon as
+			 *   the exponent is greater than the available significant
+			 *   digits and when e > 10.
 			 * - If e < 0, we switch to scientific notation when
 			 *   the number of leading zeros + the mantissa would be
 			 *   larger than FPREC digits (deemed harder to read at
@@ -1348,7 +1347,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 				c = 'f';				/* For logging only */
 				if (e > 0) {
 					size_t v = e;
-					if (MAX(v, mlen) > FPDIG)		c = 'E';
+					if (v > mlen && e > 10)			c = 'E';
 				} else if (e < 0) {
 					if (e < -5 || mlen - e > FPREC)	c = 'E';
 				}
@@ -3034,16 +3033,16 @@ str_test(gboolean verbose)
 		/* #120 */
 		{ "%F",			X, MLEN,	50000000000,	"50000000000" },
 		{ "%F",			X, MLEN,	500000000000,	"5E+11" },
-		{ "%F",			X, MLEN,	50000000000.25,	"5.000000000025E+10" },
-		{ "%F",			X, MLEN,	54321987654,	"5.4321987654E+10" },
-		{ "%F",			X, MLEN,	54321987654.999,"5.4321987654999E+10" },
+		{ "%F",			X, MLEN,	50000000000.25,	"50000000000.25" },
+		{ "%F",			X, MLEN,	54321987654,	"54321987654" },
+		{ "%F",			X, MLEN,	54321987654.999,"54321987654.999" },
 		{ "%.1F",		X, MLEN,	4561056.99,		"5E+6" },
 		{ "%.1F",		X, MLEN,	500000000000,	"5E+11" },
 		{ "%.12F",		X, MLEN,	500000000000,	"500000000000" },
 		{ "%.8F",		X, MLEN,	4561056.99,		"4561057" },
 		{ "%.9F",		X, MLEN,	4561056.99,		"4561056.99" },
 		/* #130 */
-		{ "%F",			X, MLEN,	5.12345678901e4,"5.12345678901E+4" },
+		{ "%F",			X, MLEN,	5.12345678901e4,"51234.5678901" },
 		{ "%F",			X, MLEN,	1.2342543e200,	"1.2342543E+200" },
 		{ "%#F",		X, MLEN,	0,				"0." },
 		{ "%#F",		X, MLEN,	-1,				"-1." },
@@ -3070,6 +3069,14 @@ str_test(gboolean verbose)
 		{ "%f",			S, MLEN,	0.0000001, 		"0.000000" },
 		{ "%#g",		S, MLEN,	0.1, 			"0.100000" },
 		{ "%#g",		S, MLEN,	0.01, 			"0.0100000" },
+		{ "%F",			X, MLEN,	13.005952380952381,	"13.005952380952381" },
+		{ "%F",			X, MLEN,	130.05952380952381,	"130.0595238095238" },
+		{ "%F",			X, MLEN,	1300.5952380952381,	"1300.595238095238" },
+		{ "%F",			X, MLEN,	13005.952380952381,	"13005.952380952382" },
+		{ "%F",			X, MLEN,	130059523.80952381,	"130059523.8095238" },
+		/* #160 */
+		{ "%F",			X, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%F",			X, MLEN,	13005952380.952381,	"13005952380.952381" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\
