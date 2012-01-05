@@ -100,6 +100,7 @@ struct hash_table {
 	mutex_t external_lock;		/* Lock for external atomic operations */
 	size_t num_items;			/* Array length of "items" */
 	size_t num_bins;			/* Number of bins */
+	size_t bin_bits;			/* Number of bits to fold hashed value to */
 	size_t num_held;			/* Number of items actually in the table */
 	size_t bin_fill;			/* Number of bins in use */
 	hash_table_hash_func hash;	/* Key hash functions, or NULL */
@@ -309,13 +310,17 @@ hash_table_new_intern(hash_table_t *ht,
 		n = compat_pagesize() / (sizeof ht->bins[0] +
 			HASH_ITEMS_PER_BIN * sizeof ht->items[0]);
 		hash_min_bins = 1 << highest_bit_set(n);
+
+		g_assert(hash_min_bins > 1);
 		g_assert(IS_POWER_OF_2(hash_min_bins));
 	}
 
 	ht->num_bins = MAX(num_bins, hash_min_bins);
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
+	ht->bin_bits = highest_bit_set64(ht->num_bins);
 
 	g_assert(IS_POWER_OF_2(ht->num_bins));
+	g_assert((1UL << ht->bin_bits) == ht->num_bins);
 
 	arena = hash_bins_items_arena_size(ht, &items_off);
 
@@ -444,14 +449,14 @@ static hash_item_t *
 hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 {
 	hash_item_t *item;
-	size_t hash;
+	size_t idx;
 
 	hash_table_check(ht);
 
-	hash = hash_key(ht, key) & (ht->num_bins - 1);
-	item = ht->bins[hash];
+	idx = hashing_fold(hash_key(ht, key), ht->bin_bits);
+	item = ht->bins[idx];
 	if (bin) {
-		*bin = hash;
+		*bin = idx;
 	}
 
 	for ( /* NOTHING */ ; item != NULL; item = item->next) {
@@ -617,6 +622,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	ht->num_items = tmp.num_items;
 	ht->num_held = tmp.num_held;
 	ht->bin_fill = tmp.bin_fill;
+	ht->bin_bits = tmp.bin_bits;
 	ht->free_list = tmp.free_list;
 }
 

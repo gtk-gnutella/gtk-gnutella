@@ -26,7 +26,7 @@
  * @ingroup lib
  * @file
  *
- * Hashing functions.
+ * Hashing functions and related ancillary routines.
  *
  * @author Raphael Manfredi
  * @date 2008-2012
@@ -86,6 +86,34 @@ binary_hash(const void *data, size_t len)
 	}
 
 	return pointer_hash(ulong_to_pointer(hash));
+}
+
+/**
+ * Fold bits from hash value into a smaller amount of bits by considering all
+ * the bits from the value, not just the trailing bits.
+ *
+ * @param hash		the original hash value
+ * @param bits		amount of bits to keep
+ *
+ * @return a folded value of ``bits'' bits.
+ */
+unsigned
+hashing_fold(unsigned hash, size_t bits)
+{
+	unsigned v = 0;
+	unsigned h = hash;
+
+	g_assert(bits != 0);
+
+	if G_UNLIKELY(bits >= 8 * sizeof(unsigned))
+		return hash;
+
+	while (h != 0) {
+		v ^= h;
+		h >>= bits;
+	}
+
+	return v & ((1 << bits) - 1);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

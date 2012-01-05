@@ -67,6 +67,7 @@
 
 unsigned pointer_hash(const void *p) G_GNUC_CONST;
 unsigned binary_hash(const void *data, size_t len) G_GNUC_PURE;
+unsigned hashing_fold(unsigned hash, size_t bits) G_GNUC_CONST;
 
 #endif /* _hashing_h_ */
 
