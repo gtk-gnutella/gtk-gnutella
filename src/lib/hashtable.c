@@ -58,8 +58,10 @@
 #include "lib/hashtable.h"
 #include "lib/atomic.h"
 #include "lib/entropy.h"
+#include "lib/hashing.h"
 #include "lib/misc.h"			/* For struct sha1 */
 #include "lib/mutex.h"
+#include "lib/pow2.h"
 #include "lib/spinlock.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
@@ -127,6 +129,11 @@ struct hash_table {
  * O(n) instead of O(1) on average.
  */
 static unsigned hash_offset;
+
+/**
+ * Minimal amount of bins we we want (power of two) that can fill up one page.
+ */
+static size_t hash_min_bins;
 
 /**
  * Initialize hash offset if not already done.
@@ -289,8 +296,26 @@ hash_table_new_intern(hash_table_t *ht,
 	ht->hash = hash != NULL ? hash : hash_id_key;
 	ht->eq = eq != NULL ? eq : hash_id_eq;
 
-	ht->num_bins = num_bins;
+	/*
+	 * Since the arena is going to be held in a VMM page with nothing
+	 * else, make sure we're filling the page as much as we can.
+	 */
+
+	if G_UNLIKELY(0 == hash_min_bins) {
+		size_t n;
+
+		/* No spinlock, at worst we'll do this computation more than once */
+
+		n = compat_pagesize() / (sizeof ht->bins[0] +
+			HASH_ITEMS_PER_BIN * sizeof ht->items[0]);
+		hash_min_bins = 1 << highest_bit_set(n);
+		g_assert(IS_POWER_OF_2(hash_min_bins));
+	}
+
+	ht->num_bins = MAX(num_bins, hash_min_bins);
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
+
+	g_assert(IS_POWER_OF_2(ht->num_bins));
 
 	arena = hash_bins_items_arena_size(ht, &items_off);
 
