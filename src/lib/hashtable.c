@@ -202,15 +202,15 @@ hash_table_check(const struct hash_table *ht)
 	g_assert(ht->num_bins > 0 && ht->num_bins < SIZE_MAX / 2);
 }
 
-/**
- * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
- *		 only a quarter of the bins are used.
- */
 static inline size_t
 hash_id_key(const void *key)
 {
-	size_t n = (size_t) key;
-	return ((0x4F1BBCDCUL * (uint64) n) >> 32) ^ n;
+	/*
+	 * A naive direct use of the pointer has a much worse distribution,
+	 * e.g. only a quarter of the bins are used.
+	 */
+
+	return GOLDEN_RATIO_32 * pointer_to_ulong(key);
 }
 
 static inline bool

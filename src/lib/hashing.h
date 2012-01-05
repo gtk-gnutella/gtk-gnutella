@@ -38,6 +38,30 @@
 #define _hashing_h_
 
 /*
+ * Golden ratios.
+ *
+ * Let A = (sqrt(5) - 1) / 2
+ *
+ * We're going to compute:
+ *
+ *    h(k) = floor(m * (kA - floor(kA)))
+ *
+ * using integer arithmetic and keeping only the "fractional" part of
+ * the product.
+ *
+ * With m = 2^b, we can achieve this the following way:
+ *
+ * Multiply the w bits of k by floor(A * 2^w) to obtain a w-bit product. 
+ * Extract the b most significant bits of the lower half of this product.
+ *
+ * The GOLDEN_RATIO_xx constant are floor(A * 2^xx).
+ * The multiplication is done using 32-bit arithmetic and we let it overflow,
+ * keeping only the lower "half" of the product.
+ */
+#define GOLDEN_RATIO_31	0x4F1BBCDCUL	/* Golden ratio of 2^31 */
+#define GOLDEN_RATIO_32	0x9E3779B9UL	/* Golden ratio of 2^32 */
+
+/*
  * Public interface.
  */
 

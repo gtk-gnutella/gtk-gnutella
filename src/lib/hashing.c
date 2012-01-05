@@ -49,8 +49,7 @@
 unsigned
 pointer_hash_func(const void *p)
 {
-	unsigned long v = pointer_to_ulong(p);
-	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
+	return GOLDEN_RATIO_32 * pointer_to_ulong(p);
 }
 
 /**
