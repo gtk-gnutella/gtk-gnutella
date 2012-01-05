@@ -54,6 +54,7 @@
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
@@ -291,7 +292,7 @@ qrp_hashcode(const char *s)
 	 * (Cormen, Leiserson, and Rivest) [CLR]
 	 */
 
-	return x * 0x4F1BBCDCUL;
+	return x * GOLDEN_RATIO_31;		/* Must keep only lowest 31 bits */
 }
 
 /**
