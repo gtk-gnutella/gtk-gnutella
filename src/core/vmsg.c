@@ -3132,7 +3132,7 @@ handle_messages_supported(struct gnutella_node *n,
 	 */
 
 	msgs = str_new(count * 16);		/* Pre-size generously */
-	handlers = g_hash_table_new(pointer_hash_func, NULL);
+	handlers = g_hash_table_new(pointer_hash, NULL);
 
 	while (count-- > 0) {
 		struct vmsg vm;

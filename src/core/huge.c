@@ -882,7 +882,7 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 void
 huge_init(void)
 {
-	sha1_cache = g_hash_table_new(pointer_hash_func, NULL);
+	sha1_cache = g_hash_table_new(pointer_hash, NULL);
 	sha1_read_cache();
 	has_http_urls = pattern_compile("http://");
 }

@@ -47,7 +47,7 @@
  * The identity function makes a poor hash for pointers.
  */
 unsigned
-pointer_hash_func(const void *p)
+pointer_hash(const void *p)
 {
 	return GOLDEN_RATIO_32 * pointer_to_ulong(p);
 }
@@ -85,7 +85,7 @@ binary_hash(const void *data, size_t len)
 		hash = (hash << 24) ^ (hash >> 8);
 	}
 
-	return pointer_hash_func(ulong_to_pointer(hash));
+	return pointer_hash(ulong_to_pointer(hash));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

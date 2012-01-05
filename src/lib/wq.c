@@ -176,7 +176,7 @@ wq_sleep(const void *key, wq_callback_t cb, void *arg)
 	we = wq_event_alloc(key, cb, arg);
 	hl = g_hash_table_lookup(waitqueue, key);
 	if (NULL == hl) {
-		hl = hash_list_new(pointer_hash_func, NULL);
+		hl = hash_list_new(pointer_hash, NULL);
 		gm_hash_table_insert_const(waitqueue, key, hl);
 	}
 	hash_list_append(hl, we);		/* FIFO layout */
@@ -432,7 +432,7 @@ wq_init(void)
 {
 	g_assert(NULL == waitqueue);
 
-	waitqueue = g_hash_table_new(pointer_hash_func, NULL);
+	waitqueue = g_hash_table_new(pointer_hash, NULL);
 }
 
 /**

@@ -65,7 +65,7 @@
  * Public interface.
  */
 
-unsigned pointer_hash_func(const void *p) G_GNUC_CONST;
+unsigned pointer_hash(const void *p) G_GNUC_CONST;
 unsigned binary_hash(const void *data, size_t len) G_GNUC_PURE;
 
 #endif /* _hashing_h_ */

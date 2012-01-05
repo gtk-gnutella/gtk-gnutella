@@ -695,7 +695,7 @@ cq_register_object(GHashTable **hptr, void *o)
 	g_assert(o != NULL);
 
 	if (NULL == h)
-		*hptr = h = g_hash_table_new(pointer_hash_func, NULL);
+		*hptr = h = g_hash_table_new(pointer_hash, NULL);
 
 	g_assert(!g_hash_table_lookup(h, o));
 

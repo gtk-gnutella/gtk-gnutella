@@ -330,7 +330,7 @@ target_to_string(filter_t *target)
 
 	if (!target_map) {
 		target_new_id(TRUE); /* Reset */
-		target_map = g_hash_table_new(pointer_hash_func, NULL);
+		target_map = g_hash_table_new(pointer_hash, NULL);
 	}
 
 	if (!g_hash_table_lookup_extended(target_map, target, NULL, &value)) {
@@ -456,7 +456,7 @@ search_retrieve_xml(void)
 		return FALSE;
 	}
 
-    id_map = g_hash_table_new(pointer_hash_func, NULL);
+    id_map = g_hash_table_new(pointer_hash, NULL);
 
     /*
      * find nodes and add them to the list, this just

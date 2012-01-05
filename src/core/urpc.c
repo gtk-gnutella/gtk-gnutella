@@ -282,7 +282,7 @@ urpc_pending(void)
 void
 urpc_init(void)
 {
-	pending = g_hash_table_new(pointer_hash_func, NULL);
+	pending = g_hash_table_new(pointer_hash, NULL);
 }
 
 static void

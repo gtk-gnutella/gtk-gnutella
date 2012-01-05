@@ -325,7 +325,7 @@ found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	f->udata = udata;
 	f->open = FALSE;
 	f->token = token;
-	f->ht = g_hash_table_new(pointer_hash_func, NULL);
+	f->ht = g_hash_table_new(pointer_hash, NULL);
 }
 
 static void

@@ -285,7 +285,7 @@ query_muid_map_init(void)
 	 * of guid_hash(), which is more efficient.  And we can use direct
 	 * pointer comparison for keys as well.
 	 */
-	muid_to_query_map = g_hash_table_new(pointer_hash_func, NULL);
+	muid_to_query_map = g_hash_table_new(pointer_hash, NULL);
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
 
@@ -1010,7 +1010,7 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 static void
 search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	GHashTable *ht = g_hash_table_new(pointer_hash_func, NULL);
+	GHashTable *ht = g_hash_table_new(pointer_hash, NULL);
 	GSList *sl;
 	unsigned dups = 0;
 
@@ -6126,7 +6126,7 @@ share_query_context_make(unsigned media_mask, bool partials)
 	struct query_context *ctx;
 
 	WALLOC0(ctx);
-	ctx->shared_files = g_hash_table_new(pointer_hash_func, NULL);
+	ctx->shared_files = g_hash_table_new(pointer_hash, NULL);
 	ctx->media_mask = media_mask;
 	ctx->partials = booleanize(partials);
 

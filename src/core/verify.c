@@ -263,8 +263,8 @@ verify_item_hash(const void *key)
 	return g_str_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
-		^ pointer_hash_func(func_to_pointer(ctx->callback))
-		^ pointer_hash_func(ctx->user_data);
+		^ pointer_hash(func_to_pointer(ctx->callback))
+		^ pointer_hash(ctx->user_data);
 }
 
 static int

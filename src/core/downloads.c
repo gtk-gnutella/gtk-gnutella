@@ -756,7 +756,7 @@ download_by_sha1_add(const struct download *d)
 
 	hl = g_hash_table_lookup(dhl_by_sha1, d->file_info->sha1);
 	if (NULL == hl) {
-		hl = hash_list_new(pointer_hash_func, NULL);
+		hl = hash_list_new(pointer_hash, NULL);
 		gm_hash_table_insert_const(dhl_by_sha1, d->file_info->sha1, hl);
 	}
 

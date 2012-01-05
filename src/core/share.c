@@ -2983,7 +2983,7 @@ share_init(void)
 	 * be applied to partial files).
 	 */
 
-	partial_files = hash_list_new(pointer_hash_func, NULL);
+	partial_files = hash_list_new(pointer_hash, NULL);
 	partial_table = st_create();
 
 	/*

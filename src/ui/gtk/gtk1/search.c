@@ -266,7 +266,7 @@ search_gui_init_tree(search_t *search)
     int row;
 
 	g_assert(NULL == search->parents);
-	search->parents = g_hash_table_new(pointer_hash_func, NULL);
+	search->parents = g_hash_table_new(pointer_hash, NULL);
 
     titles[c_sl_name] = lazy_utf8_to_ui_string(search_gui_query(search));
     titles[c_sl_hit] = "0";

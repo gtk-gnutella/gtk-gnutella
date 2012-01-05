@@ -788,7 +788,7 @@ atoms_init(void)
 
 		td->table = g_hash_table_new(td->hash_func, td->eq_func);
 	}
-	ht_all_atoms = g_hash_table_new(pointer_hash_func, NULL);
+	ht_all_atoms = g_hash_table_new(pointer_hash, NULL);
 
 	/*
 	 * Log atoms configuration.

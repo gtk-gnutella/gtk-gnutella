@@ -1087,7 +1087,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	 */
 
 	ZERO(&xp2);
-	xp2.node2uri = g_hash_table_new(pointer_hash_func, NULL);
+	xp2.node2uri = g_hash_table_new(pointer_hash, NULL);
 	xp2.os = os;
 	xp2.options = options;
 	xp2.default_ns = dflt_ns;
