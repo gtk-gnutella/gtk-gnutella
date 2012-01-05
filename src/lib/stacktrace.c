@@ -932,12 +932,6 @@ parse_nm(struct nm_parser *ctx, char *line)
 	}
 }
 
-static size_t
-str_hash(const void *p)
-{
-	return g_str_hash(p);
-}
-
 /**
  * Open specified file containing code symbols.
  *
@@ -1045,7 +1039,7 @@ load_symbols(const char *path, const  char *lpath)
 	}
 #endif	/* MINGW32 */
 
-	nm_ctx.atoms = hash_table_new_full_real(str_hash, g_str_equal);
+	nm_ctx.atoms = hash_table_new_full_real(g_str_hash, g_str_equal);
 
 retry:
 	while (fgets(tmp, sizeof tmp, f)) {
@@ -1804,7 +1798,7 @@ restore:
 /**
  * Hashing routine for a "struct stacktrace".
  */
-size_t
+unsigned
 stack_hash(const void *key)
 {
 	const struct stackatom *sa = key;

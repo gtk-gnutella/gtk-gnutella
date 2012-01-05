@@ -209,7 +209,7 @@ hash_table_check(const struct hash_table *ht)
 	g_assert(ht->num_bins > 0 && ht->num_bins < SIZE_MAX / 2);
 }
 
-static inline size_t
+static inline unsigned
 hash_id_key(const void *key)
 {
 	/*
@@ -419,11 +419,7 @@ hash_table_arena_memory(const hash_table_t *ht)
 	ht_return(ht, ret);
 }
 
-/**
- * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
- *		only a quarter of the bins are used.
- */
-static inline size_t
+static inline unsigned
 hash_key(const hash_table_t *ht, const void *key)
 {
 	return (*ht->hash)(key) + hash_offset;

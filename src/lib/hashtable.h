@@ -49,7 +49,7 @@ typedef struct hash_table hash_table_t;
 
 typedef void (*hash_table_foreach_func)(
 	const void *key, void *value, void *data);
-typedef size_t (*hash_table_hash_func)(const void *key);
+typedef unsigned (*hash_table_hash_func)(const void *key);
 typedef bool (*hash_table_eq_func)(const void *a, const void *b);
 
 hash_table_t *hash_table_new(void);

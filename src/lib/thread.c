@@ -54,7 +54,7 @@ struct thread_pvalue {
 	void *p_arg;					/**< Optional argument to free routine */
 };
 
-static size_t
+static unsigned
 thread_hash(const void *key)
 {
 	return binary_hash(key, sizeof(thread_t));

@@ -353,8 +353,8 @@ static hash_table_t *stats = NULL; /**< maps stats(file, line) -> stats */
  * Hashing routine for "struct stats".
  * Only the "file" and "line" fields are considered.
  */
-static uint
-stats_hash(const void *key)
+static unsigned
+stats_hash(gconstpointer key)
 {
 	const struct stats *s = key;
 
