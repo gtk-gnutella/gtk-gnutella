@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2012 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * All rights reserved.
  *
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
@@ -37,18 +37,20 @@
  *
  * A simple hashtable implementation.
  *
- * There are two interesting properties in this hash table:
+ * There are three interesting properties in this hash table:
  *
  * - The items and the internal data structures are allocated out of a
  *   same contiguous memory region (aka the "arena").
  *
  * - Memory for the arena is allocated directly through the VMM layer.
  *
+ * - The access interface can be dynamically configured to be thread-safe.
+ *
  * As such, this hash table is suitable for being used by low-level memory
  * allocators.
  *
  * @author Raphael Manfredi
- * @date 2009-2011
+ * @date 2009-2012
  * @author Christian Biere
  * @date 2006
  */
