@@ -533,6 +533,42 @@ guess_mode_to_string(enum guess_mode mode)
 }
 
 /**
+ * Should we terminate the query?
+ */
+static gboolean
+guess_should_terminate(guess_t *gq, gboolean verbose)
+{
+	const char *reason = NULL;
+
+	guess_check(gq);
+
+	if (!guess_query_enabled()) {
+		reason = "GUESS disabled";
+		goto terminate;
+	}
+
+	if (gq->query_acks >= gq->max_ultrapeers) {
+		reason = "max amount of successfully queried ultrapeers reached";
+		goto terminate;
+	}
+
+	if (gq->kept_results >= GUESS_MAX_RESULTS) {
+		reason = "max amount of kept results reached";
+		goto terminate;
+	}
+
+	return FALSE;
+
+terminate:
+	if (verbose && GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS QUERY[%s] should terminate: %s",
+			nid_to_string(&gq->gid), reason);
+	}
+
+	return TRUE;
+}
+
+/**
  * Check whether the GUESS query bearing the specified ID is still alive.
  *
  * @return NULL if the ID is unknown, otherwise the GUESS query object.
@@ -620,8 +656,13 @@ guess_rpc_cancel(guess_t *gq, const gnet_host_t *host)
 	 * in the sending process and the cancelling is synchronous).
 	 */
 
-	if (0 == gq->rpc_pending && !(gq->flags & GQ_F_SENDING))
+	if (
+		0 == gq->rpc_pending &&
+		!(gq->flags & GQ_F_SENDING) &&
+		!guess_should_terminate(gq, FALSE)
+	) {
 		guess_iterate(gq);
+	}
 }
 
 /**
@@ -2065,42 +2106,6 @@ guess_final_stats(const guess_t *gq)
 }
 
 /**
- * Should we terminate the query?
- */
-static gboolean
-guess_should_terminate(guess_t *gq)
-{
-	const char *reason = NULL;
-
-	guess_check(gq);
-
-	if (!guess_query_enabled()) {
-		reason = "GUESS disabled";
-		goto terminate;
-	}
-
-	if (gq->query_acks >= gq->max_ultrapeers) {
-		reason = "max amount of successfully queried ultrapeers reached";
-		goto terminate;
-	}
-
-	if (gq->kept_results >= GUESS_MAX_RESULTS) {
-		reason = "max amount of kept results reached";
-		goto terminate;
-	}
-
-	return FALSE;
-
-terminate:
-	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] should terminate: %s",
-			nid_to_string(&gq->gid), reason);
-	}
-
-	return TRUE;
-}
-
-/**
  * Select host to query next.
  *
  * @return host to query, NULL if none available.
@@ -3145,7 +3150,7 @@ guess_iterate(guess_t *gq)
 	 * Check for termination criteria.
 	 */
 
-	if (guess_should_terminate(gq)) {
+	if (guess_should_terminate(gq, TRUE)) {
 		guess_cancel(&gq, TRUE);
 		return;
 	}
