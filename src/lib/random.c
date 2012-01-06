@@ -62,7 +62,7 @@ random_u32(void)
 guint32
 random_value(guint32 max)
 {
-	return (guint32) ((max + 1.0) * random_u32() / ((guint32) -1 + 1.0));
+	return (guint32) ((max + 1.0) * arc4random() / ((guint32) -1 + 1.0));
 }
 
 /**
@@ -74,13 +74,13 @@ random_bytes(void *dst, size_t size)
 	char *p = dst;
 
 	while (size > 4) {
-		const guint32 value = random_u32();
+		const guint32 value = arc4random();
 		memcpy(p, &value, 4);
 		p += 4;
 		size -= 4;
 	}
 	if (size > 0) {
-		const guint32 value = random_u32();
+		const guint32 value = arc4random();
 		memcpy(p, &value, size);
 	}
 }
@@ -251,7 +251,7 @@ random_add(const void *data, size_t datalen)
 void
 random_init(void)
 {
-	arc4random_stir();
+	arc4random_stir_once();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

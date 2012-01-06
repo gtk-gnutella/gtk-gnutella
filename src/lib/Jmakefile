@@ -65,6 +65,7 @@ LSRC = \
 	compat_sleep_ms.c \
 	compat_un.c \
 	concat.c \
+	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
@@ -88,7 +89,9 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	getcpucount.c \
 	getdate.c \
+	gethomedir.c \
 	getline.c \
 	getgateway.c \
 	getphysmemsize.c \

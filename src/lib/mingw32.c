@@ -2176,13 +2176,13 @@ mingw_process_is_alive(pid_t pid)
 	return res;
 }
 
-static unsigned long
+long
 mingw_cpu_count(void)
 {
-	static unsigned long result;
+	static long result;
 	SYSTEM_INFO system_info;
 
-	if (G_UNLIKELY(result == 0)) {
+	if G_UNLIKELY(0 == result) {
 		GetSystemInfo(&system_info);
 		result = system_info.dwNumberOfProcessors;
 		g_assert(result > 0);
@@ -2193,7 +2193,7 @@ mingw_cpu_count(void)
 guint64
 mingw_cpufreq(enum mingw_cpufreq freq)
 {
-	unsigned long cpus = mingw_cpu_count();
+	long cpus = mingw_cpu_count();
 	PROCESSOR_POWER_INFORMATION *p, powarray[16];
 	size_t len;
 	guint64 result = 0;

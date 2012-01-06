@@ -79,7 +79,9 @@
 #include "lib/eval.h"
 #include "lib/fd.h"
 #include "lib/file.h"
+#include "lib/getcpucount.h"
 #include "lib/getgateway.h"
+#include "lib/gethomedir.h"
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
@@ -103,7 +105,7 @@ static const mode_t PID_FILE_MODE = S_IRUSR | S_IWUSR; /* 0600 */
 static const mode_t CONFIG_DIR_MODE =
 	S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP; /* 0750 */
 
-static char *home_dir;
+static const char *home_dir;
 static char *config_dir;
 static char *crash_dir;
 static char *dht_db_dir;
@@ -479,7 +481,7 @@ G_GNUC_COLD void
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
-	home_dir = h_strdup(eval_subst("~"));
+	home_dir = gethomedir();
 
 	if (home_dir != NULL) {
 		if (!is_absolute_path(home_dir)) {
@@ -669,6 +671,7 @@ settings_init(void)
 {
 	guint64 memory = getphysmemsize();
 	guint64 amount = memory / 1024;
+	long cpus = getcpucount();
 	guint max_fd;
 
 	settings_init_running = TRUE;
@@ -728,6 +731,7 @@ settings_init(void)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			need_get_non_stdio_fd() ? "cannot" : "can");
+		g_info("detected %ld CPU%s", cpus, 1 == cpus ? "" : "s");
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",
@@ -1271,7 +1275,6 @@ settings_close(void)
 	settings_remove_lockfile(GNET_PROPERTY(save_file_path), dirlockfile);
     gnet_prop_shutdown();
 
-	HFREE_NULL(home_dir);
 	HFREE_NULL(config_dir);
 	HFREE_NULL(crash_dir);
 	HFREE_NULL(dht_db_dir);
@@ -2065,12 +2068,12 @@ tilda_expand(property_t prop)
 		return;
 
 	if (0 == strcmp(pathname, "~")) {
-		gnet_prop_set_string(prop, eval_subst("~"));
+		gnet_prop_set_string(prop, gethomedir());
 	} else if (
 		is_strprefix(pathname, "~/") ||
 		is_strprefix(pathname, "~" G_DIR_SEPARATOR_S)
 	) {
-		const char *home = eval_subst("~");
+		const char *home = gethomedir();
 		char *expanded;
 
 		expanded = h_strconcat(home,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2012, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,25 +25,21 @@
  * @ingroup lib
  * @file
  *
- * Arc4 random number generator.
+ * Constant value management.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2012
  */
 
-#ifndef _arc4random_h_
-#define _arc4random_h_
+#ifndef _constants_h_
+#define _constants_h_
 
-#include "common.h"
+/*
+ * Public interface.
+ */
 
-#ifndef HAS_ARC4RANDOM
-guint32 arc4random(void);
-void arc4random_stir(void);
-void arc4random_addrandom(const unsigned char *dat, int datlen);
-#endif
+const char *constant_str(const char *s);
 
-void arc4random_stir_once(void);
-
-#endif /* _arc4random_h_ */
+#endif /* _constants_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -94,6 +94,31 @@ void spinlock_destroy(spinlock_t *s);
 void spinunlock(spinlock_t *s);
 gboolean spinlock_is_held(const spinlock_t *s);
 
+#if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
+
+enum spinlock_source {
+	SPINLOCK_SRC_SPINLOCK,
+	SPINLOCK_SRC_MUTEX
+};
+
+const char *spinlock_source_string(enum spinlock_source src);
+
+/**
+ * Callback to signal possible deadlocking condition.
+ */
+typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned);
+
+/**
+ * Callback to abort on definitive deadlocking condition.
+ */
+typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned);
+
+void spinlock_loop(volatile spinlock_t *s,
+	enum spinlock_source src, const volatile void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked);
+
+#endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
+
 #endif /* _spinlock_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

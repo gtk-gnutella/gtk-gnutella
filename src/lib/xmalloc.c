@@ -259,6 +259,7 @@ static struct {
 	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
 	guint64 allocations_aligned;		/**< Total # of aligned allocations */
 	guint64 allocations_plain;			/**< Total # of xpmalloc() calls */
+	guint64 allocations_heap;			/**< Total # of xhmalloc() calls */
 	guint64 alloc_via_freelist;			/**< Allocations from freelist */
 	guint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	guint64 alloc_via_vmm;				/**< Allocations from VMM */
@@ -271,6 +272,7 @@ static struct {
 	guint64 free_walloc;				/**< Freeing a walloc()'ed block */
 	guint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	guint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
+	guint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
 	guint64 vmm_alloc_pages;			/**< Pages allocated via VMM */
 	guint64 vmm_split_pages;			/**< VMM pages that were split */
 	guint64 vmm_freed_pages;			/**< Pages released via VMM */
@@ -480,11 +482,12 @@ xmalloc_walloc_size(size_t len)
  * with a negative increment.  See xmalloc_freecore().
  *
  * @param len		amount of bytes requested
+ * @param can_log	whether we're allowed to issue a log message
  *
  * @return pointer to more memory of at least ``len'' bytes.
  */
 static void *
-xmalloc_addcore_from_heap(size_t len)
+xmalloc_addcore_from_heap(size_t len, gboolean can_log)
 {
 	void *p;
 
@@ -517,6 +520,20 @@ xmalloc_addcore_from_heap(size_t len)
 #ifdef HAS_SBRK
 	spinlock(&xmalloc_sbrk_slk);
 	p = sbrk(len);
+
+	/*
+	 * Ensure pointer is aligned.
+	 */
+
+	if G_UNLIKELY(xmalloc_round(p) != (size_t) p) {
+		size_t missing = xmalloc_round(p) - (size_t) p;
+		char *q;
+		g_assert(size_is_positive(missing));
+		q = sbrk(missing);
+		g_assert(ptr_add_offset(p, len) == q);	/* Contiguous zone */
+		p = ptr_add_offset(p, missing);
+		xstats.sbrk_wasted_bytes += missing;
+	}
 #else
 	t_error(NULL, "cannot allocate core on this platform (%zu bytes)", len);
 	return p = NULL;
@@ -537,7 +554,7 @@ xmalloc_addcore_from_heap(size_t len)
 	xstats.sbrk_alloc_bytes += len;
 	spinunlock(&xmalloc_sbrk_slk);
 
-	if (xmalloc_debugging(1)) {
+	if (xmalloc_debugging(1) && can_log) {
 		t_debug(NULL, "XM added %zu bytes of heap core at %p", len, p);
 	}
 
@@ -1198,7 +1215,7 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 		p = vmm_core_alloc(len);
 		xstats.vmm_alloc_pages += vmm_page_count(len);
 	} else {
-		p = xmalloc_addcore_from_heap(len);
+		p = xmalloc_addcore_from_heap(len, TRUE);
 	}
 
 	*allocated = len;
@@ -1525,7 +1542,6 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 * beginning of the block itself.
 	 */
 
-	/* FIXME: may need atomicity or memory barrier --RAM, 2011-12-28 */
 	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {
@@ -1533,7 +1549,7 @@ xfl_insert(struct xfreelist *fl, void *p)
 			p, xfl_index(fl), fl->blocksize);
 	}
 
-	mutex_release(&fl->lock);
+	mutex_release(&fl->lock);	/* Issues final memory barrier */
 }
 
 /**
@@ -2313,11 +2329,12 @@ static gboolean xalign_free(const void *p);
  *
  * @param size			minimal size of block to allocate (user space)
  * @param can_walloc	whether small blocks can be allocated via walloc()
+ * @param can_vmm		whether we can allocate core via the VMM layer
  *
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, gboolean can_walloc)
+xallocate(size_t size, gboolean can_walloc, gboolean can_vmm)
 {
 	size_t len;
 	void *p;
@@ -2359,7 +2376,7 @@ xallocate(size_t size, gboolean can_walloc)
 	 * Need to allocate more core.
 	 */
 
-	if G_LIKELY(xmalloc_vmm_is_up) {
+	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
 		static size_t pagesize;
 
 		if G_UNLIKELY(0 == pagesize) {
@@ -2435,17 +2452,17 @@ xallocate(size_t size, gboolean can_walloc)
 		/*
 		 * VMM layer not up yet, this must be very early memory allocation
 		 * from the libc startup.  Allocate memory from the heap.
+		 *
+		 * When ``can_vmm'' is FALSE, we do not want to log anything since
+		 * we are probably allocating memory from a logging routine and
+		 * do not want any recursion to happen.
 		 */
 
-		p = xmalloc_addcore_from_heap(len);
+		p = xmalloc_addcore_from_heap(len, can_vmm);
 		xstats.alloc_via_sbrk++;
 		xstats.user_blocks++;
 		xstats.user_memory += len;
 		memusage_add(xstats.user_mem, len);
-
-		if (xmalloc_debugging(0)) {
-			t_debug(NULL, "XM added %zu bytes of heap core at %p", len, p);
-		}
 
 		return xmalloc_block_setup(p, len);
 	}
@@ -2463,11 +2480,11 @@ xallocate(size_t size, gboolean can_walloc)
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, TRUE);
+	return xallocate(size, TRUE, TRUE);
 }
 
 /**
- * Allocate a memory chunk capable of holding ``size'' bytes.
+ * Allocate a plain memory chunk capable of holding ``size'' bytes.
  *
  * If no memory is available, crash with a fatal error message.
  *
@@ -2481,7 +2498,30 @@ void *
 xpmalloc(size_t size)
 {
 	xstats.allocations_plain++;
-	return xallocate(size, FALSE);
+	return xallocate(size, FALSE, TRUE);
+}
+
+/**
+ * Allocate a heap memory chunk capable of holding ``size'' bytes.
+ *
+ * If no memory is available, crash with a fatal error message.
+ *
+ * This is a "heap" malloc, explicitly using the heap to grab more memory.
+ * Its use should be reserved to situations where we might be within a
+ * memory allocation routine and we need to allocate more memory.
+ *
+ * @return allocated pointer (never NULL).
+ */
+void *
+xhmalloc(size_t size)
+{
+	/*
+	 * This routine MUST NOT log anything, either here nor in one of the
+	 * routines being called.
+	 */
+
+	xstats.allocations_heap++;
+	return xallocate(size, FALSE, FALSE);
 }
 
 /**
@@ -2673,7 +2713,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 	void *np;
 
 	if (NULL == p)
-		return xallocate(size, can_walloc);
+		return xallocate(size, can_walloc, TRUE);
 
 	if (0 == size) {
 		xfree(p);
@@ -3105,7 +3145,7 @@ skip_coalescing:
 		struct xheader *nxh;
 		gboolean converted;
 
-		np = xallocate(size, can_walloc);
+		np = xallocate(size, can_walloc, TRUE);
 		xstats.realloc_regular_strategy++;
 
 		/*
@@ -3367,6 +3407,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_walloc);
 	DUMP(sbrk_alloc_bytes);
 	DUMP(sbrk_freed_bytes);
+	DUMP(sbrk_wasted_bytes);
 	DUMP(vmm_alloc_pages);
 	DUMP(vmm_split_pages);
 	DUMP(vmm_freed_pages);
@@ -4570,11 +4611,20 @@ xmalloc_crash_hook(void)
 		}
 
 		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
-			if ((size_t) -1 != xfl_lookup(&xfreelist[j], fl->pointers, NULL)) {
+			struct xfreelist *flo = &xfreelist[j];
+
+			if (!mutex_get_try(&flo->lock))
+				continue;
+
+			if ((size_t) -1 != xfl_lookup(flo, fl->pointers, NULL)) {
 				s_warning("XM freelist #%zu bucket %p listed in freelist #%zu!",
 					i, (void *) fl->pointers, j);
+				bad = TRUE;
+				mutex_release(&flo->lock);
 				goto next;
 			}
+
+			mutex_release(&flo->lock);
 		}
 
 		for (j = 0, prev = NULL; j < fl->count; j++) {
@@ -4610,10 +4660,9 @@ xmalloc_crash_hook(void)
 			bad = TRUE;
 		}
 
+	next:
 		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
-
-		next:
-			continue;
+		continue;
 	}
 }
 

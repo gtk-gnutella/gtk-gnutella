@@ -57,12 +57,16 @@
 
 #include "lib/hashtable.h"
 #include "lib/atomic.h"
+#include "lib/entropy.h"
+#include "lib/misc.h"			/* For struct sha1 */
 #include "lib/mutex.h"
+#include "lib/spinlock.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
+#define HASH_ITEMS_BINS			2	/* Initial amount of bins */
 #define HASH_ITEMS_PER_BIN		4
 #define HASH_ITEMS_GROW			56
 
@@ -101,7 +105,6 @@ struct hash_table {
 	hash_item_t **bins;			/* Array of bins of size ``num_bins'' */
 	hash_item_t *free_list;		/* List of free hash items */
 	hash_item_t *items;			/* Array of items */
-#ifdef TRACK_VMM
 	/*
 	 * Since we use these data structures during tracking, be careful:
 	 * if the table is created with the _real variant, it is used by
@@ -109,60 +112,86 @@ struct hash_table {
 	 * layer specially.
 	 */
 	unsigned real:1;			/* If TRUE, created as "real" */
-#endif
+	unsigned not_leaking:1;		/* Don't track allocated VMM regions */
 	unsigned special:1;			/* Set if structure allocated specially */
 	unsigned readonly:1;		/* Set if data structures protected */
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
 };
 
+/**
+ * Avoid complexity attacks on the hash table.
+ *
+ * A random number is used to perturb the hash value for all the keys so
+ * that no attack on the hash table insertion complexity can be make, such
+ * as presenting a set of keys that will pathologically make insertions
+ * O(n) instead of O(1) on average.
+ */
+static unsigned hash_offset;
+
+/**
+ * Initialize hash offset if not already done.
+ */
+static G_GNUC_COLD void
+hash_offset_init(void)
+{
+	static spinlock_t offset_slk = SPINLOCK_INIT;
+	static gboolean done;
+
+	if G_UNLIKELY(!done) {
+		spinlock(&offset_slk);
+		if (!done) {
+			struct sha1 digest;
+			/* Don't allocate any memory, hence can't call arc4random() */
+			entropy_minimal_collect(&digest);
+			hash_offset = entropy_reduce(&digest);
+			done = TRUE;
+			/* Memory barrier will be done by spinunlock() */
+		}
+		spinunlock(&offset_slk);
+	}
+}
+
 static inline void *
 hash_vmm_alloc(const struct hash_table *ht, size_t size)
 {
 #ifdef TRACK_VMM
-	if (ht->real)
+	if (ht->real || ht->not_leaking)
 		return vmm_alloc_notrack(size);
 	else
-		return vmm_alloc(size);
 #else
-	(void) ht;
-	return vmm_alloc(size);
-#endif
+	{
+		(void) ht;
+		return vmm_alloc(size);
+	}
+#endif	/* TRACK_VMM */
 }
 
 static inline void
 hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
 {
 #ifdef TRACK_VMM
-	if (ht->real)
+	if (ht->real || ht->not_leaking)
 		vmm_free_notrack(p, size);
 	else
-		vmm_free(p, size);
 #else
-	(void) ht;
-	vmm_free(p, size);
-#endif
+	{
+		(void) ht;
+		vmm_free(p, size);
+	}
+#endif	/* TRACK_VMM */
 }
 
 static inline void
 hash_mark_real(hash_table_t * ht, gboolean is_real)
 {
-#ifdef TRACK_VMM
 	ht->real = booleanize(is_real);
-#else
-	(void) ht;
-	(void) is_real;
-#endif
 }
 
 static inline void
-hash_copy_real_flag(hash_table_t *dest, const hash_table_t *src)
+hash_copy_flags(hash_table_t *dest, const hash_table_t *src)
 {
-#ifdef TRACK_VMM
 	dest->real = src->real;
-#else
-	(void) dest;
-	(void) src;
-#endif
+	dest->not_leaking = src->not_leaking;
 }
 
 static inline void
@@ -252,11 +281,13 @@ hash_table_new_intern(hash_table_t *ht,
 	g_assert(ht);
 	g_assert(num_bins > 1);
 
+	hash_offset_init();
+
 	ht->magic = HASHTABLE_MAGIC;
 	ht->num_held = 0;
 	ht->bin_fill = 0;
-	ht->hash = hash ? hash : hash_id_key;
-	ht->eq = eq ? eq : hash_id_eq;
+	ht->hash = hash != NULL ? hash : hash_id_key;
+	ht->eq = eq != NULL ? eq : hash_id_eq;
 
 	ht->num_bins = num_bins;
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
@@ -290,12 +321,11 @@ hash_table_new_intern(hash_table_t *ht,
 hash_table_t *
 hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
 {
-	hash_table_t *ht = xpmalloc(sizeof *ht);
+	hash_table_t *ht = xpmalloc0(sizeof *ht);
 
 	g_assert(ht);
 
-	ZERO(ht);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 
@@ -371,7 +401,7 @@ hash_table_arena_memory(const hash_table_t *ht)
 static inline size_t
 hash_key(const hash_table_t *ht, const void *key)
 {
-	return (*ht->hash)(key);
+	return (*ht->hash)(key) + hash_offset;
 }
 
 static inline gboolean
@@ -414,10 +444,6 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 /**
  * Iterate over the hashtable, invoking the "func" callback on each item
  * with the additional "data" argument.
- *
- * @attention
- * This call is not thread-safe atomically and requires explicit locking
- * to perform mutual exclusion.
  */
 void
 hash_table_foreach(const hash_table_t *ht,
@@ -427,6 +453,8 @@ hash_table_foreach(const hash_table_t *ht,
 
 	hash_table_check(ht);
 	g_assert(func != NULL);
+
+	ht_synchronize(ht);
 
 	n = ht->num_held;
 	i = ht->num_bins;
@@ -440,6 +468,8 @@ hash_table_foreach(const hash_table_t *ht,
 		}
 	}
 	g_assert(0 == n);
+
+	ht_return_void(ht);
 }
 
 /**
@@ -552,7 +582,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_table_t tmp;
 
 	ZERO(&tmp);
-	hash_copy_real_flag(&tmp, ht);
+	hash_copy_flags(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 
@@ -1008,6 +1038,49 @@ hash_table_values(const hash_table_t *ht, size_t *count)
 }
 
 /**
+ * Compute the clustering factor of the hash table.
+ *
+ * If there are ``n'' items spread overe ``m'' bins, each bin should have
+ * n/m items.
+ *
+ * We can measure the clustering factor ``c'' by computing for each bin i the
+ * value Bi = size(bin #i)^2 / n.  Then c = (Sum Bi) - n/m + 1.
+ *
+ * If each bin has the theoretical value, Bi = (n/m)^2 / n = n/m^2.
+ * Hence c = m * n/m^2 - n/m + 1 = 1.
+ *
+ * If c > 1, then it means there is clustering occurring, the higher the value
+ * the higher the clustering.  If c < 1, then the hash function disperses
+ * values more efficiently than a pure random function!
+ */
+double
+hash_table_clustering(const hash_table_t *ht)
+{
+	size_t i, n, m;
+	double c = 0.0;
+
+	hash_table_check(ht);
+
+	ht_synchronize(ht);
+
+	n = ht->num_held;
+	m = i = ht->num_bins;
+
+	while (i-- > 0) {
+		hash_item_t *item;
+		size_t j = 0;
+
+		for (item = ht->bins[i]; NULL != item; item = item->next)
+			j++;
+
+		if (j != 0)
+			c += j*j / (double) n;
+	}
+
+	ht_return(ht, 1.0 + c - n / (0 == m ? 1.0 : (double) m));
+}
+
+/**
  * Create "special" hash table, where the object is allocated through the
  * specified allocator.
  */
@@ -1021,7 +1094,7 @@ hash_table_new_special_full(const hash_table_alloc_t alloc, void *obj,
 
 	ZERO(ht);
 	ht->special = booleanize(TRUE);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 
@@ -1029,6 +1102,23 @@ hash_table_t *
 hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
 {
 	return hash_table_new_special_full(alloc, obj, NULL, NULL);
+}
+
+hash_table_t *
+hash_table_new_full_not_leaking(
+	hash_table_hash_func hash, hash_table_eq_func eq)
+{
+	hash_table_t *ht = NOT_LEAKING(xpmalloc0(sizeof *ht));
+
+	ht->not_leaking = booleanize(TRUE);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	return ht;
+}
+
+hash_table_t *
+hash_table_new_not_leaking(void)
+{
+	return hash_table_new_full_not_leaking(NULL, NULL);
 }
 
 /*
@@ -1053,7 +1143,7 @@ hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 
 	ZERO(ht);
 	hash_mark_real(ht, TRUE);
-	hash_table_new_intern(ht, 2, hash, eq);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
 

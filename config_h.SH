@@ -464,6 +464,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sbrk HAS_SBRK	/**/
 
+/* HAS_SCHED_YIELD:
+ *	This symbol, if defined, indicates that the sched_yield() routine is
+ *	available to yield the CPU.
+ */
+#$d_sched_yield HAS_SCHED_YIELD		/**/
+
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
  *	available to select active file descriptors. If the timeout field
@@ -787,6 +793,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	be included.
  */
 #$i_regex I_REGEX	/**/
+
+/* I_SCHED:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sched.h> to get the definition of sched_yield().
+ */
+#$i_sched I_SCHED		/**/
 
 /* I_STDLIB:
  *	This symbol, if defined, indicates that <stdlib.h> exists and should

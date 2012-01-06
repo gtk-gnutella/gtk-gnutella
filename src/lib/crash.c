@@ -87,14 +87,16 @@
 #include "iovec.h"
 #include "log.h"
 #include "offtime.h"
+#include "omalloc.h"
 #include "path.h"
 #include "signal.h"
+#include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
-#include "stacktrace.h"
+#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -114,8 +116,6 @@
 struct crash_vars {
 	void *stack[STACKTRACE_DEPTH_MAX];	/**< Stack frame on assert failure */
 	ckhunk_t *mem;			/**< Reserved memory, read-only */
-	ckhunk_t *mem2;			/**< Reserved memory, read-only */
-	ckhunk_t *mem3;			/**< Reserved memory, read-only */
 	ckhunk_t *logck;		/**< Reserved memory, read-only */
 	ckhunk_t *fmtck;		/**< Reserved memory, read-only */
 	ckhunk_t *hookmem;		/**< Reserved memory, read-only */
@@ -1875,6 +1875,14 @@ crash_handler(int signo)
 		}
 	}
 
+	if (recursive && NULL != vars->crashdir) {
+		/*
+		 * We've likely chdir-ed back there when recursing.  It's a better
+		 * default value than "" anyway.
+		 */
+		cwd = vars->crashdir;
+	}
+
 	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
 
 	crash_message(name, trace, recursive);
@@ -1950,7 +1958,6 @@ crash_init(const char *argv0, const char *progname,
 	struct crash_vars iv;
 	unsigned i;
 	char dir[MAX_PATH_LEN];
-	size_t size;
 	char *executable = NULL;
 
 	ZERO(&iv);
@@ -2012,31 +2019,20 @@ crash_init(const char *argv0, const char *progname,
 	if (NULL == executable)
 		executable = deconstify_char(argv0);
 
-	/*
-	 * Pre-size the chunk with enough space to hold the given strings.
-	 */
-
-	size = 5 * MEM_ALIGNBYTES;	/* Provision for alignment constraints */
-	size = size_saturate_add(size, sizeof iv);
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(executable)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(progname)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(exec_path)));
-	size = size_saturate_add(size, 1 + strlen(dir));
-
-	iv.mem = ck_init_not_leaking(size, 0);
+	iv.mem = ck_init_not_leaking(sizeof iv, 0);
 
 	if ('\0' != dir[0]) {
-		iv.cwd = ck_strdup(iv.mem, dir);
+		iv.cwd = ostrdup_readonly(dir);
 		g_assert(NULL != iv.cwd);
 	}
 
-	iv.argv0 = ck_strdup(iv.mem, executable);
+	iv.argv0 = ostrdup_readonly(executable);
 	g_assert(NULL == executable || NULL != iv.argv0);
 
-	iv.progname = ck_strdup(iv.mem, progname);
+	iv.progname = ostrdup_readonly(progname);
 	g_assert(NULL == progname || NULL != iv.progname);
 
-	iv.exec_path = ck_strdup(iv.mem, exec_path);
+	iv.exec_path = ostrdup_readonly(exec_path);
 	g_assert(NULL == exec_path || NULL != iv.exec_path);
 
 	iv.pause_process = booleanize(CRASH_F_PAUSE & flags);
@@ -2119,8 +2115,12 @@ crash_init(const char *argv0, const char *progname,
 }
 
 /**
- * @param dst The destination buffer, may be NULL for dry run.
- * @param dst_size The size of the destination buffer in bytes.
+ * Generate crashfile environment variable into destination buffer.
+ *
+ * @param dst			the destination buffer, may be NULL for dry run.
+ * @param dst_size		the size of the destination buffer in bytes.
+ * @param pathname		the directory where crash file is to be held
+ *
  * @return Required buffer size.
  */
 static G_GNUC_COLD size_t
@@ -2166,11 +2166,8 @@ G_GNUC_COLD void
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
-	ckhunk_t *mem2;
-	size_t size, crashfile_size = 0;
+	size_t crashfile_size = 0;
 	char dir[MAX_PATH_LEN];
-
-	g_assert(NULL != vars->mem);
 
 	if (
 		NULL != getcwd(dir, sizeof dir) &&
@@ -2180,7 +2177,7 @@ crash_setdir(const char *pathname)
 	}
 
 	/*
-	 * When they specified a exec_path, we generate the environment
+	 * When they specified an exec_path, we generate the environment
 	 * string "Crashfile=pathname" which will be used to pass the name
 	 * of the crashfile to the program.
 	 */
@@ -2189,31 +2186,23 @@ crash_setdir(const char *pathname)
 		crashfile_size = crashfile_name(NULL, 0, pathname);
 	}
 
-	size = 3 * MEM_ALIGNBYTES;	/* Provision for alignment constraints */
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(curdir)));
-	size = size_saturate_add(size, 1 + strlen(EMPTY_STRING(pathname)));
-	size = size_saturate_add(size, crashfile_size);
-
-	mem2 = ck_init_not_leaking(size, 0);
-
 	if (crashfile_size > 0) {
-		char *crashfile = ck_alloc(mem2, crashfile_size);
-		g_assert(NULL != crashfile);	/* Chunk pre-sized, must have room */
+		char *crashfile = xmalloc(crashfile_size);
+		const char *ro;
 
 		crashfile_name(crashfile, crashfile_size, pathname);
-		crash_set_var(crashfile, crashfile);
+		ro = ostrdup_readonly(crashfile);
+		crash_set_var(crashfile, ro);
+		xfree(crashfile);
 	}
 
-	curdir = ck_strdup(mem2, curdir);
-	pathname = ck_strdup(mem2, pathname);
+	curdir = ostrdup_readonly(curdir);
+	pathname = ostrdup_readonly(pathname);
 
-	crash_set_var(mem2, mem2);
 	crash_set_var(crashdir, pathname);
-	if (curdir) {
+	if (curdir != NULL) {
 		crash_set_var(cwd, curdir);
 	}
-
-	ck_readonly(vars->mem2);
 }
 
 /**
@@ -2227,23 +2216,10 @@ crash_setver(const char *version)
 	g_assert(NULL != vars->mem);
 	g_assert(NULL != version);
 
-	value = ck_strdup_readonly(vars->mem, version);
-	if (NULL == value && vars->mem2 != NULL)
-		value = ck_strdup_readonly(vars->mem2, version);
-
-	if (NULL == value) {
-		ckhunk_t *mem3;
-
-		mem3 = ck_init_not_leaking(1 + strlen(version), 0);
-		crash_set_var(mem3, mem3);
-		value = ck_strdup(vars->mem3, version);
-	}
-
+	value = ostrdup_readonly(version);
 	crash_set_var(version, value);
-	g_assert(NULL != vars->version);
 
-	if (vars->mem3 != NULL)
-		ck_readonly(vars->mem3);
+	g_assert(NULL != vars->version);
 }
 
 /**
@@ -2321,8 +2297,7 @@ crash_hook_add(const char *filename, const crash_hook_t hook)
 void
 crash_post_init(void)
 {
-	ck_shrink(vars->mem, 0);		/* Shrink as much as possible */
-	ck_shrink(vars->mem2, 0);
+	/* Nothing to be done currently */
 }
 
 /**
@@ -2417,7 +2392,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 }
 
 /**
- * Record crash filename (static string).
+ * Record the name of the file from which we're crashing.
  *
  * This allows triggering of crash hooks, if any defined for the file.
  */

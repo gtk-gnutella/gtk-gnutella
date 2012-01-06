@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-109]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-110]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -122,6 +122,7 @@ LSRC = \
 	compat_sleep_ms.c \
 	compat_un.c \
 	concat.c \
+	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
@@ -145,7 +146,9 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	getcpucount.c \
 	getdate.c \
+	gethomedir.c \
 	getline.c \
 	getgateway.c \
 	getphysmemsize.c \
@@ -245,6 +248,7 @@ LOBJ = \
 	compat_sleep_ms.o \
 	compat_un.o \
 	concat.o \
+	constants.o \
 	cpufreq.o \
 	cq.o \
 	crash.o \
@@ -268,7 +272,9 @@ LOBJ = \
 	float.o \
 	fragcheck.o \
 	fs_free_space.o \
+	getcpucount.o \
 	getdate.o \
+	gethomedir.o \
 	getline.o \
 	getgateway.o \
 	getphysmemsize.o \

@@ -193,7 +193,7 @@ product_get_build(void)
 const char *
 product_get_build_full(void)
 {
-	static char *result;
+	static const char *result;
 
 	if G_UNLIKELY(NULL == result) {
 		const char *p;
@@ -210,7 +210,7 @@ product_get_build_full(void)
 			if (q != NULL)
 				*q = '\0';		/* Truncate at first space */
 
-			result = ostrdup(tmp);
+			result = ostrdup_readonly(tmp);
 			HFREE_NULL(tmp);
 		} else {
 			result = "";		/* No change since last git tag */

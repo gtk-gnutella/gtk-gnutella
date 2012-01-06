@@ -34,9 +34,7 @@
 #ifndef _mutex_h_
 #define _mutex_h_
 
-#if 1
-#define MUTEX_DEBUG
-#endif
+#include "spinlock.h"
 
 enum mutex_magic {
 	MUTEX_MAGIC = 0x1a35dfeb,
@@ -54,21 +52,13 @@ typedef struct mutex {
 	enum mutex_magic magic;
 	unsigned long owner;
 	size_t depth;
-	int lock;
-#ifdef MUTEX_DEBUG
-	const char *file;
-	unsigned line;
-#endif
+	spinlock_t lock;
 } mutex_t;
 
 /**
  * Static initialization value for a mutex structure.
  */
-#ifdef MUTEX_DEBUG
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, 0, NULL, 0 }
-#else
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, 0 }
-#endif
+#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, SPINLOCK_INIT }
 
 /*
  * These should not be called directly by user code to allow debugging.
@@ -81,7 +71,7 @@ gboolean mutex_grab_try(mutex_t *m);
  * Public interface.
  */
 
-#ifdef MUTEX_DEBUG
+#ifdef SPINLOCK_DEBUG
 void mutex_grab_from(mutex_t *m, const char *file, unsigned line);
 gboolean mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2012, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,25 +25,56 @@
  * @ingroup lib
  * @file
  *
- * Arc4 random number generator.
+ * Constant value management.
+ *
+ * Constants are atomic values that do not need to be reference-counted because
+ * their lifetime is that of the program.
+ *
+ * Like atoms, they are allocated only once in memory and all constants with
+ * the same value bear the same address.
+ *
+ * Unlike atoms however, they are enforced read-only values.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2012
  */
-
-#ifndef _arc4random_h_
-#define _arc4random_h_
 
 #include "common.h"
 
-#ifndef HAS_ARC4RANDOM
-guint32 arc4random(void);
-void arc4random_stir(void);
-void arc4random_addrandom(const unsigned char *dat, int datlen);
-#endif
+#include "constants.h"
+#include "hashtable.h"
+#include "omalloc.h"
 
-void arc4random_stir_once(void);
+#include "override.h"			/* Must be the last header included */
 
-#endif /* _arc4random_h_ */
+static hash_table_t *constant_strings;
+
+static size_t
+str_hash(const void *s)
+{
+	return g_str_hash(s);
+}
+
+/**
+ * @return a constant read-only string.
+ */
+const char *
+constant_str(const char *s)
+{
+	const char *v;
+
+	if G_UNLIKELY(NULL == constant_strings) {
+		constant_strings =
+			hash_table_new_full_not_leaking(str_hash, g_str_equal);
+	}
+
+	v = hash_table_lookup(constant_strings, s);
+	if (NULL == v) {
+		v = ostrdup_readonly(s);
+		hash_table_insert(constant_strings, v, v);
+	}
+
+	return v;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

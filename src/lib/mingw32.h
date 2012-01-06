@@ -432,6 +432,7 @@ int mingw_random_bytes(void *buf, size_t len);
 gboolean mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
+long mingw_cpu_count(void);
 guint64 mingw_cpufreq_min(void);
 guint64 mingw_cpufreq_max(void);
 const char *mingw_getlogin(void);

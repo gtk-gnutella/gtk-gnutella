@@ -38,8 +38,9 @@
 
 #include "eval.h"
 #include "ascii.h"
-#include "atoms.h"
+#include "constants.h"
 #include "debug.h"
+#include "gethomedir.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "path.h"
@@ -48,248 +49,6 @@
 #include "override.h"		/* Must be the last header included */
 
 #define MAX_STRING	1024	/**< Max length for substitution */
-
-static GHashTable *constants;
-static const char *home;	/* string atom */
-
-static const char *get_home(void);
-static const char *get_variable(const char *s, const char **end);
-static gboolean initialized;
-
-/**
- * Create a constant string, or reuse an existing one if possible.
- *
- * @returns a string atom.
- */
-static const char *
-constant_make(const char *s)
-{
-	const char *v;
-
-	v = g_hash_table_lookup(constants, s);
-	if (v != NULL)
-		return v;			/* Already exists */
-
-	v = atom_str_get(s);
-	gm_hash_table_insert_const(constants, v, v);
-
-	return v;
-}
-
-/**
- * Initialize string evaluation.
- */
-void
-eval_init(void)
-{
-	g_return_if_fail(!initialized);
-
-	constants = g_hash_table_new(g_str_hash, g_str_equal);
-	home = get_home();
-	g_assert(home);
-
-	initialized = TRUE;
-}
-
-static void
-constants_free_kv(gpointer key,
-	gpointer unused_val, gpointer unused_x)
-{
-	(void) unused_val;
-	(void) unused_x;
-	atom_str_free(key);
-}
-
-/**
- * Cleanup local structures at shutdown time.
- */
-void
-eval_close(void)
-{
-	if (home) {
-		atom_str_free(home);
-		home = NULL;
-	}
-	g_hash_table_foreach(constants, constants_free_kv, NULL);
-	gm_hash_table_destroy_null(&constants);
-}
-
-/**
- * Insert value `val' at beginning of string `start'.
- *
- * The string `start' is held in a buffer capable of holding a string of
- * `maxlen' bytes, and the string is currently `len' bytes long, with `start'
- * being at the offset `off' within buffer.
- *
- * @return the pointer right after the inserted value.
- */
-static char *
-insert_value(const char *val, char *start, size_t off,
-	size_t len, size_t maxlen)
-{
-	size_t vlen = strlen(val);
-
-	g_assert(len <= maxlen);
-	g_assert(off <= len);
-
-	if (vlen > maxlen - len) {
-		g_warning("ignoring variable substitution text \"%s\"", val);
-		return start;
-	}
-
-	memmove(&start[vlen], start, len + 1 - off);
-	memmove(start, val, vlen);
-
-	return &start[vlen];
-}
-
-/**
- * Needs brief description here.
- *
- * Substitutes variables from string:
- *
- * - The leading "~" is replaced by the home directory.
- * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
- *   fetched from the environment, or the empty string if not found.
- *
- * If given a NULL input, we return NULL.
- *
- * @return string atom, which is not meant to be freed until exit time.
- */
-const char *
-eval_subst(const char *str)
-{
-	char buf[MAX_STRING];
-	char *end = &buf[sizeof(buf)];
-	char *p;
-	size_t len;
-	char c;
-
-	g_assert(initialized);
-
-	if (str == NULL)
-		return NULL;
-
-	len = g_strlcpy(buf, str, sizeof buf);
-	if (len >= sizeof buf) {
-		g_warning("eval_subst: string too large for substitution (%zu bytes)",
-			len);
-		return constant_make(str);
-	}
-
-
-	if (common_dbg > 3)
-		g_debug("eval_subst: on entry: \"%s\"", buf);
-
-	for (p = buf, c = *p++; c; c = *p++) {
-		const char *val = NULL;
-		char *start = p - 1;
-
-		switch (c) {
-		case '~':
-			if (start == buf && ('\0' == buf[1] || '/' == buf[1])) {
-				/* Leading ~ only */
-				val = home;
-				g_assert(val);
-				memmove(start, &start[1], len - (start - buf));
-				len--;
-
-				g_assert(size_is_non_negative(len));
-			}
-			break;
-		case '$':
-			{
-				const char *after;
-
-				val = get_variable(p, &after);
-				g_assert(val);
-				memmove(start, after, len + 1 - (after - buf));
-				len -= after - start;		/* Also removing leading '$' */
-
-				g_assert(size_is_non_negative(len));
-			}
-			break;
-		}
-
-		if (val != NULL) {
-			char *next;
-			
-			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
-			len += next - start;
-			p = next;
-
-			g_assert(len < sizeof buf);
-			g_assert(p < end);
-		}
-
-		g_assert(p <= &buf[len]);
-	}
-
-	if (common_dbg > 3)
-		g_debug("eval_subst: on exit: \"%s\"", buf);
-
-	g_assert(len == strlen(buf));
-
-	return constant_make(buf);
-}
-
-/**
- * Compute the user's home directory.
- * Uses the HOME environment variable first, then the entry from /etc/passwd.
- *
- * @return string atom.
- */
-static const char *
-get_home(void)
-{
-	const char *dir;
-
-#ifdef MINGW32
-	dir = mingw_gethome();
-#else
-	dir = getenv("HOME");
-
-	if (dir && !is_absolute_path(dir)) {
-		/* Ignore $HOME if it's empty or a relative path */
-		dir = NULL;
-	}
-	
-#if defined(HAS_GETLOGIN)
-	if (!dir) {
-		const char *name;
-		
-		name = getlogin();
-		if (name) {
-			const struct passwd *pp;
-
-			pp = getpwnam(name);
-			if (pp)
-				dir = pp->pw_dir;
-		}
-	}
-#endif
-
-#if defined(HAS_GETUID)
-	if (!dir) {
-		const struct passwd *pp;
-		
-		pp = getpwuid(getuid());
-		if (pp)
-			dir = pp->pw_dir;
-	}
-#endif /* HAS_GETUID */
-
-	if (!dir)
-		dir = g_get_home_dir();
-
-	if (!dir) {
-		g_warning("could not determine home directory");
-		dir = "/";
-	}
-#endif	/* MINGW32 */
-
-	return atom_str_get(dir);
-}
 
 /**
  * Extract variable name from string `s', then fetch value from environment.
@@ -342,6 +101,123 @@ get_variable(const char *s, const char **end)
 	}
 
 	return value;
+}
+
+/**
+ * Insert value `val' at beginning of string `start'.
+ *
+ * The string `start' is held in a buffer capable of holding a string of
+ * `maxlen' bytes, and the string is currently `len' bytes long, with `start'
+ * being at the offset `off' within buffer.
+ *
+ * @return the pointer right after the inserted value.
+ */
+static char *
+insert_value(const char *val, char *start, size_t off,
+	size_t len, size_t maxlen)
+{
+	size_t vlen = strlen(val);
+
+	g_assert(len <= maxlen);
+	g_assert(off <= len);
+
+	if (vlen > maxlen - len) {
+		g_warning("ignoring variable substitution text \"%s\"", val);
+		return start;
+	}
+
+	memmove(&start[vlen], start, len + 1 - off);
+	memmove(start, val, vlen);
+
+	return &start[vlen];
+}
+
+/**
+ * Needs brief description here.
+ *
+ * Substitutes variables from string:
+ *
+ * - The leading "~" is replaced by the home directory.
+ * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
+ *   fetched from the environment, or the empty string if not found.
+ *
+ * If given a NULL input, we return NULL.
+ *
+ * @return string constant, which is not meant to be freed until exit time.
+ */
+const char *
+eval_subst(const char *str)
+{
+	char buf[MAX_STRING];
+	char *end = &buf[sizeof(buf)];
+	char *p;
+	size_t len;
+	char c;
+
+	if (str == NULL)
+		return NULL;
+
+	len = g_strlcpy(buf, str, sizeof buf);
+	if (len >= sizeof buf) {
+		g_warning("%s: string too large for substitution (%zu bytes)",
+			G_STRFUNC, len);
+		return constant_str(str);
+	}
+
+
+	if (common_dbg > 3)
+		g_debug("%s: on entry: \"%s\"", G_STRFUNC, buf);
+
+	for (p = buf, c = *p++; c; c = *p++) {
+		const char *val = NULL;
+		char *start = p - 1;
+
+		switch (c) {
+		case '~':
+			if (start == buf && ('\0' == buf[1] || '/' == buf[1])) {
+				/* Leading ~ only */
+				val = gethomedir();
+				g_assert(val);
+				memmove(start, &start[1], len - (start - buf));
+				len--;
+
+				g_assert(size_is_non_negative(len));
+			}
+			break;
+		case '$':
+			{
+				const char *after;
+
+				val = get_variable(p, &after);
+				g_assert(val);
+				memmove(start, after, len + 1 - (after - buf));
+				len -= after - start;		/* Also removing leading '$' */
+
+				g_assert(size_is_non_negative(len));
+			}
+			break;
+		}
+
+		if (val != NULL) {
+			char *next;
+			
+			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
+			len += next - start;
+			p = next;
+
+			g_assert(len < sizeof buf);
+			g_assert(p < end);
+		}
+
+		g_assert(p <= &buf[len]);
+	}
+
+	if (common_dbg > 3)
+		g_debug("%s: on exit: \"%s\"", G_STRFUNC, buf);
+
+	g_assert(len == strlen(buf));
+
+	return constant_str(buf);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -44,7 +44,7 @@
  * The only work required is to avoid wasting too much memory.
  *
  * The algorithm retained is to allocate memory out of a "big chunk", putting
- * objects one after the other until we can no longer fit an object, at which
+ * objects one after the other until we can no longer fit any object, at which
  * point we allocate a new chunk.
  *
  * Waste is kept at a minimum by not discarding completely chunks in which
@@ -105,21 +105,23 @@
 /**
  * Chunk header to govern allocation.
  *
- * The header marks the beginning of the free space in the chunk.
+ * The header marks the tail of the free space in the chunk.
  *
- * As more objects are allocated, the header slides down until it reaches
- * the tail of the allocated chunk, at which time it will probably dissolve
- * itself to provide room for one last allocation of a small object.
+ * As objects are allocated, the header is update until everything before
+ * the header was allocated, at which time it will probably dissolve itself
+ * to provide room for one last allocation of a small object.
  */
 struct ochunk {
 	struct ochunk *next;	/* Linking in chunk "free list" */
 	struct ochunk *prev;
-	void *end;				/* End of physical chunk (first byte beyond) */
+	void *first;			/* First free location */
 };
 
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
 
 static guint32 omalloc_debug;
+
+#define OMALLOC_CHUNK_COUNT	(OMALLOC_CHUNK_BITS + 1)
 
 /**
  * Array of chunks with free space.
@@ -127,16 +129,28 @@ static guint32 omalloc_debug;
  * An entry at index ``i'' guarantees at least 2^i free bytes in the chunk,
  * including the chunk header.
  */
-static struct ochunk *chunks[OMALLOC_CHUNK_BITS + 1];
+static struct ochunk *chunks_rw[OMALLOC_CHUNK_COUNT];	/* Read & Write */
+static struct ochunk *chunks_ro[OMALLOC_CHUNK_COUNT];	/* Read-Only */
+
+enum omalloc_mode {
+	OMALLOC_RW,			/* Read & Write */
+	OMALLOC_RO			/* Read-Only */
+};
 
 /**
  * Internal statistics.
  */
 static struct {
-	size_t pages;			/**< Total amount of pages allocated */
-	size_t objects;			/**< Total amount of objects allocated */
-	size_t memory;			/**< Total amount of memory allocated */
-	size_t chunks;			/**< Total amount of chunks still present */
+	size_t pages_rw;		/**< Total amount of rw pages allocated */
+	size_t objects_rw;		/**< Total amount of rw objects allocated */
+	size_t memory_rw;		/**< Total amount of rw memory allocated */
+	size_t chunks_rw;		/**< Total amount of rw chunks still present */
+	size_t align_rw;		/**< Space wasted in rw chunks for alignment */
+	size_t pages_ro;		/**< Total amount of ro pages allocated */
+	size_t objects_ro;		/**< Total amount of ro objects allocated */
+	size_t memory_ro;		/**< Total amount of ro memory allocated */
+	size_t chunks_ro;		/**< Total amount of ro chunks still present */
+	size_t align_ro;		/**< Space wasted in ro chunks for alignment */
 	size_t zeroed;			/**< Zeroed objects at allocation time */
 	size_t wasted;			/**< Wasted memory at the tail of chunks */
 } ostats;
@@ -144,17 +158,36 @@ static struct {
 /**
  * Remaining free space in the chunk (including header).
  */
-static inline size_t
+static inline size_t G_GNUC_PURE
 omalloc_chunk_size(const struct ochunk *ck)
 {
 	g_assert(ck != NULL);
-	return ptr_diff(ck->end, ck);
+	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), ck->first);
+}
+
+/**
+ * Remaining free space in the chunk (including header) after starting
+ * pointer has been adjusted for specified alignment.
+ */
+static inline size_t G_GNUC_PURE
+omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
+{
+	void *first;
+	size_t mask;
+
+	g_assert(ck != NULL);
+	g_assert(IS_POWER_OF_2(align));
+
+	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
+	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
+
+	return ptr_diff(const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
 }
 
 /**
  * Compute index in chunks[] where a chunk of given size needs to be linked.
  */
-static size_t
+static size_t G_GNUC_CONST
 omalloc_size_index(size_t size)
 {
 	size_t r = size;
@@ -169,25 +202,74 @@ omalloc_size_index(size_t size)
 /**
  * Computes index in chunks[] where a given chunk needs to be linked.
  */
-static size_t
+static size_t G_GNUC_PURE
 omalloc_chunk_index(const struct ochunk *ck)
 {
 	return omalloc_size_index(omalloc_chunk_size(ck));
 }
 
 /**
+ * Make read-only chunk read-write.
+ */
+static void
+omalloc_chunk_unprotect(const struct ochunk *p, enum omalloc_mode mode)
+{
+	if (OMALLOC_RO == mode) {
+		size_t size = compat_pagesize();
+		void *start = deconstify_gpointer(vmm_page_start(p));
+
+		if (-1 == mprotect(start, size, PROT_READ | PROT_WRITE)) {
+			s_error("mprotect(%p, %zu, PROT_READ | PROT_WRITE) failed: %m",
+				start, size);
+		}
+	}
+}
+
+/**
+ * Make read-only chunk read-only.
+ */
+static void
+omalloc_chunk_protect(const struct ochunk *p, enum omalloc_mode mode)
+{
+	if (OMALLOC_RO == mode) {
+		size_t size = compat_pagesize();
+		void *start = deconstify_gpointer(vmm_page_start(p));
+
+		if (-1 == mprotect(start, size, PROT_READ)) {
+			s_error("mprotect(%p, %zu, PROT_READ) failed: %m", start, size);
+		}
+	}
+}
+
+/**
+ * Make read-only range read-only.
+ */
+static void
+omalloc_range_protect(const void *p, enum omalloc_mode mode, size_t len)
+{
+	if (OMALLOC_RO == mode) {
+		size_t size = round_pagesize(len);
+		void *start = deconstify_gpointer(vmm_page_start(p));
+
+		if (-1 == mprotect(start, size, PROT_READ)) {
+			s_error("mprotect(%p, %zu, PROT_READ) failed: %m", start, size);
+		}
+	}
+}
+
+/**
  * Follow chunk list and stop as soon as we find a chunk capable of
- * allocating ``size'' bytes.
+ * allocating ``size'' bytes aligned on ``align'' bytes boundary.
  *
  * @return chunk address if found, NULL if none.
  */
 static struct ochunk *
-omalloc_chunk_list_find(struct ochunk *head, size_t size)
+omalloc_chunk_list_find(struct ochunk *head, size_t size, size_t align)
 {
 	struct ochunk *ck;
 
 	for (ck = head; ck != NULL; ck = ck->next) {
-		if (omalloc_chunk_size(ck) >= size)
+		if (omalloc_chunk_size_aligned(ck, align) >= size)
 			return ck;
 	}
 
@@ -195,17 +277,65 @@ omalloc_chunk_list_find(struct ochunk *head, size_t size)
 }
 
 /**
+ * Get chunk array of corresponding type.
+ */
+static inline struct ochunk ** G_GNUC_CONST
+omalloc_chunk_array(enum omalloc_mode mode)
+{
+	switch (mode) {
+	case OMALLOC_RW:
+		return chunks_rw;
+	case OMALLOC_RO:
+		return chunks_ro;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Adjust starting address to make sure we can satisfy the alignment
+ * requirements.
+ */
+static void
+omalloc_chunk_align(struct ochunk *ck, size_t align, enum omalloc_mode mode)
+{
+	void *first;
+	size_t mask;
+
+	g_assert(ck != NULL);
+	g_assert(IS_POWER_OF_2(align));
+
+	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
+	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
+
+	if (first != ck->first) {
+		if (OMALLOC_RW == mode)
+			ostats.align_rw += ptr_diff(first, ck->first);
+		else
+			ostats.align_ro += ptr_diff(first, ck->first);
+		ck->first = first;
+	}
+}
+
+/**
  * Find a chunk capable of allocating ``size'' bytes (rounded up to fit
- * memory alignment concerns).
+ * memory alignment concerns), using ``mode'' type memory.
  *
  * @return chunk address if found, NULL if none.
  */
 static struct ochunk *
-omalloc_chunk_find(size_t size)
+omalloc_chunk_find(size_t size, size_t align, enum omalloc_mode mode)
 {
+	struct ochunk **chunks;
 	size_t i;
 
-	g_assert(size == omalloc_round(size));		/* Already rounded */
+	/*
+	 * Chunk fragments are, by design, smaller than a page size, hence
+	 * we can't find anything larger in them.
+	 */
+
+	if (size >= compat_pagesize())
+		return NULL;
 
 	/*
 	 * Say we try to allocate 14 bytes, we'll get i = 3.
@@ -221,10 +351,12 @@ omalloc_chunk_find(size_t size)
 	 * chunk listed will be a match.
 	 */
 
-	for (i = omalloc_size_index(size); i < G_N_ELEMENTS(chunks); i++) {
+	chunks = omalloc_chunk_array(mode);
+
+	for (i = omalloc_size_index(size); i < OMALLOC_CHUNK_COUNT; i++) {
 		struct ochunk *ck;
 
-		if (NULL != (ck = omalloc_chunk_list_find(chunks[i], size)))
+		if (NULL != (ck = omalloc_chunk_list_find(chunks[i], size, align)))
 			return ck;
 	}
 
@@ -235,19 +367,21 @@ omalloc_chunk_find(size_t size)
  * Link back chunk into the chunks[] array.
  */
 static void
-omalloc_chunk_link(struct ochunk *ck)
+omalloc_chunk_link(struct ochunk *ck, enum omalloc_mode mode)
 {
+	struct ochunk **chunks;
 	size_t i;
 
 	g_assert(ck != NULL);
 
 	i = omalloc_chunk_index(ck);
+	chunks = omalloc_chunk_array(mode);
 
 	/*
 	 * Insert as new head.
 	 */
 
-	g_assert(i < G_N_ELEMENTS(chunks));
+	g_assert(i < OMALLOC_CHUNK_COUNT);
 
 	if (NULL == chunks[i]) {
 		chunks[i] = ck;
@@ -260,33 +394,43 @@ omalloc_chunk_link(struct ochunk *ck)
 		chunks[i] = ck;
 		ck->prev = NULL;
 		ck->next = oldhead;
+		omalloc_chunk_unprotect(oldhead, mode);
 		oldhead->prev = ck;
+		omalloc_chunk_protect(oldhead, mode);
 	}
 }
 
 /**
- * Unlink chunk from the chunks[] array.
+ * Unlink chunk from the proper chunks[] array.
  */
 static void
-omalloc_chunk_unlink(struct ochunk *ck)
+omalloc_chunk_unlink(struct ochunk *ck, enum omalloc_mode mode)
 {
+	struct ochunk **chunks;
+
 	g_assert(ck != NULL);
+
+	chunks = omalloc_chunk_array(mode);
 
 	if (NULL == ck->prev) {
 		/* Was head of list */
 		size_t i = omalloc_chunk_index(ck);
 
-		g_assert(i < G_N_ELEMENTS(chunks));
+		g_assert(i < OMALLOC_CHUNK_COUNT);
 		g_assert(chunks[i] == ck);
 
 		chunks[i] = ck->next;
 	} else {
+		omalloc_chunk_unprotect(ck->prev, mode);
 		ck->prev->next = ck->next;
+		omalloc_chunk_protect(ck->prev, mode);
 		ck->prev = NULL;
 	}
 
 	if (ck->next != NULL) {
+		omalloc_chunk_unprotect(ck->next, mode);
 		ck->next->prev = ck->prev;
+		omalloc_chunk_protect(ck->next, mode);
 		ck->next = NULL;
 	}
 }
@@ -295,13 +439,19 @@ omalloc_chunk_unlink(struct ochunk *ck)
  * Allocate ``size'' bytes (already rounded up to fit memory alignment
  * constraints) from the specified chunk.
  *
+ * If chunk was read-only, it is made read-write upon return (so that any
+ * initialization of the allocated block can be made).
+ *
  * @return pointer to allocated memory.
  */
 static void *
-omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
+omalloc_chunk_allocate_from(struct ochunk *ck,
+	size_t size, size_t align, enum omalloc_mode mode)
 {
+	size_t used;
 	size_t csize;
-	void *p = ck;
+	void *first = ck->first;
+	void *p;
 
 	/*
 	 * Make sure that the size of the chunk header is a multiple of the
@@ -314,9 +464,11 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 	g_assert(ck != NULL);
 	g_assert(size_is_positive(size));
 	g_assert(omalloc_chunk_size(ck) >= size);
-	g_assert(size == omalloc_round(size));		/* Already rounded */
 
+	omalloc_chunk_unprotect(ck, mode);			/* Chunk now read-write */
+	omalloc_chunk_align(ck, align, mode);
 	csize = omalloc_chunk_size(ck);
+	p = ck->first;
 
 	/*
 	 * See whether this is going to be the last block allocated from
@@ -324,60 +476,50 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 	 */
 
 	if (csize - size >= OMALLOC_HEADER_SIZE) {
-		struct ochunk *nck;
+		struct ochunk **chunks;
 		size_t i;
 		size_t j;
 
 		/*
 		 * We have enough space in the chunk to allocate more memory.
-		 * Move the chunk pointer ahead and relink with any next/prev.
+		 * Move the chunk free pointer ahead and relink with any next/prev.
 		 */
 
-		nck = ptr_add_offset(ck, size);
-
-		g_assert(ptr_diff(ck->end, nck) >= OMALLOC_HEADER_SIZE);
-
 		i = omalloc_chunk_index(ck);	/* Old chunk index */
-		memmove(nck, ck, sizeof *ck);	/* Move ahead */
-		j = omalloc_chunk_index(nck);	/* New chunk index */
+		ck->first = ptr_add_offset(ck->first, size);
+		used = ptr_diff(ck->first, first);
 
-		g_assert(i < G_N_ELEMENTS(chunks));
-		g_assert(j < G_N_ELEMENTS(chunks));
+		g_assert(omalloc_chunk_size(ck) >= OMALLOC_HEADER_SIZE);
+
+		j = omalloc_chunk_index(ck);	/* New chunk index */
+
+		g_assert(i < OMALLOC_CHUNK_COUNT);
+		g_assert(j < OMALLOC_CHUNK_COUNT);
 		g_assert(j <= i);
+
+		chunks = omalloc_chunk_array(mode);
 
 		if (i != j) {
 			/*
 			 * Chunk moving lists, needs to be unlinked from previous list
-			 * and inserted in its new one.
+			 * and inserted into its new one.
 			 */
 
-			if (NULL == nck->prev) {
-				/* Was head of list */
-				g_assert(chunks[i] == ck);	/* ``ck'' is old chunk's start */
-				chunks[i] = nck->next;
-			} else {
-				nck->prev->next = nck->next;
-			}
-			if (nck->next != NULL) {
-				nck->next->prev = nck->prev;
-			}
-			omalloc_chunk_link(nck);
-		} else {
-			/*
-			 * Chunk stays in same list, update pointers from neighbours.
-			 */
-
-			if (NULL == nck->prev) {
+			if (NULL == ck->prev) {
 				/* Was head of list */
 				g_assert(chunks[i] == ck);
-				chunks[i] = nck;			/* Chunk's start was moved */
+				chunks[i] = ck->next;
 			} else {
-				nck->prev->next = nck;
+				omalloc_chunk_unprotect(ck->prev, mode);
+				ck->prev->next = ck->next;
+				omalloc_chunk_protect(ck->prev, mode);
 			}
-
-			if (nck->next != NULL) {
-				nck->next->prev = nck;
+			if (ck->next != NULL) {
+				omalloc_chunk_unprotect(ck->next, mode);
+				ck->next->prev = ck->prev;
+				omalloc_chunk_protect(ck->next, mode);
 			}
+			omalloc_chunk_link(ck, mode);
 		}
 	} else {
 		/*
@@ -385,8 +527,13 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 		 * Once we return, this chunk will no longer be listed in chunks[].
 		 */
 
-		omalloc_chunk_unlink(ck);
-		ostats.chunks--;
+		omalloc_chunk_unlink(ck, mode);
+		used = ptr_diff(ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
+
+		if (OMALLOC_RW == mode)
+			ostats.chunks_rw--;
+		else
+			ostats.chunks_ro--;
 
 		if (omalloc_debug > 2) {
 			s_debug("OMALLOC dissolving chunk header on %zu-byte allocation",
@@ -397,6 +544,121 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 			}
 		}
 	}
+
+	if (OMALLOC_RW == mode) {
+		ostats.memory_rw += used;
+	} else {
+		ostats.memory_ro += used;
+	}
+
+	return p;
+}
+
+/**
+ * Allocate ``size'' bytes of memory that will never be freed.
+ * If memory cannot be allocated, it is a fatal error.
+ *
+ * @param size		amount of memory to allocate
+ * @param align		alignment required for memory being allocated
+ * @param mode		whether memory is read-only or read-write
+ * @param init		if non-NULL, initialization data to copy (size bytes)
+ *
+ * @return pointer to allocated memory.
+ */
+static void *
+omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
+	const void *init)
+{
+	struct ochunk *ck;
+	void *p;
+	size_t allocated;
+
+	g_assert(size_is_positive(size));
+
+	if (OMALLOC_RW == mode) {
+		ostats.objects_rw++;
+	} else {
+		ostats.objects_ro++;
+	}
+
+	/*
+	 * First try to allocate memory from fragments held in chunks[].
+	 */
+
+	ck = omalloc_chunk_find(size, align, mode);
+	if (ck != NULL) {
+		p = omalloc_chunk_allocate_from(ck, size, align, mode);
+		goto done;
+	}
+
+	/*
+	 * Request new "core" memory.
+	 */
+
+	p = vmm_core_alloc(size);
+	allocated = round_pagesize(size);
+
+	if (omalloc_debug > 2) {
+		size_t pages = allocated / compat_pagesize();
+		size_t count = OMALLOC_RW == mode ?
+			ostats.objects_rw : ostats.objects_ro;
+		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
+			pages, 1 == pages ? "" : "s",
+			OMALLOC_RW == mode ? ostats.pages_rw : ostats.pages_ro,
+			count, OMALLOC_RW == mode ? "read-write" : "read-only",
+			1 == count ? "" : "s");
+	}
+
+	if (OMALLOC_RW == mode)
+		ostats.pages_rw += allocated / compat_pagesize();
+	else
+		ostats.pages_ro += allocated / compat_pagesize();
+
+	/*
+	 * If we have enough memory at the tail to create a new chunk, do so.
+	 *
+	 * We may be able later to allocate other objects in that page fragment,
+	 * and even if we can't, we do not lose any memory since this is allocated
+	 * space already.
+	 */
+
+	if (allocated - size >= OMALLOC_HEADER_SIZE) {
+		void *end = ptr_add_offset(p, allocated);
+		ck = ptr_add_offset(end, -OMALLOC_HEADER_SIZE);
+		ck->first = ptr_add_offset(p, size);
+		omalloc_chunk_link(ck, mode);
+		if (OMALLOC_RW == mode)
+			ostats.chunks_rw++;
+		else
+			ostats.chunks_ro++;
+
+		if (omalloc_debug > 2) {
+			size_t count = OMALLOC_RW == mode ?
+				ostats.chunks_rw : ostats.chunks_ro;
+			s_debug("OMALLOC adding %zu byte-long chunk (%zu %s chunk%s total)",
+				omalloc_chunk_size(ck),
+				count, OMALLOC_RW == mode ? "read-write" : "read-only",
+				1 == count ? "" : "s");
+		}
+	} else if (allocated != size) {
+		if (omalloc_debug > 2) {
+			s_debug("OMALLOC %zu trailing bytes lost on %zu-byte allocation",
+				allocated - size, size);
+		}
+		ostats.wasted += allocated - size;
+	}
+
+done:
+	if (init != NULL)
+		memcpy(p, init, size);
+
+	/*
+	 * The following protects back to read-only the whole chunk in which the
+	 * pointer was taken from, or the whole region allocated above if the
+	 * requested size was larger than a page size.
+	 */
+
+	omalloc_range_protect(p, mode, size);
 
 	return p;
 }
@@ -410,69 +672,7 @@ omalloc_chunk_allocate_from(struct ochunk *ck, size_t size)
 void *
 omalloc(size_t size)
 {
-	size_t rounded;
-	struct ochunk *ck;
-	void *result;
-	size_t allocated;
-
-	g_assert(size_is_positive(size));
-
-	rounded = omalloc_round(size);		/* Alignment requirements */
-	ostats.memory += rounded;
-	ostats.objects++;
-	g_assert(rounded >= size);
-
-	/*
-	 * First try to allocate memory from fragments held in chunks[].
-	 */
-
-	ck = omalloc_chunk_find(rounded);
-	if (ck != NULL)
-		return omalloc_chunk_allocate_from(ck, rounded);
-
-	/*
-	 * Request new "core" memory.
-	 */
-
-	result = vmm_core_alloc(rounded);
-	allocated = round_pagesize(rounded);
-
-	if (omalloc_debug > 2) {
-		size_t pages = allocated / compat_pagesize();
-		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu object%s)",
-			pages, 1 == pages ? "" : "s",
-			ostats.pages, ostats.objects, 1 == ostats.objects ? "" : "s");
-	}
-
-	ostats.pages += allocated / compat_pagesize();
-
-	/*
-	 * If we have enough memory at the tail to create a new chunk, do so.
-	 *
-	 * We may be able later to allocate other objects in that page fragment,
-	 * and even if we can't, we do not lose any memory since this is allocated
-	 * space already.
-	 */
-
-	if (allocated - rounded >= OMALLOC_HEADER_SIZE) {
-		ck = ptr_add_offset(result, rounded);
-		ck->end = ptr_add_offset(result, allocated);
-		omalloc_chunk_link(ck);
-		ostats.chunks++;
-
-		if (omalloc_debug > 2) {
-			s_debug("OMALLOC adding %zu byte-long chunk (%zu chunk%s total)",
-				omalloc_chunk_size(ck),
-				ostats.chunks, 1 == ostats.chunks ? "" : "s");
-		}
-	} else if (allocated != rounded) {
-		if (omalloc_debug > 2) {
-			s_debug("OMALLOC %zu trailing bytes lost on %zu-byte allocation",
-				allocated - rounded, rounded);
-		}
-	}
-
-	return result;
+	return omalloc_allocate(size, MEM_ALIGNBYTES, OMALLOC_RW, NULL);
 }
 
 /**
@@ -487,7 +687,7 @@ omalloc0(size_t size)
 {
 	void *p;
 
-	p = omalloc(size);
+	p = omalloc_allocate(size, MEM_ALIGNBYTES, OMALLOC_RW, NULL);
 	memset(p, 0, size);
 	ostats.zeroed++;
 
@@ -502,17 +702,38 @@ omalloc0(size_t size)
 char *
 ostrdup(const char *str)
 {
-	size_t len;
-	char *p;
-
 	if (NULL == str)
 		return NULL;
 
-	len = strlen(str);
-	p = omalloc(len + 1);
-	memcpy(p, str, len + 1);	/* Include trailing NUL in copy */
+	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RW, str);
+}
 
-	return p;
+/**
+ * Allocate a permanent read-only copy of the data pointed at.
+ *
+ * @return pointer to allocated copy.
+ */
+const void *
+ocopy_readonly(const void *p, size_t size)
+{
+	g_assert(p != NULL);
+	g_assert(size_is_non_negative(size));
+
+	return omalloc_allocate(size, MEM_ALIGNBYTES, OMALLOC_RO, p);
+}
+
+/**
+ * Allocate a permanent read-only copy of supplied string (which may be NULL).
+ *
+ * @return a pointer to the new string, or NULL if argument was NULL.
+ */
+const char *
+ostrdup_readonly(const char *str)
+{
+	if (NULL == str)
+		return NULL;
+
+	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RO, str);
 }
 
 /**
@@ -522,7 +743,7 @@ ostrdup(const char *str)
 size_t
 omalloc_page_count(void)
 {
-	return ostats.pages;
+	return ostats.pages_rw + ostats.pages_ro;
 }
 
 /**
@@ -546,13 +767,24 @@ omalloc_close(void)
 	 */
 
 	if (omalloc_debug) {
-		s_debug("omalloc() allocated %zu object%s spread on %zu page%s",
-			ostats.objects, 1 == ostats.objects ? "" : "s",
-			ostats.pages, 1 == ostats.pages ? "" : "s");
-		s_debug("omalloc() allocated %s, %zu partial page%s remain%s",
-			short_size(ostats.memory, FALSE),
-			ostats.chunks, 1 == ostats.chunks ? "" : "s",
-			1 == ostats.chunks ? "s" : "");
+		s_debug("omalloc() allocated %zu read-write object%s "
+			"spread on %zu page%s",
+			ostats.objects_rw, 1 == ostats.objects_rw ? "" : "s",
+			ostats.pages_rw, 1 == ostats.pages_rw ? "" : "s");
+		s_debug("omalloc() allocated %s read-write, "
+			"%zu partial page%s remain%s",
+			short_size(ostats.memory_rw, FALSE),
+			ostats.chunks_rw, 1 == ostats.chunks_rw ? "" : "s",
+			1 == ostats.chunks_rw ? "s" : "");
+		s_debug("omalloc() allocated %zu read-only object%s "
+			"spread on %zu page%s",
+			ostats.objects_ro, 1 == ostats.objects_ro ? "" : "s",
+			ostats.pages_ro, 1 == ostats.pages_ro ? "" : "s");
+		s_debug("omalloc() allocated %s read-only, "
+			"%zu partial page%s remain%s",
+			short_size(ostats.memory_ro, FALSE),
+			ostats.chunks_ro, 1 == ostats.chunks_ro ? "" : "s",
+			1 == ostats.chunks_ro ? "s" : "");
 	}
 }
 
@@ -562,18 +794,45 @@ omalloc_close(void)
 G_GNUC_COLD void
 omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+	size_t pages, objects, memory, chunks, align;
+
 #define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
 	(options & DUMP_OPT_PRETTY) ?					\
 		size_t_to_gstring(ostats.x) : size_t_to_string(ostats.x))
 
-	DUMP(pages);
-	DUMP(objects);
-	DUMP(memory);
-	DUMP(chunks);
+#define DUMP_VAR(x) log_info(la, "OMALLOC %s = %s", #x,	\
+	(options & DUMP_OPT_PRETTY) ?					\
+		size_t_to_gstring(x) : size_t_to_string(x))
+
+#define CONSOLIDATE(x)		x = ostats.x##_rw + ostats.x##_ro
+
+	CONSOLIDATE(pages);
+	CONSOLIDATE(objects);
+	CONSOLIDATE(memory);
+	CONSOLIDATE(chunks);
+	CONSOLIDATE(align);
+
+	DUMP(pages_rw);
+	DUMP(objects_rw);
+	DUMP(memory_rw);
+	DUMP(chunks_rw);
+	DUMP(align_rw);
+	DUMP(pages_ro);
+	DUMP(objects_ro);
+	DUMP(memory_ro);
+	DUMP(chunks_ro);
+	DUMP(align_ro);
+	DUMP_VAR(pages);
+	DUMP_VAR(objects);
+	DUMP_VAR(memory);
+	DUMP_VAR(chunks);
+	DUMP_VAR(align);
 	DUMP(zeroed);
 	DUMP(wasted);
 
 #undef DUMP
+#undef DUMP_VAR
+#undef CONSOLIDATE
 }
 
 /* vi: set ts=4 sw=4 cindent:  */
