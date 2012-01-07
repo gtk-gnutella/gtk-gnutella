@@ -57,18 +57,18 @@
 
 #include "common.h"
 
-#include "lib/hashtable.h"
-#include "lib/atomic.h"
-#include "lib/entropy.h"
-#include "lib/hashing.h"
-#include "lib/misc.h"			/* For struct sha1 */
-#include "lib/mutex.h"
-#include "lib/pow2.h"
-#include "lib/spinlock.h"
-#include "lib/vmm.h"
-#include "lib/xmalloc.h"
+#include "hashtable.h"
+#include "atomic.h"
+#include "entropy.h"
+#include "hashing.h"
+#include "misc.h"			/* For struct sha1 */
+#include "mutex.h"
+#include "pow2.h"
+#include "spinlock.h"
+#include "vmm.h"
+#include "xmalloc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 #define HASH_ITEMS_BINS			2	/* Initial amount of bins */
 #define HASH_ITEMS_PER_BIN		4

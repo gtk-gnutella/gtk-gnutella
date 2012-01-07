@@ -31,12 +31,12 @@
 
 #include "common.h"
 
-#include "lib/glib-missing.h"
-#include "lib/idtable.h"
-#include "lib/random.h"
-#include "lib/walloc.h"
+#include "idtable.h"
+#include "glib-missing.h"
+#include "random.h"
+#include "walloc.h"
 
-#include "lib/override.h"			/* Must be the last header included */
+#include "override.h"			/* Must be the last header included */
 
 #define IDTABLE_MASK (((uint32)-1) >> 1)
 #define IDTABLE_BASE (IDTABLE_MASK + 1)

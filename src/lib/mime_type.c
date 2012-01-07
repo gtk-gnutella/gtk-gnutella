@@ -217,7 +217,7 @@ mime_type_to_string(enum mime_type type)
 {
 	static const char *names[] = {
 #define MIME_TYPE(id, name) name,
-#include "lib/mime_types.h"
+#include "mime_types.h"
 #undef MIME_TYPE
 	};
 	size_t i;
