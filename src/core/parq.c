@@ -4660,12 +4660,7 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	puq = parq_upload_find(u);
 
-	if (puq == NULL) {
-		g_warning("[PARQ UL] Did the upload got removed?");
-		return;
-	}
-
-	g_assert(puq != NULL);
+	g_return_unless(puq != NULL);
 
 	/*
 	 * Send the QUEUE header.
