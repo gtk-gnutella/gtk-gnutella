@@ -26,7 +26,7 @@
  * @ingroup lib
  * @file
  *
- * Hashing functions.
+ * Hashing functions and other ancillary routines.
  *
  * @author Raphael Manfredi
  * @date 2008-2012
@@ -58,8 +58,9 @@
  * The multiplication is done using 32-bit arithmetic and we let it overflow,
  * keeping only the lower "half" of the product.
  */
-#define GOLDEN_RATIO_31	0x4F1BBCDCUL	/* Golden ratio of 2^31 */
-#define GOLDEN_RATIO_32	0x9E3779B9UL	/* Golden ratio of 2^32 */
+#define GOLDEN_RATIO_31	0x4F1BBCDCUL		/* Golden ratio of 2^31 */
+#define GOLDEN_RATIO_32	0x9E3779B9UL		/* Golden ratio of 2^32 */
+#define GOLDEN_RATIO_48	0x9E3779B97F4AUL	/* Golden ratio of 2^48 */
 
 /*
  * Public interface.
@@ -67,6 +68,16 @@
 
 unsigned pointer_hash(const void *p) G_GNUC_CONST;
 unsigned binary_hash(const void *data, size_t len) G_GNUC_PURE;
+unsigned string_hash(const void *s) G_GNUC_PURE;
+
+unsigned pointer_hash2(const void *p) G_GNUC_CONST;
+unsigned binary_hash2(const void *data, size_t len) G_GNUC_PURE;
+unsigned string_hash2(const void *s) G_GNUC_PURE;
+
+gboolean pointer_eq(const void *a, const void *b) G_GNUC_CONST;
+gboolean binary_eq(const void *a, const void *b, size_t len) G_GNUC_PURE;
+gboolean string_eq(const void *a, const void *b) G_GNUC_PURE;
+
 unsigned hashing_fold(unsigned hash, size_t bits) G_GNUC_CONST;
 
 #endif /* _hashing_h_ */
