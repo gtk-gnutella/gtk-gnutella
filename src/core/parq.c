@@ -487,8 +487,9 @@ get_header_value(const char *const s,
 
 			if (!found_right_attribute) {
 				g_assert(!found_equal_sign);
-				g_warning("%s: attribute '%s' has no value in string: %s",
-					__FILE__, attribute, s);
+				g_warning("%s() in %s: "
+					"attribute '%s' has no value in string: %s",
+					G_STRFUNC, _WHERE_, attribute, s);
 			}
 		}
 	} while (!found_right_attribute);
@@ -4986,7 +4987,7 @@ parq_upload_load_queue(void)
 		return;
 
 	if (GNET_PROPERTY(parq_debug))
-		g_warning("[PARQ UL] loading queue information");
+		g_debug("[PARQ UL] loading queue information");
 
 	/* Reset state */
 	entry = zero_entry;
@@ -5055,8 +5056,9 @@ parq_upload_load_queue(void)
 
 				if (!string_to_host_addr(value, NULL, &addr)) {
 					damaged = TRUE;
-					g_warning("tag \"%s\", line %u: not a valid IP address",
-						tag_name, line_no);
+					g_warning("%s(): tag \"%s\", line %u: "
+						"not a valid IP address",
+						G_STRFUNC, tag_name, line_no);
 				} else {
 					switch (tag) {
 					case PARQ_TAG_IP:
@@ -5146,7 +5148,8 @@ parq_upload_load_queue(void)
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
 					damaged = TRUE;
-					g_warning("Value has wrong length.");
+					g_warning("%s(): SHA1 value has wrong length %zu",
+						G_STRFUNC, strlen(value));
 				} else {
 					const struct sha1 *raw;
 
@@ -5194,9 +5197,9 @@ parq_upload_load_queue(void)
 		}
 
 		if (damaged) {
-			g_warning("damaged PARQ entry in line %u: "
+			g_warning("%s(): damaged PARQ entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
-				line_no, tag_name, value);
+				G_STRFUNC, line_no, tag_name, value);
 
 			/* Reset state, discard current record */
 			next = FALSE;
