@@ -3054,12 +3054,13 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 			break;
 
 		g_debug("[PARQ UL] Q#%d pos=%u, rel=%u, slot<has=%s had=%s> updated=%s"
-			" active=%s, quick=%s, alive=%s",
+			" active=%s, quick=%s, alive=%s, flags=0x%x, ID=%s, expire=%s ",
 			q->num, puq->position, puq->relative_position,
 			puq->has_slot ? "y" : "n", puq->had_slot ? "y" : "n",
 			compact_time(delta_time(tm_time(), puq->updated)),
 			puq->active_queued ? "y" : "n", puq->quick ? "y" : "n",
-			puq->is_alive ? "y" : "n");
+			puq->is_alive ? "y" : "n", puq->flags, guid_hex_str(&puq->id),
+			timestamp_utc_to_string(puq->expire));
 	}
 	
 	hash_list_iter_release(&iter);
