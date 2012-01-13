@@ -2601,7 +2601,7 @@ parq_upload_timer(time_t now)
 	 * Scan the queues.
 	 */
 
-	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
+	GM_LIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *queue = queues->data;
 
 		queue_selected++;
@@ -2619,7 +2619,7 @@ parq_upload_timer(time_t now)
 	 * Sort out dead entries.
 	 */
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(to_remove, sl) {
 		struct parq_ul_queued *puq = sl->data;
 
 		parq_ul_queued_check(puq);
@@ -2637,14 +2637,14 @@ parq_upload_timer(time_t now)
 		if (enable_real_passive && parq_still_sharing(puq)) {
 			hash_list_append(puq->queue->by_date_dead, puq);
 		} else
-			parq_upload_free(sl->data);
+			parq_upload_free(puq);
 	}
 
 	/*
 	 * Recompute data only for the queues in which we removed items --RAM.
 	 */
 
-	for (queues = ul_parqs; queues; queues = g_list_next(queues)) {
+	GM_LIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *q = queues->data;
 
 		if (q->recompute) {
