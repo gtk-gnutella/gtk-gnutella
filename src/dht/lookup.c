@@ -1519,10 +1519,11 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	type = nl->u.fv.vtype;
 	msg[0] = '\0';			/* Precaution */
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_debug("DHT LOOKUP[%s] got value for %s %s from hop %u %s",
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		g_debug("DHT LOOKUP[%s] got value for %s %s at hop %u from %s",
 			nid_to_string(&nl->lid), dht_value_type_to_string(type),
 			kuid_to_hex_string(nl->kuid), hop, knode_to_string(kn));
+	}
 
 	/*
 	 * Parse payload to extract value(s).
@@ -1568,7 +1569,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 			continue;
 		}
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 3)
+		if (GNET_PROPERTY(dht_lookup_debug))
 			g_debug("DHT LOOKUP[%s] value %d/%u is %s",
 				nid_to_string(&nl->lid), i + 1, expanded,
 				dht_value_to_string(v));
@@ -4413,7 +4414,7 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
 			vvec, G_N_ELEMENTS(vvec), &load, NULL);
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] key %s found locally, with %d %s value%s",
 				nid_to_string(&nl->lid), kuid_to_string(nl->kuid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
@@ -4608,10 +4609,11 @@ lookup_value_handle_reply(nlookup_t *nl,
 	kn = sk->kn;
 	msg[0] = '\0';		/* Precaution */
 
-	if (GNET_PROPERTY(dht_lookup_debug))
+	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT LOOKUP[%s] got value for %s %s from %s",
 			nid_to_string(&nl->lid), dht_value_type_to_string(type),
 			kuid_to_hex_string(nl->kuid), knode_to_string(kn));
+	}
 
 	/*
 	 * Parse payload to extract value.
@@ -4676,7 +4678,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 		goto bad;
 	}
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+	if (GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"value for secondary key #%u is %s",
 			nid_to_string(&nl->lid), load, sk->next_skey + 1,
