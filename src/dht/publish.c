@@ -2122,9 +2122,9 @@ publish_cache_internal(const kuid_t *key,
 	pb->target.c.messages = slist_new();
 
 	/*
-	 * Create all the STORE messages we'll need and insert them in a PATRICIA
-	 * keyed by the KUID of the creator of the first value held in each message
-	 * (we know there cannot be any duplicate there, by construction).
+	 * Create all the STORE messages we'll need and record them in a list.
+	 * All messages carry a blank MUID that will be superseded by the RPC
+	 * layer when messages are sent out.
 	 */
 
 	msg = kmsg_build_store(target->token, target->token_len, vvec, vcnt);
