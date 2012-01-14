@@ -2406,11 +2406,9 @@ mingw_cpufreq(enum mingw_cpufreq freq)
  *** thread, others are executed in the context of the main thread.
  ***
  *** All logging within the thread must use the t_xxx() logging routines
- *** with the ``altc'' parameter in order to be thread-safe.
+ *** in order to be thread-safe.
  ***/
 
-static logthread_t *altc;		/* ADNS logging thread context */
- 
 static GAsyncQueue *mingw_gtkg_main_async_queue;
 static GAsyncQueue *mingw_gtkg_adns_async_queue;
 static volatile bool mingw_adns_thread_run;
@@ -2487,12 +2485,12 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 	const char *hostname = ad->thread_arg_data;
 	
 	if (common_dbg > 1) {
-		t_debug(altc, "ADNS resolving '%s'", hostname);
+		t_debug("ADNS resolving '%s'", hostname);
 	}	
 	getaddrinfo(hostname, NULL, NULL, &results);
 
 	if (common_dbg > 1) {
-		t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
+		t_debug("ADNS got result for '%s' @%p", hostname, results);
 	}
 	ad->thread_return_data = results;	
 }
@@ -2598,7 +2596,7 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 		arg_data->servinfo, sizeof arg_data->servinfo, 
 		NI_NUMERICSERV);
 
-	t_debug(altc, "ADNS resolved to %s", arg_data->hostname);
+	t_debug("ADNS resolved to %s", arg_data->hostname);
 }
 
 /**
@@ -2705,9 +2703,8 @@ mingw_adns_thread(void *unused_data)
 		g_async_queue_push(result_queue, ad);			
 	}
 
-	if (common_dbg) {
-		t_message(altc, "adns thread exit");
-	}
+	if (common_dbg)
+		t_message("adns thread exit");
 
 	/*
 	 * FIXME: The calls below cause a:
@@ -2769,14 +2766,16 @@ mingw_adns_send_request(const struct adns_request *req)
 void
 mingw_adns_init(void)
 {
-	altc = log_thread_alloc();		/* Thread-private logging context */
-
-	/* Be extremely careful in the ADNS thread!
+	/*
+	 * Be extremely careful in the ADNS thread!
 	 * gtk-gnutella was designed as mono-threaded application so its regular
 	 * routines are NOT thread-safe.  Do NOT access any public functions or
-	 * modify global variables from the ADNS thread! Dynamic memory
-	 * allocation is absolutely forbidden.
+	 * modify global variables from the ADNS thread!
+	 *
+	 * Dynamic memory allocation is possible via xmalloc(), walloc() and
+	 * vmm_alloc() now that these allocators have been made thread-safe.
  	 */
+
 	g_thread_init(NULL);
 	mingw_gtkg_main_async_queue = g_async_queue_new();
 	mingw_gtkg_adns_async_queue = g_async_queue_new();

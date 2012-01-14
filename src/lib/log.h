@@ -52,9 +52,6 @@ struct logstat {
 	unsigned need_reopen:1;	/**< Logfile pending a reopen */
 };
 
-struct logthread;
-typedef struct logthread logthread_t;
-
 struct logagent;
 typedef struct logagent logagent_t;
 
@@ -64,7 +61,6 @@ typedef struct logagent logagent_t;
 
 struct str;
 
-logthread_t *log_thread_alloc(void);
 const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
 void log_abort(void) G_GNUC_NORETURN;
 
@@ -117,17 +113,17 @@ void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
  * Thread-safe logging interface.
  */
 
-void t_critical(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error(logthread_t *lt, const char *format, ...)
+void t_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_error(const char *format, ...)
+	G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+void t_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_error_from(const char *file, const char *format, ...)
 	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
-void t_carp(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_carp_once(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_warning(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_message(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error_from(const char *file, logthread_t *lt, const char *format, ...)
-	G_GNUC_PRINTF(3, 4) G_GNUC_NORETURN;
 
 /*
  * Polymorphic logging interface.

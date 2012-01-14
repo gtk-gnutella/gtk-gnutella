@@ -113,11 +113,11 @@ enum logthread_magic { LOGTHREAD_MAGIC = 0x72a32c36 };
 /**
  * Thread private logging data.
  */
-struct logthread {
+typedef struct logthread {
 	enum logthread_magic magic;
 	volatile sig_atomic_t in_log_handler;	/**< Recursion detection */
 	ckhunk_t *ck;			/**< Chunk from which we can allocate memory */
-};
+} logthread_t;
 
 static inline void
 logthread_check(const struct logthread * const lt)
@@ -387,11 +387,8 @@ log_agent_free_null(logagent_t **la_ptr)
 
 /**
  * Allocate a thread-private logging data descriptor.
- *
- * This must be done in the main thread before starting subsequent threads
- * since the memory allocation code is not thread-safe.
  */
-logthread_t *
+static logthread_t *
 log_thread_alloc(void)
 {
 	logthread_t *lt;
@@ -409,29 +406,23 @@ log_thread_alloc(void)
 /**
  * Get suitable thread-private logging data descriptor.
  *
- * If argument is non-NULL, use that one, otherwise use a private local one.
- * This allows non-threaded code to use the t_xxx() logging routines with a
- * NULL object and get safe logging with no call to malloc().
- *
- * @return valid logging data object.
+ * @return valid logging data object for the current thread.
  */
 static logthread_t *
-logthread_object(logthread_t *lt)
+logthread_object(void)
 {
-	if (NULL == lt) {
-		logthread_t *ltp;
+	logthread_t *lt;
 
-		ltp = thread_private_get(func_to_pointer(logthread_object));
+	lt = thread_private_get(func_to_pointer(logthread_object));
 
-		if G_UNLIKELY(NULL == ltp) {
-			ltp = log_thread_alloc();
-			thread_private_add(func_to_pointer(logthread_object), ltp);
-		}
-
-		return ltp;
-	} else {
-		return lt;
+	if G_UNLIKELY(NULL == lt) {
+		lt = log_thread_alloc();
+		thread_private_add(func_to_pointer(logthread_object), lt);
 	}
+
+	logthread_check(lt);
+
+	return lt;
 }
 
 /**
@@ -1215,15 +1206,12 @@ s_debug(const char *format, ...)
  * Thread-safe critical message.
  */
 void
-t_critical(logthread_t *lt, const char *format, ...)
+t_critical(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 }
 
@@ -1231,15 +1219,13 @@ t_critical(logthread_t *lt, const char *format, ...)
  * Thread-safe error.
  */
 void
-t_error(logthread_t *lt, const char *format, ...)
+t_error(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	s_logv(logthread_object(),
+		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
 	log_abort();
@@ -1249,17 +1235,15 @@ t_error(logthread_t *lt, const char *format, ...)
  * Thread-safe error, recording the source of the crash to allow crash hooks.
  */
 void
-t_error_from(const char *file, logthread_t *lt, const char *format, ...)
+t_error_from(const char *file, const char *format, ...)
 {
 	va_list args;
-
-	lt = logthread_object(lt);
-	logthread_check(lt);
 
 	crash_set_filename(file);
 
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	s_logv(logthread_object(),
+		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
 	log_abort();
@@ -1269,15 +1253,12 @@ t_error_from(const char *file, logthread_t *lt, const char *format, ...)
  * Thread-safe verbose warning message.
  */
 void
-t_carp(logthread_t *lt, const char *format, ...)
+t_carp(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
@@ -1287,13 +1268,10 @@ t_carp(logthread_t *lt, const char *format, ...)
  * Thread-safe verbose warning message, emitted once per calling stack.
  */
 void
-t_carp_once(logthread_t *lt, const char *format, ...)
+t_carp_once(const char *format, ...)
 {
 	if (!stacktrace_caller_known(2))	{	/* Caller of our caller */
 		va_list args;
-
-		lt = logthread_object(lt);
-		logthread_check(lt);
 
 		/*
 		 * We use a CRITICAL level because "once" carping denotes a
@@ -1305,7 +1283,7 @@ t_carp_once(logthread_t *lt, const char *format, ...)
 		 */
 
 		va_start(args, format);
-		s_logv(lt, G_LOG_LEVEL_CRITICAL, format, args);
+		s_logv(logthread_object(), G_LOG_LEVEL_CRITICAL, format, args);
 		va_end(args);
 	}
 }
@@ -1314,15 +1292,12 @@ t_carp_once(logthread_t *lt, const char *format, ...)
  * Thread-safe warning message.
  */
 void
-t_warning(logthread_t *lt, const char *format, ...)
+t_warning(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 }
 
@@ -1330,15 +1305,12 @@ t_warning(logthread_t *lt, const char *format, ...)
  * Thread-safe regular message.
  */
 void
-t_message(logthread_t *lt, const char *format, ...)
+t_message(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_MESSAGE, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_MESSAGE, format, args);
 	va_end(args);
 }
 
@@ -1346,15 +1318,12 @@ t_message(logthread_t *lt, const char *format, ...)
  * Thread-safe info message.
  */
 void
-t_info(logthread_t *lt, const char *format, ...)
+t_info(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_INFO, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_INFO, format, args);
 	va_end(args);
 }
 
@@ -1362,15 +1331,12 @@ t_info(logthread_t *lt, const char *format, ...)
  * Thread-safe debug message.
  */
 void
-t_debug(logthread_t *lt, const char *format, ...)
+t_debug(const char *format, ...)
 {
 	va_list args;
 
-	lt = logthread_object(lt);
-	logthread_check(lt);
-
 	va_start(args, format);
-	s_logv(lt, G_LOG_LEVEL_DEBUG, format, args);
+	s_logv(logthread_object(), G_LOG_LEVEL_DEBUG, format, args);
 	va_end(args);
 }
 
@@ -1414,7 +1380,7 @@ log_logv(logagent_t *la, GLogLevelFlags level, const char *format, va_list args)
 
 	switch (la->type) {
 	case LOG_A_STDERR:
-		s_logv(logthread_object(NULL), level, format, args);
+		s_logv(logthread_object(), level, format, args);
 		return;
 	case LOG_A_STRING:
 		log_str_logv(la->u.s, level, format, args);
