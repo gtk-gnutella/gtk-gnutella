@@ -113,6 +113,7 @@ LSRC = \
 	base32.c \
 	base64.c \
 	bg.c \
+	bigint.c \
 	bstr.c \
 	ckalloc.c \
 	cobs.c \
@@ -239,6 +240,7 @@ LOBJ = \
 	base32.o \
 	base64.o \
 	bg.o \
+	bigint.o \
 	bstr.o \
 	ckalloc.o \
 	cobs.o \
