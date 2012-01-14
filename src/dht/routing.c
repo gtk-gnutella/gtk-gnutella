@@ -84,6 +84,7 @@
 
 #include "lib/atoms.h"
 #include "lib/base16.h"
+#include "lib/bigint.h"
 #include "lib/bit_array.h"
 #include "lib/cq.h"
 #include "lib/file.h"
@@ -3466,12 +3467,8 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 	size_t count;
 	guint32 squares = 0;
 	kuid_t *id;
-	kuid_t dsum;
-	kuid_t sq;
-	kuid_t sparseness;
-	kuid_t r;
-	kuid_t max;
-	kuid_t estimate;
+	bigint_t dsum, sq, sparseness, r, max, estimate, tmp;
+	guint64 result;
 
 #define NCNT	K_LOCAL_ESTIMATE
 
@@ -3489,36 +3486,38 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 	 *  S = sum of i*i for i = 1..NCNT
 	 *
 	 *  D/S represents the sparseness of the results.  If all results were
-	 * at distance 1, 2, 3... etc, then D/S = 1.  The greater D/S, the more
-	 * sparse the results are.
+	 * at distance 1, 2, 3... etc, then D/S = 1.  The greater D/S, the sparser
+	 * the results are.
 	 *
 	 * The DHT size is then estimated by 2^160 / (D/S).
 	 */
 
 	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
 	i = 1;
-	kuid_zero(&dsum);
-	kuid_zero(&max);
-	kuid_not(&max);			/* Max amount: 2^160 - 1 */
+	bigint_init(&dsum, KUID_RAW_SIZE + 1);
+	bigint_init(&tmp, KUID_RAW_SIZE + 1);
 
 	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
 	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
 
 	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
-		kuid_t di;
+		kuid_t dix;
+		bigint_t dist;
 		gboolean saturated = FALSE;
 
-		kuid_xor_distance(&di, id, kuid);
+		kuid_xor_distance(&dix, id, kuid);
+		bigint_use(&dist, dix.v, sizeof dix.v);
+		bigint_copy(&tmp, &dist);	/* Result has 168 bits, not 160 */
 
 		/*
-		 * If any of these operations report a carry, then we're saturating
+		 * If any of these operations reports a carry, then we're saturating
 		 * and it's time to leave our computations: the hosts are too sparse
 		 * and the distance is getting too large.
 		 */
 
-		if (0 != kuid_mult_u8(&di, i)) {
+		if (0 != bigint_mult_u8(&tmp, i)) {
 			saturated = TRUE;
-		} else if (kuid_add(&dsum, &di)) {
+		} else if (bigint_add(&dsum, &tmp)) {
 			saturated = TRUE;
 		}
 
@@ -3526,7 +3525,8 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		i++;
 
 		if (saturated) {
-			kuid_copy(&dsum, &max);
+			bigint_zero(&dsum);
+			bigint_set_nth_bit(&dsum, 160);	/* 2^160 */
 			break;		/* DHT size too small or incomplete routing table */
 		}
 		if (i > NCNT)
@@ -3540,35 +3540,49 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 
 #undef NCNT
 
-	kuid_set32(&sq, squares);
-	kuid_divide(&dsum, &sq, &sparseness, &r);
+	bigint_init(&sq, KUID_RAW_SIZE + 1);
+	bigint_init(&sparseness, KUID_RAW_SIZE + 1);
+	bigint_init(&r, KUID_RAW_SIZE + 1);
+	bigint_init(&estimate, KUID_RAW_SIZE + 1);
+
+	bigint_set32(&sq, squares);
+	bigint_divide(&dsum, &sq, &sparseness, &r);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		double ds = kuid_to_double(&dsum);
-		double s = kuid_to_double(&sq);
+		double ds = bigint_to_double(&dsum);
+		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_debug("DHT dsum is %s = %F", kuid_to_hex_string(&dsum), ds);
+		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
-			kuid_to_hex_string(&sq), s, squares);
+			bigint_to_hex_string(&sq), s, squares);
 
 		g_debug("DHT sparseness over %u nodes is %s = %F (%F)",
-			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
-			kuid_to_double(&sparseness), ds / s);
+			(unsigned) i - 1, bigint_to_hex_string(&sparseness),
+			bigint_to_double(&sparseness), ds / s);
 	}
 
-	/*
-	 * We can't divide 2^160 by the sparseness because we can't represent
-	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
-	 * won't make much of a difference, and we add one (for ourselves).
-	 */
+	bigint_init(&max, KUID_RAW_SIZE + 1);
+	bigint_set_nth_bit(&max, 160);	/* 2^160 */
 
-	kuid_divide(&max, &sparseness, &estimate, &r);
-	kuid_add_u8(&estimate, 1);
+	bigint_divide(&max, &sparseness, &estimate, &r);
+	bigint_add_u8(&estimate, 1);
 
-	return kuid_to_guint64(&estimate);
+	result = bigint_to_guint64(&estimate);
+	if G_UNLIKELY(0 == result)
+		result = (guint64) -1;		/* Overflowed, very unlikely on Earth */
+
+	bigint_free(&tmp);
+	bigint_free(&estimate);
+	bigint_free(&max);
+	bigint_free(&r);
+	bigint_free(&sparseness);
+	bigint_free(&sq);
+	bigint_free(&dsum);
+
+	return result;
 }
 
 /**
@@ -3746,12 +3760,10 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	patricia_iter_t *iter;
 	size_t count;
 	size_t intervals;
-	kuid_t prev;
-	kuid_t accum;
-	kuid_t remain;
-	kuid_t first;
-	kuid_t avg;
+	kuid_t first, prev;
+	bigint_t val, accum, remain, avg;
 	kuid_t *id;
+	guint64 result;
 
 	/*
 	 * Here is the algorithm used to compute the size estimate.
@@ -3773,16 +3785,22 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 
 	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
 	count = intervals = 0;
-	kuid_zero(&accum);
+
+	bigint_init(&accum, KUID_RAW_SIZE + 1);
+	bigint_init(&remain, KUID_RAW_SIZE + 1);
+	bigint_init(&avg, KUID_RAW_SIZE + 1);
+	bigint_init(&val, KUID_RAW_SIZE + 1);
 
 	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
 		if (count++ > 0) {
-			kuid_t dist;
-			kuid_xor_distance(&dist, &prev, id); /* Between consecutive IDs */
-			kuid_add(&accum, &dist);
+			kuid_t di;
+			bigint_t dist;
+			kuid_xor_distance(&di, &prev, id); /* Between consecutive IDs */
+			bigint_use(&dist, di.v, sizeof di.v);
+			bigint_add(&accum, &dist);
 			intervals++;
-			kuid_xor_distance(&dist, &first, id);	/* With first ID */
-			kuid_add(&accum, &dist);
+			kuid_xor_distance(&di, &first, id);	/* With first ID */
+			bigint_add(&accum, &dist);
 			intervals += count;
 		} else {
 			kuid_copy(&first, id);
@@ -3807,14 +3825,14 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	if (count == 1)
 		return 1 + patricia_count(pt);
 
-	kuid_set32(&prev, intervals + 1);
-	kuid_divide(&accum, &prev, &avg, &remain);
+	bigint_set32(&val, intervals + 1);
+	bigint_divide(&accum, &val, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
 			(unsigned) count - 1,
-			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
-			kuid_to_double(&avg));
+			kuid_to_hex_string(kuid), bigint_to_hex_string(&avg),
+			bigint_to_double(&avg));
 	}
 
 	/*
@@ -3823,12 +3841,19 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	 * population is therefore 2^160 / average_distance.
 	 */
 
-	kuid_zero(&prev);
-	kuid_not(&prev);		/* Max amount we can represent: 2^160 - 1 */
+	bigint_zero(&val);
+	bigint_set_nth_bit(&val, 160);	/* 2^160 */
 
-	kuid_divide(&prev, &avg, &accum, &remain);
+	bigint_divide(&val, &avg, &accum, &remain);
 
-	return kuid_to_guint64(&accum);
+	result = bigint_to_guint64(&accum);
+
+	bigint_free(&accum);
+	bigint_free(&remain);
+	bigint_free(&avg);
+	bigint_free(&val);
+
+	return result;
 }
 
 /**
@@ -4179,11 +4204,14 @@ const kuid_t *
 dht_get_size_estimate(void)
 {
 	static kuid_t size_estimate;
+	bigint_t size;
 
 	if (stats.average.computed == 0)
 		dht_update_size_estimate();
 
-	kuid_set64(&size_estimate, stats.average.estimate);
+	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
+	bigint_set64(&size, stats.average.estimate);
+
 	return &size_estimate;
 }
 
@@ -4204,7 +4232,7 @@ dht_get_kball_furthest(void)
  * Record new DHT size estimate from another node.
  */
 void
-dht_record_size_estimate(knode_t *kn, kuid_t *size)
+dht_record_size_estimate(knode_t *kn, bigint_t *size)
 {
 	guint8 subspace;
 	struct other_size *os;
@@ -4221,7 +4249,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 
 	subspace = kuid_leading_u8(kn->id);
 	hl = stats.network[subspace].others;
-	estimate = kuid_to_guint64(size);
+	estimate = bigint_to_guint64(size);
 
 	WALLOC(os);
 	os->id = kuid_get_atom(kn->id);

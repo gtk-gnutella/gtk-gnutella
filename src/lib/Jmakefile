@@ -56,6 +56,7 @@ LSRC = \
 	base32.c \
 	base64.c \
 	bg.c \
+	bigint.c \
 	bstr.c \
 	ckalloc.c \
 	cobs.c \

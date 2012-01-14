@@ -566,6 +566,8 @@ src/lib/base64.c
 src/lib/base64.h
 src/lib/bg.c
 src/lib/bg.h
+src/lib/bigint.c
+src/lib/bigint.h
 src/lib/bit_array.ht
 src/lib/bit_field.ht
 src/lib/bit_generic.t

@@ -59,6 +59,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/aging.h"
+#include "lib/bigint.h"
 #include "lib/bstr.h"
 #include "lib/host_addr.h"
 #include "lib/glib-missing.h"
@@ -954,10 +955,11 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	{
-		kuid_t estimated;
+		char buf[KUID_RAW_SIZE];
+		bigint_t estimated;
 		guint8 bytes;
 
-		bstr_read_packed_array_u8(bs, KUID_RAW_SIZE, &estimated.v[0], &bytes);
+		bstr_read_packed_array_u8(bs, KUID_RAW_SIZE, buf, &bytes);
 
 		if (bstr_has_error(bs)) {
 			reason = "could not decompile estimated DHT size";
@@ -966,13 +968,16 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 
 		g_assert(bytes <= KUID_RAW_SIZE);
 
-		memmove(&estimated.v[KUID_RAW_SIZE - bytes], estimated.v, bytes);
-		memset(&estimated.v[0], 0, KUID_RAW_SIZE - bytes);
+		memmove(&buf[KUID_RAW_SIZE - bytes], buf, bytes);
+		memset(buf, 0, KUID_RAW_SIZE - bytes);
 
-		if (GNET_PROPERTY(dht_debug))
+		bigint_use(&estimated, buf, sizeof buf);
+
+		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT node %s estimates DHT size to %s hosts",
 				knode_to_string(kn),
-				uint64_to_string(kuid_to_guint64(&estimated)));
+				uint64_to_string(bigint_to_guint64(&estimated)));
+		}
 
 		dht_record_size_estimate(kn, &estimated);
 	}

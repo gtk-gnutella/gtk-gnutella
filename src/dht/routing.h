@@ -43,6 +43,7 @@
 #include "if/dht/kademlia.h"
 #include "if/dht/dht.h"
 
+#include "lib/bigint.h"
 #include "lib/host_addr.h"
 #include "lib/patricia.h"
 #include "lib/vendors.h"
@@ -57,7 +58,7 @@ void dht_allocate_new_kuid_if_needed(void);
 
 void dht_traffic_from(knode_t *kn);
 void dht_set_node_status(knode_t *kn, knode_status_t new);
-void dht_record_size_estimate(knode_t *kn, kuid_t *size);
+void dht_record_size_estimate(knode_t *kn, bigint_t *size);
 const kuid_t *dht_get_size_estimate(void);
 int dht_get_kball_furthest(void);
 guint64 dht_size(void);
