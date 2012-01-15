@@ -450,6 +450,31 @@ dump_tx_udp_packet(const gnet_host_t *to, const pmsg_t *mb)
 }
 
 /**
+ * Dump RX traffic coming from listed addresses, all addresses if empty.
+ */
+void
+dump_rx_set_addrs(const char *s)
+{
+	ipset_set_addrs(&dump_rx_addrs, s);
+}
+
+/**
+ * Dump TX traffic coming from listed addresses, all addresses if empty.
+ */
+void dump_tx_set_from_addrs(const char *s)
+{
+	ipset_set_addrs(&dump_tx_from_addrs, s);
+}
+
+/**
+ * Dump TX traffic sent to listed addresses, all addresses if empty.
+ */
+void dump_tx_set_to_addrs(const char *s)
+{
+	ipset_set_addrs(&dump_tx_to_addrs, s);
+}
+
+/**
  * Initialize traffic dumping.
  */
 void

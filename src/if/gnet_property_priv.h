@@ -489,6 +489,9 @@ extern const guint32  gnet_property_variable_qhit_bad_debug;
 extern const guint32  gnet_property_variable_guid_debug;
 extern const guint32  gnet_property_variable_tx_deflate_debug;
 extern const char   *gnet_property_variable_tx_debug_addrs;
+extern const char   *gnet_property_variable_dump_rx_addrs;
+extern const char   *gnet_property_variable_dump_tx_from_addrs;
+extern const char   *gnet_property_variable_dump_tx_to_addrs;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -41,6 +41,7 @@
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
+#include "dump.h"
 #include "guess.h"
 #include "hcache.h"
 #include "hosts.h"
@@ -1739,6 +1740,36 @@ tx_debug_addrs_changed(property_t prop)
 }
 
 static gboolean
+dump_rx_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	dump_rx_set_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static gboolean
+dump_tx_from_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	dump_tx_set_from_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static gboolean
+dump_tx_to_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	dump_tx_set_to_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static gboolean
 enable_local_socket_changed(property_t prop)
 {
 	gboolean enabled;
@@ -3076,6 +3107,21 @@ static prop_map_t property_map[] = {
 	{
 		PROP_TX_DEBUG_ADDRS,
 		tx_debug_addrs_changed,
+		TRUE,
+	},
+	{
+		PROP_DUMP_RX_ADDRS,
+		dump_rx_addrs_changed,
+		TRUE,
+	},
+	{
+		PROP_DUMP_TX_FROM_ADDRS,
+		dump_tx_from_addrs_changed,
+		TRUE,
+	},
+	{
+		PROP_DUMP_TX_TO_ADDRS,
+		dump_tx_to_addrs_changed,
 		TRUE,
 	},
 };

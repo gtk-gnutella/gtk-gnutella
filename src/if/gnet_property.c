@@ -1022,6 +1022,12 @@ guint32  gnet_property_variable_tx_deflate_debug     = 0;
 static const guint32  gnet_property_variable_tx_deflate_debug_default = 0;
 char   *gnet_property_variable_tx_debug_addrs     = "";
 static const char   *gnet_property_variable_tx_debug_addrs_default = "";
+char   *gnet_property_variable_dump_rx_addrs     = "";
+static const char   *gnet_property_variable_dump_rx_addrs_default = "";
+char   *gnet_property_variable_dump_tx_from_addrs     = "";
+static const char   *gnet_property_variable_dump_tx_from_addrs_default = "";
+char   *gnet_property_variable_dump_tx_to_addrs     = "";
+static const char   *gnet_property_variable_dump_tx_to_addrs_default = "";
 
 static prop_set_t *gnet_property;
 
@@ -9404,7 +9410,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[439].name = "tx_debug_addrs";
-    gnet_property->props[439].desc = _("Comma-separated list of TX debugging host (IP addresses only)");
+    gnet_property->props[439].desc = _("Comma-separated list of TX debugging hosts (IP addresses only)");
     gnet_property->props[439].ev_changed = event_new("tx_debug_addrs_changed");
     gnet_property->props[439].save = TRUE;
     gnet_property->props[439].vector_size = 1;
@@ -9416,6 +9422,69 @@ gnet_prop_init(void) {
     if (gnet_property->props[439].data.string.def) {
         *gnet_property->props[439].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[439].data.string.def));
+    }
+
+
+    /*
+     * PROP_DUMP_RX_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[440].name = "dump_rx_addrs";
+    gnet_property->props[440].desc = _("Comma-separated list of hosts for whom we want to dump RX traffic (IP addresses only)");
+    gnet_property->props[440].ev_changed = event_new("dump_rx_addrs_changed");
+    gnet_property->props[440].save = TRUE;
+    gnet_property->props[440].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[440].type               = PROP_TYPE_STRING;
+    gnet_property->props[440].data.string.def    = (void *) &gnet_property_variable_dump_rx_addrs_default;
+    gnet_property->props[440].data.string.value  = (void *) &gnet_property_variable_dump_rx_addrs;
+    if (gnet_property->props[440].data.string.def) {
+        *gnet_property->props[440].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[440].data.string.def));
+    }
+
+
+    /*
+     * PROP_DUMP_TX_FROM_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[441].name = "dump_tx_from_addrs";
+    gnet_property->props[441].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic  they emit (IP addresses only)");
+    gnet_property->props[441].ev_changed = event_new("dump_tx_from_addrs_changed");
+    gnet_property->props[441].save = TRUE;
+    gnet_property->props[441].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[441].type               = PROP_TYPE_STRING;
+    gnet_property->props[441].data.string.def    = (void *) &gnet_property_variable_dump_tx_from_addrs_default;
+    gnet_property->props[441].data.string.value  = (void *) &gnet_property_variable_dump_tx_from_addrs;
+    if (gnet_property->props[441].data.string.def) {
+        *gnet_property->props[441].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[441].data.string.def));
+    }
+
+
+    /*
+     * PROP_DUMP_TX_TO_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[442].name = "dump_tx_to_addrs";
+    gnet_property->props[442].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic they receive (IP addresses only)");
+    gnet_property->props[442].ev_changed = event_new("dump_tx_to_addrs_changed");
+    gnet_property->props[442].save = TRUE;
+    gnet_property->props[442].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[442].type               = PROP_TYPE_STRING;
+    gnet_property->props[442].data.string.def    = (void *) &gnet_property_variable_dump_tx_to_addrs_default;
+    gnet_property->props[442].data.string.value  = (void *) &gnet_property_variable_dump_tx_to_addrs;
+    if (gnet_property->props[442].data.string.def) {
+        *gnet_property->props[442].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[442].data.string.def));
     }
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
