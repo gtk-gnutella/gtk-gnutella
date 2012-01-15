@@ -29,6 +29,7 @@
 #include "shell.h"
 
 #include "lib/options.h"
+#include "lib/prop.h"
 
 /* The interface */
 
@@ -59,6 +60,8 @@ gboolean shell_request_library_rescan(void);
 
 int shell_options_parse(struct gnutella_shell *,
 	const char *argv[], const option_t *ovec, int ovcnt);
+
+const char *shell_property_to_string(property_t prop);
 
 /* Implemented commands */
 

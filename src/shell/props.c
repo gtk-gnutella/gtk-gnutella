@@ -38,8 +38,42 @@
 #include "if/gnet_property.h"
 
 #include "lib/glib-missing.h"
+#include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+/**
+ * @return string value of property enclosed within specific type markers.
+ */
+const char *
+shell_property_to_string(property_t prop)
+{
+	const char *before = "", *after = "";
+
+	switch (gnet_prop_type(prop)) {
+	case PROP_TYPE_BOOLEAN:
+	case PROP_TYPE_GUINT32:
+	case PROP_TYPE_GUINT64:
+		break;
+	case PROP_TYPE_STORAGE:
+		before = "'"; after = "'";
+		break;
+	case PROP_TYPE_IP:
+		before = "< "; after = " >";
+		break;
+	case PROP_TYPE_TIMESTAMP:
+	case PROP_TYPE_STRING:
+		before = after = "\"";
+		break;
+	case PROP_TYPE_MULTICHOICE:
+		before = "{ "; after = " }";
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	return str_smsg("%s%s%s", before, gnet_prop_to_string(prop), after);
+}
 
 /**
  * Display all properties
@@ -80,7 +114,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 		shell_write(sh, gnet_prop_name(prop));
 		if (values) {
 			shell_write(sh, " = ");
-			shell_write(sh, gnet_prop_to_string(prop));
+			shell_write(sh, shell_property_to_string(prop));
 		}
 		shell_write(sh, "\n");
 	}
