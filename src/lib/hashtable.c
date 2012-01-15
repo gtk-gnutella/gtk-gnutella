@@ -122,7 +122,7 @@ struct hash_table {
  * Avoid complexity attacks on the hash table.
  *
  * A random number is used to perturb the hash value for all the keys so
- * that no attack on the hash table insertion complexity can be make, such
+ * that no attack on the hash table insertion complexity can be made, such
  * as presenting a set of keys that will pathologically make insertions
  * O(n) instead of O(1) on average.
  */
