@@ -43,7 +43,7 @@
 
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
-#include "lib/strtok.h"
+#include "lib/ipset.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -601,22 +601,7 @@ tx_no_source(txdrv_t *unused_tx)
  *** Selective debugging TX support, to limit tracing to specific addresses.
  ***/
 
-static GHashTable *tx_addrs;
-
-/**
- * Hashtable iterator callback to free address.
- */
-static gboolean
-tx_debug_free_addrs(void *key, void *uvalue, void *udata)
-{
-	host_addr_t *ha = key;
-
-	(void) uvalue;
-	(void) udata;
-
-	WFREE(ha);
-	return TRUE;
-}
+static ipset_t tx_addrs = IPSET_INIT;
 
 /**
  * Record IP addresses in the set of "debuggable" destinations.
@@ -624,44 +609,16 @@ tx_debug_free_addrs(void *key, void *uvalue, void *udata)
 void
 tx_debug_set_addrs(const char *s)
 {
-	strtok_t *st;
-	const char *tok;
-
-	if (NULL == tx_addrs) {
-		tx_addrs = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-	} else {
-		g_hash_table_foreach_remove(tx_addrs, tx_debug_free_addrs, NULL);
-	}
-
-	st = strtok_make_strip(s);
-
-	while ((tok = strtok_next(st, ","))) {
-		host_addr_t ha;
-		ZERO(&ha);
-		if (string_to_host_addr(tok, NULL, &ha)) {
-			host_addr_t *h = WCOPY(&ha);
-			g_hash_table_insert(tx_addrs, h, NULL);
-		}
-	}
-
-	strtok_free(st);
-
-	if (0 == g_hash_table_size(tx_addrs))
-		gm_hash_table_destroy_null(&tx_addrs);
+	ipset_set_addrs(&tx_addrs, s);
 }
 
 /**
  * Are we debugging traffic sent to the IP of the host?
  */
 gboolean
-tx_debug_host(gnet_host_t *h)
+tx_debug_host(const gnet_host_t *h)
 {
-	if G_UNLIKELY(NULL != tx_addrs) {
-		host_addr_t ha = gnet_host_get_addr(h);
-		return gm_hash_table_contains(tx_addrs, &ha);
-	} else {
-		return FALSE;
-	}
+	return ipset_contains_host(&tx_addrs, h, FALSE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

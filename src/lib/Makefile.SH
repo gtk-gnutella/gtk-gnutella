@@ -165,6 +165,7 @@ LSRC = \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
+	ipset.c \
 	iso3166.c \
 	log.c \
 	list.c \
@@ -292,6 +293,7 @@ LOBJ = \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
+	ipset.o \
 	iso3166.o \
 	log.o \
 	list.o \

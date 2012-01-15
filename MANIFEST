@@ -681,6 +681,8 @@ src/lib/inputevt.h
 src/lib/iovec.h
 src/lib/iprange.c
 src/lib/iprange.h
+src/lib/ipset.c
+src/lib/ipset.h
 src/lib/iso3166.c
 src/lib/iso3166.h
 src/lib/list.c
