@@ -39,6 +39,10 @@
 #include <pwd.h>				/* For getpwuid() and struct passwd */
 #endif
 
+#ifdef I_SCHED
+#include <sched.h>				/* For sched_yield() */
+#endif
+
 #include "entropy.h"
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
@@ -121,8 +125,21 @@ sha1_feed_cpu_noise(SHA1Context *ctx)
 	SHA1Input(ctx, env, sizeof env);	/* "env" is an array */
 }
 
+/**
+ * Create a small but unpredictable delay in the process execution.
+ */
 static void
-sha1_feed_timing(SHA1Context *ctx)
+entropy_create_delay(void)
+{
+#ifdef HAS_SCHED_YIELD
+	sched_yield();
+#else
+	compat_sleep_ms(0);
+#endif	/* HAS_SCHED_YIELD */
+}
+
+static void
+sha1_feed_timing(SHA1Context *ctx, bool slow)
 {
 	/*
 	 * Add timing entropy.
@@ -131,14 +148,20 @@ sha1_feed_timing(SHA1Context *ctx)
 	double u, s;
 	tm_t before, after;
 
+	tm_now_exact(&before);
+
 	sha1_feed_double(ctx, tm_cputime(&u, &s));
 	sha1_feed_double(ctx, u);
 	sha1_feed_double(ctx, s);
 
-	tm_now_exact(&before);
-	compat_sleep_ms(250);	/* 250 ms */
+	if (slow) {
+		compat_sleep_ms(2);			/* 2 ms */
+	} else {
+		entropy_create_delay();		/* create small, unpredictable delay */
+	}
+
 	tm_now_exact(&after);
-	sha1_feed_double(ctx, 0.25 - tm_elapsed_f(&after, &before));
+	sha1_feed_double(ctx, tm_elapsed_f(&after, &before));
 }
 
 static void
@@ -156,13 +179,17 @@ sha1_feed_environ(SHA1Context *ctx)
 /**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
+ * @param digest			where generated random 160 bits are output
+ * @param can_malloc		if FALSE, make sure we never malloc()
+ * @param slow				whether we can sleep for 2 ms
+ *
  * @attention
- * This is a slow operation, and the routine even sleeps for 250 ms, so it
+ * This is a slow operation, and the routine can even sleep for 2 ms, so it
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
 G_GNUC_COLD void
-entropy_collect_internal(struct sha1 *digest, bool can_malloc)
+entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 {
 	SHA1Context ctx;
 	tm_t start, end;
@@ -350,7 +377,7 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc)
 	sha1_feed_pointer(&ctx, cast_func_to_pointer(&exit));	/* libc */
 	sha1_feed_pointer(&ctx, &errno);
 	sha1_feed_environ(&ctx);
-	sha1_feed_timing(&ctx);
+	sha1_feed_timing(&ctx, slow);
 
 #ifdef HAS_TTYNAME
 	if (can_malloc)
@@ -382,14 +409,14 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc)
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * @attention
- * This is a slow operation, and the routine even sleeps for 250 ms, so it
+ * This is a slow operation, and the routine can even sleep for 2 ms, so it
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
 G_GNUC_COLD void
 entropy_collect(struct sha1 *digest)
 {
-	return entropy_collect_internal(digest, TRUE);
+	return entropy_collect_internal(digest, TRUE, TRUE);
 }
 
 /**
@@ -397,14 +424,13 @@ entropy_collect(struct sha1 *digest)
  * supplied SHA1 buffer with 160 random bits.
  *
  * @attention
- * This is a slow operation, and the routine even sleeps for 250 ms, so it
- * must be called only when a truly random seed is required, ideally only
- * during initialization.
+ * This is a slow operation, so it must be called only when a truly random
+ * seed is required.
  */
 G_GNUC_COLD void
 entropy_minimal_collect(struct sha1 *digest)
 {
-	return entropy_collect_internal(digest, FALSE);
+	return entropy_collect_internal(digest, FALSE, FALSE);
 }
 
 /**
