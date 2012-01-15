@@ -439,7 +439,8 @@ do_open(const char *path, int flags, int mode,
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
-		g_warning("do_open(): can't open absolute \"%s\": relative path", path);
+		g_warning("%s(): can't open absolute \"%s\": relative path",
+			G_STRFUNC, path);
 		errno = EPERM;
 		return -1;
 	}
@@ -470,8 +471,8 @@ do_open(const char *path, int flags, int mode,
 		) {
 			fd = open(path, flags, mode);
 			if (fd >= 0) {
-				g_warning("do_open(): had to close a banned fd to %s file",
-					what);
+				g_warning("%s(): had to close a banned fd to %s file",
+					G_STRFUNC, what);
 			}
 		}
 	}
@@ -490,13 +491,13 @@ do_open(const char *path, int flags, int mode,
 	 */
 
 	if (errno == 0) {
-		g_warning("do_open(): "
-			"open() returned -1 with errno = 0, assuming ENOENT");
+		g_warning("%s(): open() returned -1 with errno = 0, assuming ENOENT",
+			G_STRFUNC);
 		errno = ENOENT;
 	}
 
 	if (!missing || errno != ENOENT) {
-		g_warning("do_open(): can't %s file \"%s\": %m", what, path);
+		g_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
 	}
 
 	return -1;
