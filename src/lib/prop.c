@@ -1270,6 +1270,17 @@ prop_name(prop_set_t *ps, property_t prop)
 }
 
 /**
+ * Fetch the property type in the config files.
+ *
+ * @return property type code.
+ */
+prop_type_t
+prop_type(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).type;
+}
+
+/**
  * Fetch the property description in the config files.
  *
  * @return The human-readable name of the property. There is not need
@@ -1457,7 +1468,6 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 
 	return s;
 }
-
 
 /**
  * @return "TRUE" or "FALSE" depending on the given boolean value.

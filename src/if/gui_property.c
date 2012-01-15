@@ -2715,6 +2715,12 @@ gui_prop_name(property_t p)
     return prop_name(gui_property, p);
 }
 
+prop_type_t
+gui_prop_type(property_t p)
+{
+    return prop_type(gui_property, p);
+}
+
 const char *
 gui_prop_type_to_string(property_t p)
 {

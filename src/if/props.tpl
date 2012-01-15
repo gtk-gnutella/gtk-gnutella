@@ -108,6 +108,7 @@ const char *[=(. func-prefix)=]_to_string(property_t prop);
 const char *[=(. func-prefix)=]_default_to_string(property_t);
 const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
+prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
 /*
@@ -713,6 +714,12 @@ const char *
 [=(. func-prefix)=]_name(property_t p)
 {
     return prop_name([=(. prop-set)=], p);
+}
+
+prop_type_t
+[=(. func-prefix)=]_type(property_t p)
+{
+    return prop_type([=(. prop-set)=], p);
 }
 
 const char *

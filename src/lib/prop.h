@@ -249,6 +249,7 @@ const char *prop_description(prop_set_t *ps, property_t prop);
 const char *prop_to_string(prop_set_t *ps, property_t prop);
 const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
+prop_type_t prop_type(prop_set_t *ps, property_t prop);
 gboolean prop_is_saved(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(
