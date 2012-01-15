@@ -250,6 +250,17 @@ struct mingw_statvfs {
 #endif
 
 /*
+ * sched_yield() emulation
+ */
+#ifndef HAS_SCHED_YIELD
+#define HAS_SCHED_YIELD			/* We emulate it */
+#define EMULATE_SCHED_YIELD
+#define sched_yield mingw_sched_yield
+
+int mingw_sched_yield(void);
+#endif	/* !HAS_SCHED_YIELD */
+
+/*
  * getrusage() emulation.
  */
 #ifndef HAS_GETRUSAGE

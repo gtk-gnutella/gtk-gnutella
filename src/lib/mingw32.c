@@ -2109,6 +2109,18 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	return 0;
 }
 
+#ifdef EMULATE_SCHED_YIELD
+/**
+ * Cause the calling thread to relinquish the CPU.
+ */
+int
+mingw_sched_yield(void)
+{
+	Sleep(0);
+	return 0;
+}
+#endif	/* EMULATE_SCHED_YIELD */
+
 #ifdef EMULATE_GETRUSAGE
 /**
  * Convert a FILETIME into a timeval.
