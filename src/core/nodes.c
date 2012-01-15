@@ -6845,6 +6845,18 @@ node_dht_above_low_watermark(void)
 }
 
 /**
+ * Check whether node is above its low watermark, to limit traffic when
+ * connection starts clogging.
+ */
+gboolean
+node_above_low_watermark(const gnutella_node_t *n)
+{
+	node_check(n);
+
+	return NULL == n->outq || mq_above_low_watermark(n->outq);
+}
+
+/**
  * Setup addr:port in pseudo node.
  */
 static inline gnutella_node_t *

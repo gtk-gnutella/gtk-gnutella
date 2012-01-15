@@ -940,6 +940,17 @@ send_neighbouring_info(struct gnutella_node *n)
 
 		if (!NODE_IS_CONNECTED(n))
 			return;
+
+		/*
+		 * Careful with transient nodes, their lifetime is reduced so don't
+		 * waste too much banwdwidth with them.
+		 *		--RAM, 2012-01-15
+		 */
+
+		if (NODE_IS_TRANSIENT(n)) {
+			if (random_value(99) < 10 || node_above_low_watermark(n))
+				break;
+		}
 	}
 }
 
@@ -2201,6 +2212,25 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	send_personal_info(n, FALSE, ping_type(n));
 }
 
+/*
+ * Shall we accept the ping?.
+ */
+static gboolean
+pcache_ping_accept(gnutella_node_t *n)
+{
+	time_t now = tm_time();
+
+	if (now < n->ping_accept) {
+		n->n_ping_throttle++;		/* Drop the ping */
+        gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return FALSE;
+	} else {
+		n->n_ping_accepted++;
+		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
+		return TRUE;
+	}
+}
+
 /**
  * Called when a ping is received from a node.
  *
@@ -2235,11 +2265,10 @@ pcache_ping_received(struct gnutella_node *n)
 	 * Besides, we always accept them.
 	 *
 	 * If we get a TTL=0 ping, assume it's used to ack an "alive ping" we
-	 * sent earlier.  Don't event log we got a message with TTL=0, we're
+	 * sent earlier.  Don't even log we got a message with TTL=0, we're
 	 * getting way too many of them and nobody on the GDF seems to care.
 	 * BearShare is known to do this, and they admitted it publicly like
 	 * it was a good idea!
-	 *
 	 *		--RAM, 2004-08-09
 	 */
 
@@ -2247,12 +2276,24 @@ pcache_ping_received(struct gnutella_node *n)
 		gnutella_header_get_hops(&n->header) == 0 &&
 		gnutella_header_get_ttl(&n->header) <= 2
 	) {
+		guint8 ttl = gnutella_header_get_ttl(&n->header);
+
 		n->n_ping_special++;
+
+		/*
+		 * Transient nodes are severely limited, because we don't want
+		 * to waste traffic to them.
+		 *		--RAM, 2012-01-15
+		 */
+
+		if (NODE_IS_TRANSIENT(n) && ttl > 1 && !pcache_ping_accept(n))
+			return;
+
 		n->n_ping_accepted++;
 
-		if (gnutella_header_get_ttl(&n->header) == 1)
+		if (1 == ttl)
 			send_personal_info(n, TRUE, PING_F_NONE);	/* Prioritary */
-		else if (gnutella_header_get_ttl(&n->header) == 2) {
+		else if (2 == ttl) {
 			if (settings_is_ultra())
 				send_neighbouring_info(n);
 		} else
@@ -2285,14 +2326,8 @@ pcache_ping_received(struct gnutella_node *n)
 	 * Accept the ping?.
 	 */
 
-	if (now < n->ping_accept) {
-		n->n_ping_throttle++;		/* Drop the ping */
-        gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+	if (!pcache_ping_accept(n))
 		return;
-	} else {
-		n->n_ping_accepted++;
-		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
-	}
 
 	/*
 	 * Purge cache if needed.
