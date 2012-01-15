@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, Raphael Manfredi
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2009, 2012 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,8 +28,63 @@
  *
  * Traffic dumping, for later analysis with barracuda.
  *
+ * To use traffic dumping, one needs to create named pipes in the
+ * configuration directory (~/.gtk-gnutella, usually).
+ *
+ * When told to dump data, gtk-gnutella opens the corresponding named
+ * pipe for writing, the user needing to open it for reading to get
+ * the traffic dumps.
+ *
+ * Dumping is non-blocking and automatically stops when the pipe becomes
+ * full, meaning the reader stopped or cannot extract data fast enough.
+ *
+ * Two properties (which can be set through a shell command) are governing
+ * whether traffic dumping should be done, with explicit names:
+ *
+ *    dump_received_gnutella_packets
+ *    dump_transmitted_gnutella_packets
+ *
+ * Because indiscriminate traffic dumping can create a lot of output, three
+ * additional properties are used (RX = receive, TX = transmit):
+ *
+ *    dump_rx_addrs
+ *    dump_tx_from_addrs
+ *    dump_tx_to_addrs
+ *
+ * These contain a comma-separated list of IP addresses that are used to
+ * filter traffic: only traffic sent to or originating from the listed
+ * addresses (depending on whether we're filtering for TX or RX) is dumped.
+ * An empty set means no filtering is done at all, i.e. everything is logged.
+ *
+ * When dumping TX traffic, we can filter on both from/to, but RX traffic
+ * can only be filtered on its from address.  This is because RX traffic is
+ * dumped just after being received and before we know the fate of the packet,
+ * whereas TX traffic is dumped when the packet is sent out, at which time we
+ * know both its origin and its destination.
+ *
+ * Dumps are made with a header, hence one must use "barracuda -D" to
+ * post-process the logs.
+ *
+ * Here is a sample traffic dumping session:
+ *
+ * # create the named pipes
+ * mknod ~/.gtk-gnutella/packets_rx.dump p
+ * mknod ~/.gtk-gnutella/packets_tx.dump p
+ *
+ * # prepare TX traffic reading
+ * gzip -9 <~/.gtk-gnutella/packets_tx.dump >traffic.gz
+ *
+ * # request gtk-gnutella dumpping
+ * echo set dump_transmitted_gnutella_packets TRUE | gtk-gnutella --shell
+ *
+ * # when done, hit ^C and post-process with barracuda
+ * gzcat traffic.gz | barracuda -D | less
+ *
+ * # to cleanly stop dumps, use this instead of hitting ^C
+ * echo set dump_transmitted_gnutella_packets FALSE | gtk-gnutella --shell
+ *
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009, 2012
  * @author Christian Biere
  * @date 2006
  */
@@ -42,6 +97,7 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/ipset.h"
 #include "lib/path.h"
 #include "lib/pmsg.h"
 #include "lib/slist.h"
@@ -50,6 +106,8 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define DUMP_BUFFER_MAX	(256 * 1024UL)	/* Max amount we keep in memory */
 
 /**
  * Barracuda header flags.
@@ -111,6 +169,10 @@ static struct dump dump_tx = {
 	FALSE,					/* initialized */
 	PROP_DUMP_TRANSMITTED_GNUTELLA_PACKETS,	/* dump_property */
 };
+
+static ipset_t dump_rx_addrs = IPSET_INIT;
+static ipset_t dump_tx_from_addrs = IPSET_INIT;
+static ipset_t dump_tx_to_addrs = IPSET_INIT;
 
 /**
  * Fill dump header with node address information.
@@ -231,7 +293,7 @@ dump_flush(struct dump *dump)
 					dump->filename);
 				dump_disable(dump);
 			}
-			if (dump->fill >= 256 * 1024UL) {
+			if (dump->fill >= DUMP_BUFFER_MAX) {
 				g_warning(
 					"queue is full: %s -- disabling dumping", dump->filename);
 				dump_disable(dump);
@@ -258,7 +320,12 @@ dump_packet_from(struct dump *dump, const struct gnutella_node *node)
 {
 	struct dump_header dh;	
 
+	g_assert(node != NULL);
+
 	if (!dump_initialize(dump))
+		return;
+
+	if (!ipset_contains_addr(&dump_rx_addrs, node->addr, TRUE))
 		return;
 
 	dump_header_set(&dh, node);
@@ -294,13 +361,20 @@ dump_packet_from_to(struct dump *dump,
 	if (GTA_MSG_DHT == gnutella_header_get_function(pmsg_start(mb)))
 		return;
 
+	if (!ipset_contains_addr(&dump_tx_to_addrs, to->addr, TRUE))
+		return;
+
 	if (NULL == from) {
 		struct gnutella_node local;
 		local.peermode = NODE_IS_UDP(to) ? NODE_P_UDP : NODE_P_NORMAL;
 		local.addr = listen_addr();
 		local.port = GNET_PROPERTY(listen_port);
+		if (!ipset_contains_addr(&dump_tx_from_addrs, local.addr, TRUE))
+			return;
 		dump_header_set(&dh_from, &local);
 	} else {
+		if (!ipset_contains_addr(&dump_tx_from_addrs, from->addr, TRUE))
+			return;
 		dump_header_set(&dh_from, from);
 	}
 
@@ -394,6 +468,10 @@ dump_close(void)
 		dump_disable(&dump_rx);
 	if (dump_tx.initialized)
 		dump_disable(&dump_tx);
+
+	ipset_clear(&dump_rx_addrs);
+	ipset_clear(&dump_tx_from_addrs);
+	ipset_clear(&dump_tx_to_addrs);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
