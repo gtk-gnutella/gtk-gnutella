@@ -44,6 +44,7 @@
 #endif
 
 #include "entropy.h"
+#include "bigint.h"
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
 #include "endian.h"
@@ -416,7 +417,7 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 G_GNUC_COLD void
 entropy_collect(struct sha1 *digest)
 {
-	return entropy_collect_internal(digest, TRUE, TRUE);
+	entropy_collect_internal(digest, TRUE, TRUE);
 }
 
 /**
@@ -430,7 +431,20 @@ entropy_collect(struct sha1 *digest)
 G_GNUC_COLD void
 entropy_minimal_collect(struct sha1 *digest)
 {
-	return entropy_collect_internal(digest, FALSE, FALSE);
+	static struct sha1 previous;
+	bigint_t older, newer;
+
+	entropy_collect_internal(digest, FALSE, FALSE);
+
+	/*
+	 * Because we're not using the full entropy collection version, make it
+	 * harder to predict the outcome by adding entropy from previous calls.
+	 */
+
+	bigint_use(&older, &previous, SHA1_RAW_SIZE);
+	bigint_use(&newer, digest, SHA1_RAW_SIZE);
+	bigint_add(&newer, &older);
+	bigint_copy(&older, &newer);
 }
 
 /**
