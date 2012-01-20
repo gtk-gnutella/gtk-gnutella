@@ -38,9 +38,10 @@
  * The t_xxx() routines are meant to be used in dedicate threads to avoid
  * concurrent memory allocation which is not otherwise supported.  They require
  * a thread-private logging object, which can be NULL to request a default
- * object for the main thread.  A side effect of using t_xxx() routines is that
- * there is a guarantee that no malloc()-like routine will be called to log
- * the message.
+ * object for the main thread.
+ *
+ * A side effect of using t_xxx() or s_xxx() routines is that there is a
+ * guarantee that no malloc()-like routine will be called to log the message.
  *
  * There is also support for a polymorphic logging interface, through a
  * so-called "log agent" object.
@@ -71,7 +72,6 @@
 #include "str.h"
 #include "stringify.h"
 #include "thread.h"
-#include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -88,7 +88,6 @@ static const char * const log_domains[] = {
 static gboolean atoms_are_inited;
 static gboolean log_inited;
 static str_t *log_str;
-static time_delta_t log_gmtoff;
 
 /**
  * A Log file we manage.
@@ -711,6 +710,8 @@ s_stacktrace(gboolean no_stdio, unsigned offset)
  * from a signal handler if needed, or from a concurrent thread with a
  * thread-private allocation chunk.
  *
+ * This routine does not use malloc().
+ *
  * @param lt		thread-private context (NULL if not in a concurrent thread)
  * @param level		glib-compatible log level flags
  * @param format	formatting string
@@ -721,8 +722,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	int saved_errno = errno;
 	gboolean in_signal_handler = signal_in_handler();
-	gboolean avoid_malloc;
-	static str_t *cstr;
 	const char *prefix;
 	str_t *msg;
 	ckhunk_t *ck;
@@ -732,27 +731,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
-
-	/*
-	 * Until the atom layer is up, consider it unsafe to use malloc()
-	 * because we have not fully initialized the memory layer yet
-	 * (only the VMM layer can be assumed to be ready).
-	 *
-	 * This allows the usage of s_xxx() logging routines very early in
-	 * the process.
-	 */
-
-	avoid_malloc = lt != NULL || in_signal_handler ||
-		!atoms_are_inited || log_str != NULL;
-
-	/*
-	 * An error is fatal, and indicates something is terribly wrong.
-	 * Avoid allocating memory as much as possible, acting as if we
-	 * were in a signal handler.
-	 */
-
-	if G_UNLIKELY(G_LOG_LEVEL_ERROR == level)
-		avoid_malloc = TRUE;
 
 	/*
 	 * Detect recursion, but don't make it fatal.
@@ -811,40 +789,32 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * able to format the log message by using the pre-allocated signal
 	 * chunk and creating a string object out of it.
 	 *
-	 * When not from a signal handler, we use a static string object to
-	 * perform the formatting.
+	 * When not from a signal handler, we use a static chunk or a per-thread
+	 * chunk, as supplied through the log-thread object.
 	 */
 
-	if G_UNLIKELY(avoid_malloc) {
-		ck = (lt != NULL) ? lt->ck :
-			in_signal_handler ? signal_chunk() : log_chunk();
-		saved = ck_save(ck);
-		msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
+	ck = (lt != NULL) ? lt->ck :
+		in_signal_handler ? signal_chunk() : log_chunk();
+	saved = ck_save(ck);
+	msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
-		if G_UNLIKELY(NULL == msg) {
-			DECLARE_STR(6);
-			char time_buf[18];
+	if G_UNLIKELY(NULL == msg) {
+		DECLARE_STR(6);
+		char time_buf[18];
 
-			crash_time(time_buf, sizeof time_buf);
-			print_str(time_buf);	/* 0 */
-			print_str(" (CRITICAL): no memory to format string \""); /* 1 */
-			print_str(format);		/* 2 */
-			print_str("\" from ");	/* 3 */
-			print_str(stacktrace_caller_name(2));	/* 4 */
-			print_str("\n");		/* 5 */
-			log_flush_err();
-			ck_restore(ck, saved);
-			goto done;
-		}
-
-		g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
-	} else {
-		if G_UNLIKELY(NULL == cstr)
-			cstr = str_new_not_leaking(0);
-		msg = cstr;
-		ck = NULL;
-		saved = NULL;
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);	/* 0 */
+		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
+		print_str(format);		/* 2 */
+		print_str("\" from ");	/* 3 */
+		print_str(stacktrace_caller_name(2));	/* 4 */
+		print_str("\n");		/* 5 */
+		log_flush_err();
+		ck_restore(ck, saved);
+		goto done;
 	}
+
+	g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
 
 	/*
 	 * The str_vprintf() routine is safe to use in signal handlers.
@@ -861,7 +831,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * re-entering fprintf() through a signal handler would be safe.
 	 */
 
-	if (avoid_malloc) {
+	{
 		DECLARE_STR(9);
 		char time_buf[18];
 
@@ -900,36 +870,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			IGNORE_RESULT(write(fd, str_2c(msg), str_len(msg)));
 			IGNORE_RESULT(write(fd, "\n", 1));
 		}
-	} else {
-		time_t now = tm_time_exact();
-		struct tm ct;
-
-		/*
-		 * Can't use localtime(&now) to fill-in ``ct'' since we're in a
-		 * safe logging routine and we may be in the middle of a regular
-		 * g_logv() call which calls localtime() already, and that call
-		 * can malloc().  Any logging done in a memory allocator would cause
-		 * us to come here and deadlock on the second localtime().
-		 *
-		 * Therefore, do the conversion ourselves.
-		 */
-
-		if G_UNLIKELY(!off_time(now + log_gmtoff, 0, &ct)) {
-			ZERO(&ct);
-		}
-
-		log_fprint(LOG_STDERR, &ct, level, prefix, str_2c(msg));
-
-		if G_UNLIKELY(
-			(level & G_LOG_FLAG_FATAL) ||
-			G_LOG_LEVEL_CRITICAL == loglvl ||
-			G_LOG_LEVEL_ERROR == loglvl
-		) {
-			if (log_stdout_is_distinct())
-				log_fprint(LOG_STDOUT, &ct, level, prefix, str_2c(msg));
-			if (level & G_LOG_FLAG_FATAL)
-				crash_set_error(str_2c(msg));
-		}
 	}
 
 	/*
@@ -941,11 +881,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * message logged.
 	 */
 
-	if (avoid_malloc)
-		ck_restore(ck, saved);
-
-	if (is_running_on_mingw() && !avoid_malloc)
-		fflush(stderr);		/* Unbuffering does not work on Windows */
+	ck_restore(ck, saved);
 
 	if (G_LIKELY(NULL == lt)) {
 		in_safe_handler = FALSE;
@@ -963,7 +899,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	if G_UNLIKELY(G_LOG_LEVEL_CRITICAL == loglvl || G_LOG_LEVEL_ERROR == loglvl)
-		s_stacktrace(avoid_malloc, 2);
+		s_stacktrace(TRUE, 2);
 
 done:
 	errno = saved_errno;
@@ -1862,7 +1798,6 @@ log_init(void)
 
 	(void) log_chunk();		/* Ensure log chunk is pre-allocated early */
 
-	log_gmtoff = timestamp_gmt_offset(time(NULL), NULL);
 	log_inited = TRUE;
 }
 
