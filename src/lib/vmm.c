@@ -1288,6 +1288,12 @@ retry:
 				s_warning("VMM however pmap is still full, extending again...");
 			
 			goto retry;
+		} else {
+			if (vmm_debugging(0)) {
+				s_debug("VMM allocated new %zu KiB %s pmap at %p",
+					nsize / 1024, pm == &kernel_pmap ? "kernel" : "local",
+					narray);
+			}
 		}
 
 		if (NULL == narray)
