@@ -1081,9 +1081,9 @@ alloc_pages(size_t size, gboolean update_pmap, const void *hole)
 	g_assert(kernel_pagesize > 0);
 
 	p = vmm_mmap_anonymous(size, hole);
+
 	return_value_unless(NULL != p, NULL);
-	
-	g_assert_log(page_start(p) == p, "Aligned memory required: %p", p);
+	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
 
 	if (vmm_debugging(5)) {
 		s_debug("VMM allocated %zuKiB region at %p", size / 1024, p);
