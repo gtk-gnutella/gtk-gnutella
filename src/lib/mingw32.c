@@ -1536,6 +1536,8 @@ mingw_valloc(void *hint, size_t size)
 	void *p = NULL;
 
 	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
+		size_t n;
+
 		if G_UNLIKELY(NULL == mingw_vmm_res_mem) {
 			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
@@ -1556,7 +1558,7 @@ mingw_valloc(void *hint, size_t size)
 					mingw_vmm_res_size = memStatus.ullTotalPhys;
 			}
 
-			/* Declare some space for feature allocs without hinting */
+			/* Declare some space for future allocations without hinting */
 			mem_later = VirtualAlloc(
 				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
 
@@ -1580,50 +1582,55 @@ mingw_valloc(void *hint, size_t size)
 				s_debug("reserved %s of memory",
 					compact_size(mingw_vmm_res_size, FALSE));
 			}
-		} else {
-			size_t n;
-
-			if (vmm_is_debugging(0))
-				s_debug("no hint given for %s allocation",
-					compact_size(size, FALSE));
-
-			n = mingw_getpagesize();
-			n = size_saturate_mult(n, ++mingw_vmm_res_nonhinted);
-			p = ptr_add_offset(mingw_vmm_res_mem, n);
 		}
-		if (NULL == p) {
-			errno = mingw_last_error();
-			if (vmm_is_debugging(0))
-				s_debug("could not allocate %s of memory: %m",
-					compact_size(size, FALSE));
+
+		if (vmm_is_debugging(0)) {
+			s_debug("no hint given for %s allocation #%d",
+				compact_size(size, FALSE), mingw_vmm_res_nonhinted);
 		}
+
+		n = mingw_getpagesize();
+		n = size_saturate_mult(n, mingw_vmm_res_nonhinted++);
+		if (n + size >= mingw_vmm_res_size) {
+			s_warning("%s(): out of reserved memory for %zu bytes",
+				G_STRFUNC, size);
+			goto failed;
+		}
+		p = ptr_add_offset(mingw_vmm_res_mem, n);
 	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
 		/*
-		 * Non hinted request after hinted request are used. Allow usage of
-		 * non VMM space
+		 * Non-hinted request after hinted requests have been used.
+		 * Allow usage of non-reserved space.
 		 */
 
 		p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			p = MAP_FAILED;
+			s_warning("%s(): failed to allocate %zu bytes: %m",
+				G_STRFUNC, size);
+			goto failed;
 		}
 		return p;
 	} else {
-		/* Can't handle non-hinted allocations anymore */
-		mingw_vmm_res_nonhinted = -1;
+		mingw_vmm_res_nonhinted = -1;	/* Can now handle non-hinted allocs */
 		p = hint;
 	}
 
 	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
 
 	if (p == NULL) {
-		p = MAP_FAILED;
 		errno = mingw_last_error();
+		s_warning("%s(): failed to commit %zu bytes at %p: %m",
+			G_STRFUNC, size, hint);
+		goto failed;
 	}
 
 	return p;
+
+failed:
+	errno = ENOMEM;		/* Expected errno value from VMM layer */
+	return MAP_FAILED;
 }
 
 int
