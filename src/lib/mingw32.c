@@ -2193,7 +2193,7 @@ mingw_cpu_count(void)
 guint64
 mingw_cpufreq(enum mingw_cpufreq freq)
 {
-	long cpus = mingw_cpu_count();
+	unsigned long cpus = mingw_cpu_count();
 	PROCESSOR_POWER_INFORMATION *p, powarray[16];
 	size_t len;
 	guint64 result = 0;
