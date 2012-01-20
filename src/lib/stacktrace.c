@@ -884,6 +884,9 @@ done:
  *
  *	082bec77 T zget
  *	082be9d3 t zn_create
+ *
+ * We skip symbols starting with a ".", since this is not a valid C identifier
+ * but rather an internal linker symbol (such as ".text").
  */
 static void
 parse_nm(struct nm_parser *ctx, char *line)
@@ -901,8 +904,17 @@ parse_nm(struct nm_parser *ctx, char *line)
 
 	if ('t' == ascii_tolower(*p)) {
 		p = skip_ascii_blanks(&p[1]);
-		strchomp(p, 0);
-		trace_insert(addr, trace_atom(ctx, p));
+
+		/*
+		 * Pseudo-symbols such as ".text" can have the same address as a
+		 * real symbol and could be the ones actually being kept when we
+		 * strip duplicates.  Hence make sure these pseudo-symbols are skipped.
+		 */
+
+		if ('.' != *p) {
+			strchomp(p, 0);
+			trace_insert(addr, trace_atom(ctx, p));
+		}
 	}
 }
 
