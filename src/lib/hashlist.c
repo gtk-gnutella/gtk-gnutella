@@ -44,9 +44,13 @@
 #include "common.h"
 
 #include "hashlist.h"
-#include "misc.h"
 #include "glib-missing.h"
+#include "misc.h"
+#include "random.h"
+#include "unsigned.h"
 #include "walloc.h"
+#include "xmalloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum hash_list_magic { HASH_LIST_MAGIC = 0x338954fdU };
@@ -401,6 +405,7 @@ void
 hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
 {
 	struct sort_with_data ctx;
+
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
@@ -415,6 +420,70 @@ hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
 
 	hl->head = g_list_sort_with_data(hl->head, sort_data_wrapper, &ctx);
 	hl->tail = g_list_last(hl->head);
+}
+
+/**
+ * Randomly shuffle the list.
+ */
+void
+hash_list_shuffle(hash_list_t *hl)
+{
+	struct hash_list_item **array;
+	GList *l;
+	size_t i;
+
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	if G_UNLIKELY(0 == hl->len)
+		return;
+
+	/*
+	 * To ensure O(n) shuffling, build an array containing all the items,
+	 * shuffle that array then recreate the list according to the shuffled
+	 * array.
+	 */
+
+	array = xmalloc(hl->len * sizeof array[0]);
+
+	for (i = 0, l = hl->head; l != NULL; i++, l = g_list_next(l)) {
+		array[i] = l->data;
+	}
+
+	g_assert(i == UNSIGNED(hl->len));
+
+	/*
+	 * Shuffle the array using Knuth's modern version of the
+	 * Fisher and Yates algorithm.
+	 */
+
+	for (i = hl->len - 1; i > 0; i--) {
+		struct hash_list_item *tmp;
+		size_t j = random_value(i);
+
+		/* Swap i-th and j-th items */
+
+		tmp = array[i];
+		array[i] = array[j];	/* i-th item has been chosen */
+		array[j] = tmp;
+	}
+
+	/*
+	 * Rebuild the list.
+	 */
+
+	g_list_free(hl->head);
+
+	hl->tail = hl->head = g_list_append(NULL, array[hl->len - 1]);
+	array[hl->len - 1]->list = hl->tail;
+
+	for (i = hl->len - 2; size_is_non_negative(i); i--) {
+		struct hash_list_item *item = array[i];
+		hl->head = g_list_prepend(hl->head, item);
+		item->list = hl->head;
+	}
+
+	xfree(array);
 }
 
 /**

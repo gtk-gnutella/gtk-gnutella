@@ -54,6 +54,7 @@ unsigned hash_list_length(const hash_list_t *);
 GList *hash_list_list(hash_list_t *);
 void hash_list_sort(hash_list_t *, GCompareFunc);
 void hash_list_sort_with_data(hash_list_t *, GCompareDataFunc, void *);
+void hash_list_shuffle(hash_list_t *hl);
 
 hash_list_iter_t *hash_list_iterator(hash_list_t *);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *);
