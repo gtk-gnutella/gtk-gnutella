@@ -529,10 +529,10 @@ vmm_dump_pmap_log(logagent_t *la)
 
 	mutex_get(&pm->lock);
 
-	log_debug(la, "VMM current %s pmap (%zu region%s):",
+	log_debug(la, "VMM current %s pmap (%zu/%zu region%s):",
 		pm == &kernel_pmap ? "kernel" :
 		pm == &local_pmap ? "local" : "unknown",
-		pm->count, 1 == pm->count ? "" : "s");
+		pm->count, pm->size, 1 == pm->count ? "" : "s");
 
 	for (i = 0; i < pm->count; i++) {
 		struct vm_fragment *vmf = &pm->array[i];
