@@ -48,7 +48,7 @@
 #include "override.h"			/* Must be the last header included */
 
 /**
- * @return random value between 0 and (2**32)-1. All 32 bit are random.
+ * @return random value between 0 and (2**32)-1. All 32 bits are random.
  */
 guint32
 random_u32(void)
@@ -135,7 +135,7 @@ random_add_pool(void *buf, size_t len)
 		 * Feed extra bytes when we have enough.
 		 */
 
-		if (idx >= G_N_ELEMENTS(data)) {
+		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
 			arc4random_addrandom(data, sizeof data);
 			idx = 0;
 			flushed = TRUE;
