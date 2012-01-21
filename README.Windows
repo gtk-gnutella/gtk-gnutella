@@ -1,0 +1,116 @@
+        Supplementary Compile Instructions for Windows Systems
+        ======================================================
+
+Here are the steps necessary to build gtk-gnutella on Windows.
+
+Even if you are on 64-bit Windows, these instructions will provide you with
+a 32-bit executable.  And it's fine: there is very little to be gained and
+much more to lose by running a 64-bit gtk-gnutella program: pointers are
+larger so structures and memory usage will be larger, whilst gtk-gnutella has
+no need for a 64-bit virtual address space.
+
+
+1. Dependencies:
+================
+
+The following steps are normally done once, to setup the appropriate
+compilation environment.
+
+You'll have to install the following packages:
+
+* MinGW, with "dev" and "msys" options.
+  MinGW installation works by fetching the installer package and
+  launching it:
+
+	https://sourceforge.net/projects/mingw/files/Installer/mingw-get-inst/
+
+* GTK 2.0: grab the bundle from:
+
+	http://www.gtk.org/download/win32.php
+
+  At the time of this writing, the latest bundle is under:
+
+	http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
+
+  The file is called: gtk+-bundle_2.24.8-20111122_win32.zip
+  Unzip that file into /mingw/lib/gtk, where "/mingw" represents the
+  directory where MinGW is installed (e.g. C:\MinGW).
+
+* Zlib: grab the source package from:
+
+	http://www.zlib.net/
+   
+  Decompress the sources and then compile the sources within the MinGW
+  environment by launching an msys shell, which will give you a UNIX-like
+  terminal.
+
+  Compile using:
+
+	make -f win32/makefile.gcc
+
+  Then install as follows:
+
+	mkdir -p /mingw/lib/zlib/include /mingw/lib/zlib/lib
+	cp zlib/zconf.h zlib/zlib.h /mingw/lib/zlib/include
+	cp zlib/libz.a /mingw/lib/zlib/lib
+
+* Patch the GTK bundle to make sure GTK's zlib is not used:
+
+	cd /mingw/lib/gtk/include
+	mv zlib.h zlib-gtk.h
+
+* Optionally: install TLS: grab the gnutls-2.10.2-x86.zip file from:
+
+	http://mirrors.ibiblio.org/gnu/ftp/gnu/gnutls/
+
+  Unpack the file under /mingw/lib/gtk, so that we can benefit from GTK's
+  pgk-config.exe configuration tool for TLS as well.
+
+To be able to create the installer package, you'll need two extra packages:
+
+* NSIS, which you can get from:
+
+	http://nsis.sourceforge.net/Download
+
+* The GTK runtime file, which you can fetch from:
+
+	https://sourceforge.net/projects/gtk-win/
+
+  Grab the file gtk2-runtime-2.24.8-2011-12-03-ash.exe and leave it at the
+  root of the gtk-gnutella source tree. It will be expected there by the
+  package installer.
+
+2. Build:
+=========
+
+Run from the top of the source tree, from an msys shell:
+
+  ./build.sh
+
+and it will build everything for you.
+
+If you wish to be able to use gtk-gnutella without installing it, use:
+
+  ./build.sh --unofficial
+
+instead, but the resulting binary will not be packageable.
+
+
+3. Finish:
+==========
+
+You can then run gtk-gnutella without installing provided you used the
+"--unofficial" switch above:
+
+  export PATH=$PATH:/mingw/lib/:/mingw/lib/gtk/bin:/mingw/bin
+  src/gtk-gnutella --log-stdout gtkg.out --log-stderr gtkg.err
+
+To install gtk-gnutella just run:
+
+  make install
+  ./makensis.sh
+
+You will be left with a .exe installer file that you can then launch to
+install gtk-gnutella on your machine.
+-- 
+Raphael Manfredi

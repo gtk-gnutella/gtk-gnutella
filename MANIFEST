@@ -8,6 +8,7 @@ MANIFEST                     This shipping list
 Makefile.SH
 README
 README.Debian
+README.Windows
 README.xmingw
 TODO
 U/modified/End.U
