@@ -2350,6 +2350,9 @@ guess_load_pool(guess_t *gq, gboolean initial)
 		 * If we did load hosts recently, delay the operation, flagging the
 		 * query as needing a loading, which will happen at the next iteration.
 		 * Until it can complete successfully.
+		 *
+		 * To avoid querying hosts in roughly the same order from query to
+		 * query, shuffle the resulting pool after loading.
 		 */
 
 		if (
@@ -2367,6 +2370,7 @@ guess_load_pool(guess_t *gq, gboolean initial)
 			dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
 			gq->flags &= ~GQ_F_POOL_LOAD;
 			last_load = tm_time();
+			hash_list_shuffle(gq->pool);	/* Randomize order */
 		}
 	}
 
