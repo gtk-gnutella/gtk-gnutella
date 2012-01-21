@@ -674,11 +674,13 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 	}
 
 	clamp_strcat(buf, len, "-crash.");
-	clamp_strcat(buf, len, pidstr);
 
 	/*
 	 * Because we can re-execute ourselves (at user's request after an upgrade
 	 * or after a crash), we need to include our starting time as well.
+	 *
+	 * Having the time right after the version allows natural sorting of
+	 * files for the same version, with the latest one at the end.
 	 */
 
 	{
@@ -686,10 +688,15 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		const char *time_str;
 
 		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
-		clamp_strcat(buf, len, ".");
 		clamp_strcat(buf, len, time_str);
 	}
 
+	/*
+	 * Finish with the PID, to really ensure we get a unique filename.
+	 */
+
+	clamp_strcat(buf, len, ".");
+	clamp_strcat(buf, len, pidstr);
 	clamp_strcat(buf, len, ".log");
 }
 
