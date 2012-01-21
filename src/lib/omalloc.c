@@ -176,7 +176,7 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 	size_t mask;
 
 	g_assert(ck != NULL);
-	g_assert(IS_POWER_OF_2(align));
+	g_assert(is_pow2(align));
 
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);
@@ -303,7 +303,7 @@ omalloc_chunk_align(struct ochunk *ck, size_t align, enum omalloc_mode mode)
 	size_t mask;
 
 	g_assert(ck != NULL);
-	g_assert(IS_POWER_OF_2(align));
+	g_assert(is_pow2(align));
 
 	mask = MIN(align, OMALLOC_ALIGNBYTES) - 1;
 	first = ulong_to_pointer((pointer_to_ulong(ck->first) + mask) & ~mask);

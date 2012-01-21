@@ -48,7 +48,7 @@ int bits_set32(guint32 v) G_GNUC_PURE;
  * @param value a 32-bit integer
  * @return TRUE if ``value'' is a power of 2. Otherwise FALSE.
  */
-static inline G_GNUC_CONST gboolean
+static inline ALWAYS_INLINE G_GNUC_CONST gboolean
 is_pow2(guint32 value)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
