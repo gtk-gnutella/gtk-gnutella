@@ -30,6 +30,14 @@
  *
  * Arc4 random number generator.
  *
+ * The arc4random() function uses the key stream generator employed by the
+ * ARC4 cipher, which uses 256 8-bit S-Boxes.  The S-Boxes can be in about
+ * 2^1700 states.
+ *
+ * There is no need to call arc4random_stir() before using arc4random()
+ * since initialization happens auto-magically.  The initial seed is collected
+ * through entropy_collect(), which supplies 160 random bits.
+ *
  * @author Raphael Manfredi
  * @date 2010
  * @author David Mazieres
@@ -136,6 +144,7 @@ arc4_stir(struct arc4_stream *as)
 	 * suggestions in the paper "(Not So) Random Shuffles of RC4"
 	 * by Ilya Mironov.
 	 */
+
 	for (n = 0; n < 1024; n++)
 		arc4_getbyte(as);
 }
