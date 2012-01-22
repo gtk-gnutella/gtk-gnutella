@@ -173,6 +173,7 @@ struct shell_buf {
 	unsigned writable:1;	/**< If set, write() should succeed */
 	unsigned shutdown:1;	/**< If set, a shutdown has been signalled */
 	unsigned wrote:1;	/**< If set, last call to write() succeeded */
+	unsigned server:1;	/**< If set, buffer going to server */
 };
 
 struct line_buf {
@@ -202,7 +203,11 @@ read_data(int fd, struct shell_buf *sb)
 			break;
 		case -1:
 			if (!is_temporary_error(errno)) {
-				perror("read() failed");
+				if (sb->server) {
+					perror("read() from server failed");
+				} else {
+					perror("read() failed");
+				}
 				return -1;
 			}
 			break;
@@ -290,7 +295,11 @@ write_data(int fd, struct shell_buf *sb)
 				sb->hup = 1;
 			}
 			if (!is_temporary_error(errno)) {
-				perror("write() failed");
+				if (sb->server) {
+					perror("write() to server failed");
+				} else if (!sb->hup) {
+					perror("write() failed");
+				}
 				return -1;
 			}
 			break;
@@ -376,6 +385,7 @@ local_shell_mainloop(int fd)
 		server.size = sizeof server_buf;
 		client.buf = client_buf;
 		client.size = sizeof client_buf;
+		client.server = 1;	/* Client is writing to server */
 
 		/*
 		 * Only send the empty INTR command when interactive.
