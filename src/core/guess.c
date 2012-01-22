@@ -1005,6 +1005,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 
 	if (random_u32() % 100 < UNSIGNED(p)) {
 		hash_list_prepend(link_cache, atom_host_get(h));
+		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, +1);
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
 			g_info("GUESS adding %s to link cache (p=%d%%, n=%zu)",
@@ -1022,6 +1023,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		}
 
 		atom_host_free(removed);
+		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
 	}
 }
 
@@ -1162,6 +1164,7 @@ guess_remove_link_cache(const gnet_host_t *h)
 			g_info("GUESS removed %s from link cache", gnet_host_to_string(h));
 		}
 		atom_host_free(atom);
+		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
 		guess_discovery_enable();
 	}
 }

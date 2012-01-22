@@ -137,6 +137,7 @@ general_type_str(gint value)
 		N_("\"What's New?\" queries"),
 		N_("GUESS queries"),
 		N_("GUESS queries (0.2)"),
+		N_("GUESS link cache size"),
 		N_("GUESS cached query keys held"),
 		N_("GUESS cached 0.2 hosts held"),
 		N_("GUESS locally generated queries"),
