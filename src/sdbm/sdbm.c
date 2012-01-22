@@ -271,9 +271,6 @@ sdbm_prep(const char *dirname, const char *pagname,
 	 * If we fail anywhere, undo everything, return NULL.
 	 */
 
-#if defined(O_BINARY)
-	flags |= O_BINARY;
-#endif
 	if ((db->pagf = file_open(pagname, flags, mode)) > -1) {
 		if ((db->dirf = file_open(dirname, flags, mode)) > -1) {
 
