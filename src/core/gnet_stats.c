@@ -237,6 +237,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"qhit_seeding_of_orphan",
 		"upload_seeding_of_orphan",
 		"dht_estimated_size",
+		"dht_estimated_size_stderr",
 		"dht_kball_theoretical",
 		"dht_kball_furthest",
 		"dht_kball_closest",

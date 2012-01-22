@@ -3935,7 +3935,6 @@ update_cached_size_estimate(void)
 		if (sdev < avg)
 			min = avg - sdev;
 		max = avg + sdev;
-		avg_stderr = sdev / sqrt(n);
 	}
 
 	st = statx_make_nodata();
@@ -3965,6 +3964,8 @@ update_cached_size_estimate(void)
 
 	estimate = (guint64) statx_avg(st);
 	avg_stderr = statx_n(st) > 1 ? (guint64) statx_stderr(st) : 0;
+
+	gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE_STDERR, avg_stderr);
 
 	stats.average.estimate = estimate;
 	stats.average.computed = now;
