@@ -178,6 +178,26 @@ sha1_feed_environ(SHA1Context *ctx)
 }
 
 /**
+ * Add entropy from previous calls.
+ */
+static G_GNUC_COLD void
+entropy_merge(struct sha1 *digest)
+{
+	static struct sha1 previous;
+	bigint_t older, newer;
+
+	/*
+	 * These big integers operate on the buffer space from ``digest'' and
+	 * ``previous'' directly.
+	 */
+
+	bigint_use(&older, &previous, SHA1_RAW_SIZE);
+	bigint_use(&newer, digest, SHA1_RAW_SIZE);
+	bigint_add(&newer, &older);
+	bigint_copy(&older, &newer);
+}
+
+/**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * @param digest			where generated random 160 bits are output
@@ -404,20 +424,32 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 	 */
 
 	SHA1Result(&ctx, digest);
+
+	/*
+	 * Merge entropy from all the previous calls to make this as unique
+	 * a random bitstream as possible.
+	 */
+
+	entropy_merge(digest);
 }
 
 /**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
- * @attention
- * This is a slow operation, and the routine can even sleep for 2 ms, so it
- * must be called only when a truly random seed is required, ideally only
+ * It should be called only when a truly random seed is required, ideally only
  * during initialization.
+ *
+ * @attention
+ * This is a slow operation, and the routine will even sleep for 2 ms the
+ * first time it is invoked.
  */
 G_GNUC_COLD void
 entropy_collect(struct sha1 *digest)
 {
-	entropy_collect_internal(digest, TRUE, TRUE);
+	static gboolean done;
+
+	entropy_collect_internal(digest, TRUE, !done);
+	done = TRUE;
 }
 
 /**
@@ -431,26 +463,13 @@ entropy_collect(struct sha1 *digest)
 G_GNUC_COLD void
 entropy_minimal_collect(struct sha1 *digest)
 {
-	static struct sha1 previous;
-	bigint_t older, newer;
-
 	entropy_collect_internal(digest, FALSE, FALSE);
-
-	/*
-	 * Because we're not using the full entropy collection version, make it
-	 * harder to predict the outcome by adding entropy from previous calls.
-	 */
-
-	bigint_use(&older, &previous, SHA1_RAW_SIZE);
-	bigint_use(&newer, digest, SHA1_RAW_SIZE);
-	bigint_add(&newer, &older);
-	bigint_copy(&older, &newer);
 }
 
 /**
  * Reduce entropy to an unsigned quantity.
  */
-unsigned
+G_GNUC_COLD unsigned
 entropy_reduce(const struct sha1 *digest)
 {
 	unsigned value = 0;
