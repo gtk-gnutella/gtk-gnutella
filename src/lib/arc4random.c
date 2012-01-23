@@ -38,6 +38,9 @@
  * since initialization happens auto-magically.  The initial seed is collected
  * through entropy_collect(), which supplies 160 random bits.
  *
+ * The arc4random_upto() routine has been added to David Mazieres's code
+ * to provide uniformly distributed random numbers over a certain range.
+ *
  * @author Raphael Manfredi
  * @date 2010
  * @author David Mazieres
@@ -45,6 +48,9 @@
  */
 
 #include "common.h"
+
+#include "log.h"
+#include "pow2.h"
 
 #ifndef HAS_ARC4RANDOM
 
@@ -264,4 +270,105 @@ arc4random_stir_once(void)
 }
 
 #endif	/* !HAS_ARC4RANDOM */
+
+/**
+ * @return uniformly distributed random number in the [0, max] range.
+ */
+guint32
+arc4random_upto(guint32 max)
+{
+	guint32 range, min, value;
+
+	if G_UNLIKELY(0 == max)
+		return 0;
+
+	if G_UNLIKELY((guint32) -1 == max)
+		return arc4random();
+
+	/*
+	 * We can't just use the modulo operator blindly because that would
+	 * create a small bias: if the 2^32 interval cannot be evenly divided
+	 * by the range of the random values, the fraction of the numbers that
+	 * lie in the trailing partial fragment will be more likely to occur
+	 * than others.  The larger the range, the higher the bias.
+	 *
+	 * Imagine we throw a 10-sided dice, getting values from 0 to 9.
+	 * If we want only a random number in the [0, 2] interval, then we
+	 * cannot just return the value of d10 % 3: looking at the number of
+	 * results that can produce the resulting random number, we see that:
+	 *
+	 *   0 is produced by 0, 3, 6, 9
+	 *   1 is produced by 1, 4, 7
+	 *   2 is produced by 2, 5, 8
+	 *
+	 * So 0 has 40% chances of being returned, with 1 and 2 having 30%.
+	 * A uniform distribution would require 33.33% chances for each number!
+	 *
+	 * If the range is a power of 2, then we know the 2^32 interval can be
+	 * evenly divided and we can just mask the lower bits (all bits are random
+	 * in an arc4random() value).
+	 *
+	 * Otherwise, we have to exclude values from the set of possible 2^32
+	 * values to restore a uniform probability for all outcomes.  In our d10
+	 * example above, removing the 0 value (i.e. rethrowing the d10 when we
+	 * get a 0) restores the 33.33% chances for each number to be produced).
+	 *
+	 * The amount of values to exclude is (2^32 % range).
+	 */
+
+	range = max + 1;
+
+	if (is_pow2(range))
+		return arc4random() & (range - 1);
+
+	/*
+	 * Compute the minimum value we need in the 2^32 range to restore
+	 * uniform probability for all outcomes.
+	 *
+	 * We want to exclude the first (2^32 % range) values.
+	 */
+
+	if (range > (1U << 31)) {
+		min = ~range + 1;		/* 2^32 - range */
+	} else {
+		/*
+		 * Can't represent 2^32 in 32 bits, so we use an alternate computation.
+		 *
+		 * Because range <= 2^31, we can compute (2^32 - range) % range, and
+		 * it will yield the same result as 2^32 % range: (Z/nZ, +) is a group,
+		 * and range % range = 0.
+		 *
+		 * To compute (2^32 - range) without using 2^32, we cheat, realizing
+		 * that 2^32 = -1 + 1 (using unsigned arithmetic).
+		 */
+
+		min = ((guint32) -1 - range + 1) % range;
+	}
+
+	value = arc4random();
+
+	if G_UNLIKELY(value < min) {
+		size_t i;
+
+		for (i = 0; i < 100; i++) {
+#ifdef HAS_ARC4RANDOM
+			value = arc4random();
+#else
+			/* THREAD_LOCK(); */
+			/* All bytes are random anyway, just drop the first one */
+			value = (value << 8) | arc4_getbyte(&rs);
+			/* THREAD_UNLOCK(); */
+#endif	/* HAS_ARC4RANDOM */
+
+			if (value >= min)
+				goto done;
+		}
+
+		/* Will occur once every 10^30 attempts */
+		s_error("no luck with random number generator");
+	}
+
+done:
+	return value % range;
+}
 

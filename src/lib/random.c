@@ -57,12 +57,24 @@ random_u32(void)
 }
 
 /**
- * @return random value between (0..max).
+ * @return random value between [0, max], inclusive.
  */
 guint32
 random_value(guint32 max)
 {
-	return (guint32) ((max + 1.0) * arc4random() / ((guint32) -1 + 1.0));
+	/*
+	 * This used to return:
+	 *
+	 *     (guint32) ((max + 1.0) * arc4random() / ((guint32) -1 + 1.0))
+	 *
+	 * but using floating point computation introduces a bias because not
+	 * all the integers in the numerator can be fully represented.
+	 *
+	 * Hence we now prefer arc4random_upto() which garanteees an uniform
+	 * distribution of the random numbers, using integer-only arithmetic.
+	 */
+
+	return arc4random_upto(max);
 }
 
 /**
