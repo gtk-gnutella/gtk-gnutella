@@ -79,6 +79,7 @@
 #include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "xmalloc.h"
 
 #include "override.h"	/* Must be the last header included */
 
@@ -709,6 +710,28 @@ ostrdup(const char *str)
 }
 
 /**
+ * Allocate a permanent copy of supplied string (which may be NULL) or
+ * the first 'n' characters, whichever is smaller.
+ *
+ * @return a pointer to the new string, or NULL if argument was NULL.
+ */
+char *
+ostrndup(const char *str, size_t n)
+{
+	size_t len;
+	char *res;
+
+	if (NULL == str)
+		return NULL;
+
+	len = clamp_strlen(str, n);
+	res = omalloc_allocate(1 + len, 1, OMALLOC_RW, str);
+	res[len] = '\0';
+
+	return res;
+}
+
+/**
  * Allocate a permanent read-only copy of the data pointed at.
  *
  * @return pointer to allocated copy.
@@ -734,6 +757,37 @@ ostrdup_readonly(const char *str)
 		return NULL;
 
 	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RO, str);
+}
+
+/**
+ * Allocate a permanent read-only copy of supplied string (which may be NULL)
+ * or the first 'n' characters, whichever is smaller.
+ *
+ * @return a pointer to the new string, or NULL if argument was NULL.
+ */
+const char *
+ostrndup_readonly(const char *str, size_t n)
+{
+	size_t len;
+
+	if (NULL == str)
+		return NULL;
+
+	len = clamp_strlen(str, n);
+
+	if ('\0' == str[len]) {
+		return ostrdup_readonly(str);
+	} else {
+		char *tmp;
+		const char *res;
+
+		tmp = xcopy(str, len + 1);
+		tmp[len] = '\0';
+		res = omalloc_allocate(1 + len, 1, OMALLOC_RO, tmp);
+		xfree(tmp);
+
+		return res;
+	}
 }
 
 /**

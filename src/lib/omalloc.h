@@ -37,8 +37,11 @@
 void *omalloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *omalloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *ostrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *ostrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 const char *ostrdup_readonly(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 const void *ocopy_readonly(const void *p, size_t size)
+	WARN_UNUSED_RESULT G_GNUC_MALLOC;
+const char *ostrndup_readonly(const char *str, size_t n)
 	WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
 static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
