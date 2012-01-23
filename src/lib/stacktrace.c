@@ -61,6 +61,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "xmalloc.h"
 
 /* We need hash_table_new_real() to avoid any call to g_malloc() */
 #define MALLOC_SOURCE
@@ -693,6 +694,8 @@ static const char *
 trace_atom(struct nm_parser *ctx, const char *name)
 {
 	const char *result;
+	const char *dot;
+	char *tmp = NULL;
 
 	/*
 	 * On Windows and OS X, there is an obnoxious '_' prepended to all
@@ -702,12 +705,22 @@ trace_atom(struct nm_parser *ctx, const char *name)
 	if ('_' == name[0])
 		name++;
 
-	result = hash_table_lookup(ctx->atoms, name);
+	/*
+	 * gcc sometimes appends '.part' or other suffix to routine names.
+	 */
+
+	dot = strchr(name, '.');
+	tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
+
+	result = hash_table_lookup(ctx->atoms, tmp);
 
 	if (NULL == result) {
-		result = ostrdup_readonly(name);	/* Never freed */
+		result = ostrdup_readonly(tmp);		/* Never freed */
 		hash_table_insert(ctx->atoms, result, result);
 	}
+
+	if (tmp != name)
+		xfree(tmp);
 
 	return result;
 }
