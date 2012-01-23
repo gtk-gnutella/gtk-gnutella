@@ -65,6 +65,8 @@ void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void xfree(void *ptr);
 char *xstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xpstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *xstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+char *xpstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 
 static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
 xcopy(const void *p, size_t size)

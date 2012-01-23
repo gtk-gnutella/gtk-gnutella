@@ -55,7 +55,7 @@
 #include "glib-missing.h"
 #include "log.h"
 #include "memusage.h"
-#include "misc.h"			/* For short_size() */
+#include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
 #include "pow2.h"
 #include "random.h"
@@ -2611,6 +2611,63 @@ char *
 xpstrdup(const char *str)
 {
 	return str ? xpcopy(str, 1 + strlen(str)) : NULL;
+}
+
+/**
+ * Implementation of our strndup() clone.
+ * The resulting string must be freed via xfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ * @param n			the maximum amount of characters to duplicate
+ * @param plain		whether to use xpmalloc()
+ *
+ * @return a pointer to the new string.
+ */
+static char *
+xstrndup_internal(const char *str, size_t n, gboolean plain)
+{
+	size_t len;
+	char *res;
+
+	if G_UNLIKELY(NULL == str)
+		return NULL;
+
+	len = clamp_strlen(str, n);
+	res = plain ? xpmalloc(len + 1) : xmalloc(len + 1);
+	memcpy(res, str, len);
+	res[len] = '\0';
+
+	return res;
+}
+
+/**
+ * A clone of strndup() using xmalloc().
+ * The resulting string must be freed via xfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ * @param n			the maximum amount of characters to duplicate
+ *
+ * @return a pointer to the new string.
+ */
+char *
+xstrndup(const char *str, size_t n)
+{
+	return xstrndup_internal(str, n, FALSE);
+}
+
+/**
+ * A clone of strndup() using xpmalloc().
+ * The resulting string must be freed via xfree().
+ *
+ * @param str		the string to duplicate (can be NULL)
+ * @param n			the maximum amount of characters to duplicate
+ *
+ * @return a pointer to the new string.
+ */
+char *
+xpstrndup(const char *str, size_t n)
+{
+	return xstrndup_internal(str, n, TRUE);
 }
 
 /**
