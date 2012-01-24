@@ -765,7 +765,7 @@ random_key(time_t now, guint *idx, const struct tokkey **tkused)
 		tk = &token_keys[G_N_ELEMENTS(token_keys) - 1];
 	}
 
-	random_idx = random_u32() % tk->count;
+	random_idx = random_value(tk->count - 1);
 	*idx = random_idx;
 	*tkused = tk;
 

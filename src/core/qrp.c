@@ -4689,7 +4689,7 @@ qrt_build_query_target(
 		 */
 
 		if (rt->pass_throw < 100 && NODE_MQUEUE_COUNT(dn) != 0) {
-			if ((int) (random_u32() % 100) >= rt->pass_throw)
+			if ((int) random_value(99) >= rt->pass_throw)
 				continue;
 		}
 
@@ -4714,7 +4714,7 @@ qrt_build_query_target(
 		if (NODE_IN_TX_FLOW_CONTROL(dn)) {
 			if (sha1_query)
 				continue;
-			if (random_u32() % 256 >= 128)
+			if (random_value(255) >= 128)
 				continue;
 		}
 
@@ -4736,7 +4736,7 @@ qrt_build_query_target(
 		if (NODE_IS_TRANSIENT(dn)) {
 			unsigned ratio;
 			ratio = uint_saturate_mult(dn->n_spam, 100) / (dn->received + 1);
-			if (random_u32() % 100 < ratio)
+			if (random_value(99) < ratio)
 				continue;
 		}
 

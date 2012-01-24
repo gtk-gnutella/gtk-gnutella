@@ -715,7 +715,7 @@ hcache_request_slot(hcache_type_t type)
 
 	return limit > 0
 		&& left > 0
-		&& ((left > limit / 2) || (random_u32() % limit < left));
+		&& (left > limit / 2 || random_value(limit - 1) < left);
 }
 
 /**
@@ -1371,7 +1371,7 @@ hcache_prune(hcache_type_t type)
 
 		if (
 			(HCACHE_GUESS == hc->type || HCACHE_GUESS6 == hc->type) &&
-			random_u32() % 100 < 70
+			random_value(99) < 70
 		) {
 			/*
 			 * The newest entry is the one we just added to the cache.

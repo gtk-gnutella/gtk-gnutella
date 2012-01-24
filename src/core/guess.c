@@ -1003,7 +1003,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 	if (is_my_address_and_port(addr, gnet_host_get_port(h)))
 		return;
 
-	if (random_u32() % 100 < UNSIGNED(p)) {
+	if (random_value(99) < UNSIGNED(p)) {
 		hash_list_prepend(link_cache, atom_host_get(h));
 		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, +1);
 
@@ -1854,7 +1854,7 @@ guess_ping_host(void *host, void *u_data)
 		 * Send an introduction request only 25% of the time.
 		 */
 
-		guess_request_qk(h, random_u32() % 100 < 25);
+		guess_request_qk(h, random_value(99) < 25);
 	} else if (delta_time(tm_time(), qk->last_update) > GUESS_QK_LIFE) {
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
 			g_debug("GUESS query key for %s expired, pinging",
@@ -3581,7 +3581,7 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 			/* Had not enough hosts in the global cache */
 			gnet_host_copy(&hosts[i], h);
 			added++;
-		} else if (random_u32() % 100 < 65) {
+		} else if (random_value(99) < 65) {
 			gnet_host_copy(&hosts[i], h);
 		}
 		g_hash_table_insert(seen_host, &hosts[i], int_to_pointer(1));

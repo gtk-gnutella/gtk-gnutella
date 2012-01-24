@@ -7633,7 +7633,7 @@ download_new_by_hostname_helper(const host_addr_t *addrs, size_t n,
 	g_assert(req);
 
 	if (n > 0) {
-		size_t i = random_u32() % n;
+		size_t i = random_value(n - 1);
 
 		/**
 		 * @todo TODO: All resolved addresses should be attempted.

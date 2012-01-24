@@ -262,7 +262,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 				whitelist_free(item);
 			}
 		} else {
-			item->addr = addrs[random_u32() % n];	/* Pick one randomly */
+			item->addr = addrs[random_value(n - 1)];	/* Pick one randomly */
 			item->bits = addr_default_mask(item->addr);
 
 			if (GNET_PROPERTY(whitelist_debug) > 1) {

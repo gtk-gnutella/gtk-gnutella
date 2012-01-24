@@ -680,7 +680,7 @@ st_search(
 
 	vcnt = best_bin->nvals;
 	vals = best_bin->vals;
-	random_offset = random_u32() % vcnt;
+	random_offset = random_value(vcnt - 1);
 
 	nres = 0;
 	for (i = 0; i < vcnt; i++) {

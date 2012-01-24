@@ -5016,7 +5016,7 @@ dht_ping(host_addr_t addr, guint16 port)
 	 * Not more than one random ping per minute though.
 	 */
 
-	if (delta_time(now, last_sent) < 60 || (random_u32() % 100) >= 10)
+	if (delta_time(now, last_sent) < 60 || random_value(99) >= 10)
 		return;
 
 	last_sent = now;

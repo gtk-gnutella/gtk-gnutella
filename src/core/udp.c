@@ -434,7 +434,7 @@ udp_ping_register(const struct guid *muid,
 	if (length >= UDP_PING_MAX) {
 		return FALSE;
 	} else if (length > (UDP_PING_MAX / 4) * 3) {
-		if ((random_u32() % UDP_PING_MAX) < length)
+		if (random_value(UDP_PING_MAX - 1) < length)
 			return FALSE;
 	}
 

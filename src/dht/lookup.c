@@ -3393,7 +3393,7 @@ lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
 	nl->flags |= NL_F_KBALL_CHECK;		/* Probability check done once */
 	proba = kball_dist_proba[kball - common];
 
-	if (random_u32() % NL_KBALL_FACTOR < proba)
+	if (random_value(NL_KBALL_FACTOR - 1) < proba)
 		goto accepting;
 
 refusing:

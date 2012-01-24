@@ -1269,7 +1269,7 @@ name_to_single_host_addr(const char *host, enum net_type net)
 		size_t i, len;
 
 		len = g_slist_length(sl_addr);
-		i = len > 1 ? (random_u32() % len) : 0;
+		i = len > 1 ? random_value(len - 1) : 0;
 
 		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
 			const host_addr_t *addr_ptr = sl->data;

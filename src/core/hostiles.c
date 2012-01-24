@@ -921,7 +921,7 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
 	if (100 == c) {
 		return FALSE;			/* Not a spamming host */
 	} else {
-		return random_u32() % 100 >= c;
+		return random_value(99) >= c;
 	}
 }
 

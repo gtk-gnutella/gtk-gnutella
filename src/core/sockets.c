@@ -2995,7 +2995,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 		goto finish;
 	}
 
-	addr = addrs[random_u32() % n];
+	addr = addrs[random_value(n - 1)];
 	can_tls = 0 != (SOCK_F_TLS & s->flags) || tls_cache_lookup(addr, s->port);
 
 	if (
