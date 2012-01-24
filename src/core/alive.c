@@ -278,7 +278,7 @@ alive_send_ping(gpointer obj)
 static void
 ap_ack(const struct alive_ping *ap, struct alive *a)
 {
-	GTimeVal now;
+	tm_t now;
 	int delay;					/**< Between sending and reception, in ms */
 
 	tm_now_exact(&now);
