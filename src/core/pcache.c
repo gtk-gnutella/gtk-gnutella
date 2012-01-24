@@ -77,6 +77,7 @@
 #define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
 #define PCACHE_UHC_MAX_IP	30			/**< Max amount of IP:port returned */
 #define PCACHE_DHT_MAX_IP	10			/**< Max amount of IP:port returned */
+#define PCACHE_TRANSIENT	60			/**< Once every minute */
 
 /**
  * Basic pong information.
@@ -948,7 +949,8 @@ send_neighbouring_info(struct gnutella_node *n)
 		 */
 
 		if (NODE_IS_TRANSIENT(n)) {
-			if (random_value(99) < 10 || node_above_low_watermark(n))
+			unsigned pcnt = NODE_TX_COMPRESSED(n) ? 10 : 2;
+			if (random_value(99) < pcnt || node_above_low_watermark(n))
 				break;
 		}
 	}
@@ -1944,9 +1946,9 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		 */
 
 		leaves++;
-		threshold = 1000.0 / leaves;
+		threshold = 10000 / leaves;
 
-		if (random_value(999) < threshold)
+		if (random_value(9999) < threshold)
 			leaf = cn;
 	}
 
@@ -2227,6 +2229,26 @@ pcache_ping_accept(gnutella_node_t *n)
 	} else {
 		n->n_ping_accepted++;
 		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
+
+		/*
+		 * Add penalty for non TX-compressed nodes (uncompressed pong traffic
+		 * can really waste bandwidth).
+		 */
+
+		if (!NODE_TX_COMPRESSED(n))
+			n->ping_accept += n->ping_throttle;
+
+		/*
+		 * Throttle pings from transient nodes a little more since their
+		 * connection is unlikely to stay up very long.  The more they
+		 * insist the longer we'll throttle them, as a safety net.
+		 */
+
+		if (NODE_IS_TRANSIENT(n)) {
+			unsigned extra = n->n_ping_throttle + PCACHE_TRANSIENT / 10;
+			n->ping_accept += MIN(extra, PCACHE_TRANSIENT);
+		}
+
 		return TRUE;
 	}
 }
