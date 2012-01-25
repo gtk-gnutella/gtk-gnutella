@@ -158,6 +158,25 @@ bigint_zero(bigint_t *bi)
 }
 
 /**
+ * Is big integer zero?
+ */
+gboolean
+bigint_is_zero(const bigint_t *bi)
+{
+	const struct bigint *b = BIGINT(bi);
+	size_t i;
+
+	bigint_check(b);
+
+	for (i = 0; i < b->len; i++) {
+		if (0 != b->v[i])
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Copy big integer into result.
  */
 void
