@@ -409,7 +409,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 #endif	/* HAS_TTYNAME */
 
 #ifdef HAS_GETRUSAGE
-	if (can_malloc) {
+	{
 		struct rusage usage;
 
 		if (-1 != getrusage(RUSAGE_SELF, &usage)) {
