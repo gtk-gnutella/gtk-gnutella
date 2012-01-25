@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2008, Christian Biere
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008 Christian Biere
+ * Copyright (c) 2008, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,8 +29,9 @@
  * Entropy collection.
  *
  * @author Christian Biere
- * @author Raphael Manfredi
  * @date 2008
+ * @author Raphael Manfredi
+ * @date 2008, 2012
  */
 
 #include "common.h"
@@ -52,6 +53,7 @@
 #include "misc.h"
 #include "sha1.h"
 #include "tm.h"
+#include "unsigned.h"
 #include "vmm.h"				/* For vmm_trap_page() */
 
 #include "override.h"			/* Must be the last header included */
@@ -181,9 +183,9 @@ sha1_feed_environ(SHA1Context *ctx)
  * Add entropy from previous calls.
  */
 static G_GNUC_COLD void
-entropy_merge(struct sha1 *digest)
+entropy_merge(sha1_t *digest)
 {
-	static struct sha1 previous;
+	static sha1_t previous;
 	bigint_t older, newer;
 
 	/*
@@ -210,7 +212,7 @@ entropy_merge(struct sha1 *digest)
  * during initialization.
  */
 G_GNUC_COLD void
-entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
+entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 {
 	static tm_t last;
 	SHA1Context ctx;
@@ -438,6 +440,33 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 }
 
 /**
+ * Fold extra entropy bytes in place, putting result in the trailing n bytes.
+ */
+static void
+entropy_fold(sha1_t *digest, size_t n)
+{
+	sha1_t result;
+	bigint_t h, v;
+
+	g_assert(size_is_non_negative(n));
+
+	if G_UNLIKELY(n >= SHA1_RAW_SIZE)
+		return;
+
+	bigint_use(&v, &result, SHA1_RAW_SIZE);
+	bigint_use(&h, digest, SHA1_RAW_SIZE);
+
+	bigint_zero(&v);
+
+	while (!bigint_is_zero(&h)) {
+		bigint_add(&v, &h);
+		bigint_rshift_bytes(&h, n);
+	}
+
+	bigint_copy(&h, &v);
+}
+
+/**
  * Collect entropy and fill supplied SHA1 buffer with 160 random bits.
  *
  * It should be called only when a truly random seed is required, ideally only
@@ -448,7 +477,7 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
  * first time it is invoked.
  */
 G_GNUC_COLD void
-entropy_collect(struct sha1 *digest)
+entropy_collect(sha1_t *digest)
 {
 	static gboolean done;
 
@@ -465,25 +494,24 @@ entropy_collect(struct sha1 *digest)
  * seed is required.
  */
 G_GNUC_COLD void
-entropy_minimal_collect(struct sha1 *digest)
+entropy_minimal_collect(sha1_t *digest)
 {
 	entropy_collect_internal(digest, FALSE, FALSE);
 }
 
 /**
- * Reduce entropy to an unsigned quantity.
+ * Return random unsigned number based on entropy collection, without any
+ * memory allocation.
  */
-G_GNUC_COLD unsigned
-entropy_reduce(const struct sha1 *digest)
+unsigned
+entropy_random(void)
 {
-	unsigned value = 0;
-	unsigned i;
+	sha1_t digest;
 
-	for (i = 0; i < SHA1_RAW_SIZE; i += 4) {
-		value ^= peek_le32(&digest->data[i]);
-	}
+	entropy_minimal_collect(&digest);
+	entropy_fold(&digest, 4);
 
-	return value;
+	return peek_be32(&digest.data[SHA1_RAW_SIZE - 4]);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

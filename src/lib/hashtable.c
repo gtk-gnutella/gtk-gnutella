@@ -61,7 +61,6 @@
 #include "atomic.h"
 #include "entropy.h"
 #include "hashing.h"
-#include "misc.h"			/* For struct sha1 */
 #include "mutex.h"
 #include "pow2.h"
 #include "spinlock.h"
@@ -150,10 +149,8 @@ hash_offset_init(void)
 	if G_UNLIKELY(!done) {
 		spinlock(&offset_slk);
 		if (!done) {
-			struct sha1 digest;
 			/* Don't allocate any memory, hence can't call arc4random() */
-			entropy_minimal_collect(&digest);
-			hash_offset = entropy_reduce(&digest);
+			hash_offset = entropy_random();
 			done = TRUE;
 			/* Memory barrier will be done by spinunlock() */
 		}
