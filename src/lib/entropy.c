@@ -514,4 +514,42 @@ entropy_random(void)
 	return peek_be32(&digest.data[SHA1_RAW_SIZE - 4]);
 }
 
+/**
+ * Fill supplied buffer with random entropy bytes.
+ *
+ * @param buffer	buffer to fill
+ * @param len		buffer length, in bytes
+ */
+void
+entropy_fill(void *buffer, size_t len)
+{
+	size_t complete, partial, i;
+	void *p = buffer;
+
+	g_assert(buffer != NULL);
+	g_assert(size_is_non_negative(len));
+
+	complete = len / SHA1_RAW_SIZE;
+	partial = len - complete * SHA1_RAW_SIZE;
+
+	for (i = 0; i < complete; i++) {
+		sha1_t digest;
+
+		entropy_collect(&digest);
+		memcpy(p, &digest, SHA1_RAW_SIZE);
+		p = ptr_add_offset(p, SHA1_RAW_SIZE);
+	}
+
+	if (partial != 0) {
+		sha1_t digest;
+
+		entropy_collect(&digest);
+		entropy_fold(&digest, partial);
+		memcpy(p, &digest.data[SHA1_RAW_SIZE - partial], partial);
+		p = ptr_add_offset(p, partial);
+	}
+
+	g_assert(ptr_diff(p, buffer) == len);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
