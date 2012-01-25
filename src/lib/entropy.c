@@ -212,6 +212,7 @@ entropy_merge(struct sha1 *digest)
 G_GNUC_COLD void
 entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 {
+	static tm_t last;
 	SHA1Context ctx;
 	tm_t start, end;
 
@@ -414,6 +415,9 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc, bool slow)
 		}
 	}
 #endif	/* HAS_GETRUSAGE */
+
+	sha1_feed_double(&ctx, tm_elapsed_f(&start, &last));
+	last = start;		/* struct copy */
 
 	tm_now_exact(&end);
 	SHA1Input(&ctx, &end, sizeof end);
