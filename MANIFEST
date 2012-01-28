@@ -551,6 +551,8 @@ src/lib/adns.c
 src/lib/adns.h
 src/lib/aging.c
 src/lib/aging.h
+src/lib/alloca.c
+src/lib/alloca.h
 src/lib/arc4random.c
 src/lib/arc4random.h
 src/lib/array.h
