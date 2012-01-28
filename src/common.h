@@ -766,6 +766,28 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  */
 #define ZERO(x)		memset((x), 0, sizeof *(x))
 
+/*
+ * Support for alloca().
+ */
+
+#if HAS_GCC(3, 0)
+#ifndef alloca
+#define alloca(size)	__builtin_alloca(size)
+#endif
+#else	/* !HAS_GCC(3, 0) */
+#ifdef I_ALLOCA
+#include <alloca.h>
+#endif
+#ifndef alloca
+#define EMULATE_ALLOCA
+#include "lib/alloca.h"
+#endif	/* alloca */
+#endif	/* HAS_GCC(3, 0) */
+
+/*
+ * Common inclusions, likely to be needed by most files.
+ */
+
 #include "casts.h"
 #include "lib/fast_assert.h"
 #include "lib/glog.h"

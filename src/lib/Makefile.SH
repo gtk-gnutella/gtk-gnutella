@@ -106,6 +106,7 @@ depend:: $(GENERIC)
 LSRC = \
 	adns.c \
 	aging.c \
+	alloca.c \
 	arc4random.c \
 	ascii.c \
 	atoms.c \
@@ -234,6 +235,7 @@ LSRC = \
 LOBJ = \
 	adns.o \
 	aging.o \
+	alloca.o \
 	arc4random.o \
 	ascii.o \
 	atoms.o \
