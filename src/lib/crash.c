@@ -86,6 +86,7 @@
 #include "hashtable.h"
 #include "iovec.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "offtime.h"
 #include "omalloc.h"
 #include "path.h"
@@ -245,8 +246,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	if (cursor->size < len)
 		return;
 
-	memcpy(cursor->buf, s, len);
-	cursor->buf += len;
+	cursor->buf = mempcpy(cursor->buf, s, len);
 	cursor->size -= len;
 }
 

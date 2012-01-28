@@ -70,6 +70,7 @@
 #include "halloc.h"
 #include "iovec.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
@@ -1182,8 +1183,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 		for (i = 0; i < iov_cnt; i++) {
 			size_t n = iovec_len(&iov[i]);
 
-			memcpy(p, iovec_base(&iov[i]), n);
-			p += n;
+			p = mempcpy(p, iovec_base(&iov[i]), n);
 		}
 		g_assert(ptr_diff(p, gather) <= sizeof gather);
 

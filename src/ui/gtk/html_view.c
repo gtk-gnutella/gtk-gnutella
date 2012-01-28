@@ -38,6 +38,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/html.h"
+#include "lib/mempcpy.h"
 #include "lib/str.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -254,12 +255,13 @@ html_output_tag(struct html_output *output, const struct array *tag)
 				GtkTextTagTable *table;
 				gchar name[256];
 				size_t n;
+				char *p;
 
 				n = sizeof name - 2;
 				n = MIN(value.size, n);
 				name[0] = '#';
-				memcpy(&name[1], value.data, n);
-				name[n + 1] = '\0';
+				p = mempcpy(&name[1], value.data, n);
+				*p = '\0';
 				
 				table = gtk_text_buffer_get_tag_table(buffer);
 				if (NULL == gtk_text_tag_table_lookup(table, name)) {

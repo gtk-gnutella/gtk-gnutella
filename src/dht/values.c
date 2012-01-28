@@ -85,6 +85,7 @@
 #include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/log.h"				/* For log_file_printable() */
+#include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/stringify.h"
@@ -737,12 +738,14 @@ kuid_pair_eq(gconstpointer a, gconstpointer b)
 static void
 kuid_pair_fill(char *buf, size_t len, const kuid_t *key, const kuid_t *skey)
 {
+	void *p;
+
 	g_assert(len >= 2 * KUID_RAW_SIZE);
 
 	STATIC_ASSERT(sizeof(key->v) == KUID_RAW_SIZE);
 
-	memcpy(&buf[0], key->v, sizeof(key->v));
-	memcpy(&buf[KUID_RAW_SIZE], skey->v, sizeof(skey->v));
+	p = mempcpy(buf, key, KUID_RAW_SIZE);
+	memcpy(p, skey, KUID_RAW_SIZE);
 }
 
 /**

@@ -58,6 +58,7 @@
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/log.h"				/* For log_printable() */
+#include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/stringify.h"
@@ -893,14 +894,15 @@ http_url_parse(const char *url, guint16 *port, const char **host,
 		host_addr_to_string_buf(addr, hostname, sizeof hostname);
 	} else {
 		size_t len;
+		char *end;
 
 		len = endptr - p;
 		if (len >= sizeof hostname) {
 			http_url_errno = HTTP_URL_BAD_HOST_PART;
 			return FALSE;
 		}
-		memcpy(hostname, p, len);
-		hostname[len] = '\0';
+		end = mempcpy(hostname, p, len);
+		*end = '\0';
 	}
 	p = endptr;
 	*host = hostname;				/* Static data! */

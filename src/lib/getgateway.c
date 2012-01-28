@@ -47,6 +47,7 @@
 #include "ascii.h"
 #include "fd.h"
 #include "host_addr.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "parse.h"
 
@@ -319,10 +320,8 @@ found:
 	STATIC_ASSERT(2 * sizeof dest <= sizeof rtm.data);
 
 	p = payload;
-	memcpy(p, &dest, sizeof dest);
-	p += sizeof dest;
-	memcpy(p, &mask, sizeof mask);
-	p += sizeof mask;
+	p = mempcpy(p, &dest, sizeof dest);
+	p = mempcpy(p, &mask, sizeof mask);
 
 	rt->rtm_msglen = (p - payload) + sizeof *rt;
 

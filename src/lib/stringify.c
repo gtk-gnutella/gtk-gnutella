@@ -39,6 +39,7 @@
 #include "stringify.h"
 #include "ascii.h"
 #include "endian.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "halloc.h"
@@ -217,10 +218,11 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 	/* Now copy the result to ``dst'' if we used the temporary buffer. */
 	if (dst != q) {
 		size_t n = size - 1;
+		char *end;
 
 		n = MIN(n, (size_t) (p - q));
-		memcpy(dst, q, n);
-		dst[n] = '\0';
+		end = mempcpy(dst, q, n);
+		*end = '\0';
 	}
 
 	*p = '\0';

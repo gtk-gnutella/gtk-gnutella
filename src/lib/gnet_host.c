@@ -59,9 +59,10 @@
 
 #include "gnet_host.h"
 #include "atoms.h"
-#include "stringify.h"
+#include "mempcpy.h"
 #include "sequence.h"
 #include "str.h"
+#include "stringify.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -256,8 +257,7 @@ host_ip_port_poke(void *p, const host_addr_t addr, guint16 port, size_t *len)
 		q = poke_be32(q, host_addr_ipv4(addr));
 		break;
 	case NET_TYPE_IPV6:
-		memcpy(q, host_addr_ipv6(&addr), sizeof addr.addr.ipv6);
-		q = ptr_add_offset(q, sizeof addr.addr.ipv6);
+		q = mempcpy(q, host_addr_ipv6(&addr), sizeof addr.addr.ipv6);
 		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -455,8 +455,8 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 			vec->hvec_v6 = wrealloc(vec->hvec_v6, old_size, size);
 
 			dest = cast_to_gpointer(&vec->hvec_v6[vec->n_ipv6++]);
-			memcpy(dest, host_addr_ipv6(&addr), 16);
-			poke_le16(&dest[16], port);
+			dest = mempcpy(dest, host_addr_ipv6(&addr), 16);
+			poke_le16(dest, port);
 		}
 		break;
 	case NET_TYPE_LOCAL:
@@ -532,8 +532,8 @@ gnet_host_vec_from_sequence(sequence_t *s)
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
 				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
-				memcpy(dest, host_addr_ipv6(&addr), 16);
-				poke_le16(&dest[16], port);
+				dest = mempcpy(dest, host_addr_ipv6(&addr), 16);
+				poke_le16(dest, port);
 			}
 			break;
 		case NET_TYPE_LOCAL:

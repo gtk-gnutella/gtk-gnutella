@@ -92,6 +92,7 @@
 #include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/magnet.h"
+#include "lib/mempcpy.h"
 #include "lib/nid.h"
 #include "lib/random.h"
 #include "lib/sbool.h"
@@ -7993,8 +7994,7 @@ search_compact(struct gnutella_node *n)
 						p += w;
 						*p++ = ':';
 						paylen = MIN(paylen, SHA1_BASE32_SIZE);
-						memcpy(p, ext_payload(e), paylen);
-						p += paylen;
+						p = mempcpy(p, ext_payload(e), paylen);
 						*p++ = HUGE_FS;
 					}
 				default:

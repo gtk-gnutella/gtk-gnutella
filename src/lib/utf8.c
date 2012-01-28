@@ -67,6 +67,7 @@
 #include "concat.h"
 #include "endian.h"
 #include "halloc.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "path.h"
 #include "random.h"
@@ -2009,8 +2010,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 		size += n_written;
 		if (dst_size > size) {
-			memcpy(dst, buf, n_written);
-			dst += n_written;
+			dst = mempcpy(dst, buf, n_written);
 		}
 
 		if ((size_t) -1 == ret) {
@@ -2044,8 +2044,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 				n_written = buf_ptr - buf;
 				size += n_written;
 				if (dst_size > size) {
-					memcpy(dst, buf, n_written);
-					dst += n_written;
+					dst = mempcpy(dst, buf, n_written);
 				}
 				size += 1;
 				if (dst_size > size) {

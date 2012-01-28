@@ -54,6 +54,7 @@
 #include "dump_options.h"
 #include "glib-missing.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
@@ -2627,15 +2628,15 @@ static char *
 xstrndup_internal(const char *str, size_t n, gboolean plain)
 {
 	size_t len;
-	char *res;
+	char *res, *p;
 
 	if G_UNLIKELY(NULL == str)
 		return NULL;
 
 	len = clamp_strlen(str, n);
 	res = plain ? xpmalloc(len + 1) : xmalloc(len + 1);
-	memcpy(res, str, len);
-	res[len] = '\0';
+	p = mempcpy(res, str, len);
+	*p = '\0';
 
 	return res;
 }

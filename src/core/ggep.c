@@ -39,6 +39,7 @@
 #include "extensions.h"
 #include "lib/cobs.h"
 #include "lib/halloc.h"
+#include "lib/mempcpy.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -171,8 +172,7 @@ ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
 	if (len > ggep_stream_avail(gs))
 		return FALSE;
 
-	memcpy(gs->o, data, len);
-	gs->o += len;
+	gs->o = mempcpy(gs->o, data, len);
 
 	return TRUE;
 }

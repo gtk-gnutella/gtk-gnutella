@@ -46,6 +46,7 @@
 
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/mempcpy.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -923,8 +924,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 		b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 		g_assert(sizeof header <= (size_t) (b->end - b->wptr));
-		memcpy(b->wptr, header, sizeof header);
-		b->wptr += sizeof header;
+		b->wptr = mempcpy(b->wptr, header, sizeof header);
 
 		attr->gzip.crc = crc32(0, NULL, 0);
 		attr->gzip.size = 0;
@@ -1168,8 +1168,7 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 		poke_le32(&trailer[1], attr->gzip.size);
 
 		g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
-		memcpy(b->wptr, trailer, sizeof trailer);
-		b->wptr += sizeof trailer;
+		b->wptr = mempcpy(b->wptr, trailer, sizeof trailer);
 
 		deflate_send(tx);
 	}

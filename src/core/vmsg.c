@@ -70,6 +70,7 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/mempcpy.h"
 #include "lib/misc.h"			/* For pointer_hash_func() */
 #include "lib/nid.h"
 #include "lib/patricia.h"
@@ -1827,7 +1828,7 @@ vmsg_send_svn_release_notify(struct gnutella_node *n)
 {
 	guint32 msgsize;
 	guint32 paysize;
-	char *payload;
+	char *payload, *end;
 
 	g_return_if_fail(!NODE_IS_UDP(n));	
 
@@ -1843,10 +1844,10 @@ vmsg_send_svn_release_notify(struct gnutella_node *n)
 	n->svn_release_revision = GNET_PROPERTY(latest_svn_release_revision);
 	
 	payload = vmsg_fill_type(v_tmp_data, T_GTKG, 24, 1);
-	poke_be32(&payload[0], GNET_PROPERTY(latest_svn_release_revision));
-	poke_be32(&payload[4], GNET_PROPERTY(latest_svn_release_date));
-	memcpy(&payload[8], svn_release_signature.data, svn_release_signature.size);
-	paysize = 8 + svn_release_signature.size;
+	end = poke_be32(payload, GNET_PROPERTY(latest_svn_release_revision));
+	end = poke_be32(end, GNET_PROPERTY(latest_svn_release_date));
+	end = mempcpy(end, svn_release_signature.data, svn_release_signature.size);
+	paysize = ptr_diff(end, payload);
 
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	message_set_muid(v_tmp_header, GTA_MSG_VENDOR);
@@ -2303,6 +2304,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 	guint8 flags = VMSG_HEAD_F_ALT;
 	ggep_stream_t gs;
 	size_t ggep_len;
+	void *p;
 
 	/*
 	 * TODO: in order to handle VMSG_HEAD_F_RANGES, we need to be able to
@@ -2318,10 +2320,9 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, guint16 port,
 
 	payload = vmsg_fill_type(v_tmp_data, T_LIME, 23, 2);
 
-	memcpy(&payload[1], urn_prefix, CONST_STRLEN(urn_prefix));
-	memcpy(&payload[1 + CONST_STRLEN(urn_prefix)],
-		sha1_base32(sha1), SHA1_BASE32_SIZE);
-	paysize = 1 + CONST_STRLEN(urn_prefix) + SHA1_BASE32_SIZE;
+	p = mempcpy(&payload[1], urn_prefix, CONST_STRLEN(urn_prefix));
+	p = mempcpy(p, sha1_base32(sha1), SHA1_BASE32_SIZE);
+	paysize = ptr_diff(p, payload);
 
 	/*
 	 * Optional GGEP extensions.
@@ -3319,6 +3320,7 @@ static void
 vmsg_features_add(struct vmsg_features *vmf, const char *name, guint16 version)
 {
 	guint16 num_features;
+	void *p;
 
 	g_assert(vmf);
 	g_assert(vmf->pos >= 2);
@@ -3333,8 +3335,8 @@ vmsg_features_add(struct vmsg_features *vmf, const char *name, guint16 version)
 	num_features = peek_le16(&vmf->data[0]) + 1;
 	poke_le16(&vmf->data[0], num_features);
 
-	memcpy(&vmf->data[vmf->pos], name, 4);
-	poke_le16(&vmf->data[vmf->pos + 4], version);
+	p = mempcpy(&vmf->data[vmf->pos], name, 4);
+	poke_le16(p, version);
 	vmf->pos += 6;
 }
 

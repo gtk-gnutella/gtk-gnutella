@@ -38,6 +38,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "mempcpy.h"
 #include "misc.h"			/* For is_strprefix() */
 #include "parse.h"
 #include "path.h"
@@ -765,13 +766,13 @@ url_normalize(char *url, url_policy_t pol)
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
 	if ('\0' == uri[0]) {
 		ssize_t len = q - url;
-		char *s;
+		char *s, *w;
 
 		g_assert(len > 0);
 		s = halloc(len + sizeof "/");
-		memcpy(s, url, len);
-		s[len] = '/';
-		s[len + 1] = '\0';
+		w = mempcpy(s, url, len);
+		*w++ = '/';
+		*w = '\0';
 		url = s;
 	}
 

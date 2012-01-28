@@ -51,6 +51,7 @@
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/halloc.h"
+#include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/random.h"
 
@@ -124,7 +125,7 @@ uhc_get_host_port(const char *hp, const char **host, guint16 *port)
 	guint32 u;
 	int error;
 	size_t len;
-
+	char *p;
 
 	g_assert(hp);
 	g_assert(host);
@@ -140,8 +141,8 @@ uhc_get_host_port(const char *hp, const char **host, guint16 *port)
 	len = ep - hp;
 	if (len >= sizeof hostname)
 		return FALSE;
-	memcpy(hostname, hp, len);
-	hostname[len] = '\0';
+	p = mempcpy(hostname, hp, len);
+	*p = '\0';
 
 	g_assert(':' == *ep);
 	ep++;

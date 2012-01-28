@@ -39,6 +39,7 @@
 #include "random.h"
 #include "arc4random.h"
 #include "endian.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -87,8 +88,7 @@ random_bytes(void *dst, size_t size)
 
 	while (size > 4) {
 		const guint32 value = arc4random();
-		memcpy(p, &value, 4);
-		p += 4;
+		p = mempcpy(p, &value, 4);
 		size -= 4;
 	}
 	if (size > 0) {

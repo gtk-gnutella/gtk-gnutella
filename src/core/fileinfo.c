@@ -76,6 +76,7 @@
 #include "lib/header.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
+#include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
@@ -348,16 +349,14 @@ static void
 TBUF_PUT_UINT32(guint32 x)
 {
 	TBUF_CHECK(sizeof x);
-	memcpy(tbuf.wptr, &x, sizeof x);
-	tbuf.wptr += sizeof x;
+	tbuf.wptr = mempcpy(tbuf.wptr, &x, sizeof x);
 }
 
 static void
 TBUF_WRITE(const char *data, size_t size)
 {
 	TBUF_CHECK(size);
-	memcpy(tbuf.wptr, data, size);
-	tbuf.wptr += size;
+	tbuf.wptr = mempcpy(tbuf.wptr, data, size);
 }
 
 static inline void

@@ -38,6 +38,7 @@
 #include "dime.h"
 
 #include "lib/endian.h"
+#include "lib/mempcpy.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"
@@ -157,9 +158,10 @@ copy_and_pad(char *dst, const char *src, size_t size)
 
 	g_assert(NULL != src || 0 == size);	
 	if (size > 0) {
+		void *p;
 		pad = dime_ceil(size) - size;
-		memcpy(dst, src, size);
-		memset(&dst[size], 0, pad);
+		p = mempcpy(dst, src, size);
+		memset(p, 0, pad);
 	} else {
 		pad = 0;
 	}

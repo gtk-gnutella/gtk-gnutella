@@ -47,6 +47,7 @@
 #include "halloc.h"
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */
+#include "mempcpy.h"
 #include "misc.h"
 #include "glib-missing.h"
 #include "sha1.h"
@@ -1231,9 +1232,7 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 		const char * const end = &buf[sizeof buf];
 		char *p = buf;
 
-		memcpy(p, prefix, CONST_STRLEN(prefix));
-		p += CONST_STRLEN(prefix);
-		
+		p = mempcpy(p, prefix, CONST_STRLEN(prefix));
 		base32_encode(p, end - p, sha1->data, sizeof sha1->data);
 		p += SHA1_BASE32_SIZE;
 

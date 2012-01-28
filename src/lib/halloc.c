@@ -43,14 +43,15 @@
 #include "common.h"
 
 #include "halloc.h"
-#include "hashtable.h"
-#include "pagetable.h"
 #include "concat.h"
-#include "misc.h"
+#include "hashtable.h"
 #include "malloc.h"
-#include "walloc.h"
+#include "mempcpy.h"
+#include "misc.h"
+#include "pagetable.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "walloc.h"
 #include "zalloc.h"			/* Only for possible zalloc_shift_pointer() */
 
 #include "glib-missing.h"
@@ -557,10 +558,11 @@ h_strndup(const char *str, size_t n)
 	if (str != NULL) {
 		size_t len = clamp_strlen(str, n);
 		char *result = halloc(len + 1);
-		
+		char *p;
+
 		/* Not hcopy() because we shouldn't even read the nth byte of src. */
-		memcpy(result, str, len);
-		result[len] = '\0';
+		p = mempcpy(result, str, len);
+		*p = '\0';
 
 		return result;
 	} else {

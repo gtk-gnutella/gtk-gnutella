@@ -35,6 +35,7 @@
 
 #include "pmsg.h"
 #include "halloc.h"
+#include "mempcpy.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -435,10 +436,9 @@ pmsg_write(pmsg_t *mb, gconstpointer data, int len)
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
 	written = len >= available ? available : len;
-	if (written != 0) {
-		memcpy(mb->m_wptr, data, written);
-		mb->m_wptr += written;
-	}
+	if (written != 0)
+		mb->m_wptr = mempcpy(mb->m_wptr, data, written);
+
 	return written;
 }
 
@@ -531,8 +531,7 @@ pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
 	copied = MIN(copied, available);
 
 	if (copied > 0) {
-		memcpy(dest->m_wptr, src->m_rptr, copied);
-		dest->m_wptr += copied;
+		dest->m_wptr = mempcpy(dest->m_wptr, src->m_rptr, copied);
 		src->m_rptr += copied;
 	}
 

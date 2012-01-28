@@ -42,6 +42,7 @@
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/mempcpy.h"
 #include "lib/stringify.h"
 #include "lib/halloc.h"
 #include "lib/log.h"
@@ -745,9 +746,10 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 			/* We shall treat this URN extension as being unknown */
 			token = EXT_T_URN_UNKNOWN;
 		} else {
+			char *nend;
 			/* Lookup the name token to determine the URN type */
-			memcpy(name_buf, name_start, name_len);
-			name_buf[name_len] = '\0';
+			nend = mempcpy(name_buf, name_start, name_len);
+			*nend = '\0';
 			token = rw_urn_screen(name_buf, &name);
 		}
 		p = &name_end[1];	/* Skip the ':' following the URN name */

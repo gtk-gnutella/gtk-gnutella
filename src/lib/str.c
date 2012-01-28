@@ -50,6 +50,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
 #include "stringify.h"		/* For logging */
@@ -631,14 +632,14 @@ char *
 str_dup(str_t *str)
 {
 	size_t len;
-	char *sdup;
+	char *sdup, *p;
 
 	str_check(str);
 
 	len = str->s_len;
 	sdup = halloc(len + 1);
-	memcpy(sdup, str->s_data, len);
-	sdup[len] = '\0';
+	p = mempcpy(sdup, str->s_data, len);
+	*p = '\0';
 
 	return sdup;
 }
@@ -1644,20 +1645,17 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 		p += gap;
 	}
 	if (esignlen) {
-		memcpy(p, esignbuf, esignlen);
-		p += esignlen;
+		p = mempcpy(p, esignbuf, esignlen);
 	}
 	if (elen && 0 == azeros) {
-		memcpy(p, eptr, elen);
-		p += elen;
+		p = mempcpy(p, eptr, elen);
 	}
 	if (ezeros) {
 		memset(p, '0', ezeros);
 		p += ezeros;
 	}
 	if (explen) {
-		memcpy(p, expptr, explen);
-		p += explen;
+		p = mempcpy(p, expptr, explen);
 	}
 	if (dzeros) {
 		memset(p, '0', dzeros);
@@ -1673,8 +1671,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 		p += azeros;
 	}
 	if (elen && 0 != azeros) {
-		memcpy(p, eptr, elen);
-		p += elen;
+		p = mempcpy(p, eptr, elen);
 	}
 	if (fzeros) {
 		memset(p, '0', fzeros);
@@ -2337,24 +2334,21 @@ G_STMT_START {									\
 		str_makeroom(str, need);		/* we do not NUL terminate it */
 		p = str->s_data + str->s_len;	/* next "free" char in arena */
 		if (esignlen && fill == '0') {
-			memcpy(p, esignbuf, esignlen);
-			p += esignlen;
+			p = mempcpy(p, esignbuf, esignlen);
 		}
 		if (gap && !left) {
 			memset(p, fill, gap);
 			p += gap;
 		}
 		if (esignlen && fill != '0') {
-			memcpy(p, esignbuf, esignlen);
-			p += esignlen;
+			p = mempcpy(p, esignbuf, esignlen);
 		}
 		if (zeros) {
 			memset(p, '0', zeros);
 			p += zeros;
 		}
 		if (elen) {
-			memcpy(p, eptr, elen);
-			p += elen;
+			p = mempcpy(p, eptr, elen);
 		}
 		if (gap && left) {
 			memset(p, ' ', gap);

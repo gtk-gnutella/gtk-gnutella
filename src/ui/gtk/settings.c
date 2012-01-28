@@ -54,6 +54,7 @@
 
 #include "lib/concat.h"
 #include "lib/glib-missing.h"
+#include "lib/mempcpy.h"
 #include "lib/product.h"
 #include "lib/prop.h"
 #include "lib/stringify.h"
@@ -453,11 +454,11 @@ update_shared_dirs(property_t prop)
 
 		len = end - p;
 		if (len > 0) {
-			gchar *dir;
+			gchar *dir, *end;
 
 			dir = g_malloc(1 + len);
-			memcpy(dir, p, len);
-			dir[len] = '\0';
+			end = mempcpy(dir, p, len);
+			*end = '\0';
 			dirs = g_list_append(dirs, dir);
 		}
 	}
