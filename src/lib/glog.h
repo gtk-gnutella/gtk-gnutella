@@ -34,7 +34,8 @@
 #ifndef _glog_h_
 #define _glog_h_
 
-#include "lib/stacktrace.h"		/* For stacktrace_caller_known() */
+#include "stacktrace.h"		/* For stacktrace_caller_known() */
+#include "log.h"			/* For log_abort() */
 
 /*
  * Trap all glib-defined logging and redirect them to our own.
@@ -154,7 +155,7 @@ g_error(const char *format, ...)
   va_start(args, format);
   gl_logv(G_LOG_DOMAIN, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
   va_end(args);
-  raise(SIGABRT);
+  log_abort();
 }
 
 static inline G_GNUC_PRINTF(1, 2) void
