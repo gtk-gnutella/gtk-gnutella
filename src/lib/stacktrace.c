@@ -1493,6 +1493,27 @@ stacktrace_atom_log(logagent_t *la, const struct stackatom *st)
 }
 
 /**
+ * Get address of the n-th caller in the stack.
+ *
+ * With n = 0, this should be the address of the current routine.
+ *
+ * @return program counter of the n-th caller, NULL if it cannot be determined.
+ */
+const void *
+stacktrace_caller(size_t n)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	g_assert(size_is_non_negative(n));
+	g_assert(n <= STACKTRACE_DEPTH_MAX);
+
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+
+	return n < count ? stack[n] : NULL;
+}
+
+/**
  * Return symbolic name of the n-th caller in the stack, if possible.
  *
  * With n = 0, this should be the current routine name.
