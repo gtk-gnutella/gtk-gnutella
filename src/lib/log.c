@@ -567,8 +567,21 @@ log_prefix(GLogLevelFlags loglvl)
 /**
  * Abort and make sure we never return.
  */
-void log_abort(void)
+void
+log_abort(void)
 {
+	static void *log_stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	/*
+	 * It may be difficult to backtrace the stack past the signal handler
+	 * which is going to be invoked by raise(), hence save a copy of the
+	 * current stack before crashing.
+	 */
+
+	count = stacktrace_safe_unwind(log_stack, G_N_ELEMENTS(log_stack), 0);
+	crash_save_stackframe(log_stack, count);
+
 	/*
 	 * In case the error occurs within a critical section with
 	 * all the signals blocked, make sure to unblock SIGBART.
