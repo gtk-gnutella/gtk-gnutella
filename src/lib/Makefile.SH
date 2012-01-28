@@ -229,6 +229,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xsort.c \
 	zalloc.c \
 	zlib_util.c
 
@@ -358,6 +359,7 @@ LOBJ = \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \
+	xsort.o \
 	zalloc.o \
 	zlib_util.o 
 

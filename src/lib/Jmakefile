@@ -172,6 +172,7 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xsort.c \
 	zalloc.c \
 	zlib_util.c
 
