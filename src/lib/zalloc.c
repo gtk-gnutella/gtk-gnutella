@@ -89,6 +89,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "xsort.h"
 #include "vmm.h"
 #include "xmalloc.h"
 
@@ -400,7 +401,7 @@ zrange_init(zone_t *zn)
 
 	g_assert(i == zn->zn_subzones);
 
-	qsort(zn->zn_rang, zn->zn_subzones, sizeof zn->zn_rang[0], zrange_cmp);
+	xsort(zn->zn_rang, zn->zn_subzones, sizeof zn->zn_rang[0], zrange_cmp);
 }
 
 /**
@@ -1415,7 +1416,7 @@ static struct {
 static unsigned zgc_zone_cnt;		/**< Zones in garbage collecting mode */
 
 /**
- * Compare two subzinfo based on base address -- qsort() callback.
+ * Compare two subzinfo based on base address -- xsort() callback.
  */
 static int
 subzinfo_cmp(const void *a, const void *b)
@@ -1962,9 +1963,13 @@ zgc_allocate(zone_t *zone)
 
 	/*
 	 * Sort the array by increasing subzone base addresses.
+	 *
+	 * Do not use qsort(), since it can malloc(), which could cause a
+	 * deadlock when xmalloc() replaces the system's malloc(), should
+	 * we re-enter the zone allocator on the already locked zone.
 	 */
 
-	qsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
+	xsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
 
 	/*
 	 * Dispatch each free block to the proper subzone free list.
@@ -2800,7 +2805,7 @@ struct zonesize {
 };
 
 /**
- * qsort() callback for sorting zonesize items by increasing size.
+ * xsort() callback for sorting zonesize items by increasing size.
  */
 static int
 zonesize_cmp(const void *p1, const void *p2)
@@ -2874,7 +2879,7 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 
 	g_assert(fill->count == fill->capacity);
 
-	qsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
+	xsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
 }
 
 /**

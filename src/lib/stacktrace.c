@@ -62,6 +62,7 @@
 #include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
+#include "xsort.h"
 
 /* We need hash_table_new_real() to avoid any call to g_malloc() */
 #define MALLOC_SOURCE
@@ -450,7 +451,7 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 }
 
 /**
- * Compare two trace entries -- qsort() callback.
+ * Compare two trace entries -- xsort() callback.
  */
 static int
 trace_cmp(const void *p, const void *q)
@@ -489,7 +490,7 @@ trace_sort(void)
 	size_t old_count = trace_array.count;
 	const void *last = 0;
 
-	qsort(trace_array.base, trace_array.count,
+	xsort(trace_array.base, trace_array.count,
 		sizeof trace_array.base[0], trace_cmp);
 
 	while (i < trace_array.count) {
