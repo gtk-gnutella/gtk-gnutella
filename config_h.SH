@@ -358,6 +358,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_memmove HAS_MEMMOVE	/**/
 
+/* HAS_MEMPCPY:
+ *	This symbol, if defined, indicates that the mempcpy routine is available
+ *	to copy blocks of memory, returning a pointer past the last written byte.
+ */
+#$d_mempcpy HAS_MEMPCPY	/**/
+
 /* HAS_MMAP:
  *	This symbol, if defined, indicates that the mmap system call is
  *	available to map a file into memory.
