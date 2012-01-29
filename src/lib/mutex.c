@@ -68,7 +68,7 @@ mutex_deadlock(const volatile void *obj, unsigned count)
 	mutex_check(m);
 
 #ifdef SPINLOCK_DEBUG
-	s_minilog(G_LOG_LEVEL_WARNING, "mutex %p already held (depth %zu) by %s:%u",
+	s_miniwarn("mutex %p already held (depth %zu) by %s:%u",
 		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 
@@ -88,7 +88,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 	mutex_check(m);
 
 #ifdef SPINLOCK_DEBUG
-	s_minilog(G_LOG_LEVEL_WARNING, "mutex %p still held (depth %zu) by %s:%u",
+	s_miniwarn("mutex %p still held (depth %zu) by %s:%u",
 		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 

@@ -86,8 +86,7 @@ spinlock_deadlock(const volatile void *obj, unsigned count)
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
-	s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p already held by %s:%u",
-		obj, s->file, s->line);
+	s_miniwarn("spinlock %p already held by %s:%u", obj, s->file, s->line);
 #endif
 
 	s_minicarp("possible spinlock deadlock #%u on %p", count, obj);
@@ -106,8 +105,7 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
-	s_minilog(G_LOG_LEVEL_WARNING, "spinlock %p still held by %s:%u",
-		obj, s->file, s->line);
+	s_miniwarn("spinlock %p still held by %s:%u", obj, s->file, s->line);
 #endif
 
 	s_error("deadlocked on spinlock %p (after %u secs)", obj, elapsed);
@@ -149,8 +147,7 @@ spinlock_loop(volatile spinlock_t *s,
 			if (atomic_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
-					s_minilog(G_LOG_LEVEL_INFO,
-						"finally grabbed %s %p after %u attempts",
+					s_miniinfo("finally grabbed %s %p after %u attempts",
 						spinlock_source_string(src), src_object, i);
 				}
 #endif	/* SPINLOCK_DEBUG */

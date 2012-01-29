@@ -107,6 +107,11 @@ void s_fatal_exit(int status, const char *format, ...)
 void s_error_from(const char *file, const char *fmt, ...)
 	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
 void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
+void s_minicrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_miniinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /*
  * Thread-safe logging interface.

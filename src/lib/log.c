@@ -651,6 +651,9 @@ s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
 	const char *prefix;
 	GLogLevelFlags loglvl;
 
+	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
+		return;
+
 	/*
 	 * Force emisison on stdout as well for fatal messages.
 	 */
@@ -1032,6 +1035,12 @@ s_minicarp(const char *format, ...)
 	gboolean in_signal_handler = signal_in_handler();
 	va_list args;
 
+	/*
+	 * This test duplicates the one in s_minilogv() but if we don't emit
+	 * the message we don't want to emit the stacktrace afterwards either.
+	 * Hence we need to know now.
+	 */
+
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
 
@@ -1059,9 +1068,6 @@ s_minilog(GLogLevelFlags flags, const char *format, ...)
 {
 	va_list args;
 
-	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
-		return;
-
 	/*
 	 * This routine is only called in exceptional conditions, so even if
 	 * the LOG_STDERR file is not deemed printable for now, attempt to log
@@ -1070,6 +1076,86 @@ s_minilog(GLogLevelFlags flags, const char *format, ...)
 
 	va_start(args, format);
 	s_minilogv(flags, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of critical message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_minicrit(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_CRITICAL, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of warning message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_miniwarn(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_WARNING, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of regular message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_minimsg(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_MESSAGE, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of information with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_miniinfo(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_INFO, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of debugging with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ */
+void
+s_minidbg(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_minilogv(G_LOG_LEVEL_DEBUG, FALSE, format, args);
 	va_end(args);
 }
 
