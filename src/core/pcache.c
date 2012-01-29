@@ -1926,7 +1926,6 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 
 	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
-		unsigned threshold;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
@@ -1946,9 +1945,8 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		 */
 
 		leaves++;
-		threshold = 10000 / leaves;
 
-		if (random_value(9999) < threshold)
+		if (0 == random_value(leaves - 1))
 			leaf = cn;
 	}
 
