@@ -512,7 +512,21 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_init()
 #define mingw_close()
 #define mingw_patch_personal_path(p)	(p)
+
+#define mingw_get_admin_tools_path()	"/"
+#define mingw_get_common_appdata_path()	"/"
+#define mingw_get_common_docs_path()	"/"
+#define mingw_get_cookies_path()		"/"
+#define mingw_get_fonts_path()			"/"
+#define mingw_get_history_path()		"/"
+#define mingw_get_home_path()			"/"
+#define mingw_get_internet_cache_path()	"/"
+#define mingw_get_mypictures_path()		"/"
 #define mingw_get_personal_path()		"/"
+#define mingw_get_program_files_path()	"/"
+#define mingw_get_startup_path()		"/"
+#define mingw_get_system_path()			"/"
+#define mingw_get_windows_path()		"/"
 
 #define mingw_in_exception()		0
 
