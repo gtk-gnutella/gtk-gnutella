@@ -465,9 +465,23 @@ inet_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 	node_proxy_cancel_all();
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: we're not TCP-firewalled for port %u",
 			socket_listen_port());
+	}
+}
+
+/**
+ * Switch to non TCP-firewalled if we were indeed firewalled.
+ */
+static void
+inet_switch_to_not_firewalled(void)
+{
+	if (GNET_PROPERTY(is_firewalled)) {
+		wd_wakeup(incoming_wd);
+		inet_not_firewalled();
+		inet_where();
+	}
 }
 
 /**
@@ -478,11 +492,46 @@ inet_udp_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
+	}
 
 	unsolicited_wait_periods = 0;
+}
+
+/**
+ * Switch to non UDP-firewalled if we were indeed firewalled.
+ */
+static void
+inet_switch_to_udp_not_firewalled(void)
+{
+	if (GNET_PROPERTY(is_udp_firewalled)) {
+		inet_udp_not_firewalled();
+		inet_where();
+	}
+}
+
+/**
+ * Called when we established UPnP or NAT-PMP router configuration.
+ */
+void
+inet_router_configured(void)
+{
+	if (GNET_PROPERTY(fw_debug)) {
+		g_debug("FW: configured router to forward port %u",
+			socket_listen_port());
+	}
+
+	/*
+	 * Assume mapping will be all-right, which will be the case usually.
+	 *
+	 * In case something gets wrong afterwards or the router lied, we can
+	 * still go back to a firewalled status later on anyway.
+	 */
+
+	inet_switch_to_not_firewalled();
+	inet_switch_to_udp_not_firewalled();
 }
 
 /**
@@ -522,12 +571,7 @@ inet_got_incoming(const host_addr_t addr)
 	 * We're not firewalled.
 	 */
 
-	if (GNET_PROPERTY(is_firewalled)) {
-		wd_wakeup(incoming_wd);
-		inet_not_firewalled();
-		inet_where();
-	}
-
+	inet_switch_to_not_firewalled();
 	wd_kick(incoming_wd);
 }
 
@@ -546,21 +590,15 @@ void
 inet_udp_got_unsolicited_incoming(void)
 {
 	if (outgoing_udp_state != UNSOLICITED_OFF) {
-		if (GNET_PROPERTY(fw_debug)) {
+		if (GNET_PROPERTY(fw_debug))
 			g_debug("FW: got unsolicited UDP message => not firewalled");
-			inet_where();
-		}
 		move_to_unsolicited_off();
 	} else if (GNET_PROPERTY(is_udp_firewalled)) {
-		if (GNET_PROPERTY(fw_debug)) {
+		if (GNET_PROPERTY(fw_debug))
 			g_debug("FW: got unsolicited UDP message");
-			inet_where();
-		}
 	}
 
-	if (GNET_PROPERTY(is_udp_firewalled))
-		inet_udp_not_firewalled();
-
+	inet_switch_to_udp_not_firewalled();
 	wd_kick(incoming_udp_wd);
 }
 

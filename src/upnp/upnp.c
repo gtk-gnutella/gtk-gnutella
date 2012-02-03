@@ -51,6 +51,7 @@
 #include "natpmp.h"
 #include "service.h"
 
+#include "core/inet.h"			/* For inet_router_configured() */
 #include "core/settings.h"		/* For listen_addr() */
 
 #include "if/gnet_property.h"
@@ -997,6 +998,8 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 			g_message("UPNP successfully published UPnP mapping for %s port %u",
 				upnp_map_proto_to_string(um->proto), um->port);
 		}
+		if (!um->published)
+			inet_router_configured();	/* First time we're publishing */
 		um->published = TRUE;
 		um->method = UPNP_M_UPNP;
 	} else {
@@ -1047,6 +1050,8 @@ upnp_map_natpmp_publish_reply(int code,
 				"for %s port %u, lease = %u s",
 				upnp_map_proto_to_string(um->proto), um->port, lifetime);
 		}
+		if (!um->published)
+			inet_router_configured();	/* First time we're publishing */
 		um->published = TRUE;
 		um->method = UPNP_M_NATPMP;
 		cq_resched(um->install_ev, lifetime / 2 * 1000);
