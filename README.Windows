@@ -18,7 +18,7 @@ compilation environment.
 
 You'll have to install the following packages:
 
-* MinGW, with "dev" and "msys" options.
+* MinGW, with "development" and "MSYS" options (scroll down in the installer).
   MinGW installation works by fetching the installer package and
   launching it:
 
@@ -51,8 +51,8 @@ You'll have to install the following packages:
   Then install as follows:
 
 	mkdir -p /mingw/lib/zlib/include /mingw/lib/zlib/lib
-	cp zlib/zconf.h zlib/zlib.h /mingw/lib/zlib/include
-	cp zlib/libz.a /mingw/lib/zlib/lib
+	cp zconf.h zlib.h /mingw/lib/zlib/include
+	cp libz.a /mingw/lib/zlib/lib
 
 * Patch the GTK bundle to make sure GTK's zlib is not used:
 
@@ -62,6 +62,10 @@ You'll have to install the following packages:
 * Optionally: install TLS: grab the gnutls-2.10.2-x86.zip file from:
 
 	http://mirrors.ibiblio.org/gnu/ftp/gnu/gnutls/
+
+  Do not grab other versions, they have not been tested and may not
+  blend well with the other packages (e.g. 2.10.5 is known to fail to
+  be recognized, pgk-config complaining that the zlib package is missing).
 
   Unpack the file under /mingw/lib/gtk, so that we can benefit from GTK's
   pgk-config.exe configuration tool for TLS as well.
