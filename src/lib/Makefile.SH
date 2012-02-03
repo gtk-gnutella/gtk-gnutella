@@ -174,6 +174,7 @@ LSRC = \
 	malloc.c \
 	map.c \
 	memusage.c \
+	mempcpy.c \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
@@ -304,6 +305,7 @@ LOBJ = \
 	malloc.o \
 	map.o \
 	memusage.o \
+	mempcpy.o \
 	mime_type.o \
 	mingw32.o \
 	misc.o \

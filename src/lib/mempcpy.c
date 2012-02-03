@@ -31,15 +31,20 @@
  * @date 2012
  */
 
-#ifndef _mempcpy_h_
-#define _mempcpy_h_
+#include "common.h"
 
-/*
- * Definition of this GNU-specific routine is not always visible in system
- * headers, so declare it here.
+#include "mempcpy.h"
+
+#ifndef HAS_MEMPCPY
+/**
+ * A memcpy() routine returning the first destination byte beyond the copy.
  */
-void *mempcpy(void *dest, const void *src, size_t n);
-
-#endif /* _mempcpy_h_ */
+void *
+mempcpy(void *dest, const void *src, size_t n)
+{
+	memcpy(dest, src, n);
+	return ptr_add_offset(dest, n);
+}
+#endif	/* !HAS_MEMPCPY */
 
 /* vi: set ts=4 sw=4 cindent: */

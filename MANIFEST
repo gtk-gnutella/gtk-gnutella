@@ -699,6 +699,7 @@ src/lib/malloc.c
 src/lib/malloc.h
 src/lib/map.c
 src/lib/map.h
+src/lib/mempcpy.c
 src/lib/mempcpy.h
 src/lib/memusage.c
 src/lib/memusage.h
