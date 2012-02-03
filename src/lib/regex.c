@@ -63,28 +63,25 @@
 
 #define _GNU_SOURCE
 
-/* We used to test for `BSTRING' here, but only GCC and Emacs define
-   `BSTRING', as far as I know, and neither of them use this code.  */
-#ifdef I_STRING
-#include <string.h>
+#ifdef MINGW32
+void bzero(void *s, size_t n);		/* Avoid compilation warning */
+#endif
+
 #ifndef HAS_BCMP
 #ifndef bcmp
-#define bcmp(s1, s2, n)	memcmp ((s1), (s2), (n))
+#define bcmp(s1, s2, n)	memcmp((s1), (s2), (n))
 #endif
 #endif	/* HAS_BCMP */
 #ifndef HAS_BCOPY
 #ifndef bcopy
-#define bcopy(s, d, n)	memcpy ((d), (s), (n))
+#define bcopy(s, d, n)	memcpy((d), (s), (n))
 #endif
 #endif	/* HAS_BCOPY */
 #ifndef HAS_BZERO
 #ifndef bzero
-#define bzero(s, n)	memset ((s), 0, (n))
+#define bzero(s, n)	memset((s), 0, (n))
 #endif
 #endif	/* HAS_BZERO */
-#else
-#include <strings.h>
-#endif
 
 #include "regex.h"
 #include "override.h"		/* Must be last file included */

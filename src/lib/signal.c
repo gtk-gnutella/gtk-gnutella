@@ -341,6 +341,7 @@ signal_trap_with(int signo, signal_handler_t handler, gboolean extra)
 	}
 #else
 	/* FIXME WIN32, probably: We can't just ignore all signal logic */
+	 (void) extra;
 	 ret = signal(signo, trampoline);
 #endif	/* HAS_SIGACTION */
 

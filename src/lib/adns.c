@@ -148,8 +148,10 @@ static adns_cache_t *adns_cache = NULL;
 
 /* private variables */
 
+#ifndef MINGW32
 static int adns_query_fd = -1;
 static unsigned adns_query_event_id;
+#endif	/* !MINGW32 */
 static unsigned adns_reply_event_id;
 static gboolean is_helper;		/**< Are we the DNS helper process? */
 
@@ -237,6 +239,7 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	G_FREE_NULL(cache);
 }
 
+#ifndef MINGW32
 /**
  * Adds ``hostname'' and ``addr'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
@@ -280,6 +283,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= G_N_ELEMENTS(cache->entries);
 }
+#endif	/* !MINGW32 */
 
 /**
  * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
@@ -385,7 +389,7 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean
+static inline gboolean
 adns_do_read(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, FALSE);
@@ -396,7 +400,7 @@ adns_do_read(int fd, void *buf, size_t len)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean
+static inline gboolean
 adns_do_write(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, TRUE);
@@ -457,6 +461,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 	}
 }
 
+#ifndef MINGW32
 /**
  * The ``main'' function of the adns helper process (server).
  *
@@ -517,6 +522,7 @@ adns_helper(int fd_in, int fd_out)
 	fd_close(&fd_out);
 	_exit(EXIT_SUCCESS);
 }
+#endif	/* !MINGW32 */
 
 static inline void
 adns_invoke_user_callback(const struct adns_response *ans)
@@ -555,6 +561,7 @@ adns_fallback(const struct adns_request *req)
 	adns_invoke_user_callback(&ans);
 }
 
+#ifndef MINGW32
 static void
 adns_reply_ready(const struct adns_response *ans)
 {
@@ -764,6 +771,7 @@ done:
 	adns_async_write_free(remain);
 	return;
 }
+#endif	/* !MINGW32 */
 
 static void
 adns_helper_init(void)

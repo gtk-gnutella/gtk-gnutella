@@ -454,11 +454,11 @@ update_shared_dirs(property_t prop)
 
 		len = end - p;
 		if (len > 0) {
-			gchar *dir, *end;
+			gchar *dir, *q;
 
 			dir = g_malloc(1 + len);
-			end = mempcpy(dir, p, len);
-			*end = '\0';
+			q = mempcpy(dir, p, len);
+			*q = '\0';
 			dirs = g_list_append(dirs, dir);
 		}
 	}

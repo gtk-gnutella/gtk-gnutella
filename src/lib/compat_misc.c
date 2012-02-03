@@ -76,7 +76,10 @@ compat_process_is_alive(pid_t pid)
 int
 compat_daemonize(const char *directory)
 {
-#ifndef MINGW32	/* FIXME MINGW32 */
+#ifdef MINGW32
+	/* FIXME MINGW32 */
+	(void) directory;
+#else
 	pid_t pid;
 	int i;
 
@@ -140,7 +143,7 @@ compat_daemonize(const char *directory)
 		g_warning("freopen() failed for stderr");
 		return -1;
 	}
-#endif	/* !MINGW32 */
+#endif	/* MINGW32 */
 	return 0;
 }
 
