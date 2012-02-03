@@ -403,6 +403,9 @@ getdate.c: getdate.y
 		echo "	$(MV) y.tab.c $@"; \
 		$(MV) y.tab.c $@; else touch $@; fi
 
+getdate: getdate.c
+	$(CC) -o $@ $(JCFLAGS) -DTEST $< libshared.a $(LIBS)
+
 #
 # Floating point formatting tests
 #
