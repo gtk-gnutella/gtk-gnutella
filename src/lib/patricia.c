@@ -1545,6 +1545,8 @@ patricia_insert_k(patricia_t *pt,
  *
  * @param pt		the PATRICIA tree
  * @param key		pointer to the start of the key bits (configured length)
+ *
+ * @return whether key is held in the PATRICIA tree.
  */
 bool
 patricia_contains(const patricia_t *pt, const void *key)
@@ -1558,6 +1560,8 @@ patricia_contains(const patricia_t *pt, const void *key)
  * @param pt		the PATRICIA tree
  * @param key		the key we're looking for
  * @param keybits	size of key in bits
+ *
+ * @return whether key is held in the PATRICIA tree.
  */
 bool
 patricia_contains_k(const patricia_t *pt, const void *key, size_t keybits)
@@ -1621,14 +1625,14 @@ patricia_lookup_k(const patricia_t *pt, const void *key, size_t keybits)
 /**
  * Fetch key/value from the PATRICIA tree, returning whether the key
  * was found.  If it was, the original key/value pointers are written
- * back in keyptr and valueptr.
+ * back in keyptr and valptr.
  *
  * @param pt		the PATRICIA tree
  * @param key		pointer to the start of the key bits (configured length)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
 bool
 patricia_lookup_extended(
@@ -1652,7 +1656,7 @@ patricia_lookup_extended(
 /**
  * Fetch key/value from the PATRICIA tree, returning whether the key
  * was found.  If it was, the original key/value pointers are written
- * back in keyptr and valueptr.
+ * back in keyptr and valptr.
  *
  * @param pt		the PATRICIA tree
  * @param key		the key we're looking for
@@ -1660,7 +1664,7 @@ patricia_lookup_extended(
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
 bool
 patricia_lookup_extended_k(
@@ -1703,7 +1707,7 @@ patricia_lookup_extended_k(
  * @param lenptr	if non-NULL, where the found key length in bit is written
  * @param valptr	if non-NULL, where the associated value pointer is written
  *
- * @return whether a key was found and keyptr/lenptr/valueptr written back.
+ * @return whether a key was found and keyptr/lenptr/valptr written back.
  */
 bool
 patricia_lookup_best(
@@ -1818,7 +1822,7 @@ patricia_closest(const patricia_t *pt, const void *key)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
 bool
 patricia_closest_extended(
@@ -1871,7 +1875,7 @@ patricia_furthest(const patricia_t *pt, const void *key)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
 bool
 patricia_furthest_extended(
