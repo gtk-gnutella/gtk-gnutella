@@ -67,6 +67,13 @@ void htable_insert(htable_t *, const void *key, void *value);
 void *htable_lookup(const htable_t *, const void *key);
 gboolean htable_lookup_extended(const htable_t *, const void *key,
 	const void **keyptr, void **valptr);
+
+static inline void
+htable_insert_const(htable_t *ht, const void *key, const void *value)
+{
+	htable_insert(ht, key, deconstify_gpointer(value));
+}
+
 @end
 @if SET
 void hset_insert(hset_t *, const void *key);
