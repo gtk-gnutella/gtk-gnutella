@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2012, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Hash <generic>s.
+ *
+ * @author Raphael Manfredi
+ * @date 2012
+ */
+
+#ifndef _h<generic>_h_
+#define _h<generic>_h_
+
+#include "hash.h"
+
+struct h<generic>;
+typedef struct h<generic> h<generic>_t;
+
+struct h<generic>_iter;
+typedef struct h<generic>_iter h<generic>_iter_t;
+
+@if TABLE
+typedef void (*htable_each_t)(const void *key, void *value, void *data);
+typedef gboolean (*htable_each_rm_t)(const void *key, void *value, void *data);
+@end
+@if SET
+typedef void (*hset_each_t)(const void *key, void *data);
+typedef gboolean (*hset_each_rm_t)(const void *key, void *data);
+@end
+
+/*
+ * Public interface.
+ */
+
+h<generic>_t *h<generic>_create(enum hash_key_type ktype, size_t keysize);
+h<generic>_t *h<generic>_create_any(hash_func_t primary,
+	hash_func_t secondary, hash_eq_t eq);
+void h<generic>_free_null(h<generic>_t **);
+void h<generic>_clear(h<generic>_t *);
+
+gboolean h<generic>_contains(const h<generic>_t *, const void *key);
+@if TABLE
+void htable_insert(htable_t *, const void *key, void *value);
+void *htable_lookup(const htable_t *, const void *key);
+gboolean htable_lookup_extended(const htable_t *, const void *key,
+	const void **keyptr, void **valptr);
+@end
+@if SET
+void hset_insert(hset_t *, const void *key);
+gboolean hset_contains_extended(const hset_t *, const void *key,
+	const void **keyptr);
+@end
+gboolean h<generic>_remove(h<generic>_t *, const void *key);
+size_t h<generic>_count(const h<generic>_t *);
+void h<generic>_foreach(const h<generic>_t *, h<generic>_each_t fn, void *data);
+size_t h<generic>_foreach_remove(h<generic>_t *,
+	h<generic>_each_rm_t fn, void *data);
+
+h<generic>_iter_t *h<generic>_iter_new(const h<generic>_t *);
+void h<generic>_iter_release(h<generic>_iter_t **);
+@if TABLE
+gboolean htable_iter_next(htable_iter_t *, const void **kp, void **vp);
+@end
+@if SET
+gboolean hset_iter_next(hset_iter_t *, const void **kp);
+@end
+void h<generic>_iter_remove(h<generic>_iter_t *);
+
+#endif /* _h<generic>_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

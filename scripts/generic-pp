@@ -3,13 +3,13 @@
 #
 # $Id$
 #
-# Copyright (c) 2010, Raphael Manfredi
+# Copyright (c) 2012, Raphael Manfredi
 #
-# Catenate a .ht file with a generic .t file, substituting the "generic"
-# string in the .t file with the supplied parameter.
+# Catenate a .xt header file with a generic .xt file, substituting the
+# "generic" string in the second .xt file with the supplied parameter,
+# plus operating a variant selection via a crude pre-processor.
 #
-# All ";#" comments from both the .ht and .t files are stripped out during
-# the generation process.
+# All ";#" comments from both files are stripped out during the process.
 #
 #----------------------------------------------------------------------
 # This file is part of gtk-gnutella.
@@ -37,6 +37,7 @@ export LC_ALL
 header=$1
 template=$2
 generic=$3
+variant=$4
 
 date=`date`
 
@@ -56,8 +57,25 @@ if test -s $header; then
 	(cat $header; echo " ") | grep -v '^;#'
 fi
 GENERIC=`echo $generic | tr '[a-z]' '[A-Z]'`
+awk -v "sym=$variant" '
+	BEGIN {
+		s = 0;
+		skip[s] = 0;
+	}
+	/^@if / {
+		val = $2;
+		skip[++s] = (val == sym) ? 0 : 1;
+		next;
+	}
+	/^@end/	{ s--; next; }
+	{
+		if (!skip[s])
+			print;
+	}
+' $template |
 sed -e "/^;#/d" \
 	-e "s/<generic>/$generic/g" \
+	-e "s/<GENERIC>/$GENERIC/g" \
 	-e "s/_generic_/_${generic}_/g" \
-	-e "s/_GENERIC_/_${GENERIC}_/g" $template
+	-e "s/_GENERIC_/_${GENERIC}_/g"
 

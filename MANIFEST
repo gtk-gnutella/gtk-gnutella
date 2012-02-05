@@ -242,6 +242,7 @@ po/uk.po
 po/zh_CN.po
 scripts/fix_copyright.pl
 scripts/generic-cat
+scripts/generic-pp
 scripts/geo-to-db.pl
 scripts/geo6-to-db.pl
 scripts/git-revision
@@ -666,6 +667,8 @@ src/lib/gnet_host.c
 src/lib/gnet_host.h
 src/lib/halloc.c
 src/lib/halloc.h
+src/lib/hash.c
+src/lib/hash.h
 src/lib/hashing.c
 src/lib/hashing.h
 src/lib/hashlist.c
@@ -674,6 +677,8 @@ src/lib/hashtable.c
 src/lib/hashtable.h
 src/lib/header.c
 src/lib/header.h
+src/lib/hgeneric.ct
+src/lib/hgeneric.ht
 src/lib/host_addr.c
 src/lib/host_addr.h
 src/lib/html.c
