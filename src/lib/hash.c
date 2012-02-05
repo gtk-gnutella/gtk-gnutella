@@ -115,6 +115,8 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#define HASH_HOPS_MAX	8		/* Force resizing if reaching that many hops */
+
 /**
  * Type of table resizing we want to perform.
  */
@@ -178,6 +180,7 @@ hash_keyset_allocate(struct hkeys *hk, size_t bits)
 	hk->keys = xmalloc(hk->size * sizeof hk->keys[0]);
 	hk->hashes = xmalloc0(hk->size * sizeof hk->hashes[0]);
 	hk->tombs = 0;
+	hk->resize = FALSE;
 }
 
 /**
@@ -346,7 +349,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 {
 	unsigned hv, inc, ih;
 	size_t idx, nidx;
-	size_t first_tomb, mask;
+	size_t first_tomb, mask, hops;
 	gboolean found;
 
 	if (known) {
@@ -437,6 +440,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 
 	nidx = (idx + inc) & mask;
 	ih = hk->hashes[nidx];
+	hops = 1;
 
 	while (!HASH_IS_FREE(ih) && nidx != idx) {
 		if (ih == hv && hash_keyset_equals(hk, hk->keys[nidx], key)) {
@@ -447,7 +451,24 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 		}
 		nidx = (nidx + inc) & mask;
 		ih = hk->hashes[nidx];
+		hops++;
 	}
+
+	/*
+	 * When lookups go through too many hops before ending, flag for a resizing
+	 * at the next opportunity.
+	 *
+	 * The HASH_HOPS_MAX constant is twice as large as the average amount of
+	 * hops we can expect in a table whose maximum fill-up rate is 75%, as
+	 * enforced by hash_resize_as_needed().
+	 *
+	 * If we looped back to the initial index, it means the table is full,
+	 * which can only mean there are too many tombs and we still have a
+	 * small table (there are less tombs than HASH_HOPS_MAX).  Rebuild!
+	 */
+
+	if G_UNLIKELY(hops > HASH_HOPS_MAX || nidx == idx)
+		hk->resize = TRUE;
 
 	if (tombidx != NULL)
 		*tombidx = first_tomb;
@@ -468,7 +489,7 @@ hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < hk->size);
 
-	if (HASH_TOMB == hk->hashes[idx])
+	if G_UNLIKELY(HASH_TOMB == hk->hashes[idx])
 		return FALSE;
 
 	hk->hashes[idx] = HASH_TOMB;
@@ -549,8 +570,10 @@ size_computed:
 
 /**
  * Resize hash table if needed.
+ *
+ * @return TRUE if resizing occurred, FALSE otherwise.
  */
-void
+gboolean
 hash_resize_as_needed(struct hash *h)
 {
 	hash_check(h);
@@ -561,18 +584,37 @@ hash_resize_as_needed(struct hash *h)
 	 */
 
 	if G_UNLIKELY(0 != h->refcnt)
-		return;
+		return FALSE;
 
 	if (h->kset.items < h->kset.size / 4) {
-		if (h->kset.bits > HASH_MIN_BITS)
+		if (h->kset.bits > HASH_MIN_BITS) {
 			hash_resize(h, HASH_RESIZE_SHRINK);		/* Table is oversized */
+			return TRUE;
+		}
 	} else if (h->kset.items + h->kset.tombs > h->kset.size / 4 * 3) {
 		/* Rebuild if less keys than 3/5 of the size, grow otherwise */
 		hash_resize(h, (h->kset.items < h->kset.size / 5 * 3) ?
 			HASH_RESIZE_SAME : HASH_RESIZE_GROW);
+		return TRUE;
 	} else if (h->kset.tombs >= h->kset.size / 4) {
 		hash_resize(h, HASH_RESIZE_SAME);		/* Remove tombstones */
+		return TRUE;
+	} else if (h->kset.resize) {
+		if (h->kset.tombs != 0) {
+			/* Grow if we won't be attempting to shrink later */
+			hash_resize(h, (h->kset.items > h->kset.size / 2) ?
+				HASH_RESIZE_GROW : HASH_RESIZE_SAME);
+			return TRUE;
+		} else if (h->kset.items > h->kset.size / 2) {
+			/* Grow if we won't be attempting to shrink later */
+			hash_resize(h, HASH_RESIZE_GROW);
+			return TRUE;
+		} else {
+			h->kset.resize = FALSE;		/* Bad luck, live by large hops */
+		}
 	}
+
+	return FALSE;
 }
 
 /**
@@ -620,6 +662,28 @@ hash_lookup_key(struct hash *h, const void *key)
 	hash_check(h);
 
 	found = hash_keyset_lookup(&h->kset, key, &hv, &idx, &tombidx, FALSE);
+
+	/*
+	 * Regardless of whether key was found, attempt a resize if we went
+	 * through too many hops.  If the table ends-up being resized, then
+	 * we'll have to look the key again if it was initially present.
+	 */
+
+	if G_UNLIKELY(h->kset.resize) {
+		if (!hash_resize_as_needed(h))
+			goto no_resize;
+
+		if (found) {
+			gboolean kept;
+
+			/* This time we know the key's hash value in ``hv'' */
+
+			kept = hash_keyset_lookup(&h->kset, key, &hv, &idx, &tombidx, TRUE);
+			g_assert(kept);		/* Since key existed before resizing */
+		}
+	}
+
+no_resize:
 
 	if (found) {
 		/*

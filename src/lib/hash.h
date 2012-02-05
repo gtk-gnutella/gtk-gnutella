@@ -84,6 +84,7 @@ struct hkeys {
 		hash_eq_t eq;			/* Key equality test */
 		size_t keysize;			/* Fixed-length of keys */
 	} uk;
+	unsigned resize:1;			/* Too many hops, rebuild or resize */
 };
 
 struct hash;
@@ -155,7 +156,7 @@ gboolean hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
  * Routines with a hash parameter also handle values, if any, when resizing.
  */
 
-void hash_resize_as_needed(struct hash *h);
+gboolean hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
 bool hash_delete_key(struct hash *h, const void *key);
