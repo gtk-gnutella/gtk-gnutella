@@ -89,6 +89,10 @@ gboolean hset_iter_next(hset_iter_t *, const void **kp);
 @end
 void h<generic>_iter_remove(h<generic>_iter_t *);
 
+@if TABLE
+void htable_test(void);
+@end
+
 #endif /* _h<generic>_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

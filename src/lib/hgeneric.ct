@@ -619,4 +619,91 @@ static const struct hash_ops h<generic>_ops = {
 	h<generic>_values_get,			/* get_values */
 };
 
+/***
+ *** Unit tests.
+ ***/
+
+/*
+ * The hash set implementation is mostly derived from the same source as the
+ * hash table and therefore does not need to be tested: the only variation
+ * between the two implementations concerns the value management.
+ */
+
+@if TABLE
+static G_GNUC_COLD void
+htable_test_fill(htable_t *ht)
+{
+	size_t i;
+
+	for (i = 0; i < 256; i++) {
+		void *p = ulong_to_pointer(i);
+		g_assert(!htable_contains(ht, p));
+		htable_insert(ht, p, p);
+		g_assert(htable_contains(ht, p));
+	}
+}
+
+/**
+ * Perform unit tests for hash tables.
+ */
+G_GNUC_COLD void
+htable_test(void)
+{
+	size_t i;
+	htable_t *ht;
+	htable_iter_t *hti;
+	char flags[256];
+	const void *key;
+	int keys[4] = { 0xc7569bda, 0x65cb1432, 0x18659927, 0xf3362dc7 };
+
+	ht = htable_create(HASH_KEY_SELF, 0);
+	htable_test_fill(ht);
+	for (i = 0; i < 256; i++) {
+		void *p = ulong_to_pointer(i);
+		g_assert(htable_contains(ht, p));
+		htable_remove(ht, p);
+		g_assert(!htable_contains(ht, p));
+	}
+	htable_test_fill(ht);
+	for (i = 256; i < 512; i++) {
+		void *p = ulong_to_pointer(i);
+		void *o = ulong_to_pointer(i - 256);
+		g_assert(htable_contains(ht, o));
+		g_assert(!htable_contains(ht, p));
+		htable_remove(ht, o);
+		htable_insert(ht, p, p);
+		g_assert(htable_contains(ht, p));
+		g_assert(!htable_contains(ht, o));
+	}
+	g_assert(256 == htable_count(ht));
+	ZERO(&flags);
+	hti = htable_iter_new(ht);
+	while (htable_iter_next(hti, &key, NULL)) {
+		size_t idx = pointer_to_ulong(key) - 256;
+		g_assert(htable_contains(ht, key));
+		g_assert(size_is_non_negative(idx));
+		g_assert(idx < 256);
+		g_assert('\0' == flags[idx]);
+		flags[idx] = '1';
+		htable_iter_remove(hti);
+		g_assert(!htable_contains(ht, key));
+	}
+	htable_iter_release(&hti);
+	g_assert(0 == htable_count(ht));
+	for (i = 0; i < 256; i++) {
+		g_assert(flags[i] != '\0');
+	}
+	htable_free_null(&ht);
+
+	ht = htable_create(HASH_KEY_FIXED, sizeof(int));
+	for (i = 0; i < 16; i++) {
+		size_t idx = i % G_N_ELEMENTS(keys);
+		htable_insert(ht, &keys[idx], NULL);
+		g_assert(htable_contains(ht, &keys[idx]));
+	}
+	g_assert(G_N_ELEMENTS(keys) == htable_count(ht));
+	htable_free_null(&ht);
+}
+@end	/* TABLE */
+
 /* vi: set ts=4 sw=4 cindent: */
