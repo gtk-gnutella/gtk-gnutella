@@ -115,8 +115,10 @@ bool event_subscriber_active(struct event *evt);
 	vars_.evt->triggered_count++;											\
 } G_STMT_END
 
+struct htable;
+
 struct event_table {
-    GHashTable *events;
+    struct htable *events;
 };
 
 struct event_table *event_table_new(void);

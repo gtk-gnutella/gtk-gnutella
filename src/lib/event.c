@@ -32,7 +32,7 @@
 #include "common.h"
 
 #include "event.h"
-#include "glib-missing.h"
+#include "htable.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "walloc.h"
@@ -149,7 +149,7 @@ event_table_new(void)
     struct event_table *t;
 
 	WALLOC0(t);
-	t->events = g_hash_table_new(g_str_hash, g_str_equal);
+	t->events = htable_create(HASH_KEY_STRING, 0);
 
 	return t;
 }
@@ -160,43 +160,35 @@ real_event_table_destroy(struct event_table *t, bool cleanup)
     if (cleanup)
         event_table_remove_all(t);
 
-    gm_hash_table_destroy_null(&t->events);
+    htable_free_null(&t->events);
 }
 
 void
 event_table_add_event(struct event_table *t, struct event *evt)
 {
-    GHashTable *ht;
-
     g_assert(t != NULL);
     g_assert(evt != NULL);
 
-    ht = t->events;
+    g_assert(t->events != NULL);
+    g_assert(!htable_contains(t->events, evt->name));
 
-    g_assert(ht != NULL);
-    g_assert(g_hash_table_lookup(ht, evt->name) == NULL);
-
-    gm_hash_table_insert_const(ht, evt->name, evt);
+    htable_insert(t->events, evt->name, evt);
 }
 
 void
 event_table_remove_event(struct event_table *t, struct event *evt)
 {
-    GHashTable *ht;
-
     g_assert(t != NULL);
     g_assert(evt != NULL);
 
-    ht = t->events;
+    g_assert(t->events != NULL);
+    g_assert(htable_contains(t->events, evt->name));
 
-    g_assert(ht != NULL);
-    g_assert(g_hash_table_lookup(ht, evt->name) != NULL);
-
-    g_hash_table_remove(ht, evt->name);
+    htable_remove(t->events, evt->name);
 }
 
 static bool
-remove_helper(void *unused_key, void *value, void *unused_data)
+remove_helper(const void *unused_key, void *value, void *unused_data)
 {
 	(void) unused_key;
 	(void) unused_data;
@@ -211,7 +203,7 @@ event_table_remove_all(struct event_table *t)
     g_assert(t != NULL);
     g_assert(t->events != NULL);
 
-    g_hash_table_foreach_remove(t->events, remove_helper, NULL);
+    htable_foreach_remove(t->events, remove_helper, NULL);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -67,6 +67,7 @@
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/hashing.h"
+#include "lib/hset.h"
 #include "lib/nid.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
@@ -1106,10 +1107,10 @@ struct cache_line {			/**< A cache line for a given hop value */
 };
 
 struct recent {
-	GHashTable *ht_recent_pongs;	/**< Recent pongs we know about */
-	GList *recent_pongs;			/**< Recent pongs we got */
-	GList *last_returned_pong;		/**< Last returned from list */
-	int recent_pong_count;			/**< # of pongs in recent list */
+	hset_t *hs_recent_pongs;	/**< Recent pongs we know about */
+	GList *recent_pongs;		/**< Recent pongs we got */
+	GList *last_returned_pong;	/**< Last returned from list */
+	int recent_pong_count;		/**< # of pongs in recent list */
 };
 
 #define PONG_CACHE_SIZE		(MAX_CACHE_HOPS+1)
@@ -1135,7 +1136,7 @@ static struct recent recent_pongs[HOST_MAX];
  * cached_pong_hash
  * cached_pong_eq
  *
- * Callbacks for the `ht_recent_pongs' hash table.
+ * Callbacks for the `hs_recent_pongs' hash set.
  */
 
 static uint
@@ -1248,11 +1249,11 @@ G_STMT_START {											\
 	for (h = 0; h < PONG_CACHE_SIZE; h++)
 		pong_cache[h].hops = h;
 
-	recent_pongs[HOST_ANY].ht_recent_pongs =
-		g_hash_table_new(cached_pong_hash, cached_pong_eq);
+	recent_pongs[HOST_ANY].hs_recent_pongs =
+		hset_create_any(cached_pong_hash, NULL, cached_pong_eq);
 
-	recent_pongs[HOST_ULTRA].ht_recent_pongs =
-		g_hash_table_new(cached_pong_hash, cached_pong_eq);
+	recent_pongs[HOST_ULTRA].hs_recent_pongs =
+		hset_create_any(cached_pong_hash, NULL, cached_pong_eq);
 }
 
 /**
@@ -1381,7 +1382,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 
     if (
         !host_is_valid(cp->info.addr, cp->info.port) ||
-        (NULL != g_hash_table_lookup(rec->ht_recent_pongs, cp)) ||
+        hset_contains(rec->hs_recent_pongs, cp) ||
         hcache_node_is_bad(cp->info.addr)
     ) {
         return;
@@ -1392,7 +1393,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 		struct cached_pong *p = lnk->data;
 
 		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
-		g_hash_table_remove(rec->ht_recent_pongs, p);
+		hset_remove(rec->hs_recent_pongs, p);
 
 		if (lnk == rec->last_returned_pong)
 			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
@@ -1403,7 +1404,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 		rec->recent_pong_count++;
 
 	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
-	g_hash_table_insert(rec->ht_recent_pongs, cp, GUINT_TO_POINTER(1));
+	hset_insert(rec->hs_recent_pongs, cp);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
 
@@ -1441,7 +1442,7 @@ pcache_clear_recent(host_type_t type)
 	for (l = rec->recent_pongs; l; l = g_list_next(l)) {
 		struct cached_pong *cp = l->data;
 
-		g_hash_table_remove(rec->ht_recent_pongs, cp);
+		hset_remove(rec->hs_recent_pongs, cp);
 		free_cached_pong(cp);
 	}
 
@@ -1527,7 +1528,7 @@ pcache_close(void)
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);
-		gm_hash_table_destroy_null(&recent_pongs[type].ht_recent_pongs);
+		hset_free_null(&recent_pongs[type].hs_recent_pongs);
 	}
 
 	aging_destroy(&udp_pings);

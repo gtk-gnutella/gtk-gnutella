@@ -26,7 +26,7 @@
 #include <gtk/gtkcheckmenuitem.h>
 
 #include "gtkcolumnchooser.h"
-#include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/override.h"				/* Must be the last header included */
 
 static GtkWidgetClass *parent_class;
@@ -57,7 +57,7 @@ gtk_column_chooser_get_column(GtkColumnChooser *cc, GtkWidget *widget)
     g_return_val_if_fail(widget != NULL, NULL);
 	g_return_val_if_fail(cc != NULL, NULL);
 
-    return g_hash_table_lookup(cc->col_map, widget);
+    return htable_lookup(cc->col_map, widget);
 }
 
 static void
@@ -186,7 +186,7 @@ gtk_column_chooser_new(GtkWidget *widget)
         gtk_menu_append(menu, menuitem);
 
         /* map the menu item to the corresponding column */
-        g_hash_table_insert(cc->col_map, menuitem, p);
+        htable_insert(cc->col_map, menuitem, p);
     }
 
     /*
@@ -231,7 +231,7 @@ gtk_column_chooser_init(GTypeInstance *instance, gpointer unused_g_class)
 
 	cc = (GtkColumnChooser *) instance;
     cc->widget = NULL;
-    cc->col_map = g_hash_table_new(NULL, NULL);
+    cc->col_map = htable_create(HASH_KEY_SELF, 0);
     cc->closed = FALSE;
 }
 
@@ -244,7 +244,7 @@ gtk_column_chooser_finalize(GObject *object)
     g_return_if_fail(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
-    gm_hash_table_destroy_null(&cc->col_map);
+    htable_free_null(&cc->col_map);
 	G_OBJECT_CLASS(parent_class)->finalize(G_OBJECT(object));
 }
 
@@ -296,7 +296,7 @@ gtk_column_chooser_init(GtkColumnChooser *cc)
 	g_return_if_fail(cc != NULL);
 
     cc->widget = NULL;
-    cc->col_map = g_hash_table_new(NULL, NULL);
+    cc->col_map = htable_create(HASH_KEY_SELF, 0);
     cc->closed = FALSE;
 }
 
@@ -309,7 +309,7 @@ gtk_column_chooser_finalize(GtkObject *object)
 	g_return_if_fail(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
-    gm_hash_table_destroy_null(&cc->col_map);
+    htable_free_null(&cc->col_map);
 	GTK_OBJECT_CLASS(parent_class)->finalize(object);
 }
 

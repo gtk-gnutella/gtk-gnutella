@@ -52,8 +52,9 @@
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
@@ -351,7 +352,7 @@ find_parent(search_t *search, const struct result_data *rd)
 	struct result_data *parent;
 
 	/* NOTE: rd->record is not checked due to find_parent2() */
-	parent = g_hash_table_lookup(search->parents, rd);
+	parent = htable_lookup(search->parents, rd);
 	if (parent) {
 		record_check(parent->record);
 	}
@@ -379,8 +380,8 @@ result_data_free(search_t *search, struct result_data *rd)
 
 	atom_str_free_null(&rd->meta);
 
-	g_assert(g_hash_table_lookup(search->dups, rd->record) != NULL);
-	g_hash_table_remove(search->dups, rd->record);
+	g_assert(hset_contains(search->dups, rd->record));
+	hset_remove(search->dups, rd->record);
 	search_gui_unref_record(rd->record);
 
 	search_gui_unref_record(rd->record);
@@ -410,7 +411,7 @@ prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path,
 		
 		parent = find_parent(search, rd);
 		if (rd == parent) {
-			g_hash_table_remove(search->parents, rd);
+			htable_remove(search->parents, rd);
 		} else if (parent) {
 			parent->children--;
 			search_gui_set_data(model, parent);
@@ -466,8 +467,8 @@ search_gui_clear_search(search_t *search)
 
 	search_gui_clear_tree(search);
 	search_gui_clear_queue(search);
-	g_assert(0 == g_hash_table_size(search->dups));
-	g_assert(0 == g_hash_table_size(search->parents));
+	g_assert(0 == hset_count(search->dups));
+	g_assert(0 == htable_count(search->parents));
 }
 
 static gboolean
@@ -635,7 +636,8 @@ search_gui_init_tree(search_t *sch)
 	g_assert(sch);
 
 	g_assert(NULL == sch->parents);
-	sch->parents = g_hash_table_new(search_gui_file_hash, search_gui_file_eq);
+	sch->parents = htable_create_any(search_gui_file_hash, NULL,
+		search_gui_file_eq);
 
 	g_assert(NULL == sch->queue);
 	sch->queue = slist_new();
@@ -1458,20 +1460,18 @@ collect_parents_with_sha1(GtkTreeModel *model, GtkTreePath *unused_path,
 	}
 	rd = get_result_data(model, iter);
 	if (rd->record->sha1) {
-		g_hash_table_insert(data, rd, rd);
+		hset_insert(data, rd);
 	}
 }
 
 static void
-search_gui_request_bitzi_data_helper(gpointer key,
-	gpointer unused_value, gpointer unused_udata)
+search_gui_request_bitzi_data_helper(const void *key, void *unused_udata)
 {
-	struct result_data *rd;
+	struct result_data *rd = deconstify_pointer(key);
 
 	(void) unused_value;
 	(void) unused_udata;
 	
-	rd = key;
 	record_check(rd->record);
 	g_return_if_fail(rd->record->sha1);
 
@@ -1503,7 +1503,7 @@ void
 search_gui_request_bitzi_data(struct search *search)
 {
 	GtkTreeSelection *selection;
-	GHashTable *results;
+	hset_t *results;
 
 	/* collect the list of files selected */
 
@@ -1511,7 +1511,7 @@ search_gui_request_bitzi_data(struct search *search)
 
 	search_gui_start_massive_update(search);
 
-	results = g_hash_table_new(NULL, NULL);
+	results = hset_create(HASH_KEY_SELF, 0);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
 	gtk_tree_selection_selected_foreach(selection,
 		collect_parents_with_sha1, results);
@@ -1521,13 +1521,12 @@ search_gui_request_bitzi_data(struct search *search)
 
 		gnet_prop_get_guint32_val(PROP_BITZI_DEBUG, &bitzi_debug);
 		if (bitzi_debug > 10) {
-			g_debug("search_gui_request_bitzi_data: %u items",
-					g_hash_table_size(results));
+			g_debug("%s: %zu items", G_STRFUNC, hset_count(results));
 		}
 	}
 
-	g_hash_table_foreach(results, search_gui_request_bitzi_data_helper, NULL);
-	gm_hash_table_destroy_null(&results);
+	hset_foreach(results, search_gui_request_bitzi_data_helper, NULL);
+	hset_free_null(&results);
 
 	/* Make sure the column is actually visible. */
 	search_gui_make_meta_column_visible(search);
@@ -1738,7 +1737,7 @@ search_gui_flush_queue_data(search_t *search, GtkTreeModel *model,
 			parent->children++;
 			search_gui_data_changed(model, parent);
 		} else {
-			gm_hash_table_insert_const(search->parents, rd, rd);
+			htable_insert(search->parents, rd, rd);
 
 			/*
 			 * Inserting a new parent.

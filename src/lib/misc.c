@@ -36,6 +36,7 @@
 
 #include "common.h"
 
+#include "misc.h"
 #include "ascii.h"
 #include "atoms.h"
 #include "base16.h"
@@ -44,22 +45,22 @@
 #include "concat.h"
 #include "endian.h"
 #include "entropy.h"
+#include "glib-missing.h"
 #include "halloc.h"
+#include "htable.h"
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */
 #include "mempcpy.h"
-#include "misc.h"
-#include "glib-missing.h"
-#include "sha1.h"
 #include "parse.h"
 #include "path.h"
 #include "pow2.h"
 #include "random.h"
+#include "sha1.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
-#include "walloc.h"
 #include "utf8.h"
+#include "walloc.h"
 
 #include "if/core/guid.h"
 
@@ -1841,16 +1842,16 @@ html_escape(const char *src, char *dst, size_t dst_size)
 	return d - dst;
 }
 
-static GHashTable *html_entities_lut;
+static htable_t *html_entities_lut;
 
 static G_GNUC_COLD void
 html_entities_init(void)
 {
 	size_t i;
 
-	html_entities_lut = g_hash_table_new(g_str_hash, g_str_equal);
+	html_entities_lut = htable_create(HASH_KEY_STRING, 0);
 	for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
-		gm_hash_table_insert_const(html_entities_lut, html_entities[i].name,
+		htable_insert(html_entities_lut, html_entities[i].name,
 			uint_to_pointer(html_entities[i].uc));
 	}
 }
@@ -1858,7 +1859,7 @@ html_entities_init(void)
 static void
 html_entities_close(void)
 {
-	gm_hash_table_destroy_null(&html_entities_lut);
+	htable_free_null(&html_entities_lut);
 }
 
 /**
@@ -1921,7 +1922,7 @@ html_decode_entity(const char * const src, const char **endptr)
 		if (!html_entities_lut) {
 			html_entities_init();
 		}
-		value = g_hash_table_lookup(html_entities_lut, name);
+		value = htable_lookup(html_entities_lut, name);
 		if (NULL == value)
 			goto failure;
 

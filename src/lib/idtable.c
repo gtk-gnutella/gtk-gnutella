@@ -32,7 +32,7 @@
 #include "common.h"
 
 #include "idtable.h"
-#include "glib-missing.h"
+#include "htable.h"
 #include "random.h"
 #include "walloc.h"
 
@@ -42,7 +42,7 @@
 #define IDTABLE_BASE (IDTABLE_MASK + 1)
 
 struct idtable {
-	GHashTable *ht;
+	htable_t *ht;
 	uint32 last_id;
 };
 
@@ -62,7 +62,7 @@ idtable_new(void)
 	WALLOC(tbl);
 	*tbl = zero_idtable;
 	tbl->last_id = (random_u32() & IDTABLE_MASK) + IDTABLE_BASE;
-	tbl->ht = g_hash_table_new(NULL, NULL);
+	tbl->ht = htable_create(HASH_KEY_SELF, 0);
 	return tbl;
 }
 
@@ -73,7 +73,7 @@ idtable_new(void)
 void
 idtable_destroy(idtable_t *tbl)
 {
-	gm_hash_table_destroy_null(&tbl->ht);
+	htable_free_null(&tbl->ht);
 	WFREE(tbl);
 }
 
@@ -85,7 +85,7 @@ idtable_destroy(idtable_t *tbl)
 bool
 idtable_is_id_used(const idtable_t *tbl, uint32 id)
 {
-	return gm_hash_table_contains(tbl->ht, uint_to_pointer(id));
+	return htable_contains(tbl->ht, uint_to_pointer(id));
 }
 
 /**
@@ -98,7 +98,7 @@ idtable_new_id(idtable_t *tbl, void *value)
 	while (idtable_is_id_used(tbl, tbl->last_id)) {
 		tbl->last_id = ((tbl->last_id + 1) & IDTABLE_MASK) + IDTABLE_BASE;
 	}
-	g_hash_table_insert(tbl->ht, uint_to_pointer(tbl->last_id), value);
+	htable_insert(tbl->ht, uint_to_pointer(tbl->last_id), value);
 	return tbl->last_id;
 }
 
@@ -106,10 +106,10 @@ idtable_new_id(idtable_t *tbl, void *value)
  * Replace the value of a give id. The id must already be in use.
  */
 void
-idtable_set_value(idtable_t *tbl, uint32 id, void * value)
+idtable_set_value(idtable_t *tbl, uint32 id, void *value)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_replace(tbl->ht, uint_to_pointer(id), value);
+	htable_insert(tbl->ht, uint_to_pointer(id), value);
 }
 
 /**
@@ -120,11 +120,10 @@ idtable_set_value(idtable_t *tbl, uint32 id, void * value)
 void *
 idtable_get_value(const idtable_t *tbl, uint32 id)
 {
-	void *key, *value;
+	void *value;
 	bool found;
 
-	key = uint_to_pointer(id);
-	found = g_hash_table_lookup_extended(tbl->ht, key, NULL, &value);
+	found = htable_lookup_extended(tbl->ht, uint_to_pointer(id), NULL, &value);
 	g_assert(found);
 	return value;
 }
@@ -140,7 +139,7 @@ idtable_get_value(const idtable_t *tbl, uint32 id)
 void *
 idtable_probe_value(const idtable_t *tbl, uint32 id)
 {
-	return g_hash_table_lookup(tbl->ht, uint_to_pointer(id));
+	return htable_lookup(tbl->ht, uint_to_pointer(id));
 }
 
 /**
@@ -150,13 +149,13 @@ void
 idtable_free_id(idtable_t *tbl, uint32 id)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_remove(tbl->ht, uint_to_pointer(id));
+	htable_remove(tbl->ht, uint_to_pointer(id));
 }
 
 uint
 idtable_ids(idtable_t *tbl)
 {
-	return g_hash_table_size(tbl->ht);
+	return htable_count(tbl->ht);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

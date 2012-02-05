@@ -57,9 +57,9 @@
 #include "if/gnet_property_priv.h"
 #include "if/core/main.h"			/* For debugging() */
 
-#include "lib/atoms.h"
 #include "lib/aging.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/bit_array.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
@@ -69,6 +69,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/stats.h"
 #include "lib/str.h"
@@ -76,6 +77,7 @@
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"			/* Must be the last header included */
 
 #define PARQ_VERSION_MAJOR	1
@@ -112,7 +114,7 @@
  */
 #define PARQ_UL_LARGE_SIZE (600 * MEBI)
 
-static GHashTable *dl_all_parq_by_id;
+static htable_t *dl_all_parq_by_id;
 
 static uint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
@@ -132,9 +134,9 @@ static GList *ul_parqs;				/**< List of all queued uploads */
 static int ul_parqs_cnt;			/**< Amount of queues */
 static hash_list_t *ul_parq_queue;	/**< To whom we need to send a QUEUE */
 static aging_table_t *ul_queue_sent;	/** Used as search table by IP addr */
-static GHashTable *ul_all_parq_by_addr_and_name;
-static GHashTable *ul_all_parq_by_addr;
-static GHashTable *ul_all_parq_by_id;
+static htable_t *ul_all_parq_by_addr_and_name;
+static htable_t *ul_all_parq_by_addr;
+static htable_t *ul_all_parq_by_id;
 static cperiodic_t *parq_dead_timer_ev;
 static cperiodic_t *parq_save_timer_ev;
 
@@ -146,7 +148,7 @@ static cperiodic_t *parq_save_timer_ev;
 static bool enable_real_passive = TRUE;
 
 
-static GHashTable *ht_banned_source;
+static htable_t *ht_banned_source;
 static GList *parq_banned_sources;
 
 struct parq_banned {
@@ -693,7 +695,7 @@ parq_dl_del_id(struct download *d)
 	g_assert(parq_dl != NULL);
 	g_assert(parq_dl->id != NULL);
 
-	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
+	htable_remove(dl_all_parq_by_id, parq_dl->id);
 	HFREE_NULL(parq_dl->id);
 
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
@@ -758,7 +760,7 @@ parq_dl_add_id(struct download *d, const char *new_id)
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 
 	parq_dl->id = h_strdup(new_id);
-	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, d);
+	htable_insert(dl_all_parq_by_id, parq_dl->id, d);
 
 	g_assert(parq_dl->id != NULL);
 }
@@ -785,8 +787,8 @@ parq_dl_reparent_id(struct download *d, struct download *cd)
 	 */
 
 	if (parq_dl->id != NULL) {
-		g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
-		g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, cd);
+		/* Replace value */
+		htable_insert(dl_all_parq_by_id, parq_dl->id, cd);
 	}
 
 	d->parq_dl = NULL;			/* No longer associated to `d' */
@@ -1154,7 +1156,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	if (ip_str != NULL)
 		*ip_str = '\0';
 
-	dl = g_hash_table_lookup(dl_all_parq_by_id, id);
+	dl = htable_lookup(dl_all_parq_by_id, id);
 
 	/*
 	 * If we were unable to locate a download by this ID, try to elect
@@ -1628,11 +1630,10 @@ parq_upload_free(struct parq_ul_queued *puq)
 		g_assert(NULL == puq->by_addr->list);
 
 		/* No more uploads from this ip, cleaning up */
-		g_hash_table_remove(ul_all_parq_by_addr, &puq->by_addr->addr);
+		htable_remove(ul_all_parq_by_addr, &puq->by_addr->addr);
 		WFREE(puq->by_addr);
 
-		g_assert(NULL == g_hash_table_lookup(ul_all_parq_by_addr,
-								&puq->remote_addr));
+		g_assert(!htable_contains(ul_all_parq_by_addr, &puq->remote_addr));
 	}
 
 	puq->by_addr = NULL;
@@ -1650,8 +1651,8 @@ parq_upload_free(struct parq_ul_queued *puq)
 
 	parq_upload_remove_relative(puq);
 
-	g_hash_table_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
-	g_hash_table_remove(ul_all_parq_by_id, &puq->id);
+	htable_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
+	htable_remove(ul_all_parq_by_id, &puq->id);
 
 	g_assert(!hash_list_contains(puq->queue->by_date_dead, puq));
 	g_assert(!hash_list_contains(puq->queue->by_rel_pos, puq));
@@ -1813,8 +1814,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 	g_assert(u->name != NULL);
 
 	if (puq->addr_and_name != NULL) {
-		g_hash_table_remove(ul_all_parq_by_addr_and_name,
-			puq->addr_and_name);
+		htable_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
 		HFREE_NULL(puq->addr_and_name);
 		puq->name = NULL;
 	}
@@ -1823,8 +1823,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 		host_addr_to_string(u->addr), u->name);
 	puq->name = strchr(puq->addr_and_name, ' ') + 1;
 
-	g_hash_table_insert(ul_all_parq_by_addr_and_name, puq->addr_and_name,
-		puq);
+	htable_insert(ul_all_parq_by_addr_and_name, puq->addr_and_name, puq);
 }
 
 /**
@@ -1916,7 +1915,7 @@ parq_upload_create(struct upload *u)
 	puq->slot_granted = 0;
 
 	/* Save into hash table so we can find the current parq ul later */
-	g_hash_table_insert(ul_all_parq_by_id, &puq->id, puq);
+	htable_insert(ul_all_parq_by_id, &puq->id, puq);
 
 	q->by_position_length++;
 	q->by_position = g_list_append(q->by_position, puq);
@@ -1936,16 +1935,14 @@ parq_upload_create(struct upload *u)
 	}
 
 	/* Check if the requesting client has already other PARQ entries */
-	puq->by_addr = g_hash_table_lookup(ul_all_parq_by_addr,
-							&puq->remote_addr);
+	puq->by_addr = htable_lookup(ul_all_parq_by_addr, &puq->remote_addr);
 
 	if (puq->by_addr == NULL) {
 		/* The requesting client has no other PARQ entries yet, create an ip
 		 * reference structure */
 		WALLOC0(puq->by_addr);
 		puq->by_addr->addr = puq->remote_addr;
-		g_hash_table_insert(ul_all_parq_by_addr,
-				&puq->by_addr->addr, puq->by_addr);
+		htable_insert(ul_all_parq_by_addr, &puq->by_addr->addr, puq->by_addr);
 		puq->by_addr->uploading = 0;
 		puq->by_addr->total = 0;
 		puq->by_addr->list = NULL;
@@ -2038,7 +2035,7 @@ parq_upload_find_id(const struct upload *u, const header_t *header)
 			
 			if (hex_to_guid(id_str, &id)) {
 				struct parq_ul_queued *puq;
-				puq = g_hash_table_lookup(ul_all_parq_by_id, &id);
+				puq = htable_lookup(ul_all_parq_by_id, &id);
 				/* In case we missed it earlier, record PARQ support */
 				if (puq != NULL)
 					puq->supports_parq = TRUE;
@@ -2181,7 +2178,7 @@ parq_upload_find(const struct upload *u)
 		concat_strings(buf, sizeof buf,
 			host_addr_to_string(u->addr), " ", u->name,
 			(void *) 0);
-		return g_hash_table_lookup(ul_all_parq_by_addr_and_name, buf);
+		return htable_lookup(ul_all_parq_by_addr_and_name, buf);
 	} else {
 		return NULL;
 	}
@@ -2290,13 +2287,13 @@ parq_add_banned_source(const host_addr_t addr, time_t delay)
 
 	g_assert(ht_banned_source != NULL);
 
-	banned = g_hash_table_lookup(ht_banned_source, &addr);
+	banned = htable_lookup(ht_banned_source, &addr);
 	if (banned == NULL) {
 		/* Host not yet banned yet, good */
 		WALLOC0(banned);
 		banned->addr = addr;
 
-		g_hash_table_insert(ht_banned_source, &banned->addr, banned);
+		htable_insert(ht_banned_source, &banned->addr, banned);
 		parq_banned_sources = g_list_append(parq_banned_sources, banned);
 	}
 
@@ -2321,12 +2318,12 @@ parq_del_banned_source(const host_addr_t addr)
 	g_assert(ht_banned_source != NULL);
 	g_assert(parq_banned_sources != NULL);
 
-	banned = g_hash_table_lookup(ht_banned_source, &addr);
+	banned = htable_lookup(ht_banned_source, &addr);
 
 	g_assert(banned != NULL);
 	g_assert(host_addr_equal(banned->addr, addr));
 
-	g_hash_table_remove(ht_banned_source, &addr);
+	htable_remove(ht_banned_source, &addr);
 	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
 
 	WFREE(banned);
@@ -5249,11 +5246,11 @@ parq_upload_load_queue(void)
 				parq_upload_next_queue(entry.last_queue_sent, puq);
 
 			/* During parq_upload_create already created an ID for us */
-			g_hash_table_remove(ul_all_parq_by_id, &puq->id);
+			htable_remove(ul_all_parq_by_id, &puq->id);
 
 			STATIC_ASSERT(sizeof entry.id == sizeof puq->id);
 			memcpy(&puq->id, &entry.id, sizeof puq->id);
-			g_hash_table_insert(ul_all_parq_by_id, &puq->id, puq);
+			htable_insert(ul_all_parq_by_id, &puq->id, puq);
 
 			if (GNET_PROPERTY(parq_debug) > 2) {
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d) ETA: %s "
@@ -5296,7 +5293,7 @@ parq_banned_source_expire(const host_addr_t addr)
 
 	g_assert(ht_banned_source != NULL);
 
-	banned = g_hash_table_lookup(ht_banned_source, &addr);
+	banned = htable_lookup(ht_banned_source, &addr);
 
 	return banned ? banned->expire : 0;
 }
@@ -5324,13 +5321,14 @@ parq_init(void)
 	header_features_add(FEATURES_DOWNLOADS,
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
-	ul_all_parq_by_addr_and_name = g_hash_table_new(g_str_hash, g_str_equal);
-	ul_all_parq_by_addr = g_hash_table_new(host_addr_hash_func,
-								host_addr_eq_func);
-	ul_all_parq_by_id = g_hash_table_new(guid_hash, guid_eq);
-	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
+	ul_all_parq_by_addr_and_name = htable_create(HASH_KEY_STRING, 0);
+	ul_all_parq_by_addr = htable_create_any(host_addr_hash_func,
+								host_addr_hash_func2, host_addr_eq_func);
+	ul_all_parq_by_id = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	dl_all_parq_by_id = htable_create(HASH_KEY_STRING, 0);
 
-	ht_banned_source = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	ht_banned_source = htable_create_any(host_addr_hash_func,
+		host_addr_hash_func2, host_addr_eq_func);
 	ul_parq_queue = hash_list_new(NULL, NULL);
 	ul_queue_sent = aging_make(QUEUE_HOST_DELAY,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
@@ -5423,10 +5421,10 @@ parq_close_pre(void)
 
 	gm_slist_free_null(&to_removeq);
 
-	gm_hash_table_destroy_null(&ul_all_parq_by_addr_and_name);
-	gm_hash_table_destroy_null(&ul_all_parq_by_addr);
-	gm_hash_table_destroy_null(&ul_all_parq_by_id);
-	gm_hash_table_destroy_null(&ht_banned_source);
+	htable_free_null(&ul_all_parq_by_addr_and_name);
+	htable_free_null(&ul_all_parq_by_addr);
+	htable_free_null(&ul_all_parq_by_id);
+	htable_free_null(&ht_banned_source);
 	gm_list_free_null(&parq_banned_sources);
 
 	hash_list_free(&ul_parq_queue);
@@ -5439,8 +5437,7 @@ parq_close_pre(void)
 void
 parq_close(void)
 {
-	g_hash_table_destroy(dl_all_parq_by_id);
-	dl_all_parq_by_id = NULL;
+	htable_free_null(&dl_all_parq_by_id);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

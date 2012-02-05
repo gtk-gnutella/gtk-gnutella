@@ -89,7 +89,9 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/header.h"
+#include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
@@ -178,7 +180,7 @@ struct mesh_info_val {
 /* Keep mesh info about uploaders for that long (unit: ms) */
 #define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
 
-static GHashTable *mesh_info;
+static htable_t *mesh_info;
 static aging_table_t *push_requests;	/**< Throttle push requests */
 
 /* Remember IP address of stalling uploads for a while */
@@ -302,6 +304,14 @@ mi_key_hash(const void *key)
 	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
+static uint
+mi_key_hash2(const void *key)
+{
+	const struct mesh_info_key *mik = key;
+
+	return binary_hash2(mik->sha1, SHA1_RAW_SIZE) ^ host_addr_hash2(mik->addr);
+}
+
 static int
 mi_key_eq(const void *a, const void *b)
 {
@@ -336,10 +346,10 @@ mi_val_free(struct mesh_info_val *miv)
  * Hash table iterator callback.
  */
 static void
-mi_free_kv(void *key, void *value, void *unused_udata)
+mi_free_kv(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	mi_key_free(key);
+	mi_key_free(deconstify_pointer(key));
 	mi_val_free(value);
 }
 
@@ -351,12 +361,12 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 {
 	struct mesh_info_key *mik = obj;
 	struct mesh_info_val *miv;
-	void *key;
+	const void *key;
 	void *value;
 	bool found;
 
 	(void) unused_cq;
-	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
+	found = htable_lookup_extended(mesh_info, mik, &key, &value);
 	miv = value;
 
 	g_assert(found);
@@ -367,7 +377,7 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 		g_debug("upload MESH info (%s/%s) discarded",
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
-	g_hash_table_remove(mesh_info, mik);
+	htable_remove(mesh_info, mik);
 	miv->cq_ev = NULL;
 	mi_free_kv(key, value, NULL);
 }
@@ -387,7 +397,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	mikey.addr = addr;
 	mikey.sha1 = sha1;
 
-	miv = g_hash_table_lookup(mesh_info, &mikey);
+	miv = htable_lookup(mesh_info, &mikey);
 
 	/*
 	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
@@ -418,7 +428,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	miv = mi_val_make((uint32) now);
 	miv->cq_ev = cq_main_insert(MESH_INFO_TIMEOUT, mi_clean, mik);
 
-	g_hash_table_insert(mesh_info, mik, miv);
+	htable_insert(mesh_info, mik, miv);
 
 	if (GNET_PROPERTY(upload_debug) > 4)
 		g_debug("new upload MESH info (%s/%s) stamp=%u",
@@ -5443,7 +5453,7 @@ upload_is_enabled(void)
 G_GNUC_COLD void
 upload_init(void)
 {
-	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
+	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
@@ -5493,8 +5503,8 @@ upload_close(void)
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
 
-	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
-	gm_hash_table_destroy_null(&mesh_info);
+	htable_foreach(mesh_info, mi_free_kv, NULL);
+	htable_free_null(&mesh_info);
 
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&push_requests);

@@ -73,7 +73,7 @@
  ***/
 
 /**
- * Hash function for use in g_hash_table_new.
+ * Hash function for use in hash tables and sets.
  */
 G_GNUC_HOT uint
 gnet_host_hash(const void *key)
@@ -90,7 +90,7 @@ gnet_host_hash(const void *key)
 /**
  * Compare function which returns TRUE if the hosts are equal.
  *
- * @note For use in g_hash_table_new.
+ * @note For use in hash tables and sets.
  */
 G_GNUC_HOT int
 gnet_host_eq(const void *v1, const void *v2)

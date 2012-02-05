@@ -39,10 +39,11 @@
 #include "watcher.h"
 #include "atoms.h"
 #include "cq.h"
-#include "glib-missing.h"
 #include "halloc.h"
+#include "htable.h"
 #include "path.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define MONITOR_PERIOD_MS	(30*1000)	/**< 30 seconds */
@@ -57,7 +58,7 @@ struct monitored {
 	void *udata;			/**< User supplied data to hand-out to callback */
 };
 
-static GHashTable *monitored;	/**< filename -> struct monitored */
+static htable_t *monitored;	/**< filename -> struct monitored */
 
 /**
  * Compute the modified time of the file on disk.
@@ -77,7 +78,7 @@ watcher_mtime(const char *filename)
  * Check each registered file for change -- hash table iterator callback.
  */
 static void
-watcher_check_mtime(void *unused_key, void *value, void *unused_udata)
+watcher_check_mtime(const void *unused_key, void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 	time_t new_mtime;
@@ -102,7 +103,7 @@ watcher_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
-	g_hash_table_foreach(monitored, watcher_check_mtime, NULL);
+	htable_foreach(monitored, watcher_check_mtime, NULL);
 
 	return TRUE;		/* Keep calling */
 }
@@ -128,10 +129,10 @@ watcher_register(const char *filename, watcher_cb_t cb, void *udata)
 	m->udata = udata;
 	m->mtime = watcher_mtime(filename);
 
-	if (g_hash_table_lookup(monitored, filename) != NULL)
+	if (htable_contains(monitored, filename))
 		watcher_unregister(filename);
 
-	gm_hash_table_insert_const(monitored, m->filename, m);
+	htable_insert(monitored, m->filename, m);
 }
 
 /**
@@ -166,11 +167,11 @@ watcher_unregister(const char *filename)
 {
 	struct monitored *m;
 
-	m = g_hash_table_lookup(monitored, filename);
+	m = htable_lookup(monitored, filename);
 
 	g_assert(m != NULL);
 
-	g_hash_table_remove(monitored, m->filename);
+	htable_remove(monitored, m->filename);
 	watcher_free(m);
 }
 
@@ -194,7 +195,7 @@ watcher_unregister_path(const file_path_t *fp)
 void
 watcher_init(void)
 {
-	monitored = g_hash_table_new(g_str_hash, g_str_equal);
+	monitored = htable_create(HASH_KEY_STRING, 0);
 	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
@@ -202,7 +203,7 @@ watcher_init(void)
  * Free monitored structure -- hash table iterator callback.
  */
 static void
-free_monitored_kv(void *unused_key, void *value, void *unused_udata)
+free_monitored_kv(const void *unused_key, void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 
@@ -217,8 +218,8 @@ free_monitored_kv(void *unused_key, void *value, void *unused_udata)
 void
 watcher_close(void)
 {
-	g_hash_table_foreach(monitored, free_monitored_kv, NULL);
-	gm_hash_table_destroy_null(&monitored);
+	htable_foreach(monitored, free_monitored_kv, NULL);
+	htable_free_null(&monitored);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

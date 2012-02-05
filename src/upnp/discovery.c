@@ -51,12 +51,11 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
-#include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/strtok.h"
@@ -69,7 +68,7 @@
 #define UPNP_MCAST_ADDR	"239.255.255.250"	/* Multicast address */
 #define UPNP_XML_MAXLEN	65536
 
-static GHashTable *pending;		/**< Pending M-SEARCHes (socket -> upnp_mcb) */
+static htable_t *pending;		/**< Pending M-SEARCHes (socket -> upnp_mcb) */
 
 enum upnp_mcb_magic { UPNP_MCB_MAGIC = 0x0fa85631U };
 
@@ -205,7 +204,7 @@ upnp_mcb_free(struct upnp_mcb *mcb, bool in_shutdown)
 	if (in_shutdown) {
 		(*mcb->cb)(NULL, mcb->arg);		/* Signal error / timeout */
 	} else {
-		g_hash_table_remove(pending, mcb->s);
+		htable_remove(pending, mcb->s);
 	}
 
 	GM_SLIST_FOREACH(mcb->upnp_rpcs, sl) {
@@ -679,7 +678,7 @@ upnp_msearch_reply(struct gnutella_socket *s, bool truncated)
 	 * Fetch UPnP discovery descriptor, attached to the socket.
 	 */
 
-	mcb = g_hash_table_lookup(pending, s);
+	mcb = htable_lookup(pending, s);
 
 	if (NULL == mcb) {
 		g_warning("unexpected UPnP reply from %s",
@@ -1036,7 +1035,7 @@ LABEL(broadcasted)
 	mcb->devices = NULL;
 	mcb->timeout_ev = cq_main_insert(timeout + 1000, upnp_dscv_timeout, mcb);
 
-	g_hash_table_insert(pending, s, mcb);
+	htable_insert(pending, s, mcb);
 	return;
 
 	/*
@@ -1052,11 +1051,11 @@ failed:
 void
 upnp_discovery_init(void)
 {
-	pending = g_hash_table_new(pointer_hash, NULL);
+	pending = htable_create(HASH_KEY_SELF, 0);
 }
 
 static void
-upnp_discovery_free_kv(void *unused_key, void *val, void *unused_x)
+upnp_discovery_free_kv(const void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;
@@ -1070,8 +1069,8 @@ upnp_discovery_free_kv(void *unused_key, void *val, void *unused_x)
 void
 upnp_discovery_close(void)
 {
-	g_hash_table_foreach(pending, upnp_discovery_free_kv, NULL);
-	gm_hash_table_destroy_null(&pending);
+	htable_foreach(pending, upnp_discovery_free_kv, NULL);
+	htable_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

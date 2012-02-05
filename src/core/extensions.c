@@ -42,11 +42,13 @@
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/mempcpy.h"
 #include "lib/stringify.h"
 #include "lib/halloc.h"
 #include "lib/log.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #include "if/gnet_property_priv.h"
@@ -351,7 +353,7 @@ rw_urn_screen(const char *word, const char **retkw)
  *** Extension name atoms.
  ***/
 
-static GHashTable *ext_names = NULL;
+static htable_t *ext_names = NULL;
 
 /**
  * Transform the name into a printable form.
@@ -368,7 +370,7 @@ ext_name_atom(const char *name)
 	 * Look whether we already known about this name.
 	 */
 
-	atom = g_hash_table_lookup(ext_names, name);
+	atom = htable_lookup(ext_names, name);
 
 	if (atom != NULL)
 		return atom;
@@ -384,7 +386,7 @@ ext_name_atom(const char *name)
 	key = wcopy(name, 1 + strlen(name));
 	atom = hex_escape(key, TRUE); /* strict escaping */
 
-	g_hash_table_insert(ext_names, key, atom);
+	htable_insert(ext_names, key, atom);
 
 	return atom;
 }
@@ -392,17 +394,15 @@ ext_name_atom(const char *name)
 /**
  * Callback for freeing entries in the `ext_names' hash table.
  */
-static bool
-ext_names_kv_free(void *key, void *value, void *unused_udata)
+static void
+ext_names_kv_free(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 
 	if (key != value)
 		HFREE_NULL(value);
 
-    wfree(key, 1 + strlen(key));
-
-	return TRUE;
+	wfree(deconstify_pointer(key), 1 + strlen(key));
 }
 
 /***
@@ -2228,7 +2228,7 @@ ext_ggep_name(ext_token_t id)
 void
 ext_init(void)
 {
-	ext_names = g_hash_table_new(g_str_hash, g_str_equal);
+	ext_names = htable_create(HASH_KEY_STRING, 0);
 
 	rw_is_sorted("ggeptable", ggeptable, G_N_ELEMENTS(ggeptable));
 	rw_is_sorted("urntable", urntable, G_N_ELEMENTS(urntable));
@@ -2240,8 +2240,8 @@ ext_init(void)
 void
 ext_close(void)
 {
-	g_hash_table_foreach_remove(ext_names, ext_names_kv_free, NULL);
-	gm_hash_table_destroy_null(&ext_names);
+	htable_foreach(ext_names, ext_names_kv_free, NULL);
+	htable_free_null(&ext_names);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

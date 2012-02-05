@@ -45,6 +45,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
+#include "lib/hset.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
 #include "lib/walloc.h"
@@ -156,7 +157,7 @@ struct rudp_con {
   enum rudp_status status;
 };
 
-static GHashTable *connections;
+static hset_t *connections;
 
 #define RUDP_DEBUG(x) \
 G_STMT_START { \
@@ -204,7 +205,7 @@ rudp_fin_reason_to_string(uint8 reason)
 }
 
 /**
- * Hash function for use in g_hash_table_new.
+ * Hash function for use in hash tables.
  */
 static uint
 rudp_con_hash(const void *key)
@@ -218,7 +219,7 @@ rudp_con_hash(const void *key)
 /**
  * Compare function which returns TRUE if the connections are equal.
  *
- * @note For use in g_hash_table_new.
+ * @note For use in hash tables.
  */
 int
 rudp_con_eq(const void *v1, const void *v2)
@@ -296,7 +297,7 @@ rudp_find(const host_addr_t addr, uint16 port, uint8 conn_id)
 	key.addr = addr;
 	key.port = port;
 	key.conn_id = conn_id;
-	return g_hash_table_lookup(connections, &key);
+	return hset_lookup(connections, &key);
 }
 
 struct rudp_con *
@@ -316,7 +317,7 @@ rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 		con->conn_id = conn_id;
 		con->in.space = 20;
 		con->out.space = 20;
-		g_hash_table_insert(connections, con, con);
+		hset_insert(connections, con);
 		return con;
 	}
 	return NULL;
@@ -1181,7 +1182,7 @@ rudp_init(void)
 {
 	uint i;
 
-	connections = g_hash_table_new(rudp_con_hash, rudp_con_eq);
+	connections = hset_create_any(rudp_con_hash, NULL, rudp_con_eq);
 	
 	for (i = 0; i < RUDP_NUM_LISTS; i++) {
 		rudp_list[i] = hash_list_new(NULL, NULL);

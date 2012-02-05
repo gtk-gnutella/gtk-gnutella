@@ -62,20 +62,22 @@
 #include "utf8_tables.h"
 
 #include "utf8.h"
-#include "atoms.h"
 #include "ascii.h"
+#include "atoms.h"
 #include "concat.h"
+#include "debug.h"
 #include "endian.h"
+#include "glib-missing.h"
 #include "halloc.h"
+#include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "path.h"
 #include "random.h"
-#include "debug.h"
-#include "glib-missing.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /**
@@ -126,7 +128,7 @@ static UConverter *conv_icu_utf8 = NULL;
 /**
  * This table records mappings "charset name" -> struct conv_to_utf8.
  */
-static GHashTable *charset2conv_to_utf8;
+static htable_t *charset2conv_to_utf8;
 
 struct conv_to_utf8 {
 	const char *name;		/**< Name of the source charset (atom) */
@@ -137,7 +139,7 @@ struct conv_to_utf8 {
 };
 
 static char *charset = NULL;	/** Name of the locale charset */
-static GHashTable *utf32_compose_roots;
+static htable_t *utf32_compose_roots;
 
 /** A single-linked list of conv_to_utf8 structs. The first one is used
  ** for converting from the primary charset. Additional charsets are optional.
@@ -1537,7 +1539,7 @@ conv_to_utf8_new(const char *cs)
 	t->is_ascii = 0 == strcmp(cs, "ASCII");
 	t->is_iso8859 = NULL != is_strprefix(cs, "ISO-8859-");
 
-	gm_hash_table_insert_const(charset2conv_to_utf8, t->name, t);
+	htable_insert(charset2conv_to_utf8, t->name, t);
 
 	return t;
 }
@@ -1581,7 +1583,7 @@ conv_to_utf8_cd_get(const char *cs)
 {
 	struct conv_to_utf8 *cu;
 
-	cu = g_hash_table_lookup(charset2conv_to_utf8, cs);
+	cu = htable_lookup(charset2conv_to_utf8, cs);
 	if (NULL == cu)
 		cu = conv_to_utf8_new(cs);
 
@@ -1781,7 +1783,7 @@ conversion_init(void)
 }
 
 static void
-conversion_free_kv(void *u_key, void *value, void *u_data)
+conversion_free_kv(const void *u_key, void *value, void *u_data)
 {
 	(void) u_key;
 	(void) u_data;
@@ -1792,8 +1794,8 @@ conversion_free_kv(void *u_key, void *value, void *u_data)
 static void
 conversion_close(void)
 {
-	g_hash_table_foreach(charset2conv_to_utf8, conversion_free_kv, NULL);
-	gm_hash_table_destroy_null(&charset2conv_to_utf8);
+	htable_foreach(charset2conv_to_utf8, conversion_free_kv, NULL);
+	htable_free_null(&charset2conv_to_utf8);
 }
 
 G_GNUC_COLD void
@@ -1845,7 +1847,7 @@ locale_init(void)
 	 * peruse the list we build here in sl_filename_charsets.
 	 */
 
-	charset2conv_to_utf8 = g_hash_table_new(g_str_hash, g_str_equal);
+	charset2conv_to_utf8 = htable_create(HASH_KEY_STRING, 0);
 	sl_filename_charsets = get_filename_charsets(charset ? charset : "ASCII");
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);
@@ -1895,8 +1897,8 @@ locale_init(void)
 /**
  * Hashtable iteration callback to free lists from utf32_compose_roots.
  */
-static bool
-compose_free_slist(void *unused_key, void *value, void *unused_udata)
+static void
+compose_free_slist(const void *unused_key, void *value, void *unused_udata)
 {
 	GSList *sl = value;
 
@@ -1904,7 +1906,6 @@ compose_free_slist(void *unused_key, void *value, void *unused_udata)
 	(void) unused_udata;
 
 	g_slist_free(sl);
-	return TRUE;
 }
 
 /**
@@ -1937,8 +1938,8 @@ locale_close(void)
 	gm_slist_free_null(&sl_filename_charsets);
 	HFREE_NULL(charset);
 
-	g_hash_table_foreach_remove(utf32_compose_roots, compose_free_slist, NULL);
-	gm_hash_table_destroy_null(&utf32_compose_roots);
+	htable_foreach(utf32_compose_roots, compose_free_slist, NULL);
+	htable_free_null(&utf32_compose_roots);
 }
 
 /**
@@ -3607,7 +3608,7 @@ utf32_compose_char(uint32 a, uint32 b)
 	void *key;
 
 	key = GUINT_TO_POINTER(a);
-	sl = g_hash_table_lookup(utf32_compose_roots, key);
+	sl = htable_lookup(utf32_compose_roots, key);
 	for (/* NOTHING */; sl; sl = g_slist_next(sl)) {
 		uint i;
 		uint32 c;
@@ -5546,10 +5547,10 @@ unicode_compose_add(uint idx)
 	void *key;
 
 	key = GUINT_TO_POINTER(utf32_nfkd_lut[idx].d[0]);
-	sl = g_hash_table_lookup(utf32_compose_roots, key);
+	sl = htable_lookup(utf32_compose_roots, key);
 	new_sl = g_slist_insert_sorted(sl, GUINT_TO_POINTER(idx), compose_root_cmp);
 	if (sl != new_sl)
-		g_hash_table_insert(utf32_compose_roots, key, new_sl);
+		htable_insert(utf32_compose_roots, key, new_sl);
 }
 
 static G_GNUC_COLD void
@@ -5613,7 +5614,7 @@ unicode_compose_init(void)
 	}
 
 	/* Create the composition lookup table */
-	utf32_compose_roots = g_hash_table_new(NULL, NULL);
+	utf32_compose_roots = htable_create(HASH_KEY_SELF, 0);
 
 	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
 		uint32 uc;

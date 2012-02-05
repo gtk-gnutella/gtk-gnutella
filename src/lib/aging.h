@@ -36,9 +36,9 @@
 #define _aging_h_
 
 #include "common.h"
-#include "glib-missing.h"	/* For GEqualFunc in glib-1.x */
 
-#include "lib/tm.h"			/* For time_delta_t */
+#include "hash.h"		/* For hash_func_t and hash_eq_t */
+#include "tm.h"			/* For time_delta_t */
 
 typedef struct aging aging_table_t;
 
@@ -49,7 +49,7 @@ typedef void (*aging_free_t)(void *key, void *value);
  */
 
 aging_table_t *aging_make(int delay,
-	GHashFunc hash, GEqualFunc eq, aging_free_t kfree);
+	hash_func_t hash, hash_eq_t eq, aging_free_t kfree);
 
 void aging_destroy(aging_table_t **);
 

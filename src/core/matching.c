@@ -33,6 +33,7 @@
 #include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
 #include "lib/pattern.h"
 #include "lib/random.h"
 #include "lib/stringify.h"	/* For hex_escape() */
@@ -402,13 +403,13 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 {
 	size_t i, len;
 	struct st_entry *entry;
-	GHashTable *seen_keys;
+	hset_t *seen_keys;
 
 	len = utf8_char_count(s);
 	if ((size_t) -1 == len || len < 2)
 		return FALSE;
 
-	seen_keys = g_hash_table_new(NULL, NULL);
+	seen_keys = hset_create(HASH_KEY_SELF, 0);
 
 	WALLOC(entry);
 	entry->string = atom_str_get(s);
@@ -420,11 +421,10 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 		int key = st_key(table, &entry->string[i]);
 
 		/* don't insert item into same bin twice */
-		if (g_hash_table_lookup(seen_keys, GINT_TO_POINTER(key)))
+		if (hset_contains(seen_keys, int_to_pointer(key)))
 			continue;
 
-		g_hash_table_insert(seen_keys, GINT_TO_POINTER(key),
-			GINT_TO_POINTER(1));
+		hset_insert(seen_keys, int_to_pointer(key));
 
 		g_assert(key < table->nbins);
 		if (table->bins[key] == NULL)
@@ -435,7 +435,7 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 	bin_insert_item(&table->all_entries, entry);
 	table->nentries++;
 
-	g_hash_table_destroy(seen_keys);
+	hset_free_null(&seen_keys);
 	return TRUE;
 }
 

@@ -48,11 +48,13 @@ typedef struct _GtkColumnChooser GtkColumnChooser;
 
 typedef struct _GtkColumnChooserClass  GtkColumnChooserClass;
 
+struct htable;
+
 struct _GtkColumnChooser {
     GtkMenu menu;
 
-    GtkWidget * widget;
-    GHashTable * col_map;
+    GtkWidget *widget;
+    struct htable *col_map;
     gboolean closed;
 };
 

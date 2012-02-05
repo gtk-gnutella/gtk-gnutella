@@ -52,6 +52,7 @@
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
+#include "hset.h"
 #include "parse.h"
 #include "random.h"
 #include "stringify.h"
@@ -1130,7 +1131,7 @@ resolve_hostname(const char *host, enum net_type net)
 {
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
-	GHashTable *ht;
+	hset_t *hs;
 	GSList *sl_addr;
 	int error;
 
@@ -1147,7 +1148,7 @@ resolve_hostname(const char *host, enum net_type net)
 	}
 
 	sl_addr = NULL;
-	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	hs = hset_create_any(host_addr_hash_func, NULL, host_addr_eq_func);
 	for (ai = ai0; ai; ai = ai->ai_next) {
 		host_addr_t addr;
 
@@ -1156,15 +1157,15 @@ resolve_hostname(const char *host, enum net_type net)
 
 		addr = addrinfo_to_addr(ai);
 
-		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
 			sl_addr = g_slist_prepend(sl_addr, addr_copy);
-			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
+			hset_insert(hs, addr_copy);
 		}
 	}
-	g_hash_table_destroy(ht);
+	hset_free_null(&hs);
 
 	if (ai0)
 		freeaddrinfo(ai0);
@@ -1174,7 +1175,7 @@ resolve_hostname(const char *host, enum net_type net)
 #else /* !HAS_GETADDRINFO */
 {
 	const struct hostent *he;
-	GHashTable *ht;
+	hset_t *hs;
 	GSList *sl_addr;
 	int af;
 	size_t i;
@@ -1216,7 +1217,7 @@ resolve_hostname(const char *host, enum net_type net)
 	}
 	
 	sl_addr = NULL;
-	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	hs = hset_create_any(host_addr_hash_func, NULL, host_addr_eq_func);
 	for (i = 0; NULL != he->h_addr_list[i]; i++) {
 		host_addr_t addr;
 
@@ -1235,15 +1236,15 @@ resolve_hostname(const char *host, enum net_type net)
 			g_assert_not_reached();
 		}
 
-		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
 			sl_addr = g_slist_prepend(sl_addr, addr_copy);
-			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
+			hset_insert(hs, addr_copy);
 		}
 	}
-	g_hash_table_destroy(ht);
+	hset_free_null(&hs);
 
 	return g_slist_reverse(sl_addr);
 }

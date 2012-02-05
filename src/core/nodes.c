@@ -103,11 +103,14 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hash.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iovec.h"
-#include "lib/log.h"			/* For log_printable() */
 #include "lib/listener.h"
+#include "lib/log.h"			/* For log_printable() */
 #include "lib/nid.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
@@ -184,8 +187,8 @@ const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
 static GSList *sl_up_nodes;
-static GHashTable *nodes_by_id;
-static GHashTable *nodes_by_guid;
+static htable_t *nodes_by_id;
+static htable_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
 static gnutella_node_t *dht_node;
@@ -203,13 +206,13 @@ static cpattern_t *pat_f2ft_1;
 static const char gtkg_vendor[] = "gtk-gnutella/";
 
 /* These two contain connected and connectING(!) nodes. */
-static GHashTable *ht_connected_nodes   = NULL;
+static htable_t *ht_connected_nodes   = NULL;
 static uint32 total_nodes_connected;
 
 static void *no_metadata;
 #define NO_METADATA		(no_metadata)	/**< No metadata for host */
 
-static GHashTable *unstable_servent = NULL;
+static htable_t *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
 
 static aging_table_t *tcp_crawls;
@@ -368,49 +371,36 @@ node_fire_node_flags_changed(gnutella_node_t *n)
  * Free atom string key from hash table.
  */
 static void
-free_key(void *key, void *unused_val, void *unused_x)
+free_key(void *key, void *unused_x)
 {
-	(void) unused_val;
 	(void) unused_x;
 	atom_str_free(key);
-}
-
-/**
- * Free atom string key from hash table and return TRUE.
- */
-static bool
-free_key_true(void *key, void *unused_val, void *unused_x)
-{
-	(void) unused_val;
-	(void) unused_x;
-	atom_str_free(key);
-	return TRUE;
 }
 
 /**
  * Clear hash table whose keys are atoms and values ignored.
  */
 static void
-string_table_clear(GHashTable *ht)
+string_table_clear(struct hash *h)
 {
-	g_assert(ht != NULL);
+	g_assert(h != NULL);
 
-	g_hash_table_foreach_remove(ht, free_key_true, NULL);
+	hash_foreach(h, free_key, NULL);
+	hash_clear(h);
 }
 
 /**
  * Dispose of hash table whose keys are atoms and values ignored.
  */
 static void
-string_table_free(GHashTable **ht_ptr)
+string_table_free(struct hash **h_ptr)
 {
-	g_assert(ht_ptr);
-	if (*ht_ptr) {
-		GHashTable *ht = *ht_ptr;
+	struct hash *h = *h_ptr;
 
-		g_hash_table_foreach(ht, free_key, NULL);
-		g_hash_table_destroy(ht);
-		*ht_ptr = NULL;
+	if (h != NULL) {
+		hash_foreach(h, free_key, NULL);
+		hash_free(h);
+		*h_ptr = NULL;
 	}
 }
 
@@ -511,24 +501,25 @@ node_ht_connected_nodes_has(const host_addr_t addr, uint16 port)
 	gnet_host_t  host;
 
 	gnet_host_set(&host, addr, port);
-	return NULL != g_hash_table_lookup(ht_connected_nodes, &host);
+	return NULL != htable_lookup(ht_connected_nodes, &host);
 }
 
 /**
  * Check whether we already have the host.
+ *
+ * @return the original host structure at this IP:port, or NULL if unknown.
  */
 static gnet_host_t *
 node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
 {
 	gnet_host_t host;
     bool found;
-    void *orig_host, *metadata;
+    const void *orig_host;
 
 	gnet_host_set(&host, addr, port);
-	found = g_hash_table_lookup_extended(ht_connected_nodes, &host,
-				&orig_host, &metadata);
+	found = htable_lookup_extended(ht_connected_nodes, &host, &orig_host, NULL);
 
-    return found ? orig_host : NULL;
+    return found ? deconstify_pointer(orig_host) : NULL;
 }
 
 /**
@@ -543,8 +534,7 @@ node_ht_connected_nodes_add(const host_addr_t addr, uint16 port)
     if (node_ht_connected_nodes_has(addr, port))
         return;
 
-	g_hash_table_insert(ht_connected_nodes,
-		gnet_host_new(addr, port), NO_METADATA);
+	htable_insert(ht_connected_nodes, gnet_host_new(addr, port), NO_METADATA);
 }
 
 /**
@@ -558,7 +548,7 @@ node_ht_connected_nodes_remove(const host_addr_t addr, uint16 port)
     orig_host = node_ht_connected_nodes_find(addr, port);
 
     if (orig_host) {
-		g_hash_table_remove(ht_connected_nodes, orig_host);
+		htable_remove(ht_connected_nodes, orig_host);
 		gnet_host_free(orig_host);
 	}
 
@@ -1025,7 +1015,7 @@ node_error_cleanup(void *unused_x)
 		if (GNET_PROPERTY(node_debug) > 1)
 			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 
-		g_hash_table_remove(unstable_servent, bad_node->vendor);
+		htable_remove(unstable_servent, bad_node->vendor);
 		unstable_servents = g_slist_remove(unstable_servents, bad_node);
 
 		atom_str_free_null(&bad_node->vendor);
@@ -1515,13 +1505,13 @@ node_timer(time_t now)
 			delta_time(now, n->qrelayed_created) >=
 				(time_delta_t) GNET_PROPERTY(node_queries_half_life)
 		) {
-			GHashTable *new;
+			hset_t *new;
 
 			if (n->qrelayed_old != NULL) {
 				new = n->qrelayed_old;
-				string_table_clear(new);
+				string_table_clear(hset_cast_to_hash(new));
 			} else
-				new = g_hash_table_new(g_str_hash, g_str_equal);
+				new = hset_create(HASH_KEY_STRING, 0);
 
 			n->qrelayed_old = n->qrelayed;
 			n->qrelayed = new;
@@ -1553,7 +1543,7 @@ node_id_new(const struct gnutella_node *n)
 
 	node_check(n);
 	node_id = nid_new_counter(&counter);
-	gm_hash_table_insert_const(nodes_by_id, node_id, n);
+	htable_insert_const(nodes_by_id, node_id, n);
 	return node_id;
 }
 
@@ -1578,10 +1568,10 @@ node_init(void)
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
-	unstable_servent   = g_hash_table_new(NULL, NULL);
-    ht_connected_nodes = g_hash_table_new(gnet_host_hash, gnet_host_eq);
-	nodes_by_id        = g_hash_table_new(nid_hash, nid_equal);
-	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
+	unstable_servent   = htable_create(HASH_KEY_SELF, 0);
+    ht_connected_nodes = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	nodes_by_id        = htable_create_any(nid_hash, NULL, nid_equal);
+	nodes_by_guid      = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
@@ -1887,7 +1877,7 @@ node_real_remove(gnutella_node_t *n)
     node_fire_node_removed(n);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
-	g_hash_table_remove(nodes_by_id, NODE_ID(n));
+	htable_remove(nodes_by_id, NODE_ID(n));
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -2107,11 +2097,11 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		pproxy_set_remove(proxies, n->proxy_addr, n->proxy_port);
 		pdht_prox_publish_if_changed();
 	}
-	string_table_free(&n->qseen);
-	string_table_free(&n->qrelayed);
-	string_table_free(&n->qrelayed_old);
+	string_table_free(htable_ptr_cast_to_hash(&n->qseen));
+	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed));
+	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed_old));
 	if (n->guid) {
-		g_hash_table_remove(nodes_by_guid, n->guid);
+		htable_remove(nodes_by_guid, n->guid);
 		atom_guid_free_null(&n->guid);
 	}
 	if (n->attrs & NODE_A_CAN_HSEP)
@@ -2219,7 +2209,7 @@ node_is_bad(struct gnutella_node *n)
 	if (!GNET_PROPERTY(node_monitor_unstable_servents))
 		return NODE_BAD_OK;	/* No monitoring of unstable servents */
 
-	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	bad_client = htable_lookup(unstable_servent, n->vendor);
 
 	if (bad_client == NULL)
 		return NODE_BAD_OK;
@@ -2301,13 +2291,12 @@ node_mark_bad_vendor(struct gnutella_node *n)
 
 	g_assert(n->vendor != NULL);
 
-	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	bad_client = htable_lookup(unstable_servent, n->vendor);
 	if (bad_client == NULL) {
 		WALLOC0(bad_client);
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
-		gm_hash_table_insert_const(unstable_servent,
-			bad_client->vendor, bad_client);
+		htable_insert(unstable_servent, bad_client->vendor, bad_client);
 		unstable_servents = g_slist_prepend(unstable_servents, bad_client);
 	}
 
@@ -4006,10 +3995,10 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (settings_is_ultra()) {
 		if (NODE_IS_LEAF(n))
-			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
+			n->qseen = htable_create(HASH_KEY_STRING, 0);
 		else {
 			if (GNET_PROPERTY(node_watch_similar_queries)) {
-				n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
+				n->qrelayed = hset_create(HASH_KEY_STRING, 0);
 				n->qrelayed_created = tm_time();
 			}
 		}
@@ -5931,7 +5920,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guid_t guid;
 
 		if (hex_to_guid(field, &guid)) {
-			if (gm_hash_table_contains(nodes_by_guid, &guid)) {
+			if (htable_contains(nodes_by_guid, &guid)) {
 				node_send_error(n, 409, "Already connected to this GUID");
 				node_remove(n, _("Already connected to this GUID"));
 				return;
@@ -9437,13 +9426,12 @@ node_close(void)
 	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
 
-		g_hash_table_remove(unstable_servent, bad_node->vendor);
+		htable_remove(unstable_servent, bad_node->vendor);
 		atom_str_free_null(&bad_node->vendor);
 		WFREE(bad_node);
 	}
 	gm_slist_free_null(&unstable_servents);
-
-	gm_hash_table_destroy_null(&unstable_servent);
+	htable_free_null(&unstable_servent);
 
 	/* Clean up node info */
 	while (sl_nodes) {
@@ -9498,9 +9486,9 @@ node_close(void)
 
 	HFREE_NULL(payload_inflate_buffer);
 
-    gm_hash_table_destroy_null(&ht_connected_nodes);
-	gm_hash_table_destroy_null(&nodes_by_id);
-	gm_hash_table_destroy_null(&nodes_by_guid);
+    htable_free_null(&ht_connected_nodes);
+	htable_free_null(&nodes_by_id);
+	htable_free_null(&nodes_by_guid);
 
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;
@@ -9538,7 +9526,7 @@ node_by_guid(const struct guid *guid)
 	struct gnutella_node *n;
 
 	g_return_val_if_fail(guid, NULL);
-	n = g_hash_table_lookup(nodes_by_guid, guid);
+	n = htable_lookup(nodes_by_guid, guid);
 	if (n) {
 		node_check(n);
 		g_assert(!NODE_USES_UDP(n));
@@ -9685,7 +9673,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 	}
 
 	n->guid = atom_guid_get(guid);
-	gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
+	htable_insert(nodes_by_guid, n->guid, n);
 	return FALSE;
 	
 error:
@@ -10714,7 +10702,7 @@ node_by_id(const struct nid *node_id)
 	gnutella_node_t *n;
 	
 	g_return_val_if_fail(!node_id_self(node_id), NULL);
-	n = g_hash_table_lookup(nodes_by_id, node_id);
+	n = htable_lookup(nodes_by_id, node_id);
 	if (n) {
 		node_check(n);
 	}

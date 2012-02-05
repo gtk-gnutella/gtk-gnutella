@@ -40,11 +40,13 @@
 #include "namesize.h"
 #include "spam.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -57,8 +59,8 @@
  * Hash tables where we collect SHA1 we already own or wish to ignore and
  * filename/filesizes we likewise wish to ignore.
  */
-static GHashTable *by_sha1;			/**< SHA1s to ignore */
-static GHashTable *by_namesize;		/**< By filename + filesize */
+static htable_t *by_sha1;		/**< SHA1s to ignore */
+static hset_t *by_namesize;		/**< By filename + filesize */
 
 /*
  * We expect the initial ignore_sha1 file to be in the startup directory.
@@ -138,8 +140,8 @@ open_append(const char *file)
 G_GNUC_COLD void
 ignore_init(void)
 {
-	by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
-	by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
+	by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	by_namesize = hset_create_any(namesize_hash, NULL, namesize_eq);
 
 	ignore_sha1_load(ignore_sha1, &ignore_sha1_mtime);
 	ignore_sha1_load(done_sha1, NULL);
@@ -188,7 +190,7 @@ sha1_parse(FILE *f, const char *file)
 			continue;
 		}
 
-		if (g_hash_table_lookup(by_sha1, &sha1))
+		if (htable_contains(by_sha1, &sha1))
 			continue;
 
 		/*
@@ -202,8 +204,7 @@ sha1_parse(FILE *f, const char *file)
 		}
 
 		p = &ign_tmp[SHA1_BASE32_SIZE + 2];
-		gm_hash_table_insert_const(by_sha1,
-			atom_sha1_get(&sha1), atom_str_get(p));
+		htable_insert_const(by_sha1, atom_sha1_get(&sha1), atom_str_get(p));
 	}
 }
 
@@ -274,11 +275,11 @@ namesize_parse(FILE *f, const char *file)
 		nsk.name = deconstify_char(q);
 		nsk.size = size;
 
-		if (g_hash_table_lookup(by_namesize, &nsk))
+		if (hset_contains(by_namesize, &nsk))
 			continue;
 
 		ns = namesize_make(q, size);
-		g_hash_table_insert(by_namesize, ns, GINT_TO_POINTER(1));
+		hset_insert(by_namesize, ns);
 	}
 }
 
@@ -308,7 +309,7 @@ ignore_namesize_load(const char *file, time_t *stamp)
 const char *
 ignore_sha1_filename(const struct sha1 *sha1)
 {
-	return g_hash_table_lookup(by_sha1, sha1);
+	return htable_lookup(by_sha1, sha1);
 }
 
 
@@ -344,7 +345,7 @@ ignore_is_requested(const char *filename, filesize_t size,
 
 	if (sha1) {
 		const shared_file_t *sf;
-		if (g_hash_table_lookup(by_sha1, sha1))
+		if (htable_contains(by_sha1, sha1))
 			return IGNORE_SHA1;
 		if (spam_sha1_check(sha1))
 			return IGNORE_SPAM;
@@ -357,7 +358,7 @@ ignore_is_requested(const char *filename, filesize_t size,
 		ns.name = deconstify_char(filename);
 		ns.size = size;
 
-		if (g_hash_table_lookup(by_namesize, &ns))
+		if (hset_contains(by_namesize, &ns))
 			return IGNORE_NAMESIZE;
 	}
 
@@ -372,10 +373,8 @@ ignore_add_sha1(const char *file, const struct sha1 *sha1)
 {
 	g_assert(sha1);
 
-	if (!g_hash_table_lookup(by_sha1, sha1)) {
-		gm_hash_table_insert_const(by_sha1,
-			atom_sha1_get(sha1), atom_str_get(file));
-	}
+	if (!htable_contains(by_sha1, sha1))
+		htable_insert_const(by_sha1, atom_sha1_get(sha1), atom_str_get(file));
 
 	/*
 	 * Write to file even if duplicate SHA1, in order to help us
@@ -403,11 +402,11 @@ ignore_add_filesize(const char *file, filesize_t size)
 	nsk.name = deconstify_char(file);
 	nsk.size = size;
 
-	if (!g_hash_table_lookup(by_namesize, &nsk)) {
+	if (!hset_contains(by_namesize, &nsk)) {
 		namesize_t *ns;
 
 		ns = namesize_make(file, size);
-		g_hash_table_insert(by_namesize, ns, GINT_TO_POINTER(1));
+		hset_insert(by_namesize, ns);
 	}
 
 	/*
@@ -452,33 +451,29 @@ ignore_timer(time_t unused_now)
 }
 
 /**
- * Remove iterator callback.
+ * Table iterator callback.
  *
- * Free a key/value pair from the by_sha1 hash.
+ * Free a key/value pair from the by_sha1 table.
  */
-static bool
-free_sha1_kv(void *key, void *value, void *unused_udata)
+static void
+free_sha1_kv(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 
 	atom_sha1_free(key);
 	atom_str_free(value);
-
-	return TRUE;
 }
 
 /**
- * Remove iterator callback.
+ * Set iterator callback.
  *
- * Free a key/value pair from the by_namesize hash.
+ * Free an entry from the by_namesize set.
  */
-static bool
-free_namesize_kv(void *key, void *unused_value, void *unused_udata)
+static void
+free_namesize_kv(const void *key, void *unused_udata)
 {
-	(void) unused_value;
 	(void) unused_udata;
-	namesize_free(key);
-	return TRUE;
+	namesize_free(deconstify_pointer(key));
 }
 
 /**
@@ -487,11 +482,11 @@ free_namesize_kv(void *key, void *unused_value, void *unused_udata)
 G_GNUC_COLD void
 ignore_close(void)
 {
-	g_hash_table_foreach_remove(by_sha1, free_sha1_kv, NULL);
-	gm_hash_table_destroy_null(&by_sha1);
+	htable_foreach(by_sha1, free_sha1_kv, NULL);
+	htable_free_null(&by_sha1);
 
-	g_hash_table_foreach_remove(by_namesize, free_namesize_kv, NULL);
-	gm_hash_table_destroy_null(&by_namesize);
+	hset_foreach(by_namesize, free_namesize_kv, NULL);
+	hset_free_null(&by_namesize);
 
 	if (sha1_out != NULL) {
 		fclose(sha1_out);

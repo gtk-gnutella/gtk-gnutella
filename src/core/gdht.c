@@ -53,6 +53,7 @@
 #include "lib/bstr.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/sha1.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -63,8 +64,8 @@
 /**
  * Hash table holding all the pending lookups by KUID.
  */
-static GHashTable *sha1_lookups;	/* KUID -> struct sha1_lookup * */
-static GHashTable *guid_lookups;	/* KUID -> struct guid_lookup * */
+static htable_t *sha1_lookups;	/* KUID -> struct sha1_lookup * */
+static htable_t *guid_lookups;	/* KUID -> struct guid_lookup * */
 
 typedef enum {
 	SHA1_LOOKUP_MAGIC = 0x5fd660bfU
@@ -172,7 +173,7 @@ gdht_free_sha1_lookup(struct sha1_lookup *slk, bool do_remove)
 	sha1_lookup_check(slk);
 
 	if (do_remove)
-		g_hash_table_remove(sha1_lookups, slk->id);
+		htable_remove(sha1_lookups, slk->id);
 
 	kuid_atom_free(slk->id);
 	atom_guid_free(slk->fi_guid);
@@ -189,7 +190,7 @@ gdht_free_guid_lookup(struct guid_lookup *glk, bool do_remove)
 
 	if (do_remove) {
 		download_proxy_dht_lookup_done(glk->guid);
-		g_hash_table_remove(guid_lookups, glk->id);
+		htable_remove(guid_lookups, glk->id);
 	}
 
 	kuid_atom_free(glk->id);
@@ -595,7 +596,7 @@ gdht_find_sha1(fileinfo_t *fi)
 	 * request.
 	 */
 
-	if (g_hash_table_lookup(sha1_lookups, slk->id)) {
+	if (htable_contains(sha1_lookups, slk->id)) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT already has pending search for %s (%s) for %s",
 				kuid_to_hex_string(slk->id),
@@ -609,7 +610,7 @@ gdht_find_sha1(fileinfo_t *fi)
 		g_debug("DHT will be searching ALOC for %s (%s) for %s",
 			kuid_to_hex_string(slk->id), kuid_to_string(slk->id), fi->pathname);
 
-	gm_hash_table_insert_const(sha1_lookups, slk->id, slk);
+	htable_insert(sha1_lookups, slk->id, slk);
 	file_info_dht_query_queued(fi);
 
 	ulq_find_value(slk->id, DHT_VT_ALOC, 
@@ -1018,7 +1019,7 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, uint16 port)
 	 * request.
 	 */
 
-	if (g_hash_table_lookup(guid_lookups, glk->id)) {
+	if (htable_contains(guid_lookups, glk->id)) {
 		if (GNET_PROPERTY(dht_lookup_debug))
 			g_warning("DHT already has pending search for %s (GUID %s) for %s",
 			kuid_to_hex_string(glk->id),
@@ -1033,7 +1034,7 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, uint16 port)
 			kuid_to_hex_string(glk->id),
 			guid_to_string(guid), host_addr_port_to_string(addr, port));
 
-	gm_hash_table_insert_const(guid_lookups, glk->id, glk);
+	htable_insert(guid_lookups, glk->id, glk);
 
 	/*
 	 * We're looking for ANY value here, but we really expect PROX or NOPE
@@ -1060,15 +1061,15 @@ gdht_find_guid(const guid_t *guid, const host_addr_t addr, uint16 port)
 void
 gdht_init(void)
 {
-	sha1_lookups = g_hash_table_new(kuid_hash, kuid_eq);
-	guid_lookups = g_hash_table_new(kuid_hash, kuid_eq);
+	sha1_lookups = htable_create(HASH_KEY_FIXED, KUID_RAW_SIZE);
+	guid_lookups = htable_create(HASH_KEY_FIXED, KUID_RAW_SIZE);
 }
 
 /**
  * Hash table iterator to free a struct sha1_lookup
  */
 static void
-free_sha1_lookups_kv(void *unused_key, void *val, void *unused_x)
+free_sha1_lookups_kv(const void *unused_key, void *val, void *unused_x)
 {
 	struct sha1_lookup *slk = val;
 
@@ -1082,7 +1083,7 @@ free_sha1_lookups_kv(void *unused_key, void *val, void *unused_x)
  * Hash table iterator to free a struct guid_lookup
  */
 static void
-free_guid_lookups_kv(void *unused_key, void *val, void *unused_x)
+free_guid_lookups_kv(const void *unused_key, void *val, void *unused_x)
 {
 	struct guid_lookup *glk = val;
 
@@ -1098,11 +1099,11 @@ free_guid_lookups_kv(void *unused_key, void *val, void *unused_x)
 void
 gdht_close(void)
 {
-	g_hash_table_foreach(sha1_lookups, free_sha1_lookups_kv, NULL);
-	gm_hash_table_destroy_null(&sha1_lookups);
+	htable_foreach(sha1_lookups, free_sha1_lookups_kv, NULL);
+	htable_free_null(&sha1_lookups);
 
-	g_hash_table_foreach(guid_lookups, free_guid_lookups_kv, NULL);
-	gm_hash_table_destroy_null(&guid_lookups);
+	htable_foreach(guid_lookups, free_guid_lookups_kv, NULL);
+	htable_free_null(&guid_lookups);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

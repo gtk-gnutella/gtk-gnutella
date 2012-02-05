@@ -89,6 +89,8 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
@@ -198,8 +200,8 @@ typedef struct search_ctrl {
 	 * Keep a record of nodes we've sent this search w/ this muid to.
 	 */
 
-	GHashTable *sent_nodes;		/**< Sent node by ip:port */
-	GHashTable *sent_node_ids;	/**< IDs of nodes to which we sent query */
+	hset_t *sent_nodes;			/**< Sent node by ip:port */
+	hset_t *sent_node_ids;		/**< IDs of nodes to which we sent query */
 
 	wq_event_t *new_node_wait;	/**< Waiting for new node connections */
 	watchdog_t *activity;		/**< Monitoring queries/hits activity */
@@ -238,7 +240,7 @@ static GSList *sl_passive_ctrl;		/**< Only passive searches */
  * The keys are not atoms but directly the MUID objects allocated and held
  * in the search's set of MUIDs.
  */
-static GHashTable *search_by_muid;
+static htable_t *search_by_muid;
 
 static idtable_t *search_handle_map;
 static query_hashvec_t *query_hashvec;
@@ -251,7 +253,7 @@ static query_hashvec_t *query_hashvec;
  * and focus on the "most active" ones, i.e. attempt to keep alive the ones
  * we see hits for (LRU-type caching).
  */
-static GHashTable *muid_to_query_map;	/* MUID -> query_desc */
+static htable_t *muid_to_query_map;		/* MUID -> query_desc */
 static hash_list_t *query_muids;		/* list of MUID, to manage LRU cache */
 
 /**
@@ -262,7 +264,7 @@ struct query_desc {
 	unsigned media_mask;	/* The requested media mask (0 if none) */
 };
 
-static GHashTable *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
+static htable_t *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
 
 /**
  * The legacy "What's New?" query string.
@@ -281,11 +283,11 @@ static void
 query_muid_map_init(void)
 {
 	/*
-	 * Because we use atoms as keys, we can use pointer_hash_func() instead
+	 * Because we use atoms as keys, we can use self-hashing keys instead
 	 * of guid_hash(), which is more efficient.  And we can use direct
 	 * pointer comparison for keys as well.
 	 */
-	muid_to_query_map = g_hash_table_new(pointer_hash, NULL);
+	muid_to_query_map = htable_create(HASH_KEY_SELF, 0);
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
 
@@ -307,8 +309,8 @@ query_muid_map_remove_oldest(void)
 
 		hash_list_remove(query_muids, old_muid);
 
-		old_qd = g_hash_table_lookup(muid_to_query_map, old_muid);
-		g_hash_table_remove(muid_to_query_map, old_muid);
+		old_qd = htable_lookup(muid_to_query_map, old_muid);
+		htable_remove(muid_to_query_map, old_muid);
 
 		atom_guid_free_null(&old_muid);
 		atom_str_free_null(&old_qd->query);
@@ -325,7 +327,7 @@ query_muid_map_close(void)
 	while (query_muid_map_remove_oldest())
 		continue;
 
-	gm_hash_table_destroy_null(&muid_to_query_map);
+	htable_free_null(&muid_to_query_map);
 	hash_list_free(&query_muids);
 }
 
@@ -411,7 +413,7 @@ record_query_string(const guid_t *muid, const char *query, unsigned media_types)
 
 			key = atom_guid_get(muid);
 			hash_list_append(query_muids, key);
-			gm_hash_table_insert_const(muid_to_query_map, key, qd);
+			htable_insert(muid_to_query_map, key, qd);
 		}
 	}
 	query_muid_map_garbage_collect();
@@ -443,7 +445,7 @@ map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
 	 */
 
 	if (hash_list_find(query_muids, muid, &key)) {
-		struct query_desc *qd = g_hash_table_lookup(muid_to_query_map, key);
+		struct query_desc *qd = htable_lookup(muid_to_query_map, key);
 		g_assert(qd != NULL);
 
 		/*
@@ -455,7 +457,7 @@ map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
 		*media_mask = qd->media_mask;
 		return qd->query;
 	} else {
-		search_ctrl_t *sch = g_hash_table_lookup(search_by_muid, muid);
+		search_ctrl_t *sch = htable_lookup(search_by_muid, muid);
 		if (sch != NULL && sch->query != NULL) {
 			*media_mask = sch->media_type;
 			return sch->query;
@@ -651,11 +653,10 @@ sent_node_compare(const void *a, const void *b)
 }
 
 static void
-search_free_sent_node(void *key, void *unused_value, void *unused_udata)
+search_free_sent_node(const void *key, void *unused_udata)
 {
-	gnet_host_t *host = key;
+	const gnet_host_t *host = key;
 
-	(void) unused_value;
 	(void) unused_udata;
 
 	atom_host_free(host);
@@ -664,15 +665,15 @@ search_free_sent_node(void *key, void *unused_value, void *unused_udata)
 static void
 search_free_sent_nodes(search_ctrl_t *sch)
 {
-	g_hash_table_foreach(sch->sent_nodes, search_free_sent_node, NULL);
-	gm_hash_table_destroy_null(&sch->sent_nodes);
+	hset_foreach(sch->sent_nodes, search_free_sent_node, NULL);
+	hset_free_null(&sch->sent_nodes);
 }
 
 static void
 search_reset_sent_nodes(search_ctrl_t *sch)
 {
-	search_free_sent_nodes(sch);
-	sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
+	hset_foreach(sch->sent_nodes, search_free_sent_node, NULL);
+	hset_clear(sch->sent_nodes);
 }
 
 static void
@@ -681,8 +682,7 @@ search_mark_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 	gnet_host_t sd;
 
 	gnet_host_set(&sd, n->addr, n->port);
-	gm_hash_table_insert_const(sch->sent_nodes,
-		atom_host_get(&sd), uint_to_pointer(1));
+	hset_insert(sch->sent_nodes, atom_host_get(&sd));
 }
 
 static void
@@ -708,37 +708,35 @@ search_mark_query_sent(search_ctrl_t *sch)
  *** Management of the "sent_node_ids" hash table.
  ***/
 
-static bool
-free_node_id(void *key, void *value, void *unused_udata)
+static void
+free_node_id(const void *key, void *unused_udata)
 {
 	const struct nid *node_id = key;
 
-	g_assert(key == value);
 	(void) unused_udata;
 	nid_unref(node_id);
-	return TRUE;
 }
 
 static void
 search_free_sent_node_ids(search_ctrl_t *sch)
 {
-	g_hash_table_foreach_remove(sch->sent_node_ids, free_node_id, NULL);
-	gm_hash_table_destroy_null(&sch->sent_node_ids);
+	hset_foreach(sch->sent_node_ids, free_node_id, NULL);
+	hset_free_null(&sch->sent_node_ids);
 }
 
 static void
 search_reset_sent_node_ids(search_ctrl_t *sch)
 {
-	search_free_sent_node_ids(sch);
-	sch->sent_node_ids = g_hash_table_new(nid_hash, nid_equal);
+	hset_foreach(sch->sent_node_ids, free_node_id, NULL);
+	hset_clear(sch->sent_node_ids);
 }
 
 static void
 search_mark_sent_to_node_id(search_ctrl_t *sch, const struct nid *node_id)
 {
-	if (NULL == g_hash_table_lookup(sch->sent_node_ids, node_id)) {
+	if (!hset_contains(sch->sent_node_ids, node_id)) {
 		const struct nid *key = nid_ref(node_id);
-		gm_hash_table_insert_const(sch->sent_node_ids, key, key);
+		hset_insert(sch->sent_node_ids, key);
 	}
 }
 
@@ -751,7 +749,7 @@ search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 	gnet_host_t sd;
 
 	gnet_host_set(&sd, n->addr, n->port);
-	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
+	return hset_contains(sch->sent_nodes, &sd);
 }
 
 /**
@@ -1010,7 +1008,7 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 static void
 search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	GHashTable *ht = g_hash_table_new(pointer_hash, NULL);
+	htable_t *ht = htable_create(HASH_KEY_SELF, 0);
 	GSList *sl;
 	unsigned dups = 0;
 
@@ -1021,13 +1019,13 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 
 		rc = sl->data;
 		key = ulong_to_pointer(rc->file_index);
-		if (g_hash_table_lookup(ht, key)) {
+		if (htable_contains(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
 			rc->flags |= SR_SPAM;
 			dups++;
 			search_log_spam(n, rs, "duplicate file index %u", rc->file_index);
 		} else {
-			gm_hash_table_insert_const(ht, key, rc);
+			htable_insert(ht, key, rc);
 		}
 	}
 
@@ -1041,20 +1039,20 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 		if (NULL == key)
 			continue;
 
-		if (g_hash_table_lookup(ht, key)) {
+		if (htable_contains(ht, key)) {
 			rs->status |= ST_DUP_SPAM;
 			rc->flags |= SR_SPAM;
 			dups++;
 			search_log_spam(n, rs, "duplicate SHA1 %s", sha1_base32(rc->sha1));
 		} else {
-			gm_hash_table_insert_const(ht, key, rc);
+			htable_insert(ht, key, rc);
 		}
 	}
 
 	if (rs->status & ST_DUP_SPAM)
 		gnet_stats_count_general(GNR_SPAM_DUP_HITS, 1);
 
-	g_hash_table_destroy(ht);
+	htable_free_null(&ht);
 
 	if (dups != 0) {
 		search_log_spam(n, rs, "--> %u duplicate%s",
@@ -2940,7 +2938,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 		if (query != NULL && media_mask != 0) {
 			GSList *sl;
 			size_t matching = 0;
-			bool own_query = gm_hash_table_contains(search_by_muid, muid);
+			bool own_query = htable_contains(search_by_muid, muid);
 
 			GM_SLIST_FOREACH(rs->records, sl) {
 				gnet_record_t *rc = sl->data;
@@ -3851,7 +3849,7 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 {
 	uint count;
 
-	g_assert(NULL == g_hash_table_lookup(search_by_muid, muid));
+	g_assert(!htable_contains(search_by_muid, muid));
 
 	if (sch->muids) {		/* If this isn't the first muid -- requerying */
 		search_reset_sent_nodes(sch);
@@ -3859,7 +3857,7 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 	}
 
 	sch->muids = g_slist_prepend(sch->muids, muid);
-	g_hash_table_insert(search_by_muid, muid, sch);
+	htable_insert(search_by_muid, muid, sch);
 
 	/*
 	 * If we got more than MUID_MAX entries in the list, chop last items.
@@ -3883,7 +3881,7 @@ search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 			last = g_slist_nth(sch->muids, count - 1);
 			g_assert(!guess_is_search_muid(last->data));
 		}
-		g_hash_table_remove(search_by_muid, last->data);
+		htable_remove(search_by_muid, last->data);
 		wfree(last->data, GUID_RAW_SIZE);
 		sch->muids = g_slist_remove_link(sch->muids, last);
 		g_slist_free_1(last);
@@ -3971,7 +3969,7 @@ search_new_muid(bool initial)
 			guid_query_muid(muid, initial);
 		}
 
-		if (NULL == g_hash_table_lookup(search_by_muid, muid))
+		if (!htable_contains(search_by_muid, muid))
 			return muid;
 	}
 
@@ -4153,16 +4151,14 @@ search_send_query_status(search_ctrl_t *sch,
 /**
  * Send an unsolicited "Query Status Response" to the specified node ID
  * about the results we kept so far for the relevant search.
- * -- hash table iterator callback
+ * -- hash set iterator callback
  */
 static void
-search_send_status(void *key, void *unused_value, void *udata)
+search_send_status(const void *key, void *udata)
 {
 	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
 	uint16 kept;
-
-	(void) unused_value;
 
 	/*
 	 * The 0xffff value is a magic number telling them to stop the search,
@@ -4180,21 +4176,20 @@ search_send_status(void *key, void *unused_value, void *udata)
 static void
 search_update_results(search_ctrl_t *sch)
 {
-	g_hash_table_foreach(sch->sent_node_ids, search_send_status, sch);
+	hset_foreach(sch->sent_node_ids, search_send_status, sch);
 }
 
 /**
  * Send an unsolicited "Query Status Response" to the specified node ID
  * informing it that the search was closed.
- * -- hash table iterator callback
+ * -- hash set iterator callback
  */
 static void
-search_send_closed(void *key, void *unused_value, void *udata)
+search_send_closed(const void *key, void *udata)
 {
 	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
 
-	(void) unused_value;
 	search_send_query_status(sch, node_id, CLOSED_SEARCH);
 }
 
@@ -4206,7 +4201,7 @@ search_notify_closed(gnet_search_t sh)
 {
 	search_ctrl_t *sch = search_find_by_handle(sh);
 
-	g_hash_table_foreach(sch->sent_node_ids, search_send_closed, sch);
+	hset_foreach(sch->sent_node_ids, search_send_closed, sch);
 }
 
 /**
@@ -4262,9 +4257,9 @@ search_gc(void *unused_cq)
 G_GNUC_COLD void
 search_init(void)
 {
-	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
+	search_by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	search_handle_map = idtable_new();
-	sha1_to_search = g_hash_table_new(sha1_hash, sha1_eq);
+	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 	oob_reply_acks_init();
@@ -4287,8 +4282,8 @@ search_shutdown(void)
 
 	g_assert(idtable_ids(search_handle_map) == 0);
 
-	gm_hash_table_destroy_null(&search_by_muid);
-	gm_hash_table_destroy_null(&sha1_to_search);
+	htable_free_null(&search_by_muid);
+	htable_free_null(&sha1_to_search);
 	idtable_destroy(search_handle_map);
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
@@ -4573,7 +4568,7 @@ search_results(gnutella_node_t *n, int *results)
 	{
 		search_ctrl_t *sch;
 
-		sch = g_hash_table_lookup(search_by_muid,
+		sch = htable_lookup(search_by_muid,
 					gnutella_header_get_muid(&n->header));
 		max_items = sch ? search_max_results_for_ui(sch) : 0;
 
@@ -4803,9 +4798,9 @@ search_notify_sent(gnet_search_t sh, const struct nid *node_id)
 }
 
 static bool
-search_remove_sha1_key(void *key, void *value, void *data)
+search_remove_sha1_key(const void *key, void *value, void *data)
 {
-	struct sha1 *sha1 = key;
+	const struct sha1 *sha1 = key;
 	gnet_search_t sh = pointer_to_uint(value);
 	search_ctrl_t *sch = data;
 
@@ -4828,7 +4823,7 @@ search_dissociate_all_sha1(search_ctrl_t *sch)
 	if (0 == sch->sha1_downloaded)
 		return;
 
-	g_hash_table_foreach_remove(sha1_to_search, search_remove_sha1_key, sch);
+	htable_foreach_remove(sha1_to_search, search_remove_sha1_key, sch);
 
 	g_assert(0 == sch->sha1_downloaded);
 }
@@ -4843,14 +4838,14 @@ struct search_sha1_context {
  * for the search.
  */
 static void
-search_add_associated_sha1(void *key, void *value, void *data)
+search_add_associated_sha1(const void *key, void *value, void *data)
 {
-	struct sha1 *sha1 = key;
+	const struct sha1 *sha1 = key;
 	gnet_search_t sh = pointer_to_uint(value);
 	struct search_sha1_context *ctx = data;
 
 	if (sh == ctx->sh) {
-		ctx->sl = g_slist_prepend(ctx->sl, sha1);
+		ctx->sl = gm_slist_prepend_const(ctx->sl, sha1);
 	}
 }
 
@@ -4870,8 +4865,8 @@ search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 	search_ctrl_check(sch);
 	
 	if (sbool_get(sch->track_sha1)) {
-		if (!gm_hash_table_contains(sha1_to_search, sha1)) {
-			gm_hash_table_insert_const(sha1_to_search, atom_sha1_get(sha1),
+		if (!htable_contains(sha1_to_search, sha1)) {
+			htable_insert(sha1_to_search, atom_sha1_get(sha1),
 				uint_to_pointer(sh));
 			sch->sha1_downloaded++;
 
@@ -4894,11 +4889,11 @@ search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1)
 void
 search_dissociate_sha1(const struct sha1 *sha1)
 {
-	if (gm_hash_table_contains(sha1_to_search, sha1)) {
+	if (htable_contains(sha1_to_search, sha1)) {
 		gnet_search_t sh;
 		search_ctrl_t *sch;
 
-		sh = pointer_to_uint(g_hash_table_lookup(sha1_to_search, sha1));
+		sh = pointer_to_uint(htable_lookup(sha1_to_search, sha1));
 		sch = search_probe_by_handle(sh);
 
 		search_ctrl_check(sch);
@@ -4914,7 +4909,7 @@ search_dissociate_sha1(const struct sha1 *sha1)
 		}
 
 		sch->sha1_downloaded--;
-		g_hash_table_remove(sha1_to_search, sha1);
+		htable_remove(sha1_to_search, sha1);
 		atom_sha1_free(sha1);
 
 		/*
@@ -4952,7 +4947,7 @@ search_associated_sha1(gnet_search_t sh)
 	ctx.sh = sh;
 	ctx.sl = NULL;
 
-	g_hash_table_foreach(sha1_to_search, search_add_associated_sha1, &ctx);
+	htable_foreach(sha1_to_search, search_add_associated_sha1, &ctx);
 
 	return ctx.sl;
 }
@@ -5017,7 +5012,7 @@ search_close(gnet_search_t sh)
 			GSList *sl;
 
 			for (sl = sch->muids; sl; sl = g_slist_next(sl)) {
-				g_hash_table_remove(search_by_muid, sl->data);
+				htable_remove(search_by_muid, sl->data);
 				wfree(sl->data, GUID_RAW_SIZE);
 			}
 			gm_slist_free_null(&sch->muids);
@@ -5343,8 +5338,8 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 		}
 
 		sch->sent_nodes =
-			g_hash_table_new(sent_node_hash_func, sent_node_compare);
-		sch->sent_node_ids = g_hash_table_new(nid_hash, nid_equal);
+			hset_create_any(sent_node_hash_func, NULL, sent_node_compare);
+		sch->sent_node_ids = hset_create_any(nid_hash, NULL, nid_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
@@ -5497,7 +5492,7 @@ search_get_kept_results_by_muid(const struct guid *muid, uint32 *kept)
 {
 	search_ctrl_t *sch;
 
-	sch = g_hash_table_lookup(search_by_muid, muid);
+	sch = htable_lookup(search_by_muid, muid);
 
 	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
 
@@ -5512,7 +5507,7 @@ search_running_guess(const struct guid *muid)
 {
 	search_ctrl_t *sch;
 
-	sch = g_hash_table_lookup(search_by_muid, muid);
+	sch = htable_lookup(search_by_muid, muid);
 
 	g_assert(sch == NULL || sbool_get(sch->active)); /* No MUID if not active */
 
@@ -5589,7 +5584,7 @@ search_oob_pending_results(
 	 * indication.
 	 */
 
-	sch = g_hash_table_lookup(search_by_muid, muid);
+	sch = htable_lookup(search_by_muid, muid);
 
 	if (!search_get_kept_results(sch, &kept)) {
 
@@ -6110,7 +6105,7 @@ search_request_listener_emit(
  * matches). So we keep track of what has been added in `shared_files'.
  */
 struct query_context {
-	GHashTable *shared_files;
+	hset_t *shared_files;
 	GSList *files;				/**< List of shared_file_t that match */
 	int found;
 	unsigned media_mask;		/**< If non-zero, which media types they want */
@@ -6126,7 +6121,7 @@ share_query_context_make(unsigned media_mask, bool partials)
 	struct query_context *ctx;
 
 	WALLOC0(ctx);
-	ctx->shared_files = g_hash_table_new(pointer_hash, NULL);
+	ctx->shared_files = hset_create(HASH_KEY_SELF, 0);
 	ctx->media_mask = media_mask;
 	ctx->partials = booleanize(partials);
 
@@ -6143,7 +6138,7 @@ share_query_context_free(struct query_context *ctx)
 	 * Don't free the `files' list, as we passed it to the query hit builder.
 	 */
 
-	gm_hash_table_destroy_null(&ctx->shared_files);
+	hset_free_null(&ctx->shared_files);
 	WFREE(ctx);
 }
 
@@ -6155,7 +6150,7 @@ share_query_context_free(struct query_context *ctx)
 static inline bool
 shared_file_already_found(struct query_context *ctx, const shared_file_t *sf)
 {
-	return NULL != g_hash_table_lookup(ctx->shared_files, sf);
+	return hset_contains(ctx->shared_files, sf);
 }
 
 /**
@@ -6164,7 +6159,7 @@ shared_file_already_found(struct query_context *ctx, const shared_file_t *sf)
 static inline void
 shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
 {
-	gm_hash_table_insert_const(ctx->shared_files, sf, sf);
+	hset_insert(ctx->shared_files, sf);
 }
 
 /**
@@ -7121,7 +7116,8 @@ search_request_preprocess(struct gnutella_node *n,
 		time_t now = tm_time();
 		time_t seen = 0;
 		bool found;
-		void *orig_key, *orig_val;
+		const void *orig_key;
+		void *orig_val;
 		const void *atom;
 		char *query = search;
 		time_delta_t threshold = GNET_PROPERTY(node_requery_threshold);
@@ -7133,10 +7129,9 @@ search_request_preprocess(struct gnutella_node *n,
 			query = stmp_1;
 		}
 
-		found = g_hash_table_lookup_extended(n->qseen, query,
-					&orig_key, &orig_val);
+		found = htable_lookup_extended(n->qseen, query, &orig_key, &orig_val);
 		if (found) {
-			seen = (time_t) GPOINTER_TO_INT(orig_val);
+			seen = (time_t) pointer_to_int(orig_val);
 			atom = orig_key;
 		} else {
 			atom = NULL;
@@ -7154,18 +7149,18 @@ search_request_preprocess(struct gnutella_node *n,
 		if (!found)
 			atom = atom_str_get(query);
 
-		gm_hash_table_insert_const(n->qseen, atom,
+		htable_insert(n->qseen, atom,
 			uint_to_pointer((unsigned) delta_time(now, (time_t) 0)));
 	}
 
 	/*
-	 * For point #2, there are two tables to consider: `qrelayed_old' and
-	 * `qrelayed'.  Presence in any of the tables is sufficient, but we
-	 * only insert in the "new" table `qrelayed'.
+	 * For point #2, there are two sets to consider: `qrelayed_old' and
+	 * `qrelayed'.  Presence in any of the sets is sufficient, but we
+	 * only insert in the "new" set `qrelayed'.
 	 */
 
 	if (n->qrelayed != NULL) {					/* Check #2 */
-		void *found = NULL;
+		bool found = FALSE;
 
 		g_assert(!NODE_IS_LEAF(n));
 
@@ -7185,12 +7180,12 @@ search_request_preprocess(struct gnutella_node *n,
 				sha1_base32(last_sha1_digest));
 
 		if (n->qrelayed_old != NULL)
-			found = g_hash_table_lookup(n->qrelayed_old, stmp_1);
+			found = hset_contains(n->qrelayed_old, stmp_1);
 
-		if (found == NULL)
-			found = g_hash_table_lookup(n->qrelayed, stmp_1);
+		if (!found)
+			found = hset_contains(n->qrelayed, stmp_1);
 
-		if (found != NULL) {
+		if (found) {
 			if (GNET_PROPERTY(query_debug) > 10) {
 				g_warning("QUERY dropping \"%s%s\" (hops=%u, TTL=%u) "
 					"already seen recently from %s",
@@ -7205,8 +7200,7 @@ search_request_preprocess(struct gnutella_node *n,
 			goto drop;		/* Drop the message! */
 		}
 
-		gm_hash_table_insert_const(n->qrelayed,
-			atom_str_get(stmp_1), int_to_pointer(1));
+		hset_insert(n->qrelayed, atom_str_get(stmp_1));
 	}
 
 skip_throttling:

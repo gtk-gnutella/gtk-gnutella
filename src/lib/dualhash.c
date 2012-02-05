@@ -37,7 +37,8 @@
 #include "common.h"
 
 #include "dualhash.h"
-#include "glib-missing.h"
+#include "hashing.h"
+#include "htable.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -49,10 +50,10 @@ enum dualhash_magic { DUALHASH_MAGIC = 0x46d7b44d };
  */
 struct dualhash {
 	enum dualhash_magic magic;
-	GHashTable *kht;			/**< Hash table from the keys viewpoint */
-	GHashTable *vht;			/**< Hash table from the values viewpoint */
-	GEqualFunc key_eq_func;
-	GEqualFunc val_eq_func;
+	htable_t *kht;			/**< Hash table from the keys' viewpoint */
+	htable_t *vht;			/**< Hash table from the values' viewpoint */
+	hash_eq_t key_eq_func;
+	hash_eq_t val_eq_func;
 };
 
 static inline void
@@ -75,15 +76,21 @@ dualhash_check(const struct dualhash * const dh)
  * @return the new dual hash table.
  */
 dualhash_t *
-dualhash_new(GHashFunc key_hash_func, GEqualFunc key_eq_func,
-	GHashFunc val_hash_func, GEqualFunc val_eq_func)
+dualhash_new(hash_func_t key_hash_func, hash_eq_t key_eq_func,
+	hash_func_t val_hash_func, hash_eq_t val_eq_func)
 {
 	dualhash_t *dh;
 
+	if (NULL == key_hash_func)
+		key_hash_func = pointer_hash;
+
+	if (NULL == val_hash_func)
+		val_hash_func = pointer_hash;
+
 	WALLOC(dh);
 	dh->magic = DUALHASH_MAGIC;
-	dh->kht = g_hash_table_new(key_hash_func, key_eq_func);
-	dh->vht = g_hash_table_new(val_hash_func, val_eq_func);
+	dh->kht = htable_create_any(key_hash_func, NULL, key_eq_func);
+	dh->vht = htable_create_any(val_hash_func, NULL, val_eq_func);
 	dh->key_eq_func = key_eq_func;
 	dh->val_eq_func = val_eq_func;
 
@@ -98,8 +105,8 @@ dualhash_destroy(dualhash_t *dh)
 {
 	dualhash_check(dh);
 
-	gm_hash_table_destroy_null(&dh->kht);
-	gm_hash_table_destroy_null(&dh->vht);
+	htable_free_null(&dh->kht);
+	htable_free_null(&dh->vht);
 	dh->magic = 0;
 	WFREE(dh);
 }
@@ -128,25 +135,25 @@ dualhash_insert_key(dualhash_t *dh, const void *key, const void *value)
 	void *held_value;
 
 	dualhash_check(dh);
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
-	if (g_hash_table_lookup_extended(dh->kht, key, NULL, &held_value)) {
+	if (htable_lookup_extended(dh->kht, key, NULL, &held_value)) {
 		if ((*dh->val_eq_func)(held_value, value)) {
 			return;		/* Key/value tuple already present in the table */
 		} else {
-			g_hash_table_remove(dh->vht, held_value);
+			htable_remove(dh->vht, held_value);
 		}
 	}
-	if (g_hash_table_lookup_extended(dh->vht, value, NULL, &held_key)) {
+	if (htable_lookup_extended(dh->vht, value, NULL, &held_key)) {
 		/* Keys cannot be equal, or we'd have the key/value tuple already */
 		g_assert(!(*dh->key_eq_func)(held_key, key));
-		g_hash_table_remove(dh->kht, held_key);
+		htable_remove(dh->kht, held_key);
 	}
 
-	gm_hash_table_replace_const(dh->kht, key, value);
-	gm_hash_table_replace_const(dh->vht, value, key);
+	htable_insert_const(dh->kht, key, value);
+	htable_insert_const(dh->vht, value, key);
 
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 }
 
 /**
@@ -172,15 +179,15 @@ dualhash_remove_key(dualhash_t *dh, const void *key)
 	bool existed = FALSE;
 
 	dualhash_check(dh);
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
-	if (g_hash_table_lookup_extended(dh->kht, key, NULL, &held_value)) {
-		g_hash_table_remove(dh->kht, key);
-		g_hash_table_remove(dh->vht, held_value);
+	if (htable_lookup_extended(dh->kht, key, NULL, &held_value)) {
+		htable_remove(dh->kht, key);
+		htable_remove(dh->vht, held_value);
 		existed = TRUE;
 	}
 
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
 	return existed;
 }
@@ -197,15 +204,15 @@ dualhash_remove_value(dualhash_t *dh, const void *value)
 	bool existed = FALSE;
 
 	dualhash_check(dh);
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
-	if (g_hash_table_lookup_extended(dh->vht, value, NULL, &held_key)) {
-		g_hash_table_remove(dh->vht, value);
-		g_hash_table_remove(dh->kht, held_key);
+	if (htable_lookup_extended(dh->vht, value, NULL, &held_key)) {
+		htable_remove(dh->vht, value);
+		htable_remove(dh->kht, held_key);
 		existed = TRUE;
 	}
 
-	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
+	g_assert(htable_count(dh->kht) == htable_count(dh->vht));
 
 	return existed;
 }
@@ -218,7 +225,7 @@ dualhash_contains_key(const dualhash_t *dh, const void *key)
 {
 	dualhash_check(dh);
 
-	return gm_hash_table_contains(dh->kht, key);
+	return htable_contains(dh->kht, key);
 }
 
 /**
@@ -229,7 +236,7 @@ dualhash_contains_value(const dualhash_t *dh, const void *value)
 {
 	dualhash_check(dh);
 
-	return gm_hash_table_contains(dh->vht, value);
+	return htable_contains(dh->vht, value);
 }
 
 /**
@@ -240,7 +247,7 @@ dualhash_lookup_key(const dualhash_t *dh, const void *key)
 {
 	dualhash_check(dh);
 
-	return g_hash_table_lookup(dh->kht, key);
+	return htable_lookup(dh->kht, key);
 }
 
 /**
@@ -251,7 +258,7 @@ dualhash_lookup_value(const dualhash_t *dh, const void *value)
 {
 	dualhash_check(dh);
 
-	return g_hash_table_lookup(dh->vht, value);
+	return htable_lookup(dh->vht, value);
 }
 
 /**
@@ -259,11 +266,11 @@ dualhash_lookup_value(const dualhash_t *dh, const void *value)
  */
 bool
 dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
-	void *okey, void *oval)
+	void **okey, void **oval)
 {
 	dualhash_check(dh);
 
-	return g_hash_table_lookup_extended(dh->kht, key, okey, oval);
+	return htable_lookup_extended(dh->kht, key, (const void **) okey, oval);
 }
 
 /**
@@ -271,11 +278,11 @@ dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
  */
 bool
 dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
-	void *okey, void *oval)
+	void **okey, void **oval)
 {
 	dualhash_check(dh);
 
-	return g_hash_table_lookup_extended(dh->vht, value, oval, okey);
+	return htable_lookup_extended(dh->vht, value, (const void **) oval, okey);
 }
 
 /**
@@ -288,9 +295,9 @@ dualhash_count(const dualhash_t *dh)
 
 	dualhash_check(dh);
 
-	count = g_hash_table_size(dh->kht);
+	count = htable_count(dh->kht);
 
-	g_assert(g_hash_table_size(dh->vht) == count);
+	g_assert(htable_count(dh->vht) == count);
 
 	return count;
 }

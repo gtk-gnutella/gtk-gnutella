@@ -59,6 +59,7 @@
 
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/wordvec.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -73,19 +74,16 @@ struct term_counts {
 
 static guint stat_count;
 
-static GHashTable *stat_hash = NULL;
+static htable_t *stat_hash = NULL;
 
-static gboolean delete_hash_entry(gpointer key, gpointer val, gpointer data);
-static void empty_hash_table(void);
-static gboolean stats_hash_to_clist(
-	gpointer key, gpointer value, gpointer userdata);
-
-static gboolean
-delete_hash_entry(gpointer key, gpointer val, gpointer unused_data)
+static bool
+delete_hash_entry(const void *key, void *val, void *unused_data)
 {
+	void *p = deconstify_pointer(key);
+
 	(void) unused_data;
 	/* free the key str (was strdup'd below) */
-	G_FREE_NULL(key);
+	G_FREE_NULL(p);
 	G_FREE_NULL(val);
 	return TRUE;
 }
@@ -180,7 +178,7 @@ empty_hash_table(void)
 	if (!stat_hash)
 		return;
 
-	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
+	htable_foreach_remove(stat_hash, delete_hash_entry, NULL);
 }
 
 /**
@@ -192,7 +190,7 @@ empty_hash_table(void)
  *
  */
 static gboolean
-stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
+stats_hash_to_clist(const void *key, void *value, void *unused_udata)
 {
 	gchar *text[3];
 	gchar period_tmp[32];
@@ -213,7 +211,8 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 		(1.0 * val->total_cnt / (val->periods + 2.0)) * 100 <
 			GUI_PROPERTY(search_stats_delcoef)
 	) {
-		G_FREE_NULL(key);
+		void *p = deconstify_pointer(key);
+		G_FREE_NULL(p);
 		G_FREE_NULL(val);
 		return TRUE;
 	}
@@ -226,7 +225,7 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 	gm_snprintf(period_tmp, sizeof period_tmp, "%8.8d", (int) val->period_cnt);
 	gm_snprintf(total_tmp, sizeof total_tmp, "%8.8d", (int) val->total_cnt);
 
-	text[0] = key;
+	text[0] = deconstify_pointer(key);
 	text[1] = period_tmp;
 	text[2] = total_tmp;
 
@@ -283,14 +282,14 @@ search_stats_tally(const word_vec_t * vec)
 			return;
 	}
 
-	val = g_hash_table_lookup(stat_hash, vec->word);
+	val = htable_lookup(stat_hash, vec->word);
 	if (val) {
 		val->period_cnt++;
 	} else {
 		key = g_strdup(vec->word);
 		val = g_malloc0(sizeof *val);
 		val->period_cnt = vec->amount;
-		g_hash_table_insert(stat_hash, key, val);
+		htable_insert(stat_hash, key, val);
 	}
 }
 
@@ -358,7 +357,7 @@ search_stats_gui_update_display(void)
 
 	gtk_clist_clear(GTK_CLIST(clist_search_stats));
 	/* insert the hash table contents into the sorted clist */
-	g_hash_table_foreach_remove(stat_hash, stats_hash_to_clist, NULL);
+	htable_foreach_remove(stat_hash, stats_hash_to_clist, NULL);
 	gtk_clist_sort(GTK_CLIST(clist_search_stats));
 
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
@@ -401,7 +400,7 @@ search_stats_gui_init(void)
 	gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
 	clist_restore_widths(clist, PROP_SEARCH_STATS_COL_WIDTHS);
 
-	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	stat_hash = htable_create(HASH_KEY_STRING, 0);
 	main_gui_add_timer(search_stats_gui_timer);
 }
 
@@ -412,7 +411,8 @@ search_stats_gui_shutdown(void)
 		GTK_CLIST(gui_main_window_lookup("clist_search_stats")),
 		PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
-    gm_hash_table_destroy_null(&stat_hash);
+    empty_hash_table();
+    htable_free_null(&stat_hash);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -64,6 +64,8 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
@@ -604,8 +606,8 @@ search_gui_close_search(search_t *search)
 
 	filter_close_search(search);
 
-	gm_hash_table_destroy_null(&search->dups);
-	gm_hash_table_destroy_null(&search->parents);
+	hset_free_null(&search->dups);
+	htable_free_null(&search->parents);
 
     guc_search_close(search->search_handle);
 	WFREE(search);
@@ -979,12 +981,12 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 static gboolean
 search_gui_result_is_dup(search_t *sch, record_t *rc)
 {
-	gpointer orig_key;
+	const void *orig_key;
 
 	record_check(rc);
 
-	if (g_hash_table_lookup_extended(sch->dups, rc, &orig_key, NULL)) {
-		record_t *old_rc = orig_key;
+	if (hset_contains_extended(sch->dups, rc, &orig_key)) {
+		record_t *old_rc = deconstify_pointer(orig_key);
 
 		/*
 		 * Actually, if the index is the only thing that changed,
@@ -2052,7 +2054,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		}
 		sch->items++;
 
-		g_hash_table_insert(sch->dups, rc, rc);
+		hset_insert(sch->dups, rc);
 		search_gui_ref_record(rc);
 
 		if (GUI_COLOR_MARKED != color)
@@ -2973,7 +2975,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
  
 	search->search_handle = sch_id;
-	search->dups = g_hash_table_new(search_gui_hash_func,
+	search->dups = hset_create_any(search_gui_hash_func, NULL,
 						search_gui_hash_key_compare);
 
 	search_gui_filter_new(search, query->rules);

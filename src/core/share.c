@@ -72,6 +72,8 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/listener.h"
 #include "lib/mime_type.h"
 #include "lib/str.h"
@@ -135,9 +137,9 @@ static const struct special_file specials[] = {
 /**
  * Maps special names (e.g. "/favicon.ico") to the shared_file_t structure.
  */
-static GHashTable *special_names;
+static htable_t *special_names;
 
-static GHashTable *extensions;	/* Shared filename extensions */
+static hset_t *extensions;	/* Shared filename extensions */
 static GSList *shared_dirs;
 static hash_list_t *partial_files;
 static cevent_t *share_qrp_rebuild_ev;
@@ -154,7 +156,7 @@ static uint64 files_scanned;	/* Amount of files shared in the library */
 static uint64 bytes_scanned;
 static GSList *shared_files;
 static search_table_t *search_table;
-static GHashTable *file_basenames;
+static htable_t *file_basenames;
 static search_table_t *partial_table;
 static shared_file_t **file_table;			/* Sorted by mtime */
 static shared_file_t **sorted_file_table;	/* Sorted by name */
@@ -302,7 +304,7 @@ static struct {
  * Hash table yielding the media type flags from a MIME type.
  * Built dynamically from media_type_map[].
  */
-static GHashTable *share_media_types;
+static htable_t *share_media_types;
 
 /**
  * Compare binary SHA1 hashes.
@@ -361,7 +363,7 @@ shared_file_deindex(shared_file_t *sf)
 
 	if (SHARE_F_BASENAME & sf->flags) {
 		if (file_basenames != NULL) {
-			g_hash_table_remove(file_basenames, sf->name_nfc);
+			htable_remove(file_basenames, sf->name_nfc);
 		}
 	}
 	sf->flags &= ~SHARE_F_BASENAME;
@@ -599,13 +601,12 @@ share_special_init(void)
 {
 	uint i;
 
-	special_names = g_hash_table_new(g_str_hash, g_str_equal);
+	special_names = htable_create(HASH_KEY_STRING, 0);
 
 	for (i = 0; i < G_N_ELEMENTS(specials); i++) {
 		shared_file_t *sf = share_special_load(&specials[i]);
 		if (sf != NULL)
-			g_hash_table_insert(special_names,
-				deconstify_char(specials[i].path), shared_file_ref(sf));
+			htable_insert(special_names, specials[i].path, shared_file_ref(sf));
 	}
 }
 
@@ -624,7 +625,7 @@ shared_special(const char *path)
 	shared_file_t *sf;
 	filestat_t file_stat;
 
-	sf = g_hash_table_lookup(special_names, path);
+	sf = htable_lookup(special_names, path);
 
 	if (sf == NULL)
 		return NULL;
@@ -698,7 +699,7 @@ shared_file_get_index(const char *filename)
 {
 	uint idx;
 
-	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, filename));
+	idx = pointer_to_uint(htable_lookup(file_basenames, filename));
 	if (idx == 0 || idx == FILENAME_CLASH)
 		return 0;
 
@@ -733,9 +734,8 @@ shared_file_by_name(const char *filename)
 }
 
 static void
-free_extensions_helper(void *key, void *unused_value, void *unused_data)
+free_extensions_helper(const void *key, void *unused_data)
 {
-	(void) unused_value;
 	(void) unused_data;
 	atom_str_free(key);
 }
@@ -746,8 +746,8 @@ static void
 free_extensions(void)
 {
 	if (extensions) {
-		g_hash_table_foreach(extensions, free_extensions_helper, NULL);
-		gm_hash_table_destroy_null(&extensions);
+		hset_foreach(extensions, free_extensions_helper, NULL);
+		hset_free_null(&extensions);
 	}
 }
 
@@ -762,7 +762,7 @@ parse_extensions(const char *str)
 	uint i;
 
 	free_extensions();
-	extensions = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
+	extensions = hset_create_any(ascii_strcase_hash, NULL, ascii_strcase_eq);
 
 	for (i = 0; exts[i]; i++) {
 		char c;
@@ -780,9 +780,9 @@ parse_extensions(const char *str)
 					break;
 			}
 
-			if (*s && NULL == g_hash_table_lookup(extensions, s)) {
+			if (*s && !hset_contains(extensions, s)) {
 				const void *key = atom_str_get(s);
-				gm_hash_table_insert_const(extensions, key, key);
+				hset_insert(extensions, key);
 			}
 		}
 	}
@@ -994,8 +994,8 @@ shared_file_valid_extension(const char *filename)
 		return FALSE;
 
 	if (
-		1 == g_hash_table_size(extensions) &&
-		g_hash_table_lookup(extensions, "--all--")
+		1 == hset_count(extensions) &&
+		hset_contains(extensions, "--all--")
     ) {
 		/*
 		 * An extension "--all--" matches all files, even those that don't
@@ -1018,9 +1018,8 @@ shared_file_valid_extension(const char *filename)
 		 * All valid extensions start with '.'.  Matching is case-insensitive
 		 */
 
-		if (g_hash_table_lookup(extensions, filename_ext)) {
+		if (hset_contains(extensions, filename_ext))
 			return TRUE;
-		}
 	}
 
 	return FALSE;
@@ -1184,8 +1183,8 @@ struct recursive_scan {
 	slist_t *shared_files;		/* list of struct shared_file */
 	slist_t *partial_files;		/* list of struct shared_file */
 	slist_iter_t *iter;			/* list iterator */
-	GHashTable *words;			/* records words making up filenames, for QRP */
-	GHashTable *basenames;		/* known file basenames */
+	htable_t *words;			/* records words making up filenames, for QRP */
+	htable_t *basenames;		/* known file basenames */
 	GSList *shared;				/* the new shared_files variable */
 	shared_file_t **files;		/* the new file_table, sorted by mtime */
 	shared_file_t **sorted;		/* the new sorted_file_table, sorted by name */
@@ -1220,8 +1219,8 @@ recursive_scan_new(const GSList *base_dirs)
 	ctx->sub_dirs = slist_new();
 	ctx->shared_files = slist_new();
 	ctx->partial_files = slist_new();
-	ctx->words = g_hash_table_new(g_str_hash, g_str_equal);
-	ctx->basenames = g_hash_table_new(g_str_hash, g_str_equal);
+	ctx->words = htable_create(HASH_KEY_STRING, 0);
+	ctx->basenames = htable_create(HASH_KEY_STRING, 0);
 	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
 		slist_append(ctx->base_dirs, deconstify_char(dir));
@@ -1287,7 +1286,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 		slist_free_all(&ctx->partial_files, recursive_sf_unref);
 		slist_iter_free(&ctx->iter);
 
-		gm_hash_table_destroy_null(&ctx->basenames);
+		htable_free_null(&ctx->basenames);
 		st_free(&ctx->search_tb);
 		st_free(&ctx->partial_tb);
 		atom_str_free_null(&ctx->base_dir);
@@ -1337,7 +1336,7 @@ share_free(void)
 	GSList *sl;
 
 	st_free(&search_table);
-	gm_hash_table_destroy_null(&file_basenames);
+	htable_free_null(&file_basenames);
 
 	for (sl = shared_files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -1765,16 +1764,14 @@ recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 		 *		--RAM, 06/06/2002
 		 */
 
-		val = pointer_to_uint(
-				g_hash_table_lookup(ctx->basenames, sf->name_nfc));
+		val = pointer_to_uint(htable_lookup(ctx->basenames, sf->name_nfc));
 
 		/*
 		 * The following works because 0 cannot be a valid file index.
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(ctx->basenames, deconstify_char(sf->name_nfc),
-			GUINT_TO_POINTER(val));
+		htable_insert(ctx->basenames, sf->name_nfc, uint_to_pointer(val));
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
@@ -2227,7 +2224,7 @@ share_update_qrp(void)
  * Hash table iterator callback to free the value.
  */
 static void
-special_free_kv(void *unused_key, void *val, void *unused_udata)
+special_free_kv(const void *unused_key, void *val, void *unused_udata)
 {
 	shared_file_t *sf = val;
 
@@ -2244,8 +2241,8 @@ special_free_kv(void *unused_key, void *val, void *unused_udata)
 static void
 share_special_close(void)
 {
-	g_hash_table_foreach(special_names, special_free_kv, NULL);
-	gm_hash_table_destroy_null(&special_names);
+	htable_foreach(special_names, special_free_kv, NULL);
+	htable_free_null(&special_names);
 }
 
 /**
@@ -2265,7 +2262,7 @@ share_close(void)
 	oob_close();
 	qhit_close();
 	st_free(&partial_table);
-	gm_hash_table_destroy_null(&share_media_types);
+	htable_free_null(&share_media_types);
 	hash_list_free(&partial_files);
 	st_free(&partial_table);
 	cq_cancel(&share_qrp_rebuild_ev);
@@ -2809,7 +2806,7 @@ shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 	shared_file_check(sf);
 
 	type = pointer_to_uint(
-		g_hash_table_lookup(share_media_types, int_to_pointer(sf->mime_type)));
+		htable_lookup(share_media_types, int_to_pointer(sf->mime_type)));
 
 	return 0 != (type & mask);
 }
@@ -2829,7 +2826,7 @@ share_filename_media_mask(const char *filename)
 	const void *v;
 
 	mime = mime_type_from_filename(filename);
-	v = g_hash_table_lookup(share_media_types, int_to_pointer(mime));
+	v = htable_lookup(share_media_types, int_to_pointer(mime));
 
 	return pointer_to_uint(v);
 }
@@ -2990,10 +2987,10 @@ share_init(void)
 	 * Create the hash table yielding the media type flags from a MIME type.
 	 */
 
-	share_media_types = g_hash_table_new(NULL, NULL);
+	share_media_types = htable_create(HASH_KEY_SELF, 0);
 
 	for (i = 0; i < G_N_ELEMENTS(media_type_map); i++) {
-		g_hash_table_insert(share_media_types,
+		htable_insert(share_media_types,
 			int_to_pointer(media_type_map[i].type),
 			int_to_pointer(media_type_map[i].flags));
 	}

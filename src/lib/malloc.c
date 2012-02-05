@@ -47,6 +47,7 @@
 #include "glib-missing.h"
 #include "hashing.h"
 #include "hashtable.h"
+#include "htable.h"
 #include "log.h"
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
@@ -2601,7 +2602,7 @@ struct leak_record {		/* Informations about leak at some place */
 };
 
 struct leak_set {
-	GHashTable *places;		/* Maps "file:4" -> leak_record */
+	htable_t *places;		/* Maps "file:4" -> leak_record */
 };
 
 /**
@@ -2613,7 +2614,7 @@ leak_init(void)
 	struct leak_set *ls;
 
 	ls = real_malloc(sizeof *ls);
-	ls->places = g_hash_table_new(g_str_hash, g_str_equal);
+	ls->places = htable_create(HASH_KEY_STRING, 0);
 
 	return ls;
 }
@@ -2621,13 +2622,12 @@ leak_init(void)
 /**
  * Get rid of the key/value tupple in the leak table.
  */
-static bool
-leak_free_kv(void *key, void *value, void *unused_user)
+static void
+leak_free_kv(const void *key, void *value, void *unused)
 {
-	(void) unused_user;
-	real_free(key);
+	(void) unused;
+	real_free(deconstify_pointer(key));
 	real_free(value);
-	return TRUE;
 }
 
 /**
@@ -2638,8 +2638,8 @@ leak_close(void *o)
 {
 	struct leak_set *ls = o;
 
-	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
-	gm_hash_table_destroy_null(&ls->places);
+	htable_foreach(ls->places, leak_free_kv, NULL);
+	htable_free_null(&ls->places);
 
 	real_free(ls);
 }
@@ -2654,7 +2654,6 @@ leak_add(void *o, size_t size, const char *file, int line)
 	char key[1024];
 	struct leak_record *lr;
 	bool found;
-	void *k;
 	void *v;
 
 	g_assert(file);
@@ -2662,7 +2661,7 @@ leak_add(void *o, size_t size, const char *file, int line)
 
 	concat_strings(key, sizeof key,
 		file, ":", uint64_to_string(line), (void *) 0);
-	found = g_hash_table_lookup_extended(ls->places, key, &k, &v);
+	found = htable_lookup_extended(ls->places, key, NULL, &v);
 
 	if (found) {
 		lr = v;
@@ -2672,7 +2671,7 @@ leak_add(void *o, size_t size, const char *file, int line)
 		lr = real_malloc(sizeof(*lr));
 		lr->size = size;
 		lr->count = 1;
-		g_hash_table_insert(ls->places, real_strdup(key), lr);
+		htable_insert(ls->places, real_strdup(key), lr);
 	}
 }
 
@@ -2708,7 +2707,7 @@ struct filler {			/* Used by hash table iterator to fill leak array */
  * Append current hash table entry at the end of the "leaks" array.
  */
 static void
-fill_array(void *key, void *value, void *user)
+fill_array(const void *key, void *value, void *user)
 {
 	struct filler *filler = user;
 	struct leak *l;
@@ -2732,7 +2731,7 @@ leak_dump(void *o)
 	struct filler filler;
 	int i;
 
-	count = g_hash_table_size(ls->places);
+	count = htable_count(ls->places);
 
 	if (count == 0)
 		return;
@@ -2746,7 +2745,7 @@ leak_dump(void *o)
 	 * decreasing leak size.
 	 */
 
-	g_hash_table_foreach(ls->places, fill_array, &filler);
+	htable_foreach(ls->places, fill_array, &filler);
 	qsort(filler.leaks, count, sizeof(struct leak), leak_size_cmp);
 
 	/*

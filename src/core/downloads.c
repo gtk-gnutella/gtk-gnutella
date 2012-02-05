@@ -100,6 +100,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
@@ -401,7 +402,7 @@ server_host_info(const struct dl_server *server)
  * where hosts are sorted based on their retry time.
  */
 
-static GHashTable *dl_by_host;
+static htable_t *dl_by_host;
 
 #define DHASH_SIZE	(1UL << 10)	/**< Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
@@ -422,21 +423,21 @@ static struct {
  * one such entry, ever.  If there is more, it means the server changed its
  * GUID, which is possible, in which case we simply supersede the old entry.
  */
-static GHashTable *dl_by_addr;
+static htable_t *dl_by_addr;
 
 /**
  * To be able to handle push-proxy lookups from the DHT, we remember servers
  * by GUID as well.  In case there is a conflict (two hosts bearing the same
  * GUID), we keep only the first server we see with that GUID.
  */
-static GHashTable *dl_by_guid;
+static htable_t *dl_by_guid;
 
 /**
  * Each source is given a random unique GUID so that we can easily associate
  * a download with its THEX download.  The dl_by_id hashtable maps a GUID
  * to its corresponding download.
  */
-static GHashTable *dl_by_id;
+static htable_t *dl_by_id;
 
 /**
  * Associates a plain download with its corresponding THEX download in a
@@ -464,7 +465,7 @@ static uint dl_active = 0;				/**< Active downloads */
  * This is used to determine whether a SHA1 is rare on the network (has only
  * partial sources).
  */
-static GHashTable *dhl_by_sha1;
+static htable_t *dhl_by_sha1;
 
 static inline uint
 count_running_downloads(void)
@@ -620,7 +621,7 @@ download_pipeline_can_initiate(const struct download *d)
 
 	if (dualhash_contains_key(dl_thex, d->id)) {
 		struct guid *id = dualhash_lookup_key(dl_thex, d->id);
-		struct download *dt = g_hash_table_lookup(dl_by_id, id);
+		struct download *dt = htable_lookup(dl_by_id, id);
 
 		download_check(dt);
 		g_assert(dt->flags & DL_F_THEX);
@@ -754,10 +755,10 @@ download_by_sha1_add(const struct download *d)
 	g_assert(d->file_info != NULL);
 	g_assert(d->file_info->sha1 != NULL);
 
-	hl = g_hash_table_lookup(dhl_by_sha1, d->file_info->sha1);
+	hl = htable_lookup(dhl_by_sha1, d->file_info->sha1);
 	if (NULL == hl) {
 		hl = hash_list_new(pointer_hash, NULL);
-		gm_hash_table_insert_const(dhl_by_sha1, d->file_info->sha1, hl);
+		htable_insert(dhl_by_sha1, d->file_info->sha1, hl);
 	}
 
 	g_soft_assert(!hash_list_contains(hl, d));
@@ -777,14 +778,14 @@ download_by_sha1_remove(const struct download *d)
 	g_assert(d->file_info != NULL);
 	g_assert(d->file_info->sha1 != NULL);
 
-	hl = g_hash_table_lookup(dhl_by_sha1, d->file_info->sha1);
+	hl = htable_lookup(dhl_by_sha1, d->file_info->sha1);
 	g_assert(hl != NULL);
 
 	g_soft_assert(hash_list_contains(hl, d));
 
 	hash_list_remove(hl, d);
 	if (0 == hash_list_length(hl)) {
-		g_hash_table_remove(dhl_by_sha1, d->file_info->sha1);
+		htable_remove(dhl_by_sha1, d->file_info->sha1);
 		hash_list_free(&hl);
 	}
 }
@@ -801,7 +802,7 @@ download_sha1_is_rare(const struct sha1 *sha1)
 
 	g_assert(sha1 != NULL);
 
-	hl = g_hash_table_lookup(dhl_by_sha1, sha1);
+	hl = htable_lookup(dhl_by_sha1, sha1);
 	if (NULL == hl)
 		return TRUE;	/* No source */
 
@@ -1023,7 +1024,7 @@ download_free(struct download **d_ptr)
 	d = *d_ptr;
 	download_check(d);
 
-	g_hash_table_remove(dl_by_id, d->id);
+	htable_remove(dl_by_id, d->id);
 	dualhash_remove_key(dl_thex, d->id);
 	atom_guid_free_null(&d->id);
 	d->magic = 0;
@@ -1165,7 +1166,7 @@ dl_random_guid_atom(void)
 	for (i = 0; i < 100; i++) {
 		guid_random_fill(&id);
 
-		if (NULL == g_hash_table_lookup(dl_by_id, &id))
+		if (NULL == htable_lookup(dl_by_id, &id))
 			return atom_guid_get(&id);
 	}
 
@@ -1300,11 +1301,11 @@ download_source_progress(const struct download *d)
 G_GNUC_COLD void
 download_init(void)
 {
-	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
-	dl_by_addr = g_hash_table_new(dl_addr_hash, dl_addr_eq);
-	dl_by_guid = g_hash_table_new(guid_hash, guid_eq);
-	dl_by_id = g_hash_table_new(guid_hash, guid_eq);
-	dhl_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	dl_by_host = htable_create_any(dl_key_hash, NULL, dl_key_eq);
+	dl_by_addr = htable_create_any(dl_addr_hash, NULL, dl_addr_eq);
+	dl_by_guid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	dl_by_id = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	dhl_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	dl_thex = dualhash_new(guid_hash, guid_eq, guid_hash, guid_eq);
 
 	header_features_add_guarded(FEATURES_DOWNLOADS, "browse",
@@ -1835,9 +1836,9 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 	server->key = key;
 	server->retry_after = tm_time();
 	server->country = gip_country(addr);
-	server->sha1_counts = g_hash_table_new(sha1_hash, sha1_eq);
+	server->sha1_counts = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
-	g_hash_table_insert(dl_by_host, key, server);
+	htable_insert(dl_by_host, key, server);
 	dl_by_time_insert(server);
 
 	/*
@@ -1847,7 +1848,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 
 	if (host_is_valid(addr, port)) {
 		struct dl_addr *ipk;
-		void *ipkey;
+		const void *ipkey;
 		void *x;					/* Don't care about freeing values */
 		bool existed;
 
@@ -1855,7 +1856,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 		ipk->addr = addr;			/* Struct copy */
 		ipk->port = port;
 
-		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
+		existed = htable_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
 
 		/*
 		 * For the rare cases where the key already existed, we "take
@@ -1865,13 +1866,13 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 		 */
 
 		if (existed) {
-			struct dl_addr *da = ipkey;
+			const struct dl_addr *da = ipkey;
 			g_assert(da != ipk);
 			g_assert(host_addr_initialized(da->addr));
 			WFREE(ipk);				/* Keep the old key */
-			g_hash_table_insert(dl_by_addr, da, server);
+			htable_insert(dl_by_addr, da, server);
 		} else
-			g_hash_table_insert(dl_by_addr, ipk, server);
+			htable_insert(dl_by_addr, ipk, server);
 	}
 
 	/*
@@ -1882,10 +1883,9 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 
 	if (!guid_is_blank(guid)) {
 		bool existed;
-		void *x;
 		void *value;
 
-		existed = g_hash_table_lookup_extended(dl_by_guid, guid, &x, &value);
+		existed = htable_lookup_extended(dl_by_guid, guid, NULL, &value);
 
 		if (existed) {
 			struct dl_server *old = value;
@@ -1897,7 +1897,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 					host_addr_port_to_string2(
 						server->key->addr, server->key->port));
 		} else {
-			gm_hash_table_insert_const(dl_by_guid, server->key->guid, server);
+			htable_insert(dl_by_guid, server->key->guid, server);
 		}
 	}
 
@@ -1926,7 +1926,7 @@ server_unregister(struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	dl_by_time_remove(server);
-	g_hash_table_remove(dl_by_host, server->key);
+	htable_remove(dl_by_host, server->key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -1934,12 +1934,11 @@ server_unregister(struct dl_server *server)
 
 	{
 		struct dl_addr ipk;
-		void *ipkey;
-		void *x;					/* Don't care about freeing values */
+		const void *ipkey;
+		void *x;
 
 		ipk.addr = server->key->addr;
 		ipk.port = server->key->port;
-
 
 		/*
 		 * Only remove server in the `dl_by_addr' table if it is the one
@@ -1950,11 +1949,11 @@ server_unregister(struct dl_server *server)
 		 * we'll free the key of the new server.
 		 */
 
-		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
-			struct dl_addr *da = ipkey;
+		if (htable_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
+			struct dl_addr *da = deconstify_pointer(ipkey);
 			g_assert(host_addr_initialized(da->addr));
 			if (x == server) {		/* We own the key */
-				g_hash_table_remove(dl_by_addr, &ipk);
+				htable_remove(dl_by_addr, &ipk);
 				WFREE(da);
 			}
 		}
@@ -1967,9 +1966,9 @@ server_unregister(struct dl_server *server)
 
 	if (
 		!guid_is_blank(server->key->guid) &&
-		g_hash_table_lookup(dl_by_guid, server->key->guid) == server
+		htable_lookup(dl_by_guid, server->key->guid) == server
 	) {
-		g_hash_table_remove(dl_by_guid, server->key->guid);
+		htable_remove(dl_by_guid, server->key->guid);
 	}
 }
 
@@ -1995,7 +1994,7 @@ free_server(struct dl_server *server)
 	route_starving_remove(server->key->guid);
 
 	{
-		uint n = g_hash_table_size(server->sha1_counts);
+		uint n = htable_count(server->sha1_counts);
 		if (0 != n) {
 			g_warning("server->sha1_counts (%s) contains still %u items",
 				host_addr_port_to_string(server->key->addr, server->key->port),
@@ -2003,7 +2002,7 @@ free_server(struct dl_server *server)
 		}
 	}
 
-	gm_hash_table_destroy_null(&server->sha1_counts);
+	htable_free_null(&server->sha1_counts);
 	atom_str_free_null(&server->vendor);
 	atom_guid_free_null(&server->key->guid);
 	WFREE(server->key);
@@ -2062,7 +2061,7 @@ download_found_server(const struct guid *guid,
 	 * XXX		--RAM, 2008-09-01
 	 */
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 
 	if (NULL == server) {
 		/*
@@ -2088,7 +2087,7 @@ download_found_server(const struct guid *guid,
 			ipk.addr = addr;
 			ipk.port = port;
 
-			server = g_hash_table_lookup(dl_by_addr, &ipk);
+			server = htable_lookup(dl_by_addr, &ipk);
 
 			if (server && guid_is_blank(server->key->guid)) {
 				struct dl_key *key = server->key;
@@ -2099,11 +2098,11 @@ download_found_server(const struct guid *guid,
 						host_addr_port_to_string(addr, port));
 				}
 
-				g_hash_table_remove(dl_by_host, key);
+				htable_remove(dl_by_host, key);
 				gnet_stats_count_general(GNR_DISCOVERED_SERVER_GUID, 1);
 				atom_guid_change(&key->guid, guid);
-				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
-				g_hash_table_insert(dl_by_host, key, server);
+				htable_insert(dl_by_guid, key->guid, server);
+				htable_insert(dl_by_host, key, server);
 			}
 		} else {
 			if (GNET_PROPERTY(download_debug)) {
@@ -2224,7 +2223,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 	 * server that has been deleted, we need to "undelete" it.
 	 */
 
-	server = g_hash_table_lookup(dl_by_addr, &ikey);
+	server = htable_lookup(dl_by_addr, &ikey);
 	if (server) {
 		if (server->attrs & DLS_A_REMOVED)
 			server_undelete(server);
@@ -2240,7 +2239,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 	key.addr = addr;
 	key.port = port;
 
-	server = g_hash_table_lookup(dl_by_host, &key);
+	server = htable_lookup(dl_by_host, &key);
 	g_assert(server == NULL || dl_server_valid(server));
 
 	if (server) {
@@ -2256,7 +2255,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 	 */
 
 	if (!guid_is_blank(guid)) {
-		server = g_hash_table_lookup(dl_by_guid, guid);
+		server = htable_lookup(dl_by_guid, guid);
 
 		if (server) {
 			struct dl_key *skey = server->key;
@@ -2407,7 +2406,7 @@ allocated:
 		struct dl_server *correct;
 
 		download_found_server(guid, addr, port);
-		correct = g_hash_table_lookup(dl_by_guid, guid);
+		correct = htable_lookup(dl_by_guid, guid);
 
 		if (correct != NULL && correct != server) {
 			if (GNET_PROPERTY(download_debug)) {
@@ -2461,7 +2460,7 @@ change_server_addr(struct dl_server *server,
 	g_assert(dl_server_valid(server));
 	g_assert(host_addr_initialized(new_addr));
 
-	g_hash_table_remove(dl_by_host, key);
+	htable_remove(dl_by_host, key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -2469,17 +2468,17 @@ change_server_addr(struct dl_server *server,
 
 	if (host_is_valid(key->addr, key->port)) {
 		struct dl_addr ipk;
-		void *ipkey;
+		const void *ipkey;
 		void *x;					/* Don't care about freeing values */
 
 		ipk.addr = key->addr;
 		ipk.port = key->port;
 
-		if (g_hash_table_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
-			struct dl_addr *da = ipkey;
+		if (htable_lookup_extended(dl_by_addr, &ipk, &ipkey, &x)) {
+			struct dl_addr *da = deconstify_pointer(ipkey);
 			g_assert(host_addr_initialized(da->addr));
 			if (x == server) {		/* We "own" the key -- see free_server() */
-				g_hash_table_remove(dl_by_addr, da);
+				htable_remove(dl_by_addr, da);
 				WFREE(da);
 			}
 		}
@@ -2553,10 +2552,10 @@ change_server_addr(struct dl_server *server,
 		) {
 			struct dl_server *old;
 
-			old = g_hash_table_lookup(dl_by_guid, duplicate->key->guid);
+			old = htable_lookup(dl_by_guid, duplicate->key->guid);
 			atom_guid_change(&key->guid, duplicate->key->guid);
 			if (duplicate == old)
-				gm_hash_table_insert_const(dl_by_guid, key->guid, server);
+				htable_insert(dl_by_guid, key->guid, server);
 		} else if (
 			!guid_eq(key->guid, duplicate->key->guid) &&
 			!guid_is_blank(duplicate->key->guid)
@@ -2587,11 +2586,11 @@ change_server_addr(struct dl_server *server,
 
 	g_assert(server->key == key);
 
-	g_hash_table_insert(dl_by_host, key, server);
+	htable_insert(dl_by_host, key, server);
 
 	if (host_is_valid(key->addr, key->port)) {
 		struct dl_addr *ipk;
-		void *ipkey;
+		const void *ipkey;
 		void *x;					/* Don't care about freeing values */
 		bool existed;
 
@@ -2599,7 +2598,7 @@ change_server_addr(struct dl_server *server,
 		ipk->addr = new_addr;
 		ipk->port = key->port;
 
-		existed = g_hash_table_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
+		existed = htable_lookup_extended(dl_by_addr, ipk, &ipkey, &x);
 
 		/*
 		 * For the rare cases where the key already existed, we "take
@@ -2609,13 +2608,13 @@ change_server_addr(struct dl_server *server,
 		 */
 
 		if (existed) {
-			struct dl_addr *da = ipkey;
+			const struct dl_addr *da = ipkey;
 			g_assert(host_addr_initialized(da->addr));
 			g_assert(da != ipk);
 			WFREE(ipk);				/* Keep the old key around */
-			g_hash_table_insert(dl_by_addr, da, server);
+			htable_insert(dl_by_addr, da, server);
 		} else
-			g_hash_table_insert(dl_by_addr, ipk, server);
+			htable_insert(dl_by_addr, ipk, server);
 	}
 
 	/*
@@ -2764,7 +2763,7 @@ download_server_publishes_in_dht(const struct guid *guid)
 {
 	struct dl_server *server;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -2789,7 +2788,7 @@ download_add_push_proxy(const struct guid *guid,
 {
 	struct dl_server *server;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -2809,7 +2808,7 @@ download_add_push_proxies(const struct guid *guid,
 
 	g_assert(proxies);
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -2962,7 +2961,7 @@ download_proxy_dht_lookup_done(const struct guid *guid)
 {
 	struct dl_server *server;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -2997,7 +2996,7 @@ server_dht_query(struct download *d)
 	if (!dht_bootstrapped())
 		return TRUE;						/* Wait until bootstrapped */
 
-	known = g_hash_table_lookup(dl_by_guid, server->key->guid);
+	known = htable_lookup(dl_by_guid, server->key->guid);
 
 	/* XXX BUG: if two entries have the same GUID and we free the first server
 	 * XXX which removes the entry from the dl_by_guid, then known can be NULL
@@ -3111,12 +3110,12 @@ server_sha1_count_inc(struct dl_server *server, struct download *d)
 		void *value;
 		uint n;
 
-		value = g_hash_table_lookup(server->sha1_counts, sha1);
+		value = htable_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
 		g_assert(n < (uint) -1);
 		n++;
 		value = GUINT_TO_POINTER(n);
-		gm_hash_table_insert_const(server->sha1_counts, sha1, value);
+		htable_insert(server->sha1_counts, sha1, value);
 	}
 }
 
@@ -3133,7 +3132,7 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 		void *value;
 		uint n;
 
-		value = g_hash_table_lookup(server->sha1_counts, sha1);
+		value = htable_lookup(server->sha1_counts, sha1);
 		n = GPOINTER_TO_UINT(value);
 
 		/* Counter is sometimes off, make it non-fatal -- RAM, 2006-08-29 */
@@ -3147,9 +3146,9 @@ server_sha1_count_dec(struct dl_server *server, struct download *d)
 		n--;
 		if (n > 0) {
 			value = GUINT_TO_POINTER(n);
-			gm_hash_table_insert_const(server->sha1_counts, sha1, value);
+			htable_insert(server->sha1_counts, sha1, value);
 		} else {
-			g_hash_table_remove(server->sha1_counts, sha1);
+			htable_remove(server->sha1_counts, sha1);
 		}
 	}
 }
@@ -3307,7 +3306,7 @@ server_has_same_download(struct dl_server *server,
 
 	g_assert(dl_server_valid(server));
 
-	if (sha1 && NULL == g_hash_table_lookup(server->sha1_counts, sha1)) {
+	if (sha1 && !htable_contains(server->sha1_counts, sha1)) {
 		return NULL;
 	}
 
@@ -6176,7 +6175,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 		 */
 
 		if (id != NULL) {
-			struct download *dt = g_hash_table_lookup(dl_by_id, id);
+			struct download *dt = htable_lookup(dl_by_id, id);
 
 			download_check(dt);
 			g_assert(dt->flags & DL_F_THEX);
@@ -6519,7 +6518,7 @@ download_got_push_proxies(const struct guid *guid,
 	int i;
 	size_t added = 0;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -6564,7 +6563,7 @@ download_got_push_route(const guid_t *guid)
 {
 	struct dl_server *server;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return;
 
@@ -7095,7 +7094,7 @@ create_download(
 	d->server = server;
 	d->server->refcnt++;
 	d->id = dl_random_guid_atom();
-	gm_hash_table_insert_const(dl_by_id, d->id, d);
+	htable_insert(dl_by_id, d->id, d);
 
 	/*
 	 * If we know that this server can be directly connected to, ignore
@@ -7809,7 +7808,7 @@ download_known_guid(const struct guid *guid,
 {
 	struct dl_server *server;
 
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 	if (server == NULL)
 		return FALSE;
 
@@ -10264,7 +10263,7 @@ download_got_fw_node_info(const struct guid *guid,
 	 * See whether we know this server by GUID, then by addr+port.
 	 */
 	
-	server = g_hash_table_lookup(dl_by_guid, guid);
+	server = htable_lookup(dl_by_guid, guid);
 
 	if (NULL == server && host_is_valid(addr, port)) {
 		struct dl_addr ipk;
@@ -10272,7 +10271,7 @@ download_got_fw_node_info(const struct guid *guid,
 		ipk.addr = addr;
 		ipk.port = port;
 		
-		server = g_hash_table_lookup(dl_by_addr, &ipk);
+		server = htable_lookup(dl_by_addr, &ipk);
 	}
 
 	if (NULL == server)
@@ -13298,7 +13297,7 @@ struct server_select {
  * This routine is a hash table iterator callback.
  */
 static void
-select_matching_servers(void *key, void *value, void *user)
+select_matching_servers(const void *key, void *value, void *user)
 {
 	const struct dl_key *skey = key;
 	struct dl_server *server = value;
@@ -13335,7 +13334,7 @@ select_servers(const struct guid *guid, const host_addr_t addr, int *count)
 	ctx.servers = NULL;
 	ctx.count = 0;
 
-	g_hash_table_foreach(dl_by_host, select_matching_servers, &ctx);
+	htable_foreach(dl_by_host, select_matching_servers, &ctx);
 
 	*count = ctx.count;
 	return ctx.servers;
@@ -15237,11 +15236,11 @@ download_close(void)
 	hash_list_free(&sl_downloads);
 	hash_list_free(&sl_unqueued);
 
-	gm_hash_table_destroy_null(&dl_by_guid);
-	gm_hash_table_destroy_null(&dl_by_host);
-	gm_hash_table_destroy_null(&dl_by_addr);
-	gm_hash_table_destroy_null(&dl_by_id);
-	gm_hash_table_destroy_null(&dhl_by_sha1);
+	htable_free_null(&dl_by_guid);
+	htable_free_null(&dl_by_host);
+	htable_free_null(&dl_by_addr);
+	htable_free_null(&dl_by_id);
+	htable_free_null(&dhl_by_sha1);
 	dualhash_destroy_null(&dl_thex);
 }
 

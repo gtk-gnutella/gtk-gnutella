@@ -42,6 +42,7 @@
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -92,8 +93,8 @@ enum dh_drop {
  *
  * The keys are MUIDs (GUID atoms), the values are the dqhit_t object.
  */
-static GHashTable *by_muid = NULL;
-static GHashTable *by_muid_old = NULL;
+static htable_t *by_muid = NULL;
+static htable_t *by_muid_old = NULL;
 static time_t last_rotation;
 
 /**
@@ -101,7 +102,7 @@ static time_t last_rotation;
  * and the associated dqhit_t objects.
  */
 static bool
-free_muid_true(void *key, void *value, void *unused_udata)
+free_muid_true(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	atom_guid_free(key);
@@ -113,24 +114,23 @@ free_muid_true(void *key, void *value, void *unused_udata)
  * Clear specified hash table.
  */
 static void
-dh_table_clear(GHashTable *ht)
+dh_table_clear(htable_t *ht)
 {
 	g_assert(ht != NULL);
 
-	g_hash_table_foreach_remove(ht, free_muid_true, NULL);
+	htable_foreach_remove(ht, free_muid_true, NULL);
 }
 
 /**
  * Free specified hash table.
  */
 static void
-dh_table_free(GHashTable **ptr)
+dh_table_free(htable_t **ptr)
 {
 	if (*ptr) {
-		GHashTable *ht = *ptr;
-		g_hash_table_foreach_remove(ht, free_muid_true, NULL);
-		g_hash_table_destroy(ht);
-		*ptr = NULL;
+		htable_t *ht = *ptr;
+		htable_foreach_remove(ht, free_muid_true, NULL);
+		htable_free_null(ptr);
 	}
 }
 
@@ -143,7 +143,7 @@ static dqhit_t *
 dh_locate(const struct guid *muid)
 {
 	bool found = FALSE;
-	void *key;
+	const void *key;
 	void *value;
 
 	if (NULL == by_muid_old)
@@ -155,16 +155,16 @@ dh_locate(const struct guid *muid)
 	 * for this query.
 	 */
 
-	found = g_hash_table_lookup_extended(by_muid_old, muid, &key, &value);
+	found = htable_lookup_extended(by_muid_old, muid, &key, &value);
 
 	if (found) {
-		g_hash_table_remove(by_muid_old, key);
-		g_assert(!g_hash_table_lookup(by_muid, key));
-		g_hash_table_insert(by_muid, key, value);
+		htable_remove(by_muid_old, key);
+		g_assert(!htable_contains(by_muid, key));
+		htable_insert(by_muid, key, value);
 		return value;
 	}
 
-	return g_hash_table_lookup(by_muid, muid);
+	return htable_lookup(by_muid, muid);
 }
 
 /**
@@ -180,7 +180,7 @@ dh_create(const struct guid *muid)
 	WALLOC0(dh);
 	key = atom_guid_get(muid);
 
-	gm_hash_table_insert_const(by_muid, key, dh);
+	htable_insert(by_muid, key, dh);
 
 	return dh;
 }
@@ -209,7 +209,7 @@ dh_got_results(const struct guid *muid, int count)
 void
 dh_timer(time_t now)
 {
-	GHashTable *tmp;
+	htable_t *tmp;
 
 	if (delta_time(now, last_rotation) < DH_HALF_LIFE)
 		return;
@@ -226,9 +226,10 @@ dh_timer(time_t now)
 
 	last_rotation = now;
 
-	if (GNET_PROPERTY(dh_debug) > 19)
-		g_debug("DH rotated tables, current has %d, old has %d",
-			g_hash_table_size(by_muid), g_hash_table_size(by_muid_old));
+	if (GNET_PROPERTY(dh_debug) > 19) {
+		g_debug("DH rotated tables, current has %zu, old has %zu",
+			htable_count(by_muid), htable_count(by_muid_old));
+	}
 }
 
 /**
@@ -574,8 +575,8 @@ dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 G_GNUC_COLD void
 dh_init(void)
 {
-	by_muid = g_hash_table_new(guid_hash, guid_eq);
-	by_muid_old = g_hash_table_new(guid_hash, guid_eq);
+	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	by_muid_old = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	last_rotation = tm_time();
 }
 

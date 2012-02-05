@@ -49,7 +49,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -82,7 +82,7 @@ typedef struct vp_info {
 	filesize_t done_initial;
 } vp_info_t;
 
-static GHashTable *vp_info_hash; /**< Hash table with our cached fileinfo info */
+static htable_t *vp_info_hash; /**< Hash table with our cached fileinfo info */
 
 static struct {
 	GdkColor base;      /**< Theme-defined background color */
@@ -256,8 +256,8 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 		if (valid) {
 			gpointer value;
 
-			found = g_hash_table_lookup_extended(vp_info_hash,
-				GUINT_TO_POINTER(fih), NULL, &value);
+			found = htable_lookup_extended(vp_info_hash,
+				uint_to_pointer(fih), NULL, &value);
     		g_return_if_fail(found);
 			g_assert(value);
 
@@ -386,7 +386,7 @@ vp_gui_fi_added(gnet_fi_t fih)
 	new_vp_info->chunks_initial = vp_get_chunks_initial(fih);
 	new_vp_info->done_initial = s.done;
 
-    g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
+    htable_insert(vp_info_hash, uint_to_pointer(fih), new_vp_info);
 
     guc_fi_free_info(fi);
 }
@@ -420,13 +420,13 @@ vp_gui_fi_removed(gnet_fi_t fih)
     gboolean found;
 	vp_info_t *v;
 
-    found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, &value);
+    found = htable_lookup_extended(vp_info_hash,
+		uint_to_pointer(fih), NULL, &value);
 	g_return_if_fail(found);
     g_assert(value);
 
 	v = value;
-    g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
+    htable_remove(vp_info_hash, uint_to_pointer(fih));
 	vp_info_free(&v);
 
     /* Forget the fileinfo handle for which we displayed progress info */
@@ -538,8 +538,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	gnet_fi_info_t *fi;
 	gnet_fi_status_t s;
 
-    found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, &value);
+    found = htable_lookup_extended(vp_info_hash,
+		uint_to_pointer(fih), NULL, &value);
 	g_return_if_fail(found);
     g_assert(value);
 	v = value;
@@ -736,8 +736,8 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
     gboolean found;
 	gpointer value;
 
-    found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, &value);
+    found = htable_lookup_extended(vp_info_hash,
+		uint_to_pointer(fih), NULL, &value);
     g_return_if_fail(found);
     g_assert(value);
 	v = value;
@@ -754,8 +754,8 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 /**
  * Free the vp_info_t structs in the vp_info_hash.
  */
-void
-vp_free_key_value(gpointer key, gpointer value, gpointer user_data)
+static void
+vp_free_key_value(const void *key, void *value, void *user_data)
 {
 	vp_info_t *v = value;
 
@@ -777,7 +777,7 @@ vp_gui_init(void)
 {
     GdkColormap *cmap;
 
-    vp_info_hash = g_hash_table_new(NULL, NULL);
+    vp_info_hash = htable_create(HASH_KEY_SELF, 0);
 
     guc_fi_add_listener(vp_gui_fi_added, EV_FI_ADDED,
 		FREQ_SECS, 0);
@@ -828,8 +828,8 @@ vp_gui_shutdown(void)
 		EV_FI_STATUS_CHANGED_TRANSIENT);
     guc_fi_remove_listener(vp_gui_fi_ranges_changed, EV_FI_RANGES_CHANGED);
 
-    g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
-    gm_hash_table_destroy_null(&vp_info_hash);
+    htable_foreach(vp_info_hash, vp_free_key_value, NULL);
+    htable_free_null(&vp_info_hash);
 }
 
 /*

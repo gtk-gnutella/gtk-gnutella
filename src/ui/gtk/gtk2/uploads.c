@@ -43,12 +43,14 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
-#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static gboolean uploads_remove_lock;
@@ -59,7 +61,7 @@ static GtkListStore *store_uploads;
 static GtkWidget *button_uploads_clear_completed;
 
 /** hash table for fast handle -> GtkTreeIter mapping */
-static GHashTable *upload_handles;
+static htable_t *upload_handles;
 /** list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads;
 
@@ -95,10 +97,10 @@ static inline upload_row_data_t *
 find_upload(gnet_upload_t u)
 {
 	upload_row_data_t *rd;
-	gpointer key;
-	gboolean found;
+	void *key;
+	bool found;
 
-	found = g_hash_table_lookup_extended(upload_handles, GUINT_TO_POINTER(u),
+	found = htable_lookup_extended(upload_handles, uint_to_pointer(u),
 				NULL, &key);
 	g_assert(found);
 	rd = key;
@@ -151,7 +153,7 @@ upload_removed(gnet_upload_t uh, const gchar *reason)
 	if (reason != NULL)
 		gtk_list_store_set(store_uploads, &rd->iter, c_ul_status, reason, (-1));
 	sl_removed_uploads = g_slist_prepend(sl_removed_uploads, rd);
-	g_hash_table_remove(upload_handles, GUINT_TO_POINTER(uh));
+	htable_remove(upload_handles, uint_to_pointer(uh));
 	/* NB: rd MUST NOT be freed yet because it contains the GtkTreeIter! */
 }
 
@@ -408,7 +410,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_fg, NULL,
 		c_ul_data, rd,
 		(-1));
-	g_hash_table_insert(upload_handles, GUINT_TO_POINTER(rd->handle), rd);
+	htable_insert(upload_handles, uint_to_pointer(rd->handle), rd);
 }
 
 static void
@@ -506,8 +508,7 @@ free_row_data(upload_row_data_t *rd)
 }
 
 static inline void
-free_handle(gpointer key, gpointer value,
-	gpointer user_data)
+free_handle(const void *key, void *value, void *user_data)
 {
 	(void) key;
 	(void) user_data;
@@ -527,16 +528,16 @@ remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 }
 
 static inline void
-update_row(gpointer key, gpointer data, gpointer unused_udata)
+update_row(const void *key, void *value, void *unused_udata)
 {
 	time_t now;
-	upload_row_data_t *rd = data;
+	upload_row_data_t *rd = value;
 	gnet_upload_status_t status;
 	guint progress;
 
 	(void) unused_udata;
 	g_assert(NULL != rd);
-	g_assert(GPOINTER_TO_UINT(key) == rd->handle);
+	g_assert(pointer_to_uint(key) == rd->handle);
 
 	now = tm_time();
 	if (delta_time(now, rd->last_update) < 2)
@@ -575,7 +576,7 @@ uploads_gui_update_display(time_t now)
 	sl_removed_uploads = ctx.sl_remaining;
 
 	/* Update the status column for all active uploads. */
-	g_hash_table_foreach(upload_handles, update_row, NULL);
+	htable_foreach(upload_handles, update_row, NULL);
 	g_object_thaw_notify(G_OBJECT(treeview_uploads));
 
 	gtk_widget_set_sensitive(button_uploads_clear_completed,
@@ -682,7 +683,7 @@ uploads_gui_init(void)
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 
-	upload_handles = g_hash_table_new(NULL, NULL);
+	upload_handles = htable_create(HASH_KEY_SELF, 0);
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
@@ -711,8 +712,8 @@ uploads_gui_shutdown(void)
 
 	gtk_list_store_clear(store_uploads);
 
-	g_hash_table_foreach(upload_handles, free_handle, NULL);
-	gm_hash_table_destroy_null(&upload_handles);
+	htable_foreach(upload_handles, free_handle, NULL);
+	htable_free_null(&upload_handles);
 	G_SLIST_FOREACH(sl_removed_uploads, free_row_data);
 	gm_slist_free_null(&sl_removed_uploads);
 }

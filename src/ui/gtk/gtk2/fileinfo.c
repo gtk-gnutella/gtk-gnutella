@@ -40,13 +40,13 @@
 
 #include "if/gui_property.h"
 
-#include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static GHashTable *fi_sources;
+static htable_t *fi_sources;
 
 static GtkTreeView *treeview_download_aliases;
 static GtkTreeView *treeview_download_details;
@@ -252,8 +252,8 @@ create_text_cell_renderer(gfloat xalign)
 	return renderer;
 }
 
-static gboolean
-fi_sources_remove(void *unused_key, void *value, void *unused_udata)
+static bool
+fi_sources_remove(const void *unused_key, void *value, void *unused_udata)
 {
 	GtkTreeIter *iter;
 
@@ -276,7 +276,7 @@ void
 fi_gui_clear_sources(void)
 {
     gtk_list_store_clear(store_sources);
-	g_hash_table_foreach_remove(fi_sources, fi_sources_remove, NULL);
+	htable_foreach_remove(fi_sources, fi_sources_remove, NULL);
 }
 
 void
@@ -303,10 +303,10 @@ fi_gui_source_show(struct download *d)
 	GtkTreeIter *iter;
 
 	g_return_if_fail(store_sources);
-	g_return_if_fail(NULL == g_hash_table_lookup(fi_sources, d));
+	g_return_if_fail(!htable_contains(fi_sources, d));
 
 	WALLOC(iter);
-	g_hash_table_insert(fi_sources, d, iter);
+	htable_insert(fi_sources, d, iter);
 
 	list_store_append_pointer(store_sources, iter, 0, d);
 }
@@ -448,7 +448,7 @@ fi_gui_source_update(struct download *d)
 
 	download_check(d);
 
-	iter = g_hash_table_lookup(fi_sources, d);
+	iter = htable_lookup(fi_sources, d);
 	if (iter) {
 		tree_model_iter_changed(GTK_TREE_MODEL(store_sources), iter);
 	}
@@ -706,7 +706,7 @@ fi_gui_files_widget_destroy(void)
 void
 fi_gui_init(void)
 {
-	fi_sources = g_hash_table_new(NULL, NULL);
+	fi_sources = htable_create(HASH_KEY_SELF, 0);
 	
 	{
 		GtkTreeViewColumn *column;
@@ -813,7 +813,7 @@ fi_gui_shutdown(void)
 		store_sources = NULL;
 	}
 
-	gm_hash_table_destroy_null(&fi_sources);
+	htable_free_null(&fi_sources);
 }
 
 void
@@ -821,12 +821,12 @@ fi_gui_source_hide(struct download *d)
 {
 	GtkTreeIter *iter;
 
-	iter = g_hash_table_lookup(fi_sources, d);
+	iter = htable_lookup(fi_sources, d);
 	if (iter) {
 		if (store_sources) {
 			gtk_list_store_remove(store_sources, iter);
 		}
-		g_hash_table_remove(fi_sources, d);
+		htable_remove(fi_sources, d);
 		WFREE(iter);
 	}
 }

@@ -112,6 +112,7 @@ typedef struct {
 #include "hashlist.h"
 #include "inputevt.h"
 #include "glib-missing.h"
+#include "htable.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "tm.h"
@@ -189,7 +190,7 @@ struct poll_ctx {
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
 	GSList *removed;			/**< List of removed IDs */
-	GHashTable *ht;				/**< Records file descriptors */
+	htable_t *ht;				/**< Records file descriptors */
 	hash_list_t *readable;		/**< Records readable file descriptors */
 	int master_fd;				/**< The ``master'' fd for epoll or kqueue */
 	unsigned num_ev;			/**< Length of the "ev" and "relay" arrays */
@@ -307,7 +308,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 			pfd = &ctx->pfd_arr[last_idx];
 			safety_assert(is_valid_fd(pfd->fd));
 
-			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(pfd->fd));
+			rl = htable_lookup(ctx->ht, int_to_pointer(pfd->fd));
 			safety_assert(NULL != rl);
 			safety_assert(last_idx == rl->poll_idx);
 
@@ -525,7 +526,7 @@ event_set_mask_with_poll(struct poll_ctx *ctx, int fd,
 	old &= INPUT_EVENT_RW;
 	cur &= INPUT_EVENT_RW;
 
-	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
+	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 
@@ -555,7 +556,7 @@ get_poll_idx(const struct poll_ctx *ctx, int fd)
 	safety_assert(is_valid_fd(fd));
 	safety_assert(is_open_fd(fd));
 
-	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
+	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	return rl->poll_idx;
 }
@@ -764,7 +765,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	g_assert(zero_handler == relay->handler);
 	g_assert(is_valid_fd(relay->fd));
 
-	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(relay->fd));
+	rl = htable_lookup(ctx->ht, int_to_pointer(relay->fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 	
@@ -773,7 +774,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 		g_assert(0 == rl->readers && 0 == rl->writers);
 		inputevt_poll_idx_free(ctx, &rl->poll_idx);
 		hash_list_remove(ctx->readable, int_to_pointer(relay->fd));
-		g_hash_table_remove(ctx->ht, int_to_pointer(relay->fd));
+		htable_remove(ctx->ht, int_to_pointer(relay->fd));
 		WFREE(rl);
 	}
 }
@@ -842,7 +843,7 @@ inputevt_timer(struct poll_ctx *ctx)
 				continue;
 
 			num_events--;
-			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(event.fd));
+			rl = htable_lookup(ctx->ht, int_to_pointer(event.fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -889,7 +890,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 			g_assert(is_valid_fd(fd));
 
-			rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
+			rl = htable_lookup(ctx->ht, int_to_pointer(fd));
 			g_assert(NULL != rl);
 			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
 
@@ -1011,7 +1012,7 @@ inputevt_remove(unsigned *id_ptr)
 	g_assert(is_valid_fd(relay->fd));
 
 	fd = relay->fd;
-	rl = g_hash_table_lookup(ctx->ht, int_to_pointer(fd));
+	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
 
@@ -1144,7 +1145,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 		void *key = int_to_pointer(relay->fd);
 		relay_list_t *rl;
 
-		rl = g_hash_table_lookup(ctx->ht, key);
+		rl = htable_lookup(ctx->ht, key);
 		if (rl) {
 
 			if (rl->writers || rl->readers)	{
@@ -1171,7 +1172,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 			rl->sl = NULL;
 			rl->poll_idx = inputevt_poll_idx_new(ctx, relay->fd);
 			old = 0;
-			g_hash_table_insert(ctx->ht, key, rl);
+			htable_insert(ctx->ht, key, rl);
 		}
 
 		if (INPUT_EVENT_R & relay->condition)
@@ -1206,7 +1207,7 @@ inputevt_set_readable(int fd)
 	g_assert(is_valid_fd(fd));
 
 	if (
-		gm_hash_table_contains(ctx->ht, key) &&
+		htable_contains(ctx->ht, key) &&
 		!hash_list_contains(ctx->readable, key)
 	) {
 		hash_list_append(ctx->readable, key);
@@ -1333,7 +1334,7 @@ inputevt_init(int use_poll)
 	g_assert(!ctx->initialized);
 	
 	ctx->initialized = TRUE;
-	ctx->ht = g_hash_table_new(NULL, NULL);
+	ctx->ht = htable_create(HASH_KEY_SELF, 0);
 	ctx->readable = hash_list_new(NULL, NULL);
 
 	init_with_poll(ctx); /* Must be called first and provides the default */
@@ -1430,7 +1431,7 @@ inputevt_close(void)
 	
 	ctx = get_global_poll_ctx();
 	inputevt_purge_removed(ctx);
-	gm_hash_table_destroy_null(&ctx->ht);
+	htable_free_null(&ctx->ht);
 	hash_list_free(&ctx->readable);
 	G_FREE_NULL(ctx->used_poll_idx);
 	G_FREE_NULL(ctx->used_event_id);

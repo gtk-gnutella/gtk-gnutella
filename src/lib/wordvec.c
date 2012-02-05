@@ -36,6 +36,7 @@
 #include "wordvec.h"
 #include "utf8.h"
 #include "halloc.h"
+#include "htable.h"
 #include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
@@ -113,7 +114,7 @@ uint
 word_vec_make(const char *query_str, word_vec_t **wovec)
 {
 	uint n = 0;
-	GHashTable *seen_word = NULL;
+	htable_t *seen_word = NULL;
 	uint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
 	const char *start = NULL;
@@ -149,10 +150,9 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 			if (first)
 				np1 = 0;
 			else {
-				if (seen_word == NULL) {
-					seen_word = g_hash_table_new(g_str_hash, g_str_equal);
-					g_hash_table_insert(seen_word, wv[0].word,
-						GUINT_TO_POINTER(1));
+				if G_UNLIKELY(NULL == seen_word) {
+					seen_word = htable_create(HASH_KEY_STRING, 0);
+					htable_insert(seen_word, wv[0].word, uint_to_pointer(1));
 				}
 
 				/*
@@ -160,7 +160,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 		 	 	 * The associated value is the index in the vector plus 1.
 		 	 	 */
 
-				np1 = GPOINTER_TO_UINT(g_hash_table_lookup(seen_word, start));
+				np1 = pointer_to_uint(htable_lookup(seen_word, start));
 			}
 
 			if (np1--) {
@@ -192,8 +192,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 				if (first)
 					first = FALSE;
 				else {
-					g_hash_table_insert(seen_word, entry->word,
-						GUINT_TO_POINTER(n));
+					htable_insert(seen_word, entry->word, uint_to_pointer(n));
 				}
 			}
 			start = NULL;
@@ -202,8 +201,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 		if (c == '\0') break;
 	}
 
-	if (NULL != seen_word)
-		g_hash_table_destroy(seen_word);	/* Key pointers belong to vector */
+	htable_free_null(&seen_word);	/* Key pointers belong to vector */
 	if (n)
 		*wovec = wv;
 	else

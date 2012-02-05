@@ -69,6 +69,7 @@
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "hset.h"
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
@@ -379,10 +380,10 @@ mingw_wsa_last_error(void)
 static int
 mingw_win2posix(int error)
 {
-	static GHashTable *warned;
+	static hset_t *warned;
 
 	if (NULL == warned) {
-		warned = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	}
 
 	/*
@@ -482,10 +483,10 @@ mingw_win2posix(int error)
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
 	default:
-		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
+		if (!hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
-			g_hash_table_insert(warned, int_to_pointer(error), NULL);
+			hset_insert(warned, int_to_pointer(error));
 		}
 	}
 

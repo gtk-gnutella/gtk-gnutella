@@ -39,6 +39,8 @@
 
 enum ipset_magic { IPSET_MAGIC = 0x18df36aa };
 
+struct hset;
+
 /**
  * An IP set container.
  *
@@ -46,7 +48,7 @@ enum ipset_magic { IPSET_MAGIC = 0x18df36aa };
  */
 typedef struct ipset {
 	enum ipset_magic magic;
-	GHashTable *addrs;
+	struct hset *addrs;
 } ipset_t;
 
 #define IPSET_INIT	{ IPSET_MAGIC, NULL }

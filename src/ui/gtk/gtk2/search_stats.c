@@ -52,7 +52,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/concat.h"
-#include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/wordvec.h"
@@ -67,7 +67,7 @@ struct term_counts {
 
 static unsigned stat_count;
 
-static GHashTable *stat_hash;
+static htable_t *stat_hash;
 static GtkListStore *store_search_stats;
 static GtkTreeView *treeview_search_stats;
 static GtkLabel *label_search_stats_count;
@@ -78,14 +78,15 @@ static GtkSortType search_stats_sort_order;
 static int search_stats_sort_column;
 #endif	/* Gtk+ >= 2.6.0 */
 
-static gboolean
-free_hash_entry(void *key, void *value, void *unused_data)
+static bool
+free_hash_entry(const void *key, void *value, void *unused_data)
 {
 	struct term_counts *val = value;
+	char *s = deconstify_pointer(key);
 
 	(void) unused_data;
 
-	wfree(key, 1 + strlen(key));
+	wfree(s, 1 + strlen(s));
 	WFREE(val);
 	return TRUE;
 }
@@ -233,7 +234,7 @@ empty_hash_table(void)
 	if (!stat_hash)
 		return;
 
-	g_hash_table_foreach_remove(stat_hash, free_hash_entry, NULL);
+	htable_foreach_remove(stat_hash, free_hash_entry, NULL);
 }
 
 /**
@@ -243,8 +244,8 @@ empty_hash_table(void)
  *  - clears out aged / infrequent search terms
  *  - sticks the rest of the search terms in treeview_search_stats
  */
-static gboolean
-stats_hash_to_treeview(void *key, void *value, void *unused_udata)
+static bool
+stats_hash_to_treeview(const void *key, void *value, void *unused_udata)
 {
 	struct term_counts *val = value;
 	GtkTreeIter iter;
@@ -328,7 +329,7 @@ search_stats_tally(const word_vec_t *vec)
 	if (vec->word[1] == '\0' || vec->word[2] == '\0')
 		return;
 
-	val = g_hash_table_lookup(stat_hash, vec->word);
+	val = htable_lookup(stat_hash, vec->word);
 
 	if (val) {
 		val->period_cnt++;
@@ -338,7 +339,7 @@ search_stats_tally(const word_vec_t *vec)
 		WALLOC0(val);
 		val->period_cnt = vec->amount;
 		key = wcopy(vec->word, 1 + strlen(vec->word));
-		gm_hash_table_insert_const(stat_hash, key, val);
+		htable_insert(stat_hash, key, val);
 	}
 }
 
@@ -447,7 +448,7 @@ search_stats_gui_update_display(void)
 		search_stats_gui_sort_save();
 	}
 	/* insert the hash table contents into the sorted treeview */
-	g_hash_table_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
+	htable_foreach_remove(stat_hash, stats_hash_to_treeview, NULL);
 
 	tm_now_exact(&end_time);
 	elapsed = tm_elapsed_ms(&end_time, &start_time);
@@ -536,7 +537,7 @@ search_stats_gui_init(void)
 	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
 	tree_view_set_fixed_height_mode(treeview, TRUE);
 
-	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+	stat_hash = htable_create(HASH_KEY_STRING, 0);
 	main_gui_add_timer(search_stats_gui_timer);
 }
 
@@ -545,7 +546,8 @@ search_stats_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_search_stats, PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
-    gm_hash_table_destroy_null(&stat_hash);
+	empty_hash_table();
+    htable_free_null(&stat_hash);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

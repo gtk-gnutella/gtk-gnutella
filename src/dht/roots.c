@@ -74,7 +74,7 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
-#include "lib/glib-missing.h"
+#include "lib/hset.h"
 #include "lib/map.h"
 #include "lib/patricia.h"
 #include "lib/stringify.h"
@@ -82,6 +82,7 @@
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define ROOTS_CALLOUT		5000		/**< Heartbeat every 5 seconds */
@@ -913,16 +914,15 @@ free_contact(void *valptr, size_t len)
  * Context for recreate_ri() and remove_orphan().
  */
 struct recreate_context {
-	GHashTable *dbkeys;		/* Seen DB keys (atoms) */
+	hset_t *dbkeys;			/* Seen DB keys (atoms) */
 	uint orphans;			/* Orphan keys found */
 };
 
 static void
-free_dbkey_kv(void *key, void *u_value, void *u_data)
+free_dbkey_kv(const void *key, void *u_data)
 {
-	uint64 *dbkey = key;
+	const uint64 *dbkey = key;
 
-	(void) u_value;
 	(void) u_data;
 
 	atom_uint64_free(dbkey);
@@ -974,9 +974,9 @@ recreate_ri(void *key, void *value, size_t u_len, void *data)
 		if (dbkey >= contactid)
 			contactid = dbkey + 1;
 
-		if (!g_hash_table_lookup(ctx->dbkeys, &dbkey)) {
+		if (!hset_contains(ctx->dbkeys, &dbkey)) {
 			const uint64 *dbatom = atom_uint64_get(&dbkey);
-			gm_hash_table_insert_const(ctx->dbkeys, dbatom, uint_to_pointer(1));
+			hset_insert(ctx->dbkeys, dbatom);
 		}
 	}
 
@@ -1017,7 +1017,7 @@ remove_orphan(void *key, void *u_value, size_t u_len, void *data)
 	(void) u_value;
 	(void) u_len;
 
-	if (!g_hash_table_lookup(ctx->dbkeys, dbkey)) {
+	if (hset_contains(ctx->dbkeys, dbkey)) {
 		ctx->orphans++;
 		return TRUE;
 	}
@@ -1054,14 +1054,14 @@ roots_init_rootinfo(void)
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	ctx.dbkeys = g_hash_table_new(uint64_mem_hash, uint64_mem_eq);
+	ctx.dbkeys = hset_create(HASH_KEY_FIXED, sizeof(uint64));
 	ctx.orphans = 0;
 
 	dbmw_foreach_remove(db_rootdata, recreate_ri, &ctx);
 	dbmw_foreach_remove(db_contact, remove_orphan, &ctx);
 
-	g_hash_table_foreach(ctx.dbkeys, free_dbkey_kv, NULL);
-	gm_hash_table_destroy_null(&ctx.dbkeys);
+	hset_foreach(ctx.dbkeys, free_dbkey_kv, NULL);
+	hset_free_null(&ctx.dbkeys);
 
 	count = dbmw_count(db_rootdata);
 

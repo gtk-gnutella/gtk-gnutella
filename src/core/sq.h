@@ -42,6 +42,8 @@
 #include "lib/pmsg.h"
 #include "if/core/search.h"
 
+struct hset;
+
 /**
  * A search queue.
  *
@@ -51,7 +53,7 @@
  */
 typedef struct search_queue {
 	GList *searches;			/**< A pointer to the GList */
-	GHashTable *handles;		/**< Keeps track of search handles in queue */
+	struct hset *handles;		/**< Keeps track of search handles in queue */
 	struct gnutella_node *node;	/**< Node owning this search queue, or NULL */
 	time_t last_sent;    		/**< Time last msg was sent */
 	uint count;					/**< Count of number in queue */

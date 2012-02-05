@@ -50,6 +50,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hashing.h"	/* For binary_hash() */
+#include "htable.h"
 #include "log.h"
 #include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "offtime.h"
@@ -773,7 +774,7 @@ trace_check(void)
 	size_t mismatches;
 	size_t i;
 	size_t offset = 0;
-	GHashTable *sym_pc;
+	htable_t *sym_pc;
 	const void *main_pc;
 
 	if (0 == trace_array.count)
@@ -789,19 +790,19 @@ trace_check(void)
 	 * the symbols.
 	 */
 
-	sym_pc = g_hash_table_new(g_str_hash, g_str_equal);
+	sym_pc = htable_create(HASH_KEY_STRING, 0);
 
 	for (i = 0; i < trace_array.count; i++) {
 		struct trace *t = &trace_array.base[i];
 
-		gm_hash_table_insert_const(sym_pc, t->name, t->start);
+		htable_insert_const(sym_pc, t->name, t->start);
 	}
 
 	/*
 	 * Compute the initial offset for main().
 	 */
 
-	main_pc = g_hash_table_lookup(sym_pc, "main");
+	main_pc = htable_lookup(sym_pc, "main");
 
 	if (NULL == main_pc) {
 		s_warning("cannot find main() in the loaded symbols");
@@ -818,7 +819,7 @@ trace_check(void)
 	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
 		const char *name = trace_known_symbols[i].name;
 		const void *pc = cast_func_to_pointer(trace_known_symbols[i].fn);
-		const void *loaded_pc = g_hash_table_lookup(sym_pc, name);
+		const void *loaded_pc = htable_lookup(sym_pc, name);
 		size_t loaded_offset;
 
 		if (NULL == loaded_pc) {
@@ -888,7 +889,7 @@ trace_check(void)
 		s_warning("BUG in trace_check()");
 
 done:
-	gm_hash_table_destroy_null(&sym_pc);
+	htable_free_null(&sym_pc);
 }
 
 /**

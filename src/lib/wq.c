@@ -70,9 +70,9 @@
 
 #include "wq.h"
 #include "cq.h"
-#include "glib-missing.h"
 #include "hashing.h"
 #include "hashlist.h"
+#include "htable.h"
 #include "stacktrace.h"
 #include "walloc.h"
 
@@ -115,7 +115,7 @@ wq_event_check(const struct wq_event * const we)
 /**
  * The wait queue associates waiting keys to the hashlist of waiters.
  */
-static GHashTable *waitqueue;
+static htable_t *waitqueue;
 
 /**
  * Allocate waiting event.
@@ -174,10 +174,10 @@ wq_sleep(const void *key, wq_callback_t cb, void *arg)
 	hash_list_t *hl;
 
 	we = wq_event_alloc(key, cb, arg);
-	hl = g_hash_table_lookup(waitqueue, key);
+	hl = htable_lookup(waitqueue, key);
 	if (NULL == hl) {
 		hl = hash_list_new(pointer_hash, NULL);
-		gm_hash_table_insert_const(waitqueue, key, hl);
+		htable_insert(waitqueue, key, hl);
 	}
 	hash_list_append(hl, we);		/* FIFO layout */
 
@@ -200,7 +200,7 @@ wq_timed_out(cqueue_t *unused_cq, void *arg)
 	(void) unused_cq;
 
 	we->tm->timeout_ev = NULL;
-	hl = g_hash_table_lookup(waitqueue, we->key);
+	hl = htable_lookup(waitqueue, we->key);
 
 	g_assert(hl != NULL);
 
@@ -235,7 +235,7 @@ wq_timed_out(cqueue_t *unused_cq, void *arg)
 
 		if (0 == hash_list_length(hl)) {
 			hash_list_free(&hl);
-			g_hash_table_remove(waitqueue, we->key);
+			htable_remove(waitqueue, we->key);
 		}
 
 		wq_event_free(we);
@@ -284,7 +284,7 @@ wq_remove(wq_event_t *we)
 
 	wq_event_check(we);
 
-	hl = g_hash_table_lookup(waitqueue, we->key);
+	hl = htable_lookup(waitqueue, we->key);
 	if (NULL == hl) {
 		g_carp("attempt to remove event %s() on unknown key %p",
 			stacktrace_routine_name(func_to_pointer(we->cb), FALSE),
@@ -295,7 +295,7 @@ wq_remove(wq_event_t *we)
 			we->key);
 	} else if (0 == hash_list_length(hl)) {
 		hash_list_free(&hl);
-		g_hash_table_remove(waitqueue, we->key);
+		htable_remove(waitqueue, we->key);
 	}
 
 	wq_event_free(we);
@@ -393,7 +393,7 @@ wq_wakeup(const void *key, void *data)
 {
 	hash_list_t *hl;
 
-	hl = g_hash_table_lookup(waitqueue, key);
+	hl = htable_lookup(waitqueue, key);
 
 	if (hl != NULL) {
 		wq_notify(hl, data);
@@ -404,7 +404,7 @@ wq_wakeup(const void *key, void *data)
 
 		if (0 == hash_list_length(hl)) {
 			hash_list_free(&hl);
-			g_hash_table_remove(waitqueue, key);
+			htable_remove(waitqueue, key);
 		}
 	}
 }
@@ -421,7 +421,7 @@ wq_wakeup(const void *key, void *data)
 bool
 wq_waiting(const void *key)
 {
-	return gm_hash_table_contains(waitqueue, key);
+	return htable_contains(waitqueue, key);
 }
 
 /**
@@ -432,7 +432,7 @@ wq_init(void)
 {
 	g_assert(NULL == waitqueue);
 
-	waitqueue = g_hash_table_new(pointer_hash, NULL);
+	waitqueue = htable_create(HASH_KEY_SELF, 0);
 }
 
 /**
@@ -458,7 +458,7 @@ wq_free_waiting(void *key, void *unused_data)
  * Hash table iterator to free registered waiting events.
  */
 static void
-wq_free_kv(void *unused_key, void *value, void *unused_data)
+wq_free_kv(const void *unused_key, void *value, void *unused_data)
 {
 	hash_list_t *hl = value;
 
@@ -482,8 +482,8 @@ wq_close(void)
 	 * the queue: any remaining entry is leaking and will be flagged as such.
 	 */
 
-	g_hash_table_foreach(waitqueue, wq_free_kv, NULL);
-	gm_hash_table_destroy_null(&waitqueue);
+	htable_foreach(waitqueue, wq_free_kv, NULL);
+	htable_free_null(&waitqueue);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

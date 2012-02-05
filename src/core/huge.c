@@ -54,6 +54,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
 #include "lib/sha1.h"
@@ -73,7 +74,7 @@
  ***/
 
 /**
- * There's an in-core cache (the GHashTable sha1_cache), and a
+ * There's an in-core cache (the hash table ``sha1_cache''), and a
  * persistent copy (normally in ~/.gtk-gnutella/sha1_cache). The
  * in-core cache is filled with the persistent one at launch. When the
  * "shared_file" (the records describing the shared files, see
@@ -101,7 +102,7 @@ struct sha1_cache_entry {
                                      file in the share library      */
 };
 
-static GHashTable *sha1_cache;
+static htable_t *sha1_cache;
 
 /**
  * cache_dirty = TRUE means that in-core cache is different from the disk one.
@@ -152,7 +153,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	item->sha1 = atom_sha1_get(sha1);
 	item->tth = tth ? atom_tth_get(tth) : NULL;
 	item->shared = known_to_be_shared;
-	g_hash_table_insert(sha1_cache, deconstify_char(item->file_name), item);
+	htable_insert(sha1_cache, item->file_name, item);
 }
 
 /* Disk cache */
@@ -231,7 +232,7 @@ struct dump_cache_context {
  * called by dump_cache to dump the whole in-memory cache onto disk.
  */
 static void
-dump_cache_one_entry(void *unused_key, void *value, void *udata)
+dump_cache_one_entry(const void *unused_key, void *value, void *udata)
 {
 	struct sha1_cache_entry *e = value;
 	struct dump_cache_context *ctx = udata;
@@ -264,7 +265,7 @@ dump_cache(bool force)
 		fputs(sha1_persistent_cache_file_header, f);
 		ctx.f = f;
 		ctx.forced = force;
-		g_hash_table_foreach(sha1_cache, dump_cache_one_entry, &ctx);
+		htable_foreach(sha1_cache, dump_cache_one_entry, &ctx);
 		if (file_config_close(f, &fp)) {
 			cache_dirty = FALSE;
 		}
@@ -457,8 +458,7 @@ huge_update_hashes(shared_file_t *sf,
 
 	/* Update cache */
 
-	cached = g_hash_table_lookup(sha1_cache,
-					cast_to_constpointer(shared_file_path(sf)));
+	cached = htable_lookup(sha1_cache, shared_file_path(sf));
 
 	if (cached) {
 		update_volatile_cache(cached, shared_file_size(sf),
@@ -519,7 +519,7 @@ huge_need_sha1(shared_file_t *sf)
 	 * XXX		--RAM, 21/05/2002
 	 */
 
-	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	cached = htable_lookup(sha1_cache, shared_file_path(sf));
 	if (cached) {
 		filestat_t sb;
 
@@ -621,7 +621,7 @@ sha1_is_cached(const shared_file_t *sf)
 {
 	const struct sha1_cache_entry *cached;
 
-	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	cached = htable_lookup(sha1_cache, shared_file_path(sf));
 	return cached && cached_entry_up_to_date(cached, sf);
 }
 
@@ -636,7 +636,7 @@ request_sha1(shared_file_t *sf)
 
 	shared_file_check(sf);
 
-	cached = g_hash_table_lookup(sha1_cache, shared_file_path(sf));
+	cached = htable_lookup(sha1_cache, shared_file_path(sf));
 	if (cached && cached_entry_up_to_date(cached, sf)) {
 		cache_dirty = TRUE;
 		cached->shared = TRUE;
@@ -882,7 +882,7 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 void
 huge_init(void)
 {
-	sha1_cache = g_hash_table_new(pointer_hash, NULL);
+	sha1_cache = htable_create(HASH_KEY_SELF, 0);	/* Keys are atoms */
 	sha1_read_cache();
 	has_http_urls = pattern_compile("http://");
 }
@@ -890,8 +890,8 @@ huge_init(void)
 /**
  * Free SHA1 cache entry.
  */
-static bool
-cache_free_entry(void *unused_key, void *v, void *unused_udata)
+static void
+cache_free_entry(const void *unused_key, void *v, void *unused_udata)
 {
 	struct sha1_cache_entry *e = v;
 
@@ -902,8 +902,6 @@ cache_free_entry(void *unused_key, void *v, void *unused_udata)
 	atom_sha1_free_null(&e->sha1);
 	atom_tth_free_null(&e->tth);
 	WFREE(e);
-
-	return TRUE;
 }
 
 /**
@@ -914,8 +912,8 @@ huge_close(void)
 {
 	dump_cache(FALSE);
 
-	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
-	gm_hash_table_destroy_null(&sha1_cache);
+	htable_foreach(sha1_cache, cache_free_entry, NULL);
+	htable_free_null(&sha1_cache);
 
 	pattern_free(has_http_urls);
 	has_http_urls = NULL;
