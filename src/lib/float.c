@@ -138,7 +138,6 @@ static struct float_context {
 static bignum_t five[MAX_FIVE];
 static int recursion_level = -1;
 static gboolean float_inited;
-static gboolean float_little_endian;
 
 #define R			float_context[recursion_level].c_R
 #define S			float_context[recursion_level].c_S
@@ -525,30 +524,6 @@ float_init(void)
 	bignum_t *b;
 	guint64 *xp, *zp, k;
 
-	/*
-	 * Determine dynamically whether floats are stored as
-	 * little- or big-endian.  This will only impose negligeable
-	 * overhead to the formatting.
-	 *		--RAM, 2011-11-06
-	 */
-
-	{
-		double v = 4.0;
-		struct dblflt_le *le;
-		struct dblflt_be *be;
-
-		le = (struct dblflt_le *) &v;
-		be = (struct dblflt_be *) &v;
-
-		if (0 == le->s && 1025 == le->e) {
-			float_little_endian = TRUE;
-		} else if (0 == be->s && 1025 == be->e) {
-			float_little_endian = FALSE;
-		} else {
-			g_error("your double values are not stored in IEEE format");
-		}
-	}
-
 	five[0].l = l = 0;
 	five[0].d[0] = 5;
 	for (n = MAX_FIVE-1, b = &five[0]; n > 0; n--) {
@@ -603,19 +578,25 @@ float_decompose(double v, int *sign, int *ep)
 	STATIC_ASSERT(sizeof(struct dblflt_le) == sizeof(struct dblflt_be));
 
 	/* decompose float into sign, mantissa & exponent */
-	if (float_little_endian) {
+#if IS_LITTLE_ENDIAN_FLOAT
+	{
 		struct dblflt_le *x = (struct dblflt_le *)&v;
 		*sign = x->s;
 		e = x->e;
 		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
 			(guint32)(x->m3 << 16 | x->m4);
-	} else {
+	}
+#elif IS_BIG_ENDIAN_FLOAT
+	{
 		struct dblflt_be *x = (struct dblflt_be *)&v;
 		*sign = x->s;
 		e = x->e;
 		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
 			(guint32)(x->m3 << 16 | x->m4);
 	}
+#else
+#error "unknown float endianness -- not IEEE 754?"
+#endif
 
 	if (e != 0) {
 		*ep = e - bias - bitstoright;
