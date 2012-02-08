@@ -174,7 +174,7 @@ tiger(gconstpointer data, guint64 length, char hash[24])
   res[1] = U64_FROM_2xU32(0xFEDCBA98UL, 0x76543210UL);
   res[2] = U64_FROM_2xU32(0xF096A5B4UL, 0xC3B2E187UL);
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if IS_BIG_ENDIAN
   for (i = length; i >= 64; i -= 64) {
     for (j = 0; j < 64; j++) {
       temp.u8[j ^ 7] = data_u8[j];
@@ -182,7 +182,7 @@ tiger(gconstpointer data, guint64 length, char hash[24])
     tiger_compress(temp.u64, res);
     data_u8 += 64;
   }
-#else	/* !BIG ENDIAN */
+#else	/* !IS_BIG_ENDIAN */
   if ((gulong) data & 7) {
     for (i = length; i >= 64; i -= 64) {
       memcpy(temp.u64, data_u8, 64);
@@ -195,9 +195,9 @@ tiger(gconstpointer data, guint64 length, char hash[24])
       data_u8 += 64;
     }
   }
-#endif	/* BIG ENDIAN */
+#endif	/* IS_BIG_ENDIAN */
 
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if IS_BIG_ENDIAN
   for (j = 0; j < i; j++) {
     temp.u8[j ^ 7] = data_u8[j];
   }
@@ -216,7 +216,7 @@ tiger(gconstpointer data, guint64 length, char hash[24])
   for (; j & 7; j++) {
     temp.u8[j] = 0;
   }
-#endif
+#endif	/* IS_BIG_ENDIAN */
 
   if (j > 56) {
     for (; j < 64; j++) {

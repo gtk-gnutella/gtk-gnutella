@@ -171,6 +171,30 @@
 #endif
 
 /*
+ * Endianness, as determined by Configure.
+ */
+
+#if BYTEORDER == 0x1234
+#define IS_LITTLE_ENDIAN	1
+#define IS_BIG_ENDIAN		0
+#elif BYTEORDER == 0x4321
+#define IS_BIG_ENDIAN		1
+#define IS_LITTLE_ENDIAN	0
+#else
+#error "unknown endianness"
+#endif
+
+#if IEEE754_BYTEORDER == 0x1234
+#define IS_LITTLE_ENDIAN_FLOAT	1
+#define IS_BIG_ENDIAN_FLOAT		0
+#elif IEEE754_BYTEORDER == 0x4321
+#define IS_BIG_ENDIAN_FLOAT		1
+#define IS_LITTLE_ENDIAN_FLOAT	0
+#else
+#error "float must use IEEE 754."
+#endif
+
+/*
  * Determine how large an I/O vector the kernel can accept.
  */
 

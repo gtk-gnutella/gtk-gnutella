@@ -74,6 +74,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define BIN "$bin"	/**/
 
+/* BYTEORDER:
+ *	This symbol holds the hexadecimal constant defined in byteorder,
+ *	i.e. 1234 for little-endian or 4321 for big-ending.
+ */
+#define BYTEORDER 0x$byteorder	/* large digits for MSB */
+
 /* CAT2:
  *	This macro catenates 2 tokens together.
  */
@@ -290,6 +296,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_hstrerror HAS_HSTRERROR		/**/
+
+/* USE_IEEE754_FLOAT:
+ *	When defined, this symbol indicates that float and double values are
+ *	stored using the IEEE-754 floating point format.  See IEEE754_BYTEORDER
+ *	to determine the endianness in case these values need to be serialized.
+ */
+/* IEEE754_BYTEORDER:
+ *	This symbol holds the hexadecimal constant defined in ieee754_byteorder,
+ *	i.e. 1234 for little-endian or 4321 for big-ending floats.  It is 0 when
+ *	floats are not stored in IEEE-754 format.
+ */
+#$d_ieee754 USE_IEEE754_FLOAT
+#define IEEE754_BYTEORDER 0x$ieee754_byteorder	/* large digits for MSB */
 
 /* USE_IP_TOS:
  *	This symbol, if defined, indicates that the IP TOS services are

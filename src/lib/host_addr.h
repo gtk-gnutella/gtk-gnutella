@@ -137,7 +137,7 @@ static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
 
 static const host_addr_t ipv4_loopback = {	/* 127.0.0.1/32 */
 	NET_TYPE_IPV4,
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if IS_BIG_ENDIAN
 	{ { 0x7f, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 #else
 	{ { 0x01, 0x00, 0x00, 0x7f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },

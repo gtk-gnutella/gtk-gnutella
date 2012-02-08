@@ -555,7 +555,7 @@ cleanup:
 static inline void
 hsep_fix_endian(hsep_triple *messaget, size_t n)
 {
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+#if IS_LITTLE_ENDIAN
 	(void) messaget;
 	(void) n;
 #else
@@ -572,7 +572,7 @@ hsep_fix_endian(hsep_triple *messaget, size_t n)
 			poke_le64(&messaget[i][j], messaget[i][j]);
 		}
 	}
-#endif	/* LITTLE ENDIAN */
+#endif	/* IS_LITTLE_ENDIAN */
 }
 
 /**
