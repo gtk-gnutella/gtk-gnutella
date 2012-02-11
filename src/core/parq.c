@@ -1409,7 +1409,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 */
 
 		if (puq->relative_position > GNET_PROPERTY(max_uploads)) {
-			time_delta_t per_slot = running_time / MIN(1, parq_slots_removed);
+			time_delta_t per_slot = running_time / MAX(1, parq_slots_removed);
 			uint cheap_eta = puq->relative_position * per_slot;
 
 			if (cheap_eta < eta)
