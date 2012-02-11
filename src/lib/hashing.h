@@ -74,6 +74,10 @@ unsigned pointer_hash2(const void *p) G_GNUC_CONST;
 unsigned binary_hash2(const void *data, size_t len) G_GNUC_PURE;
 unsigned string_hash2(const void *s) G_GNUC_PURE;
 
+unsigned universal_hash(const void *data, size_t len) G_GNUC_PURE;
+unsigned universal_mix_hash(const void *data, size_t len) G_GNUC_PURE;
+unsigned string_mix_hash(const void *s) G_GNUC_PURE;
+
 bool pointer_eq(const void *a, const void *b) G_GNUC_CONST;
 bool binary_eq(const void *a, const void *b, size_t len) G_GNUC_PURE;
 bool string_eq(const void *a, const void *b) G_GNUC_PURE;
