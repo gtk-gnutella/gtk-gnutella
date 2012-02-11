@@ -196,7 +196,18 @@ upnp_mapping_hash(const void *p)
 {
 	const struct upnp_mapping *um = p;
 
-	return ((unsigned) um->proto * 0xa79dU) ^ (unsigned) um->port;
+	return integer_hash2(um->proto) ^ port_hash(um->port);
+}
+
+/**
+ * Hash a UPnP mapping (secondary hash).
+ */
+static unsigned
+upnp_mapping_hash2(const void *p)
+{
+	const struct upnp_mapping *um = p;
+
+	return integer_hash(um->proto) ^ port_hash2(um->port);
 }
 
 /**

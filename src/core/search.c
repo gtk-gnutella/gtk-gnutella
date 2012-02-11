@@ -638,7 +638,7 @@ sent_node_hash_func(const void *key)
 
 	/* ensure that we've got sizeof(int) bytes of deterministic data */
 	return host_addr_hash(gnet_host_get_addr(sd)) ^
-			(uint32) gnet_host_get_port(sd);
+			port_hash(gnet_host_get_port(sd));
 }
 
 static int
@@ -1457,7 +1457,7 @@ ora_hash(const void *key)
 	return ora->token ^
 		guid_hash(ora->muid) ^
 		host_addr_hash(ora->addr) ^
-		(((uint32) ora->port << 16) | ora->port);
+		port_hash(ora->port);
 }
 
 static int

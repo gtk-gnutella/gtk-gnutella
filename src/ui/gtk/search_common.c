@@ -63,6 +63,7 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
@@ -946,12 +947,12 @@ search_gui_hash_func(gconstpointer p)
 
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
-		pointer_to_uint(rc->sha1) ^	/* atom! (may be NULL) */
-		pointer_to_uint(rc->results_set->guid) ^	/* atom! */
-		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
-		rc->size ^
+		pointer_hash(rc->sha1) ^	/* atom! (may be NULL) */
+		pointer_hash(rc->results_set->guid) ^	/* atom! */
+		(NULL != rc->sha1 ? 0 : string_mix_hash(rc->name)) ^
+		integer_hash(rc->size) ^
 		host_addr_hash(rc->results_set->addr) ^
-		rc->results_set->port;
+		port_hash(rc->results_set->port);
 }
 
 gint

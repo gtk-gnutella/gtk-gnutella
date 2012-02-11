@@ -66,6 +66,7 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
+#include "lib/hashing.h"
 #include "lib/nid.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
@@ -1142,9 +1143,9 @@ cached_pong_hash(const void *key)
 {
 	const struct cached_pong *cp = key;
 
-	return host_addr_hash(cp->info.addr) ^
-		((cp->info.port << 16) | cp->info.port);
+	return host_addr_hash(cp->info.addr) ^ port_hash(cp->info.port);
 }
+
 static int
 cached_pong_eq(const void *v1, const void *v2)
 {

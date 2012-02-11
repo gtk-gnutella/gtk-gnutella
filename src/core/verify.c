@@ -260,7 +260,7 @@ verify_item_hash(const void *key)
 
 	verify_file_check(ctx);
 	
-	return g_str_hash(ctx->pathname)
+	return string_mix_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
 		^ pointer_hash(func_to_pointer(ctx->callback))

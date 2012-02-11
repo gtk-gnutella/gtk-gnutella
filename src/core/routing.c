@@ -52,9 +52,11 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static struct gnutella_node *fake_node;		/**< Our fake node */
@@ -337,7 +339,7 @@ route_udp_node_hash(const void *key)
 {
 	const struct routing_udp_node *un = key;
 
-	return host_addr_hash(un->addr) ^ ((un->port << 16) | un->port);
+	return host_addr_hash(un->addr) ^ port_hash(un->port);
 }
 
 /**
@@ -1282,13 +1284,8 @@ static uint
 message_hash_func(const void *key)
 {
 	const struct message *msg = key;
-	uint hash, i;
 
-	hash = msg->function;
-	for (i = 0; i < 4; i++) {
-		hash ^= peek_le32(&msg->muid.v[i * 4]);
-	}
-	return hash;
+	return integer_hash(msg->function) ^ guid_hash(&msg->muid);
 }
 
 /**

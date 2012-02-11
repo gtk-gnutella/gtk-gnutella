@@ -423,36 +423,6 @@ is_host_addr(const host_addr_t ha)
 	return FALSE;
 }
 
-static inline uint32
-host_addr_hash(host_addr_t ha)
-{
-	switch (ha.net) {
-	case NET_TYPE_IPV6:
-		{
-			host_addr_t ha_ipv4;
-
-			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4)) {
-				uint32 h = ha.net ^ ha.addr.ipv6[15];
-				uint i;
-
-				for (i = 0; i < sizeof ha.addr.ipv6; i++)
-					h ^= (uint32) ha.addr.ipv6[i] << (i * 2);
-
-				return h;
-			}
-			ha = ha_ipv4;
-		}
-		/* FALL THROUGH */
-	case NET_TYPE_IPV4:
-		return ha.net ^ host_addr_ipv4(ha);
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		return ha.net;
-	}
-	g_assert_not_reached();
-	return (uint32) -1;
-}
-
 /**
  * Retrieves the address from a socket_addr_t.
  *
@@ -607,6 +577,8 @@ host_addr_t name_to_single_host_addr(const char *host, enum net_type net);
 struct addrinfo;
 host_addr_t addrinfo_to_addr(const struct addrinfo *ai);
 #endif
+
+unsigned host_addr_hash(host_addr_t ha);
 
 const char *host_addr_to_name(const host_addr_t addr);
 bool string_to_host_or_addr(const char *s, const char **endptr,

@@ -40,6 +40,7 @@
 
 #include "lib/atoms.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/walloc.h"
 
@@ -91,9 +92,9 @@ xattr_hash(const void *key)
 
 	/* xa->uri can be NULL, xa->local cannot */
 
-	hash = (NULL == xa->uri) ? 0 : g_str_hash(xa->uri);
+	hash = (NULL == xa->uri) ? 0 : string_mix_hash(xa->uri);
 
-	return hash ^ g_str_hash(xa->local);
+	return hash ^ string_mix_hash(xa->local);
 }
 
 /**

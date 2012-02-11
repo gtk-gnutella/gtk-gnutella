@@ -60,6 +60,32 @@
 #include "override.h"		/* Must be the last header included */
 
 /**
+ * Hashing of host_addr_t.
+ */
+unsigned
+host_addr_hash(host_addr_t ha)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net ^ integer_hash(host_addr_ipv4(ha));
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net;
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
+
+/**
  * @param ha An initialized host address.
  * @return The proper AF_* value or -1 if not available.
  */

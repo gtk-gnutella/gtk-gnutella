@@ -59,6 +59,7 @@
 
 #include "gnet_host.h"
 #include "atoms.h"
+#include "hashing.h"
 #include "mempcpy.h"
 #include "sequence.h"
 #include "str.h"
@@ -83,7 +84,7 @@ gnet_host_hash(const void *key)
 
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
-	return host_addr_hash(addr) ^ ((port << 16) | port);
+	return host_addr_hash(addr) ^ port_hash(port);
 }
 
 /**

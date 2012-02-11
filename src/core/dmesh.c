@@ -65,6 +65,7 @@
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/parse.h"
@@ -171,9 +172,9 @@ urlinfo_hash(const void *key)
 	uint hash;
 
 	hash = host_addr_hash(info->addr);
-	hash ^= ((uint32) info->port << 16) | info->port;
-	hash ^= info->idx;
-	hash ^= g_str_hash(info->name);
+	hash ^= port_hash(info->port);
+	hash ^= integer_hash(info->idx);
+	hash ^= string_mix_hash(info->name);
 
 	return hash;
 }

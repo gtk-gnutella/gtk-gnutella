@@ -40,6 +40,7 @@
 
 #include "atoms.h"
 #include "endian.h"
+#include "hashing.h"
 #include "misc.h"
 
 #if 0
@@ -433,21 +434,41 @@ static size_t uint32_len(const void *v);
 static const char *uint32_str(const void *v);
 static const char *gnet_host_str(const void *v);
 
+#define str_hash	string_mix_hash
+#define str_eq		string_eq
+#define fs_hash		filesize_hash
+#define fs_eq		filesize_eq
+#define fs_len		filesize_len
+#define fs_str		filesize_str
+#define gnh_hash	gnet_host_hash
+#define gnh_eq		gnet_host_eq
+#define gnh_len		gnet_host_length
+#define gnh_str		gnet_host_str
+
 /**
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {
-	{ "String",	NULL, g_str_hash,  g_str_equal, str_len,    str_str  },	/* 0 */
+	{ "String",	NULL, str_hash,    str_eq,      str_len,    str_str  },	/* 0 */
 	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
 	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
 	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
-	{ "filesize", NULL,
-		filesize_hash, filesize_eq, filesize_len, filesize_str},		/* 5 */
+	{ "filesize", NULL, fs_hash,   fs_eq,       fs_len,     fs_str },	/* 5 */
 	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
-	{ "host", NULL,
-		gnet_host_hash, gnet_host_eq, gnet_host_length, gnet_host_str},	/* 7 */
+	{ "host",   NULL, gnh_hash,    gnh_eq,      gnh_len,    gnh_str },	/* 7 */
 };
+
+#undef str_hash
+#undef str_eq
+#undef fs_hash
+#undef fs_eq
+#undef fs_len
+#undef fs_str
+#undef gnh_hash
+#undef gnh_eq
+#undef gnh_len
+#undef gnh_str
 
 static GHashTable *ht_all_atoms;
 
@@ -646,7 +667,7 @@ uint
 uint64_hash(const void *p)
 {
 	uint64 v = *(const uint64 *) p;
-	return v ^ (v >> 32);
+	return integer_hash(v ^ (v >> 32));
 }
 
 /**
@@ -740,7 +761,7 @@ uint
 uint32_hash(const void *p)
 {
 	uint32 v = *(const uint32 *) p;
-	return v;
+	return integer_hash(v);
 }
 
 /**

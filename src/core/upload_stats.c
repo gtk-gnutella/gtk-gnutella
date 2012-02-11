@@ -62,6 +62,7 @@
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
@@ -95,7 +96,7 @@ ul_stats_hash(const void *p)
 {
 	const struct ul_stats *s = p;
   
-	return g_str_hash(s->pathname) ^ s->size;
+	return string_mix_hash(s->pathname) ^ integer_hash(s->size);
 }
 
 /**

@@ -49,6 +49,7 @@
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/halloc.h"
 #include "lib/mempcpy.h"
@@ -187,7 +188,7 @@ uhc_hash(const void *key)
 {
 	const struct uhc *uhc = key;
 
-	return g_str_hash(uhc->host);
+	return string_mix_hash(uhc->host);
 }
 
 static int

@@ -42,10 +42,11 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
-#include "lib/pmsg.h"
 #include "lib/inputevt.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -210,9 +211,8 @@ rudp_con_hash(const void *key)
 {
 	const struct rudp_con *c = key;
 
-	return host_addr_hash(c->addr) ^
-		((c->port << 16) | c->port) ^
-		c->conn_id;
+	return host_addr_hash(c->addr) ^ port_hash(c->port) ^
+		integer_hash(c->conn_id);
 }
 
 /**

@@ -1042,7 +1042,7 @@ dl_key_hash(const void *key)
 
 	hash = guid_hash(k->guid);
 	hash ^= host_addr_hash(k->addr);
-	hash ^= (k->port << 16) | k->port;
+	hash ^= port_hash(k->port);
 
 	return hash;
 }

@@ -45,6 +45,7 @@
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "glib-missing.h"
+#include "hashing.h"
 #include "hashtable.h"
 #include "log.h"
 #include "omalloc.h"
@@ -354,11 +355,11 @@ static hash_table_t *stats = NULL; /**< maps stats(file, line) -> stats */
  * Only the "file" and "line" fields are considered.
  */
 static unsigned
-stats_hash(gconstpointer key)
+stats_hash(const void *key)
 {
 	const struct stats *s = key;
 
-	return g_str_hash(s->file) ^ s->line;
+	return string_mix_hash(s->file) ^ integer_hash(s->line);
 }
 
 /**
