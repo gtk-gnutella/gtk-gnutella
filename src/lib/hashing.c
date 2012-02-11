@@ -76,7 +76,7 @@ pointer_hash(const void *p)
 unsigned
 pointer_hash2(const void *p)
 {
-	guint64 hash;
+	uint64 hash;
 
 	hash = GOLDEN_RATIO_48 * pointer_to_ulong(p);
 	return hash >> 11;
@@ -85,7 +85,7 @@ pointer_hash2(const void *p)
 /**
  * Equality comparison of pointers.
  */
-gboolean
+bool
 pointer_eq(const void *a, const void *b)
 {
 	return a == b;
@@ -99,7 +99,7 @@ binary_hash(const void *data, size_t len)
 {
 	const unsigned char *key = data;
 	size_t i, remain, t4;
-	guint32 hash;
+	uint32 hash;
 
 	remain = len & 0x3;
 	t4 = len & ~0x3U;
@@ -109,7 +109,7 @@ binary_hash(const void *data, size_t len)
 
 	hash = len;
 	for (i = 0; i < t4; i += 4) {
-		static const guint32 x[] = {
+		static const uint32 x[] = {
 			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
 			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
 		};
@@ -135,7 +135,7 @@ binary_hash2(const void *data, size_t len)
 {
 	const unsigned char *key = data;
 	size_t i, remain, t4;
-	guint32 hash;
+	uint32 hash;
 
 	remain = len & 0x3;
 	t4 = len & ~0x3U;
@@ -145,7 +145,7 @@ binary_hash2(const void *data, size_t len)
 
 	hash = len;
 	for (i = 0; i < t4; i += 4) {
-		static const guint32 x[] = {
+		static const uint32 x[] = {
 			0xe58b8e35, 0x27366c0a, 0x358b0c38, 0x1e538b42,
 			0x4dc6694c, 0x394dca87, 0x7ecb71bb, 0x594da47a
 		};
@@ -166,7 +166,7 @@ binary_hash2(const void *data, size_t len)
 /**
  * Buffer comparison, the two having the same length.
  */
-gboolean
+bool
 binary_eq(const void *a, const void *b, size_t len)
 {
 	return 0 == memcmp(a, b, len);
@@ -218,7 +218,7 @@ string_hash2(const void *s)
 /**
  * String comparison.
  */
-gboolean
+bool
 string_eq(const void *a, const void *b)
 {
 	return 0 == strcmp(a, b);

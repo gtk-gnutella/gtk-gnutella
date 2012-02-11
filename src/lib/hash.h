@@ -53,7 +53,7 @@ typedef unsigned (*hash_func_t)(const void *key);
 /**
  * A key comparison function.
  */
-typedef gboolean (*hash_eq_t)(const void *a, const void *b);
+typedef bool (*hash_eq_t)(const void *a, const void *b);
 
 /**
  * For polymorphic hash traversal.
@@ -156,13 +156,13 @@ void hash_keyhash_any_setup(struct hkeys *hk,
 	hash_func_t primary, hash_func_t secondary, hash_eq_t eq);
 void hash_keyset_free(struct hkeys *hk);
 void hash_keyset_clear(struct hkeys *hk);
-gboolean hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
+bool hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
 
 /*
  * Routines with a hash parameter also handle values, if any, when resizing.
  */
 
-gboolean hash_resize_as_needed(struct hash *h);
+bool hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
 bool hash_delete_key(struct hash *h, const void *key);

@@ -152,7 +152,7 @@ static unsigned hash_offset_secondary;
 static G_GNUC_COLD void
 hash_random_offset_init(void)
 {
-	static gboolean done;
+	static bool done;
 
 	if G_UNLIKELY(!done) {
 		hash_offset_primary = entropy_random();
@@ -308,7 +308,7 @@ hash_compute_increment(const struct hkeys *hk, const void *key, unsigned hv)
 /**
  * Compares two keys.
  */
-static gboolean
+static bool
 hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
 {
 	switch (hk->type) {
@@ -343,14 +343,14 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
-static gboolean
+static bool
 hash_keyset_lookup(struct hkeys *hk, const void *key,
-	unsigned *hashed, size_t *kidx, size_t *tombidx, gboolean known)
+	unsigned *hashed, size_t *kidx, size_t *tombidx, bool known)
 {
 	unsigned hv, inc, ih;
 	size_t idx, nidx;
 	size_t first_tomb, mask, hops;
-	gboolean found;
+	bool found;
 
 	if (known) {
 		hv = *hashed;
@@ -482,7 +482,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
  *
  * @return TRUE if we erected a new tombstone, FALSE if there was already one.
  */
-gboolean
+bool
 hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 {
 	g_assert(hk != NULL);
@@ -550,7 +550,7 @@ size_computed:
 	for (i = 0, hp = old_hashes, hk = old_keys; i < old_size; i++, hp++, hk++) {
 		if (HASH_IS_REAL(*hp)) {
 			size_t idx;
-			gboolean found;
+			bool found;
 
 			found = hash_keyset_lookup(&h->kset, *hk, hp, &idx, NULL, TRUE);
 			g_assert(!found);
@@ -573,7 +573,7 @@ size_computed:
  *
  * @return TRUE if resizing occurred, FALSE otherwise.
  */
-gboolean
+bool
 hash_resize_as_needed(struct hash *h)
 {
 	hash_check(h);
@@ -623,7 +623,7 @@ hash_resize_as_needed(struct hash *h)
 size_t
 hash_insert_key(struct hash *h, const void *key)
 {
-	gboolean found;
+	bool found;
 	unsigned hv;
 	size_t idx, tombidx;
 
@@ -655,7 +655,7 @@ hash_insert_key(struct hash *h, const void *key)
 size_t
 hash_lookup_key(struct hash *h, const void *key)
 {
-	gboolean found;
+	bool found;
 	unsigned hv;
 	size_t idx, tombidx;
 
@@ -674,7 +674,7 @@ hash_lookup_key(struct hash *h, const void *key)
 			goto no_resize;
 
 		if (found) {
-			gboolean kept;
+			bool kept;
 
 			/* This time we know the key's hash value in ``hv'' */
 
@@ -720,10 +720,10 @@ no_resize:
 /**
  * Delete key from table, returning whether key was found.
  */
-gboolean
+bool
 hash_delete_key(struct hash *h, const void *key)
 {
-	gboolean found;
+	bool found;
 	unsigned hv;
 	size_t idx;
 
@@ -732,7 +732,7 @@ hash_delete_key(struct hash *h, const void *key)
 	found = hash_keyset_lookup(&h->kset, key, &hv, &idx, NULL, FALSE);
 
 	if (found) {
-		gboolean erected;
+		bool erected;
 
 		g_assert(size_is_positive(h->kset.items));
 

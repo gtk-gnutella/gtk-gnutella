@@ -74,9 +74,9 @@ unsigned pointer_hash2(const void *p) G_GNUC_CONST;
 unsigned binary_hash2(const void *data, size_t len) G_GNUC_PURE;
 unsigned string_hash2(const void *s) G_GNUC_PURE;
 
-gboolean pointer_eq(const void *a, const void *b) G_GNUC_CONST;
-gboolean binary_eq(const void *a, const void *b, size_t len) G_GNUC_PURE;
-gboolean string_eq(const void *a, const void *b) G_GNUC_PURE;
+bool pointer_eq(const void *a, const void *b) G_GNUC_CONST;
+bool binary_eq(const void *a, const void *b, size_t len) G_GNUC_PURE;
+bool string_eq(const void *a, const void *b) G_GNUC_PURE;
 
 unsigned hashing_fold(unsigned hash, size_t bits) G_GNUC_CONST;
 

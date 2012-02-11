@@ -295,7 +295,7 @@ hset_insert(hset_t *hs, const void *key)
  *
  * @return whether <generic> contains the key.
  */
-gboolean
+bool
 h<generic>_contains(const h<generic>_t *hx, const void *key)
 {
 	h<generic>_check(hx);
@@ -340,7 +340,7 @@ htable_lookup(const htable_t *ht, const void *key)
  *
  * @return whether key exists in the table.
  */
-gboolean
+bool
 htable_lookup_extended(const htable_t *ht, const void *key,
 	const void **keyptr, void **valptr)
 {
@@ -372,7 +372,7 @@ htable_lookup_extended(const htable_t *ht, const void *key,
  *
  * @return whether key exists in the set.
  */
-gboolean
+bool
 hset_contains_extended(const hset_t *hs, const void *key, const void **keyptr)
 {
 	size_t idx;
@@ -396,7 +396,7 @@ hset_contains_extended(const hset_t *hs, const void *key, const void **keyptr)
  *
  * @return TRUE if the key was present in the <generic>.
  */
-gboolean
+bool
 h<generic>_remove(h<generic>_t *hx, const void *key)
 {
 	h<generic>_check(hx);
@@ -500,11 +500,11 @@ h<generic>_foreach_remove(h<generic>_t *hx, h<generic>_each_rm_t fn, void *data)
 	for (i = n = nr = 0, hp = hx->kset.hashes; hp != end; i++, hp++) {
 		if (HASH_IS_REAL(*hp)) {
 @if TABLE
-			gboolean r = (*fn)(hx->kset.keys[i],
+			bool r = (*fn)(hx->kset.keys[i],
 				deconstify_gpointer(hx->values[i]), data);
 @end
 @if SET
-			gboolean r = (*fn)(hx->kset.keys[i], data);
+			bool r = (*fn)(hx->kset.keys[i], data);
 @end
 			n++;
 			if (r) {
@@ -576,7 +576,7 @@ h<generic>_iter_release(h<generic>_iter_t **hxi_ptr)
  *
  * @return TRUE if a new entry exists, FALSE otherwise.
  */
-gboolean
+bool
 htable_iter_next(htable_iter_t *hxi, const void **kp, void **vp)
 @end	/* TABLE */
 @if SET
@@ -588,7 +588,7 @@ htable_iter_next(htable_iter_t *hxi, const void **kp, void **vp)
  *
  * @return TRUE if a new entry exists, FALSE otherwise.
  */
-gboolean
+bool
 hset_iter_next(hset_iter_t *hxi, const void **kp)
 @end	/* SET */
 {
