@@ -226,8 +226,8 @@ hash_keyhash_setup(struct hkeys *hk, enum hash_key_type ktype, size_t keysize)
 		hk->uk.eq = NULL;			/* Will use '==' comparison */
 		break;
 	case HASH_KEY_STRING:
-		hk->hash = string_hash;
-		hk->hash2 = string_hash2;
+		hk->hash = string_mix_hash;
+		hk->hash2 = string_hash;
 		hk->uk.eq = string_eq;
 		break;
 	case HASH_KEY_FIXED:
