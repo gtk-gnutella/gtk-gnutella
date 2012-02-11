@@ -156,6 +156,24 @@ integer_hash2(ulong v)
 }
 
 /**
+ * Hashing of port numbers.
+ */
+unsigned
+port_hash(uint16 v)
+{
+	return integer_hash(((uint32) v << 16) | (uint32) v);
+}
+
+/**
+ * Alternate hashing of port numbers.
+ */
+unsigned
+port_hash2(uint16 v)
+{
+	return integer_hash2(((uint32) v << 16) | (uint32) v);
+}
+
+/**
  * Hash `len' bytes starting from `data'.
  */
 G_GNUC_HOT unsigned

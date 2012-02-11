@@ -70,11 +70,13 @@ unsigned pointer_hash(const void *p) G_GNUC_CONST;
 unsigned binary_hash(const void *data, size_t len) G_GNUC_PURE;
 unsigned string_hash(const void *s) G_GNUC_PURE;
 unsigned integer_hash(ulong v) G_GNUC_CONST;
+unsigned port_hash(uint16 v) G_GNUC_CONST;
 
 unsigned pointer_hash2(const void *p) G_GNUC_CONST;
 unsigned binary_hash2(const void *data, size_t len) G_GNUC_PURE;
 unsigned string_hash2(const void *s) G_GNUC_PURE;
 unsigned integer_hash2(ulong v) G_GNUC_CONST;
+unsigned port_hash2(uint16 v) G_GNUC_CONST;
 
 unsigned universal_hash(const void *data, size_t len) G_GNUC_PURE;
 unsigned universal_mix_hash(const void *data, size_t len) G_GNUC_PURE;
