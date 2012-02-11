@@ -65,7 +65,10 @@
 unsigned
 pointer_hash(const void *p)
 {
-	return GOLDEN_RATIO_32 * pointer_to_ulong(p);
+	uint64 hash;
+
+	hash = GOLDEN_RATIO_32 * (uint64) pointer_to_ulong(p);
+	return (hash >> 3) ^ (hash >> 32);
 }
 
 /**
@@ -78,8 +81,8 @@ pointer_hash2(const void *p)
 {
 	uint64 hash;
 
-	hash = GOLDEN_RATIO_48 * pointer_to_ulong(p);
-	return hash >> 11;
+	hash = GOLDEN_RATIO_48 * (uint64) pointer_to_ulong(p);
+	return (hash >> 13) ^ (hash >> 32);
 }
 
 /**
