@@ -126,6 +126,36 @@ pointer_eq(const void *a, const void *b)
 }
 
 /**
+ * Hashing of integers.
+ *
+ * The identity function makes a poor hash for consecutive integers.
+ */
+unsigned
+integer_hash(ulong v)
+{
+#if LONGSIZE <= 4
+	return u32_hash(v);
+#else
+	return u32_hash(v) + u32_hash(v >> 32);
+#endif
+}
+
+/**
+ * Alternate hashing of integers.
+ *
+ * The identity function makes a poor hash for consecutive integers.
+ */
+unsigned
+integer_hash2(ulong v)
+{
+#if LONGSIZE <= 4
+	return u32_hash2(v);
+#else
+	return u32_hash2(v) + u32_hash2(v >> 32);
+#endif
+}
+
+/**
  * Hash `len' bytes starting from `data'.
  */
 G_GNUC_HOT unsigned
