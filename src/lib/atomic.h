@@ -47,7 +47,7 @@
 #define atomic_mb()					__sync_synchronize()
 #define atomic_ops_available()		1
 
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 atomic_test_and_set(volatile int *p)
 {
 	return __sync_bool_compare_and_swap((p), 0, 1);
@@ -65,13 +65,13 @@ atomic_uint_inc(unsigned *p)
 	(void) __sync_fetch_and_add(p, 1);
 }
 
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 atomic_int_dec_is_zero(int *p)
 {
 	return 1 == __sync_fetch_and_sub(p, 1);
 }
 
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 atomic_uint_dec_is_zero(unsigned *p)
 {
 	return 1 == __sync_fetch_and_sub(p, 1);
@@ -79,7 +79,7 @@ atomic_uint_dec_is_zero(unsigned *p)
 #else	/* !HAS_SYNC_ATOMIC */
 #define atomic_mb()					(void) 0
 
-static inline gboolean
+static inline bool
 atomic_test_and_set(volatile int *p)
 {
 	int ok;
@@ -100,7 +100,7 @@ atomic_test_and_set(volatile int *p)
  *
  * @return TRUE if lock was acquired.
  */
-static inline gboolean
+static inline bool
 atomic_acquire(volatile int *lock)
 {
 	atomic_mb();

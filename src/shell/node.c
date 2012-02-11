@@ -52,7 +52,7 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	const char *host, *endptr, *port_str;
 	char host_buf[MAX_HOSTLEN + 1];
 	int flags = SOCK_F_FORCE;
-	guint16 port;
+	uint16 port;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -116,7 +116,7 @@ shell_exec_node_drop(struct gnutella_shell *sh, int argc, const char *argv[])
 {
 	const char *endptr, *port_str;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	shell_check(sh);
 	g_assert(argv);

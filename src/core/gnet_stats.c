@@ -46,13 +46,13 @@
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static guint8 stats_lut[256];
+static uint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;
 static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
 
-static guint32 gnet_stats_crc32;
+static uint32 gnet_stats_crc32;
 
 /***
  *** Public functions
@@ -339,14 +339,14 @@ gnet_stats_general_to_string(gnr_stats_t type)
 G_GNUC_COLD void
 gnet_stats_init(void)
 {
-	guint i;
+	uint i;
 
 	/* Guarantees that our little hack below can succeed */
 	STATIC_ASSERT(
 		UNSIGNED(KDA_MSG_MAX_ID + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
 
 	for (i = 0; i < G_N_ELEMENTS(stats_lut); i++) {
-		guchar m = MSG_UNKNOWN;
+		uchar m = MSG_UNKNOWN;
 
 		/*
 		 * To keep the look-up table small enough, we cheat a little
@@ -404,10 +404,10 @@ gnet_stats_init(void)
 /**
  * @return current CRC32 and re-initialize a new random one.
  */
-guint32
+uint32
 gnet_stats_crc_reset(void)
 {
-	guint32 crc = gnet_stats_crc32;
+	uint32 crc = gnet_stats_crc32;
 
 	gnet_stats_crc32 = random_u32();
 	return crc;
@@ -417,7 +417,7 @@ gnet_stats_crc_reset(void)
  * Use unpredictable events to collect random data.
  */
 static void
-gnet_stats_randomness(const gnutella_node_t *n, guint8 type, guint32 val)
+gnet_stats_randomness(const gnutella_node_t *n, uint8 type, uint32 val)
 {
 	tm_t now;
 	gnet_host_t host;
@@ -437,8 +437,8 @@ gnet_stats_randomness(const gnutella_node_t *n, guint8 type, guint32 val)
 void
 gnet_stats_count_received_header(gnutella_node_t *n)
 {
-	guint t = stats_lut[gnutella_header_get_function(&n->header)];
-	guint i;
+	uint t = stats_lut[gnutella_header_get_function(&n->header)];
+	uint i;
 	gnet_stats_t *stats;
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -471,10 +471,10 @@ gnet_stats_count_received_header(gnutella_node_t *n)
  * @param kt
  */
 static void
-gnet_stats_count_kademlia_header(const gnutella_node_t *n, guint kt)
+gnet_stats_count_kademlia_header(const gnutella_node_t *n, uint kt)
 {
-	guint t = stats_lut[gnutella_header_get_function(&n->header)];
-	guint i;
+	uint t = stats_lut[gnutella_header_get_function(&n->header)];
+	uint i;
 	gnet_stats_t *stats;
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -514,11 +514,11 @@ gnet_stats_count_kademlia_header(const gnutella_node_t *n, guint kt)
 void
 gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 {
-	guint8 f = gnutella_header_get_function(&n->header);
-	guint t = stats_lut[f];
-	guint i;
+	uint8 f = gnutella_header_get_function(&n->header);
+	uint t = stats_lut[f];
+	uint i;
 	gnet_stats_t *stats;
-    guint32 size;
+    uint32 size;
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
@@ -549,7 +549,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	 */
 
 	if (GTA_MSG_DHT == f && size + GTA_HEADER_SIZE >= KDA_HEADER_SIZE) {
-		guint8 opcode = peek_u8(payload);	/* Kademlia Opcode */
+		uint8 opcode = peek_u8(payload);	/* Kademlia Opcode */
 
 		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
@@ -574,13 +574,13 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 
 void
 gnet_stats_count_queued(const gnutella_node_t *n,
-	guint8 type, const void *base, guint32 size)
+	uint8 type, const void *base, uint32 size)
 {
-	guint64 *stats_pkg;
-	guint64 *stats_byte;
-	guint t = stats_lut[type];
+	uint64 *stats_pkg;
+	uint64 *stats_byte;
+	uint t = stats_lut[type];
 	gnet_stats_t *stats;
-	guint8 hops;
+	uint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
 
@@ -591,7 +591,7 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 	 */
 
 	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
-		guint8 opcode = kademlia_header_get_function(base);
+		uint8 opcode = kademlia_header_get_function(base);
 
 		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
@@ -622,13 +622,13 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 
 void
 gnet_stats_count_sent(const gnutella_node_t *n,
-	guint8 type, const void *base, guint32 size)
+	uint8 type, const void *base, uint32 size)
 {
-	guint64 *stats_pkg;
-	guint64 *stats_byte;
-	guint t = stats_lut[type];
+	uint64 *stats_pkg;
+	uint64 *stats_byte;
+	uint t = stats_lut[type];
 	gnet_stats_t *stats;
-	guint8 hops;
+	uint8 hops;
 
 	g_assert(t != MSG_UNKNOWN);
 
@@ -639,7 +639,7 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 	 */
 
 	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
-		guint8 opcode = kademlia_header_get_function(base);
+		uint8 opcode = kademlia_header_get_function(base);
 
 		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
@@ -671,8 +671,8 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 void
 gnet_stats_count_expired(const gnutella_node_t *n)
 {
-    guint32 size = n->size + sizeof(n->header);
-	guint t = stats_lut[gnutella_header_get_function(&n->header)];
+    uint32 size = n->size + sizeof(n->header);
+	uint t = stats_lut[gnutella_header_get_function(&n->header)];
 	gnet_stats_t *stats;
 
 	stats = NODE_USES_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
@@ -710,8 +710,8 @@ gnet_stats_count_expired(const gnutella_node_t *n)
 void
 gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
-	guint32 size;
-	guint type;
+	uint32 size;
+	uint type;
 	gnet_stats_t *stats;
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
@@ -745,8 +745,8 @@ void
 gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 	msg_drop_reason_t reason)
 {
-	guint32 size;
-	guint type;
+	uint32 size;
+	uint type;
 	gnet_stats_t *stats;
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
@@ -779,7 +779,7 @@ gnet_stats_count_general(gnr_stats_t type, int delta)
  * Set the general stats counter to the given value.
  */
 void
-gnet_stats_set_general(gnr_stats_t type, guint64 value)
+gnet_stats_set_general(gnr_stats_t type, uint64 value)
 {
 	size_t i = type;
 
@@ -791,7 +791,7 @@ void
 gnet_stats_count_dropped_nosize(
 	const gnutella_node_t *n, msg_drop_reason_t reason)
 {
-	guint type;
+	uint type;
 	gnet_stats_t *stats;
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
@@ -809,14 +809,14 @@ gnet_stats_count_dropped_nosize(
 }
 
 void
-gnet_stats_count_flowc(const void *head, gboolean head_only)
+gnet_stats_count_flowc(const void *head, bool head_only)
 {
-	guint t;
-	guint i;
-	guint16 size = gmsg_size(head) + GTA_HEADER_SIZE;
-	guint8 function = gnutella_header_get_function(head);
-	guint8 ttl = gnutella_header_get_ttl(head);
-	guint8 hops = gnutella_header_get_hops(head);
+	uint t;
+	uint i;
+	uint16 size = gmsg_size(head) + GTA_HEADER_SIZE;
+	uint8 function = gnutella_header_get_function(head);
+	uint8 ttl = gnutella_header_get_ttl(head);
+	uint8 hops = gnutella_header_get_hops(head);
 
 	if (GNET_PROPERTY(node_debug) > 3)
 		g_debug("FLOWC function=%d ttl=%d hops=%d", function, ttl, hops);
@@ -826,7 +826,7 @@ gnet_stats_count_flowc(const void *head, gboolean head_only)
 	 */
 
 	if (GTA_MSG_DHT == function && size >= KDA_HEADER_SIZE && !head_only) {
-		guint8 opcode = kademlia_header_get_function(head);
+		uint8 opcode = kademlia_header_get_function(head);
 
 		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];

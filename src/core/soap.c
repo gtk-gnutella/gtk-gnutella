@@ -83,7 +83,7 @@ struct soap_rpc {
 	pmsg_t *mb;					/**< Payload data */
 	soap_reply_cb_t reply_cb;	/**< Reply callback */
 	soap_error_cb_t error_cb;	/**< Error callback */
-	guint32 options;			/**< User-supplied options */
+	uint32 options;				/**< User-supplied options */
 	int http_code;				/**< HTTP status code */
 	void *arg;					/**< User-supplied callback argument */
 	unsigned regular:1;			/**< Whether we sent a regular POST */
@@ -119,7 +119,7 @@ static const char SOAP_ENCODING[] =
 static const char SOAP_TEXT_REPLY[]			= "text/xml";
 static const char SOAP_APPLICATION_REPLY[]	= "application/soap+xml";
 
-static void soap_rpc_launch(cqueue_t *unused_cq, gpointer obj);
+static void soap_rpc_launch(cqueue_t *unused_cq, void *obj);
 
 /**
  * Provides human-readable error string out of an error code.
@@ -414,7 +414,7 @@ bad_xml:
  *
  * @return TRUE if we can continue with the request.
  */
-static gboolean
+static bool
 soap_header_ind(http_async_t *ha, header_t *header,
 	int code, const char *message)
 {
@@ -493,7 +493,7 @@ soap_header_ind(http_async_t *ha, header_t *header,
 
 	buf = header_get(header, "Content-Length");
 	if (buf != NULL) {
-		guint32 len;
+		uint32 len;
 		int error;
 
 		len = parse_uint32(buf, NULL, 10, &error);
@@ -748,7 +748,7 @@ soap_build_request(const http_async_t *ha,
 static void
 soap_sent_head(const struct http_async *ha,
 	const struct gnutella_socket *s, const char *req, size_t len,
-	gboolean deferred)
+	bool deferred)
 {
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 
@@ -768,7 +768,7 @@ soap_sent_head(const struct http_async *ha,
 static void
 soap_sent_data(const struct http_async *ha,
 	const struct gnutella_socket *s, const char *data, size_t len,
-	gboolean deferred)
+	bool deferred)
 {
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 
@@ -807,7 +807,7 @@ soap_got_reply(const http_async_t *ha,
  * Delayed RPC start.
  */
 static void
-soap_rpc_launch(cqueue_t *unused_cq, gpointer obj)
+soap_rpc_launch(cqueue_t *unused_cq, void *obj)
 {
 	soap_rpc_t *sr = obj;
 	http_post_data_t post;
@@ -892,7 +892,7 @@ soap_rpc_launch(cqueue_t *unused_cq, gpointer obj)
  * payload too large).  In any case, the XML tree is freed.
  */
 soap_rpc_t *
-soap_rpc(const char *url, const char *action, size_t maxlen, guint32 options,
+soap_rpc(const char *url, const char *action, size_t maxlen, uint32 options,
 	xnode_t *xn, const char *soap_ns,
 	soap_reply_cb_t reply_cb, soap_error_cb_t error_cb, void *arg)
 {
@@ -900,7 +900,7 @@ soap_rpc(const char *url, const char *action, size_t maxlen, guint32 options,
 	xnode_t *root, *body;
 	pmsg_t *mb;
 	ostream_t *os;
-	gboolean failed = FALSE;
+	bool failed = FALSE;
 
 	g_assert(url != NULL);
 	g_assert(action != NULL);
@@ -976,7 +976,7 @@ soap_rpc(const char *url, const char *action, size_t maxlen, guint32 options,
  *
  * @return TRUE if we successfully grabbed a local address.
  */
-gboolean
+bool
 soap_rpc_local_addr(const soap_rpc_t *sr, host_addr_t *addrp)
 {
 	if (sr->got_local_addr) {

@@ -42,11 +42,11 @@
 /**
  * Hash a `namesize_t' key.
  */
-guint
-namesize_hash(gconstpointer key)
+uint
+namesize_hash(const void *key)
 {
 	const namesize_t *k = key;
-	guint32 hash;
+	uint32 hash;
 
 	hash = g_str_hash(k->name);
 	hash ^= k->size;
@@ -58,7 +58,7 @@ namesize_hash(gconstpointer key)
  * Compare two `namesize_t' keys.
  */
 int
-namesize_eq(gconstpointer a, gconstpointer b)
+namesize_eq(const void *a, const void *b)
 {
 	const namesize_t *ka = a, *kb = b;
 

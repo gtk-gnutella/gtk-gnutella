@@ -33,11 +33,11 @@ const datum nullitem = {0, 0};
 /*
  * forward
  */
-static gboolean getdbit(DBM *, long);
-static gboolean setdbit(DBM *, long);
-static gboolean getpage(DBM *, long);
+static bool getdbit(DBM *, long);
+static bool setdbit(DBM *, long);
+static bool getpage(DBM *, long);
 static datum getnext(DBM *);
-static gboolean makroom(DBM *, long, size_t);
+static bool makroom(DBM *, long, size_t);
 static void validpage(DBM *, long);
 
 static inline int
@@ -75,7 +75,7 @@ static const long masks[] = {
  * @return FALSE if it will not fit, TRUE if it fits with the required
  * page size filled in ``needed'', if not NULL.
  */
-static gboolean
+static bool
 sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 {
 #ifdef BIGDATA
@@ -149,7 +149,7 @@ sdbm_storage_needs(size_t key_size, size_t value_size, size_t *needed)
 /**
  * Will a key/value pair of given size fit in the database?
  */
-gboolean
+bool
 sdbm_is_storable(size_t key_size, size_t value_size)
 {
 	return sdbm_storage_needs(key_size, value_size, NULL);
@@ -363,7 +363,7 @@ log_sdbm_warnings(DBM *db)
  *
  * @return TRUE on success
  */
-static gboolean
+static bool
 fetch_pagbuf(DBM *db, long pagnum)
 {
 	db->pagfetch++;
@@ -384,7 +384,7 @@ fetch_pagbuf(DBM *db, long pagnum)
 
 #ifdef LRU
 		{
-			gboolean loaded;
+			bool loaded;
 
 			if G_UNLIKELY(!readbuf(db, pagnum, &loaded)) {
 				db->pagbno = -1;
@@ -441,7 +441,7 @@ fetch_pagbuf(DBM *db, long pagnum)
  * Flush db->pagbuf to disk.
  * @return TRUE on success
  */
-static gboolean
+static bool
 flush_pagbuf(DBM *db)
 {
 #ifdef LRU
@@ -456,8 +456,8 @@ flush_pagbuf(DBM *db)
  * Possibly force flush of db->pagbuf to disk, even on deferred writes.
  * @return TRUE on success
  */
-static gboolean
-force_flush_pagbuf(DBM *db, gboolean force)
+static bool
+force_flush_pagbuf(DBM *db, bool force)
 {
 	if (force)
 		db->pagwforced++;
@@ -469,7 +469,7 @@ force_flush_pagbuf(DBM *db, gboolean force)
  * Flush dirbuf to disk.
  * @return TRUE on success.
  */
-static gboolean
+static bool
 flush_dirbuf(DBM *db)
 {
 	ssize_t w;
@@ -598,11 +598,11 @@ sdbm_delete(DBM *db, datum key)
 }
 
 static int
-storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
+storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 {
 	size_t need;
 	long hash;
-	gboolean need_split = FALSE;
+	bool need_split = FALSE;
 	int result = 0;
 
 	if G_UNLIKELY(0 == val.dsize) {
@@ -644,8 +644,8 @@ storepair(DBM *db, datum key, datum val, int flags, gboolean *existed)
 	if (flags == DBM_REPLACE) {
 		size_t valsize;
 		int idx;
-		gboolean big;
-		gboolean found;
+		bool big;
+		bool found;
 
 		/*
 		 * If key exists and the data is replaceable in situ, do it.
@@ -723,7 +723,7 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 }
 
 int
-sdbm_replace(DBM *db, datum key, datum val, gboolean *existed)
+sdbm_replace(DBM *db, datum key, datum val, bool *existed)
 {
 	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, DBM_REPLACE, existed);
@@ -734,7 +734,7 @@ sdbm_replace(DBM *db, datum key, datum val, gboolean *existed)
  * this routine will attempt to make room for DBM_SPLTMAX times before
  * giving up.
  */
-static gboolean
+static bool
 makroom(DBM *db, long int hash, size_t need)
 {
 	long newp;
@@ -746,7 +746,7 @@ makroom(DBM *db, long int hash, size_t need)
 	int smax = DBM_SPLTMAX;
 
 	do {
-		gboolean fits;		/* Can we fit new pair in the split page? */
+		bool fits;		/* Can we fit new pair in the split page? */
 
 		/*
 		 * Copy the page we're about to split.  In case there is an error
@@ -979,7 +979,7 @@ restore:
 	db->spl_errors++;
 
 	if (db->pagbno != curbno) {
-		gboolean failed = FALSE;
+		bool failed = FALSE;
 
 		/*
 		 * We have already written the old split page to disk, so we need to
@@ -1146,7 +1146,7 @@ sdbm_nextkey(DBM *db)
  * @return the page number
  */
 static long
-getpageb(DBM *db, long int hash, gboolean update)
+getpageb(DBM *db, long int hash, bool update)
 {
 	int hbit;
 	long dbit;
@@ -1179,7 +1179,7 @@ getpageb(DBM *db, long int hash, gboolean update)
  *
  * @return TRUE if OK.
  */
-static gboolean
+static bool
 getpage(DBM *db, long int hash)
 {
 	long pagb;
@@ -1260,7 +1260,7 @@ validpage(DBM *db, long pagb)
 	}
 }
 
-static gboolean
+static bool
 fetch_dirbuf(DBM *db, long dirb)
 {
 	db->dirfetch++;
@@ -1294,7 +1294,7 @@ fetch_dirbuf(DBM *db, long dirb)
 	return TRUE;
 }
 
-static gboolean
+static bool
 getdbit(DBM *db, long int dbit)
 {
 	long c;
@@ -1309,7 +1309,7 @@ getdbit(DBM *db, long int dbit)
 	return 0 != (db->dirbuf[c % DBM_DBLKSIZ] & (1 << dbit % BYTESIZ));
 }
 
-static gboolean
+static bool
 setdbit(DBM *db, long int dbit)
 {
 	long c;
@@ -1502,7 +1502,7 @@ sdbm_sync(DBM *db)
  *
  * @return TRUE if we were able to successfully shrink the files.
  */
-gboolean
+bool
 sdbm_shrink(DBM *db)
 {
 	unsigned truncate_bno = 0;
@@ -1580,11 +1580,11 @@ sdbm_shrink(DBM *db)
 	 * Resize the .dir file accordingly.
 	 */
 
-	g_assert(truncate_bno < MAX_INT_VAL(guint32));
+	g_assert(truncate_bno < MAX_INT_VAL(uint32));
 	STATIC_ASSERT(IS_POWER_OF_2(DBM_DBLKSIZ));
 
 	{
-		guint32 maxdbit = truncate_bno ? next_pow2(truncate_bno) - 1 : 0;
+		uint32 maxdbit = truncate_bno ? next_pow2(truncate_bno) - 1 : 0;
 		long maxsize = 1 + maxdbit / BYTESIZ;
 		long mask = DBM_DBLKSIZ - 1;		/* Rounding mask */
 		long filesize;
@@ -1635,7 +1635,7 @@ sdbm_shrink(DBM *db)
 			char *start = ptr_add_offset(db->dirbuf, off);
 			char *end = ptr_add_offset(db->dirbuf, DBM_DBLKSIZ);
 			char *p;
-			gboolean need_clearing = FALSE;
+			bool need_clearing = FALSE;
 
 			g_assert(ptr_diff(end, start) == UNSIGNED(filesize - maxsize));
 
@@ -1731,7 +1731,7 @@ sdbm_set_cache(DBM *db, long pages)
  * Turn LRU write delays on or off.
  */
 int
-sdbm_set_wdelay(DBM *db, gboolean on)
+sdbm_set_wdelay(DBM *db, bool on)
 {
 #ifdef LRU
 	return setwdelay(db, on);
@@ -1749,7 +1749,7 @@ sdbm_set_wdelay(DBM *db, gboolean on)
  * As a convenience, also turns delayed writes on if the argument is TRUE.
  */
 int
-sdbm_set_volatile(DBM *db, gboolean yes)
+sdbm_set_volatile(DBM *db, bool yes)
 {
 #ifdef LRU
 	db->is_volatile = yes;
@@ -1762,13 +1762,13 @@ sdbm_set_volatile(DBM *db, gboolean yes)
 	return 0;
 }
 
-gboolean
+bool
 sdbm_rdonly(DBM *db)
 {
 	return 0 != (db->flags & DBM_RDONLY);
 }
 
-gboolean
+bool
 sdbm_error(DBM *db)
 {
 	return 0 != (db->flags & (DBM_IOERR | DBM_IOERR_W));

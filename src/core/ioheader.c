@@ -59,8 +59,8 @@ enum io_opaque_magic { IO_OPAQUE_MAGIC = 0x578da161U };
  */
 struct io_header {
 	enum io_opaque_magic magic;
-	gpointer resource;				/**< Resource for which we're parsing */
-	gpointer *io_opaque;			/**< Where we're referenced in resource */
+	void *resource;					/**< Resource for which we're parsing */
+	void **io_opaque;				/**< Where we're referenced in resource */
 	struct gnutella_socket *socket;	/**< Socket on which we're reading */
 	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
 	header_t *header;
@@ -69,7 +69,7 @@ struct io_header {
 	io_done_cb_t process_header;	/**< Called when all headers are read */
 	io_start_cb_t header_read_start;/**< Called when reading first byte */
 	str_t *text;					/**< Full header text */
-	guint read_bytes;				/**< Amount of bytes read */
+	uint read_bytes;				/**< Amount of bytes read */
 	int flags;
 };
 
@@ -77,9 +77,9 @@ struct io_header {
  * Internal consistency checks.
  */
 static void
-io_check(const gpointer opaque)
+io_check(const void *opaque)
 {
-	struct io_header *ih = opaque;
+	const struct io_header *ih = opaque;
 
 	g_assert(ih);
 	g_assert(IO_OPAQUE_MAGIC == ih->magic);
@@ -93,7 +93,7 @@ io_check(const gpointer opaque)
  * Free the opaque I/O data.
  */
 void
-io_free(gpointer opaque)
+io_free(void *opaque)
 {
 	struct io_header *ih = opaque;
 
@@ -114,9 +114,9 @@ io_free(gpointer opaque)
  * Fetch header structure from opaque I/O data.
  */
 struct header *
-io_header(const gpointer opaque)
+io_header(const void *opaque)
 {
-	struct io_header *ih = opaque;
+	const struct io_header *ih = opaque;
 
 	io_check(opaque);
 
@@ -127,9 +127,9 @@ io_header(const gpointer opaque)
  * Fetch getline structure from opaque I/O data.
  */
 struct getline *
-io_getline(const gpointer opaque)
+io_getline(const void *opaque)
 {
-	struct io_header *ih = opaque;
+	const struct io_header *ih = opaque;
 
 	io_check(opaque);
 
@@ -143,9 +143,9 @@ io_getline(const gpointer opaque)
  * The returned data will be freed when io_free() is called.
  */
 char *
-io_gettext(const gpointer opaque)
+io_gettext(const void *opaque)
 {
-	struct io_header *ih = opaque;
+	const struct io_header *ih = opaque;
 
 	io_check(opaque);
 	g_assert(ih->flags & IO_SAVE_HEADER);	/* They must have requested this */
@@ -157,10 +157,10 @@ io_gettext(const gpointer opaque)
 /**
  * How many bytes we received so far during header parsing.
  */
-guint
-io_get_read_bytes(const gpointer opaque)
+uint
+io_get_read_bytes(const void *opaque)
 {
-	struct io_header *ih = opaque;
+	const struct io_header *ih = opaque;
 
 	io_check(opaque);
 
@@ -354,7 +354,7 @@ nextline:
  * Read data is then handed out to io_header_parse() for analysis.
  */
 static void
-io_read_data(gpointer data, int unused_source, inputevt_cond_t cond)
+io_read_data(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct io_header *ih = data;
 	struct gnutella_socket *s = ih->socket;
@@ -435,7 +435,7 @@ io_read_data(gpointer data, int unused_source, inputevt_cond_t cond)
  * Read data is then handed out to io_header_parse() for analysis.
  */
 void
-io_add_header(gpointer opaque)
+io_add_header(void *opaque)
 {
 	struct io_header *ih = opaque;
 	struct gnutella_socket *s;
@@ -469,8 +469,8 @@ io_add_header(gpointer opaque)
  */
 void
 io_get_header(
-	gpointer resource,			/**< Resource for which we're reading headers */
-	gpointer *io_opaque,		/**< Field address in resource's structure */
+	void *resource,				/**< Resource for which we're reading headers */
+	void **io_opaque,			/**< Field address in resource's structure */
 	bsched_bws_t bws,			/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,	/**< Socket from which we're reading */
 	int flags,					/**< I/O parsing flags */
@@ -544,7 +544,7 @@ io_get_header(
  */
 void
 io_continue_header(
-	gpointer opaque,			/**< Existing header parsing context */
+	void *opaque,				/**< Existing header parsing context */
 	int flags,					/**< New I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start)		/**< Optional: called when reading 1st byte */

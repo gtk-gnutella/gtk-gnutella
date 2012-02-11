@@ -81,14 +81,14 @@ struct bgtask;
  * `bgnotify_cb_t' is the start/stop callback when daemon starts/stops working.
  */
 
-typedef bgret_t (*bgstep_cb_t)(struct bgtask *h, gpointer ctx, int ticks);
-typedef void (*bgsig_cb_t)(struct bgtask *h, gpointer ctx, bgsig_t sig);
-typedef void (*bgclean_cb_t)(gpointer ctx);
-typedef void (*bgdone_cb_t)(struct bgtask *h, gpointer ctx,
-	bgstatus_t status, gpointer arg);
-typedef void (*bgstart_cb_t)(struct bgtask *h, gpointer ctx, gpointer item);
-typedef void (*bgend_cb_t)(struct bgtask *h, gpointer ctx, gpointer item);
-typedef void (*bgnotify_cb_t)(struct bgtask *h, gboolean on);
+typedef bgret_t (*bgstep_cb_t)(struct bgtask *h, void *ctx, int ticks);
+typedef void (*bgsig_cb_t)(struct bgtask *h, void *ctx, bgsig_t sig);
+typedef void (*bgclean_cb_t)(void *ctx);
+typedef void (*bgdone_cb_t)(struct bgtask *h, void *ctx,
+	bgstatus_t status, void *arg);
+typedef void (*bgstart_cb_t)(struct bgtask *h, void *ctx, void *item);
+typedef void (*bgend_cb_t)(struct bgtask *h, void *ctx, void *item);
+typedef void (*bgnotify_cb_t)(struct bgtask *h, bool on);
 
 /*
  * Public interface.
@@ -101,22 +101,22 @@ void bg_close(void);
 struct bgtask *bg_task_create(
 	const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
-	gpointer ucontext,
+	void *ucontext,
 	bgclean_cb_t ucontext_free,
 	bgdone_cb_t done_cb,
-	gpointer done_arg);
+	void *done_arg);
 
 struct bgtask *bg_daemon_create(
 	const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
-	gpointer ucontext,
+	void *ucontext,
 	bgclean_cb_t ucontext_free,
 	bgstart_cb_t start_cb,
 	bgend_cb_t end_cb,
 	bgclean_cb_t item_free,
 	bgnotify_cb_t notify);
 
-void bg_daemon_enqueue(struct bgtask *h, gpointer item);
+void bg_daemon_enqueue(struct bgtask *h, void *item);
 
 void bg_task_cancel(struct bgtask *h);
 void bg_task_exit(struct bgtask *h, int code) G_GNUC_NORETURN;
@@ -124,7 +124,7 @@ void bg_task_ticks_used(struct bgtask *h, int used);
 bgsig_cb_t bg_task_signal(struct bgtask *h, bgsig_t sig, bgsig_cb_t handler);
 
 int bg_task_seqno(const struct bgtask *h);
-gpointer bg_task_context(const struct bgtask *h);
+void *bg_task_context(const struct bgtask *h);
 
 #endif	/* _bg_h_ */
 

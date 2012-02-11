@@ -44,7 +44,7 @@ void ghc_init(void);
 void ghc_close(void);
 
 void ghc_get_hosts(void);
-gboolean ghc_is_waiting(void);
+bool ghc_is_waiting(void);
 
 #endif /* _core_ghc_h_ */
 

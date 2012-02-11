@@ -56,7 +56,7 @@ cobs_encodev(iovec_t *iov, int iovcnt, size_t *retlen)
 	char *out;
 	char *o;						/* Iterates over output */
 	char *cp;						/* Where we'll write the code length */
-	guchar code, last_code = 0;
+	uchar code, last_code = 0;
 	iovec_t *xiov;
 	int i;
 
@@ -148,7 +148,7 @@ cobs_encode(char *buf, size_t len, size_t *retlen)
  * @returns whether the input was valid COBS encoding.
  * The length of the decoded buffer is returned in `retlen'.
  */
-gboolean
+bool
 cobs_decode_into(const char *buf, size_t len, char *out,
 	size_t outlen, size_t *retlen)
 {
@@ -156,7 +156,7 @@ cobs_decode_into(const char *buf, size_t len, char *out,
 	const char *oend = &out[outlen];	/* First byte off buffer */
 	const char *p;
 	char *o;
-	guchar last_code = 0;
+	uchar last_code = 0;
 
 	g_assert(NULL != buf);
 	g_assert(len > 0);
@@ -169,7 +169,7 @@ cobs_decode_into(const char *buf, size_t len, char *out,
 	 */
 
 	for (p = buf, o = out; p != end && o != oend; /* empty */) {
-		guchar code;
+		uchar code;
 
 		last_code = code = *p++;
 
@@ -213,7 +213,7 @@ cobs_decode_into(const char *buf, size_t len, char *out,
 /**
  * Check whether supplied buffer forms a valid COBS encoding.
  */
-gboolean
+bool
 cobs_is_valid(const char *buf, size_t len)
 {
 	const char *p, *end = &buf[len];		/* First byte off buffer */
@@ -222,7 +222,7 @@ cobs_is_valid(const char *buf, size_t len)
 	g_assert(len > 0);
 
 	for (p = buf; p != end; /* empty */) {
-		guchar code;
+		uchar code;
 
 		if (0 == (code = *p++))
 			return FALSE;			/* There cannot be any NUL */
@@ -247,7 +247,7 @@ cobs_is_valid(const char *buf, size_t len)
  * encoding.  The length of the decoded buffer is in `retlen'.
  */
 char *
-cobs_decode(char *buf, size_t len, size_t *retlen, gboolean inplace)
+cobs_decode(char *buf, size_t len, size_t *retlen, bool inplace)
 {
 	char *out;
 
@@ -282,7 +282,7 @@ cobs_decode(char *buf, size_t len, size_t *retlen, gboolean inplace)
  * @param len		length of supplied buffer
  */
 void
-cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
+cobs_stream_init(cobs_stream_t *cs, void *data, size_t len)
 {
 	g_assert(len != 0);
 	g_assert(data != NULL);
@@ -307,8 +307,8 @@ cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len)
  *
  * @return TRUE if OK, FALSE if we cannot put the data any more.
  */
-gboolean
-cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
+bool
+cobs_stream_write(cobs_stream_t *cs, void *data, size_t len)
 {
 	char *p = data;
 	const char *end = &p[len];
@@ -356,7 +356,7 @@ cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len)
  * @return the final length of the stream on success, 0 on error.
  */
 size_t
-cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul)
+cobs_stream_close(cobs_stream_t *cs, bool *saw_nul)
 {
 	g_assert(cobs_stream_is_valid(cs));
 
@@ -400,7 +400,8 @@ cobs_stream_invalidate(cobs_stream_t *cs)
 /**
  * Check whether the stream descriptor is valid, for assertions.
  */
-gboolean cobs_stream_is_valid(cobs_stream_t *cs)
+bool
+cobs_stream_is_valid(cobs_stream_t *cs)
 {
 	if (NULL == cs)
 		return FALSE;

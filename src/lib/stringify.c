@@ -58,13 +58,13 @@ const char hex_alphabet_lower[] = "0123456789abcdef";
  * @return the length of resulting string.
  */
 static inline size_t
-print_uint16_hex(char *dst, guint16 v)
+print_uint16_hex(char *dst, uint16 v)
 {
 	char *p = dst;
 	int i;
 
 	for (i = 0; i < 3; i++, v <<= 4) {
-		guint8 d;
+		uint8 d;
 
 		d = v >> 12;
 		if (0 != d || p != dst)
@@ -88,15 +88,15 @@ print_uint16_hex(char *dst, guint16 v)
  *         large.
  */
 size_t
-ipv4_to_string_buf(guint32 ipv4, char *dst, size_t size)
+ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 {
 	char buf[IPV4_ADDR_BUFLEN];
 	char * const p0 = size < sizeof buf ? buf : dst;
 	char *p = p0;
-	guint i;
+	uint i;
 
 	for (i = 0; i < 4; i++) {
-		guchar v;
+		uchar v;
 	   
 		v = (ipv4 >> 24) & 0xff;
 		ipv4 <<= 8;
@@ -161,7 +161,7 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 	 */
 
 	for (i = 0; i < 16; /* NOTHING */) {
-		guint16 v;
+		uint16 v;
 
 		v = peek_be16(&ipv6[i]);
 
@@ -182,7 +182,7 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
 
 
 	for (i = 0; i < 16; /* NOTHING */) {
-		guint16 v = peek_be16(&ipv6[i]);
+		uint16 v = peek_be16(&ipv6[i]);
 
 		if (i != zero_start) {
 			p += print_uint16_hex(p, v);
@@ -237,7 +237,7 @@ ipv6_to_string_buf(const uint8_t *ipv6, char *dst, size_t size)
  *         representing the given IPv6 address.
  */
 const char *
-ipv6_to_string(const guint8 *ipv6)
+ipv6_to_string(const uint8 *ipv6)
 {
 	static char buf[IPV6_ADDR_BUFLEN];
 	size_t n;
@@ -248,7 +248,7 @@ ipv6_to_string(const guint8 *ipv6)
 }
 
 const char *
-ipv6_to_string2(const guint8 *ipv6)
+ipv6_to_string2(const uint8 *ipv6)
 {
 	static char buf[IPV6_ADDR_BUFLEN];
 	size_t n;
@@ -259,7 +259,7 @@ ipv6_to_string2(const guint8 *ipv6)
 }
 
 const char *
-ip_to_string(guint32 ip)
+ip_to_string(uint32 ip)
 {
 	static char buf[IPV4_ADDR_BUFLEN];
 
@@ -268,7 +268,7 @@ ip_to_string(guint32 ip)
 }
 
 const char *
-hostname_port_to_string(const char *hostname, guint16 port)
+hostname_port_to_string(const char *hostname, uint16 port)
 {
 	static char a[300];
 
@@ -281,7 +281,7 @@ int32_to_string_buf(gint32 v, char *dst, size_t size)
 {
 	char buf[UINT32_DEC_BUFLEN + 1];
 	char *p;
-	gboolean neg;
+	bool neg;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
@@ -303,7 +303,7 @@ int32_to_string_buf(gint32 v, char *dst, size_t size)
 }
 
 size_t
-uint32_to_string_buf(guint32 v, char *dst, size_t size)
+uint32_to_string_buf(uint32 v, char *dst, size_t size)
 {
 	char buf[UINT32_DEC_BUFLEN];
 	char *p;
@@ -321,12 +321,12 @@ uint32_to_string_buf(guint32 v, char *dst, size_t size)
 }
 
 size_t
-uint64_to_string_buf(guint64 v, char *dst, size_t size)
+uint64_to_string_buf(uint64 v, char *dst, size_t size)
 {
 	char buf[UINT64_DEC_BUFLEN];
 	char *p;
 
-	if ((guint32) -1 >= v) {
+	if ((uint32) -1 >= v) {
 		/* 32-bit arithmetic is cheaper for most machines */
 		return uint32_to_string_buf(v, dst, size);
 	}
@@ -403,7 +403,7 @@ fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size)
 {
 	char buf[OFF_T_DEC_BUFLEN];
 	char *p;
-	gboolean neg;
+	bool neg;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);
@@ -424,7 +424,7 @@ fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size)
 }
 
 const char *
-uint32_to_string(guint32 v)
+uint32_to_string(uint32 v)
 {
 	static char buf[UINT32_DEC_BUFLEN];
 	size_t n;
@@ -436,7 +436,7 @@ uint32_to_string(guint32 v)
 }
 
 const char *
-uint64_to_string(guint64 v)
+uint64_to_string(uint64 v)
 {
 	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
@@ -448,7 +448,7 @@ uint64_to_string(guint64 v)
 }
 
 const char *
-uint64_to_string2(guint64 v)
+uint64_to_string2(uint64 v)
 {
 	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
@@ -501,7 +501,7 @@ filesize_to_string(filesize_t v)
 	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
-	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
+	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
 	n = uint64_to_string_buf(v, buf, sizeof buf);
 	g_assert(n > 0);
 	g_assert(n < sizeof buf);
@@ -514,7 +514,7 @@ filesize_to_string2(filesize_t v)
 	static char buf[UINT64_DEC_BUFLEN];
 	size_t n;
 
-	STATIC_ASSERT((filesize_t)-1 <= (guint64)-1);
+	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
 	n = uint64_to_string_buf(v, buf, sizeof buf);
 	g_assert(n > 0);
 	g_assert(n < sizeof buf);
@@ -538,7 +538,7 @@ int32_to_gstring_buf(gint32 v, char *dst, size_t size)
 {
 	char buf[UINT32_DEC_GRP_BUFLEN + 1];
 	char *p;
-	gboolean neg;
+	bool neg;
 	unsigned n;
 
 	g_assert(0 == size || NULL != dst);
@@ -564,7 +564,7 @@ int32_to_gstring_buf(gint32 v, char *dst, size_t size)
 }
 
 size_t
-uint32_to_gstring_buf(guint32 v, char *dst, size_t size)
+uint32_to_gstring_buf(uint32 v, char *dst, size_t size)
 {
 	char buf[UINT32_DEC_GRP_BUFLEN];
 	char *p;
@@ -585,13 +585,13 @@ uint32_to_gstring_buf(guint32 v, char *dst, size_t size)
 }
 
 size_t
-uint64_to_gstring_buf(guint64 v, char *dst, size_t size)
+uint64_to_gstring_buf(uint64 v, char *dst, size_t size)
 {
 	char buf[UINT64_DEC_GRP_BUFLEN];
 	char *p;
 	unsigned n;
 
-	if ((guint32) -1 >= v) {
+	if ((uint32) -1 >= v) {
 		/* 32-bit arithmetic is cheaper for most machines */
 		return uint32_to_gstring_buf(v, dst, size);
 	}
@@ -653,7 +653,7 @@ size_t_to_gstring_buf(size_t v, char *dst, size_t size)
 }
 
 const char *
-uint32_to_gstring(guint32 v)
+uint32_to_gstring(uint32 v)
 {
 	static char buf[UINT32_DEC_GRP_BUFLEN];
 	size_t n;
@@ -665,7 +665,7 @@ uint32_to_gstring(guint32 v)
 }
 
 const char *
-uint64_to_gstring(guint64 v)
+uint64_to_gstring(uint64 v)
 {
 	static char buf[UINT64_DEC_GRP_BUFLEN];
 	size_t n;
@@ -712,7 +712,7 @@ data_hex_str(const char *data, size_t len)
 {
 	static char buf[84];
 	static const size_t maxlen = sizeof(buf) - 4; /* 3 chars for "more" + NUL */
-	const guint8 *p = cast_to_gconstpointer(data);
+	const uint8 *p = cast_to_constpointer(data);
 	size_t hmax;
 	size_t i;
 
@@ -741,8 +741,8 @@ static const char escape_char = '\\';
 /**
  * Allow spaces, tabs or new-lines as "spacing" chars.
  */
-static inline gboolean
-char_is_space(guchar c)
+static inline bool
+char_is_space(uchar c)
 {
 	return c == ' ' || c == '\t' || c == '\n';
 }
@@ -750,8 +750,8 @@ char_is_space(guchar c)
 /**
  * Nearly the same as isprint() but allows additional safe chars if !strict.
  */
-static inline gboolean
-char_is_safe(guchar c, gboolean strict)
+static inline bool
+char_is_safe(uchar c, bool strict)
 {
 	return isprint(c) || (!strict && char_is_space(c));
 }
@@ -763,11 +763,11 @@ char_is_safe(guchar c, gboolean strict)
  * The new string must be freed through hfree().
  */
 char *
-hex_escape(const char *name, gboolean strict)
+hex_escape(const char *name, bool strict)
 {
 	const char *p;
 	char *q;
-	guchar c;
+	uchar c;
 	int need_escape = 0;
 	char *new;
 
@@ -801,8 +801,8 @@ hex_escape(const char *name, gboolean strict)
  *
  * @return TRUE if "c" should be escaped, FALSE otherwise.
  */
-static inline gboolean
-escape_control_char(guchar c)
+static inline bool
+escape_control_char(uchar c)
 {
 	return is_ascii_cntrl(c) && !char_is_space(c);
 }
@@ -819,7 +819,7 @@ control_escape(const char *s)
 {
 	size_t need_escape = 0;
 	const char *p;
-	guchar c;
+	uchar c;
 
 	for (p = s; '\0' != (c = *p); p++)
 		if (escape_control_char(c))
@@ -852,8 +852,8 @@ control_escape(const char *s)
 	return deconstify_gchar(s);
 }
 
-static guint
-char_to_printf_escape(guchar c, char *esc, const char *safe_chars)
+static uint
+char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 {
 	if (!safe_chars) {
 		safe_chars = "";
@@ -893,7 +893,7 @@ lazy_string_to_printf_escape(const char *src)
 	static char *prev;
 	const char *s;
 	char *p;
-	guchar c;
+	uchar c;
 	size_t n;
 
 	g_assert(src);
@@ -909,7 +909,7 @@ lazy_string_to_printf_escape(const char *src)
 	
 	prev = halloc(n + 1);
 	for (s = src, p = prev; '\0' != (c = *s); s++) {
-		guint len = char_to_printf_escape(c, p, safe_chars);
+		uint len = char_to_printf_escape(c, p, safe_chars);
 		p += len;
 	}
 	*p = '\0';
@@ -925,7 +925,7 @@ const char *
 short_time(time_delta_t t)
 {
 	static char buf[4 * SIZE_FIELD_MAX];
-	guint s = MAX(t, 0);
+	uint s = MAX(t, 0);
 
 	if (s > 86400)
 		gm_snprintf(buf, sizeof buf, _("%ud %uh"),
@@ -948,7 +948,7 @@ const char *
 short_time_ascii(time_delta_t t)
 {
 	static char buf[4 * SIZE_FIELD_MAX];
-	guint s = MAX(t, 0);
+	uint s = MAX(t, 0);
 
 	if (s > 86400)
 		gm_snprintf(buf, sizeof buf, "%ud %uh",
@@ -1031,14 +1031,14 @@ const char *
 short_uptime(time_delta_t uptime)
 {
 	static char b[SIZE_FIELD_MAX];
-	guint s = MAX(uptime, 0);
+	uint s = MAX(uptime, 0);
 
 	if (s > 86400) {
-		guint32 d = s % 86400;
+		uint32 d = s % 86400;
 		gm_snprintf(b, sizeof(b), "%ud %02d%c%02d",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
-		guint32 h = s % 3600;
+		uint32 h = s % 3600;
 		gm_snprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
 	}
 
@@ -1050,7 +1050,7 @@ time_t_to_string_buf(time_t v, char *dst, size_t size)
 {
 	char buf[TIME_T_DEC_BUFLEN];
 	char *p;
-	gboolean neg;
+	bool neg;
 
 	g_assert(0 == size || NULL != dst);
 	g_assert(size <= INT_MAX);

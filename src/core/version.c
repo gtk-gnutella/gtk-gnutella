@@ -65,7 +65,7 @@ static version_t our_version;
 static version_ext_t our_ext_version;
 static version_t last_rel_version;
 static version_t last_dev_version;
-static guint8 version_code;
+static uint8 version_code;
 
 /**
  * Get version string.
@@ -79,7 +79,7 @@ version_get_string(void)
 /**
  * Get version code (year/month coded in one byte).
  */
-guint8
+uint8
 version_get_code(void)
 {
 	return version_code;
@@ -88,7 +88,7 @@ version_get_code(void)
 /**
  * Is our version indicating dirtyness?
  */
-gboolean
+bool
 version_is_dirty(void)
 {
 	return our_ext_version.dirty;
@@ -98,7 +98,7 @@ version_is_dirty(void)
  * Get commit string and commit length (amount of valid nybbles).
  */
 const struct sha1 *
-version_get_commit(guint8 *len)
+version_get_commit(uint8 *len)
 {
 	if (len != NULL)
 		*len = our_ext_version.commit_len;
@@ -123,13 +123,13 @@ version_dump(const char *str, const version_t *ver, const char *cmptag)
  * NB: returns pointer to static data.
  */
 const char *
-version_ext_str(const version_ext_t *vext, gboolean full)
+version_ext_str(const version_ext_t *vext, bool full)
 {
 	static char str[120];
 	const version_t *ver = &vext->version;
 	int rw;
-	gboolean has_extra = FALSE;
-	gboolean need_closing = FALSE;
+	bool has_extra = FALSE;
+	bool need_closing = FALSE;
 
 	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
 
@@ -280,7 +280,7 @@ version_stamp(const char *str, version_t *ver)
  * @returns TRUE if we parsed the extended build information properly, FALSE
  * if we were not facing a proper extension.
  */
-static gboolean
+static bool
 version_ext_parse(const char *str, version_ext_t *vext)
 {
 	const char *v;
@@ -360,7 +360,7 @@ version_ext_parse(const char *str, version_ext_t *vext)
  * @returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
-static gboolean
+static bool
 version_parse(const char *str, version_t *ver, const char **end)
 {
 	const char *v;
@@ -493,7 +493,7 @@ version_parse(const char *str, version_t *ver, const char **end)
  * @returns -1, 0 or +1 depending on the sign of "a - b".
  */
 static int
-version_tagcmp(guchar a, guchar b)
+version_tagcmp(uchar a, uchar b)
 {
 	if (a == b)
 		return 0;
@@ -556,7 +556,7 @@ version_build_cmp(const version_t *a, const version_t *b)
  *
  * @returns OK if we were able to parse correctly.
  */
-gboolean
+bool
 version_fill(const char *version, version_t *vs)
 {
 	if (!version_parse(version, vs, NULL))
@@ -571,7 +571,7 @@ version_fill(const char *version, version_t *vs)
  * Invoked when a newer version is found.
  */
 static void
-version_new_found(const char *text, gboolean stable)
+version_new_found(const char *text, bool stable)
 {
     static char last_stable[256] = "";
     static char last_dev[256] = "";
@@ -608,7 +608,7 @@ version_new_found(const char *text, gboolean stable)
  * @returns TRUE if we properly checked the version, FALSE if we got something
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
-gboolean
+bool
 version_check(const char *str, const char *token, const host_addr_t addr)
 {
 	version_t their_version;
@@ -617,7 +617,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 	int cmp;
 	const char *version;
 	const char *end;
-	gboolean extended;
+	bool extended;
 
 	if (!version_parse(str, &their_version, &end))
 		return TRUE;			/* Not gtk-gnutella, or unparseable */
@@ -794,7 +794,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 G_GNUC_COLD const char *
 version_build_string(void)
 {
-	static gboolean initialized;
+	static bool initialized;
 	static char buf[128];
 
 	if (!initialized) {
@@ -840,7 +840,7 @@ version_init(void)
 	now = tm_time();
 
 	{
-		gboolean ok;
+		bool ok;
 		const char *end;
 
 		ok = version_parse(version_string, &our_version, &end);
@@ -891,7 +891,7 @@ version_init(void)
 		tok_is_ancient(now) ||
 		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN
 	) {
-		*deconstify_gboolean(&GNET_PROPERTY(ancient_version)) = TRUE;
+		*deconstify_bool(&GNET_PROPERTY(ancient_version)) = TRUE;
 	}
 }
 
@@ -924,7 +924,7 @@ version_ancient_warn(void)
 	elapsed = delta_time(now, our_version.timestamp);
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
-		static gboolean warned = FALSE;
+		static bool warned = FALSE;
 		if (GNET_PROPERTY(version_debug)) {
 			g_debug("VERSION our_version = %s (elapsed = %ld, token %s)",
 				timestamp_to_string(our_version.timestamp),

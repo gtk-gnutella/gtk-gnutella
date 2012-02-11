@@ -62,15 +62,15 @@
 #endif	/* TRACK_VMM && !VMM_SOURCE */
 
 #ifdef TRACK_VMM
-void *vmm_alloc_track(size_t size, gboolean user_mem,
+void *vmm_alloc_track(size_t size, bool user_mem,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc_track_not_leaking(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0_track(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void vmm_free_track(void *p, size_t size, gboolean user_mem,
+void vmm_free_track(void *p, size_t size, bool user_mem,
 	const char *file, int line);
-void vmm_shrink_track(void *p, size_t o, size_t n, gboolean user_mem,
+void vmm_shrink_track(void *p, size_t o, size_t n, bool user_mem,
 	const char *file, int line);
 
 void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
@@ -97,13 +97,13 @@ size_t compat_pagesize(void) G_GNUC_PURE;
 const void *vmm_page_start(const void *p) G_GNUC_PURE;
 const void *vmm_trap_page(void);
 size_t vmm_page_count(size_t size) G_GNUC_PURE;
-gboolean vmm_is_fragment(const void *base, size_t size);
-gboolean vmm_is_relocatable(const void *base, size_t size);
-gboolean vmm_is_native_pointer(const void *p);
-gboolean vmm_grows_upwards(void) G_GNUC_PURE;
+bool vmm_is_fragment(const void *base, size_t size);
+bool vmm_is_relocatable(const void *base, size_t size);
+bool vmm_is_native_pointer(const void *p);
+bool vmm_grows_upwards(void) G_GNUC_PURE;
 
-void set_vmm_debug(guint32 level);
-gboolean vmm_is_debugging(guint32 level) G_GNUC_PURE;
+void set_vmm_debug(uint32 level);
+bool vmm_is_debugging(uint32 level) G_GNUC_PURE;
 void vmm_init(const void *sp);
 void vmm_memusage_init(void);
 void vmm_malloc_inited(void);

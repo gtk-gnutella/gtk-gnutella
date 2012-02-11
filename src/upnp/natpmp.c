@@ -113,7 +113,7 @@ struct natpmp_rpc {
 	unsigned sssoe;				/**< Seconds since start of epoch */
 	unsigned retries;			/**< Max amount of retries */
 	unsigned count;				/**< Iteration count */
-	guint16 iport;				/**< Internal port (in mapping RPCs) */
+	uint16 iport;				/**< Internal port (in mapping RPCs) */
 };
 
 static inline void
@@ -182,7 +182,7 @@ natpmp_wan_ip(const natpmp_t *np)
 /**
  * Check whether NAT-PMP gateway rebooted.
  */
-gboolean
+bool
 natpmp_has_rebooted(const natpmp_t *np)
 {
 	natpmp_check(np);
@@ -360,15 +360,15 @@ natpmp_rpc_error(struct natpmp_rpc *rd)
  * user code about the outcome of the request, FALSE if we need to resend
  * the request.
  */
-static gboolean
+static bool
 natpmp_handle_discovery_reply(
 	const void *payload, size_t len, struct natpmp_rpc *rd)
 {
 	bstr_t *bs;
-	guint8 version;
-	guint8 code;
-	guint16 result;
-	guint32 ip;
+	uint8 version;
+	uint8 code;
+	uint16 result;
+	uint32 ip;
 	host_addr_t wan_ip;
 	natpmp_t *np;
 
@@ -483,16 +483,16 @@ error:
  * user code about the outcome of the request, FALSE if we need to resend
  * the request.
  */
-static gboolean
+static bool
 natpmp_handle_mapping_reply(
 	const void *payload, size_t len, struct natpmp_rpc *rd)
 {
 	bstr_t *bs;
-	guint8 version;
-	guint8 code;
-	guint16 result = 0;
-	guint16 port;
-	guint32 lifetime;
+	uint8 version;
+	uint8 code;
+	uint16 result = 0;
+	uint16 port;
+	uint32 lifetime;
 
 	natpmp_rpc_check(rd);
 
@@ -593,7 +593,7 @@ error:
  * UDP RPC reply (or timeout) callback.
  */
 static void
-natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, guint16 port,
+natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 	const void *payload, size_t len, void *arg)
 {
 	struct natpmp_rpc *rd = arg;
@@ -815,7 +815,7 @@ natpmp_monitor(natpmp_t *np, natpmp_discover_cb_t cb, void *arg)
  * @param lease		requested lease time (0 for deletions)
  */
 static pmsg_t *
-natpmp_build_mapping(enum natpmp_op op, guint16 port, time_delta_t lease)
+natpmp_build_mapping(enum natpmp_op op, uint16 port, time_delta_t lease)
 {
 	pmsg_t *mb;
 
@@ -861,7 +861,7 @@ natpmp_build_mapping(enum natpmp_op op, guint16 port, time_delta_t lease)
  * @param arg		additional callback argument
  */
 static void
-natpmp_rpc_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
+natpmp_rpc_map(natpmp_t *np, enum upnp_map_proto proto, uint16 port,
 	time_delta_t lease, natpmp_map_cb_t cb, void *arg)
 {
 	pmsg_t *mb;
@@ -910,7 +910,7 @@ natpmp_rpc_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
  * @param arg		additional callback argument
  */
 void
-natpmp_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
+natpmp_map(natpmp_t *np, enum upnp_map_proto proto, uint16 port,
 	time_delta_t lease, natpmp_map_cb_t cb, void *arg)
 {
 	natpmp_check(np);
@@ -925,7 +925,7 @@ natpmp_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
  * This is an advisory unmapping, there is no callback to the user when done.
  */
 void
-natpmp_unmap(natpmp_t *np, enum upnp_map_proto proto, guint16 port)
+natpmp_unmap(natpmp_t *np, enum upnp_map_proto proto, uint16 port)
 {
 	natpmp_check(np);
 

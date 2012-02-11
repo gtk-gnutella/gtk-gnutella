@@ -67,7 +67,7 @@ parse_netstat(host_addr_t *addrp)
 {
 	FILE *f = NULL;
 	char tmp[80];
-	guint32 gate = 0;
+	uint32 gate = 0;
 
 	/*
 	 * This implementation should be a safe default on UNIX platforms, but
@@ -98,7 +98,7 @@ parse_netstat(host_addr_t *addrp)
 
 	while (fgets(tmp, sizeof tmp, f)) {
 		char *p;
-		guint32 ip;
+		uint32 ip;
 
 		p = is_strprefix(tmp, "default");
 		if (NULL == p)
@@ -126,7 +126,7 @@ parse_netstat(host_addr_t *addrp)
 }
 #else
 {
-	static gboolean warned;
+	static bool warned;
 
 	(void) addrp;
 
@@ -154,7 +154,7 @@ G_GNUC_COLD int
 getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {
-	guint32 ip;
+	uint32 ip;
 
 	if (-1 == mingw_getgateway(&ip)) {
 		g_warning("getgateway(): GetBestRoute() failed: %m");
@@ -171,7 +171,7 @@ getgateway(host_addr_t *addrp)
 	unsigned seq = 1;
 	__u32 pid = getpid(); /* not pid_t because nlmsg_pid is of type __u32 */
 	host_addr_t gateway;
-	gboolean done;
+	bool done;
 	struct {
 		struct nlmsghdr hdr;
 		struct rtmsg rtm;
@@ -407,7 +407,7 @@ found:
 }
 #else
 {
-	static gboolean warned;
+	static bool warned;
 
 	/*
 	 * Let's get information about which systems cannot benefit from a

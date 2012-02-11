@@ -86,7 +86,7 @@ kuid_random_fill(kuid_t *kuid)
  * Copy KUID from memory buffer into kuid_t object.
  */
 void
-kuid_from_buf(kuid_t *dest, const gchar *id)
+kuid_from_buf(kuid_t *dest, const char *id)
 {
 	memcpy(dest, id, KUID_RAW_SIZE);
 }
@@ -94,7 +94,7 @@ kuid_from_buf(kuid_t *dest, const gchar *id)
 /**
  * Test whether KUID is blank.
  */
-gboolean
+bool
 kuid_is_blank(const kuid_t *kuid)
 {
 	size_t i;
@@ -126,8 +126,8 @@ kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2)
 	int i;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint d1 = kuid1->v[i] ^ target->v[i];
-		guint d2 = kuid2->v[i] ^ target->v[i];
+		uint d1 = kuid1->v[i] ^ target->v[i];
+		uint d2 = kuid2->v[i] ^ target->v[i];
 
 		if (d1 < d2)
 			return -1;
@@ -150,8 +150,8 @@ kuid_cmp(const kuid_t *k1, const kuid_t *k2)
 	int i;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint b1 = k1->v[i];
-		guint b2 = k2->v[i];
+		uint b1 = k1->v[i];
+		uint b2 = k2->v[i];
 
 		if (b1 < b2)
 			return -1;
@@ -187,7 +187,7 @@ kuid_hash(const void *key)
 /**
  * Are two KUID identical?
  */
-gboolean
+bool
 kuid_eq(const void *k1, const void *k2)
 {
 	return k1 == k2 || 0 == memcmp(k1, k2, KUID_RAW_SIZE);
@@ -196,7 +196,7 @@ kuid_eq(const void *k1, const void *k2)
 /**
  * See if the n first bits of two KUID prefixes match.
  */
-gboolean
+bool
 kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits)
 {
 	return 0 == bitcmp(k1->v, k2->v, bits);
@@ -229,7 +229,7 @@ kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits)
 		if (bits >= 8) {
 			dest->v[i] = prefix->v[i];
 		} else {
-			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
+			uchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
 			dest->v[i] = (prefix->v[i] & mask) | (dest->v[i] & ~mask);
 		}
 	}
@@ -242,7 +242,7 @@ void
 kuid_flip_nth_leading_bit(kuid_t *res, int n)
 {
 	int byt;
-	guchar mask;
+	uchar mask;
 
 	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
@@ -262,12 +262,12 @@ kuid_flip_nth_leading_bit(kuid_t *res, int n)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_string(const kuid_t *kuid)
 {
-	static gchar buf[SHA1_BASE32_SIZE + 1];
+	static char buf[SHA1_BASE32_SIZE + 1];
 
-	return sha1_to_base32_buf(cast_to_gconstpointer(&kuid->v), buf, sizeof buf);
+	return sha1_to_base32_buf(cast_to_constpointer(&kuid->v), buf, sizeof buf);
 }
 
 /**
@@ -275,10 +275,10 @@ kuid_to_string(const kuid_t *kuid)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_hex_string(const kuid_t *kuid)
 {
-	static gchar buf[KUID_HEX_BUFLEN];
+	static char buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 
@@ -290,10 +290,10 @@ kuid_to_hex_string(const kuid_t *kuid)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_hex_string2(const kuid_t *kuid)
 {
-	static gchar buf[KUID_HEX_BUFLEN];
+	static char buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 

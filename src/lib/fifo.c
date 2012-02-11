@@ -80,7 +80,7 @@ fifo_free(fifo_t *f)
  * @param udata the extra user data passed as-is to the freeing callback.
  */
 void
-fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata)
+fifo_free_all(fifo_t *f, fifo_free_t cb, void *udata)
 {
 	GList *l;
 
@@ -103,14 +103,14 @@ fifo_count(fifo_t *f)
  * Add entry to FIFO.
  */
 void
-fifo_put(fifo_t *f, gconstpointer data)
+fifo_put(fifo_t *f, const void *data)
 {
 	g_assert(f->count == 0 || f->head != NULL);
 	g_assert(f->count == 0 || f->tail != NULL);
 	g_assert(f->head == NULL || f->count != 0);
 	g_assert(f->tail == NULL || f->count != 0);
 
-	f->head = g_list_prepend(f->head, (gpointer) data);
+	f->head = g_list_prepend(f->head, deconstify_pointer(data));
 	if (f->tail == NULL)
 		f->tail = f->head;
 	f->count++;
@@ -121,11 +121,11 @@ fifo_put(fifo_t *f, gconstpointer data)
  *
  * @return the oldest item still held in FIFO, NULL if no item remains.
  */
-gpointer
+void *
 fifo_remove(fifo_t *f)
 {
 	GList *prev;
-	gpointer data;
+	void *data;
 
 	if (f->count == 0)
 		return NULL;

@@ -54,7 +54,7 @@ static size_t rxbuf_pagesize;
  * Put RX buffer back to its pool.
  */
 void
-rxbuf_free(gpointer p)
+rxbuf_free(void *p)
 {
 	pdata_t *db = p;
 
@@ -68,7 +68,7 @@ rxbuf_free(gpointer p)
  * Free routine for the page-aligned buffer, called by pdata_unref().
  */
 static void
-rxbuf_data_free(gpointer p, gpointer unused_data)
+rxbuf_data_free(void *p, void *unused_data)
 {
 	(void) unused_data;
 
@@ -97,10 +97,10 @@ rxbuf_new(void)
 /**
  * Wrapper over vmm_alloc().
  */
-static gpointer
+static void *
 rxbuf_page_alloc(size_t size)
 {
-	gpointer p;
+	void *p;
 
 	g_assert(size == rxbuf_pagesize);
 
@@ -116,7 +116,7 @@ rxbuf_page_alloc(size_t size)
  * Wrapper over vmm_free().
  */
 static void
-rxbuf_page_free(gpointer p, gboolean fragment)
+rxbuf_page_free(void *p, bool fragment)
 {
 	if (GNET_PROPERTY(rxbuf_debug) > 2)
 		g_debug("RXBUF freeing %uK buffer at %p%s",
@@ -128,8 +128,8 @@ rxbuf_page_free(gpointer p, gboolean fragment)
 /**
  * Check whether buffer is relocatable or is a memory fragment.
  */
-static gboolean
-rxbuf_page_is_fragment(gpointer p)
+static bool
+rxbuf_page_is_fragment(void *p)
 {
 	return vmm_is_relocatable(p, rxbuf_pagesize) ||
 		vmm_is_fragment(p, rxbuf_pagesize);

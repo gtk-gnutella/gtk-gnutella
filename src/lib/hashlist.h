@@ -30,7 +30,7 @@
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
-typedef gboolean (*hashlist_cbr_t)(void *key, void *u);
+typedef bool (*hashlist_cbr_t)(void *key, void *u);
 typedef void (*hashlist_destroy_cb)(void *data);
 
 hash_list_t *hash_list_new(GHashFunc, GEqualFunc);
@@ -60,16 +60,16 @@ hash_list_iter_t *hash_list_iterator(hash_list_t *);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *);
 hash_list_iter_t *hash_list_iterator_at(hash_list_t *, const void *key);
 void hash_list_iter_release(hash_list_iter_t **);
-gboolean hash_list_iter_has_next(const hash_list_iter_t *) G_GNUC_PURE;
-gboolean hash_list_iter_has_previous(const hash_list_iter_t *) G_GNUC_PURE;
-gboolean hash_list_iter_has_more(const hash_list_iter_t *iter) G_GNUC_PURE;
+bool hash_list_iter_has_next(const hash_list_iter_t *) G_GNUC_PURE;
+bool hash_list_iter_has_previous(const hash_list_iter_t *) G_GNUC_PURE;
+bool hash_list_iter_has_more(const hash_list_iter_t *iter) G_GNUC_PURE;
 void *hash_list_iter_next(hash_list_iter_t *);
 void *hash_list_iter_previous(hash_list_iter_t *);
 void *hash_list_iter_move(hash_list_iter_t *iter);
 void *hash_list_iter_remove(hash_list_iter_t *iter);
 
-gboolean hash_list_find(hash_list_t *, const void *key, const void **orig_key);
-gboolean hash_list_contains(hash_list_t *, const void *key);
+bool hash_list_find(hash_list_t *, const void *key, const void **orig_key);
+bool hash_list_contains(hash_list_t *, const void *key);
 void hash_list_foreach(const hash_list_t *, GFunc, void *user_data);
 size_t hash_list_foreach_remove(hash_list_t *hl, hashlist_cbr_t func, void *u);
 

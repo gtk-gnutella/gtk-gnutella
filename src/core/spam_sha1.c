@@ -185,12 +185,12 @@ spam_sha1_sync(void)
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD gulong
+static G_GNUC_COLD ulong
 spam_sha1_load(FILE *f)
 {
 	char line[1024];
-	guint line_no = 0;
-	gulong item_count = 0;
+	uint line_no = 0;
+	ulong item_count = 0;
 
 	g_assert(f);
 
@@ -258,7 +258,7 @@ spam_sha1_load(FILE *f)
  * changed.
  */
 static void
-spam_sha1_changed(const char *filename, gpointer unused_udata)
+spam_sha1_changed(const char *filename, void *unused_udata)
 {
 	FILE *f;
 
@@ -267,7 +267,7 @@ spam_sha1_changed(const char *filename, gpointer unused_udata)
 	f = file_fopen(filename, "r");
 	if (f) {
 		char buf[80];
-		gulong count;
+		ulong count;
 
 		spam_sha1_close();
 		count = spam_sha1_load(f);
@@ -360,7 +360,7 @@ spam_sha1_close(void)
  * @param sha1 the SHA-1 to check.
  * @returns TRUE if found, and FALSE if not.
  */
-gboolean
+bool
 spam_sha1_check(const struct sha1 *sha1)
 {
 	g_return_val_if_fail(sha1, FALSE);

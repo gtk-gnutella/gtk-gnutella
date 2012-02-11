@@ -224,7 +224,7 @@ static gnutls_dh_params
 get_dh_params(void)
 {
 	static gnutls_dh_params dh_params;
-	static gboolean initialized = FALSE;
+	static bool initialized = FALSE;
 
 	if (!initialized) {
  		if (gnutls_dh_params_init(&dh_params)) {
@@ -241,8 +241,8 @@ get_dh_params(void)
 }
 
 static void
-tls_print_session_info(const host_addr_t addr, guint16 port,
-	gnutls_session session, gboolean incoming)
+tls_print_session_info(const host_addr_t addr, uint16 port,
+	gnutls_session session, bool incoming)
 {
 	const char *proto, *cert, *kx, *ciph, *mac, *comp;
 
@@ -288,7 +288,7 @@ enum tls_handshake_result
 tls_handshake(struct gnutella_socket *s)
 {
 	gnutls_session session;
-	gboolean do_warn;
+	bool do_warn;
 	int ret;
 
 	socket_check(s);
@@ -366,7 +366,7 @@ tls_init(struct gnutella_socket *s)
 	static const char prio_want[] = "NORMAL:+ANON-DH:-ARCFOUR-40:-COMP-DEFLATE";
 	/* "-COMP-DEFLATE" is causing an error on MinGW with GnuTLS 2.10.2 */
 	static const char prio_must[] = "NORMAL:+ANON-DH:-ARCFOUR-40";
-	const gboolean server = SOCK_CONN_INCOMING == s->direction;
+	const bool server = SOCK_CONN_INCOMING == s->direction;
 	struct tls_context *ctx;
 	const char *fn;
 	int e;
@@ -849,7 +849,7 @@ tls_version_string(void)
 	return buf;
 }
 
-gboolean
+bool
 tls_enabled(void)
 {
 	return TRUE;
@@ -868,7 +868,7 @@ svn_release_notify_certificate(void)
 "1NFx0QRBCHE+BUaCX3tuRC0a7HRq8UEqhcKgW7Xk3nkGUNXTcSSo7wu+jpePUsw8\n"
 "njFhJCXeDIcR7jzNCA==\n"
 "-----END CERTIFICATE-----\n";
-	static gboolean initialized;
+	static bool initialized;
 	static gnutls_x509_crt cert;
 
 	if (!initialized) {
@@ -898,13 +898,13 @@ svn_release_notify_certificate(void)
 	return cert; 
 }
 
-gboolean
+bool
 svn_release_notification_can_verify(void)
 {
 	return NULL != svn_release_notify_certificate();
 }
 
-static gboolean
+static bool
 verify_signature(gnutls_x509_crt cert,
 	const struct array *input, const struct array *signature)
 {
@@ -928,8 +928,8 @@ verify_signature(gnutls_x509_crt cert,
  *
  * @return TRUE if the signature matches.
  */
-gboolean
-svn_release_notification_verify(guint32 revision, time_t date,
+bool
+svn_release_notification_verify(uint32 revision, time_t date,
 	const struct array *signature)
 {
 	char rev[12], data[64];
@@ -1002,20 +1002,20 @@ tls_version_string(void)
 	return NULL;
 }
 
-gboolean
+bool
 tls_enabled(void)
 {
 	return FALSE;
 }
 
-gboolean
+bool
 svn_release_notification_can_verify(void)
 {
 	return FALSE;
 }
 
-gboolean
-svn_release_notification_verify(guint32 revision, time_t date,
+bool
+svn_release_notification_verify(uint32 revision, time_t date,
 	const struct array *signature)
 {
 	g_return_val_if_fail(signature, FALSE);

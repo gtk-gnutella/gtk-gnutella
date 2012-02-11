@@ -44,7 +44,7 @@ iov_alloc_n(size_t n)
 }
 
 static inline iovec_t
-iov_get(gpointer base, size_t size)
+iov_get(void *base, size_t size)
 {
 	static const iovec_t zero_iov;
 	iovec_t iov;
@@ -107,7 +107,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
  *
  * @return TRUE if b->iov_base directly follows after &a->iov_base[a->iov_len].
  */
-static inline G_GNUC_PURE gboolean
+static inline G_GNUC_PURE bool
 iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 {
 	g_assert(a);

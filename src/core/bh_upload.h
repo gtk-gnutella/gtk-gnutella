@@ -63,7 +63,7 @@ struct tx_link_cb;
 struct wrap_io;
 
 struct special_upload *browse_host_open(
-	gpointer owner,
+	void *owner,
 	struct gnutella_host *host,
 	special_upload_writable_t writable,
 	const struct tx_deflate_cb *deflate_cb,

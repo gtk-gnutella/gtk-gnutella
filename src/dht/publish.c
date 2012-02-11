@@ -195,11 +195,11 @@ typedef enum {
  * @param bw_outgoing	amount of outgoing bandwidth used
  */
 typedef void (*publish_subcache_done_t)(
-	gpointer obj, int count, int published, int errors,
+	void *obj, int count, int published, int errors,
 	int bw_incoming, int bw_outgoing);
 
 struct publish_id {
-	guint64 value;
+	uint64 value;
 };
 
 typedef enum {
@@ -222,21 +222,21 @@ struct publish {
 			pmsg_t *pending;	/**< Last sent message, awaiting ACK */
 			int timeouts;		/**< Amount of RPC timeouts for last message */
 			publish_subcache_done_t cb;
-			gpointer arg;		/**< Callback argument */
+			void *arg;			/**< Callback argument */
 		} c;
 		struct {				/**< For PUBLISH_OFFLOAD */
 			knode_t *kn;		/**< Node where we're publishing */
 			void *token;		/**< Security token for remote node */
-			guint8 toklen;		/**< Length of security token */
+			uint8 toklen;		/**< Length of security token */
 			slist_t *keys;		/**< List of keys to offload (KUID atoms) */
 			publish_t *child;	/**< Subordinate publish request */
 		} o;
 		struct {				/**< For PUBLISH_VALUE */
 			const lookup_rs_t *rs;	/**< Lookup result set, immutable thanks */
 			dht_value_t *value;	/**< Value to publish */
-			guint16 *status;	/**< STORE status codes */
+			uint16 *status;		/**< STORE status codes */
 			publish_cb_t cb;	/**< Completion callback */
-			gpointer arg;		/**< Additional callback argument */
+			void *arg;			/**< Additional callback argument */
 			size_t idx;			/**< Current node index we're publishing to */
 			unsigned full;		/**< Nodes that reported key being full */
 		} v;
@@ -257,8 +257,8 @@ struct publish {
 	int bw_outgoing;			/**< Amount of outgoing bandwidth used */
 	int bw_incoming;			/**< Amount of incoming bandwidth used */
 	int udp_drops;				/**< Amount of UDP packet drops */
-	guint32 flags;				/**< Operating flags */
-	guint32 hops;				/**< Iteration count */
+	uint32 flags;				/**< Operating flags */
+	uint32 hops;				/**< Iteration count */
 };
 
 /**
@@ -282,7 +282,7 @@ publish_check(const publish_t *pb)
 static void publish_iterate(publish_t *pb);
 static publish_t *publish_subcache(const kuid_t *key,
 	lookup_rc_t *target, dht_value_t **vvec, int vcnt,
-	publish_subcache_done_t cb, gpointer arg);
+	publish_subcache_done_t cb, void *arg);
 
 /**
  * Allocate a lookup ID, the way for users to identify the lookup object.
@@ -345,7 +345,7 @@ publish_strerror(publish_error_t error)
  *
  * @return NULL if the publish ID is unknown, otherwise the publish object
  */
-static gpointer
+static void *
 publish_is_alive(struct nid pid)
 {
 	publish_t *pb;
@@ -365,7 +365,7 @@ publish_is_alive(struct nid pid)
  * Slist freeing callback.
  */
 static void
-free_pmsg(gpointer obj)
+free_pmsg(void *obj)
 {
 	pmsg_free(obj);
 }
@@ -374,7 +374,7 @@ free_pmsg(gpointer obj)
  * Slist freeing callback.
  */
 static void
-free_kuid_atom(gpointer obj)
+free_kuid_atom(void *obj)
 {
 	kuid_atom_free(obj);
 }
@@ -627,7 +627,7 @@ publish_terminate(publish_t *pb, publish_error_t code)
  * @param callback	whether to invoke the callback for value publishing
  */
 void
-publish_cancel(publish_t *pb, gboolean callback)
+publish_cancel(publish_t *pb, bool callback)
 {
 	publish_check(pb);
 
@@ -666,7 +666,7 @@ publish_cancel(publish_t *pb, gboolean callback)
  * Expiration timeout on caching requesst.
  */
 static void
-publish_cache_expired(cqueue_t *unused_cq, gpointer obj)
+publish_cache_expired(cqueue_t *unused_cq, void *obj)
 {
 	publish_t *pb = obj;
 
@@ -691,7 +691,7 @@ publish_cache_expired(cqueue_t *unused_cq, gpointer obj)
  * Expiration timeout for offloading.
  */
 static void
-publish_offload_expired(cqueue_t *unused_cq, gpointer obj)
+publish_offload_expired(cqueue_t *unused_cq, void *obj)
 {
 	publish_t *pb = obj;
 
@@ -713,7 +713,7 @@ publish_offload_expired(cqueue_t *unused_cq, gpointer obj)
  * Expiration timeout for STORE.
  */
 static void
-publish_store_expired(cqueue_t *unused_cq, gpointer obj)
+publish_store_expired(cqueue_t *unused_cq, void *obj)
 {
 	publish_t *pb = obj;
 
@@ -768,13 +768,13 @@ log_status(publish_t *pb)
 /**
  * @return how many DHT values are held in message block, containing a STORE.
  */
-static guint8
+static uint8
 values_held(pmsg_t *mb)
 {
 	const void *header = pmsg_start(mb);
-	guint8 toklen;
+	uint8 toklen;
 	const void *p;
-	guint8 result;
+	uint8 result;
 
 	g_assert(KDA_MSG_STORE_REQUEST == kademlia_header_get_function(header));
 	g_assert(pmsg_size(mb) > KDA_HEADER_SIZE + 1);
@@ -800,7 +800,7 @@ static const void *
 first_creator_kuid(pmsg_t *mb)
 {
 	const void *header = pmsg_start(mb);
-	guint8 toklen;
+	uint8 toklen;
 	const void *p;
 
 	g_assert(KDA_MSG_STORE_REQUEST == kademlia_header_get_function(header));
@@ -820,7 +820,7 @@ first_creator_kuid(pmsg_t *mb)
  * Delay expiration.
  */
 static void
-publish_delay_expired(cqueue_t *unused_cq, gpointer obj)
+publish_delay_expired(cqueue_t *unused_cq, void *obj)
 {
 	publish_t *pb = obj;
 
@@ -888,14 +888,14 @@ publish_async_iterate(publish_t *pb)
  * @return TRUE if OK, FALSE if there is a fatal condition on the node that
  * means we have to stop publishing there.
  */
-static gboolean
+static bool
 publish_handle_reply(publish_t *pb, const knode_t *kn,
-	const char *payload, size_t len, pmsg_t *mb, guint16 *code_ptr)
+	const char *payload, size_t len, pmsg_t *mb, uint16 *code_ptr)
 {
-	guint8 published;
+	uint8 published;
 	const kuid_t *id;
 	bstr_t *bs;
-	guint8 acks;
+	uint8 acks;
 	const char *reason;
 	unsigned i = 0;
 
@@ -948,8 +948,8 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 		kuid_t primary;
 		kuid_t secondary;
 		struct {
-			guint16 code;
-			guint16 length;
+			uint16 code;
+			uint16 length;
 			const char *description;
 		} status;
 
@@ -1126,7 +1126,7 @@ abort_publishing:
  * Records the STORE status code returned by the node.
  */
 static void
-publish_value_set_store_status(publish_t *pb, const knode_t *kn, guint16 code)
+publish_value_set_store_status(publish_t *pb, const knode_t *kn, uint16 code)
 {
 	size_t count;
 	size_t i;
@@ -1155,8 +1155,8 @@ publish_value_set_store_status(publish_t *pb, const knode_t *kn, guint16 code)
  * Is the publish status code indicating that we can re-attempt a STORE
  * of the same DHT value after some time has passed?
  */
-static gboolean
-publish_status_retryable(guint16 status)
+static bool
+publish_status_retryable(uint16 status)
 {
 	switch (status) {
 	case STORE_SC_ERROR:
@@ -1207,7 +1207,7 @@ publish_value_next_unstored(publish_t *pb, size_t first)
  * @param status	the STORE status from a previous publish
  */
 static size_t
-publish_value_candidates(const lookup_rs_t *rs, const guint16 *status)
+publish_value_candidates(const lookup_rs_t *rs, const uint16 *status)
 {
 	size_t count;
 	size_t i;
@@ -1235,7 +1235,7 @@ publish_value_candidates(const lookup_rs_t *rs, const guint16 *status)
  ***/
 
 static void
-pb_freeing_msg(gpointer obj)
+pb_freeing_msg(void *obj)
 {
 	publish_t *pb = obj;
 	publish_check(pb);
@@ -1245,7 +1245,7 @@ pb_freeing_msg(gpointer obj)
 }
 
 static void
-pb_msg_sent(gpointer obj, pmsg_t *mb)
+pb_msg_sent(void *obj, pmsg_t *mb)
 {
 	publish_t *pb = obj;
 	publish_check(pb);
@@ -1258,7 +1258,7 @@ pb_msg_sent(gpointer obj, pmsg_t *mb)
 }
 
 static void
-pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
+pb_msg_dropped(void *obj, knode_t *unused_kn, pmsg_t *mb)
 {
 	publish_t *pb = obj;
 
@@ -1294,7 +1294,7 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 	if (!(pb->flags & PB_F_SENDING)) {
 		/* Did not send the message -- asynchronous dropping */
 		if (GNET_PROPERTY(dht_publish_debug) > 2) {
-			guint8 held = values_held(mb);
+			uint8 held = values_held(mb);
 			const kuid_t *id = first_creator_kuid(mb);
 			g_debug("DHT PUBLISH[%s] UDP dropped STORE with %u value%s sk=%s",
 				nid_to_string(&pb->pid), held, 1 == held ? "" : "s",
@@ -1304,7 +1304,7 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 		pb->flags |= PB_F_UDP_DROP;			/* Caller must retry later */
 
 		if (GNET_PROPERTY(dht_publish_debug) > 2) {
-			guint8 held = values_held(mb);
+			uint8 held = values_held(mb);
 			const kuid_t *id = first_creator_kuid(mb);
 			g_debug("DHT PUBLISH[%s] "
 				"synchronous UDP drop of STORE with %u value%s sk=%s",
@@ -1315,7 +1315,7 @@ pb_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *mb)
 }
 
 static void
-pb_rpc_cancelled(gpointer obj, guint32 unused_udata)
+pb_rpc_cancelled(void *obj, uint32 unused_udata)
 {
 	publish_t *pb = obj;
 
@@ -1356,8 +1356,8 @@ pb_rpc_cancelled(gpointer obj, guint32 unused_udata)
 }
 
 static void
-pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
-	const knode_t *unused_kn, guint32 unused_udata)
+pb_cache_handling_rpc(void *obj, enum dht_rpc_ret type,
+	const knode_t *unused_kn, uint32 unused_udata)
 {
 	publish_t *pb = obj;
 
@@ -1391,7 +1391,7 @@ pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 		pb->rpc_timeouts++;
 		if (pb->target.c.timeouts++ >= PB_MAX_MSG_RETRY - 1) {
 			if (GNET_PROPERTY(dht_publish_debug) > 1) {
-				guint8 held = values_held(pb->target.c.pending);
+				uint8 held = values_held(pb->target.c.pending);
 				g_debug("DHT PUBLISH[%s] dropping publishing of %u value%s",
 					nid_to_string(&pb->pid), held, 1 == held ? "" : "s");
 			}
@@ -1406,12 +1406,12 @@ pb_cache_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	}
 }
 
-static gboolean
-pb_cache_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 udata)
+static bool
+pb_cache_handle_reply(void *obj, const knode_t *kn,
+	kda_msg_t function, const char *payload, size_t len, uint32 udata)
 {
 	publish_t *pb = obj;
-	guint32 hop = udata;
+	uint32 hop = udata;
 
 	publish_check(pb);
 	g_assert(PUBLISH_CACHE == pb->type);
@@ -1483,8 +1483,8 @@ iterate:
 }
 
 static void
-pb_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
-	const knode_t *kn, guint32 unused_udata)
+pb_value_handling_rpc(void *obj, enum dht_rpc_ret type,
+	const knode_t *kn, uint32 unused_udata)
 {
 	publish_t *pb = obj;
 
@@ -1522,14 +1522,14 @@ pb_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	}
 }
 
-static gboolean
-pb_value_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 udata)
+static bool
+pb_value_handle_reply(void *obj, const knode_t *kn,
+	kda_msg_t function, const char *payload, size_t len, uint32 udata)
 {
 	publish_t *pb = obj;
-	guint32 hop = udata;
-	guint16 code;
-	gboolean can_iterate = TRUE;
+	uint32 hop = udata;
+	uint16 code;
+	bool can_iterate = TRUE;
 
 	publish_check(pb);
 	g_assert(PUBLISH_VALUE == pb->type);
@@ -1632,7 +1632,7 @@ pb_value_handle_reply(gpointer obj, const knode_t *kn,
 }
 
 static void
-pb_iterate(gpointer obj, enum dht_rpc_ret unused_type, guint32 unused_data)
+pb_iterate(void *obj, enum dht_rpc_ret unused_type, uint32 unused_data)
 {
 	publish_t *pb = obj;
 
@@ -1775,7 +1775,7 @@ publish_cache_iterate(publish_t *pb)
  * Completion callback for subordinate publishing.
  */
 static void
-pb_offload_child_done(gpointer obj, int count, int published, int errors,
+pb_offload_child_done(void *obj, int count, int published, int errors,
 	int bw_incoming, int bw_outgoing)
 {
 	publish_t *pb = obj;
@@ -2115,7 +2115,7 @@ publish_cache_internal(const kuid_t *key,
 	}
 	g_assert(target != NULL);
 	g_assert(vvec != NULL);
-	g_assert(vcnt > 0 && vcnt <= MAX_INT_VAL(guint8));
+	g_assert(vcnt > 0 && vcnt <= MAX_INT_VAL(uint8));
 
 	pb = publish_create(key, PUBLISH_CACHE, vcnt);
 	pb->target.c.kn = knode_refcnt_inc(target->kn);
@@ -2196,7 +2196,7 @@ publish_cache(const kuid_t *key,
 static publish_t *
 publish_subcache(const kuid_t *key,
 	lookup_rc_t *target, dht_value_t **vvec, int vcnt,
-	publish_subcache_done_t cb, gpointer arg)
+	publish_subcache_done_t cb, void *arg)
 {
 	publish_t *pb;
 
@@ -2213,7 +2213,7 @@ publish_subcache(const kuid_t *key,
  * Record security token for an offloading publish.
  */
 static void
-publish_offload_set_token(publish_t *pb, guint8 token_len, const void *token)
+publish_offload_set_token(publish_t *pb, uint8 token_len, const void *token)
 {
 	publish_check(pb);
 	g_assert(PUBLISH_OFFLOAD == pb->type);
@@ -2228,7 +2228,7 @@ publish_offload_set_token(publish_t *pb, guint8 token_len, const void *token)
  * Got the token for the node.
  */
 static void
-pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
+pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 {
 	publish_t *pb = arg;
 	lookup_rc_t *rc;
@@ -2259,7 +2259,7 @@ pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
  * Could not get the token for the node.
  */
 static void
-pb_token_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+pb_token_error(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	publish_t *pb = arg;
 
@@ -2283,7 +2283,7 @@ pb_token_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
  */
 static void
 pb_token_lookup_stats(const kuid_t *kuid,
-	const struct lookup_stats *ls, gpointer arg)
+	const struct lookup_stats *ls, void *arg)
 {
 	publish_t *pb = arg;
 
@@ -2311,7 +2311,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 	publish_t *pb;
 	slist_t *skeys;
 	GSList *sl;
-	guint8 toklen;
+	uint8 toklen;
 	const void *token;
 
 	knode_check(kn);
@@ -2391,7 +2391,7 @@ publish_self(publish_t *pb)
 
 	if (-1 == kuid_cmp3(pb->key, get_our_kuid(), kth_node->id)) {
 		knode_t *ourselves = get_our_knode();
-		guint16 status;
+		uint16 status;
 
 		if (GNET_PROPERTY(dht_publish_debug)) {
 			g_debug("DHT PUBLISH[%s] locally publishing %s",
@@ -2433,7 +2433,7 @@ publish_self(publish_t *pb)
  */
 publish_t *
 publish_value(dht_value_t *value, const lookup_rs_t *rs,
-	publish_cb_t cb, gpointer arg)
+	publish_cb_t cb, void *arg)
 {
 	publish_t *pb;
 
@@ -2497,8 +2497,8 @@ publish_value(dht_value_t *value, const lookup_rs_t *rs,
  */
 publish_t *
 publish_value_background(dht_value_t *value,
-	const lookup_rs_t *rs, const guint16 *status,
-	publish_cb_t cb, gpointer arg)
+	const lookup_rs_t *rs, const uint16 *status,
+	publish_cb_t cb, void *arg)
 {
 	publish_t *pb;
 
@@ -2549,10 +2549,10 @@ publish_init(void)
  * Hashtable iteration callback to free the publish_t object held as the key.
  */
 static void
-free_publish(gpointer key, gpointer value, gpointer data)
+free_publish(void *key, void *value, void *data)
 {
 	publish_t *pb = value;
-	gboolean *exiting = data;
+	bool *exiting = data;
 
 	publish_check(pb);
 	g_assert(key == &pb->pid);
@@ -2587,7 +2587,7 @@ free_publish(gpointer key, gpointer value, gpointer data)
  * @param exiting		whether the whole process is about to exit
  */
 void
-publish_close(gboolean exiting)
+publish_close(bool exiting)
 {
 	g_hash_table_foreach(publishes, free_publish, &exiting);
 	gm_hash_table_destroy_null(&publishes);

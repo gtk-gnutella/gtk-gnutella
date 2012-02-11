@@ -926,7 +926,7 @@ inputevt_timer(struct poll_ctx *ctx)
 	}
 }
 
-static gboolean
+static bool
 dispatch_poll(GIOChannel *unused_source,
 	GIOCondition unused_cond, void *udata)
 {

@@ -142,7 +142,7 @@ static const char *error_str[] = {
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
-header_strerror(guint errnum)
+header_strerror(uint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str))
 		return "Invalid error code";
@@ -218,7 +218,7 @@ static void
 hfield_dump(const header_field_t *h, FILE *out)
 {
 	slist_iter_t *iter;
-	gboolean first;
+	bool first;
 
 	header_field_check(h);
 	g_assert(h->lines);
@@ -289,8 +289,8 @@ header_make(void)
 /**
  * Frees the key/values from the headers hash.
  */
-static gboolean
-free_header_data(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_header_data(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -471,7 +471,7 @@ header_append(header_t *o, const char *text, int len)
 {
 	char buf[MAX_LINE_SIZE];
 	const char *p = text;
-	guchar c;
+	uchar c;
 	header_field_t *hf;
 
 	header_check(o);
@@ -562,7 +562,7 @@ header_append(header_t *o, const char *text, int len)
 
 	} else {
 		char *b;
-		gboolean seen_space = FALSE;
+		bool seen_space = FALSE;
 
 		/*
 		 * It's a new header line.
@@ -642,7 +642,7 @@ header_append(header_t *o, const char *text, int len)
 }
 
 static void
-header_dump_item(gpointer p, gpointer user_data)
+header_dump_item(void *p, void *user_data)
 {
 	hfield_dump(p, user_data);
 }
@@ -821,7 +821,7 @@ header_fmt_free(header_fmt_t **hf_ptr)
  * within the maximum header size requirement in case a continuation
  * is emitted, and using the configured separator.
  */
-gboolean
+bool
 header_fmt_value_fits(const header_fmt_t *hf, size_t len)
 {
 	size_t final_len;
@@ -868,13 +868,13 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
  * resulted in the header being larger than the configured max size (the
  * header line is left in the state it was in upon entry, in that case).
  */
-static gboolean
+static bool
 header_fmt_append_full(header_fmt_t *hf, const char *str,
 	const char *separator, size_t slen, size_t sslen)
 {
 	size_t len, curlen;
 	gsize gslen;
-	gboolean success;
+	bool success;
 
 	header_fmt_check(hf);
 	g_assert(size_is_non_negative(slen));
@@ -944,7 +944,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
  * @return TRUE if we were able to append the data whilst remaining under
  * the configured maximum length.
  */
-gboolean
+bool
 header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 {
 	size_t seplen;
@@ -969,7 +969,7 @@ header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
  * @return TRUE if we were able to append the data whilst remaining under
  * the configured maximum length.
  */
-gboolean
+bool
 header_fmt_append_value(header_fmt_t *hf, const char *str)
 {
 	header_fmt_check(hf);

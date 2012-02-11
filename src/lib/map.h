@@ -43,8 +43,8 @@
 struct map;
 typedef struct map map_t;
 
-typedef void (*map_cb_t)(gpointer key, gpointer value, gpointer u);
-typedef gboolean (*map_cbr_t)(gpointer key, gpointer value, gpointer u);
+typedef void (*map_cb_t)(void *key, void *value, void *u);
+typedef bool (*map_cbr_t)(void *key, void *value, void *u);
 
 /**
  * Creation interface.
@@ -56,29 +56,29 @@ map_t *map_create_patricia(size_t keybits);
 map_t *map_create_from_hash(GHashTable *ht);
 map_t *map_create_from_patricia(patricia_t *pt);
 map_t *map_create_from_ordered_hash(ohash_table_t *ot);
-gpointer map_switch_to_hash(map_t *m, GHashTable *ht);
-gpointer map_switch_to_patricia(map_t *m, patricia_t *pt);
-gpointer map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot);
+void *map_switch_to_hash(map_t *m, GHashTable *ht);
+void *map_switch_to_patricia(map_t *m, patricia_t *pt);
+void *map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot);
 
 /**
  * Public map interface.
  */
 
-void map_insert(const map_t *m, gconstpointer key, gconstpointer value);
-void map_replace(const map_t *m, gconstpointer key, gconstpointer value);
-gboolean map_remove(const map_t *m, gconstpointer key);
-gpointer map_lookup(const map_t *m, gconstpointer key);
-gboolean map_lookup_extended(const map_t *m, gconstpointer key,
-	gpointer *okey, gpointer *oval);
-gboolean map_contains(const map_t *m, gconstpointer key);
+void map_insert(const map_t *m, const void *key, const void *value);
+void map_replace(const map_t *m, const void *key, const void *value);
+bool map_remove(const map_t *m, const void *key);
+void *map_lookup(const map_t *m, const void *key);
+bool map_lookup_extended(const map_t *m, const void *key,
+	void **okey, void **oval);
+bool map_contains(const map_t *m, const void *key);
 size_t map_count(const map_t *m);
-gpointer map_implementation(const map_t *m);
-gpointer map_release(map_t *m);
+void *map_implementation(const map_t *m);
+void *map_release(map_t *m);
 void map_destroy(map_t *m);
 void map_destroy_null(map_t **m_ptr);
 
-void map_foreach(const map_t *m, map_cb_t cb, gpointer u);
-size_t map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u);
+void map_foreach(const map_t *m, map_cb_t cb, void *u);
+size_t map_foreach_remove(const map_t *m, map_cbr_t cb, void *u);
 
 void map_test(void);
 

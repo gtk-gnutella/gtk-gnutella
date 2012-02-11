@@ -886,6 +886,7 @@ src/shell/status.c
 src/shell/uploads.c
 src/shell/version.c
 src/shell/whatis.c
+src/types.h
 src/ui/Jmakefile
 src/ui/Makefile.SH
 src/ui/gtk/Jmakefile

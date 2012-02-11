@@ -48,7 +48,7 @@ typedef struct dbmw dbmw_t;
  * @param mb		where the serialization will occur
  * @param data		data to serialize
  */
-typedef void (*dbmw_serialize_t)(pmsg_t *mb, gconstpointer data);
+typedef void (*dbmw_serialize_t)(pmsg_t *mb, const void *data);
 
 /**
  * Deserialization routine for values.
@@ -59,7 +59,7 @@ typedef void (*dbmw_serialize_t)(pmsg_t *mb, gconstpointer data);
  *
  * It returns nothing: errors are diagnosed by looking at ``bs'' afterwards.
  */
-typedef void (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
+typedef void (*dbmw_deserialize_t)(bstr_t *bs, void *valptr, size_t len);
 
 /**
  * Free routine for values, to reclaim data allocated during deserialization
@@ -69,7 +69,7 @@ typedef void (*dbmw_deserialize_t)(bstr_t *bs, gpointer valptr, size_t len);
  * @param valptr	where deserialization was done
  * @param len		length of arena allocated for value, for assertions
  */
-typedef void (*dbmw_free_t)(gpointer valptr, size_t len);
+typedef void (*dbmw_free_t)(void *valptr, size_t len);
 
 /**
  * DBMW "foreach" iterator callbacks.
@@ -81,9 +81,8 @@ typedef void (*dbmw_free_t)(gpointer valptr, size_t len);
  *
  * @return TRUE if key/value pair is to be removed (for the dbmw_cbr_t callbak).
  */
-typedef void (*dbmw_cb_t)(gpointer key, gpointer value, size_t len, gpointer u);
-typedef gboolean (*dbmw_cbr_t)(
-	gpointer key, gpointer value, size_t len, gpointer u);
+typedef void (*dbmw_cb_t)(void *key, void *value, size_t len, void *u);
+typedef bool (*dbmw_cbr_t)(void *key, void *value, size_t len, void *u);
 
 /**
  * Flags for dbmw_sync().
@@ -96,32 +95,32 @@ dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
-void dbmw_destroy(dbmw_t *dw, gboolean close_sdbm);
+void dbmw_destroy(dbmw_t *dw, bool close_sdbm);
 ssize_t dbmw_sync(dbmw_t *dw, int which);
-void dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length);
+void dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length);
 void dbmw_write_nocache(
-	dbmw_t *dw, gconstpointer key, gpointer value, size_t length);
-gpointer dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr);
-gboolean dbmw_exists(dbmw_t *dw, gconstpointer key);
-void dbmw_delete(dbmw_t *dw, gconstpointer key);
+	dbmw_t *dw, const void *key, void *value, size_t length);
+void *dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr);
+bool dbmw_exists(dbmw_t *dw, const void *key);
+void dbmw_delete(dbmw_t *dw, const void *key);
 enum dbmap_type dbmw_map_type(const dbmw_t *dw);
 size_t dbmw_count(dbmw_t *dw);
-gboolean dbmw_has_ioerr(const dbmw_t *dw);
+bool dbmw_has_ioerr(const dbmw_t *dw);
 const char *dbmw_name(const dbmw_t *dw);
-gboolean dbmw_set_map_cache(dbmw_t *dw, long pages);
-gboolean dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile);
-gboolean dbmw_shrink(dbmw_t *dw);
-gboolean dbmw_clear(dbmw_t *dw);
+bool dbmw_set_map_cache(dbmw_t *dw, long pages);
+bool dbmw_set_volatile(dbmw_t *dw, bool is_volatile);
+bool dbmw_shrink(dbmw_t *dw);
+bool dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
 
 GSList *dbmw_all_keys(dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
 
-void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg);
-void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg);
+void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg);
+void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg);
 
-gboolean dbmw_store(dbmw_t *dw, const char *base, gboolean inplace);
-gboolean dbmw_copy(dbmw_t *from, dbmw_t *to);
+bool dbmw_store(dbmw_t *dw, const char *base, bool inplace);
+bool dbmw_copy(dbmw_t *from, dbmw_t *to);
 
 #endif /* _dbmw_h_ */
 

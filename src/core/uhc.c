@@ -76,7 +76,7 @@ static struct uhc_context {
 	cevent_t *timeout_ev;		/**< Ping timeout */
 	int attempts;				/**< Connection / resolution attempts */
 	host_addr_t addr;			/**< Resolved IP address for host */
-	guint16 port;				/**< Port of selected host cache */
+	uint16 port;				/**< Port of selected host cache */
 	struct guid muid;			/**< MUID of the ping */
 } uhc_ctx;
 
@@ -85,7 +85,7 @@ static hash_list_t *uhc_list;	/**< List of ``struct uhc'' */
 struct uhc {
 	const char	*host;	/**< An UHC host as "<host>:<port>" (string atom) */
 	time_t		stamp;	/**< Timestamp of the last request */
-	guint		used;	/**< How often have we tried to contact it */
+	uint		used;	/**< How often have we tried to contact it */
 };
 
 /**
@@ -102,10 +102,9 @@ static const struct {
 #endif	/* USE_LOCAL_UHC */
 };
 
-static gboolean uhc_connecting = FALSE;
+static bool uhc_connecting = FALSE;
 
-static void uhc_host_resolved(const host_addr_t *addr, size_t n,
-				gpointer uu_udata);
+static void uhc_host_resolved(const host_addr_t *addr, size_t n, void *udata);
 static void uhc_send_ping(void);
 
 /**
@@ -117,12 +116,12 @@ static void uhc_send_ping(void);
  *
  * @return TRUE if we successfully parsed the string.
  */
-static gboolean
-uhc_get_host_port(const char *hp, const char **host, guint16 *port)
+static bool
+uhc_get_host_port(const char *hp, const char **host, uint16 *port)
 {
 	static char hostname[MAX_HOSTLEN + 1];
 	const char *ep;
-	guint32 u;
+	uint32 u;
 	int error;
 	size_t len;
 	char *p;
@@ -183,8 +182,8 @@ uhc_free(struct uhc **ptr)
 	}
 }
 
-static guint
-uhc_hash(gconstpointer key)
+static uint
+uhc_hash(const void *key)
 {
 	const struct uhc *uhc = key;
 
@@ -192,7 +191,7 @@ uhc_hash(gconstpointer key)
 }
 
 static int
-uhc_equal(gconstpointer p, gconstpointer q)
+uhc_equal(const void *p, const void *q)
 {
 	const struct uhc *a = p, *b = q;
 
@@ -270,10 +269,10 @@ uhc_get_next(void)
  *
  * @return TRUE if OK.
  */
-static gboolean
+static bool
 uhc_pick(void)
 {
-	gboolean success = FALSE;
+	bool success = FALSE;
 	char *uhc;
 
 	uhc = uhc_get_next();
@@ -344,7 +343,7 @@ uhc_try_random(void)
  * get a reply within the specified timeout.
  */
 static void
-uhc_ping_timeout(cqueue_t *unused_cq, gpointer unused_obj)
+uhc_ping_timeout(cqueue_t *unused_cq, void *unused_obj)
 {
 	(void) unused_cq;
 	(void) unused_obj;
@@ -403,7 +402,7 @@ uhc_send_ping(void)
  * Callback for adns_resolve(), invoked when the resolution is complete.
  */
 static void
-uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
+uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 {
 	(void) uu_udata;
 	g_assert(addrs);
@@ -468,7 +467,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, gpointer uu_udata)
 /**
  * Check whether we're waiting for some UDP host cache pongs.
  */
-gboolean
+bool
 uhc_is_waiting(void)
 {
 	return uhc_connecting;
@@ -534,7 +533,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
-		guint16 port;
+		uint16 port;
 
 		host_ip_port_peek(p, type, &ha, &port);
 		hcache_add_caught(HOST_ULTRA, ha, port, "UDP-HC");
@@ -591,14 +590,14 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 G_GNUC_COLD void
 uhc_init(void)
 {
-	guint i;
+	uint i;
 
 	g_return_if_fail(NULL == uhc_list);
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
 
 	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
 		const char *host, *ep, *uhc;
-		guint16 port;
+		uint16 port;
 
 		uhc = boot_hosts[i].uhc;
 

@@ -49,7 +49,7 @@ typedef struct {
  */
 
 void file_register_fd_reclaimer(reclaim_fd_t callback);
-gboolean file_exists(const char *pathname);
+bool file_exists(const char *pathname);
 
 char *file_locate_from_path(const char *argv0);
 
@@ -60,7 +60,7 @@ FILE *file_config_open_read_norename(
 FILE *file_config_open_read_norename_chosen(
 	const char *what, const file_path_t *fv, int fvcnt, int *chosen);
 FILE *file_config_open_write(const char *what, const file_path_t *fv);
-gboolean file_config_close(FILE *out, const file_path_t *fv);
+bool file_config_close(FILE *out, const file_path_t *fv);
 
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
@@ -77,12 +77,12 @@ FILE *file_fopen_missing(const char *path, const char *mode);
  * File line predicates.
  */
 
-gboolean file_line_chomp_tail(char *line, size_t size, size_t *lenptr);
+bool file_line_chomp_tail(char *line, size_t size, size_t *lenptr);
 
 /**
  * Is line a comment?
  */
-static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_GNUC_PURE
 file_line_is_comment(const char * const line)
 {
 	return '#' == line[0];
@@ -91,13 +91,13 @@ file_line_is_comment(const char * const line)
 /**
  * Is line empty?
  */
-static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_GNUC_PURE
 file_line_is_empty(const char * const line)
 {
 	return '\0' == line[0];
 }
 
-static inline ALWAYS_INLINE gboolean G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_GNUC_PURE
 file_line_is_skipable(const char * const line)
 {
 	return file_line_is_comment(line) || file_line_is_empty(line);

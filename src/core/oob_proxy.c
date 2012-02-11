@@ -159,7 +159,7 @@ oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
  * Callout queue callback to free OOB proxy record.
  */
 static void
-oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
+oob_proxy_rec_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct oob_proxy_rec *opr = obj;
 
@@ -180,13 +180,13 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
  *
  * @return TRUE on success, FALSE on MUID collision.
  */
-gboolean
+bool
 oob_proxy_create(gnutella_node_t *n)
 {
 	struct guid proxied_muid;
 	struct oob_proxy_rec *opr;
 	host_addr_t primary;
-	guint32 ipv4;
+	uint32 ipv4;
 
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH);
 	g_assert(NODE_IS_LEAF(n));
@@ -279,14 +279,14 @@ oob_proxy_create(gnutella_node_t *n)
  *
  * @return whether we know about OOB-proxied query `muid'.
  */
-gboolean
+bool
 oob_proxy_pending_results(
 	gnutella_node_t *n, const struct guid *muid,
-	int hits, gboolean uu_udp_firewalled, const struct array *token)
+	int hits, bool uu_udp_firewalled, const struct array *token)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
-	guint32 wanted;
+	uint32 wanted;
 	const char *msg = NULL;
 
 	(void) uu_udp_firewalled;
@@ -428,8 +428,8 @@ ignore:
  * @return TRUE if we routed the packet, FALSE if we did not recognize
  * the MUID as one of the OOB-proxied queries.
  */
-gboolean
-oob_proxy_got_results(gnutella_node_t *n, guint results)
+bool
+oob_proxy_got_results(gnutella_node_t *n, uint results)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
@@ -545,7 +545,7 @@ oob_proxy_init(void)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_oob_proxy_kv(gpointer uu_key, gpointer value, gpointer uu_udata)
+free_oob_proxy_kv(void *uu_key, void *value, void *uu_udata)
 {
 	struct oob_proxy_rec *opr = value;
 

@@ -55,38 +55,38 @@ typedef struct bstr bstr_t;
  * Public interface
  */
 
-bstr_t *bstr_open(const void *arena, size_t len, guint32 flags);
+bstr_t *bstr_open(const void *arena, size_t len, uint32 flags);
 bstr_t *bstr_create(void);
 void bstr_close(bstr_t *);
-void bstr_reset(bstr_t *, const void *arena, size_t len, guint32 flags);
-gboolean bstr_has_error(const bstr_t *);
+void bstr_reset(bstr_t *, const void *arena, size_t len, uint32 flags);
+bool bstr_has_error(const bstr_t *);
 void bstr_clear_error(bstr_t *);
 void bstr_free(bstr_t **);
 const char *bstr_error(const bstr_t *);
-gboolean bstr_ended(const bstr_t *bs);
+bool bstr_ended(const bstr_t *bs);
 void bstr_trailing_error(bstr_t *bs);
 
 size_t bstr_unread_size(const bstr_t *);
 const void *bstr_read_base(const bstr_t *);
-gboolean bstr_skip(bstr_t *, size_t count);
-gboolean bstr_read(bstr_t *, void *buf, size_t count);
-gboolean bstr_read_u8(bstr_t *, guint8 *pv);
-gboolean bstr_read_boolean(bstr_t *, gboolean *pv);
-gboolean bstr_read_le16(bstr_t *, guint16 *pv);
-gboolean bstr_read_be16(bstr_t *, guint16 *pv);
-gboolean bstr_read_le32(bstr_t *, guint32 *pv);
-gboolean bstr_read_be32(bstr_t *, guint32 *pv);
-gboolean bstr_read_be64(bstr_t *, guint64 *pv);
-gboolean bstr_read_time(bstr_t *, time_t *pv);
-gboolean bstr_read_float_be(bstr_t *, float *pv);
-gboolean bstr_read_ipv4_addr(bstr_t *, host_addr_t *);
-gboolean bstr_read_ipv6_addr(bstr_t *, host_addr_t *);
-gboolean bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *, host_addr_t *);
-gboolean bstr_read_packed_array_u8(bstr_t *,
-	size_t max, void *ptr, guint8 *pr);
-gboolean bstr_read_ule64(bstr_t *, guint64 *pv);
-gboolean bstr_read_fixed_string(bstr_t *, size_t *slen, char *buf, size_t len);
-gboolean bstr_read_string(bstr_t *, size_t *slen, char **sptr);
+bool bstr_skip(bstr_t *, size_t count);
+bool bstr_read(bstr_t *, void *buf, size_t count);
+bool bstr_read_u8(bstr_t *, uint8 *pv);
+bool bstr_read_boolean(bstr_t *, bool *pv);
+bool bstr_read_le16(bstr_t *, uint16 *pv);
+bool bstr_read_be16(bstr_t *, uint16 *pv);
+bool bstr_read_le32(bstr_t *, uint32 *pv);
+bool bstr_read_be32(bstr_t *, uint32 *pv);
+bool bstr_read_be64(bstr_t *, uint64 *pv);
+bool bstr_read_time(bstr_t *, time_t *pv);
+bool bstr_read_float_be(bstr_t *, float *pv);
+bool bstr_read_ipv4_addr(bstr_t *, host_addr_t *);
+bool bstr_read_ipv6_addr(bstr_t *, host_addr_t *);
+bool bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *, host_addr_t *);
+bool bstr_read_packed_array_u8(bstr_t *,
+	size_t max, void *ptr, uint8 *pr);
+bool bstr_read_ule64(bstr_t *, uint64 *pv);
+bool bstr_read_fixed_string(bstr_t *, size_t *slen, char *buf, size_t len);
+bool bstr_read_string(bstr_t *, size_t *slen, char **sptr);
 
 #endif	/* _bstr_h_ */
 

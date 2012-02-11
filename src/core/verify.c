@@ -162,7 +162,7 @@ verify_file_free(struct verify_file **ptr)
  * If the callback returns FALSE, hashing of the current file will be
  * aborted and verify_failure() will be called afterwards.
  */
-static gboolean
+static bool
 verify_start(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -175,7 +175,7 @@ verify_start(struct verify *ctx)
  * If the callback returns FALSE, hashing of the current file will be
  * aborted and verify_failure() will be called afterwards.
  */
-static gboolean 
+static bool 
 verify_progress(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -238,7 +238,7 @@ verify_hashed(const struct verify *ctx)
  * The callback function may call this to obtain the amount of seconds
  * since hashing of the current file started.
  */
-guint
+uint
 verify_elapsed(const struct verify *ctx)
 {
 	time_delta_t d;
@@ -252,8 +252,8 @@ verify_elapsed(const struct verify *ctx)
 	return d;
 }
 
-static guint
-verify_item_hash(gconstpointer key)
+static uint
+verify_item_hash(const void *key)
 {
 	const struct verify_file *ctx = key;
 
@@ -267,7 +267,7 @@ verify_item_hash(gconstpointer key)
 }
 
 static int
-verify_item_equal(gconstpointer p, gconstpointer q)
+verify_item_equal(const void *p, const void *q)
 {
 	const struct verify_file *a = p, *b = q;
 

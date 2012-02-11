@@ -93,7 +93,7 @@ enum nv_table_magic { NV_TABLE_MAGIC = 0x2557a3b2U };
  */
 struct nv_table {
 	enum nv_table_magic magic;
-	gboolean ordered;			/**< Whether table is ordered */
+	bool ordered;				/**< Whether table is ordered */
 	union {						/**< Maps "name" -> nv_pair */
 		GHashTable *ht;
 		hash_list_t *hl;
@@ -127,7 +127,7 @@ nv_table_check(const nv_table_t * const nvt)
  */
 static nv_pair_t *
 nv_pair_make_full(const char *name, const void *value, size_t length,
-	gboolean copy, gboolean atom)
+	bool copy, bool atom)
 {
 	nv_pair_t *nvp;
 
@@ -141,7 +141,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	nvp->name = atom ? atom_str_get(name) : name;
 	nvp->atom = booleanize(atom);
 	if (value != NULL) {
-		nvp->value = deconstify_gpointer(copy ? hcopy(value, length) : value);
+		nvp->value = deconstify_pointer(copy ? hcopy(value, length) : value);
 	} else {
 		nvp->value = NULL;
 	}
@@ -368,7 +368,7 @@ nv_pair_hash(const void *key)
 /**
  * Are two name/vale pairs bearing the same name?
  */
-gboolean
+bool
 nv_pair_eq(const void *k1, const void *k2)
 {
 	const nv_pair_t *n1 = k1;
@@ -384,7 +384,7 @@ nv_pair_eq(const void *k1, const void *k2)
  * the hash table can later be traversed in that same order.
  */
 nv_table_t *
-nv_table_make(gboolean ordered)
+nv_table_make(bool ordered)
 {
 	nv_table_t *nvt;
 
@@ -565,7 +565,7 @@ nv_table_insert_nocopy(const nv_table_t *nvt,
  *
  * @return TRUE if name/value pair existed.
  */
-gboolean
+bool
 nv_table_remove(const nv_table_t *nvt, const char *name)
 {
 	nv_pair_t *nvp;
@@ -604,7 +604,7 @@ nv_table_lookup(const nv_table_t *nvt, const char *name)
 		key.name = name;
 
 		if (hash_list_find(nvt->u.hl, &key, &nvp))
-			return deconstify_gpointer(nvp);
+			return deconstify_pointer(nvp);
 		else
 			return NULL;
 	} else {
@@ -651,8 +651,8 @@ struct nvt_foreach_remove_ctx {
 	void *data;					/**< User additional argument data */
 };
 
-static gboolean
-nv_table_ht_foreach_rwrap(gpointer ukey, gpointer value, gpointer data)
+static bool
+nv_table_ht_foreach_rwrap(void *ukey, void *value, void *data)
 {
 	nv_pair_t *nvp = value;
 	struct nvt_foreach_remove_ctx *ctx = data;
@@ -663,7 +663,7 @@ nv_table_ht_foreach_rwrap(gpointer ukey, gpointer value, gpointer data)
 	return (*ctx->func)(nvp, ctx->data);
 }
 
-static gboolean
+static bool
 nv_table_hl_foreach_rwrap(void *key, void *data)
 {
 	nv_pair_t *nvp = key;
@@ -706,7 +706,7 @@ struct nvt_foreach_ctx {
 };
 
 static void
-nv_table_ht_foreach_wrap(gpointer ukey, gpointer value, gpointer data)
+nv_table_ht_foreach_wrap(void *ukey, void *value, void *data)
 {
 	nv_pair_t *nvp = value;
 	struct nvt_foreach_ctx *ctx = data;

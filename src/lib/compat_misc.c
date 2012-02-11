@@ -41,10 +41,10 @@
 
 #include "override.h"			/* Must be the last header included */
 
-gboolean
+bool
 compat_is_superuser(void)
 {
-	gboolean ret = FALSE;	/* Assume luser by default */
+	bool ret = FALSE;	/* Assume luser by default */
 	
 #ifdef HAS_GETUID
 	ret |= 0 == getuid();
@@ -57,7 +57,7 @@ compat_is_superuser(void)
 	return ret;
 }
 
-gboolean
+bool
 compat_process_is_alive(pid_t pid)
 {
 #ifdef MINGW32

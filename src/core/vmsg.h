@@ -51,40 +51,40 @@ struct rnode_info;
  * @param sent	whether message was sent or dropped
  * @param arg	user-supplied argument
  */
-typedef void (*vmsg_sent_t)(struct gnutella_node *n, gboolean sent, void *arg);
+typedef void (*vmsg_sent_t)(struct gnutella_node *n, bool sent, void *arg);
 
 /*
  * Public interface
  */
 
 void vmsg_handle(struct gnutella_node *n);
-const char *vmsg_infostr(gconstpointer data, size_t size);
+const char *vmsg_infostr(const void *data, size_t size);
 
 void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_features_supported(struct gnutella_node *n);
-void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops,
+void vmsg_send_hops_flow(struct gnutella_node *n, uint8 hops,
 	vmsg_sent_t sent, void *arg);
-void vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port);
-void vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port);
+void vmsg_send_tcp_connect_back(struct gnutella_node *n, uint16 port);
+void vmsg_send_udp_connect_back(struct gnutella_node *n, uint16 port);
 void vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid);
 void vmsg_send_qstat_req(struct gnutella_node *n, const struct guid *muid);
 void vmsg_send_qstat_answer(struct gnutella_node *n,
-		const struct guid *muid, guint16 hits);
+		const struct guid *muid, uint16 hits);
 void vmsg_send_proxy_cancel(struct gnutella_node *n);
 void vmsg_send_oob_reply_ack(struct gnutella_node *n,
-		const struct guid *muid, guint8 want, const struct array *token);
-void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
-void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
+		const struct guid *muid, uint8 want, const struct array *token);
+void vmsg_send_time_sync_req(struct gnutella_node *n, bool ntp, tm_t *);
+void vmsg_send_time_sync_reply(struct gnutella_node *n, bool ntp, tm_t *);
 void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 void vmsg_send_node_info_ans(struct gnutella_node *n,
 	const struct rnode_info *ri);
 void vmsg_send_head_ping(const struct sha1 *sha1,
-		host_addr_t addr, guint16 port, const struct guid *guid);
+		host_addr_t addr, uint16 port, const struct guid *guid);
 
 struct pmsg *vmsg_build_oob_reply_ind(const struct guid *muid,
-				guint8 hits, gboolean secure);
+				uint8 hits, bool secure);
 
-guint8 vmsg_weight(gconstpointer data);
+uint8 vmsg_weight(const void *data);
 
 void vmsg_init(void);
 void vmsg_close(void);

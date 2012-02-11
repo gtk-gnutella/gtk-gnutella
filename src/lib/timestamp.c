@@ -311,7 +311,7 @@ timestamp_rfc1123_to_string(time_t date)
  * @attention
  * The date is returned in ``stamp'' as local time, not UTC time.
  */
-gboolean
+bool
 string_to_timestamp_utc(const char *str, const char **endptr, time_t *stamp)
 {
 	const char *ep;

@@ -58,15 +58,15 @@ struct list {
 	GList *head;
 	GList *tail;
 	int length;
-	guint stamp;
+	uint stamp;
 };
 
 struct list_iter {
 	list_iter_magic_t magic;
 	list_t *list;
 	GList *prev, *next;
-	gpointer data;
-	guint stamp;
+	void *data;
+	uint stamp;
 };
 
 #if 0
@@ -82,7 +82,7 @@ list_regression(const list_t *list)
 	g_assert(g_list_first(list->head) == list->head);
 	g_assert(g_list_first(list->tail) == list->head);
 	g_assert(g_list_last(list->head) == list->tail);
-	g_assert(g_list_length(list->head) == (guint) list->length);
+	g_assert(g_list_length(list->head) == (uint) list->length);
 }
 #else
 #define list_regression(list)
@@ -174,7 +174,7 @@ list_free(list_t **list_ptr)
 		if (--list->refcount != 0) {
 			g_carp("list_free: list is still referenced! "
 					"(list=%p, list->refcount=%d)",
-					cast_to_gconstpointer(list), list->refcount);
+					cast_to_constpointer(list), list->refcount);
 		}
 
 		gm_list_free_null(&list->head);
@@ -195,7 +195,7 @@ list_append(list_t *list, const void *key)
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->tail = g_list_append(list->tail, deconstify_gpointer(key));
+	list->tail = g_list_append(list->tail, deconstify_pointer(key));
 	list->tail = g_list_last(list->tail);
 	if (!list->head) {
 		list->head = list->tail;
@@ -216,7 +216,7 @@ list_prepend(list_t *list, const void *key)
 	list_check(list);
 	g_assert(1 == list->refcount);
 
-	list->head = g_list_prepend(list->head, deconstify_gpointer(key));
+	list->head = g_list_prepend(list->head, deconstify_pointer(key));
 	if (!list->tail) {
 		list->tail = list->head;
 	}
@@ -238,7 +238,7 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
 	g_assert(func);
 
 	list->head = g_list_insert_sorted(list->head,
-		deconstify_gpointer(key), func);
+		deconstify_pointer(key), func);
 	if (list->tail) {
 		list->tail = g_list_last(list->tail);
 	} else {
@@ -255,14 +255,14 @@ list_insert_sorted(list_t *list, const void *key, GCompareFunc func)
  * Remove `key' from the list.
  * @return whether we found the item in the list and deleted it.
  */
-gboolean
+bool
 list_remove(list_t *list, const void *key)
 {
 	GList *item;
 
 	list_check(list);
 
-	item = g_list_find(list->head, deconstify_gpointer(key));
+	item = g_list_find(list->head, deconstify_pointer(key));
 	if (item) {
 
 		if (item == list->head) {
@@ -296,7 +296,7 @@ list_shift(list_t *list)
 {
 	GList *item;
 	void *key;
-	gboolean found;
+	bool found;
 
 	list_check(list);
 
@@ -337,7 +337,7 @@ list_head(const list_t *list)
 /**
  * Move entry to the head of the list.
  */
-gboolean
+bool
 list_moveto_head(list_t *list, const void *key)
 {
 	if (list_remove(list, key)) {
@@ -350,7 +350,7 @@ list_moveto_head(list_t *list, const void *key)
 /**
  * Move entry to the tail of the list.
  */
-gboolean
+bool
 list_moveto_tail(list_t *list, const void *key)
 {
 	if (list_remove(list, key)) {
@@ -363,7 +363,7 @@ list_moveto_tail(list_t *list, const void *key)
 /**
  * @returns the length of the list.
  */
-guint
+uint
 list_length(const list_t *list)
 {
 	list_check(list);
@@ -433,7 +433,7 @@ list_iter_after_tail(list_t *list)
  * Moves the iterator to the next element and returns its key. If
  * there is no next element, NULL is returned.
  */
-gpointer
+void *
 list_iter_next(list_iter_t *iter)
 {
 	GList *next;
@@ -454,7 +454,7 @@ list_iter_next(list_iter_t *iter)
 /**
  * Checks whether there is a next item to be iterated over.
  */
-gboolean
+bool
 list_iter_has_next(const list_iter_t *iter)
 {
 	if (iter) {
@@ -469,7 +469,7 @@ list_iter_has_next(const list_iter_t *iter)
  * Moves the iterator to the previous element and returns its key. If
  * there is no previous element, NULL is returned.
  */
-gpointer
+void *
 list_iter_previous(list_iter_t *iter)
 {
 	GList *prev;
@@ -487,7 +487,7 @@ list_iter_previous(list_iter_t *iter)
 	}
 }
 
-gpointer
+void *
 list_iter_current(list_iter_t *iter)
 {
 	list_iter_check(iter);
@@ -498,7 +498,7 @@ list_iter_current(list_iter_t *iter)
 /**
  * Checks whether there is a previous item in the iterator.
  */
-gboolean
+bool
 list_iter_has_previous(const list_iter_t *iter)
 {
 	if (iter) {
@@ -535,7 +535,7 @@ list_iter_free(list_iter_t **iter_ptr)
  * Check whether list contains the `key' whereas equality is determined
  * using `func'.
  */
-gboolean
+bool
 list_contains(list_t *list, const void *key, GEqualFunc func, void **orig_key)
 {
 	GList *item;
@@ -558,7 +558,7 @@ list_contains(list_t *list, const void *key, GEqualFunc func, void **orig_key)
  * Apply `func' to all the items in the structure.
  */
 void
-list_foreach(const list_t *list, GFunc func, gpointer user_data)
+list_foreach(const list_t *list, GFunc func, void *user_data)
 {
 	list_check(list);
 	g_assert(func);

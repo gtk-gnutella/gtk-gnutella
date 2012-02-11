@@ -57,9 +57,9 @@ typedef void (*xattr_table_cb_t)(const char *uri,
 xattr_table_t *xattr_table_make(void);
 void xattr_table_free_null(xattr_table_t **xat_ptr);
 
-gboolean xattr_table_add(xattr_table_t *xat,
+bool xattr_table_add(xattr_table_t *xat,
 	const char *uri, const char *local, const char *value);
-gboolean xattr_table_remove(xattr_table_t *xat,
+bool xattr_table_remove(xattr_table_t *xat,
 	const char *uri, const char *local);
 const char *xattr_table_lookup(const xattr_table_t *xat,
 	const char *uri, const char *local);

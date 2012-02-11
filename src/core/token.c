@@ -470,7 +470,7 @@ static const char *keys_098_2[] = {
 struct tokkey {
 	version_t ver;		/**< Version number */
 	const char **keys;	/**< Keys to use */
-	guint count;		/**< Amount of keys defined */
+	uint count;			/**< Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
 	{
@@ -583,7 +583,7 @@ static const struct tokkey *
 find_tokkey_upto(time_t now, size_t count)
 {
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
-	guint i;
+	uint i;
 
 	if (GNET_PROPERTY(version_debug) > 4) {
 		g_debug("%s: count=%zu, from %s()",
@@ -635,7 +635,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 
 	if (GNET_PROPERTY(version_debug) > 4) {
 		g_debug("%s: returning %p (%u.%u.%u)",
-			G_STRFUNC, cast_to_gconstpointer(tk),
+			G_STRFUNC, cast_to_constpointer(tk),
 			tk->ver.major, tk->ver.minor, tk->ver.patchlevel);
 	}
 
@@ -664,7 +664,7 @@ find_tokkey(time_t now)
 static const struct tokkey *
 find_tokkey_version(const version_t *ver, time_t now)
 {
-	guint i;
+	uint i;
 
 	/*
 	 * All versions before r16370 used the first key set when they expired.
@@ -724,7 +724,7 @@ find_tokkey_version(const version_t *ver, time_t now)
 static const struct tokkey *
 find_latest(const version_t *rver)
 {
-	guint i;
+	uint i;
 	const struct tokkey *tk;
 	const struct tokkey *result = NULL;
 
@@ -745,10 +745,10 @@ find_latest(const version_t *rver)
  * and the token key structure used in `tkused'.
  */
 static const char *
-random_key(time_t now, guint *idx, const struct tokkey **tkused)
+random_key(time_t now, uint *idx, const struct tokkey **tkused)
 {
-	static gboolean warned = FALSE;
-	guint random_idx;
+	static bool warned = FALSE;
+	uint random_idx;
 	const struct tokkey *tk;
 
 	tk = find_tokkey(now);
@@ -772,8 +772,8 @@ random_key(time_t now, guint *idx, const struct tokkey **tkused)
 	return tk->keys[random_idx];
 }
 
-static guint16
-tok_crc(guint32 crc, const struct tokkey *tk)
+static uint16
+tok_crc(uint32 crc, const struct tokkey *tk)
 {
 	const char **keys = tk->keys;
 	size_t i;
@@ -800,8 +800,8 @@ tok_generate(time_t now, const char *version)
 	char lvldigest[LEVEL_SIZE];
 	char lvlbase64[LEVEL_BASE64_SIZE + 1];
 	const struct tokkey *tk;
-	guint32 crc32;
-	guint idx;
+	uint32 crc32;
+	uint idx;
 	const char *key;
 	SHA1Context ctx;
     struct sha1 sha1;
@@ -932,11 +932,11 @@ tok_version_valid(
 {
 	time_t now = tm_time();
 	time_t stamp;
-	guint32 crc;
+	uint32 crc;
 	const struct tokkey *tk;
 	const struct tokkey *rtk;
 	const struct tokkey *latest;
-	guint idx;
+	uint idx;
 	const char *key;
 	SHA1Context ctx;
 	char lvldigest[1024];
@@ -947,7 +947,7 @@ tok_version_valid(
 	int toklen;
 	int lvllen;
 	int lvlsize;
-	guint i;
+	uint i;
 
 	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
@@ -981,7 +981,7 @@ tok_version_valid(
 	if (tk == NULL)
 		return TOK_BAD_KEYS;
 
-	idx = (guchar) token[6] & 0x1f;			/* 5 bits for the index */
+	idx = (uchar) token[6] & 0x1f;			/* 5 bits for the index */
 	if (idx >= tk->count)
 		return TOK_BAD_INDEX;
 
@@ -1083,7 +1083,7 @@ tok_version_valid(
  * Check whether the version is too ancient to be able to generate a proper
  * token string identifiable by remote parties.
  */
-gboolean
+bool
 tok_is_ancient(time_t now)
 {
 	return find_tokkey(now) == NULL;

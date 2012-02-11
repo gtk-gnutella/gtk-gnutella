@@ -74,12 +74,12 @@
 /**
  * Hash function for use in g_hash_table_new.
  */
-G_GNUC_HOT guint
-gnet_host_hash(gconstpointer key)
+G_GNUC_HOT uint
+gnet_host_hash(const void *key)
 {
 	const gnet_host_t *host = key;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
@@ -92,7 +92,7 @@ gnet_host_hash(gconstpointer key)
  * @note For use in g_hash_table_new.
  */
 G_GNUC_HOT int
-gnet_host_eq(gconstpointer v1, gconstpointer v2)
+gnet_host_eq(const void *v1, const void *v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
 
@@ -106,7 +106,7 @@ gnet_host_eq(gconstpointer v1, gconstpointer v2)
  * @note For use in g_list_find_custom.
  */
 int
-gnet_host_cmp(gconstpointer v1, gconstpointer v2)
+gnet_host_cmp(const void *v1, const void *v2)
 {
 	return gnet_host_eq(v1, v2) ? 0 : 1;
 }
@@ -130,7 +130,7 @@ gnet_host_length(const void *p)
  * Create a host for given address and port
  */
 gnet_host_t *
-gnet_host_new(const host_addr_t addr, guint16 port)
+gnet_host_new(const host_addr_t addr, uint16 port)
 {
 	gnet_host_t h;
 
@@ -183,7 +183,7 @@ gnet_host_free_atom2(void *h, void *unused)
  * Free host, version suitable for iterators (additional callback arg unused).
  */
 void
-gnet_host_free_item(gpointer key, gpointer unused_data)
+gnet_host_free_item(void *key, void *unused_data)
 {
 	gnet_host_t *h = key;
 	(void) unused_data;
@@ -205,7 +205,7 @@ size_t
 gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
 {
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	packed_host_unpack_addr(&h->data, &addr);
 	port = gnet_host_get_port(h);
@@ -248,7 +248,7 @@ gnet_host_to_string2(const gnet_host_t *h)
  * @return pointer following serialization data.
  */
 void *
-host_ip_port_poke(void *p, const host_addr_t addr, guint16 port, size_t *len)
+host_ip_port_poke(void *p, const host_addr_t addr, uint16 port, size_t *len)
 {
 	void *q = p;
 
@@ -280,7 +280,7 @@ host_ip_port_poke(void *p, const host_addr_t addr, guint16 port, size_t *len)
  */
 void
 host_ip_port_peek(const void *p, enum net_type nt,
-	host_addr_t *addr, guint16 *port)
+	host_addr_t *addr, uint16 *port)
 {
 	const void *q = p;
 
@@ -326,7 +326,7 @@ char *
 gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 {
 	str_t *s;
-	guint i, n;
+	uint i, n;
 
 	g_return_val_if_fail(hvec, NULL);
 
@@ -387,8 +387,8 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
  *
  * @return TRUE if the host vector already contains it.
  */
-gboolean
-gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
+bool
+gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, uint16 port)
 {
 	size_t i;
 
@@ -397,9 +397,9 @@ gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
 		for (i = 0; i < vec->n_ipv4; i++) {
-			char *dest = cast_to_gpointer(&vec->hvec_v4[i]);
-			guint32 ip = peek_be32(&dest[0]);
-			guint16 pt = peek_le16(&dest[4]);
+			char *dest = cast_to_pointer(&vec->hvec_v4[i]);
+			uint32 ip = peek_be32(&dest[0]);
+			uint16 pt = peek_le16(&dest[4]);
 
 			if (pt == port && host_addr_ipv4(addr) == ip)
 				return TRUE;
@@ -407,8 +407,8 @@ gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 		break;
 	case NET_TYPE_IPV6:
 		for (i = 0; i < vec->n_ipv6; i++) {
-			char *dest = cast_to_gpointer(&vec->hvec_v6[i]);
-			guint16 pt = peek_le16(&dest[16]);
+			char *dest = cast_to_pointer(&vec->hvec_v6[i]);
+			uint16 pt = peek_le16(&dest[16]);
 
 			if (pt == port && 0 == memcmp(dest, host_addr_ipv6(&addr), 16))
 				return TRUE;
@@ -426,7 +426,7 @@ gnet_host_vec_contains(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
  * Add new host (identified by address and port) to the Gnutella host vector.
  */
 void
-gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
+gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, uint16 port)
 {
 	g_return_if_fail(vec);
 
@@ -440,7 +440,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 			size = old_size + sizeof vec->hvec_v4[0];
 			vec->hvec_v4 = wrealloc(vec->hvec_v4, old_size, size);
 
-			dest = cast_to_gpointer(&vec->hvec_v4[vec->n_ipv4++]);
+			dest = cast_to_pointer(&vec->hvec_v4[vec->n_ipv4++]);
 			poke_be32(&dest[0], host_addr_ipv4(addr));
 			poke_le16(&dest[4], port);
 		}
@@ -454,7 +454,7 @@ gnet_host_vec_add(gnet_host_vec_t *vec, host_addr_t addr, guint16 port)
 			size = old_size + sizeof vec->hvec_v6[0];
 			vec->hvec_v6 = wrealloc(vec->hvec_v6, old_size, size);
 
-			dest = cast_to_gpointer(&vec->hvec_v6[vec->n_ipv6++]);
+			dest = cast_to_pointer(&vec->hvec_v6[vec->n_ipv6++]);
 			dest = mempcpy(dest, host_addr_ipv6(&addr), 16);
 			poke_le16(dest, port);
 		}
@@ -473,7 +473,7 @@ gnet_host_vec_from_sequence(sequence_t *s)
 {
 	sequence_iter_t *iter;
 	gnet_host_vec_t *vec;
-	guint n_ipv6 = 0, n_ipv4 = 0, hcnt;
+	uint n_ipv6 = 0, n_ipv4 = 0, hcnt;
 
 	if (sequence_is_empty(s))
 		return NULL;
@@ -519,19 +519,19 @@ gnet_host_vec_from_sequence(sequence_t *s)
 	while (sequence_iter_has_next(iter)) {
 		const gnet_host_t *host = sequence_iter_next(iter);
 		host_addr_t addr = gnet_host_get_addr(host);
-		guint16 port = gnet_host_get_port(host);
+		uint16 port = gnet_host_get_port(host);
 		
 		switch (gnet_host_get_net(host)) {
 		case NET_TYPE_IPV4:
 			if (n_ipv4 < vec->n_ipv4) {
-				char *dest = cast_to_gpointer(&vec->hvec_v4[n_ipv4++]);
+				char *dest = cast_to_pointer(&vec->hvec_v4[n_ipv4++]);
 				poke_be32(&dest[0], host_addr_ipv4(addr));
 				poke_le16(&dest[4], port);
 			}
 			break;
 		case NET_TYPE_IPV6:
 			if (n_ipv6 < vec->n_ipv6) {
-				char *dest = cast_to_gpointer(&vec->hvec_v6[n_ipv6++]);
+				char *dest = cast_to_pointer(&vec->hvec_v6[n_ipv6++]);
 				dest = mempcpy(dest, host_addr_ipv6(&addr), 16);
 				poke_le16(dest, port);
 			}

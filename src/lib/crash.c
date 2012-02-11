@@ -140,14 +140,14 @@ struct crash_vars {
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
-	guint8 major;			/**< Major version */
-	guint8 minor;			/**< Minor version */
-	guint8 patchlevel;		/**< Patchlevel version */
-	guint8 crash_mode;		/**< True when we enter crash mode */
-	guint8 recursive;		/**< True when we are in a recursive crash */
-	guint8 closed;			/**< True when crash_close() was called */
-	guint8 invoke_inspector;
-	guint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
+	uint8 major;			/**< Major version */
+	uint8 minor;			/**< Minor version */
+	uint8 patchlevel;		/**< Patchlevel version */
+	uint8 crash_mode;		/**< True when we enter crash mode */
+	uint8 recursive;		/**< True when we are in a recursive crash */
+	uint8 closed;			/**< True when crash_close() was called */
+	uint8 invoke_inspector;
+	uint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
 	unsigned pause_process:1;
 	unsigned dumps_core:1;
 	unsigned may_restart:1;
@@ -368,7 +368,7 @@ crash_run_time(char *buf, size_t size)
 	const size_t num_reserved = 1;
 	time_delta_t t;
 	cursor_t cursor;
-	guint s;
+	uint s;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -545,7 +545,7 @@ crash_run_hooks(const char *logfile, int logfd)
  * Emit leading crash information: who crashed and why.
  */
 static G_GNUC_COLD void
-crash_message(const char *signame, gboolean trace, gboolean recursive)
+crash_message(const char *signame, bool trace, bool recursive)
 {
 	DECLARE_STR(11);
 	char pid_buf[22];
@@ -834,7 +834,7 @@ crash_fd_close(int fd)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static G_GNUC_COLD gboolean
+static G_GNUC_COLD bool
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -842,8 +842,8 @@ crash_invoke_inspector(int signo, const char *cwd)
 	pid_t pid;
 	int fd[2];
 	const char *stage = NULL;
-	gboolean retried_child = FALSE;
-	gboolean could_fork = has_fork();
+	bool retried_child = FALSE;
+	bool could_fork = has_fork();
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
 
@@ -1266,7 +1266,7 @@ parent_process:
 		unsigned iov_prolog;
 		char time_buf[18];
 		int status;
-		gboolean child_ok = FALSE;
+		bool child_ok = FALSE;
 
 		if (has_fork()) {
 			crash_fd_close(PARENT_STDERR_FILENO);
@@ -1341,7 +1341,7 @@ parent_process:
 					flush_str(parent_stdout);
 			}
 		} else {
-			gboolean may_retry = FALSE;
+			bool may_retry = FALSE;
 
 			if (WIFSIGNALED(status)) {
 				int sig = WTERMSIG(status);
@@ -1498,7 +1498,7 @@ crash_mode(void)
 {
 	if (vars != NULL) {
 		if (!vars->crash_mode) {
-			guint8 t = TRUE;
+			uint8 t = TRUE;
 
 			crash_set_var(crash_mode, t);
 
@@ -1523,7 +1523,7 @@ crash_mode(void)
 			flush_err_str();
 		}
 	} else {
-		static gboolean warned;
+		static bool warned;
 
 		if (!warned) {
 			char time_buf[18];
@@ -1560,7 +1560,7 @@ crash_try_reexec(void)
 	 */
 
 	if (NULL != vars->cwd) {
-		gboolean gotcwd = NULL != getcwd(dir, sizeof dir);
+		bool gotcwd = NULL != getcwd(dir, sizeof dir);
 
 		if (-1 == chdir(vars->cwd)) {
 			s_warning("%s(): cannot chdir() to \"%s\": %m",
@@ -1768,8 +1768,8 @@ crash_handler(int signo)
 	const char *name;
 	const char *cwd = "";
 	unsigned i;
-	gboolean trace;
-	gboolean recursive = crashed > 0;
+	bool trace;
+	bool recursive = crashed > 0;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -1843,7 +1843,7 @@ crash_handler(int signo)
 
 	if (recursive) {
 		if (!vars->recursive) {
-			guint8 t = TRUE;
+			uint8 t = TRUE;
 			crash_set_var(recursive, t);
 		}
 	}
@@ -1900,16 +1900,16 @@ crash_handler(int signo)
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
-		gboolean hooks = crash_invoke_inspector(signo, cwd);
+		bool hooks = crash_invoke_inspector(signo, cwd);
 		if (!hooks) {
-			guint8 f = FALSE;
+			uint8 f = FALSE;
 			crash_run_hooks(NULL, -1);
 			crash_set_var(invoke_inspector, f);
 			crash_end_of_line();
 		}
 	}
 	if (vars->pause_process && vars->invoke_inspector) {
-		guint8 f = FALSE;
+		uint8 f = FALSE;
 		crash_set_var(invoke_inspector, f);
 		crash_end_of_line();
 	}
@@ -2233,9 +2233,9 @@ crash_setver(const char *version)
  * Set program's numbers (major, minor and patchlevel).
  */
 void
-crash_setnumbers(guint8 major, guint8 minor, guint8 patchlevel)
+crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel)
 {
-	guint8 t = TRUE;
+	uint8 t = TRUE;
 
 	crash_set_var(major, major);
 	crash_set_var(minor, minor);
@@ -2320,7 +2320,7 @@ void
 crash_close(void)
 {
 	if (vars != NULL) {
-		guint8 t = TRUE;
+		uint8 t = TRUE;
 		crash_set_var(closed, t);
 	}
 }

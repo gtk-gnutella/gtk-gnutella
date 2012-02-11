@@ -36,7 +36,7 @@
 
 #include "common.h"
 
-typedef void (*qhit_process_t)(gpointer data, size_t len, gpointer udata);
+typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
 
 /**
  * Query hit generation flags.
@@ -59,7 +59,7 @@ void qhit_close(void);
 void qhit_send_results(struct gnutella_node *n, GSList *files, int count,
 	const struct guid *muid, unsigned flags);
 void qhit_build_results(const GSList *files, int count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const struct guid *muid, unsigned flags,
+	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token);
 
 #endif /* _core_qhit_h_ */

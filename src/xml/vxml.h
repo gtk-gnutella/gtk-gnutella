@@ -215,16 +215,16 @@ extern const char VXS_XML_URI[];	/* "http://www.w3.org/XML/1998/namespace" */
  */
 
 void vxml_test(void);
-void set_vxml_debug(guint32 level);
-gboolean vxml_debugging(guint32 level) G_GNUC_PURE;
+void set_vxml_debug(uint32 level);
+bool vxml_debugging(uint32 level) G_GNUC_PURE;
 
 const char *vxml_strerror(vxml_error_t error);
 const char *vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error);
-vxml_parser_t *vxml_parser_make(const char *name, guint32 options);
+vxml_parser_t *vxml_parser_make(const char *name, uint32 options);
 void vxml_parser_free(vxml_parser_t *vp);
 void vxml_parser_add_data(vxml_parser_t *vp, const char *data, size_t length);
 void vxml_parser_add_file(vxml_parser_t *vp, FILE *fd);
-gboolean vxml_parser_set_charset(vxml_parser_t *vp, const char *charset);
+bool vxml_parser_set_charset(vxml_parser_t *vp, const char *charset);
 void vxml_parser_set_tokens(vxml_parser_t *vp,
 	struct vxml_token *tvec, size_t tlen);
 vxml_error_t vxml_parse(vxml_parser_t *vp);

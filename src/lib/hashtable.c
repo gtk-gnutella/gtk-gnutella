@@ -135,7 +135,7 @@ static G_GNUC_COLD void
 hash_offset_init(void)
 {
 	static spinlock_t offset_slk = SPINLOCK_INIT;
-	static gboolean done;
+	static bool done;
 
 	if G_UNLIKELY(!done) {
 		spinlock(&offset_slk);
@@ -182,7 +182,7 @@ hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
 }
 
 static inline void
-hash_mark_real(hash_table_t * ht, gboolean is_real)
+hash_mark_real(hash_table_t * ht, bool is_real)
 {
 	ht->real = booleanize(is_real);
 }
@@ -210,10 +210,10 @@ static inline size_t
 hash_id_key(const void *key)
 {
 	size_t n = (size_t) key;
-	return ((0x4F1BBCDCUL * (guint64) n) >> 32) ^ n;
+	return ((0x4F1BBCDCUL * (uint64) n) >> 32) ^ n;
 }
 
-static inline gboolean
+static inline bool
 hash_id_eq(const void *a, const void *b)
 {
 	return a == b;
@@ -359,7 +359,7 @@ static inline ALWAYS_INLINE void
 ht_synchronize(const hash_table_t *ht)
 {
 	if (ht->thread_safe) {
-		hash_table_t *wht = deconstify_gpointer(ht);
+		hash_table_t *wht = deconstify_pointer(ht);
 		mutex_get(&wht->lock);
 		g_assert(HASHTABLE_MAGIC == ht->magic);
 	}
@@ -367,7 +367,7 @@ ht_synchronize(const hash_table_t *ht)
 
 #define ht_return(ht,v) G_STMT_START {					\
 	if (ht->thread_safe) {								\
-		hash_table_t *wht = deconstify_gpointer(ht);	\
+		hash_table_t *wht = deconstify_pointer(ht);		\
 		mutex_release(&wht->lock);						\
 	}													\
 	return v;											\
@@ -375,7 +375,7 @@ ht_synchronize(const hash_table_t *ht)
 
 #define ht_return_void(ht) G_STMT_START {				\
 	if (ht->thread_safe) {								\
-		hash_table_t *wht = deconstify_gpointer(ht);	\
+		hash_table_t *wht = deconstify_pointer(ht);		\
 		mutex_release(&wht->lock);						\
 	}													\
 	return;												\
@@ -404,7 +404,7 @@ hash_key(const hash_table_t *ht, const void *key)
 	return (*ht->hash)(key) + hash_offset;
 }
 
-static inline gboolean
+static inline bool
 hash_eq(const hash_table_t *ht, const void *a, const void *b)
 {
 	return (*ht->eq)(a, b);
@@ -463,7 +463,7 @@ hash_table_foreach(const hash_table_t *ht,
 		hash_item_t *item;
 
 		for (item = ht->bins[i]; NULL != item; item = item->next) {
-			(*func)(item->key, deconstify_gpointer(item->value), data);
+			(*func)(item->key, deconstify_pointer(item->value), data);
 			n--;
 		}
 	}
@@ -536,7 +536,7 @@ hash_table_reset(hash_table_t *ht)
  *
  * @return FALSE if the item could not be added, TRUE on success.
  */
-static gboolean
+static bool
 hash_table_insert_no_resize(hash_table_t *ht,
 	const void *key, const void *value)
 {
@@ -571,7 +571,7 @@ hash_table_insert_no_resize(hash_table_t *ht,
 static void
 hash_table_resize_helper(const void *key, void *value, void *data)
 {
-	gboolean ok;
+	bool ok;
 	ok = hash_table_insert_no_resize(data, key, value);
 	g_assert(ok);
 }
@@ -632,10 +632,10 @@ hash_table_resize_on_insert(hash_table_t *ht)
  *
  * @return FALSE if the item could not be added, TRUE on success.
  */
-gboolean
+bool
 hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 {
-	gboolean ret;
+	bool ret;
 
 	hash_table_check(ht);
 	ht_synchronize(ht);
@@ -667,7 +667,7 @@ hash_table_status(const hash_table_t *ht)
  *
  * @return TRUE if item was present in the hash table.
  */
-gboolean
+bool
 hash_table_remove(hash_table_t *ht, const void *key)
 {
 	hash_item_t *item;
@@ -750,7 +750,7 @@ hash_table_lookup(const hash_table_t *ht, const void *key)
 
 	item = hash_table_find(ht, key, NULL);
 
-	ht_return(ht, item ? deconstify_gpointer(item->value) : NULL);
+	ht_return(ht, item ? deconstify_pointer(item->value) : NULL);
 }
 
 /**
@@ -759,7 +759,7 @@ hash_table_lookup(const hash_table_t *ht, const void *key)
  *
  * @return TRUE if item was found.
  */
-gboolean
+bool
 hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp)
 {
@@ -776,7 +776,7 @@ hash_table_lookup_extended(const hash_table_t *ht,
 	if (kp)
 		*kp = item->key;
 	if (vp)
-		*vp = deconstify_gpointer(item->value);
+		*vp = deconstify_pointer(item->value);
 
 	ht_return(ht, TRUE);
 }
@@ -785,10 +785,10 @@ hash_table_lookup_extended(const hash_table_t *ht,
  * Check whether hashlist contains the key.
  * @return TRUE if the key is present.
  */
-gboolean
+bool
 hash_table_contains(const hash_table_t *ht, const void *key)
 {
-	gboolean ret;
+	bool ret;
 
 	hash_table_check(ht);
 	ht_synchronize(ht);
@@ -949,7 +949,7 @@ struct ht_linearize {
 	void **array;
 	size_t count;
 	size_t i;
-	gboolean keys;
+	bool keys;
 };
 
 /**
@@ -962,14 +962,14 @@ hash_table_linearize_item(const void *key, void *value, void *data)
 
 	g_assert(htl->i < htl->count);
 
-	htl->array[htl->i++] = htl->keys ? deconstify_gpointer(key) : value;
+	htl->array[htl->i++] = htl->keys ? deconstify_pointer(key) : value;
 }
 
 /**
  * Linearize the keys/values into dynamically allocated array.
  */
 static void **
-hash_table_linearize(const hash_table_t *ht, size_t *count, gboolean keys)
+hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 {
 	struct ht_linearize htl;
 

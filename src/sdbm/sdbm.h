@@ -46,7 +46,7 @@ void sdbm_close(DBM *);
 datum sdbm_fetch(DBM *, datum);
 int sdbm_delete(DBM *, datum);
 int sdbm_store(DBM *, datum, datum, int);
-int sdbm_replace(DBM *, datum, datum, gboolean *);
+int sdbm_replace(DBM *, datum, datum, bool *);
 datum sdbm_firstkey(DBM *);
 datum sdbm_firstkey_safe(DBM *);
 datum sdbm_nextkey(DBM *);
@@ -59,27 +59,27 @@ int sdbm_exists(DBM *, datum);
  */
 DBM *sdbm_prep(const char *, const char *, const char *, int, int);
 long sdbm_hash(const char *, size_t) G_GNUC_PURE;
-gboolean sdbm_rdonly(DBM *);
-gboolean sdbm_error(DBM *);
+bool sdbm_rdonly(DBM *);
+bool sdbm_error(DBM *);
 void sdbm_clearerr(DBM *);
 int sdbm_dirfno(DBM *);
 int sdbm_pagfno(DBM *);
 int sdbm_datfno(DBM *);
-gboolean sdbm_is_storable(size_t, size_t);
+bool sdbm_is_storable(size_t, size_t);
 void sdbm_set_name(DBM *, const char *);
 const char *sdbm_name(DBM *);
 ssize_t sdbm_sync(DBM *);
 int sdbm_set_cache(DBM *db, long pages);
-int sdbm_set_wdelay(DBM *db, gboolean on);
-int sdbm_set_volatile(DBM *db, gboolean yes);
-gboolean sdbm_shrink(DBM *db);
+int sdbm_set_wdelay(DBM *db, bool on);
+int sdbm_set_volatile(DBM *db, bool yes);
+bool sdbm_shrink(DBM *db);
 int sdbm_clear(DBM *db);
 
 /*
  * Internal routines with clean semantics that can be used by user code.
  * These are not documented.
  */
-gboolean sdbm_internal_chkpage(const char *);
+bool sdbm_internal_chkpage(const char *);
 
 #endif /* _sdbm_h_ */
 

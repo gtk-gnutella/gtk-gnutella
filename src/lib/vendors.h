@@ -136,21 +136,21 @@
 #define VENDOR_CODE_BUFLEN 5
 
 typedef struct vendor_code {
-	guint32 u32;	/**< Always host-endian order */
+	uint32 u32;		/**< Always host-endian order */
 } vendor_code_t;
 
 /* Old stringification API */
-const char *vendor_code_to_string(guint32);
-size_t vendor_code_to_string_buf(guint32, char *, size_t);
-const char *vendor_code_get_name(guint32);
+const char *vendor_code_to_string(uint32);
+size_t vendor_code_to_string_buf(uint32, char *, size_t);
+const char *vendor_code_get_name(uint32);
 
 /* New stringification API */
 const char *vendor_to_string(const vendor_code_t);
 size_t vendor_to_string_buf(const vendor_code_t, char *, size_t);
 const char *vendor_get_name(const vendor_code_t);
 
-gboolean is_vendor_known(vendor_code_t);
-gboolean is_vendor_acceptable(vendor_code_t);
+bool is_vendor_known(vendor_code_t);
+bool is_vendor_acceptable(vendor_code_t);
 
 void vendor_init(void);
 

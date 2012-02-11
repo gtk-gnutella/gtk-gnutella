@@ -96,10 +96,10 @@ const char *soap_strerror(soap_error_t errnum);
 void soap_rpc_cancel(soap_rpc_t *sr);
 
 soap_rpc_t *soap_rpc(const char *url, const char *action, size_t maxlen,
-	guint32 options, xnode_t *xn, const char *soap_ns,
+	uint32 options, xnode_t *xn, const char *soap_ns,
 	soap_reply_cb_t reply_cb, soap_error_cb_t error_cb, void *arg);
 
-gboolean soap_rpc_local_addr(const soap_rpc_t *sr, host_addr_t *addrp);
+bool soap_rpc_local_addr(const soap_rpc_t *sr, host_addr_t *addrp);
 
 #endif /* _core_soap_h_ */
 

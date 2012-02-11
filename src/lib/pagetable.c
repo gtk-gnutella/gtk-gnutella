@@ -61,7 +61,7 @@ page_table_new(void)
 	static const struct page_table zero_page_table;
 	struct page_table *tab;
 
-	g_assert((size_t)-1 == (guint32)-1);
+	g_assert((size_t)-1 == (uint32)-1);
 	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
 	tab = malloc(sizeof *tab);

@@ -40,7 +40,7 @@
 
 struct logagent;
 
-void set_xmalloc_debug(guint32 level);
+void set_xmalloc_debug(uint32 level);
 void xmalloc_vmm_inited(void);
 void xmalloc_pre_close(void);
 void xmalloc_post_init(void);

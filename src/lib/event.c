@@ -39,7 +39,7 @@
 #include "override.h"		/* Must be the last header included */
 
 static inline struct subscriber *
-subscriber_new(GCallback cb, enum frequency_type t, guint32 interval)
+subscriber_new(GCallback cb, enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 
@@ -91,7 +91,7 @@ real_event_destroy(struct event *evt)
 
 void
 event_add_subscriber(struct event *evt, GCallback cb,
-	enum frequency_type t, guint32 interval)
+	enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 	GSList *sl;
@@ -131,13 +131,13 @@ event_remove_subscriber(struct event *evt, GCallback cb)
 	subscriber_destroy(s);
 }
 
-guint
+uint
 event_subscriber_count(struct event *evt)
 {
   return g_slist_length(evt->subscribers);
 }
 
-gboolean
+bool
 event_subscriber_active(struct event *evt)
 {
   return NULL != evt->subscribers;
@@ -155,7 +155,7 @@ event_table_new(void)
 }
 
 void
-real_event_table_destroy(struct event_table *t, gboolean cleanup)
+real_event_table_destroy(struct event_table *t, bool cleanup)
 {
     if (cleanup)
         event_table_remove_all(t);
@@ -176,7 +176,7 @@ event_table_add_event(struct event_table *t, struct event *evt)
     g_assert(ht != NULL);
     g_assert(g_hash_table_lookup(ht, evt->name) == NULL);
 
-    g_hash_table_insert(ht, (gpointer) evt->name, evt);
+    gm_hash_table_insert_const(ht, evt->name, evt);
 }
 
 void
@@ -195,8 +195,8 @@ event_table_remove_event(struct event_table *t, struct event *evt)
     g_hash_table_remove(ht, evt->name);
 }
 
-static gboolean
-remove_helper(gpointer unused_key, gpointer value, gpointer unused_data)
+static bool
+remove_helper(void *unused_key, void *value, void *unused_data)
 {
 	(void) unused_key;
 	(void) unused_data;

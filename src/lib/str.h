@@ -49,7 +49,7 @@ enum str_magic { STR_MAGIC = 0x04ed2baa };
  */
 typedef struct str {
 	enum str_magic s_magic;
-	guint32 s_flags;		/**< General flags */
+	uint32 s_flags;			/**< General flags */
 	char *s_data;			/**< Where string data is held */
 	size_t s_len;			/**< String length (amount of chars held) */
 	size_t s_size;			/**< Size of the data arena */
@@ -103,14 +103,14 @@ void str_cpy(str_t *str, const char *string);
 void str_cat(str_t *str, const char *string);
 void str_cat_len(str_t *str, const char *string, size_t len);
 void str_ncat(str_t *str, const char *string, size_t len);
-gboolean str_ncat_safe(str_t *str, const char *string, size_t len);
+bool str_ncat_safe(str_t *str, const char *string, size_t len);
 void str_shift(str_t *str, size_t len);
-gboolean str_ichar(str_t *str, ssize_t idx, char c);
-gboolean str_istr(str_t *str, ssize_t idx, const char *string);
-gboolean str_instr(str_t *str, ssize_t idx, const char *string, size_t n);
+bool str_ichar(str_t *str, ssize_t idx, char c);
+bool str_istr(str_t *str, ssize_t idx, const char *string);
+bool str_instr(str_t *str, ssize_t idx, const char *string, size_t n);
 void str_remove(str_t *str, ssize_t idx, size_t n);
 void str_chomp(str_t *s);
-gboolean str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
+bool str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
 void str_escape(str_t *str, char c, char e);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
@@ -134,7 +134,7 @@ size_t str_bcatf(char *dst, size_t size, const char *fmt, ...)
 	G_GNUC_PRINTF(3, 4);
 size_t str_vbcatf(char *dst, size_t size, const char *fmt, va_list args);
 
-size_t str_test(gboolean verbose);
+size_t str_test(bool verbose);
 
 #endif /* _str_h_ */
 

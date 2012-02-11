@@ -43,12 +43,12 @@ struct guid;
  * Public interface.
  */
 
-gpointer alive_make(struct gnutella_node *n, int max);
-void alive_free(gpointer obj);
-gboolean alive_send_ping(gpointer obj);
-gboolean alive_ack_ping(gpointer obj, const struct guid *);
-void alive_ack_first(gpointer obj, const struct guid *);
-void alive_get_roundtrip_ms(gconstpointer obj, guint32 *avg, guint32 *last);
+void *alive_make(struct gnutella_node *n, int max);
+void alive_free(void *obj);
+bool alive_send_ping(void *obj);
+bool alive_ack_ping(void *obj, const struct guid *);
+void alive_ack_first(void *obj, const struct guid *);
+void alive_get_roundtrip_ms(const void *obj, uint32 *avg, uint32 *last);
 
 #endif /* _core_alive_h_ */
 

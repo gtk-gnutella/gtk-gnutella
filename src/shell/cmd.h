@@ -54,9 +54,9 @@ void shell_write_line(struct gnutella_shell *, int code, const char *);
 void shell_write_linef(struct gnutella_shell *, int code, const char *, ...)
 	G_GNUC_PRINTF(3, 4);
 void shell_shutdown(struct gnutella_shell *);
-gboolean shell_toggle_interactive(struct gnutella_shell *);
-guint64 shell_line_count(struct gnutella_shell *);
-gboolean shell_request_library_rescan(void);
+bool shell_toggle_interactive(struct gnutella_shell *);
+uint64 shell_line_count(struct gnutella_shell *);
+bool shell_request_library_rescan(void);
 
 int shell_options_parse(struct gnutella_shell *,
 	const char *argv[], const option_t *ovec, int ovcnt);

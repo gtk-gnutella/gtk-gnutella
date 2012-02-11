@@ -67,7 +67,7 @@
 #define THEX_DOWNLOAD_MAX_SIZE		(260 * 1024)	/* 256 KiB + overhead */
 
 struct thex_download {
-	gpointer owner;					/**< Download owning us */
+	void *owner;					/**< Download owning us */
 	rxdrv_t *rx;					/**< RX stack top */
 	gnet_host_t host;				/**< Host we're browsing, for logging */
 	char *data;						/**< Where payload data is stored */
@@ -80,14 +80,14 @@ struct thex_download {
 	size_t num_leaves;				/**< number of leaves */
 	filesize_t filesize;			/**< filesize of the described file */
 	unsigned depth;					/**< depth of the hashtree (capped) */
-	gboolean finished;
+	unsigned finished:1;
 };
 
 /**
  * Initialize the THEX download context.
  */
 struct thex_download *
-thex_download_create(gpointer owner, gnet_host_t *host,
+thex_download_create(void *owner, gnet_host_t *host,
 	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize)
 {
 	static const struct thex_download zero_ctx;
@@ -113,7 +113,7 @@ thex_download_create(gpointer owner, gnet_host_t *host,
  *
  * @return TRUE if there was an error.
  */
-static gboolean
+static bool
 thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
 {
 	size_t size;
@@ -141,12 +141,12 @@ thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
  *
  * @return FALSE if an error occurred.
  */
-static gboolean
+static bool
 thex_download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct thex_download *ctx = rx_owner(rx);
 	struct download *d;
-	gboolean error;
+	bool error;
 
 	d = ctx->owner;
 	download_check(d);
@@ -185,7 +185,7 @@ find_element_by_name(xnode_t *p, const char *name)
     return NULL;
 }
 
-static gboolean
+static bool
 verify_element(xnode_t *node, const char *prop, const char *expect)
 {
 	const char *value;
@@ -216,7 +216,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 {
 	xnode_t *hashtree = NULL, *node;
 	char *hashtree_id = NULL;
-	gboolean success = FALSE;
+	bool success = FALSE;
 	vxml_parser_t *vp;
 	vxml_error_t e;
 
@@ -329,11 +329,11 @@ finish:
 	return hashtree_id;
 }
 
-static gboolean
+static bool
 thex_download_handle_hashtree(struct thex_download *ctx,
 	const char *data, size_t size)
 {
-	gboolean success = FALSE;
+	bool success = FALSE;
 	size_t n_nodes, n_leaves, n, start;
 	unsigned good_depth;
 	const struct tth *leaves;
@@ -492,11 +492,11 @@ dime_find_record(const GSList *records, const char *type, const char *id)
 	return NULL;
 }
 
-gboolean
+bool
 thex_download_finished(struct thex_download *ctx)
 {
 	GSList *records;
-	gboolean success = FALSE;
+	bool success = FALSE;
 
 	g_return_val_if_fail(ctx, FALSE);
 	g_return_val_if_fail(!ctx->finished, FALSE);
@@ -583,7 +583,7 @@ finish:
  ***/
 
 static void
-thex_rx_given(gpointer o, ssize_t r)
+thex_rx_given(void *o, ssize_t r)
 {
 	struct thex_download *ctx = o;
 
@@ -591,7 +591,7 @@ thex_rx_given(gpointer o, ssize_t r)
 }
 
 static G_GNUC_PRINTF(2, 3) void
-thex_rx_error(gpointer o, const char *reason, ...)
+thex_rx_error(void *o, const char *reason, ...)
 {
 	struct thex_download *ctx = o;
 	va_list args;
@@ -602,7 +602,7 @@ thex_rx_error(gpointer o, const char *reason, ...)
 }
 
 static void
-thex_rx_got_eof(gpointer o)
+thex_rx_got_eof(void *o)
 {
 	struct thex_download *ctx = o;
 
@@ -610,7 +610,7 @@ thex_rx_got_eof(gpointer o)
 }
 
 static void
-thex_rx_done(gpointer o)
+thex_rx_done(void *o)
 {
 	struct thex_download *ctx = o;
 
@@ -638,10 +638,10 @@ static const struct rx_inflate_cb thex_rx_inflate_cb = {
  *
  * @return TRUE if we may continue with the download.
  */
-gboolean
+bool
 thex_download_receive(struct thex_download *ctx,
 	filesize_t content_length,
-	gnet_host_t *host, struct wrap_io *wio, guint32 flags)
+	gnet_host_t *host, struct wrap_io *wio, uint32 flags)
 {
 	g_assert(ctx != NULL);
 

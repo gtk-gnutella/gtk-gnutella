@@ -39,19 +39,19 @@
  */
 
 void product_init(const char *name,
-	guint8 major, guint8 minor, guint8 patchlevel, const char *revchar,
+	uint8 major, uint8 minor, uint8 patchlevel, const char *revchar,
 	const char *date, const char *version, const char *revision,
 	const char *build);
 
 const char *product_get_name(void) G_GNUC_PURE;
 const char *product_get_date(void) G_GNUC_PURE;
 const char *product_get_version(void) G_GNUC_PURE;
-guint8 product_get_major(void) G_GNUC_PURE;
-guint8 product_get_minor(void) G_GNUC_PURE;
-guint8 product_get_revchar(void) G_GNUC_PURE;
+uint8 product_get_major(void) G_GNUC_PURE;
+uint8 product_get_minor(void) G_GNUC_PURE;
+uint8 product_get_revchar(void) G_GNUC_PURE;
 const char *product_get_revision(void) G_GNUC_PURE;
-guint8 product_get_patchlevel(void) G_GNUC_PURE;
-guint32 product_get_build(void);
+uint8 product_get_patchlevel(void) G_GNUC_PURE;
+uint32 product_get_build(void);
 const char *product_get_build_full(void);
 void product_set_interface(const char *iface);
 const char *product_get_interface(void);

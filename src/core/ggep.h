@@ -95,7 +95,7 @@ typedef struct ggep_stream {
 	char *lp;				/**< Where length should be written when known */
 	char *last_fp;			/**< Flags of last successfully written ext. */
 	size_t size;			/**< Size of the outbuf buffer */
-	guint8 flags;			/**< Extension flags (COBS / DEFLATE) */
+	uint8 flags;			/**< Extension flags (COBS / DEFLATE) */
 	cobs_stream_t cs;		/**< Used if COBS needed */
 	zlib_deflater_t *zd;	/**< Allocated and used if deflation needed */
 	unsigned magic_sent:1;	/**< Whether leading magic was emitted */
@@ -109,19 +109,19 @@ typedef struct ggep_stream {
 
 int ggep_decode_into(extvec_t *exv, char *buf, size_t len);
 
-void ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len);
-gboolean ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags);
-gboolean ggep_stream_writev(ggep_stream_t *gs,
+void ggep_stream_init(ggep_stream_t *gs, void *data, size_t len);
+bool ggep_stream_begin(ggep_stream_t *gs, const char *id, uint32 wflags);
+bool ggep_stream_writev(ggep_stream_t *gs,
 	const iovec_t *iov, int iovcnt);
-gboolean ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len);
-gboolean ggep_stream_end(ggep_stream_t *gs);
+bool ggep_stream_write(ggep_stream_t *gs, const void *data, size_t len);
+bool ggep_stream_end(ggep_stream_t *gs);
 size_t ggep_stream_close(ggep_stream_t *gs);
-gboolean ggep_stream_packv(ggep_stream_t *gs,
-	const char *id, const iovec_t *iov, int iovcnt, guint32 wflags);
-gboolean ggep_stream_pack(ggep_stream_t *gs,
-	const char *id, gconstpointer payload, size_t plen, guint32 wflags);
+bool ggep_stream_packv(ggep_stream_t *gs,
+	const char *id, const iovec_t *iov, int iovcnt, uint32 wflags);
+bool ggep_stream_pack(ggep_stream_t *gs,
+	const char *id, const void *payload, size_t plen, uint32 wflags);
 
-gboolean ggep_stream_is_valid(ggep_stream_t *gs);
+bool ggep_stream_is_valid(ggep_stream_t *gs);
 
 #endif	/* _core_ggep_h_ */
 

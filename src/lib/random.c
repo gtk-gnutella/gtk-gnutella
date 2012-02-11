@@ -51,7 +51,7 @@
 /**
  * @return random value between 0 and (2**32)-1. All 32 bits are random.
  */
-guint32
+uint32
 random_u32(void)
 {
 	return arc4random();
@@ -60,13 +60,13 @@ random_u32(void)
 /**
  * @return random value between [0, max], inclusive.
  */
-guint32
-random_value(guint32 max)
+uint32
+random_value(uint32 max)
 {
 	/*
 	 * This used to return:
 	 *
-	 *     (guint32) ((max + 1.0) * arc4random() / ((guint32) -1 + 1.0))
+	 *     (uint32) ((max + 1.0) * arc4random() / ((uint32) -1 + 1.0))
 	 *
 	 * but using floating point computation introduces a bias because not
 	 * all the integers in the numerator can be fully represented.
@@ -87,12 +87,12 @@ random_bytes(void *dst, size_t size)
 	char *p = dst;
 
 	while (size > 4) {
-		const guint32 value = arc4random();
+		const uint32 value = arc4random();
 		p = mempcpy(p, &value, 4);
 		size -= 4;
 	}
 	if (size > 0) {
-		const guint32 value = arc4random();
+		const uint32 value = arc4random();
 		memcpy(p, &value, size);
 	}
 }
@@ -100,13 +100,13 @@ random_bytes(void *dst, size_t size)
 /**
  * Return random noise, CPU intensive on purpose (to add random response delay).
  */
-guint32
+uint32
 random_cpu_noise(void)
 {
-	static guchar data[512];
+	static uchar data[512];
 	struct sha1 digest;
 	SHA1Context ctx;
-	guint32 r, i;
+	uint32 r, i;
 	
 	r = random_u32();
 	i = r % G_N_ELEMENTS(data);
@@ -128,14 +128,14 @@ random_cpu_noise(void)
  *
  * @return TRUE if pool was flushed.
  */
-static gboolean
+static bool
 random_add_pool(void *buf, size_t len)
 {
-	static guchar data[256];
+	static uchar data[256];
 	static size_t idx;
-	guchar *p;
+	uchar *p;
 	size_t n;
-	gboolean flushed = FALSE;
+	bool flushed = FALSE;
 
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < G_N_ELEMENTS(data));
@@ -174,7 +174,7 @@ random_collect(void (*cb)(void))
 	tm_t now;
 	time_delta_t d;
 	unsigned r, m, a;
-	guchar rbyte;
+	uchar rbyte;
 
 	tm_now_exact(&now);
 	d = tm_elapsed_ms(&now, &last);
@@ -254,7 +254,7 @@ random_add(const void *data, size_t datalen)
 	g_assert(data != NULL);
 	g_assert(datalen < MAX_INT_VAL(int));
 
-	arc4random_addrandom(deconstify_gpointer(data), (int) datalen);
+	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
 }
 
 /**

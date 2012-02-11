@@ -256,67 +256,67 @@ static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
  */
 /* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
 static struct {
-	guint64 allocations;				/**< Total # of allocations */
-	guint64 allocations_zeroed;			/**< Total # of zeroing allocations */
-	guint64 allocations_aligned;		/**< Total # of aligned allocations */
-	guint64 allocations_plain;			/**< Total # of xpmalloc() calls */
-	guint64 allocations_heap;			/**< Total # of xhmalloc() calls */
-	guint64 alloc_via_freelist;			/**< Allocations from freelist */
-	guint64 alloc_via_walloc;			/**< Allocations from walloc() */
-	guint64 alloc_via_vmm;				/**< Allocations from VMM */
-	guint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
-	guint64 freeings;					/**< Total # of freeings */
-	guint64 free_sbrk_core;				/**< Freeing sbrk()-allocated core */
-	guint64 free_sbrk_core_released;	/**< Released sbrk()-allocated core */
-	guint64 free_vmm_core;				/**< Freeing VMM-allocated core */
-	guint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
-	guint64 free_walloc;				/**< Freeing a walloc()'ed block */
-	guint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
-	guint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
-	guint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
-	guint64 vmm_alloc_pages;			/**< Pages allocated via VMM */
-	guint64 vmm_split_pages;			/**< VMM pages that were split */
-	guint64 vmm_freed_pages;			/**< Pages released via VMM */
-	guint64 aligned_via_freelist;		/**< Aligned memory from freelist */
-	guint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
-	guint64 aligned_via_vmm;				/**< Idem, no freelist tried */
-	guint64 aligned_via_zone;				/**< Aligned memory from zone */
-	guint64 aligned_via_xmalloc;			/**< Aligned memory from xmalloc */
-	guint64 aligned_freed;					/**< Freed aligned memory */
-	guint64 aligned_free_false_positives;	/**< Aligned pointers not aligned */
-	guint64 aligned_zones_created;			/**< Zones created for alignment */
-	guint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
-	guint64 aligned_overhead_bytes;			/**< Structural overhead */
-	guint64 reallocs;						/**< Total # of reallocations */
-	guint64 realloc_noop;					/**< Reallocs not doing anything */
-	guint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
-	guint64 realloc_inplace_shrinking;		/**< Idem but from freelist */
-	guint64 realloc_inplace_extension;		/**< Reallocs not moving data */
-	guint64 realloc_coalescing_extension;	/**< Reallocs through coalescing */
-	guint64 realloc_relocate_vmm_fragment;	/**< Reallocs of moved fragments */
-	guint64 realloc_relocate_vmm_shrinked;	/**< Reallocs of moved fragments */
-	guint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
-	guint64 realloc_relocate_smart_success;		/**< Smart placement was OK */
-	guint64 realloc_regular_strategy;		/**< Regular resizing strategy */
-	guint64 realloc_wrealloc;				/**< Used wrealloc() */
-	guint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
-	guint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
-	guint64 freelist_insertions;			/**< Insertions in freelist */
-	guint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
-	guint64 freelist_further_breakups;		/**< Breakups due to extra size */
-	guint64 freelist_coalescing_ignore_vmm;	/**< Ignored due to VMM block */
-	guint64 freelist_coalescing_ignored;	/**< Smart algo chose to ignore */
-	guint64 freelist_coalescing_done;		/**< Successful coalescings */
-	guint64 freelist_coalescing_failed;		/**< Failed coalescings */
-	guint64 freelist_split;				/**< Block splitted on allocation */
-	guint64 freelist_nosplit;			/**< Block not splitted on allocation */
+	uint64 allocations;					/**< Total # of allocations */
+	uint64 allocations_zeroed;			/**< Total # of zeroing allocations */
+	uint64 allocations_aligned;			/**< Total # of aligned allocations */
+	uint64 allocations_plain;			/**< Total # of xpmalloc() calls */
+	uint64 allocations_heap;			/**< Total # of xhmalloc() calls */
+	uint64 alloc_via_freelist;			/**< Allocations from freelist */
+	uint64 alloc_via_walloc;			/**< Allocations from walloc() */
+	uint64 alloc_via_vmm;				/**< Allocations from VMM */
+	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
+	uint64 freeings;					/**< Total # of freeings */
+	uint64 free_sbrk_core;				/**< Freeing sbrk()-allocated core */
+	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
+	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
+	uint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
+	uint64 free_walloc;					/**< Freeing a walloc()'ed block */
+	uint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
+	uint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
+	uint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
+	uint64 vmm_alloc_pages;				/**< Pages allocated via VMM */
+	uint64 vmm_split_pages;				/**< VMM pages that were split */
+	uint64 vmm_freed_pages;				/**< Pages released via VMM */
+	uint64 aligned_via_freelist;		/**< Aligned memory from freelist */
+	uint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
+	uint64 aligned_via_vmm;				/**< Idem, no freelist tried */
+	uint64 aligned_via_zone;			/**< Aligned memory from zone */
+	uint64 aligned_via_xmalloc;			/**< Aligned memory from xmalloc */
+	uint64 aligned_freed;				/**< Freed aligned memory */
+	uint64 aligned_free_false_positives;	/**< Aligned pointers not aligned */
+	uint64 aligned_zones_created;		/**< Zones created for alignment */
+	uint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
+	uint64 aligned_overhead_bytes;		/**< Structural overhead */
+	uint64 reallocs;					/**< Total # of reallocations */
+	uint64 realloc_noop;				/**< Reallocs not doing anything */
+	uint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
+	uint64 realloc_inplace_shrinking;		/**< Idem but from freelist */
+	uint64 realloc_inplace_extension;		/**< Reallocs not moving data */
+	uint64 realloc_coalescing_extension;	/**< Reallocs through coalescing */
+	uint64 realloc_relocate_vmm_fragment;	/**< Reallocs of moved fragments */
+	uint64 realloc_relocate_vmm_shrinked;	/**< Reallocs of moved fragments */
+	uint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
+	uint64 realloc_relocate_smart_success;	/**< Smart placement was OK */
+	uint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	uint64 realloc_wrealloc;				/**< Used wrealloc() */
+	uint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
+	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
+	uint64 freelist_insertions;				/**< Insertions in freelist */
+	uint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
+	uint64 freelist_further_breakups;		/**< Breakups due to extra size */
+	uint64 freelist_coalescing_ignore_vmm;	/**< Ignored due to VMM block */
+	uint64 freelist_coalescing_ignored;		/**< Smart algo chose to ignore */
+	uint64 freelist_coalescing_done;	/**< Successful coalescings */
+	uint64 freelist_coalescing_failed;	/**< Failed coalescings */
+	uint64 freelist_split;				/**< Block splitted on allocation */
+	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
 } xstats;
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
-static guint32 xmalloc_debug;		/**< Debug level */
+static uint32 xmalloc_debug;		/**< Debug level */
 static gboolean safe_to_log;		/**< True when we can log */
 static gboolean xmalloc_vmm_is_up;	/**< True when the VMM layer is up */
 static gboolean xmalloc_random_up;	/**< True when we can use random numbers */
@@ -330,12 +330,12 @@ static void *current_break;			/**< Current known heap break */
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
-static void xmalloc_freelist_add(void *p, size_t len, guint32 coalesce);
+static void xmalloc_freelist_add(void *p, size_t len, uint32 coalesce);
 static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
 static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
-static void xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce);
+static void xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce);
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
 	size_t size, gboolean core, size_t *allocated);
 static void xmalloc_crash_hook(void);
@@ -346,7 +346,7 @@ static void xmalloc_crash_hook(void);
  * Set debug level.
  */
 void
-set_xmalloc_debug(guint32 level)
+set_xmalloc_debug(uint32 level)
 {
 	xmalloc_debug = level;
 }
@@ -1660,7 +1660,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
  * to reflect the coalesced block..
  */
 static G_GNUC_HOT gboolean
-xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, guint32 flags)
+xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 {
 	static size_t smallsize;
 	size_t i, j;
@@ -1839,7 +1839,7 @@ xmalloc_free_pages(void *p, size_t len,
 	const void *vend;
 	size_t plen, hlen, tlen;
 
-	page = deconstify_gpointer(vmm_page_start(p));
+	page = deconstify_pointer(vmm_page_start(p));
 	end = ptr_add_offset(p, len);
 
 	if (ptr_cmp(page, p) < 0) {
@@ -1873,9 +1873,9 @@ xmalloc_free_pages(void *p, size_t len,
 	if (tlen != 0 && tlen < XMALLOC_SPLIT_MIN)
 		return FALSE;
 
-	*head = deconstify_gpointer(p);
+	*head = deconstify_pointer(p);
 	*head_len = hlen;
-	*tail = deconstify_gpointer(vend);
+	*tail = deconstify_pointer(vend);
 	*tail_len = tlen;
 
 	/*
@@ -1901,7 +1901,7 @@ xmalloc_free_pages(void *p, size_t len,
  * Insert block in free list, with optional block coalescing.
  */
 static void
-xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
+xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 {
 	struct xfreelist *fl;
 
@@ -2042,7 +2042,7 @@ xmalloc_freelist_insert(void *p, size_t len, guint32 coalesce)
  * Add memory chunk to free list, possibly releasing core.
  */
 static void
-xmalloc_freelist_add(void *p, size_t len, guint32 coalesce)
+xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 {
 	gboolean coalesced = FALSE;
 
@@ -3521,7 +3521,7 @@ G_GNUC_COLD void
 xmalloc_dump_freelist_log(logagent_t *la)
 {
 	size_t i;
-	guint64 bytes = 0;
+	uint64 bytes = 0;
 	size_t blocks = 0;
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -4180,7 +4180,7 @@ xalign_free(const void *p)
 
 			g_assert(0 != len);
 			xa_delete_slot(idx);
-			vmm_core_free(deconstify_gpointer(p), len);
+			vmm_core_free(deconstify_pointer(p), len);
 			xstats.vmm_freed_pages += vmm_page_count(len);
 			xstats.user_memory -= len;
 			xstats.user_blocks--;

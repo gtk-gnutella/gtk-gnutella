@@ -54,7 +54,7 @@ typedef struct search_queue {
 	GHashTable *handles;		/**< Keeps track of search handles in queue */
 	struct gnutella_node *node;	/**< Node owning this search queue, or NULL */
 	time_t last_sent;    		/**< Time last msg was sent */
-	guint count;				/**< Count of number in queue */
+	uint count;					/**< Count of number in queue */
 	/* stats */
 	int n_sent;				/**< Number of searches sent */
 	int n_dropped;				/**< Number dropped due to flow control */

@@ -66,7 +66,7 @@ static const char * const boot_url[] = {
 	"http://dl.frostwire.com/frostwire/gnutella.net",
 };
 
-static gboolean ghc_connecting;
+static bool ghc_connecting;
 static list_t *ghc_list;		/**< List of ``struct ghc'' */
 
 struct ghc {
@@ -94,15 +94,15 @@ struct parse_context {
 	unsigned processed;		/**< User callback can count retained lines */
 };
 
-typedef gboolean (parse_dispatch_t)
-	(struct parse_context *c, const gchar *buf, size_t len);
+typedef bool (parse_dispatch_t)
+	(struct parse_context *c, const char *buf, size_t len);
 typedef void (parse_eof_t)(struct parse_context *c);
 
 /**
  * Free parsing context.
  */
 static void
-parse_context_free(gpointer obj)
+parse_context_free(void *obj)
 {
 	struct parse_context *ctx = (struct parse_context *) obj;
 
@@ -117,7 +117,7 @@ parse_context_free(gpointer obj)
  * @param `maxlines'	the max number of lines we want to parse.
  */
 static void
-parse_context_set(gpointer handle, gint maxlines)
+parse_context_set(void *handle, int maxlines)
 {
 	struct parse_context *ctx;
 
@@ -138,11 +138,11 @@ parse_context_set(gpointer handle, gint maxlines)
  * to finalize parsing.
  */
 static void
-parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
+parse_dispatch_lines(void *handle, const char *buf, size_t len,
 		parse_dispatch_t cb, parse_eof_t eofile)
 {
 	struct parse_context *ctx;
-	const gchar *p = buf;
+	const char *p = buf;
 	size_t remain = len;
 
 	/*
@@ -165,8 +165,8 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 	 */
 
 	for (;;) {
-		gchar *line;
-		gboolean error;
+		char *line;
+		bool error;
 		size_t line_len;
 		size_t parsed;
 
@@ -207,8 +207,8 @@ parse_dispatch_lines(gpointer handle, const gchar *buf, size_t len,
 
 		ctx->lines++;
 		if (ctx->lines >= ctx->maxlines) {
-			const gchar *req;
-			const gchar *url = http_async_info(handle, &req, NULL, NULL, NULL);
+			const char *req;
+			const char *url = http_async_info(handle, &req, NULL, NULL, NULL);
 			if (GNET_PROPERTY(bootstrap_debug))
 				g_warning("BOOT GHC got %u+ lines from \"%s %s\", stopping",
 					ctx->lines, req, url);
@@ -308,8 +308,8 @@ ghc_get_next(void)
  *
  * @return FALSE to stop processing of any remaining data.
  */
-static gboolean
-ghc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
+static bool
+ghc_host_line(struct parse_context *ctx, const char *buf, size_t len)
 {
 	if (GNET_PROPERTY(bootstrap_debug) > 2)
 		g_debug("BOOT GHC host line #%u (%zu bytes): %s",
@@ -317,7 +317,7 @@ ghc_host_line(struct parse_context *ctx, const gchar *buf, size_t len)
 
 	if (len) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		if (string_to_host_addr_port(buf, NULL, &addr, &port)) {
 			ctx->processed++;
@@ -377,7 +377,7 @@ ghc_data_ind(struct http_async *handle, char *data, int len)
  * HTTP request is being stopped.
  */
 static void
-ghc_error_ind(struct http_async *handle, http_errtype_t type, gpointer v)
+ghc_error_ind(struct http_async *handle, http_errtype_t type, void *v)
 {
 	http_async_log_error_dbg(handle, type, v, "BOOT GHC",
 		GNET_PROPERTY(bootstrap_debug) > 1);
@@ -390,10 +390,10 @@ ghc_error_ind(struct http_async *handle, http_errtype_t type, gpointer v)
  *
  * @return TRUE if OK.
  */
-static gboolean
+static bool
 ghc_pick(void)
 {
-	gboolean success = FALSE;
+	bool success = FALSE;
 	char *url;
 
 	url = ghc_get_next();
@@ -485,7 +485,7 @@ ghc_list_add(struct ghc *ghc)
 /**
  * Check whether we're waiting for some GHC hosts.
  */
-gboolean
+bool
 ghc_is_waiting(void)
 {
 	return ghc_connecting;
@@ -497,7 +497,7 @@ ghc_is_waiting(void)
 G_GNUC_COLD void
 ghc_init(void)
 {
-	guint i;
+	uint i;
 
 	g_return_if_fail(NULL == ghc_list);
 	ghc_list = list_new();

@@ -165,11 +165,11 @@ dualhash_insert_value(dualhash_t *dh, const void *value, const void *key)
  *
  * @return TRUE if the key was found and removed.
  */
-gboolean
+bool
 dualhash_remove_key(dualhash_t *dh, const void *key)
 {
 	void *held_value;
-	gboolean existed = FALSE;
+	bool existed = FALSE;
 
 	dualhash_check(dh);
 	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
@@ -190,11 +190,11 @@ dualhash_remove_key(dualhash_t *dh, const void *key)
  *
  * @return TRUE if the value was found and removed.
  */
-gboolean
+bool
 dualhash_remove_value(dualhash_t *dh, const void *value)
 {
 	void *held_key;
-	gboolean existed = FALSE;
+	bool existed = FALSE;
 
 	dualhash_check(dh);
 	g_assert(g_hash_table_size(dh->kht) == g_hash_table_size(dh->vht));
@@ -213,7 +213,7 @@ dualhash_remove_value(dualhash_t *dh, const void *value)
 /**
  * Check whether a key is contained in the table.
  */
-gboolean
+bool
 dualhash_contains_key(const dualhash_t *dh, const void *key)
 {
 	dualhash_check(dh);
@@ -224,7 +224,7 @@ dualhash_contains_key(const dualhash_t *dh, const void *key)
 /**
  * Check whether a value is contained in the table.
  */
-gboolean
+bool
 dualhash_contains_value(const dualhash_t *dh, const void *value)
 {
 	dualhash_check(dh);
@@ -257,7 +257,7 @@ dualhash_lookup_value(const dualhash_t *dh, const void *value)
 /**
  * Extended lookup of a key in the table, returning both key/value pointers.
  */
-gboolean
+bool
 dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
 	void *okey, void *oval)
 {
@@ -269,7 +269,7 @@ dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
 /**
  * Extended lookup of a value in the table, returning both key/value pointers.
  */
-gboolean
+bool
 dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
 	void *okey, void *oval)
 {

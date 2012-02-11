@@ -2008,7 +2008,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		s = prop_tmp;
 		/* Skip leading blanks */
 		s = skip_ascii_blanks(s);
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		/* <keyword> starts with _ or letter  */
 		if (!is_ascii_alpha(c) && c != '_')
@@ -2016,13 +2016,13 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		/* Here starts the <keyword> */
 		k = s;
-		while ((c = (guchar) *s) == '_' || is_ascii_alnum(c))
+		while ((c = (uchar) *s) == '_' || is_ascii_alnum(c))
 			s++;
 
 		*s = '\0'; /* Terminate <keyword>, original value is stored in c */
 		if (is_ascii_blank(c)) {
 			s = skip_ascii_blanks(&s[1]);
-			c = (guchar) *s;
+			c = (uchar) *s;
 		}
 		if (c != '=') {
 			/* <keyword> must be followed by a '=' and optional blanks */
@@ -2035,7 +2035,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		/* Skip optional blanks */
 		s = skip_ascii_blanks(s);
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		if (c == '"') {
 			/* Here starts the <value> part (quoted) */
@@ -2056,7 +2056,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			/* The first space terminates the value */
 			s = skip_ascii_non_spaces(s);
 		}
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		g_assert(*s == '\0' || *s == '"' || is_ascii_space(c));
 		*s = '\0'; /* Terminate value in case of trailing characters */

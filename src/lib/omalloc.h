@@ -55,7 +55,7 @@ ocopy(const void *p, size_t size)
 struct logagent;
 
 size_t omalloc_page_count(void);
-void set_omalloc_debug(guint32 level);
+void set_omalloc_debug(uint32 level);
 void omalloc_close(void);
 void omalloc_dump_stats_log(struct logagent *la, unsigned options);
 

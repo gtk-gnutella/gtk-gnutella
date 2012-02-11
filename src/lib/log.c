@@ -85,8 +85,8 @@ static const char * const log_domains[] = {
 	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
 };
 
-static gboolean atoms_are_inited;
-static gboolean log_inited;
+static bool atoms_are_inited;
+static bool log_inited;
 static str_t *log_str;
 
 /**
@@ -437,7 +437,7 @@ logthread_object(logthread_t *lt)
 /**
  * Is stdio file printable?
  */
-gboolean
+bool
 log_file_printable(const FILE *out)
 {
 	if (stderr == out)
@@ -451,7 +451,7 @@ log_file_printable(const FILE *out)
 /**
  * Is log file printable?
  */
-gboolean
+bool
 log_printable(enum log_file which)
 {
 	struct logfile *lf;
@@ -526,7 +526,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 			IGNORE_RESULT(write(lf->crash_fd, "\n", 1));
 		}
 	} else {
-		gboolean ioerr;
+		bool ioerr;
 
 		ioerr = 0 > fprintf(lf->f, FORMAT_STR,
 			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
@@ -643,7 +643,7 @@ log_abort(void)
  * @param args		variable argument list to format
  */
 void
-s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
+s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(9);
@@ -702,7 +702,7 @@ s_minilogv(GLogLevelFlags level, gboolean copy, const char *fmt, va_list args)
  * @param offset		stack offset to apply to remove overhead from stack
  */
 static void NO_INLINE
-s_stacktrace(gboolean no_stdio, unsigned offset)
+s_stacktrace(bool no_stdio, unsigned offset)
 {
 	if (no_stdio) {
 		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
@@ -737,12 +737,12 @@ static void
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	int saved_errno = errno;
-	gboolean in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_handler();
 	const char *prefix;
 	str_t *msg;
 	ckhunk_t *ck;
 	void *saved;
-	gboolean recursing;
+	bool recursing;
 	GLogLevelFlags loglvl;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
@@ -986,7 +986,7 @@ s_error_from(const char *file, const char *format, ...)
 void
 s_carp(const char *format, ...)
 {
-	gboolean in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
 	va_start(args, format);
@@ -1032,7 +1032,7 @@ s_carp_once(const char *format, ...)
 void
 s_minicarp(const char *format, ...)
 {
-	gboolean in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
 	/*
@@ -1518,7 +1518,7 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 
 	if (level & G_LOG_FLAG_RECURSION) {
 		/* Probably logging from memory allocator, string should be safe */
-		safer = deconstify_gpointer(message);
+		safer = deconstify_pointer(message);
 	} else {
 		safer = control_escape(message);
 	}
@@ -1579,10 +1579,10 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 log_reopen(enum log_file which)
 {
-	gboolean success = TRUE;
+	bool success = TRUE;
 	FILE *f;
 	struct logfile *lf;
 
@@ -1613,7 +1613,7 @@ log_reopen(enum log_file which)
  *
  * @return TRUE if we explicitly (re)opened the file
  */
-gboolean
+bool
 log_is_managed(enum log_file which)
 {
 	log_file_check(which);
@@ -1624,7 +1624,7 @@ log_is_managed(enum log_file which)
 /**
  * Is logfile disabled?
  */
-gboolean
+bool
 log_is_disabled(enum log_file which)
 {
 	log_file_check(which);
@@ -1642,7 +1642,7 @@ log_is_disabled(enum log_file which)
  * missed, but stderr could be disabled, so printing a copy on stdout will
  * at least give minimal feedback to the user.
  */
-gboolean
+bool
 log_stdout_is_distinct(void)
 {
 	return !log_is_disabled(LOG_STDOUT) && log_is_managed(LOG_STDOUT) &&
@@ -1655,7 +1655,7 @@ log_stdout_is_distinct(void)
  *
  * @return TRUE on success
  */
-gboolean
+bool
 log_reopen_if_managed(enum log_file which)
 {
 	log_file_check(which);
@@ -1671,11 +1671,11 @@ log_reopen_if_managed(enum log_file which)
  *
  * @return TRUE if OK.
  */
-gboolean
-log_reopen_all(gboolean daemonized)
+bool
+log_reopen_all(bool daemonized)
 {
 	size_t i;
-	gboolean success = TRUE;
+	bool success = TRUE;
 
 	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
 		struct logfile *lf = &logfile[i];
@@ -1697,7 +1697,7 @@ log_reopen_all(gboolean daemonized)
  * Enable or disable stderr output.
  */
 void
-log_set_disabled(enum log_file which, gboolean disabled)
+log_set_disabled(enum log_file which, bool disabled)
 {
 	log_file_check(which);
 
@@ -1753,12 +1753,12 @@ log_set(enum log_file which, const char *path)
  *
  * @return TRUE on success, FALSE on errors with errno set.
  */
-gboolean
+bool
 log_rename(enum log_file which, const char *newname)
 {
 	struct logfile *lf;
 	int saved_errno = 0;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 
 	log_file_check(which);
 	g_assert(newname != NULL);

@@ -99,21 +99,21 @@ sequence_t *sequence_fill_from_vector(sequence_t *, vector_t *);
  * Public sequence interface.
  */
 
-gpointer sequence_implementation(const sequence_t *);
-gpointer sequence_release(sequence_t **);
+void *sequence_implementation(const sequence_t *);
+void *sequence_release(sequence_t **);
 const char *sequence_type_to_string(const sequence_t *);
 void sequence_destroy(sequence_t *);
 
-gboolean sequence_is_empty(const sequence_t *);
+bool sequence_is_empty(const sequence_t *);
 size_t sequence_count(const sequence_t *s);
 void sequence_foreach(const sequence_t *s, GFunc func, void *data);
 
 sequence_iter_t *sequence_forward_iterator(const sequence_t *);
-gboolean sequence_iter_has_next(const sequence_iter_t *);
-gpointer sequence_iter_next(sequence_iter_t *);
-sequence_iter_t *sequence_backward_iterator(const sequence_t *, gboolean);
-gboolean sequence_iter_has_previous(const sequence_iter_t *);
-gpointer sequence_iter_previous(sequence_iter_t *);
+bool sequence_iter_has_next(const sequence_iter_t *);
+void *sequence_iter_next(sequence_iter_t *);
+sequence_iter_t *sequence_backward_iterator(const sequence_t *, bool);
+bool sequence_iter_has_previous(const sequence_iter_t *);
+void *sequence_iter_previous(sequence_iter_t *);
 void sequence_iterator_release(sequence_iter_t **);
 
 #endif	/* _sequence_h_ */

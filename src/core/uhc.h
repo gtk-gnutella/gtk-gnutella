@@ -48,7 +48,7 @@ void uhc_init(void);
 void uhc_close(void);
 
 void uhc_get_hosts(void);
-gboolean uhc_is_waiting(void);
+bool uhc_is_waiting(void);
 
 void uhc_ipp_extract(
 	struct gnutella_node *n, const char *payload, int paylen, enum net_type nt);

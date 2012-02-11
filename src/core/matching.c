@@ -83,7 +83,7 @@
 struct st_entry {
 	const char *string;				/* atom */
 	shared_file_t *sf;
-	guint32 mask;
+	uint32 mask;
 };
 
 struct st_bin {
@@ -98,8 +98,8 @@ struct search_table {
 	int nentries, nchars, nbins;
 	struct st_bin **bins;
 	struct st_bin all_entries;
-	guchar index_map[MAX_INT_VAL(guchar)];
-	guchar fold_map[MAX_INT_VAL(guchar)];
+	uchar index_map[MAX_INT_VAL(uchar)];
+	uchar fold_map[MAX_INT_VAL(uchar)];
 };
 
 static inline void
@@ -186,19 +186,19 @@ bin_compact(struct st_bin *bin)
 	bin->nslots = bin->nvals;
 }
 
-static guchar map[MAX_INT_VAL(guchar)];
+static uchar map[MAX_INT_VAL(uchar)];
 
 static void
 setup_map(void)
 {
-	static gboolean done;
-	guint i;
+	static bool done;
+	uint i;
 
 	if (done)
 		return;
 
 	for (i = 0; i < G_N_ELEMENTS(map); i++)	{
-		guchar c;
+		uchar c;
 
 		if (i > 0 && utf8_byte_is_allowed(i)) {
 			if (is_ascii_upper(i)) {
@@ -225,8 +225,8 @@ setup_map(void)
 static void
 st_initialize(search_table_t *table)
 {
-	guchar cur_char = '\0';
-	guint i;
+	uchar cur_char = '\0';
+	uint i;
 
 	search_table_check(table);
 
@@ -238,7 +238,7 @@ st_initialize(search_table_t *table)
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(table->index_map); i++) {
-		guchar map_char = map[i];
+		uchar map_char = map[i];
 
 		if (table->fold_map[map_char]) {
 			table->index_map[i] = table->fold_map[map_char];
@@ -255,7 +255,7 @@ st_initialize(search_table_t *table)
 	table->all_entries.vals = 0;
 
 	if (GNET_PROPERTY(matching_debug)) {
-		static gboolean done;
+		static bool done;
 
 		if (!done) {
 			done = TRUE;
@@ -361,12 +361,12 @@ st_count(const search_table_t *table)
  * Compute character mask "hash", using one bit per letter of the alphabet,
  * plus one for any digit.
  */
-static guint32
+static uint32
 mask_hash(const char *s) {
-	guchar c;
-	guint32 mask = 0;
+	uchar c;
+	uint32 mask = 0;
 
-	while ((c = (guchar) *s++)) {
+	while ((c = (uchar) *s++)) {
 		if (is_ascii_space(c))
 			continue;
 		else if (is_ascii_digit(c))
@@ -387,8 +387,8 @@ mask_hash(const char *s) {
 static inline int
 st_key(search_table_t *table, const char k[2])
 {
-	return table->index_map[(guchar) k[0]] * table->nchars +
-		table->index_map[(guchar) k[1]];
+	return table->index_map[(uchar) k[0]] * table->nchars +
+		table->index_map[(uchar) k[1]];
 }
 
 /**
@@ -397,7 +397,7 @@ st_key(search_table_t *table, const char k[2])
  *
  * @return TRUE if the item was inserted; FALSE otherwise.
  */
-gboolean
+bool
 st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 {
 	size_t i, len;
@@ -460,7 +460,7 @@ st_compact(search_table_t *table)
  * Apply pattern matching on text, matching at the *beginning* of words.
  * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
-static gboolean
+static bool
 entry_match(const char *text, size_t tlen,
 	cpattern_t **pw, word_vec_t *wovec, size_t wn)
 {
@@ -501,8 +501,8 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
 {
 	char *search;
 	word_vec_t *wovec;
-	guint wocnt;
-	guint i;
+	uint wocnt;
+	uint i;
 
 	if (NULL == qhv)
 		return;
@@ -539,24 +539,24 @@ st_search(
 	search_table_t *table,
 	const char *search_term,
 	st_search_callback callback,
-	gpointer ctx,
+	void *ctx,
 	int max_res,
 	query_hashvec_t *qhv)
 {
 	char *search;
 	int key, nres = 0;
-	guint i, len;
+	uint i, len;
 	struct st_bin *best_bin = NULL;
 	int best_bin_size = INT_MAX;
 	word_vec_t *wovec;
-	guint wocnt;
+	uint wocnt;
 	cpattern_t **pattern;
 	struct st_entry **vals;
-	guint vcnt;
+	uint vcnt;
 	int scanned = 0;		/* measure search mask efficiency */
-	guint32 search_mask;
+	uint32 search_mask;
 	size_t minlen;
-	guint random_offset;  /* Randomizer for search returns */
+	uint random_offset; 	 /* Randomizer for search returns */
 
 	search = UNICODE_CANONIZE(search_term);
 

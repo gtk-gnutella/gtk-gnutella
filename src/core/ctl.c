@@ -345,7 +345,7 @@ static unsigned ctl_all_flags;			/**< Set of flags used */
 static GSList *
 ctl_parse_country(struct ctl_string *s, const struct ctl_tok *tok)
 {
-	guint16 code;
+	uint16 code;
 
 	g_assert(CTL_TOK_ID == tok->type);
 
@@ -418,7 +418,7 @@ ctl_parse_options(struct ctl_string *s)
  * Parse a list entry.
  * @return TRUE when done with input.
  */
-static gboolean
+static bool
 ctl_parse_list_entry(struct ctl_string *s)
 {
 	struct ctl_tok *tok = ctl_next_token(s);
@@ -426,7 +426,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	GSList *sl;
 	char *opt = NULL;
 	unsigned flags;
-	gboolean done = FALSE;
+	bool done = FALSE;
 
 	switch (tok->type) {
 	case CTL_TOK_EOF:		done = TRUE; goto out;
@@ -513,7 +513,7 @@ ctl_parse_list(struct ctl_string *s)
 {
 	while (!ctl_parse_list_entry(s)) {
 		struct ctl_tok *tok = ctl_next_token(s);
-		gboolean done = TRUE;
+		bool done = TRUE;
 
 		switch (tok->type) {
 		case CTL_TOK_EOF:	break;
@@ -530,8 +530,8 @@ ctl_parse_list(struct ctl_string *s)
 /**
  * Hashtable iterator callback returning TRUE.
  */
-static gboolean
-ctl_true(gpointer ukey, gpointer uvalue, gpointer udata)
+static bool
+ctl_true(void *ukey, void *uvalue, void *udata)
 {
 	(void) ukey;
 	(void) uvalue;
@@ -602,10 +602,10 @@ ctl_parse(const char *s)
 /**
  * Are specified flags all set for the country to which the IP address belongs?
  */
-gboolean
+bool
 ctl_limit(const host_addr_t ha, unsigned flags)
 {
-	guint16 code;
+	uint16 code;
 	unsigned cflags;
 
 	/*

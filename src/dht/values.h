@@ -49,10 +49,10 @@ void values_close(void);
 
 size_t values_count(void);
 
-guint16 values_store(const knode_t *kn, const dht_value_t *v, gboolean token);
-dht_value_t *values_get(guint64 dbkey, dht_value_type_t type);
+uint16 values_store(const knode_t *kn, const dht_value_t *v, bool token);
+dht_value_t *values_get(uint64 dbkey, dht_value_type_t type);
 void values_reclaim_expired(void);
-gboolean values_has_expired(guint64 dbkey, time_t now, time_t *expire);
+bool values_has_expired(uint64 dbkey, time_t now, time_t *expire);
 
 void dht_value_serialize(pmsg_t *mb, const dht_value_t *v);
 dht_value_t *dht_value_deserialize(bstr_t *bs);

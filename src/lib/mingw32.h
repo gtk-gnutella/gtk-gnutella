@@ -342,7 +342,7 @@ int mingw_fcntl(int fd, int cmd, ... /* arg */ );
 
 const char *mingw_gethome(void);
 const char *mingw_getpersonal(void);
-guint64 mingw_getphysmemsize(void);
+uint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *pathname, filestat_t *buf);
@@ -429,12 +429,12 @@ int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
 int mingw_random_bytes(void *buf, size_t len);
-gboolean mingw_process_is_alive(pid_t pid);
+bool mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
 long mingw_cpu_count(void);
-guint64 mingw_cpufreq_min(void);
-guint64 mingw_cpufreq_max(void);
+uint64 mingw_cpufreq_min(void);
+uint64 mingw_cpufreq_max(void);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);
 
@@ -443,7 +443,7 @@ enum mingw_cpufreq {
 	MINGW_CPUFREQ_MAX
 };
 
-guint64 mingw_cpufreq(enum mingw_cpufreq freq);
+uint64 mingw_cpufreq(enum mingw_cpufreq freq);
 
 typedef struct pollfd {
   SOCKET fd;
@@ -457,27 +457,27 @@ socket_fd(int fd)
 	return fd;
 }
 
-gboolean mingw_has_wsapoll(void);
+bool mingw_has_wsapoll(void);
 int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
 void mingw_early_init(void);
 void mingw_init(void);
 void mingw_close(void);
 
 const char *mingw_filename_nearby(const char *file);
-gboolean mingw_stdin_pending(gboolean fifo);
-gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
+bool mingw_stdin_pending(bool fifo);
+bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 const char *dir_entry_filename(const void *dirent);
-int mingw_getgateway(guint32 *ip);
+int mingw_getgateway(uint32 *ip);
 
-gboolean mingw_in_exception(void);
+bool mingw_in_exception(void);
 void G_GNUC_NORETURN mingw_abort(void);
 
 struct adns_request;
 
 void mingw_adns_init(void);
 void mingw_adns_close(void);
-gboolean mingw_adns_send_request(const struct adns_request *req);
+bool mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);

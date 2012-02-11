@@ -83,7 +83,7 @@ void stacktrace_atom_print(FILE *f, const struct stackatom *st);
 void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
-const char *stacktrace_routine_name(const void *pc, gboolean offset);
+const char *stacktrace_routine_name(const void *pc, bool offset);
 size_t stacktrace_unwind(void *stack[], size_t count, size_t offset);
 size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 
@@ -94,13 +94,13 @@ void stacktrace_where_print_offset(FILE *f, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
 void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
-gboolean stacktrace_cautious_was_logged(void);
+bool stacktrace_cautious_was_logged(void);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
-gboolean stacktrace_caller_known(size_t offset);
+bool stacktrace_caller_known(size_t offset);
 
-void stacktrace_init(const char *argv0, gboolean deferred);
+void stacktrace_init(const char *argv0, bool deferred);
 void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);
 void stacktrace_close(void);

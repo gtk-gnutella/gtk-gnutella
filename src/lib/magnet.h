@@ -50,7 +50,7 @@ struct magnet_source {
 	const struct guid *guid;	/* GUID atom */
 	GSList *proxies;	/* List of walloc()ed (gnet_host_t *) */
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 };
 
 struct magnet_resource {
@@ -78,20 +78,20 @@ char *magnet_to_string(const struct magnet_resource *res);
 char *magnet_source_to_string(const struct magnet_source *s);
 void magnet_set_filesize(struct magnet_resource *res, filesize_t size);
 void magnet_set_display_name(struct magnet_resource *res, const char *name);
-gboolean magnet_set_exact_topic(struct magnet_resource *res,
+bool magnet_set_exact_topic(struct magnet_resource *res,
 			const char *topic);
 void magnet_set_sha1(struct magnet_resource *res, const struct sha1 *sha1);
 void magnet_set_tth(struct magnet_resource *res, const struct tth *tth);
 void magnet_add_search(struct magnet_resource *res, const char *search);
 void magnet_add_source_by_url(struct magnet_resource *res, const char *url);
 void magnet_add_sha1_source(struct magnet_resource *res,
-		const struct sha1 *sha1, const host_addr_t addr, const guint16 port,
+		const struct sha1 *sha1, const host_addr_t addr, const uint16 port,
 		const struct guid *guid, const gnet_host_vec_t *proxies);
 
 /* Extensions */
 void magnet_set_parq_id(struct magnet_resource *res, const char *parq_id);
 void magnet_set_guid(struct magnet_resource *res, const char *guid);
-void magnet_set_dht(struct magnet_resource *res, gboolean dht_support);
+void magnet_set_dht(struct magnet_resource *res, bool dht_support);
 void magnet_set_vendor(struct magnet_resource *res, const char *vendor);
 char *magnet_proxies_to_string(const sequence_t *proxies);
 

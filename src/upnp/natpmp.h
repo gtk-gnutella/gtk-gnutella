@@ -66,7 +66,7 @@ typedef struct natpmp natpmp_t;
  * @param gateway	the allocated NAT-PMP gateway
  * @param arg		user-defined argument
  */
-typedef void (*natpmp_discover_cb_t)(gboolean ok, natpmp_t *gateway, void *arg);
+typedef void (*natpmp_discover_cb_t)(bool ok, natpmp_t *gateway, void *arg);
 
 /**
  * NAT-PMP port mapping callback.
@@ -77,7 +77,7 @@ typedef void (*natpmp_discover_cb_t)(gboolean ok, natpmp_t *gateway, void *arg);
  * @param arg		user-defined argument
  */
 typedef void (*natpmp_map_cb_t)(int code,
-	guint16 port, unsigned lifetime, void *arg);
+	uint16 port, unsigned lifetime, void *arg);
 
 /*
  * Public interface.
@@ -87,14 +87,14 @@ unsigned natpmp_pending(void);
 const char *natpmp_strerror(int code);
 host_addr_t natpmp_wan_ip(const natpmp_t *np);
 host_addr_t natpmp_gateway_addr(const natpmp_t *np);
-gboolean natpmp_has_rebooted(const natpmp_t *np);
+bool natpmp_has_rebooted(const natpmp_t *np);
 void natpmp_clear_rebooted(natpmp_t *np);
 void natpmp_free_null(natpmp_t **np_ptr);
 void natpmp_discover(unsigned retries, natpmp_discover_cb_t cb, void *arg);
 void natpmp_monitor(natpmp_t *np, natpmp_discover_cb_t cb, void *arg);
-void natpmp_map(natpmp_t *np, enum upnp_map_proto proto, guint16 port,
+void natpmp_map(natpmp_t *np, enum upnp_map_proto proto, uint16 port,
 	time_delta_t lease, natpmp_map_cb_t cb, void *arg);
-void natpmp_unmap(natpmp_t *np, enum upnp_map_proto proto, guint16 port);
+void natpmp_unmap(natpmp_t *np, enum upnp_map_proto proto, uint16 port);
 
 #endif /* _upnp_natpmp_h_ */
 

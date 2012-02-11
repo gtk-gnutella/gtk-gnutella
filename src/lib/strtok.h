@@ -40,8 +40,7 @@ struct strtok;
 
 typedef struct strtok strtok_t;
 
-strtok_t *strtok_make(const char *string,
-	gboolean no_lead, gboolean no_end);
+strtok_t *strtok_make(const char *string, bool no_lead, bool no_end);
 struct strtok *strtok_make_strip(const char *string);
 struct strtok *strtok_make_nostrip(const char *string);
 void strtok_free(strtok_t *s);
@@ -49,14 +48,14 @@ void strtok_restart(strtok_t *s);
 void strtok_skip(strtok_t *s, const char *delim, size_t n);
 const char *strtok_next(strtok_t *s, const char *delim);
 const char *strtok_next_extended(strtok_t *s, const char *delim,
-	gboolean no_lead, gboolean no_end);
+	bool no_lead, bool no_end);
 const char *strtok_next_length(strtok_t *s, const char *delim, size_t *length);
-gboolean strtok_eos(const strtok_t *s);
+bool strtok_eos(const strtok_t *s);
 const char *strtok_ptr(const strtok_t *s);
 char strtok_char(const strtok_t *s);
 char strtok_delim(const strtok_t *s);
-gboolean strtok_has(const char *string, const char *delim, const char *what);
-gboolean strtok_case_has(const char *str, const char *delim, const char *what);
+bool strtok_has(const char *string, const char *delim, const char *what);
+bool strtok_case_has(const char *str, const char *delim, const char *what);
 
 void strtok_test(void);
 

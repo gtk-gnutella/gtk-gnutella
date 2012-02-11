@@ -134,7 +134,7 @@ is_strcaseprefix(const char *str, const char *prefix)
  * @param len		length of ``str'', (size_t)-1 means compute it
  * @param suffix	the suffix to look for (NUL-terminated string)
  */
-gboolean
+bool
 is_strsuffix(const char *str, size_t len, const char *suffix)
 {
 	size_t suffix_len;
@@ -279,7 +279,7 @@ strchomp(char *str, size_t len)
 /**
  * Check whether path is a directory.
  */
-gboolean
+bool
 is_directory(const char *pathname)
 {
 	filestat_t st;
@@ -291,7 +291,7 @@ is_directory(const char *pathname)
 /**
  * Check whether path points to a regular file.
  */
-gboolean
+bool
 is_regular(const char *pathname)
 {
 	filestat_t st;
@@ -303,7 +303,7 @@ is_regular(const char *pathname)
 /**
  * Check whether path is a symbolic link.
  */
-gboolean
+bool
 is_symlink(const char *pathname)
 #if defined(HAS_LSTAT)
 {
@@ -414,8 +414,8 @@ get_random_file_offset(const filesize_t size)
 	return offset;
 }
 
-static inline guint
-filesize_fraction(filesize_t size, filesize_t part, guint base)
+static inline uint
+filesize_fraction(filesize_t size, filesize_t part, uint base)
 {
 	filesize_t x;
 
@@ -437,7 +437,7 @@ filesize_fraction(filesize_t size, filesize_t part, guint base)
 }
 
 #define GENERATE_FILESIZE_PER_X(base) \
-guint \
+uint \
 filesize_per_ ## base (filesize_t size, filesize_t part) \
 { \
 	return filesize_fraction(size, part, base); \
@@ -448,21 +448,21 @@ GENERATE_FILESIZE_PER_X(1000)
 GENERATE_FILESIZE_PER_X(10000)
 #undef GENERATE_FILESIZE_PER_X
 
-static inline guint
-kilo(gboolean metric)
+static inline uint
+kilo(bool metric)
 {
 	return metric ? 1000 : 1024;
 }
 
 static inline const char *
-byte_suffix(gboolean metric)
+byte_suffix(bool metric)
 {
 	static const char suffix[] = "iB";
 	return &suffix[metric ? 1 : 0];
 }
 
 static inline const char *
-scale_prefixes(gboolean metric)
+scale_prefixes(bool metric)
 {
 	return metric ? "\0kMGTPEZ" : "\0KMGTPEZ";
 }
@@ -471,34 +471,34 @@ scale_prefixes(gboolean metric)
  * Scales v so that quotient and reminder are both in the range "0..1023".
  *
  * @param v no document.
- * @param q pointer to a guint; will hold the quotient.
- * @param r pointer to a guint; will hold the reminder.
+ * @param q pointer to a uint; will hold the quotient.
+ * @param r pointer to a uint; will hold the reminder.
  * @param s a string holding the scale prefixes; must be sufficiently long.
  *
  * @return the appropriate prefix character from "s".
  */
 static inline char
-size_scale(guint64 v, guint *q, guint *r, const char *s, gboolean metric)
+size_scale(uint64 v, uint *q, uint *r, const char *s, bool metric)
 {
-	const guint base = kilo(metric);
+	const uint base = kilo(metric);
 
 	if (v < base) {
 		*q = v;
 		*r = 0;
 	} else {
-		const guint thresh = base * base;
+		const uint thresh = base * base;
 
 		for (s++; v >= thresh; v /= base)
 			s++;
 	
-		*q = (guint) v / base;
-		*r = (guint) v % base;
+		*q = (uint) v / base;
+		*r = (uint) v % base;
 	}
 	return *s;
 }
 
 static inline char
-norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
+norm_size_scale(uint64 v, uint *q, uint *r, bool metric)
 {
 	return size_scale(v, q, r, scale_prefixes(metric), metric);
 }
@@ -508,9 +508,9 @@ norm_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
  * by 1024 (binary).
  */
 static inline char
-kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
+kib_size_scale(uint64 v, uint *q, uint *r, bool metric)
 {
-	if (metric && v < ((guint64) -1) / 1024) {
+	if (metric && v < ((uint64) -1) / 1024) {
 		v = (v * 1024) / 1000;
 	}
 	return size_scale(v, q, r, scale_prefixes(metric) + 1, metric);
@@ -529,13 +529,13 @@ kib_size_scale(guint64 v, guint *q, guint *r, gboolean metric)
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
 size_t
-short_size_to_string_buf(guint64 size, gboolean metric, char *dst, size_t len)
+short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 {
 	if (size < kilo(metric)) {
-		guint n = size;
+		uint n = size;
 		return gm_snprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
@@ -546,7 +546,7 @@ short_size_to_string_buf(guint64 size, gboolean metric, char *dst, size_t len)
 }
 
 const char *
-short_size(guint64 size, gboolean metric)
+short_size(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
@@ -555,15 +555,15 @@ short_size(guint64 size, gboolean metric)
 }
 
 const char *
-short_frequency(guint64 freq)
+short_frequency(uint64 freq)
 {
 	static char b[SIZE_FIELD_MAX];
 
 	if (freq < kilo(TRUE)) {
-		guint n = freq;
+		uint n = freq;
 		gm_snprintf(b, sizeof b, "%u Hz", n);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(freq, &q, &r, TRUE);
@@ -578,15 +578,15 @@ short_frequency(guint64 freq)
  * Like short_size() but with unbreakable space between the digits and unit.
  */
 const char *
-short_html_size(guint64 size, gboolean metric)
+short_html_size(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
-		guint n = size;
+		uint n = size;
 		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
@@ -599,15 +599,15 @@ short_html_size(guint64 size, gboolean metric)
 }
 
 size_t
-short_byte_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
+short_byte_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 {
 	size_t w;
 
 	if (size < kilo(metric)) {
-		guint n = size;
+		uint n = size;
 		w = gm_snprintf(buf, buflen, "%u B", n);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
@@ -624,7 +624,7 @@ short_byte_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
  * is less than a kilo.
  */
 const char *
-short_byte_size(guint64 size, gboolean metric)
+short_byte_size(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
@@ -633,7 +633,7 @@ short_byte_size(guint64 size, gboolean metric)
 }
 
 const char *
-short_byte_size2(guint64 size, gboolean metric)
+short_byte_size2(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
@@ -642,15 +642,15 @@ short_byte_size2(guint64 size, gboolean metric)
 }
 
 size_t
-short_kb_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
+short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 {
 	size_t w;
 
 	if (size < kilo(metric)) {
 		w = gm_snprintf(buf, buflen,
-				"%u %s", (guint) size, metric ? "kB" : "KiB");
+				"%u %s", (uint) size, metric ? "kB" : "KiB");
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
@@ -667,7 +667,7 @@ short_kb_size_to_buf(guint64 size, gboolean metric, char *buf, size_t buflen)
  * kibibytes, not bytes.
  */
 const char *
-short_kb_size(guint64 size, gboolean metric)
+short_kb_size(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
@@ -676,7 +676,7 @@ short_kb_size(guint64 size, gboolean metric)
 }
 
 const char *
-short_kb_size2(guint64 size, gboolean metric)
+short_kb_size2(uint64 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
@@ -688,14 +688,14 @@ short_kb_size2(guint64 size, gboolean metric)
  * @return a number of Kbytes in a compact readable form
  */
 const char *
-compact_kb_size(guint32 size, gboolean metric)
+compact_kb_size(uint32 size, bool metric)
 {
 	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
-		gm_snprintf(b, sizeof b, "%u%s", (guint) size, metric ? "kB" : "KiB");
+		gm_snprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
@@ -707,7 +707,7 @@ compact_kb_size(guint32 size, gboolean metric)
 }
 
 const char *
-nice_size(guint64 size, gboolean metric)
+nice_size(uint64 size, bool metric)
 {
 	static char buf[256];
 	char bytes[UINT64_DEC_BUFLEN];
@@ -719,12 +719,12 @@ nice_size(guint64 size, gboolean metric)
 }
 
 char *
-compact_value(char *buf, size_t size, guint64 v, gboolean metric)
+compact_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u", (guint) v);
+		gm_snprintf(buf, size, "%u", (uint) v);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
@@ -736,12 +736,12 @@ compact_value(char *buf, size_t size, guint64 v, gboolean metric)
 }
 
 char *
-short_value(char *buf, size_t size, guint64 v, gboolean metric)
+short_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u ", (guint) v);
+		gm_snprintf(buf, size, "%u ", (uint) v);
 	} else {
-		guint q, r;
+		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
@@ -753,7 +753,7 @@ short_value(char *buf, size_t size, guint64 v, gboolean metric)
 }
 
 const char *
-compact_size(guint64 size, gboolean metric)
+compact_size(uint64 size, bool metric)
 {
 	static char buf[SIZE_FIELD_MAX];
 
@@ -763,7 +763,7 @@ compact_size(guint64 size, gboolean metric)
 }
 
 const char *
-compact_size2(guint64 size, gboolean metric)
+compact_size2(uint64 size, bool metric)
 {
 	static char buf[SIZE_FIELD_MAX];
 
@@ -773,7 +773,7 @@ compact_size2(guint64 size, gboolean metric)
 }
 
 const char *
-compact_rate(guint64 rate, gboolean metric)
+compact_rate(uint64 rate, bool metric)
 {
 	static char buf[SIZE_FIELD_MAX];
 
@@ -784,7 +784,7 @@ compact_rate(guint64 rate, gboolean metric)
 }
 
 static size_t
-short_rate_to_string_buf(guint64 rate, gboolean metric, char *dst, size_t size)
+short_rate_to_string_buf(uint64 rate, bool metric, char *dst, size_t size)
 {
 	short_value(dst, size, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
@@ -792,7 +792,7 @@ short_rate_to_string_buf(guint64 rate, gboolean metric, char *dst, size_t size)
 }
 
 short_string_t
-short_rate_get_string(guint64 rate, gboolean metric)
+short_rate_get_string(uint64 rate, bool metric)
 {
 	short_string_t buf;
 	short_rate_to_string_buf(rate, metric, buf.str, sizeof buf.str);
@@ -800,7 +800,7 @@ short_rate_get_string(guint64 rate, gboolean metric)
 }
 
 const char *
-short_rate(guint64 rate, gboolean metric)
+short_rate(uint64 rate, bool metric)
 {
 	static short_string_t buf;
 	buf = short_rate_get_string(rate, metric);
@@ -868,11 +868,11 @@ guid_hex_str(const struct guid *guid)
 	return buf;
 }
 
-static gint8 char2int_tabs[3][(size_t) (guchar) -1 + 1];
+static int8 char2int_tabs[3][(size_t) (uchar) -1 + 1];
 
-const gint8 *hex2int_tab = char2int_tabs[0];
-const gint8 *dec2int_tab = char2int_tabs[1];
-const gint8 *alnum2int_tab = char2int_tabs[2];
+const int8 *hex2int_tab = char2int_tabs[0];
+const int8 *dec2int_tab = char2int_tabs[1];
+const int8 *alnum2int_tab = char2int_tabs[2];
 
 /**
  * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
@@ -884,7 +884,7 @@ const gint8 *alnum2int_tab = char2int_tabs[2];
  * @return "0..15" for valid hexadecimal ASCII characters.
  */
 int
-hex2int(guchar c)
+hex2int(uchar c)
 {
 	int ret;
 	
@@ -903,7 +903,7 @@ hex2int(guchar c)
  * @return "0..9" for valid decimal ASCII characters.
  */
 static int
-dec2int(guchar c)
+dec2int(uchar c)
 {
 	int ret;
 	
@@ -922,7 +922,7 @@ dec2int(guchar c)
  * @return "0..36" for valid decimal ASCII characters.
  */
 static int
-alnum2int(guchar c)
+alnum2int(uchar c)
 {
 	int ret;
 	
@@ -950,7 +950,7 @@ hex2int_init(void)
 	
 	/* Check consistency of hex2int_tab */
 
-	for (i = 0; i <= (guchar) -1; i++)
+	for (i = 0; i <= (uchar) -1; i++)
 		switch (i) {
 		case '0': g_assert(0 == hex2int(i)); break;
 		case '1': g_assert(1 == hex2int(i)); break;
@@ -998,7 +998,7 @@ dec2int_init(void)
 	
 	/* Check consistency of hex2int_tab */
 
-	for (i = 0; i <= (guchar) -1; i++)
+	for (i = 0; i <= (uchar) -1; i++)
 		switch (i) {
 		case '0': g_assert(0 == dec2int(i)); break;
 		case '1': g_assert(1 == dec2int(i)); break;
@@ -1034,7 +1034,7 @@ alnum2int_init(void)
 	
 	/* Check consistency of hex2int_tab */
 
-	for (i = 0; i <= (guchar) -1; i++) {
+	for (i = 0; i <= (uchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		int v = p ? (p - abc) : -1;
 	
@@ -1052,7 +1052,7 @@ alnum2int_init(void)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 hex_to_guid(const char *hexguid, struct guid *guid)
 {
 	size_t ret;
@@ -1372,10 +1372,10 @@ tth_to_urn_string(const struct tth *tth)
  */
 G_GNUC_HOT size_t
 common_leading_bits(
-	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits)
+	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
 {
-	const guint8 *p1 = k1;
-	const guint8 *p2 = k2;
+	const uint8 *p1 = k1;
+	const uint8 *p2 = k2;
 	size_t cbits;			/* Total amount of bits to compare */
 	size_t bytes;			/* Amount of bytes to compare */
 	size_t bits;			/* Remaining bits in last byte */
@@ -1392,7 +1392,7 @@ common_leading_bits(
 	bytes = cbits >> 3;
 
 	for (i = 0; i < bytes; i++) {
-		guint8 diff = *p1++ ^ *p2++;
+		uint8 diff = *p1++ ^ *p2++;
 		if (diff)
 			return i * 8 + 7 - highest_bit_set(diff);
 	}
@@ -1400,8 +1400,8 @@ common_leading_bits(
 	bits = cbits & 0x7;
 
 	if (bits != 0) {
-		guint8 mask = ~((1 << (8 - bits)) - 1);
-		guint8 diff = (*p1 & mask) ^ (*p2 & mask);
+		uint8 mask = ~((1 << (8 - bits)) - 1);
+		uint8 diff = (*p1 & mask) ^ (*p2 & mask);
 		if (diff)
 			return bytes * 8 + 7 - highest_bit_set(diff);
 	}
@@ -1435,7 +1435,7 @@ force_range(float val, float min, float max)
  * Check whether buffer contains printable data, suitable for "%s" printing.
  * If not, consider dump_hex().
  */
-gboolean
+bool
 is_printable(const char *buf, int len)
 {
 	const char *p = buf;
@@ -1471,7 +1471,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 			*p++ = ' ';
 		}
 		if (i < length) {	
-			guchar c;
+			uchar c;
 
 			c = data[i];
 			i++;
@@ -1490,7 +1490,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 	*p = '\0';
 	*q = '\0';
 
-	fprintf(out, "%5u %s  %s\n", (guint) (offset & 0xffff), hex_buf, char_buf);
+	fprintf(out, "%5u %s  %s\n", (uint) (offset & 0xffff), hex_buf, char_buf);
 }
 
 /**
@@ -1498,7 +1498,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
-dump_hex(FILE *out, const char *title, gconstpointer data, int length)
+dump_hex(FILE *out, const char *title, const void *data, int length)
 {
 	int i;
 
@@ -1553,7 +1553,7 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
  * Is string made-up of printable ISO-8859 characters?
  * If not, consider dump_hex().
  */
-gboolean
+bool
 is_printable_iso8859_string(const char *s)
 {
 	int c;
@@ -1578,7 +1578,7 @@ void
 locale_strlower(char *dst, const char *src)
 {
 	do {
-		*dst++ = tolower((guchar) *src);
+		*dst++ = tolower((uchar) *src);
 	} while (*src++);
 }
 
@@ -1664,11 +1664,11 @@ failure:
 /**
  * Find amount of common leading bits between two IP addresses.
  */
-static G_GNUC_HOT guint8
-find_common_leading(guint32 ip1, guint32 ip2)
+static G_GNUC_HOT uint8
+find_common_leading(uint32 ip1, uint32 ip2)
 {
-	guint8 n;
-	guint32 mask;
+	uint8 n;
+	uint32 mask;
 
 	for (n = 0, mask = 0x80000000; n < 32; n++, mask |= (mask >> 1)) {
 		if ((ip1 & mask) != (ip2 & mask))
@@ -1698,11 +1698,11 @@ find_common_leading(guint32 ip1, guint32 ip2)
  */
 void
 ip_range_split(
-	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata)
+	uint32 lower_ip, uint32 upper_ip, cidr_split_t cb, void *udata)
 {
-	guint8 bits;
-	guint32 mask;
-	guint32 trailing;
+	uint8 bits;
+	uint32 mask;
+	uint32 trailing;
 
 	g_assert(lower_ip <= upper_ip);
 
@@ -1725,7 +1725,7 @@ ip_range_split(
 
 			(*cb)(lower_ip, bits, udata);
 		} else {
-			guint32 cut;
+			uint32 cut;
 
 			/*
 			 * Start filling after the first 1 bit in lower_ip.
@@ -1744,7 +1744,7 @@ ip_range_split(
 			ip_range_split(cut + 1, upper_ip, cb, udata);
 		}
 	} else {
-		guint32 cut;
+		uint32 cut;
 
 		/*
 		 * We can't cover the full range.
@@ -1779,7 +1779,7 @@ unsigned
 pointer_hash_func(const void *p)
 {
 	unsigned long v = pointer_to_ulong(p);
-	return (((guint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
+	return (((uint64) 0x4F1BBCDCUL * v) >> 32) ^ v;
 }
 
 static inline const char *
@@ -1823,7 +1823,7 @@ html_escape(const char *src, char *dst, size_t dst_size)
 {
 	char *d = dst;
 	const char *s = src;
-	guchar c;
+	uchar c;
 
 	g_assert(0 == dst_size || NULL != dst);
 	g_assert(NULL != src);
@@ -1880,10 +1880,10 @@ html_entities_close(void)
  * @param endptr If not NULL, it will be set to point either to
  *		 		 the original string or the next character after
  *				 the entity.
- * @return		 On failure (guint32)-1 is returned, on success the
+ * @return		 On failure (uint32)-1 is returned, on success the
  *				 Unicode codepoint.
  */
-guint32
+uint32
 html_decode_entity(const char * const src, const char **endptr)
 {
 	if ('&' != src[0])
@@ -1892,7 +1892,7 @@ html_decode_entity(const char * const src, const char **endptr)
 	if ('#' == src[1]) {
 		const char *ep, *p;
 		int base, error;
-		guint32 v;
+		uint32 v;
 
 		switch (src[2]) {
 		case 'x':
@@ -1947,7 +1947,7 @@ failure:
 	if (endptr) {
 		*endptr = src;
 	}
-	return (guint32) -1;
+	return (uint32) -1;
 }
 
 /**
@@ -1976,8 +1976,8 @@ G_GNUC_HOT int
 bitcmp(const void *s1, const void *s2, size_t n)
 {
 	int i, bytes, remain;
-	const guint8 *p1 = s1, *p2 = s2;
-	guint8 mask, c1, c2;
+	const uint8 *p1 = s1, *p2 = s2;
+	uint8 mask, c1, c2;
 
 	bytes = n / 8;				/* First bytes to compare */
 
@@ -1993,7 +1993,7 @@ bitcmp(const void *s1, const void *s2, size_t n)
 	if (0 == remain)
 		return 0;
 
-	mask = (guint8) -1 << (8 - remain);
+	mask = (uint8) -1 << (8 - remain);
 
 	c1 = *p1 & mask;
 	c2 = *p2 & mask;
@@ -2183,8 +2183,8 @@ misc_init(void)
 	{
 		static const struct {
 			const char *s;
-			const guint64 v;
-			const guint base;
+			const uint64 v;
+			const uint base;
 			const int error;
 		} tests[] = {
 			{ "", 					0,				10, EINVAL },
@@ -2197,7 +2197,7 @@ misc_init(void)
 			{ "ffff",				0xffff,			16, 0 },
 			{ "fffff",				0xfffff,		16, 0 },
 			{ "ffffffff",			0xffffffffU,	16, 0 },
-			{ "ffffffffffffffff",	(guint64) -1,	16, 0 },
+			{ "ffffffffffffffff",	(uint64) -1,	16, 0 },
 			{ "1111111111111111",	0xffff,			2,  0 },
 			{ "11111111111111111",	0x1ffff,		2,  0 },
 			{ "111111111111111111",	0x3ffff,		2,  0 },
@@ -2211,12 +2211,12 @@ misc_init(void)
 			{ "8",					0,				8, EINVAL },
 			{ "9",					0,				9, EINVAL },
 		};
-		guint i;
+		uint i;
 
 		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 			const char *endptr;
 			int error;
-			guint64 v;
+			uint64 v;
 
 			g_assert((0 == tests[i].v) ^ (0 == tests[i].error));
 			
@@ -2229,7 +2229,7 @@ misc_init(void)
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint32(tests[i].s, &endptr, tests[i].base, &error);
-			if (tests[i].v > (guint32) -1) {
+			if (tests[i].v > (uint32) -1) {
 				g_assert(0 == v);
 				g_assert(ERANGE == error);
 			} else {
@@ -2240,7 +2240,7 @@ misc_init(void)
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint16(tests[i].s, &endptr, tests[i].base, &error);
-			if (tests[i].v > (guint16) -1) {
+			if (tests[i].v > (uint16) -1) {
 				g_assert(0 == v);
 				g_assert(ERANGE == error);
 			} else {

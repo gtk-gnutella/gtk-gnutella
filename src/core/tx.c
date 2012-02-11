@@ -79,8 +79,8 @@ static GSList *tx_freed = NULL;
  * @return NULL if there is an initialization problem.
  */
 txdrv_t *
-tx_make(gpointer owner, const gnet_host_t *host,
-	const struct txdrv_ops *ops, gpointer args)
+tx_make(void *owner, const gnet_host_t *host,
+	const struct txdrv_ops *ops, void *args)
 {
 	txdrv_t *tx;
 
@@ -120,7 +120,7 @@ tx_attached(txdrv_t *tx, txdrv_t *utx)
  * @return NULL if there is an initialization problem.
  */
 txdrv_t *
-tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, gpointer args)
+tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, void *args)
 {
 	txdrv_t *tx;
 
@@ -230,7 +230,7 @@ tx_collect(void)
  * @return the amount of bytes written, or -1 with errno set on error.
  */
 ssize_t
-tx_write(txdrv_t *tx, gconstpointer data, size_t len)
+tx_write(txdrv_t *tx, const void *data, size_t len)
 {
 	g_assert(tx);
 
@@ -266,7 +266,7 @@ tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
  * @return amount of bytes written, or -1 on error with errno set.
  */
 ssize_t
-tx_sendto(txdrv_t *tx, const gnet_host_t *to, gconstpointer data, size_t len)
+tx_sendto(txdrv_t *tx, const gnet_host_t *to, const void *data, size_t len)
 {
 	g_assert(tx);
 
@@ -282,7 +282,7 @@ tx_sendto(txdrv_t *tx, const gnet_host_t *to, gconstpointer data, size_t len)
  * Register service routine from upper TX layer.
  */
 void
-tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, gpointer srv_arg)
+tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, void *srv_arg)
 {
 	g_assert(tx);
 	g_assert(srv_fn);
@@ -370,7 +370,7 @@ tx_deep_bottom(txdrv_t *tx)
  * easily computed on demand and the limiting factor is the output bandwidth.
  */
 void
-tx_eager_mode(txdrv_t *tx, gboolean on)
+tx_eager_mode(txdrv_t *tx, bool on)
 {
 	txdrv_t *t;
 
@@ -423,7 +423,7 @@ tx_flush(txdrv_t *tx)
 /**
  * @return TRUE if there is an error reported by any layer underneath.
  */
-gboolean
+bool
 tx_has_error(txdrv_t *tx)
 {
 	txdrv_t *t;
@@ -444,7 +444,7 @@ tx_has_error(txdrv_t *tx)
 struct tx_close_arg {
 	txdrv_t *top;			/**< Top of the stack */
 	tx_closed_t cb;			/**< User-supplied "close" callback */
-	gpointer arg;			/**< User-supplied argument */
+	void *arg;				/**< User-supplied argument */
 };
 
 /**
@@ -453,7 +453,7 @@ struct tx_close_arg {
  * invoke the user callback.
  */
 static void
-tx_close_next(txdrv_t *tx, gpointer arg)
+tx_close_next(txdrv_t *tx, void *arg)
 {
 	struct tx_close_arg *carg = arg;
 	txdrv_t *lower;
@@ -471,7 +471,7 @@ tx_close_next(txdrv_t *tx, gpointer arg)
 	if (NULL == tx->lower || tx_has_error(tx)) {
 		txdrv_t *top;
 		tx_closed_t cb;
-		gpointer arg2;
+		void *arg2;
 
 		top = carg->top;
 		cb = carg->cb;
@@ -501,7 +501,7 @@ tx_close_next(txdrv_t *tx, gpointer arg)
  * its data.  When the whole stack is done, invoke the specified callback.
  */
 void
-tx_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+tx_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
 	struct tx_close_arg *carg;
 
@@ -536,7 +536,7 @@ tx_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
  * No-operation closing routine for layers that don't need anything special.
  */
 void
-tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+tx_close_noop(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
 	(*cb)(tx, arg);
 }
@@ -545,7 +545,7 @@ tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg)
  * The write() operation is forbidden.
  */
 ssize_t
-tx_no_write(txdrv_t *unused_tx, gconstpointer unused_data, size_t unused_len)
+tx_no_write(txdrv_t *unused_tx, const void *unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_data;
@@ -574,7 +574,7 @@ tx_no_writev(txdrv_t *unused_tx, iovec_t *unused_iov, int unused_iovcnt)
  */
 ssize_t
 tx_no_sendto(txdrv_t *unused_tx, const gnet_host_t *unused_to,
-		gconstpointer unused_data, size_t unused_len)
+		const void *unused_data, size_t unused_len)
 {
 	(void) unused_tx;
 	(void) unused_to;
@@ -615,7 +615,7 @@ tx_debug_set_addrs(const char *s)
 /**
  * Are we debugging traffic sent to the IP of the host?
  */
-gboolean
+bool
 tx_debug_host(const gnet_host_t *h)
 {
 	return ipset_contains_host(&tx_addrs, h, FALSE);

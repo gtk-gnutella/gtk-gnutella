@@ -96,7 +96,7 @@ struct sha1_cache_entry {
 	const struct tth *tth;		/**< TTH (binary; atom)				*/
     filesize_t  size;			/**< File size                      */
     time_t mtime;				/**< Last modification time         */
-    gboolean shared;			/**< There's a known entry for this
+    bool shared;				/**< There's a known entry for this
                                      file in the share library      */
 };
 
@@ -105,7 +105,7 @@ static GHashTable *sha1_cache;
 /**
  * cache_dirty = TRUE means that in-core cache is different from the disk one.
  */
-static gboolean cache_dirty;
+static bool cache_dirty;
 static time_t cache_dumped;
 
 static cpattern_t *has_http_urls;
@@ -140,7 +140,7 @@ static void update_volatile_cache(
  */
 static void
 add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
-	const struct sha1 *sha1, const struct tth *tth, gboolean known_to_be_shared)
+	const struct sha1 *sha1, const struct tth *tth, bool known_to_be_shared)
 {
 	struct sha1_cache_entry *item;
    
@@ -151,7 +151,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	item->sha1 = atom_sha1_get(sha1);
 	item->tth = tth ? atom_tth_get(tth) : NULL;
 	item->shared = known_to_be_shared;
-	g_hash_table_insert(sha1_cache, deconstify_gchar(item->file_name), item);
+	g_hash_table_insert(sha1_cache, deconstify_char(item->file_name), item);
 }
 
 /* Disk cache */
@@ -222,7 +222,7 @@ add_persistent_cache_entry(const char *filename, filesize_t size,
 
 struct dump_cache_context {
 	FILE *f;
-	gboolean forced;
+	bool forced;
 };
 
 /**
@@ -230,7 +230,7 @@ struct dump_cache_context {
  * called by dump_cache to dump the whole in-memory cache onto disk.
  */
 static void
-dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
+dump_cache_one_entry(void *unused_key, void *value, void *udata)
 {
 	struct sha1_cache_entry *e = value;
 	struct dump_cache_context *ctx = udata;
@@ -247,7 +247,7 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
  * Dump the whole in-memory cache onto disk.
  */
 static void
-dump_cache(gboolean force)
+dump_cache(bool force)
 {
 	FILE *f;
 	file_path_t fp;
@@ -293,7 +293,7 @@ parse_and_append_cache_entry(char *line)
 	time_t mtime;
 	struct sha1 sha1;
 	struct tth tth;
-	gboolean has_tth;
+	bool has_tth;
 
 	/* Skip comments and blank lines */
 	if (file_line_is_skipable(line))
@@ -369,7 +369,7 @@ sha1_read_cache(void)
 {
 	FILE *f;
 	file_path_t fp[1];
-	gboolean truncated = FALSE;
+	bool truncated = FALSE;
 
 	g_return_if_fail(settings_config_dir());
 
@@ -395,7 +395,7 @@ sha1_read_cache(void)
 	}
 }
 
-static gboolean
+static bool
 huge_spam_check(shared_file_t *sf, const struct sha1 *sha1)
 {
 	if (NULL != sha1 && spam_sha1_check(sha1)) {
@@ -417,7 +417,7 @@ huge_spam_check(shared_file_t *sf, const struct sha1 *sha1)
  ** Asynchronous computation of hash value
  **/
 
-gboolean
+bool
 huge_update_hashes(shared_file_t *sf,
 	const struct sha1 *sha1, const struct tth *tth)
 {
@@ -457,7 +457,7 @@ huge_update_hashes(shared_file_t *sf,
 	/* Update cache */
 
 	cached = g_hash_table_lookup(sha1_cache,
-					cast_to_gconstpointer(shared_file_path(sf)));
+					cast_to_constpointer(shared_file_path(sf)));
 
 	if (cached) {
 		update_volatile_cache(cached, shared_file_size(sf),
@@ -488,7 +488,7 @@ huge_update_hashes(shared_file_t *sf,
  *
  * @return this file.
  */
-static gboolean
+static bool
 huge_need_sha1(shared_file_t *sf)
 {
 	struct sha1_cache_entry *cached;
@@ -552,7 +552,7 @@ huge_need_sha1(shared_file_t *sf)
  * is put in a queue for it's SHA1 digest to be computed.
  */
 
-static gboolean
+static bool
 huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
@@ -604,7 +604,7 @@ queue_shared_file_for_sha1_computation(shared_file_t *sf)
  *
  * @return true (in the C sense) if it is, or false otherwise.
  */
-static gboolean
+static bool
 cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
 	const shared_file_t *sf)
 {
@@ -615,7 +615,7 @@ cached_entry_up_to_date(const struct sha1_cache_entry *cache_entry,
 /**
  * External interface to check whether the sha1 for shared_file is known.
  */
-gboolean
+bool
 sha1_is_cached(const shared_file_t *sf)
 {
 	const struct sha1_cache_entry *cached;
@@ -649,8 +649,8 @@ request_sha1(shared_file_t *sf)
 				g_debug("cached SHA1 entry for \"%s\" outdated: "
 					"had mtime %lu, now %lu",
 					shared_file_path(sf),
-					(gulong) cached->mtime,
-					(gulong) shared_file_modification_time(sf));
+					(ulong) cached->mtime,
+					(ulong) shared_file_modification_time(sf));
 			else
 				g_debug("queuing \"%s\" for SHA1 computation",
 						shared_file_path(sf));
@@ -667,14 +667,14 @@ request_sha1(shared_file_t *sf)
  * things using the same pattern with other letters, as being rather
  * improbable hashes.
  */
-gboolean
+bool
 huge_improbable_sha1(const char *buf, size_t len)
 {
 	size_t ilen = 0;			/* Length of the improbable sequence */
 	size_t i, longest = 0;
 
 	for (i = 1; i < len; i++) {
-		guchar previous, c;
+		uchar previous, c;
 		
 		previous = buf[i - 1];
 		c = buf[i];
@@ -703,7 +703,7 @@ huge_improbable_sha1(const char *buf, size_t len)
  *
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean
+bool
 huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	const struct gnutella_node *n)
 {
@@ -752,7 +752,7 @@ bad:
 	return FALSE;
 }
 
-gboolean
+bool
 huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	const struct gnutella_node *n)
 {
@@ -788,7 +788,7 @@ bad:
  * X-Alt but is really an old X-Gnutella-Alternate-Location containing a
  * list of HTTP URLs.
  */
-static gboolean
+static bool
 huge_is_pure_xalt(const char *value, size_t len)
 {
 	host_addr_t addr;
@@ -889,8 +889,8 @@ huge_init(void)
 /**
  * Free SHA1 cache entry.
  */
-static gboolean
-cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
+static bool
+cache_free_entry(void *unused_key, void *v, void *unused_udata)
 {
 	struct sha1_cache_entry *e = v;
 

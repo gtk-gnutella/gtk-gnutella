@@ -52,10 +52,10 @@ static const char *product_build;
 static const char *product_revision;
 static const char *product_interface;
 static const char *product_website;
-static guint8 product_major;
-static guint8 product_minor;
+static uint8 product_major;
+static uint8 product_minor;
 static const char *product_revchar;
-static guint8 product_patchlevel;
+static uint8 product_patchlevel;
 
 /**
  * Get the product's name.
@@ -87,7 +87,7 @@ product_get_version(void)
 /**
  * Get major version.
  */
-guint8
+uint8
 product_get_major(void)
 {
 	return product_major;
@@ -96,7 +96,7 @@ product_get_major(void)
 /**
  * Get minor version.
  */
-guint8
+uint8
 product_get_minor(void)
 {
 	return product_minor;
@@ -105,10 +105,10 @@ product_get_minor(void)
 /**
  * Get revision character.
  */
-guint8
+uint8
 product_get_revchar(void)
 {
-	return (guint8) product_revchar[0];
+	return (uint8) product_revchar[0];
 }
 
 /**
@@ -123,7 +123,7 @@ product_get_revision(void)
 /**
  * Get revision patchlevel.
  */
-guint8
+uint8
 product_get_patchlevel(void)
 {
 	return product_patchlevel;
@@ -168,11 +168,11 @@ product_get_website(void)
 /**
  * Get build number.
  */
-guint32
+uint32
 product_get_build(void)
 {
-	static guint32 build;
-	static gboolean initialized;
+	static uint32 build;
+	static bool initialized;
 
 	if G_UNLIKELY(!initialized) {
 		const char *p;
@@ -225,7 +225,7 @@ product_get_build_full(void)
  */
 G_GNUC_COLD void
 product_init(const char *name,
-	guint8 major, guint8 minor, guint8 patchlevel, const char *revchar,
+	uint8 major, uint8 minor, uint8 patchlevel, const char *revchar,
 	const char *date, const char *version, const char *revision,
 	const char *build)
 {

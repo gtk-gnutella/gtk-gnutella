@@ -369,7 +369,7 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
 
 		msort_with_tmp(b, n, s, cmp, buf);
 	} else {
-		static guint64 memsize;
+		static uint64 memsize;
 
 		/*
 		 * We should avoid allocating too much memory since this might
@@ -379,11 +379,11 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
 		if G_UNLIKELY(0 == memsize) {
 			memsize = getphysmemsize();
 			if (0 == memsize)
-				memsize = (guint64) -1;
+				memsize = (uint64) -1;
 		}
 
 		/* If the memory requirements are too high don't allocate memory */
-		if ((guint64) size > memsize / 4) {
+		if ((uint64) size > memsize / 4) {
 			quicksort(b, n, s, cmp);
 		} else {
 			char *tmp;

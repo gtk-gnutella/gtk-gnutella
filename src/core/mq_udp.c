@@ -53,7 +53,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static void mq_udp_service(gpointer data);
+static void mq_udp_service(void *data);
 static const struct mq_ops mq_udp_ops;
 
 /**
@@ -72,14 +72,14 @@ struct mq_udp_info_extended {
 	gnet_host_t to;		/**< Destination */
 	/* Original free routine info */
 	pmsg_free_t orig_free;
-	gpointer orig_arg;
+	void *orig_arg;
 };
 
 /**
  * Free routine for plain metadata.
  */
 static void
-mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
+mq_udp_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct mq_udp_info *mi = arg;
 
@@ -93,7 +93,7 @@ mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
  * on the original metadata.
  */
 static void
-mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
+mq_udp_pmsg_free_extended(pmsg_t *mb, void *arg)
 {
 	struct mq_udp_info_extended *mi = arg;
 
@@ -175,7 +175,7 @@ mq_udp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
  * Service routine for UDP message queue.
  */
 static void
-mq_udp_service(gpointer data)
+mq_udp_service(void *data)
 {
 	mqueue_t *q = data;
 	int r;
@@ -198,7 +198,7 @@ mq_udp_service(gpointer data)
 		char *mb_start = pmsg_start(mb);
 		int mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
-		guint8 function;
+		uint8 function;
 
 		if (!pmsg_check(mb, q)) {
 			dropped++;
@@ -285,9 +285,9 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 {
 	size_t size;
 	char *mbs;
-	guint8 function;
+	uint8 function;
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
-	gboolean error = FALSE;
+	bool error = FALSE;
 
 	dump_tx_udp_packet(to, mb);
 
@@ -502,7 +502,7 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 /**
  * Is the last enqueued message still unwritten?
  */
-static gboolean
+static bool
 mq_udp_flushed(const mqueue_t *unused_q)
 {
 	(void) unused_q;

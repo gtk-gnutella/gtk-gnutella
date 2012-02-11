@@ -39,11 +39,11 @@
 
 struct tth;
 
-gboolean verify_tth_append(const char *pathname,
+bool verify_tth_append(const char *pathname,
 		filesize_t offset, filesize_t amount,
 		verify_callback callback, void *user_data);
 
-gboolean verify_tth_prepend(const char *pathname,
+bool verify_tth_prepend(const char *pathname,
 		filesize_t offset, filesize_t amount,
 		verify_callback callback, void *user_data);
 
@@ -54,6 +54,6 @@ size_t verify_tth_leave_count(const struct verify *);
 void verify_tth_init(void);
 void verify_tth_close(void);
 
-void request_tigertree(struct shared_file *sf, gboolean high_priority);
+void request_tigertree(struct shared_file *sf, bool high_priority);
 
 #endif /* _core_verify_tth_h_ */

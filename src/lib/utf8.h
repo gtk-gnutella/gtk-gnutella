@@ -68,48 +68,48 @@ void locale_init(void);
 void locale_close(void);
 const char *locale_get_charset(void);
 const char *locale_get_language(void);
-guint utf8_char_len(const char *s);
-gboolean is_ascii_string(const char *str);
-gboolean utf8_is_valid_string(const char *s);
-gboolean utf8_is_valid_data(const char *s, size_t n);
+uint utf8_char_len(const char *s);
+bool is_ascii_string(const char *str);
+bool utf8_is_valid_string(const char *s);
+bool utf8_is_valid_data(const char *s, size_t n);
 size_t utf8_char_count(const char *s);
 size_t utf8_data_char_count(const char *src, size_t len);
 size_t utf8_strlcpy(char *dst, const char *src, size_t dst_size);
 size_t utf8_strcpy_max(char *dst, size_t dst_size,
 			const char *src, size_t max_chars);
-guint32 utf8_decode_char_fast(const char *s, guint *retlen)
+uint32 utf8_decode_char_fast(const char *s, uint *retlen)
 	NON_NULL_PARAM((1,2));
-int utf8_to_iso8859(char *s, int len, gboolean space);
+int utf8_to_iso8859(char *s, int len, bool space);
 size_t utf8_strlower(char *dst, const char *src, size_t size);
 char *utf8_strlower_copy(const char *src);
 size_t utf8_strupper(char *dst, const char *src, size_t size);
 char *utf8_strupper_copy(const char *src);
 char *utf8_canonize(const char *src);
 char *utf8_normalize(const char *src, uni_norm_t norm);
-gboolean utf8_is_decomposed(const char *src, gboolean nfkd);
-guint NON_NULL_PARAM((2)) utf8_encode_char(guint32 uc, char *buf, size_t size);
-guint32 utf8_decode_char_buffer(const char *s, size_t len, guint *retlen)
+bool utf8_is_decomposed(const char *src, bool nfkd);
+uint NON_NULL_PARAM((2)) utf8_encode_char(uint32 uc, char *buf, size_t size);
+uint32 utf8_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
 
-guint32 utf16_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+uint32 utf16_le_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
-guint32 utf16_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+uint32 utf16_be_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
-size_t utf8_to_utf16(const char *in, guint16 *out, size_t size);
-guint16 *utf8_to_utf16_string(const char *in);
-char *utf16_to_utf8_string(const guint16 *in);
+size_t utf8_to_utf16(const char *in, uint16 *out, size_t size);
+uint16 *utf8_to_utf16_string(const char *in);
+char *utf16_to_utf8_string(const uint16 *in);
 
-size_t utf32_to_utf8(const guint32 *in, char *out, size_t size);
-guint32 utf32_lowercase(guint32 uc) G_GNUC_PURE;
-gboolean utf32_canonical_sorted(const guint32 *src);
-gboolean utf32_is_decomposed(const guint32 *src, gboolean nfkd);
-size_t utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size);
-size_t utf32_decompose_nfkd(const guint32 *in, guint32 *out, size_t size);
-size_t utf32_strlower(guint32 *dst, const guint32 *src, size_t size);
-size_t utf32_strupper(guint32 *dst, const guint32 *src, size_t size);
-guint32 utf32_be_decode_char_buffer(const char *s, size_t len, guint *retlen)
+size_t utf32_to_utf8(const uint32 *in, char *out, size_t size);
+uint32 utf32_lowercase(uint32 uc) G_GNUC_PURE;
+bool utf32_canonical_sorted(const uint32 *src);
+bool utf32_is_decomposed(const uint32 *src, bool nfkd);
+size_t utf32_decompose_nfd(const uint32 *in, uint32 *out, size_t size);
+size_t utf32_decompose_nfkd(const uint32 *in, uint32 *out, size_t size);
+size_t utf32_strlower(uint32 *dst, const uint32 *src, size_t size);
+size_t utf32_strupper(uint32 *dst, const uint32 *src, size_t size);
+uint32 utf32_be_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
-guint32 utf32_le_decode_char_buffer(const char *s, size_t len, guint *retlen)
+uint32 utf32_le_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
 
 /**
@@ -138,30 +138,30 @@ utf8_decode_lookahead(const char *s, size_t len)
  * See also RFC 2781.
  *
  * @param uc the unicode character to encode.
- * @returns (guint32) -1 if the unicode character is invalid. Otherwise the
+ * @returns (uint32) -1 if the unicode character is invalid. Otherwise the
  *         	UTF-16 encoded character is returned in a compact form:
  *			The lower 16 bits are the first UTF-16 character, the
  *			upper 16 bits are the second one. If the upper bits are
  *			all zero, the unicode character fit into 16 bits.
  */
-static inline guint32
-utf16_encode_char_compact(guint32 uc)
+static inline uint32
+utf16_encode_char_compact(uint32 uc)
 {
 	if (uc <= 0xFFFF) {
 		return uc;
 	} else if (uc <= 0x10FFFF) {
-		guint16 w1, w2;
+		uint16 w1, w2;
 
 		uc -= 0x10000;
 		w1 = (uc >> 10) | 0xd800;
 		w2 = (uc & 0x3ff) | 0xdc00;
 		return (w2 << 16) | w1;
 	}
-	return (guint32) -1;
+	return (uint32) -1;
 }
 
-static inline gboolean
-utf8_byte_is_allowed(guchar c)
+static inline bool
+utf8_byte_is_allowed(uchar c)
 {
 	switch (c) {
 	case 0xC0:
@@ -188,20 +188,20 @@ utf8_byte_is_allowed(guchar c)
  * @param uc an UTF-32 character
  * @return TRUE if the the character is a non-character, FALSE otherwise.
  */
-static inline gboolean
-utf32_is_non_character(guint32 uc)
+static inline bool
+utf32_is_non_character(uint32 uc)
 {
 	return 0xfffeU == (uc & 0xfffeU) || (uc >= 0xfdd0U && uc <= 0xfdefU);
 }
 
-static inline gboolean 
-utf32_is_surrogate(guint32 cp)
+static inline bool 
+utf32_is_surrogate(uint32 cp)
 {
   return cp >= 0xd800 && cp < 0xe000;
 }
 
-static inline gboolean
-utf32_is_valid(guint32 cp)
+static inline bool
+utf32_is_valid(uint32 cp)
 {
   return cp < 0x10ffffU && !utf32_is_non_character(cp);
 }
@@ -213,8 +213,8 @@ utf32_is_valid(guint32 cp)
  * @return	If the given codepoint is a surrogate, a BOM, out of range
  *			or an invalid codepoint FALSE is returned; otherwise TRUE.
  */
-static inline G_GNUC_CONST gboolean
-utf32_bad_codepoint(guint32 uc)
+static inline G_GNUC_CONST bool
+utf32_bad_codepoint(uint32 uc)
 {
 	return	uc > 0x10FFFF ||
 		0xFFFE == (uc & 0xFFFE) || /* BOM or illegal xxFFFF */
@@ -222,7 +222,7 @@ utf32_bad_codepoint(guint32 uc)
 }
 
 static inline G_GNUC_CONST unsigned
-utf8_encoded_len(guint32 cp)
+utf8_encoded_len(uint32 cp)
 {
   if (cp < 0x80U) {
     return 1;
@@ -237,8 +237,8 @@ utf8_encoded_len(guint32 cp)
   }
 }
 
-static inline G_GNUC_CONST gboolean
-utf32_is_ascii(guint32 cp)
+static inline G_GNUC_CONST bool
+utf32_is_ascii(uint32 cp)
 {
   return cp < 0x80U;
 }
@@ -263,13 +263,13 @@ utf8_first_byte_length_hint(unsigned char ch)
   }
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_CONST bool
 utf8_first_byte_valid(unsigned char ch)
 {
   return 0 != utf8_first_byte_length_hint(ch);
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_CONST bool
 utf8_first_bytes_valid(unsigned char ch1, unsigned char ch2)
 {
   if (ch1 < 0x80) {
@@ -288,13 +288,13 @@ utf8_first_bytes_valid(unsigned char ch1, unsigned char ch2)
 }
 
 /**
- * @return (guint32)-1 on failure. On success the decoded Unicode codepoint
+ * @return (uint32)-1 on failure. On success the decoded Unicode codepoint
  *         is returned.
  */
-static inline guint32
+static inline uint32
 utf8_decode(const char *src, size_t size)
 {
-  guint32 cp;
+  uint32 cp;
   unsigned n;
 
   if (0 == size)
@@ -329,11 +329,11 @@ utf8_decode(const char *src, size_t size)
   return cp;
 
 failure:
-  return (guint32) -1;
+  return (uint32) -1;
 }
 
 static inline unsigned
-utf8_encode(guint32 cp, char *buf)
+utf8_encode(uint32 cp, char *buf)
 {
   unsigned n = utf8_encoded_len(cp);
 
@@ -401,11 +401,11 @@ char *unknown_to_utf8_normalized(const char *src, uni_norm_t norm,
 size_t ascii_enforce(char *dst, size_t size, const char *src);
 size_t utf8_enforce(char *dst, size_t size, const char *src);
 
-gboolean icu_enabled(void);
-gboolean locale_is_latin(void);
-gboolean locale_is_utf8(void);
+bool icu_enabled(void);
+bool locale_is_latin(void);
+bool locale_is_utf8(void);
 
-gboolean utf8_can_latinize(const char *src);
+bool utf8_can_latinize(const char *src);
 size_t utf8_latinize(char *dst, size_t dst_size, const char *src);
 
 #define UNICODE_CANONIZE(x) utf8_canonize(x)

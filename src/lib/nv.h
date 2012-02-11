@@ -46,7 +46,7 @@ struct nv_table;
 typedef struct nv_table nv_table_t;
 
 typedef void (*nv_table_cb_t)(nv_pair_t *nv, void *u);
-typedef gboolean (*nv_table_cbr_t)(nv_pair_t *nv, void *u);
+typedef bool (*nv_table_cbr_t)(nv_pair_t *nv, void *u);
 
 /**
  * Free routine signature for the value of a name/value pair.
@@ -74,9 +74,9 @@ nv_pair_t *nv_pair_refcnt_inc(nv_pair_t *nvp);
 void nv_pair_set_value_free(nv_pair_t *nvp, nv_pair_val_free_t vf);
 
 unsigned nv_pair_hash(const void *key);
-gboolean nv_pair_eq(const void *k1, const void *k2);
+bool nv_pair_eq(const void *k1, const void *k2);
 
-nv_table_t *nv_table_make(gboolean ordered);
+nv_table_t *nv_table_make(bool ordered);
 void nv_table_free(nv_table_t *nvt);
 void nv_table_free_null(nv_table_t **nvt_ptr);
 void nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp);
@@ -84,7 +84,7 @@ void nv_table_insert(const nv_table_t *nvt, const char *, const void *, size_t);
 void nv_table_insert_str(const nv_table_t *nvt, const char *n, const char *v);
 void nv_table_insert_nocopy(const nv_table_t *nvt,
 	const char *name, const void *value, size_t length);
-gboolean nv_table_remove(const nv_table_t *nvt, const char *name);
+bool nv_table_remove(const nv_table_t *nvt, const char *name);
 nv_pair_t *nv_table_lookup(const nv_table_t *nvt, const char *name);
 const char *nv_table_lookup_str(const nv_table_t *nvt, const char *name);
 size_t nv_table_count(const nv_table_t *nvt);

@@ -40,8 +40,8 @@
 
 #if defined(FRAGCHECK)
 void fragcheck_init(void);
-void alloc_dump(FILE *f, gboolean unused_flag);
-void alloc_dump2(FILE *unused_f, gboolean unused_flag);
+void alloc_dump(FILE *f, bool unused_flag);
+void alloc_dump2(FILE *unused_f, bool unused_flag);
 
 #define alloc_reset(a, b) alloc_dump2((a), (b))
 #endif	/* FRAGCHECK */

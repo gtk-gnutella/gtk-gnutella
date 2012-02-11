@@ -39,13 +39,13 @@
 #include "lib/gnet_host.h"
 
 typedef struct wrap_io {
-	gpointer ctx;
-	ssize_t (*write)(struct wrap_io *, gconstpointer, size_t);
-	ssize_t (*read)(struct wrap_io *, gpointer, size_t);
+	void *ctx;
+	ssize_t (*write)(struct wrap_io *, const void *, size_t);
+	ssize_t (*read)(struct wrap_io *, void *, size_t);
 	ssize_t (*writev)(struct wrap_io *, const iovec_t *, int);
 	ssize_t (*readv)(struct wrap_io *, iovec_t *, int);
 	ssize_t (*sendto)(struct wrap_io *, const gnet_host_t *,
-						gconstpointer, size_t);
+						const void *, size_t);
 	int (*flush)(struct wrap_io *);
 	int (*fd)(struct wrap_io *);
 	unsigned (*bufsize)(struct wrap_io *, enum socket_buftype);

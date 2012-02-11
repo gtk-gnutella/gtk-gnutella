@@ -33,7 +33,7 @@
 #include "topless.h"
 
 #ifndef USE_TOPLESS
-gboolean running_topless;
+bool running_topless;
 #endif	/* USE_TOPLESS */
 
 void

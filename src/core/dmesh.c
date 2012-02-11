@@ -104,8 +104,8 @@ struct dmesh_entry {
 		dmesh_fwinfo_t fwh;		/**< Firewalled host */
 	} e;
 	hash_list_t *bad;		/**< Keeps track of IPs reporting entry as bad */
-	guint8 good;			/**< Whether marked as being a good entry */
-	guint8 fw_entry;		/**< Whether entry is that of a firewalled host */
+	uint8 good;				/**< Whether marked as being a good entry */
+	uint8 fw_entry;			/**< Whether entry is that of a firewalled host */
 };
 
 #define MAX_LIFETIME	43200		/**< half a day */
@@ -145,7 +145,7 @@ struct dmesh_banned {
 };
 
 typedef void (*dmesh_add_cb)(
-	const struct sha1 *sha1, host_addr_t addr, guint16 port, gpointer udata);
+	const struct sha1 *sha1, host_addr_t addr, uint16 port, void *udata);
 
 /**
  * This table stores the banned entries by SHA1.
@@ -164,14 +164,14 @@ static char *dmesh_fwinfo_to_string(const dmesh_fwinfo_t *info);
 /**
  * Hash a URL info.
  */
-static guint
-urlinfo_hash(gconstpointer key)
+static uint
+urlinfo_hash(const void *key)
 {
 	const dmesh_urlinfo_t *info = key;
-	guint hash;
+	uint hash;
 
 	hash = host_addr_hash(info->addr);
-	hash ^= ((guint32) info->port << 16) | info->port;
+	hash ^= ((uint32) info->port << 16) | info->port;
 	hash ^= info->idx;
 	hash ^= g_str_hash(info->name);
 
@@ -182,7 +182,7 @@ urlinfo_hash(gconstpointer key)
  * Test equality of two URL infos.
  */
 static int
-urlinfo_eq(gconstpointer a, gconstpointer b)
+urlinfo_eq(const void *a, const void *b)
 {
 	const dmesh_urlinfo_t *ia = a, *ib = b;
 
@@ -234,7 +234,7 @@ dmesh_entry_free(struct dmesh_entry *dme)
 static void
 dmesh_fill_info(dmesh_urlinfo_t *info,
 	const struct sha1 *sha1, const host_addr_t addr,
-	guint16 port, guint idx, const char *name)
+	uint16 port, uint idx, const char *name)
 {
 	static const char urnsha1[] = "urn:sha1:";
 	static char urn[SHA1_BASE32_SIZE + sizeof urnsha1];
@@ -280,9 +280,9 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 	if (dmb->sha1 != NULL) {
 		GSList *by_addr;
 		GSList *head;
-		gpointer key;			/* The SHA1 atom used for key in table */
-		gpointer x;
-		gboolean found;
+		void *key;			/* The SHA1 atom used for key in table */
+		void *x;
+		bool found;
 
 		found = g_hash_table_lookup_extended(
 			ban_mesh_by_sha1, dmb->sha1, &key, &x);
@@ -308,7 +308,7 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
  * Called from callout queue when it's time to expire the URL ban.
  */
 static void
-dmesh_ban_expire(cqueue_t *unused_cq, gpointer obj)
+dmesh_ban_expire(cqueue_t *unused_cq, void *obj)
 {
 	struct dmesh_banned *dmb = obj;
 
@@ -371,7 +371,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 
 		if (sha1 != NULL) {
 			GSList *by_addr;
-			gboolean existed;
+			bool existed;
 
 			dmb->sha1 = atom_sha1_get(sha1);
 
@@ -400,7 +400,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
  * Forcefully remove an entry from the banned mesh.
  */
 static void
-dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 {
 	dmesh_urlinfo_t info;
 	struct dmesh_banned *dmb;
@@ -417,7 +417,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, guint16 port)
 /**
  * Check whether URL is banned from the mesh.
  */
-static gboolean
+static bool
 dmesh_is_banned(const dmesh_urlinfo_t *info)
 {
 	return NULL != g_hash_table_lookup(ban_mesh, info);
@@ -426,7 +426,7 @@ dmesh_is_banned(const dmesh_urlinfo_t *info)
 /**
  * Are we capable of using firewalled alternate locations?
  */
-gboolean
+bool
 dmesh_can_use_fwalt(void)
 {
 	return !GNET_PROPERTY(is_firewalled) && GNET_PROPERTY(send_pushes);
@@ -473,12 +473,12 @@ dmesh_url_strerror(dmesh_url_error_t errnum)
  * @return TRUE if OK, FALSE if we could not parse it.
  * The variable `dmesh_url_errno' is set accordingly.
  */
-gboolean
+bool
 dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 {
 	host_addr_t addr;
-	guint16 port;
-	guint idx;
+	uint16 port;
+	uint idx;
 	const char *endptr, *file, *host = NULL, *path = NULL;
 
 	if (!http_url_parse(url, &port, &host, &path)) {
@@ -546,7 +546,7 @@ dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 	 */
 
 	if (idx != URN_INDEX) {
-		char *unescaped = url_unescape(deconstify_gchar(file), FALSE);
+		char *unescaped = url_unescape(deconstify_char(file), FALSE);
 		if (!unescaped) {
 			dmesh_url_errno = DMESH_URL_BAD_ENCODING;
 			return FALSE;
@@ -620,9 +620,9 @@ static void
 dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 {
 	struct packed_host packed;
-	gpointer key;
-	gpointer value;
-	gboolean found;
+	void *key;
+	void *value;
+	bool found;
 
 	g_assert(dm);
 	g_assert(list_length(dm->entries) > 0);
@@ -645,7 +645,7 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	}
 
 	g_assert(found);
-	g_assert(value == (gpointer) dme);
+	g_assert(value == (void *) dme);
 
 	found = list_remove(dm->entries, dme);		/* Remove from list... */
 
@@ -667,13 +667,13 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
  * Remove the addr:port entry from mesh bucket, if present.
  */
 static void
-dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
+dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 {
 	struct packed_host packed;
 	struct dmesh_entry *dme;
-	gpointer key;
-	gpointer value;
-	gboolean found;
+	void *key;
+	void *value;
+	bool found;
 
 	g_assert(dm);
 
@@ -704,7 +704,7 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, guint16 port)
  * Is the SHA1 that of a finished file (either shared in the library or
  * seeded after completion)?
  */
-static gboolean
+static bool
 sha1_of_finished_file(const struct sha1 *sha1)
 {
 	const shared_file_t *sf = shared_file_by_sha1(sha1);
@@ -719,7 +719,7 @@ sha1_of_finished_file(const struct sha1 *sha1)
  * we get are only from uploaders.  To keep only the ones that are fresh-enough, 
  * reduce the lifetime of each entry.
  */
-static glong
+static long
 dm_lifetime(const struct dmesh *dm)
 {
 	g_assert(dm);
@@ -737,7 +737,7 @@ dm_expire(struct dmesh *dm)
 	GSList *expired = NULL;
 	GSList *sl;
 	time_t now = tm_time();
-	glong agemax;
+	long agemax;
 	list_iter_t *iter;
 
 	agemax = dm_lifetime(dm);
@@ -787,9 +787,9 @@ dm_expire(struct dmesh *dm)
 static void
 dmesh_dispose(const struct sha1 *sha1)
 {
-	gpointer key;
-	gpointer value;
-	gboolean found;
+	void *key;
+	void *value;
+	bool found;
 	struct dmesh *dm;
 
 	found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
@@ -808,9 +808,9 @@ dmesh_dispose(const struct sha1 *sha1)
 /**
  * Remove entry from mesh due to a failed download attempt.
  */
-gboolean
-dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, guint16 port,
-	guint idx, const char *name)
+bool
+dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, uint16 port,
+	uint idx, const char *name)
 {
 	struct dmesh *dm;
 	dmesh_urlinfo_t info;
@@ -915,16 +915,16 @@ dmesh_get(const struct sha1 *sha1)
  * @return whether the entry was added in the mesh, or was discarded because
  * it was the oldest record and we have enough already.
  */
-static gboolean
+static bool
 dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
-	time_t stamp, gboolean swarm)
+	time_t stamp, bool swarm)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
 	time_t now = tm_time();
 	host_addr_t addr = info->addr;
-	guint16 port = info->port;
-	guint idx = info->idx;
+	uint16 port = info->port;
+	uint idx = info->idx;
 	const char *name = info->name;
 	struct packed_host packed;
 	const char *reason = NULL;
@@ -1071,7 +1071,7 @@ rejected:
 	if (GNET_PROPERTY(dmesh_debug) > 4)
 		g_debug("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
-			dmesh_urlinfo_to_string(info), (guint) stamp,
+			dmesh_urlinfo_to_string(info), (uint) stamp,
 			(unsigned) delta_time(now, stamp),
 			reason);
 
@@ -1087,9 +1087,9 @@ rejected:
  * @return whether the entry was added in the mesh, or was discarded because
  * it was the oldest record and we have enough already.
  */
-static gboolean
+static bool
 dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
-	time_t stamp, gboolean swarm)
+	time_t stamp, bool swarm)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
@@ -1197,7 +1197,7 @@ rejected:
 	if (GNET_PROPERTY(dmesh_debug) > 4)
 		g_debug("MESH %s: rejecting \"%s\", stamp=%u age=%u: %s",
 			sha1_base32(sha1),
-			dmesh_fwinfo_to_string(info), (guint) stamp,
+			dmesh_fwinfo_to_string(info), (uint) stamp,
 			(unsigned) delta_time(now, stamp),
 			reason);
 
@@ -1207,9 +1207,9 @@ rejected:
 /**
  * Same as dmesh_raw_add(), but this is for public consumption.
  */
-gboolean
+bool
 dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
-	guint16 port, guint idx, const char *name, time_t stamp)
+	uint16 port, uint idx, const char *name, time_t stamp)
 {
 	dmesh_urlinfo_t info;
 
@@ -1227,7 +1227,7 @@ dmesh_add(const struct sha1 *sha1, const host_addr_t addr,
  * Add addr:port as a known alternate location for given sha1.
  */
 void
-dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 {
 	dmesh_urlinfo_t info;
 
@@ -1240,7 +1240,7 @@ dmesh_add_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
  */
 void
 dmesh_add_good_alternate(const struct sha1 *sha1,
-	host_addr_t addr, guint16 port)
+	host_addr_t addr, uint16 port)
 {
 	dmesh_urlinfo_t info;
 
@@ -1260,7 +1260,7 @@ dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
 	for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
 		struct gnutella_host host;
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		host = gnet_host_vec_get(alt, i);
 		addr = gnet_host_get_addr(&host);
@@ -1275,7 +1275,7 @@ dmesh_add_alternates(const struct sha1 *sha1, const gnet_host_vec_t *alt)
  * This inserts the location into the banned mesh.
  */
 void
-dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
+dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 {
 	dmesh_remove(sha1, addr, port, URN_INDEX, NULL);
 }
@@ -1290,7 +1290,7 @@ dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, guint16 port)
  */
 void
 dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
-	host_addr_t addr, guint16 port)
+	host_addr_t addr, uint16 port)
 {
 	struct dmesh *dm;
 	struct packed_host packed;
@@ -1343,12 +1343,12 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
  */
 void
 dmesh_good_mark(const struct sha1 *sha1,
-	host_addr_t addr, guint16 port, gboolean good)
+	host_addr_t addr, uint16 port, bool good)
 {
 	struct dmesh *dm;
 	struct packed_host packed;
 	struct dmesh_entry *dme;
-	gboolean retried = FALSE;
+	bool retried = FALSE;
 
 	dm = g_hash_table_lookup(mesh, sha1);
 	if (dm == NULL)
@@ -1417,7 +1417,7 @@ retry:
  */
 static void
 dmesh_good_fw_mark(const struct sha1 *sha1,
-	const struct guid *guid, gboolean good)
+	const struct guid *guid, bool good)
 {
 	struct dmesh *dm;
 	struct dmesh_entry *dme;
@@ -1498,7 +1498,7 @@ dmesh_add_good_firewalled(const struct sha1 *sha1, const struct guid *guid)
  */
 static size_t
 dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
-	size_t len, gboolean *quoting)
+	size_t len, bool *quoting)
 {
 	size_t rw;
 	size_t maxslen = len - 1;			/* Account for trailing NUL */
@@ -1658,7 +1658,7 @@ static size_t
 dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 {
 	size_t rw;
-	gboolean quoting;
+	bool quoting;
 
 	g_assert(!dme->fw_entry);
 	g_assert(size > 0);
@@ -1764,7 +1764,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	int nselected;
 	int i;
 	int j;
-	gboolean complete_file;
+	bool complete_file;
 	list_iter_t *iter;
 
 	/*
@@ -1878,7 +1878,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
  */
 static size_t
 dmesh_fwalt_string(char *buf, size_t size,
-	const guid_t *guid, host_addr_t addr, guint16 port, sequence_t *proxies,
+	const guid_t *guid, host_addr_t addr, uint16 port, sequence_t *proxies,
 	host_net_t net)
 {
 	size_t rw;
@@ -1957,7 +1957,7 @@ int
 dmesh_alternate_location(const struct sha1 *sha1,
 	char *buf, size_t size, const host_addr_t addr,
 	time_t last_sent, const char *vendor,
-	fileinfo_t *fi, gboolean request, const struct guid *guid,
+	fileinfo_t *fi, bool request, const struct guid *guid,
 	host_net_t net)
 {
 	char url[1024];
@@ -1970,10 +1970,10 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	GSList *by_addr;
 	size_t maxlinelen = 0;
 	header_fmt_t *fmt;
-	gboolean added;
+	bool added;
 	list_iter_t *iter;
-	gboolean complete_file;
-	gboolean can_share_partials;
+	bool complete_file;
+	bool can_share_partials;
 
 	g_assert(sha1);
 	g_assert(buf);
@@ -2317,7 +2317,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		struct dmesh_entry *dme = list_iter_next(iter);
 		sequence_t *proxies;
 		host_addr_t servent_addr;
-		guint16 servent_port;
+		uint16 servent_port;
 
 		if (!dme->fw_entry)
 			continue;
@@ -2413,12 +2413,12 @@ nomore:
  *
  * @return whether we successfully extracted the SHA1.
  */
-gboolean
+bool
 dmesh_collect_sha1(const char *value, struct sha1 *sha1)
 {
 	strtok_t *st;
 	const char *tok;
-	gboolean found = FALSE;
+	bool found = FALSE;
 
 	st = strtok_make_strip(value);
 
@@ -2446,7 +2446,7 @@ dmesh_collect_sha1(const char *value, struct sha1 *sha1)
  */
 static void
 dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
-	dmesh_add_cb func, gpointer udata)
+	dmesh_add_cb func, void *udata)
 {
 	const char *tls_hex, *p, *next;
 
@@ -2456,8 +2456,8 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 	while (NULL != (p = next)) {
 		const char *start, *endptr;
 		host_addr_t addr;
-		guint16 port;
-		gboolean ok;
+		uint16 port;
+		bool ok;
 
 		start = skip_ascii_blanks(p);
 		if ('\0' == *start)
@@ -2501,8 +2501,8 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 
 static void
 dmesh_collect_compact_locations_cback(
-	const struct sha1 *sha1, host_addr_t addr, guint16 port,
-	gpointer unused_udata)
+	const struct sha1 *sha1, host_addr_t addr, uint16 port,
+	void *unused_udata)
 {
 	(void) unused_udata;
 	(void) dmesh_add_alternate(sha1, addr, port);
@@ -2521,8 +2521,8 @@ dmesh_collect_compact_locations(const struct sha1 *sha1, const char *value)
 
 static void
 dmesh_collect_negative_locations_cback(
-	const struct sha1 *sha1, host_addr_t addr, guint16 port,
-	gpointer udata)
+	const struct sha1 *sha1, host_addr_t addr, uint16 port,
+	void *udata)
 {
 	host_addr_t *reporter = udata;
 
@@ -2551,17 +2551,17 @@ void
 dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 {
 	const char *p = value;
-	guchar c;
+	uchar c;
 	time_t now = tm_time();
-	gboolean finished = FALSE;
+	bool finished = FALSE;
 
 	do {
 		const char *date_start, *url_start;
 		time_t stamp;
-		gboolean ok;
+		bool ok;
 		dmesh_urlinfo_t info;
-		gboolean skip_date;
-		gboolean in_quote;
+		bool skip_date;
+		bool in_quote;
 
 		/*
 		 * Find next space, colon or EOS (End of String).
@@ -2625,7 +2625,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 		 * Parse URL.
 		 */
 
-		g_assert((guchar) *p == c);
+		g_assert((uchar) *p == c);
 
 		if (*url_start == '"') {				/* URL enclosed in quotes? */
 			url_start++;						/* Skip that needless quote */
@@ -2719,7 +2719,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 		if (p != date_start) {
 			char *date;
 
-			g_assert((guchar) *p == c);
+			g_assert((uchar) *p == c);
 			date = h_strndup(date_start, p - date_start);
 			stamp = date2time(date, now);
 
@@ -2770,7 +2770,7 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 			g_debug("MESH %s: %s \"%s\", stamp=%u age=%u",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_string(&info), (guint) stamp,
+				dmesh_urlinfo_to_string(&info), (uint) stamp,
 				(unsigned) delta_time(now, stamp));
 
 		if (c == '\0')				/* Reached end of string */
@@ -2833,9 +2833,9 @@ void
 dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 {
 	struct guid guid;
-	gboolean seen_proxy = FALSE;
-	gboolean seen_guid = FALSE;
-	gboolean seen_pptls = FALSE;
+	bool seen_proxy = FALSE;
+	bool seen_guid = FALSE;
+	bool seen_pptls = FALSE;
 	time_t stamp = 0;
 	const char *tok;
 	strtok_t *st;
@@ -2864,7 +2864,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 
 	while ((tok = strtok_next(st, ";"))) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 		gnet_host_t host;
 
 		/* GUID is the first item we expect */
@@ -2975,7 +2975,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 	for (sl = rs->records; sl; sl = g_slist_next(sl)) {
 		gnet_record_t *rc = sl->data;
 		dmesh_urlinfo_t info;
-		gboolean has = FALSE;
+		bool has = FALSE;
 
 		if (rc->sha1 == NULL)
 			continue;
@@ -3082,7 +3082,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
  * Store key/value pair in file.
  */
 static void
-dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
+dmesh_store_kv(void *key, void *value, void *udata)
 {
 	const struct dmesh *dm = value;
 	FILE *out = udata;
@@ -3170,8 +3170,8 @@ dmesh_retrieve(void)
 	FILE *f;
 	char tmp[4096];
 	struct sha1 sha1;
-	gboolean has_sha1 = FALSE;
-	gboolean skip = FALSE, truncated = FALSE;
+	bool has_sha1 = FALSE;
+	bool skip = FALSE, truncated = FALSE;
 	int line = 0;
 	file_path_t fp[1];
 
@@ -3243,7 +3243,7 @@ dmesh_retrieve(void)
  * Store key/value pair in file.
  */
 static void
-dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
+dmesh_ban_store_kv(void *key, void *value, void *udata)
 {
 	const struct dmesh_banned *dmb = value;
 	FILE *out = udata;
@@ -3251,7 +3251,7 @@ dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
 	g_assert(key == dmb->info);
 
 	fprintf(out, "%lu %s\n",
-		(gulong) dmb->created, dmesh_urlinfo_to_string(dmb->info));
+		(ulong) dmb->created, dmesh_urlinfo_to_string(dmb->info));
 }
 
 /**
@@ -3343,8 +3343,8 @@ dmesh_ban_retrieve(void)
 /**
  * Free key/value pair in download mesh hash.
  */
-static gboolean
-dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+dmesh_free_kv(void *key, void *value, void *unused_udata)
 {
 	struct dmesh *dm = value;
 
@@ -3359,7 +3359,7 @@ dmesh_free_kv(gpointer key, gpointer value, gpointer unused_udata)
  * Prepend the value to the list, given by reference.
  */
 static void
-dmesh_ban_prepend_list(gpointer key, gpointer value, gpointer user)
+dmesh_ban_prepend_list(void *key, void *value, void *user)
 {
 	struct dmesh_banned *dmb = value;
 	GSList **listref = user;

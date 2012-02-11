@@ -53,7 +53,7 @@ struct dbmap;
 typedef struct dbmap dbmap_t;
 
 typedef struct dbmap_datum {
-	gpointer data;
+	void *data;
 	size_t len;
 } dbmap_datum_t;
 
@@ -68,8 +68,8 @@ typedef size_t (*dbmap_keylen_t)(const void *key);
 /**
  * DB map "foreach" iterator callbacks.
  */
-typedef void (*dbmap_cb_t)(gpointer key, dbmap_datum_t *value, gpointer u);
-typedef gboolean (*dbmap_cbr_t)(gpointer key, dbmap_datum_t *value, gpointer u);
+typedef void (*dbmap_cb_t)(void *key, dbmap_datum_t *value, void *u);
+typedef bool (*dbmap_cbr_t)(void *key, dbmap_datum_t *value, void *u);
 
 /**
  * Creation interface.
@@ -88,23 +88,23 @@ void dbmap_sdbm_set_name(const dbmap_t *dm, const char *name);
  * Public DB map interface.
  */
 
-gboolean dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value);
-gboolean dbmap_remove(dbmap_t *dm, gconstpointer key);
-gboolean dbmap_contains(dbmap_t *dm, gconstpointer key);
-dbmap_datum_t dbmap_lookup(dbmap_t *dm, gconstpointer key);
-gpointer dbmap_implementation(const dbmap_t *dm);
-gpointer dbmap_release(dbmap_t *dm);
+bool dbmap_insert(dbmap_t *dm, const void *key, dbmap_datum_t value);
+bool dbmap_remove(dbmap_t *dm, const void *key);
+bool dbmap_contains(dbmap_t *dm, const void *key);
+dbmap_datum_t dbmap_lookup(dbmap_t *dm, const void *key);
+void *dbmap_implementation(const dbmap_t *dm);
+void *dbmap_release(dbmap_t *dm);
 void dbmap_destroy(dbmap_t *dm);
 
 size_t dbmap_key_size(const dbmap_t *dm);
 dbmap_keylen_t dbmap_key_length(const dbmap_t *dm);
-gboolean dbmap_has_ioerr(const dbmap_t *dm);
+bool dbmap_has_ioerr(const dbmap_t *dm);
 const char *dbmap_strerror(const dbmap_t *dm);
 enum dbmap_type dbmap_type(const dbmap_t *dm);
 size_t dbmap_count(const dbmap_t *dm);
 
-void dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg);
-void dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg);
+void dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg);
+void dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
 
 /**
  * Key snapshot utilities.
@@ -118,14 +118,14 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
  */
 void dbmap_unlink_sdbm(const char *base);
 
-gboolean dbmap_store(dbmap_t *dm, const char *base, gboolean inplace);
-gboolean dbmap_copy(dbmap_t *from, dbmap_t *to);
-gboolean dbmap_shrink(dbmap_t *dm);
-gboolean dbmap_clear(dbmap_t *dm);
+bool dbmap_store(dbmap_t *dm, const char *base, bool inplace);
+bool dbmap_copy(dbmap_t *from, dbmap_t *to);
+bool dbmap_shrink(dbmap_t *dm);
+bool dbmap_clear(dbmap_t *dm);
 ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);
-int dbmap_set_deferred_writes(dbmap_t *dm, gboolean on);
-int dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile);
+int dbmap_set_deferred_writes(dbmap_t *dm, bool on);
+int dbmap_set_volatile(dbmap_t *dm, bool is_volatile);
 
 #endif	/* _dbmap_h_ */
 

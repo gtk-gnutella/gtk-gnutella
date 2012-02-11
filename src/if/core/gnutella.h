@@ -78,18 +78,18 @@ enum gta_msg {
 
 #if 0
 struct gnutella_header_ {
-	guint8 muid[16];
-	guint8 function;
-	guint8 ttl;
-	guint8 hops;
-	guint8 size[4];
+	uint8 muid[16];
+	uint8 function;
+	uint8 ttl;
+	uint8 hops;
+	uint8 size[4];
 };
 #endif
 
-typedef guint8 gnutella_header_t[GTA_HEADER_SIZE];
+typedef uint8 gnutella_header_t[GTA_HEADER_SIZE];
 
-static inline gconstpointer
-gnutella_data(gconstpointer header)
+static inline const void *
+gnutella_data(const void *header)
 {
 	return (char *) header + GTA_HEADER_SIZE;
 }
@@ -112,59 +112,59 @@ gnutella_header_set_muid(gnutella_header_t *header, const struct guid *muid)
 	memcpy(header, muid, 16);
 }
 
-static inline guint8
+static inline uint8
 gnutella_header_get_function(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[16];
 }
 
 static inline void
-gnutella_header_set_function(gnutella_header_t *header, guint8 function)
+gnutella_header_set_function(gnutella_header_t *header, uint8 function)
 {
-	guint8 *u8 = (void *) header;
+	uint8 *u8 = (void *) header;
 	u8[16] = function;
 }
 
-static inline guint8
+static inline uint8
 gnutella_header_get_ttl(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[17];
 }
 
 static inline void
-gnutella_header_set_ttl(gnutella_header_t *header, guint8 ttl)
+gnutella_header_set_ttl(gnutella_header_t *header, uint8 ttl)
 {
-	guint8 *u8 = (void *) header;
+	uint8 *u8 = (void *) header;
 	u8[17] = ttl;
 }
 
-static inline guint8
+static inline uint8
 gnutella_header_get_hops(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[18];
 }
 
 static inline void
-gnutella_header_set_hops(gnutella_header_t *header, guint8 hops)
+gnutella_header_set_hops(gnutella_header_t *header, uint8 hops)
 {
-	guint8 *u8 = (void *) header;
+	uint8 *u8 = (void *) header;
 	u8[18] = hops;
 }
 
-static inline guint32
+static inline uint32
 gnutella_header_get_size(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le32(&u8[19]);
 }
 
 static inline void
-gnutella_header_set_size(gnutella_header_t *header, guint32 size)
+gnutella_header_set_size(gnutella_header_t *header, uint32 size)
 {
-	guint8 *u8 = (void *) header;
+	uint8 *u8 = (void *) header;
 	g_assert(0 == (size & ~GTA_SIZE_MASK));	/* Don't set any "header flags" */
 	poke_le32(&u8[19], size);
 }

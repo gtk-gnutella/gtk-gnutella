@@ -49,7 +49,7 @@
  */
 #define ZALLOC_MASK	(ZALLOC_ALIGNBYTES - 1)
 #define zalloc_round(s) \
-	((gulong) (((gulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
+	((ulong) (((ulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
 
 struct zone;
 typedef struct zone zone_t;
@@ -84,7 +84,7 @@ void zgc(gboolean overloaded);
 
 void zinit(void);
 void zclose(void);
-void set_zalloc_debug(guint32 level);
+void set_zalloc_debug(uint32 level);
 void set_zalloc_always_gc(gboolean val);
 void zalloc_memusage_init(void);
 void zalloc_memusage_close(void);

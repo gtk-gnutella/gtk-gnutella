@@ -78,18 +78,18 @@ static struct {
  */
 struct bgtask {
 	enum bgtask_magic magic;/**< Magic number */
-	guint32 flags;			/**< Operating flags */
+	uint32 flags;			/**< Operating flags */
 	const char *name;		/**< Task name */
 	int step;				/**< Current processing step */
 	int seqno;				/**< Number of calls at same step */
 	bgstep_cb_t *stepvec;	/**< Set of steps to run in sequence */
 	int stepcnt;			/**< Amount of steps in the `stepvec' array */
-	gpointer ucontext;		/**< User context */
+	void *ucontext;			/**< User context */
 	time_t created;			/**< Creation time */
 	int wtime;				/**< Wall-clock run time sofar, in ms */
 	bgclean_cb_t uctx_free;	/**< Free routine for context */
 	bgdone_cb_t done_cb;	/**< Called when done */
-	gpointer done_arg;		/**< "done" callback argument */
+	void *done_arg;			/**< "done" callback argument */
 	int exitcode;			/**< Final "exit" code */
 	bgsig_t signal;			/**< Last signal delivered */
 	GSList *signals;		/**< List of signals pending delivery */
@@ -157,7 +157,7 @@ bg_task_seqno(const struct bgtask *bt)
 	return bt->seqno;
 }
 
-gpointer
+void *
 bg_task_context(const struct bgtask *bt)
 {
 	bg_task_check(bt);
@@ -294,7 +294,7 @@ bg_task_suspend(struct bgtask *bt, int target)
 			g_debug("BGTASK \"%s\" total=%d msecs, "
 				"elapsed=%lu usecs (targeted %d), "
 				"ticks=%d, used=%d, tick_cost=%g usecs (was %g)",
-				bt->name, bt->wtime, (gulong) elapsed, target,
+				bt->name, bt->wtime, (ulong) elapsed, target,
 				bt->ticks, bt->ticks_used,
 				new_cost, bt->tick_cost);
 		}
@@ -413,10 +413,10 @@ struct bgtask *
 bg_task_create(const char *name,	/**< Task name (for tracing) */
 	const bgstep_cb_t *steps,		/**< Work to perform (copied) */
 	int stepcnt,					/**< Number of steps */
-	gpointer ucontext,				/**< User context */
+	void *ucontext,					/**< User context */
 	bgclean_cb_t ucontext_free,		/**< Free routine for context */
 	bgdone_cb_t done_cb,			/**< Notification callback when done */
-	gpointer done_arg)				/**< Callback argument */
+	void *done_arg)					/**< Callback argument */
 {
 	struct bgtask *bt;
 	int stepsize;
@@ -471,7 +471,7 @@ bg_daemon_create(
 	const char *name,			/**< Task name (for tracing) */
 	const bgstep_cb_t *steps,	/**< Work to perform (copied) */
 	int stepcnt,				/**< Number of steps */
-	gpointer ucontext,			/**< User context */
+	void *ucontext,				/**< User context */
 	bgclean_cb_t ucontext_free,	/**< Free routine for context */
 	bgstart_cb_t start_cb,		/**< Starting working on an item */
 	bgend_cb_t end_cb,			/**< Done working on an item */
@@ -515,7 +515,7 @@ bg_daemon_create(
  * If task was sleeping, wake it up.
  */
 void
-bg_daemon_enqueue(struct bgtask *bt, gpointer item)
+bg_daemon_enqueue(struct bgtask *bt, void *item)
 {
 	bg_task_check(bt);
 	g_assert(bt->flags & TASK_F_DAEMON);
@@ -821,7 +821,7 @@ bg_task_cancel(struct bgtask *bt)
 	 */
 
 	if (bt->sigh[BG_SIG_TERM]) {
-		gboolean switched = FALSE;
+		bool switched = FALSE;
 
 		/*
 		 * If task is not running, switch to it now, so that we can
@@ -889,7 +889,7 @@ bg_reclaim_dead(void)
 static void
 bg_task_ended(struct bgtask *bt)
 {
-	gpointer item;
+	void *item;
 
 	bg_task_check(bt);
 
@@ -970,7 +970,7 @@ bg_ticker_adjust_period(void)
 /**
  * Main task scheduling timer.
  */
-static gboolean
+static bool
 bg_sched_timer(void *unused_arg)
 {
 	struct bgtask * volatile bt;
@@ -1097,7 +1097,7 @@ bg_sched_timer(void *unused_arg)
 		 */
 
 		if ((bt->flags & TASK_F_DAEMON) && bt->step == 0 && bt->seqno == 0) {
-			gpointer item;
+			void *item;
 
 			g_assert(bt->wq != NULL);	/* Runnable daemon, must have work */
 
@@ -1168,10 +1168,10 @@ bg_sched_timer(void *unused_arg)
 	return TRUE;		/* Keep calling */
 }
 
-static guint
+static uint
 bg_task_terminate_all(GSList **ptr)
 {
-	guint count;
+	uint count;
 
 	count = 0;
 	if (*ptr) {
@@ -1210,7 +1210,7 @@ bg_init(void)
 void
 bg_close(void)
 {
-	guint count;
+	uint count;
 
 	count = bg_task_terminate_all(&runq);
 	if (count > 0) {

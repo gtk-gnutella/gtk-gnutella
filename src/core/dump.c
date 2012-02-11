@@ -134,7 +134,7 @@ struct dump_header {
  *	uint8_t addr[16];
  *	uint8_t port[2];
  */
-	guchar data[19];
+	uchar data[19];
 };
 
 /**
@@ -143,7 +143,7 @@ struct dump_header {
 struct dump {
 	const char * const filename;
 	slist_t *slist;
-	const gboolean *dump_var;
+	const bool *dump_var;
 	size_t fill;
 	int fd;
 	int initialized;
@@ -186,7 +186,7 @@ dump_header_set(struct dump_header *dh, const struct gnutella_node *node)
 	switch (host_addr_net(node->addr)) {
 	case NET_TYPE_IPV4:
 		{
-			guint32 ip;
+			uint32 ip;
 			
 			dh->data[0] |= DH_F_IPV4;
 			ip = host_addr_ipv4(node->addr);
@@ -226,7 +226,7 @@ dump_disable(struct dump *dump)
  *
  * @return TRUE if initialized.
  */
-static gboolean
+static bool
 dump_initialize(struct dump *dump)
 {
 	char *pathname;

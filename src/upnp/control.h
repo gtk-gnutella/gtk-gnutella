@@ -71,9 +71,9 @@ struct upnp_GetConnectionTypeInfo {
  * Returned values for upnp_ctrl_GetSpecificPortMappingEntry().
  */
 struct upnp_GetSpecificPortMappingEntry {
-	guint16 internal_port;			/**< Local port */
+	uint16 internal_port;			/**< Local port */
 	host_addr_t internal_client;	/**< Local IP address */
-	gboolean enabled;				/**< Whether mapping is enabled */
+	bool enabled;					/**< Whether mapping is enabled */
 	const char *description;		/**< Description associated with mapping */
 	time_delta_t lease_duration;	/**< Duration of the lease */
 };
@@ -83,7 +83,7 @@ struct upnp_GetSpecificPortMappingEntry {
  * requests that return a plain 32-bit rolling counter.
  */
 struct upnp_counter {
-	guint32 value;					/** Returned counter value */
+	uint32 value;					/** Returned counter value */
 };
 
 /*
@@ -93,23 +93,23 @@ struct upnp_counter {
 struct upnp_ctrl;
 typedef struct upnp_ctrl upnp_ctrl_t;
 
-void upnp_ctrl_cancel(upnp_ctrl_t *ucd, gboolean callback);
-void upnp_ctrl_cancel_null(upnp_ctrl_t **ucd_ptr, gboolean callback);
+void upnp_ctrl_cancel(upnp_ctrl_t *ucd, bool callback);
+void upnp_ctrl_cancel_null(upnp_ctrl_t **ucd_ptr, bool callback);
 
 upnp_ctrl_t *upnp_ctrl_GetExternalIPAddress(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_GetConnectionTypeInfo(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 port,
+	enum upnp_map_proto proto, uint16 port,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 ext_port,
-	host_addr_t int_addr, guint16 int_port,
+	enum upnp_map_proto proto, uint16 ext_port,
+	host_addr_t int_addr, uint16 int_port,
 	const char *desc, time_delta_t lease,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 port,
+	enum upnp_map_proto proto, uint16 port,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_GetTotalPacketsReceived(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);

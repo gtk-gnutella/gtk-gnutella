@@ -59,7 +59,7 @@ void
 gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 {
 	static str_t *msg;
-	static gboolean logging;
+	static bool logging;
 
 	if (logging) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, FALSE, fmt, args);

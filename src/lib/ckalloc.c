@@ -55,7 +55,7 @@
 #define CKALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 #define CKALLOC_MASK		(CKALLOC_ALIGNBYTES - 1)
 #define ckalloc_round(s) \
-	((gulong) (((gulong) (s) + CKALLOC_MASK) & ~CKALLOC_MASK))
+	((ulong) (((ulong) (s) + CKALLOC_MASK) & ~CKALLOC_MASK))
 
 enum ckhunk_magic { CKHUNK_MAGIC = 0x09b1f3c2 };
 
@@ -82,7 +82,7 @@ ckhunk_check(const struct ckhunk * const ck)
 /**
  * Is chunk read-only?
  */
-gboolean
+bool
 ck_is_readonly(ckhunk_t *ck)
 {
 	ckhunk_check(ck);
@@ -100,7 +100,7 @@ ck_is_readonly(ckhunk_t *ck)
  * @return a new chunk allocator object.
  */
 static ckhunk_t *
-ckinit(size_t size, size_t reserved, gboolean leaking)
+ckinit(size_t size, size_t reserved, bool leaking)
 {
 	void *arena;
 	ckhunk_t *ck;
@@ -185,7 +185,7 @@ ck_destroy_null(ckhunk_t **ck_ptr)
 /**
  * @return whether someething has been allocated.
  */
-gboolean
+bool
 ck_used(const ckhunk_t *ck)
 {
 	ckhunk_check(ck);
@@ -301,7 +301,7 @@ ck_free_all(ckhunk_t *ck)
  * @return pointer to allocated memory, NULL if memory cannot be allocated.
  */
 static void *
-ckalloc(ckhunk_t *ck, size_t len, gboolean critical)
+ckalloc(ckhunk_t *ck, size_t len, bool critical)
 {
 	void *p = NULL;
 	sigset_t set;
@@ -572,7 +572,7 @@ ck_strdup_readonly(ckhunk_t *ck, const char *str)
  * possible to shrink it or if the specified size was larger than the
  * actual size.
  */
-gboolean
+bool
 ck_shrink(ckhunk_t *ck, size_t size)
 {
 	size_t nsize, used;
@@ -625,7 +625,7 @@ ck_shrink(ckhunk_t *ck, size_t size)
  *
  * @return TRUE of OK, FALSE on error.
  */
-gboolean
+bool
 ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size)
 {
 	void *chunk_start;

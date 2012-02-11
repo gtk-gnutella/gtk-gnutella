@@ -77,7 +77,7 @@ pattern_compile(const char *pattern)
 {
 	cpattern_t *p;
 	size_t plen, i, *pd;
-	const guchar *c;
+	const uchar *c;
 
 	WALLOC(p);
 	p->pattern = h_strdup(pattern);
@@ -92,7 +92,7 @@ pattern_compile(const char *pattern)
 
 	plen--;			/* Restore original pattern length */
 
- 	c = cast_to_gconstpointer(pattern);
+ 	c = cast_to_constpointer(pattern);
 	for (pd = p->delta, i = 0; i < plen; c++, i++)
 		pd[*c] = plen - i;
 
@@ -111,7 +111,7 @@ pattern_compile_fast(const char *pattern, size_t plen)
 {
 	cpattern_t *p;
 	size_t i, *pd;
-	const guchar *c;
+	const uchar *c;
 
 	WALLOC(p);
 	p->pattern = pattern;
@@ -126,7 +126,7 @@ pattern_compile_fast(const char *pattern, size_t plen)
 
 	plen--;			/* Restore original pattern length */
 
- 	c = cast_to_gconstpointer(pattern);
+ 	c = cast_to_constpointer(pattern);
 	for (pd = p->delta, i = 0; i < plen; c++, i++)
 		pd[*c] = plen - i;
 
@@ -197,7 +197,7 @@ pattern_qsearch(
 				break;				/* Mismatch, stop looking here */
 
 		if (i == plen) {			/* OK, we got a pattern match */
-			gboolean at_begin = FALSE;
+			bool at_begin = FALSE;
 
 			if (word == qs_any)
 				return tp;			/* Start of substring */
@@ -228,7 +228,7 @@ pattern_qsearch(
 			/* Fall through */
 		}
 
-		tp += cpat->delta[(guchar) tp[plen]]; /* Continue search there */
+		tp += cpat->delta[(uchar) tp[plen]]; /* Continue search there */
 	}
 
 	return NULL;		/* Not found */

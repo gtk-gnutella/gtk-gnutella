@@ -144,7 +144,7 @@ struct zone_gc {
 	unsigned zg_zone_defragmented;	/**< Total amount of zones defragmented */
 	unsigned zg_zones;				/**< Amount of zones in zg_subzinfo[] */
 	unsigned zg_free;				/**< First subzinfo with free blocks */
-	guint32 zg_flags;				/**< GC flags */
+	uint32 zg_flags;				/**< GC flags */
 };
 
 /**
@@ -198,7 +198,7 @@ zone_check(const struct zone *zn)
 }
 
 static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
-static guint32 zalloc_debug;		/**< Debug level */
+static uint32 zalloc_debug;			/**< Debug level */
 static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
 static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
 static gboolean zalloc_closing;		/**< Whether zclose() was called */
@@ -300,28 +300,28 @@ static void *z_leakset;
  */
 /* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
 static struct {
-	guint64 allocations;			/**< Total amount of allocations */
-	guint64 freeings;				/**< Total amount of freeings */
-	guint64 allocations_gc;			/**< Subset of allocations in GC mode */
-	guint64 freeings_gc;			/**< Subset of freeings in GC mode */
-	guint64 subzones_allocated;		/**< Total amount of subzone creations */
-	guint64 subzones_allocated_pages;	/**< Total pages used by subzones */
-	guint64 subzones_freed;			/**< Total amount of subzone freeings */
-	guint64 subzones_freed_pages;	/**< Total pages freed in subzones */
-	guint64 zmove_attempts;			/**< Total attempts to move blocks */
-	guint64 zmove_attempts_gc;		/**< Subset of moves attempted in GC mode */
-	guint64 zmove_successful_gc;	/**< Subset of successful moves */
-	guint64 zgc_zones_freed;		/**< Total amount of zones freed by GC */
-	guint64 zgc_zones_defragmented;	/**< Total amount of zones defragmented */
-	guint64 zgc_fragments_freed;	/**< Total fragment zones freed */
-	guint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
-	guint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
-	guint64 zgc_throttled;			/**< Throttled zgc() runs */
-	guint64 zgc_runs;				/**< Allowed zgc() runs */
-	guint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
-	guint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
-	guint64 zgc_excess_zones_freed;	/**< Zones freed during zn_shrink() */
-	guint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
+	uint64 allocations;				/**< Total amount of allocations */
+	uint64 freeings;				/**< Total amount of freeings */
+	uint64 allocations_gc;			/**< Subset of allocations in GC mode */
+	uint64 freeings_gc;				/**< Subset of freeings in GC mode */
+	uint64 subzones_allocated;		/**< Total amount of subzone creations */
+	uint64 subzones_allocated_pages;	/**< Total pages used by subzones */
+	uint64 subzones_freed;			/**< Total amount of subzone freeings */
+	uint64 subzones_freed_pages;	/**< Total pages freed in subzones */
+	uint64 zmove_attempts;			/**< Total attempts to move blocks */
+	uint64 zmove_attempts_gc;		/**< Subset of moves attempted in GC mode */
+	uint64 zmove_successful_gc;		/**< Subset of successful moves */
+	uint64 zgc_zones_freed;			/**< Total amount of zones freed by GC */
+	uint64 zgc_zones_defragmented;	/**< Total amount of zones defragmented */
+	uint64 zgc_fragments_freed;		/**< Total fragment zones freed */
+	uint64 zgc_free_quota_reached;	/**< Subzone freeing quota reached */
+	uint64 zgc_last_zone_kept;		/**< First zone kept to avoid depletion */
+	uint64 zgc_throttled;			/**< Throttled zgc() runs */
+	uint64 zgc_runs;				/**< Allowed zgc() runs */
+	uint64 zgc_zone_scans;			/**< Calls to zgc_scan() */
+	uint64 zgc_scan_freed;			/**< Zones freed during zgc_scan() */
+	uint64 zgc_excess_zones_freed;	/**< Zones freed during zn_shrink() */
+	uint64 zgc_shrinked;			/**< Amount of zn_shrink() calls */
 	size_t user_memory;				/**< Current user memory allocated */
 	size_t user_blocks;				/**< Current amount of user blocks */
 } zstats;
@@ -437,7 +437,7 @@ static G_GNUC_HOT gboolean
 zbelongs(const zone_t *zone, const void *blk)
 {
 	if G_UNLIKELY(NULL == zone->zn_rang)
-		zrange_init(deconstify_gpointer(zone));
+		zrange_init(deconstify_pointer(zone));
 
 #define GET_ITEM(i)	(&zone->zn_rang[i])
 #define FOUND(i)	return zvalid(zone, &zone->zn_rang[i], blk)
@@ -458,7 +458,7 @@ static void
 zrange_clear(const zone_t *zone)
 {
 	if (zone->zn_rang != NULL) {
-		zone_t *zw = deconstify_gpointer(zone);
+		zone_t *zw = deconstify_pointer(zone);
 		xfree(zw->zn_rang);
 		zw->zn_rang = NULL;
 	}
@@ -727,7 +727,7 @@ zalloc_not_leaking(const void *o)
 
 	hash_table_insert(not_leaking, u != NULL ? u : o, GINT_TO_POINTER(1));
 
-	return deconstify_gpointer(o);
+	return deconstify_pointer(o);
 }
 
 /**
@@ -1363,7 +1363,7 @@ zclose(void)
  * Set debug level.
  */
 void
-set_zalloc_debug(guint32 level)
+set_zalloc_debug(uint32 level)
 {
 	zalloc_debug = level;
 }

@@ -44,10 +44,10 @@ struct DBM {
 	unsigned long bad_pages;	/* stats: number of corrupted pages zero-ed */
 	unsigned long removed_keys;	/* stats: number of keys removed forcefully */
 #if defined(LRU) || defined(BIGDATA)
-	guint8 is_volatile;			/* whether consistency of database matters */
+	uint8 is_volatile;			/* whether consistency of database matters */
 #endif
 #ifdef LRU
-	guint8 dirbuf_dirty;		/* whether dirbuf needs flushing to disk */
+	uint8 dirbuf_dirty;			/* whether dirbuf needs flushing to disk */
 #endif
 #ifdef BIGDATA
 	struct DBMBIG *big;
@@ -67,7 +67,7 @@ OFF_DIR(unsigned long off)
 }
 
 static inline void
-ioerr(DBM *db, gboolean on_write)
+ioerr(DBM *db, bool on_write)
 {
 	db->flags |= DBM_IOERR;
 	if (on_write) {

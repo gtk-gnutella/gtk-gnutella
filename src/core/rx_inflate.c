@@ -75,7 +75,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = (gpointer) pmsg_read_base(mb);
+	inz->next_in = deconstify_pointer(pmsg_read_base(mb));
 	inz->avail_in = old_size = pmsg_size(mb);
 
 	if (old_size == 0)
@@ -83,7 +83,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 
 	db = rxbuf_new();
 
-	inz->next_out = (gpointer) pdata_start(db);
+	inz->next_out = cast_to_pointer(pdata_start(db));
 	inz->avail_out = old_avail = pdata_len(db);
 
 	g_assert(inz->avail_out > 0);
@@ -108,7 +108,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Check whether some data was produced.
 	 */
 
-	if (inz->avail_out == (guint) old_avail)
+	if (inz->avail_out == (uint) old_avail)
 		goto cleanup;
 
 	/*
@@ -134,8 +134,8 @@ cleanup:
 /**
  * Initialize the driver.
  */
-static gpointer
-rx_inflate_init(rxdrv_t *rx, gconstpointer args)
+static void *
+rx_inflate_init(rxdrv_t *rx, const void *args)
 {
 	const struct rx_inflate_args *rargs = args;
 	struct attr *attr;
@@ -192,11 +192,11 @@ rx_inflate_destroy(rxdrv_t *rx)
 /**
  * Got data from lower layer.
  */
-static gboolean 
+static bool 
 rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	gboolean error = FALSE;
+	bool error = FALSE;
 	pmsg_t *imb;		/**< Inflated message */
 
 	rx_check(rx);

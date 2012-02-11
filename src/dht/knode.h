@@ -45,14 +45,14 @@
  */
 
 knode_t *knode_new(
-	const kuid_t *id, guint8 flags,
-	host_addr_t addr, guint16 port, vendor_code_t vcode,
-	guint8 major, guint8 minor);
+	const kuid_t *id, uint8 flags,
+	host_addr_t addr, uint16 port, vendor_code_t vcode,
+	uint8 major, uint8 minor);
 void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
-void knode_change_version(knode_t *kn, guint8 major, guint8 minor);
-gboolean knode_can_recontact(const knode_t *kn);
-gboolean knode_is_usable(const knode_t *kn);
-gboolean knode_addr_is_usable(const knode_t *kn);
+void knode_change_version(knode_t *kn, uint8 major, uint8 minor);
+bool knode_can_recontact(const knode_t *kn);
+bool knode_is_usable(const knode_t *kn);
+bool knode_addr_is_usable(const knode_t *kn);
 double knode_still_alive_probability(const knode_t *kn);
 
 #endif /* _dht_knode_h_ */

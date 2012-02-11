@@ -74,38 +74,38 @@ ggept_status_t ggept_h_tth_extract(const extvec_t *, struct tth *);
 
 /** Decompiled payload of "GTKGV1" (deprecated @0.97) */
 struct ggep_gtkgv1 {
-	guint8 major;
-	guint8 minor;
-	guint8 patch;
-	guint8 revchar;
-	guint32 release;
-	guint32 build;
+	uint8 major;
+	uint8 minor;
+	uint8 patch;
+	uint8 revchar;
+	uint32 release;
+	uint32 build;
 };
 
 /** Decompiled payload of "GTKGV" */
 struct ggep_gtkgv {
-	guint8 version;		/**< Initial version: 0 */
-	guint8 major;
-	guint8 minor;
-	guint8 patch;
-	guint8 revchar;
-	guint32 release;
-	guint32 build;
+	uint8 version;		/**< Initial version: 0 */
+	uint8 major;
+	uint8 minor;
+	uint8 patch;
+	uint8 revchar;
+	uint32 release;
+	uint32 build;
 	/* Introduced at version 1 */
 	const char *osname;		/**< Operating system name (static string) */
 	sha1_t commit;			/**< Commit version (may be partial) */
-	guint8 commit_len;		/**< Amount of valid nybbles */
+	uint8 commit_len;		/**< Amount of valid nybbles */
 	unsigned dirty:1;
 };
 
-guint8 ggept_gtkgv_osname_value(void);
+uint8 ggept_gtkgv_osname_value(void);
 
 ggept_status_t ggept_gtkgv_extract(const extvec_t *, struct ggep_gtkgv *info);
 ggept_status_t ggept_gtkgv1_extract(const extvec_t *, struct ggep_gtkgv1 *info);
 ggept_status_t ggept_hname_extract(const extvec_t *, char *buf, int len);
-ggept_status_t ggept_filesize_extract(const extvec_t *, guint64 *fs);
-ggept_status_t ggept_uint32_extract(const extvec_t *exv, guint32 *val);
-ggept_status_t ggept_du_extract(const extvec_t *, guint32 *uptime);
+ggept_status_t ggept_filesize_extract(const extvec_t *, uint64 *fs);
+ggept_status_t ggept_uint32_extract(const extvec_t *exv, uint32 *val);
+ggept_status_t ggept_du_extract(const extvec_t *, uint32 *uptime);
 ggept_status_t ggept_ct_extract(const extvec_t *, time_t *stamp_ptr);
 ggept_status_t ggept_gtkg_ipv6_extract(const extvec_t *, host_addr_t *addr);
 
@@ -115,18 +115,18 @@ ggept_status_t ggept_push_extract(const extvec_t *,
 	gnet_host_vec_t **hvec, enum net_type net);
 ggept_status_t ggept_utf8_string_extract(const extvec_t *, char *b, size_t l);
 
-guint ggept_filesize_encode(guint64 filesize, char *data);
-guint ggept_du_encode(guint32 uptime, char *data);
-guint ggept_ct_encode(time_t stamp, char *data);
-guint ggept_m_encode(guint32 mtype, char *data);
+uint ggept_filesize_encode(uint64 filesize, char *data);
+uint ggept_du_encode(uint32 uptime, char *data);
+uint ggept_ct_encode(time_t stamp, char *data);
+uint ggept_m_encode(uint32 mtype, char *data);
 
 ggept_status_t ggept_ipp_pack(ggep_stream_t *gs,
 	const gnet_host_t *hvec, size_t hcnt,
 	const gnet_host_t *evec, size_t ecnt,
-	gboolean add_ipv6, gboolean no_ipv4);
+	bool add_ipv6, bool no_ipv4);
 ggept_status_t ggept_dhtipp_pack(ggep_stream_t *gs,
 	const gnet_host_t *hvec, size_t hcnt,
-	gboolean add_ipv6, gboolean no_ipv4);
+	bool add_ipv6, bool no_ipv4);
 ggept_status_t ggept_push_pack(ggep_stream_t *gs,
 	const sequence_t *hseq, size_t max, unsigned flags);
 ggept_status_t ggept_a_pack(ggep_stream_t *gs,

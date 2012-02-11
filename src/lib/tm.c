@@ -152,8 +152,8 @@ tm_time_exact(void)
 /**
  * Hash a tm_t time structure.
  */
-guint
-tm_hash(gconstpointer key)
+uint
+tm_hash(const void *key)
 {
 	const tm_t *tm = key;
 
@@ -164,7 +164,7 @@ tm_hash(gconstpointer key)
  * Test two tm_t for equality.
  */
 int
-tm_equal(gconstpointer a, gconstpointer b)
+tm_equal(const void *a, const void *b)
 {
 	const tm_t *ta = a, *tb = b;
 
@@ -219,7 +219,7 @@ clock_hz(void)
 double
 tm_cputime(double *user, double *sys)
 {
-	static gboolean getrusage_failed;
+	static bool getrusage_failed;
 	double u;
 	double s;
 
@@ -254,7 +254,7 @@ tm_cputime(double *user, double *sys)
 		u = (double) t.tms_utime / (double) clock_hz();
 		s = (double) t.tms_stime / (double) clock_hz();
 #else
-		static gboolean warned = FALSE;
+		static bool warned = FALSE;
 
 		if (!warned) {
 			g_warning("getrusage() is unusable and times() is missing");

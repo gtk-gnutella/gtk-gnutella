@@ -34,7 +34,7 @@
 /***
  *** Searches
  ***/
-typedef guint32 gnet_search_t;
+typedef uint32 gnet_search_t;
 
 /*
  * Flags for search_new()
@@ -120,16 +120,16 @@ typedef struct gnet_results_set {
 
 	time_t  stamp;				/**< Reception time of the hit */
 	vendor_code_t vcode;		/**< Vendor code */
-	guint32 speed;
-	guint32 num_recs;
-	guint32 status;				/**< Parsed status bits from trailer */
+	uint32 speed;
+	uint32 num_recs;
+	uint32 status;				/**< Parsed status bits from trailer */
 
-    guint32 flags;
-	guint16 port;
-	guint16 country;			/**< Country code -- encoded ISO3166 */
-	guint8 hops;
-	guint8 ttl;
-	guint8 media;				/**< Optional: media type filtering */
+    uint32 flags;
+	uint16 port;
+	uint16 country;				/**< Country code -- encoded ISO3166 */
+	uint8 hops;
+	uint8 ttl;
+	uint8 media;				/**< Optional: media type filtering */
 } gnet_results_set_t;
 
 /*
@@ -163,8 +163,8 @@ typedef struct gnet_record {
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
-	guint32 file_index;			/**< Index for GET command */
-    guint32 flags;
+	uint32 file_index;			/**< Index for GET command */
+    uint32 flags;
 } gnet_record_t;
 
 /**
@@ -180,7 +180,7 @@ typedef enum {
  */
 
 typedef void (*search_request_listener_t) (
-    query_type_t, const char *query, const host_addr_t addr, guint16);
+    query_type_t, const char *query, const host_addr_t addr, uint16);
 
 typedef void (*search_got_results_listener_t)
     (GSList *, const struct guid *, const gnet_results_set_t *);
@@ -213,44 +213,40 @@ enum search_new_result {
 #ifdef CORE_SOURCES
 
 enum search_new_result search_new(gnet_search_t *ptr, const char *, unsigned,
-			time_t create_time, guint lifetime, guint32 timeout, guint32 flags);
+			time_t create_time, uint lifetime, uint32 timeout, uint32 flags);
 void search_close(gnet_search_t);
 
 void search_start(gnet_search_t);
 void search_stop(gnet_search_t);
 
-/*  search_is_stopped doesn't exist yet!
-gboolean search_is_stopped(gnet_search_t sh);
-*/
-
-void search_add_kept(gnet_search_t, const struct guid *, guint32 kept);
+void search_add_kept(gnet_search_t, const struct guid *, uint32 kept);
 
 const char *search_query(gnet_search_t);
 
-gboolean search_is_active(gnet_search_t);
-gboolean search_is_browse(gnet_search_t);
-gboolean search_is_expired(gnet_search_t);
-gboolean search_is_frozen(gnet_search_t);
-gboolean search_is_local(gnet_search_t);
-gboolean search_is_passive(gnet_search_t);
-gboolean search_is_whats_new(gnet_search_t sh);
+bool search_is_active(gnet_search_t);
+bool search_is_browse(gnet_search_t);
+bool search_is_expired(gnet_search_t);
+bool search_is_frozen(gnet_search_t);
+bool search_is_local(gnet_search_t);
+bool search_is_passive(gnet_search_t);
+bool search_is_whats_new(gnet_search_t sh);
 
-void search_set_reissue_timeout(gnet_search_t, guint32 timeout);
-guint32 search_get_reissue_timeout(gnet_search_t);
-guint search_get_lifetime(gnet_search_t);
+void search_set_reissue_timeout(gnet_search_t, uint32 timeout);
+uint32 search_get_reissue_timeout(gnet_search_t);
+uint search_get_lifetime(gnet_search_t);
 time_t search_get_create_time(gnet_search_t);
 void search_set_create_time(gnet_search_t, time_t);
 unsigned search_get_media_type(gnet_search_t);
 
 void search_free_alt_locs(gnet_record_t *);
 
-void search_update_items(gnet_search_t, guint32 items);
+void search_update_items(gnet_search_t, uint32 items);
 
-gboolean search_browse(gnet_search_t,
-	const char *hostname, host_addr_t addr, guint16 port,
-	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
-gboolean search_locally(gnet_search_t sh, const char *query);
-guint search_handle_magnet(const char *url);
+bool search_browse(gnet_search_t,
+	const char *hostname, host_addr_t addr, uint16 port,
+	const struct guid *guid, const gnet_host_vec_t *proxies, uint32 flags);
+bool search_locally(gnet_search_t sh, const char *query);
+uint search_handle_magnet(const char *url);
 
 void search_got_results_listener_add(search_got_results_listener_t);
 void search_got_results_listener_remove(search_got_results_listener_t);

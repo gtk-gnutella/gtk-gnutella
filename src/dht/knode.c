@@ -56,7 +56,7 @@
  * Hashing of knodes,
  */
 unsigned int
-knode_hash(gconstpointer key)
+knode_hash(const void *key)
 {
 	const knode_t *kn = key;
 
@@ -69,7 +69,7 @@ knode_hash(gconstpointer key)
  * Equality of knodes.
  */
 int
-knode_eq(gconstpointer a, gconstpointer b)
+knode_eq(const void *a, const void *b)
 {
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
@@ -84,7 +84,7 @@ knode_eq(gconstpointer a, gconstpointer b)
  * Comparison of two knodes based on the last_seen time.
  */
 int
-knode_seen_cmp(gconstpointer a, gconstpointer b)
+knode_seen_cmp(const void *a, const void *b)
 {
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
@@ -99,7 +99,7 @@ knode_seen_cmp(gconstpointer a, gconstpointer b)
  * Comparison of two knodes based on their probability of being dead.
  */
 int
-knode_dead_probability_cmp(gconstpointer a, gconstpointer b)
+knode_dead_probability_cmp(const void *a, const void *b)
 {
 	const knode_t *k1 = a;
 	const knode_t *k2 = b;
@@ -152,9 +152,9 @@ knode_dead_probability_cmp(gconstpointer a, gconstpointer b)
  */
 knode_t *
 knode_new(
-	const kuid_t *id, guint8 flags,
-	host_addr_t addr, guint16 port, vendor_code_t vcode,
-	guint8 major, guint8 minor)
+	const kuid_t *id, uint8 flags,
+	host_addr_t addr, uint16 port, vendor_code_t vcode,
+	uint8 major, uint8 minor)
 {
 	knode_t *kn;
 
@@ -183,7 +183,7 @@ knode_new(
  * Can the node which timed-out in the past be considered again as the
  * target of an RPC, and therefore returned in k-closest lookups?
  */
-gboolean
+bool
 knode_can_recontact(const knode_t *kn)
 {
 	time_t grace;
@@ -203,7 +203,7 @@ knode_can_recontact(const knode_t *kn)
 /**
  * Give a string representation of the node status.
  */
-const gchar *
+const char *
 knode_status_to_string(knode_status_t status)
 {
 	switch (status) {
@@ -248,7 +248,7 @@ knode_change_vendor(knode_t *kn, vendor_code_t vcode)
  * Change node's version
  */
 void
-knode_change_version(knode_t *kn, guint8 major, guint8 minor)
+knode_change_version(knode_t *kn, uint8 major, uint8 minor)
 {
 	knode_check(kn);
 
@@ -265,7 +265,7 @@ knode_change_version(knode_t *kn, guint8 major, guint8 minor)
 /**
  * @return whether host can be kept as a valid contact
  */
-gboolean
+bool
 knode_is_usable(const knode_t *kn)
 {
 	knode_check(kn);
@@ -282,7 +282,7 @@ knode_is_usable(const knode_t *kn)
 /**
  * @return whether host's address is a valid DHT value creator.
  */
-gboolean
+bool
 knode_addr_is_usable(const knode_t *kn)
 {
 	knode_check(kn);
@@ -312,12 +312,12 @@ knode_addr_is_usable(const knode_t *kn)
  *
  * @return the buffer where printing was done.
  */
-const gchar *
+const char *
 knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 {
 	char host_buf[HOST_ADDR_PORT_BUFLEN];
 	char vc_buf[VENDOR_CODE_BUFLEN];
-	gchar kuid_buf[KUID_HEX_BUFLEN];
+	char kuid_buf[KUID_HEX_BUFLEN];
 
 	knode_check(kn);
 
@@ -344,7 +344,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
  * Pretty-printing of node information for logs.
  * @return pointer to static data
  */
-const gchar *
+const char *
 knode_to_string(const knode_t *kn)
 {
 	static char buf[120];
@@ -356,7 +356,7 @@ knode_to_string(const knode_t *kn)
  * Second version of knode_to_string() when two different nodes need to be
  * pretty-printed in the same statement.
  */
-const gchar *
+const char *
 knode_to_string2(const knode_t *kn)
 {
 	static char buf[120];
@@ -412,7 +412,7 @@ knode_free(knode_t *kn)
  * PATRICIA iterator callback to free Kademlia nodes
  */
 void
-knode_patricia_free(gpointer key, size_t u_kbits, gpointer value, gpointer u_d)
+knode_patricia_free(void *key, size_t u_kbits, void *value, void *u_d)
 {
 	knode_t *kn = value;
 
@@ -429,7 +429,7 @@ knode_patricia_free(gpointer key, size_t u_kbits, gpointer value, gpointer u_d)
  * Map iterator callback to free Kademlia nodes
  */
 void
-knode_map_free(gpointer key, gpointer value, gpointer unused_u)
+knode_map_free(void *key, void *value, void *unused_u)
 {
 	knode_t *kn = value;
 
@@ -449,7 +449,7 @@ double
 knode_still_alive_probability(const knode_t *kn)
 {
 	double p;
-	static gboolean inited;
+	static bool inited;
 	static double decimation[KNODE_MAX_TIMEOUTS];
 
 	knode_check(kn);

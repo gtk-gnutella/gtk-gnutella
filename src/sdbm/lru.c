@@ -40,10 +40,10 @@ struct lru_cache {
 	slist_t *available;			/* Available indices */
 	char *arena;				/* Cache arena */
 	long *numpag;				/* Associates a cache index to a page number */
-	guint8 *dirty;				/* Flags dirty pages (write cache enabled) */
+	uint8 *dirty;				/* Flags dirty pages (write cache enabled) */
 	long pages;					/* Amount of pages in arena */
 	long next;					/* Next allocated page index */
-	guint8 write_deferred;		/* Whether writes should be deferred */
+	uint8 write_deferred;		/* Whether writes should be deferred */
 	unsigned long rhits;		/* Stats: amount of cache hits on reads */
 	unsigned long rmisses;		/* Stats: amount of cache misses on reads */
 	unsigned long whits;		/* Stats: amount of cache hits on writes */
@@ -54,7 +54,7 @@ struct lru_cache {
  * Setup allocated LRU page cache.
  */
 static int
-setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
+setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 {
 	cache->arena = vmm_alloc(pages * DBM_PBLKSIZ);
 	if (NULL == cache->arena)
@@ -91,7 +91,7 @@ free_cache(struct lru_cache *cache)
  * @return -1 with errno set on error, 0 if OK.
  */
 static int
-init_cache(DBM *db, long pages, gboolean wdelay)
+init_cache(DBM *db, long pages, bool wdelay)
 {
 	struct lru_cache *cache;
 
@@ -145,7 +145,7 @@ log_lrustats(DBM *db)
  * Write back cached page to disk.
  * @return TRUE on success.
  */
-static gboolean
+static bool
 writebuf(DBM *db, long oldnum, long idx)
 {
 	struct lru_cache *cache = db->cache;
@@ -203,7 +203,7 @@ int
 setcache(DBM *db, long pages)
 {
 	struct lru_cache *cache = db->cache;
-	gboolean wdelay;
+	bool wdelay;
 
 	if (pages <= 0) {
 		errno = EINVAL;
@@ -289,7 +289,7 @@ setcache(DBM *db, long pages)
  * @return -1 on error with errno set, 0 if OK.
  */
 int
-setwdelay(DBM *db, gboolean on)
+setwdelay(DBM *db, bool on)
 {
 	struct lru_cache *cache = db->cache;
 
@@ -340,8 +340,8 @@ void lru_close(DBM *db)
  * If ``force'' is TRUE, we also ignore deferred writes and flush the page.
  * @return TRUE on success.
  */
-gboolean
-dirtypag(DBM *db, gboolean force)
+bool
+dirtypag(DBM *db, bool force)
 {
 	struct lru_cache *cache = db->cache;
 	long n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
@@ -401,7 +401,7 @@ getidx(DBM *db, long num)
 	} else {
 		void *last = hash_list_tail(cache->used);
 		long oldnum;
-		gboolean had_ioerr = booleanize(db->flags & DBM_IOERR_W);
+		bool had_ioerr = booleanize(db->flags & DBM_IOERR_W);
 
 		hash_list_moveto_head(cache->used, last);
 		n = pointer_to_int(last);
@@ -418,7 +418,7 @@ getidx(DBM *db, long num)
 		if (cache->dirty[n] && !writebuf(db, oldnum, n)) {
 			hash_list_iter_t *iter;
 			void *item;
-			gboolean found = FALSE;
+			bool found = FALSE;
 
 			/*
 			 * Cannot flush dirty page now, probably because we ran out of
@@ -589,13 +589,13 @@ lru_invalidate(DBM *db, long bno)
  * @return TRUE if OK, FALSE if we could not allocate a suitable buffer, leaving
  * the old db->pagbuf intact.
  */
-gboolean
-readbuf(DBM *db, long num, gboolean *loaded)
+bool
+readbuf(DBM *db, long num, bool *loaded)
 {
 	struct lru_cache *cache = db->cache;
 	void *value;
 	long idx;
-	gboolean good_page;
+	bool good_page;
 
 	g_assert(num >= 0);
 
@@ -631,7 +631,7 @@ readbuf(DBM *db, long num, gboolean *loaded)
  * Cache new page held in memory if there are deferred writes configured.
  * @return TRUE on success.
  */
-gboolean
+bool
 cachepag(DBM *db, char *pag, long num)
 {
 	struct lru_cache *cache = db->cache;
@@ -729,7 +729,7 @@ cachepag(DBM *db, char *pag, long num)
  * Flush page to disk.
  * @return TRUE on success
  */
-gboolean
+bool
 flushpag(DBM *db, char *pag, long num)
 {
 	ssize_t w;

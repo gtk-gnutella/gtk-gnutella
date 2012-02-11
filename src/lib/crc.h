@@ -37,7 +37,7 @@
 #include "common.h"
 
 void crc_init(void);
-guint32 crc32_update(guint32 crc_accum, gconstpointer data, size_t len);
+uint32 crc32_update(uint32 crc_accum, const void *data, size_t len);
 
 #endif	/* _crc_h_ */
 

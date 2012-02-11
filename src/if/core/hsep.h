@@ -28,7 +28,7 @@
 
 #include "lib/event.h"		/* For frequency_t */
 
-typedef guint64 hsep_triple[3];
+typedef uint64 hsep_triple[3];
 
 #define HSEP_N_MAX 7		/**< number of hops to consider */
 
@@ -49,20 +49,20 @@ typedef struct {
 	hsep_triple sent_table[HSEP_N_MAX];     /**< Previous table sent */
 	time_t last_sent;                       /**< When last msg was sent */
 	time_t last_received;                   /**< When last msg was rcvd */
-	guint32 msgs_received;                  /**< # of msgs received */
-	guint32 triples_received;               /**< # of triples received */
-	guint32 msgs_sent;                      /**< # of msgs sent */
-	guint32 triples_sent;                   /**< # of triples sent */
+	uint32 msgs_received;                   /**< # of msgs received */
+	uint32 triples_received;                /**< # of triples received */
+	uint32 msgs_sent;                       /**< # of msgs sent */
+	uint32 triples_sent;                    /**< # of triples sent */
 	int random_skew;		/**< additonal random delay for next exchange */
-	guint8 major;			/**< their major version */
-	guint8 minor;			/**< their minor version */
+	uint8 major;			/**< their major version */
+	uint8 minor;			/**< their minor version */
 } hsep_ctx_t;
 
 const char *hsep_get_static_str(int row, int column);
 int hsep_get_table_size(void);
 void hsep_get_non_hsep_triple(hsep_triple *tripledest);
 void hsep_add_global_table_listener(GCallback cb,
-	frequency_t type, guint32 interval);
+	frequency_t type, uint32 interval);
 void hsep_remove_global_table_listener(GCallback cb);
 
 #endif /* CORE_SOURCES */

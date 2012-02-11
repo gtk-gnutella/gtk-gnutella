@@ -101,10 +101,10 @@ static GSList *sl_outgoing = NULL;	/**< To spot reply timeouts */
  *
  * @returns TRUE if we were able to send everything, FALSE otherwise.
  */
-gboolean
+bool
 http_send_status(
 	http_layer_t layer,
-	struct gnutella_socket *s, int code, gboolean keep_alive,
+	struct gnutella_socket *s, int code, bool keep_alive,
 	http_extra_desc_t *hev, int hevcnt,
 	const char *reason, ...)
 {
@@ -121,7 +121,7 @@ http_send_status(
 	const char *date;
 	const char *token;
 	const char *body = NULL;
-	gboolean saturated = bsched_saturated(BSCHED_BWS_OUT);
+	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
 	int cb_flags = 0;
 
 	va_start(args, reason);
@@ -277,11 +277,11 @@ http_send_status(
 	} else if ((size_t) sent < rw) {
 		if (GNET_PROPERTY(http_debug)) g_warning(
 			"only sent %lu out of %lu bytes of status %d (%s) to %s",
-			(gulong) sent, (gulong) rw, code, status_msg,
+			(ulong) sent, (ulong) rw, code, status_msg,
 			host_addr_to_string(s->addr));
 		return FALSE;
 	} else {
-		guint32 trace = 0;
+		uint32 trace = 0;
 
 		switch (layer) {
 		case HTTP_PUSH_PROXY:
@@ -297,7 +297,7 @@ http_send_status(
 
 		if (trace) {
 			g_debug("----Sent HTTP status to %s (%lu bytes):",
-				host_addr_to_string(s->addr), (gulong) rw);
+				host_addr_to_string(s->addr), (ulong) rw);
 			dump_string(stderr, header, rw, "----");
 		}
 	}
@@ -314,7 +314,7 @@ http_send_status(
  * emission of the header even if bandwidth is tight (HTTP_CBF_SMALL_REPLY).
  */
 size_t
-http_hostname_add(char *buf, size_t size, gpointer arg, guint32 flags)
+http_hostname_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	size_t len;
 
@@ -336,7 +336,7 @@ http_hostname_add(char *buf, size_t size, gpointer arg, guint32 flags)
  */
 size_t
 http_retry_after_add(char *buf, size_t size,
-	gpointer arg, guint32 unused_flags)
+	void *arg, uint32 unused_flags)
 {
 	size_t len;
 
@@ -362,7 +362,7 @@ static int
 code_message_parse(const char *line, const char **msg)
 {
 	const char *endptr;
-	guint32 v;
+	uint32 v;
 	int error;
 
 	/*
@@ -411,9 +411,9 @@ code_message_parse(const char *line, const char **msg)
  */
 int
 http_status_parse(const char *line,
-	const char *proto, const char **msg, guint *major, guint *minor)
+	const char *proto, const char **msg, uint *major, uint *minor)
 {
-	guchar c;
+	uchar c;
 	const char *p;
 
 	/*
@@ -517,9 +517,9 @@ http_status_parse(const char *line,
  * @returns TRUE when we identified the "HTTP/x.x" trailing string, filling
  * major and minor accordingly.
  */
-gboolean
+bool
 http_extract_version(
-	const char *request, size_t len, guint *major, guint *minor)
+	const char *request, size_t len, uint *major, uint *minor)
 {
 	const char *p;
 	size_t limit, i;
@@ -531,7 +531,7 @@ http_extract_version(
 	limit = sizeof("X / HTTP/1.0") - 1;
 
 	if (GNET_PROPERTY(http_debug) > 4)
-		g_debug("HTTP req (%lu bytes): %s", (gulong) len, request);
+		g_debug("HTTP req (%lu bytes): %s", (ulong) len, request);
 
 	if (len < limit)
 		return FALSE;
@@ -547,7 +547,7 @@ http_extract_version(
 	}
 
 	if (GNET_PROPERTY(http_debug) > 4)
-		g_debug("HTTP i = %lu, limit = %lu", (gulong) i, (gulong) limit);
+		g_debug("HTTP i = %lu, limit = %lu", (ulong) i, (ulong) limit);
 
 	if (i == limit)
 		return FALSE;		/* Reached our limit without finding a space */
@@ -565,7 +565,7 @@ http_extract_version(
 	) {
 		if (GNET_PROPERTY(http_debug) > 1)
 			g_debug("HTTP req (%lu bytes): no protocol tag: %s",
-				(gulong) len, request);
+				(ulong) len, request);
 		return FALSE;
 	}
 
@@ -612,7 +612,7 @@ http_extract_version(
  * and any whitespace otherwise (either pointing to NUL or ';').
  */
 char *
-http_field_starts_with(const char *buf, const char *token, gboolean sensitive)
+http_field_starts_with(const char *buf, const char *token, bool sensitive)
 {
 	const char *p;
 
@@ -646,7 +646,7 @@ static const char *
 skip_to_unquoted(const char *p, int mc)
 {
 	int c;
-	gboolean in_quote = FALSE;
+	bool in_quote = FALSE;
 
 	while ('\0' != (c = *p)) {
 		if (in_quote) {
@@ -679,12 +679,12 @@ skip_to_unquoted(const char *p, int mc)
  * @return TRUE if we managed to fill the value, FALSE on error (value too
  * large to fit in the buffer, or badly delimited end).
  */
-static gboolean
+static bool
 http_value_collect(const char *start, char *value, size_t len)
 {
 	size_t pos = 0;
 	const char *p = start;
-	gboolean has_quote = FALSE;
+	bool has_quote = FALSE;
 	int c;
 
 	g_assert(value != NULL);
@@ -849,14 +849,14 @@ http_url_strerror(http_url_error_t errnum)
  * The variable `http_url_errno' is set accordingly.
  *
  */
-gboolean
-http_url_parse(const char *url, guint16 *port, const char **host,
+bool
+http_url_parse(const char *url, uint16 *port, const char **host,
 	const char **path)
 {
 	static char hostname[MAX_HOSTLEN + 1];
 	struct {
 		const char *host, *path;
-		guint16 port;
+		uint16 port;
 	} tmp;
 	const char *endptr, *p;
 	host_addr_t addr;
@@ -911,7 +911,7 @@ http_url_parse(const char *url, guint16 *port, const char **host,
 		*port = HTTP_PORT;
 	} else {
 		int error;
-		guint32 u;
+		uint32 u;
 
 		g_assert(':'== *p);
 		p++;
@@ -1067,7 +1067,7 @@ http_content_range_parse(const char *buf,
  */
 static GSList *
 http_range_add(GSList *list, filesize_t start, filesize_t end,
-	const char *field, const char *vendor, gboolean *ignored)
+	const char *field, const char *vendor, bool *ignored)
 {
 	GSList *l;
 	GSList *prev;
@@ -1194,15 +1194,15 @@ http_range_parse(
 	static const char unit[] = "bytes";
 	GSList *ranges = NULL;
 	const char *str = value;
-	guchar c;
+	uchar c;
 	filesize_t start;
 	filesize_t end;
-	gboolean request = FALSE;		/* True if 'bytes=' is seen */
-	gboolean has_start;
-	gboolean has_end;
-	gboolean skipping;
-	gboolean minus_seen;
-	gboolean ignored;
+	bool request = FALSE;		/* True if 'bytes=' is seen */
+	bool has_start;
+	bool has_end;
+	bool skipping;
+	bool minus_seen;
+	bool ignored;
 	int count = 0;
 
 	g_assert(size > 0);
@@ -1328,7 +1328,7 @@ http_range_parse(
 		if (is_ascii_digit(c)) {
 			int error;
 			const char *dend;
-			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
+			uint64 val = parse_uint64(str - 1, &dend, 10, &error);
 
 			/* Started with digit! */
 			g_assert(dend != (str - 1));
@@ -1507,7 +1507,7 @@ http_range_to_string(const GSList *list)
 /**
  * Checks whether range contains the contiguous [from, to] interval.
  */
-gboolean
+bool
 http_range_contains(GSList *ranges, filesize_t from, filesize_t to)
 {
 	GSList *l;
@@ -1738,13 +1738,13 @@ static const char * const error_str[] = {
 	"Mandatory request not understood",		/**< HTTP_ASYNC_MAN_FAILURE */
 };
 
-guint http_async_errno;		/**< Used to return error codes during setup */
+uint http_async_errno;		/**< Used to return error codes during setup */
 
 /**
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
-http_async_strerror(guint errnum)
+http_async_strerror(uint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str)) {
 		static char buf[50];
@@ -1783,8 +1783,8 @@ struct http_async {
 	enum http_async_magic magic;	/**< Magic number */
 	enum http_reqtype type;			/**< Type of request */
 	http_state_t state;				/**< Current request state */
-	guint32 flags;					/**< Operational flags */
-	guint32 options;				/**< User options */
+	uint32 flags;					/**< Operational flags */
+	uint32 options;					/**< User options */
 	const char *url;				/**< Initial URL request (atom) */
 	const char *path;				/**< Path to request (atom) */
 	const char *host;				/**< Hostname, if not a numeric IP (atom) */
@@ -1794,9 +1794,9 @@ struct http_async {
 	http_error_cb_t error_ind;		/**< Callback for errors */
 	http_state_change_t state_chg;	/**< Optional: callback for state changes */
 	time_t last_update;				/**< Time of last activity */
-	gpointer io_opaque;				/**< Opaque I/O callback information */
+	void *io_opaque;				/**< Opaque I/O callback information */
 	rxdrv_t *rx;					/**< RX stack for downloading data */
-	gpointer user_opaque;			/**< User opaque data */
+	void *user_opaque;				/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
 	GSList *delayed;				/**< Delayed data (list of http_buffer_t) */
@@ -1862,7 +1862,7 @@ http_async_check(const http_async_t *ha)
 const char *
 http_async_info(
 	http_async_t *handle, const char **req, const char **path,
-	host_addr_t *addr, guint16 *port)
+	host_addr_t *addr, uint16 *port)
 {
 	http_async_t *ha = handle;
 
@@ -1881,8 +1881,7 @@ http_async_info(
  * non-NULL function pointer is given.
  */
 void
-http_async_set_opaque(http_async_t *ha, gpointer data,
-	http_user_free_t fn)
+http_async_set_opaque(http_async_t *ha, void *data, http_user_free_t fn)
 {
 	http_async_check(ha);
 	g_assert(data != NULL);
@@ -1894,7 +1893,7 @@ http_async_set_opaque(http_async_t *ha, gpointer data,
 /**
  * Retrieve user-defined opaque data.
  */
-gpointer
+void *
 http_async_get_opaque(const http_async_t *ha)
 {
 	http_async_check(ha);
@@ -1908,7 +1907,7 @@ http_async_get_opaque(const http_async_t *ha)
  * @return TRUE if the IP address is available with the address being filled
  * in ``addrp'', FALSE otherwise.
  */
-gboolean
+bool
 http_async_get_local_addr(const http_async_t *ha, host_addr_t *addrp)
 {
 	http_async_check(ha);
@@ -1924,7 +1923,7 @@ http_async_get_local_addr(const http_async_t *ha, host_addr_t *addrp)
  *
  */
 void
-http_async_option_ctl(http_async_t *ha, guint32 mask, http_ctl_op_t what)
+http_async_option_ctl(http_async_t *ha, uint32 mask, http_ctl_op_t what)
 {
 	http_async_check(ha);
 
@@ -2068,7 +2067,7 @@ http_async_close(http_async_t *ha)
  * Cancel request (internal call).
  */
 static void
-http_async_remove(http_async_t *ha, http_errtype_t type, gpointer code)
+http_async_remove(http_async_t *ha, http_errtype_t type, void *code)
 {
 	http_async_check(ha);
 
@@ -2177,7 +2176,7 @@ http_async_remote_host_port(const http_async_t *ha)
 
 	if (ha->host) {
 		if (s->port != HTTP_PORT)
-			gm_snprintf(buf, sizeof buf, "%s:%u", ha->host, (guint) s->port);
+			gm_snprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
 		else
 			g_strlcpy(buf, ha->host, sizeof buf);
 	} else {
@@ -2275,7 +2274,7 @@ http_async_build_post_request(const http_async_t *ha,
 static void
 http_async_sent_head(const http_async_t *unused_ha,
 	const struct gnutella_socket *s, const char *req, size_t len,
-	gboolean deferred)
+	bool deferred)
 {
 	(void) unused_ha;
 
@@ -2299,7 +2298,7 @@ http_async_sent_head(const http_async_t *unused_ha,
 static void
 http_async_sent_data(const http_async_t *unused_ha,
 	const struct gnutella_socket *s, const char *data, size_t len,
-	gboolean deferred)
+	bool deferred)
 {
 	(void) unused_ha;
 
@@ -2369,7 +2368,7 @@ static http_async_t *
 http_async_create(
 	const char *url,				/* Either full URL or path */
 	const host_addr_t addr,			/* Optional: 0 means grab from url */
-	guint16 port,					/* Optional, must be given when IP given */
+	uint16 port,					/* Optional, must be given when IP given */
 	enum http_reqtype type,			/* HTTP_GET or HTTP_POST */
 	http_post_data_t *post_data,	/* For HTTP_POST only */
 	http_header_cb_t header_ind,
@@ -2396,7 +2395,7 @@ http_async_create(
 
 	if (!is_host_addr(addr)) {
 		host_addr_t ip;
-		guint16 uport;
+		uint16 uport;
 
 		if (!http_url_parse(url, &uport, &host, &path)) {
 			http_async_errno = HTTP_ASYNC_BAD_URL;
@@ -2554,7 +2553,7 @@ http_async_t *
 http_async_get_addr(
 	const char *path,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind)
@@ -2598,7 +2597,7 @@ http_async_t *
 http_async_post_addr(
 	const char *path,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	http_post_data_t *post_data,
 	http_header_cb_t header_ind,
 	http_data_cb_t data_ind,
@@ -2684,7 +2683,7 @@ http_async_on_state_change(http_async_t *ha, http_state_change_t fn)
  * Interceptor callback for `header_ind' in child requests.
  * Reroute to parent request.
  */
-static gboolean
+static bool
 http_subreq_header_ind(http_async_t *ha, struct header *header,
 	int code, const char *message)
 {
@@ -2714,7 +2713,7 @@ http_subreq_data_ind(http_async_t *ha, char *data, int len)
  * Reroute to parent request.
  */
 static void
-http_subreq_error_ind(http_async_t *ha, http_errtype_t error, gpointer val)
+http_subreq_error_ind(http_async_t *ha, http_errtype_t error, void *val)
 {
 	http_async_check(ha);
 	g_assert(ha->parent != NULL);
@@ -2731,7 +2730,7 @@ http_subreq_error_ind(http_async_t *ha, http_errtype_t error, gpointer val)
  *
  * @returns whether we succeeded in creating the subrequest.
  */
-static gboolean
+static bool
 http_async_subrequest(
 	http_async_t *parent, char *url, enum http_reqtype type)
 {
@@ -2844,10 +2843,10 @@ http_redirect(http_async_t *ha, char *url)
  *** RX link callbacks.
  ***/
 
-static gboolean http_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static bool http_data_ind(rxdrv_t *rx, pmsg_t *mb);
 
 static G_GNUC_PRINTF(2, 3) void
-http_async_rx_error(gpointer o, const char *reason, ...)
+http_async_rx_error(void *o, const char *reason, ...)
 {
 	http_async_t *ha = o;
 	va_list args;
@@ -2871,7 +2870,7 @@ http_async_rx_error(gpointer o, const char *reason, ...)
 }
 
 static void
-http_async_rx_done(gpointer o)
+http_async_rx_done(void *o)
 {
 	http_async_t *ha = o;
 
@@ -2905,7 +2904,7 @@ static const struct rx_inflate_cb http_async_rx_inflate_cb = {
  *
  * @return TRUE if we can continue reading data.
  */
-static gboolean
+static bool
 http_got_data(http_async_t *ha, char *data, size_t len)
 {
 	http_async_check(ha);
@@ -2931,11 +2930,11 @@ http_got_data(http_async_t *ha, char *data, size_t len)
  *
  * @return FALSE if an error occurred.
  */
-static gboolean
+static bool
 http_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	http_async_t *ha = rx_owner(rx);
-	gboolean ok;
+	bool ok;
 
 	http_async_check(ha);
 
@@ -2959,7 +2958,7 @@ http_got_header(http_async_t *ha, header_t *header)
 	int ack_code;
 	const char *ack_message = "";
 	char *buf;
-	guint http_major = 0, http_minor = 0;
+	uint http_major = 0, http_minor = 0;
 
 	http_async_check(ha);
 
@@ -3203,7 +3202,7 @@ http_async_state(http_async_t *ha)
  * Called when full header was collected.
  */
 static void
-call_http_got_header(gpointer obj, header_t *header)
+call_http_got_header(void *obj, header_t *header)
 {
 	http_async_t *ha = obj;
 
@@ -3217,7 +3216,7 @@ static struct io_error http_io_error;
  * Called when we start receiving the HTTP headers.
  */
 static void
-http_header_start(gpointer obj)
+http_header_start(void *obj)
 {
 	http_async_t *ha = obj;
 
@@ -3250,7 +3249,7 @@ http_async_request_sent(http_async_t *ha)
  * sending the HTTP request.
  */
 static void
-http_async_write_request(gpointer data, int unused_source,
+http_async_write_request(void *data, int unused_source,
 	inputevt_cond_t cond)
 {
 	http_async_t *ha = data;
@@ -3479,16 +3478,16 @@ http_async_connected(http_async_t *ha)
  *
  * @return TRUE if anything was logged.
  */
-gboolean
+bool
 http_async_log_error_dbg(http_async_t *handle,
-	http_errtype_t type, gpointer v, const gchar *prefix, gboolean all)
+	http_errtype_t type, void *v, const char *prefix, bool all)
 {
 	const char *url;
 	const char *req;
 	int error = GPOINTER_TO_INT(v);
 	http_error_t *herror = v;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 	const char *what = prefix != NULL ? prefix : "HTTP";
 
 	http_async_check(handle);
@@ -3548,9 +3547,9 @@ http_async_log_error_dbg(http_async_t *handle,
  *
  * @return whether anything was logged.
  */
-gboolean
+bool
 http_async_log_error(http_async_t *handle,
-	http_errtype_t type, gpointer v, const char *prefix)
+	http_errtype_t type, void *v, const char *prefix)
 {
 	if (GNET_PROPERTY(http_debug)) {
 		return http_async_log_error_dbg(handle, type, v, prefix,
@@ -3609,7 +3608,7 @@ http_wget_free(void *data)
  * Callback for http_async_wget(), invoked when all headers have been read.
  * @return TRUE if we can continue with the request.
  */
-static gboolean
+static bool
 wget_header_ind(http_async_t *ha, struct header *header,
 	int code, const char *unused_message)
 {
@@ -3638,7 +3637,7 @@ wget_header_ind(http_async_t *ha, struct header *header,
 
 	buf = header_get(header, "Content-Length");
 	if (buf != NULL) {
-		guint64 len;
+		uint64 len;
 		int error;
 
 		len = parse_uint64(buf, NULL, 10, &error);
@@ -3907,7 +3906,7 @@ failed:
  ***/
 
 static void
-err_line_too_long(gpointer obj, header_t *unused_head)
+err_line_too_long(void *obj, header_t *unused_head)
 {
 	http_async_t *ha = obj;
 	(void) unused_head;
@@ -3916,7 +3915,7 @@ err_line_too_long(gpointer obj, header_t *unused_head)
 }
 
 static void
-err_header_error(gpointer obj, int error)
+err_header_error(void *obj, int error)
 {
 	http_async_t *ha = obj;
 	http_async_check(ha);
@@ -3924,7 +3923,7 @@ err_header_error(gpointer obj, int error)
 }
 
 static void
-err_input_exception(gpointer obj, header_t *unused_head)
+err_input_exception(void *obj, header_t *unused_head)
 {
 	http_async_t *ha = obj;
 	(void) unused_head;
@@ -3933,7 +3932,7 @@ err_input_exception(gpointer obj, header_t *unused_head)
 }
 
 static void
-err_input_buffer_full(gpointer obj)
+err_input_buffer_full(void *obj)
 {
 	http_async_t *ha = obj;
 	http_async_check(ha);
@@ -3941,7 +3940,7 @@ err_input_buffer_full(gpointer obj)
 }
 
 static void
-err_header_read_error(gpointer obj, int error)
+err_header_read_error(void *obj, int error)
 {
 	http_async_t *ha = obj;
 	http_async_check(ha);
@@ -3949,7 +3948,7 @@ err_header_read_error(gpointer obj, int error)
 }
 
 static void
-err_header_read_eof(gpointer obj, header_t *unused_head)
+err_header_read_eof(void *obj, header_t *unused_head)
 {
 	http_async_t *ha = obj;
 	(void) unused_head;

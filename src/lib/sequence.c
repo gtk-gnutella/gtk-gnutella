@@ -302,7 +302,7 @@ sequence_foreach(const sequence_t *s, GFunc func, void *data)
 /**
  * Is the sequence empty?
  */
-gboolean
+bool
 sequence_is_empty(const sequence_t *s)
 {
 	sequence_check(s);
@@ -358,7 +358,7 @@ sequence_count(const sequence_t *s)
 /**
  * Returns the underlying sequence implementation.
  */
-gpointer
+void *
 sequence_implementation(const sequence_t *s)
 {
 	sequence_check(s);
@@ -389,13 +389,13 @@ sequence_implementation(const sequence_t *s)
  *
  * The supplied pointer to the sequence is nullified upon return.
  */
-gpointer
+void *
 sequence_release(sequence_t **s_ptr)
 {
 	sequence_t *s = *s_ptr;
 
 	if (s != NULL) {
-		gpointer implementation;
+		void *implementation;
 
 		sequence_check(s);
 
@@ -492,7 +492,7 @@ sequence_forward_iterator(const sequence_t *s)
 /**
  * Check whether we have a next item to be iterated over.
  */
-gboolean
+bool
 sequence_iter_has_next(const sequence_iter_t *si)
 {
 	if (!si)
@@ -524,10 +524,10 @@ sequence_iter_has_next(const sequence_iter_t *si)
 /**
  * Get next item, moving iterator cursor by one position.
  */
-gpointer
+void *
 sequence_iter_next(sequence_iter_t *si)
 {
-	gpointer next = NULL;
+	void *next = NULL;
 
 	sequence_iter_check(si);
 	g_assert(SEQ_ITER_FORWARD == si->direction);
@@ -562,7 +562,7 @@ sequence_iter_next(sequence_iter_t *si)
  * instead unless ``check'' is TRUE in which case we panic.
  */
 sequence_iter_t *
-sequence_backward_iterator(const sequence_t *s, gboolean check)
+sequence_backward_iterator(const sequence_t *s, bool check)
 {
 	sequence_iter_t *si;
 
@@ -611,10 +611,10 @@ panic:
 /**
  * Get previous item, moving iterator cursor by one position backwards.
  */
-gpointer
+void *
 sequence_iter_previous(sequence_iter_t *si)
 {
-	gpointer prev = NULL;
+	void *prev = NULL;
 
 	sequence_iter_check(si);
 	g_assert(SEQ_ITER_BACKWARD == si->direction);
@@ -648,7 +648,7 @@ sequence_iter_previous(sequence_iter_t *si)
 /**
  * Check whether we have a previous item to be iterated over.
  */
-gboolean
+bool
 sequence_iter_has_previous(const sequence_iter_t *si)
 {
 	if (!si)

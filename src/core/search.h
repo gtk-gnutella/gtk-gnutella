@@ -95,22 +95,22 @@ search_request_info_t *search_request_info_alloc(void);
 void search_request_info_free_null(search_request_info_t **sri_ptr);
 unsigned search_request_media(const search_request_info_t *sri);
 
-gboolean search_results(gnutella_node_t *n, int *results);
-gboolean search_query_allowed(gnet_search_t sh);
+bool search_results(gnutella_node_t *n, int *results);
+bool search_query_allowed(gnet_search_t sh);
 void search_starting(gnet_search_t sh);
 void search_notify_sent(gnet_search_t sh, const struct nid *node_id);
 void search_query_sent(gnet_search_t sh);
-gboolean search_get_kept_results_by_muid(const struct guid *m, guint32 *kept);
-gboolean search_running_guess(const struct guid *muid);
-guint32 search_get_kept_results_by_handle(gnet_search_t sh);
+bool search_get_kept_results_by_muid(const struct guid *m, uint32 *kept);
+bool search_running_guess(const struct guid *muid);
+uint32 search_get_kept_results_by_handle(gnet_search_t sh);
 void search_oob_pending_results(gnutella_node_t *n, const struct guid *muid,
-	int hits, gboolean udp_firewalled, gboolean secure);
+	int hits, bool udp_firewalled, bool secure);
 
 void search_dissociate_browse(gnet_search_t sh, struct download *d);
 void search_browse_results(gnutella_node_t *n, gnet_search_t sh);
 
-gboolean search_request_preprocess(struct gnutella_node *n,
-	search_request_info_t *sri, gboolean isdup);
+bool search_request_preprocess(struct gnutella_node *n,
+	search_request_info_t *sri, bool isdup);
 void search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, struct query_hashvec *qhv);
 size_t compact_query(char *search);
@@ -121,11 +121,11 @@ void query_set_oob_flag(const struct gnutella_node *n, char *data);
 void record_query_string(const struct guid *muid,
 	const char *query, unsigned media_mask);
 
-void search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port);
+void search_query_key_generate(sectoken_t *tok, host_addr_t addr, uint16 port);
 
 gnutella_msg_search_t *build_guess_search_msg(const struct guid *muid,
 	const char *query, unsigned mtype,
-	guint32 *size, const void *query_key, guint8 length);
+	uint32 *size, const void *query_key, uint8 length);
 
 const char *lazy_safe_search(const char *search);
 

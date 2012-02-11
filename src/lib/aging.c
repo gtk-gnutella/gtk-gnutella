@@ -50,7 +50,7 @@
  * first aging table and cleared when the last aging table is gone.
  */
 static cqueue_t *aging_cq;		/**< Private callout queue */
-static guint32 aging_refcnt;	/**< Amount of alive aging tables */
+static uint32 aging_refcnt;		/**< Amount of alive aging tables */
 
 enum aging_magic {
 	AGING_MAGIC	= 0x38e2fac3
@@ -207,7 +207,7 @@ aging_expire(cqueue_t *unused_cq, void *obj)
  * Lookup value in table.
  */
 void *
-aging_lookup(const aging_table_t *ag, gconstpointer key)
+aging_lookup(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
@@ -221,7 +221,7 @@ aging_lookup(const aging_table_t *ag, gconstpointer key)
  * Return entry age in seconds, (time_delta_t) -1  if not found.
  */
 time_delta_t
-aging_age(const aging_table_t *ag, gconstpointer key)
+aging_age(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
@@ -237,7 +237,7 @@ aging_age(const aging_table_t *ag, gconstpointer key)
  * initial lifetime the key/value pair had at insertion time.
  */
 void *
-aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
+aging_lookup_revitalise(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
@@ -259,7 +259,7 @@ aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
  *
  * @return wehether key was found and subsequently removed.
  */
-gboolean
+bool
 aging_remove(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
@@ -295,7 +295,7 @@ aging_remove(aging_table_t *ag, const void *key)
 void
 aging_insert(aging_table_t *ag, const void *key, void *value)
 {
-	gboolean found;
+	bool found;
 	void *okey, *ovalue;
 	time_t now = tm_time();
 	struct aging_value *aval;
@@ -314,7 +314,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 			 * That way, we don't have to update the hash table.
 			 */
 
-			(*ag->kvfree)(deconstify_gpointer(key), aval->value);
+			(*ag->kvfree)(deconstify_pointer(key), aval->value);
 		}
 
 		g_assert(aval->cq_ev != NULL);
@@ -334,7 +334,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 	} else {
 		WALLOC(aval);
 		aval->value = value;
-		aval->key = deconstify_gpointer(key);
+		aval->key = deconstify_pointer(key);
 		aval->ttl = ag->delay;
 		aval->ttl = MAX(aval->ttl, 1);
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);

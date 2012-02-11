@@ -72,12 +72,12 @@ void dbstore_set_debug(unsigned level);
 dbmw_t *dbstore_create(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
-	gboolean incore);
+	bool incore);
 
 dbmw_t *dbstore_open(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
-	gboolean incore);
+	bool incore);
 
 void dbstore_sync(dbmw_t *dw);
 void dbstore_flush(dbmw_t *dw);

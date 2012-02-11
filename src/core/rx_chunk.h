@@ -44,9 +44,9 @@ const struct rxdrv_ops* rx_chunk_get_ops(void);
  * Callbacks used by the inflating layer.
  */
 struct rx_chunk_cb {
-	void (*chunk_error)(gpointer owner,
+	void (*chunk_error)(void *owner,
 			const char *reason, ...) PRINTF_FUNC_PTR(2, 3);
-	void (*chunk_end)(gpointer owner);
+	void (*chunk_end)(void *owner);
 };
 
 /**

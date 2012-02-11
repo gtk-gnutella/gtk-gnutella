@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, Markus Goetz & Raphael Manfredi
+ * Copyright (c) 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -22,31 +22,64 @@
  */
 
 /**
- * @ingroup core
  * @file
  *
- * Support for the hostiles.txt of BearShare.
+ * Portable type definitions and other conveniences.
  *
- * @author Markus Goetz
  * @author Raphael Manfredi
- * @date 2003
+ * @date 2012
  */
 
-#ifndef _core_hostiles_h_
-#define _core_hostiles_h_
+#ifndef _types_h_
+#define _types_h_
 
-#include "common.h"
-#include "lib/host_addr.h"
+/* @note This file is only for inclusion by common.h. */
 
-void hostiles_init(void);
-void hostiles_close(void);
+#if 0	/* Not yet */
+typedef enum bool {
+	BOOL_FALSE=0,
+	BOOL_TRUE = 1
+} bool;
+#else
+typedef int bool;
+#endif
 
-bool hostiles_check(const host_addr_t addr);
-bool hostiles_spam_check(const host_addr_t addr, uint16 port);
+#if CHARSIZE == 1
+typedef signed char int8;
+typedef unsigned char uint8;
+#else
+#error "no known 8-bit type."
+#endif
 
-void hostiles_dynamic_add(const host_addr_t addr, const char *reason);
-void hostiles_spam_add(const host_addr_t addr, uint16 port);
+#if SHORTSIZE == 2
+typedef short int16;
+typedef unsigned short uint16;
+#else
+#error "no known 16-bit type."
+#endif
 
-#endif /* _core_hostiles_h_ */
+#if INTSIZE == 4
+typedef int int32;
+typedef unsigned int uint32;
+#else
+#error "no known 32-bit type."
+#endif
+
+#if LONGSIZE == 8
+typedef long int64;
+typedef unsigned long uint64;
+#elif defined(CAN_HANDLE_64BITS)
+typedef long long int64;
+typedef unsigned long long uint64;
+#else
+#error "no known 64-bit type."
+#endif
+
+typedef unsigned char uchar;
+typedef unsigned short ushort;
+typedef unsigned int uint;
+typedef unsigned long ulong;
+
+#endif /* _types_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

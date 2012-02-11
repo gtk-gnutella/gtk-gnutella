@@ -84,16 +84,16 @@
 #include "misc.h"		/* For sha1_t */
 
 struct arc4_stream {
-	guint8 i;
-	guint8 j;
-	guint8 s[256];
+	uint8 i;
+	uint8 j;
+	uint8 s[256];
 };
 
 static struct arc4_stream rs;
-static gboolean rs_initialized;
-static gboolean rs_stired;
+static bool rs_initialized;
+static bool rs_stired;
 
-static inline guint8 arc4_getbyte(struct arc4_stream *);
+static inline uint8 arc4_getbyte(struct arc4_stream *);
 static void arc4_stir(struct arc4_stream *);
 
 static inline void
@@ -111,7 +111,7 @@ static inline void
 arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 {
 	int n;
-	guint8 si;
+	uint8 si;
 
 	as->i--;
 	for (n = 0; n < 256; n++) {
@@ -141,7 +141,7 @@ arc4_stir(struct arc4_stream *as)
 	arc4_check_init();
 
 	entropy_collect(&entropy);
-	arc4_addrandom(as, cast_to_gpointer(&entropy), sizeof entropy);
+	arc4_addrandom(as, cast_to_pointer(&entropy), sizeof entropy);
 
 	/*
 	 * Throw away the first N bytes of output, as suggested in the
@@ -155,10 +155,10 @@ arc4_stir(struct arc4_stream *as)
 		arc4_getbyte(as);
 }
 
-static inline G_GNUC_HOT guint8
+static inline G_GNUC_HOT uint8
 arc4_getbyte(struct arc4_stream *as)
 {
-	guint8 si, sj;
+	uint8 si, sj;
 
 	as->i = (as->i + 1);
 	si = as->s[as->i];
@@ -170,10 +170,10 @@ arc4_getbyte(struct arc4_stream *as)
 	return (as->s[(si + sj) & 0xff]);
 }
 
-static inline G_GNUC_HOT guint32
+static inline G_GNUC_HOT uint32
 arc4_getword(struct arc4_stream *as)
 {
-	guint32 val;
+	uint32 val;
 
 	val = arc4_getbyte(as) << 24;
 	val |= arc4_getbyte(as) << 16;
@@ -237,10 +237,10 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 /**
  * @return a new 32-bit random number.
  */
-G_GNUC_HOT guint32
+G_GNUC_HOT uint32
 arc4random(void)
 {
-	guint32 rnd;
+	uint32 rnd;
 
 	/* THREAD_LOCK(); */
 	arc4_check_stir();
@@ -274,15 +274,15 @@ arc4random_stir_once(void)
 /**
  * @return uniformly distributed random number in the [0, max] range.
  */
-guint32
-arc4random_upto(guint32 max)
+uint32
+arc4random_upto(uint32 max)
 {
-	guint32 range, min, value;
+	uint32 range, min, value;
 
 	if G_UNLIKELY(0 == max)
 		return 0;
 
-	if G_UNLIKELY((guint32) -1 == max)
+	if G_UNLIKELY((uint32) -1 == max)
 		return arc4random();
 
 	/*
@@ -342,7 +342,7 @@ arc4random_upto(guint32 max)
 		 * that 2^32 = -1 + 1 (using unsigned arithmetic).
 		 */
 
-		min = ((guint32) -1 - range + 1) % range;
+		min = ((uint32) -1 - range + 1) % range;
 	}
 
 	value = arc4random();

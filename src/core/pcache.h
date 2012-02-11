@@ -45,26 +45,26 @@ struct gnutella_node;
  * Pong metadata that we try to preserve when present.
  */
 typedef struct pong_meta {
-	guchar vendor[4];     /**< Vendor code, from GGEP "VC" */
-	guchar language[2];   /**< Node's preferred language, from GGEP "LOC" */
-	guchar country[2];    /**< Node's country, from GGEP "LOC" */
-	guint8 guess;	      /**< Node supports GUESS, from GGEP "GUE" */
+	uchar vendor[4];     /**< Vendor code, from GGEP "VC" */
+	uchar language[2];   /**< Node's preferred language, from GGEP "LOC" */
+	uchar country[2];    /**< Node's country, from GGEP "LOC" */
+	uint8 guess;	      /**< Node supports GUESS, from GGEP "GUE" */
 
 	host_addr_t ipv6_addr;		/**< For GGEP "6" */
 	host_addr_t sender_addr;	/**< For GGEP "IP" */
-	guint16 sender_port;  		/**< For GGEP "IP" */
+	uint16 sender_port;  		/**< For GGEP "IP" */
 
-	guint32 daily_uptime;	/**< Node's daily uptime, from GGEP "DU" */
-	guint8 up_slots;		/**< Free UP slots, from GGEP "UP" */
-	guint8 leaf_slots;		/**< Free leaf slots, from GGEP "UP" */
-	guint8 version_up;		/**< Ultrapeer version protocol, from GGEP "UP" */
-	guint8 version_ua;		/**< Servent version, from GGEP "VC" */
+	uint32 daily_uptime;	/**< Node's daily uptime, from GGEP "DU" */
+	uint8 up_slots;			/**< Free UP slots, from GGEP "UP" */
+	uint8 leaf_slots;		/**< Free leaf slots, from GGEP "UP" */
+	uint8 version_up;		/**< Ultrapeer version protocol, from GGEP "UP" */
+	uint8 version_ua;		/**< Servent version, from GGEP "VC" */
 
-	guint8 dht_major;    	/**< DHT major version, from GGEP "DHT" */
-	guint8 dht_minor;    	/**< DHT minor version, from GGEP "DHT" */
-	guint8 dht_mode;    	/**< DHT mode, from GGEP "DHT" */
+	uint8 dht_major;    	/**< DHT major version, from GGEP "DHT" */
+	uint8 dht_minor;    	/**< DHT minor version, from GGEP "DHT" */
+	uint8 dht_mode; 	   	/**< DHT mode, from GGEP "DHT" */
 
-	guint8 flags;			/**< Validation flags */
+	uint8 flags;			/**< Validation flags */
 } pong_meta_t;
 
 enum {
@@ -95,10 +95,10 @@ enum {
 struct guid;
 
 gnutella_msg_init_t *build_ping_msg(
-	const struct guid *, guint8 ttl, gboolean uhc, guint32 *size);
+	const struct guid *, uint8 ttl, bool uhc, uint32 *size);
 
 gnutella_msg_init_t *build_guess_ping_msg(
-	const struct guid *, gboolean qk, gboolean intro, gboolean scp, guint32 *s);
+	const struct guid *, bool qk, bool intro, bool scp, uint32 *s);
 
 /*
  * Public interface.
@@ -113,11 +113,11 @@ void pcache_collect_dht_hosts(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);
 void pcache_pong_fake(struct gnutella_node *n,
-	const host_addr_t addr, guint16 port);
-gboolean pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port);
+	const host_addr_t addr, uint16 port);
+bool pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port);
 void pcache_clear_recent(host_type_t type);
 void pcache_guess_acknowledge(struct gnutella_node *n,
-	gboolean good_qk, gboolean wants_ipp, host_net_t net);
+	bool good_qk, bool wants_ipp, host_net_t net);
 
 void ping_all_neighbours(void);
 

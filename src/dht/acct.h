@@ -45,8 +45,8 @@
  */
 
 GHashTable *acct_net_create(void);
-int acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask);
-void acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone);
+int acct_net_get(GHashTable *ht, host_addr_t addr, uint32 mask);
+void acct_net_update(GHashTable *ht, host_addr_t addr, uint32 mask, int pmone);
 void acct_net_free(GHashTable **hptr);
 
 #endif /* _dht_acct_h_ */

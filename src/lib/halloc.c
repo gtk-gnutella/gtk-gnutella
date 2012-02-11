@@ -125,7 +125,7 @@ hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	RUNTIME_ASSERT((size_t) value > 0);
-	hfree(deconstify_gpointer(key));
+	hfree(deconstify_pointer(key));
 }
 
 static inline void
@@ -375,20 +375,20 @@ hrealloc(void *old, size_t size)
 
 #ifdef USE_HALLOC
 
-static gpointer
+static void *
 ha_malloc(gsize size)
 {
 	return halloc(size);
 }
 
-static gpointer
-ha_realloc(gpointer p, gsize size)
+static void *
+ha_realloc(void *p, gsize size)
 {
 	return hrealloc(p, size);
 }
 
 static void
-ha_free(gpointer p)
+ha_free(void *p)
 {
 	hfree(p);
 }
@@ -397,7 +397,7 @@ static void
 halloc_glib12_check(void)
 {
 #if !GLIB_CHECK_VERSION(2,0,0)
-	gpointer p;
+	void *p;
 
 	/*
 	 * Check whether the remapping is effective. This may not be
@@ -454,11 +454,11 @@ halloc_init_vtable(void)
 #endif	/* USE_HALLOC */
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
-static gboolean replacing_malloc;
-static gboolean halloc_is_compiled = TRUE;
+static bool replacing_malloc;
+static bool halloc_is_compiled = TRUE;
 
 void
-halloc_init(gboolean replace_malloc)
+halloc_init(bool replace_malloc)
 {
 	static int initialized;
 	int sp;
@@ -469,7 +469,7 @@ halloc_init(gboolean replace_malloc)
 
 	vmm_init(&sp);		/* Just in case, since we're built on top of VMM */
 
-	use_page_table = (size_t) -1 == (guint32) -1 && 4096 == compat_pagesize();
+	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == compat_pagesize();
 	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
 
 	if (use_page_table) {
@@ -485,24 +485,24 @@ halloc_init(gboolean replace_malloc)
 /**
  * Did they request that halloc() be a malloc() replacement?
  */
-gboolean
+bool
 halloc_replaces_malloc(void)
 {
 	return replacing_malloc;
 }
 #else	/* REMAP_ZALLOC || TRACK_MALLOC */
 
-static gboolean halloc_is_compiled = FALSE;
+static bool halloc_is_compiled = FALSE;
 
 void
-halloc_init(gboolean unused_replace_malloc)
+halloc_init(bool unused_replace_malloc)
 {
 	(void) unused_replace_malloc;
 
 	/* EMPTY */
 }
 
-gboolean
+bool
 halloc_replaces_malloc(void)
 {
 	return FALSE;
@@ -510,7 +510,7 @@ halloc_replaces_malloc(void)
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
-gboolean
+bool
 halloc_is_available(void)
 {
 	return halloc_is_compiled;

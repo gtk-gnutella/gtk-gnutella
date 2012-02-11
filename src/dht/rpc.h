@@ -86,7 +86,7 @@ typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 	const knode_t *kn,
 	const struct gnutella_node *n,
 	kda_msg_t function,
-	const gchar *payload, size_t len, gpointer arg);
+	const char *payload, size_t len, void *arg);
 
 /**
  * RPC call control flags.
@@ -101,30 +101,29 @@ typedef void (*dht_rpc_cb_t)(enum dht_rpc_ret type,
 void dht_rpc_init(void);
 void dht_rpc_close(void);
 
-gboolean dht_rpc_answer(const guid_t *muid, knode_t *kn,
+bool dht_rpc_answer(const guid_t *muid, knode_t *kn,
 	const struct gnutella_node *n,
 	kda_msg_t function,
-	gconstpointer payload, size_t len);
+	const void *payload, size_t len);
 
-gboolean dht_rpc_info(const guid_t *muid,
-	host_addr_t *addr, guint16 *port);
+bool dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port);
 
-gboolean dht_rpc_cancel(const guid_t *muid);
-gboolean dht_rpc_cancel_if_no_callback(const guid_t *muid);
-gboolean dht_lazy_rpc_ping(knode_t *kn);
-void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg);
+bool dht_rpc_cancel(const guid_t *muid);
+bool dht_rpc_cancel_if_no_callback(const guid_t *muid);
+bool dht_lazy_rpc_ping(knode_t *kn);
+void dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, void *arg);
 void dht_rpc_ping_extended(
-	knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg);
+	knode_t *kn, uint32 flags, dht_rpc_cb_t cb, void *arg);
 void dht_rpc_find_node(
-	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg);
+	knode_t *kn, const kuid_t *id, dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg);
 void dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg);
+	dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg);
 void dht_rpc_store(knode_t *kn, pmsg_t *mb,
-	dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg);
+	dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg);
 
 #endif /* _dht_rpc_h_ */
 

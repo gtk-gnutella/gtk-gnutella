@@ -42,10 +42,10 @@
  * Get number of items accounted for by an IP or class C network.
  */
 int
-acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask)
+acct_net_get(GHashTable *ht, host_addr_t addr, uint32 mask)
 {
-	guint32 net;
-	gpointer val;
+	uint32 net;
+	void *val;
 
 	g_assert(ht);
 	g_assert(host_addr_is_ipv4(addr));
@@ -60,12 +60,12 @@ acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask)
  * Update count of items accounted for by an IP or class C network.
  */
 void
-acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
+acct_net_update(GHashTable *ht, host_addr_t addr, uint32 mask, int pmone)
 {
-	guint32 net;
-	gpointer key;
-	gpointer val;
-	gboolean found;
+	uint32 net;
+	void *key;
+	void *val;
+	bool found;
 
 	g_assert(ht);
 	g_assert(host_addr_is_ipv4(addr));
@@ -78,7 +78,7 @@ acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
 		int count = GPOINTER_TO_INT(val);
 		count += pmone;
 
-		g_assert(net == *(guint32 *) key);
+		g_assert(net == *(uint32 *) key);
 
 		if (count) {
 			g_assert(count > 0);
@@ -90,7 +90,7 @@ acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
 	} else {
 		g_assert(pmone == +1);
 
-		key = (gpointer) atom_uint32_get(&net);
+		key = (void *) atom_uint32_get(&net);
 		g_hash_table_insert(ht, key, GINT_TO_POINTER(1));
 	}
 }
@@ -99,9 +99,9 @@ acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
  * Hash table iterator callback
  */
 static void
-acct_net_free_kv(gpointer key, gpointer unused_val, gpointer unused_x)
+acct_net_free_kv(void *key, void *unused_val, void *unused_x)
 {
-	const guint32 *net = key;
+	const uint32 *net = key;
 
 	(void) unused_val;
 	(void) unused_x;

@@ -47,9 +47,9 @@ void memusage_add(memusage_t *mu, size_t size);
 void memusage_add_one(memusage_t *mu);
 void memusage_remove(memusage_t *mu, size_t size);
 void memusage_remove_one(memusage_t *mu);
-void memusage_set_stack_accounting(memusage_t *mu, gboolean on);
+void memusage_set_stack_accounting(memusage_t *mu, bool on);
 
-gboolean memusage_is_valid(const memusage_t * const mu) G_GNUC_PURE;
+bool memusage_is_valid(const memusage_t * const mu) G_GNUC_PURE;
 
 struct logagent;
 

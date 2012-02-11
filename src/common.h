@@ -220,6 +220,7 @@
 #endif
 
 #include <glib.h>
+#include "types.h"
 
 #ifdef USE_LINT
 #undef G_GNUC_INTERNAL
@@ -236,7 +237,7 @@
 #error "Install GLib 2.x to compile gtk-gnutella against GLib 2.x."
 #endif
 
-typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
+typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #include "lib/mingw32.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
@@ -655,11 +656,11 @@ typedef void (*GCallback) (void);
  * GUINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
  * If the value is a variable, use GUINT32_SWAP().
  */
-#define GUINT32_SWAP_CONSTANT(x_) ((guint32) ( \
-    (((guint32) (x_) & (guint32) 0x000000ffU) << 24) | \
-    (((guint32) (x_) & (guint32) 0x0000ff00U) <<  8) | \
-    (((guint32) (x_) & (guint32) 0x00ff0000U) >>  8) | \
-    (((guint32) (x_) & (guint32) 0xff000000U) >> 24)))
+#define GUINT32_SWAP_CONSTANT(x_) ((uint32) ( \
+    (((uint32) (x_) & (uint32) 0x000000ffU) << 24) | \
+    (((uint32) (x_) & (uint32) 0x0000ff00U) <<  8) | \
+    (((uint32) (x_) & (uint32) 0x00ff0000U) >>  8) | \
+    (((uint32) (x_) & (uint32) 0xff000000U) >> 24)))
 
 /**
  * GUINT32_SWAP() byte-swaps a 32-bit word.
@@ -761,11 +762,11 @@ typedef gboolean (*reclaim_fd_t)(void);
 #endif /* ENABLE_NLS */
 
 static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 G_GNUC_FORMAT(1) G_GNUC_FORMAT(2);
 
 static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 {
 	return ngettext(msg1, msg2, n);
 }
@@ -780,10 +781,10 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  * in big endian byte order.
  */
 #define FOURCC_NATIVE(a,b,c,d) ( \
-	((guint32) (unsigned char) ((a) & 0xffU) << 24) | \
-	((guint32) (unsigned char) ((b) & 0xffU) << 16) | \
-	((guint32) (unsigned char) ((c) & 0xffU) << 8)  | \
-	((guint32) (unsigned char) ((d) & 0xffU)))
+	((uint32) (uchar) ((a) & 0xffU) << 24) | \
+	((uint32) (uchar) ((b) & 0xffU) << 16) | \
+	((uint32) (uchar) ((c) & 0xffU) << 8)  | \
+	((uint32) (uchar) ((d) & 0xffU)))
 
 /**
  * Zero memory used by structure pointed at.

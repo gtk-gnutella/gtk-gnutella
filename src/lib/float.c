@@ -106,11 +106,11 @@ struct dblflt_be {
 #define BIGSIZE 24
 #define MIN_E -1074
 #define MAX_FIVE 325
-#define B_P1 ((guint64)1 << 52)
+#define B_P1 ((uint64) 1 << 52)
 
 typedef struct {
    int l;
-   guint64 d[BIGSIZE];
+   uint64 d[BIGSIZE];
 } bignum_t;
 
 /*
@@ -137,7 +137,7 @@ static struct float_context {
 
 static bignum_t five[MAX_FIVE];
 static int recursion_level = -1;
-static gboolean float_inited;
+static bool float_inited;
 
 #define R			float_context[recursion_level].c_R
 #define S			float_context[recursion_level].c_S
@@ -155,7 +155,7 @@ static gboolean float_inited;
 #define MP			float_context[recursion_level].c_MP
 
 #define ADD(x, y, z, k) {\
-	guint64 x_add, z_add;\
+	uint64 x_add, z_add;\
 	x_add = (x);\
 	if ((k))\
 		z_add = x_add + (y) + 1, (k) = (z_add <= x_add);\
@@ -165,7 +165,7 @@ static gboolean float_inited;
 }
 
 #define SUB(x, y, z, b) {\
-	guint64 x_sub, y_sub;\
+	uint64 x_sub, y_sub;\
 	x_sub = (x); y_sub = (y);\
 	if ((b))\
 		(z) = x_sub - y_sub - 1, b = (y_sub >= x_sub);\
@@ -174,7 +174,7 @@ static gboolean float_inited;
 }
 
 #define MUL(x, y, z, k) {\
-	guint64 x_mul, low, high;\
+	uint64 x_mul, low, high;\
 	x_mul = (x);\
 	low = (x_mul & 0xffffffff) * (y) + (k);\
 	high = (x_mul >> 32) * (y) + (low >> 32);\
@@ -183,7 +183,7 @@ static gboolean float_inited;
 }
 
 #define SLL(x, y, z, k) {\
-	guint64 x_sll = (x);\
+	uint64 x_sll = (x);\
 	(z) = (x_sll << (y)) | (k);\
 	(k) = x_sll >> (64 - (y));\
 }
@@ -193,14 +193,14 @@ static void
 print_big(bignum_t *x)
 {
 	int i;
-	guint64 *p;
+	uint64 *p;
 
 	printf("#x");
 	i = x->l;
 	safety_assert(i < BIGSIZE);
 	p = &x->d[i];
 	for (p = &x->d[i]; i >= 0; i--) {
-		guint64 b = *p--;
+		uint64 b = *p--;
 		printf("%08x%08x", (int)(b >> 32), (int)(b & 0xffffffff));
 	}
 }
@@ -210,7 +210,7 @@ static void
 mul10(bignum_t *x)
 {
 	int i, l;
-	guint64 *p, k;
+	uint64 *p, k;
 
 	safety_assert(x->l < BIGSIZE);
 	safety_assert(x->l >= 0);
@@ -228,11 +228,11 @@ mul10(bignum_t *x)
 }
 
 static void
-big_short_mul(bignum_t *x, guint64 y, bignum_t *z)
+big_short_mul(bignum_t *x, uint64 y, bignum_t *z)
 {
 	int i, xl, zl;
-	guint64 *xp, *zp, k;
-	guint32 high, low;
+	uint64 *xp, *zp, k;
+	uint32 high, low;
 
 	safety_assert(x->l < BIGSIZE);
 	safety_assert(x->l >= 0);
@@ -244,7 +244,7 @@ big_short_mul(bignum_t *x, guint64 y, bignum_t *z)
 	high = y >> 32;
 	low = y & 0xffffffff;
 	for (i = xl, k = 0; i >= 0; i--, xp++, zp++) {
-		guint64 xlow, xhigh, z0, t, c, z1;
+		uint64 xlow, xhigh, z0, t, c, z1;
 		xlow = *xp & 0xffffffff;
 		xhigh = *xp >> 32;
 		z0 = (xlow * low) + k; /* Cout is (z0 < k) */
@@ -281,7 +281,7 @@ static void
 one_shift_left(int y, bignum_t *z)
 {
 	int n, m, i;
-	guint64 *zp;
+	uint64 *zp;
 
 	n = y / 64;
 	m = y % 64;
@@ -289,7 +289,7 @@ one_shift_left(int y, bignum_t *z)
 	zp = &z->d[0];
 	for (i = n; i > 0; i--)
 		*zp++ = 0;
-	*zp = (guint64)1 << m;
+	*zp = (uint64)1 << m;
 	z->l = n;
 
 	safety_assert(z->l >= 0);
@@ -297,10 +297,10 @@ one_shift_left(int y, bignum_t *z)
 }
 
 static void
-short_shift_left(guint64 x, int y, bignum_t *z)
+short_shift_left(uint64 x, int y, bignum_t *z)
 {
 	int n, m, i, zl;
-	guint64 *zp;
+	uint64 *zp;
 
 	n = y / 64;
 	m = y % 64;
@@ -312,7 +312,7 @@ short_shift_left(guint64 x, int y, bignum_t *z)
 	if (m == 0) {
 		*zp = x;
 	} else {
-		guint64 high = x >> (64 - m);
+		uint64 high = x >> (64 - m);
 		*zp = x << m;
 		if (high != 0)
 			*++zp = high, zl++;
@@ -327,7 +327,7 @@ static void
 big_shift_left(bignum_t *x, int y, bignum_t *z)
 {
 	int n, m, i, xl, zl;
-	guint64 *xp, *zp, k;
+	uint64 *xp, *zp, k;
 
 	n = y / 64;
 	m = y % 64;
@@ -358,7 +358,7 @@ static int
 big_comp(bignum_t *x, bignum_t *y)
 {
 	int i, xl, yl;
-	guint64 *xp, *yp;
+	uint64 *xp, *yp;
 
 	safety_assert(x->l < BIGSIZE);
 	safety_assert(x->l >= 0);
@@ -374,8 +374,8 @@ big_comp(bignum_t *x, bignum_t *y)
 	xp = &x->d[xl];
 	yp = &y->d[xl];
 	for (i = xl; i >= 0; i--, xp--, yp--) {
-		guint64 a = *xp;
-		guint64 b = *yp;
+		uint64 a = *xp;
+		uint64 b = *yp;
 
 		if (a > b) return 1;
 		else if (a < b) return -1;
@@ -387,7 +387,7 @@ static int
 sub_big(bignum_t *x, bignum_t *y, bignum_t *z)
 {
 	int xl, yl, zl, b, i;
-	guint64 *xp, *yp, *zp;
+	uint64 *xp, *yp, *zp;
 
 	safety_assert(x->l < BIGSIZE);
 	safety_assert(x->l >= 0);
@@ -405,7 +405,7 @@ sub_big(bignum_t *x, bignum_t *y, bignum_t *z)
 	for (i = yl, b = 0; i >= 0; i--)
 		SUB(*xp++, *yp++, *zp++, b);
 	for (i = xl-yl; b && i > 0; i--) {
-		guint64 x_sub;
+		uint64 x_sub;
 		x_sub = *xp++;
 		*zp++ = x_sub - 1;
 		b = (x_sub == 0);
@@ -429,7 +429,7 @@ static void
 add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 {
 	int xl, yl, k, i;
-	guint64 *xp, *yp, *zp;
+	uint64 *xp, *yp, *zp;
 
 	safety_assert(x->l < BIGSIZE);
 	safety_assert(x->l >= 0);
@@ -452,7 +452,7 @@ add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 	for (i = yl, k = 0; i >= 0; i--)
 		ADD(*xp++, *yp++, *zp++, k);
 	for (i = xl-yl; k && i > 0; i--) {
-		guint64 z_add;
+		uint64 z_add;
 		z_add = *xp++ + 1;
 		k = (z_add == 0);
 		*zp++ = z_add;
@@ -522,7 +522,7 @@ float_init(void)
 {
 	int n, i, l;
 	bignum_t *b;
-	guint64 *xp, *zp, k;
+	uint64 *xp, *zp, k;
 
 	five[0].l = l = 0;
 	five[0].d[0] = 5;
@@ -568,10 +568,10 @@ add_cmp(int use_mp)
 	return big_comp(&sum, &S);
 }
 
-static guint64
+static uint64
 float_decompose(double v, int *sign, int *ep)
 {
-	guint64 f;
+	uint64 f;
 	int e;
 
 	STATIC_ASSERT(sizeof v == sizeof(struct dblflt_le));
@@ -583,16 +583,16 @@ float_decompose(double v, int *sign, int *ep)
 		struct dblflt_le *x = (struct dblflt_le *)&v;
 		*sign = x->s;
 		e = x->e;
-		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
-			(guint32)(x->m3 << 16 | x->m4);
+		f = (uint64)(x->m1 << 16 | x->m2) << 32 |
+			(uint32)(x->m3 << 16 | x->m4);
 	}
 #elif IS_BIG_ENDIAN_FLOAT
 	{
 		struct dblflt_be *x = (struct dblflt_be *)&v;
 		*sign = x->s;
 		e = x->e;
-		f = (guint64)(x->m1 << 16 | x->m2) << 32 |
-			(guint32)(x->m3 << 16 | x->m4);
+		f = (uint64)(x->m1 << 16 | x->m2) << 32 |
+			(uint32)(x->m3 << 16 | x->m4);
 	}
 #else
 #error "unknown float endianness -- not IEEE 754?"
@@ -600,7 +600,7 @@ float_decompose(double v, int *sign, int *ep)
 
 	if (e != 0) {
 		*ep = e - bias - bitstoright;
-		f |= (guint64)hidden_bit << 32;
+		f |= (uint64)hidden_bit << 32;
 	} else if (f != 0) {
 		/* denormalized */
 		*ep = 1 - bias - bitstoright;
@@ -654,7 +654,7 @@ size_t
 float_dragon(char *dest, size_t len, double v, int *exponent)
 {
 	int sign, e, f_n, m_n, i, d, tc1, tc2;
-	guint64 f;
+	uint64 f;
 	int ruf, k, sl = 0, slr = 0;
 	int use_mp;
 	char *bp = dest;
@@ -684,9 +684,9 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 		k = estimate(e+52);
 	} else {
 		int n;
-		guint64 y;
+		uint64 y;
 
-		for (n = e+52, y = (guint64)1 << 52; f < y; n--)
+		for (n = e+52, y = (uint64)1 << 52; f < y; n--)
 			y >>= 1;
 		k = estimate(n);
 	}
@@ -775,20 +775,20 @@ again:
 		if (R.l < sl) {
 			d = 0;
 		} else if (R.l == sl) {
-			guint64 *p;
+			uint64 *p;
 
 			p = &R.d[sl];
 			d = *p >> slr;
-			*p &= ((guint64)1 << slr) - 1;
+			*p &= ((uint64)1 << slr) - 1;
 			for (i = sl; (i > 0) && (*p == 0); i--) p--;
 			R.l = i;
 		} else {
-			guint64 *p;
+			uint64 *p;
 
 			p = &R.d[sl+1];
 			d = *p << (64 - slr) | *(p-1) >> slr;
 			p--;
-			*p &= ((guint64)1 << slr) - 1;
+			*p &= ((uint64)1 << slr) - 1;
 			for (i = sl; (i > 0) && (*p == 0); i--) p--;
 			R.l = i;
 		}
@@ -860,7 +860,7 @@ size_t
 float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 {
 	int sign, e, f_n, i, d, n;
-	guint64 f;
+	uint64 f;
 	int k, sl = 0, slr = 0;
 	char *bp = dest;
 	size_t remain = len;
@@ -896,9 +896,9 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	if (e > MIN_E) {
 		k = estimate(e+52);
 	} else {
-		guint64 y;
+		uint64 y;
 
-		for (n = e+52, y = (guint64)1 << 52; f < y; n--) y >>= 1;
+		for (n = e+52, y = (uint64)1 << 52; f < y; n--) y >>= 1;
 		k = estimate(n);
 	}
 
@@ -955,21 +955,21 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 			if (R.l < sl) {
 				d = 0;
 			} else if (R.l == sl) {
-				guint64 *p;
+				uint64 *p;
 
 				p = &R.d[sl];
 				d = *p >> slr;
-				*p &= ((guint64)1 << slr) - 1;
+				*p &= ((uint64)1 << slr) - 1;
 				for (i = sl; (i > 0) && (*p == 0); i--)
 					p--;
 				R.l = i;
 			} else {
-				guint64 *p;
+				uint64 *p;
 
 				p = &R.d[sl+1];
 				d = *p << (64 - slr) | *(p-1) >> slr;
 				p--;
-				*p &= ((guint64)1 << slr) - 1;
+				*p &= ((uint64)1 << slr) - 1;
 				for (i = sl; (i > 0) && (*p == 0); i--)
 					p--;
 				R.l = i;

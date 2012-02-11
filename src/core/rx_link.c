@@ -61,7 +61,7 @@ struct attr {
  * Invoked when the input file descriptor has more data available.
  */
 static void
-is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
+is_readable(void *data, int unused_source, inputevt_cond_t cond)
 {
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
@@ -69,7 +69,7 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
 	iovec_t iov[G_N_ELEMENTS(db)];
 	pmsg_t *mb;
 	ssize_t r;
-	guint i, iov_cnt;
+	uint i, iov_cnt;
 	size_t avail;
 
 	(void) unused_source;
@@ -174,8 +174,8 @@ is_readable(gpointer data, int unused_source, inputevt_cond_t cond)
  *
  * Always succeeds, so never returns NULL.
  */
-static gpointer
-rx_link_init(rxdrv_t *rx, gconstpointer args)
+static void *
+rx_link_init(rxdrv_t *rx, const void *args)
 {
 	const struct rx_link_args *rargs = args;
 	struct attr *attr;
@@ -219,7 +219,7 @@ rx_link_destroy(rxdrv_t *rx)
  *
  * @return FALSE if there was an error or the receiver wants no more data.
  */
-static gboolean
+static bool
 rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;

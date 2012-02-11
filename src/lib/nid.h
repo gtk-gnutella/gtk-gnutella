@@ -38,7 +38,7 @@
  * A unique numerical ID that will never overflow, hopefully.
  */
 struct nid {
-	guint64 value;
+	uint64 value;
 };
 
 /*
@@ -46,7 +46,7 @@ struct nid {
  */
 
 unsigned nid_hash(const void *key);
-gboolean nid_equal(const void *p, const void *q);
+bool nid_equal(const void *p, const void *q);
 const char *nid_to_string(const struct nid *nid);
 const char *nid_to_string2(const struct nid *nid);
 struct nid *nid_ref(const struct nid *nid);
@@ -56,7 +56,7 @@ struct nid *nid_new_counter(struct nid *counter);
 struct nid nid_new_value(void);
 struct nid nid_new_counter_value(struct nid *counter);
 
-static inline guint64
+static inline uint64
 nid_value(const struct nid *nid)
 {
 	return nid->value;

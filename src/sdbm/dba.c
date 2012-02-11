@@ -14,8 +14,6 @@ extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 void sdump(int, long);
 void bdump(int);
 
-#define bool int
-
 static bool summary_only;
 static bool on_tty;
 
@@ -114,7 +112,7 @@ offset(unsigned short off)
 	return off & 0x7fff;
 }
 
-static inline gboolean
+static inline bool
 is_big(unsigned short off)
 {
 	return booleanize(off & 0x8000);

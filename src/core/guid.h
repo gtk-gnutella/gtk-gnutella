@@ -46,20 +46,20 @@
 void guid_init(void);
 void guid_close(void);
 
-gboolean guid_is_banned(const struct guid *guid);
+bool guid_is_banned(const struct guid *guid);
 void guid_add_banned(const struct guid *guid);
 
-gboolean guid_is_gtkg(const struct guid *xuid,
-	guint8 *majp, guint8 *minp, gboolean *relp);
-gboolean guid_is_requery(const struct guid *xuid);
+bool guid_is_gtkg(const struct guid *xuid,
+	uint8 *majp, uint8 *minp, bool *relp);
+bool guid_is_requery(const struct guid *xuid);
 void guid_random_muid(struct guid *muid);
 void guid_ping_muid(struct guid *muid);
-void guid_query_muid(struct guid *muid, gboolean initial);
-gboolean guid_query_muid_is_gtkg(const struct guid *guid,
-	gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp);
+void guid_query_muid(struct guid *muid, bool initial);
+bool guid_query_muid_is_gtkg(const struct guid *guid,
+	bool oob, uint8 *majp, uint8 *minp, bool *relp);
 void guid_query_oob_muid(struct guid *muid,
-	const host_addr_t addr, guint16 port, gboolean initial);
+	const host_addr_t addr, uint16 port, bool initial);
 void guid_oob_get_addr_port(const struct guid *guid,
-	host_addr_t *addr, guint16 *port);
+	host_addr_t *addr, uint16 *port);
 
 #endif /* _core_guid_h_ */

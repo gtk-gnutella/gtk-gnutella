@@ -76,7 +76,7 @@ struct thex_upload {
 
 	txdrv_t *tx;			/**< The transmission stack */
 	special_upload_closed_t cb;	/**< Callback to invoke when TX fully flushed */
-	gpointer cb_arg;		/**< Callback argument */
+	void *cb_arg;			/**< Callback argument */
 
 	const struct tth *tth;
 	filesize_t filesize;
@@ -144,7 +144,7 @@ thex_upload_prepare_xml(char **data_ptr, const struct tth *tth,
 	return size;
 }
 
-static gboolean
+static bool
 thex_upload_get_xml(struct thex_upload *ctx)
 {
 	ctx->size = thex_upload_prepare_xml(&ctx->data, ctx->tth, ctx->filesize);
@@ -168,7 +168,7 @@ thex_upload_prepare_tree(char **data_ptr, const struct tth *tth,
 	return size;
 }
 
-static gboolean
+static bool
 thex_upload_get_tree(struct thex_upload *ctx)
 {
 	const struct tth *nodes;
@@ -234,7 +234,7 @@ thex_upload_get_content_length(const shared_file_t *sf)
  */
 static ssize_t
 thex_upload_read(struct special_upload *special_upload,
-	gpointer const dest, size_t size)
+	void * const dest, size_t size)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
 	char *p = dest;
@@ -294,7 +294,7 @@ thex_upload_read(struct special_upload *special_upload,
 		}
 	}
 
-	return p - cast_to_gchar_ptr(dest);
+	return p - cast_to_char_ptr(dest);
 
 error:
 	errno = EIO;
@@ -306,7 +306,7 @@ error:
  */
 static ssize_t
 thex_upload_write(struct special_upload *special_upload,
-	gconstpointer data, size_t size)
+	const void *data, size_t size)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
 
@@ -319,7 +319,7 @@ thex_upload_write(struct special_upload *special_upload,
  * Callback invoked when the TX stack is fully flushed.
  */
 static void
-thex_upload_tx_flushed(txdrv_t *unused_tx, gpointer arg)
+thex_upload_tx_flushed(txdrv_t *unused_tx, void *arg)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(arg);
 
@@ -337,7 +337,7 @@ thex_upload_tx_flushed(txdrv_t *unused_tx, gpointer arg)
  */
 static void
 thex_upload_flush(struct special_upload *special_upload,
-	special_upload_closed_t cb, gpointer arg)
+	special_upload_closed_t cb, void *arg)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
 
@@ -360,7 +360,7 @@ thex_upload_flush(struct special_upload *special_upload,
  * @return An initialized THEX upload context.
  */
 static void
-thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
+thex_upload_close(struct special_upload *special_upload, bool fully_served)
 {
 	struct thex_upload *ctx = cast_to_thex_upload(special_upload);
 
@@ -395,7 +395,7 @@ thex_upload_close(struct special_upload *special_upload, gboolean fully_served)
  */
 struct special_upload *
 thex_upload_open(
-	gpointer owner,
+	void *owner,
 	const struct gnutella_host *host,
 	const shared_file_t *sf,
 	special_upload_writable_t writable,

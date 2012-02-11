@@ -58,7 +58,7 @@ struct urpc_cb {
 	void *arg;					/**< The user-defined callback parameter */
 	struct gnutella_socket *s;	/**< The socket used to send/receive */
 	cevent_t *timeout_ev;		/**< Callout queue timeout event */
-	guint16 port;				/**< The port to which we sent the request */
+	uint16 port;				/**< The port to which we sent the request */
 };
 
 static inline void
@@ -76,7 +76,7 @@ static GHashTable *pending;		/**< Pending RPCs (socket -> urcp_cb) */
  * Free the callback waiting indication.
  */
 static void
-urpc_cb_free(struct urpc_cb *ucb, gboolean in_shutdown)
+urpc_cb_free(struct urpc_cb *ucb, bool in_shutdown)
 {
 	urpc_cb_check(ucb);
 
@@ -98,7 +98,7 @@ urpc_cb_free(struct urpc_cb *ucb, gboolean in_shutdown)
  * socket buffer.
  */
 static void
-urpc_received(struct gnutella_socket *s, gboolean truncated)
+urpc_received(struct gnutella_socket *s, bool truncated)
 {
 	struct urpc_cb *ucb;
 
@@ -132,7 +132,7 @@ urpc_received(struct gnutella_socket *s, gboolean truncated)
  * RPC timed out.
  */
 static void
-urpc_timed_out(cqueue_t *unused_cq, gpointer obj)
+urpc_timed_out(cqueue_t *unused_cq, void *obj)
 {
 	struct urpc_cb *ucb = obj;
 
@@ -170,7 +170,7 @@ urpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  */
 int
 urpc_send(const char *what,
-	host_addr_t addr, guint16 port, const void *data, size_t len,
+	host_addr_t addr, uint16 port, const void *data, size_t len,
 	unsigned long timeout, urpc_cb_t cb, void *arg)
 {
 	struct urpc_cb *ucb;
@@ -269,7 +269,7 @@ urpc_send(const char *what,
 /**
  * Do we have pending UDP RPCs?
  */
-gboolean
+bool
 urpc_pending(void)
 {
 	return 0 != g_hash_table_size(pending);
@@ -285,7 +285,7 @@ urpc_init(void)
 }
 
 static void
-urpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+urpc_free_kv(void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;

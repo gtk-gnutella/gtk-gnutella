@@ -165,7 +165,7 @@ static volatile sig_atomic_t in_signal_handler;
 /**
  * Are we in a signal handler?
  */
-gboolean
+bool
 signal_in_handler(void)
 {
 	return in_signal_handler != 0 && !mingw_in_exception();
@@ -271,7 +271,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
  * @return the previous signal handler or SIG_ERR on failure.
  */
 static signal_handler_t
-signal_trap_with(int signo, signal_handler_t handler, gboolean extra)
+signal_trap_with(int signo, signal_handler_t handler, bool extra)
 {
 	signal_handler_t ret, old_handler, trampoline;
 
@@ -414,7 +414,7 @@ static volatile sig_atomic_t in_critical_section;
  *
  * @return TRUE if OK, FALSE on error with errno set.
  */
-gboolean
+bool
 signal_enter_critical(sigset_t *oset)
 {
 	g_assert(oset != NULL);

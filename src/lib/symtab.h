@@ -49,8 +49,8 @@ symtab_t *symtab_make(void);
 void symtab_free(symtab_t *syt);
 void symtab_free_null(symtab_t **syt_ptr);
 void *symtab_lookup(const symtab_t *syt, const char *name);
-gboolean symtab_insert_pair(symtab_t *syt, nv_pair_t *symbol, unsigned depth);
-gboolean symtab_insert(symtab_t *syt,
+bool symtab_insert_pair(symtab_t *syt, nv_pair_t *symbol, unsigned depth);
+bool symtab_insert(symtab_t *syt,
 	const char *name, void *value, size_t len, unsigned depth);
 void symtab_leave(symtab_t *syt, unsigned depth);
 

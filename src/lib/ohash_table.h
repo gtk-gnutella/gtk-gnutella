@@ -49,11 +49,11 @@ ohash_table_t *ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func);
 void ohash_table_destroy(ohash_table_t *oh);
 void ohash_table_destroy_null(ohash_table_t **oh_ptr);
 void ohash_table_insert(ohash_table_t *oh, const void *key, const void *value);
-gboolean ohash_table_replace(ohash_table_t *oh, const void *k, const void *v);
-gboolean ohash_table_remove(ohash_table_t *oh, const void *key);
-gboolean ohash_table_contains(const ohash_table_t *oh, const void *key);
+bool ohash_table_replace(ohash_table_t *oh, const void *k, const void *v);
+bool ohash_table_remove(ohash_table_t *oh, const void *key);
+bool ohash_table_contains(const ohash_table_t *oh, const void *key);
 void *ohash_table_lookup(const ohash_table_t *oh, const void *key);
-gboolean ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
+bool ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
 	void *okey, void *oval);
 size_t ohash_table_count(const ohash_table_t *oh);
 void ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data);

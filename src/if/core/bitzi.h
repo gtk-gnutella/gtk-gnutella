@@ -80,9 +80,9 @@ typedef struct bitzi_data {
  * from within the core. They do not generate notification events
  */
 
-gboolean bitzi_has_cached_ticket(const struct sha1 *);
-void bitzi_query_by_sha1(const struct sha1 *, filesize_t, gboolean);
-gboolean bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
+bool bitzi_has_cached_ticket(const struct sha1 *);
+void bitzi_query_by_sha1(const struct sha1 *, filesize_t, bool);
+bool bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
 const char *bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
 
 #endif /* CORE_SOURCES */

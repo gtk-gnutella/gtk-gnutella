@@ -42,7 +42,7 @@ enum bigint_magic { BIGINT_MAGIC = 0x3c1a6f4e };
 struct bigint_fake {
 	const enum bigint_magic m;
 	const size_t len;
-	const guint8 *p;
+	const uint8 *p;
 	const unsigned flags;
 };
 
@@ -59,21 +59,21 @@ void bigint_free(bigint_t *bi);
 void bigint_zero(bigint_t *bi);
 void bigint_copy(bigint_t *res, const bigint_t *other);
 int bigint_cmp(const bigint_t *bi1, const bigint_t *bi2);
-void bigint_set32(bigint_t *bi, guint32 val);
-void bigint_set64(bigint_t *bi, guint64 val);
+void bigint_set32(bigint_t *bi, uint32 val);
+void bigint_set64(bigint_t *bi, uint64 val);
 void bigint_set_nth_bit(bigint_t *bi, size_t n);
-gboolean bigint_is_positive(const bigint_t *bi);
+bool bigint_is_positive(const bigint_t *bi);
 void bigint_negate(bigint_t *bi);
 void bigint_not(bigint_t *bi);
-gboolean bigint_add(bigint_t *res, const bigint_t *other);
-gboolean bigint_add_u8(bigint_t *bi, guint8 val);
-gboolean bigint_lshift(bigint_t *bi);
+bool bigint_add(bigint_t *res, const bigint_t *other);
+bool bigint_add_u8(bigint_t *bi, uint8 val);
+bool bigint_lshift(bigint_t *bi);
 void bigint_rshift(bigint_t *bi);
-guint8 bigint_mult_u8(bigint_t *bi, guint8 val);
+uint8 bigint_mult_u8(bigint_t *bi, uint8 val);
 void bigint_divide(const bigint_t *bi1, const bigint_t *bi2,
 	bigint_t *qi, bigint_t *ri);
 double bigint_to_double(const bigint_t *bi);
-guint64 bigint_to_guint64(const bigint_t *bi);
+uint64 bigint_to_uint64(const bigint_t *bi);
 const char *bigint_to_hex_string(const bigint_t *bi);
 
 #endif /* _bigint_h_ */

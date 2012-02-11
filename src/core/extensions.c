@@ -98,16 +98,16 @@
 typedef struct extdesc {
 	const char *ext_phys_payload;	/**< Start of payload buffer */
 	const char *ext_payload;		/**< "virtual" payload */
-	guint16 ext_phys_len;		/**< Extension length (header + payload) */
-	guint16 ext_phys_paylen;	/**< Extension payload length */
-	guint16 ext_paylen;			/**< "virtual" payload length */
-	guint16 ext_rpaylen;		/**< Length of buffer for "virtual" payload */
+	uint16 ext_phys_len;		/**< Extension length (header + payload) */
+	uint16 ext_phys_paylen;		/**< Extension payload length */
+	uint16 ext_paylen;			/**< "virtual" payload length */
+	uint16 ext_rpaylen;			/**< Length of buffer for "virtual" payload */
 
 	union {
 		struct {
-			gboolean extu_cobs;			/**< Payload is COBS-encoded */
-			gboolean extu_deflate;		/**< Payload is deflated */
-			const char *extu_id;		/**< Extension ID */
+			bool extu_cobs;			/**< Payload is COBS-encoded */
+			bool extu_deflate;		/**< Payload is deflated */
+			const char *extu_id;	/**< Extension ID */
 		} extu_ggep;
 	} ext_u;
 
@@ -256,7 +256,7 @@ static const struct rwtable ggeptable[] =
  * If keyword was found, its static shared string is returned in `retkw'.
  */
 static G_GNUC_HOT ext_token_t
-rw_screen(gboolean case_sensitive,
+rw_screen(bool case_sensitive,
 	const struct rwtable *table, size_t size,
 	const char *word, const char **retkw)
 {
@@ -392,8 +392,8 @@ ext_name_atom(const char *name)
 /**
  * Callback for freeing entries in the `ext_names' hash table.
  */
-static gboolean
-ext_names_kv_free(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+ext_names_kv_free(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -435,10 +435,10 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	int count;
 
 	for (count = 0; count < exvcnt && p < end; /* empty */) {
-		guchar flags;
+		uchar flags;
 		char id[GGEP_F_IDLEN + 1];
-		guint id_len, data_length, i;
-		gboolean length_ended = FALSE;
+		uint id_len, data_length, i;
+		bool length_ended = FALSE;
 		const char *name;
 		extdesc_t *d;
 
@@ -448,7 +448,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		 * First byte is GGEP flags.
 		 */
 
-		flags = (guchar) *p++;
+		flags = (uchar) *p++;
 
 		if (flags & GGEP_F_MBZ)		/* A byte that Must Be Zero is set */
 			goto abort;
@@ -486,7 +486,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 
 		data_length = 0;
 		for (i = 0; i < 3 && p < end; i++) {
-			guchar b = *p++;
+			uchar b = *p++;
 
 			/*
 			 * Either GGEP_L_CONT or GGEP_L_LAST must be set, thereby
@@ -524,7 +524,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		 */
 
 		if (flags & (GGEP_F_COBS|GGEP_F_DEFLATE)) {
-			guint d_len = data_length;
+			uint d_len = data_length;
 
 			if (flags & GGEP_F_COBS) {
 				if (d_len == 0 || !cobs_is_valid(p, d_len))
@@ -533,7 +533,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 			}
 
 			if (flags & GGEP_F_DEFLATE) {
-				guint offset = 0;
+				uint offset = 0;
 
 				if (d_len < 6)
 					goto abort;
@@ -549,7 +549,7 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 				 */
 
 				if (flags & GGEP_F_COBS) {
-					if ((guchar) *p < 3)
+					if ((uchar) *p < 3)
 						goto abort;
 					offset = 1;			/* Skip leading byte */
 				}
@@ -763,7 +763,7 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 
 	payload_start = p;
 	for (/* NOTHING*/; p < end; p++) {
-		guchar c = *p;
+		uchar c = *p;
 		if (!(is_ascii_alnum(c) || '.' == c) || c == GGEP_MAGIC) {
 			break;
 		}
@@ -812,7 +812,7 @@ ext_xml_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	g_assert(exv->opaque == NULL);
 
 	for (/* NOTHING */; p != end; p++) {
-		guchar c = *p;
+		uchar c = *p;
 		if (c == '\0' || c == HUGE_FS) {
 			break;
 		}
@@ -852,12 +852,12 @@ ext_xml_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
  */
 static int
 ext_unknown_parse(const char **retp, int len, extvec_t *exv,
-	int exvcnt, gboolean skip)
+	int exvcnt, bool skip)
 {
 	const char *p = *retp;
 	const char *lastp = p;				/* Last parsed point */
 	extdesc_t *d;
-	gboolean separator = FALSE;
+	bool separator = FALSE;
 
 	g_assert(exvcnt > 0);
 	g_assert(exv->opaque == NULL);
@@ -868,9 +868,9 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 	 */
 
 	for (/* NOTHING*/; len > 0; p++, len--) {
-		gboolean found;
+		bool found;
 
-		switch ((guchar) *p) {
+		switch ((uchar) *p) {
 		case '\0':
 		case HUGE_FS:
 			separator = TRUE;
@@ -883,7 +883,7 @@ ext_unknown_parse(const char **retp, int len, extvec_t *exv,
 			found = len >= 4 && is_strcaseprefix(p, "urn:");
 			break;
 		case '<':
-			found = len >= 2 && is_ascii_alpha((guchar) p[1]);
+			found = len >= 2 && is_ascii_alpha((uchar) p[1]);
 			break;
 		default:
 			found = FALSE;
@@ -944,7 +944,7 @@ ext_none_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 	g_assert(exv->opaque == NULL);
 
 	for (/* NOTHING */; p != end; p++) {
-		guchar c = *p;
+		uchar c = *p;
 		if (c != '\0' && c != HUGE_FS)
 			break;
 	}
@@ -990,7 +990,7 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 	const char *end;
 	const char *nend;
 	const char *nbase;
-	guint16 added;
+	uint16 added;
 	extdesc_t *d = exv->opaque;
 	extdesc_t *nd = next->opaque;
 
@@ -1077,7 +1077,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 		 * that predate GGEP (HUGE and XML) and were not properly encapsulated.
 		 */
 
-		switch ((guchar) *p) {
+		switch ((uchar) *p) {
 		case GGEP_MAGIC:
 			p++;
 			if (p == end)
@@ -1117,7 +1117,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 		g_assert(found == 0 || p != old_p);
 
 		if (found == 0) {
-			g_assert((guchar) *old_p == GGEP_MAGIC || p == old_p);
+			g_assert((uchar) *old_p == GGEP_MAGIC || p == old_p);
 
 			/*
 			 * If we were initially on a GGEP magic byte, and since we did
@@ -1125,7 +1125,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 			 * about to skip the first synchronization point...
 			 */
 
-			if ((guchar) *old_p == GGEP_MAGIC) {
+			if ((uchar) *old_p == GGEP_MAGIC) {
 				p--;
 				g_assert(p == old_p);
 			}
@@ -1173,7 +1173,7 @@ ext_parse_buffer(const char *buf, size_t len, int flags,
 
 out:
 	if (endptr != NULL)
-		*endptr = deconstify_gpointer(p);	/* Beyond what we parsed */
+		*endptr = deconstify_pointer(p);	/* Beyond what we parsed */
 
 	return cnt;
 }
@@ -1234,12 +1234,12 @@ ext_ggep_nextblock(const char *buf, int len)
 
 		g_assert(len > 0);
 
-		switch ((guchar) *p) {
+		switch ((uchar) *p) {
 		case GGEP_MAGIC:
 			p++;
 			if (p == end)
 				return NULL;	/* Cannot possibly be a GGEP block */
-			return deconstify_gpointer(p);	/* Start of GGEP data */
+			return deconstify_pointer(p);	/* Start of GGEP data */
 		case 'u':
 		case 'U':
 			found = ext_huge_parse(&p, len, exv, G_N_ELEMENTS(exv));
@@ -1301,7 +1301,7 @@ ext_ggep_nextblock(const char *buf, int len)
  */
 static int
 ext_ggep_stripkey(char *buf, int len, const char *key,
-	const char **endptr, gboolean *emptied)
+	const char **endptr, bool *emptied)
 {
 	char *p = buf;
 	const char *end = &buf[len];
@@ -1317,17 +1317,17 @@ ext_ggep_stripkey(char *buf, int len, const char *key,
 	*emptied = FALSE;
 
 	while (p < end) {
-		guchar flags;
+		uchar flags;
 		char id[GGEP_F_IDLEN + 1];
-		guint id_len, data_length, i;
-		gboolean length_ended = FALSE;
+		uint id_len, data_length, i;
+		bool length_ended = FALSE;
 		char *cur_flags = p;	/* This is the start of the key/value pair */
 
 		/*
 		 * First byte is GGEP flags.
 		 */
 
-		flags = (guchar) *p++;
+		flags = (uchar) *p++;
 
 		if (flags & GGEP_F_MBZ)		/* A byte that Must Be Zero is set */
 			goto abort;
@@ -1365,7 +1365,7 @@ ext_ggep_stripkey(char *buf, int len, const char *key,
 
 		data_length = 0;
 		for (i = 0; i < 3 && p < end; i++) {
-			guchar b = *p++;
+			uchar b = *p++;
 
 			/*
 			 * Either GGEP_L_CONT or GGEP_L_LAST must be set, thereby
@@ -1488,7 +1488,7 @@ ext_ggep_strip(char *buf, int len, const char *key)
 
 	while (NULL != (p = ext_ggep_nextblock(start, end - start))) {
 		const char *endp;
-		gboolean emptied;
+		bool emptied;
 		int newlen;
 		int stripped;
 
@@ -1504,7 +1504,7 @@ ext_ggep_strip(char *buf, int len, const char *key)
 		end -= stripped;
 		g_assert(endp <= end);
 
-		start = deconstify_gpointer(endp);
+		start = deconstify_pointer(endp);
 
 		/*
 		 * If GGEP block was completely emptied, remove the GGEP marker.
@@ -1514,7 +1514,7 @@ ext_ggep_strip(char *buf, int len, const char *key)
 			char *q = p - 1;			/* GGEP Magic */
 
 			g_assert(q >= buf);
-			g_assert(GGEP_MAGIC == *(guchar *) q);
+			g_assert(GGEP_MAGIC == *(uchar *) q);
 
 			memmove(q, p, end - p);
 			end--;
@@ -1573,14 +1573,14 @@ ext_ggep_strip(char *buf, int len, const char *key)
  * or NULL on error.
  */
 static char *
-ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
+ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 {
 	char *result;					/* Inflated buffer */
 	int rsize;						/* Result's buffer size */
 	z_streamp inz;
 	int ret;
 	int inflated;					/* Amount of inflated data so far */
-	gboolean failed = FALSE;
+	bool failed = FALSE;
 
 	g_assert(buf);
 	g_assert(len > 0);
@@ -1613,7 +1613,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = (gpointer) buf;
+	inz->next_in = (void *) buf;
 	inz->avail_in = len;
 
 	inflated = 0;
@@ -1643,7 +1643,7 @@ ext_ggep_inflate(const char *buf, int len, guint16 *retlen, const char *name)
 
 		g_assert(rsize > inflated);
 
-		inz->next_out = (guchar *) result + inflated;
+		inz->next_out = (uchar *) result + inflated;
 		inz->avail_out = rsize - inflated;
 
 		/*
@@ -1831,7 +1831,7 @@ out:
 /**
  * @returns a pointer to the extension's payload.
  */
-gconstpointer
+const void *
 ext_payload(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1850,7 +1850,7 @@ ext_payload(const extvec_t *e)
 /**
  * @returns a pointer to the extension's payload length.
  */
-guint16
+uint16
 ext_paylen(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1886,7 +1886,7 @@ ext_base(const extvec_t *e)
 /**
  * @returns the length of the extensions's header.
  */
-guint16
+uint16
 ext_headlen(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1899,7 +1899,7 @@ ext_headlen(const extvec_t *e)
 /**
  * @returns the total length of the extension (payload + extension header).
  */
-guint16
+uint16
 ext_len(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1951,7 +1951,7 @@ ext_ggep_id_str(const extvec_t *e)
 /**
  * @return whether GGEP extension is deflated.
  */
-gboolean
+bool
 ext_ggep_is_deflated(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
@@ -1967,10 +1967,10 @@ ext_ggep_is_deflated(const extvec_t *e)
 /**
  * @return TRUE if extension is printable.
  */
-gboolean
+bool
 ext_is_printable(const extvec_t *e)
 {
-	const guchar *p = ext_payload(e);
+	const uchar *p = ext_payload(e);
 	size_t len;
 
 	for (len = ext_paylen(e); len > 0; len--, p++) {
@@ -1983,10 +1983,10 @@ ext_is_printable(const extvec_t *e)
 /**
  * @return TRUE if extension is ASCII.
  */
-gboolean
+bool
 ext_is_ascii(const extvec_t *e)
 {
-	const guchar *p = ext_payload(e);
+	const uchar *p = ext_payload(e);
 	size_t len;
 
 	for (len = ext_paylen(e); len > 0; len--, p++) {
@@ -1999,12 +1999,12 @@ ext_is_ascii(const extvec_t *e)
 /**
  * @return TRUE if extension is ASCII and contains at least a character.
  */
-gboolean
+bool
 ext_has_ascii_word(const extvec_t *e)
 {
-	const guchar *p = ext_payload(e);
+	const uchar *p = ext_payload(e);
 	size_t len;
-	gboolean has_alnum = FALSE;
+	bool has_alnum = FALSE;
 
 	for (len = ext_paylen(e); len > 0; len--, p++) {
 		if (!isascii(*p))
@@ -2086,9 +2086,9 @@ ext_to_string(const extvec_t *e)
  */
 static void
 ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
-	const char *postfix, gboolean payload)
+	const char *postfix, bool payload)
 {
-	guint16 paylen;
+	uint16 paylen;
 
 	g_assert(e->ext_type < EXT_TYPE_COUNT);
 	g_assert(e->opaque != NULL);
@@ -2145,7 +2145,7 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
  */
 void
 ext_dump(FILE *fd, const extvec_t *exv, int exvcnt,
-	const char *prefix, const char *postfix, gboolean payload)
+	const char *prefix, const char *postfix, bool payload)
 {
 	int i;
 
@@ -2188,7 +2188,7 @@ ext_reset(extvec_t *exv, int exvcnt)
 		d = e->opaque;
 
 		if (d->ext_payload != NULL && d->ext_payload != d->ext_phys_payload) {
-			gpointer p = deconstify_gpointer(d->ext_payload);
+			void *p = deconstify_pointer(d->ext_payload);
 			if (d->ext_rpaylen == 0) {
 				HFREE_NULL(p);
 			} else {

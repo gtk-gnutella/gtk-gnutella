@@ -106,8 +106,8 @@ static cperiodic_t *guid_sync_ev;		/**< Bad GUID DB sync */
 
 const struct guid blank_guid;
 
-static guint8 syndrome_table[256];
-static guint16 gtkg_version_mark;
+static uint8 syndrome_table[256];
+static uint16 gtkg_version_mark;
 
 /**
  * Serialization routine for guiddata.
@@ -129,7 +129,7 @@ static void
 deserialize_guiddata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct guiddata *gd = valptr;
-	guint8 version;
+	uint8 version;
 
 	g_assert(sizeof *gd == len);
 
@@ -154,7 +154,7 @@ guid_gen_syndrome_table(void)
 			if (syn & 0x80)
 				syn ^= HEC_GENERATOR;
 		}
-		syndrome_table[i] = (guint8) syn;
+		syndrome_table[i] = (uint8) syn;
 	}
 }
 
@@ -162,11 +162,11 @@ guid_gen_syndrome_table(void)
  * Encode major/minor version into 16 bits.
  * If `rel' is true, we're a release, otherwise we're unstable or a beta.
  */
-static guint16
-guid_gtkg_encode_version(unsigned major, unsigned minor, gboolean rel)
+static uint16
+guid_gtkg_encode_version(unsigned major, unsigned minor, bool rel)
 {
-	guint8 low;
-	guint8 high;
+	uint8 low;
+	uint8 high;
 
 	g_assert(major < 0x10);
 	g_assert(minor < 0x80);
@@ -193,11 +193,11 @@ guid_gtkg_encode_version(unsigned major, unsigned minor, gboolean rel)
 	return (high << 8) | low;
 }
 
-static inline guint8
+static inline uint8
 calculate_hec(const struct guid *guid, size_t offset)
 {
 	int i;
-	guint8 hec = 0;
+	uint8 hec = 0;
 
 	for (i = 0; i < 15; i++)
 		hec = syndrome_table[hec ^ peek_u8(&guid->v[i + offset])];
@@ -208,7 +208,7 @@ calculate_hec(const struct guid *guid, size_t offset)
 /**
  * Compute GUID's HEC over bytes 1..15.
  */
-static guint8
+static uint8
 guid_hec(const struct guid *guid)
 {
 	return calculate_hec(guid, 1);
@@ -217,7 +217,7 @@ guid_hec(const struct guid *guid)
 /**
  * Compute GUID's HEC over bytes 0..14.
  */
-static guint8
+static uint8
 guid_hec_oob(const struct guid *guid)
 {
 	return calculate_hec(guid, 0);
@@ -271,16 +271,16 @@ guid_flag_gtkg(struct guid *guid)
  *
  * @return whether we recognized a GTKG markup.
  */
-static gboolean
+static bool
 guid_extract_gtkg_info(const struct guid *guid, size_t start,
-	guint8 *majp, guint8 *minp, gboolean *relp)
+	uint8 *majp, uint8 *minp, bool *relp)
 {
-	guint8 major;
-	guint8 minor;
-	gboolean release;
-	guint16 mark;
-	guint16 xmark;
-	guint8 product_major;
+	uint8 major;
+	uint8 minor;
+	bool release;
+	uint16 mark;
+	uint16 xmark;
+	uint8 product_major;
 
 	g_assert(start < GUID_RAW_SIZE - 1);
 	major = peek_u8(&guid->v[start]) & 0x0f;
@@ -323,9 +323,9 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
  * Test whether GUID is that of GTKG, and extract version major/minor, along
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
-gboolean
+bool
 guid_is_gtkg(const struct guid *guid,
-	guint8 *majp, guint8 *minp, gboolean *relp)
+	uint8 *majp, uint8 *minp, bool *relp)
 {
 	if (peek_u8(&guid->v[0]) != guid_hec(guid))
 		return FALSE;
@@ -336,7 +336,7 @@ guid_is_gtkg(const struct guid *guid,
 /**
  * Test whether a GTKG MUID in a Query is marked as being a retry.
  */
-gboolean
+bool
 guid_is_requery(const struct guid *guid)
 {
 	return (peek_u8(&guid->v[15]) & GUID_REQUERY) ? TRUE : FALSE;
@@ -345,7 +345,7 @@ guid_is_requery(const struct guid *guid)
 /**
  * Test whether a GUID is blank.
  */
-gboolean
+bool
 guid_is_blank(const struct guid *guid)
 {
 	size_t i;
@@ -385,9 +385,9 @@ guid_ping_muid(struct guid *muid)
  * If `initial' is false, this is a requery.
  */
 void
-guid_query_muid(struct guid *muid, gboolean initial)
+guid_query_muid(struct guid *muid, bool initial)
 {
-	guint8 v;
+	uint8 v;
 
 	guid_random_fill(muid);
 
@@ -417,9 +417,9 @@ guid_flag_oob_gtkg(struct guid *guid)
  * Test whether GUID is that of GTKG, and extract version major/minor, along
  * with release status provided the `majp', `minp' and `relp' are non-NULL.
  */
-static gboolean
+static bool
 guid_oob_is_gtkg(const struct guid *guid,
-	guint8 *majp, guint8 *minp, gboolean *relp)
+	uint8 *majp, uint8 *minp, bool *relp)
 {
 	/*
 	 * The HEC for OOB queries is made of the first 15 bytes.  We can offset
@@ -452,11 +452,11 @@ guid_oob_is_gtkg(const struct guid *guid,
  * @param minp	where the minor release version is written, if GTKG
  * @param relp	where the release indicator gets written, if GTKG
  */
-gboolean
-guid_query_muid_is_gtkg(const struct guid *guid, gboolean oob,
-	guint8 *majp, guint8 *minp, gboolean *relp)
+bool
+guid_query_muid_is_gtkg(const struct guid *guid, bool oob,
+	uint8 *majp, uint8 *minp, bool *relp)
 {
-	gboolean is_gtkg;
+	bool is_gtkg;
 
 	if (oob)
 		return guid_oob_is_gtkg(guid, majp, minp, relp);
@@ -489,10 +489,10 @@ guid_query_muid_is_gtkg(const struct guid *guid, gboolean oob,
  * Byte 15 holds an HEC with bit 0 indicating a requery.
  */
 void
-guid_query_oob_muid(struct guid *muid, const host_addr_t addr, guint16 port,
-	gboolean initial)
+guid_query_oob_muid(struct guid *muid, const host_addr_t addr, uint16 port,
+	bool initial)
 {
-	guint32 ip;
+	uint32 ip;
 
 	g_assert(host_addr_is_ipv4(addr));
 
@@ -519,7 +519,7 @@ guid_query_oob_muid(struct guid *muid, const host_addr_t addr, guint16 port,
  */
 void
 guid_oob_get_addr_port(const struct guid *guid,
-	host_addr_t *addr, guint16 *port)
+	host_addr_t *addr, uint16 *port)
 {
 	if (addr) {
 		/*
@@ -537,7 +537,7 @@ guid_oob_get_addr_port(const struct guid *guid,
 /**
  * Is GUID banned?
  */
-gboolean
+bool
 guid_is_banned(const struct guid *guid)
 {
 	return dbmw_exists(db_guid, guid);
@@ -593,14 +593,14 @@ guid_add_banned(const struct guid *guid)
  * DBMW foreach iterator to remove old entries.
  * @return TRUE if entry must be deleted.
  */
-static gboolean
+static bool
 guid_prune_old_entries(void *key, void *value, size_t u_len, void *u_data)
 {
 	const guid_t *guid = key;
 	const struct guiddata *gd = value;
 	time_delta_t d;
 	double p = 0.0;
-	gboolean expired;
+	bool expired;
 
 	(void) u_len;
 	(void) u_data;
@@ -650,7 +650,7 @@ guid_prune_old(void)
 /**
  * Callout queue periodic event to expire old entries.
  */
-static gboolean
+static bool
 guid_periodic_prune(void *unused_obj)
 {
 	(void) unused_obj;
@@ -662,7 +662,7 @@ guid_periodic_prune(void *unused_obj)
 /**
  * Callout queue periodic event to synchronize the disk image.
  */
-static gboolean
+static bool
 guid_periodic_sync(void *unused_obj)
 {
 	(void) unused_obj;

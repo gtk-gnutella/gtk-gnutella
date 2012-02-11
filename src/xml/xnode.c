@@ -219,7 +219,7 @@ xnode_next_sibling(const xnode_t *xn)
 /**
  * @return TRUE if node has a text value (text or comment nodes).
  */
-gboolean
+bool
 xnode_has_text(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -229,7 +229,7 @@ xnode_has_text(const xnode_t *xn)
 /**
  * @return whether node is a text node.
  */
-gboolean
+bool
 xnode_is_text(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -239,7 +239,7 @@ xnode_is_text(const xnode_t *xn)
 /**
  * @return whether node is a comment node.
  */
-gboolean
+bool
 xnode_is_comment(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -249,7 +249,7 @@ xnode_is_comment(const xnode_t *xn)
 /**
  * @return whether node is an element node.
  */
-gboolean
+bool
 xnode_is_element(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -259,7 +259,7 @@ xnode_is_element(const xnode_t *xn)
 /**
  * @return whether node is a processing instruction node.
  */
-gboolean
+bool
 xnode_is_processing_instruction(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -269,7 +269,7 @@ xnode_is_processing_instruction(const xnode_t *xn)
 /**
  * @return whether node has content (children).
  */
-gboolean
+bool
 xnode_has_content(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -281,7 +281,7 @@ xnode_has_content(const xnode_t *xn)
  * @return whether node is empty (has either no children, or a single one
  * which is an empty text node).
  */
-gboolean
+bool
 xnode_is_empty(const xnode_t *xn)
 {
 	const xnode_t *xc;
@@ -301,7 +301,7 @@ xnode_is_empty(const xnode_t *xn)
 /**
  * @return whether node is an element node of corresponding namespace and name.
  */
-gboolean
+bool
 xnode_is_element_named(const xnode_t *xn, const char *uri, const char *name)
 {
 	xnode_check(xn);
@@ -327,7 +327,7 @@ xnode_is_element_named(const xnode_t *xn, const char *uri, const char *name)
 /**
  * @return whether (element) node is within a specific namespace.
  */
-gboolean
+bool
 xnode_within_namespace(const xnode_t *xn, const char *uri)
 {
 	xnode_check(xn);
@@ -378,7 +378,7 @@ xnode_first_text(const xnode_t *xn)
  * @return whether node's text must be output verbatim (no escaping of '&'
  * done on output because text refers to entites).
  */
-gboolean
+bool
 xnode_text_has_entities(const xnode_t *xn)
 {
 	xnode_check(xn);
@@ -552,7 +552,7 @@ xnode_new_comment(xnode_t *parent, const char *text)
  * @param verbatim		whether text is to be emitted verbatim or escaped
  */
 xnode_t *
-xnode_new_text(xnode_t *parent, const char *text, gboolean verbatim)
+xnode_new_text(xnode_t *parent, const char *text, bool verbatim)
 {
 	xnode_t *xn;
 
@@ -660,7 +660,7 @@ xnode_detach(xnode_t *xn)
 			}
 		} else {
 			xnode_t *ch;
-			gboolean found = FALSE;
+			bool found = FALSE;
 
 			for (ch = parent->first_child; ch != NULL; ch = ch->sibling) {
 				if (ch->sibling == xn) {
@@ -825,7 +825,7 @@ xnode_prop_foreach(const xnode_t *element, xattr_table_cb_t func, void *data)
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-gboolean
+bool
 xnode_prop_ns_set(xnode_t *element,
 	const char *uri, const char *name, const char *value)
 {
@@ -852,7 +852,7 @@ xnode_prop_ns_set(xnode_t *element,
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-gboolean
+bool
 xnode_prop_set(xnode_t *element, const char *name, const char *value)
 {
 	return xnode_prop_ns_set(element, NULL, name, value);
@@ -884,14 +884,14 @@ xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs)
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-static gboolean
+static bool
 xnode_prop_ns_vprintf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, va_list args)
 {
 	char buf[1024];
 	va_list args2;
 	char *value;
-	gboolean result;
+	bool result;
 
 	VA_COPY(args2, args);
 	if (gm_vsnprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
@@ -921,12 +921,12 @@ xnode_prop_ns_vprintf(xnode_t *element,
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-gboolean
+bool
 xnode_prop_ns_printf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, ...)
 {
 	va_list args;
-	gboolean result;
+	bool result;
 
 	xnode_check(element);
 	g_assert(XNODE_T_ELEMENT == element->type);
@@ -952,11 +952,11 @@ xnode_prop_ns_printf(xnode_t *element,
  *
  * @return TRUE if this was a new property, FALSE if we replaced content.
  */
-gboolean
+bool
 xnode_prop_printf(xnode_t *element, const char *name, const char *fmt, ...)
 {
 	va_list args;
-	gboolean result;
+	bool result;
 
 	xnode_check(element);
 	g_assert(XNODE_T_ELEMENT == element->type);
@@ -979,7 +979,7 @@ xnode_prop_printf(xnode_t *element, const char *name, const char *fmt, ...)
  *
  * @return TRUE if the property existed, FALSE otherwise.
  */
-gboolean
+bool
 xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *name)
 {
 	xnode_check(element);
@@ -1017,7 +1017,7 @@ xnode_prop_count(const xnode_t *element)
  *
  * @return TRUE if the property existed, FALSE otherwise.
  */
-gboolean
+bool
 xnode_prop_unset(xnode_t *element, const char *name)
 {
 	return xnode_prop_ns_unset(element, NULL, name);

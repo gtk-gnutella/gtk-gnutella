@@ -57,10 +57,10 @@ struct alive {
 	GSList *pings;				/**< Pings we sent (struct alive_ping) */
 	int count;					/**< Amount of pings in list */
 	int maxcount;				/**< Maximum amount of pings we remember */
-	guint32 min_rt;				/**< Minimum roundtrip time (ms) */
-	guint32 max_rt;				/**< Maximim roundtrip time (ms) */
-	guint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
-	guint32 last_rt;			/**< Last roundtrip time (ms) */
+	uint32 min_rt;				/**< Minimum roundtrip time (ms) */
+	uint32 max_rt;				/**< Maximim roundtrip time (ms) */
+	uint32 avg_rt;				/**< Average (EMA) roundtrip time (ms) */
+	uint32 last_rt;				/**< Last roundtrip time (ms) */
 };
 
 struct alive_ping {
@@ -100,7 +100,7 @@ ap_free(struct alive_ping *ap)
  * Create the alive structure.
  * Returned as an opaque pointer.
  */
-gpointer
+void *
 alive_make(struct gnutella_node *n, int max)
 {
 	struct alive *a;
@@ -117,7 +117,7 @@ alive_make(struct gnutella_node *n, int max)
  * Dispose the alive structure.
  */
 void
-alive_free(gpointer obj)
+alive_free(void *obj)
 {
 	struct alive *a = obj;
 	GSList *sl;
@@ -166,7 +166,7 @@ alive_ping_drop(struct alive *a, const struct guid *muid)
  * Test whether an alive ping can be sent.
  * We send only the LATEST registered one.
  */
-static gboolean
+static bool
 alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
 {
 	const gnutella_node_t *n = mq_node(q);
@@ -206,7 +206,7 @@ alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
  * Free routine for extended "alive ping" message block.
  */
 static void
-alive_pmsg_free(pmsg_t *mb, gpointer arg)
+alive_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct gnutella_node *n = arg;
 
@@ -233,14 +233,14 @@ alive_pmsg_free(pmsg_t *mb, gpointer arg)
  *
  * @return TRUE if we sent it, FALSE if there are too many ACK-pending pings.
  */
-gboolean
-alive_send_ping(gpointer obj)
+bool
+alive_send_ping(void *obj)
 {
 	struct alive *a = obj;
 	struct guid muid;
 	struct alive_ping *ap;
 	gnutella_msg_init_t *m;
-	guint32 size;
+	uint32 size;
 	pmsg_t *mb;
 
 	g_assert(a->count == 0 || a->pings != NULL);
@@ -321,7 +321,7 @@ static void
 alive_trim_upto(struct alive *a, GSList *item)
 {
 	GSList *sl;
-	gboolean found = FALSE;
+	bool found = FALSE;
 
 	g_assert(a->count && a->pings != NULL);
 
@@ -338,8 +338,8 @@ alive_trim_upto(struct alive *a, GSList *item)
  *
  * @return TRUE if it was indeed an ACK for a ping we sent.
  */
-gboolean
-alive_ack_ping(gpointer obj, const struct guid *muid)
+bool
+alive_ack_ping(void *obj, const struct guid *muid)
 {
 	struct alive *a = obj;
 	GSList *sl;
@@ -367,7 +367,7 @@ alive_ack_ping(gpointer obj, const struct guid *muid)
  * replying to an alive ping.
  */
 void
-alive_ack_first(gpointer obj, const struct guid *muid)
+alive_ack_first(void *obj, const struct guid *muid)
 {
 	struct alive *a = obj;
 	struct alive_ping *ap;
@@ -406,7 +406,7 @@ alive_ack_first(gpointer obj, const struct guid *muid)
  * Values are expressed in milliseconds.
  */
 void
-alive_get_roundtrip_ms(gconstpointer obj, guint32 *avg, guint32 *last)
+alive_get_roundtrip_ms(const void *obj, uint32 *avg, uint32 *last)
 {
 	const struct alive *a = obj;
 

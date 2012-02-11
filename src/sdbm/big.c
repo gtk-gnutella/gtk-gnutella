@@ -98,7 +98,7 @@ struct DBMBIG {
 	unsigned long bigwrite;		/* stats: amount of big data write syscalls */
 	unsigned long bigread_blk;	/* stats: amount of big data blocks read */
 	unsigned long bigwrite_blk;	/* stats: amount of big data blocks written */
-	guint8 bitbuf_dirty;	/* whether bitbuf needs flushing to disk */
+	uint8 bitbuf_dirty;		/* whether bitbuf needs flushing to disk */
 };
 
 static inline long
@@ -292,7 +292,7 @@ big_open(DBMBIG *dbg)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 big_check_start(DBM *db)
 {
 	DBMBIG *dbg = db->big;
@@ -338,7 +338,7 @@ big_scratch_grow(DBMBIG *dbg, size_t len)
  * Flush bitmap to disk.
  * @return TRUE on sucess
  */
-static gboolean
+static bool
 flush_bitbuf(DBM *db)
 {
 	DBMBIG *dbg = db->big;
@@ -365,7 +365,7 @@ flush_bitbuf(DBM *db)
  *
  * @return TRUE on success.
  */
-static gboolean
+static bool
 fetch_bitbuf(DBM *db, long num)
 {
 	DBMBIG *dbg = db->big;
@@ -421,13 +421,13 @@ big_check_end(DBM *db)
 		if (!fetch_bitbuf(db, i)) {
 			adjustments += BIG_BITCOUNT;	/* Say, everything was wrong */
 		} else {
-			guint8 *p = ptr_add_offset(dbg->bitcheck, i * BIG_BLKSIZE);
-			guint8 *q = dbg->bitbuf;
+			uint8 *p = ptr_add_offset(dbg->bitcheck, i * BIG_BLKSIZE);
+			uint8 *q = dbg->bitbuf;
 			size_t j;
 			size_t old_adjustments = adjustments;
 
 			for (j = 0; j < BIG_BLKSIZE; j++, p++, q++) {
-				guint8 mismatch = *p ^ *q;
+				uint8 mismatch = *p ^ *q;
 				if (mismatch) {
 					adjustments += bits_set(mismatch);
 					*q = *p;
@@ -501,7 +501,7 @@ big_falloc(DBM *db, size_t first)
 		bno = size_saturate_add(bno, size_saturate_mult(BIG_BITCOUNT, i));
 
 		/* Make sure we can represent the block number in 32 bits */
-		g_assert(bno <= MAX_INT_VAL(guint32));
+		g_assert(bno <= MAX_INT_VAL(uint32));
 
 		return bno;		/* Allocated block number */
 	}
@@ -517,7 +517,7 @@ big_falloc(DBM *db, size_t first)
  *
  * @return TRUE if the block is allocated.
  */
-static gboolean
+static bool
 big_block_is_allocated(DBM *db, size_t bno)
 {
 	DBMBIG *dbg = db->big;
@@ -688,7 +688,7 @@ big_falloc_seq(DBM *db, int bmap, int n)
 				size_saturate_mult(BIG_BITCOUNT, i));
 
 			/* Make sure we can represent all block numbers in 32 bits */
-			g_assert(size_saturate_add(first, n - 1) <= MAX_INT_VAL(guint32));
+			g_assert(size_saturate_add(first, n - 1) <= MAX_INT_VAL(uint32));
 
 			return first;	/* "n" consecutive free blocks found */
 		}
@@ -716,7 +716,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	const void *p;
 	char *q;
 	size_t remain;
-	guint32 prev_bno;
+	uint32 prev_bno;
 
 	if (-1 == dbg->fd && -1 == big_open(dbg))
 		return -1;
@@ -735,17 +735,17 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 	while (n > 0) {
 		size_t toread = MIN(remain, BIG_BLKSIZE);
-		guint32 bno = peek_be32(p);
+		uint32 bno = peek_be32(p);
 		
 		prev_bno = bno;
 		if (!big_block_is_allocated(db, prev_bno))
 			goto corrupted_database;
-		p = const_ptr_add_offset(p, sizeof(guint32));
+		p = const_ptr_add_offset(p, sizeof(uint32));
 		n--;
 		remain = size_saturate_sub(remain, toread);
 
 		while (n > 0) {
-			guint32 next_bno = peek_be32(p);
+			uint32 next_bno = peek_be32(p);
 			size_t amount;
 
 			if (next_bno <= prev_bno)	/* Block numbers are sorted */
@@ -757,7 +757,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 			prev_bno = next_bno;
 			if (!big_block_is_allocated(db, prev_bno))
 				goto corrupted_database;
-			p = const_ptr_add_offset(p, sizeof(guint32));
+			p = const_ptr_add_offset(p, sizeof(uint32));
 			amount = MIN(remain, BIG_BLKSIZE);
 			toread += amount;
 			n--;
@@ -841,7 +841,7 @@ bigval_length(size_t vallen)
  *
  * @return TRUE if the key matches.
  */
-gboolean
+bool
 bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 {
 	size_t len = big_length(bkey);
@@ -992,15 +992,15 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 	while (n > 0) {
 		size_t towrite = MIN(remain, BIG_BLKSIZE);
-		guint32 bno = peek_be32(p);
-		guint32 prev_bno = bno;
+		uint32 bno = peek_be32(p);
+		uint32 prev_bno = bno;
 
-		p = const_ptr_add_offset(p, sizeof(guint32));
+		p = const_ptr_add_offset(p, sizeof(uint32));
 		n--;
 		remain = size_saturate_sub(remain, towrite);
 
 		while (n > 0) {
-			guint32 next_bno = peek_be32(p);
+			uint32 next_bno = peek_be32(p);
 			size_t amount;
 
 			if (next_bno <= prev_bno)	/* Block numbers are sorted */
@@ -1010,7 +1010,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 				break;						/*  Not consecutive */
 
 			prev_bno = next_bno;
-			p = const_ptr_add_offset(p, sizeof(guint32));
+			p = const_ptr_add_offset(p, sizeof(uint32));
 			amount = MIN(remain, BIG_BLKSIZE);
 			towrite += amount;
 			n--;
@@ -1062,13 +1062,13 @@ big_replace(DBM *db, char *bval, const char *data, size_t len)
 
 	g_assert(size_is_non_negative(len));
 	g_assert(bigblocks(old_len) == bigblocks(len));
-	g_assert(len <= MAX_INT_VAL(guint32));
+	g_assert(len <= MAX_INT_VAL(uint32));
 
 	/*
 	 * Write data on the same blocks as before, since we know it will fit.
 	 */
 
-	poke_be32(bval, (guint32) len);		/* First 4 bytes: real data length */
+	poke_be32(bval, (uint32) len);		/* First 4 bytes: real data length */
 
 	return big_store(db, bigval_blocks(bval), data, len);
 }
@@ -1090,7 +1090,7 @@ big_file_free(DBM *db, const void *bvec, int bcnt)
 	for (q = bvec, n = bcnt; n > 0; n--) {
 		bno = peek_be32(q);
 		big_ffree(db, bno);
-		q = const_ptr_add_offset(q, sizeof(guint32));
+		q = const_ptr_add_offset(q, sizeof(uint32));
 	}
 
 	/*
@@ -1120,7 +1120,7 @@ big_file_free(DBM *db, const void *bvec, int bcnt)
  *
  * @return TRUE if we were able to allocate all the requested blocks.
  */
-static gboolean
+static bool
 big_file_alloc(DBM *db, void *bvec, int bcnt)
 {
 	DBMBIG *dbg = db->big;
@@ -1175,7 +1175,7 @@ retry:
 	for (q = bvec, n = bcnt - n; n > 0; n--) {
 		first = peek_be32(q);
 		big_ffree(db, first);
-		q = ptr_add_offset(q, sizeof(guint32));
+		q = ptr_add_offset(q, sizeof(uint32));
 	}
 
 	/*
@@ -1215,7 +1215,7 @@ success:
 		for (q = bvec, n = bcnt; n > 0; n--) {
 			first = peek_be32(q);
 			big_ffree(db, first);
-			q = ptr_add_offset(q, sizeof(guint32));
+			q = ptr_add_offset(q, sizeof(uint32));
 		}
 		return FALSE;
 	}
@@ -1288,7 +1288,7 @@ bigval_get(DBM *db, const char *bval, size_t blen)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 bigkey_free(DBM *db, const char *bkey, size_t blen)
 {
 	size_t len = big_length(bkey);
@@ -1313,7 +1313,7 @@ bigkey_free(DBM *db, const char *bkey, size_t blen)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 bigval_free(DBM *db, const char *bval, size_t blen)
 {
 	size_t len = big_length(bval);
@@ -1340,7 +1340,7 @@ bigval_free(DBM *db, const char *bval, size_t blen)
  *
  * @return TRUE on success.
  */
-static gboolean
+static bool
 big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 {
 	size_t prev_bno = 0;		/* 0 is invalid: it's the first bitmap */
@@ -1368,7 +1368,7 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 				sdbm_name(db), what);
 			return FALSE;
 		}
-		q = const_ptr_add_offset(q, sizeof(guint32));
+		q = const_ptr_add_offset(q, sizeof(uint32));
 		prev_bno = bno;
 
 		/*
@@ -1405,7 +1405,7 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 bigkey_check(DBM *db, const char *bkey, size_t blen)
 {
 	size_t len = big_length(bkey);
@@ -1429,7 +1429,7 @@ bigkey_check(DBM *db, const char *bkey, size_t blen)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 bigval_check(DBM *db, const char *bval, size_t blen)
 {
 	size_t len = big_length(bval);
@@ -1469,7 +1469,7 @@ big_file_mark_used(DBM *db, const void *bvec, int bcnt)
 
 		bmap = bno / BIG_BITCOUNT;			/* Bitmap handling this block */
 		bit = bno & (BIG_BITCOUNT - 1);		/* Index within bitmap */
-		q = const_ptr_add_offset(q, sizeof(guint32));
+		q = const_ptr_add_offset(q, sizeof(uint32));
 
 		/*
 		 * It's because of this sanity check that we don't want to consider
@@ -1542,7 +1542,7 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
  *
  * @return TRUE if key was written successfully in the .dat file.
  */
-gboolean
+bool
 bigkey_put(DBM *db, char *bkey, size_t blen, const char *key, size_t klen)
 {
 	g_assert(bigkey_length(klen) == blen);
@@ -1558,7 +1558,7 @@ bigkey_put(DBM *db, char *bkey, size_t blen, const char *key, size_t klen)
 	 * last BIG_KEYSAVED bytes of key
 	 */
 
-	poke_be32(bkey, (guint32) klen);
+	poke_be32(bkey, (uint32) klen);
 	memcpy(bigkey_head(bkey), key, BIG_KEYSAVED);
 	memcpy(bigkey_tail(bkey), key + (klen - BIG_KEYSAVED), BIG_KEYSAVED);
 
@@ -1586,7 +1586,7 @@ bigkey_put(DBM *db, char *bkey, size_t blen, const char *key, size_t klen)
  *
  * @return TRUE if value was written successfully in the .dat file.
  */
-gboolean
+bool
 bigval_put(DBM *db, char *bval, size_t blen, const char *val, size_t vlen)
 {
 	g_assert(bigval_length(vlen) == blen);
@@ -1600,7 +1600,7 @@ bigval_put(DBM *db, char *bval, size_t blen, const char *val, size_t vlen)
 	 * value size
 	 */
 
-	poke_be32(bval, (guint32) vlen);
+	poke_be32(bval, (uint32) vlen);
 
 	/*
 	 * And now the indirection block numbers of the value, pointing in .dat.
@@ -1630,7 +1630,7 @@ big_datfno(DBM *db)
  *
  * @return TRUE if OK, FALSE on error
  */
-gboolean
+bool
 big_sync(DBM *db)
 {
 	DBMBIG *dbg = db->big;
@@ -1654,7 +1654,7 @@ big_sync(DBM *db)
  * @return -1 on error with errno set, 0 if OK (file opened).
  */
 static int
-big_open_lazy(DBMBIG *dbg, gboolean force)
+big_open_lazy(DBMBIG *dbg, bool force)
 {
 	filestat_t buf;
 
@@ -1691,7 +1691,7 @@ big_open_lazy(DBMBIG *dbg, gboolean force)
  *
  * @return TRUE if we were able to successfully shrink the file.
  */
-gboolean
+bool
 big_shrink(DBM *db)
 {
 	DBMBIG *dbg = db->big;
@@ -1746,7 +1746,7 @@ big_shrink(DBM *db)
  *
  * @return TRUE if we were able to successfully unlink the file.
  */
-gboolean
+bool
 big_clear(DBM *db)
 {
 	DBMBIG *dbg = db->big;

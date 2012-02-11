@@ -75,8 +75,8 @@ is_dir_separator(int c)
  * @param x An integer between 0 and 15.
  * @return The ASCII character corresponding to the hex digit [0-9a-f].
  */
-static inline G_GNUC_PURE ALWAYS_INLINE guchar
-hex_digit(guchar x)
+static inline G_GNUC_PURE ALWAYS_INLINE uchar
+hex_digit(uchar x)
 {
 	extern const char hex_alphabet_lower[];
 	return hex_alphabet_lower[x & 0xf]; 
@@ -116,27 +116,27 @@ const char *local_hostname(void);
 /*
  * Size string conversions
  */
-const char *short_frequency(guint64 freq);
-const char *short_size(guint64 size, gboolean metric);
-const char *short_html_size(guint64 size, gboolean metric);
-const char *short_kb_size(guint64 size, gboolean metric);
-const char *short_kb_size2(guint64 size, gboolean metric);
-const char *short_rate(guint64 rate, gboolean metric);
-const char *short_byte_size(guint64 size, gboolean metric);
-const char *short_byte_size2(guint64 size, gboolean metric);
-const char *compact_size(guint64 size, gboolean metric);
-const char *compact_size2(guint64 size, gboolean metric);
-const char *compact_rate(guint64 rate, gboolean metric);
-const char *compact_kb_size(guint32 size, gboolean metric);
-const char *nice_size(guint64 size, gboolean metric);
-char *short_value(char *buf, size_t size, guint64 v, gboolean metric);
-char *compact_value(char *buf, size_t size, guint64 v, gboolean metric);
+const char *short_frequency(uint64 freq);
+const char *short_size(uint64 size, bool metric);
+const char *short_html_size(uint64 size, bool metric);
+const char *short_kb_size(uint64 size, bool metric);
+const char *short_kb_size2(uint64 size, bool metric);
+const char *short_rate(uint64 rate, bool metric);
+const char *short_byte_size(uint64 size, bool metric);
+const char *short_byte_size2(uint64 size, bool metric);
+const char *compact_size(uint64 size, bool metric);
+const char *compact_size2(uint64 size, bool metric);
+const char *compact_rate(uint64 rate, bool metric);
+const char *compact_kb_size(uint32 size, bool metric);
+const char *nice_size(uint64 size, bool metric);
+char *short_value(char *buf, size_t size, uint64 v, bool metric);
+char *compact_value(char *buf, size_t size, uint64 v, bool metric);
 
-size_t short_byte_size_to_buf(guint64 size, gboolean metric, char *, size_t);
-size_t short_kb_size_to_buf(guint64 size, gboolean metric, char *, size_t);
-size_t short_size_to_string_buf(guint64 size, gboolean metric, char *, size_t);
+size_t short_byte_size_to_buf(uint64 size, bool metric, char *, size_t);
+size_t short_kb_size_to_buf(uint64 size, bool metric, char *, size_t);
+size_t short_size_to_string_buf(uint64 size, bool metric, char *, size_t);
 
-short_string_t short_rate_get_string(guint64 rate, gboolean metric);
+short_string_t short_rate_get_string(uint64 rate, bool metric);
 
 /*
  * SHA1<->base32 string conversion
@@ -186,7 +186,7 @@ const char *bitprint_to_urn_string(const struct sha1 *, const struct tth *);
 struct guid;
 
 const char *guid_hex_str(const struct guid *);
-gboolean hex_to_guid(const char *, struct guid *);
+bool hex_to_guid(const char *, struct guid *);
 size_t guid_to_string_buf(const struct guid *, char *, size_t);
 const char *guid_to_string(const struct guid *);
 
@@ -204,9 +204,9 @@ size_t bin_to_hex_buf(const void *data, size_t len, char *dst, size_t size);
 /*
  * Tests
  */
-gboolean is_directory(const char *pathname);
-gboolean is_regular(const char *pathname);
-gboolean is_symlink(const char *pathname);
+bool is_directory(const char *pathname);
+bool is_regular(const char *pathname);
+bool is_symlink(const char *pathname);
 int is_same_file(const char *, const char *);
 
 /**
@@ -257,14 +257,14 @@ void misc_init(void);
 void misc_close(void);
 
 size_t strchomp(char *str, size_t len);
-int hex2int(guchar c);
-gboolean is_printable(const char *buf, int len);
-void dump_hex(FILE *, const char *, gconstpointer, int);
+int hex2int(uchar c);
+bool is_printable(const char *buf, int len);
+void dump_hex(FILE *, const char *, const void *, int);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
-gboolean is_printable_iso8859_string(const char *s);
+bool is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t common_leading_bits(
-	gconstpointer k1, size_t k1bits, gconstpointer k2, size_t k2bits)
+	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
 	G_GNUC_PURE;
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
@@ -282,11 +282,11 @@ int create_directory(const char *dir, mode_t mode);
 
 char *is_strprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
 char *is_strcaseprefix(const char *s, const char *prefix) WARN_UNUSED_RESULT;
-gboolean is_strsuffix(const char *str, size_t len, const char *suffix);
+bool is_strsuffix(const char *str, size_t len, const char *suffix);
 char *is_bufprefix(const char *str, size_t len, const char *prefix);
 char *is_bufcaseprefix(const char *str, size_t len, const char *prefix);
 size_t html_escape(const char *src, char *dst, size_t dst_size);
-guint32 html_decode_entity(const char *src, const char **endptr);
+uint32 html_decode_entity(const char *src, const char **endptr);
 const char *symbolic_errno(int errnum);
 void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
@@ -474,24 +474,24 @@ EMPTY_STRING(const char *s)
 /**
  * Is string NULL or empty?
  */
-static inline gboolean
+static inline bool
 is_null_or_empty(const char *s)
 {
 	return NULL == s || '\0' == *s;
 }
 
 /**
- * Swap endianness of a guint32.
+ * Swap endianness of a uint32.
  *
- * @param i the guint32 to swap
+ * @param i the uint32 to swap
  *
  * @returns the value of i after swapping its byte order.
  */
-static inline G_GNUC_CONST guint32
-swap_guint32(guint32 i)
+static inline G_GNUC_CONST uint32
+swap_uint32(uint32 i)
 {
-	guint32 a;
-	guint32 b;
+	uint32 a;
+	uint32 b;
                                   /* i -> ABCD */
 	a = (i & 0x00ff00ff) << 8;    /* a -> B0D0 */
 	b = (i & 0xff00ff00) >> 8;    /* b -> 0A0C */
@@ -509,15 +509,15 @@ swap_guint32(guint32 i)
  * @param netmask an IPv4 netmask in host byte order.
  * @return The CIDR prefix length (0..32).
  */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT guint8
-netmask_to_cidr(guint32 netmask)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT uint8
+netmask_to_cidr(uint32 netmask)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
 	return __builtin_popcount(netmask);
 }
 #else	/* !HAS_BUILTIN_POPCOUNT */
 {
-	guint8 bits = 32;
+	uint8 bits = 32;
 
 	while (0 == (netmask & 0x1)) {
 		netmask >>= 1;
@@ -534,10 +534,10 @@ netmask_to_cidr(guint32 netmask)
  * @param bits A value between 1..32.
  * @return The equivalent netmask in host byte order.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST WARN_UNUSED_RESULT guint32
-cidr_to_netmask(guint bits)
+static inline ALWAYS_INLINE G_GNUC_CONST WARN_UNUSED_RESULT uint32
+cidr_to_netmask(uint bits)
 {
-	return (guint32)-1 << (32 - bits);
+	return (uint32)-1 << (32 - bits);
 }
 
 /**
@@ -568,7 +568,7 @@ void guid_random_fill(struct guid *);
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003
  */
 
-static inline gboolean
+static inline bool
 is_temporary_error(int error)
 {
   switch (error) {
@@ -589,18 +589,18 @@ is_temporary_error(int error)
 int seek_to_filepos(int fd, filesize_t pos);
 filesize_t get_random_file_offset(const filesize_t size);
 
-guint filesize_per_100(filesize_t size, filesize_t part);
-guint filesize_per_1000(filesize_t size, filesize_t part);
-guint filesize_per_10000(filesize_t size, filesize_t part);
+uint filesize_per_100(filesize_t size, filesize_t part);
+uint filesize_per_1000(filesize_t size, filesize_t part);
+uint filesize_per_10000(filesize_t size, filesize_t part);
 
 /*
  * CIDR split of IP range.
  */
 
-typedef void (*cidr_split_t)(guint32 ip, guint bits, gpointer udata);
+typedef void (*cidr_split_t)(uint32 ip, uint bits, void *udata);
 
 void ip_range_split(
-	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata);
+	uint32 lower_ip, uint32 upper_ip, cidr_split_t cb, void *udata);
 
 /**
  * Perform a binary search over an array.
@@ -669,8 +669,8 @@ G_STMT_START { \
  * @param x An integer between 0 and 9.
  * @return The ASCII character corresponding to the decimal digit [0-9].
  */
-static inline guchar
-dec_digit(guchar x)
+static inline uchar
+dec_digit(uchar x)
 {
 	static const char dec_alphabet[] = "0123456789";
 	return dec_alphabet[x % 10];

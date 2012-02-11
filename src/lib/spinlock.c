@@ -229,7 +229,7 @@ spinlock_grab(spinlock_t *s)
  *
  * @return whether we obtained the lock.
  */
-gboolean
+bool
 spinlock_grab_try(spinlock_t *s)
 {
 	spinlock_check(s);
@@ -255,7 +255,7 @@ spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
  *
  * @return whether we obtained the lock.
  */
-gboolean
+bool
 spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line)
 {
 	spinlock_check(s);
@@ -286,7 +286,7 @@ spinunlock(spinlock_t *s)
 /**
  * Check that spinlock is held, for assertions.
  */
-gboolean
+bool
 spinlock_is_held(const spinlock_t *s)
 {
 	spinlock_check(s);

@@ -145,15 +145,15 @@ static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 struct search_request_info {
 	struct {
 		struct sha1 sha1;
-		gboolean matched;
+		bool matched;
 	} exv_sha1[MAX_EXTVEC];
 	host_addr_t addr;				/**< Reply address for OOB */
 	const char *extended_query;		/**< String in GGEP "XQ" */
 	int exv_sha1cnt;				/**< Amount of SHA1 to search for */
 	size_t search_len;				/**< Length of query string */
-	guint32 media_types;			/**< Media types from GGEP "M" */
-	guint16 flags;					/**< Query flags */
-	guint16 port;					/**< Reply port for OOB */
+	uint32 media_types;				/**< Media types from GGEP "M" */
+	uint16 flags;					/**< Query flags */
+	uint16 port;					/**< Reply port for OOB */
 	unsigned oob:1;					/**< Wants out-of-band hit delivery */
 	unsigned secure_oob:1;			/**< OOB v3 used? */
 	unsigned whats_new:1;			/**< This ia a "What's New?" query */
@@ -173,7 +173,7 @@ enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
 typedef struct search_ctrl {
 	enum search_ctrl_magic magic;	/**< Magic number */
     gnet_search_t search_handle;	/**< Search handle */
-	guint32 id;						/**< Unique ID */
+	uint32 id;						/**< Unique ID */
 
 	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
 
@@ -203,12 +203,12 @@ typedef struct search_ctrl {
 	wq_event_t *new_node_wait;	/**< Waiting for new node connections */
 	watchdog_t *activity;		/**< Monitoring queries/hits activity */
 	cperiodic_t *reissue_ev;	/**< re-issue timeout periodic event */
-	guint reissue_timeout;		/**< timeout per search, 0 = search stopped */
+	uint reissue_timeout;		/**< timeout per search, 0 = search stopped */
 	time_t create_time;			/**< Time at which this search was created */
-	guint lifetime;				/**< Initial lifetime (in hours) */
-	guint query_emitted;		/**< # of queries emitted since last retry */
-	guint32 items;				/**< Items displayed in the GUI */
-	guint32 kept_results;		/**< Results we kept for last query */
+	uint lifetime;				/**< Initial lifetime (in hours) */
+	uint query_emitted;			/**< # of queries emitted since last retry */
+	uint32 items;				/**< Items displayed in the GUI */
+	uint32 kept_results;		/**< Results we kept for last query */
 	unsigned sha1_downloaded;	/**< Amount of SHA1s being tracked */
 
 	/*
@@ -274,7 +274,7 @@ static const char WHATS_NEW[] = "What's New?";
 
 static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
 
-static gboolean search_reissue_timeout_callback(gpointer data);
+static bool search_reissue_timeout_callback(void *data);
 
 static void
 query_muid_map_init(void)
@@ -288,14 +288,14 @@ query_muid_map_init(void)
 	query_muids = hash_list_new(guid_hash, guid_eq);
 }
 
-static inline gboolean
+static inline bool
 query_muid_map_head_expired(void)
 {
 	const guid_t *muid = hash_list_head(query_muids);
 	return muid != NULL && !route_exists_for_reply(muid, GTA_MSG_SEARCH);
 }
 
-static gboolean
+static bool
 query_muid_map_remove_oldest(void)
 {
 	const guid_t *old_muid;
@@ -331,8 +331,8 @@ query_muid_map_close(void)
 static void
 query_muid_map_garbage_collect(void)
 {
-	guint removed = 0;
-	guint32 max;
+	uint removed = 0;
+	uint32 max;
 
 	/*
 	 * When not running as an Ultrapeer, there is no need for us to track
@@ -522,7 +522,7 @@ search_media_mask_to_string(unsigned mask)
  *
  * @return TRUE if query key is valid.
  */
-static gboolean
+static bool
 search_query_key_validate(const struct gnutella_node *n, const extvec_t *exv)
 {
 	size_t len = ext_paylen(exv);
@@ -545,7 +545,7 @@ search_query_key_validate(const struct gnutella_node *n, const extvec_t *exv)
  * Fills valid query key into supplied security token for the given addr:port.
  */
 void
-search_query_key_generate(sectoken_t *tok, host_addr_t addr, guint16 port)
+search_query_key_generate(sectoken_t *tok, host_addr_t addr, uint16 port)
 {
 	if (GNET_PROPERTY(guess_server_debug) > 10) {
 		g_debug("GUESS generating token for %s",
@@ -630,18 +630,18 @@ search_status_changed(gnet_search_t search_handle)
  *** Management of the "sent_nodes" hash table.
  ***/
 
-static guint
-sent_node_hash_func(gconstpointer key)
+static uint
+sent_node_hash_func(const void *key)
 {
 	const gnet_host_t *sd = key;
 
 	/* ensure that we've got sizeof(int) bytes of deterministic data */
 	return host_addr_hash(gnet_host_get_addr(sd)) ^
-			(guint32) gnet_host_get_port(sd);
+			(uint32) gnet_host_get_port(sd);
 }
 
 static int
-sent_node_compare(gconstpointer a, gconstpointer b)
+sent_node_compare(const void *a, const void *b)
 {
 	const gnet_host_t *sa = a, *sb = b;
 
@@ -650,8 +650,7 @@ sent_node_compare(gconstpointer a, gconstpointer b)
 }
 
 static void
-search_free_sent_node(gpointer key,
-	gpointer unused_value, gpointer unused_udata)
+search_free_sent_node(void *key, void *unused_value, void *unused_udata)
 {
 	gnet_host_t *host = key;
 
@@ -708,8 +707,8 @@ search_mark_query_sent(search_ctrl_t *sch)
  *** Management of the "sent_node_ids" hash table.
  ***/
 
-static gboolean
-free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_node_id(void *key, void *value, void *unused_udata)
 {
 	const struct nid *node_id = key;
 
@@ -745,7 +744,7 @@ search_mark_sent_to_node_id(search_ctrl_t *sch, const struct nid *node_id)
 /**
  * @return TRUE if we already queried the given node for the given search.
  */
-static gboolean
+static bool
 search_already_sent_to_node(const search_ctrl_t *sch, const gnutella_node_t *n)
 {
 	gnet_host_t sd;
@@ -853,7 +852,7 @@ search_record_new(void)
  * @param size The size of the buffer.
  * @return TRUE if spam was detected, FALSE if it looks alright.
  */
-static gboolean
+static bool
 is_lime_xml_spam(const char * const data, size_t size)
 {
 	if (size > 0) {
@@ -926,12 +925,12 @@ url_normalize_char(const char *p, const char **endptr)
  * tolerate this but we consider "/../" and variants as evil because
  * it can be abused in combination with poorly written clients.
  */
-static gboolean
+static bool
 is_evil_filename(const char *filename)
 {
 	const char *endptr, *p = filename;
 	char win[4];
-	guint i;
+	uint i;
 
 	g_assert(filename);
 
@@ -1062,7 +1061,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 }
 
-static gboolean
+static bool
 is_odd_guid(const struct guid *guid)
 {
 	size_t i = G_N_ELEMENTS(guid->v);
@@ -1076,7 +1075,7 @@ is_odd_guid(const struct guid *guid)
 	return TRUE;
 }
 
-static gboolean
+static bool
 is_lime_return_path(const extvec_t *e)
 {
 	const char *id = ext_ggep_id_str(e);
@@ -1118,7 +1117,7 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 	}
 }
 
-static gboolean
+static bool
 is_evil_timestamp(time_t t)
 {
 	switch (t) {
@@ -1130,7 +1129,7 @@ is_evil_timestamp(time_t t)
 	return FALSE;
 }
 
-static inline gboolean
+static inline bool
 search_results_from_spammer(const gnet_results_set_t *rs)
 {
 	/*
@@ -1142,7 +1141,7 @@ search_results_from_spammer(const gnet_results_set_t *rs)
 		((ST_SPAM & ~(ST_URN_SPAM | ST_NAME_SPAM | ST_DUP_SPAM)) & rs->status);
 }
 
-static inline gboolean
+static inline bool
 search_results_from_country(const gnet_results_set_t *rs, const char *cc)
 {
 	return 0 == strcmp(cc, iso3166_country_cc(rs->country));
@@ -1157,11 +1156,11 @@ search_results_from_country(const gnet_results_set_t *rs, const char *cc)
  * @attention
  * The filename must be valid UTF-8, a precondition for canonization.
  */
-static gboolean
+static bool
 search_filename_similar(const char *filename, const char *query)
 {
 	char *filename_canonic;
-	gboolean result;
+	bool result;
 
 	filename_canonic = UNICODE_CANONIZE(filename);
 
@@ -1177,7 +1176,7 @@ static void
 search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	const GSList *sl;
-	guint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
+	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
@@ -1189,7 +1188,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			/*
 			 * Avoid costly check if already marked as spam.
 			 */
-		} else if ((guint32)-1 == rc->file_index) {
+		} else if ((uint32)-1 == rc->file_index) {
 			/*
 			 * Some spammers get this wrong but some version of LimeWire
 			 * start counting at zero despite this being a special wildcard
@@ -1418,13 +1417,13 @@ struct ora {
 	const struct guid *muid;	/* GUID atom */
 	time_t sent;
 	host_addr_t addr;
-	guint32 token;
-	guint16 port;
+	uint32 token;
+	uint16 port;
 };
 
 static struct ora *
-ora_alloc(const struct guid *muid, const host_addr_t addr, guint16 port,
-		guint32 token)
+ora_alloc(const struct guid *muid, const host_addr_t addr, uint16 port,
+		uint32 token)
 {
 	struct ora *ora;
 
@@ -1449,19 +1448,19 @@ ora_free(struct ora **ora_ptr)
 	}
 }
 
-static guint
-ora_hash(gconstpointer key)
+static uint
+ora_hash(const void *key)
 {
 	const struct ora *ora = key;
 
 	return ora->token ^
 		guid_hash(ora->muid) ^
 		host_addr_hash(ora->addr) ^
-		(((guint32) ora->port << 16) | ora->port);
+		(((uint32) ora->port << 16) | ora->port);
 }
 
 static int
-ora_eq(gconstpointer v1, gconstpointer v2)
+ora_eq(const void *v1, const void *v2)
 {
 	const struct ora *a = v1, *b = v2;
 
@@ -1473,10 +1472,10 @@ ora_eq(gconstpointer v1, gconstpointer v2)
 
 static struct ora *
 ora_lookup(const struct guid *muid,
-	const host_addr_t addr, guint16 port, guint32 token)
+	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora ora;
-	gconstpointer key;
+	const void *key;
 
 	ora.muid = muid;
 	ora.sent = 0;
@@ -1485,12 +1484,12 @@ ora_lookup(const struct guid *muid,
 	ora.token = token;
 
 	if (hash_list_find(oob_reply_acks, &ora, &key)) {
-		return deconstify_gpointer(key);
+		return deconstify_pointer(key);
 	}
 	return NULL;
 }
 
-static gboolean
+static bool
 oob_reply_acks_remove_oldest(void)
 {
 	struct ora *ora;
@@ -1535,7 +1534,7 @@ oob_reply_acks_close(void)
 
 static void
 oob_reply_ack_record(const struct guid *muid,
-	const host_addr_t addr, guint16 port, guint32 token)
+	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora *ora;
 	
@@ -1560,9 +1559,9 @@ oob_reply_ack_record(const struct guid *muid,
  * @param addr	the address from which the results come via UDP
  * @param port	the port from which results come
  */
-static gboolean
+static bool
 search_results_are_requested(const struct guid *muid,
-	const host_addr_t addr, guint16 port, guint32 token)
+	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora *ora;
 
@@ -1684,7 +1683,7 @@ search_log_unknown_ggep(const gnutella_node_t *n,
  * Add synthetized push-proxy to the results.
  */
 static void
-search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, guint16 port)
+search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, uint16 port)
 {
 	if (NULL == rs->proxies) {
 		rs->proxies = gnet_host_vec_alloc();
@@ -1699,16 +1698,16 @@ search_add_push_proxy(gnet_results_set_t *rs, host_addr_t addr, guint16 port)
  *
  * @return TRUE if there were errors and the packet should be dropped.
  */
-static gboolean
+static bool
 search_results_handle_trailer(const gnutella_node_t *n,
 	gnet_results_set_t *rs, const char *trailer, size_t trailer_size)
 {
-	guint8 open_size, open_parsing_size, enabler_mask, flags_mask;
+	uint8 open_size, open_parsing_size, enabler_mask, flags_mask;
 	const char *vendor;
-	guint32 token;
-	gboolean has_token;
+	uint32 token;
+	bool has_token;
 	host_addr_t ipv6_addr;
-	gboolean has_ipv6_addr;
+	bool has_ipv6_addr;
 
 	if (!trailer || trailer_size < 7)
 		return FALSE;
@@ -1746,7 +1745,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		}
 	} else {
 		if (open_parsing_size == 2) {
-			guint8 status = enabler_mask & flags_mask;
+			uint8 status = enabler_mask & flags_mask;
 			if (status & 0x04) rs->status |= ST_BUSY;
 			if (status & 0x01) rs->status |= ST_FIREWALL;
 			if (status & 0x08) rs->status |= ST_UPLOADED;
@@ -1773,7 +1772,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		size_t privlen;
 		int exvcnt = 0;
 		extvec_t exv[MAX_EXTVEC];
-		gboolean seen_ggep = FALSE;
+		bool seen_ggep = FALSE;
 		gnet_host_vec_t *hvec = NULL;		/* For GGEP "PUSH" */
 
 		int i;
@@ -2115,24 +2114,24 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
  * were unable to parse it properly.
  */
 static G_GNUC_HOT gnet_results_set_t *
-get_results_set(gnutella_node_t *n, gboolean browse)
+get_results_set(gnutella_node_t *n, bool browse)
 {
 	gnet_results_set_t *rs;
 	char *endptr, *s, *tag;
-	guint32 nr = 0;
-	guint32 size, idx, taglen;
+	uint32 nr = 0;
+	uint32 size, idx, taglen;
 	str_t *info;
 	unsigned sha1_errors = 0;
 	unsigned alt_errors = 0;
 	unsigned alt_without_hash = 0;
 	char *trailer = NULL;
-	gboolean seen_ggep_h = FALSE;
-	gboolean seen_ggep_alt = FALSE;
-	gboolean seen_ggep_alt6 = FALSE;
-	gboolean seen_bitprint = FALSE;
-	gboolean multiple_sha1 = FALSE;
-	gboolean multiple_alt = FALSE;
-	gboolean tag_has_nul = FALSE;
+	bool seen_ggep_h = FALSE;
+	bool seen_ggep_alt = FALSE;
+	bool seen_ggep_alt6 = FALSE;
+	bool seen_bitprint = FALSE;
+	bool multiple_sha1 = FALSE;
+	bool multiple_alt = FALSE;
+	bool tag_has_nul = FALSE;
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
 	unsigned media_mask = 0;
@@ -2164,7 +2163,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 	/* Transfer the Query Hit info to our internal results_set struct */
 
 	{
-		const gnutella_search_results_t *r = cast_to_gpointer(n->data);
+		const gnutella_search_results_t *r = cast_to_pointer(n->data);
 
 		rs->num_recs = gnutella_search_results_get_num_recs(r);
 		rs->addr = host_addr_get_ipv4(gnutella_search_results_get_host_ip(r));
@@ -2175,7 +2174,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		/* Now come the result set, and the servent ID will close the packet */
 
 		STATIC_ASSERT(11 == sizeof *r);
-		s = cast_to_gpointer(&r[1]);	/* Start of the records */
+		s = cast_to_pointer(&r[1]);	/* Start of the records */
 		endptr = &s[n->size - 11 - 16];	/* End of records, less header, GUID */
 	}
 
@@ -2322,8 +2321,8 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 			char *endtag;
 			size_t parselen;
 			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
-			gboolean has_hash = FALSE;
-			gboolean has_unknown = FALSE;
+			bool has_hash = FALSE;
+			bool has_unknown = FALSE;
 
 			g_assert(taglen > 0);
 
@@ -2543,7 +2542,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					break;
 				case EXT_T_GGEP_LF:			/* Large File */
 					{
-						guint64 fs;
+						uint64 fs;
 
 					   	ret = ggept_filesize_extract(e, &fs);
 						if (ret == GGEP_OK) {
@@ -2699,7 +2698,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 					"(%u/%u records parsed)",
 					trailer_len, s - n->data,
 					gmsg_node_infostr(n),
-					node_addr(n), (guint) nr, (guint) rs->num_recs);
+					node_addr(n), (uint) nr, (uint) rs->num_recs);
 			}
 			if (GNET_PROPERTY(search_debug) > 1) {
 				dump_hex(stderr, "Query Hit Data (non-empty UNKNOWN trailer?)",
@@ -2940,7 +2939,7 @@ get_results_set(gnutella_node_t *n, gboolean browse)
 		if (query != NULL && media_mask != 0) {
 			GSList *sl;
 			size_t matching = 0;
-			gboolean own_query = gm_hash_table_contains(search_by_muid, muid);
+			bool own_query = gm_hash_table_contains(search_by_muid, muid);
 
 			GM_SLIST_FOREACH(rs->records, sl) {
 				gnet_record_t *rc = sl->data;
@@ -3004,7 +3003,7 @@ static void
 update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	const char *vendor;
-	guint32 old_weird = n->n_weird;
+	uint32 old_weird = n->n_weird;
 
 	g_assert(gnutella_header_get_hops(&n->header) == 1);
 
@@ -3150,21 +3149,21 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
  */
 static gnutella_msg_search_t *
 build_search_message(const guid_t *muid, const char *query,
-	unsigned mtype, gboolean whats_new, guint32 *size,
-	const void *query_key, guint8 length, gboolean udp)
+	unsigned mtype, bool whats_new, uint32 *size,
+	const void *query_key, uint8 length, bool udp)
 {
 	static union {
 		gnutella_msg_search_t data;
 		char bytes[1024];
-		guint64 align8;
+		uint64 align8;
 	} msg;
 	size_t msize;
-	guint16 flags;
-	gboolean is_sha1_search;
+	uint16 flags;
+	bool is_sha1_search;
 	struct sha1 sha1;
 	ggep_stream_t gs;
 	size_t glen;
-	gboolean need_6 = FALSE;
+	bool need_6 = FALSE;
 
 	g_assert(NULL == query_key || 0 != length);
 	g_assert(NULL != query_key || 0 == length);
@@ -3174,8 +3173,8 @@ build_search_message(const guid_t *muid, const char *query,
 	
 	{
 		gnutella_header_t *header = gnutella_msg_search_header(&msg.data);
-		guint8 hops;
-		gboolean is_leaf = settings_is_leaf();
+		uint8 hops;
+		bool is_leaf = settings_is_leaf();
 
 		hops = !udp && !whats_new && GNET_PROPERTY(hops_random_factor) &&
 			!is_leaf ? random_value(GNET_PROPERTY(hops_random_factor)) : 0;
@@ -3188,7 +3187,7 @@ build_search_message(const guid_t *muid, const char *query,
 			query_key != NULL ? 1 : GNET_PROPERTY(my_ttl));
 
 		if (
-			(guint32) gnutella_header_get_ttl(header) +
+			(uint32) gnutella_header_get_ttl(header) +
 			   gnutella_header_get_hops(header) > GNET_PROPERTY(hard_ttl_limit)
 		) {
 			gnutella_header_set_ttl(header,
@@ -3234,9 +3233,9 @@ build_search_message(const guid_t *muid, const char *query,
 		!GNET_PROPERTY(is_udp_firewalled)
 	) {
 		host_addr_t primary = listen_addr_primary();
-		guint32 ipv4 = ipv6_ready_advertised_ipv4(primary);
+		uint32 ipv4 = ipv6_ready_advertised_ipv4(primary);
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		guid_oob_get_addr_port(muid, &addr, &port);
 
@@ -3360,8 +3359,8 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 #if 0
 	if (is_sha1_search) {
-		const guint8 type = GGEP_H_SHA1;
-		gboolean ok;
+		const uint8 type = GGEP_H_SHA1;
+		bool ok;
 
 		ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
 			ggep_stream_write(&gs, &type, 1) &&
@@ -3387,8 +3386,8 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (query_key != NULL) {
-		gboolean ok;
-		guint8 scp = 0;
+		bool ok;
+		uint8 scp = 0;
 		size_t scp_len;
 
 		/*
@@ -3422,7 +3421,7 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (GNET_PROPERTY(query_request_partials) && !whats_new) {
-		gboolean ok = ggep_stream_pack(&gs, GGEP_NAME(PR), NULL, 0, 0);
+		bool ok = ggep_stream_pack(&gs, GGEP_NAME(PR), NULL, 0, 0);
 
 		if (!ok) {
 			g_carp("could not add GGEP \"PR\" to query");
@@ -3435,9 +3434,9 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (mtype != 0) {
-		char media_type[sizeof(guint64)];
+		char media_type[sizeof(uint64)];
 		unsigned len;
-		gboolean ok;
+		bool ok;
 
 		len = ggept_m_encode(mtype, media_type);
 		ok = ggep_stream_pack(&gs, GGEP_NAME(M), media_type, len, 0);
@@ -3454,8 +3453,8 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (whats_new) {
-		guchar b = 1;		/* Feature #1 is "What's New?" */
-		gboolean ok;
+		uchar b = 1;		/* Feature #1 is "What's New?" */
+		bool ok;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
 
@@ -3471,9 +3470,9 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (need_6) {
-		gboolean ok;
+		bool ok;
 		host_addr_t primary = listen_addr_primary();
-		const guint8 *data = host_addr_ipv6(&primary);
+		const uint8 *data = host_addr_ipv6(&primary);
 
 		g_assert(host_addr_is_ipv6(primary));
 
@@ -3515,7 +3514,7 @@ build_search_message(const guid_t *muid, const char *query,
 			}
 		}
 	} else if (settings_running_ipv6()) {
-		guint8 b = 1;
+		uint8 b = 1;
 
 		/*
 		 * Only running IPv6, let them know we're not interested in IPv4.
@@ -3590,7 +3589,7 @@ error:
  */
 gnutella_msg_search_t *
 build_guess_search_msg(const guid_t *muid, const char *query,
-	unsigned mtype, guint32 *size, const void *query_key, guint8 length)
+	unsigned mtype, uint32 *size, const void *query_key, uint8 length)
 {
 	return build_search_message(muid, query, mtype, FALSE, size,
 		query_key, length, TRUE);
@@ -3613,7 +3612,7 @@ build_guess_search_msg(const guid_t *muid, const char *query,
  */
 static gnutella_msg_search_t *
 build_search_msg(const guid_t *muid, const char *query,
-	unsigned mtype, gboolean whats_new, guint32 *size)
+	unsigned mtype, bool whats_new, uint32 *size)
 {
 	return build_search_message(muid, query, mtype, whats_new,
 		size, NULL, 0, FALSE);
@@ -3650,8 +3649,8 @@ static void
 search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 {
 	word_vec_t *wovec;
-	guint i;
-	guint wocnt;
+	uint i;
+	uint wocnt;
 
 	search_ctrl_check(sch);
 
@@ -3683,7 +3682,7 @@ search_qhv_fill(search_ctrl_t *sch, query_hashvec_t *qhv)
 /**
  * Can we re-issue a "What's New?" search?
  */
-static gboolean
+static bool
 search_whats_new_can_reissue(void)
 {
 	time_delta_t elapsed = delta_time(tm_time(), search_last_whats_new);
@@ -3849,7 +3848,7 @@ search_node_added(void *search, void *node)
 static void
 search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
 {
-	guint count;
+	uint count;
 
 	g_assert(NULL == g_hash_table_lookup(search_by_muid, muid));
 
@@ -3903,11 +3902,11 @@ search_send_packet_all(search_ctrl_t *sch)
 /**
  * @return whether search has expired.
  */
-static gboolean
+static bool
 search_expired(const search_ctrl_t *sch)
 {
 	time_t ct;
-	guint lt;
+	uint lt;
 
 	search_ctrl_check(sch);
 
@@ -3936,11 +3935,11 @@ search_expired(const search_ctrl_t *sch)
  * @return a new MUID that can be wfree()'d when done.
  */
 static struct guid * 
-search_new_muid(gboolean initial)
+search_new_muid(bool initial)
 {
 	struct guid *muid;
 	host_addr_t addr;
-	guint32 ipv4;
+	uint32 ipv4;
 	int i;
 
 	WALLOC(muid);
@@ -3980,7 +3979,7 @@ search_new_muid(gboolean initial)
 	return NULL;
 }
 
-static guint32
+static uint32
 search_max_results_for_ui(const search_ctrl_t *sch)
 {
 	if (sbool_get(sch->browse))
@@ -3999,10 +3998,10 @@ search_max_results_for_ui(const search_ctrl_t *sch)
 static void
 update_one_reissue_timeout(search_ctrl_t *sch)
 {
-	guint32 max_items;
+	uint32 max_items;
 	unsigned percent;
 	float factor;
-	guint32 tm;
+	uint32 tm;
 
 	search_ctrl_check(sch);
 	g_assert(sbool_get(sch->active));
@@ -4028,8 +4027,8 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	factor = (percent < 10) ? 1.0 :
 		1.0 + (percent - 10) * (percent - 10) / 550.0;
 
-	tm = (guint32) sch->reissue_timeout;
-	tm = (guint32) (MAX(tm, SEARCH_MIN_RETRY) * factor);
+	tm = (uint32) sch->reissue_timeout;
+	tm = (uint32) (MAX(tm, SEARCH_MIN_RETRY) * factor);
 
 	/*
 	 * Otherwise we also add a new timer. If the search was stopped, this
@@ -4109,8 +4108,8 @@ done:
  *
  * The data given is the search to be reissued.
  */
-static gboolean
-search_reissue_timeout_callback(gpointer data)
+static bool
+search_reissue_timeout_callback(void *data)
 {
 	search_ctrl_t *sch = data;
 
@@ -4130,7 +4129,7 @@ search_reissue_timeout_callback(gpointer data)
  */
 static void
 search_send_query_status(search_ctrl_t *sch,
-	const struct nid *node_id, guint16 kept)
+	const struct nid *node_id, uint16 kept)
 {
 	struct gnutella_node *n;
 
@@ -4156,11 +4155,11 @@ search_send_query_status(search_ctrl_t *sch,
  * -- hash table iterator callback
  */
 static void
-search_send_status(gpointer key, gpointer unused_value, gpointer udata)
+search_send_status(void *key, void *unused_value, void *udata)
 {
 	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
-	guint16 kept;
+	uint16 kept;
 
 	(void) unused_value;
 
@@ -4189,7 +4188,7 @@ search_update_results(search_ctrl_t *sch)
  * -- hash table iterator callback
  */
 static void
-search_send_closed(gpointer key, gpointer unused_value, gpointer udata)
+search_send_closed(void *key, void *unused_value, void *udata)
 {
 	const struct nid *node_id = key;
 	search_ctrl_t *sch = udata;
@@ -4244,7 +4243,7 @@ search_dequeue_all_nodes(gnet_search_t sh)
 /**
  * Garbage collector -- callout queue periodic callback.
  */
-static gboolean
+static bool
 search_gc(void *unused_cq)
 {
 	(void) unused_cq;
@@ -4314,7 +4313,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	while (i-- > 0) {
 		struct gnutella_host host;
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		host = gnet_host_vec_get(alt, i);
 		addr = gnet_host_get_addr(&host);
@@ -4352,7 +4351,7 @@ static void
 search_results_set_flag_records(gnet_results_set_t *rs)
 {
 	const GSList *sl;
-	gboolean need_push = FALSE;
+	bool need_push = FALSE;
 
 	if (rs->guid != NULL && !guid_is_blank(rs->guid)) {
 		if ((rs->status & ST_FIREWALL) || !host_is_valid(rs->addr, rs->port)) {
@@ -4436,7 +4435,7 @@ search_results_set_auto_download(gnet_results_set_t *rs)
 
 		fi = file_info_has_identical(rc->sha1, rc->size);
 		if (fi) {
-			guint32 flags = 0;
+			uint32 flags = 0;
 			
 			flags |= (rs->status & ST_FIREWALL) ? SOCK_F_PUSH : 0;
 			flags |= !host_is_valid(rs->addr, rs->port) ? SOCK_F_PUSH : 0;
@@ -4510,7 +4509,7 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
 	 */
 
 	if (GNET_PROPERTY(browse_copied_to_passive)) {
-		guint32 max_items = GNET_PROPERTY(passive_search_max_results);
+		uint32 max_items = GNET_PROPERTY(passive_search_max_results);
 
 		for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 			search_ctrl_t *sch = sl->data;
@@ -4540,16 +4539,16 @@ search_browse_results(gnutella_node_t *n, gnet_search_t sh)
  * If the message should not be dropped, `results' is filled with the
  * amount of results contained in the query hit.
  */
-gboolean
+bool
 search_results(gnutella_node_t *n, int *results)
 {
 	gnet_results_set_t *rs;
 	GSList *sl;
-	gboolean drop_it = FALSE;
-	gboolean forward_it = TRUE;
-	gboolean dispatch_it = TRUE;
+	bool drop_it = FALSE;
+	bool forward_it = TRUE;
+	bool dispatch_it = TRUE;
 	GSList *selected_searches = NULL;
-	guint32 max_items;
+	uint32 max_items;
 
 	g_assert(results != NULL);
 
@@ -4764,7 +4763,7 @@ final_cleanup:
  * @returns TRUE if we can send, with the emitted counter incremented, or FALSE
  * if the query should just be ignored.
  */
-gboolean
+bool
 search_query_allowed(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -4802,7 +4801,7 @@ search_notify_sent(gnet_search_t sh, const struct nid *node_id)
 	search_mark_query_sent(sch);
 }
 
-static gboolean
+static bool
 search_remove_sha1_key(void *key, void *value, void *data)
 {
 	struct sha1 *sha1 = key;
@@ -5056,7 +5055,7 @@ search_starting(gnet_search_t sh)
  * Set the reissue timeout of a search.
  */
 void
-search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
+search_set_reissue_timeout(gnet_search_t sh, uint32 timeout)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -5073,7 +5072,7 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 /**
  * Get the reissue timeout of a search.
  */
-guint32
+uint32
 search_get_reissue_timeout(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5099,7 +5098,7 @@ search_get_media_type(gnet_search_t sh)
 /**
  * Get the initial lifetime (in hours) of a search.
  */
-guint
+uint
 search_get_lifetime(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5154,7 +5153,7 @@ search_guess_done(void *data)
  *
  * @return TRUE if watchdog should remain active, FALSE to put it to sleep.
  */
-static gboolean
+static bool
 search_is_idle(watchdog_t *unused_wd, void *data)
 {
 	search_ctrl_t *sch = data;
@@ -5217,7 +5216,7 @@ search_is_idle(watchdog_t *unused_wd, void *data)
  */
 enum search_new_result
 search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
-	time_t create_time, guint lifetime, guint32 reissue_timeout, guint32 flags)
+	time_t create_time, uint lifetime, uint32 reissue_timeout, uint32 flags)
 {
 	const char *endptr;
 	search_ctrl_t *sch;
@@ -5365,7 +5364,7 @@ failure:
  * The GUI updates us on the amount of items displayed in the search.
  */
 void
-search_update_items(gnet_search_t sh, guint32 items)
+search_update_items(gnet_search_t sh, uint32 items)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -5380,7 +5379,7 @@ search_update_items(gnet_search_t sh, guint32 items)
  * auto-download.
  */
 void
-search_add_kept(gnet_search_t sh, const guid_t *muid, guint32 kept)
+search_add_kept(gnet_search_t sh, const guid_t *muid, uint32 kept)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -5463,8 +5462,8 @@ search_stop(gnet_search_t sh)
  * we kept sofar for the last requery, via "kept", or FALSE if the search
  * is NULL or it has been frozen (meaning new results must be ignored).
  */
-static gboolean
-search_get_kept_results(const search_ctrl_t *sch, guint32 *kept)
+static bool
+search_get_kept_results(const search_ctrl_t *sch, uint32 *kept)
 {
 	if (sch == NULL)
 		return FALSE;
@@ -5492,8 +5491,8 @@ search_get_kept_results(const search_ctrl_t *sch, guint32 *kept)
  * the amount of results we kept sofar for the last requery, via "kept",
  * or FALSE if we did not find any search.
  */
-gboolean
-search_get_kept_results_by_muid(const struct guid *muid, guint32 *kept)
+bool
+search_get_kept_results_by_muid(const struct guid *muid, uint32 *kept)
 {
 	search_ctrl_t *sch;
 
@@ -5507,7 +5506,7 @@ search_get_kept_results_by_muid(const struct guid *muid, guint32 *kept)
 /**
  * Is search running a GUESS query?
  */
-gboolean
+bool
 search_running_guess(const struct guid *muid)
 {
 	search_ctrl_t *sch;
@@ -5522,7 +5521,7 @@ search_running_guess(const struct guid *muid)
 /**
  * @returns amount of hits kept by the search, identified by its handle
  */
-guint32
+uint32
 search_get_kept_results_by_handle(gnet_search_t sh)
 {
     search_ctrl_t *sch;
@@ -5564,12 +5563,12 @@ search_query_sent(gnet_search_t sh)
 void
 search_oob_pending_results(
 	gnutella_node_t *n, const struct guid *muid, int hits,
-	gboolean udp_firewalled, gboolean secure)
+	bool udp_firewalled, bool secure)
 {
 	search_ctrl_t *sch;
 	struct array token_opaque;
-	guint32 token;
-	guint32 kept;
+	uint32 token;
+	uint32 kept;
 	unsigned ask;
 
 	g_assert(NODE_IS_UDP(n));
@@ -5704,7 +5703,7 @@ search_query(gnet_search_t sh)
     return sch->name;
 }
 
-gboolean
+bool
 search_is_frozen(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5714,7 +5713,7 @@ search_is_frozen(gnet_search_t sh)
     return sbool_get(sch->frozen);
 }
 
-gboolean
+bool
 search_is_passive(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5724,7 +5723,7 @@ search_is_passive(gnet_search_t sh)
     return sbool_get(sch->passive);
 }
 
-gboolean
+bool
 search_is_active(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5734,7 +5733,7 @@ search_is_active(gnet_search_t sh)
     return sbool_get(sch->active);
 }
 
-gboolean
+bool
 search_is_browse(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5744,7 +5743,7 @@ search_is_browse(gnet_search_t sh)
     return sbool_get(sch->browse);
 }
 
-gboolean
+bool
 search_is_expired(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5754,7 +5753,7 @@ search_is_expired(gnet_search_t sh)
     return search_expired(sch);
 }
 
-gboolean
+bool
 search_is_local(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5764,7 +5763,7 @@ search_is_local(gnet_search_t sh)
     return sbool_get(sch->local);
 }
 
-gboolean
+bool
 search_is_whats_new(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -5791,10 +5790,10 @@ search_is_whats_new(gnet_search_t sh)
  *
  * @return	TRUE if we successfully initialized the download layer.
  */
-gboolean
+bool
 search_browse(gnet_search_t sh,
-	const char *hostname, host_addr_t addr, guint16 port,
-	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags)
+	const char *hostname, host_addr_t addr, uint16 port,
+	const struct guid *guid, const gnet_host_vec_t *proxies, uint32 flags)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -5900,7 +5899,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 	rs->num_recs++;
 }
 
-gboolean
+bool
 search_locally(gnet_search_t sh, const char *query)
 {
 	gnet_results_set_t *rs;
@@ -5974,9 +5973,9 @@ search_locally(gnet_search_t sh, const char *query)
 	if (sf) {
 		search_add_local_file(rs, sf);
 	} else {
-		guint num_files, idx;
+		uint num_files, idx;
 
-		num_files = MIN((guint) -1, shared_files_scanned());
+		num_files = MIN((uint) -1, shared_files_scanned());
 		for (idx = 1; idx > 0 && idx <= num_files; idx++) {
 			sf = shared_file(idx);
 			if (!sf) {
@@ -6036,11 +6035,11 @@ done:
 /**
  * Handle magnet searches, launching Gnutella searches as appropriate.
  */
-guint
+uint
 search_handle_magnet(const char *url)
 {
 	struct magnet_resource *res;
-	guint n_searches = 0;
+	uint n_searches = 0;
 
 	res = magnet_parse(url, NULL);
 	if (res) {
@@ -6097,7 +6096,7 @@ search_request_listener_remove(search_request_listener_t l)
 
 static void
 search_request_listener_emit(
-	query_type_t type, const char *query, const host_addr_t addr, guint16 port)
+	query_type_t type, const char *query, const host_addr_t addr, uint16 port)
 {
     LISTENER_EMIT(search_request, (type, query, addr, port));
 }
@@ -6121,7 +6120,7 @@ struct query_context {
  * Create new query context.
  */
 static struct query_context *
-share_query_context_make(unsigned media_mask, gboolean partials)
+share_query_context_make(unsigned media_mask, bool partials)
 {
 	struct query_context *ctx;
 
@@ -6152,7 +6151,7 @@ share_query_context_free(struct query_context *ctx)
  *
  * @return TRUE if the shared_file is in the QueryHit already, FALSE otherwise
  */
-static inline gboolean
+static inline bool
 shared_file_already_found(struct query_context *ctx, const shared_file_t *sf)
 {
 	return NULL != g_hash_table_lookup(ctx->shared_files, sf);
@@ -6172,8 +6171,8 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
  *
  * @return TRUE if the match is kept.
  */
-static gboolean
-got_match(gpointer context, gpointer data)
+static bool
+got_match(void *context, void *data)
 {
 	struct query_context *qctx = context;
 	const shared_file_t *sf = data;
@@ -6255,7 +6254,7 @@ do {												\
 	word = is_ascii_blank(*search) ? NULL : search;
 	p = s = search;
 	while ('\0' != *s) {
-		guint clen;
+		uint clen;
 
 		clen = utf8_char_len(s);
 		clen = MAX(1, clen);	/* In case of invalid UTF-8 */
@@ -6307,8 +6306,8 @@ do {												\
  *
  * @returns TRUE if the string is valid UTF-8, FALSE otherwise.
  */
-static gboolean 
-query_utf8_decode(const char *text, guint *retoff)
+static bool 
+query_utf8_decode(const char *text, uint *retoff)
 {
 	const char *p;
 
@@ -6338,7 +6337,7 @@ size_t
 compact_query(char *search)
 {
 	size_t mangled_search_len, orig_len = strlen(search);
-	guint offset;			/* Query string start offset */
+	uint offset;			/* Query string start offset */
 
 	/*
 	 * Look whether we're facing an UTF-8 query.
@@ -6374,7 +6373,7 @@ compact_query(char *search)
 void
 query_strip_oob_flag(const gnutella_node_t *n, char *data)
 {
-	guint16 flags;
+	uint16 flags;
 
 	flags = peek_be16(data) & ~QUERY_F_OOB_REPLY;
 	poke_be16(data, flags);
@@ -6393,7 +6392,7 @@ query_strip_oob_flag(const gnutella_node_t *n, char *data)
 void
 query_set_oob_flag(const gnutella_node_t *n, char *data)
 {
-	guint16 flags;
+	uint16 flags;
 
 	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK;
 	poke_be16(data, flags);
@@ -6408,11 +6407,11 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
  * Extract query flags for a search and apply some workarounds for
  * buggy clients.
  */
-static guint16
+static uint16
 search_request_get_flags(const struct gnutella_node *n)
 {
-	const guint16 mask = QUERY_F_MARK | QUERY_F_GGEP_H | QUERY_F_LEAF_GUIDED;
-	guint16 flags;
+	const uint16 mask = QUERY_F_MARK | QUERY_F_GGEP_H | QUERY_F_LEAF_GUIDED;
+	uint16 flags;
 
 	flags = peek_be16(n->data);
 	if (flags & QUERY_F_MARK)
@@ -6480,9 +6479,9 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
  *
  * @return TRUE if the query should be discarded, FALSE if everything was OK.
  */
-gboolean
+bool
 search_request_preprocess(struct gnutella_node *n,
-	search_request_info_t *sri, gboolean isdup)
+	search_request_info_t *sri, bool isdup)
 {
 	static char stmp_1[4096];
 	char *search;
@@ -6610,11 +6609,11 @@ search_request_preprocess(struct gnutella_node *n,
 		extvec_t exv[MAX_EXTVEC];
 		int i, exvcnt;
 		size_t extra;
-		gboolean drop_it = FALSE;
-		gboolean valid_query_key = FALSE;
-		gboolean seen_query_key = FALSE;
-		gboolean wants_ipp = FALSE;
-		gboolean has_unknown = FALSE;
+		bool drop_it = FALSE;
+		bool valid_query_key = FALSE;
+		bool seen_query_key = FALSE;
+		bool wants_ipp = FALSE;
+		bool has_unknown = FALSE;
 		host_net_t ipp_net = HOST_NET_IPV4;
 
 	   	extra = n->size - 3 - sri->search_len;	/* Amount of extra data */
@@ -6682,8 +6681,8 @@ search_request_preprocess(struct gnutella_node *n,
 				wants_ipp = TRUE;		/* GUESS >= v0.2 */
 				/* IPV6-Ready: check which addresses they want */
 				if (ext_paylen(e) > 0) {
-					const guint8 *payload = ext_payload(e);
-					guint8 flags = payload[0];
+					const uint8 *payload = ext_payload(e);
+					uint8 flags = payload[0];
 
 					if (flags & SCP_F_NO_IPV4)
 						ipp_net = HOST_NET_IPV6;
@@ -6772,7 +6771,7 @@ search_request_preprocess(struct gnutella_node *n,
 					size_t plen = ext_paylen(e);
 					const char *pload = ext_payload(e);
 					const char *p;
-					gboolean keep = FALSE;
+					bool keep = FALSE;
 
 					if (
 						(p = is_bufcaseprefix(pload, plen, "sha1:")) ||
@@ -6877,7 +6876,7 @@ search_request_preprocess(struct gnutella_node *n,
 				 */
 				sri->ipv6 = TRUE;
 				if (ext_paylen(e) > 0) {
-					const guint8 *b = ext_payload(e);
+					const uint8 *b = ext_payload(e);
 					if (*b) {
 						sri->ipv6_only = TRUE;
 					}
@@ -7120,9 +7119,9 @@ search_request_preprocess(struct gnutella_node *n,
 	if (gnutella_header_get_hops(&n->header) == 1 && n->qseen != NULL) {
 		time_t now = tm_time();
 		time_t seen = 0;
-		gboolean found;
-		gpointer orig_key, orig_val;
-		gconstpointer atom;
+		bool found;
+		void *orig_key, *orig_val;
+		const void *atom;
 		char *query = search;
 		time_delta_t threshold = GNET_PROPERTY(node_requery_threshold);
 
@@ -7165,7 +7164,7 @@ search_request_preprocess(struct gnutella_node *n,
 	 */
 
 	if (n->qrelayed != NULL) {					/* Check #2 */
-		gpointer found = NULL;
+		void *found = NULL;
 
 		g_assert(!NODE_IS_LEAF(n));
 
@@ -7219,7 +7218,7 @@ skip_throttling:
 
 	if (sri->oob) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		guid_oob_get_addr_port(gnutella_header_get_muid(&n->header),
 			&addr, &port);
@@ -7240,14 +7239,14 @@ skip_throttling:
 	 */
 
 	{
-		guint8 major, minor;
-		gboolean release;
+		uint8 major, minor;
+		bool release;
 
 		if (
 			guid_query_muid_is_gtkg(gnutella_header_get_muid(&n->header),
 				sri->oob, &major, &minor, &release)
 		) {
-			gboolean requery;
+			bool requery;
 		   
 			gnet_stats_count_general(GNR_GTKG_TOTAL_QUERIES, 1);
 			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
@@ -7439,8 +7438,8 @@ search_request(struct gnutella_node *n,
 {
 	const char *search;
 	struct guid muid;
-	gboolean qhv_filled = FALSE;
-	gboolean oob;
+	bool qhv_filled = FALSE;
+	bool oob;
 	char *safe_search = NULL;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
@@ -7585,7 +7584,7 @@ search_request(struct gnutella_node *n,
 
 	if (sri->whats_new || !sri->skip_file_search || sri->exv_sha1cnt > 0) {
 		struct query_context *qctx;
-		guint32 max_replies;
+		uint32 max_replies;
 
 		/*
 		 * Perform search...
@@ -7604,7 +7603,7 @@ search_request(struct gnutella_node *n,
 		}
 
 		qctx = share_query_context_make(sri->media_types, sri->partials);
-		max_replies = GNET_PROPERTY(search_max_items) == (guint32) -1
+		max_replies = GNET_PROPERTY(search_max_items) == (uint32) -1
 				? 255
 				: GNET_PROPERTY(search_max_items);
 
@@ -7665,7 +7664,7 @@ search_request(struct gnutella_node *n,
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
 				g_debug("\tflags=0x%04x (%s%s%s%s%s%s%s) ttl=%u hops=%u",
-						(guint) sri->flags,
+						(uint) sri->flags,
 						(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
 						(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
 						(sri->flags & QUERY_F_XML) ? " XML" : "",
@@ -7697,7 +7696,7 @@ search_request(struct gnutella_node *n,
 		 */
 
 		if (qctx->found) {
-			gboolean should_oob;
+			bool should_oob;
 			unsigned flags = 0;
 
 			flags |= (sri->flags & QUERY_F_GGEP_H) ? QHIT_F_GGEP_H : 0;
@@ -7750,7 +7749,7 @@ finish:
 static void
 search_xml_node_is_empty(xnode_t *xn, void *data)
 {
-	gboolean *empty = data;
+	bool *empty = data;
 
 	if (!*empty)
 		return;
@@ -7768,10 +7767,10 @@ search_xml_node_is_empty(xnode_t *xn, void *data)
 /**
  * Is the XML tree "empty": no content in tags, no attributes.
  */
-static gboolean
+static bool
 search_xml_tree_empty(xnode_t *root)
 {
-	gboolean empty = TRUE;
+	bool empty = TRUE;
 
 	xnode_tree_foreach(root, search_xml_node_is_empty, &empty);
 	return empty;
@@ -7797,7 +7796,7 @@ search_compact(struct gnutella_node *n)
 	char *p;
 	const char *end = dest + sizeof buffer;
 	size_t target;
-	gboolean has_ggep = FALSE;
+	bool has_ggep = FALSE;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(n->data != NULL);
@@ -8037,7 +8036,7 @@ search_compact(struct gnutella_node *n)
 
 		for (i = 0; i < exvcnt; i++) {
 			extvec_t *e = &exv[i];
-			gboolean ok;
+			bool ok;
 
 			if (EXT_GGEP != e->ext_type)
 				continue;
@@ -8096,9 +8095,9 @@ search_compact(struct gnutella_node *n)
 		 */
 
 		if (n->msg_flags & NODE_M_FINISH_IPV6) {
-			gboolean ok;
+			bool ok;
 			const host_addr_t addr6 = listen_addr6();
-			const guint8 *ipv6 = host_addr_ipv6(&addr6);
+			const uint8 *ipv6 = host_addr_ipv6(&addr6);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(6), ipv6, 16, 0);
 

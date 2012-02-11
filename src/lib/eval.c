@@ -60,7 +60,7 @@ static const char *
 get_variable(const char *s, const char **end)
 {
 	const char *value, *p = s;
-	gboolean end_brace = FALSE;
+	bool end_brace = FALSE;
 
 	/*
 	 * Grab variable's name.

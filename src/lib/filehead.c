@@ -56,11 +56,11 @@
  * The ``errptr'' parameter needs to be used to distinguish between
  * a file containing "0" and a file which could not be parsed correctly.
  */
-guint64
-filehead_uint64(const char *path, gboolean missing, int *errptr)
+uint64
+filehead_uint64(const char *path, bool missing, int *errptr)
 {
 	int fd;
-	guint64 value;
+	uint64 value;
 	char data[FILEHEAD_LINE_MAXLEN + 1];
 	ssize_t r;
 	int error;

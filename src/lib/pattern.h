@@ -42,7 +42,7 @@ typedef struct {				/**< Compiled pattern */
 	const char *pattern;		/**< The pattern */
 	size_t len;					/**< Pattern length */
 	size_t delta[ALPHA_SIZE];	/**< Shifting deltas */
-	gboolean duped;				/**< Was `pattern' strdup()'ed? */
+	bool duped;					/**< Was `pattern' strdup()'ed? */
 } cpattern_t;
 
 typedef enum {

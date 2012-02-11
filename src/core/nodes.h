@@ -112,56 +112,56 @@ typedef struct gnutella_node {
 
 	char error_str[256];		/**< To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/**< Socket of the node */
-	guint16 country;			/**< Country of origin -- encoded ISO3166 */
-	guint8 proto_major;			/**< Handshaking protocol major number */
-	guint8 proto_minor;			/**< Handshaking protocol minor number */
+	uint16 country;				/**< Country of origin -- encoded ISO3166 */
+	uint8 proto_major;			/**< Handshaking protocol major number */
+	uint8 proto_minor;			/**< Handshaking protocol minor number */
 
-	guint8 qrp_major;			/**< Query routing protocol major number */
-	guint8 qrp_minor;			/**< Query routing protocol minor number */
-	guint8 uqrp_major;			/**< UP Query routing protocol major number */
-	guint8 uqrp_minor;			/**< UP Query routing protocol minor number */
+	uint8 qrp_major;			/**< Query routing protocol major number */
+	uint8 qrp_minor;			/**< Query routing protocol minor number */
+	uint8 uqrp_major;			/**< UP Query routing protocol major number */
+	uint8 uqrp_minor;			/**< UP Query routing protocol minor number */
 	const char *vendor;			/**< Vendor information (always UTF-8) */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
-	gpointer io_opaque;			/**< Opaque I/O callback information */
+	void *io_opaque;			/**< Opaque I/O callback information */
 
 	gnutella_header_t header;		/**< Header of the current message */
 	extvec_t extvec[MAX_EXTVEC];	/**< GGEP extensions in "fat" messages */
 	int extcount;					/**< Amount of extensions held */
 
-	guint16 size; /**< How many bytes we need to read for the current message */
-	guint16 header_flags;		/**< Header flags (new message architecture) */
-	guint32 msg_flags;			/**< Message flags we set during analysis */
+	uint16 size; /**< How many bytes we need to read for the current message */
+	uint16 header_flags;		/**< Header flags (new message architecture) */
+	uint32 msg_flags;			/**< Message flags we set during analysis */
 
 	char *data;					/**< data of the current message */
-	guint32 pos;				/**< write position in data */
+	uint32 pos;					/**< write position in data */
 
 	gnet_node_state_t status;	/**< See possible values below */
-	guint32 flags;				/**< See possible values below */
-	guint32 attrs;				/**< See possible values below */
+	uint32 flags;				/**< See possible values below */
+	uint32 attrs;				/**< See possible values below */
 
-	guint8 hops_flow;			/**< Don't send queries with a >= hop count */
-	guint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
-	guint16 degree;				/**< Value of their advertised X-Degree */
+	uint8 hops_flow;			/**< Don't send queries with a >= hop count */
+	uint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
+	uint16 degree;				/**< Value of their advertised X-Degree */
 
 	GHashTable *qseen;			/**< Queries seen from this leaf node */
 	GHashTable *qrelayed;		/**< Queries relayed from this node */
 	GHashTable *qrelayed_old;	/**< Older version of the `qrelayed' table */
 	time_t qrelayed_created;	/**< When `qrelayed' was created */
 
-	guint32 sent;				/**< Number of sent packets */
-	guint32 received;			/**< Number of received packets */
-	guint32 tx_dropped;			/**< Number of packets dropped at TX time */
-	guint32 rx_dropped;			/**< Number of packets dropped at RX time */
-	guint32 n_bad;				/**< Number of bad packets received */
-	guint16 n_dups;				/**< Number of dup messages received (bad) */
-	guint16 n_hard_ttl;			/**< Number of hard_ttl exceeded (bad) */
-	guint32 n_weird;			/**< Number of weird messages from that node */
-	guint32 n_hostile;			/**< Number of messages from hostile IP */
-	guint32 n_spam;				/**< Number of messages rated as spam */
-	guint32 n_evil;				/**< Number of messages with evil filenames */
+	uint32 sent;				/**< Number of sent packets */
+	uint32 received;			/**< Number of received packets */
+	uint32 tx_dropped;			/**< Number of packets dropped at TX time */
+	uint32 rx_dropped;			/**< Number of packets dropped at RX time */
+	uint32 n_bad;				/**< Number of bad packets received */
+	uint16 n_dups;				/**< Number of dup messages received (bad) */
+	uint16 n_hard_ttl;			/**< Number of hard_ttl exceeded (bad) */
+	uint32 n_weird;				/**< Number of weird messages from that node */
+	uint32 n_hostile;			/**< Number of messages from hostile IP */
+	uint32 n_spam;				/**< Number of messages rated as spam */
+	uint32 n_evil;				/**< Number of messages with evil filenames */
 
-	guint32 allocated;			/**< Size of allocated buffer data, 0 for none */
-	gboolean have_header;		/**< TRUE if we have got a full message header */
+	uint32 allocated;			/**< Size of allocated buffer data, 0 for none */
+	bool have_header;			/**< TRUE if we have got a full message header */
 
 	time_t last_update;			/**< Last update of the node */
 	time_t last_tx;				/**< Last time we transmitted to the node */
@@ -174,13 +174,13 @@ typedef struct gnutella_node {
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
 	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
-	const char *remove_msg;	/**< Reason of removing */
+	const char *remove_msg;		/**< Reason of removing */
 
 	host_addr_t addr;			/**< ip of the node */
-	guint16 port;				/**< port of the node */
+	uint16 port;				/**< port of the node */
 
 	host_addr_t proxy_addr;		/**< ip of the node for push proxyfication */
-	guint16 proxy_port;			/**< port of the node for push proxyfication */
+	uint16 proxy_port;			/**< port of the node for push proxyfication */
 
 	mqueue_t *outq;				/**< TX Output queue */
 	squeue_t *searchq;			/**< TX Search queue */
@@ -193,7 +193,7 @@ typedef struct gnutella_node {
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */
 
-	gpointer alive_pings;		/**< Opaque info, for alive ping checks */
+	void *alive_pings;			/**< Opaque info, for alive ping checks */
 	time_t last_alive_ping;		/**< Last time we sent an alive ping */
 	time_delta_t alive_period;	/**< Period for sending alive pings (secs) */
 
@@ -206,8 +206,8 @@ typedef struct gnutella_node {
 	 * Figures are in ms.
 	 */
 
-	guint32 tcp_rtt;			/**< RTT when exchange takes place over TCP */
-	guint32 udp_rtt;			/**< RTT when exchange takes place over UDP  */
+	uint32 tcp_rtt;				/**< RTT when exchange takes place over TCP */
+	uint32 udp_rtt;				/**< RTT when exchange takes place over UDP  */
 	cevent_t *tsync_ev;			/**< Time sync event */
 
 	/*
@@ -216,41 +216,41 @@ typedef struct gnutella_node {
 	 */
 
 	struct nid *id;				/**< Unique internal ID */
-	guint ping_throttle;		/**< Period for accepting new pings (secs) */
+	uint ping_throttle;			/**< Period for accepting new pings (secs) */
 	time_t ping_accept;			/**< Time after which we accept new pings */
 	time_t next_ping;			/**< When to send a ping, for "OLD" clients */
 	struct guid ping_guid;		/**< The GUID of the last accepted ping */
-	guchar pong_needed[MAX_CACHE_HOPS+1];	/**< Pongs needed, by hop value */
-	guchar pong_missing;	/**< Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
+	uchar pong_needed[MAX_CACHE_HOPS+1];	/**< Pongs needed, by hop value */
+	uchar pong_missing;		/**< Sum(pong_needed[i]), i = 0..MAX_CACHE_HOPS */
 
 	host_addr_t gnet_addr;		/**< When != 0, we know the remote IP/port */
-	guint16 gnet_port;			/**< (listening port, that is ) */
-	guint32 gnet_files_count;	/**< Used to answer "Crawling" pings */
-	guint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
+	uint16 gnet_port;			/**< (listening port, that is ) */
+	uint32 gnet_files_count;	/**< Used to answer "Crawling" pings */
+	uint32 gnet_kbytes_count;	/**< Used to answer "Crawling" pings */
 	host_addr_t gnet_pong_addr;	/**< When != 0, last IP we got in pong */
 	host_addr_t gnet_qhit_addr;	/**< When != 0, last IP we got in query hit */
 	const struct guid *guid;	/**< GUID of node (atom) seen on the network */
 
-	guint32 svn_release_revision;	/**< Latest SVN release known by the node */
+	uint32 svn_release_revision;	/**< Latest SVN release known by the node */
 
-	guint32 n_ping_throttle;  /**< Number of pings we throttled */
-	guint32 n_ping_accepted;  /**< Number of pings we accepted */
-	guint32 n_ping_special;	  /**< Number of special pings we received */
-	guint32 n_ping_sent;	  /**< Number of pings we sent to this node */
-	guint32 n_pong_received;  /**< Number of pongs we received from this node */
-	guint32 n_pong_sent;	  /**< Number of pongs we sent to this node */
+	uint32 n_ping_throttle;  /**< Number of pings we throttled */
+	uint32 n_ping_accepted;  /**< Number of pings we accepted */
+	uint32 n_ping_special;	  /**< Number of special pings we received */
+	uint32 n_ping_sent;	  /**< Number of pings we sent to this node */
+	uint32 n_pong_received;  /**< Number of pongs we received from this node */
+	uint32 n_pong_sent;	  /**< Number of pongs we sent to this node */
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	guint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
-	guint64 tx_deflated;		/**< Bytes deflated by the TX stack */
-	guint64 tx_written;			/**< Bytes written by the TX stack */
+	uint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	uint64 tx_deflated;		/**< Bytes deflated by the TX stack */
+	uint64 tx_written;			/**< Bytes written by the TX stack */
 
-	guint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
-	guint64 rx_inflated;		/**< Bytes inflated by the RX stack */
-	guint64 rx_read;			/**< Bytes read from the RX stack */
+	uint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	uint64 rx_inflated;		/**< Bytes inflated by the RX stack */
+	uint64 rx_read;			/**< Bytes read from the RX stack */
 
 	/*
 	 * Various Gnutella statistics -- RAM, 10/12/2003.
@@ -263,12 +263,12 @@ typedef struct gnutella_node {
 	 *   that really caused a match to one of our files.
 	 */
 
-	guint32 qrp_queries;		/**< Queries received under QRP control */
-	guint32 qrp_matches;		/**< Queries received that incurred a match */
-	guint32 rx_queries;			/**< Total amount of queries received */
-	guint32 tx_queries;			/**< Total amount of queries sent */
-	guint32 rx_qhits;			/**< Total amount of hits received */
-	guint32 tx_qhits;			/**< Total amount of hits sent */
+	uint32 qrp_queries;		/**< Queries received under QRP control */
+	uint32 qrp_matches;		/**< Queries received that incurred a match */
+	uint32 rx_queries;			/**< Total amount of queries received */
+	uint32 tx_queries;			/**< Total amount of queries sent */
+	uint32 rx_qhits;			/**< Total amount of hits received */
+	uint32 tx_qhits;			/**< Total amount of hits sent */
 
 	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004 */
 
@@ -557,20 +557,19 @@ void node_init(void);
 void node_post_init(void);
 void node_slow_timer(time_t now);
 void node_timer(time_t now);
-guint connected_nodes(void);
-guint node_count(void);
+uint connected_nodes(void);
+uint node_count(void);
 int node_keep_missing(void);
-guint node_missing(void);
-guint node_leaves_missing(void);
-guint node_outdegree(void);
-gboolean node_is_connected(const host_addr_t addr, guint16 port,
-		gboolean incoming);
-gboolean node_host_is_connected(const host_addr_t addr, guint16 port);
+uint node_missing(void);
+uint node_leaves_missing(void);
+uint node_outdegree(void);
+bool node_is_connected(const host_addr_t addr, uint16 port, bool incoming);
+bool node_host_is_connected(const host_addr_t addr, uint16 port);
 void node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-		guint16 port, guint32 flags);
+		uint16 port, uint32 flags);
 void node_remove(struct gnutella_node *,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
-guint node_remove_by_addr(const host_addr_t addr, guint16 port);
+uint node_remove_by_addr(const host_addr_t addr, uint16 port);
 void node_bye(gnutella_node_t *, int code,
 	const char * reason, ...) G_GNUC_PRINTF(3, 4);
 void node_real_remove(gnutella_node_t *);
@@ -586,16 +585,16 @@ void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
 void node_flushq(struct gnutella_node *n);
 void node_unflushq(struct gnutella_node *n);
-void node_tx_service(struct gnutella_node *n, gboolean on);
+void node_tx_service(struct gnutella_node *n, bool on);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
 void node_tx_enter_warnzone(struct gnutella_node *n);
 void node_tx_leave_warnzone(struct gnutella_node *n);
 void node_tx_swift_changed(struct gnutella_node *n);
-void node_bye_all(gboolean all);
-gboolean node_bye_pending(void);
+void node_bye_all(bool all);
+bool node_bye_pending(void);
 void node_close(void);
-gboolean node_remove_worst(gboolean non_local);
+bool node_remove_worst(bool non_local);
 
 void node_qrt_changed(struct routing_table *query_table);
 void node_qrt_discard(struct gnutella_node *n);
@@ -611,8 +610,8 @@ void node_add_rxdrop(gnutella_node_t *n, int x);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
 
-void node_set_hops_flow(gnutella_node_t *n, guint8 hops);
-void node_set_online_mode(gboolean on);
+void node_set_hops_flow(gnutella_node_t *n, uint8 hops);
+void node_set_online_mode(bool on);
 void node_current_peermode_changed(node_peer_t mode);
 const char *node_addr(const gnutella_node_t *n);
 const char *node_addr2(const gnutella_node_t *n);
@@ -620,17 +619,17 @@ const char *node_gnet_addr(const gnutella_node_t *n);
 const char *node_infostr(const gnutella_node_t *n);
 const char *node_id_infostr(const struct nid *node_id);
 
-void node_connect_back(const gnutella_node_t *n, guint16 port);
+void node_connect_back(const gnutella_node_t *n, uint16 port);
 void node_connected_back(struct gnutella_socket *s);
 
 void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_proxying_remove(gnutella_node_t *n);
-gboolean node_proxying_add(gnutella_node_t *n, const struct guid *guid);
-void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port);
+bool node_proxying_add(gnutella_node_t *n, const struct guid *guid);
+void node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port);
 void node_proxy_cancel_all(void);
-size_t node_http_fw_node_info_add(char *buf, size_t size, gboolean, host_net_t);
-size_t node_http_proxies_add(char *buf, size_t size, void *arg, guint32 flags);
+size_t node_http_fw_node_info_add(char *buf, size_t size, bool, host_net_t);
+size_t node_http_proxies_add(char *buf, size_t size, void *arg, uint32 flags);
 sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
@@ -638,36 +637,36 @@ const GSList *node_all_ultranodes(void);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
 gnutella_node_t *node_active_by_id(const struct nid *node_id);
-void node_set_leaf_guidance(const struct nid *node_id, gboolean supported);
+void node_set_leaf_guidance(const struct nid *node_id, bool supported);
 
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(int rx_size);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
-gboolean node_dht_is_flow_controlled(void);
-gboolean node_dht_would_flow_control(size_t additional);
-gboolean node_dht_above_low_watermark(void);
+bool node_dht_is_flow_controlled(void);
+bool node_dht_would_flow_control(size_t additional);
+bool node_dht_above_low_watermark(void);
 void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
-gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, guint16 port);
-gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, guint16 port);
+gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
+gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t * node_udp_route_get_addr_port(
-	const host_addr_t addr, guint16 port, gboolean can_deflate);
+	const host_addr_t addr, uint16 port, bool can_deflate);
 
 void node_can_tsync(gnutella_node_t *n);
-void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features);
+void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);
 
 void node_update_udp_socket(void);
 void node_check_remote_ip_header(const host_addr_t peer, header_t *head);
 
-guint feed_host_cache_from_headers(header_t *headers,
-	host_type_t sender, gboolean gnet, const host_addr_t peer,
+uint feed_host_cache_from_headers(header_t *headers,
+	host_type_t sender, bool gnet, const host_addr_t peer,
 	const char *vendor);
 
 gnutella_node_t *node_browse_prepare(
 	gnet_host_t *host, const char *vendor, gnutella_header_t *header,
-	char *data, guint32 size);
+	char *data, uint32 size);
 void node_browse_cleanup(gnutella_node_t *n);
 void node_kill_hostiles(void);
 void node_supports_tls(struct gnutella_node *);
@@ -676,10 +675,10 @@ void node_supports_dht(struct gnutella_node *, dht_mode_t);
 void node_is_firewalled(gnutella_node_t *n);
 void node_supported_vmsg(struct gnutella_node *, const char *str, size_t len);
 void node_supported_feats(struct gnutella_node *, const char *str, size_t len);
-gboolean node_above_low_watermark(const gnutella_node_t *n);
+bool node_above_low_watermark(const gnutella_node_t *n);
 
 const struct nid *node_id_get_self(void);
-gboolean node_id_self(const struct nid *node_id);
+bool node_id_self(const struct nid *node_id);
 
 static inline void
 node_check(const struct gnutella_node * const n)
@@ -702,8 +701,7 @@ node_get_id(const struct gnutella_node * const n)
 	return n->id;
 }
 
-gboolean node_set_guid(struct gnutella_node *n,
-	const struct guid *guid, gboolean gnet);
+bool node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet);
 struct gnutella_node *node_by_guid(const struct guid *guid);
 
 #endif /* _core_nodes_h_ */

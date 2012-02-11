@@ -52,8 +52,8 @@ enum strtok_magic { STRTOK_MAGIC = 0x5185623e };	/**< Magic number */
  */
 struct strtok {
 	enum strtok_magic magic;
-	guint8 no_lead;			/**< Whether leading spaces must be skipped */
-	guint8 no_end;			/**< Whether ending spaces must be skipped */
+	uint8 no_lead;			/**< Whether leading spaces must be skipped */
+	uint8 no_end;			/**< Whether ending spaces must be skipped */
 	const char *string;		/**< Initial string to tokenize */
 	const char *p;			/**< Parsing pointer within string */
 	char *token;			/**< String token buffer */
@@ -78,7 +78,7 @@ strtok_check(const struct strtok * const s)
  * @return opaque object on which we can issue tokenizing calls.
  */
 strtok_t *
-strtok_make(const char *string, gboolean no_lead, gboolean no_end)
+strtok_make(const char *string, bool no_lead, bool no_end)
 {
 	strtok_t *s;
 	
@@ -152,7 +152,7 @@ strtok_restart(strtok_t *s)
 /**
  * Have we reached the end of the string?
  */
-gboolean
+bool
 strtok_eos(const strtok_t *s)
 {
 	strtok_check(s);
@@ -291,14 +291,14 @@ extend_token(strtok_t *s)
  */
 static const char *
 strtok_next_internal(strtok_t *s, const char *delim,
-	gboolean no_lead, gboolean no_end, size_t *length,
-	const char *looked, gboolean caseless, gboolean *found)
+	bool no_lead, bool no_end, size_t *length,
+	const char *looked, bool caseless, bool *found)
 {
 	size_t tlen;
 	int c;
 	int d_min, d_max;
 	const char *l = NULL;
-	gboolean seen_non_blank = FALSE;
+	bool seen_non_blank = FALSE;
 	int deferred_blank = 0;
 	char *tstart;
 
@@ -500,7 +500,7 @@ not_found:
  */
 const char *
 strtok_next_extended(strtok_t *s, const char *delim,
-	gboolean no_lead, gboolean no_end)
+	bool no_lead, bool no_end)
 {
 	return strtok_next_internal(s, delim, no_lead, no_end,
 		NULL, NULL, FALSE, NULL);
@@ -554,11 +554,11 @@ strtok_next_length(strtok_t *s, const char *delim, size_t *length)
  * @param delim			the token delimitors
  * @param what			the token to look for
  */
-gboolean
+bool
 strtok_has(const char *string, const char *delim, const char *what)
 {
 	strtok_t *st;
-	gboolean found = FALSE;
+	bool found = FALSE;
 
 	st = strtok_make(string, TRUE, TRUE);
 
@@ -583,11 +583,11 @@ strtok_has(const char *string, const char *delim, const char *what)
  * @param delim			the token delimitors
  * @param what			the token to look for, case-insensitively
  */
-gboolean
+bool
 strtok_case_has(const char *string, const char *delim, const char *what)
 {
 	strtok_t *st;
-	gboolean found = FALSE;
+	bool found = FALSE;
 
 	st = strtok_make(string, TRUE, TRUE);
 

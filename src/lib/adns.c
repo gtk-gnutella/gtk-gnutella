@@ -51,7 +51,7 @@
 struct adns_common {
 	void (*user_callback)(void);
 	void *user_data;
-	gboolean reverse;
+	bool reverse;
 };
 
 struct adns_reverse_query {
@@ -153,7 +153,7 @@ static int adns_query_fd = -1;
 static unsigned adns_query_event_id;
 #endif	/* !MINGW32 */
 static unsigned adns_reply_event_id;
-static gboolean is_helper;		/**< Are we the DNS helper process? */
+static bool is_helper;		/**< Are we the DNS helper process? */
 
 /**
  * Private functions.
@@ -343,8 +343,8 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
  * has been transferred or if an unrecoverable error occurs. This function
  * should only be used with a blocking `fd'.
  */
-static gboolean
-adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
+static bool
+adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
 {
 	ssize_t ret;
 	size_t n = len;
@@ -389,7 +389,7 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static inline gboolean
+static inline bool
 adns_do_read(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, FALSE);
@@ -400,7 +400,7 @@ adns_do_read(int fd, void *buf, size_t len)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static inline gboolean
+static inline bool
 adns_do_write(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, TRUE);
@@ -625,7 +625,7 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 		if (pos == size) {
 
 			pos = 0;
-			if (cast_to_gpointer(&ans.common) == buf) {
+			if (cast_to_pointer(&ans.common) == buf) {
 				if (ans.common.reverse) {
 					buf = &ans.reply.reverse;
 					size = sizeof ans.reply.reverse;
@@ -873,7 +873,7 @@ adns_init(void)
 /**
  * @return TRUE on success, FALSE on failure.
  */
-static gboolean
+static bool
 adns_send_request(const struct adns_request *req)
 #ifdef MINGW32
 {
@@ -950,7 +950,7 @@ adns_send_request(const struct adns_request *req)
  *
  * The given function ``user_callback'' (which MUST NOT be NULL)
  * will be invoked with the resolved IP address and ``user_data''
- * as its parameters. The IP address 0.0.0.0 i.e., ``(guint32) 0''
+ * as its parameters. The IP address 0.0.0.0 i.e., ``(uint32) 0''
  * is used to indicate a failure. In case the hostname is given as
  * an IP string, it will be directly converted and the callback
  * immediately invoked. If the adns helper process is ``out of service''
@@ -961,7 +961,7 @@ adns_send_request(const struct adns_request *req)
  * synchronous i.e., the callback was called BEFORE adns_resolve()
  * returned, adns_resolve() returns FALSE.
  */
-gboolean
+bool
 adns_resolve(const char *hostname, enum net_type net,
 	adns_callback_t user_callback, void *user_data)
 {
@@ -1034,7 +1034,7 @@ adns_resolve(const char *hostname, enum net_type net,
  * synchronous i.e., the callback was called BEFORE adns_reverse_lookup()
  * returned, adns_reverse_lookup() returns FALSE.
  */
-gboolean
+bool
 adns_reverse_lookup(const host_addr_t addr,
 	adns_reverse_callback_t user_callback, void *user_data)
 {

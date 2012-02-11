@@ -52,11 +52,11 @@
  *
  * @return the IPv4 address to advertise.
  */
-guint32
+uint32
 ipv6_ready_advertised_ipv4(const host_addr_t ha)
 {
 	if (NET_TYPE_IPV4 == host_addr_net(ha)) {
-		guint32 ipv4 = host_addr_ipv4(ha);
+		uint32 ipv4 = host_addr_ipv4(ha);
 		return IPV4_NONE == ipv4 ? 0 : ipv4;
 	} else {
 		return IPV4_NONE;
@@ -66,7 +66,7 @@ ipv6_ready_advertised_ipv4(const host_addr_t ha)
 /**
  * @return whether advertised IPv4 address indicates no IPv4 support.
  */
-gboolean
+bool
 ipv6_ready_no_ipv4_addr(const host_addr_t ha)
 {
 	return host_addr_is_ipv4(ha) && host_addr_ipv4(ha) == IPV4_NONE;

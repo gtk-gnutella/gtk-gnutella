@@ -61,7 +61,7 @@ size_t timestamp_to_string_buf(time_t date, char *dst, size_t size);
 size_t timestamp_utc_to_string_buf(time_t date, char *dst, size_t size);
 short_string_t timestamp_get_string(time_t date);
 
-gboolean string_to_timestamp_utc(
+bool string_to_timestamp_utc(
 	const char *str, const char **endptr, time_t *stamp);
 
 #endif /* _timestamp_h_ */

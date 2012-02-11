@@ -54,10 +54,10 @@ nid_hash(const void *key)
 /**
  * Are two numeric IDs holding the same value?
  */
-gboolean
+bool
 nid_equal(const void *p, const void *q)
 {
-	guint64 a = nid_value(p), b = nid_value(q);
+	uint64 a = nid_value(p), b = nid_value(q);
 	return a == b;
 }
 

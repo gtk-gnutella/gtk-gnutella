@@ -114,7 +114,7 @@
 
 static GHashTable *dl_all_parq_by_id;
 
-static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
+static uint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 
 /**
  * parq_upload_active_size is the maximum number of active upload slots
@@ -123,9 +123,9 @@ static guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
  * This limit will only be reached when all requests are QUEUE, push or
  * the number of upload slots is also large.
  */
-static guint parq_upload_active_size = 20;
+static uint parq_upload_active_size = 20;
 
-static guint parq_upload_ban_window = 600;
+static uint parq_upload_ban_window = 600;
 static const char file_parq_file[] = "parq";
 
 static GList *ul_parqs;				/**< List of all queued uploads */
@@ -143,7 +143,7 @@ static cperiodic_t *parq_save_timer_ev;
  * if FALSE, a dead upload is really removed and cannot reclaim its
  * position
  */
-static gboolean enable_real_passive = TRUE;
+static bool enable_real_passive = TRUE;
 
 
 static GHashTable *ht_banned_source;
@@ -156,9 +156,9 @@ struct parq_banned {
 };
 
 
-static gboolean parq_shutdown;
+static bool parq_shutdown;
 static time_t parq_start;					/**< Init time */
-static guint64 parq_slots_removed = 0;		/**< Amount of slots removed */
+static uint64 parq_slots_removed = 0;		/**< Amount of slots removed */
 
 enum parq_ul_queue_magic {
 	PARQ_UL_QUEUE_MAGIC = 0x7dbab331
@@ -217,11 +217,11 @@ enum parq_ul_magic {
  */
 struct parq_ul_queued {
 	enum parq_ul_magic magic;			/**< Magic number */
-	guint32 flags;			/**< Operating flags */
-	guint position;			/**< Current position in the queue */
-	guint relative_position; /**< Relative position in the queue, if 'not alive'
+	uint32 flags;			/**< Operating flags */
+	uint position;			/**< Current position in the queue */
+	uint relative_position; /**< Relative position in the queue, if 'not alive'
 								  uploads are taken into account */
-	guint eta;				/**< Expected time in seconds till an upload slot is
+	uint eta;				/**< Expected time in seconds till an upload slot is
 							     reached, this is a relative timestamp */
 
 	time_t expire;			/**< Time when the queue position will be lost */
@@ -232,15 +232,15 @@ struct parq_ul_queued {
 							     out of the queue when retry isn't obeyed */
 	time_t disc_timeout;	/**< Time after which we allow the upload to be
 							     disconnected again. */
-	guint ban_countwait;	/**< Counter is increased everytime a client did
+	uint ban_countwait;		/**< Counter is increased everytime a client did
 								 not obey the retry-after header, used to
 								 ban a client. */
 
 	time_t last_queue_sent;	/**< When we last sent the QUEUE */
 	time_t send_next_queue;	/**< When to send the next QUEUE */
 	time_t slot_granted;	/**< Time at which the upload slot was granted */
-	guint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
-	guint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
+	uint32 queue_sent;		/**< Amount of QUEUE messages we tried to send */
+	uint32 queue_refused;	/**< Amount of QUEUE messages refused remotely */
 
 	struct guid id;			/**< PARQ identifier; GUID atom */
 
@@ -254,10 +254,10 @@ struct parq_ul_queued {
 	filesize_t uploaded_size;	/**< Bytes previously uploaded */
 	filesize_t downloaded;	/**< Their advertized downloaded amount */
 	host_addr_t addr;		/**< Contact IP:port, as read from X-Node: */
-	guint16 port;
+	uint16 port;
 
-	guint major;
-	guint minor;
+	uint major;
+	uint minor;
 
 	struct parq_ul_queue *queue;	/**< In which queue this entry is listed */
 	struct parq_ul_queued_by_addr *by_addr;
@@ -297,11 +297,11 @@ enum {
  * Contains the queued download status.
  */
 struct parq_dl_queued {
-	guint position;			/**< Current position in the queue */
-	guint length;			/**< Current queue length */
+	uint position;			/**< Current position in the queue */
+	uint length;			/**< Current queue length */
 	time_t eta;				/**< Estimated time till upload slot retrieved */
-	guint lifetime;			/**< Max interval before loosing queue position */
-	guint retry_delay;		/**< Interval between new attempt */
+	uint lifetime;			/**< Max interval before loosing queue position */
+	uint retry_delay;		/**< Interval between new attempt */
 	char *id;				/**< PARQ Queue ID, +1 for trailing NUL */
 };
 
@@ -357,8 +357,8 @@ fd_avail_status_string(enum fd_avail_status s)
  * @return a boolean which is true when parsing of the header version was
  * successful.
  */
-static gboolean
-get_header_version(char const * const header, guint *major, guint *minor)
+static bool
+get_header_version(char const * const header, uint *major, uint *minor)
 {
 	return 0 == parse_major_minor(header, NULL, major, minor);
 }
@@ -380,7 +380,7 @@ parq_get_x_queue_legacy_header(void)
 /**
  * Get header value.
  *
- * Retrieves a value from a header line. If possible the length (in gchars)
+ * Retrieves a value from a header line. If possible the length (in chars)
  * is returned for that value.
  *
  * @param s is a pointer to the header string that will be parsed.
@@ -396,8 +396,8 @@ get_header_value(const char *const s,
 {
 	const char *header = s;
 	char *end;
-	gboolean found_right_attribute = FALSE;
-	gboolean found_equal_sign = FALSE;
+	bool found_right_attribute = FALSE;
+	bool found_equal_sign = FALSE;
 
 	size_t attrlen;
 
@@ -593,7 +593,7 @@ get_parq_dl_retry_delay(const struct download *d)
 /**
  * Whether the download is queued remotely or not.
  */
-gboolean
+bool
 parq_download_is_active_queued(const struct download *d)
 {
 	download_check(d);
@@ -603,7 +603,7 @@ parq_download_is_active_queued(const struct download *d)
 /**
  * Whether the download is queued remotely without keeping the connection or not
  */
-gboolean
+bool
 parq_download_is_passive_queued(const struct download *d)
 {
 	download_check(d);
@@ -644,11 +644,11 @@ parq_download_retry_active_queued(struct download *d)
  *
  * @return parsed integer (base 10), or 0 if none could be found.
  */
-static guint
+static uint
 get_integer(const char *buf)
 {
 	const char *endptr;
-	guint32 val;
+	uint32 val;
 	int error;
 
 	/* XXX This needs to get more parameters, so that we can log the
@@ -820,15 +820,15 @@ parq_dl_update_id(struct download *d, const char *temp)
  *
  * @return TRUE if we parsed it OK, FALSE on error.
  */
-gboolean
+bool
 parq_download_parse_queue_status(struct download *d,
-	header_t *header, guint code)
+	header_t *header, uint code)
 {
 	struct parq_dl_queued *parq_dl = NULL;
 	const char *buf;
 	char *temp = NULL;
 	const char *value = NULL;
-	guint major, minor;
+	uint major, minor;
 	size_t header_value_length;
 	int retry;
 
@@ -1017,9 +1017,9 @@ void
 parq_download_add_header(
 	char *buf, size_t len, size_t *rw, struct download *d)
 {
-	gboolean has_ipv4 = FALSE;
+	bool has_ipv4 = FALSE;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	g_assert(d != NULL);
 	g_assert(rw != NULL);
@@ -1089,8 +1089,8 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	char *ip_str;
 	struct download *dl;
 	host_addr_t addr;
-	guint16 port = 0;
-	gboolean has_ip_port = TRUE;
+	uint16 port = 0;
+	bool has_ip_port = TRUE;
 
 	socket_tos_default(s);	/* Set proper Type of Service */
 
@@ -1274,10 +1274,10 @@ handle_to_queued(struct parq_ul_queued *puq)
  * @return probable slot time, or 0 if we cannot compute anything due to
  * too little data points.
  */
-static guint
+static uint
 parq_probable_slot_time(const struct parq_ul_queue *q)
 {
-	guint e;
+	uint e;
 	double factor;
 
 	if (statx_n(q->slot_stats) < STAT_MIN_POINTS)
@@ -1294,7 +1294,7 @@ parq_probable_slot_time(const struct parq_ul_queue *q)
 	 */
 
 	factor = GNET_PROPERTY(parq_optimistic) ? 0.5 : 2.0;
-	e = (guint) (statx_avg(q->slot_stats) + factor * statx_sdev(q->slot_stats));
+	e = (uint) (statx_avg(q->slot_stats) + factor * statx_sdev(q->slot_stats));
 	
 	return e;
 }
@@ -1303,13 +1303,13 @@ parq_probable_slot_time(const struct parq_ul_queue *q)
  * Compute estimate for the time it will take to upload the whole file (or
  * a fraction of it if we are optimistic) at a given queue position.
  */
-static guint
+static uint
 parq_estimated_slot_time(const struct parq_ul_queued *puq)
 {
 	filesize_t remaining;
-	guint avg_bps;
-	guint d;
-	guint pd;
+	uint avg_bps;
+	uint d;
+	uint pd;
 
 	avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 	avg_bps = MAX(1, avg_bps);
@@ -1321,7 +1321,7 @@ parq_estimated_slot_time(const struct parq_ul_queued *puq)
 	remaining = puq->file_size - puq->downloaded;
 	d = remaining / avg_bps * GNET_PROPERTY(max_uploads);
 	if (GNET_PROPERTY(parq_optimistic)) {
-		guint n;
+		uint n;
 
 		n = puq->sha1 ? dmesh_count(puq->sha1) : 0;
 		if (n > 1) {
@@ -1340,8 +1340,8 @@ static void
 parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 {
 	GList *l;
-	guint eta = 0;
-	guint avg_bps;
+	uint eta = 0;
+	uint avg_bps;
 	time_delta_t running_time = delta_time(tm_time(), parq_start);
 	hash_list_iter_t *iter;
 
@@ -1409,7 +1409,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 
 		if (puq->relative_position > GNET_PROPERTY(max_uploads)) {
 			time_delta_t per_slot = running_time / MIN(1, parq_slots_removed);
-			guint cheap_eta = puq->relative_position * per_slot;
+			uint cheap_eta = puq->relative_position * per_slot;
 
 			if (cheap_eta < eta)
 				puq->eta = cheap_eta;
@@ -1461,7 +1461,7 @@ parq_upload_decrease_all_after(struct parq_ul_queued *puq)
  * queue positions, which refer to the order of arrival in the queue.
  */
 static int
-parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
+parq_ul_rel_pos_cmp(const void *a, const void *b)
 {
 	const struct parq_ul_queued *as = a, *bs = b;
 
@@ -1500,8 +1500,8 @@ parq_upload_remove_relative(struct parq_ul_queued *puq)
 static void
 parq_upload_recompute_positions(struct parq_ul_queue *q)
 {
-	guint pos = 0;
-	guint prev_pos = 0;
+	uint pos = 0;
+	uint prev_pos = 0;
 	GList *l;
 
 	parq_ul_queue_check(q);
@@ -1529,9 +1529,9 @@ parq_upload_recompute_positions(struct parq_ul_queue *q)
 static void
 parq_upload_recompute_relative_positions(struct parq_ul_queue *q)
 {
-	guint rel = 0;
-	guint prev_rel = 0;
-	guint prev_pos = 0;
+	uint rel = 0;
+	uint prev_rel = 0;
+	uint prev_pos = 0;
 	hash_list_iter_t *iter;
 
 	parq_ul_queue_check(q);
@@ -1692,7 +1692,7 @@ parq_upload_free(struct parq_ul_queued *puq)
  *
  * @return the recommended retry delay.
  */
-static guint32
+static uint32
 parq_ul_calc_retry(struct parq_ul_queued *puq)
 {
 	int result = PARQ_TIMER_BY_POS +
@@ -1700,7 +1700,7 @@ parq_ul_calc_retry(struct parq_ul_queued *puq)
 
 	if (GNET_PROPERTY(parq_optimistic)) {
 		struct parq_ul_queued *puq_prev = NULL;
-		guint avg_bps;
+		uint avg_bps;
 
 		avg_bps = bsched_avg_bps(BSCHED_BWS_OUT);
 		avg_bps = MAX(1, avg_bps);
@@ -1763,8 +1763,8 @@ static struct parq_ul_queue *
 parq_upload_which_queue(struct upload *u)
 {
 	struct parq_ul_queue *queue;
-	guint size = PARQ_UL_LARGE_SIZE;
-	guint slot;
+	uint size = PARQ_UL_LARGE_SIZE;
+	uint slot;
 
 	/*
 	 * Determine in which queue the upload should be placed. Upload queues:
@@ -1838,8 +1838,8 @@ parq_upload_create(struct upload *u)
 	struct parq_ul_queued *puq = NULL;
 	struct parq_ul_queued *prev_puq = NULL;
 	struct parq_ul_queue *q = NULL;
-	guint eta = 0;
-	guint rel_pos = 1;
+	uint eta = 0;
+	uint rel_pos = 1;
 
 	upload_check(u);
 	g_assert(ul_all_parq_by_addr_and_name != NULL);
@@ -1860,7 +1860,7 @@ parq_upload_create(struct upload *u)
 		eta = prev_puq->eta;
 
 		if (GNET_PROPERTY(max_uploads) <= 0) {
-			eta = (guint) -1;
+			eta = (uint) -1;
 		} else {
 			eta += parq_estimated_slot_time(prev_puq);
 		}
@@ -2066,7 +2066,7 @@ parq_upload_find_id(const struct upload *u, const header_t *header)
  * is shared or if we don't know, e.g. if the library is being
  * rebuilt.
  */
-static gboolean
+static bool
 parq_still_sharing(struct parq_ul_queued *puq)
 {
 	shared_file_t *sf;
@@ -2205,7 +2205,7 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	struct gnutella_socket *s;
 	struct upload *u;
 	time_t now = tm_time();
-	guint32 flags = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
+	uint32 flags = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
 	g_assert(puq->flags & PARQ_UL_QUEUE);
 
@@ -2395,8 +2395,8 @@ parq_ul_queue_dead_timer(time_t now, const struct parq_ul_queue *q)
 /**
  * Callout queue periodic event to scan dead entries in queues.
  */
-static gboolean
-parq_dead_timer(gpointer unused_udata)
+static bool
+parq_dead_timer(void *unused_udata)
 {
 	time_t now = tm_time();
 	GList *l;
@@ -2485,7 +2485,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 static void
 parq_upload_send_queue_callbacks(time_t now)
 {
-	gpointer next;
+	void *next;
 
 	if (
 		GNET_PROPERTY(library_rebuilding) ||
@@ -2502,7 +2502,7 @@ parq_upload_send_queue_callbacks(time_t now)
 	next = hash_list_head(ul_parq_queue);
 	while (next) {
 		struct parq_ul_queued *puq = next;
-		gboolean has_timedout;
+		bool has_timedout;
 		time_t last_queue_sent;
 		time_t last_queue_failure;
 
@@ -2576,10 +2576,10 @@ parq_upload_send_queue_callbacks(time_t now)
 void
 parq_upload_timer(time_t now)
 {
-	static guint startup_delay;
+	static uint startup_delay;
 	GList *queues;
 	GSList *sl, *to_remove = NULL;
-	guint	queue_selected = 0;
+	uint queue_selected = 0;
 
 	if (!parq_is_enabled())
 		return;
@@ -2675,7 +2675,7 @@ parq_upload_timer(time_t now)
 /**
  * @return TRUE if parq cannot hold any more uploads.
  */
-gboolean
+bool
 parq_upload_queue_full(struct upload *u)
 {
 	struct parq_ul_queue *q;
@@ -2706,10 +2706,10 @@ parq_upload_queue_full(struct upload *u)
 /**
  * Whether the current upload is already queued.
  */
-gboolean
+bool
 parq_upload_queued(struct upload *u)
 {
-	return parq_upload_lookup_position(u) != (guint) -1;
+	return parq_upload_lookup_position(u) != (uint) -1;
 }
 
 /**
@@ -2717,10 +2717,10 @@ parq_upload_queued(struct upload *u)
  * actually scheduling would only cost more resources then it would
  * save.
  */
-static gboolean
+static bool
 parq_upload_quick_continue(struct parq_ul_queued *puq)
 {
-	guint avg_bps;
+	uint avg_bps;
 	filesize_t total;
 
 	g_assert(puq);
@@ -3068,12 +3068,12 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 /**
  * @return TRUE if the current upload is allowed to get an upload slot.
  */
-static gboolean
+static bool
 parq_upload_continue(struct parq_ul_queued *puq)
 {
 	GList *l = NULL;
 	int slots_free;
-	gboolean quick_allowed = FALSE;
+	bool quick_allowed = FALSE;
 	g_assert(puq != NULL);
 
 	/*
@@ -3205,14 +3205,14 @@ check_quick:
 	if (GNET_PROPERTY(uploads_stalling) && quick_allowed) {
 		if (GNET_PROPERTY(parq_debug))
 			g_debug("[PARQ UL] [#%d] no quick upload of %ld bytes (stalling)",
-				puq->queue->num, (gulong) puq->chunk_size);
+				puq->queue->num, (ulong) puq->chunk_size);
 		quick_allowed = FALSE;
 	}
 
 	if (quick_allowed) {
 		if (GNET_PROPERTY(parq_debug))
 			g_debug("[PARQ UL] [#%d] allowed quick upload (%ld bytes)",
-				puq->queue->num, (gulong) puq->chunk_size);
+				puq->queue->num, (ulong) puq->chunk_size);
 
 		parq_upload_unfreeze_one(puq);
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
@@ -3431,7 +3431,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 
 		if (buf != NULL) {
 			host_addr_t addr;
-			guint16 port;
+			uint16 port;
 
 			/*
 			 * Update port / IP entries for other queued entries too.
@@ -3474,7 +3474,7 @@ parq_upload_get(struct upload *u, const header_t *header)
  *
  * @return TRUE if we can allow the request, FALSE if we detected abuse.
  */
-static gboolean
+static bool
 parq_upload_abusing(
 	struct upload *u, struct parq_ul_queued *puq,
 	time_t now, time_t org_retry)
@@ -3531,7 +3531,7 @@ parq_upload_abusing(
  * This function expects that the upload was checked with parq_upload_request
  * first.
  */
-gboolean
+bool
 parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 {
 	struct parq_ul_queued *puq = handle_to_queued(handle);
@@ -3575,7 +3575,7 @@ parq_upload_update_downloaded(const struct upload *u)
  * @return If the download may continue, TRUE is returned. FALSE otherwise
  * (which probably means the upload is queued).
  */
-gboolean
+bool
 parq_upload_request(struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -3763,11 +3763,11 @@ parq_upload_request(struct upload *u)
 		}
 	} else {
 		enum fd_avail_status fds = fd_avail_status();
-		gboolean queueable;
-		gboolean activeable = TRUE;
-		guint max_slot = parq_upload_active_size +
+		bool queueable;
+		bool activeable = TRUE;
+		uint max_slot = parq_upload_active_size +
 			GNET_PROPERTY(max_uploads) / 2;
-		guint max_fd_used =
+		uint max_fd_used =
 			GNET_PROPERTY(max_downloads) +
 			GNET_PROPERTY(max_uploads) + 
 			(settings_is_leaf() ?
@@ -3987,8 +3987,8 @@ parq_upload_collect_stats(const struct upload *u)
  * @return TRUE if the download was totally removed. And the associated memory
  * was cleared. FALSE if the parq structure still exists.
  */
-gboolean
-parq_upload_remove(struct upload *u, gboolean was_sending, gboolean was_running)
+bool
+parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 {
 	time_t now = tm_time();
 	struct parq_ul_queued *puq = NULL;
@@ -4232,7 +4232,7 @@ done:
 }
 
 static size_t
-parq_upload_add_retry_after_header(char *buf, size_t size, guint d)
+parq_upload_add_retry_after_header(char *buf, size_t size, uint d)
 {
 	size_t len;
 
@@ -4244,8 +4244,8 @@ parq_upload_add_retry_after_header(char *buf, size_t size, guint d)
 
 static size_t
 parq_upload_add_old_queue_header(char *buf, size_t size,
-	struct parq_ul_queued *puq, guint min_poll, guint max_poll,
-	gboolean small_reply)
+	struct parq_ul_queued *puq, uint min_poll, uint max_poll,
+	bool small_reply)
 {
 	size_t len;
 
@@ -4269,8 +4269,8 @@ parq_upload_add_old_queue_header(char *buf, size_t size,
 
 static size_t
 parq_upload_add_x_queued_header(char *buf, size_t size,
-	struct parq_ul_queued *puq, guint max_poll,
-	gboolean small_reply, struct upload *u)
+	struct parq_ul_queued *puq, uint max_poll,
+	bool small_reply, struct upload *u)
 {
 	size_t rw = 0, len;
 
@@ -4349,14 +4349,14 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
  * to make sure they do not re-request too soon.
  */
 size_t
-parq_upload_add_headers(char *buf, size_t size, gpointer arg, guint32 flags)
+parq_upload_add_headers(char *buf, size_t size, void *arg, uint32 flags)
 {
 	struct parq_ul_queued *puq;
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
-	gboolean small_reply;
+	bool small_reply;
 	time_delta_t d;
-	guint min_poll, max_poll;
+	uint min_poll, max_poll;
 	time_t now;
 	size_t rw = 0;
 
@@ -4415,8 +4415,8 @@ parq_upload_add_headers(char *buf, size_t size, gpointer arg, guint32 flags)
  * @return the amount of bytes written to `buf'.
  */
 size_t
-parq_upload_add_header_id(char *buf, size_t size, gpointer arg,
-	guint32 unused_flags)
+parq_upload_add_header_id(char *buf, size_t size, void *arg,
+	uint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -4463,7 +4463,7 @@ finish:
 /**
  * Determines whether the PARQ ID was already sent for an upload.
  */
-gboolean
+bool
 parq_ul_id_sent(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4475,9 +4475,9 @@ parq_ul_id_sent(const struct upload *u)
 
 /**
  * @return the current queueing position of an upload. Returns a value of
- * (guint) -1 if not found.
+ * (uint) -1 if not found.
  */
-guint
+uint
 parq_upload_lookup_position(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4488,7 +4488,7 @@ parq_upload_lookup_position(const struct upload *u)
 	if (puq != NULL) {
 		return puq->relative_position;
 	} else {
-		return (guint) -1;
+		return (uint) -1;
 	}
 }
 
@@ -4508,7 +4508,7 @@ parq_upload_lookup_id(const struct upload *u)
 /**
  * @return the Estimated Time of Arrival for an upload slot for a given upload.
  */
-guint
+uint
 parq_upload_lookup_eta(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4520,13 +4520,13 @@ parq_upload_lookup_eta(const struct upload *u)
 	if (puq != NULL)
 		return puq->eta;
 	else
-		return (guint) -1;
+		return (uint) -1;
 }
 
 /**
  * @return the current upload queue size of alive uploads.
  */
-guint
+uint
 parq_upload_lookup_size(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4599,7 +4599,7 @@ parq_upload_retry(const struct upload *u)
 /**
  * @return the queue number the current upload is queued in.
  */
-guint
+uint
 parq_upload_lookup_queue_no(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4618,7 +4618,7 @@ parq_upload_lookup_queue_no(const struct upload *u)
 /**
  * @return TRUE if the upload was allowed quickly by PARQ.
  */
-gboolean
+bool
 parq_upload_lookup_quick(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4631,7 +4631,7 @@ parq_upload_lookup_quick(const struct upload *u)
 /**
  * @return TRUE if the upload is frozen.
  */
-gboolean
+bool
 parq_upload_lookup_frozen(const struct upload *u)
 {
 	struct parq_ul_queued *puq;
@@ -4686,7 +4686,7 @@ parq_upload_send_queue_conf(struct upload *u)
 	} else if ((size_t) sent < rw) {
 		g_warning("[PARQ UL] "
 			"Only sent %lu out of %lu bytes of QUEUE for \"%s\" to %s",
-			  (gulong) sent, (gulong) rw, u->name,
+			  (ulong) sent, (ulong) rw, u->name,
 			  host_addr_port_to_string(s->addr, s->port));
 	} else if (GNET_PROPERTY(parq_debug) > 2) {
 		g_debug("PARQ UL: Sent #%d to %s: %s",
@@ -4716,7 +4716,7 @@ parq_upload_send_queue_conf(struct upload *u)
  * parq_upload_save_queue().
  */
 static inline void
-parq_store(gpointer data, gpointer file_ptr)
+parq_store(void *data, void *file_ptr)
 {
 	FILE *f = file_ptr;
 	struct parq_ul_queued *puq = data;
@@ -4846,8 +4846,8 @@ parq_upload_save_queue(void)
 /**
  * Callout queue periodic event to save PARQ queues.
  */
-static gboolean
-parq_save_timer(gpointer unused_udata)
+static bool
+parq_save_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -4974,15 +4974,15 @@ parq_upload_load_queue(void)
 	FILE *f;
 	file_path_t fp[1];
 	char line[4096];
-	gboolean next = FALSE;
+	bool next = FALSE;
 	struct parq_ul_queued *puq;
 	time_t now = tm_time();
-	guint line_no = 0;
-	guint64 v;
+	uint line_no = 0;
+	uint64 v;
 	int error;
 	const char *endptr;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_PARQ_TAGS)];
-	gboolean resync = FALSE;
+	bool resync = FALSE;
 
 	file_path_set(fp, settings_config_dir(), file_parq_file);
 	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
@@ -4999,7 +4999,7 @@ parq_upload_load_queue(void)
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
 		char *colon;
-		gboolean damaged;
+		bool damaged;
 		parq_tag_t tag;
 
 		line_no++;
@@ -5301,7 +5301,7 @@ parq_banned_source_expire(const host_addr_t addr)
 	return banned ? banned->expire : 0;
 }
 
-gboolean
+bool
 parq_is_enabled(void)
 {
 	return GNET_PROPERTY(parq_enabled);

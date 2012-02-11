@@ -37,18 +37,18 @@
 
 struct rudp_con;
 
-int rudp_connect(const host_addr_t addr, guint16 port);
-void rudp_handle_packet(const host_addr_t addr, guint16 port,
-	gconstpointer data, size_t size);
-ssize_t rudp_write(struct rudp_con *con, gconstpointer data, size_t size);
-ssize_t rudp_read(struct rudp_con *con, gpointer data, size_t size);
+int rudp_connect(const host_addr_t addr, uint16 port);
+void rudp_handle_packet(const host_addr_t addr, uint16 port,
+	const void *data, size_t size);
+ssize_t rudp_write(struct rudp_con *con, const void *data, size_t size);
+ssize_t rudp_read(struct rudp_con *con, void *data, size_t size);
 int rudp_close(struct rudp_con *con);
 
 host_addr_t rudp_get_addr(const struct rudp_con *con);
-guint16 rudp_get_port(const struct rudp_con *con);
+uint16 rudp_get_port(const struct rudp_con *con);
 
 void rudp_set_event_handler(struct rudp_con *con,
-		inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);
+		inputevt_cond_t cond, inputevt_handler_t handler, void *data);
 void rudp_clear_event_handler(struct rudp_con *con);
 
 void rudp_timer(time_t now);

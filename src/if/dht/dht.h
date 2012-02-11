@@ -36,8 +36,8 @@
 struct gnutella_node;
 
 void dht_init(void);
-void dht_close(gboolean exiting);
-void dht_initialize(gboolean post_init);
+void dht_close(bool exiting);
+void dht_initialize(bool post_init);
 void dht_reset_kuid(void);
 void dht_ipp_extract(
 	const struct gnutella_node *n,
@@ -45,16 +45,16 @@ void dht_ipp_extract(
 int dht_fill_random(gnet_host_t *hvec, int hcnt);
 
 void dht_route_store_if_dirty(void);
-void dht_bootstrap_if_needed(host_addr_t addr, guint16 port);
+void dht_bootstrap_if_needed(host_addr_t addr, uint16 port);
 void dht_attempt_bootstrap(void);
 void dht_update_size_estimate(void);
 
-gboolean dht_is_active(void);
+bool dht_is_active(void);
 
 /**
  * Is the DHT enabled?
  */
-static inline gboolean
+static inline bool
 dht_enabled(void)
 {
 	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_dht) &&

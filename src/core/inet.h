@@ -53,9 +53,9 @@ void inet_init(void);
 void inet_close(void);
 
 void inet_firewalled(void);
-void inet_udp_firewalled(gboolean new_env);
+void inet_udp_firewalled(bool new_env);
 
-gboolean inet_can_answer_ping(void);
+bool inet_can_answer_ping(void);
 
 void inet_got_incoming(const host_addr_t addr);
 void inet_read_activity(void);

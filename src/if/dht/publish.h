@@ -60,7 +60,7 @@ typedef struct publish publish_t;
  */
 typedef struct publish_info {
 	const lookup_rs_t *rs;		/**< The set of STORE roots used */
-	const guint16 *status;		/**< Array of STORE status per node in path */
+	const uint16 *status;		/**< Array of STORE status per node in path */
 	unsigned published;			/**< # of nodes where publishing was done */
 	unsigned candidates;		/**< # of nodes where STORE was possible */
 } publish_info_t;
@@ -72,7 +72,7 @@ typedef struct publish_info {
  * @param code			status code for publish operation
  * @param info			publishing information
  */
-typedef void (*publish_cb_t)(gpointer arg,
+typedef void (*publish_cb_t)(void *arg,
 	publish_error_t code, const publish_info_t *info);
 
 /*
@@ -80,13 +80,13 @@ typedef void (*publish_cb_t)(gpointer arg,
  */
 
 const char *publish_strerror(publish_error_t error);
-void publish_cancel(publish_t *pb, gboolean callback);
+void publish_cancel(publish_t *pb, bool callback);
 
 publish_t *publish_value(dht_value_t *value, const lookup_rs_t *rs,
-	publish_cb_t cb, gpointer arg);
+	publish_cb_t cb, void *arg);
 publish_t *publish_value_background(dht_value_t *value,
-	const lookup_rs_t *rs, const guint16 *status,
-	publish_cb_t cb, gpointer arg);
+	const lookup_rs_t *rs, const uint16 *status,
+	publish_cb_t cb, void *arg);
 
 #endif	/* _if_dht_publish_h_ */
 

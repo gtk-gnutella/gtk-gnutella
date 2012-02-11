@@ -117,7 +117,7 @@ wzone_get(size_t rounded)
  *
  * @return a pointer to the start of the allocated block.
  */
-G_GNUC_HOT gpointer
+G_GNUC_HOT void *
 walloc(size_t size)
 {
 	static spinlock_t walloc_slk = SPINLOCK_INIT;
@@ -154,10 +154,10 @@ walloc(size_t size)
 /**
  * Same as walloc(), but zeroes the allocated memory before returning.
  */
-gpointer
+void *
 walloc0(size_t size)
 {
-	gpointer p = walloc(size);
+	void *p = walloc(size);
 
 	if (p != NULL)
 		memset(p, 0, size);
@@ -172,7 +172,7 @@ walloc0(size_t size)
  * to determine that we actually xpmalloc()'ed it so it gets xfree()'ed.
  */
 void
-wfree(gpointer ptr, size_t size)
+wfree(void *ptr, size_t size)
 {
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
@@ -209,7 +209,7 @@ wfree(gpointer ptr, size_t size)
  * Zero content and free a block allocated via walloc().
  */
 void
-wfree0(gpointer ptr, size_t size)
+wfree0(void *ptr, size_t size)
 {
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
@@ -242,10 +242,10 @@ wmove(void *ptr, size_t size)
  *
  * @return new block address.
  */
-gpointer
-wrealloc(gpointer old, size_t old_size, size_t new_size)
+void *
+wrealloc(void *old, size_t old_size, size_t new_size)
 {
-	gpointer new;
+	void *new;
 	size_t new_rounded = zalloc_round(new_size);
 	size_t old_rounded = zalloc_round(old_size);
 	size_t idx_old, idx_new;
@@ -296,7 +296,7 @@ resize_block:
  *
  * @returns a pointer to the start of the allocated block.
  */
-gpointer
+void *
 walloc_track(size_t size, const char *file, int line)
 {
 	zone_t *zone;
@@ -338,10 +338,10 @@ walloc_track(size_t size, const char *file, int line)
 /**
  * Same as walloc_track(), but zeroes the allocated memory before returning.
  */
-gpointer
+void *
 walloc0_track(size_t size, const char *file, int line)
 {
-	gpointer p = walloc_track(size, file, line);
+	void *p = walloc_track(size, file, line);
 
 	if (p != NULL)
 		memset(p, 0, size);
@@ -353,10 +353,10 @@ walloc0_track(size_t size, const char *file, int line)
  * Same as walloc_track(), but copies ``size'' bytes from ``ptr''
  * to the allocated memory before returning.
  */
-gpointer
-wcopy_track(gconstpointer ptr, size_t size, const char *file, int line)
+void *
+wcopy_track(const void *ptr, size_t size, const char *file, int line)
 {
-	gpointer p = walloc_track(size, file, line);
+	void *p = walloc_track(size, file, line);
 
 	if (p != NULL)
 		memcpy(p, ptr, size);
@@ -369,11 +369,11 @@ wcopy_track(gconstpointer ptr, size_t size, const char *file, int line)
  *
  * @return new block address.
  */
-gpointer
-wrealloc_track(gpointer old, size_t old_size, size_t new_size,
+void *
+wrealloc_track(void *old, size_t old_size, size_t new_size,
 	const char *file, int line)
 {
-	gpointer new;
+	void *new;
 	size_t rounded = zalloc_round(new_size);
 
 	if (NULL == old)

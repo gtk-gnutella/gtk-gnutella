@@ -64,7 +64,7 @@ sha1_feed_double(SHA1Context *ctx, double value)
 }
 
 static void
-sha1_feed_pointer(SHA1Context *ctx, gconstpointer p)
+sha1_feed_pointer(SHA1Context *ctx, const void *p)
 {
 	SHA1Input(ctx, &p, sizeof p);
 }
@@ -162,7 +162,7 @@ sha1_feed_environ(SHA1Context *ctx)
  * during initialization.
  */
 G_GNUC_COLD void
-entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
+entropy_collect_internal(struct sha1 *digest, bool can_malloc)
 {
 	SHA1Context ctx;
 	tm_t start, end;
@@ -178,7 +178,7 @@ entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
 
 #ifdef MINGW32
 	if (can_malloc) {
-		guint8 data[128];
+		uint8 data[128];
 		if (0 == mingw_random_bytes(data, sizeof data)) {
 			g_warning("unable to generate random bytes: %m");
 		} else {
@@ -189,7 +189,7 @@ entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
 	if (can_malloc) {
 		filestat_t buf;
 		FILE *f = NULL;
-		gboolean is_pipe = TRUE;
+		bool is_pipe = TRUE;
 
 		/*
 		 * If we have a /dev/urandom character device, use it.
@@ -217,7 +217,7 @@ entropy_collect_internal(struct sha1 *digest, gboolean can_malloc)
 			 */
 
 			for (;;) {
-				guint8 data[1024];
+				uint8 data[1024];
 				size_t r, len = sizeof(data);
 
 				if (is_pipe)

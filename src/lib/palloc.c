@@ -71,7 +71,7 @@
 #define POOL_OVERSIZED_THRESH	30		/**< Amount of seconds to wait */
 #define POOL_EMA_SHIFT			5		/**< Avoid losing decimals */
 
-static guint32 palloc_debug;	/**< Debug level */
+static uint32 palloc_debug;		/**< Debug level */
 static hash_list_t *pool_gc;	/**< Pools needing garbage collection */
 
 enum pool_magic { POOL_MAGIC = 0x79b826eeU };
@@ -114,7 +114,7 @@ static void pool_install_heartbeat(pool_t *p);
  * Register or deregister a pool for garabage collection.
  */
 static void
-pool_needs_gc(const pool_t *p, gboolean need)
+pool_needs_gc(const pool_t *p, bool need)
 {
 	pool_check(p);
 
@@ -149,7 +149,7 @@ pool_needs_gc(const pool_t *p, gboolean need)
  * Pool heartbeat to monitor usage level.
  */
 static void
-pool_heartbeat(cqueue_t *unused_cq, gpointer obj)
+pool_heartbeat(cqueue_t *unused_cq, void *obj)
 {
 	pool_t *p = obj;
 	unsigned used;
@@ -281,7 +281,7 @@ pool_free(pool_t *p)
 
 	if (outstanding != 0)
 		g_warning("freeing pool \"%s\" of %u-byte objects with %u still used",
-			p->name, (guint) p->size, outstanding);
+			p->name, (uint) p->size, outstanding);
 
 	pool_needs_gc(p, FALSE);
 
@@ -303,7 +303,7 @@ pool_free(pool_t *p)
 /**
  * Allocate buffer from the pool.
  */
-G_GNUC_HOT gpointer
+G_GNUC_HOT void *
 palloc(pool_t *p)
 {
 	pool_check(p);
@@ -315,7 +315,7 @@ palloc(pool_t *p)
 	 */
 
 	if (p->buffers) {
-		gpointer obj;
+		void *obj;
 
 		g_assert(uint_is_positive(p->held));
 
@@ -338,7 +338,7 @@ palloc(pool_t *p)
  * Return a buffer to the pool.
  */
 void
-pfree(pool_t *p, gpointer obj)
+pfree(pool_t *p, void *obj)
 {
 	pool_check(p);
 	g_assert(obj != NULL);
@@ -375,7 +375,7 @@ pfree(pool_t *p, gpointer obj)
  * Set debug level.
  */
 void
-set_palloc_debug(guint32 level)
+set_palloc_debug(uint32 level)
 {
 	palloc_debug = level;
 }
@@ -384,7 +384,7 @@ set_palloc_debug(guint32 level)
  * Reclaim buffer.
  */
 static void
-pool_reclaim(pool_t *p, gpointer obj)
+pool_reclaim(pool_t *p, void *obj)
 {
 	g_assert(uint_is_positive(p->allocated));
 	g_assert(uint_is_positive(p->held));
@@ -487,7 +487,7 @@ pool_reclaim_garbage(pool_t *p)
 
 	while (extra-- > 0) {
 		GSList *sl = p->buffers;
-		gpointer obj;
+		void *obj;
 
 		g_assert(sl != NULL);
 

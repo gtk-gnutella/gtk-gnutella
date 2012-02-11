@@ -76,7 +76,7 @@ void header_free_null(header_t **o_ptr);
 void header_reset(header_t *o);
 int header_append(header_t *o, const char *text, int len);
 void header_dump(FILE *out, const header_t *o, const char *trailer);
-const char *header_strerror(guint errnum);
+const char *header_strerror(uint errnum);
 char *header_get(const header_t *o, const char *field);
 char *header_get_extended(const header_t *o, const char *field, size_t *lptr);
 
@@ -86,9 +86,9 @@ header_fmt_t *header_fmt_make(const char *field, const char *separator,
 	size_t len_hint, size_t max_size);
 void header_fmt_free(header_fmt_t **hf);
 void header_fmt_set_line_length(header_fmt_t *hf, size_t maxlen);
-gboolean header_fmt_value_fits(const header_fmt_t *hf, size_t len);
-gboolean header_fmt_append(header_fmt_t *hf, const char *str, const char *sep);
-gboolean header_fmt_append_value(header_fmt_t *hf, const char *str);
+bool header_fmt_value_fits(const header_fmt_t *hf, size_t len);
+bool header_fmt_append(header_fmt_t *hf, const char *str, const char *sep);
+bool header_fmt_append_value(header_fmt_t *hf, const char *str);
 size_t header_fmt_length(const header_fmt_t *hf);
 void header_fmt_end(header_fmt_t *hf);
 const char *header_fmt_string(const header_fmt_t *hf);

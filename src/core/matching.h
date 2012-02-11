@@ -71,7 +71,7 @@ struct shared_file;
 
 search_table_t *st_create(void);
 void st_free(search_table_t **);
-gboolean st_insert_item(search_table_t *, const char *key,
+bool st_insert_item(search_table_t *, const char *key,
 	const struct shared_file *sf);
 void st_compact(search_table_t *);
 int st_count(const search_table_t *st);
@@ -84,13 +84,13 @@ int st_count(const search_table_t *st);
  *
  * @return TRUE if the match must be accounted as a valid result.
  */
-typedef gboolean (*st_search_callback)(gpointer ctx, gpointer data);
+typedef bool (*st_search_callback)(void *ctx, void *data);
 
 int st_search(
 	search_table_t *table,
 	const char *search,
 	st_search_callback callback,
-	gpointer ctx,
+	void *ctx,
 	int max_res,
 	struct query_hashvec *qhv);
 

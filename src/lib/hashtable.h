@@ -50,7 +50,7 @@ typedef struct hash_table hash_table_t;
 typedef void (*hash_table_foreach_func)(
 	const void *key, void *value, void *data);
 typedef size_t (*hash_table_hash_func)(const void *key);
-typedef gboolean (*hash_table_eq_func)(const void *a, const void *b);
+typedef bool (*hash_table_eq_func)(const void *a, const void *b);
 
 hash_table_t *hash_table_new(void);
 hash_table_t *hash_table_new_full(
@@ -82,14 +82,14 @@ void hash_table_destroy_real(hash_table_t *ht);
 size_t hash_table_size(const hash_table_t *ht);
 size_t hash_table_memory(const hash_table_t *ht);
 size_t hash_table_arena_memory(const hash_table_t *ht);
-gboolean hash_table_insert(hash_table_t *ht,
+bool hash_table_insert(hash_table_t *ht,
 	const void *key, const void *value);
 void hash_table_replace(hash_table_t *ht, const void *key, const void *value);
 void *hash_table_lookup(const hash_table_t *ht, const void *key);
-gboolean hash_table_lookup_extended(const hash_table_t *ht,
+bool hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp);
-gboolean hash_table_contains(const hash_table_t *ht, const void *key);
-gboolean hash_table_remove(hash_table_t *ht, const void *key);
+bool hash_table_contains(const hash_table_t *ht, const void *key);
+bool hash_table_remove(hash_table_t *ht, const void *key);
 void hash_table_foreach(const hash_table_t *ht, hash_table_foreach_func func,
 		void *data);
 

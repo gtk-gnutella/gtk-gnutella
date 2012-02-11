@@ -87,7 +87,7 @@ struct revent_rpc_info {
 	struct nid rid;			/**< ID of RPC event, to spot outdated replies */
 	struct revent_ops *ops;	/**< Callbacks */
 	struct revent_pmsg_info *pmi;	/**< In case the RPC times out */
-	guint32 udata;			/**< User-supplied information (opaque to us) */
+	uint32 udata;			/**< User-supplied information (opaque to us) */
 };
 
 static inline void
@@ -106,7 +106,7 @@ rpi_check(const struct revent_rpc_info *rpi)
  * @param ops		user callbacks to invoke during RPC callback
  */
 static struct revent_rpc_info *
-revent_rpi_alloc(struct nid id, guint32 udata, struct revent_ops *ops)
+revent_rpi_alloc(struct nid id, uint32 udata, struct revent_ops *ops)
 {
 	struct revent_rpc_info *rpi;
 
@@ -141,7 +141,7 @@ struct revent_pmsg_info {
 	struct revent_ops *ops;	/**< Callbacks */
 	knode_t *kn;			/**< The node to which we sent it to (refcounted) */
 	struct revent_rpc_info *rpi;	/**< Attached RPC info (for cancelling) */
-	gboolean rpc_done;		/**< TRUE if RPC times out before message sent */
+	bool rpc_done;			/**< TRUE if RPC times out before message sent */
 };
 
 static inline void
@@ -201,7 +201,7 @@ revent_pmi_free(struct revent_pmsg_info *pmi)
  */
 static void
 revent_get_pair(
-	struct nid id, knode_t *kn, guint32 udata, struct revent_ops *ops,
+	struct nid id, knode_t *kn, uint32 udata, struct revent_ops *ops,
 	struct revent_pmsg_info **pmi, struct revent_rpc_info **rpi)
 {
 	struct revent_rpc_info *r = revent_rpi_alloc(id, udata, ops);
@@ -216,11 +216,11 @@ revent_get_pair(
  * Free routine for our extended message blocks.
  */
 static void
-revent_pmsg_free(pmsg_t *mb, gpointer arg)
+revent_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct revent_pmsg_info *pmi = arg;
 	struct revent_ops *ops;
-	gpointer obj;
+	void *obj;
 
 	pmi_check(pmi);
 	g_assert(pmsg_is_extended(mb));
@@ -331,11 +331,11 @@ revent_rpc_cb(
 	const knode_t *kn,
 	const struct gnutella_node *unused_n,
 	kda_msg_t function,
-	const char *payload, size_t len, gpointer arg)
+	const char *payload, size_t len, void *arg)
 {
 	struct revent_rpc_info *rpi = arg;
 	struct revent_ops *ops;
-	gpointer obj;
+	void *obj;
 
 	(void) unused_n;
 	knode_check(kn);
@@ -412,7 +412,7 @@ cleanup:
  */
 void
 revent_find_node(knode_t *kn, const kuid_t *kuid,
-	struct nid id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, uint32 udata)
 {
 	struct revent_pmsg_info *pmi;
 	struct revent_rpc_info *rpi;
@@ -447,7 +447,7 @@ revent_find_node(knode_t *kn, const kuid_t *kuid,
 void
 revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	struct nid id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, uint32 udata)
 {
 	struct revent_pmsg_info *pmi;
 	struct revent_rpc_info *rpi;
@@ -479,7 +479,7 @@ revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
  */
 void
 revent_store(knode_t *kn, pmsg_t *mb,
-	struct nid id, struct revent_ops *ops, guint32 udata)
+	struct nid id, struct revent_ops *ops, uint32 udata)
 {
 	struct revent_pmsg_info *pmi;
 	struct revent_rpc_info *rpi;

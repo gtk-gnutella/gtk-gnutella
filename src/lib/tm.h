@@ -78,8 +78,8 @@ void tm_now_exact(tm_t *tm);
 time_t tm_time_exact(void);
 double tm_cputime(double *user, double *sys);
 
-guint tm_hash(gconstpointer key) G_GNUC_PURE;
-int tm_equal(gconstpointer a, gconstpointer b) G_GNUC_PURE;
+uint tm_hash(const void *key) G_GNUC_PURE;
+int tm_equal(const void *a, const void *b) G_GNUC_PURE;
 
 /*
  * We use the direct difference of time_t values instead of difftime()
@@ -121,7 +121,7 @@ time_t_check(void)
  * @return the advanced timestamp or TIME_T_MAX.
  */
 static inline time_t G_GNUC_CONST
-time_advance(time_t t, gulong delta)
+time_advance(time_t t, ulong delta)
 {
 	/* Using time_t for delta and TIME_T_MAX instead of INT_MAX
 	 * would be cleaner but give a confusing interface. Jumping 136
@@ -132,7 +132,7 @@ time_advance(time_t t, gulong delta)
 	do {
 		long d;
 
-		d = MIN(delta, (gulong) LONG_MAX);
+		d = MIN(delta, (ulong) LONG_MAX);
 		if (d >= TIME_T_MAX - t) {
 			t = TIME_T_MAX;
 			break;
@@ -148,12 +148,12 @@ time_advance(time_t t, gulong delta)
  * Add delta to a time_delta_t, saturating towards TIME_DELTA_T_MAX.
  */
 static inline time_delta_t G_GNUC_CONST
-time_delta_add(time_delta_t td, gulong delta)
+time_delta_add(time_delta_t td, ulong delta)
 {
 	do {
 		long d;
 
-		d = MIN(delta, (gulong) LONG_MAX);
+		d = MIN(delta, (ulong) LONG_MAX);
 		if (d >= TIME_DELTA_T_MAX - td) {
 			td = TIME_DELTA_T_MAX;
 			break;

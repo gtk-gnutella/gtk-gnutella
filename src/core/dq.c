@@ -133,7 +133,7 @@ typedef enum {
  */
 typedef struct dquery {
 	dquery_magic_t magic;
-	guint32 flags;			/**< Operational flags */
+	uint32 flags;			/**< Operational flags */
 	struct nid *node_id;	/**< ID of the node that originated the query */
 	struct nid qid;			/**< Unique query ID, to detect ghosts */
 	gnet_search_t sh;		/**< Search handle, if node ID = NODE_ID_SELF */
@@ -142,24 +142,24 @@ typedef struct dquery {
 	GHashTable *queried;	/**< Contains node IDs that we queried so far */
 	GHashTable *enqueued;	/**< Contains node IDs with enqueued queries */
 	const struct guid *lmuid;/**< For proxied query: the original leaf MUID */
-	guint16 query_flags;	/**< Flags from the marked query speed field */
-	guint8 ttl;				/**< Initial query TTL */
-	guint32 horizon;		/**< Theoretical horizon reached thus far */
-	guint32 up_sent;		/**< # of UPs to which we really sent our query */
-	guint32 last_status;	/**< How many UP queried last time we got status */
-	guint32 pending;		/**< Pending query messages not ACK'ed yet by mq */
-	guint32 max_results;	/**< Max results we're targetting for */
-	guint32 fin_results;	/**< # of results terminating leaf-guided query */
-	guint32 oob_results;	/**< Amount of unclaimed OOB results reported */
-	guint32 results;		/**< Results we got so far for the query */
-	guint32 linger_results;	/**< Results we got whilst lingering */
-	guint32 new_results;	/**< New we got since last query status request */
-	guint32 kept_results;	/**< Results they say they kept after filtering */
-	guint32 result_timeout;	/**< The current timeout for getting results */
-	guint32 stat_timeouts;	/**< The amount of status request timeouts we had */
+	uint16 query_flags;		/**< Flags from the marked query speed field */
+	uint8 ttl;				/**< Initial query TTL */
+	uint32 horizon;			/**< Theoretical horizon reached thus far */
+	uint32 up_sent;			/**< # of UPs to which we really sent our query */
+	uint32 last_status;		/**< How many UP queried last time we got status */
+	uint32 pending;			/**< Pending query messages not ACK'ed yet by mq */
+	uint32 max_results;		/**< Max results we're targetting for */
+	uint32 fin_results;		/**< # of results terminating leaf-guided query */
+	uint32 oob_results;		/**< Amount of unclaimed OOB results reported */
+	uint32 results;			/**< Results we got so far for the query */
+	uint32 linger_results;	/**< Results we got whilst lingering */
+	uint32 new_results;		/**< New we got since last query status request */
+	uint32 kept_results;	/**< Results they say they kept after filtering */
+	uint32 result_timeout;	/**< The current timeout for getting results */
+	uint32 stat_timeouts;	/**< The amount of status request timeouts we had */
 	cevent_t *expire_ev;	/**< Callout queue global expiration event */
 	cevent_t *results_ev;	/**< Callout queue results expiration event */
-	gpointer alive;			/**< Alive ping stats for computing timeouts */
+	void *alive;			/**< Alive ping stats for computing timeouts */
 	time_t start;			/**< Time at which it started */
 	time_t stop;			/**< Time at which it was terminated */
 	struct next_up *nv;		/**< Previous "next UP vector" */
@@ -227,9 +227,9 @@ static GHashTable *by_leaf_muid;
 struct dq_pmsg_info {
 	struct nid qid;		/**< Query ID of the dynamic query */
 	struct nid *node_id;/**< The ID of the node we sent it to */
-	guint16 degree;		/**< The advertised degree of the destination node */
-	guint8 ttl;			/**< The TTL used for that query */
-	guint8 probe;		/**< Whether query is just a probe */
+	uint16 degree;		/**< The advertised degree of the destination node */
+	uint8 ttl;			/**< The TTL used for that query */
+	uint8 probe;		/**< Whether query is just a probe */
 };
 
 /*
@@ -243,7 +243,7 @@ struct dq_pmsg_info {
 #define MAX_DEGREE		50
 #define MAX_TTL			5
 
-static guint32 hosts[MAX_DEGREE][MAX_TTL];	/**< Pre-computed horizon */
+static uint32 hosts[MAX_DEGREE][MAX_TTL];	/**< Pre-computed horizon */
 
 static void dq_send_next(dquery_t *dq);
 static void dq_terminate(dquery_t *dq);
@@ -289,7 +289,7 @@ fill_hosts(void)
  * We adjust the horizon by DQ_FUZZY_FACTOR, assuming that at each hop there
  * is deperdition due to flow-control, network cycles, etc...
  */
-static guint32
+static uint32
 dq_get_horizon(int degree, int ttl)
 {
 	int i;
@@ -308,7 +308,7 @@ dq_get_horizon(int degree, int ttl)
  * Compute amount of results "kept" for the query, if we have this
  * information available.
  */
-static guint32
+static uint32
 dq_kept_results(dquery_t *dq)
 {
 	dquery_check(dq);
@@ -345,8 +345,8 @@ dq_kept_results(dquery_t *dq)
 static unsigned
 dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
 {
-	guint32 needed;
-	guint32 results;
+	uint32 needed;
+	uint32 results;
 	double results_per_up;
 	double hosts_to_reach;
 	double hosts_to_reach_via_node;
@@ -393,8 +393,8 @@ dq_select_ttl(dquery_t *dq, gnutella_node_t *node, int connections)
  * @param probe	  whether the query is just a probe, with a lower TTL
  */
 static struct dq_pmsg_info *
-dq_pmi_alloc(dquery_t *dq, guint16 degree, guint8 ttl,
-	const struct nid *node_id, gboolean probe)
+dq_pmi_alloc(dquery_t *dq, uint16 degree, uint8 ttl,
+	const struct nid *node_id, bool probe)
 {
 	struct dq_pmsg_info *pmi;
 	const struct nid *key = nid_ref(node_id);	
@@ -459,7 +459,7 @@ dq_alive(struct nid qid)
  * Free routine for an extended message block.
  */
 static void
-dq_pmsg_free(pmsg_t *mb, gpointer arg)
+dq_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct dq_pmsg_info *pmi = arg;
 	dquery_t *dq;
@@ -486,7 +486,7 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 
 	if (!pmsg_was_sent(mb)) {
 		struct nid *key;
-		gboolean found;
+		bool found;
 		void *knid, *ttlv;
 		unsigned ttl;
 
@@ -599,7 +599,7 @@ dq_pmsg_by_ttl(dquery_t *dq, int ttl)
 	 * Patch the TTL in the new data buffer.
 	 */
 	{
-		gnutella_header_t *header = cast_to_gpointer(pdata_start(db));
+		gnutella_header_t *header = cast_to_pointer(pdata_start(db));
 		gnutella_header_set_ttl(header, ttl);
 	}
 
@@ -752,7 +752,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 		struct next_up *nup, *old_nup;
 		struct gnutella_node *n;
 		void *knid, *ttlv;
-		gboolean found;
+		bool found;
 
 		if (i >= ncount)
 			break;
@@ -849,11 +849,11 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 static void
 dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 {
-	gconstpointer head;
+	const void *head;
 	GSList *nodes;
 
 	dquery_check(dq);
-	head = cast_to_gconstpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_start(dq->mb));
 
 	/*
 	 * NB: In order to avoid qrt_build_query_target() selecting neighbouring
@@ -875,8 +875,8 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	g_slist_free(nodes);
 }
 
-static gboolean
-free_node_id(gpointer key, gpointer unused_value, gpointer unused_udata)
+static bool
+free_node_id(void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
@@ -967,8 +967,8 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (!node_id_self(dq->node_id) && !(dq->flags & DQ_F_ID_CLEANING)) {
-		gpointer value;
-		gboolean found;
+		void *value;
+		bool found;
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
@@ -999,8 +999,8 @@ dq_free(dquery_t *dq)
 	 * Remove query's MUID.
 	 */
 	{
-		gpointer key, value;
-		gboolean found;
+		void *key, *value;
+		bool found;
 
 		found = g_hash_table_lookup_extended(by_muid,
 					gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
@@ -1018,8 +1018,8 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		gpointer key, value;
-		gboolean found;
+		void *key, *value;
+		bool found;
 
 		found = g_hash_table_lookup_extended(
 			by_leaf_muid, dq->lmuid, &key, &value);
@@ -1040,7 +1040,7 @@ dq_free(dquery_t *dq)
  * Callout queue callback invoked when the dynamic query has expired.
  */
 static void
-dq_expired(cqueue_t *unused_cq, gpointer obj)
+dq_expired(cqueue_t *unused_cq, void *obj)
 {
 	dquery_t *dq = obj;
 
@@ -1076,14 +1076,14 @@ dq_expired(cqueue_t *unused_cq, gpointer obj)
  * Callout queue callback invoked when the result timer has expired.
  */
 static void
-dq_results_expired(cqueue_t *unused_cq, gpointer obj)
+dq_results_expired(cqueue_t *unused_cq, void *obj)
 {
 	dquery_t *dq = obj;
 	gnutella_node_t *n;
 	int timeout;
-	guint32 avg;
-	guint32 last;
-	gboolean was_waiting = FALSE;
+	uint32 avg;
+	uint32 last;
+	bool was_waiting = FALSE;
 
 	(void) unused_cq;
 	dquery_check(dq);
@@ -1290,8 +1290,8 @@ node_mq_cmp(const void *np1, const void *np2)
 static int
 node_mq_qrp_cmp(const void *np1, const void *np2)
 {
-	struct next_up *nu1 = deconstify_gpointer(np1);
-	struct next_up *nu2 = deconstify_gpointer(np2);
+	struct next_up *nu1 = deconstify_pointer(np1);
+	struct next_up *nu2 = deconstify_pointer(np2);
 	const gnutella_node_t *n1, *n2;
 	int qs1 = nu1->queue_pending;
 	int qs2 = nu2->queue_pending;
@@ -1341,7 +1341,7 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
  * adjusted down accordingly.
  */
 static void
-dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, gboolean probe)
+dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, bool probe)
 {
 	struct dq_pmsg_info *pmi;
 	pmsg_t *mb;
@@ -1400,8 +1400,8 @@ dq_send_next(dquery_t *dq)
 	int found;
 	int timeout;
 	int i;
-	gboolean sent = FALSE;
-	guint32 results;
+	bool sent = FALSE;
+	uint32 results;
 
 	dquery_check(dq);
 	g_assert(dq->results_ev == NULL);
@@ -1592,7 +1592,7 @@ dq_send_next(dquery_t *dq)
 
 	timeout = dq->result_timeout;
 	if (dq->pending > 1) {
-		guint t = timeout;
+		uint t = timeout;
 
 		t += (dq->pending - 1) * DQ_PENDING_TIMEOUT;
 		timeout = t > UNSIGNED(timeout) ? t : INT_MAX;
@@ -1703,7 +1703,7 @@ dquery_id_create(void)
 static void
 dq_common_init(dquery_t *dq)
 {
-	gconstpointer head;
+	const void *head;
 	const guid_t *muid;
 
 	dquery_check(dq);
@@ -1731,8 +1731,8 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (!(dq->flags & DQ_F_LOCAL)) {
-		gpointer value;
-		gboolean found;
+		void *value;
+		bool found;
 		GSList *list;
 
 		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
@@ -1753,7 +1753,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the MUID of this query, warning if a conflict occurs.
 	 */
 
-	head = cast_to_gconstpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_start(dq->mb));
 	muid = gnutella_header_get_muid(head);
 
 	if (g_hash_table_lookup(by_muid, muid)) {
@@ -1776,13 +1776,13 @@ dq_common_init(dquery_t *dq)
 				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id));
 		} else {
 			g_hash_table_insert(by_leaf_muid,
-				deconstify_gpointer(dq->lmuid), dq);
+				deconstify_pointer(dq->lmuid), dq);
 		}
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
-		gconstpointer packet;
-		guint16 flags;
+		const void *packet;
+		uint16 flags;
 
 		packet = pmsg_start(dq->mb);
 		flags = gnutella_msg_search_get_flags(packet);
@@ -1820,8 +1820,8 @@ void
 dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 {
 	dquery_t *dq;
-	guint16 flags;
-	gboolean flags_valid;
+	uint16 flags;
+	bool flags_valid;
 	const struct guid *leaf_muid;
 
 	/* Query from leaf node */
@@ -1866,7 +1866,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 		!(dq->flags & DQ_F_LEAF_GUIDED) &&
 		NULL == oob_proxy_muid_proxied(gnutella_header_get_muid(&n->header))
 	) {
-		gboolean proxied = FALSE;
+		bool proxied = FALSE;
 		if (
 			!GNET_PROPERTY(is_udp_firewalled) &&
 			GNET_PROPERTY(proxy_oob_queries) &&
@@ -2044,7 +2044,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	if (GNET_PROPERTY(dq_debug) > 1) {
 		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
 		char *safe_qstr = hex_escape(qstr, FALSE);
-		guint16 qflags = gnutella_msg_search_get_flags(pmsg_start(dq->mb));
+		uint16 qflags = gnutella_msg_search_get_flags(pmsg_start(dq->mb));
 		g_debug("DQ local %squeries \"%s\" for %u hits",
 			(qflags & QUERY_F_OOB_REPLY) ?  "OOB-" : "",
 			safe_qstr, dq->max_results);
@@ -2076,7 +2076,7 @@ ignore:
 void
 dq_node_removed(const struct nid *node_id)
 {
-	gpointer value;
+	void *value;
 	GSList *sl;
 
 	if (!g_hash_table_lookup_extended(by_node_id, node_id, NULL, &value))
@@ -2118,9 +2118,8 @@ dq_node_removed(const struct nid *node_id)
  * @return FALSE if the query was explicitly cancelled by the user or if we
  * should not forward the results anyway.
  */
-static gboolean
-dq_count_results(const struct guid *muid,
-	int count, guint16 status, gboolean oob)
+static bool
+dq_count_results(const struct guid *muid, int count, uint16 status, bool oob)
 {
 	dquery_t *dq;
 
@@ -2224,8 +2223,8 @@ dq_count_results(const struct guid *muid,
  * results should be dropped, TRUE otherwise.  In other words, returns
  * whether we should forward the results.
  */
-gboolean
-dq_got_results(const struct guid *muid, guint count, guint32 status)
+bool
+dq_got_results(const struct guid *muid, uint count, uint32 status)
 {
 	return dq_count_results(muid, count, status, FALSE);
 }
@@ -2237,7 +2236,7 @@ dq_got_results(const struct guid *muid, guint count, guint32 status)
  * @return FALSE if the query was explicitly cancelled by the user and
  * results should not be claimed.
  */
-gboolean
+bool
 dq_oob_results_ind(const struct guid *muid, int count)
 {
 	return dq_count_results(muid, count, 0, TRUE);
@@ -2250,7 +2249,7 @@ dq_oob_results_ind(const struct guid *muid, int count)
  * were finally claimed and parsed).
  */
 void
-dq_oob_results_got(const struct guid *muid, guint count)
+dq_oob_results_got(const struct guid *muid, uint count)
 {
 	dquery_t *dq;
 
@@ -2289,7 +2288,7 @@ dq_oob_results_got(const struct guid *muid, guint count)
  */
 void
 dq_got_query_status(const struct guid *muid,
-	const struct nid *node_id, guint16 kept)
+	const struct nid *node_id, uint16 kept)
 {
 	dquery_t *dq;
 
@@ -2390,7 +2389,7 @@ struct cancel_context {
  * -- hash table iterator callback
  */
 static void
-dq_cancel_local(gpointer key, gpointer value, gpointer udata)
+dq_cancel_local(void *key, void *value, void *udata)
 {
 	struct cancel_context *ctx = udata;
 	dquery_t *dq = value;
@@ -2435,8 +2434,8 @@ dq_search_closed(gnet_search_t handle)
  * @return TRUE if the query is still active, FALSE if it does not exist
  * any more, in which case nothing is returned into `wanted'.
  */
-gboolean
-dq_get_results_wanted(const struct guid *muid, guint32 *wanted)
+bool
+dq_get_results_wanted(const struct guid *muid, uint32 *wanted)
 {
 	dquery_t *dq;
 
@@ -2449,7 +2448,7 @@ dq_get_results_wanted(const struct guid *muid, guint32 *wanted)
 	if (dq->flags & DQ_F_USR_CANCELLED)
 		*wanted = 0;
 	else {
-		guint32 kept = dq_kept_results(dq);
+		uint32 kept = dq_kept_results(dq);
 
 		/*
 		 * d->kept_results is the true amount of total results they got, which
@@ -2496,7 +2495,7 @@ dq_init(void)
  * Hashtable iteration callback to free the dquery_t object held as the key.
  */
 static void
-free_query(gpointer key, gpointer value, gpointer unused_udata)
+free_query(void *key, void *value, void *unused_udata)
 {
 	dquery_t *dq = value;
 
@@ -2514,7 +2513,7 @@ free_query(gpointer key, gpointer value, gpointer unused_udata)
  * there should not be anything remaining, hence warn!
  */
 static void
-free_query_list(gpointer key, gpointer value, gpointer unused_udata)
+free_query_list(void *key, void *value, void *unused_udata)
 {
 	GSList *sl, *list = value;
 	int count = g_slist_length(list);
@@ -2541,7 +2540,7 @@ free_query_list(gpointer key, gpointer value, gpointer unused_udata)
  * anything remaining, hence warn!
  */
 static void
-free_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
+free_muid(void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
@@ -2557,7 +2556,7 @@ free_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
  * anything remaining, hence warn!
  */
 static void
-free_leaf_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
+free_leaf_muid(void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;

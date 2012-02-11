@@ -37,7 +37,7 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-gboolean bogons_check(const host_addr_t addr);
+bool bogons_check(const host_addr_t addr);
 void bogons_init(void);
 void bogons_close(void);
 

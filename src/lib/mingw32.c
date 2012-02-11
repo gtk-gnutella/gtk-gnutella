@@ -137,7 +137,7 @@
 #endif
 
 static HINSTANCE libws2_32;
-static gboolean mingw_inited;
+static bool mingw_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -148,7 +148,7 @@ typedef struct processor_power_information {
   ULONG CurrentIdleState;
 } PROCESSOR_POWER_INFORMATION;
 
-extern gboolean vmm_is_debugging(guint32 level);
+extern bool vmm_is_debugging(uint32 level);
 
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
@@ -297,7 +297,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	int error;
 
 	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
-	STATIC_ASSERT(sizeof(guint16) == sizeof(wchar_t));
+	STATIC_ASSERT(sizeof(uint16) == sizeof(wchar_t));
 
 	if (NULL == (npath = get_native_path(pathname, &error))) {
 		errno = error;
@@ -322,7 +322,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	return NULL != pncs->utf16 ? 0 : -1;
 }
 
-static inline gboolean
+static inline bool
 mingw_fd_is_opened(int fd)
 {
 	unsigned long dummy;
@@ -604,14 +604,14 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			if (0 == arg->l_len) {
 				/* Special, 0 means the whole file */
-				len_high = MAX_INT_VAL(guint32);
-				len_low = MAX_INT_VAL(guint32);
+				len_high = MAX_INT_VAL(uint32);
+				len_low = MAX_INT_VAL(uint32);
 			} else {
-				len_high = (guint64) arg->l_len >> 32;
-				len_low = arg->l_len & MAX_INT_VAL(guint32);
+				len_high = (uint64) arg->l_len >> 32;
+				len_low = arg->l_len & MAX_INT_VAL(uint32);
 			}
-			start_high = (guint64) arg->l_start >> 32;
-			start_low = arg->l_start & MAX_INT_VAL(guint32);
+			start_high = (uint64) arg->l_start >> 32;
+			start_low = arg->l_start & MAX_INT_VAL(uint32);
 
 			if (arg->l_type == F_WRLCK) {
 				if (!LockFile(file, start_low, start_high, len_low, len_high))
@@ -663,7 +663,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 /**
  * Is WSAPoll() supported?
  */
-gboolean
+bool
 mingw_has_wsapoll(void)
 {
 	/*
@@ -855,7 +855,7 @@ mingw_patch_personal_path(const char *pathname)
 	}
 }
 
-guint64
+uint64
 mingw_getphysmemsize(void)
 {
 	MEMORYSTATUSEX memStatus;
@@ -1954,7 +1954,7 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 static void
 mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 {
-	guint64 v;
+	uint64 v;
 
 	/*
 	 * From MSDN documentation:
@@ -1973,7 +1973,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (guint64) 0) << 32)) / 10;
+	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
 	tv->tv_usec = v % 1000000UL;
 	v /= 1000000UL;
 	/* If time_t is a 32-bit integer, there could be an overflow */
@@ -2014,7 +2014,7 @@ mingw_getlogin(void)
 {
 	static char buf[128];
 	static char *result;
-	static gboolean inited;
+	static bool inited;
 	DWORD size;
 
 	if (G_LIKELY(inited))
@@ -2047,7 +2047,7 @@ static int
 mingw_proc_arch(void)
 {
 	static SYSTEM_INFO system_info;
-	static gboolean done;
+	static bool done;
 
 	if (done)
 		return system_info.wProcessorArchitecture;
@@ -2099,7 +2099,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	static HANDLE t = NULL;
 	LARGE_INTEGER dueTime;
-	guint64 value;
+	uint64 value;
 
 	/*
 	 * There's no residual time, there cannot be early terminations.
@@ -2134,8 +2134,8 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	 * Negative values indicate relative time.
 	 */
 
-	value = guint64_saturate_add(
-				guint64_saturate_mult(req->tv_sec, 10000000UL),
+	value = uint64_saturate_add(
+				uint64_saturate_mult(req->tv_sec, 10000000UL),
 				(req->tv_nsec + 99) / 100);
 	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
 
@@ -2155,7 +2155,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 }
 #endif
 
-gboolean
+bool
 mingw_process_is_alive(pid_t pid)
 {
 	char our_process_name[1024];
@@ -2197,13 +2197,13 @@ mingw_cpu_count(void)
 	return result;
 }
 
-guint64
+uint64
 mingw_cpufreq(enum mingw_cpufreq freq)
 {
 	unsigned long cpus = mingw_cpu_count();
 	PROCESSOR_POWER_INFORMATION *p, powarray[16];
 	size_t len;
-	guint64 result = 0;
+	uint64 result = 0;
 
 	len = size_saturate_mult(cpus, sizeof *p);
 	if (cpus <= G_N_ELEMENTS(powarray)) {
@@ -2219,11 +2219,11 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
 			/* Convert to Hz */
-			result = guint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
 			break;
 		case MINGW_CPUFREQ_MAX:
 			/* Convert to Hz */
-			result = guint64_saturate_mult(p[0].MaxMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].MaxMhz, 1000000UL);
 			break;
 		}
 	}
@@ -2248,7 +2248,7 @@ static logthread_t *altc;		/* ADNS logging thread context */
  
 static GAsyncQueue *mingw_gtkg_main_async_queue;
 static GAsyncQueue *mingw_gtkg_adns_async_queue;
-static volatile gboolean mingw_adns_thread_run;
+static volatile bool mingw_adns_thread_run;
 
 struct async_data {
 	void *user_data;
@@ -2273,7 +2273,7 @@ struct arg_data {
 struct adns_common {
 	void (*user_callback)(void);
 	void * user_data;
-	gboolean reverse;
+	bool reverse;
 };
 
 struct adns_reverse_query {
@@ -2573,7 +2573,7 @@ mingw_adns_stop_thread(struct async_data *unused_data)
 	mingw_adns_thread_run = FALSE;
 }
 
-static gboolean
+static bool
 mingw_adns_timer(void *unused_arg)
 {
 	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
@@ -2590,7 +2590,7 @@ mingw_adns_timer(void *unused_arg)
 	return TRUE;		/* Keep calling */
 }
 
-gboolean
+bool
 mingw_adns_send_request(const struct adns_request *req)
 {
 	if (req->common.reverse) {
@@ -2675,7 +2675,7 @@ mingw_filename_nearby(const char *filename)
 	 */
 	if ('\0' == pathname[0]) {
 		if (0 == GetModuleFileName(NULL, pathname, sizeof pathname)) {
-			static gboolean done;
+			static bool done;
 			if (!done) {
 				done = TRUE;
 				errno = mingw_last_error();
@@ -2692,7 +2692,7 @@ mingw_filename_nearby(const char *filename)
 /**
  * Check whether there is pending data for us to read on a pipe.
  */
-static gboolean
+static bool
 mingw_fifo_pending(int fd)
 {
 	HANDLE h = (HANDLE) _get_osfhandle(fd);
@@ -2715,10 +2715,10 @@ mingw_fifo_pending(int fd)
 /**
  * Check whether there is pending data for us to read on a tty / fifo stdin.
  */
-gboolean
-mingw_stdin_pending(gboolean fifo)
+bool
+mingw_stdin_pending(bool fifo)
 {
-	return fifo ? mingw_fifo_pending(STDIN_FILENO) : _kbhit();
+	return fifo ? mingw_fifo_pending(STDIN_FILENO) : booleanize(_kbhit());
 }
 
 /**
@@ -2726,12 +2726,12 @@ mingw_stdin_pending(gboolean fifo)
  *
  * @return TRUE on success.
  */
-static gboolean
-mingw_get_file_id(const char *pathname, guint64 *id)
+static bool
+mingw_get_file_id(const char *pathname, uint64 *id)
 {
 	HANDLE h;
 	BY_HANDLE_FILE_INFORMATION fi;
-	gboolean ok;
+	bool ok;
 	pncs_t pncs;
 
 	if (pncs_convert(&pncs, pathname))
@@ -2750,7 +2750,7 @@ mingw_get_file_id(const char *pathname, guint64 *id)
 	if (!ok)
 		return FALSE;
 
-	*id = (guint64) fi.nFileIndexHigh << 32 | (guint64) fi.nFileIndexLow;
+	*id = (uint64) fi.nFileIndexHigh << 32 | (uint64) fi.nFileIndexLow;
 
 	return TRUE;
 }
@@ -2758,10 +2758,10 @@ mingw_get_file_id(const char *pathname, guint64 *id)
 /**
  * Are the two files sharing the same file ID?
  */
-gboolean
+bool
 mingw_same_file_id(const char *pathname_a, const char *pathname_b)
 {
-	guint64 ia, ib;
+	uint64 ia, ib;
 
 	if (!mingw_get_file_id(pathname_a, &ia))
 		return FALSE;
@@ -2780,7 +2780,7 @@ mingw_same_file_id(const char *pathname_a, const char *pathname_b)
  * @return 0 on success, -1 on failure with errno set.
  */
 int
-mingw_getgateway(guint32 *ip)
+mingw_getgateway(uint32 *ip)
 {
 	MIB_IPFORWARDROW ipf;
 
@@ -3016,7 +3016,7 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 static volatile sig_atomic_t in_exception_handler;
 static void *mingw_stack[STACKTRACE_DEPTH_MAX];
 
-int
+bool
 mingw_in_exception(void)
 {
 	return in_exception_handler;
@@ -3253,7 +3253,7 @@ mingw_sbrk(long incr)
 
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *
-getlog(gboolean initial)
+getlog(bool initial)
 {
 	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
 }
@@ -3273,7 +3273,7 @@ getlog(gboolean initial)
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
 static G_GNUC_COLD void
-mingw_stdio_reset(FILE *lf, gboolean console)
+mingw_stdio_reset(FILE *lf, bool console)
 {
 	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
 

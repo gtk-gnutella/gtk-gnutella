@@ -124,7 +124,7 @@ ostream_free(ostream_t *os)
 /**
  * Is stream opened to a file / file descriptor?
  */
-gboolean
+bool
 ostream_is_file(const ostream_t *os)
 {
 	ostream_check(os);
@@ -135,7 +135,7 @@ ostream_is_file(const ostream_t *os)
 /**
  * Is stream opened to memory?
  */
-gboolean
+bool
 ostream_is_memory(const ostream_t *os)
 {
 	ostream_check(os);
@@ -237,7 +237,7 @@ ostream_open_file(FILE *f)
 /**
  * Was an I/O error reported?
  */
-gboolean
+bool
 ostream_has_ioerr(const ostream_t *os)
 {
 	ostream_check(os);
@@ -280,10 +280,10 @@ ostream_close_file(ostream_t *os)
  *
  * @return TRUE if OK, FALSE if there was a writing problem
  */
-gboolean
+bool
 ostream_close(ostream_t *os)
 {
-	gboolean ioerr;
+	bool ioerr;
 
 	ostream_check(os);
 

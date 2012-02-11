@@ -61,9 +61,9 @@ void dht_set_node_status(knode_t *kn, knode_status_t new);
 void dht_record_size_estimate(knode_t *kn, bigint_t *size);
 const kuid_t *dht_get_size_estimate(void);
 int dht_get_kball_furthest(void);
-guint64 dht_size(void);
+uint64 dht_size(void);
 int dht_fill_closest(const kuid_t *id,
-	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive);
+	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive);
 knode_t *dht_find_node(const kuid_t *kuid);
 void dht_remove_node(knode_t *kn);
 void dht_record_activity(knode_t *kn);

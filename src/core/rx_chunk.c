@@ -64,7 +64,7 @@ enum chunk_state {
  */
 struct attr {
 	const struct rx_chunk_cb *cb;	/**< Layer-specific callbacks */
-	guint64 data_remain;		/**< Amount of remaining chunk payload data */
+	uint64 data_remain;			/**< Amount of remaining chunk payload data */
 	char hex_buf[16];			/**< Holds the hex digits of chunk-size */
 	size_t hex_pos;				/**< Current position in hex_buf */
 	enum chunk_state state;		/**< Current decoding state */
@@ -112,7 +112,7 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 		case CHUNK_STATE_DATA_CRLF:
 			/* The chunk-data must be followed by a CRLF */
 			while (len > 0) {
-				guchar c;
+				uchar c;
 
 				len--;
 				c = *src++;
@@ -153,7 +153,7 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 		case CHUNK_STATE_SIZE:
 			g_assert(attr->hex_pos < sizeof attr->hex_buf);
 			while (len > 0) {
-				guchar c;
+				uchar c;
 
 				len--;
 				c = *src++;
@@ -199,8 +199,8 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 					g_assert(attr->hex_pos <= sizeof attr->hex_buf);
 
 					{
-						guint64 v = 0;
-						guint i;
+						uint64 v = 0;
+						uint i;
 
 						for (i = 0; i < attr->hex_pos; i++)
 							v = (v << 4) | hex2int_inline(attr->hex_buf[i]);
@@ -343,7 +343,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 				/* Only the first ``data_remain'' bytes are forwarded */
 				mb->m_rptr += attr->data_remain;
 				nmb->m_wptr =
-					deconstify_gpointer(&nmb->m_rptr[attr->data_remain]);
+					deconstify_pointer(&nmb->m_rptr[attr->data_remain]);
 				attr->data_remain = 0;
 				attr->state = CHUNK_STATE_DATA_CRLF;
 			}
@@ -388,8 +388,8 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 /**
  * Initialize the driver.
  */
-static gpointer
-rx_chunk_init(rxdrv_t *rx, gconstpointer args)
+static void *
+rx_chunk_init(rxdrv_t *rx, const void *args)
 {
 	const struct rx_chunk_args *rargs = args;
 	struct attr *attr;
@@ -423,11 +423,11 @@ rx_chunk_destroy(rxdrv_t *rx)
 /**
  * Got data from lower layer.
  */
-static gboolean
+static bool
 rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;
-	gboolean error = FALSE;
+	bool error = FALSE;
 	pmsg_t *imb;		/* Dechunked message */
 
 	rx_check(rx);

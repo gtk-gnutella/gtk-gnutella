@@ -32,7 +32,7 @@
 #define KUID_HEX_BUFLEN		(KUID_HEX_SIZE + 1)
 
 typedef struct kuid {
-	guchar v[KUID_RAW_SIZE];
+	uchar v[KUID_RAW_SIZE];
 } kuid_t;
 
 /**
@@ -49,7 +49,7 @@ kuid_copy(kuid_t *dest, const kuid_t *other)
  */
 
 unsigned kuid_hash(const void *key);
-gboolean kuid_eq(const void *k1, const void *k2);
+bool kuid_eq(const void *k1, const void *k2);
 
 const char *kuid_to_string(const kuid_t *kuid);
 const char *kuid_to_hex_string(const kuid_t *kuid);

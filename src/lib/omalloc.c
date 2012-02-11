@@ -89,7 +89,7 @@
 #define OMALLOC_ALIGNBYTES	MEM_ALIGNBYTES
 #define OMALLOC_MASK		(OMALLOC_ALIGNBYTES - 1)
 #define omalloc_round(s) \
-	((gulong) (((gulong) (s) + OMALLOC_MASK) & ~OMALLOC_MASK))
+	((ulong) (((ulong) (s) + OMALLOC_MASK) & ~OMALLOC_MASK))
 
 /**
  * Maximum chunk size.
@@ -120,7 +120,7 @@ struct ochunk {
 
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
 
-static guint32 omalloc_debug;
+static uint32 omalloc_debug;
 
 #define OMALLOC_CHUNK_COUNT	(OMALLOC_CHUNK_BITS + 1)
 
@@ -217,7 +217,7 @@ omalloc_chunk_unprotect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		size_t size = compat_pagesize();
-		void *start = deconstify_gpointer(vmm_page_start(p));
+		void *start = deconstify_pointer(vmm_page_start(p));
 
 		if (-1 == mprotect(start, size, PROT_READ | PROT_WRITE)) {
 			s_error("mprotect(%p, %zu, PROT_READ | PROT_WRITE) failed: %m",
@@ -234,7 +234,7 @@ omalloc_chunk_protect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
 		size_t size = compat_pagesize();
-		void *start = deconstify_gpointer(vmm_page_start(p));
+		void *start = deconstify_pointer(vmm_page_start(p));
 
 		if (-1 == mprotect(start, size, PROT_READ)) {
 			s_error("mprotect(%p, %zu, PROT_READ) failed: %m", start, size);
@@ -250,7 +250,7 @@ omalloc_range_protect(const void *p, enum omalloc_mode mode, size_t len)
 {
 	if (OMALLOC_RO == mode) {
 		size_t size = round_pagesize(len);
-		void *start = deconstify_gpointer(vmm_page_start(p));
+		void *start = deconstify_pointer(vmm_page_start(p));
 
 		if (-1 == mprotect(start, size, PROT_READ)) {
 			s_error("mprotect(%p, %zu, PROT_READ) failed: %m", start, size);
@@ -804,7 +804,7 @@ omalloc_page_count(void)
  * Set debug level.
  */
 void
-set_omalloc_debug(guint32 level)
+set_omalloc_debug(uint32 level)
 {
 	omalloc_debug = level;
 }

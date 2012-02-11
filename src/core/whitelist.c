@@ -87,9 +87,9 @@ struct whitelist {
 	struct whitelist_hostname *host;	/**< If hostname is known */
     time_t last_try;
     host_addr_t addr;					/**< If name != NULL, last resolved */
-    guint16 port;
-    guint8 bits;						/**< For ranges (implies port == 0) */
-	guint8 use_tls;						/**< Whether to use TLS */
+    uint16 port;
+    uint8 bits;							/**< For ranges (implies port == 0) */
+	uint8 use_tls;						/**< Whether to use TLS */
 };
 
 static GSList *sl_whitelist;
@@ -109,10 +109,10 @@ static unsigned whitelist_generation;
 struct whitelist_dns {
 	struct whitelist *item;			/**< Item being resolved */
 	unsigned generation;			/**< For which generation? */
-	gboolean revalidate;			/**< Whether this is revalidation */
+	bool revalidate;				/**< Whether this is revalidation */
 };
 
-static guint
+static uint
 addr_default_mask(const host_addr_t addr)
 {
 	switch (host_addr_net(addr)) {
@@ -132,8 +132,7 @@ addr_default_mask(const host_addr_t addr)
  * Allocate a new whitelist entry containing an explicit address.
  */
 static struct whitelist *
-whitelist_addr_create(
-	gboolean use_tls, host_addr_t addr, guint16 port, guint8 bits)
+whitelist_addr_create(bool use_tls, host_addr_t addr, uint16 port, uint8 bits)
 {
 	struct whitelist *item;
 
@@ -151,8 +150,7 @@ whitelist_addr_create(
  * The structure takes ownership of the supplied ``hname''.
  */
 static struct whitelist *
-whitelist_hostname_create(
-	gboolean use_tls, char *hname, guint16 port)
+whitelist_hostname_create(bool use_tls, char *hname, uint16 port)
 {
 	struct whitelist *item;
 	struct whitelist_hostname *host;
@@ -189,7 +187,7 @@ static void
 log_whitelist_item(const struct whitelist *item, const char *what)
 {
 	const char *host;
-	guint8 bits;
+	uint8 bits;
 
 	if (item->host != NULL) {
 		host = 0 == item->port ? item->host->name :
@@ -284,7 +282,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
  * the whitelist or updating the existing host address (when revalidating).
  */
 static void
-whitelist_dns_resolve(struct whitelist *item, gboolean revalidate)
+whitelist_dns_resolve(struct whitelist *item, bool revalidate)
 {
 	struct whitelist_dns *ctx;
 	char *host;
@@ -343,10 +341,10 @@ whitelist_retrieve(void)
 		GSList *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;
-    	guint16 port;
-		guint8 bits;
-		gboolean item_ok;
-		gboolean use_tls;
+    	uint16 port;
+		uint8 bits;
+		bool item_ok;
+		bool use_tls;
 		char *hname;
 
         linenum++;
@@ -378,7 +376,7 @@ whitelist_retrieve(void)
        		sl_addr = name_to_host_addr(host_addr_to_string(addr),
 							settings_dns_net());
 		} else if (string_to_host_or_addr(start, &endptr, &addr)) {
-			guchar c = *endptr;
+			uchar c = *endptr;
 
 			switch (c) {
 			case '\0':
@@ -420,11 +418,11 @@ whitelist_retrieve(void)
 		if (0 == port) {
 			/* Ignore trailing items separated by a space */
 			while ('\0' != *endptr && !is_ascii_space(*endptr)) {
-				guchar c = *endptr++;
+				uchar c = *endptr++;
 
 				if (':' == c) {
 					int error;
-					guint32 v;
+					uint32 v;
 
 					if (0 != port) {
 						g_warning("whitelist_retrieve(): Line %d:"
@@ -443,7 +441,7 @@ whitelist_retrieve(void)
 					}
 				} else if ('/' == c) {
 					const char *ep;
-					guint32 mask;
+					uint32 mask;
 
 					if (0 != bits) {
 						g_warning("whitelist_retrieve(): Line %d:"
@@ -470,7 +468,7 @@ whitelist_retrieve(void)
 
 					} else {
 						int error;
-						guint32 v;
+						uint32 v;
 
 						v = parse_uint32(endptr, &endptr, 10, &error);
 						if (
@@ -525,12 +523,12 @@ whitelist_retrieve(void)
  *
  * @returns the number of new nodes that are connected to.
  */
-guint
+uint
 whitelist_connect(void)
 {
 	time_t now = tm_time();
 	const GSList *sl;
-	guint num = 0;
+	uint num = 0;
 
 	for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
 		struct whitelist *item;
@@ -561,7 +559,7 @@ whitelist_connect(void)
  * @param ha the host address to check.
  * @returns TRUE if found, and FALSE if not.
  */
-gboolean
+bool
 whitelist_check(const host_addr_t ha)
 {
 	const GSList *sl;
@@ -583,7 +581,7 @@ whitelist_check(const host_addr_t ha)
  * Reloads the whitelist.
  */
 static void
-whitelist_changed(const char *filename, gpointer unused_data)
+whitelist_changed(const char *filename, void *unused_data)
 {
 	(void) unused_data;
 
@@ -598,8 +596,8 @@ whitelist_changed(const char *filename, gpointer unused_data)
 /**
  * Callout queue periodic event to keep DNS-resolved addresses fresh.
  */
-static gboolean
-whitelist_periodic_dns(gpointer unused_obj)
+static bool
+whitelist_periodic_dns(void *unused_obj)
 {
 	time_t now = tm_time();
 	GSList *sl;

@@ -40,8 +40,8 @@
 void gip_init(void);
 void gip_close(void);
 
-guint16 gip_country(const host_addr_t addr);
-guint16 gip_country_safe(const host_addr_t ha);
+uint16 gip_country(const host_addr_t addr);
+uint16 gip_country_safe(const host_addr_t ha);
 
 const char *gip_country_cc(const host_addr_t ha);
 const char *gip_country_name(const host_addr_t ha);

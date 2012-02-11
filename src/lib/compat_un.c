@@ -105,8 +105,8 @@ struct sock_un {
 	int refcnt;
 	union {
 		struct {					/* listening socket */
-			guint32 client_cookie[SUN_CLT_COOKIE_LEN];
-			guint32 server_cookie[SUN_CLT_COOKIE_LEN];
+			uint32 client_cookie[SUN_CLT_COOKIE_LEN];
+			uint32 server_cookie[SUN_CLT_COOKIE_LEN];
 		} l;
 		struct sock_un_accepted{	/* accepted socket */
 			struct sock_un *lsun;
@@ -250,7 +250,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 {
 	sockaddr_unix_t *saddr = (sockaddr_unix_t *) my_addr;
 	struct sock_un *sun;
-	guint16 port;
+	uint16 port;
 	int fd;
 	ssize_t rw;
 
@@ -504,7 +504,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	 */
 
 	len = sizeof sin4;
-	if (getsockname(fd, cast_to_gpointer(&sin4), &len) != 0) {
+	if (getsockname(fd, cast_to_pointer(&sin4), &len) != 0) {
 		s_warning("getsockname(accepted emulated UNIX socket #%d) failed: %m",
 			fd);
 		goto bad_protocol;
@@ -585,10 +585,10 @@ bad_protocol:
  *
  * @return TRUE on success, with value filled.
  */
-static gboolean
-sock_un_parse_cookie(const char *p, const char **endptr, guint32 *value)
+static bool
+sock_un_parse_cookie(const char *p, const char **endptr, uint32 *value)
 {
-	guint32 v;
+	uint32 v;
 	int error;
 
 	v = parse_uint32(p, endptr, 16, &error);
@@ -611,9 +611,9 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	sockaddr_unix_t *saddr = (sockaddr_unix_t *) addr;
 	struct sock_un *sun;
 	int fd;
-	guint16 port;
-	guint32 client[SUN_CLT_COOKIE_LEN];
-	guint32 server[SUN_SRV_COOKIE_LEN];
+	uint16 port;
+	uint32 client[SUN_CLT_COOKIE_LEN];
+	uint32 server[SUN_SRV_COOKIE_LEN];
 	ssize_t rw;
 
 	g_assert(addr != NULL);
@@ -759,7 +759,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 */
 
 	{
-		guint32 value;
+		uint32 value;
 
 		if (sizeof value != s_read(sd, &value, sizeof value))
 			return -1;
@@ -893,8 +893,8 @@ regular:
  * @return FALSE if no more data needs to be read, TRUE if either more data
  * needs to be read or there is an error and the connection MUST be closed.
  */
-gboolean
-compat_accept_check(int sd, gboolean *error)
+bool
+compat_accept_check(int sd, bool *error)
 {
 	struct sock_un *sun;
 	ssize_t rw;
@@ -956,9 +956,9 @@ compat_accept_check(int sd, gboolean *error)
 	 * Client cookie matched, assure the client that we're the proper server.
 	 */
 
-	rw = s_write(sd, suna->lsun->u.l.server_cookie, sizeof(guint32));
+	rw = s_write(sd, suna->lsun->u.l.server_cookie, sizeof(uint32));
 
-	if (rw != sizeof(guint32)) {
+	if (rw != sizeof(uint32)) {
 		*error = TRUE;
 		return TRUE;
 	}

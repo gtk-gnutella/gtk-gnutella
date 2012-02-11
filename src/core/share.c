@@ -105,13 +105,13 @@ struct shared_file {
 	time_t ctime;				/**< File creation time */
 
 	filesize_t file_size;		/**< File size in Bytes */
-	guint32 file_index;			/**< the files index within our local DB */
-	guint32 sort_index;			/**< the index for sorted listings */
+	uint32 file_index;			/**< the files index within our local DB */
+	uint32 sort_index;			/**< the index for sorted listings */
 
 	enum mime_type mime_type;	/* MIME type of the file */
 
 	int refcnt;					/**< Reference count */
-	guint32 flags;				/**< See below for definition */
+	uint32 flags;				/**< See below for definition */
 };
 
 /**
@@ -149,8 +149,8 @@ static cevent_t *share_qrp_rebuild_ev;
  * the rebuilding process do we atomically update all of them with the new
  * values, freeing old content.
  */
-static guint64 files_scanned;	/* Amount of files shared in the library */
-static guint64 bytes_scanned;
+static uint64 files_scanned;	/* Amount of files shared in the library */
+static uint64 bytes_scanned;
 static GSList *shared_files;
 static search_table_t *search_table;
 static GHashTable *file_basenames;
@@ -159,7 +159,7 @@ static shared_file_t **file_table;			/* Sorted by mtime */
 static shared_file_t **sorted_file_table;	/* Sorted by name */
 
 static struct recursive_scan *recursive_scan_context;
-static gboolean share_rebuilding;
+static bool share_rebuilding;
 
 /**
  * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
@@ -310,7 +310,7 @@ static GHashTable *share_media_types;
  * Used to search the sha1_to_share tree.
  */
 static int
-compare_share_sha1(gconstpointer s1, gconstpointer s2)
+compare_share_sha1(const void *s1, const void *s2)
 {
 	return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
@@ -399,9 +399,9 @@ shared_file_deindex(shared_file_t *sf)
 
 	if (sf->sha1 != NULL) {
 		shared_file_t *current;
-		gpointer key;
+		void *key;
 
-		key = deconstify_gpointer(sf->sha1);
+		key = deconstify_pointer(sf->sha1);
 		current = g_tree_lookup(sha1_to_share, key);
 		if (current == sf) {
 			g_tree_remove(sha1_to_share, key);
@@ -442,7 +442,7 @@ shared_file_free(shared_file_t **sf_ptr)
  *
  * @return whether an error occurred
  */
-static gboolean
+static bool
 shared_file_set_names(shared_file_t *sf, const char *filename)
 {
   	shared_file_check(sf);	
@@ -470,7 +470,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 			name = g_strconcat(sf->relative_path, " ", sf->name_nfc,
 						(void *) 0);
 		} else {
-			name = deconstify_gchar(sf->name_nfc);
+			name = deconstify_char(sf->name_nfc);
 		}
 		name_canonic = UNICODE_CANONIZE(name);
 		sf->name_canonic = atom_str_get(name_canonic);
@@ -494,9 +494,9 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 	return FALSE;
 }
 
-static const guint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
-static const guint PARTIAL_FILE = -2;		/**< Indicates partial file */
-static const guint SPECIAL_FILE = -3;		/**< Special served files */
+static const uint FILENAME_CLASH = -1;		/**< Indicates basename clashes */
+static const uint PARTIAL_FILE = -2;		/**< Indicates partial file */
+static const uint SPECIAL_FILE = -3;		/**< Special served files */
 
 /**
  * Initialize special file entry, returning shared_file_t structure if
@@ -559,8 +559,8 @@ done:
 
 void
 shared_files_match(const char *query,
-	st_search_callback callback, gpointer user_data,
-	int max_res, gboolean partials, query_hashvec_t *qhv)
+	st_search_callback callback, void *user_data,
+	int max_res, bool partials, query_hashvec_t *qhv)
 {
 	int n;
 	int remain;
@@ -596,7 +596,7 @@ shared_files_match(const char *query,
 static G_GNUC_COLD void
 share_special_init(void)
 {
-	guint i;
+	uint i;
 
 	special_names = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -604,7 +604,7 @@ share_special_init(void)
 		shared_file_t *sf = share_special_load(&specials[i]);
 		if (sf != NULL)
 			g_hash_table_insert(special_names,
-				deconstify_gchar(specials[i].path), shared_file_ref(sf));
+				deconstify_char(specials[i].path), shared_file_ref(sf));
 	}
 }
 
@@ -656,7 +656,7 @@ shared_special(const char *path)
  * index) and SHARE_REBUILDING when we're rebuilding the library.
  */
 shared_file_t *
-shared_file(guint idx)
+shared_file(uint idx)
 {
 	/* @return shared file info for index `idx', or NULL if none */
 
@@ -675,7 +675,7 @@ shared_file(guint idx)
  * index) and SHARE_REBUILDING when we're rebuilding the library.
  */
 shared_file_t *
-shared_file_sorted(guint idx)
+shared_file_sorted(uint idx)
 {
 	/* @return shared file info for index `idx', or NULL if none */
 
@@ -692,10 +692,10 @@ shared_file_sorted(guint idx)
  * Get index of shared file identified by its name.
  * @return index > 0 if found, 0 if file is not known.
  */
-static guint
+static uint
 shared_file_get_index(const char *filename)
 {
-	guint idx;
+	uint idx;
 
 	idx = GPOINTER_TO_UINT(g_hash_table_lookup(file_basenames, filename));
 	if (idx == 0 || idx == FILENAME_CLASH)
@@ -715,7 +715,7 @@ shared_file_t *
 shared_file_by_name(const char *filename)
 {
 	shared_file_t *sf;
-	guint idx;
+	uint idx;
 
 	if (file_table == NULL)
 		return SHARE_REBUILDING;
@@ -732,8 +732,7 @@ shared_file_by_name(const char *filename)
 }
 
 static void
-free_extensions_helper(gpointer key,
-	gpointer unused_value, gpointer unused_data)
+free_extensions_helper(void *key, void *unused_value, void *unused_data)
 {
 	(void) unused_value;
 	(void) unused_data;
@@ -759,7 +758,7 @@ parse_extensions(const char *str)
 {
 	char **exts = g_strsplit(str, ";", 0);
 	char *x, *s;
-	guint i;
+	uint i;
 
 	free_extensions();
 	extensions = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
@@ -781,7 +780,7 @@ parse_extensions(const char *str)
 			}
 
 			if (*s && NULL == g_hash_table_lookup(extensions, s)) {
-				gconstpointer key = atom_str_get(s);
+				const void *key = atom_str_get(s);
 				gm_hash_table_insert_const(extensions, key, key);
 			}
 		}
@@ -834,12 +833,12 @@ shared_dirs_update_prop(void)
  * The given string was completely parsed, it returns TRUE, otherwise
  * it returns FALSE.
  */
-gboolean
+bool
 shared_dirs_parse(const char *str)
 {
 	char **dirs = g_strsplit(str, G_SEARCHPATH_SEPARATOR_S, 0);
-    gboolean ret = TRUE;
-	guint i;
+    bool ret = TRUE;
+	uint i;
 
 	/* FIXME: ESCAPING! */
 
@@ -848,7 +847,7 @@ shared_dirs_parse(const char *str)
 	for (i = 0; dirs[i]; i++) {
 		if (is_directory(dirs[i]))
 			shared_dirs = g_slist_prepend(shared_dirs,
-								deconstify_gchar(atom_str_get(dirs[i])));
+								deconstify_char(atom_str_get(dirs[i])));
         else
             ret = FALSE;
 	}
@@ -870,7 +869,7 @@ shared_dir_add(const char *pathname)
 			g_debug("%s: adding pathname=\"%s\"", G_STRFUNC, pathname);
 		}
         shared_dirs = g_slist_append(shared_dirs,
-						deconstify_gchar(atom_str_get(pathname)));
+						deconstify_char(atom_str_get(pathname)));
 	} else {
 		if (GNET_PROPERTY(share_debug) > 0) {
 			g_debug("%s: NOT adding pathname=\"%s\"", G_STRFUNC, pathname);
@@ -886,7 +885,7 @@ shared_dir_add(const char *pathname)
 shared_file_t *
 shared_file_ref(const shared_file_t *sf)
 {
-	shared_file_t *wsf = deconstify_gpointer(sf);
+	shared_file_t *wsf = deconstify_pointer(sf);
 
 	wsf->refcnt++;
 	return wsf;
@@ -922,7 +921,7 @@ shared_file_unref(shared_file_t **sf_ptr)
  *		 Keep it just in case that a platform has an fileoffset_t with more than
  *		 64 bits.
  */
-static inline gboolean
+static inline bool
 too_big_for_gnutella(fileoffset_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
@@ -938,7 +937,7 @@ too_big_for_gnutella(fileoffset_t size)
  *			returned. Otherwise, the pathname is considered OK and FALSE
  *			is returned.
  */
-static gboolean
+static bool
 contains_control_chars(const char *pathname)
 {
 	const char *s;
@@ -985,7 +984,7 @@ get_relative_path(const char *base_dir, const char *pathname)
  * @param filename  The name of the file to check.
  * @return TRUE if the file should be shared, FALSE if not.
  */
-static gboolean
+static bool
 shared_file_valid_extension(const char *filename)
 {
 	const char *filename_ext;
@@ -1130,7 +1129,7 @@ share_scan_add_file(const char *relative_path,
  * This is not meant to be exhaustive but test for common configuration
  * mistakes.
  */
-static gboolean
+static bool
 directory_is_unshareable(const char *dir)
 {
 	g_assert(dir);
@@ -1191,8 +1190,8 @@ struct recursive_scan {
 	shared_file_t **sorted;		/* the new sorted_file_table, sorted by name */
 	search_table_t *search_tb;	/* the new search table */
 	search_table_t *partial_tb;	/* the new partial table */
-	guint64 files_scanned;		/* amount of files shared in the library */
-	guint64 bytes_scanned;		/* size of the library */
+	uint64 files_scanned;		/* amount of files shared in the library */
+	uint64 bytes_scanned;		/* size of the library */
 	int idx;					/* iterating index */
 	int ticks;					/* ticks used */
 };
@@ -1224,7 +1223,7 @@ recursive_scan_new(const GSList *base_dirs)
 	ctx->basenames = g_hash_table_new(g_str_hash, g_str_equal);
 	for (iter = base_dirs; NULL != iter; iter = g_slist_next(iter)) {
 		const char *dir = atom_str_get(iter->data);
-		slist_append(ctx->base_dirs, deconstify_gchar(dir));
+		slist_append(ctx->base_dirs, deconstify_char(dir));
 	}
 	return ctx;
 }
@@ -1245,7 +1244,7 @@ recursive_scan_closedir(struct recursive_scan *ctx)
 	}
 }
 
-static void recursive_sf_unref(gpointer o)
+static void recursive_sf_unref(void *o)
 {
 	shared_file_t *sf = o;
 
@@ -1589,7 +1588,7 @@ finish:
 /**
  * @return TRUE if finished.
  */
-static gboolean 
+static bool 
 recursive_scan_next_dir(struct recursive_scan *ctx)
 {
 	recursive_scan_check(ctx);
@@ -1740,7 +1739,7 @@ recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 
 	while (UNSIGNED(ctx->idx) < ctx->files_scanned) {
 		shared_file_t *sf;
-		guint val;
+		uint val;
 		int i = ctx->idx++;
 
 	   	sf = ctx->files[i];
@@ -1773,7 +1772,7 @@ recursive_scan_step_build_basenames(struct bgtask *bt, void *data, int ticks)
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(ctx->basenames, deconstify_gchar(sf->name_nfc),
+		g_hash_table_insert(ctx->basenames, deconstify_char(sf->name_nfc),
 			GUINT_TO_POINTER(val));
 
 		if (ctx->ticks++ >= ticks)
@@ -2205,7 +2204,7 @@ share_scan(void)
  *
  * @return whether QRP update task was launched.
  */
-static gboolean
+static bool
 share_update_qrp(void)
 {
 	/*
@@ -2227,7 +2226,7 @@ share_update_qrp(void)
  * Hash table iterator callback to free the value.
  */
 static void
-special_free_kv(gpointer unused_key, gpointer val, gpointer unused_udata)
+special_free_kv(void *unused_key, void *val, void *unused_udata)
 {
 	shared_file_t *sf = val;
 
@@ -2291,9 +2290,9 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 
 	if (sf->sha1) {
 		shared_file_t *current;
-		gpointer key;
+		void *key;
 
-		key = deconstify_gpointer(sf->sha1);
+		key = deconstify_pointer(sf->sha1);
 		current = g_tree_lookup(sha1_to_share, key);
 		if (current) {
 			shared_file_check(current);
@@ -2315,9 +2314,9 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 
 	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
 		shared_file_t *current;
-		gpointer key;
+		void *key;
 
-		key = deconstify_gpointer(sf->sha1);
+		key = deconstify_pointer(sf->sha1);
 		current = g_tree_lookup(sha1_to_share, key);
 		if (current) {
 			shared_file_check(current);
@@ -2338,7 +2337,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * Record in the set of shared SHA-1s and publish to the DHT.
 			 */
 		
-			g_tree_insert(sha1_to_share, deconstify_gpointer(sf->sha1), sf);
+			g_tree_insert(sha1_to_share, deconstify_pointer(sf->sha1), sf);
 			publisher_add(sf->sha1);
 		}
 	}
@@ -2367,7 +2366,7 @@ shared_file_set_modification_time(shared_file_t *sf, time_t mtime)
  *
  * Use sha1_hash_is_uptodate() to check for availability and accurateness.
  */
-gboolean
+bool
 sha1_hash_available(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -2382,7 +2381,7 @@ sha1_hash_available(const shared_file_t *sf)
  * NB: if the file is found to have changed, the background computation of
  * the SHA1 is requested.
  */
-gboolean
+bool
 sha1_hash_is_uptodate(shared_file_t *sf)
 {
 	filestat_t buf;
@@ -2448,21 +2447,21 @@ sha1_hash_is_uptodate(shared_file_t *sf)
 /**
  * Whether file is finished (i.e. either shared from the library or seeded).
  */
-gboolean
+bool
 shared_file_is_finished(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return NULL == sf->fi || 0 != (sf->fi->flags & FI_F_SEEDING);
 }
 
-gboolean
+bool
 shared_file_is_partial(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return NULL != sf->fi;
 }
 
-gboolean
+bool
 shared_file_is_shareable(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -2489,7 +2488,7 @@ shared_file_size(const shared_file_t *sf)
 	return sf->file_size;
 }
 
-guint32
+uint32
 shared_file_index(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -2598,7 +2597,7 @@ shared_file_creation_time(const shared_file_t *sf)
 	return sf->ctime;
 }
 
-guint32
+uint32
 shared_file_flags(const shared_file_t *sf)
 {
 	shared_file_check(sf);
@@ -2689,7 +2688,7 @@ shared_file_complete_by_sha1(const struct sha1 *sha1)
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = g_tree_lookup(sha1_to_share, deconstify_gpointer(sha1));
+	f = g_tree_lookup(sha1_to_share, deconstify_pointer(sha1));
 	if (f) {
 		shared_file_check(f);
 	}
@@ -2801,7 +2800,7 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned media_mask)
 /**
  * Is shared file belonging to the media types indicated by mask?
  */
-gboolean
+bool
 shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 {
 	unsigned type;
@@ -2837,7 +2836,7 @@ share_filename_media_mask(const char *filename)
 /**
  * Get accessor for ``kbytes_scanned''
  */
-guint64
+uint64
 shared_kbytes_scanned(void)
 {
 	return bytes_scanned / 1024;
@@ -2846,7 +2845,7 @@ shared_kbytes_scanned(void)
 /**
  * Get accessor for ``files_scanned''
  */
-guint64
+uint64
 shared_files_scanned(void)
 {
 	return files_scanned;

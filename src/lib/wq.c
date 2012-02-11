@@ -418,7 +418,7 @@ wq_wakeup(const void *key, void *data)
  *
  * @return TRUE if someone is waiting on the key.
  */
-gboolean
+bool
 wq_waiting(const void *key)
 {
 	return gm_hash_table_contains(waitqueue, key);
@@ -438,7 +438,7 @@ wq_init(void)
 /**
  * Hash list iterator callback to free and remove waiting events.
  */
-static gboolean
+static bool
 wq_free_waiting(void *key, void *unused_data)
 {
 	wq_event_t *we = key;

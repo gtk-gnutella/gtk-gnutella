@@ -49,8 +49,8 @@ typedef struct namesize {
  * Public interface.
  */
 
-guint namesize_hash(gconstpointer key);
-int namesize_eq(gconstpointer a, gconstpointer b);
+uint namesize_hash(const void *key);
+int namesize_eq(const void *a, const void *b);
 
 namesize_t *namesize_make(const char *name, filesize_t size);
 void namesize_free(namesize_t *ns);

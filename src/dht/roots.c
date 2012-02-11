@@ -146,15 +146,15 @@ rootinfo_check(const struct rootinfo *ri)
  * The structure is serialized first, not written as-is.
  */
 struct rootdata {
-	guint64 dbkeys[KDA_K];	/**< SDBM keys pointing to contact information */
+	uint64 dbkeys[KDA_K];	/**< SDBM keys pointing to contact information */
 	time_t last_update;		/**< When we last updated the key set */
-	guint8 count;			/**< Amount of dbkeys contained */
+	uint8 count;			/**< Amount of dbkeys contained */
 };
 
 /**
  * Internal counter used to assign DB keys to the contacts we're storing.
  */
-static guint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
+static uint64 contactid = 1;		/* 0 is not a valid key (used as marker) */
 
 #define CONTACT_STRUCT_VERSION	1
 
@@ -167,9 +167,9 @@ struct contact {
 	vendor_code_t vcode;	/**< Vendor code */
 	time_t first_seen;		/**< First seen time */
 	host_addr_t addr;		/**< IP of the node */
-	guint16 port;			/**< Port of the node */
-	guint8 major;			/**< Major version */
-	guint8 minor;			/**< Minor version */
+	uint16 port;			/**< Port of the node */
+	uint8 major;			/**< Major version */
+	uint8 minor;			/**< Minor version */
 };
 
 static unsigned targets_managed;	/**< Amount of targets held in database */
@@ -230,7 +230,7 @@ get_rootdata(const kuid_t *id)
  * Get contact from database.
  */
 static struct contact *
-get_contact(guint64 dbkey, gboolean shout)
+get_contact(uint64 dbkey, bool shout)
 {
 	struct contact *c;
 
@@ -253,7 +253,7 @@ get_contact(guint64 dbkey, gboolean shout)
  * Delete contact from database.
  */
 static void
-delete_contact(guint64 dbkey)
+delete_contact(uint64 dbkey)
 {
 	g_assert(uint_is_positive(contacts_managed));
 
@@ -294,9 +294,9 @@ delete_rootdata(const kuid_t *id)
  * Map iterator callback to reclaim a DB-key value.
  */
 static void
-reclaim_dbkey(gpointer u_key, gpointer val, gpointer u_data)
+reclaim_dbkey(void *u_key, void *val, void *u_data)
 {
-	guint64 *dbkey = val;
+	uint64 *dbkey = val;
 
 	(void) u_key;
 	(void) u_data;
@@ -308,7 +308,7 @@ reclaim_dbkey(gpointer u_key, gpointer val, gpointer u_data)
  * Callout queue callback to expire target.
  */
 static void
-roots_expire(cqueue_t *unused_cq, gpointer obj)
+roots_expire(cqueue_t *unused_cq, void *obj)
 {
 	struct rootinfo *ri = obj;
 	(void) unused_cq;
@@ -338,13 +338,13 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	struct rootdata new_rd;
 	struct {
 		kuid_t id;
-		guint64 dbkey;
+		uint64 dbkey;
 	} previous[KDA_K];
 	map_t *existing;
 	patricia_iter_t *iter;
 	unsigned i;
-	unsigned new = 0, reused = 0;		/* For logging */
-	gboolean existed = FALSE;			/* For logging */
+	unsigned new = 0, reused = 0;	/* For logging */
+	bool existed = FALSE;			/* For logging */
 
 	g_assert(nodes != NULL);
 	g_assert(kuid != NULL);
@@ -425,7 +425,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 
 	while (patricia_iter_has_next(iter) && i < G_N_ELEMENTS(rd->dbkeys)) {
 		knode_t *kn = patricia_iter_next_value(iter);
-		guint64 *dbkey_ptr;
+		uint64 *dbkey_ptr;
 
 		/*
 		 * If entry existed in the previous set, we reuse the old contact.
@@ -459,7 +459,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			reused++;
 		} else {
 			struct contact nc;
-			guint64 dbkey;
+			uint64 dbkey;
 
 			nc.id = kuid_get_atom(kn->id);	/* Freed through free_contact() */
 			nc.vcode = kn->vcode;	/* Struct copy */
@@ -586,7 +586,7 @@ roots_fill_closest(const kuid_t *id,
 {
 	struct rootinfo *ri;
 	int filled = 0;
-	gboolean approximate = TRUE;
+	bool approximate = TRUE;
 
 	g_assert(id != NULL);
 	g_assert(kcnt > 0);
@@ -779,7 +779,7 @@ roots_fill_closest(const kuid_t *id,
  * Serialization routine for rootdata.
  */
 static void
-serialize_rootdata(pmsg_t *mb, gconstpointer data)
+serialize_rootdata(pmsg_t *mb, const void *data)
 {
 	const struct rootdata *rd = data;
 	unsigned i;
@@ -806,11 +806,11 @@ serialize_rootdata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for rootdata.
  */
 static void
-deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_rootdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct rootdata *rd = valptr;
 	unsigned i;
-	guint8 version;
+	uint8 version;
 
 	g_assert(sizeof *rd == len);
 
@@ -829,7 +829,7 @@ deserialize_rootdata(bstr_t *bs, gpointer valptr, size_t len)
  * Serialization routine for contacts.
  */
 static void
-serialize_contact(pmsg_t *mb, gconstpointer data)
+serialize_contact(pmsg_t *mb, const void *data)
 {
 	const struct contact *c = data;
 
@@ -857,11 +857,11 @@ serialize_contact(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for contacts.
  */
 static void
-deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_contact(bstr_t *bs, void *valptr, size_t len)
 {
 	struct contact *c = valptr;
 	kuid_t id;
-	guint8 version;
+	uint8 version;
 
 	g_assert(sizeof *c == len);
 
@@ -900,7 +900,7 @@ deserialize_contact(bstr_t *bs, gpointer valptr, size_t len)
  * the structure itself.
  */
 static void
-free_contact(gpointer valptr, size_t len)
+free_contact(void *valptr, size_t len)
 {
 	struct contact *c = valptr;
 
@@ -914,13 +914,13 @@ free_contact(gpointer valptr, size_t len)
  */
 struct recreate_context {
 	GHashTable *dbkeys;		/* Seen DB keys (atoms) */
-	guint orphans;			/* Orphan keys found */
+	uint orphans;			/* Orphan keys found */
 };
 
 static void
-free_dbkey_kv(gpointer key, gpointer u_value, gpointer u_data)
+free_dbkey_kv(void *key, void *u_value, void *u_data)
 {
-	guint64 *dbkey = key;
+	uint64 *dbkey = key;
 
 	(void) u_value;
 	(void) u_data;
@@ -932,8 +932,8 @@ free_dbkey_kv(gpointer key, gpointer u_value, gpointer u_data)
  * DBMW foreach iterator to recreate keyinfo if not too ancient.
  * @return TRUE if entry is too ancient and key must be deleted.
  */
-static gboolean
-recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
+static bool
+recreate_ri(void *key, void *value, size_t u_len, void *data)
 {
 	struct recreate_context *ctx = data;
 	const struct rootdata *rd = value;
@@ -969,13 +969,13 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
 	 */
 
 	for (i = 0; i < rd->count; i++) {
-		guint64 dbkey = rd->dbkeys[i];
+		uint64 dbkey = rd->dbkeys[i];
 
 		if (dbkey >= contactid)
 			contactid = dbkey + 1;
 
 		if (!g_hash_table_lookup(ctx->dbkeys, &dbkey)) {
-			const guint64 *dbatom = atom_uint64_get(&dbkey);
+			const uint64 *dbatom = atom_uint64_get(&dbkey);
 			gm_hash_table_insert_const(ctx->dbkeys, dbatom, uint_to_pointer(1));
 		}
 	}
@@ -1008,11 +1008,11 @@ recreate_ri(gpointer key, gpointer value, size_t u_len, gpointer data)
  * DBMW foreach iterator to remove orphan DB keys.
  * @return TRUE if entry is an orphan and must be deleted.
  */
-static gboolean
-remove_orphan(gpointer key, gpointer u_value, size_t u_len, gpointer data)
+static bool
+remove_orphan(void *key, void *u_value, size_t u_len, void *data)
 {
 	struct recreate_context *ctx = data;
-	guint64 *dbkey = key;
+	uint64 *dbkey = key;
 
 	(void) u_value;
 	(void) u_len;
@@ -1028,8 +1028,8 @@ remove_orphan(gpointer key, gpointer u_value, size_t u_len, gpointer data)
 /**
  * Periodic DB synchronization.
  */
-static gboolean
-roots_sync(gpointer unused_obj)
+static bool
+roots_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -1109,7 +1109,7 @@ G_GNUC_COLD void
 roots_init(void)
 {
 	dbstore_kv_t root_kv = { KUID_RAW_SIZE, NULL, sizeof(struct rootdata), 0 };
-	dbstore_kv_t contact_kv = { sizeof(guint64), NULL, sizeof(struct contact),
+	dbstore_kv_t contact_kv = { sizeof(uint64), NULL, sizeof(struct contact),
 		sizeof(struct contact) + KUID_RAW_SIZE };
 	dbstore_packing_t root_packing =
 		{ serialize_rootdata, deserialize_rootdata, NULL };
@@ -1148,7 +1148,7 @@ roots_init(void)
  * Map iterator to free the items held in `roots'.
  */
 static void
-roots_free_kv(gpointer u_key, gpointer val, gpointer u_x)
+roots_free_kv(void *u_key, void *val, void *u_x)
 {
 	struct rootinfo *ri = val;
 

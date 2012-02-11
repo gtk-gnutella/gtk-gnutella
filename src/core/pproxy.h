@@ -57,12 +57,12 @@ struct pproxy {
 
 	host_addr_t addr_v4;	/**< IPv4 of the requesting servent */
 	host_addr_t addr_v6;	/**< IPv6 of the requesting servent */
-	guint16 port;			/**< Port where GIV should be sent back */
-	const char *user_agent;/**< User-Agent string */
+	uint16 port;			/**< Port where GIV should be sent back */
+	const char *user_agent;	/**< User-Agent string */
 	const struct guid *guid;/**< GUID (atom) to which push should be sent */
-	guint32 file_idx;		/**< File index to request (0 if none supplied) */
-	guint32 flags;
-	gpointer io_opaque;		/**< Opaque I/O callback information */
+	uint32 file_idx;		/**< File index to request (0 if none supplied) */
+	uint32 flags;
+	void *io_opaque;		/**< Opaque I/O callback information */
 };
 
 #define pproxy_vendor_str(p)	((p)->user_agent ? (p)->user_agent : "")
@@ -78,14 +78,14 @@ void pproxy_close(void);
  ***/
 
 struct cproxy *cproxy_create(struct download *d,
-	const host_addr_t addr, guint16 port, const struct guid *guid,
-	guint32 file_idx);
+	const host_addr_t addr, uint16 port, const struct guid *guid,
+	uint32 file_idx);
 void cproxy_free(struct cproxy *cp);
 void cproxy_reparent(struct download *d, struct download *cd);
 
-struct array build_push(guint8 ttl, guint8 hops,
+struct array build_push(uint8 ttl, uint8 hops,
 	const struct guid *guid, host_addr_t addr_v4, host_addr_t addr_v6,
-	guint16 port, guint32 file_idx, gboolean supports_tls);
+	uint16 port, uint32 file_idx, bool supports_tls);
 
 /***
  *** Push proxy set
@@ -95,14 +95,14 @@ typedef struct pproxy_set pproxy_set_t;
 
 pproxy_set_t *pproxy_set_allocate(size_t max_proxies);
 void pproxy_set_free_null(pproxy_set_t **ps_ptr);
-gboolean pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, guint16 port);
+bool pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, uint16 port);
 void pproxy_set_add_vec(pproxy_set_t *ps, const gnet_host_vec_t *vec);
 void pproxy_set_add_array(pproxy_set_t *ps,
 	gnet_host_t *proxies, int proxy_count);
-gboolean pproxy_set_remove(pproxy_set_t *ps,
-	const host_addr_t addr, guint16 port);
+bool pproxy_set_remove(pproxy_set_t *ps,
+	const host_addr_t addr, uint16 port);
 size_t pproxy_set_count(const pproxy_set_t *ps);
-gboolean pproxy_set_older_than(const pproxy_set_t *ps, time_t t);
+bool pproxy_set_older_than(const pproxy_set_t *ps, time_t t);
 void pproxy_set_foreach(const pproxy_set_t *ps, GFunc func, void *user_data);
 gnet_host_t *pproxy_set_head(const pproxy_set_t *ps);
 sequence_t *pproxy_set_sequence(const pproxy_set_t *ps);

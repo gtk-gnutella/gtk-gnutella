@@ -49,16 +49,16 @@
 #endif
 
 #ifdef USE_GLIB1
-typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
+typedef bool (*GEqualFunc)(const void *a, const void *b);
 
 typedef struct GMemVTable {
-	gpointer	(*gmvt_malloc)		(gsize n_bytes);
-	gpointer	(*gmvt_realloc)		(gpointer mem, gsize n_bytes);
-	void		(*gmvt_free)		(gpointer mem);
+	void *		(*gmvt_malloc)		(gsize n_bytes);
+	void *		(*gmvt_realloc)		(void *mem, gsize n_bytes);
+	void		(*gmvt_free)		(void *mem);
 	/* optional */
-	gpointer	(*gmvt_calloc)		(gsize n_blocks, gsize n_block_bytes);
-	gpointer	(*gmvt_try_malloc)	(gsize n_bytes);
-	gpointer	(*gmvt_try_realloc)	(gpointer mem, gsize n_bytes);
+	void *		(*gmvt_calloc)		(gsize n_blocks, gsize n_block_bytes);
+	void *		(*gmvt_try_malloc)	(gsize n_bytes);
+	void *		(*gmvt_try_realloc)	(void *mem, gsize n_bytes);
 } GMemVTable;
 #endif
 
@@ -68,27 +68,27 @@ typedef struct GMemVTable {
 
 void gm_mem_set_safe_vtable(void);
 
-gboolean gm_slist_is_looping(const GSList *slist);
-GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data);
+bool gm_slist_is_looping(const GSList *slist);
+GSList *gm_slist_insert_after(GSList *list, GSList *lnk, void *data);
 
-GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
+GList *gm_list_insert_after(GList *list, GList *lnk, void *data);
 
 #ifdef USE_GLIB1
 GList *g_list_delete_link(GList *l, GList *lnk);
 GSList *g_slist_delete_link(GSList *sl, GSList *lnk);
-GList *g_list_insert_before(GList *l, GList *lk, gpointer data);
+GList *g_list_insert_before(GList *l, GList *lk, void *data);
 
-void g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value);
-gboolean gm_hash_table_remove(GHashTable *ht, gconstpointer key);
+void g_hash_table_replace(GHashTable *ht, void *key, void *value);
+bool gm_hash_table_remove(GHashTable *ht, const void *key);
 
 void g_mem_set_vtable(GMemVTable *vtable);
-gboolean g_mem_is_system_malloc(void);
+bool g_mem_is_system_malloc(void);
 
 typedef int (*GCompareDataFunc)
-	(gconstpointer a, gconstpointer b, gpointer user_data);
+	(const void *a, const void *b, void *user_data);
 
 GList *g_list_sort_with_data(
-	GList *l, GCompareDataFunc cmp, gpointer user_data);
+	GList *l, GCompareDataFunc cmp, void *user_data);
 
 typedef void *GMainContext;
 
@@ -132,33 +132,34 @@ int gm_dupmain(const char ***argv_ptr, const char ***env_ptr);
 const char *gm_getproctitle(void);
 void gm_setproctitle(const char *title);
 
-static inline gboolean
-gm_hash_table_contains(GHashTable *ht, gconstpointer key)
+static inline bool
+gm_hash_table_contains(GHashTable *ht, const void *key)
 {
 	return g_hash_table_lookup_extended(ht, key, NULL, NULL);
 }
 
 static inline void
 gm_hash_table_insert_const(GHashTable *ht,
-	gconstpointer key, gconstpointer value)
+	const void *key, const void *value)
 {
-	g_hash_table_insert(ht, (gpointer) key, (gpointer) value);
+	g_hash_table_insert(ht, deconstify_pointer(key), deconstify_pointer(value));
 }
 
 static inline void
 gm_hash_table_replace_const(GHashTable *ht,
-	gconstpointer key, gconstpointer value)
+	const void *key, const void *value)
 {
-	g_hash_table_replace(ht, (gpointer) key, (gpointer) value);
+	g_hash_table_replace(ht,
+		deconstify_pointer(key), deconstify_pointer(value));
 }
 
 GSList *gm_hash_table_all_keys(GHashTable *ht);
-void gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data);
+void gm_hash_table_foreach_key(GHashTable *ht, GFunc func, void *user_data);
 
 static inline GSList *
-gm_slist_prepend_const(GSList *sl, gconstpointer value)
+gm_slist_prepend_const(GSList *sl, const void *value)
 {
-	return g_slist_prepend(sl, (gpointer) value);
+	return g_slist_prepend(sl, deconstify_pointer(value));
 }
 
 /*
@@ -183,7 +184,7 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define G_LIST_FOREACH_WITH_DATA(list, func, user_data) \
 	G_STMT_START { \
 		GList *l_ = (list); \
-		gpointer user_data_ = (user_data); \
+		void *user_data_ = (user_data); \
 		while (NULL != l_) { \
 			func(l_->data, user_data_); \
 			l_ = g_list_next(l_); \
@@ -193,7 +194,7 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define G_LIST_FOREACH_SWAPPED(list, func, user_data) \
 	G_STMT_START { \
 		GList *l_ = (list); \
-		gpointer user_data_ = (user_data); \
+		void *user_data_ = (user_data); \
 		while (NULL != l_) { \
 			func(user_data_, l_->data); \
 			l_ = g_list_next(l_); \
@@ -214,7 +215,7 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define G_SLIST_FOREACH_WITH_DATA(slist, func, user_data) \
 	G_STMT_START { \
 		GSList *sl_ = (slist); \
-		gpointer user_data_ = (user_data); \
+		void *user_data_ = (user_data); \
 		while (NULL != sl_) { \
 			func(sl_->data, user_data_); \
 			sl_ = g_slist_next(sl_); \
@@ -226,7 +227,7 @@ gm_slist_prepend_const(GSList *sl, gconstpointer value)
 #define G_SLIST_FOREACH_SWAPPED(slist, func, user_data) \
 	G_STMT_START { \
 		GSList *sl_ = (slist); \
-		gpointer user_data_ = (user_data); \
+		void *user_data_ = (user_data); \
 		while (NULL != sl_) { \
 			func(user_data_, sl_->data); \
 			sl_ = g_slist_next(sl_); \

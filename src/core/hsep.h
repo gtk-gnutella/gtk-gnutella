@@ -59,19 +59,19 @@
  * Public interface.
  */
 
-typedef void (*hsep_global_listener_t) (hsep_triple *table, guint32 triples);
+typedef void (*hsep_global_listener_t) (hsep_triple *table, uint32 triples);
 
 struct gnutella_node;
 
 void hsep_init(void);
 void hsep_reset(void);
 void hsep_close(void);
-void hsep_connection_init(struct gnutella_node *n, guint8 major, guint8 minor);
-void hsep_connection_close(struct gnutella_node *n, gboolean in_shutdown);
+void hsep_connection_init(struct gnutella_node *n, uint8 major, uint8 minor);
+void hsep_connection_close(struct gnutella_node *n, bool in_shutdown);
 void hsep_send_msg(struct gnutella_node *, time_t now);
 void hsep_process_msg(struct gnutella_node *, time_t now);
 void hsep_timer(time_t now);
-void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
+void hsep_notify_shared(uint64 ownfiles, uint64 ownkibibytes);
 unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(const struct gnutella_node *n,

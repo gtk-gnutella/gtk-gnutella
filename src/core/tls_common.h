@@ -52,15 +52,15 @@ void tls_bye(struct gnutella_socket *);
 void tls_free(struct gnutella_socket *);
 void tls_wio_link(struct gnutella_socket *);
 
-gboolean tls_enabled(void);
+bool tls_enabled(void);
 void tls_global_init(void);
 void tls_global_close(void);
 const char *tls_version_string(void);
 
 struct array;
 
-gboolean svn_release_notification_can_verify(void);
-gboolean svn_release_notification_verify(guint32 revision, time_t date,
+bool svn_release_notification_can_verify(void);
+bool svn_release_notification_verify(uint32 revision, time_t date,
 	const struct array *signature);
 
 #endif /* _core_tls_common_h_ */

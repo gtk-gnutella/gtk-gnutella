@@ -51,7 +51,7 @@ ipset_check(const ipset_t * const ips)
 /**
  * Hashtable iterator callback to free address.
  */
-static gboolean
+static bool
 ipset_free_addrs(void *key, void *uvalue, void *udata)
 {
 	host_addr_t *ha = key;
@@ -129,8 +129,8 @@ ipset_clear(ipset_t *ips)
  * @param h		the host we're looking for
  * @param any	value to return if set is empty
  */
-gboolean
-ipset_contains_host(const ipset_t *ips, const gnet_host_t *h, gboolean any)
+bool
+ipset_contains_host(const ipset_t *ips, const gnet_host_t *h, bool any)
 {
 	ipset_check(ips);
 	g_assert(h != NULL);
@@ -150,8 +150,8 @@ ipset_contains_host(const ipset_t *ips, const gnet_host_t *h, gboolean any)
  * @param ha	the IP address we're looking for
  * @param any	value to return if set is empty
  */
-gboolean
-ipset_contains_addr(const ipset_t *ips, const host_addr_t ha, gboolean any)
+bool
+ipset_contains_addr(const ipset_t *ips, const host_addr_t ha, bool any)
 {
 	ipset_check(ips);
 

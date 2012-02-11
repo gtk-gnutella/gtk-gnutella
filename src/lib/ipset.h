@@ -57,10 +57,8 @@ typedef struct ipset {
 
 void ipset_clear(ipset_t *ips);
 void ipset_set_addrs(ipset_t *ips, const char *s);
-gboolean ipset_contains_host(const ipset_t *ips,
-	const gnet_host_t *h, gboolean any);
-gboolean ipset_contains_addr(const ipset_t *ips,
-	const host_addr_t ha, gboolean any);
+bool ipset_contains_host(const ipset_t *ips, const gnet_host_t *h, bool any);
+bool ipset_contains_addr(const ipset_t *ips, const host_addr_t ha, bool any); 
 
 #endif /* _ipset_h_ */
 

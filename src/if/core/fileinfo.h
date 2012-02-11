@@ -61,7 +61,7 @@ enum dl_chunk_status {
     DL_CHUNK_EMPTY = 0			/**< No data available yet */
 };
 
-typedef guint32 gnet_fi_t;
+typedef uint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
@@ -86,12 +86,12 @@ typedef struct gnet_fi_status {
 
 	time_t modified;
 
-	guint32 recvcount;
-	guint32 refcount;
-	guint32 lifecount;
-	guint32 recv_last_rate;
-	guint32 active_queued;
-	guint32 passive_queued;
+	uint32 recvcount;
+	uint32 refcount;
+	uint32 lifecount;
+	uint32 recv_last_rate;
+	uint32 active_queued;
+	uint32 passive_queued;
 	unsigned dht_lookups;	/**< Amount of completed DHT lookups */
 	unsigned dht_values;	/**< Amount of successful DHT lookups */
 
@@ -118,7 +118,7 @@ typedef struct gnet_fi_chunks {
     filesize_t from;
     filesize_t to;
     enum dl_chunk_status status;
-    gboolean old;
+    bool old;
 } gnet_fi_chunks_t;
 
 enum fi_magic {
@@ -139,7 +139,7 @@ typedef struct dl_file_info {
 	enum fi_magic magic;	
     gnet_fi_t fi_handle;    /**< Handle */
 	const struct guid *guid;/**< Unique fileinfo ID */
-	guint32 flags;			/**< Operating flags */
+	uint32 flags;			/**< Operating flags */
 	const char *pathname;	/**< Output pathname (atom) */
 	GSList *alias;			/**< List of file name aliases (atoms) */
 	filesize_t size;		/**< File size */
@@ -151,9 +151,9 @@ typedef struct dl_file_info {
 		size_t num_leaves;	/**< Number of tigertree leaves */
 		filesize_t slice_size;	/* Slice size (bytes covered by a leaf) */
 	} tigertree;
-	gint32 refcount;		/**< Reference count of file (number of sources)*/
+	int32 refcount;			/**< Reference count of file (number of sources)*/
 	GSList *sources;        /**< list of sources (struct download *) */
-	gint32 lifecount;		/**< Amount of "alive" downloads referencing us */
+	int32 lifecount;		/**< Amount of "alive" downloads referencing us */
 	time_t stamp;			/**< Time stamp */
 	time_t created;			/**< Creation time stamp */
 	time_t modified;		/**< Modification time stamp */
@@ -166,10 +166,10 @@ typedef struct dl_file_info {
 	filesize_t uploaded;	/**< Amount of bytes uploaded */
 	GSList *chunklist;		/**< List of ranges within file */
 	GSList *seen_on_network;  /**< List of ranges available on network */
-	guint32 generation;		/**< Generation number, incremented on disk update */
+	uint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
-	guint32 active_queued;	/**< Actively queued sources */
-	guint32 passive_queued;	/**< Passively queued sources */
+	uint32 active_queued;	/**< Actively queued sources */
+	uint32 passive_queued;	/**< Passively queued sources */
 	unsigned dht_lookups;	/**< Amount of completed DHT lookups */
 	unsigned dht_values;	/**< Amount of successful DHT lookups */
 
@@ -177,9 +177,9 @@ typedef struct dl_file_info {
 	 * The following group is used to compute the aggregated reception rate.
 	 */
 
-	gint32 recvcount;		/**< Amount of "receiving" d/l referencing us */
-	guint32 recv_last_rate;	/**< Last amount of bytes/sec received */
-	guint32 recv_amount;	/**< Amount of bytes received this period */
+	int32 recvcount;		/**< Amount of "receiving" d/l referencing us */
+	uint32 recv_last_rate;	/**< Last amount of bytes/sec received */
+	uint32 recv_amount;		/**< Amount of bytes received this period */
 	time_t recv_last_time;	/**< When did we last compute recv_last_rate? */
 
 	/*
@@ -192,7 +192,7 @@ typedef struct dl_file_info {
 	unsigned copy_elapsed;	/**< Time spent to copy the file */
 
 	/*
-	 * Booleans (bit fields used since gboolean uses too much space).
+	 * Booleans (bit fields used since bool uses too much space).
 	 */
 
 	unsigned file_size_known:1;	/**< File size known? */
@@ -220,21 +220,21 @@ fi_mark_bad_bitprint(fileinfo_t *fi)
 	fi->flags |= FI_F_BAD_BITPRINT;
 }
 
-static inline gboolean
+static inline bool
 fi_has_bad_bitprint(fileinfo_t *fi)
 {
 	file_info_check(fi);
 	return (fi->flags & FI_F_BAD_BITPRINT) ? TRUE : FALSE;
 }
 
-static inline gboolean
+static inline bool
 FILE_INFO_COMPLETE(const fileinfo_t *fi)
 {
 	file_info_check(fi);
 	return fi->file_size_known && fi->done == fi->size;
 }
 
-static inline gboolean
+static inline bool
 FILE_INFO_FINISHED(const fileinfo_t *fi)
 {
 	file_info_check(fi);
@@ -272,10 +272,10 @@ typedef enum {
 
 #ifdef CORE_SOURCES
 
-void fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, guint32);
+void fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, uint32);
 void fi_remove_listener(fi_listener_t, gnet_fi_ev_t);
 
-void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
+void src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, uint32);
 void src_remove_listener(src_listener_t, gnet_src_ev_t);
 
 struct download *src_get_download(gnet_src_t);
@@ -288,10 +288,10 @@ void fi_free_chunks(GSList *chunks);
 GSList *fi_get_ranges(gnet_fi_t);
 void fi_free_ranges(GSList *ranges);
 char **fi_get_aliases(gnet_fi_t fih);
-gboolean fi_purge(gnet_fi_t fih);
+bool fi_purge(gnet_fi_t fih);
 void fi_pause(gnet_fi_t fih);
 void fi_resume(gnet_fi_t fih);
-gboolean fi_rename(gnet_fi_t fih, const char *);
+bool fi_rename(gnet_fi_t fih, const char *);
 
 const char *file_info_readable_filename(const struct dl_file_info *fi);
 char *file_info_build_magnet(gnet_fi_t fih);

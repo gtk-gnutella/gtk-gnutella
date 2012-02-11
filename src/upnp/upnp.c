@@ -86,7 +86,7 @@
 static struct {
 	upnp_device_t *dev;			/**< Our Internet Gateway Device */
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
-	guint32 rcvd_pkts;			/**< Amount of received packets */
+	uint32 rcvd_pkts;			/**< Amount of received packets */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
 	time_delta_t lease_time;	/**< Lease time to request */
 	unsigned discover:1;		/**< Force discovery again */
@@ -122,7 +122,7 @@ struct upnp_mapping {
 	enum upnp_mapping_magic magic;
 	enum upnp_map_proto proto;	/**< Network protocol used */
 	enum upnp_method method;	/**< Method used to publish mapping */
-	guint16 port;				/**< Port to map */
+	uint16 port;				/**< Port to map */
 	cevent_t *install_ev;		/**< Periodic install event */
 	upnp_ctrl_t *rpc;			/**< Pending control RPC */
 	time_delta_t lease_time;	/**< Requested lease time */
@@ -155,7 +155,7 @@ upnp_igd_ip_routed(void)
 /**
  * Do we have port mapping deletion in progress?
  */
-gboolean
+bool
 upnp_delete_pending(void)
 {
 	if (GNET_PROPERTY(shutdown_debug) > 1) {
@@ -215,7 +215,7 @@ upnp_mapping_eq(const void *a, const void *b)
  * Create a new UPnP mapping record.
  */
 static struct upnp_mapping *
-upnp_mapping_alloc(enum upnp_map_proto proto, guint16 port)
+upnp_mapping_alloc(enum upnp_map_proto proto, uint16 port)
 {
 	struct upnp_mapping * um;
 
@@ -232,7 +232,7 @@ upnp_mapping_alloc(enum upnp_map_proto proto, guint16 port)
  * Free a UPnP mapping record.
  */
 static void
-upnp_mapping_free(struct upnp_mapping *um, gboolean in_shutdown)
+upnp_mapping_free(struct upnp_mapping *um, bool in_shutdown)
 {
 	upnp_mapping_check(um);
 
@@ -383,7 +383,7 @@ upnp_dev_igd_make(const char *desc_url, GSList *services, host_addr_t wan_ip,
 static void
 upnp_check_new_wan_addr(host_addr_t addr)
 {
-	gboolean learnt_external_ip = FALSE;
+	bool learnt_external_ip = FALSE;
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
@@ -520,7 +520,7 @@ done:
  * @param arg		user-defined argument
  */
 static void
-upnp_natpmp_discovered(gboolean ok, natpmp_t *gateway, void *arg)
+upnp_natpmp_discovered(bool ok, natpmp_t *gateway, void *arg)
 {
 	(void) arg;
 
@@ -550,7 +550,7 @@ upnp_natpmp_discovered(gboolean ok, natpmp_t *gateway, void *arg)
 static void
 upnp_launch_discovery(void)
 {
-	static gboolean retrying;
+	static bool retrying;
 
 	igd.discovery_done = FALSE;
 	gw.discovery_done = FALSE;
@@ -626,7 +626,7 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
  * @param arg		user-defined argument
  */
 static void
-upnp_monitor_natpmp_callback(gboolean ok, natpmp_t *gateway, void *unused_arg)
+upnp_monitor_natpmp_callback(bool ok, natpmp_t *gateway, void *unused_arg)
 {
 	(void) unused_arg;
 
@@ -794,7 +794,7 @@ rediscover:
  *
  * @return TRUE when we are firewalled and in need for port mappings.
  */
-static gboolean
+static bool
 upnp_port_mapping_required(void)
 {
 	if (GNET_PROPERTY(is_firewalled) || GNET_PROPERTY(is_udp_firewalled)) {
@@ -899,8 +899,8 @@ upnp_map_try_publish_all(void)
  * Callout queue periodic event to monitor presence of the Internet Gateway
  * Device or the NAT-PMP gateway we are using and detect configuration changes.
  */
-static gboolean
-upnp_monitor_drivers(gpointer unused_obj)
+static bool
+upnp_monitor_drivers(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -1038,7 +1038,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
  */
 static void
 upnp_map_natpmp_publish_reply(int code,
-	guint16 port, unsigned lifetime, void *arg)
+	uint16 port, unsigned lifetime, void *arg)
 {
 	struct upnp_mapping *um = arg;
 
@@ -1190,7 +1190,7 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
  * Record port mapping addition.
  */
 static void
-upnp_map_add(enum upnp_map_proto proto, guint16 port)
+upnp_map_add(enum upnp_map_proto proto, uint16 port)
 {
 	struct upnp_mapping key;
 	struct upnp_mapping *um;
@@ -1253,7 +1253,7 @@ upnp_map_delete_reply(int code, void *value, size_t size, void *arg)
  *
  * @return TRUE if we can dispose of the mapping record.
  */
-static gboolean
+static bool
 upnp_map_unpublish(struct upnp_mapping *um)
 {
 	upnp_mapping_check(um);
@@ -1310,7 +1310,7 @@ upnp_map_unpublish(struct upnp_mapping *um)
  * Remove port mapping.
  */
 static void
-upnp_map_remove(enum upnp_map_proto proto, guint16 port)
+upnp_map_remove(enum upnp_map_proto proto, uint16 port)
 {
 	struct upnp_mapping key;
 	struct upnp_mapping *um;
@@ -1497,7 +1497,7 @@ upnp_map_publish_all(void)
  * Add TCP port redirection on the IGD device to this machine.
  */
 void
-upnp_map_tcp(guint16 port)
+upnp_map_tcp(uint16 port)
 {
 	upnp_map_add(UPNP_MAP_TCP, port);
 }
@@ -1506,7 +1506,7 @@ upnp_map_tcp(guint16 port)
  * Add UDP port redirection on the IGD device to this machine.
  */
 void
-upnp_map_udp(guint16 port)
+upnp_map_udp(uint16 port)
 {
 	upnp_map_add(UPNP_MAP_UDP, port);
 }
@@ -1515,7 +1515,7 @@ upnp_map_udp(guint16 port)
  * Remove TCP port redirection on the IGD device.
  */
 void
-upnp_unmap_tcp(guint16 port)
+upnp_unmap_tcp(uint16 port)
 {
 	upnp_map_remove(UPNP_MAP_TCP, port);
 }
@@ -1524,7 +1524,7 @@ upnp_unmap_tcp(guint16 port)
  * Remove UDP port redirection on the IGD device.
  */
 void
-upnp_unmap_udp(guint16 port)
+upnp_unmap_udp(uint16 port)
 {
 	upnp_map_remove(UPNP_MAP_UDP, port);
 }
@@ -1580,7 +1580,7 @@ upnp_post_init(void)
  * Free mappings still present, warning about them since normal cleanup
  * should remove them.
  */
-static gboolean
+static bool
 upnp_free_mapping_kv(void *key, void *u_value, void *u_data)
 {
 	struct upnp_mapping *um = key;

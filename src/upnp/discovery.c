@@ -145,12 +145,12 @@ typedef upnp_ctrl_t *(*upnp_argless_ctrl_t)(const upnp_service_t *usd,
  *
  * @return TRUE if we can keep the device in our discovery list.
  */
-typedef gboolean (*upnp_dscv_ctrl_cb_t)(
+typedef bool (*upnp_dscv_ctrl_cb_t)(
 	int code, void *value, size_t size, struct upnp_dscv *ud);
 
-static gboolean upnp_dscv_got_connection_type(
+static bool upnp_dscv_got_connection_type(
 	int code, void *value, size_t size, struct upnp_dscv *ud);
-static gboolean upnp_dscv_got_external_ip(
+static bool upnp_dscv_got_external_ip(
 	int code, void *value, size_t size, struct upnp_dscv *ud);
 
 /**
@@ -195,7 +195,7 @@ upnp_dscv_free(struct upnp_dscv *ud)
  * Free UPnP M-SEARCH callback descriptor.
  */
 static void
-upnp_mcb_free(struct upnp_mcb *mcb, gboolean in_shutdown)
+upnp_mcb_free(struct upnp_mcb *mcb, bool in_shutdown)
 {
 	GSList *sl;
 
@@ -287,7 +287,7 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
  *
  * @return TRUE if we can keep this device.
  */
-static gboolean
+static bool
 upnp_dscv_got_connection_type(
 	int code, void *value, size_t size, struct upnp_dscv *ud)
 {
@@ -300,7 +300,7 @@ upnp_dscv_got_connection_type(
 	 */
 
 	if (ret != NULL) {
-		gboolean suitable;
+		bool suitable;
 
 		suitable = 0 == strcmp(ret->connection_type, upnp_igd_ip_routed());
 
@@ -334,7 +334,7 @@ upnp_dscv_got_connection_type(
  *
  * @return TRUE if we can keep this device.
  */
-static gboolean
+static bool
 upnp_dscv_got_external_ip(
 	int code, void *value, size_t size, struct upnp_dscv *ud)
 {
@@ -347,7 +347,7 @@ upnp_dscv_got_external_ip(
 	 */
 
 	if (ret != NULL) {
-		gboolean routable;
+		bool routable;
 
 		routable = host_addr_is_routable(ret->external_ip);
 
@@ -377,7 +377,7 @@ upnp_dscv_got_external_ip(
 	return TRUE;
 }
 
-static gboolean upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx);
+static bool upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx);
 
 /**
  * Completion callback for upnp_ctrl_*() routines launched through the
@@ -446,7 +446,7 @@ done:
  *
  * @return TRUE if we can launch the action, FALSE otherwise.
  */
-static gboolean
+static bool
 upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 {
 	struct upnp_dscv_ctrl *dc;
@@ -547,7 +547,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ud->minor = 0;
 	} else {
 		const char *p = strstr(buf, "UPnP/");
-		gboolean ok = FALSE;
+		bool ok = FALSE;
 
 		if (p != NULL) {
 			unsigned major, minor;
@@ -664,7 +664,7 @@ remove_device:
  * socket buffer.
  */
 static void
-upnp_msearch_reply(struct gnutella_socket *s, gboolean truncated)
+upnp_msearch_reply(struct gnutella_socket *s, bool truncated)
 {
 	int code;
 	header_t *header;
@@ -816,7 +816,7 @@ done:
  *
  * @return TRUE if message was successfully sent.
  */
-static gboolean
+static bool
 upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 	const char *type, unsigned mx)
 {
@@ -873,7 +873,7 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
  * Discovery timed out.
  */
 static void
-upnp_dscv_timeout(cqueue_t *unused_cq, gpointer obj)
+upnp_dscv_timeout(cqueue_t *unused_cq, void *obj)
 {
 	struct upnp_mcb *mcb = obj;
 
@@ -918,7 +918,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 	host_addr_t bind_addr;
 	unsigned mx;
 	struct upnp_mcb *mcb;
-	gboolean sent = FALSE;
+	bool sent = FALSE;
 	static const char * const devlist[] = {
 		"urn:schemas-upnp-org:device:InternetGatewayDevice:2",
 		"urn:schemas-upnp-org:device:InternetGatewayDevice:1",
@@ -1055,7 +1055,7 @@ upnp_discovery_init(void)
 }
 
 static void
-upnp_discovery_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+upnp_discovery_free_kv(void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;

@@ -113,7 +113,7 @@ mutex_init(mutex_t *m)
 /**
  * Is mutex owned?
  */
-gboolean
+bool
 mutex_is_owned(const mutex_t *m)
 {
 	thread_t t;
@@ -181,7 +181,7 @@ mutex_grab(mutex_t *m)
  *
  * @return whether we obtained the mutex.
  */
-gboolean
+bool
 mutex_grab_try(mutex_t *m)
 {
 	mutex_check(m);
@@ -220,7 +220,7 @@ mutex_grab_from(mutex_t *m, const char *file, unsigned line)
  *
  * @return whether we obtained the mutex.
  */
-gboolean
+bool
 mutex_grab_try_from(mutex_t *m, const char *file, unsigned line)
 {
 	if (mutex_grab_try(m)) {
@@ -263,7 +263,7 @@ mutex_release_const(const mutex_t *m)
 	 * de-constify it now: no mutex is really read-only.
 	 */
 
-	mutex_release(deconstify_gpointer(m));
+	mutex_release(deconstify_pointer(m));
 }
 
 /**

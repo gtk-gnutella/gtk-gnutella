@@ -84,9 +84,9 @@
  */
 struct pong_info {
 	host_addr_t addr;				/**< Values from the pong message */
-	guint32 port;
-	guint32 files_count;
-	guint32 kbytes_count;
+	uint32 port;
+	uint32 files_count;
+	uint32 kbytes_count;
 };
 
 enum ping_flag {
@@ -133,10 +133,10 @@ ping_net(enum ping_flag flags)
  * Sends a ping to given node.
  */
 static void
-send_ping(struct gnutella_node *n, guint8 ttl)
+send_ping(struct gnutella_node *n, uint8 ttl)
 {
 	gnutella_msg_init_t *m;
-	guint32 size;
+	uint32 size;
 
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
@@ -163,15 +163,15 @@ send_ping(struct gnutella_node *n, guint8 ttl)
  * @return pointer to static data, and the size of the message in `size'.
  */
 gnutella_msg_init_t *
-build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
+build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 {
 	static union {
 		gnutella_msg_init_t s;
 		char buf[256];
-		guint64 align8;
+		uint64 align8;
 	} msg_init;
 	gnutella_msg_init_t *m = &msg_init.s;
-	guint32 sz;
+	uint32 sz;
 
 	g_assert(ttl);
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
@@ -195,12 +195,12 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 	 */
 
 	if (uhc || ttl > 1) {
-		guchar *ggep;
+		uchar *ggep;
 		ggep_stream_t gs;
-		gboolean ok;
+		bool ok;
 		char spp;
 
-		ggep = cast_to_gpointer(&m[1]);
+		ggep = cast_to_pointer(&m[1]);
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
 		spp = settings_is_leaf() ? 0 : SCP_F_ULTRA;
@@ -262,20 +262,19 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
  * @return pointer to static data, and the size of the message in `size'.
  */
 gnutella_msg_init_t *
-build_guess_ping_msg(const struct guid *muid,
-	gboolean qk, gboolean intro, gboolean scp,
-	guint32 *size)
+build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
+	uint32 *size)
 {
 	static union {
 		gnutella_msg_init_t s;
 		char buf[256];
-		guint64 align8;
+		uint64 align8;
 	} msg_init;
 	gnutella_msg_init_t *m = &msg_init.s;
-	guint32 sz;
-	guchar *ggep;
+	uint32 sz;
+	uchar *ggep;
 	ggep_stream_t gs;
-	gboolean ok;
+	bool ok;
 
 	g_assert(qk || intro);
 
@@ -292,7 +291,7 @@ build_guess_ping_msg(const struct guid *muid,
 	gnutella_header_set_hops(m, 0);
 
 	sz = 0;			/* Payload size if no extensions */
-	ggep = cast_to_gpointer(&m[1]);
+	ggep = cast_to_pointer(&m[1]);
 	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 
 	if (scp) {
@@ -364,25 +363,25 @@ build_guess_ping_msg(const struct guid *muid,
  * @return pointer to static data, and the size of the message in `size'.
  */
 static gnutella_msg_init_response_t *
-build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
-	guint8 hops, guint8 ttl, const struct guid *muid,
+build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
+	uint8 hops, uint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta, enum ping_flag flags,
-	guint32 *size)
+	uint32 *size)
 {
 	static union {
 		gnutella_msg_init_response_t s;
 		char buf[1024];
-		guint64 align8;
+		uint64 align8;
 	} msg_pong;
 	gnutella_msg_init_response_t *pong = &msg_pong.s;
 	ggep_stream_t gs;
-	guchar *ggep;
-	guint32 sz;
-	guint32 ipv4;
-	gboolean ipv6_included = FALSE;
+	uchar *ggep;
+	uint32 sz;
+	uint32 ipv4;
+	bool ipv6_included = FALSE;
 
 	STATIC_ASSERT(37 == sizeof *pong);
-	ggep = cast_to_gpointer(&pong[1]);
+	ggep = cast_to_pointer(&pong[1]);
 
 	{
 		gnutella_header_t *header = gnutella_msg_init_response_header(pong);
@@ -439,7 +438,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		if (meta->flags & PONG_META_HAS_GUE) {	/* GUESS support */
 			ggep_stream_pack(&gs, GGEP_NAME(GUE),
-				cast_to_gpointer(&meta->guess), 1, 0);
+				cast_to_pointer(&meta->guess), 1, 0);
 		}
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
@@ -451,7 +450,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_LOC) {	/* Locale preferencing */
-			gboolean ok;
+			bool ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(LOC), 0) &&
 				ggep_stream_write(&gs, meta->language, 2);
@@ -464,9 +463,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_DU) {	/* Daily average uptime */
-			char uptime[sizeof(guint64)];
-			guint32 value = MIN(meta->daily_uptime, 86400);
-			guint len;
+			char uptime[sizeof(uint64)];
+			uint32 value = MIN(meta->daily_uptime, 86400);
+			uint len;
 
 			len = ggept_du_encode(value, uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
@@ -619,12 +618,12 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
  */
 static void
 send_pong(
-	struct gnutella_node *n, gboolean control, enum ping_flag flags,
-	guint8 hops, guint8 ttl, const struct guid *muid,
+	struct gnutella_node *n, bool control, enum ping_flag flags,
+	uint8 hops, uint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta)
 {
 	gnutella_msg_init_response_t *r;
-	guint32 size;
+	uint32 size;
 
 	g_assert(ttl >= 1);
 
@@ -662,8 +661,8 @@ ping_type(const gnutella_node_t *n)
 {
 	int i;
 	enum ping_flag flags = PING_F_NONE;
-	gboolean has_gue = FALSE;
-	gboolean has_scp = FALSE;
+	bool has_gue = FALSE;
+	bool has_scp = FALSE;
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
@@ -677,8 +676,8 @@ ping_type(const gnutella_node_t *n)
 
 			/* Accept only the first SCP, just in case there are multiple */
 			if (!(flags & PING_F_UHC) && ext_paylen(e) >= 1) {
-				const guchar *payload = ext_payload(e);
-				guint8 mask = payload[0];
+				const uchar *payload = ext_payload(e);
+				uint8 mask = payload[0];
 				flags |= (mask & SCP_F_ULTRA) ?
 					PING_F_UHC_ULTRA : PING_F_UHC_LEAF;
 				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
@@ -705,8 +704,8 @@ ping_type(const gnutella_node_t *n)
 		case EXT_T_GGEP_DHTIPP:
 			/* Accept only the first DHTIPP, just in case there are multiple */
 			if (ext_paylen(e) >= 1 && !(flags & PING_F_DHTIPP)) {
-				const guchar *payload = ext_payload(e);
-				guint8 mask = payload[0];
+				const uchar *payload = ext_payload(e);
+				uint8 mask = payload[0];
 				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
 				flags |= (mask & SCP_F_NO_IPV4) ? PING_F_NO_IPV4 : 0;
 			}
@@ -762,29 +761,29 @@ ping_type(const gnutella_node_t *n)
  * If `uhc' is not UHC_NONE, we'll send IPs in a packed IPP reply.
  */
 static void
-send_personal_info(struct gnutella_node *n, gboolean control,
+send_personal_info(struct gnutella_node *n, bool control,
 	enum ping_flag flags)
 {
-	guint32 kbytes;
-	guint32 files;
+	uint32 kbytes;
+	uint32 files;
 	struct pong_info info;
-	guint32 ip_uptime;
-	guint32 avg_uptime;
+	uint32 ip_uptime;
+	uint32 avg_uptime;
 
 	/* Replying to a ping */
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
 
-	files = MIN(shared_files_scanned(), ~((guint32) 0U));
+	files = MIN(shared_files_scanned(), ~((uint32) 0U));
 
 	/*
 	 * Mark pong if we are an ultra node: the amount of kbytes scanned must
 	 * be an exact power of two, and at minimum 8.
 	 */
 
-	kbytes = MIN(shared_kbytes_scanned(), ~((guint32) 0U));
+	kbytes = MIN(shared_kbytes_scanned(), ~((uint32) 0U));
 
 	if (settings_is_ultra()) {
-		guint32 next, prev;
+		uint32 next, prev;
 		
 		next = next_pow2(kbytes);
 		prev = next / 2;
@@ -965,7 +964,7 @@ send_neighbouring_info(struct gnutella_node *n)
  */
 void
 pcache_guess_acknowledge(struct gnutella_node *n,
-	gboolean good_query_key, gboolean wants_ipp, host_net_t net)
+	bool good_query_key, bool wants_ipp, host_net_t net)
 {
 	struct pong_info info;
 	pong_meta_t meta;
@@ -1096,8 +1095,8 @@ static struct recent recent_pongs[HOST_MAX];
  * Callbacks for the `ht_recent_pongs' hash table.
  */
 
-static guint
-cached_pong_hash(gconstpointer key)
+static uint
+cached_pong_hash(const void *key)
 {
 	const struct cached_pong *cp = key;
 
@@ -1105,7 +1104,7 @@ cached_pong_hash(gconstpointer key)
 		((cp->info.port << 16) | cp->info.port);
 }
 static int
-cached_pong_eq(gconstpointer v1, gconstpointer v2)
+cached_pong_eq(const void *v1, const void *v2)
 {
 	const struct cached_pong *h1 = v1, *h2 = v2;
 
@@ -1246,16 +1245,16 @@ free_cached_pong(struct cached_pong *cp)
  * XXX demultiplexing logic?
  * XXX		--RAM, 2008-03-11
  */
-gboolean
-pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port)
+bool
+pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	static host_addr_t last_addr;
-	static guint16 last_port = 0;
+	static uint16 last_port = 0;
 	GList *l;
 	struct cached_pong *cp;
 	struct recent *rec;
 
-	g_assert((guint) type < HOST_MAX);
+	g_assert((uint) type < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -1339,8 +1338,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 
     if (
         !host_is_valid(cp->info.addr, cp->info.port) ||
-        (NULL != g_hash_table_lookup(
-            rec->ht_recent_pongs, (gconstpointer) cp)) ||
+        (NULL != g_hash_table_lookup(rec->ht_recent_pongs, cp)) ||
         hcache_node_is_bad(cp->info.addr)
     ) {
         return;
@@ -1372,7 +1370,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 static host_type_t
 pong_type(gnutella_init_response_t *pong)
 {
-	guint32 kbytes;
+	uint32 kbytes;
 
 	kbytes = gnutella_init_response_get_kbytes_count(pong);
 
@@ -1478,7 +1476,7 @@ G_GNUC_COLD void
 pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };
-	guint i;
+	uint i;
 
 	pcache_expire();
 
@@ -1613,7 +1611,7 @@ pcache_set_peermode(node_peer_t mode)
  * those as being "his" pongs.
  */
 static void
-setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
+setup_pong_demultiplexing(struct gnutella_node *n, uint8 ttl)
 {
 	int remains;
 	int h;
@@ -1647,7 +1645,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 	n->pong_missing = remains = MAX_PONGS;
 
 	for (h = 0; h <= MAX_CACHE_HOPS; h++) {
-		guchar amount = (guchar) (remains / (MAX_CACHE_HOPS + 1 - h));
+		uchar amount = (uchar) (remains / (MAX_CACHE_HOPS + 1 - h));
 		n->pong_needed[h] = amount;
 		remains -= amount;
 		if (GNET_PROPERTY(pcache_debug) > 7)
@@ -1666,10 +1664,10 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
  *
  * @return FALSE if we're definitely done, TRUE if we can still iterate.
  */
-static gboolean
+static bool
 iterate_on_cached_line(
-	struct gnutella_node *n, struct cache_line *cl, guint8 ttl,
-	GSList *start, GSList *end, gboolean strict)
+	struct gnutella_node *n, struct cache_line *cl, uint8 ttl,
+	GSList *start, GSList *end, bool strict)
 {
 	int hops = cl->hops;
 	GSList *sl;
@@ -1751,7 +1749,7 @@ iterate_on_cached_line(
 static void
 send_cached_pongs(
 	struct gnutella_node *n,
-	struct cache_line *cl, guint8 ttl, gboolean strict)
+	struct cache_line *cl, uint8 ttl, bool strict)
 {
 	int hops = cl->hops;
 	GSList *old = cl->cursor;
@@ -1780,7 +1778,7 @@ static void
 send_demultiplexed_pongs(gnutella_node_t *n)
 {
 	enum ping_flag flags;
-	guint h, ttl;
+	uint h, ttl;
 
 	/*
 	 * Look whether the "ping" they sent bore the "SCP" extension, meaning
@@ -1856,7 +1854,7 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 static void
 pong_all_neighbours_but_one(
 	struct gnutella_node *n, struct cached_pong *cp, host_type_t ptype,
-	guint8 hops, guint8 ttl)
+	uint8 hops, uint8 ttl)
 {
 	const GSList *sl;
 
@@ -1916,7 +1914,7 @@ pong_all_neighbours_but_one(
  * Send it to one randomly selected leaf, which is not already missing pongs.
  */
 static void
-pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
+pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
 	const GSList *sl;
 	unsigned leaves;
@@ -1990,8 +1988,8 @@ pong_extract_metadata(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
-		const guchar *payload;
-		guint16 paylen;
+		const uchar *payload;
+		uint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_DU:
@@ -2001,7 +1999,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			 */
 
 			{
-				guint32 uptime;
+				uint32 uptime;
 				if (GGEP_OK == ggept_du_extract(e, &uptime)) {
 					ALLOCATE(DU);
 					meta->daily_uptime = uptime;
@@ -2137,13 +2135,13 @@ static struct cached_pong *
 record_fresh_pong(
 	host_type_t type,
 	struct gnutella_node *n,
-	guint8 hops, host_addr_t addr, guint16 port,
-	guint32 files_count, guint32 kbytes_count,
+	uint8 hops, host_addr_t addr, uint16 port,
+	uint32 files_count, uint32 kbytes_count,
 	pong_meta_t *meta)
 {
 	struct cache_line *cl;
 	struct cached_pong *cp;
-	guint8 hop;
+	uint8 hop;
 
 	g_assert(UNSIGNED(type) < HOST_MAX);
 
@@ -2215,7 +2213,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 /*
  * Shall we accept the ping?.
  */
-static gboolean
+static bool
 pcache_ping_accept(gnutella_node_t *n)
 {
 	time_t now = tm_time();
@@ -2296,7 +2294,7 @@ pcache_ping_received(struct gnutella_node *n)
 		gnutella_header_get_hops(&n->header) == 0 &&
 		gnutella_header_get_ttl(&n->header) <= 2
 	) {
-		guint8 ttl = gnutella_header_get_ttl(&n->header);
+		uint8 ttl = gnutella_header_get_ttl(&n->header);
 
 		n->n_ping_special++;
 
@@ -2401,9 +2399,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
 {
 	host_addr_t ipv4_addr;
 	host_addr_t ipv6_addr;
-	gboolean supports_tls;
-	gboolean supports_dht;
-	guint16 port;
+	bool supports_tls;
+	bool supports_dht;
+	uint16 port;
 	int i;
 
 	g_assert(NODE_IS_UDP(n));
@@ -2436,7 +2434,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
-		guint16 paylen;
+		uint16 paylen;
 		const char *payload;
 
 		switch (e->ext_token) {
@@ -2496,7 +2494,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			break;
 		case EXT_T_GGEP_DHT:
 			if (ext_paylen(e) >= 3) {
-				guint8 mode;
+				uint8 mode;
 
 				payload = ext_payload(e);
 				mode = payload[2];
@@ -2563,10 +2561,10 @@ pcache_udp_pong_received(struct gnutella_node *n)
 void
 pcache_pong_received(struct gnutella_node *n)
 {
-	guint16 port;
-	guint32 files_count;
-	guint32 kbytes_count;
-	guint32 swapped_count;
+	uint16 port;
+	uint32 files_count;
+	uint32 kbytes_count;
+	uint32 swapped_count;
 	struct cached_pong *cp;
 	host_type_t ptype;
 	host_addr_t addr;
@@ -2615,9 +2613,9 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (files_count > PCACHE_MAX_FILES) {	/* Arbitrarily large constant */
-		gboolean fixed = FALSE;
+		bool fixed = FALSE;
 
-		swapped_count = swap_guint32(files_count);
+		swapped_count = swap_uint32(files_count);
 
 		if (swapped_count > PCACHE_MAX_FILES) {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
@@ -2638,7 +2636,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 * Maybe the kbytes_count is correct if the files_count was?
 		 */
 
-		swapped_count = swap_guint32(kbytes_count);
+		swapped_count = swap_uint32(kbytes_count);
 
 		if (fixed && swapped_count < kbytes_count)
 			kbytes_count = swapped_count;		/* Probably wrong as well */
@@ -2770,7 +2768,7 @@ pcache_pong_received(struct gnutella_node *n)
 			addr, port, files_count, kbytes_count, meta);
 	meta = NULL;	/* Metadata now owned by cached pong */
 
-	ptype = pong_type((gpointer) n->data);
+	ptype = pong_type(cast_to_pointer(n->data));
 	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_UP))
 		ptype = HOST_ULTRA;
 
@@ -2844,7 +2842,7 @@ done:
  * connections as well.
  */
 void
-pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, guint16 port)
+pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, uint16 port)
 {
 	g_assert(n->attrs & NODE_A_ULTRA);
 

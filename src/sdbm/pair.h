@@ -15,20 +15,20 @@
 #define replpair sdbm__replpair
 #define replaceable sdbm__replaceable
 
-extern gboolean fitpair(const char *, size_t);
-extern gboolean putpair(DBM *, char *, datum, datum);
+extern bool fitpair(const char *, size_t);
+extern bool putpair(DBM *, char *, datum, datum);
 extern datum getpair(DBM *, char *, datum);
-extern gboolean exipair(DBM *, const char *, datum);
-extern gboolean delpair(DBM *, char *, datum);
-extern gboolean delnpair(DBM *, char *, int);
-extern gboolean delipair(DBM *, char *, int, gboolean);
-extern gboolean chkipair(DBM *, char *, int);
-extern gboolean infopair(DBM *, char *, datum, size_t *, int *, gboolean *);
+extern bool exipair(DBM *, const char *, datum);
+extern bool delpair(DBM *, char *, datum);
+extern bool delnpair(DBM *, char *, int);
+extern bool delipair(DBM *, char *, int, bool);
+extern bool chkipair(DBM *, char *, int);
+extern bool infopair(DBM *, char *, datum, size_t *, int *, bool *);
 extern datum getnkey(DBM *, char *, int);
 extern datum getnval(DBM *, char *, int);
 extern void splpage(DBM *, char *, char *, char *, long);
-extern gboolean replaceable(size_t, size_t, gboolean);
+extern bool replaceable(size_t, size_t, bool);
 extern int replpair(DBM *, char *, int, datum);
 #ifdef SEEDUPS
-extern gboolean duppair(DBM *, const char *, datum);
+extern bool duppair(DBM *, const char *, datum);
 #endif

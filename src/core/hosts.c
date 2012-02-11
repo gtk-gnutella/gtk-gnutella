@@ -64,16 +64,16 @@
 #define HOST_DHT_MAX			50		/**< Get that many random hosts */
 #define HOST_CONNECT_FREQ		120		/**< At most 1 connection per 2 mins */
 
-gboolean host_low_on_pongs = FALSE;		/**< True when less than 12% full */
+bool host_low_on_pongs = FALSE;		/**< True when less than 12% full */
 
-static gboolean in_shutdown = FALSE;
+static bool in_shutdown = FALSE;
 static aging_table_t *node_connects;
 
 /*
  * Avoid nodes being stuck helplessly due to completely stale caches.
  * @return TRUE if an UHC may be contact, FALSE if it's not permissable.
  */
-static gboolean
+static bool
 host_cache_allow_bypass(void)
 {
 	static time_t last_try;
@@ -101,8 +101,8 @@ host_cache_allow_bypass(void)
  * Attempt Gnutella host connection.
  * @return TRUE if OK, FALSE if attempt was throttled
  */
-static gboolean
-host_gnutella_connect(host_addr_t addr, guint16 port)
+static bool
+host_gnutella_connect(host_addr_t addr, uint16 port)
 {
 	if (aging_lookup(node_connects, &addr))
 		return FALSE;
@@ -123,13 +123,13 @@ host_gnutella_connect(host_addr_t addr, guint16 port)
 void
 host_timer(void)
 {
-    guint count;
+    uint count;
 	int missing;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 	host_type_t htype;
-	guint max_nodes;
-	gboolean empty_cache = FALSE;
+	uint max_nodes;
+	bool empty_cache = FALSE;
 
 	if (in_shutdown || !GNET_PROPERTY(online_mode))
 		return;
@@ -210,7 +210,7 @@ host_timer(void)
             max_pool = MAX(GNET_PROPERTY(quick_connect_pool_size), max_nodes);
             fan = (missing * GNET_PROPERTY(quick_connect_pool_size))/ max_pool;
 			fan = MAX(1, fan);
-            to_add = GNET_PROPERTY(is_inet_connected) ? fan : (guint) missing;
+            to_add = GNET_PROPERTY(is_inet_connected) ? fan : (uint) missing;
 
 			/*
 			 * Every so many calls, attempt to ping all our neighbours to
@@ -319,7 +319,7 @@ host_init(void)
 /**
  * Check whether host's address is usable: routable and not bogus.
  */
-gboolean
+bool
 host_address_is_usable(const host_addr_t addr)
 {
 	if (!host_addr_is_routable(addr))
@@ -337,8 +337,8 @@ host_address_is_usable(const host_addr_t addr)
  * i.e. that it has a valid port and that its IP address is not private
  * nor bogus.
  */
-gboolean
-host_is_valid(const host_addr_t addr, guint16 port)
+bool
+host_is_valid(const host_addr_t addr, uint16 port)
 {
 	if (!port_is_valid(port))
 		return FALSE;
@@ -352,7 +352,7 @@ host_is_valid(const host_addr_t addr, guint16 port)
  * When `connect' is true, attempt to connect if we are low in Gnet links.
  */
 void
-host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
+host_add(const host_addr_t addr, uint16 port, bool do_connect)
 {
 	if (!do_connect || !hcache_add_caught(HOST_ANY, addr, port, "pong"))
 		return;
@@ -384,7 +384,7 @@ host_add(const host_addr_t addr, guint16 port, gboolean do_connect)
  * may be unsuitable for Gnet connections.
  */
 void
-host_add_semi_pong(const host_addr_t addr, guint16 port)
+host_add_semi_pong(const host_addr_t addr, uint16 port)
 {
 	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
 
@@ -394,12 +394,12 @@ host_add_semi_pong(const host_addr_t addr, guint16 port)
 /* ---------- Netmask heuristic by Mike Perry -------- */
 struct network_pair
 {
-	guint32 mask;
-	guint32 net;
+	uint32 mask;
+	uint32 net;
 };
 
 struct network_pair *local_networks = NULL;
-guint32 number_local_networks;
+uint32 number_local_networks;
 
 /**
  * frees the local networks array
@@ -419,7 +419,7 @@ parse_netmasks(const char *str)
 {
 	char **masks = g_strsplit(str, ";", 0);
 	char *p;
-	guint32 mask_div;
+	uint32 mask_div;
 	int i;
 
 	free_networks();
@@ -458,7 +458,7 @@ parse_netmasks(const char *str)
 					g_warning("parse_netmasks(): "
 						"Invalid CIDR prefixlen: \"%s\"", p);
 				else
-					local_networks[i].mask = (guint32) -1 << (32 - mask_div);
+					local_networks[i].mask = (uint32) -1 << (32 - mask_div);
 			}
 		}
 		else {
@@ -476,15 +476,15 @@ parse_netmasks(const char *str)
 /**
  * @returns true if the address is inside one of the local networks
  */
-gboolean
+bool
 host_is_nearby(const host_addr_t addr)
 {
-	guint i;
+	uint i;
 
 	if (host_addr_is_ipv4(addr)) {
 		for (i = 0; i < number_local_networks; i++) {
-			guint32 m_mask = local_networks[i].mask;
-			guint32 m_ip = local_networks[i].net;
+			uint32 m_mask = local_networks[i].mask;
+			uint32 m_ip = local_networks[i].net;
 
 			if ((host_addr_ipv4(addr) & m_mask) == (m_ip & m_mask))
 				return TRUE;

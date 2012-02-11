@@ -54,7 +54,7 @@ struct monitored {
 	const char *filename;	/**< Filename to monitor */
 	time_t mtime;			/**< Last known modified time */
 	watcher_cb_t cb;		/**< Callback to invoke on change */
-	gpointer udata;			/**< User supplied data to hand-out to callback */
+	void *udata;			/**< User supplied data to hand-out to callback */
 };
 
 static GHashTable *monitored;	/**< filename -> struct monitored */
@@ -77,7 +77,7 @@ watcher_mtime(const char *filename)
  * Check each registered file for change -- hash table iterator callback.
  */
 static void
-watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
+watcher_check_mtime(void *unused_key, void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 	time_t new_mtime;
@@ -97,8 +97,8 @@ watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
  * Callout queue periodic event to perform periodic monitoring of the
  * registered files.
  */
-static gboolean
-watcher_timer(gpointer unused_udata)
+static bool
+watcher_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -118,7 +118,7 @@ watcher_timer(gpointer unused_udata)
  * @param udata extra data to pass to the callback, along with filename
  */
 void
-watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
+watcher_register(const char *filename, watcher_cb_t cb, void *udata)
 {
 	struct monitored *m;
 
@@ -139,7 +139,7 @@ watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
  * given instead of a complete filename.
  */
 void
-watcher_register_path(const file_path_t *fp, watcher_cb_t cb, gpointer udata)
+watcher_register_path(const file_path_t *fp, watcher_cb_t cb, void *udata)
 {
 	char *path;
 
@@ -202,7 +202,7 @@ watcher_init(void)
  * Free monitored structure -- hash table iterator callback.
  */
 static void
-free_monitored_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_monitored_kv(void *unused_key, void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 

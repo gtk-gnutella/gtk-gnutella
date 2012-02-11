@@ -161,7 +161,7 @@ alloca_new_stack(void)
 static struct alloca_stack *
 alloca_get_stack(void)
 {
-	static gboolean warned;
+	static bool warned;
 	struct alloca_stack *as;
 
 	/*
@@ -194,7 +194,7 @@ alloca_get_stack(void)
  *
  * @return TRUE if block has expired.
  */
-static gboolean
+static bool
 alloca_expired(const union alloca_header *ah, const void *sp, const void *pc)
 {
 	int c;

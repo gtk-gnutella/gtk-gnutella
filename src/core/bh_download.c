@@ -51,25 +51,25 @@
 #define BH_DL_MAX_SIZE		65536	/* Maximum payload size we allow */
 
 struct browse_ctx {
-	gpointer owner;					/**< Download owning us */
-	rxdrv_t *rx;					/**< RX stack top */
-	gnet_host_t host;				/**< Host we're browsing, for logging */
-	gnet_search_t sh;				/**< Search ID to which hits are given */
+	void *owner;				/**< Download owning us */
+	rxdrv_t *rx;				/**< RX stack top */
+	gnet_host_t host;			/**< Host we're browsing, for logging */
+	gnet_search_t sh;			/**< Search ID to which hits are given */
 	const char *vendor;			/**< Vendor version string (atom) */
-	gnutella_header_t header;		/**< Received header */
+	gnutella_header_t header;	/**< Received header */
 	char *data;					/**< Where payload data is stored */
-	guint data_size;				/**< Size of data buffer */
-	guint pos;						/**< Reading position */
-	guint32 size;					/**< Payload size */
-	gboolean has_header;			/**< True when header has been read */
-	gboolean closed;				/**< Set when search is closed */
+	uint data_size;				/**< Size of data buffer */
+	uint pos;					/**< Reading position */
+	uint32 size;				/**< Payload size */
+	unsigned has_header:1;		/**< True when header has been read */
+	unsigned closed:1;			/**< Set when search is closed */
 };
 
 /**
  * Initialize the browse host context.
  */
 struct browse_ctx *
-browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
+browse_host_dl_create(void *owner, gnet_host_t *host, gnet_search_t sh)
 {
 	struct browse_ctx *bc;
 
@@ -84,7 +84,7 @@ browse_host_dl_create(gpointer owner, gnet_host_t *host, gnet_search_t sh)
 /**
  * Check sure the browse-host context is for the proper search ID.
  */
-gboolean
+bool
 browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh)
 {
 	g_assert(bc != NULL);
@@ -97,7 +97,7 @@ browse_host_dl_for_search(struct browse_ctx *bc, gnet_search_t sh)
  *
  * @return TRUE whilst we think there is more data to read in the buffer.
  */
-static gboolean
+static bool
 browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 {
 	/*
@@ -105,7 +105,7 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
 	 */
 
 	if (!bc->has_header) {
-		char *w = cast_to_gpointer(&bc->header);
+		char *w = cast_to_pointer(&bc->header);
 
 		g_assert(sizeof bc->header >= bc->pos);
 		bc->pos += pmsg_read(mb, &w[bc->pos], sizeof bc->header - bc->pos);
@@ -162,7 +162,7 @@ browse_data_read(struct browse_ctx *bc, pmsg_t *mb)
  *
  * @return FALSE if an error was reported (processing aborted).
  */
-static gboolean
+static bool
 browse_data_process(struct browse_ctx *bc)
 {
 	gnutella_node_t *n;
@@ -195,12 +195,12 @@ browse_data_process(struct browse_ctx *bc)
  *
  * @return FALSE if an error occurred.
  */
-static gboolean
+static bool
 browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct browse_ctx *bc = rx_owner(rx);
 	struct download *d;
-	gboolean error = FALSE;
+	bool error = FALSE;
 
 	while (browse_data_read(bc, mb)) {
 		if (!browse_data_process(bc)) {
@@ -237,7 +237,7 @@ browse_data_ind(rxdrv_t *rx, pmsg_t *mb)
  ***/
 
 static void
-browse_rx_given(gpointer o, ssize_t r)
+browse_rx_given(void *o, ssize_t r)
 {
 	struct browse_ctx *bc = o;
 
@@ -245,7 +245,7 @@ browse_rx_given(gpointer o, ssize_t r)
 }
 
 static G_GNUC_PRINTF(2, 3) void
-browse_rx_error(gpointer o, const char *reason, ...)
+browse_rx_error(void *o, const char *reason, ...)
 {
 	struct browse_ctx *bc = o;
 	va_list args;
@@ -256,7 +256,7 @@ browse_rx_error(gpointer o, const char *reason, ...)
 }
 
 static void
-browse_rx_got_eof(gpointer o)
+browse_rx_got_eof(void *o)
 {
 	struct browse_ctx *bc = o;
 
@@ -264,7 +264,7 @@ browse_rx_got_eof(gpointer o)
 }
 
 static void
-browse_rx_done(gpointer o)
+browse_rx_done(void *o)
 {
 	struct browse_ctx *bc = o;
 
@@ -293,10 +293,10 @@ static const struct rx_inflate_cb browse_rx_inflate_cb = {
  * @return TRUE if we may continue with the download, FALSE if the search
  * was already closed in the GUI.
  */
-gboolean
+bool
 browse_host_dl_receive(
 	struct browse_ctx *bc, gnet_host_t *host, wrap_io_t *wio,
-	const char *vendor, guint32 flags)
+	const char *vendor, uint32 flags)
 {
 	g_assert(bc != NULL);
 

@@ -49,6 +49,6 @@ cast_to_guid_ptr_const(const char *ptr)
 
 extern const struct guid blank_guid;
 
-gboolean guid_is_blank(const struct guid *);
+bool guid_is_blank(const struct guid *);
 
 #endif /* _if_core_guid_h_ */

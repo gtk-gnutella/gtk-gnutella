@@ -103,7 +103,7 @@ val_free(struct used_val *v)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-val_destroy(cqueue_t *unused_cq, gpointer obj)
+val_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct used_val *v = obj;
 
@@ -156,7 +156,7 @@ clock_init(void)
 }
 
 static void
-used_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+used_free_kv(void *unused_key, void *val, void *unused_x)
 {
 	struct used_val *v = val;
 
@@ -188,7 +188,7 @@ clock_adjust(void)
 	double min;
 	double max;
 	int i;
-	guint32 new_skew;
+	uint32 new_skew;
 	int k;
 
 	/*
@@ -261,12 +261,12 @@ clock_adjust(void)
 
 	statx_clear(datapoints);
 
-	new_skew = GNET_PROPERTY(clock_skew) + (gint32) avg;
+	new_skew = GNET_PROPERTY(clock_skew) + (int32) avg;
 
 	if (GNET_PROPERTY(clock_debug))
 		g_debug("CLOCK with n=%d avg=%g sdev=%g => SKEW old=%d new=%d",
-			n, avg, sdev, (gint32) GNET_PROPERTY(clock_skew),
-			(gint32) new_skew);
+			n, avg, sdev, (int32) GNET_PROPERTY(clock_skew),
+			(int32) new_skew);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
 }
@@ -281,7 +281,7 @@ void
 clock_update(time_t update, int precision, const host_addr_t addr)
 {
 	time_t now;
-	gint32 delta;
+	int32 delta;
 	struct used_val *v;
 
 	g_assert(used);
@@ -306,14 +306,14 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	}
 
 	now = tm_time();
-	delta = delta_time(update, (now + (gint32) GNET_PROPERTY(clock_skew)));
+	delta = delta_time(update, (now + (int32) GNET_PROPERTY(clock_skew)));
 
 	statx_add(datapoints, (double) (delta + precision));
 	statx_add(datapoints, (double) (delta - precision));
 
 	if (GNET_PROPERTY(clock_debug) > 1)
 		g_debug("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%g sdev=%g)",
-			(gint32) GNET_PROPERTY(clock_skew),
+			(int32) GNET_PROPERTY(clock_skew),
 			delta, precision, host_addr_to_string(addr),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
 
@@ -330,7 +330,7 @@ clock_loc2gmt(time_t stamp)
 	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp + (gint32) GNET_PROPERTY(clock_skew);
+	return stamp + (int32) GNET_PROPERTY(clock_skew);
 }
 
 /**
@@ -342,7 +342,7 @@ clock_gmt2loc(time_t stamp)
 	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp - (gint32) GNET_PROPERTY(clock_skew);
+	return stamp - (int32) GNET_PROPERTY(clock_skew);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

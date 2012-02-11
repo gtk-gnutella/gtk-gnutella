@@ -74,7 +74,7 @@ token_generate(sectoken_t *tok, const knode_t *kn)
 /*
  * Is specified token still valid for this Kademlia node?
  */
-gboolean
+bool
 token_is_valid(const sectoken_t *tok, const knode_t *kn)
 {
 	/*

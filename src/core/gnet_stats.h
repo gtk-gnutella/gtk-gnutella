@@ -31,14 +31,14 @@
 #include "if/dht/kademlia.h"
 
 void gnet_stats_init(void);
-guint32 gnet_stats_crc_reset(void);
+uint32 gnet_stats_crc_reset(void);
 
 void gnet_stats_count_received_header(gnutella_node_t *n);
 void gnet_stats_count_received_payload(const gnutella_node_t *n, const void *);
 void gnet_stats_count_queued(
-	const gnutella_node_t *n, guint8 type, const void *base, guint32 size);
+	const gnutella_node_t *n, uint8 type, const void *base, uint32 size);
 void gnet_stats_count_sent(
-	const gnutella_node_t *n, guint8 type, const void *base, guint32 size);
+	const gnutella_node_t *n, uint8 type, const void *base, uint32 size);
 void gnet_stats_count_expired(const gnutella_node_t *n);
 void gnet_stats_count_dropped(gnutella_node_t *n,
 	msg_drop_reason_t reason);
@@ -47,7 +47,7 @@ void gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 void gnet_stats_count_dropped_nosize(
 	const gnutella_node_t *n, msg_drop_reason_t reason);
 void gnet_stats_count_general(gnr_stats_t, int);
-void gnet_stats_set_general(gnr_stats_t type, guint64 value);
-void gnet_stats_count_flowc(const void *, gboolean head_only);
+void gnet_stats_set_general(gnr_stats_t type, uint64 value);
+void gnet_stats_count_flowc(const void *, bool head_only);
 
 #endif /* _core_gnet_stats_h_ */

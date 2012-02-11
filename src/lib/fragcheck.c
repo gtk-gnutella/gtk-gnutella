@@ -101,7 +101,7 @@ static struct {
 	bit_array_t touched[BIT_ARRAY_SIZE(BIT_COUNT)];
 } vars;
 
-static inline guint32
+static inline uint32
 fragcheck_meta_hash(const void *p)
 {
 	size_t x = (size_t) p;
@@ -131,7 +131,7 @@ fragcheck_meta_new(const void *p)
 static struct fragcheck_meta *
 fragcheck_meta_lookup(const void *p)
 {
-	guint32 i, slot = fragcheck_meta_hash(p);
+	uint32 i, slot = fragcheck_meta_hash(p);
 
 	for (i = 0; i < MAX_ALLOC_NUM; i++) {
 		size_t x = slot * 2;
@@ -165,7 +165,7 @@ fragcheck_meta_delete(struct fragcheck_meta *meta)
 	}
 }
 
-static gpointer
+static void *
 my_malloc(gsize n)
 {
 	struct fragcheck_meta *meta;
@@ -235,7 +235,7 @@ my_malloc(gsize n)
 }
 
 static void
-my_free(gpointer p)
+my_free(void *p)
 {
 #ifdef FRAGCHECK_VERBOSE 
 	printf("%s(%p)\n", __func__, p);
@@ -273,11 +273,11 @@ my_free(gpointer p)
 	}
 }
 
-static gpointer
-my_realloc(gpointer p, gsize n)
+static void *
+my_realloc(void *p, gsize n)
 {
-	static volatile gboolean lock;
-	gpointer x;
+	static volatile bool lock;
+	void *x;
 
 	RUNTIME_ASSERT(!lock);
 	lock = TRUE;
@@ -306,7 +306,7 @@ my_realloc(gpointer p, gsize n)
 }
 
 void
-alloc_dump(FILE *f, gboolean unused_flag)
+alloc_dump(FILE *f, bool unused_flag)
 {
 	size_t i, base_i = 0;
 	int cur = -1;
@@ -347,7 +347,7 @@ alloc_dump(FILE *f, gboolean unused_flag)
 }
 
 void
-alloc_dump2(FILE *f, gboolean unused_flag)
+alloc_dump2(FILE *f, bool unused_flag)
 {
 	size_t i;
 

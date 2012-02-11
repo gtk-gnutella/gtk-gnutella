@@ -90,10 +90,10 @@ struct addr_info {
 	int ban_delay;				/**< Banning delay, in seconds */
 	int ban_count;				/**< Amount of time we banned this source */
 	const char *ban_msg;		/**< Banning message (atom) */
-	gboolean banned;			/**< Is this IP currently banned? */
+	unsigned banned:1;			/**< Is this IP currently banned? */
 };
 
-static void ipf_destroy(cqueue_t *cq, gpointer obj);
+static void ipf_destroy(cqueue_t *cq, void *obj);
 
 /**
  * Create new addr_info structure for said IP.
@@ -148,7 +148,7 @@ ipf_free(struct addr_info *ipf)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-ipf_destroy(cqueue_t *unused_cq, gpointer obj)
+ipf_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 
@@ -170,7 +170,7 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
  * Called from callout queue when it's time to unban the IP.
  */
 static void
-ipf_unban(cqueue_t *unused_cq, gpointer obj)
+ipf_unban(cqueue_t *unused_cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
@@ -421,7 +421,7 @@ ban_close_fd(void **data_ptr)
  *
  * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-static gboolean
+static bool
 reclaim_fd(void)
 {
 	GList *prev;
@@ -459,10 +459,10 @@ reclaim_fd(void)
  *
  * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-static gboolean
+static bool
 ban_reclaim_fd(void)
 {
-	gboolean reclaimed;
+	bool reclaimed;
 
 	reclaimed = reclaim_fd();
 
@@ -534,7 +534,7 @@ ban_force(struct gnutella_socket *s)
 /**
  * Check whether IP is already recorded as being banned.
  */
-gboolean
+bool
 ban_is_banned(const host_addr_t addr)
 {
 	struct addr_info *ipf;
@@ -592,7 +592,7 @@ ban_init(void)
 void
 ban_max_recompute(void)
 {
-	guint32 max;
+	uint32 max;
 
 	max = (GNET_PROPERTY(sys_nofile) * GNET_PROPERTY(ban_ratio_fds)) / 100;
 	max = MIN(GNET_PROPERTY(ban_max_fds), max);
@@ -606,7 +606,7 @@ ban_max_recompute(void)
 }
 
 static void
-free_info(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_info(void *unused_key, void *value, void *unused_udata)
 {
 	(void) unused_key;
 	(void) unused_udata;
@@ -685,7 +685,7 @@ ban_vendor(const char *vendor)
 			"0.93",
 			"0.94",
 		};
-		guint i;
+		uint i;
 
 		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
 			if (is_strprefix(gtkg_version, versions[i]))

@@ -47,7 +47,7 @@
 /**
  * @return the amount of physical RAM in bytes, or zero in case of failure.
  */
-guint64
+uint64
 getphysmemsize(void)
 #ifdef MINGW32
 {
@@ -64,13 +64,13 @@ getphysmemsize(void)
 		g_warning("%s: sysconf(_SC_PHYS_PAGES) failed: %m", G_STRFUNC);
 		return 0;
 	}
-	return pagesize * (guint64) (unsigned long) pages;
+	return pagesize * (uint64) (unsigned long) pages;
 }
 #elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM64)
 {
 	/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM64 };
-	guint64 amount = 0;
+	uint64 amount = 0;
 	size_t len = sizeof amount;
 
 	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
@@ -84,7 +84,7 @@ getphysmemsize(void)
 {
 	/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
-	guint32 amount = 0;
+	uint32 amount = 0;
 	size_t len = sizeof amount;
 
 	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
@@ -118,7 +118,7 @@ getphysmemsize(void)
 		return 0;
 	}
 
-	return (guint64) (unsigned long) physmem * 1024 * 1024;
+	return (uint64) (unsigned long) physmem * 1024 * 1024;
 }
 #else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
 {

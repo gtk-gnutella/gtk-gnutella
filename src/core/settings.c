@@ -131,7 +131,7 @@ static prop_set_t *properties = NULL;
 static const char pidfile[] = "gtk-gnutella.pid";
 static const char dirlockfile[] = ".gtk-gnutella.lock";
 
-static gboolean settings_init_running;
+static bool settings_init_running;
 
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
@@ -149,7 +149,7 @@ static void
 remember_local_addr_port(void)
 {
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	addr = listen_addr();
 	port = GNET_PROPERTY(listen_port);
@@ -247,14 +247,14 @@ listen_addr_by_net(enum net_type net)
 	return zero_host_addr;
 }
 	
-gboolean
+bool
 is_my_address(const host_addr_t addr)
 {
 	return host_addr_equal(addr, listen_addr_by_net(host_addr_net(addr)));
 }
 
-gboolean
-is_my_address_and_port(const host_addr_t addr, guint16 port)
+bool
+is_my_address_and_port(const host_addr_t addr, uint16 port)
 {
 	return port == GNET_PROPERTY(listen_port) && is_my_address(addr);
 }
@@ -273,7 +273,7 @@ is_my_address_and_port(const host_addr_t addr, guint16 port)
 static G_GNUC_COLD int
 ensure_unicity(const char *file, int *fd_ptr)
 {
-	gboolean locked = FALSE;
+	bool locked = FALSE;
 	int fd;
 
 	g_assert(file);
@@ -294,7 +294,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 	{
 		static const struct flock zero_flock;
 		struct flock fl;
-		gboolean locking_failed;
+		bool locking_failed;
 
 		fl = zero_flock;
 		fl.l_type = F_WRLCK;
@@ -326,7 +326,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 				if (-1 != fcntl(fd, F_GETLK, &fl)) {
 					g_warning("another gtk-gnutella process seems to "
 							"be using \"%s\" (pid=%lu)",
-							file, (gulong) fl.l_pid);
+							file, (ulong) fl.l_pid);
 				} else {
 					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
 						fd, file);
@@ -365,7 +365,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 
 		/* Check the PID in the file */
 		{
-			guint64 u;
+			uint64 u;
 			int error;
 
 			g_assert(r >= 0 && (size_t) r < sizeof buf);
@@ -384,7 +384,7 @@ ensure_unicity(const char *file, int *fd_ptr)
 				if (compat_process_is_alive(pid)) {
 					if (fd_ptr) {
 						g_warning("another gtk-gnutella process seems to "
-							"be using \"%s\" (pid=%lu)", file, (gulong) pid);
+							"be using \"%s\" (pid=%lu)", file, (ulong) pid);
 					}
 					goto failed;
 				}
@@ -434,11 +434,11 @@ save_pid(int fd, const char *path)
 
 	g_assert(fd >= 0);
 
-	len = gm_snprintf(buf, sizeof buf, "%lu\n", (gulong) getpid());
+	len = gm_snprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
 
 	if (GNET_PROPERTY(lockfile_debug)) {
 		g_debug("file \"%s\" about to be written with PID %lu on fd #%d",
-			path, (gulong) getpid(), fd);
+			path, (ulong) getpid(), fd);
 	}
 	if (-1 == ftruncate(fd, 0))	{
 		s_warning("ftruncate() failed for \"%s\": %m", path);
@@ -460,8 +460,8 @@ save_pid(int fd, const char *path)
  *
  * @return TRUE on success.
  */
-static gboolean
-settings_mkdir(const char *path, gboolean fatal)
+static bool
+settings_mkdir(const char *path, bool fatal)
 {
 	if (-1 == mkdir(path, CONFIG_DIR_MODE)) {
 		if (fatal) {
@@ -648,7 +648,7 @@ static void
 settings_update_downtime(void)
 {
 	time_t downtime;
-	guint32 average;
+	uint32 average;
 
 	if (GNET_PROPERTY(shutdown_time) != 0) {
 		downtime = delta_time(tm_time(), GNET_PROPERTY(shutdown_time));
@@ -670,10 +670,10 @@ settings_update_downtime(void)
 G_GNUC_COLD void
 settings_init(void)
 {
-	guint64 memory = getphysmemsize();
-	guint64 amount = memory / 1024;
+	uint64 memory = getphysmemsize();
+	uint64 amount = memory / 1024;
 	long cpus = getcpucount();
-	guint max_fd;
+	uint max_fd;
 
 	settings_init_running = TRUE;
 
@@ -682,7 +682,7 @@ settings_init(void)
 		struct rlimit lim;
 	
 		if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
-			guint32 maxdata = lim.rlim_cur / 1024;
+			uint32 maxdata = lim.rlim_cur / 1024;
 			amount = MIN(amount, maxdata);		/* For our purposes */
 		}
 	}
@@ -697,7 +697,7 @@ settings_init(void)
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
 
-	memset(deconstify_gpointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
+	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
 	if (NULL == config_dir || '\0' == *config_dir || !is_directory(config_dir))
 		goto no_config_dir;
@@ -760,15 +760,15 @@ settings_init(void)
 	/* watch for filter_file defaults */
 
 	if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
-		*(guint32 *) &GNET_PROPERTY(hard_ttl_limit) = GNET_PROPERTY(max_ttl);
+		*(uint32 *) &GNET_PROPERTY(hard_ttl_limit) = GNET_PROPERTY(max_ttl);
 		g_warning("hard_ttl_limit was too small, adjusted to %u",
 			GNET_PROPERTY(hard_ttl_limit));
 	}
 
 	/* Flow control depends on this being not too small */
 	if (GNET_PROPERTY(node_sendqueue_size) < 1.5 * settings_max_msg_size()) {
-		*(guint32 *) &GNET_PROPERTY(node_sendqueue_size) =
-			(guint32) (1.5 * settings_max_msg_size());
+		*(uint32 *) &GNET_PROPERTY(node_sendqueue_size) =
+			(uint32) (1.5 * settings_max_msg_size());
 		g_warning("node_sendqueue_size was too small, adjusted to %u",
 			GNET_PROPERTY(node_sendqueue_size));
 	}
@@ -875,7 +875,7 @@ settings_ipc_dir(void)
 /**
  * Are we running as a leaf node?
  */
-gboolean
+bool
 settings_is_leaf(void)
 {
 	return NODE_P_LEAF == GNET_PROPERTY(current_peermode);
@@ -884,7 +884,7 @@ settings_is_leaf(void)
 /**
  * Are we running as a ultra node?
  */
-gboolean
+bool
 settings_is_ultra(void)
 {
 	return NODE_P_ULTRA == GNET_PROPERTY(current_peermode);
@@ -893,7 +893,7 @@ settings_is_ultra(void)
 /**
  * Can we use IPv4?
  */
-gboolean
+bool
 settings_use_ipv4(void)
 {
 	return
@@ -904,7 +904,7 @@ settings_use_ipv4(void)
 /**
  * Can we use IPv6?
  */
-gboolean
+bool
 settings_use_ipv6(void)
 {
 	return
@@ -915,7 +915,7 @@ settings_use_ipv6(void)
 /**
  * Are we running with a valid IPv4 address?
  */
-gboolean
+bool
 settings_running_ipv4(void)
 {
 	host_addr_t ha = listen_addr();
@@ -926,7 +926,7 @@ settings_running_ipv4(void)
 /**
  * Are we running with a valid IPv6 address?
  */
-gboolean
+bool
 settings_running_ipv6(void)
 {
 	host_addr_t ha = listen_addr6();
@@ -937,7 +937,7 @@ settings_running_ipv6(void)
 /**
  * Are we running with both IPv4 and IPv6 addresses?
  */
-gboolean
+bool
 settings_running_ipv4_and_ipv6(void)
 {
 	return settings_running_ipv6() && settings_running_ipv4();
@@ -946,7 +946,7 @@ settings_running_ipv4_and_ipv6(void)
 /**
  * Are we running with only an IPv6 address?
  */
-gboolean
+bool
 settings_running_ipv6_only(void)
 {
 	return settings_running_ipv6() && !settings_running_ipv4();
@@ -956,7 +956,7 @@ settings_running_ipv6_only(void)
  * Are we running with only an IP address on the same network as the one
  * given as argument?
  */
-gboolean
+bool
 settings_running_same_net(const host_addr_t addr)
 {
 	switch (host_addr_net(addr)) {
@@ -978,10 +978,10 @@ settings_running_same_net(const host_addr_t addr)
  * When only IPv4 or IPv6 is allowed, the connection to an address not
  * belonging to that allowed protocol is not permitted.
  */
-gboolean
+bool
 settings_can_connect(const host_addr_t addr)
 {
-	static gboolean warned = FALSE;
+	static bool warned = FALSE;
 
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
@@ -1056,9 +1056,9 @@ settings_remove_lockfile(const char *path, const char *lockfile)
 static void
 addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 {
-	static guint same_addr_count = 0;
+	static uint same_addr_count = 0;
 	static host_addr_t peers[3], last_addr_seen;
-	guint i;
+	uint i;
 
 	g_return_if_fail(host_addr_is_ipv4(new_addr));
 	g_return_if_fail(host_addr_is_ipv4(peer));
@@ -1111,9 +1111,9 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 static void
 addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 {
-	static guint same_addr_count = 0;
+	static uint same_addr_count = 0;
 	static host_addr_t peers[3], last_addr_seen;
-	guint i;
+	uint i;
 
 	g_return_if_fail(host_addr_is_ipv6(new_addr));
 	g_return_if_fail(host_addr_is_ipv6(peer));
@@ -1220,7 +1220,7 @@ settings_addr_changed(const host_addr_t new_addr, const host_addr_t peer)
 /**
  * Maximum message payload size we are configured to handle.
  */
-guint32
+uint32
 settings_max_msg_size(void)
 {
 	/*
@@ -1232,7 +1232,7 @@ settings_max_msg_size(void)
 	 *				-- RAM, 24/12/2003
 	 */
 
-	guint32 maxsize;
+	uint32 maxsize;
 
 	maxsize = GNET_PROPERTY(search_queries_kick_size);
 	maxsize = MAX(maxsize, GNET_PROPERTY(search_answers_kick_size));
@@ -1292,7 +1292,7 @@ settings_terminate(void)
 }
 
 static void
-bw_stats(gnet_bw_stats_t *s, gboolean enabled, bsched_bws_t bws)
+bw_stats(gnet_bw_stats_t *s, bool enabled, bsched_bws_t bws)
 {
 	s->enabled = enabled;
 	s->current = bsched_bps(bws);
@@ -1349,10 +1349,10 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
  * Compute the EMA of the IP address lifetime up to now, but do not
  * update the property.
  */
-guint32
+uint32
 get_average_ip_lifetime(time_t now, enum net_type net)
 {
-	guint32 lifetime, average;
+	uint32 lifetime, average;
 	time_t stamp;
 
 	switch (net) {
@@ -1459,12 +1459,12 @@ update_address_lifetime(void)
  * Compute the EMA of the averate servent uptime, up to now, but do not
  * update the property.
  */
-guint32
+uint32
 get_average_servent_uptime(time_t now)
 {
-	guint32 avg;
+	uint32 avg;
 	time_delta_t d;
-	glong uptime;
+	long uptime;
 
 	d = delta_time(now, GNET_PROPERTY(start_stamp));
 	uptime = MAX(0, d);
@@ -1503,7 +1503,7 @@ update_uptimes(void)
 /***
  *** Callbacks
  ***/
-static gboolean
+static bool
 up_connections_changed(property_t prop)
 {
 	g_assert(PROP_UP_CONNECTIONS == prop);
@@ -1515,7 +1515,7 @@ up_connections_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 max_connections_changed(property_t prop)
 {
 	g_assert(PROP_MAX_CONNECTIONS == prop);
@@ -1527,7 +1527,7 @@ max_connections_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 max_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_HOSTS_CACHED == prop);
@@ -1536,7 +1536,7 @@ max_hosts_cached_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 max_ultra_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_ULTRA_HOSTS_CACHED == prop);
@@ -1545,7 +1545,7 @@ max_ultra_hosts_cached_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 max_bad_hosts_cached_changed(property_t prop)
 {
 	g_assert(PROP_MAX_BAD_HOSTS_CACHED == prop);
@@ -1595,10 +1595,10 @@ get_bind_addr(enum net_type net)
 	return addr;
 }
 
-static gboolean
+static bool
 enable_udp_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1631,10 +1631,10 @@ enable_udp_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 enable_dht_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1647,10 +1647,10 @@ enable_dht_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 enable_guess_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1662,10 +1662,10 @@ enable_guess_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 enable_upnp_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1677,10 +1677,10 @@ enable_upnp_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 enable_natpmp_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1692,7 +1692,7 @@ enable_natpmp_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 is_udp_firewalled_changed(property_t prop)
 {
 	(void) prop;
@@ -1701,7 +1701,7 @@ is_udp_firewalled_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 pfsp_server_changed(property_t prop)
 {
 	(void) prop;
@@ -1710,7 +1710,7 @@ pfsp_server_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 query_answer_partials_changed(property_t prop)
 {
 	(void) prop;
@@ -1729,7 +1729,7 @@ query_answer_partials_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 tx_debug_addrs_changed(property_t prop)
 {
 	char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -1739,7 +1739,7 @@ tx_debug_addrs_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 dump_rx_addrs_changed(property_t prop)
 {
 	char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -1749,7 +1749,7 @@ dump_rx_addrs_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 dump_tx_from_addrs_changed(property_t prop)
 {
 	char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -1759,7 +1759,7 @@ dump_tx_from_addrs_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 dump_tx_to_addrs_changed(property_t prop)
 {
 	char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -1769,10 +1769,10 @@ dump_tx_to_addrs_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 enable_local_socket_changed(property_t prop)
 {
-	gboolean enabled;
+	bool enabled;
 	
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
@@ -1801,7 +1801,7 @@ enable_local_socket_changed(property_t prop)
 }
 
 static void
-request_new_sockets(guint16 port, gboolean check_firewalled)
+request_new_sockets(uint16 port, bool check_firewalled)
 {
 	/* Also takes care of freeing s_udp_listen and s_udp_listen6 */
 	node_udp_disable();
@@ -1868,10 +1868,10 @@ request_new_sockets(guint16 port, gboolean check_firewalled)
 	}
 }
 
-static gboolean
+static bool
 listen_port_changed(property_t prop)
 {
-	static guint32 old_port = (guint32) -1;
+	static uint32 old_port = (uint32) -1;
 
 	/*
 	 * If port did not change values, do nothing.
@@ -1883,7 +1883,7 @@ listen_port_changed(property_t prop)
 	)
 		return FALSE;
 
-	if (old_port != (guint32) -1) {
+	if (old_port != (uint32) -1) {
 		upnp_unmap_tcp(old_port);
 		upnp_unmap_udp(old_port);
 	}
@@ -1899,8 +1899,8 @@ listen_port_changed(property_t prop)
 		request_new_sockets(GNET_PROPERTY(listen_port), FALSE);
 	} else {
 		bit_array_t tried[BIT_ARRAY_SIZE(65536)];
-		guint num_tried = 0;
-		guint32 port = GNET_PROPERTY(listen_port);
+		uint num_tried = 0;
+		uint32 port = GNET_PROPERTY(listen_port);
 
 		/* Mark ports below 1024 as already tried, these ports can
 		 * be configured manually but we don't want to pick one of
@@ -1913,7 +1913,7 @@ listen_port_changed(property_t prop)
 		bit_array_clear_range(tried, 1024, 65535);
 
 		do {
-			guint32 i;
+			uint32 i;
 
 			i = random_value(65535 - 1024) + 1024;
 			port = i;
@@ -1962,7 +1962,7 @@ listen_port_changed(property_t prop)
 
     if (s_tcp_listen == NULL && GNET_PROPERTY(listen_port) != 0) {
 		gcu_statusbar_warning(_("Failed to create listening sockets"));
-		old_port = (guint32) -1;
+		old_port = (uint32) -1;
         return TRUE;
     } else {
 		old_port = GNET_PROPERTY(listen_port);
@@ -1972,7 +1972,7 @@ listen_port_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 network_protocol_changed(property_t prop)
 {
 
@@ -1982,10 +1982,10 @@ network_protocol_changed(property_t prop)
 }
 
 
-static gboolean
+static bool
 bw_switch(property_t prop, bsched_bws_t bs)
 {
-    gboolean val;
+    bool val;
 
     gnet_prop_get_boolean_val(prop, &val);
     if (val)
@@ -1995,52 +1995,52 @@ bw_switch(property_t prop, bsched_bws_t bs)
 	return FALSE;
 }
 
-static gboolean
+static bool
 bw_http_in_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_IN);
 }
 
-static gboolean
+static bool
 bw_http_out_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_OUT);
 }
 
-static gboolean
+static bool
 bw_gnet_in_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_GIN);
 }
 
-static gboolean
+static bool
 bw_gnet_out_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_GOUT);
 }
 
-static gboolean
+static bool
 bw_gnet_lin_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_GLIN);
 }
 
-static gboolean
+static bool
 bw_gnet_lout_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_GLOUT);
 }
 
-static gboolean
+static bool
 bw_dht_out_enabled_changed(property_t prop)
 {
 	return bw_switch(prop, BSCHED_BWS_DHT_OUT);
 }
 
-static gboolean
+static bool
 node_sendqueue_size_changed(property_t unused_prop)
 {
-    guint32 min = 1.5 * settings_max_msg_size();
+    uint32 min = 1.5 * settings_max_msg_size();
 
 	(void) unused_prop;
     if (GNET_PROPERTY(node_sendqueue_size) < min) {
@@ -2051,7 +2051,7 @@ node_sendqueue_size_changed(property_t unused_prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 scan_extensions_changed(property_t prop)
 {
     char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -2142,7 +2142,7 @@ tilda_expand(property_t prop)
 	}
 }
 
-static gboolean
+static bool
 file_path_changed(property_t prop)
 {
     char *pathname;
@@ -2154,7 +2154,7 @@ file_path_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 save_file_path_changed(property_t prop)
 {
 	static char *old_path;
@@ -2172,7 +2172,7 @@ save_file_path_changed(property_t prop)
 		!is_null_or_empty(path) &&
 		(NULL == old_path || 0 != strcmp(path, old_path))
 	) {
-		gboolean failure = FALSE;
+		bool failure = FALSE;
 
 		if (request_directory(path)) {
 			failure = TRUE;
@@ -2196,11 +2196,11 @@ save_file_path_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 shared_dirs_paths_changed(property_t prop)
 {
     char *s = gnet_prop_get_string(prop, NULL, 0);
-	gboolean ok;
+	bool ok;
 
 	ok = shared_dirs_parse(s);
 	G_FREE_NULL(s);
@@ -2213,7 +2213,7 @@ shared_dirs_paths_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 country_limits_changed(property_t prop)
 {
     char *limits;
@@ -2224,7 +2224,7 @@ country_limits_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 local_netmasks_string_changed(property_t prop)
 {
     char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -2235,7 +2235,7 @@ local_netmasks_string_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 hard_ttl_limit_changed(property_t prop)
 {
 	g_assert(PROP_HARD_TTL_LIMIT == prop);
@@ -2246,7 +2246,7 @@ hard_ttl_limit_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 max_ttl_changed(property_t prop)
 {
 	g_assert(PROP_MAX_TTL == prop);
@@ -2257,10 +2257,10 @@ max_ttl_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_http_in_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
 	g_assert(PROP_BW_HTTP_IN == prop);
     gnet_prop_get_guint32_val(prop, &val);
@@ -2270,10 +2270,10 @@ bw_http_in_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_http_out_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_OUT, val);
@@ -2282,10 +2282,10 @@ bw_http_out_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_gnet_in_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GIN, val / 2);
@@ -2295,10 +2295,10 @@ bw_gnet_in_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_gnet_out_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GOUT, val / 2);
@@ -2308,10 +2308,10 @@ bw_gnet_out_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_gnet_lin_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLIN, val);
@@ -2320,10 +2320,10 @@ bw_gnet_lin_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_gnet_lout_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLOUT, val);
@@ -2332,10 +2332,10 @@ bw_gnet_lout_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_dht_out_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_DHT_OUT, val);
@@ -2343,10 +2343,10 @@ bw_dht_out_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bw_allow_stealing_changed(property_t prop)
 {
-	gboolean val;
+	bool val;
 
 	gnet_prop_get_boolean_val(prop, &val);
 
@@ -2358,10 +2358,10 @@ bw_allow_stealing_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 node_online_mode_changed(property_t prop)
 {
-	gboolean val;
+	bool val;
 
 	gnet_prop_get_boolean_val(prop, &val);
 	node_set_online_mode(val);
@@ -2369,10 +2369,10 @@ node_online_mode_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 zalloc_always_gc_changed(property_t prop)
 {
-	gboolean val;
+	bool val;
 
 	gnet_prop_get_boolean_val(prop, &val);
 	set_zalloc_always_gc(val);
@@ -2380,10 +2380,10 @@ zalloc_always_gc_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 zalloc_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_zalloc_debug(val);
@@ -2391,10 +2391,10 @@ zalloc_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 bg_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	bg_set_debug(val);
@@ -2402,10 +2402,10 @@ bg_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 dbstore_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	dbstore_set_debug(val);
@@ -2413,10 +2413,10 @@ dbstore_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 inputevt_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	inputevt_set_debug(val);
@@ -2424,10 +2424,10 @@ inputevt_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 omalloc_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_omalloc_debug(val);
@@ -2435,10 +2435,10 @@ omalloc_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 palloc_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_palloc_debug(val);
@@ -2446,10 +2446,10 @@ palloc_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 vmm_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_vmm_debug(val);
@@ -2457,10 +2457,10 @@ vmm_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 vxml_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_vxml_debug(val);
@@ -2468,10 +2468,10 @@ vxml_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 xmalloc_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_xmalloc_debug(val);
@@ -2479,10 +2479,10 @@ xmalloc_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 lib_debug_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_library_debug(val);
@@ -2490,10 +2490,10 @@ lib_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 lib_stats_changed(property_t prop)
 {
-	guint32 val;
+	uint32 val;
 
 	gnet_prop_get_guint32_val(prop, &val);
 	set_library_stats(val);
@@ -2501,7 +2501,7 @@ lib_stats_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 forced_local_ip_changed(property_t prop)
 {
 	(void) prop;
@@ -2512,7 +2512,7 @@ forced_local_ip_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 local_addr_changed(property_t prop)
 {
 	enum net_type net;
@@ -2566,11 +2566,11 @@ local_addr_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 configured_peermode_changed(property_t prop)
 {
-    guint32 val;
-	gboolean forced = FALSE;
+    uint32 val;
+	bool forced = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
 
@@ -2618,7 +2618,7 @@ configured_peermode_changed(property_t prop)
     return forced;
 }
 
-static gboolean
+static bool
 current_peermode_changed(property_t prop)
 {
 	(void) prop;
@@ -2629,10 +2629,10 @@ current_peermode_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean
+static bool
 configured_dht_mode_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
 	dht_configured_mode_changed(val);
@@ -2640,10 +2640,10 @@ configured_dht_mode_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 download_rx_size_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
 	download_set_socket_rx_size(val * 1024);
@@ -2651,10 +2651,10 @@ download_rx_size_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean
+static bool
 node_rx_size_changed(property_t prop)
 {
-    guint32 val;
+    uint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
 	node_set_socket_rx_size(val * 1024);
@@ -2680,7 +2680,7 @@ static cevent_t *ev_file_descriptor_runout;
  * Reset the property.
  */
 static void
-reset_property_cb(cqueue_t *unused_cq, gpointer obj)
+reset_property_cb(cqueue_t *unused_cq, void *obj)
 {
 	property_t prop = (property_t) GPOINTER_TO_UINT(obj);
 
@@ -2700,10 +2700,10 @@ reset_property_cb(cqueue_t *unused_cq, gpointer obj)
 	gnet_prop_set_boolean_val(prop, FALSE);
 }
 
-static gboolean
+static bool
 file_descriptor_x_changed(property_t prop)
 {
-	gboolean state;
+	bool state;
 	cevent_t **ev = NULL;
 
 	gnet_prop_get_boolean_val(prop, &state);
@@ -2745,7 +2745,7 @@ file_descriptor_x_changed(property_t prop)
 typedef struct prop_map {
     property_t prop;            /**< property handle */
     prop_changed_listener_t cb; /**< callback function */
-    gboolean init;              /**< init widget with current value */
+    bool init;              /**< init widget with current value */
 } prop_map_t;
 
 static prop_map_t property_map[] = {
@@ -3132,7 +3132,7 @@ static prop_map_t property_map[] = {
 
 #define PROPERTY_MAP_SIZE G_N_ELEMENTS(property_map)
 
-static gboolean init_list[GNET_PROPERTY_NUM];
+static bool init_list[GNET_PROPERTY_NUM];
 
 static G_GNUC_COLD void
 settings_callbacks_init(void)
@@ -3144,12 +3144,12 @@ settings_callbacks_init(void)
 
     if (GNET_PROPERTY(dbg) >= 2) {
         g_debug("settings_callbacks_init: property_map size: %u",
-            (guint) PROPERTY_MAP_SIZE);
+            (uint) PROPERTY_MAP_SIZE);
     }
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         property_t prop = property_map[n].prop;
-        guint32 idx = prop - GNET_PROPERTY_MIN;
+        uint32 idx = prop - GNET_PROPERTY_MIN;
 
         if (init_list[idx]) {
             g_error("settings_callbacks_init: property %u already mapped", n);
@@ -3179,7 +3179,7 @@ settings_callbacks_init(void)
 static void
 settings_callbacks_shutdown(void)
 {
-    guint n;
+    uint n;
 
 	cq_cancel(&ev_file_descriptor_shortage);
 	cq_cancel(&ev_file_descriptor_runout);

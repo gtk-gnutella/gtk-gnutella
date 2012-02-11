@@ -72,7 +72,7 @@ typedef struct spinlock {
  */
 
 void spinlock_grab(spinlock_t *s);
-gboolean spinlock_grab_try(spinlock_t *s);
+bool spinlock_grab_try(spinlock_t *s);
 
 /*
  * Public interface.
@@ -80,7 +80,7 @@ gboolean spinlock_grab_try(spinlock_t *s);
 
 #ifdef SPINLOCK_DEBUG
 void spinlock_grab_from(spinlock_t *s, const char *file, unsigned line);
-gboolean spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
+bool spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 
 #define spinlock(x)		spinlock_grab_from((x), _WHERE_, __LINE__)
 #define spinlock_try(x)	spinlock_grab_try_from((x), _WHERE_, __LINE__)
@@ -92,7 +92,7 @@ gboolean spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
 void spinunlock(spinlock_t *s);
-gboolean spinlock_is_held(const spinlock_t *s);
+bool spinlock_is_held(const spinlock_t *s);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
 

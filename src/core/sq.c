@@ -93,7 +93,7 @@ static void cap_queue(squeue_t *sq);
  * Free routine for a query message.
  */
 static void
-sq_pmsg_free(pmsg_t *mb, gpointer arg)
+sq_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct smsg_info *smi = arg;
 
@@ -182,7 +182,7 @@ smsg_mutate(smsg_t *sb, struct gnutella_node *n)
 /**
  * Checks whether an entry exists in the search queue for given search handle.
  */
-static gboolean
+static bool
 sqh_exists(squeue_t *sq, gnet_search_t sh)
 {
 	g_assert(sq != NULL);
@@ -208,9 +208,9 @@ sqh_put(squeue_t *sq, gnet_search_t sh)
 static void
 sqh_remove(squeue_t *sq, gnet_search_t sh)
 {
-	gpointer key;
-	gpointer value;
-	gboolean found;
+	void *key;
+	void *value;
+	bool found;
 
 	g_assert(sq != NULL);
 
@@ -366,7 +366,7 @@ sq_process(squeue_t *sq, time_t now)
 	GList *item;
 	smsg_t *sb;
 	struct gnutella_node *n;
-	gboolean sent;
+	bool sent;
 
 	g_assert(sq->node == NULL || sq->node->outq != NULL);
 

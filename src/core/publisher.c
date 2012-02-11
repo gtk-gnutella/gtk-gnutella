@@ -119,7 +119,7 @@ struct publisher_entry {
 	time_t last_enqueued;		/**< When file was last enqueued */
 	time_t last_publish;		/**< When file was last published */
 	time_t last_delayed;		/**< When republish event was set */
-	guint8 backgrounded;		/**< Whether PDHT is continuing publishing */
+	uint8 backgrounded;			/**< Whether PDHT is continuing publishing */
 };
 
 static inline void
@@ -154,7 +154,7 @@ static char db_pubdata_what[] = "DHT published SHA-1 information";
 struct pubdata {
 	time_t next_enqueue;		/**< When file should be enqueued again */
 	time_t expiration;			/**< Expiration date of published information */
-	guint8 version;				/**< Structure version */
+	uint8 version;				/**< Structure version */
 };
 
 static void publisher_handle(struct publisher_entry *pe);
@@ -214,7 +214,7 @@ publisher_entry_alloc(const sha1_t *sha1)
  * Free publisher entry.
  */
 static void
-publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
+publisher_entry_free(struct publisher_entry *pe, bool do_remove)
 {
 	publisher_check(pe);
 
@@ -235,7 +235,7 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
  * Callout queue callback to handle an entry.
  */
 static void
-handle_entry(cqueue_t *unused_cq, gpointer obj)
+handle_entry(cqueue_t *unused_cq, void *obj)
 {
 	struct publisher_entry *pe = obj;
 
@@ -343,7 +343,7 @@ publisher_delay(const pdht_info_t *info, time_delta_t expiration)
 /**
  * Is publishing acceptable or should we attempt background republish?
  */
-gboolean
+bool
 publisher_is_acceptable(const pdht_info_t *info)
 {
 	return info->presence >= PUBLISH_MIN_PROBABILITY ||
@@ -358,14 +358,14 @@ publisher_is_acceptable(const pdht_info_t *info)
  * publishing layer to continue attempts to failed STORE roots and report
  * on progress using the same callback.
  */
-static gboolean
-publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
+static bool
+publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 {
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
 	int delay = PUBLISH_BUSY;
-	gboolean expired = FALSE;
-	gboolean accepted = TRUE;
+	bool expired = FALSE;
+	bool accepted = TRUE;
 
 	publisher_check(pe);
 
@@ -545,10 +545,10 @@ static void
 publisher_handle(struct publisher_entry *pe)
 {
 	shared_file_t *sf;
-	gboolean is_partial = FALSE;
+	bool is_partial = FALSE;
 	int alt_locs;
 	time_delta_t min_uptime;
-	guint32 avg_uptime;
+	uint32 avg_uptime;
 
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
@@ -804,7 +804,7 @@ publisher_add(const sha1_t *sha1)
  * Serialization routine for pubdata.
  */
 static void
-serialize_pubdata(pmsg_t *mb, gconstpointer data)
+serialize_pubdata(pmsg_t *mb, const void *data)
 {
 	const struct pubdata *pd = data;
 
@@ -827,7 +827,7 @@ serialize_pubdata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for pubdata.
  */
 static void
-deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_pubdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct pubdata *pd = valptr;
 
@@ -855,8 +855,8 @@ deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
 /**
  * Periodic DB synchronization.
  */
-static gboolean
-publisher_sync(gpointer unused_obj)
+static bool
+publisher_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -868,9 +868,8 @@ publisher_sync(gpointer unused_obj)
  * DBMW foreach iterator to remove expired DB keys.
  * @return TRUE if entry must be deleted.
  */
-static gboolean
-publisher_remove_expired(gpointer u_key,
-	gpointer value, size_t u_len, gpointer u_data)
+static bool
+publisher_remove_expired(void *u_key, void *value, size_t u_len, void *u_data)
 {
 	const struct pubdata *pd = value;
 
@@ -968,7 +967,7 @@ publisher_init(void)
  * Hash table iterator callback to free entry.
  */
 static void
-free_entry(gpointer key, gpointer val, gpointer data)
+free_entry(void *key, void *val, void *data)
 {
 	struct publisher_entry *pe = val;
 
@@ -982,9 +981,8 @@ free_entry(gpointer key, gpointer val, gpointer data)
  * DBMW foreach iterator to remove keys otherwise unknown by the publisher.
  * @return TRUE if entry is to be deleted.
  */
-static gboolean
-publisher_remove_orphan(gpointer key,
-	gpointer u_value, size_t u_len, gpointer u_data)
+static bool
+publisher_remove_orphan(void *key, void *u_value, size_t u_len, void *u_data)
 {
 	const sha1_t *sha1 = key;
 

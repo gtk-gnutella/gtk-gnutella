@@ -51,7 +51,7 @@ enum verify_status {
 
 struct verify;
 
-typedef gboolean (*verify_callback)(const struct verify *,
+typedef bool (*verify_callback)(const struct verify *,
 										enum verify_status, void *user_data);
 
 struct verify_hash {
@@ -70,7 +70,7 @@ int verify_enqueue(struct verify *, int high_priority,
 
 enum verify_status verify_status(const struct verify *);
 filesize_t verify_hashed(const struct verify *);
-guint verify_elapsed(const struct verify *);
+uint verify_elapsed(const struct verify *);
 
 #endif	/* _core_verify_h_ */
 

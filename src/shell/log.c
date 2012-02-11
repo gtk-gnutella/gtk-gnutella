@@ -120,7 +120,7 @@ shell_exec_log_reopen(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
 	enum shell_logtoken which = SHELL_LOG_ALL;
-	gboolean ok = FALSE;
+	bool ok = FALSE;
 
 	shell_check(sh);
 	g_assert(argv);

@@ -271,7 +271,7 @@ namesize_parse(FILE *f, const char *file)
 		else
 			q++;
 
-		nsk.name = deconstify_gchar(q);
+		nsk.name = deconstify_char(q);
 		nsk.size = size;
 
 		if (g_hash_table_lookup(by_namesize, &nsk))
@@ -354,7 +354,7 @@ ignore_is_requested(const char *filename, filesize_t size,
 	} else {
 		namesize_t ns;
 
-		ns.name = deconstify_gchar(filename);
+		ns.name = deconstify_char(filename);
 		ns.size = size;
 
 		if (g_hash_table_lookup(by_namesize, &ns))
@@ -400,7 +400,7 @@ ignore_add_filesize(const char *file, filesize_t size)
 {
 	namesize_t nsk;
 
-	nsk.name = deconstify_gchar(file);
+	nsk.name = deconstify_char(file);
 	nsk.size = size;
 
 	if (!g_hash_table_lookup(by_namesize, &nsk)) {
@@ -456,8 +456,8 @@ ignore_timer(time_t unused_now)
  *
  * Free a key/value pair from the by_sha1 hash.
  */
-static gboolean
-free_sha1_kv(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_sha1_kv(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -472,8 +472,8 @@ free_sha1_kv(gpointer key, gpointer value, gpointer unused_udata)
  *
  * Free a key/value pair from the by_namesize hash.
  */
-static gboolean
-free_namesize_kv(gpointer key, gpointer unused_value, gpointer unused_udata)
+static bool
+free_namesize_kv(void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;

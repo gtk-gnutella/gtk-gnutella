@@ -37,13 +37,13 @@
 #ifndef _parse_h_
 #define _parse_h_
 
-guint8 parse_uint8(const char *, char const **, unsigned, int *)
+uint8 parse_uint8(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
-guint16 parse_uint16(const char *, char const **, unsigned, int *)
+uint16 parse_uint16(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
-guint32 parse_uint32(const char *, char const **, unsigned, int *)
+uint32 parse_uint32(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
-guint64 parse_uint64(const char *, char const **, unsigned, int *)
+uint64 parse_uint64(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
 unsigned parse_uint(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
@@ -53,19 +53,19 @@ size_t parse_size(const char *, char const **, unsigned, int *)
 	NON_NULL_PARAM((1));
 const void *parse_pointer(const char *, char const **, int *)
 	NON_NULL_PARAM((1));
-gboolean parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr)
+bool parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr)
 	NON_NULL_PARAM((1));
 int parse_major_minor(const char *src, char const **endptr,
 	unsigned *major, unsigned *minor)
 	NON_NULL_PARAM((1));
 
-guint32  string_to_ip(const char *);
-gboolean string_to_ip_strict(const char *s, guint32 *addr, const char **ep);
-gboolean string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask);
-gboolean string_to_ip_port(const char *str, guint32 *ip, guint16 *port);
-const char *ip_to_string(guint32);
-size_t ipv4_to_string_buf(guint32 ip, char *buf, size_t size);
-const char *hostname_port_to_string(const char *hostname, guint16 port);
+uint32 string_to_ip(const char *);
+bool string_to_ip_strict(const char *s, uint32 *addr, const char **ep);
+bool string_to_ip_and_mask(const char *str, uint32 *ip, uint32 *netmask);
+bool string_to_ip_port(const char *str, uint32 *ip, uint16 *port);
+const char *ip_to_string(uint32);
+size_t ipv4_to_string_buf(uint32 ip, char *buf, size_t size);
+const char *hostname_port_to_string(const char *hostname, uint16 port);
 
 #endif /* _parse_h_ */
 

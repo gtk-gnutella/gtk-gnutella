@@ -77,12 +77,12 @@
 static const char ul_stats_file[] = "upload_stats";
 static const char ul_stats_what[] = "upload statistics";
 
-static gboolean dirty = FALSE;
+static bool dirty = FALSE;
 static hash_list_t *upload_stats_list;
 static GHashTable *upload_stats_by_sha1;
 
-static gboolean 
-ul_stats_eq(gconstpointer p, gconstpointer q)
+static bool 
+ul_stats_eq(const void *p, const void *q)
 {
 	const struct ul_stats *a = p, *b = q;
 
@@ -90,8 +90,8 @@ ul_stats_eq(gconstpointer p, gconstpointer q)
 	return a->pathname == b->pathname && a->size == b->size;
 }
 
-static guint
-ul_stats_hash(gconstpointer p)
+static uint
+ul_stats_hash(const void *p)
 {
 	const struct ul_stats *s = p;
   
@@ -107,14 +107,14 @@ ul_stats_hash(gconstpointer p)
  * and recorded as such.
  */
 static struct ul_stats *
-upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
+upload_stats_find(const struct sha1 *sha1, const char *pathname, uint64 size)
 {
 	struct ul_stats *s = NULL;
 
 	if (upload_stats_list) {
 		static const struct ul_stats zero_stats;
 		struct ul_stats key;
-		gconstpointer orig_key;
+		const void *orig_key;
 
 		g_assert(upload_stats_by_sha1);
 
@@ -129,7 +129,7 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, guint64 size)
 		key.size = size;
 
 		if (hash_list_find(upload_stats_list, &key, &orig_key))
-			s = deconstify_gpointer(orig_key);
+			s = deconstify_pointer(orig_key);
 		atom_str_free_null(&key.pathname);
 
 		if (s && sha1) {
@@ -170,7 +170,7 @@ done:
 
 static void
 upload_stats_add(const char *pathname, filesize_t size, const char *name,
-	guint32 attempts, guint32 complete, guint64 ul_bytes,
+	uint32 attempts, uint32 complete, uint64 ul_bytes,
 	time_t rtime, time_t dtime, const struct sha1 *sha1)
 {
 	static const struct ul_stats zero_stats;
@@ -209,7 +209,7 @@ upload_stats_load_history(void)
 	FILE *upload_stats_file;
 	file_path_t fp;
 	char line[FILENAME_MAX + 64];
-	guint lineno = 0;
+	uint lineno = 0;
 
 	gcu_upload_stats_gui_freeze();
 	
@@ -253,7 +253,7 @@ upload_stats_load_history(void)
 		item.pathname = line;
 
 		for (i = 0; i < 8; i++) {
-			guint64 v;
+			uint64 v;
 			int error;
 			const char *endptr;
 
@@ -279,7 +279,7 @@ upload_stats_load_history(void)
 				break;
 			default:
 				v = parse_uint64(p, &endptr, 10, &error);
-				p = deconstify_gchar(endptr);
+				p = deconstify_char(endptr);
 			}
 
 			if (error || !is_ascii_space(*endptr))
@@ -289,10 +289,10 @@ upload_stats_load_history(void)
 			case 0: item.size = v; break;
 			case 1: item.attempts = v; break;
 			case 2: item.complete = v; break;
-			case 3: item.bytes_sent |= ((guint64) (guint32) v) << 32; break;
-			case 4: item.bytes_sent |= (guint32) v; break;
-			case 5: item.rtime = MIN(v + (time_t) 0, TIME_T_MAX + (guint64) 0);
-			case 6: item.dtime = MIN(v + (time_t) 0, TIME_T_MAX + (guint64) 0); 
+			case 3: item.bytes_sent |= ((uint64) (uint32) v) << 32; break;
+			case 4: item.bytes_sent |= (uint32) v; break;
+			case 5: item.rtime = MIN(v + (time_t) 0, TIME_T_MAX + (uint64) 0);
+			case 6: item.dtime = MIN(v + (time_t) 0, TIME_T_MAX + (uint64) 0); 
 			case 7: break;	/* Already stored above */
 			default:
 				g_assert_not_reached();
@@ -338,7 +338,7 @@ done:
 }
 
 static void
-upload_stats_dump_item(gpointer p, gpointer user_data)
+upload_stats_dump_item(void *p, void *user_data)
 {
 	const shared_file_t *sf;
 	FILE *out = user_data;
@@ -520,7 +520,7 @@ upload_stats_file_begin(const shared_file_t *sf)
 static void
 upload_stats_file_add(
 	const shared_file_t *sf,
-	int comp, guint64 sent, gboolean update_dtime)
+	int comp, uint64 sent, bool update_dtime)
 {
 	const char *pathname = shared_file_path(sf);
 	filesize_t size = shared_file_size(sf);

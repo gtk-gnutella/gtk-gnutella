@@ -82,9 +82,9 @@ struct gnutella_shell {
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
-	guint64 line_count;		/**< Number of input lines after HELO */
-	gboolean shutdown;  	/**< In shutdown mode? */
-	gboolean interactive;	/**< Interactive mode? */
+	uint64 line_count;		/**< Number of input lines after HELO */
+	bool shutdown;  		/**< In shutdown mode? */
+	bool interactive;		/**< Interactive mode? */
 };
 
 void
@@ -95,7 +95,7 @@ shell_check(const struct gnutella_shell * const sh)
 	socket_check(sh->socket);
 }
 
-static inline gboolean
+static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -209,14 +209,14 @@ shell_write_welcome(struct gnutella_shell *sh)
 	shell_write(sh, "\n");
 }
 
-guint64
+uint64
 shell_line_count(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 	return sh->line_count;
 }
 
-gboolean
+bool
 shell_toggle_interactive(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -248,9 +248,9 @@ shell_next_token(struct gnutella_shell *sh,
 	const char *start, const char **endptr)
 {
 	str_t *token;
-	gboolean escape = FALSE;
-	gboolean quote  = FALSE;
-	gboolean squote  = FALSE;
+	bool escape = FALSE;
+	bool quote  = FALSE;
+	bool squote  = FALSE;
 	const char *s = start;
 	char c;
 
@@ -343,7 +343,7 @@ shell_options_parse(struct gnutella_shell *sh,
  * @return TRUE if OK, FALSE on error with an error message recorded
  * in the shell structure (in which case no token was allocated).
  */
-static gboolean
+static bool
 shell_get_token(struct gnutella_shell *sh,
 	const char *line, const char **endptr, const char **token_ptr)
 {
@@ -377,7 +377,7 @@ static void
 shell_free_argv(const char ***argv_ptr)
 {
 	if (*argv_ptr) {
-		char **argv = deconstify_gpointer(*argv_ptr);
+		char **argv = deconstify_pointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
 			HFREE_NULL(argv[0]);
@@ -402,7 +402,7 @@ shell_free_argv(const char ***argv_ptr)
  * @return TRUE if OK, FALSE on error with an error message recorded in the
  * shell structure.
  */
-static gboolean 
+static bool 
 shell_parse_command(struct gnutella_shell *sh,
 	const char *line, const char **endptr,
 	int *argc_ptr, const char ***argv_ptr)
@@ -410,7 +410,7 @@ shell_parse_command(struct gnutella_shell *sh,
 	const char **argv = NULL;
 	unsigned argc = 0;
 	size_t n = 0;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 	const char *start;
 
 	shell_check(sh);
@@ -487,7 +487,7 @@ shell_cmd_get_handler(const char *cmd)
  * Flush any pending line.
  */
 static void
-shell_pending_flush(struct gnutella_shell *sh, gboolean last)
+shell_pending_flush(struct gnutella_shell *sh, bool last)
 {
 	shell_check(sh);
 	g_return_if_fail(sh->output);
@@ -856,11 +856,11 @@ static const struct sha1 *
 shell_auth_cookie(void)
 {
 	static struct sha1 cookie;
-	static gboolean initialized;
+	static bool initialized;
 
 	if (!initialized) {
 		SHA1Context ctx;
-		guint32 noise[64];
+		uint32 noise[64];
 
 		random_bytes(noise, sizeof noise);
 		SHA1Reset(&ctx);
@@ -878,12 +878,12 @@ shell_auth_cookie(void)
  *
  * @return TRUE if the connection is allowed.
  */
-static gboolean
+static bool
 shell_auth(struct gnutella_shell *sh, const char *str)
 {
 	const struct sha1 *cookie;
 	const char *tok_helo = NULL, *tok_cookie = NULL;
-	gboolean ok = FALSE;
+	bool ok = FALSE;
 	const char *endptr;
 
 	if (!shell_get_token(sh, str, &endptr, &tok_helo))
@@ -908,17 +908,17 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 
 done:
 	if (tok_helo != NULL)
-		g_free(deconstify_gpointer(tok_helo));
+		g_free(deconstify_pointer(tok_helo));
 	if (tok_cookie != NULL)
-		g_free(deconstify_gpointer(tok_cookie));
+		g_free(deconstify_pointer(tok_cookie));
 
 	return ok;
 }
 
-static gboolean
+static bool
 shell_grant_remote_shell(struct gnutella_shell *sh)
 {
-	gboolean granted = FALSE;
+	bool granted = FALSE;
 
 	shell_check(sh);
 
@@ -947,7 +947,7 @@ shell_auth_cookie(void)
 	return NULL;
 }
 
-static gboolean
+static bool
 shell_grant_remote_shell(const struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -956,7 +956,7 @@ shell_grant_remote_shell(const struct gnutella_shell *sh)
 }
 #endif /* USE_REMOTE_CTRL */
 
-static gboolean
+static bool
 shell_grant_local_shell(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -978,7 +978,7 @@ void
 shell_add(struct gnutella_socket *s)
 {
 	struct gnutella_shell *sh;
-	gboolean granted = FALSE;
+	bool granted = FALSE;
 
 	socket_check(s);
 	g_assert(0 == s->gdk_tag);

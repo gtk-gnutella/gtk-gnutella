@@ -60,11 +60,11 @@
  * kind.
  */
 
-typedef void (*pdata_free_t)(gpointer p, gpointer arg);
+typedef void (*pdata_free_t)(void *p, void *arg);
 
 typedef struct pdata {
 	pdata_free_t d_free;		/**< Free routine */
-	gpointer d_arg;				/**< Argument to free routine */
+	void *d_arg;				/**< Argument to free routine */
 	int d_refcnt;				/**< Reference count */
 	char *d_arena;				/**< First byte in buffer */
 	char *d_end;				/**< First byte after buffer */
@@ -82,7 +82,7 @@ typedef struct pdata {
 struct mqueue;
 
 typedef struct pmsg pmsg_t;
-typedef gboolean (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
+typedef bool (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
 
 enum pmsg_magic {
 	PMSG_MAGIC		= 0x2fa50be3U,
@@ -94,11 +94,11 @@ struct pmsg {
 	const char *m_rptr;			/**< First unread byte in buffer */
 	char *m_wptr;				/**< First unwritten byte in buffer */
 	pdata_t *m_data;			/**< Data buffer */
-	guint m_prio;				/**< Message priority (0 = normal) */
+	uint m_prio;				/**< Message priority (0 = normal) */
 	pmsg_check_t m_check;		/**< Optional check before sending */
 };
 
-typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
+typedef void (*pmsg_free_t)(pmsg_t *mb, void *arg);
 
 #define PMSG_PRIO_MASK		0x00ffffff	/**< Only lower bits are relevant */
 
@@ -153,22 +153,22 @@ pmsg_check_consistency(const pmsg_t * const mb)
 void pmsg_init(void);
 void pmsg_close(void);
 
-pmsg_t *pmsg_new(int prio, gconstpointer buf, int len);
+pmsg_t *pmsg_new(int prio, const void *buf, int len);
 pmsg_t * pmsg_new_extend(
-	int prio, gconstpointer buf, int len,
-	pmsg_free_t free_cb, gpointer arg);
+	int prio, const void *buf, int len,
+	pmsg_free_t free_cb, void *arg);
 pmsg_t *pmsg_alloc(int prio, pdata_t *db, int roff, int woff);
 pmsg_t *pmsg_clone(pmsg_t *mb);
-pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg);
+pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg);
 pmsg_free_t pmsg_replace_ext(
-	pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg);
-gpointer pmsg_get_metadata(pmsg_t *mb);
+	pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg);
+void *pmsg_get_metadata(pmsg_t *mb);
 pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
 void pmsg_free(pmsg_t *mb);
 void pmsg_free_null(pmsg_t **mb_ptr);
-int pmsg_write(pmsg_t *mb, gconstpointer data, int len);
+int pmsg_write(pmsg_t *mb, const void *data, int len);
 int pmsg_writable_length(const pmsg_t *mb);
-int pmsg_read(pmsg_t *mb, gpointer data, int len);
+int pmsg_read(pmsg_t *mb, void *data, int len);
 int pmsg_discard(pmsg_t *mb, int len);
 int pmsg_discard_trailing(pmsg_t *mb, int len);
 int pmsg_copy(pmsg_t *dest, pmsg_t *src, int len);
@@ -179,10 +179,10 @@ void pmsg_reset(pmsg_t *mb);
 
 pdata_t *pdata_new(int len);
 pdata_t *pdata_allocb(void *buf, int len,
-	pdata_free_t freecb, gpointer freearg);
+	pdata_free_t freecb, void *freearg);
 pdata_t *pdata_allocb_ext(void *buf, int len,
-	pdata_free_t freecb, gpointer freearg);
-void pdata_free_nop(gpointer p, gpointer arg);
+	pdata_free_t freecb, void *freearg);
+void pdata_free_nop(void *p, void *arg);
 void pdata_unref(pdata_t *db);
 
 iovec_t *pmsg_slist_to_iovec(slist_t *slist,
@@ -283,19 +283,19 @@ pmsg_seek(pmsg_t *mb, pmsg_offset_t offset)
  * Write a single byte.
  */
 static inline void
-pmsg_write_u8(pmsg_t *mb, guint8 val)
+pmsg_write_u8(pmsg_t *mb, uint8 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 1);
 
-	*(guint8 *) mb->m_wptr++ = val;
+	*(uint8 *) mb->m_wptr++ = val;
 }
 
 /**
  * Write a 16-bit value in big-endian format.
  */
 static inline void
-pmsg_write_be16(pmsg_t *mb, guint16 val)
+pmsg_write_be16(pmsg_t *mb, uint16 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 2);
@@ -307,7 +307,7 @@ pmsg_write_be16(pmsg_t *mb, guint16 val)
  * Write a 16-bit value in little-endian format.
  */
 static inline void
-pmsg_write_le16(pmsg_t *mb, guint16 val)
+pmsg_write_le16(pmsg_t *mb, uint16 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 2);
@@ -319,7 +319,7 @@ pmsg_write_le16(pmsg_t *mb, guint16 val)
  * Write a 32-bit value in big-endian format.
  */
 static inline void
-pmsg_write_be32(pmsg_t *mb, guint32 val)
+pmsg_write_be32(pmsg_t *mb, uint32 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 4);
@@ -331,7 +331,7 @@ pmsg_write_be32(pmsg_t *mb, guint32 val)
  * Write a 32-bit value in little-endian format.
  */
 static inline void
-pmsg_write_le32(pmsg_t *mb, guint32 val)
+pmsg_write_le32(pmsg_t *mb, uint32 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 4);
@@ -343,7 +343,7 @@ pmsg_write_le32(pmsg_t *mb, guint32 val)
  * Write a 64-bit value in big-endian format.
  */
 static inline void
-pmsg_write_be64(pmsg_t *mb, guint64 val)
+pmsg_write_be64(pmsg_t *mb, uint64 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 8);
@@ -355,7 +355,7 @@ pmsg_write_be64(pmsg_t *mb, guint64 val)
  * Write a 64-bit value in little-endian format.
  */
 static inline void
-pmsg_write_le64(pmsg_t *mb, guint64 val)
+pmsg_write_le64(pmsg_t *mb, uint64 val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 8);
@@ -372,19 +372,19 @@ pmsg_write_time(pmsg_t *mb, time_t val)
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 4);
 
-	mb->m_wptr = poke_be32(mb->m_wptr, (guint32) val);
+	mb->m_wptr = poke_be32(mb->m_wptr, (uint32) val);
 }
 
 /**
- * Write gboolean.
+ * Write boolean.
  */
 static inline void
-pmsg_write_boolean(pmsg_t *mb, gboolean val)
+pmsg_write_boolean(pmsg_t *mb, bool val)
 {
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 1);
 
-	*(guint8 *) mb->m_wptr++ = val ? 1 : 0;
+	*(uint8 *) mb->m_wptr++ = booleanize(val);
 }
 
 /**
@@ -399,7 +399,7 @@ pmsg_write_float_be(pmsg_t *mb, float val)
 	mb->m_wptr = poke_float_be32(mb->m_wptr, val);
 }
 
-void pmsg_write_ule64(pmsg_t *mb, guint64 val);
+void pmsg_write_ule64(pmsg_t *mb, uint64 val);
 void pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n);
 void pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr);
 void pmsg_write_string(pmsg_t *mb, const char *str, size_t length);

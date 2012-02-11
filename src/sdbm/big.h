@@ -28,7 +28,7 @@ typedef struct DBMBIG DBMBIG;
 
 size_t bigkey_length(size_t);
 size_t bigval_length(size_t);
-gboolean bigkey_eq(DBM *, const char *, size_t, const char *, size_t);
+bool bigkey_eq(DBM *, const char *, size_t, const char *, size_t);
 long bigkey_hash(DBM *, const char *, size_t);
 char *bigkey_get(DBM *, const char *, size_t);
 char *bigval_get(DBM *, const char *, size_t);
@@ -36,16 +36,16 @@ struct DBMBIG *big_alloc(const char *, int, int);
 int big_replace(DBM *, char *, const char *, size_t);
 void big_free(DBM *);
 int big_datfno(DBM *);
-gboolean big_sync(DBM *);
-gboolean big_shrink(DBM *);
-gboolean big_clear(DBM *);
+bool big_sync(DBM *);
+bool big_shrink(DBM *);
+bool big_clear(DBM *);
 size_t big_check_end(DBM *);
-gboolean bigkey_put(DBM *, char *, size_t, const char *, size_t);
-gboolean bigval_put(DBM *, char *, size_t, const char *, size_t);
-gboolean bigkey_free(DBM *, const char *, size_t);
-gboolean bigval_free(DBM *, const char *, size_t);
-gboolean bigkey_check(DBM *, const char *, size_t);
-gboolean bigval_check(DBM *, const char *, size_t);
+bool bigkey_put(DBM *, char *, size_t, const char *, size_t);
+bool bigval_put(DBM *, char *, size_t, const char *, size_t);
+bool bigkey_free(DBM *, const char *, size_t);
+bool bigval_free(DBM *, const char *, size_t);
+bool bigkey_check(DBM *, const char *, size_t);
+bool bigval_check(DBM *, const char *, size_t);
 void bigkey_mark_used(DBM *, const char *, size_t);
 void bigval_mark_used(DBM *, const char *, size_t);
 
@@ -71,7 +71,7 @@ big_length(const char *p)
 static inline char *
 bigkey_head(const char *p)
 {
-	return deconstify_gchar(p) + sizeof(guint32);	/* Skip key length */
+	return deconstify_char(p) + sizeof(uint32);	/* Skip key length */
 }
 
 /**
@@ -98,6 +98,6 @@ bigkey_blocks(const char *p)
 static inline char *
 bigval_blocks(const char *p)
 {
-	return deconstify_gchar(p) + sizeof(guint32);	/* Skip value length */
+	return deconstify_char(p) + sizeof(uint32);	/* Skip value length */
 }
 

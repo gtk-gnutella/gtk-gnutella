@@ -37,14 +37,14 @@
 #include "common.h"
 #include "host_addr.h"	/* For ``struct host_addr'' */
 
-typedef void (*adns_callback_t)(const host_addr_t *, size_t, gpointer);
-typedef void (*adns_reverse_callback_t)(const char *, gpointer);
+typedef void (*adns_callback_t)(const host_addr_t *, size_t, void *);
+typedef void (*adns_reverse_callback_t)(const char *, void *);
 
 void adns_init(void);
-gboolean adns_resolve(const char *, enum net_type net,
-	adns_callback_t, gpointer);
-gboolean adns_reverse_lookup(const host_addr_t,
-	adns_reverse_callback_t, gpointer);
+bool adns_resolve(const char *, enum net_type net,
+	adns_callback_t, void *);
+bool adns_reverse_lookup(const host_addr_t,
+	adns_reverse_callback_t, void *);
 void adns_close(void);
 
 #endif /* _adns_h_ */

@@ -60,12 +60,12 @@ typedef struct idtable idtable_t;
 
 idtable_t *idtable_new(void);
 void idtable_destroy(idtable_t *table);
-guint idtable_ids(idtable_t *tbl);
-guint32 idtable_new_id(idtable_t *tbl, void *value);
-void idtable_free_id(idtable_t *tbl, guint32 id);
-gboolean idtable_is_id_used(const idtable_t *tbl, guint32 id);
-void idtable_set_value(idtable_t *tbl, guint32 id, void *value);
-void *idtable_get_value(const idtable_t *tbl, guint32 id);
-void *idtable_probe_value(const idtable_t *tbl, guint32 id);
+uint idtable_ids(idtable_t *tbl);
+uint32 idtable_new_id(idtable_t *tbl, void *value);
+void idtable_free_id(idtable_t *tbl, uint32 id);
+bool idtable_is_id_used(const idtable_t *tbl, uint32 id);
+void idtable_set_value(idtable_t *tbl, uint32 id, void *value);
+void *idtable_get_value(const idtable_t *tbl, uint32 id);
+void *idtable_probe_value(const idtable_t *tbl, uint32 id);
 
 #endif /* _idtable_h_ */

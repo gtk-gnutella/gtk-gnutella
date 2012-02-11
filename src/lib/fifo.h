@@ -39,14 +39,14 @@
 struct fifo;
 typedef struct fifo fifo_t;
 
-typedef void (*fifo_free_t)(gpointer item, gpointer udata);
+typedef void (*fifo_free_t)(void *item, void *udata);
 
 fifo_t *fifo_make(void);
 void fifo_free(fifo_t *f);
-void fifo_free_all(fifo_t *f, fifo_free_t cb, gpointer udata);
+void fifo_free_all(fifo_t *f, fifo_free_t cb, void *udata);
 int fifo_count(fifo_t *f);
-void fifo_put(fifo_t *f, gconstpointer data);
-gpointer fifo_remove(fifo_t *f);
+void fifo_put(fifo_t *f, const void *data);
+void *fifo_remove(fifo_t *f);
 
 #endif /* _fifo_h_ */
 

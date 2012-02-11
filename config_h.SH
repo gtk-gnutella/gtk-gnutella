@@ -80,6 +80,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define BYTEORDER 0x$byteorder	/* large digits for MSB */
 
+/* CHARSIZE:
+ *	This symbol contains the size of a char, so that the C preprocessor
+ *	can make decisions based on it.
+ */
+#define CHARSIZE $charsize
+
 /* CAT2:
  *	This macro catenates 2 tokens together.
  */
@@ -976,6 +982,30 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <Winsock2.h>.
  */
 #$i_winsock2 I_WINSOCK2		/**/
+
+/* CAN_HANDLE_64BITS:
+ *	When defined, this indicates that the compiler can handle 64-bit values
+ *	despite the CPU having only 32-bit registers.  These are available using
+ *	the "long long" C type.  It is only defined for ILP32 machines, since
+ *	64-bit support is naturally available on ILP64 and LP64 machines.
+ */
+#$d_can64 CAN_HANDLE_64BITS	/**/
+
+/* INTSIZE:
+ *	This symbol contains the value of sizeof(int) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+/* LONGSIZE:
+ *	This symbol contains the value of sizeof(long) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+/* SHORTSIZE:
+ *	This symbol contains the value of sizeof(short) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+#define INTSIZE $intsize
+#define LONGSIZE $longsize
+#define SHORTSIZE $shortsize
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization

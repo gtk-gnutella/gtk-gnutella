@@ -47,7 +47,7 @@
  *
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean
+bool
 parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1)
 {
 	struct sha1 raw;
@@ -76,7 +76,7 @@ parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1)
  *
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
-gboolean
+bool
 parse_base16_sha1(const char *buf, size_t size, struct sha1 *sha1)
 {
 	struct sha1 raw;
@@ -102,7 +102,7 @@ parse_base16_sha1(const char *buf, size_t size, struct sha1 *sha1)
  *
  * @return whether we successfully extracted the SHA1.
  */
-gboolean
+bool
 urn_get_sha1(const char *buf, struct sha1 *sha1)
 {
 	const char *p;
@@ -143,14 +143,14 @@ urn_get_sha1(const char *buf, struct sha1 *sha1)
  * @return whether we successfully extracted the bitprint, i.e. the two
  * hashes.
  */
-gboolean
+bool
 urn_get_bitprint(const char *buf, size_t size,
 	struct sha1 *sha1, struct tth *tth)
 {
 	static const char prefix[] = "urn:bitprint:";
 	size_t len;
 	const char *p;
-	gboolean base16_tth = FALSE;
+	bool base16_tth = FALSE;
 
 	g_assert(0 == size || NULL != buf);
 	g_assert(sha1);
@@ -201,7 +201,7 @@ urn_get_bitprint(const char *buf, size_t size,
  *
  * @return whether TTH was successfully extracted.
  */
-gboolean
+bool
 urn_get_tth(const char *buf, size_t size, struct tth *tth)
 {
 	static const char prefix[] = "urn:tree:tiger";
@@ -246,7 +246,7 @@ urn_get_tth(const char *buf, size_t size, struct tth *tth)
  *
  * @return whether we successfully extracted the SHA1.
  */
-gboolean
+bool
 urn_get_sha1_no_prefix(const char *buf, struct sha1 *sha1)
 {
 	const char *p;

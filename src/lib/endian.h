@@ -44,106 +44,106 @@
  * or little-endian.
  */
 
-static inline ALWAYS_INLINE G_GNUC_PURE guint8
+static inline ALWAYS_INLINE G_GNUC_PURE uint8
 peek_u8(const void *p)
 {
-	const guint8 *q = p;
+	const uint8 *q = p;
 	return q[0];
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE guint16
+static inline ALWAYS_INLINE G_GNUC_PURE uint16
 peek_u16(const void *p)
 {
 	const unsigned char *q = p;
-	guint16 v;
+	uint16 v;
 	memcpy(&v, q, sizeof v);
 	return v;
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE guint32
+static inline ALWAYS_INLINE G_GNUC_PURE uint32
 peek_u32(const void *p)
 {
 	const unsigned char *q = p;
-	guint32 v;
+	uint32 v;
 	memcpy(&v, q, sizeof v);
 	return v;
 }
 
-static inline ALWAYS_INLINE G_GNUC_PURE guint64
+static inline ALWAYS_INLINE G_GNUC_PURE uint64
 peek_u64(const void *p)
 {
 	const unsigned char *q = p;
-	guint64 v;
+	uint64 v;
 	memcpy(&v, q, sizeof v);
 	return v;
 }
 
-static inline G_GNUC_PURE guint16
+static inline G_GNUC_PURE uint16
 peek_be16(const void *p)
 {
 	const unsigned char *q = p;
-	guint16 v;
+	uint16 v;
 
 #if IS_BIG_ENDIAN
 	memcpy(&v, q, sizeof v);
 #else
-	v = ((guint16) peek_u8(q) << 8) | peek_u8(&q[sizeof v / 2]);
+	v = ((uint16) peek_u8(q) << 8) | peek_u8(&q[sizeof v / 2]);
 #endif
 	return v;
 }
 
-static inline G_GNUC_PURE guint32
+static inline G_GNUC_PURE uint32
 peek_be32(const void *p)
 {
 	const unsigned char *q = p;
-	guint32 v;
+	uint32 v;
 
 #if IS_BIG_ENDIAN
 	memcpy(&v, q, sizeof v);
 #else
-	v = ((guint32) peek_be16(q) << 16) | peek_be16(&q[sizeof v / 2]);
+	v = ((uint32) peek_be16(q) << 16) | peek_be16(&q[sizeof v / 2]);
 #endif
 	return v;
 }
 
-static inline G_GNUC_PURE guint64
+static inline G_GNUC_PURE uint64
 peek_be64(const void *p)
 {
 	const unsigned char *q = p;
-	guint64 v;
+	uint64 v;
 
 #if IS_BIG_ENDIAN
 	memcpy(&v, q, sizeof v);
 #else
-	v = ((guint64) peek_be32(q) << 32) | peek_be32(&q[sizeof v / 2]);
+	v = ((uint64) peek_be32(q) << 32) | peek_be32(&q[sizeof v / 2]);
 #endif
 	return v;
 }
 
-static inline G_GNUC_PURE guint16
+static inline G_GNUC_PURE uint16
 peek_le16(const void *p)
 {
 	const unsigned char *q = p;
-	guint16 v;
+	uint16 v;
 
 #if IS_LITTLE_ENDIAN
 	memcpy(&v, q, sizeof v);
 #else
-	v = peek_u8(q) | ((guint16) peek_u8(&q[sizeof v / 2]) << 8);
+	v = peek_u8(q) | ((uint16) peek_u8(&q[sizeof v / 2]) << 8);
 #endif
 	return v;
 }
 
-static inline G_GNUC_PURE guint32
+static inline G_GNUC_PURE uint32
 peek_le32(const void *p)
 {
 	const unsigned char *q = p;
-	guint32 v;
+	uint32 v;
 
 #if IS_LITTLE_ENDIAN
 	memcpy(&v, q, sizeof v);
 #else
-	v = peek_le16(q) | ((guint32) peek_le16(&q[sizeof v / 2]) << 16);
+	v = peek_le16(q) | ((uint32) peek_le16(&q[sizeof v / 2]) << 16);
 #endif
 	return v;
 }
@@ -153,16 +153,16 @@ peek_le32(const void *p)
  * written bytes.
  */
 
-static inline ALWAYS_INLINE gpointer
-poke_u8(gpointer p, unsigned char v)
+static inline ALWAYS_INLINE void *
+poke_u8(void *p, unsigned char v)
 {
 	unsigned char *q = p;
 	*q = v & 0xff;
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_be16(gpointer p, guint16 v)
+static inline void *
+poke_be16(void *p, uint16 v)
 {
 	unsigned char *q = p;
 
@@ -176,8 +176,8 @@ poke_be16(gpointer p, guint16 v)
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_be32(gpointer p, guint32 v)
+static inline void *
+poke_be32(void *p, uint32 v)
 {
 	unsigned char *q = p;
 
@@ -191,8 +191,8 @@ poke_be32(gpointer p, guint32 v)
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_be64(gpointer p, guint64 v)
+static inline void *
+poke_be64(void *p, uint64 v)
 {
 	unsigned char *q = p;
 
@@ -206,8 +206,8 @@ poke_be64(gpointer p, guint64 v)
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_le16(gpointer p, guint16 v)
+static inline void *
+poke_le16(void *p, uint16 v)
 {
 	unsigned char *q = p;
 
@@ -221,8 +221,8 @@ poke_le16(gpointer p, guint16 v)
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_le32(gpointer p, guint32 v)
+static inline void *
+poke_le32(void *p, uint32 v)
 {
 	unsigned char *q = p;
 
@@ -236,8 +236,8 @@ poke_le32(gpointer p, guint32 v)
 	return &q[sizeof v];
 }
 
-static inline gpointer
-poke_le64(gpointer p, guint64 v)
+static inline void *
+poke_le64(void *p, uint64 v)
 {
 	unsigned char *q = p;
 
@@ -256,10 +256,10 @@ poke_le64(gpointer p, guint64 v)
  * Handles IEC 60559/IEEE 754 floating point single-precision (32-bit).
  */
 
-static inline gpointer
-poke_float_be32(gpointer p, float v)
+static inline void *
+poke_float_be32(void *p, float v)
 {
-	guint32 tmp;
+	uint32 tmp;
 
 	STATIC_ASSERT(sizeof(float) == 4);
 
@@ -274,7 +274,7 @@ poke_float_be32(gpointer p, float v)
 static inline G_GNUC_PURE float
 peek_float_be32(const void *p)
 {
-	guint32 tmp;
+	uint32 tmp;
 	float v;
 
 	STATIC_ASSERT(sizeof(float) == 4);

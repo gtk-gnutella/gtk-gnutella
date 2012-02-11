@@ -101,7 +101,7 @@ struct guid_lookup {
 	const kuid_t *id;		/**< ID being looked for (atom) */
 	const guid_t *guid;		/**< Servent's GUID (atom) */
 	host_addr_t addr;		/**< Servent's address */
-	guint16 port;			/**< Servent's port */
+	uint16 port;			/**< Servent's port */
 	unsigned nope:1;		/**< Was looking for a NOPE instead of a PROX */
 };
 
@@ -113,7 +113,7 @@ guid_lookup_check(const struct guid_lookup *glk)
 }
 
 static void gdht_guid_found(const kuid_t *kuid,
-	const lookup_val_rs_t *rs, gpointer arg);
+	const lookup_val_rs_t *rs, void *arg);
 
 /**
  * Convert a SHA1 to the proper Kademlia key for lookups.
@@ -147,8 +147,8 @@ gdht_kuid_from_guid(const guid_t *guid)
 /**
  * Is IP:port pointing back at us?
  */
-static gboolean
-gdht_is_our_ip_port(const host_addr_t addr, guint16 port)
+static bool
+gdht_is_our_ip_port(const host_addr_t addr, uint16 port)
 {
 	return is_my_address_and_port(addr, port) ||
 		local_addr_cache_lookup(addr, port);
@@ -157,7 +157,7 @@ gdht_is_our_ip_port(const host_addr_t addr, guint16 port)
 /**
  * Was result published by ourselves
  */
-static gboolean
+static bool
 gdht_published_by_ourselves(const lookup_val_rc_t *rc)
 {
 	return gdht_is_our_ip_port(rc->addr, rc->port);
@@ -167,7 +167,7 @@ gdht_published_by_ourselves(const lookup_val_rc_t *rc)
  * Free SHA1 lookup context.
  */
 static void
-gdht_free_sha1_lookup(struct sha1_lookup *slk, gboolean do_remove)
+gdht_free_sha1_lookup(struct sha1_lookup *slk, bool do_remove)
 {
 	sha1_lookup_check(slk);
 
@@ -183,7 +183,7 @@ gdht_free_sha1_lookup(struct sha1_lookup *slk, gboolean do_remove)
  * Free GUID lookup context.
  */
 static void
-gdht_free_guid_lookup(struct guid_lookup *glk, gboolean do_remove)
+gdht_free_guid_lookup(struct guid_lookup *glk, bool do_remove)
 {
 	guid_lookup_check(glk);
 
@@ -208,7 +208,7 @@ value_infostr(const lookup_val_rc_t *rc)
 
 	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
-		(gulong) rc->length, 1 == rc->length ? "" : "s",
+		(ulong) rc->length, 1 == rc->length ? "" : "s",
 		vendor_to_string(rc->vcode));
 
 	return info;
@@ -219,8 +219,8 @@ value_infostr(const lookup_val_rc_t *rc)
  *
  * @return TRUE if OK, FALSE if lookup must be aborted.
  */
-static gboolean
-gdht_sha1_looking(const kuid_t *kuid, gpointer arg)
+static bool
+gdht_sha1_looking(const kuid_t *kuid, void *arg)
 {
 	struct sha1_lookup *slk = arg;
 	fileinfo_t *fi;
@@ -240,7 +240,7 @@ gdht_sha1_looking(const kuid_t *kuid, gpointer arg)
  * Callback when SHA1 lookup is unsuccessful.
  */
 static void
-gdht_sha1_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+gdht_sha1_not_found(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	struct sha1_lookup *slk = arg;
 	fileinfo_t *fi;
@@ -250,7 +250,7 @@ gdht_sha1_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
 
 	fi = file_info_by_guid(slk->fi_guid);	/* NULL if fileinfo was removed */
 	if (fi != NULL) {
-		gboolean launched;
+		bool launched;
 
 		switch (error) {
 		case LOOKUP_E_CANCELLED:
@@ -282,17 +282,17 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	extvec_t exv[MAX_EXTVEC];
 	int exvcnt;
 	int i;
-	gboolean firewalled = FALSE;
+	bool firewalled = FALSE;
 	struct tth tth;
-	gboolean has_tth = FALSE;
+	bool has_tth = FALSE;
 	guid_t guid;
-	guint16 port = 0;
-	gboolean tls = FALSE;
+	uint16 port = 0;
+	bool tls = FALSE;
 	filesize_t filesize = 0;
-	guint32 flags = 0;
+	uint32 flags = 0;
 	char host[MAX_HOSTLEN];
 	const char *hostname = NULL;
-	gboolean has_valid_guid = FALSE;
+	bool has_valid_guid = FALSE;
 
 	g_assert(DHT_VT_ALOC == rc->type);
 
@@ -303,7 +303,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	for (i = 0; i < exvcnt; i++) {
 		extvec_t *e = &exv[i];
-		guint16 paylen;
+		uint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_client_id:
@@ -314,13 +314,13 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			break;
 		case EXT_T_GGEP_firewalled:
 			if (1 == ext_paylen(e)) {
-				guint8 fw = peek_u8(ext_payload(e));
+				uint8 fw = peek_u8(ext_payload(e));
 				firewalled = fw != 0;
 			}
 			break;
 		case EXT_T_GGEP_length:
 			{
-				guint64 fs;
+				uint64 fs;
 				ggept_status_t ret;
 
 				ret = ggept_filesize_extract(e, &fs);
@@ -495,7 +495,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		fi->sha1,
 		has_tth ? &tth : NULL,
 		tm_time(),
-		deconstify_gpointer(fi),
+		deconstify_pointer(fi),
 		flags);
 
 	/* FALL THROUGH */
@@ -518,12 +518,12 @@ cleanup:
  * Callback when SHA1 lookup is successful.
  */
 static void
-gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
+gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 {
 	struct sha1_lookup *slk = arg;
 	fileinfo_t *fi;
 	size_t i;
-	gboolean seen_foreign = FALSE;
+	bool seen_foreign = FALSE;
 
 	g_assert(rs);
 	sha1_lookup_check(slk);
@@ -620,7 +620,7 @@ gdht_find_sha1(fileinfo_t *fi)
  * Callback when GUID lookup is unsuccessful.
  */
 static void
-gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+gdht_guid_not_found(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	struct guid_lookup *glk = arg;
 
@@ -644,7 +644,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	int exvcnt;
 	int i;
 	guid_t guid;
-	guint16 port = 0;
+	uint16 port = 0;
 	gnet_host_t proxies[MAX_PROXIES];
 	int proxy_count = 0;
 
@@ -658,7 +658,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 	for (i = 0; i < exvcnt; i++) {
 		extvec_t *e = &exv[i];
-		guint16 paylen;
+		uint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_client_id:
@@ -694,8 +694,8 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 					UNSIGNED(proxy_count) < G_N_ELEMENTS(proxies)
 				) {
 					host_addr_t a;
-					guint16 p;
-					guint8 len;
+					uint16 p;
+					uint8 len;
 
 					if (!bstr_read_u8(bs, &len))
 						break;
@@ -829,7 +829,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 	int exvcnt;
 	int i;
 	guid_t guid;
-	guint16 port = 0;
+	uint16 port = 0;
 
 	g_assert(DHT_VT_NOPE == rc->type);
 	guid_lookup_check(glk);
@@ -841,7 +841,7 @@ gdht_handle_nope(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 	for (i = 0; i < exvcnt; i++) {
 		extvec_t *e = &exv[i];
-		guint16 paylen;
+		uint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_guid:
@@ -917,12 +917,12 @@ cleanup:
  * Callback when GUID lookup is successful (PROX or NOPE values).
  */
 static void
-gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
+gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 {
 	struct guid_lookup *glk = arg;
 	size_t i;
-	gboolean prox = FALSE;
-	gboolean nope = FALSE;
+	bool prox = FALSE;
+	bool nope = FALSE;
 	size_t other = 0;
 
 	g_assert(rs);
@@ -997,7 +997,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
  * Launch a GUID lookup in the DHT to collect push proxies for a server.
  */
 void
-gdht_find_guid(const guid_t *guid, const host_addr_t addr, guint16 port)
+gdht_find_guid(const guid_t *guid, const host_addr_t addr, uint16 port)
 {
 	struct guid_lookup *glk;
 
@@ -1068,7 +1068,7 @@ gdht_init(void)
  * Hash table iterator to free a struct sha1_lookup
  */
 static void
-free_sha1_lookups_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+free_sha1_lookups_kv(void *unused_key, void *val, void *unused_x)
 {
 	struct sha1_lookup *slk = val;
 
@@ -1082,7 +1082,7 @@ free_sha1_lookups_kv(gpointer unused_key, gpointer val, gpointer unused_x)
  * Hash table iterator to free a struct guid_lookup
  */
 static void
-free_guid_lookups_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+free_guid_lookups_kv(void *unused_key, void *val, void *unused_x)
 {
 	struct guid_lookup *glk = val;
 

@@ -35,15 +35,22 @@
 
 /* @note This file is only for inclusion by common.h. */
 
-/**
- * Cast a ``const gchar *'' to ``gchar *''. This allows the compiler to
+/*
+ * Cast a ``const type *'' to ``type *''. This allows the compiler to
  * print a diagnostic message if you accidently try to deconstify an
  * incompatible type. A direct typecast would hide such a mistake.
  */
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE gboolean *
 deconstify_gboolean(const gboolean *p)
 {
 	return (gboolean *) p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE bool *
+deconstify_bool(const bool *p)
+{
+	return (bool *) p;
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
@@ -58,14 +65,20 @@ deconstify_char(const char *p)
 	return (char *) p;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE guint32 *
-deconstify_guint32(const guint32 *p)
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE uint32 *
+deconstify_uint32(const uint32 *p)
 {
-	return (guint32 *) p;
+	return (uint32 *) p;
 }
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void * 
 deconstify_gpointer(const void *p)
+{
+	return (void *) p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void * 
+deconstify_pointer(const void *p)
 {
 	return (void *) p;
 }
@@ -76,8 +89,20 @@ cast_to_gconstpointer(const void *p)
 	return p; 
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE const void *
+cast_to_constpointer(const void *p)
+{
+	return p; 
+}
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 cast_to_gpointer(void *p)
+{
+	return p;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+cast_to_pointer(void *p)
 {
 	return p;
 }
@@ -108,6 +133,12 @@ cast_to_guchar_ptr(void *p)
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 ulong_to_pointer(unsigned long value)
+{
+	return (void *) value;
+}
+
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
+size_to_pointer(size_t value)
 {
 	return (void *) value;
 }
@@ -233,7 +264,7 @@ filesize_to_fileoffset_t(filesize_t pos)
 #elif defined(UINTMAX_MAX)
 #define UNSIGNED(value) ((value) + (UINTMAX_MAX - UINTMAX_MAX))
 #else
-#define UNSIGNED(value) ((value) + ((guint64)0U))
+#define UNSIGNED(value) ((value) + ((uint64)0U))
 #endif	/* UINTMAX_C */
 
 /* Normalize boolean-like values to TRUE(1) or FALSE(0) */

@@ -61,7 +61,7 @@ struct tsync {
 	tm_t sent;			 /**< Time at which we sent the synchronization */
 	struct nid *node_id; /**< Node to which we sent the request */
 	cevent_t *expire_ev; /**< Expiration callout queue callback */
-	gboolean udp;		 /**< Whether request was sent using UDP */
+	unsigned udp:1;		 /**< Whether request was sent using UDP */
 };
 
 /*
@@ -88,7 +88,7 @@ tsync_free(struct tsync *ts)
  * Expire the tsync record.
  */
 static void
-tsync_expire(cqueue_t *unused_cq, gpointer obj)
+tsync_expire(cqueue_t *unused_cq, void *obj)
 {
 	struct tsync *ts = obj;
 	struct gnutella_node *n;
@@ -139,7 +139,7 @@ tsync_send(struct gnutella_node *n, const struct nid *node_id)
 	tm_now_exact(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = nid_ref(node_id);
-	ts->udp = NODE_IS_UDP(n);
+	ts->udp = booleanize(NODE_IS_UDP(n));
 
 	/*
 	 * As far as time synchronization goes, we must get the reply within
@@ -218,7 +218,7 @@ tsync_got_request(struct gnutella_node *n, tm_t *got)
  */
 void
 tsync_got_reply(struct gnutella_node *n,
-	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, gboolean ntp)
+	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, bool ntp)
 {
 	struct tsync *ts;
 	tm_t delay;
@@ -326,7 +326,7 @@ tsync_init(void)
  * Get rid of the tsync structure held in the value.
  */
 static void
-free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_tsync_kv(void *unused_key, void *value, void *unused_udata)
 {
 	struct tsync *ts = value;
 

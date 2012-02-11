@@ -51,15 +51,15 @@ void dualhash_destroy(dualhash_t *dh);
 void dualhash_destroy_null(dualhash_t **dh_ptr);
 void dualhash_insert_key(dualhash_t *dh, const void *key, const void *value);
 void dualhash_insert_value(dualhash_t *dh, const void *value, const void *key);
-gboolean dualhash_remove_key(dualhash_t *dh, const void *key);
-gboolean dualhash_remove_value(dualhash_t *dh, const void *value);
-gboolean dualhash_contains_key(const dualhash_t *dh, const void *key);
-gboolean dualhash_contains_value(const dualhash_t *dh, const void *val);
+bool dualhash_remove_key(dualhash_t *dh, const void *key);
+bool dualhash_remove_value(dualhash_t *dh, const void *value);
+bool dualhash_contains_key(const dualhash_t *dh, const void *key);
+bool dualhash_contains_value(const dualhash_t *dh, const void *val);
 void *dualhash_lookup_key(const dualhash_t *dh, const void *key);
 void *dualhash_lookup_value(const dualhash_t *dh, const void *value);
-gboolean dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
+bool dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
 	void *okey, void *oval);
-gboolean dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
+bool dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
 	void *okey, void *oval);
 size_t dualhash_count(const dualhash_t *dh);
 

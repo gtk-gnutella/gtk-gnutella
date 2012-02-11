@@ -52,8 +52,8 @@ enum dht_bootsteps {
  */
 
 const char *dht_mode_to_string(dht_mode_t mode);
-gboolean dht_seeded(void);
-gboolean dht_bootstrapped(void);
+bool dht_seeded(void);
+bool dht_bootstrapped(void);
 void dht_configured_mode_changed(dht_mode_t mode);
 
 #endif /* _if_dht_routing_h */

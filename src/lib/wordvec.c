@@ -109,25 +109,25 @@ word_vec_zrealloc(word_vec_t *wv, int ncount)
  * with the pointer to the allocated vector.  If there are no items, there
  * is no vector returned.
  */
-guint
+uint
 word_vec_make(const char *query_str, word_vec_t **wovec)
 {
-	guint n = 0;
+	uint n = 0;
 	GHashTable *seen_word = NULL;
-	guint nv = WOVEC_DFLT;
+	uint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
 	const char *start = NULL;
 	char * const query_dup = h_strdup(query_str);
 	char *query;
 	char first = TRUE;
-	guchar c;
+	uchar c;
 
 	g_assert(wovec != NULL);
 
 	for (query = query_dup; /* empty */; query++) {
-		gboolean is_separator;
+		bool is_separator;
 
-		c = *(guchar *) query;
+		c = *(uchar *) query;
 		/*
 	 	 * We can't meet other separators than space, because the
 	 	 * string is normalised.
@@ -138,7 +138,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 			if (!is_separator)
 				start = query;
 		} else {
-			guint np1;
+			uint np1;
 
 			if (!is_separator)
 				continue;
@@ -216,9 +216,9 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
  * Release a word vector, containing `n' items.
  */
 void
-word_vec_free(word_vec_t *wovec, guint n)
+word_vec_free(word_vec_t *wovec, uint n)
 {
-	guint i;
+	uint i;
 
 	for (i = 0; i < n; i++)
 		wfree(wovec[i].word, wovec[i].len + 1);

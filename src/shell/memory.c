@@ -266,7 +266,7 @@ memory_run_shower(struct gnutella_shell *sh,
 
 static enum shell_reply
 memory_run_opt_shower(struct gnutella_shell *sh,
-	shower_opt_cb_t cb, const char *prefix, gboolean options)
+	shower_opt_cb_t cb, const char *prefix, bool options)
 {
 	show_opt_vec_t v;
 
@@ -465,7 +465,7 @@ shell_exec_memory_usage_zone(struct gnutella_shell *sh,
 	size_t size;
 	const char *endptr;
 	int error;
-	gboolean ok;
+	bool ok;
 
 	shell_check(sh);
 	g_assert(argv);

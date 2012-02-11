@@ -189,7 +189,7 @@ symtab_make(void)
 /**
  * nv_table_t iterator to free values from the symbol table.
  */
-static gboolean
+static bool
 symtab_free_nv(nv_pair_t *nv, void *data)
 {
 	struct symtab_value *sv;
@@ -271,7 +271,7 @@ struct symtab_leave_ctx {
 /**
  * nv_table_t iterator to remove out-of-scope symbols from the symbol table.
  */
-static gboolean
+static bool
 symtab_leave_nv(nv_pair_t *nv, void *data)
 {
 	struct symtab_value *sv;
@@ -332,13 +332,13 @@ symtab_leave(symtab_t *syt, unsigned depth)
  *
  * @return whether symbol was inserted (FALSE indicating a duplicate).
  */
-gboolean
+bool
 symtab_insert_pair(symtab_t *syt, nv_pair_t *symbol, unsigned depth)
 {
 	nv_pair_t *nv;
 	struct symbol_entry *se;
 	struct symtab_value *sv;
-	gboolean existed = FALSE;
+	bool existed = FALSE;
 	const char *name;
 
 	symtab_check(syt);
@@ -410,7 +410,7 @@ symtab_insert_pair(symtab_t *syt, nv_pair_t *symbol, unsigned depth)
  *
  * @return whether symbol was inserted (FALSE indicating a duplicate).
  */
-gboolean
+bool
 symtab_insert(symtab_t *syt,
 	const char *name, void *value, size_t len, unsigned depth)
 {

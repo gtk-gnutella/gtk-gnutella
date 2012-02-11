@@ -147,8 +147,8 @@ typedef enum {
  * ASCII characters and the lowest 64 invalid bytes 0x80..0xBF are excluded.
  */
 static const struct {
-	const guchar start;
-	const guchar end;
+	const uchar start;
+	const uchar end;
 } utf8_2nd_byte_tab[64] = {
 	{ 0x00, 0x00 }, /* 0xC0  Invalid */
 	{ 0x00, 0x00 }, /* 0xC1  Invalid */
@@ -239,8 +239,8 @@ static const struct {
  * only the lower 24 bits.
  */
 static const struct utf32_nfkd {
-    const guint32 c;
-    const guint32 d[UTF32_NFKD_REPLACE_MAXLEN];
+    const uint32 c;
+    const uint32 d[UTF32_NFKD_REPLACE_MAXLEN];
 } utf32_nfkd_lut[] = {
 	{ UTF32_NFKD(0x00A0), { 0x0020 } },
 	{ UTF32_NFKD(0x00A8), { 0x0020, 0x0308 } },
@@ -5652,8 +5652,8 @@ static const struct utf32_nfkd {
  *     explicitely in utf32_uppercase().
  */
 static const struct {
-	guint16 lower;
-	guint16 upper;
+	uint16 lower;
+	uint16 upper;
 } utf32_uppercase_lut[] = {
 	{ 0x00B5, 0x039C },
 	{ 0x00E0, 0x00C0 },
@@ -6507,8 +6507,8 @@ static const struct {
  *     explicitely in utf32_lowercase().
  */
 static const struct {
-	guint16 upper;
-	guint16 lower;
+	uint16 upper;
+	uint16 lower;
 } utf32_lowercase_lut[] = {
 	{ 0x00C0, 0x00E0 },
 	{ 0x00C1, 0x00E1 },
@@ -7352,8 +7352,8 @@ static const struct {
  * default class is 0, which means the character is a ``starter''.
  */
 static const struct utf32_comb_class {
-	guint32 uc;
-	guint8 cc;
+	uint32 uc;
+	uint8 cc;
 } utf32_comb_class_lut[] = {
 	{ 0x0300, 230 },
 	{ 0x0301, 230 },
@@ -7746,7 +7746,7 @@ static const struct utf32_comb_class {
  * UnicodeData.txt but are listed in CompositionExclusions.txt.
  * Note that the entries in that file are not completely sorted.
  */
-static const guint32 utf32_composition_exclusions[] = {
+static const uint32 utf32_composition_exclusions[] = {
 	0x0958,
 	0x0959,
 	0x095A,
@@ -7860,9 +7860,9 @@ static const guint32 utf32_composition_exclusions[] = {
  * table is UNI_GC_CN ("Cn", "Other, Not Assigned").
  */
 static const struct utf32_general_category {
-	guint32 uc;		/**< The first unicode character in the array */
-	guint16 len;	/**< The array length */
-	guint8  gc;		/**< general category */
+	uint32 uc;		/**< The first unicode character in the array */
+	uint16 len;		/**< The array length */
+	uint8  gc;		/**< general category */
 } utf32_general_category_lut[] = {
 	{ 0x0000,   32, UNI_GC_CC },
 	{ 0x0020,    1, UNI_GC_ZS },
@@ -9879,8 +9879,8 @@ static const struct utf32_general_category {
  *
  */
 static const struct {
-	guint32 start;
-	guint32 end;
+	uint32 start;
+	uint32 end;
 } utf32_block_id_lut[] = {
 	{ 0x0000, 0x007F },
 	{ 0x0080, 0x00FF },
@@ -10047,7 +10047,7 @@ static const struct {
 
 #if defined(TEST_NORMALIZATION_TEST_TXT)
 static const struct {
-	guint32 c[5][20];
+	uint32 c[5][20];
 } normalization_test_txt[] = {
 #include "NormalizationTest.inc"
 };
@@ -10090,8 +10090,8 @@ static const struct {
 
  */
 static const struct {
-	guint32 uc;		/**< The first unicode character in the array */
-	guint16 len;	/**< The array length */
+	uint32 uc;		/**< The first unicode character in the array */
+	uint16 len;		/**< The array length */
 } utf32_normalization_specials[] = {
 	{ 0x00A0, 1 },
 	{ 0x00A8, 1 },
@@ -10451,7 +10451,7 @@ static const struct {
  *  
  */
 static const struct {
-	guint16 uc;
+	uint16 uc;
 	const char s[4];
 } jap_tab[] = {
 	{ 0x3041, "a" },
@@ -10773,8 +10773,8 @@ static const struct {
 */
 
 static const struct utf32_special_folding {
-    const guint16 uc;
-    const guint32 folded[4];
+    const uint16 uc;
+    const uint32 folded[4];
 } utf32_special_folding_lut[] = {
 	{ 0x00DF, { 0x0073, 0x0073 } },
 	{ 0x0130, { 0x0069, 0x0307 } },

@@ -45,16 +45,16 @@ typedef struct ostream ostream_t;
  * Public interface.
  */
 
-gboolean ostream_is_file(const ostream_t *os);
-gboolean ostream_is_memory(const ostream_t *os);
+bool ostream_is_file(const ostream_t *os);
+bool ostream_is_memory(const ostream_t *os);
 ostream_t *ostream_open_memory(void);
 slist_t *ostream_close_memory(ostream_t *os);
 ostream_t *ostream_open_fd(int fd);
 ostream_t *ostream_open_file(FILE *f);
 int ostream_close_file(ostream_t *os);
-gboolean ostream_has_ioerr(const ostream_t *os);
+bool ostream_has_ioerr(const ostream_t *os);
 ostream_t *ostream_open_pmsg(pmsg_t *mb);
-gboolean ostream_close(ostream_t *os);
+bool ostream_close(ostream_t *os);
 
 ssize_t ostream_write(ostream_t *os, const void *data, size_t len);
 ssize_t ostream_printf(ostream_t *os, const char *fmt, ...) G_GNUC_PRINTF(2, 3);

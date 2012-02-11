@@ -37,8 +37,6 @@
 
 #include "sdbm.h"
 
-#define bool int
-
 extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 char *progname;
@@ -344,7 +342,7 @@ delete_db(const char *name, long count, long cache, int wflags, tm_t *done)
 }
 
 static void
-iter_db(const char *name, long count, long cache, bool safe, tm_t *done)
+iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 {
 	DBM *db = open_db(name, (shrink || safe) ? TRUE : FALSE, cache, 0);
 	long i;

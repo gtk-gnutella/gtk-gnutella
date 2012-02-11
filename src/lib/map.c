@@ -199,10 +199,10 @@ map_create_from_patricia(patricia_t *pt)
  * Switch the implementation of an existing map to a hash table.
  * Returns the previous implementation.
  */
-gpointer
+void *
 map_switch_to_hash(map_t *m, GHashTable *ht)
 {
-	gpointer implementation;
+	void *implementation;
 
 	map_check(m);
 	g_assert(ht);
@@ -218,10 +218,10 @@ map_switch_to_hash(map_t *m, GHashTable *ht)
  * Switch the implementation of an existing map to an ordered hash table.
  * Returns the previous implementation.
  */
-gpointer
+void *
 map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot)
 {
-	gpointer implementation;
+	void *implementation;
 
 	map_check(m);
 	g_assert(ot);
@@ -237,10 +237,10 @@ map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot)
  * Switch the implementation of an existing map to a PATRICIA tree.
  * Returns the previous implementation.
  */
-gpointer
+void *
 map_switch_to_patricia(map_t *m, patricia_t *pt)
 {
-	gpointer implementation;
+	void *implementation;
 
 	map_check(m);
 	g_assert(pt);
@@ -256,7 +256,7 @@ map_switch_to_patricia(map_t *m, patricia_t *pt)
  * Insert a key/value pair in the map.
  */
 void
-map_insert(const map_t *m, gconstpointer key, gconstpointer value)
+map_insert(const map_t *m, const void *key, const void *value)
 {
 	map_check(m);
 
@@ -279,7 +279,7 @@ map_insert(const map_t *m, gconstpointer key, gconstpointer value)
  * Replace a key/value pair in the map.
  */
 void
-map_replace(const map_t *m, gconstpointer key, gconstpointer value)
+map_replace(const map_t *m, const void *key, const void *value)
 {
 	map_check(m);
 
@@ -303,8 +303,8 @@ map_replace(const map_t *m, gconstpointer key, gconstpointer value)
  *
  * @return TRUE if the key was found and removed from the map.
  */
-gboolean
-map_remove(const map_t *m, gconstpointer key)
+bool
+map_remove(const map_t *m, const void *key)
 {
 	map_check(m);
 
@@ -329,8 +329,8 @@ map_remove(const map_t *m, gconstpointer key)
 /**
  * Check whether map contains the key.
  */
-gboolean
-map_contains(const map_t *m, gconstpointer key)
+bool
+map_contains(const map_t *m, const void *key)
 {
 	map_check(m);
 
@@ -350,8 +350,8 @@ map_contains(const map_t *m, gconstpointer key)
 /**
  * Lookup a key in the map.
  */
-gpointer
-map_lookup(const map_t *m, gconstpointer key)
+void *
+map_lookup(const map_t *m, const void *key)
 {
 	map_check(m);
 
@@ -392,9 +392,8 @@ map_count(const map_t *m)
 /**
  * Extended lookup of a key in the map, returning both key/value pointers.
  */
-gboolean
-map_lookup_extended(const map_t *m, gconstpointer key,
-	gpointer *okey, gpointer *oval)
+bool
+map_lookup_extended(const map_t *m, const void *key, void **okey, void **oval)
 {
 	map_check(m);
 
@@ -416,14 +415,14 @@ map_lookup_extended(const map_t *m, gconstpointer key,
  */
 struct pat_foreach {
 	map_cb_t cb;		/* Registered user callback */
-	gpointer u;			/* User callback additional arg */
+	void *u;			/* User callback additional arg */
 };
 
 /**
  * foreach() trampoline for PATRICIA.
  */
 static void
-pat_foreach_wrapper(gpointer key, size_t u_keybits, gpointer value, gpointer u)
+pat_foreach_wrapper(void *key, size_t u_keybits, void *value, void *u)
 {
 	struct pat_foreach *ctx = u;
 
@@ -436,7 +435,7 @@ pat_foreach_wrapper(gpointer key, size_t u_keybits, gpointer value, gpointer u)
  * Iterate on each item of the map, applying callback.
  */
 void
-map_foreach(const map_t *m, map_cb_t cb, gpointer u)
+map_foreach(const map_t *m, map_cb_t cb, void *u)
 {
 	map_check(m);
 	g_assert(cb);
@@ -468,15 +467,14 @@ map_foreach(const map_t *m, map_cb_t cb, gpointer u)
  */
 struct pat_foreach_remove {
 	map_cbr_t cb;		/* Registered user callback */
-	gpointer u;			/* User callback additional arg */
+	void *u;			/* User callback additional arg */
 };
 
 /**
  * foreach() trampoline for PATRICIA.
  */
-static gboolean
-pat_foreach_remove_wrapper(
-	gpointer key, size_t u_keybits, gpointer value, gpointer u)
+static bool
+pat_foreach_remove_wrapper(void *key, size_t u_keybits, void *value, void *u)
 {
 	struct pat_foreach_remove *ctx = u;
 
@@ -491,7 +489,7 @@ pat_foreach_remove_wrapper(
  * @return the amount of items deleted.
  */
 size_t
-map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
+map_foreach_remove(const map_t *m, map_cbr_t cb, void *u)
 {
 	map_check(m);
 	g_assert(cb);
@@ -520,7 +518,7 @@ map_foreach_remove(const map_t *m, map_cbr_t cb, gpointer u)
 /**
  * Returns the underlying map implementation.
  */
-gpointer
+void *
 map_implementation(const map_t *m)
 {
 	map_check(m);
@@ -543,10 +541,10 @@ map_implementation(const map_t *m)
  * Release the map encapsulation, returning the underlying implementation
  * object (will need to be cast back to the proper type for perusal).
  */
-gpointer
+void *
 map_release(map_t *m)
 {
-	gpointer implementation;
+	void *implementation;
 
 	map_check(m);
 
@@ -645,7 +643,7 @@ static G_GNUC_COLD double
 timeit(
 	void (*f)(void *, sha1_t *, size_t),
 	void *o, sha1_t *keys, size_t count, size_t iter, const char *what,
-	gboolean verbose)
+	bool verbose)
 {
 	size_t i;
 	tm_t start, end;
@@ -675,7 +673,7 @@ map_test(void)
 	struct {
 		unsigned insertion, contains, removal;
 	} faster = { 0, 0, 0};
-	gboolean verbose = common_stats > 1;
+	bool verbose = common_stats > 1;
 
 	if (common_stats <= 0)
 		return;

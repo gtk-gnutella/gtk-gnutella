@@ -124,7 +124,7 @@ struct file_object {
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_WRONLY or O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_writable(const int fd)
 {
 	int flags;
@@ -144,7 +144,7 @@ fd_is_writable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_RDONLY or O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_readable(const int fd)
 {
 	int flags;
@@ -165,7 +165,7 @@ fd_is_readable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_readable_and_writable(const int fd)
 {
 	int flags;
@@ -188,7 +188,7 @@ fd_is_readable_and_writable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is compatible with the access mode.
  */
-static inline gboolean
+static inline bool
 accmode_is_valid(const int fd, const int accmode)
 {
 	g_return_val_if_fail(fd >= 0, FALSE);
@@ -467,14 +467,14 @@ file_object_op_to_string(enum file_object_op op)
  *
  * @return TRUE if operation was successful, FALSE otherwise, with errno set.
  */
-static gboolean
+static bool
 file_object_special_op(enum file_object_op op,
 	const char * const old_name, const char * const new_name)
 {
 	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
 	unsigned i;
 	GSList *objects = NULL;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 	int saved_errno = 0;
 
 	errno = EINVAL;		/* In case one of the soft assertions fails */
@@ -626,7 +626,7 @@ done:
  *
  * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_rename(const char * const old_name, const char * const new_name)
 {
 	return file_object_special_op(FO_OP_RENAME, old_name, new_name);
@@ -641,7 +641,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
  *
  * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_moved(const char * const old_name, const char * const new_name)
 {
 	return file_object_special_op(FO_OP_MOVED, old_name, new_name);
@@ -654,7 +654,7 @@ file_object_moved(const char * const old_name, const char * const new_name)
  *
  * @return TRUE if unlinking was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_unlink(const char * const path)
 {
 	return file_object_special_op(FO_OP_UNLINK, path, NULL);
@@ -823,7 +823,7 @@ file_object_init(void)
 }
 
 static void
-file_object_show_item(gpointer key, gpointer value, gpointer unused_udata)
+file_object_show_item(void *key, void *value, void *unused_udata)
 {
 	const struct file_object * const fo = value;
 
@@ -842,7 +842,7 @@ static inline void
 file_object_destroy_table(GHashTable **ht_ptr, const char * const name)
 {
 	GHashTable *ht;
-	guint n;
+	uint n;
 
 	g_assert(ht_ptr);
 	ht = *ht_ptr;

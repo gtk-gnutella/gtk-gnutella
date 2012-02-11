@@ -60,18 +60,18 @@
  * Information about query hits received.
  */
 typedef struct dqhit {
-	guint32 msg_recv;		/**< Amount of individual messages we got */
-	guint32 msg_queued;		/**< # of messages queued */
-	guint32 hits_recv;		/**< Total amount of results we saw */
-	guint32 hits_sent;		/**< Total amount of results we sent back */
-	guint32 hits_queued;	/**< Amount of hits queued */
+	uint32 msg_recv;		/**< Amount of individual messages we got */
+	uint32 msg_queued;		/**< # of messages queued */
+	uint32 hits_recv;		/**< Total amount of results we saw */
+	uint32 hits_sent;		/**< Total amount of results we sent back */
+	uint32 hits_queued;		/**< Amount of hits queued */
 } dqhit_t;
 
 /*
  * Meta-information about the query hit message.
  */
 struct dh_pmsg_info {
-	guint32 hits;			/**< Amount of query hits held in message */
+	uint32 hits;			/**< Amount of query hits held in message */
 };
 
 /**
@@ -100,8 +100,8 @@ static time_t last_rotation;
  * Hashtable iteration callback to free the MUIDs in the `by_muid' table,
  * and the associated dqhit_t objects.
  */
-static gboolean
-free_muid_true(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_muid_true(void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	atom_guid_free(key);
@@ -142,9 +142,9 @@ dh_table_free(GHashTable **ptr)
 static dqhit_t *
 dh_locate(const struct guid *muid)
 {
-	gboolean found = FALSE;
-	gpointer key;
-	gpointer value;
+	bool found = FALSE;
+	void *key;
+	void *value;
 
 	if (NULL == by_muid_old)
 		return NULL;		/* DH layer shutdown occurred already */
@@ -235,7 +235,7 @@ dh_timer(time_t now)
  * Free routine for query hit message.
  */
 static void
-dh_pmsg_free(pmsg_t *mb, gpointer arg)
+dh_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct dh_pmsg_info *pmi = arg;
 	const struct guid *muid;
@@ -281,7 +281,7 @@ cleanup:
  * message on the floor or forward it.
  */
 static enum dh_drop
-dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
+dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 {
 	const char *teststr = test ? "[test] " : "";
 
@@ -552,7 +552,7 @@ drop_transient:
 /**
  * If we had to route hits to the specified node destination, would we?
  */
-gboolean
+bool
 dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 {
 	dqhit_t *dh;

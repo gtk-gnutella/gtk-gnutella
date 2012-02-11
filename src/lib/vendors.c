@@ -41,7 +41,7 @@
 #include "override.h"	/* Must be the last header included */
 
 static const struct vendor {
-    guint32 code;
+    uint32 code;
     const char *name;
 } vendor_map[] = {
 	/* This array MUST be sorted, because it is searched dichotomically */
@@ -136,7 +136,7 @@ static const struct vendor {
  * @returns vendor string if found, NULL otherwise.
  */
 static G_GNUC_HOT const char *
-find_vendor(guint32 code)
+find_vendor(uint32 code)
 {
 #define GET_KEY(i) (vendor_map[(i)].code)
 #define FOUND(i) G_STMT_START { \
@@ -144,7 +144,7 @@ find_vendor(guint32 code)
 	/* NOTREACHED */ \
 } G_STMT_END
 
-	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
+	BINARY_SEARCH(uint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
 
 #undef FOUND
@@ -155,7 +155,7 @@ find_vendor(guint32 code)
 /**
  * @return true is gtk-gnutella knows the given 4-byte vendor code.
  */
-gboolean
+bool
 is_vendor_known(vendor_code_t code)
 {
     if (code.u32 == T_0000)
@@ -167,7 +167,7 @@ is_vendor_known(vendor_code_t code)
 /**
  * @return TRUE If the 4-byte vendor code is acceptable.
  */
-gboolean
+bool
 is_vendor_acceptable(vendor_code_t code)
 {
 	char temp[4];
@@ -190,7 +190,7 @@ is_vendor_acceptable(vendor_code_t code)
  * @return Length of the resulting string before potential truncation.
  */
 size_t
-vendor_code_to_string_buf(guint32 code, char *buf, size_t size)
+vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 {
     if (code == 0) {
 		return g_strlcpy(buf, "null", size);
@@ -218,7 +218,7 @@ vendor_code_to_string_buf(guint32 code, char *buf, size_t size)
  * @return pointer to static data.
  */
 const char *
-vendor_code_to_string(guint32 code)
+vendor_code_to_string(uint32 code)
 {
 	static char buf[5];
 
@@ -232,7 +232,7 @@ vendor_code_to_string(guint32 code)
  * consists only of printable characters, return the code as a string.
  */
 const char *
-vendor_code_get_name(guint32 code)
+vendor_code_get_name(uint32 code)
 {
 	const char *name;
 

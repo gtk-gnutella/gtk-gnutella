@@ -55,11 +55,11 @@ enum atom_type {
 };
 
 #if !defined(TRACK_ATOMS) || defined(ATOMS_SOURCE)
-gconstpointer atom_get(enum atom_type type, gconstpointer key);
-void atom_free(enum atom_type type, gconstpointer key);
+const void *atom_get(enum atom_type type, const void *key);
+void atom_free(enum atom_type type, const void *key);
 #endif
 
-gboolean atom_exists(enum atom_type type, gconstpointer key);
+bool atom_exists(enum atom_type type, const void *key);
 
 /*
  * Convenience macros.
@@ -148,14 +148,14 @@ atom_tth_free(const struct tth *k)
 	atom_free(ATOM_TTH, k);
 }
 
-static inline const guint64 *
-atom_uint64_get(const guint64 *k)
+static inline const uint64 *
+atom_uint64_get(const uint64 *k)
 {
 	return atom_get(ATOM_UINT64, k);
 }
 
 static inline void
-atom_uint64_free(const guint64 *k)
+atom_uint64_free(const uint64 *k)
 {
 	atom_free(ATOM_UINT64, k);
 }
@@ -172,14 +172,14 @@ atom_filesize_free(const filesize_t *k)
 	atom_free(ATOM_FILESIZE, k);
 }
 
-static inline const guint32 *
-atom_uint32_get(const guint32 *k)
+static inline const uint32 *
+atom_uint32_get(const uint32 *k)
 {
 	return atom_get(ATOM_UINT32, k);
 }
 
 static inline void
-atom_uint32_free(const guint32 *k)
+atom_uint32_free(const uint32 *k)
 {
 	atom_free(ATOM_UINT32, k);
 }
@@ -205,49 +205,49 @@ atom_host_free(const gnet_host_t *k)
 void atoms_init(void);
 void atoms_close(void);
 
-static inline gboolean
+static inline bool
 atom_is_str(const char *k)
 {
 	return atom_exists(ATOM_STRING, k);
 }
 
-static inline gboolean
+static inline bool
 atom_is_guid(const struct guid *k)
 {
 	return atom_exists(ATOM_GUID, k);
 }
 
-static inline gboolean
+static inline bool
 atom_is_sha1(const struct sha1 *k)
 {
 	return atom_exists(ATOM_SHA1, k);
 }
 
-static inline gboolean
+static inline bool
 atom_is_tth(const struct tth *k)
 {
 	return atom_exists(ATOM_TTH, k);
 }
 
-static inline gboolean
-atom_is_uint64(const guint64 *k)
+static inline bool
+atom_is_uint64(const uint64 *k)
 {
 	return atom_exists(ATOM_UINT64, k);
 }
 
-static inline gboolean
+static inline bool
 atom_is_filesize(const filesize_t *k)
 {
 	return atom_exists(ATOM_FILESIZE, k);
 }
 
-static inline gboolean
-atom_is_uint32(const guint32 *k)
+static inline bool
+atom_is_uint32(const uint32 *k)
 {
 	return atom_exists(ATOM_UINT32, k);
 }
 
-static inline gboolean
+static inline bool
 atom_is_host(const gnet_host_t *k)
 {
 	return atom_exists(ATOM_HOST, k);
@@ -256,26 +256,26 @@ atom_is_host(const gnet_host_t *k)
 /*
  * Hash functions and equality checks
  */
-guint filesize_hash(gconstpointer key) G_GNUC_PURE;
-int filesize_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint sha1_hash(gconstpointer key) G_GNUC_PURE;
-int sha1_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint tth_hash(gconstpointer key) G_GNUC_CONST;
-int tth_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint guid_hash(gconstpointer key) G_GNUC_CONST;
-int guid_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint uint64_hash(gconstpointer key) G_GNUC_CONST;
-int uint64_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint uint64_mem_hash(gconstpointer key) G_GNUC_PURE;
-int uint64_mem_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
-guint binary_hash(gconstpointer key, size_t len) G_GNUC_PURE;
-guint uint32_hash(gconstpointer key) G_GNUC_PURE;
-int uint32_eq(gconstpointer a, gconstpointer b) G_GNUC_PURE;
+uint filesize_hash(const void *key) G_GNUC_PURE;
+int filesize_eq(const void *a, const void *b) G_GNUC_PURE;
+uint sha1_hash(const void *key) G_GNUC_PURE;
+int sha1_eq(const void *a, const void *b) G_GNUC_PURE;
+uint tth_hash(const void *key) G_GNUC_PURE;
+int tth_eq(const void *a, const void *b) G_GNUC_PURE;
+uint guid_hash(const void *key) G_GNUC_PURE;
+int guid_eq(const void *a, const void *b) G_GNUC_PURE;
+uint uint64_hash(const void *key) G_GNUC_CONST;
+int uint64_eq(const void *a, const void *b) G_GNUC_PURE;
+uint uint64_mem_hash(const void *key) G_GNUC_PURE;
+int uint64_mem_eq(const void *a, const void *b) G_GNUC_PURE;
+uint binary_hash(const void *key, size_t len) G_GNUC_PURE;
+uint uint32_hash(const void *key) G_GNUC_PURE;
+int uint32_eq(const void *a, const void *b) G_GNUC_PURE;
 
 #ifdef TRACK_ATOMS
-gconstpointer atom_get_track(enum atom_type, gconstpointer key,
+const void *atom_get_track(enum atom_type, const void *key,
 			char *file, int line);
-void atom_free_track(enum atom_type, gconstpointer key, char *file, int line);
+void atom_free_track(enum atom_type, const void *key, char *file, int line);
 #endif
 
 
@@ -302,8 +302,8 @@ GENERATE_ATOM_FREE_NULL(guid, struct guid *)
 GENERATE_ATOM_FREE_NULL(sha1, struct sha1 *)
 GENERATE_ATOM_FREE_NULL(str, char *)
 GENERATE_ATOM_FREE_NULL(tth, struct tth *)
-GENERATE_ATOM_FREE_NULL(uint64, guint64 *)
-GENERATE_ATOM_FREE_NULL(uint32, guint32 *)
+GENERATE_ATOM_FREE_NULL(uint64, uint64 *)
+GENERATE_ATOM_FREE_NULL(uint32, uint32 *)
 GENERATE_ATOM_FREE_NULL(host, gnet_host_t *)
 #undef GENERATE_ATOM_FREE_NULL
 
@@ -327,8 +327,8 @@ GENERATE_ATOM_CHANGE(guid, struct guid *)
 GENERATE_ATOM_CHANGE(sha1, struct sha1 *)
 GENERATE_ATOM_CHANGE(str, char *)
 GENERATE_ATOM_CHANGE(tth, struct tth *)
-GENERATE_ATOM_CHANGE(uint64, guint64 *)
-GENERATE_ATOM_CHANGE(uint32, guint32 *)
+GENERATE_ATOM_CHANGE(uint64, uint64 *)
+GENERATE_ATOM_CHANGE(uint32, uint32 *)
 #undef GENERATE_ATOM_CHANGE
 
 #endif	/* _atoms_h_ */

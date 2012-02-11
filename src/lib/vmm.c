@@ -165,7 +165,7 @@
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
-static gboolean kernel_mapaddr_increasing;
+static bool kernel_mapaddr_increasing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
@@ -236,33 +236,33 @@ struct pmap {
  * Internal statistics collected.
  */
 static struct {
-	guint64 allocations;			/**< Total number of allocations */
-	guint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
-	guint64 freeings;				/**< Total number of freeings */
-	guint64 shrinkings;				/**< Total number of shrinks */
-	guint64 mmaps;					/**< Total number of mmap() calls */
-	guint64 munmaps;				/**< Total number of munmap() calls */
-	guint64 hints_followed;			/**< Allocations following hints */
-	guint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
-	guint64 alloc_from_cache;		/**< Allocation from cache */
-	guint64 alloc_from_cache_pages;	/**< Pages allocated from cache */
-	guint64 alloc_direct_core;		/**< Allocation done through core */
-	guint64 alloc_direct_core_pages;/**< Pages allocated from core */
-	guint64 free_to_cache;			/**< Freeings directed to cache */
-	guint64 free_to_cache_pages;	/**< Amount of pages directed to cache */
-	guint64 free_to_system;			/**< Freeings returned to kernel */
-	guint64 free_to_system_pages;	/**< Amount of pages returned to kernel */
-	guint64 forced_freed;			/**< Amount of forceful freeings */
-	guint64 forced_freed_pages;		/**< Amount of pages forcefully freed */
-	guint64 cache_evictions;		/**< Evictions due to cache being full */
-	guint64 cache_coalescing;		/**< Amount of coalescing from cache */
-	guint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
-	guint64 cache_expired;			/**< Amount of entries expired from cache */
-	guint64 cache_expired_pages;	/**< Expired pages from cache */
-	guint64 high_order_coalescing;	/**< Large regions successfully coalesced */
-	guint64 pmap_foreign_discards;	/**< Foreign regions discarded */
-	guint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
-	guint64 pmap_overruled;			/**< Regions overruled by kernel */
+	uint64 allocations;				/**< Total number of allocations */
+	uint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
+	uint64 freeings;				/**< Total number of freeings */
+	uint64 shrinkings;				/**< Total number of shrinks */
+	uint64 mmaps;					/**< Total number of mmap() calls */
+	uint64 munmaps;					/**< Total number of munmap() calls */
+	uint64 hints_followed;			/**< Allocations following hints */
+	uint64 hints_ignored;			/**< Allocations ignoring non-NULL hints */
+	uint64 alloc_from_cache;		/**< Allocation from cache */
+	uint64 alloc_from_cache_pages;	/**< Pages allocated from cache */
+	uint64 alloc_direct_core;		/**< Allocation done through core */
+	uint64 alloc_direct_core_pages;/**< Pages allocated from core */
+	uint64 free_to_cache;			/**< Freeings directed to cache */
+	uint64 free_to_cache_pages;		/**< Amount of pages directed to cache */
+	uint64 free_to_system;			/**< Freeings returned to kernel */
+	uint64 free_to_system_pages;	/**< Amount of pages returned to kernel */
+	uint64 forced_freed;			/**< Amount of forceful freeings */
+	uint64 forced_freed_pages;		/**< Amount of pages forcefully freed */
+	uint64 cache_evictions;			/**< Evictions due to cache being full */
+	uint64 cache_coalescing;		/**< Amount of coalescing from cache */
+	uint64 cache_line_coalescing;	/**< Amount of coalescing in cache line */
+	uint64 cache_expired;			/**< Amount of entries expired from cache */
+	uint64 cache_expired_pages;		/**< Expired pages from cache */
+	uint64 high_order_coalescing;	/**< Large regions successfully coalesced */
+	uint64 pmap_foreign_discards;	/**< Foreign regions discarded */
+	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
+	uint64 pmap_overruled;			/**< Regions overruled by kernel */
 	size_t user_memory;				/**< Amount of "user" memory allocated */
 	size_t user_pages;				/**< Amount of "user" memory pages used */
 	size_t user_blocks;				/**< Amount of "user" memory blocks */
@@ -279,11 +279,11 @@ static struct {
 static struct pmap kernel_pmap;
 static struct pmap local_pmap;
 
-static gboolean safe_to_log;		/**< True when we can log */
-static gboolean stop_freeing;		/**< No longer release memory */
-static guint32 vmm_debug;			/**< Debug level */
+static bool safe_to_log;			/**< True when we can log */
+static bool stop_freeing;			/**< No longer release memory */
+static uint32 vmm_debug;			/**< Debug level */
 static const void *initial_sp;		/**< Initial "bottom" of the stack */
-static gboolean sp_increasing;		/**< Growing direction of the stack */
+static bool sp_increasing;			/**< Growing direction of the stack */
 static const void *vmm_base;		/**< Where we'll start allocating */
 #ifdef HAS_SBRK
 static const void *initial_brk;		/**< Startup position of the heap */
@@ -298,7 +298,8 @@ static void vmm_track_close(void);
 
 #define vmm_debugging(lvl)	G_UNLIKELY(vmm_debug > (lvl) && safe_to_log)
 
-gboolean vmm_is_debugging(guint32 level) 
+bool
+vmm_is_debugging(uint32 level) 
 { 
 	return vmm_debugging(level);
 }
@@ -309,7 +310,7 @@ vmm_pmap(void)
 	return kernel_pmap.count ? &kernel_pmap : &local_pmap;
 }
 
-static gboolean page_cache_insert_pages(void *base, size_t n);
+static bool page_cache_insert_pages(void *base, size_t n);
 static void pmap_remove(struct pmap *pm, const void *p, size_t size);
 static void pmap_load(struct pmap *pm);
 static void pmap_insert_region(struct pmap *pm,
@@ -434,7 +435,7 @@ compat_pagesize(void)
 /**
  * @return whether fragment is identified as foreign.
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 vmf_is_foreign(const struct vm_fragment *vmf)
 {
 	return VMF_FOREIGN == vmf->type;
@@ -443,7 +444,7 @@ vmf_is_foreign(const struct vm_fragment *vmf)
 /**
  * @return whether fragment is identified as being memory-mapped.
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 vmf_is_mapped(const struct vm_fragment *vmf)
 {
 	return VMF_MAPPED == vmf->type;
@@ -452,7 +453,7 @@ vmf_is_mapped(const struct vm_fragment *vmf)
 /**
  * @return whether fragment is identified as being native.
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 vmf_is_native(const struct vm_fragment *vmf)
 {
 	return VMF_NATIVE == vmf->type;
@@ -471,7 +472,7 @@ vmf_size(const struct vm_fragment *vmf)
  * @return whether memory fragment is an "old" foreign region thatwe may
  * discard.
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 vmf_is_old_foreign(const struct vm_fragment *vmf)
 {
 	/*
@@ -682,7 +683,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
  * substract the size of the region from the returned pointer.
  */
 static G_GNUC_HOT size_t
-vmm_first_hole(const void **hole_ptr, gboolean discard)
+vmm_first_hole(const void **hole_ptr, bool discard)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
@@ -835,7 +836,7 @@ vmm_vfree_fragment(void *addr, size_t size)
 
 #else	/* !HAS_MMAP && !MINGW32 */
 static inline size_t
-vmm_first_hole(const void **unused, gboolean discard)
+vmm_first_hole(const void **unused, bool discard)
 {
 	(void) unused;
 	(void) discard;
@@ -875,7 +876,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 {
 	static int failed;
 	void *hint, *p;
-	static guint64 hint_followed;
+	static uint64 hint_followed;
 
 	if G_UNLIKELY(failed)
 		return NULL;
@@ -883,7 +884,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	if (G_UNLIKELY(stop_freeing)) {
 		hint = NULL;
 	} else {
-		hint = deconstify_gpointer(NULL == hole ? vmm_find_hole(size) : hole);
+		hint = deconstify_pointer(NULL == hole ? vmm_find_hole(size) : hole);
 	}
 
 	if G_UNLIKELY(hint != NULL) {
@@ -1073,7 +1074,7 @@ pmap_insert(struct pmap *pm, const void *start, size_t size)
  *		   failure NULL is returned.
  */
 static void *
-alloc_pages(size_t size, gboolean update_pmap, const void *hole)
+alloc_pages(size_t size, bool update_pmap, const void *hole)
 {
 	void *p;
 	size_t generation = kernel_pmap.generation;
@@ -1108,7 +1109,7 @@ alloc_pages(size_t size, gboolean update_pmap, const void *hole)
  * Must not be called directly other than through free_pages*() routines.
  */
 static void
-free_pages_intern(void *p, size_t size, gboolean update_pmap)
+free_pages_intern(void *p, size_t size, bool update_pmap)
 {
 	/*
 	 * If ``stop_freeing'' was set, well be only updating the pmap so that
@@ -1144,7 +1145,7 @@ pmap_update:
  * Free memory allocated by alloc_pages().
  */
 static void
-free_pages(void *p, size_t size, gboolean update_pmap)
+free_pages(void *p, size_t size, bool update_pmap)
 {
 	if (vmm_debugging(5)) {
 		s_debug("VMM freeing %zuKiB region at %p", size / 1024, p);
@@ -1229,7 +1230,7 @@ pmap_extend(struct pmap *pm)
 	size_t osize;
 	void *oarray;
 	size_t old_generation;
-	gboolean was_extending = pm->extending;
+	bool was_extending = pm->extending;
 
 	g_assert(mutex_is_owned(&pm->lock));
 
@@ -1404,7 +1405,7 @@ pmap_insert_region(struct pmap *pm,
 	const void *end = const_ptr_add_offset(start, size);
 	struct vm_fragment *vmf;
 	size_t idx;
-	gboolean reloaded = FALSE;
+	bool reloaded = FALSE;
 
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
@@ -1552,14 +1553,14 @@ done:
  * Parse a line read from /proc/self/maps and add it to the map.
  * @return TRUE if we managed to parse the line correctly
  */
-static gboolean
+static bool
 pmap_parse_and_add(struct pmap *pm, const char *line)
 {
 	int error;
 	const char *ep;
 	const char *p = line;
 	const void *start, *end;
-	gboolean foreign = FALSE;
+	bool foreign = FALSE;
 
 	if (vmm_debugging(9))
 		s_debug("VMM parsing \"%s\"", line);
@@ -1881,11 +1882,11 @@ pmap_log_missing(const struct pmap *pm, const void *p, size_t size)
 /**
  * Is block within an identified region, and not at the beginning or tail?
  */
-static gboolean
+static bool
 pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 {
 	struct vm_fragment *vmf;
-	gboolean within;
+	bool within;
 	
 	mutex_get_const(&pm->lock);
 
@@ -1939,11 +1940,11 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 /**
  * Is block an identified fragment?
  */
-static gboolean
+static bool
 pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 {
 	struct vm_fragment *vmf;
-	gboolean fragment;
+	bool fragment;
 
 	mutex_get_const(&pm->lock);
 
@@ -1963,7 +1964,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 /**
  * Is range available (hole) within the VM space?
  */
-static gboolean
+static bool
 pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 {
 	size_t idx;
@@ -1980,7 +1981,7 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 	if (idx < pm->count) {
 		struct vm_fragment *vmf = &pm->array[idx];
 		const void *end = const_ptr_add_offset(p, size);
-		gboolean ret;
+		bool ret;
 
 		ret = ptr_cmp(end, vmf->start) <= 0;
 		mutex_release_const(&pm->lock);
@@ -2031,11 +2032,11 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 /**
  * Is pointer a valid native VMM one?
  */
-gboolean
+bool
 vmm_is_native_pointer(const void *p)
 {
 	struct vm_fragment *vmf;
-	gboolean native;
+	bool native;
 	struct pmap *pm = vmm_pmap();
 
 	mutex_get(&pm->lock);
@@ -2052,7 +2053,7 @@ vmm_is_native_pointer(const void *p)
  * Is region starting at ``base'' and of ``size'' bytes a virtual memory
  * fragment, i.e. a standalone mapping in the middle of the VM space?
  */
-gboolean
+bool
 vmm_is_fragment(const void *base, size_t size)
 {
 	g_assert(base != NULL);
@@ -2065,7 +2066,7 @@ vmm_is_fragment(const void *base, size_t size)
  * Is region starting at ``base'' and of ``size'' bytes a relocatable memory
  * region moveable at a better VM address?
  */
-gboolean
+bool
 vmm_is_relocatable(const void *base, size_t size)
 {
 	const void *hole;
@@ -2328,7 +2329,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
  * update our pmap.
  */
 static void
-free_pages_forced(void *p, size_t size, gboolean fragment)
+free_pages_forced(void *p, size_t size, bool fragment)
 {
 	if (vmm_debugging(fragment ? 2 : 5)) {
 		s_debug("VMM freeing %zuKiB region at %p%s",
@@ -2707,7 +2708,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 			d = pmap_nesting_within_region(vmm_pmap(), p, pc->chunksize);
 			if (d > max_distance) {
 				max_distance = d;
-				base = deconstify_gpointer(p);
+				base = deconstify_pointer(p);
 			}
 		}
 
@@ -2970,7 +2971,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
  *
  * @return TRUE if pages were cached, FALSE if they were forcefully freed.
  */
-static gboolean
+static bool
 page_cache_insert_pages(void *base, size_t n)
 {
 	size_t pages = n;
@@ -3020,7 +3021,7 @@ page_cache_insert_pages(void *base, size_t n)
  *
  * @return TRUE if coalescing occurred, with updated base and amount of pages.
  */
-static gboolean
+static bool
 page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 {
 	size_t i, j;
@@ -3041,7 +3042,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 */
 
 	for (i = 0; /* empty */; i++) {
-		gboolean coalesced = FALSE;
+		bool coalesced = FALSE;
 
 		j = MIN(old_pages, VMM_CACHE_LINES) - 1;
 		while (j-- > 0) {
@@ -3134,7 +3135,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
 
 	for (i = 0; /* empty */; i++) {
-		gboolean coalesced = FALSE;
+		bool coalesced = FALSE;
 
 		j = MIN(old_pages, VMM_CACHE_LINES) - 1;
 		while (j-- > 0) {
@@ -3327,7 +3328,7 @@ vmm_invalidate_pages(void *p, size_t size)
  * @return pointer to allocated memory region
  */
 static void *
-vmm_alloc_internal(size_t size, gboolean user_mem)
+vmm_alloc_internal(size_t size, bool user_mem)
 {
 	size_t n;
 	void *p;
@@ -3482,7 +3483,7 @@ update_stats:
  * i.e. resource for other memory allocators.
  */
 static void
-vmm_free_internal(void *p, size_t size, gboolean user_mem)
+vmm_free_internal(void *p, size_t size, bool user_mem)
 {
 	g_assert(0 == size || p);
 	g_assert(size_is_non_negative(size));
@@ -3570,7 +3571,7 @@ vmm_core_free(void *p, size_t size)
  * Otherwise calling with a new_size of 0 actually frees the memory region.
  */
 static void
-vmm_shrink_internal(void *p, size_t size, size_t new_size, gboolean user_mem)
+vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 {
 	g_assert(0 == size || p != NULL);
 	g_assert(new_size <= size);
@@ -3668,8 +3669,8 @@ vmm_core_shrink(void *p, size_t size, size_t new_size)
  * recycled such old pages, the penalty from paging them in is unlikely lower
  * than the mmap()/munmap() overhead.
  */
-static gboolean
-page_cache_timer(gpointer unused_udata)
+static bool
+page_cache_timer(void *unused_udata)
 {
 	static size_t line;
 	time_t now = tm_time();
@@ -3772,7 +3773,7 @@ vmm_trap_page(void)
 /**
  * @return whether the virtual memory segment grows with increasing addresses.
  */
-gboolean
+bool
 vmm_grows_upwards(void)
 {
 	return kernel_mapaddr_increasing;
@@ -3782,7 +3783,7 @@ vmm_grows_upwards(void)
  * Set VMM debug level.
  */
 void
-set_vmm_debug(guint32 level)
+set_vmm_debug(uint32 level)
 {
 	vmm_debug = level;
 }
@@ -3984,7 +3985,7 @@ vmm_reserve_stack(size_t amount)
 
 	if (vmm_pmap() == &kernel_pmap) {
 		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, initial_sp, NULL);
-		gboolean first_time = NULL == vmm_base;
+		bool first_time = NULL == vmm_base;
 
 		if (NULL == vmf) {
 			if (vmm_debugging(0)) {
@@ -4000,7 +4001,7 @@ vmm_reserve_stack(size_t amount)
 					vmf_size(vmf) / 1024);
 			}
 
-			stack_end = deconstify_gpointer(
+			stack_end = deconstify_pointer(
 				sp_increasing ? vmf->end : vmf->start);
 			reserve_start = const_ptr_add_offset(stack_end,
 				(kernel_mapaddr_increasing ? +1 : -1) * VMM_STACK_MINSIZE);
@@ -4612,7 +4613,7 @@ struct page_track {
  * This flag keeps track of recursions so that we avoid exercising any
  * tracking when recursion is detected.
  */
-static gboolean vmm_recursed;
+static bool vmm_recursed;
 
 /**
  * This buffer allows us to queue allocations or deletions whenever a
@@ -4665,14 +4666,14 @@ track_operation_to_string(enum track_operation op)
 }
 
 static void unbuffer_operations(void);
-static void vmm_free_record(const void *p, size_t size, gboolean user_mem,
+static void vmm_free_record(const void *p, size_t size, bool user_mem,
 	const char *file, int line);
 
 /**
  * User or core memory?
  */
 static const char *
-track_mem(gboolean user_mem)
+track_mem(bool user_mem)
 {
 	return user_mem ? "user" : "core";
 }
@@ -4684,7 +4685,7 @@ track_mem(gboolean user_mem)
  */
 static void
 buffer_operation(enum track_operation op,
-	const void *p, size_t size, gboolean user_mem, const char *file, int line)
+	const void *p, size_t size, bool user_mem, const char *file, int line)
 {
 	if (vmm_buffer.idx >= G_N_ELEMENTS(vmm_buffered)) {
 		vmm_buffer.missed++;
@@ -4841,7 +4842,7 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
  * @return its argument ``p''
  */
 static void *
-vmm_alloc_record(void *p, size_t size, gboolean user_mem,
+vmm_alloc_record(void *p, size_t size, bool user_mem,
 	const char *file, int line)
 {
 	struct page_track pt;
@@ -4891,7 +4892,7 @@ vmm_alloc_record(void *p, size_t size, gboolean user_mem,
  * Record that ``p'' (pointing to ``size'' bytes is now free.
  */
 static void
-vmm_free_record(const void *p, size_t size, gboolean user_mem,
+vmm_free_record(const void *p, size_t size, bool user_mem,
 	const char *file, int line)
 {
 	struct page_track pt;
@@ -5017,14 +5018,14 @@ vmm_not_leaking(const void *o)
 		}
 	}
 
-	return deconstify_gpointer(o);
+	return deconstify_pointer(o);
 }
 
 /**
  * Tracking version of vmm_alloc().
  */
 void *
-vmm_alloc_track(size_t size, gboolean user_mem, const char *file, int line)
+vmm_alloc_track(size_t size, bool user_mem, const char *file, int line)
 {
 	void *p;
 
@@ -5060,7 +5061,7 @@ vmm_alloc0_track(size_t size, const char *file, int line)
  * Tracking version of vmm_free().
  */
 void
-vmm_free_track(void *p, size_t size, gboolean user_mem,
+vmm_free_track(void *p, size_t size, bool user_mem,
 	const char *file, int line)
 {
 	if (not_leaking != NULL) {
@@ -5075,7 +5076,7 @@ vmm_free_track(void *p, size_t size, gboolean user_mem,
  * Tracking version of vmm_shrink().
  */
 void
-vmm_shrink_track(void *p, size_t size, size_t new_size, gboolean user_mem,
+vmm_shrink_track(void *p, size_t size, size_t new_size, bool user_mem,
 	const char *file, int line)
 {
 	/* The shrinking point becomes the new allocation point (file, line) */
@@ -5140,7 +5141,7 @@ vmm_track_post_init(void)
  * Log used pages, and record them among the `leaksort' set for future summary.
  */
 static void
-vmm_log_pages(const void *k, void *v, gpointer leaksort)
+vmm_log_pages(const void *k, void *v, void *leaksort)
 {
 	const struct page_track *pt = v;
 	char ago[32];

@@ -129,7 +129,7 @@ typedef struct prop_def_storage {
     gpointer value;		/**< current data */
 } prop_def_storage_t;
 
-typedef void (*prop_set_storage_t)(property_t, gconstpointer, size_t);
+typedef void (*prop_set_storage_t)(property_t, const void *, size_t);
 typedef gpointer (*prop_get_storage_t)(property_t, gpointer, size_t);
 
 

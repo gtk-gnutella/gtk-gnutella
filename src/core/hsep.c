@@ -160,11 +160,11 @@ hsep_fire_global_table_changed(time_t now)
  * triple is given. Returns TRUE if monotony is ok, FALSE otherwise.
  */
 
-static gboolean
+static bool
 hsep_check_monotony(hsep_triple *table, unsigned int triples)
 {
-	gboolean error = FALSE;
-	guint i, j;
+	bool error = FALSE;
+	uint i, j;
 
 	g_assert(table);
 
@@ -228,7 +228,7 @@ hsep_sanity_check(void)
 
 		/* check if values are monotonously increasing (skip first) */
 		g_assert(
-			hsep_check_monotony(cast_to_gpointer(n->hsep->table[1]),
+			hsep_check_monotony(cast_to_pointer(n->hsep->table[1]),
 				G_N_ELEMENTS(n->hsep->table[1]) - 1)
 		);
 
@@ -295,8 +295,8 @@ hsep_dump_table(void)
 static unsigned int
 hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
 {
-	guint i, j, last;
-	gboolean changed = FALSE;
+	uint i, j, last;
+	bool changed = FALSE;
 
 	g_assert(table);
 
@@ -342,7 +342,7 @@ hsep_init(void)
  */
 
 void
-hsep_add_global_table_listener(GCallback cb, frequency_t t, guint32 interval)
+hsep_add_global_table_listener(GCallback cb, frequency_t t, uint32 interval)
 {
 	hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
 	hsep_global_listener_t func = (hsep_global_listener_t) cb;
@@ -382,7 +382,7 @@ void
 hsep_reset(void)
 {
 	const GSList *sl;
-	guint i;
+	uint i;
 
 	ZERO(&hsep_global_table);
 
@@ -420,11 +420,11 @@ hsep_reset(void)
  */
 
 void
-hsep_connection_init(struct gnutella_node *n, guint8 major, guint8 minor)
+hsep_connection_init(struct gnutella_node *n, uint8 major, uint8 minor)
 {
 	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
-	guint i;
+	uint i;
 
 	g_assert(n);
 
@@ -461,7 +461,7 @@ void
 hsep_timer(time_t now)
 {
 	const GSList *sl;
-	gboolean scanning_shared;
+	bool scanning_shared;
 	static time_t last_sent = 0;
 
 	/* update number of shared files and KiB */
@@ -514,7 +514,7 @@ hsep_timer(time_t now)
  * zero and the CAN_HSEP attribute is cleared.
  */
 void
-hsep_connection_close(struct gnutella_node *n, gboolean in_shutdown)
+hsep_connection_close(struct gnutella_node *n, bool in_shutdown)
 {
 	unsigned int i, j;
 
@@ -595,7 +595,7 @@ hsep_process_msg(struct gnutella_node *n, time_t now)
 
 	/* note the offset between message and local data by 1 triple */
 
-	messaget = cast_to_gpointer(n->data);
+	messaget = cast_to_pointer(n->data);
 
 	if (length == 0) {   /* error, at least 1 triple must be present */
 		if (GNET_PROPERTY(hsep_debug) > 1)
@@ -772,7 +772,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 
 	for (i = 0; i < triples; i++) {
 		for (j = 0; j < G_N_ELEMENTS(other); j++) {
-			guint64 val;
+			uint64 val;
 
 			val = hsep_own[j] + (0 == i ? 0 : other[j]) +
 				hsep_global_table[i][j] - hsep->table[i][j];
@@ -789,7 +789,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 		goto charge_timer;
 	}
 
-	memcpy(cast_to_gchar_ptr(msg) + GTA_HEADER_SIZE,
+	memcpy(cast_to_char_ptr(msg) + GTA_HEADER_SIZE,
 		tmp, triples * sizeof tmp[0]);
 
 	/* store the table for later comparison */
@@ -802,7 +802,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 	 */
 
 	/* optimize number of triples to send */
-	opttriples = hsep_triples_to_send(cast_to_gpointer(tmp), triples);
+	opttriples = hsep_triples_to_send(cast_to_pointer(tmp), triples);
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Sending %d %s to node %s (msg #%u): ", opttriples,
@@ -816,7 +816,7 @@ hsep_send_msg(struct gnutella_node *n, time_t now)
 			char buf[G_N_ELEMENTS(hsep_own)][32];
 
 			for (j = 0; j < G_N_ELEMENTS(buf); j++) {
-				guint64 v;
+				uint64 v;
 
 				v = hsep_own[j] + hsep_global_table[i][j] - hsep->table[i][j];
 				uint64_to_string_buf(v, buf[j], sizeof buf[0]);
@@ -863,7 +863,7 @@ charge_timer:
  */
 
 void
-hsep_notify_shared(guint64 own_files, guint64 own_kibibytes)
+hsep_notify_shared(uint64 own_files, uint64 own_kibibytes)
 {
 	/* check for change */
 	if (
@@ -947,7 +947,7 @@ hsep_close(void)
  * FALSE otherwise.
  */
 
-gboolean
+bool
 hsep_has_global_table_changed(time_t since)
 {
 	return delta_time(hsep_last_global_table_change, since) > 0;
@@ -970,9 +970,9 @@ void
 hsep_get_non_hsep_triple(hsep_triple *tripledest)
 {
 	const GSList *sl;
-	guint64 other_nodes = 0;      /* # of non-HSEP nodes */
-	guint64 other_files = 0;      /* what non-HSEP nodes share (files) */
-	guint64 other_kib = 0;        /* what non-HSEP nodes share (KiB) */
+	uint64 other_nodes = 0;      /* # of non-HSEP nodes */
+	uint64 other_files = 0;      /* what non-HSEP nodes share (files) */
+	uint64 other_kib = 0;        /* what non-HSEP nodes share (KiB) */
 
 	g_assert(tripledest);
 
@@ -1017,7 +1017,7 @@ hsep_get_static_str(int row, int column)
 	const char *ret = NULL;
 	hsep_triple hsep_table[G_N_ELEMENTS(hsep_global_table)];
 	hsep_triple other[1];
-	guint64 v;
+	uint64 v;
 
 	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
 	hsep_get_non_hsep_triple(other);

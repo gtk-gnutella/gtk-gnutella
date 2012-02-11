@@ -52,7 +52,7 @@
 struct bigint {
 	enum bigint_magic magic;	/**< Magic number */
 	size_t len;					/**< Buffer length, in bytes */
-	guint8 *v;					/**< Value as an array of chars */
+	uint8 *v;					/**< Value as an array of chars */
 	unsigned is_allocated:1;	/**< Was v[] dynamically allocated? */
 	unsigned is_static:1;		/**< Was structure dynamically allocated? */
 };
@@ -248,30 +248,30 @@ bigint_cmp(const bigint_t *bi1, const bigint_t *bi2)
  * Set 32-bit quantity in the big number.
  */
 void
-bigint_set32(bigint_t *bi, guint32 val)
+bigint_set32(bigint_t *bi, uint32 val)
 {
 	struct bigint *b = BIGINT(bi);
 
 	bigint_check(b);
-	g_assert(b->len >= sizeof(guint32));
+	g_assert(b->len >= sizeof(uint32));
 
-	memset(b->v, 0, b->len - sizeof(guint32));
-	poke_be32(&b->v[b->len - sizeof(guint32)], val);
+	memset(b->v, 0, b->len - sizeof(uint32));
+	poke_be32(&b->v[b->len - sizeof(uint32)], val);
 }
 
 /**
  * Set 64-bit quantity in the big number.
  */
 void
-bigint_set64(bigint_t *bi, guint64 val)
+bigint_set64(bigint_t *bi, uint64 val)
 {
 	struct bigint *b = BIGINT(bi);
 
 	bigint_check(b);
-	g_assert(b->len >= sizeof(guint64));
+	g_assert(b->len >= sizeof(uint64));
 
-	memset(b->v, 0, b->len - sizeof(guint64));
-	poke_be64(&b->v[b->len - sizeof(guint64)], val);
+	memset(b->v, 0, b->len - sizeof(uint64));
+	poke_be64(&b->v[b->len - sizeof(uint64)], val);
 }
 
 /**
@@ -285,7 +285,7 @@ bigint_set_nth_bit(bigint_t *bi, size_t n)
 {
 	struct bigint *b = BIGINT(bi);
 	size_t byt;
-	guint8 mask;
+	uint8 mask;
 
 	bigint_check(b);
 	g_assert(size_is_non_negative(n));
@@ -302,7 +302,7 @@ bigint_set_nth_bit(bigint_t *bi, size_t n)
 /**
  * Is big integer positive, considering 2-complement arithmetic?
  */
-gboolean
+bool
 bigint_is_positive(const bigint_t *bi)
 {
 	const struct bigint *b = BIGINT(bi);
@@ -318,7 +318,7 @@ bigint_negate(bigint_t *bi)
 {
 	struct bigint *b = BIGINT(bi);
 	size_t i;
-	gboolean carry;
+	bool carry;
 
 	bigint_check(b);
 
@@ -355,13 +355,13 @@ bigint_not(bigint_t *bi)
  * Add second big integer into the first and return whether there was a
  * leading carry bit (addition overflow).
  */
-gboolean
+bool
 bigint_add(bigint_t *res, const bigint_t *other)
 {
 	struct bigint *bres = BIGINT(res);
 	struct bigint *bother = BIGINT(other);
 	size_t offset, i;
-	gboolean carry;
+	bool carry;
 
 	bigint_check(bres);
 	bigint_check(bother);
@@ -385,11 +385,11 @@ bigint_add(bigint_t *res, const bigint_t *other)
  * Add small quantity to the big integer, in place, and return whether there
  * was a leading carry bit.
  */
-gboolean
-bigint_add_u8(bigint_t *bi, guint8 val)
+bool
+bigint_add_u8(bigint_t *bi, uint8 val)
 {
 	struct bigint *b = BIGINT(bi);
-	gboolean carry;
+	bool carry;
 	unsigned sum;
 
 	bigint_check(b);
@@ -414,12 +414,12 @@ bigint_add_u8(bigint_t *bi, guint8 val)
  * Left shift big integer in place by 1 bit.
  * Return whether there was a leading carry.
  */
-gboolean
+bool
 bigint_lshift(bigint_t *bi)
 {
 	struct bigint *b = BIGINT(bi);
 	size_t i;
-	gboolean carry;
+	bool carry;
 
 	bigint_check(b);
 
@@ -446,7 +446,7 @@ bigint_rshift(bigint_t *bi)
 {
 	struct bigint *b = BIGINT(bi);
 	size_t i;
-	gboolean carry;
+	bool carry;
 
 	bigint_check(b);
 
@@ -467,12 +467,12 @@ bigint_rshift(bigint_t *bi)
  *
  * @return leading carry byte (if not zero, we overflowed).
  */
-guint8
-bigint_mult_u8(bigint_t *bi, guint8 val)
+uint8
+bigint_mult_u8(bigint_t *bi, uint8 val)
 {
 	struct bigint *b = BIGINT(bi);
 	size_t i;
-	guint8 carry;
+	uint8 carry;
 
 	bigint_check(b);
 
@@ -565,7 +565,7 @@ bigint_divide(const bigint_t *bi1, const bigint_t *bi2,
 	bigint_negate(&nb2);	/* nb2 = -b2 */
 
 	for (i = 8 * b1->len - 1; size_is_non_negative(i); i--) {
-		gboolean carry;
+		bool carry;
 
 		/* RQ <<= 1 */
 		carry = bigint_lshift(qi);
@@ -601,7 +601,7 @@ bigint_to_double(const bigint_t *bi)
 	bigint_check(b);
 
 	for (i = b->len - 1, p = 0.0; size_is_non_negative(i); i--, p += 8.0) {
-		guint8 m = b->v[i];
+		uint8 m = b->v[i];
 		if (m != 0)
 			v += m * pow(2.0, p);
 	}
@@ -612,21 +612,21 @@ bigint_to_double(const bigint_t *bi)
 /**
  * Convert big integer to 64-bit integer, truncating it if larger.
  */
-guint64
-bigint_to_guint64(const bigint_t *bi)
+uint64
+bigint_to_uint64(const bigint_t *bi)
 {
 	const struct bigint *b = BIGINT(bi);
 
 	bigint_check(b);
 
-	if G_UNLIKELY(b->len < sizeof(guint64)) {
-		guint8 buf[sizeof(guint64)];
+	if G_UNLIKELY(b->len < sizeof(uint64)) {
+		uint8 buf[sizeof(uint64)];
 
 		memset(buf, 0, sizeof buf);
-		memcpy(&buf[sizeof(guint64) - b->len], &b->v[0], b->len);
+		memcpy(&buf[sizeof(uint64) - b->len], &b->v[0], b->len);
 		return peek_be64(buf);
 	} else {
-		return peek_be64(&b->v[b->len - sizeof(guint64)]);
+		return peek_be64(&b->v[b->len - sizeof(uint64)]);
 	}
 }
 

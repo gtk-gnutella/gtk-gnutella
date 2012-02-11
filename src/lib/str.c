@@ -66,8 +66,8 @@
 
 #define FPREC			17		/* IEEE 64-bit double maximum digit precision */
 
-static gboolean tests_completed;	/* Controls truncation warnings */
-static gboolean format_verbose;		/* Controls debugging of formatting */
+static bool tests_completed;		/* Controls truncation warnings */
+static bool format_verbose;			/* Controls debugging of formatting */
 static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 
 /**
@@ -757,13 +757,13 @@ str_ncat(str_t *str, const char *string, size_t len)
  *
  * @return TRUE if written normally, FALSE when clamping was done.
  */
-gboolean
+bool
 str_ncat_safe(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	const char *q;
 	char c;
-	gboolean fits = TRUE;
+	bool fits = TRUE;
 
 	str_check(str);
 	g_assert(string != NULL);
@@ -835,7 +835,7 @@ str_shift(str_t *str, size_t n)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_ichar(str_t *str, ssize_t idx, char c)
 {
 	size_t len;
@@ -865,7 +865,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_istr(str_t *str, ssize_t idx, const char *string)
 {
 	str_check(str);
@@ -879,7 +879,7 @@ str_istr(str_t *str, ssize_t idx, const char *string)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 {
 	size_t len;
@@ -952,7 +952,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
-gboolean
+bool
 str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 {
 	size_t length;
@@ -1150,7 +1150,6 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * str_vncatf(), which comes from Perl sources.
  */
 
-#define bool			int
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
 
@@ -1173,7 +1172,7 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  */
 static size_t
 str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
-	gboolean has_precis, const size_t precision, const size_t width,
+	bool has_precis, const size_t precision, const size_t width,
 	const char plus, const bool left, const bool alt, size_t *written)
 {
 	size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
@@ -1251,8 +1250,8 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			int e;
 			char m[32], r[33];
 			size_t mlen, rlen, asked;
-			gboolean dragon_fmt = FALSE;
-			gboolean asked_dragon = FALSE;
+			bool dragon_fmt = FALSE;
+			bool asked_dragon = FALSE;
 
 			if ('F' == c) {
 				asked_dragon = TRUE;
@@ -2255,7 +2254,7 @@ G_STMT_START {									\
 		case 'g': case 'G':
 			{
 				size_t written;
-				gboolean ok;
+				bool ok;
 
 				nv = va_arg(args, double);
 				processed++;
@@ -2426,7 +2425,7 @@ done:
 
 clamped:
 	{
-		static gboolean recursion;
+		static bool recursion;
 
 		/*
 		 * This routine MUST be recursion-safe since it is used indirectly
@@ -2773,7 +2772,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  * @return amount of discrepancies found with the system's snprintf().
  */
 G_GNUC_COLD size_t
-str_test(gboolean verbose)
+str_test(bool verbose)
 {
 #define MLEN		64
 #define DEADBEEF	((void *) 0xdeadbeef)
@@ -2793,7 +2792,7 @@ str_test(gboolean verbose)
 	static const char INTHEX[] = "543A8";
 	static const struct tstring {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		const char *value;
 		const char *result;
@@ -2815,7 +2814,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tchar {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		const char value;
 		const char *result;
@@ -2826,7 +2825,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tpointer {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		void *value;
 		const char *result;
@@ -2836,7 +2835,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tint {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		int value;
 		const char *result;
@@ -2861,7 +2860,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tlong {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		long value;
 		const char *result;
@@ -2886,7 +2885,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tdouble {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		double value;
 		const char *result;

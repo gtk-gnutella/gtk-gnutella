@@ -78,10 +78,10 @@ typedef enum {
 } hcache_class_t;
 
 typedef struct hcache_stats {
-    gint32      host_count; /**< Number of hosts in cache */
-    guint32     hits;       /**< Hits to known hosts */
-    guint32     misses;     /**< Total number of misses (added hosts) */
-    gboolean    reading;    /**< TRUE if currently reading from disk */
+    int32  host_count;		/**< Number of hosts in cache */
+    uint32 hits;			/**< Hits to known hosts */
+    uint32 misses;			/**< Total number of misses (added hosts) */
+    bool   reading;			/**< TRUE if currently reading from disk */
 } hcache_stats_t;
 
 /*

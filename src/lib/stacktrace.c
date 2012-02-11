@@ -105,8 +105,8 @@ static struct {
 static char *local_path;		/**< Path before a chdir() */
 static char *program_path;		/**< Absolute program path */
 static time_t program_mtime;	/**< Last modification time of executable */
-static gboolean symbols_loaded;
-static gboolean stacktrace_inited;
+static bool symbols_loaded;
+static bool stacktrace_inited;
 
 /**
  * "nm" output parsing context.
@@ -133,7 +133,7 @@ static void *getframeaddr(size_t level);
 /**
  * Is PC a valid routine address?
  */
-static inline gboolean G_GNUC_CONST
+static inline bool G_GNUC_CONST
 stack_is_text(const void *pc)
 {
 	return pointer_to_ulong(pc) >= 0x1000;
@@ -142,7 +142,7 @@ stack_is_text(const void *pc)
 /**
  * Is PC a routine address for something within our code?
  */
-static inline gboolean G_GNUC_CONST
+static inline bool G_GNUC_CONST
 stack_is_our_text(const void *pc)
 {
 #if defined(HAS_ETEXT_SYMBOL)
@@ -183,7 +183,7 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
     size_t i;
 	void *frame;
 	size_t d;
-	gboolean increasing;
+	bool increasing;
 
 	/*
 	 * Adjust the offset according to the auto-tunings.
@@ -262,7 +262,7 @@ NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
-	static gboolean in_unwind;
+	static bool in_unwind;
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
@@ -637,7 +637,7 @@ trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * the hexadecimal value.
  */
 static G_GNUC_COLD const char *
-trace_name(const void *pc, gboolean offset)
+trace_name(const void *pc, bool offset)
 {
 	static char buf[256];
 
@@ -1002,7 +1002,7 @@ load_symbols(const char *path, const  char *lpath)
 	char tmp[MAX_PATH_LEN + 80];
 	FILE *f;
 	struct nm_parser nm_ctx;
-	gboolean retried = FALSE;
+	bool retried = FALSE;
 
 #ifdef MINGW32
 	/*
@@ -1137,13 +1137,13 @@ program_path_allocate(const char *argv0)
 	}
 
 	if (file != NULL && file != argv0)
-		return deconstify_gpointer(file);
+		return deconstify_pointer(file);
 
 	return h_strdup(filepath);
 
 error:
 	if (file != NULL && file != argv0)
-		hfree(deconstify_gpointer(file));
+		hfree(deconstify_pointer(file));
 
 	return NULL;
 }
@@ -1192,7 +1192,7 @@ stacktrace_auto_tune(void)
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
 G_GNUC_COLD void
-stacktrace_init(const char *argv0, gboolean deferred)
+stacktrace_init(const char *argv0, bool deferred)
 {
 	char *path;
 
@@ -1369,7 +1369,7 @@ stacktrace_get_offset(struct stacktrace *st, size_t offset)
  *
  * @return TRUE if we reached main().
  */
-static gboolean
+static bool
 stack_reached_main(const char *where)
 {
 	/*
@@ -1552,7 +1552,7 @@ stacktrace_caller_name(size_t n)
  * a formatted hexadecimal value is returned.
  */
 const char *
-stacktrace_routine_name(const void *pc, gboolean offset)
+stacktrace_routine_name(const void *pc, bool offset)
 {
 	return trace_name(pc, offset);
 }
@@ -1573,7 +1573,7 @@ stacktrace_where_print(FILE *f)
 /**
  * @return whether we got any symbols.
  */
-static gboolean
+static bool
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
@@ -1687,7 +1687,7 @@ static struct {
 /*
  * Was a cautious stacktrace already logged?
  */
-gboolean
+bool
 stacktrace_cautious_was_logged(void)
 {
 	return print_context.done;
@@ -1875,7 +1875,7 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
 	}
 
-	key.stack = deconstify_gpointer(st->stack);
+	key.stack = deconstify_pointer(st->stack);
 	key.len = len;
 
 	return hash_table_lookup(stack_atoms, &key);
@@ -1895,7 +1895,7 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 	/* These objects will be never freed */
 	if (len != 0) {
 		const void *p = ocopy_readonly(st->stack, len * sizeof st->stack[0]);
-		local.stack = deconstify_gpointer(p);
+		local.stack = deconstify_pointer(p);
 	} else {
 		local.stack = NULL;
 	}
@@ -1939,7 +1939,7 @@ stacktrace_get_atom(const struct stacktrace *st)
  *
  * @return whether calling stack was known
  */
-gboolean
+bool
 stacktrace_caller_known(size_t offset)
 {
 	struct stacktrace t;

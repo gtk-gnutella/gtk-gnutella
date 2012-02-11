@@ -60,7 +60,7 @@ thread_hash(const void *key)
 	return binary_hash(key, sizeof(thread_t));
 }
 
-static gboolean
+static bool
 thread_equal(const void *a, const void *b)
 {
 	return thread_eq(a, b);
@@ -176,7 +176,7 @@ thread_private_get(const void *key)
  *
  * @return TRUE if key existed already.
  */
-gboolean
+bool
 thread_private_remove(const void *key)
 {
 	hash_table_t *pht;
@@ -185,7 +185,7 @@ thread_private_remove(const void *key)
 
 	pht = thread_get_private_hash();
 	if (hash_table_lookup_extended(pht, key, &k, &v)) {
-		thread_t *tk = deconstify_gpointer(k);
+		thread_t *tk = deconstify_pointer(k);
 		struct thread_pvalue *pv = v;
 
 		hash_table_remove(pht, key);
@@ -214,10 +214,10 @@ thread_private_add_extended(const void *key, const void *value,
 {
 	hash_table_t *pht;
 	struct thread_pvalue *pv;
-	gboolean ok;
+	bool ok;
 
 	WALLOC0(pv);
-	pv->value = deconstify_gpointer(value);
+	pv->value = deconstify_pointer(value);
 	pv->p_free = p_free;
 	pv->p_arg = p_arg;
 

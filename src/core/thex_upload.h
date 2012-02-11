@@ -55,7 +55,7 @@ struct wrap_io;
 size_t thex_upload_get_content_length(const struct shared_file *sf);
 
 struct special_upload *thex_upload_open(
-	gpointer owner,
+	void *owner,
 	const struct gnutella_host *host,
 	const struct shared_file *sf,
 	special_upload_writable_t writable,

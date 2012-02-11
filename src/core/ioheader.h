@@ -47,18 +47,18 @@ struct gnutella_socket;
  * during header processing in case something goes wrong.
  */
 struct io_error {
-	void (*line_too_long)(gpointer resource, struct header *header);
-	void (*header_error_tell)(gpointer resource, int error);	/**< Optional */
-	void (*header_error)(gpointer resource, int error);
-	void (*input_exception)(gpointer resource, struct header *header);
-	void (*input_buffer_full)(gpointer resource);
-	void (*header_read_error)(gpointer resource, int error);
-	void (*header_read_eof)(gpointer resource, struct header *header);
-	void (*header_extra_data)(gpointer resource, struct header *header);
+	void (*line_too_long)(void *resource, struct header *header);
+	void (*header_error_tell)(void *resource, int error);	/**< Optional */
+	void (*header_error)(void *resource, int error);
+	void (*input_exception)(void *resource, struct header *header);
+	void (*input_buffer_full)(void *resource);
+	void (*header_read_error)(void *resource, int error);
+	void (*header_read_eof)(void *resource, struct header *header);
+	void (*header_extra_data)(void *resource, struct header *header);
 };
 
-typedef void (*io_done_cb_t)(gpointer resource, struct header *header);
-typedef void (*io_start_cb_t)(gpointer resource);
+typedef void (*io_done_cb_t)(void *resource, struct header *header);
+typedef void (*io_start_cb_t)(void *resource);
 
 /*
  * Parsing flags.
@@ -74,16 +74,16 @@ typedef void (*io_start_cb_t)(gpointer resource);
  * Public interface
  */
 
-void io_free(const gpointer opaque);
-struct header *io_header(const gpointer opaque);
-struct getline *io_getline(const gpointer opaque);
-char *io_gettext(const gpointer opaque);
-guint io_get_read_bytes(const gpointer opaque);
-void io_add_header(gpointer opaque);
+void io_free(void *opaque);
+struct header *io_header(const void *opaque);
+struct getline *io_getline(const void *opaque);
+char *io_gettext(const void *opaque);
+uint io_get_read_bytes(const void *opaque);
+void io_add_header(void *opaque);
 
 void io_get_header(
-	gpointer resource,			/**< Resource for which we're reading headers */
-	gpointer *io_opaque,		/**< Field address in resource's structure */
+	void *resource,				/**< Resource for which we're reading headers */
+	void **io_opaque,			/**< Field address in resource's structure */
 	bsched_bws_t bws,			/**< B/w scheduler from which we read */
 	struct gnutella_socket *s,	/**< Socket from which we're reading */
 	int flags,					/**< I/O parsing flags */
@@ -92,7 +92,7 @@ void io_get_header(
 	const struct io_error *error);	/**< Mandatory: error callbacks */
 
 void io_continue_header(
-	gpointer opaque,			/**< Existing header parsing context */
+	void *opaque,				/**< Existing header parsing context */
 	int flags,					/**< New I/O parsing flags */
 	io_done_cb_t done,			/**< Mandatory: final callback when all done */
 	io_start_cb_t start);		/**< Optional: called when reading 1st byte */

@@ -45,19 +45,19 @@
 struct revent_ops {
 	const char *name;			/**< Caller name, for logging purposes */
 	const char *udata_name;		/**< What is udata, for logging purposes */
-	const guint32 *debug;		/**< Debug level */
-	gpointer (*is_alive)(struct nid id);
+	const uint32 *debug;		/**< Debug level */
+	void *(*is_alive)(struct nid id);
 	/* message free routine callbacks */
-	void (*freeing_msg)(gpointer obj);
-	void (*msg_sent)(gpointer obj, pmsg_t *mb);
-	void (*msg_dropped)(gpointer obj, knode_t *kn, pmsg_t *mb);
-	void (*rpc_cancelled)(gpointer obj, guint32 udata);
+	void (*freeing_msg)(void *obj);
+	void (*msg_sent)(void *obj, pmsg_t *mb);
+	void (*msg_dropped)(void *obj, knode_t *kn, pmsg_t *mb);
+	void (*rpc_cancelled)(void *obj, uint32 udata);
 	/* RPC callbacks */
-	void (*handling_rpc)(gpointer obj, enum dht_rpc_ret type,
-		const knode_t *kn, guint32 udata);
-	gboolean (*handle_reply)(gpointer obj, const knode_t *kn,
-		kda_msg_t function, const char *payload, size_t len, guint32 udata);
-	void (*iterate)(gpointer obj, enum dht_rpc_ret type, guint32 udata);
+	void (*handling_rpc)(void *obj, enum dht_rpc_ret type,
+		const knode_t *kn, uint32 udata);
+	bool (*handle_reply)(void *obj, const knode_t *kn,
+		kda_msg_t function, const char *payload, size_t len, uint32 udata);
+	void (*iterate)(void *obj, enum dht_rpc_ret type, uint32 udata);
 };
 
 /*
@@ -65,12 +65,12 @@ struct revent_ops {
  */
 
 void revent_find_node(knode_t *kn, const kuid_t *kuid,
-	struct nid id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, uint32 udata);
 void revent_find_value(knode_t *kn, const kuid_t *kuid, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	struct nid id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, uint32 udata);
 void revent_store(knode_t *kn, pmsg_t *mb,
-	struct nid id, struct revent_ops *ops, guint32 udata);
+	struct nid id, struct revent_ops *ops, uint32 udata);
 
 #endif	/* _dht_revent_h_ */
 
