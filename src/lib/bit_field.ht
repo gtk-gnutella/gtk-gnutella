@@ -57,7 +57,7 @@
  * all bits of a "char" at once, where possible.
  */
 
-typedef guint8 bit_field_t;
+typedef uint8 bit_field_t;
 
 #define BIT_FIELD_BITSHIFT 3
 #define BIT_FIELD_BITSIZE (8 * sizeof(bit_field_t))
