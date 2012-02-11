@@ -531,7 +531,11 @@ socklen_t socket_addr_init(socket_addr_t *sa_ptr, enum net_type net);
 int socket_addr_getpeername(socket_addr_t *p_addr, int fd);
 int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
+unsigned host_addr_hash(host_addr_t ha);
+unsigned host_addr_hash2(host_addr_t ha);
+
 uint host_addr_hash_func(const void *key);
+uint host_addr_hash_func2(const void *key);
 bool host_addr_eq_func(const void *p, const void *q);
 void wfree_host_addr1(void *key);
 void wfree_host_addr(void *key, void *unused_data);
@@ -578,8 +582,6 @@ struct addrinfo;
 host_addr_t addrinfo_to_addr(const struct addrinfo *ai);
 #endif
 
-unsigned host_addr_hash(host_addr_t ha);
-
 const char *host_addr_to_name(const host_addr_t addr);
 bool string_to_host_or_addr(const char *s, const char **endptr,
 		host_addr_t *ha);
@@ -596,6 +598,7 @@ struct packed_host host_pack(const host_addr_t addr, uint16 port);
 void packed_host_unpack_addr(const struct packed_host *phost,
 	host_addr_t *addr_ptr);
 uint packed_host_hash_func(const void *key);
+uint packed_host_hash_func2(const void *key);
 bool packed_host_eq_func(const void *p, const void *q);
 void *walloc_packed_host(const host_addr_t addr, uint16 port);
 void wfree_packed_host(void *key, void *unused_data);

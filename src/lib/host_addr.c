@@ -86,6 +86,32 @@ host_addr_hash(host_addr_t ha)
 }
 
 /**
+ * Alternate hashing of host_addr_t.
+ */
+unsigned
+host_addr_hash2(host_addr_t ha)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash2(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net ^ integer_hash2(host_addr_ipv4(ha));
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net;
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
+
+/**
  * @param ha An initialized host address.
  * @return The proper AF_* value or -1 if not available.
  */
@@ -1320,6 +1346,13 @@ host_addr_hash_func(const void *key)
 	return host_addr_hash(*addr);
 }
 
+uint
+host_addr_hash_func2(const void *key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash2(*addr);
+}
+
 bool
 host_addr_eq_func(const void *p, const void *q)
 {
@@ -1586,6 +1619,16 @@ packed_host_hash_func(const void *key)
 {
 	const struct packed_host *p = key;
 	return binary_hash(key, packed_host_size_ptr(p));
+}
+
+/**
+ * Alternate hash for a packed host buffer (variable-sized).
+ */
+uint
+packed_host_hash_func2(const void *key)
+{
+	const struct packed_host *p = key;
+	return binary_hash2(key, packed_host_size_ptr(p));
 }
 
 /**
