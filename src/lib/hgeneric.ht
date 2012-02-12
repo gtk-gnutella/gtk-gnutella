@@ -44,6 +44,7 @@ typedef struct h<generic>_iter h<generic>_iter_t;
 
 @if TABLE
 typedef void (*htable_each_t)(const void *key, void *value, void *data);
+typedef void (*htable_each_key_t)(void *key, void *data);
 typedef gboolean (*htable_each_rm_t)(const void *key, void *value, void *data);
 @end
 @if SET
@@ -85,6 +86,9 @@ size_t h<generic>_count(const h<generic>_t *);
 void h<generic>_foreach(const h<generic>_t *, h<generic>_each_t fn, void *data);
 size_t h<generic>_foreach_remove(h<generic>_t *,
 	h<generic>_each_rm_t fn, void *data);
+@if TABLE
+void htable_foreach_key(const htable_t *, htable_each_key_t fn, void *data);
+@end
 
 h<generic>_iter_t *h<generic>_iter_new(const h<generic>_t *);
 void h<generic>_iter_release(h<generic>_iter_t **);

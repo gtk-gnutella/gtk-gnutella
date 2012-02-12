@@ -452,6 +452,38 @@ h<generic>_foreach(const h<generic>_t *hx, h<generic>_each_t fn, void *data)
 	hash_refcnt_dec(HASH(hx));
 }
 
+@if TABLE
+/**
+ * Traverse table, invoking callback for each key.
+ *
+ * @param hx	the hash <generic>
+ * @param fn	callback to invoke on the key
+ * @param data	additional callback parameter
+ */
+void
+htable_foreach_key(const htable_t *ht, htable_each_key_t fn, void *data)
+{
+	unsigned *hp, *end;
+	size_t i, n;
+
+	htable_check(ht);
+
+	end = &ht->kset.hashes[ht->kset.size];
+	hash_refcnt_inc(HASH(ht));		/* Prevent any key relocation */
+
+	for (i = n = 0, hp = ht->kset.hashes; hp != end; i++, hp++) {
+		if (HASH_IS_REAL(*hp)) {
+			(*fn)(deconstify_pointer(ht->kset.keys[i]), data);
+			n++;
+		}
+	}
+
+	g_assert(n == ht->kset.items);
+
+	hash_refcnt_dec(HASH(ht));
+}
+@end
+
 /**
  * Traverse <generic>, invoking callback for each entry and removing it when
  * the callback function returns TRUE.
