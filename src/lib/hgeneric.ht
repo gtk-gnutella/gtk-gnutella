@@ -52,6 +52,33 @@ typedef void (*hset_each_t)(const void *key, void *data);
 typedef gboolean (*hset_each_rm_t)(const void *key, void *data);
 @end
 
+/**
+ * Cast <generic> to a polmorphic hash const.
+ */
+static inline ALWAYS_INLINE const struct hash *
+h<generic>_cast_to_const_hash(const struct h<generic> *hx)
+{
+	return (const struct hash *) hx;
+}
+
+/**
+ * Cast <generic> to a polmorphic hash.
+ */
+static inline ALWAYS_INLINE struct hash *
+h<generic>_cast_to_hash(const struct h<generic> *hx)
+{
+	return (struct hash *) hx;
+}
+
+/**
+ * Cast pointer to <generic> to a pointer to a polmorphic hash.
+ */
+static inline ALWAYS_INLINE struct hash **
+h<generic>_ptr_cast_to_hash(struct h<generic> * const *hx)
+{
+	return (struct hash **) hx;
+}
+
 /*
  * Public interface.
  */

@@ -42,11 +42,12 @@
 
 #include "override.h"			/* Must be the last header included */
 
-@if TABLE
 /* Reverse assignment attempt */
-#define HASH_TABLE(x) \
-	(((x) != NULL && HTABLE_MAGIC == (x)->magic) ? (htable_t *) (x) : NULL)
+#define HASH_<GENERIC>(x) \
+	(((x) != NULL && \
+		H<GENERIC>_MAGIC == (x)->magic) ? (h<generic>_t *) (x) : NULL)
 
+@if TABLE
 /**
  * The hash table structure.
  */
@@ -141,6 +142,14 @@ hset_values_get(const struct hash *h)
 	return NULL;	/* No values */
 }
 @end
+
+static void
+h<generic>_hash_free(struct hash *h)
+{
+	h<generic>_t *hx = HASH_<GENERIC>(h);
+
+	h<generic>_free_null(&hx);
+}
 
 /**
  * Allocate a new hash <generic> capable of holding 2^bits items.
@@ -463,24 +472,7 @@ h<generic>_foreach(const h<generic>_t *hx, h<generic>_each_t fn, void *data)
 void
 htable_foreach_key(const htable_t *ht, htable_each_key_t fn, void *data)
 {
-	unsigned *hp, *end;
-	size_t i, n;
-
-	htable_check(ht);
-
-	end = &ht->kset.hashes[ht->kset.size];
-	hash_refcnt_inc(HASH(ht));		/* Prevent any key relocation */
-
-	for (i = n = 0, hp = ht->kset.hashes; hp != end; i++, hp++) {
-		if (HASH_IS_REAL(*hp)) {
-			(*fn)(deconstify_pointer(ht->kset.keys[i]), data);
-			n++;
-		}
-	}
-
-	g_assert(n == ht->kset.items);
-
-	hash_refcnt_dec(HASH(ht));
+	hash_foreach(HASH(ht), fn, data);
 }
 @end
 
@@ -649,6 +641,7 @@ h<generic>_iter_remove(h<generic>_iter_t *hxi)
 static const struct hash_ops h<generic>_ops = {
 	h<generic>_values_allocate,		/* allocate_values */
 	h<generic>_values_get,			/* get_values */
+	h<generic>_hash_free,			/* hash_free */
 };
 
 /***

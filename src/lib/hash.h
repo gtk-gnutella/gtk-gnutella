@@ -43,6 +43,8 @@ enum hash_key_type {
 	HASH_KEY_MAXTYPE
 };
 
+struct hash;
+
 /**
  * A key hashing function.
  */
@@ -52,6 +54,11 @@ typedef unsigned (*hash_func_t)(const void *key);
  * A key comparison function.
  */
 typedef gboolean (*hash_eq_t)(const void *a, const void *b);
+
+/**
+ * For polymorphic hash traversal.
+ */
+typedef void (*hash_each_key_t)(void *key, void *data);
 
 /*
  * The following definitions are only visible within the library.
@@ -87,8 +94,6 @@ struct hkeys {
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
 };
 
-struct hash;
-
 #define HASH(x)		((struct hash *) (x))
 
 /*
@@ -113,6 +118,7 @@ struct hash;
 struct hash_ops {
 	void (*allocate_values)(struct hash *h, size_t newlen);
 	const void **(*get_values)(const struct hash *h);
+	void (*hash_free)(struct hash *h);
 };
 
 /**
@@ -160,12 +166,20 @@ gboolean hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
 bool hash_delete_key(struct hash *h, const void *key);
-void hash_clear(struct hash *h);
 
-void hash_refcnt_inc(struct hash *h);
-void hash_refcnt_dec(struct hash *h);
+void hash_refcnt_inc(const struct hash *h);
+void hash_refcnt_dec(const struct hash *h);
 
 #endif	/* HTABLE_SOURCE || HSET_SOURCE || HASH_SOURCE */
+
+/*
+ * Public polymorphic interface.
+ */
+
+void hash_foreach(const struct hash *h, hash_each_key_t fn, void *data);
+void hash_clear(struct hash *h);
+size_t hash_count(const struct hash *h);
+void hash_free(struct hash *h);
 
 #endif /* _hash_h_ */
 

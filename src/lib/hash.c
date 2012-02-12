@@ -781,23 +781,79 @@ hash_clear(struct hash *h)
  * Increase iterator reference count.
  */
 void
-hash_refcnt_inc(struct hash *h)
+hash_refcnt_inc(const struct hash *h)
 {
+	struct hash *wh = deconstify_pointer(h);
+
 	hash_check(h);
 
-	h->refcnt++;
+	wh->refcnt++;
 }
 
 /**
  * Decrease iterator reference count.
  */
 void
-hash_refcnt_dec(struct hash *h)
+hash_refcnt_dec(const struct hash *h)
 {
+	struct hash *wh = deconstify_pointer(h);
+
 	hash_check(h);
 	g_assert(size_is_positive(h->refcnt));
 
-	h->refcnt--;
+	wh->refcnt--;
+}
+
+/**
+ * Polymorphic traversal, invoking callback for each key.
+ *
+ * @param h		the hash table
+ * @param fn	callback to invoke on the key
+ * @param data	additional callback parameter
+ */
+void
+hash_foreach(const struct hash *h, hash_each_key_t fn, void *data)
+{
+	unsigned *hp, *end;
+	size_t i, n;
+
+	hash_check(h);
+
+	end = &h->kset.hashes[h->kset.size];
+	hash_refcnt_inc(h);			/* Prevent any key relocation */
+
+	for (i = n = 0, hp = h->kset.hashes; hp != end; i++, hp++) {
+		if (HASH_IS_REAL(*hp)) {
+			(*fn)(deconstify_pointer(h->kset.keys[i]), data);
+			n++;
+		}
+	}
+
+	g_assert(n == h->kset.items);
+
+	hash_refcnt_dec(h);
+}
+
+/**
+ * @return amount of itemsi in the hash table/set.
+ */
+size_t
+hash_count(const struct hash *h)
+{
+	hash_check(h);
+
+	return h->kset.items;
+}
+
+/**
+ * Free hash structure.
+ */
+void
+hash_free(struct hash *h)
+{
+	hash_check(h);
+
+	(*h->ops->hash_free)(h);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
