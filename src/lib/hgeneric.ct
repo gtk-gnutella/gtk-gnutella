@@ -325,7 +325,7 @@ htable_lookup(const htable_t *ht, const void *key)
 	htable_check(ht);
 
 	idx = hash_lookup_key(HASH(ht), key);
-	return (size_t) -1 == idx ? NULL : deconstify_gpointer(ht->values[idx]);
+	return (size_t) -1 == idx ? NULL : deconstify_pointer(ht->values[idx]);
 }
 
 /**
@@ -356,12 +356,35 @@ htable_lookup_extended(const htable_t *ht, const void *key,
 	if (keyptr != NULL)
 		*keyptr = ht->kset.keys[idx];
 	if (valptr != NULL)
-		*valptr = deconstify_gpointer(ht->values[idx]);
+		*valptr = deconstify_pointer(ht->values[idx]);
 
 	return TRUE;
 }
 @end	/* TABLE */
 @if SET
+/**
+ * Fetch original key from the hash set.
+ *
+ * @param hs		the hash set
+ * @param key		the key being looked up
+ *
+ * @return found key, or NULL if not found.
+ *
+ * @attention
+ * Since NULL could be a valid key, one cannot use NULL as a valid signal
+ * for a missing key unless one knows that no NULL is inserted in the set.
+ */
+void *
+hset_lookup(const hset_t *hs, const void *key)
+{
+	size_t idx;
+
+	hset_check(hs);
+
+	idx = hash_lookup_key(HASH(hs), key);
+	return (size_t) -1 == idx ? NULL : deconstify_pointer(hs->kset.keys[idx]);
+}
+
 /**
  * Lookup key from the hash set, returning whether the key exists.
  * If it does, the original key pointer is written in keyptr.
@@ -447,7 +470,7 @@ h<generic>_foreach(const h<generic>_t *hx, h<generic>_each_t fn, void *data)
 	for (i = n = 0, hp = hx->kset.hashes; hp != end; i++, hp++) {
 		if (HASH_IS_REAL(*hp)) {
 @if TABLE
-			(*fn)(hx->kset.keys[i], deconstify_gpointer(hx->values[i]), data);
+			(*fn)(hx->kset.keys[i], deconstify_pointer(hx->values[i]), data);
 @end
 @if SET
 			(*fn)(hx->kset.keys[i], data);
@@ -501,7 +524,7 @@ h<generic>_foreach_remove(h<generic>_t *hx, h<generic>_each_rm_t fn, void *data)
 		if (HASH_IS_REAL(*hp)) {
 @if TABLE
 			bool r = (*fn)(hx->kset.keys[i],
-				deconstify_gpointer(hx->values[i]), data);
+				deconstify_pointer(hx->values[i]), data);
 @end
 @if SET
 			bool r = (*fn)(hx->kset.keys[i], data);
@@ -608,7 +631,7 @@ hset_iter_next(hset_iter_t *hxi, const void **kp)
 		*kp = hx->kset.keys[hxi->pos];
 @if TABLE
 	if (vp != NULL)
-		*vp = deconstify_gpointer(hx->values[hxi->pos]);
+		*vp = deconstify_pointer(hx->values[hxi->pos]);
 @end
 
 	hxi->pos++;
@@ -628,7 +651,7 @@ h<generic>_iter_remove(h<generic>_iter_t *hxi)
 	g_assert(size_is_positive(hxi->pos));		/* Called _next() once */
 	g_assert(hxi->pos <= hxi->hx->kset.size);
 
-	hx = deconstify_gpointer(hxi->hx);
+	hx = deconstify_pointer(hxi->hx);
 	idx = hxi->pos - 1;		/* Current item */
 	if (hash_keyset_erect_tombstone(&hx->kset, idx))
 		hx->kset.items--;

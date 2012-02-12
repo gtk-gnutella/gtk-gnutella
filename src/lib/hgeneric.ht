@@ -105,6 +105,7 @@ htable_insert_const(htable_t *ht, const void *key, const void *value)
 @end
 @if SET
 void hset_insert(hset_t *, const void *key);
+void *hset_lookup(const hset_t *, const void *key);
 bool hset_contains_extended(const hset_t *, const void *key,
 	const void **keyptr);
 @end
