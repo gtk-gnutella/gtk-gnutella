@@ -149,6 +149,12 @@ pointer_to_ulong(const void *p)
 	return (unsigned long) p;
 }
 
+static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE size_t
+pointer_to_size(const void *p)
+{
+	return (size_t) p;
+}
+
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 uint_to_pointer(unsigned value)
 {
