@@ -111,7 +111,7 @@ ckinit(size_t size, size_t reserved, bool leaking)
 	g_assert(size_is_positive(size));
 	g_assert(size_is_non_negative(reserved));
 
-	arena = leaking ? vmm_alloc(size) : vmm_alloc_not_leaking(size);
+	arena = leaking ? vmm_core_alloc(size) : vmm_core_alloc_not_leaking(size);
 	ck = arena;
 	ZERO(ck);
 	ck->magic = CKHUNK_MAGIC;

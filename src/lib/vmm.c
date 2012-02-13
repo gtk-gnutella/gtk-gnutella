@@ -5046,6 +5046,18 @@ vmm_alloc_track_not_leaking(size_t size, const char *file, int line)
 }
 
 /**
+ * Tracking version of vmm_core_alloc() for memory flagged as non-leaking.
+ */
+void *
+vmm_core_alloc_track_not_leaking(size_t size, const char *file, int line)
+{
+	void *p;
+
+	p = vmm_alloc_track(size, FALSE, file, line);
+	return vmm_not_leaking(p);
+}
+
+/**
  * Tracking version of vmm_alloc0().
  */
 void *
