@@ -59,16 +59,16 @@ struct guid;
 struct nid;
 
 /* adns interface functions */
-gboolean guc_adns_resolve(const char *hostname,
-			adns_callback_t user_callback, gpointer user_data);
+bool guc_adns_resolve(const char *hostname,
+			adns_callback_t user_callback, void *user_data);
 
 /* download and src interface functions */
-gboolean
+bool
 guc_download_new(const char *filename,
 	const char *uri,
 	filesize_t size,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	const struct guid *guid,
 	const char *hostname,
 	const struct sha1 *sha1,
@@ -76,14 +76,14 @@ guc_download_new(const char *filename,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
-	guint32 flags,
+	uint32 flags,
 	const char *parq_id);
 
 void
 guc_download_auto_new(const char *filename,
 	filesize_t size,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	const struct guid *guid,
 	const char *hostname,
 	const struct sha1 *sha1,
@@ -91,18 +91,18 @@ guc_download_auto_new(const char *filename,
 	time_t stamp,
 	fileinfo_t *fi,
 	gnet_host_vec_t *proxies,
-	guint32 flags);
+	uint32 flags);
 
 char *guc_download_build_url(const struct download *);
 char *guc_file_info_build_magnet(gnet_fi_t);
 char *guc_file_info_get_file_url(gnet_fi_t);
 const char *guc_file_info_status_to_string(const gnet_fi_status_t *);
 int guc_download_get_http_req_percent(const struct download *);
-void guc_download_fallback_to_push(struct download *, gboolean on_timeout,
-		gboolean user_request);
+void guc_download_fallback_to_push(struct download *, bool on_timeout,
+		bool user_request);
 int guc_download_remove_all_from_peer(const struct guid *guid,
-		const host_addr_t addr, guint16 port, gboolean unavailable);
-gboolean guc_download_file_exists(const struct download *);
+		const host_addr_t addr, uint16 port, bool unavailable);
+bool guc_download_file_exists(const struct download *);
 void guc_download_requeue(struct download *);
 void guc_download_start(struct download *);
 void guc_download_pause(struct download *);
@@ -110,21 +110,21 @@ void guc_download_abort(struct download *);
 void guc_download_resume(struct download *);
 void guc_download_freeze_queue(void);
 void guc_download_thaw_queue(void);
-gboolean guc_download_queue_is_frozen(void);
-void guc_download_clear_stopped(gboolean complete,
-	gboolean failed, gboolean unavailable, gboolean finished, gboolean now);
-guint guc_download_handle_magnet(const char *url);
+bool guc_download_queue_is_frozen(void);
+void guc_download_clear_stopped(bool complete,
+	bool failed, bool unavailable, bool finished, bool now);
+uint guc_download_handle_magnet(const char *url);
 const char *guc_download_get_hostname(const struct download *);
 const char *guc_download_get_country(const struct download *);
 const char *guc_download_get_vendor(const struct download *);
 gdouble guc_download_source_progress(const struct download *);
 gdouble guc_download_total_progress(const struct download *);
-gboolean guc_download_something_to_clear(void);
-void guc_download_index_changed(const host_addr_t addr, guint16 port,
+bool guc_download_something_to_clear(void);
+void guc_download_index_changed(const host_addr_t addr, uint16 port,
 	const struct guid *guid, filesize_t from, filesize_t to);
 struct download *guc_src_get_download(gnet_src_t src_handle);
 
-void guc_src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, guint32);
+void guc_src_add_listener(src_listener_t, gnet_src_ev_t, frequency_t, uint32);
 void guc_src_remove_listener(src_listener_t, gnet_src_ev_t);
 
 /* fileinfo interface functions */
@@ -137,7 +137,7 @@ char **guc_fi_get_aliases(gnet_fi_t);
 void guc_fi_purge(gnet_fi_t);
 void guc_fi_pause(gnet_fi_t);
 void guc_fi_resume(gnet_fi_t);
-gboolean guc_fi_rename(gnet_fi_t, const char *);
+bool guc_fi_rename(gnet_fi_t, const char *);
 
 GSList *guc_fi_get_chunks(gnet_fi_t);
 void guc_fi_free_chunks(GSList *chunks);
@@ -145,7 +145,7 @@ void guc_fi_free_chunks(GSList *chunks);
 GSList *guc_fi_get_ranges(gnet_fi_t);
 void guc_fi_free_ranges(GSList *ranges);
 
-void guc_fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, guint32);
+void guc_fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, uint32);
 void guc_fi_remove_listener(fi_listener_t, gnet_fi_ev_t);
 
 /* gnet_stats interface functions */
@@ -164,7 +164,7 @@ void guc_hcache_get_stats(hcache_stats_t *);
 int guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *);
 const char *guc_hsep_get_static_str(int row, int column);
-void guc_hsep_add_global_table_listener(GCallback, frequency_t, guint32);
+void guc_hsep_add_global_table_listener(GCallback, frequency_t, uint32);
 void guc_hsep_remove_global_table_listener(GCallback);
 
 /* http interface functions */
@@ -181,15 +181,15 @@ void guc_node_remove_node_removed_listener(node_removed_listener_t);
 void guc_node_remove_node_info_changed_listener(node_info_changed_listener_t);
 void guc_node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 
-void guc_node_add(const host_addr_t addr, guint16 port, guint32 flags);
+void guc_node_add(const host_addr_t addr, uint16 port, uint32 flags);
 void guc_node_remove_by_id(const struct nid *);
 void guc_node_remove_nodes_by_id(const GSList *node_list);
-gboolean guc_node_get_status(const struct nid *, gnet_node_status_t *);
+bool guc_node_get_status(const struct nid *, gnet_node_status_t *);
 gnet_node_info_t *guc_node_get_info(const struct nid *);
 void guc_node_clear_info(gnet_node_info_t *);
 void guc_node_free_info(gnet_node_info_t *);
-gboolean guc_node_fill_flags(const struct nid *, gnet_node_flags_t *);
-gboolean guc_node_fill_info(const struct nid *, gnet_node_info_t *);
+bool guc_node_fill_flags(const struct nid *, gnet_node_flags_t *);
+bool guc_node_fill_info(const struct nid *, gnet_node_info_t *);
 const char *guc_node_flags_to_string(const gnet_node_flags_t *);
 const char *guc_node_peermode_to_string(node_peer_t);
 
@@ -200,24 +200,24 @@ int guc_get_parq_dl_eta(const struct download *);
 int guc_get_parq_dl_retry_delay(const struct download *);
 
 /* search interface functions */
-guint guc_search_handle_magnet(const char *);
-void guc_search_update_items(gnet_search_t, guint32);
-guint guc_search_get_lifetime(gnet_search_t);
+uint guc_search_handle_magnet(const char *);
+void guc_search_update_items(gnet_search_t, uint32);
+uint guc_search_get_lifetime(gnet_search_t);
 time_t guc_search_get_create_time(gnet_search_t);
 void guc_search_set_create_time(gnet_search_t, time_t);
-guint32 guc_search_get_reissue_timeout(gnet_search_t);
-void guc_search_set_reissue_timeout(gnet_search_t, guint32 timeout);
+uint32 guc_search_get_reissue_timeout(gnet_search_t);
+void guc_search_set_reissue_timeout(gnet_search_t, uint32 timeout);
 unsigned guc_search_get_media_type(gnet_search_t);
 
 const char *guc_search_query(gnet_search_t);
 
-gboolean guc_search_is_active(gnet_search_t);
-gboolean guc_search_is_browse(gnet_search_t);
-gboolean guc_search_is_expired(gnet_search_t);
-gboolean guc_search_is_frozen(gnet_search_t);
-gboolean guc_search_is_local(gnet_search_t);
-gboolean guc_search_is_passive(gnet_search_t);
-gboolean guc_search_is_whats_new(gnet_search_t sh);
+bool guc_search_is_active(gnet_search_t);
+bool guc_search_is_browse(gnet_search_t);
+bool guc_search_is_expired(gnet_search_t);
+bool guc_search_is_frozen(gnet_search_t);
+bool guc_search_is_local(gnet_search_t);
+bool guc_search_is_passive(gnet_search_t);
+bool guc_search_is_whats_new(gnet_search_t sh);
 
 void guc_search_associate_sha1(gnet_search_t sh, const struct sha1 *sha1);
 GSList *guc_search_associated_sha1(gnet_search_t sh);
@@ -225,16 +225,16 @@ unsigned guc_search_associated_sha1_count(gnet_search_t sh);
 const char *guc_search_media_mask_to_string(unsigned mask);
 
 enum search_new_result guc_search_new(gnet_search_t *ptr, const char *query,
-	unsigned mtype, time_t create_time, guint lifetime,
-	guint32 reissue_timeout, guint32 flags);
-gboolean guc_search_browse(gnet_search_t,
-	const char *hostname, host_addr_t addr, guint16 port,
-	const struct guid *guid, const gnet_host_vec_t *proxies, guint32 flags);
-gboolean guc_search_locally(gnet_search_t, const char *query);
+	unsigned mtype, time_t create_time, uint lifetime,
+	uint32 reissue_timeout, uint32 flags);
+bool guc_search_browse(gnet_search_t,
+	const char *hostname, host_addr_t addr, uint16 port,
+	const struct guid *guid, const gnet_host_vec_t *proxies, uint32 flags);
+bool guc_search_locally(gnet_search_t, const char *query);
 void guc_search_close(gnet_search_t);
 void guc_search_start(gnet_search_t);
 void guc_search_stop(gnet_search_t);
-void guc_search_add_kept(gnet_search_t, const struct guid *, guint32 kept);
+void guc_search_add_kept(gnet_search_t, const struct guid *, uint32 kept);
 
 void guc_search_got_results_listener_add(search_got_results_listener_t);
 void guc_search_got_results_listener_remove(search_got_results_listener_t);
@@ -246,7 +246,7 @@ void guc_search_request_listener_add(search_request_listener_t);
 void guc_search_request_listener_remove(search_request_listener_t);
 
 /* settings interface functions */
-guint16 guc_listen_port(void);
+uint16 guc_listen_port(void);
 host_addr_t guc_listen_addr(enum net_type);
 const char *guc_settings_home_dir(void);
 const char *guc_settings_config_dir(void);
@@ -254,8 +254,8 @@ const char *guc_settings_config_dir(void);
 /* share interface functions */
 void guc_shared_dir_add(const char *path);
 void guc_share_scan(void);
-guint64 guc_shared_files_scanned(void);
-guint64 guc_shared_kbytes_scanned(void);
+uint64 guc_shared_files_scanned(void);
+uint64 guc_shared_kbytes_scanned(void);
 
 /* upload interface functions */
 gnet_upload_info_t *guc_upload_get_info(gnet_upload_t);
@@ -280,17 +280,16 @@ void guc_upload_stats_clear_all(void);
 const char *guc_version_get_version_string(void);
 
 /* bitzi interface functions*/
-gboolean guc_bitzi_has_cached_ticket(const struct sha1 *);
-void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t, gboolean);
+bool guc_bitzi_has_cached_ticket(const struct sha1 *);
+void guc_query_bitzi_by_sha1(const struct sha1 *, filesize_t, bool);
 const char *guc_bitzi_ticket_by_sha1(const struct sha1 *, filesize_t);
-gboolean guc_bitzi_data_by_sha1(bitzi_data_t *,
-	const struct sha1 *, filesize_t);
+bool guc_bitzi_data_by_sha1(bitzi_data_t *, const struct sha1 *, filesize_t);
 
 /** main functions */
 void guc_gtk_gnutella_exit(int code);
 
 /** DHT functions */
-gboolean guc_dht_enabled(void);
+bool guc_dht_enabled(void);
 
 #endif /* _if_bridge_ui2c_h_ */
 /* vi: set ts=4 sw=4 cindent: */

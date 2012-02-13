@@ -197,12 +197,12 @@ zone_check(const struct zone *zn)
 	g_assert(ZONE_MAGIC == zn->zn_magic);
 }
 
-static hash_table_t *zt;			/**< Keeps size (rounded up) -> zone */
-static uint32 zalloc_debug;			/**< Debug level */
-static gboolean zalloc_always_gc;	/**< Whether zones should stay in GC mode */
-static gboolean addr_grows_upwards;	/**< Whether newer VM addresses increase */
-static gboolean zalloc_closing;		/**< Whether zclose() was called */
-static gboolean zalloc_memusage_ok;	/**< Whether we can enable memusage stats */
+static hash_table_t *zt;		/**< Keeps size (rounded up) -> zone */
+static uint32 zalloc_debug;		/**< Debug level */
+static bool zalloc_always_gc;	/**< Whether zones should stay in GC mode */
+static bool addr_grows_upwards;	/**< Whether newer VM addresses increase */
+static bool zalloc_closing;		/**< Whether zclose() was called */
+static bool zalloc_memusage_ok;	/**< Whether we can enable memusage stats */
 
 #ifdef MALLOC_FRAMES
 static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
@@ -343,7 +343,7 @@ zfree(zone_t *zone, void *ptr)
 }
 
 void
-zgc(gboolean overloaded)
+zgc(bool overloaded)
 {
 	(void) overloaded;
 }
@@ -408,7 +408,7 @@ zrange_init(zone_t *zn)
  * Validates the block address within a zone, to make sure it lies at an
  * exact multiple of the zone's block size within its subzone..
  */
-static gboolean
+static bool
 zvalid(const zone_t *zone, const zrange_t *range, const void *blk)
 {
 	size_t boff = ptr_diff(blk, range->start);
@@ -433,7 +433,7 @@ zvalid(const zone_t *zone, const zrange_t *range, const void *blk)
  * @attention due to the naive alogorithm used here, the runtime penalty is
  * astonishing.  Almost 60% of the CPU time ends up being spent there!
  */
-static G_GNUC_HOT gboolean
+static G_GNUC_HOT bool
 zbelongs(const zone_t *zone, const void *blk)
 {
 	if G_UNLIKELY(NULL == zone->zn_rang)
@@ -472,7 +472,7 @@ zrange_clear(const zone_t *zone)
 /**
  * Should we always put the zone in GC mode?
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 zgc_always(const zone_t *zone)
 {
 	return zalloc_always_gc || zone->zn_size >= WALLOC_GC_THRESH;
@@ -882,7 +882,7 @@ subzone_free_arena(struct subzone *sz)
  * Is subzone held in a virtual memory region that could be relocated or
  * is a standalone fragment?
  */
-static inline gboolean
+static inline bool
 subzone_is_fragment(const struct subzone *sz)
 {
 	return vmm_is_relocatable(sz->sz_base, sz->sz_size) ||
@@ -1388,7 +1388,7 @@ set_zalloc_debug(uint32 level)
  * processes, this is a good property.
  */
 void
-set_zalloc_always_gc(gboolean val)
+set_zalloc_always_gc(bool val)
 {
 	zalloc_always_gc = val;
 }
@@ -1406,7 +1406,7 @@ set_zalloc_always_gc(gboolean val)
  */
 static struct {
 	unsigned subzone_freed;			/**< Amount of subzones freed this run */
-	gboolean running;				/**< Garbage collector is running */
+	bool running;					/**< Garbage collector is running */
 } zgc_context;
 
 #define ZGC_SUBZONE_MINLIFE		5	/**< Do not free too recent subzone */
@@ -1473,7 +1473,7 @@ zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 /**
  * Check whether address falls within the subzone boundaries.
  */
-static inline G_GNUC_HOT gboolean
+static inline G_GNUC_HOT bool
 zgc_within_subzone(const struct subzinfo *szi, const void *p)
 {
 	struct subzone *sz;
@@ -1661,7 +1661,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
  *
  * @return TRUE if OK, FALSE if we did not free it.
  */
-static gboolean
+static bool
 zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 {
 	struct zone_gc *zg = zone->zn_gc;
@@ -1845,7 +1845,7 @@ found:
  *
  * @return TRUE if block was inserted, FALSE if subzone was freed.
  */
-static gboolean
+static bool
 zgc_insert_freelist(zone_t *zone, char **blk)
 {
 	struct zone_gc *zg = zone->zn_gc;
@@ -2039,7 +2039,7 @@ zgc_scan(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;
 	unsigned i;
-	gboolean must_continue = FALSE;
+	bool must_continue = FALSE;
 
 	g_assert(zg != NULL);
 	g_assert(zone->zn_blocks >= zone->zn_cnt);
@@ -2583,7 +2583,7 @@ spot_oversized_zone(zone_t *zone)
  * Typically, this routine is invoked from an idle callout queue timer.
  */
 void
-zgc(gboolean overloaded)
+zgc(bool overloaded)
 {
 	static time_t last_run;
 	time_t now;
@@ -2749,12 +2749,12 @@ zalloc_memusage_close(void)
  *
  * @return TRUE if OK, FALSE if we found no zone with specified size.
  */
-gboolean
+bool
 zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 {
 	zone_t *zone;
 	unsigned hint = 0;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 	va_list args;
 
 	if (NULL == zt)
@@ -2777,7 +2777,7 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 	switch (op) {
 	case ZALLOC_SA_SET:
 		{
-			gboolean on = va_arg(args, gboolean);
+			bool on = va_arg(args, bool);
 			memusage_set_stack_accounting(zone->zn_mem, on);
 			goto done;
 		}

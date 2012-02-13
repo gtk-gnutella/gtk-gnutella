@@ -66,7 +66,7 @@
 #endif /* USE_TOPLESS */
 
 #if defined(USE_GTK1) || defined(USE_GTK2)
-extern gboolean running_topless;
+extern bool running_topless;
 #include "if/ui/gtk/bitzi.h"
 #include "if/ui/gtk/downloads.h"
 #include "if/ui/gtk/misc.h"
@@ -106,19 +106,19 @@ gcu_gui_update_files_scanned(void)
 }
 
 void
-guc_allow_rescan_dir(gboolean flag)
+guc_allow_rescan_dir(bool flag)
 {
 	if (!running_topless) {
 		gui_allow_rescan_dir(flag);
 	}
 }
 
-gint
+int
 gcu_gtk_main_flush(void)
 {
 #if defined(USE_GTK1) || defined(USE_GTK2)
 	if (!running_topless) {
-		extern gint gtk_main_flush();
+		extern int gtk_main_flush();
 		/* Don't include any GTK-related header */
 		return gtk_main_flush();
 	}
@@ -127,8 +127,8 @@ gcu_gtk_main_flush(void)
 }
 
 /**	search interface functions (CORE -> UI) */
-gboolean
-gcu_search_gui_new_search(const gchar *query, guint32 flags)
+bool
+gcu_search_gui_new_search(const gchar *query, uint32 flags)
 {
 	if (!running_topless) {
 		return search_gui_new_search(query, flags, NULL);

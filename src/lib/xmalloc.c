@@ -317,13 +317,13 @@ static struct {
 
 static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static uint32 xmalloc_debug;		/**< Debug level */
-static gboolean safe_to_log;		/**< True when we can log */
-static gboolean xmalloc_vmm_is_up;	/**< True when the VMM layer is up */
-static gboolean xmalloc_random_up;	/**< True when we can use random numbers */
+static bool safe_to_log;			/**< True when we can log */
+static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
+static bool xmalloc_random_up;		/**< True when we can use random numbers */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
-static gboolean xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
-static gboolean xmalloc_no_freeing;	/**< No longer release memory */
-static gboolean xmalloc_no_wfree;	/**< No longer release memory via wfree() */
+static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
+static bool xmalloc_no_freeing;		/**< No longer release memory */
+static bool xmalloc_no_wfree;		/**< No longer release memory via wfree() */
 
 static void *initial_break;			/**< Initial heap break */
 static void *current_break;			/**< Current known heap break */
@@ -337,7 +337,7 @@ static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
 static void xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce);
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
-	size_t size, gboolean core, size_t *allocated);
+	size_t size, bool core, size_t *allocated);
 static void xmalloc_crash_hook(void);
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
@@ -438,7 +438,7 @@ xmalloc_round_blocksize(size_t len)
  * @param current		the current physical block size
  * @param wanted		the final physical block size after splitting
  */
-static gboolean
+static bool
 xmalloc_should_split(size_t current, size_t wanted)
 {
 	size_t waste;
@@ -454,7 +454,7 @@ xmalloc_should_split(size_t current, size_t wanted)
 /**
  * Is block length tagged as being that of a walloc()ed block?
  */
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 xmalloc_is_walloc(size_t len)
 {
 	return XMALLOC_WALLOC_MAGIC == (len & XMALLOC_WALLOC_MAGIC);
@@ -488,7 +488,7 @@ xmalloc_walloc_size(size_t len)
  * @return pointer to more memory of at least ``len'' bytes.
  */
 static void *
-xmalloc_addcore_from_heap(size_t len, gboolean can_log)
+xmalloc_addcore_from_heap(size_t len, bool can_log)
 {
 	void *p;
 
@@ -571,7 +571,7 @@ xmalloc_addcore_from_heap(size_t len, gboolean can_log)
  * On Windows we emulate the behaviour of sbrk() and therefore can use the same
  * logic as on UNIX.
  */
-static inline gboolean
+static inline bool
 xmalloc_isheap(const void *ptr, size_t len)
 {
 	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
@@ -597,7 +597,7 @@ xmalloc_isheap(const void *ptr, size_t len)
  *
  * @return TRUE if memory was freed, FALSE otherwise.
  */
-static gboolean
+static bool
 xmalloc_freecore(void *ptr, size_t len)
 {
 	g_assert(ptr != NULL);
@@ -624,7 +624,7 @@ xmalloc_freecore(void *ptr, size_t len)
 
 		if G_UNLIKELY(end == sbrk(0)) {
 			void *old_break;
-			gboolean success = FALSE;
+			bool success = FALSE;
 
 			if (xmalloc_debugging(0)) {
 				t_debug(NULL, "XM releasing %zu bytes of trailing heap", len);
@@ -671,7 +671,7 @@ xmalloc_freecore(void *ptr, size_t len)
 /**
  * Check whether pointer is valid.
  */
-static gboolean
+static bool
 xmalloc_is_valid_pointer(const void *p)
 {
 	if (xmalloc_round(p) != pointer_to_ulong(p))
@@ -721,7 +721,7 @@ xmalloc_invalid_ptrstr(const void *p)
 /**
  * Check that malloc header size is valid.
  */
-static inline gboolean
+static inline bool
 xmalloc_is_valid_length(const void *p, size_t len)
 {
 	size_t rounded;
@@ -947,7 +947,7 @@ xfl_shrink(struct xfreelist *fl)
  * after an item was removed from the freelist.
  */
 static void
-xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
+xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 {
 	g_assert(mutex_is_owned(&fl->lock));
 
@@ -994,7 +994,7 @@ xfl_count_decreased(struct xfreelist *fl, gboolean may_shrink)
  * Would split block length end up being redistributed to the specified
  * freelist bucket?
  */
-static gboolean
+static bool
 xfl_block_falls_in(const struct xfreelist *flb, size_t len)
 {
 	/*
@@ -1195,7 +1195,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
  */
 static void *
 xfl_bucket_alloc(const struct xfreelist *flb,
-	size_t size, gboolean core, size_t *allocated)
+	size_t size, bool core, size_t *allocated)
 {
 	size_t len;
 	void *p;
@@ -1659,7 +1659,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
  * @return TRUE if coalescing did occur, updating ``base_ptr'' and ``len_ptr''
  * to reflect the coalesced block..
  */
-static G_GNUC_HOT gboolean
+static G_GNUC_HOT bool
 xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 {
 	static size_t smallsize;
@@ -1667,7 +1667,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 	void *base = *base_ptr;
 	size_t len = *len_ptr;
 	void *end;
-	gboolean coalesced = FALSE;
+	bool coalesced = FALSE;
 
 	if G_UNLIKELY(0 == smallsize) {
 		smallsize = compat_pagesize() / 2;
@@ -1720,7 +1720,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 	 */
 
 	for (i = 0; flags & XM_COALESCE_BEFORE; i++) {
-		gboolean found_match = FALSE;
+		bool found_match = FALSE;
 
 		for (j = 0; j <= xfreelist_maxidx; j++) {
 			struct xfreelist *fl = &xfreelist[j];
@@ -1766,7 +1766,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 	 */
 
 	for (i = 0; flags & XM_COALESCE_AFTER; i++) {
-		gboolean found_match = FALSE;
+		bool found_match = FALSE;
 
 		for (j = 0; j <= xfreelist_maxidx ; j++) {
 			struct xfreelist *fl = &xfreelist[j];
@@ -1828,7 +1828,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
  *
  * @return TRUE if pages were freed and output parameters updated.
  */
-static gboolean
+static bool
 xmalloc_free_pages(void *p, size_t len,
 	void **head, size_t *head_len,
 	void **tail, size_t *tail_len)
@@ -2044,7 +2044,7 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 static void
 xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 {
-	gboolean coalesced = FALSE;
+	bool coalesced = FALSE;
 
 	/*
 	 * First attempt to coalesce memory as much as possible if requested.
@@ -2286,7 +2286,7 @@ xmalloc_wsetup(void *p, size_t len)
 /**
  * Is xmalloc() remapped to malloc()?
  */
-gboolean
+bool
 xmalloc_is_malloc(void)
 {
 #ifdef XMALLOC_IS_MALLOC
@@ -2315,7 +2315,7 @@ xmalloc_is_malloc(void)
 
 #define xaligned(p)		(0 == (pointer_to_ulong(p) & XALIGN_MASK))
 
-static gboolean xalign_free(const void *p);
+static bool xalign_free(const void *p);
 
 #else	/* !XMALLOC_IS_MALLOC */
 #define is_trapping_malloc()	0
@@ -2335,7 +2335,7 @@ static gboolean xalign_free(const void *p);
  * @return allocated pointer (never NULL).
  */
 static void *
-xallocate(size_t size, gboolean can_walloc, gboolean can_vmm)
+xallocate(size_t size, bool can_walloc, bool can_vmm)
 {
 	size_t len;
 	void *p;
@@ -2625,7 +2625,7 @@ xpstrdup(const char *str)
  * @return a pointer to the new string.
  */
 static char *
-xstrndup_internal(const char *str, size_t n, gboolean plain)
+xstrndup_internal(const char *str, size_t n, bool plain)
 {
 	size_t len;
 	char *res, *p;
@@ -2764,7 +2764,7 @@ xfree(void *p)
  * than the original pointer.
  */
 static void *
-xreallocate(void *p, size_t size, gboolean can_walloc)
+xreallocate(void *p, size_t size, bool can_walloc)
 {
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
@@ -2972,7 +2972,7 @@ xreallocate(void *p, size_t size, gboolean can_walloc)
 	if (newlen <= XMALLOC_MAXSIZE && xh->length <= XMALLOC_MAXSIZE) {
 		size_t i, needed, old_len, freelist_idx;
 		void *end;
-		gboolean coalesced = FALSE;
+		bool coalesced = FALSE;
 
 		g_assert(newlen > xh->length);	/* Or would have been handled before */
 
@@ -3201,7 +3201,7 @@ skip_coalescing:
 
 	{
 		struct xheader *nxh;
-		gboolean converted;
+		bool converted;
 
 		np = xallocate(size, can_walloc, TRUE);
 		xstats.realloc_regular_strategy++;
@@ -3587,7 +3587,7 @@ xmalloc_dump_stats(void)
  *    excess part at the tail of the last allocated page.
  *
  * 2. For alignments larger than or equal to XALIGN_MINSIZE and a size such
- *    the size <= alignment and size > alignment/2, use sub-blocks of
+ *    as size <= alignment and size > alignment/2, use sub-blocks of
  *    alignment bytes crammed from a system page, as handled by xzalloc().
  *
  * 3. For all other cases, allocate through the freelist a larger zone and then
@@ -4094,7 +4094,7 @@ xzalloc(size_t alignment)
  *
  * @return TRUE if zone was all clear and freed.
  */
-static gboolean
+static bool
 xzfree(struct xdesc_zone *xz, const void *p)
 {
 	size_t bn;
@@ -4130,13 +4130,13 @@ xzfree(struct xdesc_zone *xz, const void *p)
  *
  * @return TRUE if aligned block was found and freed, FALSE otherwise.
  */
-static gboolean
+static bool
 xalign_free(const void *p)
 {
 	size_t idx;
 	const void *start;
 	struct xdesc_type *xt;
-	gboolean lookup_was_safe;
+	bool lookup_was_safe;
 
 	/*
 	 * We do not only consider page-aligned pointers because we can allocate
@@ -4657,7 +4657,7 @@ xmalloc_crash_hook(void)
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
 		const void *prev;
-		gboolean bad = FALSE;
+		bool bad = FALSE;
 
 		if (NULL == fl->pointers)
 			continue;

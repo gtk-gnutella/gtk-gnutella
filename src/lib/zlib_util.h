@@ -46,8 +46,8 @@ typedef struct  {
 	int outlen;			/**< Length of ouput buffer */
 	int inlen_total;	/**< Total input length seen */
 	void *opaque;		/**< Internal data structures */
-	gboolean allocated;	/**< Whether output buffer was allocated or static */
-	gboolean closed;	/**< Whether the stream was closed */
+	uint allocated:1;	/**< Is output buffer was allocated or static? */
+	uint closed:1;		/**< Whether the stream was closed */
 } zlib_deflater_t;
 
 #define zlib_deflater_out(z)	((z)->out)
@@ -65,13 +65,13 @@ zlib_deflater_t *zlib_deflater_make(const void *data, int len, int level);
 zlib_deflater_t *zlib_deflater_make_into(
 	const void *data, int len, void *dest, int destlen, int level);
 int zlib_deflate(zlib_deflater_t *zd, int amount);
-gboolean zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len);
-gboolean zlib_deflate_close(zlib_deflater_t *zd);
-void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
+bool zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len);
+bool zlib_deflate_close(zlib_deflater_t *zd);
+void zlib_deflater_free(zlib_deflater_t *zd, bool output);
 
 void *zlib_uncompress(const void *data, int len, ulong uncompressed_len);
 int zlib_inflate_into(const void *data, int len, void *out, int *outlen);
-gboolean zlib_is_valid_header(const void *data, int len);
+bool zlib_is_valid_header(const void *data, int len);
 
 void zlib_free_func(void *unused_opaque, void *p);
 void *zlib_alloc_func(void *unused_opaque, uint n, uint m);

@@ -216,12 +216,12 @@ zlib_deflater_make_into(
  * @return -1 on error, 1 if work remains, 0 when done.
  */
 static int
-zlib_deflate_step(zlib_deflater_t *zd, int amount, gboolean may_close)
+zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 {
 	z_streamp outz = zd->opaque;
 	int remaining;
 	int process;
-	gboolean finishing;
+	bool finishing;
 	int ret;
 
 	g_assert(amount > 0);
@@ -315,7 +315,7 @@ zlib_deflate(zlib_deflater_t *zd, int amount)
  *
  * @returns TRUE if OK, FALSE on error.
  */
-gboolean
+bool
 zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len)
 {
 	z_streamp outz = zd->opaque;
@@ -341,7 +341,7 @@ zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len)
  *
  * @returns TRUE if OK, FALSE on error.
  */
-gboolean
+bool
 zlib_deflate_close(zlib_deflater_t *zd)
 {
 	z_streamp outz = zd->opaque;
@@ -368,7 +368,7 @@ zlib_deflate_close(zlib_deflater_t *zd)
  * If `output' is true, also free the output buffer.
  */
 void
-zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
+zlib_deflater_free(zlib_deflater_t *zd, bool output)
 {
 	z_streamp outz = zd->opaque;
 
@@ -495,7 +495,7 @@ done:
 /**
  * Check whether first bytes of data make up a valid zlib marker.
  */
-gboolean
+bool
 zlib_is_valid_header(const void *data, int len)
 {
 	const uchar *p = data;

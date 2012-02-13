@@ -44,7 +44,7 @@ void set_xmalloc_debug(uint32 level);
 void xmalloc_vmm_inited(void);
 void xmalloc_pre_close(void);
 void xmalloc_post_init(void);
-gboolean xmalloc_is_malloc(void) G_GNUC_CONST;
+bool xmalloc_is_malloc(void) G_GNUC_CONST;
 void xmalloc_show_settings(void);
 void xmalloc_show_settings_log(struct logagent *la);
 void xmalloc_stop_freeing(void);
