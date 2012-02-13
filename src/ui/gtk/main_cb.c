@@ -33,6 +33,7 @@
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/crash.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
 #include "lib/omalloc.h"
@@ -143,6 +144,7 @@ quit(gboolean force)
     gui_prop_get_boolean_val(PROP_CONFIRM_QUIT, &confirm);
     if (force || !confirm) {
 		quitting = TRUE;
+		crash_ctl(CRASH_FLAG_CLEAR, CRASH_F_RESTART);
        	guc_gtk_gnutella_exit(0);
 	} else {
         gtk_widget_show(gui_dlg_quit());

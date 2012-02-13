@@ -148,9 +148,10 @@ struct crash_vars {
 	uint8 closed;			/**< True when crash_close() was called */
 	uint8 invoke_inspector;
 	uint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
-	unsigned pause_process:1;
-	unsigned dumps_core:1;
-	unsigned may_restart:1;
+	/* Not boolean fields because we need to update them individually */
+	uint8 pause_process;
+	uint8 dumps_core;
+	uint8 may_restart;
 };
 
 #define crash_set_var(name, src) \
@@ -1951,11 +1952,33 @@ crash_ck_allocator(void *allocator, size_t len)
 }
 
 /**
+ * Alter crash flags.
+ */
+G_GNUC_COLD void
+crash_ctl(enum crash_alter_mode mode, int flags)
+{
+	uint8 value;
+
+	g_assert(CRASH_FLAG_SET == mode || CRASH_FLAG_CLEAR == mode);
+
+	value = booleanize(CRASH_FLAG_SET == mode);
+
+	if (CRASH_F_PAUSE & flags)
+		crash_set_var(pause_process, value);
+
+	if (CRASH_F_GDB & flags)
+		crash_set_var(invoke_inspector, value);
+
+	if (CRASH_F_RESTART & flags)
+		crash_set_var(may_restart, value);
+}
+
+/**
  * Installs a simple crash handler.
  * 
  * @param argv0		the original argv[0] from main().
  * @param progname	the program name, to generate the proper crash file
- * @param flags		any combination of CRASH_F_GDB and CRASH_F_PAUSE
+ * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
  * @parah exec_path	pathname of custom program to execute on crash
  */
 G_GNUC_COLD void
