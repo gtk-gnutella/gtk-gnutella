@@ -242,6 +242,7 @@ static struct xfreelist {
 	size_t blocksize;		/**< Block size handled by this list */
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
+	uint shrinking:1;		/**< Is being shrinked */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
 /**
@@ -979,11 +980,19 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 	 */
 
 	if (
-		may_shrink &&
+		may_shrink && !fl->shrinking &&
 		fl->capacity - fl->count >= XM_BUCKET_INCREMENT &&
 		delta_time(tm_time(), fl->last_shrink) > XMALLOC_SHRINK_PERIOD
 	) {
+		/*
+		 * Paranoid: prevent further shrinking attempts on same bucket.
+		 * The bucket is locked by the current thread, so this is thread-safe
+		 * and costs almost nothing.
+		 */
+
+		fl->shrinking = TRUE;
 		xfl_shrink(fl);
+		fl->shrinking = FALSE;
 	}
 }
 
@@ -1602,7 +1611,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 
 		g_assert(size_is_non_negative(fl->count));
 
-		if (exclude == fl)
+		if G_UNLIKELY(exclude == fl)
 			continue;
 
 		mutex_get(&fl->lock);
