@@ -3504,6 +3504,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 	size_t i;
 	uint64 bytes = 0;
 	size_t blocks = 0;
+	size_t largest = 0;
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -3514,6 +3515,9 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		bytes += fl->blocksize * fl->count;
 		blocks = size_saturate_add(blocks, fl->count);
 
+		if (0 != fl->count)
+			largest = fl->blocksize;
+
 		log_info(la, "XM freelist #%zu (%zu bytes): capacity=%zu, count=%zu, "
 			"lock=%zu",
 			i, fl->blocksize, fl->capacity, fl->count,
@@ -3523,6 +3527,8 @@ xmalloc_dump_freelist_log(logagent_t *la)
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		blocks, 1 == blocks ? "" : "s");
+
+	log_info(la, "XM freelist largest block is %zu bytes", largest);
 }
 
 /**
