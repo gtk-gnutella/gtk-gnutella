@@ -865,10 +865,9 @@ xfl_shrink(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	mutex_get(&fl->lock);
+	/* freelist bucket is already locked */
 
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		mutex_release(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug(NULL, "XM recursion during shrinking of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -905,7 +904,6 @@ xfl_shrink(struct xfreelist *fl)
 	 */
 
 	if G_UNLIKELY(old_size == allocated_size) {
-		mutex_release(&fl->lock);
 		if (xmalloc_debugging(1)) {
 			t_debug(NULL, "XM discarding allocated bucket %p (%zu bytes) for "
 				"freelist #%zu: same size as old bucket",
@@ -919,7 +917,6 @@ xfl_shrink(struct xfreelist *fl)
 
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
-	mutex_release(&fl->lock);
 
 	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
 
