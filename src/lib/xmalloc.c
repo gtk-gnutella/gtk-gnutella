@@ -2378,11 +2378,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 	 */
 
 	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
-		static size_t pagesize;
-
-		if G_UNLIKELY(0 == pagesize) {
-			pagesize = compat_pagesize();
-		}
+		size_t vlen;				/* Length of virual memory allocated */
 
 		/*
 		 * If we're allowed to use walloc() and the size is small-enough,
@@ -2416,38 +2412,23 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		xstats.alloc_via_vmm++;
 		xstats.user_blocks++;
 
-		if (len >= pagesize) {
-			size_t vlen = round_pagesize(len);
-			p = vmm_core_alloc(vlen);
-			xstats.vmm_alloc_pages += vmm_page_count(vlen);
-			xstats.user_memory += vlen;
-			memusage_add(xstats.user_mem, vlen);
+		vlen = round_pagesize(len);
+		p = vmm_core_alloc(vlen);
+		xstats.vmm_alloc_pages += vmm_page_count(vlen);
+		xstats.user_memory += vlen;
+		memusage_add(xstats.user_mem, vlen);
 
-			if (xmalloc_debugging(1)) {
-				t_debug(NULL, "XM added %zu bytes of VMM core at %p", vlen, p);
-			}
+		if (xmalloc_debugging(1)) {
+			t_debug(NULL, "XM added %zu bytes of VMM core at %p", vlen, p);
+		}
 
-			return xmalloc_block_setup(p, vlen);
+		if (xmalloc_should_split(vlen, len)) {
+			void *split = ptr_add_offset(p, len);
+			xmalloc_freelist_insert(split, vlen - len, XM_COALESCE_AFTER);
+			xstats.vmm_split_pages++;
+			return xmalloc_block_setup(p, len);
 		} else {
-			p = vmm_core_alloc(pagesize);
-			xstats.vmm_alloc_pages++;
-			xstats.user_memory += pagesize;
-			memusage_add(xstats.user_mem, pagesize);
-
-			if (xmalloc_debugging(1)) {
-				t_debug(NULL, "XM added %zu bytes of VMM core at %p",
-					pagesize, p);
-			}
-
-			if (xmalloc_should_split(pagesize, len)) {
-				void *split = ptr_add_offset(p, len);
-				xmalloc_freelist_insert(split,
-					pagesize - len, XM_COALESCE_AFTER);
-				xstats.vmm_split_pages++;
-				return xmalloc_block_setup(p, len);
-			} else {
-				return xmalloc_block_setup(p, pagesize);
-			}
+			return xmalloc_block_setup(p, vlen);
 		}
 	} else {
 		/*
