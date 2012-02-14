@@ -420,6 +420,10 @@ halloc_init_vtable(void)
 {
 	static GMemVTable vtable;
 
+#undef malloc
+#undef realloc
+#undef free
+
 #if GLIB_CHECK_VERSION(2,0,0)
 	{
 		/* NOTE: This string is not read-only because it will be overwritten
@@ -429,15 +433,11 @@ halloc_init_vtable(void)
 		static char variable[] = "G_SLICE=always-malloc";
 		putenv(variable);
 	}
+#endif	/* GLib >= 2.0.0 */
 
 	vtable.malloc = ha_malloc;
 	vtable.realloc = ha_realloc;
 	vtable.free = ha_free;
-#else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = ha_malloc;
-	vtable.gmvt_realloc = ha_realloc;
-	vtable.gmvt_free = ha_free;
-#endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
 

@@ -390,6 +390,10 @@ fragcheck_init(void)
 
 	putenv(variable);
 
+#undef malloc
+#undef realloc
+#undef free
+
 	vtable.malloc = my_malloc;
 	vtable.realloc = my_realloc;
 	vtable.free = my_free;

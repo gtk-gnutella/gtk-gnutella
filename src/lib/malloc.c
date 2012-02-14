@@ -207,6 +207,16 @@ static hash_table_t *unknowns;
 static bool vtable_works;	/* Whether we can trap glib memory calls */
 #endif
 
+#ifdef malloc
+#error "malloc()" should not be a macro here."
+#endif
+#ifdef free
+#error "free()" should not be a macro here."
+#endif
+#ifdef realloc
+#error "realloc()" should not be a macro here."
+#endif
+
 /**
  * Structure keeping track of allocated blocks. (visible for convenience)
  *
@@ -3127,15 +3137,9 @@ malloc_init_vtable(void)
 	{
 		static GMemVTable vtable;
 
-#if GLIB_CHECK_VERSION(2,0,0)
 		vtable.malloc = real_malloc;
 		vtable.realloc = real_realloc;
 		vtable.free = real_free;
-#else	/* GLib < 2.0.0 */
-		vtable.gmvt_malloc = real_malloc;
-		vtable.gmvt_realloc = real_realloc;
-		vtable.gmvt_free = real_free;
-#endif	/* GLib >= 2.0.0 */
 
 		g_mem_set_vtable(&vtable);
 		malloc_glib12_check();
@@ -3149,15 +3153,9 @@ malloc_init_vtable(void)
 	if (is_running_on_mingw() && xmalloc_is_malloc()) {
 		static GMemVTable vtable;
 
-#if GLIB_CHECK_VERSION(2,0,0)
 		vtable.malloc = malloc;
 		vtable.realloc = realloc;
 		vtable.free = free;
-#else	/* GLib < 2.0.0 */
-		vtable.gmvt_malloc = malloc;
-		vtable.gmvt_realloc = realloc;
-		vtable.gmvt_free = free;
-#endif	/* GLib >= 2.0.0 */
 
 		g_mem_set_vtable(&vtable);
 	}

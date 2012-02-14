@@ -52,13 +52,13 @@
 typedef bool (*GEqualFunc)(const void *a, const void *b);
 
 typedef struct GMemVTable {
-	void *		(*gmvt_malloc)		(gsize n_bytes);
-	void *		(*gmvt_realloc)		(void *mem, gsize n_bytes);
-	void		(*gmvt_free)		(void *mem);
+	void *		(*malloc)		(gsize n_bytes);
+	void *		(*realloc)		(void *mem, gsize n_bytes);
+	void		(*free)			(void *mem);
 	/* optional */
-	void *		(*gmvt_calloc)		(gsize n_blocks, gsize n_block_bytes);
-	void *		(*gmvt_try_malloc)	(gsize n_bytes);
-	void *		(*gmvt_try_realloc)	(void *mem, gsize n_bytes);
+	void *		(*calloc)		(gsize n_blocks, gsize n_block_bytes);
+	void *		(*try_malloc)	(gsize n_bytes);
+	void *		(*try_realloc)	(void *mem, gsize n_bytes);
 } GMemVTable;
 #endif
 

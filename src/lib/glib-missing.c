@@ -805,8 +805,8 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
-	(gm_vtable.gmvt_ ## method \
-	 ? (gm_vtable.gmvt_ ## method params) \
+	(gm_vtable. ## method \
+	 ? (gm_vtable. ## method params) \
 	 : (method params))
 
 #undef malloc
@@ -964,19 +964,19 @@ emulate_calloc(gsize n, gsize m)
 void
 g_mem_set_vtable(GMemVTable *vtable)
 {
-	gm_vtable.gmvt_malloc = vtable->gmvt_malloc;
-	gm_vtable.gmvt_realloc = vtable->gmvt_realloc;
-	gm_vtable.gmvt_free = vtable->gmvt_free;
+	gm_vtable.malloc = vtable->malloc;
+	gm_vtable.realloc = vtable->realloc;
+	gm_vtable.free = vtable->free;
 
-	gm_vtable.gmvt_calloc = vtable->gmvt_calloc
-		? vtable->gmvt_calloc
+	gm_vtable.calloc = vtable->calloc
+		? vtable->calloc
 		: emulate_calloc;
-	gm_vtable.gmvt_try_malloc = vtable->gmvt_try_malloc
-		? vtable->gmvt_try_malloc
-		: vtable->gmvt_malloc;
-	gm_vtable.gmvt_try_realloc = vtable->gmvt_try_realloc
-		? vtable->gmvt_try_realloc
-		: vtable->gmvt_realloc;
+	gm_vtable.try_malloc = vtable->try_malloc
+		? vtable->try_malloc
+		: vtable->malloc;
+	gm_vtable.try_realloc = vtable->try_realloc
+		? vtable->try_realloc
+		: vtable->realloc;
 }
 
 /**
@@ -985,10 +985,10 @@ g_mem_set_vtable(GMemVTable *vtable)
 bool
 g_mem_is_system_malloc(void)
 {
-	return NULL == gm_vtable.gmvt_malloc ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+	return NULL == gm_vtable.malloc ||
+		cast_pointer_to_func(gm_vtable.malloc) ==
 			cast_pointer_to_func(real_malloc) ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+		cast_pointer_to_func(gm_vtable.malloc) ==
 			cast_pointer_to_func(malloc);
 }
 #else
@@ -1064,15 +1064,13 @@ gm_mem_set_safe_vtable(void)
 	if (g_mem_is_system_malloc())
 		return;
 
-#if GLIB_CHECK_VERSION(2,0,0)
+#undef malloc
+#undef realloc
+#undef free
+
 	vtable.malloc = real_malloc;
 	vtable.realloc = safe_realloc;
 	vtable.free = safe_free;
-#else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = real_malloc;
-	vtable.gmvt_realloc = safe_realloc;
-	vtable.gmvt_free = safe_free;
-#endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
 
