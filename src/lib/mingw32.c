@@ -3313,8 +3313,8 @@ mingw_stdio_reset(FILE *lf, bool console)
 			/* stdout to a terminal is line-buffered */
 			setvbuf(stdout, mingw_stdout_buf, _IOLBF, sizeof mingw_stdout_buf);
 			STARTUP_DEBUG("forced stdout (fd=%d) to buffered "
-				"(%zu bytes) binary mode",
-				fileno(stdout), sizeof mingw_stdout_buf);
+				"(%lu bytes) binary mode",
+				fileno(stdout), (ulong) sizeof mingw_stdout_buf);
 		} else {
 			setmode(fileno(stdout), O_BINARY);
 			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
