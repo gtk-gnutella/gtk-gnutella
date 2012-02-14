@@ -1650,9 +1650,9 @@ mingw_vfree(void *addr, size_t size)
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	if (ptr_cmp(mingw_vmm_res_mem, addr) < 0 &&
-		ptr_cmp(ptr_add_offset(mingw_vmm_res_mem, mingw_vmm_res_size), addr) > 0)
-	{
+	void *end = ptr_add_offset(mingw_vmm_res_mem, mingw_vmm_res_size);
+
+	if (ptr_cmp(mingw_vmm_res_mem, addr) <= 0 && ptr_cmp(end, addr) > 0) {
 		/* Allocated in reserved space */
 		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
 			errno = mingw_last_error();
