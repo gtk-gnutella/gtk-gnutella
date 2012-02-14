@@ -208,13 +208,13 @@ static bool vtable_works;	/* Whether we can trap glib memory calls */
 #endif
 
 #ifdef malloc
-#error "malloc()" should not be a macro here."
+#error "malloc() should not be a macro here."
 #endif
 #ifdef free
-#error "free()" should not be a macro here."
+#error "free() should not be a macro here."
 #endif
 #ifdef realloc
-#error "realloc()" should not be a macro here."
+#error "realloc() should not be a macro here."
 #endif
 
 /**
