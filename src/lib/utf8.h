@@ -97,6 +97,7 @@ uint32 utf16_be_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
 size_t utf8_to_utf16(const char *in, uint16 *out, size_t size);
 uint16 *utf8_to_utf16_string(const char *in);
+size_t utf16_to_utf8(const uint16 *src, char *dst, size_t size);
 char *utf16_to_utf8_string(const uint16 *in);
 
 size_t utf32_to_utf8(const uint32 *in, char *out, size_t size);
