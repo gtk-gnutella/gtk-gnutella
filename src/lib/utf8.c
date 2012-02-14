@@ -3105,8 +3105,11 @@ LAZY_CONVERT(locale_to_ui_string2, (const char *src), (src))
 /**
  * Converts a UTF-8 encoded string to a UTF-16 encoded string.
  *
- * The target string ``out'' is always be zero-terminated unless
+ * The target string ``out'' will always be zero-terminated unless
  * ``size'' is zero.
+ *
+ * When called with a NULL destination, it computes the size of the
+ * resulting converted string.
  *
  * @param in	the UTF-8 input string.
  * @param out	the target buffer for converted UTF-16 string.
@@ -3222,8 +3225,11 @@ utf16_decode_char(const uint16 *s, uint *retlen)
 /**
  * Converts a UTF-16 encoded string to a UTF-8 encoded string.
  *
- * The target string ``out'' is always be zero-terminated unless
+ * The target string ``out'' will always be zero-terminated unless
  * ``size'' is zero.
+ *
+ * When called with a NULL destination, it computes the size of the
+ * resulting converted string.
  *
  * @param src	the UTF-16 input string.
  * @param dst	the target buffer for converted UTF-8 string.
@@ -6707,7 +6713,7 @@ utf8_regression_checks(void)
 
 }
 
-#if 1 /* For testing mingw_open() with Unicode support */
+#if 0 /* For testing mingw_open() with Unicode support */
 #undef open
 int
 my_open(const char *pathname, int flags, ...)
@@ -6740,6 +6746,5 @@ my_open(const char *pathname, int flags, ...)
 	return res;
 }
 #endif	/* 0 */
-
 
 /* vi: set ts=4 sw=4 cindent: */
