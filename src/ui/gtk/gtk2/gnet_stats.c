@@ -130,25 +130,18 @@ byte_stat_str(gchar *dst, gulong n, const guint64 *val_tbl,
 	return dst;
 }
 
-static const gchar *
+static void
 drop_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint reason,
-	gint selected_type, gboolean percent)
+	gint selected_type)
 {
-	guint32 total = stats->pkg.dropped[MSG_TOTAL];
-
 	if (stats->drop_reason[reason][selected_type] == 0)
 		g_strlcpy(dst, "-", size);
-	else if (percent)
-		gm_snprintf(dst, size, "%.2f%%",
-		    (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
 	else
 		uint64_to_string_buf(stats->drop_reason[reason][selected_type],
 			dst, size);
-
-	return dst;
 }
 
-static const gchar *
+static void
 general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 {
 	if (stats->general[type] == 0)
@@ -162,8 +155,6 @@ general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 			compact_size(stats->general[type], show_metric_units()), size);
 	else
 		uint64_to_string_buf(stats->general[type], dst, size);
-
-	return dst;
 }
 
 static void
@@ -196,6 +187,7 @@ add_column(GtkTreeView *treeview, gint column_id, gint width, gfloat xalign,
 static void
 gnet_stats_update_general(const gnet_stats_t *stats)
 {
+	static uint64 general[GNR_TYPE_COUNT];
 	GtkListStore *store;
 	GtkTreeIter iter;
 	gint n;
@@ -206,10 +198,14 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 		return;
 
 	for (n = 0; n < GNR_TYPE_COUNT; n++) {
-		gchar buf[32];
+		gchar buf[UINT64_DEC_BUFLEN];
 
-		general_stat_str(buf, sizeof buf, stats, n);
-		gtk_list_store_set(store, &iter, 1, buf, (-1));
+		if (stats->general[n] != general[n]) {
+			general[n] = stats->general[n];
+			general_stat_str(buf, sizeof buf, stats, n);
+			gtk_list_store_set(store, &iter, 1, buf, (-1));
+		}
+
 		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
 			break;
 	}
@@ -218,9 +214,11 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 static void
 gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 {
+	static uint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 	GtkListStore *store;
 	GtkTreeIter iter;
 	gint n;
+	guint i = GUI_PROPERTY(gnet_stats_drop_reasons_type);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(
 				treeview_gnet_stats_drop_reasons));
@@ -228,12 +226,14 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 		return;
 
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
-		gchar buf[32];
+		gchar buf[UINT64_DEC_BUFLEN];
 
-		drop_stat_str(buf, sizeof buf, stats, n,
-			GUI_PROPERTY(gnet_stats_drop_reasons_type),
-			GUI_PROPERTY(gnet_stats_bytes));
-		gtk_list_store_set(store, &iter, 1, buf, (-1));
+		if (stats->drop_reason[n][i] != drop_reason[n][i]) {
+			drop_reason[n][i] = stats->drop_reason[n][i];
+			drop_stat_str(buf, sizeof buf, stats, n, i);
+			gtk_list_store_set(store, &iter, 1, buf, (-1));
+		}
+
 		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
 			break;
 	}
@@ -242,7 +242,7 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 static void
 gnet_stats_update_messages(const gnet_stats_t *stats)
 {
-	static char str[num_c_gs][32];
+	static char str[num_c_gs][UINT64_DEC_BUFLEN];
 	static const size_t len = sizeof(str[0]);
 	GtkTreeView *treeview = treeview_gnet_stats_messages;
 	GtkListStore *store;
@@ -299,7 +299,6 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 		if (!gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter))
 			break;
 	}
-
 }
 
 static void
