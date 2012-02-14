@@ -1585,6 +1585,7 @@ log_reopen(enum log_file which)
 	bool success = TRUE;
 	FILE *f;
 	struct logfile *lf;
+	int fd;
 
 	log_file_check(which);
 	g_assert(logfile[which].path != NULL);	/* log_set() called */
@@ -1593,17 +1594,46 @@ log_reopen(enum log_file which)
 	f = lf->f;
 	g_assert(f != NULL);
 
+	/*
+	 * Not being able to reopen stderr would be critical as further messages
+	 * will be lost.  Therefore duplicate the file descriptor before calling
+	 * freopen() to be able to log something in case we fail.
+	 */
+
+	if (LOG_STDERR == which)
+		fd = dup(fileno(f));
+
 	if (freopen(lf->path, "a", f)) {
 		setvbuf(f, NULL, _IOLBF, 0);
 		lf->disabled = 0 == strcmp(lf->path, DEV_NULL);
 		lf->otime = tm_time();
 		lf->changed = FALSE;
 	} else {
-		s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
+		if (LOG_STDERR == which) {
+			DECLARE_STR(8);
+			char time_buf[18];
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);	/* 0 */
+			print_str(" (CRITICAL): cannot freopen() stderr to "); /* 1 */
+			print_str(lf->path);	/* 2 */
+			print_str(": ");		/* 3 */
+			print_str(symbolic_errno(errno));	/* 4 */
+			print_str(" (");		/* 5 */
+			print_str(g_strerror(errno));		/* 6 */
+			print_str(")\n");		/* 7 */
+			flush_str(fd);
+			log_flush_out();
+		} else {
+			s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
+		}
 		lf->disabled = TRUE;
 		lf->otime = 0;
 		success = FALSE;
 	}
+
+	if (LOG_STDERR == which && is_valid_fd(fd))
+		close(fd);
 
 	return success;
 }
