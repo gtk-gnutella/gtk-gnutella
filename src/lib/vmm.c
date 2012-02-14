@@ -1405,7 +1405,6 @@ pmap_insert_region(struct pmap *pm,
 	const void *end = const_ptr_add_offset(start, size);
 	struct vm_fragment *vmf;
 	size_t idx;
-	bool reloaded = FALSE;
 
 	g_assert(pm->array != NULL);
 	g_assert(pm->count <= pm->size);
@@ -1414,56 +1413,23 @@ pmap_insert_region(struct pmap *pm,
 
 	mutex_get(&pm->lock);
 
-	/*
-	 * Watch out for the kernel pmap being reloaded because the kernel did not
-	 * follow our hint when the pmap pages were allocated.
-	 */
-
-	if G_UNLIKELY(pm->count == pm->size) {
-		size_t generation = kernel_pmap.generation;
-
-		pmap_extend(pm);
-
-		if G_UNLIKELY(kernel_pmap.generation != generation) {
-			if (vmm_debugging(1)) {
-				s_debug("VMM kernel pmap reloaded before inserting %s [%p, %p]",
-					vmf_type_str(type), start, const_ptr_add_offset(end, -1));
-			}
-			reloaded = TRUE;
-		}
-
-		g_assert(pm->count < pm->size);
-	}
+	g_assert(pm->count < pm->size);
 
 	vmf = pmap_lookup(pm, start, &idx);
 
 	if G_UNLIKELY(vmf != NULL) {
-		if (reloaded) {
-			if (vmm_debugging(2)) {
-				s_debug("VMM good, reloaded kernel pmap contains %s region",
-					vmf_type_str(vmf->type));
-			}
-		} else {
-			if (vmm_debugging(0)) {
-				s_warning("pmap already contains new %s region [%p, %p]",
-					vmf_type_str(vmf->type),
-					start, const_ptr_add_offset(start, size - 1));
-				vmm_dump_pmap();
-			}
-			g_assert(VMF_FOREIGN == type);
-			g_assert_log(vmf_is_foreign(vmf),
-				"vmf={%s}, start=%p, size=%zu",
-				vmf_to_string(vmf), start, size);
-			g_assert(ptr_cmp(end, vmf->end) <= 0);
-		}
-		goto done;
-	} else if G_UNLIKELY(reloaded) {
 		if (vmm_debugging(0)) {
-			s_warning("VMM reloaded kernel pmap does not contain "
-				"%s [%p, %p], will add now",
-				vmf_type_str(type), start, const_ptr_add_offset(end, -1));
+			s_warning("pmap already contains new %s region [%p, %p]",
+				vmf_type_str(vmf->type),
+				start, const_ptr_add_offset(start, size - 1));
+			vmm_dump_pmap();
 		}
-		/* FALL THROUGH */
+		g_assert(VMF_FOREIGN == type);
+		g_assert_log(vmf_is_foreign(vmf),
+			"vmf={%s}, start=%p, size=%zu",
+			vmf_to_string(vmf), start, size);
+		g_assert(ptr_cmp(end, vmf->end) <= 0);
+		goto done;
 	}
 
 	g_assert(idx <= pm->count);
@@ -1546,6 +1512,29 @@ pmap_insert_region(struct pmap *pm,
 	vmf->mtime = tm_time();
 
 done:
+	/*
+	 * After each insertion we need to monitor whether the pmap is full and
+	 * extend it before the next insertion happens. If we were to extend
+	 * the pmap upon entry in this routine, we could allocate a new pmap
+	 * overlapping with the region we are going to insert, resulting in
+	 * corrupted structures leading to crashes.
+	 *
+	 * Therefore, always ensure we have room for at least one more slot.
+	 */
+
+	if G_UNLIKELY(pm->count == pm->size) {
+		size_t generation = kernel_pmap.generation;
+
+		pmap_extend(pm);
+
+		if G_UNLIKELY(kernel_pmap.generation != generation) {
+			if (vmm_debugging(1)) {
+				s_debug("VMM kernel pmap reloaded after inserting %s [%p, %p]",
+					vmf_type_str(type), start, const_ptr_add_offset(end, -1));
+			}
+		}
+	}
+
 	mutex_release(&pm->lock);
 }
 
