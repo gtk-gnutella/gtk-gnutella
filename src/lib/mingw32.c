@@ -698,22 +698,51 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 	return res;
 }
 
+/**
+ * Get special folder path, filling supplied buffer with an UTF-8 string.
+ *
+ * @param dest		where UTF-8 pathname is returned.
+ * @param len		length of destination buffer
+ * @param which		which special folder to get (CSIDL code)
+ * @param what		English description of ``which'', for error logging.
+ */
+static void
+get_special(char *dest, size_t len, int which, char *what)
+{
+	static wchar_t pathname[MAX_PATH];
+	int ret;
+
+	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
+
+	if (E_INVALIDARG != ret) {
+		size_t conv = utf16_to_utf8(pathname, dest, len);
+		if (conv > len) {
+			s_warning("cannot convert %s from UTF-16 to UTF-8",
+				NULL == what ? "special path" : what);
+			ret = E_INVALIDARG;
+		}
+	}
+
+	if (E_INVALIDARG == ret) {
+		if (NULL == what) {
+			char buf[sizeof("CSIDL #") + INT_DEC_BUFLEN];
+
+			str_bprintf(buf, sizeof buf, "CSIDL #%d", which);
+			s_carp("%s: could not get folder %s", G_STRFUNC, buf);
+		} else {
+			s_carp("%s: could not get the %s directory", G_STRFUNC, what);
+		}
+		g_strlcpy(dest, G_DIR_SEPARATOR_S, len);
+	}
+}
+
 const char *
 mingw_gethome(void)
 {
 	static char pathname[MAX_PATH];
 
-	if ('\0' == pathname[0]) {
-		int ret;
-
-		/* FIXME: Unicode */
-		ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
-
-		if (E_INVALIDARG == ret) {
-			s_warning("could not determine home directory");
-			g_strlcpy(pathname, "/", sizeof pathname);
-		}
-	}
+	if G_UNLIKELY('\0' == pathname[0])
+		get_special(pathname, sizeof pathname, CSIDL_LOCAL_APPDATA, "home");
 
 	return pathname;
 }
@@ -723,16 +752,9 @@ mingw_getpersonal(void)
 {
 	static char pathname[MAX_PATH];
 
-	if ('\0' == pathname[0]) {
-		int ret;
-
-		/* FIXME: Unicode */
-		ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
-
-		if (E_INVALIDARG == ret) {
-			s_warning("could not determine personal document directory");
-			g_strlcpy(pathname, "/", sizeof pathname);
-		}
+	if G_UNLIKELY('\0' == pathname[0]) {
+		get_special(pathname, sizeof pathname, CSIDL_PERSONAL,
+			"personal document");
 	}
 
 	return pathname;
@@ -2669,21 +2691,29 @@ const char *
 mingw_filename_nearby(const char *filename)
 {
 	static char pathname[MAX_PATH_LEN];
+	static wchar_t wpathname[MAX_PATH_LEN];
 	static size_t offset;
 
-	/**
-	 * FIXME: Unicode
-	 */
 	if ('\0' == pathname[0]) {
-		if (0 == GetModuleFileName(NULL, pathname, sizeof pathname)) {
-			static bool done;
-			if (!done) {
-				done = TRUE;
-				errno = mingw_last_error();
-				s_warning("cannot locate my executable: %m");
+		bool error = FALSE;
+
+		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
+			error = TRUE;
+			errno = mingw_last_error();
+			s_warning("cannot locate my executable: %m");
+		} else {
+			size_t conv = utf16_to_utf8(wpathname, pathname, sizeof pathname);
+			if (conv > sizeof pathname) {
+				error = TRUE;
+				s_carp("%s: cannot convert UTF-16 path into UTF-8", G_STRFUNC);
 			}
 		}
+
+		if (error)
+			g_strlcpy(pathname, G_DIR_SEPARATOR_S, sizeof pathname);
+
 		offset = filepath_basename(pathname) - pathname;
+
 	}
 	clamp_strcpy(&pathname[offset], sizeof pathname - offset, filename);
 
