@@ -418,6 +418,7 @@ mingw_win2posix(int error)
 	case ERROR_BROKEN_PIPE:
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
+	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
 		return EINVAL;
 	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
 		return ENOTDIR;				/* Seems the closest mapping */
