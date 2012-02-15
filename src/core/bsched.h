@@ -98,6 +98,7 @@ bool bws_uniform_allocation(bsched_bws_t bws, bool uniform);
 
 bool bsched_enough_up_bandwidth(void);
 bool bsched_saturated(bsched_bws_t bws);
+uint bsched_unused(bsched_bws_t bws);
 ulong bsched_bps(bsched_bws_t bws);
 ulong bsched_avg_bps(bsched_bws_t bws);
 ulong bsched_pct(bsched_bws_t bws);

@@ -271,6 +271,23 @@ bsched_saturated(bsched_bws_t bws)
 	return bs->bw_actual > bs->bw_max;
 }
 
+/**
+ * @return amount of unused bandwidth in this scheduler during the
+ * last period, in bytes.
+ */
+uint
+bsched_unused(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	uint unused;
+
+	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
+		return BS_BW_MAX;
+
+	unused = uint_saturate_sub(bs->bw_last_period, bs->bw_max);
+	return uint_saturate_sub(unused, bs->bw_urgent);
+}
+
 ulong
 bsched_bps(bsched_bws_t bws)
 {
