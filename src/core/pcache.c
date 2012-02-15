@@ -358,6 +358,36 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 }
 
 /**
+ * Are we missing node connections?
+ */
+static bool
+pcache_node_missing(void)
+{
+	if (node_missing() != 0)
+		return TRUE;
+
+	return settings_is_ultra() && node_leaves_missing() != 0;
+}
+
+/**
+ * Should we answer a ping?
+ */
+static bool
+pcache_can_answer_ping(void)
+{
+	/*
+	 * When we (think we) are firewalled, there is a period when we can answer
+	 * pings to make sure we can receive incoming connections.  This logic
+	 * is held in inet_can_answer_ping(), and we must ensure we're calling it
+	 * when we are flagged as firewalled, regardless of whether we miss
+	 * Gnutella connections.
+	 */
+
+ 	return (GNET_PROPERTY(is_firewalled) || pcache_node_missing()) &&
+		inet_can_answer_ping();
+}
+
+/**
  * Build pong message.
  *
  * @return pointer to static data, and the size of the message in `size'.
@@ -527,6 +557,18 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		} else {
 			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
 				host, PCACHE_UHC_MAX_IP);
+
+			/*
+			 * If we are missing node connections, be sure to include
+			 * ourselves in the list, replacing a random node from the
+			 * returned set.
+			 */
+
+			if (pcache_can_answer_ping()) {
+				uint idx = hcount != 0 ? random_value(hcount - 1) : 0;
+				gnet_host_set(&host[idx],
+					listen_addr_primary(), socket_listen_port());
+			}
 		}
 
 		if (hcount > 0) {
@@ -2369,13 +2411,7 @@ pcache_ping_received(struct gnutella_node *n)
 	 * personal information (reply to initial ping sent after handshake).
 	 */
 
-	if (
-		n->n_ping_accepted == 1 ||
-		(
-		 	(GNET_PROPERTY(is_firewalled) || node_missing() > 0) &&
-			inet_can_answer_ping()
-		)
-	) {
+	if (1 == n->n_ping_accepted || pcache_can_answer_ping()) {
 		send_personal_info(n, FALSE, PING_F_NONE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
