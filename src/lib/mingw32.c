@@ -393,14 +393,15 @@ mingw_win2posix(int error)
 		return ENOENT;
 	case ERROR_TOO_MANY_OPEN_FILES:
 		return EMFILE;
-	case ERROR_ACCESS_DENIED:
-		return EPERM;
 	case ERROR_INVALID_HANDLE:
 		return EBADF;
 	case ERROR_NOT_ENOUGH_MEMORY:
 		return ENOMEM;
+	case ERROR_ACCESS_DENIED:
 	case ERROR_INVALID_ACCESS:
-		return EPERM;
+	case ERROR_SHARING_VIOLATION:
+	case ERROR_LOCK_VIOLATION:
+		return EACCES;
 	case ERROR_OUTOFMEMORY:
 		return ENOMEM;
 	case ERROR_INVALID_DRIVE:
@@ -456,8 +457,6 @@ mingw_win2posix(int error)
 	case ERROR_READ_FAULT:
 		return EFAULT;
 	case ERROR_GEN_FAILURE:
-	case ERROR_SHARING_VIOLATION:
-	case ERROR_LOCK_VIOLATION:
 	case ERROR_WRONG_DISK:
 	case ERROR_SHARING_BUFFER_EXCEEDED:
 		return EIO;
