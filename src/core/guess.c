@@ -77,6 +77,7 @@
 #include <math.h>		/* For pow() */
 
 #include "guess.h"
+#include "bsched.h"
 #include "extensions.h"
 #include "ggep_type.h"
 #include "gmsg.h"
@@ -352,6 +353,7 @@ static wq_event_t *guess_new_host_ev;	/**< Waiting for a new host */
 static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
 static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
+static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
 
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
@@ -2146,6 +2148,30 @@ guess_periodic_sync(void *unused_obj)
 }
 
 /**
+ * Recompute the GUESS bandwidth target for next period.
+ */
+static void
+guess_periodic_target_update(void)
+{
+	uint unused;
+
+	guess_target_bw = GNET_PROPERTY(bw_guess_out);
+
+	unused = bsched_unused(BSCHED_BWS_GOUT_UDP) +
+		bsched_unused(BSCHED_BWS_GOUT);
+
+	/*
+	 * If they are running as leaves, we can maximize the Gnutella traffic.
+	 * Otherwise, reserve 25% for exceptional conditions.
+	 */
+
+	if (settings_is_ultra())
+		unused -= unused / 4;
+
+	guess_target_bw = MAX(unused, GNET_PROPERTY(bw_guess_out));
+}
+
+/**
  * Callout queue periodic event to reset bandwidth usage.
  */
 static bool
@@ -2155,12 +2181,16 @@ guess_periodic_bw(void *unused_obj)
 
 	if (guess_out_bw != 0) {
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_debug("GUESS outgoing b/w used: %u bytes", guess_out_bw);
+			g_debug("GUESS outgoing b/w used: %u / %u bytes",
+				guess_out_bw, guess_target_bw);
 		}
-		if (guess_out_bw <= GNET_PROPERTY(bw_guess_out)) {
+
+		guess_periodic_target_update();
+
+		if (guess_out_bw <= guess_target_bw) {
 			guess_out_bw = 0;
 		} else {
-			guess_out_bw -= GNET_PROPERTY(bw_guess_out);
+			guess_out_bw -= guess_target_bw;
 		}
 
 		/*
@@ -2168,8 +2198,10 @@ guess_periodic_bw(void *unused_obj)
 		 * provided we have bandwidth to serve.
 		 */
 
-		if (guess_out_bw < GNET_PROPERTY(bw_guess_out))
+		if (guess_out_bw < guess_target_bw)
 			wq_wakeup(&guess_out_bw, NULL);
+	} else {
+		guess_target_bw = GNET_PROPERTY(bw_guess_out);
 	}
 
 	return TRUE;				/* Keep calling */
@@ -3261,7 +3293,7 @@ guess_bandwidth_available(void *data, void *unused)
 	guess_t *gq = data;
 
 	guess_check(gq);
-	g_return_val_if_fail(guess_out_bw < GNET_PROPERTY(bw_guess_out), WQ_SLEEP);
+	g_return_val_if_fail(guess_out_bw < guess_target_bw, WQ_SLEEP);
 
 	(void) unused;
 
@@ -3275,8 +3307,7 @@ guess_bandwidth_available(void *data, void *unused)
 	 * removing the current entry from the waiting queue.
 	 */
 
-	return guess_out_bw >= GNET_PROPERTY(bw_guess_out) ?
-		WQ_EXCLUSIVE : WQ_REMOVE;
+	return guess_out_bw >= guess_target_bw ? WQ_EXCLUSIVE : WQ_REMOVE;
 }
 
 /**
@@ -3382,7 +3413,7 @@ guess_iterate(guess_t *gq)
 		 * If we run out of bandwidth, abort.
 		 */
 
-		if (guess_out_bw >= GNET_PROPERTY(bw_guess_out))
+		if (guess_out_bw >= guess_target_bw)
 			break;
 
 		/*
@@ -3422,7 +3453,7 @@ guess_iterate(guess_t *gq)
 		}
 		guess_delay(gq);
 	} else if (0 == i) {
-		if (guess_out_bw >= GNET_PROPERTY(bw_guess_out)) {
+		if (guess_out_bw >= guess_target_bw) {
 			/*
 			 * If we did not have enough bandwidth, wait until next slot.
 			 * Waiting happens in FIFO order.
