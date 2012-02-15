@@ -61,7 +61,7 @@ gethomedir(void)
 		return home;
 
 #ifdef MINGW32
-	dir = mingw_gethome();
+	dir = mingw_get_home_path();
 #else
 	dir = getenv("HOME");
 

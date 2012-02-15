@@ -64,6 +64,7 @@
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "cq.h"
 #include "crash.h"
+#include "constants.h"
 #include "debug.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
@@ -698,65 +699,191 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 }
 
 /**
- * Get special folder path, filling supplied buffer with an UTF-8 string.
+ * Get special folder path as a UTF-8 string.
  *
- * @param dest		where UTF-8 pathname is returned.
- * @param len		length of destination buffer
  * @param which		which special folder to get (CSIDL code)
  * @param what		English description of ``which'', for error logging.
+ *
+ * @return read-only constant string.
  */
-static void
-get_special(char *dest, size_t len, int which, char *what)
+static const char *
+get_special(int which, char *what)
 {
 	static wchar_t pathname[MAX_PATH];
+	static char utf8_path[MAX_PATH];
 	int ret;
 
 	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
 	if (E_INVALIDARG != ret) {
-		size_t conv = utf16_to_utf8(pathname, dest, len);
-		if (conv > len) {
-			s_warning("cannot convert %s from UTF-16 to UTF-8",
-				NULL == what ? "special path" : what);
+		size_t conv = utf16_to_utf8(pathname, utf8_path, sizeof utf8_path);
+		if (conv > sizeof utf8_path) {
+			s_warning("cannot convert %s path from UTF-16 to UTF-8", what);
 			ret = E_INVALIDARG;
 		}
 	}
 
 	if (E_INVALIDARG == ret) {
-		if (NULL == what) {
-			char buf[sizeof("CSIDL #") + INT_DEC_BUFLEN];
-
-			str_bprintf(buf, sizeof buf, "CSIDL #%d", which);
-			s_carp("%s: could not get folder %s", G_STRFUNC, buf);
-		} else {
-			s_carp("%s: could not get the %s directory", G_STRFUNC, what);
-		}
-		g_strlcpy(dest, G_DIR_SEPARATOR_S, len);
+		s_carp("%s: could not get the %s directory", G_STRFUNC, what);
+		/* ASCII is valid UTF-8 */
+		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
 	}
+
+	return constant_str(utf8_path);
 }
 
 const char *
-mingw_gethome(void)
+mingw_get_home_path(void)
 {
-	static char pathname[MAX_PATH];
+	static const char *result;
 
-	if G_UNLIKELY('\0' == pathname[0])
-		get_special(pathname, sizeof pathname, CSIDL_LOCAL_APPDATA, "home");
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_LOCAL_APPDATA, "home");
 
-	return pathname;
+	return result;
 }
 
 const char *
-mingw_getpersonal(void)
+mingw_get_personal_path(void)
 {
-	static char pathname[MAX_PATH];
+	static const char *result;
 
-	if G_UNLIKELY('\0' == pathname[0]) {
-		get_special(pathname, sizeof pathname, CSIDL_PERSONAL,
-			"personal document");
-	}
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_PERSONAL, "My Documents");
 
-	return pathname;
+	return result;
+}
+
+const char *
+mingw_get_common_docs_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COMMON_DOCUMENTS, "Common Documents");
+
+	return result;
+}
+
+const char *
+mingw_get_common_appdata_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COMMON_APPDATA, "Common Application Data");
+
+	return result;
+}
+
+const char *
+mingw_get_admin_tools_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_ADMINTOOLS, "Admin Tools");
+
+	return result;
+}
+
+const char *
+mingw_get_windows_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_WINDOWS, "Windows");
+
+	return result;
+}
+
+const char *
+mingw_get_system_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_SYSTEM, "system");
+
+	return result;
+}
+
+const char *
+mingw_get_internet_cache_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_INTERNET_CACHE, "Internet Cache");
+
+	return result;
+}
+
+const char *
+mingw_get_mypictures_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_MYPICTURES, "My Pictures");
+
+	return result;
+}
+
+const char *
+mingw_get_program_files_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_PROGRAM_FILES, "Program Files");
+
+	return result;
+}
+
+const char *
+mingw_get_fonts_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_FONTS, "Font");
+
+	return result;
+}
+
+const char *
+mingw_get_startup_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_STARTUP, "Startup");
+
+	return result;
+}
+
+const char *
+mingw_get_history_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_HISTORY, "History");
+
+	return result;
+}
+
+const char *
+mingw_get_cookies_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COOKIES, "Cookies");
+
+	return result;
 }
 
 /**
@@ -774,7 +901,7 @@ mingw_getpersonal(void)
 static const char *
 mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
-	const char *personal = mingw_getpersonal();
+	const char *personal = mingw_get_personal_path();
 
 	g_strlcpy(dest, personal, size);
 
@@ -845,7 +972,7 @@ mingw_getstderr_path(void)
 char *
 mingw_patch_personal_path(const char *pathname)
 {
-	const char *home = mingw_gethome();
+	const char *home = mingw_get_home_path();
 	const char *p;
 
 	p = is_strprefix(pathname, home);
@@ -867,7 +994,7 @@ mingw_patch_personal_path(const char *pathname)
 			 * running from the GUI.
 			 */
 
-			patched = h_strconcat(mingw_getpersonal(),
+			patched = h_strconcat(mingw_get_personal_path(),
 				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);

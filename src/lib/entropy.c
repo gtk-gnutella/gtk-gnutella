@@ -296,7 +296,7 @@ entropy_collect_internal(struct sha1 *digest, bool can_malloc)
 		if (is_running_on_mingw()) {
 			sha1_feed_stat(&ctx, "C:/");
 			sha1_feed_stat(&ctx, "C:/Windows");
-			sha1_feed_stat(&ctx, mingw_getpersonal());
+			sha1_feed_stat(&ctx, mingw_get_personal_path());
 			/* FIXME: These paths are valid for English installations only! */
 			sha1_feed_stat(&ctx, "C:/Windows/Temp");
 			sha1_feed_stat(&ctx, "C:/Program Files");
