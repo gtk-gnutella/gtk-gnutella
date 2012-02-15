@@ -342,10 +342,26 @@ mingw_wsa_last_error(void)
 	int error = WSAGetLastError();
 	int result = error;
 
+	/*
+	 * Not all the Winsock error codes are translated here.  The ones
+	 * not conflicting with other POSIX defines have already been mapped.
+	 *
+	 * For instance, we have:
+	 *
+	 *     #define ENOTSOCK WSAENOTSOCK
+	 *
+	 * so there is no need to catch WSAENOTSOCK here to translate it to
+	 * ENOTSOCK since the remapping has already been done for that constant.
+	 *
+	 * So the ones that remain are those which are not really socket-specific
+	 * and for which we cannot do a remapping that would conflict with other
+	 * definitions in the MinGW headers.
+	 */
+
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
 	case WSAEINTR:			result = EINTR; break;
-	case WSAENOTSOCK:		result = ENOTSOCK; break;
+	case WSAEINVAL:			result = EINVAL; break;
 	}
 
 	if (mingw_syscall_debug()) {
