@@ -135,6 +135,7 @@
 #define GUESS_TIMEOUT_DELAY		3600	/**< Time before resetting timeouts */
 #define GUESS_ALIVE_DECIMATION	0.85	/**< Per-timeout proba decimation */
 #define GUESS_DBLOAD_DELAY		60		/**< 1 minute, in s */
+#define GUESS_02_CACHE_SIZE		20		/**< Random cache of 0.2 hosts */
 
 /**
  * Query stops after that many hits
@@ -301,13 +302,6 @@ static char db_qkdata_base[] = "guess_hosts";
 static char db_qkdata_what[] = "GUESS hosts & query keys";
 
 /**
- * Keeps track of the amount of GUESS 0.2 hosts in the cache.
- * Those are identified when they are returning hosts in GGEP "IPP" on pings
- * sent by GUESS 0.2 clients (which we are).
- */
-static uint64 guess_02_hosts;
-
-/**
  * Information about a host that is stored to disk.
  * The structure is serialized first, not written as-is.
  */
@@ -331,6 +325,21 @@ struct qkdata {
 
 #define GUESS_QK_VERSION	1	/**< Serialization version number */
 
+/**
+ * Keeps track of the amount of GUESS 0.2 hosts in the cache.
+ * Those are identified when they are returning hosts in GGEP "IPP" on pings
+ * sent by GUESS 0.2 clients (which we are).
+ */
+static uint64 guess_02_hosts;
+
+/**
+ * Local cache of randomly selected (but alive) GUESS 0.2 hosts.
+ */
+static struct guess_cache {
+	GHashTable *ht;		/* Which hosts are present in the cache */
+	const gnet_host_t *cache[GUESS_02_CACHE_SIZE];
+} guess_02_cache;
+
 static GHashTable *gqueries;			/**< Running GUESS queries */
 static GHashTable *gmuid;				/**< MUIDs of active queries */
 static GHashTable *pending;				/**< Pending pong acknowledges */
@@ -347,6 +356,127 @@ static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
 static bool guess_send(guess_t *gq, const gnet_host_t *host);
+
+/**
+ * Randomly add host to the GUESS 0.2 cache.
+ */
+static void
+guess_cache_add(const gnet_host_t *host)
+{
+	struct guess_cache *gc = &guess_02_cache;
+	unsigned count;
+
+	if (gm_hash_table_contains(gc->ht, host))
+		return;
+
+	/*
+	 * We have a new host.
+	 *
+	 * If the cache is not full, we append the host.
+	 *
+	 * Otherwise randomly pick one host from the set made of the currently
+	 * cached hosts plus this new host.  If we pick the new host, we discard
+	 * it.  If another host was selected, then the new host replaces that
+	 * selection.
+	 */
+
+	count = g_hash_table_size(gc->ht);
+
+	if (count < G_N_ELEMENTS(gc->cache)) {
+		const gnet_host_t *key = atom_host_get(host);
+
+		/* Cache not full, append to it */
+		gc->cache[count] = key;
+		gm_hash_table_insert_const(gc->ht, key, key);
+	} else {
+		unsigned rnd = random_value(count);	/* Yes, up to ``count'' included */
+
+		if (rnd < G_N_ELEMENTS(gc->cache)) {
+			const gnet_host_t *key = atom_host_get(host);
+
+			/* Replace item `rnd' with new host */
+			g_hash_table_remove(gc->ht, gc->cache[rnd]);
+			atom_host_free(gc->cache[rnd]);
+			gc->cache[rnd] = key;
+			gm_hash_table_insert_const(gc->ht, key, key);
+		}
+	}
+}
+
+/**
+ * Remove host if it was present in the cache.
+ */
+static void
+guess_cache_remove(const gnet_host_t *host)
+{
+	struct guess_cache *gc = &guess_02_cache;
+	bool found;
+	void *key;
+
+	found = g_hash_table_lookup_extended(gc->ht, host, &key, NULL);
+
+	if (found) {
+		const gnet_host_t *khost = key;
+		size_t i;
+		size_t count = g_hash_table_size(gc->ht);
+
+		/* Cache is small, linear lookup is OK */
+
+		for (i = 0; i < count; i++) {
+			if (khost == gc->cache[i]) {
+				count--;
+				if (count != i) {
+					memmove(&gc->cache[i], &gc->cache[i+1],
+						(count - i) * sizeof gc->cache[0]);
+				} else {
+					gc->cache[i] = NULL;
+				}
+				goto done;
+			}
+		}
+
+		g_assert_not_reached();		/* Must have been found */
+
+	done:
+		g_hash_table_remove(gc->ht, khost);
+		atom_host_free(khost);
+	}
+}
+
+/**
+ * Randomly select a GUESS 0.2 host from the cache.
+ *
+ * @return host pointer, or NULL if no 0.2 host is available.
+ */
+static const gnet_host_t *
+guess_cache_select(void)
+{
+	struct guess_cache *gc = &guess_02_cache;
+	size_t count;
+
+	count = g_hash_table_size(gc->ht);
+
+	if (0 == count)
+		return NULL;
+
+	return gc->cache[random_value(count - 1)];
+}
+
+/**
+ * Free the GUESS 0.2 host cache.
+ */
+static void
+guess_cache_free(void)
+{
+	struct guess_cache *gc = &guess_02_cache;
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(gc->cache); i++) {
+		atom_host_free_null(&gc->cache[i]);
+	}
+
+	gm_hash_table_destroy_null(&gc->ht);
+}
 
 /**
  * Allocate a GUESS query ID, the way for users to identify the querying object.
@@ -838,6 +968,7 @@ guess_host_set_v2(const gnet_host_t *h)
 			guess_02_hosts++;
 			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, +1);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			guess_cache_add(h);
 		}
 	}
 }
@@ -858,6 +989,7 @@ guess_host_clear_v2(const gnet_host_t *h)
 			guess_02_hosts--;
 			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, -1);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			guess_cache_remove(h);
 		}
 	}
 }
@@ -1774,8 +1906,14 @@ qk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 
 	minor = (qk->flags & GUESS_F_PONG_IPP) ? 2 : 1;
 
-	if (!expired && minor > 1)
-		guess_02_hosts++;
+	if (minor > 1) {
+		if (expired) {
+			guess_cache_remove(h);
+		} else {
+			guess_02_hosts++;
+			guess_cache_add(h);
+		}
+	}
 
 	if (GNET_PROPERTY(guess_client_debug) > 5) {
 		g_debug("GUESS QKCACHE node %s v%u life=%s last_seen=%s, p=%.2f%%%s",
@@ -3588,9 +3726,33 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 	}
 
 	hash_list_iter_release(&iter);
-	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
+
+	/*
+	 * If more than 2 hosts were initially requested, then we are filling
+	 * in a host list for a GUESS 0.2 host.  Propagate at least one random
+	 * 0.2 host in the vector, if we have any.  The rationale is that these
+	 * hosts are propagating more than one host in replies and therefore
+	 * help out the GUESS host collection algorithm, hence it's good to
+	 * spread them to other 0.2 hosts.
+	 */
 
 	g_assert(filled + added <= hcount);
+
+	if (hcount > 2) {
+		size_t count = filled + added;
+		const gnet_host_t *h;
+
+		h = guess_cache_select();
+
+		if (!gm_hash_table_contains(seen_host, h)) {
+			i = G_LIKELY(count != 0) ? random_value(count - 1) : 0;
+			gnet_host_copy(&hosts[i], h);
+			if G_UNLIKELY(0 == count)
+				added++;
+		}
+	}
+
+	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
 
 	return filled + added;		/* Amount of hosts we filled in */
 }
@@ -3662,6 +3824,8 @@ guess_init(void)
 
 	dbmw_set_map_cache(db_qkdata, GUESS_QK_MAP_CACHE_SIZE);
 
+	guess_02_cache.ht = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+
 	guess_qk_prune_old();
 
 	guess_qk_prune_ev = cq_periodic_main_add(
@@ -3729,6 +3893,7 @@ guess_close(void)
 	cq_periodic_remove(&guess_sync_ev);
 	cq_periodic_remove(&guess_bw_ev);
 	wq_cancel(&guess_new_host_ev);
+	guess_cache_free();
 
 	g_hash_table_foreach(gqueries, guess_free_query, NULL);
 	g_hash_table_foreach(pending, guess_rpc_free_kv, NULL);
