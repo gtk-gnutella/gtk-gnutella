@@ -142,6 +142,18 @@ uint_saturate_add(unsigned a, unsigned b)
 }
 
 /*
+ * Calculate the difference between a and b but saturate towards zero.
+ * @return zero if a < b, otherwise a - b.
+ */
+static inline G_GNUC_CONST unsigned
+uint_saturate_sub(unsigned a, unsigned b)
+{
+	if (G_UNLIKELY(a < b))
+		return 0;
+	return a - b;
+}
+
+/*
  * Calculate the product of a and b but saturate towards UINT_MAX.
  * @return UINT_MAX if a * b > UINT_MAX, otherwise a * b.
  */
