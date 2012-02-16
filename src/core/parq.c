@@ -487,8 +487,9 @@ get_header_value(const char *const s,
 
 			if (!found_right_attribute) {
 				g_assert(!found_equal_sign);
-				g_warning("%s: attribute '%s' has no value in string: %s",
-					__FILE__, attribute, s);
+				g_warning("%s() in %s: "
+					"attribute '%s' has no value in string: %s",
+					G_STRFUNC, _WHERE_, attribute, s);
 			}
 		}
 	} while (!found_right_attribute);
@@ -1408,7 +1409,7 @@ parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		 */
 
 		if (puq->relative_position > GNET_PROPERTY(max_uploads)) {
-			time_delta_t per_slot = running_time / MIN(1, parq_slots_removed);
+			time_delta_t per_slot = running_time / MAX(1, parq_slots_removed);
 			uint cheap_eta = puq->relative_position * per_slot;
 
 			if (cheap_eta < eta)
@@ -2600,7 +2601,7 @@ parq_upload_timer(time_t now)
 	 * Scan the queues.
 	 */
 
-	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
+	GM_LIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *queue = queues->data;
 
 		queue_selected++;
@@ -2618,7 +2619,7 @@ parq_upload_timer(time_t now)
 	 * Sort out dead entries.
 	 */
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(to_remove, sl) {
 		struct parq_ul_queued *puq = sl->data;
 
 		parq_ul_queued_check(puq);
@@ -2636,14 +2637,14 @@ parq_upload_timer(time_t now)
 		if (enable_real_passive && parq_still_sharing(puq)) {
 			hash_list_append(puq->queue->by_date_dead, puq);
 		} else
-			parq_upload_free(sl->data);
+			parq_upload_free(puq);
 	}
 
 	/*
 	 * Recompute data only for the queues in which we removed items --RAM.
 	 */
 
-	for (queues = ul_parqs; queues; queues = g_list_next(queues)) {
+	GM_LIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *q = queues->data;
 
 		if (q->recompute) {
@@ -3054,12 +3055,13 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 			break;
 
 		g_debug("[PARQ UL] Q#%d pos=%u, rel=%u, slot<has=%s had=%s> updated=%s"
-			" active=%s, quick=%s, alive=%s",
+			" active=%s, quick=%s, alive=%s, flags=0x%x, ID=%s, expire=%s ",
 			q->num, puq->position, puq->relative_position,
 			puq->has_slot ? "y" : "n", puq->had_slot ? "y" : "n",
 			compact_time(delta_time(tm_time(), puq->updated)),
 			puq->active_queued ? "y" : "n", puq->quick ? "y" : "n",
-			puq->is_alive ? "y" : "n");
+			puq->is_alive ? "y" : "n", puq->flags, guid_hex_str(&puq->id),
+			timestamp_utc_to_string(puq->expire));
 	}
 	
 	hash_list_iter_release(&iter);
@@ -4659,12 +4661,7 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	puq = parq_upload_find(u);
 
-	if (puq == NULL) {
-		g_warning("[PARQ UL] Did the upload got removed?");
-		return;
-	}
-
-	g_assert(puq != NULL);
+	g_return_unless(puq != NULL);
 
 	/*
 	 * Send the QUEUE header.
@@ -4990,7 +4987,7 @@ parq_upload_load_queue(void)
 		return;
 
 	if (GNET_PROPERTY(parq_debug))
-		g_warning("[PARQ UL] loading queue information");
+		g_debug("[PARQ UL] loading queue information");
 
 	/* Reset state */
 	entry = zero_entry;
@@ -5059,8 +5056,9 @@ parq_upload_load_queue(void)
 
 				if (!string_to_host_addr(value, NULL, &addr)) {
 					damaged = TRUE;
-					g_warning("tag \"%s\", line %u: not a valid IP address",
-						tag_name, line_no);
+					g_warning("%s(): tag \"%s\", line %u: "
+						"not a valid IP address",
+						G_STRFUNC, tag_name, line_no);
 				} else {
 					switch (tag) {
 					case PARQ_TAG_IP:
@@ -5150,7 +5148,8 @@ parq_upload_load_queue(void)
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
 					damaged = TRUE;
-					g_warning("Value has wrong length.");
+					g_warning("%s(): SHA1 value has wrong length %zu",
+						G_STRFUNC, strlen(value));
 				} else {
 					const struct sha1 *raw;
 
@@ -5198,9 +5197,9 @@ parq_upload_load_queue(void)
 		}
 
 		if (damaged) {
-			g_warning("damaged PARQ entry in line %u: "
+			g_warning("%s(): damaged PARQ entry in line %u: "
 				"tag_name=\"%s\", value=\"%s\"",
-				line_no, tag_name, value);
+				G_STRFUNC, line_no, tag_name, value);
 
 			/* Reset state, discard current record */
 			next = FALSE;
