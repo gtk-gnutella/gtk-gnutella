@@ -501,7 +501,7 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_init()
 #define mingw_close()
 #define mingw_patch_personal_path(p)	(p)
-#define mingw_getpersonal()				"/"
+#define mingw_get_personal_path()		"/"
 
 #define mingw_in_exception()		0
 
