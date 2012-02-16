@@ -33,10 +33,6 @@
 
 #include "common.h"
 
-#ifdef I_SCHED
-#include <sched.h>
-#endif
-
 #define MUTEX_SOURCE
 
 #include "mutex.h"
