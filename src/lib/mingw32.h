@@ -255,7 +255,18 @@ struct mingw_statvfs {
 #ifndef HAS_SCHED_YIELD
 #define HAS_SCHED_YIELD			/* We emulate it */
 #define EMULATE_SCHED_YIELD
-#define sched_yield mingw_sched_yield
+#undef I_SCHED					/* Do not include <sched.h> */
+
+/*
+ * We can't define sched_yield because on MinGW, <pthread.h> forcefully
+ * includes <sched.h> and it will cause sched_yield() to be declared as
+ * belonging to a DLL.  But since that file inclusion occurs after our
+ * remapping, mingw_sched_yield() is viewed as meaning _imp_mingw_sched_yield
+ * and causes a link failure.
+ *
+ * Hence define it as do_sched_yield.
+ */
+#define do_sched_yield() mingw_sched_yield()
 
 int mingw_sched_yield(void);
 #endif	/* !HAS_SCHED_YIELD */

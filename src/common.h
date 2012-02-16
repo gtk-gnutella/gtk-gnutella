@@ -239,6 +239,10 @@
 
 typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
+#ifdef HAS_SCHED_YIELD
+#define do_sched_yield()	sched_yield()	/* See lib/mingw32.h */
+#endif
+
 #include "lib/mingw32.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
 

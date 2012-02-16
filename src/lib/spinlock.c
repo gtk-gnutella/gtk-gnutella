@@ -155,7 +155,7 @@ spinlock_loop(volatile spinlock_t *s,
 			}
 #ifdef HAS_SCHED_YIELD
 			if (1 == cpus)
-				sched_yield();
+				do_sched_yield();		/* See lib/mingw32.h */
 #endif
 		}
 

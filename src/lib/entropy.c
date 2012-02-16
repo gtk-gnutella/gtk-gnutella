@@ -167,7 +167,7 @@ static void
 entropy_create_delay(void)
 {
 #ifdef HAS_SCHED_YIELD
-	sched_yield();
+	do_sched_yield();		/* See lib/mingw32.h */
 #else
 	compat_sleep_ms(0);
 #endif	/* HAS_SCHED_YIELD */
