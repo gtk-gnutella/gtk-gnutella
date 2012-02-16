@@ -2417,8 +2417,6 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		vlen = round_pagesize(len);
 		p = vmm_core_alloc(vlen);
 		xstats.vmm_alloc_pages += vmm_page_count(vlen);
-		xstats.user_memory += vlen;
-		memusage_add(xstats.user_mem, vlen);
 
 		if (xmalloc_debugging(1)) {
 			t_debug("XM added %zu bytes of VMM core at %p", vlen, p);
@@ -2428,8 +2426,12 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 			void *split = ptr_add_offset(p, len);
 			xmalloc_freelist_insert(split, vlen - len, XM_COALESCE_AFTER);
 			xstats.vmm_split_pages++;
+			xstats.user_memory += len;
+			memusage_add(xstats.user_mem, len);
 			return xmalloc_block_setup(p, len);
 		} else {
+			xstats.user_memory += vlen;
+			memusage_add(xstats.user_mem, vlen);
 			return xmalloc_block_setup(p, vlen);
 		}
 	} else {
