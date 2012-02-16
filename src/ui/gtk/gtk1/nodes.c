@@ -38,6 +38,7 @@
 
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/hset.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -50,24 +51,23 @@
  * changed. By using this the number of updates to the gui can be
  * significantly reduced.
  */
-static GHashTable *ht_node_info_changed;
-static GHashTable *ht_node_flags_changed;
+static hset_t *hs_node_info_changed;
+static hset_t *hs_node_flags_changed;
 
 static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
 static void nodes_gui_update_node_flags(const struct nid *node_id,
 				gnet_node_flags_t *flags, gint row);
 
-static gboolean 
-remove_item(GHashTable *ht, const struct nid *node_id)
+static bool 
+remove_item(hset_t *hs, const struct nid *node_id)
 {
-	gpointer orig_key;
+	const void *orig_key;
 
-	g_return_val_if_fail(ht, FALSE);
+	g_return_val_if_fail(hs, FALSE);
 	g_return_val_if_fail(node_id, FALSE);
 	
-	orig_key = g_hash_table_lookup(ht, node_id);
-	if (orig_key) {
-    	g_hash_table_remove(ht, orig_key);
+	if (hset_contains_extended(hs, node_id, &orig_key)) {
+    	hset_remove(hs, orig_key);
 		nid_unref(orig_key);
 		return TRUE;
 	} else {
@@ -120,9 +120,9 @@ nodes_gui_node_added(const struct nid *node_id)
 static void
 nodes_gui_node_info_changed(const struct nid *node_id)
 {
-    if (!g_hash_table_lookup(ht_node_info_changed, node_id)) {
+    if (!hset_contains(hs_node_info_changed, node_id)) {
 		const struct nid *key = nid_ref(node_id);
-    	gm_hash_table_insert_const(ht_node_info_changed, key, key);
+    	hset_insert(hs_node_info_changed, key);
 	}
 }
 
@@ -135,9 +135,9 @@ nodes_gui_node_info_changed(const struct nid *node_id)
 static void
 nodes_gui_node_flags_changed(const struct nid *node_id)
 {
-    if (!g_hash_table_lookup(ht_node_flags_changed, node_id)) {
+    if (!hset_contains(hs_node_flags_changed, node_id)) {
 		const struct nid *key = nid_ref(node_id);
-    	gm_hash_table_insert_const(ht_node_flags_changed, key, key);
+    	hset_insert(hs_node_flags_changed, key);
 	}
 }
 
@@ -284,8 +284,8 @@ nodes_gui_init(void)
 
 	widget_add_popup_menu(GTK_WIDGET(clist), nodes_gui_get_popup_menu);
 
-    ht_node_info_changed = g_hash_table_new(nid_hash, nid_equal);
-    ht_node_flags_changed = g_hash_table_new(nid_hash, nid_equal);
+    hs_node_info_changed = hset_create_any(nid_hash, NULL, nid_equal);
+    hs_node_flags_changed = hset_create_any(nid_hash, NULL, nid_equal);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
@@ -295,10 +295,9 @@ nodes_gui_init(void)
 	main_gui_add_timer(nodes_gui_timer);
 }
 
-static gboolean
-free_node_id(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_node_id(const void *key, void *unused_udata)
 {
-	g_assert(key == value);
 	(void) unused_udata;
 	nid_unref(key);
 	return TRUE;
@@ -339,11 +338,11 @@ nodes_gui_shutdown(void)
     guc_node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
-	g_hash_table_foreach_remove(ht_node_info_changed, free_node_id, NULL);
-    gm_hash_table_destroy_null(&ht_node_info_changed);
+	hset_foreach_remove(hs_node_info_changed, free_node_id, NULL);
+    hset_free_null(&hs_node_info_changed);
 
-	g_hash_table_foreach_remove(ht_node_flags_changed, free_node_id, NULL);
-    gm_hash_table_destroy_null(&ht_node_flags_changed);
+	hset_foreach_remove(hs_node_flags_changed, free_node_id, NULL);
+    hset_free_null(&hs_node_flags_changed);
 
 	nodes_gui_remove_all_nodes();
 }
@@ -363,11 +362,11 @@ nodes_gui_remove_node(const struct nid *node_id)
      * Make sure node is remove from the "changed" hash table so
      * we don't try an update.
      */
-    g_assert(NULL != ht_node_info_changed);
-    g_assert(NULL != ht_node_flags_changed);
+    g_assert(NULL != hs_node_info_changed);
+    g_assert(NULL != hs_node_flags_changed);
 
-    remove_item(ht_node_info_changed, node_id);
-    remove_item(ht_node_flags_changed, node_id);
+    remove_item(hs_node_info_changed, node_id);
+    remove_item(hs_node_flags_changed, node_id);
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes),
 				deconstify_gpointer(node_id));
@@ -442,7 +441,7 @@ nodes_gui_update_display(time_t now)
         /*
          * Update additional info too if it has recorded changes.
          */
-        if (remove_item(ht_node_info_changed, node_id)) {
+        if (remove_item(hs_node_info_changed, node_id)) {
             gnet_node_info_t info;
 
             guc_node_fill_info(node_id, &info);
@@ -450,7 +449,7 @@ nodes_gui_update_display(time_t now)
             guc_node_clear_info(&info);
         }
 
-        if (remove_item(ht_node_flags_changed, node_id)) {
+        if (remove_item(hs_node_flags_changed, node_id)) {
             gnet_node_flags_t flags;
 
             guc_node_fill_flags(node_id, &flags);

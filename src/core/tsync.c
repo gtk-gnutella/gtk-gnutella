@@ -41,9 +41,11 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/cq.h"
+#include "lib/htable.h"
 #include "lib/nid.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define TSYNC_EXPIRE_MS		(60*1000)	/**< Expiration time: 60 secs */
@@ -67,7 +69,7 @@ struct tsync {
 /*
  * Table recording the "tsync" structures, indexed by sent time.
  */
-static GHashTable *tsync_by_time;	/**< tm_t -> tsync */
+static htable_t *tsync_by_time;	/**< tm_t -> tsync */
 
 /**
  * Free a tsync structure.
@@ -103,7 +105,7 @@ tsync_expire(cqueue_t *unused_cq, void *obj)
 			(int) ts->sent.tv_sec, (int) ts->sent.tv_usec);
 
 	ts->expire_ev = NULL;
-	g_hash_table_remove(tsync_by_time, &ts->sent);
+	htable_remove(tsync_by_time, &ts->sent);
 
 	/*
 	 * If we sent the request via UDP, the node is probably UDP-firewalled:
@@ -148,7 +150,7 @@ tsync_send(struct gnutella_node *n, const struct nid *node_id)
 
 	ts->expire_ev = cq_main_insert(TSYNC_EXPIRE_MS, tsync_expire, ts);
 
-	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+	htable_insert(tsync_by_time, &ts->sent, ts);
 
 	vmsg_send_time_sync_req(n, GNET_PROPERTY(ntp_detected), &ts->sent);
 }
@@ -175,7 +177,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 			tm2f(&elapsed));
 	}
 
-	ts = g_hash_table_lookup(tsync_by_time, orig);
+	ts = htable_lookup(tsync_by_time, orig);
 	if (ts == NULL) {
 		if (GNET_PROPERTY(tsync_debug) > 1) {
 			g_debug("TSYNC request %d.%d not found, expired already?",
@@ -187,9 +189,9 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
 
-	g_hash_table_remove(tsync_by_time, orig);
+	htable_remove(tsync_by_time, orig);
 	ts->sent = *final;
-	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+	htable_insert(tsync_by_time, &ts->sent, ts);
 
 	/*
 	 * Now that we sent the message, expect a reply in TSYNC_EXPIRE_MS
@@ -249,7 +251,7 @@ tsync_got_reply(struct gnutella_node *n,
 	 * round-trip delay between ourselves and the remote node.
 	 */
 
-	ts = g_hash_table_lookup(tsync_by_time, sent);
+	ts = htable_lookup(tsync_by_time, sent);
 
 	if (ts == NULL) {
 		if (GNET_PROPERTY(tsync_debug) > 1) {
@@ -308,7 +310,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 		clock_update(got->tv_sec + (int) clock_offset, precision,  n->addr);
 
-		g_hash_table_remove(tsync_by_time, &ts->sent);
+		htable_remove(tsync_by_time, &ts->sent);
 		tsync_free(ts);
 	}
 }
@@ -319,14 +321,14 @@ tsync_got_reply(struct gnutella_node *n,
 void
 tsync_init(void)
 {
-	tsync_by_time = g_hash_table_new(tm_hash, tm_equal);
+	tsync_by_time = htable_create_any(tm_hash, NULL, tm_equal);
 }
 
 /**
  * Get rid of the tsync structure held in the value.
  */
 static void
-free_tsync_kv(void *unused_key, void *value, void *unused_udata)
+free_tsync_kv(const void *unused_key, void *value, void *unused_udata)
 {
 	struct tsync *ts = value;
 
@@ -345,8 +347,8 @@ free_tsync_kv(void *unused_key, void *value, void *unused_udata)
 void
 tsync_close(void)
 {
-	g_hash_table_foreach(tsync_by_time, free_tsync_kv, NULL);
-	gm_hash_table_destroy_null(&tsync_by_time);
+	htable_foreach(tsync_by_time, free_tsync_kv, NULL);
+	htable_free_null(&tsync_by_time);
 }
 
 

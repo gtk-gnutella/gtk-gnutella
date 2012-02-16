@@ -54,12 +54,16 @@
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -291,7 +295,7 @@ qrp_hashcode(const char *s)
 	 * (Cormen, Leiserson, and Rivest) [CLR]
 	 */
 
-	return x * 0x4F1BBCDCUL;
+	return x * GOLDEN_RATIO_31;		/* Must keep only lowest 31 bits */
 }
 
 /**
@@ -1396,7 +1400,7 @@ qrp_prepare_computation(void)
  * Add shared file to our QRP.
  */
 void
-qrp_add_file(const shared_file_t *sf, GHashTable *words)
+qrp_add_file(const shared_file_t *sf, htable_t *words)
 {
 	word_vec_t *wovec;
 	uint wocnt;
@@ -1443,14 +1447,14 @@ qrp_add_file(const shared_file_t *sf, GHashTable *words)
 		 * Record word if we haven't seen it yet.
 		 */
 
-		if (g_hash_table_lookup(words, word)) {
+		if (htable_contains(words, word)) {
 			continue;
 		} else {
 			void *p;
 			size_t n = 1 + word_len;
 
 			p = wcopy(word, n);
-			g_hash_table_insert(words, p, size_to_pointer(n));
+			htable_insert(words, p, size_to_pointer(n));
 		}
 
 		if (qrp_debugging(8)) {
@@ -1467,28 +1471,27 @@ qrp_add_file(const shared_file_t *sf, GHashTable *words)
  */
 
 static void
-free_word(void *key, void *value, void *unused_udata)
+free_word(const void *key, void *value, void *unused_udata)
 {
+	g_assert(size_is_positive(pointer_to_size(value)));
+
 	(void) unused_udata;
-	g_assert(value);
-	wfree(key, (size_t) value);
+	wfree(deconstify_pointer(key), pointer_to_size(value));
 }
 
 struct unique_substrings {		/* User data for unique_subtr() callback */
-	GHashTable *unique;
+	hset_t *unique;
 	GSList *head;
 };
 
 static inline void
-insert_substr(struct unique_substrings *u, const char *word)
+insert_substr(struct unique_substrings *u, const char *word, size_t size)
 {
-	if (!g_hash_table_lookup(u->unique, word)) {
-		char *s;
-		size_t n;
+	if (!hset_contains(u->unique, word)) {
+		void *s;
 
-		n = 1 + strlen(word);
-		s = wcopy(word, n);
-		g_hash_table_insert(u->unique, s, size_to_pointer(n));
+		s = wcopy(word, size);
+		hset_insert(u->unique, s);
 		u->head = g_slist_prepend(u->head, s);
 	}
 }
@@ -1497,26 +1500,27 @@ insert_substr(struct unique_substrings *u, const char *word)
  * Iteration callback on the hashtable containing keywords.
  */
 static void
-unique_substr(void *key, void *unused_value, void *udata)
+unique_substr(const void *key, void *value, void *udata)
 {
 	struct unique_substrings *u = udata;
 	const char *word = key;
 	char *s;
 	size_t len, size, i;
 
-	(void) unused_value;
+	g_assert(size_is_positive(pointer_to_size(value)));
 
 	/*
 	 * Add all unique (i.e. not already seen) substrings from word, all
 	 * anchored at the start, whose length range from 3 to the word length.
 	 */
 
-	len = strlen(word);
-	size = len + 1;
+	size = pointer_to_size(value);
 	s = wcopy(word, size);
+	len = size - 1;				/* Trailing NUL included in size */
 
 	for (i = 0; i <= QRP_MAX_CUT_CHARS; i++) {
-		insert_substr(u, s);
+
+		insert_substr(u, s, len + 1);
 
 		while (len > QRP_MIN_WORD_LENGTH) {
 			uint retlen;
@@ -1535,19 +1539,20 @@ unique_substr(void *key, void *unused_value, void *udata)
 
 /**
  * Create a list of all unique substrings at least QRP_MIN_WORD_LENGTH long,
- * from words held in `ht'.
+ * from words held in `ht' (keys are words, values are the word's length plus
+ * the trailing NUL).
  *
  * @returns created list, and count in `retcount'.
  */
 static GSList *
-unique_substrings(GHashTable *ht, int *retcount)
+unique_substrings(htable_t *ht, int *retcount)
 {
 	struct unique_substrings u = { NULL, NULL };		/* Callback args */
 
-	u.unique = g_hash_table_new(g_str_hash, g_str_equal);
-	g_hash_table_foreach(ht, unique_substr, &u);
-	*retcount = g_hash_table_size(u.unique);
-	gm_hash_table_destroy_null(&u.unique);	/* Created words ref'ed by u.head */
+	u.unique = hset_create(HASH_KEY_STRING, 0);
+	htable_foreach(ht, unique_substr, &u);
+	*retcount = hset_count(u.unique);
+	hset_free_null(&u.unique);		/* Created words ref'ed by u.head */
 
 	return u.head;
 }
@@ -1570,7 +1575,7 @@ struct qrp_context {
 	struct routing_table **rtp;	/**< Points to routing table variable to fill */
 	struct routing_patch **rpp;	/**< Points to routing patch variable to fill */
 	GSList *sl_substrings;		/**< List of all substrings */
-	GHashTable *words;			/**< Words making up the files */
+	htable_t *words;			/**< Words making up the files */
 	int substrings;				/**< Amount of substrings */
 	char *table;				/**< Computed routing table */
 	int slots;					/**< Amount of slots in table */
@@ -1589,14 +1594,13 @@ static struct bgtask *qrp_merge;/**< Background merging handle */
  * and perusing in qrp_finalize_computation(), then nullify pointer.
  */
 void
-qrp_dispose_words(GHashTable **h_ptr)
+qrp_dispose_words(htable_t **h_ptr)
 {
-	GHashTable *h = *h_ptr;
+	htable_t *h = *h_ptr;
 
 	if (h != NULL) {
-		g_hash_table_foreach(h, free_word, NULL);
-		g_hash_table_destroy(h);
-		*h_ptr = NULL;
+		htable_foreach(h, free_word, NULL);
+		htable_free_null(h_ptr);
 	}
 }
 
@@ -1618,7 +1622,7 @@ qrp_context_free(void *p)
 		size_t size;
 
 		size = 1 + strlen(word);
-		g_assert(size > 0);
+		g_assert(size_is_positive(size));
 		wfree(word, size);
 	}
 	gm_slist_free_null(&ctx->sl_substrings);
@@ -2150,7 +2154,7 @@ static bgstep_cb_t qrp_merge_steps[] = {
  * @param words		the words making up the filenames (takes ownership of it)
  */
 void
-qrp_finalize_computation(GHashTable *words)
+qrp_finalize_computation(htable_t *words)
 {
 	struct qrp_context *ctx;
 

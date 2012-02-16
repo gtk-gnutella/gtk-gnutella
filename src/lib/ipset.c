@@ -35,7 +35,7 @@
 #include "common.h"
 
 #include "ipset.h"
-#include "glib-missing.h"
+#include "hset.h"
 #include "strtok.h"
 #include "walloc.h"
 
@@ -49,14 +49,13 @@ ipset_check(const ipset_t * const ips)
 }
 
 /**
- * Hashtable iterator callback to free address.
+ * Hash set iterator callback to free address.
  */
 static bool
-ipset_free_addrs(void *key, void *uvalue, void *udata)
+ipset_free_addrs(const void *key, void *udata)
 {
-	host_addr_t *ha = key;
+	host_addr_t *ha = deconstify_pointer(key);
 
-	(void) uvalue;
 	(void) udata;
 
 	WFREE(ha);
@@ -84,9 +83,10 @@ ipset_set_addrs(ipset_t *ips, const char *s)
 	g_assert(s != NULL);
 
 	if (NULL == ips->addrs) {
-		ips->addrs = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+		ips->addrs = hset_create_any(host_addr_hash_func,
+			host_addr_hash_func2, host_addr_eq_func);
 	} else {
-		g_hash_table_foreach_remove(ips->addrs, ipset_free_addrs, NULL);
+		hset_foreach_remove(ips->addrs, ipset_free_addrs, NULL);
 	}
 
 	st = strtok_make_strip(s);
@@ -96,7 +96,7 @@ ipset_set_addrs(ipset_t *ips, const char *s)
 		ZERO(&ha);
 		if (string_to_host_addr(tok, NULL, &ha)) {
 			host_addr_t *h = WCOPY(&ha);
-			g_hash_table_insert(ips->addrs, h, NULL);
+			hset_insert(ips->addrs, h);
 		} else if ('\0' != *tok) {
 			g_carp("ignoring invalid IP address \"%s\"", tok);
 		}
@@ -104,8 +104,8 @@ ipset_set_addrs(ipset_t *ips, const char *s)
 
 	strtok_free(st);
 
-	if (0 == g_hash_table_size(ips->addrs))
-		gm_hash_table_destroy_null(&ips->addrs);
+	if (0 == hset_count(ips->addrs))
+		hset_free_null(&ips->addrs);
 }
 
 /**
@@ -117,9 +117,9 @@ ipset_clear(ipset_t *ips)
 	ipset_check(ips);
 
 	if (NULL != ips->addrs)
-		g_hash_table_foreach_remove(ips->addrs, ipset_free_addrs, NULL);
+		hset_foreach_remove(ips->addrs, ipset_free_addrs, NULL);
 
-	gm_hash_table_destroy_null(&ips->addrs);
+	hset_free_null(&ips->addrs);
 }
 
 /**
@@ -137,7 +137,7 @@ ipset_contains_host(const ipset_t *ips, const gnet_host_t *h, bool any)
 
 	if G_UNLIKELY(NULL != ips->addrs) {
 		host_addr_t ha = gnet_host_get_addr(h);
-		return gm_hash_table_contains(ips->addrs, &ha);
+		return hset_contains(ips->addrs, &ha);
 	} else {
 		return any;
 	}
@@ -156,7 +156,7 @@ ipset_contains_addr(const ipset_t *ips, const host_addr_t ha, bool any)
 	ipset_check(ips);
 
 	if G_UNLIKELY(NULL != ips->addrs) {
-		return gm_hash_table_contains(ips->addrs, &ha);
+		return hset_contains(ips->addrs, &ha);
 	} else {
 		return any;
 	}

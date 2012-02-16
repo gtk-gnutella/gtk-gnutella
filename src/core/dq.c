@@ -59,6 +59,8 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -139,8 +141,8 @@ typedef struct dquery {
 	gnet_search_t sh;		/**< Search handle, if node ID = NODE_ID_SELF */
 	pmsg_t *mb;				/**< The search messsage "template" */
 	query_hashvec_t *qhv;	/**< Query hash vector for QRP filtering */
-	GHashTable *queried;	/**< Contains node IDs that we queried so far */
-	GHashTable *enqueued;	/**< Contains node IDs with enqueued queries */
+	htable_t *queried;		/**< Contains node IDs that we queried so far */
+	hset_t *enqueued;		/**< Contains node IDs with enqueued queries */
 	const struct guid *lmuid;/**< For proxied query: the original leaf MUID */
 	uint16 query_flags;		/**< Flags from the marked query speed field */
 	uint8 ttl;				/**< Initial query TTL */
@@ -184,14 +186,14 @@ enum {
  * This table keeps track of all the dynamic query objects that we have
  * created and which are alive.
  */
-static GHashTable *dqueries;
+static htable_t *dqueries;
 
 /**
  * This table keeps track of all the dynamic query objects created
  * for a given node ID.  The key is the node ID (converted to a pointer) and
  * the value is a GSList containing all the queries for that node.
  */
-static GHashTable *by_node_id;
+static htable_t *by_node_id;
 
 /**
  * This table keeps track of the association between a MUID and the
@@ -200,7 +202,7 @@ static GHashTable *by_node_id;
  *
  * The keys are MUIDs (GUID atoms), the values are the dquery_t object.
  */
-static GHashTable *by_muid;
+static htable_t *by_muid;
 
 /**
  * This table keeps track of the association between a leaf MUID and the
@@ -208,7 +210,7 @@ static GHashTable *by_muid;
  * account them for the relevant query (since for OOB-proxied query, the
  * MUID we'll get is the one the leaf knows about).
  */
-static GHashTable *by_leaf_muid;
+static htable_t *by_leaf_muid;
 
 /**
  * Information about query messages sent.
@@ -413,7 +415,7 @@ dq_pmi_alloc(dquery_t *dq, uint16 degree, uint8 ttl,
 	 * Remember that we've queried this node, and with which TTL.
 	 */
 
-	gm_hash_table_insert_const(dq->queried, key,
+	htable_insert(dq->queried, key,
 		uint_to_pointer(ttl | (pmi->probe ? DQ_TTL_PROBE : 0)));
 
 	/*
@@ -421,7 +423,7 @@ dq_pmi_alloc(dquery_t *dq, uint16 degree, uint8 ttl,
 	 * forbid further sending should this query be stuck in the TX queue.
 	 */
 
-	gm_hash_table_insert_const(dq->enqueued, pmi->node_id, int_to_pointer(1));
+	hset_insert(dq->enqueued, pmi->node_id);
 
 	return pmi;
 }
@@ -448,7 +450,7 @@ dq_alive(struct nid qid)
 	/* NOTE: dqueries might have been freed already, as dq_pmsg_free()
 	 *		 might still call this function after dq_close().
 	 */
-	dq = dqueries ? g_hash_table_lookup(dqueries, &qid) : NULL;
+	dq = dqueries ? htable_lookup(dqueries, &qid) : NULL;
 	if (dq) {
 		dquery_check(dq);
 	}
@@ -482,12 +484,13 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 
 	g_assert(dq->pending > 0);
 	dq->pending--;
-	g_hash_table_remove(dq->enqueued, pmi->node_id);
+	hset_remove(dq->enqueued, pmi->node_id);
 
 	if (!pmsg_was_sent(mb)) {
-		struct nid *key;
+		const struct nid *key;
 		bool found;
-		void *knid, *ttlv;
+		const void *knid;
+		void *ttlv;
 		unsigned ttl;
 
 		/*
@@ -496,8 +499,7 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 		 * make it through the network.
 		 */
 
-		found = g_hash_table_lookup_extended(dq->queried, pmi->node_id,
-			&knid, &ttlv);
+		found = htable_lookup_extended(dq->queried, pmi->node_id, &knid, &ttlv);
 
 		g_assert(found);		/* Or something is seriously corrupted */
 
@@ -507,10 +509,10 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 		g_assert(pmi->ttl >= (ttl & DQ_TTL_MASK));
 
 		if ((ttl & DQ_TTL_MASK) > 1) {
-			g_hash_table_replace(dq->queried, key,
+			htable_insert(dq->queried, key,
 				uint_to_pointer((ttl - 1) | (ttl & DQ_TTL_PROBE)));
 		} else {
-			g_hash_table_remove(dq->queried, key);
+			htable_remove(dq->queried, key);
 			nid_unref(key);
 		}
 
@@ -723,7 +725,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 {
 	const GSList *sl;
 	int i = 0;
-	GHashTable *old = NULL;
+	htable_t *old = NULL;
 
 	dquery_check(dq);
 
@@ -736,11 +738,11 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	if (dq->nv != NULL) {
 		int j;
 
-		old = g_hash_table_new(nid_hash, nid_equal);
+		old = htable_create_any(nid_hash, NULL, nid_equal);
 
 		for (j = 0; j < dq->nv_found; j++) {
 			struct next_up *nup = &dq->nv[j];
-			gm_hash_table_insert_const(old, nup->node_id, nup);
+			htable_insert(old, nup->node_id, nup);
 		}
 	}
 
@@ -751,7 +753,8 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
 		struct next_up *nup, *old_nup;
 		struct gnutella_node *n;
-		void *knid, *ttlv;
+		const void *knid;
+		void *ttlv;
 		bool found;
 
 		if (i >= ncount)
@@ -771,7 +774,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 		 * Skip node if we already have a pending query.
 		 */
 
-		if (gm_hash_table_contains(dq->enqueued, NODE_ID(n)))
+		if (hset_contains(dq->enqueued, NODE_ID(n)))
 			continue;
 
 		/*
@@ -783,8 +786,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 		if (n->received == 0)
 			continue;
 
-		found = g_hash_table_lookup_extended(dq->queried, NODE_ID(n),
-			&knid, &ttlv);
+		found = htable_lookup_extended(dq->queried, NODE_ID(n), &knid, &ttlv);
 
 		if (found) {
 			if (!(n->attrs & NODE_A_DQ_PROBE))
@@ -815,10 +817,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 		nup->node_id = nid_ref(NODE_ID(n)); /* To be able to compare */
 		nup->qhv = dq->qhv;
 
-		if (
-			old &&
-			(old_nup = g_hash_table_lookup(old, nup->node_id))
-		) {
+		if (old && NULL != (old_nup = htable_lookup(old, nup->node_id))) {
 			g_assert(nid_equal(NODE_ID(n), old_nup->node_id));
 			nup->can_route = old_nup->can_route;
 		} else
@@ -832,7 +831,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	if (old) {
 		g_assert(dq->nv != NULL);
 		dq_free_next_up(dq);
-		g_hash_table_destroy(old);
+		htable_free_null(&old);
 	}
 
 	dq->nv = nv;
@@ -875,14 +874,13 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	g_slist_free(nodes);
 }
 
-static bool
-free_node_id(void *key, void *unused_value, void *unused_udata)
+static void
+free_node_id(const void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
 
 	nid_unref(key);
-	return TRUE;
 }
 
 /**
@@ -895,7 +893,7 @@ dq_free(dquery_t *dq)
 
 	dquery_check(dq);
 	g_assert((dq->flags & DQ_F_EXITING) ||
-		g_hash_table_lookup(dqueries, &dq->qid) == dq);
+		htable_lookup(dqueries, &dq->qid) == dq);
 
 	if (GNET_PROPERTY(dq_debug) > 2)
 		g_debug("DQ[%s] %s(%d secs; +%d secs) node #%s ending: "
@@ -939,9 +937,9 @@ dq_free(dquery_t *dq)
 			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
 	}
 
-	g_hash_table_foreach_remove(dq->queried, free_node_id, NULL);
-	gm_hash_table_destroy_null(&dq->queried);
-	gm_hash_table_destroy_null(&dq->enqueued);
+	htable_foreach(dq->queried, free_node_id, NULL);
+	htable_free_null(&dq->queried);
+	hset_free_null(&dq->enqueued);
 
 	qhvec_free(dq->qhv);
 	dq_free_next_up(dq);
@@ -954,7 +952,7 @@ dq_free(dquery_t *dq)
 	}
 
 	if (!(dq->flags & DQ_F_EXITING))
-		g_hash_table_remove(dqueries, &dq->qid);
+		htable_remove(dqueries, &dq->qid);
 
 	/*
 	 * Remove query from the `by_node_id' table but only if the node ID
@@ -971,8 +969,7 @@ dq_free(dquery_t *dq)
 		bool found;
 		GSList *list;
 
-		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
-					NULL, &value);
+		found = htable_lookup_extended(by_node_id, dq->node_id, NULL, &value);
 
 		if (!found) {
 			g_error("%s: missing %s", G_STRLOC, nid_to_string(dq->node_id));
@@ -983,15 +980,14 @@ dq_free(dquery_t *dq)
 
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
-			g_hash_table_remove(by_node_id, dq->node_id);
-			g_assert(!g_hash_table_lookup_extended(by_node_id, dq->node_id,
-						NULL, NULL));
+			htable_remove(by_node_id, dq->node_id);
+			g_assert(!htable_contains(by_node_id, dq->node_id));
 		} else if (list != value) {
 			dquery_t *key = list->data;
 
 			dquery_check(key);
-			gm_hash_table_replace_const(by_node_id, key->node_id, list);
-			g_assert(g_hash_table_lookup(by_node_id, dq->node_id) == list);
+			htable_insert(by_node_id, key->node_id, list);
+			g_assert(htable_lookup(by_node_id, dq->node_id) == list);
 		}
 	}
 
@@ -999,15 +995,16 @@ dq_free(dquery_t *dq)
 	 * Remove query's MUID.
 	 */
 	{
-		void *key, *value;
+		const void *key;
+		void *value;
 		bool found;
 
-		found = g_hash_table_lookup_extended(by_muid,
-					gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
+		found = htable_lookup_extended(by_muid,
+				gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
 
 		if (found) {		/* Could be missing if a MUID conflict occurred */
 			if (value == dq) {	/* Make sure it's for us in case of conflicts */
-				g_hash_table_remove(by_muid, key);
+				htable_remove(by_muid, key);
 				atom_guid_free(key);
 			}
 		}
@@ -1018,13 +1015,13 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		void *key, *value;
+		const void *key;
+		void *value;
 		bool found;
 
-		found = g_hash_table_lookup_extended(
-			by_leaf_muid, dq->lmuid, &key, &value);
+		found = htable_lookup_extended(by_leaf_muid, dq->lmuid, &key, &value);
 		if (found && value == dq)
-			g_hash_table_remove(by_leaf_muid, key);
+			htable_remove(by_leaf_muid, key);
 		atom_guid_free(dq->lmuid);
 	}
 
@@ -1347,7 +1344,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, int ttl, bool probe)
 	pmsg_t *mb;
 
 	dquery_check(dq);
-	g_assert(!g_hash_table_lookup(dq->queried, NODE_ID(n)));
+	g_assert(!htable_contains(dq->queried, NODE_ID(n)));
 	g_assert(NODE_IS_WRITABLE(n));
 
 	pmi = dq_pmi_alloc(dq, n->degree, MIN(n->max_ttl, ttl), NODE_ID(n), probe);
@@ -1519,7 +1516,8 @@ dq_send_next(dquery_t *dq)
 	for (i = 0; i < found; i++) {
 		struct gnutella_node *node;
 		struct nid *nid = nv[i].node_id;
-		void *knid, *ttlv;
+		const void *knid;
+		void *ttlv;
 		unsigned ttl;
 
 		node = node_by_id(nid);
@@ -1530,7 +1528,7 @@ dq_send_next(dquery_t *dq)
 		 * a probe and the TTL is greater now.
 		 */
 
-		if (g_hash_table_lookup_extended(dq->queried, nid, &knid, &ttlv)) {
+		if (htable_lookup_extended(dq->queried, nid, &knid, &ttlv)) {
 			unsigned prev_ttl = pointer_to_uint(ttlv);
 
 			if (prev_ttl & DQ_TTL_PROBE) {
@@ -1544,7 +1542,7 @@ dq_send_next(dquery_t *dq)
 						nid_to_string2(NODE_ID(node)),
 						node_infostr(node), ttl, sttl);
 				}
-				g_hash_table_remove(dq->queried, knid);
+				htable_remove(dq->queried, knid);
 				nid_unref(knid);
 				g_assert(ttl > 1);
 			} else {
@@ -1708,8 +1706,8 @@ dq_common_init(dquery_t *dq)
 
 	dquery_check(dq);
 	dq->qid = dquery_id_create();
-	dq->queried = g_hash_table_new(nid_hash, nid_equal);
-	dq->enqueued = g_hash_table_new(nid_hash, nid_equal);
+	dq->queried = htable_create_any(nid_hash, NULL, nid_equal);
+	dq->enqueued = hset_create_any(nid_hash, NULL, nid_equal);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = tm_time();
 
@@ -1724,7 +1722,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the query as being "alive".
 	 */
 
-	g_hash_table_insert(dqueries, &dq->qid, dq);
+	htable_insert(dqueries, &dq->qid, dq);
 
 	/*
 	 * If query is not for the local node, insert it in `by_node_id'.
@@ -1735,8 +1733,7 @@ dq_common_init(dquery_t *dq)
 		bool found;
 		GSList *list;
 
-		found = g_hash_table_lookup_extended(by_node_id, dq->node_id,
-					NULL, &value);
+		found = htable_lookup_extended(by_node_id, dq->node_id, NULL, &value);
 
 		if (found) {
 			list = value;
@@ -1744,8 +1741,8 @@ dq_common_init(dquery_t *dq)
 			g_assert(list == value);		/* Head not changed */
 		} else {
 			list = g_slist_prepend(NULL, dq);
-			gm_hash_table_replace_const(by_node_id, dq->node_id, list);
-			g_assert(g_hash_table_lookup(by_node_id, dq->node_id) == list);
+			htable_insert(by_node_id, dq->node_id, list);
+			g_assert(htable_lookup(by_node_id, dq->node_id) == list);
 		}
 	}
 
@@ -1756,11 +1753,11 @@ dq_common_init(dquery_t *dq)
 	head = cast_to_constpointer(pmsg_start(dq->mb));
 	muid = gnutella_header_get_muid(head);
 
-	if (g_hash_table_lookup(by_muid, muid)) {
+	if (htable_contains(by_muid, muid)) {
 		g_warning("conflicting MUID \"%s\" for dynamic query from %s, "
 			"ignoring.", guid_hex_str(muid), node_id_infostr(dq->node_id));
 	} else {
-		gm_hash_table_insert_const(by_muid, atom_guid_get(muid), dq);
+		htable_insert(by_muid, atom_guid_get(muid), dq);
 	}
 
 	/*
@@ -1770,13 +1767,12 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		if (g_hash_table_lookup(by_leaf_muid, dq->lmuid)) {
+		if (htable_contains(by_leaf_muid, dq->lmuid)) {
 			g_warning("ignoring conflicting leaf MUID \"%s\" for "
 				"dynamic query from %s",
 				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id));
 		} else {
-			g_hash_table_insert(by_leaf_muid,
-				deconstify_pointer(dq->lmuid), dq);
+			htable_insert(by_leaf_muid, dq->lmuid, dq);
 		}
 	}
 
@@ -2079,11 +2075,11 @@ dq_node_removed(const struct nid *node_id)
 	void *value;
 	GSList *sl;
 
-	if (!g_hash_table_lookup_extended(by_node_id, node_id, NULL, &value))
+	if (!htable_lookup_extended(by_node_id, node_id, NULL, &value))
 		return;		/* No dynamic query for this node */
 
-	g_hash_table_remove(by_node_id, node_id);
-	g_assert(!g_hash_table_lookup_extended(by_node_id, node_id, NULL, NULL));
+	htable_remove(by_node_id, node_id);
+	g_assert(!htable_contains(by_node_id, node_id));
 
 	GM_SLIST_FOREACH(value, sl) {
 		dquery_t *dq = sl->data;
@@ -2100,7 +2096,7 @@ dq_node_removed(const struct nid *node_id)
 		dq_free(dq);
 	}
 
-	g_assert(!g_hash_table_lookup_extended(by_node_id, node_id, NULL, NULL));
+	g_assert(!htable_contains(by_node_id, node_id));
 	g_slist_free(value);
 }
 
@@ -2125,7 +2121,7 @@ dq_count_results(const struct guid *muid, int count, uint16 status, bool oob)
 
 	g_assert(count > 0);		/* Query hits with no result are bad! */
 
-	dq = g_hash_table_lookup(by_muid, muid);
+	dq = htable_lookup(by_muid, muid);
 
 	if (dq == NULL)
 		return TRUE;
@@ -2256,7 +2252,7 @@ dq_oob_results_got(const struct guid *muid, uint count)
 	/* Query hits with no result are bad! */
 	g_assert(count > 0 && count <= INT_MAX);
 
-	dq = g_hash_table_lookup(by_muid, muid);
+	dq = htable_lookup(by_muid, muid);
 
 	if (dq == NULL)
 		return;
@@ -2292,7 +2288,7 @@ dq_got_query_status(const struct guid *muid,
 {
 	dquery_t *dq;
 
-	dq = g_hash_table_lookup(by_muid, muid);
+	dq = htable_lookup(by_muid, muid);
 
 	/*
 	 * Could be an OOB-proxied query, but the leaf does not know the MUID
@@ -2300,7 +2296,7 @@ dq_got_query_status(const struct guid *muid,
 	 */
 
 	if (dq == NULL)
-		dq = g_hash_table_lookup(by_leaf_muid, muid);
+		dq = htable_lookup(by_leaf_muid, muid);
 
 	if (dq == NULL)
 		return;
@@ -2389,7 +2385,7 @@ struct cancel_context {
  * -- hash table iterator callback
  */
 static void
-dq_cancel_local(void *key, void *value, void *udata)
+dq_cancel_local(const void *key, void *value, void *udata)
 {
 	struct cancel_context *ctx = udata;
 	dquery_t *dq = value;
@@ -2414,7 +2410,7 @@ dq_search_closed(gnet_search_t handle)
 	ctx.handle = handle;
 	ctx.cancelled = NULL;
 
-	g_hash_table_foreach(dqueries, dq_cancel_local, &ctx);
+	htable_foreach(dqueries, dq_cancel_local, &ctx);
 
 	GM_SLIST_FOREACH(ctx.cancelled, sl) {
 		dq_free(sl->data);
@@ -2439,7 +2435,7 @@ dq_get_results_wanted(const struct guid *muid, uint32 *wanted)
 {
 	dquery_t *dq;
 
-	dq = g_hash_table_lookup(by_muid, muid);
+	dq = htable_lookup(by_muid, muid);
 
 	if (dq == NULL)
 		return FALSE;
@@ -2484,10 +2480,10 @@ dq_get_results_wanted(const struct guid *muid, uint32 *wanted)
 G_GNUC_COLD void
 dq_init(void)
 {
-	dqueries = g_hash_table_new(nid_hash, nid_equal);
-	by_node_id = g_hash_table_new(nid_hash, nid_equal);
-	by_muid = g_hash_table_new(guid_hash, guid_eq);
-	by_leaf_muid = g_hash_table_new(guid_hash, guid_eq);
+	dqueries = htable_create_any(nid_hash, NULL, nid_equal);
+	by_node_id = htable_create_any(nid_hash, NULL, nid_equal);
+	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	by_leaf_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	fill_hosts();
 }
 
@@ -2495,7 +2491,7 @@ dq_init(void)
  * Hashtable iteration callback to free the dquery_t object held as the key.
  */
 static void
-free_query(void *key, void *value, void *unused_udata)
+free_query(const void *key, void *value, void *unused_udata)
 {
 	dquery_t *dq = value;
 
@@ -2513,7 +2509,7 @@ free_query(void *key, void *value, void *unused_udata)
  * there should not be anything remaining, hence warn!
  */
 static void
-free_query_list(void *key, void *value, void *unused_udata)
+free_query_list(const void *key, void *value, void *unused_udata)
 {
 	GSList *sl, *list = value;
 	int count = g_slist_length(list);
@@ -2540,7 +2536,7 @@ free_query_list(void *key, void *value, void *unused_udata)
  * anything remaining, hence warn!
  */
 static void
-free_muid(void *key, void *unused_value, void *unused_udata)
+free_muid(const void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
@@ -2556,7 +2552,7 @@ free_muid(void *key, void *unused_value, void *unused_udata)
  * anything remaining, hence warn!
  */
 static void
-free_leaf_muid(void *key, void *unused_value, void *unused_udata)
+free_leaf_muid(const void *key, void *unused_value, void *unused_udata)
 {
 	(void) unused_value;
 	(void) unused_udata;
@@ -2570,17 +2566,17 @@ free_leaf_muid(void *key, void *unused_value, void *unused_udata)
 G_GNUC_COLD void
 dq_close(void)
 {
-	g_hash_table_foreach(dqueries, free_query, NULL);
-	gm_hash_table_destroy_null(&dqueries);
+	htable_foreach(dqueries, free_query, NULL);
+	htable_free_null(&dqueries);
 
-	g_hash_table_foreach(by_node_id, free_query_list, NULL);
-	gm_hash_table_destroy_null(&by_node_id);
+	htable_foreach(by_node_id, free_query_list, NULL);
+	htable_free_null(&by_node_id);
 
-	g_hash_table_foreach(by_muid, free_muid, NULL);
-	gm_hash_table_destroy_null(&by_muid);
+	htable_foreach(by_muid, free_muid, NULL);
+	htable_free_null(&by_muid);
 
-	g_hash_table_foreach(by_leaf_muid, free_leaf_muid, NULL);
-	gm_hash_table_destroy_null(&by_leaf_muid);
+	htable_foreach(by_leaf_muid, free_leaf_muid, NULL);
+	htable_free_null(&by_leaf_muid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

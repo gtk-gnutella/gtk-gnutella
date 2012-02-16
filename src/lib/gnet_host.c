@@ -59,6 +59,7 @@
 
 #include "gnet_host.h"
 #include "atoms.h"
+#include "hashing.h"
 #include "mempcpy.h"
 #include "sequence.h"
 #include "str.h"
@@ -72,7 +73,7 @@
  ***/
 
 /**
- * Hash function for use in g_hash_table_new.
+ * Hash function for use in hash tables and sets.
  */
 G_GNUC_HOT uint
 gnet_host_hash(const void *key)
@@ -83,13 +84,13 @@ gnet_host_hash(const void *key)
 
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
-	return host_addr_hash(addr) ^ ((port << 16) | port);
+	return host_addr_hash(addr) ^ port_hash(port);
 }
 
 /**
  * Compare function which returns TRUE if the hosts are equal.
  *
- * @note For use in g_hash_table_new.
+ * @note For use in hash tables and sets.
  */
 G_GNUC_HOT int
 gnet_host_eq(const void *v1, const void *v2)

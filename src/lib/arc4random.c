@@ -2,7 +2,7 @@
  * Copyright (c) 1996, David Mazieres <dm@lcs.mit.edu>.
  *
  * Adaptated for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -41,10 +41,10 @@
  * The arc4random_upto() routine has been added to David Mazieres's code
  * to provide uniformly distributed random numbers over a certain range.
  *
- * @author Raphael Manfredi
- * @date 2010
  * @author David Mazieres
  * @date 1996
+ * @author Raphael Manfredi
+ * @date 2010, 2012
  */
 
 #include "common.h"
@@ -136,12 +136,21 @@ static void
 arc4_stir(struct arc4_stream *as)
 {
 	int n;
-	sha1_t entropy;
 
 	arc4_check_init();
 
-	entropy_collect(&entropy);
-	arc4_addrandom(as, cast_to_pointer(&entropy), sizeof entropy);
+	/*
+	 * Collect 1024 bytes of initial entropy: the more randomness there
+	 * is in the initial state, the more random combinations we can produce
+	 * after initialization.
+	 */
+
+	for (n = 0; n < 4; n++) {
+		unsigned char buf[256];		/* Optimal size for arc4_addrandom() */
+
+		entropy_fill(buf, sizeof buf);
+		arc4_addrandom(as, buf, sizeof buf);
+	}
 
 	/*
 	 * Throw away the first N bytes of output, as suggested in the
@@ -218,6 +227,11 @@ arc4random_stir_once(void)
 
 /**
  * Supply additional randomness to the pool.
+ *
+ * The optimal buffer length is 256 bytes.  Any larger size will cause
+ * some bytes to be ignored (which is sub-optimal), whilst any smaller
+ * size will cause bytes to be reused during the internal state shuffle
+ * (which is OK).
  *
  * @param dat		pointer to a buffer containing random data
  * @param datlen	length of the buffer

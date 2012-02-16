@@ -65,8 +65,10 @@
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/strtok.h"
@@ -86,14 +88,14 @@ dmesh_url_error_t dmesh_url_errno;	/**< Error from dmesh_url_parse() */
  * It is implemented as a big hash table, where SHA1 are keys, each value
  * being a struct dmesh pointer.
  */
-static GHashTable *mesh = NULL;
+static htable_t *mesh = NULL;
 
 struct dmesh {				/**< A download mesh bucket */
 	list_t *entries;		/**< The download mesh entries, dmesh_entry data */
-	GHashTable *by_host;	/**< Entries indexed by host (IP:port) */
-	GHashTable *by_guid;	/**< Entries indexed by GUID (firewalled entries) */
+	htable_t *by_host;		/**< Entries indexed by host (IP:port) */
+	htable_t *by_guid;		/**< Entries indexed by GUID (firewalled entries) */
 	time_t last_update;		/**< Timestamp of last insert/expire in the mesh */
-	const struct sha1 *sha1;	/**< The SHA1 of this mesh */
+	const sha1_t *sha1;		/**< The SHA1 of this mesh */
 };
 
 struct dmesh_entry {
@@ -135,7 +137,7 @@ static cqueue_t *dmesh_cq;			/**< Download mesh callout queue */
  *
  * The table is persisted at regular intervals.
  */
-static GHashTable *ban_mesh = NULL;
+static htable_t *ban_mesh = NULL;
 
 struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
@@ -150,7 +152,7 @@ typedef void (*dmesh_add_cb)(
 /**
  * This table stores the banned entries by SHA1.
  */
-static GHashTable *ban_mesh_by_sha1 = NULL;
+static htable_t *ban_mesh_by_sha1 = NULL;
 
 #define BAN_LIFETIME	7200		/**< 2 hours */
 
@@ -171,9 +173,26 @@ urlinfo_hash(const void *key)
 	uint hash;
 
 	hash = host_addr_hash(info->addr);
-	hash ^= ((uint32) info->port << 16) | info->port;
-	hash ^= info->idx;
-	hash ^= g_str_hash(info->name);
+	hash ^= port_hash(info->port);
+	hash ^= integer_hash(info->idx);
+	hash ^= string_mix_hash(info->name);
+
+	return hash;
+}
+
+/**
+ * Alternate hash a URL info.
+ */
+static uint
+urlinfo_hash2(const void *key)
+{
+	const dmesh_urlinfo_t *info = key;
+	uint hash;
+
+	hash = host_addr_hash2(info->addr);
+	hash ^= port_hash2(info->port);
+	hash ^= integer_hash2(info->idx);
+	hash ^= string_hash(info->name);
 
 	return hash;
 }
@@ -198,9 +217,9 @@ urlinfo_eq(const void *a, const void *b)
 G_GNUC_COLD void
 dmesh_init(void)
 {
-	mesh = g_hash_table_new(sha1_hash, sha1_eq);
-	ban_mesh = g_hash_table_new(urlinfo_hash, urlinfo_eq);
-	ban_mesh_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	mesh = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	ban_mesh = htable_create_any(urlinfo_hash, urlinfo_hash2, urlinfo_eq);
+	ban_mesh_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	dmesh_cq = cq_submake("dmesh", callout_queue, DMESH_CALLOUT);
 	dmesh_retrieve();
 	dmesh_ban_retrieve();
@@ -270,7 +289,7 @@ static void
 dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 {
 	g_assert(dmb);
-	g_assert(dmb == g_hash_table_lookup(ban_mesh, dmb->info));
+	g_assert(dmb == htable_lookup(ban_mesh, dmb->info));
 
 	/*
 	 * Also remove the banned entry from the IP list by SHA1 which is ussed
@@ -280,26 +299,25 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 	if (dmb->sha1 != NULL) {
 		GSList *by_addr;
 		GSList *head;
-		void *key;			/* The SHA1 atom used for key in table */
+		const void *key;		/* The SHA1 atom used for key in table */
 		void *x;
 		bool found;
 
-		found = g_hash_table_lookup_extended(
-			ban_mesh_by_sha1, dmb->sha1, &key, &x);
+		found = htable_lookup_extended(ban_mesh_by_sha1, dmb->sha1, &key, &x);
 		g_assert(found);
 		head = by_addr = x;
 		by_addr = g_slist_remove(by_addr, dmb);
 
 		if (by_addr == NULL) {
-			g_hash_table_remove(ban_mesh_by_sha1, key);
+			htable_remove(ban_mesh_by_sha1, key);
 			atom_sha1_free(key);
 		} else if (by_addr != head)
-			g_hash_table_insert(ban_mesh_by_sha1, key, by_addr);
+			htable_insert(ban_mesh_by_sha1, key, by_addr);
 
 		atom_sha1_free(dmb->sha1);
 	}
 
-	g_hash_table_remove(ban_mesh, dmb->info);
+	htable_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
 	WFREE(dmb);
 }
@@ -344,7 +362,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Insert new entry, or update old entry if the new one is more recent.
 	 */
 
-	dmb = g_hash_table_lookup(ban_mesh, info);
+	dmb = htable_lookup(ban_mesh, info);
 
 	if (dmb == NULL) {
 		dmesh_urlinfo_t *ui;
@@ -361,7 +379,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		dmb->cq_ev = cq_insert(dmesh_cq, lifetime*1000, dmesh_ban_expire, dmb);
 		dmb->sha1 = NULL;
 
-		g_hash_table_insert(ban_mesh, dmb->info, dmb);
+		htable_insert(ban_mesh, dmb->info, dmb);
 
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
@@ -378,16 +396,17 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 			/*
              * Don't fear for duplicates here. The dmb lookup above
              * makes sure that if a XNalt with the IP already exists,
-             * the appropriate dmb will be updates (else-case below).
+             * the appropriate dmb will be updated (else-case below).
              *     -- BLUE 16/01/2004
              */
-			by_addr = g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+			by_addr = htable_lookup(ban_mesh_by_sha1, sha1);
 			existed = by_addr != NULL;
 			by_addr = g_slist_append(by_addr, dmb);
 
-			if (!existed)
-				gm_hash_table_insert_const(ban_mesh_by_sha1,
+			if (!existed) {
+				htable_insert_const(ban_mesh_by_sha1,
 					atom_sha1_get(sha1), by_addr);
+			}
 		}
 	}
 	else if (delta_time(dmb->created, stamp) < 0) {
@@ -406,7 +425,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 	struct dmesh_banned *dmb;
 
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-	dmb = g_hash_table_lookup(ban_mesh, &info);
+	dmb = htable_lookup(ban_mesh, &info);
 
 	if (dmb) {
 		cq_cancel(&dmb->cq_ev);
@@ -420,7 +439,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 static bool
 dmesh_is_banned(const dmesh_urlinfo_t *info)
 {
-	return NULL != g_hash_table_lookup(ban_mesh, info);
+	return htable_contains(ban_mesh, info);
 }
 
 /**
@@ -583,8 +602,9 @@ dm_alloc(const struct sha1 *sha1)
 	dm->last_update = 0;
 	dm->entries = list_new();
 	dm->sha1 = atom_sha1_get(sha1);
-	dm->by_host = g_hash_table_new(packed_host_hash_func, packed_host_eq_func);
-	dm->by_guid = g_hash_table_new(guid_hash, guid_eq);
+	dm->by_host = htable_create_any(packed_host_hash_func,
+		packed_host_hash_func2, packed_host_eq_func);
+	dm->by_guid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	return dm;
 }
@@ -603,11 +623,11 @@ dm_free(struct dmesh *dm)
 	 * we just disposed of above, so we only need to get rid of the keys.
 	 */
 	
-	gm_hash_table_foreach_key(dm->by_host, wfree_packed_host, NULL);
-	gm_hash_table_destroy_null(&dm->by_host);
+	htable_foreach_key(dm->by_host, wfree_packed_host, NULL);
+	htable_free_null(&dm->by_host);
 
 	/* Keys were GUID in the dmesh_entry, no need to free them */
-	gm_hash_table_destroy_null(&dm->by_guid);
+	htable_free_null(&dm->by_guid);
 
 	atom_sha1_free_null(&dm->sha1);
 	WFREE(dm);
@@ -620,7 +640,7 @@ static void
 dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 {
 	struct packed_host packed;
-	void *key;
+	const void *key;
 	void *value;
 	bool found;
 
@@ -636,11 +656,11 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	}
 
 	if (dme->fw_entry) {
-		found = g_hash_table_lookup_extended(dm->by_guid,
+		found = htable_lookup_extended(dm->by_guid,
 					dme->e.fwh.guid, &key, &value);
 	} else {
 		packed = host_pack(dme->e.url.addr, dme->e.url.port);
-		found = g_hash_table_lookup_extended(dm->by_host,
+		found = htable_lookup_extended(dm->by_host,
 					&packed, &key, &value);
 	}
 
@@ -654,10 +674,10 @@ dm_remove_entry(struct dmesh *dm, struct dmesh_entry *dme)
 	/* ...and from the proper hash table */
 
 	if (dme->fw_entry) {
-		g_hash_table_remove(dm->by_guid, dme->e.fwh.guid);
+		htable_remove(dm->by_guid, dme->e.fwh.guid);
 	} else {
-		g_hash_table_remove(dm->by_host, &packed);
-		wfree_packed_host(key, NULL);
+		htable_remove(dm->by_host, &packed);
+		wfree_packed_host(deconstify_pointer(key), NULL);
 	}
 
 	dmesh_entry_free(dme);
@@ -671,14 +691,14 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 {
 	struct packed_host packed;
 	struct dmesh_entry *dme;
-	void *key;
+	const void *key;
 	void *value;
 	bool found;
 
 	g_assert(dm);
 
 	packed = host_pack(addr, port);
-	found = g_hash_table_lookup_extended(dm->by_host, &packed, &key, &value);
+	found = htable_lookup_extended(dm->by_host, &packed, &key, &value);
 
 	if (!found)
 		return;
@@ -694,8 +714,8 @@ dm_remove(struct dmesh *dm, const host_addr_t addr, uint16 port)
 	g_assert(found);
 	g_assert(!dme->fw_entry);
 
-	g_hash_table_remove(dm->by_host, &packed);	/* And from hash table */
-	wfree_packed_host(key, NULL);
+	htable_remove(dm->by_host, &packed);	/* And from hash table */
+	wfree_packed_host(deconstify_pointer(key), NULL);
 
 	dmesh_entry_free(dme);
 }
@@ -787,20 +807,19 @@ dm_expire(struct dmesh *dm)
 static void
 dmesh_dispose(const struct sha1 *sha1)
 {
-	void *key;
+	const void *key;
 	void *value;
 	bool found;
 	struct dmesh *dm;
 
-	found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
+	found = htable_lookup_extended(mesh, sha1, &key, &value);
 
 	dm = value;
 	g_assert(found);
 	g_assert(list_length(dm->entries) == 0);
 
-	/* Remove it from the hashtable before freeing key, just in case
-	 * that sha1 == key. */
-	g_hash_table_remove(mesh, sha1);
+	/* Remove it from the table before freeing key, just in case sha1 == key */
+	htable_remove(mesh, sha1);
 	atom_sha1_free(key);
 	dm_free(dm);
 }
@@ -827,7 +846,7 @@ dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, uint16 port,
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 */
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return FALSE;
@@ -856,7 +875,7 @@ dmesh_count(const struct sha1 *sha1)
 
 	g_assert(sha1);
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 
 	/*
 	 * If we have an entry and the last update was done more than
@@ -894,10 +913,10 @@ dmesh_get(const struct sha1 *sha1)
 	 * than the one we're trying to add).
 	 */
 
-	dm =  g_hash_table_lookup(mesh, sha1);
+	dm =  htable_lookup(mesh, sha1);
 	if (dm == NULL) {
 		dm = dm_alloc(sha1);
-		gm_hash_table_insert_const(mesh, atom_sha1_get(sha1), dm);
+		htable_insert(mesh, atom_sha1_get(sha1), dm);
 	} else {
 		dm_expire(dm);
 	}
@@ -990,7 +1009,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 	 */
 
 	packed = host_pack(addr, port);
-	dme = g_hash_table_lookup(dm->by_host, &packed);
+	dme = htable_lookup(dm->by_host, &packed);
 
 	if (dme) {
 		/*
@@ -1044,7 +1063,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		list_append(dm->entries, dme);
 		dm->last_update = now;
 
-		g_hash_table_insert(dm->by_host, walloc_packed_host(addr, port), dme);
+		htable_insert(dm->by_host, walloc_packed_host(addr, port), dme);
 
 		if (list_length(dm->entries) == MAX_ENTRIES) {
 			struct dmesh_entry *oldest = list_head(dm->entries);
@@ -1121,7 +1140,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 	 * See whether we knew something about this host already.
 	 */
 
-	dme = g_hash_table_lookup(dm->by_guid, info->guid);
+	dme = htable_lookup(dm->by_guid, info->guid);
 
 	if (dme) {
 		/*
@@ -1175,7 +1194,7 @@ dmesh_raw_fw_add(const struct sha1 *sha1, const dmesh_fwinfo_t *info,
 		list_append(dm->entries, dme);
 		dm->last_update = now;
 
-		gm_hash_table_insert_const(dm->by_guid, dme->e.fwh.guid, dme);
+		htable_insert(dm->by_guid, dme->e.fwh.guid, dme);
 
 		if (list_length(dm->entries) == MAX_ENTRIES) {
 			struct dmesh_entry *oldest = list_head(dm->entries);
@@ -1300,13 +1319,13 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 */
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return;
 
 	packed = host_pack(addr, port);
-	dme = g_hash_table_lookup(dm->by_host, &packed);
+	dme = htable_lookup(dm->by_host, &packed);
 
 	if (dme == NULL)
 		return;
@@ -1350,14 +1369,14 @@ dmesh_good_mark(const struct sha1 *sha1,
 	struct dmesh_entry *dme;
 	bool retried = FALSE;
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 	if (dm == NULL)
 		return;			/* Weird, but it doesn't matter */
 
 	packed = host_pack(addr, port);
 
 retry:
-	dme = g_hash_table_lookup(dm->by_host, &packed);
+	dme = htable_lookup(dm->by_host, &packed);
 
 	if (dme == NULL) {
 		/*
@@ -1422,11 +1441,11 @@ dmesh_good_fw_mark(const struct sha1 *sha1,
 	struct dmesh *dm;
 	struct dmesh_entry *dme;
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 	if (dm == NULL)
 		return;			/* Weird, but it doesn't matter */
 
-	dme = g_hash_table_lookup(dm->by_guid, guid);
+	dme = htable_lookup(dm->by_guid, guid);
 
 	if (dme == NULL)
 		return;
@@ -1771,7 +1790,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	 * Fetch the mesh entry for this SHA1.
 	 */
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 	if (dm == NULL)						/* SHA1 unknown */
 		return 0;
 
@@ -2021,7 +2040,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	 *		 -- JA, 1/11/2003
 	 */
 
-	by_addr = g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+	by_addr = htable_lookup(ban_mesh_by_sha1, sha1);
 
 	if (by_addr != NULL) {
 		fmt = header_fmt_make("X-Nalt", ", ", size, size / 3);
@@ -2067,7 +2086,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	}
 
 	/* Find mesh entry for this SHA1 */
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 
 	/*
 	 * Start filling the buffer.
@@ -2801,7 +2820,7 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 	g_assert(buf);
 	g_assert(count > 0);
 
-	dm = g_hash_table_lookup(mesh, sha1);
+	dm = htable_lookup(mesh, sha1);
 	if (dm == NULL)					/* SHA1 unknown */
 		return 0;
 
@@ -2988,7 +3007,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		 * sharing this SHA1.
 		 */
 
-		has = NULL != g_hash_table_lookup(mesh, rc->sha1);
+		has = htable_contains(mesh, rc->sha1);
 
 		if (!has) {
 			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
@@ -3082,7 +3101,7 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
  * Store key/value pair in file.
  */
 static void
-dmesh_store_kv(void *key, void *value, void *udata)
+dmesh_store_kv(const void *key, void *value, void *udata)
 {
 	const struct dmesh *dm = value;
 	FILE *out = udata;
@@ -3113,8 +3132,8 @@ typedef void (*header_func_t)(FILE *out);
  * The storing callback for each item is `store_cb'.
  */
 static void
-dmesh_store_hash(const char *what, GHashTable *hash, const char *file,
-	header_func_t header_cb, GHFunc store_cb)
+dmesh_store_hash(const char *what, htable_t *hash, const char *file,
+	header_func_t header_cb, htable_each_t store_cb)
 {
 	FILE *out;
 	file_path_t fp;
@@ -3126,7 +3145,7 @@ dmesh_store_hash(const char *what, GHashTable *hash, const char *file,
 		return;
 
 	header_cb(out);
-	g_hash_table_foreach(hash, store_cb, out);
+	htable_foreach(hash, store_cb, out);
 
 	file_config_close(out, &fp);
 }
@@ -3243,7 +3262,7 @@ dmesh_retrieve(void)
  * Store key/value pair in file.
  */
 static void
-dmesh_ban_store_kv(void *key, void *value, void *udata)
+dmesh_ban_store_kv(const void *key, void *value, void *udata)
 {
 	const struct dmesh_banned *dmb = value;
 	FILE *out = udata;
@@ -3344,7 +3363,7 @@ dmesh_ban_retrieve(void)
  * Free key/value pair in download mesh hash.
  */
 static bool
-dmesh_free_kv(void *key, void *value, void *unused_udata)
+dmesh_free_kv(const void *key, void *value, void *unused_udata)
 {
 	struct dmesh *dm = value;
 
@@ -3359,7 +3378,7 @@ dmesh_free_kv(void *key, void *value, void *unused_udata)
  * Prepend the value to the list, given by reference.
  */
 static void
-dmesh_ban_prepend_list(void *key, void *value, void *user)
+dmesh_ban_prepend_list(const void *key, void *value, void *user)
 {
 	struct dmesh_banned *dmb = value;
 	GSList **listref = user;
@@ -3381,8 +3400,8 @@ dmesh_close(void)
 	dmesh_store();
 	dmesh_ban_store();
 
-	g_hash_table_foreach_remove(mesh, dmesh_free_kv, NULL);
-	gm_hash_table_destroy_null(&mesh);
+	htable_foreach_remove(mesh, dmesh_free_kv, NULL);
+	htable_free_null(&mesh);
 
 	/*
 	 * Construct a list of banned mesh entries to remove, then manually
@@ -3390,7 +3409,7 @@ dmesh_close(void)
 	 * and `ban_mesh_by_sha1' as well.
 	 */
 
-	g_hash_table_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
+	htable_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
 		struct dmesh_banned *dmb = sl->data;
@@ -3399,8 +3418,8 @@ dmesh_close(void)
 	}
 
 	gm_slist_free_null(&banned);
-	gm_hash_table_destroy_null(&ban_mesh);
-	gm_hash_table_destroy_null(&ban_mesh_by_sha1);
+	htable_free_null(&ban_mesh);
+	htable_free_null(&ban_mesh_by_sha1);
 
 	cq_free_null(&dmesh_cq);
 }

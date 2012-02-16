@@ -43,6 +43,7 @@
 #include "lib/cq.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/pmsg.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/walloc.h"
@@ -204,7 +205,7 @@ mq_info(const mqueue_t *q)
 /*
  * This hashtable tracks the queue owning a given glist linkable.
  */
-static GHashTable *qown = NULL;
+static htable_t *qown = NULL;
 
 /**
  * Add linkable into queue
@@ -219,9 +220,9 @@ mq_add_linkable(mqueue_t *q, GList *l)
 	g_assert(l->data != NULL);
 	
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
+		qown = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 
-	owner = g_hash_table_lookup(qown, l);
+	owner = htable_lookup(qown, l);
 	if (owner) {
 		g_carp("BUG: added linkable %p already owned by %s%s",
 			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
@@ -231,7 +232,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 		g_assert_not_reached();
 	}
 
-	g_hash_table_insert(qown, l, q);
+	htable_insert(qown, l, q);
 }
 
 /**
@@ -246,7 +247,7 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 	g_assert(l != NULL);
 	g_assert(qown != NULL);		/* Must have added something before */
 
-	owner = g_hash_table_lookup(qown, l);
+	owner = htable_lookup(qown, l);
 
 	if (owner == NULL)
 		g_error("BUG: removed linkable %p from %s belongs to no queue!",
@@ -255,7 +256,7 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 		g_error("BUG: removed linkable %p from %s is from another queue!",
 			(void *) l, mq_info(q));
 	else
-		g_hash_table_remove(qown, l);
+		htable_remove(qown, l);
 }
 
 /**
@@ -271,7 +272,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 	g_assert(q);
 
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
+		qown = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 
 	if (q->magic != MQ_MAGIC)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
@@ -299,7 +300,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 
 		g_assert(qown);		/* If we have a qlink, we have added items */
 
-		owner = g_hash_table_lookup(qown, item);
+		owner = htable_lookup(qown, item);
 		if (owner != q)
 			g_error("BUG: linkable #%d/%d from %s "
 				"%s at %s:%d",

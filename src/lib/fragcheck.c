@@ -32,15 +32,15 @@
  */
 
 #include "common.h"
-#include "lib/fragcheck.h"
+#include "fragcheck.h"
 
 #ifdef FRAGCHECK
 
-#include "lib/glib-missing.h"
-#include "lib/bit_array.h"
-#include "lib/misc.h"
+#include "glib-missing.h"
+#include "bit_array.h"
+#include "misc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 #if HAS_GCC(3, 0)
 #define FRAGCHECK_TRACK_CALLERS

@@ -65,11 +65,13 @@
 #include "lib/dbstore.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
-#include "lib/tm.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PUBLISHER_CALLOUT	10000	/**< Heartbeat every 10 seconds */
@@ -129,7 +131,7 @@ publisher_check(const struct publisher_entry *pe)
 	g_assert(PUBLISHER_MAGIC == pe->magic);
 }
 
-static GHashTable *publisher_sha1;	/** Known entries by SHA1 */
+static htable_t *publisher_sha1;	/** Known entries by SHA1 */
 
 /**
  * Private callout queue used to trigger republish events.
@@ -219,7 +221,7 @@ publisher_entry_free(struct publisher_entry *pe, bool do_remove)
 	publisher_check(pe);
 
 	if (do_remove) {
-		g_hash_table_remove(publisher_sha1, pe->sha1);
+		htable_remove(publisher_sha1, pe->sha1);
 		delete_pubdata(pe->sha1);
 	}
 
@@ -755,7 +757,7 @@ publisher_add(const sha1_t *sha1)
 	 * If already known, ignore silently.
 	 */
 
-	if (g_hash_table_lookup(publisher_sha1, sha1))
+	if (htable_lookup(publisher_sha1, sha1))
 		return;
 
 	/*
@@ -795,7 +797,7 @@ publisher_add(const sha1_t *sha1)
 	 */
 
 	pe = publisher_entry_alloc(sha1);
-	gm_hash_table_insert_const(publisher_sha1, pe->sha1, pe);
+	htable_insert(publisher_sha1, pe->sha1, pe);
 
 	publisher_handle(pe);
 }
@@ -923,7 +925,7 @@ publisher_init(void)
 		{ serialize_pubdata, deserialize_pubdata, NULL };
 
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
-	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	publisher_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
@@ -967,7 +969,7 @@ publisher_init(void)
  * Hash table iterator callback to free entry.
  */
 static void
-free_entry(void *key, void *val, void *data)
+free_entry(const void *key, void *val, void *data)
 {
 	struct publisher_entry *pe = val;
 
@@ -990,7 +992,7 @@ publisher_remove_orphan(void *key, void *u_value, size_t u_len, void *u_data)
 	(void) u_len;
 	(void) u_data;
 
-	return NULL == g_hash_table_lookup(publisher_sha1, sha1);
+	return !htable_contains(publisher_sha1, sha1);
 }
 
 /**
@@ -1009,8 +1011,8 @@ publisher_close(void)
 	 * Final cleanup.
 	 */
 
-	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
-	gm_hash_table_destroy_null(&publisher_sha1);
+	htable_foreach(publisher_sha1, free_entry, NULL);
+	htable_free_null(&publisher_sha1);
 
 	dbstore_close(db_pubdata, settings_dht_db_dir(), db_pubdata_base);
 	db_pubdata = NULL;

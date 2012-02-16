@@ -36,7 +36,8 @@
 #define _dualhash_h_
 
 #include "common.h"
-#include "glib-missing.h"
+
+#include "hash.h"		/* For hash_func_t and hash_eq_t */
 
 struct dualhash;
 typedef struct dualhash dualhash_t;
@@ -45,8 +46,8 @@ typedef struct dualhash dualhash_t;
  * Public interface.
  */
 
-dualhash_t *dualhash_new(GHashFunc key_hash_func, GEqualFunc key_eq_func,
-	GHashFunc val_hash_func, GEqualFunc val_eq_func);
+dualhash_t *dualhash_new(hash_func_t key_hash_func, hash_eq_t key_eq_func,
+	hash_func_t val_hash_func, hash_eq_t val_eq_func);
 void dualhash_destroy(dualhash_t *dh);
 void dualhash_destroy_null(dualhash_t **dh_ptr);
 void dualhash_insert_key(dualhash_t *dh, const void *key, const void *value);
@@ -58,9 +59,9 @@ bool dualhash_contains_value(const dualhash_t *dh, const void *val);
 void *dualhash_lookup_key(const dualhash_t *dh, const void *key);
 void *dualhash_lookup_value(const dualhash_t *dh, const void *value);
 bool dualhash_lookup_key_extended(const dualhash_t *dh, const void *key,
-	void *okey, void *oval);
+	void **okey, void **oval);
 bool dualhash_lookup_value_extended(const dualhash_t *dh, const void *value,
-	void *okey, void *oval);
+	void **okey, void **oval);
 size_t dualhash_count(const dualhash_t *dh);
 
 #endif	/* _dualhash_h_ */

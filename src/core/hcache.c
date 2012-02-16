@@ -66,6 +66,8 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/path.h"
 #include "lib/random.h"
 #include "lib/timestamp.h"
@@ -259,7 +261,7 @@ stop_mass_update(hostcache_t *hc)
 			break;
 		case HCACHE_NONE:
 		case HCACHE_MAX:
-            g_error("stop_mass_update: unknown cache type: %d", hc->type);
+            g_error("%s: unknown cache type: %d", G_STRFUNC, hc->type);
         }
     }
 }
@@ -267,14 +269,14 @@ stop_mass_update(hostcache_t *hc)
 /**
  * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_HOST.
  */
-static GHashTable *ht_known_hosts;
+static htable_t *ht_known_hosts;
 
 /**
  * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_GUESS.
  */
-static GHashTable *ht_guess_hosts;
+static htable_t *ht_guess_hosts;
 
-static GHashTable *
+static htable_t *
 hcache_ht_by_class(hcache_class_t class)
 {
 	switch (class) {
@@ -366,16 +368,17 @@ hcache_ht_get(hcache_class_t class, const host_addr_t addr, uint16 port,
 	gnet_host_t **h, hostcache_entry_t **e)
 {
 	gnet_host_t host;
-	void *k, *v;
+	const void *k;
+	void *v;
 	bool found;
-	GHashTable *ht;
+	htable_t *ht;
 
 	gnet_host_set(&host, addr, port);
 	ht = hcache_ht_by_class(class);
 
-	found = g_hash_table_lookup_extended(ht, &host, &k, &v);
+	found = htable_lookup_extended(ht, &host, &k, &v);
 	if (found) {
-		*h = k;
+		*h = deconstify_pointer(k);
 		*e = v;
 	}
 
@@ -399,14 +402,14 @@ static hostcache_entry_t *
 hcache_ht_add(hcache_type_t type, const gnet_host_t *host)
 {
     hostcache_entry_t *hce;
-	GHashTable *ht;
+	htable_t *ht;
 
     hce = hce_alloc();
     hce->type = type;
     hce->time_added = tm_time();
 
 	ht = hcache_ht_by_class(hcache_class(type));
-	gm_hash_table_insert_const(ht, host, hce);
+	htable_insert(ht, host, hce);
 
     return hce;
 }
@@ -418,18 +421,18 @@ static void
 hcache_ht_remove(hcache_class_t class, gnet_host_t *host)
 {
 	hostcache_entry_t *hce;
-	void *key, *value;
-	GHashTable *ht;
+	void *value;
+	htable_t *ht;
 
 	ht = hcache_ht_by_class(class);
 
-	if (!g_hash_table_lookup_extended(ht, host, &key, &value)) {
-		g_carp("hcache_ht_remove: attempt to remove unknown host: %s",
-			  gnet_host_to_string(host));
+	if (!htable_lookup_extended(ht, host, NULL, &value)) {
+		g_carp("%s: attempt to remove unknown host: %s",
+			  G_STRFUNC, gnet_host_to_string(host));
 		return;
 	}
 	hce = value;
-	g_hash_table_remove(ht, host);
+	htable_remove(ht, host);
 
 	if (hce != NO_METADATA)
 		hce_free(hce);
@@ -444,9 +447,9 @@ hcache_ht_remove(hcache_class_t class, gnet_host_t *host)
 static hostcache_entry_t *
 hcache_get_metadata(hcache_class_t class, const gnet_host_t *host)
 {
-	GHashTable *ht = hcache_ht_by_class(class);
+	htable_t *ht = hcache_ht_by_class(class);
 
-    return g_hash_table_lookup(ht, host);
+    return htable_lookup(ht, host);
 }
 
 /**
@@ -1031,7 +1034,7 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, uint16 port,
 		g_assert_not_reached();
     }
 
-    g_error("hcache_add_caught: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return FALSE;
 }
 
@@ -1064,7 +1067,7 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, uint16 port,
 		g_assert_not_reached();
     }
 
-    g_error("hcache_add_valid: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return FALSE;
 }
 
@@ -1081,8 +1084,8 @@ hcache_remove(hcache_class_t class, gnet_host_t *h)
 
     hce = hcache_get_metadata(class, h);
     if (hce == NULL) {
-		g_warning("hcache_remove: attempt to remove unknown host: %s",
-			gnet_host_to_string(h));
+		g_warning("%s: attempt to remove unknown host: %s",
+			G_STRFUNC, gnet_host_to_string(h));
         return; /* Host is not in hashtable */
     }
 
@@ -1196,7 +1199,7 @@ hcache_clear_host_type(host_type_t type)
     }
 
 	if (!valid)
-        g_error("hcache_clear_host_type: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	pcache_clear_recent(type);
 }
@@ -1238,7 +1241,7 @@ hcache_size(host_type_t type)
     case HOST_MAX:
 		g_assert_not_reached();
     }
-    g_error("hcache_is_low: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return -1; /* Only here to make -Wall happy */
 }
 
@@ -1417,7 +1420,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	int i;
 	hostcache_t *hc = NULL;
 	hostcache_t *hc2 = NULL;
-	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	hset_t *seen_host = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -1481,7 +1484,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
     }
 
 	if (NULL == hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	/*
 	 * We first try to fill IPv6 addresses, or IPv4 if they only want that.
@@ -1495,7 +1498,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		if (NULL == h)
 			break;
 
-		if (g_hash_table_lookup(seen_host, h))
+		if (hset_contains(seen_host, h))
 			continue;
 
 		/*
@@ -1505,7 +1508,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 
 		gnet_host_copy(&hosts[i], h);
 
-		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
+		hset_insert(seen_host, &hosts[i]);
 	}
 	hash_list_iter_release(&iter);
 
@@ -1525,7 +1528,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		if (NULL == h)
 			break;
 
-		if (g_hash_table_lookup(seen_host, h))
+		if (hset_contains(seen_host, h))
 			continue;
 
 		/*
@@ -1535,12 +1538,12 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 
 		gnet_host_copy(&hosts[i], h);
 
-		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
+		hset_insert(seen_host, &hosts[i]);
 	}
 	hash_list_iter_release(&iter);
 
 done:
-	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
+	hset_free_null(&seen_host);	/* Keys point into vector */
 
 	return i;				/* Amount of hosts we filled */
 }
@@ -1578,7 +1581,7 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, uint16 *port)
     }
 
 	if (!hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	/* iterate through whole list */
 
@@ -1689,7 +1692,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
     }
 
 	if (!hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
     available = hcache_require_caught(hc);
 
@@ -2017,8 +2020,8 @@ hcache_periodic_save(void *unused_obj)
 G_GNUC_COLD void
 hcache_init(void)
 {
-	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
-	ht_guess_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	ht_known_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	ht_guess_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
@@ -2181,11 +2184,11 @@ hcache_close(void)
         caches[type] = NULL;
 	}
 
-    g_assert(g_hash_table_size(ht_known_hosts) == 0);
-    g_assert(g_hash_table_size(ht_guess_hosts) == 0);
+    g_assert(0 == htable_count(ht_known_hosts));
+    g_assert(0 == htable_count(ht_guess_hosts));
 
-	gm_hash_table_destroy_null(&ht_known_hosts);
-	gm_hash_table_destroy_null(&ht_guess_hosts);
+	htable_free_null(&ht_known_hosts);
+	htable_free_null(&ht_guess_hosts);
 	cq_periodic_remove(&hcache_timer_ev);
 }
 

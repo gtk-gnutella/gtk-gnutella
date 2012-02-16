@@ -151,12 +151,14 @@
 #include "core/gnet_stats.h"
 
 #include "lib/cq.h"
+#include "lib/htable.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/slist.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PB_MAX_LIFETIME		120000	/* 2 minutes, in ms */
@@ -173,7 +175,7 @@
  * Table keeping track of all the publish objects that we have created
  * and which are still running.
  */
-static GHashTable *publishes;
+static htable_t *publishes;
 
 /**
  * Publish types.
@@ -353,7 +355,7 @@ publish_is_alive(struct nid pid)
 	if (NULL == publishes)
 		return NULL;
 
-	pb = g_hash_table_lookup(publishes, &pid);
+	pb = htable_lookup(publishes, &pid);
 
 	if (pb)
 		publish_check(pb);
@@ -411,7 +413,7 @@ publish_free(publish_t *pb)
 	}
 
 	if (!(pb->flags & PB_F_DONT_REMOVE))
-		g_hash_table_remove(publishes, &pb->pid);
+		htable_remove(publishes, &pb->pid);
 
 	pb->magic = 0;
 	WFREE(pb);
@@ -2077,7 +2079,7 @@ publish_create(const kuid_t *key, publish_type_t type, int cnt)
 			1 == cnt ? "" : "s", kuid_to_hex_string(pb->key));
 	}
 
-	g_hash_table_insert(publishes, &pb->pid, pb);
+	htable_insert(publishes, &pb->pid, pb);
 
 	return pb;
 }
@@ -2542,14 +2544,14 @@ publish_init(void)
 {
 	g_assert(NULL == publishes);
 
-	publishes = g_hash_table_new(nid_hash, nid_equal);
+	publishes = htable_create_any(nid_hash, NULL, nid_equal);
 }
 
 /** 
  * Hashtable iteration callback to free the publish_t object held as the key.
  */
 static void
-free_publish(void *key, void *value, void *data)
+free_publish(const void *key, void *value, void *data)
 {
 	publish_t *pb = value;
 	bool *exiting = data;
@@ -2589,8 +2591,8 @@ free_publish(void *key, void *value, void *data)
 void
 publish_close(bool exiting)
 {
-	g_hash_table_foreach(publishes, free_publish, &exiting);
-	gm_hash_table_destroy_null(&publishes);
+	htable_foreach(publishes, free_publish, &exiting);
+	htable_free_null(&publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

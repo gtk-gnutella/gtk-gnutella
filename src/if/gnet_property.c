@@ -1044,7 +1044,7 @@ gnet_prop_init(void) {
     gnet_property->props  = omalloc(sizeof(prop_def_t) * GNET_PROPERTY_NUM);
     gnet_property->get_stub = gnet_prop_get_stub;
     gnet_property->dirty = FALSE;
-    gnet_property->byName = NULL;
+    gnet_property->by_name = NULL;
 
 
     /*
@@ -9487,10 +9487,10 @@ gnet_prop_init(void) {
             g_strdup(eval_subst(*gnet_property->props[442].data.string.def));
     }
 
-    gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
+    gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gnet_property->byName,
-            gnet_property->props[n].name, GINT_TO_POINTER(n+(NO_PROP+1)));
+        htable_insert(gnet_property->by_name,
+            gnet_property->props[n].name, int_to_pointer(n+(NO_PROP+1)));
     }
 
     return gnet_property;
@@ -9503,10 +9503,7 @@ G_GNUC_COLD void
 gnet_prop_shutdown(void) {
     guint32 n;
 
-    if (gnet_property->byName) {
-        g_hash_table_destroy(gnet_property->byName);
-        gnet_property->byName = NULL;
-    }
+    htable_free_null(&gnet_property->by_name);
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         if (gnet_property->props[n].type == PROP_TYPE_STRING) {
@@ -9705,8 +9702,7 @@ gnet_prop_is_saved(property_t p)
 property_t
 gnet_prop_get_by_name(const char *name)
 {
-    return GPOINTER_TO_UINT(
-        g_hash_table_lookup(gnet_property->byName, name));
+    return pointer_to_uint(htable_lookup(gnet_property->by_name, name));
 }
 
 GSList *

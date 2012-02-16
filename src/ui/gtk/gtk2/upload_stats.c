@@ -66,6 +66,7 @@
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/utf8.h"
@@ -77,7 +78,7 @@
 static GtkTreeView *upload_stats_treeview;
 static GtkWidget *popup_upload_stats;
 
-static GHashTable *ht_uploads;
+static htable_t *ht_uploads;
 
 struct upload_data {
 	GtkTreeIter iter;
@@ -226,7 +227,7 @@ add_column(
 static struct upload_data *
 upload_stats_gui_find(const struct ul_stats *us)
 {
-	return g_hash_table_lookup(ht_uploads, us);
+	return htable_lookup(ht_uploads, us);
 }
 
 static inline struct upload_data *
@@ -363,7 +364,7 @@ upload_stats_gui_init_intern(gboolean intern)
 
 	if (!initialized) {
 		initialized = TRUE;
-		ht_uploads = g_hash_table_new(NULL, NULL);
+		ht_uploads = htable_create(HASH_KEY_SELF, 0);
     	popup_upload_stats = create_popup_upload_stats();
 		model = GTK_TREE_MODEL(gtk_list_store_new(1, G_TYPE_POINTER));
 		upload_stats_treeview = GTK_TREE_VIEW(
@@ -420,13 +421,13 @@ upload_stats_gui_add(struct ul_stats *us)
 	upload_stats_gui_init_intern(TRUE);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
 	g_return_if_fail(store);
-	g_return_if_fail(NULL == g_hash_table_lookup(ht_uploads, us));
+	g_return_if_fail(!htable_contains(ht_uploads, us));
 
 	WALLOC(data);
 	data->us = us;
 
 	data->filename = atom_str_get(us->filename);
-	gm_hash_table_insert_const(ht_uploads, data->us, data);
+	htable_insert(ht_uploads, data->us, data);
 
 	gtk_list_store_append(store, &data->iter);
     gtk_list_store_set(store, &data->iter, 0, data, (-1));
@@ -483,8 +484,8 @@ upload_stats_gui_update_model(struct ul_stats *us)
 	}
 }
 
-static gboolean
-free_upload_data(gpointer unused_key, gpointer value, gpointer unused_data)
+static void
+free_upload_data(const void *unused_key, void *value, void *unused_data)
 {
 	struct upload_data *data = value;
 
@@ -496,7 +497,6 @@ free_upload_data(gpointer unused_key, gpointer value, gpointer unused_data)
 	data->us = NULL;
 	atom_str_free_null(&data->filename);
 	WFREE(data);
-	return TRUE;
 }
 
 /**
@@ -513,9 +513,9 @@ upload_stats_gui_clear_all(void)
 		gtk_list_store_clear(store);
 	}
 	if (ht_uploads) {
-		g_hash_table_foreach_remove(ht_uploads, free_upload_data, NULL);
-		g_hash_table_destroy(ht_uploads);
-		ht_uploads = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+		htable_foreach(ht_uploads, free_upload_data, NULL);
+		htable_free_null(&ht_uploads);
+		ht_uploads = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 	}
 }
 

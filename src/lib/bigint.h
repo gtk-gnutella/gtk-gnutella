@@ -58,6 +58,7 @@ void bigint_init(bigint_t *bi, size_t len);
 void bigint_free(bigint_t *bi);
 void bigint_zero(bigint_t *bi);
 void bigint_copy(bigint_t *res, const bigint_t *other);
+gboolean bigint_is_zero(const bigint_t *bi);
 int bigint_cmp(const bigint_t *bi1, const bigint_t *bi2);
 void bigint_set32(bigint_t *bi, uint32 val);
 void bigint_set64(bigint_t *bi, uint64 val);
@@ -69,6 +70,7 @@ bool bigint_add(bigint_t *res, const bigint_t *other);
 bool bigint_add_u8(bigint_t *bi, uint8 val);
 bool bigint_lshift(bigint_t *bi);
 void bigint_rshift(bigint_t *bi);
+void bigint_rshift_bytes(bigint_t *bi, size_t n);
 uint8 bigint_mult_u8(bigint_t *bi, uint8 val);
 void bigint_divide(const bigint_t *bi1, const bigint_t *bi2,
 	bigint_t *qi, bigint_t *ri);

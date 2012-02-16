@@ -356,7 +356,7 @@ gui_prop_init(void) {
     gui_property->props  = omalloc(sizeof(prop_def_t) * GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
     gui_property->dirty = FALSE;
-    gui_property->byName = NULL;
+    gui_property->by_name = NULL;
 
 
     /*
@@ -2524,10 +2524,10 @@ gui_prop_init(void) {
     gui_property->props[119].data.boolean.def   = (void *) &gui_property_variable_search_discard_banned_guid_default;
     gui_property->props[119].data.boolean.value = (void *) &gui_property_variable_search_discard_banned_guid;
 
-    gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
+    gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gui_property->byName,
-            gui_property->props[n].name, GINT_TO_POINTER(n+1000));
+        htable_insert(gui_property->by_name,
+            gui_property->props[n].name, int_to_pointer(n+1000));
     }
 
     return gui_property;
@@ -2540,10 +2540,7 @@ G_GNUC_COLD void
 gui_prop_shutdown(void) {
     guint32 n;
 
-    if (gui_property->byName) {
-        g_hash_table_destroy(gui_property->byName);
-        gui_property->byName = NULL;
-    }
+    htable_free_null(&gui_property->by_name);
 
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
@@ -2742,8 +2739,7 @@ gui_prop_is_saved(property_t p)
 property_t
 gui_prop_get_by_name(const char *name)
 {
-    return GPOINTER_TO_UINT(
-        g_hash_table_lookup(gui_property->byName, name));
+    return pointer_to_uint(htable_lookup(gui_property->by_name, name));
 }
 
 GSList *

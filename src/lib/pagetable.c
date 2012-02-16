@@ -31,11 +31,11 @@
 
 #include "common.h"
 
-#include "lib/pagetable.h"
-#include "lib/misc.h"
-#include "lib/vmm.h"
+#include "pagetable.h"
+#include "misc.h"
+#include "vmm.h"
 
-#include "lib/override.h"
+#include "override.h"
 
 /**
  * NOTE: These values are meant for a typical 32-bit system with 4 KiB

@@ -38,7 +38,7 @@
 #define THREAD_SOURCE			/* We want hash_table_new_real() */
 
 #include "thread.h"
-#include "atoms.h"				/* For binary_hash() */
+#include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "spinlock.h"
 #include "walloc.h"
@@ -54,7 +54,7 @@ struct thread_pvalue {
 	void *p_arg;					/**< Optional argument to free routine */
 };
 
-static size_t
+static unsigned
 thread_hash(const void *key)
 {
 	return binary_hash(key, sizeof(thread_t));

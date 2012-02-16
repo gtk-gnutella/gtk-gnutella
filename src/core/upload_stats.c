@@ -58,11 +58,13 @@
 
 #include "if/bridge/c2ui.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -79,7 +81,7 @@ static const char ul_stats_what[] = "upload statistics";
 
 static bool dirty = FALSE;
 static hash_list_t *upload_stats_list;
-static GHashTable *upload_stats_by_sha1;
+static htable_t *upload_stats_by_sha1;
 
 static bool 
 ul_stats_eq(const void *p, const void *q)
@@ -95,7 +97,7 @@ ul_stats_hash(const void *p)
 {
 	const struct ul_stats *s = p;
   
-	return g_str_hash(s->pathname) ^ s->size;
+	return string_mix_hash(s->pathname) ^ integer_hash(s->size);
 }
 
 /**
@@ -119,7 +121,7 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, uint64 size)
 		g_assert(upload_stats_by_sha1);
 
 		if (sha1) {
-			s = g_hash_table_lookup(upload_stats_by_sha1, sha1);
+			s = htable_lookup(upload_stats_by_sha1, sha1);
 			if (s)
 				goto done;		/* Found it by SHA1 */
 		}
@@ -141,15 +143,15 @@ upload_stats_find(const struct sha1 *sha1, const char *pathname, uint64 size)
 			} else {
 				/* SHA1 changed, file was modified */
 				struct ul_stats *old =
-					g_hash_table_lookup(upload_stats_by_sha1, s->sha1);
+					htable_lookup(upload_stats_by_sha1, s->sha1);
 
 				g_assert(old == s);		/* Must be the same filename entry */
 
-				g_hash_table_remove(upload_stats_by_sha1, s->sha1);
+				htable_remove(upload_stats_by_sha1, s->sha1);
 				atom_sha1_free(s->sha1);
 				s->sha1 = atom_sha1_get(sha1);
 			}
-			gm_hash_table_insert_const(upload_stats_by_sha1, s->sha1, s);
+			htable_insert(upload_stats_by_sha1, s->sha1, s);
 		}
 	}
 
@@ -195,11 +197,11 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	if (!upload_stats_list) {
 		g_assert(!upload_stats_by_sha1);
 		upload_stats_list = hash_list_new(ul_stats_hash, ul_stats_eq);
-		upload_stats_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+		upload_stats_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	}
 	hash_list_append(upload_stats_list, s);
 	if (s->sha1)
-		gm_hash_table_insert_const(upload_stats_by_sha1, s->sha1, s);
+		htable_insert(upload_stats_by_sha1, s->sha1, s);
 	gcu_upload_stats_gui_add(s);
 }
 
@@ -455,7 +457,7 @@ upload_stats_enforce_local_filename(const shared_file_t *sf)
 	if (!sha1)
 		return;		/* File's SHA1 not known yet, nothing to do here */
 
-	s = g_hash_table_lookup(upload_stats_by_sha1, sha1);
+	s = htable_lookup(upload_stats_by_sha1, sha1);
 
 	if (NULL == s)
 		return;							/* SHA1 not in stats, nothing to do */
@@ -609,12 +611,12 @@ upload_stats_free_all(void)
 			atom_str_free_null(&s->pathname);
 			atom_str_free_null(&s->filename);
 			if (s->sha1)
-				g_hash_table_remove(upload_stats_by_sha1, s->sha1);
+				htable_remove(upload_stats_by_sha1, s->sha1);
 			atom_sha1_free_null(&s->sha1);
 			WFREE(s);
 		}
 		hash_list_free(&upload_stats_list);
-		gm_hash_table_destroy_null(&upload_stats_by_sha1);
+		htable_free_null(&upload_stats_by_sha1);
 	}
 	dirty = TRUE;
 }

@@ -20,8 +20,8 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/slist.h"
 #include "lib/stacktrace.h"
 #include "lib/vmm.h"
@@ -35,7 +35,7 @@
  * The LRU page cache.
  */
 struct lru_cache {
-	GHashTable *pagnum;			/* Associates page number to cached index */
+	htable_t *pagnum;			/* Associates page number to cached index */
 	hash_list_t *used;			/* Ordered list of used cache indices */
 	slist_t *available;			/* Available indices */
 	char *arena;				/* Cache arena */
@@ -59,7 +59,7 @@ setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 	cache->arena = vmm_alloc(pages * DBM_PBLKSIZ);
 	if (NULL == cache->arena)
 		return -1;
-	cache->pagnum = g_hash_table_new(NULL, NULL);
+	cache->pagnum = htable_create(HASH_KEY_SELF, 0);
 	cache->used = hash_list_new(NULL, NULL);
 	cache->available = slist_new();
 	cache->pages = pages;
@@ -79,7 +79,7 @@ free_cache(struct lru_cache *cache)
 {
 	hash_list_free(&cache->used);
 	slist_free(&cache->available);
-	gm_hash_table_destroy_null(&cache->pagnum);
+	htable_free_null(&cache->pagnum);
 	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
 	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
 	WFREE_NULL(cache->dirty, cache->pages);
@@ -467,7 +467,7 @@ getidx(DBM *db, long num)
 			}
 		}
 
-		g_hash_table_remove(cache->pagnum, ulong_to_pointer(oldnum));
+		htable_remove(cache->pagnum, ulong_to_pointer(oldnum));
 		cache->dirty[n] = FALSE;
 	}
 
@@ -478,8 +478,7 @@ getidx(DBM *db, long num)
 	g_assert(n >= 0 && n < cache->pages);
 
 	cache->numpag[n] = num;
-	g_hash_table_insert(cache->pagnum,
-		ulong_to_pointer(num), int_to_pointer(n));
+	htable_insert(cache->pagnum, ulong_to_pointer(num), int_to_pointer(n));
 
 	return n;
 }
@@ -502,7 +501,7 @@ lru_cached_page(DBM *db, long num)
 
 	if (
 		cache != NULL &&
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		long idx = pointer_to_int(value);
@@ -552,7 +551,7 @@ lru_invalidate(DBM *db, long bno)
 	void *value;
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(bno), NULL, &value)
 	) {
 		long idx = pointer_to_int(value);
@@ -572,7 +571,7 @@ lru_invalidate(DBM *db, long bno)
 		}
 
 		hash_list_remove(cache->used, value);
-		g_hash_table_remove(cache->pagnum, ulong_to_pointer(bno));
+		htable_remove(cache->pagnum, ulong_to_pointer(bno));
 		cache->numpag[idx] = -1;
 		cache->dirty[idx] = FALSE;
 		slist_append(cache->available, value);	/* Make index available */
@@ -600,7 +599,7 @@ readbuf(DBM *db, long num, bool *loaded)
 	g_assert(num >= 0);
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		hash_list_moveto_head(cache->used, value);
@@ -652,7 +651,7 @@ cachepag(DBM *db, char *pag, long num)
 	 */
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		long idx;

@@ -90,6 +90,7 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/pmsg.h"
 #include "lib/patricia.h"
 #include "lib/stringify.h"
@@ -170,7 +171,7 @@ struct keydata {
 /**
  * Hashtable holding information about all the keys we're storing.
  */
-static GHashTable *keys;		/**< KUID => struct keyinfo */
+static htable_t *keys;		/**< KUID => struct keyinfo */
 
 /**
  * DBM wrapper to store keydata.
@@ -203,7 +204,7 @@ static void keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj);
 bool
 keys_exists(const kuid_t *key)
 {
-	return gm_hash_table_contains(keys, key);
+	return htable_contains(keys, key);
 }
 
 /**
@@ -217,7 +218,7 @@ keys_is_store_loaded(const kuid_t *id)
 
 	g_assert(id);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 	if (ki == NULL)
 		return FALSE;
 
@@ -469,7 +470,7 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 	*full = FALSE;
 	*loaded = FALSE;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 	if (ki == NULL)
 		return;
 
@@ -536,7 +537,7 @@ keys_has(const kuid_t *id, const kuid_t *cid, bool store)
 	struct keydata *kd;
 	uint64 dbkey;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 	if (ki == NULL)
 		return 0;
 
@@ -604,7 +605,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 	struct keydata *kd;
 	int idx;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 
 	g_assert(ki);
 
@@ -662,7 +663,7 @@ keys_update_value(const kuid_t *id, time_t expire)
 {
 	struct keyinfo *ki;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 	g_assert(ki != NULL);
 
 	ki->next_expire = MIN(ki->next_expire, expire);
@@ -686,7 +687,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 	struct keydata *kd;
 	struct keydata new_kd;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 
 	/*
 	 * If we're storing the first value under a key, we do not have any
@@ -718,7 +719,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		ki->next_expire = expire;
 		ki->flags = in_kball ? 0 : DHT_KEY_F_CACHED;
 
-		g_hash_table_insert(keys, ki->kuid, ki);
+		htable_insert(keys, ki->kuid, ki);
 
 		kd = &new_kd;
 		kd->values = 0;						/* will be incremented below */
@@ -832,7 +833,7 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 	g_assert(valvec);
 	g_assert(valcnt > 0);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 	if (ki == NULL)
 		return 0;
 
@@ -893,7 +894,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(valcnt > 0);
 	g_assert(loadptr);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = htable_lookup(keys, id);
 
 	g_assert(ki);	/* If called, we know the key exists */
 
@@ -1060,7 +1061,7 @@ struct load_ctx {
  * @return TRUE if the key item holds no value and must be removed.
  */
 static bool
-keys_update_load(void *u_key, void *val, void *u)
+keys_update_load(const void *u_key, void *val, void *u)
 {
 	struct keyinfo *ki = val;
 	struct load_ctx *ctx = u;
@@ -1117,12 +1118,12 @@ keys_periodic_load(void *unused_obj)
 
 	ctx.values = 0;
 	ctx.now = tm_time();
-	g_hash_table_foreach_remove(keys, keys_update_load, &ctx);
+	htable_foreach_remove(keys, keys_update_load, &ctx);
 
 	g_assert(values_count() == ctx.values);
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
-		size_t keys_count = g_hash_table_size(keys);
+		size_t keys_count = htable_count(keys);
 		g_debug("DHT holding %zu value%s spread over %zu key%s",
 			ctx.values, 1 == ctx.values ? "" : "s",
 			keys_count, 1 == keys_count ? "" : "s");
@@ -1282,7 +1283,7 @@ keys_init(void)
 	keys_periodic_ev = cq_periodic_main_add(LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
-	keys = g_hash_table_new(kuid_hash, kuid_eq);
+	keys = htable_create(HASH_KEY_FIXED, KUID_RAW_SIZE);
 	install_periodic_kball(KBALL_FIRST);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
@@ -1313,9 +1314,9 @@ struct offload_context {
  * nodes.
  */
 static void
-keys_offload_prepare(void *key, void *val, void *data)
+keys_offload_prepare(const void *key, void *val, void *data)
 {
-	kuid_t *id = key;
+	const kuid_t *id = key;
 	struct keyinfo *ki = val;
 	struct offload_context *ctx = data;
 
@@ -1330,7 +1331,7 @@ keys_offload_prepare(void *key, void *val, void *data)
 	 */
 
 	if (patricia_closest(ctx->kclosest, id) == ctx->our_kuid) {
-		ctx->found = g_slist_prepend(ctx->found, id);
+		ctx->found = gm_slist_prepend_const(ctx->found, id);
 		ctx->count++;
 	}
 }
@@ -1363,9 +1364,9 @@ keys_offload(const knode_t *kn)
 		return;
 
 	if (
-		!dht_bootstrapped() ||				/* Not bootstrapped */
-		!keys_within_kball(kn->id) ||		/* Node KUID outside our k-ball */
-		0 == g_hash_table_size(keys)		/* No keys held */
+		!dht_bootstrapped() ||			/* Not bootstrapped */
+		!keys_within_kball(kn->id) ||	/* Node KUID outside our k-ball */
+		0 == htable_count(keys)			/* No keys held */
 	)
 		return;
 
@@ -1415,13 +1416,13 @@ keys_offload(const knode_t *kn)
 	 * Select offloading candidate keys.
 	 */
 
-	g_hash_table_foreach(keys, keys_offload_prepare, &ctx);
+	htable_foreach(keys, keys_offload_prepare, &ctx);
 	patricia_destroy(ctx.kclosest);
 
-	if (debug)
-		g_debug("DHT found %u/%u offloading candidate%s",
-			ctx.count, (unsigned) g_hash_table_size(keys),
-			1 == ctx.count ? "" : "s");
+	if (debug) {
+		g_debug("DHT found %u/%zu offloading candidate%s",
+			ctx.count, htable_count(keys), 1 == ctx.count ? "" : "s");
+	}
 
 	if (ctx.count)
 		publish_offload(kn, ctx.found);
@@ -1433,7 +1434,7 @@ keys_offload(const knode_t *kn)
  * Hashtable iterator to free the items held in `keys'.
  */
 static void
-keys_free_kv(void *u_key, void *val, void *u_x)
+keys_free_kv(const void *u_key, void *val, void *u_x)
 {
 	struct keyinfo *ki = val;
 
@@ -1456,8 +1457,8 @@ keys_close(void)
 	db_keydata = NULL;
 
 	if (keys) {
-		g_hash_table_foreach(keys, keys_free_kv, NULL);
-		gm_hash_table_destroy_null(&keys);
+		htable_foreach(keys, keys_free_kv, NULL);
+		htable_free_null(&keys);
 	}
 
 	kuid_atom_free_null(&kball.furthest);

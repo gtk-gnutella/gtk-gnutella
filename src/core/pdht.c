@@ -59,10 +59,12 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PDHT_ALOC_MAJOR		0	/**< We generate v0.1 "ALOC" values */
@@ -83,12 +85,12 @@
 /**
  * Hash table holding all the pending file publishes by SHA1.
  */
-static GHashTable *aloc_publishes;		/* SHA1 -> pdht_publish_t */
+static htable_t *aloc_publishes;	/* SHA1 -> pdht_publish_t */
 
 /**
  * Hash table holding all the pending push-entry publishing by GUID.
  */
-static GHashTable *nope_publishes;		/* GUID -> pdht_publish_t */
+static htable_t *nope_publishes;	/* GUID -> pdht_publish_t */
 
 typedef enum { PDHT_PUBLISH_MAGIC = 0x680182c5U } pdht_magic_t;
 
@@ -272,13 +274,13 @@ pdht_free_publish(pdht_publish_t *pp, bool do_remove)
 	switch (pp->type) {
 	case PDHT_T_ALOC:
 		if (do_remove)
-			g_hash_table_remove(aloc_publishes, pp->u.aloc.sha1);
+			htable_remove(aloc_publishes, pp->u.aloc.sha1);
 		atom_sha1_free_null(&pp->u.aloc.sha1);
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_NOPE:
 		if (do_remove)
-			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
+			htable_remove(nope_publishes, pp->u.nope.guid);
 		if (pp->u.nope.nid != NULL) {
 			nid_unref(pp->u.nope.nid);
 			pp->u.nope.nid = NULL;
@@ -1124,13 +1126,13 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, void *arg)
 	pp->id = gdht_kuid_from_sha1(sha1);
 	paloc->sha1 = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup(aloc_publishes, sha1)) {
+	if (htable_contains(aloc_publishes, sha1)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	gm_hash_table_insert_const(aloc_publishes, paloc->sha1, pp);
+	htable_insert(aloc_publishes, paloc->sha1, pp);
 
 	/*
 	 * Publishing will occur in three steps:
@@ -1202,7 +1204,7 @@ pdht_cancel_file(const sha1_t *sha1, bool callback)
 	if (NULL == aloc_publishes)
 		return;
 
-	pp = g_hash_table_lookup(aloc_publishes, sha1);
+	pp = htable_lookup(aloc_publishes, sha1);
 
 	if (NULL == pp)
 		return;
@@ -1643,7 +1645,7 @@ pdht_cancel_nope(const struct guid *guid, bool callback)
 	if (NULL == nope_publishes)
 		return;
 
-	pp = g_hash_table_lookup(nope_publishes, guid);
+	pp = htable_lookup(nope_publishes, guid);
 
 	if (NULL == pp)
 		return;
@@ -1731,13 +1733,13 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	pnope->nid = nid_ref(nid);
 	pp->id = gdht_kuid_from_guid(pnope->guid);
 
-	if (g_hash_table_lookup(nope_publishes, pnope->guid)) {
+	if (htable_contains(nope_publishes, pnope->guid)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	gm_hash_table_insert_const(nope_publishes, pnope->guid, pp);
+	htable_insert(nope_publishes, pnope->guid, pp);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
@@ -1785,8 +1787,8 @@ error:
 G_GNUC_COLD void
 pdht_init(void)
 {
-	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
-	nope_publishes = g_hash_table_new(guid_hash, guid_eq);
+	aloc_publishes = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	nope_publishes = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	ZERO(&pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
@@ -1795,7 +1797,7 @@ pdht_init(void)
  * Hash table iterator to free a pdht_publish_t
  */
 static void
-free_publish_kv(void *unused_key, void *val, void *unused_x)
+free_publish_kv(const void *unused_key, void *val, void *unused_x)
 {
 	pdht_publish_t *pp = val;
 
@@ -1816,11 +1818,11 @@ pdht_close(void)
 	}
 	cq_cancel(&pdht_proxy.publish_ev);
 
-	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
-	gm_hash_table_destroy_null(&aloc_publishes);
+	htable_foreach(aloc_publishes, free_publish_kv, NULL);
+	htable_free_null(&aloc_publishes);
 
-	g_hash_table_foreach(nope_publishes, free_publish_kv, NULL);
-	gm_hash_table_destroy_null(&nope_publishes);
+	htable_foreach(nope_publishes, free_publish_kv, NULL);
+	htable_free_null(&nope_publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

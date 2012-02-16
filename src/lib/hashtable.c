@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 Raphael Manfredi <Raphael_Manfredi@pobox.com>
+ * Copyright (c) 2009-2012 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * All rights reserved.
  *
  * Copyright (c) 2006 Christian Biere <christianbiere@gmx.de>
@@ -37,34 +37,37 @@
  *
  * A simple hashtable implementation.
  *
- * There are two interesting properties in this hash table:
+ * There are three interesting properties in this hash table:
  *
  * - The items and the internal data structures are allocated out of a
  *   same contiguous memory region (aka the "arena").
  *
  * - Memory for the arena is allocated directly through the VMM layer.
  *
+ * - The access interface can be dynamically configured to be thread-safe.
+ *
  * As such, this hash table is suitable for being used by low-level memory
  * allocators.
  *
  * @author Raphael Manfredi
- * @date 2009-2011
+ * @date 2009-2012
  * @author Christian Biere
  * @date 2006
  */
 
 #include "common.h"
 
-#include "lib/hashtable.h"
-#include "lib/atomic.h"
-#include "lib/entropy.h"
-#include "lib/misc.h"			/* For struct sha1 */
-#include "lib/mutex.h"
-#include "lib/spinlock.h"
-#include "lib/vmm.h"
-#include "lib/xmalloc.h"
+#include "hashtable.h"
+#include "atomic.h"
+#include "entropy.h"
+#include "hashing.h"
+#include "mutex.h"
+#include "pow2.h"
+#include "spinlock.h"
+#include "vmm.h"
+#include "xmalloc.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 #define HASH_ITEMS_BINS			2	/* Initial amount of bins */
 #define HASH_ITEMS_PER_BIN		4
@@ -98,6 +101,7 @@ struct hash_table {
 	mutex_t external_lock;		/* Lock for external atomic operations */
 	size_t num_items;			/* Array length of "items" */
 	size_t num_bins;			/* Number of bins */
+	size_t bin_bits;			/* Number of bits to fold hashed value to */
 	size_t num_held;			/* Number of items actually in the table */
 	size_t bin_fill;			/* Number of bins in use */
 	hash_table_hash_func hash;	/* Key hash functions, or NULL */
@@ -129,6 +133,11 @@ struct hash_table {
 static unsigned hash_offset;
 
 /**
+ * Minimal amount of bins we we want (power of two) that can fill up one page.
+ */
+static size_t hash_min_bins;
+
+/**
  * Initialize hash offset if not already done.
  */
 static G_GNUC_COLD void
@@ -140,10 +149,8 @@ hash_offset_init(void)
 	if G_UNLIKELY(!done) {
 		spinlock(&offset_slk);
 		if (!done) {
-			struct sha1 digest;
 			/* Don't allocate any memory, hence can't call arc4random() */
-			entropy_minimal_collect(&digest);
-			hash_offset = entropy_reduce(&digest);
+			hash_offset = entropy_random();
 			done = TRUE;
 			/* Memory barrier will be done by spinunlock() */
 		}
@@ -202,15 +209,15 @@ hash_table_check(const struct hash_table *ht)
 	g_assert(ht->num_bins > 0 && ht->num_bins < SIZE_MAX / 2);
 }
 
-/**
- * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
- *		 only a quarter of the bins are used.
- */
-static inline size_t
+static inline unsigned
 hash_id_key(const void *key)
 {
-	size_t n = (size_t) key;
-	return ((0x4F1BBCDCUL * (uint64) n) >> 32) ^ n;
+	/*
+	 * A naive direct use of the pointer has a much worse distribution,
+	 * e.g. only a quarter of the bins are used.
+	 */
+
+	return GOLDEN_RATIO_32 * pointer_to_ulong(key);
 }
 
 static inline bool
@@ -289,8 +296,30 @@ hash_table_new_intern(hash_table_t *ht,
 	ht->hash = hash != NULL ? hash : hash_id_key;
 	ht->eq = eq != NULL ? eq : hash_id_eq;
 
-	ht->num_bins = num_bins;
+	/*
+	 * Since the arena is going to be held in a VMM page with nothing
+	 * else, make sure we're filling the page as much as we can.
+	 */
+
+	if G_UNLIKELY(0 == hash_min_bins) {
+		size_t n;
+
+		/* No spinlock, at worst we'll do this computation more than once */
+
+		n = compat_pagesize() / (sizeof ht->bins[0] +
+			HASH_ITEMS_PER_BIN * sizeof ht->items[0]);
+		hash_min_bins = 1 << highest_bit_set(n);
+
+		g_assert(hash_min_bins > 1);
+		g_assert(IS_POWER_OF_2(hash_min_bins));
+	}
+
+	ht->num_bins = MAX(num_bins, hash_min_bins);
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
+	ht->bin_bits = highest_bit_set64(ht->num_bins);
+
+	g_assert(IS_POWER_OF_2(ht->num_bins));
+	g_assert((1UL << ht->bin_bits) == ht->num_bins);
 
 	arena = hash_bins_items_arena_size(ht, &items_off);
 
@@ -394,11 +423,7 @@ hash_table_arena_memory(const hash_table_t *ht)
 	ht_return(ht, ret);
 }
 
-/**
- * NOTE: A naive direct use of the pointer has a much worse distribution e.g.,
- *		only a quarter of the bins are used.
- */
-static inline size_t
+static inline unsigned
 hash_key(const hash_table_t *ht, const void *key)
 {
 	return (*ht->hash)(key) + hash_offset;
@@ -423,14 +448,14 @@ static hash_item_t *
 hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 {
 	hash_item_t *item;
-	size_t hash;
+	size_t idx;
 
 	hash_table_check(ht);
 
-	hash = hash_key(ht, key) & (ht->num_bins - 1);
-	item = ht->bins[hash];
+	idx = hashing_fold(hash_key(ht, key), ht->bin_bits);
+	item = ht->bins[idx];
 	if (bin) {
-		*bin = hash;
+		*bin = idx;
 	}
 
 	for ( /* NOTHING */ ; item != NULL; item = item->next) {
@@ -596,6 +621,7 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	ht->num_items = tmp.num_items;
 	ht->num_held = tmp.num_held;
 	ht->bin_fill = tmp.bin_fill;
+	ht->bin_bits = tmp.bin_bits;
 	ht->free_list = tmp.free_list;
 }
 

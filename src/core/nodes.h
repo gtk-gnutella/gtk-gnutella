@@ -43,6 +43,8 @@
 
 #include "lib/cq.h"
 #include "lib/header.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/sequence.h"
 
 struct guid;
@@ -143,9 +145,9 @@ typedef struct gnutella_node {
 	uint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
 	uint16 degree;				/**< Value of their advertised X-Degree */
 
-	GHashTable *qseen;			/**< Queries seen from this leaf node */
-	GHashTable *qrelayed;		/**< Queries relayed from this node */
-	GHashTable *qrelayed_old;	/**< Older version of the `qrelayed' table */
+	htable_t *qseen;			/**< Queries seen from this leaf node */
+	hset_t *qrelayed;			/**< Queries relayed from this node */
+	hset_t *qrelayed_old;		/**< Older version of the `qrelayed' table */
 	time_t qrelayed_created;	/**< When `qrelayed' was created */
 
 	uint32 sent;				/**< Number of sent packets */

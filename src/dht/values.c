@@ -78,12 +78,14 @@
 
 #include "lib/ascii.h"
 #include "lib/atoms.h"
-#include "lib/cq.h"
 #include "lib/bstr.h"
+#include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
+#include "lib/hset.h"
 #include "lib/log.h"				/* For log_file_printable() */
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
@@ -93,6 +95,7 @@
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -174,14 +177,14 @@ static int values_managed = 0;
  * Counts number of values currently stored per IPv4 address and per class C
  * network.
  */
-static GHashTable *values_per_ip;
-static GHashTable *values_per_class_c;
+static acct_net_t *values_per_ip;
+static acct_net_t *values_per_class_c;
 
 /**
  * Records expired DB keys that have been identified but not physically
  * removed yet.
  */
-static GHashTable *expired;
+static hset_t *expired;
 
 /**
  * DBM wrapper to store valuedata.
@@ -883,11 +886,10 @@ delete_valuedata(uint64 dbkey, bool has_expired)
  * Hash table iterator callback to reclaim an expired DB key.
  */
 static bool
-reclaim_dbkey(void *key, void *u_value, void *u_data)
+reclaim_dbkey(const void *key, void *u_data)
 {
-	uint64 *dbatom = key;
+	const uint64 *dbatom = key;
 
-	(void) u_value;
 	(void) u_data;
 
 	delete_valuedata(*dbatom, TRUE);
@@ -905,7 +907,7 @@ reclaim_dbkey(void *key, void *u_value, void *u_data)
 void
 values_reclaim_expired(void)
 {
-	g_hash_table_foreach_remove(expired, reclaim_dbkey, NULL);
+	hset_foreach_remove(expired, reclaim_dbkey, NULL);
 }
 
 /**
@@ -965,7 +967,7 @@ values_expire(uint64 dbkey, const struct valuedata *vd)
 {
 	const uint64 *dbatom;
 
-	if (g_hash_table_lookup(expired, &dbkey))
+	if (hset_contains(expired, &dbkey))
 		return;
 
 	if (GNET_PROPERTY(dht_storage_debug))
@@ -975,7 +977,7 @@ values_expire(uint64 dbkey, const struct valuedata *vd)
 		g_debug("DHT value DB-key %s expired", uint64_to_string(dbkey));
 
 	dbatom = atom_uint64_get(&dbkey);
-	gm_hash_table_insert_const(expired, dbatom, GINT_TO_POINTER(1));
+	hset_insert(expired, dbatom);
 }
 
 /**
@@ -988,17 +990,16 @@ values_expire(uint64 dbkey, const struct valuedata *vd)
 static void
 values_unexpire(uint64 dbkey)
 {
-	void *key, *value;
+	const void *key;
 	
-	if (g_hash_table_lookup_extended(expired, &dbkey, &key, &value)) {
-		uint64 *dbatom = key;
+	if (hset_contains_extended(expired, &dbkey, &key)) {
+		const uint64 *dbatom = key;
 
-		g_hash_table_remove(expired, &dbkey);
+		hset_remove(expired, &dbkey);
 		atom_uint64_free(dbatom);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 2)
-			g_debug("DHT value DB-key %s un-expired",
-				uint64_to_string(dbkey));
+			g_debug("DHT value DB-key %s un-expired", uint64_to_string(dbkey));
 	}
 }
 
@@ -1855,18 +1856,17 @@ values_init(void)
 
 	values_per_ip = acct_net_create();
 	values_per_class_c = acct_net_create();
-	expired = g_hash_table_new(uint64_hash, uint64_eq);
+	expired = hset_create_any(uint64_hash, NULL, uint64_eq);
 
 	values_expire_ev = cq_periodic_main_add(EXPIRE_PERIOD * 1000,
 		values_periodic_expire, NULL);
 }
 
 static void
-expired_free_kv(void *key, void *u_val, void *u_data)
+expired_free_k(const void *key, void *u_data)
 {
-	uint64 *dbkey = key;
+	const uint64 *dbkey = key;
 
-	(void) u_val;
 	(void) u_data;
 
 	atom_uint64_free(dbkey);
@@ -1882,15 +1882,15 @@ values_close(void)
 	dbstore_delete(db_rawdata);
 	dbstore_delete(db_expired);
 	db_valuedata = db_rawdata = db_expired = NULL;
-	acct_net_free(&values_per_ip);
-	acct_net_free(&values_per_class_c);
+	acct_net_free_null(&values_per_ip);
+	acct_net_free_null(&values_per_class_c);
 	cq_periodic_remove(&values_expire_ev);
 	values_managed = 0;
 
 	gnet_stats_set_general(GNR_DHT_VALUES_HELD, 0);
 
-	g_hash_table_foreach(expired, expired_free_kv, NULL);
-	gm_hash_table_destroy_null(&expired);
+	hset_foreach(expired, expired_free_k, NULL);
+	hset_free_null(&expired);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

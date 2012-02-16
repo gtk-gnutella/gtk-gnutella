@@ -45,6 +45,8 @@
 
 #include "hashlist.h"
 #include "glib-missing.h"
+#include "hashing.h"
+#include "htable.h"
 #include "misc.h"
 #include "random.h"
 #include "unsigned.h"
@@ -58,7 +60,7 @@ enum hash_list_magic { HASH_LIST_MAGIC = 0x338954fdU };
 struct hash_list {
 	enum hash_list_magic magic;
 	unsigned stamp;
-	GHashTable *ht;
+	htable_t *ht;
 	GList *head, *tail;
 	int len;
 	int refcount;
@@ -112,7 +114,7 @@ hash_list_regression(const hash_list_t * const hl)
 	g_assert(g_list_first(hl->tail) == hl->head);
 	g_assert(g_list_last(hl->head) == hl->tail);
 	g_assert(g_list_length(hl->head) == UNSIGNED(hl->len));
-	g_assert(g_hash_table_size(hl->ht) == UNSIGNED(hl->len));
+	g_assert(htable_count(hl->ht) == UNSIGNED(hl->len));
 }
 #else
 #define hash_list_regression(hl)
@@ -158,12 +160,13 @@ hash_list_check(const hash_list_t * const hl)
  * Create a new hash list.
  */
 hash_list_t *
-hash_list_new(GHashFunc hash_func, GEqualFunc eq_func)
+hash_list_new(hash_func_t hash_func, hash_eq_t eq_func)
 {
 	hash_list_t *hl;
 
 	WALLOC(hl);
-	hl->ht = g_hash_table_new(hash_func, eq_func);
+	hl->ht = htable_create_any(
+		NULL == hash_func ? pointer_hash : hash_func, NULL, eq_func);
 	hl->head = NULL;
 	hl->tail = NULL;
 	hl->refcount = 1;
@@ -200,7 +203,7 @@ hash_list_free(hash_list_t **hl_ptr)
 					cast_to_constpointer(hl), hl->refcount);
 		}
 
-		gm_hash_table_destroy_null(&hl->ht);
+		htable_free_null(&hl->ht);
 
 		for (iter = hl->head; NULL != iter; iter = g_list_next(iter)) {
 			struct hash_list_item *item = iter->data;
@@ -248,8 +251,8 @@ hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb)
 static void
 hash_list_insert_item(hash_list_t *hl, struct hash_list_item *item)
 {
-	g_assert(NULL == g_hash_table_lookup(hl->ht, item->orig_key));
-	gm_hash_table_insert_const(hl->ht, item->orig_key, item);
+	g_assert(!htable_contains(hl->ht, item->orig_key));
+	htable_insert(hl->ht, item->orig_key, item);
 
 	g_assert(hl->len < INT_MAX);
 	hl->len++;
@@ -327,7 +330,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 
 	hash_list_check(hl);
 	g_assert(NULL != func);
-	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
+	g_assert(!htable_contains(hl->ht, key));
 
 	for (iter = hl->head; iter; iter = g_list_next(iter)) {
 		struct hash_list_item *item = iter->data;
@@ -499,7 +502,7 @@ hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 	g_assert(item);
 
 	orig_key = deconstify_pointer(item->orig_key);
-	g_hash_table_remove(hl->ht, orig_key);
+	htable_remove(hl->ht, orig_key);
 	if (hl->tail == item->list) {
 		hl->tail = g_list_previous(hl->tail);
 	}
@@ -598,7 +601,7 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	if (NULL == item)
 		return NULL;
 
@@ -634,7 +637,7 @@ hash_list_remove(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	return item ? hash_list_remove_item(hl, item) : NULL;
 }
 
@@ -745,7 +748,7 @@ hash_list_moveto_head(hash_list_t *hl, const void *key)
 	g_assert(1 == hl->refcount);
 	g_assert(hl->len > 0);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	g_assert(item);
 
 	if (hl->head == item->list)
@@ -787,7 +790,7 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 	g_assert(1 == hl->refcount);
 	g_assert(hl->len > 0);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	g_assert(item);
 
 	if (hl->tail == item->list)
@@ -919,7 +922,7 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 
 		hash_list_check(hl);
 
-		item = g_hash_table_lookup(hl->ht, key);
+		item = htable_lookup(hl->ht, key);
 		if (item) {
 			hash_list_iter_t *iter;
 
@@ -1061,7 +1064,7 @@ hash_list_iter_remove(hash_list_iter_t *iter)
 		hash_list_t *hl = iter->hl;
 
 		iter->item = NULL;
-		g_hash_table_remove(hl->ht, orig_key);
+		htable_remove(hl->ht, orig_key);
 		if (hl->tail == item->list) {
 			hl->tail = g_list_previous(hl->tail);
 		}
@@ -1110,7 +1113,7 @@ hash_list_find(hash_list_t *hl, const void *key,
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	if (item && orig_key_ptr) {
 		*orig_key_ptr = item->orig_key;
 	}
@@ -1126,7 +1129,7 @@ hash_list_contains(hash_list_t *hl, const void *key)
 {
 	hash_list_check(hl);
 
-	return NULL != g_hash_table_lookup(hl->ht, key);
+	return htable_contains(hl->ht, key);
 }
 
 /**
@@ -1154,7 +1157,7 @@ hash_list_next(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	item = item ? g_list_nth_data(g_list_next(item->list), 0) : NULL;
 	return item ? deconstify_pointer(item->orig_key) : NULL;
 }
@@ -1169,7 +1172,7 @@ hash_list_previous(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = htable_lookup(hl->ht, key);
 	item = item ? g_list_nth_data(g_list_previous(item->list), 0) : NULL;
 	return item ? deconstify_pointer(item->orig_key) : NULL;
 }

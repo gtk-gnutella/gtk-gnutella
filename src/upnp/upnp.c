@@ -59,8 +59,9 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
 #include "lib/walloc.h"
@@ -136,7 +137,7 @@ upnp_mapping_check(const struct upnp_mapping * const um)
 	g_assert(UPNP_MAPPING_MAGIC == um->magic);
 }
 
-static GHashTable *upnp_mappings;	/**< Tracks requested UPnP mappings */
+static htable_t *upnp_mappings;		/**< Tracks requested UPnP mappings */
 static host_addr_t upnp_local_addr;	/**< Computed local IP address */
 
 static const char UPNP_CONN_IP_ROUTED[]	= "IP_Routed";
@@ -196,7 +197,18 @@ upnp_mapping_hash(const void *p)
 {
 	const struct upnp_mapping *um = p;
 
-	return ((unsigned) um->proto * 0xa79dU) ^ (unsigned) um->port;
+	return integer_hash2(um->proto) ^ port_hash(um->port);
+}
+
+/**
+ * Hash a UPnP mapping (secondary hash).
+ */
+static unsigned
+upnp_mapping_hash2(const void *p)
+{
+	const struct upnp_mapping *um = p;
+
+	return integer_hash(um->proto) ^ port_hash2(um->port);
 }
 
 /**
@@ -807,9 +819,9 @@ upnp_port_mapping_required(void)
 }
 
 static void
-upnp_count_mapping_kv(void *key, void *u_value, void *data)
+upnp_count_mapping_kv(const void *key, void *u_value, void *data)
 {
-	struct upnp_mapping *um = key;
+	const struct upnp_mapping *um = key;
 	unsigned *count = data;
 
 	(void) u_value;
@@ -829,7 +841,7 @@ upnp_published_mappings(void)
 	g_assert(upnp_mappings != NULL);
 
 	count = 0;
-	g_hash_table_foreach(upnp_mappings, upnp_count_mapping_kv, &count);
+	htable_foreach(upnp_mappings, upnp_count_mapping_kv, &count);
 	return count;
 }
 
@@ -967,7 +979,7 @@ done:
 	 */
 
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
-		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
+		htable_count(upnp_mappings) == upnp_published_mappings());
 
 	/*
 	 * Publish mappings if needed.
@@ -1030,7 +1042,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 	}
 
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
-		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
+		htable_count(upnp_mappings) == upnp_published_mappings());
 }
 
 /**
@@ -1069,7 +1081,7 @@ upnp_map_natpmp_publish_reply(int code,
 	}
 
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL,
-		g_hash_table_size(upnp_mappings) == upnp_published_mappings());
+		htable_count(upnp_mappings) == upnp_published_mappings());
 }
 
 /**
@@ -1198,7 +1210,7 @@ upnp_map_add(enum upnp_map_proto proto, uint16 port)
 	key.proto = proto;
 	key.port = port;
 
-	if (gm_hash_table_contains(upnp_mappings, &key))
+	if (htable_contains(upnp_mappings, &key))
 		return;		/* Already known */
 
 	/*
@@ -1214,7 +1226,7 @@ upnp_map_add(enum upnp_map_proto proto, uint16 port)
 	um->install_ev = cq_main_insert(1, upnp_map_publish, um);
 	um->lease_time = UPNP_UNDEFINED_LEASE;
 
-	g_hash_table_insert(upnp_mappings, um, um);
+	htable_insert(upnp_mappings, um, um);
 }
 
 /**
@@ -1318,7 +1330,7 @@ upnp_map_remove(enum upnp_map_proto proto, uint16 port)
 	key.proto = proto;
 	key.port = port;
 
-	um = g_hash_table_lookup(upnp_mappings, &key);
+	um = htable_lookup(upnp_mappings, &key);
 
 	if (NULL == um) {
 		if (GNET_PROPERTY(upnp_debug)) {
@@ -1327,7 +1339,7 @@ upnp_map_remove(enum upnp_map_proto proto, uint16 port)
 		}
 	} else {
 		upnp_mapping_check(um);
-		g_hash_table_remove(upnp_mappings, um);
+		htable_remove(upnp_mappings, um);
 
 		if (upnp_map_unpublish(um)) {
 			upnp_mapping_free(um, FALSE);
@@ -1373,9 +1385,9 @@ upnp_map_mapping_deleted(int code, void *value, size_t size, void *arg)
  * Remove published mapping of the specified kind.
  */
 static void
-upnp_remove_mapping_kv(void *key, void *u_value, void *data)
+upnp_remove_mapping_kv(const void *key, void *u_value, void *data)
 {
-	struct upnp_mapping *um = key;
+	struct upnp_mapping *um = deconstify_gpointer(key);
 	enum upnp_method method = pointer_to_int(data);
 
 	(void) u_value;
@@ -1419,7 +1431,7 @@ void
 upnp_disabled(void)
 {
 	if (igd.dev != NULL) {
-		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
+		htable_foreach(upnp_mappings, upnp_remove_mapping_kv,
 			int_to_pointer(UPNP_M_UPNP));
 		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL, FALSE);
 	}
@@ -1441,7 +1453,7 @@ void
 upnp_natpmp_disabled(void)
 {
 	if (gw.gateway != NULL) {
-		g_hash_table_foreach(upnp_mappings, upnp_remove_mapping_kv,
+		htable_foreach(upnp_mappings, upnp_remove_mapping_kv,
 			int_to_pointer(UPNP_M_NATPMP));
 		gnet_prop_set_boolean_val(PROP_PORT_MAPPING_SUCCESSFUL, FALSE);
 	}
@@ -1460,9 +1472,9 @@ upnp_natpmp_disabled(void)
  * before.
  */
 static void
-upnp_publish_mapping_kv(void *key, void *u_value, void *u_data)
+upnp_publish_mapping_kv(const void *key, void *u_value, void *u_data)
 {
-	struct upnp_mapping *um = key;
+	struct upnp_mapping *um = deconstify_gpointer(key);
 
 	(void) u_value;
 	(void) u_data;
@@ -1490,7 +1502,7 @@ upnp_map_publish_all(void)
 {
 	g_assert(igd.dev != NULL || gw.gateway != NULL);
 
-	g_hash_table_foreach(upnp_mappings, upnp_publish_mapping_kv, NULL);
+	htable_foreach(upnp_mappings, upnp_publish_mapping_kv, NULL);
 }
 
 /**
@@ -1564,7 +1576,8 @@ upnp_init(void)
 	cq_periodic_main_add(UPNP_MONITOR_DELAY_MS,
 		upnp_monitor_drivers, NULL);
 
-	upnp_mappings = g_hash_table_new(upnp_mapping_hash, upnp_mapping_eq);
+	upnp_mappings = htable_create_any(upnp_mapping_hash,
+		upnp_mapping_hash2, upnp_mapping_eq);
 }
 
 /**
@@ -1581,9 +1594,9 @@ upnp_post_init(void)
  * should remove them.
  */
 static bool
-upnp_free_mapping_kv(void *key, void *u_value, void *u_data)
+upnp_free_mapping_kv(const void *key, void *u_value, void *u_data)
 {
-	struct upnp_mapping *um = key;
+	struct upnp_mapping *um = deconstify_gpointer(key);
 
 	(void) u_value;
 	(void) u_data;
@@ -1608,8 +1621,8 @@ upnp_close(void)
 	upnp_dev_free_null(&igd.dev);
 	natpmp_free_null(&gw.gateway);
 	upnp_ctrl_cancel_null(&igd.monitor, FALSE);
-	g_hash_table_foreach_remove(upnp_mappings, upnp_free_mapping_kv, NULL);
-	gm_hash_table_destroy_null(&upnp_mappings);
+	htable_foreach_remove(upnp_mappings, upnp_free_mapping_kv, NULL);
+	htable_free_null(&upnp_mappings);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

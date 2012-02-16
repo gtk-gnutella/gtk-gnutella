@@ -27,6 +27,7 @@
 #include "common.h"
 #include "event.h"
 #include "host_addr.h"
+#include "htable.h"
 
 #define NO_PROP (0)
 
@@ -231,7 +232,7 @@ typedef struct prop_set {
     size_t size;		/**< number of properties in the set */
     size_t offset;		/**< properties start numbering from here */
     prop_def_t *props;	/**< Pointer to first item in array of prop_def_t */
-    GHashTable *byName;	/**< hashtable to quickly look up props by name */
+    htable_t *by_name;	/**< hashtable to quickly look up props by name */
     time_t mtime;		/**< modification time of the associated file */
 	gboolean dirty;		/**< property set needs flushing to disk */
     prop_set_get_stub_t get_stub;

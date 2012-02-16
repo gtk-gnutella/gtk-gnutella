@@ -39,13 +39,15 @@
 
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/log.h"		/* For log_file_printable() */
 #include "lib/misc.h"		/* For CONST_STRLEN() */
 #include "lib/nv.h"
 #include "lib/ostream.h"
-#include "lib/unsigned.h"
 #include "lib/stacktrace.h"
 #include "lib/symtab.h"
+#include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
 
@@ -64,8 +66,8 @@ static const char XFMT_CDATA_END[]		= "]]>";
  * depth they will be required so that we can declare them before.
  */
 struct xfmt_pass1 {
-	GHashTable *uri2node;		/**< URI -> topmost node in scope */
-	GHashTable *attr_uris;		/**< URIs used by attributes */
+	htable_t *uri2node;			/**< URI -> topmost node in scope */
+	hset_t *attr_uris;			/**< URIs used by attributes */
 	nv_table_t *uri2prefix;		/**< URI -> prefixes (declared in tree) */
 	const xnode_t *node;		/**< Current element being traversed */
 	unsigned depth;				/**< Current tree depth */
@@ -75,8 +77,8 @@ struct xfmt_pass1 {
  * Second pass traversal context.
  */
 struct xfmt_pass2 {
-	GHashTable *node2uri;		/**< node -> URI list to declare */
-	GHashTable *attr_uris;		/**< URIs used by attributes */
+	htable_t *node2uri;			/**< node -> URI list to declare */
+	hset_t *attr_uris;			/**< URIs used by attributes */
 	ostream_t *os;				/**< Output stream */
 	uint32 options;				/**< Formatter options */
 	nv_table_t *uri2prefix;		/**< URI -> prefixes (user-supplied) */
@@ -137,7 +139,7 @@ xfmt_find_common_parent(const xnode_t *x1, const xnode_t *x2)
 static void
 xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 {
-	const xnode_t *xn = g_hash_table_lookup(xp1->uri2node, uri);
+	const xnode_t *xn = htable_lookup(xp1->uri2node, uri);
 
 	/*
 	 * Since the hash table will not outlive the tree traversal,
@@ -149,7 +151,7 @@ xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 		/*
 		 * First time we see this URI, record the node where it appears.
 		 */
-		gm_hash_table_insert_const(xp1->uri2node, uri, xp1->node);
+		htable_insert_const(xp1->uri2node, uri, xp1->node);
 	} else {
 		const xnode_t *common;
 
@@ -161,7 +163,7 @@ xfmt_uri_declare(const char *uri, struct xfmt_pass1 *xp1)
 
 		common = xfmt_find_common_parent(xn, xp1->node);
 		g_assert(common != NULL);
-		gm_hash_table_insert_const(xp1->uri2node, uri, common);
+		htable_insert_const(xp1->uri2node, uri, common);
 	}
 }
 
@@ -230,7 +232,7 @@ xfmt_handle_pass1_attr(const char *uri,
 		xfmt_uri_declare(uri, xp1);
 
 		if (xp1->attr_uris != NULL) {
-			gm_hash_table_insert_const(xp1->attr_uris, uri, NULL);
+			hset_insert(xp1->attr_uris, uri);
 		}
 	}
 }
@@ -623,7 +625,7 @@ xfmt_ns_declarations(struct xfmt_pass2 *xp2, const xnode_t *xn)
 	GSList *ns = NULL;
 	GSList *sl, *uris;
 
-	uris = g_hash_table_lookup(xp2->node2uri, xn);
+	uris = htable_lookup(xp2->node2uri, xn);
 
 	GM_SLIST_FOREACH(uris, sl) {
 		const char *uri = sl->data;
@@ -633,7 +635,7 @@ xfmt_ns_declarations(struct xfmt_pass2 *xp2, const xnode_t *xn)
 	}
 
 	if (uris != NULL) {
-		g_hash_table_remove(xp2->node2uri, xn);
+		htable_remove(xp2->node2uri, xn);
 		g_slist_free(uris);
 	}
 
@@ -686,7 +688,7 @@ xfmt_pass2_declare_ns(struct xfmt_pass2 *xp2, GSList *ns)
 
 		if (
 			xp2->default_ns != NULL && 0 == strcmp(uri, xp2->default_ns) &&
-			!gm_hash_table_contains(xp2->attr_uris, xp2->default_ns)
+			!hset_contains(xp2->attr_uris, xp2->default_ns)
 		)
 			continue;
 
@@ -968,8 +970,8 @@ xfmt_handle_pass2_leave(xnode_t *xn, void *data)
 }
 
 struct xfmt_invert_ctx {
-	GHashTable *uri2node;
-	GHashTable *node2uri;
+	htable_t *uri2node;
+	htable_t *node2uri;
 };
 
 /**
@@ -979,7 +981,7 @@ struct xfmt_invert_ctx {
  * values are actually lists of URIs.
  */
 static void
-xfmt_invert_uri_kv(void *key, void *value, void *data)
+xfmt_invert_uri_kv(const void *key, void *value, void *data)
 {
 	struct xfmt_invert_ctx *ictx = data;
 	const char *uri = key;
@@ -988,9 +990,9 @@ xfmt_invert_uri_kv(void *key, void *value, void *data)
 
 	g_assert(xn != NULL);
 
-	sl = g_hash_table_lookup(ictx->node2uri, xn);
+	sl = htable_lookup(ictx->node2uri, xn);
 	sl = gm_slist_prepend_const(sl, uri);
-	gm_hash_table_insert_const(ictx->node2uri, xn, sl);
+	htable_insert(ictx->node2uri, xn, sl);
 }
 
 /**
@@ -1052,13 +1054,13 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	 */
 
 	ZERO(&xp1);
-	xp1.uri2node = g_hash_table_new(g_str_hash, g_str_equal);
+	xp1.uri2node = htable_create(HASH_KEY_STRING, 0);
 	xp1.uri2prefix = nv_table_make(FALSE);
 
 	if (default_ns != NULL)
-		xp1.attr_uris = g_hash_table_new(g_str_hash, g_str_equal);
+		xp1.attr_uris = hset_create(HASH_KEY_STRING, 0);
 
-	gm_hash_table_insert_const(xp1.uri2node, VXS_XML_URI, root);
+	htable_insert_const(xp1.uri2node, VXS_XML_URI, root);
 
 	xnode_tree_enter_leave(deconstify_pointer(root),
 		xfmt_handle_pass1_enter, xfmt_handle_pass1_leave, &xp1);
@@ -1071,7 +1073,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	 */
 
 	if (default_ns != NULL) {
-		if (NULL == g_hash_table_lookup(xp1.uri2node, default_ns)) {
+		if (NULL == htable_lookup(xp1.uri2node, default_ns)) {
 			g_carp("XFMT default namespace '%s' is not needed", default_ns);
 			dflt_ns = NULL;
 		} else {
@@ -1086,7 +1088,7 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	 */
 
 	ZERO(&xp2);
-	xp2.node2uri = g_hash_table_new(pointer_hash_func, NULL);
+	xp2.node2uri = htable_create(HASH_KEY_SELF, 0);
 	xp2.os = os;
 	xp2.options = options;
 	xp2.default_ns = dflt_ns;
@@ -1106,8 +1108,8 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	ictx.uri2node = xp1.uri2node;
 	ictx.node2uri = xp2.node2uri;
 
-	g_hash_table_foreach(xp1.uri2node, xfmt_invert_uri_kv, &ictx);
-	gm_hash_table_destroy_null(&xp1.uri2node);
+	htable_foreach(xp1.uri2node, xfmt_invert_uri_kv, &ictx);
+	htable_free_null(&xp1.uri2node);
 
 	/*
 	 * Emit prologue if requested.
@@ -1156,8 +1158,8 @@ xfmt_tree_extended(const xnode_t *root, ostream_t *os, uint32 options,
 	nv_table_free_null(&xp2.uri2prefix);
 	symtab_free_null(&xp2.prefixes);
 	symtab_free_null(&xp2.uris);
-	gm_hash_table_destroy_null(&xp2.node2uri);
-	gm_hash_table_destroy_null(&xp2.attr_uris);
+	htable_free_null(&xp2.node2uri);
+	hset_free_null(&xp2.attr_uris);
 
 	return !ostream_has_ioerr(os);
 }

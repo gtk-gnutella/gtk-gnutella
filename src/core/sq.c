@@ -55,6 +55,7 @@
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/hset.h"
 #include "lib/nid.h"
 #include "lib/pmsg.h"
 #include "lib/tm.h"
@@ -187,7 +188,7 @@ sqh_exists(squeue_t *sq, gnet_search_t sh)
 {
 	g_assert(sq != NULL);
 
-	return NULL != g_hash_table_lookup(sq->handles, GUINT_TO_POINTER(sh));
+	return hset_contains(sq->handles, uint_to_pointer(sh));
 }
 
 /**
@@ -199,7 +200,7 @@ sqh_put(squeue_t *sq, gnet_search_t sh)
 	g_assert(sq != NULL);
 	g_assert(!sqh_exists(sq, sh));
 
-	g_hash_table_insert(sq->handles, GUINT_TO_POINTER(sh), GINT_TO_POINTER(1));
+	hset_insert(sq->handles, uint_to_pointer(sh));
 }
 
 /**
@@ -208,19 +209,17 @@ sqh_put(squeue_t *sq, gnet_search_t sh)
 static void
 sqh_remove(squeue_t *sq, gnet_search_t sh)
 {
-	void *key;
-	void *value;
+	const void *key;
 	bool found;
 
 	g_assert(sq != NULL);
 
-	found = g_hash_table_lookup_extended(sq->handles,
-				GUINT_TO_POINTER(sh), &key, &value);
+	found = hset_contains_extended(sq->handles, uint_to_pointer(sh), &key);
 
 	g_assert(found);
-	g_assert((gnet_search_t) GPOINTER_TO_UINT(key) == sh);
+	g_assert((gnet_search_t) pointer_to_uint(key) == sh);
 
-	g_hash_table_remove(sq->handles, GUINT_TO_POINTER(sh));
+	hset_remove(sq->handles, key);
 }
 
 /***
@@ -252,7 +251,7 @@ sq_make(struct gnutella_node *node)
 	sq->n_sent 		= 0;
 	sq->n_dropped 	= 0;
 	sq->node        = node;
-	sq->handles     = g_hash_table_new(NULL, NULL);
+	sq->handles     = hset_create(HASH_KEY_SELF, 0);
 
 	return sq;
 }
@@ -291,7 +290,7 @@ sq_free(squeue_t *sq)
 	g_assert(sq);
 
 	sq_clear(sq);
-	gm_hash_table_destroy_null(&sq->handles);
+	hset_free_null(&sq->handles);
 	WFREE(sq);
 }
 

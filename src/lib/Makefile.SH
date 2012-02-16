@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-110]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-119]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -88,13 +88,25 @@ all:: .FORCE_DEPEND
 
 # $X-Id$
 
-GENERIC = bit_array.h bit_field.h
+GENERIC = bit_array.h bit_field.h htable.h hset.h htable.c hset.c
 
 bit_array.h: bit_array.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
 
 bit_field.h: bit_field.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+
+htable.h: hgeneric.ht
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table TABLE >$@
+
+htable.c: hgeneric.ct
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table TABLE >$@
+
+hset.h: hgeneric.ht
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set SET >$@
+
+hset.c: hgeneric.ct
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set SET >$@
 
 all:: $(GENERIC)
 
@@ -150,31 +162,35 @@ LSRC = \
 	fs_free_space.c \
 	getcpucount.c \
 	getdate.c \
+	getgateway.c \
 	gethomedir.c \
 	getline.c \
-	getgateway.c \
 	getphysmemsize.c \
 	glib-missing.c \
 	glog.c \
 	gnet_host.c \
 	halloc.c \
+	hash.c \
+	hashing.c \
 	hashlist.c \
 	hashtable.c \
 	header.c \
 	host_addr.c \
+	hset.c \
+	htable.c \
 	html.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
-	log.c \
 	list.c \
+	log.c \
 	magnet.c \
 	malloc.c \
 	map.c \
-	memusage.c \
 	mempcpy.c \
+	memusage.c \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
@@ -187,8 +203,8 @@ LSRC = \
 	options.c \
 	ostream.c \
 	pagetable.c \
-	parse.c \
 	palloc.c \
+	parse.c \
 	path.c \
 	patricia.c \
 	pattern.c \
@@ -281,31 +297,35 @@ LOBJ = \
 	fs_free_space.o \
 	getcpucount.o \
 	getdate.o \
+	getgateway.o \
 	gethomedir.o \
 	getline.o \
-	getgateway.o \
 	getphysmemsize.o \
 	glib-missing.o \
 	glog.o \
 	gnet_host.o \
 	halloc.o \
+	hash.o \
+	hashing.o \
 	hashlist.o \
 	hashtable.o \
 	header.o \
 	host_addr.o \
+	hset.o \
+	htable.o \
 	html.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
-	log.o \
 	list.o \
+	log.o \
 	magnet.o \
 	malloc.o \
 	map.o \
-	memusage.o \
 	mempcpy.o \
+	memusage.o \
 	mime_type.o \
 	mingw32.o \
 	misc.o \
@@ -318,8 +338,8 @@ LOBJ = \
 	options.o \
 	ostream.o \
 	pagetable.o \
-	parse.o \
 	palloc.o \
+	parse.o \
 	path.o \
 	patricia.o \
 	pattern.o \

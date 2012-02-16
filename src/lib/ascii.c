@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include "ascii.h"
+#include "hashing.h"
 #include "misc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -178,9 +179,9 @@ ascii_strcase_hash(const void *key)
 	ulong c, hash = 0;
 	
 	while ((c = ascii_tolower(*s++))) {
-		hash ^= (hash << 8) | c;
+		hash += (hash << 5) + c;
 	}
-	return hash ^ (((uint64) 1048573 * hash) >> 32);
+	return integer_hash(hash);
 }
 
 /**

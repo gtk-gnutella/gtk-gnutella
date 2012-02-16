@@ -36,7 +36,9 @@
 #include "namesize.h"
 
 #include "lib/atoms.h"
+#include "lib/hashing.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /**
@@ -48,8 +50,8 @@ namesize_hash(const void *key)
 	const namesize_t *k = key;
 	uint32 hash;
 
-	hash = g_str_hash(k->name);
-	hash ^= k->size;
+	hash = string_mix_hash(k->name);
+	hash ^= integer_hash(k->size);
 
 	return hash;
 }

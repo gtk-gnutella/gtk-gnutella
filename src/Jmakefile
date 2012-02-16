@@ -101,6 +101,7 @@ RemoteTargetDependency(gtk-gnutella, if, gnet_property.o)
 RemoteTargetDependency(gtk-gnutella, if, gui_property.o)
 RemoteTargetDependency(main.o, if, gnet_property.h)
 RemoteTargetDependency(main.o, if, gui_property.h)
+RemoteTargetDependency(main.o, lib, htable.h)
 
 DependTarget()
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) $(EXTRA))

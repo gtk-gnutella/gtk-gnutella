@@ -52,9 +52,13 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 static struct gnutella_node *fake_node;		/**< Our fake node */
@@ -172,7 +176,7 @@ static struct {
 	int capacity;				 /**< Capacity in terms of messages */
 	int count;					 /**< Amount really stored */
 	unsigned nchunks;			 /**< Amount of allocated chunks */
-	GHashTable *messages_hashed; /**< All messages (key = struct message) */
+	hset_t *messages_hashed;	 /**< All messages (key = struct message) */
 	time_t last_rotation;		 /**< Last time we restarted from idx=0 */
 } routing;
 
@@ -188,7 +192,7 @@ static const char * const banned_push[] = {
 	"27630b632f070ca9ffc48eb06a72c700",		/**< Morpheus?, 2005-08-30 */
 	"58585858585858585858585858585858",		/**< Probably an init bug! */
 };
-static GHashTable *ht_banned_push;
+static hset_t *ht_banned_push;
 
 /**
  * Starving GUIDs for push routing.
@@ -200,7 +204,7 @@ static GHashTable *ht_banned_push;
  * But still, in case we happen to see a query hit that comes from one of
  * the starving GUID, it's good to notify the download layer.
  */
-static GHashTable *ht_starving_guid;
+static htable_t *ht_starving_guid;
 
 /**
  * Push-proxy table.
@@ -208,7 +212,7 @@ static GHashTable *ht_starving_guid;
  * It maps a GUID to a node, so that we can easily send a push message
  * on behalf of a requesting node to the proper connection.
  */
-static GHashTable *ht_proxyfied;
+static htable_t *ht_proxyfied;
 
 /**
  * Routing logging.
@@ -243,8 +247,7 @@ static void free_route_list(struct message *m);
 static inline bool
 is_banned_push(const struct guid *guid)
 {
-	return NULL != g_hash_table_lookup(ht_banned_push, guid) ||
-		guid_is_banned(guid);
+	return hset_contains(ht_banned_push, guid) || guid_is_banned(guid);
 }
 
 struct node_magic {
@@ -337,7 +340,7 @@ route_udp_node_hash(const void *key)
 {
 	const struct routing_udp_node *un = key;
 
-	return host_addr_hash(un->addr) ^ ((un->port << 16) | un->port);
+	return host_addr_hash(un->addr) ^ port_hash(un->port);
 }
 
 /**
@@ -422,7 +425,7 @@ route_starving_remove(const guid_t *guid)
 	 * so don't clear anything.
 	 */
 
-	g_hash_table_remove(ht_starving_guid, guid);
+	htable_remove(ht_starving_guid, guid);
 }
 
 /**
@@ -437,8 +440,7 @@ route_starving_remove(const guid_t *guid)
 void
 route_starving_add(const guid_t *guid, route_starving_cb_t cb)
 {
-	gm_hash_table_replace_const(ht_starving_guid, guid,
-		cast_func_to_pointer(cb));
+	htable_insert(ht_starving_guid, guid, cast_func_to_pointer(cb));
 }
 
 /**
@@ -452,7 +454,7 @@ route_starving_check(const guid_t *guid)
 {
 	route_starving_cb_t cb;
 
-	cb = cast_pointer_to_func(g_hash_table_lookup(ht_starving_guid, guid));
+	cb = cast_pointer_to_func(htable_lookup(ht_starving_guid, guid));
 
 	if (cb != NULL)
 		(*cb)(guid);
@@ -771,7 +773,7 @@ clean_entry(struct message *entry)
 {
 	g_assert(entry != NULL);
 
-	g_hash_table_remove(routing.messages_hashed, entry);
+	hset_remove(routing.messages_hashed, entry);
 
 	if (entry->routes != NULL)
 		free_route_list(entry);
@@ -1282,13 +1284,20 @@ static uint
 message_hash_func(const void *key)
 {
 	const struct message *msg = key;
-	uint hash, i;
 
-	hash = msg->function;
-	for (i = 0; i < 4; i++) {
-		hash ^= peek_le32(&msg->muid.v[i * 4]);
-	}
-	return hash;
+	return integer_hash(msg->function) ^
+		universal_hash(&msg->muid, GUID_RAW_SIZE);
+}
+
+/**
+ * Alternate hashing of message structures for storage in a hash table.
+ */
+static uint
+message_hash_func2(const void *key)
+{
+	const struct message *msg = key;
+
+	return integer_hash2(msg->function) ^ guid_hash(&msg->muid);
 }
 
 /**
@@ -1321,7 +1330,7 @@ routing_init(void)
 	 * Initialize the banned GUID hash.
 	 */
 
-	ht_banned_push = g_hash_table_new(guid_hash, guid_eq);
+	ht_banned_push = hset_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	for (i = 0; i < G_N_ELEMENTS(banned_push); i++) {
 		struct guid guid;
@@ -1330,8 +1339,7 @@ routing_init(void)
 		g_assert(strlen(hex) == 2 * sizeof guid);
 
 		(void) hex_to_guid(hex, &guid);
-		gm_hash_table_insert_const(ht_banned_push,
-			atom_guid_get(&guid), GUINT_TO_POINTER(1));
+		hset_insert(ht_banned_push, atom_guid_get(&guid));
 	}
 
 	/*
@@ -1383,16 +1391,16 @@ routing_init(void)
 	 * need to be deallocated
 	 */
 
-	routing.messages_hashed =
-		g_hash_table_new(message_hash_func, message_compare_func);
+	routing.messages_hashed = hset_create_any(message_hash_func,
+		message_hash_func2, message_compare_func);
 	routing.last_rotation = tm_time();
 
 	/*
 	 * Push proxification and starving GUIDs.
 	 */
 
-	ht_proxyfied = g_hash_table_new(guid_hash, guid_eq);
-	ht_starving_guid = g_hash_table_new(guid_hash, guid_eq);
+	ht_proxyfied = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	ht_starving_guid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	/*
 	 * GUESS query hit routing.
@@ -1623,7 +1631,7 @@ message_add(const struct guid *muid, uint8 function,
 		entry->ttl = gnutella_header_get_ttl(&node->header);
 
 	/* insert the new message into the hash table */
-	g_hash_table_insert(routing.messages_hashed, entry, entry);
+	hset_insert(routing.messages_hashed, entry);
 }
 
 /**
@@ -1714,23 +1722,23 @@ message_forget(const struct guid *muid, uint8 function, gnutella_node_t *node)
 static bool
 find_message(const struct guid *muid, uint8 function, struct message **m)
 {
-	struct message dummyMessage;
-	struct message *found_message;
+	struct message dummy;
+	const void *orig_key;
 
-	dummyMessage.muid = *muid;
-	dummyMessage.function = function;
+	dummy.muid = *muid;
+	dummy.function = function;
 
-	found_message = g_hash_table_lookup(routing.messages_hashed, &dummyMessage);
+	if (hset_contains_extended(routing.messages_hashed, &dummy, &orig_key)) {
+		struct message *msg = deconstify_pointer(orig_key);
 
-	if (!found_message) {
+		/* wipe out dead references to old nodes */
+		purge_dangling_references(msg);
+
+		*m = msg;
+		return TRUE;		/* Message was seen */
+	} else {
 		*m = NULL;
 		return FALSE;		/* We don't remember anything about this message */
-	} else {
-		/* wipe out dead references to old nodes */
-		purge_dangling_references(found_message);
-
-		*m = found_message;
-		return TRUE;		/* Message was seen */
 	}
 }
 
@@ -2890,7 +2898,7 @@ route_proxy_remove(const struct guid *guid)
 	 * so don't clear anything.
 	 */
 
-	g_hash_table_remove(ht_proxyfied, guid);
+	htable_remove(ht_proxyfied, guid);
 }
 
 /**
@@ -2904,10 +2912,10 @@ route_proxy_remove(const struct guid *guid)
 bool
 route_proxy_add(const struct guid *guid, struct gnutella_node *n)
 {
-	if (NULL != g_hash_table_lookup(ht_proxyfied, guid))
+	if (htable_contains(ht_proxyfied, guid))
 		return FALSE;
 
-	gm_hash_table_insert_const(ht_proxyfied, guid, n);
+	htable_insert(ht_proxyfied, guid, n);
 	return TRUE;
 }
 
@@ -2921,16 +2929,15 @@ route_proxy_add(const struct guid *guid, struct gnutella_node *n)
 struct gnutella_node *
 route_proxy_find(const struct guid *guid)
 {
-	return g_hash_table_lookup(ht_proxyfied, guid);
+	return htable_lookup(ht_proxyfied, guid);
 }
 
 /**
  * Frees the banned GUID atom keys.
  */
 static void
-free_banned_push(void *key, void *unused_value, void *unused_udata)
+free_banned_push(const void *key, void *unused_udata)
 {
-	(void) unused_value;
 	(void) unused_udata;
 	atom_guid_free(key);
 }
@@ -2943,9 +2950,9 @@ routing_close(void)
 {
 	uint cnt;
 
-	g_assert(routing.messages_hashed);
+	g_assert(routing.messages_hashed != NULL);
 
-	gm_hash_table_destroy_null(&routing.messages_hashed);
+	hset_free_null(&routing.messages_hashed);
 
 	for (cnt = 0; cnt < MAX_CHUNKS; cnt++) {
 		struct message **chunk = routing.chunks[cnt];
@@ -2963,22 +2970,24 @@ routing_close(void)
 		}
 	}
 
-	g_hash_table_foreach(ht_banned_push, free_banned_push, NULL);
-	gm_hash_table_destroy_null(&ht_banned_push);
+	hset_foreach(ht_banned_push, free_banned_push, NULL);
+	hset_free_null(&ht_banned_push);
 
-	cnt = g_hash_table_size(ht_proxyfied);
-	if (cnt != 0)
+	cnt = htable_count(ht_proxyfied);
+	if (cnt != 0) {
 		g_warning("push-proxification table still holds %u node%s",
 			cnt, cnt == 1 ? "" : "s");
+	}
 
-	gm_hash_table_destroy_null(&ht_proxyfied);
+	htable_free_null(&ht_proxyfied);
 
-	cnt = g_hash_table_size(ht_starving_guid);
-	if (cnt != 0)
+	cnt = htable_count(ht_starving_guid);
+	if (cnt != 0) {
 		g_warning("starving GUID table still holds %u entr%s",
 			cnt, cnt == 1 ? "y" : "ies");
+	}
 
-	gm_hash_table_destroy_null(&ht_starving_guid);
+	htable_free_null(&ht_starving_guid);
 	aging_destroy(&at_udp_routes);
 }
 

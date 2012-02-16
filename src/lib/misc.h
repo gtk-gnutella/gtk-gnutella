@@ -292,8 +292,6 @@ void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 int bitcmp(const void *s1, const void *s2, size_t n);
 
-unsigned pointer_hash_func(const void *p);
-
 /**
  * An strcpy() that returns the length of the copied string.
  */

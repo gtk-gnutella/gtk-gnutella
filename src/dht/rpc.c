@@ -46,9 +46,10 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/host_addr.h"
-#include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
@@ -78,7 +79,7 @@ rpc_cb_check(const struct rpc_cb * const rcb)
 	g_assert(NULL != rcb->muid);
 }
 
-static GHashTable *pending;		/**< Pending RPC (GUID -> rpc_cb) */
+static htable_t *pending;		/**< Pending RPC (GUID -> rpc_cb) */
 
 /**
  * RPC operation to string, for logs.
@@ -104,7 +105,7 @@ dht_rpc_init(void)
 {
 	g_assert(NULL == pending);
 
-	pending = g_hash_table_new(guid_hash, guid_eq);
+	pending = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 }
 
 /**
@@ -120,7 +121,7 @@ rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 		if (rcb->cb)
 			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	} else {
-		g_hash_table_remove(pending, rcb->muid);
+		htable_remove(pending, rcb->muid);
 	}
 	atom_guid_free_null(&rcb->muid);
 	knode_free(rcb->kn);
@@ -226,11 +227,11 @@ rpc_call_prepare(
 	for (i = 0; i < 100; i++) {
 		guid_random_muid(&muid);
 
-		if (NULL == g_hash_table_lookup(pending, &muid))
+		if (!htable_contains(pending, &muid))
 			break;
 	}
 
-	if (100 == i)
+	if G_UNLIKELY(100 == i)
 		g_error("bad luck with random number generator");
 
 	/*
@@ -250,7 +251,7 @@ rpc_call_prepare(
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
 	knode_rpc_inc(kn);
 
-	gm_hash_table_insert_const(pending, rcb->muid, rcb);
+	htable_insert(pending, rcb->muid, rcb);
 
 	return rcb->muid;
 }
@@ -268,7 +269,7 @@ dht_rpc_cancel(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = htable_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -289,7 +290,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = htable_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -315,7 +316,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 	struct rpc_cb *rcb;
 	knode_t *rn;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = htable_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -356,7 +357,7 @@ dht_rpc_answer(const guid_t *muid,
 
 	knode_check(kn);
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = htable_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -635,7 +636,7 @@ dht_rpc_store(knode_t *kn, pmsg_t *mb,
  * Free the RPC callback descriptor held in the hash table at shutdown time.
  */
 static void
-rpc_free_kv(void *unused_key, void *val, void *unused_x)
+rpc_free_kv(const void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;
@@ -655,8 +656,8 @@ rpc_free_kv(void *unused_key, void *val, void *unused_x)
 void
 dht_rpc_close(void)
 {
-	g_hash_table_foreach(pending, rpc_free_kv, NULL);
-	gm_hash_table_destroy_null(&pending);
+	htable_foreach(pending, rpc_free_kv, NULL);
+	htable_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

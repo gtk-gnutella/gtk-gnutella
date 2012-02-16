@@ -34,14 +34,14 @@
 
 #include "common.h"
 
-#include "atoms.h"
 #include "cq.h"
-#include "glib-missing.h"
+#include "atoms.h"
 #include "halloc.h"
+#include "hset.h"
 #include "log.h"
-#include "misc.h"
 #include "tm.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static void cq_run_idle(cqueue_t *cq);
@@ -113,8 +113,8 @@ struct cqueue {
 	const char *cq_name;		/**< Queue name, for logging */
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
-	GHashTable *cq_periodic;	/**< Periodic events registered */
-	GHashTable *cq_idle;		/**< Idle events registered */
+	hset_t *cq_periodic;		/**< Periodic events registered */
+	hset_t *cq_idle;		/**< Idle events registered */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
@@ -688,31 +688,31 @@ cq_heartbeat_trampoline(void *p)
  * if not existing already).
  */
 static void
-cq_register_object(GHashTable **hptr, void *o)
+cq_register_object(hset_t **hptr, void *o)
 {
-	GHashTable *h = *hptr;
+	hset_t *h = *hptr;
 
 	g_assert(o != NULL);
 
 	if (NULL == h)
-		*hptr = h = g_hash_table_new(pointer_hash_func, NULL);
+		*hptr = h = hset_create(HASH_KEY_SELF, 0);
 
-	g_assert(!g_hash_table_lookup(h, o));
+	g_assert(!hset_contains(h, o));
 
-	g_hash_table_insert(h, o, o);
+	hset_insert(h, o);
 }
 
 /**
  * Unregister object from the hash table.
  */
 static void
-cq_unregister_object(GHashTable *h, void *o)
+cq_unregister_object(hset_t *h, void *o)
 {
 	g_assert(h != NULL);
 	g_assert(o != NULL);
-	g_assert(g_hash_table_lookup(h, o));
+	g_assert(hset_contains(h, o));
 
-	g_hash_table_remove(h, o);
+	hset_remove(h, o);
 }
 
 /***
@@ -1051,12 +1051,11 @@ cq_idle_remove(cidle_t **ci_ptr)
  * Trampoline for dispatching idle events.
  */
 static bool
-cq_idle_trampoline(void *key, void *val, void *data)
+cq_idle_trampoline(const void *key, void *data)
 {
-	cidle_t *ci = key;
+	cidle_t *ci = deconstify_pointer(key);
 	bool remove_it = FALSE;
 
-	(void) val;
 	(void) data;
 
 	cidle_check(ci);
@@ -1082,7 +1081,7 @@ cq_run_idle(cqueue_t *cq)
 	cqueue_check(cq);
 
 	if (cq->cq_idle)
-		g_hash_table_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
+		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
 }
 
 /**
@@ -1154,12 +1153,11 @@ cq_halt(void)
 }
 
 static bool
-cq_free_periodic(void *key, void *value, void *data)
+cq_free_periodic(const void *key, void *data)
 {
-	cperiodic_t *cp = key;
+	cperiodic_t *cp = deconstify_pointer(key);
 
 	(void) data;
-	(void) value;
 
 	cperiodic_check(cp);
 	cp->magic = 0;
@@ -1168,12 +1166,11 @@ cq_free_periodic(void *key, void *value, void *data)
 }
 
 static bool
-cq_free_idle(void *key, void *value, void *data)
+cq_free_idle(const void *key, void *data)
 {
-	cidle_t *ci = key;
+	cidle_t *ci = deconstify_pointer(key);
 
 	(void) data;
-	(void) value;
 
 	cidle_check(ci);
 	ci->magic = 0;
@@ -1208,13 +1205,13 @@ cq_free(cqueue_t *cq)
 	}
 
 	if (cq->cq_periodic) {
-		g_hash_table_foreach_remove(cq->cq_periodic, cq_free_periodic, NULL);
-		gm_hash_table_destroy_null(&cq->cq_periodic);
+		hset_foreach_remove(cq->cq_periodic, cq_free_periodic, NULL);
+		hset_free_null(&cq->cq_periodic);
 	}
 
 	if (cq->cq_idle) {
-		g_hash_table_foreach_remove(cq->cq_idle, cq_free_idle, cq);
-		gm_hash_table_destroy_null(&cq->cq_idle);
+		hset_foreach_remove(cq->cq_idle, cq_free_idle, cq);
+		hset_free_null(&cq->cq_idle);
 	}
 
 	HFREE_NULL(cq->cq_hash);

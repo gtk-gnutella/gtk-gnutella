@@ -34,17 +34,15 @@
 
 #include "common.h"
 
-#include "compat_poll.h"
-#include "fd.h"					/* For assertions */
-
 #ifdef I_SYS_SELECT
 #include <sys/select.h>
 #endif
 
-#include "lib/fd.h"
-#include "lib/log.h"
+#include "compat_poll.h"
+#include "fd.h"					/* For assertions */
+#include "log.h"
 
-#include "lib/override.h"		/* Must be the last header included */
+#include "override.h"			/* Must be the last header included */
 
 /* Fallback on select() if they miss poll() */
 #ifndef HAS_POLL

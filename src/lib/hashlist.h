@@ -26,6 +26,7 @@
 
 #include "common.h"
 #include "glib-missing.h"
+#include "hash.h"			/* For hash_func_t and hash_eq_t */
 
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
@@ -33,7 +34,7 @@ typedef struct hash_list hash_list_t;
 typedef bool (*hashlist_cbr_t)(void *key, void *u);
 typedef void (*hashlist_destroy_cb)(void *data);
 
-hash_list_t *hash_list_new(GHashFunc, GEqualFunc);
+hash_list_t *hash_list_new(hash_func_t, hash_eq_t);
 void hash_list_free(hash_list_t **);
 void hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb);
 void *hash_list_remove(hash_list_t *, const void *key);

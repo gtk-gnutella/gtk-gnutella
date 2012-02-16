@@ -45,6 +45,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -61,7 +62,7 @@ struct used_val {
 	int precision;				/**< The precision used for the last update */
 };
 
-static GHashTable *used;		/**< Records the IP address used */
+static htable_t *used;			/**< Records the IP address used */
 
 /**
  * This container holds the data points (clock offset between the real UTC
@@ -111,7 +112,7 @@ val_destroy(cqueue_t *unused_cq, void *obj)
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
-	g_hash_table_remove(used, &v->addr);
+	htable_remove(used, &v->addr);
 	v->cq_ev = NULL;
 	val_free(v);
 }
@@ -151,12 +152,13 @@ val_reused(struct used_val *v, int precision)
 void
 clock_init(void)
 {
-	used = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	used = htable_create_any(host_addr_hash_func,
+		host_addr_hash_func2, host_addr_eq_func);
 	datapoints = statx_make();
 }
 
 static void
-used_free_kv(void *unused_key, void *val, void *unused_x)
+used_free_kv(const void *unused_key, void *val, void *unused_x)
 {
 	struct used_val *v = val;
 
@@ -171,8 +173,8 @@ used_free_kv(void *unused_key, void *val, void *unused_x)
 void
 clock_close(void)
 {
-	g_hash_table_foreach(used, used_free_kv, NULL);
-	gm_hash_table_destroy_null(&used);
+	htable_foreach(used, used_free_kv, NULL);
+	htable_free_null(&used);
 	statx_free(datapoints);
 }
 
@@ -296,13 +298,13 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	 * end is running NTP.
 	 */
 
-	if ((v = g_hash_table_lookup(used, &addr))) {
+	if ((v = htable_lookup(used, &addr))) {
 		if (precision && precision >= v->precision)
 			return;
 		val_reused(v, precision);
 	} else {
 		v = val_create(addr, precision);
-		g_hash_table_insert(used, &v->addr, v);
+		htable_insert(used, &v->addr, v);
 	}
 
 	now = tm_time();

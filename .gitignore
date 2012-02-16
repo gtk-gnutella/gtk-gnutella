@@ -44,6 +44,8 @@ src/lib/float-dragon.out
 
 /src/lib/bit_array.h
 /src/lib/bit_field.h
+/src/lib/htable.[ch]
+/src/lib/hset.[ch]
 
 # Ignore gtk1 and gtk2 generated callbacks
 /src/ui/gtk/gtk?/callbacks.[ch]

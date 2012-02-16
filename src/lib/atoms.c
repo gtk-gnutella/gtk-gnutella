@@ -39,7 +39,11 @@
 #include "common.h"
 
 #include "atoms.h"
+#include "constants.h"
 #include "endian.h"
+#include "hashing.h"
+#include "htable.h"
+#include "misc.h"
 
 #if 0
 #define PROTECT_ATOMS
@@ -77,6 +81,7 @@ typedef enum {
 
 #include "stringify.h"
 #include "glib-missing.h"
+#include "hashing.h"
 #include "log.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -87,8 +92,6 @@ union mem_chunk {
   void *next;
   char align[MEM_ALIGNBYTES];
 };
-
-#define ATOM_TYPE_MASK	((size_t) 0x07)
 
 /**
  * Atoms are ref-counted.
@@ -103,8 +106,8 @@ typedef struct atom {
 #endif /* ATOM_HAVE_MAGIC */
 	int refcnt;				/**< Amount of references */
 #ifdef TRACK_ATOMS
-	GHashTable *get;		/**< Allocation spots */
-	GHashTable *free;		/**< Free spots */
+	htable_t *get;			/**< Allocation spots */
+	htable_t *free;			/**< Free spots */
 #endif
 } atom_t;
 
@@ -130,6 +133,8 @@ atom_check(const atom_t *a)
 	g_assert(a);
 	ATOM_MAGIC_CHECK(a);
 }
+
+static bool atoms_inited;
 
 #ifdef PROTECT_ATOMS
 struct mem_pool {
@@ -408,9 +413,9 @@ typedef const char *(*str_func_t)(const void *v);
  */
 typedef struct table_desc {
 	const char *type;			/**< Type of atoms */
-	GHashTable *table;			/**< Table of atoms: "atom value" => 1 */
-	GHashFunc hash_func;		/**< Hashing function for atoms */
-	GCompareFunc eq_func;		/**< Atom equality function */
+	htable_t *table;			/**< Table of atoms: "atom value" -> size */
+	hash_func_t hash_func;		/**< Hashing function for atoms */
+	hash_eq_t eq_func;			/**< Atom equality function */
 	len_func_t len_func;		/**< Atom length function */
 	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
@@ -431,23 +436,41 @@ static size_t uint32_len(const void *v);
 static const char *uint32_str(const void *v);
 static const char *gnet_host_str(const void *v);
 
+#define str_hash	string_mix_hash
+#define str_eq		string_eq
+#define fs_hash		filesize_hash
+#define fs_eq		filesize_eq
+#define fs_len		filesize_len
+#define fs_str		filesize_str
+#define gnh_hash	gnet_host_hash
+#define gnh_eq		gnet_host_eq
+#define gnh_len		gnet_host_length
+#define gnh_str		gnet_host_str
+
 /**
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {
-	{ "String",	NULL, g_str_hash,  g_str_equal, str_len,    str_str  },	/* 0 */
+	{ "String",	NULL, str_hash,    str_eq,      str_len,    str_str  },	/* 0 */
 	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
 	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
 	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
-	{ "filesize", NULL,
-		filesize_hash, filesize_eq, filesize_len, filesize_str},		/* 5 */
+	{ "filesize", NULL, fs_hash,   fs_eq,       fs_len,     fs_str },	/* 5 */
 	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
-	{ "host", NULL,
-		gnet_host_hash, gnet_host_eq, gnet_host_length, gnet_host_str},	/* 7 */
+	{ "host",   NULL, gnh_hash,    gnh_eq,      gnh_len,    gnh_str },	/* 7 */
 };
 
-static GHashTable *ht_all_atoms;
+#undef str_hash
+#undef str_eq
+#undef fs_hash
+#undef fs_eq
+#undef fs_len
+#undef fs_str
+#undef gnh_hash
+#undef gnh_eq
+#undef gnh_len
+#undef gnh_str
 
 /**
  * @return length of string + trailing NUL.
@@ -465,42 +488,6 @@ static const char *
 str_str(const void *v)
 {
 	return (const char *) v;
-}
-
-/**
- * Hash `len' bytes starting from `data'.
- */
-G_GNUC_HOT uint
-binary_hash(const void *data, size_t len)
-{
-	const unsigned char *key = data;
-	size_t i, remain, t4;
-	uint32 hash;
-
-	remain = len & 0x3;
-	t4 = len & ~0x3U;
-
-	g_assert(remain + t4 == len);
-	g_assert(remain <= 3);
-
-	hash = len;
-	for (i = 0; i < t4; i += 4) {
-		static const uint32 x[] = {
-			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
-			0xec99f01f, 0xc0eaa79d, 0x157d4257, 0xde2b8419
-		};
-		hash ^= peek_le32(&key[i]);
-		hash += x[(i >> 2) & 0x7];
-		hash = (hash << 24) ^ (hash >> 8);
-	}
-
-	for (i = 0; i < remain; i++) {
-		hash += key[t4 + i];
-		hash ^= key[t4 + i] << (i * 8);
-		hash = (hash << 24) ^ (hash >> 8);
-	}
-
-	return pointer_hash_func((void *) (size_t) hash);
 }
 
 /**
@@ -680,7 +667,7 @@ uint
 uint64_hash(const void *p)
 {
 	uint64 v = *(const uint64 *) p;
-	return v ^ (v >> 32);
+	return integer_hash(v ^ (v >> 32));
 }
 
 /**
@@ -774,7 +761,7 @@ uint
 uint32_hash(const void *p)
 {
 	uint32 v = *(const uint32 *) p;
-	return v;
+	return integer_hash(v);
 }
 
 /**
@@ -803,12 +790,12 @@ atoms_init(void)
 	} settings;
 	uint i;
 
-	if G_UNLIKELY(ht_all_atoms != NULL)
+	if G_UNLIKELY(atoms_inited)
 		return;		/* Already initialized */
 
 	ZERO(&settings);
+	atoms_inited = TRUE;
 
-	STATIC_ASSERT(NUM_ATOM_TYPES <= (ATOM_TYPE_MASK + 1));
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
 
 #ifdef PROTECT_ATOMS
@@ -820,9 +807,8 @@ atoms_init(void)
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
-		td->table = g_hash_table_new(td->hash_func, td->eq_func);
+		td->table = htable_create_any(td->hash_func, NULL, td->eq_func);
 	}
-	ht_all_atoms = g_hash_table_new(pointer_hash_func, NULL);
 
 	/*
 	 * Log atoms configuration.
@@ -850,33 +836,6 @@ atoms_init(void)
 }
 
 /**
- * Check whether ``key'' is an atom of type ``type''.
- *
- * @return the size of the atom if found, 0 otherwise.
- */
-static inline size_t
-atom_is_registered(enum atom_type type, const void *key)
-{
-	void *value;
-
-	if (g_hash_table_lookup_extended(ht_all_atoms, key, NULL, &value)) {
-		/*
-		 * If the address is already registered in the global atom table,
-		 * this is definitely an atom. However, the same memory object
-		 * could be shared by atoms of different types (in theory at least),
-		 * thus we must check whether the types are identical.
-		 */
-
-		if (((size_t) value & ATOM_TYPE_MASK) == (uint) type) {
-			size_t size = (size_t) value & ~ATOM_TYPE_MASK;
-			g_assert(size >= ARENA_OFFSET);
-			return size;
-		}
-	}
-	return 0;
-}
-
-/**
  * Check whether atom exists.
  *
  * @return TRUE if ``key'' points to a ``type'' atom.
@@ -886,11 +845,10 @@ atom_exists(enum atom_type type, const void *key)
 {
 	g_assert(key != NULL);
 
-	if G_UNLIKELY(NULL == ht_all_atoms)
+	if G_UNLIKELY(!atoms_inited)
 		return 0;
 
-	return atom_is_registered(type, key) > 0 ||
-		gm_hash_table_contains(atoms[type].table, key);
+	return htable_contains(atoms[type].table, key);
 }
 
 /**
@@ -903,7 +861,8 @@ const void *
 atom_get(enum atom_type type, const void *key)
 {
 	table_desc_t *td;
-	void *orig_key;
+	const void *orig_key;
+	void *value;
 	size_t size;
 
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
@@ -912,33 +871,16 @@ atom_get(enum atom_type type, const void *key)
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	if G_UNLIKELY(NULL == ht_all_atoms)
+	if G_UNLIKELY(!atoms_inited)
 		atoms_init();
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
-	size = atom_is_registered(type, key);
-	if (size > 0) {
-		/* Atom already exists for key and type */
-		orig_key = deconstify_pointer(key);
+	if (htable_lookup_extended(td->table, key, &orig_key, &value)) {
+		size = pointer_to_size(value);
+		g_assert(size >= ARENA_OFFSET);
 	} else {
-		void *value;
-
-		/*
-		 * Normally, if atom exists, it will be found by atom_is_registered().
-		 * If not, look in the type-specific table.
-		 *
-		 * This happens when the first few bytes of the atom arena are shared
-		 * by atoms of different types (it creates conflicts in the global
-		 * ht_all_atoms table).
-		 */
-
-		if (g_hash_table_lookup_extended(td->table, key, &orig_key, &value)) {
-			size = (size_t) value;
-			g_assert(size >= ARENA_OFFSET);
-		} else {
-			size = 0;
-		}
+		size = 0;
 	}
 
 	/*
@@ -957,7 +899,6 @@ atom_get(enum atom_type type, const void *key)
 		return orig_key;
 	} else {
 		size_t len;
-		void *value;
 		atom_t *a;
 
 		/*
@@ -966,7 +907,7 @@ atom_get(enum atom_type type, const void *key)
 
 		len = (*td->len_func)(key);
 		g_assert(len < ((size_t) -1) - ARENA_OFFSET);
-		size = round_size_fast((ATOM_TYPE_MASK + 1), ARENA_OFFSET + len);
+		size = round_size_fast(MEM_ALIGNBYTES, ARENA_OFFSET + len);
 
 		a = atom_alloc(size);
 		a->refcnt = 1;
@@ -977,9 +918,7 @@ atom_get(enum atom_type type, const void *key)
 		 * Insert atom in table.
 		 */
 
-		value = size_to_pointer(size | (uint) type);
-		g_hash_table_insert(ht_all_atoms, atom_arena(a), value);
-		g_hash_table_insert(td->table, atom_arena(a), (void *) size);
+		htable_insert(td->table, atom_arena(a), size_to_pointer(size));
 
 		return atom_arena(a);
 	}
@@ -998,8 +937,8 @@ atom_free(enum atom_type type, const void *key)
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	size = atom_is_registered(type, key);
-	g_assert(size > 0);
+	size = pointer_to_size(htable_lookup(atoms[type].table, key));
+	g_assert(size >= ARENA_OFFSET);
 
 	a = atom_from_arena(key);
 	g_assert(a->refcnt > 0);
@@ -1010,11 +949,7 @@ atom_free(enum atom_type type, const void *key)
 
 	atom_unprotect(a, size);
 	if (--a->refcnt == 0) {
-		table_desc_t *td;
-
-		td = &atoms[type];		/* Where atoms of this type are held */
-		g_hash_table_remove(td->table, key);
-		g_hash_table_remove(ht_all_atoms, key);
+		htable_remove(atoms[type].table, key);
 		atom_dealloc(a, size);
 	} else {
 		atom_protect(a, size);
@@ -1039,7 +974,7 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	const void *atom;
 	atom_t *a;
 	char buf[512];
-	void *k;
+	const void *k;
 	void *v;
 	struct spot *sp;
 
@@ -1051,33 +986,34 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	 */
 
 	if (a->refcnt == 1) {
-		a->get = g_hash_table_new(g_str_hash, g_str_equal);
-		a->free = g_hash_table_new(g_str_hash, g_str_equal);
+		a->get = htable_create(HASH_KEY_STRING, 0);
+		a->free = htable_create(HASH_KEY_STRING, 0);
 	}
 
 	gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
-	if (g_hash_table_lookup_extended(a->get, buf, &k, &v)) {
+	if (htable_lookup_extended(a->get, buf, &k, &v)) {
 		sp = (struct spot *) v;
 		sp->count++;
 	} else {
 		WALLOC(sp);
 		sp->count = 1;
-		g_hash_table_insert(a->get, g_strdup(buf), sp);
+		htable_insert(a->get, constant_str(buf), sp);
 	}
 
 	return atom;
 }
 
 /**
- * Free key/value pair of the tracking table.
+ * Free value from the tracking table.
  */
-static bool
-tracking_free_kv(void *key, void *value, void *uu_user)
+static void
+tracking_free_kv(const void *key, void *value, void *uu_user)
 {
 	(void) uu_user;
 
-	G_FREE_NULL(key);
+	/* The key is a constant */
+
 	wfree(value, sizeof(struct spot));
 	return TRUE;
 }
@@ -1086,10 +1022,10 @@ tracking_free_kv(void *key, void *value, void *uu_user)
  * Get rid of the tracking hash table.
  */
 static void
-destroy_tracking_table(GHashTable *h)
+destroy_tracking_table(htable_t *h)
 {
-	g_hash_table_foreach_remove(h, tracking_free_kv, NULL);
-	g_hash_table_destroy(h);
+	htable_foreach(h, tracking_free_kv, NULL);
+	htable_free_null(&h);
 }
 
 /**
@@ -1102,29 +1038,28 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 {
 	atom_t *a;
 	char buf[512];
-	void *k;
 	void *v;
 	struct spot *sp;
 
 	a = atom_from_arena(key);
 
 	/*
-	 * If we're going to free the atom, dispose the tracking tables.
+	 * If we're going to free the atom, dispose of the tracking tables.
 	 */
 
-	if (a->refcnt == 1) {
+	if (1 == a->refcnt) {
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
 	} else {
 		gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
-		if (g_hash_table_lookup_extended(a->free, buf, &k, &v)) {
+		if (htable_lookup_extended(a->free, buf, NULL, &v)) {
 			sp = (struct spot *) v;
 			sp->count++;
 		} else {
 			WALLOC(sp);
 			sp->count = 1;
-			g_hash_table_insert(a->free, g_strdup(buf), sp);
+			htable_insert(a->free, constant_str(buf), sp);
 		}
 	}
 
@@ -1136,10 +1071,10 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
  * amount of such operations.
  */
 static void
-dump_tracking_entry(void *key, void *value, void *user)
+dump_tracking_entry(const void *key, void *value, void *user)
 {
-	struct spot *sp = (struct spot *) value;
-	const char *what = (const char *) user;
+	struct spot *sp = value;
+	const char *what = user;
 
 	g_warning("%10d %s at \"%s\"", sp->count, what, (char *) key);
 }
@@ -1148,14 +1083,14 @@ dump_tracking_entry(void *key, void *value, void *user)
  * Dump the values held in the tracking table `h'.
  */
 static void
-dump_tracking_table(void *atom, GHashTable *h, char *what)
+dump_tracking_table(void *atom, htable_t *h, char *what)
 {
-	uint count = g_hash_table_size(h);
+	size_t count = htable_count(h);
 
-	g_warning("all %u %s spot%s for %p:",
+	g_warning("all %zu %s spot%s for %p:",
 		count, what, count == 1 ? "" : "s", atom);
 
-	g_hash_table_foreach(h, dump_tracking_entry, what);
+	htable_foreach(h, dump_tracking_entry, what);
 }
 
 #endif	/* TRACK_ATOMS */
@@ -1163,8 +1098,8 @@ dump_tracking_table(void *atom, GHashTable *h, char *what)
 /**
  * Warning about existing atom that should have been freed.
  */
-static bool
-atom_warn_free(void *key, void *unused_value, void *udata)
+static void
+atom_warn_free(const void *key, void *unused_value, void *udata)
 {
 	atom_t *a = atom_from_arena(key);
 	table_desc_t *td = udata;
@@ -1182,12 +1117,9 @@ atom_warn_free(void *key, void *unused_value, void *udata)
 #endif
 
 	/*
-	 * Don't free the entry, so that we know where the leak originates from
-	 * when running under -DUSE_DMALLOC or via valgrind.
+	 * Don't free the entry, so that we know where the leak originates from.
 	 *		--RAM, 02/02/2003
 	 */
-
-	return TRUE;
 }
 
 /**
@@ -1201,10 +1133,9 @@ atoms_close(void)
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
-		g_hash_table_foreach_remove(td->table, atom_warn_free, td);
-		gm_hash_table_destroy_null(&td->table);
+		htable_foreach(td->table, atom_warn_free, td);
+		htable_free_null(&td->table);
 	}
-	gm_hash_table_destroy_null(&ht_all_atoms);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

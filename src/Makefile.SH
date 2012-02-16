@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-96]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-119]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -83,7 +83,7 @@ SOCKER_LDFLAGS =  $sockerldflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -260,6 +260,13 @@ if/gui_property.h: .FORCE
 
 main.o:  if/gui_property.h
 
+lib/htable.h: .FORCE
+	@echo "Checking "htable.h" in "lib"..."
+	cd lib; $(MAKE) htable.h
+	@echo "Continuing in $(CURRENT)..."
+
+main.o:  lib/htable.h
+
 local_depend:: ../mkdep
 
 ../mkdep:
@@ -347,6 +354,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install sub_install
+	@exit 0
+
 install.man:: maybe_install.man sub_install.man
 deinstall:: sub_deinstall local_deinstall
 deinstall.man:: sub_deinstall.man maybe_deinstall.man

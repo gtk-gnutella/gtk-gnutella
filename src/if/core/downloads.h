@@ -29,6 +29,7 @@
 #include "lib/event.h"			/* For frequency_t */
 #include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/list.h"
 #include "lib/slist.h"
 
@@ -93,7 +94,7 @@ struct dl_server {
 	const char *vendor;			/**< Remote server vendor string (atom) */
 	const char *hostname;		/**< Remote hostname, if known (atom) */
 	pproxy_set_t *proxies;		/**< Known push proxies */
-	GHashTable *sha1_counts;
+	htable_t *sha1_counts;
 	time_t retry_after;		/**< Time at which we may retry from this host */
 	time_t dns_lookup;		/**< Last DNS lookup for hostname */
 	time_t last_connect;	/**< When we last connected to that server */

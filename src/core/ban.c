@@ -39,9 +39,10 @@
 #include "whitelist.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/fd.h"
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
-#include "lib/cq.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -69,7 +70,7 @@
 
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 
-static GHashTable *info;		/**< Info by IP address */
+static htable_t *info;			/**< Info by IP address */
 static cqueue_t *ban_cq;		/**< Private callout queue */
 
 /**< Decay coefficient, per second */
@@ -155,13 +156,13 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(!ipf->banned);
-	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
+	g_assert(ipf == htable_lookup(info, &ipf->addr));
 
 	if (GNET_PROPERTY(ban_debug) > 8)
 		g_debug("disposing of BAN %s: %s",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-	g_hash_table_remove(info, &ipf->addr);
+	htable_remove(info, &ipf->addr);
 	ipf->cq_ev = NULL;
 	ipf_free(ipf);
 }
@@ -179,7 +180,7 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(ipf->banned);
-	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
+	g_assert(ipf == htable_lookup(info, &ipf->addr));
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -210,7 +211,7 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 			g_debug("disposing of BAN %s: %s",
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-		g_hash_table_remove(info, &ipf->addr);
+		htable_remove(info, &ipf->addr);
 		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
@@ -248,7 +249,7 @@ ban_allow(const host_addr_t addr)
 	if (whitelist_check(addr))
 		return BAN_OK;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = htable_lookup(info, &addr);
 
 	/*
 	 * First time we see this IP?  It's OK then.
@@ -256,7 +257,7 @@ ban_allow(const host_addr_t addr)
 
 	if (NULL == ipf) {
 		ipf = ipf_make(addr, now);
-		g_hash_table_insert(info, &ipf->addr, ipf);
+		htable_insert(info, &ipf->addr, ipf);
 		return BAN_OK;
 	}
 
@@ -362,11 +363,11 @@ ban_record(const host_addr_t addr, const char *msg)
 	 * If is possible that we already have an addr_info for that host.
 	 */
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = htable_lookup(info, &addr);
 
 	if (NULL == ipf) {
 		ipf = ipf_make(addr, tm_time());
-		g_hash_table_insert(info, &ipf->addr, ipf);
+		htable_insert(info, &ipf->addr, ipf);
 	}
 
 	atom_str_change(&ipf->ban_msg, msg);
@@ -539,7 +540,7 @@ ban_is_banned(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = htable_lookup(info, &addr);
 
 	return ipf != NULL && ipf->banned;
 }
@@ -552,7 +553,7 @@ ban_delay(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = htable_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_delay;
@@ -566,7 +567,7 @@ ban_message(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = htable_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_msg;
@@ -578,7 +579,8 @@ ban_message(const host_addr_t addr)
 G_GNUC_COLD void
 ban_init(void)
 {
-	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	info = htable_create_any(host_addr_hash_func,
+		host_addr_hash_func2, host_addr_eq_func);
 	ban_cq = cq_submake("ban", callout_queue, BAN_CALLOUT);
 
 	ban_max_recompute();
@@ -606,7 +608,7 @@ ban_max_recompute(void)
 }
 
 static void
-free_info(void *unused_key, void *value, void *unused_udata)
+free_info(const void *unused_key, void *value, void *unused_udata)
 {
 	(void) unused_key;
 	(void) unused_udata;
@@ -621,8 +623,8 @@ ban_close(void)
 {
 	GList *l;
 
-	g_hash_table_foreach(info, free_info, NULL);
-	gm_hash_table_destroy_null(&info);
+	htable_foreach(info, free_info, NULL);
+	htable_free_null(&info);
 
 	for (l = banned_head; NULL != l; l = g_list_next(l)) {
 		ban_close_fd(&l->data); /* Reclaim fd */

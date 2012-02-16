@@ -2092,7 +2092,7 @@ prop_get_by_name(prop_set_t *ps, const char *name)
 {
 	g_assert(ps != NULL);
 
-	return GPOINTER_TO_UINT(g_hash_table_lookup(ps->byName, name));
+	return pointer_to_uint(htable_lookup(ps->by_name, name));
 }
 
 GSList *

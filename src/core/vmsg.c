@@ -69,9 +69,10 @@
 #include "lib/base16.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hset.h"
 #include "lib/mempcpy.h"
-#include "lib/misc.h"			/* For pointer_hash_func() */
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
@@ -93,7 +94,7 @@ static gnutella_vendor_t *v_tmp_data = (void *) &v_tmp[GTA_HEADER_SIZE];
 #define VMSG_PAYLOAD_MAX \
 	((sizeof v_tmp) - GTA_HEADER_SIZE - sizeof(gnutella_vendor_t))
 
-static GHashTable *ht_vmsg;
+static hset_t *hs_vmsg;
 
 /*
  * Vendor message handler.
@@ -141,7 +142,14 @@ static uint
 vmsg_hash_func(const void *key)
 {
 	const struct vmsg *vmsg = key;
-	return vmsg->vendor ^ vmsg->id;
+	return integer_hash(vmsg->vendor) ^ port_hash(vmsg->id);
+}
+
+static uint
+vmsg_hash_func2(const void *key)
+{
+	const struct vmsg *vmsg = key;
+	return integer_hash2(vmsg->vendor) ^ port_hash2(vmsg->id);
 }
 
 static bool
@@ -170,7 +178,7 @@ find_message(struct vmsg *vmsg_ptr,
 	key.vendor = vc.u32;
 	key.id = id;
 
-	value = g_hash_table_lookup(ht_vmsg, &key);
+	value = hset_lookup(hs_vmsg, &key);
 	if (value) {
 		*vmsg_ptr = *value;
 		vmsg_ptr->version = version;
@@ -3106,7 +3114,7 @@ handle_messages_supported(struct gnutella_node *n,
 	const char *description;
 	uint16 count;
 	str_t *msgs;
-	GHashTable *handlers;
+	hset_t *handlers;
 
 	if (NODE_IS_UDP(n))			/* Don't waste time if we get this via UDP */
 		return;
@@ -3132,7 +3140,7 @@ handle_messages_supported(struct gnutella_node *n,
 	 */
 
 	msgs = str_new(count * 16);		/* Pre-size generously */
-	handlers = g_hash_table_new(pointer_hash_func, NULL);
+	handlers = hset_create(HASH_KEY_SELF, 0);
 
 	while (count-- > 0) {
 		struct vmsg vm;
@@ -3159,10 +3167,10 @@ handle_messages_supported(struct gnutella_node *n,
 			g_debug("VMSG ...%s/%dv%d",
 				vendor_code_to_string(vendor.u32), id, version);
 
-		g_hash_table_insert(handlers, func_to_pointer(vm.handler), NULL);
+		hset_insert(handlers, func_to_pointer(vm.handler));
 	}
 
-#define CAN(x)	(gm_hash_table_contains(handlers, func_to_pointer(x)))
+#define CAN(x)	(hset_contains(handlers, func_to_pointer(x)))
 
 	if (CAN(handle_qstat_req) || CAN(handle_qstat_answer)) {
 		node_set_leaf_guidance(NODE_ID(n), TRUE);
@@ -3195,7 +3203,7 @@ handle_messages_supported(struct gnutella_node *n,
 #undef CAN
 
 	str_destroy(msgs);
-	g_hash_table_destroy(handlers);
+	hset_free_null(&handlers);
 }
 
 /**
@@ -3483,11 +3491,11 @@ vmsg_init(void)
 
 	vmsg_init_weight();
 
-	ht_vmsg = g_hash_table_new(vmsg_hash_func, vmsg_eq_func);
+	hs_vmsg = hset_create_any(vmsg_hash_func, vmsg_hash_func2, vmsg_eq_func);
 
 	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
 		const void *key = &vmsg_map[i];
-		gm_hash_table_insert_const(ht_vmsg, key, key);
+		hset_insert(hs_vmsg, key);
 
 		gnutella_vendor_set_code(weight_key, vmsg_map[i].vendor);
 		gnutella_vendor_set_selector_id(weight_key, vmsg_map[i].id);
@@ -3510,7 +3518,7 @@ vmsg_close(void)
 	head_ping_expire(TRUE);
 	hash_list_free(&head_pings);
 	cq_cancel(&head_ping_ev);
-	gm_hash_table_destroy_null(&ht_vmsg);
+	hset_free_null(&hs_vmsg);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -41,8 +41,11 @@
 
 #include "lib/cq.h"
 #include "lib/gnet_host.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum urpc_cb_magic { URPC_CB_MAGIC = 0x790f55e5U };
@@ -70,7 +73,7 @@ urpc_cb_check(const struct urpc_cb * const ucb)
 	g_assert(ucb->s != NULL);
 }
 
-static GHashTable *pending;		/**< Pending RPCs (socket -> urcp_cb) */
+static htable_t *pending;		/**< Pending RPCs (socket -> urcp_cb) */
 
 /**
  * Free the callback waiting indication.
@@ -83,7 +86,7 @@ urpc_cb_free(struct urpc_cb *ucb, bool in_shutdown)
 	if (in_shutdown) {
 		(*ucb->cb)(URPC_TIMEOUT, ucb->addr, ucb->port, NULL, 0, ucb->arg);
 	} else {
-		g_hash_table_remove(pending, ucb->s);
+		htable_remove(pending, ucb->s);
 	}
 
 	cq_cancel(&ucb->timeout_ev);
@@ -104,7 +107,7 @@ urpc_received(struct gnutella_socket *s, bool truncated)
 
 	inet_udp_got_incoming(s->addr);
 
-	ucb = g_hash_table_lookup(pending, s);
+	ucb = htable_lookup(pending, s);
 
 	if (NULL == ucb) {
 		g_warning("UDP got unexpected %s%zu-byte RPC reply from %s",
@@ -261,7 +264,7 @@ urpc_send(const char *what,
 	ucb->timeout_ev = cq_main_insert(timeout, urpc_timed_out, ucb);
 	ucb->what = what;
 
-	g_hash_table_insert(pending, s, ucb);
+	htable_insert(pending, s, ucb);
 
 	return 0;
 }
@@ -272,7 +275,7 @@ urpc_send(const char *what,
 bool
 urpc_pending(void)
 {
-	return 0 != g_hash_table_size(pending);
+	return 0 != htable_count(pending);
 }
 
 /**
@@ -281,11 +284,11 @@ urpc_pending(void)
 void
 urpc_init(void)
 {
-	pending = g_hash_table_new(pointer_hash_func, NULL);
+	pending = htable_create(HASH_KEY_SELF, 0);
 }
 
 static void
-urpc_free_kv(void *unused_key, void *val, void *unused_x)
+urpc_free_kv(const void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;
@@ -299,8 +302,8 @@ urpc_free_kv(void *unused_key, void *val, void *unused_x)
 void
 urpc_close(void)
 {
-	g_hash_table_foreach(pending, urpc_free_kv, NULL);
-	gm_hash_table_destroy_null(&pending);
+	htable_foreach(pending, urpc_free_kv, NULL);
+	htable_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -55,9 +55,10 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
-#include "lib/hashlist.h"
-#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
+#include "lib/htable.h"
+#include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
@@ -68,6 +69,7 @@
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define NL_MAX_LIFETIME		120000	/* 2 minutes, in ms */
@@ -114,7 +116,7 @@ static double log2_frequency[KDA_K][KDA_K];
  * Table keeping track of all the node lookup objects that we have created
  * and which are still running.
  */
-static GHashTable *nlookups;
+static htable_t *nlookups;
 
 static void lookup_iterate(nlookup_t *nl);
 static void lookup_value_free(nlookup_t *nl, bool free_vvec);
@@ -190,7 +192,7 @@ struct nlookup {
 	patricia_t *ball;			/**< The k-closest nodes we've found so far */
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
 	cevent_t *delay_ev;			/**< Delay event for retries */
-	GHashTable *c_class;		/**< Counts class-C networks in path */
+	acct_net_t *c_class;		/**< Counts class-C networks in path */
 	union {
 		struct {
 			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
@@ -435,10 +437,10 @@ lookup_free(nlookup_t *nl)
 	map_destroy(nl->fixed);
 	patricia_destroy(nl->path);
 	patricia_destroy(nl->ball);
-	acct_net_free(&nl->c_class);
+	acct_net_free_null(&nl->c_class);
 
 	if (!(nl->flags & NL_F_DONT_REMOVE))
-		g_hash_table_remove(nlookups, &nl->lid);
+		htable_remove(nlookups, &nl->lid);
 
 	nl->magic = 0;
 	WFREE(nl);
@@ -458,7 +460,7 @@ lookup_is_alive(struct nid lid)
 	if (NULL == nlookups)
 		return NULL;
 
-	nl = g_hash_table_lookup(nlookups, &lid);
+	nl = htable_lookup(nlookups, &lid);
 
 	if (nl)
 		lookup_check(nl);
@@ -4236,7 +4238,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 	nl->max_common_bits = KDA_C + dht_get_kball_furthest();
 	tm_now_exact(&nl->start);
 
-	g_hash_table_insert(nlookups, &nl->lid, nl);
+	htable_insert(nlookups, &nl->lid, nl);
 	dht_lookup_notify(kuid, type);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
@@ -5023,7 +5025,7 @@ lookup_init(void)
 	double log_2 = log(2.0);
 	size_t i;
 
-	nlookups = g_hash_table_new(nid_hash, nid_equal);
+	nlookups = htable_create_any(nid_hash, NULL, nid_equal);
 
 	/*
 	 * Build lower triangular matrix of all possible log2(frequency).
@@ -5063,7 +5065,7 @@ lookup_init(void)
  * Hashtable iteration callback to free the nlookup_t object held as the key.
  */
 static void
-free_lookup(void *key, void *value, void *data)
+free_lookup(const void *key, void *value, void *data)
 {
 	nlookup_t *nl = value;
 	bool *exiting = data;
@@ -5093,8 +5095,8 @@ free_lookup(void *key, void *value, void *data)
 void
 lookup_close(bool exiting)
 {
-	g_hash_table_foreach(nlookups, free_lookup, &exiting);
-	gm_hash_table_destroy_null(&nlookups);
+	htable_foreach(nlookups, free_lookup, &exiting);
+	htable_free_null(&nlookups);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

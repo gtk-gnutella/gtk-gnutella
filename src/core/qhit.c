@@ -55,7 +55,8 @@
 #include "lib/array.h"
 #include "lib/getdate.h"
 #include "lib/endian.h"
-#include "lib/misc.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
 #include "lib/random.h"
 #include "lib/product.h"
 #include "lib/sequence.h"
@@ -93,7 +94,7 @@ struct found_struct {
 	size_t max_size;			/**< max query hit size */
 	const struct guid *muid;	/**< the MUID to put in all query hits */
 	const struct array *token;	/**< Optional secure OOB token */
-	GHashTable *ht;				/**< Records file indices and SHA1 atoms */
+	hset_t *hs;					/**< Records file indices and SHA1 atoms */
 	qhit_process_t process;		/**< processor once query hit is built */
 	void *udata;				/**< processor argument */
 	unsigned flags;				/**< Set of QHIT_F_* flags */
@@ -316,7 +317,7 @@ found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	g_assert(xuid != NULL);
 	g_assert(proc != NULL);
 	g_assert(token != NULL);
-	g_assert(NULL == f->ht);
+	g_assert(NULL == f->hs);
 
 	f->max_size = max_size;
 	f->muid = xuid;
@@ -325,7 +326,7 @@ found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	f->udata = udata;
 	f->open = FALSE;
 	f->token = token;
-	f->ht = g_hash_table_new(pointer_hash_func, NULL);
+	f->hs = hset_create(HASH_KEY_SELF, 0);
 }
 
 static void
@@ -333,7 +334,7 @@ found_done(void)
 {
 	struct found_struct *f = found_get();
 
-	gm_hash_table_destroy_null(&f->ht);
+	hset_free_null(&f->hs);
 }
 
 static bool
@@ -341,7 +342,7 @@ found_contains(const void *key)
 {
 	struct found_struct *f = found_get();
 
-	return gm_hash_table_contains(f->ht, key);
+	return hset_contains(f->hs, key);
 }
 
 static size_t
@@ -349,7 +350,7 @@ found_contains_count(void)
 {
 	struct found_struct *f = found_get();
 
-	return g_hash_table_size(f->ht);
+	return hset_count(f->hs);
 }
 
 static void
@@ -357,7 +358,7 @@ found_insert(const void *key)
 {
 	struct found_struct *f = found_get();
 
-	gm_hash_table_insert_const(f->ht, key, NULL);
+	hset_insert(f->hs, key);
 }
 
 static time_t release_date;

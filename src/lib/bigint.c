@@ -158,6 +158,25 @@ bigint_zero(bigint_t *bi)
 }
 
 /**
+ * Is big integer zero?
+ */
+gboolean
+bigint_is_zero(const bigint_t *bi)
+{
+	const struct bigint *b = BIGINT(bi);
+	size_t i;
+
+	bigint_check(b);
+
+	for (i = 0; i < b->len; i++) {
+		if (0 != b->v[i])
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Copy big integer into result.
  */
 void
@@ -459,6 +478,30 @@ bigint_rshift(bigint_t *bi)
 
 		b->v[i] = accum >> 1;
 		carry = (accum & 0x1) == 0x1;
+	}
+}
+
+/**
+ * Right shift big integer in place by specified amount of bytes, the leading
+ * bytes being set to 0.
+ */
+void
+bigint_rshift_bytes(bigint_t *bi, size_t n)
+{
+	struct bigint *b = BIGINT(bi);
+
+	bigint_check(b);
+	g_assert(size_is_non_negative(n));
+
+	if (n >= b->len) {
+		memset(b->v, 0, b->len);
+	} else {
+		size_t i;
+
+		for (i = n; i < b->len; i++) {
+			b->v[i] = b->v[i - n];
+		}
+		memset(b->v, 0, n);
 	}
 }
 

@@ -41,6 +41,7 @@
 #include "if/gui_property.h"
 
 #include "lib/cq.h"
+#include "lib/htable.h"
 #include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -56,9 +57,9 @@ static GtkCList *clist_download_sources;
 static GtkCList *clist_download_aliases;
 static GtkCList *clist_download_details;
 
-static GHashTable *file_rows;		/* row -> struct fileinfo_data */
-static GHashTable *source_rows;		/* row -> struct download */
-static GHashTable *fi_sources;		/* struct download -> row */
+static htable_t *file_rows;		/* row -> struct fileinfo_data */
+static htable_t *source_rows;	/* row -> struct download */
+static htable_t *fi_sources;	/* struct download -> row */
 
 static cevent_t *cursor_ev;
 
@@ -81,7 +82,7 @@ get_fileinfo_data(int row)
 {
 	struct fileinfo_data *file;
 
-	file = g_hash_table_lookup(file_rows, int_to_pointer(row));
+	file = htable_lookup(file_rows, int_to_pointer(row));
 	g_assert(file);
 	g_assert(row == fileinfo_data_get_row(file));
 
@@ -161,7 +162,7 @@ on_clist_download_files_row_moved(int dst, void *user_data)
 
 	if (src != dst) {
 		fileinfo_data_set_row(file, dst);
-		g_hash_table_insert(file_rows, int_to_pointer(dst), file);
+		htable_insert(file_rows, int_to_pointer(dst), file);
 	}
 }
 
@@ -199,7 +200,7 @@ on_clist_download_files_row_removed(void *data)
 	struct fileinfo_data *file = data;
 	int row = fileinfo_data_get_row(file);
 
-	g_hash_table_remove(file_rows, int_to_pointer(row));
+	htable_remove(file_rows, int_to_pointer(row));
 	fi_gui_file_invalidate(file);
 	clist_sync_rows(clist_download_files, on_clist_download_files_row_moved);
 }
@@ -223,7 +224,7 @@ fi_gui_file_show(struct fileinfo_data *file)
 		}
 		row = gtk_clist_append(clist_download_files, (char **) &titles);
 		fileinfo_data_set_row(file, row);
-		g_hash_table_insert(file_rows, int_to_pointer(row), file);
+		htable_insert(file_rows, int_to_pointer(row), file);
 	}
 	gtk_clist_set_row_data_full(clist, row, file,
 		on_clist_download_files_row_removed);
@@ -251,8 +252,8 @@ get_source(int row)
 {
 	struct download *d;
 
-	d = g_hash_table_lookup(source_rows, int_to_pointer(row));
-	g_assert(pointer_to_int(g_hash_table_lookup(fi_sources, d)) == row);
+	d = htable_lookup(source_rows, int_to_pointer(row));
+	g_assert(pointer_to_int(htable_lookup(fi_sources, d)) == row);
 
 #ifdef FILEINFO_C_ROW_CACHE_REGRESSION
 	{
@@ -323,10 +324,10 @@ on_clist_download_sources_row_moved(int dst, void *user_data)
 	int src;
 
 	download_check(d);
-	src = pointer_to_int(g_hash_table_lookup(fi_sources, d));
+	src = pointer_to_int(htable_lookup(fi_sources, d));
 	if (src != dst) {
-		g_hash_table_insert(fi_sources, d, int_to_pointer(dst));
-		g_hash_table_insert(source_rows, int_to_pointer(dst), d);
+		htable_insert(fi_sources, d, int_to_pointer(dst));
+		htable_insert(source_rows, int_to_pointer(dst), d);
 	}
 }
 
@@ -334,7 +335,7 @@ static void
 on_clist_download_sources_row_removed(void *data)
 {
 	download_check(data);
-	g_hash_table_remove(fi_sources, data);
+	htable_remove(fi_sources, data);
 	clist_sync_rows(clist_download_sources,
 		on_clist_download_sources_row_moved);
 }
@@ -349,7 +350,7 @@ fi_gui_source_show(struct download *key)
 
 	clist = clist_download_sources;
 	g_return_if_fail(clist);
-	g_return_if_fail(!gm_hash_table_contains(fi_sources, key));
+	g_return_if_fail(!htable_contains(fi_sources, key));
 
 	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
 		titles[i] = "";
@@ -357,8 +358,8 @@ fi_gui_source_show(struct download *key)
 	row = gtk_clist_append(clist, (char **) titles);
 	g_return_if_fail(row >= 0);
 
-	g_hash_table_insert(fi_sources, key, int_to_pointer(row));
-	g_hash_table_insert(source_rows, int_to_pointer(row), key);
+	htable_insert(fi_sources, key, int_to_pointer(row));
+	htable_insert(source_rows, int_to_pointer(row), key);
 	gtk_clist_set_row_data_full(clist, row, key,
 		on_clist_download_sources_row_removed);
 	for (i = 0; i < c_fi_sources; i++) {
@@ -373,7 +374,7 @@ fi_gui_source_hide(struct download *key)
 
 	g_return_if_fail(clist_download_sources);
 
-	if (g_hash_table_lookup_extended(fi_sources, key, NULL, &value)) {
+	if (htable_lookup_extended(fi_sources, key, NULL, &value)) {
 		int row = pointer_to_int(value);
 
 		gtk_clist_remove(clist_download_sources, row);
@@ -451,7 +452,7 @@ fi_gui_source_update(struct download *d)
 
 	download_check(d);
 
-	if (g_hash_table_lookup_extended(fi_sources, d, NULL, &value)) {
+	if (htable_lookup_extended(fi_sources, d, NULL, &value)) {
 		int i, row = pointer_to_int(value);
 
 		for (i = 0; i < c_fi_sources; i++) {
@@ -593,9 +594,9 @@ fi_gui_files_widget_destroy(void)
 void
 fi_gui_init(void)
 {
-	file_rows = g_hash_table_new(NULL, NULL);
-	source_rows = g_hash_table_new(NULL, NULL);
-	fi_sources = g_hash_table_new(NULL, NULL);
+	file_rows = htable_create(HASH_KEY_SELF, 0);
+	source_rows = htable_create(HASH_KEY_SELF, 0);
+	fi_sources = htable_create(HASH_KEY_SELF, 0);
 
 	clist_download_aliases = GTK_CLIST(
 		gui_main_window_lookup("clist_download_aliases"));
@@ -665,9 +666,9 @@ fi_gui_shutdown(void)
 		clist_download_sources = NULL;
 	}
 
-	gm_hash_table_destroy_null(&fi_sources);
-	gm_hash_table_destroy_null(&file_rows);
-	gm_hash_table_destroy_null(&source_rows);
+	htable_free_null(&fi_sources);
+	htable_free_null(&file_rows);
+	htable_free_null(&source_rows);
 }
 
 void

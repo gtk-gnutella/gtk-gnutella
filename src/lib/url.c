@@ -33,17 +33,18 @@
 
 #include "common.h"
 
+#include "url.h"
 #include "ascii.h"
 #include "debug.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"			/* For is_strprefix() */
 #include "parse.h"
 #include "path.h"
 #include "str.h"
-#include "url.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -96,7 +97,7 @@ static const char http_prefix[] = "http://";
  * Parsed URL parameters (from query string).
  */
 struct url_params {
-	GHashTable *params;		/**< parameter => value (halloc'ed) */
+	htable_t *params;		/**< parameter => value (halloc'ed) */
 	size_t count;			/**< Amount of parameters */
 };
 
@@ -412,7 +413,7 @@ url_params_parse(char *query)
 	bool in_value = FALSE;
 
 	WALLOC(up);
-	up->params = g_hash_table_new(g_str_hash, g_str_equal);
+	up->params = htable_create(HASH_KEY_STRING, 0);
 	up->count = 0;
 
 	for (q = start = query; /* empty */; q++) {
@@ -430,7 +431,7 @@ url_params_parse(char *query)
 				if (value == start)				/* No unescaping took place */
 					value = h_strdup(start);
 				*q = c;
-				g_hash_table_insert(up->params, name, value);
+				htable_insert(up->params, name, value);
 				up->count++;
 				in_value = FALSE;
 				name = NULL;
@@ -467,14 +468,17 @@ url_params_get(const url_params_t *up, const char *name)
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
 
-	return g_hash_table_lookup(up->params, name);
+	return htable_lookup(up->params, name);
 }
 
 static void
-free_params_kv(void *key, void *value, void *unused_udata)
+free_params_kv(const void *key, void *value, void *unused_udata)
 {
+	void *k = deconstify_pointer(key);
+
 	(void) unused_udata;
-	HFREE_NULL(key);
+
+	HFREE_NULL(k);
 	HFREE_NULL(value);
 }
 
@@ -486,8 +490,8 @@ url_params_free(url_params_t *up)
 {
 	g_assert(up != NULL);
 
-	g_hash_table_foreach(up->params, free_params_kv, NULL);
-	gm_hash_table_destroy_null(&up->params);
+	htable_foreach(up->params, free_params_kv, NULL);
+	htable_free_null(&up->params);
 
 	WFREE(up);
 }

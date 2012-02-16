@@ -32,6 +32,8 @@
 
 struct filter;
 struct slist;
+struct htable;
+struct hset;
 
 /**
  * Structure for search results.
@@ -43,8 +45,8 @@ typedef struct search {
 	GtkWidget  *scrolled_window;	/**< GtkScrolledWindow, contains tree */
     GtkWidget  *arrow;				/**< The arrow displaying sort order */
 
-	GHashTable *dups;				/**< keep a record of dups. */
-	GHashTable *parents;			/**< table of mount iterators for
+	struct hset *dups;				/**< keep a record of dups. */
+	struct htable *parents;			/**< table of mount iterators for
 										 any seen SHA1 */
 
     struct filter *filter;		/**< filter ruleset bound to this search */

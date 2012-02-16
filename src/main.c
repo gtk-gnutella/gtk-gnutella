@@ -121,6 +121,7 @@
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
 #include "lib/exit.h"
+#include "lib/htable.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -1778,6 +1779,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
+	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();
