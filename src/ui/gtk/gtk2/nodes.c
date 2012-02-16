@@ -98,7 +98,7 @@ remove_item(hset_t *hs, const struct nid *node_id)
 	
 	orig_key = hset_lookup(hs, node_id);
 	if (orig_key) {
-    	hset_remove(ht, orig_key);
+    	hset_remove(hs, orig_key);
 		nid_unref(orig_key);
 		return TRUE;
 	} else {

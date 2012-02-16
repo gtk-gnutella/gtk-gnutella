@@ -1469,7 +1469,6 @@ search_gui_request_bitzi_data_helper(const void *key, void *unused_udata)
 {
 	struct result_data *rd = deconstify_pointer(key);
 
-	(void) unused_value;
 	(void) unused_udata;
 	
 	record_check(rd->record);
