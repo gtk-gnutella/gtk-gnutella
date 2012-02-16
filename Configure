@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Thu Feb 16 12:45:37 CET 2012 [metaconfig 3.5-136]
+# Generated on Thu Feb 16 17:45:30 CET 2012 [metaconfig 3.5-136]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!

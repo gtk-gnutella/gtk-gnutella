@@ -1057,6 +1057,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define PRIVLIB_EXP "$privlibexp"		/**/
 
+/* PTRSIZE:
+ *	This symbol contains the size of a pointer, so that the C preprocessor
+ *	can make decisions based on it.
+ */
+#define PTRSIZE $ptrsize
+
 /* SIG_NAME:
  *	This symbol contains a list of signal names in order of
  *	signal number. This is intended
