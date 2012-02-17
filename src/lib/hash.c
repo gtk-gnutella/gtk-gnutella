@@ -111,7 +111,8 @@
 #include "entropy.h"
 #include "hashing.h"
 #include "unsigned.h"
-#include "xmalloc.h"
+#include "vmm.h"
+#include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -162,47 +163,119 @@ hash_random_offset_init(void)
 }
 
 /**
- * Allocate structures for the key set.
+ * Compute the total size of the arena required for given amount of items.
+ */
+static size_t
+hash_arena_size(size_t items, bool has_values)
+{
+	size_t size;
+
+	/*
+	 * To avoid too much fragmentation, we allocate the arena as a contiguous
+	 * memory region, using walloc() or vmm_alloc() as appropriate.
+	 *
+	 * When the hash has keys, the layout in memory is:
+	 *
+	 *     key array | value array | hashes array
+	 *
+	 * When the has has no keys, the layout is:
+	 *
+	 *     key array | hashes array
+	 *
+	 * This allows the hashes array to be correctly aligned since the size
+	 * of a pointer is always larger or equal to the size of an unsigned value.
+	 */
+
+	STATIC_ASSERT(sizeof(void *) >= sizeof(unsigned));
+
+	size = items * sizeof(void *);
+	if (has_values)
+		size *= 2;
+	size += items * sizeof(unsigned);
+
+	return size;
+}
+
+/**
+ * Allocate arena for the hash.
  *
  * @param hk		the keyset structure
  * @param bits		log2(size) for the key array
  */
 void
-hash_keyset_allocate(struct hkeys *hk, size_t bits)
+hash_arena_allocate(struct hash *h, size_t bits)
 {
-	g_assert(hk != NULL);
+	struct hkeys *hk = &h->kset;
+	size_t size;
+	void *arena;
+
+	hash_check(h);
 	g_assert(bits >= HASH_MIN_BITS);
 
 	hash_random_offset_init();
 
 	hk->size = 1UL << bits;
 	hk->bits = bits;
-	hk->keys = xmalloc(hk->size * sizeof hk->keys[0]);
-	hk->hashes = xmalloc0(hk->size * sizeof hk->hashes[0]);
 	hk->tombs = 0;
 	hk->resize = FALSE;
+
+	/*
+	 * If the arena size is more than a page size, use VMM to allocate the
+	 * memory, otherwise rely on walloc().
+	 */
+
+	size = hash_arena_size(hk->size, hk->has_values);
+
+	if (size >= round_pagesize(1))
+		arena = vmm_alloc(size);
+	else
+		arena = walloc(size);
+
+	hk->keys = arena;
+	arena = ptr_add_offset(arena, hk->size * sizeof(void *));
+	if (hk->has_values) {
+		(*h->ops->set_values)(h, arena);
+		arena = ptr_add_offset(arena, hk->size * sizeof(void *));
+	}
+	hk->hashes = arena;
+	memset(hk->hashes, 0, hk->size * sizeof(unsigned));
 }
 
 /**
- * Free allocated key set structures.
+ * Release arena of given length.
  */
-void
-hash_keyset_free(struct hkeys *hk)
+static void
+hash_arena_size_free(void *arena, size_t len)
 {
-	xfree(hk->keys);
-	xfree(hk->hashes);
+	/*
+	 * If the arena size is more than a page size, we used VMM to allocate the
+	 * memory, otherwise it was walloc()'ed.
+	 */
+
+	if (len >= round_pagesize(1))
+		vmm_free(arena, len);
+	else
+		wfree(arena, len);
 }
 
 /**
- * Remove all the keys, resizing table to the minimal size.
+ * Free allocated arena structures.
  */
 void
-hash_keyset_clear(struct hkeys *hk)
+hash_arena_free(struct hash *h)
 {
-	g_assert(hk != NULL);
+	struct hkeys *hk = &h->kset;
+	size_t size;
 
-	hash_keyset_free(hk);
-	hash_keyset_allocate(hk, HASH_MIN_BITS);
+	hash_check(h);
+
+	/*
+	 * If the arena size is more than a page size, we used VMM to allocate the
+	 * memory, otherwise it was walloc()'ed.
+	 */
+
+	size = hash_arena_size(hk->size, hk->has_values);
+	hash_arena_size_free(hk->keys, size);
 }
 
 /**
@@ -507,17 +580,19 @@ hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 static void
 hash_resize(struct hash *h, enum hash_resize_mode mode)
 {
-	const void **old_values, **new_values;
+	const void **old_values = NULL, **new_values;
 	const void **old_keys, **hk;
 	unsigned *old_hashes, *hp;
-	size_t old_size, i;
+	size_t old_size, old_arena_size, i;
 
 	hash_check(h);
 
 	old_keys = h->kset.keys;
 	old_hashes = h->kset.hashes;
-	old_values = (*h->ops->get_values)(h);
+	if (h->kset.has_values)
+		old_values = (*h->ops->get_values)(h);
 	old_size = h->kset.size;
+	old_arena_size = hash_arena_size(old_size, h->kset.has_values);
 
 	switch (mode) {
 	case HASH_RESIZE_SAME:
@@ -540,12 +615,10 @@ hash_resize(struct hash *h, enum hash_resize_mode mode)
 
 size_computed:
 
-	hash_keyset_allocate(&h->kset, h->kset.bits);
+	hash_arena_allocate(h, h->kset.bits);
 
-	if (old_values != NULL) {
-		(*h->ops->allocate_values)(h, h->kset.size);
+	if (old_values != NULL)
 		new_values = (*h->ops->get_values)(h);
-	}
 
 	for (i = 0, hp = old_hashes, hk = old_keys; i < old_size; i++, hp++, hk++) {
 		if (HASH_IS_REAL(*hp)) {
@@ -562,10 +635,7 @@ size_computed:
 		}
 	}
 
-	xfree(old_keys);
-	xfree(old_hashes);
-	if (old_values != NULL)
-		xfree(old_values);
+	hash_arena_size_free(old_keys, old_arena_size);
 }
 
 /**
@@ -752,26 +822,16 @@ hash_delete_key(struct hash *h, const void *key)
 void
 hash_clear(struct hash *h)
 {
-	const void **values;
-
 	hash_check(h);
 	g_assert(0 == h->refcnt);
-
-	values = (*h->ops->get_values)(h);
 
 	if G_UNLIKELY(HASH_MIN_BITS == h->kset.bits) {
 		memset(h->kset.hashes, 0, h->kset.size * sizeof h->kset.hashes[0]);
 		h->kset.tombs = 0;
 		h->kset.resize = FALSE;
 	} else {
-		xfree(h->kset.keys);
-		xfree(h->kset.hashes);
-		hash_keyset_allocate(&h->kset, HASH_MIN_BITS);
-
-		if (values != NULL) {
-			xfree(values);
-			(*h->ops->allocate_values)(h, h->kset.size);
-		}
+		hash_arena_free(h);
+		hash_arena_allocate(h, HASH_MIN_BITS);
 	}
 
 	h->kset.items = 0;

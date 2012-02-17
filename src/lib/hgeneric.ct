@@ -38,7 +38,6 @@
 #include "h<generic>.h"
 #include "unsigned.h"
 #include "walloc.h"
-#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -99,18 +98,17 @@ static const struct hash_ops h<generic>_ops;
 
 @if TABLE
 /**
- * Allocate the values array.
+ * Record the base of the values array.
  */
 static void
-htable_values_allocate(struct hash *h, size_t size)
+htable_values_set(struct hash *h, const void **values)
 {
 	htable_t *ht = HASH_TABLE(h);
 
-	g_assert(size_is_positive(size));
-	g_assert(size >= HASH_MIN_SIZE);
+	g_assert(values != NULL);
 	htable_check(ht);
 
-	ht->values = xmalloc(size * sizeof ht->values[0]);
+	ht->values = values;
 }
 
 /**
@@ -126,12 +124,12 @@ htable_values_get(const struct hash *h)
 @end
 @if SET
 static void
-hset_values_allocate(struct hash *h, size_t size)
+hset_values_set(struct hash *h, const void **values)
 {
 	(void) h;
-	(void) size;
+	(void) values;
 
-	/* Nothing to do */
+	g_assert_not_reached();		/* Cannot be called */
 }
 
 static const void **
@@ -162,10 +160,10 @@ h<generic>_allocate(size_t bits)
 	WALLOC0(hx);
 	hx->magic = H<GENERIC>_MAGIC;
 	hx->ops = &h<generic>_ops;
-	hash_keyset_allocate(&hx->kset, bits);
 @if TABLE
-	htable_values_allocate(HASH(hx), hx->kset.size);
+	hx->kset.has_values = TRUE;
 @end
+	hash_arena_allocate(HASH(hx), bits);
 
 	return hx;
 }
@@ -223,10 +221,7 @@ h<generic>_free(h<generic>_t *hx)
 	h<generic>_check(hx);
 	g_assert(0 == hx->refcnt);	/* No pending iterators */
 
-	hash_keyset_free(&hx->kset);
-@if TABLE
-	xfree(hx->values);
-@end
+	hash_arena_free(HASH(hx));
 	hx->magic = 0;
 	WFREE(hx);
 }
@@ -662,9 +657,9 @@ h<generic>_iter_remove(h<generic>_iter_t *hxi)
  * Polymorphic operations.
  */
 static const struct hash_ops h<generic>_ops = {
-	h<generic>_values_allocate,		/* allocate_values */
-	h<generic>_values_get,			/* get_values */
-	h<generic>_hash_free,			/* hash_free */
+	h<generic>_values_set,		/* set_values */
+	h<generic>_values_get,		/* get_values */
+	h<generic>_hash_free,		/* hash_free */
 };
 
 /***

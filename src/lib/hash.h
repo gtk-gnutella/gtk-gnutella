@@ -83,8 +83,8 @@ struct hkeys {
 	size_t bits;				/* log2(size) */
 	size_t items;				/* Number of items held */
 	size_t tombs;				/* Amount of deleted items (tombstones) */
-	const void **keys;			/* Array of keys (xmalloc()'ed) */
-	unsigned *hashes;			/* Array of hashed keys (xmalloc()'ed) */
+	const void **keys;			/* Array of keys */
+	unsigned *hashes;			/* Array of hashed keys */
 	hash_func_t hash;			/* Primary key hashing function */
 	hash_func_t hash2;			/* Secondary key hashing function */
 	union {
@@ -92,6 +92,7 @@ struct hkeys {
 		size_t keysize;			/* Fixed-length of keys */
 	} uk;
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
+	unsigned has_values:1;		/* Whether keys have associated values */
 };
 
 #define HASH(x)		((struct hash *) (x))
@@ -116,7 +117,7 @@ struct hkeys {
  * happen on a hash table.
  */
 struct hash_ops {
-	void (*allocate_values)(struct hash *h, size_t newlen);
+	void (*set_values)(struct hash *h, const void **p);
 	const void **(*get_values)(const struct hash *h);
 	void (*hash_free)(struct hash *h);
 };
@@ -149,19 +150,18 @@ struct hash {
  * Routines with a keyset parameter only handle keys.
  */
 
-void hash_keyset_allocate(struct hkeys *hk, size_t bits);
 void hash_keyhash_setup(struct hkeys *hk,
 	enum hash_key_type ktype, size_t keysize);
 void hash_keyhash_any_setup(struct hkeys *hk,
 	hash_func_t primary, hash_func_t secondary, hash_eq_t eq);
-void hash_keyset_free(struct hkeys *hk);
-void hash_keyset_clear(struct hkeys *hk);
 bool hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
 
 /*
  * Routines with a hash parameter also handle values, if any, when resizing.
  */
 
+void hash_arena_allocate(struct hash *h, size_t bits);
+void hash_arena_free(struct hash *h);
 bool hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
