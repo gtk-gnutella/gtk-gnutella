@@ -40,6 +40,7 @@
 #include "thread.h"
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
+#include "omalloc.h"
 #include "spinlock.h"
 #include "walloc.h"
 
@@ -81,7 +82,7 @@ thread_get_global_hash(void)
 		static spinlock_t private_slk = SPINLOCK_INIT;
 		spinlock(&private_slk);
 		if (NULL == ht) {
-			ht = hash_table_new_full_real(thread_hash, thread_equal);
+			ht = hash_table_once_new_full_real(thread_hash, thread_equal);
 			hash_table_thread_safe(ht);
 		}
 		spinunlock(&private_slk);
@@ -135,8 +136,8 @@ thread_get_private_hash(void)
 	 */
 
 	if G_UNLIKELY(NULL == pht) {
-		pht = hash_table_new_real();
-		hash_table_insert(ght, WCOPY(&t), pht);
+		pht = hash_table_once_new_real();	 /* Never freed! */
+		hash_table_insert(ght, ocopy(t, sizeof t), pht);
 	}
 
 	/*
