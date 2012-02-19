@@ -62,6 +62,7 @@
 #include "entropy.h"
 #include "hashing.h"
 #include "mutex.h"
+#include "omalloc.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "vmm.h"
@@ -120,6 +121,7 @@ struct hash_table {
 	unsigned special:1;			/* Set if structure allocated specially */
 	unsigned readonly:1;		/* Set if data structures protected */
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
+	unsigned once:1;			/* Object allocated using "once" memory */
 };
 
 /**
@@ -189,9 +191,15 @@ hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
 }
 
 static inline void
-hash_mark_real(hash_table_t * ht, bool is_real)
+hash_mark_real(hash_table_t *ht, bool is_real)
 {
 	ht->real = booleanize(is_real);
+}
+
+static inline void
+hash_mark_once(hash_table_t *ht, bool is_once)
+{
+	ht->once = booleanize(is_once);
 }
 
 static inline void
@@ -1160,17 +1168,41 @@ hash_table_new_not_leaking(void)
 #undef malloc
 #undef free
 
+static hash_table_t *
+hash_table_new_full_real_using(hash_table_t *ht, bool once,
+	hash_table_hash_func hash, hash_table_eq_func eq)
+{
+	g_assert(ht != NULL);
+
+	ZERO(ht);
+	hash_mark_real(ht, TRUE);
+	hash_mark_once(ht, once);
+	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
+	return ht;
+}
+
+hash_table_t *
+hash_table_once_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
+{
+	hash_table_t *ht = omalloc(sizeof *ht);
+
+	return hash_table_new_full_real_using(ht, TRUE, hash, eq);
+}
+
 hash_table_t *
 hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 {
 	hash_table_t *ht = malloc(sizeof *ht);
 
-	g_assert(ht);
+	return hash_table_new_full_real_using(ht, FALSE, hash, eq);
+}
 
-	ZERO(ht);
-	hash_mark_real(ht, TRUE);
-	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
-	return ht;
+hash_table_t *
+hash_table_once_new_real(void)
+{
+	hash_table_t *ht = omalloc(sizeof *ht);
+
+	return hash_table_new_full_real_using(ht, TRUE, NULL, NULL);
 }
 
 hash_table_t *
@@ -1184,6 +1216,7 @@ hash_table_destroy_real(hash_table_t *ht)
 {
 	hash_table_check(ht);
 	ht_synchronize(ht);
+	g_assert(!ht->once);
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {

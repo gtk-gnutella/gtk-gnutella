@@ -72,9 +72,12 @@ hash_table_t *hash_table_new_full_not_leaking(
 	hash_table_hash_func hash, hash_table_eq_func eq);
 
 #if defined(MALLOC_SOURCE) || defined(VMM_SOURCE) || defined(THREAD_SOURCE)
-/* These routines are reserved for the tracking malloc code */
+/* These routines are reserved for the tracking malloc code and for threads */
 hash_table_t *hash_table_new_real(void);
+hash_table_t *hash_table_once_new_real(void);
 hash_table_t *hash_table_new_full_real(
+	hash_table_hash_func hash, hash_table_eq_func eq);
+hash_table_t *hash_table_once_new_full_real(
 	hash_table_hash_func hash, hash_table_eq_func eq);
 void hash_table_destroy_real(hash_table_t *ht);
 #endif /* MALLOC_SOURCE || VMM_SOURCE || THREAD_SOURCE */
