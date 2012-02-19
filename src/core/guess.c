@@ -432,9 +432,8 @@ guess_cache_remove(const gnet_host_t *host)
 				if (count != i) {
 					memmove(&gc->cache[i], &gc->cache[i+1],
 						(count - i) * sizeof gc->cache[0]);
-				} else {
-					gc->cache[i] = NULL;
 				}
+				gc->cache[count] = NULL;
 				goto done;
 			}
 		}
