@@ -2168,6 +2168,81 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 }
 
 /**
+ * Grab block from selected freelist, known to hold available ones of at
+ * least the required length.
+ *
+ * The block is possibly split, if needed, and the final allocated size is
+ * returned in ``allocated''.
+ *
+ * @param fl		the freelist with free blocks of at least ``len'' bytes
+ * @param block		the selected block from the freelist
+ * @param length	the desired block length
+ * @param split		whether we can split the block
+ * @param allocated where we return the allocated block size (after split).
+ *
+ * @return adjusted pointer
+ */
+static void *
+xmalloc_freelist_grab(struct xfreelist *fl,
+	void *block, size_t length, bool split, size_t *allocated)
+{
+	size_t blksize = fl->blocksize;
+	size_t len = length;
+	void *p = block;
+
+	g_assert(blksize >= len);
+
+	xfl_remove_selected(fl);
+
+	/*
+	 * If the block is larger than the size we requested, the remainder
+	 * is put back into the free list.
+	 */
+
+	if (len != blksize) {
+		void *sp;			/* Split pointer */
+		size_t split_len;
+
+		split_len = blksize - len;
+
+		if (split && xmalloc_should_split(blksize, len)) {
+			xstats.freelist_split++;
+			if (xmalloc_grows_up) {
+				/* Split the end of the block */
+				sp = ptr_add_offset(p, len);
+			} else {
+				/* Split the head of the block */
+				sp = p;
+				p = ptr_add_offset(p, split_len);
+			}
+
+			if (xmalloc_debugging(3)) {
+				t_debug("XM splitting large %zu-byte block at %p"
+					" (need only %zu bytes: returning %zu bytes at %p)",
+					blksize, p, len, split_len, sp);
+			}
+
+			g_assert(split_len <= XMALLOC_MAXSIZE);
+
+			xmalloc_freelist_insert(sp, split_len, XM_COALESCE_NONE);
+		} else {
+			if (xmalloc_debugging(3)) {
+				t_debug("XM NOT splitting %s %zu-byte block at %p"
+					" (need only %zu bytes, split of %zu bytes too small)",
+					split ? "large" : "(as requested)",
+					blksize, p, len, split_len);
+			}
+			xstats.freelist_nosplit++;
+			len = blksize;		/* Wasting some trailing bytes */
+		}
+	}
+
+	*allocated = len;
+
+	return p;
+}
+
+/**
  * Allocate a block from the freelist, of given physical length.
  *
  * @param len		the desired block length (including our overhead)
@@ -2185,58 +2260,57 @@ xmalloc_freelist_alloc(size_t len, size_t *allocated)
 
 	p = xmalloc_freelist_lookup(len, NULL, &fl);
 
-	if (p != NULL) {
-		size_t blksize = fl->blocksize;
-
-		g_assert(blksize >= len);
-
-		xfl_remove_selected(fl);
-
-		/*
-		 * If the block is larger than the size we requested, the remainder
-		 * is put back into the free list.
-		 */
-
-		if (len != blksize) {
-			void *split;
-			size_t split_len;
-
-			split_len = blksize - len;
-
-			if (xmalloc_should_split(blksize, len)) {
-				xstats.freelist_split++;
-				if (xmalloc_grows_up) {
-					/* Split the end of the block */
-					split = ptr_add_offset(p, len);
-				} else {
-					/* Split the head of the block */
-					split = p;
-					p = ptr_add_offset(p, split_len);
-				}
-
-				if (xmalloc_debugging(3)) {
-					t_debug("XM splitting large %zu-byte block at %p"
-						" (need only %zu bytes: returning %zu bytes at %p)",
-						blksize, p, len, split_len, split);
-				}
-
-				g_assert(split_len <= XMALLOC_MAXSIZE);
-
-				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
-			} else {
-				if (xmalloc_debugging(3)) {
-					t_debug("XM NOT splitting large %zu-byte block at %p"
-						" (need only %zu bytes, split of %zu bytes too small)",
-						blksize, p, len, split_len);
-				}
-				xstats.freelist_nosplit++;
-				len = blksize;		/* Wasting some trailing bytes */
-			}
-		}
-		*allocated = len;
-	}
+	if (p != NULL)
+		p = xmalloc_freelist_grab(fl, p, len, TRUE, allocated);
 
 	return p;
+}
+
+/**
+ * Allocate a block from specified freelist, of given physical length.
+ *
+ * @param len		the desired block length (including our overhead)
+ * @param allocated	the length of the allocated block is returned there
+ *
+ * @return the block address we found, NULL if nothing was found.
+ * The returned block is removed from the freelist.  When allocated, the
+ * size of the block is returned via ``allocated''.
+ */
+static void *
+xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
+{
+	void *p;
+
+	mutex_get(&fl->lock);
+
+	if (0 == fl->count) {
+		mutex_release(&fl->lock);
+		return NULL;
+	}
+
+	/*
+	 * Depending on the way the virtual memory grows, we pick the largest
+	 * or the smallest address to try to aggregate all the objects at
+	 * the "base" of the memory space.
+	 *
+	 * Until the VMM layer is up, xmalloc_grows_up will be TRUE.  This is
+	 * consistent with the fact that the heap always grows upwards on
+	 * UNIX machines.
+	 */
+
+	p = xmalloc_grows_up ? fl->pointers[0] : fl->pointers[fl->count - 1];
+
+	if (xmalloc_debugging(8)) {
+		t_debug("XM selected block %p in requested bucket %p "
+			"(#%zu, %zu bytes) for %zu bytes",
+			p, (void *) fl, xfl_index(fl), fl->blocksize, len);
+	}
+
+	assert_valid_freelist_pointer(fl, p);
+
+	/* Mutex released via xmalloc_freelist_grab() */
+
+	return xmalloc_freelist_grab(fl, p, len, FALSE, allocated);
 }
 
 /**
@@ -2365,7 +2439,42 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 
 	if (len <= XMALLOC_MAXSIZE) {
 		size_t allocated;
-		p = xmalloc_freelist_alloc(len, &allocated);
+
+		if (
+			xmalloc_vmm_is_up && can_walloc &&
+			len <= WALLOC_MAX - XHEADER_SIZE
+		) {
+			size_t i = xfl_find_freelist_index(len);
+			struct xfreelist *fl = &xfreelist[i];
+
+			/*
+			 * Avoid freelist fragmentation when we can.
+			 *
+			 * As walloc() is possible, prefer this method unless we have a
+			 * block available in the freelist that can be allocated without
+			 * being split.
+			 *
+			 * Because walloc() is designed to prevent fragmentation, this
+			 * is the best strategy as it leaves larger blocks in the free
+			 * list and increases the chance of doing coalescing.
+			 *
+			 * The downside is that we can leave a large amount of memory
+			 * unused in the freelist, but this is memory that we cannot
+			 * release as it is fragmented, and it is better than a situation
+			 * where we would have way too many small blocks in the freelist
+			 * that we could not allocate anyway!
+			 */
+
+			p = xmalloc_one_freelist_alloc(fl, len, &allocated);
+		} else {
+			/*
+			 * Cannot do walloc(), allocate from the free list first, splitting
+			 * larger blocks if needed.
+			 */
+
+			p = xmalloc_freelist_alloc(len, &allocated);
+		}
+
 		if (p != NULL) {
 			xstats.alloc_via_freelist++;
 			xstats.user_blocks++;
