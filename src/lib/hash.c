@@ -583,7 +583,7 @@ hash_resize(struct hash *h, enum hash_resize_mode mode)
 	const void **old_values = NULL, **new_values;
 	const void **old_keys, **hk;
 	unsigned *old_hashes, *hp;
-	size_t old_size, old_arena_size, i;
+	size_t old_size, old_arena_size, i, keys;
 
 	hash_check(h);
 
@@ -620,6 +620,8 @@ size_computed:
 	if (old_values != NULL)
 		new_values = (*h->ops->get_values)(h);
 
+	keys = 0;	/* For assertion, count keys */
+
 	for (i = 0, hp = old_hashes, hk = old_keys; i < old_size; i++, hp++, hk++) {
 		if (HASH_IS_REAL(*hp)) {
 			size_t idx;
@@ -628,12 +630,15 @@ size_computed:
 			found = hash_keyset_lookup(&h->kset, *hk, hp, &idx, NULL, TRUE);
 			g_assert(!found);
 
+			keys++;
 			h->kset.keys[idx] = *hk;
 			h->kset.hashes[idx] = *hp;
 			if (old_values != NULL)
 				new_values[idx] = old_values[i];
 		}
 	}
+
+	g_assert(keys == h->kset.items);
 
 	hash_arena_size_free(old_keys, old_arena_size);
 }
