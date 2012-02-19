@@ -175,22 +175,19 @@ thread_private_get(const void *key)
  * If any free-routine was registered for the value, it is invoked before
  * returning.
  *
- * @return TRUE if key existed already.
+ * @return TRUE if key existed.
  */
 bool
 thread_private_remove(const void *key)
 {
 	hash_table_t *pht;
-	const void *k;
 	void *v;
 
 	pht = thread_get_private_hash();
-	if (hash_table_lookup_extended(pht, key, &k, &v)) {
-		thread_t *tk = deconstify_pointer(k);
+	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
 		struct thread_pvalue *pv = v;
 
 		hash_table_remove(pht, key);
-		WFREE(tk);
 		if (pv->p_free != NULL)
 			(*pv->p_free)(pv->value, pv->p_arg);
 		WFREE0(pv);
