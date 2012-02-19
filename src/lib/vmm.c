@@ -4716,12 +4716,12 @@ buffer_operation(enum track_operation op,
 }
 
 /*
- * In case TRACK_MALLOC is activated, we want the raw xpmalloc() and xfree()
+ * In case TRACK_MALLOC is activated, we want the raw xhmalloc() and xfree()
  * from here on...
  *
  * For that reason, the following code should stay at the bottom of the file.
  */
-#undef xpmalloc
+#undef xhmalloc
 #undef xfree
 
 /**
@@ -4818,7 +4818,7 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
 		vmm_free_record_desc(p, pt);
 	}
 
-	xpt = xpmalloc(sizeof *xpt);	/* raw malloc() */
+	xpt = xhmalloc(sizeof *xpt);	/* raw malloc() */
 	*xpt = *pt;						/* struct copy */
 
 	if (!hash_table_insert(tracked, p, xpt))
