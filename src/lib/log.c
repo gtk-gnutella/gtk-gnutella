@@ -406,10 +406,12 @@ log_thread_alloc(void)
 /**
  * Get suitable thread-private logging data descriptor.
  *
+ * @param once		if TRUE, don't record the object as it will be used once
+ *
  * @return valid logging data object for the current thread.
  */
 static logthread_t *
-logthread_object(void)
+logthread_object(bool once)
 {
 	logthread_t *lt;
 
@@ -417,7 +419,8 @@ logthread_object(void)
 
 	if G_UNLIKELY(NULL == lt) {
 		lt = log_thread_alloc();
-		thread_private_add(func_to_pointer(logthread_object), lt);
+		if (!once)
+			thread_private_add(func_to_pointer(logthread_object), lt);
 	}
 
 	logthread_check(lt);
@@ -1211,7 +1214,7 @@ t_critical(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 }
 
@@ -1224,7 +1227,7 @@ t_error(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(),
+	s_logv(logthread_object(TRUE),
 		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
@@ -1242,7 +1245,7 @@ t_error_from(const char *file, const char *format, ...)
 	crash_set_filename(file);
 
 	va_start(args, format);
-	s_logv(logthread_object(),
+	s_logv(logthread_object(TRUE),
 		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
@@ -1258,7 +1261,7 @@ t_carp(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
@@ -1283,7 +1286,7 @@ t_carp_once(const char *format, ...)
 		 */
 
 		va_start(args, format);
-		s_logv(logthread_object(), G_LOG_LEVEL_CRITICAL, format, args);
+		s_logv(logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
 		va_end(args);
 	}
 }
@@ -1297,7 +1300,7 @@ t_warning(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 }
 
@@ -1310,7 +1313,7 @@ t_message(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_MESSAGE, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_MESSAGE, format, args);
 	va_end(args);
 }
 
@@ -1323,7 +1326,7 @@ t_info(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_INFO, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_INFO, format, args);
 	va_end(args);
 }
 
@@ -1336,7 +1339,7 @@ t_debug(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(logthread_object(), G_LOG_LEVEL_DEBUG, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_DEBUG, format, args);
 	va_end(args);
 }
 
@@ -1380,7 +1383,7 @@ log_logv(logagent_t *la, GLogLevelFlags level, const char *format, va_list args)
 
 	switch (la->type) {
 	case LOG_A_STDERR:
-		s_logv(logthread_object(), level, format, args);
+		s_logv(logthread_object(FALSE), level, format, args);
 		return;
 	case LOG_A_STRING:
 		log_str_logv(la->u.s, level, format, args);
