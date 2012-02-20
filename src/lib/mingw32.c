@@ -1922,7 +1922,7 @@ mingw_posix_strerror(int errnum)
 	case ECHILD:	return "No child process";
 	case EAGAIN:	return "Resource temporarily unavailable";
 	case ENOMEM:	return "Not enough memory space";
-	case EACCES:	return "Permission denied";
+	case EACCES:	return "Access denied";
 	case EFAULT:	return "Bad address";
 	case EBUSY:		return "Device busy";
 	case EEXIST:	return "File already exists";
