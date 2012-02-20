@@ -1520,7 +1520,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 		if (0 != socket_tls_setup(s)) {
 			if (!is_temporary_error(errno)) {
-				socket_destroy(s, "TLS handshake failed");
+				socket_destroy(s, _("TLS handshake failed"));
 			}
 			return;
 		}
