@@ -2834,7 +2834,8 @@ socket_connect_prepare(struct gnutella_socket *s,
  * @returns non-zero in case of failure, zero on success.
  */
 static int
-socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
+socket_connect_finalize(struct gnutella_socket *s,
+	const host_addr_t ha, bool destroy_on_error)
 {
 	socket_addr_t addr;
 	socklen_t addr_len;
@@ -2934,7 +2935,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 failure:
 
-	if (!(s->adns & SOCK_ADNS_PENDING)) {
+	if (destroy_on_error) {
 		socket_destroy(s, _("Connection failed"));
 	}
 	return -1;
@@ -2959,7 +2960,7 @@ socket_connect(const host_addr_t ha, uint16 port,
 		return NULL;
 	}
 
-	return 0 != socket_connect_finalize(s, ha) ? NULL : s;
+	return 0 != socket_connect_finalize(s, ha, TRUE) ? NULL : s;
 }
 
 /**
@@ -3018,8 +3019,9 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 		}
 	}
 
-	/* SOCK_ADNS_PENDING is still set to prevent socket_destroy() on error */
-	if (socket_connect_finalize(s, addr)) {
+	/* SOCK_ADNS_PENDING is still set here, will be cleared below */
+
+	if (socket_connect_finalize(s, addr, FALSE)) {
 		s->adns |= SOCK_ADNS_FAILED;
 		s->adns_msg = "Connection failed";
 		goto finish;
