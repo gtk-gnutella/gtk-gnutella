@@ -83,8 +83,8 @@ struct gnutella_shell {
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	uint64 line_count;		/**< Number of input lines after HELO */
-	bool shutdown;  		/**< In shutdown mode? */
-	bool interactive;		/**< Interactive mode? */
+	uint shutdown:1;  		/**< In shutdown mode? */
+	uint interactive:1;		/**< Interactive mode? */
 };
 
 void
@@ -99,7 +99,7 @@ static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	return sh->output && slist_length(sh->output) > 0;
+	return sh->output != NULL && slist_length(sh->output) > 0;
 }
 
 /**
@@ -156,8 +156,9 @@ shell_destroy(struct gnutella_shell *sh)
 	shell_check(sh);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("shell_destroy");
+		g_debug("%s", G_STRFUNC);
 	}
+
 	sl_shells = g_slist_remove(sl_shells, sh);
 	socket_evt_clear(sh->socket);
 	shell_discard_output(sh);
@@ -635,14 +636,14 @@ shell_read_data(struct gnutella_shell *sh)
 		if (0 == ret) {
 			if (0 == s->pos) {
 				if (GNET_PROPERTY(shell_debug)) {
-					g_debug("shell connection closed: EOF");
+					g_debug("%s: shell connection closed: EOF", G_STRFUNC);
 				}
 				shell_shutdown(sh);
 				goto finish;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("receiving data failed: %m");
+				g_warning("%s: receiving data failed: %m", G_STRFUNC);
 				shell_shutdown(sh);
 				goto finish;
 			}
@@ -892,7 +893,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 		goto done;
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("auth: [%s] [<cookie not displayed>]", tok_helo);
+		g_debug("%s: [%s] [<cookie not displayed>]", G_STRFUNC, tok_helo);
 	}
 
 	cookie = shell_auth_cookie();
@@ -985,8 +986,8 @@ shell_add(struct gnutella_socket *s)
 	g_assert(s->getline);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("incoming shell connection from %s",
-			host_addr_port_to_string(s->addr, s->port));
+		g_debug("%s: incoming shell connection from %s",
+			G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
 	}
 
 	s->type = SOCK_TYPE_SHELL;

@@ -275,7 +275,7 @@ socket_evt_set(struct gnutella_socket *s,
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("socket_evt_set: flush error: %m");
+			g_warning("%s: flush error: %m", G_STRFUNC);
 		}
 	}
 }
@@ -594,7 +594,7 @@ proxy_connect(socket_fd_t fd)
 	if (!is_host_addr(GNET_PROPERTY(proxy_addr)) && proxy_is_enabled()) {
 		if (!in_progress) {
 			in_progress = TRUE;
-			g_warning("Resolving proxy name \"%s\"",
+			g_warning("resolving proxy name \"%s\"",
 				GNET_PROPERTY(proxy_hostname));
 			adns_resolve(GNET_PROPERTY(proxy_hostname), settings_dns_net(),
 				proxy_connect_helper, &in_progress);
@@ -665,7 +665,7 @@ send_socks4(struct gnutella_socket *s)
 			length + name_size > s->buf_size
 		) {
 			/* Such a long username would be insane, no need to malloc(). */
-			g_warning("send_socks4(): Username is too long");
+			g_warning("%s(): username is too long", G_STRFUNC);
 			return -1;
 		}
 
@@ -678,7 +678,7 @@ send_socks4(struct gnutella_socket *s)
 	ret = s_write(s->file_desc, s->buf, length);
 
 	if ((size_t) ret != length) {
-		g_warning("Error attempting to send SOCKS request (%s)",
+		g_warning("error attempting to send SOCKS request (%s)",
 			ret == (ssize_t) -1 ? strerror(errno) : "Partial write");
 		return -1;
 	}
@@ -707,7 +707,7 @@ recv_socks4(struct gnutella_socket *s)
 		return ECONNREFUSED;
 	}
 	if ((size_t) ret != size) {
-		g_warning("Short reply from SOCKS server");
+		g_warning("short reply from SOCKS server");
 		/* Let the application try and see how they go */
 		return ECONNREFUSED;
 	}
@@ -810,11 +810,11 @@ connect_http(struct gnutella_socket *s)
 		}
 		str = getline_str(s->getline);
 		if ((status = http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
-			g_warning("Bad status line");
+			g_warning("bad HTTP proxy status line");
 			return -1;
 		}
 		if ((status / 100) != 2) {
-			g_warning("Cannot use HTTP proxy: \"%s\"", str);
+			g_warning("cannot use HTTP proxy: \"%s\"", str);
 			return -1;
 		}
 		s->pos++;
@@ -823,7 +823,7 @@ connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("HTTP proxy returned a too long line");
+				g_warning("HTTP proxy returned too long a line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
@@ -852,7 +852,7 @@ connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("HTTP proxy returned a too long line");
+				g_warning("HTTP proxy returned too long a line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
@@ -946,7 +946,7 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
@@ -973,17 +973,17 @@ connect_socksv5(struct gnutella_socket *s)
 
 		name = GNET_PROPERTY(socks_user);
 		if (name == NULL) {
-			g_warning("No Username to authenticate with.");
+			g_warning("SOCKS no username to authenticate with");
 			return ECONNREFUSED;
 		}
 
 		if (GNET_PROPERTY(socks_pass) == NULL) {
-			g_warning("No Password to authenticate with.");
+			g_warning("SOCKS no password to authenticate with");
 			return ECONNREFUSED;
 		}
 
 		if (strlen(name) > 255 || strlen(GNET_PROPERTY(socks_pass)) > 255) {
-			g_warning("Username or password exceeds 255 characters.");
+			g_warning("SOCKS username or password exceeds 255 characters");
 			return ECONNREFUSED;
 		}
 
@@ -996,7 +996,7 @@ connect_socksv5(struct gnutella_socket *s)
 		/* Send out the authentication */
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
-			g_warning("Sending SOCKS authentication failed: %s",
+			g_warning("sending SOCKS authentication failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 			return -1;
 		}
@@ -1014,7 +1014,7 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
@@ -1059,7 +1059,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
-			g_warning("Send SOCKS connect command failed: %s",
+			g_warning("send SOCKS connect command failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 			return (-1);
 		}
@@ -1076,45 +1076,58 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_debug("connect_socksv5: Step 5, bytes recv'd %zu\n", ret);
+			g_debug("%s: step 5, bytes recv'd %zu", G_STRFUNC, ret);
 		}
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
 		/* See the connection succeeded */
 		if (s->buf[1] != '\0') {
-			g_warning("SOCKS connect failed: ");
+			const char *msg;
+			int error;
+
 			switch (s->buf[1]) {
 			case 1:
-				g_warning("General SOCKS server failure");
-				return ECONNABORTED;
+				msg = "General SOCKS server failure";
+				error = ECONNABORTED;
+				break;
 			case 2:
-				g_warning("Connection denied by rule");
-				return ECONNABORTED;
+				msg = "Connection denied by rule";
+				error = ECONNABORTED;
+				break;
 			case 3:
-				g_warning("Network unreachable");
-				return ENETUNREACH;
+				msg = "Network unreachable";
+				error = ENETUNREACH;
+				break;
 			case 4:
-				g_warning("Host unreachable");
-				return EHOSTUNREACH;
+				msg = "Host unreachable";
+				error = EHOSTUNREACH;
+				break;
 			case 5:
-				g_warning("Connection refused");
-				return ECONNREFUSED;
+				msg = "Connection refused";
+				error = ECONNREFUSED;
+				break;
 			case 6:
-				g_warning("TTL Expired");
-				return ETIMEDOUT;
+				msg = "TTL Expired";
+				error = ETIMEDOUT;
+				break;
 			case 7:
-				g_warning("Command not supported");
-				return ECONNABORTED;
+				msg = "Command not supported";
+				error = ECONNABORTED;
+				break;
 			case 8:
-				g_warning("Address type not supported");
-				return ECONNABORTED;
+				msg = "Address type not supported";
+				error = ECONNABORTED;
+				break;
 			default:
-				g_warning("Unknown error");
-				return ECONNABORTED;
+				msg = "Unknown error";
+				error = ECONNABORTED;
+				break;
 			}
+			g_warning("SOCKS connect failed: %s", msg);
+			return error;
 		}
 
 		s->pos++;
@@ -1379,7 +1392,7 @@ socket_free(struct gnutella_socket *s)
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (compat_socket_close(s->file_desc)) {
-			g_warning("socket_free: close(%d) failed: %m", s->file_desc);
+			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
 		}
 		s->file_desc = INVALID_SOCKET;
 	}
@@ -1537,8 +1550,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	/* 1 to allow trailing NUL */
 	if (count < 1) {
-		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
-			 host_addr_to_string(s->addr));
+		g_warning("%s(): incoming buffer full, disconnecting from %s",
+			 G_STRFUNC, host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		socket_destroy(s, "Incoming buffer full");
 		return;
@@ -1578,8 +1591,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 	case READ_OVERFLOW:
-		g_warning("socket_read(): first line too long, disconnecting from %s",
-			 host_addr_to_string(s->addr));
+		g_warning("%s(): first line too long, disconnecting from %s",
+			 G_STRFUNC, host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data",
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
@@ -1769,8 +1782,8 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 unknown:
 	if (GNET_PROPERTY(socket_debug)) {
 		size_t len = getline_length(s->getline);
-		g_warning("socket_read(): got unknown incoming connection from %s, "
-			"dropping!", host_addr_to_string(s->addr));
+		g_warning("%s(): got unknown incoming connection from %s, dropping!",
+			G_STRFUNC, host_addr_to_string(s->addr));
 		if (len > 0)
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
@@ -2018,7 +2031,7 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
             break;
 
 		default:
-			g_warning("socket_connected(): Unknown socket type %d !", s->type);
+			g_warning("%s(): unknown socket type %d !", G_STRFUNC, s->type);
 			socket_destroy(s, NULL);		/* ? */
 			break;
 		}
@@ -2106,7 +2119,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning("Input exception on TCP listening socket #%d!", s->file_desc);
+		g_warning("%s(): input exception on TCP listening socket #%d!",
+			G_STRFUNC, s->file_desc);
 		return;		/* Ignore it, what else can we do? */
 	}
 
@@ -2114,8 +2128,8 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	case SOCK_TYPE_CONTROL:
 		break;
 	default:
-		g_warning("socket_accept(): Unknown listening socket type %d !",
-				  s->type);
+		g_warning("%s(): unknown listening socket type %d !",
+			G_STRFUNC, s->type);
 		socket_destroy(s, NULL);
 		return;
 	}
@@ -2221,7 +2235,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	t->tls.snarf = 0;
 
 	if (GNET_PROPERTY(tls_debug) > 2) {
-		g_debug("Incoming connection from %s",
+		g_debug("incoming connection from %s",
 			host_addr_port_to_string(t->addr, t->port));
 	}
 
@@ -2465,9 +2479,10 @@ socket_udp_accept(struct gnutella_socket *s)
 			!host_addr_equal(last_addr, dst_addr)
 		) {
 			last_addr = dst_addr;
-			if (GNET_PROPERTY(socket_debug))
-				g_debug("socket_udp_accept(): dst_addr=%s",
-					host_addr_to_string(dst_addr));
+			if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): dst_addr=%s",
+					G_STRFUNC, host_addr_to_string(dst_addr));
+			}
 		}
 	}
 
@@ -2930,7 +2945,7 @@ socket_connect_finalize(struct gnutella_socket *s,
 	if (-1 == res && EINPROGRESS != errno && !is_temporary_error(errno)) {
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
-				g_warning("Proxy isn't properly configured (%s:%u)",
+				g_warning("SOCKS proxy isn't properly configured (%s:%u)",
 					GNET_PROPERTY(proxy_hostname), GNET_PROPERTY(proxy_port));
 			}
 			goto failure;	/* Check the proxy configuration */
@@ -3112,8 +3127,8 @@ socket_connect_by_name(const char *host, uint16 port,
 	} else if (s->adns & SOCK_ADNS_FAILED) {
 		/*	socket_connect_by_name_helper() was already invoked! */
 		if (GNET_PROPERTY(socket_debug) > 0)
-			g_warning("socket_connect_by_name: "
-				"adns_resolve() failed in synchronous mode");
+			g_warning("%s: adns_resolve() failed in synchronous mode",
+				G_STRFUNC);
 		socket_destroy(s, s->adns_msg);
 		return NULL;
 	}
@@ -3259,12 +3274,11 @@ socket_is_local(const struct gnutella_socket *s)
 
 		if (compat_getsockname(s->file_desc, cast_to_pointer(&addr), &len)) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): getsockname() failed: %m");
+			g_warning("%s(): getsockname() failed: %m", G_STRFUNC);
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): "
-				"address family mismatch! (expected %u, got %u)",
-				(uint) AF_LOCAL, (uint) addr.sun_family);
+			g_warning("%s(): address family mismatch! (expected %u, got %u)",
+				G_STRFUNC, (uint) AF_LOCAL, (uint) addr.sun_family);
 		}
 	}
 
@@ -3292,7 +3306,7 @@ socket_local_listen(const char *pathname)
 		addr = zero_un;
 		addr.sun_family = AF_LOCAL;
 		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
-			g_warning("socket_local_listen(): pathname is too long");
+			g_warning("%s(): pathname is too long", G_STRFUNC);
 			return NULL;
 		}
 	}
@@ -3318,7 +3332,7 @@ socket_local_listen(const char *pathname)
 
 		if (0 != ret) {
 			errno = saved_errno;
-			g_warning("socket_local_listen(): bind() failed: %m");
+			g_warning("%s(): bind() failed: %m", G_STRFUNC);
 			compat_socket_close(fd);
 			return NULL;
 		}
@@ -3433,8 +3447,8 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	case NET_TYPE_IPV4:
 #if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, &on, sizeof on)) {
-			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IP_RECVDSTADDR failed: %m");
+			g_warning("%s(): setsockopt() for IP_RECVDSTADDR failed: %m",
+				G_STRFUNC);
 		}
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
 		break;
@@ -3442,8 +3456,8 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	case NET_TYPE_IPV6:
 #if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
 		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, &on, sizeof on)) {
-			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IPV6_RECVPKTINFO failed: %m");
+			g_warning("%s(): setsockopt() for IPV6_RECVPKTINFO failed: %m",
+				G_STRFUNC);
 		}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		break;
