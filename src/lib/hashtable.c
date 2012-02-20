@@ -840,6 +840,7 @@ hash_table_destroy(hash_table_t *ht)
 	hash_table_check(ht);
 	ht_synchronize(ht);
 	g_assert(!ht->special);
+	g_assert(!ht->once);
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {
@@ -1142,9 +1143,10 @@ hash_table_t *
 hash_table_new_full_not_leaking(
 	hash_table_hash_func hash, hash_table_eq_func eq)
 {
-	hash_table_t *ht = NOT_LEAKING(xpmalloc0(sizeof *ht));
+	hash_table_t *ht = omalloc0(sizeof *ht);
 
 	ht->not_leaking = booleanize(TRUE);
+	ht->once = booleanize(TRUE);
 	hash_table_new_intern(ht, HASH_ITEMS_BINS, hash, eq);
 	return ht;
 }
