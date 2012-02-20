@@ -2432,6 +2432,9 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 	len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 	xstats.allocations++;
 
+	if G_UNLIKELY(xmalloc_no_wfree)
+		can_walloc = FALSE;
+
 	/*
 	 * First try to allocate from the freelist when the length is less than
 	 * the maximum we handle there.
@@ -2441,8 +2444,8 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		size_t allocated;
 
 		if (
-			xmalloc_vmm_is_up && can_walloc &&
-			len <= WALLOC_MAX - XHEADER_SIZE
+			len <= WALLOC_MAX - XHEADER_SIZE &&
+			xmalloc_vmm_is_up && can_walloc
 		) {
 			size_t i = xfl_find_freelist_index(len);
 			struct xfreelist *fl = &xfreelist[i];
@@ -2466,6 +2469,23 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 			 */
 
 			p = xmalloc_one_freelist_alloc(fl, len, &allocated);
+
+			/*
+			 * Since zalloc() can round up the block size, we need to inspect
+			 * the next free lists until we can match the block that zalloc()
+			 * would allocate for the requested size.
+			 */
+
+			if (NULL == p) {
+				size_t bsz = walloc_blocksize(size + XHEADER_SIZE);
+
+				while (fl->blocksize < bsz && i < XMALLOC_FREELIST_COUNT - 1) {
+					fl = &xfreelist[++i];
+					p = xmalloc_one_freelist_alloc(fl, len, &allocated);
+					if (p != NULL)
+						break;
+				}
+			}
 		} else {
 			/*
 			 * Cannot do walloc(), allocate from the free list first, splitting
@@ -2509,7 +2529,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 			 * by the zalloc() layer.
 			 */
 
-			if (wlen <= WALLOC_MAX && !xmalloc_no_wfree) {
+			if (wlen <= WALLOC_MAX) {
 				p = walloc(wlen);
 				xstats.alloc_via_walloc++;
 				return xmalloc_wsetup(p, wlen);

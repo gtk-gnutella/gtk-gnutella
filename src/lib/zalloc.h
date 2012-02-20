@@ -62,6 +62,8 @@ zone_t *zcreate(size_t, unsigned);
 zone_t *zget(size_t, unsigned);
 void zdestroy(zone_t *zone);
 
+size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
+
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
  * Under TRACK_ZALLOC, we keep track of the allocation places.

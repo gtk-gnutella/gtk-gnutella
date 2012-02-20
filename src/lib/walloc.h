@@ -53,6 +53,8 @@
 #define REMAP_ZALLOC
 #endif
 
+size_t walloc_blocksize(size_t size) G_GNUC_PURE;
+
 #ifdef REMAP_ZALLOC
 
 #ifdef TRACK_ZALLOC

@@ -108,6 +108,21 @@ wzone_get(size_t rounded)
 }
 
 /**
+ * @return blocksize used by the underlying zalloc() for a given request.
+ */
+size_t
+walloc_blocksize(size_t size)
+{
+	zone_t *zone;
+	size_t rounded = zalloc_round(size);
+	size_t idx = wzone_index(rounded);
+
+	zone = wzone[idx];
+
+	return NULL == zone ? rounded : zone_blocksize(zone);
+}
+
+/**
  * Allocate memory from a zone suitable for the given size.
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
@@ -283,6 +298,12 @@ resize_block:
 	wfree(old, old_size);
 
 	return new;
+}
+#else	/* REMAP_ZALLOC */
+size_t
+walloc_blocksize(size_t size)
+{
+	return size;
 }
 #endif	/* !REMAP_ZALLOC */
 

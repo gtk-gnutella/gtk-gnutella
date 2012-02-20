@@ -326,6 +326,17 @@ static struct {
 	size_t user_blocks;				/**< Current amount of user blocks */
 } zstats;
 
+/**
+ * @return block size for a given zone.
+ */
+size_t
+zone_blocksize(const zone_t *zone)
+{
+	zone_check(zone);
+
+	return zone->zn_size;
+}
+
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
 #ifdef REMAP_ZALLOC
@@ -916,7 +927,7 @@ zn_free_additional_subzones(zone_t *zone)
  * @return adjusted block size and updated hint value
  */
 static size_t
-adjust_size(size_t requested, unsigned *hint_ptr)
+adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 {
 	size_t rounded;
 	size_t wasted;
@@ -986,7 +997,7 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 		g_assert(adjusted >= size);
 
 		if (adjusted != size) {
-			if (zalloc_debugging(0)) {
+			if (zalloc_debugging(0) && verbose) {
 				s_debug("ZALLOC adjusting block size from %zu to %zu "
 					"(%zu blocks will waste %zu bytes at end of "
 					"%zu-byte subzone)",
@@ -994,7 +1005,7 @@ adjust_size(size_t requested, unsigned *hint_ptr)
 					rounded);
 			}
 		} else {
-			if (zalloc_debugging(0)) {
+			if (zalloc_debugging(0) && verbose) {
 				s_debug("ZALLOC cannot adjust block size of %zu "
 					"(%zu blocks will waste %zu bytes at end of "
 					"%zu-byte subzone)",
@@ -1224,7 +1235,7 @@ zget(size_t size, unsigned hint)
 	 * memory blocks and minimize the amount of wasted space in subzones.
 	 */
 
-	size = adjust_size(size, &hint);
+	size = adjust_size(size, &hint, TRUE);
 	zone = hash_table_lookup(zt, ulong_to_pointer(size));
 
 	/*
@@ -2760,8 +2771,7 @@ zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...)
 	if (NULL == zt)
 		return FALSE;
 
-	size = adjust_size(size, &hint);
-
+	size = adjust_size(size, &hint, FALSE);
 	zone = hash_table_lookup(zt, ulong_to_pointer(size));
 
 	if (NULL == zone)
