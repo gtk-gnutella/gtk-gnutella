@@ -137,7 +137,7 @@ thread_get_private_hash(void)
 
 	if G_UNLIKELY(NULL == pht) {
 		pht = hash_table_once_new_real();	 /* Never freed! */
-		hash_table_insert(ght, ocopy(t, sizeof t), pht);
+		hash_table_insert(ght, ocopy(&t, sizeof t), pht);
 	}
 
 	/*
