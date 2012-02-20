@@ -115,6 +115,7 @@ struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
 static void socket_accept(void *data, int, inputevt_cond_t cond);
+static bool socket_reconnect(struct gnutella_socket *s);
 
 static struct gnutella_socket *
 socket_alloc(void)
@@ -1419,6 +1420,9 @@ socket_tls_setup(struct gnutella_socket *s)
 	if (s->tls.stage < SOCK_TLS_ESTABLISHED) {
 		switch (tls_handshake(s)) {
 		case TLS_HANDSHAKE_ERROR:
+			if (SOCK_CONN_INCOMING != s->direction) {
+				tls_cache_remove(s->addr, s->port);
+			}
 			goto destroy;
 		case TLS_HANDSHAKE_RETRY:
 			errno = VAL_EAGAIN;
@@ -1835,7 +1839,22 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
-			socket_connection_failed(s, "TLS handshake failed");
+			if (GNET_PROPERTY(tls_debug)) {
+				g_debug("TLS handshake failed when connecting to %s, %s",
+					host_addr_port_to_string(s->addr, s->port),
+					GNET_PROPERTY(tls_enforce) ? "aborting" : "retrying");
+			}
+
+			/*
+			 * When TLS is not enforced, attempt to reconnect to the same
+			 * server without any TLS support, in case we had incorrectly
+			 * flagged the host as supporting TLS.
+			 *		--RAM, 2012-02-20
+			 */
+
+			if (GNET_PROPERTY(tls_enforce) || !socket_reconnect(s)) {
+				socket_connection_failed(s, _("TLS handshake failed"));
+			}
 		}
 		return;
 	}
@@ -2961,6 +2980,33 @@ socket_connect(const host_addr_t ha, uint16 port,
 	}
 
 	return 0 != socket_connect_finalize(s, ha, TRUE) ? NULL : s;
+}
+
+/**
+ * Attempt to reconnect to socket, without TLS.
+ *
+ * @return TRUE if OK, FALSE on error (with socket not destroyed).
+ */
+static bool
+socket_reconnect(struct gnutella_socket *s)
+{
+	socket_check(s);
+	g_assert(s->flags & SOCK_F_TCP);
+
+	socket_evt_clear(s);
+	s_close(s->file_desc);
+	s->file_desc = INVALID_SOCKET;
+	s->flags = 0;
+	if (socket_with_tls(s)) {
+		tls_free(s);
+	}
+
+	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
+		return FALSE;
+
+	g_soft_assert(!socket_with_tls(s));
+
+	return 0 == socket_connect_finalize(s, s->addr, FALSE);
 }
 
 /**
