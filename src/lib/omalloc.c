@@ -76,6 +76,7 @@
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -121,6 +122,7 @@ struct ochunk {
 #define OMALLOC_HEADER_SIZE	(sizeof(struct ochunk))
 
 static uint32 omalloc_debug;
+static size_t omalloc_pagesize;
 
 #define OMALLOC_CHUNK_COUNT	(OMALLOC_CHUNK_BITS + 1)
 
@@ -216,12 +218,11 @@ static void
 omalloc_chunk_unprotect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
-		size_t size = compat_pagesize();
 		void *start = deconstify_pointer(vmm_page_start(p));
 
-		if (-1 == mprotect(start, size, PROT_READ | PROT_WRITE)) {
+		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ | PROT_WRITE)) {
 			s_error("mprotect(%p, %zu, PROT_READ | PROT_WRITE) failed: %m",
-				start, size);
+				start, omalloc_pagesize);
 		}
 	}
 }
@@ -233,11 +234,11 @@ static void
 omalloc_chunk_protect(const struct ochunk *p, enum omalloc_mode mode)
 {
 	if (OMALLOC_RO == mode) {
-		size_t size = compat_pagesize();
 		void *start = deconstify_pointer(vmm_page_start(p));
 
-		if (-1 == mprotect(start, size, PROT_READ)) {
-			s_error("mprotect(%p, %zu, PROT_READ) failed: %m", start, size);
+		if (-1 == mprotect(start, omalloc_pagesize, PROT_READ)) {
+			s_error("mprotect(%p, %zu, PROT_READ) failed: %m",
+				start, omalloc_pagesize);
 		}
 	}
 }
@@ -335,7 +336,7 @@ omalloc_chunk_find(size_t size, size_t align, enum omalloc_mode mode)
 	 * we can't find anything larger in them.
 	 */
 
-	if (size >= compat_pagesize())
+	if (size >= omalloc_pagesize)
 		return NULL;
 
 	/*
@@ -573,8 +574,25 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	struct ochunk *ck;
 	void *p;
 	size_t allocated;
+	static spinlock_t omalloc_slk = SPINLOCK_INIT;
 
 	g_assert(size_is_positive(size));
+
+	if G_UNLIKELY(0 == omalloc_pagesize)
+		omalloc_pagesize = compat_pagesize();
+
+	/*
+	 * This routine is fast and used infrequently enough to justify a
+	 * coarse-grained multi-threading protection via a global spinlock.
+	 *
+	 * Since the memory is allocated once and never freed, it is also important
+	 * to funnel all the core allocation decisions to avoid extra allocations.
+	 *
+	 * This is the sole entry point for all omalloc()-based operations since
+	 * there is no reallocation nor freeing.
+	 */
+
+	spinlock(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.objects_rw++;
@@ -600,7 +618,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	allocated = round_pagesize(size);
 
 	if (omalloc_debug > 2) {
-		size_t pages = allocated / compat_pagesize();
+		size_t pages = allocated / omalloc_pagesize;
 		size_t count = OMALLOC_RW == mode ?
 			ostats.objects_rw : ostats.objects_ro;
 		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
@@ -611,9 +629,9 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 	if (OMALLOC_RW == mode)
-		ostats.pages_rw += allocated / compat_pagesize();
+		ostats.pages_rw += allocated / omalloc_pagesize;
 	else
-		ostats.pages_ro += allocated / compat_pagesize();
+		ostats.pages_ro += allocated / omalloc_pagesize;
 
 	/*
 	 * If we have enough memory at the tail to create a new chunk, do so.
@@ -650,6 +668,8 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 done:
+	spinunlock(&omalloc_slk);
+
 	if (init != NULL)
 		memcpy(p, init, size);
 
