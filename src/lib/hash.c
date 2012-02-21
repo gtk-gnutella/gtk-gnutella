@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Hash table implementation using closed addressing and linear double hashing.
+ * Hash table implementation using open addressing and linear double hashing.
  *
  * Closed addressing means that collision handling is done by using alternative
  * slots in the table, not by chaining values within the same hash bin (a
