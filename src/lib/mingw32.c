@@ -124,6 +124,7 @@
 #undef shutdown
 #undef getsockopt
 #undef setsockopt
+#undef recv
 #undef sendto
 
 #undef abort
@@ -1597,6 +1598,25 @@ s_close(socket_fd_t fd)
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
 	return res;
+}
+
+ssize_t
+mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags)
+{
+	DWORD r, flags = recv_flags;
+	iovec_t iov;
+	int res;
+
+	iovec_set_base(&iov, buf);
+	iovec_set_len(&iov, len);
+
+	res = WSARecv(fd, (LPWSABUF) &iov, 1, &r, &flags, NULL, NULL);
+
+	if (res != 0) {
+		errno = mingw_wsa_last_error();
+		return (ssize_t) -1;
+	}
+	return (ssize_t) r;
 }
 
 ssize_t

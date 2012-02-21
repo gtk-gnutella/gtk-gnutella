@@ -176,6 +176,7 @@
 #define write mingw_write
 #define writev mingw_writev
 #define truncate mingw_truncate
+#define recv mingw_recv
 #define sendto mingw_sendto
 #define recvfrom mingw_recvfrom
 
@@ -444,6 +445,7 @@ socket_fd_t mingw_accept(socket_fd_t, struct sockaddr *addr, socklen_t *len);
 int mingw_shutdown(socket_fd_t sockfd, int how);
 int mingw_getsockopt(socket_fd_t, int level, int optname, void *, socklen_t *);
 int mingw_setsockopt(socket_fd_t, int, int, const void *, socklen_t optlen);
+ssize_t mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags);
 ssize_t mingw_sendto(socket_fd_t, const void *buf, size_t len, int flags,
 		const struct sockaddr *dest_addr, socklen_t addrlen);
 ssize_t s_write(socket_fd_t fd, const void *buf, size_t count);
