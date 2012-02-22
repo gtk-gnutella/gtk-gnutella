@@ -37,6 +37,9 @@
 
 #include "core/version.h"
 
+#include "lib/log.h"
+#include "lib/options.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -45,11 +48,28 @@
 enum shell_reply
 shell_exec_version(struct gnutella_shell *sh, int argc, const char *argv[])
 {
+	const char *all;
+	const option_t options[] = {
+		{ "a", &all },				/* show all versions */
+	};
+	int parsed;
+
 	shell_check(sh);
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	shell_write_line(sh, REPLY_READY, version_string);
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	if (all) {
+		logagent_t *la = log_agent_string_make(0, NULL);
+		version_string_dump_log(la, TRUE);
+		shell_write_lines(sh, REPLY_READY, log_agent_string_get(la));
+		log_agent_free_null(&la);
+	} else {
+		shell_write_line(sh, REPLY_READY, version_string);
+	}
 	return REPLY_READY;
 }
 
@@ -65,7 +85,8 @@ shell_help_version(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "Prints the full version string of the server.\n";
+	return "Prints the full version string of the server.\n"
+		"-a : also display glib/GTK/TLS versions, as appropriate.\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */
