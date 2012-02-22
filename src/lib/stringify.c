@@ -362,6 +362,24 @@ uint_to_string_buf(unsigned v, char *dst, size_t size)
 }
 
 size_t
+ulong_to_string_buf(unsigned long v, char *dst, size_t size)
+{
+	char buf[ULONG_DEC_BUFLEN];
+	char *p;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf; /* NOTHING */; v /= 10) {
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 size_t_to_string_buf(size_t v, char *dst, size_t size)
 {
 	char buf[SIZE_T_DEC_BUFLEN];
@@ -614,6 +632,27 @@ size_t
 uint_to_gstring_buf(unsigned v, char *dst, size_t size)
 {
 	char buf[UINT_DEC_GRP_BUFLEN];
+	char *p;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	for (p = buf, n = 0; /* NOTHING */; v /= 10, n++) {
+		if (n != 0 && 0 == n % 3)
+			*p++ = ',';
+		*p++ = dec_digit(v % 10);
+		if (v < 10)
+			break;
+	}
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
+ulong_to_gstring_buf(unsigned long v, char *dst, size_t size)
+{
+	char buf[ULONG_DEC_GRP_BUFLEN];
 	char *p;
 	unsigned n;
 
