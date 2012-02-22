@@ -3476,6 +3476,7 @@ getlog(bool initial)
 	if (lf != NULL) {						\
 		fprintf(lf, __VA_ARGS__);			\
 		fputc('\n', lf);					\
+		fflush(lf);							\
 	}										\
 } G_STMT_END
 
@@ -3562,22 +3563,32 @@ mingw_early_init(void)
 	int console_err;
 	FILE *lf = getlog(TRUE);
 
-	STARTUP_DEBUG("starting");
+	STARTUP_DEBUG("starting PID %d", getpid());
+	STARTUP_DEBUG("logging on fd=%d", fileno(lf));
 
 #if __MSVCRT_VERSION__ >= 0x800
+	STARTUP_DEBUG("configured invalid parameter handler");
 	_set_invalid_parameter_handler(mingw_invalid_parameter);
 #endif
 
 	/* Disable any Windows pop-up on crash or file access error */
 	SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS |
 		SEM_NOGPFAULTERRORBOX);
+	STARTUP_DEBUG("disabled Windows crash pop-up");
 
 	/* Trap all unhandled exceptions */
 	SetUnhandledExceptionFilter(mingw_exception);
+	STARTUP_DEBUG("configured exception handler");
 
 	_fcloseall();
-
 	lf = getlog(FALSE);
+	if (NULL == lf) {
+		lf = getlog(TRUE);
+		STARTUP_DEBUG("had to recreate this logfile for PID %d", getpid());
+	} else {
+		STARTUP_DEBUG("reopening of this logfile successful");
+	}
+
 	STARTUP_DEBUG("attempting AttachConsole()...");
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -3594,18 +3605,27 @@ mingw_early_init(void)
 			/* We had no console, and we got no console. */
 			mingw_stdio_reset(lf, FALSE);
 			freopen("NUL", "rb", stdin);
+			STARTUP_DEBUG("stdin reopened from NUL");
 			{
 				const char *pathname;
 
 				pathname = mingw_getstdout_path();
-				freopen(pathname, "wb", stdout);
-				log_set(LOG_STDOUT, pathname);
-				STARTUP_DEBUG("stdout (unbuffered) sent to %s", pathname);
+				STARTUP_DEBUG("stdout file will be %s", pathname);
+				if (NULL != freopen(pathname, "wb", stdout)) {
+					log_set(LOG_STDOUT, pathname);
+					STARTUP_DEBUG("stdout (unbuffered) reopened");
+				} else {
+					STARTUP_DEBUG("could not reopen stdout");
+				}
 
 				pathname = mingw_getstderr_path();
-				freopen(pathname, "wb", stderr);
-				log_set(LOG_STDERR, pathname);
-				STARTUP_DEBUG("stderr (unbuffered) sent to %s", pathname);
+				STARTUP_DEBUG("stderr file will be %s", pathname);
+				if (NULL != freopen(pathname, "wb", stderr)) {
+					log_set(LOG_STDERR, pathname);
+					STARTUP_DEBUG("stderr (unbuffered) reopened");
+				} else {
+					STARTUP_DEBUG("could not reopen stderr");
+				}
 			}
 			break;
 		case ERROR_ACCESS_DENIED:
