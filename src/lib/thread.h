@@ -39,10 +39,10 @@
  */
 typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 
+typedef unsigned long thread_t;
+
 #ifdef I_PTHREAD
 #include <pthread.h>
-
-typedef unsigned long thread_t;
 
 #if 0
 /* General macros, optimized by GCC usually */
@@ -81,8 +81,7 @@ thread_current(void)
 }
 
 #else
-typedef unsigned thread_t;
-#define thread_current()	0xc5db8dd3U		/* Random, odd number */
+#define thread_current()	0xc5db8dd3UL	/* Random, odd number */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
 #endif
@@ -96,6 +95,7 @@ bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
+const char *thread_to_string(const thread_t t);
 
 #endif /* _thread_h_ */
 

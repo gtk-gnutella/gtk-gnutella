@@ -42,6 +42,7 @@
 #include "hashtable.h"
 #include "omalloc.h"
 #include "spinlock.h"
+#include "stringify.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -232,6 +233,20 @@ void
 thread_private_add(const void *key, const void *value)
 {
 	thread_private_add_extended(key, value, NULL, NULL);
+}
+
+/**
+ * Stringify the thread ID.
+ *
+ * @return pointer to static string
+ */
+const char *
+thread_to_string(const thread_t t)
+{
+	static char buf[ULONG_DEC_BUFLEN];
+
+	ulong_to_string_buf(t, buf, sizeof buf);
+	return buf;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
