@@ -788,6 +788,14 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	}
 }
 
+static void
+shell_pending_add(struct gnutella_shell *sh, int code, const char *text)
+{
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = h_strdup(text);
+	sh->pending.code = code;
+}
+
 /**
  * Writes single line of text, appending final trailing "\n".
  */
@@ -797,9 +805,37 @@ shell_write_line(struct gnutella_shell *sh, int code, const char *text)
 	shell_check(sh);
 	g_return_if_fail(text);
 
-	shell_pending_flush(sh, FALSE);
-	sh->pending.msg = h_strdup(text);
-	sh->pending.code = code;
+	shell_pending_add(sh, code, text);
+}
+
+/**
+ * Writes multiple lines of text, appending final trailing "\n" if needed.
+ */
+void
+shell_write_lines(struct gnutella_shell *sh, int code, const char *text)
+{
+	str_t *str;
+	int c;
+	const char *p = text;
+
+	shell_check(sh);
+	g_return_if_fail(text);
+
+	str = str_new(0);
+
+	while ((c = *p++)) {
+		if ('\n' == c) {
+			shell_pending_add(sh, code, str_2c(str));
+			str_reset(str);
+		} else {
+			str_putc(str, c);
+		}
+	}
+
+	if (0 != str_len(str))
+		shell_pending_add(sh, code, str_2c(str));
+
+	str_destroy_null(&str);
 }
 
 /**

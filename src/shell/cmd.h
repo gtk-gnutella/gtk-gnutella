@@ -51,6 +51,7 @@ void shell_set_formatted(struct gnutella_shell *, const char *, ...)
 	G_GNUC_PRINTF(2, 3);
 void shell_write(struct gnutella_shell *, const char *);
 void shell_write_line(struct gnutella_shell *, int code, const char *);
+void shell_write_lines(struct gnutella_shell *, int code, const char *);
 void shell_write_linef(struct gnutella_shell *, int code, const char *, ...)
 	G_GNUC_PRINTF(3, 4);
 void shell_shutdown(struct gnutella_shell *);
