@@ -116,7 +116,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define HASH_HOPS_MAX	8		/* Force resizing if reaching that many hops */
+#define HASH_HOPS_MIN	4		/* Theoretical hops when full at 75% */
 
 /**
  * Type of table resizing we want to perform.
@@ -160,6 +160,26 @@ hash_random_offset_init(void)
 		hash_offset_secondary = entropy_random();
 		done = TRUE;
 	}
+}
+
+/**
+ * How many extra hops past the home location do we allow in the table before
+ * considering resizing it.
+ */
+static inline size_t
+hash_hops_max(const struct hkeys *hk)
+{
+	/*
+	 * We allow HASH_HOPS_MIN hops at least, because this is the theoretical
+	 * average amount of hops we can expect when the table is full at the
+	 * nominal rate we allow.
+	 *
+	 * However we want the hash table to be more efficient than what a binary
+	 * search on a sorted table would bring, which would require hk->bits
+	 * comparisons at most.
+	 */
+
+	return HASH_HOPS_MIN + (hk->bits - HASH_MIN_BITS) / 2;
 }
 
 /**
@@ -531,16 +551,10 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 	 * When lookups go through too many hops before ending, flag for a resizing
 	 * at the next opportunity.
 	 *
-	 * The HASH_HOPS_MAX constant is twice as large as the average amount of
-	 * hops we can expect in a table whose maximum fill-up rate is 75%, as
-	 * enforced by hash_resize_as_needed().
-	 *
-	 * If we looped back to the initial index, it means the table is full,
-	 * which can only mean there are too many tombs and we still have a
-	 * small table (there are less tombs than HASH_HOPS_MAX).  Rebuild!
+	 * If we looped back to the initial index, it means the table is full...
 	 */
 
-	if G_UNLIKELY(hops > HASH_HOPS_MAX || nidx == idx)
+	if G_UNLIKELY(hops > hash_hops_max(hk) || nidx == idx)
 		hk->resize = TRUE;
 
 	if (tombidx != NULL)
