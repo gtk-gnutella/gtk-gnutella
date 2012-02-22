@@ -129,6 +129,7 @@ void t_error_from(const char *file, const char *format, ...)
  * Polymorphic logging interface.
  */
 
+logagent_t *log_agent_stdout_get(void);
 logagent_t *log_agent_stderr_get(void);
 logagent_t *log_agent_string_make(size_t size, const char *prefix);
 void log_agent_string_reset(logagent_t *la);

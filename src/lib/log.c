@@ -131,6 +131,7 @@ logthread_check(const struct logthread * const lt)
  * Logging agent types.
  */
 enum agent {
+	LOG_A_STDOUT,			/**< Log to stdout */
 	LOG_A_STDERR,			/**< Log to stderr */
 	LOG_A_STRING,			/**< Log to string */
 
@@ -218,6 +219,29 @@ static void
 log_file_check(enum log_file which)
 {
 	g_assert(uint_is_non_negative(which) && which < LOG_MAX_FILES);
+}
+
+/**
+ * Get logging agent for stdout logging.
+ *
+ * @attention
+ * There must not be any memory allocation done here in case this routine
+ * is called during a crash, through a crashing hook.
+ */
+logagent_t *
+log_agent_stdout_get(void)
+{
+	static logagent_t la;
+
+	if G_UNLIKELY(la.magic != LOGAGENT_MAGIC) {
+		struct logfile *lf = &logfile[LOG_STDOUT];
+
+		la.magic = LOGAGENT_MAGIC;
+		la.type = LOG_A_STDOUT;
+		la.u.f = lf;
+	}
+
+	return &la;
 }
 
 /**
@@ -356,6 +380,7 @@ log_agent_free(logagent_t *la)
 	logagent_check(la);
 
 	switch (la->type) {
+	case LOG_A_STDOUT:
 	case LOG_A_STDERR:
 		/* The logfile_t structure is static */
 		goto freeing;
@@ -1344,6 +1369,22 @@ t_debug(const char *format, ...)
 }
 
 /**
+ * Print message to stdout.
+ */
+static void
+log_stdout_logv(const char *format, va_list args)
+{
+	char data[LOG_MSG_MAXLEN];
+	DECLARE_STR(2);
+
+	str_vbprintf(data, sizeof data, format, args);	/* Uses str_vncatf() */
+
+	print_str(data);			/* 0 */
+	print_str("\n");			/* 1 */
+	log_flush_out();
+}
+
+/**
  * Append log message to string.
  */
 static void
@@ -1382,6 +1423,9 @@ log_logv(logagent_t *la, GLogLevelFlags level, const char *format, va_list args)
 	logagent_check(la);
 
 	switch (la->type) {
+	case LOG_A_STDOUT:
+		log_stdout_logv(format, args);
+		return;
 	case LOG_A_STDERR:
 		s_logv(logthread_object(FALSE), level, format, args);
 		return;
