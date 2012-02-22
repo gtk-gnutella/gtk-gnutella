@@ -2796,9 +2796,14 @@ mingw_adns_send_request(const struct adns_request *req)
 	return TRUE;
 }
 
+static bool mingw_adns_running;
+
 void
 mingw_adns_init(void)
 {
+	if (mingw_adns_running)
+		return;
+
 	/*
 	 * Be extremely careful in the ADNS thread!
 	 * gtk-gnutella was designed as mono-threaded application so its regular
@@ -2815,21 +2820,25 @@ mingw_adns_init(void)
 
 	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
 	cq_periodic_main_add(1000, mingw_adns_timer, NULL);
+	mingw_adns_running = TRUE;
 }
 
 void
 mingw_adns_close(void)
 {
-	/* Quit our ADNS thread */
 	struct async_data *ad;
 
+	if (!mingw_adns_running)
+		return;
+
+	/* Quit our ADNS thread */
 	WALLOC0(ad);
 	ad->thread_func = mingw_adns_stop_thread;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-
 	g_async_queue_unref(mingw_gtkg_adns_async_queue);
 	g_async_queue_unref(mingw_gtkg_main_async_queue);
+	mingw_adns_running = FALSE;
 }
 
 /*** End of ADNS section ***/
