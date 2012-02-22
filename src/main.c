@@ -297,6 +297,34 @@ debugging(guint t)
 }
 
 /**
+ * @reeturn GTK version string, or NULL if not compiled with GTK.
+ */
+const char *
+gtk_version_string(void)
+{
+#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
+	static char buf[80];
+
+	if ('\0' == buf[0]) {
+		str_bprintf(buf, sizeof buf, "Gtk+ %u.%u.%u",
+				gtk_major_version, gtk_minor_version, gtk_micro_version);
+		if (
+				GTK_MAJOR_VERSION != gtk_major_version ||
+				GTK_MINOR_VERSION != gtk_minor_version ||
+				GTK_MICRO_VERSION != gtk_micro_version
+		   ) {
+			str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+					GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+		}
+	}
+
+	return buf;
+#else
+	return NULL;
+#endif	/* Gtk+ */
+}
+
+/**
  * Invoked as an atexit() callback when someone does an exit().
  */
 static void
@@ -1408,41 +1436,7 @@ initialize_logfiles(void)
 static void
 handle_version_argument(void)
 {
-	printf("%s\n", version_build_string());
-
-#ifndef OFFICIAL_BUILD
-	printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
-#endif
-
-	printf("GLib %u.%u.%u",
-			glib_major_version, glib_minor_version, glib_micro_version);
-	if (
-			GLIB_MAJOR_VERSION != glib_major_version ||
-			GLIB_MINOR_VERSION != glib_minor_version ||
-			GLIB_MICRO_VERSION != glib_micro_version
-	   ) {
-		printf(" (compiled against %u.%u.%u)",
-				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
-	}
-	printf("\n");
-
-#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
-	printf("Gtk+ %u.%u.%u",
-			gtk_major_version, gtk_minor_version, gtk_micro_version);
-	if (
-			GTK_MAJOR_VERSION != gtk_major_version ||
-			GTK_MINOR_VERSION != gtk_minor_version ||
-			GTK_MICRO_VERSION != gtk_micro_version
-	   ) {
-		printf(" (compiled against %u.%u.%u)",
-				GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-	}
-	printf("\n");
-#endif	/* Gtk+ */
-
-	if (tls_version_string()) {
-		printf("%s\n", tls_version_string());
-	}
+	version_string_dump();
 	exit(EXIT_SUCCESS);
 }
 

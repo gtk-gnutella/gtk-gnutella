@@ -38,6 +38,9 @@
 #include "version.h"
 #include "token.h"
 #include "settings.h"
+#include "tls_common.h"
+
+#include "if/core/main.h"		/* For gtk_version_string() */
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -51,6 +54,7 @@
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/str.h"			/* For str_bprintf()  and str_bcatf() */
 #include "lib/tm.h"
 #include "lib/timestamp.h"
 #include "lib/utf8.h"
@@ -974,6 +978,51 @@ version_ancient_warn(void)
         gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
 			remain / SECS_PER_DAY);
 	}
+}
+
+/**
+ * Dump version to specified logging agent.
+ */
+G_GNUC_COLD void
+version_string_dump_log(logagent_t *la, bool full)
+{
+	static char buf[80];
+
+	log_info(la, "%s", version_build_string());
+
+	if (!full)
+		return;
+
+#ifndef OFFICIAL_BUILD
+	log_info(la, "(unofficial build, accessing \"%s\")", PACKAGE_SOURCE_DIR);
+#endif
+
+	str_bprintf(buf, sizeof buf, "GLib %u.%u.%u",
+			glib_major_version, glib_minor_version, glib_micro_version);
+	if (
+			GLIB_MAJOR_VERSION != glib_major_version ||
+			GLIB_MINOR_VERSION != glib_minor_version ||
+			GLIB_MICRO_VERSION != glib_micro_version
+	   ) {
+		str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+	}
+	log_info(la, "%s", buf);
+
+	if (gtk_version_string() != NULL)
+		log_info(la, "%s", gtk_version_string());
+
+	if (tls_version_string() != NULL)
+		log_info(la, "%s", tls_version_string());
+}
+
+/**
+ * Dump version to stdout.
+ */
+G_GNUC_COLD void
+version_string_dump(void)
+{
+	version_string_dump_log(log_agent_stdout_get(), TRUE);
 }
 
 /**

@@ -91,6 +91,11 @@ const char *version_ext_str(const version_ext_t *vext, bool full);
 extern const char *version_string;
 extern const char *version_short_string;
 
+struct logagent;
+
+void version_string_dump_log(struct logagent *la, bool full);
+void version_string_dump(void);
+
 const char *version_build_string(void);
 uint8 version_get_code(void) G_GNUC_PURE;
 bool version_is_dirty(void) G_GNUC_PURE;
