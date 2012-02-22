@@ -1540,6 +1540,8 @@ packed_host_unpack_addr(
 	const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr)
 {
+	g_assert(phost != NULL);
+
 	switch (phost->ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {

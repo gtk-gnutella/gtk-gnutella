@@ -208,6 +208,8 @@ gnet_host_to_string_buf(const gnet_host_t *h, void *buf, size_t len)
 	host_addr_t addr;
 	uint16 port;
 
+	g_assert(h != NULL);
+
 	packed_host_unpack_addr(&h->data, &addr);
 	port = gnet_host_get_port(h);
 
