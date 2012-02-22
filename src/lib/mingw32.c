@@ -747,7 +747,7 @@ get_special(int which, char *what)
 		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
 	}
 
-	return constant_str(utf8_path);
+	return mingw_inited ? constant_str(utf8_path) : utf8_path;
 }
 
 const char *
@@ -919,7 +919,15 @@ mingw_get_cookies_path(void)
 static const char *
 mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
-	const char *personal = mingw_get_personal_path();
+	const char *personal;
+
+	/*
+	 * So early in the startup process, we cannot allocate memory via the VMM
+	 * layer, hence we cannot use mingw_get_personal_path() because that
+	 * would cache the address of a global variable.
+	 */
+
+	personal = get_special(CSIDL_PERSONAL, "My Documents");
 
 	g_strlcpy(dest, personal, size);
 
