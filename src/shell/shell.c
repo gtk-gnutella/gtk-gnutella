@@ -429,15 +429,14 @@ shell_parse_command(struct gnutella_shell *sh,
 		}
 		if (argc > SHELL_MAX_ARGS) {
 			argv[SHELL_MAX_ARGS] = NULL;
-			shell_free_argv(&argv);
 			shell_set_msg(sh, _("too many arguments in command"));
-			argc = 0;
-			ok = FALSE;
-			break;
+			goto error;
 		}
 		if (!shell_get_token(sh, start, endptr, &argv[argc])) {
-			ok = FALSE;
-			break;
+			argv[argc] = NULL;
+			shell_set_msg(sh,
+				str_smsg(_("un-parseable argument #%u in command"), argc));
+			goto error;
 		}
 		if (NULL == argv[argc])
 			break;
@@ -457,6 +456,11 @@ shell_parse_command(struct gnutella_shell *sh,
 	*argv_ptr = argv;
 	*argc_ptr = argc;
 	return ok;
+
+error:
+	shell_free_argv(&argv);
+	argc = 0;
+	return FALSE;
 }
 
 /**
