@@ -3253,7 +3253,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er;
 	int signo = 0;
 
-	in_exception_handler = 1;	/* Will never be reset, we're crashing */
+	in_exception_handler++;		/* Will never be reset, we're crashing */
 	er = ei->ExceptionRecord;
 
 	/*
@@ -3353,11 +3353,16 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * time the exception occurred.  When calling mingw_sigraise(), the
 	 * default crash handler will print the exception stack (the current one)
 	 * which will prove rather useless.
+	 *
+	 * We only attempt to unwind the stack when we're hitting the first
+	 * exception: recursive calls are not interesting.
 	 */
 
-	{
-		int count = mingw_stack_fill(mingw_stack, G_N_ELEMENTS(mingw_stack),
-						ei->ContextRecord, 0);
+	if (1 == in_exception_handler) {
+		int count;
+		
+		count = mingw_stack_fill(
+			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
 
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
 		if (log_stdout_is_distinct())
