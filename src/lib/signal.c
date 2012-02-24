@@ -230,6 +230,8 @@ signal_trampoline(int signo)
 static void
 signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 {
+	static volatile sig_atomic_t extended;
+
 	(void) u;
 
 	/*
@@ -238,13 +240,35 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	 */
 
 	in_signal_handler++;
+	extended++;
+
 	{
 		char data[80];
 
-		str_bprintf(data, sizeof data, "got %s for VA=%p",
-			signal_name(signo), si->si_addr);
-		s_critical("%s", data);
-		crash_set_error(data);
+		/*
+		 * This signal handler is handling highly harmful signals, which could
+		 * recursively re-occur in our handling, so be extremely careful and
+		 * gradually do less and less, until explicit immediate termination.
+		 */
+
+		if (extended > 1) {
+			if (2 == extended) {
+				str_bprintf(data, sizeof data, "got recursive %s for VA=%p",
+					signal_name(signo), si->si_addr);
+				s_minicrit("%s", data);
+				crash_set_error(data);
+				crash_abort();
+			} else if (3 == extended) {
+				abort();
+			} else {
+				_exit(EXIT_FAILURE);
+			}
+		} else {
+			str_bprintf(data, sizeof data, "got %s for VA=%p",
+				signal_name(signo), si->si_addr);
+			s_critical("%s", data);
+			crash_set_error(data);
+		}
 	}
 	in_signal_handler--;
 
