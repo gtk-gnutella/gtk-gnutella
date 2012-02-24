@@ -52,7 +52,7 @@
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
-#include "glib-missing.h"
+#include "hashtable.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "memusage.h"
@@ -311,6 +311,11 @@ static struct {
 	uint64 freelist_coalescing_failed;	/**< Failed coalescings */
 	uint64 freelist_split;				/**< Block splitted on allocation */
 	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
+	uint64 xgc_runs;					/**< Amount of xgc() runs */
+	uint64 xgc_throttled;				/**< Throttled calls to xgc() */
+	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
+	uint64 xgc_blocks_collected;		/**< Amount of blocks collected */
+	uint64 xgc_pages_collected;			/**< Amount of pages collected */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
@@ -1735,10 +1740,6 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 
 			blksize = fl->blocksize;
 			before = ptr_add_offset(base, -blksize);
-
-			/*
-			 * Avoid costly lookup if the pointer cannot be found.
-			 */
 
 			idx = xfl_lookup(fl, before, NULL);
 
@@ -3478,6 +3479,503 @@ xprealloc(void *p, size_t size)
 }
 
 /**
+ * Marks the head of the current page used by xgc_alloc().
+ */
+struct xgc_page {
+	void *next;				/**< Next page in the list */
+};
+
+/**
+ * Records pages allocated by the simple xgc_alloc() routines.
+ */
+struct xgc_allocator {
+	struct xgc_page *head;	/**< Head of page list */
+	struct xgc_page *tail;	/**< Tail of page list */
+	struct xgc_page *top;	/**< Top of current page */
+	void *avail;			/**< First available memory on current page */
+	size_t remain;			/**< Remaining size available on current page */
+};
+
+/**
+ * A fragment spanning over several pages.
+ */
+struct xgc_fragment {
+	const void *p;
+	size_t len;
+};
+
+#define XGA_MASK		(MEM_ALIGNBYTES - 1)
+#define xga_round(s)	((size_t) (((ulong) (s) + XGA_MASK) & ~XGA_MASK))
+#define XGA_MAXLEN		64
+
+/**
+ * Allocate memory during garbage collection.
+ *
+ * @return pointer to memory of ``len'' bytes.
+ */
+static void *
+xgc_alloc(struct xgc_allocator *xga, size_t len)
+{
+	size_t requested = xga_round(len);
+	void *p;
+
+	g_assert(requested <= XGA_MAXLEN);	/* Safety since we're so simple! */
+
+	if (xga->remain < requested) {
+		struct xgc_page *page;
+
+		/* Waste remaining (at most XGA_MAXLEN), allocate a new page */
+
+		page = vmm_core_alloc(compat_pagesize());
+
+		if (NULL == xga->head) {
+			xga->head = xga->tail = page;
+		} else {
+			g_assert(xga->tail != NULL);
+			g_assert(NULL == xga->tail->next);
+			xga->tail->next = page;
+			xga->tail = page;
+		}
+
+		page->next = NULL;
+		xga->top = page;
+		xga->remain = compat_pagesize() - sizeof(*xga->top);
+		xga->avail = &page[1];
+	}
+
+	p = xga->avail;
+	xga->avail = ptr_add_offset(p, requested);
+	xga->remain -= requested;
+
+	g_assert(size_is_non_negative(xga->remain));
+
+	return p;
+}
+
+/**
+ * Reclaim all the memory allocated during garbage collection through
+ * the xgc_alloc() routine.
+ */
+static void
+xgc_free_all(struct xgc_allocator *xga)
+{
+	struct xgc_page *p, *next;
+
+	for (p = xga->head; p != NULL; p = next) {
+		next = p->next;
+		vmm_core_free(p, compat_pagesize());
+	}
+}
+
+static bool
+xgc_remove_incomplete(const void *unused_key, void *value, void *unused_data)
+{
+	size_t length = pointer_to_size(value);
+	size_t pagesize = compat_pagesize();
+
+	(void) unused_key;
+	(void) unused_data;
+
+	g_assert_log(length <= pagesize, "length=%zu", length);
+
+	return length < pagesize;	/* Remove page if incomplete */
+}
+
+static void
+xgc_free_collected(const void *key, void *value, void *unused_data)
+{
+	void *p = deconstify_pointer(key);
+	size_t remain = pointer_to_size(value);
+	size_t pagesize = compat_pagesize();
+
+	(void) unused_data;
+
+	g_assert_log(0 == remain,
+		"%zu byte%s remaining in page %p", remain, 1 == remain ? "" : "s", key);
+
+	if (!xmalloc_freecore(p, pagesize)) {
+		/* Can only happen for sbrk()-allocated core */
+		xmalloc_freelist_add(p, pagesize, XM_COALESCE_NONE);
+	}
+}
+
+/**
+ * Look whether fragment, which spans over several pages, can be reclaimed.
+ */
+static void
+xgc_fragment_removable(const void *key, void *value, void *data)
+{
+	const void *p = key;
+	struct xgc_fragment *xf = value;
+	hash_table_t *ht = data;			/* Pages */
+	const void *end;
+	bool can_free = TRUE;
+	size_t pagesize = compat_pagesize();
+	const void *page;
+
+	g_assert(value != NULL);
+	g_assert(key == xf->p);
+
+	end = const_ptr_add_offset(p, xf->len);
+	page = vmm_page_start(p);
+
+	/*
+	 * Split the block at page boundaries and only free it when all the
+	 * pages are marked: we have no assurance that we could re-insert the
+	 * fragments that cannot be freed into the freelist without expanding
+	 * the bucket and allocating memory, an impossible operation from the*
+	 * garbage collector.
+	 */
+
+	while (ptr_cmp(p, end) < 0) {
+		if (!hash_table_contains(ht, page)) {
+			can_free = FALSE;
+			if (xmalloc_debugging(1)) {
+				t_debug("XM GC cannot reclaim %zu-byte block %p: "
+					"page %p not reclaimable", xf->len, xf->p, page);
+			}
+			break;
+		}
+		page = p = vmm_page_start(const_ptr_add_offset(p, pagesize));
+	}
+
+	if (can_free)
+		return;
+
+	/*
+	 * Since block cannot be freed, remove all the pages it spans over
+	 * from the set of freeable pages.
+	 */
+
+	p = xf->p;
+	page = vmm_page_start(p);
+
+	while (ptr_cmp(p, end) < 0) {
+		hash_table_remove(ht, page);
+		page = p = vmm_page_start(const_ptr_add_offset(p, pagesize));
+	}
+}
+
+/**
+ * Freelist fragment collector.
+ *
+ * Long-running programs can call this routine on a regular basis to reassemble
+ * and free-up pages which are completely held in the freelist, althrough they
+ * may be split as many individual free blocks.
+ *
+ * Short-running programs do not need to bother at all.
+ */
+void
+xgc(void)
+{
+	static time_t last_run;
+	static spinlock_t xgc_slk = SPINLOCK_INIT;
+	time_t now;
+	hash_table_t *ht, *hfrags;
+	unsigned i;
+	ulong pagesize, pagemask;
+	size_t blocks, pagecount;
+	uint8 locked[XMALLOC_FREELIST_COUNT];
+	tm_t start;
+	double start_cpu = 0.0;
+	struct xgc_allocator xga;
+
+	if (!xmalloc_vmm_is_up)
+		return;
+
+	if (!spinlock_try(&xgc_slk))
+		return;
+
+	/*
+	 * Limit calls to one per second.
+	 */
+
+	now = tm_time();
+	if (last_run == now) {
+		xstats.xgc_throttled++;
+		goto done;
+	};
+
+	if (xmalloc_debugging(0)) {
+		tm_now_exact(&start);
+		start_cpu = tm_cputime(NULL, NULL);
+	}
+
+	last_run = now;
+	xstats.xgc_runs++;
+
+	ht = hash_table_new();		/* Maps page boundaries -> size */
+	hfrags = hash_table_new();	/* Fragments spanning multiples pages */
+
+	/*
+	 * From now on we cannot use any other memory allocator but VMM, since
+	 * any memory allocation by this thread that would hit the freelist would
+	 * trigger havoc: messing with our identified pages by using pointers that
+	 * belong to them.
+	 *
+	 * We therefore use xgc_alloc() when we need to allocate dynamic memory,
+	 * and this memory does not need to be individually freed but will be
+	 * reclaimed as a whole through xgc_free_all() at the end of the garbage
+	 * collection.
+	 */
+
+	pagesize = compat_pagesize();
+	pagemask = ~(pagesize - 1);
+	blocks = 0;
+	ZERO(&locked);
+	ZERO(&xga);
+
+	/*
+	 * Pass 1: count the size of fragments available for each page.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+		size_t j, blksize;
+
+		if (!mutex_get_try(&fl->lock))
+			continue;
+
+		if (0 == fl->count) {
+			mutex_release(&fl->lock);
+			continue;
+		}
+
+		locked[i] = TRUE;				/* Will keep bucket locked */
+		blksize = fl->blocksize;		/* Actual physical block size */
+
+		for (j = fl->count; j != 0; j--) {
+			const void *p = fl->pointers[j - 1];
+			ulong page = pointer_to_ulong(p) & pagemask;
+			size_t frags;
+			const void *key = ulong_to_pointer(page);
+			const void *last = const_ptr_add_offset(p, blksize - 1);
+
+			g_assert(p != NULL);		/* Or freelist corrupted */
+
+			/*
+			 * Add the block size to the running count of fragments
+			 * already identified for the page where fragment lies.
+			 */
+
+			blocks++;
+
+			if (page == (pointer_to_ulong(last) & pagemask)) {
+				/* Fragment fully contained on one page */
+				frags = pointer_to_size(hash_table_lookup(ht, key));
+				hash_table_replace(ht, key, size_to_pointer(frags + blksize));
+
+				if (xmalloc_debugging(2)) {
+					t_debug("XM GC %zu-byte fragment %p in page %p (%zu total)",
+						blksize, p, key, frags + blksize);
+				}
+			} else {
+				const void *end = const_ptr_add_offset(last, 1);
+				struct xgc_fragment *xf;
+				bool ok;
+
+				/*
+				 * Fragment spans over several pages.
+				 *
+				 * Record the fragment to be able to determine whether we'll
+				 * be able to free all the pages it spans over.
+				 */
+
+				xf = xgc_alloc(&xga, sizeof *xf);
+				xf->p = p;
+				xf->len = blksize;
+				ok = hash_table_insert(hfrags, p, xf);
+
+				g_assert(ok);	/* No duplicates */
+
+				/*
+				 * Split the block at page boundaries.
+				 */
+
+				while (ptr_cmp(p, end) < 0) {
+					const void *next;
+					size_t len;
+
+					next = vmm_page_start(const_ptr_add_offset(p, pagesize));
+					len = ptr_cmp(next, end) < 0 ?
+						ptr_diff(next, p) :		/* Size on page */
+						ptr_diff(end, p);		/* Remaining trailing size */
+
+					g_assert(len <= pagesize);
+
+					frags = pointer_to_size(hash_table_lookup(ht, key));
+					hash_table_replace(ht, key, size_to_pointer(frags + len));
+
+					if (xmalloc_debugging(2)) {
+						t_debug("XM GC %zu-byte split fragment %p "
+							"in page %p (%zu total) for %zu-byte block",
+							len, p, key, frags + len, blksize);
+					}
+
+					key = p = next;
+				}
+			}
+		}
+	}
+
+	if (xmalloc_debugging(0)) {
+		size_t pages = hash_table_size(ht);
+		size_t span = hash_table_size(hfrags);
+
+		t_debug("XM GC freelist holds %zu block%s spread on %zu page%s",
+			blocks, 1 == blocks ? "" : "s", pages, 1 == pages ? "" : "s");
+		if (span != 0) {
+			t_debug("XM GC freelist has %zu block%s spanning several pages",
+				span, 1 == span ? "" : "s");
+		}
+		t_debug("XM GC hash clustering = %F", hash_table_clustering(ht));
+	}
+
+	/*
+	 * Pass 2: keep only pages for which we have all the fragments.
+	 */
+
+	hash_table_foreach_remove(ht, xgc_remove_incomplete, NULL);
+	hash_table_foreach(hfrags, xgc_fragment_removable, ht);
+
+	pagecount = hash_table_size(ht);
+
+	if (xmalloc_debugging(0)) {
+		t_debug("XM GC found %zu full page%s to collect",
+			pagecount, 1 == pagecount ? "" : "s");
+	}
+
+	if (0 == pagecount)
+		goto unlock;
+
+	/*
+	 * Pass 3: remove fragments from complete pages.
+	 */
+
+	xstats.xgc_collected++;
+	xstats.xgc_pages_collected += pagecount;
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+		size_t j, blksize;
+
+		if (!locked[i])
+			continue;
+
+		blksize = fl->blocksize;		/* Actual physical block size */
+
+		for (j = fl->count; j != 0; j--) {
+			const void *p = fl->pointers[j - 1];
+			ulong page = pointer_to_ulong(p) & pagemask;
+			size_t frags;
+			const void *key = ulong_to_pointer(page);
+			const void *last = const_ptr_add_offset(p, blksize - 1);
+
+			g_assert(p != NULL);
+
+			if (!hash_table_contains(ht, key))
+				continue;
+
+			if (page == (pointer_to_ulong(last) & pagemask)) {
+				/* Fragment fully contained on one page */
+				frags = pointer_to_size(hash_table_lookup(ht, key));
+				g_assert(frags >= blksize);
+				hash_table_replace(ht, key, size_to_pointer(frags - blksize));
+
+				if (xmalloc_debugging(1)) {
+					t_debug("XM GC collecting %zu-byte fragment %p on page %p",
+						blksize, p, key);
+				}
+			} else {
+				const void *end = const_ptr_add_offset(last, 1);
+
+				/*
+				 * Fragment spans over several pages.
+				 *
+				 * We have already determined that the block can be freed
+				 * because all its pages are freeable (otherwise the page
+				 * ``key'' would no longer be present in the hash table).
+				 */
+
+				g_assert(hash_table_contains(hfrags, p));
+
+				while (ptr_cmp(p, end) < 0) {
+					const void *next;
+					size_t len;
+
+					next = vmm_page_start(const_ptr_add_offset(p, pagesize));
+					len = ptr_cmp(next, end) < 0 ?
+						ptr_diff(next, p) :		/* Size on page */
+						ptr_diff(end, p);		/* Remaining trailing size */
+
+					g_assert(len <= pagesize);
+
+					frags = pointer_to_size(hash_table_lookup(ht, key));
+					g_assert(frags >= len);
+					hash_table_replace(ht, key, size_to_pointer(frags - len));
+
+					if (xmalloc_debugging(2)) {
+						t_debug("XM GC reclaimed %zu-byte split fragment %p "
+							"in page %p (%zu remaining) for %zu-byte block",
+							len, p, key, frags - len, blksize);
+					}
+
+					key = p = next;
+				}
+			}
+
+			/*
+			 * Shift down by one position if not removing the last item.
+			 */
+
+			if (j != fl->count) {
+				memmove(&fl->pointers[j - 1], &fl->pointers[j],
+					(fl->count - j) * sizeof fl->pointers[0]);
+			}
+
+			xstats.xgc_blocks_collected++;
+			fl->count--;
+		}
+	}
+
+	/*
+	 * Pass 4: release the pages now that we removed all their fragments.
+	 */
+
+	hash_table_foreach(ht, xgc_free_collected, NULL);
+
+	/*
+	 * Pass 5: unlock buckets.
+	 */
+
+unlock:
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		if (locked[i]) {
+			struct xfreelist *fl = &xfreelist[i];
+			mutex_release(&fl->lock);
+		}
+	}
+
+	hash_table_destroy(ht);
+	hash_table_destroy(hfrags);
+	xgc_free_all(&xga);
+
+	if (xmalloc_debugging(0)) {
+		tm_t end;
+		double end_cpu;
+
+		end_cpu = tm_cputime(NULL, NULL);
+		tm_now_exact(&end);
+		t_debug("XM GC took %'u usecs (CPU=%'u usecs)",
+			(uint) tm_elapsed_us(&end, &start),
+			(uint) ((end_cpu - start_cpu) * 1e6));
+	}
+
+done:
+	spinunlock(&xgc_slk);
+}
+
+/**
  * Signal that we're about to close down all activity.
  */
 G_GNUC_COLD void
@@ -3622,6 +4120,11 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_coalescing_failed);
 	DUMP(freelist_split);
 	DUMP(freelist_nosplit);
+	DUMP(xgc_runs);
+	DUMP(xgc_throttled);
+	DUMP(xgc_collected);
+	DUMP(xgc_blocks_collected);
+	DUMP(xgc_pages_collected);
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
