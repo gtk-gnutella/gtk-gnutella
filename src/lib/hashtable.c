@@ -832,6 +832,64 @@ hash_table_contains(const hash_table_t *ht, const void *key)
 }
 
 /**
+ * Iterate over the hashtable, invoking the "func" callback on each item
+ * with the additional "data" argument and removing the item if the
+ * callback returns TRUE.
+ *
+ * @return the amount of items removed from the table.
+ */
+size_t
+hash_table_foreach_remove(hash_table_t *ht,
+	hash_table_foreach_rm_func func, void *data)
+{
+	size_t i, n, old_n, removed = 0;
+
+	hash_table_check(ht);
+	g_assert(func != NULL);
+
+	ht_synchronize(ht);
+
+	n = old_n = ht->num_held;
+	i = ht->num_bins;
+
+	while (i-- > 0) {
+		hash_item_t *item, *next = NULL, *prev = NULL;
+
+		for (item = ht->bins[i]; NULL != item; item = next) {
+			next = item->next;
+			if ((*func)(item->key, deconstify_pointer(item->value), data)) {
+				/* Remove the item from the table */
+				if (item == ht->bins[i]) {
+					if (NULL == next) {
+						g_assert(ht->bin_fill > 0);
+						ht->bin_fill--;
+					}
+					ht->bins[i] = next;
+				} else {
+					g_assert(prev != NULL);
+					g_assert(prev->next == item);
+
+					prev->next = next;
+				}
+				hash_item_free(ht, item);
+				ht->num_held--;
+				removed++;
+			} else {
+				prev = item;	/* Item was kept, becoming new previous item */
+			}
+			n--;
+		}
+	}
+	g_assert(0 == n);
+	g_assert(old_n == removed + ht->num_held);
+
+	if (removed != 0)
+		hash_table_resize_on_remove(ht);
+
+	ht_return(ht, removed);
+}
+
+/**
  * Destroy hash table, reclaiming all the space.
  */
 void

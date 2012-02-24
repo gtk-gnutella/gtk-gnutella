@@ -49,6 +49,8 @@ typedef struct hash_table hash_table_t;
 
 typedef void (*hash_table_foreach_func)(
 	const void *key, void *value, void *data);
+typedef bool (*hash_table_foreach_rm_func)(
+	const void *key, void *value, void *data);
 typedef unsigned (*hash_table_hash_func)(const void *key);
 typedef bool (*hash_table_eq_func)(const void *a, const void *b);
 
@@ -95,6 +97,8 @@ bool hash_table_contains(const hash_table_t *ht, const void *key);
 bool hash_table_remove(hash_table_t *ht, const void *key);
 void hash_table_foreach(const hash_table_t *ht, hash_table_foreach_func func,
 		void *data);
+size_t hash_table_foreach_remove(hash_table_t *ht,
+	hash_table_foreach_rm_func func, void *data);
 
 const void **hash_table_keys(const hash_table_t *ht, size_t *count);
 void **hash_table_values(const hash_table_t *ht, size_t *count);
