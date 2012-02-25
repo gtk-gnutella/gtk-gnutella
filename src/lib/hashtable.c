@@ -111,6 +111,12 @@ struct hash_table {
 	hash_item_t *free_list;		/* List of free hash items */
 	hash_item_t *items;			/* Array of items */
 	/*
+	 * Lookup caching.
+	 */
+	const void *last_key;		/* Last looked-up key */
+	hash_item_t *last_item;		/* Last looked-up item (NULL if invalid) */
+	size_t last_bin;			/* Last bin where looked-up key belongs */
+	/*
 	 * Since we use these data structures during tracking, be careful:
 	 * if the table is created with the _real variant, it is used by
 	 * the tracking code and we must make sure to exercise the VMM
@@ -122,6 +128,7 @@ struct hash_table {
 	unsigned readonly:1;		/* Set if data structures protected */
 	unsigned thread_safe:1;		/* Set if table must be thread-safe */
 	unsigned once:1;			/* Object allocated using "once" memory */
+	unsigned self_keys:1;		/* Keys are self-representing */
 };
 
 /**
@@ -303,6 +310,7 @@ hash_table_new_intern(hash_table_t *ht,
 	ht->bin_fill = 0;
 	ht->hash = hash != NULL ? hash : hash_id_key;
 	ht->eq = eq != NULL ? eq : hash_id_eq;
+	ht->self_keys = booleanize(hash_id_eq == ht->eq);
 
 	/*
 	 * Since the arena is going to be held in a VMM page with nothing
@@ -440,7 +448,7 @@ hash_key(const hash_table_t *ht, const void *key)
 static inline bool
 hash_eq(const hash_table_t *ht, const void *a, const void *b)
 {
-	return (*ht->eq)(a, b);
+	return a == b || (*ht->eq)(a, b);
 }
 
 /**
@@ -460,6 +468,20 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 
 	hash_table_check(ht);
 
+	/*
+	 * Caching of last successful lookup result for self-representing keys.
+	 */
+
+	if (ht->last_item != NULL && ht->self_keys && ht->last_key == key) {
+		if (bin != NULL)
+			*bin = ht->last_bin;
+		return ht->last_item;
+	}
+
+	/*
+	 * Lookup key in the hash table.
+	 */
+
 	idx = hashing_fold(hash_key(ht, key), ht->bin_bits);
 	item = ht->bins[idx];
 	if (bin) {
@@ -467,8 +489,16 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 	}
 
 	for ( /* NOTHING */ ; item != NULL; item = item->next) {
-		if (hash_eq(ht, key, item->key))
+		if G_LIKELY(hash_eq(ht, key, item->key)) {
+			if (ht->self_keys) {
+				/* Cache successful lookup result */
+				hash_table_t *wht = deconstify_pointer(ht);
+				wht->last_key = key;
+				wht->last_bin = idx;
+				wht->last_item = item;
+			}
 			return item;
+		}
 	}
 
 	return NULL;
@@ -561,6 +591,8 @@ hash_table_reset(hash_table_t *ht)
 	ht->num_held = 0;
 	ht->num_items = 0;
 	ht->free_list = NULL;
+	ht->last_key = NULL;
+	ht->last_item = NULL;
 }
 
 /**
