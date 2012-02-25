@@ -2483,19 +2483,23 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 					fl = &xfreelist[++i];
 					p = xmalloc_one_freelist_alloc(fl, len, &allocated);
 					if (p != NULL)
-						break;
+						goto allocated;
 				}
+			} else {
+				goto allocated;
 			}
-		} else {
-			/*
-			 * Cannot do walloc(), allocate from the free list first, splitting
-			 * larger blocks if needed.
-			 */
-
-			p = xmalloc_freelist_alloc(len, &allocated);
 		}
 
+		/*
+		 * Cannot do walloc(), or did not find any non-splitable blocks.
+		 *
+		 * Allocate from the free list then, splitting larger blocks as needed.
+		 */
+
+		p = xmalloc_freelist_alloc(len, &allocated);
+
 		if (p != NULL) {
+		allocated:
 			xstats.alloc_via_freelist++;
 			xstats.user_blocks++;
 			xstats.user_memory += allocated;
