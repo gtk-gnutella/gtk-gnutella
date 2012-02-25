@@ -246,7 +246,7 @@ hash_arena_allocate(struct hash *h, size_t bits)
 
 	size = hash_arena_size(hk->size, hk->has_values);
 
-	if (size >= round_pagesize(1))
+	if (size >= compat_pagesize())
 		arena = vmm_alloc(size);
 	else
 		arena = walloc(size);
@@ -272,7 +272,7 @@ hash_arena_size_free(void *arena, size_t len)
 	 * memory, otherwise it was walloc()'ed.
 	 */
 
-	if (len >= round_pagesize(1))
+	if (len >= compat_pagesize())
 		vmm_free(arena, len);
 	else
 		wfree(arena, len);
@@ -594,7 +594,7 @@ hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 static void
 hash_resize(struct hash *h, enum hash_resize_mode mode)
 {
-	const void **old_values = NULL, **new_values;
+	const void **old_values = NULL, **new_values = NULL;
 	const void **old_keys, **hk;
 	unsigned *old_hashes, *hp;
 	size_t old_size, old_arena_size, i, keys;
