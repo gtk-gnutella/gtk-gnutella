@@ -2906,6 +2906,11 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			p, (long) xh->length);
 	}
 
+	if G_UNLIKELY(xmalloc_no_freeing) {
+		can_walloc = FALSE;		/* Shutdowning, don't care */
+		goto skip_coalescing;
+	}
+
 	/*
 	 * Compute the size of the physical block we need, including overhead.
 	 */
@@ -3385,7 +3390,7 @@ realloc_from_walloc:
 		size_t new_len = xmalloc_round(size + XHEADER_SIZE);
 		size_t old_size;
 
-		if (new_len <= WALLOC_MAX) {
+		if (new_len <= WALLOC_MAX && !xmalloc_no_freeing) {
 			void *wp = wrealloc(xh, old_len, new_len);
 			xstats.realloc_wrealloc++;
 
@@ -3408,7 +3413,7 @@ realloc_from_walloc:
 		 * there's nothing to update during the conversion.
 		 */
 
-		np = xmalloc(size);
+		np = xallocate(size, FALSE, TRUE);
 		xstats.realloc_converted_from_walloc++;
 
 		if (xmalloc_debugging(1)) {
