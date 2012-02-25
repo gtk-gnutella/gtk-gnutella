@@ -311,6 +311,8 @@ static struct {
 	uint64 freelist_coalescing_failed;	/**< Failed coalescings */
 	uint64 freelist_split;				/**< Block splitted on allocation */
 	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
+	uint64 freelist_blocks;				/**< Amount of blocks in free list */
+	uint64 freelist_memory;				/**< Memory held in freelist */
 	uint64 xgc_runs;					/**< Amount of xgc() runs */
 	uint64 xgc_throttled;				/**< Throttled calls to xgc() */
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
@@ -1083,6 +1085,8 @@ xfl_remove_selected(struct xfreelist *fl)
 	g_assert(mutex_is_owned(&fl->lock));
 
 	fl->count--;
+	xstats.freelist_blocks--;
+	xstats.freelist_memory -= fl->blocksize;
 
 	/*
 	 * See xmalloc_freelist_lookup() for the selection algorithm.
@@ -1455,6 +1459,9 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 	g_assert(mutex_is_owned(&fl->lock));
 
 	fl->count--;
+	xstats.freelist_blocks--;
+	xstats.freelist_memory -= fl->blocksize;
+
 	if (idx < fl->count) {
 		memmove(&fl->pointers[idx], &fl->pointers[idx + 1],
 			(fl->count - idx) * sizeof(fl->pointers[0]));
@@ -1522,6 +1529,8 @@ xfl_insert(struct xfreelist *fl, void *p)
 
 	fl->count++;
 	fl->pointers[idx] = p;
+	xstats.freelist_blocks++;
+	xstats.freelist_memory += fl->blocksize;
 
 	/*
 	 * Set corresponding bit if this is the first block inserted in the list.
@@ -3932,6 +3941,8 @@ xgc(void)
 
 			xstats.xgc_blocks_collected++;
 			fl->count--;
+			xstats.freelist_blocks--;
+			xstats.freelist_memory -= blksize;
 		}
 	}
 
@@ -4117,6 +4128,8 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_coalescing_failed);
 	DUMP(freelist_split);
 	DUMP(freelist_nosplit);
+	DUMP(freelist_blocks);
+	DUMP(freelist_memory);
 	DUMP(xgc_runs);
 	DUMP(xgc_throttled);
 	DUMP(xgc_collected);
