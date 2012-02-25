@@ -690,9 +690,25 @@ hash_resize_as_needed(struct hash *h)
 		return TRUE;
 	} else if (h->kset.resize) {
 		if (h->kset.tombs != 0) {
-			/* Grow if we won't be attempting to shrink later */
-			hash_resize(h, (h->kset.items > h->kset.size / 2) ?
-				HASH_RESIZE_GROW : HASH_RESIZE_SAME);
+			/*
+			 * Grow if we won't be attempting to shrink later
+			 *
+			 * Otherwise make sure there has been a significant variation
+			 * in the amount of tombstones before attempting to rebuild, in
+			 * order to avoid a pathological case where we would rebuild
+			 * after each deletion.
+			 *
+			 * We need a number of tombs of at least 1/32th of the table
+			 * size to allow a rebuild.
+			 */
+
+			if (h->kset.items > h->kset.size / 2) {
+				hash_resize(h, HASH_RESIZE_GROW);
+			} else if (h->kset.tombs < (h->kset.size >> 5)) {
+				return FALSE;			/* But leave the "resize" flag set */
+			} else {
+				hash_resize(h, HASH_RESIZE_SAME);
+			}
 			return TRUE;
 		} else if (h->kset.items > h->kset.size / 2) {
 			/* Grow if we won't be attempting to shrink later */
