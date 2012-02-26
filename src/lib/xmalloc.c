@@ -2158,7 +2158,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 					xmalloc_freelist_insert(tail, tail_len, XM_COALESCE_NONE);
 				} else {
 					/* Maybe there is enough after to free core again? */
-					xmalloc_freelist_add(head, head_len, XM_COALESCE_AFTER);
+					xmalloc_freelist_add(tail, tail_len, XM_COALESCE_AFTER);
 				}
 			}
 			return;
