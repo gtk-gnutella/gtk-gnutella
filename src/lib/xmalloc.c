@@ -1723,7 +1723,14 @@ plain_insert:
 static G_GNUC_COLD void
 xmalloc_freelist_setup(void)
 {
+	static bool done;
+	static spinlock_t freelist_slk = SPINLOCK_INIT;
 	size_t i;
+
+	spinlock(&freelist_slk);
+
+	if (done)
+		goto initialized;
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -1734,7 +1741,14 @@ xmalloc_freelist_setup(void)
 		g_assert_log(xfl_find_freelist_index(fl->blocksize) == i,
 			"i=%zu, blocksize=%zu, inverted_index=%zu",
 			i, fl->blocksize, xfl_find_freelist_index(fl->blocksize));
+
+		g_assert(0 == fl->count);	/* Cannot be used already */
 	}
+
+	done = TRUE;
+
+initialized:
+	spinunlock(&freelist_slk);
 }
 
 /**
