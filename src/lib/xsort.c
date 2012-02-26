@@ -323,7 +323,7 @@ msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
 		/* We are operating on aligned words.  Use direct word stores. */
 
 		while (n1 > 0 && n2 > 0) {
-			if ((*cmp)(b1, b2) <= 0) {
+			if ((*cmp)(ob1, ob2) <= 0) {
 				--n1;
 				*otmp++ = *ob1++;
 			} else {
@@ -331,6 +331,10 @@ msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
 				*otmp++ = *ob2++;
 			}
 		}
+
+		tmp = (char *) otmp;
+		b1 = (char *) ob1;
+		b2 = (char *) ob2;
 	} else {
 		while (n1 > 0 && n2 > 0) {
 			if ((*cmp) (b1, b2) <= 0) {
