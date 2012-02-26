@@ -2544,8 +2544,15 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 
 			if (wlen <= WALLOC_MAX) {
 				p = walloc(wlen);
-				xstats.alloc_via_walloc++;
-				return xmalloc_wsetup(p, wlen);
+				if G_LIKELY(p != NULL) {
+					xstats.alloc_via_walloc++;
+					return xmalloc_wsetup(p, wlen);
+				}
+
+				/*
+				 * walloc() can only fail when we recursed and it has not
+				 * been able to allocate its internal zone array.
+				 */
 			}
 		}
 

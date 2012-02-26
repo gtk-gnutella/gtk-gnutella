@@ -157,7 +157,8 @@ walloc(size_t size)
 	 */
 
 	if (NULL == (zone = wzone[idx])) {
-		spinlock(&walloc_slk);
+		if (!spinlock_try(&walloc_slk))
+			return NULL;	/* Recursion, cannot allocate memory */
 		if (NULL == (zone = wzone[idx]))
 			zone = wzone[idx] = wzone_get(rounded);
 		spinunlock(&walloc_slk);
