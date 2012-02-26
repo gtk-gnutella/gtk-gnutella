@@ -1703,6 +1703,7 @@ dq_common_init(dquery_t *dq)
 {
 	const void *head;
 	const guid_t *muid;
+	void *value;
 
 	dquery_check(dq);
 	dq->qid = dquery_id_create();
@@ -1729,7 +1730,6 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (!(dq->flags & DQ_F_LOCAL)) {
-		void *value;
 		bool found;
 		GSList *list;
 
@@ -1753,9 +1753,14 @@ dq_common_init(dquery_t *dq)
 	head = cast_to_constpointer(pmsg_start(dq->mb));
 	muid = gnutella_header_get_muid(head);
 
-	if (htable_contains(by_muid, muid)) {
-		g_warning("conflicting MUID \"%s\" for dynamic query from %s, "
-			"ignoring.", guid_hex_str(muid), node_id_infostr(dq->node_id));
+	if (htable_lookup_extended(by_muid, muid, NULL, &value)) {
+		dquery_t *odq = value;
+		dquery_check(odq);
+		g_warning("ignoring conflicting MUID \"%s\" for dynamic query from %s, "
+			"already used by %s.",
+			guid_hex_str(muid), node_id_infostr(dq->node_id),
+			dq->node_id == odq->node_id ?
+				"same node" : node_id_infostr(odq->node_id));
 	} else {
 		htable_insert(by_muid, atom_guid_get(muid), dq);
 	}
@@ -1767,10 +1772,14 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		if (htable_contains(by_leaf_muid, dq->lmuid)) {
+		if (htable_lookup_extended(by_leaf_muid, dq->lmuid, NULL, &value)) {
+			dquery_t *odq = value;
+			dquery_check(odq);
 			g_warning("ignoring conflicting leaf MUID \"%s\" for "
-				"dynamic query from %s",
-				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id));
+				"dynamic query from %s, already used by %s",
+				guid_hex_str(dq->lmuid), node_id_infostr(dq->node_id),
+				dq->node_id == odq->node_id ?
+					"same node" : node_id_infostr(odq->node_id));
 		} else {
 			htable_insert(by_leaf_muid, dq->lmuid, dq);
 		}
