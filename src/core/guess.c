@@ -466,6 +466,17 @@ guess_cache_select(void)
 }
 
 /**
+ * @return amount of hosts in the cache.
+ */
+static size_t
+guess_cache_count(void)
+{
+	struct guess_cache *gc = &guess_02_cache;
+
+	return hset_count(gc->hs);
+}
+
+/**
  * Free the GUESS 0.2 host cache.
  */
 static void
@@ -3709,13 +3720,15 @@ guess_cancel(guess_t **gq_ptr, bool callback)
  *  `hcount' hosts from out caught list.
  *
  * @param net		network preference
+ * @param add_02	whether to add a randomly selected cached 0.2 server
  * @param hosts		base of vector to fill
  * @param hcount	size of host vector
  *
  * @return amount of hosts filled
  */
 int
-guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
+guess_fill_caught_array(host_net_t net,
+	bool add_02, gnet_host_t *hosts, int hcount)
 {
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
@@ -3760,8 +3773,7 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 	hash_list_iter_release(&iter);
 
 	/*
-	 * If more than 2 hosts were initially requested, then we are filling
-	 * in a host list for a GUESS 0.2 host.  Propagate at least one random
+	 * When requested to add 0.2 servers, propagate at least one random
 	 * 0.2 host in the vector, if we have any.  The rationale is that these
 	 * hosts are propagating more than one host in replies and therefore
 	 * help out the GUESS host collection algorithm, hence it's good to
@@ -3770,7 +3782,7 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 
 	g_assert(filled + added <= hcount);
 
-	if (hcount > 2) {
+	if (add_02) {
 		size_t count = filled + added;
 		const gnet_host_t *h;
 
@@ -3783,8 +3795,8 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 				added++;
 
 			if (GNET_PROPERTY(guess_server_debug) > 9) {
-				g_debug("GUESS added cached 0.2 server %s at slot #%d/%d",
-					gnet_host_to_string(h), i, count);
+				g_debug("GUESS added 0.2 server %s (%zu cached) at slot #%d/%d",
+					gnet_host_to_string(h), guess_cache_count(), i, count);
 			}
 		}
 	}

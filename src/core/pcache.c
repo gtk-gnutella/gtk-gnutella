@@ -555,7 +555,8 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		 */
 
 		if (GNET_PROPERTY(enable_guess) && (flags & (PING_F_QK | PING_F_GUE))) {
-			hcount = guess_fill_caught_array(net, host, PCACHE_UHC_MAX_IP);
+			hcount = guess_fill_caught_array(net, TRUE,
+				host, PCACHE_UHC_MAX_IP);
 		} else {
 			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
 				host, PCACHE_UHC_MAX_IP);
@@ -1012,15 +1013,19 @@ pcache_guess_acknowledge(struct gnutella_node *n,
 {
 	struct pong_info info;
 	pong_meta_t meta;
-	gnet_host_t host[2 + PCACHE_UHC_MAX_IP];
+	gnet_host_t host[2];
 	int hcount;
 	int flags = PING_F_NONE;
 
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	hcount = guess_fill_caught_array(net, host,
-		wants_ipp ? G_N_ELEMENTS(host) : 2);
+	/*
+	 * We request more than one host to make sure we include an address
+	 * for a host different from the one sending us the message.
+	 */
+
+	hcount = guess_fill_caught_array(net, FALSE, host, G_N_ELEMENTS(host));
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;

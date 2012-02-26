@@ -71,7 +71,8 @@ bool guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
 	const char *buf, uint16 len);
 
-int guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount);
+int guess_fill_caught_array(host_net_t net,
+	bool add_02, gnet_host_t *hosts, int hcount);
 
 /**
  * Is GUESS querying enabled?
