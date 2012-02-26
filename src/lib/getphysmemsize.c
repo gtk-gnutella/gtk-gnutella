@@ -44,11 +44,13 @@
 #include <invent.h>
 #endif
 
+static uint64 memsize;
+
 /**
  * @return the amount of physical RAM in bytes, or zero in case of failure.
  */
-uint64
-getphysmemsize(void)
+static uint64
+getphysmemsize_internal(void)
 #ifdef MINGW32
 {
 	return mingw_getphysmemsize();
@@ -126,5 +128,33 @@ getphysmemsize(void)
 	return 0;
 }
 #endif /* _SC_PHYS_PAGES */
+
+/**
+ * Get the amount of physical RAM available.
+ *
+ * @return the amount of physical RAM in bytes, or zero in case of failure.
+ */
+uint64
+getphysmemsize(void)
+{
+	if G_UNLIKELY(0 == memsize)
+		memsize = getphysmemsize_internal();
+
+	return memsize;
+}
+
+/**
+ * Get the amount of physical RAM available, if known.
+ *
+ * The purpose is to avoid any memory allocation, which sysconf() or sysctl()
+ * may otherwise cause.
+ *
+ * @return the known amount of physical RAM in bytes, or 0 if unknown yet.
+ */
+uint64
+getphysmemsize_known(void)
+{
+	return memsize;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

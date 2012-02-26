@@ -52,6 +52,7 @@
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
+#include "getphysmemsize.h"
 #include "hashtable.h"
 #include "log.h"
 #include "mempcpy.h"
@@ -66,6 +67,7 @@
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
+#include "xsort.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -220,6 +222,11 @@ struct xheader {
 #define XM_BUCKET_INCREMENT	64			/**< Capacity increments */
 
 /**
+ * Freelist insertion burst threshold.
+ */
+#define XM_FREELIST_THRESH	1000		/**< Insertions per second */
+
+/**
  * Free list data structure.
  *
  * This is an array of structures pointing to allocated sorted arrays
@@ -243,6 +250,7 @@ static struct xfreelist {
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
 	uint shrinking:1;		/**< Is being shrinked */
+	uint unsorted:1;		/**< Array is unsorted */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
 /**
@@ -305,10 +313,21 @@ static struct {
 	uint64 freelist_insertions;				/**< Insertions in freelist */
 	uint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
 	uint64 freelist_further_breakups;		/**< Breakups due to extra size */
+	uint64 freelist_bursts;					/**< Burst detection events */
+	uint64 freelist_burst_insertions;		/**< Burst insertions in freelist */
+	uint64 freelist_plain_insertions;		/**< Plain appending in freelist */
+	uint64 freelist_unsorted_insertions;	/**< Insertions in unsorted list */
+	uint64 freelist_coalescing_ignore_burst;/**< Ignored due to free burst */
 	uint64 freelist_coalescing_ignore_vmm;	/**< Ignored due to VMM block */
 	uint64 freelist_coalescing_ignored;		/**< Smart algo chose to ignore */
 	uint64 freelist_coalescing_done;	/**< Successful coalescings */
 	uint64 freelist_coalescing_failed;	/**< Failed coalescings */
+	uint64 freelist_linear_lookups;		/**< Linear lookups in unsorted list */
+	uint64 freelist_binary_lookups;		/**< Binary lookups in sorted list */
+	uint64 freelist_short_yes_lookups;	/**< Quick find in sorted list */
+	uint64 freelist_short_no_lookups;	/**< Quick miss in sorted list */
+	uint64 freelist_sorting;			/**< Freelist sorting events */
+	uint64 freelist_inlined_sorting;	/**< Uses of inlined sorting code */
 	uint64 freelist_split;				/**< Block splitted on allocation */
 	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
 	uint64 freelist_blocks;				/**< Amount of blocks in free list */
@@ -344,7 +363,8 @@ static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
 static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
-static void xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce);
+static void xmalloc_freelist_insert(void *p, size_t len,
+	bool burst, uint32 coalesce);
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
 	size_t size, bool core, size_t *allocated);
 static void xmalloc_crash_hook(void);
@@ -377,6 +397,13 @@ xmalloc_vmm_inited(void)
 	xmalloc_pagesize = compat_pagesize();
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
+
+	/*
+	 * Since xsort() uses getphysmemsize_known(), we need to compute the
+	 * memory size when it is safe to malloc().
+	 */
+
+	(void) getphysmemsize();	/* Will cache result */
 
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
@@ -1082,6 +1109,7 @@ static void
 xfl_remove_selected(struct xfreelist *fl)
 {
 	g_assert(size_is_positive(fl->count));
+	g_assert(!fl->unsorted);
 	g_assert(mutex_is_owned(&fl->lock));
 
 	fl->count--;
@@ -1175,7 +1203,8 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 				g_assert(split_len <= XMALLOC_MAXSIZE);
 
-				xmalloc_freelist_insert(split, split_len, XM_COALESCE_NONE);
+				xmalloc_freelist_insert(split, split_len,
+					FALSE, XM_COALESCE_NONE);
 				blksize = len;		/* We shrank the allocted block */
 			} else {
 				xstats.freelist_nosplit++;
@@ -1368,6 +1397,46 @@ xfl_extend(struct xfreelist *fl)
 }
 
 /**
+ * Sorting callback for items in the pointers[] array from a freelist bucket.
+ */
+static int
+xfl_ptr_cmp(const void *a, const void *b)
+{
+	const void * const *ap = a, * const *bp = b;
+	return ptr_cmp(*ap, *bp);
+}
+
+/**
+ * Sort freelist bucket.
+ */
+static void
+xfl_sort(struct xfreelist *fl)
+{
+	g_assert(mutex_is_owned(&fl->lock));
+
+	if G_LIKELY(fl->count > 1) {
+		if G_UNLIKELY(2 == fl->count) {
+			xstats.freelist_inlined_sorting++;
+			if (+1 == ptr_cmp(fl->pointers[0], fl->pointers[1])) {
+				void *tmp = fl->pointers[1];
+				fl->pointers[1] = fl->pointers[0];
+				fl->pointers[0] = tmp;
+			}
+		} else {
+			xsort(fl->pointers, fl->count, sizeof fl->pointers[0], xfl_ptr_cmp);
+		}
+		xstats.freelist_sorting++;
+
+		if (xmalloc_debugging(1)) {
+			t_debug("XM sorted %zu items from freelist #%zu (%zu bytes)",
+				fl->count, xfl_index(fl), fl->blocksize);
+		}
+	}
+
+	fl->unsorted = FALSE;
+}
+
+/**
  * Lookup for a block within a free list chunk.
  *
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
@@ -1392,6 +1461,33 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 	}
 
 	/*
+	 * If the freelist bucket is unsorted, sort it on the fly unless there
+	 * are less than 8 items, in which case a linear lookup will be fast
+	 * enough (at most 64 bytes on a 64-bit machine, fitting a cache line).
+	 */
+
+	if G_UNLIKELY(fl->unsorted) {
+		if G_LIKELY(count <= 8) {
+			size_t i;
+			pointers = fl->pointers;
+
+			xstats.freelist_linear_lookups++;
+
+			for (i = 0; i < count; i++) {
+				if (*pointers++ == p)
+					return i;
+			}
+
+			if (low_ptr != NULL)
+				*low_ptr = count;		/* Array is unsorted, insert at end */
+
+			return -1;
+		}
+
+		xfl_sort(fl);
+	}
+
+	/*
 	 * Optimize if we have more than 4 items by looking whether the
 	 * pointer falls within the min/max ranges.
 	 */
@@ -1401,27 +1497,33 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 	low = 0;
 
 	if G_LIKELY(count > 4) {
-		if G_UNLIKELY(pointers[0] == p)
+		if G_UNLIKELY(pointers[0] == p) {
+			xstats.freelist_short_yes_lookups++;
 			return 0;
+		}
 		if (ptr_cmp(p, pointers[0]) < 0) {
-			if (low_ptr != NULL) {
+			if (low_ptr != NULL)
 				*low_ptr = 0;
-				return -1;
-			}
+			xstats.freelist_short_no_lookups++;
+			return -1;
 		}
 		low++;
-		if G_UNLIKELY(pointers[high] == p)
+		if G_UNLIKELY(pointers[high] == p) {
+			xstats.freelist_short_yes_lookups++;
 			return high;
+		}
 		if (ptr_cmp(p, pointers[high]) > 0) {
-			if (low_ptr != NULL) {
+			if (low_ptr != NULL)
 				*low_ptr = count;
-				return -1;
-			}
+			xstats.freelist_short_no_lookups++;
+			return -1;
 		}
 		high--;
 	}
 
 	/* Binary search */
+
+	xstats.freelist_binary_lookups++;
 
 	for (;;) {
 		const void *item;
@@ -1473,9 +1575,13 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 
 /**
  * Insert address in the free list.
+ *
+ * @param fl	the freelist bucket
+ * @param p		address of the block to insert
+ * @param burst	whether we're in a burst insertion mode
  */
 static void
-xfl_insert(struct xfreelist *fl, void *p)
+xfl_insert(struct xfreelist *fl, void *p, bool burst)
 {
 	size_t idx;
 
@@ -1501,16 +1607,54 @@ xfl_insert(struct xfreelist *fl, void *p)
 	mutex_get(&fl->lock);
 
 	/*
-	 * Compute insertion index in the sorted array.
+	 * If we're in a burst condition, simply append to the bucket, without
+	 * sorting the block.
 	 *
-	 * At the same time, this allows us to make sure we're not dealing with
-	 * a duplicate insertion.
+	 * Note that we may insert in an unsorted list even outside a burst
+	 * insertion condition, meaning the list was not used since the last
+	 * time it became unsorted.
 	 */
 
-	if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
-		mutex_release(&fl->lock);
-		t_error_from(_WHERE_, "block %p already in free list #%zu (%zu bytes)",
-			p, xfl_index(fl), fl->blocksize);
+	if G_UNLIKELY(burst) {
+		if (!fl->unsorted) {
+			/*
+			 * List is still sorted, see if trivial appending keeps it sorted.
+			 */
+
+			g_assert(fl->pointers != NULL);
+
+			idx = fl->count;		/* Append at the tail */
+
+			if (0 == idx || +1 == ptr_cmp(p, fl->pointers[idx - 1])) {
+				xstats.freelist_plain_insertions++;
+				goto plain_insert;
+			}
+		}
+
+		/*
+		 * We'll append, and this will unsort the list.
+		 */
+
+		fl->unsorted = TRUE;
+	}
+
+	if G_UNLIKELY(fl->unsorted) {
+		idx = fl->count;		/* Append at the tail */
+		xstats.freelist_unsorted_insertions++;
+	} else {
+		/*
+		 * Compute insertion index in the sorted array.
+		 *
+		 * At the same time, this allows us to make sure we're not dealing with
+		 * a duplicate insertion.
+		 */
+
+		if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
+			mutex_release(&fl->lock);
+			t_error_from(_WHERE_,
+				"block %p already in free list #%zu (%zu bytes)",
+				p, xfl_index(fl), fl->blocksize);
+		}
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= fl->count);
@@ -1520,12 +1664,13 @@ xfl_insert(struct xfreelist *fl, void *p)
 	 */
 
 	g_assert(fl->pointers != NULL);
-	g_assert(idx <= fl->count);
 
 	if G_LIKELY(idx < fl->count) {
 		memmove(&fl->pointers[idx + 1], &fl->pointers[idx],
 			(fl->count - idx) * sizeof(fl->pointers[0]));
 	}
+
+plain_insert:
 
 	fl->count++;
 	fl->pointers[idx] = p;
@@ -1564,8 +1709,8 @@ xfl_insert(struct xfreelist *fl, void *p)
 	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {
-		t_debug("XM inserted block %p in free list #%zu (%zu bytes)",
-			p, xfl_index(fl), fl->blocksize);
+		t_debug("XM inserted block %p in %sfree list #%zu (%zu bytes)",
+			p, fl->unsorted ? "unsorted " : "", xfl_index(fl), fl->blocksize);
 	}
 
 	mutex_release(&fl->lock);	/* Issues final memory barrier */
@@ -1633,6 +1778,9 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 			continue;
 		}
 
+		if G_UNLIKELY(fl->unsorted)
+			xfl_sort(fl);
+
 		/*
 		 * Depending on the way the virtual memory grows, we pick the largest
 		 * or the smallest address to try to aggregate all the objects at
@@ -1678,7 +1826,8 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
  * to reflect the coalesced block..
  */
 static G_GNUC_HOT bool
-xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
+xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
+	bool burst, uint32 flags)
 {
 	size_t smallsize;
 	size_t i, j;
@@ -1699,6 +1848,17 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr, uint32 flags)
 	if ((flags & XM_COALESCE_SMART) && xmalloc_round_blocksize(len) == len) {
 		size_t idx = xfl_find_freelist_index(len);
 		struct xfreelist *fl = &xfreelist[idx];
+
+		/*
+		 * Within a burst freeing, don't attempt coalescing if size is small.
+		 */
+
+		if G_UNLIKELY(burst) {
+			if (len < smallsize) {
+				xstats.freelist_coalescing_ignore_burst++;
+				return FALSE;
+			}
+		}
 
 		/*
 		 * If there are little blocks in the list, there's no need to coalesce.
@@ -1910,9 +2070,14 @@ xmalloc_free_pages(void *p, size_t len,
 
 /**
  * Insert block in free list, with optional block coalescing.
+ *
+ * @param p			the address of the block
+ * @param len		the physical length of the block
+ * @param burst		if TRUE, we're within a burst of freelist insertions
+ * @param coalesce	block coalescing flags
  */
 static void
-xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
+xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 {
 	struct xfreelist *fl;
 
@@ -1923,7 +2088,7 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 	xstats.freelist_insertions++;
 
 	if (coalesce) {
-		xmalloc_freelist_coalesce(&p, &len, coalesce);
+		xmalloc_freelist_coalesce(&p, &len, burst, coalesce);
 	} else {
 		xstats.freelist_insertions_no_coalescing++;
 	}
@@ -1953,7 +2118,7 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 				fl = &xfreelist[XMALLOC_FREELIST_COUNT - 2];
 			}
 
-			xfl_insert(fl, p);
+			xfl_insert(fl, p, burst);
 			p = ptr_add_offset(p, fl->blocksize);
 			len -= fl->blocksize;
 		}
@@ -1998,7 +2163,7 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 			}
 
 			fl = xfl_find_freelist(multiple);
-			xfl_insert(fl, p);
+			xfl_insert(fl, p, burst);
 			p = ptr_add_offset(p, multiple);
 			len -= multiple;
 		}
@@ -2046,7 +2211,7 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 	}
 
 	fl = xfl_find_freelist(len);
-	xfl_insert(fl, p);
+	xfl_insert(fl, p, burst);
 }
 
 /**
@@ -2055,7 +2220,40 @@ xmalloc_freelist_insert(void *p, size_t len, uint32 coalesce)
 static void
 xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 {
+	static time_t last;
+	static size_t calls;
+	time_t now;
 	bool coalesced = FALSE;
+	bool is_heap, in_burst = FALSE;
+
+	/*
+	 * Detect bursts of xfree() calls because coalescing plus insertion
+	 * in the sorted buckets can quickly raise the time spent since the
+	 * algorithmic complexity becomes O(n^2).
+	 *
+	 * When we're dealing with less than XM_FREELIST_THRESH additions
+	 * per second, we don't consider we're in a xfree() burst.
+	 *
+	 * Within a burst condition, we're allowing coalescing but insertions
+	 * in the freelist are mere appending (no sorting).
+	 * Sorting will be deferred up to the moment where we need to lookup
+	 * an item in the freelist.
+	 */
+
+	now = tm_time();
+
+	if G_UNLIKELY(now != last) {
+		calls = 1;
+		last = now;
+	} else {
+		calls++;
+		if G_UNLIKELY(calls > XM_FREELIST_THRESH) {
+			in_burst = TRUE;
+			xstats.freelist_burst_insertions++;
+			if G_UNLIKELY(calls == XM_FREELIST_THRESH + 1)
+				xstats.freelist_bursts++;
+		}
+	}
 
 	/*
 	 * First attempt to coalesce memory as much as possible if requested.
@@ -2066,18 +2264,20 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 * free those VMM pages right away.
 	 */
 
+	is_heap = xmalloc_isheap(p, len);
+
 	if (coalesce) {
 		if (
 			vmm_page_start(p) != p ||
 			round_pagesize(len) != len ||
-			xmalloc_isheap(p, len)
+			is_heap
 		) {
-			coalesced = xmalloc_freelist_coalesce(&p, &len, coalesce);
+			coalesced = xmalloc_freelist_coalesce(&p, &len, in_burst, coalesce);
 		} else {
 			if (xmalloc_debugging(4)) {
 				t_debug(
-					"XM not attempting coalescing of %zu-byte VMM region at %p",
-					len, p);
+					"XM not attempting coalescing of %zu-byte %s region at %p",
+					len, is_heap ? "heap" : "VMM", p);
 			}
 			xstats.freelist_coalescing_ignore_vmm++;
 		}
@@ -2091,7 +2291,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 * back the leading and trailing fragments to the free list.
 	 */
 
-	if G_UNLIKELY(xmalloc_isheap(p, len)) {
+	if G_UNLIKELY(is_heap) {
 		/* Heap memory */
 		if (xmalloc_freecore(p, len)) {
 			if (xmalloc_debugging(1)) {
@@ -2140,9 +2340,11 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 				}
 				if (coalesce & XM_COALESCE_BEFORE) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(head, head_len, XM_COALESCE_NONE);
+					xmalloc_freelist_insert(head, head_len,
+						in_burst, XM_COALESCE_NONE);
 				} else {
 					/* Maybe there is enough before to free core again? */
+					calls--;	/* Self-recursion, does not count */
 					xmalloc_freelist_add(head, head_len, XM_COALESCE_BEFORE);
 				}
 			}
@@ -2155,9 +2357,11 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 				}
 				if (coalesce & XM_COALESCE_AFTER) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(tail, tail_len, XM_COALESCE_NONE);
+					xmalloc_freelist_insert(tail, tail_len,
+						in_burst, XM_COALESCE_NONE);
 				} else {
 					/* Maybe there is enough after to free core again? */
+					calls--;	/* Self-recursion, does not count */
 					xmalloc_freelist_add(tail, tail_len, XM_COALESCE_AFTER);
 				}
 			}
@@ -2173,7 +2377,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 * as much as possible.
 	 */
 
-	xmalloc_freelist_insert(p, len, XM_COALESCE_NONE);
+	xmalloc_freelist_insert(p, len, in_burst, XM_COALESCE_NONE);
 }
 
 /**
@@ -2233,7 +2437,7 @@ xmalloc_freelist_grab(struct xfreelist *fl,
 
 			g_assert(split_len <= XMALLOC_MAXSIZE);
 
-			xmalloc_freelist_insert(sp, split_len, XM_COALESCE_NONE);
+			xmalloc_freelist_insert(sp, split_len, FALSE, XM_COALESCE_NONE);
 		} else {
 			if (xmalloc_debugging(3)) {
 				t_debug("XM NOT splitting %s %zu-byte block at %p"
@@ -2296,6 +2500,9 @@ xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
 		mutex_release(&fl->lock);
 		return NULL;
 	}
+
+	if G_UNLIKELY(fl->unsorted)
+		xfl_sort(fl);
 
 	/*
 	 * Depending on the way the virtual memory grows, we pick the largest
@@ -2573,7 +2780,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 
 		if (xmalloc_should_split(vlen, len)) {
 			void *split = ptr_add_offset(p, len);
-			xmalloc_freelist_insert(split, vlen - len, XM_COALESCE_AFTER);
+			xmalloc_freelist_insert(split, vlen-len, FALSE, XM_COALESCE_AFTER);
 			xstats.vmm_split_pages++;
 			xstats.user_memory += len;
 			memusage_add(xstats.user_mem, len);
@@ -3924,7 +4131,8 @@ xgc(void)
 					g_assert(len <= xmalloc_pagesize);
 
 					frags = pointer_to_size(hash_table_lookup(ht, key));
-					g_assert(frags >= len);
+					g_assert_log(frags >= len,
+						"frags=%zu, len=%zu", frags, len);
 					hash_table_replace(ht, key, size_to_pointer(frags - len));
 
 					if (xmalloc_debugging(2)) {
@@ -4129,10 +4337,21 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
 	DUMP(freelist_further_breakups);
+	DUMP(freelist_bursts);
+	DUMP(freelist_burst_insertions);
+	DUMP(freelist_plain_insertions);
+	DUMP(freelist_unsorted_insertions);
+	DUMP(freelist_coalescing_ignore_burst);
 	DUMP(freelist_coalescing_ignore_vmm);
 	DUMP(freelist_coalescing_ignored);
 	DUMP(freelist_coalescing_done);
 	DUMP(freelist_coalescing_failed);
+	DUMP(freelist_linear_lookups);
+	DUMP(freelist_binary_lookups);
+	DUMP(freelist_short_yes_lookups);
+	DUMP(freelist_short_no_lookups);
+	DUMP(freelist_sorting);
+	DUMP(freelist_inlined_sorting);
 	DUMP(freelist_split);
 	DUMP(freelist_nosplit);
 	DUMP(freelist_blocks);
@@ -4177,8 +4396,9 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		if (0 != fl->count)
 			largest = fl->blocksize;
 
-		log_info(la, "XM freelist #%zu (%zu bytes): capacity=%zu, count=%zu, "
+		log_info(la, "XM %sfreelist #%zu (%zu bytes): capacity=%zu, count=%zu, "
 			"lock=%zu",
+			fl->unsorted ? "unsorted " : "",
 			i, fl->blocksize, fl->capacity, fl->count,
 			mutex_held_depth(&fl->lock));
 	}
@@ -5141,7 +5361,8 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			g_assert(size_is_non_negative(split_len));
 
 			if (split_len >= XMALLOC_SPLIT_MIN) {
-				xmalloc_freelist_insert(split, split_len, XM_COALESCE_AFTER);
+				xmalloc_freelist_insert(split, split_len,
+					FALSE, XM_COALESCE_AFTER);
 				truncation = TRUNCATION_AFTER;
 			} else {
 				blen = ptr_diff(end, p);
@@ -5176,7 +5397,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 				g_assert(before >= XMALLOC_SPLIT_MIN);
 
 				/* Beginning of block, in excess */
-				xmalloc_freelist_insert(p, before, XM_COALESCE_BEFORE);
+				xmalloc_freelist_insert(p, before, FALSE, XM_COALESCE_BEFORE);
 				truncation |= TRUNCATION_BEFORE;
 			}
 
@@ -5187,7 +5408,8 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 				if (after >= XMALLOC_SPLIT_MIN) {
 					/* End of block, in excess */
-					xmalloc_freelist_insert(uend, after, XM_COALESCE_AFTER);
+					xmalloc_freelist_insert(uend, after,
+						FALSE, XM_COALESCE_AFTER);
 					truncation |= TRUNCATION_AFTER;
 				} else {
 					blen += after;	/* Not truncated */
@@ -5307,28 +5529,11 @@ xmalloc_crash_hook(void)
 			bad = TRUE;
 		}
 
-		for (j = 0; j < G_N_ELEMENTS(xfreelist); j++) {
-			struct xfreelist *flo = &xfreelist[j];
-
-			if (!mutex_get_try(&flo->lock))
-				continue;
-
-			if ((size_t) -1 != xfl_lookup(flo, fl->pointers, NULL)) {
-				s_warning("XM freelist #%zu bucket %p listed in freelist #%zu!",
-					i, (void *) fl->pointers, j);
-				bad = TRUE;
-				mutex_release(&flo->lock);
-				goto next;
-			}
-
-			mutex_release(&flo->lock);
-		}
-
 		for (j = 0, prev = NULL; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
 			size_t len;
 
-			if (ptr_cmp(p, prev) <= 0) {
+			if (!fl->unsorted && ptr_cmp(p, prev) <= 0) {
 				s_warning("XM item #%zu p=%p in freelist #%zu <= prev %p",
 					j, p, i, prev);
 				bad = TRUE;
@@ -5357,8 +5562,8 @@ xmalloc_crash_hook(void)
 			bad = TRUE;
 		}
 
-	next:
-		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
+		s_debug("XM %sfreelist #%zu %s",
+			fl->unsorted ? "unsorted " : "", i, bad ? "** CORRUPTED **" : "OK");
 		continue;
 	}
 }

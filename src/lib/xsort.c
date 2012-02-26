@@ -378,13 +378,17 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
 		/*
 		 * We should avoid allocating too much memory since this might
 		 * have to be backed up by swap space.
+		 *
+		 * We use getphysmemsize_known() because we do not want to allocate
+		 * any memory via xmalloc(), which uses xsort(): it could cause a
+		 * deadly recursion.
+		 *
+		 * If we haven't determined the memory size yet, then we won't
+		 * allocate any memory and use quicksort(), which is fine.
 		 */
 
-		if G_UNLIKELY(0 == memsize) {
-			memsize = getphysmemsize();
-			if (0 == memsize)
-				memsize = (uint64) -1;
-		}
+		if G_UNLIKELY(0 == memsize)
+			memsize = getphysmemsize_known();
 
 		/* If the memory requirements are too high don't allocate memory */
 		if ((uint64) size > memsize / 4) {
