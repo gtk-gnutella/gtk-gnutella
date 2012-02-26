@@ -58,7 +58,7 @@ typedef struct zone zone_t;
  * Memory allocation routines.
  */
 
-zone_t *zcreate(size_t, unsigned);
+zone_t *zcreate(size_t, unsigned, bool);
 zone_t *zget(size_t, unsigned);
 void zdestroy(zone_t *zone);
 

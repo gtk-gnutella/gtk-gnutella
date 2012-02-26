@@ -188,6 +188,7 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_blocks;		/**< Total amount of blocks in zone */
 	unsigned zn_subzones;	/**< Amount of subzones */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
+	uint embedded:1;		/**< Zone descriptor is head of first arena */
 };
 
 static inline void
@@ -852,14 +853,15 @@ zfree(zone_t *zone, void *ptr)
  * The first block in the arena will be the first free block.
  */
 static void
-zn_cram(const zone_t *zone, void *arena)
+zn_cram(const zone_t *zone, void *arena, size_t len)
 {
-	unsigned i;
 	char **next = arena, *p = arena;
 	size_t size = zone->zn_size;
-	unsigned hint = zone->zn_hint;
+	void *last = ptr_add_offset(arena, len - size);
 
-	for (i = 1; i < hint; i++) {
+	g_assert(len >= size);
+
+	while (ptr_cmp(&p[size], last) <= 0) {
 		next = cast_to_void_ptr(p);
 		p = *next = &p[size];
 	}
@@ -889,6 +891,41 @@ subzone_free_arena(struct subzone *sz)
 	sz->sz_size = 0;
 }
 
+static zone_t *
+subzone_alloc_embedded(size_t size)
+{
+	struct subzone sz;
+	zone_t *zone;
+
+	ZERO(&sz);
+	subzone_alloc_arena(&sz, size);
+
+	zone = cast_to_void_ptr(sz.sz_base);	/* Zone at the head of subzone */
+	ZERO(zone);
+	zone->embedded = TRUE;
+
+	sz.sz_base = ptr_add_offset(sz.sz_base, sizeof *zone);
+	sz.sz_size -= sizeof *zone;
+
+	zone->zn_arena = sz;	/* Struct copy */
+
+	return zone;
+}
+
+static void
+subzone_free_embedded(struct subzone *sz)
+{
+	zone_t *zone;
+
+	sz->sz_base = ptr_add_offset(sz->sz_base, -(sizeof *zone));
+	sz->sz_size += sizeof *zone;
+	zone = cast_to_void_ptr(sz->sz_base);
+
+	g_assert(zone->embedded);
+
+	subzone_free_arena(sz);
+}
+
 /*
  * Is subzone held in a virtual memory region that could be relocated or
  * is a standalone fragment?
@@ -896,6 +933,9 @@ subzone_free_arena(struct subzone *sz)
 static inline bool
 subzone_is_fragment(const struct subzone *sz)
 {
+	if (sz->sz_size < compat_pagesize())
+		return FALSE;
+
 	return vmm_is_relocatable(sz->sz_base, sz->sz_size) ||
 		vmm_is_fragment(sz->sz_base, sz->sz_size);
 }
@@ -1022,6 +1062,8 @@ adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 
 /**
  * Create a new zone able to hold `hint' items of 'size' bytes.
+ *
+ * If the ``zone'' parameter is NULL, create an embedded zone.
  */
 static zone_t *
 zn_create(zone_t *zone, size_t size, unsigned hint)
@@ -1029,13 +1071,14 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	g_assert(size > 0);
 	g_assert(uint_is_non_negative(hint));
 
-	ZERO(zone);
-
 	/*
 	 * Allocate the arena.
 	 */
 
-	subzone_alloc_arena(&zone->zn_arena, size * hint);
+	if (NULL == zone)
+		zone = subzone_alloc_embedded(size * hint);
+	else
+		subzone_alloc_arena(&zone->zn_arena, size * hint);
 
 	/*
 	 * Initialize zone descriptor.
@@ -1053,7 +1096,7 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_gc = NULL;
 	spinlock_init(&zone->lock);
 
-	zn_cram(zone, zone->zn_arena.sz_base);
+	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone;
@@ -1087,7 +1130,7 @@ zn_extend(zone_t *zone)
 	zone->zn_oversized = 0;				/* Just extended, cannot be oversized */
 	zone->zn_blocks += zone->zn_hint;
 
-	zn_cram(zone, sz->sz_base);
+	zn_cram(zone, sz->sz_base, sz->sz_size);
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone->zn_free;
@@ -1121,7 +1164,8 @@ zn_shrink(zone_t *zone)
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_oversized = 0;
 
-	zn_cram(zone, zone->zn_arena.sz_base);	/* Recreate free list */
+	/* Recreate free list */
+	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	zstats.zgc_shrinked++;
@@ -1138,12 +1182,12 @@ zn_shrink(zone_t *zone)
  * value.
  */
 zone_t *
-zcreate(size_t size, unsigned hint)
+zcreate(size_t size, unsigned hint, bool embedded)
 {
 	zone_t *zone;			/* Zone descriptor */
 
-	zone = xpmalloc(sizeof *zone);
-	zn_create(zone, size, hint);
+	zone = embedded ? NULL : xpmalloc0(sizeof *zone);
+	zone = zn_create(zone, size, 0 == hint ? DEFAULT_HINT : hint);
 
 #ifndef REMAP_ZALLOC
 	if (zgc_always(zone)) {
@@ -1195,13 +1239,29 @@ zdestroy(zone_t *zone)
 #endif
 
 	zn_free_additional_subzones(zone);
-	subzone_free_arena(&zone->zn_arena);
 
-	if (!zalloc_closing)
-		hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
+	/*
+	 * An embedded zone has no separate zone descriptor: it is embedded at
+	 * the start of the first subzone.
+	 *
+	 * Such zones are never used by zget(), so they cannot be held in the
+	 * hash table by zone size.
+	 */
+
+	if (!zone->embedded) {
+		subzone_free_arena(&zone->zn_arena);
+
+		if (!zalloc_closing)
+			hash_table_remove(zt, ulong_to_pointer(zone->zn_size));
+	}
 
 	spinlock_destroy(&zone->lock);
-	xfree(zone);
+
+	if (zone->embedded) {
+		subzone_free_embedded(&zone->zn_arena);
+	} else {
+		xfree(zone);
+	}
 }
 
 /**
@@ -1251,7 +1311,7 @@ zget(size_t size, unsigned hint)
 	 * No zone of the corresponding size already, create a new one!
 	 */
 
-	zone = zcreate(size, hint);
+	zone = zcreate(size, hint, FALSE);
 
 	/*
 	 * Insert new zone in the hash table so that we can return it to other
@@ -1613,7 +1673,7 @@ zgc_subzone_new_arena(const zone_t *zone, struct subzone *sz)
 		s_error("cannot recreate %zu-byte zone arena", zone->zn_size);
 	}
 
-	zn_cram(zone, sz->sz_base);
+	zn_cram(zone, sz->sz_base, sz->sz_size);
 	return cast_to_void_ptr(sz->sz_base);
 }
 
@@ -1767,6 +1827,9 @@ release_zone:
 	if (szi->szi_base == zone->zn_arena.sz_base) {
 
 		g_assert(sz != NULL);	/* We know there are more than 1 subzone */
+
+		if G_UNLIKELY(zone->embedded)
+			return FALSE;		/* Can't free first subzone, holds the zone */
 
 		if (zalloc_debugging(1)) {
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
