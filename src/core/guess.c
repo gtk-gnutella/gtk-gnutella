@@ -3781,6 +3781,11 @@ guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount)
 			gnet_host_copy(&hosts[i], h);
 			if G_UNLIKELY(0 == count)
 				added++;
+
+			if (GNET_PROPERTY(guess_server_debug) > 9) {
+				g_debug("GUESS added cached 0.2 server %s at slot #%d/%d",
+					gnet_host_to_string(h), i, count);
+			}
 		}
 	}
 
