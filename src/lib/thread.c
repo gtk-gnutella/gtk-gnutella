@@ -43,7 +43,7 @@
 #include "omalloc.h"
 #include "spinlock.h"
 #include "stringify.h"
-#include "walloc.h"
+#include "zalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -55,6 +55,18 @@ struct thread_pvalue {
 	thread_pvalue_free_t p_free;	/**< Optional free routine */
 	void *p_arg;					/**< Optional argument to free routine */
 };
+
+/**
+ * Private zone used to allocate private values.
+ *
+ * We use raw zalloc() instead of walloc() to minimize the amount of layers
+ * upon which this low-level service depends.
+ *
+ * Furthermore, the zone is allocated as an embedded item to avoid any
+ * allocation via xmalloc(): it solely depends on the VMM layer, the zone
+ * descriptor being held at the head of the first zone arena.
+ */
+static zone_t *pvzone;
 
 static unsigned
 thread_hash(const void *key)
@@ -191,7 +203,7 @@ thread_private_remove(const void *key)
 		hash_table_remove(pht, key);
 		if (pv->p_free != NULL)
 			(*pv->p_free)(pv->value, pv->p_arg);
-		WFREE0(pv);
+		zfree(pvzone, pv);
 
 		return TRUE;
 	} else {
@@ -215,7 +227,16 @@ thread_private_add_extended(const void *key, const void *value,
 	struct thread_pvalue *pv;
 	bool ok;
 
-	WALLOC0(pv);
+	if G_UNLIKELY(NULL == pvzone) {
+		static spinlock_t pvzone_slk = SPINLOCK_INIT;
+		spinlock(&pvzone_slk);
+		if (NULL == pvzone)
+			pvzone = zcreate(sizeof *pv, 0, TRUE);	/* Embedded zone */
+		spinunlock(&pvzone_slk);
+	}
+
+	pv = zalloc(pvzone);
+	ZERO(pv);
 	pv->value = deconstify_pointer(value);
 	pv->p_free = p_free;
 	pv->p_arg = p_arg;
