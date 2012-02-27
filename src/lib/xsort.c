@@ -367,6 +367,12 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
 {
 	const size_t size = size_saturate_mult(n, s);
 
+	g_assert(b != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(n));
+	g_assert(size_is_positive(s));
+
+
 	if (size < 1024) {
 		/* The temporary array is small, so put it on the stack */
 		void *buf = alloca(size);
