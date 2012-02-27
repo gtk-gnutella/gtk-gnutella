@@ -247,10 +247,10 @@ static struct xfreelist {
 	size_t count;			/**< Amount of pointers held */
 	size_t capacity;		/**< Maximum amount of pointers that can be held */
 	size_t blocksize;		/**< Block size handled by this list */
+	size_t sorted;			/**< Amount of leading sorted pointers */
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
 	uint shrinking:1;		/**< Is being shrinked */
-	uint unsorted:1;		/**< Array is unsorted */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
 /**
@@ -326,8 +326,10 @@ static struct {
 	uint64 freelist_binary_lookups;		/**< Binary lookups in sorted list */
 	uint64 freelist_short_yes_lookups;	/**< Quick find in sorted list */
 	uint64 freelist_short_no_lookups;	/**< Quick miss in sorted list */
-	uint64 freelist_sorting;			/**< Freelist sorting events */
 	uint64 freelist_inlined_sorting;	/**< Uses of inlined sorting code */
+	uint64 freelist_partial_sorting;	/**< Freelist tail sorting */
+	uint64 freelist_full_sorting;		/**< Freelist sorting of whole bucket */
+	uint64 freelist_avoided_sorting;	/**< Avoided full sorting of bucket */
 	uint64 freelist_split;				/**< Block splitted on allocation */
 	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
 	uint64 freelist_blocks;				/**< Amount of blocks in free list */
@@ -378,6 +380,22 @@ void
 set_xmalloc_debug(uint32 level)
 {
 	xmalloc_debug = level;
+}
+
+/**
+ * Comparison function for pointers.
+ *
+ * This is tailored to put at the tail of each freelist bucket the addresses
+ * that are closer to the base of the virtual memory, in order to force
+ * reusing of these addresses first (in the hope that the other unused entries
+ * will end-up being coalesced and ultimately released).
+ */
+static inline int
+xm_ptr_cmp(const void *a, const void *b)
+{
+	/* Larger addresses at the end of the array when addresses grow down */
+
+	return xmalloc_grows_up ? ptr_cmp(b, a) : ptr_cmp(a, b);
 }
 
 /**
@@ -1108,29 +1126,27 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 static void
 xfl_remove_selected(struct xfreelist *fl)
 {
+	size_t i;
+
 	g_assert(size_is_positive(fl->count));
-	g_assert(!fl->unsorted);
+	g_assert(fl->count >= fl->sorted);
 	g_assert(mutex_is_owned(&fl->lock));
 
-	fl->count--;
 	xstats.freelist_blocks--;
 	xstats.freelist_memory -= fl->blocksize;
 
 	/*
 	 * See xmalloc_freelist_lookup() for the selection algorithm.
 	 *
-	 * If we selected the last item of the array (the typical setup on
-	 * UNIX machines where the VM space grows downwards from the end
+	 * Because we selected the last item of the array (the typical setup
+	 * on UNIX machines where the VM space grows downwards from the end
 	 * of the VM space), then we have nothing to do.
-	 *
-	 * Otherwise, we have to switch the remaining items downwards by
-	 * one position (first item of the pointers[] array was selected).
 	 */
 
-	if (xmalloc_grows_up && fl->count != 0) {
-		memmove(&fl->pointers[0], &fl->pointers[1],
-			fl->count * sizeof fl->pointers[0]);
-	}
+	fl->count--;
+	i = fl->count;				/* Index of removed item */
+	if (i < fl->sorted)
+		fl->sorted--;
 
 	/*
 	 * Forbid any bucket shrinking as we could be in the middle of a bucket
@@ -1403,7 +1419,7 @@ static int
 xfl_ptr_cmp(const void *a, const void *b)
 {
 	const void * const *ap = a, * const *bp = b;
-	return ptr_cmp(*ap, *bp);
+	return xm_ptr_cmp(*ap, *bp);
 }
 
 /**
@@ -1412,109 +1428,99 @@ xfl_ptr_cmp(const void *a, const void *b)
 static void
 xfl_sort(struct xfreelist *fl)
 {
+	size_t unsorted;
+	void **ary = fl->pointers;
+	size_t x = fl->sorted;			/* Index of first unsorted item */
+
 	g_assert(mutex_is_owned(&fl->lock));
 
-	if G_LIKELY(fl->count > 1) {
-		if G_UNLIKELY(2 == fl->count) {
+	/*
+	 * Items from 0 to fl->sorted are already fully sorted, so we only need
+	 * to sort the tail and see whether it makes the whole thing sorted.
+	 */
+
+	unsorted = fl->count - x;
+
+	if G_UNLIKELY(0 == unsorted)
+		return;
+
+	g_assert(size_is_positive(unsorted));
+
+	/*
+	 * Start by sorting the trailing unsorted items.
+	 */
+
+	if G_LIKELY(unsorted > 1) {
+		if G_UNLIKELY(2 == unsorted) {
 			xstats.freelist_inlined_sorting++;
-			if (+1 == ptr_cmp(fl->pointers[0], fl->pointers[1])) {
-				void *tmp = fl->pointers[1];
-				fl->pointers[1] = fl->pointers[0];
-				fl->pointers[0] = tmp;
+			if (+1 == xm_ptr_cmp(ary[x], ary[x+1])) {
+				void *tmp = ary[x+1];
+				ary[x+1] = ary[x]; 		/* Swap items */
+				ary[x] = tmp;
 			}
 		} else {
-			xsort(fl->pointers, fl->count, sizeof fl->pointers[0], xfl_ptr_cmp);
+			xstats.freelist_partial_sorting++;
+			xsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
 		}
-		xstats.freelist_sorting++;
-
-		if (xmalloc_debugging(1)) {
-			t_debug("XM sorted %zu items from freelist #%zu (%zu bytes)",
-				fl->count, xfl_index(fl), fl->blocksize);
-		}
-	}
-
-	fl->unsorted = FALSE;
-}
-
-/**
- * Lookup for a block within a free list chunk.
- *
- * If ``low_ptr'' is non-NULL, it is written with the index where insertion
- * of a new item should happen (in which case the returned value must be -1).
- *
- * @return index within the ``pointers'' sorted array where ``p'' is stored,
- * -1 if not found.
- */
-static G_GNUC_HOT size_t
-xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
-{
-	size_t low, mid, high;
-	void **pointers;
-	size_t count = fl->count;
-
-	g_assert(mutex_is_owned(&fl->lock));
-
-	if G_UNLIKELY(0 == count) {
-		if (low_ptr != NULL)
-			*low_ptr = 0;
-		return -1;
 	}
 
 	/*
-	 * If the freelist bucket is unsorted, sort it on the fly unless there
-	 * are less than 8 items, in which case a linear lookup will be fast
-	 * enough (at most 64 bytes on a 64-bit machine, fitting a cache line).
+	 * If the unsorted items are all greater than the last sorted item,
+	 * then the whole array is now sorted.
 	 */
 
-	if G_UNLIKELY(fl->unsorted) {
-		if G_LIKELY(count <= 8) {
-			size_t i;
-			pointers = fl->pointers;
-
-			xstats.freelist_linear_lookups++;
-
-			for (i = 0; i < count; i++) {
-				if (*pointers++ == p)
-					return i;
-			}
-
-			if (low_ptr != NULL)
-				*low_ptr = count;		/* Array is unsorted, insert at end */
-
-			return -1;
-		}
-
-		xfl_sort(fl);
+	if (0 == x || +1 == xm_ptr_cmp(ary[x - 1], ary[x])) {
+		xstats.freelist_full_sorting++;
+		xsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
+	} else {
+		xstats.freelist_avoided_sorting++;
 	}
+
+	fl->sorted = fl->count;		/* Fully sorted now */
+
+	if (xmalloc_debugging(1)) {
+		t_debug("XM sorted %zu items from freelist #%zu (%zu bytes)",
+			fl->count, xfl_index(fl), fl->blocksize);
+	}
+}
+
+/**
+ * Binary lookup for a matching block within free list array, and computation
+ * of its insertion point.
+ *
+ * @return index within the sorted array where ``p'' is stored, -1 if not found.
+ */
+static G_GNUC_HOT inline size_t
+xfl_binary_lookup(void **array, const void *p,
+	size_t low, size_t high, size_t *low_ptr)
+{
+	size_t mid;
 
 	/*
 	 * Optimize if we have more than 4 items by looking whether the
 	 * pointer falls within the min/max ranges.
 	 */
 
-	pointers = fl->pointers;
-	high = count - 1;
-	low = 0;
 
-	if G_LIKELY(count > 4) {
-		if G_UNLIKELY(pointers[0] == p) {
+	if G_LIKELY(high - low >= 4) {
+		if G_UNLIKELY(array[low] == p) {
 			xstats.freelist_short_yes_lookups++;
 			return 0;
 		}
-		if (ptr_cmp(p, pointers[0]) < 0) {
+		if (xm_ptr_cmp(p, array[low]) < 0) {
 			if (low_ptr != NULL)
-				*low_ptr = 0;
+				*low_ptr = low;
 			xstats.freelist_short_no_lookups++;
 			return -1;
 		}
 		low++;
-		if G_UNLIKELY(pointers[high] == p) {
+		if G_UNLIKELY(array[high] == p) {
 			xstats.freelist_short_yes_lookups++;
 			return high;
 		}
-		if (ptr_cmp(p, pointers[high]) > 0) {
+		if (xm_ptr_cmp(p, array[high]) > 0) {
 			if (low_ptr != NULL)
-				*low_ptr = count;
+				*low_ptr = high + 1;
 			xstats.freelist_short_no_lookups++;
 			return -1;
 		}
@@ -1534,7 +1540,7 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		}
 
 		mid = low + (high - low) / 2;
-		item = pointers[mid];
+		item = array[mid];
 
 		if (p > item)
 			low = mid + 1;
@@ -1551,6 +1557,73 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 }
 
 /**
+ * Lookup for a block within a free list chunk.
+ *
+ * If ``low_ptr'' is non-NULL, it is written with the index where insertion
+ * of a new item should happen (in which case the returned value must be -1).
+ *
+ * @return index within the ``pointers'' sorted array where ``p'' is stored,
+ * -1 if not found.
+ */
+static G_GNUC_HOT size_t
+xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
+{
+	size_t unsorted;
+
+	g_assert(mutex_is_owned(&fl->lock));
+
+	if G_UNLIKELY(0 == fl->count) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return -1;
+	}
+
+	unsorted = fl->count - fl->sorted;
+
+	if G_UNLIKELY(unsorted != 0) {
+		size_t i;
+
+		/* Binary search the leading sorted part */
+
+		i = xfl_binary_lookup(fl->pointers, p, 0, fl->sorted - 1, low_ptr);
+
+		if ((size_t) -1 != i)
+			return i;
+
+		/*
+		 * Use a linear lookup when there are at most 8 unsorted items at
+		 * the tail: this will be at most 64 bytes on a 64-bit machine,
+		 * fitting a cache line.
+		 */
+
+		if G_LIKELY(unsorted <= 8) {
+			size_t total = fl->count;
+			void **pointers = &fl->pointers[fl->sorted];
+
+			xstats.freelist_linear_lookups++;
+
+			for (i = fl->sorted; i < total; i++) {
+				if (*pointers++ == p)
+					return i;
+			}
+
+			if (low_ptr != NULL)
+				*low_ptr = fl->count;	/* Array is unsorted, insert at end */
+
+			return -1;
+		}
+
+		/* Sort it on the fly then before searching */
+
+		xfl_sort(fl);
+	}
+
+	/* Binary search the entire (sorted) array */
+
+	return xfl_binary_lookup(fl->pointers, p, 0, fl->count - 1, low_ptr);
+}
+
+/**
  * Delete slot ``idx'' within the free list.
  */
 static void
@@ -1558,9 +1631,12 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 {
 	g_assert(size_is_positive(fl->count));
 	g_assert(size_is_non_negative(idx) && idx < fl->count);
+	g_assert(fl->count >= fl->sorted);
 	g_assert(mutex_is_owned(&fl->lock));
 
 	fl->count--;
+	if (idx < fl->sorted)
+		fl->sorted--;
 	xstats.freelist_blocks--;
 	xstats.freelist_memory -= fl->blocksize;
 
@@ -1584,6 +1660,7 @@ static void
 xfl_insert(struct xfreelist *fl, void *p, bool burst)
 {
 	size_t idx;
+	bool sorted = TRUE;
 
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
@@ -1616,32 +1693,21 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	 */
 
 	if G_UNLIKELY(burst) {
-		if (!fl->unsorted) {
-			/*
-			 * List is still sorted, see if trivial appending keeps it sorted.
-			 */
-
-			g_assert(fl->pointers != NULL);
-
+		if (fl->count == fl->sorted) {
 			idx = fl->count;		/* Append at the tail */
 
-			if (0 == idx || +1 == ptr_cmp(p, fl->pointers[idx - 1])) {
+			/* List still sorted, see if trivial appending keeps it sorted */
+
+			if (0 == idx || +1 == xm_ptr_cmp(p, fl->pointers[idx - 1])) {
 				xstats.freelist_plain_insertions++;
 				goto plain_insert;
 			}
 		}
 
-		/*
-		 * We'll append, and this will unsort the list.
-		 */
-
-		fl->unsorted = TRUE;
+		sorted = FALSE;		/* Appending will unsort the list */
 	}
 
-	if G_UNLIKELY(fl->unsorted) {
-		idx = fl->count;		/* Append at the tail */
-		xstats.freelist_unsorted_insertions++;
-	} else {
+	if G_LIKELY(sorted) {
 		/*
 		 * Compute insertion index in the sorted array.
 		 *
@@ -1655,6 +1721,9 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 				"block %p already in free list #%zu (%zu bytes)",
 				p, xfl_index(fl), fl->blocksize);
 		}
+	} else {
+		idx = fl->count;		/* Append at the tail */
+		xstats.freelist_unsorted_insertions++;
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= fl->count);
@@ -1673,6 +1742,8 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 plain_insert:
 
 	fl->count++;
+	if (sorted)
+		fl->sorted++;
 	fl->pointers[idx] = p;
 	xstats.freelist_blocks++;
 	xstats.freelist_memory += fl->blocksize;
@@ -1710,7 +1781,8 @@ plain_insert:
 
 	if (xmalloc_debugging(2)) {
 		t_debug("XM inserted block %p in %sfree list #%zu (%zu bytes)",
-			p, fl->unsorted ? "unsorted " : "", xfl_index(fl), fl->blocksize);
+			p, fl->sorted != fl->count ? "unsorted " : "",
+			xfl_index(fl), fl->blocksize);
 	}
 
 	mutex_release(&fl->lock);	/* Issues final memory barrier */
@@ -1749,6 +1821,83 @@ xmalloc_freelist_setup(void)
 
 initialized:
 	spinunlock(&freelist_slk);
+
+	/*
+	 * If the address space is not growing in the same direction as the
+	 * initial default, we have to resort all the buckets.
+	 */
+
+	if (xmalloc_grows_up)
+		return;
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+
+		mutex_get(&fl->lock);
+
+		if (0 != fl->count) {
+			xsort(fl->pointers, fl->count, sizeof fl->pointers[0], xfl_ptr_cmp);
+			fl->sorted = fl->count;
+		}
+
+		mutex_release(&fl->lock);
+	}
+}
+
+/**
+ * Select block to allocate from freelist.
+ */
+static void *
+xfl_select(struct xfreelist *fl)
+{
+	void *p;
+
+	g_assert(mutex_is_owned(&fl->lock));
+
+	/*
+	 * Depending on the way the virtual memory grows, we pick the largest
+	 * or the smallest address to try to aggregate all the objects at
+	 * the "base" of the memory space.
+	 *
+	 * Until the VMM layer is up, xmalloc_grows_up will be TRUE.  This is
+	 * consistent with the fact that the heap always grows upwards on
+	 * UNIX machines.
+	 *
+	 * The xm_ptr_cmp() routine makes sure the addresses we want to serve
+	 * first are at the end of the array.
+	 *
+	 * When the array is unsorted, we can pick an address released recently
+	 * and which was not sorted. It's not a problem as far as allocation goes,
+	 * but we're always better off in the long term to allocate addresses
+	 * at the beginning of the VM space, so we're checking to see whether
+	 * we could be better off by selecting another address.
+	 */
+
+	p = fl->pointers[fl->count - 1];
+
+	if G_UNLIKELY(fl->count != fl->sorted) {
+		void **ary = fl->pointers;
+		size_t i = fl->count - 1, j = (fl->sorted != 0) ? fl->sorted - 1 : 0;
+		void *q = ary[j];
+
+		/*
+		 * If the last sorted address makes up a better choice, select
+		 * it instead, swapping the items and updating the sorted index
+		 * if needed.
+		 */
+
+		if (xm_ptr_cmp(p, q) < 0) {
+			ary[j] = p;
+			ary[i] = q;
+
+			if (j != 0 && xm_ptr_cmp(ary[j - 1], p) > 0)
+				fl->sorted = j;
+
+			p = q;		/* Will use this pointer instead */
+		}
+	}
+
+	return p;
 }
 
 /**
@@ -1792,21 +1941,8 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 			continue;
 		}
 
-		if G_UNLIKELY(fl->unsorted)
-			xfl_sort(fl);
-
-		/*
-		 * Depending on the way the virtual memory grows, we pick the largest
-		 * or the smallest address to try to aggregate all the objects at
-		 * the "base" of the memory space.
-		 *
-		 * Until the VMM layer is up, xmalloc_grows_up will be TRUE.  This is
-		 * consistent with the fact that the heap always grows upwards on
-		 * UNIX machines.
-		 */
-
-		p = xmalloc_grows_up ? fl->pointers[0] : fl->pointers[fl->count - 1];
 		*flp = fl;
+		p = xfl_select(fl);
 
 		if (xmalloc_debugging(8)) {
 			t_debug("XM selected block %p in bucket %p "
@@ -2515,20 +2651,7 @@ xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
 		return NULL;
 	}
 
-	if G_UNLIKELY(fl->unsorted)
-		xfl_sort(fl);
-
-	/*
-	 * Depending on the way the virtual memory grows, we pick the largest
-	 * or the smallest address to try to aggregate all the objects at
-	 * the "base" of the memory space.
-	 *
-	 * Until the VMM layer is up, xmalloc_grows_up will be TRUE.  This is
-	 * consistent with the fact that the heap always grows upwards on
-	 * UNIX machines.
-	 */
-
-	p = xmalloc_grows_up ? fl->pointers[0] : fl->pointers[fl->count - 1];
+	p = xfl_select(fl);
 
 	if (xmalloc_debugging(8)) {
 		t_debug("XM selected block %p in requested bucket %p "
@@ -3248,10 +3371,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			xstats.realloc_relocate_smart_attempts++;
 
 			if (q != NULL) {
-				if (
-					newlen == fl->blocksize &&
-					(xmalloc_grows_up ? +1 : -1) * ptr_cmp(q, xh) < 0
-				) {
+				if (newlen == fl->blocksize && xm_ptr_cmp(xh, q) < 0) {
 					xfl_remove_selected(fl);
 					np = xmalloc_block_setup(q, newlen);
 					xstats.realloc_relocate_smart_success++;
@@ -4170,6 +4290,8 @@ xgc(void)
 
 			xstats.xgc_blocks_collected++;
 			fl->count--;
+			if (j <= fl->sorted)		/* ``j'' is ``index + 1'' */
+				fl->sorted--;
 			xstats.freelist_blocks--;
 			xstats.freelist_memory -= blksize;
 		}
@@ -4364,8 +4486,10 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_binary_lookups);
 	DUMP(freelist_short_yes_lookups);
 	DUMP(freelist_short_no_lookups);
-	DUMP(freelist_sorting);
 	DUMP(freelist_inlined_sorting);
+	DUMP(freelist_partial_sorting);
+	DUMP(freelist_full_sorting);
+	DUMP(freelist_avoided_sorting);
 	DUMP(freelist_split);
 	DUMP(freelist_nosplit);
 	DUMP(freelist_blocks);
@@ -4410,11 +4534,17 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		if (0 != fl->count)
 			largest = fl->blocksize;
 
-		log_info(la, "XM %sfreelist #%zu (%zu bytes): capacity=%zu, count=%zu, "
-			"lock=%zu",
-			fl->unsorted ? "unsorted " : "",
-			i, fl->blocksize, fl->capacity, fl->count,
-			mutex_held_depth(&fl->lock));
+		if (fl->sorted == fl->count) {
+			log_info(la, "XM freelist #%zu (%zu bytes): cap=%zu, "
+				"cnt=%zu, lck=%zu",
+				i, fl->blocksize, fl->capacity, fl->count,
+				mutex_held_depth(&fl->lock));
+		} else {
+			log_info(la, "XM freelist #%zu (%zu bytes): cap=%zu, "
+				"sort=%zu/%zu, lck=%zu",
+				i, fl->blocksize, fl->capacity, fl->sorted, fl->count,
+				mutex_held_depth(&fl->lock));
+		}
 	}
 
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
@@ -5547,7 +5677,7 @@ xmalloc_crash_hook(void)
 			const void *p = fl->pointers[j];
 			size_t len;
 
-			if (!fl->unsorted && ptr_cmp(p, prev) <= 0) {
+			if (j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
 				s_warning("XM item #%zu p=%p in freelist #%zu <= prev %p",
 					j, p, i, prev);
 				bad = TRUE;
@@ -5576,9 +5706,7 @@ xmalloc_crash_hook(void)
 			bad = TRUE;
 		}
 
-		s_debug("XM %sfreelist #%zu %s",
-			fl->unsorted ? "unsorted " : "", i, bad ? "** CORRUPTED **" : "OK");
-		continue;
+		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
 	}
 }
 
