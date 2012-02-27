@@ -326,7 +326,6 @@ static struct {
 	uint64 freelist_binary_lookups;		/**< Binary lookups in sorted list */
 	uint64 freelist_short_yes_lookups;	/**< Quick find in sorted list */
 	uint64 freelist_short_no_lookups;	/**< Quick miss in sorted list */
-	uint64 freelist_inlined_sorting;	/**< Uses of inlined sorting code */
 	uint64 freelist_partial_sorting;	/**< Freelist tail sorting */
 	uint64 freelist_full_sorting;		/**< Freelist sorting of whole bucket */
 	uint64 freelist_avoided_sorting;	/**< Avoided full sorting of bucket */
@@ -1451,17 +1450,8 @@ xfl_sort(struct xfreelist *fl)
 	 */
 
 	if G_LIKELY(unsorted > 1) {
-		if G_UNLIKELY(2 == unsorted) {
-			xstats.freelist_inlined_sorting++;
-			if (+1 == xm_ptr_cmp(ary[x], ary[x+1])) {
-				void *tmp = ary[x+1];
-				ary[x+1] = ary[x]; 		/* Swap items */
-				ary[x] = tmp;
-			}
-		} else {
-			xstats.freelist_partial_sorting++;
-			xsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
-		}
+		xstats.freelist_partial_sorting++;
+		xsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
 	}
 
 	/*
@@ -4486,7 +4476,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_binary_lookups);
 	DUMP(freelist_short_yes_lookups);
 	DUMP(freelist_short_no_lookups);
-	DUMP(freelist_inlined_sorting);
 	DUMP(freelist_partial_sorting);
 	DUMP(freelist_full_sorting);
 	DUMP(freelist_avoided_sorting);
