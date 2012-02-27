@@ -567,6 +567,8 @@ hash_table_clear(hash_table_t *ht)
 
 	ht->num_held = 0;
 	ht->bin_fill = 0;
+	ht->last_item = NULL;	/* Clear lookup cache */
+
 
 	ht_return_void(ht);
 }
@@ -770,6 +772,9 @@ hash_table_remove(hash_table_t *ht, const void *key)
 		hash_item_free(ht, item);
 		ht->num_held--;
 
+		if G_UNLIKELY(item == ht->last_item)
+			ht->last_item = NULL;	/* Clear lookup cache */
+
 		safety_assert(!hash_table_lookup(ht, key));
 
 		hash_table_resize_on_remove(ht);
@@ -905,6 +910,8 @@ hash_table_foreach_remove(hash_table_t *ht,
 				}
 				hash_item_free(ht, item);
 				ht->num_held--;
+				if G_UNLIKELY(item == ht->last_item)
+					ht->last_item = NULL;	/* Clear lookup cache */
 				removed++;
 			} else {
 				prev = item;	/* Item was kept, becoming new previous item */
