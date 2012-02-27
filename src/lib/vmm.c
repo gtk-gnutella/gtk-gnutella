@@ -2598,10 +2598,10 @@ insert:
 static inline int
 vmm_ptr_cmp(const void *a, const void *b)
 {
-	if (a == b)
+	if G_UNLIKELY(a == b)
 		return 0;
 
-	return (kernel_mapaddr_increasing ? +1 : -1) * ptr_cmp(a, b);
+	return kernel_mapaddr_increasing ? ptr_cmp(a, b) : ptr_cmp(b, a);
 }
 
 /**
