@@ -162,6 +162,7 @@ LSRC = \
 	sha1.c \
 	signal.c \
 	slist.c \
+	smsort.c \
 	sorted_array.c \
 	spinlock.c \
 	stacktrace.c \

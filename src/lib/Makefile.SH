@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-119]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-136]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -219,6 +219,7 @@ LSRC = \
 	sha1.c \
 	signal.c \
 	slist.c \
+	smsort.c \
 	sorted_array.c \
 	spinlock.c \
 	stacktrace.c \
@@ -354,6 +355,7 @@ LOBJ = \
 	sha1.o \
 	signal.o \
 	slist.o \
+	smsort.o \
 	sorted_array.o \
 	spinlock.o \
 	stacktrace.o \
