@@ -402,6 +402,7 @@ main(int argc, char **argv)
 	int c;
 	size_t i;
 
+	mingw_early_init();
 	progname = argv[0];
 
 	while ((c = getopt(argc, argv, "ht")) != EOF) {
