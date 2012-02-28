@@ -1840,6 +1840,7 @@ xfl_select(struct xfreelist *fl)
 	void *p;
 
 	g_assert(mutex_is_owned(&fl->lock));
+	g_assert(fl->count != 0);
 
 	/*
 	 * Depending on the way the virtual memory grows, we pick the largest
@@ -1919,6 +1920,9 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 		g_assert(size_is_non_negative(fl->count));
 
 		if G_UNLIKELY(exclude == fl)
+			continue;
+
+		if (0 == fl->count)
 			continue;
 
 		mutex_get(&fl->lock);
@@ -2630,6 +2634,9 @@ static void *
 xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
 {
 	void *p;
+
+	if (0 == fl->count)
+		return NULL;
 
 	mutex_get(&fl->lock);
 
