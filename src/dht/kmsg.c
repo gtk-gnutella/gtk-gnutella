@@ -61,11 +61,12 @@
 #include "lib/aging.h"
 #include "lib/bigint.h"
 #include "lib/bstr.h"
-#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/host_addr.h"
 #include "lib/pmsg.h"
-#include "lib/sectoken.h"
 #include "lib/random.h"
+#include "lib/sectoken.h"
+#include "lib/smsort.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -621,7 +622,7 @@ k_send_find_value_response(
 	 * know how large the values are).
 	 */
 
-	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+	smsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
@@ -1862,7 +1863,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 	 * values as possible in the first messages.
 	 */
 
-	qsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
+	smsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
