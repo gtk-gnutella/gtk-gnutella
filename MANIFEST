@@ -771,6 +771,7 @@ src/lib/slist.c
 src/lib/slist.h
 src/lib/smsort.c
 src/lib/smsort.h
+src/lib/sort-test.c
 src/lib/sorted_array.c
 src/lib/sorted_array.h
 src/lib/spinlock.c
