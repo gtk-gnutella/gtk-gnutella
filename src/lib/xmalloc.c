@@ -226,6 +226,18 @@ struct xheader {
 #define XM_FREELIST_THRESH	1000		/**< Insertions per second */
 
 /**
+ * Amount of unsorted items we can keep at the tail of a freelist bucket.
+ * We try to have all the pointers fit the same CPU L1/L2 cache line.
+ * Unfortunately we have to guess its value here, but it's OK to be wrong.
+ *
+ * We don't know if the start of the unsorted zone will be aligned on a
+ * cache line boundary anyway, but it helps keeping a reasonable amount of
+ * unsorted items whilst not decreasing performance too much.
+ */
+#define XM_CPU_CACHELINE	64			/**< Bytes in cache line */
+#define XM_BUCKET_UNSORTED	(XM_CPU_CACHELINE / PTRSIZE)
+
+/**
  * Free list data structure.
  *
  * This is an array of structures pointing to allocated sorted arrays
@@ -1579,12 +1591,14 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		}
 
 		/*
-		 * Use a linear lookup when there are at most 8 unsorted items at
-		 * the tail: this will be at most 64 bytes on a 64-bit machine,
-		 * fitting a cache line.
+		 * Use a linear lookup when there are at most XM_BUCKET_UNSORTED
+		 * unsorted items at the tail: this is expected to be held within
+		 * a single CPU cacheline (provided its beginning is aligned).
+		 * At worst it will cause 2 cache line loadings, but this should
+		 * remain efficient.
 		 */
 
-		if G_LIKELY(unsorted <= 8) {
+		if G_LIKELY(unsorted <= XM_BUCKET_UNSORTED) {
 			size_t total = fl->count;
 			void **pointers = &fl->pointers[fl->sorted];
 
