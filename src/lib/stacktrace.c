@@ -1838,16 +1838,14 @@ stack_eq(const void *a, const void *b)
 static size_t
 stacktrace_chop_length(const struct stacktrace *st)
 {
-	size_t len;
+	size_t i;
 
-	len = st->len;
-	while (len > 0) {
-		if (stack_is_our_text(st->stack[len - 1]))
+	for (i = 0; i < st->len; i++) {
+		if (!stack_is_our_text(st->stack[i]))
 			break;
-		len--;
 	}
 
-	return len;
+	return i;
 }
 
 /**
