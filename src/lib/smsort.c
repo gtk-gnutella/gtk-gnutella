@@ -190,13 +190,23 @@ swap_items(array const *ary, size_t a, size_t b)
 		om[b] = om[a];
 		om[a] = tmp;
 	} else {
-		void *tmp = alloca(ary->s);
-		size_t i = a * ary->s;
-		size_t j = b * ary->s;
+		register size_t s = ary->s;
+		register char *x = cast_to_char_ptr(&ary->m[a * s]);
+		register char *y = cast_to_char_ptr(&ary->m[b * s]);
 
-		memcpy(tmp, &ary->m[j], ary->s);
-		memcpy(&ary->m[j], &ary->m[i], ary->s);
-		memcpy(&ary->m[i], tmp, ary->s);
+		/*
+		 * Byte-wise swap the two items.
+		 *
+		 * This ends-up generating way faster code than 3 successive
+		 * memcpy() calls, by a factor 2 at least.
+		 *		--RAM, 2012-02-28
+		 */
+
+		do {
+			char t = *x;
+			*x++ = *y;
+			*y++ = t;
+		} while (--s > 0);
 	}
 }
 
