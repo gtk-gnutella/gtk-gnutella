@@ -44,7 +44,7 @@
 #define ALIGN_MASK 	(MEM_ALIGNBYTES - 1)
 #define align_round(x)	(((x) + ALIGN_MASK) & ~ALIGN_MASK)
 
-extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
+extern void smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp);
 
 char *progname;
 size_t item_size;
@@ -304,7 +304,8 @@ smsort_test(void *array, void *copy, size_t cnt, size_t isize)
 
 	for (i = 0; i < TEST_LOOP; i++) {
 		memcpy(copy, array, len);
-		smsort(copy, cnt, isize, cmp);
+		/* Use smsort_hidden() to avoid critical warnings */
+		smsort_hidden(copy, cnt, isize, cmp);
 	}
 }
 

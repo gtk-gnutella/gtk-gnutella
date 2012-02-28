@@ -72,6 +72,7 @@
 
 #include "common.h"
 
+#include "log.h"				/* For s_carp_once() */
 #include "smsort.h"
 #include "unsigned.h"
 
@@ -365,6 +366,25 @@ smoothsort(array const *ary, size_t first, size_t N)
 	}
 }
 
+/*
+ * Undeclared, known only by tests, to avoid the s_carp_once() message.
+ */
+void
+smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp)
+{
+	array const ary[1] = {
+		{ base, S, cmp, NULL, NULL,
+			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
+	};
+
+	g_assert(base != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(N));
+	g_assert(size_is_positive(S));
+
+	smoothsort(ary, 0, N);
+}
+
 /**
  * Sort array using smoothsort, via a qsort()-like interface.
  *
@@ -382,17 +402,26 @@ smoothsort(array const *ary, size_t first, size_t N)
 void
 smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
 {
-	array const ary[1] = {
-		{ base, S, cmp, NULL, NULL,
-			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
-	};
+	/*
+	 * This algorithm uses indices to items, not offsets, and as such it is
+	 * very inefficient compared to qsort() when the size of the items is
+	 * not that of a native pointer / long or when the base is not aligned.
+	 *
+	 * If smoothsort is wanted nonetheless because the array is known to be
+	 * mostly sorted already, then smsort_ext() should be used instead.
+	 *
+	 * Loudly warn if misused inadvertently.
+	 */
 
-	g_assert(base != NULL);
-	g_assert(cmp != NULL);
-	g_assert(size_is_non_negative(N));
-	g_assert(size_is_positive(S));
+	if G_UNLIKELY(OPSIZ != S) {
+		s_carp_once("%s() given sub-optimal item size: %zu bytes (expects %u)",
+			G_STRFUNC, S, OPSIZ);
+	} else if G_UNLIKELY(0 != pointer_to_ulong(base) % OPSIZ) {
+		s_carp_once("%s() given unaligned base %p (expects %u-byte alignments)",
+			G_STRFUNC, base, OPSIZ);
+	}
 
-	smoothsort(ary, 0, N);
+	smsort_hidden(base, N, S, cmp);
 }
 
 /**
