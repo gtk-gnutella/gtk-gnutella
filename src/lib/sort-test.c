@@ -41,9 +41,6 @@
 
 #define TEST_LOOP	100
 
-#define ALIGN_MASK 	(MEM_ALIGNBYTES - 1)
-#define align_round(x)	(((x) + ALIGN_MASK) & ~ALIGN_MASK)
-
 extern void smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp);
 
 char *progname;
@@ -430,8 +427,6 @@ main(int argc, char **argv)
 			char buf[80];
 			size_t isize = sizeof(void *) + INTSIZE * j;
 			void *array;
-
-			g_assert(isize == align_round(isize));
 
 			str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
