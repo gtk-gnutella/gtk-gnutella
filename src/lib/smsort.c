@@ -40,6 +40,30 @@
  * the other services available in the library, such as assertions, and to
  * make the interface more "qsort-like".
  *
+ * This qsort()-like implementation is only optimized for aligned arrays of
+ * pointers or longs, because the offset computations done in swap_items() and
+ * cmp_items() are performance killers.
+ *
+ * To be able to efficiently sort other arrays, the original interface
+ * available as smsort_ext() must be preferred, but it requires two callback
+ * routines:
+ *
+ *		bool less(void *m, size_t i, size_t j);
+ *		void swap(void *m, size_t i, size_t j);
+ *
+ * The less() routine returns TRUE is m[i] < m[j].
+ * The swap() routine swaps items m[i] and m[j].
+ *
+ * Timing benchmarks show that smsort() is more than twice as efficient as
+ * xsort() on randomly shuffled arrays of pointers and, of course, is always
+ * more efficient when the array of pointers is initially sorted.
+ *
+ * For item sizes different than a pointer or for non-aligned arrrays, use of
+ * smsort() should be avoided.  However, if smsort_ext() can become four times
+ * less efficient than xsort() for 16-byte items on a randomly shuffled array,
+ * both smsort() and smsort_ext() still beat xsort() hands down when the array
+ * is sorted.
+ *
  * @author Pekka Pessi <Pekka.Pessi@nokia.com>
  * @date 2005
  * @author Raphael Manfredi
@@ -98,13 +122,14 @@ typedef struct {
 } stretch;
 
 /** Description of sorted array */
-typedef struct sorted_array
-{
+typedef struct {
 	char *m;
 	size_t s;
 	smsort_cmp_t cmp;
+	smsort_less_t less;
+	smsort_swap_t swap;
 	uint8 aligned;
-} sorted_array;
+} array;
 
 static inline size_t
 stretch_up(stretch s[1])
@@ -149,12 +174,14 @@ binary(uint64 p)
  * Swap two items from array.
  */
 static G_GNUC_HOT void
-swap_items(sorted_array const *ary, size_t a, size_t b)
+swap_items(array const *ary, size_t a, size_t b)
 {
 	if G_UNLIKELY(a == b)
 		return;
 
-	if (ary->aligned) {
+	if (ary->swap != NULL) {
+		ary->swap(ary->m, a, b);
+	} else if (ary->aligned) {
 		op_t tmp;
 		op_t *om = (op_t *) ary->m;
 
@@ -176,12 +203,14 @@ swap_items(sorted_array const *ary, size_t a, size_t b)
  * Compare two items in the array.
  */
 static G_GNUC_HOT int
-cmp_items(sorted_array const *ary, size_t a, size_t b)
+cmp_items(array const *ary, size_t a, size_t b)
 {
 	if G_UNLIKELY(a == b)
 		return 0;
 
-	if (ary->aligned) {
+	if (ary->less != NULL) {
+		return ary->less(ary->m, a, b) ? -1 : 0;
+	} else if (ary->aligned) {
 		op_t *om = (op_t *) ary->m;
 
 		return ary->cmp(&om[a], &om[b]);
@@ -203,7 +232,7 @@ cmp_items(sorted_array const *ary, size_t a, size_t b)
  * @param s			description of current stretch
  */
 static G_GNUC_HOT void
-sift(sorted_array const *ary, size_t r, stretch s)
+sift(array const *ary, size_t r, stretch s)
 {
 	while (s.b >= 3) {
 		size_t r2 = r - s.b + s.c;
@@ -227,7 +256,7 @@ sift(sorted_array const *ary, size_t r, stretch s)
  * @param s			description of stretches to concatenate
  */
 static G_GNUC_HOT void
-trinkle(sorted_array const *ary, size_t r, stretch s)
+trinkle(array const *ary, size_t r, stretch s)
 {
 	DEBUG(("trinkle(%p, %zu, (%u, %s))\n", ary, r, s.b, binary(s.p)));
 	while (s.p != 0) {
@@ -271,7 +300,7 @@ trinkle(sorted_array const *ary, size_t r, stretch s)
  * @param stretch	description of stretches to trinkle
  */
 static G_GNUC_HOT void
-semitrinkle(sorted_array const *ary, size_t r, stretch s)
+semitrinkle(array const *ary, size_t r, stretch s)
 {
 	size_t r1 = r - s.c;
 
@@ -287,36 +316,21 @@ semitrinkle(sorted_array const *ary, size_t r, stretch s)
 /**
  * Sort array using smoothsort.
  *
- * Sort @a N elements from array @a base whose items are @a S byte long
- * with smoothsort.
- *
- * The interface was made identical to that of qsort() by Raphael Manfredi,
- * for easier drop-in replacement.
- *
- * @param base		starting point of array to sort
- * @param N			number of elements to sort
- * @param S			size of each item in array
- * @param cmp		sort comparison returning -1, 0, +1 for m[a] <=> m[b]
+ * @param ary		the array being sorted
+ * @param first		first index to sort
+ * @param N			amount ot items to sort
  */
-void
-smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
+static void
+smoothsort(array const *ary, size_t first, size_t N)
 {
 	stretch s = { 1, 1, 1 };
-	size_t r = 0;				/* First index to sort */
+	size_t r = first;
 	size_t q;
-	sorted_array const ary[1] = {
-		{ base, S, cmp, OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
-	};
-
-	g_assert(base != NULL);
-	g_assert(cmp != NULL);
-	g_assert(size_is_non_negative(N));
-	g_assert(size_is_positive(S));
 
 	if G_UNLIKELY(N <= 1)
 		return;
 
-	DEBUG(("\nsmoothsort(%p, %zu)\n", ary, nmemb));
+	DEBUG(("\nsmoothsort(%p, %zu)\n", ary, N));
 
 	for (q = 1; q != N; q++, r++, s.p++) {
 		DEBUG(("loop0 q=%zu, b=%u, p=%s \n", q, s.b, binary(s.p)));
@@ -349,6 +363,68 @@ smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
 			stretch_down(&s, 1);
 		}
 	}
+}
+
+/**
+ * Sort array using smoothsort, via a qsort()-like interface.
+ *
+ * Sort @a N elements from array @a base whose items are @a S byte long
+ * with smoothsort.
+ *
+ * The interface was made identical to that of qsort() by Raphael Manfredi,
+ * for easier drop-in replacement.
+ *
+ * @param base		starting point of array to sort
+ * @param N			number of elements to sort
+ * @param S			size of each item in array
+ * @param cmp		sort comparison returning -1, 0, +1 for m[a] <=> m[b]
+ */
+void
+smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
+{
+	array const ary[1] = {
+		{ base, S, cmp, NULL, NULL,
+			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
+	};
+
+	g_assert(base != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(N));
+	g_assert(size_is_positive(S));
+
+	smoothsort(ary, 0, N);
+}
+
+/**
+ * Sort array using smoothsort, via an extended interface.
+ *
+ * Sort @a N elements from array @a base starting with index @a r
+ * with smoothsort.
+ *
+ * The interface was made identical to that of qsort() by Raphael Manfredi,
+ * for easier drop-in replacement.
+ *
+ * @param base		starting point of array to sort
+ * @param r			lowest index to sort
+ * @param N			number of elements to sort
+ * @param less		comparison function returning TRUE if m[a] < m[b]
+ * @param swap		swapper function exchanging elements m[a] and m[b]
+ */
+void
+smsort_ext(void *base, size_t r, size_t N,
+	smsort_less_t less, smsort_swap_t swap)
+{
+	array const ary[1] = {
+		{ base, 0, NULL, less, swap, FALSE }
+	};
+
+	g_assert(base != NULL);
+	g_assert(size_is_non_negative(r));
+	g_assert(size_is_non_negative(N));
+	g_assert(less != NULL);
+	g_assert(swap != NULL);
+
+	smoothsort(ary, r, N);
 }
 
 /* vi: set ts=4 sw=4 cindent:  */
