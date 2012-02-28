@@ -3745,7 +3745,12 @@ vmm_trap_page(void)
 	static const void *trap_page;
 
 	if (NULL == trap_page) {
-		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
+		void *p;
+
+		if G_UNLIKELY(0 == kernel_pagesize)
+			vmm_init(&p);
+
+		p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
