@@ -41,6 +41,7 @@ typedef int (*xsort_cmp_t)(const void *, const void *);
  */
 
 void xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp);
+void xqsort(void *b, size_t n, size_t s, xsort_cmp_t cmp);
 
 #endif /* _xsort_h_ */
 

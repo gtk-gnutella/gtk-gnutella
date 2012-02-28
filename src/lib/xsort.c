@@ -357,6 +357,10 @@ msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
  * Sort array with ``n'' elements of size ``s''.  The base ``b'' points to
  * the start of the array.
  *
+ * This routine allocates memory on the stack or through the VMM layer and
+ * prefers to use mergesort, reserving quicksort to cases where there would
+ * be too much memory required for the mergesort.
+ *
  * The contents are sorted in ascending order, as defined by the comparison
  * function ``cmp''.
  */
@@ -403,6 +407,19 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
 			vmm_free(tmp, size);
 		}
 	}
+}
+
+/**
+ * Sort array in-place (no memory allocated) with ``n'' elements of size ``s''.
+ * The base ``b'' points to the start of the array.
+ *
+ * The contents are sorted in ascending order, as defined by the comparison
+ * function ``cmp''.
+ */
+void
+xqsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
+{
+	quicksort(b, n, s, cmp);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
