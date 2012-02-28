@@ -1569,12 +1569,14 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 	if G_UNLIKELY(unsorted != 0) {
 		size_t i;
 
-		/* Binary search the leading sorted part */
+		/* Binary search the leading sorted part, if any */
 
-		i = xfl_binary_lookup(fl->pointers, p, 0, fl->sorted - 1, low_ptr);
+		if G_LIKELY(fl->sorted != 0) {
+			i = xfl_binary_lookup(fl->pointers, p, 0, fl->sorted - 1, low_ptr);
 
-		if ((size_t) -1 != i)
-			return i;
+			if ((size_t) -1 != i)
+				return i;
+		}
 
 		/*
 		 * Use a linear lookup when there are at most 8 unsorted items at
