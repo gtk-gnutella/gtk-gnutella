@@ -202,6 +202,7 @@ guess_check(const guess_t * const gq)
 #define GQ_F_SENDING		(1U << 3)	/**< Sending a message */
 #define GQ_F_END_STARVING	(1U << 4)	/**< End when starving */
 #define GQ_F_POOL_LOAD		(1U << 5)	/**< Pending pool loading */
+#define GQ_F_TERMINATED		(1U << 6)	/**< Asynchronous termination */
 
 /**
  * RPC replies.
@@ -688,6 +689,11 @@ guess_should_terminate(guess_t *gq, bool verbose)
 
 	if (!guess_query_enabled()) {
 		reason = "GUESS disabled";
+		goto terminate;
+	}
+
+	if (gq->flags & GQ_F_TERMINATED) {
+		reason = "terminated";
 		goto terminate;
 	}
 
@@ -2410,7 +2416,14 @@ guess_delay(guess_t *gq)
 
 	if (gq->delay_ev != NULL) {
 		g_assert(gq->flags & GQ_F_DELAYED);
-		cq_resched(gq->delay_ev, GUESS_FIND_DELAY);
+
+		/*
+		 * Query can be delayed for termination, in which case there's no
+		 * need to push ahead the callback.
+		 */
+
+		if (0 == (gq->flags & GQ_F_TERMINATED))
+			cq_resched(gq->delay_ev, GUESS_FIND_DELAY);
 	} else {
 		gq->flags |= GQ_F_DELAYED;
 		gq->delay_ev =
@@ -2431,6 +2444,39 @@ guess_async_iterate(guess_t *gq)
 
 	gq->flags |= GQ_F_DELAYED;
 	gq->delay_ev = cq_main_insert(1, guess_delay_expired, gq);
+}
+
+/**
+ * Cancel delay expiration -- callout queue callabck.
+ */
+static void
+guess_cancel_expired(cqueue_t *unused_cq, void *obj)
+{
+	guess_t *gq = obj;
+
+	(void) unused_cq;
+
+	guess_check(gq);
+	g_assert(gq->flags & GQ_F_TERMINATED);
+
+	gq->delay_ev = NULL;
+	gq->flags &= ~GQ_F_DELAYED;
+	guess_cancel(&gq, TRUE);
+}
+
+/**
+ * Asynchronously request GUESS query cancellation
+ */
+static void
+guess_async_cancel(guess_t *gq)
+{
+	guess_check(gq);
+
+	g_assert(NULL == gq->delay_ev);
+	g_assert(!(gq->flags & GQ_F_DELAYED));
+
+	gq->flags |= GQ_F_DELAYED | GQ_F_TERMINATED;
+	gq->delay_ev = cq_main_insert(1, guess_cancel_expired, gq);
 }
 
 /*
@@ -3516,7 +3562,25 @@ guess_iterate(guess_t *gq)
 						g_debug("GUESS QUERY[%s] starving, ending as requested",
 							nid_to_string(&gq->gid));
 					}
-					guess_cancel(&gq, TRUE);
+
+					/*
+					 * Request asynchronous cancellation because we may have
+					 * been called from within an RPC callaback, and they
+					 * do not expect the object to be reclaimed in the middle
+					 * of the processing.
+					 *
+					 * The calling chain we're trying to protect here is:
+					 * guess_pmsg_free() calls guess_rpc_cancel()
+					 * which may iterate and end up here.
+					 *
+					 * Although guess_pmsg_free() could be ammended to make it
+					 * immune to this problem, it seems cleaner to introduce
+					 * asynchronous cancellation: less code contorsions,
+					 * cleaner post-mortem traces of what happened, if needed.
+					 *		--RAM, 2012-02-28
+					 */
+
+					guess_async_cancel(gq);
 				}
 			} else {
 				if (GNET_PROPERTY(guess_client_debug) > 1) {
