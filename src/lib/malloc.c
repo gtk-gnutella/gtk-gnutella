@@ -52,7 +52,6 @@
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
-#include "smsort.h"
 #include "stacktrace.h"
 #include "stringify.h"	/* For uint64_to_string() and short_time() */
 #include "tm.h"			/* For tm_time() */
@@ -2969,7 +2968,7 @@ alloc_dump(FILE *f, bool total)
 	 */
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	smsort(filler.stats, count, sizeof(struct stats *),
+	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_allocated_cmp : stats_allocated_cmp);
 
 	/*
@@ -2988,7 +2987,7 @@ alloc_dump(FILE *f, bool total)
 	filler.idx = 0;
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	smsort(filler.stats, count, sizeof(struct stats *),
+	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
 	fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -3005,7 +3004,7 @@ alloc_dump(FILE *f, bool total)
 		filler.idx = 0;
 
 		hash_table_foreach(stats, stats_fill_array, &filler);
-		smsort(filler.stats, count, sizeof(struct stats *),
+		qsort(filler.stats, count, sizeof(struct stats *),
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",

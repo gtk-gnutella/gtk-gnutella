@@ -67,6 +67,7 @@
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
+#include "xsort.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -1452,14 +1453,12 @@ xfl_sort(struct xfreelist *fl)
 	/*
 	 * Start by sorting the trailing unsorted items.
 	 *
-	 * We're using smoothsort, which performs betwen O(N) and O(N.log N),
-	 * depending on whether the input is almost sorted or not, with the
-	 * complexity gradually evolving between these boundaries.
+	 * Use xqsort() to ensure that no memory will be allocated.
 	 */
 
 	if G_LIKELY(unsorted > 1) {
 		xstats.freelist_partial_sorting++;
-		smsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
+		xqsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
 	}
 
 	/*
@@ -1467,7 +1466,16 @@ xfl_sort(struct xfreelist *fl)
 	 * then the whole array is now sorted.
 	 */
 
-	if (0 == x || +1 == xm_ptr_cmp(ary[x - 1], ary[x])) {
+	if (x != 0 && +1 == xm_ptr_cmp(ary[x - 1], ary[x])) {
+		/*
+		 * We're using smoothsort, which performs betwen O(N) and O(N.log N),
+		 * depending on whether the input is almost sorted or not, with the
+		 * complexity gradually evolving between these boundaries.
+		 *
+		 * Here we're merging two sorted sub-parts of the array, so it should
+		 * be faster to use smsort().
+		 */
+
 		xstats.freelist_full_sorting++;
 		smsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
 	} else {
@@ -1837,9 +1845,11 @@ initialized:
 
 		mutex_get(&fl->lock);
 
+		/* Sort with xqsort() to guarantee no memory allocation */
+
 		if (0 != fl->count) {
-			smsort(fl->pointers, fl->count,
-				sizeof fl->pointers[0], xfl_ptr_cmp);
+			void **ary = fl->pointers;
+			xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
 			fl->sorted = fl->count;
 		}
 

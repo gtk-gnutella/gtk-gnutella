@@ -45,7 +45,6 @@
 #include "lib/halloc.h"
 #include "lib/htable.h"
 #include "lib/pmsg.h"
-#include "lib/smsort.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/walloc.h"
 
@@ -805,13 +804,10 @@ qlink_create(mqueue_t *q)
 	/*
 	 * We use `n' and not `q->count' in case the warning above is emitted,
 	 * in which case we have garbage after the `n' first items.
-	 *
-	 * We use smsort() as it is faster than qsort() for pointers, and even
-	 * more so when the array is already partially sorted.
 	 */
 
 	q->qlink_count = n;
-	smsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
+	qsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
 
 	mq_check(q, 0);
 }
