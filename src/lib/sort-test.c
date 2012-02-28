@@ -40,8 +40,8 @@
 #include "lib/xsort.h"
 
 #define TEST_LOOP	100
-
-extern void smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp);
+#define TEST_BITS	16
+#define TEST_WORDS	4
 
 char *progname;
 size_t item_size;
@@ -62,9 +62,10 @@ typedef int (*cmp_routine)(const void *a, const void *b);
 static int
 long_cmp(const void *a, const void *b)
 {
-	const long *la = a, *lb = b;
+	const ulong *la = a, *lb = b;
+	const ulong va = *la, vb = *lb;
 
-	return CMP(la, lb);
+	return CMP(va, vb);
 }
 
 static int
@@ -115,10 +116,8 @@ plain_less(void *m, size_t i, size_t j)
 	struct plain *x = m;
 	struct plain *a = &x[i];
 	struct plain *b = &x[j];
-	int c;
 
-	c = memcmp(&a->val, &b->val, sizeof a->val);
-	return c < 0;
+	return long_cmp(&a->val, &b->val) < 0;
 }
 
 static bool
@@ -301,8 +300,7 @@ smsort_test(void *array, void *copy, size_t cnt, size_t isize)
 
 	for (i = 0; i < TEST_LOOP; i++) {
 		memcpy(copy, array, len);
-		/* Use smsort_hidden() to avoid critical warnings */
-		smsort_hidden(copy, cnt, isize, cmp);
+		smsort(copy, cnt, isize, cmp);
 	}
 }
 
@@ -420,11 +418,11 @@ main(int argc, char **argv)
 	if ((argc -= optind) != 0)
 		usage();
 
-	for (i = 1; i <= 16; i++) {
+	for (i = 1; i <= TEST_BITS; i++) {
 		size_t cnt = 1U << i;
 		size_t j;
 
-		for (j = 0; j < 4; j++) {
+		for (j = 0; j < TEST_WORDS; j++) {
 			char buf[80];
 			size_t isize = sizeof(void *) + INTSIZE * j;
 			void *array;

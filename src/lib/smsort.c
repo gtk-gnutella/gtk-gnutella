@@ -45,7 +45,7 @@
  * cmp_items() are performance killers.
  *
  * To be able to efficiently sort other arrays, the original interface
- * available as smsort_ext() must be preferred, but it requires two callback
+ * available as smsort_ext() may be preferred, but it requires two callback
  * routines:
  *
  *		bool less(void *m, size_t i, size_t j);
@@ -54,15 +54,12 @@
  * The less() routine returns TRUE is m[i] < m[j].
  * The swap() routine swaps items m[i] and m[j].
  *
- * Timing benchmarks show that smsort() is more than twice as efficient as
- * xsort() on randomly shuffled arrays of pointers and, of course, is always
+ * Timing benchmarks show that smsort() is about twice slower as xsort()
+ * on randomly shuffled arrays of pointers but, of course, is always
  * more efficient when the array of pointers is initially sorted.
  *
- * For item sizes different than a pointer or for non-aligned arrrays, use of
- * smsort() should be avoided.  However, if smsort_ext() can become four times
- * less efficient than xsort() for 16-byte items on a randomly shuffled array,
- * both smsort() and smsort_ext() still beat xsort() hands down when the array
- * is sorted.
+ * So smsort() should be used only when there is meta-knowledge that a
+ * significant portion of the array is already sorted.
  *
  * @author Pekka Pessi <Pekka.Pessi@nokia.com>
  * @date 2005
@@ -175,18 +172,15 @@ binary(uint64 p)
 static G_GNUC_HOT void
 swap_items(array const *ary, size_t a, size_t b)
 {
-	if G_UNLIKELY(a == b)
-		return;
-
-	if (ary->swap != NULL) {
-		ary->swap(ary->m, a, b);
-	} else if (ary->aligned) {
+	if (ary->aligned) {
 		op_t tmp;
 		op_t *om = (op_t *) ary->m;
 
 		tmp = om[b];
 		om[b] = om[a];
 		om[a] = tmp;
+	} else if (ary->swap != NULL) {
+		ary->swap(ary->m, a, b);
 	} else {
 		register size_t s = ary->s;
 		register char *x = cast_to_char_ptr(&ary->m[a * s]);
@@ -214,15 +208,12 @@ swap_items(array const *ary, size_t a, size_t b)
 static G_GNUC_HOT int
 cmp_items(array const *ary, size_t a, size_t b)
 {
-	if G_UNLIKELY(a == b)
-		return 0;
-
-	if (ary->less != NULL) {
-		return ary->less(ary->m, a, b) ? -1 : 0;
-	} else if (ary->aligned) {
+	if (ary->aligned) {
 		op_t *om = (op_t *) ary->m;
 
 		return ary->cmp(&om[a], &om[b]);
+	} else if (ary->less != NULL) {
+		return ary->less(ary->m, a, b) ? -1 : 0;
 	} else {
 		size_t i = a * ary->s;
 		size_t j = b * ary->s;
@@ -374,25 +365,6 @@ smoothsort(array const *ary, size_t first, size_t N)
 	}
 }
 
-/*
- * Undeclared, known only by tests, to avoid the s_carp_once() message.
- */
-void
-smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp)
-{
-	array const ary[1] = {
-		{ base, S, cmp, NULL, NULL,
-			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
-	};
-
-	g_assert(base != NULL);
-	g_assert(cmp != NULL);
-	g_assert(size_is_non_negative(N));
-	g_assert(size_is_positive(S));
-
-	smoothsort(ary, 0, N);
-}
-
 /**
  * Sort array using smoothsort, via a qsort()-like interface.
  *
@@ -410,26 +382,17 @@ smsort_hidden(void *base, size_t N, size_t S, smsort_cmp_t cmp)
 void
 smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
 {
-	/*
-	 * This algorithm uses indices to items, not offsets, and as such it is
-	 * very inefficient compared to qsort() when the size of the items is
-	 * not that of a native pointer / long or when the base is not aligned.
-	 *
-	 * If smoothsort is wanted nonetheless because the array is known to be
-	 * mostly sorted already, then smsort_ext() should be used instead.
-	 *
-	 * Loudly warn if misused inadvertently.
-	 */
+	array const ary[1] = {
+		{ base, S, cmp, NULL, NULL,
+			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
+	};
 
-	if G_UNLIKELY(OPSIZ != S) {
-		s_carp_once("%s() given sub-optimal item size: %zu bytes (expects %u)",
-			G_STRFUNC, S, OPSIZ);
-	} else if G_UNLIKELY(0 != pointer_to_ulong(base) % OPSIZ) {
-		s_carp_once("%s() given unaligned base %p (expects %u-byte alignments)",
-			G_STRFUNC, base, OPSIZ);
-	}
+	g_assert(base != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(N));
+	g_assert(size_is_positive(S));
 
-	smsort_hidden(base, N, S, cmp);
+	smoothsort(ary, 0, N);
 }
 
 /**
