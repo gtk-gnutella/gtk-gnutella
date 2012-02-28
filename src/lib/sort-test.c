@@ -46,6 +46,8 @@
 char *progname;
 size_t item_size;
 
+typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
+
 static void G_GNUC_NORETURN
 usage(void)
 {
@@ -266,7 +268,7 @@ get_swap_routine(size_t isize)
 }
 
 static void
-xsort_test(void *array, void *copy, size_t cnt, size_t isize)
+xtest(xsort_routine f, void *array, void *copy, size_t cnt, size_t isize)
 {
 	cmp_routine cmp = get_cmp_routine(isize);
 	size_t len = cnt * isize;
@@ -274,34 +276,33 @@ xsort_test(void *array, void *copy, size_t cnt, size_t isize)
 
 	for (i = 0; i < TEST_LOOP; i++) {
 		memcpy(copy, array, len);
-		xsort(copy, cnt, isize, cmp);
+		(*f)(copy, cnt, isize, cmp);
 	}
 }
 
 static void
+xsort_test(void *array, void *copy, size_t cnt, size_t isize)
+{
+	xtest(xsort, array, copy, cnt, isize);
+}
+
+static void
+xqsort_test(void *array, void *copy, size_t cnt, size_t isize)
+{
+	xtest(xqsort, array, copy, cnt, isize);
+}
+
+
+static void
 qsort_test(void *array, void *copy, size_t cnt, size_t isize)
 {
-	cmp_routine cmp = get_cmp_routine(isize);
-	size_t len = cnt * isize;
-	size_t i;
-
-	for (i = 0; i < TEST_LOOP; i++) {
-		memcpy(copy, array, len);
-		qsort(copy, cnt, isize, cmp);
-	}
+	xtest(qsort, array, copy, cnt, isize);
 }
 
 static void
 smsort_test(void *array, void *copy, size_t cnt, size_t isize)
 {
-	cmp_routine cmp = get_cmp_routine(isize);
-	size_t len = cnt * isize;
-	size_t i;
-
-	for (i = 0; i < TEST_LOOP; i++) {
-		memcpy(copy, array, len);
-		smsort(copy, cnt, isize, cmp);
-	}
+	xtest(smsort, array, copy, cnt, isize);
 }
 
 static void
@@ -432,6 +433,7 @@ main(int argc, char **argv)
 
 			array = generate_array(cnt, isize);
 			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
+			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
 			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
@@ -441,6 +443,7 @@ main(int argc, char **argv)
 
 			xsort(array, cnt, isize, get_cmp_routine(isize));
 			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
+			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
 			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
@@ -451,6 +454,7 @@ main(int argc, char **argv)
 
 			perturb_sorted_array(array, cnt, isize);
 			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
+			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
 			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
