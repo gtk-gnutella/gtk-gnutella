@@ -132,7 +132,7 @@ thread_get_private_hash(void)
 	 */
 
 	spinlock(&thread_priv_slk);
-	if (thread_eq(t, cached.t)) {
+	if (thread_eq(t, cached.t) && cached.pht != NULL) {
 		pht = cached.pht;
 		spinunlock(&thread_priv_slk);
 		return pht;
