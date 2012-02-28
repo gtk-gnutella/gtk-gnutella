@@ -853,14 +853,11 @@ qlink_insert_before(mqueue_t *q, int hint, GList *l)
 	q->qlink_count++;
 	q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 
-	{
-		int i;
+	
+	/* Shift right */
+	memmove(&q->qlink[hint + 1], &q->qlink[hint],
+		(q->qlink_count - hint - 1) * sizeof q->qlink[0]);
 
-		/* Shift right */
-		for (i = q->qlink_count - 1; i > hint; i--) {
-			q->qlink[i] = q->qlink[i - 1];
-		} 
-	}
 	q->qlink[hint] = l;
 }
 
