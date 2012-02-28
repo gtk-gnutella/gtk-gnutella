@@ -47,6 +47,7 @@
 #include "xsort.h"
 #include "getphysmemsize.h"
 #include "mempcpy.h"
+#include "op.h"
 #include "unsigned.h"
 #include "vmm.h"
 
@@ -291,9 +292,6 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
  * An alternative to qsort(), with an identical interface.
  * Written by Mike Haertel, September 1988.
  */
-
-#define op_t	unsigned long int
-#define OPSIZ	(sizeof(op_t))
 
 static void
 msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)

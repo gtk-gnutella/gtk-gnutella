@@ -73,6 +73,7 @@
 #include "common.h"
 
 #include "log.h"				/* For s_carp_once() */
+#include "op.h"
 #include "smsort.h"
 #include "unsigned.h"
 
@@ -167,9 +168,6 @@ binary(uint64 p)
 #undef DEBUG
 #define DEBUG(x) ((void)0)
 #endif
-
-#define op_t	unsigned long int
-#define OPSIZ	(sizeof(op_t))
 
 /**
  * Swap two items from array.

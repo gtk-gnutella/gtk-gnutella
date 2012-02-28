@@ -729,6 +729,7 @@ src/lib/ohash_table.c
 src/lib/ohash_table.h
 src/lib/omalloc.c
 src/lib/omalloc.h
+src/lib/op.h
 src/lib/options.c
 src/lib/options.h
 src/lib/ostream.c
