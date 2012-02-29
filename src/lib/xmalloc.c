@@ -5648,14 +5648,115 @@ valloc(size_t size)
 
 #endif	/* XMALLOC_IS_MALLOC */
 
+
+/**
+ * Ensure freelist if correctly sorted, spot inconsistencies when it isn't.
+ *
+ * @return number of freelists with problems (0 meaning everything is OK).
+ */
+size_t
+xmalloc_freelist_check(logagent_t *la, bool verbose)
+{
+	size_t errors = 0;
+	unsigned i;
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+		unsigned j;
+		const void *prev;
+		bool bad = FALSE;
+		bool unsorted = FALSE;
+
+		if (NULL == fl->pointers)
+			continue;
+
+		if (fl->capacity < fl->count) {
+			if (verbose) {
+				log_warning(la,
+					"XM freelist #%zu has corrupted count %zu (capacity %zu)",
+					i, fl->count, fl->capacity);
+			}
+			bad = TRUE;
+		}
+
+		for (j = 0, prev = NULL; j < fl->count; j++) {
+			const void *p = fl->pointers[j];
+			size_t len;
+
+			if (j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
+				if (!unsorted) {
+					unsorted = TRUE;	/* Emit this info once per list */
+					if (verbose) {
+						if (fl->count == fl->sorted) {
+							log_info(la,
+								"XM freelist #%zu has %zu item%s fully sorted",
+								i, fl->count, 1 == fl->count ? "" : "s");
+						} else {
+							log_info(la,
+								"XM freelist #%zu has %zu/%zu item%s sorted",
+								i, fl->sorted, fl->count,
+								1 == fl->sorted ? "" : "s");
+						}
+					}
+				}
+				if (verbose) {
+					log_warning(la,
+						"XM item #%zu p=%p in freelist #%zu <= prev %p",
+						j, p, i, prev);
+				}
+				bad = TRUE;
+			}
+
+			prev = p;
+
+			if (!xmalloc_is_valid_pointer(p)) {
+				if (verbose) {
+					log_warning(la,
+						"XM item #%zu p=%p in freelist #%zu is invalid",
+						j, p, i);
+				}
+				bad = TRUE;
+				continue;	/* Prudent */
+			}
+
+			len = *(size_t *) p;
+			if (len != fl->blocksize) {
+				if (verbose) {
+					log_warning(la,
+						"XM item #%zu p=%p in freelist #%zu (%zu bytes) "
+						"has improper length %zu", j, p, i, fl->blocksize, len);
+				}
+				bad = TRUE;
+			}
+		}
+
+		if (i > xfreelist_maxidx && fl->count != 0) {
+			if (verbose) {
+				log_warning(la,
+					"XM freelist #%zu has %zu items and is above maxidx=%zu",
+					i, fl->count, xfreelist_maxidx);
+			}
+			bad = TRUE;
+		}
+
+		if (verbose) {
+			log_debug(la,
+				"XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
+		}
+
+		if (bad)
+			errors++;
+	}
+
+	return errors;
+}
+
 /**
  * In case of crash, dump statistics and make some sanity checks.
  */
 static G_GNUC_COLD void
 xmalloc_crash_hook(void)
 {
-	unsigned i;
-
 	/*
 	 * When crashing log handlers will not use stdio nor allocate memory.
 	 * Therefore it's OK to be using s_xxx() logging routines here.
@@ -5670,63 +5771,8 @@ xmalloc_crash_hook(void)
 	vmm_dump_pmap();
 	xmalloc_dump_stats();
 
-	/*
-	 * Now verify that all freelist buckets are not part of the freelist
-	 * and that addresses in the freelist are correctly sorted and valid!
-	 */
-
 	s_debug("XM verifying freelist...");
-
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
-		struct xfreelist *fl = &xfreelist[i];
-		unsigned j;
-		const void *prev;
-		bool bad = FALSE;
-
-		if (NULL == fl->pointers)
-			continue;
-
-		if (fl->capacity < fl->count) {
-			s_warning("XM freelist #%zu has corrupted count %zu (capacity %zu)",
-				i, fl->count, fl->capacity);
-			bad = TRUE;
-		}
-
-		for (j = 0, prev = NULL; j < fl->count; j++) {
-			const void *p = fl->pointers[j];
-			size_t len;
-
-			if (j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
-				s_warning("XM item #%zu p=%p in freelist #%zu <= prev %p",
-					j, p, i, prev);
-				bad = TRUE;
-			}
-
-			prev = p;
-
-			if (!xmalloc_is_valid_pointer(p)) {
-				s_warning("XM item #%zu p=%p in freelist #%zu is invalid",
-					j, p, i);
-				bad = TRUE;
-				continue;
-			}
-
-			len = *(size_t *) p;
-			if (len != fl->blocksize) {
-				s_warning("XM item #%zu p=%p in freelist #%zu (%zu bytes) "
-					"has improper length %zu", j, p, i, fl->blocksize, len);
-				bad = TRUE;
-			}
-		}
-
-		if (i > xfreelist_maxidx && fl->count != 0) {
-			s_warning("XM freelist #%zu has %zu items and is above maxidx=%zu",
-				i, fl->count, xfreelist_maxidx);
-			bad = TRUE;
-		}
-
-		s_debug("XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
-	}
+	xmalloc_freelist_check(log_agent_stderr_get(), TRUE);
 }
 
 /*
