@@ -4181,8 +4181,8 @@ xgc(void)
 
 					if (xmalloc_debugging(2)) {
 						t_debug("XM GC %zu-byte split fragment %p "
-							"in page %p (%zu total) for %zu-byte block",
-							len, p, key, frags + len, blksize);
+							"in page %p (%zu total) for %zu-byte block %p",
+							len, p, key, frags + len, blksize, xf->p);
 					}
 
 					key = p = next;
@@ -4252,7 +4252,9 @@ xgc(void)
 			if (page == (pointer_to_ulong(last) & pagemask)) {
 				/* Fragment fully contained on one page */
 				frags = pointer_to_size(hash_table_lookup(ht, key));
-				g_assert(frags >= blksize);
+				g_assert_log(frags >= blksize,
+					"frags=%zu, blksize=%zu, p=%p, page=%p",
+					frags, blksize, p, key);
 				hash_table_replace(ht, key, size_to_pointer(frags - blksize));
 
 				if (xmalloc_debugging(1)) {
@@ -4261,6 +4263,8 @@ xgc(void)
 				}
 			} else {
 				const void *end = const_ptr_add_offset(last, 1);
+				size_t pages = 0;			/* For logging */
+				const void *begin = p;		/* For logging */
 
 				/*
 				 * Fragment spans over several pages.
@@ -4276,6 +4280,7 @@ xgc(void)
 					const void *next;
 					size_t len;
 
+					pages++;
 					next = vmm_page_start(
 						const_ptr_add_offset(p, xmalloc_pagesize));
 					len = ptr_cmp(next, end) < 0 ?
@@ -4286,16 +4291,22 @@ xgc(void)
 
 					frags = pointer_to_size(hash_table_lookup(ht, key));
 					g_assert_log(frags >= len,
-						"frags=%zu, len=%zu", frags, len);
+						"frags=%zu, len=%zu, begin=%p, page=%p",
+						frags, len, begin, key);
 					hash_table_replace(ht, key, size_to_pointer(frags - len));
 
 					if (xmalloc_debugging(2)) {
 						t_debug("XM GC reclaimed %zu-byte split fragment %p "
-							"in page %p (%zu remaining) for %zu-byte block",
-							len, p, key, frags - len, blksize);
+							"in page %p (%zu remaining) for %zu-byte block %p",
+							len, p, key, frags - len, blksize, begin);
 					}
 
 					key = p = next;
+				}
+
+				if (xmalloc_debugging(0)) {	/* Should be rare enough */
+					t_debug("XM GC collected %zu-byte fragment %p spanning "
+						"%zu pages", blksize, begin, pages);
 				}
 			}
 
