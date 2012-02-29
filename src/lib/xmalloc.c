@@ -5738,7 +5738,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
-		const void *prev;
+		const void *prev = NULL;
 		bool bad = FALSE;
 		bool unsorted = FALSE;
 
@@ -5758,7 +5758,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			const void *p = fl->pointers[j];
 			size_t len;
 
-			if (j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
+			if (j > 0 && j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
 				if (!unsorted) {
 					unsorted = TRUE;	/* Emit this info once per list */
 					if (verbose) {
