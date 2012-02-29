@@ -341,6 +341,7 @@ static struct {
 	uint64 freelist_partial_sorting;	/**< Freelist tail sorting */
 	uint64 freelist_full_sorting;		/**< Freelist sorting of whole bucket */
 	uint64 freelist_avoided_sorting;	/**< Avoided full sorting of bucket */
+	uint64 freelist_sorted_superseding;	/**< Last sorted replaced last item */
 	uint64 freelist_split;				/**< Block splitted on allocation */
 	uint64 freelist_nosplit;			/**< Block not splitted on allocation */
 	uint64 freelist_blocks;				/**< Amount of blocks in free list */
@@ -1752,7 +1753,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 plain_insert:
 
 	fl->count++;
-	if (sorted)
+	if G_LIKELY(sorted)
 		fl->sorted++;
 	fl->pointers[idx] = p;
 	xstats.freelist_blocks++;
@@ -1908,6 +1909,7 @@ xfl_select(struct xfreelist *fl)
 				fl->sorted = j;
 
 			p = q;		/* Will use this pointer instead */
+			xstats.freelist_sorted_superseding++;
 		}
 	}
 
@@ -4520,6 +4522,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_partial_sorting);
 	DUMP(freelist_full_sorting);
 	DUMP(freelist_avoided_sorting);
+	DUMP(freelist_sorted_superseding);
 	DUMP(freelist_split);
 	DUMP(freelist_nosplit);
 	DUMP(freelist_blocks);
