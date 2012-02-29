@@ -100,11 +100,7 @@ bits_set(uint8 b)
 int
 bits_set32(uint32 v)
 {
-	return
-		bits_set_byte[v & 0xff] +
-		bits_set_byte[(v >> 8) & 0xff] +
-		bits_set_byte[(v >> 16) & 0xff] +
-		bits_set_byte[(v >> 24) & 0xff];
+	return popcount(v);
 }
 
 /**
@@ -154,6 +150,20 @@ highest_bit_set64(uint64 n)
 		return highest_bit_set(n);
 	else
 		return 32 + highest_bit_set(n >> 32);
+}
+
+/**
+ * Count trailing zeroes in a 64-bit number.
+ */
+int
+ctz64(uint64 n)
+{
+	if G_LIKELY(n <= 0xffffffffU)
+		return ctz(n);
+	else {
+		int v = ctz(n & 0xffffffffU);
+		return (32 == v) ? 32 + ctz(n >> 32) : v;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

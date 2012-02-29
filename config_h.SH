@@ -165,6 +165,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BUILTIN_CLZ:
+ *	This symbol, if defined, indicates that the __builtin_clz routine is
+ *	available to count leading zeroes in a word.
+ */
+#$d_built_clz HAS_BUILTIN_CLZ	/**/
+
+/* HAS_BUILTIN_CTZ:
+ *	This symbol, if defined, indicates that __builtin_ctz routine is
+ *	available to count trailing zeroes in a word.
+ */
+#$d_built_ctz HAS_BUILTIN_CTZ	/**/
+
 /* HAS_BUILTIN_POPCOUNT:
  *	This symbol, if defined, indicates that __builtin_popcount routine is
  *	available to compute the amount of '1' bits in a word.

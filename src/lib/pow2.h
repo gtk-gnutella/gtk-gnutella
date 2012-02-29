@@ -40,7 +40,8 @@ uint32 next_pow2(uint32 n) G_GNUC_CONST;
 int highest_bit_set(uint32 n) G_GNUC_PURE;
 int highest_bit_set64(uint64 n) G_GNUC_PURE;
 int bits_set(uint8 b) G_GNUC_PURE;
-int bits_set32(uint32 v) G_GNUC_PURE;
+int bits_set32(uint32 v) G_GNUC_CONST;
+int ctz64(uint64 n) G_GNUC_CONST;
 
 /**
  * Checks whether the given value is a power of 2.
@@ -59,6 +60,64 @@ is_pow2(uint32 value)
 	return IS_POWER_OF_2(value);
 }
 #endif /* HAS_BUILTIN_POPCOUNT */
+
+/**
+ * Populuation count.
+ *
+ * @return number of 1 bits in a 32-bit integer.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+popcount(uint32 x)
+#ifdef HAS_BUILTIN_POPCOUNT
+{
+	return __builtin_popcount(x);
+}
+#else	/* !HAS_BUILTIN_POPCOUNT */
+{
+	x -= (x >> 1) & 0x55555555;
+	x = ((x >> 2) & 0x33333333) + (x & 0x33333333);
+	x = ((x >> 4) + x) & 0x0f0f0f0f;
+	x += x >> 8;
+	x += x >> 16;
+	return x & 0x1f;	/* At most 32 bits */
+
+}
+#endif	/* HAS_BUILTIN_POPCOUNT */
+
+/**
+ * Count trailing zeroes in a 32-bit integer.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+ctz(uint32 x)
+#ifdef HAS_BUILTIN_CTZ
+{
+	return __builtin_ctz(x);
+}
+#else	/* !HAS_BUILTIN_CTZ */
+{
+	return popcount((x & -x) - 1);
+}
+#endif	/* HAS_BUILTIN_CTZ */
+
+/**
+ * Count leading zeroes in a 32-bit integer.
+ */
+static inline ALWAYS_INLINE G_GNUC_CONST int
+clz(uint32 x)
+#ifdef HAS_BUILTIN_CLZ
+{
+	return __builtin_clz(x);
+}
+#else	/* !HAS_BUILTIN_CLZ */
+{
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	return 32 - popcount(x);
+}
+#endif	/* HAS_BUILTIN_CLZ */
 
 #endif /* _pow2_h_ */
 

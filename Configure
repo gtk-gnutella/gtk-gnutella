@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Thu Feb 16 17:45:30 CET 2012 [metaconfig 3.5-136]
+# Generated on Wed Feb 29 20:19:35 CET 2012 [metaconfig 3.5-136]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -316,6 +316,8 @@ d_backtrace=''
 d_bcmp=''
 d_bcopy=''
 d_bindtxtcode=''
+d_built_clz=''
+d_built_ctz=''
 d_built_popcount=''
 d_bzero=''
 d_closefrom=''
@@ -4568,6 +4570,32 @@ int main(void)
 EOC
 cyn=bind_textdomain_codeset
 set d_bindtxtcode '-lintl'
+eval $trylink
+
+: check for __builtin_clz
+$cat >try.c <<EOC
+int main(void)
+{
+	static int ret;
+	ret |= __builtin_clz(127);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=__builtin_clz
+set d_built_clz
+eval $trylink
+
+: check for __builtin_ctz
+$cat >try.c <<EOC
+int main(void)
+{
+	static int ret;
+	ret |= __builtin_ctz(127);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=__builtin_ctz
+set d_built_ctz
 eval $trylink
 
 : check for __builtin_popcount
@@ -10338,6 +10366,8 @@ d_bcmp='$d_bcmp'
 d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
+d_built_clz='$d_built_clz'
+d_built_ctz='$d_built_ctz'
 d_built_popcount='$d_built_popcount'
 d_bzero='$d_bzero'
 d_can64='$d_can64'
