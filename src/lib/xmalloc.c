@@ -1538,7 +1538,7 @@ xfl_binary_lookup(void **array, const void *p,
 	xstats.freelist_binary_lookups++;
 
 	for (;;) {
-		const void *item;
+		int c;
 
 		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
 			mid = -1;		/* Not found */
@@ -1546,14 +1546,14 @@ xfl_binary_lookup(void **array, const void *p,
 		}
 
 		mid = low + (high - low) / 2;
-		item = array[mid];
+		c = xm_ptr_cmp(p, array[mid]);
 
-		if (p > item)
-			low = mid + 1;
-		else if (p < item)
-			high = mid - 1;
-		else
+		if G_UNLIKELY(0 == c)
 			break;				/* Found */
+		else if (c > 0)
+			low = mid + 1;
+		else
+			high = mid - 1;
 	}
 
 	if (low_ptr != NULL)
