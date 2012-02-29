@@ -306,7 +306,7 @@ smsort_test(void *array, void *copy, size_t cnt, size_t isize)
 }
 
 static void
-smsort2_test(void *array, void *copy, size_t cnt, size_t isize)
+smsorte_test(void *array, void *copy, size_t cnt, size_t isize)
 {
 	smsort_less_t less = get_less_routine(isize);
 	smsort_swap_t swap = get_swap_routine(isize);
@@ -436,7 +436,7 @@ main(int argc, char **argv)
 			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
+			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
 
 			str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
@@ -446,7 +446,7 @@ main(int argc, char **argv)
 			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
+			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
 
 			str_bprintf(buf, sizeof buf,
 				"%zu almost sorted item%s of %zu bytes",
@@ -457,7 +457,7 @@ main(int argc, char **argv)
 			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
 			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
 			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsort2_test, array, cnt, isize, tflag, buf, "smooth2");
+			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
 
 			xfree(array);
 		}
