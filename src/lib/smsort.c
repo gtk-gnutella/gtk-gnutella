@@ -69,7 +69,6 @@
 
 #include "common.h"
 
-#include "log.h"				/* For s_carp_once() */
 #include "op.h"
 #include "smsort.h"
 #include "unsigned.h"
@@ -130,6 +129,16 @@ typedef struct {
 	uint8 aligned;
 } array;
 
+/*
+ * Leonardo numbers are defined by the following recurrence.
+ *
+ * L[0] = L[1] = 1
+ * L[n] = L[n-1] + L[n-2] + 1
+ *
+ * Hence stretch_up() and stretch_down() need to keep "b" and "c" to compute
+ * the next number or revert to the previous one.
+ */
+
 static inline size_t
 stretch_up(stretch s[1])
 {
@@ -179,9 +188,7 @@ swap_items(array const *ary, size_t a, size_t b)
 		tmp = om[b];
 		om[b] = om[a];
 		om[a] = tmp;
-	} else if (ary->swap != NULL) {
-		ary->swap(ary->m, a, b);
-	} else {
+	} else if (NULL == ary->swap) {
 		register size_t s = ary->s;
 		register char *x = cast_to_char_ptr(&ary->m[a * s]);
 		register char *y = cast_to_char_ptr(&ary->m[b * s]);
@@ -199,6 +206,8 @@ swap_items(array const *ary, size_t a, size_t b)
 			*x++ = *y;
 			*y++ = t;
 		} while (--s > 0);
+	} else {
+		ary->swap(ary->m, a, b);
 	}
 }
 
@@ -212,13 +221,13 @@ cmp_items(array const *ary, size_t a, size_t b)
 		op_t *om = (op_t *) ary->m;
 
 		return ary->cmp(&om[a], &om[b]);
-	} else if (ary->less != NULL) {
-		return ary->less(ary->m, a, b) ? -1 : 0;
-	} else {
+	} else if (ary->cmp != NULL) {
 		size_t i = a * ary->s;
 		size_t j = b * ary->s;
 
 		return ary->cmp(&ary->m[i], &ary->m[j]);
+	} else {
+		return ary->less(ary->m, a, b) ? -1 : 0;
 	}
 }
 
@@ -338,7 +347,6 @@ smoothsort(array const *ary, size_t first, size_t N)
 			sift(ary, r, s), stretch_up(&s), stretch_up(&s);
 		}
 		else /* if ((s.p & 3) == 1) */ {
-			g_assert((s.p & 3) == 1);
 			if (q + s.c < N)
 				sift(ary, r, s);
 			else
