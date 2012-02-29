@@ -1466,7 +1466,7 @@ xfl_sort(struct xfreelist *fl)
 	 * then the whole array is now sorted.
 	 */
 
-	if (x != 0 && +1 == xm_ptr_cmp(ary[x - 1], ary[x])) {
+	if (0 != x && 0 < xm_ptr_cmp(ary[x - 1], ary[x])) {
 		/*
 		 * We're using smoothsort, which performs betwen O(N) and O(N.log N),
 		 * depending on whether the input is almost sorted or not, with the
@@ -1708,7 +1708,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 			/* List still sorted, see if trivial appending keeps it sorted */
 
-			if (0 == idx || +1 == xm_ptr_cmp(p, fl->pointers[idx - 1])) {
+			if (0 == idx || 0 < xm_ptr_cmp(p, fl->pointers[idx - 1])) {
 				xstats.freelist_plain_insertions++;
 				goto plain_insert;
 			}
