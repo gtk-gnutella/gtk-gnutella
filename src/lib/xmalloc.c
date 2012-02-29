@@ -62,6 +62,7 @@
 #include "random.h"
 #include "smsort.h"
 #include "spinlock.h"
+#include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -73,6 +74,10 @@
 
 #if 1
 #define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
+#endif
+
+#if 0
+#define XMALLOC_SORT_SAFETY		/* Adds expensive sort checking assertions */
 #endif
 
 /*
@@ -1427,6 +1432,50 @@ xfl_ptr_cmp(const void *a, const void *b)
 	return xm_ptr_cmp(*ap, *bp);
 }
 
+#ifdef XMALLOC_SORT_SAFETY
+/**
+ * Verify that the freelist bucket is sorted.
+ *
+ * @param fl		the freelist bucket
+ * @param low		first index expected to be sorted
+ * @param count		amount of items to check
+ * @param fmt		explaination message, printf()-like
+ * @param ...		variable printf arguments for message
+ */
+static void G_GNUC_PRINTF(4, 5)
+assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
+	const char *fmt, ...)
+{
+	size_t i;
+	size_t high = size_saturate_add(low, count);
+	const char *prev = fl->pointers[low];
+
+	for (i = low + 1; i < high;  i++) {
+		const char *cur = fl->pointers[i];
+
+		if (xm_ptr_cmp(prev, cur) > 0) {
+			va_list args;
+			char buf[80];
+
+			va_start(args, fmt);
+			str_vbprintf(buf, sizeof buf, fmt, args);
+			va_end(args);
+
+			t_warning("XM freelist #%zu (%zu/%zu sorted) "
+				"items %zu-%zu unsorted %s: "
+				"breaks at item %zu",
+				xfl_index(fl), fl->sorted, fl->count, low, high - 1, buf, i);
+
+			t_error_from(_WHERE_, "freelist #%zu corrupted", xfl_index(fl));
+		}
+
+		prev = cur;
+	}
+}
+#else
+#define assert_xfl_sorted(...)
+#endif	/* XMALLOC_SORT_SAFETY */
+
 /**
  * Sort freelist bucket.
  */
@@ -1460,6 +1509,7 @@ xfl_sort(struct xfreelist *fl)
 	if G_LIKELY(unsorted > 1) {
 		xstats.freelist_partial_sorting++;
 		xqsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
+		assert_xfl_sorted(fl, x, unsorted, "after xqsort");
 	}
 
 	/*
@@ -1479,8 +1529,10 @@ xfl_sort(struct xfreelist *fl)
 
 		xstats.freelist_full_sorting++;
 		smsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
+		assert_xfl_sorted(fl, 0, fl->count, "after smsort");
 	} else {
 		xstats.freelist_avoided_sorting++;
+		assert_xfl_sorted(fl, 0, fl->count, "after nosort");
 	}
 
 	fl->sorted = fl->count;		/* Fully sorted now */
@@ -1507,7 +1559,6 @@ xfl_binary_lookup(void **array, const void *p,
 	 * Optimize if we have more than 4 items by looking whether the
 	 * pointer falls within the min/max ranges.
 	 */
-
 
 	if G_LIKELY(high - low >= 4) {
 		if G_UNLIKELY(array[low] == p) {
@@ -1585,6 +1636,8 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		return -1;
 	}
 
+	assert_xfl_sorted(fl, 0, fl->sorted, "on entry in xfl_lookup");
+
 	unsorted = fl->count - fl->sorted;
 
 	if G_UNLIKELY(unsorted != 0) {
@@ -1593,7 +1646,7 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		/* Binary search the leading sorted part, if any */
 
 		if G_LIKELY(fl->sorted != 0) {
-			i = xfl_binary_lookup(fl->pointers, p, 0, fl->sorted - 1, low_ptr);
+			i = xfl_binary_lookup(fl->pointers, p, 0, fl->sorted - 1, NULL);
 
 			if ((size_t) -1 != i)
 				return i;
@@ -1671,7 +1724,7 @@ static void
 xfl_insert(struct xfreelist *fl, void *p, bool burst)
 {
 	size_t idx;
-	bool sorted = TRUE;
+	bool sorted;
 
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
@@ -1694,6 +1747,11 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	mutex_get(&fl->lock);
 
+	sorted = fl->count == fl->sorted;
+
+	assert_xfl_sorted(fl, 0, fl->sorted, "before %ssorted %s xfl_insert",
+		sorted ? "" : "un", burst ? "bursty" : "normal");
+
 	/*
 	 * If we're in a burst condition, simply append to the bucket, without
 	 * sorting the block.
@@ -1704,7 +1762,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	 */
 
 	if G_UNLIKELY(burst) {
-		if (fl->count == fl->sorted) {
+		if (sorted) {
 			idx = fl->count;		/* Append at the tail */
 
 			/* List still sorted, see if trivial appending keeps it sorted */
@@ -1758,6 +1816,9 @@ plain_insert:
 	fl->pointers[idx] = p;
 	xstats.freelist_blocks++;
 	xstats.freelist_memory += fl->blocksize;
+
+	assert_xfl_sorted(fl, 0, fl->sorted, "after %ssorted %s xfl_insert @ %zu",
+		sorted ? "" : "un", burst ? "bursty" : "normal", idx);
 
 	/*
 	 * Set corresponding bit if this is the first block inserted in the list.
