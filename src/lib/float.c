@@ -653,7 +653,7 @@ G_STMT_START {							\
 size_t
 float_dragon(char *dest, size_t len, double v, int *exponent)
 {
-	int sign, e, f_n, m_n, i, d, tc1, tc2;
+	int sign, e = 0, f_n, m_n, i, d, tc1, tc2;
 	uint64 f;
 	int ruf, k, sl = 0, slr = 0;
 	int use_mp;
@@ -859,7 +859,7 @@ done:
 size_t
 float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 {
-	int sign, e, f_n, i, d, n;
+	int sign, e = 0, f_n, i, d, n;
 	uint64 f;
 	int k, sl = 0, slr = 0;
 	char *bp = dest;
