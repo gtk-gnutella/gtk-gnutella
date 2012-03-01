@@ -71,9 +71,24 @@ long_cmp(const void *a, const void *b)
 }
 
 static int
+long_revcmp(const void *a, const void *b)
+{
+	const ulong *la = a, *lb = b;
+	const ulong va = *la, vb = *lb;
+
+	return CMP(vb, va);
+}
+
+static int
 generic_cmp(const void *a, const void *b)
 {
 	return memcmp(a, b, item_size);	/* Global variable */
+}
+
+static int
+generic_revcmp(const void *a, const void *b)
+{
+	return memcmp(b, a, item_size);	/* Global variable */
 }
 
 static cmp_routine
@@ -85,6 +100,18 @@ get_cmp_routine(size_t isize)
 	default:
 		item_size = isize;	/* Global variable */
 		return generic_cmp;
+	}
+}
+
+static cmp_routine
+get_revcmp_routine(size_t isize)
+{
+	switch (isize) {
+	case LONGSIZE:
+		return long_revcmp;
+	default:
+		item_size = isize;	/* Global variable */
+		return generic_revcmp;
 	}
 }
 
@@ -392,6 +419,16 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 	}
 }
 
+static void
+run(void *array, size_t cnt, size_t isize, bool chrono, const char *what)
+{
+	timeit(xsort_test, array, cnt, isize, chrono, what, "xsort");
+	timeit(xqsort_test, array, cnt, isize, chrono, what, "xqsort");
+	timeit(qsort_test, array, cnt, isize, chrono, what, "qsort");
+	timeit(smsort_test, array, cnt, isize, chrono, what, "smooth");
+	timeit(smsorte_test, array, cnt, isize, chrono, what, "smoothe");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -432,32 +469,67 @@ main(int argc, char **argv)
 				cnt, 1 == cnt ? "" : "s", isize);
 
 			array = generate_array(cnt, isize);
-			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
-			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
-			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
-			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
+			run(array, cnt, isize, tflag, buf);
 
 			str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
 
 			xsort(array, cnt, isize, get_cmp_routine(isize));
-			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
-			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
-			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
-			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
+			run(array, cnt, isize, tflag, buf);
 
 			str_bprintf(buf, sizeof buf,
 				"%zu almost sorted item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
 
 			perturb_sorted_array(array, cnt, isize);
-			timeit(xsort_test, array, cnt, isize, tflag, buf, "xsort");
-			timeit(xqsort_test, array, cnt, isize, tflag, buf, "xqsort");
-			timeit(qsort_test, array, cnt, isize, tflag, buf, "qsort");
-			timeit(smsort_test, array, cnt, isize, tflag, buf, "smooth");
-			timeit(smsorte_test, array, cnt, isize, tflag, buf, "smoothe");
+			run(array, cnt, isize, tflag, buf);
+
+			str_bprintf(buf, sizeof buf,
+				"%zu reverse-sorted item%s of %zu bytes",
+				cnt, 1 == cnt ? "" : "s", isize);
+
+			xsort(array, cnt, isize, get_revcmp_routine(isize));
+			run(array, cnt, isize, tflag, buf);
+
+			str_bprintf(buf, sizeof buf,
+				"%zu almost reverse-sorted item%s of %zu bytes",
+				cnt, 1 == cnt ? "" : "s", isize);
+
+			perturb_sorted_array(array, cnt, isize);
+			run(array, cnt, isize, tflag, buf);
+
+			str_bprintf(buf, sizeof buf,
+				"%zu sorted 3/4-1/4 item%s of %zu bytes",
+				cnt, 1 == cnt ? "" : "s", isize);
+
+			{
+				size_t thresh = cnt / 4;
+				size_t lower = cnt - thresh;
+				void *upper = ptr_add_offset(array, lower * isize);
+
+				xsort(array, lower, isize, get_cmp_routine(isize));
+				if (thresh > 0)
+					xsort(upper, thresh, isize, get_cmp_routine(isize));
+			}
+			run(array, cnt, isize, tflag, buf);
+
+			str_bprintf(buf, sizeof buf,
+				"%zu sorted n-8 item%s of %zu bytes",
+				cnt, 1 == cnt ? "" : "s", isize);
+
+			{
+				size_t thresh = 8;
+				size_t lower = cnt - thresh;
+				void *upper = ptr_add_offset(array, lower * isize);
+
+				if (cnt > thresh) {
+					xsort(array, lower, isize, get_cmp_routine(isize));
+					xsort(upper, thresh, isize, get_cmp_routine(isize));
+				} else {
+					xsort(array, cnt, isize, get_cmp_routine(isize));
+				}
+			}
+			run(array, cnt, isize, tflag, buf);
 
 			xfree(array);
 		}
