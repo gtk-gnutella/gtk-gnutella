@@ -499,11 +499,14 @@ main(int argc, char **argv)
 			char buf[80];
 			size_t isize = sizeof(void *) + INTSIZE * j;
 			void *array;
+			void *copy;
 
 			str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
 
 			array = generate_array(cnt, isize);
+			copy = xcopy(array, cnt * isize);
+
 			run(array, cnt, isize, tflag, buf);
 
 			str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
@@ -537,6 +540,8 @@ main(int argc, char **argv)
 				"%zu sorted 3/4-1/4 item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
 
+			memcpy(array, copy, cnt * isize);
+
 			{
 				size_t thresh = cnt / 4;
 				size_t lower = cnt - thresh;
@@ -551,6 +556,8 @@ main(int argc, char **argv)
 			str_bprintf(buf, sizeof buf,
 				"%zu sorted n-8 item%s of %zu bytes",
 				cnt, 1 == cnt ? "" : "s", isize);
+
+			memcpy(array, copy, cnt * isize);
 
 			{
 				size_t thresh = 8;
@@ -567,6 +574,7 @@ main(int argc, char **argv)
 			run(array, cnt, isize, tflag, buf);
 
 			xfree(array);
+			xfree(copy);
 		}
 	}
 
