@@ -142,7 +142,6 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 		while (STACK_NOT_EMPTY) {
 			char *left_ptr;
 			char *right_ptr;
-
 			char *pivot = pivot_buffer;
 
 			/*
@@ -165,7 +164,6 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				SWAP(mid, lo, size);
 		jump_over:
 			memcpy(pivot, mid, size);
-			pivot = pivot_buffer;
 
 			left_ptr  = lo + size;
 			right_ptr = hi - size;
@@ -183,7 +181,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				while ((*cmp)(pivot, right_ptr) < 0)
 					right_ptr -= size;
 
-				if (left_ptr < right_ptr) {
+				if G_LIKELY(left_ptr < right_ptr) {
 					SWAP(left_ptr, right_ptr, size);
 					left_ptr += size;
 					right_ptr -= size;
@@ -202,11 +200,11 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 */
 
 			if (ptr_diff(right_ptr, lo) <= max_thresh) {
-				if (ptr_diff(hi, left_ptr) <= max_thresh)
+				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh)
 					POP(lo, hi);	/* Ignore both small partitions. */
 				else
 					lo = left_ptr;	/* Ignore small left partition. */
-			} else if (ptr_diff(hi, left_ptr) <= max_thresh) {
+			} else if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
 				hi = right_ptr;		/* Ignore small right partition. */
 			} else if (ptr_diff(right_ptr, lo) > ptr_diff(hi, left_ptr)) {
 				/* Push larger left partition indices. */
@@ -244,7 +242,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				tmp_ptr = run_ptr;
 		}
 
-		if (tmp_ptr != base_ptr)
+		if G_LIKELY(tmp_ptr != base_ptr)
 		  SWAP(tmp_ptr, base_ptr, size);
 
 		/* Insertion sort, running from left-hand-side up to right-hand-side */
