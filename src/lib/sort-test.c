@@ -39,7 +39,6 @@
 #include "lib/xmalloc.h"
 #include "lib/xsort.h"
 
-#define TEST_LOOP	100
 #define TEST_BITS	16
 #define TEST_WORDS	4
 
@@ -295,55 +294,54 @@ get_swap_routine(size_t isize)
 }
 
 static void
-xtest(xsort_routine f, void *array, void *copy, size_t cnt, size_t isize)
+xtest(xsort_routine f, void *array, void *copy,
+	size_t cnt, size_t isize, size_t loops)
 {
 	cmp_routine cmp = get_cmp_routine(isize);
 	size_t len = cnt * isize;
-	size_t i;
 
-	for (i = 0; i < TEST_LOOP; i++) {
+	do {
 		memcpy(copy, array, len);
 		(*f)(copy, cnt, isize, cmp);
-	}
+	} while (--loops > 0);
 }
 
 static void
-xsort_test(void *array, void *copy, size_t cnt, size_t isize)
+xsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
-	xtest(xsort, array, copy, cnt, isize);
+	xtest(xsort, array, copy, cnt, isize, loops);
 }
 
 static void
-xqsort_test(void *array, void *copy, size_t cnt, size_t isize)
+xqsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
-	xtest(xqsort, array, copy, cnt, isize);
+	xtest(xqsort, array, copy, cnt, isize, loops);
 }
 
 
 static void
-qsort_test(void *array, void *copy, size_t cnt, size_t isize)
+qsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
-	xtest(qsort, array, copy, cnt, isize);
+	xtest(qsort, array, copy, cnt, isize, loops);
 }
 
 static void
-smsort_test(void *array, void *copy, size_t cnt, size_t isize)
+smsort_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
-	xtest(smsort, array, copy, cnt, isize);
+	xtest(smsort, array, copy, cnt, isize, loops);
 }
 
 static void
-smsorte_test(void *array, void *copy, size_t cnt, size_t isize)
+smsorte_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
 	smsort_less_t less = get_less_routine(isize);
 	smsort_swap_t swap = get_swap_routine(isize);
 	size_t len = cnt * isize;
-	size_t i;
 
-	for (i = 0; i < TEST_LOOP; i++) {
+	do {
 		memcpy(copy, array, len);
 		smsort_ext(copy, 0, cnt, less, swap);
-	}
+	} while (--loops > 0);
 }
 
 static void
@@ -360,9 +358,40 @@ assert_is_sorted(const void *copy, size_t cnt, size_t isize)
 	}
 }
 
+static double
+dry_run(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
+{
+	tm_t start, end;
+
+	tm_now_exact(&start);
+	qsort_test(array, copy, cnt, isize, loops);
+	tm_now_exact(&end);
+
+	return tm_elapsed_f(&end, &start);
+}
+
+static size_t
+calibrate(void *array, size_t cnt, size_t isize)
+{
+	double elapsed;
+	size_t n = 1;
+	void *copy;
+
+	copy = xmalloc(cnt * isize);
+
+	do {
+		n *= 2;
+		elapsed = dry_run(array, copy, cnt, isize, n);
+	} while (elapsed < 0.1 && n < (1U << 31));
+
+	xfree(copy);
+
+	return n;
+}
+
 static void
-timeit(void (*f)(void *, void *, size_t, size_t),
-	void *array, size_t cnt, size_t isize,
+timeit(void (*f)(void *, void *, size_t, size_t, size_t),
+	size_t loops, void *array, size_t cnt, size_t isize,
 	bool chrono, const char *what, const char *algorithm)
 {
 	tm_t start, end;
@@ -371,15 +400,19 @@ timeit(void (*f)(void *, void *, size_t, size_t),
 	copy = xmalloc(cnt * isize);
 
 	tm_now_exact(&start);
-	(*f)(array, copy, cnt, isize);
+	(*f)(array, copy, cnt, isize, loops);
 	tm_now_exact(&end);
 	assert_is_sorted(copy, cnt, isize);
 	xfree(copy);
 
 	if (chrono) {
 		double elapsed = tm_elapsed_f(&end, &start);
-		printf("%7s - %s - took %g s\n", algorithm, what, elapsed);
+		printf("%7s - %s - [%lu] took %g s\n", algorithm, what,
+			(ulong) loops, elapsed);
+	} else {
+		printf("%7s - %s - OK\n", algorithm, what);
 	}
+	fflush(stdout);
 }
 
 static void *
@@ -422,11 +455,13 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 static void
 run(void *array, size_t cnt, size_t isize, bool chrono, const char *what)
 {
-	timeit(xsort_test, array, cnt, isize, chrono, what, "xsort");
-	timeit(xqsort_test, array, cnt, isize, chrono, what, "xqsort");
-	timeit(qsort_test, array, cnt, isize, chrono, what, "qsort");
-	timeit(smsort_test, array, cnt, isize, chrono, what, "smooth");
-	timeit(smsorte_test, array, cnt, isize, chrono, what, "smoothe");
+	size_t loops = chrono ? calibrate(array, cnt, isize) : 1;
+
+	timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
+	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
+	timeit(qsort_test, loops, array, cnt, isize, chrono, what, "qsort");
+	timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
+	timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
 }
 
 int
