@@ -77,6 +77,7 @@
 #include "gethomedir.h"
 #include "hashing.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "pow2.h"
 #include "sha1.h"
@@ -339,7 +340,6 @@ static void
 entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 {
 	size_t i;
-	void *tmp;
 
 	g_assert(ary != NULL);
 	g_assert(size_is_non_negative(len));
@@ -348,8 +348,6 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	tmp = alloca(elem_size);	/* Item size should be small enough */
-
 	/*
 	 * Shuffle the array using Knuth's modern version of the
 	 * Fisher and Yates algorithm.
@@ -357,14 +355,14 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 
 	for (i = len - 1; i > 0; i--) {
 		size_t j = entropy_rand31_upto(i);
+		void *iptr, *jptr;
 
 		/* Swap i-th and j-th items */
 
-		memcpy(tmp, ptr_add_offset(ary, i * elem_size), elem_size);
-		memcpy(ptr_add_offset(ary, i * elem_size),
-			ptr_add_offset(ary, j * elem_size), elem_size);
-		/* i-th item now selected */
-		memcpy(ptr_add_offset(ary, j * elem_size), tmp, elem_size);
+		iptr = ptr_add_offset(ary, i * elem_size);
+		jptr = ptr_add_offset(ary, j * elem_size);
+
+		SWAP(iptr, jptr, elem_size);	/* i-th item now selected */
 	}
 }
 
@@ -1077,8 +1075,10 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 
 /**
  * Fold extra entropy bytes in place, putting result in the trailing n bytes.
+ *
+ * @return pointer to the start of the folded trailing n bytes in the digest.
  */
-static void
+static void *
 entropy_fold(sha1_t *digest, size_t n)
 {
 	sha1_t result;
@@ -1087,7 +1087,7 @@ entropy_fold(sha1_t *digest, size_t n)
 	g_assert(size_is_non_negative(n));
 
 	if G_UNLIKELY(n >= SHA1_RAW_SIZE)
-		return;
+		return digest;
 
 	bigint_use(&v, &result, SHA1_RAW_SIZE);
 	bigint_use(&h, digest, SHA1_RAW_SIZE);
@@ -1100,6 +1100,8 @@ entropy_fold(sha1_t *digest, size_t n)
 	}
 
 	bigint_copy(&h, &v);
+
+	return &digest->data[SHA1_RAW_SIZE - n];
 }
 
 /**
@@ -1149,11 +1151,12 @@ unsigned
 entropy_random(void)
 {
 	sha1_t digest;
+	void *folded;
 
 	entropy_minimal_collect(&digest);
-	entropy_fold(&digest, 4);
+	folded = entropy_fold(&digest, 4);
 
-	return peek_be32(&digest.data[SHA1_RAW_SIZE - 4]);
+	return peek_be32(folded);
 }
 
 /**
@@ -1180,17 +1183,16 @@ entropy_fill(void *buffer, size_t len)
 		sha1_t digest;
 
 		entropy_collect(&digest);
-		memcpy(p, &digest, SHA1_RAW_SIZE);
-		p = ptr_add_offset(p, SHA1_RAW_SIZE);
+		p = mempcpy(p, &digest, SHA1_RAW_SIZE);
 	}
 
 	if (partial != 0) {
 		sha1_t digest;
+		void *folded;
 
 		entropy_collect(&digest);
-		entropy_fold(&digest, partial);
-		memcpy(p, &digest.data[SHA1_RAW_SIZE - partial], partial);
-		p = ptr_add_offset(p, partial);
+		folded = entropy_fold(&digest, partial);
+		p = mempcpy(p, folded, partial);
 	}
 
 	g_assert(ptr_diff(p, buffer) == len);
