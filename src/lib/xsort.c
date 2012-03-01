@@ -64,18 +64,6 @@
  * Software - Practice and Experience; Vol. 23 (11), 1249-1265, 1993.
  */
 
-/* Byte-wise swap two items of size SIZE. */
-#define SWAP(a, b, size) G_STMT_START {		\
-	register size_t __size = (size);		\
-	register char *__a = (a), *__b = (b);	\
-											\
-	do {									\
-	  char __tmp = *__a;					\
-	  *__a++ = *__b;						\
-	  *__b++ = __tmp;						\
-	} while (--__size > 0);					\
-} G_STMT_END
-
 /*
  * Discontinue quicksort algorithm when partition gets below this size.
  * This particular magic number was chosen to work best on a Sun 4/260.

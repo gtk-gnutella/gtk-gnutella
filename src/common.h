@@ -681,6 +681,20 @@ typedef void (*GCallback) (void);
 #endif
 
 /**
+ * Byte-wise swap two items of specified size.
+ */
+#define SWAP(a, b, size) G_STMT_START {		\
+	register size_t __size = (size);		\
+	register char *__a = (a), *__b = (b);	\
+											\
+	do {									\
+	  char __tmp = *__a;					\
+	  *__a++ = *__b;						\
+	  *__b++ = __tmp;						\
+	} while (--__size > 0);					\
+} G_STMT_END
+
+/**
  * STATIC_ASSERT() can be used to verify conditions at compile-time. For
  * example, it can be used to ensure that an array has a minimum or exact
  * size. This is better than a run-time assertion because the condition is
