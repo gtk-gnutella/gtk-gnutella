@@ -189,23 +189,16 @@ swap_items(array const *ary, size_t a, size_t b)
 		om[b] = om[a];
 		om[a] = tmp;
 	} else if (NULL == ary->swap) {
-		register size_t s = ary->s;
-		register char *x = cast_to_char_ptr(&ary->m[a * s]);
-		register char *y = cast_to_char_ptr(&ary->m[b * s]);
+		char *x = cast_to_char_ptr(&ary->m[a * ary->s]);
+		char *y = cast_to_char_ptr(&ary->m[b * ary->s]);
 
 		/*
-		 * Byte-wise swap the two items.
-		 *
-		 * This ends-up generating way faster code than 3 successive
+		 * Using SWAP() ends-up generating way faster code than 3 successive
 		 * memcpy() calls, by a factor 2 at least.
 		 *		--RAM, 2012-02-28
 		 */
 
-		do {
-			char t = *x;
-			*x++ = *y;
-			*y++ = t;
-		} while (--s > 0);
+		SWAP(x, y, ary->s);
 	} else {
 		ary->swap(ary->m, a, b);
 	}
