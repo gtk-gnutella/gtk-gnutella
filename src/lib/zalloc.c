@@ -413,7 +413,7 @@ zrange_init(zone_t *zn)
 
 	g_assert(i == zn->zn_subzones);
 
-	xsort(zn->zn_rang, zn->zn_subzones, sizeof zn->zn_rang[0], zrange_cmp);
+	xqsort(zn->zn_rang, zn->zn_subzones, sizeof zn->zn_rang[0], zrange_cmp);
 }
 
 /**
@@ -2043,7 +2043,7 @@ zgc_allocate(zone_t *zone)
 	 * we re-enter the zone allocator on the already locked zone.
 	 */
 
-	xsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
+	xqsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
 
 	/*
 	 * Dispatch each free block to the proper subzone free list.
@@ -2952,7 +2952,7 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 
 	g_assert(fill->count == fill->capacity);
 
-	xsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
+	xqsort(fill->array, fill->count, sizeof fill->array[0], zonesize_cmp);
 }
 
 /**

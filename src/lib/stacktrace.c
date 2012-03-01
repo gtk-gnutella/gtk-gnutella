@@ -491,7 +491,7 @@ trace_sort(void)
 	size_t old_count = trace_array.count;
 	const void *last = 0;
 
-	xsort(trace_array.base, trace_array.count,
+	xqsort(trace_array.base, trace_array.count,
 		sizeof trace_array.base[0], trace_cmp);
 
 	while (i < trace_array.count) {
