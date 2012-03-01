@@ -2076,8 +2076,8 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 	 */
 
 	if ((flags & XM_COALESCE_SMART) && xmalloc_round_blocksize(len) == len) {
-		size_t idx = xfl_find_freelist_index(len);
-		struct xfreelist *fl = &xfreelist[idx];
+		size_t idx;
+		struct xfreelist *fl;
 
 		/*
 		 * Within a burst freeing, don't attempt coalescing if size is small.
@@ -2089,6 +2089,23 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 				return FALSE;
 			}
 		}
+
+		/*
+		 * If block is larger than the maximum size of blocks we handle from
+		 * the freelist, don't attempt any coalescing.
+		 */
+
+		if G_UNLIKELY(len >= XMALLOC_MAXSIZE) {
+			if (xmalloc_debugging(6)) {
+				t_debug("XM ignoring coalescing request for %zu-byte %p:"
+					" would be larger than maxsize", len, base);
+			}
+			xstats.freelist_coalescing_ignored++;
+			return FALSE;
+		}
+
+		idx = xfl_find_freelist_index(len);
+		fl = &xfreelist[idx];
 
 		/*
 		 * If there are little blocks in the list, there's no need to coalesce.
