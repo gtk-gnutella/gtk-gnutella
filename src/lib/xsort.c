@@ -116,19 +116,11 @@ typedef struct {
  *    stack size is needed (actually O(1) in this case)!
  */
 
-static void
+static G_GNUC_HOT void
 quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 {
 	register char *base_ptr = pbase;
 	const size_t max_thresh = MAX_THRESH * size;
-	char *pivot_buffer;
-
-	/*
-	 * Allocating SIZE bytes for a pivot buffer facilitates a better
-	 * algorithm below since we can do comparisons directly on the pivot.
-	 */
-
-	pivot_buffer = alloca(size);
 
 	if (total_elems == 0)
 		return;	/* Avoid lossage with unsigned arithmetic below.  */
@@ -142,7 +134,6 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 		while (STACK_NOT_EMPTY) {
 			char *left_ptr;
 			char *right_ptr;
-			char *pivot = pivot_buffer;
 
 			/*
 			 * Select median value from among LO, MID, and HI. Rearrange
@@ -152,18 +143,18 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * the while loops.
 			 */
 
-			char *mid = lo + size * ((hi - lo) / size >> 1);
+			char *pivot = lo + size * ((hi - lo) / size >> 1);
 
-			if ((*cmp)(mid, lo) < 0)
-				SWAP(mid, lo, size);
-			if ((*cmp)(hi, mid) < 0)
-				SWAP(mid, hi, size);
+			if ((*cmp)(pivot, lo) < 0)
+				SWAP(pivot, lo, size);
+			if ((*cmp)(hi, pivot) < 0)
+				SWAP(pivot, hi, size);
 			else
 				goto jump_over;
-			if ((*cmp)(mid, lo) < 0)
-				SWAP(mid, lo, size);
+			if ((*cmp)(pivot, lo) < 0)
+				SWAP(pivot, lo, size);
 		jump_over:
-			memcpy(pivot, mid, size);
+			/* ``pivot'' now points to the selected pivot item */
 
 			left_ptr  = lo + size;
 			right_ptr = hi - size;
@@ -175,14 +166,35 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 */
 
 			do {
-				while ((*cmp)(left_ptr, pivot) < 0)
+				/*
+				 * Optimiziation by Raphael Manfredi to avoid a comparison
+				 * of the pivot element with itself.
+				 *
+				 * This also protects code that asserts no two items can be
+				 * identical when we have meta-knowledge that all the items
+				 * in the sorted array are different.
+				 *
+				 * Some code in gtk-gnutella expects the sort callback to
+				 * never be called with items that would compare as equal
+				 * when we are sorting a set!
+				 *		--RAM, 2012-03-01.
+				 */
+
+				while (left_ptr != pivot && (*cmp)(left_ptr, pivot) < 0)
 					left_ptr += size;
 
-				while ((*cmp)(pivot, right_ptr) < 0)
+				while (right_ptr != pivot && (*cmp)(pivot, right_ptr) < 0)
 					right_ptr -= size;
 
 				if G_LIKELY(left_ptr < right_ptr) {
 					SWAP(left_ptr, right_ptr, size);
+
+					/* Update pivot address */
+					if (left_ptr == pivot)
+						pivot = right_ptr;	/* New pivot: we swapped items */
+					else if (right_ptr == pivot)
+						pivot = left_ptr;
+
 					left_ptr += size;
 					right_ptr -= size;
 				} else if (left_ptr == right_ptr) {
