@@ -51,8 +51,10 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-ht]\n"
+		"Usage: %s [-ht] -c items -s item_size\n"
+		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
+		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
 		, progname);
 	exit(EXIT_FAILURE);
@@ -204,6 +206,16 @@ plain_4_less(void *m, size_t i, size_t j)
 	return c < 0;
 }
 
+static bool
+generic_less(void *m, size_t i, size_t j)
+{
+	void *a = ptr_add_offset(m, i * item_size);	/* Global variable */
+	void *b = ptr_add_offset(m, j * item_size);	/* Global variable */
+
+	return memcmp(a, b, item_size) < 0;	/* Global variable */
+}
+
+
 static smsort_less_t
 get_less_routine(size_t isize)
 {
@@ -217,8 +229,10 @@ get_less_routine(size_t isize)
 		return plain_3_less;
 	else if (sizeof(struct plain_4) == isize)
 		return plain_4_less;
-	else
-		g_assert_not_reached();
+	else {
+		item_size = isize;		/* Global variable */
+		return generic_less;
+	}
 }
 
 static void
@@ -276,6 +290,15 @@ plain_4_swap(void *m, size_t i, size_t j)
 	x[i] = tmp;
 }
 
+static void
+generic_swap(void *m, size_t i, size_t j)
+{
+	void *a = ptr_add_offset(m, i * item_size);	/* Global variable */
+	void *b = ptr_add_offset(m, j * item_size);	/* Global variable */
+
+	SWAP(a, b, item_size);	/* Global variable */
+}
+
 static smsort_swap_t
 get_swap_routine(size_t isize)
 {
@@ -290,7 +313,7 @@ get_swap_routine(size_t isize)
 	else if (sizeof(struct plain_4) == isize)
 		return plain_4_swap;
 	else
-		g_assert_not_reached();
+		return generic_swap;
 }
 
 static void
@@ -464,22 +487,113 @@ run(void *array, size_t cnt, size_t isize, bool chrono, const char *what)
 	timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
 }
 
+static void
+test(size_t cnt, size_t isize, bool chrono)
+{
+	char buf[80];
+	void *array;
+	void *copy;
+
+	str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	array = generate_array(cnt, isize);
+	copy = xcopy(array, cnt * isize);
+
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	xsort(array, cnt, isize, get_cmp_routine(isize));
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf,
+		"%zu almost sorted item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	perturb_sorted_array(array, cnt, isize);
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf,
+		"%zu reverse-sorted item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	xsort(array, cnt, isize, get_revcmp_routine(isize));
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf,
+		"%zu almost reverse-sorted item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	perturb_sorted_array(array, cnt, isize);
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf,
+		"%zu sorted 3/4-1/4 item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	memcpy(array, copy, cnt * isize);
+
+	{
+		size_t thresh = cnt / 4;
+		size_t lower = cnt - thresh;
+		void *upper = ptr_add_offset(array, lower * isize);
+
+		xsort(array, lower, isize, get_cmp_routine(isize));
+		if (thresh > 0)
+			xsort(upper, thresh, isize, get_cmp_routine(isize));
+	}
+	run(array, cnt, isize, chrono, buf);
+
+	str_bprintf(buf, sizeof buf,
+		"%zu sorted n-8 item%s of %zu bytes",
+		cnt, 1 == cnt ? "" : "s", isize);
+
+	memcpy(array, copy, cnt * isize);
+
+	{
+		size_t thresh = 8;
+		size_t lower = cnt - thresh;
+		void *upper = ptr_add_offset(array, lower * isize);
+
+		if (cnt > thresh) {
+			xsort(array, lower, isize, get_cmp_routine(isize));
+			xsort(upper, thresh, isize, get_cmp_routine(isize));
+		} else {
+			xsort(array, cnt, isize, get_cmp_routine(isize));
+		}
+	}
+	run(array, cnt, isize, chrono, buf);
+
+	xfree(array);
+	xfree(copy);
+}
+
 int
 main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
 	bool tflag = 0;
+	size_t count = 0;
+	size_t isize = 0;
 	int c;
 	size_t i;
 
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "ht")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hs:t")) != EOF) {
 		switch (c) {
+		case 'c':			/* amount of items to use in array */
+			count = atol(optarg);
+			break;
 		case 't':			/* timing report */
 			tflag++;
+			break;
+		case 's':			/* item size */
+			isize = atol(optarg);
 			break;
 		case 'h':			/* show help */
 		default:
@@ -492,90 +606,22 @@ main(int argc, char **argv)
 		usage();
 
 	for (i = 1; i <= TEST_BITS; i++) {
-		size_t cnt = 1U << i;
+		bool is_last = count != 0;
+		size_t cnt = count != 0 ? count : 1U << i;
 		size_t j;
 
 		for (j = 0; j < TEST_WORDS; j++) {
-			char buf[80];
-			size_t isize = sizeof(void *) + INTSIZE * j;
-			void *array;
-			void *copy;
+			bool is_last_size = isize != 0;
+			size_t size = isize != 0 ? isize : sizeof(void *) + INTSIZE * j;
 
-			str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
+			test(cnt, size, tflag);
 
-			array = generate_array(cnt, isize);
-			copy = xcopy(array, cnt * isize);
-
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			xsort(array, cnt, isize, get_cmp_routine(isize));
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf,
-				"%zu almost sorted item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			perturb_sorted_array(array, cnt, isize);
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf,
-				"%zu reverse-sorted item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			xsort(array, cnt, isize, get_revcmp_routine(isize));
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf,
-				"%zu almost reverse-sorted item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			perturb_sorted_array(array, cnt, isize);
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf,
-				"%zu sorted 3/4-1/4 item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			memcpy(array, copy, cnt * isize);
-
-			{
-				size_t thresh = cnt / 4;
-				size_t lower = cnt - thresh;
-				void *upper = ptr_add_offset(array, lower * isize);
-
-				xsort(array, lower, isize, get_cmp_routine(isize));
-				if (thresh > 0)
-					xsort(upper, thresh, isize, get_cmp_routine(isize));
-			}
-			run(array, cnt, isize, tflag, buf);
-
-			str_bprintf(buf, sizeof buf,
-				"%zu sorted n-8 item%s of %zu bytes",
-				cnt, 1 == cnt ? "" : "s", isize);
-
-			memcpy(array, copy, cnt * isize);
-
-			{
-				size_t thresh = 8;
-				size_t lower = cnt - thresh;
-				void *upper = ptr_add_offset(array, lower * isize);
-
-				if (cnt > thresh) {
-					xsort(array, lower, isize, get_cmp_routine(isize));
-					xsort(upper, thresh, isize, get_cmp_routine(isize));
-				} else {
-					xsort(array, cnt, isize, get_cmp_routine(isize));
-				}
-			}
-			run(array, cnt, isize, tflag, buf);
-
-			xfree(array);
-			xfree(copy);
+			if (is_last_size)
+				break;
 		}
+
+		if (is_last)
+			break;
 	}
 
 	return 0;
