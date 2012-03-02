@@ -66,9 +66,16 @@
 
 /*
  * Discontinue quicksort algorithm when partition gets below this size.
- * This particular magic number was chosen to work best on a Sun 4/260.
+ * 4 was a particular magic number chosen to work best on a Sun 4/260.
+ * 7 seems to be working well on Intel CPUs.
  */
-#define MAX_THRESH 4
+#define MAX_THRESH 7
+
+/*
+ * Use carefully-chosen median insted of median-of-3 when there are more
+ * items in the partition than this minimum.
+ */
+#define MIN_MEDIAN	40
 
 /* Stack node declarations used to store unfulfilled partition obligations. */
 typedef struct {
@@ -89,6 +96,87 @@ typedef struct {
 #define	POP(low, high)	((void) (--top, (low = top->lo), (high = top->hi)))
 #define	STACK_NOT_EMPTY	(stack < top)
 
+/**
+ * Insertion sort for small partions of MAX_THRESH items at most.
+ */
+static G_GNUC_HOT void
+insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
+{
+	char *base_ptr = pbase;
+	char *const end_ptr = &base_ptr[lastoff];	/* Last item */
+	char *tmp_ptr = base_ptr;
+	register char *run_ptr;
+
+	/*
+	 * Find smallest element and place it at the array's beginning.
+	 * This is the smallest array element, and the operation speeds up
+	 * insertion sort's inner loop.
+	 */
+
+	for (run_ptr = tmp_ptr + size; run_ptr <= end_ptr; run_ptr += size) {
+		if ((*cmp)(run_ptr, tmp_ptr) < 0)
+			tmp_ptr = run_ptr;
+	}
+
+	if G_LIKELY(tmp_ptr != base_ptr)
+		SWAP(tmp_ptr, base_ptr, size);
+
+	/* Insertion sort, running from left-hand-side up to right-hand-side */
+
+	run_ptr = base_ptr + size;
+
+	while ((run_ptr += size) <= end_ptr) {
+		tmp_ptr = run_ptr - size;
+		while ((*cmp)(run_ptr, tmp_ptr) < 0) {
+			tmp_ptr -= size;
+		}
+
+		tmp_ptr += size;
+		if (tmp_ptr != run_ptr) {
+			char *trav = run_ptr + size;
+
+			while (--trav >= run_ptr) {
+				char c = *trav;
+				register char *hi, *lo;
+
+				for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo) {
+					*hi = *lo;
+				}
+				*hi = c;
+			}
+		}
+	}
+}
+
+/**
+ * Sort 3 items to ensure lo <= mid <= hi.
+ */
+static inline void 
+order_three(void *lo, void *mid, void *hi, size_t size, xsort_cmp_t cmp)
+{
+	if ((*cmp)(mid, lo) < 0)
+		SWAP(mid, lo, size);
+	/* lo <= mid */
+	if ((*cmp)(hi, mid) < 0) {
+		SWAP(hi, mid, size);
+		/* mid < hi */
+		if ((*cmp)(mid, lo) < 0)
+			SWAP(mid, lo, size);
+		/* lo <= mid < hi */
+	}
+	/* lo <= mid <= hi */
+}
+
+/**
+ * Return position of median among 3 items without re-arranging items.
+ */
+static inline void *
+median_three(void *a, void *b, void *c, xsort_cmp_t cmp)
+{
+	return (*cmp)(a, b) < 0 ?
+		((*cmp)(b, c) < 0 ? b : ((*cmp)(a, c) < 0 ? c : a )) :
+		((*cmp)(b, c) > 0 ? b : ((*cmp)(a, c) < 0 ? a : c ));
+}
 
 /*
  * Order size using quicksort.  This implementation incorporates
@@ -119,10 +207,10 @@ typedef struct {
 static G_GNUC_HOT void
 quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 {
-	register char *base_ptr = pbase;
+	char *base_ptr = pbase;
 	const size_t max_thresh = MAX_THRESH * size;
 
-	if (total_elems == 0)
+	if G_UNLIKELY(total_elems == 0)
 		return;	/* Avoid lossage with unsigned arithmetic below.  */
 
 	if (total_elems > MAX_THRESH) {
@@ -132,32 +220,41 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 		stack_node *top = stack + 1;
 
 		while (STACK_NOT_EMPTY) {
-			char *left_ptr;
-			char *right_ptr;
+			register char *left_ptr;
+			register char *right_ptr;
+			size_t items = (hi - lo) / size;
+			register char *pivot = lo + size * (items >> 1);
 
 			/*
-			 * Select median value from among LO, MID, and HI. Rearrange
-			 * LO and HI so the three values are sorted. This lowers the
-			 * probability of picking a pathological pivot value and
-			 * skips a comparison for both the LEFT_PTR and RIGHT_PTR in
-			 * the while loops.
+			 * If there are more than MIN_MEDIAN items, it pays to spend
+			 * more time selecting a good pivot by doing a median over
+			 * several items.
+			 *		--RAM, 2012-03-02
 			 */
 
-			char *pivot = lo + size * ((hi - lo) / size >> 1);
+			if (items > MIN_MEDIAN) {
+				size_t d = size * (items >> 3);
+				char *plo, *phi;
 
-			if ((*cmp)(pivot, lo) < 0)
-				SWAP(pivot, lo, size);
-			if ((*cmp)(hi, pivot) < 0)
-				SWAP(pivot, hi, size);
-			else
-				goto jump_over;
-			if ((*cmp)(pivot, lo) < 0)
-				SWAP(pivot, lo, size);
-		jump_over:
-			/* ``pivot'' now points to the selected pivot item */
+				plo = median_three(lo, lo + d, lo + 2*d, cmp);
+				pivot = median_three(pivot - d, pivot, pivot + d, cmp);
+				phi = median_three(hi - 2*d, hi - d, hi, cmp);
+				pivot = median_three(plo, pivot, phi, cmp);
+				left_ptr = lo;
+				right_ptr = hi;
+			} else {
+				/*
+				 * Select median value from among LO, MID, and HI. Rearrange
+				 * LO and HI so the three values are sorted. This lowers the
+				 * probability of picking a pathological pivot value and
+				 * skips a comparison for both the LEFT_PTR and RIGHT_PTR in
+				 * the while loops.
+				 */
 
-			left_ptr  = lo + size;
-			right_ptr = hi - size;
+				order_three(lo, pivot, hi, size, cmp);
+				left_ptr  = lo + size;
+				right_ptr = hi - size;
+			}
 
 			/*
 			 * Here's the famous ``collapse the walls'' section of quicksort.
@@ -207,16 +304,24 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			/*
 			 * Set up pointers for next iteration.  First determine whether
 			 * left and right partitions are below the threshold size.  If so,
-			 * ignore one or both.  Otherwise, push the larger partition's
-			 * bounds on the stack and continue sorting the smaller one.
+			 * insertsort one or both.  Otherwise, push the larger partition's
+			 * bounds on the stack and continue quicksorting the smaller one.
+			 *
+			 * Change by Raphael Manfredi: immediately do the insertsort of
+			 * the small partitions instead of waiting for the end of quicksort
+			 * to benefit from the locality of reference, at the expense of
+			 * more setup costs.
 			 */
 
-			if (ptr_diff(right_ptr, lo) <= max_thresh) {
-				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh)
+			if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
+				insertsort(lo, ptr_diff(right_ptr, lo), size, cmp);
+				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
+					insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
 					POP(lo, hi);	/* Ignore both small partitions. */
-				else
+				} else
 					lo = left_ptr;	/* Ignore small left partition. */
 			} else if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
+				insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
 				hi = right_ptr;		/* Ignore small right partition. */
 			} else if (ptr_diff(right_ptr, lo) > ptr_diff(hi, left_ptr)) {
 				/* Push larger left partition indices. */
@@ -228,61 +333,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				hi = right_ptr;
 			}
 		}
-	}
-
-	/* Once the BASE_PTR array is partially sorted by quicksort the rest
-	 * is completely sorted using insertion sort, since this is efficient
-	 * for partitions below MAX_THRESH size. BASE_PTR points to the beginning
-	 * of the array to sort, and END_PTR points at the very last element in
-	 * the array (*not* one beyond it!).
-	 */
-
-	{
-		char *const end_ptr = &base_ptr[size * (total_elems - 1)];
-		char *tmp_ptr = base_ptr;
-		char *thresh = MIN(end_ptr, base_ptr + max_thresh);
-		register char *run_ptr;
-
-		/*
-		 * Find smallest element in first threshold and place it at the
-		 * array's beginning.  This is the smallest array element,
-		 * and the operation speeds up insertion sort's inner loop.
-		 */
-
-		for (run_ptr = tmp_ptr + size; run_ptr <= thresh; run_ptr += size) {
-			if ((*cmp)(run_ptr, tmp_ptr) < 0)
-				tmp_ptr = run_ptr;
-		}
-
-		if G_LIKELY(tmp_ptr != base_ptr)
-		  SWAP(tmp_ptr, base_ptr, size);
-
-		/* Insertion sort, running from left-hand-side up to right-hand-side */
-
-		run_ptr = base_ptr + size;
-
-		while ((run_ptr += size) <= end_ptr) {
-			tmp_ptr = run_ptr - size;
-			while ((*cmp)(run_ptr, tmp_ptr) < 0) {
-				tmp_ptr -= size;
-			}
-
-			tmp_ptr += size;
-			if (tmp_ptr != run_ptr) {
-				char *trav;
-
-				trav = run_ptr + size;
-				while (--trav >= run_ptr) {
-					char c = *trav;
-					char *hi, *lo;
-
-					for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo) {
-						*hi = *lo;
-					}
-					*hi = c;
-				}
-			}
-		}
+	} else {
+		insertsort(pbase, (total_elems - 1) * size, size, cmp);
 	}
 }
 
