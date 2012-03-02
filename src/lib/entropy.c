@@ -75,11 +75,11 @@
 #include "compat_sleep_ms.h"
 #include "endian.h"
 #include "gethomedir.h"
-#include "hashing.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "pow2.h"
+#include "rand31.h"
 #include "sha1.h"
 #include "stringify.h"
 #include "thread.h"
@@ -88,8 +88,6 @@
 #include "vmm.h"				/* For vmm_trap_page() */
 
 #include "override.h"			/* Must be the last header included */
-
-#define RANDOM_MASK_31	((1U << 31) - 1)	/**< Last 31 bits */
 
 /**
  * Maximum amount of items we can randomly shuffle.
@@ -164,8 +162,8 @@ sha1_feed_fstat(SHA1Context *ctx, int fd)
 /**
  * Create a small but unpredictable delay in the process execution.
  */
-static void
-entropy_create_delay(void)
+void
+entropy_delay(void)
 {
 #ifdef HAS_SCHED_YIELD
 	do_sched_yield();		/* See lib/mingw32.h */
@@ -194,68 +192,6 @@ entropy_merge(sha1_t *digest)
 }
 
 /**
- * @return next random number following given seed.
- */
-static inline int
-entropy_prng_next(int seed)
-{
-	return (seed * 1103515245 + 12345) & RANDOM_MASK_31;
-}
-
-/**
- * Linear congruential pseudo-random number generation (PRNG).
- *
- * This PRNG is not used directly but rather constitutes one source of
- * randomness for the entropy_rand31() routine.
- *
- * @return a 31-bit random number.
- */
-static int
-entropy_prng(void)
-{
-	static bool seeded;
-	static int seed;
-
-	if G_UNLIKELY(!seeded) {
-		tm_t now;
-		jmp_buf env;
-		unsigned discard;
-
-		/*
-		 * Our simple PRNG has only 31 bits of internal state.
-		 *
-		 * It is seeded by hashing some environmental constants: the ID of
-		 * the process, the current time and current CPU state.  To further
-		 * create a unique starting point in the series of generated numbers,
-		 * a second different hashing is done and reduced to 8 bits.  This
-		 * is interpreted as the amount of initial random values to discard.
-		 */
-
-		tm_now_exact(&now);
-		seed = (GOLDEN_RATIO_31 * getpid()) >> 1;
-		seed += binary_hash(&now, sizeof now);
-		entropy_create_delay();
-		tm_now_exact(&now);
-		seed += binary_hash(&now, sizeof now);
-		ZERO(&env);			/* Avoid uninitialized memory reads */
-		if (setjmp(env)) {
-			g_assert_not_reached(); /* We never longjmp() */
-		}
-		seed += binary_hash(env, sizeof env);
-		discard = binary_hash2(env, sizeof env);
-		discard ^= binary_hash2(&now, sizeof now);
-		discard += getpid();
-		discard = hashing_fold(discard, 8);
-		while (0 != discard--) {
-			seed = entropy_prng_next(seed);
-		}
-		seeded = TRUE;
-	}
-
-	return seed = entropy_prng_next(seed);
-}
-
-/**
  * Minimal pseudo-random number generation, combining a simple PRNG with
  * past-collected entropy.
  *
@@ -267,13 +203,7 @@ entropy_rand31(void)
 	int result;
 	static size_t offset;
 
-	/*
-	 * The low-order bits of the PRNG are less random than the upper ones,
-	 * and they have a smaller period.  Keep only the leading 16 bits of the
-	 * first value and the leading 15 bits of the second value.
-	 */
-
-	result = (entropy_prng() >> 15) | (entropy_prng() & 0x7fff0000);
+	result = rand31();
 
 	/*
 	 * Combine with previously generated entropy to create even better
@@ -285,7 +215,7 @@ entropy_rand31(void)
 	result += peek_be32(ptr_add_offset(&entropy_previous, offset));
 	offset = (offset + 4) % sizeof entropy_previous;
 
-	return result & RANDOM_MASK_31;
+	return result & RAND31_MASK;
 }
 
 /**
@@ -331,8 +261,8 @@ entropy_rand31_upto(unsigned max)
 	}
 
 	s_error("no luck with random number generator");
-}
-
+ }
+ 
 /**
  * Shuffle array in-place.
  */
@@ -965,7 +895,7 @@ entropy_collect_timing(SHA1Context *ctx, bool slow)
 	if (slow) {
 		compat_sleep_ms(2);			/* 2 ms */
 	} else {
-		entropy_create_delay();		/* create small, unpredictable delay */
+		entropy_delay();			/* create small, unpredictable delay */
 	}
 
 	tm_now_exact(&after);

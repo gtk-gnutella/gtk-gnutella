@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,23 +25,27 @@
  * @ingroup lib
  * @file
  *
- * Entropy collection.
+ * Simple Pseudo-Random Number Generation (PRNG) engine.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2012
  */
 
-#ifndef _entropy_h_
-#define _entropy_h_
+#ifndef _rand31_h_
+#define _rand31_h_
 
-struct sha1;
+#define RAND31_MASK	((1U << 31) - 1)	/**< Last 31 bits */
+#define RAND31_MAX	RAND31_MASK			/**< Maximum random number */
 
-void entropy_collect(struct sha1 *digest);
-void entropy_minimal_collect(struct sha1 *digest);
-unsigned entropy_random(void);
-void entropy_fill(void *buffer, size_t len);
-void entropy_delay(void);
+/*
+ * Public interface.
+ */
 
-#endif /* _entropy_h_ */
+int rand31();
+void rand31_set_seed(unsigned seed);
+int rand31_upto(unsigned max);
+void rand31_bytes(void *dst, size_t size);
+
+#endif /* _rand31_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

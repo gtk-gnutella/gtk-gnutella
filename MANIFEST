@@ -755,6 +755,8 @@ src/lib/product.c
 src/lib/product.h
 src/lib/prop.c
 src/lib/prop.h
+src/lib/rand31.c
+src/lib/rand31.h
 src/lib/random.c
 src/lib/random.h
 src/lib/regex.c

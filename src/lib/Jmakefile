@@ -155,6 +155,7 @@ LSRC = \
 	pow2.c \
 	product.c \
 	prop.c \
+	rand31.c \
 	random.c \
 	regex.c \
 	sectoken.c \
