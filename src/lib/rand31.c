@@ -49,6 +49,7 @@
 #include "entropy.h"
 #include "hashing.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "pow2.h"
 #include "tm.h"
 
