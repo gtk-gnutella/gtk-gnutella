@@ -34,6 +34,7 @@
 
 #include "lib/tm.h"
 #include "lib/glib-missing.h"
+#include "lib/rand31.h"
 
 #include "sdbm.h"
 
@@ -50,23 +51,6 @@ static bool large_keys, large_values, common_head_tail;
 #define WR_VOLATILE	(1 << 1)
 #define WR_EMPTY	(1 << 2)
 #define WR_DELETING	(1 << 3)
-
-#define MY_RANDMAX 32767
-
-static unsigned long next = 1;
-
-static int
-my_rand(void)
-{
-	next = next * 1103515245 + 12345;
-	return (unsigned) (next/65536) % (1 + MY_RANDMAX);
-}
-
-static void
-my_srand(unsigned seed)
-{
-	next = seed;
-}
 
 static void G_GNUC_NORETURN
 usage(void)
@@ -166,7 +150,7 @@ fill_key(char *buf, size_t len, long i)
 	}
 
 	if (randomize) {
-		int v = my_rand();
+		int v = rand31();
 		w = gm_snprintf(&buf[offset], avail, "%06d%010ld", v, i);
 	} else {
 		w = gm_snprintf(&buf[offset], avail, "%016ld", i);
@@ -386,7 +370,7 @@ timeit(void (*f)(const char *, long, long, int, tm_t *),
 	tm_t start, end, done;
 
 	if (randomize)
-		my_srand(rseed);	/* Repeatable sequence for all tests */
+		rand31_set_seed(rseed);	/* Repeatable sequence for all tests */
 
 	tm_now_exact(&start);
 	(*f)(name, count, cache, wflags, &done);
