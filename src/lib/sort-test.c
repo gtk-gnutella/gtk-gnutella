@@ -32,6 +32,7 @@
 
 #include "common.h"
 
+#include "lib/base16.h"
 #include "lib/random.h"
 #include "lib/smsort.h"
 #include "lib/str.h"
@@ -42,6 +43,8 @@
 #define TEST_BITS	16
 #define TEST_WORDS	4
 
+#define DUMP_BYTES	16
+
 char *progname;
 size_t item_size;
 
@@ -51,9 +54,10 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-ht] -c items -s item_size\n"
+		"Usage: %s [-ht] [-c items] [-n loops] [-s item_size]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
+		"  -n : sets amount of loops\n"
 		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
 		, progname);
@@ -368,6 +372,27 @@ smsorte_test(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 }
 
 static void
+dump_unsorted(const void *copy, size_t cnt, size_t isize, size_t failed)
+{
+	size_t i;
+
+	printf("unsorted array (at index %lu):\n", (ulong) failed);
+
+	for (i = 0; i < cnt; i++) {
+		char buf[DUMP_BYTES * 2 + 1];
+		size_t n;
+		const char *cur = const_ptr_add_offset(copy, i * isize);
+
+		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		buf[n] = '\0';
+		printf("%6lu %s%s%s\n", (ulong) i, buf,
+			isize > DUMP_BYTES ? "..." : "",
+			i == failed ? " <-- FAILED" : "");
+	}
+	abort();
+}
+
+static void
 assert_is_sorted(const void *copy, size_t cnt, size_t isize)
 {
 	cmp_routine cmp = get_cmp_routine(isize);
@@ -377,7 +402,8 @@ assert_is_sorted(const void *copy, size_t cnt, size_t isize)
 		const char *prev = const_ptr_add_offset(copy, (i - 1) * isize);
 		const char *cur = const_ptr_add_offset(copy, i * isize);
 
-		g_assert((*cmp)(prev, cur) <= 0);
+		if ((*cmp)(prev, cur) > 0)
+			dump_unsorted(copy, cnt, isize, i);
 	}
 }
 
@@ -385,12 +411,15 @@ static double
 dry_run(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
 	tm_t start, end;
+	double ustart, uend;
 
 	tm_now_exact(&start);
+	tm_cputime(&ustart, NULL);
 	qsort_test(array, copy, cnt, isize, loops);
+	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 
-	return tm_elapsed_f(&end, &start);
+	return ustart == uend ? tm_elapsed_f(&end, &start) : uend - ustart;
 }
 
 static size_t
@@ -418,20 +447,24 @@ timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 	bool chrono, const char *what, const char *algorithm)
 {
 	tm_t start, end;
+	double ustart, uend;
 	void *copy;
 
 	copy = xmalloc(cnt * isize);
 
 	tm_now_exact(&start);
+	tm_cputime(&ustart, NULL);
 	(*f)(array, copy, cnt, isize, loops);
+	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 	assert_is_sorted(copy, cnt, isize);
 	xfree(copy);
 
 	if (chrono) {
 		double elapsed = tm_elapsed_f(&end, &start);
-		printf("%7s - %s - [%lu] took %g s\n", algorithm, what,
-			(ulong) loops, elapsed);
+		double cpu = uend - ustart;
+		printf("%7s - %s - [%lu] time=%.3gs, CPU=%.3gs\n", algorithm, what,
+			(ulong) loops, elapsed, cpu);
 	} else {
 		printf("%7s - %s - OK\n", algorithm, what);
 	}
@@ -476,9 +509,11 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 }
 
 static void
-run(void *array, size_t cnt, size_t isize, bool chrono, const char *what)
+run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
+	const char *what)
 {
-	size_t loops = chrono ? calibrate(array, cnt, isize) : 1;
+	if (0 == loops)
+		loops = chrono ? calibrate(array, cnt, isize) : 1;
 
 	timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
@@ -488,7 +523,7 @@ run(void *array, size_t cnt, size_t isize, bool chrono, const char *what)
 }
 
 static void
-test(size_t cnt, size_t isize, bool chrono)
+test(size_t cnt, size_t isize, bool chrono, size_t loops)
 {
 	char buf[80];
 	void *array;
@@ -500,34 +535,34 @@ test(size_t cnt, size_t isize, bool chrono)
 	array = generate_array(cnt, isize);
 	copy = xcopy(array, cnt * isize);
 
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
 		cnt, 1 == cnt ? "" : "s", isize);
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu almost sorted item%s of %zu bytes",
 		cnt, 1 == cnt ? "" : "s", isize);
 
 	perturb_sorted_array(array, cnt, isize);
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu reverse-sorted item%s of %zu bytes",
 		cnt, 1 == cnt ? "" : "s", isize);
 
 	xsort(array, cnt, isize, get_revcmp_routine(isize));
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
-		"%zu almost reverse-sorted item%s of %zu bytes",
+		"%zu almost rev-sorted item%s of %zu bytes",
 		cnt, 1 == cnt ? "" : "s", isize);
 
 	perturb_sorted_array(array, cnt, isize);
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted 3/4-1/4 item%s of %zu bytes",
@@ -544,7 +579,7 @@ test(size_t cnt, size_t isize, bool chrono)
 		if (thresh > 0)
 			xsort(upper, thresh, isize, get_cmp_routine(isize));
 	}
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(buf, sizeof buf,
 		"%zu sorted n-8 item%s of %zu bytes",
@@ -564,7 +599,7 @@ test(size_t cnt, size_t isize, bool chrono)
 			xsort(array, cnt, isize, get_cmp_routine(isize));
 		}
 	}
-	run(array, cnt, isize, chrono, buf);
+	run(array, cnt, isize, chrono, loops, buf);
 
 	xfree(array);
 	xfree(copy);
@@ -578,19 +613,23 @@ main(int argc, char **argv)
 	bool tflag = 0;
 	size_t count = 0;
 	size_t isize = 0;
+	size_t loops = 0;
 	int c;
 	size_t i;
 
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:hs:t")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:t")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
 			break;
 		case 't':			/* timing report */
 			tflag++;
+			break;
+		case 'n':			/* amount of loops */
+			loops = atol(optarg);
 			break;
 		case 's':			/* item size */
 			isize = atol(optarg);
@@ -614,7 +653,7 @@ main(int argc, char **argv)
 			bool is_last_size = isize != 0;
 			size_t size = isize != 0 ? isize : sizeof(void *) + INTSIZE * j;
 
-			test(cnt, size, tflag);
+			test(cnt, size, tflag, loops);
 
 			if (is_last_size)
 				break;
