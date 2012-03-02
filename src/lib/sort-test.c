@@ -33,7 +33,7 @@
 #include "common.h"
 
 #include "lib/base16.h"
-#include "lib/random.h"
+#include "lib/rand31.h"
 #include "lib/smsort.h"
 #include "lib/str.h"
 #include "lib/tm.h"
@@ -54,12 +54,13 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-ht] [-c items] [-n loops] [-s item_size]\n"
+		"Usage: %s [-ht] [-c items] [-n loops] [-s item_size] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
 		"  -n : sets amount of loops\n"
 		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
+		"  -R : seed for repeatable random key sequence\n"
 		, progname);
 	exit(EXIT_FAILURE);
 }
@@ -479,7 +480,7 @@ generate_array(size_t cnt, size_t isize)
 	
 	len = cnt * isize;
 	array = xmalloc(len);
-	random_bytes(array, len);
+	rand31_bytes(array, len);
 
 	return array;
 }
@@ -493,12 +494,12 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 
-	n = 1 + random_value(cnt / 16);
+	n = 1 + rand31_upto(cnt / 16);
 	tmp = alloca(isize);
 
 	for (i = 0; i < n; i++) {
-		size_t a = random_value(cnt - 1);
-		size_t b = random_value(cnt - 1);
+		size_t a = rand31_upto(cnt - 1);
+		size_t b = rand31_upto(cnt - 1);
 		void *x = ptr_add_offset(array, a * isize);
 		void *y = ptr_add_offset(array, b * isize);
 
@@ -616,11 +617,12 @@ main(int argc, char **argv)
 	size_t loops = 0;
 	int c;
 	size_t i;
+	unsigned rseed = 0;
 
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:hn:s:t")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:tR:")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -634,6 +636,9 @@ main(int argc, char **argv)
 		case 's':			/* item size */
 			isize = atol(optarg);
 			break;
+		case 'R':			/* randomize in a repeatable way */
+			rseed = atoi(optarg);
+			break;
 		case 'h':			/* show help */
 		default:
 			usage();
@@ -643,6 +648,8 @@ main(int argc, char **argv)
 
 	if ((argc -= optind) != 0)
 		usage();
+
+	rand31_set_seed(rseed);
 
 	for (i = 1; i <= TEST_BITS; i++) {
 		bool is_last = count != 0;
