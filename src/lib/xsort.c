@@ -34,6 +34,12 @@
  * dependency, strip libc internal dependencies, and reformat to our coding
  * standards.
  *
+ * The excellent quicksort() implementation from Douglas C. Schmidt was further
+ * optimized: maximize the chances of picking a good pivot when the partition
+ * is large, optimize insertsort() when dealing with aligned items that are
+ * multiples of words, and detect an already sorted partition or one that is
+ * almost-sorted to discontinue quicksort() and switch to insertsort() instead.
+ *
  * @author Mike Haertel
  * @date 1988
  * @author Douglas C. Schmidt
@@ -76,6 +82,13 @@
  * items in the partition than this minimum.
  */
 #define MIN_MEDIAN	40
+
+/*
+ * Threshold on the amount of items we swap in a partition to guide us in
+ * deciding whether it is almost sorted and insersort would be more efficient
+ * than quicksort to complete the sorting.
+ */
+#define SWAP_THRESH 1
 
 /* Stack node declarations used to store unfulfilled partition obligations. */
 typedef struct {
@@ -245,6 +258,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			register char *right_ptr;
 			size_t items = (hi - lo) / size;
 			register char *pivot = lo + size * (items >> 1);
+			size_t swapped;
 
 			/*
 			 * If there are more than MIN_MEDIAN items, it pays to spend
@@ -283,6 +297,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * that this algorithm runs much faster than others.
 			 */
 
+			swapped = 0;	/* Detect sorted partition --RAM */
+
 			do {
 				/*
 				 * Optimiziation by Raphael Manfredi to avoid a comparison
@@ -306,6 +322,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 
 				if G_LIKELY(left_ptr < right_ptr) {
 					SWAP(left_ptr, right_ptr, size);
+					swapped++;
 
 					/* Update pivot address */
 					if (left_ptr == pivot)
@@ -332,9 +349,18 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * the small partitions instead of waiting for the end of quicksort
 			 * to benefit from the locality of reference, at the expense of
 			 * more setup costs.
+			 *
+			 * Optimization by Raphael Manfredi: if we did not swap any
+			 * items in the partition, use insertsort() on it and do not
+			 * recurse.  This greatly accelerates quicksort() on already
+			 * sorted arrays.
 			 */
 
-			if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
+			if G_UNLIKELY(swapped <= SWAP_THRESH) {
+				/* Switch to insertsort() to completely sort this partition */
+				insertsort(lo, ptr_diff(hi, lo), size, cmp);
+				POP(lo, hi);	/* Done with partition */
+			} else if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
 				insertsort(lo, ptr_diff(right_ptr, lo), size, cmp);
 				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
 					insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
