@@ -240,8 +240,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				pivot = median_three(pivot - d, pivot, pivot + d, cmp);
 				phi = median_three(hi - 2*d, hi - d, hi, cmp);
 				pivot = median_three(plo, pivot, phi, cmp);
-				left_ptr = lo;
-				right_ptr = hi;
+				left_ptr = lo + (lo == pivot ? size : 0);
+				right_ptr = hi - (hi == pivot ? size : 0);
 			} else {
 				/*
 				 * Select median value from among LO, MID, and HI. Rearrange
