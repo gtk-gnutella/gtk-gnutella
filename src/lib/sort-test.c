@@ -46,7 +46,8 @@
 #define DUMP_BYTES	16
 
 char *progname;
-size_t item_size;
+static size_t item_size;
+static bool qsort_only;
 
 typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
 
@@ -54,12 +55,13 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-ht] [-c items] [-n loops] [-s item_size] [-R seed]\n"
+		"Usage: %s [-htQ] [-c items] [-n loops] [-s item_size] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
 		"  -n : sets amount of loops\n"
 		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
+		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		, progname);
 	exit(EXIT_FAILURE);
@@ -516,11 +518,14 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 	if (0 == loops)
 		loops = chrono ? calibrate(array, cnt, isize) : 1;
 
-	timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
+	if (!qsort_only)
+		timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
 	timeit(qsort_test, loops, array, cnt, isize, chrono, what, "qsort");
-	timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
-	timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
+	if (!qsort_only) {
+		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
+		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
+	}
 }
 
 static void
@@ -611,7 +616,7 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	bool tflag = 0;
+	bool tflag = FALSE;
 	size_t count = 0;
 	size_t isize = 0;
 	size_t loops = 0;
@@ -622,7 +627,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:hn:s:tR:")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:tQR:")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -635,6 +640,9 @@ main(int argc, char **argv)
 			break;
 		case 's':			/* item size */
 			isize = atol(optarg);
+			break;
+		case 'Q':			/* only test qsort() versus xqsort() */
+			qsort_only = TRUE;
 			break;
 		case 'R':			/* randomize in a repeatable way */
 			rseed = atoi(optarg);
