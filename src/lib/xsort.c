@@ -106,6 +106,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	char *const end_ptr = &base_ptr[lastoff];	/* Last item */
 	char *tmp_ptr = base_ptr;
 	register char *run_ptr;
+	size_t n;
 
 	/*
 	 * Find smallest element and place it at the array's beginning.
@@ -124,6 +125,8 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	/* Insertion sort, running from left-hand-side up to right-hand-side */
 
 	run_ptr = base_ptr + size;
+	n = (0 == size % OPSIZ && 0 == (base_ptr - (char *) 0) % OPSIZ) ?
+		size / OPSIZ : 0;
 
 	while ((run_ptr += size) <= end_ptr) {
 		tmp_ptr = run_ptr - size;
@@ -133,16 +136,34 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 
 		tmp_ptr += size;
 		if (tmp_ptr != run_ptr) {
-			char *trav = run_ptr + size;
+			if G_LIKELY(n != 0) {
+				/* Operates on words */
+				op_t *trav = (op_t *) (run_ptr + size);
+				op_t *r = (op_t *) run_ptr;
+				op_t *t = (op_t *) tmp_ptr;
 
-			while (--trav >= run_ptr) {
-				char c = *trav;
-				register char *hi, *lo;
+				while (--trav >= r) {
+					op_t c = *trav;
+					register op_t *hi, *lo;
 
-				for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo) {
-					*hi = *lo;
+					for (hi = lo = trav; (lo -= n) >= t; hi = lo) {
+						*hi = *lo;
+					}
+					*hi = c;
 				}
-				*hi = c;
+			} else {
+				/* Operates on bytes */
+				char *trav = run_ptr + size;
+
+				while (--trav >= run_ptr) {
+					char c = *trav;
+					register char *hi, *lo;
+
+					for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo) {
+						*hi = *lo;
+					}
+					*hi = c;
+				}
 			}
 		}
 	}
