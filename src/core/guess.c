@@ -535,6 +535,7 @@ get_qkdata(const gnet_host_t *host)
 static void
 delete_qkdata(const gnet_host_t *host)
 {
+	guess_cache_remove(host);		/* In case it is in the 0.2 host cache */
 	dbmw_delete(db_qkdata, host);
 	gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, -1);
 
