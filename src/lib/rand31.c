@@ -51,6 +51,7 @@
 #include "log.h"
 #include "mempcpy.h"
 #include "pow2.h"
+#include "stacktrace.h"
 #include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -165,23 +166,28 @@ rand31_set_seed(unsigned seed)
 
 /**
  * Compute uniformly distributed random number in the [0, max] range,
- * avoiding any modulo bias.
+ * avoiding any modulo bias, using the specified random function to generate
+ * the numbers.
+ *
+ * @param fn	function generating 31-bit wide numbers
+ * @param max	maximum allowed value for the result (inclusive)
  *
  * @return uniformly distributed 31-bit number from 0 to max, inclusive.
  */
 int
-rand31_upto(unsigned max)
+rand31_upto(rand31_fn_t rf, unsigned max)
 {
 	unsigned range, min;
 	int i;
 
+	g_assert(rf != NULL);
 	g_assert(max <= INT_MAX);
 
 	if G_UNLIKELY(0 == max)
 		return 0;
 
 	if G_UNLIKELY(INT_MAX == max)
-		return rand31();
+		return (*rf)();
 
 	/*
 	 * See arc4random_upto() for details on modulo bias and how our
@@ -194,18 +200,31 @@ rand31_upto(unsigned max)
 	range = max + 1;
 
 	if (is_pow2(range))
-		return rand31() & (range - 1);
+		return (*rf)() & (range - 1);
 
 	min = (1U << 31) % range;
 
 	for (i = 0; i < 100; i++) {
-		unsigned value = rand31();
+		unsigned value = (*rf)();
 
 		if (value >= min)
 			return value % range;
 	}
 
-	s_error("no luck with random number generator");
+	s_error("no luck with random number generator %s()",
+		stacktrace_routine_name(func_to_pointer(rf), FALSE));
+}
+
+/**
+ * Compute uniformly distributed random number in the [0, max] range,
+ * avoiding any modulo bias.
+ *
+ * @return uniformly distributed 31-bit number from 0 to max, inclusive.
+ */
+int
+rand31_value(unsigned max)
+{
+	return rand31_upto(rand31, max);
 }
 
 /**

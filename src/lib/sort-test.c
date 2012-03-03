@@ -494,12 +494,12 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 
-	n = 1 + rand31_upto(cnt / 16);
+	n = 1 + rand31_value(cnt / 16);
 	tmp = alloca(isize);
 
 	for (i = 0; i < n; i++) {
-		size_t a = rand31_upto(cnt - 1);
-		size_t b = rand31_upto(cnt - 1);
+		size_t a = rand31_value(cnt - 1);
+		size_t b = rand31_value(cnt - 1);
 		void *x = ptr_add_offset(array, a * isize);
 		void *y = ptr_add_offset(array, b * isize);
 

@@ -37,13 +37,19 @@
 #define RAND31_MASK	((1U << 31) - 1)	/**< Last 31 bits */
 #define RAND31_MAX	RAND31_MASK			/**< Maximum random number */
 
+/**
+ * Random number generating routine for use in rand31_upto().
+ */
+typedef int (*rand31_fn_t)(void);
+
 /*
  * Public interface.
  */
 
 int rand31();
 void rand31_set_seed(unsigned seed);
-int rand31_upto(unsigned max);
+int rand31_upto(rand31_fn_t, unsigned max);
+int rand31_value(unsigned max);
 void rand31_bytes(void *dst, size_t size);
 
 #endif /* _rand31_h_ */

@@ -78,7 +78,6 @@
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
-#include "pow2.h"
 #include "rand31.h"
 #include "sha1.h"
 #include "stringify.h"
@@ -225,43 +224,10 @@ entropy_rand31(void)
  * @return uniformly distributed number from 0 to max, inclusive.
  */
 static unsigned
-entropy_rand31_upto(unsigned max)
+entropy_rand31_value(unsigned max)
 {
-	unsigned range, min;
-	int i;
-
-	g_assert(max <= INT_MAX);
-
-	if G_UNLIKELY(0 == max)
-		return 0;
-
-	if G_UNLIKELY(INT_MAX == max)
-		return entropy_rand31();
-
-	/*
-	 * See arc4random_upto() for details on modulo bias and how our
-	 * strategy restores a uniform distribution.
-	 *
-	 * The code here is simpler because there cannot be any overflow on
-	 * the 32-bit unsigned value.
-	 */
-
-	range = max + 1;
-
-	if (is_pow2(range))
-		return entropy_rand31() & (range - 1);
-
-	min = (1U << 31) % range;
-
-	for (i = 0; i < 100; i++) {
-		unsigned value = entropy_rand31();
-
-		if (value >= min)
-			return value % range;
-	}
-
-	s_error("no luck with random number generator");
- }
+	return rand31_upto(entropy_rand31, max);
+}
  
 /**
  * Shuffle array in-place.
@@ -284,7 +250,7 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	 */
 
 	for (i = len - 1; i > 0; i--) {
-		size_t j = entropy_rand31_upto(i);
+		size_t j = entropy_rand31_value(i);
 		void *iptr, *jptr;
 
 		/* Swap i-th and j-th items */
