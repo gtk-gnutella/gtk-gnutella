@@ -121,11 +121,11 @@ typedef struct {
 static G_GNUC_HOT char *
 insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 {
-	char *base_ptr = pbase;
-	char *const end_ptr = &base_ptr[lastoff];	/* Last item */
-	char *tmp_ptr = base_ptr;
-	char *thresh_ptr;
-	register char *run_ptr;
+	char *base = pbase;
+	char *const end = &base[lastoff];	/* Last item */
+	char *tmp = base;
+	char *thresh;
+	register char *run;
 	size_t n;
 	size_t moved = 0;
 
@@ -145,16 +145,16 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	 * step to make sure we do not go before the bottom of the array.
 	 */
 
-	thresh_ptr = ptr_add_offset(pbase, MAX_THRESH * size);
-	thresh_ptr = MIN(thresh_ptr, end_ptr);
+	thresh = ptr_add_offset(pbase, MAX_THRESH * size);
+	thresh = MIN(thresh, end);
 
-	for (run_ptr = tmp_ptr + size; run_ptr <= thresh_ptr; run_ptr += size) {
-		if ((*cmp)(run_ptr, tmp_ptr) < 0)
-			tmp_ptr = run_ptr;
+	for (run = tmp + size; run <= thresh; run += size) {
+		if ((*cmp)(run, tmp) < 0)
+			tmp = run;
 	}
 
-	if G_LIKELY(tmp_ptr != base_ptr) {
-		SWAP(tmp_ptr, base_ptr, size);
+	if G_LIKELY(tmp != base) {
+		SWAP(tmp, base, size);
 		moved = size;
 	}
 
@@ -164,20 +164,20 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	 * start at the base.
 	 */
 
-	run_ptr = base_ptr + (thresh_ptr == end_ptr ? size : 0);
-	n = (0 == size % OPSIZ && 0 == (base_ptr - (char *) 0) % OPSIZ) ?
+	run = base + (thresh == end ? size : 0);
+	n = (0 == size % OPSIZ && 0 == (base - (char *) 0) % OPSIZ) ?
 		size / OPSIZ : 0;
 
 	/* Insertion sort, running from left-hand-side up to right-hand-side */
 
-	while ((run_ptr += size) <= end_ptr) {
-		tmp_ptr = run_ptr - size;
-		while (tmp_ptr >= base_ptr && (*cmp)(run_ptr, tmp_ptr) < 0) {
-			tmp_ptr -= size;
+	while ((run += size) <= end) {
+		tmp = run - size;
+		while (tmp >= base && (*cmp)(run, tmp) < 0) {
+			tmp -= size;
 		}
 
-		tmp_ptr += size;
-		if (tmp_ptr != run_ptr) {
+		tmp += size;
+		if (tmp != run) {
 			/*
 			 * If the partition is larger than MAX_THRESH items, then attempt
 			 * to detect when we're not facing sorted input and we run the
@@ -197,18 +197,18 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 			 * resuming quicksort() on the partition, so finish off the sort.
 			 */
 
-			if G_UNLIKELY(run_ptr > thresh_ptr && run_ptr != end_ptr) {
+			if G_UNLIKELY(run > thresh && run != end) {
 				if (moved > 2 * lastoff)
-					return run_ptr - size;	/* Last sorted address */
+					return run - size;	/* Last sorted address */
 			}
 
-			moved += ptr_diff(run_ptr, tmp_ptr) + size;
+			moved += ptr_diff(run, tmp) + size;
 
 			if G_LIKELY(n != 0) {
 				/* Operates on words */
-				op_t *trav = (op_t *) (run_ptr + size);
-				op_t *r = (op_t *) run_ptr;
-				op_t *t = (op_t *) tmp_ptr;
+				op_t *trav = (op_t *) (run + size);
+				op_t *r = (op_t *) run;
+				op_t *t = (op_t *) tmp;
 
 				while (--trav >= r) {
 					op_t c = *trav;
@@ -221,13 +221,13 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 				}
 			} else {
 				/* Operates on bytes */
-				char *trav = run_ptr + size;
+				char *trav = run + size;
 
-				while (--trav >= run_ptr) {
+				while (--trav >= run) {
 					char c = *trav;
 					register char *hi, *lo;
 
-					for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo) {
+					for (hi = lo = trav; (lo -= size) >= tmp; hi = lo) {
 						*hi = *lo;
 					}
 					*hi = c;
@@ -298,21 +298,21 @@ median_three(void *a, void *b, void *c, xsort_cmp_t cmp)
 static G_GNUC_HOT void
 quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 {
-	char *base_ptr = pbase;
+	char *base = pbase;
 	const size_t max_thresh = MAX_THRESH * size;
 
 	if G_UNLIKELY(total_elems == 0)
 		return;	/* Avoid lossage with unsigned arithmetic below.  */
 
 	if (total_elems > MAX_THRESH) {
-		char *lo = base_ptr;
+		char *lo = base;
 		char *hi = &lo[size * (total_elems - 1)];
 		stack_node stack[STACK_SIZE];
 		stack_node *top = stack + 1;
 
 		while (STACK_NOT_EMPTY) {
-			register char *left_ptr;
-			register char *right_ptr;
+			register char *left;
+			register char *right;
 			size_t items = (hi - lo) / size;
 			register char *pivot = lo + size * (items >> 1);
 			size_t swapped;
@@ -332,8 +332,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				pivot = median_three(pivot - d, pivot, pivot + d, cmp);
 				phi = median_three(hi - 2*d, hi - d, hi, cmp);
 				pivot = median_three(plo, pivot, phi, cmp);
-				left_ptr = lo + (lo == pivot ? size : 0);
-				right_ptr = hi - (hi == pivot ? size : 0);
+				left = lo + (lo == pivot ? size : 0);
+				right = hi - (hi == pivot ? size : 0);
 			} else {
 				/*
 				 * Select median value from among LO, MID, and HI. Rearrange
@@ -344,8 +344,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				 */
 
 				order_three(lo, pivot, hi, size, cmp);
-				left_ptr  = lo + size;
-				right_ptr = hi - size;
+				left  = lo + size;
+				right = hi - size;
 			}
 
 			/*
@@ -371,30 +371,30 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				 *		--RAM, 2012-03-01.
 				 */
 
-				while (left_ptr != pivot && (*cmp)(left_ptr, pivot) < 0)
-					left_ptr += size;
+				while (left != pivot && (*cmp)(left, pivot) < 0)
+					left += size;
 
-				while (right_ptr != pivot && (*cmp)(pivot, right_ptr) < 0)
-					right_ptr -= size;
+				while (right != pivot && (*cmp)(pivot, right) < 0)
+					right -= size;
 
-				if G_LIKELY(left_ptr < right_ptr) {
-					SWAP(left_ptr, right_ptr, size);
+				if G_LIKELY(left < right) {
+					SWAP(left, right, size);
 					swapped++;
 
 					/* Update pivot address */
-					if (left_ptr == pivot)
-						pivot = right_ptr;	/* New pivot: we swapped items */
-					else if (right_ptr == pivot)
-						pivot = left_ptr;
+					if (left == pivot)
+						pivot = right;	/* New pivot: we swapped items */
+					else if (right == pivot)
+						pivot = left;
 
-					left_ptr += size;
-					right_ptr -= size;
-				} else if (left_ptr == right_ptr) {
-					left_ptr += size;
-					right_ptr -= size;
+					left += size;
+					right -= size;
+				} else if (left == right) {
+					left += size;
+					right -= size;
 					break;
 				}
-			} while (left_ptr <= right_ptr);
+			} while (left <= right);
 
 			/*
 			 * Optimization by Raphael Manfredi: if we only swapped a few
@@ -411,8 +411,9 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * This works because insertsort() processes its input from left
 			 * to right and therefore will not disrupt the "left/right"
 			 * partitionning with respect to the pivot value and the already
-			 * computed left_ptr and right_ptr boundaries.
+			 * computed left and right boundaries.
 			 */
+
 			if G_UNLIKELY(swapped <= SWAP_THRESH) {
 				/* Switch to insertsort() to completely sort this partition */
 				char *last = insertsort(lo, ptr_diff(hi, lo), size, cmp);
@@ -421,8 +422,8 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 					continue;
 				}
 
-				if (last >= right_ptr)
-					right_ptr = lo;		/* Mark "left" as fully sorted */
+				if (last >= right)
+					right = lo;		/* Mark "left" as fully sorted */
 
 				/* Continue as if we hadn't called insertsort() */
 			}
@@ -439,24 +440,24 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * more setup costs.
 			 */
 
-			if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
-				insertsort(lo, ptr_diff(right_ptr, lo), size, cmp);
-				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
-					insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
+			if G_UNLIKELY(ptr_diff(right, lo) <= max_thresh) {
+				insertsort(lo, ptr_diff(right, lo), size, cmp);
+				if G_UNLIKELY(ptr_diff(hi, left) <= max_thresh) {
+					insertsort(left, ptr_diff(hi, left), size, cmp);
 					POP(lo, hi);	/* Ignore both small partitions. */
 				} else
-					lo = left_ptr;	/* Ignore small left partition. */
-			} else if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
-				insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
-				hi = right_ptr;		/* Ignore small right partition. */
-			} else if (ptr_diff(right_ptr, lo) > ptr_diff(hi, left_ptr)) {
+					lo = left;		/* Ignore small left partition. */
+			} else if G_UNLIKELY(ptr_diff(hi, left) <= max_thresh) {
+				insertsort(left, ptr_diff(hi, left), size, cmp);
+				hi = right;			/* Ignore small right partition. */
+			} else if (ptr_diff(right, lo) > ptr_diff(hi, left)) {
 				/* Push larger left partition indices. */
-				PUSH(lo, right_ptr);
-				lo = left_ptr;
+				PUSH(lo, right);
+				lo = left;
 			} else {
 				/* Push larger right partition indices. */
-				PUSH (left_ptr, hi);
-				hi = right_ptr;
+				PUSH (left, hi);
+				hi = right;
 			}
 		}
 	} else {
