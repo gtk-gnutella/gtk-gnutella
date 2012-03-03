@@ -60,7 +60,6 @@
 #include "mutex.h"
 #include "pow2.h"
 #include "random.h"
-#include "smsort.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -1519,17 +1518,16 @@ xfl_sort(struct xfreelist *fl)
 
 	if (0 != x && 0 < xm_ptr_cmp(ary[x - 1], ary[x])) {
 		/*
-		 * We're using smoothsort, which performs betwen O(N) and O(N.log N),
-		 * depending on whether the input is almost sorted or not, with the
-		 * complexity gradually evolving between these boundaries.
-		 *
-		 * Here we're merging two sorted sub-parts of the array, so it should
-		 * be faster to use smsort().
+		 * Here we're merging two sorted sub-parts of the array, so it could
+		 * be faster to use smsort().  However, our quicksort() is heavily
+		 * optimized to perform very well on almost-sorted arrays, and it has
+		 * a much lower overhead than smsort(), so we prefer xqsort().
+		 *		--RAM, 2012-03-03
 		 */
 
 		xstats.freelist_full_sorting++;
-		smsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
-		assert_xfl_sorted(fl, 0, fl->count, "after smsort");
+		xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
+		assert_xfl_sorted(fl, 0, fl->count, "after full qsort");
 	} else {
 		xstats.freelist_avoided_sorting++;
 		assert_xfl_sorted(fl, 0, fl->count, "after nosort");
