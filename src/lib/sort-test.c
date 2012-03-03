@@ -48,6 +48,7 @@
 char *progname;
 static size_t item_size;
 static bool qsort_only;
+static bool degenerative;
 
 typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
 
@@ -55,12 +56,13 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-htQ] [-c items] [-n loops] [-s item_size] [-R seed]\n"
+		"Usage: %s [-htDQ] [-c items] [-n loops] [-s item_size] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
 		"  -n : sets amount of loops\n"
 		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
+		"  -D : include degenerative data sets\n"
 		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		, progname);
@@ -487,17 +489,70 @@ generate_array(size_t cnt, size_t isize)
 	return array;
 }
 
+enum degenerative {
+	IDENTICAL,
+	ALMOST_IDENTICAL,
+	SPARSLY_IDENTICAL,
+};
+
+static const char *
+degenerative_to_string(enum degenerative how)
+{
+	switch (how) {
+	case IDENTICAL:				return "identical";
+	case ALMOST_IDENTICAL:		return "almost identical";
+	case SPARSLY_IDENTICAL:		return "sparsly identical";
+	}
+
+	return NULL;
+}
+
+static void *
+generate_degenerative_array(size_t cnt, size_t isize, enum degenerative how)
+{
+	size_t len;
+	void *array;
+	
+	len = cnt * isize;
+	array = xmalloc(len);
+
+	switch (how) {
+	case IDENTICAL:
+		memset(array, rand31() & 0xff, len);
+		break;
+	case SPARSLY_IDENTICAL:
+	case ALMOST_IDENTICAL:
+		memset(array, rand31() & 0xff, len);
+		{
+			size_t n;
+			size_t i;
+
+			if (SPARSLY_IDENTICAL == degenerative)
+				n = cnt - cnt / 8;
+			else
+				n = 1 + rand31_value(cnt / 16);
+
+			for (i = 0; i < n; i++) {
+				size_t j = rand31_value(cnt - 1);
+				void *x = ptr_add_offset(array, j * isize);
+				rand31_bytes(x, isize);
+			}
+		}
+		break;
+	}
+
+	return array;
+}
+
 static void
 perturb_sorted_array(void *array, size_t cnt, size_t isize)
 {
 	size_t n;
 	size_t i;
-	void *tmp;
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 
 	n = 1 + rand31_value(cnt / 16);
-	tmp = alloca(isize);
 
 	for (i = 0; i < n; i++) {
 		size_t a = rand31_value(cnt - 1);
@@ -505,9 +560,7 @@ perturb_sorted_array(void *array, size_t cnt, size_t isize)
 		void *x = ptr_add_offset(array, a * isize);
 		void *y = ptr_add_offset(array, b * isize);
 
-		memcpy(tmp, y, isize);
-		memcpy(y, x, isize);
-		memcpy(x, tmp, isize);
+		SWAP(x, y, isize);
 	}
 }
 
@@ -526,6 +579,22 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
 		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
 	}
+}
+
+static void
+run_degenerative(enum degenerative how, size_t cnt, size_t isize,
+	bool chrono, size_t loops)
+{
+	char buf[80];
+	void *array;
+
+	str_bprintf(buf, sizeof buf,
+		"%zu %s item%s of %zu bytes",
+		cnt, degenerative_to_string(how), 1 == cnt ? "" : "s", isize);
+
+	array = generate_degenerative_array(cnt, isize, how);
+	run(array, cnt, isize, chrono, loops, buf);
+	xfree(array);
 }
 
 static void
@@ -609,6 +678,12 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 
 	xfree(array);
 	xfree(copy);
+
+	if (degenerative) {
+		run_degenerative(IDENTICAL, cnt, isize, chrono, loops);
+		run_degenerative(ALMOST_IDENTICAL, cnt, isize, chrono, loops);
+		run_degenerative(SPARSLY_IDENTICAL, cnt, isize, chrono, loops);
+	}
 }
 
 int
@@ -627,7 +702,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:hn:s:tQR:")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:tDQR:")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -640,6 +715,9 @@ main(int argc, char **argv)
 			break;
 		case 's':			/* item size */
 			isize = atol(optarg);
+			break;
+		case 'D':			/* use degenerative data sets */
+			degenerative = TRUE;
 			break;
 		case 'Q':			/* only test qsort() versus xqsort() */
 			qsort_only = TRUE;
