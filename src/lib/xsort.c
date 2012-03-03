@@ -110,30 +110,48 @@ typedef struct {
 #define	STACK_NOT_EMPTY	(stack < top)
 
 /**
- * Insertion sort for small partions of MAX_THRESH items at most.
+ * Insertion sort for small partions or ones that are believed already sorted.
+ *
+ * When the partition is larger than MAX_THRESH items, detect that we are
+ * facing pathological input and bail out in the middle if needed.
+ *
+ * @return NULL if OK, the address of the last sorted item if we decided
+ * to bail-out.
  */
-static G_GNUC_HOT void
+static G_GNUC_HOT char *
 insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 {
 	char *base_ptr = pbase;
 	char *const end_ptr = &base_ptr[lastoff];	/* Last item */
 	char *tmp_ptr = base_ptr;
+	char *thresh_ptr;
 	register char *run_ptr;
 	size_t n;
+	size_t moved = 0;
+
+	if G_UNLIKELY(0 == lastoff)
+		return NULL;
 
 	/*
-	 * Find smallest element and place it at the array's beginning.
-	 * This is the smallest array element, and the operation speeds up
-	 * insertion sort's inner loop.
+	 * We're called with a supposedly almost sorted array.
+	 *
+	 * Find smallest element in the first few locations and place it at the
+	 * array's beginning.  This is likely the smallest array element, and the
+	 * operation speeds up insertion sort's inner loop.
 	 */
 
-	for (run_ptr = tmp_ptr + size; run_ptr <= end_ptr; run_ptr += size) {
+	thresh_ptr = ptr_add_offset(pbase, MAX_THRESH * size);
+	thresh_ptr = MIN(thresh_ptr, end_ptr);
+
+	for (run_ptr = tmp_ptr + size; run_ptr <= thresh_ptr; run_ptr += size) {
 		if ((*cmp)(run_ptr, tmp_ptr) < 0)
 			tmp_ptr = run_ptr;
 	}
 
-	if G_LIKELY(tmp_ptr != base_ptr)
+	if G_LIKELY(tmp_ptr != base_ptr) {
 		SWAP(tmp_ptr, base_ptr, size);
+		moved = size;
+	}
 
 	/* Insertion sort, running from left-hand-side up to right-hand-side */
 
@@ -149,6 +167,32 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 
 		tmp_ptr += size;
 		if (tmp_ptr != run_ptr) {
+			/*
+			 * If the partition is larger than MAX_THRESH items, then attempt
+			 * to detect when we're not facing sorted input and we run the
+			 * risk of approaching O(n^2) complexity.
+			 *
+			 * In that case, bail out and quicksort() will pick up where
+			 * we left.
+			 *
+			 * The criteria is that we must not move around more than about
+			 * twice the size of the arena.  This is only checked past the
+			 * threshold to prevent any value checking from quicksort() when
+			 * we are called with a small enough partition, where complexity
+			 * is not an issue.
+			 *
+			 * Exception when we reach the last item: regardless of where it
+			 * will land, the cost now should be less than bailing out and
+			 * resuming quicksort() on the partition, so finish off the sort.
+			 */
+
+			if G_UNLIKELY(run_ptr > thresh_ptr && run_ptr != end_ptr) {
+				if (moved > 2 * lastoff)
+					return run_ptr - size;	/* Last sorted address */
+			}
+
+			moved += ptr_diff(run_ptr, tmp_ptr) + size;
+
 			if G_LIKELY(n != 0) {
 				/* Operates on words */
 				op_t *trav = (op_t *) (run_ptr + size);
@@ -180,6 +224,8 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 			}
 		}
 	}
+
+	return NULL;	/* OK, fully sorted */
 }
 
 /**
@@ -340,6 +386,37 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			} while (left_ptr <= right_ptr);
 
 			/*
+			 * Optimization by Raphael Manfredi: if we only swapped a few
+			 * items in the partition, use insertsort() on it and do not
+			 * recurse.  This greatly accelerates quicksort() on already
+			 * sorted arrays.
+			 *
+			 * However, because we may have guessed wrong, intersort() monitors
+			 * pathological cases and can bail out (when we hand out more than
+			 * MAX_THRESH items). Hence we must monitor the result and continue
+			 * as if we hadn't call insertsort() when it returns a non-NULL
+			 * pointer.
+			 *
+			 * This works because insertsort() processes its input from left
+			 * to right and therefore will not disrupt the "left/right"
+			 * partitionning with respect to the pivot value and the already
+			 * computed left_ptr and right_ptr boundaries.
+			 */
+			if G_UNLIKELY(swapped <= SWAP_THRESH) {
+				/* Switch to insertsort() to completely sort this partition */
+				char *last = insertsort(lo, ptr_diff(hi, lo), size, cmp);
+				if (NULL == last) {
+					POP(lo, hi);	/* Done with partition */
+					continue;
+				}
+
+				if (last >= right_ptr)
+					right_ptr = lo;		/* Mark "left" as fully sorted */
+
+				/* Continue as if we hadn't called insertsort() */
+			}
+
+			/*
 			 * Set up pointers for next iteration.  First determine whether
 			 * left and right partitions are below the threshold size.  If so,
 			 * insertsort one or both.  Otherwise, push the larger partition's
@@ -349,18 +426,9 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * the small partitions instead of waiting for the end of quicksort
 			 * to benefit from the locality of reference, at the expense of
 			 * more setup costs.
-			 *
-			 * Optimization by Raphael Manfredi: if we did not swap any
-			 * items in the partition, use insertsort() on it and do not
-			 * recurse.  This greatly accelerates quicksort() on already
-			 * sorted arrays.
 			 */
 
-			if G_UNLIKELY(swapped <= SWAP_THRESH) {
-				/* Switch to insertsort() to completely sort this partition */
-				insertsort(lo, ptr_diff(hi, lo), size, cmp);
-				POP(lo, hi);	/* Done with partition */
-			} else if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
+			if G_UNLIKELY(ptr_diff(right_ptr, lo) <= max_thresh) {
 				insertsort(lo, ptr_diff(right_ptr, lo), size, cmp);
 				if G_UNLIKELY(ptr_diff(hi, left_ptr) <= max_thresh) {
 					insertsort(left_ptr, ptr_diff(hi, left_ptr), size, cmp);
