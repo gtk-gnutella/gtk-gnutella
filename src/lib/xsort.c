@@ -133,11 +133,16 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 		return NULL;
 
 	/*
-	 * We're called with a supposedly almost sorted array.
+	 * We're called with a supposedly almost-sorted array.
 	 *
 	 * Find smallest element in the first few locations and place it at the
 	 * array's beginning.  This is likely the smallest array element, and the
 	 * operation speeds up insertion sort's inner loop.
+	 *
+	 * However, when we do not scan the whole array, we have no guarantee
+	 * that we're placing the absolute lower item, which means we have
+	 * to guard the main insertion loop with a pointer comparison at each
+	 * step to make sure we do not go before the bottom of the array.
 	 */
 
 	thresh_ptr = ptr_add_offset(pbase, MAX_THRESH * size);
@@ -153,15 +158,21 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 		moved = size;
 	}
 
-	/* Insertion sort, running from left-hand-side up to right-hand-side */
+	/*
+	 * When we scanned the whole array, we have the lowest item at index 0
+	 * and we can start iterating at the next item.  Otherwise, we have to
+	 * start at the base.
+	 */
 
-	run_ptr = base_ptr + size;
+	run_ptr = base_ptr + (thresh_ptr == end_ptr ? size : 0);
 	n = (0 == size % OPSIZ && 0 == (base_ptr - (char *) 0) % OPSIZ) ?
 		size / OPSIZ : 0;
 
+	/* Insertion sort, running from left-hand-side up to right-hand-side */
+
 	while ((run_ptr += size) <= end_ptr) {
 		tmp_ptr = run_ptr - size;
-		while ((*cmp)(run_ptr, tmp_ptr) < 0) {
+		while (tmp_ptr >= base_ptr && (*cmp)(run_ptr, tmp_ptr) < 0) {
 			tmp_ptr -= size;
 		}
 
