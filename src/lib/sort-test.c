@@ -33,7 +33,10 @@
 #include "common.h"
 
 #include "lib/base16.h"
+#include "lib/htable.h"
+#include "lib/misc.h"
 #include "lib/rand31.h"
+#include "lib/sha1.h"
 #include "lib/smsort.h"
 #include "lib/str.h"
 #include "lib/tm.h"
@@ -412,6 +415,91 @@ assert_is_sorted(const void *copy, size_t cnt, size_t isize)
 	}
 }
 
+static void
+count_items(htable_t *ht, const void *array, size_t cnt, size_t isize)
+{
+	size_t i;
+
+	for (i = 0; i < cnt; i++) {
+		const char *cur = const_ptr_add_offset(array, i * isize);
+		size_t n;
+
+		n = pointer_to_size(htable_lookup(ht, cur));
+		htable_insert(ht, cur, size_to_pointer(n + 1));
+	}
+}
+
+static void
+array_mismatch(const htable_t *ht, const void *key, const void *array,
+	const void *copy, size_t cnt, size_t isize)
+{
+	size_t i;
+
+	printf("array mismatch:\n");
+	printf("original array:\n");
+
+	for (i = 0; i < cnt; i++) {
+		char buf[DUMP_BYTES * 2 + 1];
+		size_t n;
+		const char *cur = const_ptr_add_offset(array, i * isize);
+
+		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		buf[n] = '\0';
+		printf("%6lu %s%s%s\n", (ulong) i, buf,
+			isize > DUMP_BYTES ? "..." : "",
+			0 == memcmp(key, cur, isize) ? " <-- ERROR" : "");
+	}
+
+	printf("sorted array:\n");
+
+	for (i = 0; i < cnt; i++) {
+		char buf[DUMP_BYTES * 2 + 1];
+		size_t n;
+		const char *cur = const_ptr_add_offset(copy, i * isize);
+
+		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		buf[n] = '\0';
+		printf("%6lu %s%s%s\n", (ulong) i, buf,
+			isize > DUMP_BYTES ? "..." : "",
+			0 == memcmp(key, cur, isize) ? " <-- (ERROR)" :
+			htable_contains(ht, cur) ? "" : " <-- UNKNOWN");
+	}
+
+	abort();
+}
+
+static void
+assert_is_equivalent(const void *array, const void *copy,
+	size_t cnt, size_t isize)
+{
+	htable_t *aht, *cht;
+	htable_iter_t *iter;
+	const void *key;
+	void *value;
+
+	aht = htable_create(HASH_KEY_FIXED, isize);
+	cht = htable_create(HASH_KEY_FIXED, isize);
+
+	count_items(aht, array, cnt, isize);
+	count_items(cht, copy, cnt, isize);
+
+	iter = htable_iter_new(aht);
+	while (htable_iter_next(iter, &key, &value)) {
+		size_t n = pointer_to_size(value);
+		size_t o = pointer_to_size(htable_lookup(cht, key));
+		if (n != o) {
+			array_mismatch(aht, key, array, copy, cnt, isize);
+		}
+		htable_remove(cht, key);
+	}
+	htable_iter_release(&iter);
+
+	g_assert(0 == htable_count(cht));
+
+	htable_free_null(&aht);
+	htable_free_null(&cht);
+}
+
 static double
 dry_run(void *array, void *copy, size_t cnt, size_t isize, size_t loops)
 {
@@ -447,6 +535,16 @@ calibrate(void *array, size_t cnt, size_t isize)
 }
 
 static void
+compute_sha1(sha1_t *digest, const void *p, size_t len)
+{
+	SHA1Context ctx;
+
+	SHA1Reset(&ctx);
+	SHA1Input(&ctx, p, len);
+	SHA1Result(&ctx, digest);
+}
+
+static void
 timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 	size_t loops, void *array, size_t cnt, size_t isize,
 	bool chrono, const char *what, const char *algorithm)
@@ -454,15 +552,21 @@ timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 	tm_t start, end;
 	double ustart, uend;
 	void *copy;
+	sha1_t before, after;
 
 	copy = xmalloc(cnt * isize);
+	compute_sha1(&before, array, cnt * isize);
 
 	tm_now_exact(&start);
 	tm_cputime(&ustart, NULL);
 	(*f)(array, copy, cnt, isize, loops);
 	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
+	compute_sha1(&after, array, cnt * isize);
+	if (0 != memcmp(&before, &after, sizeof before))
+		g_error("memory corruption on array during \"%s\" test", algorithm);
 	assert_is_sorted(copy, cnt, isize);
+	assert_is_equivalent(array, copy, cnt, isize);
 	xfree(copy);
 
 	if (chrono) {
