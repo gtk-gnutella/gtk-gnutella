@@ -37,8 +37,9 @@
  * The excellent quicksort() implementation from Douglas C. Schmidt was further
  * optimized: maximize the chances of picking a good pivot when the partition
  * is large, optimize insertsort() when dealing with aligned items that are
- * multiples of words, and detect an already sorted partition or one that is
- * almost-sorted to discontinue quicksort() and switch to insertsort() instead.
+ * multiples of words, detect an already sorted partition or one that is
+ * almost-sorted to discontinue quicksort() and switch to insertsort() instead,
+ * and better handle pathological inputs (all items equal).
  *
  * @author Mike Haertel
  * @date 1988
@@ -69,6 +70,13 @@
  * Engineering a sort function; Jon Bentley and M. Douglas McIlroy;
  * Software - Practice and Experience; Vol. 23 (11), 1249-1265, 1993.
  */
+
+/* Conditional item swap */
+#define CSWAP(a, b, s) G_STMT_START {	\
+	if G_LIKELY((a) != (b))				\
+		SWAP((a), (b), (s));			\
+} G_STMT_END
+
 
 /*
  * Discontinue quicksort algorithm when partition gets below this size.
@@ -115,10 +123,9 @@ typedef struct {
  * When the partition is larger than MAX_THRESH items, detect that we are
  * facing pathological input and bail out in the middle if needed.
  *
- * @return NULL if OK, the address of the last sorted item if we decided
- * to bail-out.
+ * @return TRUE if OK, FALSE when we decide to bail-out.
  */
-static G_GNUC_HOT char *
+static G_GNUC_HOT bool
 insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 {
 	char *base = pbase;
@@ -130,7 +137,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	size_t moved = 0;
 
 	if G_UNLIKELY(0 == lastoff)
-		return NULL;
+		return TRUE;
 
 	/*
 	 * We're called with a supposedly almost-sorted array.
@@ -199,7 +206,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 
 			if G_UNLIKELY(run > thresh && run != end) {
 				if (moved > 2 * lastoff)
-					return run - size;	/* Last sorted address */
+					return FALSE;	/* We bailed out */
 			}
 
 			moved += ptr_diff(run, tmp) + size;
@@ -236,26 +243,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 		}
 	}
 
-	return NULL;	/* OK, fully sorted */
-}
-
-/**
- * Sort 3 items to ensure lo <= mid <= hi.
- */
-static inline void 
-order_three(void *lo, void *mid, void *hi, size_t size, xsort_cmp_t cmp)
-{
-	if ((*cmp)(mid, lo) < 0)
-		SWAP(mid, lo, size);
-	/* lo <= mid */
-	if ((*cmp)(hi, mid) < 0) {
-		SWAP(hi, mid, size);
-		/* mid < hi */
-		if ((*cmp)(mid, lo) < 0)
-			SWAP(mid, lo, size);
-		/* lo <= mid < hi */
-	}
-	/* lo <= mid <= hi */
+	return TRUE;	/* OK, fully sorted */
 }
 
 /**
@@ -314,8 +302,11 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			register char *left;
 			register char *right;
 			size_t items = (hi - lo) / size;
-			register char *pivot = lo + size * (items >> 1);
+			char *mid = lo + size * (items >> 1);
 			size_t swapped;
+			char *xlo;
+			char *xhi;
+			size_t lsize, rsize;
 
 			/*
 			 * If there are more than MIN_MEDIAN items, it pays to spend
@@ -329,24 +320,18 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				char *plo, *phi;
 
 				plo = median_three(lo, lo + d, lo + 2*d, cmp);
-				pivot = median_three(pivot - d, pivot, pivot + d, cmp);
+				mid = median_three(mid - d, mid, mid + d, cmp);
 				phi = median_three(hi - 2*d, hi - d, hi, cmp);
-				pivot = median_three(plo, pivot, phi, cmp);
-				left = lo + (lo == pivot ? size : 0);
-				right = hi - (hi == pivot ? size : 0);
+				mid = median_three(plo, mid, phi, cmp);
 			} else {
-				/*
-				 * Select median value from among LO, MID, and HI. Rearrange
-				 * LO and HI so the three values are sorted. This lowers the
-				 * probability of picking a pathological pivot value and
-				 * skips a comparison for both the LEFT_PTR and RIGHT_PTR in
-				 * the while loops.
-				 */
-
-				order_three(lo, pivot, hi, size, cmp);
-				left  = lo + size;
-				right = hi - size;
+				mid = median_three(lo, mid, hi, cmp);
 			}
+
+			CSWAP(mid, lo, size);		/* Put pivot at the base */
+			left  = xlo = lo + size;	/* Since pivot is at the base now */
+			right = xhi = hi;
+
+			swapped = 0;	/* Detect almost-sorted partition --RAM */
 
 			/*
 			 * Here's the famous ``collapse the walls'' section of quicksort.
@@ -354,47 +339,65 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * that this algorithm runs much faster than others.
 			 */
 
-			swapped = 0;	/* Detect sorted partition --RAM */
+			for (;;) {
+				int c;
 
-			do {
 				/*
-				 * Optimiziation by Raphael Manfredi to avoid a comparison
-				 * of the pivot element with itself.
+				 * Changes by Raphael Manfredi to avoid O(n^2) behaviour
+				 * when all items are identical.
 				 *
-				 * This also protects code that asserts no two items can be
-				 * identical when we have meta-knowledge that all the items
-				 * in the sorted array are different.
-				 *
-				 * Some code in gtk-gnutella expects the sort callback to
-				 * never be called with items that would compare as equal
-				 * when we are sorting a set!
+				 * This also protects code that asserts no two compared items
+				 * can be identical when we have meta-knowledge that all the
+				 * items in the sorted array are different.
 				 *		--RAM, 2012-03-01.
 				 */
 
-				while (left != pivot && (*cmp)(left, pivot) < 0)
+				while (left <= right && (c = (*cmp)(left, lo)) <= 0) {
+					if G_UNLIKELY(0 == c) {
+						CSWAP(left, xlo, size);
+						xlo += size;
+					}
 					left += size;
-
-				while (right != pivot && (*cmp)(pivot, right) < 0)
-					right -= size;
-
-				if G_LIKELY(left < right) {
-					SWAP(left, right, size);
-					swapped++;
-
-					/* Update pivot address */
-					if (left == pivot)
-						pivot = right;	/* New pivot: we swapped items */
-					else if (right == pivot)
-						pivot = left;
-
-					left += size;
-					right -= size;
-				} else if (left == right) {
-					left += size;
-					right -= size;
-					break;
 				}
-			} while (left <= right);
+
+				while (left <= right && (c = (*cmp)(lo, right)) <= 0) {
+					if G_UNLIKELY(0 == c) {
+						CSWAP(right, xhi, size);
+						xhi -= size;
+					}
+					right -= size;
+				}
+
+				if G_UNLIKELY(left >= right)
+					break;
+
+				SWAP(left, right, size);
+				swapped++;
+				left += size;
+				right -= size;
+			}
+
+			/*
+			 * Move back items equal to the pivot at the middle of the
+			 * partition.
+			 */
+
+			lsize = ptr_diff(left, xlo);
+			rsize = ptr_diff(xhi, right);
+
+			{
+				size_t equal = ptr_diff(xlo, lo);	/* Equal to pivot */
+				size_t n = MIN(equal, lsize);
+				if (n != 0)
+					SWAP(lo, left - n, n);
+			}
+
+			{
+				size_t equal = ptr_diff(hi, xhi);	/* Equal to pivot */
+				size_t n = MIN(equal, rsize);
+				if (n != 0)
+					CSWAP(left, hi - n + size, n);
+			}
 
 			/*
 			 * Optimization by Raphael Manfredi: if we only swapped a few
@@ -415,15 +418,26 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 */
 
 			if G_UNLIKELY(swapped <= SWAP_THRESH) {
-				/* Switch to insertsort() to completely sort this partition */
-				char *last = insertsort(lo, ptr_diff(hi, lo), size, cmp);
-				if (NULL == last) {
-					POP(lo, hi);	/* Done with partition */
-					continue;
-				}
+				bool ok;
 
-				if (last >= right)
-					right = lo;		/* Mark "left" as fully sorted */
+				/*
+				 * Switch to insertsort() to completely sort this partition.
+				 *
+				 * Although we could call insertsort() on the whole partition,
+				 * we want to limit the size in case it has to bail out.
+				 * This also limits the amount of data to move around, at
+				 * the cost of extra setup.
+				 */
+
+				ok = insertsort(lo, lsize - size, size, cmp);
+				if (ok) {
+					ok = insertsort(hi - rsize, rsize, size, cmp);
+					if (ok) {
+						POP(lo, hi);	/* Done with partition */
+						continue;
+					}
+					lsize = size;		/* Mark left as fully sorted */
+				}
 
 				/* Continue as if we hadn't called insertsort() */
 			}
@@ -440,24 +454,24 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * more setup costs.
 			 */
 
-			if G_UNLIKELY(ptr_diff(right, lo) <= max_thresh) {
-				insertsort(lo, ptr_diff(right, lo), size, cmp);
-				if G_UNLIKELY(ptr_diff(hi, left) <= max_thresh) {
-					insertsort(left, ptr_diff(hi, left), size, cmp);
+			if G_UNLIKELY(lsize <= max_thresh) {
+				insertsort(lo, lsize - size, size, cmp);
+				if G_UNLIKELY(rsize <= max_thresh) {
+					insertsort(hi - rsize, rsize, size, cmp);
 					POP(lo, hi);	/* Ignore both small partitions. */
 				} else
-					lo = left;		/* Ignore small left partition. */
-			} else if G_UNLIKELY(ptr_diff(hi, left) <= max_thresh) {
-				insertsort(left, ptr_diff(hi, left), size, cmp);
-				hi = right;			/* Ignore small right partition. */
-			} else if (ptr_diff(right, lo) > ptr_diff(hi, left)) {
+					lo = hi - rsize;	/* Ignore small left partition. */
+			} else if G_UNLIKELY(rsize <= max_thresh) {
+				insertsort(hi - rsize, rsize, size, cmp);
+				hi = &lo[lsize - size];	/* Ignore small right partition. */
+			} else if (lsize > rsize) {
 				/* Push larger left partition indices. */
-				PUSH(lo, right);
-				lo = left;
+				PUSH(lo, &lo[lsize - size]);
+				lo = hi - rsize;
 			} else {
 				/* Push larger right partition indices. */
-				PUSH (left, hi);
-				hi = right;
+				PUSH (hi - rsize, hi);
+				hi = &lo[lsize - size];
 			}
 		}
 	} else {
