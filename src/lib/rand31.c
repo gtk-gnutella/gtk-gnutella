@@ -32,9 +32,16 @@
  * to bootstrap stronger engines.
  *
  * It generates 31-bit random numbers via an interface compatible with the
- * rand() and srand() C library function, only we append "31" at the tail
- * to distinguish it from the standard routiones, and also emphasize the
- * limited range of random numbers we produce.
+ * rand() C library function, only we append "31" at the tail to distinguish
+ * rand31() from the standard routine, and also emphasize the limited range
+ * of the random numbers we produce.
+ *
+ * When a sequence of random numbers yields an interesting result, it is
+ * possible to replay it by querying the original random seed.  The only catch
+ * is that the number 0 is not a valid seed for rand31_set_seed(), as it
+ * requests the computation of a new random seed.  Given this PRNG is only
+ * meant for tests and not for serious random numbers, this is not deemed a
+ * problem, only bad luck.
  *
  * To (slowly) generate strong random numbers, use entropy_random().
  * For (faster) strong random nubers, use arc4random().
@@ -70,6 +77,8 @@ rand31_prng_next(unsigned seed)
 }
 
 /**
+ * Computes a random seed to initialize the PRNG engine.
+ *
  * @return initial random seed.
  */
 static unsigned
@@ -127,10 +136,8 @@ rand31_random_seed(void)
 static unsigned
 rand31_prng(void)
 {
-	if G_UNLIKELY(!rand31_seeded) {
-		rand31_first_seed = rand31_seed = rand31_random_seed();
-		rand31_seeded = TRUE;
-	}
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_set_seed(0);
 
 	return rand31_seed = rand31_prng_next(rand31_seed);
 }
@@ -166,7 +173,7 @@ rand31_set_seed(unsigned seed)
 }
 
 /**
- * @return initial seed, to be able to reproduce the sequence
+ * @return initial seed, to be able to reproduce a random sequence.
  */
 unsigned
 rand31_initial_seed(void)
@@ -243,7 +250,7 @@ rand31_value(unsigned max)
 static inline uint32
 rand31_u32(void)
 {
-	return (rand31() << 5) + rand31();
+	return (rand31() << 5) + (rand31_prng() >> 15);
 }
 
 /**
