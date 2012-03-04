@@ -48,6 +48,7 @@ typedef int (*rand31_fn_t)(void);
 
 int rand31();
 void rand31_set_seed(unsigned seed);
+unsigned rand31_initial_seed(void);
 int rand31_upto(rand31_fn_t, unsigned max);
 int rand31_value(unsigned max);
 void rand31_bytes(void *dst, size_t size);

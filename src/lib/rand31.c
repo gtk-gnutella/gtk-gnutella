@@ -56,8 +56,9 @@
 
 #include "override.h"			/* Must be the last header included */
 
-static bool rand31_seeded;		/**< Whether PRNG was seeded */
-static unsigned rand31_seed;	/**< The current seed */
+static bool rand31_seeded;			/**< Whether PRNG was seeded */
+static unsigned rand31_seed;		/**< The current seed */
+static unsigned rand31_first_seed;	/**< The initial seed */
 
 /**
  * @return next random number following given seed.
@@ -127,7 +128,7 @@ static unsigned
 rand31_prng(void)
 {
 	if G_UNLIKELY(!rand31_seeded) {
-		rand31_seed = rand31_random_seed();
+		rand31_first_seed = rand31_seed = rand31_random_seed();
 		rand31_seeded = TRUE;
 	}
 
@@ -160,8 +161,17 @@ rand31(void)
 void
 rand31_set_seed(unsigned seed)
 {
-	rand31_seed = 0 == seed ? rand31_random_seed() : seed;
+	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
 	rand31_seeded = TRUE;
+}
+
+/**
+ * @return initial seed, to be able to reproduce the sequence
+ */
+unsigned
+rand31_initial_seed(void)
+{
+	return rand31_first_seed;
 }
 
 /**
