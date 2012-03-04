@@ -72,6 +72,13 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
+static void G_GNUC_NORETURN
+test_abort()
+{
+	printf("use '-R %u' to reproduce problem.\n", rand31_initial_seed());
+	abort();
+}
+
 typedef int (*cmp_routine)(const void *a, const void *b);
 
 static int
@@ -397,7 +404,7 @@ dump_unsorted(const void *copy, size_t cnt, size_t isize, size_t failed)
 			isize > DUMP_BYTES ? "..." : "",
 			i == failed ? " <-- FAILED" : "");
 	}
-	abort();
+	test_abort();
 }
 
 static void
@@ -465,7 +472,7 @@ array_mismatch(const htable_t *ht, const void *key, const void *array,
 			htable_contains(ht, cur) ? "" : " <-- UNKNOWN");
 	}
 
-	abort();
+	test_abort();
 }
 
 static void
