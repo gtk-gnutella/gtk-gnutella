@@ -98,6 +98,13 @@
  */
 #define SWAP_THRESH 1
 
+/**
+ * Threshold for insertsort() to bail out when it is about to move more than
+ * that many times the amount of bytes in the partition being sorted, for
+ * ones larger than MAX_THRESH items.
+ */
+#define INSERT_THRESH 2		/* Experiments showed 2 is a good compromise */
+
 /* Stack node declarations used to store unfulfilled partition obligations. */
 typedef struct {
 	char *lo;
@@ -135,9 +142,6 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	register char *run;
 	size_t n;
 	size_t moved = 0;
-
-	if G_UNLIKELY(0 == lastoff)
-		return TRUE;
 
 	/*
 	 * We're called with a supposedly almost-sorted array.
@@ -194,10 +198,10 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 			 * we left.
 			 *
 			 * The criteria is that we must not move around more than about
-			 * twice the size of the arena.  This is only checked past the
-			 * threshold to prevent any value checking from quicksort() when
-			 * we are called with a small enough partition, where complexity
-			 * is not an issue.
+			 * INSERT_THRESH time the size of the arena.  This is only checked
+			 * past the size threshold to prevent any value checking from
+			 * quicksort() when we are called with a small enough partition,
+			 * where complexity is not deemed an issue.
 			 *
 			 * Exception when we reach the last item: regardless of where it
 			 * will land, the cost now should be less than bailing out and
@@ -205,7 +209,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 			 */
 
 			if G_UNLIKELY(run > thresh && run != end) {
-				if (moved > 2 * lastoff)
+				if (moved > INSERT_THRESH * lastoff)
 					return FALSE;	/* We bailed out */
 			}
 
@@ -429,9 +433,12 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 				 * the cost of extra setup.
 				 */
 
-				ok = insertsort(lo, lsize - size, size, cmp);
+				ok = lsize > size ?
+					insertsort(lo, lsize - size, size, cmp) : TRUE;
+
 				if (ok) {
-					ok = insertsort(hi - rsize, rsize, size, cmp);
+					ok = rsize != 0 ?
+						insertsort(hi - rsize, rsize, size, cmp) : TRUE;
 					if (ok) {
 						POP(lo, hi);	/* Done with partition */
 						continue;
@@ -454,15 +461,18 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 * more setup costs.
 			 */
 
-			if G_UNLIKELY(lsize <= max_thresh) {
-				insertsort(lo, lsize - size, size, cmp);
+			if G_UNLIKELY(lsize - size <= max_thresh) {
+				if (lsize > size)
+					insertsort(lo, lsize - size, size, cmp);
 				if G_UNLIKELY(rsize <= max_thresh) {
-					insertsort(hi - rsize, rsize, size, cmp);
+					if (rsize != 0)
+						insertsort(hi - rsize, rsize, size, cmp);
 					POP(lo, hi);	/* Ignore both small partitions. */
 				} else
 					lo = hi - rsize;	/* Ignore small left partition. */
 			} else if G_UNLIKELY(rsize <= max_thresh) {
-				insertsort(hi - rsize, rsize, size, cmp);
+				if (rsize != 0)
+					insertsort(hi - rsize, rsize, size, cmp);
 				hi = &lo[lsize - size];	/* Ignore small right partition. */
 			} else if (lsize > rsize) {
 				/* Push larger left partition indices. */
