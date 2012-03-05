@@ -52,6 +52,7 @@ char *progname;
 static size_t item_size;
 static bool qsort_only;
 static bool degenerative;
+static unsigned initial_seed;
 
 typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
 
@@ -59,13 +60,15 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-htDQ] [-c items] [-n loops] [-s item_size] [-R seed]\n"
+		"Usage: %s [-htDQ] [-c items] [-n loops] [-s item_size]\n"
+		"       [-N main-loops] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
 		"  -n : sets amount of loops\n"
 		"  -s : sets item size to test, in bytes\n"
 		"  -t : time each test\n"
 		"  -D : include degenerative data sets\n"
+		"  -N : run the main test loop that many times (default = 1)\n"
 		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		, progname);
@@ -75,7 +78,7 @@ usage(void)
 static void G_GNUC_NORETURN
 test_abort()
 {
-	printf("use '-R %u' to reproduce problem.\n", rand31_initial_seed());
+	printf("use '-R %u' to reproduce problem.\n", initial_seed);
 	abort();
 }
 
@@ -806,6 +809,9 @@ main(int argc, char **argv)
 	size_t count = 0;
 	size_t isize = 0;
 	size_t loops = 0;
+	size_t main_loops = 1;
+	size_t main_count = 0;
+	bool multiple_loops = FALSE;
 	int c;
 	size_t i;
 	unsigned rseed = 0;
@@ -813,7 +819,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:hn:s:tDQR:")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:tDN:QR:")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -829,6 +835,9 @@ main(int argc, char **argv)
 			break;
 		case 'D':			/* use degenerative data sets */
 			degenerative = TRUE;
+			break;
+		case 'N':			/* number of main loops */
+			main_loops = atol(optarg);
 			break;
 		case 'Q':			/* only test qsort() versus xqsort() */
 			qsort_only = TRUE;
@@ -847,24 +856,35 @@ main(int argc, char **argv)
 		usage();
 
 	rand31_set_seed(rseed);
+	multiple_loops = main_loops > 1;
 
-	for (i = 1; i <= TEST_BITS; i++) {
-		bool is_last = count != 0;
-		size_t cnt = count != 0 ? count : 1U << i;
-		size_t j;
+	while (main_loops--) {
+		initial_seed = rand31_current_seed();
+		main_count++;
 
-		for (j = 0; j < TEST_WORDS; j++) {
-			bool is_last_size = isize != 0;
-			size_t size = isize != 0 ? isize : sizeof(void *) + INTSIZE * j;
-
-			test(cnt, size, tflag, loops);
-
-			if (is_last_size)
-				break;
+		if (multiple_loops) {
+			printf("test loop #%lu (%lu more) with seed %u\n",
+				(ulong) main_count, (ulong) main_loops, initial_seed);
 		}
 
-		if (is_last)
-			break;
+		for (i = 1; i <= TEST_BITS; i++) {
+			bool is_last = count != 0;
+			size_t cnt = count != 0 ? count : 1U << i;
+			size_t j;
+
+			for (j = 0; j < TEST_WORDS; j++) {
+				bool is_last_size = isize != 0;
+				size_t size = isize != 0 ? isize : sizeof(void *) + INTSIZE * j;
+
+				test(cnt, size, tflag, loops);
+
+				if (is_last_size)
+					break;
+			}
+
+			if (is_last)
+				break;
+		}
 	}
 
 	return 0;
