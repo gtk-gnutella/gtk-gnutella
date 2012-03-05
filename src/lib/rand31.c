@@ -178,7 +178,22 @@ rand31_set_seed(unsigned seed)
 unsigned
 rand31_initial_seed(void)
 {
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_set_seed(0);
+
 	return rand31_first_seed;
+}
+
+/**
+ * @return current seed, to be able to replay a forthcoming random sequence.
+ */
+unsigned
+rand31_current_seed(void)
+{
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_set_seed(0);
+
+	return rand31_seed;
 }
 
 /**
