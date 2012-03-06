@@ -370,7 +370,7 @@ static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
 static bool xmalloc_no_wfree;		/**< No longer release memory via wfree() */
 
-static void *initial_break;			/**< Initial heap break */
+static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
 static size_t xmalloc_pagesize;		/**< Cached page size */
 
@@ -563,7 +563,7 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	 * Initialize the heap break point if not done so already.
 	 */
 
-	if G_UNLIKELY(NULL == initial_break) {
+	if G_UNLIKELY(NULL == lowest_break) {
 
 #ifdef HAS_SBRK
 		current_break = sbrk(0);
@@ -571,7 +571,7 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 		current_break = (void *) -1;
 #endif	/* HAS_SBRK */
 
-		initial_break = current_break;
+		lowest_break = current_break;
 		if ((void *) -1 == current_break) {
 			t_error("cannot get initial heap break address: %m");
 		}
@@ -612,9 +612,20 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	 * Don't assume we're the only caller of sbrk(): move the current
 	 * break pointer relatively to the allocated space rather than
 	 * simply increasing our old break pointer by ``len''.
+	 *
+	 * On Windows we have no idea how heap addresses will be allocated so
+	 * explicitly maintain both the lower and upper heap ranges.
 	 */
 
-	current_break = ptr_add_offset(p, len);
+	if (is_running_on_mingw()) {
+		void *end = ptr_add_offset(p, len);
+		if (ptr_cmp(p, lowest_break) < 0)
+			lowest_break = p;
+		if (ptr_cmp(end, current_break) > 0)
+			current_break = end;
+	} else {
+		current_break = ptr_add_offset(p, len);
+	}
 	sbrk_allocated += len;
 	xstats.sbrk_alloc_bytes += len;
 	spinunlock(&xmalloc_sbrk_slk);
@@ -632,8 +643,8 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
  * On UNIX we know that heap memory is allocated contiguously starting from
  * the initial break and moving forward.
  *
- * On Windows we emulate the behaviour of sbrk() and therefore can use the same
- * logic as on UNIX.
+ * on Windows we maintain the lowest and upper break ranges since we cannot
+ * foresee how heap addresses will be allocated.
  */
 static inline bool
 xmalloc_isheap(const void *ptr, size_t len)
@@ -641,7 +652,7 @@ xmalloc_isheap(const void *ptr, size_t len)
 	if G_UNLIKELY(ptr_cmp(ptr, current_break) < 0) {
 		/* Make sure whole region is under the break */
 		g_assert(ptr_cmp(const_ptr_add_offset(ptr, len), current_break) <= 0);
-		return ptr_cmp(ptr, initial_break) >= 0;
+		return ptr_cmp(ptr, lowest_break) >= 0;
 	} else {
 		return FALSE;
 	}
@@ -703,7 +714,7 @@ xmalloc_freecore(void *ptr, size_t len)
 				success = !is_running_on_mingw();	/* no sbrk(-x) on Windows */
 			}
 #endif	/* HAS_SBRK */
-			g_assert(ptr_cmp(current_break, initial_break) >= 0);
+			g_assert(ptr_cmp(current_break, lowest_break) >= 0);
 			if (success) {
 				xstats.free_sbrk_core_released++;
 				xstats.sbrk_freed_bytes += len;
@@ -4481,7 +4492,7 @@ xmalloc_post_init(void)
 
 	if (sbrk_allocated != 0) {
 		t_info("malloc() allocated %zu bytes of heap (%zu remain)",
-			sbrk_allocated, ptr_diff(current_break, initial_break));
+			sbrk_allocated, ptr_diff(current_break, lowest_break));
 	}
 
 	if (xmalloc_debugging(0)) {
@@ -5854,7 +5865,7 @@ xmalloc_crash_hook(void)
 	 * Therefore it's OK to be using s_xxx() logging routines here.
 	 */
 
-	s_debug("XM heap is [%p, %p[", initial_break, current_break);
+	s_debug("XM heap is [%p, %p[", lowest_break, current_break);
 	s_debug("XM xfreelist_maxidx = %zu", xfreelist_maxidx);
 #ifdef XMALLOC_IS_MALLOC
 	s_debug("XM xzones_capacity = %zu", xzones_capacity);
