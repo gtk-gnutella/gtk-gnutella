@@ -3393,7 +3393,6 @@ void mingw_invalid_parameter(const wchar_t * expression,
 }
 
 #ifdef EMULATE_SBRK
-static void *initial_break;
 static void *current_break;
 
 /**
@@ -3432,9 +3431,8 @@ mingw_sbrk(long incr)
 
 	if (0 == incr) {
 		p = mingw_get_break();
-		if G_UNLIKELY(NULL == initial_break) {
-			initial_break = current_break = p;
-		}
+		if G_UNLIKELY(NULL == current_break)
+			current_break = p;
 		return p;
 	} else if (incr > 0) {
 		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
@@ -3446,8 +3444,8 @@ mingw_sbrk(long incr)
 
 		end = ptr_add_offset(p, incr);
 
-		if G_UNLIKELY(NULL == initial_break)
-			initial_break = current_break = p;
+		if G_UNLIKELY(NULL == current_break)
+			current_break = p;
 
 		if (ptr_cmp(end, current_break) > 0)
 			current_break = end;
