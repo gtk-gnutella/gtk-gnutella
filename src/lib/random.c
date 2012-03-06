@@ -58,7 +58,7 @@ random_u32(void)
 }
 
 /**
- * @return random value between [0, max], inclusive.
+ * @return 32-bit random value between [0, max], inclusive.
  */
 uint32
 random_value(uint32 max)
@@ -76,6 +76,15 @@ random_value(uint32 max)
 	 */
 
 	return arc4random_upto(max);
+}
+
+/**
+ * @return 64-bit random value between [0, max], inclusive.
+ */
+uint64
+random_value64(uint64 max)
+{
+	return arc4random_upto64(max);
 }
 
 /**

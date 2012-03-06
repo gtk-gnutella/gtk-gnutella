@@ -42,6 +42,7 @@
 
 void random_init(void);
 uint32 random_value(uint32 max) WARN_UNUSED_RESULT;
+uint64 random_value64(uint64 max) WARN_UNUSED_RESULT;
 uint32 random_u32(void) WARN_UNUSED_RESULT;
 void random_bytes(void *dst, size_t size);
 uint32 random_cpu_noise(void);

@@ -405,14 +405,11 @@ seek_to_filepos(int fd, filesize_t pos)
 filesize_t
 get_random_file_offset(const filesize_t size)
 {
-	filesize_t offset;
-
-	offset = 0;
-	if (size > 1) {
-		random_bytes(&offset, sizeof offset);
-		offset %= size - 1;
+	if (sizeof(size) == sizeof(uint64)) {
+		return random_value64(size - 1);
+	} else {
+		return random_value(size - 1);
 	}
-	return offset;
 }
 
 static inline uint
