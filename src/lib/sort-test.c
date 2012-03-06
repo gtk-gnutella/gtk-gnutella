@@ -35,6 +35,7 @@
 #include "lib/base16.h"
 #include "lib/htable.h"
 #include "lib/misc.h"
+#include "lib/path.h"
 #include "lib/rand31.h"
 #include "lib/sha1.h"
 #include "lib/smsort.h"
@@ -48,11 +49,14 @@
 
 #define DUMP_BYTES	16
 
-char *progname;
+const char *progname;
 static size_t item_size;
 static bool qsort_only;
 static bool degenerative;
+static bool silent_mode;
 static unsigned initial_seed;
+static const char *current_test;
+static const char *current_algorithm;
 
 typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
 
@@ -60,7 +64,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-htDQ] [-c items] [-n loops] [-s item_size]\n"
+		"Usage: %s [-htDQS] [-c items] [-n loops] [-s item_size]\n"
 		"       [-N main-loops] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
@@ -71,6 +75,7 @@ usage(void)
 		"  -N : run the main test loop that many times (default = 1)\n"
 		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
+		"  -S : silent mode -- do not print anything for successful tests\n"
 		, progname);
 	exit(EXIT_FAILURE);
 }
@@ -78,6 +83,8 @@ usage(void)
 static void G_GNUC_NORETURN
 test_abort()
 {
+	if (current_test != NULL)
+		printf("%7s - %s - FAILED\n", current_algorithm, current_test);
 	printf("use '-R %u' to reproduce problem.\n", initial_seed);
 	abort();
 }
@@ -566,6 +573,7 @@ timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 
 	copy = xmalloc(cnt * isize);
 	compute_sha1(&before, array, cnt * isize);
+	current_algorithm = algorithm;
 
 	tm_now_exact(&start);
 	tm_cputime(&ustart, NULL);
@@ -584,7 +592,7 @@ timeit(void (*f)(void *, void *, size_t, size_t, size_t),
 		double cpu = uend - ustart;
 		printf("%7s - %s - [%lu] time=%.3gs, CPU=%.3gs\n", algorithm, what,
 			(ulong) loops, elapsed, cpu);
-	} else {
+	} else if (!silent_mode) {
 		printf("%7s - %s - OK\n", algorithm, what);
 	}
 	fflush(stdout);
@@ -685,6 +693,8 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 	if (0 == loops)
 		loops = chrono ? calibrate(array, cnt, isize) : 1;
 
+	current_test = what;
+
 	if (!qsort_only)
 		timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
@@ -693,6 +703,8 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
 		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
 	}
+
+	current_test = NULL;
 }
 
 static void
@@ -817,9 +829,9 @@ main(int argc, char **argv)
 	unsigned rseed = 0;
 
 	mingw_early_init();
-	progname = argv[0];
+	progname = filepath_basename(argv[0]);
 
-	while ((c = getopt(argc, argv, "c:hn:s:tDN:QR:")) != EOF) {
+	while ((c = getopt(argc, argv, "c:hn:s:tDN:QR:S")) != EOF) {
 		switch (c) {
 		case 'c':			/* amount of items to use in array */
 			count = atol(optarg);
@@ -845,6 +857,9 @@ main(int argc, char **argv)
 		case 'R':			/* randomize in a repeatable way */
 			rseed = atoi(optarg);
 			break;
+		case 'S':			/* silent mode */
+			silent_mode = TRUE;
+			break;
 		case 'h':			/* show help */
 		default:
 			usage();
@@ -854,6 +869,11 @@ main(int argc, char **argv)
 
 	if ((argc -= optind) != 0)
 		usage();
+
+	if (silent_mode && tflag) {
+		fprintf(stderr, "%s: -S has little effect when -t is present\n",
+			progname);
+	}
 
 	rand31_set_seed(rseed);
 	multiple_loops = main_loops > 1;
