@@ -89,7 +89,7 @@
  * Use carefully-chosen median insted of median-of-3 when there are more
  * items in the partition than this minimum.
  */
-#define MIN_MEDIAN	40
+#define MIN_MEDIAN	64
 
 /*
  * Threshold on the amount of items we swap in a partition to guide us in
@@ -292,6 +292,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 {
 	char *base = pbase;
 	const size_t max_thresh = MAX_THRESH * size;
+	bool careful = FALSE;
 
 	if G_UNLIKELY(total_elems == 0)
 		return;	/* Avoid lossage with unsigned arithmetic below.  */
@@ -319,7 +320,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 			 *		--RAM, 2012-03-02
 			 */
 
-			if (items > MIN_MEDIAN) {
+			if (careful && items > MIN_MEDIAN) {
 				size_t d = size * (items >> 3);
 				char *plo, *phi;
 
@@ -388,6 +389,9 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
 
 			lsize = ptr_diff(left, xlo);
 			rsize = ptr_diff(xhi, right);
+
+			if (!careful && ((lsize >> 2) > rsize || (rsize >> 2) > lsize))
+				careful = TRUE;
 
 			{
 				size_t equal = ptr_diff(xlo, lo);	/* Equal to pivot */
