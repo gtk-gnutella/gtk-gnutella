@@ -35,6 +35,9 @@ src/lib/bad-fixed
 src/lib/bad-free
 src/lib/float-dragon.out
 
+# Sort algorithm tests
+src/lib/sort-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 
