@@ -4212,7 +4212,7 @@ xgc(void)
 			largest_count = fl->count;
 
 		for (j = fl->count; j != 0; j--) {
-			const void *p = fl->pointers[j - 1];
+			const void *p = fl->pointers[j];
 			ulong page = pointer_to_ulong(p) & pagemask;
 			size_t frags;
 			const void *key = ulong_to_pointer(page);
@@ -4342,7 +4342,7 @@ xgc(void)
 		 * regardless of the amount of stripped pointers and their location.
 		 */
 
-		for (j = 0; j < fl->count; j++) {
+		for (j = 0; j < old_count; j++) {
 			const void *p = fl->pointers[j];
 			ulong page = pointer_to_ulong(p) & pagemask;
 			size_t frags;
