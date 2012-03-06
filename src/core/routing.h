@@ -67,6 +67,7 @@ void gnet_reset_guid(void);
 
 void routing_init(void);
 void routing_close(void);
+void routing_clear_all(void);
 void message_set_muid(gnutella_header_t *header, uint8 function);
 bool route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(void *node);

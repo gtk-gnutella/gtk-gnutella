@@ -4180,20 +4180,21 @@ node_set_current_peermode(node_peer_t mode)
 
 	switch (mode) {
 	case NODE_P_NORMAL:
-		msg = "normal";
-		node_bye_flags(NODE_F_LEAF, 203, "Becoming a regular node");
-		if (old_mode == NODE_P_LEAF)
-			node_bye_flags(NODE_F_ULTRA, 203, "Becoming a regular node");
+		g_error("normal mode no longer supported");
 		break;
 	case NODE_P_ULTRA:
 		msg = "ultra";
-		if (old_mode == NODE_P_LEAF)
+		if (old_mode == NODE_P_LEAF) {
 			node_bye_flags(NODE_F_ULTRA, 203, "Becoming an ultra node");
+			routing_clear_all();
+		}
 		break;
 	case NODE_P_LEAF:
 		msg = "leaf";
-		if (old_mode != NODE_P_LEAF)
+		if (old_mode != NODE_P_LEAF) {
 			node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
+			routing_clear_all();
+		}
 		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:

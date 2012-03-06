@@ -913,6 +913,73 @@ advance_slot(void)
 }
 
 /**
+ * Clear routing table, starting with specified chunk index.
+ *
+ * @param idx	the index of the first chunk to clear
+ */
+static void
+routing_clear(unsigned idx)
+{
+	size_t i;
+
+	for (i = idx; i < routing.nchunks; i++) {
+		struct message **rchunk = routing.chunks[i];
+		size_t j;
+
+		if (GNET_PROPERTY(routing_debug)) {
+			g_debug("RT freeing chunk #%zu at %p, now holds %d / %d",
+				i, (void *) rchunk, routing.count, routing.capacity);
+		}
+
+		for (j = 0; j < CHUNK_MESSAGES; j++) {
+			struct message *m = rchunk[j];
+
+			if (m != NULL) {
+				message_check(m, i);
+				g_assert(m->slot == &rchunk[j]);
+				clean_entry(m);
+				WFREE(m);
+				routing.count--;
+			}
+		}
+
+		routing.capacity -= CHUNK_MESSAGES;
+		HFREE_NULL(routing.chunks[i]);
+	}
+
+	routing.nchunks = idx;
+	gnet_stats_set_general(GNR_ROUTING_TABLE_CHUNKS, routing.nchunks);
+	gnet_stats_set_general(GNR_ROUTING_TABLE_CAPACITY, routing.capacity);
+	gnet_stats_set_general(GNR_ROUTING_TABLE_COUNT, routing.count);
+
+	g_assert(uint_is_non_negative(routing.nchunks));
+
+	/*
+	 * After freeing chunks, we may be able to move around some of the
+	 * remaining ones.
+	 */
+
+	routing_chunk_move_attempt();
+}
+
+/**
+ * Clear the whole routing table.
+ */
+void
+routing_clear_all(void)
+{
+	if (GNET_PROPERTY(routing_debug)) {
+		g_debug("RT clearing whole table (holds %d / %d)",
+			routing.capacity, routing.count);
+	}
+
+	routing_clear(0);
+	routing.next_idx = 0;
+	routing.last_rotation = tm_time();
+	hset_clear(routing.messages_hashed);	/* Paranoid */
+}
+
+/**
  * Fetch next routing table slot, a pointer to a routing entry.
  *
  * When `advance' is FALSE, the slot is allocated as usual but there is
@@ -968,60 +1035,16 @@ get_next_slot(bool advance, unsigned *cidx)
 	 */
 
 	if G_UNLIKELY(elapsed > TABLE_MIN_CYCLE) {
-		size_t i;
-
 		/*
 		 * 0 != ENTRY_INDEX(idx): means we're not at the start of a chunk.
 		 * chunk == NULL: means we've reached an empty chunk, nothing to free.
 		 */
 
-		if G_LIKELY(0 != ENTRY_INDEX(idx) || NULL == chunk)
-			goto get_slot;
-
-		for (i = chunk_idx; i < routing.nchunks; i++) {
-			struct message **rchunk = routing.chunks[i];
-			size_t j;
-
-			if (GNET_PROPERTY(routing_debug)) {
-				g_debug("RT freeing chunk #%zu at %p, now holds %d / %d",
-					i, (void *) rchunk, routing.count, routing.capacity);
-			}
-
-			for (j = 0; j < CHUNK_MESSAGES; j++) {
-				struct message *m = rchunk[j];
-
-				if (m != NULL) {
-					message_check(m, i);
-					g_assert(m->slot == &rchunk[j]);
-					clean_entry(m);
-					WFREE(m);
-					routing.count--;
-				}
-			}
-
-			routing.capacity -= CHUNK_MESSAGES;
-			HFREE_NULL(routing.chunks[i]);
+		if G_UNLIKELY(chunk != NULL && 0 == ENTRY_INDEX(idx)) {
+			routing_clear(chunk_idx);
+			chunk = NULL;
 		}
-
-		chunk = NULL;
-		routing.nchunks = chunk_idx;
-		gnet_stats_set_general(GNR_ROUTING_TABLE_CHUNKS, routing.nchunks);
-		gnet_stats_set_general(GNR_ROUTING_TABLE_CAPACITY, routing.capacity);
-		gnet_stats_set_general(GNR_ROUTING_TABLE_COUNT, routing.count);
-
-		g_assert(uint_is_non_negative(routing.nchunks));
-
-		/*
-		 * After freeing chunks, we may be able to move around some of the
-		 * remaining ones.
-		 */
-
-		routing_chunk_move_attempt();
-
-		/* FALL THROUGH */
 	}
-
-get_slot:
 
 	if (chunk == NULL) {
 
