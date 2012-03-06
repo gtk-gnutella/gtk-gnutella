@@ -2510,6 +2510,8 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 */
 
 	is_heap = xmalloc_isheap(p, len);
+	if G_UNLIKELY(is_heap)
+		coalesce &= ~XM_COALESCE_SMART;		/* Force coalescing within heap */
 
 	if (coalesce) {
 		if (
