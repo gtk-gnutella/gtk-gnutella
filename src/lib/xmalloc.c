@@ -4138,11 +4138,12 @@ xgc(void)
 	hash_table_t *ht, *hfrags;
 	unsigned i;
 	ulong pagemask;
-	size_t blocks, pagecount;
+	size_t blocks, pagecount, largest_count;
 	uint8 locked[XMALLOC_FREELIST_COUNT];
 	tm_t start;
 	double start_cpu = 0.0;
 	struct xgc_allocator xga;
+	void *tmp;
 
 	if (!xmalloc_vmm_is_up)
 		return;
@@ -4184,7 +4185,7 @@ xgc(void)
 	 */
 
 	pagemask = ~(xmalloc_pagesize - 1);
-	blocks = 0;
+	largest_count = blocks = 0;
 	ZERO(&locked);
 	ZERO(&xga);
 
@@ -4206,6 +4207,9 @@ xgc(void)
 
 		locked[i] = TRUE;				/* Will keep bucket locked */
 		blksize = fl->blocksize;		/* Actual physical block size */
+
+		if (fl->count > largest_count)
+			largest_count = fl->count;
 
 		for (j = fl->count; j != 0; j--) {
 			const void *p = fl->pointers[j - 1];
@@ -4319,17 +4323,27 @@ xgc(void)
 	xstats.xgc_collected++;
 	xstats.xgc_pages_collected += pagecount;
 
+	tmp = vmm_alloc(largest_count * sizeof(void *));
+
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
-		size_t j, blksize;
+		size_t j, blksize, old_count;
+		void const **q = tmp;
 
 		if (!locked[i])
 			continue;
 
 		blksize = fl->blocksize;		/* Actual physical block size */
+		old_count = fl->count;
 
-		for (j = fl->count; j != 0; j--) {
-			const void *p = fl->pointers[j - 1];
+		/*
+		 * Avoid O(n^2) operations by copying pointers we keep to a temporary
+		 * buffer and then back to the bucket, requiring at most 2*n copies,
+		 * regardless of the amount of stripped pointers and their location.
+		 */
+
+		for (j = 0; j < fl->count; j++) {
+			const void *p = fl->pointers[j];
 			ulong page = pointer_to_ulong(p) & pagemask;
 			size_t frags;
 			const void *key = ulong_to_pointer(page);
@@ -4337,8 +4351,10 @@ xgc(void)
 
 			g_assert(p != NULL);
 
-			if (!hash_table_contains(ht, key))
+			if (!hash_table_contains(ht, key)) {
+				*q++ = p;
 				continue;
+			}
 
 			if (page == (pointer_to_ulong(last) & pagemask)) {
 				/* Fragment fully contained on one page */
@@ -4401,23 +4417,23 @@ xgc(void)
 				}
 			}
 
-			/*
-			 * Shift down by one position if not removing the last item.
-			 */
-
-			if (j != fl->count) {
-				memmove(&fl->pointers[j - 1], &fl->pointers[j],
-					(fl->count - j) * sizeof fl->pointers[0]);
-			}
-
 			xstats.xgc_blocks_collected++;
 			fl->count--;
-			if (j <= fl->sorted)		/* ``j'' is ``index + 1'' */
+			if (j < fl->sorted)
 				fl->sorted--;
 			xstats.freelist_blocks--;
 			xstats.freelist_memory -= blksize;
 		}
+
+		/*
+		 * Copy back the kept items, if we removed anything.
+		 */
+
+		if (old_count != fl->count)
+			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
 	}
+
+	vmm_free(tmp, largest_count * sizeof(void *));
 
 	/*
 	 * Pass 4: release the pages now that we removed all their fragments.
