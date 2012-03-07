@@ -4087,7 +4087,7 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 	 * Split the block at page boundaries and only free it when all the
 	 * pages are marked: we have no assurance that we could re-insert the
 	 * fragments that cannot be freed into the freelist without expanding
-	 * the bucket and allocating memory, an impossible operation from the*
+	 * the bucket and allocating memory, an impossible operation from the
 	 * garbage collector.
 	 */
 
@@ -4100,7 +4100,7 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 			}
 			break;
 		}
-		page = p = vmm_page_start(const_ptr_add_offset(p, xmalloc_pagesize));
+		page = p = vmm_page_next(p);
 	}
 
 	if (can_free)
@@ -4116,7 +4116,7 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 
 	while (ptr_cmp(p, end) < 0) {
 		hash_table_remove(ht, page);
-		page = p = vmm_page_start(const_ptr_add_offset(p, xmalloc_pagesize));
+		page = p = vmm_page_next(p);
 	}
 }
 
@@ -4268,8 +4268,7 @@ xgc(void)
 					const void *next;
 					size_t len;
 
-					next = vmm_page_start(
-						const_ptr_add_offset(p, xmalloc_pagesize));
+					next = vmm_page_next(p);
 					len = ptr_cmp(next, end) < 0 ?
 						ptr_diff(next, p) :		/* Size on page */
 						ptr_diff(end, p);		/* Remaining trailing size */
@@ -4394,8 +4393,7 @@ xgc(void)
 					size_t len;
 
 					pages++;
-					next = vmm_page_start(
-						const_ptr_add_offset(p, xmalloc_pagesize));
+					next = vmm_page_next(p);
 					len = ptr_cmp(next, end) < 0 ?
 						ptr_diff(next, p) :		/* Size on page */
 						ptr_diff(end, p);		/* Remaining trailing size */

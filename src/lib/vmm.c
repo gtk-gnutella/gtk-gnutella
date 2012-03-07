@@ -372,11 +372,22 @@ page_start(const void *p)
 
 /**
  * Rounds pointer down so that it is aligned to the start of its page.
+ *
+ * @return the base address of the page where ``p'' lies.
  */
 const void *
 vmm_page_start(const void *p)
 {
 	return page_start(p);
+}
+
+/**
+ * @return the base address of the page following the one where ``p'' lies.
+ */
+const void *
+vmm_page_next(const void *p)
+{
+	return page_start(const_ptr_add_offset(p, kernel_pagesize));
 }
 
 /**
