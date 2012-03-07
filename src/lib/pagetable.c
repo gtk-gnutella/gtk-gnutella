@@ -86,7 +86,7 @@ page_table_destroy(page_table_t *tab)
 }
 
 size_t
-page_table_lookup(page_table_t *tab, void *p)
+page_table_lookup(page_table_t *tab, const void *p)
 {
 	size_t k = (size_t) p;
 	if (k && 0 == (k & ~PAGE_BITMASK)) {
@@ -100,32 +100,51 @@ page_table_lookup(page_table_t *tab, void *p)
 	}
 }
 
-int
-page_table_insert(page_table_t *tab, void *p, size_t size)
+static void
+page_table_replace_intern(page_table_t *tab, const void *p, size_t size)
+{
+	size_t i, j;
+	size_t k = (size_t) p;
+
+	i = k >> SLICE_BITSHIFT;
+	j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
+	if (NULL == tab->slice[i]) {
+		tab->slice[i] = vmm_alloc0(sizeof tab->slice[i][0]);
+	}
+	tab->slice[i]->size[j] = size;
+}
+
+void
+page_table_replace(page_table_t *tab, const void *p, size_t size)
 {
 	size_t k = (size_t) p;
 
-	RUNTIME_ASSERT(NULL != p);
-	RUNTIME_ASSERT(size > 0);
-	RUNTIME_ASSERT(0 == (k & ~PAGE_BITMASK));
+	g_assert(NULL != p);
+	g_assert(size > 0);
+	g_assert(0 == (k & ~PAGE_BITMASK));
+
+	page_table_replace_intern(tab, p, size);
+}
+
+int
+page_table_insert(page_table_t *tab, const void *p, size_t size)
+{
+	size_t k = (size_t) p;
+
+	g_assert(NULL != p);
+	g_assert(size > 0);
+	g_assert(0 == (k & ~PAGE_BITMASK));
 
 	if (page_table_lookup(tab, p)) {
 		return FALSE;
 	} else {
-		size_t i, j;
-
-		i = k >> SLICE_BITSHIFT;
-		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
-		if (NULL == tab->slice[i]) {
-			tab->slice[i] = vmm_alloc0(sizeof tab->slice[i][0]);
-		}
-		tab->slice[i]->size[j] = size;
+		page_table_replace_intern(tab, p, size);
 		return TRUE;
 	}
 }
 
 int
-page_table_remove(page_table_t *tab, void *p)
+page_table_remove(page_table_t *tab, const void *p)
 {
 	if (page_table_lookup(tab, p)) {
 		size_t k = (size_t) p;
