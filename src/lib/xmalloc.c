@@ -4332,7 +4332,7 @@ xgc(void)
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
-		size_t j, blksize, old_count;
+		size_t j, blksize, old_count, sorted_stripped;
 		void const **q = tmp;
 
 		if (!locked[i])
@@ -4340,6 +4340,7 @@ xgc(void)
 
 		blksize = fl->blocksize;		/* Actual physical block size */
 		old_count = fl->count;
+		sorted_stripped = 0;
 
 		/*
 		 * Avoid O(n^2) operations by copying pointers we keep to a temporary
@@ -4425,7 +4426,7 @@ xgc(void)
 			xstats.xgc_blocks_collected++;
 			fl->count--;
 			if (j < fl->sorted)
-				fl->sorted--;
+				sorted_stripped++;		/* fl->pointers[] not updated yet */
 			xstats.freelist_blocks--;
 			xstats.freelist_memory -= blksize;
 		}
@@ -4435,6 +4436,8 @@ xgc(void)
 		 */
 
 		if (old_count != fl->count) {
+			fl->sorted -= sorted_stripped;
+
 			g_assert(size_is_non_negative(fl->count));
 			g_assert(size_is_non_negative(fl->sorted));
 			g_assert(fl->count >= fl->sorted);
