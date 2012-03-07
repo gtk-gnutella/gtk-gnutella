@@ -44,11 +44,13 @@
 
 #include "halloc.h"
 #include "concat.h"
+#include "dump_options.h"
 #include "hashtable.h"
 #include "malloc.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "pagetable.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
@@ -67,8 +69,25 @@
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
 #endif	/* USE_HALLOC */
 
-static size_t bytes_allocated;	/* Amount of bytes allocated */
-static size_t chunks_allocated;	/* Amount of chunks allocated */
+/**
+ * Internal statistics collected.
+ */
+static struct {
+	uint64 allocations;					/**< Total # of allocations */
+	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
+	uint64 alloc_via_walloc;			/**< Allocations from walloc */
+	uint64 alloc_via_vmm;				/**< Allocations from VMM */
+	uint64 freeings;					/**< Total # of freeings */
+	uint64 reallocs;					/**< Total # of reallocs */
+	uint64 realloc_noop;				/**< Nothing to do */
+	uint64 realloc_via_wrealloc;		/**< Reallocs handled by wrealloc() */
+	uint64 realloc_via_vmm;				/**< Reallocs handled by VMM */
+	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
+	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
+	uint64 realloc_relocatable;			/**< Forced relocation for VMM */
+	size_t memory;						/**< Amount of bytes allocated */
+	size_t blocks;						/**< Amount of blocks allocated */
+} hstats;
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 
@@ -83,7 +102,7 @@ union align {
 };
 
 static inline size_t
-page_lookup(void *p)
+page_lookup(const void *p)
 {
 	if (use_page_table) {
 		return page_table_lookup(pt_pages, p);
@@ -93,17 +112,27 @@ page_lookup(void *p)
 }
 
 static inline int
-page_insert(void *p, size_t size)
+page_insert(const void *p, size_t size)
 {
 	if (use_page_table) {
 		return page_table_insert(pt_pages, p, size);
 	} else {
-		return hash_table_insert(ht_pages, p, (void *) size);
+		return hash_table_insert(ht_pages, p, size_to_pointer(size));
+	}
+}
+
+static inline void
+page_replace(const void *p, size_t size)
+{
+	if (use_page_table) {
+		return page_table_replace(pt_pages, p, size);
+	} else {
+		return hash_table_replace(ht_pages, p, size_to_pointer(size));
 	}
 }
 
 static inline int
-page_remove(void *p)
+page_remove(const void *p)
 {
 	if (use_page_table) {
 		return page_table_remove(pt_pages, p);
@@ -183,6 +212,8 @@ halloc(size_t size)
 	if G_UNLIKELY(0 == walloc_threshold)
 		halloc_init(TRUE);
 
+	hstats.allocations++;
+
 	if (size < walloc_threshold) {
 		union align *head;
 
@@ -197,6 +228,7 @@ halloc(size_t size)
 #if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
 		zalloc_shift_pointer(head, p);
 #endif
+		hstats.alloc_via_walloc++;
 	} else {
 		int inserted;
 
@@ -207,9 +239,10 @@ halloc(size_t size)
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
 		RUNTIME_ASSERT(inserted);
+		hstats.alloc_via_vmm++;
 	}
-	bytes_allocated += allocated;
-	chunks_allocated++;
+	hstats.memory += allocated;
+	hstats.blocks++;
 	return p;
 }
 
@@ -232,6 +265,7 @@ halloc0(size_t size)
 	if (p) {
 		memset(p, 0, size);
 	}
+	hstats.allocations_zeroed++;
 	return p;
 }
 
@@ -247,6 +281,8 @@ hfree(void *p)
 	if (NULL == p)
 		return;
 
+	hstats.freeings++;
+
 	size = halloc_get_size(p);
 	RUNTIME_ASSERT(size > 0);
 
@@ -261,8 +297,8 @@ hfree(void *p)
 		page_remove(p);
 		vmm_free(p, size);
 	}
-	bytes_allocated -= allocated;
-	chunks_allocated--;
+	hstats.memory -= allocated;
+	hstats.blocks--;
 }
 
 /**
@@ -292,11 +328,14 @@ hrealloc(void *old, size_t new_size)
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
+	hstats.reallocs++;
 	rounded_new_size = round_pagesize(new_size);
 
 	if (old_size >= walloc_threshold) {
-		if (vmm_is_relocatable(old, rounded_new_size))
+		if (vmm_is_relocatable(old, rounded_new_size)) {
+			hstats.realloc_relocatable++;
 			goto relocate;
+		}
 	} else {
 		if (new_size < walloc_threshold) {
 			union align *old_head = old;
@@ -307,16 +346,31 @@ hrealloc(void *old, size_t new_size)
 			old_head--;
 			new_head = wrealloc(old_head, old_allocated, new_allocated);
 			new_head->size = new_size;
-			bytes_allocated += new_allocated - old_allocated;
+			hstats.realloc_via_wrealloc++;
+			hstats.memory += new_allocated - old_allocated;
 			return &new_head[1];
 		}
 	}
 
-	if (new_size >= walloc_threshold && rounded_new_size == old_size)
-		return old;
+	if (new_size >= walloc_threshold) {
+		if (rounded_new_size == old_size) {
+			hstats.realloc_noop++;
+			hstats.realloc_noop_same_vmm++;
+			return old;
+		}
+		if (old_size > rounded_new_size) {
+			vmm_shrink(old, old_size, rounded_new_size);
+			page_replace(old, rounded_new_size);
+			hstats.memory += rounded_new_size - old_size;
+			hstats.realloc_via_vmm_shrink++;
+			return old;
+		}
+	}
 
-	if (old_size >= new_size && old_size / 2 < new_size)
+	if (old_size >= new_size && old_size / 2 < new_size) {
+		hstats.realloc_noop++;
 		return old;
+	}
 
 relocate:
 	p = halloc(new_size);
@@ -324,6 +378,7 @@ relocate:
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
+	hstats.realloc_via_vmm++;
 
 	return p;
 }
@@ -519,13 +574,13 @@ halloc_is_available(void)
 size_t
 halloc_bytes_allocated(void)
 {
-	return bytes_allocated;
+	return hstats.memory;
 }
 
 size_t
 halloc_chunks_allocated(void)
 {
-	return chunks_allocated;
+	return hstats.blocks;
 }
 
 #ifndef TRACK_MALLOC
@@ -801,5 +856,39 @@ h_strdup_printf(const char *format, ...)
 	return buf;
 }
 #endif /* !TRACK_MALLOC */
+
+/**
+ * Dump halloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+halloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+#define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 uint64_to_gstring(hstats.x) : uint64_to_string(hstats.x))
+
+#define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 size_t_to_gstring(hstats.x) : size_t_to_string(hstats.x))
+
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(alloc_via_walloc);
+	DUMP(alloc_via_vmm);
+	DUMP(freeings);
+	DUMP(reallocs);
+	DUMP(realloc_noop);
+	DUMP(realloc_noop_same_vmm);
+	DUMP(realloc_via_wrealloc);
+	DUMP(realloc_via_vmm);
+	DUMP(realloc_via_vmm_shrink);
+	DUMP(realloc_relocatable);
+	DUMS(memory);
+	DUMS(blocks);
+
+#undef DUMP
+#undef DUMS
+}
 
 /* vi: set ts=4 sw=4 cindent: */

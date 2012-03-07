@@ -43,6 +43,7 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/omalloc.h"
@@ -373,6 +374,16 @@ memory_stats_unsupported(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_stats_halloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_stats_unsupported(sh, "halloc", STATS_USAGE_STR);
+
+	return memory_run_opt_shower(sh, halloc_dump_stats_log, "HALLOC ", opt);
+}
+
+static enum shell_reply
 shell_exec_memory_stats_vmm(struct gnutella_shell *sh,
 	unsigned opt, unsigned which)
 {
@@ -447,6 +458,7 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 		return shell_exec_memory_stats_## name(sh, opt, which); \
 } G_STMT_END
 
+	CMD(halloc);
 	CMD(vmm);
 	CMD(xmalloc);
 	CMD(zalloc);
@@ -659,7 +671,7 @@ shell_help_memory(int argc, const char *argv[])
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
-			return "memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
+			return "memory stats [-pu] halloc|omalloc|vmm|xmalloc|zalloc\n"
 				"show statistics about specified memory sub-system\n"
 				"-p : pretty-print numbers with thousands separators\n"
 				"-u : show allocation usage statistics, if available\n";

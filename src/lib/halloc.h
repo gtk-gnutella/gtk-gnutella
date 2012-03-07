@@ -91,6 +91,10 @@ bool halloc_is_available(void);
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
 
+struct logagent;
+
+void halloc_dump_stats_log(struct logagent *la, unsigned options);
+
 #ifdef TRACK_MALLOC
 
 #define HFREE_NULL(p)	\
