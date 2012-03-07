@@ -569,7 +569,6 @@ hash_table_clear(hash_table_t *ht)
 	ht->bin_fill = 0;
 	ht->last_item = NULL;	/* Clear lookup cache */
 
-
 	ht_return_void(ht);
 }
 
