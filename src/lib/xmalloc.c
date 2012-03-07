@@ -4066,8 +4066,10 @@ xgc_free_collected(const void *key, void *value, void *unused_data)
 
 /**
  * Look whether fragment, which spans over several pages, can be reclaimed.
+ *
+ * @return TRUE if fragment is not reclaimable (must be removed from table).
  */
-static void
+static bool
 xgc_fragment_removable(const void *key, void *value, void *data)
 {
 	const void *p = key;
@@ -4104,7 +4106,7 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 	}
 
 	if (can_free)
-		return;
+		return FALSE;		/* OK, freeable so keep in table */
 
 	/*
 	 * Since block cannot be freed, remove all the pages it spans over
@@ -4118,6 +4120,8 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 		hash_table_remove(ht, page);
 		page = p = vmm_page_next(p);
 	}
+
+	return TRUE;			/* Cannot reclaim, remove from table */
 }
 
 /**
@@ -4144,6 +4148,7 @@ xgc(void)
 	double start_cpu = 0.0;
 	struct xgc_allocator xga;
 	void *tmp;
+	size_t pass2_iterations;
 
 	if (!xmalloc_vmm_is_up)
 		return;
@@ -4308,13 +4313,33 @@ xgc(void)
 	 */
 
 	hash_table_foreach_remove(ht, xgc_remove_incomplete, NULL);
-	hash_table_foreach(hfrags, xgc_fragment_removable, ht);
+
+	/*
+	 * Need to iterate here over the fragment table until we no longer
+	 * remove any fragment, i.e. all the ones we held are reclaimable.
+	 *
+	 * The reason we iterate is that we could have two fragments X and Y
+	 * spanning over 2 pages, X over page A and B, and Y over B and C.
+	 * If A and B are reclaimable pages but C isn't, we'll keep X the first
+	 * time we loop (since A and B are reclaimable) but drop Y (since C
+	 * isn't reclaimable), making the B page now not-reclaimable.  Hence
+	 * we need another iteration to remove X.
+	 *
+	 * In the worst case this can cause one iteration per fragment but in
+	 * practice this will seldom happen.
+	 */
+
+	pass2_iterations = 1;
+
+	while (0 != hash_table_foreach_remove(hfrags, xgc_fragment_removable, ht))
+		pass2_iterations++;
 
 	pagecount = hash_table_size(ht);
 
 	if (xmalloc_debugging(0)) {
-		t_debug("XM GC found %zu full page%s to collect",
-			pagecount, 1 == pagecount ? "" : "s");
+		t_debug("XM GC found %zu full page%s to collect (%zu iteration%s)",
+			pagecount, 1 == pagecount ? "" : "s",
+			pass2_iterations, 1 == pass2_iterations ? "" : "s");
 	}
 
 	if (0 == pagecount)
