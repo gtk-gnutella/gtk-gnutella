@@ -165,10 +165,10 @@ static struct recursive_scan *recursive_scan_context;
 static bool share_rebuilding;
 
 /**
- * This tree maps a SHA1 hash (base-32 encoded) onto the corresponding
+ * This hash table maps a SHA1 hash (base-32 encoded) onto the corresponding
  * shared_file if we have one.
  */
-static GTree *sha1_to_share;
+static htable_t *sha1_to_share;
 
 #define A	SEARCH_AUDIO_TYPE
 #define V	SEARCH_VIDEO_TYPE
@@ -307,27 +307,16 @@ static struct {
 static htable_t *share_media_types;
 
 /**
- * Compare binary SHA1 hashes.
- * @return 0 if they're the same, a negative or positive number if s1 if greater
- * than s2 or s1 greater than s2, respectively.
- * Used to search the sha1_to_share tree.
- */
-static int
-compare_share_sha1(const void *s1, const void *s2)
-{
-	return memcmp(s1, s2, SHA1_RAW_SIZE);
-}
-
-/**
  * Reset sha1_to_share
  */
 static void
 reinit_sha1_table(void)
 {
-	if (sha1_to_share)
-		g_tree_destroy(sha1_to_share);
-
-	sha1_to_share = g_tree_new(compare_share_sha1);
+	if G_UNLIKELY(NULL == sha1_to_share) {
+		sha1_to_share = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	} else {
+		htable_clear(sha1_to_share);
+	}
 }
 
 void
@@ -405,9 +394,9 @@ shared_file_deindex(shared_file_t *sf)
 		void *key;
 
 		key = deconstify_pointer(sf->sha1);
-		current = g_tree_lookup(sha1_to_share, key);
+		current = htable_lookup(sha1_to_share, key);
 		if (current == sf) {
-			g_tree_remove(sha1_to_share, key);
+			htable_remove(sha1_to_share, key);
 		}
 	}
 }
@@ -2265,6 +2254,7 @@ share_close(void)
 	htable_free_null(&share_media_types);
 	hash_list_free(&partial_files);
 	st_free(&partial_table);
+	htable_free_null(&sha1_to_share);
 	cq_cancel(&share_qrp_rebuild_ev);
 }
 
@@ -2291,13 +2281,13 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 		void *key;
 
 		key = deconstify_pointer(sf->sha1);
-		current = g_tree_lookup(sha1_to_share, key);
+		current = htable_lookup(sha1_to_share, key);
 		if (current) {
 			shared_file_check(current);
 			g_assert(SHARE_F_INDEXED & current->flags);
 
 			if (sf == current) {
-				g_tree_remove(sha1_to_share, key);
+				htable_remove(sha1_to_share, key);
 			}
 		}
 	}
@@ -2315,7 +2305,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 		void *key;
 
 		key = deconstify_pointer(sf->sha1);
-		current = g_tree_lookup(sha1_to_share, key);
+		current = htable_lookup(sha1_to_share, key);
 		if (current) {
 			shared_file_check(current);
 			g_assert(SHARE_F_INDEXED & current->flags);
@@ -2335,7 +2325,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * Record in the set of shared SHA-1s and publish to the DHT.
 			 */
 		
-			g_tree_insert(sha1_to_share, deconstify_pointer(sf->sha1), sf);
+			htable_insert(sha1_to_share, sf->sha1, sf);
 			publisher_add(sf->sha1);
 		}
 	}
@@ -2686,7 +2676,7 @@ shared_file_complete_by_sha1(const struct sha1 *sha1)
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = g_tree_lookup(sha1_to_share, deconstify_pointer(sha1));
+	f = htable_lookup(sha1_to_share, sha1);
 	if (f) {
 		shared_file_check(f);
 	}
