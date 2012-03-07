@@ -4201,9 +4201,14 @@ xgc(void)
 			continue;
 
 		if (0 == fl->count) {
+			g_assert(0 == fl->sorted);
 			mutex_release(&fl->lock);
 			continue;
 		}
+
+		g_assert(size_is_non_negative(fl->count));
+		g_assert(size_is_non_negative(fl->sorted));
+		g_assert(fl->count >= fl->sorted);
 
 		locked[i] = TRUE;				/* Will keep bucket locked */
 		blksize = fl->blocksize;		/* Actual physical block size */
@@ -4429,8 +4434,13 @@ xgc(void)
 		 * Copy back the kept items, if we removed anything.
 		 */
 
-		if (old_count != fl->count)
+		if (old_count != fl->count) {
+			g_assert(size_is_non_negative(fl->count));
+			g_assert(size_is_non_negative(fl->sorted));
+			g_assert(fl->count >= fl->sorted);
+
 			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
+		}
 	}
 
 	vmm_free(tmp, largest_count * sizeof(void *));
