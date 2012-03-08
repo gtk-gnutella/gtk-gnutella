@@ -197,6 +197,15 @@ xml_new_child(xnode_t *parent, const char *name, const char *content)
 }
 
 /**
+ * Compare two SHA1s for GSList sorting.
+ */
+static int
+sha1_sort_cmp(const void *a, const void *b)
+{
+	return memcmp(a, b, SHA1_RAW_SIZE);
+}
+
+/**
  * A wrapper around parse_uint64. It's a little stricter, so that trailing
  * characters enforce an error. It accepts base 10 (decimal) only. On failure
  * *error will be set to a non-zero "errno" value.
@@ -671,6 +680,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
 		search_gui_get_sort_order(search));
 
 	sha1s = guc_search_associated_sha1(search_handle);
+	sha1s = g_slist_sort(sha1s, sha1_sort_cmp);
 	sha1s_to_xml(newxml, sha1s);
 	g_slist_free(sha1s);
 
