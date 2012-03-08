@@ -355,6 +355,9 @@ static struct {
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
 	uint64 xgc_blocks_collected;		/**< Amount of blocks collected */
 	uint64 xgc_pages_collected;			/**< Amount of pages collected */
+	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
+	uint64 xgc_coalesced_memory;		/**< Amount of memory we coalesced */
+	uint64 xgc_coalescing_failed;		/**< Failed block coalescing */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
@@ -4125,11 +4128,151 @@ xgc_fragment_removable(const void *key, void *value, void *data)
 }
 
 /**
+ * Attempt to coalesce blocks from bucket by removing them and appending
+ * the coalesced block to another bucket if it fits and its size matches that
+ * of larger freelists.
+ *
+ * @param fl		the freelist where coalescing could occur
+ * @param first		index of first block being coalesced
+ * @param last		index of last block being coalesced (inclusive)
+ * @param start		starting address of coalesced block
+ * @param end		first byte beyond the coalesced block
+ * @param largest	where largest bucket count is held
+ *
+ * @return TRUE if coalescing occurred and freelist was updated accordingly,
+ * FALSE if we could not coalesce the block.
+ */
+static bool
+xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
+	const void *start, const void *end, size_t *largest)
+{
+	size_t len, count;
+	struct xfreelist *tfl;
+	const char *msg;
+	void *p = deconstify_pointer(start);
+
+	g_assert(mutex_is_owned(&fl->lock));
+	g_assert(size_is_positive(fl->count));
+	g_assert(size_is_non_negative(first));
+	g_assert(first < last);
+	g_assert(last < fl->count);
+	g_assert(last < fl->sorted);
+	g_assert(start != NULL);
+	g_assert(end != NULL);
+	g_assert(ptr_cmp(end, start) > 0);
+
+	/*
+	 * We cannot allocate any memory for the freelist since we're running
+	 * from the garbage collector.
+	 *
+	 * Use a simple algorithm for now: (FIXME)
+	 *
+	 * - If there is no freelist capable of holding the resulting block
+	 *   size, bail out.
+	 * - If there is no capacity in the targeted freelist, bail out.
+	 * - The block is appended unsorted in the targeted freelist.
+	 */
+
+	len = ptr_diff(end, start);		/* Coalesced block resulting length */
+	count = last - first + 1;		/* Amount of coalesced blocks */
+
+	g_assert(fl->blocksize * count == len);
+	g_assert(count <= fl->count);
+
+	if (len > XMALLOC_MAXSIZE) {
+		/*
+		 * FIXME: if this happens, we can release pages immediately!
+		 * It will also be extremely inefficient as we'll attempt to
+		 * coalesce the following blocks again, past the one we did
+		 * not handle.
+		 */
+		msg = "block larger than max size";
+		goto failure;
+	}
+
+	if (xmalloc_round_blocksize(len) != len) {
+		msg = "block length not that of an existing freelist";
+		goto failure;
+	}
+
+	tfl = xfl_find_freelist(len);
+
+	g_assert(tfl != fl);
+	g_assert(len == tfl->blocksize);
+
+	if (!mutex_get_try(&tfl->lock)) {
+		msg = "cannot lock targeted bucket";
+		goto failure;
+	}
+
+	/* Targeted bucket is now locked */
+
+	if (tfl->count >= tfl->capacity) {
+		mutex_release(&tfl->lock);
+		msg = "no room in targeted bucket";
+		goto failure;
+	}
+
+	/*
+	 * We can move the block to the targeted bucket, appending it as "unsorted".
+	 */
+
+	if (xmalloc_debugging(2)) {
+		t_debug("XM GC moving coalesced %zu blocks at %p from freelist #%zu "
+			"to freelist #%zu (%zu-byte blocks)",
+			count, start, xfl_index(fl), xfl_index(tfl), tfl->blocksize);
+	}
+
+	xfl_insert(tfl, p, TRUE);	/* "burst" mode, to force appending */
+
+	if G_UNLIKELY(tfl->count > *largest)
+		*largest = tfl->count;
+
+	mutex_release(&tfl->lock);
+
+	xstats.xgc_coalesced_blocks += count;
+	xstats.xgc_coalesced_memory += len;
+
+	/* Compensate update made by xfl_insert() */
+	xstats.freelist_blocks -= count;
+	xstats.freelist_memory -= tfl->blocksize;
+
+	/*
+	 * Strip the coalesced blocks out of the original bucket and update count.
+	 *
+	 * FIXME: this is O(n^2) and is inefficient within the GC with unbounded n.
+	 */
+
+	if (last + 1 < fl->count) {
+		memmove(&fl->pointers[first], &fl->pointers[last + 1],
+			(fl->count - count - first) * sizeof fl->pointers[0]);
+	}
+	fl->count -= count;
+	fl->sorted -= count;
+
+	return TRUE;
+
+failure:
+	xstats.xgc_coalescing_failed++;
+
+	if (xmalloc_debugging(3)) {
+		t_debug("XM GC not coalescing %zu blocks at %p into %zu-byte block: %s",
+			count, start, len, msg);
+	}
+
+	return FALSE;
+}
+
+/**
  * Freelist fragment collector.
  *
  * Long-running programs can call this routine on a regular basis to reassemble
  * and free-up pages which are completely held in the freelist, althrough they
  * may be split as many individual free blocks.
+ *
+ * On-the-fly block coalescing is also performed to fight memory fragmentation
+ * and avoid a high number of (unused) small blocks unable to satisfy demand
+ * for larger blocks.
  *
  * Short-running programs do not need to bother at all.
  */
@@ -4142,7 +4285,7 @@ xgc(void)
 	hash_table_t *ht, *hfrags;
 	unsigned i;
 	ulong pagemask;
-	size_t blocks, pagecount, largest_count;
+	size_t blocks, pagecount, largest;
 	uint8 locked[XMALLOC_FREELIST_COUNT];
 	tm_t start;
 	double start_cpu = 0.0;
@@ -4190,17 +4333,16 @@ xgc(void)
 	 */
 
 	pagemask = ~(xmalloc_pagesize - 1);
-	largest_count = blocks = 0;
+	largest = blocks = 0;
 	ZERO(&locked);
 	ZERO(&xga);
 
 	/*
-	 * Pass 1: count the size of fragments available for each page.
+	 * Pass 0: lock buckets with items, compute largest bucket count.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
-		size_t j, blksize;
 
 		if (!mutex_get_try(&fl->lock))
 			continue;
@@ -4211,24 +4353,67 @@ xgc(void)
 			continue;
 		}
 
+		locked[i] = TRUE;				/* Will keep bucket locked */
+
+		if (fl->count > largest)
+			largest = fl->count;
+	}
+
+	/*
+	 * Pass 1: count the size of fragments available for each page and
+	 * coalescce adjacent blocks in each bucket.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+		size_t j, blksize;
+
+		if (!locked[i])
+			continue;
+
 		g_assert(size_is_non_negative(fl->count));
 		g_assert(size_is_non_negative(fl->sorted));
 		g_assert(fl->count >= fl->sorted);
 
-		locked[i] = TRUE;				/* Will keep bucket locked */
 		blksize = fl->blocksize;		/* Actual physical block size */
 
-		if (fl->count > largest_count)
-			largest_count = fl->count;
-
-		for (j = fl->count; j != 0; j--) {
-			const void *p = fl->pointers[j - 1];
+		for (j = 0; j < fl->count; j++) {
+			const void *p = fl->pointers[j];
+			const void *q;
 			ulong page = pointer_to_ulong(p) & pagemask;
 			size_t frags;
 			const void *key = ulong_to_pointer(page);
 			const void *last = const_ptr_add_offset(p, blksize - 1);
+			size_t k;
 
 			g_assert(p != NULL);		/* Or freelist corrupted */
+
+			/*
+			 * First check whether we can coalesce this block with the
+			 * next one(s), which can only happen within the sorted
+			 * part of the bucket.
+			 */
+
+			for (k = j + 1, q = p; k <= fl->sorted; k++) {
+				q = const_ptr_add_offset(q, blksize);
+				/* ``q'' is one byte past the end of block at index k-1 */
+				if (k == fl->sorted || q != fl->pointers[k]) {
+					if (k != j + 1) {
+						/*
+						 * Attempt to coalesce several contiguous blocks which
+						 * can be removed and appended to another freelist.
+						 * Note that we move the block to a higher-indexed
+						 * freelist that will be scanned later on.
+						 */
+
+						if (xgc_coalesce(fl, j, k - 1, p, q, &largest)) {
+							j--;				/* Stay at same index */
+							goto next_block;
+						}
+					}
+					break; /* Cannot coalesce, will continue with ``p'' */
+				}
+			}
 
 			/*
 			 * Add the block size to the running count of fragments
@@ -4292,6 +4477,9 @@ xgc(void)
 					key = p = next;
 				}
 			}
+
+		next_block:
+			continue;
 		}
 	}
 
@@ -4352,7 +4540,7 @@ xgc(void)
 	xstats.xgc_collected++;
 	xstats.xgc_pages_collected += pagecount;
 
-	tmp = vmm_alloc(largest_count * sizeof(void *));
+	tmp = vmm_alloc(largest * sizeof(void *));
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -4469,7 +4657,7 @@ xgc(void)
 		}
 	}
 
-	vmm_free(tmp, largest_count * sizeof(void *));
+	vmm_free(tmp, largest * sizeof(void *));
 
 	/*
 	 * Pass 4: release the pages now that we removed all their fragments.
@@ -4673,6 +4861,9 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_collected);
 	DUMP(xgc_blocks_collected);
 	DUMP(xgc_pages_collected);
+	DUMP(xgc_coalesced_blocks);
+	DUMP(xgc_coalesced_memory);
+	DUMP(xgc_coalescing_failed);
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
