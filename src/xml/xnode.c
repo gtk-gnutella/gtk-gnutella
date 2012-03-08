@@ -55,7 +55,7 @@ enum xnode_magic { XNODE_MAGIC = 0x28aa3166 };
  * then each child is pointing to its next sibling only.
  *
  * This optimizes the regular usage patterns: a mere traversal of the tree,
- * or creation of a tree by appending childrens in order.
+ * or creation of a tree by appending children in order.
  */
 struct xnode {
 	enum xnode_magic magic;
