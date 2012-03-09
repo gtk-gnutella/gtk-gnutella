@@ -352,6 +352,7 @@ static struct {
 	uint64 freelist_memory;				/**< Memory held in freelist */
 	uint64 xgc_runs;					/**< Amount of xgc() runs */
 	uint64 xgc_throttled;				/**< Throttled calls to xgc() */
+	uint64 xgc_time_throttled;			/**< Throttled due to running time */
 	uint64 xgc_collected;				/**< Amount of xgc() calls collecting */
 	uint64 xgc_blocks_collected;		/**< Amount of blocks collected */
 	uint64 xgc_pages_collected;			/**< Amount of pages collected */
@@ -4279,7 +4280,7 @@ failure:
 void
 xgc(void)
 {
-	static time_t last_run;
+	static time_t last_run, next_run;
 	static spinlock_t xgc_slk = SPINLOCK_INIT;
 	time_t now;
 	hash_table_t *ht, *hfrags;
@@ -4300,7 +4301,8 @@ xgc(void)
 		return;
 
 	/*
-	 * Limit calls to one per second.
+	 * Limit calls to one per second or to 1% of the execution time, as
+	 * computed at the end (by setting the ``next_run'' variable).
 	 */
 
 	now = tm_time();
@@ -4309,10 +4311,13 @@ xgc(void)
 		goto done;
 	};
 
-	if (xmalloc_debugging(0)) {
-		tm_now_exact(&start);
-		start_cpu = tm_cputime(NULL, NULL);
+	if (now < next_run) {
+		xstats.xgc_time_throttled++;
+		goto done;
 	}
+
+	tm_now_exact(&start);
+	start_cpu = tm_cputime(NULL, NULL);
 
 	last_run = now;
 	xstats.xgc_runs++;
@@ -4681,15 +4686,32 @@ unlock:
 	hash_table_destroy(hfrags);
 	xgc_free_all(&xga);
 
-	if (xmalloc_debugging(0)) {
+	/*
+	 * Make sure we're not spending more than 1% of our running time in
+	 * the GC, on average.  Since we're running once per second, this means
+	 * we cannot allow a running time of more than 10 ms.
+	 */
+
+	{
 		tm_t end;
-		double end_cpu;
+		double end_cpu, real_elapsed, cpu_elapsed, elapsed;
+		int increment;
 
 		end_cpu = tm_cputime(NULL, NULL);
 		tm_now_exact(&end);
-		t_debug("XM GC took %'u usecs (CPU=%'u usecs)",
-			(uint) tm_elapsed_us(&end, &start),
-			(uint) ((end_cpu - start_cpu) * 1e6));
+
+		real_elapsed = tm_elapsed_us(&end, &start);
+		cpu_elapsed = end_cpu - start_cpu;
+		elapsed = MAX(cpu_elapsed, real_elapsed);
+		increment = elapsed <= 10000 ? 1 : (elapsed / 10000);
+		next_run = now + increment;
+
+		if (xmalloc_debugging(0)) {
+			t_debug("XM GC took %'u usecs (CPU=%'u usecs), next in %d sec%s",
+				(uint) tm_elapsed_us(&end, &start),
+				(uint) ((end_cpu - start_cpu) * 1e6),
+				increment, 1 == increment ? "" : "s");
+		}
 	}
 
 done:
@@ -4858,6 +4880,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freelist_memory);
 	DUMP(xgc_runs);
 	DUMP(xgc_throttled);
+	DUMP(xgc_time_throttled);
 	DUMP(xgc_collected);
 	DUMP(xgc_blocks_collected);
 	DUMP(xgc_pages_collected);
