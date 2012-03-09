@@ -267,6 +267,7 @@ static struct xfreelist {
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
 	uint shrinking:1;		/**< Is being shrinked */
+	uint resize:1;			/**< Asked to expand by xgc() */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
 /**
@@ -359,6 +360,7 @@ static struct {
 	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
 	uint64 xgc_coalesced_memory;		/**< Amount of memory we coalesced */
 	uint64 xgc_coalescing_failed;		/**< Failed block coalescing */
+	uint64 xgc_bucket_expansions;		/**< How often do we expand buckets */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
@@ -1316,7 +1318,7 @@ xfl_extend(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
-	g_assert(fl->count >= fl->capacity);
+	g_assert(fl->count >= fl->capacity || fl->resize);
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1414,6 +1416,7 @@ xfl_extend(struct xfreelist *fl)
 	memcpy(new_ptr, old_ptr, old_used);
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
+	fl->resize = FALSE;
 	mutex_release(&fl->lock);
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
@@ -4209,6 +4212,7 @@ xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
 	/* Targeted bucket is now locked */
 
 	if (tfl->count >= tfl->capacity) {
+		tfl->resize = TRUE;				/* Request resize at next run */
 		mutex_release(&tfl->lock);
 		msg = "no room in targeted bucket";
 		goto failure;
@@ -4343,7 +4347,8 @@ xgc(void)
 	ZERO(&xga);
 
 	/*
-	 * Pass 0: lock buckets with items, compute largest bucket count.
+	 * Pass 0: lock buckets with items, compute largest bucket count, resize
+	 * buckets that were flagged too small for coalescing.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -4360,8 +4365,17 @@ xgc(void)
 
 		locked[i] = TRUE;				/* Will keep bucket locked */
 
-		if (fl->count > largest)
+		if G_UNLIKELY(fl->count > largest)
 			largest = fl->count;
+
+		if G_UNLIKELY(fl->resize) {
+			if (xmalloc_debugging(1)) {
+				t_debug("XM GC resizing freelist #%zu (cap=%zu, cnt=%zu)",
+					xfl_index(fl), fl->capacity, fl->count);
+			}
+			xfl_extend(fl);
+			xstats.xgc_bucket_expansions++;
+		}
 	}
 
 	/*
@@ -4887,6 +4901,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_coalesced_blocks);
 	DUMP(xgc_coalesced_memory);
 	DUMP(xgc_coalescing_failed);
+	DUMP(xgc_bucket_expansions);
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
