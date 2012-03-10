@@ -4769,14 +4769,16 @@ unlock:
 
 		real_elapsed = tm_elapsed_us(&end, &start);
 		cpu_elapsed = end_cpu - start_cpu;
-		elapsed = MAX(cpu_elapsed, real_elapsed);
+		if (cpu_elapsed != 0.0 && real_elapsed > 2.0 * cpu_elapsed)
+			elapsed = cpu_elapsed;
+		else
+			elapsed = MAX(cpu_elapsed, real_elapsed);
 		increment = elapsed <= 10000 ? 1 : (elapsed / 10000);
 		next_run = now + increment;
 
 		if (xmalloc_debugging(0)) {
 			t_debug("XM GC took %'u usecs (CPU=%'u usecs), next in %d sec%s",
-				(uint) tm_elapsed_us(&end, &start),
-				(uint) ((end_cpu - start_cpu) * 1e6),
+				(uint) real_elapsed, (uint) (cpu_elapsed * 1e6),
 				increment, 1 == increment ? "" : "s");
 		}
 	}
