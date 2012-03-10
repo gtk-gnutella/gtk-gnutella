@@ -59,7 +59,6 @@
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
 #include "pow2.h"
-#include "random.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -343,7 +342,6 @@ static struct {
 	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
 	uint64 freelist_insertions;				/**< Insertions in freelist */
 	uint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
-	uint64 freelist_further_breakups;		/**< Breakups due to extra size */
 	uint64 freelist_bursts;					/**< Burst detection events */
 	uint64 freelist_burst_insertions;		/**< Burst insertions in freelist */
 	uint64 freelist_plain_insertions;		/**< Plain appending in freelist */
@@ -384,7 +382,6 @@ static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static uint32 xmalloc_debug;		/**< Debug level */
 static bool safe_to_log;			/**< True when we can log */
 static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
-static bool xmalloc_random_up;		/**< True when we can use random numbers */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
@@ -2476,79 +2473,25 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	 */
 
 	if (len > XMALLOC_FACTOR_MAXSIZE) {
-		size_t multiple;
+		size_t splidx = (len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES;
+		struct xsplit *xs = &xsplit[splidx];
 
-		multiple = len & ~XMALLOC_BLOCK_MASK;
+		/* Every size can be split as long as it is properly aligned */
 
-		/*
-		 * Watch out for blocks having a trailing unsplit part and which
-		 * will therefore not end up with a completely valid blocksize if
-		 * they are blindly put in the largest freelist first.
-		 */
+		g_assert(xmalloc_round(len) == len);
+		g_assert_log(0 != xs->larger, "len=%zu", len);
 
-		if G_UNLIKELY(len - multiple == XMALLOC_SPLIT_MIN / 2) {
-			if (len < 2 * XMALLOC_FACTOR_MAXSIZE) {
-				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
-			} else {
-				multiple = (len - XMALLOC_FACTOR_MAXSIZE) & ~XMALLOC_BLOCK_MASK;
-			}
-			if (xmalloc_debugging(3)) {
-				t_debug("XM specially adjusting length of %zu: "
-					"breaking into %zu and %zu bytes",
-					len, multiple, len - multiple);
-			}
+		if (0 != xs->smaller && xmalloc_debugging(3)) {
+			t_debug("XM breaking up %s block %p (%zu bytes) into (%zu, %zu)",
+				xmalloc_isheap(p, len) ? "heap" : "VMM", p, len,
+				xs->larger, xs->smaller);
 		}
 
-	split_again:
-		if (multiple != len) {
-			if (xmalloc_debugging(3)) {
-				t_debug("XM breaking up %s block %p (%zu bytes)",
-					xmalloc_isheap(p, len) ? "heap" : "VMM", p, len);
-			}
-
-			fl = xfl_find_freelist(multiple);
+		if (0 != xs->smaller) {
+			fl = xfl_find_freelist(xs->smaller);
 			xfl_insert(fl, p, burst);
-			p = ptr_add_offset(p, multiple);
-			len -= multiple;
-		}
-
-		/*
-		 * Again, when facing an initial length of 2048+4 = 2052 bytes,
-		 * we would end up with 1028 bytes here, which is still not good
-		 * enough.  As soon as we break under the XMALLOC_FACTOR_MAXSIZE
-		 * limit, we'll hit buckets with multiple of the alignbytes constant,
-		 * so we will always be able to find a matching bucket.
-		 */
-
-		if (len > XMALLOC_FACTOR_MAXSIZE) {
-		 	/*
-		 	 * The split bucket is chosen randomly so as to not artificially
-			 * raise the amount of blocks held in a given freelist.  We can
-			 * only use the random values after initialization.
-			 */
-
-			if G_LIKELY(xmalloc_random_up) {
-				size_t bucket = random_value(
-					XMALLOC_BUCKET_CUTOVER - XMALLOC_BUCKET_OFFSET);
-				multiple = xfl_block_size_idx(bucket);
-			} else {
-				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
-			}
-
-			if G_UNLIKELY(len - multiple < XMALLOC_SPLIT_MIN) {
-				multiple -= XMALLOC_BUCKET_FACTOR;
-				g_assert(size_is_positive(multiple));
-				g_assert(multiple >= XMALLOC_SPLIT_MIN);
-			}
-
-			if (xmalloc_debugging(3)) {
-				t_debug("XM further adjusting remaining length of %zu: "
-					"breaking into %zu and %zu bytes",
-					len, multiple, len - multiple);
-			}
-
-			xstats.freelist_further_breakups++;
-			goto split_again;
+			p = ptr_add_offset(p, xs->smaller);
+			len -= xs->smaller;
 		}
 
 		/* FALL THROUGH */
@@ -4855,8 +4798,6 @@ xmalloc_post_init(void)
 	if (xmalloc_debugging(0)) {
 		t_info("XM using %ld freelist buckets", (long) XMALLOC_FREELIST_COUNT);
 	}
-
-	xmalloc_random_up = TRUE;	/* Can use random numbers now */
 }
 
 /**
@@ -4951,7 +4892,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_promoted_to_walloc);
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
-	DUMP(freelist_further_breakups);
 	DUMP(freelist_bursts);
 	DUMP(freelist_burst_insertions);
 	DUMP(freelist_plain_insertions);
