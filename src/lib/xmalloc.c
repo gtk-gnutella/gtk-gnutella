@@ -278,6 +278,20 @@ static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 #define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
 
 /**
+ * Table containing the split lengths to use for blocks that do not fit
+ * one of our discrete bucket sizes.
+ *
+ * For each possible size up to XMALLOC_MAXSIZE, by multiples of the
+ * XMALLOC_ALIGNBYTES constraint, we have the two sizes to use to split
+ * the block correctly.  If the second size is zero, it means an exact fit.
+ * If the two sizes are zero, it means there is no possible 2-block split.
+ */
+static struct xsplit {
+	unsigned short larger;
+	unsigned short smaller;
+} xsplit[XMALLOC_MAXSIZE / XMALLOC_ALIGNBYTES];
+
+/**
  * Internal statistics collected.
  */
 /* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
@@ -385,6 +399,7 @@ static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 static void xmalloc_freelist_add(void *p, size_t len, uint32 coalesce);
 static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
+static void xmalloc_split_setup(void);
 static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
 static void xmalloc_freelist_insert(void *p, size_t len,
@@ -437,6 +452,7 @@ xmalloc_vmm_inited(void)
 	xmalloc_pagesize = compat_pagesize();
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
+	xmalloc_split_setup();
 
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
@@ -1932,6 +1948,71 @@ initialized:
 		}
 
 		mutex_release(&fl->lock);
+	}
+}
+
+/**
+ * Solve split of block into two that exactly fit the freelist discrete
+ * bucket sizes.
+ *
+ * @param len		length of block
+ * @param larger	where larger block size is written
+ * @param smaller	where smaller block size is written
+ *
+ * @return TRUE if we managed to find a solution, FALSE if block cannot
+ * be split into two blocks.
+ */
+static bool
+xmalloc_split_solve(size_t len, ushort *larger, ushort *smaller)
+{
+	size_t mid = len / 2;
+	size_t l;
+
+	for (l = len - XMALLOC_ALIGNBYTES; l >= mid; l -= XMALLOC_ALIGNBYTES) {
+		size_t s = len - l;
+		if (s < XMALLOC_SPLIT_MIN)
+			continue;
+		if (
+			xmalloc_round_blocksize(l) == l &&
+			xmalloc_round_blocksize(s) == s)
+		{
+			*larger = l;
+			*smaller = s;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Initialize the xsplit[] array giving the block split sizes.
+ */
+static void
+xmalloc_split_setup(void)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(xsplit); i++) {
+		struct xsplit *xs = &xsplit[i];
+		size_t len = (i + 1) * XMALLOC_ALIGNBYTES;
+
+		if (len < XMALLOC_SPLIT_MIN)
+			continue;
+
+		/*
+		 * We need to be able to split all blocks greater than
+		 * XMALLOC_SPLIT_MIN bytes into two smaller blocks that
+		 * fit our discrete bucket sizes.
+		 */
+
+		if (xmalloc_round_blocksize(len) == len) {
+			xs->larger = len;
+		} else {
+			if (!xmalloc_split_solve(len, &xs->larger, &xs->smaller))
+				t_error("xmalloc() cannot split %zu-byte blocks into 2 blocks",
+					len);
+		}
 	}
 }
 
