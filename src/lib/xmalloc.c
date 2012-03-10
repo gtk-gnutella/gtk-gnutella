@@ -4175,9 +4175,10 @@ xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
 	const void *start, const void *end, size_t *largest)
 {
 	size_t len, count;
-	struct xfreelist *tfl;
+	struct xfreelist *tfl, *tfs;
 	const char *msg;
 	void *p = deconstify_pointer(start);
+	struct xsplit *xs;
 
 	g_assert(mutex_is_owned(&fl->lock));
 	g_assert(size_is_positive(fl->count));
@@ -4218,53 +4219,81 @@ xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
 		goto failure;
 	}
 
-	if (xmalloc_round_blocksize(len) != len) {
-		msg = "block length not that of an existing freelist";
-		goto failure;
-	}
+	xs = &xsplit[(len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES];
 
-	tfl = xfl_find_freelist(len);
-
-	g_assert(tfl != fl);
-	g_assert(len == tfl->blocksize);
+	tfl = xfl_find_freelist(xs->larger);
+	tfs = 0 == xs->smaller ? NULL : xfl_find_freelist(xs->smaller);
 
 	if (!mutex_get_try(&tfl->lock)) {
 		msg = "cannot lock targeted bucket";
 		goto failure;
 	}
 
-	/* Targeted bucket is now locked */
+	if (tfs != NULL && !mutex_get_try(&tfs->lock)) {
+		mutex_release(&tfl->lock);
+		msg = "cannot lock targeted smaller bucket";
+		goto failure;
+	}
+
+	/* Targeted bucket(s) is/are now locked */
 
 	if (tfl->count >= tfl->capacity) {
 		tfl->resize = TRUE;				/* Request resize at next run */
 		mutex_release(&tfl->lock);
+		if (tfs != NULL)
+			mutex_release(&tfs->lock);
 		msg = "no room in targeted bucket";
 		goto failure;
 	}
 
+	if (tfs != NULL && tfs->count >= tfs->capacity) {
+		tfs->resize = TRUE;				/* Request resize at next run */
+		mutex_release(&tfl->lock);
+		mutex_release(&tfs->lock);
+		msg = "no room in targeted smaller bucket";
+		goto failure;
+	}
+
 	/*
-	 * We can move the block to the targeted bucket, appending it as "unsorted".
+	 * We can move the block to the targeted bucket(s), appending as "unsorted".
 	 */
 
 	if (xmalloc_debugging(2)) {
-		t_debug("XM GC moving coalesced %zu blocks at %p from freelist #%zu "
-			"to freelist #%zu (%zu-byte blocks)",
-			count, start, xfl_index(fl), xfl_index(tfl), tfl->blocksize);
+		t_debug("XM GC moving %zu bytes from coalesced %zu blocks at %p "
+			"from freelist #%zu to freelist #%zu (%zu-byte blocks)",
+			xs->larger, count, p, xfl_index(fl), xfl_index(tfl),
+			tfl->blocksize);
 	}
 
-	xfl_insert(tfl, p, TRUE);	/* "burst" mode, to force appending */
+	xfl_insert(tfl, p, TRUE);		/* "burst" mode, to force appending */
 
 	if G_UNLIKELY(tfl->count > *largest)
 		*largest = tfl->count;
 
 	mutex_release(&tfl->lock);
 
+	if (tfs != NULL) {
+		p = ptr_add_offset(p, xs->larger);
+
+		if (xmalloc_debugging(2)) {
+			t_debug("XM GC moving trailing %zu bytes from coalesced %zu blocks "
+				"at %p from freelist #%zu to freelist #%zu (%zu-byte blocks)",
+				xs->smaller, count, p, xfl_index(fl), xfl_index(tfs),
+				tfs->blocksize);
+		}
+
+		xfl_insert(tfs, p, TRUE);	/* "burst" mode, to force appending */
+		mutex_release(&tfs->lock);
+	}
+
 	xstats.xgc_coalesced_blocks += count;
 	xstats.xgc_coalesced_memory += len;
 
-	/* Compensate update made by xfl_insert() */
+	/* Compensate update(s) made by xfl_insert() */
 	xstats.freelist_blocks -= count;
 	xstats.freelist_memory -= tfl->blocksize;
+	if (tfs != NULL)
+		xstats.freelist_memory -= tfs->blocksize;
 
 	/*
 	 * Strip the coalesced blocks out of the original bucket and update count.
