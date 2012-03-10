@@ -376,6 +376,13 @@ typedef void (*GCallback) (void);
 #define VA_COPY(dest, src)	(dest) = (src)
 #endif
 
+/**
+ * @returns the offset of the given field F within the given type T, in bytes.
+ */
+#ifndef offsetof
+#define offsetof(T, F) ((unsigned) ((char *) &((T *)0L)->F - (char *) 0L))
+#endif
+
 /*
  * Standard file descriptor numbers
  */
