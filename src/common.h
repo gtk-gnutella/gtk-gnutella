@@ -621,6 +621,12 @@ typedef void (*GCallback) (void);
 #define NO_INLINE
 #endif	/* GCC >= 3.1 */
 
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 7)
+#define G_GNUC_ALIGNED(n)	 __attribute__((aligned(n)))
+#else
+#define G_GNUC_ALIGNED(n)
+#endif	/* GCC >= 3.1 */
+
 #if defined(HASATTRIBUTE) && defined(HAS_REGPARM)
 #define REGPARM(n)	__attribute__((__regparm__((n))))
 #else
