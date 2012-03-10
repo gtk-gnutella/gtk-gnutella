@@ -27,9 +27,9 @@
  *
  * Hash table implementation using open addressing and linear double hashing.
  *
- * Closed addressing means that collision handling is done by using alternative
+ * Open addressing means that collision handling is done by using alternative
  * slots in the table, not by chaining values within the same hash bin (a
- * technique referred to as open addressing).
+ * technique referred to as closed addressing).
  *
  * Alternative places in the table are looked at using a second hashing
  * function, hence the "double hashing" name.  Since it is highly unlikely
