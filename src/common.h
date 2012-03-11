@@ -447,6 +447,14 @@ typedef void (*GCallback) (void);
 #define SSIZE_MAX MAX_INT_VAL(ssize_t)
 #endif
 
+#ifndef POINTER_MAX
+#ifdef UINTPTR_MAX
+#define POINTER_MAX	((void *) UINTPTR_MAX)
+#else
+#define POINTER_MAX	((void *) MAX_INT_VAL(size_t))
+#endif
+#endif
+
 /*
  * Other common macros.
  */
