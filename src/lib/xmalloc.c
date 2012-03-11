@@ -59,7 +59,6 @@
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
 #include "pow2.h"
-#include "random.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -278,6 +277,20 @@ static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 #define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
 
 /**
+ * Table containing the split lengths to use for blocks that do not fit
+ * one of our discrete bucket sizes.
+ *
+ * For each possible size up to XMALLOC_MAXSIZE, by multiples of the
+ * XMALLOC_ALIGNBYTES constraint, we have the two sizes to use to split
+ * the block correctly.  If the second size is zero, it means an exact fit.
+ * If the two sizes are zero, it means there is no possible 2-block split.
+ */
+static struct xsplit {
+	unsigned short larger;
+	unsigned short smaller;
+} xsplit[XMALLOC_MAXSIZE / XMALLOC_ALIGNBYTES];
+
+/**
  * Internal statistics collected.
  */
 /* FIXME -- need to make stats updates thread-safe --RAM, 2011-12-28 */
@@ -329,7 +342,6 @@ static struct {
 	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
 	uint64 freelist_insertions;				/**< Insertions in freelist */
 	uint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
-	uint64 freelist_further_breakups;		/**< Breakups due to extra size */
 	uint64 freelist_bursts;					/**< Burst detection events */
 	uint64 freelist_burst_insertions;		/**< Burst insertions in freelist */
 	uint64 freelist_plain_insertions;		/**< Plain appending in freelist */
@@ -370,7 +382,6 @@ static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static uint32 xmalloc_debug;		/**< Debug level */
 static bool safe_to_log;			/**< True when we can log */
 static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
-static bool xmalloc_random_up;		/**< True when we can use random numbers */
 static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
@@ -385,6 +396,7 @@ static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 static void xmalloc_freelist_add(void *p, size_t len, uint32 coalesce);
 static void *xmalloc_freelist_alloc(size_t len, size_t *allocated);
 static void xmalloc_freelist_setup(void);
+static void xmalloc_split_setup(void);
 static void *xmalloc_freelist_lookup(size_t len,
 	const struct xfreelist *exclude, struct xfreelist **flp);
 static void xmalloc_freelist_insert(void *p, size_t len,
@@ -437,6 +449,7 @@ xmalloc_vmm_inited(void)
 	xmalloc_pagesize = compat_pagesize();
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
+	xmalloc_split_setup();
 
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
@@ -1936,6 +1949,71 @@ initialized:
 }
 
 /**
+ * Solve split of block into two that exactly fit the freelist discrete
+ * bucket sizes.
+ *
+ * @param len		length of block
+ * @param larger	where larger block size is written
+ * @param smaller	where smaller block size is written
+ *
+ * @return TRUE if we managed to find a solution, FALSE if block cannot
+ * be split into two blocks.
+ */
+static bool
+xmalloc_split_solve(size_t len, ushort *larger, ushort *smaller)
+{
+	size_t mid = len / 2;
+	size_t l;
+
+	for (l = len - XMALLOC_ALIGNBYTES; l >= mid; l -= XMALLOC_ALIGNBYTES) {
+		size_t s = len - l;
+		if (s < XMALLOC_SPLIT_MIN)
+			continue;
+		if (
+			xmalloc_round_blocksize(l) == l &&
+			xmalloc_round_blocksize(s) == s)
+		{
+			*larger = l;
+			*smaller = s;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Initialize the xsplit[] array giving the block split sizes.
+ */
+static void
+xmalloc_split_setup(void)
+{
+	size_t i;
+
+	for (i = 0; i < G_N_ELEMENTS(xsplit); i++) {
+		struct xsplit *xs = &xsplit[i];
+		size_t len = (i + 1) * XMALLOC_ALIGNBYTES;
+
+		if (len < XMALLOC_SPLIT_MIN)
+			continue;
+
+		/*
+		 * We need to be able to split all blocks greater than
+		 * XMALLOC_SPLIT_MIN bytes into two smaller blocks that
+		 * fit our discrete bucket sizes.
+		 */
+
+		if (xmalloc_round_blocksize(len) == len) {
+			xs->larger = len;
+		} else {
+			if (!xmalloc_split_solve(len, &xs->larger, &xs->smaller))
+				t_error("xmalloc() cannot split %zu-byte blocks into 2 blocks",
+					len);
+		}
+	}
+}
+
+/**
  * Select block to allocate from freelist.
  */
 static void *
@@ -2395,79 +2473,25 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	 */
 
 	if (len > XMALLOC_FACTOR_MAXSIZE) {
-		size_t multiple;
+		size_t splidx = (len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES;
+		struct xsplit *xs = &xsplit[splidx];
 
-		multiple = len & ~XMALLOC_BLOCK_MASK;
+		/* Every size can be split as long as it is properly aligned */
 
-		/*
-		 * Watch out for blocks having a trailing unsplit part and which
-		 * will therefore not end up with a completely valid blocksize if
-		 * they are blindly put in the largest freelist first.
-		 */
+		g_assert(xmalloc_round(len) == len);
+		g_assert_log(0 != xs->larger, "len=%zu", len);
 
-		if G_UNLIKELY(len - multiple == XMALLOC_SPLIT_MIN / 2) {
-			if (len < 2 * XMALLOC_FACTOR_MAXSIZE) {
-				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
-			} else {
-				multiple = (len - XMALLOC_FACTOR_MAXSIZE) & ~XMALLOC_BLOCK_MASK;
-			}
-			if (xmalloc_debugging(3)) {
-				t_debug("XM specially adjusting length of %zu: "
-					"breaking into %zu and %zu bytes",
-					len, multiple, len - multiple);
-			}
+		if (0 != xs->smaller && xmalloc_debugging(3)) {
+			t_debug("XM breaking up %s block %p (%zu bytes) into (%zu, %zu)",
+				xmalloc_isheap(p, len) ? "heap" : "VMM", p, len,
+				xs->larger, xs->smaller);
 		}
 
-	split_again:
-		if (multiple != len) {
-			if (xmalloc_debugging(3)) {
-				t_debug("XM breaking up %s block %p (%zu bytes)",
-					xmalloc_isheap(p, len) ? "heap" : "VMM", p, len);
-			}
-
-			fl = xfl_find_freelist(multiple);
+		if (0 != xs->smaller) {
+			fl = xfl_find_freelist(xs->smaller);
 			xfl_insert(fl, p, burst);
-			p = ptr_add_offset(p, multiple);
-			len -= multiple;
-		}
-
-		/*
-		 * Again, when facing an initial length of 2048+4 = 2052 bytes,
-		 * we would end up with 1028 bytes here, which is still not good
-		 * enough.  As soon as we break under the XMALLOC_FACTOR_MAXSIZE
-		 * limit, we'll hit buckets with multiple of the alignbytes constant,
-		 * so we will always be able to find a matching bucket.
-		 */
-
-		if (len > XMALLOC_FACTOR_MAXSIZE) {
-		 	/*
-		 	 * The split bucket is chosen randomly so as to not artificially
-			 * raise the amount of blocks held in a given freelist.  We can
-			 * only use the random values after initialization.
-			 */
-
-			if G_LIKELY(xmalloc_random_up) {
-				size_t bucket = random_value(
-					XMALLOC_BUCKET_CUTOVER - XMALLOC_BUCKET_OFFSET);
-				multiple = xfl_block_size_idx(bucket);
-			} else {
-				multiple = XMALLOC_FACTOR_MAXSIZE / 2;
-			}
-
-			if G_UNLIKELY(len - multiple < XMALLOC_SPLIT_MIN) {
-				multiple -= XMALLOC_BUCKET_FACTOR;
-				g_assert(size_is_positive(multiple));
-				g_assert(multiple >= XMALLOC_SPLIT_MIN);
-			}
-
-			if (xmalloc_debugging(3)) {
-				t_debug("XM further adjusting remaining length of %zu: "
-					"breaking into %zu and %zu bytes",
-					len, multiple, len - multiple);
-			}
-
-			xstats.freelist_further_breakups++;
-			goto split_again;
+			p = ptr_add_offset(p, xs->smaller);
+			len -= xs->smaller;
 		}
 
 		/* FALL THROUGH */
@@ -4151,9 +4175,10 @@ xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
 	const void *start, const void *end, size_t *largest)
 {
 	size_t len, count;
-	struct xfreelist *tfl;
+	struct xfreelist *tfl, *tfs;
 	const char *msg;
 	void *p = deconstify_pointer(start);
+	struct xsplit *xs;
 
 	g_assert(mutex_is_owned(&fl->lock));
 	g_assert(size_is_positive(fl->count));
@@ -4194,53 +4219,81 @@ xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
 		goto failure;
 	}
 
-	if (xmalloc_round_blocksize(len) != len) {
-		msg = "block length not that of an existing freelist";
-		goto failure;
-	}
+	xs = &xsplit[(len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES];
 
-	tfl = xfl_find_freelist(len);
-
-	g_assert(tfl != fl);
-	g_assert(len == tfl->blocksize);
+	tfl = xfl_find_freelist(xs->larger);
+	tfs = 0 == xs->smaller ? NULL : xfl_find_freelist(xs->smaller);
 
 	if (!mutex_get_try(&tfl->lock)) {
 		msg = "cannot lock targeted bucket";
 		goto failure;
 	}
 
-	/* Targeted bucket is now locked */
+	if (tfs != NULL && !mutex_get_try(&tfs->lock)) {
+		mutex_release(&tfl->lock);
+		msg = "cannot lock targeted smaller bucket";
+		goto failure;
+	}
+
+	/* Targeted bucket(s) is/are now locked */
 
 	if (tfl->count >= tfl->capacity) {
 		tfl->resize = TRUE;				/* Request resize at next run */
 		mutex_release(&tfl->lock);
+		if (tfs != NULL)
+			mutex_release(&tfs->lock);
 		msg = "no room in targeted bucket";
 		goto failure;
 	}
 
+	if (tfs != NULL && tfs->count >= tfs->capacity) {
+		tfs->resize = TRUE;				/* Request resize at next run */
+		mutex_release(&tfl->lock);
+		mutex_release(&tfs->lock);
+		msg = "no room in targeted smaller bucket";
+		goto failure;
+	}
+
 	/*
-	 * We can move the block to the targeted bucket, appending it as "unsorted".
+	 * We can move the block to the targeted bucket(s), appending as "unsorted".
 	 */
 
 	if (xmalloc_debugging(2)) {
-		t_debug("XM GC moving coalesced %zu blocks at %p from freelist #%zu "
-			"to freelist #%zu (%zu-byte blocks)",
-			count, start, xfl_index(fl), xfl_index(tfl), tfl->blocksize);
+		t_debug("XM GC moving %zu bytes from coalesced %zu blocks at %p "
+			"from freelist #%zu to freelist #%zu (%zu-byte blocks)",
+			xs->larger, count, p, xfl_index(fl), xfl_index(tfl),
+			tfl->blocksize);
 	}
 
-	xfl_insert(tfl, p, TRUE);	/* "burst" mode, to force appending */
+	xfl_insert(tfl, p, TRUE);		/* "burst" mode, to force appending */
 
 	if G_UNLIKELY(tfl->count > *largest)
 		*largest = tfl->count;
 
 	mutex_release(&tfl->lock);
 
+	if (tfs != NULL) {
+		p = ptr_add_offset(p, xs->larger);
+
+		if (xmalloc_debugging(2)) {
+			t_debug("XM GC moving trailing %zu bytes from coalesced %zu blocks "
+				"at %p from freelist #%zu to freelist #%zu (%zu-byte blocks)",
+				xs->smaller, count, p, xfl_index(fl), xfl_index(tfs),
+				tfs->blocksize);
+		}
+
+		xfl_insert(tfs, p, TRUE);	/* "burst" mode, to force appending */
+		mutex_release(&tfs->lock);
+	}
+
 	xstats.xgc_coalesced_blocks += count;
 	xstats.xgc_coalesced_memory += len;
 
-	/* Compensate update made by xfl_insert() */
+	/* Compensate update(s) made by xfl_insert() */
 	xstats.freelist_blocks -= count;
 	xstats.freelist_memory -= tfl->blocksize;
+	if (tfs != NULL)
+		xstats.freelist_memory -= tfs->blocksize;
 
 	/*
 	 * Strip the coalesced blocks out of the original bucket and update count.
@@ -4716,14 +4769,16 @@ unlock:
 
 		real_elapsed = tm_elapsed_us(&end, &start);
 		cpu_elapsed = end_cpu - start_cpu;
-		elapsed = MAX(cpu_elapsed, real_elapsed);
+		if (cpu_elapsed != 0.0 && real_elapsed > 2.0 * cpu_elapsed)
+			elapsed = cpu_elapsed;
+		else
+			elapsed = MAX(cpu_elapsed, real_elapsed);
 		increment = elapsed <= 10000 ? 1 : (elapsed / 10000);
 		next_run = now + increment;
 
 		if (xmalloc_debugging(0)) {
 			t_debug("XM GC took %'u usecs (CPU=%'u usecs), next in %d sec%s",
-				(uint) tm_elapsed_us(&end, &start),
-				(uint) ((end_cpu - start_cpu) * 1e6),
+				(uint) real_elapsed, (uint) (cpu_elapsed * 1e6),
 				increment, 1 == increment ? "" : "s");
 		}
 	}
@@ -4774,8 +4829,6 @@ xmalloc_post_init(void)
 	if (xmalloc_debugging(0)) {
 		t_info("XM using %ld freelist buckets", (long) XMALLOC_FREELIST_COUNT);
 	}
-
-	xmalloc_random_up = TRUE;	/* Can use random numbers now */
 }
 
 /**
@@ -4870,7 +4923,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_promoted_to_walloc);
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
-	DUMP(freelist_further_breakups);
 	DUMP(freelist_bursts);
 	DUMP(freelist_burst_insertions);
 	DUMP(freelist_plain_insertions);
