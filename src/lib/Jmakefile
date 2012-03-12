@@ -91,6 +91,7 @@ LSRC = \
 	debug.c \
 	dualhash.c \
 	entropy.c \
+	erbtree.c \
 	eval.c \
 	event.c \
 	exit.c \
