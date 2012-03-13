@@ -248,6 +248,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_fork HAS_FORK		/**/
 
+/* HAS_GETTIMEOFDAY:
+ *	This symbol, if defined, indicates that the gettimeofday() system
+ *	call is available for a sub-second accuracy clock. Usually, the file
+ *	<sys/resource.h> needs to be included (see I_SYS_RESOURCE).
+ *	The type "Timeval" should be used to refer to "struct timeval".
+ */
+#$d_gettimeod HAS_GETTIMEOFDAY	/**/
+#ifdef HAS_GETTIMEOFDAY
+#define Timeval struct timeval	/* Structure used by gettimeofday() */
+#endif
+
 /* HAS_GETADDRINFO:
  *	This symbol is defined when getaddrinfo() can be used.
  */

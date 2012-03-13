@@ -419,6 +419,17 @@ void *mingw_sbrk(long incr);
 #endif	/* !HAS_SBRK */
 
 /*
+ * gettimeofday emulation.
+ */
+#ifndef HAS_GETTIMEOFDAY
+#define HAS_GETTIMEOFDAY	/* We emulate it */
+#define EMULATE_GETTIMEOFDAY
+#define gettimeofday mingw_gettimeofday
+
+int mingw_gettimeofday(struct timeval *tv, void *unused);
+#endif	/* !HAS_GETTIMEOFDAY */
+
+/*
  * Socket functions
  *
  * Under windows, socket descriptors are not the same as file descriptiors.
@@ -503,6 +514,9 @@ void mingw_close(void);
 const char *mingw_filename_nearby(const char *file);
 bool mingw_stdin_pending(bool fifo);
 bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
+
+struct tmval;	/* our own portable representation of "struct timeval" */
+void mingw_current_time(struct tmval *tv);
 
 const char *dir_entry_filename(const void *dirent);
 int mingw_getgateway(uint32 *ip);

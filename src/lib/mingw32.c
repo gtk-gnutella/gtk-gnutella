@@ -129,9 +129,11 @@
 
 #undef abort
 
-#define VMM_MINSIZE (1024*1024*100)	/* At least 100 MiB */
+#define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
+#define WS2_LIBRARY		"ws2_32.dll"
 
-#define WS2_LIBRARY "ws2_32.dll"
+/* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
+#define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
 
 #ifdef MINGW_SYSCALL_DEBUG
 #define mingw_syscall_debug()	1
@@ -2156,9 +2158,10 @@ mingw_sched_yield(void)
  *
  * @param ft		the FILETIME structure to convert
  * @param tv		the struct timeval to fill in
+ * @param offset	offset to substract to the FILETIME value
  */
 static void
-mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
+mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 {
 	uint64 v;
 
@@ -2180,6 +2183,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 	 */
 
 	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
+	v -= offset;
 	tv->tv_usec = v % 1000000UL;
 	v /= 1000000UL;
 	/* If time_t is a 32-bit integer, there could be an overflow */
@@ -2208,8 +2212,8 @@ mingw_getrusage(int who, struct rusage *usage)
 		return -1;
 	}
 
-	mingw_filetime_to_timeval(&user_time, &usage->ru_utime);
-	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime);
+	mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
+	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
 
 	return 0;
 }
@@ -3015,6 +3019,35 @@ mingw_getgateway(uint32 *ip)
 	*ip = ntohl(ipf.dwForwardNextHop);
 	return 0;
 }
+
+#ifdef EMULATE_GETTIMEOFDAY
+/**
+ * Get the current system time.
+ *
+ * @param tv	the structure to fill with the current time.
+ * @param tz	(unused) normally a "struct timezone"
+ */
+int
+mingw_gettimeofday(struct timeval *tv, void *tz)
+{
+	FILETIME ft;
+
+	(void) tz;	/* We don't handle the timezone */
+
+	GetSystemTimeAsFileTime(&ft);
+
+	/*
+	 * MSDN says that FILETIME contains a 64-bit value representing the number
+	 * of 100-nanosecond intervals since January 1, 1601 (UTC).
+	 *
+	 * This is exactly 11644473600000000 usecs before the UNIX Epoch.
+	 */
+
+	mingw_filetime_to_timeval(&ft, tv, EPOCH_OFFSET);
+
+	return 0;
+}
+#endif	/* EMULATE_GETTIMEOFDAY */
 
 void
 mingw_init(void)

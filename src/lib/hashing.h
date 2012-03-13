@@ -60,7 +60,7 @@
  */
 #define GOLDEN_RATIO_31	0x4F1BBCDCUL		/* Golden ratio of 2^31 */
 #define GOLDEN_RATIO_32	0x9E3779B9UL		/* Golden ratio of 2^32 */
-#define GOLDEN_RATIO_48	0x9E3779B97F4AUL	/* Golden ratio of 2^48 */
+#define GOLDEN_RATIO_48	UINT64_CONST(0x9E3779B97F4A) /* Golden ratio of 2^48 */
 
 /*
  * Public interface.

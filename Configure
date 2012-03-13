@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Wed Feb 29 20:19:35 CET 2012 [metaconfig 3.5-136]
+# Generated on Wed Mar 14 19:51:45 CET 2012 [metaconfig 3.5-136]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -330,6 +330,8 @@ d_epoll=''
 d_etext_symbol=''
 d_fast_assert=''
 d_fork=''
+d_ftime=''
+d_gettimeod=''
 d_getaddrinfo=''
 d_geteuid=''
 aphostname=''
@@ -501,6 +503,7 @@ i_syssock=''
 i_sysstat=''
 i_sysstatvfs=''
 i_syssysctl=''
+i_systimeb=''
 i_systimes=''
 i_systypes=''
 i_sysun=''
@@ -5961,6 +5964,65 @@ echo "ulimit returns $d_ulimit4 as the number of available file descriptors." >&
 fi
 $rm -f nofile*
 
+: see where struct timeb is defined
+echo " "
+xxx=`./findhdr sys/timeb.h`
+if $test "$xxx"; then
+	if $contains 'struct timeb' $xxx >/dev/null 2>&1; then
+		val="$define"
+		echo "You have struct timeb defined in <sys/timeb.h>." >&4
+	else
+		val="$undef"
+		echo "Assuming struct timeb is defined in <sys/time.h>." >&4
+	fi
+else
+	val="$undef"
+echo "No <sys/timeb.h> -- Assuming struct timeb is defined in <sys/time.h>." >&4
+fi
+set i_systimeb
+eval $setvar
+
+: see if gettimeofday or ftime exists
+$cat >try.c <<EOC
+#include <sys/time.h>
+int main(void)
+{
+	static struct timeval tv;
+	static void *tz;
+	static int ret;
+	ret |= gettimeofday(&tv, tz);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=gettimeofday
+set d_gettimeod
+eval $trylink
+
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_systimeb I_SYS_TIMEB
+#ifdef I_SYS_TIMEB
+#include <sys/timeb.h>
+#endif
+int main(void)
+{
+	static struct timeb t;
+	static int ret;
+	ret |= ftime(&t);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=ftime
+set d_ftime
+eval $trylink
+
+case "$d_gettimeod$d_ftime" in
+"$undef$undef")
+	echo " "
+	echo 'No ftime() nor gettimeofday() -- timing may be less accurate.' >&4
+	;;
+esac
+
 : can we use getuid?
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -10387,6 +10449,7 @@ d_etext_symbol='$d_etext_symbol'
 d_eunice='$d_eunice'
 d_fast_assert='$d_fast_assert'
 d_fork='$d_fork'
+d_ftime='$d_ftime'
 d_getaddrinfo='$d_getaddrinfo'
 d_geteuid='$d_geteuid'
 d_gethname='$d_gethname'
@@ -10396,6 +10459,7 @@ d_getlogin='$d_getlogin'
 d_getppid='$d_getppid'
 d_gettblsz='$d_gettblsz'
 d_gettext='$d_gettext'
+d_gettimeod='$d_gettimeod'
 d_getuid='$d_getuid'
 d_glib='$d_glib'
 d_gnulibc='$d_gnulibc'
@@ -10581,6 +10645,7 @@ i_sysstat='$i_sysstat'
 i_sysstatvfs='$i_sysstatvfs'
 i_syssysctl='$i_syssysctl'
 i_systime='$i_systime'
+i_systimeb='$i_systimeb'
 i_systimek='$i_systimek'
 i_systimes='$i_systimes'
 i_systypes='$i_systypes'
