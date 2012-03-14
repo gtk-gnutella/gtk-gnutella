@@ -45,7 +45,7 @@ typedef struct ohash_table ohash_table_t;
  * Public interface.
  */
 
-ohash_table_t *ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func);
+ohash_table_t *ohash_table_new(hash_fn_t hash_func, eq_fn_t key_eq_func);
 void ohash_table_destroy(ohash_table_t *oh);
 void ohash_table_destroy_null(ohash_table_t **oh_ptr);
 void ohash_table_insert(ohash_table_t *oh, const void *key, const void *value);
@@ -56,8 +56,9 @@ void *ohash_table_lookup(const ohash_table_t *oh, const void *key);
 bool ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
 	void *okey, void *oval);
 size_t ohash_table_count(const ohash_table_t *oh);
-void ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data);
-size_t ohash_table_foreach_remove(const ohash_table_t *oh, GHRFunc f, void *u);
+void ohash_table_foreach(const ohash_table_t *oh, keyval_fn_t func, void *data);
+size_t ohash_table_foreach_remove(const ohash_table_t *oh,
+	keyval_rm_fn_t f, void *u);
 
 #endif	/* _ohash_table_h_ */
 

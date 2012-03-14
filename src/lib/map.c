@@ -36,6 +36,7 @@
 #include "map.h"
 #include "atoms.h"				/* For tests */
 #include "debug.h"
+#include "htable.h"
 #include "ohash_table.h"
 #include "patricia.h"
 #include "random.h"
@@ -65,7 +66,7 @@ struct map {
 	enum map_magic magic;
 	enum map_type type;
 	union {
-		GHashTable *ht;
+		htable_t *ht;
 		patricia_t *pt;
 		ohash_table_t *ot;
 	} u;
@@ -87,14 +88,14 @@ map_check(const map_t *m)
  * @return the new map
  */
 map_t *
-map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
+map_create_hash(hash_fn_t hash_func, eq_fn_t key_eq_func)
 {
 	map_t *m;
 
 	WALLOC(m);
 	m->magic = MAP_MAGIC;
 	m->type = MAP_HASH;
-	m->u.ht = g_hash_table_new(hash_func, key_eq_func);
+	m->u.ht = htable_create_any(hash_func, NULL, key_eq_func);
 
 	return m;
 }
@@ -143,7 +144,7 @@ map_create_patricia(size_t keybits)
  * Use map_release() to discard the map encapsulation.
  */
 map_t *
-map_create_from_hash(GHashTable *ht)
+map_create_from_hash(htable_t *ht)
 {
 	map_t *m;
 
@@ -200,7 +201,7 @@ map_create_from_patricia(patricia_t *pt)
  * Returns the previous implementation.
  */
 void *
-map_switch_to_hash(map_t *m, GHashTable *ht)
+map_switch_to_hash(map_t *m, htable_t *ht)
 {
 	void *implementation;
 
@@ -262,7 +263,7 @@ map_insert(const map_t *m, const void *key, const void *value)
 
 	switch (m->type) {
 	case MAP_HASH:
-		gm_hash_table_insert_const(m->u.ht, key, value);
+		htable_insert_const(m->u.ht, key, value);
 		break;
 	case MAP_ORDERED_HASH:
 		ohash_table_insert(m->u.ot, key, value);
@@ -285,7 +286,7 @@ map_replace(const map_t *m, const void *key, const void *value)
 
 	switch (m->type) {
 	case MAP_HASH:
-		gm_hash_table_replace_const(m->u.ht, key, value);
+		htable_insert_const(m->u.ht, key, value);
 		break;
 	case MAP_ORDERED_HASH:
 		ohash_table_replace(m->u.ot, key, value);
@@ -310,7 +311,7 @@ map_remove(const map_t *m, const void *key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return gm_hash_table_remove(m->u.ht, key);
+		return htable_remove(m->u.ht, key);
 		break;
 	case MAP_ORDERED_HASH:
 		return ohash_table_remove(m->u.ot, key);
@@ -336,7 +337,7 @@ map_contains(const map_t *m, const void *key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return gm_hash_table_contains(m->u.ht, key);
+		return htable_contains(m->u.ht, key);
 	case MAP_ORDERED_HASH:
 		return ohash_table_contains(m->u.ot, key);
 	case MAP_PATRICIA:
@@ -357,7 +358,7 @@ map_lookup(const map_t *m, const void *key)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup(m->u.ht, key);
+		return htable_lookup(m->u.ht, key);
 	case MAP_ORDERED_HASH:
 		return ohash_table_lookup(m->u.ot, key);
 	case MAP_PATRICIA:
@@ -378,7 +379,7 @@ map_count(const map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_size(m->u.ht);
+		return htable_count(m->u.ht);
 	case MAP_ORDERED_HASH:
 		return ohash_table_count(m->u.ot);
 	case MAP_PATRICIA:
@@ -399,7 +400,7 @@ map_lookup_extended(const map_t *m, const void *key, void **okey, void **oval)
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_lookup_extended(m->u.ht, key, okey, oval);
+		return htable_lookup_extended(m->u.ht, key, (const void **) okey, oval);
 	case MAP_ORDERED_HASH:
 		return ohash_table_lookup_extended(m->u.ot, key, okey, oval);
 	case MAP_PATRICIA:
@@ -414,7 +415,7 @@ map_lookup_extended(const map_t *m, const void *key, void **okey, void **oval)
  * Structure used to handle foreach() trampoline for PATRICIA.
  */
 struct pat_foreach {
-	map_cb_t cb;		/* Registered user callback */
+	keyval_fn_t cb;		/* Registered user callback */
 	void *u;			/* User callback additional arg */
 };
 
@@ -435,14 +436,14 @@ pat_foreach_wrapper(void *key, size_t u_keybits, void *value, void *u)
  * Iterate on each item of the map, applying callback.
  */
 void
-map_foreach(const map_t *m, map_cb_t cb, void *u)
+map_foreach(const map_t *m, keyval_fn_t cb, void *u)
 {
 	map_check(m);
 	g_assert(cb);
 
 	switch (m->type) {
 	case MAP_HASH:
-		g_hash_table_foreach(m->u.ht, cb, u);
+		htable_foreach(m->u.ht, (ckeyval_fn_t) cb, u);
 		break;
 	case MAP_ORDERED_HASH:
 		ohash_table_foreach(m->u.ot, cb, u);
@@ -466,7 +467,7 @@ map_foreach(const map_t *m, map_cb_t cb, void *u)
  * Structure used to handle foreach_remove() trampoline for PATRICIA.
  */
 struct pat_foreach_remove {
-	map_cbr_t cb;		/* Registered user callback */
+	keyval_rm_fn_t cb;	/* Registered user callback */
 	void *u;			/* User callback additional arg */
 };
 
@@ -489,14 +490,14 @@ pat_foreach_remove_wrapper(void *key, size_t u_keybits, void *value, void *u)
  * @return the amount of items deleted.
  */
 size_t
-map_foreach_remove(const map_t *m, map_cbr_t cb, void *u)
+map_foreach_remove(const map_t *m, keyval_rm_fn_t cb, void *u)
 {
 	map_check(m);
 	g_assert(cb);
 
 	switch (m->type) {
 	case MAP_HASH:
-		return g_hash_table_foreach_remove(m->u.ht, cb, u);
+		return htable_foreach_remove(m->u.ht, (ckeyval_rm_fn_t) cb, u);
 	case MAP_ORDERED_HASH:
 		return ohash_table_foreach_remove(m->u.ot, cb, u);
 	case MAP_PATRICIA:
@@ -567,7 +568,7 @@ map_destroy(map_t *m)
 
 	switch (m->type) {
 	case MAP_HASH:
-		gm_hash_table_destroy_null(&m->u.ht);
+		htable_free_null(&m->u.ht);
 		break;
 	case MAP_ORDERED_HASH:
 		ohash_table_destroy_null(&m->u.ot);

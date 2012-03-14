@@ -36,27 +36,24 @@
 
 #include "common.h"
 
-#include "glib-missing.h"
+#include "htable.h"
 #include "patricia.h"
 #include "ohash_table.h"
 
 struct map;
 typedef struct map map_t;
 
-typedef void (*map_cb_t)(void *key, void *value, void *u);
-typedef bool (*map_cbr_t)(void *key, void *value, void *u);
-
 /**
  * Creation interface.
  */
 
-map_t *map_create_hash(GHashFunc hash_func, GEqualFunc key_eq_func);
-map_t *map_create_ordered_hash(GHashFunc hash_func, GEqualFunc key_eq_func);
+map_t *map_create_hash(hash_fn_t hash_func, eq_fn_t key_eq_func);
+map_t *map_create_ordered_hash(hash_fn_t hash_func, eq_fn_t key_eq_func);
 map_t *map_create_patricia(size_t keybits);
-map_t *map_create_from_hash(GHashTable *ht);
+map_t *map_create_from_hash(htable_t *ht);
 map_t *map_create_from_patricia(patricia_t *pt);
 map_t *map_create_from_ordered_hash(ohash_table_t *ot);
-void *map_switch_to_hash(map_t *m, GHashTable *ht);
+void *map_switch_to_hash(map_t *m, htable_t *ht);
 void *map_switch_to_patricia(map_t *m, patricia_t *pt);
 void *map_switch_to_ordered_hash(map_t *m, ohash_table_t *ot);
 
@@ -77,8 +74,8 @@ void *map_release(map_t *m);
 void map_destroy(map_t *m);
 void map_destroy_null(map_t **m_ptr);
 
-void map_foreach(const map_t *m, map_cb_t cb, void *u);
-size_t map_foreach_remove(const map_t *m, map_cbr_t cb, void *u);
+void map_foreach(const map_t *m, keyval_fn_t cb, void *u);
+size_t map_foreach_remove(const map_t *m, keyval_rm_fn_t cb, void *u);
 
 void map_test(void);
 

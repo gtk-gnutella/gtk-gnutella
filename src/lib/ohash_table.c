@@ -48,8 +48,8 @@ enum ohash_table_magic { OHASH_TABLE_MAGIC = 0x4a3e2b74U };
 struct ohash_table {
 	enum ohash_table_magic magic;
 	hash_list_t *hl;		/**< Remembers order of keys, contains values */
-	GHashFunc hash_func;
-	GEqualFunc key_eq_func;
+	hash_fn_t hash_func;
+	eq_fn_t key_eq_func;
 };
 
 /**
@@ -111,7 +111,7 @@ ohash_key_eq(const void *k1, const void *k2)
  * @return the new ordered hash table.
  */
 ohash_table_t *
-ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func)
+ohash_table_new(hash_fn_t hash_func, eq_fn_t key_eq_func)
 {
 	ohash_table_t *oh;
 
@@ -336,7 +336,7 @@ ohash_table_count(const ohash_table_t *oh)
 }
 
 struct ohash_foreach_ctx {
-	GHFunc func;
+	keyval_fn_t func;
 	void *data;
 };
 
@@ -356,7 +356,7 @@ ohash_table_foreach_helper(void *key, void *data)
  * The table is traversed in the order of keys.
  */
 void
-ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
+ohash_table_foreach(const ohash_table_t *oh, keyval_fn_t func, void *data)
 {
 	struct ohash_foreach_ctx ctx;
 
@@ -367,7 +367,7 @@ ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
 }
 
 struct ohash_foreach_remove_ctx {
-	GHRFunc func;
+	keyval_rm_fn_t func;
 	void *data;
 };
 
@@ -390,7 +390,8 @@ ohash_table_foreach_remove_helper(void *key, void *data)
  * @return the amount of items removed from the table.
  */
 size_t
-ohash_table_foreach_remove(const ohash_table_t *oh, GHRFunc func, void *data)
+ohash_table_foreach_remove(const ohash_table_t *oh,
+	keyval_rm_fn_t func, void *data)
 {
 	struct ohash_foreach_remove_ctx ctx;
 
