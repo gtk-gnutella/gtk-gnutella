@@ -619,6 +619,8 @@ src/lib/dump_options.h
 src/lib/endian.h
 src/lib/entropy.c
 src/lib/entropy.h
+src/lib/erbtree.c
+src/lib/erbtree.h
 src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c

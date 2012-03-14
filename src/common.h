@@ -376,6 +376,13 @@ typedef void (*GCallback) (void);
 #define VA_COPY(dest, src)	(dest) = (src)
 #endif
 
+/**
+ * @returns the offset of the given field F within the given type T, in bytes.
+ */
+#ifndef offsetof
+#define offsetof(T, F) ((unsigned) ((char *) &((T *)0L)->F - (char *) 0L))
+#endif
+
 /*
  * Standard file descriptor numbers
  */
@@ -438,6 +445,14 @@ typedef void (*GCallback) (void);
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX MAX_INT_VAL(ssize_t)
+#endif
+
+#ifndef POINTER_MAX
+#ifdef UINTPTR_MAX
+#define POINTER_MAX	((void *) UINTPTR_MAX)
+#else
+#define POINTER_MAX	((void *) MAX_INT_VAL(size_t))
+#endif
 #endif
 
 /*
@@ -619,6 +634,12 @@ typedef void (*GCallback) (void);
 #define NO_INLINE __attribute__((noinline))
 #else
 #define NO_INLINE
+#endif	/* GCC >= 3.1 */
+
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 7)
+#define G_GNUC_ALIGNED(n)	 __attribute__((aligned(n)))
+#else
+#define G_GNUC_ALIGNED(n)
 #endif	/* GCC >= 3.1 */
 
 #if defined(HASATTRIBUTE) && defined(HAS_REGPARM)

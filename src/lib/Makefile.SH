@@ -148,6 +148,7 @@ LSRC = \
 	debug.c \
 	dualhash.c \
 	entropy.c \
+	erbtree.c \
 	eval.c \
 	event.c \
 	exit.c \
@@ -285,6 +286,7 @@ LOBJ = \
 	debug.o \
 	dualhash.o \
 	entropy.o \
+	erbtree.o \
 	eval.o \
 	event.o \
 	exit.o \

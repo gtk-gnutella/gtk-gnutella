@@ -52,13 +52,13 @@
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
-#include "hashtable.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
 #include "pow2.h"
+#include "erbtree.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -372,6 +372,7 @@ static struct {
 	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
 	uint64 xgc_coalesced_memory;		/**< Amount of memory we coalesced */
 	uint64 xgc_coalescing_failed;		/**< Failed block coalescing */
+	uint64 xgc_page_freeing_failed;		/**< Cannot free embedded pages */
 	uint64 xgc_bucket_expansions;		/**< How often do we expand buckets */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
@@ -2014,6 +2015,18 @@ xmalloc_split_setup(void)
 }
 
 /**
+ * Fetch block splitting information for a given length.
+ */
+static struct xsplit *
+xmalloc_split_info(const size_t len)
+{
+	g_assert(size_is_positive(len));
+	g_assert(len >= XMALLOC_SPLIT_MIN);
+
+	return &xsplit[(len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES];
+}
+
+/**
  * Select block to allocate from freelist.
  */
 static void *
@@ -2473,8 +2486,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	 */
 
 	if (len > XMALLOC_FACTOR_MAXSIZE) {
-		size_t splidx = (len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES;
-		struct xsplit *xs = &xsplit[splidx];
+		struct xsplit *xs = xmalloc_split_info(len);
 
 		/* Every size can be split as long as it is properly aligned */
 
@@ -4065,260 +4077,421 @@ xgc_free_all(struct xgc_allocator *xga)
 	}
 }
 
-static bool
-xgc_remove_incomplete(const void *unused_key, void *value, void *unused_data)
+/**
+ * Coalescing / freeing bucket context.
+ */
+struct xgc_context {
+	uint8 locked[XMALLOC_FREELIST_COUNT];
+	size_t available[XMALLOC_FREELIST_COUNT];
+	size_t count[XMALLOC_FREELIST_COUNT];
+	size_t largest;			/**< Largest bucket count */
+};
+
+/**
+ * Items that are organized in a red-black tree to record all block ranges.
+ */
+struct xgc_range {
+	const void *start;		/**< First address in range */
+	const void *end;		/**< First address beyond range */
+	rbnode_t node;			/**< Embedded red-black tree structure */
+	unsigned blocks;		/**< Amount of blocks making up this range */
+	/* These fields updated during strategy planning and execution */
+	unsigned head;			/**< Head part to keep, until first page */
+	unsigned tail;			/**< Tail part, after last full page */
+	uint8 strategy;			/**< Strategy code */
+};
+
+/**
+ * Strategy codes.
+ */
+#define XGC_ST_COALESCE		1	/**< Coalesce block */
+#define XGC_ST_FREE_PAGES	2	/**< Free embedded pages, release head/tail */
+
+/**
+ * Comparison function for (disjoint) ranges -- red-black tree callback.
+ */
+static int
+xgc_range_cmp(const void *a, const void *b)
 {
-	size_t length = pointer_to_size(value);
+	const struct xgc_range *p = a, *q = b;
 
-	(void) unused_key;
-	(void) unused_data;
+	if (ptr_cmp(p->end, q->start) <= 0)
+		return -1;
 
-	g_assert_log(length <= xmalloc_pagesize, "length=%zu", length);
+	if (ptr_cmp(q->end, p->start) <= 0)
+		return +1;
 
-	return length < xmalloc_pagesize;	/* Remove page if incomplete */
+	return 0;		/* Overlapping ranges are equal */
 }
 
+/**
+ * Add block to red-black tree, coalescing if needed.
+ *
+ * @param rbt		the red-black tree
+ * @param start		starting address of block
+ * @param len		length of block
+ * @param xga		memory allocator used during xgc() run
+ */
 static void
-xgc_free_collected(const void *key, void *value, void *unused_data)
+xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
+	struct xgc_allocator *xga)
 {
-	void *p = deconstify_pointer(key);
-	size_t remain = pointer_to_size(value);
+	const void *end = const_ptr_add_offset(start, len);
+	struct xgc_range key;
+	struct xgc_range *merged = NULL, *xr;
 
-	(void) unused_data;
+	/*
+	 * Look whether we can coalesce with a block before it.
+	 */
 
-	g_assert_log(0 == remain,
-		"%zu byte%s remaining in page %p", remain, 1 == remain ? "" : "s", key);
+	key.start = const_ptr_add_offset(start, -1);
+	key.end = start;
+	merged = erbtree_lookup(rbt, &key);
 
-	if (!xmalloc_freecore(p, xmalloc_pagesize)) {
-		/* Can only happen for sbrk()-allocated core */
-		xmalloc_freelist_add(p, xmalloc_pagesize, XM_COALESCE_NONE);
+	if (merged != NULL) {
+		g_assert_log(merged->end == start,
+			"merged=[%p, %p[, start=%p", merged->start, merged->end, start);
+		merged->end = end;
+		merged->blocks++;
+	}
+
+	/*
+	 * Look whether we can coalesce with a block after it.
+	 */
+
+	key.start = end;
+	key.end = const_ptr_add_offset(end, +1);
+	xr = erbtree_lookup(rbt, &key);
+
+	if (xr != NULL) {
+		if (merged != NULL) {
+			g_assert_log(merged->end == xr->start,
+				"merged=[%p, %p[, xr=[%p, %p[",
+				merged->start, merged->end, xr->start, xr->end);
+			merged->end = xr->end;
+			merged->blocks += xr->blocks;
+			erbtree_remove(rbt, &xr->node);
+		} else {
+			g_assert_log(xr->start == end,
+				"xr=[%p, %p[, end=%p", xr->start, xr->end, end);
+			xr->start = start;
+			merged = xr;
+			merged->blocks++;
+		}
+	}
+
+	/*
+	 * Create a new node if we were not able to coalesce.
+	 */
+
+	if (NULL == merged) {
+		const void *old;
+
+		xr = xgc_alloc(xga, sizeof *xr);
+		ZERO(xr);
+		xr->start = start;
+		xr->end = end;
+		xr->blocks = 1;
+
+		old = erbtree_insert(rbt, &xr->node);
+		g_assert(NULL == old);		/* Was not already present in tree */
 	}
 }
 
-/**
- * Look whether fragment, which spans over several pages, can be reclaimed.
- *
- * @return TRUE if fragment is not reclaimable (must be removed from table).
- */
-static bool
-xgc_fragment_removable(const void *key, void *value, void *data)
+static inline bool
+xgc_freelist_has_room(size_t idx, struct xgc_context *xgctx)
 {
-	const void *p = key;
-	struct xgc_fragment *xf = value;
-	hash_table_t *ht = data;			/* Pages */
-	const void *end;
-	bool can_free = TRUE;
-	const void *page;
+	if G_UNLIKELY(!xgctx->locked[idx])
+		return FALSE;
 
-	g_assert(value != NULL);
-	g_assert(key == xf->p);
-
-	end = const_ptr_add_offset(p, xf->len);
-	page = vmm_page_start(p);
-
-	/*
-	 * Split the block at page boundaries and only free it when all the
-	 * pages are marked: we have no assurance that we could re-insert the
-	 * fragments that cannot be freed into the freelist without expanding
-	 * the bucket and allocating memory, an impossible operation from the
-	 * garbage collector.
-	 */
-
-	while (ptr_cmp(p, end) < 0) {
-		if (!hash_table_contains(ht, page)) {
-			can_free = FALSE;
-			if (xmalloc_debugging(1)) {
-				t_debug("XM GC cannot reclaim %zu-byte block %p: "
-					"page %p not reclaimable", xf->len, xf->p, page);
-			}
-			break;
-		}
-		page = p = vmm_page_next(p);
+	if G_UNLIKELY(0 == xgctx->available[idx]) {
+		struct xfreelist *fl = &xfreelist[idx];
+		fl->resize = TRUE;		/* For next time */
+		return FALSE;
 	}
-
-	if (can_free)
-		return FALSE;		/* OK, freeable so keep in table */
-
-	/*
-	 * Since block cannot be freed, remove all the pages it spans over
-	 * from the set of freeable pages.
-	 */
-
-	p = xf->p;
-	page = vmm_page_start(p);
-
-	while (ptr_cmp(p, end) < 0) {
-		hash_table_remove(ht, page);
-		page = p = vmm_page_next(p);
-	}
-
-	return TRUE;			/* Cannot reclaim, remove from table */
-}
-
-/**
- * Attempt to coalesce blocks from bucket by removing them and appending
- * the coalesced block to another bucket if it fits and its size matches that
- * of larger freelists.
- *
- * @param fl		the freelist where coalescing could occur
- * @param first		index of first block being coalesced
- * @param last		index of last block being coalesced (inclusive)
- * @param start		starting address of coalesced block
- * @param end		first byte beyond the coalesced block
- * @param largest	where largest bucket count is held
- *
- * @return TRUE if coalescing occurred and freelist was updated accordingly,
- * FALSE if we could not coalesce the block.
- */
-static bool
-xgc_coalesce(struct xfreelist *fl, size_t first, size_t last,
-	const void *start, const void *end, size_t *largest)
-{
-	size_t len, count;
-	struct xfreelist *tfl, *tfs;
-	const char *msg;
-	void *p = deconstify_pointer(start);
-	struct xsplit *xs;
-
-	g_assert(mutex_is_owned(&fl->lock));
-	g_assert(size_is_positive(fl->count));
-	g_assert(size_is_non_negative(first));
-	g_assert(first < last);
-	g_assert(last < fl->count);
-	g_assert(last < fl->sorted);
-	g_assert(start != NULL);
-	g_assert(end != NULL);
-	g_assert(ptr_cmp(end, start) > 0);
-
-	/*
-	 * We cannot allocate any memory for the freelist since we're running
-	 * from the garbage collector.
-	 *
-	 * Use a simple algorithm for now: (FIXME)
-	 *
-	 * - If there is no freelist capable of holding the resulting block
-	 *   size, bail out.
-	 * - If there is no capacity in the targeted freelist, bail out.
-	 * - The block is appended unsorted in the targeted freelist.
-	 */
-
-	len = ptr_diff(end, start);		/* Coalesced block resulting length */
-	count = last - first + 1;		/* Amount of coalesced blocks */
-
-	g_assert(fl->blocksize * count == len);
-	g_assert(count <= fl->count);
-
-	if (len > XMALLOC_MAXSIZE) {
-		/*
-		 * FIXME: if this happens, we can release pages immediately!
-		 * It will also be extremely inefficient as we'll attempt to
-		 * coalesce the following blocks again, past the one we did
-		 * not handle.
-		 */
-		msg = "block larger than max size";
-		goto failure;
-	}
-
-	xs = &xsplit[(len - XMALLOC_ALIGNBYTES) / XMALLOC_ALIGNBYTES];
-
-	tfl = xfl_find_freelist(xs->larger);
-	tfs = 0 == xs->smaller ? NULL : xfl_find_freelist(xs->smaller);
-
-	if (!mutex_get_try(&tfl->lock)) {
-		msg = "cannot lock targeted bucket";
-		goto failure;
-	}
-
-	if (tfs != NULL && !mutex_get_try(&tfs->lock)) {
-		mutex_release(&tfl->lock);
-		msg = "cannot lock targeted smaller bucket";
-		goto failure;
-	}
-
-	/* Targeted bucket(s) is/are now locked */
-
-	if (tfl->count >= tfl->capacity) {
-		tfl->resize = TRUE;				/* Request resize at next run */
-		mutex_release(&tfl->lock);
-		if (tfs != NULL)
-			mutex_release(&tfs->lock);
-		msg = "no room in targeted bucket";
-		goto failure;
-	}
-
-	if (tfs != NULL && tfs->count >= tfs->capacity) {
-		tfs->resize = TRUE;				/* Request resize at next run */
-		mutex_release(&tfl->lock);
-		mutex_release(&tfs->lock);
-		msg = "no room in targeted smaller bucket";
-		goto failure;
-	}
-
-	/*
-	 * We can move the block to the targeted bucket(s), appending as "unsorted".
-	 */
-
-	if (xmalloc_debugging(2)) {
-		t_debug("XM GC moving %zu bytes from coalesced %zu blocks at %p "
-			"from freelist #%zu to freelist #%zu (%zu-byte blocks)",
-			xs->larger, count, p, xfl_index(fl), xfl_index(tfl),
-			tfl->blocksize);
-	}
-
-	xfl_insert(tfl, p, TRUE);		/* "burst" mode, to force appending */
-
-	if G_UNLIKELY(tfl->count > *largest)
-		*largest = tfl->count;
-
-	mutex_release(&tfl->lock);
-
-	if (tfs != NULL) {
-		p = ptr_add_offset(p, xs->larger);
-
-		if (xmalloc_debugging(2)) {
-			t_debug("XM GC moving trailing %zu bytes from coalesced %zu blocks "
-				"at %p from freelist #%zu to freelist #%zu (%zu-byte blocks)",
-				xs->smaller, count, p, xfl_index(fl), xfl_index(tfs),
-				tfs->blocksize);
-		}
-
-		xfl_insert(tfs, p, TRUE);	/* "burst" mode, to force appending */
-		mutex_release(&tfs->lock);
-	}
-
-	xstats.xgc_coalesced_blocks += count;
-	xstats.xgc_coalesced_memory += len;
-
-	/* Compensate update(s) made by xfl_insert() */
-	xstats.freelist_blocks -= count;
-	xstats.freelist_memory -= tfl->blocksize;
-	if (tfs != NULL)
-		xstats.freelist_memory -= tfs->blocksize;
-
-	/*
-	 * Strip the coalesced blocks out of the original bucket and update count.
-	 *
-	 * FIXME: this is O(n^2) and is inefficient within the GC with unbounded n.
-	 */
-
-	if (last + 1 < fl->count) {
-		memmove(&fl->pointers[first], &fl->pointers[last + 1],
-			(fl->count - count - first) * sizeof fl->pointers[0]);
-	}
-	fl->count -= count;
-	fl->sorted -= count;
 
 	return TRUE;
+}
 
-failure:
-	xstats.xgc_coalescing_failed++;
+static inline void
+xgc_freelist_inc(size_t idx, struct xgc_context *xgctx)
+{
+	xgctx->available[idx]--;
+	xgctx->count[idx]++;
+	if G_UNLIKELY(xgctx->largest < xgctx->count[idx])
+		xgctx->largest = xgctx->count[idx];
+}
 
-	if (xmalloc_debugging(3)) {
-		t_debug("XM GC not coalescing %zu blocks at %p into %zu-byte block: %s",
-			count, start, len, msg);
+/**
+ * Check whether a given block is freeable. i.e. that there is room in the
+ * bucket(s) where it would fall, ignoring any freeing that could occur
+ * from these buckets due to coalescing.
+ *
+ * @param len		the length of the block
+ * @param xgctx		the xgc() context
+ * @param commit	if TRUE, commit the freeing by updating the context.
+ *
+ * @return TRUE if block is freeable, FALSE otherwise.
+ */
+static bool
+xgc_block_is_freeable(size_t len, struct xgc_context *xgctx, bool commit)
+{
+	struct xsplit *xs;
+	size_t i1, i2 = 0;
+
+	if G_UNLIKELY(0 == len)
+		return TRUE;
+
+	g_assert(len >= XMALLOC_SPLIT_MIN);
+
+	if (len > XMALLOC_MAXSIZE)
+		return FALSE;
+
+	/*
+	 * Compute the freelists into which the block would end-up being freed.
+	 */
+
+	xs = xmalloc_split_info(len);
+	i1 = xfl_find_freelist_index(xs->larger);
+
+	if G_UNLIKELY(!xgc_freelist_has_room(i1, xgctx))
+		return FALSE;
+
+	if G_UNLIKELY(xs->smaller != 0) {
+		i2 = xfl_find_freelist_index(xs->smaller);
+
+		if G_UNLIKELY(!xgc_freelist_has_room(i2, xgctx))
+			return FALSE;
 	}
 
-	return FALSE;
+	/*
+	 * OK, we can free the block.
+	 */
+
+	if (commit) {
+		xgc_freelist_inc(i1, xgctx);
+		if G_UNLIKELY(xs->smaller != 0)
+			xgc_freelist_inc(i2, xgctx);
+	}
+
+	return TRUE;
+}
+
+/**
+ * Decide on the fate of all the identified ranges.
+ *
+ * @return TRUE if range must be deleted.
+ */
+static bool
+xgc_range_strategy(void *key, void *data)
+{
+	struct xgc_range *xr = key;
+	struct xgc_context *xgctx = data;
+	size_t len;
+
+	/*
+	 * If we have a range larger than a page size, coalesced or not,
+	 * see whether we can chop its head and tail and free the amount
+	 * of consecutive pages in-between:
+	 *
+	 *    <------------ range ------------>
+	 *    +------+-----------------+------+
+	 *    | head | ... n pages ... | tail |
+	 *    +------+-----------------+------+
+	 *           ^
+	 *           page boundary
+	 *
+	 * The "n pages" can be freed provided the head and tail are larger
+	 * than the minimum block length and there is room in the targeted
+	 * free lists (one if the block length fits one of our discrete sizes,
+	 * two if it needs to be further split among two lists).
+	 *
+	 * It can also happen that the range spans two pages but never a whole
+	 * page:
+	 *
+	 *    <--- range --->
+	 *    +-------------+----------+
+	 *    |             |          |
+	 *    +------^------+----------^
+	 *           ^ page boundaries ^
+	 *
+	 * In which case we cannot release any page of course but that does
+	 * not mean we cannot coalesce several smaller blocks that were
+	 * merged into that range.
+	 */
+
+	if (ptr_diff(xr->end, xr->start) >= xmalloc_pagesize) {
+		const void *pstart, *pend;
+
+		pstart = vmm_page_next(xr->start);
+		if G_UNLIKELY(ptr_diff(pstart, xr->start) == xmalloc_pagesize)
+			pstart = xr->start;
+		pend = vmm_page_start(xr->end);
+
+		if (pstart == pend)
+			goto no_page_freeable;
+
+		/*
+		 * We have at least one page that could be freed, but we need to
+		 * make sure that the head and the tail are large enough to be
+		 * put back into the freelist, if non-zero.
+		 */
+
+		xr->head = ptr_diff(pstart, xr->start);
+		xr->tail = ptr_diff(xr->end, pend);
+
+		if (xr->head != 0 && xr->head < XMALLOC_SPLIT_MIN) {
+			pstart = const_ptr_add_offset(pstart, xmalloc_pagesize);
+			xr->head += xmalloc_pagesize;
+		}
+
+		if (xr->tail != 0 && xr->tail < XMALLOC_SPLIT_MIN) {
+			pend = const_ptr_add_offset(pend, -xmalloc_pagesize);
+			xr->tail += xmalloc_pagesize;
+		}
+
+		if (ptr_cmp(pstart, pend) <= 0)
+			goto no_page_freeable;
+
+		if (!xgc_block_is_freeable(xr->head, xgctx, FALSE))
+			goto cannot_free_page;
+
+		if (!xgc_block_is_freeable(xr->tail, xgctx, FALSE))
+			goto cannot_free_page;
+
+		/*
+		 * If the pages are heap memory, they cannot be VMM-released.
+		 */
+
+		if G_UNLIKELY(xmalloc_isheap(pstart, ptr_diff(pend, pstart)))
+			goto cannot_free_page;
+
+		/*
+		 * Good, we can free the head, the tail and the middle pages.
+		 */
+
+		xgc_block_is_freeable(xr->head, xgctx, TRUE);
+		xgc_block_is_freeable(xr->tail, xgctx, TRUE);
+		xr->strategy = XGC_ST_FREE_PAGES;
+
+		if (xmalloc_debugging(3)) {
+			t_debug("XM GC [%p, %p[ (%zu bytes, %zu blocks) handled as: "
+				"%u-byte head, %u-byte tail, VMM range [%p, %p[ released",
+				xr->start, xr->end, ptr_diff(xr->end, xr->start), xr->blocks,
+				xr->head, xr->tail, pstart, pend);
+		}
+
+		return TRUE;
+
+	cannot_free_page:
+		xstats.xgc_page_freeing_failed++;
+
+		/* FALL THROUGH */
+	}
+
+no_page_freeable:
+
+	/*
+	 * Range was not coalesced when it only contains a single block.
+	 */
+
+	if (1 == xr->blocks)
+		return TRUE;			/* Delete it */
+
+	/*
+	 * A range can be coalesced with two blocks whose resulting size
+	 * is not that of a freelist, in which case the block would need to
+	 * be split again.  Maybe we could find a better split, but we do not
+	 * know the individual sizes of the block, so leave them alone.
+	 *
+	 * Note that three blocks or more can always be coalesced to create
+	 * a larger block at least.
+	 */
+
+	len = ptr_diff(xr->end, xr->start);
+
+	if G_UNLIKELY(2 == xr->blocks) {
+		if (xmalloc_round_blocksize(len) != len) {
+			xstats.xgc_coalescing_failed++;
+			return TRUE;		/* Will not attempt any coalescing */
+		}
+	}
+
+	/*
+	 * Blocks can be coalesced, make sure there is room in the targeted
+	 * bucket(s).
+	 */
+
+	if G_UNLIKELY(!xgc_block_is_freeable(len, xgctx, TRUE)) {
+		xstats.xgc_coalescing_failed++;
+		return TRUE;			/* Will not attempt any coalescing */
+	}
+
+	xr->strategy = XGC_ST_COALESCE;
+
+	if (xmalloc_debugging(3)) {
+		t_debug("XM GC [%p, %p[ (%zu bytes, %zu blocks) will be coalesced",
+			xr->start, xr->end, ptr_diff(xr->end, xr->start), xr->blocks);
+	}
+
+	return FALSE;				/* Keep range */
+}
+
+/**
+ * Execute the strategy we came up with for the range.
+ */
+static void
+xgc_range_process(void *key, void *unused_data)
+{
+	struct xgc_range *xr = key;
+	size_t len;
+	void *p;
+
+	(void) unused_data;
+
+	p = deconstify_pointer(xr->start);
+	len = ptr_diff(xr->end, xr->start);
+
+	switch (xr->strategy) {
+	case XGC_ST_COALESCE:
+		xmalloc_freelist_insert(p, len, TRUE, XM_COALESCE_NONE);
+		xstats.xgc_coalesced_blocks += xr->blocks;
+		xstats.xgc_coalesced_memory += len;
+		xstats.xgc_blocks_collected--;	/* One block is put back */
+		break;
+	case XGC_ST_FREE_PAGES:
+		{
+			void *end = ptr_add_offset(p, len);
+			void *q;
+
+			if (xr->head != 0) {
+				xmalloc_freelist_insert(p, xr->head, TRUE, XM_COALESCE_NONE);
+				xstats.xgc_blocks_collected--;	/* One block is put back */
+			}
+
+			p = ptr_add_offset(p, xr->head);
+			q = ptr_add_offset(end, -xr->tail);
+
+			if (!xmalloc_freecore(p, ptr_diff(q, p))) {
+				/*
+				 * Can only happen for sbrk()-allocated core and we made
+				 * sure this was VMM memory during strategy elaboration.
+				 */
+				t_error_from(_WHERE_, "unxepected core release error");
+			}
+
+			if (xr->tail != 0) {
+				xmalloc_freelist_insert(q, xr->tail, TRUE, XM_COALESCE_NONE);
+				if (0 == xr->head || xr->blocks > 1)
+					xstats.xgc_blocks_collected--;	/* One block is put back */
+			}
+
+			xstats.xgc_pages_collected += vmm_page_count(ptr_diff(q, p));
+		}
+		break;
+	default:
+		g_assert_not_reached();
+	}
 }
 
 /**
@@ -4340,16 +4513,14 @@ xgc(void)
 	static time_t last_run, next_run;
 	static spinlock_t xgc_slk = SPINLOCK_INIT;
 	time_t now;
-	hash_table_t *ht, *hfrags;
 	unsigned i;
-	ulong pagemask;
-	size_t blocks, pagecount, largest;
-	uint8 locked[XMALLOC_FREELIST_COUNT];
+	size_t blocks;
 	tm_t start;
 	double start_cpu = 0.0;
 	struct xgc_allocator xga;
+	struct xgc_context xgctx;
 	void *tmp;
-	size_t pass2_iterations;
+	erbtree_t rbt;
 
 	if (!xmalloc_vmm_is_up)
 		return;
@@ -4367,6 +4538,7 @@ xgc(void)
 		xstats.xgc_throttled++;
 		goto done;
 	};
+	last_run = now;
 
 	if (now < next_run) {
 		xstats.xgc_time_throttled++;
@@ -4376,11 +4548,7 @@ xgc(void)
 	tm_now_exact(&start);
 	start_cpu = tm_cputime(NULL, NULL);
 
-	last_run = now;
 	xstats.xgc_runs++;
-
-	ht = hash_table_new();		/* Maps page boundaries -> size */
-	hfrags = hash_table_new();	/* Fragments spanning multiples pages */
 
 	/*
 	 * From now on we cannot use any other memory allocator but VMM, since
@@ -4394,14 +4562,14 @@ xgc(void)
 	 * collection.
 	 */
 
-	pagemask = ~(xmalloc_pagesize - 1);
-	largest = blocks = 0;
-	ZERO(&locked);
+	blocks = 0;
+	ZERO(&xgctx);
 	ZERO(&xga);
 
 	/*
-	 * Pass 0: lock buckets with items, compute largest bucket count, resize
-	 * buckets that were flagged too small for coalescing.
+	 * Pass 1: lock buckets with items, compute largest bucket count, resize
+	 * buckets that were flagged too small for coalescing, record the available
+	 * room in each bucket.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -4410,16 +4578,10 @@ xgc(void)
 		if (!mutex_get_try(&fl->lock))
 			continue;
 
-		if (0 == fl->count) {
-			g_assert(0 == fl->sorted);
-			mutex_release(&fl->lock);
-			continue;
-		}
+		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
 
-		locked[i] = TRUE;				/* Will keep bucket locked */
-
-		if G_UNLIKELY(fl->count > largest)
-			largest = fl->count;
+		if G_UNLIKELY(fl->count > xgctx.largest)
+			xgctx.largest = fl->count;
 
 		if G_UNLIKELY(fl->resize) {
 			if (xmalloc_debugging(1)) {
@@ -4429,18 +4591,22 @@ xgc(void)
 			xfl_extend(fl);
 			xstats.xgc_bucket_expansions++;
 		}
+
+		xgctx.available[i] = fl->capacity - fl->count;
+		xgctx.count[i] = fl->count;
 	}
 
 	/*
-	 * Pass 1: count the size of fragments available for each page and
-	 * coalescce adjacent blocks in each bucket.
+	 * Pass 2: computes coalesced ranges for all the blocks.
 	 */
+
+	erbtree_init(&rbt, xgc_range_cmp, offsetof(struct xgc_range, node));
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize;
 
-		if (!locked[i])
+		if (!xgctx.locked[i])
 			continue;
 
 		g_assert(size_is_non_negative(fl->count));
@@ -4451,175 +4617,49 @@ xgc(void)
 
 		for (j = 0; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
-			const void *q;
-			ulong page = pointer_to_ulong(p) & pagemask;
-			size_t frags;
-			const void *key = ulong_to_pointer(page);
-			const void *last = const_ptr_add_offset(p, blksize - 1);
-			size_t k;
 
 			g_assert(p != NULL);		/* Or freelist corrupted */
 
-			/*
-			 * First check whether we can coalesce this block with the
-			 * next one(s), which can only happen within the sorted
-			 * part of the bucket.
-			 */
-
-			for (k = j + 1, q = p; k <= fl->sorted; k++) {
-				q = const_ptr_add_offset(q, blksize);
-				/* ``q'' is one byte past the end of block at index k-1 */
-				if (k == fl->sorted || q != fl->pointers[k]) {
-					if (k != j + 1) {
-						/*
-						 * Attempt to coalesce several contiguous blocks which
-						 * can be removed and appended to another freelist.
-						 * Note that we move the block to a higher-indexed
-						 * freelist that will be scanned later on.
-						 */
-
-						if (xgc_coalesce(fl, j, k - 1, p, q, &largest)) {
-							j--;				/* Stay at same index */
-							goto next_block;
-						}
-					}
-					break; /* Cannot coalesce, will continue with ``p'' */
-				}
-			}
-
-			/*
-			 * Add the block size to the running count of fragments
-			 * already identified for the page where fragment lies.
-			 */
-
 			blocks++;
-
-			if (page == (pointer_to_ulong(last) & pagemask)) {
-				/* Fragment fully contained on one page */
-				frags = pointer_to_size(hash_table_lookup(ht, key));
-				hash_table_replace(ht, key, size_to_pointer(frags + blksize));
-
-				if (xmalloc_debugging(2)) {
-					t_debug("XM GC %zu-byte fragment %p in page %p (%zu total)",
-						blksize, p, key, frags + blksize);
-				}
-			} else {
-				const void *end = const_ptr_add_offset(last, 1);
-				struct xgc_fragment *xf;
-				bool ok;
-
-				/*
-				 * Fragment spans over several pages.
-				 *
-				 * Record the fragment to be able to determine whether we'll
-				 * be able to free all the pages it spans over.
-				 */
-
-				xf = xgc_alloc(&xga, sizeof *xf);
-				xf->p = p;
-				xf->len = blksize;
-				ok = hash_table_insert(hfrags, p, xf);
-
-				g_assert(ok);	/* No duplicates */
-
-				/*
-				 * Split the block at page boundaries.
-				 */
-
-				while (ptr_cmp(p, end) < 0) {
-					const void *next;
-					size_t len;
-
-					next = vmm_page_next(p);
-					len = ptr_cmp(next, end) < 0 ?
-						ptr_diff(next, p) :		/* Size on page */
-						ptr_diff(end, p);		/* Remaining trailing size */
-
-					g_assert(len <= xmalloc_pagesize);
-
-					frags = pointer_to_size(hash_table_lookup(ht, key));
-					hash_table_replace(ht, key, size_to_pointer(frags + len));
-
-					if (xmalloc_debugging(2)) {
-						t_debug("XM GC %zu-byte split fragment %p "
-							"in page %p (%zu total) for %zu-byte block %p",
-							len, p, key, frags + len, blksize, xf->p);
-					}
-
-					key = p = next;
-				}
-			}
-
-		next_block:
-			continue;
+			xgc_block_add(&rbt, p, blksize, &xga);
 		}
 	}
 
 	if (xmalloc_debugging(0)) {
-		size_t pages = hash_table_size(ht);
-		size_t span = hash_table_size(hfrags);
-
-		t_debug("XM GC freelist holds %zu block%s spread on %zu page%s",
-			blocks, 1 == blocks ? "" : "s", pages, 1 == pages ? "" : "s");
-		if (span != 0) {
-			t_debug("XM GC freelist has %zu block%s spanning several pages",
-				span, 1 == span ? "" : "s");
-		}
-		t_debug("XM GC hash clustering = %F", hash_table_clustering(ht));
+		size_t ranges = erbtree_count(&rbt);
+		t_debug("XM GC freelist holds %zu block%s defining %zu range%s",
+			blocks, 1 == blocks ? "" : "s", ranges, 1 == ranges ? "" : "s");
 	}
 
 	/*
-	 * Pass 2: keep only pages for which we have all the fragments.
+	 * Pass 3: decide on the fate of all the identified ranges.
 	 */
 
-	hash_table_foreach_remove(ht, xgc_remove_incomplete, NULL);
-
-	/*
-	 * Need to iterate here over the fragment table until we no longer
-	 * remove any fragment, i.e. all the ones we held are reclaimable.
-	 *
-	 * The reason we iterate is that we could have two fragments X and Y
-	 * spanning over 2 pages, X over page A and B, and Y over B and C.
-	 * If A and B are reclaimable pages but C isn't, we'll keep X the first
-	 * time we loop (since A and B are reclaimable) but drop Y (since C
-	 * isn't reclaimable), making the B page now not-reclaimable.  Hence
-	 * we need another iteration to remove X.
-	 *
-	 * In the worst case this can cause one iteration per fragment but in
-	 * practice this will seldom happen.
-	 */
-
-	pass2_iterations = 1;
-
-	while (0 != hash_table_foreach_remove(hfrags, xgc_fragment_removable, ht))
-		pass2_iterations++;
-
-	pagecount = hash_table_size(ht);
+	erbtree_foreach_remove(&rbt, xgc_range_strategy, &xgctx);
 
 	if (xmalloc_debugging(0)) {
-		t_debug("XM GC found %zu full page%s to collect (%zu iteration%s)",
-			pagecount, 1 == pagecount ? "" : "s",
-			pass2_iterations, 1 == pass2_iterations ? "" : "s");
+		size_t ranges = erbtree_count(&rbt);
+		t_debug("XM GC left with %zu range%s to process",
+			ranges, 1 == ranges ? "" : "s");
 	}
 
-	if (0 == pagecount)
+	if (0 == erbtree_count(&rbt))
 		goto unlock;
 
 	/*
-	 * Pass 3: remove fragments from complete pages.
+	 * Pass 4: strip blocks falling in ranges for which we have a strategy.
 	 */
 
 	xstats.xgc_collected++;
-	xstats.xgc_pages_collected += pagecount;
 
-	tmp = vmm_alloc(largest * sizeof(void *));
+	tmp = vmm_alloc(xgctx.largest * sizeof(void *));
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize, old_count, sorted_stripped;
 		void const **q = tmp;
 
-		if (!locked[i])
+		if (!xgctx.locked[i])
 			continue;
 
 		blksize = fl->blocksize;		/* Actual physical block size */
@@ -4634,76 +4674,15 @@ xgc(void)
 
 		for (j = 0; j < old_count; j++) {
 			const void *p = fl->pointers[j];
-			ulong page = pointer_to_ulong(p) & pagemask;
-			size_t frags;
-			const void *key = ulong_to_pointer(page);
-			const void *last = const_ptr_add_offset(p, blksize - 1);
+			struct xgc_range key, *xr;
 
-			g_assert(p != NULL);
+			key.start = p;
+			key.end = const_ptr_add_offset(p, +1);
+			xr = erbtree_lookup(&rbt, &key);
 
-			if (!hash_table_contains(ht, key)) {
+			if (NULL == xr) {
 				*q++ = p;
 				continue;
-			}
-
-			if (page == (pointer_to_ulong(last) & pagemask)) {
-				/* Fragment fully contained on one page */
-				frags = pointer_to_size(hash_table_lookup(ht, key));
-				g_assert_log(frags >= blksize,
-					"frags=%zu, blksize=%zu, p=%p, page=%p",
-					frags, blksize, p, key);
-				hash_table_replace(ht, key, size_to_pointer(frags - blksize));
-
-				if (xmalloc_debugging(1)) {
-					t_debug("XM GC collecting %zu-byte fragment %p on page %p",
-						blksize, p, key);
-				}
-			} else {
-				const void *end = const_ptr_add_offset(last, 1);
-				size_t pages = 0;			/* For logging */
-				const void *begin = p;		/* For logging */
-
-				/*
-				 * Fragment spans over several pages.
-				 *
-				 * We have already determined that the block can be freed
-				 * because all its pages are freeable (otherwise the page
-				 * ``key'' would no longer be present in the hash table).
-				 */
-
-				g_assert(hash_table_contains(hfrags, p));
-
-				while (ptr_cmp(p, end) < 0) {
-					const void *next;
-					size_t len;
-
-					pages++;
-					next = vmm_page_next(p);
-					len = ptr_cmp(next, end) < 0 ?
-						ptr_diff(next, p) :		/* Size on page */
-						ptr_diff(end, p);		/* Remaining trailing size */
-
-					g_assert(len <= xmalloc_pagesize);
-
-					frags = pointer_to_size(hash_table_lookup(ht, key));
-					g_assert_log(frags >= len,
-						"frags=%zu, len=%zu, begin=%p, page=%p",
-						frags, len, begin, key);
-					hash_table_replace(ht, key, size_to_pointer(frags - len));
-
-					if (xmalloc_debugging(2)) {
-						t_debug("XM GC reclaimed %zu-byte split fragment %p "
-							"in page %p (%zu remaining) for %zu-byte block %p",
-							len, p, key, frags - len, blksize, begin);
-					}
-
-					key = p = next;
-				}
-
-				if (xmalloc_debugging(0)) {	/* Should be rare enough */
-					t_debug("XM GC collected %zu-byte fragment %p spanning "
-						"%zu pages", blksize, begin, pages);
-				}
 			}
 
 			xstats.xgc_blocks_collected++;
@@ -4729,28 +4708,26 @@ xgc(void)
 		}
 	}
 
-	vmm_free(tmp, largest * sizeof(void *));
+	vmm_free(tmp, xgctx.largest * sizeof(void *));
 
 	/*
-	 * Pass 4: release the pages now that we removed all their fragments.
+	 * Pass 5: execute the strategy.
 	 */
 
-	hash_table_foreach(ht, xgc_free_collected, NULL);
+	erbtree_foreach(&rbt, xgc_range_process, NULL);
 
 	/*
-	 * Pass 5: unlock buckets.
+	 * Pass 6: unlock buckets.
 	 */
 
 unlock:
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
-		if (locked[i]) {
+		if (xgctx.locked[i]) {
 			struct xfreelist *fl = &xfreelist[i];
 			mutex_release(&fl->lock);
 		}
 	}
 
-	hash_table_destroy(ht);
-	hash_table_destroy(hfrags);
 	xgc_free_all(&xga);
 
 	/*
@@ -4768,17 +4745,17 @@ unlock:
 		tm_now_exact(&end);
 
 		real_elapsed = tm_elapsed_us(&end, &start);
-		cpu_elapsed = end_cpu - start_cpu;
-		if (cpu_elapsed != 0.0 && real_elapsed > 2.0 * cpu_elapsed)
+		cpu_elapsed = (end_cpu - start_cpu) * 1e6;	/* In usecs */
+		if (end_cpu != 0.0 && real_elapsed > 2.0 * cpu_elapsed)
 			elapsed = cpu_elapsed;
 		else
-			elapsed = MAX(cpu_elapsed, real_elapsed);
+			elapsed = (cpu_elapsed + real_elapsed) / 2.0;
 		increment = elapsed <= 10000 ? 1 : (elapsed / 10000);
 		next_run = now + increment;
 
 		if (xmalloc_debugging(0)) {
 			t_debug("XM GC took %'u usecs (CPU=%'u usecs), next in %d sec%s",
-				(uint) real_elapsed, (uint) (cpu_elapsed * 1e6),
+				(uint) real_elapsed, (uint) cpu_elapsed,
 				increment, 1 == increment ? "" : "s");
 		}
 	}
@@ -4953,6 +4930,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_coalesced_blocks);
 	DUMP(xgc_coalesced_memory);
 	DUMP(xgc_coalescing_failed);
+	DUMP(xgc_page_freeing_failed);
 	DUMP(xgc_bucket_expansions);
 
 #undef DUMP
