@@ -90,6 +90,7 @@ LSRC = \
 	dbus_util.c \
 	debug.c \
 	dualhash.c \
+	elist.c \
 	entropy.c \
 	erbtree.c \
 	eval.c \

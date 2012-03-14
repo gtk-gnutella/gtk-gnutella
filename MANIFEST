@@ -616,6 +616,8 @@ src/lib/debug.h
 src/lib/dualhash.c
 src/lib/dualhash.h
 src/lib/dump_options.h
+src/lib/elist.c
+src/lib/elist.h
 src/lib/endian.h
 src/lib/entropy.c
 src/lib/entropy.h

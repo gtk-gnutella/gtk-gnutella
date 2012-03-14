@@ -648,6 +648,16 @@ typedef void (*GCallback) (void);
 #define REGPARM(n)
 #endif	/* HAS_REGPARM */
 
+/**
+ * This avoid compilation warnings when handing "long long" types with gcc
+ * invoked with options -pedantic and -ansi.
+ */
+#if HAS_GCC(2, 8)
+#define G_GNUC_EXTENSION __extension__
+#else
+#define G_GNUC_EXTENSION
+#endif
+
 /*
  * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
  * This ensures that "%m" is recognized as valid since the GNU libc supports it.

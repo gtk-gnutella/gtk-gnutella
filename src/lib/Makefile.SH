@@ -147,6 +147,7 @@ LSRC = \
 	dbus_util.c \
 	debug.c \
 	dualhash.c \
+	elist.c \
 	entropy.c \
 	erbtree.c \
 	eval.c \
@@ -285,6 +286,7 @@ LOBJ = \
 	dbus_util.o \
 	debug.o \
 	dualhash.o \
+	elist.o \
 	entropy.o \
 	erbtree.o \
 	eval.o \

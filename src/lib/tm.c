@@ -36,12 +36,28 @@
 #ifdef I_SYS_TIMES
 #include <sys/times.h>
 #endif
+#ifdef I_SYS_SELECT
+#include <sys/select.h>		/* For "struct timeval" on some systems */
+#endif
 
 #include "tm.h"
 
 #include "override.h"		/* Must be the last header included */
 
 tm_t tm_cached_now;			/* Currently cached time */
+
+/**
+ * Get current time for the system, filling the supplied tm_t structure.
+ */
+static void
+tm_current_time(tm_t *tm)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	tm->tv_sec = tv.tv_sec;
+	tm->tv_usec = tv.tv_usec;
+}
 
 /**
  * Convert floating point time description into a struct timeval by filling
@@ -128,7 +144,8 @@ tm_now_exact(tm_t *tm)
 {
 	const tm_t past = tm_cached_now;
 	
-	g_get_current_time(&tm_cached_now);
+	tm_current_time(&tm_cached_now);
+
 	if (tm_cached_now.tv_sec < past.tv_sec) {
 		tm_cached_now = past;
 	} else if (tm_cached_now.tv_sec == past.tv_sec) {

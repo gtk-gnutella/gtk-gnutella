@@ -245,26 +245,22 @@ static htable_t *search_by_muid;
 static idtable_t *search_handle_map;
 static query_hashvec_t *query_hashvec;
 
-/*
- * These tables are used to map the query MUIDs we relay as an ultrapeer with
+/**
+ * This structure is used to map the query MUIDs we relay as an ultrapeer with
  * the corresponding search string and media type filtering requested.
  *
  * We only remember a few of them (as configured by search_muid_track_amount)
  * and focus on the "most active" ones, i.e. attempt to keep alive the ones
  * we see hits for (LRU-type caching).
  */
-static htable_t *muid_to_query_map;		/* MUID -> query_desc */
-static hash_list_t *query_muids;		/* list of MUID, to manage LRU cache */
-
-/**
- * Description of a query we remember.
- */
 struct query_desc {
+	const guid_t *muid;		/* The query MUID (atom) */
 	const char *query;		/* Query string, UTF-8 canonized (atom) */
 	unsigned media_mask;	/* The requested media mask (0 if none) */
 };
 
-static htable_t *sha1_to_search;	/**< Downloaded SHA1 -> search handle */
+static hash_list_t *query_muids;	/* hashed by MUID, to manage LRU cache */
+static htable_t *sha1_to_search;	/* Downloaded SHA1 -> search handle */
 
 /**
  * The legacy "What's New?" query string.
@@ -279,42 +275,46 @@ static time_t search_last_whats_new;	/**< When we last sent "What's New?" */
 
 static bool search_reissue_timeout_callback(void *data);
 
+static uint
+query_desc_hash(const void *key)
+{
+	const struct query_desc *qd = key;
+
+	return guid_hash(qd->muid);
+}
+
+static bool
+query_desc_eq(const void *a, const void *b)
+{
+	const struct query_desc * const qa = a, * const qb = b;
+
+	return guid_eq(qa->muid, qb->muid);
+}
+
 static void
 query_muid_map_init(void)
 {
-	/*
-	 * Because we use atoms as keys, we can use self-hashing keys instead
-	 * of guid_hash(), which is more efficient.  And we can use direct
-	 * pointer comparison for keys as well.
-	 */
-	muid_to_query_map = htable_create(HASH_KEY_SELF, 0);
-	query_muids = hash_list_new(guid_hash, guid_eq);
+	query_muids = hash_list_new(query_desc_hash, query_desc_eq);
 }
 
 static inline bool
 query_muid_map_head_expired(void)
 {
-	const guid_t *muid = hash_list_head(query_muids);
-	return muid != NULL && !route_exists_for_reply(muid, GTA_MSG_SEARCH);
+	struct query_desc *qd = hash_list_head(query_muids);
+	return qd != NULL && !route_exists_for_reply(qd->muid, GTA_MSG_SEARCH);
 }
 
 static bool
 query_muid_map_remove_oldest(void)
 {
-	const guid_t *old_muid;
+	struct query_desc *qd;
 
-	old_muid = hash_list_head(query_muids);
-	if (old_muid) {
-		struct query_desc *old_qd;
-
-		hash_list_remove(query_muids, old_muid);
-
-		old_qd = htable_lookup(muid_to_query_map, old_muid);
-		htable_remove(muid_to_query_map, old_muid);
-
-		atom_guid_free_null(&old_muid);
-		atom_str_free_null(&old_qd->query);
-		WFREE(old_qd);
+	qd = hash_list_head(query_muids);
+	if (qd != NULL) {
+		hash_list_remove(query_muids, qd);
+		atom_guid_free_null(&qd->muid);
+		atom_str_free_null(&qd->query);
+		WFREE(qd);
 		return TRUE;
 	} else {
 		return FALSE;	/* Nothing else to remove */
@@ -327,7 +327,6 @@ query_muid_map_close(void)
 	while (query_muid_map_remove_oldest())
 		continue;
 
-	htable_free_null(&muid_to_query_map);
 	hash_list_free(&query_muids);
 }
 
@@ -383,8 +382,11 @@ record_query_string(const guid_t *muid, const char *query, unsigned media_types)
 
 	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
 		const void *orig_key;
+		struct query_desc qk;
 
-		if (hash_list_find(query_muids, muid, &orig_key)) {
+		qk.muid = muid;
+
+		if (hash_list_find(query_muids, &qk, &orig_key)) {
 			/*
 			 * Already know, keep the query we have, assuming the query
 			 * string and media types will be identical: MUIDs for queries
@@ -398,7 +400,6 @@ record_query_string(const guid_t *muid, const char *query, unsigned media_types)
 		} else {
 			struct query_desc *qd;
 			char *canonized;
-			const guid_t *key;
 
 			/*
 			 * New query must be remembered and put at the tail of the list.
@@ -406,14 +407,13 @@ record_query_string(const guid_t *muid, const char *query, unsigned media_types)
 
 			WALLOC(qd);
 			canonized = UNICODE_CANONIZE(query);
+			qd->muid = atom_guid_get(muid);
 			qd->query = atom_str_get(canonized);
 			qd->media_mask = media_types;
 			if (canonized != query)
 				HFREE_NULL(canonized);
 
-			key = atom_guid_get(muid);
-			hash_list_append(query_muids, key);
-			htable_insert(muid_to_query_map, key, qd);
+			hash_list_append(query_muids, qd);
 		}
 	}
 	query_muid_map_garbage_collect();
@@ -428,24 +428,27 @@ record_query_string(const guid_t *muid, const char *query, unsigned media_types)
  * types requested.  The query string is in UTF-8 canonic form.
  */
 static const char *
-map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
+map_muid_to_query_string(const guid_t *muid, unsigned *media_mask)
 {
 	const void *key;
+	struct query_desc qk;
 
 	g_assert(muid != NULL);
 	g_assert(media_mask != NULL);
 
 	/*
 	 * Relayed MUID of queries (as an ultrapeer) are stored in the "query_muids"
-	 * hash list, whereas those of our searches are kept in search mapping
+	 * hash list, whereas those of our searches are kept in the search mapping
 	 * table.
 	 *
 	 * This ensures that we are always able to reconstruct the query strings
 	 * for the hits we receive out of our own queries.
 	 */
 
-	if (hash_list_find(query_muids, muid, &key)) {
-		struct query_desc *qd = htable_lookup(muid_to_query_map, key);
+	qk.muid = muid;
+
+	if (hash_list_find(query_muids, &qk, &key)) {
+		const struct query_desc *qd = key;
 		g_assert(qd != NULL);
 
 		/*
@@ -453,7 +456,7 @@ map_muid_to_query_string(const struct guid *muid, unsigned *media_mask)
 		 * longer period of time, given that we're seeing query hits.
 		 */
 
-		hash_list_moveto_tail(query_muids, muid);	/* LRU cache management */
+		hash_list_moveto_tail(query_muids, qd);		/* LRU cache management */
 		*media_mask = qd->media_mask;
 		return qd->query;
 	} else {
@@ -602,7 +605,7 @@ search_got_results_listener_remove(search_got_results_listener_t l)
 
 static void
 search_fire_got_results(GSList *sch_matched,
-	const struct guid *muid, const gnet_results_set_t *rs)
+	const guid_t *muid, const gnet_results_set_t *rs)
 {
     g_assert(rs != NULL);
 
@@ -1061,7 +1064,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 }
 
 static bool
-is_odd_guid(const struct guid *guid)
+is_odd_guid(const guid_t *guid)
 {
 	size_t i = G_N_ELEMENTS(guid->v);
 	
@@ -1413,7 +1416,7 @@ static hash_list_t *oob_reply_acks;
 #define OOB_REPLY_ACK_TIMEOUT	120		/* 2 minutes */
 
 struct ora {
-	const struct guid *muid;	/* GUID atom */
+	const guid_t *muid;		/* GUID atom */
 	time_t sent;
 	host_addr_t addr;
 	uint32 token;
@@ -1421,8 +1424,7 @@ struct ora {
 };
 
 static struct ora *
-ora_alloc(const struct guid *muid, const host_addr_t addr, uint16 port,
-		uint32 token)
+ora_alloc(const guid_t *muid, const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora *ora;
 
@@ -1470,7 +1472,7 @@ ora_eq(const void *v1, const void *v2)
 }
 
 static struct ora *
-ora_lookup(const struct guid *muid,
+ora_lookup(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora ora;
@@ -1532,7 +1534,7 @@ oob_reply_acks_close(void)
 }
 
 static void
-oob_reply_ack_record(const struct guid *muid,
+oob_reply_ack_record(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora *ora;
@@ -1559,7 +1561,7 @@ oob_reply_ack_record(const struct guid *muid,
  * @param port	the port from which results come
  */
 static bool
-search_results_are_requested(const struct guid *muid,
+search_results_are_requested(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
 	struct ora *ora;
@@ -2008,7 +2010,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	 */
 
 	if (0 == rs->hops && (ST_UDP & rs->status)) {
-		const struct guid *muid = gnutella_header_get_muid(&n->header);
+		const guid_t *muid = gnutella_header_get_muid(&n->header);
 
 		if (search_results_are_requested(muid, n->addr, n->port, token)) {
 			if (has_token) {
@@ -2058,7 +2060,7 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 	 */
 
 	if (1 == rs->hops && (ST_UDP & rs->status)) {
-		const struct guid *muid = gnutella_header_get_muid(&n->header);
+		const guid_t *muid = gnutella_header_get_muid(&n->header);
 
 		if (guess_is_search_muid(muid)) {
 			/*
@@ -2134,7 +2136,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 	const char *vendor = NULL;
 	const char *badmsg = NULL;
 	unsigned media_mask = 0;
-	const struct guid *muid = gnutella_header_get_muid(&n->header);
+	const guid_t *muid = gnutella_header_get_muid(&n->header);
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -3845,7 +3847,7 @@ search_node_added(void *search, void *node)
  * the `search_by_muid' table.
  */
 static void
-search_add_new_muid(search_ctrl_t *sch, struct guid *muid)
+search_add_new_muid(search_ctrl_t *sch, guid_t *muid)
 {
 	uint count;
 
@@ -3933,10 +3935,10 @@ search_expired(const search_ctrl_t *sch)
  *
  * @return a new MUID that can be wfree()'d when done.
  */
-static struct guid * 
+static guid_t * 
 search_new_muid(bool initial)
 {
-	struct guid *muid;
+	guid_t *muid;
 	host_addr_t addr;
 	uint32 ipv4;
 	int i;
@@ -4052,7 +4054,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 static void
 search_reissue(search_ctrl_t *sch)
 {
-	struct guid *muid;
+	guid_t *muid;
 
 	search_ctrl_check(sch);
 	g_return_if_fail(!sbool_get(sch->frozen));
@@ -5488,7 +5490,7 @@ search_get_kept_results(const search_ctrl_t *sch, uint32 *kept)
  * or FALSE if we did not find any search.
  */
 bool
-search_get_kept_results_by_muid(const struct guid *muid, uint32 *kept)
+search_get_kept_results_by_muid(const guid_t *muid, uint32 *kept)
 {
 	search_ctrl_t *sch;
 
@@ -5503,7 +5505,7 @@ search_get_kept_results_by_muid(const struct guid *muid, uint32 *kept)
  * Is search running a GUESS query?
  */
 bool
-search_running_guess(const struct guid *muid)
+search_running_guess(const guid_t *muid)
 {
 	search_ctrl_t *sch;
 
@@ -5558,7 +5560,7 @@ search_query_sent(gnet_search_t sh)
  */
 void
 search_oob_pending_results(
-	gnutella_node_t *n, const struct guid *muid, int hits,
+	gnutella_node_t *n, const guid_t *muid, int hits,
 	bool udp_firewalled, bool secure)
 {
 	search_ctrl_t *sch;
@@ -5789,7 +5791,7 @@ search_is_whats_new(gnet_search_t sh)
 bool
 search_browse(gnet_search_t sh,
 	const char *hostname, host_addr_t addr, uint16 port,
-	const struct guid *guid, const gnet_host_vec_t *proxies, uint32 flags)
+	const guid_t *guid, const gnet_host_vec_t *proxies, uint32 flags)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -7432,7 +7434,7 @@ search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, query_hashvec_t *qhv)
 {
 	const char *search;
-	struct guid muid;
+	guid_t muid;
 	bool qhv_filled = FALSE;
 	bool oob;
 	char *safe_search = NULL;

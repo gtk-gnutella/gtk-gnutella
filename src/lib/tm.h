@@ -64,7 +64,15 @@
  */
 #define tm2us(t)	((t)->tv_sec * 1000000 + (t)->tv_usec)
 
-typedef GTimeVal tm_t;
+/**
+ * Portable representation of the "struct timeval" values, which is used
+ * internally by all time handling routines.  All time information are
+ * relative to the UNIX Epoch.
+ */
+typedef struct tmval {
+	long tv_sec;
+	long tv_usec;
+} tm_t;
 
 void tm_init(void);
 void f2tm(double t, tm_t *tm);
