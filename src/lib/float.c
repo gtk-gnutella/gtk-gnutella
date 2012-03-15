@@ -83,26 +83,6 @@
 #define m1mask 0xf
 #define hidden_bit 0x100000
 
-/* Little-Endian IEEE Double Floats */
-struct dblflt_le {
-    unsigned int m4: 16;
-    unsigned int m3: 16;
-    unsigned int m2: 16;
-    unsigned int m1: 4;
-    unsigned int e: 11;
-    unsigned int s: 1;
-};
-
-/* Big-Endian IEEE Double Floats */
-struct dblflt_be {
-    unsigned int s: 1;
-    unsigned int e: 11;
-    unsigned int m1: 4;
-    unsigned int m2: 16;
-    unsigned int m3: 16;
-    unsigned int m4: 16;
-};
-
 #define BIGSIZE 24
 #define MIN_E -1074
 #define MAX_FIVE 325
@@ -573,34 +553,19 @@ float_decompose(double v, int *sign, int *ep)
 {
 	uint64 f;
 	int e;
+	union double_decomposition dc;
 
-	STATIC_ASSERT(sizeof v == sizeof(struct dblflt_le));
-	STATIC_ASSERT(sizeof(struct dblflt_le) == sizeof(struct dblflt_be));
+	STATIC_ASSERT(sizeof v == sizeof(dc.d));
 
 	/* decompose float into sign, mantissa & exponent */
-#if IS_LITTLE_ENDIAN_FLOAT
-	{
-		struct dblflt_le *x = (struct dblflt_le *)&v;
-		*sign = x->s;
-		e = x->e;
-		f = (uint64)(x->m1 << 16 | x->m2) << 32 |
-			(uint32)(x->m3 << 16 | x->m4);
-	}
-#elif IS_BIG_ENDIAN_FLOAT
-	{
-		struct dblflt_be *x = (struct dblflt_be *)&v;
-		*sign = x->s;
-		e = x->e;
-		f = (uint64)(x->m1 << 16 | x->m2) << 32 |
-			(uint32)(x->m3 << 16 | x->m4);
-	}
-#else
-#error "unknown float endianness -- not IEEE 754?"
-#endif
+	dc.value = v;
+	*sign = dc.d.s;
+	e = dc.d.e;
+	f = ((uint64) dc.d.mh << 32) | (uint32) dc.d.ml;
 
 	if (e != 0) {
 		*ep = e - bias - bitstoright;
-		f |= (uint64)hidden_bit << 32;
+		f |= (uint64) hidden_bit << 32;
 	} else if (f != 0) {
 		/* denormalized */
 		*ep = 1 - bias - bitstoright;
