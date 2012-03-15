@@ -326,6 +326,10 @@ static struct {
 	uint64 aligned_zones_created;		/**< Zones created for alignment */
 	uint64 aligned_zones_destroyed;		/**< Alignment zones destroyed */
 	uint64 aligned_overhead_bytes;		/**< Structural overhead */
+	uint64 aligned_zone_blocks;			/**< Individual blocks in zone */
+	uint64 aligned_zone_memory;			/**< Total memory used by zone blocks */
+	uint64 aligned_vmm_blocks;			/**< Individual blocks as VMM pages */
+	uint64 aligned_vmm_memory;			/**< Total memory used by aligned VMM */
 	uint64 reallocs;					/**< Total # of reallocations */
 	uint64 realloc_noop;				/**< Reallocs not doing anything */
 	uint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
@@ -4905,6 +4909,10 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(aligned_zones_created);
 	DUMP(aligned_zones_destroyed);
 	DUMP(aligned_overhead_bytes);
+	DUMP(aligned_zone_blocks);
+	DUMP(aligned_zone_memory);
+	DUMP(aligned_vmm_blocks);
+	DUMP(aligned_vmm_memory);
 	DUMP(reallocs);
 	DUMP(realloc_noop);
 	DUMP(realloc_inplace_vmm_shrinking);
@@ -5335,6 +5343,8 @@ xa_insert_set(const void *p, size_t size)
 	xstats.vmm_alloc_pages += vmm_page_count(size);
 	xstats.user_blocks++;
 	xstats.user_memory += size;
+	xstats.aligned_vmm_blocks++;
+	xstats.aligned_vmm_memory += size;
 	memusage_add(xstats.user_mem, size);
 
 	if (xmalloc_debugging(2)) {
@@ -5538,6 +5548,8 @@ xzalloc(size_t alignment)
 
 	xstats.user_blocks++;
 	xstats.user_memory += alignment;
+	xstats.aligned_zone_blocks++;
+	xstats.aligned_zone_memory += alignment;
 	memusage_add(xstats.user_mem, alignment);
 
 	spinunlock(&xmalloc_zone_slk);
@@ -5568,6 +5580,8 @@ xzfree(struct xdesc_zone *xz, const void *p)
 
 	xstats.user_blocks--;
 	xstats.user_memory -= xz->alignment;
+	xstats.aligned_zone_blocks--;
+	xstats.aligned_zone_memory -= xz->alignment;
 	memusage_remove(xstats.user_mem, xz->alignment);
 
 	if ((size_t) -1 == bit_array_last_set(xz->bitmap, 0, xz->nblocks - 1)) {
@@ -5640,6 +5654,8 @@ xalign_free(const void *p)
 			xstats.vmm_freed_pages += vmm_page_count(len);
 			xstats.user_memory -= len;
 			xstats.user_blocks--;
+			xstats.aligned_vmm_blocks--;
+			xstats.aligned_vmm_memory -= len;
 			memusage_remove(xstats.user_mem, len);
 		}
 		goto done;
