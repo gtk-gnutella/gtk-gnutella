@@ -133,6 +133,10 @@ typedef void (*free_data_fn_t)(void *data, void *user_data);
 typedef void (*notify_fn_t)(void *data);
 typedef void (*notify_data_fn_t)(void *data, void *user_data);
 
+/* Random number generators (32-bits) */
+
+typedef uint32 (*random_fn_t)(void);
+
 #endif /* _types_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

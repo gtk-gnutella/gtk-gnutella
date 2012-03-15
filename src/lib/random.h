@@ -49,6 +49,8 @@ uint32 random_cpu_noise(void);
 void random_collect(void (*cb)(void));
 void random_pool_append(void *buf, size_t len, void (*cb)(void));
 void random_add(const void *data, size_t datalen);
+double random_double_generate(random_fn_t rf);
+double random_double(void);
 
 #endif /* _random_h_ */
 

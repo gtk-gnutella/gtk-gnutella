@@ -58,6 +58,7 @@
 #include "log.h"
 #include "mempcpy.h"
 #include "pow2.h"
+#include "random.h"
 #include "stacktrace.h"
 #include "tm.h"
 
@@ -201,7 +202,7 @@ rand31_current_seed(void)
  * avoiding any modulo bias, using the specified random function to generate
  * the numbers.
  *
- * @param fn	function generating 31-bit wide numbers
+ * @param rf	function generating 31-bit wide numbers
  * @param max	maximum allowed value for the result (inclusive)
  *
  * @return uniformly distributed 31-bit number from 0 to max, inclusive.
@@ -222,7 +223,7 @@ rand31_upto(rand31_fn_t rf, unsigned max)
 		return (*rf)();
 
 	/*
-	 * See arc4random_upto() for details on modulo bias and how our
+	 * See random_upto() for details on modulo bias and how our
 	 * strategy restores a uniform distribution.
 	 *
 	 * The code here is simpler because there cannot be any overflow on
@@ -232,7 +233,7 @@ rand31_upto(rand31_fn_t rf, unsigned max)
 	range = max + 1;
 
 	if (is_pow2(range))
-		return (*rf)() & (range - 1);
+		return (*rf)() & max;		/* max = range - 1 */
 
 	min = (1U << 31) % range;
 
@@ -260,12 +261,25 @@ rand31_value(unsigned max)
 }
 
 /**
- * Build a 32-bit random number.
+ * Build a 32-bit random number from a 31-bit number generator.
  */
-static inline uint32
+uint32
 rand31_u32(void)
 {
 	return (rand31() << 5) + (rand31_prng() >> 15);
+}
+
+/**
+ * Build a random floating point number between 0.0 and 1.0 (not included).
+ *
+ * The number is such that it has 53 random mantissa bits, so the granularity
+ * of the number is 1/2**53.  All bits being uniformly random, the number is
+ * uniformly distributed within the range without bias.
+ */
+double
+rand31_double(void)
+{
+	return random_double_generate(rand31_u32);
 }
 
 /**

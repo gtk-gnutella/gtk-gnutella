@@ -39,14 +39,116 @@
 #include "random.h"
 #include "arc4random.h"
 #include "endian.h"
+#include "float.h"
+#include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "pow2.h"
+#include "sha1.h"
 #include "tm.h"
 #include "unsigned.h"
-#include "sha1.h"
-#include "log.h"
 
 #include "override.h"			/* Must be the last header included */
+
+/**
+ * Generate uniformly distributed random numbers using supplied random
+ * function to generate random 32-bit quantities.
+ *
+ * @param rf	random function generating 32-bit random numbers
+ * @param max	maximum value allowed for number (inclusive)
+ *
+ * @return uniformly distributed random number in the [0, max] range.
+ */
+static uint32
+random_upto(random_fn_t rf, uint32 max)
+{
+	uint32 range, min, value;
+
+	if G_UNLIKELY(0 == max)
+		return 0;
+
+	if G_UNLIKELY((uint32) -1 == max)
+		return (*rf)();
+
+	/*
+	 * We can't just use the modulo operator blindly because that would
+	 * create a small bias: if the 2^32 interval cannot be evenly divided
+	 * by the range of the random values, the fraction of the numbers that
+	 * lie in the trailing partial fragment will be more likely to occur
+	 * than others.  The larger the range, the higher the bias.
+	 *
+	 * Imagine we throw a 10-sided dice, getting values from 0 to 9.
+	 * If we want only a random number in the [0, 2] interval, then we
+	 * cannot just return the value of d10 % 3: looking at the number of
+	 * results that can produce the resulting random number, we see that:
+	 *
+	 *   0 is produced by 0, 3, 6, 9
+	 *   1 is produced by 1, 4, 7
+	 *   2 is produced by 2, 5, 8
+	 *
+	 * So 0 has 40% chances of being returned, with 1 and 2 having 30%.
+	 * A uniform distribution would require 33.33% chances for each number!
+	 *
+	 * If the range is a power of 2, then we know the 2^32 interval can be
+	 * evenly divided and we can just mask the lower bits (all bits are
+	 * expected to be random in the 32-bit value).
+	 *
+	 * Otherwise, we have to exclude values from the set of possible 2^32
+	 * values to restore a uniform probability for all outcomes.  In our d10
+	 * example above, removing the 0 value (i.e. rethrowing the d10 when we
+	 * get a 0) restores the 33.33% chances for each number to be produced).
+	 *
+	 * The amount of values to exclude is (2^32 % range).
+	 */
+
+	range = max + 1;
+
+	if (is_pow2(range))
+		return (*rf)() & max;	/* max = range - 1 */
+
+	/*
+	 * Compute the minimum value we need in the 2^32 range to restore
+	 * uniform probability for all outcomes.
+	 *
+	 * We want to exclude the first (2^32 % range) values.
+	 */
+
+	if (range > (1U << 31)) {
+		min = ~range + 1;		/* 2^32 - range */
+	} else {
+		/*
+		 * Can't represent 2^32 in 32 bits, so we use an alternate computation.
+		 *
+		 * Because range <= 2^31, we can compute (2^32 - range) % range, and
+		 * it will yield the same result as 2^32 % range: (Z/nZ, +) is a group,
+		 * and range % range = 0.
+		 *
+		 * To compute (2^32 - range) without using 2^32, we cheat, realizing
+		 * that 2^32 = -1 + 1 (using unsigned arithmetic).
+		 */
+
+		min = ((uint32) -1 - range + 1) % range;
+	}
+
+	value = (*rf)();
+
+	if G_UNLIKELY(value < min) {
+		size_t i;
+
+		for (i = 0; i < 100; i++) {
+			value = (*rf)();
+
+			if (value >= min)
+				goto done;
+		}
+
+		/* Will occur once every 10^30 attempts */
+		s_error("no luck with random number generator");
+	}
+
+done:
+	return value % range;
+}
 
 /**
  * @return random value between 0 and (2**32)-1. All 32 bits are random.
@@ -75,7 +177,7 @@ random_value(uint32 max)
 	 * distribution of the random numbers, using integer-only arithmetic.
 	 */
 
-	return arc4random_upto(max);
+	return random_upto(arc4random, max);
 }
 
 /**
@@ -264,6 +366,90 @@ random_add(const void *data, size_t datalen)
 	g_assert(datalen < MAX_INT_VAL(int));
 
 	arc4random_addrandom(deconstify_pointer(data), (int) datalen);
+}
+
+/**
+ * Build a random floating point number between 0.0 and 1.0 (not included)
+ * using the supplied random number generator to supply 32-bit random values.
+ *
+ * The number is such that it has 53 random mantissa bits, so the granularity
+ * of the number is 1/2**53.  All bits being uniformly random, the number is
+ * uniformly distributed within the range without bias.
+ *
+ * @param rf	function generating 32-bit wide numbers
+ *
+ * @return uniformly distributed double between 0.0 and 1.0 (not included).
+ */
+double
+random_double_generate(random_fn_t rf)
+{
+	union double_decomposition dc;
+	uint32 high, low;
+	int lzeroes, exponent;
+
+	/*
+	 * Floating points in IEEE754 double format have a mantissa of 52 bits,
+	 * but there is a hidden "1" bit in the representation.
+	 *
+	 * To generate our random value we therefore generate 53 random bits and
+	 * then compute the proper exponent, taking into account the hidden "1".
+	 */
+
+	low = (*rf)();							/* 32 bits */
+	high = random_upto(rf, (1U << 21) - 1);	/* 21 bits */
+
+	if G_UNLIKELY(0 == high)
+		lzeroes = 21 + clz(low);
+	else
+		lzeroes = clz(high) - 11;
+
+	if G_UNLIKELY(53 == lzeroes)
+		return 0.0;
+
+	/*
+	 * We have a 53-bit random number whose ``lzeroes'' leading bits are 0.
+	 * The chosen exponent is such that the first bit will be "1", and that
+	 * bit will not be part of the representation (it's the hidden bit).
+	 */
+
+	exponent = 1022 - lzeroes;
+
+	if G_UNLIKELY(lzeroes >= 21) {
+		size_t n = lzeroes - 21;
+		low <<= n;			/* Bring first non-zero bit to the left */
+		/* high was zero, move up the 21 highest bits from low */
+		high = (low & ~((1U << 11) - 1)) >> 11;
+		low <<= 21;
+	} else if (lzeroes != 0) {
+		high <<= lzeroes;	/* Bring first non-zero bit to the left */
+		/* move up the ``lzeroes'' highest bits from low */
+		high |= (low & ~((1U << (32 - lzeroes)) - 1)) >> (32 - lzeroes);
+		low <<= lzeroes;
+	}
+
+	g_assert(high & (1U << 20));		/* Bit 20 is "1", will be hidden */
+
+	/*
+	 * Generate the floating point value from its decomposition.
+	 */
+
+	dc.d.s = 0;				/* Positive number */
+	dc.d.e = exponent;
+	dc.d.mh = (high & ((1U << 20) - 1));	/* Chops leading "1" in bit 20 */
+	dc.d.ml = low;
+
+	return dc.value;
+}
+
+/**
+ * Build a random floating point number between 0.0 and 1.0 (not included).
+ *
+ * The granularity of the number is 1/2**53, about 1.1102230246251565e-16.
+ */
+double
+random_double(void)
+{
+	return random_double_generate(arc4random);
 }
 
 /**

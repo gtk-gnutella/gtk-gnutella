@@ -43,7 +43,6 @@ void arc4random_addrandom(const unsigned char *dat, int datlen);
 #endif
 
 void arc4random_stir_once(void);
-uint32 arc4random_upto(uint32 max);
 uint64 arc4random_upto64(uint64 max);
 
 #endif /* _arc4random_h_ */
