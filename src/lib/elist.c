@@ -91,7 +91,11 @@ elist_init(elist_t *list, size_t offset)
 }
 
 /**
- * Discard list, makiing the list object invalid.
+ * Discard list, making the list object invalid.
+ *
+ * This does not free any of the items, it just discards the list descriptor.
+ * The underlying items remain chained though, so retaining a pointer to one
+ * of the link_t of one item still allows limited link-level traversal.
  */
 void
 elist_discard(elist_t *list)
@@ -104,7 +108,8 @@ elist_discard(elist_t *list)
 /**
  * Clear list, forgetting about all the items
  *
- * This does not free any of the items, it just empties the list.
+ * This does not free or unlink any of the items, it just empties the list
+ * descriptor.
  */
 void
 elist_clear(elist_t *list)

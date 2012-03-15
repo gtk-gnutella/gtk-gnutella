@@ -2451,7 +2451,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	 * Chunks of memory larger than XMALLOC_MAXSIZE need to be broken up
 	 * into smaller blocks.  This can happen when we're putting heap memory
 	 * back into the free list, or when a block larger than a page size is
-	 * actually spread over two distinct VM pages..
+	 * actually spread over two distinct VM pages.
 	 */
 
 	if G_UNLIKELY(len > XMALLOC_MAXSIZE) {
@@ -2558,7 +2558,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 * First attempt to coalesce memory as much as possible if requested.
 	 *
 	 * When dealing with blocks that are page-aligned, whose size is
-	 * exactly a multiple of system pages and where allocated from the
+	 * exactly a multiple of system pages and were allocated from the
 	 * VMM layer, it would be harmful to attempt coalescing: we want to
 	 * free those VMM pages right away.
 	 */
@@ -4932,12 +4932,6 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_coalescing_failed);
 	DUMP(xgc_page_freeing_failed);
 	DUMP(xgc_bucket_expansions);
-
-#undef DUMP
-#define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint64_to_gstring(xstats.x) : uint64_to_string(xstats.x))
-
 	DUMP(user_memory);
 	DUMP(user_blocks);
 
@@ -6061,7 +6055,6 @@ valloc(size_t size)
 }
 
 #endif	/* XMALLOC_IS_MALLOC */
-
 
 /**
  * Ensure freelist if correctly sorted, spot inconsistencies when it isn't.
