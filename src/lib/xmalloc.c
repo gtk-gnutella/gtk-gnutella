@@ -371,6 +371,7 @@ static struct {
 	uint64 xgc_pages_collected;			/**< Amount of pages collected */
 	uint64 xgc_coalesced_blocks;		/**< Amount of blocks coalesced */
 	uint64 xgc_coalesced_memory;		/**< Amount of memory we coalesced */
+	uint64 xgc_coalescing_useless;		/**< Useless coalescings of 2 blocks */
 	uint64 xgc_coalescing_failed;		/**< Failed block coalescing */
 	uint64 xgc_page_freeing_failed;		/**< Cannot free embedded pages */
 	uint64 xgc_bucket_expansions;		/**< How often do we expand buckets */
@@ -4193,6 +4194,14 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		xr->end = end;
 		xr->blocks = 1;
 
+		/*
+		 * Save length of first block to help the strategy should end-up with
+		 * two blocks being coalesced, with a length that does not fit the
+		 * freelist.
+		 */
+
+		xr->head = ptr_diff(end, start);	/* Necessarily fits */
+
 		old = erbtree_insert(rbt, &xr->node);
 		g_assert(NULL == old);		/* Was not already present in tree */
 	}
@@ -4401,8 +4410,9 @@ no_page_freeable:
 	/*
 	 * A range can be coalesced with two blocks whose resulting size
 	 * is not that of a freelist, in which case the block would need to
-	 * be split again.  Maybe we could find a better split, but we do not
-	 * know the individual sizes of the block, so leave them alone.
+	 * be split again.  Maybe we could find a better split, i.e. create
+	 * a block that would end up being larger than the largest of the two
+	 * blocks we have?
 	 *
 	 * Note that three blocks or more can always be coalesced to create
 	 * a larger block at least.
@@ -4410,10 +4420,21 @@ no_page_freeable:
 
 	len = ptr_diff(xr->end, xr->start);
 
-	if G_UNLIKELY(2 == xr->blocks) {
+	if G_UNLIKELY(2 == xr->blocks && len <= XMALLOC_MAXSIZE) {
 		if (xmalloc_round_blocksize(len) != len) {
-			xstats.xgc_coalescing_failed++;
-			return TRUE;		/* Will not attempt any coalescing */
+			unsigned b1 = xr->head;	/* First block we added to range */
+			unsigned b2 = len - b1;	/* Second block */
+			unsigned largest;
+			struct xsplit *xs;
+
+			largest = MAX(b1, b2);
+			xs = xmalloc_split_info(largest);
+
+			if (xs->larger <= largest) {
+				/* Coalescing will not do better than current situation */
+				xstats.xgc_coalescing_useless++;
+				return TRUE;		/* Will not attempt any coalescing */
+			}
 		}
 	}
 
@@ -4929,6 +4950,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_pages_collected);
 	DUMP(xgc_coalesced_blocks);
 	DUMP(xgc_coalesced_memory);
+	DUMP(xgc_coalescing_useless);
 	DUMP(xgc_coalescing_failed);
 	DUMP(xgc_page_freeing_failed);
 	DUMP(xgc_bucket_expansions);
