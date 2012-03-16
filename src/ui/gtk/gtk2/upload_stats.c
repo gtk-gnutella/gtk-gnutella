@@ -504,7 +504,7 @@ free_upload_data(const void *unused_key, void *value, void *unused_data)
  *
  */
 void
-upload_stats_gui_clear_all(void)
+upload_stats_gui_clear_model(void)
 {
 	GtkListStore *store;
 

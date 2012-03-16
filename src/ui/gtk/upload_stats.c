@@ -71,6 +71,21 @@ upload_stats_gui_update(struct ul_stats *us)
 	hset_insert(pending, us);
 }
 
+/**
+ * Clear statistics.
+ */
+void
+upload_stats_gui_clear_all(void)
+{
+	/*
+	 * After clearing the model we also forget about all pending updates since
+	 * the core will free up all the "ul_stats" structures.
+	 */
+
+	upload_stats_gui_clear_model();
+	hset_clear(pending);
+}
+
 static bool
 upload_stats_update_model(const void *key, void *udata)
 {
