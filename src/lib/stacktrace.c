@@ -135,7 +135,7 @@ static void *getframeaddr(size_t level);
  * Is PC a valid routine address?
  */
 static inline bool G_GNUC_CONST
-stack_is_text(const void *pc)
+valid_ptr(const void *pc)
 {
 	return pointer_to_ulong(pc) >= 0x1000;
 }
@@ -198,7 +198,7 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	 */
 
 	frame = getframeaddr(0);
-	if (NULL == frame)
+	if (!valid_ptr(frame))
 		return 0;
 
 	d = ptr_diff(getframeaddr(1), frame);
@@ -207,7 +207,7 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	for (i = 0; i < offset; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (NULL == nframe)
+		if (!valid_ptr(nframe))
 			return 0;
 
 		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
@@ -224,10 +224,10 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	for (;; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (NULL == nframe || i - offset >= count)
+		if (!valid_ptr(nframe) || i - offset >= count)
 			break;
 
-        if (!stack_is_text(stack[i - offset] = getreturnaddr(i)))
+		if (!valid_ptr(stack[i - offset] = getreturnaddr(i)))
 			break;
 
 		/*
@@ -324,7 +324,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	 * Only copy entries that are likely to be "text" addresses.
 	 */
 
-	for (i = 0; i < amount && stack_is_text(trace[idx]); i++) {
+	for (i = 0; i < amount && valid_ptr(trace[idx]); i++) {
 		stack[i] = trace[idx++];
 	}
 
@@ -1391,7 +1391,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i], TRUE);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		fprintf(f, "\t%s\n", where);
@@ -1417,7 +1417,7 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	for (i = 0; i < count; i++) {
 		const char *where = trace_name(stack[i], TRUE);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		log_info(la, "\t%s", where);
@@ -1447,7 +1447,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		print_str("\n");		/* 2 */
 		flush_str(fd);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		if (stack_reached_main(where))
