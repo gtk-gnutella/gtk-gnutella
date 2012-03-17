@@ -388,7 +388,7 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 
 	if (Sigsetjmp(stacktrace_safe_env, TRUE)) {
 		/*
-		 * Becasue we zeroed the stack[] array before attempting the
+		 * Because we zeroed the stack[] array before attempting the
 		 * unwinding we can now go back and count the amount of items that
 		 * were put there in case we got interrupted by a signal, to be
 		 * able to save the part of the stack we were able to unwind

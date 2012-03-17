@@ -82,6 +82,7 @@
 #include "fast_assert.h"
 #include "fd.h"
 #include "file.h"
+#include "getcpucount.h"
 #include "halloc.h"
 #include "hashtable.h"
 #include "iovec.h"
@@ -932,9 +933,12 @@ retry_child:
 			char cmd[MAX_PATH_LEN];
 			char rbuf[22];
 			char sbuf[ULONG_DEC_BUFLEN];
+			char nbuf[ULONG_DEC_BUFLEN];
 			char tbuf[22];
 			char lbuf[22];
 			time_delta_t t;
+			struct utsname u;
+			long cpucount = getcpucount();
 			int clf = STDOUT_FILENO;	/* crash log file fd */
 			DECLARE_STR(15);
 
@@ -1043,6 +1047,33 @@ retry_child:
 			 * Emit crash header.
 			 */
 
+			print_str("Operating-System: ");	/* 0 */
+			if (-1 != uname(&u)) {
+				print_str(u.sysname);			/* 1 */
+				print_str(" ");					/* 2 */
+				print_str(u.release);			/* 3 */
+				print_str(" ");					/* 4 */
+				print_str(u.version);			/* 5 */
+				print_str("\n");				/* 6 */
+			} else {
+				print_str("Unknown\n");
+			}
+			print_str("CPU-Architecture: ");	/* 7 */
+			if (-1 != uname(&u)) {
+				print_str(u.machine);			/* 8 */
+			} else {
+				print_str("unknown");			/* 8 */
+			}
+			if (cpucount > 1) {
+				print_str(" * ");				/* 9 */
+				print_str(print_number(sbuf, sizeof sbuf, cpucount)); /* 10 */
+			}
+			print_str(", ");					/* 11 */
+			print_str(print_number(nbuf, sizeof nbuf, PTRSIZE * 8)); /* 12 */
+			print_str(" bits\n");				/* 13 */
+			flush_str(clf);
+			rewind_str(0);
+
 			print_str("Executable-Path: ");		/* 0 */
 			print_str(vars->argv0);				/* 1 */
 			print_str("\n");					/* 2 */
@@ -1145,6 +1176,7 @@ retry_child:
 					print_str("\n");						/* 8 */
 				}
 			}
+
 			print_str("Stacktrace:\n");			/* 9 */
 			flush_str(clf);
 			crash_stack_print(clf, 2);

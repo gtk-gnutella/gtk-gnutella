@@ -2272,7 +2272,7 @@ mingw_proc_arch(void)
 int
 mingw_uname(struct utsname *buf)
 {
-	OSVERSIONINFOEX osvi;
+	OSVERSIONINFO osvi;
 	DWORD len;
 	const char *cpu;
 
@@ -2289,11 +2289,11 @@ mingw_uname(struct utsname *buf)
 	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
-	if (GetVersionEx((OSVERSIONINFO *) &osvi)) {
+	if (GetVersionEx(&osvi)) {
 		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		gm_snprintf(buf->version, sizeof buf->version, "%u",
-			(unsigned) osvi.dwBuildNumber);
+		gm_snprintf(buf->version, sizeof buf->version, "%u %s",
+			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
 	len = sizeof buf->nodename;

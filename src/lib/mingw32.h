@@ -301,13 +301,14 @@ int mingw_getrusage(int who, struct rusage *usage);
 #define EMULATE_UNAME
 #define uname mingw_uname
 
-#define UTSNAME_LENGTH	65
+#define UTSNAME_LENGTH		65
+#define UTSNAME_EXT_LENGTH	128
 
 struct utsname {
 	char sysname[UTSNAME_LENGTH];
 	char nodename[UTSNAME_LENGTH];
 	char release[UTSNAME_LENGTH];
-	char version[UTSNAME_LENGTH];
+	char version[UTSNAME_EXT_LENGTH];
 	char machine[UTSNAME_LENGTH];
 };
 
