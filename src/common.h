@@ -593,6 +593,29 @@ typedef void (*GCallback) (void);
 #endif	/* GCC >= 2.96 */
 #endif	/* G_GNUC_PURE */
 
+#ifndef G_GNUC_CONST
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
+#define G_GNUC_CONST __attribute__((__const__))
+#else
+#define G_GNUC_CONST
+#endif	/* GCC >= 2.4 */
+#endif	/* G_GNUC_CONST */
+
+/**
+ * Used to signal a function that does not return.
+ *
+ * The compiler can then optimize calls to that routine by not saving
+ * registers before calling the routine.  However, this can mess up the
+ * stack unwinding past these routines.
+ */
+#ifndef G_GNUC_NORETURN
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
+#define G_GNUC_NORETURN __attribute__((__noreturn__))
+#else
+#define G_GNUC_NORETURN
+#endif	/* GCC >= 2.4 */
+#endif	/* G_GNUC_NORETURN */
+
 #ifndef G_GNUC_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define G_GNUC_MALLOC __attribute__((__malloc__))
