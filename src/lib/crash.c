@@ -78,6 +78,7 @@
 #include "crash.h"
 #include "atomic.h"
 #include "ckalloc.h"
+#include "compat_pause.h"
 #include "compat_sleep_ms.h"
 #include "fast_assert.h"
 #include "fd.h"
@@ -1946,26 +1947,9 @@ crash_handler(int signo)
 		crash_set_var(invoke_inspector, f);
 		crash_end_of_line();
 	}
-	if (vars->pause_process)
-#if defined(HAS_SIGPROCMASK)
-	{
-		sigset_t oset;
-
-		if (sigprocmask(SIG_BLOCK, NULL, &oset) != -1) {
-			sigsuspend(&oset);
-		}
+	if (vars->pause_process) {
+		compat_pause();
 	}
-#elif defined(HAS_PAUSE)
-	{
-		pause();
-	}
-#else	/* !HAS_SIGPROCMASK && !HAS_PAUSE */
-	{
-		for (;;) {
-			compat_sleep_ms(MAX_INT_VAL(unsigned));
-		}
-	}
-#endif	/* HAS_SIGPROCMASK || HAS_PAUSE */
 
 	crash_auto_restart();
 	raise(SIGABRT);			/* This is the end of our road */

@@ -74,6 +74,7 @@ LSRC = \
 	ckalloc.c \
 	cobs.c \
 	compat_misc.c \
+	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sleep_ms.c \

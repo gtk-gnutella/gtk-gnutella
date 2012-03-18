@@ -583,6 +583,8 @@ src/lib/cobs.c
 src/lib/cobs.h
 src/lib/compat_misc.c
 src/lib/compat_misc.h
+src/lib/compat_pause.c
+src/lib/compat_pause.h
 src/lib/compat_pio.c
 src/lib/compat_pio.h
 src/lib/compat_poll.c
