@@ -128,8 +128,10 @@ static size_t stack_auto_offset;
 static hash_table_t *stack_atoms;
 static const char NM_FILE[] = "gtk-gnutella.nm";
 
+#ifndef MINGW32
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
+#endif
 
 /**
  * Is PC a valid routine address?
@@ -164,6 +166,7 @@ stack_is_our_text(const void *pc)
 #endif
 }
 
+#ifndef MINGW32
 /**
  * Unwind current stack into supplied stacktrace array.
  *
@@ -244,6 +247,7 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 
 	return i - offset;
 }
+#endif	/* !MINGW32 */
 
 /**
  * Unwind current stack into supplied stacktrace array.
@@ -330,6 +334,10 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 
 done:
 	return i;		/* Amount of copied entries */
+}
+#elif defined(MINGW32)
+{
+	return mingw_backtrace(stack, count, offset + stack_auto_offset);
 }
 #else	/* !HAS_BACKTRACE */
 {
@@ -686,6 +694,32 @@ trace_name(const void *pc, bool offset)
 	}
 
 	return buf;
+}
+
+/**
+ * Return start of routine.
+ *
+ * @param pc		the PC within the routine
+ *
+ * @return start of the routine, NULL if we cannot find it.
+ */
+static G_GNUC_COLD const void *
+trace_start(const void *pc)
+{
+	struct trace *t;
+
+	if (!trace_array.sorted || 0 == trace_array.count)
+		return NULL;
+
+	if (trace_array.garbage || trace_array.mismatch || trace_array.stale)
+		return NULL;
+
+	t = trace_lookup(pc);
+
+	if (NULL == t || &trace_array.base[trace_array.count - 1] == t)
+		return NULL;
+
+	return t->start;
 }
 
 /**
@@ -1553,6 +1587,19 @@ stacktrace_routine_name(const void *pc, bool offset)
 }
 
 /**
+ * Return start of routine.
+ *
+ * @param pc		the PC within the routine
+ *
+ * @return start of the routine, NULL if we cannot find it.
+ */
+const void *
+stacktrace_routine_start(const void *pc)
+{
+	return trace_start(pc);
+}
+
+/**
  * Print current stack trace to specified file.
  */
 void
@@ -2018,6 +2065,8 @@ stacktrace_caller_known(size_t offset)
  * at run-time.  See stacktrace_auto_tune().
  */
 
+#ifndef MINGW32
+
 #if HAS_GCC(3, 0)
 static void *
 getreturnaddr(size_t level)
@@ -2315,5 +2364,7 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
+
+#endif	/* !MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent:  */

@@ -99,6 +99,7 @@ bool stacktrace_cautious_was_logged(void);
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
 bool stacktrace_caller_known(size_t offset);
+const void *stacktrace_routine_start(const void *pc);
 
 void stacktrace_init(const char *argv0, bool deferred);
 void stacktrace_load_symbols(void);

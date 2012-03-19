@@ -420,7 +420,7 @@ void *mingw_sbrk(long incr);
 #endif	/* !HAS_SBRK */
 
 /*
- * gettimeofday emulation.
+ * gettimeofday() emulation.
  */
 #ifndef HAS_GETTIMEOFDAY
 #define HAS_GETTIMEOFDAY	/* We emulate it */
@@ -486,6 +486,7 @@ uint64 mingw_cpufreq_min(void);
 uint64 mingw_cpufreq_max(void);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);
+int mingw_backtrace(void **buffer, int size, size_t offset);
 
 enum mingw_cpufreq {
 	MINGW_CPUFREQ_CURRENT,

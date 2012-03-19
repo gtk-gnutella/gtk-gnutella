@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010, Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,8 +29,9 @@
  * Win32 cross-compiling utility routines.
  *
  * @author Jeroen Asselman
- * @author Raphael Manfredi
  * @date 2010
+ * @author Raphael Manfredi
+ * @date 2010-2012
  */
 
 #include "common.h"
@@ -62,10 +64,11 @@
 #include "adns.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
+#include "constants.h"
 #include "cq.h"
 #include "crash.h"
-#include "constants.h"
 #include "debug.h"
+#include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
@@ -90,6 +93,9 @@
 #endif
 #if 0
 #define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
+#endif
+#if 0
+#define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
 #endif
 
 #undef signal
@@ -3068,56 +3074,698 @@ mingw_init(void)
     }
 }
 
-static int
-mingw_stack_fill(void **buffer, int size, CONTEXT *c, int skip)
+#ifdef MINGW_BACKTRACE_DEBUG
+#define BACKTRACE_DEBUG(...)	s_minidbg(__VA_ARGS__)
+#define mingw_backtrace_debug()	1
+#else
+#define BACKTRACE_DEBUG(...)
+#define mingw_backtrace_debug()	0
+#endif	/* MINGW_BACKTRACE_DEBUG */
+
+
+static inline bool
+valid_ptr(const void * const p)
 {
-	STACKFRAME s;
-	DWORD image;
-	HANDLE proc, thread;
-	int i;
+	ulong v = pointer_to_ulong(p);
+	return v > 0x1000 && v < 0xfffff000;
+}
 
-	proc = GetCurrentProcess();
-	thread = GetCurrentThread();
+#define MINGW_MAX_ROUTINE_LENGTH	0x2000
+#define MINGW_FORWARD_SCAN			12
 
-	ZERO(&s);
+/*
+ * x86 leading instruction opcodes
+ */
+#define OPCODE_RET_NEAR		0xc3
+#define OPCODE_RET_FAR		0xcb
+#define OPCODE_RET_NEAR_POP	0xc2	/* Plus pop immediate 16-bit amount */
+#define OPCODE_RET_FAR_POP	0xca	/* Plus pop immediate 16-bit amount */
+#define OPCODE_NOP			0x90
+#define OPCODE_CALL			0xe8
+#define OPCODE_PUSH_EAX		0x50
+#define OPCODE_PUSH_ECX		0x51
+#define OPCODE_PUSH_EDX		0x52
+#define OPCODE_PUSH_EBX		0x53
+#define OPCODE_PUSH_ESP		0x54
+#define OPCODE_PUSH_EBP		0x55
+#define OPCODE_PUSH_ESI		0x56
+#define OPCODE_PUSH_EDI		0x57
+#define OPCODE_SUB_1		0x29
+#define OPCODE_SUB_2		0x81	/* Need further probing for real opcode */
+#define OPCODE_SUB_3		0x83	/* Need further probing for real opcode */
+#define OPCODE_MOV_REG		0x89	/* Move one register to another */
+#define OPCODE_MOV_IMM_EAX	0xb8	/* Move immediate value to register EAX */
+#define OPCODE_MOV_IMM_ECX	0xb9
+#define OPCODE_MOV_IMM_EDX	0xba
+#define OPCODE_MOV_IMM_EBX	0xbb
+#define OPCODE_MOV_IMM_ESP	0xbc
+#define OPCODE_MOV_IMM_EBP	0xbd
+#define OPCODE_MOV_IMM_ESI	0xbe
+#define OPCODE_MOV_IMM_EDI	0xbf
+#define OPCODE_JMP_SHORT	0xeb	/* Followed by signed byte */
+#define OPCODE_JMP_LONG		0xe9	/* Followed by signed 32-bit value */
+#define OPCODE_LEA			0x8d
+#define OPCODE_XOR_1		0x31	/* Between registers if mod=3 */
+#define OPCODE_XOR_2		0x33	/* Complex XOR involving memory */
 
-	/*
-	 * We're MINGW32, so even on a 64-bit processor we're going to run
-	 * in 32-bit mode, using WOW64 support (if running on a 64-bit Windows).
-	 *
-	 * FIXME: How is this going to behave on AMD64?  There's no definition
-	 * of a context for this machine, and I can't test it.
-	 *		--RAM, 2011-01-12
-	 */
+/*
+ * x86 follow-up instruction parsing
+ */
+#define OPMODE_MODE_MASK	0xc0	/* Mask to get a instruction mode code */
+#define OPMODE_OPCODE		0x38	/* Mask to extract extra opcode info */
+#define OPMODE_REG_SRC_MASK	0x38	/* Mask to extract source register */
+#define OPMODE_REG_DST_MASK	0x07	/* Mask to extract destination register */
+#define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
+#define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
+#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOVL to move ESP to EBP */
 
-	image = IMAGE_FILE_MACHINE_I386;
-	s.AddrPC.Offset = c->Eip;
-	s.AddrPC.Mode = AddrModeFlat;
-	s.AddrStack.Offset = c->Esp;
-	s.AddrStack.Mode = AddrModeFlat;
-	s.AddrFrame.Offset = c->Ebp;
-	s.AddrFrame.Mode = AddrModeFlat;
+/*
+ * x86 register numbers, as encoded in instructions.
+ */
+#define OPREG_EAX			0
+#define OPREG_ECX			1
+#define OPREG_EDX			2
+#define OPREG_EBX			2
+#define OPREG_ESP			4
+#define OPREG_EBP			5
+#define OPREG_ESI			6
+#define OPREG_EDI			7
 
-	i = 0;
+#define MINGW_ROUTINE_ALIGN	16
+#define MINGW_ROUTINE_MASK	(MINGW_ROUTINE_ALIGN - 1)
 
-	while (
-		i < size &&
-		StackWalk(image, proc, thread, &s, &c, NULL, NULL, NULL, NULL)
-	) {
-		if (0 == s.AddrPC.Offset)
-			break;
+#define mingw_routine_align(x) ulong_to_pointer( \
+	(pointer_to_ulong(x) + MINGW_ROUTINE_MASK) & ~MINGW_ROUTINE_MASK)
 
-		if (skip-- > 0)
-			continue;
+/**
+ * Expected unwinding stack frame, if present and maintained by routines.
+ */
+struct stackframe {
+	struct stackframe *next;
+	void *ret;
+};
 
-		buffer[i++] = ulong_to_pointer(s.AddrPC.Offset);
+#ifdef MINGW_BACKTRACE_DEBUG
+/**
+ * @return opcode leading mnemonic string.
+ */
+static const char *
+mingw_opcode_name(uint8 opcode)
+{
+	switch (opcode) {
+	case OPCODE_RET_NEAR:
+	case OPCODE_RET_FAR:
+	case OPCODE_RET_NEAR_POP:
+	case OPCODE_RET_FAR_POP:
+		return "RET";
+	case OPCODE_NOP:
+		return "NOP";
+	case OPCODE_CALL:
+		return "CALL";
+	case OPCODE_PUSH_EAX:
+	case OPCODE_PUSH_EBX:
+	case OPCODE_PUSH_ECX:
+	case OPCODE_PUSH_EDX:
+	case OPCODE_PUSH_ESP:
+	case OPCODE_PUSH_EBP:
+	case OPCODE_PUSH_ESI:
+	case OPCODE_PUSH_EDI:
+		return "PUSH";
+	case OPCODE_MOV_REG:
+	case OPCODE_MOV_IMM_EAX:
+	case OPCODE_MOV_IMM_EBX:
+	case OPCODE_MOV_IMM_ECX:
+	case OPCODE_MOV_IMM_EDX:
+	case OPCODE_MOV_IMM_ESP:
+	case OPCODE_MOV_IMM_EBP:
+	case OPCODE_MOV_IMM_ESI:
+	case OPCODE_MOV_IMM_EDI:
+		return "MOV";
+	case OPCODE_JMP_SHORT:
+	case OPCODE_JMP_LONG:
+		return "JMP";
+	case OPCODE_LEA:
+		return "LEA";
+	case OPCODE_XOR_1:
+	case OPCODE_XOR_2:
+		return "XOR";
+	default:
+		return "?";
+	}
+}
+#endif /* MINGW_BACKTRACE_DEBUG */
+
+/**
+ * Is the SUB opcode pointed at by ``op'' targetting ESP?
+ */
+static bool
+mingw_opcode_is_sub_esp(const uint8 *op)
+{
+	const uint8 *p = op;
+
+	p++;
+
+	BACKTRACE_DEBUG("%s: op=0x%x, next=0x%x", G_STRFUNC, *op, *p);
+
+	switch (*op) {
+	case OPCODE_SUB_1:
+		return OPREG_ESP == (*p & 0x7);
+	case OPCODE_SUB_2:
+	case OPCODE_SUB_3:
+		{
+			uint8 code = (*p & OPMODE_OPCODE) >> 3;
+			if (code != OPMODE_SUB)
+				return FALSE;
+			return OPREG_ESP == (*p & 0x7);
+		}
 	}
 
+	g_assert_not_reached();
+}
+
+/**
+ * Scan forward looking for one of the SUB instructions that can substract
+ * a value from the ESP register.
+ *
+ * This can be one of (Intel notation):
+ *
+ * 		SUB ESP, <value>		; short stack reserve
+ * 		SUB ESP, EAX			; large stack reserve
+ *
+ * @param start		initial program counter
+ * @param max		absolute maximum PC value
+ * @param has_frame	set to TRUE if we saw a frame linking at the beginning
+ * @param savings	indicates leading register savings done by the routine
+ *
+ * @return pointer to the start of the SUB instruction, NULL if we can't
+ * find it, meaning the starting point was probably not the start of
+ * a routine.
+ */
+static const void *
+mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
+	size_t *savings)
+{
+	const void *maxscan;
+	const uint8 *p = start;
+	const uint8 *first_opcode = p;
+	bool saved_ebp = FALSE;
+	size_t pushes = 0;
+
+	maxscan = const_ptr_add_offset(start, MINGW_FORWARD_SCAN);
+	if (ptr_cmp(maxscan, max) > 0)
+		maxscan = max;
+
+	if (mingw_backtrace_debug()) {
+		s_minidbg("%s: next %zu bytes after pc=%p",
+			G_STRFUNC, 1 + ptr_diff(maxscan, p), p);
+		dump_hex(stderr, "", p, 1 + ptr_diff(maxscan, p));
+	}
+
+	for (p = start; ptr_cmp(p, maxscan) <= 0; p++) {
+		switch (*p) {
+		case OPCODE_NOP:
+			/* There can be NOPs between last RET and next routine */
+			first_opcode = p + 1;
+			break;
+		case OPCODE_PUSH_EBP:
+			/*
+			 * The frame pointer is saved if the routine begins with (Intel
+			 * notation):
+			 *
+			 *	PUSH EBP
+			 *  MOV  EBP, ESP
+			 *
+			 * to create the frame pointer link.
+			 */
+			first_opcode = p + 1;	/* Expects the MOV operation to follow */
+			/* FALL THROUGH */
+		case OPCODE_PUSH_EAX:
+		case OPCODE_PUSH_EBX:
+		case OPCODE_PUSH_ECX:
+		case OPCODE_PUSH_EDX:
+		case OPCODE_PUSH_ESP:
+		case OPCODE_PUSH_ESI:
+		case OPCODE_PUSH_EDI:
+			pushes++;
+			break;
+		case OPCODE_MOV_IMM_EAX:
+		case OPCODE_MOV_IMM_EBX:
+		case OPCODE_MOV_IMM_ECX:
+		case OPCODE_MOV_IMM_EDX:
+		case OPCODE_MOV_IMM_ESP:
+		case OPCODE_MOV_IMM_EBP:
+		case OPCODE_MOV_IMM_ESI:
+		case OPCODE_MOV_IMM_EDI:
+			p += 4;				/* Skip immediate value */
+			break;
+		case OPCODE_MOV_REG:
+			if (OPMODE_REG_ESP_EBP == p[1])
+				saved_ebp = p == first_opcode;
+			p += 1;				/* Skip mode byte */
+			break;
+		case OPCODE_CALL:
+			p += 4;				/* Skip offset */
+			break;
+		case OPCODE_XOR_1:
+			if (OPMODE_MODE_MASK == (OPMODE_MODE_MASK & p[1])) {
+				/* XOR between registers, same register to zero it */
+				uint8 operands = p[1];
+				uint8 reg1 = (operands & OPMODE_REG_SRC_MASK) >> 3;
+				uint8 reg2 = (operands & OPMODE_REG_DST_MASK);
+				if (reg1 == reg2) {
+					p += 1;
+					break;
+				}
+			}
+			/* XOR REG, REG is the only instruction we allow in the prologue */
+			return NULL;
+		case OPCODE_SUB_1:
+		case OPCODE_SUB_2:
+		case OPCODE_SUB_3:
+			if (mingw_opcode_is_sub_esp(p)) {
+				*has_frame = saved_ebp;
+				*savings = pushes;
+				return p;
+			}
+			switch (*p) {
+			case OPCODE_SUB_1:
+				p += 1;
+				break;
+			case OPCODE_SUB_2:
+				p += 5;
+				break;
+			case OPCODE_SUB_3:
+				p += 2;
+				break;
+			}
+			break;
+		default:
+			return NULL;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * Parse beginning of routine to know how many registers are saved, whether
+ * there is a leading frame being formed, and how large the stack is.
+ *
+ * @param pc			starting point
+ * @param max			maximum PC we accept to scan forward
+ * @param has_frame		set to TRUE if we saw a frame linking at the beginning
+ * @param savings		indicates leading register savings done by the routine
+ * @param offset		computed stack offsetting
+ *
+ * @return TRUE if ``pc'' pointed to a recognized function prologue.
+ */
+static bool
+mingw_analyze_prologue(const void *pc, const void *max,
+	bool *has_frame, size_t *savings, unsigned *offset)
+{
+	const uint8 *sub;
+
+	if (ptr_cmp(pc, max) >= 0)
+		return FALSE;
+
+	sub = mingw_find_esp_subtract(pc, max, has_frame, savings);
+
+	if (sub != NULL) {
+		uint8 op;
+
+		BACKTRACE_DEBUG("%s: found SUB operation at "
+			"pc=%p, opcode=0x%x, %s frame",
+			G_STRFUNC, sub, *sub, *has_frame ? "with" : "no");
+
+		switch (*sub) {
+		case OPCODE_SUB_1:
+			/*
+			 * This is the pattern used by gcc for large stacks.
+			 *
+			 * (Note this uses AT&T syntax, not the Intel one, so
+			 * order is source, destination as opposed to the regular
+			 * Intel convention)
+			 *
+			 *    movl    $65564, %eax
+			 *    call    ___chkstk_ms
+			 *    subl    %eax, %esp
+			 *
+			 * We found the last instruction, we need to move back 10
+			 * bytes to reach the MOV instruction
+			 */
+
+			op = *(sub - 10);
+			if (op != OPCODE_MOV_IMM_EAX)
+				return FALSE;
+
+			*offset = peek_le32(sub + 1);
+			return TRUE;
+		case OPCODE_SUB_2:
+			/* subl    $220, %esp */
+			g_assert(OPMODE_SUB_ESP == *(sub + 1));
+			*offset = peek_le32(sub + 2);
+			return TRUE;
+		case OPCODE_SUB_3:
+			/* subl    $28, %esp */
+			g_assert(OPMODE_SUB_ESP == *(sub + 1));
+			*offset = peek_u8(sub + 2);
+			return TRUE;
+		}
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Intuit return address given current PC and SP.
+ *
+ * Uses black magic: disassembles the code on the fly knowing the gcc
+ * initial function patterns to look for the instruction that alters the SP.
+ *
+ * @attention
+ * This is not perfect and based on heuristics.  Changes in the compiler
+ * generation pattern may break this routine.  Moreover, backtracing through
+ * a routine using alloca() will not work because the initial stack reserve is
+ * later altered, so the stack pointer in any routine that it calls will be
+ * perturbed and will not allow correct reading of the return address.
+ *
+ * @param next_pc		where next PC is written
+ * @param next_sp		where next SP is written
+ * @param next_sf		where next SF is written, NULL if none seen
+ *
+ * @return TRUE if we were able to recognize the start of the routine and
+ * compute the proper stack offset, FALSE otherwise.
+ */
+static bool
+mingw_get_return_address(const void **next_pc, const void **next_sp,
+	const void **next_sf)
+{
+	const void *pc = *next_pc;
+	const void *sp = *next_sp;
+	const uint8 *p;
+	unsigned offset = 0;
+	bool has_frame = FALSE;
+	size_t savings = 0;
+
+	BACKTRACE_DEBUG("%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
+
+	/*
+	 * If we can determine the start of the routine, get there first.
+	 */
+
+	p = stacktrace_routine_start(pc);
+
+	if (p != NULL) {
+		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p",
+			G_STRFUNC, pc, p);
+
+		if (mingw_analyze_prologue(p, pc, &has_frame, &savings, &offset))
+			goto found_offset;
+
+		BACKTRACE_DEBUG("%s: %p does not seem to be a valid prologue, scanning",
+			G_STRFUNC, p);
+	}
+
+	/*
+	 * Scan backwards to find a previous RET / JMP instruction.
+	 */
+
+	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
+		uint8 op = *p;
+		const uint8 *next;
+
+		switch (op) {
+		case OPCODE_RET_NEAR:
+		case OPCODE_RET_FAR:
+			next = p + 1;
+			break;
+		case OPCODE_RET_NEAR_POP:
+		case OPCODE_RET_FAR_POP:
+			next = p + 3;	/* Skip next immediate 16-bit offset */
+			break;
+		case OPCODE_JMP_SHORT:
+			next = p + 1;	/* Skip offset */
+			break;
+		case OPCODE_JMP_LONG:
+			next = p + 4;	/* Skip target */
+			break;
+		default:
+			goto next;
+		}
+
+		BACKTRACE_DEBUG("%s: found %s operation at pc=%p, opcode=0x%x",
+			G_STRFUNC, mingw_opcode_name(op), p, op);
+
+		/*
+		 * Align to the start of the the next 16-byte boundary since the
+		 * addresses of the routines are always aligned.
+		 *
+		 * Space between the end of the previous routine and the start of the
+		 * next one are usually filled with NOP or other filling instructions.
+		 */
+
+		next = mingw_routine_align(next);
+
+		/*
+		 * Could have found a byte that is part of a longer opcode, since
+		 * the x86 has variable-length instructions.
+		 *
+		 * Scan forward for a SUB instruction targetting the ESP register.
+		 */
+
+		if (mingw_analyze_prologue(next, pc, &has_frame, &savings, &offset))
+			goto found_offset;
+
+	next:
+		p--;
+	}
+
+	return FALSE;
+
+found_offset:
+	g_assert(0 == (offset & 3));	/* Multiple of 4 */
+
+	BACKTRACE_DEBUG("%s: offset = %u, %zu leading push%s",
+		G_STRFUNC, offset, savings, 1 == savings ? "" : "es");
+
+	/*
+	 * We found that the current routine decreased the stack pointer by
+	 * ``offset'' bytes upon entry.  It is expected to increase the stack
+	 * pointer by the same amount before returning, at which time it will
+	 * pop from the stack the return address.
+	 *
+	 * This is what we're computing now, to find out the return address
+	 * that is on the stack.
+	 *
+	 * Once it pops the return address, the processor will also increase the
+	 * stack pointer by 4 bytes, so this will be the value of ESP upon return.
+	 *
+	 * Moreover, if we have seen a "PUSH EBP; MOV EBP, ESP" sequence at the
+	 * beginning, then the stack frame pointer was maintained by the callee.
+	 * In AT&T syntax (which reverses the order of arguments compared to the
+	 * Intel notation, becoming source, destination) used by gas, that would be:
+	 *
+	 *     pushl   %ebp
+	 *     movl    %esp, %ebp           ; frame linking now established
+	 *     subl    $56, %esp            ; reserve 56 bytes on the stack
+	 */
+
+	offset += 4 * savings;
+	sp = const_ptr_add_offset(sp, offset);
+
+	if (has_frame) {
+		const void *sf, *fp;
+		g_assert(savings >= 1);
+		sf = const_ptr_add_offset(sp, -4);
+		fp = ulong_to_pointer(peek_le32(sf));
+		if (ptr_cmp(fp, sp) <= 0) {
+			BACKTRACE_DEBUG("%s: inconsistent fp %p (\"above\" sp %p)",
+				G_STRFUNC, fp, sp);
+			*next_sf = NULL;
+			has_frame = FALSE;
+		} else {
+			*next_sf = sf;
+		}
+	} else {
+		*next_sf = NULL;
+	}
+
+	*next_pc = ulong_to_pointer(peek_le32(sp));	/* Pushed return address */
+
+	if (!valid_ptr(*next_pc))
+		return FALSE;
+
+	*next_sp = const_ptr_add_offset(sp, 4);	/* After popping return address */
+
+	if (mingw_backtrace_debug() && has_frame) {
+		const struct stackframe *sf = *next_sf;
+		s_minidbg("%s: next frame at %p "
+			"(contains next=%p, ra=%p), computed ra=%p",
+			G_STRFUNC, sf, sf->next, sf->ret, *next_pc);
+	}
+
+	return TRUE;
+}
+
+/**
+ * Unwind the stack, using the saved context to gather the initial program
+ * counter, stack pointer and stack frame pointer.
+ *
+ * @param buffer	where function addresses are written to
+ * @param size		amount of entries in supplied buffer
+ * @param c			saved CPU context
+ * @param offset	topmost frames to skip
+ */
+static int
+mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
+{
+	int i = 0;
+	const struct stackframe *sf;
+	const void *sp, *pc;
+
+	/*
+	 * We used to rely on StackWalk() here, but we no longer do because
+	 * it did not work well and failed to provide useful stacktraces.
+	 *
+	 * Neither does blind following of frame pointers because some routines
+	 * simply do not bother to maintain the frame pointers, especially
+	 * those known by gcc as being non-returning routines such as
+	 * assertion_abort(). Plain stack frame following could not unwind
+	 * past that.
+	 *
+	 * Since it is critical on Windows to obtain a somewhat meaningful
+	 * stack frame to be able to debug anything, given the absence of
+	 * core dumps (for post-mortem analysis) and of fork() (for launching
+	 * a debugger to obtain the stack trace), extraordinary measures were
+	 * called for...
+	 *
+	 * Therefore, we now perform our own unwinding which does not rely on
+	 * plain stack frame pointer following but rather (minimally)
+	 * disassembles the routine prologues to find out how many stack
+	 * space is used by each routine, so that we can find where the
+	 * caller pushed the return address on the stack.
+	 *
+	 * When the start of a routine is not known, the code attempts to
+	 * guess where it may be by scanning backwards until it finds what
+	 * is probably the end of the previous routine.  Since the x86 is a
+	 * CISC machine with a variable-length instruction set, this operation
+	 * cannot be entirely fool-proof, since the opcodes used for RET or
+	 * JMP instructions could well be actually parts of immediate operands
+	 * given to some other instruction.
+	 *
+	 * Hence there is logic to determine whether the initial starting point
+	 * is actually a valid routine prologue, relying on what we know gcc
+	 * can use before it adjusts the stack pointer.
+	 *
+	 * Despite being a hack because it is based on known routine generation
+	 * patterns from gcc, it works surprisingly well and, in any case, is
+	 * far more useful than the original code that used StackWalk(), or
+	 * the simple gcc unwinding which merely follows frame pointers.
+	 *		--RAM, 2012-03-19
+	 */
+
+	sf = ulong_to_pointer(c->Ebp);
+	sp = ulong_to_pointer(c->Esp);
+	pc = ulong_to_pointer(c->Eip);
+
+	BACKTRACE_DEBUG("%s: pc=%p, sf=%p, sp=%p [skip %d]",
+		G_STRFUNC, pc, sf, sp, skip);
+
+	if (0 == skip--)
+		buffer[i++] = deconstify_pointer(pc);
+
+	if (!valid_ptr(sp))
+		goto done;
+
+	while (i < size) {
+		const void *next;
+
+		BACKTRACE_DEBUG("%s: i=%d, sp=%p, sf=%p, pc=%p",
+			G_STRFUNC, i, sp, sf, pc);
+
+		if (!valid_ptr(pc) || !valid_ptr(sp))
+			break;
+
+		if (!valid_ptr(sf) || ptr_cmp(sf, sp) <= 0)
+			sf = NULL;
+
+		if (!mingw_get_return_address(&pc, &sp, &next)) {
+			if (sf != NULL) {
+				BACKTRACE_DEBUG("%s: trying to follow sf=%p", G_STRFUNC, sf);
+				next = sf->next;
+
+				if (ptr_diff(sf, sp) > 0x10000)
+					break;
+				if (!valid_ptr(sf->ret))
+					break;
+
+				pc = sf->ret;
+				sp = &sf[1];	/* After popping returned value */
+
+				BACKTRACE_DEBUG("%s: following frame: "
+					"next sf=%p, pc=%p, rebuilt sp=%p",
+					G_STRFUNC, next, pc, sp);
+
+				if (!valid_ptr(next) || ptr_cmp(next, sf) <= 0)
+					next = NULL;
+			} else {
+				BACKTRACE_DEBUG("%s: out of frames", G_STRFUNC);
+				break;
+			}
+		} else {
+			int d;
+
+			BACKTRACE_DEBUG("%s: intuited next pc=%p, sp=%p, "
+				"rebuilt sf=%p [old sf=%p]",
+				G_STRFUNC, pc, sp, next, sf);
+
+			/*
+			 * Leave frame pointer intact if the stack pointer is still
+			 * smaller than the last frame pointer: it means the routine
+			 * that we backtraced through did not save a frame pointer, so
+			 * it would have been invisible if we had followed the frame
+			 * pointer.
+			 */
+
+			d = (NULL == sf) ? 0 : ptr_cmp(sp, sf);
+
+			if (d < 0) {
+				BACKTRACE_DEBUG("%s: keeping old sf=%p, since sp=%p",
+					G_STRFUNC, sf, sp);
+				next = sf;
+			} else if (d > 0) {
+				if (sp == &sf[1]) {
+					BACKTRACE_DEBUG("%s: reached sf=%p at sp=%p, "
+						"next sf=%p, current ra=%p",
+						G_STRFUNC, sf, sp, sf->next, sf->ret);
+					if (NULL == next)
+						next = sf->next;
+				}
+			}
+		}
+
+		if (skip-- <= 0)
+			buffer[i++] = deconstify_pointer(pc);
+
+		sf = next;
+	}
+
+done:
 	return i;
 }
 
+/**
+ * Fill supplied buffer with current stack, skipping the topmost frames.
+ *
+ * @param buffer	where function addresses are written to
+ * @param size		amount of entries in supplied buffer
+ * @param offset	topmost frames to skip
+ *
+ * @return amount of entries written into buffer[].
+ */
 int
-mingw_backtrace(void **buffer, int size)
+mingw_backtrace(void **buffer, int size, size_t offset)
 {
 	CONTEXT c;
 	HANDLE thread;
@@ -3137,12 +3785,7 @@ mingw_backtrace(void **buffer, int size)
 
 	GetThreadContext(thread, &c);
 
-	/*
-	 * Experience shows we have to skip the first 2 frames to get a
-	 * correct stack frame.
-	 */
-
-	return mingw_stack_fill(buffer, size, &c, 2);
+	return mingw_stack_unwind(buffer, size, &c, offset);
 }
 
 /**
@@ -3394,7 +4037,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	if (1 == in_exception_handler) {
 		int count;
 		
-		count = mingw_stack_fill(
+		count = mingw_stack_unwind(
 			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
 
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
@@ -3414,7 +4057,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void mingw_invalid_parameter(const wchar_t * expression,
+static inline void WINAPI
+mingw_invalid_parameter(const wchar_t * expression,
 	const wchar_t * function, const wchar_t * file, unsigned int line,
    uintptr_t pReserved) 
 {
