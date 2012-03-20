@@ -107,11 +107,12 @@ size_t vmm_page_count(size_t size) G_GNUC_PURE;
 bool vmm_is_fragment(const void *base, size_t size);
 bool vmm_is_relocatable(const void *base, size_t size);
 bool vmm_is_native_pointer(const void *p);
+bool vmm_is_stack_pointer(const void *p, const void *top) G_GNUC_PURE;
 bool vmm_grows_upwards(void) G_GNUC_PURE;
 
 void set_vmm_debug(uint32 level);
 bool vmm_is_debugging(uint32 level) G_GNUC_PURE;
-void vmm_init(const void *sp);
+void vmm_init(void);
 void vmm_memusage_init(void);
 void vmm_malloc_inited(void);
 void vmm_post_init(void);

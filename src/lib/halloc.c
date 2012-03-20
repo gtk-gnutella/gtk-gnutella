@@ -516,13 +516,12 @@ void
 halloc_init(bool replace_malloc)
 {
 	static int initialized;
-	int sp;
 
 	RUNTIME_ASSERT(!initialized);
 	initialized = TRUE;
 	replacing_malloc = replace_malloc;
 
-	vmm_init(&sp);		/* Just in case, since we're built on top of VMM */
+	vmm_init();		/* Just in case, since we're built on top of VMM */
 
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == compat_pagesize();
 	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;

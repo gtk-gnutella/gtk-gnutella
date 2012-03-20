@@ -1597,7 +1597,6 @@ main_command_line(void)
 int
 main(int argc, char **argv)
 {
-	int sp;
 	size_t str_discrepancies;
 
 	product_init(GTA_PRODUCT_NAME,
@@ -1637,7 +1636,7 @@ main(int argc, char **argv)
 
 	/* Initialize memory allocators -- order is important */
 
-	vmm_init(&sp);
+	vmm_init();
 	signal_init();
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();

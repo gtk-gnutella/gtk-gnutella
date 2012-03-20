@@ -3082,6 +3082,10 @@ mingw_init(void)
 #define mingw_backtrace_debug()	0
 #endif	/* MINGW_BACKTRACE_DEBUG */
 
+#define MINGW_MAX_ROUTINE_LENGTH	0x2000
+#define MINGW_FORWARD_SCAN			12
+#define MINGW_SP_ALIGN				4
+#define MINGW_SP_MASK				(MINGW_SP_ALIGN - 1)
 
 static inline bool
 valid_ptr(const void * const p)
@@ -3090,8 +3094,13 @@ valid_ptr(const void * const p)
 	return v > 0x1000 && v < 0xfffff000;
 }
 
-#define MINGW_MAX_ROUTINE_LENGTH	0x2000
-#define MINGW_FORWARD_SCAN			12
+static inline bool
+valid_stack_ptr(const void * const p)
+{
+	ulong v = pointer_to_ulong(p);
+
+	return 0 == (v & MINGW_SP_MASK) && vmm_is_stack_pointer(p, NULL);
+}
 
 /*
  * x86 leading instruction opcodes
@@ -3582,11 +3591,13 @@ found_offset:
 		if (ptr_cmp(fp, sp) <= 0) {
 			BACKTRACE_DEBUG("%s: inconsistent fp %p (\"above\" sp %p)",
 				G_STRFUNC, fp, sp);
-			*next_sf = NULL;
 			has_frame = FALSE;
-		} else {
-			*next_sf = sf;
+		} else if (!vmm_is_stack_pointer(fp, sf)) {
+			BACKTRACE_DEBUG("%s: invalid fp %p (not a stack pointer)",
+				G_STRFUNC, fp);
+			has_frame = FALSE;
 		}
+		*next_sf = has_frame ? sf : NULL;
 	} else {
 		*next_sf = NULL;
 	}
@@ -3675,19 +3686,19 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	if (0 == skip--)
 		buffer[i++] = deconstify_pointer(pc);
 
-	if (!valid_ptr(sp))
+	if (!valid_stack_ptr(sp))
 		goto done;
 
 	while (i < size) {
-		const void *next;
+		const void *next = NULL;
 
 		BACKTRACE_DEBUG("%s: i=%d, sp=%p, sf=%p, pc=%p",
 			G_STRFUNC, i, sp, sf, pc);
 
-		if (!valid_ptr(pc) || !valid_ptr(sp))
+		if (!valid_ptr(pc) || !valid_stack_ptr(sp))
 			break;
 
-		if (!valid_ptr(sf) || ptr_cmp(sf, sp) <= 0)
+		if (!valid_stack_ptr(sf) || ptr_cmp(sf, sp) <= 0)
 			sf = NULL;
 
 		if (!mingw_get_return_address(&pc, &sp, &next)) {
@@ -3695,8 +3706,6 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 				BACKTRACE_DEBUG("%s: trying to follow sf=%p", G_STRFUNC, sf);
 				next = sf->next;
 
-				if (ptr_diff(sf, sp) > 0x10000)
-					break;
 				if (!valid_ptr(sf->ret))
 					break;
 
@@ -3707,7 +3716,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 					"next sf=%p, pc=%p, rebuilt sp=%p",
 					G_STRFUNC, next, pc, sp);
 
-				if (!valid_ptr(next) || ptr_cmp(next, sf) <= 0)
+				if (!valid_stack_ptr(next) || ptr_cmp(next, sf) <= 0)
 					next = NULL;
 			} else {
 				BACKTRACE_DEBUG("%s: out of frames", G_STRFUNC);

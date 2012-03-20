@@ -209,13 +209,12 @@ parse(register char *str)
 int
 main(int argc, char **argv)
 {
-	int c;
 	register cmd *act;
 	extern int optind;
 	extern char *optarg;
 
 	/* Initialize memory allocation routines used by the sdbm library */
-	vmm_init(&c);
+	vmm_init();
 	halloc_init(FALSE);
 
 	progname = argv[0];

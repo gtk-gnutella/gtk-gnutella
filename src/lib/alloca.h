@@ -34,6 +34,8 @@
 #ifndef _alloca_h_
 #define _alloca_h_
 
+int alloca_stack_direction(void);
+
 #ifdef EMULATE_ALLOCA
 #undef alloca
 #define alloca(size)	alloca_emulate(size)
@@ -43,6 +45,7 @@
  */
 
 void *alloca_emulate(size_t len);
+
 #endif	/* EMULATE_ALLOCA */
 
 #endif /* _alloca_h_ */

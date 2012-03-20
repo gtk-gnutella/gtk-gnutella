@@ -107,6 +107,7 @@
 #define VMM_SOURCE
 #include "vmm.h"
 
+#include "alloca.h"			/* For alloca_stack_direction() */
 #include "ascii.h"
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add() */
@@ -282,9 +283,9 @@ static struct pmap local_pmap;
 static bool safe_to_log;			/**< True when we can log */
 static bool stop_freeing;			/**< No longer release memory */
 static uint32 vmm_debug;			/**< Debug level */
-static const void *initial_sp;		/**< Initial "bottom" of the stack */
-static bool sp_increasing;			/**< Growing direction of the stack */
+static int sp_direction;			/**< Growing direction of the stack */
 static const void *vmm_base;		/**< Where we'll start allocating */
+static const void *stack_base;		/**< Where stack starts (its "bottom") */
 #ifdef HAS_SBRK
 static const void *initial_brk;		/**< Startup position of the heap */
 #endif
@@ -397,6 +398,20 @@ size_t
 vmm_page_count(size_t size)
 {
 	return pagecount_fast(size);
+}
+
+/**
+ * Initialize the stack shape: direction, bottom (base) address.
+ */
+static void
+init_stack_shape(void)
+{
+	int sp;
+
+	sp_direction = alloca_stack_direction();
+	stack_base = page_start(&sp);
+	if (sp_direction < 0)
+		stack_base = const_ptr_add_offset(stack_base, kernel_pagesize);
 }
 
 static long
@@ -2030,6 +2045,39 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 }
 
 /**
+ * Is pointer within the stack?
+ *
+ * If the ``top'' parameter is NULL, then the current stack pointer will be
+ * used as the "upper" bound.
+ *
+ * @param p		the pointer we wish to check
+ * @param top	"top" stack pointer, or NULL if unknown
+ *
+ * @return whether the pointer is within the bottom and the top of the stack.
+ */
+bool
+vmm_is_stack_pointer(const void *p, const void *top)
+{
+	int sp;
+
+	if G_UNLIKELY(0 == sp_direction)
+		init_stack_shape();
+
+	if (NULL == top)
+		top = &sp;
+
+	if (sp_direction < 0) {
+		/* Stack growing down, stack_base is its highest address */
+		g_assert(ptr_cmp(stack_base, &sp) > 0);
+		return ptr_cmp(p, top) >= 0 && ptr_cmp(p, stack_base) < 0;
+	} else {
+		/* Stack growing up, stack_base is its lowest address */
+		g_assert(ptr_cmp(stack_base, &sp) < 0);
+		return ptr_cmp(p, top) <= 0 && ptr_cmp(p, stack_base) >= 0;
+	}
+}
+
+/**
  * Is pointer a valid native VMM one?
  */
 bool
@@ -3335,7 +3383,7 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	const void *hole;
 
 	if G_UNLIKELY(0 == kernel_pagesize)
-		vmm_init(&n);
+		vmm_init();
 
 	g_assert(size_is_positive(size));
 
@@ -3421,7 +3469,7 @@ vmm_alloc0(size_t size)
 	const void *hole;
 
 	if G_UNLIKELY(0 == kernel_pagesize)
-		vmm_init(&n);
+		vmm_init();
 
 	g_assert(size_is_positive(size));
 
@@ -3759,7 +3807,7 @@ vmm_trap_page(void)
 		void *p;
 
 		if G_UNLIKELY(0 == kernel_pagesize)
-			vmm_init(&p);
+			vmm_init();
 
 		p = alloc_pages(kernel_pagesize, FALSE, NULL);
 		g_assert(p);
@@ -3958,15 +4006,15 @@ vmm_dump_usage_log(logagent_t *la, unsigned options)
 static G_GNUC_COLD void
 vmm_crash_hook(void)
 {
-	int dummy;
+	int sp;
 
 	s_debug("VMM pagesize=%zu bytes, virtual addresses are %s",
 		kernel_pagesize,
 		kernel_mapaddr_increasing ? "increasing" : "decreasing");
 
-	s_debug("VMM base=%p, initial_sp=%p, current_sp=%p (stack growing %s)",
-		vmm_base, initial_sp, (void *) &dummy,
-		ptr_cmp(initial_sp, &dummy) < 0 ? "up" : "down");
+	s_debug("VMM base=%p, base_sp=%p, current_sp=%p (stack growing %s)",
+		vmm_base, stack_base, (void *) &sp,
+		ptr_cmp(stack_base, &sp) < 0 ? "up" : "down");
 
 	vmm_dump_stats();
 }
@@ -3981,7 +4029,8 @@ vmm_crash_hook(void)
 static G_GNUC_COLD void
 vmm_reserve_stack(size_t amount)
 {
-	const void *stack_base, *stack_end, *stack_low;
+	const void *stack_end, *stack_low;
+	bool sp_increasing = sp_direction > 0;
 
 	/*
 	 * If we could read the kernel pmap, reserve an extra VMM_STACK_MINSIZE
@@ -3989,7 +4038,7 @@ vmm_reserve_stack(size_t amount)
 	 */
 
 	if (vmm_pmap() == &kernel_pmap) {
-		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, initial_sp, NULL);
+		struct vm_fragment *vmf = pmap_lookup(&kernel_pmap, &stack_end, NULL);
 		bool first_time = NULL == vmm_base;
 
 		if (NULL == vmf) {
@@ -4053,10 +4102,6 @@ vmm_reserve_stack(size_t amount)
 		vmm_base = vmm_trap_page();
 		goto vm_setup;
 	}
-
-	stack_base = page_start(initial_sp);
-	if (!sp_increasing)
-		stack_base = const_ptr_add_offset(stack_base, kernel_pagesize);
 
 	stack_end = const_ptr_add_offset(stack_base,
 		(sp_increasing ? +1 : -1) * amount);
@@ -4150,14 +4195,15 @@ vmm_post_init(void)
 		s_debug("VMM kernel grows virtual memory by %s addresses",
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
 		s_debug("VMM stack grows by %s addresses",
-			sp_increasing ? "increasing" : "decreasing");
+			sp_direction > 0 ? "increasing" : "decreasing");
 	}
 
 	if (vmm_debugging(1)) {
 #ifdef HAS_SBRK
 		s_debug("VMM initial break at %p", initial_brk);
 #endif
-		s_debug("VMM stack bottom at %p", initial_sp);
+		s_debug("VMM %screasing stack bottom at %p",
+			sp_direction > 0 ? "in" : "de", stack_base);
 	}
 
 	pmap_load(&kernel_pmap);
@@ -4172,14 +4218,14 @@ vmm_post_init(void)
 		const void *end = const_ptr_add_offset(vmbase, kernel_pagesize);
 		size_t room;
 
-		if (ptr_cmp(initial_sp, vmbase) > 0) {
-			if (!sp_increasing) {
+		if (ptr_cmp(stack_base, vmbase) > 0) {
+			if (sp_direction < 0) {
 				/*
 				 * Stack is after the VM region and is decreasing, it can
 				 * grow at most to the end of the allocated region.
 				 */
 
-				room = round_pagesize(ptr_diff(initial_sp, end));
+				room = round_pagesize(ptr_diff(stack_base, end));
 			} else {
 				/*
 				 * Stack is after the VM region and is increasing.
@@ -4189,14 +4235,14 @@ vmm_post_init(void)
 				room = (size_t) -1;
 			}
 		} else {
-			if (sp_increasing) {
+			if (sp_direction > 0) {
 
 				/*
 				 * Stack is before the VM region and is increasing, it can
 				 * grow at most to the start of the allocated region.
 				 */
 
-				room = round_pagesize(ptr_diff(vmbase, initial_sp));
+				room = round_pagesize(ptr_diff(vmbase, stack_base));
 			} else {
 				/*
 				 * Stack is before the VM region and is decreasing.
@@ -4238,12 +4284,10 @@ vmm_post_init(void)
  * routine, which is called very early at startup.
  */
 G_GNUC_COLD void
-vmm_init(const void *sp)
+vmm_init(void)
 {
 	static spinlock_t init_lck = SPINLOCK_INIT;
 	int i;
-
-	g_assert(sp != &i);
 
 	/*
 	 * Detect whether vmm_init() was already run due to an earlier vmm_alloc()
@@ -4262,10 +4306,8 @@ vmm_init(const void *sp)
 #ifdef HAS_SBRK
 	initial_brk = sbrk(0);
 #endif
-	initial_sp = sp;
-	sp_increasing = ptr_cmp(&i, sp) > 0;
-
 	init_kernel_pagesize();
+	init_stack_shape();
 
 	for (i = 0; i < VMM_CACHE_LINES; i++) {
 		struct page_cache *pc = &page_cache[i];

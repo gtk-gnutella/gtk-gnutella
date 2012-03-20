@@ -139,7 +139,17 @@ static void *getframeaddr(size_t level);
 static inline bool G_GNUC_CONST
 valid_ptr(const void *pc)
 {
-	return pointer_to_ulong(pc) >= 0x1000;
+	ulong v = pointer_to_ulong(pc);
+	return v >= 0x1000 && v < MAX_INT_VAL(ulong) - 0x1000;
+}
+
+/**
+ * Is SP a valid stack address?
+ */
+static inline bool G_GNUC_PURE
+valid_stack_ptr(const void *sp)
+{
+	return vmm_is_stack_pointer(sp, NULL);
 }
 
 /**
@@ -187,7 +197,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
     size_t i;
 	void *frame;
 	size_t d;
-	bool increasing;
 
 	/*
 	 * Adjust the offset according to the auto-tunings.
@@ -201,20 +210,13 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	 */
 
 	frame = getframeaddr(0);
-	if (!valid_ptr(frame))
+	if (!valid_stack_ptr(frame))
 		return 0;
-
-	d = ptr_diff(getframeaddr(1), frame);
-	increasing = size_is_positive(d);
 
 	for (i = 0; i < offset; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (!valid_ptr(nframe))
-			return 0;
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+		if (!valid_stack_ptr(nframe))
 			return 0;
 
 		frame = nframe;
@@ -227,21 +229,12 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	for (;; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (!valid_ptr(nframe) || i - offset >= count)
+		if (!valid_stack_ptr(nframe) || i - offset >= count)
 			break;
 
 		if (!valid_ptr(stack[i - offset] = getreturnaddr(i)))
 			break;
 
-		/*
-		 * Safety precaution: if the distance between one frame and the
-		 * next is too large, we're probably facing stack corruption and
-		 * are beginning to hit random places in memory.  Break out.
-		 */
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
-			break;
 		frame = nframe;
 	}
 

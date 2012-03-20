@@ -436,8 +436,6 @@ wdestroy(void)
 G_GNUC_COLD void
 walloc_init(void)
 {
-	int sp;
-
 	if G_UNLIKELY((size_t) -1 != halloc_threshold)
 		return;			/* Already done */
 
@@ -453,7 +451,7 @@ walloc_init(void)
 	 * Make sure the layers on top of which we are built are initialized.
 	 */
 
-	vmm_init(&sp);
+	vmm_init();
 	zinit();
 }
 

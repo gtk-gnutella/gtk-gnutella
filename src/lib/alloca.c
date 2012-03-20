@@ -33,6 +33,12 @@
  * Allocation is thread-safe but cannot be used from signal handlers in
  * case they would be executed on a separate signal stack.
  *
+ * When compiling with gcc, the __builtin_alloca() implementation is used,
+ * hence the emulation is not required.
+ *
+ * The alloca_stack_direction() routine is always made available for everyone
+ * to determine the stack growing direction.
+ *
  * @author Raphael Manfredi
  * @date 2012
  */
@@ -40,6 +46,25 @@
 #include "common.h"
 
 #include "alloca.h"
+
+/**
+ * Determine whether stack is growing upwards or backwards.
+ *
+ * @return +1 if stack is growing in the virtual address space, -1 otherwise.
+ */
+int
+alloca_stack_direction(void)
+{
+	static void *old_sp;
+	int sp;
+
+	if (NULL == old_sp) {
+		old_sp = &sp;
+		return alloca_stack_direction();
+	} else {
+		return ptr_cmp(&sp, old_sp);
+	}
+}
 
 #ifdef EMULATE_ALLOCA
 
@@ -91,25 +116,6 @@ alloca_stack_check(const struct alloca_stack * const as)
 {
 	g_assert(as != NULL);
 	g_assert(ALLOCA_MAGIC == as->magic);
-}
-
-/**
- * Determine whether stack is growing upwards or backwards.
- *
- * @return +1 if stack is growing in the virtual address space, -1 otherwise.
- */
-static int
-alloca_stack_direction(void)
-{
-	static void *old_sp;
-	int sp;
-
-	if (NULL == old_sp) {
-		old_sp = &sp;
-		return alloca_stack_direction();
-	} else {
-		return ptr_cmp(&sp, old_sp);
-	}
 }
 
 /**
