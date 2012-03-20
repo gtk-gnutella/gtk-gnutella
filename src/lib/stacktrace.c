@@ -200,7 +200,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
-	size_t d;
 
 	/*
 	 * Adjust the offset according to the auto-tunings.
