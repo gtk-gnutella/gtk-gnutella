@@ -392,6 +392,7 @@ static size_t sbrk_allocated;		/**< Bytes allocated with sbrk() */
 static bool xmalloc_grows_up = TRUE;	/**< Is the VM space growing up? */
 static bool xmalloc_no_freeing;		/**< No longer release memory */
 static bool xmalloc_no_wfree;		/**< No longer release memory via wfree() */
+static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
 
 static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
@@ -421,6 +422,26 @@ set_xmalloc_debug(uint32 level)
 {
 	xmalloc_debug = level;
 }
+
+/**
+ * Put the xmalloc layer in crashing mode.
+ *
+ * This is activated on assertion failures and other fatal conditions, and
+ * is an irreversible operation.  Its purpose is to prevent any usage of
+ * internal data structures that could be corrupted, yet allow basic memory
+ * allocation during crashing.
+ *
+ * In crashing mode, allocations are done without any freelist updating,
+ * and no freeing will occur.  The simplest algorithms are always chosen.
+ */
+G_GNUC_COLD void
+xmalloc_crash_mode(void)
+{
+	xmalloc_crashing = TRUE;
+	xmalloc_no_freeing = TRUE;
+	xmalloc_no_wfree = TRUE;
+}
+
 
 /**
  * Comparison function for pointers.
@@ -2944,8 +2965,24 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 	len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
 	xstats.allocations++;
 
-	if G_UNLIKELY(xmalloc_no_wfree)
+	if G_UNLIKELY(xmalloc_no_wfree) {
 		can_walloc = FALSE;
+
+		/*
+		 * In crashing mode activate a simple direct path: anything smaller
+		 * than a page size is allocated via sbrk(), the rest is allocated
+		 * via the VMM layer.
+		 */
+
+		if (xmalloc_crashing) {
+			if (len < xmalloc_pagesize) {
+				p = xmalloc_addcore_from_heap(len, FALSE);
+			} else {
+				p = vmm_core_alloc(round_pagesize(len));
+			}
+			return xmalloc_block_setup(p, len);
+		}
+	}
 
 	/*
 	 * First try to allocate from the freelist when the length is less than
@@ -3910,7 +3947,21 @@ realloc_from_walloc:
 		size_t new_len = xmalloc_round(size + XHEADER_SIZE);
 		size_t old_size;
 
-		if (new_len <= WALLOC_MAX && !xmalloc_no_freeing) {
+		/*
+		 * If we disabled all freeings, we're deep into shutdown or in
+		 * crashing mode, and we don't want to free anything or call wfree().
+		 * Simply honour the reallocation request.
+		 */
+
+		if G_UNLIKELY(xmalloc_no_wfree) {
+			np = xallocate(size, FALSE, TRUE);
+			old_size = old_len - XHEADER_SIZE;
+			g_assert(size_is_non_negative(old_size));
+			memcpy(np, p, MIN(size, old_size));
+			return np;
+		}
+
+		if (new_len <= WALLOC_MAX) {
 			void *wp = wrealloc(xh, old_len, new_len);
 			xstats.realloc_wrealloc++;
 

@@ -99,6 +99,7 @@
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
+#include "vmm.h"				/* For vmm_crash_mode() */
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -1547,6 +1548,14 @@ parent_failure:
 static G_GNUC_COLD void
 crash_mode(void)
 {
+	/*
+	 * Put our main allocators in crash mode, which will limit risks if we
+	 * are crashing due to a data structure corruption or an assertion failure.
+	 */
+
+	vmm_crash_mode();
+	xmalloc_crash_mode();
+
 	if (vars != NULL) {
 		if (!vars->crash_mode) {
 			uint8 t = TRUE;

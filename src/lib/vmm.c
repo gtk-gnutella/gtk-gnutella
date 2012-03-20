@@ -167,6 +167,7 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
+static bool vmm_crashing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
 #define VMM_CACHE_LINES		32	/**< Amount of cache lines */
@@ -321,9 +322,26 @@ static void pmap_overrule(struct pmap *pm,
 static void vmm_reserve_stack(size_t amount);
 
 /**
+ * Put the VMM layer in crashing mode.
+ *
+ * This is activated on assertion failures and other fatal conditions, and
+ * is an irreversible operation.  Its purpose is to prevent any usage of
+ * internal data structures that could be corrupted, yet allow basic memory
+ * allocation during crashing.
+ *
+ * In crashing mode, allocations are done without any pmap updating and
+ * no shrinking nor freeing occurs.
+ */
+G_GNUC_COLD void
+vmm_crash_mode(void)
+{
+	vmm_crashing = TRUE;
+}
+
+/**
  * Initialize constants for the computation of kernel page roundings.
  */
-static void
+static G_GNUC_COLD void
 init_kernel_pagesize(void)
 {
 	kernel_pagesize = compat_pagesize();
@@ -403,7 +421,7 @@ vmm_page_count(size_t size)
 /**
  * Initialize the stack shape: direction, bottom (base) address.
  */
-static void
+static G_GNUC_COLD void
 init_stack_shape(void)
 {
 	int sp;
@@ -3382,12 +3400,16 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	void *p;
 	const void *hole;
 
+	g_assert(size_is_positive(size));
+
 	if G_UNLIKELY(0 == kernel_pagesize)
 		vmm_init();
 
-	g_assert(size_is_positive(size));
-
 	size = round_pagesize_fast(size);
+
+	if G_UNLIKELY(vmm_crashing)
+		return vmm_valloc(NULL, size);
+
 	n = pagecount_fast(size);
 	vmm_stats.allocations++;
 
@@ -3468,12 +3490,16 @@ vmm_alloc0(size_t size)
 	void *p;
 	const void *hole;
 
+	g_assert(size_is_positive(size));
+
 	if G_UNLIKELY(0 == kernel_pagesize)
 		vmm_init();
 
-	g_assert(size_is_positive(size));
-
 	size = round_pagesize_fast(size);
+
+	if G_UNLIKELY(vmm_crashing)
+		return vmm_valloc(NULL, size);	/* Memory is always zeroed by kernel */
+
 	n = pagecount_fast(size);
 	vmm_stats.allocations++;
 	vmm_stats.allocations_zeroed++;
@@ -3535,6 +3561,9 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 {
 	g_assert(0 == size || p);
 	g_assert(size_is_non_negative(size));
+
+	if G_UNLIKELY(vmm_crashing)
+		return;
 
 	if (p) {
 		size_t n;
@@ -3624,6 +3653,9 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 	g_assert(0 == size || p != NULL);
 	g_assert(new_size <= size);
 	g_assert(page_start(p) == p);
+
+	if G_UNLIKELY(vmm_crashing)
+		return;
 
 	if (0 == new_size) {
 		vmm_free_internal(p, size, user_mem);
