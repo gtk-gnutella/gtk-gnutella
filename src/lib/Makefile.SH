@@ -192,6 +192,7 @@ LSRC = \
 	magnet.c \
 	malloc.c \
 	map.c \
+	mem.c \
 	mempcpy.c \
 	memusage.c \
 	mime_type.c \
@@ -332,6 +333,7 @@ LOBJ = \
 	magnet.o \
 	malloc.o \
 	map.o \
+	mem.o \
 	mempcpy.o \
 	memusage.o \
 	mime_type.o \
