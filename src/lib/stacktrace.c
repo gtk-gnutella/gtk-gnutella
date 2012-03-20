@@ -52,6 +52,7 @@
 #include "hashing.h"	/* For binary_hash() */
 #include "htable.h"
 #include "log.h"
+#include "mem.h"
 #include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "offtime.h"
 #include "omalloc.h"
@@ -140,7 +141,10 @@ static inline bool G_GNUC_CONST
 valid_ptr(const void *pc)
 {
 	ulong v = pointer_to_ulong(pc);
-	return v >= 0x1000 && v < MAX_INT_VAL(ulong) - 0x1000;
+
+	return v >= 0x1000 &&
+		v < MAX_INT_VAL(ulong) - 0x1000 &&
+		mem_is_valid_ptr(pc);
 }
 
 /**

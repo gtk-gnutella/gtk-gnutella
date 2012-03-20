@@ -75,6 +75,7 @@
 #include "hset.h"
 #include "iovec.h"
 #include "log.h"
+#include "mem.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
@@ -482,6 +483,7 @@ mingw_win2posix(int error)
 		return ENOSPC;
 	case ERROR_WRITE_FAULT:
 	case ERROR_READ_FAULT:
+	case ERROR_NOACCESS:		/* Invalid access to memory location */
 		return EFAULT;
 	case ERROR_GEN_FAILURE:
 	case ERROR_WRONG_DISK:
@@ -3091,7 +3093,7 @@ static inline bool
 valid_ptr(const void * const p)
 {
 	ulong v = pointer_to_ulong(p);
-	return v > 0x1000 && v < 0xfffff000;
+	return v > 0x1000 && v < 0xfffff000 && mem_is_valid_ptr(p);
 }
 
 static inline bool
@@ -3485,7 +3487,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 	p = stacktrace_routine_start(pc);
 
-	if (p != NULL) {
+	if (p != NULL && valid_ptr(p)) {
 		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p",
 			G_STRFUNC, pc, p);
 
@@ -3501,10 +3503,14 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	 */
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
-		uint8 op = *p;
+		uint8 op;
+		
 		const uint8 *next;
 
-		switch (op) {
+		if (!valid_ptr(p))
+			return FALSE;
+
+		switch ((op = *p)) {
 		case OPCODE_RET_NEAR:
 		case OPCODE_RET_FAR:
 			next = p + 1;
