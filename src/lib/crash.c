@@ -810,6 +810,169 @@ restore:
 #endif	/* HAS_FORK */
 }
 
+/**
+ * Write crash log header.
+ *
+ * @param clf		crash log file descriptor
+ * @param signo		crashing signal number
+ * @param filename	name of the crash log file
+ */
+static void
+crash_log_write_header(int clf, int signo, const char *filename)
+{
+	char tbuf[22];
+	char rbuf[22];
+	char sbuf[ULONG_DEC_BUFLEN];
+	char nbuf[ULONG_DEC_BUFLEN];
+	char lbuf[22];
+	time_delta_t t;
+	struct utsname u;
+	long cpucount = getcpucount();
+	DECLARE_STR(15);
+
+	crash_time_iso(tbuf, sizeof tbuf);
+	crash_run_time(rbuf, sizeof rbuf);
+	t = delta_time(time(NULL), vars->start_time);
+
+	print_str("Operating-System: ");	/* 0 */
+	if (-1 != uname(&u)) {
+		print_str(u.sysname);			/* 1 */
+		print_str(" ");					/* 2 */
+		print_str(u.release);			/* 3 */
+		print_str(" ");					/* 4 */
+		print_str(u.version);			/* 5 */
+		print_str("\n");				/* 6 */
+	} else {
+		print_str("Unknown\n");
+	}
+	print_str("CPU-Architecture: ");	/* 7 */
+	if (-1 != uname(&u)) {
+		print_str(u.machine);			/* 8 */
+	} else {
+		print_str("unknown");			/* 8 */
+	}
+	if (cpucount > 1) {
+		print_str(" * ");				/* 9 */
+		print_str(print_number(sbuf, sizeof sbuf, cpucount)); /* 10 */
+	}
+	print_str(", ");					/* 11 */
+	print_str(print_number(nbuf, sizeof nbuf, PTRSIZE * 8)); /* 12 */
+	print_str(" bits\n");				/* 13 */
+	flush_str(clf);
+	rewind_str(0);
+
+	print_str("Executable-Path: ");		/* 0 */
+	print_str(vars->argv0);				/* 1 */
+	print_str("\n");					/* 2 */
+	if (NULL != vars->version) {
+		print_str("Version: ");			/* 3 */
+		print_str(vars->version);		/* 4 */
+		print_str("\n");				/* 5 */
+	}
+	print_str("Run-Elapsed: ");			/* 6 */
+	print_str(rbuf);					/* 7 */
+	print_str("\n");					/* 8 */
+	print_str("Run-Seconds: ");			/* 9 */
+	print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
+	print_str("\n");					/* 11 */
+	print_str("Crash-Signal: ");		/* 12 */
+	print_str(signal_name(signo));		/* 13 */
+	print_str("\n");					/* 14 */
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Crash-Time: ");			/* 0 */
+	print_str(tbuf);					/* 1 */
+	print_str("\n");					/* 2 */
+	print_str("Core-Dump: ");			/* 3 */
+	print_str(vars->dumps_core ? "enabled" : "disabled");	/* 4 */
+	print_str("\n");					/* 5 */
+	if (NULL != vars->cwd) {
+		print_str("Working-Directory: ");	/* 6 */
+		print_str(vars->cwd);				/* 7 */
+		print_str("\n");					/* 8 */
+	}
+	if (NULL != vars->exec_path) {
+		print_str("Exec-Path: ");		/* 9 */
+		print_str(vars->exec_path);		/* 10 */
+		print_str("\n");				/* 11 */
+	}
+	if (NULL != vars->crashdir) {
+		print_str("Crash-Directory: ");	/* 12 */
+		print_str(vars->crashdir);		/* 13 */
+		print_str("\n");				/* 14 */
+	}
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Crash-File: ");			/* 0 */
+	print_str(filename);				/* 1 */
+	print_str("\n");					/* 2 */
+	if (vars->failure != NULL) {
+		const assertion_data *failure = vars->failure;
+		if (failure->expr != NULL) {
+			print_str("Assertion-At: ");	/* 3 */
+		} else {
+			print_str("Reached-Code-At: ");	/* 3 */
+		}
+		print_str(failure->file);			/* 4 */
+		print_str(":");						/* 5 */
+		print_str(print_number(lbuf, sizeof lbuf, failure->line));
+		print_str("\n");					/* 6 */
+		if (failure->expr != NULL) {
+			print_str("Assertion-Expr: ");	/* 7 */
+			print_str(failure->expr);		/* 8 */
+			print_str("\n");				/* 9 */
+		}
+		if (vars->message != NULL) {
+			print_str("Assertion-Info: ");	/* 10 */
+			print_str(vars->message);		/* 11 */
+			print_str("\n");				/* 12 */
+		}
+	} else if (vars->message != NULL) {
+		print_str("Error-Message: ");		/* 3 */
+		print_str(vars->message);			/* 4 */
+		print_str("\n");					/* 5 */
+	}
+	flush_str(clf);
+
+	rewind_str(0);
+	print_str("Atomic-Operations: ");					/* 0 */
+	print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
+	print_str("\n");									/* 2 */
+	flush_str(clf);
+
+	rewind_str(0);
+	print_str("Auto-Restart: ");		/* 0 */
+	print_str(vars->may_restart ? "enabled" : "disabled"); /* 1 */
+	if (t <= CRASH_MIN_ALIVE) {
+		char rtbuf[ULONG_DEC_BUFLEN];
+		print_str("; run time threshold of ");	/* 2 */
+		print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
+		print_str("s not reached");				/* 4 */
+	} else {
+		print_str("; ");				/* 2 */
+		print_str(vars->may_restart ? "will" : "would"); /* 3 */
+		print_str(" be attempted");		/* 4 */
+	}
+	print_str("\n");					/* 5 */
+	{
+		enum stacktrace_sym_quality sq = stacktrace_quality();
+		if (STACKTRACE_SYM_GOOD != sq) {
+			const char *quality = stacktrace_quality_string(sq);
+			print_str("Stacktrace-Symbols: ");		/* 6 */
+			print_str(quality);						/* 7 */
+			print_str("\n");						/* 8 */
+		}
+	}
+
+	print_str("Stacktrace:\n");			/* 9 */
+	flush_str(clf);
+	crash_stack_print(clf, 3);
+
+	rewind_str(0);
+	print_str("\n");					/* 0 -- End of Header */
+	flush_str(clf);
+}
+
 /*
  * Carefully close opened file descriptor.
  *
@@ -931,17 +1094,10 @@ retry_child:
 			const mode_t mode = S_IRUSR | S_IWUSR;
 			char const *argv[8];
 			char filename[80];
-			char cmd[MAX_PATH_LEN];
-			char rbuf[22];
-			char sbuf[ULONG_DEC_BUFLEN];
-			char nbuf[ULONG_DEC_BUFLEN];
 			char tbuf[22];
-			char lbuf[22];
-			time_delta_t t;
-			struct utsname u;
-			long cpucount = getcpucount();
+			char cmd[MAX_PATH_LEN];
 			int clf = STDOUT_FILENO;	/* crash log file fd */
-			DECLARE_STR(15);
+			DECLARE_STR(10);
 
 			/*
 			 * Immediately unplug the crash handler in case we do something
@@ -1004,9 +1160,6 @@ retry_child:
 				argv[3] = NULL;
 			}
 			crash_logname(filename, sizeof filename, pid_str);
-			crash_time_iso(tbuf, sizeof tbuf);
-			crash_run_time(rbuf, sizeof rbuf);
-			t = delta_time(time(NULL), vars->start_time);
 
 			if (could_fork) {
 				/* STDIN must be kept open when piping to gdb */
@@ -1048,143 +1201,7 @@ retry_child:
 			 * Emit crash header.
 			 */
 
-			print_str("Operating-System: ");	/* 0 */
-			if (-1 != uname(&u)) {
-				print_str(u.sysname);			/* 1 */
-				print_str(" ");					/* 2 */
-				print_str(u.release);			/* 3 */
-				print_str(" ");					/* 4 */
-				print_str(u.version);			/* 5 */
-				print_str("\n");				/* 6 */
-			} else {
-				print_str("Unknown\n");
-			}
-			print_str("CPU-Architecture: ");	/* 7 */
-			if (-1 != uname(&u)) {
-				print_str(u.machine);			/* 8 */
-			} else {
-				print_str("unknown");			/* 8 */
-			}
-			if (cpucount > 1) {
-				print_str(" * ");				/* 9 */
-				print_str(print_number(sbuf, sizeof sbuf, cpucount)); /* 10 */
-			}
-			print_str(", ");					/* 11 */
-			print_str(print_number(nbuf, sizeof nbuf, PTRSIZE * 8)); /* 12 */
-			print_str(" bits\n");				/* 13 */
-			flush_str(clf);
-			rewind_str(0);
-
-			print_str("Executable-Path: ");		/* 0 */
-			print_str(vars->argv0);				/* 1 */
-			print_str("\n");					/* 2 */
-			if (NULL != vars->version) {
-				print_str("Version: ");			/* 3 */
-				print_str(vars->version);		/* 4 */
-				print_str("\n");				/* 5 */
-			}
-			print_str("Run-Elapsed: ");			/* 6 */
-			print_str(rbuf);					/* 7 */
-			print_str("\n");					/* 8 */
-			print_str("Run-Seconds: ");			/* 9 */
-			print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
-			print_str("\n");					/* 11 */
-			print_str("Crash-Signal: ");		/* 12 */
-			print_str(signal_name(signo));		/* 13 */
-			print_str("\n");					/* 14 */
-			flush_str(clf);
-			rewind_str(0);
-			print_str("Crash-Time: ");			/* 0 */
-			print_str(tbuf);					/* 1 */
-			print_str("\n");					/* 2 */
-			print_str("Core-Dump: ");			/* 3 */
-			print_str(vars->dumps_core ? "enabled" : "disabled");	/* 4 */
-			print_str("\n");					/* 5 */
-			if (NULL != vars->cwd) {
-				print_str("Working-Directory: ");	/* 6 */
-				print_str(vars->cwd);				/* 7 */
-				print_str("\n");					/* 8 */
-			}
-			if (NULL != vars->exec_path) {
-				print_str("Exec-Path: ");		/* 9 */
-				print_str(vars->exec_path);		/* 10 */
-				print_str("\n");				/* 11 */
-			}
-			if (NULL != vars->crashdir) {
-				print_str("Crash-Directory: ");	/* 12 */
-				print_str(vars->crashdir);		/* 13 */
-				print_str("\n");				/* 14 */
-			}
-			flush_str(clf);
-			rewind_str(0);
-			print_str("Crash-File: ");			/* 0 */
-			print_str(filename);				/* 1 */
-			print_str("\n");					/* 2 */
-			if (vars->failure != NULL) {
-				const assertion_data *failure = vars->failure;
-				if (failure->expr != NULL) {
-					print_str("Assertion-At: ");	/* 3 */
-				} else {
-					print_str("Reached-Code-At: ");	/* 3 */
-				}
-				print_str(failure->file);			/* 4 */
-				print_str(":");						/* 5 */
-				print_str(print_number(lbuf, sizeof lbuf, failure->line));
-				print_str("\n");					/* 6 */
-				if (failure->expr != NULL) {
-					print_str("Assertion-Expr: ");	/* 7 */
-					print_str(failure->expr);		/* 8 */
-					print_str("\n");				/* 9 */
-				}
-				if (vars->message != NULL) {
-					print_str("Assertion-Info: ");	/* 10 */
-					print_str(vars->message);		/* 11 */
-					print_str("\n");				/* 12 */
-				}
-			} else if (vars->message != NULL) {
-				print_str("Error-Message: ");		/* 3 */
-				print_str(vars->message);			/* 4 */
-				print_str("\n");					/* 5 */
-			}
-			flush_str(clf);
-
-			rewind_str(0);
-			print_str("Atomic-Operations: ");					/* 0 */
-			print_str(atomic_ops_available() ? "yes" : "no");	/* 1 */
-			print_str("\n");									/* 2 */
-			flush_str(clf);
-
-			rewind_str(0);
-			print_str("Auto-Restart: ");		/* 0 */
-			print_str(vars->may_restart ? "enabled" : "disabled"); /* 1 */
-			if (t <= CRASH_MIN_ALIVE) {
-				char rtbuf[ULONG_DEC_BUFLEN];
-				print_str("; run time threshold of ");	/* 2 */
-				print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
-				print_str("s not reached");				/* 4 */
-			} else {
-				print_str("; ");				/* 2 */
-				print_str(vars->may_restart ? "will" : "would"); /* 3 */
-				print_str(" be attempted");		/* 4 */
-			}
-			print_str("\n");					/* 5 */
-			{
-				enum stacktrace_sym_quality sq = stacktrace_quality();
-				if (STACKTRACE_SYM_GOOD != sq) {
-					const char *quality = stacktrace_quality_string(sq);
-					print_str("Stacktrace-Symbols: ");		/* 6 */
-					print_str(quality);						/* 7 */
-					print_str("\n");						/* 8 */
-				}
-			}
-
-			print_str("Stacktrace:\n");			/* 9 */
-			flush_str(clf);
-			crash_stack_print(clf, 2);
-
-			rewind_str(0);
-			print_str("\n");					/* 0 -- End of Header */
-			flush_str(clf);
+			crash_log_write_header(clf, signo, filename);
 
 			/*
 			 * If we don't have fork() on this platform (or could not fork)
