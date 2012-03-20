@@ -209,6 +209,7 @@ parse(register char *str)
 int
 main(int argc, char **argv)
 {
+	int c;
 	register cmd *act;
 	extern int optind;
 	extern char *optarg;
