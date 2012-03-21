@@ -535,11 +535,14 @@ bool mingw_adns_send_request(const struct adns_request *req);
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 
+void mingw_format_trace(int fd, void * const *trace, int count);
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
 #define mingw_init()
 #define mingw_close()
+#define mingw_format_trace(f, t, c)
 #define mingw_patch_personal_path(p)	(p)
 
 #define mingw_get_admin_tools_path()	"/"

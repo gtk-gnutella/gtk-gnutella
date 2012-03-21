@@ -53,6 +53,7 @@
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
 #include <iphlpapi.h>			/* For GetBestRoute() */
+#include <bfd.h>				/* For access to debugging information */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -86,6 +87,7 @@
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -493,6 +495,9 @@ mingw_win2posix(int error)
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
+	case ERROR_ENVVAR_NOT_FOUND:
+		/* Got this error writing to a closed stdio fd, opened via pipe() */
+		return EBADF;
 	default:
 		if (!hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
@@ -2528,6 +2533,7 @@ struct adns_response {
 };
 
 /* ADNS getaddrinfo */
+
 /**
  * ADNS getaddrinfo on ADNS thread.
  */
@@ -2636,6 +2642,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 }
 
 /* ADNS Get name info */
+
 /**
  * ADNS getnameinfo on ADNS thread.
  */
@@ -3097,11 +3104,11 @@ valid_ptr(const void * const p)
 }
 
 static inline bool
-valid_stack_ptr(const void * const p)
+valid_stack_ptr(const void * const p, const void *top)
 {
 	ulong v = pointer_to_ulong(p);
 
-	return 0 == (v & MINGW_SP_MASK) && vmm_is_stack_pointer(p, NULL);
+	return 0 == (v & MINGW_SP_MASK) && vmm_is_stack_pointer(p, top);
 }
 
 /*
@@ -3138,6 +3145,14 @@ valid_stack_ptr(const void * const p)
 #define OPCODE_LEA			0x8d
 #define OPCODE_XOR_1		0x31	/* Between registers if mod=3 */
 #define OPCODE_XOR_2		0x33	/* Complex XOR involving memory */
+#define OPCODE_NONE_1		0x26	/* Not a valid opcode */
+#define OPCODE_NONE_2		0x2e
+#define OPCODE_NONE_3		0x36
+#define OPCODE_NONE_4		0x3E
+#define OPCODE_NONE_5		0x64
+#define OPCODE_NONE_6		0x65
+#define OPCODE_NONE_7		0x66
+#define OPCODE_NONE_8		0x67
 
 /*
  * x86 follow-up instruction parsing
@@ -3162,7 +3177,7 @@ valid_stack_ptr(const void * const p)
 #define OPREG_ESI			6
 #define OPREG_EDI			7
 
-#define MINGW_ROUTINE_ALIGN	16
+#define MINGW_ROUTINE_ALIGN	4
 #define MINGW_ROUTINE_MASK	(MINGW_ROUTINE_ALIGN - 1)
 
 #define mingw_routine_align(x) ulong_to_pointer( \
@@ -3220,6 +3235,14 @@ mingw_opcode_name(uint8 opcode)
 	case OPCODE_XOR_1:
 	case OPCODE_XOR_2:
 		return "XOR";
+	case OPCODE_NONE_1:
+	case OPCODE_NONE_2:
+	case OPCODE_NONE_3:
+	case OPCODE_NONE_4:
+	case OPCODE_NONE_5:
+	case OPCODE_NONE_6:
+	case OPCODE_NONE_7:
+	case OPCODE_NONE_8:
 	default:
 		return "?";
 	}
@@ -3293,10 +3316,82 @@ mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
 	}
 
 	for (p = start; ptr_cmp(p, maxscan) <= 0; p++) {
-		switch (*p) {
+		const void *window;
+		uint8 op;
+		unsigned fill = 0;
+
+		switch ((op = *p)) {
+		case OPCODE_NONE_1:
+		case OPCODE_NONE_2:
+		case OPCODE_NONE_3:
+		case OPCODE_NONE_4:
+		case OPCODE_NONE_5:
+		case OPCODE_NONE_6:
+		case OPCODE_NONE_7:
+		case OPCODE_NONE_8:
 		case OPCODE_NOP:
-			/* There can be NOPs between last RET and next routine */
-			first_opcode = p + 1;
+			fill = 1;
+			goto filler;
+		case OPCODE_LEA:
+			/*
+			 * Need to decode further to know how many bytes are taken
+			 * by this versatile instruction.
+			 */
+			{
+				uint8 mode = (p[1] & OPMODE_MODE_MASK) >> 6;
+				uint8 reg = (p[1] & OPMODE_REG_SRC_MASK) >> 3;
+				switch (mode) {
+				case 0:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] (32-bit SIB Byte follows)
+					 * 5 = disp32
+					 * others = register
+					 */
+
+					if (4 == reg) {
+						fill = 3;
+					} if (5 == reg) {
+						fill = 6;
+					} else {
+						fill = 2;
+					}
+					goto filler;
+				case 1:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] + disp8
+					 * others = register + disp8
+					 */
+
+					if (4 == reg) {
+						fill = 4;
+					} else {
+						fill = 3;
+					}
+					goto filler;
+				case 2:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] + disp32
+					 * others = register + disp32
+					 */
+					if (4 == reg) {
+						fill = 7;
+					} else {
+						fill = 6;
+					}
+					goto filler;
+				case 3:
+					fill = 2;
+					goto filler;
+				default:
+					g_assert_not_reached();
+				}
+			}
 			break;
 		case OPCODE_PUSH_EBP:
 			/*
@@ -3373,6 +3468,24 @@ mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
 		default:
 			return NULL;
 		}
+
+		continue;
+
+	filler:
+		/*
+		 * Handle "filling" instructions between last RET / JMP and
+		 * the next routine  Move the scanning window forward to avoid
+		 * counting filling instructions.
+		 */
+
+		BACKTRACE_DEBUG("%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
+			mingw_opcode_name(op), fill, 1 == fill ? "" : "s", p);
+
+		first_opcode = p + fill;
+		p += (fill - 1);
+		window = const_ptr_add_offset(maxscan, fill);
+		if (ptr_cmp(window, max) <= 0)
+			maxscan = window;
 	}
 
 	return NULL;
@@ -3488,8 +3601,8 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	p = stacktrace_routine_start(pc);
 
 	if (p != NULL && valid_ptr(p)) {
-		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p",
-			G_STRFUNC, pc, p);
+		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p (%s)",
+			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
 
 		if (mingw_analyze_prologue(p, pc, &has_frame, &savings, &offset))
 			goto found_offset;
@@ -3533,7 +3646,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			G_STRFUNC, mingw_opcode_name(op), p, op);
 
 		/*
-		 * Align to the start of the the next 16-byte boundary since the
+		 * Align to the start of the the next entry point boundary since the
 		 * addresses of the routines are always aligned.
 		 *
 		 * Space between the end of the previous routine and the start of the
@@ -3639,7 +3752,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 {
 	int i = 0;
 	const struct stackframe *sf;
-	const void *sp, *pc;
+	const void *sp, *pc, *top;
 
 	/*
 	 * We used to rely on StackWalk() here, but we no longer do because
@@ -3692,8 +3805,10 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	if (0 == skip--)
 		buffer[i++] = deconstify_pointer(pc);
 
-	if (!valid_stack_ptr(sp))
+	if (!valid_stack_ptr(sp, sp))
 		goto done;
+
+	top = sp;
 
 	while (i < size) {
 		const void *next = NULL;
@@ -3701,10 +3816,10 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		BACKTRACE_DEBUG("%s: i=%d, sp=%p, sf=%p, pc=%p",
 			G_STRFUNC, i, sp, sf, pc);
 
-		if (!valid_ptr(pc) || !valid_stack_ptr(sp))
+		if (!valid_ptr(pc) || !valid_stack_ptr(sp, top))
 			break;
 
-		if (!valid_stack_ptr(sf) || ptr_cmp(sf, sp) <= 0)
+		if (!valid_stack_ptr(sf, top) || ptr_cmp(sf, sp) <= 0)
 			sf = NULL;
 
 		if (!mingw_get_return_address(&pc, &sp, &next)) {
@@ -3722,7 +3837,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 					"next sf=%p, pc=%p, rebuilt sp=%p",
 					G_STRFUNC, next, pc, sp);
 
-				if (!valid_stack_ptr(next) || ptr_cmp(next, sf) <= 0)
+				if (!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
 					next = NULL;
 			} else {
 				BACKTRACE_DEBUG("%s: out of frames", G_STRFUNC);
@@ -3754,7 +3869,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 					BACKTRACE_DEBUG("%s: reached sf=%p at sp=%p, "
 						"next sf=%p, current ra=%p",
 						G_STRFUNC, sf, sp, sf->next, sf->ret);
-					if (NULL == next)
+					if (NULL == next && valid_stack_ptr(sf->next, top))
 						next = sf->next;
 				}
 			}
@@ -3801,6 +3916,364 @@ mingw_backtrace(void **buffer, int size, size_t offset)
 	GetThreadContext(thread, &c);
 
 	return mingw_stack_unwind(buffer, size, &c, offset);
+}
+
+struct bfd_ctx {
+	bfd *handle;				/* Opened handle on binary file */
+	asymbol **symbols;			/* Symbol table */
+	long count;					/* Amount of symbols */
+};
+
+struct bfd_list {
+	char *path;					/* Executable / library path */
+	struct bfd_ctx *bc;			/* Opened binary context */
+	struct bfd_list *next;		/* Next in list */
+};
+
+struct symbol_loc {
+	const char *function;
+	const char *file;
+	unsigned line;
+};
+
+struct symbol_ctx {
+	struct symbol_loc location;
+	asymbol **symbols;
+	bfd_vma pc;
+};
+
+/**
+ * Lookup callback.
+ */
+static void
+lookup_section(bfd *b, asection *sec, void *data)
+{
+	struct symbol_ctx *sc = data;
+	bfd_vma vma;
+
+	if (sc->location.function != NULL)
+		return;		/* Already found */
+
+	if (0 == (bfd_get_section_flags(b, sec) & SEC_ALLOC))
+		return;
+
+	vma = bfd_get_section_vma(b, sec);
+	if (sc->pc < vma || sc->pc >= bfd_get_section_size(sec) + vma)
+		return;
+
+	bfd_find_nearest_line(b, sec, sc->symbols, sc->pc - vma,
+		&sc->location.file, &sc->location.function, &sc->location.line);
+}
+
+/**
+ * Locate ``pc'' in the executable, filling ``loc'' with symbol information.
+ *
+ * @return TRUE if symbol was found.
+ */
+static bool
+mingw_locate_pc(struct bfd_ctx *bc, const void *pc, struct symbol_loc *loc)
+{
+	struct symbol_ctx sc;
+
+	ZERO(&sc);
+	sc.pc = pointer_to_ulong(pc);
+	sc.symbols = bc->symbols;
+
+	bfd_map_over_sections(bc->handle, lookup_section, &sc);
+
+	if (sc.location.function != NULL) {
+		*loc = sc.location;		/* Struct copy */
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check opened bfd for format.
+ *
+ * @return TRUE if it matches the format, FALSE otherwise.
+ */
+static bool
+mingw_bfd_check_format(bfd *b, bfd_format fmt, const char *path)
+{
+	char **matching;
+	unsigned i = 0;
+
+	if (bfd_check_format(b, fmt))
+		return TRUE;
+
+	if (bfd_error_file_ambiguously_recognized != bfd_get_error())
+		return FALSE;
+
+	if (!bfd_check_format_matches(b, fmt, &matching))
+		return FALSE;
+
+	s_miniwarn("%s: ambiguous format matching for %s", G_STRFUNC, path);
+
+	while (matching[i] != NULL) {
+		s_miniwarn("%s: possible format is \"%s\"", G_STRFUNC, matching[i]);
+		i++;
+	}
+
+	free(matching);		/* Not xfree(), was allocated by bfd */
+	return FALSE;
+}
+
+/**
+ * Initialize the bfd context.
+ *
+ * @return TRUE if OK.
+ */
+static bool
+mingw_bfd_open(struct bfd_ctx *bc, const char *path)
+{
+	bfd *b;
+	void *symbols = NULL;
+	unsigned x = 0;
+	long count;
+
+	b = bfd_openr(path, NULL);		/* FIXME: non-ANSI filenames */
+	if (NULL == b)
+		return FALSE;
+
+	if (!mingw_bfd_check_format(b, bfd_object, path)) {
+		s_miniwarn("%s: %s is not an object", G_STRFUNC, path);
+		goto failed;
+	}
+
+	if (0 == (bfd_get_file_flags(b) & HAS_SYMS)) {
+		s_miniwarn("%s: %s has no symbols", G_STRFUNC, path);
+		goto failed;
+	}
+
+	count = bfd_read_minisymbols(b, FALSE, &symbols, &x);
+	if (count <= 0)
+		count = bfd_read_minisymbols(b, TRUE, &symbols, &x);
+
+	if (count < 0) {
+		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, path);
+		symbols = NULL;
+		count = 0;
+	}
+
+	bc->handle = b;
+	bc->symbols = symbols;		/* Allocated by the bfd library */
+	bc->count = count;
+
+	return TRUE;
+
+failed:
+	bfd_close(b);
+	return FALSE;
+}
+
+static void
+mingw_bfd_close_null(struct bfd_ctx **bc_ptr)
+{
+	struct bfd_ctx *bc = *bc_ptr;
+
+	if (bc != NULL) {
+		if (bc->symbols != NULL)
+			free(bc->symbols);	/* Not xfree(): created by the bfd library */
+		bfd_close(bc->handle);
+		*bc_ptr = NULL;
+	}
+}
+
+/**
+ * Get a binary file context for the  given program / library path.
+ */
+static struct bfd_ctx *
+mingw_get_bc(struct bfd_list **list, const char *path)
+{
+	struct bfd_list *item = *list;
+	struct bfd_ctx bc;
+	struct bfd_ctx *bp;
+
+	/*
+	 * We're probably crashing, use simple data structures, and not a
+	 * hash table / hash list here.  We're going to handle only a handful
+	 * of modules, so linear lookups are perfectly OK.
+	 */
+
+	while (item != NULL) {
+		if (0 == strcmp(path, item->path))
+			return item->bc;
+		item = item->next;
+	}
+
+	if (!mingw_bfd_open(&bc, path))
+		return NULL;
+
+	bp = xcopy(&bc, sizeof bc);
+	item = xmalloc(sizeof *item);
+	item->bc = bp;
+	item->path = xstrdup(path);
+
+	/* Insert at head of list */
+
+	item->next = *list;
+	*list = item;
+
+	return bp;
+}
+
+/**
+ * Free the whole list of binary contexts.
+ */
+static void
+mingw_free_bfd_list(struct bfd_list *list)
+{
+	struct bfd_list *item = list;
+
+	while (item != NULL) {
+		struct bfd_list *next = item->next;
+		xfree(item->path);
+		mingw_bfd_close_null(&item->bc);
+		item->next = NULL;
+		xfree(item);
+		item = next;
+	}
+}
+
+/**
+ * Return pretty path from source path by using the fact that the compilation
+ * process uses '/' separators but the returned Windows path uses '\'.
+ * Hence we shall turn "gtk-gnutella\src\lib/cq.c" into "lib/cq.c" for instance.
+ */
+static const char *
+mingw_pretty_path(const char *path)
+{
+	const char *p;
+
+	p = strrchr(path, '\\');
+	if (p != NULL)
+		p++;
+	else
+		p = path;
+
+	return p;
+}
+
+/**
+ * Produce a nice stacktrace like a debugger would, without parameters though.
+ *
+ * @param fd		file descriptor where data must be printed to
+ * @param trace		the backtrace, listing PC values
+ * @param count		amount of items in trace
+ */
+void
+mingw_format_trace(int fd, void * const *trace, int count)
+{
+	struct bfd_list *list = NULL;
+	int i;
+	static char path[MAX_PATH];
+	static char buf[256];
+	HANDLE process;
+	
+	process = GetCurrentProcess();
+
+	if (!SymInitialize(process, 0, TRUE)) {
+		int error = GetLastError();
+		size_t len = str_bprintf(buf, sizeof buf,
+			"Failed to initialize symbolic dump: error = %d (%s)",
+			error, g_strerror(error));
+		write(fd, buf, len);
+		return;
+	}
+
+	bfd_init();
+
+	for (i = 0; i < count; i++) {
+		const void *pc = trace[i];
+		char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
+		IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
+		DWORD base;
+		const char *module = "??";
+		struct bfd_ctx *bc = NULL;
+		struct symbol_loc loc;
+		size_t len;
+
+		base = SymGetModuleBase(process, pointer_to_ulong(pc));
+
+		/*
+		 * We use GetModuleFileNameA() to get ANSI names, as this is the
+		 * most likely supported mode for bfd_openr().  It certainly won't
+		 * understand wchar_t and will not grok UTF-8 encoding since Windows
+		 * is an UTF-16 system.
+		 */
+
+		if (
+			base != 0 &&
+			GetModuleFileNameA((HINSTANCE) base, path, sizeof path)
+		) {
+			module = path;
+			bc = mingw_get_bc(&list, path);
+		}
+
+		ZERO(&loc);
+
+		if (bc != NULL) {
+			if (bc->symbols != NULL) {
+				const void *call;
+
+				/*
+				 * Always move back two bytes because the return address is
+				 * what we have on the stack, and we want the place where
+				 * the call was made from a source code location perspective.
+				 *
+				 * A "CALL EAX" instruction takes 2 bytes.
+				 */
+
+				call = const_ptr_add_offset(pc, -2);
+
+				if (!mingw_locate_pc(bc, call, &loc)) {
+					/* A "CALL <address>" instruction is 5 byte long */
+					call = const_ptr_add_offset(pc, -5);
+					mingw_locate_pc(bc, call, &loc);
+				}
+			} else
+				loc.file = "<no symbols>";
+		} else {
+			DWORD x = 0;
+
+			symbol->SizeOfStruct = sizeof buffer;
+			symbol->MaxNameLength = 255;
+
+			if (SymGetSymFromAddr(process, pointer_to_ulong(pc), &x, symbol))
+				loc.file = symbol->Name;
+		}
+
+		if (NULL == loc.file)
+			loc.file = "??";
+
+		if (NULL == loc.function) {
+			/* A call from a DLL without source location information */
+			const char *parens = '?' == *loc.file ? "" : "()";
+			len = str_bprintf(buf, sizeof buf, "#%-3d 0x%08lx %s%s from %s\n",
+				i, pointer_to_ulong(pc), loc.file, parens, module);
+		} else {
+			if (is_strsuffix(module, (size_t) -1, ".exe")) {
+				/* This is a call from our process, we have complete info */
+				len = str_bprintf(buf, sizeof buf,
+					"#%-3d 0x%08lx in %s() at %s:%u\n",
+					i, pointer_to_ulong(pc), loc.function,
+					mingw_pretty_path(loc.file), loc.line);
+			} else {
+				/* A call from a DLL with source location information */
+				len = str_bprintf(buf, sizeof buf,
+					"#%-3d 0x%08lx in %s() at %s:%u from %s\n",
+					i, pointer_to_ulong(pc), loc.function,
+					loc.file, loc.line, module);
+			}
+		}
+
+		write(fd, buf, len);
+	}
+
+	SymCleanup(process);
+	mingw_free_bfd_list(list);
 }
 
 /**

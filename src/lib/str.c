@@ -121,7 +121,7 @@ str_new_not_leaking(size_t szhint)
 	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
 
-	/* Note: STR_OBJECT not set because structure allocated via xpmalloc() */
+	/* Note: STR_OBJECT not set because structure cannot be freed. */
 
 	return str;
 }

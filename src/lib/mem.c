@@ -40,6 +40,7 @@
 #include "common.h"
 
 #include "mem.h"
+#include "file.h"
 #include "unsigned.h"
 #include "vmm.h"
 
@@ -87,7 +88,7 @@ mem_is_valid_ptr(const void *p)
 {
 	char c;
 
-	if G_UNLIKELY(0 == fd[0]) {
+	if G_UNLIKELY(0 == fd[0] || !is_open_fd(fd[1])) {
 		if (!mem_open_pipe())
 			return TRUE;		/* Assume memory pointer is valid */
 	}

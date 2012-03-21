@@ -1222,6 +1222,8 @@ retry_child:
 					print_str(")\n");
 				}
 				flush_str(clf);
+				if (vars != NULL && vars->stackcnt != 0)
+					mingw_format_trace(clf, vars->stack, vars->stackcnt);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1960,7 +1962,18 @@ crash_handler(int signo)
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
-		bool hooks = crash_invoke_inspector(signo, cwd);
+		bool hooks;
+
+		/*
+		 * If we have no stackframe, then we're probably not on an assertion
+		 * failure path.  Capture the stack including the crash handler so
+		 * that we know were the capture was made from.
+		 */
+
+		if (0 == vars->stackcnt)
+			crash_save_current_stackframe(0);
+
+		hooks = crash_invoke_inspector(signo, cwd);
 		if (!hooks) {
 			uint8 f = FALSE;
 			crash_run_hooks(NULL, -1);

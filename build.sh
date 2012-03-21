@@ -107,8 +107,8 @@ MINGW*)
 
 	CPPFLAG="${CPPFLAGS# *}"    # strip leading spaces
 	LDFLAGS="${LDFLAGS# *}"     # strip leading spaces
-	LIBS="$LIBS -lpthread -lwsock32 -lws2_32 -liconv -limagehlp -liphlpapi"
-	LIBS="$LIBS -lws2_32 -lpowrprof -lpsapi -lkernel32"
+	LIBS="$LIBS -lpthread -lwsock32 -lws2_32 -liconv -lbfd -lintl -liberty"
+	LIBS="$LIBS -limagehlp -liphlpapi -lws2_32 -lpowrprof -lpsapi -lkernel32"
     LIBS="${LIBS# *}"           # strip leading spaces
 	;;
 esac
