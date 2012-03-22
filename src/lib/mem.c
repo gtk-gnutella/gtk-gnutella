@@ -40,6 +40,7 @@
 #include "common.h"
 
 #include "mem.h"
+#include "fd.h"					/* For is_a_fifo() */
 #include "file.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -47,6 +48,17 @@
 #include "override.h"			/* Must be the last header included */
 
 static int fd[2];				/* For the pipe() */
+
+/**
+ * Close pipe on error.
+ */
+static void
+mem_close_pipe(void)
+{
+	close(fd[0]);
+	close(fd[1]);
+	ZERO(&fd);
+}
 
 /**
  * Opens the pipe used to check whether memory is readable.
@@ -64,22 +76,32 @@ mem_open_pipe(void)
 		return FALSE;
 	}
 
+	/* Sanity check */
+
+	if (!is_a_fifo(fd[1])) {
+		s_miniwarn("%s: pipe() opened but writing fd #%d not a FIFO?",
+			G_STRFUNC, fd[1]);
+		warned = TRUE;
+		mem_close_pipe();
+		return FALSE;
+	}
+
 	return TRUE;		/* We'll never close these file descriptors */
 }
 
-/**
- * Close pipe on error.
- */
-static void
-mem_close_pipe(void)
+static bool
+mem_valid_pipe(void)
 {
-	close(fd[0]);
-	close(fd[1]);
-	ZERO(&fd);
+	return is_a_fifo(fd[0]) && is_a_fifo(fd[1]);
 }
 
 /**
  * Is pointer valid?
+ *
+ * This is a costly check involving kernel operations to verify whether
+ * the pointer lies in the virtual address space of the process.  It should
+ * only be used in exceptional situations, not as part of routinely executed
+ * assertions for instance.
  *
  * @return whether we can read a byte at the supplied memory location.
  */
@@ -88,7 +110,16 @@ mem_is_valid_ptr(const void *p)
 {
 	char c;
 
-	if G_UNLIKELY(0 == fd[0] || !is_open_fd(fd[1])) {
+	/*
+	 * The check for is_open_fd() is necessary because these routines may be
+	 * called during crashes, after all file descriptors have been closed, and
+	 * we are not notified.
+	 *
+	 * Any former use of these routines would therefore leave us with a stale
+	 * file descriptor.
+	 */
+
+	if G_UNLIKELY(0 == fd[0] || !mem_valid_pipe()) {
 		if (!mem_open_pipe())
 			return TRUE;		/* Assume memory pointer is valid */
 	}
@@ -98,9 +129,18 @@ mem_is_valid_ptr(const void *p)
 	 * within a valid memory region.
 	 */
 
+retry:
+
 	if (-1 == write(fd[1], p, 1)) {
 		if (EFAULT == errno)
 			return FALSE;
+		if (EPIPE == errno) {
+			/* fd[0], the original reading end, was closed */
+			mem_close_pipe();
+			if (!mem_open_pipe())
+				return TRUE;
+			goto retry;
+		}
 		s_miniwarn("%s: write(%p, 1) to pipe failed: %m", G_STRFUNC, p);
 		return TRUE;	/* Assume memory pointer is valid */
 	}
@@ -119,6 +159,10 @@ mem_is_valid_ptr(const void *p)
  * This does not mean the range is allocated or is usable by the process,
  * just that the memory region can be read.  It can be instructions, read-only
  * data, shared library data segment, etc...
+ *
+ * The check is costly as it involves system calls for each page within the
+ * specified memory range.  It should only be used in exceptional circumstances
+ * and not as part of routine checks.
  *
  * @return whether all the encompassed memory pages are readable.
  */
