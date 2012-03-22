@@ -303,7 +303,7 @@ string_hash2(const void *s)
 bool
 string_eq(const void *a, const void *b)
 {
-	return 0 == strcmp(a, b);
+	return a == b || 0 == strcmp(a, b);
 }
 
 /**
