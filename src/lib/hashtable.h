@@ -47,16 +47,8 @@ typedef void *(*hash_table_alloc_t)(void *allocator, size_t len);
 
 typedef struct hash_table hash_table_t;
 
-typedef void (*hash_table_foreach_func)(
-	const void *key, void *value, void *data);
-typedef bool (*hash_table_foreach_rm_func)(
-	const void *key, void *value, void *data);
-typedef unsigned (*hash_table_hash_func)(const void *key);
-typedef bool (*hash_table_eq_func)(const void *a, const void *b);
-
 hash_table_t *hash_table_new(void);
-hash_table_t *hash_table_new_full(
-	hash_table_hash_func hash, hash_table_eq_func eq);
+hash_table_t *hash_table_new_full(hash_fn_t hash, eq_fn_t eq);
 void hash_table_clear(hash_table_t *ht);
 void hash_table_destroy(hash_table_t *ht);
 void hash_table_destroy_null(hash_table_t **ht_ptr);
@@ -67,20 +59,17 @@ void hash_table_writable(hash_table_t *ht);
 hash_table_t *hash_table_new_special(const hash_table_alloc_t alloc, void *obj);
 hash_table_t *hash_table_new_special_full(
 	const hash_table_alloc_t alloc, void *obj,
-	hash_table_hash_func hash, hash_table_eq_func eq);
+	hash_fn_t hash, eq_fn_t eq);
 
 hash_table_t *hash_table_new_not_leaking(void);
-hash_table_t *hash_table_new_full_not_leaking(
-	hash_table_hash_func hash, hash_table_eq_func eq);
+hash_table_t *hash_table_new_full_not_leaking(hash_fn_t hash, eq_fn_t eq);
 
 #if defined(MALLOC_SOURCE) || defined(VMM_SOURCE) || defined(THREAD_SOURCE)
 /* These routines are reserved for the tracking malloc code and for threads */
 hash_table_t *hash_table_new_real(void);
 hash_table_t *hash_table_once_new_real(void);
-hash_table_t *hash_table_new_full_real(
-	hash_table_hash_func hash, hash_table_eq_func eq);
-hash_table_t *hash_table_once_new_full_real(
-	hash_table_hash_func hash, hash_table_eq_func eq);
+hash_table_t *hash_table_new_full_real(hash_fn_t hash, eq_fn_t eq);
+hash_table_t *hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq);
 void hash_table_destroy_real(hash_table_t *ht);
 #endif /* MALLOC_SOURCE || VMM_SOURCE || THREAD_SOURCE */
 
@@ -95,10 +84,9 @@ bool hash_table_lookup_extended(const hash_table_t *ht,
 	const void *key, const void **kp, void **vp);
 bool hash_table_contains(const hash_table_t *ht, const void *key);
 bool hash_table_remove(hash_table_t *ht, const void *key);
-void hash_table_foreach(const hash_table_t *ht, hash_table_foreach_func func,
-		void *data);
+void hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data);
 size_t hash_table_foreach_remove(hash_table_t *ht,
-	hash_table_foreach_rm_func func, void *data);
+	ckeyval_rm_fn_t func, void *data);
 
 const void **hash_table_keys(const hash_table_t *ht, size_t *count);
 void **hash_table_values(const hash_table_t *ht, size_t *count);

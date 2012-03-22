@@ -105,8 +105,8 @@ struct hash_table {
 	size_t bin_bits;			/* Number of bits to fold hashed value to */
 	size_t num_held;			/* Number of items actually in the table */
 	size_t bin_fill;			/* Number of bins in use */
-	hash_table_hash_func hash;	/* Key hash functions, or NULL */
-	hash_table_eq_func eq;		/* Key equality function, or NULL */
+	hash_fn_t hash;				/* Key hash functions, or NULL */
+	eq_fn_t eq;					/* Key equality function, or NULL */
 	hash_item_t **bins;			/* Array of bins of size ``num_bins'' */
 	hash_item_t *free_list;		/* List of free hash items */
 	hash_item_t *items;			/* Array of items */
@@ -294,7 +294,7 @@ hash_bins_items_arena_size(const hash_table_t *ht, size_t *items_offset)
 
 static void
 hash_table_new_intern(hash_table_t *ht,
-	size_t num_bins, hash_table_hash_func hash, hash_table_eq_func eq)
+	size_t num_bins, hash_fn_t hash, eq_fn_t eq)
 {
 	size_t i;
 	size_t arena;
@@ -364,7 +364,7 @@ hash_table_new_intern(hash_table_t *ht,
 }
 
 hash_table_t *
-hash_table_new_full(hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_new_full(hash_fn_t hash, eq_fn_t eq)
 {
 	hash_table_t *ht = xpmalloc0(sizeof *ht);
 
@@ -509,8 +509,7 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
  * with the additional "data" argument.
  */
 void
-hash_table_foreach(const hash_table_t *ht,
-	hash_table_foreach_func func, void *data)
+hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
 {
 	size_t i, n;
 
@@ -875,8 +874,7 @@ hash_table_contains(const hash_table_t *ht, const void *key)
  * @return the amount of items removed from the table.
  */
 size_t
-hash_table_foreach_remove(hash_table_t *ht,
-	hash_table_foreach_rm_func func, void *data)
+hash_table_foreach_remove(hash_table_t *ht, ckeyval_rm_fn_t func, void *data)
 {
 	size_t i, n, old_n, removed = 0;
 
@@ -1217,7 +1215,7 @@ hash_table_clustering(const hash_table_t *ht)
  */
 hash_table_t *
 hash_table_new_special_full(const hash_table_alloc_t alloc, void *obj,
-	hash_table_hash_func hash, hash_table_eq_func eq)
+	hash_fn_t hash, eq_fn_t eq)
 {
 	hash_table_t *ht = (*alloc)(obj, sizeof *ht);
 
@@ -1236,8 +1234,7 @@ hash_table_new_special(const hash_table_alloc_t alloc, void *obj)
 }
 
 hash_table_t *
-hash_table_new_full_not_leaking(
-	hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_new_full_not_leaking(hash_fn_t hash, eq_fn_t eq)
 {
 	hash_table_t *ht = omalloc0(sizeof *ht);
 
@@ -1268,7 +1265,7 @@ hash_table_new_not_leaking(void)
 
 static hash_table_t *
 hash_table_new_full_real_using(hash_table_t *ht, bool once,
-	hash_table_hash_func hash, hash_table_eq_func eq)
+	hash_fn_t hash, eq_fn_t eq)
 {
 	g_assert(ht != NULL);
 
@@ -1280,7 +1277,7 @@ hash_table_new_full_real_using(hash_table_t *ht, bool once,
 }
 
 hash_table_t *
-hash_table_once_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq)
 {
 	hash_table_t *ht = omalloc(sizeof *ht);
 
@@ -1288,7 +1285,7 @@ hash_table_once_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
 }
 
 hash_table_t *
-hash_table_new_full_real(hash_table_hash_func hash, hash_table_eq_func eq)
+hash_table_new_full_real(hash_fn_t hash, eq_fn_t eq)
 {
 	hash_table_t *ht = malloc(sizeof *ht);
 
