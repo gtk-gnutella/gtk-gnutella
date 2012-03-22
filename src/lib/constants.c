@@ -42,18 +42,13 @@
 #include "common.h"
 
 #include "constants.h"
+#include "hashing.h"
 #include "hashtable.h"
 #include "omalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
 static hash_table_t *constant_strings;
-
-static size_t
-str_hash(const void *s)
-{
-	return g_str_hash(s);
-}
 
 /**
  * @return a constant read-only string.
@@ -65,7 +60,7 @@ constant_str(const char *s)
 
 	if G_UNLIKELY(NULL == constant_strings) {
 		constant_strings =
-			hash_table_new_full_not_leaking(str_hash, g_str_equal);
+			hash_table_new_full_not_leaking(string_mix_hash, string_eq);
 	}
 
 	v = hash_table_lookup(constant_strings, s);
