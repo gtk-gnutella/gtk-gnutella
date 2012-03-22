@@ -4032,10 +4032,19 @@ mingw_bfd_open(struct bfd_ctx *bc, const char *path)
 	void *symbols = NULL;
 	unsigned x = 0;
 	long count;
+	int fd;
 
-	b = bfd_openr(path, NULL);		/* FIXME: non-ANSI filenames */
-	if (NULL == b)
+	fd = mingw_open(path, O_RDONLY);
+	if (-1 == fd) {
+		s_miniwarn("%s: can't open %s: %m", G_STRFUNC, path);
 		return FALSE;
+	}
+
+	b = bfd_fdopenr(path, NULL, fd);
+	if (NULL == b) {
+		close(fd);
+		return FALSE;
+	}
 
 	if (!mingw_bfd_check_format(b, bfd_object, path)) {
 		s_miniwarn("%s: %s is not an object", G_STRFUNC, path);
@@ -4076,7 +4085,18 @@ mingw_bfd_close_null(struct bfd_ctx **bc_ptr)
 	if (bc != NULL) {
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
-		bfd_close(bc->handle);
+
+		/*
+		 * We use bfd_close_all_done() and not bfd_close() because the latter
+		 * causes a SIGSEGV now that we are using bfd_fdopenr(). The fault
+		 * occurs in some part trying to write changes to the file...
+		 *
+		 * Since the file is opened as read-only and we don't expect any
+		 * write operation, using bfd_close_all_done() is a viable workaround
+		 * for this BFD library bug.
+		 */
+
+		bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
 		*bc_ptr = NULL;
 	}
 }
@@ -4168,7 +4188,8 @@ mingw_format_trace(int fd, void * const *trace, int count)
 {
 	struct bfd_list *list = NULL;
 	int i;
-	static char path[MAX_PATH];
+	static char path[MAX_PATH_LEN];
+	static wchar_t wpath[MAX_PATH_LEN];
 	static char buf[256];
 	HANDLE process;
 	
@@ -4197,19 +4218,15 @@ mingw_format_trace(int fd, void * const *trace, int count)
 
 		base = SymGetModuleBase(process, pointer_to_ulong(pc));
 
-		/*
-		 * We use GetModuleFileNameA() to get ANSI names, as this is the
-		 * most likely supported mode for bfd_openr().  It certainly won't
-		 * understand wchar_t and will not grok UTF-8 encoding since Windows
-		 * is an UTF-16 system.
-		 */
-
 		if (
 			base != 0 &&
-			GetModuleFileNameA((HINSTANCE) base, path, sizeof path)
+			GetModuleFileNameW((HINSTANCE) base, wpath, sizeof wpath)
 		) {
-			module = path;
-			bc = mingw_get_bc(&list, path);
+			size_t conv = utf16_to_utf8(wpath, path, sizeof path);
+			if (conv <= sizeof path) {
+				module = path;
+				bc = mingw_get_bc(&list, path);
+			}
 		}
 
 		ZERO(&loc);
