@@ -175,6 +175,7 @@ LSRC = \
 	str.c \
 	stringify.c \
 	strtok.c \
+	symbols.c \
 	symtab.c \
 	tea.c \
 	thread.c \

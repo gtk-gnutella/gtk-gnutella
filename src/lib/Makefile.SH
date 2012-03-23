@@ -232,6 +232,7 @@ LSRC = \
 	str.c \
 	stringify.c \
 	strtok.c \
+	symbols.c \
 	symtab.c \
 	tea.c \
 	thread.c \
@@ -373,6 +374,7 @@ LOBJ = \
 	str.o \
 	stringify.o \
 	strtok.o \
+	symbols.o \
 	symtab.o \
 	tea.o \
 	thread.o \
