@@ -40,6 +40,7 @@
 #include "symbols.h"
 #include "ascii.h"
 #include "constants.h"
+#include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
 #include "htable.h"
 #include "log.h"
