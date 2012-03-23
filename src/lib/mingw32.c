@@ -3129,7 +3129,7 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_PUSH_EBP		0x55
 #define OPCODE_PUSH_ESI		0x56
 #define OPCODE_PUSH_EDI		0x57
-#define OPCODE_SUB_1		0x29
+#define OPCODE_SUB_1		0x29	/* Substraction between registers */
 #define OPCODE_SUB_2		0x81	/* Need further probing for real opcode */
 #define OPCODE_SUB_3		0x83	/* Need further probing for real opcode */
 #define OPCODE_MOV_REG		0x89	/* Move one register to another */
@@ -3257,21 +3257,23 @@ static bool
 mingw_opcode_is_sub_esp(const uint8 *op)
 {
 	const uint8 *p = op;
+	uint8 mbyte = p[1];
 
-	p++;
-
-	BACKTRACE_DEBUG("%s: op=0x%x, next=0x%x", G_STRFUNC, *op, *p);
+	BACKTRACE_DEBUG("%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
 
 	switch (*op) {
 	case OPCODE_SUB_1:
-		return OPREG_ESP == (*p & 0x7);
+		return OPREG_ESP == (mbyte & 0x7);
 	case OPCODE_SUB_2:
 	case OPCODE_SUB_3:
 		{
-			uint8 code = (*p & OPMODE_OPCODE) >> 3;
+			uint8 code = (mbyte & OPMODE_OPCODE) >> 3;
+			uint8 mode = (mbyte & OPMODE_MODE_MASK);
+			if (mode != OPMODE_MODE_MASK)
+				return FALSE;
 			if (code != OPMODE_SUB)
 				return FALSE;
-			return OPREG_ESP == (*p & 0x7);
+			return OPREG_ESP == (mbyte & 0x7);
 		}
 	}
 
@@ -3289,6 +3291,7 @@ mingw_opcode_is_sub_esp(const uint8 *op)
  *
  * @param start		initial program counter
  * @param max		absolute maximum PC value
+ * @param at_start		known to be at the starting point of the routine
  * @param has_frame	set to TRUE if we saw a frame linking at the beginning
  * @param savings	indicates leading register savings done by the routine
  *
@@ -3297,8 +3300,8 @@ mingw_opcode_is_sub_esp(const uint8 *op)
  * a routine.
  */
 static const void *
-mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
-	size_t *savings)
+mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
+	bool *has_frame, size_t *savings)
 {
 	const void *maxscan;
 	const uint8 *p = start;
@@ -3467,6 +3470,15 @@ mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
 			}
 			break;
 		default:
+			/*
+			 * If we're not on an aligned routine starting point, assume
+			 * this is part of a filling instruction and ignore, provided
+			 * we haven't seen any PUSH yet.
+			 */
+			if (0 == pushes && !at_start && p != mingw_routine_align(p)) {
+				fill = 1;
+				goto filler;
+			}
 			return NULL;
 		}
 
@@ -3498,6 +3510,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
  *
  * @param pc			starting point
  * @param max			maximum PC we accept to scan forward
+ * @param at_start		known to be at the starting point of the routine
  * @param has_frame		set to TRUE if we saw a frame linking at the beginning
  * @param savings		indicates leading register savings done by the routine
  * @param offset		computed stack offsetting
@@ -3505,7 +3518,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool *has_frame,
  * @return TRUE if ``pc'' pointed to a recognized function prologue.
  */
 static bool
-mingw_analyze_prologue(const void *pc, const void *max,
+mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 	bool *has_frame, size_t *savings, unsigned *offset)
 {
 	const uint8 *sub;
@@ -3513,7 +3526,7 @@ mingw_analyze_prologue(const void *pc, const void *max,
 	if (ptr_cmp(pc, max) >= 0)
 		return FALSE;
 
-	sub = mingw_find_esp_subtract(pc, max, has_frame, savings);
+	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
 
 	if (sub != NULL) {
 		uint8 op;
@@ -3605,7 +3618,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p (%s)",
 			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
 
-		if (mingw_analyze_prologue(p, pc, &has_frame, &savings, &offset))
+		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset))
 			goto found_offset;
 
 		BACKTRACE_DEBUG("%s: %p does not seem to be a valid prologue, scanning",
@@ -3647,23 +3660,16 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			G_STRFUNC, mingw_opcode_name(op), p, op);
 
 		/*
-		 * Align to the start of the the next entry point boundary since the
-		 * addresses of the routines are always aligned.
-		 *
-		 * Space between the end of the previous routine and the start of the
-		 * next one are usually filled with NOP or other filling instructions.
-		 */
-
-		next = mingw_routine_align(next);
-
-		/*
 		 * Could have found a byte that is part of a longer opcode, since
 		 * the x86 has variable-length instructions.
 		 *
 		 * Scan forward for a SUB instruction targetting the ESP register.
 		 */
 
-		if (mingw_analyze_prologue(next, pc, &has_frame, &savings, &offset))
+		if (
+			mingw_analyze_prologue(next, pc, FALSE,
+				&has_frame, &savings, &offset)
+		)
 			goto found_offset;
 
 	next:
