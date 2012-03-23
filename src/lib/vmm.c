@@ -3742,6 +3742,45 @@ vmm_core_shrink(void *p, size_t size, size_t new_size)
 }
 
 /**
+ * Resize VMM region to be able to hold the specified amount of bytes.
+ *
+ * When the size is reduced, the region is shrinked.  Otherwise, a new region
+ * is allocated and the data are moved, then the old region is freed.
+ *
+ * @return pointer to the new start of the region.
+ */
+void *
+vmm_resize(void *p, size_t size, size_t new_size)
+{
+	size_t asize, anew;
+	void *np;
+
+	if G_UNLIKELY(vmm_crashing)
+		return p;
+
+	asize = round_pagesize(size);		/* Allocated size */
+	anew = round_pagesize(new_size);
+
+	if (asize == anew)
+		return p;
+
+	if (anew < asize) {
+		vmm_shrink_internal(p, size, new_size, TRUE);
+		return p;
+	}
+
+	/*
+	 * Have to allocate a new region and move data around.
+	 */
+
+	np = vmm_alloc_internal(new_size, TRUE);
+	memcpy(np, p, size);
+	vmm_free_internal(p, size, TRUE);
+
+	return np;
+}
+
+/**
  * Scans the page cache for old pages and releases them if they have a certain
  * minimum age. We don't want to cache pages forever because they might never
  * be reused. Further, the OS would page them out anyway because they are
@@ -4880,6 +4919,9 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 
 	hash_table_remove(tracked, p);
 	xfree(xpt);						/* raw free() */
+
+	if (not_leaking != NULL)
+		hash_table_remove(not_leaking, p);
 }
 
 /**
@@ -4968,7 +5010,7 @@ vmm_alloc_record(void *p, size_t size, bool user_mem,
 }
 
 /**
- * Record that ``p'' (pointing to ``size'' bytes is now free.
+ * Record that ``p'' (pointing to ``size'') bytes is now free.
  */
 static void
 vmm_free_record(const void *p, size_t size, bool user_mem,
@@ -5174,6 +5216,37 @@ vmm_shrink_track(void *p, size_t size, size_t new_size, bool user_mem,
 	vmm_free_record(p, size, user_mem, file, line);
 	vmm_alloc_record(p, new_size, user_mem, file, line);
 	vmm_shrink_internal(p, size, new_size, user_mem);
+}
+
+/**
+ * Tracking version of vmm_resize().
+ */
+void *
+vmm_resize_track(void *p, size_t osize, size_t nsize,
+	const char *file, int line)
+{
+	void *np;
+
+	/* The resize point becomes the new allocation point (file, line) */
+	vmm_free_record(p, osize, TRUE, file, line);
+
+	np = vmm_resize(p, osize, nsize);
+	vmm_alloc_record(np, nsize, TRUE, file, line);
+
+	return np;
+}
+
+/**
+ * Tracking version of vmm_resize() for memory flagged as non-leaking.
+ */
+void *
+vmm_resize_track_not_leaking(void *p, size_t osize, size_t nsize,
+	const char *file, int line)
+{
+	void *np;
+
+	np = vmm_resize_track(p, osize, nsize, file, line);
+	return vmm_not_leaking(np);
 }
 
 /**

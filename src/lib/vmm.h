@@ -49,6 +49,7 @@
 #define vmm_alloc0(s)		vmm_alloc0_track((s), _WHERE_, __LINE__)
 #define vmm_free(p,s)		vmm_free_track((p), (s), TRUE, _WHERE_, __LINE__)
 #define vmm_core_free(p,s)	vmm_free_track((p), (s), FALSE, _WHERE_, __LINE__)
+#define vmm_resize(p,o,n)	vmm_resize_track((p),(o),(n), _WHERE_, __LINE__)
 
 #define vmm_shrink(p,s,n) \
 	vmm_shrink_track((p), (s), (n), TRUE, _WHERE_, __LINE__)
@@ -62,6 +63,9 @@
 #define vmm_core_alloc_not_leaking(s) \
 	vmm_core_alloc_track_not_leaking((s), _WHERE_, __LINE__)
 
+#define vmm_resize_not_leaking(p,o,n)	\
+	vmm_resize_track_not_leaking((p), (o), (n), _WHERE_, __LINE__)
+
 #endif	/* TRACK_VMM && !VMM_SOURCE */
 
 #ifdef TRACK_VMM
@@ -73,10 +77,14 @@ void *vmm_core_alloc_track_not_leaking(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void *vmm_alloc0_track(size_t size,
 	const char *file, int line) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *vmm_resize_track_not_leaking(void *p, size_t osize, size_t nsize,
+	const char *file, int line) WARN_UNUSED_RESULT;
 void vmm_free_track(void *p, size_t size, bool user_mem,
 	const char *file, int line);
 void vmm_shrink_track(void *p, size_t o, size_t n, bool user_mem,
 	const char *file, int line);
+void *vmm_resize_track(void *p, size_t o, size_t n,
+	const char *file, int line) WARN_UNUSED_RESULT;
 
 void *vmm_alloc_notrack(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void vmm_free_notrack(void *p, size_t size);
@@ -84,6 +92,7 @@ void vmm_free_notrack(void *p, size_t size);
 #else	/* !TRACK_VMM */
 #define vmm_alloc_not_leaking(s)		vmm_alloc(s)
 #define vmm_core_alloc_not_leaking(s)	vmm_core_alloc(s)
+#define vmm_resize_not_leaking(p,o,n)	vmm_resize((p),(o),(n))
 #endif	/* TRACK_VMM */
 
 #if defined(VMM_SOURCE) || !defined(TRACK_VMM)
@@ -94,6 +103,7 @@ void vmm_free(void *p, size_t size);
 void vmm_core_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
 void vmm_core_shrink(void *p, size_t size, size_t new_size);
+void *vmm_resize(void *p, size_t size, size_t new_size) WARN_UNUSED_RESULT;
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
 struct logagent;
