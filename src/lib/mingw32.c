@@ -3196,6 +3196,7 @@ mingw_op_dst_register(uint8 mbyte)
 	return mbyte & OPMODE_REG_DST_MASK;
 }
 
+#define MINGW_TEXT_OFFSET	0x1000	/* Text offset after mapping base */
 
 #define MINGW_ROUTINE_ALIGN	4
 #define MINGW_ROUTINE_MASK	(MINGW_ROUTINE_ALIGN - 1)
@@ -4012,6 +4013,7 @@ mingw_format_trace(int fd, void * const *trace, int count)
 			if (conv <= sizeof path) {
 				module = path;
 				bc = bfd_util_get_context(be, path);
+				bfd_util_compute_offset(bc, base + MINGW_TEXT_OFFSET);
 			}
 		}
 
@@ -4065,10 +4067,16 @@ mingw_format_trace(int fd, void * const *trace, int count)
 					mingw_pretty_path(loc.file), loc.line);
 			} else {
 				/* A call from a DLL with source location information */
-				len = str_bprintf(buf, sizeof buf,
-					"#%-3d 0x%08lx in %s() at %s:%u from %s\n",
-					i, pointer_to_ulong(pc), loc.function,
-					loc.file, loc.line, module);
+				if ('?' == *loc.file) {
+					len = str_bprintf(buf, sizeof buf,
+						"#%-3d 0x%08lx in %s() from %s\n",
+						i, pointer_to_ulong(pc), loc.function, module);
+				} else {
+					len = str_bprintf(buf, sizeof buf,
+						"#%-3d 0x%08lx in %s() at %s:%u from %s\n",
+						i, pointer_to_ulong(pc), loc.function,
+						loc.file, loc.line, module);
+				}
 			}
 		}
 

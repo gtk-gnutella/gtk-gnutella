@@ -58,6 +58,7 @@ bfd_ctx_t *bfd_util_get_context(bfd_env_t *be, const char *path);
 bool bfd_util_locate(bfd_ctx_t *bc, const void *pc, struct symbol_loc *loc);
 bool bfd_util_has_symbols(const bfd_ctx_t *bc);
 void bfd_util_close_null(bfd_env_t **be_ptr);
+void bfd_util_compute_offset(bfd_ctx_t *bc, ulong base);
 
 #endif	/* _bfd_util_h_ */
 

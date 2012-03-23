@@ -54,6 +54,7 @@
 #endif
 
 #include "bfd_util.h"
+#include "symbols.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -66,7 +67,12 @@ struct bfd_ctx {
 	enum bfd_ctx_magic magic;	/* Magic number */
 	bfd *handle;				/* Opened handle on binary file */
 	asymbol **symbols;			/* Symbol table */
-	long count;					/* Amount of symbols */
+	size_t offset;				/* Memory mapping offset */
+	symbols_t *text_symbols;	/* Text-only symbols */
+	unsigned symsize;			/* Symbol size in the symbols[] array */
+	long count;					/* Amount of symbols in symbols[] */
+	uint dynamic:1;				/* Whether symbols[] holds dynamic symbols */
+	uint offseted:1;			/* Whether mapping offset was computed */
 };
 
 struct bfd_list {
@@ -100,6 +106,51 @@ bfd_env_check(const struct bfd_env * const be)
 {
 	g_assert(be != NULL);
 	g_assert(BFD_ENV_MAGIC == be->magic);
+}
+
+/**
+ * Load text symbols from the file.
+ */
+static void
+bfd_util_load_text(bfd_ctx_t *bc)
+{
+	long i;
+	asymbol* empty;
+	void *p;
+
+	g_assert(NULL == bc->text_symbols);
+
+	bc->text_symbols = symbols_make(bc->count, FALSE);
+
+	if (0 == bc->count)
+		return;
+
+	g_assert(bc->symbols != NULL);
+
+	empty = bfd_make_empty_symbol(bc->handle);
+
+	for (
+		i = 0, p = bc->symbols;
+		i < bc->count;
+		i++, p = ptr_add_offset(p, bc->symsize)
+	) {
+		asymbol *sym;
+		symbol_info syminfo;
+
+		sym = bfd_minisymbol_to_symbol(bc->handle, bc->dynamic, p, empty);
+		bfd_get_symbol_info (bc->handle, sym, &syminfo);
+
+		if ('T' == syminfo.type || 't' == syminfo.type) {
+			const char *name = bfd_asymbol_name(sym);
+
+			if (name != NULL && name[0] != '.') {
+				void *addr = ulong_to_pointer(syminfo.value);
+				symbols_append(bc->text_symbols, addr, name);
+			}
+		}
+	}
+
+	symbols_sort(bc->text_symbols);
 }
 
 /**
@@ -138,6 +189,7 @@ bool
 bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 {
 	struct symbol_ctx sc;
+	const void *lookaddr;
 
 	g_assert(loc != NULL);
 
@@ -147,7 +199,8 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	bfd_ctx_check(bc);
 
 	ZERO(&sc);
-	sc.addr = pointer_to_ulong(addr);
+	lookaddr = const_ptr_add_offset(addr, bc->offset);
+	sc.addr = pointer_to_ulong(lookaddr);
 	sc.symbols = bc->symbols;
 
 	bfd_map_over_sections(bc->handle, bfd_util_lookup_section, &sc);
@@ -155,6 +208,27 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	if (sc.location.function != NULL) {
 		*loc = sc.location;		/* Struct copy */
 		return TRUE;
+	}
+
+	/*
+	 * For some reason the BFD library successfully loads symbols but is not
+	 * able to locate them through bfd_map_over_sections().
+	 *
+	 * Load the symbol table ourselves and perform the lookup then.  We will
+	 * only be able to fill the routine name, and not the source code
+	 * information but that is better than nothing.
+	 */
+
+	if (NULL == bc->text_symbols)
+		bfd_util_load_text(bc);
+
+	if (bc->text_symbols != NULL) {
+		const char *name = symbols_name_only(bc->text_symbols, lookaddr);
+		if (name != NULL) {
+			ZERO(loc);
+			loc->function = name;
+			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -201,7 +275,7 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 {
 	bfd *b;
 	void *symbols = NULL;
-	unsigned x = 0;
+	unsigned size = 0;
 	long count;
 	int fd;
 
@@ -227,9 +301,11 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 		goto failed;
 	}
 
-	count = bfd_read_minisymbols(b, FALSE, &symbols, &x);
-	if (count <= 0)
-		count = bfd_read_minisymbols(b, TRUE, &symbols, &x);
+	count = bfd_read_minisymbols(b, FALSE, &symbols, &size);
+	if (count <= 0) {
+		bc->dynamic = TRUE;
+		count = bfd_read_minisymbols(b, TRUE, &symbols, &size);
+	}
 
 	if (count < 0) {
 		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, path);
@@ -241,6 +317,7 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	bc->handle = b;
 	bc->symbols = symbols;		/* Allocated by the bfd library */
 	bc->count = count;
+	bc->symsize = size;
 
 	return TRUE;
 
@@ -272,6 +349,7 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 		 */
 
 		bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
+		symbols_free_null(&bc->text_symbols);
 		bc->magic = 0;
 		xfree(bc);
 		*bc_ptr = NULL;
@@ -299,6 +377,8 @@ bfd_util_get_bc(struct bfd_list **list, const char *path)
 		item = item->next;
 	}
 
+	ZERO(&bc);
+
 	if (!bfd_util_open(&bc, path))
 		return NULL;
 
@@ -313,6 +393,50 @@ bfd_util_get_bc(struct bfd_list **list, const char *path)
 	*list = item;
 
 	return bp;
+}
+
+/**
+ * Compute the mapping offset for the program / library.
+ *
+ * The .text section could say 0x500000 but the actual virtual memory
+ * address where the library was mapped could be 0x600000.  Hence looking
+ * for addresses at 0x6xxxxx would not create any match with the symbol
+ * addresses held in the file.
+ *
+ * The base given here should be the actual VM address where the kernel
+ * loaded the .text section.
+ *
+ * The computed offset will then be automatically used to adjust the given
+ * addresses being looked at, remapping them to the proper range for lookup
+ * purposes.
+ *
+ * @param bc		the BFD context
+ * @param base		the VM mapping address of the text segment
+ */
+void
+bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
+{
+	asection *sec;
+	bfd *b;
+
+	bfd_ctx_check(bc);
+
+	if (bc->offseted)
+		return;
+
+	b = bc->handle;
+
+	for (sec = b->sections; sec != NULL; sec = sec->next) {
+		const char *name = bfd_section_name(b, sec);
+
+		if (0 == strcmp(name, ".text")) {
+			bfd_vma addr = bfd_section_vma(b, sec);
+			bc->offset = addr - base;
+			break;
+		}
+	}
+
+	bc->offseted = TRUE;
 }
 
 /**
@@ -446,6 +570,13 @@ bfd_util_has_symbols(const bfd_ctx_t *bc)
 	g_assert(NULL == bc);
 
 	return FALSE;
+}
+
+void
+bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
+{
+	g_assert(NULL == bc);
+	(void) base;
 }
 
 void
