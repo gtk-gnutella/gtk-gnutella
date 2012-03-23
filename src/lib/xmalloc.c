@@ -5384,7 +5384,7 @@ xa_insert_set(const void *p, size_t size)
 
 	g_assert(size_is_positive(size));
 
-	xs = xmalloc(sizeof *xs);
+	XMALLOC(xs);
 	xs->type = XPAGE_SET;
 	xs->len = size;
 

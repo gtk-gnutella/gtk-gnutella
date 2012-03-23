@@ -167,7 +167,7 @@ adns_cache_init(void)
 	adns_cache_t *cache;
 	size_t i;
 
-	cache = xmalloc(sizeof *cache);
+	XMALLOC(cache);
 	cache->timeout = ADNS_CACHE_TIMEOUT;
 	cache->ht = htable_create(HASH_KEY_STRING, 0);
 	cache->pos = 0;

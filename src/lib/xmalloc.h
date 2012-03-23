@@ -88,6 +88,16 @@ xpcopy(const void *p, size_t size)
 	return cp;
 }
 
+#define XMALLOC(p)			\
+G_STMT_START {				\
+	p = xmalloc(sizeof *p);	\
+} G_STMT_END
+
+#define XMALLOC0(p)				\
+G_STMT_START {					\
+	p = xmalloc0(sizeof *p);	\
+} G_STMT_END
+
 #define XFREE_NULL(p)	\
 G_STMT_START {			\
 	if (p) {			\
