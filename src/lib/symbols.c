@@ -207,6 +207,24 @@ symbols_normalize(const char *name, bool atom)
 	dot = strchr(name, '.');
 	tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 
+	/*
+	 * On Windows, since the C calling convention used does not allow
+	 * variable-length argument lists, the linker appends '@n' to the name
+	 * where 'n' is the number of parameters expected.  This prevents a
+	 * routine from being called with the wrong number of arguments, since
+	 * the stack would be irremediably messed up if that happened.  If some
+	 * code attempts to call the routine with the wrong number of arguments,
+	 * the linker will report a name mismatch, preventing havoc.
+	 *
+	 * For symbol tracing purposes, the '@n' is just noise, so we remove it.
+	 * on the fly.
+	 */
+
+	if (is_running_on_mingw() && tmp == name) {
+		dot = strchr(name, '@');
+		tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
+	}
+
 	if (atom) {
 		result = constant_str(tmp);
 		if (tmp != name)
@@ -225,7 +243,7 @@ symbols_normalize(const char *name, bool atom)
  * @param addr		the address of the symbol
  * @param name		the name of the symbol
  */
-static void
+void
 symbols_append(symbols_t *st, const void *addr, const void *name)
 {
 	struct symbol *s;
@@ -281,6 +299,8 @@ symbols_remove(symbols_t *st, size_t i)
 	g_assert(i < st->count);
 
 	s = &st->base[i];
+	if (!st->once)
+		xfree(deconstify_pointer(s->name));
 	if (i < st->count - 1)
 		memmove(s, s + 1, (st->count - i - 1) * sizeof *s);
 	st->count--;
@@ -291,7 +311,7 @@ symbols_remove(symbols_t *st, size_t i)
  *
  * @return amount of stripped duplicates.
  */
-static size_t
+size_t
 symbols_sort(symbols_t *st)
 {
 	size_t i = 0;
@@ -310,7 +330,7 @@ symbols_sort(symbols_t *st)
 
 	while (i < st->count) {
 		struct symbol *s = &st->base[i];
-		if (last && s->addr == last) {
+		if (last != NULL && s->addr == last) {
 			symbols_remove(st, i);
 		} else {
 			last = s->addr;
@@ -354,7 +374,7 @@ symbols_lookup(const symbols_t *st, const void *addr)
 	symbols_check(st);
 
 	low = st->base,
-	high = &st->base[st->count -1],
+	high = &st->base[st->count - 1],
 
 	laddr = const_ptr_add_offset(addr, st->offset);
 
@@ -518,6 +538,35 @@ symbols_addr(const symbols_t *st, const void *pc)
 		return NULL;
 
 	return s->addr;
+}
+
+/*
+ * Lookup name of routine.
+ *
+ * @param st		the symbol table
+ * @param pc		the PC to translate into symbolic form
+ *
+ * @return symbolic name for given pc offset, if found, NULL otherwise.
+ */
+const char *
+symbols_name_only(const symbols_t *st, const void *pc)
+{
+	struct symbol *s;
+
+	symbols_check(st);
+
+	if G_UNLIKELY(!st->sorted || 0 == st->count)
+		return NULL;
+
+	if G_UNLIKELY(st->garbage || st->mismatch || st->stale)
+		return NULL;
+
+	s = symbols_lookup(st, pc);
+
+	if (NULL == s || &st->base[st->count - 1] == s)
+		return NULL;
+
+	return s->name;
 }
 
 /**
