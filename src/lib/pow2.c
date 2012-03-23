@@ -153,7 +153,7 @@ highest_bit_set64(uint64 n)
 }
 
 /**
- * Count trailing zeroes in a 64-bit number.
+ * Count trailing zeroes in a 64-bit number, -1 for zero.
  */
 int
 ctz64(uint64 n)
@@ -162,7 +162,7 @@ ctz64(uint64 n)
 		return ctz(n);
 	else {
 		int v = ctz(n & 0xffffffffU);
-		return (32 == v) ? 32 + ctz(n >> 32) : v;
+		return (-1 == v) ? 32 + ctz(n >> 32) : v;
 	}
 }
 

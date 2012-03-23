@@ -85,28 +85,28 @@ popcount(uint32 x)
 #endif	/* HAS_BUILTIN_POPCOUNT */
 
 /**
- * Count trailing zeroes in a 32-bit integer.
+ * Count trailing zeroes in a 32-bit integer, -1 for zero.
  */
 static inline ALWAYS_INLINE G_GNUC_CONST int
 ctz(uint32 x)
 #ifdef HAS_BUILTIN_CTZ
 {
-	return __builtin_ctz(x);
+	return G_UNLIKELY(0 == x) ? -1 : __builtin_ctz(x);
 }
 #else	/* !HAS_BUILTIN_CTZ */
 {
-	return popcount((x & -x) - 1);
+	return G_UNLIKELY(0 == x) ? 0 : popcount((x & -x) - 1);
 }
 #endif	/* HAS_BUILTIN_CTZ */
 
 /**
- * Count leading zeroes in a 32-bit integer.
+ * Count leading zeroes in a 32-bit integer, 32 for zero.
  */
 static inline ALWAYS_INLINE G_GNUC_CONST int
 clz(uint32 x)
 #ifdef HAS_BUILTIN_CLZ
 {
-	return __builtin_clz(x);
+	return G_UNLIKELY(0 == x) ? 32 : __builtin_clz(x);
 }
 #else	/* !HAS_BUILTIN_CLZ */
 {
