@@ -3178,6 +3178,25 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPREG_ESI			6
 #define OPREG_EDI			7
 
+static inline uint8
+mingw_op_mod_code(uint8 mbyte)
+{
+	return (mbyte & OPMODE_MODE_MASK) >> 6;
+}
+
+static inline uint8
+mingw_op_src_register(uint8 mbyte)
+{
+	return (mbyte & OPMODE_REG_SRC_MASK) >> 3;
+}
+
+static inline uint8
+mingw_op_dst_register(uint8 mbyte)
+{
+	return mbyte & OPMODE_REG_DST_MASK;
+}
+
+
 #define MINGW_ROUTINE_ALIGN	4
 #define MINGW_ROUTINE_MASK	(MINGW_ROUTINE_ALIGN - 1)
 
@@ -3263,17 +3282,15 @@ mingw_opcode_is_sub_esp(const uint8 *op)
 
 	switch (*op) {
 	case OPCODE_SUB_1:
-		return OPREG_ESP == (mbyte & 0x7);
+		return OPREG_ESP == mingw_op_dst_register(mbyte);
 	case OPCODE_SUB_2:
 	case OPCODE_SUB_3:
 		{
-			uint8 code = (mbyte & OPMODE_OPCODE) >> 3;
-			uint8 mode = (mbyte & OPMODE_MODE_MASK);
-			if (mode != OPMODE_MODE_MASK)
-				return FALSE;
-			if (code != OPMODE_SUB)
-				return FALSE;
-			return OPREG_ESP == (mbyte & 0x7);
+			uint8 code = mingw_op_src_register(mbyte);
+			uint8 mode = mingw_op_mod_code(mbyte);
+			if (code != OPMODE_SUB || mode != 3)
+				return FALSE;	/* Not a SUB opcode targeting a register */
+			return OPREG_ESP == mingw_op_dst_register(mbyte);
 		}
 	}
 
@@ -3314,8 +3331,9 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		maxscan = max;
 
 	if (mingw_backtrace_debug()) {
-		s_minidbg("%s: next %zu bytes after pc=%p",
-			G_STRFUNC, 1 + ptr_diff(maxscan, p), p);
+		s_minidbg("%s: next %zu bytes after pc=%p%s",
+			G_STRFUNC, 1 + ptr_diff(maxscan, p),
+			p, at_start ? " (known start)" : "");
 		dump_hex(stderr, "", p, 1 + ptr_diff(maxscan, p));
 	}
 
@@ -3342,8 +3360,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 * by this versatile instruction.
 			 */
 			{
-				uint8 mode = (p[1] & OPMODE_MODE_MASK) >> 6;
-				uint8 reg = (p[1] & OPMODE_REG_SRC_MASK) >> 3;
+				uint8 mode = mingw_op_mod_code(p[1]);
+				uint8 reg = mingw_op_dst_register(p[1]);
 				switch (mode) {
 				case 0:
 					/*
@@ -3440,8 +3458,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			if (OPMODE_MODE_MASK == (OPMODE_MODE_MASK & p[1])) {
 				/* XOR between registers, same register to zero it */
 				uint8 operands = p[1];
-				uint8 reg1 = (operands & OPMODE_REG_SRC_MASK) >> 3;
-				uint8 reg2 = (operands & OPMODE_REG_DST_MASK);
+				uint8 reg1 = mingw_op_src_register(operands);
+				uint8 reg2 = mingw_op_dst_register(operands);
 				if (reg1 == reg2) {
 					p += 1;
 					break;
@@ -3532,8 +3550,8 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 		uint8 op;
 
 		BACKTRACE_DEBUG("%s: found SUB operation at "
-			"pc=%p, opcode=0x%x, %s frame",
-			G_STRFUNC, sub, *sub, *has_frame ? "with" : "no");
+			"pc=%p, opcode=0x%x, mod=0x%x, %s frame",
+			G_STRFUNC, sub, sub[0], sub[1], *has_frame ? "with" : "no");
 
 		switch (*sub) {
 		case OPCODE_SUB_1:
@@ -3560,12 +3578,12 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			return TRUE;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
-			g_assert(OPMODE_SUB_ESP == *(sub + 1));
+			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_le32(sub + 2);
 			return TRUE;
 		case OPCODE_SUB_3:
 			/* subl    $28, %esp */
-			g_assert(OPMODE_SUB_ESP == *(sub + 1));
+			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_u8(sub + 2);
 			return TRUE;
 		}
