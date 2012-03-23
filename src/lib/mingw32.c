@@ -3634,10 +3634,10 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			next = p + 3;	/* Skip next immediate 16-bit offset */
 			break;
 		case OPCODE_JMP_SHORT:
-			next = p + 1;	/* Skip offset */
+			next = p + 2;	/* Skip 8-bit offset */
 			break;
 		case OPCODE_JMP_LONG:
-			next = p + 4;	/* Skip target */
+			next = p + 5;	/* Skip 32-bit target */
 			break;
 		default:
 			goto next;
