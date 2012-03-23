@@ -68,6 +68,7 @@ LSRC = \
 	base16.c \
 	base32.c \
 	base64.c \
+	bfd_util.c \
 	bg.c \
 	bigint.c \
 	bstr.c \

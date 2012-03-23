@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-136]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-138]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -125,6 +125,7 @@ LSRC = \
 	base16.c \
 	base32.c \
 	base64.c \
+	bfd_util.c \
 	bg.c \
 	bigint.c \
 	bstr.c \
@@ -267,6 +268,7 @@ LOBJ = \
 	base16.o \
 	base32.o \
 	base64.o \
+	bfd_util.o \
 	bg.o \
 	bigint.o \
 	bstr.o \

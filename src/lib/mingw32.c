@@ -65,6 +65,7 @@
 #include "adns.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
+#include "bfd_util.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
@@ -3918,245 +3919,6 @@ mingw_backtrace(void **buffer, int size, size_t offset)
 	return mingw_stack_unwind(buffer, size, &c, offset);
 }
 
-struct bfd_ctx {
-	bfd *handle;				/* Opened handle on binary file */
-	asymbol **symbols;			/* Symbol table */
-	long count;					/* Amount of symbols */
-};
-
-struct bfd_list {
-	char *path;					/* Executable / library path */
-	struct bfd_ctx *bc;			/* Opened binary context */
-	struct bfd_list *next;		/* Next in list */
-};
-
-struct symbol_loc {
-	const char *function;
-	const char *file;
-	unsigned line;
-};
-
-struct symbol_ctx {
-	struct symbol_loc location;
-	asymbol **symbols;
-	bfd_vma pc;
-};
-
-/**
- * Lookup callback.
- */
-static void
-lookup_section(bfd *b, asection *sec, void *data)
-{
-	struct symbol_ctx *sc = data;
-	bfd_vma vma;
-
-	if (sc->location.function != NULL)
-		return;		/* Already found */
-
-	if (0 == (bfd_get_section_flags(b, sec) & SEC_ALLOC))
-		return;
-
-	vma = bfd_get_section_vma(b, sec);
-	if (sc->pc < vma || sc->pc >= bfd_get_section_size(sec) + vma)
-		return;
-
-	bfd_find_nearest_line(b, sec, sc->symbols, sc->pc - vma,
-		&sc->location.file, &sc->location.function, &sc->location.line);
-}
-
-/**
- * Locate ``pc'' in the executable, filling ``loc'' with symbol information.
- *
- * @return TRUE if symbol was found.
- */
-static bool
-mingw_locate_pc(struct bfd_ctx *bc, const void *pc, struct symbol_loc *loc)
-{
-	struct symbol_ctx sc;
-
-	ZERO(&sc);
-	sc.pc = pointer_to_ulong(pc);
-	sc.symbols = bc->symbols;
-
-	bfd_map_over_sections(bc->handle, lookup_section, &sc);
-
-	if (sc.location.function != NULL) {
-		*loc = sc.location;		/* Struct copy */
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
- * Check opened bfd for format.
- *
- * @return TRUE if it matches the format, FALSE otherwise.
- */
-static bool
-mingw_bfd_check_format(bfd *b, bfd_format fmt, const char *path)
-{
-	char **matching;
-	unsigned i = 0;
-
-	if (bfd_check_format(b, fmt))
-		return TRUE;
-
-	if (bfd_error_file_ambiguously_recognized != bfd_get_error())
-		return FALSE;
-
-	if (!bfd_check_format_matches(b, fmt, &matching))
-		return FALSE;
-
-	s_miniwarn("%s: ambiguous format matching for %s", G_STRFUNC, path);
-
-	while (matching[i] != NULL) {
-		s_miniwarn("%s: possible format is \"%s\"", G_STRFUNC, matching[i]);
-		i++;
-	}
-
-	free(matching);		/* Not xfree(), was allocated by bfd */
-	return FALSE;
-}
-
-/**
- * Initialize the bfd context.
- *
- * @return TRUE if OK.
- */
-static bool
-mingw_bfd_open(struct bfd_ctx *bc, const char *path)
-{
-	bfd *b;
-	void *symbols = NULL;
-	unsigned x = 0;
-	long count;
-	int fd;
-
-	fd = mingw_open(path, O_RDONLY);
-	if (-1 == fd) {
-		s_miniwarn("%s: can't open %s: %m", G_STRFUNC, path);
-		return FALSE;
-	}
-
-	b = bfd_fdopenr(path, NULL, fd);
-	if (NULL == b) {
-		close(fd);
-		return FALSE;
-	}
-
-	if (!mingw_bfd_check_format(b, bfd_object, path)) {
-		s_miniwarn("%s: %s is not an object", G_STRFUNC, path);
-		goto failed;
-	}
-
-	if (0 == (bfd_get_file_flags(b) & HAS_SYMS)) {
-		s_miniwarn("%s: %s has no symbols", G_STRFUNC, path);
-		goto failed;
-	}
-
-	count = bfd_read_minisymbols(b, FALSE, &symbols, &x);
-	if (count <= 0)
-		count = bfd_read_minisymbols(b, TRUE, &symbols, &x);
-
-	if (count < 0) {
-		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, path);
-		symbols = NULL;
-		count = 0;
-	}
-
-	bc->handle = b;
-	bc->symbols = symbols;		/* Allocated by the bfd library */
-	bc->count = count;
-
-	return TRUE;
-
-failed:
-	bfd_close(b);
-	return FALSE;
-}
-
-static void
-mingw_bfd_close_null(struct bfd_ctx **bc_ptr)
-{
-	struct bfd_ctx *bc = *bc_ptr;
-
-	if (bc != NULL) {
-		if (bc->symbols != NULL)
-			free(bc->symbols);	/* Not xfree(): created by the bfd library */
-
-		/*
-		 * We use bfd_close_all_done() and not bfd_close() because the latter
-		 * causes a SIGSEGV now that we are using bfd_fdopenr(). The fault
-		 * occurs in some part trying to write changes to the file...
-		 *
-		 * Since the file is opened as read-only and we don't expect any
-		 * write operation, using bfd_close_all_done() is a viable workaround
-		 * for this BFD library bug.
-		 */
-
-		bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
-		*bc_ptr = NULL;
-	}
-}
-
-/**
- * Get a binary file context for the  given program / library path.
- */
-static struct bfd_ctx *
-mingw_get_bc(struct bfd_list **list, const char *path)
-{
-	struct bfd_list *item = *list;
-	struct bfd_ctx bc;
-	struct bfd_ctx *bp;
-
-	/*
-	 * We're probably crashing, use simple data structures, and not a
-	 * hash table / hash list here.  We're going to handle only a handful
-	 * of modules, so linear lookups are perfectly OK.
-	 */
-
-	while (item != NULL) {
-		if (0 == strcmp(path, item->path))
-			return item->bc;
-		item = item->next;
-	}
-
-	if (!mingw_bfd_open(&bc, path))
-		return NULL;
-
-	bp = xcopy(&bc, sizeof bc);
-	item = xmalloc(sizeof *item);
-	item->bc = bp;
-	item->path = xstrdup(path);
-
-	/* Insert at head of list */
-
-	item->next = *list;
-	*list = item;
-
-	return bp;
-}
-
-/**
- * Free the whole list of binary contexts.
- */
-static void
-mingw_free_bfd_list(struct bfd_list *list)
-{
-	struct bfd_list *item = list;
-
-	while (item != NULL) {
-		struct bfd_list *next = item->next;
-		xfree(item->path);
-		mingw_bfd_close_null(&item->bc);
-		item->next = NULL;
-		xfree(item);
-		item = next;
-	}
-}
-
 /**
  * Return pretty path from source path by using the fact that the compilation
  * process uses '/' separators but the returned Windows path uses '\'.
@@ -4186,13 +3948,13 @@ mingw_pretty_path(const char *path)
 void
 mingw_format_trace(int fd, void * const *trace, int count)
 {
-	struct bfd_list *list = NULL;
+	bfd_env_t *be;
 	int i;
 	static char path[MAX_PATH_LEN];
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buf[256];
 	HANDLE process;
-	
+
 	process = GetCurrentProcess();
 
 	if (!SymInitialize(process, 0, TRUE)) {
@@ -4204,7 +3966,7 @@ mingw_format_trace(int fd, void * const *trace, int count)
 		return;
 	}
 
-	bfd_init();
+	be = bfd_util_init();
 
 	for (i = 0; i < count; i++) {
 		const void *pc = trace[i];
@@ -4212,7 +3974,7 @@ mingw_format_trace(int fd, void * const *trace, int count)
 		IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
 		DWORD base;
 		const char *module = "??";
-		struct bfd_ctx *bc = NULL;
+		bfd_ctx_t *bc = NULL;
 		struct symbol_loc loc;
 		size_t len;
 
@@ -4225,14 +3987,14 @@ mingw_format_trace(int fd, void * const *trace, int count)
 			size_t conv = utf16_to_utf8(wpath, path, sizeof path);
 			if (conv <= sizeof path) {
 				module = path;
-				bc = mingw_get_bc(&list, path);
+				bc = bfd_util_get_context(be, path);
 			}
 		}
 
 		ZERO(&loc);
 
 		if (bc != NULL) {
-			if (bc->symbols != NULL) {
+			if (bfd_util_has_symbols(bc)) {
 				const void *call;
 
 				/*
@@ -4245,10 +4007,10 @@ mingw_format_trace(int fd, void * const *trace, int count)
 
 				call = const_ptr_add_offset(pc, -2);
 
-				if (!mingw_locate_pc(bc, call, &loc)) {
+				if (!bfd_util_locate(bc, call, &loc)) {
 					/* A "CALL <address>" instruction is 5 byte long */
 					call = const_ptr_add_offset(pc, -5);
-					mingw_locate_pc(bc, call, &loc);
+					bfd_util_locate(bc, call, &loc);
 				}
 			} else
 				loc.file = "<no symbols>";
@@ -4290,7 +4052,7 @@ mingw_format_trace(int fd, void * const *trace, int count)
 	}
 
 	SymCleanup(process);
-	mingw_free_bfd_list(list);
+	bfd_util_close_null(&be);
 }
 
 /**

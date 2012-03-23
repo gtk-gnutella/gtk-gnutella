@@ -159,6 +159,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bcopy HAS_BCOPY	/**/
 
+/* HAS_BFD_LIBRARY:
+ *	This symbol, if defined, indicates that the bfd library is available
+ *	to inspect symbols and debugging information.  You can safely include
+ *	the <bfd.h> file when this symbol is defined.
+ */
+#$d_bfd_lib HAS_BFD_LIBRARY		/**/
+
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.

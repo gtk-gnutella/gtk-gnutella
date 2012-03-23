@@ -568,6 +568,8 @@ src/lib/base32.c
 src/lib/base32.h
 src/lib/base64.c
 src/lib/base64.h
+src/lib/bfd_util.c
+src/lib/bfd_util.h
 src/lib/bg.c
 src/lib/bg.h
 src/lib/bigint.c
