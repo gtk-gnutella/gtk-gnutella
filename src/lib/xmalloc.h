@@ -98,6 +98,16 @@ G_STMT_START {					\
 	p = xmalloc0(sizeof *p);	\
 } G_STMT_END
 
+#define XPMALLOC(p)				\
+G_STMT_START {					\
+	p = xpmalloc(sizeof *p);	\
+} G_STMT_END
+
+#define XPMALLOC0(p)			\
+G_STMT_START {					\
+	p = xpmalloc0(sizeof *p);	\
+} G_STMT_END
+
 #define XFREE_NULL(p)	\
 G_STMT_START {			\
 	if (p) {			\
