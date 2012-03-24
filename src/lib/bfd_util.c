@@ -28,7 +28,7 @@
  * BFD library wrapper functions.
  *
  * This interface is a wrapping API on top of the BFD library which allows
- * to conveniently perform operations on a set of files withing one execution
+ * to conveniently perform operations on a set of files within one execution
  * "environment".  All the resources are cleaned up when the environment is
  * released.
  *
@@ -40,8 +40,11 @@
  * 2- Query the BFD context for the address.
  *
  * The environment keeps all the underlying BFD files opened until it is
- * closed.  The environment of execution is typically symbol extraction
+ * closed.  The environment of execution is typically the symbol extraction
  * from an executable to format a nice stack trace, for instance.
+ *
+ * Once the environment has been closed, all the BFD contexts are released
+ * and any dangling reference to them becomes unusable.
  *
  * @author Raphael Manfredi
  * @date 2012
