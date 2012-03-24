@@ -57,6 +57,7 @@
 
 static struct zone *wzone[WZONE_SIZE];
 static size_t halloc_threshold = -1;
+static bool walloc_stopped;
 
 /*
  * Under REMAP_ZALLOC, do not define walloc(), wfree() and wrealloc().
@@ -142,6 +143,9 @@ walloc(size_t size)
 
 	g_assert(size_is_positive(size));
 
+	if G_UNLIKELY(walloc_stopped)
+		return xpmalloc(size);
+
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
 		return size >= halloc_threshold ? halloc(size) : xpmalloc(size);
@@ -197,6 +201,9 @@ wfree(void *ptr, size_t size)
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
 
+	if G_UNLIKELY(walloc_stopped)
+		return;
+
 	if (rounded > WALLOC_MAX) {
 #ifdef TRACK_ZALLOC
 		/* halloc_track() is going to walloc_track() which uses malloc() */ 
@@ -244,6 +251,9 @@ wmove(void *ptr, size_t size)
 	size_t idx = wzone_index(zalloc_round(size));
 	zone_t *zone = wzone[idx];
 
+	if G_UNLIKELY(walloc_stopped)
+		return ptr;
+
 	g_assert(zone != NULL);
 
 	return zmove(zone, ptr);
@@ -273,6 +283,9 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 		return old;
 
 	if (new_rounded > WALLOC_MAX || old_rounded > WALLOC_MAX)
+		goto resize_block;
+
+	if G_UNLIKELY(walloc_stopped)
 		goto resize_block;
 
 	/*
@@ -421,6 +434,7 @@ wdestroy(void)
 	size_t i;
 
 	xmalloc_stop_wfree();
+	walloc_stopped = TRUE;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		if (wzone[i] != NULL) {
