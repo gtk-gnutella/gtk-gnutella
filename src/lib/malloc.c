@@ -41,22 +41,21 @@
 
 #include "ascii.h"
 #include "atoms.h"		/* For binary_hash() */
-#include "concat.h"		/* For concat_strings() */
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "glib-missing.h"
 #include "hashing.h"
 #include "hashtable.h"
-#include "htable.h"
+#include "leak.h"
 #include "log.h"
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
 #include "stacktrace.h"
-#include "stringify.h"	/* For uint64_to_string() and short_time() */
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
 #include "xmalloc.h"
+#include "xsort.h"
 
 /*
  * The following setups are more or less independent from each other.
@@ -951,6 +950,7 @@ real_check_free(void *p)
 }
 #endif	/* MALLOC_SAFE */
 
+#if defined(TRACK_MALLOC) || defined(TRACK_VMM)
 /**
  * Calls real free(), no tracking.
  * Block must have been allocated via real_malloc().
@@ -1067,9 +1067,10 @@ real_free(void *p)
 		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
 }
+#endif	/* TRACK_MALLOC || TRACK_VMM */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
+#if defined(TRACK_MALLOC) || defined(TRACK_VMM)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
@@ -1088,7 +1089,7 @@ real_strdup(const char *s)
 
 	return p;
 }
-#endif	/* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
+#endif	/* TRACK_MALLOC || TRACK_VMM */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 /**
@@ -2590,183 +2591,6 @@ track_list_delete_link(GList *l, GList *lk, const char *file, int line)
 #endif /* TRACK_MALLOC */
 
 /***
- *** This section contains general-purpose leak summarizing routines that
- *** can be used by both malloc() and zalloc().
- ***/
-
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
-
-struct leak_record {		/* Informations about leak at some place */
-	size_t size;			/* Total size allocated there */
-	size_t count;			/* Amount of allocations */
-};
-
-struct leak_set {
-	htable_t *places;		/* Maps "file:4" -> leak_record */
-};
-
-/**
- * Initialize the leak accumulator by "file:line"
- */
-void *
-leak_init(void)
-{
-	struct leak_set *ls;
-
-	ls = real_malloc(sizeof *ls);
-	ls->places = htable_create(HASH_KEY_STRING, 0);
-
-	return ls;
-}
-
-/**
- * Get rid of the key/value tupple in the leak table.
- */
-static void
-leak_free_kv(const void *key, void *value, void *unused)
-{
-	(void) unused;
-	real_free(deconstify_pointer(key));
-	real_free(value);
-}
-
-/**
- * Dispose of the leaks accumulated.
- */
-void
-leak_close(void *o)
-{
-	struct leak_set *ls = o;
-
-	htable_foreach(ls->places, leak_free_kv, NULL);
-	htable_free_null(&ls->places);
-
-	real_free(ls);
-}
-
-/**
- * Record a new leak of `size' bytes allocated at `file', line `line'.
- */
-void
-leak_add(void *o, size_t size, const char *file, int line)
-{
-	struct leak_set *ls = o;
-	char key[1024];
-	struct leak_record *lr;
-	bool found;
-	void *v;
-
-	g_assert(file);
-	g_assert(line >= 0);
-
-	concat_strings(key, sizeof key,
-		file, ":", uint64_to_string(line), (void *) 0);
-	found = htable_lookup_extended(ls->places, key, NULL, &v);
-
-	if (found) {
-		lr = v;
-		lr->size += size;
-		lr->count++;
-	} else {
-		lr = real_malloc(sizeof(*lr));
-		lr->size = size;
-		lr->count = 1;
-		htable_insert(ls->places, real_strdup(key), lr);
-	}
-}
-
-struct leak {			/* A memory leak, for sorting purposes */
-	char *place;
-	struct leak_record *lr;
-};
-
-/**
- * leak_size_cmp		-- qsort() callback
- *
- * Compare two pointers to "struct leak" based on their size value,
- * in reverse order.
- */
-static int
-leak_size_cmp(const void *p1, const void *p2)
-{
-	const struct leak *leak1 = p1, *leak2 = p2;
-
-	/* Reverse order: largest first */
-	return CMP(leak2->lr->size, leak1->lr->size);
-}
-
-struct filler {			/* Used by hash table iterator to fill leak array */
-	struct leak *leaks;
-	int count;			/* Size of `leaks' array */
-	int idx;			/* Next index to be filled */
-};
-
-/**
- * fill_array			-- hash table iterator
- *
- * Append current hash table entry at the end of the "leaks" array.
- */
-static void
-fill_array(const void *key, void *value, void *user)
-{
-	struct filler *filler = user;
-	struct leak *l;
-	struct leak_record *lr = value;
-
-	g_assert(filler->idx < filler->count);
-
-	l = &filler->leaks[filler->idx++];
-	l->place = (char *) key;
-	l->lr = lr;
-}
-
-/**
- * Dump the links sorted by decreasing leak size.
- */
-G_GNUC_COLD void
-leak_dump(void *o)
-{
-	struct leak_set *ls =  o;
-	int count;
-	struct filler filler;
-	int i;
-
-	count = htable_count(ls->places);
-
-	if (count == 0)
-		return;
-
-	filler.leaks = real_malloc(sizeof(struct leak) * count);
-	filler.count = count;
-	filler.idx = 0;
-
-	/*
-	 * Linearize hash table into an array before sorting it by
-	 * decreasing leak size.
-	 */
-
-	htable_foreach(ls->places, fill_array, &filler);
-	qsort(filler.leaks, count, sizeof(struct leak), leak_size_cmp);
-
-	/*
-	 * Dump the leaks.
-	 */
-
-	g_warning("leak summary by total decreasing size:");
-	g_warning("leaks found: %d", count);
-
-	for (i = 0; i < count; i++) {
-		struct leak *l = &filler.leaks[i];
-		g_warning("%zu bytes (%zu block%s) from \"%s\"",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
-	}
-
-	real_free(filler.leaks);
-}
-
-#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
-
-/***
  *** This section contains general-purpose allocation summarizing routines that
  *** are used when MALLOC_STATS is on.
  ***
@@ -3004,7 +2828,7 @@ alloc_dump(FILE *f, bool total)
 		filler.idx = 0;
 
 		hash_table_foreach(stats, stats_fill_array, &filler);
-		qsort(filler.stats, count, sizeof(struct stats *),
+		xqsort(filler.stats, count, sizeof(struct stats *),
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -3373,7 +3197,7 @@ malloc_close(void)
 #endif	/* MALLOC_LEAK_ALL */
 
 	leak_dump(leaksort);
-	leak_close(leaksort);
+	leak_close_null(&leaksort);
 
 #ifdef MALLOC_LEAK_ALL
 	/*

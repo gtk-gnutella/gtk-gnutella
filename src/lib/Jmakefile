@@ -131,6 +131,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	leak.c \
 	list.c \
 	log.c \
 	magnet.c \

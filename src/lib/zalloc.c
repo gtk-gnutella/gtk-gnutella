@@ -80,6 +80,7 @@
 #include "atomic.h"
 #include "dump_options.h"
 #include "hashtable.h"
+#include "leak.h"
 #include "log.h"			/* For statistics logging */
 #include "malloc.h"			/* For MALLOC_FRAMES */
 #include "memusage.h"
@@ -214,7 +215,7 @@ static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
 #endif
 #ifdef TRACK_ZALLOC
-static void *z_leakset;
+static leak_set_t *z_leakset;
 #endif
 
 /*
@@ -1395,7 +1396,7 @@ zclose(void)
 
 #ifdef TRACK_ZALLOC
 	leak_dump(z_leakset);
-	leak_close(z_leakset);
+	leak_close_null(&z_leakset);
 #endif
 
 #ifdef MALLOC_FRAMES

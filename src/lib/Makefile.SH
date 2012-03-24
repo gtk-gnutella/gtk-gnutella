@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-138]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-136]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -188,6 +188,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	leak.c \
 	list.c \
 	log.c \
 	magnet.c \
@@ -331,6 +332,7 @@ LOBJ = \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
+	leak.o \
 	list.o \
 	log.o \
 	magnet.o \

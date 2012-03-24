@@ -317,15 +317,6 @@ GList *track_list_delete_link(GList *l, GList *lk, const char *file, int line);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined (TRACK_VMM)
-
-void *leak_init(void);
-void leak_add(void *o, size_t size, const char *file, int line);
-void leak_dump(void *o);
-void leak_close(void *o);
-
-#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
-
 #ifdef MALLOC_STATS
 void alloc_dump(FILE *f, bool total);
 void alloc_reset(FILE *f, bool total);

@@ -703,6 +703,8 @@ src/lib/ipset.c
 src/lib/ipset.h
 src/lib/iso3166.c
 src/lib/iso3166.h
+src/lib/leak.c
+src/lib/leak.h
 src/lib/list.c
 src/lib/list.h
 src/lib/listener.h
