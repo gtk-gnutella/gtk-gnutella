@@ -805,9 +805,9 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
-	(gm_vtable. ## method \
-	 ? (gm_vtable. ## method params) \
-	 : (method params))
+	gm_vtable. method \
+	 ? (gm_vtable. method params) \
+	 : (method params)
 
 #undef malloc
 static inline ALWAYS_INLINE void *
