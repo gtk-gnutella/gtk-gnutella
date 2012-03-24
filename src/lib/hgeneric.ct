@@ -38,6 +38,7 @@
 #include "h<generic>.h"
 #include "unsigned.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -153,16 +154,21 @@ h<generic>_hash_free(struct hash *h)
  * Allocate a new hash <generic> capable of holding 2^bits items.
  */
 static h<generic>_t *
-h<generic>_allocate(size_t bits)
+h<generic>_allocate(size_t bits, bool raw)
 {
 	h<generic>_t *hx;
 
-	WALLOC0(hx);
+	if (raw)
+		XPMALLOC0(hx);
+	else
+		WALLOC0(hx);
+
 	hx->magic = H<GENERIC>_MAGIC;
 	hx->ops = &h<generic>_ops;
 @if TABLE
 	hx->kset.has_values = TRUE;
 @end
+	hx->kset.raw_memory = booleanize(raw);
 	hash_arena_allocate(HASH(hx), bits);
 
 	return hx;
@@ -184,7 +190,31 @@ h<generic>_create(enum hash_key_type ktype, size_t keysize)
 
 	g_assert(ktype != HASH_KEY_ANY);	/* Use h<generic>_create_any() */
 
-	hx = h<generic>_allocate(HASH_MIN_BITS);
+	hx = h<generic>_allocate(HASH_MIN_BITS, FALSE);
+	hash_keyhash_setup(&hx->kset, ktype, keysize);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for specific
+ * key types (i.e. not HASH_KEY_ANY).
+ *
+ * The object is allocated via xpmalloc() and avoids walloc() for the arena.
+ *
+ * @param ktype		key type
+ * @param keysize	expected for HASH_KEY_FIXED to give key size, otherwise 0
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create_real(enum hash_key_type ktype, size_t keysize)
+{
+	h<generic>_t *hx;
+
+	g_assert(ktype != HASH_KEY_ANY);	/* Use h<generic>_create_any() */
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, TRUE);
 	hash_keyhash_setup(&hx->kset, ktype, keysize);
 
 	return hx;
@@ -206,7 +236,32 @@ h<generic>_create_any(hash_func_t primary, hash_func_t secondary, hash_eq_t eq)
 
 	g_assert(primary != NULL);
 
-	hx = h<generic>_allocate(HASH_MIN_BITS);
+	hx = h<generic>_allocate(HASH_MIN_BITS, FALSE);
+	hash_keyhash_any_setup(&hx->kset, primary, secondary, eq);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for any key.
+ *
+ * The object is allocated via xpmalloc() and avoids walloc() for the arena.
+ *
+ * @param primary	primary hash function (cannot be NULL)
+ * @param secondary	secondary hash function (may be NULL)
+ * @param eq		key equality function (NULL means '==' checks)
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create_any_real(hash_func_t primary,
+	hash_func_t secondary, hash_eq_t eq)
+{
+	h<generic>_t *hx;
+
+	g_assert(primary != NULL);
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, TRUE);
 	hash_keyhash_any_setup(&hx->kset, primary, secondary, eq);
 
 	return hx;
@@ -223,7 +278,10 @@ h<generic>_free(h<generic>_t *hx)
 
 	hash_arena_free(HASH(hx));
 	hx->magic = 0;
-	WFREE(hx);
+	if (hx->kset.raw_memory)
+		xfree(hx);
+	else
+		WFREE(hx);
 }
 
 /**

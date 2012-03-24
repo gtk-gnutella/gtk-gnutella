@@ -93,6 +93,7 @@ struct hkeys {
 	} uk;
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
 	unsigned has_values:1;		/* Whether keys have associated values */
+	unsigned raw_memory:1;		/* Don't use walloc(), use VMM and xpmalloc() */
 };
 
 #define HASH(x)		((struct hash *) (x))

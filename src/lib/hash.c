@@ -242,11 +242,13 @@ hash_arena_allocate(struct hash *h, size_t bits)
 	/*
 	 * If the arena size is more than a page size, use VMM to allocate the
 	 * memory, otherwise rely on walloc().
+	 *
+	 * For structures in "raw" mode, avoid walloc() and use the VMM layer.
 	 */
 
 	size = hash_arena_size(hk->size, hk->has_values);
 
-	if (size >= compat_pagesize())
+	if (size >= compat_pagesize() || hk->raw_memory)
 		arena = vmm_alloc(size);
 	else
 		arena = walloc(size);
@@ -265,14 +267,16 @@ hash_arena_allocate(struct hash *h, size_t bits)
  * Release arena of given length.
  */
 static void
-hash_arena_size_free(void *arena, size_t len)
+hash_arena_size_free(void *arena, size_t len, bool raw)
 {
 	/*
 	 * If the arena size is more than a page size, we used VMM to allocate the
 	 * memory, otherwise it was walloc()'ed.
+	 *
+	 * When the hash is in "raw" mode, we avoid walloc().
 	 */
 
-	if (len >= compat_pagesize())
+	if (len >= compat_pagesize() || raw)
 		vmm_free(arena, len);
 	else
 		wfree(arena, len);
@@ -295,7 +299,7 @@ hash_arena_free(struct hash *h)
 	 */
 
 	size = hash_arena_size(hk->size, hk->has_values);
-	hash_arena_size_free(hk->keys, size);
+	hash_arena_size_free(hk->keys, size, hk->raw_memory);
 }
 
 /**
@@ -654,7 +658,7 @@ size_computed:
 
 	g_assert(keys == h->kset.items);
 
-	hash_arena_size_free(old_keys, old_arena_size);
+	hash_arena_size_free(old_keys, old_arena_size, h->kset.raw_memory);
 }
 
 /**
