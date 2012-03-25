@@ -393,6 +393,36 @@ symbols_lookup(const symbols_t *st, const void *addr)
 }
 
 /**
+ * Find symbol, avoiding the last entry (supposed to be the end) and
+ * ignoring garbage / stale symbol tables.
+ *
+ * @param st		the symbol table
+ * @param pc		the PC within the routine
+ *
+ * @return symbol structure if found, NULL otherwise.
+ */
+static struct symbol *
+symbols_find(const symbols_t *st, const void *pc)
+{
+	struct symbol *s;
+
+	symbols_check(st);
+
+	if G_UNLIKELY(!st->sorted || 0 == st->count)
+		return NULL;
+
+	if G_UNLIKELY(st->garbage || st->mismatch || st->stale)
+		return NULL;
+
+	s = symbols_lookup(st, pc);
+
+	if (NULL == s || &st->base[st->count - 1] == s)
+		return NULL;
+
+	return s;
+}
+
+/**
  * Format pointer into specified buffer.
  *
  * This is equivalent to saying:
@@ -527,18 +557,9 @@ symbols_addr(const symbols_t *st, const void *pc)
 
 	symbols_check(st);
 
-	if G_UNLIKELY(!st->sorted || 0 == st->count)
-		return NULL;
+	s = symbols_find(st, pc);
 
-	if G_UNLIKELY(st->garbage || st->mismatch || st->stale)
-		return NULL;
-
-	s = symbols_lookup(st, pc);
-
-	if (NULL == s || &st->base[st->count - 1] == s)
-		return NULL;
-
-	return s->addr;
+	return NULL == s ? NULL : s->addr;
 }
 
 /*
@@ -546,28 +567,27 @@ symbols_addr(const symbols_t *st, const void *pc)
  *
  * @param st		the symbol table
  * @param pc		the PC to translate into symbolic form
+ * @param offset	whether decimal offset should be added, if non-zero
  *
  * @return symbolic name for given pc offset, if found, NULL otherwise.
  */
 const char *
-symbols_name_only(const symbols_t *st, const void *pc)
+symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 {
+	static char buf[256];
 	struct symbol *s;
 
 	symbols_check(st);
 
-	if G_UNLIKELY(!st->sorted || 0 == st->count)
+	s = symbols_find(st, pc);
+
+	if (NULL == s)
 		return NULL;
 
-	if G_UNLIKELY(st->garbage || st->mismatch || st->stale)
-		return NULL;
+	symbols_fmt_name(buf, sizeof buf, s->name,
+			offset ? ptr_diff(pc, s->addr) : 0);
 
-	s = symbols_lookup(st, pc);
-
-	if (NULL == s || &st->base[st->count - 1] == s)
-		return NULL;
-
-	return s->name;
+	return buf;
 }
 
 /**
