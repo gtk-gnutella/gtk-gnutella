@@ -602,6 +602,30 @@ crash_message(const char *signame, bool trace, bool recursive)
 }
 
 /**
+ * Signal that we are attempting to print a decorated stack trace.
+ */
+static G_GNUC_COLD void
+crash_decorating_stack(void)
+{
+	DECLARE_STR(5);
+	char pid_buf[22];
+	char time_buf[18];
+
+	if (!vars->invoke_inspector && !vars->closed)
+		crash_run_hooks(NULL, -1);
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);			/* 0 */
+	print_str(" CRASH (pid=");		/* 1 */
+	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(") ");				/* 3 */
+	print_str("attempting to dump a decorated stack trace:\n");	/* 4 */
+	flush_err_str();
+	if (log_stdout_is_distinct())
+		flush_str(STDOUT_FILENO);
+}
+
+/**
  * Marks end of crash logging and potential pausing or debugger hook calling.
  */
 static G_GNUC_COLD void
@@ -717,6 +741,40 @@ crash_stack_print(int fd, size_t offset)
 	} else {
 		stacktrace_where_cautious_print_offset(fd, offset + 1);
 	}
+}
+
+/**
+ * Emit a decorated stack frame to specified file, using a gdb-like format.
+ */
+static G_GNUC_COLD NO_INLINE void
+crash_stack_print_decorated(int fd, size_t offset)
+{
+	uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_GDB |
+			STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT | STACKTRACE_F_NUMBER;
+
+	if (vars != NULL && vars->stackcnt != 0) {
+		/* Saved assertion stack preferred over current stack trace */
+		stacktrace_stack_print_decorated(fd,
+			vars->stack, vars->stackcnt, flags);
+	} else {
+		void *stack[STACKTRACE_DEPTH_MAX];
+		size_t count;
+
+		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+		stacktrace_stack_print_decorated(fd, stack, count, flags);
+	}
+}
+
+/**
+ * Emit a decorated stack.
+ */
+static G_GNUC_COLD NO_INLINE void
+crash_emit_decorated_stack(size_t offset)
+{
+	crash_decorating_stack();
+	crash_stack_print_decorated(STDERR_FILENO, offset + 1);
+	if (log_stdout_is_distinct())
+		crash_stack_print_decorated(STDOUT_FILENO, offset + 1);
 }
 
 /**
@@ -1960,6 +2018,14 @@ crash_handler(int signo)
 		crash_stack_print(STDERR_FILENO, 1);
 		if (log_stdout_is_distinct())
 			crash_stack_print(STDOUT_FILENO, 1);
+
+		/*
+		 * If we are in a signal handler and are not going to invoke an
+		 * inspector, dump a decorated stack.
+		 */
+
+		if (signal_in_handler() && !vars->invoke_inspector)
+			crash_emit_decorated_stack(1);
 	}
 	crash_end_of_line();
 	if (vars->invoke_inspector) {
