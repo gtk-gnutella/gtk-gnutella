@@ -57,7 +57,10 @@
 #endif
 
 #include "bfd_util.h"
+#include "concat.h"
+#include "path.h"
 #include "symbols.h"
+#include "vmm.h"			/* For vmm_page_start() */
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -226,7 +229,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 		bfd_util_load_text(bc);
 
 	if (bc->text_symbols != NULL) {
-		const char *name = symbols_name_only(bc->text_symbols, lookaddr);
+		const char *name = symbols_name_only(bc->text_symbols, lookaddr, FALSE);
 		if (name != NULL) {
 			ZERO(loc);
 			loc->function = name;
@@ -280,27 +283,54 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	void *symbols = NULL;
 	unsigned size = 0;
 	long count;
-	int fd;
+	int fd = -1;
+	const char *libpath = path;
 
-	fd = open(path, O_RDONLY);
+	/*
+	 * On Debian systems, there is a debugging version of libraries held
+	 * under /usr/lib/debug.  We'll get better symbol resolution by
+	 * opening these instead of the usually stripped runtime versions
+	 * that will only contain externally visible symbols.
+	 */
+
+	if (!is_running_on_mingw() && is_absolute_path(path)) {
+		static char debugpath[MAX_PATH_LEN];
+		const char *base = filepath_basename(path);
+
+		concat_strings(debugpath, sizeof debugpath,
+			"/usr/lib/debug/", base, NULL);
+
+		fd = open(debugpath, O_RDONLY);
+		if (-1 == fd) {
+			concat_strings(debugpath, sizeof debugpath,
+				"/usr/lib/debug", path, NULL);
+			fd = open(debugpath, O_RDONLY);
+		}
+		if (-1 != fd)
+			libpath = debugpath;
+	}
+
+	if (-1 == fd)
+		fd = open(libpath, O_RDONLY);
+
 	if (-1 == fd) {
-		s_miniwarn("%s: can't open %s: %m", G_STRFUNC, path);
+		s_miniwarn("%s: can't open %s: %m", G_STRFUNC, libpath);
 		return FALSE;
 	}
 
-	b = bfd_fdopenr(path, NULL, fd);
+	b = bfd_fdopenr(libpath, NULL, fd);
 	if (NULL == b) {
 		close(fd);
 		return FALSE;
 	}
 
-	if (!bfd_util_check_format(b, bfd_object, path)) {
-		s_miniwarn("%s: %s is not an object", G_STRFUNC, path);
+	if (!bfd_util_check_format(b, bfd_object, libpath)) {
+		s_miniwarn("%s: %s is not an object", G_STRFUNC, libpath);
 		goto failed;
 	}
 
 	if (0 == (bfd_get_file_flags(b) & HAS_SYMS)) {
-		s_miniwarn("%s: %s has no symbols", G_STRFUNC, path);
+		s_miniwarn("%s: %s has no symbols", G_STRFUNC, libpath);
 		goto failed;
 	}
 
@@ -311,7 +341,7 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	}
 
 	if (count < 0) {
-		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, path);
+		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, libpath);
 		symbols = NULL;
 		count = 0;
 	}
@@ -407,13 +437,13 @@ bfd_util_get_bc(struct bfd_list **list, const char *path)
  * addresses held in the file.
  *
  * The base given here should be the actual VM address where the kernel
- * loaded the .text section.
+ * loaded the first section.
  *
  * The computed offset will then be automatically used to adjust the given
  * addresses being looked at, remapping them to the proper range for lookup
  * purposes.
  *
- * @param bc		the BFD context
+ * @param bc		the BFD context (NULL allowed for convenience)
  * @param base		the VM mapping address of the text segment
  */
 void
@@ -422,6 +452,9 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	asection *sec;
 	bfd *b;
 
+	if (NULL == bc)
+		return;			/* Convenience */
+
 	bfd_ctx_check(bc);
 
 	if (bc->offseted)
@@ -429,14 +462,26 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 
 	b = bc->handle;
 
-	for (sec = b->sections; sec != NULL; sec = sec->next) {
-		const char *name = bfd_section_name(b, sec);
+	/*
+	 * Take the first section of the file and look where its page would start.
+	 * Then compare that to the advertised mapping base for the object to
+	 * know the offset we have to apply for proper symbol resolution.
+	 */
 
-		if (0 == strcmp(name, ".text")) {
-			bfd_vma addr = bfd_section_vma(b, sec);
-			bc->offset = addr - base;
-			break;
-		}
+	sec = b->sections;
+
+	/*
+	 * Notes for later: sections are linked through sec->next.
+	 *
+	 * It is possible to gather the section name via:
+	 *		const char *name = bfd_section_name(b, sec);
+	 */
+
+	if (sec != NULL) {
+		bfd_vma addr = bfd_section_vma(b, sec);
+
+		bc->offset = vmm_page_start(ulong_to_pointer(addr)) -
+			vmm_page_start(ulong_to_pointer(base));
 	}
 
 	bc->offseted = TRUE;
