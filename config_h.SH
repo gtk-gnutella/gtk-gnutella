@@ -223,6 +223,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
+/* HAS_DLADDR:
+ *	This symbol, if defined, indicates that the dladdr() routine is
+ *	available to query the dynamic linker about a specified address.
+ */
+#$d_dladdr HAS_DLADDR		/**/
+
 /* HAS_END_SYMBOL:
  *	This symbol, if defined, indicates that the C program can declare
  *		extern const int end;
@@ -732,6 +738,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	'struct direct' depending on the availability of <dirent.h>.
  */
 #$i_dirent I_DIRENT		/**/
+
+/* I_DLFCN:
+ *	This symbol, if defined, indicates that <dlfcn.h> exists and should
+ *	be included.
+ */
+#$i_dlfcn I_DLFCN		/**/
 
 /* I_EXECINFO:
  *	This symbol, if defined, indicates to the C program that it should

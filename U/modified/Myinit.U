@@ -15,5 +15,5 @@
 ?S:.
 ?LINT:nocomment
 : private initializations
-libswanted="sendfile z resolv iconv m intl"
+libswanted="bfd iberty sendfile z resolv iconv m intl dl"
 

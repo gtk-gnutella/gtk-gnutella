@@ -91,6 +91,7 @@ LSRC = \
 	dbstore.c \
 	dbus_util.c \
 	debug.c \
+	dl_util.c \
 	dualhash.c \
 	elist.c \
 	entropy.c \

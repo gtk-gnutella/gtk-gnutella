@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-136]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-138]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -148,6 +148,7 @@ LSRC = \
 	dbstore.c \
 	dbus_util.c \
 	debug.c \
+	dl_util.c \
 	dualhash.c \
 	elist.c \
 	entropy.c \
@@ -292,6 +293,7 @@ LOBJ = \
 	dbstore.o \
 	dbus_util.o \
 	debug.o \
+	dl_util.o \
 	dualhash.o \
 	elist.o \
 	entropy.o \
