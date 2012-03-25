@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2010, Raphael Manfredi
+ * Copyright (c) 2004, 2010-2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,17 +25,19 @@
  * @ingroup lib
  * @file
  *
- * Stack unwinding support.
+ * Stack unwinding and printing support.
  *
  * @author Raphael Manfredi
- * @date 2004, 2010
+ * @date 2004, 2010-2012
  */
 
 #include "common.h"		/* For RCSID */
 
 #include "stacktrace.h"
+#include "bfd_util.h"
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
+#include "dl_util.h"
 #include "file.h"
 #include "halloc.h"
 #include "hashing.h"	/* For binary_hash() */
@@ -45,6 +47,7 @@
 #include "omalloc.h"
 #include "path.h"
 #include "signal.h"
+#include "str.h"
 #include "stringify.h"
 #include "symbols.h"
 #include "tm.h"
@@ -60,6 +63,8 @@
 #ifdef I_EXECINFO
 #include <execinfo.h>	/* For backtrace() */
 #endif
+
+#define STACKTRACE_DLFT_SYMBOLS	8192	/**< Pre-sizing of symbol table */
 
 /**
  * Deferred loading support.
@@ -526,7 +531,7 @@ stacktrace_init(const char *argv0, bool deferred)
 
 	path = program_path_allocate(argv0);
 
-	symbols = symbols_make(8192, TRUE);
+	symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
 	if (NULL == path)
 		goto done;
@@ -785,6 +790,368 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	}
 }
 
+/*
+ * Return pretty path from source path by using the fact that our sources
+ * lie under the "src/" root.
+ */
+static const char *
+stacktrace_pretty_filepath(const char *filepath)
+{
+	const char *p;
+	const char *q;
+	const char *start;
+
+	p = strrchr(filepath, G_DIR_SEPARATOR);
+	if (p != NULL)
+		p++;
+	else
+		p = filepath;
+
+	/*
+	 * Under operating systems that don't use '/' as path separators, we can
+	 * stop because we know our compilation process uses '/' as separators.
+	 *
+	 * For instance, on Windows, we could have "gtk-gnutella\src\lib/cq.c"
+	 * as the initial filepath and we would return "lib/cq.c" at this point.
+	 */
+
+	if ('/' != G_DIR_SEPARATOR)
+		return p;
+
+	start = filepath;
+
+	if (is_absolute_path(filepath)) {
+		const char *src = strstr(filepath, "/src/");
+		start = (NULL == src) ? p : &src[CONST_STRLEN("/src/")];
+	}
+
+	/*
+	 * We're on an operating system using '/' in paths.
+	 *
+	 * We basically recognized the basename at this point.  Move backwards
+	 * until we find a "src/" component or the head of the string.
+	 */
+
+	for (q = p - 1; q > start; q--) {
+		if ('/' == *q) {
+			if (is_strprefix(q, "/src/"))
+				return p;
+			p = q + 1;
+		}
+	}
+
+	return is_strprefix(start, "src/") ? p : start;
+}
+
+enum xfiletype {
+	XFILE_STDIO,
+	XFILE_FD
+};
+
+struct xfile {
+	enum xfiletype type;	/* Union discriminant */
+	union {
+		FILE *f;
+		int fd;
+	} u;
+};
+
+/**
+ * Print a decorated stack trace.
+ *
+ * @param xf		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ * @param flags		decoration flags
+ *
+ * The available decoration flags are:
+ *
+ * STACKTRACE_F_ORIGIN:
+ *	Displays the shared object file name if known, at the far right.
+ *
+ * STACKTRACE_F_SOURCE:
+ *	Displays the source code location, if known, after the symbol name.
+ *
+ * STACKTRACE_F_ADDRESS:
+ *  Always display the hexadecimal address, even if the symbolic name
+ *	is known.
+ *
+ * STACKTRACE_F_NUMBER:
+ *	Number the stack items from 0 (top) and downwards.
+ *
+ * STACKTRACE_F_NO_INDENT:
+ *	Do not emit a leading tabulation when formatting.
+ *
+ * STACKTRACE_F_GDB:
+ *	Use gdb-like words to link items, such as "from", "at", "in", put
+ *  parenthesis after routine names, don't display offsets.
+ *
+ * When no flags are specified, this is equivalent to a mere stack_print().
+ */
+static void
+stack_print_decorated_to(struct xfile *xf,
+	void * const *stack, size_t count, int flags)
+{
+	static bfd_env_t *be;
+	size_t i;
+	static char buf[512];
+	static char name[256];
+	str_t s;
+	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
+
+	/*
+	 * The BFD environment is only opened once.
+	 * See rationale at the end of this routine.
+	 */
+
+	if (NULL == be)
+		be = bfd_util_init();
+
+	str_new_buffer(&s, buf, 0, sizeof buf);
+
+	/*
+	 * Iterate over the call stack and try to decipher each address: which
+	 * file it comes from (the program itself, or a shared library object
+	 * that has been mapped dynamically), what is the symbol name, and even
+	 * which source file location it maps to if the information is available.
+	 */
+
+	for (i = 0; i < count; i++) {
+		const void *pc = stack[i];
+		const char *sopath = "??";	/* Shared object path */
+		const void *base;			/* Mapping base for the shared object */
+		bfd_ctx_t *bc = NULL;
+		struct symbol_loc loc;
+		bool located = FALSE;
+		bool located_via_bfd = FALSE;
+		bool has_parens = FALSE;
+
+		/*
+		 * Locate where the PC is located: in our own executable (statically
+		 * linked) or within a dynamically mapped shared library.
+		 */
+
+		base = dl_util_get_base(pc);
+		if (base != NULL) {
+			const char *pathname;
+
+			pathname = dl_util_get_path(pc);
+
+			/*
+			 * If we have a pathname, try to open the file with the BFD
+			 * library to be able to get at debugging information.
+			 */
+
+			if (pathname != NULL) {
+				bc = bfd_util_get_context(be, pathname);
+				bfd_util_compute_offset(bc, pointer_to_ulong(base));
+				sopath = pathname;
+			}
+		}
+
+		/*
+		 * If we have a BFD context, try to locate the symbol attached
+		 * to the PC, along with its source file location.
+		 */
+
+		ZERO(&loc);
+
+		if (bc != NULL && bfd_util_has_symbols(bc)) {
+			const void *call;
+
+			/*
+			 * Always move back two bytes because the return address is
+			 * what we have on the stack, and we want the place where
+			 * the call was made from a source code location perspective.
+			 *
+			 * It is assumed that the instruction to call a routine takes
+			 * at least 2 bytes (opcode + relative offset / register).
+			 * On the x86 for instance, "CALL EAX", which is used for (*f)(),
+			 * takes 2 bytes.
+			 */
+
+			call = const_ptr_add_offset(pc, -2);
+			located = bfd_util_locate(bc, call, &loc);
+
+			if (!located) {
+				/* A "CALL <address>" instruction is PTRSIZE+1 byte long */
+				call = const_ptr_add_offset(pc, -(PTRSIZE + 1));
+				located = bfd_util_locate(bc, call, &loc);
+			}
+
+			located_via_bfd = located;
+		}
+
+		/*
+		 * If symbol was not located yet, try from our local symbol table,
+		 * which will work if we are facing a symbol in our text segment
+		 * and there are symbols present in the executable that we could load.
+		 */
+
+		if (!located && symbols != NULL) {
+			const char *sym = symbols_name_only(symbols, pc, !gdb_like);
+
+			if (sym != NULL) {
+				loc.function = sym;
+				located = TRUE;
+			}
+		}
+
+		/*
+		 * If we were not able to open the shared library, or it had no
+		 * symbol available, we can try with the dynamic loader.  However,
+		 * this can only provide us information about publicly available
+		 * symbols, i.e. the symbols the dynamic loader must know about to
+		 * be able to dynamically link the routines.
+		 */
+
+		if (!located) {
+			const char *sym = dl_util_get_name(pc);
+
+			if (sym != NULL) {
+				const void *start = dl_util_get_start(pc);
+				long disp;
+
+				disp = (NULL == start) ? 0 : ptr_diff(pc, start);
+
+				/*
+				 * When not displaying a gdb-like trace, visually distinguish
+				 * the names we resolve through the dynamic loader and the
+				 * ones we resolve through symbols: all names between <> come
+				 * from the dynamic loader's tables.
+				 */
+
+				if (gdb_like)
+					str_bprintf(name, sizeof name, "%s", sym);
+				else if (0 == disp)
+					str_bprintf(name, sizeof name, "<%s>", sym);
+				else
+					str_bprintf(name, sizeof name, "<%s%+ld>", sym, disp);
+				sym = name;
+			} else {
+				if (symbols != NULL)
+					sym = symbols_name(symbols, pc, !gdb_like);
+			}
+			loc.function = sym;
+		} else if (located_via_bfd) {
+			/*
+			 * Flag the BFD-recognized symbols with trailing parentheses, since
+			 * there will be no trailing offset in that case, ever.
+			 */
+
+			str_bprintf(name, sizeof name, "%s()", loc.function);
+			has_parens = TRUE;
+			loc.function = name;
+		}
+
+		/*
+		 * Now foramt the information we gathered.
+		 */
+
+		str_reset(&s);
+
+		if (NULL == loc.function)
+			loc.function = "??";
+
+		if (NULL == loc.file)
+			loc.file = "??";
+
+		if (0 == (flags & STACKTRACE_F_NO_INDENT))
+			str_putc(&s, '\t');
+
+		if (0 != (flags & STACKTRACE_F_NUMBER)) {
+			if (count < 10)
+				str_catf(&s, "#%-1d ", i);
+			else if (count < 100)
+				str_catf(&s, "#%-2d ", i);
+			else
+				str_catf(&s, "#%-3d ", i);
+		}
+
+		if (0 != (flags & STACKTRACE_F_ADDRESS)) {
+			str_catf(&s, "0x%0*lx ", PTRSIZE * 2, pointer_to_ulong(pc));
+
+			if (gdb_like)
+				str_cat(&s, "in ");
+		}
+
+		str_cat(&s, loc.function);
+		if ('0' == loc.function[0])		/* No valid name starts with a digit */
+			has_parens = TRUE;			/* Avoid "()" after 0x.... names */
+
+		if ('?' != loc.function[0] && gdb_like && !has_parens)
+			str_cat(&s, "()");
+
+		if (0 != (flags & STACKTRACE_F_SOURCE) && '?' != loc.file[0]) {
+			str_cat(&s, gdb_like ? " at " : " \"");
+			str_cat(&s, stacktrace_pretty_filepath(loc.file));
+			if (loc.line != 0)
+				str_catf(&s, ":%u", loc.line);
+			if (!gdb_like)
+				str_putc(&s, '"');
+		}
+
+		if (0 != (flags & STACKTRACE_F_ORIGIN) && !stack_is_our_text(pc)) {
+			if (gdb_like)
+				str_catf(&s, " from %s", sopath);
+			else if ('?' != sopath[0]) {
+				str_catf(&s, " : %s", sopath);
+			}
+		}
+
+		str_putc(&s, '\n');
+
+		switch (xf->type) {
+		case XFILE_STDIO:
+			fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
+			break;
+		case XFILE_FD:
+			write(xf->u.fd, str_2c(&s), str_len(&s));
+			break;
+		}
+	}
+
+	/*
+	 * Don't call
+	 *
+	 * 		bfd_util_close_null(&be);
+	 *
+	 * because when we are called, we may be crashing and then we won't
+	 * release any memory anyway.  But if we start dumping a lot of stacks
+	 * (for instance dumping memory leaks), we'll be using a lot of memory!
+	 *
+	 * Hence the strategy is to keep the BFD environment opened.
+	 */
+}
+
+/**
+ * Convenience wrapper to print a decorated stack to a file descriptor.
+ */
+static void
+stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
+{
+	struct xfile xf;
+
+	xf.type = XFILE_FD;
+	xf.u.fd = fd;
+
+	stack_print_decorated_to(&xf, stack, count, flags);
+}
+
+/**
+ * Convenience wrapper to print a decorated stack to a FILE.
+ */
+static void
+stack_print_decorated(FILE *f, void * const *stack, size_t count, int flags)
+{
+	struct xfile xf;
+
+	xf.type = XFILE_STDIO;
+	xf.u.f = f;
+
+	stack_print_decorated_to(&xf, stack, count, flags);
+}
+
 /**
  * Print stack trace to specified file, using symbolic names if possible.
  */
@@ -805,6 +1172,18 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 	g_assert(st != NULL);
 
 	stack_print(f, st->stack, st->len);
+}
+
+/**
+ * Print decorated stack trace atom to specified file, using symbolic names
+ * if possible.
+ */
+void
+stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
+{
+	g_assert(st != NULL);
+
+	stack_print_decorated(f, st->stack, st->len, flags);
 }
 
 /**
@@ -1001,15 +1380,38 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
  * executable if they haven't already and we're in a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
  */
 void
 stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 {
-	if (!signal_in_handler())
+	if (!signal_in_handler()) {
 		stacktrace_load_symbols();
+		stack_safe_print_decorated(fd, stack, count,
+			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+	} else {
+		stack_safe_print(fd, stack, count);
+	}
+}
 
-	stack_safe_print(fd, stack, count);
+/**
+ * Print supplied trace to specified file as a symbolic decorated stack,
+ * if possible.
+ *
+ * This routine is NOT safe and could crash if called from a signal handler.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ * @param flags		decoration flags (STACKTRACE_F_* values)
+ */
+void
+stacktrace_stack_print_decorated(int fd,
+	void * const *stack, size_t count, uint flags)
+{
+	stacktrace_load_symbols();
+	stack_safe_print_decorated(fd, stack, count, flags);
 }
 
 /**
@@ -1123,9 +1525,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
-		if (!signal_in_handler())
-			stacktrace_load_symbols();
-		stack_safe_print(fd, stack, count);
+		stacktrace_stack_safe_print(fd, stack, count);
 	}
 
 	print_context.done = TRUE;
@@ -1184,8 +1584,10 @@ stacktrace_chop_length(const struct stacktrace *st)
 	size_t i;
 
 	for (i = 0; i < st->len; i++) {
-		if (!stack_is_our_text(st->stack[i]))
+		if (!stack_is_our_text(st->stack[i])) {
+			i++;		/* Keep first address beyond our text */
 			break;
+		}
 	}
 
 	return i;

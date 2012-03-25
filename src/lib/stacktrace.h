@@ -68,6 +68,16 @@ enum stacktrace_sym_quality {
 	STACKTRACE_SYM_MAX
 };
 
+/*
+ * Decoration flags for stack traces.
+ */
+#define STACKTRACE_F_ORIGIN		(1U << 0)	/**< Show shared object names */
+#define STACKTRACE_F_SOURCE		(1U << 1)	/**< Display source location */
+#define STACKTRACE_F_NUMBER		(1U << 2)	/**< Number items */
+#define STACKTRACE_F_NO_INDENT	(1U << 3)	/**< Turn off indentation */
+#define STACKTRACE_F_GDB		(1U << 4)	/**< Show a gdb-like trace */
+#define STACKTRACE_F_ADDRESS	(1U << 5)	/**< Display addresses */
+
 /**
  * Hashing /equality functions for "struct stacktracea" atomic traces.
  */
@@ -80,6 +90,7 @@ void stacktrace_get(struct stacktrace *st);
 void stacktrace_get_offset(struct stacktrace *st, size_t offset);
 void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
+void stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags);
 void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
@@ -94,6 +105,8 @@ void stacktrace_where_print_offset(FILE *f, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
 void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
+void stacktrace_stack_print_decorated(int fd,
+	void * const *stack, size_t count, uint flags);
 bool stacktrace_cautious_was_logged(void);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
