@@ -651,7 +651,8 @@ zblock_log(const char *p, size_t size, void *leakset)
 	ago[0] = '\0';
 #endif
 
-	s_warning("leaked block %p from \"%s:%u\"%s", uptr, file, line, ago);
+	s_warning("leaked %zu-byte block %p from \"%s:%u\"%s",
+		size, uptr, file, line, ago);
 
 #ifdef MALLOC_FRAMES
 	{
@@ -659,7 +660,8 @@ zblock_log(const char *p, size_t size, void *leakset)
 		const struct frame *f = *(struct frame **) q;
 
 		if (f != INVALID_FRAME_PTR) {
-			stacktrace_atom_print(stderr, f->ast);
+			stacktrace_atom_decorate(stderr, f->ast,
+				STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 		} else {
 			s_warning("however frame pointer suggests block %p was freed?",
 				uptr);
