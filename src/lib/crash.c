@@ -1280,9 +1280,7 @@ retry_child:
 					print_str(")\n");
 				}
 				flush_str(clf);
-				if (vars != NULL && vars->stackcnt != 0) {
-					mingw_format_trace(clf, vars->stack, vars->stackcnt);
-				}
+				crash_stack_print_decorated(clf, 2);
 				crash_fd_close(clf);
 				goto parent_process;
 			}

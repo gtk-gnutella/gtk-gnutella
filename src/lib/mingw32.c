@@ -3944,148 +3944,110 @@ mingw_backtrace(void **buffer, int size, size_t offset)
 	return mingw_stack_unwind(buffer, size, &c, offset);
 }
 
+#ifdef EMULATE_DLADDR
+static int mingw_dl_error;
+
 /**
- * Return pretty path from source path by using the fact that the compilation
- * process uses '/' separators but the returned Windows path uses '\'.
- * Hence we shall turn "gtk-gnutella\src\lib/cq.c" into "lib/cq.c" for instance.
+ * Return a human readable string describing the most recent error
+ * that occurred.
  */
-static const char *
-mingw_pretty_path(const char *path)
+const char *
+mingw_dlerror(void)
 {
-	const char *p;
-
-	p = strrchr(path, '\\');
-	if (p != NULL)
-		p++;
-	else
-		p = path;
-
-	return p;
+	return g_strerror(mingw_dl_error);
 }
 
 /**
- * Produce a nice stacktrace like a debugger would, without parameters though.
+ * Emulates linux's dladdr() routine.
  *
- * @param fd		file descriptor where data must be printed to
- * @param trace		the backtrace, listing PC values
- * @param count		amount of items in trace
+ * Given a function pointer, try to resolve name and file where it is located.
+ *
+ * If no symbol matching addr could be found, then dli_sname and dli_saddr are
+ * set to NULL.
+ *
+ * @param addr		pointer within function
+ * @param info		where results are returned
+ *
+ * @return 0 on error, non-zero on success.
  */
-void
-mingw_format_trace(int fd, void * const *trace, int count)
+int
+mingw_dladdr(void *addr, Dl_info *info)
 {
-	bfd_env_t *be;
-	int i;
+	static time_t last_init;
 	static char path[MAX_PATH_LEN];
 	static wchar_t wpath[MAX_PATH_LEN];
-	static char buf[256];
-	HANDLE process;
+	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
+	time_t now;
+	HANDLE process = NULL;
+	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
+	DWORD disp = 0;
 
-	process = GetCurrentProcess();
+	/*
+	 * Do not issue a SymInitialize() too often, yet let us do one from time
+	 * to time in case we loaded a new DLL since last time.
+	 */
 
-	if (!SymInitialize(process, 0, TRUE)) {
-		int error = GetLastError();
-		size_t len = str_bprintf(buf, sizeof buf,
-			"Failed to initialize symbolic dump: error = %d (%s)",
-			error, g_strerror(error));
-		write(fd, buf, len);
-		return;
+	now = tm_time();
+
+	if (0 == last_init || delta_time(now, last_init) > 5) {
+		process = GetCurrentProcess();
+
+		if (last_init != 0 && 0 == mingw_dl_error)
+			SymCleanup(process);
+
+		if (!SymInitialize(process, 0, TRUE)) {
+			mingw_dl_error = GetLastError();
+			s_warning("SymInitialize() failed: error = %d (%s)",
+				mingw_dl_error, mingw_dlerror());
+		} else
+			mingw_dl_error = 0;
+
+		last_init = now;
 	}
 
-	be = bfd_util_init();
+	ZERO(info);
 
-	for (i = 0; i < count; i++) {
-		const void *pc = trace[i];
-		char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
-		IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
-		DWORD base;
-		const char *module = "??";
-		bfd_ctx_t *bc = NULL;
-		struct symbol_loc loc;
-		size_t len;
+	if (0 != mingw_dl_error)
+		return 0;		/* Signals error */
 
-		base = SymGetModuleBase(process, pointer_to_ulong(pc));
+	if (NULL == addr)
+		return 1;		/* OK */
 
-		if (
-			base != 0 &&
-			GetModuleFileNameW((HINSTANCE) base, wpath, sizeof wpath)
-		) {
-			size_t conv = utf16_to_utf8(wpath, path, sizeof path);
-			if (conv <= sizeof path) {
-				module = path;
-				bc = bfd_util_get_context(be, path);
-				bfd_util_compute_offset(bc, base + MINGW_TEXT_OFFSET);
-			}
-		}
+	if (NULL == process)
+		process = GetCurrentProcess();
 
-		ZERO(&loc);
-
-		if (bc != NULL) {
-			if (bfd_util_has_symbols(bc)) {
-				const void *call;
-
-				/*
-				 * Always move back two bytes because the return address is
-				 * what we have on the stack, and we want the place where
-				 * the call was made from a source code location perspective.
-				 *
-				 * A "CALL EAX" instruction takes 2 bytes.
-				 */
-
-				call = const_ptr_add_offset(pc, -2);
-
-				if (!bfd_util_locate(bc, call, &loc)) {
-					/* A "CALL <address>" instruction is 5 byte long */
-					call = const_ptr_add_offset(pc, -5);
-					bfd_util_locate(bc, call, &loc);
-				}
-			} else
-				loc.file = "<no symbols>";
-		} else {
-			DWORD x = 0;
-
-			symbol->SizeOfStruct = sizeof buffer;
-			symbol->MaxNameLength = 255;
-
-			if (SymGetSymFromAddr(process, pointer_to_ulong(pc), &x, symbol))
-				loc.file = symbol->Name;
-		}
-
-		if (NULL == loc.file)
-			loc.file = "??";
-
-		if (NULL == loc.function) {
-			/* A call from a DLL without source location information */
-			const char *parens = '?' == *loc.file ? "" : "()";
-			len = str_bprintf(buf, sizeof buf, "#%-3d 0x%08lx %s%s from %s\n",
-				i, pointer_to_ulong(pc), loc.file, parens, module);
-		} else {
-			if (is_strsuffix(module, (size_t) -1, ".exe")) {
-				/* This is a call from our process, we have complete info */
-				len = str_bprintf(buf, sizeof buf,
-					"#%-3d 0x%08lx in %s() at %s:%u\n",
-					i, pointer_to_ulong(pc), loc.function,
-					mingw_pretty_path(loc.file), loc.line);
-			} else {
-				/* A call from a DLL with source location information */
-				if ('?' == *loc.file) {
-					len = str_bprintf(buf, sizeof buf,
-						"#%-3d 0x%08lx in %s() from %s\n",
-						i, pointer_to_ulong(pc), loc.function, module);
-				} else {
-					len = str_bprintf(buf, sizeof buf,
-						"#%-3d 0x%08lx in %s() at %s:%u from %s\n",
-						i, pointer_to_ulong(pc), loc.function,
-						loc.file, loc.line, module);
-				}
-			}
-		}
-
-		write(fd, buf, len);
+	info->dli_fbase = ulong_to_pointer(
+		SymGetModuleBase(process, pointer_to_ulong(addr)));
+	
+	if (NULL == info->dli_fbase) {
+		mingw_dl_error = GetLastError();
+		return 0;		/* Unknown, error */
 	}
 
-	SymCleanup(process);
-	bfd_util_close_null(&be);
+	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
+		size_t conv = utf16_to_utf8(wpath, path, sizeof path);
+		if (conv <= sizeof path)
+			info->dli_fname = path;
+	}
+
+	symbol->SizeOfStruct = sizeof buffer;
+	symbol->MaxNameLength = 255;
+
+	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
+		info->dli_sname = symbol->Name;
+		info->dli_saddr = ptr_add_offset(addr, -disp);
+	}
+
+	/*
+	 * Windows offsets the actual loading of the text by MINGW_TEXT_OFFSET
+	 * bytes, as determined empirically.
+	 */
+
+	info->dli_fbase = ptr_add_offset(info->dli_fbase, MINGW_TEXT_OFFSET);
+
+	return 1;			/* OK */
 }
+#endif	/* EMULATE_DLADDR */
 
 /**
  * Convert exception code to string.

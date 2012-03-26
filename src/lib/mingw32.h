@@ -431,6 +431,26 @@ int mingw_gettimeofday(struct timeval *tv, void *unused);
 #endif	/* !HAS_GETTIMEOFDAY */
 
 /*
+ * dladdr() emulation
+ */
+#ifndef HAS_DLADDR
+#define HAS_DLADDR			/* We emulate it */
+#define EMULATE_DLADDR
+#define dladdr mingw_dladdr
+#define dlerror mingw_dlerror
+
+typedef struct {
+	const char *dli_fname;	/* Pathname of shared object containing address */
+	void *dli_fbase;		/* Address at which shared object is loaded */
+	const char *dli_sname;	/* Name of nearest symbol with lower address */
+	void *dli_saddr;		/* Exact address of symbol named dli_sname */
+} Dl_info;
+
+int mingw_dladdr(void *addr, Dl_info *info);
+const char *dlerror(void);
+#endif	/* !HAS_DLADDR */
+
+/*
  * Socket functions
  *
  * Under windows, socket descriptors are not the same as file descriptiors.
@@ -535,14 +555,11 @@ bool mingw_adns_send_request(const struct adns_request *req);
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 
-void mingw_format_trace(int fd, void * const *trace, int count);
-
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
 #define mingw_init()
 #define mingw_close()
-#define mingw_format_trace(f, t, c)
 #define mingw_patch_personal_path(p)	(p)
 
 #define mingw_get_admin_tools_path()	"/"
