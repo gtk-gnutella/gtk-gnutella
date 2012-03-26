@@ -133,6 +133,7 @@ struct crash_vars {
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
+	pid_t pid;				/**< Initial process ID */
 	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
@@ -449,7 +450,7 @@ crash_get_hook(void)
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
- * @param logfd			if not -1, the already opened file where we should log ot
+ * @param logfd			if not -1, the opened file where we should log to
  */
 static G_GNUC_COLD void
 crash_run_hooks(const char *logfile, int logfd)
@@ -629,7 +630,7 @@ crash_decorating_stack(void)
  * Marks end of crash logging and potential pausing or debugger hook calling.
  */
 static G_GNUC_COLD void
-crash_end_of_line(void)
+crash_end_of_line(bool forced)
 {
 	DECLARE_STR(7);
 	char pid_buf[22];
@@ -644,7 +645,9 @@ crash_end_of_line(void)
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
-	if (vars->closed) {
+	if (forced) {
+		print_str("recursively crashing -- end of line.");	/* 4 */
+	} else if (vars->closed) {
 		print_str("end of line.");	/* 4 */
 	} else if (vars->invoke_inspector) {
 		if (NULL != vars->exec_path) {
@@ -747,12 +750,12 @@ crash_stack_print(int fd, size_t offset)
  * Emit a decorated stack frame to specified file, using a gdb-like format.
  */
 static G_GNUC_COLD NO_INLINE void
-crash_stack_print_decorated(int fd, size_t offset)
+crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
 	uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_GDB |
 			STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT | STACKTRACE_F_NUMBER;
 
-	if (vars != NULL && vars->stackcnt != 0) {
+	if (!in_child && vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
 		stacktrace_stack_print_decorated(fd,
 			vars->stack, vars->stackcnt, flags);
@@ -769,12 +772,12 @@ crash_stack_print_decorated(int fd, size_t offset)
  * Emit a decorated stack.
  */
 static G_GNUC_COLD NO_INLINE void
-crash_emit_decorated_stack(size_t offset)
+crash_emit_decorated_stack(size_t offset, bool in_child)
 {
 	crash_decorating_stack();
-	crash_stack_print_decorated(STDERR_FILENO, offset + 1);
+	crash_stack_print_decorated(STDERR_FILENO, offset + 1, in_child);
 	if (log_stdout_is_distinct())
-		crash_stack_print_decorated(STDOUT_FILENO, offset + 1);
+		crash_stack_print_decorated(STDOUT_FILENO, offset + 1, in_child);
 }
 
 /**
@@ -1280,7 +1283,7 @@ retry_child:
 					print_str(")\n");
 				}
 				flush_str(clf);
-				crash_stack_print_decorated(clf, 2);
+				crash_stack_print_decorated(clf, 2, FALSE);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1357,6 +1360,16 @@ retry_child:
 			flush_str(STDOUT_FILENO);			/* into crash file as well */
 			if (log_stdout_is_distinct())
 				flush_str(parent_stdout);
+
+			/*
+			 * Emit a decorated stack since we could not exec the script.
+			 *
+			 * Even though we're in the child process, say FALSE because
+			 * we want the original stack frame from the parent if it was
+			 * saved, not the current one.
+			 */
+
+			crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
 
 		child_failure:
 			_exit(EXIT_FAILURE);
@@ -1889,6 +1902,7 @@ crash_handler(int signo)
 	unsigned i;
 	bool trace;
 	bool recursive = crashed > 0;
+	bool in_child = FALSE;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -1912,6 +1926,18 @@ crash_handler(int signo)
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
+	}
+
+	/*
+	 * If we are in the child process, prevent any exec() or pausing.
+	 */
+
+	if (vars != NULL && vars->pid != getpid()) {
+		uint8 f = FALSE;
+		in_child = TRUE;
+		crash_set_var(invoke_inspector, f);
+		crash_set_var(may_restart, f);
+		crash_set_var(pause_process, f);
 	}
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
@@ -1975,7 +2001,7 @@ crash_handler(int signo)
 
 	if (vars->closed) {
 		crash_message(name, FALSE, recursive);
-		crash_end_of_line();
+		crash_end_of_line(FALSE);
 		_exit(EXIT_FAILURE);
 	}
 
@@ -2023,9 +2049,14 @@ crash_handler(int signo)
 		 */
 
 		if (signal_in_handler() && !vars->invoke_inspector)
-			crash_emit_decorated_stack(1);
+			crash_emit_decorated_stack(1, in_child);
 	}
-	crash_end_of_line();
+	if ((recursive && 1 == crashed) || in_child) {
+		crash_emit_decorated_stack(1, in_child);
+		crash_end_of_line(TRUE);
+		goto the_end;
+	}
+	crash_end_of_line(FALSE);
 	if (vars->invoke_inspector) {
 		bool hooks;
 
@@ -2043,19 +2074,21 @@ crash_handler(int signo)
 			uint8 f = FALSE;
 			crash_run_hooks(NULL, -1);
 			crash_set_var(invoke_inspector, f);
-			crash_end_of_line();
+			crash_end_of_line(FALSE);
 		}
 	}
 	if (vars->pause_process && vars->invoke_inspector) {
 		uint8 f = FALSE;
 		crash_set_var(invoke_inspector, f);
-		crash_end_of_line();
+		crash_end_of_line(FALSE);
 	}
 	if (vars->pause_process) {
 		compat_pause();
 	}
 
-	crash_auto_restart();
+the_end:
+	if (!in_child)
+		crash_auto_restart();
 	raise(SIGABRT);			/* This is the end of our road */
 }
 
@@ -2190,6 +2223,7 @@ crash_init(const char *argv0, const char *progname,
 	iv.may_restart = booleanize(CRASH_F_RESTART & flags);
 	iv.dumps_core = booleanize(!crash_coredumps_disabled());
 	iv.start_time = time(NULL);
+	iv.pid = getpid();
 
 	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
 		signal_set(signals[i], crash_handler);
