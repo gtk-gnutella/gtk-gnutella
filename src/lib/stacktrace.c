@@ -843,13 +843,13 @@ stacktrace_pretty_filepath(const char *filepath)
 	return is_strprefix(start, "src/") ? p : start;
 }
 
-enum xfiletype {
-	XFILE_STDIO,
-	XFILE_FD
+enum sxfiletype {
+	SXFILE_STDIO,
+	SXFILE_FD
 };
 
-struct xfile {
-	enum xfiletype type;	/* Union discriminant */
+struct sxfile {
+	enum sxfiletype type;	/* Union discriminant */
 	union {
 		FILE *f;
 		int fd;
@@ -889,7 +889,7 @@ struct xfile {
  * When no flags are specified, this is equivalent to a mere stack_print().
  */
 static void
-stack_print_decorated_to(struct xfile *xf,
+stack_print_decorated_to(struct sxfile *xf,
 	void * const *stack, size_t count, int flags)
 {
 	static bfd_env_t *be;
@@ -1102,10 +1102,10 @@ stack_print_decorated_to(struct xfile *xf,
 		str_putc(&s, '\n');
 
 		switch (xf->type) {
-		case XFILE_STDIO:
+		case SXFILE_STDIO:
 			fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
 			break;
-		case XFILE_FD:
+		case SXFILE_FD:
 			write(xf->u.fd, str_2c(&s), str_len(&s));
 			break;
 		}
@@ -1130,9 +1130,9 @@ stack_print_decorated_to(struct xfile *xf,
 static void
 stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
 {
-	struct xfile xf;
+	struct sxfile xf;
 
-	xf.type = XFILE_FD;
+	xf.type = SXFILE_FD;
 	xf.u.fd = fd;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
@@ -1144,9 +1144,9 @@ stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
 static void
 stack_print_decorated(FILE *f, void * const *stack, size_t count, int flags)
 {
-	struct xfile xf;
+	struct sxfile xf;
 
-	xf.type = XFILE_STDIO;
+	xf.type = SXFILE_STDIO;
 	xf.u.f = f;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
