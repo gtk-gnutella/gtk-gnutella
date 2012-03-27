@@ -2001,6 +2001,8 @@ crash_handler(int signo)
 
 	if (vars->closed) {
 		crash_message(name, FALSE, recursive);
+		if (!recursive)
+			crash_emit_decorated_stack(1, in_child);
 		crash_end_of_line(FALSE);
 		_exit(EXIT_FAILURE);
 	}
