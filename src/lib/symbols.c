@@ -39,6 +39,7 @@
 
 #include "symbols.h"
 #include "ascii.h"
+#include "bfd_util.h"
 #include "constants.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
@@ -875,15 +876,41 @@ open_file:
  * limitation is that we cannot know which symbols are correct, so all symbols
  * will be flagged as doubtful when we detect the slightest inconsistency.
  *
- * @param path
+ * @param st			the symbol table into which symbols should be loaded
+ * @param exe			the executable file
+ * @param lpath			the executable name for logging purposes only
  */
 void G_GNUC_COLD
-symbols_load_from(symbols_t *st, const char *path, const  char *lpath)
+symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 {
 	char tmp[MAX_PATH_LEN + 80];
 	FILE *f;
 	bool retried = FALSE;
+	bool has_bfd = FALSE;
 	size_t stripped;
+	const char *method = "nothing";
+
+	/*
+	 * If we are compiled with the BFD library, try to load symbols directly
+	 * from the executable.
+	 */
+
+	has_bfd = bfd_util_load_text_symbols(st, exe);
+
+	if (has_bfd && 0 != st->count) {
+		method = "the BFD library";
+		goto done;
+	}
+
+	/*
+	 * Maybe we don't have the BFD library, or the executable was stripped.
+	 *
+	 * On Windows we'll try to open the companion file containing the computed
+	 * "nm output" at build time.
+	 *
+	 * On UNIX we attempt to launch "nm -p" on the executable before falling
+	 * back to the computed "nm output".
+	 */
 
 #ifdef MINGW32
 	/*
@@ -894,24 +921,25 @@ symbols_load_from(symbols_t *st, const char *path, const  char *lpath)
 		const char *nm;
 
 		nm = mingw_filename_nearby(NM_FILE);
-		f = symbols_open(st, path, nm);
+		f = symbols_open(st, exe, nm);
 
 		if (NULL == f)
 			goto done;
 
 		st->indirect = TRUE;
+		method = "pre-computed nm output";
 	}
 #else	/* !MINGW32 */
 	/*
 	 * Launch "nm -p" on our executable to grab the symbols.
 	 */
 
-	{
+	if (!has_bfd) {
 		size_t rw;
 
-		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", path);
-		if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
-			s_warning("full path \"%s\" too long, cannot load symbols", path);
+		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", exe);
+		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
+			s_warning("full path \"%s\" too long, cannot load symbols", exe);
 			goto done;
 		}
 
@@ -919,10 +947,13 @@ symbols_load_from(symbols_t *st, const char *path, const  char *lpath)
 
 		if (NULL == f) {
 			s_warning("can't run \"%s\": %m", tmp);
-			goto done;
+			goto use_pre_computed;
 		}
 
 		st->fresh = !st->stale;
+		method = "nm output parsing";
+	} else {
+		goto use_pre_computed;
 	}
 #endif	/* MINGW32 */
 
@@ -941,17 +972,22 @@ retry:
 	 * Try to open the symbols from the installed nm file.
 	 */
 
+#ifndef MINGW32
+use_pre_computed:
+#endif
+
 	if (!retried && 0 == st->count) {
 		char *nm = make_pathname(ARCHLIB_EXP, NM_FILE);
 
 		s_warning("no symbols loaded, trying with pre-computed \"%s\"", nm);
 		st->fresh = FALSE;
-		f = symbols_open(st, path, nm);
+		f = symbols_open(st, exe, nm);
 		retried = TRUE;
 		HFREE_NULL(nm);
 
 		if (f != NULL) {
 			st->indirect = TRUE;
+			method = "pre-computed nm output";
 			goto retry;
 		}
 
@@ -959,7 +995,7 @@ retry:
 	}
 
 done:
-	s_info("loaded %zu symbols for \"%s\"", st->count, lpath);
+	s_info("loaded %zu symbols for \"%s\" via %s", st->count, lpath, method);
 
 	stripped = symbols_sort(st);
 

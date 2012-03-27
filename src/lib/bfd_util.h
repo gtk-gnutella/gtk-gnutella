@@ -60,6 +60,10 @@ bool bfd_util_has_symbols(const bfd_ctx_t *bc);
 void bfd_util_close_null(bfd_env_t **be_ptr);
 void bfd_util_compute_offset(bfd_ctx_t *bc, ulong base);
 
+struct symbols;
+
+bool bfd_util_load_text_symbols(struct symbols *st, const char *file);
+
 #endif	/* _bfd_util_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

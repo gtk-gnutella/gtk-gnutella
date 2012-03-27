@@ -115,18 +115,20 @@ bfd_env_check(const struct bfd_env * const be)
 }
 
 /**
- * Load text symbols from the file.
+ * Load text symbols from the file into supplied table.
+ *
+ * @param bc		the BFD context pointing to the file
+ * @param st		the symbol table where symbols should be added
  */
 static void
-bfd_util_load_text(bfd_ctx_t *bc)
+bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 {
 	long i;
 	asymbol* empty;
 	void *p;
 
-	g_assert(NULL == bc->text_symbols);
-
-	bc->text_symbols = symbols_make(bc->count, FALSE);
+	bfd_ctx_check(bc);
+	g_assert(st != NULL);
 
 	if (0 == bc->count)
 		return;
@@ -151,12 +153,10 @@ bfd_util_load_text(bfd_ctx_t *bc)
 
 			if (name != NULL && name[0] != '.') {
 				void *addr = ulong_to_pointer(syminfo.value);
-				symbols_append(bc->text_symbols, addr, name);
+				symbols_append(st, addr, name);
 			}
 		}
 	}
-
-	symbols_sort(bc->text_symbols);
 }
 
 /**
@@ -196,6 +196,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 {
 	struct symbol_ctx sc;
 	const void *lookaddr;
+	const char *name;
 
 	g_assert(loc != NULL);
 
@@ -225,16 +226,17 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	 * information but that is better than nothing.
 	 */
 
-	if (NULL == bc->text_symbols)
-		bfd_util_load_text(bc);
+	if (NULL == bc->text_symbols) {
+		bc->text_symbols = symbols_make(bc->count, FALSE);
+		bfd_util_load_text(bc, bc->text_symbols);
+		symbols_sort(bc->text_symbols);
+	}
 
-	if (bc->text_symbols != NULL) {
-		const char *name = symbols_name_only(bc->text_symbols, lookaddr, FALSE);
-		if (name != NULL) {
-			ZERO(loc);
-			loc->function = name;
-			return TRUE;
-		}
+	name = symbols_name_only(bc->text_symbols, lookaddr, FALSE);
+	if (name != NULL) {
+		ZERO(loc);
+		loc->function = name;
+		return TRUE;
 	}
 
 	return FALSE;
@@ -584,6 +586,40 @@ bfd_util_close_null(bfd_env_t **be_ptr)
 	}
 }
 
+/**
+ * Load text symbols into the supplied symbol table from the specified file.
+ * 
+ * This is equivalent to running "nm -p file" and parsing back the results
+ * although we do not have to actually launch a new process and parse the
+ * command output: the symbol extraction is handled by the BFD library.
+ *
+ * Symbols are merely appended to the symbol table, which will need to be
+ * sorted before being
+ *
+ * @param st		the symbol table into which loaded symbols are added
+ * @param file		the object file where symbols should be extracted from
+ *
+ * @return whether we could attempt loading from the file (regardless of the
+ * presence of symbol information).
+ */
+bool
+bfd_util_load_text_symbols(symbols_t *st, const char *file)
+{
+	bfd_env_t *be;
+	bfd_ctx_t *bc;
+
+	g_assert(st != NULL);
+	g_assert(file != NULL);
+
+	be = bfd_util_init();
+	bc = bfd_util_get_context(be, file);
+	if (bc != NULL)
+		bfd_util_load_text(bc, st);
+
+	bfd_util_close(be);
+	return TRUE;
+}
+
 #else	/* !HAS_BFD_LIBRARY */
 
 bfd_env_t *
@@ -625,6 +661,15 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 {
 	g_assert(NULL == bc);
 	(void) base;
+}
+
+bool
+bfd_util_load_text_symbols(symbols_t *st, const char *filepath)
+{
+	g_assert(st != NULL);
+	g_assert(filepath != NULL);
+
+	return FALSE;
 }
 
 void
