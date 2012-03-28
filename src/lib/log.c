@@ -82,7 +82,7 @@
 #define LOG_IOERR_GRACE		5		/**< Seconds between I/O errors */
 
 static const char * const log_domains[] = {
-	G_LOG_DOMAIN, "Gtk", "GLib", "Pango"
+	G_LOG_DOMAIN, "Gtk", "Gdk", "GLib", "Pango"
 };
 
 static bool atoms_are_inited;
