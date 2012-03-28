@@ -165,6 +165,7 @@ G_STMT_START { \
 } G_STMT_END
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
+static bool crash_closed;
 
 /**
  * Signals that usually lead to a crash.
@@ -2498,10 +2499,26 @@ crash_post_init(void)
 void
 crash_close(void)
 {
+	crash_closed = TRUE;
+
 	if (vars != NULL) {
 		uint8 t = TRUE;
 		crash_set_var(closed, t);
 	}
+}
+
+/**
+ * Are we done?
+ *
+ * @return TRUE if crash_close() has been called.
+ */
+bool
+crash_is_closed(void)
+{
+	if (vars != NULL)
+		return vars->closed;
+
+	return crash_closed;
 }
 
 /**

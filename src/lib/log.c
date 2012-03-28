@@ -1507,7 +1507,7 @@ log_debug(logagent_t *la, const char *format, ...)
  * Regular log handler used for glib's logging routines (the g_xxx() ones).
  */
 static void
-log_handler(const char *unused_domain, GLogLevelFlags level,
+log_handler(const char *domain, GLogLevelFlags level,
 	const char *message, void *unused_data)
 {
 	int saved_errno = errno;
@@ -1517,7 +1517,6 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 	char *safer;
 	GLogLevelFlags loglvl;
 
-	(void) unused_domain;
 	(void) unused_data;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
@@ -1568,6 +1567,16 @@ log_handler(const char *unused_domain, GLogLevelFlags level,
 
 	if (is_running_on_mingw())
 		fflush(stderr);			/* Unbuffering does not work on Windows */
+
+	/*
+	 * If GTK or Glib is starting to emit critical messages and we're past
+	 * the exit() point, abort.
+	 */
+
+	if G_UNLIKELY(domain != NULL) {
+		if (crash_is_closed())
+			crash_abort();
+	}
 
 #if 0
 	/* Define to debug Glib or Gtk problems */
