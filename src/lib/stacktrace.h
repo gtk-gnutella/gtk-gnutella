@@ -79,7 +79,7 @@ enum stacktrace_sym_quality {
 #define STACKTRACE_F_ADDRESS	(1U << 5)	/**< Display addresses */
 
 /**
- * Hashing /equality functions for "struct stacktracea" atomic traces.
+ * Hashing /equality functions for "struct stacktrace" atomic traces.
  */
 unsigned stack_hash(const void *key) G_GNUC_PURE;
 int stack_eq(const void *a, const void *b) G_GNUC_PURE;
@@ -113,6 +113,7 @@ const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
 bool stacktrace_caller_known(size_t offset);
 const void *stacktrace_routine_start(const void *pc);
+bool stacktrace_pc_within_our_text(const void *pc);
 
 void stacktrace_init(const char *argv0, bool deferred);
 void stacktrace_load_symbols(void);

@@ -790,6 +790,15 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	}
 }
 
+/**
+ * @return whether a PC is from our own executable.
+ */
+bool
+stacktrace_pc_within_our_text(const void *pc)
+{
+	return stack_is_our_text(pc);
+}
+
 /*
  * Return pretty path from source path by using the fact that our sources
  * lie under the "src/" root.
