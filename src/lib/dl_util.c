@@ -43,6 +43,7 @@
 #endif
 
 #include "dl_util.h"
+#include "signal.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -79,6 +80,19 @@ dl_util_done(void)
 	}
 }
 
+static Sigjmp_buf dl_util_env;
+
+/**
+ * Invoked when a fatal signal is received during dladdr().
+ */
+static G_GNUC_COLD void
+dl_util_got_signal(int signo)
+{
+	(void) signo;
+
+	Siglongjmp(dl_util_env, signo);
+}
+
 /**
  * Perform specify operation on the address.
  *
@@ -113,8 +127,29 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 		 */
 
 		if (addr != last_addr) {
+			signal_handler_t old_sigsegv;
+			int ret;
+
 			ZERO(&info);
-			if (0 == dladdr(deconstify_pointer(addr), &info)) {
+
+			/*
+			 * Protect against segmentation faults in dladdr().
+			 *
+			 * We use signal_catch() instead of signal_set() because we
+			 * don't need extra information about the fault context.
+			 */
+
+			old_sigsegv = signal_catch(SIGSEGV, dl_util_got_signal);
+
+			if (Sigsetjmp(dl_util_env, TRUE)) {
+				last_addr = NULL;
+				return NULL;
+			}
+
+			ret = dladdr(deconstify_pointer(addr), &info);
+			signal_set(SIGSEGV, old_sigsegv);
+
+			if (0 == ret) {
 				last_addr = NULL;
 				return NULL;
 			}
