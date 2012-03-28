@@ -1267,7 +1267,30 @@ stacktrace_caller_name(size_t n)
 const char *
 stacktrace_routine_name(const void *pc, bool offset)
 {
-	return symbols_name(symbols, pc, offset);
+	const char *name;
+
+	name = symbols_name_only(symbols, pc, offset);
+
+	/*
+	 * This routine can be called from a signal handler.  We assume it will
+	 * be safe to call dladdr() because that routine should not allocate
+	 * memory but rather inspect the dynamic loader's tables.
+	 *
+	 * However we forbid ourselves to call the BFD library to resolve the
+	 * name because that would force us to request to enter "crash mode" and
+	 * memory allocation may not be safe anyway.
+	 */
+
+	if (NULL == name)
+		name = dl_util_get_name(pc);
+
+	if (NULL == name) {
+		static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
+		str_bprintf(buf, sizeof buf, "%p", pc);
+		name = buf;
+	}
+
+	return name;
 }
 
 /**
