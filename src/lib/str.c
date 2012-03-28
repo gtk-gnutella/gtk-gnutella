@@ -1629,7 +1629,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 	 * more precisely.
 	 */
 
-	if (remain <= need)				/* Cannot fit entirely */
+	if (remain < need)				/* Cannot fit entirely */
 		goto careful;
 
 	/*
@@ -2322,7 +2322,7 @@ G_STMT_START {									\
 		 * more precisely.
 		 */
 
-		if (remain <= need)				/* Cannot fit entirely */
+		if (remain < need)				/* Cannot fit entirely */
 			goto careful;
 
 		/*
