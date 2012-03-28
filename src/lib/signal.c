@@ -33,9 +33,14 @@
 
 #include "common.h"		/* For RCSID */
 
+#ifdef I_UCONTEXT
+#include <ucontext.h>
+#endif
+
 #include "signal.h"
 #include "ckalloc.h"
 #include "crash.h"
+#include "dl_util.h"
 #include "glib-missing.h"       /* For g_strlcpy() */
 #include "log.h"
 #include "misc.h"
@@ -95,8 +100,23 @@ static signal_handler_t signal_handler[SIGNAL_COUNT];
  */
 static ckhunk_t *sig_chunk;
 
+#define SIG_PC_UNKNOWN		(-1)	/* Unknown register offset */
+#define SIG_PC_MULTIPLE		(-2)	/* Multiple registers could match */
+#define SIG_PC_IMPOSSIBLE	(-3)	/* Impossible condition */
+#define SIG_PC_UNAVAILABLE	(-4)	/* Unavailable, we can't access registers */
+
+/**
+ * The index of the general register in the machine context that holds
+ * the Program Counter, the PC.
+ *
+ * If the value is negative, the PC register number is unknown.
+ */
+static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
+
 static const char SIGNAL_NUM[] = "signal #";
 static const char SIG_PREFIX[] = "SIG";
+
+static volatile sig_atomic_t in_signal_handler;
 
 /**
  * Converts signal number to a name.
@@ -160,6 +180,124 @@ signal_name(int signo)
 	return start - CONST_STRLEN(SIGNAL_NUM);
 }
 
+#if defined(HAS_UCONTEXT_MCONTEXT_GREGS) && defined(SA_SIGINFO)
+/*
+ * This section computes the register number in the ucontext_t general
+ * registers that contains the PC.
+ *
+ * In order to do that, we install a POSIX signal handler with SA_SIGINFO,
+ * then trigger a segmentation violation from a known routine and probe the
+ * saved registers in the signal handler to spot one whose value is close
+ * to the address of the routine.
+ */
+
+static Sigjmp_buf sig_pc_env;
+
+/**
+ * Compute the PC register index into ``sig_pc_regnum''.
+ */
+static NO_INLINE void
+sig_compute_pc_index(void)
+{
+	int *p = (int *) 0x10;
+
+	*p = 1;
+	g_assert_not_reached();
+}
+
+/**
+ * Signal handler for the segmentation violation we're creating.
+ */
+static void
+sig_get_pc_handler(int signo, siginfo_t *si, void *u)
+{
+	const ucontext_t *uc = u;
+	unsigned i;
+	bool found = FALSE;
+	ulong caller;
+
+	g_assert(SIGSEGV == signo);
+	g_assert(si != NULL);
+
+	sig_pc_regnum = SIG_PC_UNKNOWN;
+	caller = pointer_to_ulong(cast_func_to_pointer(sig_compute_pc_index));
+
+	for (i = 0; i < G_N_ELEMENTS(uc->uc_mcontext.gregs); i++) {
+		size_t off = uc->uc_mcontext.gregs[i] - caller;
+		if (off < 100) {
+			if (found) {
+				sig_pc_regnum = SIG_PC_MULTIPLE;
+				break;
+			}
+			found = TRUE;
+			sig_pc_regnum = i;
+		}
+	}
+
+	Siglongjmp(sig_pc_env, 1);
+}
+
+/**
+ * Computes the PC register number in the user thread context.
+ *
+ * @return the index in the general register array, -1 if unknown.
+ */
+static int
+sig_get_pc_index(void)
+{
+	struct sigaction sa, osa;
+
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_SIGINFO;
+	sa.sa_sigaction = sig_get_pc_handler;
+
+	if (-1 == sigaction(SIGSEGV, &sa, &osa)) {
+		s_warning("%s: sigaction() setup failed: %m", G_STRFUNC);
+		return -1;
+	}
+
+	if (Sigsetjmp(sig_pc_env, TRUE)) {
+		if (-1 == sigaction(SIGSEGV, &osa, &sa))
+			s_critical("%s: sigaction() restore failed: %m", G_STRFUNC);
+		return sig_pc_regnum;
+	}
+
+	sig_compute_pc_index();
+
+	g_assert_not_reached();
+	return SIG_PC_IMPOSSIBLE;
+}
+
+/**
+ * Extract the value of the PC register from the user thread context.
+ *
+ * @return the PC value, NULL if unknown.
+ */
+static void *
+sig_get_pc(const void *u)
+{
+	const ucontext_t *uc = u;
+
+	if (sig_pc_regnum < 0)
+		return NULL;
+
+	return ulong_to_pointer(uc->uc_mcontext.gregs[sig_pc_regnum]);
+}
+#else	/* !HAS_UCONTEXT_MCONTEXT_GREGS || !SA_SIGINFO */
+static int
+sig_get_pc_index(void)
+{
+	return SIG_PC_UNAVAILABLE;
+}
+
+static void *
+sig_get_pc(const void *u)
+{
+	(void) u;
+	return NULL;
+}
+#endif	/* HAS_UCONTEXT_MCONTEXT_GREGS && SA_SIGINFO */
+
 static volatile sig_atomic_t in_signal_handler;
 
 /**
@@ -222,7 +360,177 @@ signal_trampoline(int signo)
 	}
 }
 
-#ifdef SA_SIGINFO
+#if defined(HAS_SIGACTION) && defined(SA_SIGINFO)
+/**
+ * Decodes the si_code field depending on the signal received.
+ *
+ * @param signo		the signal received
+ * @param code		the si_code field of the siginfo_t structure
+ *
+ * @return textual description, NULL if unknown.
+ */
+static const char *
+signal_decode(int signo, int code)
+{
+	switch (signo) {
+	case SIGFPE:
+		switch (code) {
+#ifdef FPE_INTDIV
+		case FPE_INTDIV:	return "integer divide by zero";
+#endif
+#ifdef FPE_INTOVF
+		case FPE_INTOVF:	return "integer overflow";
+#endif
+#ifdef FPE_FLTDIV
+		case FPE_FLTDIV:	return "floating-point divide by zero";
+#endif
+#ifdef FPE_FLTOVF
+		case FPE_FLTOVF:	return "floating-point overflow";
+#endif
+#ifdef FPE_FLTUND
+		case FPE_FLTUND:	return "floating-point underflow";
+#endif
+#ifdef FPE_FLTRES
+		case FPE_FLTRES:	return "floating-point inexact result";
+#endif
+#ifdef FPE_FLTINV
+		case FPE_FLTINV:	return "floating-point invalid operation";
+#endif
+#ifdef FPE_FLTSUB
+		case FPE_FLTSUB:	return "subscript out of range";
+#endif
+		}
+		break;
+	case SIGILL:
+		switch (code) {
+#ifdef ILL_ILLOPC
+		case ILL_ILLOPC:	return "illegal opcode";
+#endif
+#ifdef ILL_ILLOPN
+		case ILL_ILLOPN:	return "illegal operand";
+#endif
+#ifdef ILL_ILLADR
+		case ILL_ILLADR:	return "illegal addressing mode";
+#endif
+#ifdef ILL_ILLTRP
+		case ILL_ILLTRP:	return "illegal trap";
+#endif
+#ifdef ILL_PRVOPC
+		case ILL_PRVOPC:	return "privileged opcode";
+#endif
+#ifdef ILL_PRVREG
+		case ILL_PRVREG:	return "privileged register";
+#endif
+#ifdef ILL_COPROC
+		case ILL_COPROC:	return "coprocessor error";
+#endif
+#ifdef ILL_BADSTK
+		case ILL_BADSTK:	return "internal stack error";
+#endif
+		}
+		break;
+	case SIGSEGV:
+		switch (code) {
+#ifdef SEGV_MAPERR
+		case SEGV_MAPERR:	return "address not mapped to object";
+#endif
+#ifdef SEGV_ACCERR
+		case SEGV_ACCERR:	return "invalid permissions for mapped object";
+#endif
+		}
+		break;
+#ifdef SIGBUS
+	case SIGBUS:
+		switch (code) {
+#ifdef BUS_ADRALN
+		case BUS_ADRALN:	return "invalid address alignment";
+#endif
+#ifdef BUS_ADRERR
+		case BUS_ADRERR:	return "nonexistent physical address";
+#endif
+#ifdef BUS_OBJERR
+		case BUS_OBJERR:	return "object-specific hardware error";
+#endif
+#ifdef BUS_MCEERR_AR
+		case BUS_MCEERR_AR:	return "h/w memory error consumed on machine check";
+#endif
+#ifdef BUS_MCEERR_AO
+		case BUS_MCEERR_AO:	return "h/w memory error not consumed";
+#endif
+		}
+		break;
+#endif	/* SIGBUS */
+#ifdef SIGTRAP
+	case SIGTRAP:
+		switch (code) {
+#ifdef TRAP_BRKPT
+		case TRAP_BRKPT:	return "process breakpoint";
+#endif
+#ifdef TRAP_TRACE
+		case TRAP_TRACE:	return "process trace trap";
+#endif
+#ifdef TRAP_BRANCH
+		case TRAP_BRANCH:	return "process taken branch trap";
+#endif
+#ifdef TRAP_HWBKPT
+		case TRAP_HWBKPT:	return "hardware breakpoint/watchpoint";
+#endif
+		}
+		break;
+#endif	/* SIGTRAP */
+	default:
+		break;
+	}
+
+	return NULL;
+}
+
+/**
+ * Format exception into supplied buffer.
+ *
+ * @param dest		destination buffer
+ * @param size		size of buffer
+ * @param signo		signal number
+ * @param si		signal information
+ * @param u			user context
+ * @param recursive	whether signal was recursively received
+ */
+static void
+sig_exception_format(char *dest, size_t size,
+	int signo, siginfo_t *si, void *u, bool recursive)
+{
+	const char *reason;
+	const void *pc;
+	str_t s;
+
+	pc = sig_get_pc(u);
+	reason = signal_decode(signo, si->si_code);
+	str_new_buffer(&s, dest, 0, size);
+
+	str_printf(&s, "got %s%s for VA=%p",
+		recursive ? "recursive " : "", signal_name(signo), si->si_addr);
+
+	if (reason != NULL)
+		str_catf(&s, " (%s)", reason);
+
+	if (pc != NULL) {
+		str_catf(&s, " at PC=%p", pc);
+
+		if (!recursive) {
+			const char *name = stacktrace_routine_name(pc, TRUE);
+
+			if (!is_strprefix(name, "0x"))
+				str_catf(&s, " (%s)", name);
+
+			if (!stacktrace_pc_within_our_text(pc)) {
+				const char *file = dl_util_get_path(pc);
+				if (file != NULL)
+					str_catf(&s, " from %s", file);
+			}
+		}
+	}
+}
+
 /**
  * Extended trapping for harmful signals for which we can gather extra
  * information from the siginfo_t structure.
@@ -231,19 +539,43 @@ static void
 signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 {
 	static volatile sig_atomic_t extended;
+	sigset_t set;
 
-	(void) u;
+	in_signal_handler++;
+	extended++;
+
+	/*
+	 * Check whether signal is still pending.
+	 *
+	 * We assume that because sigaction() is available, sigpending() is
+	 * also present.  We know we have sigaction() because this routine
+	 * is only called  from a handler installed with SA_SIGINFO.
+	 *
+	 * If the same signal that is being delivered is still pending, then
+	 * unblocking the signal will immediately recurse here.  Hence it is
+	 * useful to detect that and avoid calling the signal handler.
+	 */
+
+	if (-1 == sigpending(&set)) {
+		s_warning("%s: sigpending() failed: %m", G_STRFUNC);
+	} else if (extended <= 2) {
+		int i;
+
+		for (i = 1; i < SIG_COUNT; i++) {
+			if (sigismember(&set, i)) {
+				s_warning("%s: signal %s still pending",
+					G_STRFUNC, signal_name(i));
+			}
+		}
+	}
 
 	/*
 	 * Log faulting address and propagate that information in the
 	 * crash log as an error message.
 	 */
 
-	in_signal_handler++;
-	extended++;
-
 	{
-		char data[80];
+		static char data[512];
 
 		/*
 		 * This signal handler is handling highly harmful signals, which could
@@ -253,8 +585,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 
 		if (extended > 1) {
 			if (2 == extended) {
-				str_bprintf(data, sizeof data, "got recursive %s for VA=%p",
-					signal_name(signo), si->si_addr);
+				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
 				s_minicrit("%s", data);
 				crash_set_error(data);
 				crash_abort();
@@ -264,17 +595,16 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 				_exit(EXIT_FAILURE);
 			}
 		} else {
-			str_bprintf(data, sizeof data, "got %s for VA=%p",
-				signal_name(signo), si->si_addr);
+			sig_exception_format(data, sizeof data, signo, si, u, FALSE);
 			s_critical("%s", data);
 			crash_set_error(data);
 		}
 	}
-	in_signal_handler--;
 
+	in_signal_handler--;
 	signal_trampoline(signo);
 }
-#endif	/* SA_SIGINFO */
+#endif	/* HAS_SIGACTION && SA_SIGINFO */
 
 /**
  * Installs a signal handler.
@@ -509,6 +839,8 @@ signal_leave_critical(const sigset_t *oset)
 void
 signal_init(void)
 {
+	int regnum;
+
 	if (NULL == sig_chunk) {		/* Allow multiple calls */
 		size_t i;
 
@@ -527,6 +859,27 @@ signal_init(void)
 	}
 
 	g_assert(sig_chunk != NULL);	/* We're initialized now */
+
+	/*
+	 * Compute the PC register index in the saved user machine context.
+	 */
+
+	regnum = sig_get_pc_index();
+
+	switch (regnum) {
+	case SIG_PC_UNAVAILABLE:
+		break;
+	case SIG_PC_UNKNOWN:
+		s_warning("%s: could not compute PC register number", G_STRFUNC);
+		break;
+	case SIG_PC_MULTIPLE:
+		s_warning("%s: multiple registers could hold the PC", G_STRFUNC);
+		break;
+	case SIG_PC_IMPOSSIBLE:
+		g_assert_not_reached();
+	default:
+		break;
+	}
 }
 
 /**

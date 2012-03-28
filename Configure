@@ -18,7 +18,7 @@
 
 # $Id: Head.U 41 2010-11-28 00:21:26Z rmanfredi $
 #
-# Generated on Mon Mar 26 22:32:02 CEST 2012 [metaconfig 3.5-142]
+# Generated on Wed Mar 28 21:50:54 CEST 2012 [metaconfig 3.5-142]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -412,6 +412,7 @@ d_system=''
 clocktype=''
 d_times=''
 d_ttyname=''
+d_uctx_mctx_gregs=''
 d_usleep=''
 d_voidsig=''
 signal_t=''
@@ -517,6 +518,7 @@ i_systime=''
 i_systimek=''
 i_time=''
 timeincl=''
+i_ucontext=''
 i_unistd=''
 i_stdarg=''
 i_varargs=''
@@ -7556,6 +7558,26 @@ cyn=ttyname
 set d_ttyname
 eval $trylink
 
+: see if this is a ucontext.h system
+set ucontext.h i_ucontext
+eval $inhdr
+
+: check for general register access through the ucontext structure
+$cat >try.c <<EOC
+#$i_ucontext I_UCONTEXT
+#ifdef I_UCONTEXT
+#include <ucontext.h>
+#endif
+int main(void)
+{
+	static ucontext_t uc;
+	return uc.uc_mcontext.gregs[0];
+}
+EOC
+cyn="whether 'struct ucontext' has a 'mcontext.gregs[]' member"
+set d_uctx_mctx_gregs
+eval $trylink
+
 : see if we have to deal with yellow pages, now NIS.
 if $test -d /usr/etc/yp || $test -d /etc/yp || $test -d /usr/lib/yp; then
 	if $test -f /usr/etc/nibindd; then
@@ -10589,6 +10611,7 @@ d_sysctl='$d_sysctl'
 d_system='$d_system'
 d_times='$d_times'
 d_ttyname='$d_ttyname'
+d_uctx_mctx_gregs='$d_uctx_mctx_gregs'
 d_uname='$d_uname'
 d_useglib1='$d_useglib1'
 d_useglib2='$d_useglib2'
@@ -10705,6 +10728,7 @@ i_sysutsname='$i_sysutsname'
 i_sysvfs='$i_sysvfs'
 i_syswait='$i_syswait'
 i_time='$i_time'
+i_ucontext='$i_ucontext'
 i_unistd='$i_unistd'
 i_varargs='$i_varargs'
 i_varhdr='$i_varhdr'

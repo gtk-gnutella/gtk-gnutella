@@ -680,6 +680,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_ttyname HAS_TTYNAME	/**/
 
+/* HAS_UCONTEXT_MCONTEXT_GREGS:
+ *	This symbol, if defined, indicates that the C program can access the
+ *	processor's general registers through the gregs[] array in the uc_mcontext
+ *	machine context field from the ucontext_t structure.
+ */
+#$d_uctx_mctx_gregs HAS_UCONTEXT_MCONTEXT_GREGS	/**/
+
 /* HAS_USLEEP:
  *	This symbol, if defined, indicates that the usleep routine is
  *	available to let the process sleep on a sub-second accuracy.
@@ -1006,6 +1013,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$i_time I_TIME		/**/
 #$i_systime I_SYS_TIME		/**/
 #$i_systimek I_SYS_TIME_KERNEL		/**/
+
+/* I_UCONTEXT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <ucontext.h> to get at the user thread context.
+ */
+#$i_ucontext I_UCONTEXT		/**/
 
 /* I_UNISTD:
  *	This symbol, if defined, indicates to the C program that it should
