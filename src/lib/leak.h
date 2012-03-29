@@ -37,6 +37,8 @@
 struct leak_set;
 typedef struct leak_set leak_set_t;
 
+struct stackatom;
+
 /*
  * Public interface.
  */
@@ -44,6 +46,7 @@ typedef struct leak_set leak_set_t;
 leak_set_t *leak_init(void);
 void leak_close_null(leak_set_t **ls_ptr);
 void leak_add(leak_set_t *ls, size_t size, const char *file, int line);
+void leak_stack_add(leak_set_t *ls, size_t size, const struct stackatom *sa);
 void leak_dump(const leak_set_t *ls);
 
 #endif	/* _leak_h_ */
