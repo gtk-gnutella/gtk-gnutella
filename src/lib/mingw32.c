@@ -3173,7 +3173,7 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPREG_EAX			0
 #define OPREG_ECX			1
 #define OPREG_EDX			2
-#define OPREG_EBX			2
+#define OPREG_EBX			3
 #define OPREG_ESP			4
 #define OPREG_EBP			5
 #define OPREG_ESI			6
