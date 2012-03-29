@@ -70,6 +70,7 @@
 #include "cq.h"
 #include "crash.h"
 #include "debug.h"
+#include "dl_util.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
@@ -3990,17 +3991,22 @@ mingw_dladdr(void *addr, Dl_info *info)
 	now = tm_time();
 
 	if (0 == last_init || delta_time(now, last_init) > 5) {
+		static bool initialized;
+
 		process = GetCurrentProcess();
 
-		if (last_init != 0 && 0 == mingw_dl_error)
+		if (initialized)
 			SymCleanup(process);
 
 		if (!SymInitialize(process, 0, TRUE)) {
+			initialized = FALSE;
 			mingw_dl_error = GetLastError();
 			s_warning("SymInitialize() failed: error = %d (%s)",
 				mingw_dl_error, mingw_dlerror());
-		} else
+		} else {
+			initialized = TRUE;
 			mingw_dl_error = 0;
+		}
 
 		last_init = now;
 	}
@@ -4086,14 +4092,18 @@ mingw_exception_to_string(int code)
 static G_GNUC_COLD void
 mingw_exception_log(int code, const void *pc)
 {
-	DECLARE_STR(9);
+	DECLARE_STR(11);
 	char time_buf[18];
 	const char *name;
+	const char *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
 	name = stacktrace_routine_name(pc, TRUE);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
+
+	if (!stacktrace_pc_within_our_text(pc))
+		file = dl_util_get_path(pc);
 
 	print_str(time_buf);										/* 0 */
 	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
@@ -4103,9 +4113,13 @@ mingw_exception_log(int code, const void *pc)
 		print_str(name);										/* 4 */
 		print_str(")");											/* 5 */
 	}
-	print_str(": ");											/* 6 */
-	print_str(mingw_exception_to_string(code));					/* 7 */
-	print_str("\n");											/* 8 */
+	if (file != NULL) {
+		print_str(" from ");									/* 6 */
+		print_str(file);										/* 7 */
+	}
+	print_str(": ");											/* 8 */
+	print_str(mingw_exception_to_string(code));					/* 9 */
+	print_str("\n");											/* 10 */
 
 	flush_err_str();
 	if (log_stdout_is_distinct())
@@ -4116,14 +4130,19 @@ mingw_exception_log(int code, const void *pc)
 	 */
 
 	{
-		char data[128];
+		char data[256];
+		str_t s;
 
-		str_bprintf(data, sizeof data, "%s at PC=%p%s%s%s",
-			mingw_exception_to_string(code), pc,
-			NULL == name ? "" : " (",
-			NULL == name ? "" : name,
-			NULL == name ? "" : ")");
-		crash_set_error(data);
+		str_new_buffer(&s, data, 0, sizeof data);
+		str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
+
+		if (name != NULL)
+			str_catf(&s, " (%s)", name);
+
+		if (file != NULL)
+			str_catf(&s, " from %s", file);
+
+		crash_set_error(str_2c(&s));
 	}
 }
 
