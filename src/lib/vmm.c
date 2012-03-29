@@ -3045,6 +3045,9 @@ page_cache_insert_pages(void *base, size_t n)
 
 	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE);
 
+	if G_UNLIKELY(stop_freeing)
+		return FALSE;
+
 	/*
 	 * Identified memory fragments are immediately freed and not put
 	 * back into the cache, in order to reduce fragmentation of the
@@ -3097,6 +3100,9 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	void *end;
 
 	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
+
+	if G_UNLIKELY(stop_freeing)
+		return FALSE;
 
 	if (pages >= VMM_CACHE_LINES)
 		return FALSE;
