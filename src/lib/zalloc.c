@@ -656,22 +656,19 @@ zblock_log(const char *p, size_t size, void *leakset)
 
 #ifdef MALLOC_FRAMES
 	{
-		const char *q = const_ptr_add_offset(p, OVH_FRAME_OFFSET);
+		const void *q = const_ptr_add_offset(p, OVH_FRAME_OFFSET);
 		const struct frame *f = *(struct frame **) q;
 
 		if (f != INVALID_FRAME_PTR) {
-			stacktrace_atom_decorate(stderr, f->ast,
-				STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+			leak_stack_add(leakset, size, f->ast);
 		} else {
-			s_warning("however frame pointer suggests block %p was freed?",
-				uptr);
+			s_warning("%s: frame pointer suggests %zu-byte block %p was freed?",
+				G_STRFUNC, size, uptr);
 		}
 	}
 #endif
 
-	if (leakset != NULL) {
-		leak_add(leakset, size, file, line);
-	}
+	leak_add(leakset, size, file, line);
 }
 
 /**
