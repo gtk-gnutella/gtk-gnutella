@@ -680,6 +680,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_ttyname HAS_TTYNAME	/**/
 
+/* HAS_UCONTEXT_MCONTEXT:
+ *	This symbol, if defined, indicates that the C program can access the
+ *	processor's general registers through some field in the uc_mcontext
+ *	machine context field from the ucontext_t structure.
+ */
+#$d_uctx_mctx HAS_UCONTEXT_MCONTEXT	/**/
+
 /* HAS_UCONTEXT_MCONTEXT_GREGS:
  *	This symbol, if defined, indicates that the C program can access the
  *	processor's general registers through the gregs[] array in the uc_mcontext

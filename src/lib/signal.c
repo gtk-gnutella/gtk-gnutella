@@ -56,6 +56,10 @@
 #define SIGNAL_CHUNK_SIZE		4000	/**< Safety allocation pool */
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
 
+#if defined(HAS_UCONTEXT_MCONTEXT_GREGS) || defined(HAS_UCONTEXT_MCONTEXT)
+#define USE_UC_MCONTEXT
+#endif
+
 /**
  * Table mapping a signal number with a symbolic name.
  *
@@ -104,6 +108,7 @@ static ckhunk_t *sig_chunk;
 #define SIG_PC_MULTIPLE		(-2)	/* Multiple registers could match */
 #define SIG_PC_IMPOSSIBLE	(-3)	/* Impossible condition */
 #define SIG_PC_UNAVAILABLE	(-4)	/* Unavailable, we can't access registers */
+#define SIG_PC_HIDDEN		(-5)	/* PC hidden in opaque machine context */
 
 /**
  * The index of the general register in the machine context that holds
@@ -180,7 +185,7 @@ signal_name(int signo)
 	return start - CONST_STRLEN(SIGNAL_NUM);
 }
 
-#if defined(HAS_UCONTEXT_MCONTEXT_GREGS) && defined(SA_SIGINFO)
+#if defined(USE_UC_MCONTEXT) && defined(SA_SIGINFO)
 /*
  * This section computes the register number in the ucontext_t general
  * registers that contains the PC.
@@ -205,6 +210,33 @@ sig_compute_pc_index(void)
 	g_assert_not_reached();
 }
 
+/*
+ * Access the machine registers is inherently non-portable.
+ *
+ * The REGISTER_COUNT macro defines the amount of registers we see.
+ * The REGISTER_VALUE macro lets us access a register by index.
+ *
+ * When the gregs[] array is present in the uc_mcontext field, the access
+ * is straightforward.
+ *
+ * When there is no gregs[] array, assume the uc_mcontext field is a structure
+ * containing registers whose size will be that of the "unsigned long" type.
+ * This is a reasonable assumption which should prove correct on many systems.
+ *
+ * The uc_mcontext field could also be a pointer as on OSX, which we'll detect
+ * when REGISTER_COUNT ends up being 1, in which case we're hosed.
+ */
+
+#if defined(HAS_UCONTEXT_MCONTEXT_GREGS)
+#define REGISTER_COUNT		G_N_ELEMENTS(uc->uc_mcontext.gregs)
+#define REGISTER_VALUE(x)	((ulong) uc->uc_mcontext.gregs[x])
+#elif defined(HAS_UCONTEXT_MCONTEXT)
+#define REGISTER_COUNT		(sizeof(uc->uc_mcontext) / sizeof(ulong))
+#define REGISTER_VALUE(x)	((ulong *) &uc->uc_mcontext)[x]
+#else
+#error "impossible situation here"
+#endif
+
 /**
  * Signal handler for the segmentation violation we're creating.
  */
@@ -219,11 +251,23 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	g_assert(SIGSEGV == signo);
 	g_assert(si != NULL);
 
+	if (1 == REGISTER_COUNT) {
+		/*
+		 * The uc_mcontext field is a pointer, sorry.
+		 *
+		 * This is probably OSX, but the exact field name varies depending
+		 * on the OSX version, so the checks are more complex for this
+		 * platform.  For now, OSX users will miss the PC in the crash logs.
+		 */
+		sig_pc_regnum = SIG_PC_HIDDEN;
+		goto done;
+	}
+
 	sig_pc_regnum = SIG_PC_UNKNOWN;
 	caller = pointer_to_ulong(cast_func_to_pointer(sig_compute_pc_index));
 
-	for (i = 0; i < G_N_ELEMENTS(uc->uc_mcontext.gregs); i++) {
-		size_t off = uc->uc_mcontext.gregs[i] - caller;
+	for (i = 0; i < REGISTER_COUNT; i++) {
+		size_t off = REGISTER_VALUE(i) - caller;
 		if (off < 100) {
 			if (found) {
 				sig_pc_regnum = SIG_PC_MULTIPLE;
@@ -234,6 +278,7 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 		}
 	}
 
+done:
 	Siglongjmp(sig_pc_env, 1);
 }
 
@@ -281,9 +326,9 @@ sig_get_pc(const void *u)
 	if (sig_pc_regnum < 0)
 		return NULL;
 
-	return ulong_to_pointer(uc->uc_mcontext.gregs[sig_pc_regnum]);
+	return ulong_to_pointer(REGISTER_VALUE(sig_pc_regnum));
 }
-#else	/* !HAS_UCONTEXT_MCONTEXT_GREGS || !SA_SIGINFO */
+#else	/* !USE_UC_MCONTEXT || !SA_SIGINFO */
 static int
 sig_get_pc_index(void)
 {
@@ -296,7 +341,7 @@ sig_get_pc(const void *u)
 	(void) u;
 	return NULL;
 }
-#endif	/* HAS_UCONTEXT_MCONTEXT_GREGS && SA_SIGINFO */
+#endif	/* USE_UC_MCONTEXT && SA_SIGINFO */
 
 static volatile sig_atomic_t in_signal_handler;
 
@@ -868,12 +913,13 @@ signal_init(void)
 
 	switch (regnum) {
 	case SIG_PC_UNAVAILABLE:
+	case SIG_PC_HIDDEN:
 		break;
 	case SIG_PC_UNKNOWN:
-		s_warning("%s: could not compute PC register number", G_STRFUNC);
+		s_warning("%s: could not find PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_MULTIPLE:
-		s_warning("%s: multiple registers could hold the PC", G_STRFUNC);
+		s_warning("%s: many locations for PC in machine context", G_STRFUNC);
 		break;
 	case SIG_PC_IMPOSSIBLE:
 		g_assert_not_reached();
