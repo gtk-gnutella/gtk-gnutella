@@ -290,7 +290,7 @@ sig_get_pc_index(void)
 	return SIG_PC_UNAVAILABLE;
 }
 
-static void *
+static inline void *
 sig_get_pc(const void *u)
 {
 	(void) u;
