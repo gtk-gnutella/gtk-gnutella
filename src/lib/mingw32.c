@@ -3094,7 +3094,7 @@ mingw_init(void)
 #endif	/* MINGW_BACKTRACE_DEBUG */
 
 #define MINGW_MAX_ROUTINE_LENGTH	0x2000
-#define MINGW_FORWARD_SCAN			12
+#define MINGW_FORWARD_SCAN			32
 #define MINGW_SP_ALIGN				4
 #define MINGW_SP_MASK				(MINGW_SP_ALIGN - 1)
 
