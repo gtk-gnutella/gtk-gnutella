@@ -34,6 +34,7 @@
 #include "pagetable.h"
 #include "misc.h"
 #include "vmm.h"
+#include "xmalloc.h"
 
 #include "override.h"
 
@@ -64,7 +65,7 @@ page_table_new(void)
 	g_assert((size_t)-1 == (uint32)-1);
 	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
-	tab = malloc(sizeof *tab);
+	tab = xpmalloc(sizeof *tab);	/* No walloc() re-routing */
 	g_assert(tab);
 	*tab = zero_page_table;
 	return tab;
