@@ -573,8 +573,8 @@ typedef void (*GCallback) (void);
  */
 #ifndef G_LIKELY
 #if HAS_GCC(3, 4)	/* Just a guess, a Configure check would be better */
-#define G_LIKELY(x)		(__builtin_expect(x, 1))
-#define G_UNLIKELY(x)	(__builtin_expect(x, 0))
+#define G_LIKELY(x)		(__builtin_expect((x), 1))
+#define G_UNLIKELY(x)	(__builtin_expect((x), 0))
 #else /* !GCC >= 3.4 */
 #define G_LIKELY(x)		(x)
 #define G_UNLIKELY(x)	(x)
@@ -699,6 +699,28 @@ typedef void (*GCallback) (void);
 #else
 #define IS_CONSTANT(x)	FALSE
 #endif
+
+/*
+ * Memory pre-fetching requests.
+ *
+ * One can request pre-fetch of a memory location for read or write, and
+ * with a low (default), medium or high expected lifespan in the cache.
+ */
+#if HAS_GCC(3, 0)	/* Just a guess, a Configure check would be better */
+#define G_PREFETCH_R(x)		__builtin_prefetch((x), 0, 0)
+#define G_PREFETCH_W(x)		__builtin_prefetch((x), 1, 0)
+#define G_PREFETCH_MED_R(x)	__builtin_prefetch((x), 0, 1)
+#define G_PREFETCH_MED_W(x)	__builtin_prefetch((x), 1, 1)
+#define G_PREFETCH_HI_R(x)	__builtin_prefetch((x), 0, 3)
+#define G_PREFETCH_HI_W(x)	__builtin_prefetch((x), 1, 3)
+#else /* !GCC >= 3.0 */
+#define G_PREFETCH_R(x)
+#define G_PREFETCH_W(x)
+#define G_PREFETCH_MED_R(x)
+#define G_PREFETCH_MED_W(x)
+#define G_PREFETCH_HI_R(x)
+#define G_PREFETCH_HI_W(x)
+#endif /* GCC >= 3.0 */
 
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
