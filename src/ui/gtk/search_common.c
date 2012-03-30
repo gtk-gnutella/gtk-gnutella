@@ -859,12 +859,6 @@ search_gui_results_set_free(results_set_t *rs)
 {
 	results_set_check(rs);
 
-	/*
-	 * Because no one refers to us any more, we know that our embedded records
-	 * cannot be held in the hash table anymore.  Hence we may call the
-	 * search_free_record() safely, because rc->refcount must be zero.
-	 */
-
 	g_assert(0 == rs->num_recs);
 	g_assert(NULL == rs->records);
 
@@ -893,12 +887,6 @@ search_gui_remove_record(record_t *rc)
 	rs = rc->results_set;
 	results_set_check(rs);
 	rc->results_set = NULL;
-
-	/*
-	 * It is conceivable that some records were used solely by the search
-	 * dropping the result set.  Therefore, if the refcount is not 0,  we
-	 * pass through search_clean_r_set().
-	 */
 
     g_assert(rs->num_recs > 0);
     g_assert(rs->records);

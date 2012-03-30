@@ -201,7 +201,7 @@
  * removals, whilst retaining an O(n) storage space.
  *
  * This implementation takes a node for removal, not a key, hence it can skip
- * the initial node lookup operation, resulting in a O(1) complexity.
+ * the initial node lookup operation.
  */
 
 enum rbcolor {
