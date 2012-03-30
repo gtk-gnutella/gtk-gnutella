@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011-2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,10 +25,10 @@
  * @ingroup lib
  * @file
  *
- * Signal dispatching support.
+ * Signal dispatching and logging support.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011-2012
  */
 
 #include "common.h"		/* For RCSID */
@@ -104,6 +104,13 @@ static signal_handler_t signal_handler[SIGNAL_COUNT];
  */
 static ckhunk_t *sig_chunk;
 
+/**
+ * Various "undefined" values for the PC register number.
+ *
+ * All strictly negative values indicate that the PC cannot be read from the
+ * machine context, a zero or positive value indicates an offset in the
+ * array of machine registers, wherever that is within the machine context.
+ */
 #define SIG_PC_UNKNOWN		(-1)	/* Unknown register offset */
 #define SIG_PC_MULTIPLE		(-2)	/* Multiple registers could match */
 #define SIG_PC_IMPOSSIBLE	(-3)	/* Impossible condition */
@@ -192,8 +199,8 @@ signal_name(int signo)
  *
  * In order to do that, we install a POSIX signal handler with SA_SIGINFO,
  * then trigger a segmentation violation from a known routine and probe the
- * saved registers in the signal handler to spot one whose value is close
- * to the address of the routine.
+ * saved registers in the supplied machine context to spot one whose value
+ * is close to the address of the routine.
  */
 
 static Sigjmp_buf sig_pc_env;
@@ -204,14 +211,20 @@ static Sigjmp_buf sig_pc_env;
 static NO_INLINE void
 sig_compute_pc_index(void)
 {
-	int *p = (int *) 0x10;
+	int *p = (int *) 0x10;		/* Align, avoids possible SIGBUS below */
 
-	*p = 1;
+	/*
+	 * The instruction causing the SIGSEGV should be near the top of the
+	 * routine to make sure we can identify which register was holding
+	 * the faulting PC.
+	 */
+
+	*p = 1;						/* We expect this to raise a SIGSEGV */
 	g_assert_not_reached();
 }
 
 /*
- * Access the machine registers is inherently non-portable.
+ * Accessing the machine registers is inherently non-portable.
  *
  * The REGISTER_COUNT macro defines the amount of registers we see.
  * The REGISTER_VALUE macro lets us access a register by index.
@@ -236,6 +249,8 @@ sig_compute_pc_index(void)
 #else
 #error "impossible situation here"
 #endif
+
+#define SIG_PC_OFFSET_MAX	100		/* Bytes after start of routine */
 
 /**
  * Signal handler for the segmentation violation we're creating.
@@ -268,7 +283,7 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 
 	for (i = 0; i < REGISTER_COUNT; i++) {
 		size_t off = REGISTER_VALUE(i) - caller;
-		if (off < 100) {
+		if (off < SIG_PC_OFFSET_MAX) {
 			if (found) {
 				sig_pc_regnum = SIG_PC_MULTIPLE;
 				break;
@@ -548,12 +563,39 @@ sig_exception_format(char *dest, size_t size,
 	const void *pc;
 	str_t s;
 
-	pc = sig_get_pc(u);
 	reason = signal_decode(signo, si->si_code);
 	str_new_buffer(&s, dest, 0, size);
 
-	str_printf(&s, "got %s%s for VA=%p",
-		recursive ? "recursive " : "", signal_name(signo), si->si_addr);
+	str_printf(&s, "got %s%s",
+		recursive ? "recursive " : "", signal_name(signo));
+
+	/*
+	 * For SIGBUS and SIGSEGV, the si_addr field contains the faulting address.
+	 * For SIGILL, SIGTRAP and SIGFPE signals, si_addr may be the address of the
+	 * faulting instruction, i.e. the current PC.
+	 */
+
+	switch (signo) {
+#ifdef SIGBUS
+	case SIGBUS:
+#endif
+	case SIGSEGV:
+		str_catf(&s, " for VA=%p", si->si_addr);
+		pc = sig_get_pc(u);
+		break;
+#ifdef SIGTRAP
+	case SIGTRAP:
+#endif
+	case SIGFPE:
+	case SIGILL:
+		pc = sig_get_pc(u);
+		if (NULL == pc)
+			pc = si->si_addr;		/* Maybe, so prefer sig_get_pc() */
+		break;
+	default:
+		pc = NULL;
+		break;
+	}
 
 	if (reason != NULL)
 		str_catf(&s, " (%s)", reason);
