@@ -794,6 +794,55 @@ malformed:
 #endif /* TEST_UTF8_DECODER */
 
 /**
+ * Decode a long-character (more than one byte).
+ *
+ * @param s			the second byte of the character
+ * @param uc		the first byte we read
+ * @param retlen	initial amount of chars to expect, updated if char invalid
+ *
+ * @returns the decoded character value.
+ *
+ * If `s' does not point to the second byte of a well-formed UTF-8 character,
+ * `retlen' is set to 0 and the function returns 0.
+ */
+static G_GNUC_HOT uint32
+utf8_decode_large_char_fast(const char *s, uint32 uc, uint *retlen)
+{
+	uchar c = *s;
+	uint i = uc & 0x3F;
+	uint n = *retlen;
+
+	/* The second byte needs special handling */
+
+	if (c > utf8_2nd_byte_tab[i].end || c < utf8_2nd_byte_tab[i].start)
+		goto failure;
+
+	n--;
+	uc &= 0x3F >> n;
+
+	for (;;) {
+		uc = UTF8_ACCUMULATE(uc, c);
+		if (--n == 0)
+			break;
+		c = *++s;
+
+		/* Any further bytes must be in the range 0x80...0xBF. */
+		if (0x80 != (0xC0 & c))
+			goto failure;
+	}
+
+	/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
+	if (0xFFFE == (0xFFFE & uc))
+		goto failure;
+
+	return uc;
+
+failure:
+	*retlen = 0;
+	return 0;
+}
+
+/**
  * This routine is the same as utf8_decode_char() but it is more specialized
  * and is aimed at being fast.  Use it when you don't need warnings and you
  * don't know the length of the string you're reading from.
@@ -818,44 +867,12 @@ utf8_decode_char_fast(const char *s, uint *retlen)
 
 	*retlen = n;
 
-	if (1 != n) {
-		uchar c;
-		uint i;
-
-		if (0 == n)
-			goto failure;
-
-		/* The second byte needs special handling */
-
-		c = *++s;
-		i = uc & 0x3F;
-		if (c > utf8_2nd_byte_tab[i].end || c < utf8_2nd_byte_tab[i].start)
-			goto failure;
-
-		n--;
-		uc &= 0x3F >> n;
-
-		for (;;) {
-			uc = UTF8_ACCUMULATE(uc, c);
-			if (--n == 0)
-				break;
-			c = *++s;
-
-			/* Any further bytes must be in the range 0x80...0xBF. */
-			if (0x80 != (0xC0 & c))
-				goto failure;
-		}
-
-		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
-		if (0xFFFE == (0xFFFE & uc))
-			goto failure;
-	}
-
-	return uc;
-
-failure:
-	*retlen = 0;
-	return 0;
+	if G_UNLIKELY(0 == n)
+		return 0;
+	else if (1 == n)
+		return uc;
+	else
+		return utf8_decode_large_char_fast(s + 1, uc, retlen);
 }
 
 /**
@@ -890,40 +907,14 @@ utf8_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	n = utf8_skip(uc);
 	*retlen = n;
 
-	if (1 != n) {
-		uchar c;
-		uint i;
-
-		if (0 == n || len < n)
-			goto failure;
-
-		/* The second byte needs special handling */
-
-		c = *++s;
-		i = uc & 0x3F;
-		if (c > utf8_2nd_byte_tab[i].end || c < utf8_2nd_byte_tab[i].start)
-			goto failure;
-
-		n--;
-		uc &= 0x3F >> n;
-
-		for (;;) {
-			uc = UTF8_ACCUMULATE(uc, c);
-			if (--n == 0)
-				break;
-			c = *++s;
-
-			/* Any further bytes must be in the range 0x80...0xBF. */
-			if (0x80 != (0xC0 & c))
-				goto failure;
-		}
-
-		/* Check for BOMs (*FFFE) and invalid codepoints (*FFFF) */
-		if (0xFFFE == (0xFFFE & uc))
-			goto failure;
-	}
-
-	return uc;
+	if G_UNLIKELY(0 == n)
+		return 0;
+	else if (1 == n)
+		return uc;
+	else if G_UNLIKELY(len < n)
+		goto failure;
+	else
+		return utf8_decode_large_char_fast(s + 1, uc, retlen);
 
 failure:
 	*retlen = 0;
@@ -939,11 +930,16 @@ failure:
 uint
 utf8_char_len(const char *s)
 {
-	uint clen;
-	if (UTF8_IS_ASCII(*s))
+	uint32 uc = (uchar) *s;
+
+	if (UTF8_IS_ASCII(uc))
 		return 1;
-	(void) utf8_decode_char_fast(s, &clen);
-	return clen;
+	else {
+		uint clen = utf8_skip(uc);
+		
+		(void) utf8_decode_large_char_fast(s + 1, uc, &clen);
+		return clen;
+	}
 }
 
 
@@ -960,9 +956,10 @@ utf8_is_valid_string(const char *src)
 	const char *s;
 	uint clen;
 
-	for (s = src; '\0' != *s; s += clen)
+	for (s = src; '\0' != *s; s += clen) {
 		if (0 == (clen = utf8_char_len(s)))
-				return FALSE;
+			return FALSE;
+	}
 
 	return TRUE;
 }
