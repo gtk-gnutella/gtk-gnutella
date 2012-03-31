@@ -38,6 +38,8 @@
 #define op_t	unsigned long int
 #define OPSIZ	(sizeof(op_t))
 
+#define op_aligned(x)	(0 == ((op_t) (x) & (OPSIZ - 1)))
+
 #endif /* _op_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

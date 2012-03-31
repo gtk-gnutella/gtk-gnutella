@@ -384,8 +384,7 @@ void
 smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
 {
 	array const ary[1] = {
-		{ base, S, cmp, NULL, NULL,
-			OPSIZ == S && 0 == pointer_to_ulong(base) % OPSIZ }
+		{ base, S, cmp, NULL, NULL, OPSIZ == S && op_aligned(base) }
 	};
 
 	g_assert(base != NULL);

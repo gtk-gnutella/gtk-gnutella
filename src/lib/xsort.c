@@ -176,8 +176,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
 	 */
 
 	run = base + (thresh == end ? size : 0);
-	n = (0 == size % OPSIZ && 0 == (base - (char *) 0) % OPSIZ) ?
-		size / OPSIZ : 0;
+	n = (op_aligned(size) && op_aligned(base)) ? size / OPSIZ : 0;
 
 	/* Insertion sort, running from left-hand-side up to right-hand-side */
 
@@ -518,7 +517,7 @@ msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
 
 	tmp = t;
 
-	if (s == OPSIZ && (b1 - (char *) 0) % OPSIZ == 0) {
+	if (s == OPSIZ && op_aligned(b1)) {
 		op_t *otmp = (op_t *) tmp;
 		op_t *ob1 = (op_t *) b1;
 		op_t *ob2 = (op_t *) b2;
