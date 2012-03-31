@@ -405,8 +405,8 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 	struct st_entry *entry;
 	hset_t *seen_keys;
 
-	len = utf8_char_count(s);
-	if ((size_t) -1 == len || len < 2)
+	len = utf8_strlen(s);
+	if (len < 2)
 		return FALSE;
 
 	seen_keys = hset_create(HASH_KEY_SELF, 0);

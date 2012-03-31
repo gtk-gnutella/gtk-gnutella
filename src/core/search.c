@@ -5258,7 +5258,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 			goto failure;
 		} else if (
 			byte_count > MAX_SEARCH_TERM_BYTES ||
-			utf8_char_count(qdup) > MAX_SEARCH_TERM_CHARS
+			utf8_strlen(qdup) > MAX_SEARCH_TERM_CHARS
 		) {
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_warning("rejected too long query string: \"%s\"", qdup);
