@@ -151,6 +151,7 @@ static iconv_t cd_utf8_to_locale = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
 static iconv_t cd_utf8_to_iso8859_1 = (iconv_t) -1;
 
+#define UTF8_CPU_CACHELINE	128		/* Length of cache in bytes, for prefetch */
 
 enum utf8_cd {
 	UTF8_CD_ISO8859_1,
@@ -1037,6 +1038,83 @@ utf8_data_char_count(const char *src, size_t len)
 			return (size_t) -1;
 
 	return n;
+}
+
+#define ONEMASK ((size_t) (-1) / 0xff)	/* 0x01010101 on 32-bit machine */
+
+/**
+ * Quickly compute the amount of UTF-8 codepoints in the string, without
+ * validating that the string is a valid UTF-8 one.
+ *
+ * @param src		a NUL-terminated string buffer, assumed valid UTF-8
+ *
+ * @return the amount of Unicode characters in the string.
+ *
+ * This code was designed by Colin Percival for speed.
+ * See http://www.daemonology.net/blog/2008-06-05-faster-utf8-strlen.html
+ */
+size_t
+utf8_strlen(const char *str)
+{
+	const char * s;
+	size_t count = 0;	/* Bytes which are NOT the first byte of a character */
+	size_t u;
+	unsigned char b;
+
+	/*
+	 * Handle any initial misaligned bytes.
+	 */
+
+	for (s = str; pointer_to_ulong(s) & (sizeof(size_t) - 1); s++) {
+		b = *s;
+
+		if (b == '\0')
+			goto done;		/* Exit if we hit a zero byte. */
+
+		/* Is this byte NOT the first byte of a character? */
+		count += (b >> 7) & ((~b) >> 6);
+	}
+
+	/*
+	 * Handle complete blocks.
+	 *
+	 * This may read more byte than are present in the string, should the
+	 * trailing NUL byte be in the middle of a block.
+	 *
+	 * However, this is safe because we cannot cross any page boundary
+	 * by doing so, hence we cannot incur a memory fault.  This relies
+	 * on the fact that the initial string is NUL-terminated, of course.
+	 */
+
+	for (; ; s += sizeof(size_t)) {
+		G_PREFETCH_R(&s[UTF8_CPU_CACHELINE]); /* Prefetch a cacheline ahead */
+
+		u = *(size_t *) s;		/* Grab 4 or 8 bytes of UTF-8 data */
+
+		if ((u - ONEMASK) & (~u) & (ONEMASK * 0x80))
+			break;				/* Exit loop if there are any zero bytes */
+
+		/* Count bytes which are NOT the first byte of a character. */
+		u = ((u & (ONEMASK * 0x80)) >> 7) & ((~u) >> 6);
+		count += (u * ONEMASK) >> ((sizeof(size_t) - 1) * 8);
+	}
+
+	/*
+	 * Take care of any left-over bytes.
+	 */
+
+	for (; ; s++) {
+		b = *s;
+
+		if (b == '\0')
+			break;			/* Exit if we hit a zero byte */
+
+		/* Is this byte NOT the first byte of a character? */
+		count += (b >> 7) & ((~b) >> 6);
+	}
+
+done:
+	return (s - str) - count;
 }
 
 /**
@@ -6071,6 +6149,8 @@ regression_utf8_strlower(void)
 		len = utf8_strlower(buf, blah, sizeof buf);
 		g_assert(len == CONST_STRLEN(blah));
 		g_assert(0 == strcmp(blah, buf));
+		g_assert(len == utf8_char_count(blah));
+		g_assert(len == utf8_strlen(blah));
 	}
 	
 	{
@@ -6080,12 +6160,15 @@ regression_utf8_strlower(void)
 		};
 		size_t len, size;
 		char *dst;
+		const char *src = cast_to_constpointer(s);
 		
-		len = utf8_strlower(NULL, cast_to_constpointer(s), 0);
+		len = utf8_strlower(NULL, src, 0);
 		size = len + 1;
 		dst = g_malloc(size);
-		len = utf8_strlower(dst, cast_to_constpointer(s), size);
+		len = utf8_strlower(dst, src, size);
 		g_assert(len == size - 1);
+		g_assert(utf8_strlen(dst) == utf8_strlen(src));
+		g_assert(utf8_strlen(dst) == utf8_char_count(dst));
 		G_FREE_NULL(dst);
 	}
 }
@@ -6154,10 +6237,8 @@ regression_utf8_bijection(void)
 		g_assert(len > 0 && len <= 4);
 
 		uc1 = utf8_decode_char_fast(utf8_char, &len1);
-		if (uc != uc1 || len != len1)
-			g_debug("uc=%x uc1=%x, len=%d, len1=%d\n", uc, uc1, len, len1);
-		g_assert(uc == uc1);
-		g_assert(len == len1);
+		g_assert_log(uc == uc1 && len == len1,
+			"uc=%x uc1=%x, len=%d, len1=%d", uc, uc1, len, len1);
 
 #if defined(TEST_UTF8_DECODER)
 		{
@@ -6206,8 +6287,8 @@ regression_utf8_decoder(void)
 		uc2 = utf8_decode_char_less_fast(cast_to_constpointer(&uc), &len2);
 
 #if 0
-			printf("uc=%08X uc1=%x, uc2=%x, len1=%u, len2=%u\n",
-				uc, uc1, uc2, len1, len2);
+		g_debug("uc=%08X uc1=%x, uc2=%x, len1=%u, len2=%u",
+			uc, uc1, uc2, len1, len2);
 #endif
 
 		g_assert(!UNICODE_IS_ILLEGAL(uc1));
@@ -6671,7 +6752,7 @@ regression_utf8_vs_glib2(void)
 			zy = g_malloc0(1024 * sizeof *zy);
 			utf8_to_utf32(t, zy, 1024);
 
-			printf("s=\"%s\"\nt=\"%s\"\n", s, t);
+			g_debug("s=\"%s\"\nt=\"%s\"", s, t);
 
 			for (x = s, y = t; *x != '\0'; x++, y++)
 				if (*x != *y)
@@ -6679,7 +6760,7 @@ regression_utf8_vs_glib2(void)
 
 			uc1 = utf8_decode_char_fast(x, &retlen);
 			uc2 = utf8_decode_char(x, strlen(x), &retlen, TRUE);
-			g_debug("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x\n", x, y, uc1, uc2);
+			g_debug("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x", x, y, uc1, uc2);
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */
 			/*
@@ -6703,10 +6784,8 @@ regression_utf8_vs_glib2(void)
 
 #define REGRESSION(func) \
 G_STMT_START { \
-	printf("REGRESSION: regression_%s", #func); \
-	fflush(stdout); \
+	g_debug("REGRESSION regression_%s()...", #func); \
 	CAT2(regression_,func)(); \
-	printf(" PASSED\n"); \
 } G_STMT_END
 
 G_GNUC_COLD void

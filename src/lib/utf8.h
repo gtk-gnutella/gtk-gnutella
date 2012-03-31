@@ -74,6 +74,7 @@ bool utf8_is_valid_string(const char *s);
 bool utf8_is_valid_data(const char *s, size_t n);
 size_t utf8_char_count(const char *s);
 size_t utf8_data_char_count(const char *src, size_t len);
+size_t utf8_strlen(const char *s);
 size_t utf8_strlcpy(char *dst, const char *src, size_t dst_size);
 size_t utf8_strcpy_max(char *dst, size_t dst_size,
 			const char *src, size_t max_chars);
