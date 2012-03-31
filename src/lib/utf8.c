@@ -987,6 +987,15 @@ utf8_is_valid_data(const char *src, size_t len)
 	return 0 == len;
 }
 
+/**
+ * Slowly count the amount of UTF-8 codepoints in the string, validating
+ * each codepoint for valid encoding.
+ *
+ * @param src		a NUL-terminated string buffer
+ *
+ * @return the amount of Unicode characters, -1 if we found an invalid UTF-8
+ * encoding.
+ */
 size_t
 utf8_char_count(const char *src)
 {
@@ -1001,14 +1010,29 @@ utf8_char_count(const char *src)
 	return n;
 }
 
+/**
+ * Slowly count the amount of UTF-8 codepoints in the string, validating
+ * each codepoint for valid encoding.
+ *
+ * @param src		a string buffer (not necessarily NUL-terminated)
+ * @param len		length of buffer
+ *
+ * @return the amount of Unicode characters, -1 if we found an invalid UTF-8
+ * encoding.
+ */
 size_t
 utf8_data_char_count(const char *src, size_t len)
 {
 	const char *s;
+	size_t rlen;
 	uint clen;
 	size_t n;
 
-	for (s = src, n = 0; (clen = utf8_skip(*s)) >= len; s += clen, n++)
+	for (
+		s = src, n = 0, rlen = len;
+		size_is_positive(rlen) && (clen = utf8_skip(*s)) <= rlen;
+		s += clen, n++, rlen -= clen
+	)
 		if (0 == (utf8_char_len(s)))
 			return (size_t) -1;
 
@@ -3945,7 +3969,6 @@ utf32_compose_hangul(uint32 *src)
 	*p = 0x0000;
 	return p - src;
 }
-
 
 /**
  * Decomposes a single UTF-32 character. This must be used iteratively
