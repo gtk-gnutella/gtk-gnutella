@@ -974,6 +974,7 @@ vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
 		r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
 		m->vb_rptr = f->data;
 		m->vb_end = ptr_add_offset(f->data, held + r);
+		G_PREFETCH_HI_R(m->vb_rptr);
 	} else {
 		/*
 		 * Buffer was converted to UTF-8, we need to convert any more data
@@ -1691,10 +1692,23 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				 * Move to next buffer when current one is fully read.
 				 */
 
-				if (0 == remains) {
+				if G_UNLIKELY(0 == remains) {
 					vxml_parser_remove_buffer(vp, vb);
+
+					/*
+					 * Request cacheline pre-fill of next memory buffer.
+					 */
+
+					if (vp->input != NULL) {
+						vb = vp->input->data;
+						if (VXML_BUFFER_MEMORY == vb->type) {
+							m = vb->u.m;
+							G_PREFETCH_HI_R(m->vb_rptr);
+						}
+					}
 					continue;
 				}
+
 				return remains;
 			}
 		case VXML_BUFFER_FILE:
@@ -1714,7 +1728,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				 */
 
 				vnext = vxml_buffer_read(vb, &error);
-				if (NULL == vnext) {
+				if G_UNLIKELY(NULL == vnext) {
 					if (error) {
 						vxml_fatal_error(vp, VXML_E_IO);
 						return (size_t) -1;
@@ -2223,6 +2237,7 @@ has_buffer:
 	/* FALL THROUGH */
 
 uc_read:
+	G_PREFETCH_HI_R(m->vb_rptr);		/* Prefetch next char we'll read */
 
 	vp->last_uc_generation = m->generation;
 
