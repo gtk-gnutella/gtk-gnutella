@@ -407,6 +407,11 @@ utf8_encode_char(uint32 uc, char *buf, size_t size)
 {
 	uint len, i;
 
+	if (UNICODE_IS_ASCII(uc)) {
+		*buf = uc;
+		return 1;
+	}
+
 	len = utf8_encoded_char_len(uc);
 	if (G_LIKELY(len <= size)) {
 		i = len;
@@ -942,6 +947,26 @@ utf8_char_len(const char *s)
 	}
 }
 
+/**
+ * Computes the length of the UTF-8 character, ignoring invalid encodings.
+ *
+ * This is suitable in operations where we're not going to alter the encoding,
+ * for instance during copy.
+ */
+static inline uint G_GNUC_PURE
+utf8_char_len_probe(const char *s)
+{
+	uint32 uc = (uchar) *s;
+
+	if (UTF8_IS_ASCII(uc))
+		return 1;
+
+	uc &= 0xF0;
+	if (uc < 0xE0)
+		return 2;
+
+	return 0xE0 == uc ? 3 : 4;
+}
 
 /**
  * Determine whether a string is UTF-8 encoded.
@@ -1135,19 +1160,17 @@ utf8_strlcpy(char *dst, const char *src, size_t dst_size)
 		while ('\0' != *s) {
 			size_t clen;
 
-			clen = utf8_char_len(s);
-			clen = MAX(1, clen);
-			if (clen > dst_size)
+			clen = utf8_char_len_probe(s);
+			if G_UNLIKELY(clen > dst_size)
 				break;
 
 			if (clen == 1) {
 				*d++ = *s++;
 				dst_size--;
 			} else {
-				memmove(d, s, clen);
-				d += clen;
-				s += clen;
 				dst_size -= clen;
+				while (clen--)
+					*d++ = *s++;
 			}
 		}
 		*d = '\0';
@@ -1181,9 +1204,8 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
 		while ('\0' != *s && max_chars > 0) {
 			size_t clen;
 
-			clen = utf8_char_len(s);
-			clen = MAX(1, clen);
-			if (clen > dst_size)
+			clen = utf8_char_len_probe(s);
+			if G_UNLIKELY(clen > dst_size)
 				break;
 			max_chars--;
 
@@ -1191,10 +1213,9 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
 				*d++ = *s++;
 				dst_size--;
 			} else {
-				memmove(d, s, clen);
-				d += clen;
-				s += clen;
 				dst_size -= clen;
+				while (clen--)
+					*d++ = *s++;
 			}
 		}
 		*d = '\0';
@@ -2244,37 +2265,55 @@ utf8_enforce_len(char *dst, size_t size, const char *src, size_t src_len)
 	g_assert(size <= INT_MAX);
 	/** TODO: Add overlap check */
 
+#define LOOP_BODY										\
+	if (src_len != (size_t) -1) {						\
+		uint len = utf8_skip(*s);						\
+		/* Break if whole character does not fit */		\
+		if (len > remain)								\
+			break;										\
+		clen = utf8_char_len(s);						\
+		g_assert(clen <= len);							\
+		remain -= clen;									\
+	} else {											\
+		clen = utf8_char_len(s);						\
+	}													\
+														\
+	if (MAX(1, clen) > size)							\
+		break;											\
+														\
+	if (clen < 2) {										\
+		*d++ = 0 == clen ? '_' : *s;					\
+		s++;											\
+		size--;											\
+	} else {											\
+		size -= clen;									\
+		while (clen--)									\
+			*d++ = *s++;								\
+	}
+
 	if (size-- > 0) {
-		while (size_is_positive(remain) && '\0' != *s) {
-			size_t clen;
+		if (size > UTF8_CPU_CACHELINE) {
+			/* Worth pre-fetching data */
+			while (size_is_positive(remain) && '\0' != *s) {
+				size_t clen;
 
-			if (src_len != (size_t) -1) {
-				uint len = utf8_skip(*s);
-				if (len > remain)
-					break;			/* Whole character does not fit */
-				clen = utf8_char_len(s);
-				g_assert(clen <= len);
-				remain -= clen;
-			} else {
-				clen = utf8_char_len(s);
+				G_PREFETCH_R(&s[UTF8_CPU_CACHELINE]);
+				G_PREFETCH_W(&d[UTF8_CPU_CACHELINE]);
+
+				LOOP_BODY
 			}
+		} else {
+			/* Not worth pre-fetching data */
+			while (size_is_positive(remain) && '\0' != *s) {
+				size_t clen;
 
-			if (MAX(1, clen) > size)
-				break;
-
-			if (clen < 2) {
-				*d++ = 0 == clen ? '_' : *s;
-				s++;
-				size--;
-			} else {
-				memmove(d, s, clen);
-				d += clen;
-				s += clen;
-				size -= clen;
+				LOOP_BODY
 			}
 		}
 		*d = '\0';
 	}
+
+#undef LOOP_BODY
 
  	while ('\0' != *s++)
 		d++;
@@ -3613,7 +3652,7 @@ utf32_decompose_lookup(uint32 uc, bool nfkd)
 static uint32
 utf32_uppercase(uint32 uc)
 {
-	if (uc < 0x80)
+	if (UNICODE_IS_ASCII(uc))
 		return is_ascii_lower(uc) ? (uint32) ascii_toupper(uc) : uc;
 
 #define GET_ITEM(i) (utf32_uppercase_lut[(i)].lower)
@@ -3644,7 +3683,7 @@ utf32_uppercase(uint32 uc)
 G_GNUC_HOT uint32
 utf32_lowercase(uint32 uc)
 {
-	if (uc < 0x80)
+	if (UNICODE_IS_ASCII(uc))
 		return is_ascii_upper(uc) ? (uint32) ascii_tolower(uc) : uc;
 
 #define GET_ITEM(i) (utf32_lowercase_lut[(i)].upper)
@@ -4428,50 +4467,67 @@ utf8_remap(char *dst, const char *src, size_t size, utf32_remap_func remap)
 	g_assert(remap != NULL);
 	g_assert(size <= INT_MAX);
 
+	/*
+	 * This function is a hot spot.  Don't bother re-encoding
+	 * the character if it's been remapped to itself: we already
+	 * have the encoded form in the source!
+	 *		--RAM, 2005-08-28
+	 */
+#define LOOP_BODY										\
+	uc = utf8_decode_char_fast(src, &retlen);			\
+	if (uc == 0x0000)									\
+		break;											\
+														\
+	nuc = remap(uc);									\
+	if (nuc == uc) {									\
+		if (retlen > size)								\
+			break;										\
+														\
+		size -= retlen;									\
+		while (retlen-- > 0)							\
+			*dst++ = *src++;							\
+	} else {											\
+		uint utf8_len;									\
+														\
+		utf8_len = utf8_encode_char(nuc, dst, size);	\
+		if (utf8_len == 0 || utf8_len > size)			\
+			break;										\
+														\
+		src += retlen;									\
+		dst += utf8_len;								\
+		size -= utf8_len;								\
+	}
+
 	if (size <= 0) {
 		new_len = 0;
 	} else {
 		const char *dst0 = dst;
 
 		size--;	/* Reserve one byte for the NUL */
-		while (*src != '\0') {
 
-			uc = utf8_decode_char_fast(src, &retlen);
-			if (uc == 0x0000)
-				break;
+		if (size > UTF8_CPU_CACHELINE) {
+			/* Worth pre-fetching data */
+			while (*src != '\0') {
+				G_PREFETCH_R(&src[UTF8_CPU_CACHELINE]);
+				G_PREFETCH_W(&dst[UTF8_CPU_CACHELINE]);
 
-			/*
-			 * This function is a hot spot.  Don't bother re-encoding
-			 * the character if it's been remapped to itself: we already
-			 * have the encoded form in the source!
-			 *		--RAM, 2005-08-28
-			 */
-
-			nuc = remap(uc);
-			if (nuc == uc) {
-				if (retlen > size)
-					break;
-
-				size -= retlen;
-				while (retlen-- > 0)
-					*dst++ = *src++;
-			} else {
-				uint utf8_len;
-
-				utf8_len = utf8_encode_char(nuc, dst, size);
-				if (utf8_len == 0 || utf8_len > size)
-					break;
-
-				src += retlen;
-				dst += utf8_len;
-				size -= utf8_len;
+				LOOP_BODY
+			}
+		} else {
+			/* Not worth pre-fetching data */
+			while (*src != '\0') {
+				LOOP_BODY
 			}
 		}
 		new_len = dst - dst0;
 		*dst = '\0';
 	}
 
+#undef LOOP_BODY
+
 	while (*src != '\0') {
+		G_PREFETCH_R(&src[UTF8_CPU_CACHELINE]);
+
 		uc = utf8_decode_char_fast(src, &retlen);
 		if (uc == 0x0000)
 			break;
@@ -4517,8 +4573,17 @@ utf32_remap(uint32 *dst, const uint32 *src, size_t size,
 		uint32 *end, uc;
 
 		end = &dst[size - 1];
-		for (p = dst; p != end && 0x0000 != (uc = *s); p++, s++) {
-			*p = remap(uc);
+
+		if (size > UTF8_CPU_CACHELINE) {
+			for (p = dst; p != end && 0x0000 != (uc = *s); p++, s++) {
+				G_PREFETCH_R(&s[UTF8_CPU_CACHELINE / sizeof *s]);
+				G_PREFETCH_W(&p[UTF8_CPU_CACHELINE / sizeof *p]);
+				*p = remap(uc);
+			}
+		} else {
+			for (p = dst; p != end && 0x0000 != (uc = *s); p++, s++) {
+				*p = remap(uc);
+			}
 		}
 		*p = 0x0000;
 	}
