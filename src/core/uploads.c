@@ -2807,6 +2807,14 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 
 	upload_check(u);
 
+	/*
+	 * If uploading is disabled, don't access the disk.
+	 * Act as if the file was present, the upload will be refused anyway.
+	 */
+
+	if (!upload_is_enabled())
+		return TRUE;
+
 	fi = shared_file_fileinfo(sf);
 	if (stat(shared_file_path(sf), &sb))
 		goto failure;
