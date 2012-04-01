@@ -2538,7 +2538,7 @@ file_info_unlink(fileinfo_t *fi)
 	 * requesting it are terminated.
 	 */
 
-	file_info_upload_stop(fi, "Partial file removed");
+	file_info_upload_stop(fi, N_("Partial file removed"));
 
 	if (fi->flags & (FI_F_TRANSIENT|FI_F_SEEDING|FI_F_STRIPPED|FI_F_UNLINKED))
 		return;
@@ -4358,7 +4358,7 @@ file_info_reset(fileinfo_t *fi)
 	atom_sha1_free_null(&fi->cha1);
 
 	/* File possibly shared */
-	file_info_upload_stop(fi, "File info being reset");
+	file_info_upload_stop(fi, N_("File info being reset"));
 
 	fi->flags &= ~(FI_F_STRIPPED | FI_F_UNLINKED);
 
