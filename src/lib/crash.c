@@ -156,6 +156,7 @@ struct crash_vars {
 	uint8 pause_process;
 	uint8 dumps_core;
 	uint8 may_restart;
+	uint8 hooks_run;		/**< True when hooks have been run */
 };
 
 #define crash_set_var(name, src) \
@@ -467,6 +468,9 @@ crash_run_hooks(const char *logfile, int logfd)
 	if (NULL == hook)
 		return;
 
+	if (vars != NULL && vars->hooks_run)
+		return;		/* Prevent duplicate run */
+
 	/*
 	 * Let them know we're going to run a hook.
 	 *
@@ -538,6 +542,11 @@ crash_run_hooks(const char *logfile, int logfd)
 		print_str(routine);						/* 1 */
 		print_str("\".\n");						/* 2 */
 		flush_str(fd);
+	}
+
+	if (vars != NULL) {
+		uint8 t = TRUE;
+		crash_set_var(hooks_run, t);
 	}
 
 	/*
@@ -637,7 +646,7 @@ crash_end_of_line(bool forced)
 	char pid_buf[22];
 	char time_buf[18];
 
-	if (!vars->invoke_inspector && !vars->closed)
+	if (!forced && !vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
 	crash_time(time_buf, sizeof time_buf);
@@ -1058,6 +1067,48 @@ crash_fd_close(int fd)
 }
 
 /**
+ * Generate a crash logfile.
+ *
+ * This is used when there is no inspector run, to leave a trace of the crash.
+ */
+static G_GNUC_COLD void
+crash_generate_crashlog(int signo)
+{
+	static char crashlog[MAX_PATH_LEN];
+   	const char *pid_str;
+	char pid_buf[22];
+	char filename[80];
+	int clf;
+	const mode_t mode = S_IRUSR | S_IWUSR;
+	int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
+
+	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	crash_logname(filename, sizeof filename, pid_str);
+	if (vars != NULL && vars->crashdir != NULL) {
+		str_bprintf(crashlog, sizeof crashlog,
+			"%s%c%s", vars->crashdir, G_DIR_SEPARATOR, filename);
+	} else {
+		str_bprintf(crashlog, sizeof crashlog, "%s", filename);
+	}
+	clf = open(crashlog, flags, mode);
+	if (-1 == clf) {
+		char buf[256];
+		str_bprintf(buf, sizeof buf, "cannot create %s: %m", crashlog);
+		s_miniwarn("%s", buf);
+		return;
+	}
+	crash_log_write_header(clf, signo, filename);
+	crash_stack_print_decorated(clf, 2, FALSE);
+	crash_run_hooks(NULL, clf);
+	close(clf);
+	s_minimsg("trace left in %s", crashlog);
+	if (vars != NULL && vars->dumps_core) {
+		bool gotcwd = NULL != getcwd(crashlog, sizeof crashlog);
+		s_minimsg("core dumped in %s", gotcwd ? crashlog : "current directory");
+	}
+}
+
+/**
  * Invoke the inspector process (gdb, or any other program specified at
  * initialization time).
  *
@@ -1168,9 +1219,8 @@ retry_child:
 			 * the parent see the failure.
 			 */
 
-			if (could_fork) {
+			if (could_fork)
 				crash_reset_signals();
-			}
 
 			/*
 			 * If we are retrying the child, don't discard what we can
@@ -1696,10 +1746,10 @@ crash_try_reexec(void)
 		bool gotcwd = NULL != getcwd(dir, sizeof dir);
 
 		if (-1 == chdir(vars->cwd)) {
-			s_warning("%s(): cannot chdir() to \"%s\": %m",
+			s_miniwarn("%s(): cannot chdir() to \"%s\": %m",
 				G_STRFUNC, vars->cwd);
 		} else if (gotcwd && 0 != strcmp(dir, vars->cwd)) {
-			s_message("switched back to directory %s", vars->cwd);
+			s_minimsg("switched back to directory %s", vars->cwd);
 		}
 	}
 
@@ -1722,9 +1772,9 @@ crash_try_reexec(void)
 			str_cat(vars->logstr, vars->argv[i]);
 		}
 
-		s_message("launching %s", str_2c(vars->logstr));
+		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
-		s_message("launching %s with %d argument%s", vars->argv0,
+		s_minimsg("launching %s with %d argument%s", vars->argv0,
 			vars->argc, 1 == vars->argc ? "" : "s");
 	}
 
@@ -2017,12 +2067,12 @@ crash_handler(int signo)
 	if (!recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		if (-1 == chdir(vars->crashdir)) {
 			if (NULL != vars->cwd) {
-				s_warning("cannot chdir() back to \"%s\", "
+				s_miniwarn("cannot chdir() back to \"%s\", "
 					"staying in \"%s\" (errno = %d)",
 					vars->crashdir, vars->cwd, errno);
 				cwd = vars->cwd;
 			} else {
-				s_warning("cannot chdir() back to \"%s\" (errno = %d)",
+				s_miniwarn("cannot chdir() back to \"%s\" (errno = %d)",
 					vars->crashdir, errno);
 			}
 		} else {
@@ -2030,7 +2080,7 @@ crash_handler(int signo)
 		}
 	}
 
-	if (recursive && NULL != vars->crashdir) {
+	if (recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		/*
 		 * We've likely chdir-ed back there when recursing.  It's a better
 		 * default value than "" anyway.
@@ -2059,6 +2109,8 @@ crash_handler(int signo)
 		crash_end_of_line(TRUE);
 		goto the_end;
 	}
+	if (!vars->invoke_inspector)
+		crash_generate_crashlog(signo);
 	crash_end_of_line(FALSE);
 	if (vars->invoke_inspector) {
 		bool hooks;
