@@ -151,7 +151,7 @@ static iconv_t cd_utf8_to_locale = (iconv_t) -1; /** Mainly used for Gtk+ 1.2 */
 static iconv_t cd_utf8_to_filename = (iconv_t) -1;
 static iconv_t cd_utf8_to_iso8859_1 = (iconv_t) -1;
 
-#define UTF8_CPU_CACHELINE	128		/* Length of cache in bytes, for prefetch */
+#define UTF8_CPU_CACHELINE	32		/* Length of cache in bytes, for prefetch */
 
 enum utf8_cd {
 	UTF8_CD_ISO8859_1,
