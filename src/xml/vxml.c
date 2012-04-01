@@ -972,6 +972,7 @@ vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
 
 		memmove(f->data, m->vb_rptr, held);
 		r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
+		m->vb_rptr = f->data;
 		m->vb_end = ptr_add_offset(f->data, held + r);
 	} else {
 		/*
