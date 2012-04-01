@@ -79,6 +79,23 @@
 #endif
 
 /*
+ * When XMALLOC_ALLOW_WALLOC is defined, small blocks are allocated via walloc()
+ * when there are no available blocks in the freelist for that size. This was
+ * the default until xgc() was introduced, in an attempt to fight fragmentation.
+ *
+ * However, with the freelist global coalescing now performed by xgc() in the
+ * background, this no longer seems a good approach as it limits the potential
+ * of coalescing: walloc()-ed blocks are unreacheable, and long-lived blocks
+ * allocated by walloc() prevent garbage collecting of zones.
+ *
+ * Therefore, as of 2012-04-01, we disable walloc() remapping, but keep the
+ * necessary code in place just in case we have to reinstate it.
+ */
+#if 0
+#define XMALLOC_ALLOW_WALLOC	/* Small blocks can use walloc() */
+#endif
+
+/*
  * The VMM layer is based on mmap() and falls back to posix_memalign()
  * or memalign().
  *
@@ -413,6 +430,15 @@ static void *xfl_bucket_alloc(const struct xfreelist *flb,
 static void xmalloc_crash_hook(void);
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
+
+/*
+ * Simplify dead-code removal by gcc, preventing #ifdef hell.
+ */
+#ifdef XMALLOC_ALLOW_WALLOC
+#define allow_walloc()			1
+#else
+#define allow_walloc()			0
+#endif
 
 /**
  * Set debug level.
@@ -2993,8 +3019,8 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		size_t allocated;
 
 		if (
-			len <= WALLOC_MAX - XHEADER_SIZE &&
-			xmalloc_vmm_is_up && can_walloc
+			allow_walloc() &&
+			len <= WALLOC_MAX - XHEADER_SIZE && can_walloc && xmalloc_vmm_is_up
 		) {
 			size_t i = xfl_find_freelist_index(len);
 			struct xfreelist *fl = &xfreelist[i];
@@ -3069,7 +3095,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		 * prefer this method of allocation to minimize freelist fragmentation.
 		 */
 
-		if (can_walloc) {
+		if (allow_walloc() && can_walloc) {
 			size_t wlen = xmalloc_round(size + XHEADER_SIZE);
 
 			/*
@@ -3155,7 +3181,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 void *
 xmalloc(size_t size)
 {
-	return xallocate(size, TRUE, TRUE);
+	return xallocate(size, allow_walloc(), TRUE);
 }
 
 /**
@@ -3877,7 +3903,7 @@ skip_coalescing:
 		struct xheader *nxh;
 		bool converted;
 
-		np = xallocate(size, can_walloc, TRUE);
+		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
 		xstats.realloc_regular_strategy++;
 
 		/*
@@ -4021,7 +4047,7 @@ realloc_from_walloc:
 void *
 xrealloc(void *p, size_t size)
 {
-	return xreallocate(p, size, TRUE);
+	return xreallocate(p, size, allow_walloc());
 }
 
 /**
