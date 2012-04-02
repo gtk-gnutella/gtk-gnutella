@@ -1926,7 +1926,13 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 	struct subzinfo *szi;
 	unsigned idx;
 
+	G_PREFETCH_W(blk);
+	G_PREFETCH_W(&zg->zg_free);
+
 	szi = zgc_find_subzone(zg, blk, NULL);
+
+	G_PREFETCH_W(&szi->szi_free_cnt);
+
 	g_assert(szi != NULL);
 	g_assert(zgc_within_subzone(szi, blk));
 
