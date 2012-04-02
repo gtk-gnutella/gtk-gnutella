@@ -1671,6 +1671,8 @@ xfl_binary_lookup(void **array, const void *p,
 
 	xstats.freelist_binary_lookups++;
 
+	mid = low + (high - low) / 2;
+
 	for (;;) {
 		int c;
 
@@ -1679,7 +1681,6 @@ xfl_binary_lookup(void **array, const void *p,
 			break;
 		}
 
-		mid = low + (high - low) / 2;
 		c = xm_ptr_cmp(p, array[mid]);
 
 		if G_UNLIKELY(0 == c)
@@ -1688,6 +1689,9 @@ xfl_binary_lookup(void **array, const void *p,
 			low = mid + 1;
 		else
 			high = mid - 1;
+
+		mid = low + (high - low) / 2;
+		G_PREFETCH_R(&array[mid]);
 	}
 
 	if (low_ptr != NULL)
@@ -1891,6 +1895,9 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	}
 
 plain_insert:
+
+	G_PREFETCH_W(p);
+	G_PREFETCH_W(&fl->lock);
 
 	fl->count++;
 	if G_LIKELY(sorted)
@@ -3075,6 +3082,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 
 		if (p != NULL) {
 		allocated:
+			G_PREFETCH_HI_W(p);			/* User is going to write in block */
 			xstats.alloc_via_freelist++;
 			xstats.user_blocks++;
 			xstats.user_memory += allocated;
@@ -3137,6 +3145,8 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 			t_debug("XM added %zu bytes of VMM core at %p", vlen, p);
 		}
 
+		G_PREFETCH_HI_W(p);			/* User is going to write in block */
+
 		if (xmalloc_should_split(vlen, len)) {
 			void *split = ptr_add_offset(p, len);
 			xmalloc_freelist_insert(split, vlen-len, FALSE, XM_COALESCE_AFTER);
@@ -3160,6 +3170,7 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		 */
 
 		p = xmalloc_addcore_from_heap(len, can_vmm);
+		G_PREFETCH_HI_W(p);			/* User is going to write in block */
 		xstats.alloc_via_sbrk++;
 		xstats.user_blocks++;
 		xstats.user_memory += len;
@@ -3395,8 +3406,9 @@ xfree(void *p)
 	if G_UNLIKELY(xmalloc_no_wfree)
 		return;
 
-	xh = ptr_add_offset(p, -XHEADER_SIZE);
 	xstats.freeings++;
+	xh = ptr_add_offset(p, -XHEADER_SIZE);
+	G_PREFETCH_R(&xh->length);
 
 	/*
 	 * Handle pointers returned by posix_memalign() and friends that
@@ -4677,6 +4689,12 @@ xgc(void)
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
+		G_PREFETCH_R(&xfreelist[i + 1]);
+		G_PREFETCH_R(&xfreelist[i + 1].lock);
+		G_PREFETCH_W(&xgctx.locked[i + 1]);
+		G_PREFETCH_W(&xgctx.available[i + 1]);
+		G_PREFETCH_W(&xgctx.count[i + 1]);
+
 		if (!mutex_get_try(&fl->lock))
 			continue;
 
@@ -4778,6 +4796,8 @@ xgc(void)
 			const void *p = fl->pointers[j];
 			struct xgc_range key, *xr;
 
+			G_PREFETCH_R(&fl->pointers[j + 1]);
+
 			key.start = p;
 			key.end = const_ptr_add_offset(p, +1);
 			xr = erbtree_lookup(&rbt, &key);
@@ -4824,6 +4844,8 @@ xgc(void)
 
 unlock:
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		G_PREFETCH_W(&xfreelist[i + 1]);
+		G_PREFETCH_W(&xfreelist[i + 1].lock);
 		if (xgctx.locked[i]) {
 			struct xfreelist *fl = &xfreelist[i];
 			mutex_release(&fl->lock);
@@ -5277,7 +5299,7 @@ static G_GNUC_HOT size_t
 xa_lookup(const void *p, size_t *low_ptr)
 {
 	size_t low = 0, high = aligned_count - 1;
-	size_t mid;
+	size_t mid = low + (high - low) / 2;
 
 	/* Binary search */
 
@@ -5289,7 +5311,6 @@ xa_lookup(const void *p, size_t *low_ptr)
 			break;
 		}
 
-		mid = low + (high - low) / 2;
 		item = &aligned[mid];
 
 		if (p > item->start)
@@ -5298,6 +5319,9 @@ xa_lookup(const void *p, size_t *low_ptr)
 			high = mid - 1;
 		else
 			break;				/* Found */
+
+		mid = low + (high - low) / 2;
+		G_PREFETCH_R(&aligned[mid].start);
 	}
 
 	if (low_ptr != NULL)
