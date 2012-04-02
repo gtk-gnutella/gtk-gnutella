@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-04-02 10:48+0200\n"
 "PO-Revision-Date: 2009-03-31 23:39+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norsk (bokmål) <nb@li.org>\n"
@@ -397,6 +397,13 @@ msgstr "Tidsavbrudd"
 msgid "Requeued due to timeout"
 msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
 
+#, fuzzy
+msgid "Partial file removed"
+msgstr "Deling av uferdige filer"
+
+msgid "File info being reset"
+msgstr ""
+
 #, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Laster ned (%s igjen)"
@@ -515,6 +522,9 @@ msgstr "Meldingskveling"
 #, fuzzy
 msgid "Message matched limits"
 msgstr "Størrelsesbegrensninger på Gnutella-meldinger"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr "Ubrukelig pong"
@@ -683,6 +693,9 @@ msgstr "Sendte beskyttet indikering"
 
 msgid "Not an ultra node"
 msgstr "Ikke en ultranode"
+
+msgid "Unknown error"
+msgstr "Ukjent feil"
 
 msgid "Unstable IP address"
 msgstr "Ustabil IP-adresse"
@@ -865,6 +878,9 @@ msgstr "Lesefeil"
 msgid "Got EOF"
 msgstr "Fikk filslutt"
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr "Skrivefeil (Inndatafeil)"
 
@@ -885,20 +901,126 @@ msgstr[1] "Fikk %d verter fra UPD-vertminne %s"
 msgid "Connect back timeout"
 msgstr "Tidsavbrudd for tilbakekobling"
 
+#, fuzzy
+msgid "Request timeout"
+msgstr "Forespørsel sendt"
+
 msgid "Timeout waiting for follow-up"
 msgstr "Tidsavbrudd ved venting på oppfølging"
 
 msgid "Lifetime expired"
 msgstr "Levetiden er utløpt"
 
+msgid "Unauthorized"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Limiting connections from %s"
+msgstr "Arvforbindelser"
+
+msgid "No reason given"
+msgstr ""
+
+#, fuzzy
+msgid "Bad Request"
+msgstr "Siste forespørsel"
+
+#, fuzzy
+msgid "Header too large"
+msgstr "Altfor stor"
+
+#, fuzzy
+msgid "Input buffer full"
+msgstr "Feilet (Inndataminnet er fullt)"
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 msgid "Unable to send GIV"
 msgstr "Klarte ikke sende GIV"
+
+#, fuzzy
+msgid "Not Found"
+msgstr ", utgående"
+
+msgid "File was modified"
+msgstr ""
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Bibliotekstørrelse"
+
+msgid "Moved Permanently"
+msgstr ""
+
+#, fuzzy
+msgid "File index/name mismatch"
+msgstr "Filstørrelsen stemmer ikke"
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+#, fuzzy
+msgid "SHA1 is being recomputed"
+msgstr "Fant upassende SHA1"
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
+msgstr ""
 
 msgid "<Browse Host Request>"
 msgstr "<Forespørsel om å bla i vert>"
 
+#, fuzzy
+msgid "Browse Host Disabled"
+msgstr "<Bla i personen %s>"
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+#, fuzzy
+msgid "Not Modified"
+msgstr "Endret"
+
 msgid "Stalling upload replaced"
 msgstr "Stoppende opplasting erstattet"
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "Sender forespørsel"
+
+#, fuzzy
+msgid "Requested range not satisfiable"
+msgstr "%sDen forespurte delen er ikke tilgjengelig ennå"
+
+#, fuzzy
+msgid "Requested range not available yet"
+msgstr "%sDen forespurte delen er ikke tilgjengelig ennå"
+
+#, fuzzy
+msgid "Queue full"
+msgstr "Køen er frosset"
+
+#, fuzzy
+msgid "Another connection is still active"
+msgstr "Gnet-forbindelser er slått av"
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum retry delay"
+msgstr "Minste filstørrelse"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -906,6 +1028,10 @@ msgstr "Lagt i kø (plass %d, forventes ferdig: %s)"
 
 msgid "Cannot send whole HTTP status"
 msgstr "Klarte ikke sende hele HTTP-statusen"
+
+#, fuzzy
+msgid "Not Acceptable"
+msgstr "Protokollen er ikke akseptabel"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -922,6 +1048,34 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", delt opp"
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+#, fuzzy
+msgid "Not Implemented"
+msgstr "ferdig"
+
+#, fuzzy
+msgid "No Content Allowed"
+msgstr "Ingen informasjon om innholdslengde"
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+#, fuzzy
+msgid "Missing Host Header"
+msgstr "Manglende portnummer"
+
+#, fuzzy
+msgid "Sharing currently disabled"
+msgstr "I bruk"
 
 msgid "Write exception"
 msgstr "Klarte ikke skrive"
@@ -3396,6 +3550,28 @@ msgstr "Feilsøkingsnivå for meldingsdirigering."
 msgid "Debug level for GUID management."
 msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
 
+#, fuzzy
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr "Feilsøkingsnivå for UDP-trafikklaget."
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
 msgid "disable"
 msgstr "slå av"
 
@@ -3953,6 +4129,10 @@ msgid ""
 "Whether session-only searches which happen to have pending downloads should "
 "be restarted when gtk-gnutella is launched."
 msgstr ""
+
+#, fuzzy
+msgid "Discard search results coming from servents with a banned GUID."
+msgstr "Ignorer søkeresultater som vurderes som falske."
 
 msgid "Anonymizing proxies"
 msgstr "Anonymiserende mellomtjenere"
@@ -4826,6 +5006,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "Ukjent operasjon"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "Ukjent operasjon"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "Ukjent operasjon"
 
@@ -4908,6 +5092,10 @@ msgid "Invalid command syntax"
 msgstr "Ugyldig kommandoform"
 
 msgid "too many arguments in command"
+msgstr ""
+
+#, c-format
+msgid "un-parseable argument #%u in command"
 msgstr ""
 
 msgid "Malformed command"
@@ -5127,9 +5315,6 @@ msgstr "Forespørsel sendt"
 #, fuzzy
 msgid "Awaiting data"
 msgstr "Venter"
-
-msgid "Unknown error"
-msgstr "Ukjent feil"
 
 #, c-format
 msgid "Retry in %us"
@@ -5408,6 +5593,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr "DHT rutingstabellens oppstoppede noder"
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr "Duplikater med høyere TTL"
 
@@ -5511,6 +5699,9 @@ msgstr "UTF-8-spørringer"
 #, fuzzy
 msgid "GUESS queries (0.2)"
 msgstr "UTF-8-spørringer"
+
+msgid "GUESS link cache size"
+msgstr ""
 
 #, fuzzy
 msgid "GUESS cached query keys held"
@@ -5749,6 +5940,10 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Gjenoppta kildeløse nedlastinger via søketreff"
 
 msgid "DHT estimated amount of nodes"
+msgstr "DHT beregnet mengde noder"
+
+#, fuzzy
+msgid "DHT standard error of estimated amount of nodes"
 msgstr "DHT beregnet mengde noder"
 
 #, fuzzy
@@ -8098,6 +8293,10 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr "OOB-treff som bærer fremmed IP-adresse"
 
+#, fuzzy
+msgid "Discard results bearing a banned GUID"
+msgstr "OOB-treff som bærer fremmed IP-adresse"
+
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
@@ -8699,6 +8898,10 @@ msgstr "Maskininformasjon"
 msgid "Hostname"
 msgstr "Vertnavn"
 
+#, fuzzy
+msgid "banned"
+msgstr "Bannlyst: %s"
+
 msgid "Servent ID"
 msgstr "Tjenent-ID:"
 
@@ -8957,9 +9160,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 
 #~ msgid "Can't reach host (Push or Direct)"
 #~ msgstr "Klarte ikke nå maskinen (dytt eller direkte)"
-
-#~ msgid "Banned: %s"
-#~ msgstr "Bannlyst: %s"
 
 #~ msgid "Banned for %s"
 #~ msgstr "Bannlyst for %s"

@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-04-02 10:48+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -466,6 +466,13 @@ msgstr "タイムアウト"
 msgid "Requeued due to timeout"
 msgstr "キューに戻されました (タイムアウト)"
 
+#, fuzzy
+msgid "Partial file removed"
+msgstr "部分ファイル共有"
+
+msgid "File info being reset"
+msgstr ""
+
 #, c-format
 msgid "Downloading (TR: %s)"
 msgstr "ダウンロード中 (残り時間: %s)"
@@ -597,6 +604,9 @@ msgstr "メッセージスロットル"
 #, fuzzy
 msgid "Message matched limits"
 msgstr "メッセージサイズの制限"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr "無効なPong"
@@ -772,6 +782,9 @@ msgstr "保護ノードである事を知らせました"
 # FIXME: node -> peer
 msgid "Not an ultra node"
 msgstr "ウルトラピアではありません"
+
+msgid "Unknown error"
+msgstr "不明なエラー"
 
 # FIXME: how's unstable?
 msgid "Unstable IP address"
@@ -955,6 +968,9 @@ msgstr "読込エラー"
 msgid "Got EOF"
 msgstr "EOFを受信しました"
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr "書込み失敗 (入力例外が発生しました)"
 
@@ -974,20 +990,126 @@ msgstr[0] "UDP ホストキャッシュ %2$s から %1$d 基のホストを取�
 msgid "Connect back timeout"
 msgstr "折り返しの接続がタイムアウトしました"
 
+#, fuzzy
+msgid "Request timeout"
+msgstr "リクエストを送信しました"
+
 msgid "Timeout waiting for follow-up"
 msgstr "後続リクエストの待合せがタイムアウトしました"
 
 msgid "Lifetime expired"
 msgstr "有効期限が切れました"
 
+msgid "Unauthorized"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Limiting connections from %s"
+msgstr "制限接続"
+
+msgid "No reason given"
+msgstr ""
+
+#, fuzzy
+msgid "Bad Request"
+msgstr "最新リクエスト"
+
+#, fuzzy
+msgid "Header too large"
+msgstr "遥かに大き過ぎる"
+
+#, fuzzy
+msgid "Input buffer full"
+msgstr "失敗しました (入力バッファが一杯です)"
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 msgid "Unable to send GIV"
 msgstr "GIV を送信できません"
+
+#, fuzzy
+msgid "Not Found"
+msgstr ", 送信"
+
+msgid "File was modified"
+msgstr ""
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "ライブラリーの大きさ"
+
+msgid "Moved Permanently"
+msgstr ""
+
+#, fuzzy
+msgid "File index/name mismatch"
+msgstr "ファイルサイズが一致しません"
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+#, fuzzy
+msgid "SHA1 is being recomputed"
+msgstr "SHA1が一致しません"
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
+msgstr ""
 
 msgid "<Browse Host Request>"
 msgstr "<ホスト参照リクエスト>"
 
+#, fuzzy
+msgid "Browse Host Disabled"
+msgstr "<ホスト %s の参照>"
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+#, fuzzy
+msgid "Not Modified"
+msgstr "変更日"
+
 msgid "Stalling upload replaced"
 msgstr "停滞中のアップロードが置換えられました"
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "リクエストを送信しています"
+
+#, fuzzy
+msgid "Requested range not satisfiable"
+msgstr "%sまだリクエスト範囲を取得できる状況にありません"
+
+#, fuzzy
+msgid "Requested range not available yet"
+msgstr "%sまだリクエスト範囲を取得できる状況にありません"
+
+#, fuzzy
+msgid "Queue full"
+msgstr "キューが凍結されました"
+
+#, fuzzy
+msgid "Another connection is still active"
+msgstr "Gnet 接続が無効になっています"
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum retry delay"
+msgstr "最小のファイルサイズ"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -995,6 +1117,10 @@ msgstr "待機中 (スロット %d, 予定時間: %s)"
 
 msgid "Cannot send whole HTTP status"
 msgstr "HTTPステータス全体を送信できません"
+
+#, fuzzy
+msgid "Not Acceptable"
+msgstr "このプロトコルは受け付けられません"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -1014,6 +1140,42 @@ msgstr ", gzip"
 # FIXME: wtf
 msgid ", chunked"
 msgstr ", チャンク化"
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
+#, fuzzy
+msgid "Not Implemented"
+msgstr "完了した時"
+
+#, fuzzy
+msgid "No Content Allowed"
+msgstr "コンテンツの長さを示すヘッダーがありません"
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+#, fuzzy
+msgid "Missing Host Header"
+msgstr "ポート番号が指定されていません。"
+
+#, fuzzy
+msgid "Sharing currently disabled"
+msgstr "現在の使用数"
 
 msgid "Write exception"
 msgstr "書込み例外が発生しました"
@@ -3439,6 +3601,28 @@ msgstr "メッセージ経路制御のデバッグレベルです。"
 msgid "Debug level for GUID management."
 msgstr "ホスト管理機能のデバッグレベルです。"
 
+#, fuzzy
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr "UDP トラフィックレイヤのデバッグレベルです。"
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -3992,6 +4176,10 @@ msgid ""
 "Whether session-only searches which happen to have pending downloads should "
 "be restarted when gtk-gnutella is launched."
 msgstr ""
+
+#, fuzzy
+msgid "Discard search results coming from servents with a banned GUID."
+msgstr "スパムと思われる検索結果を破棄します。"
 
 msgid "Anonymizing proxies"
 msgstr "匿名プロキシサーバー"
@@ -4865,6 +5053,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "不明な操作です"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "不明な操作です"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "不明な操作です"
 
@@ -4947,6 +5139,10 @@ msgid "Invalid command syntax"
 msgstr "無効なコマンド行です"
 
 msgid "too many arguments in command"
+msgstr "引数が多すぎます"
+
+#, fuzzy, c-format
+msgid "un-parseable argument #%u in command"
 msgstr "引数が多すぎます"
 
 msgid "Malformed command"
@@ -5227,9 +5423,6 @@ msgstr "リクエストを送信しました"
 #, fuzzy
 msgid "Awaiting data"
 msgstr "待受中"
-
-msgid "Unknown error"
-msgstr "不明なエラー"
 
 #, c-format
 msgid "Retry in %us"
@@ -5517,6 +5710,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr ""
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 # XXX: wtf
 msgid "Duplicates with higher TTL"
 msgstr "高TTLでの重複"
@@ -5636,6 +5832,9 @@ msgstr "UTF8検索クエリー"
 #, fuzzy
 msgid "GUESS queries (0.2)"
 msgstr "UTF8検索クエリー"
+
+msgid "GUESS link cache size"
+msgstr ""
 
 msgid "GUESS cached query keys held"
 msgstr ""
@@ -5874,6 +6073,9 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "ダウンロードのデバッグレベルです。"
 
 msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
 msgstr ""
 
 msgid "DHT k-ball theoretical frontier (bits)"
@@ -8287,6 +8489,11 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr "無関係なIPアドレスに関するOOBヒット"
 
+# XXX: wtf
+#, fuzzy
+msgid "Discard results bearing a banned GUID"
+msgstr "無関係なIPアドレスに関するOOBヒット"
+
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
@@ -8931,6 +9138,10 @@ msgstr "ホスト情報"
 msgid "Hostname"
 msgstr "ホスト名"
 
+#, fuzzy
+msgid "banned"
+msgstr "禁止されました: %s"
+
 msgid "Servent ID"
 msgstr "サーバントID"
 
@@ -9185,9 +9396,6 @@ msgstr "QUEUE送信完了、ヘッダーを待受中..."
 
 #~ msgid "Can't reach host (Push or Direct)"
 #~ msgstr "ホストに到達できません (PUSHまたは直接)"
-
-#~ msgid "Banned: %s"
-#~ msgstr "禁止されました: %s"
 
 #~ msgid "Banned for %s"
 #~ msgstr "%s を禁止します"

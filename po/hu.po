@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-04-02 10:48+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -427,6 +427,13 @@ msgstr "Türelmi idő"
 msgid "Requeued due to timeout"
 msgstr "Adatokat igazítva újra sorbaállítva"
 
+#, fuzzy
+msgid "Partial file removed"
+msgstr "Részleges fájlmegosztás (zsúfolás)"
+
+msgid "File info being reset"
+msgstr ""
+
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
 msgstr "Letöltés (%.1f k/s)"
@@ -547,6 +554,9 @@ msgstr "Üzenetdobás"
 #, fuzzy
 msgid "Message matched limits"
 msgstr "gnutellaNet üzenetméret korlátok"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr "Használhatatlan kop"
@@ -722,6 +732,10 @@ msgstr ""
 #, fuzzy
 msgid "Not an ultra node"
 msgstr "Átjátszó üzemmód"
+
+#, fuzzy
+msgid "Unknown error"
+msgstr "Ismeretlen hiba"
 
 #, fuzzy
 msgid "Unstable IP address"
@@ -914,6 +928,9 @@ msgstr ""
 msgid "Got EOF"
 msgstr ""
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr ""
 
@@ -935,6 +952,10 @@ msgstr[1] ""
 msgid "Connect back timeout"
 msgstr "Csatlakozás türelmi ideje lejárt"
 
+#, fuzzy
+msgid "Request timeout"
+msgstr "Kérelem elküldve"
+
 msgid "Timeout waiting for follow-up"
 msgstr ""
 
@@ -942,21 +963,122 @@ msgstr ""
 msgid "Lifetime expired"
 msgstr "lejárt"
 
+msgid "Unauthorized"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Limiting connections from %s"
+msgstr "Hagyományos kapcsolatok"
+
+msgid "No reason given"
+msgstr ""
+
+#, fuzzy
+msgid "Bad Request"
+msgstr "Utolsó átállás"
+
+#, fuzzy
+msgid "Header too large"
+msgstr "Túlontúl nagy"
+
+msgid "Input buffer full"
+msgstr ""
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 #, fuzzy
 msgid "Unable to send GIV"
 msgstr "Nyomás elküldése sikertelen"
 
+msgid "Not Found"
+msgstr ""
+
+msgid "File was modified"
+msgstr ""
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Könyvtárméret"
+
+msgid "Moved Permanently"
+msgstr ""
+
+#, fuzzy
+msgid "File index/name mismatch"
+msgstr "URN fájlinfó eltérés"
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+#, fuzzy
+msgid "SHA1 is being recomputed"
+msgstr "SHA1 eltérés érzékelve"
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
+msgstr ""
+
 msgid "<Browse Host Request>"
 msgstr ""
 
+#, fuzzy
+msgid "Browse Host Disabled"
+msgstr "_Tallóz"
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+#, fuzzy
+msgid "Not Modified"
+msgstr "Nincs tűzfalazva"
+
 msgid "Stalling upload replaced"
 msgstr ""
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "Kérelem elküldése"
+
+msgid "Requested range not satisfiable"
+msgstr ""
+
+msgid "Requested range not available yet"
+msgstr ""
+
+#, fuzzy
+msgid "Queue full"
+msgstr "Sorban"
+
+#, fuzzy
+msgid "Another connection is still active"
+msgstr "gNet kapcsolatok"
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum retry delay"
+msgstr "legkisebb méret"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
 msgstr ""
 
 msgid "Cannot send whole HTTP status"
+msgstr ""
+
+msgid "Not Acceptable"
 msgstr ""
 
 #, c-format
@@ -975,6 +1097,32 @@ msgstr ""
 
 msgid ", chunked"
 msgstr ""
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+#, fuzzy
+msgid "Not Implemented"
+msgstr "Befejezve"
+
+msgid "No Content Allowed"
+msgstr ""
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+msgid "Missing Host Header"
+msgstr ""
+
+#, fuzzy
+msgid "Sharing currently disabled"
+msgstr "Jelenleg használt"
 
 msgid "Write exception"
 msgstr ""
@@ -3463,6 +3611,28 @@ msgid "Debug level for GUID management."
 msgstr "A gui hibajavítási szintje"
 
 #, fuzzy
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr "A gui hibajavítási szintje"
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -4090,6 +4260,9 @@ msgstr ""
 msgid ""
 "Whether session-only searches which happen to have pending downloads should "
 "be restarted when gtk-gnutella is launched."
+msgstr ""
+
+msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -4999,6 +5172,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "Ismeretlen hiba"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "Ismeretlen hiba"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "Ismeretlen hiba"
 
@@ -5088,6 +5265,10 @@ msgid "Invalid command syntax"
 msgstr ""
 
 msgid "too many arguments in command"
+msgstr ""
+
+#, c-format
+msgid "un-parseable argument #%u in command"
 msgstr ""
 
 msgid "Malformed command"
@@ -5320,10 +5501,6 @@ msgstr "Kérelem elküldve"
 #, fuzzy
 msgid "Awaiting data"
 msgstr "Várakozás"
-
-#, fuzzy
-msgid "Unknown error"
-msgstr "Ismeretlen hiba"
 
 #, fuzzy, c-format
 msgid "Retry in %us"
@@ -5622,6 +5799,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr ""
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 #, fuzzy
 msgid "Duplicates with higher TTL"
 msgstr "E keresés megkettőzése"
@@ -5725,6 +5905,9 @@ msgstr "UTF-8-keresések"
 #, fuzzy
 msgid "GUESS queries (0.2)"
 msgstr "UTF-8-keresések"
+
+msgid "GUESS link cache size"
+msgstr ""
 
 msgid "GUESS cached query keys held"
 msgstr ""
@@ -5960,6 +6143,9 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "A gui hibajavítási szintje"
 
 msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
 msgstr ""
 
 msgid "DHT k-ball theoretical frontier (bits)"
@@ -8436,6 +8622,10 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
+#, fuzzy
+msgid "Discard results bearing a banned GUID"
+msgstr "Üzenet a kitiltott GUID-nek"
+
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
@@ -9067,6 +9257,10 @@ msgstr "Részletes tájékoztató"
 #, fuzzy
 msgid "Hostname"
 msgstr "Gazdatár"
+
+#, fuzzy
+msgid "banned"
+msgstr "Ok"
 
 #, fuzzy
 msgid "Servent ID"
