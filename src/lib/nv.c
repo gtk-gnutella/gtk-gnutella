@@ -52,6 +52,7 @@
 #include "nv.h"
 #include "atoms.h"
 #include "halloc.h"
+#include "hashing.h"
 #include "hashlist.h"
 #include "htable.h"
 #include "unsigned.h"
@@ -363,7 +364,7 @@ nv_pair_hash(const void *key)
 {
 	const nv_pair_t *nv = key;
 
-	return g_str_hash(nv->name);
+	return string_mix_hash(nv->name);
 }
 
 /**

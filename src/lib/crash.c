@@ -85,6 +85,7 @@
 #include "file.h"
 #include "getcpucount.h"
 #include "halloc.h"
+#include "hashing.h"
 #include "hashtable.h"
 #include "iovec.h"
 #include "log.h"
@@ -2147,12 +2148,6 @@ the_end:
 	raise(SIGABRT);			/* This is the end of our road */
 }
 
-static size_t
-str_hash(const void *p)
-{
-	return g_str_hash(p);
-}
-
 static void *
 crash_ck_allocator(void *allocator, size_t len)
 {
@@ -2345,7 +2340,7 @@ crash_init(const char *argv0, const char *progname,
 		crash_set_var(hookmem, hookmem);
 
 		ht = hash_table_new_special_full(crash_ck_allocator, hookmem,
-			str_hash, g_str_equal);
+			string_mix_hash, string_eq);
 		crash_set_var(hooks, ht);
 
 		hash_table_readonly(ht);
