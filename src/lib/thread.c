@@ -121,15 +121,20 @@ static spinlock_t thread_priv_slk = SPINLOCK_INIT;
 static hash_table_t *
 thread_get_private_hash(void)
 {
-	thread_t t = thread_current();
+	thread_t t;
 	hash_table_t *ght;
 	hash_table_t *pht;
 	static struct thread_priv_cache cached;
+
+	G_PREFETCH_R(&cached);
+	G_PREFETCH_W(&thread_priv_slk);
 
 	/*
 	 * Look whether we already determined the thread-private hash table
 	 * for this thread earlier.
 	 */
+
+	t = thread_current();
 
 	spinlock(&thread_priv_slk);
 	if (thread_eq(t, cached.t) && cached.pht != NULL) {
