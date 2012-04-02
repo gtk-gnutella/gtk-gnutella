@@ -192,7 +192,7 @@ urlinfo_hash2(const void *key)
 	hash = host_addr_hash2(info->addr);
 	hash ^= port_hash2(info->port);
 	hash ^= integer_hash2(info->idx);
-	hash ^= string_hash(info->name);
+	hash ^= string_mix_hash(info->name);
 
 	return hash;
 }
