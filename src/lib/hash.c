@@ -440,7 +440,7 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
-static bool
+static G_GNUC_HOT bool
 hash_keyset_lookup(struct hkeys *hk, const void *key,
 	unsigned *hashed, size_t *kidx, size_t *tombidx, bool known)
 {
@@ -535,21 +535,25 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 	 * the slots or stop when it reaches a free slot.
 	 */
 
+	hops = 1;
 	nidx = (idx + inc) & mask;
 	ih = hk->hashes[nidx];
-	hops = 1;
 
 	while (!HASH_IS_FREE(ih) && nidx != idx) {
+		size_t aidx = (nidx + inc) & mask;
+		G_PREFETCH_R(&hk->hashes[aidx]);
 		if (ih == hv && hash_keyset_equals(hk, hk->keys[nidx], key)) {
 			found = TRUE;
 			break;
 		} else if ((size_t) -1 == first_tomb && HASH_IS_TOMB(ih)) {
 			first_tomb = nidx;
 		}
-		nidx = (nidx + inc) & mask;
+		nidx = aidx;
 		ih = hk->hashes[nidx];
 		hops++;
 	}
+
+	G_PREFETCH_W(kidx);
 
 	/*
 	 * When lookups go through too many hops before ending, flag for a resizing
