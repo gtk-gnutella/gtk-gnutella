@@ -34,6 +34,8 @@
 #ifndef _spinlock_h_
 #define _spinlock_h_
 
+#include "atomic.h"		/* For atomic_lock_t */
+
 #if 1
 #define SPINLOCK_DEBUG
 #endif
@@ -51,7 +53,7 @@ enum spinlock_magic {
  */
 typedef struct spinlock {
 	enum spinlock_magic magic;
-	int lock;
+	atomic_lock_t lock;
 #ifdef SPINLOCK_DEBUG
 	const char *file;
 	unsigned line;

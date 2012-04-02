@@ -156,6 +156,13 @@ mutex_grab(mutex_t *m)
 {
 	mutex_check(m);
 
+	/*
+	 * We dispense with memory barriers after getting the spinlock because
+	 * the atomic test-and-set instruction should act as an acquire barrier,
+	 * meaning that anything we write after the lock cannot be moved before
+	 * by the memory logic.
+	 */
+
 	if (spinlock_try(&m->lock)) {
 		thread_t t = thread_current();
 		thread_set(m->owner, t);
@@ -169,7 +176,6 @@ mutex_grab(mutex_t *m)
 		thread_set(m->owner, t);
 		m->depth = 1;
 	}
-	atomic_mb();
 }
 
 /**
@@ -192,7 +198,6 @@ mutex_grab_try(mutex_t *m)
 		return FALSE;
 	}
 
-	atomic_mb();
 	return TRUE;
 }
 
@@ -242,10 +247,8 @@ mutex_release(mutex_t *m)
 
 	if (0 == --m->depth) {
 		m->owner = 0;
-		spinunlock(&m->lock);
+		spinunlock(&m->lock);	/* Acts as a "release barrier" */
 	}
-
-	atomic_mb();
 }
 
 /**

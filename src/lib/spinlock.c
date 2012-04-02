@@ -220,8 +220,12 @@ spinlock_destroy(spinlock_t *s)
 void
 spinlock_grab(spinlock_t *s)
 {
-	spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-		spinlock_deadlock, spinlock_deadlocked);
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked);
+	}
 }
 
 /**
@@ -244,8 +248,13 @@ spinlock_grab_try(spinlock_t *s)
 void
 spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
 {
-	spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-		spinlock_deadlock, spinlock_deadlocked);
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked);
+	}
+
 	s->file = file;
 	s->line = line;
 }
@@ -279,8 +288,12 @@ spinunlock(spinlock_t *s)
 	spinlock_check(s);
 	g_assert(s->lock != 0);
 
-	s->lock = 0;
-	atomic_mb();
+	/*
+	 * The release acts as a "release barrier", ensuring that all previous
+	 * stores have been made globally visible in memory.
+	 */
+
+	atomic_release(&s->lock);
 }
 
 /**

@@ -39,6 +39,8 @@
 
 #include "common.h"
 
+typedef uint8 atomic_lock_t;
+
 /*
  * Public interface.
  */
@@ -47,10 +49,15 @@
 #define atomic_mb()					__sync_synchronize()
 #define atomic_ops_available()		1
 
+static inline ALWAYS_INLINE void
+atomic_release(volatile atomic_lock_t *p) {
+	__sync_lock_release(p);
+}
+
 static inline ALWAYS_INLINE bool
-atomic_test_and_set(volatile int *p)
+atomic_test_and_set(volatile atomic_lock_t *p)
 {
-	return __sync_bool_compare_and_swap((p), 0, 1);
+	return __sync_bool_compare_and_swap(p, 0, 1);
 }
 
 static inline ALWAYS_INLINE void
@@ -80,7 +87,7 @@ atomic_uint_dec_is_zero(unsigned *p)
 #define atomic_mb()					(void) 0
 
 static inline bool
-atomic_test_and_set(volatile int *p)
+atomic_test_and_set(volatile atomic_lock_t *p)
 {
 	int ok;
 	if ((ok = (0 == *(p))))	
@@ -92,6 +99,7 @@ atomic_test_and_set(volatile int *p)
 #define atomic_uint_inc(p)			((*(p))++)
 #define atomic_int_dec_is_zero(p)	(0 == --(*(p)))
 #define atomic_uint_dec_is_zero(p)	(0 == --(*(p)))
+#define atomic_release(p)			(*(p) = 0)
 #define atomic_ops_available()		0
 #endif	/* HAS_SYNC_ATOMIC */
 
@@ -101,9 +109,16 @@ atomic_test_and_set(volatile int *p)
  * @return TRUE if lock was acquired.
  */
 static inline bool
-atomic_acquire(volatile int *lock)
+atomic_acquire(volatile atomic_lock_t *lock)
 {
-	atomic_mb();
+	/*
+	 * Our locking protocol issues a memory barrier after a lock has been
+	 * released, to make sure the changes to the locking object are widely
+	 * visible to all processors.
+	 *
+	 * Therefore, it is not necessary to issue a memory barrier here.
+	 */
+
 	return atomic_test_and_set(lock);
 }
 
