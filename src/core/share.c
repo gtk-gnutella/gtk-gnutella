@@ -71,7 +71,6 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
-#include "lib/hashlist.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/listener.h"
@@ -141,7 +140,7 @@ static htable_t *special_names;
 
 static hset_t *extensions;	/* Shared filename extensions */
 static GSList *shared_dirs;
-static hash_list_t *partial_files;
+static hset_t *partial_files;
 static cevent_t *share_qrp_rebuild_ev;
 
 /*
@@ -1949,14 +1948,15 @@ recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
 	(void) ticks;
 
 	if (share_can_answer_partials()) {
-		hash_list_iter_t *iter = hash_list_iterator(partial_files);
+		hset_iter_t *iter = hset_iter_new(partial_files);
+		const void *item;
 
-		while (hash_list_iter_has_next(iter)) {
-			const shared_file_t *sf = hash_list_iter_next(iter);
+		while (hset_iter_next(iter, &item)) {
+			const shared_file_t *sf = item;
 			slist_append(ctx->partial_files, shared_file_ref(sf));
 		}
 
-		hash_list_iter_release(&iter);
+		hset_iter_release(&iter);
 	}
 
 	bg_task_ticks_used(bt, 0);
@@ -2084,7 +2084,7 @@ recursive_scan_step_update_qrp(struct bgtask *bt, void *data, int ticks)
 		 * when inserting partial files.
 		 */
 
-		sf->file_index = files_scanned + (hash_list_length(partial_files) -
+		sf->file_index = files_scanned + (hset_count(partial_files) -
 			slist_length(ctx->partial_files));
 
 		qrp_add_file(sf, ctx->words);
@@ -2252,7 +2252,7 @@ share_close(void)
 	qhit_close();
 	st_free(&partial_table);
 	htable_free_null(&share_media_types);
-	hash_list_free(&partial_files);
+	hset_free_null(&partial_files);
 	st_free(&partial_table);
 	htable_free_null(&sha1_to_share);
 	cq_cancel(&share_qrp_rebuild_ev);
@@ -2886,10 +2886,10 @@ share_add_partial(const shared_file_t *sf)
 {
 	g_assert(shared_file_is_partial(sf));
 
-	if (hash_list_contains(partial_files, sf))
+	if (hset_contains(partial_files, sf))
 		return;
 
-	hash_list_append(partial_files, sf);
+	hset_insert(partial_files, sf);
 
 	/*
 	 * We added a new partial file, we need to rebuild the QRP table.
@@ -2911,7 +2911,7 @@ share_remove_partial(const shared_file_t *sf)
 {
 	g_assert(shared_file_is_partial(sf));
 
-	if (NULL == hash_list_remove(partial_files, sf))
+	if (!hset_remove(partial_files, sf))
 		return;
 
 	/*
@@ -2970,7 +2970,7 @@ share_init(void)
 	 * be applied to partial files).
 	 */
 
-	partial_files = hash_list_new(pointer_hash, NULL);
+	partial_files = hset_create(HASH_KEY_SELF, 0);
 	partial_table = st_create();
 
 	/*
