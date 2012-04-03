@@ -37,7 +37,8 @@ export LC_ALL
 header=$1
 template=$2
 generic=$3
-variant=$4
+iterator=$4
+variant=$5
 
 date=`date`
 
@@ -77,5 +78,5 @@ sed -e "/^;#/d" \
 	-e "s/<generic>/$generic/g" \
 	-e "s/<GENERIC>/$GENERIC/g" \
 	-e "s/_generic_/_${generic}_/g" \
-	-e "s/_GENERIC_/_${GENERIC}_/g"
-
+	-e "s/_GENERIC_/_${GENERIC}_/g" \
+	-e "s/<iterator>/$iterator/g"

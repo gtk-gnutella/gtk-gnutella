@@ -110,6 +110,7 @@ typedef uint (*hash_fn_t)(const void *key);
 typedef void (*data_fn_t)(void *data, void *udata);
 typedef void (*cdata_fn_t)(const void *data, void *udata);
 typedef bool (*data_rm_fn_t)(void *data, void *udata);
+typedef bool (*cdata_rm_fn_t)(const void *data, void *udata);
 
 /* Iterator callbacks for associative arrays, optionally with constant key */
 

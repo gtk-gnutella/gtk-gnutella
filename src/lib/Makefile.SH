@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-138]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-145]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -97,16 +97,16 @@ bit_field.h: bit_field.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
 
 htable.h: hgeneric.ht
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table TABLE >$@
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
 
 htable.c: hgeneric.ct
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table TABLE >$@
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
 
 hset.h: hgeneric.ht
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set SET >$@
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
 
 hset.c: hgeneric.ct
-	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set SET >$@
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
 
 all:: $(GENERIC)
 

@@ -3133,7 +3133,7 @@ typedef void (*header_func_t)(FILE *out);
  */
 static void
 dmesh_store_hash(const char *what, htable_t *hash, const char *file,
-	header_func_t header_cb, htable_each_t store_cb)
+	header_func_t header_cb, ckeyval_fn_t store_cb)
 {
 	FILE *out;
 	file_path_t fp;

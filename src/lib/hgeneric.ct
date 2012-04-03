@@ -509,7 +509,7 @@ void h<generic>_clear(h<generic>_t *hx)
  * @param data	additional callback parameter
  */
 void
-h<generic>_foreach(const h<generic>_t *hx, h<generic>_each_t fn, void *data)
+h<generic>_foreach(const h<generic>_t *hx, <iterator>_fn_t fn, void *data)
 {
 	unsigned *hp, *end;
 	size_t i, n;
@@ -545,7 +545,7 @@ h<generic>_foreach(const h<generic>_t *hx, h<generic>_each_t fn, void *data)
  * @param data	additional callback parameter
  */
 void
-htable_foreach_key(const htable_t *ht, htable_each_key_t fn, void *data)
+htable_foreach_key(const htable_t *ht, data_fn_t fn, void *data)
 {
 	hash_foreach(HASH(ht), fn, data);
 }
@@ -562,7 +562,7 @@ htable_foreach_key(const htable_t *ht, htable_each_key_t fn, void *data)
  * @return the number of entries removed from the hash <generic>.
  */
 size_t
-h<generic>_foreach_remove(h<generic>_t *hx, h<generic>_each_rm_t fn, void *data)
+h<generic>_foreach_remove(h<generic>_t *hx, <iterator>_rm_fn_t fn, void *data)
 {
 	unsigned *hp, *end;
 	size_t i, n, nr;
