@@ -52,8 +52,8 @@ struct dualhash {
 	enum dualhash_magic magic;
 	htable_t *kht;			/**< Hash table from the keys' viewpoint */
 	htable_t *vht;			/**< Hash table from the values' viewpoint */
-	hash_eq_t key_eq_func;
-	hash_eq_t val_eq_func;
+	eq_fn_t key_eq_func;
+	eq_fn_t val_eq_func;
 };
 
 static inline void
@@ -68,31 +68,30 @@ dualhash_check(const struct dualhash * const dh)
 /**
  * Create a new dual hash table.
  *
- * @param key_hash_func		the hash function for keys
- * @param keys_eq_func		the key comparison function
- * @param val_hash_func		the hash function for values
- * @param val_eq_func		the value comparison function
+ * @param khash		the hash function for keys
+ * @param keq		the key comparison function
+ * @param vhash		the hash function for values
+ * @param veq		the value comparison function
  *
  * @return the new dual hash table.
  */
 dualhash_t *
-dualhash_new(hash_func_t key_hash_func, hash_eq_t key_eq_func,
-	hash_func_t val_hash_func, hash_eq_t val_eq_func)
+dualhash_new(hash_fn_t khash, eq_fn_t keq, hash_fn_t vhash, eq_fn_t veq)
 {
 	dualhash_t *dh;
 
-	if (NULL == key_hash_func)
-		key_hash_func = pointer_hash;
+	if (NULL == khash)
+		khash = pointer_hash;
 
-	if (NULL == val_hash_func)
-		val_hash_func = pointer_hash;
+	if (NULL == vhash)
+		vhash = pointer_hash;
 
 	WALLOC(dh);
 	dh->magic = DUALHASH_MAGIC;
-	dh->kht = htable_create_any(key_hash_func, NULL, key_eq_func);
-	dh->vht = htable_create_any(val_hash_func, NULL, val_eq_func);
-	dh->key_eq_func = key_eq_func;
-	dh->val_eq_func = val_eq_func;
+	dh->kht = htable_create_any(khash, NULL, keq);
+	dh->vht = htable_create_any(vhash, NULL, veq);
+	dh->key_eq_func = keq;
+	dh->val_eq_func = veq;
 
 	return dh;
 }

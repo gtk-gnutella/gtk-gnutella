@@ -154,7 +154,7 @@ hash_list_check(const hash_list_t * const hl)
  * Create a new hash list.
  */
 hash_list_t *
-hash_list_new(hash_func_t hash_func, hash_eq_t eq_func)
+hash_list_new(hash_fn_t hash_func, eq_fn_t eq_func)
 {
 	hash_list_t *hl;
 

@@ -85,10 +85,10 @@ h<generic>_ptr_cast_to_hash(struct h<generic> * const *hx)
 
 h<generic>_t *h<generic>_create(enum hash_key_type ktype, size_t keysize);
 h<generic>_t *h<generic>_create_real(enum hash_key_type ktype, size_t keysize);
-h<generic>_t *h<generic>_create_any(hash_func_t primary,
-	hash_func_t secondary, hash_eq_t eq);
-h<generic>_t *h<generic>_create_any_real(hash_func_t primary,
-	hash_func_t secondary, hash_eq_t eq);
+h<generic>_t *h<generic>_create_any(hash_fn_t primary,
+	hash_fn_t secondary, eq_fn_t eq);
+h<generic>_t *h<generic>_create_any_real(hash_fn_t primary,
+	hash_fn_t secondary, eq_fn_t eq);
 void h<generic>_free_null(h<generic>_t **);
 void h<generic>_clear(h<generic>_t *);
 

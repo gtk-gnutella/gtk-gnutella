@@ -45,21 +45,6 @@ enum hash_key_type {
 
 struct hash;
 
-/**
- * A key hashing function.
- */
-typedef unsigned (*hash_func_t)(const void *key);
-
-/**
- * A key comparison function.
- */
-typedef bool (*hash_eq_t)(const void *a, const void *b);
-
-/**
- * For polymorphic hash traversal.
- */
-typedef void (*hash_each_key_t)(void *key, void *data);
-
 /*
  * The following definitions are only visible within the library.
  */
@@ -85,10 +70,10 @@ struct hkeys {
 	size_t tombs;				/* Amount of deleted items (tombstones) */
 	const void **keys;			/* Array of keys */
 	unsigned *hashes;			/* Array of hashed keys */
-	hash_func_t hash;			/* Primary key hashing function */
-	hash_func_t hash2;			/* Secondary key hashing function */
+	hash_fn_t hash;				/* Primary key hashing function */
+	hash_fn_t hash2;			/* Secondary key hashing function */
 	union {
-		hash_eq_t eq;			/* Key equality test */
+		eq_fn_t eq;				/* Key equality test */
 		size_t keysize;			/* Fixed-length of keys */
 	} uk;
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
@@ -154,7 +139,7 @@ struct hash {
 void hash_keyhash_setup(struct hkeys *hk,
 	enum hash_key_type ktype, size_t keysize);
 void hash_keyhash_any_setup(struct hkeys *hk,
-	hash_func_t primary, hash_func_t secondary, hash_eq_t eq);
+	hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq);
 bool hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
 
 /*
@@ -177,7 +162,7 @@ void hash_refcnt_dec(const struct hash *h);
  * Public polymorphic interface.
  */
 
-void hash_foreach(const struct hash *h, hash_each_key_t fn, void *data);
+void hash_foreach(const struct hash *h, data_fn_t fn, void *data);
 void hash_clear(struct hash *h);
 size_t hash_count(const struct hash *h);
 void hash_free(struct hash *h);

@@ -25,12 +25,11 @@
 #define _hashlist_h_
 
 #include "common.h"
-#include "hash.h"			/* For hash_func_t and hash_eq_t */
 
 typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
-hash_list_t *hash_list_new(hash_func_t, hash_eq_t);
+hash_list_t *hash_list_new(hash_fn_t, eq_fn_t);
 void hash_list_free(hash_list_t **);
 void hash_list_free_all(hash_list_t **hl_ptr, free_fn_t freecb);
 void *hash_list_remove(hash_list_t *, const void *key);

@@ -37,7 +37,6 @@
 
 #include "common.h"
 
-#include "hash.h"		/* For hash_func_t and hash_eq_t */
 #include "tm.h"			/* For time_delta_t */
 
 typedef struct aging aging_table_t;
@@ -49,7 +48,7 @@ typedef void (*aging_free_t)(void *key, void *value);
  */
 
 aging_table_t *aging_make(int delay,
-	hash_func_t hash, hash_eq_t eq, aging_free_t kfree);
+	hash_fn_t hash, eq_fn_t eq, aging_free_t kfree);
 
 void aging_destroy(aging_table_t **);
 

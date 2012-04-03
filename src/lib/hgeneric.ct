@@ -230,7 +230,7 @@ h<generic>_create_real(enum hash_key_type ktype, size_t keysize)
  * @return new hash <generic>.
  */
 h<generic>_t *
-h<generic>_create_any(hash_func_t primary, hash_func_t secondary, hash_eq_t eq)
+h<generic>_create_any(hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq)
 {
 	h<generic>_t *hx;
 
@@ -254,8 +254,7 @@ h<generic>_create_any(hash_func_t primary, hash_func_t secondary, hash_eq_t eq)
  * @return new hash <generic>.
  */
 h<generic>_t *
-h<generic>_create_any_real(hash_func_t primary,
-	hash_func_t secondary, hash_eq_t eq)
+h<generic>_create_any_real(hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq)
 {
 	h<generic>_t *hx;
 

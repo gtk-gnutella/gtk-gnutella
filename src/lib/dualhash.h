@@ -37,8 +37,6 @@
 
 #include "common.h"
 
-#include "hash.h"		/* For hash_func_t and hash_eq_t */
-
 struct dualhash;
 typedef struct dualhash dualhash_t;
 
@@ -46,8 +44,7 @@ typedef struct dualhash dualhash_t;
  * Public interface.
  */
 
-dualhash_t *dualhash_new(hash_func_t key_hash_func, hash_eq_t key_eq_func,
-	hash_func_t val_hash_func, hash_eq_t val_eq_func);
+dualhash_t *dualhash_new(hash_fn_t kh, eq_fn_t keq, hash_fn_t vh, eq_fn_t veq);
 void dualhash_destroy(dualhash_t *dh);
 void dualhash_destroy_null(dualhash_t **dh_ptr);
 void dualhash_insert_key(dualhash_t *dh, const void *key, const void *value);

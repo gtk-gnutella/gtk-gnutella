@@ -348,7 +348,7 @@ hash_keyhash_setup(struct hkeys *hk, enum hash_key_type ktype, size_t keysize)
  */
 void
 hash_keyhash_any_setup(struct hkeys *hk,
-	hash_func_t primary, hash_func_t secondary, hash_eq_t eq)
+	hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq)
 {
 	g_assert(hk != NULL);
 	g_assert(primary != NULL);
@@ -915,7 +915,7 @@ hash_refcnt_dec(const struct hash *h)
  * @param data	additional callback parameter
  */
 void
-hash_foreach(const struct hash *h, hash_each_key_t fn, void *data)
+hash_foreach(const struct hash *h, data_fn_t fn, void *data)
 {
 	unsigned *hp, *end;
 	size_t i, n;

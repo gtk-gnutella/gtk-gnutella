@@ -131,7 +131,7 @@ ag_unref_callout_queue(void)
  * @return opaque handle to the container.
  */
 aging_table_t *
-aging_make(int delay, hash_func_t hash, hash_eq_t eq, aging_free_t kvfree)
+aging_make(int delay, hash_fn_t hash, eq_fn_t eq, aging_free_t kvfree)
 {
 	aging_table_t *ag;
 

@@ -41,9 +41,16 @@
 #include "atoms.h"
 #include "constants.h"
 #include "endian.h"
+#include "glib-missing.h"
 #include "hashing.h"
 #include "htable.h"
+#include "log.h"
 #include "misc.h"
+#include "stringify.h"
+#include "walloc.h"
+#include "xmalloc.h"
+
+#include "override.h"		/* Must be the last header included */
 
 #if 0
 #define PROTECT_ATOMS
@@ -77,16 +84,6 @@ typedef enum {
 #define ATOM_MAGIC_CHECK(a)
 #define ATOM_SET_MAGIC(a)
 #endif	/* ATOMS_HAVE_MAGIC */
-
-
-#include "stringify.h"
-#include "glib-missing.h"
-#include "hashing.h"
-#include "log.h"
-#include "walloc.h"
-#include "xmalloc.h"
-
-#include "override.h"		/* Must be the last header included */
 
 union mem_chunk {
   void *next;
@@ -414,8 +411,8 @@ typedef const char *(*str_func_t)(const void *v);
 typedef struct table_desc {
 	const char *type;			/**< Type of atoms */
 	htable_t *table;			/**< Table of atoms: "atom value" -> size */
-	hash_func_t hash_func;		/**< Hashing function for atoms */
-	hash_eq_t eq_func;			/**< Atom equality function */
+	hash_fn_t hash_func;		/**< Hashing function for atoms */
+	eq_fn_t eq_func;			/**< Atom equality function */
 	len_func_t len_func;		/**< Atom length function */
 	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
