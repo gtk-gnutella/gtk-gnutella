@@ -123,6 +123,7 @@ LSRC = \
 	hashlist.c \
 	hashtable.c \
 	header.c \
+	hevset.c \
 	host_addr.c \
 	hset.c \
 	htable.c \

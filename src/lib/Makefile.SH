@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-145]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-146]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -180,6 +180,7 @@ LSRC = \
 	hashlist.c \
 	hashtable.c \
 	header.c \
+	hevset.c \
 	host_addr.c \
 	hset.c \
 	htable.c \
@@ -325,6 +326,7 @@ LOBJ = \
 	hashlist.o \
 	hashtable.o \
 	header.o \
+	hevset.o \
 	host_addr.o \
 	hset.o \
 	htable.o \

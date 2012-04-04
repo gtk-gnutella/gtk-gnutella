@@ -52,9 +52,13 @@ struct hash;
 #if defined(HTABLE_SOURCE) || defined(HSET_SOURCE) || defined(HASH_SOURCE)
 
 enum hmagic {
-	HTABLE_MAGIC = 0x7e62fd45,
-	HSET_MAGIC = 0x742195b9
+	HTABLE_MAGIC	= 0x7e62fd45,
+	HSET_MAGIC		= 0x7e6295b9,
+	HEVSET_MAGIC	= 0x7e622c20
 };
+
+#define HASH_MAGIC_SHIFT		16
+#define HASH_MAGIC_COMMON		0x7e62
 
 #define HASH_MIN_BITS			3
 #define HASH_MIN_SIZE			(1U << HASH_MIN_BITS)

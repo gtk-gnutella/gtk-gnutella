@@ -687,6 +687,8 @@ src/lib/hashtable.c
 src/lib/hashtable.h
 src/lib/header.c
 src/lib/header.h
+src/lib/hevset.c
+src/lib/hevset.h
 src/lib/hgeneric.ct
 src/lib/hgeneric.ht
 src/lib/host_addr.c

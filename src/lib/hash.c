@@ -135,7 +135,7 @@ hash_check(const void * const p)
 	const struct hash *h = p;
 
 	g_assert(h != NULL);
-	g_assert(HTABLE_MAGIC == h->magic || HSET_MAGIC == h->magic);
+	g_assert(HASH_MAGIC_COMMON == (h->magic >> HASH_MAGIC_SHIFT));
 }
 
 /**
