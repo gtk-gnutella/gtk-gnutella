@@ -124,6 +124,7 @@ LSRC = \
 	hashtable.c \
 	header.c \
 	hevset.c \
+	hikset.c \
 	host_addr.c \
 	hset.c \
 	htable.c \

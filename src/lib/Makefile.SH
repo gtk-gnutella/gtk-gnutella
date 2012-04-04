@@ -181,6 +181,7 @@ LSRC = \
 	hashtable.c \
 	header.c \
 	hevset.c \
+	hikset.c \
 	host_addr.c \
 	hset.c \
 	htable.c \
@@ -327,6 +328,7 @@ LOBJ = \
 	hashtable.o \
 	header.o \
 	hevset.o \
+	hikset.o \
 	host_addr.o \
 	hset.o \
 	htable.o \

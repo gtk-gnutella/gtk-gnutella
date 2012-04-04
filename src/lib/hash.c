@@ -318,21 +318,22 @@ hash_keyhash_setup(struct hkeys *hk, enum hash_key_type ktype, size_t keysize)
 
 	switch (ktype) {
 	case HASH_KEY_SELF:
-		hk->hash = pointer_hash;
-		hk->hash2 = pointer_hash2;
+		hk->uh.h.hash = pointer_hash;
+		hk->uh.h.hash2 = pointer_hash2;
 		hk->uk.eq = NULL;			/* Will use '==' comparison */
 		break;
 	case HASH_KEY_STRING:
-		hk->hash = string_mix_hash;
-		hk->hash2 = string_hash;
+		hk->uh.h.hash = string_mix_hash;
+		hk->uh.h.hash2 = string_hash;
 		hk->uk.eq = string_eq;
 		break;
 	case HASH_KEY_FIXED:
-		hk->hash = NULL;			/* Will use binary_hash() */
-		hk->hash2 = NULL;			/* Will use binary_hash2() */
+		hk->uh.h.hash = NULL;		/* Will use binary_hash() */
+		hk->uh.h.hash2 = NULL;		/* Will use binary_hash2() */
 		hk->uk.keysize = keysize;	/* Will use binary_eq() */
 		break;
 	case HASH_KEY_ANY:
+	case HASH_KEY_ANY_DATA:
 	case HASH_KEY_MAXTYPE:
 		g_assert_not_reached();
 	}
@@ -354,9 +355,31 @@ hash_keyhash_any_setup(struct hkeys *hk,
 	g_assert(primary != NULL);
 
 	hk->type = HASH_KEY_ANY;
-	hk->hash = primary;
-	hk->hash2 = secondary;
+	hk->uh.h.hash = primary;
+	hk->uh.h.hash2 = secondary;
 	hk->uk.eq = NULL == eq ? pointer_eq : eq;
+}
+
+/**
+ * Setup hashing routines for keys when the hashing routine needs extra data.
+ *
+ * @param hk		the keyset structure
+ * @param hash		the hash function (cannot be NULL)
+ * @param data		extra data to pass to the hashing / equality function
+ * @param eq		key equality function (cannot be NULL)
+ */
+void
+hash_keyhash_data_setup(struct hkeys *hk,
+	hash_data_fn_t hash, void *data, eq_data_fn_t eq)
+{
+	g_assert(hk != NULL);
+	g_assert(hash != NULL);
+	g_assert(eq != NULL);
+
+	hk->type = HASH_KEY_ANY_DATA;	/* Union discriminent for uh */
+	hk->uh.hd.hash = hash;
+	hk->uh.hd.data = data;
+	hk->uk.eq_data = eq;
 }
 
 /**
@@ -369,8 +392,10 @@ hash_compute_primary(const struct hkeys *hk, const void *key)
 
 	if (HASH_KEY_FIXED == hk->type) {
 		hv = binary_hash(key, hk->uk.keysize);
+	} else if (HASH_KEY_ANY_DATA != hk->type) {
+		hv = (*hk->uh.h.hash)(key);
 	} else {
-		hv = (*hk->hash)(key);
+		hv = (*hk->uh.hd.hash)(key, hk->uh.hd.data);
 	}
 
 	hv += hash_offset_primary;
@@ -391,15 +416,15 @@ hash_compute_increment(const struct hkeys *hk, const void *key, unsigned hv)
 
 	if (HASH_KEY_FIXED == hk->type) {
 		hv2 = binary_hash2(key, hk->uk.keysize);
-	} else if G_UNLIKELY(NULL == hk->hash2) {
+	} else if (HASH_KEY_ANY_DATA == hk->type || NULL == hk->uh.h.hash2) {
 		hv2 = GUINT32_SWAP(hv) ^ GOLDEN_RATIO_32;
 	} else {
-		hv2 = (*hk->hash2)(key);
+		hv2 = (*hk->uh.h.hash2)(key);
 	}
 
 	hv2 += hash_offset_secondary;
 
-	return (hv2 & 0x1) ? hv2 : ~hv2;
+	return (hv2 & 0x1) ? hv2 : ~hv2;	/* Ensure it is an odd number */
 }
 
 /**
@@ -414,6 +439,8 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
 	case HASH_KEY_STRING:
 	case HASH_KEY_ANY:
 		return (*hk->uk.eq)(k1, k2);
+	case HASH_KEY_ANY_DATA:
+		return (*hk->uk.eq_data)(k1, k2, hk->uh.hd.data);
 	case HASH_KEY_FIXED:
 		return binary_eq(k1, k2, hk->uk.keysize);
 	case HASH_KEY_MAXTYPE:

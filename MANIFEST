@@ -691,6 +691,8 @@ src/lib/hevset.c
 src/lib/hevset.h
 src/lib/hgeneric.ct
 src/lib/hgeneric.ht
+src/lib/hikset.c
+src/lib/hikset.h
 src/lib/host_addr.c
 src/lib/host_addr.h
 src/lib/html.c

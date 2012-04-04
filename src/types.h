@@ -100,10 +100,12 @@ typedef int (*cmp_data_fn_t)(const void *a, const void *b, void *data);
 /* Data equality */
 
 typedef bool (*eq_fn_t)(const void *a, const void *b);
+typedef bool (*eq_data_fn_t)(const void *a, const void *b, void *data);
 
 /* Hashing functions */
 
 typedef uint (*hash_fn_t)(const void *key);
+typedef uint (*hash_data_fn_t)(const void *key, void *data);
 
 /* Iterator callbacks for data containers, optionally with constant data */
 
