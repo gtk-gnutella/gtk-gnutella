@@ -45,7 +45,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
-#include "lib/htable.h"
+#include "lib/hevset.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -62,7 +62,7 @@ struct used_val {
 	int precision;				/**< The precision used for the last update */
 };
 
-static htable_t *used;			/**< Records the IP address used */
+static hevset_t *used;			/**< Records the IP address used */
 
 /**
  * This container holds the data points (clock offset between the real UTC
@@ -112,7 +112,7 @@ val_destroy(cqueue_t *unused_cq, void *obj)
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
-	htable_remove(used, &v->addr);
+	hevset_remove(used, &v->addr);
 	v->cq_ev = NULL;
 	val_free(v);
 }
@@ -152,17 +152,16 @@ val_reused(struct used_val *v, int precision)
 void
 clock_init(void)
 {
-	used = htable_create_any(host_addr_hash_func,
-		host_addr_hash_func2, host_addr_eq_func);
+	used = hevset_create_any(offsetof(struct used_val, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 	datapoints = statx_make();
 }
 
 static void
-used_free_kv(const void *unused_key, void *val, void *unused_x)
+used_free_kv(void *val, void *unused_x)
 {
 	struct used_val *v = val;
 
-	(void) unused_key;
 	(void) unused_x;
 	val_free(v);
 }
@@ -173,8 +172,8 @@ used_free_kv(const void *unused_key, void *val, void *unused_x)
 void
 clock_close(void)
 {
-	htable_foreach(used, used_free_kv, NULL);
-	htable_free_null(&used);
+	hevset_foreach(used, used_free_kv, NULL);
+	hevset_free_null(&used);
 	statx_free(datapoints);
 }
 
@@ -298,13 +297,13 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	 * end is running NTP.
 	 */
 
-	if ((v = htable_lookup(used, &addr))) {
+	if ((v = hevset_lookup(used, &addr))) {
 		if (precision && precision >= v->precision)
 			return;
 		val_reused(v, precision);
 	} else {
 		v = val_create(addr, precision);
-		htable_insert(used, &v->addr, v);
+		hevset_insert(used, v);
 	}
 
 	now = tm_time();
