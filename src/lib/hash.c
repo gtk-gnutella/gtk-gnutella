@@ -837,7 +837,19 @@ no_resize:
 		 */
 
 		if G_UNLIKELY((size_t) -1 != tombidx && 0 == h->refcnt) {
-			const void **values = (*h->ops->get_values)(h);
+			const void **values = NULL;
+
+			G_PREFETCH_R(&hv);
+			G_PREFETCH_R(&h->kset.keys[idx]);
+			G_PREFETCH_W(&h->kset.keys[tombidx]);
+			G_PREFETCH_W(&h->kset.hashes[tombidx]);
+			G_PREFETCH_W(&h->kset.hashes[idx]);
+
+			if (h->kset.has_values) {
+				values = (*h->ops->get_values)(h);
+				G_PREFETCH_W(values[tombidx]);
+				G_PREFETCH_R(values[idx]);
+			}
 
 			g_assert(tombidx != idx);
 			g_assert(size_is_positive(h->kset.tombs));
