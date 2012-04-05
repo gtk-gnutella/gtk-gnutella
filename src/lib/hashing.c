@@ -543,7 +543,7 @@ string_mix_hash(const void *s)
  *
  * @return a folded value of ``bits'' bits.
  */
-unsigned
+unsigned G_GNUC_HOT
 hashing_fold(unsigned hash, size_t bits)
 {
 	unsigned v = 0;
@@ -554,10 +554,31 @@ hashing_fold(unsigned hash, size_t bits)
 	if G_UNLIKELY(bits >= 8 * sizeof(unsigned))
 		return hash;
 
+	/* Unroll loop as this is a hot spot */
+
+#define FOLD_STEP	\
+	v ^= h;			\
+	h >>= bits;
+
 	while (h != 0) {
-		v ^= h;
-		h >>= bits;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
+		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP
 	}
+
+#undef FOLD_STEP
 
 	return v & ((1 << bits) - 1);
 }
