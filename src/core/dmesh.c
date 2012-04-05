@@ -68,6 +68,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/random.h"
@@ -88,7 +89,7 @@ dmesh_url_error_t dmesh_url_errno;	/**< Error from dmesh_url_parse() */
  * It is implemented as a big hash table, where SHA1 are keys, each value
  * being a struct dmesh pointer.
  */
-static htable_t *mesh = NULL;
+static hikset_t *mesh = NULL;
 
 struct dmesh {				/**< A download mesh bucket */
 	list_t *entries;		/**< The download mesh entries, dmesh_entry data */
@@ -137,7 +138,7 @@ static cqueue_t *dmesh_cq;			/**< Download mesh callout queue */
  *
  * The table is persisted at regular intervals.
  */
-static htable_t *ban_mesh = NULL;
+static hikset_t *ban_mesh = NULL;
 
 struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/**< The banned URL (same as key) */
@@ -181,23 +182,6 @@ urlinfo_hash(const void *key)
 }
 
 /**
- * Alternate hash a URL info.
- */
-static uint
-urlinfo_hash2(const void *key)
-{
-	const dmesh_urlinfo_t *info = key;
-	uint hash;
-
-	hash = host_addr_hash2(info->addr);
-	hash ^= port_hash2(info->port);
-	hash ^= integer_hash2(info->idx);
-	hash ^= string_mix_hash(info->name);
-
-	return hash;
-}
-
-/**
  * Test equality of two URL infos.
  */
 static int
@@ -217,8 +201,10 @@ urlinfo_eq(const void *a, const void *b)
 G_GNUC_COLD void
 dmesh_init(void)
 {
-	mesh = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
-	ban_mesh = htable_create_any(urlinfo_hash, urlinfo_hash2, urlinfo_eq);
+	mesh = hikset_create(offsetof(struct dmesh, sha1),
+		HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	ban_mesh = hikset_create_any(offsetof(struct dmesh_banned, info),
+		urlinfo_hash, urlinfo_eq);
 	ban_mesh_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	dmesh_cq = cq_submake("dmesh", callout_queue, DMESH_CALLOUT);
 	dmesh_retrieve();
@@ -289,7 +275,7 @@ static void
 dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 {
 	g_assert(dmb);
-	g_assert(dmb == htable_lookup(ban_mesh, dmb->info));
+	g_assert(dmb == hikset_lookup(ban_mesh, dmb->info));
 
 	/*
 	 * Also remove the banned entry from the IP list by SHA1 which is ussed
@@ -317,7 +303,7 @@ dmesh_ban_remove_entry(struct dmesh_banned *dmb)
 		atom_sha1_free(dmb->sha1);
 	}
 
-	htable_remove(ban_mesh, dmb->info);
+	hikset_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
 	WFREE(dmb);
 }
@@ -362,7 +348,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 	 * Insert new entry, or update old entry if the new one is more recent.
 	 */
 
-	dmb = htable_lookup(ban_mesh, info);
+	dmb = hikset_lookup(ban_mesh, info);
 
 	if (dmb == NULL) {
 		dmesh_urlinfo_t *ui;
@@ -379,7 +365,7 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 		dmb->cq_ev = cq_insert(dmesh_cq, lifetime*1000, dmesh_ban_expire, dmb);
 		dmb->sha1 = NULL;
 
-		htable_insert(ban_mesh, dmb->info, dmb);
+		hikset_insert(ban_mesh, dmb);
 
 		/*
 		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
@@ -425,7 +411,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 	struct dmesh_banned *dmb;
 
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
-	dmb = htable_lookup(ban_mesh, &info);
+	dmb = hikset_lookup(ban_mesh, &info);
 
 	if (dmb) {
 		cq_cancel(&dmb->cq_ev);
@@ -439,7 +425,7 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 static bool
 dmesh_is_banned(const dmesh_urlinfo_t *info)
 {
-	return htable_contains(ban_mesh, info);
+	return hikset_contains(ban_mesh, info);
 }
 
 /**
@@ -807,20 +793,17 @@ dm_expire(struct dmesh *dm)
 static void
 dmesh_dispose(const struct sha1 *sha1)
 {
-	const void *key;
 	void *value;
 	bool found;
 	struct dmesh *dm;
 
-	found = htable_lookup_extended(mesh, sha1, &key, &value);
+	found = hikset_lookup_extended(mesh, sha1, &value);
 
 	dm = value;
 	g_assert(found);
 	g_assert(list_length(dm->entries) == 0);
 
-	/* Remove it from the table before freeing key, just in case sha1 == key */
-	htable_remove(mesh, sha1);
-	atom_sha1_free(key);
+	hikset_remove(mesh, sha1);
 	dm_free(dm);
 }
 
@@ -846,7 +829,7 @@ dmesh_remove(const struct sha1 *sha1, const host_addr_t addr, uint16 port,
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 */
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return FALSE;
@@ -875,7 +858,7 @@ dmesh_count(const struct sha1 *sha1)
 
 	g_assert(sha1);
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 
 	/*
 	 * If we have an entry and the last update was done more than
@@ -913,10 +896,10 @@ dmesh_get(const struct sha1 *sha1)
 	 * than the one we're trying to add).
 	 */
 
-	dm =  htable_lookup(mesh, sha1);
+	dm =  hikset_lookup(mesh, sha1);
 	if (dm == NULL) {
 		dm = dm_alloc(sha1);
-		htable_insert(mesh, atom_sha1_get(sha1), dm);
+		hikset_insert(mesh, dm);
 	} else {
 		dm_expire(dm);
 	}
@@ -1319,7 +1302,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 */
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return;
@@ -1369,7 +1352,7 @@ dmesh_good_mark(const struct sha1 *sha1,
 	struct dmesh_entry *dme;
 	bool retried = FALSE;
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 	if (dm == NULL)
 		return;			/* Weird, but it doesn't matter */
 
@@ -1441,7 +1424,7 @@ dmesh_good_fw_mark(const struct sha1 *sha1,
 	struct dmesh *dm;
 	struct dmesh_entry *dme;
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 	if (dm == NULL)
 		return;			/* Weird, but it doesn't matter */
 
@@ -1790,7 +1773,7 @@ dmesh_fill_alternate(const struct sha1 *sha1, gnet_host_t *hvec, int hcnt)
 	 * Fetch the mesh entry for this SHA1.
 	 */
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 	if (dm == NULL)						/* SHA1 unknown */
 		return 0;
 
@@ -2086,7 +2069,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 	}
 
 	/* Find mesh entry for this SHA1 */
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 
 	/*
 	 * Start filling the buffer.
@@ -2820,7 +2803,7 @@ dmesh_alt_loc_fill(const struct sha1 *sha1, dmesh_urlinfo_t *buf, int count)
 	g_assert(buf);
 	g_assert(count > 0);
 
-	dm = htable_lookup(mesh, sha1);
+	dm = hikset_lookup(mesh, sha1);
 	if (dm == NULL)					/* SHA1 unknown */
 		return 0;
 
@@ -3007,7 +2990,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 		 * sharing this SHA1.
 		 */
 
-		has = htable_contains(mesh, rc->sha1);
+		has = hikset_contains(mesh, rc->sha1);
 
 		if (!has) {
 			const shared_file_t *sf = shared_file_by_sha1(rc->sha1);
@@ -3101,14 +3084,13 @@ dmesh_multiple_downloads(const struct sha1 *sha1,
  * Store key/value pair in file.
  */
 static void
-dmesh_store_kv(const void *key, void *value, void *udata)
+dmesh_store_kv(void *value, void *udata)
 {
 	const struct dmesh *dm = value;
 	FILE *out = udata;
 	list_iter_t *iter;
 
-	g_assert(key);
-	fprintf(out, "%s\n", sha1_base32(key));
+	fprintf(out, "%s\n", sha1_base32(dm->sha1));
 
 	iter = list_iter_before_head(dm->entries);
 
@@ -3132,8 +3114,8 @@ typedef void (*header_func_t)(FILE *out);
  * The storing callback for each item is `store_cb'.
  */
 static void
-dmesh_store_hash(const char *what, htable_t *hash, const char *file,
-	header_func_t header_cb, ckeyval_fn_t store_cb)
+dmesh_store_hikset(const char *what, hikset_t *hash, const char *file,
+	header_func_t header_cb, data_fn_t store_cb)
 {
 	FILE *out;
 	file_path_t fp;
@@ -3145,7 +3127,7 @@ dmesh_store_hash(const char *what, htable_t *hash, const char *file,
 		return;
 
 	header_cb(out);
-	htable_foreach(hash, store_cb, out);
+	hikset_foreach(hash, store_cb, out);
 
 	file_config_close(out, &fp);
 }
@@ -3175,7 +3157,7 @@ dmesh_header_print(FILE *out)
 void
 dmesh_store(void)
 {
-	dmesh_store_hash("download mesh",
+	dmesh_store_hikset("download mesh",
 		mesh, dmesh_file, dmesh_header_print, dmesh_store_kv);
 }
 
@@ -3262,12 +3244,10 @@ dmesh_retrieve(void)
  * Store key/value pair in file.
  */
 static void
-dmesh_ban_store_kv(const void *key, void *value, void *udata)
+dmesh_ban_store_kv(void *value, void *udata)
 {
 	const struct dmesh_banned *dmb = value;
 	FILE *out = udata;
-
-	g_assert(key == dmb->info);
 
 	fprintf(out, "%lu %s\n",
 		(ulong) dmb->created, dmesh_urlinfo_to_string(dmb->info));
@@ -3293,7 +3273,7 @@ dmesh_ban_header_print(FILE *out)
 void
 dmesh_ban_store(void)
 {
-	dmesh_store_hash("banned mesh",
+	dmesh_store_hikset("banned mesh",
 		ban_mesh, dmesh_ban_file, dmesh_ban_header_print, dmesh_ban_store_kv);
 }
 
@@ -3362,28 +3342,23 @@ dmesh_ban_retrieve(void)
 /**
  * Free key/value pair in download mesh hash.
  */
-static bool
-dmesh_free_kv(const void *key, void *value, void *unused_udata)
+static void
+dmesh_free_kv(void *value, void *unused_udata)
 {
 	struct dmesh *dm = value;
 
 	(void) unused_udata;
-	atom_sha1_free(key);
 	dm_free(dm);
-
-	return TRUE;
 }
 
 /**
  * Prepend the value to the list, given by reference.
  */
 static void
-dmesh_ban_prepend_list(const void *key, void *value, void *user)
+dmesh_ban_prepend_list(void *value, void *user)
 {
 	struct dmesh_banned *dmb = value;
 	GSList **listref = user;
-
-	g_assert(key == dmb->info);
 
 	*listref = g_slist_prepend(*listref, dmb);
 }
@@ -3400,8 +3375,8 @@ dmesh_close(void)
 	dmesh_store();
 	dmesh_ban_store();
 
-	htable_foreach_remove(mesh, dmesh_free_kv, NULL);
-	htable_free_null(&mesh);
+	hikset_foreach(mesh, dmesh_free_kv, NULL);
+	hikset_free_null(&mesh);
 
 	/*
 	 * Construct a list of banned mesh entries to remove, then manually
@@ -3409,7 +3384,7 @@ dmesh_close(void)
 	 * and `ban_mesh_by_sha1' as well.
 	 */
 
-	htable_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
+	hikset_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
 
 	for (sl = banned; sl; sl = g_slist_next(sl)) {
 		struct dmesh_banned *dmb = sl->data;
@@ -3418,7 +3393,7 @@ dmesh_close(void)
 	}
 
 	gm_slist_free_null(&banned);
-	htable_free_null(&ban_mesh);
+	hikset_free_null(&ban_mesh);
 	htable_free_null(&ban_mesh_by_sha1);
 
 	cq_free_null(&dmesh_cq);

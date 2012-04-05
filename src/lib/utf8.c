@@ -69,6 +69,7 @@
 #include "endian.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "hikset.h"
 #include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -128,7 +129,7 @@ static UConverter *conv_icu_utf8 = NULL;
 /**
  * This table records mappings "charset name" -> struct conv_to_utf8.
  */
-static htable_t *charset2conv_to_utf8;
+static hikset_t *charset2conv_to_utf8;
 
 struct conv_to_utf8 {
 	const char *name;		/**< Name of the source charset (atom) */
@@ -1659,7 +1660,7 @@ conv_to_utf8_new(const char *cs)
 	t->is_ascii = 0 == strcmp(cs, "ASCII");
 	t->is_iso8859 = NULL != is_strprefix(cs, "ISO-8859-");
 
-	htable_insert(charset2conv_to_utf8, t->name, t);
+	hikset_insert_key(charset2conv_to_utf8, &t->name);
 
 	return t;
 }
@@ -1703,7 +1704,7 @@ conv_to_utf8_cd_get(const char *cs)
 {
 	struct conv_to_utf8 *cu;
 
-	cu = htable_lookup(charset2conv_to_utf8, cs);
+	cu = hikset_lookup(charset2conv_to_utf8, cs);
 	if (NULL == cu)
 		cu = conv_to_utf8_new(cs);
 
@@ -1903,9 +1904,8 @@ conversion_init(void)
 }
 
 static void
-conversion_free_kv(const void *u_key, void *value, void *u_data)
+conversion_free_kv(void *value, void *u_data)
 {
-	(void) u_key;
 	(void) u_data;
 
 	conv_to_utf8_free(value);
@@ -1914,8 +1914,8 @@ conversion_free_kv(const void *u_key, void *value, void *u_data)
 static void
 conversion_close(void)
 {
-	htable_foreach(charset2conv_to_utf8, conversion_free_kv, NULL);
-	htable_free_null(&charset2conv_to_utf8);
+	hikset_foreach(charset2conv_to_utf8, conversion_free_kv, NULL);
+	hikset_free_null(&charset2conv_to_utf8);
 }
 
 G_GNUC_COLD void
@@ -1967,7 +1967,8 @@ locale_init(void)
 	 * peruse the list we build here in sl_filename_charsets.
 	 */
 
-	charset2conv_to_utf8 = htable_create(HASH_KEY_STRING, 0);
+	charset2conv_to_utf8 = hikset_create(
+		offsetof(struct conv_to_utf8, name), HASH_KEY_STRING, 0);
 	sl_filename_charsets = get_filename_charsets(charset ? charset : "ASCII");
 	g_assert(sl_filename_charsets);
 	g_assert(sl_filename_charsets->data);

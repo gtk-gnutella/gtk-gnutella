@@ -32,7 +32,7 @@
 #include "common.h"
 
 #include "event.h"
-#include "htable.h"
+#include "hikset.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "walloc.h"
@@ -149,7 +149,7 @@ event_table_new(void)
     struct event_table *t;
 
 	WALLOC0(t);
-	t->events = htable_create(HASH_KEY_STRING, 0);
+	t->events = hikset_create(offsetof(struct event, name), HASH_KEY_STRING, 0);
 
 	return t;
 }
@@ -160,7 +160,7 @@ real_event_table_destroy(struct event_table *t, bool cleanup)
     if (cleanup)
         event_table_remove_all(t);
 
-    htable_free_null(&t->events);
+    hikset_free_null(&t->events);
 }
 
 void
@@ -170,9 +170,9 @@ event_table_add_event(struct event_table *t, struct event *evt)
     g_assert(evt != NULL);
 
     g_assert(t->events != NULL);
-    g_assert(!htable_contains(t->events, evt->name));
+    g_assert(!hikset_contains(t->events, evt->name));
 
-    htable_insert(t->events, evt->name, evt);
+    hikset_insert_key(t->events, &evt->name);
 }
 
 void
@@ -182,19 +182,16 @@ event_table_remove_event(struct event_table *t, struct event *evt)
     g_assert(evt != NULL);
 
     g_assert(t->events != NULL);
-    g_assert(htable_contains(t->events, evt->name));
+    g_assert(hikset_contains(t->events, evt->name));
 
-    htable_remove(t->events, evt->name);
+    hikset_remove(t->events, evt->name);
 }
 
-static bool
-remove_helper(const void *unused_key, void *value, void *unused_data)
+static void
+clear_helper(void *value, void *unused_data)
 {
-	(void) unused_key;
 	(void) unused_data;
     event_destroy(value);
-
-    return TRUE;
 }
 
 void
@@ -203,7 +200,8 @@ event_table_remove_all(struct event_table *t)
     g_assert(t != NULL);
     g_assert(t->events != NULL);
 
-    htable_foreach_remove(t->events, remove_helper, NULL);
+    hikset_foreach(t->events, clear_helper, NULL);
+	hikset_clear(t->events);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

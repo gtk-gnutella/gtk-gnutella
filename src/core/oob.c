@@ -51,7 +51,7 @@
 #include "lib/cq.h"
 #include "lib/fifo.h"
 #include "lib/glib-missing.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/walloc.h"
@@ -94,7 +94,7 @@ struct oob_results {
  * Indexes all OOB queries by MUID.
  * This hash table records MUID => "struct oob_results"
  */
-static htable_t *results_by_muid;
+static hikset_t *results_by_muid;
 
 /**
  * Each servent, as identified by its IP:port, is given a FIFO for queuing
@@ -103,7 +103,7 @@ static htable_t *results_by_muid;
  *
  * This hash table records gnet_host_t => "struct gservent"
  */
-static htable_t *servent_by_host = NULL;
+static hikset_t *servent_by_host = NULL;
 
 /**
  * A servent entry, used as values in the `servent_by_host' table.
@@ -157,7 +157,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	static const struct oob_results zero_results;
 	struct oob_results *r;
 
-	g_return_val_if_fail(!htable_contains(results_by_muid, muid), NULL);
+	g_return_val_if_fail(!hikset_contains(results_by_muid, muid), NULL);
 
 	WALLOC(r);
 	*r = zero_results;
@@ -172,7 +172,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
 	r->refcount++;
 
-	htable_insert(results_by_muid, r->muid, r);
+	hikset_insert_key(results_by_muid, &r->muid);
 
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
@@ -206,8 +206,8 @@ results_free_remove(struct oob_results *r)
 	if (0 == r->refcount) {
 		/* We must not modify the hash table whilst iterating over it */
 		if (!oob_shutdown_running) {
-			g_assert(r == htable_lookup(results_by_muid, r->muid));
-			htable_remove(results_by_muid, r->muid);
+			g_assert(r == hikset_lookup(results_by_muid, r->muid));
+			hikset_remove(results_by_muid, r->muid);
 		}
 		atom_guid_free_null(&r->muid);
 
@@ -281,7 +281,7 @@ results_timeout(cqueue_t *unused_cq, void *obj)
 static void
 servent_free_remove(struct gservent *s)
 {
-	htable_remove(servent_by_host, s->host);
+	hikset_remove(servent_by_host, s->host);
 	servent_free(s);
 }
 
@@ -431,7 +431,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	g_assert(NODE_IS_UDP(n));
 	g_assert(token);
 
-	r = htable_lookup(results_by_muid, muid);
+	r = hikset_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
 		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
@@ -497,11 +497,11 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 *		--RAM, 2006-08-13
 	 */
 
-	s = htable_lookup(servent_by_host, &r->dest);
+	s = hikset_lookup(servent_by_host, &r->dest);
 	if (s == NULL) {
 		bool can_deflate = NODE_CAN_INFLATE(n);	/* Can we deflate? */
 		s = servent_make(&r->dest, can_deflate);
-		htable_insert(servent_by_host, s->host, s);
+		hikset_insert_key(servent_by_host, &s->host);
 		servent_created = TRUE;
 	}
 
@@ -665,21 +665,22 @@ oob_got_results(struct gnutella_node *n, GSList *files,
 void
 oob_init(void)
 {
-	results_by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	servent_by_host = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	results_by_muid = hikset_create(
+		offsetof(struct oob_results, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
+	servent_by_host = hikset_create_any(
+		offsetof(struct gservent, host), gnet_host_hash, gnet_host_eq);
 }
 
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
 static void
-free_oob_kv(const void *key, void *value, void *unused_udata)
+free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
 
 	(void) unused_udata;
 	oob_results_check(r);
-	g_assert(key == r->muid);		/* Key is same as results's MUID */
 
 	r->refcount = 0; /* Enforce release */
 	if (r->ev_timeout) {
@@ -695,13 +696,11 @@ free_oob_kv(const void *key, void *value, void *unused_udata)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_servent_kv(const void *key, void *value, void *unused_udata)
+free_servent_kv(void *value, void *unused_udata)
 {
-	const gnet_host_t *host = key;
 	struct gservent *s = value;
 
 	(void) unused_udata;
-	g_assert(host == s->host);		/* Key is same as servent's host */
 
 	servent_free(s);
 }
@@ -714,11 +713,11 @@ oob_shutdown(void)
 {
 	oob_shutdown_running = TRUE;
 
-	htable_foreach(results_by_muid, free_oob_kv, NULL);
-	htable_free_null(&results_by_muid);
+	hikset_foreach(results_by_muid, free_oob_kv, NULL);
+	hikset_free_null(&results_by_muid);
 
-	htable_foreach(servent_by_host, free_servent_kv, NULL);
-	htable_free_null(&servent_by_host);
+	hikset_foreach(servent_by_host, free_servent_kv, NULL);
+	hikset_free_null(&servent_by_host);
 
 	g_assert(num_oob_records >= 0);
 	if (num_oob_records > 0)

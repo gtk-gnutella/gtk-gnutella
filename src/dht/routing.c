@@ -91,8 +91,8 @@
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/hikset.h"
 #include "lib/host_addr.h"
-#include "lib/htable.h"
 #include "lib/map.h"
 #include "lib/parse.h"
 #include "lib/patricia.h"
@@ -173,7 +173,7 @@ struct kbnodes {
 	hash_list_t *good;			/**< The good nodes */
 	hash_list_t *stale;			/**< The (possibly) stale nodes */
 	hash_list_t *pending;		/**< The nodes which are awaiting decision */
-	htable_t *all;				/**< All nodes in one of the lists */
+	hikset_t *all;				/**< All nodes in one of the lists */
 	acct_net_t *c_class;		/**< Counts class-C networks in bucket */
 	cevent_t *aliveness;		/**< Periodic aliveness checks */
 	cevent_t *refresh;			/**< Periodic bucket refresh */
@@ -827,7 +827,8 @@ allocate_node_lists(struct kbucket *kb)
 	g_assert(kb->nodes == NULL);
 
 	WALLOC(kb->nodes);
-	kb->nodes->all = htable_create(HASH_KEY_FIXED, KUID_RAW_SIZE);
+	kb->nodes->all = hikset_create(
+		offsetof(knode_t, id), HASH_KEY_FIXED, KUID_RAW_SIZE);
 	kb->nodes->good = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->pending = hash_list_new(knode_hash, knode_eq);
@@ -952,7 +953,7 @@ free_node_lists(struct kbucket *kb)
 		 * all be empty, it means this table is now referencing freed objects.
 		 */
 
-		htable_free_null(&knodes->all);
+		hikset_free_null(&knodes->all);
 		acct_net_free_null(&knodes->c_class);
 		cq_cancel(&knodes->aliveness);
 		cq_cancel(&knodes->staleness);
@@ -1793,7 +1794,7 @@ bucket_count(const struct kbucket *kb)
 	g_assert(kb->nodes);
 	g_assert(kb->nodes->all);
 
-	return htable_count(kb->nodes->all);
+	return hikset_count(kb->nodes->all);
 }
 
 /**
@@ -1835,17 +1836,17 @@ struct node_balance {
  * Hash table iterator for bucket splitting.
  */
 static void
-split_among(const void *key, void *value, void *user_data)
+split_among(void *value, void *user_data)
 {
-	const kuid_t *id = key;
+	const kuid_t *id;
 	knode_t *kn = value;
 	struct node_balance *nb = user_data;
 	struct kbucket *target;
 	hash_list_t *hl;
 
 	knode_check(kn);
-	g_assert(id == kn->id);
 
+	id = kn->id;
 	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
 
 	if (GNET_PROPERTY(dht_debug) > 1)
@@ -1858,7 +1859,7 @@ split_among(const void *key, void *value, void *user_data)
 	g_assert(hash_list_length(hl) < list_maxsize_for(kn->status));
 
 	hash_list_append(hl, knode_refcnt_inc(kn));
-	htable_insert(target->nodes->all, kn->id, kn);
+	hikset_insert_key(target->nodes->all, &kn->id);
 	c_class_update_count(kn, target, +1);
 
 	/*
@@ -1990,7 +1991,7 @@ dht_split_bucket(struct kbucket *kb)
 	balance.byte = byt;
 	balance.mask = mask;
 
-	htable_foreach(kb->nodes->all, split_among, &balance);
+	hikset_foreach(kb->nodes->all, split_among, &balance);
 
 	g_assert(bucket_count(kb) == bucket_count(zero) + bucket_count(one));
 
@@ -2037,7 +2038,7 @@ add_node_internal(struct kbucket *kb,
 	g_assert(kn->status == status);
 
 	hash_list_append(hl, knode_refcnt_inc(kn));
-	htable_insert(kb->nodes->all, kn->id, kn);
+	hikset_insert_key(kb->nodes->all, &kn->id);
 	c_class_update_count(kn, kb, +1);
 
 	if (GNET_PROPERTY(dht_debug) > 2)
@@ -2081,7 +2082,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, bool traffic)
 	knode_check(kn);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->all != NULL);
-	g_assert(!htable_contains(kb->nodes->all, kn->id));
+	g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * Not enough good entries for the bucket, add at tail of list
@@ -2160,7 +2161,7 @@ move_node(struct kbucket *kb, knode_t *kn)
 		knode_t *moved = WMOVE(kn);
 		if (moved != kn) {
 			/* Replace value with ``moved'' */
-			htable_insert(kb->nodes->all, moved->id, moved);
+			hikset_insert_key(kb->nodes->all, &moved->id);
 			return moved;
 		}
 	}
@@ -2313,7 +2314,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 	check_leaf_bucket_consistency(kb);
 
-	tkn = htable_lookup(kb->nodes->all, kn->id);
+	tkn = hikset_lookup(kb->nodes->all, kn->id);
 
 	if (NULL == tkn)
 		return;
@@ -2347,7 +2348,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	hl = list_for(kb, tkn->status);
 
 	if (hash_list_remove(hl, tkn)) {
-		htable_remove(kb->nodes->all, tkn->id);
+		hikset_remove(kb->nodes->all, tkn->id);
 		c_class_update_count(tkn, kb, -1);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
@@ -2388,7 +2389,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	g_assert(kb->nodes);
 	g_assert(kb->nodes->all);
 
-	tkn = htable_lookup(kb->nodes->all, kn->id);
+	tkn = hikset_lookup(kb->nodes->all, kn->id);
 	in_table = NULL != tkn;
 
 	/*
@@ -2512,7 +2513,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 					host_addr_port_to_string(removed->addr, removed->port),
 					kbucket_to_string(kb));
 		} else {
-			htable_remove(kb->nodes->all, removed->id);
+			hikset_remove(kb->nodes->all, removed->id);
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
@@ -2565,13 +2566,13 @@ dht_record_activity(knode_t *kn)
 	g_assert(is_leaf(kb));
 
 	if (kn->status == KNODE_UNKNOWN) {
-		g_assert(!htable_contains(kb->nodes->all, kn->id));
+		g_assert(!hikset_contains(kb->nodes->all, kn->id));
 		return;
 	}
 
 	hl = list_for(kb, kn->status);
 
-	g_assert(htable_contains(kb->nodes->all, kn->id));
+	g_assert(hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * If the "good" list is not full, try promoting the node to it.
@@ -2641,7 +2642,7 @@ record_node(knode_t *kn, bool traffic)
 		return FALSE;
 	}
 
-	g_assert(!htable_contains(kb->nodes->all, kn->id));
+	g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * Protect against hosts from a class C network presenting too many
@@ -2735,7 +2736,7 @@ dht_find_node(const kuid_t *kuid)
 	g_assert(kb->nodes != NULL);
 	g_assert(kb->nodes->all != NULL);
 
-	return htable_lookup(kb->nodes->all, kuid);
+	return hikset_lookup(kb->nodes->all, kuid);
 }
 
 /**
@@ -2765,7 +2766,7 @@ dht_remove_timeouting_node(knode_t *kn)
 
 	kb = dht_find_bucket(kn->id);
 
-	if (!htable_contains(kb->nodes->all, kn->id))
+	if (!hikset_contains(kb->nodes->all, kn->id))
 		return;			/* Node not held in routing table */
 
 	dht_set_node_status(kn, KNODE_STALE);
@@ -2873,7 +2874,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		knode_t *kn = sl->data;
 
 		knode_check(kn);
-		g_assert(!htable_contains(kb->nodes->all, kn->id));
+		g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 		/*
 		 * Regardless of whether we forget the node or add it to the merged

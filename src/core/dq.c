@@ -59,6 +59,8 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hevset.h"
+#include "lib/hikset.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/nid.h"
@@ -186,7 +188,7 @@ enum {
  * This table keeps track of all the dynamic query objects that we have
  * created and which are alive.
  */
-static htable_t *dqueries;
+static hevset_t *dqueries;
 
 /**
  * This table keeps track of all the dynamic query objects created
@@ -210,7 +212,7 @@ static htable_t *by_muid;
  * account them for the relevant query (since for OOB-proxied query, the
  * MUID we'll get is the one the leaf knows about).
  */
-static htable_t *by_leaf_muid;
+static hikset_t *by_leaf_muid;
 
 /**
  * Information about query messages sent.
@@ -450,7 +452,7 @@ dq_alive(struct nid qid)
 	/* NOTE: dqueries might have been freed already, as dq_pmsg_free()
 	 *		 might still call this function after dq_close().
 	 */
-	dq = dqueries ? htable_lookup(dqueries, &qid) : NULL;
+	dq = dqueries ? hevset_lookup(dqueries, &qid) : NULL;
 	if (dq) {
 		dquery_check(dq);
 	}
@@ -893,7 +895,7 @@ dq_free(dquery_t *dq)
 
 	dquery_check(dq);
 	g_assert((dq->flags & DQ_F_EXITING) ||
-		htable_lookup(dqueries, &dq->qid) == dq);
+		hevset_lookup(dqueries, &dq->qid) == dq);
 
 	if (GNET_PROPERTY(dq_debug) > 2)
 		g_debug("DQ[%s] %s(%d secs; +%d secs) node #%s ending: "
@@ -952,7 +954,7 @@ dq_free(dquery_t *dq)
 	}
 
 	if (!(dq->flags & DQ_F_EXITING))
-		htable_remove(dqueries, &dq->qid);
+		hevset_remove(dqueries, &dq->qid);
 
 	/*
 	 * Remove query from the `by_node_id' table but only if the node ID
@@ -1015,13 +1017,12 @@ dq_free(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		const void *key;
 		void *value;
 		bool found;
 
-		found = htable_lookup_extended(by_leaf_muid, dq->lmuid, &key, &value);
+		found = hikset_lookup_extended(by_leaf_muid, dq->lmuid, &value);
 		if (found && value == dq)
-			htable_remove(by_leaf_muid, key);
+			hikset_remove(by_leaf_muid, dq->lmuid);
 		atom_guid_free(dq->lmuid);
 	}
 
@@ -1723,7 +1724,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the query as being "alive".
 	 */
 
-	htable_insert(dqueries, &dq->qid, dq);
+	hevset_insert_key(dqueries, &dq->qid);
 
 	/*
 	 * If query is not for the local node, insert it in `by_node_id'.
@@ -1772,7 +1773,7 @@ dq_common_init(dquery_t *dq)
 	 */
 
 	if (dq->lmuid != NULL) {
-		if (htable_lookup_extended(by_leaf_muid, dq->lmuid, NULL, &value)) {
+		if (hikset_lookup_extended(by_leaf_muid, dq->lmuid, &value)) {
 			dquery_t *odq = value;
 			dquery_check(odq);
 			g_warning("ignoring conflicting leaf MUID \"%s\" for "
@@ -1781,7 +1782,7 @@ dq_common_init(dquery_t *dq)
 				dq->node_id == odq->node_id ?
 					"same node" : node_id_infostr(odq->node_id));
 		} else {
-			htable_insert(by_leaf_muid, dq->lmuid, dq);
+			hikset_insert_key(by_leaf_muid, &dq->lmuid);
 		}
 	}
 
@@ -2305,7 +2306,7 @@ dq_got_query_status(const struct guid *muid,
 	 */
 
 	if (dq == NULL)
-		dq = htable_lookup(by_leaf_muid, muid);
+		dq = hikset_lookup(by_leaf_muid, muid);
 
 	if (dq == NULL)
 		return;
@@ -2394,13 +2395,12 @@ struct cancel_context {
  * -- hash table iterator callback
  */
 static void
-dq_cancel_local(const void *key, void *value, void *udata)
+dq_cancel_local(void *value, void *udata)
 {
 	struct cancel_context *ctx = udata;
 	dquery_t *dq = value;
 
 	dquery_check(dq);
-	g_assert(&dq->qid == key);
 
 	if ((dq->flags & DQ_F_LOCAL) && dq->sh == ctx->handle) {
 		ctx->cancelled = g_slist_prepend(ctx->cancelled, dq);
@@ -2419,7 +2419,7 @@ dq_search_closed(gnet_search_t handle)
 	ctx.handle = handle;
 	ctx.cancelled = NULL;
 
-	htable_foreach(dqueries, dq_cancel_local, &ctx);
+	hevset_foreach(dqueries, dq_cancel_local, &ctx);
 
 	GM_SLIST_FOREACH(ctx.cancelled, sl) {
 		dq_free(sl->data);
@@ -2489,10 +2489,12 @@ dq_get_results_wanted(const struct guid *muid, uint32 *wanted)
 G_GNUC_COLD void
 dq_init(void)
 {
-	dqueries = htable_create_any(nid_hash, NULL, nid_equal);
+	dqueries = hevset_create_any(
+		offsetof(struct dquery, qid), nid_hash, NULL, nid_equal);
 	by_node_id = htable_create_any(nid_hash, NULL, nid_equal);
 	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	by_leaf_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	by_leaf_muid = hikset_create(
+		offsetof(struct dquery, lmuid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	fill_hosts();
 }
 
@@ -2500,12 +2502,11 @@ dq_init(void)
  * Hashtable iteration callback to free the dquery_t object held as the key.
  */
 static void
-free_query(const void *key, void *value, void *unused_udata)
+free_query(void *value, void *unused_udata)
 {
 	dquery_t *dq = value;
 
 	dquery_check(dq);
-	g_assert(&dq->qid == key);
 	(void) unused_udata;
 
 	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
@@ -2561,12 +2562,13 @@ free_muid(const void *key, void *unused_value, void *unused_udata)
  * anything remaining, hence warn!
  */
 static void
-free_leaf_muid(const void *key, void *unused_value, void *unused_udata)
+free_leaf_muid(void *value, void *unused_udata)
 {
-	(void) unused_value;
+	const dquery_t *dq = value;
+
 	(void) unused_udata;
 	g_warning("remained un-freed leaf MUID \"%s\" in dynamic queries",
-		guid_hex_str(key));
+		guid_hex_str(dq->lmuid));
 }
 
 /**
@@ -2575,8 +2577,8 @@ free_leaf_muid(const void *key, void *unused_value, void *unused_udata)
 G_GNUC_COLD void
 dq_close(void)
 {
-	htable_foreach(dqueries, free_query, NULL);
-	htable_free_null(&dqueries);
+	hevset_foreach(dqueries, free_query, NULL);
+	hevset_free_null(&dqueries);
 
 	htable_foreach(by_node_id, free_query_list, NULL);
 	htable_free_null(&by_node_id);
@@ -2584,8 +2586,8 @@ dq_close(void)
 	htable_foreach(by_muid, free_muid, NULL);
 	htable_free_null(&by_muid);
 
-	htable_foreach(by_leaf_muid, free_leaf_muid, NULL);
-	htable_free_null(&by_leaf_muid);
+	hikset_foreach(by_leaf_muid, free_leaf_muid, NULL);
+	hikset_free_null(&by_leaf_muid);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

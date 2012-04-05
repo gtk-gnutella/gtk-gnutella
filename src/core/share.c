@@ -71,6 +71,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
+#include "lib/hikset.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/listener.h"
@@ -167,7 +168,7 @@ static bool share_rebuilding;
  * This hash table maps a SHA1 hash (base-32 encoded) onto the corresponding
  * shared_file if we have one.
  */
-static htable_t *sha1_to_share;
+static hikset_t *sha1_to_share;
 
 #define A	SEARCH_AUDIO_TYPE
 #define V	SEARCH_VIDEO_TYPE
@@ -312,9 +313,10 @@ static void
 reinit_sha1_table(void)
 {
 	if G_UNLIKELY(NULL == sha1_to_share) {
-		sha1_to_share = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+		sha1_to_share = hikset_create(
+			offsetof(shared_file_t, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	} else {
-		htable_clear(sha1_to_share);
+		hikset_clear(sha1_to_share);
 	}
 }
 
@@ -390,12 +392,10 @@ shared_file_deindex(shared_file_t *sf)
 
 	if (sf->sha1 != NULL) {
 		shared_file_t *current;
-		void *key;
 
-		key = deconstify_pointer(sf->sha1);
-		current = htable_lookup(sha1_to_share, key);
+		current = hikset_lookup(sha1_to_share, sf->sha1);
 		if (current == sf) {
-			htable_remove(sha1_to_share, key);
+			hikset_remove(sha1_to_share, sf->sha1);
 		}
 	}
 }
@@ -2254,7 +2254,7 @@ share_close(void)
 	htable_free_null(&share_media_types);
 	hset_free_null(&partial_files);
 	st_free(&partial_table);
-	htable_free_null(&sha1_to_share);
+	hikset_free_null(&sha1_to_share);
 	cq_cancel(&share_qrp_rebuild_ev);
 }
 
@@ -2278,16 +2278,14 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 
 	if (sf->sha1) {
 		shared_file_t *current;
-		void *key;
 
-		key = deconstify_pointer(sf->sha1);
-		current = htable_lookup(sha1_to_share, key);
+		current = hikset_lookup(sha1_to_share, sf->sha1);
 		if (current) {
 			shared_file_check(current);
 			g_assert(SHARE_F_INDEXED & current->flags);
 
 			if (sf == current) {
-				htable_remove(sha1_to_share, key);
+				hikset_remove(sha1_to_share, sf->sha1);
 			}
 		}
 	}
@@ -2302,10 +2300,8 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 
 	if ((SHARE_F_INDEXED & sf->flags) && sf->sha1) {
 		shared_file_t *current;
-		void *key;
 
-		key = deconstify_pointer(sf->sha1);
-		current = htable_lookup(sha1_to_share, key);
+		current = hikset_lookup(sha1_to_share, sf->sha1);
 		if (current) {
 			shared_file_check(current);
 			g_assert(SHARE_F_INDEXED & current->flags);
@@ -2325,7 +2321,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * Record in the set of shared SHA-1s and publish to the DHT.
 			 */
 		
-			htable_insert(sha1_to_share, sf->sha1, sf);
+			hikset_insert_key(sha1_to_share, &sf->sha1);
 			publisher_add(sf->sha1);
 		}
 	}
@@ -2676,7 +2672,7 @@ shared_file_complete_by_sha1(const struct sha1 *sha1)
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = htable_lookup(sha1_to_share, sha1);
+	f = hikset_lookup(sha1_to_share, sha1);
 	if (f) {
 		shared_file_check(f);
 	}

@@ -45,8 +45,8 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/hikset.h"
 #include "lib/host_addr.h"
-#include "lib/htable.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -79,7 +79,7 @@ rpc_cb_check(const struct rpc_cb * const rcb)
 	g_assert(NULL != rcb->muid);
 }
 
-static htable_t *pending;		/**< Pending RPC (GUID -> rpc_cb) */
+static hikset_t *pending;		/**< Pending RPC (GUID -> rpc_cb) */
 
 /**
  * RPC operation to string, for logs.
@@ -105,7 +105,8 @@ dht_rpc_init(void)
 {
 	g_assert(NULL == pending);
 
-	pending = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	pending = hikset_create(
+		offsetof(struct rpc_cb, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 }
 
 /**
@@ -121,7 +122,7 @@ rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 		if (rcb->cb)
 			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	} else {
-		htable_remove(pending, rcb->muid);
+		hikset_remove(pending, rcb->muid);
 	}
 	atom_guid_free_null(&rcb->muid);
 	knode_free(rcb->kn);
@@ -227,7 +228,7 @@ rpc_call_prepare(
 	for (i = 0; i < 100; i++) {
 		guid_random_muid(&muid);
 
-		if (!htable_contains(pending, &muid))
+		if (!hikset_contains(pending, &muid))
 			break;
 	}
 
@@ -251,7 +252,7 @@ rpc_call_prepare(
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
 	knode_rpc_inc(kn);
 
-	htable_insert(pending, rcb->muid, rcb);
+	hikset_insert_key(pending, &rcb->muid);
 
 	return rcb->muid;
 }
@@ -269,7 +270,7 @@ dht_rpc_cancel(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = htable_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -290,7 +291,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = htable_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -316,7 +317,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 	struct rpc_cb *rcb;
 	knode_t *rn;
 
-	rcb = htable_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -357,7 +358,7 @@ dht_rpc_answer(const guid_t *muid,
 
 	knode_check(kn);
 
-	rcb = htable_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -636,9 +637,8 @@ dht_rpc_store(knode_t *kn, pmsg_t *mb,
  * Free the RPC callback descriptor held in the hash table at shutdown time.
  */
 static void
-rpc_free_kv(const void *unused_key, void *val, void *unused_x)
+rpc_free_kv(void *val, void *unused_x)
 {
-	(void) unused_key;
 	(void) unused_x;
 
 	/*
@@ -656,8 +656,8 @@ rpc_free_kv(const void *unused_key, void *val, void *unused_x)
 void
 dht_rpc_close(void)
 {
-	htable_foreach(pending, rpc_free_kv, NULL);
-	htable_free_null(&pending);
+	hikset_foreach(pending, rpc_free_kv, NULL);
+	hikset_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

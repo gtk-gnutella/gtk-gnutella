@@ -75,6 +75,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
@@ -145,10 +146,10 @@ struct dl_file_chunk {
  * The `fi_by_guid' hash table keeps track of the GUID -> fi association.
  */
 
-static htable_t *fi_by_sha1;
+static hikset_t *fi_by_sha1;
 static htable_t *fi_by_namesize;
-static htable_t *fi_by_outname;
-static htable_t *fi_by_guid;
+static hikset_t *fi_by_outname;
+static hikset_t *fi_by_guid;
 
 static const char file_info_file[] = "fileinfo";
 static const char file_info_what[] = "fileinfo database";
@@ -601,7 +602,7 @@ dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
 fileinfo_t *
 file_info_by_guid(const struct guid *guid)
 {
-	return htable_lookup(fi_by_guid, guid);
+	return hikset_lookup(fi_by_guid, guid);
 }
 
 /**
@@ -1243,7 +1244,7 @@ file_info_by_sha1(const struct sha1 *sha1)
 {
 	g_return_val_if_fail(sha1, NULL);
 	g_return_val_if_fail(fi_by_sha1, NULL);
-	return htable_lookup(fi_by_sha1, sha1);
+	return hikset_lookup(fi_by_sha1, sha1);
 }
 
 /**
@@ -1264,7 +1265,7 @@ file_info_lookup(const char *name, filesize_t size, const struct sha1 *sha1)
 	 */
 
 	if (sha1) {
-		fi = htable_lookup(fi_by_sha1, sha1);
+		fi = hikset_lookup(fi_by_sha1, sha1);
 		if (fi) {
 			file_info_check(fi);
 			return fi;
@@ -1325,7 +1326,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(fi->pathname);
 
-	dfi = htable_lookup(fi_by_outname, fi->pathname);
+	dfi = hikset_lookup(fi_by_outname, fi->pathname);
 	if (dfi) {
 		file_info_check(dfi);
 		return dfi;
@@ -1336,7 +1337,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	 */
 
 	if (fi->sha1) {
-		dfi = htable_lookup(fi_by_sha1, fi->sha1);
+		dfi = hikset_lookup(fi_by_sha1, fi->sha1);
 		if (dfi) {
 			file_info_check(dfi);
 			return dfi;
@@ -1348,7 +1349,7 @@ file_info_lookup_dup(fileinfo_t *fi)
 	 */
 
 	g_assert(fi->guid);
-	dfi = htable_lookup(fi_by_guid, fi->guid);
+	dfi = hikset_lookup(fi_by_guid, fi->guid);
 	if (dfi) {
 		file_info_check(dfi);
 		return dfi;
@@ -1435,7 +1436,7 @@ file_info_shared_sha1(const struct sha1 *sha1)
 {
 	fileinfo_t *fi;
 
-	fi = htable_lookup(fi_by_sha1, sha1);
+	fi = hikset_lookup(fi_by_sha1, sha1);
 	if (fi) {
 		file_info_check(fi);
 
@@ -1491,7 +1492,7 @@ fi_random_guid_atom(void)
 	for (i = 0; i < 100; i++) {
 		guid_random_fill(&guid);
 
-		if (!htable_contains(fi_by_guid, &guid))
+		if (!hikset_contains(fi_by_guid, &guid))
 			return atom_guid_get(&guid);
 	}
 
@@ -2018,13 +2019,11 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
  * Callback for hash table iterator. Used by file_info_store().
  */
 static void
-file_info_store_list(const void *key, void *value, void *user_data)
+file_info_store_list(void *value, void *user_data)
 {
-	fileinfo_t *fi;
+	fileinfo_t *fi = value;
 
-	fi = value;
 	file_info_check(fi);
-	g_assert(key == fi->pathname);
 	file_info_store_one(user_data, fi);
 }
 
@@ -2071,7 +2070,7 @@ file_info_store(void)
 		f
 	);
 
-	htable_foreach(fi_by_outname, file_info_store_list, f);
+	hikset_foreach(fi_by_outname, file_info_store_list, f);
 
 	file_config_close(f, &fp);
 	fileinfo_dirty = FALSE;
@@ -2119,14 +2118,12 @@ fi_dispose(fileinfo_t *fi)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_sha1_kv(const void *key, void *val, void *unused_x)
+file_info_free_sha1_kv(void *val, void *unused_x)
 {
-	const struct sha1 *sha1 = key;
 	const fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
-	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
 
 	/* fi structure in value not freed, shared with other hash tables */
 }
@@ -2151,14 +2148,12 @@ file_info_free_namesize_kv(const void *key, void *val, void *unused_x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_guid_kv(const void *key, void *val, void *unused_x)
+file_info_free_guid_kv(void *val, void *unused_x)
 {
-	const struct guid *guid = key;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
-	g_assert(guid == fi->guid);		/* GUID shared with fi's, don't free */
 
 	/*
 	 * fi structure in value not freed, shared with other hash tables
@@ -2173,16 +2168,12 @@ file_info_free_guid_kv(const void *key, void *val, void *unused_x)
  * Callback for hash table iterator. Used by file_info_close().
  */
 static void
-file_info_free_outname_kv(const void *key, void *val, void *unused_x)
+file_info_free_outname_kv(void *val, void *unused_x)
 {
-	const char *name = key;
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
-
-	/* name shared with fi's, don't free */
-	g_assert(name == fi->pathname);
 
 	/*
 	 * This table is the last one to be freed, and it is also guaranteed to
@@ -2265,10 +2256,10 @@ file_info_close(void)
 	 * all the known `fi' structs by definition).
 	 */
 
-	htable_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
+	hikset_foreach(fi_by_sha1, file_info_free_sha1_kv, NULL);
 	htable_foreach(fi_by_namesize, file_info_free_namesize_kv, NULL);
-	htable_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
-	htable_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
+	hikset_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
+	hikset_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
 	g_assert(0 == idtable_ids(src_handle_map));
 	idtable_destroy(src_handle_map);
@@ -2289,10 +2280,10 @@ file_info_close(void)
 	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
 		event_destroy(fi_events[i]);
 	}
-	htable_free_null(&fi_by_sha1);
+	hikset_free_null(&fi_by_sha1);
 	htable_free_null(&fi_by_namesize);
-	htable_free_null(&fi_by_guid);
-	htable_free_null(&fi_by_outname);
+	hikset_free_null(&fi_by_guid);
+	hikset_free_null(&fi_by_outname);
 
 	HFREE_NULL(tbuf.arena);
 }
@@ -2331,12 +2322,12 @@ file_info_hash_insert(fileinfo_t *fi)
 	 *		--RAM, 01/09/2002
 	 */
 
-	xfi = htable_lookup(fi_by_outname, fi->pathname);
+	xfi = hikset_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
 	} else { 
-		htable_insert(fi_by_outname, fi->pathname, fi);
+		hikset_insert_key(fi_by_outname, &fi->pathname);
 	}
 
 	/*
@@ -2347,13 +2338,13 @@ file_info_hash_insert(fileinfo_t *fi)
 	 */
 
 	if (fi->sha1) {
-		xfi = htable_lookup(fi_by_sha1, fi->sha1);
+		xfi = hikset_lookup(fi_by_sha1, fi->sha1);
 
 		if (NULL != xfi && xfi != fi)		/* See comment above */
 			g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 		if (NULL == xfi)
-			htable_insert(fi_by_sha1, fi->sha1, fi);
+			hikset_insert_key(fi_by_sha1, &fi->sha1);
 
 		/*
 		 * To be able to return hits on partial files for which we have SHA1,
@@ -2374,13 +2365,13 @@ transient:
 	 * Obviously, GUID entries must be unique as well.
 	 */
 
-	xfi = htable_lookup(fi_by_guid, fi->guid);
+	xfi = hikset_lookup(fi_by_guid, fi->guid);
 
 	if (NULL != xfi && xfi != fi)		/* See comment above */
 		g_error("xfi = %p, fi = %p", (void *) xfi, (void *) fi);
 
 	if (NULL == xfi)
-		htable_insert(fi_by_guid, fi->guid, fi);
+		hikset_insert_key(fi_by_guid, &fi->guid);
 
 	/*
 	 * Notify interested parties, update counters.
@@ -2431,15 +2422,15 @@ file_info_hash_remove(fileinfo_t *fi)
 	 * Remove from plain hash tables: by output name, by SHA1 and by GUID.
 	 */
 
-	xfi = htable_lookup(fi_by_outname, fi->pathname);
+	xfi = hikset_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
-		htable_remove(fi_by_outname, fi->pathname);
+		hikset_remove(fi_by_outname, fi->pathname);
 	}
 
 	if (fi->sha1)
-		htable_remove(fi_by_sha1, fi->sha1);
+		hikset_remove(fi_by_sha1, fi->sha1);
 
 	if (fi->file_size_known) {
 		GSList *sl, *head;
@@ -2479,7 +2470,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	}
 
 transient:
-	htable_remove(fi_by_guid, fi->guid);
+	hikset_remove(fi_by_guid, fi->guid);
 
 	fi->hashed = FALSE;
 }
@@ -2612,11 +2603,11 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	g_assert(sha1);
 	g_assert(NULL == fi->sha1);
 
-	xfi = htable_lookup(fi_by_sha1, sha1);
+	xfi = hikset_lookup(fi_by_sha1, sha1);
 
 	if (NULL == xfi) {
 		fi->sha1 = atom_sha1_get(sha1);
-		htable_insert(fi_by_sha1, fi->sha1, fi);
+		hikset_insert_key(fi_by_sha1, &fi->sha1);
 		if (can_publish_partial_sha1)
 			publisher_add(fi->sha1);
 		return TRUE;
@@ -2665,7 +2656,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 		g_assert(0 == xfi->done);
 		fi->sha1 = atom_sha1_get(sha1);
 		file_info_reparent_all(xfi, fi);	/* All `xfi' replaced by `fi' */
-		htable_insert(fi_by_sha1, fi->sha1, fi);
+		hikset_insert_key(fi_by_sha1, &fi->sha1);
 	} else {
 		g_assert(0 == fi->done);
 		file_info_reparent_all(fi, xfi);	/* All `fi' replaced by `xfi' */
@@ -2949,7 +2940,7 @@ file_info_retrieve(void)
 			 * There can't be duplicates!
 			 */
 
-			dfi = htable_lookup(fi_by_outname, fi->pathname);
+			dfi = hikset_lookup(fi_by_outname, fi->pathname);
 			if (NULL != dfi) {
 				g_warning("discarding DUPLICATE fileinfo entry for \"%s\"",
 					filepath_basename(fi->pathname));
@@ -3430,7 +3421,7 @@ file_info_retrieve(void)
 static bool
 file_info_name_is_uniq(const char *pathname)
 {
-	return !htable_contains(fi_by_outname, pathname) &&
+	return !hikset_contains(fi_by_outname, pathname) &&
 	   	path_does_not_exist(pathname);
 }
 
@@ -3490,7 +3481,7 @@ file_info_new_outname(const char *dir, const char *name)
 
 		pathname = atom_str_get(uniq);
 		HFREE_NULL(uniq);
-		g_assert(!htable_contains(fi_by_outname, pathname));
+		g_assert(!hikset_contains(fi_by_outname, pathname));
 		return pathname;
 	} else {
 		return NULL;
@@ -3638,17 +3629,17 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	if (!fi->hashed)
 		return;
 
-	xfi = htable_lookup(fi_by_outname, fi->pathname);
+	xfi = hikset_lookup(fi_by_outname, fi->pathname);
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
-		htable_remove(fi_by_outname, fi->pathname);
+		hikset_remove(fi_by_outname, fi->pathname);
 	}
 
 	atom_str_change(&fi->pathname, pathname);
 
-	g_assert(NULL == htable_lookup(fi_by_outname, fi->pathname));
-	htable_insert(fi_by_outname, fi->pathname, fi);
+	g_assert(NULL == hikset_lookup(fi_by_outname, fi->pathname));
+	hikset_insert_key(fi_by_outname, &fi->pathname);
 
 	if (fi->sf) {
 		filestat_t sb;
@@ -3796,7 +3787,7 @@ file_info_get(const char *file, const char *path, filesize_t size,
 			fi_rename_dead(fi, pathname);
 			fi_free(fi);
 			fi = NULL;
-		} else if (htable_contains(fi_by_guid, fi->guid)) {
+		} else if (hikset_contains(fi_by_guid, fi->guid)) {
 			g_warning("found DEAD file \"%s\" with conflicting ID %s",
 				pathname, guid_hex_str(fi->guid));
 
@@ -5706,14 +5697,12 @@ file_info_scandir(const char *dir)
  * Callback for hash table iterator. Used by file_info_completed_orphans().
  */
 static void
-fi_spot_completed_kv(const void *key, void *val, void *unused_x)
+fi_spot_completed_kv(void *val, void *unused_x)
 {
 	fileinfo_t *fi = val;
 
 	(void) unused_x;
 	file_info_check(fi);
-
-	g_assert(key == fi->pathname); /* name shared with fi's, don't free */
 
 	if (fi->refcount)					/* Attached to a download */
 		return;
@@ -5741,7 +5730,7 @@ fi_spot_completed_kv(const void *key, void *val, void *unused_x)
 void
 file_info_spot_completed_orphans(void)
 {
-	htable_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
+	hikset_foreach(fi_by_outname, fi_spot_completed_kv, NULL);
 }
 
 void
@@ -6153,11 +6142,10 @@ file_info_remove(fileinfo_t *fi)
 }
 
 static void
-fi_notify_helper(const void *unused_key, void *value, void *unused_udata)
+fi_notify_helper(void *value, void *unused_udata)
 {
     fileinfo_t *fi = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	file_info_check(fi);
@@ -6174,7 +6162,7 @@ fi_notify_helper(const void *unused_key, void *value, void *unused_udata)
 void
 file_info_timer(void)
 {
-	htable_foreach(fi_by_outname, fi_notify_helper, NULL);
+	hikset_foreach(fi_by_outname, fi_notify_helper, NULL);
 }
 
 /**
@@ -6300,11 +6288,10 @@ file_info_dht_query_completed(fileinfo_t *fi, bool launched, bool found)
  * Hash table iterator to launch DHT queries.
  */
 static void
-fi_dht_check(const void *unused_key, void *value, void *unused_udata)
+fi_dht_check(void *value, void *unused_udata)
 {
     fileinfo_t *fi = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	fi_dht_query(fi);
@@ -6338,18 +6325,17 @@ file_info_slow_timer(void)
 	if (!dht_bootstrapped() || GNET_PROPERTY(ancient_version))
 		return;
 
-	htable_foreach(fi_by_outname, fi_dht_check, NULL);
+	hikset_foreach(fi_by_outname, fi_dht_check, NULL);
 }
 
 /**
  * Hash table iterator to publish into the DHT.
  */
 static void
-fi_dht_publish(const void *unused_key, void *value, void *unused_udata)
+fi_dht_publish(void *value, void *unused_udata)
 {
     fileinfo_t *fi = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	if (fi->sha1 != NULL)
@@ -6362,7 +6348,7 @@ fi_dht_publish(const void *unused_key, void *value, void *unused_udata)
 static void
 fi_publish_all(void)
 {
-	htable_foreach(fi_by_outname, fi_dht_publish, NULL);
+	hikset_foreach(fi_by_outname, fi_dht_publish, NULL);
 }
 
 /**
@@ -6892,12 +6878,10 @@ struct file_info_foreach {
 };
 
 static void
-file_info_foreach_helper(const void *unused_key, void *value, void *udata)
+file_info_foreach_helper(void *value, void *udata)
 {
 	struct file_info_foreach *data = udata;
     fileinfo_t *fi = value;
-
-	(void) unused_key;
 
 	file_info_check(fi);
 	data->callback(fi->fi_handle, data->udata);
@@ -6913,7 +6897,7 @@ file_info_foreach(file_info_foreach_cb callback, void *udata)
 
 	data.callback = callback;
 	data.udata = udata;
-	htable_foreach(fi_by_guid, file_info_foreach_helper, &data);
+	hikset_foreach(fi_by_guid, file_info_foreach_helper, &data);
 }
 
 const char *
@@ -7099,10 +7083,13 @@ file_info_init(void)
 
 #undef bs_nop
 
-	fi_by_sha1     = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	fi_by_sha1     = hikset_create(offsetof(fileinfo_t, sha1),
+						HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	fi_by_namesize = htable_create_any(namesize_hash, NULL, namesize_eq);
-	fi_by_guid     = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	fi_by_outname  = htable_create(HASH_KEY_STRING, 0);
+	fi_by_guid     = hikset_create(offsetof(fileinfo_t, guid),
+						HASH_KEY_FIXED, GUID_RAW_SIZE);
+	fi_by_outname  = hikset_create(offsetof(fileinfo_t, pathname),
+						HASH_KEY_STRING, 0);
 
     fi_handle_map = idtable_new();
 

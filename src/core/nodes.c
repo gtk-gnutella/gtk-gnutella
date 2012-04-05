@@ -106,6 +106,7 @@
 #include "lib/hash.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/hikset.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/iovec.h"
@@ -187,8 +188,8 @@ const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
 static GSList *sl_up_nodes;
-static htable_t *nodes_by_id;
-static htable_t *nodes_by_guid;
+static hikset_t *nodes_by_id;
+static hikset_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
 static gnutella_node_t *dht_node;
@@ -1536,15 +1537,11 @@ node_id_get_self(void)
 }
 
 static struct nid *
-node_id_new(const struct gnutella_node *n)
+node_id_new(void)
 {
 	static struct nid counter;
-	struct nid *node_id;
 
-	node_check(n);
-	node_id = nid_new_counter(&counter);
-	htable_insert_const(nodes_by_id, node_id, n);
-	return node_id;
+	return nid_new_counter(&counter);
 }
 
 /**
@@ -1570,8 +1567,12 @@ node_init(void)
 
 	unstable_servent   = htable_create(HASH_KEY_SELF, 0);
     ht_connected_nodes = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
-	nodes_by_id        = htable_create_any(nid_hash, NULL, nid_equal);
-	nodes_by_guid      = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	nodes_by_id        = hikset_create_any(
+							offsetof(struct gnutella_node, id),
+							nid_hash, nid_equal);
+	nodes_by_guid      = hikset_create(
+							offsetof(struct gnutella_node, guid),
+							HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
@@ -1877,7 +1878,7 @@ node_real_remove(gnutella_node_t *n)
     node_fire_node_removed(n);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
-	htable_remove(nodes_by_id, NODE_ID(n));
+	hikset_remove(nodes_by_id, NODE_ID(n));
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -2101,7 +2102,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed));
 	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed_old));
 	if (n->guid) {
-		htable_remove(nodes_by_guid, n->guid);
+		hikset_remove(nodes_by_guid, n->guid);
 		atom_guid_free_null(&n->guid);
 	}
 	if (n->attrs & NODE_A_CAN_HSEP)
@@ -5921,7 +5922,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guid_t guid;
 
 		if (hex_to_guid(field, &guid)) {
-			if (htable_contains(nodes_by_guid, &guid)) {
+			if (hikset_contains(nodes_by_guid, &guid)) {
 				node_send_error(n, 409, "Already connected to this GUID");
 				node_remove(n, _("Already connected to this GUID"));
 				return;
@@ -6423,7 +6424,7 @@ node_browse_create(void)
 	gnutella_node_t *n;
 
 	n = node_alloc();
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_LEAF;
@@ -6435,6 +6436,8 @@ node_browse_create(void)
 	n->up_date = GNET_PROPERTY(start_stamp);
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	return n;
 }
@@ -6490,7 +6493,7 @@ node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 
 	n = node_alloc();
 	n->addr = listen_addr_by_net(net);
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->port = GNET_PROPERTY(listen_port);
 	n->proto_major = 0;
 	n->proto_minor = 6;
@@ -6515,6 +6518,8 @@ node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 	n->country = gip_country(n->addr);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	return n;
 }
@@ -7129,7 +7134,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	n = node_alloc();
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->addr = addr;
 	n->port = port;
 	n->proto_major = major;
@@ -7147,6 +7152,8 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING | (forced ? NODE_F_FORCE : 0);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	if (incoming) {
 		/* This is an incoming control connection */
@@ -9488,8 +9495,8 @@ node_close(void)
 	HFREE_NULL(payload_inflate_buffer);
 
     htable_free_null(&ht_connected_nodes);
-	htable_free_null(&nodes_by_id);
-	htable_free_null(&nodes_by_guid);
+	hikset_free_null(&nodes_by_id);
+	hikset_free_null(&nodes_by_guid);
 
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;
@@ -9527,7 +9534,7 @@ node_by_guid(const struct guid *guid)
 	struct gnutella_node *n;
 
 	g_return_val_if_fail(guid, NULL);
-	n = htable_lookup(nodes_by_guid, guid);
+	n = hikset_lookup(nodes_by_guid, guid);
 	if (n) {
 		node_check(n);
 		g_assert(!NODE_USES_UDP(n));
@@ -9674,7 +9681,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 	}
 
 	n->guid = atom_guid_get(guid);
-	htable_insert(nodes_by_guid, n->guid, n);
+	hikset_insert_key(nodes_by_guid, &n->guid);
 	return FALSE;
 	
 error:
@@ -10703,7 +10710,7 @@ node_by_id(const struct nid *node_id)
 	gnutella_node_t *n;
 	
 	g_return_val_if_fail(!node_id_self(node_id), NULL);
-	n = htable_lookup(nodes_by_id, node_id);
+	n = hikset_lookup(nodes_by_id, node_id);
 	if (n) {
 		node_check(n);
 	}

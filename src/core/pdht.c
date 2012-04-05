@@ -59,7 +59,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
@@ -85,12 +85,12 @@
 /**
  * Hash table holding all the pending file publishes by SHA1.
  */
-static htable_t *aloc_publishes;	/* SHA1 -> pdht_publish_t */
+static hikset_t *aloc_publishes;	/* SHA1 -> pdht_publish_t */
 
 /**
  * Hash table holding all the pending push-entry publishing by GUID.
  */
-static htable_t *nope_publishes;	/* GUID -> pdht_publish_t */
+static hikset_t *nope_publishes;	/* GUID -> pdht_publish_t */
 
 typedef enum { PDHT_PUBLISH_MAGIC = 0x680182c5U } pdht_magic_t;
 
@@ -274,13 +274,13 @@ pdht_free_publish(pdht_publish_t *pp, bool do_remove)
 	switch (pp->type) {
 	case PDHT_T_ALOC:
 		if (do_remove)
-			htable_remove(aloc_publishes, pp->u.aloc.sha1);
+			hikset_remove(aloc_publishes, pp->u.aloc.sha1);
 		atom_sha1_free_null(&pp->u.aloc.sha1);
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_NOPE:
 		if (do_remove)
-			htable_remove(nope_publishes, pp->u.nope.guid);
+			hikset_remove(nope_publishes, pp->u.nope.guid);
 		if (pp->u.nope.nid != NULL) {
 			nid_unref(pp->u.nope.nid);
 			pp->u.nope.nid = NULL;
@@ -1126,13 +1126,13 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, void *arg)
 	pp->id = gdht_kuid_from_sha1(sha1);
 	paloc->sha1 = atom_sha1_get(sha1);
 
-	if (htable_contains(aloc_publishes, sha1)) {
+	if (hikset_contains(aloc_publishes, sha1)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	htable_insert(aloc_publishes, paloc->sha1, pp);
+	hikset_insert_key(aloc_publishes, &paloc->sha1);
 
 	/*
 	 * Publishing will occur in three steps:
@@ -1204,7 +1204,7 @@ pdht_cancel_file(const sha1_t *sha1, bool callback)
 	if (NULL == aloc_publishes)
 		return;
 
-	pp = htable_lookup(aloc_publishes, sha1);
+	pp = hikset_lookup(aloc_publishes, sha1);
 
 	if (NULL == pp)
 		return;
@@ -1645,7 +1645,7 @@ pdht_cancel_nope(const struct guid *guid, bool callback)
 	if (NULL == nope_publishes)
 		return;
 
-	pp = htable_lookup(nope_publishes, guid);
+	pp = hikset_lookup(nope_publishes, guid);
 
 	if (NULL == pp)
 		return;
@@ -1733,13 +1733,13 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	pnope->nid = nid_ref(nid);
 	pp->id = gdht_kuid_from_guid(pnope->guid);
 
-	if (htable_contains(nope_publishes, pnope->guid)) {
+	if (hikset_contains(nope_publishes, pnope->guid)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	htable_insert(nope_publishes, pnope->guid, pp);
+	hikset_insert_key(nope_publishes, &pnope->guid);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
@@ -1787,8 +1787,12 @@ error:
 G_GNUC_COLD void
 pdht_init(void)
 {
-	aloc_publishes = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
-	nope_publishes = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	aloc_publishes = hikset_create(
+		offsetof(struct pdht_publish, u.aloc.sha1),
+		HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	nope_publishes = hikset_create(
+		offsetof(struct pdht_publish, u.nope.guid),
+		HASH_KEY_FIXED, GUID_RAW_SIZE);
 	ZERO(&pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
@@ -1797,11 +1801,10 @@ pdht_init(void)
  * Hash table iterator to free a pdht_publish_t
  */
 static void
-free_publish_kv(const void *unused_key, void *val, void *unused_x)
+free_publish_kv(void *val, void *unused_x)
 {
 	pdht_publish_t *pp = val;
 
-	(void) unused_key;
 	(void) unused_x;
 
 	pdht_free_publish(pp, FALSE);
@@ -1818,11 +1821,11 @@ pdht_close(void)
 	}
 	cq_cancel(&pdht_proxy.publish_ev);
 
-	htable_foreach(aloc_publishes, free_publish_kv, NULL);
-	htable_free_null(&aloc_publishes);
+	hikset_foreach(aloc_publishes, free_publish_kv, NULL);
+	hikset_free_null(&aloc_publishes);
 
-	htable_foreach(nope_publishes, free_publish_kv, NULL);
-	htable_free_null(&nope_publishes);
+	hikset_foreach(nope_publishes, free_publish_kv, NULL);
+	hikset_free_null(&nope_publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

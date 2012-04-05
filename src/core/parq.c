@@ -69,6 +69,8 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/hevset.h"
+#include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/stats.h"
@@ -134,8 +136,8 @@ static GList *ul_parqs;				/**< List of all queued uploads */
 static int ul_parqs_cnt;			/**< Amount of queues */
 static hash_list_t *ul_parq_queue;	/**< To whom we need to send a QUEUE */
 static aging_table_t *ul_queue_sent;	/** Used as search table by IP addr */
-static htable_t *ul_all_parq_by_addr_and_name;
-static htable_t *ul_all_parq_by_addr;
+static hikset_t *ul_all_parq_by_addr_and_name;
+static hevset_t *ul_all_parq_by_addr;
 static htable_t *ul_all_parq_by_id;
 static cperiodic_t *parq_dead_timer_ev;
 static cperiodic_t *parq_save_timer_ev;
@@ -147,16 +149,14 @@ static cperiodic_t *parq_save_timer_ev;
  */
 static bool enable_real_passive = TRUE;
 
-
-static htable_t *ht_banned_source;
+static hevset_t *ht_banned_source;
 static GList *parq_banned_sources;
 
 struct parq_banned {
-	host_addr_t addr;
+	host_addr_t addr;		/* Embedded key */
 	time_t added;
 	time_t expire;
 };
-
 
 static bool parq_shutdown;
 static time_t parq_start;					/**< Init time */
@@ -1631,10 +1631,10 @@ parq_upload_free(struct parq_ul_queued *puq)
 		g_assert(NULL == puq->by_addr->list);
 
 		/* No more uploads from this ip, cleaning up */
-		htable_remove(ul_all_parq_by_addr, &puq->by_addr->addr);
+		hevset_remove(ul_all_parq_by_addr, &puq->by_addr->addr);
 		WFREE(puq->by_addr);
 
-		g_assert(!htable_contains(ul_all_parq_by_addr, &puq->remote_addr));
+		g_assert(!hevset_contains(ul_all_parq_by_addr, &puq->remote_addr));
 	}
 
 	puq->by_addr = NULL;
@@ -1652,7 +1652,7 @@ parq_upload_free(struct parq_ul_queued *puq)
 
 	parq_upload_remove_relative(puq);
 
-	htable_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
+	hikset_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
 	htable_remove(ul_all_parq_by_id, &puq->id);
 
 	g_assert(!hash_list_contains(puq->queue->by_date_dead, puq));
@@ -1815,7 +1815,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 	g_assert(u->name != NULL);
 
 	if (puq->addr_and_name != NULL) {
-		htable_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
+		hikset_remove(ul_all_parq_by_addr_and_name, puq->addr_and_name);
 		HFREE_NULL(puq->addr_and_name);
 		puq->name = NULL;
 	}
@@ -1824,7 +1824,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 		host_addr_to_string(u->addr), u->name);
 	puq->name = strchr(puq->addr_and_name, ' ') + 1;
 
-	htable_insert(ul_all_parq_by_addr_and_name, puq->addr_and_name, puq);
+	hikset_insert_key(ul_all_parq_by_addr_and_name, &puq->addr_and_name);
 }
 
 /**
@@ -1936,14 +1936,14 @@ parq_upload_create(struct upload *u)
 	}
 
 	/* Check if the requesting client has already other PARQ entries */
-	puq->by_addr = htable_lookup(ul_all_parq_by_addr, &puq->remote_addr);
+	puq->by_addr = hevset_lookup(ul_all_parq_by_addr, &puq->remote_addr);
 
 	if (puq->by_addr == NULL) {
 		/* The requesting client has no other PARQ entries yet, create an ip
 		 * reference structure */
 		WALLOC0(puq->by_addr);
 		puq->by_addr->addr = puq->remote_addr;
-		htable_insert(ul_all_parq_by_addr, &puq->by_addr->addr, puq->by_addr);
+		hevset_insert_key(ul_all_parq_by_addr, &puq->by_addr->addr);
 		puq->by_addr->uploading = 0;
 		puq->by_addr->total = 0;
 		puq->by_addr->list = NULL;
@@ -2179,7 +2179,7 @@ parq_upload_find(const struct upload *u)
 		concat_strings(buf, sizeof buf,
 			host_addr_to_string(u->addr), " ", u->name,
 			(void *) 0);
-		return htable_lookup(ul_all_parq_by_addr_and_name, buf);
+		return hikset_lookup(ul_all_parq_by_addr_and_name, buf);
 	} else {
 		return NULL;
 	}
@@ -2288,13 +2288,13 @@ parq_add_banned_source(const host_addr_t addr, time_t delay)
 
 	g_assert(ht_banned_source != NULL);
 
-	banned = htable_lookup(ht_banned_source, &addr);
+	banned = hevset_lookup(ht_banned_source, &addr);
 	if (banned == NULL) {
 		/* Host not yet banned yet, good */
 		WALLOC0(banned);
 		banned->addr = addr;
 
-		htable_insert(ht_banned_source, &banned->addr, banned);
+		hevset_insert_key(ht_banned_source, &banned->addr);
 		parq_banned_sources = g_list_append(parq_banned_sources, banned);
 	}
 
@@ -2319,12 +2319,12 @@ parq_del_banned_source(const host_addr_t addr)
 	g_assert(ht_banned_source != NULL);
 	g_assert(parq_banned_sources != NULL);
 
-	banned = htable_lookup(ht_banned_source, &addr);
+	banned = hevset_lookup(ht_banned_source, &addr);
 
 	g_assert(banned != NULL);
 	g_assert(host_addr_equal(banned->addr, addr));
 
-	htable_remove(ht_banned_source, &addr);
+	hevset_remove(ht_banned_source, &addr);
 	parq_banned_sources = g_list_remove(parq_banned_sources, banned);
 
 	WFREE(banned);
@@ -5292,7 +5292,7 @@ parq_banned_source_expire(const host_addr_t addr)
 
 	g_assert(ht_banned_source != NULL);
 
-	banned = htable_lookup(ht_banned_source, &addr);
+	banned = hevset_lookup(ht_banned_source, &addr);
 
 	return banned ? banned->expire : 0;
 }
@@ -5320,14 +5320,17 @@ parq_init(void)
 	header_features_add(FEATURES_DOWNLOADS,
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
-	ul_all_parq_by_addr_and_name = htable_create(HASH_KEY_STRING, 0);
-	ul_all_parq_by_addr = htable_create_any(host_addr_hash_func,
-								host_addr_hash_func2, host_addr_eq_func);
+	ul_all_parq_by_addr_and_name = hikset_create(
+		offsetof(struct parq_ul_queued, addr_and_name), HASH_KEY_STRING, 0);
+	ul_all_parq_by_addr = hevset_create_any(
+		offsetof(struct parq_ul_queued_by_addr, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 	ul_all_parq_by_id = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	dl_all_parq_by_id = htable_create(HASH_KEY_STRING, 0);
 
-	ht_banned_source = htable_create_any(host_addr_hash_func,
-		host_addr_hash_func2, host_addr_eq_func);
+	ht_banned_source = hevset_create_any(
+		offsetof(struct parq_banned, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 	ul_parq_queue = hash_list_new(NULL, NULL);
 	ul_queue_sent = aging_make(QUEUE_HOST_DELAY,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
@@ -5420,10 +5423,10 @@ parq_close_pre(void)
 
 	gm_slist_free_null(&to_removeq);
 
-	htable_free_null(&ul_all_parq_by_addr_and_name);
-	htable_free_null(&ul_all_parq_by_addr);
+	hikset_free_null(&ul_all_parq_by_addr_and_name);
+	hevset_free_null(&ul_all_parq_by_addr);
 	htable_free_null(&ul_all_parq_by_id);
-	htable_free_null(&ht_banned_source);
+	hevset_free_null(&ht_banned_source);
 	gm_list_free_null(&parq_banned_sources);
 
 	hash_list_free(&ul_parq_queue);

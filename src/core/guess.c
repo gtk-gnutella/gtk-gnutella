@@ -101,20 +101,21 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
-#include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/hevset.h"
+#include "lib/hikset.h"
+#include "lib/host_addr.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
-#include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/nid.h"
+#include "lib/override.h"		/* Must be the last header included */
 #include "lib/random.h"
 #include "lib/stacktrace.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/wq.h"
-#include "lib/override.h"		/* Must be the last header included */
 
 #define GUESS_QK_DB_CACHE_SIZE	1024	/**< Cached amount of query keys */
 #define GUESS_QK_MAP_CACHE_SIZE	64		/**< # of SDBM pages to cache */
@@ -344,8 +345,8 @@ static struct guess_cache {
 	const gnet_host_t *cache[GUESS_02_CACHE_SIZE];
 } guess_02_cache;
 
-static htable_t *gqueries;				/**< Running GUESS queries */
-static htable_t *gmuid;					/**< MUIDs of active queries */
+static hevset_t *gqueries;				/**< Running GUESS queries */
+static hikset_t *gmuid;					/**< MUIDs of active queries */
 static htable_t *pending;				/**< Pending pong acknowledges */
 static hash_list_t *link_cache;			/**< GUESS "link cache" */
 static cperiodic_t *guess_qk_prune_ev;	/**< Query keys pruning event */
@@ -732,7 +733,7 @@ guess_is_alive(struct nid gid)
 	if G_UNLIKELY(NULL == gqueries)
 		return NULL;
 
-	gq = htable_lookup(gqueries, &gid);
+	gq = hevset_lookup(gqueries, &gid);
 
 	if (gq != NULL)
 		guess_check(gq);
@@ -2236,7 +2237,7 @@ guess_is_search_muid(const guid_t *muid)
 	if G_UNLIKELY(NULL == gmuid)
 		return FALSE;
 
-	return htable_contains(gmuid, muid);
+	return hikset_contains(gmuid, muid);
 }
 
 /**
@@ -2247,7 +2248,7 @@ guess_got_results(const guid_t *muid, uint32 hits)
 {
 	guess_t *gq;
 
-	gq = htable_lookup(gmuid, muid);
+	gq = hikset_lookup(gmuid, muid);
 	guess_check(gq);
 	gq->recv_results += hits;
 	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERY_HITS, +1);
@@ -2261,7 +2262,7 @@ guess_kept_results(const guid_t *muid, uint32 kept)
 {
 	guess_t *gq;
 
-	gq = htable_lookup(gmuid, muid);
+	gq = hikset_lookup(gmuid, muid);
 	if (NULL == gq)
 		return;			/* GUESS requsst terminated */
 
@@ -2815,13 +2816,12 @@ guess_send_query(guess_t *gq, const gnet_host_t *host)
  * mark it as queried so that no further attempt be made to contact it.
  */
 static void
-guess_ignore_alien_host(const void *unused_key, void *val, void *data)
+guess_ignore_alien_host(void *val, void *data)
 {
 	guess_t *gq = val;
 	const gnet_host_t *host = data;
 
 	guess_check(gq);
-	(void) unused_key;
 
 	/*
 	 * Prevent querying of the host.
@@ -2865,7 +2865,7 @@ guess_alien_host(const guess_t *gq, const gnet_host_t *host, bool reached)
 	aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
 	hcache_purge(HCACHE_CLASS_GUESS,
 		gnet_host_get_addr(host), gnet_host_get_port(host));
-	htable_foreach(gqueries, guess_ignore_alien_host, deconstify_pointer(host));
+	hevset_foreach(gqueries, guess_ignore_alien_host, deconstify_pointer(host));
 }
 
 /**
@@ -3662,8 +3662,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->max_ultrapeers = 0.85 * dbmw_count(db_qkdata);
 	gq->max_ultrapeers = MAX(gq->max_ultrapeers, GUESS_MAX_ULTRAPEERS);
 
-	htable_insert(gqueries, &gq->gid, gq);
-	htable_insert(gmuid, gq->muid, gq);
+	hevset_insert_key(gqueries, &gq->gid);
+	hikset_insert_key(gmuid, &gq->muid);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s ultras=%lu",
@@ -3729,7 +3729,7 @@ guess_free(guess_t *gq)
 	map_foreach(gq->queried, guess_host_map_free, NULL);
 	hash_list_foreach(gq->pool, guess_host_map_free1, NULL);
 
-	htable_remove(gmuid, gq->muid);
+	hikset_remove(gmuid, gq->muid);
 
 	map_destroy_null(&gq->queried);
 	hash_list_free(&gq->pool);
@@ -3740,7 +3740,7 @@ guess_free(guess_t *gq)
 	cq_cancel(&gq->delay_ev);
 
 	if (!(gq->flags & GQ_F_DONT_REMOVE))
-		htable_remove(gqueries, &gq->gid);
+		hevset_remove(gqueries, &gq->gid);
 
 	gq->magic = 0;
 	WFREE(gq);
@@ -3950,8 +3950,10 @@ guess_init(void)
 		GUESS_SYNC_PERIOD, guess_periodic_sync, NULL);
 	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
-	gqueries = htable_create_any(nid_hash, NULL, nid_equal);
-	gmuid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	gqueries = hevset_create_any(
+		offsetof(guess_t, gid), nid_hash, NULL, nid_equal);
+	gmuid = hikset_create(
+		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
 	pending = htable_create_any(guess_rpc_key_hash, NULL, guess_rpc_key_eq);
 	guess_qk_reqs = aging_make(GUESS_QK_FREQ,
@@ -3967,12 +3969,11 @@ guess_init(void)
  * Hashtable iteration callback to free the guess_t object held as the value.
  */
 static void
-guess_free_query(const void *key, void *value, void *unused_data)
+guess_free_query(void *value, void *unused_data)
 {
 	guess_t *gq = value;
 
 	guess_check(gq);
-	g_assert(key == &gq->gid);
 
 	(void) unused_data;
 
@@ -4009,10 +4010,10 @@ guess_close(void)
 	wq_cancel(&guess_new_host_ev);
 	guess_cache_free();
 
-	htable_foreach(gqueries, guess_free_query, NULL);
+	hevset_foreach(gqueries, guess_free_query, NULL);
 	htable_foreach(pending, guess_rpc_free_kv, NULL);
-	htable_free_null(&gqueries);
-	htable_free_null(&gmuid);
+	hevset_free_null(&gqueries);
+	hikset_free_null(&gmuid);
 	htable_free_null(&pending);
 	aging_destroy(&guess_qk_reqs);
 	aging_destroy(&guess_alien);

@@ -91,16 +91,16 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/iovec.h"
 #include "lib/path.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"       /* Must be the last header included */
 
-static htable_t *ht_file_objects_rdonly;	/* read-only file objects */
-static htable_t *ht_file_objects_wronly;	/* write-only file objects */
-static htable_t *ht_file_objects_rdwr;		/* read+write-able file objects */
+static hikset_t *ht_file_objects_rdonly;	/* read-only file objects */
+static hikset_t *ht_file_objects_wronly;	/* write-only file objects */
+static hikset_t *ht_file_objects_rdwr;		/* read+write-able file objects */
 
 enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
@@ -221,7 +221,7 @@ file_object_check(const struct file_object * const fo)
  *
  * @return The hash table holding file object for the access mode.
  */
-static inline htable_t *
+static inline hikset_t *
 file_object_mode_get_table(const int accmode)
 {
 	switch (accmode) {
@@ -250,7 +250,7 @@ file_object_find(const char * const pathname, int accmode)
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-	fo = htable_lookup(file_object_mode_get_table(O_RDWR), pathname);
+	fo = hikset_lookup(file_object_mode_get_table(O_RDWR), pathname);
 
 	/*
 	 * We need to find a more specific file object if looking for O_WRONLY
@@ -259,7 +259,7 @@ file_object_find(const char * const pathname, int accmode)
 
 	if (O_RDWR != accmode) {
 		struct file_object *xfo;
-		xfo = htable_lookup(file_object_mode_get_table(accmode), pathname);
+		xfo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
 		if (xfo != NULL) {
 			g_assert(xfo->accmode == accmode);
 			fo = xfo;
@@ -282,7 +282,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 {
 	static const struct file_object zero_fo;
 	struct file_object *fo;
-	htable_t *ht;
+	hikset_t *ht;
 
 	g_return_val_if_fail(fd >= 0, NULL);
 	g_return_val_if_fail(pathname, NULL);
@@ -302,7 +302,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 
 	file_object_check(fo);
 	g_assert(is_valid_fd(fo->fd));
-	htable_insert(file_object_mode_get_table(fo->accmode), fo->pathname, fo);
+	hikset_insert(ht, fo);
 
 	return fo;
 }
@@ -318,7 +318,7 @@ file_object_remove(struct file_object * const fo)
 	xfo = file_object_find(fo->pathname, fo->accmode);
 	g_assert(xfo == fo);
 
-	htable_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
+	hikset_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
 	fo->removed = TRUE;
 }
 
@@ -332,7 +332,7 @@ file_object_free(struct file_object * const fo)
 	if (fo->removed) {
 		const struct file_object *xfo;
 
-		xfo = htable_lookup(file_object_mode_get_table(fo->accmode),
+		xfo = hikset_lookup(file_object_mode_get_table(fo->accmode),
 				fo->pathname);
 		g_assert(xfo != fo);
 	} else {
@@ -547,11 +547,10 @@ file_object_special_op(enum file_object_op op,
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
 
-			htable_remove(file_object_mode_get_table(fo->accmode),
+			hikset_remove(file_object_mode_get_table(fo->accmode),
 				fo->pathname);
 			atom_str_change(&fo->pathname, new_name);
-			htable_insert(file_object_mode_get_table(fo->accmode),
-				fo->pathname, fo);
+			hikset_insert(file_object_mode_get_table(fo->accmode), fo);
 		}
 	} else {
 		GSList *sl;
@@ -813,49 +812,47 @@ file_object_get_pathname(const struct file_object * const fo)
 void
 file_object_init(void)
 {
+	size_t offset = offsetof(struct file_object, pathname);
+
 	g_return_if_fail(!ht_file_objects_rdonly);
 	g_return_if_fail(!ht_file_objects_wronly);
 	g_return_if_fail(!ht_file_objects_rdwr);
 
-	ht_file_objects_rdonly = htable_create(HASH_KEY_STRING, 0);
-	ht_file_objects_wronly = htable_create(HASH_KEY_STRING, 0);
-	ht_file_objects_rdwr = htable_create(HASH_KEY_STRING, 0);
+	ht_file_objects_rdonly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_wronly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_rdwr   = hikset_create(offset, HASH_KEY_STRING, 0);
 }
 
 static void
-file_object_show_item(const void *key, void *value, void *unused_udata)
+file_object_show_item(void *value, void *unused_udata)
 {
 	const struct file_object * const fo = value;
 
-	g_assert(key);
-	g_assert(value);
 	(void) unused_udata;
 
 	file_object_check(fo);
-	g_assert(fo->pathname == key);
 
 	g_warning("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
 		fo->ref_count, fo->fd, fo->pathname);
 }
 
 static inline void
-file_object_destroy_table(htable_t **ht_ptr, const char * const name)
+file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
 {
-	htable_t *ht;
+	hikset_t *ht;
 	uint n;
 
 	g_assert(ht_ptr);
 	ht = *ht_ptr;
 	g_return_if_fail(ht);
 
-	n = htable_count(ht);
+	n = hikset_count(ht);
 	if (n > 0) {
-		g_warning("file_object_destroy_table(): %s still contains %u items",
-			name, n);
-		htable_foreach(ht, file_object_show_item, NULL);
+		g_warning("%s(): %s still contains %u items", G_STRFUNC, name, n);
+		hikset_foreach(ht, file_object_show_item, NULL);
 	}
 	g_return_if_fail(0 == n);
-	htable_free_null(ht_ptr);
+	hikset_free_null(ht_ptr);
 	*ht_ptr = NULL;
 }
 

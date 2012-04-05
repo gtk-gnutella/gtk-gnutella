@@ -51,7 +51,7 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/nid.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -89,7 +89,7 @@ oob_proxy_rec_check(const struct oob_proxy_rec * const opr)
 /**
  * Table recording the proxied OOB query MUID.
  */
-static htable_t *proxied_queries;	/* New MUID => oob_proxy_rec */
+static hikset_t *proxied_queries;	/* New MUID => oob_proxy_rec */
 
 /*
  * High-level description of what's happening here.
@@ -152,7 +152,7 @@ static void
 oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
 {
 	oob_proxy_rec_check(opr);
-	htable_remove(proxied_queries, opr->proxied_muid);
+	hikset_remove(proxied_queries, opr->proxied_muid);
 	oob_proxy_rec_free(opr);
 }
 
@@ -221,7 +221,7 @@ oob_proxy_create(gnutella_node_t *n)
 	 * Otherwise we have an MUID collision.
 	 */
 
-	opr = htable_lookup(proxied_queries, &proxied_muid);
+	opr = hikset_lookup(proxied_queries, &proxied_muid);
 
 	if (opr != NULL) {
 		if (opr->node_id != NODE_ID(n)) {
@@ -242,7 +242,7 @@ oob_proxy_create(gnutella_node_t *n)
 
 		opr = oob_proxy_rec_make(gnutella_header_get_muid(&n->header),
 				&proxied_muid, NODE_ID(n));
-		htable_insert(proxied_queries, opr->proxied_muid, opr);
+		hikset_insert_key(proxied_queries, &opr->proxied_muid);
 
 		opr->expire_ev = cq_main_insert(PROXY_EXPIRE_MS,
 			oob_proxy_rec_destroy, opr);
@@ -296,7 +296,7 @@ oob_proxy_pending_results(
 	g_assert(hits > 0);
 	g_assert(token);
 
-	opr = htable_lookup(proxied_queries, muid);
+	opr = hikset_lookup(proxied_queries, muid);
 	if (opr == NULL)
 		return FALSE;
 
@@ -438,7 +438,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_SEARCH_RESULTS);
 	g_assert(results > 0 && results <= INT_MAX);
 
-	opr = htable_lookup(proxied_queries, gnutella_header_get_muid(&n->header));
+	opr = hikset_lookup(proxied_queries, gnutella_header_get_muid(&n->header));
 	if (opr == NULL)
 		return FALSE;
 
@@ -523,7 +523,7 @@ oob_proxy_muid_proxied(const struct guid *muid)
 {
 	const struct oob_proxy_rec *opr;
 	
-	opr = htable_lookup(proxied_queries, muid);
+	opr = hikset_lookup(proxied_queries, muid);
 	if (opr) {
 		oob_proxy_rec_check(opr);
 		return opr->leaf_muid;
@@ -538,18 +538,19 @@ oob_proxy_muid_proxied(const struct guid *muid)
 void
 oob_proxy_init(void)
 {
-	proxied_queries = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	proxied_queries = hikset_create(
+		offsetof(struct oob_proxy_rec, proxied_muid),
+		HASH_KEY_FIXED, GUID_RAW_SIZE);
 }
 
 /**
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_oob_proxy_kv(const void *uu_key, void *value, void *uu_udata)
+free_oob_proxy_kv(void *value, void *uu_udata)
 {
 	struct oob_proxy_rec *opr = value;
 
-	(void) uu_key;
 	(void) uu_udata;
 	oob_proxy_rec_check(opr);
 	oob_proxy_rec_free(opr);
@@ -561,8 +562,8 @@ free_oob_proxy_kv(const void *uu_key, void *value, void *uu_udata)
 void
 oob_proxy_close(void)
 {
-	htable_foreach(proxied_queries, free_oob_proxy_kv, NULL);
-	htable_free_null(&proxied_queries);
+	hikset_foreach(proxied_queries, free_oob_proxy_kv, NULL);
+	hikset_free_null(&proxied_queries);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

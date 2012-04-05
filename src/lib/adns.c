@@ -39,7 +39,7 @@
 #include "debug.h"
 #include "fd.h"
 #include "glib-missing.h"
-#include "htable.h"
+#include "hikset.h"
 #include "inputevt.h"
 #include "signal.h"
 #include "tm.h"
@@ -140,7 +140,7 @@ count_addrs(const host_addr_t *addrs, size_t m)
 static const char adns_process_title[] = "DNS helper for gtk-gnutella";
 
 typedef struct adns_cache_struct {
-	htable_t *ht;
+	hikset_t *ht;
 	unsigned pos;
 	int timeout;
 	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
@@ -169,7 +169,8 @@ adns_cache_init(void)
 
 	XMALLOC(cache);
 	cache->timeout = ADNS_CACHE_TIMEOUT;
-	cache->ht = htable_create(HASH_KEY_STRING, 0);
+	cache->ht = hikset_create(
+		offsetof(adns_cache_entry_t, hostname), HASH_KEY_STRING, 0);
 	cache->pos = 0;
 	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
 		cache->entries[i] = NULL;
@@ -237,7 +238,7 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
 		adns_cache_free_entry(cache, i);
 	}
-	htable_free_null(&cache->ht);
+	hikset_free_null(&cache->ht);
 	XFREE_NULL(cache);
 }
 
@@ -259,15 +260,15 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	g_assert(NULL != hostname);
 	g_assert(n > 0);
 
-	g_assert(!htable_contains(cache->ht, hostname));
+	g_assert(!hikset_contains(cache->ht, hostname));
 	g_assert(cache->pos < G_N_ELEMENTS(cache->entries));
 	
 	entry = adns_cache_get_entry(cache, cache->pos);
 	if (entry) {
 		g_assert(entry->hostname);
-		g_assert(entry == htable_lookup(cache->ht, entry->hostname));
+		g_assert(entry == hikset_lookup(cache->ht, entry->hostname));
 
-		htable_remove(cache->ht, entry->hostname);
+		hikset_remove(cache->ht, entry->hostname);
 		adns_cache_free_entry(cache, cache->pos);
 		entry = NULL;
 	}
@@ -280,7 +281,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	for (i = 0; i < entry->n; i++) {
 		entry->addrs[i] = addrs[i];
 	}
-	htable_insert(cache->ht, entry->hostname, entry);
+	hikset_insert_key(cache->ht, &entry->hostname);
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= G_N_ELEMENTS(cache->entries);
 }
@@ -308,7 +309,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	g_assert(NULL != hostname);
 	g_assert(0 == n || NULL != addrs);
 
-	entry = htable_lookup(cache->ht, hostname);
+	entry = hikset_lookup(cache->ht, hostname);
 	if (entry) {
 		if (delta_time(now, entry->timestamp) < cache->timeout) {
 			size_t i;
@@ -328,7 +329,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 				g_debug("adns_cache_lookup: removing \"%s\" from cache",
 						entry->hostname);
 
-			htable_remove(cache->ht, hostname);
+			hikset_remove(cache->ht, hostname);
 			adns_cache_free_entry(cache, entry->id);
 			entry = NULL;
 		}

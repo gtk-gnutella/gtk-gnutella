@@ -100,6 +100,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hikset.h"
 #include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -402,7 +403,7 @@ server_host_info(const struct dl_server *server)
  * where hosts are sorted based on their retry time.
  */
 
-static htable_t *dl_by_host;
+static hikset_t *dl_by_host;
 
 #define DHASH_SIZE	(1UL << 10)	/**< Hash list size, must be a power of 2 */
 #define DHASH_MASK 	(DHASH_SIZE - 1)
@@ -437,7 +438,7 @@ static htable_t *dl_by_guid;
  * a download with its THEX download.  The dl_by_id hashtable maps a GUID
  * to its corresponding download.
  */
-static htable_t *dl_by_id;
+static hikset_t *dl_by_id;
 
 /**
  * Associates a plain download with its corresponding THEX download in a
@@ -621,7 +622,7 @@ download_pipeline_can_initiate(const struct download *d)
 
 	if (dualhash_contains_key(dl_thex, d->id)) {
 		struct guid *id = dualhash_lookup_key(dl_thex, d->id);
-		struct download *dt = htable_lookup(dl_by_id, id);
+		struct download *dt = hikset_lookup(dl_by_id, id);
 
 		download_check(dt);
 		g_assert(dt->flags & DL_F_THEX);
@@ -1024,7 +1025,7 @@ download_free(struct download **d_ptr)
 	d = *d_ptr;
 	download_check(d);
 
-	htable_remove(dl_by_id, d->id);
+	hikset_remove(dl_by_id, d->id);
 	dualhash_remove_key(dl_thex, d->id);
 	atom_guid_free_null(&d->id);
 	d->magic = 0;
@@ -1166,7 +1167,7 @@ dl_random_guid_atom(void)
 	for (i = 0; i < 100; i++) {
 		guid_random_fill(&id);
 
-		if (NULL == htable_lookup(dl_by_id, &id))
+		if (NULL == hikset_lookup(dl_by_id, &id))
 			return atom_guid_get(&id);
 	}
 
@@ -1301,10 +1302,12 @@ download_source_progress(const struct download *d)
 G_GNUC_COLD void
 download_init(void)
 {
-	dl_by_host = htable_create_any(dl_key_hash, NULL, dl_key_eq);
+	dl_by_host = hikset_create_any(
+		offsetof(struct dl_server, key), dl_key_hash, dl_key_eq);
 	dl_by_addr = htable_create_any(dl_addr_hash, NULL, dl_addr_eq);
 	dl_by_guid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	dl_by_id = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	dl_by_id = hikset_create(
+		offsetof(struct download, id), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	dhl_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	dl_thex = dualhash_new(guid_hash, guid_eq, guid_hash, guid_eq);
 
@@ -1838,7 +1841,7 @@ allocate_server(const struct guid *guid, const host_addr_t addr, uint16 port)
 	server->country = gip_country(addr);
 	server->sha1_counts = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
-	htable_insert(dl_by_host, key, server);
+	hikset_insert_key(dl_by_host, &server->key);
 	dl_by_time_insert(server);
 
 	/*
@@ -1926,7 +1929,7 @@ server_unregister(struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	dl_by_time_remove(server);
-	htable_remove(dl_by_host, server->key);
+	hikset_remove(dl_by_host, server->key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -2098,11 +2101,11 @@ download_found_server(const struct guid *guid,
 						host_addr_port_to_string(addr, port));
 				}
 
-				htable_remove(dl_by_host, key);
+				hikset_remove(dl_by_host, key);
 				gnet_stats_count_general(GNR_DISCOVERED_SERVER_GUID, 1);
 				atom_guid_change(&key->guid, guid);
 				htable_insert(dl_by_guid, key->guid, server);
-				htable_insert(dl_by_host, key, server);
+				hikset_insert_key(dl_by_host, &server->key);
 			}
 		} else {
 			if (GNET_PROPERTY(download_debug)) {
@@ -2239,7 +2242,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 	key.addr = addr;
 	key.port = port;
 
-	server = htable_lookup(dl_by_host, &key);
+	server = hikset_lookup(dl_by_host, &key);
 	g_assert(server == NULL || dl_server_valid(server));
 
 	if (server) {
@@ -2460,7 +2463,7 @@ change_server_addr(struct dl_server *server,
 	g_assert(dl_server_valid(server));
 	g_assert(host_addr_initialized(new_addr));
 
-	htable_remove(dl_by_host, key);
+	hikset_remove(dl_by_host, key);
 
 	/*
 	 * We only inserted the server in the `dl_addr' table if it was "reachable".
@@ -2586,7 +2589,7 @@ change_server_addr(struct dl_server *server,
 
 	g_assert(server->key == key);
 
-	htable_insert(dl_by_host, key, server);
+	hikset_insert_key(dl_by_host, &server->key);
 
 	if (host_is_valid(key->addr, key->port)) {
 		struct dl_addr *ipk;
@@ -6175,7 +6178,7 @@ download_pick_followup(struct download *d, const struct sha1 *sha1)
 		 */
 
 		if (id != NULL) {
-			struct download *dt = htable_lookup(dl_by_id, id);
+			struct download *dt = hikset_lookup(dl_by_id, id);
 
 			download_check(dt);
 			g_assert(dt->flags & DL_F_THEX);
@@ -7094,7 +7097,7 @@ create_download(
 	d->server = server;
 	d->server->refcnt++;
 	d->id = dl_random_guid_atom();
-	htable_insert(dl_by_id, d->id, d);
+	hikset_insert_key(dl_by_id, &d->id);
 
 	/*
 	 * If we know that this server can be directly connected to, ignore
@@ -13297,14 +13300,15 @@ struct server_select {
  * This routine is a hash table iterator callback.
  */
 static void
-select_matching_servers(const void *key, void *value, void *user)
+select_matching_servers(void *value, void *user)
 {
-	const struct dl_key *skey = key;
+	const struct dl_key *skey;
 	struct dl_server *server = value;
 	struct server_select *ctx = user;
 
 	g_assert(dl_server_valid(server));
-	g_assert(server->key == skey);
+
+	skey = server->key;
 
 	if (
 		guid_eq(skey->guid, ctx->guid) ||
@@ -13334,7 +13338,7 @@ select_servers(const struct guid *guid, const host_addr_t addr, int *count)
 	ctx.servers = NULL;
 	ctx.count = 0;
 
-	htable_foreach(dl_by_host, select_matching_servers, &ctx);
+	hikset_foreach(dl_by_host, select_matching_servers, &ctx);
 
 	*count = ctx.count;
 	return ctx.servers;
@@ -15237,9 +15241,9 @@ download_close(void)
 	hash_list_free(&sl_unqueued);
 
 	htable_free_null(&dl_by_guid);
-	htable_free_null(&dl_by_host);
+	hikset_free_null(&dl_by_host);
 	htable_free_null(&dl_by_addr);
-	htable_free_null(&dl_by_id);
+	hikset_free_null(&dl_by_id);
 	htable_free_null(&dhl_by_sha1);
 	dualhash_destroy_null(&dl_thex);
 }

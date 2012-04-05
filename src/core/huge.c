@@ -54,7 +54,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
 #include "lib/sha1.h"
@@ -102,7 +102,7 @@ struct sha1_cache_entry {
                                      file in the share library      */
 };
 
-static htable_t *sha1_cache;
+static hikset_t *sha1_cache;
 
 /**
  * cache_dirty = TRUE means that in-core cache is different from the disk one.
@@ -153,7 +153,7 @@ add_volatile_cache_entry(const char *filename, filesize_t size, time_t mtime,
 	item->sha1 = atom_sha1_get(sha1);
 	item->tth = tth ? atom_tth_get(tth) : NULL;
 	item->shared = known_to_be_shared;
-	htable_insert(sha1_cache, item->file_name, item);
+	hikset_insert_key(sha1_cache, &item->file_name);
 }
 
 /* Disk cache */
@@ -232,12 +232,10 @@ struct dump_cache_context {
  * called by dump_cache to dump the whole in-memory cache onto disk.
  */
 static void
-dump_cache_one_entry(const void *unused_key, void *value, void *udata)
+dump_cache_one_entry(void *value, void *udata)
 {
 	struct sha1_cache_entry *e = value;
 	struct dump_cache_context *ctx = udata;
-
-	(void) unused_key;
 
 	if (ctx->forced || e->shared) {
 		cache_entry_print(ctx->f,
@@ -265,7 +263,7 @@ dump_cache(bool force)
 		fputs(sha1_persistent_cache_file_header, f);
 		ctx.f = f;
 		ctx.forced = force;
-		htable_foreach(sha1_cache, dump_cache_one_entry, &ctx);
+		hikset_foreach(sha1_cache, dump_cache_one_entry, &ctx);
 		if (file_config_close(f, &fp)) {
 			cache_dirty = FALSE;
 		}
@@ -458,7 +456,7 @@ huge_update_hashes(shared_file_t *sf,
 
 	/* Update cache */
 
-	cached = htable_lookup(sha1_cache, shared_file_path(sf));
+	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
 	if (cached) {
 		update_volatile_cache(cached, shared_file_size(sf),
@@ -519,7 +517,7 @@ huge_need_sha1(shared_file_t *sf)
 	 * XXX		--RAM, 21/05/2002
 	 */
 
-	cached = htable_lookup(sha1_cache, shared_file_path(sf));
+	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 	if (cached) {
 		filestat_t sb;
 
@@ -621,7 +619,7 @@ sha1_is_cached(const shared_file_t *sf)
 {
 	const struct sha1_cache_entry *cached;
 
-	cached = htable_lookup(sha1_cache, shared_file_path(sf));
+	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 	return cached && cached_entry_up_to_date(cached, sf);
 }
 
@@ -636,7 +634,7 @@ request_sha1(shared_file_t *sf)
 
 	shared_file_check(sf);
 
-	cached = htable_lookup(sha1_cache, shared_file_path(sf));
+	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 	if (cached && cached_entry_up_to_date(cached, sf)) {
 		cache_dirty = TRUE;
 		cached->shared = TRUE;
@@ -882,7 +880,8 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 void
 huge_init(void)
 {
-	sha1_cache = htable_create(HASH_KEY_SELF, 0);	/* Keys are atoms */
+	sha1_cache = hikset_create(		/* Keys are atoms */
+		offsetof(struct sha1_cache_entry, file_name), HASH_KEY_SELF, 0);
 	sha1_read_cache();
 	has_http_urls = pattern_compile("http://");
 }
@@ -891,11 +890,10 @@ huge_init(void)
  * Free SHA1 cache entry.
  */
 static void
-cache_free_entry(const void *unused_key, void *v, void *unused_udata)
+cache_free_entry(void *v, void *unused_udata)
 {
 	struct sha1_cache_entry *e = v;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	atom_str_free_null(&e->file_name);
@@ -912,8 +910,8 @@ huge_close(void)
 {
 	dump_cache(FALSE);
 
-	htable_foreach(sha1_cache, cache_free_entry, NULL);
-	htable_free_null(&sha1_cache);
+	hikset_foreach(sha1_cache, cache_free_entry, NULL);
+	hikset_free_null(&sha1_cache);
 
 	pattern_free(has_http_urls);
 	has_http_urls = NULL;

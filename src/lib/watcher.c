@@ -40,7 +40,7 @@
 #include "atoms.h"
 #include "cq.h"
 #include "halloc.h"
-#include "htable.h"
+#include "hikset.h"
 #include "path.h"
 #include "walloc.h"
 
@@ -58,7 +58,7 @@ struct monitored {
 	void *udata;			/**< User supplied data to hand-out to callback */
 };
 
-static htable_t *monitored;	/**< filename -> struct monitored */
+static hikset_t *monitored;	/**< filename -> struct monitored */
 
 /**
  * Compute the modified time of the file on disk.
@@ -78,12 +78,11 @@ watcher_mtime(const char *filename)
  * Check each registered file for change -- hash table iterator callback.
  */
 static void
-watcher_check_mtime(const void *unused_key, void *value, void *unused_udata)
+watcher_check_mtime(void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 	time_t new_mtime;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	new_mtime = watcher_mtime(m->filename);
@@ -103,7 +102,7 @@ watcher_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
-	htable_foreach(monitored, watcher_check_mtime, NULL);
+	hikset_foreach(monitored, watcher_check_mtime, NULL);
 
 	return TRUE;		/* Keep calling */
 }
@@ -129,10 +128,10 @@ watcher_register(const char *filename, watcher_cb_t cb, void *udata)
 	m->udata = udata;
 	m->mtime = watcher_mtime(filename);
 
-	if (htable_contains(monitored, filename))
+	if (hikset_contains(monitored, filename))
 		watcher_unregister(filename);
 
-	htable_insert(monitored, m->filename, m);
+	hikset_insert_key(monitored, &m->filename);
 }
 
 /**
@@ -167,11 +166,11 @@ watcher_unregister(const char *filename)
 {
 	struct monitored *m;
 
-	m = htable_lookup(monitored, filename);
+	m = hikset_lookup(monitored, filename);
 
 	g_assert(m != NULL);
 
-	htable_remove(monitored, m->filename);
+	hikset_remove(monitored, m->filename);
 	watcher_free(m);
 }
 
@@ -195,7 +194,8 @@ watcher_unregister_path(const file_path_t *fp)
 void
 watcher_init(void)
 {
-	monitored = htable_create(HASH_KEY_STRING, 0);
+	monitored = hikset_create(
+		offsetof(struct monitored, filename), HASH_KEY_STRING, 0);
 	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
@@ -203,11 +203,10 @@ watcher_init(void)
  * Free monitored structure -- hash table iterator callback.
  */
 static void
-free_monitored_kv(const void *unused_key, void *value, void *unused_udata)
+free_monitored_kv(void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 	watcher_free(m);
 }
@@ -218,8 +217,8 @@ free_monitored_kv(const void *unused_key, void *value, void *unused_udata)
 void
 watcher_close(void)
 {
-	htable_foreach(monitored, free_monitored_kv, NULL);
-	htable_free_null(&monitored);
+	hikset_foreach(monitored, free_monitored_kv, NULL);
+	hikset_free_null(&monitored);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -65,7 +65,7 @@
 #include "lib/dbstore.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
-#include "lib/htable.h"
+#include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -131,7 +131,7 @@ publisher_check(const struct publisher_entry *pe)
 	g_assert(PUBLISHER_MAGIC == pe->magic);
 }
 
-static htable_t *publisher_sha1;	/** Known entries by SHA1 */
+static hikset_t *publisher_sha1;	/** Known entries by SHA1 */
 
 /**
  * Private callout queue used to trigger republish events.
@@ -221,7 +221,7 @@ publisher_entry_free(struct publisher_entry *pe, bool do_remove)
 	publisher_check(pe);
 
 	if (do_remove) {
-		htable_remove(publisher_sha1, pe->sha1);
+		hikset_remove(publisher_sha1, pe->sha1);
 		delete_pubdata(pe->sha1);
 	}
 
@@ -757,7 +757,7 @@ publisher_add(const sha1_t *sha1)
 	 * If already known, ignore silently.
 	 */
 
-	if (htable_lookup(publisher_sha1, sha1))
+	if (hikset_lookup(publisher_sha1, sha1))
 		return;
 
 	/*
@@ -797,7 +797,7 @@ publisher_add(const sha1_t *sha1)
 	 */
 
 	pe = publisher_entry_alloc(sha1);
-	htable_insert(publisher_sha1, pe->sha1, pe);
+	hikset_insert_key(publisher_sha1, &pe->sha1);
 
 	publisher_handle(pe);
 }
@@ -925,7 +925,8 @@ publisher_init(void)
 		{ serialize_pubdata, deserialize_pubdata, NULL };
 
 	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
-	publisher_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	publisher_sha1 = hikset_create(
+		offsetof(struct publisher_entry, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
@@ -969,11 +970,10 @@ publisher_init(void)
  * Hash table iterator callback to free entry.
  */
 static void
-free_entry(const void *key, void *val, void *data)
+free_entry(void *val, void *data)
 {
 	struct publisher_entry *pe = val;
 
-	(void) key;
 	(void) data;
 
 	publisher_entry_free(pe, FALSE);
@@ -992,7 +992,7 @@ publisher_remove_orphan(void *key, void *u_value, size_t u_len, void *u_data)
 	(void) u_len;
 	(void) u_data;
 
-	return !htable_contains(publisher_sha1, sha1);
+	return !hikset_contains(publisher_sha1, sha1);
 }
 
 /**
@@ -1011,8 +1011,8 @@ publisher_close(void)
 	 * Final cleanup.
 	 */
 
-	htable_foreach(publisher_sha1, free_entry, NULL);
-	htable_free_null(&publisher_sha1);
+	hikset_foreach(publisher_sha1, free_entry, NULL);
+	hikset_free_null(&publisher_sha1);
 
 	dbstore_close(db_pubdata, settings_dht_db_dir(), db_pubdata_base);
 	db_pubdata = NULL;
