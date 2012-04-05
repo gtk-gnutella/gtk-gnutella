@@ -784,9 +784,6 @@ zfree(zone_t *zone, void *ptr)
 
 	safety_assert(zbelongs(zone, ptr));
 
-	zstats.freeings++;
-	memusage_remove_one(zone->zn_mem);
-
 #ifdef ZONE_SAFE
 	{
 		char **tmp;
@@ -821,6 +818,12 @@ zfree(zone_t *zone, void *ptr)
 #endif
 
 	ptr = ptr_add_offset(ptr, -OVH_LENGTH);
+	G_PREFETCH_W(ptr);
+	G_PREFETCH_W(&zone->zn_free);
+	G_PREFETCH_W(&zone->zn_cnt);
+
+	zstats.freeings++;
+	memusage_remove_one(zone->zn_mem);
 
 	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
 
