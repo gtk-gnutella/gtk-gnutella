@@ -53,6 +53,7 @@
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
 #include "log.h"
+#include "mem.h"			/* For mem_is_valid_ptr() */
 #include "mempcpy.h"
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
@@ -6225,6 +6226,15 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			bad = TRUE;
 		}
 
+		if (!mem_is_valid_range(fl->pointers, fl->capacity * sizeof(void *))) {
+			if (verbose) {
+				log_warning(la,
+					"XM freelist #%zu has corrupted pointer %p or capacity %zu",
+					i, fl->pointers, fl->capacity);
+			}
+			bad = TRUE;
+		}
+
 		for (j = 0, prev = NULL; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
 			size_t len;
@@ -6259,6 +6269,16 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 				if (verbose) {
 					log_warning(la,
 						"XM item #%zu p=%p in freelist #%zu is invalid",
+						j, p, i);
+				}
+				bad = TRUE;
+				continue;	/* Prudent */
+			}
+
+			if (!mem_is_valid_ptr(p)) {
+				if (verbose) {
+					log_warning(la,
+						"XM item #%zu p=%p in freelist #%zu is unreadable",
 						j, p, i);
 				}
 				bad = TRUE;
