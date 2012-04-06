@@ -922,12 +922,12 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 		char buf[64];
 
 		concat_strings(buf, sizeof buf,
-			uint64_to_string(dfi->done), "/",
-			uint64_to_string2(dfi->size), (void *) 0);
+			filesize_to_string(dfi->done), "/",
+			filesize_to_string2(dfi->size), (void *) 0);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
 			"different than expected (%s bytes done instead of %s/%s)",
 			pathname, buf,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size));
+			filesize_to_string(fi->done), filesize_to_string2(fi->size));
 	} else {
 		file_info_strip_trailer(fi, pathname);
 	}
@@ -1646,7 +1646,7 @@ G_STMT_START {				\
 		}
 		if (0 != ret) {
 			g_warning("seek to position %s within \"%s\" failed: %m",
-				uint64_to_string(trailer.filesize), pathname);
+				filesize_to_string(trailer.filesize), pathname);
 			goto eof;
 		}
 	}
@@ -1658,7 +1658,7 @@ G_STMT_START {				\
 	if (-1 == tbuf_read(fd, trailer.length)) {
 		g_warning("%s(): "
 			"unable to read whole trailer %s bytes) from \"%s\": %m",
-			G_STRFUNC, uint64_to_string(trailer.filesize), pathname);
+			G_STRFUNC, filesize_to_string(trailer.filesize), pathname);
 		goto eof;
 	}
 
@@ -1666,7 +1666,7 @@ G_STMT_START {				\
 	if (!READ_UINT32(&version, &checksum))
 		goto eof;
 	if ((t64 && version > FILE_INFO_VERSION) || (!t64 && version > 5)) {
-		g_warning("file_info_retrieve_binary(): strange version; %u", version);
+		g_warning("%s(): strange version; %u", G_STRFUNC, version);
 		goto eof;
 	}
 
@@ -1847,8 +1847,8 @@ G_STMT_START {				\
 			}
 			break;
 		default:
-			g_warning("file_info_retrieve_binary(): "
-				"unhandled field ID %u (%d bytes long)", field, tmpuint);
+			g_warning("%s(): unhandled field ID %u (%d bytes long)",
+				G_STRFUNC, field, tmpuint);
 			break;
 		}
 	}
@@ -1911,13 +1911,13 @@ G_STMT_START {				\
 	if (GNET_PROPERTY(fileinfo_debug) > 3)
 		g_debug("FILEINFO: "
 			"good trailer info (v%u, %s bytes) in \"%s\"",
-			version, uint64_to_string(trailer.length), pathname);
+			version, filesize_to_string(trailer.length), pathname);
 
 	return fi;
 
 bailout:
 
-	g_warning("file_info_retrieve_binary(): %s in \"%s\"", reason, pathname);
+	g_warning("%s(): %s in \"%s\"", G_STRFUNC, reason, pathname);
 
 eof:
 	if (fi) {
@@ -1994,13 +1994,13 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 	if (fi->cha1)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 
-	fprintf(f, "SIZE %s\n", uint64_to_string(fi->size));
+	fprintf(f, "SIZE %s\n", filesize_to_string(fi->size));
 	fprintf(f, "FSKN %u\n", fi->file_size_known ? 1 : 0);
 	fprintf(f, "PAUS %u\n", (FI_F_PAUSED & fi->flags) ? 1 : 0);
-	fprintf(f, "DONE %s\n", uint64_to_string(fi->done));
-	fprintf(f, "TIME %s\n", uint64_to_string(fi->stamp));
-	fprintf(f, "CTIM %s\n", uint64_to_string(fi->created));
-	fprintf(f, "NTIM %s\n", uint64_to_string(fi->ntime));
+	fprintf(f, "DONE %s\n", filesize_to_string(fi->done));
+	fprintf(f, "TIME %s\n", time_t_to_string(fi->stamp));
+	fprintf(f, "CTIM %s\n", time_t_to_string(fi->created));
+	fprintf(f, "NTIM %s\n", time_t_to_string(fi->ntime));
 	fprintf(f, "SWRM %u\n", fi->use_swarming ? 1 : 0);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -2009,7 +2009,7 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 		dl_file_chunk_check(fc);
 		fprintf(f, "CHNK %s %s %u\n",
-			uint64_to_string(fc->from), uint64_to_string2(fc->to),
+			filesize_to_string(fc->from), filesize_to_string2(fc->to),
 			(uint) fc->status);
 	}
 	fprintf(f, "\n");
@@ -2305,7 +2305,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		g_debug("FILEINFO insert 0x%p \"%s\" "
 			"(%s/%s bytes done) sha1=%s",
 			cast_to_constpointer(fi), fi->pathname,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size),
+			filesize_to_string(fi->done), filesize_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 
 	/*
@@ -2402,7 +2402,7 @@ file_info_hash_remove(fileinfo_t *fi)
 	if (GNET_PROPERTY(fileinfo_debug) > 4) {
 		g_debug("FILEINFO remove %p \"%s\" (%s/%s bytes done) sha1=%s",
 			(void *) fi, fi->pathname,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size),
+			filesize_to_string(fi->done), filesize_to_string2(fi->size),
 			fi->sha1 ? sha1_base32(fi->sha1) : "none");
 	}
 
@@ -2553,7 +2553,7 @@ file_info_unlink(fileinfo_t *fi)
 	} else {
 		g_warning("unlinked \"%s\" (%s/%s bytes or %u%% done, %s SHA1%s%s)",
 			fi->pathname,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size),
+			filesize_to_string(fi->done), filesize_to_string2(fi->size),
 			(unsigned) (fi->done * 100U / (fi->size == 0 ? 1 : fi->size)),
 			fi->sha1 ? "with" : "no",
 			fi->sha1 ? ": " : "",
@@ -2631,24 +2631,24 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 		char buf[64];
 
 		concat_strings(buf, sizeof buf,
-			uint64_to_string(xfi->done), "/",
-			uint64_to_string2(xfi->size), (void *) 0);
+			filesize_to_string(xfi->done), "/",
+			filesize_to_string2(xfi->size), (void *) 0);
 		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
 			"(%s bytes done) and \"%s\" (%s/%s bytes done)\n",
 			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size));
+			filesize_to_string(fi->done), filesize_to_string2(fi->size));
 	}
 
 	if (fi->done && xfi->done) {
 		char buf[64];
 
 		concat_strings(buf, sizeof buf,
-			uint64_to_string(xfi->done), "/",
-			uint64_to_string2(xfi->size), (void *) 0);
+			filesize_to_string(xfi->done), "/",
+			filesize_to_string2(xfi->size), (void *) 0);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
 			"(%s/%s bytes done) -- aborting last one",
 			sha1_base32(sha1), xfi->pathname, buf, fi->pathname,
-			uint64_to_string(fi->done), uint64_to_string2(fi->size));
+			filesize_to_string(fi->done), filesize_to_string2(fi->size));
 		return FALSE;
 	}
 
@@ -3086,7 +3086,7 @@ file_info_retrieve(void)
 						g_warning("discarding cached metainfo for \"%s\": "
 							"file had %s bytes downloaded "
 							"but is now gone!", fi->pathname,
-							uint64_to_string(fi->done));
+							filesize_to_string(fi->done));
 						goto reset;
 					}
 				}
@@ -3115,8 +3115,8 @@ file_info_retrieve(void)
 			if (NULL != dfi) {
 				g_warning("found DUPLICATE entry for \"%s\" "
 					"(%s bytes) with \"%s\" (%s bytes)",
-					fi->pathname, uint64_to_string(fi->size),
-					dfi->pathname, uint64_to_string2(dfi->size));
+					fi->pathname, filesize_to_string(fi->size),
+					dfi->pathname, filesize_to_string2(dfi->size));
 				goto reset;
 			}
 
@@ -3373,7 +3373,7 @@ file_info_retrieve(void)
 						? g_slist_last(fi->chunklist)->data : NULL;
 					if (fc->from != (prev ? prev->to : 0)) {
 						g_warning("Chunklist is inconsistent (fi->size=%s)",
-							uint64_to_string(fi->size));
+							filesize_to_string(fi->size));
 						damaged = TRUE;
 					} else {
 						fi->chunklist = g_slist_append(fi->chunklist, fc);
@@ -3526,9 +3526,8 @@ file_info_create(const char *file, const char *path, filesize_t size,
 	if (-1 != stat(fi->pathname, &st) && S_ISREG(st.st_mode)) {
 		struct dl_file_chunk *fc;
 
-		g_warning("file_info_create(): "
-			"assuming file \"%s\" is complete up to %s bytes",
-			fi->pathname, uint64_to_string(st.st_size));
+		g_warning("%s(): assuming file \"%s\" is complete up to %s bytes",
+			G_STRFUNC, fi->pathname, filesize_to_string(st.st_size));
 
 		fc = dl_file_chunk_alloc();
 		fc->from = 0;
@@ -3718,7 +3717,7 @@ file_info_get(const char *file, const char *path, filesize_t size,
 
 			g_warning("file \"%s\" (SHA1 %s) was %s bytes, resizing to %s",
 				fi->pathname, sha1_base32(fi->sha1),
-				uint64_to_string(fi->size), uint64_to_string2(size));
+				filesize_to_string(fi->size), filesize_to_string2(size));
 
 			file_info_hash_remove(fi);
 			fi_resize(fi, size);
@@ -3802,7 +3801,8 @@ file_info_get(const char *file, const char *path, filesize_t size,
 			 */
 
 			g_warning("found existing file \"%s\" size=%s, increasing to %s",
-				pathname, uint64_to_string(fi->size), uint64_to_string2(size));
+				pathname, filesize_to_string(fi->size),
+				filesize_to_string2(size));
 
 			fi_resize(fi, size);
 		}
@@ -4088,7 +4088,7 @@ again:
 		g_error("Eek! Internal error! "
 			"file_info_update(%s, %s, %d) "
 			"is looping for \"%s\"! Man battle stations!",
-			uint64_to_string(from), uint64_to_string2(to),
+			filesize_to_string(from), filesize_to_string2(to),
 			status, d->file_name);
 		return;
 	}
@@ -4250,15 +4250,14 @@ again:
 
 	if (!found) {
 		/* Should never happen. */
-		g_warning("file_info_update(): "
-			"(%s) Didn't find matching chunk for <%s-%s> (%u)",
-			fi->pathname, uint64_to_string(from),
-			uint64_to_string2(to), status);
+		g_warning("%s(): (%s) didn't find matching chunk for <%s-%s> (%u)",
+			G_STRFUNC, fi->pathname, filesize_to_string(from),
+			filesize_to_string2(to), status);
 
 		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
-			g_warning("... %s %s %u", uint64_to_string(fc->from),
-				uint64_to_string2(fc->to), fc->status);
+			g_warning("... %s %s %u", filesize_to_string(fc->from),
+				filesize_to_string2(fc->to), fc->status);
 		}
 	}
 
@@ -4502,9 +4501,9 @@ file_info_pos_status(fileinfo_t *fi, filesize_t pos)
 	}
 
 	if (pos > fi->size) {
-		g_warning("file_info_pos_status(): unreachable position %s "
-			"in %s-byte file \"%s\"", uint64_to_string(pos),
-			uint64_to_string2(fi->size), fi->pathname);
+		g_warning("%s(): unreachable position %s in %s-byte file \"%s\"",
+			G_STRFUNC, filesize_to_string(pos),
+			filesize_to_string2(fi->size), fi->pathname);
 	}
 
 	return DL_CHUNK_DONE;
@@ -5245,7 +5244,7 @@ file_info_find_hole(const struct download *d, filesize_t *from, filesize_t *to)
 
 	if (fi->size < d->file_size) {
 		g_warning("fi->size=%s < d->file_size=%s for \"%s\"",
-			uint64_to_string(fi->size), uint64_to_string2(d->file_size),
+			filesize_to_string(fi->size), filesize_to_string2(d->file_size),
 			fi->pathname);
 	}
 
@@ -6447,7 +6446,7 @@ file_info_available(const fileinfo_t *fi, char *buf, size_t size)
 		UINT64_DEC_BUFLEN + sizeof("X-Available: bytes") + 2, size);
 
 	header_fmt_append_value(fmt, "bytes");
-	header_fmt_append_value(fmt, uint64_to_string(fi->done));
+	header_fmt_append_value(fmt, filesize_to_string(fi->done));
 	header_fmt_end(fmt);
 
 	len = header_fmt_length(fmt);
@@ -6500,7 +6499,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 
 		gm_snprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
-			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
+			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
 		if (!header_fmt_append_value(fmt, range))
 			break;
@@ -6528,7 +6527,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 			UINT64_DEC_BUFLEN + sizeof("X-Available: bytes") + 2, size);
 
 		header_fmt_append_value(fmta, "bytes");
-		header_fmt_append_value(fmta, uint64_to_string(fi->done));
+		header_fmt_append_value(fmta, filesize_to_string(fi->done));
 		header_fmt_end(fmta);
 
 		len = header_fmt_length(fmta);
@@ -6584,7 +6583,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 
 		gm_snprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
-			uint64_to_string(fc->from), uint64_to_string2(fc->to - 1));
+			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
 		if (header_fmt_append_value(fmt, range))
 			is_first = FALSE;
