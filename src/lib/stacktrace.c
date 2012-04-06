@@ -75,6 +75,8 @@ static time_t program_mtime;	/**< Last modification time of executable */
 static bool symbols_loaded;
 static symbols_t *symbols;
 
+static const char *executable_absolute_path;	/* Read-only string */
+
 /**
  * Auto-tuning stack trace offset.
  *
@@ -523,6 +525,7 @@ G_GNUC_COLD void
 stacktrace_init(const char *argv0, bool deferred)
 {
 	char *path;
+	filestat_t buf;
 
 	g_assert(argv0 != NULL);
 
@@ -536,18 +539,18 @@ stacktrace_init(const char *argv0, bool deferred)
 	if (NULL == path)
 		goto done;
 
+	if (-1 == stat(path, &buf)) {
+		s_warning("%s(): cannot stat \"%s\": %m", G_STRFUNC, path);
+		s_warning("will not be loading symbols for %s", argv0);
+		goto done;
+	}
+
+	program_path = absolute_pathname(path);
+	executable_absolute_path = ostrdup_readonly(program_path);
+
 	if (deferred) {
-		filestat_t buf;
-
-		if (-1 == stat(path, &buf)) {
-			s_warning("cannot stat \"%s\": %m", path);
-			s_warning("will not be loading symbols for %s", argv0);
-			goto done;
-		}
-
 		program_mtime = buf.st_mtime;
 		local_path = path;
-		program_path = absolute_pathname(path);
 		goto tune;
 	}
 
@@ -556,6 +559,7 @@ stacktrace_init(const char *argv0, bool deferred)
 	/* FALL THROUGH */
 
 done:
+	HFREE_NULL(program_path);
 	HFREE_NULL(path);
 	symbols_loaded = TRUE;		/* Don't attempt again */
 
@@ -950,6 +954,11 @@ stack_print_decorated_to(struct sxfile *xf,
 			 * If we have a pathname, try to open the file with the BFD
 			 * library to be able to get at debugging information.
 			 */
+
+			if (pathname != NULL) {
+				if (!is_absolute_path(pathname) && stack_is_our_text(pc))
+					pathname = executable_absolute_path;
+			}
 
 			if (pathname != NULL) {
 				bc = bfd_util_get_context(be, pathname);
