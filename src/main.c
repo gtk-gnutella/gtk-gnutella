@@ -1324,7 +1324,7 @@ main_timer(void *unused_data)
 			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
 		asynchronous_exit = TRUE;
- 		gtk_gnutella_exit(EXIT_FAILURE);
+ 		gtk_gnutella_exit(EXIT_SUCCESS);
 	}
 
 	now = check_cpu_usage();
