@@ -38,6 +38,7 @@
 #include "log.h"
 #include "pow2.h"
 #include "spinlock.h"
+#include "thread.h"			/* For thread_small_id() */
 #include "unsigned.h"
 #include "vmm.h"
 #include "xmalloc.h"
@@ -51,11 +52,22 @@
 #undef wrealloc
 #endif
 
-#define WALLOC_MINCOUNT	8			/**< Minimum amount of structs in a chunk */
+#define WALLOC_MINCOUNT			8	/* Minimum amount of structs in a chunk */
+#define WALLOC_THREADS			16	/* Max # of threads we handle */
+#define WALLOC_THREAD_MAXLEN	512	/* Max size for thread-private zones */
 
-#define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
+#define WZONE_SIZE			(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
+#define WZONE_THREAD_SIZE	(WALLOC_THREAD_MAXLEN / ZALLOC_ALIGNBYTES + 1)
+
+/**
+ * Small blocks should be handled via a thread-private zone, assuming that
+ * the thread which allocates the block will be the one freeing the block.
+ *
+ * This prevents locking for small objects.
+ */
 
 static struct zone *wzone[WZONE_SIZE];
+static struct zone *wtzone[WZONE_THREAD_SIZE][WALLOC_THREADS];
 static size_t halloc_threshold = -1;
 static bool walloc_stopped;
 
@@ -88,7 +100,7 @@ wzone_index(size_t rounded)
  * Allocate a new zone of given rounded size.
  */
 static zone_t *
-wzone_get(size_t rounded)
+wzone_get(size_t rounded, bool private)
 {
 	zone_t *zone;
 
@@ -102,7 +114,7 @@ wzone_get(size_t rounded)
 	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
 	 */
 
-	if (!(zone = zget(rounded, WALLOC_MINCOUNT)))
+	if (!(zone = zget(rounded, WALLOC_MINCOUNT, private)))
 		s_error("zget() failed?");
 
 	return zone;
@@ -124,6 +136,69 @@ walloc_blocksize(size_t size)
 }
 
 /**
+ * Get zone for given rounded allocation size.
+ *
+ * @param rounded		rounded allocation size
+ * @param allocate		whether we should allocate a missing zone
+ *
+ * @return the zone corresponding to the requested size.
+ */
+static zone_t *
+walloc_get_zone(size_t rounded, bool allocate)
+{
+	size_t idx;
+	zone_t *zone;
+
+	idx = wzone_index(rounded);
+
+	/*
+	 * Must be made thread-safe because xmalloc() uses walloc() and when
+	 * xmalloc() replaces the system malloc(), we can be in a multi-threaded
+	 * environment due to GTK.
+	 *		--RAM, 2011-12-28
+	 *
+	 * Small blocks (up to WALLOC_THREAD_MAXLEN bytes) are allocated through
+	 * a thread-private array provided their small thread ID is less than
+	 * WALLOC_THREADS.  This should heavily reduce spinlock() pressure.
+	 *		--RAM, 2012-04-14
+	 */
+
+	if (rounded <= WALLOC_THREAD_MAXLEN) {
+		unsigned stid = thread_small_id();
+
+		if (stid < WALLOC_THREADS) {
+			if (NULL == (zone = wtzone[idx][stid])) {
+				if (!allocate) {
+					s_error("missing %zu-byte zone for thread #%u",
+						rounded, stid);
+				}
+				zone = wtzone[idx][stid] = wzone_get(rounded, TRUE);
+			}
+			return zone;
+		}
+
+		/* FALL THROUGH */
+	}
+
+	if (NULL == (zone = wzone[idx])) {
+		static spinlock_t walloc_slk = SPINLOCK_INIT;
+
+		if (!allocate)
+			s_error("missing %zu-byte zone", rounded);
+
+		if (!spinlock_try(&walloc_slk))
+			return NULL;	/* Recursion, cannot allocate memory */
+
+		if (NULL == (zone = wzone[idx]))
+			zone = wzone[idx] = wzone_get(rounded, FALSE);
+
+		spinunlock(&walloc_slk);
+	}
+
+	return zone;
+}
+
+/**
  * Allocate memory from a zone suitable for the given size.
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
@@ -136,10 +211,8 @@ walloc_blocksize(size_t size)
 G_GNUC_HOT void *
 walloc(size_t size)
 {
-	static spinlock_t walloc_slk = SPINLOCK_INIT;
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
-	size_t idx;
 
 	g_assert(size_is_positive(size));
 
@@ -151,22 +224,7 @@ walloc(size_t size)
 		return size >= halloc_threshold ? halloc(size) : xpmalloc(size);
 	}
 
-	idx = wzone_index(rounded);
-
-	/*
-	 * Must be made thread-safe because xmalloc() uses walloc() and when
-	 * xmalloc() replaces the system malloc(), we can be in a multi-threaded
-	 * environment due to GTK.
-	 *		--RAM, 2011-12-28
-	 */
-
-	if (NULL == (zone = wzone[idx])) {
-		if (!spinlock_try(&walloc_slk))
-			return NULL;	/* Recursion, cannot allocate memory */
-		if (NULL == (zone = wzone[idx]))
-			zone = wzone[idx] = wzone_get(rounded);
-		spinunlock(&walloc_slk);
-	}
+	zone = walloc_get_zone(rounded, TRUE);
 
 	return zalloc(zone);
 }
@@ -196,7 +254,6 @@ wfree(void *ptr, size_t size)
 {
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
-	size_t idx;
 
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
@@ -218,12 +275,7 @@ wfree(void *ptr, size_t size)
 		return;
 	}
 
-	idx = rounded / ZALLOC_ALIGNBYTES;
-
-	g_assert(idx < WZONE_SIZE);
-
-	zone = wzone[idx];
-	g_assert(zone != NULL);
+	zone = walloc_get_zone(rounded, FALSE);
 
 	zfree(zone, ptr);
 }
@@ -248,8 +300,7 @@ wfree0(void *ptr, size_t size)
 void *
 wmove(void *ptr, size_t size)
 {
-	size_t idx = wzone_index(zalloc_round(size));
-	zone_t *zone = wzone[idx];
+	zone_t *zone = walloc_get_zone(zalloc_round(size), FALSE);
 
 	if G_UNLIKELY(walloc_stopped)
 		return ptr;
@@ -274,7 +325,7 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	void *new;
 	size_t new_rounded = zalloc_round(new_size);
 	size_t old_rounded = zalloc_round(old_size);
-	size_t idx_old, idx_new;
+	zone_t *old_zone, *new_zone;
 
 	if (NULL == old)
 		return walloc(new_size);
@@ -294,16 +345,11 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	 * zone, in which case there is nothing to do.
 	 */
 
-	idx_old = wzone_index(old_rounded);
-	idx_new = wzone_index(new_rounded);
+	old_zone = walloc_get_zone(old_rounded, FALSE);
+	new_zone = walloc_get_zone(new_rounded, TRUE);
 
-	g_assert(wzone[idx_old] != NULL);
-
-	if (NULL == wzone[idx_new])
-		wzone[idx_new] = wzone_get(new_rounded);
-
-	if (wzone[idx_old] == wzone[idx_new])
-		return zmove(wzone[idx_old], old);	/* Move around if interesting */
+	if (old_zone == new_zone)
+		return zmove(old_zone, old);	/* Move around if interesting */
 
 resize_block:
 
@@ -336,7 +382,6 @@ walloc_track(size_t size, const char *file, int line)
 {
 	zone_t *zone;
 	size_t rounded = zalloc_round(size);
-	size_t idx;
 
 	g_assert(size_is_positive(size));
 
@@ -352,20 +397,7 @@ walloc_track(size_t size, const char *file, int line)
 			return p;
 	}
 
-	idx = rounded / ZALLOC_ALIGNBYTES;
-
-	g_assert(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1 == WZONE_SIZE);
-	g_assert(idx < WZONE_SIZE);
-
-	if (!(zone = wzone[idx])) {
-		/*
-		 * We're paying this computation/allocation cost once per size!
-		 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
-		 */
-
-		if (!(zone = wzone[idx] = zget(rounded, WALLOC_MINCOUNT)))
-			s_error("zget() failed?");
-	}
+	zone = walloc_get_zone(rounded, TRUE);
 
 	return zalloc_track(zone, file, line);
 }
@@ -440,6 +472,17 @@ wdestroy(void)
 		if (wzone[i] != NULL) {
 			zdestroy(wzone[i]);
 			wzone[i] = NULL;
+		}
+	}
+
+	for (i = 0; i < WZONE_THREAD_SIZE; i++) {
+		size_t j;
+
+		for (j = 0; j < WALLOC_THREADS; j++) {
+			if (wtzone[i][j] != NULL) {
+				zdestroy(wtzone[i][j]);
+				wtzone[i][j] = NULL;
+			}
 		}
 	}
 }

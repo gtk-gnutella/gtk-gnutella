@@ -61,7 +61,7 @@ word_vec_init(void)
 	 * If we need to expand that, it will be done through regular malloc().
 	 */
 
-	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2);
+	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2, TRUE);
 }
 
 /**

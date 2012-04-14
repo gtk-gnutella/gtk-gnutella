@@ -59,7 +59,7 @@ typedef struct zone zone_t;
  */
 
 zone_t *zcreate(size_t, unsigned, bool);
-zone_t *zget(size_t, unsigned);
+zone_t *zget(size_t, unsigned, bool);
 void zdestroy(zone_t *zone);
 
 size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
