@@ -35,6 +35,7 @@
 #define _mutex_h_
 
 #include "spinlock.h"
+#include "thread.h"
 
 enum mutex_magic {
 	MUTEX_MAGIC = 0x1a35dfeb,
@@ -92,6 +93,7 @@ void mutex_destroy(mutex_t *m);
 void mutex_release(mutex_t *m);
 void mutex_release_const(const mutex_t *m);
 bool mutex_is_owned(const mutex_t *m);
+bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
 
 #endif /* _mutex_h_ */

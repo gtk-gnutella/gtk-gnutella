@@ -110,16 +110,22 @@ mutex_init(mutex_t *m)
  * Is mutex owned?
  */
 bool
-mutex_is_owned(const mutex_t *m)
+mutex_is_owned_by(const mutex_t *m, const thread_t t)
 {
-	thread_t t;
-
 	mutex_check(m);
 
 	/* Violates spinlock encapsulation for speed */
 
-	t = thread_current();
 	return m->lock.lock && thread_eq(t, m->owner);
+}
+
+/**
+ * Is mutex owned?
+ */
+bool
+mutex_is_owned(const mutex_t *m)
+{
+	return mutex_is_owned_by(m, thread_current());
 }
 
 /**
@@ -155,6 +161,7 @@ void
 mutex_grab(mutex_t *m)
 {
 	mutex_check(m);
+	thread_t t = thread_current();
 
 	/*
 	 * We dispense with memory barriers after getting the spinlock because
@@ -164,13 +171,11 @@ mutex_grab(mutex_t *m)
 	 */
 
 	if (spinlock_try(&m->lock)) {
-		thread_t t = thread_current();
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned(m)) {
+	} else if (mutex_is_owned_by(m, t)) {
 		m->depth++;
 	} else {
-		thread_t t = thread_current();
 		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,
 			mutex_deadlock, mutex_deadlocked);
 		thread_set(m->owner, t);
