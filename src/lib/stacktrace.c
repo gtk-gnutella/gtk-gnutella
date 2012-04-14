@@ -1252,7 +1252,8 @@ stacktrace_caller(size_t n)
  * With n = 0, this should be the current routine name.
  *
  * @return pointer to static data.  An empty name means there are not enough
- * items in the stack.
+ * items in the stack, "??" means that no symbols could be loaded so the
+ * symbolic name is not available.
  */
 const char *
 stacktrace_caller_name(size_t n)
@@ -1270,7 +1271,7 @@ stacktrace_caller_name(size_t n)
 	if (!signal_in_handler())
 		stacktrace_load_symbols();
 
-	return symbols_name(symbols, stack[n], FALSE);
+	return symbols == NULL ? "??" : symbols_name(symbols, stack[n], FALSE);
 }
 
 /**
