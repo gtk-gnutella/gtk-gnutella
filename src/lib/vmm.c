@@ -123,6 +123,7 @@
 #include "spinlock.h"
 #include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
+#include "thread.h"			/* For thread_small_id() */
 #include "tm.h"
 #include "unsigned.h"
 #include "xmalloc.h"
@@ -4280,6 +4281,7 @@ vmm_post_init(void)
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
 		s_debug("VMM stack grows by %s addresses",
 			sp_direction > 0 ? "increasing" : "decreasing");
+		s_debug("VMM running in thread #%u", thread_small_id());
 	}
 
 	if (vmm_debugging(1)) {
