@@ -429,7 +429,7 @@ bits2bytes(size_t keybits)
  * than the actual prefix and fills.
  */
 static const void *
-node_prefix(const struct patricia_node *pn)
+patricia_node_prefix(const struct patricia_node *pn)
 {
 	const struct patricia_node *n;
 	int i;
@@ -622,15 +622,15 @@ key_eq(const void *k1, const void *k2, size_t keybits)
 
 /**
  * Given a node and a key, determine how many leading bits in the key are
- * matched by the node returned by match_best().
+ * matched by the node returned by patricia_match_best().
  *
- * @param pn		the PATRICIA node returned by match_best()
+ * @param pn		the PATRICIA node returned by patricia_match_best()
  * @param key		the key we looked up
  * @param keybits	the size of the key in bits
  * @param pprefix	where to write the prefix for the match, if not NULL
  */
 static size_t
-matched_bits(
+patricia_matched_bits(
 	const struct patricia_node *pn, const void *key, size_t keybits,
 	const void **pprefix)
 {
@@ -638,7 +638,7 @@ matched_bits(
 
 	patricia_node_check(pn);
 
-	prefix = node_prefix(pn);
+	prefix = patricia_node_prefix(pn);
 	if (pprefix)
 		*pprefix = prefix;
 
@@ -655,10 +655,10 @@ matched_bits(
  *
  * @return the node under which all entries share a common prefix (the amount
  * of matching leading bits within the key can be determined by calling
- * matched_bits() on the resulting node).
+ * patricia_matched_bits() on the resulting node).
  */
 static G_GNUC_HOT struct patricia_node *
-match_best(patricia_t *pt, const void *key, size_t keybits)
+patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -1174,7 +1174,7 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
  * @param value		value to insert in the tree for this key.
  */
 static void
-insert_at(
+patricia_insert_at(
 	patricia_t *pt, struct patricia_node *pn,
 	const void *key, size_t keybits, const void *value)
 {
@@ -1277,7 +1277,7 @@ insert_at(
  * @param common	amount of common bits between key and node's prefix
  */
 static void
-insert_below(
+patricia_insert_below(
 	patricia_t *pt, struct patricia_node *pn,
 	const void *key, size_t keybits, const void *value, size_t common)
 {
@@ -1374,7 +1374,7 @@ insert_below(
  * @param prefix	the node's prefix at the original "pn" point
  */
 static void
-insert_above(
+patricia_insert_above(
 	patricia_t *pt, struct patricia_node *pn,
 	const void *key, size_t keybits, const void *value, size_t common,
 	const void *prefix)
@@ -1454,9 +1454,9 @@ insert_above(
 	 */
 
 	if (common == keybits)
-		insert_at(pt, new, key, keybits, value);
+		patricia_insert_at(pt, new, key, keybits, value);
 	else
-		insert_below(pt, new, key, keybits, value, common);
+		patricia_insert_below(pt, new, key, keybits, value, common);
 }
 
 /**
@@ -1520,8 +1520,8 @@ patricia_insert_k(patricia_t *pt,
 	 * Find node in the tree which is the longest (partial) match for the key.
 	 */
 
-	pn = match_best(pt, key, keybits);
-	common_bits = matched_bits(pn, key, keybits, &prefix);
+	pn = patricia_match_best(pt, key, keybits);
+	common_bits = patricia_matched_bits(pn, key, keybits, &prefix);
 
 	/*
 	 * Insert at the right position, relative to the found node.
@@ -1529,14 +1529,14 @@ patricia_insert_k(patricia_t *pt,
 
 	if (common_bits == keybits && keybits >= node_prefix_bits(pn)) {
 		/* All bits from key matched: found node where insertion can be done */
-		insert_at(pt, pn, key, keybits, value);
+		patricia_insert_at(pt, pn, key, keybits, value);
 	} else if (common_bits == node_prefix_bits(pn)) {
 		/* The common bits are the node's prefix: insertion must occur below */
 		g_assert(common_bits < keybits);
-		insert_below(pt, pn, key, keybits, value, common_bits);
+		patricia_insert_below(pt, pn, key, keybits, value, common_bits);
 	} else {
 		g_assert(common_bits < node_prefix_bits(pn));
-		insert_above(pt, pn, key, keybits, value, common_bits, prefix);
+		patricia_insert_above(pt, pn, key, keybits, value, common_bits, prefix);
 	}
 }
 
@@ -2019,7 +2019,7 @@ patricia_remove_furthest(patricia_t *pt, const void *key, size_t keybits)
 }
 
 /**
- * Callback for nodes in traverse().
+ * Callback for nodes in patricia_traverse().
  */
 typedef void (*node_cb_t)(struct patricia_node *pn, void *un);
 
@@ -2034,7 +2034,8 @@ typedef void (*node_cb_t)(struct patricia_node *pn, void *un);
  * 
  */
 static void
-traverse(patricia_t *pt, node_cb_t ncb, void *un, patricia_cb_t cb, void *u)
+patricia_traverse(patricia_t *pt,
+	node_cb_t ncb, void *un, patricia_cb_t cb, void *u)
 {
 	patricia_check(pt);
 
@@ -2085,10 +2086,10 @@ traverse(patricia_t *pt, node_cb_t ncb, void *un, patricia_cb_t cb, void *u)
 }
 
 /**
- * Node callback for traverse().
+ * Node callback for patricia_traverse().
  */
 static void
-traverse_remove_node(struct patricia_node *pn, void *u)
+patricia_traverse_remove_node(struct patricia_node *pn, void *u)
 {
 	patricia_t *pt = u;
 
@@ -2106,7 +2107,7 @@ patricia_destroy(patricia_t *pt)
 	if (--pt->refcnt > 0)
 		return;			/* Still referenced by something internally */
 
-	traverse(pt, traverse_remove_node, pt, NULL, NULL);
+	patricia_traverse(pt, patricia_traverse_remove_node, pt, NULL, NULL);
 	g_assert(pt->nodes == 0);
 
 	pt->magic = 0;
@@ -2126,7 +2127,7 @@ patricia_foreach(const patricia_t *pt, patricia_cb_t cb, void *u)
 	patricia_check(pt);
 	g_assert(cb);
 
-	traverse(deconstify_pointer(pt), NULL, NULL, cb, u);
+	patricia_traverse(deconstify_pointer(pt), NULL, NULL, cb, u);
 }
 
 /**
@@ -2141,11 +2142,11 @@ struct remove_ctx {
 };
 
 /**
- * Node callback for traverse().
+ * Node callback for patricia_traverse().
  * Relies on the fact that it is invoked right after the user callback.
  */
 static void
-traverse_foreach_node(struct patricia_node *pn, void *u)
+patricia_traverse_foreach_node(struct patricia_node *pn, void *u)
 {
 	struct remove_ctx *ctx = u;
 
@@ -2153,7 +2154,8 @@ traverse_foreach_node(struct patricia_node *pn, void *u)
 
 	/*
 	 * ctx->last_was_removed was set possibly by previous call to the
-	 * user-supplied callback, through the traverse_foreach_item() trampoline.
+	 * user-supplied callback, through the patricia_traverse_foreach_item()
+	 * trampoline.
 	 */
 
 	if (ctx->last_was_removed) {
@@ -2167,16 +2169,17 @@ traverse_foreach_node(struct patricia_node *pn, void *u)
 }
 
 /**
- * Intercept user callback in traverse() during patricia_foreach_remove().
+ * Intercept user callback in patricia_traverse() during
+ * patricia_foreach_remove().
  */
 static void
-traverse_foreach_item(void *key, size_t keybits, void *value, void *u)
+patricia_traverse_foreach_item(void *key, size_t keybits, void *value, void *u)
 {
 	struct remove_ctx *ctx = u;
 
 	/*
 	 * Warning: action at distance.
-	 * Set ctx->last_was_removed for traverse_foreach_node().
+	 * Set ctx->last_was_removed for patricia_traverse_foreach_node().
 	 */
 
 	if (ctx->cb(key, keybits, value, ctx->u)) {
@@ -2210,9 +2213,9 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, void *u)
 	ctx.u = u;
 	ctx.removed = 0;
 
-	traverse(pt,
-		traverse_foreach_node, &ctx,
-		traverse_foreach_item, &ctx);
+	patricia_traverse(pt,
+		patricia_traverse_foreach_node, &ctx,
+		patricia_traverse_foreach_item, &ctx);
 
 	sl = ctx.sl;
 	while (sl) {
@@ -2265,7 +2268,7 @@ patricia_iter_check(const patricia_iter_t *iter)
  * Common iterator field initialization.
  */
 static patricia_iter_t *
-common_iter_init(patricia_iter_t *iter, patricia_t *pt, bool forward)
+patricia_common_iter_init(patricia_iter_t *iter, patricia_t *pt, bool forward)
 {
 	iter->magic = PATRICIA_ITER_MAGIC;
 	iter->pt = pt;
@@ -2295,7 +2298,7 @@ patricia_tree_iterator(patricia_t *pt, bool forward)
 	iter->type = PATRICIA_ITER_TREE;
 	iter->next = find_deepest(pt->root, forward);
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2332,7 +2335,7 @@ patricia_metric_iterator(patricia_t *pt, const void *key, bool forward)
 	memcpy(iter->key, key, keybytes);
 	iter->keybits = pt->maxbits;
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2355,7 +2358,7 @@ patricia_metric_iterator_lazy(
 	iter->key = deconstify_pointer(key);
 	iter->keybits = pt->maxbits;
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2363,7 +2366,7 @@ patricia_metric_iterator_lazy(
  * backwards).
  */
 static const struct patricia_node *
-next_tree_node(const struct patricia_node *prev, bool forward)
+patricia_next_tree_node(const struct patricia_node *prev, bool forward)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -2405,8 +2408,8 @@ next_tree_node(const struct patricia_node *prev, bool forward)
  * away from the original key, backwards meaning moving towards it).
  */
 static const struct patricia_node *
-next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
-	void *key, size_t keybits, bool forward)
+patricia_next_metric_node(const patricia_t *pt,
+	const struct patricia_node *prev, void *key, size_t keybits, bool forward)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -2454,7 +2457,7 @@ next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
  * Compute next item for the iterator, given the previous one.
  */
 static const struct patricia_node *
-next_item(patricia_iter_t *iter, const struct patricia_node *prev)
+patricia_next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 {
 	const struct patricia_node *next = NULL;
 
@@ -2462,11 +2465,11 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 
 	switch (iter->type) {
 	case PATRICIA_ITER_TREE:
-		next = next_tree_node(prev, iter->forward);
+		next = patricia_next_tree_node(prev, iter->forward);
 		break;
 	case PATRICIA_ITER_XOR:
 	case PATRICIA_ITER_XOR_LAZY:
-		next = next_metric_node(iter->pt, prev,
+		next = patricia_next_metric_node(iter->pt, prev,
 			iter->key, iter->keybits, iter->forward);
 		break;
 	}
@@ -2491,7 +2494,7 @@ patricia_iter_has_next(patricia_iter_t *iter)
 	if (!iter->knows_next) {
 		g_assert(iter->stamp == iter->pt->stamp);
 		g_assert(iter->last != NULL);
-		iter->next = next_item(iter, iter->last);
+		iter->next = patricia_next_item(iter, iter->last);
 		iter->knows_next = TRUE;
 	}
 
