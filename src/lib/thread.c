@@ -29,6 +29,10 @@
  *
  * This mainly provides support for thread-private data.
  *
+ * To quickly access thread-private data, we introduce the notion of Quasi
+ * Thread Ids, or QIDs: they are not unique for a given thread but no two
+ * threads can have the same QID at a given time.
+ *
  * @author Raphael Manfredi
  * @date 2011
  */
@@ -41,11 +45,16 @@
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "omalloc.h"
+#include "pow2.h"
 #include "spinlock.h"
 #include "stringify.h"
+#include "vmm.h"
 #include "zalloc.h"
 
 #include "override.h"			/* Must be the last header included */
+
+#define THREAD_QID_BITS		8		/**< QID bits used for hashing */
+#define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
 
 /**
  * A thread-private value.
@@ -57,16 +66,57 @@ struct thread_pvalue {
 };
 
 /**
- * Private zone used to allocate private values.
+ * A thread element, describing a thread.
+ */
+struct thread_element {
+	thread_t tid;					/**< The thread ID */
+	thread_qid_t last_qid;			/**< The last QID used to access record */
+	hash_table_t *pht;				/**< Private hash table */
+	unsigned stid;					/**< Small thread ID */
+};
+
+/**
+ * Private zones.
  *
  * We use raw zalloc() instead of walloc() to minimize the amount of layers
  * upon which this low-level service depends.
  *
- * Furthermore, the zone is allocated as an embedded item to avoid any
+ * Furthermore, each zone is allocated as an embedded item to avoid any
  * allocation via xmalloc(): it solely depends on the VMM layer, the zone
  * descriptor being held at the head of the first zone arena.
  */
-static zone_t *pvzone;
+static zone_t *pvzone;		/* For private values */
+
+/**
+ * QID cache.
+ *
+ * This is an array indexed by a hashed QID and it enables fast access to a
+ * thread element, without locking.
+ *
+ * The method used is the following: the QID is computed for the thread and
+ * then the cache is accessed to see which thread element it refers to.  If an
+ * entry is found, its last_qid field is compared to the current QID and if it
+ * matches, then we found the item we were looking for.
+ *
+ * Otherwise (no entry in the cache or the last_qid does not match), a full
+ * lookup through the global hash table is performed to locate the item, and
+ * it is inserted in the cache.
+ */
+static struct thread_element *thread_qid_cache[THREAD_QID_CACHE];
+static uint8 thread_qid_busy[THREAD_QID_CACHE];
+static int thread_pageshift = 12;		/* Safe default: 4K pages */
+static bool thread_pageshift_inited;
+
+/**
+ * Small thread ID.
+ *
+ * We count threads as they are seen, starting with 0.
+ *
+ * Given that, as of 2012-04-14, we are mostly mono-threaded or do not create
+ * many threads dynamically, there is no need to manage the IDs in a reusable
+ * way.  A simple incrementing counter will do.
+ */
+static unsigned thread_next_stid;
 
 static unsigned
 thread_hash(const void *key)
@@ -77,14 +127,53 @@ thread_hash(const void *key)
 static bool
 thread_equal(const void *a, const void *b)
 {
-	return thread_eq(a, b);
+	const thread_t *ta = a, *tb = b;
+
+	return thread_eq(*ta, *tb);
 }
+
+/**
+ * Fast computation of the Quasi Thread ID (QID) of current thread.
+ *
+ * The concept of QID relies on the fact that a given stack page can only
+ * belong to one thread, by definition.
+ */
+static inline ALWAYS_INLINE thread_qid_t
+thread_quasi_id_fast(void)
+{
+	ulong sp;
+
+	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
+		return pointer_to_ulong(&sp) >> thread_pageshift;
+	} else {
+		uint64 qid = pointer_to_ulong(&sp) >> thread_pageshift;
+		return (qid >> 32) ^ (unsigned) qid;
+	}
+}
+
+/**
+ * Computes the Quasi Thread ID (QID) for current thread.
+ */
+thread_qid_t
+thread_quasi_id(void)
+{
+	if G_UNLIKELY(!thread_pageshift_inited) {
+		thread_pageshift = ctz(compat_pagesize());
+		thread_pageshift_inited = TRUE;
+	}
+
+	return thread_quasi_id_fast();
+}
+
+static spinlock_t thread_private_slk = SPINLOCK_INIT;
+static spinlock_t thread_insert_slk = SPINLOCK_INIT;
 
 /**
  * Get the main hash table.
  *
- * This hash table is indexed by thread_t and holds another hash table which
- * is therefore thread-private and can be used to store thread-private keys.
+ * This hash table is indexed by thread_t and holds a thread element which
+ * is therefore thread-private and can be used to store thread-private
+ * information.
  */
 static hash_table_t *
 thread_get_global_hash(void)
@@ -92,28 +181,131 @@ thread_get_global_hash(void)
 	static hash_table_t *ht;
 
 	if G_UNLIKELY(NULL == ht) {
-		static spinlock_t private_slk = SPINLOCK_INIT;
-		spinlock(&private_slk);
+		spinlock(&thread_private_slk);
 		if (NULL == ht) {
 			ht = hash_table_once_new_full_real(thread_hash, thread_equal);
 			hash_table_thread_safe(ht);
 		}
-		spinunlock(&private_slk);
+		spinunlock(&thread_private_slk);
 	}
 
 	return ht;
 }
 
 /**
- * Structure used to record association between a thread and its private
- * hash table.
+ * Allocate a new thread element.
  */
-struct thread_priv_cache {
-	thread_t t;
-	hash_table_t *pht;
-};
+static struct thread_element *
+thread_new_element(thread_t t)
+{
+	struct thread_element *te;
 
-static spinlock_t thread_priv_slk = SPINLOCK_INIT;
+	te = omalloc(sizeof *te);				/* Never freed! */
+	te->tid = t;
+	te->last_qid = (thread_qid_t) -1;
+	te->pht = hash_table_once_new_real();	/* Never freed! */
+	te->stid = thread_next_stid++;
+
+	return te;
+}
+
+/**
+ * Get the thread-private element.
+ *
+ * If no element was already associated with the current thread, a new one
+ * is created and attached to the thread.
+ *
+ * @return the thread-private element associated with the current thread.
+ */
+static struct thread_element *
+thread_get_element(void)
+{
+	thread_qid_t qid;
+	thread_t t;
+	hash_table_t *ght;
+	struct thread_element *te;
+	unsigned idx;
+
+	/*
+	 * Look whether we already determined the thread-private element table
+	 * for this thread earlier by looking in the cache, indexed by QID.
+	 */
+
+	qid = thread_quasi_id();
+	idx = hashing_fold(qid, THREAD_QID_BITS);
+	te = thread_qid_cache[idx];
+
+	if (te != NULL && te->last_qid == qid)
+		return te;
+
+	/*
+	 * No matching element was found in the cache, perform the slow lookup
+	 * in the global hash table then.
+	 *
+	 * There's no need to grab the thread_insert_slk spinlock at this stage
+	 * since the lookup is non-destructive: although the lookup will call
+	 * thread_current() again during the mutex grabbing, we will either get
+	 * the same QID, in which case it will be flagged busy so thread_current()
+	 * will return thread_self(), or the different QID will cause a recursion
+	 * here and we may use the above fast-path successfully, or fall back here.
+	 *
+	 * Recursion will stop at some point since the stack will not grow by one
+	 * full page in these call chains, necessarily causing the same QID to be
+	 * reused.  When unwinding the recursion, the item for thread_self() will
+	 * be seen in the table so we won't re-create a thread element for the
+	 * current thread.
+	 */
+
+	t = thread_self();
+	ght = thread_get_global_hash();
+	te = hash_table_lookup(ght, &t);
+
+	/*
+	 * There's no need to lock the hash table as this call can be made only
+	 * once at a time per thread (the global hash table is already protected
+	 * against concurrent accesses).
+	 */
+
+	if G_UNLIKELY(NULL == te) {
+		/*
+		 * It is the first time we're seeing this thread, record a new
+		 * element in the global hash table.
+		 *
+		 * The reason we're surrounding hash_table_insert() with spinlocks
+		 * is that the global hash table is synchronized and will grab a
+		 * mutex before inserting, which will again call thread_current().
+		 * In case the QID then would be different, we could come back here
+		 * and create a second thread element for the same thread!
+		 *
+		 * The thread_current() routine checks whether the spinlock is held
+		 * before deciding to call us to create a new element, thereby
+		 * protecting against this race condition against ourselves, due to
+		 * the fact that QIDs are not unique within a thread.
+		 */
+
+		spinlock(&thread_insert_slk);
+
+		te = hash_table_lookup(ght, &t);
+		if (NULL == te) {
+			te = thread_new_element(t);
+			hash_table_insert(ght, &te->tid, te);
+		}
+
+		spinunlock(&thread_insert_slk);
+	}
+
+	/*
+	 * Cache result to speed-up things next time if we come back for the
+	 * same thread with the same QID.
+	 *
+	 * We assume the value will be atomically written in memory.
+	 */
+
+	thread_qid_cache[idx] = te;
+	te->last_qid = qid;
+
+	return te;
+}
 
 /**
  * Get the thread-private hash table storing the per-thread keys.
@@ -121,55 +313,88 @@ static spinlock_t thread_priv_slk = SPINLOCK_INIT;
 static hash_table_t *
 thread_get_private_hash(void)
 {
-	thread_t t;
-	hash_table_t *ght;
-	hash_table_t *pht;
-	static struct thread_priv_cache cached;
+	return thread_get_element()->pht;
+}
 
-	G_PREFETCH_R(&cached);
-	G_PREFETCH_W(&thread_priv_slk);
+/**
+ * Get thread small ID.
+ */
+unsigned
+thread_small_id(void)
+{
+	return thread_get_element()->stid;
+}
 
-	/*
-	 * Look whether we already determined the thread-private hash table
-	 * for this thread earlier.
-	 */
-
-	t = thread_current();
-
-	spinlock(&thread_priv_slk);
-	if (thread_eq(t, cached.t) && cached.pht != NULL) {
-		pht = cached.pht;
-		spinunlock(&thread_priv_slk);
-		return pht;
-	}
-	spinunlock(&thread_priv_slk);
-
-	ght = thread_get_global_hash();
-	pht = hash_table_lookup(ght, &t);
-
-	/*
-	 * There's no need to lock the hash table as this call can be made only
-	 * once at a time per thread (the hash table is already protected against
-	 * concurrent accesses).
-	 */
-
-	if G_UNLIKELY(NULL == pht) {
-		pht = hash_table_once_new_real();	 /* Never freed! */
-		hash_table_insert(ght, ocopy(&t, sizeof t), pht);
-	}
+/**
+ * Get current thread.
+ *
+ * This allows us to count the running threads as long as each thread uses
+ * mutexes at some point or calls thread_current().
+ */
+thread_t
+thread_current(void)
+{
+	thread_qid_t qid;
+	unsigned idx;
+	struct thread_element *te;
 
 	/*
-	 * Cache result to speed-up things next time if we come back for the
-	 * same thread, either before a context switch or before another thread
-	 * uses this routine.
+	 * We must be careful because thread_current() is what is used by mutexes
+	 * to record the current thread, so we can't blindly call rely on
+	 * thread_get_element(), which will cause a lookup on a synchronized hash
+	 * table -- that would deadly recurse.
+	 *
+	 * We first begin like thread_get_element() would by using the QID to fetch
+	 * the current thread record.
 	 */
 
-	spinlock(&thread_priv_slk);
-	cached.t = t;
-	cached.pht = pht;
-	spinunlock(&thread_priv_slk);
+	qid = thread_quasi_id_fast();
+	idx = hashing_fold(qid, THREAD_QID_BITS);
+	te = thread_qid_cache[idx];
 
-	return pht;
+	if (te != NULL && te->last_qid == qid)
+		return te->tid;
+
+	/*
+	 * There is no current thread record.  If this QID is marked busy, or if
+	 * someone is currently creating the global hash table, then immediately
+	 * return the current thread.
+	 */
+
+	if (
+		thread_qid_busy[idx] ||
+		spinlock_is_held(&thread_private_slk) ||
+		spinlock_is_held(&thread_insert_slk) ||
+		!vmm_is_inited()
+	)
+		return thread_self();
+
+	/*
+	 * Mark the QID busy so that we use a short path on further recursions
+	 * until we can establish a thread element.
+	 */
+
+	thread_qid_busy[idx] = TRUE;
+
+	/*
+	 * Calling thread_get_element() will redo part of the work we've been
+	 * doing but will also allocate and insert in the cache a new thread
+	 * element for the current thread, if needed.
+	 */
+
+	te = thread_get_element();
+
+	/*
+	 * We re-cache the thread element for this QID, which may be different
+	 * from the one used by thread_get_element() since it is based on the
+	 * current stack pointer, and we may be near a page boundary.
+	 */
+
+	thread_qid_cache[idx] = te;
+	te->last_qid = qid;
+	thread_qid_busy[idx] = FALSE;
+
+	return te->tid;
 }
 
 /**

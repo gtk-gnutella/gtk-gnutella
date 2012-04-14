@@ -40,6 +40,7 @@
 typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 
 typedef unsigned long thread_t;
+typedef unsigned int thread_qid_t;		/* Quasi Thread ID */
 
 #ifdef I_PTHREAD
 #include <pthread.h>
@@ -55,7 +56,7 @@ typedef unsigned long thread_t;
 #endif
 
 static inline thread_t
-thread_current(void)
+thread_self(void)
 {
 	union {
 		thread_t t;
@@ -81,7 +82,7 @@ thread_current(void)
 }
 
 #else
-#define thread_current()	0xc5db8dd3UL	/* Random, odd number */
+#define thread_self()	0xc5db8dd3UL	/* Random, odd number */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
 #endif
@@ -90,12 +91,16 @@ thread_current(void)
  * Public interface.
  */
 
+thread_t thread_current(void);
+thread_qid_t thread_quasi_id(void);
+unsigned thread_small_id(void);
+const char *thread_to_string(const thread_t t);
+
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
-const char *thread_to_string(const thread_t t);
 
 #endif /* _thread_h_ */
 
