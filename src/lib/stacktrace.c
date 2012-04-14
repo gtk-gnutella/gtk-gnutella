@@ -614,6 +614,16 @@ stacktrace_load_symbols(void)
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
 
 	/*
+	 * If we are being called before stacktrace_init(), then derive a proper
+	 * path using the dynamic linker.
+	 */
+
+	if G_UNLIKELY(NULL == program_path) {
+		const char *path = dl_util_get_path(func_to_pointer(stacktrace_init));
+		program_path = h_strdup(path);
+	}
+
+	/*
 	 * Loading of symbols was deferred: make sure the executable is still
 	 * there and has not been tampered with since we started.
 	 */
