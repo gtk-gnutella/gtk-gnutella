@@ -167,6 +167,7 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
+static bool vmm_inited;
 static bool vmm_crashing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
@@ -304,6 +305,12 @@ bool
 vmm_is_debugging(uint32 level) 
 { 
 	return vmm_debugging(level);
+}
+
+bool
+vmm_is_inited(void)
+{
+	return vmm_inited;
 }
 
 static inline struct pmap *
@@ -4445,6 +4452,7 @@ vmm_init(void)
 	 */
 
 	spinunlock(&init_lck);
+	vmm_inited = TRUE;
 	xmalloc_vmm_inited();
 }
 
