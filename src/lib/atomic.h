@@ -39,7 +39,13 @@
 
 #include "common.h"
 
-typedef uint8 atomic_lock_t;
+/*
+ * To avoid mistakes, the "volatile" attribute is made part of the typedef:
+ * no access to the lock memory location should be optimized by the compiler,
+ * or we might loop forever.
+ */
+
+typedef volatile uint8 atomic_lock_t;
 
 /*
  * Public interface.
@@ -50,12 +56,12 @@ typedef uint8 atomic_lock_t;
 #define atomic_ops_available()		1
 
 static inline ALWAYS_INLINE void
-atomic_release(volatile atomic_lock_t *p) {
+atomic_release(atomic_lock_t *p) {
 	__sync_lock_release(p);
 }
 
 static inline ALWAYS_INLINE bool
-atomic_test_and_set(volatile atomic_lock_t *p)
+atomic_test_and_set(atomic_lock_t *p)
 {
 	return __sync_bool_compare_and_swap(p, 0, 1);
 }
@@ -87,7 +93,7 @@ atomic_uint_dec_is_zero(unsigned *p)
 #define atomic_mb()					(void) 0
 
 static inline bool
-atomic_test_and_set(volatile atomic_lock_t *p)
+atomic_test_and_set(atomic_lock_t *p)
 {
 	int ok;
 	if ((ok = (0 == *(p))))	
@@ -109,7 +115,7 @@ atomic_test_and_set(volatile atomic_lock_t *p)
  * @return TRUE if lock was acquired.
  */
 static inline bool
-atomic_acquire(volatile atomic_lock_t *lock)
+atomic_acquire(atomic_lock_t *lock)
 {
 	/*
 	 * Our locking protocol issues a memory barrier after a lock has been
