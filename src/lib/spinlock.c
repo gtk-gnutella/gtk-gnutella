@@ -44,6 +44,7 @@
 #include "compat_sleep_ms.h"
 #include "getcpucount.h"
 #include "log.h"
+#include "thread.h"
 #include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -128,6 +129,14 @@ spinlock_loop(volatile spinlock_t *s,
 
 	if G_UNLIKELY(0 == cpus)
 		cpus = getcpucount();
+
+	/*
+	 * When running mono-threaded, having to loop means we're deadlocked
+	 * already, so immediately flag it.
+	 */
+
+	if (thread_is_single())
+		(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
 
 #ifdef HAS_SCHED_YIELD
 	if (1 == cpus)
