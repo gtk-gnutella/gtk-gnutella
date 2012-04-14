@@ -153,7 +153,9 @@ spinlock_loop(volatile spinlock_t *s,
 					spinlock_source_string(src), src_object, i);
 			}
 
-			if (atomic_acquire(&s->lock)) {
+			if (s->lock) {
+				/* Lock is busy, do nothing as cheaply as possible */
+			} else if (atomic_acquire(&s->lock)) {
 #ifdef SPINLOCK_DEBUG
 				if (i >= SPINLOCK_DEAD) {
 					s_miniinfo("finally grabbed %s %p after %u attempts",
