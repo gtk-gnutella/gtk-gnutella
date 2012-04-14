@@ -483,7 +483,7 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
  * The way formatting is done allows this routine to be used from a
  * signal handler.
  *
- * @param st		the symbol table
+ * @param st		the symbol table (may be NULL)
  * @param pc		the PC to translate into symbolic form
  * @param offset	whether decimal offset should be added, in symbolic form.
  *
@@ -494,6 +494,11 @@ const char *
 symbols_name(const symbols_t *st, const void *pc, bool offset)
 {
 	static char buf[256];
+
+	if G_UNLIKELY(NULL == st) {
+		symbols_fmt_pointer(buf, sizeof buf, pc);
+		return buf;
+	}
 
 	symbols_check(st);
 
