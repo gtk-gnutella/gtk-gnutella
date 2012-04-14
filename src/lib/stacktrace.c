@@ -608,7 +608,7 @@ stacktrace_load_symbols(void)
 {
 	bool stale = FALSE;
 
-	if G_UNLIKELY(symbols_loaded || NULL == symbols)
+	if G_UNLIKELY(symbols_loaded || NULL != symbols)
 		return;
 
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
