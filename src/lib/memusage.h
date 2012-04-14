@@ -45,6 +45,7 @@ memusage_t *memusage_alloc(const char *name, size_t width);
 void memusage_free_null(memusage_t **mu_ptr);
 void memusage_add(memusage_t *mu, size_t size);
 void memusage_add_one(memusage_t *mu);
+void memusage_add_batch(memusage_t *mu, size_t count);
 void memusage_remove(memusage_t *mu, size_t size);
 void memusage_remove_one(memusage_t *mu);
 void memusage_set_stack_accounting(memusage_t *mu, bool on);

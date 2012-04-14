@@ -712,6 +712,29 @@ memusage_add_one(memusage_t *mu)
 }
 
 /**
+ * Record batch allocation of constant-width object.
+ *
+ * No stack trace is captured, only the allocation count is updated.
+ *
+ * This is primarily used when the memusage_t object is created after some
+ * allocations were done and we wish to capture this to get an accurate block
+ * count (otherwise we could have an apparent negative count if were were to
+ * free some of the blocks that were allocated before the creation of the
+ * usage tracker).
+ */
+void
+memusage_add_batch(memusage_t *mu, size_t count)
+{
+	if G_UNLIKELY(NULL == mu)
+		return;
+
+	memusage_check(mu);
+	g_assert(0 != mu->width);
+
+	mu->allocations += count;
+}
+
+/**
  * Record allocation of object of specified size.
  */
 void
@@ -821,7 +844,7 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 			mu->alloc_recursions, mu->free_recursions,
 			compact_size(mu->allocation_bytes - mu->freeing_bytes, FALSE),
 			(opt & DUMP_OPT_PRETTY) ?
-				size_t_to_gstring(blocks) : size_t_to_string(blocks));
+				uint64_to_gstring(blocks) : uint64_to_string(blocks));
 	}
 
 #undef COMPUTE

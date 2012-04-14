@@ -2608,6 +2608,7 @@ zn_memusage_init(zone_t *zone)
 	zlock(zone);
 	if (NULL == zone->zn_mem) {
 		zone->zn_mem = mu;
+		memusage_add_batch(mu, zone->zn_cnt);
 		zunlock(zone);
 	} else {
 		zunlock(zone);
