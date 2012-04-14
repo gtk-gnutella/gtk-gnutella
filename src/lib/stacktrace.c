@@ -1335,7 +1335,7 @@ static bool
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return symbols_count(symbols);
+	return symbols != NULL && 0 != symbols_count(symbols);
 }
 
 /**
