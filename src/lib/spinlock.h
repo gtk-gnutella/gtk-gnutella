@@ -84,9 +84,36 @@ bool spinlock_grab_try(spinlock_t *s);
 void spinlock_grab_from(spinlock_t *s, const char *file, unsigned line);
 bool spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 
+/*
+ * Direction operations should only be used when locking and unlocking is
+ * always done from a single thread, thereby not requiring that atomic
+ * operations be used.
+ *
+ * These allow assertions like spinlock_is_held() without paying a huge
+ * cost to the locking / unlocking process.
+ */
+
+#define spinlock_direct(x) G_STMT_START {	\
+	(x)->lock = 1;							\
+	(x)->file = _WHERE_;					\
+	(x)->line = __LINE__;					\
+} G_STMT_END
+
+#define spinunlock_direct(x) G_STMT_START {	\
+	(x)->lock = 0;							\
+} G_STMT_END
+
 #define spinlock(x)		spinlock_grab_from((x), _WHERE_, __LINE__)
 #define spinlock_try(x)	spinlock_grab_try_from((x), _WHERE_, __LINE__)
 #else
+#define spinlock_direct(x) G_STMT_START {	\
+	(x)->lock = 1;							\
+} G_STMT_END
+
+#define spinunlock_direct(x) G_STMT_START {	\
+	(x)->lock = 0;							\
+} G_STMT_END
+
 #define spinlock(x)		spinlock_grab((x))
 #define spinlock_try(x)	spinlock_grab_try((x))
 #endif	/* SPINLOCK_DEBUG */
