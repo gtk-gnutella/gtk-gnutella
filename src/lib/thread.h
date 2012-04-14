@@ -96,6 +96,8 @@ thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
 const char *thread_to_string(const thread_t t);
 
+unsigned thread_count();
+
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);

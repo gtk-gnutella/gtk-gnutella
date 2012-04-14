@@ -398,6 +398,21 @@ thread_current(void)
 }
 
 /**
+ * Return amount of running threads.
+ */
+unsigned
+thread_count(void)
+{
+	/*
+	 * Relies on the fact that all running threads will, at some point, use
+	 * malloc() or another call requiring a spinlock, hence calling this
+	 * layer.
+	 */
+
+	return thread_next_stid;
+}
+
+/**
  * Get thread-private data indexed by key.
  */
 void *
