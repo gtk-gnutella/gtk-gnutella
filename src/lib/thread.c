@@ -340,12 +340,13 @@ thread_current(void)
 
 	/*
 	 * We must be careful because thread_current() is what is used by mutexes
-	 * to record the current thread, so we can't blindly call rely on
+	 * to record the current thread, so we can't blindly rely on
 	 * thread_get_element(), which will cause a lookup on a synchronized hash
 	 * table -- that would deadly recurse.
 	 *
 	 * We first begin like thread_get_element() would by using the QID to fetch
-	 * the current thread record.
+	 * the current thread record: this is our fast path that is most likely
+	 * to succeed and should be faster than pthread_self().
 	 */
 
 	qid = thread_quasi_id_fast();
@@ -359,6 +360,9 @@ thread_current(void)
 	 * There is no current thread record.  If this QID is marked busy, or if
 	 * someone is currently creating the global hash table, then immediately
 	 * return the current thread.
+	 *
+	 * Special care must be taken when the VMM layer is not fully inited yet,
+	 * since it uses mutexes and therefore will call thread_current() as well.
 	 */
 
 	if (
@@ -372,6 +376,9 @@ thread_current(void)
 	/*
 	 * Mark the QID busy so that we use a short path on further recursions
 	 * until we can establish a thread element.
+	 *
+	 * This is the part allowing us to count the running threads, since the
+	 * creation of a thread element will account for the thread.
 	 */
 
 	thread_qid_busy[idx] = TRUE;
@@ -410,6 +417,27 @@ thread_count(void)
 	 */
 
 	return thread_next_stid;
+}
+
+/**
+ * Determine whether we're a mono-threaded application.
+ */
+bool
+thread_is_single(void)
+{
+	static thread_t last_thread;
+	thread_t t;
+
+	if (thread_next_stid > 1)
+		return FALSE;
+
+	t = thread_current();		/* Counts threads */
+
+	if (thread_eq(last_thread, t))
+		return TRUE;
+
+	last_thread = t;
+	return 1 == thread_next_stid;
 }
 
 /**

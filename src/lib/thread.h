@@ -97,6 +97,7 @@ unsigned thread_small_id(void);
 const char *thread_to_string(const thread_t t);
 
 unsigned thread_count();
+bool thread_is_single(void);
 
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
