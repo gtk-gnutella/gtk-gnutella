@@ -588,13 +588,14 @@ xmalloc_should_split(size_t current, size_t wanted)
 		(current >> XMALLOC_WASTE_SHIFT) <= waste;
 }
 
+#ifdef XMALLOC_ALLOW_WALLOC
 /**
  * Is block length tagged as being that of a walloc()ed block?
  */
 static inline ALWAYS_INLINE bool
 xmalloc_is_walloc(size_t len)
 {
-	return XMALLOC_WALLOC_MAGIC == (len & XMALLOC_WALLOC_MAGIC);
+	return XMALLOC_WALLOC_MAGIC == (len & ~XMALLOC_WALLOC_SIZE);
 }
 
 /**
@@ -605,6 +606,26 @@ xmalloc_walloc_size(size_t len)
 {
 	return len & XMALLOC_WALLOC_SIZE;
 }
+#else	/* !XMALLOC_ALLOW_WALLOC */
+/*
+ * Cannot have a walloc()-ed block, so make sure we have proper hardwired
+ * definitions for these inlined routines.
+ */
+
+static inline ALWAYS_INLINE bool
+xmalloc_is_walloc(size_t len)
+{
+	(void) len;
+	return FALSE;
+}
+
+static inline ALWAYS_INLINE size_t
+xmalloc_walloc_size(size_t len)
+{
+	(void) len;
+	g_assert_not_reached();
+}
+#endif	/* XMALLOC_ALLOW_WALLOC */
 
 /**
  * Allocate more core, when the VMM layer is still uninitialized.
