@@ -52,6 +52,8 @@
 #include "bit_array.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
+#include "elist.h"
+#include "erbtree.h"
 #include "log.h"
 #include "mem.h"			/* For mem_is_valid_ptr() */
 #include "mempcpy.h"
@@ -59,10 +61,10 @@
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
 #include "pow2.h"
-#include "erbtree.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -216,6 +218,20 @@ struct xheader {
 #define XMALLOC_BLOCK_MASK	(XMALLOC_BLOCK_SIZE - 1)
 
 /**
+ * Thread-specific buckets.
+ */
+#define XM_THREAD_COUNT			16		/* Threads with STID from 0 to 15 */
+#define XM_THREAD_MAXSIZE		512		/* Maximum block length */
+#define XM_THREAD_ALLOC_THRESH	4		/* Wait for that many allocations */
+
+/**
+ * This contant defines the total number of buckets in the thread-specific
+ * free lists.  There is no block overhead in thread-specific blocks, hence
+ * there is no offset correction.
+ */
+#define XMALLOC_CHUNKHEAD_COUNT	(XM_THREAD_MAXSIZE / XMALLOC_ALIGNBYTES)
+
+/**
  * Magic size indication.
  *
  * Blocks allocated via walloc() have a size of WALLOC_MAX bytes at most.
@@ -258,6 +274,50 @@ struct xheader {
  */
 #define XM_CPU_CACHELINE	64			/**< Bytes in cache line */
 #define XM_BUCKET_UNSORTED	(XM_CPU_CACHELINE / PTRSIZE)
+
+/**
+ * Free list data structure for thread-specific allocations.
+ */
+static struct xchunkhead {
+	size_t blocksize;		/**< Block size handled by this list */
+	size_t allocations;		/**< Number of allocations done */
+	elist_t list;			/**< List of chunks (struct xchunk) */
+} xchunkhead[XMALLOC_CHUNKHEAD_COUNT][XM_THREAD_COUNT];
+
+enum xchunk_magic { XCHUNK_MAGIC = 0x45488613 };
+
+/**
+ * Header for thread-specific chunks (pages).
+ *
+ * These chunks are organized like a zone, the header keeping track of the
+ * necessary information about the objects in the chunk and linking chunks
+ * handling the same object size.
+ *
+ * Objects allocated from thread-specific chunks bear no malloc header so it
+ * is important to be able to check that the chunk is valid.  Hence the
+ * field redundancy, plus additional consistency checks that create highly
+ * unlikely conditions of mis-indentifying the chunk.
+ *
+ * This allows space-efficient memory usage since the cost of the header is
+ * amortized among all the objects in the page.
+ */
+struct xchunk {
+	enum xchunk_magic magic;	/* Magic number for consistency check */
+	unsigned xc_size;			/* Object size */
+	unsigned xc_stid;			/* Thread STID owning this page */
+	unsigned xc_capacity;		/* Amount of items we can allocate  */
+	unsigned xc_count;			/* Free items held */
+	unsigned xc_free_offset;	/* Offset of first free item in page */
+	struct xchunkhead *xc_head;	/* Chunk header */
+	link_t xc_lnk;				/* Links chunks of identical size */
+};
+
+static inline void
+xchunk_check(const struct xchunk * const xck)
+{
+	g_assert(xck != NULL);
+	g_assert(XCHUNK_MAGIC == xck->magic);
+}
 
 /**
  * Free list data structure.
@@ -322,17 +382,20 @@ static struct {
 	uint64 alloc_via_walloc;			/**< Allocations from walloc() */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
+	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
 	uint64 freeings;					/**< Total # of freeings */
 	uint64 free_sbrk_core;				/**< Freeing sbrk()-allocated core */
 	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
 	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	uint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
 	uint64 free_walloc;					/**< Freeing a walloc()'ed block */
+	uint64 free_thread_pool;			/**< Freeing a thread-specific block */
 	uint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	uint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
 	uint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
 	uint64 vmm_alloc_pages;				/**< Pages allocated via VMM */
 	uint64 vmm_split_pages;				/**< VMM pages that were split */
+	uint64 vmm_thread_pages;			/**< VMM pages for thread chunks */
 	uint64 vmm_freed_pages;				/**< Pages released via VMM */
 	uint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	uint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
@@ -923,6 +986,29 @@ xmalloc_is_valid_length(const void *p, size_t len)
 }
 
 /**
+ * Computes physical size of blocks in a chunk list given the chunk index.
+ */
+static inline G_GNUC_PURE size_t
+xch_block_size_idx(size_t idx)
+{
+	return XMALLOC_ALIGNBYTES * (idx + 1);
+}
+
+/**
+ * Find chunk index for a given block size.
+ */
+static inline G_GNUC_PURE size_t
+xch_find_chunkhead_index(size_t len)
+{
+	g_assert(size_is_positive(len));
+	g_assert(xmalloc_round(len) == len);
+	g_assert(len <= XM_THREAD_MAXSIZE);
+	g_assert(len >= XMALLOC_ALIGNBYTES);
+
+	return len / XMALLOC_ALIGNBYTES - 1;
+}
+
+/**
  * Computes index of free list in the array.
  */
 static inline size_t
@@ -960,7 +1046,7 @@ xfl_block_size(const struct xfreelist *fl)
 /**
  * Find freelist index for a given block size.
  */
-static inline size_t
+static inline G_GNUC_PURE size_t
 xfl_find_freelist_index(size_t len)
 {
 	g_assert(size_is_positive(len));
@@ -2001,6 +2087,17 @@ xmalloc_freelist_setup(void)
 		g_assert(0 == fl->count);	/* Cannot be used already */
 	}
 
+	for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
+		size_t j;
+
+		for (j = 0; j < XM_THREAD_COUNT; j++) {
+			struct xchunkhead *ch = &xchunkhead[i][j];
+
+			ch->blocksize = xch_block_size_idx(i);
+			elist_init(&ch->list, offsetof(struct xchunk, xc_lnk));
+		}
+	}
+
 	done = TRUE;
 
 initialized:
@@ -2961,6 +3058,357 @@ xmalloc_is_malloc(void)
 #endif
 }
 
+/**
+ * Validate that pointer is the start of what appears to be a valid chunk.
+ */
+static bool
+xmalloc_chunk_is_valid(const struct xchunk *xck)
+{
+	const struct xchunkhead *ch;
+
+	if (XCHUNK_MAGIC != xck->magic)
+		return FALSE;
+
+	if (0 == xck->xc_size || xck->xc_size > XM_THREAD_MAXSIZE)
+		return FALSE;
+
+	if (xmalloc_round(xck->xc_size) != xck->xc_size)
+		return FALSE;
+
+	if (xck->xc_stid >= XM_THREAD_COUNT)
+		return FALSE;
+
+	if (xck->xc_count > xck->xc_capacity)
+		return FALSE;
+
+	ch = &xchunkhead[xch_find_chunkhead_index(xck->xc_size)][xck->xc_stid];
+	if (xck->xc_head != ch)
+		return FALSE;
+
+	if (xck->xc_capacity != (xmalloc_pagesize - sizeof *xck) / xck->xc_size)
+		return FALSE;
+
+	if (xck->xc_free_offset != 0 && xck->xc_free_offset < sizeof *xck)
+		return FALSE;
+
+	if (xck->xc_free_offset > xmalloc_pagesize - xck->xc_size)
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
+ * Cram a new chunk, linking each free block and making sure the first block
+ * is the head of that list.
+ */
+static void
+xmalloc_chunk_cram(struct xchunk *xck)
+{
+	void *start = ptr_add_offset(xck, xck->xc_free_offset);
+	size_t size = xck->xc_size;
+	void *last = ptr_add_offset(xck, xmalloc_pagesize - size);
+	char *p = start, **next;
+
+	g_assert(size < xmalloc_pagesize);
+
+	while (ptr_cmp(&p[size], last) <= 0) {
+		next = cast_to_void_ptr(p);
+		p = *next = &p[size];
+	}
+	next = cast_to_void_ptr(p);
+	*next = NULL;
+}
+
+/**
+ * Allocate a new thread-specific chunk.
+ */
+static struct xchunk *
+xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
+{
+	struct xchunk *xck;
+	unsigned capacity;
+	unsigned offset;
+
+	/*
+	 * Each allocated thread-specific chunk looks like this:
+	 *
+	 *       +------------------+
+	 *       | Chunk header     | <---- struct xchunk
+	 *       +------------------+
+	 *       | Padding          |
+	 *       +------------------+ ^
+	 *       | Aligned block #1 | |
+	 *       +------------------+ |
+	 *       | Aligned block #2 | |
+	 *       +------------------+ | Evenly split range
+	 *       |..................| |
+	 *       |..................| |
+	 *       |..................| |
+	 *       +------------------+ |
+	 *       | Aligned block #n | |
+	 *       +------------------+ v
+	 * 
+	 * Compute the offset within the page of the first aligned block,
+	 * on its natural alignment boundary (not necessarily a power of 2).
+	 */
+
+	capacity = (xmalloc_pagesize - sizeof *xck) / ch->blocksize;
+	offset = xmalloc_pagesize - capacity * ch->blocksize;
+
+	xck = vmm_core_alloc(xmalloc_pagesize);
+	xck->magic = XCHUNK_MAGIC;
+	xck->xc_head = deconstify_pointer(ch);
+	xck->xc_size = ch->blocksize;
+	xck->xc_stid = stid;
+	xck->xc_capacity = xck->xc_count = capacity;
+	xck->xc_free_offset = offset;
+
+	xmalloc_chunk_cram(xck);
+	xstats.vmm_thread_pages++;
+
+	return xck;
+}
+
+/**
+ * Find chunk from which we can allocate a block.
+ *
+ * @return the address of a chunk with at least one free block.
+ */
+static struct xchunk *
+xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
+{
+	link_t *lk;
+	struct xchunk *xck;
+
+	for (lk = elist_first(&ch->list); lk != NULL; lk = elist_next(lk)) {
+		xck = elist_data(&ch->list, lk);
+
+		xchunk_check(xck);
+
+		if (0 != xck->xc_count)
+			goto found;
+	}
+
+	/*
+	 * No free chunk, allocate a new one and move it to the head of the list.
+	 */
+
+	xck = xmalloc_chunk_allocate(ch, stid);
+	elist_prepend(&ch->list, xck);
+
+	if (xmalloc_debugging(1)) {
+		t_debug("XM new chunk #%zu of %zu-byte blocks for thread #%u at %p",
+			elist_count(&ch->list) - 1, ch->blocksize, stid, xck);
+	}
+
+	return xck;
+
+found:
+	/*
+	 * Move the selected chunk to the head of the list.
+	 */
+
+	if (lk != elist_first(&ch->list)) {
+		elist_link_remove(&ch->list, lk);
+		elist_link_prepend(&ch->list, lk);
+	}
+
+	return xck;
+}
+
+/**
+ * Allocate a block from given chunk pool.
+ *
+ * The pool is thread-specific and determines the block size.
+ *
+ * @return allocated block address.
+ */
+static void *
+xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
+{
+	struct xchunk *xck = xmalloc_chunk_find(ch, stid);
+	void *p;
+	void *next;
+
+	xchunk_check(xck);
+	g_assert(uint_is_positive(xck->xc_count));
+
+	p = ptr_add_offset(xck, xck->xc_free_offset);
+	xck->xc_count--;
+	next = *(char **) p;		/* Next free block */
+	if (next != NULL) {
+		xck->xc_free_offset = ptr_diff(next, xck);
+		g_assert(xck->xc_free_offset < xmalloc_pagesize);
+		g_assert(0 != xck->xc_count);
+	} else {
+		xck->xc_free_offset = 0;
+		g_assert(0 == xck->xc_count);
+	}
+
+	return p;
+}
+
+/**
+ * Allocate a block from the thread-specific pool.
+ *
+ * @return allocated block of requested size, or NULL if no allocation was
+ * possible.
+ */
+static void *
+xmalloc_thread_alloc(const size_t len)
+{
+	unsigned stid;			/* Thread small ID */
+	struct xchunkhead *ch;
+	size_t idx;
+
+	g_assert(size_is_non_negative(len));
+	g_assert(len <= XM_THREAD_MAXSIZE);
+
+	/*
+	 * Before allocating from a thread-specific pool, we wait for a minimal
+	 * amount of allocations done for the given size.  That way, if the thread
+	 * only allocates a few blocks, we'll avoid dedicating a whole page to it
+	 * for that block size.
+	 */
+
+	stid = thread_small_id();
+
+	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
+		return NULL;
+
+	idx = (0 == len) ? 0 : xch_find_chunkhead_index(len);
+	ch = &xchunkhead[idx][stid];
+
+	g_assert(MAX(len, XMALLOC_ALIGNBYTES) == ch->blocksize);
+
+	if G_UNLIKELY(ch->allocations < XM_THREAD_ALLOC_THRESH) {
+		ch->allocations++;
+		return NULL;
+	}
+
+	return xmalloc_chunkhead_alloc(ch, stid);
+}
+
+/**
+ * Check whether block belongs to a thread-specific pool.
+ *
+ * @param p		the user block pointer
+ * @param stid	the thread's small ID
+ *
+ * @return the chunk to which block belongs, or NULL.
+ */
+static struct xchunk *
+xmalloc_thread_get_chunk(const void *p, unsigned stid)
+{
+	struct xchunk *xck;
+	unsigned offset;
+
+	/*
+	 * There is no malloc header for blocks allocated from the thread-specific
+	 * pools, so we must see whether the page where the block lies is the
+	 * start of a valid chunk.
+	 */
+
+	xck = deconstify_pointer(vmm_page_start(p));
+	if (!xmalloc_chunk_is_valid(xck))
+		return NULL;
+
+	/*
+	 * Make sure the block is correctly aligned within the chunk.
+	 */
+
+	offset = ptr_diff(ptr_add_offset(xck, xmalloc_pagesize), p);
+	if (0 != offset % xck->xc_size) {
+		t_error("thread #%u freeing mis-aligned %zu-byte %sblock %p",
+			stid, xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
+	}
+
+	/*
+	 * If a thread allocates a block, it must be the one freeing it or
+	 * reallocating it.
+	 */
+
+	if (xck->xc_stid != stid) {
+		t_error("thread #%u freeing %zu-byte block %p allocated by thread #%u",
+			stid, xck->xc_size, p, xck->xc_stid);
+	}
+
+	return xck;
+}
+
+/**
+ * Attempt to free block if it belongs to a thread-specific pool.
+ *
+ * @return TRUE if we freed the block.
+ */
+static bool
+xmalloc_thread_free(void *p)
+{
+	struct xchunk *xck;
+	unsigned stid;
+
+	stid = thread_small_id();
+
+	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
+		return FALSE;
+
+	if (!xmalloc_is_valid_pointer(p)) {
+		t_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
+	}
+
+	/*
+	 * Check whether the block lies on a thread-private chunk page.
+	 */
+
+	xck = xmalloc_thread_get_chunk(p, stid);
+
+	if (NULL == xck)
+		return FALSE;
+
+	/*
+	 * We now have all the reasons to believe that the block belongs to
+	 * the chunk.  If freeing the block makes the whole chunk free, just
+	 * free the whole chunk.
+	 *
+	 * Otherwise put block back at the head of the chunk's free list.
+	 */
+
+	xstats.user_memory -= xck->xc_size;
+	xstats.user_blocks--;
+
+	if (xck->xc_capacity == xck->xc_count + 1) {
+		struct xchunkhead *ch = xck->xc_head;
+
+		/*
+		 * Before freeing the chunk, zero the header part so as to make
+		 * sure we will not mistake this for a valid header again.  Simply
+		 * zeroing the magic number is not enough here, we want to prevent
+		 * mistakes: freeing blocks on a page with an apparently valid header
+		 * but which is not a thread-private chunk would corrupt memory.
+		 */
+
+		elist_remove(&ch->list, xck);
+		ZERO(xck);
+		vmm_core_free(xck, xmalloc_pagesize);
+		xstats.vmm_thread_pages--;
+
+		if (xmalloc_debugging(1)) {
+			t_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
+				xck, ch->blocksize, stid);
+		}
+	} else {
+		void *head = 0 == xck->xc_free_offset ? NULL :
+			ptr_add_offset(xck, xck->xc_free_offset);
+
+		*(char **) p = head;
+		xck->xc_free_offset = ptr_diff(p, xck);
+		xck->xc_count++;
+	}
+
+	return TRUE;
+}
+
 #ifdef XMALLOC_IS_MALLOC
 #undef malloc
 #undef free
@@ -3047,6 +3495,28 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 
 	if (len <= XMALLOC_MAXSIZE) {
 		size_t allocated;
+
+		/*
+		 * If we can allocate a block from a thread-specific pool, we'll
+		 * avoid any locking and also limit the block overhead.
+		 */
+
+		if (len - XHEADER_SIZE <= XM_THREAD_MAXSIZE && xmalloc_vmm_is_up) {
+			allocated = xmalloc_round(size);	/* No malloc header */
+			p = xmalloc_thread_alloc(allocated);
+
+			if (p != NULL) {
+				xstats.alloc_via_thread_pool++;
+				xstats.user_blocks++;
+				xstats.user_memory += allocated;
+				memusage_add(xstats.user_mem, allocated);
+				return p;
+			}
+		}
+
+		/*
+		 * Check for walloc() remapping.
+		 */
 
 		if (
 			allow_walloc() &&
@@ -3446,6 +3916,16 @@ xfree(void *p)
 	if (is_trapping_malloc() && xaligned(p) && xalign_free(p))
 		return;
 
+	/*
+	 * Handle thread-specific blocks early in the process since they do not
+	 * have any malloc header.
+	 */
+
+	if (xmalloc_thread_free(p)) {
+		xstats.free_thread_pool++;
+		return;
+	}
+
 	if (!xmalloc_is_valid_pointer(xh)) {
 		t_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
@@ -3504,6 +3984,8 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
 	void *np;
+	unsigned stid;
+	struct xchunk *xck;
 
 	if (NULL == p)
 		return xallocate(size, can_walloc, TRUE);
@@ -3513,6 +3995,38 @@ xreallocate(void *p, size_t size, bool can_walloc)
 		return NULL;
 	}
 
+	/*
+	 * Handle blocks from a thread-specific pool specially, since they have
+	 * no malloc header and cannot be coalesced because they are allocated
+	 * from zones with fix-sized blocks.
+	 */
+
+	stid = thread_small_id();
+	xck = xmalloc_thread_get_chunk(p, stid);
+
+	if (xck != NULL) {
+		if G_UNLIKELY(xmalloc_no_freeing) {
+			can_walloc = FALSE;		/* Shutdowning, don't care */
+			goto realloc_from_thread;
+		}
+
+		xstats.reallocs++;
+
+		if (xmalloc_round(size) == xck->xc_size) {
+			xstats.realloc_noop++;
+
+			if (xmalloc_debugging(2)) {
+				t_debug("XM realloc of %p to %zu bytes can be a noop "
+					"(already in a %zu-byte chunk for thread #%u)",
+					p, size, xck->xc_size, stid);
+			}
+
+			return p;
+		}
+
+		goto realloc_from_thread;	/* Move block around */
+	}
+		
 	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh)) {
 		t_error_from(_WHERE_, "attempt to realloc invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
@@ -4064,6 +4578,18 @@ realloc_from_walloc:
 
 		return np;
 	}
+
+realloc_from_thread:
+	{
+		size_t old_size = xck->xc_size;
+
+		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
+		xstats.realloc_regular_strategy++;
+		memcpy(np, p, MIN(size, old_size));
+		xfree(p);
+	}
+
+	return np;
 }
 
 /**
@@ -5026,17 +5552,20 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(alloc_via_walloc);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
+	DUMP(alloc_via_thread_pool);
 	DUMP(freeings);
 	DUMP(free_sbrk_core);
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
 	DUMP(free_coalesced_vmm);
 	DUMP(free_walloc);
+	DUMP(free_thread_pool);
 	DUMP(sbrk_alloc_bytes);
 	DUMP(sbrk_freed_bytes);
 	DUMP(sbrk_wasted_bytes);
 	DUMP(vmm_alloc_pages);
 	DUMP(vmm_split_pages);
+	DUMP(vmm_thread_pages);
 	DUMP(vmm_freed_pages);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
@@ -5113,10 +5642,15 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 G_GNUC_COLD void
 xmalloc_dump_freelist_log(logagent_t *la)
 {
-	size_t i;
+	size_t i, j;
 	uint64 bytes = 0;
 	size_t blocks = 0;
 	size_t largest = 0;
+	struct {
+		size_t chunks;
+		uint64 freebytes;
+		size_t freeblocks;
+	} tstats[XM_THREAD_COUNT];
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -5143,11 +5677,50 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		}
 	}
 
+	ZERO(&tstats);
+
+	for (j = 0; j < XM_THREAD_COUNT; j++) {
+		for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
+			struct xchunkhead *ch = &xchunkhead[i][j];
+			link_t *lk;
+			size_t tchunks = 0, tcap = 0, tcnt = 0;
+
+			if (0 == elist_count(&ch->list))
+				continue;
+
+			for (lk = elist_first(&ch->list); lk != NULL; lk = elist_next(lk)) {
+				struct xchunk *xck = elist_data(&ch->list, lk);
+
+				tstats[j].chunks++;
+				tstats[j].freebytes += xck->xc_count * xck->xc_size;
+				tstats[j].freeblocks += xck->xc_count;
+				tchunks++;
+				tcap += xck->xc_capacity;
+				tcnt += xck->xc_count;
+			}
+
+			log_info(la, "XM chunklist #%zu (%zu bytes, stid=%u): cap=%zu, "
+				"cnt=%zu, chk=%zu", i, ch->blocksize, j, tcap, tcnt, tchunks);
+		}
+	}
+
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
 		blocks, 1 == blocks ? "" : "s");
 
 	log_info(la, "XM freelist largest block is %zu bytes", largest);
+
+	for (j = 0; j < XM_THREAD_COUNT; j++) {
+		if (0 == tstats[j].chunks)
+			continue;
+		log_info(la, "XM thread #%zu holds %s bytes (%s) spread "
+			"among %zu block%s on %zu page%s", j,
+			uint64_to_string(tstats[j].freebytes),
+			short_size(tstats[j].freebytes, FALSE),
+			tstats[j].freeblocks, 1 == tstats[j].freeblocks ? "" : "s",
+			tstats[j].chunks, 1 == tstats[j].chunks ? "" : "s");
+
+	}
 }
 
 /**
