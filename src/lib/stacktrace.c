@@ -974,8 +974,10 @@ stack_print_decorated_to(struct sxfile *xf,
 			 */
 
 			if (pathname != NULL) {
-				if (!is_absolute_path(pathname) && stack_is_our_text(pc))
-					pathname = executable_absolute_path;
+				if (!is_absolute_path(pathname) && stack_is_our_text(pc)) {
+					if (!file_exists(pathname))
+						pathname = executable_absolute_path;
+				}
 			}
 
 			if (pathname != NULL) {
