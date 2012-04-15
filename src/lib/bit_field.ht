@@ -31,13 +31,13 @@
  *
  * Bit field (linear field of bits with fixed endiannes). 
  *
- * Macros defined here are derived from those in <lib/bit_aray.h> but
+ * Macros defined here are derived from those in <lib/bit_array.h> but
  * operate on a linear field of byte, with fixed endianness of bits
  * within each byte.
  *
  * This is intended to be used for portable representations of bit fields.
- * If used internally only, then bit_array_t should be preferred as it will
- * be more efficient computation-wise.
+ * If used internally only, and on aligned long boundaries, then bit_array_t
+ * should be preferred as it will be more efficient computation-wise.
  *
  * @author Raphael Manfredi
  * @date 2010
