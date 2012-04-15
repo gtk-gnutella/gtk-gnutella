@@ -510,7 +510,15 @@ stacktrace_auto_tune(void)
 static void G_GNUC_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
-	symbols_load_from(symbols, path, lpath);
+	/*
+	 * In case we're crashing so early that stacktrace_init() has not been
+	 * called, initialize properly.
+	 */
+
+	if (NULL == symbols)
+		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+
+	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
 	if (stale)
 		symbols_mark_stale(symbols);
 }
@@ -608,7 +616,7 @@ stacktrace_load_symbols(void)
 {
 	bool stale = FALSE;
 
-	if G_UNLIKELY(symbols_loaded || NULL != symbols)
+	if G_UNLIKELY(symbols_loaded)
 		return;
 
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
@@ -641,7 +649,7 @@ stacktrace_load_symbols(void)
 		 * the symbols are marked as stale.
 		 */
 
-		if (buf.st_mtime != program_mtime) {
+		if (program_mtime != 0 && buf.st_mtime != program_mtime) {
 			s_warning("executable file \"%s\" has been tampered with",
 				program_path);
 
@@ -1271,7 +1279,7 @@ stacktrace_caller_name(size_t n)
 	if (!signal_in_handler())
 		stacktrace_load_symbols();
 
-	return symbols == NULL ? "??" : symbols_name(symbols, stack[n], FALSE);
+	return NULL == symbols ? "??" : symbols_name(symbols, stack[n], FALSE);
 }
 
 /**
