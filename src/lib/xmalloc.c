@@ -1063,6 +1063,7 @@ xfl_shrink(struct xfreelist *fl)
 
 	g_assert(allocated_size >= new_size);
 	g_assert(new_ptr != old_ptr);
+	g_assert(new_size >= old_used);
 
 	fl->last_shrink = tm_time();
 
@@ -4703,9 +4704,8 @@ xgc(void)
 	ZERO(&xga);
 
 	/*
-	 * Pass 1: lock buckets with items, compute largest bucket count, resize
-	 * buckets that were flagged too small for coalescing, record the available
-	 * room in each bucket.
+	 * Pass 1a: lock buckets with items, resize buckets that were flagged too
+	 * small for coalescing.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -4714,16 +4714,11 @@ xgc(void)
 		G_PREFETCH_R(&xfreelist[i + 1]);
 		G_PREFETCH_R(&xfreelist[i + 1].lock);
 		G_PREFETCH_W(&xgctx.locked[i + 1]);
-		G_PREFETCH_W(&xgctx.available[i + 1]);
-		G_PREFETCH_W(&xgctx.count[i + 1]);
 
 		if (!mutex_get_try(&fl->lock))
 			continue;
 
 		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
-
-		if G_UNLIKELY(fl->count > xgctx.largest)
-			xgctx.largest = fl->count;
 
 		if G_UNLIKELY(fl->resize) {
 			if (xmalloc_debugging(1)) {
@@ -4733,6 +4728,26 @@ xgc(void)
 			xfl_extend(fl);
 			xstats.xgc_bucket_expansions++;
 		}
+	}
+
+	/*
+	 * Pass 1b: compute largest bucket usage and record the available room
+	 * in each bucket.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		struct xfreelist *fl = &xfreelist[i];
+
+		G_PREFETCH_R(&xfreelist[i + 1].count);
+		G_PREFETCH_R(&xgctx.locked[i + 1]);
+		G_PREFETCH_W(&xgctx.available[i + 1]);
+		G_PREFETCH_W(&xgctx.count[i + 1]);
+
+		if (!xgctx.locked[i])
+			continue;
+
+		if G_UNLIKELY(fl->count > xgctx.largest)
+			xgctx.largest = fl->count;
 
 		xgctx.available[i] = fl->capacity - fl->count;
 		xgctx.count[i] = fl->count;
@@ -4814,6 +4829,8 @@ xgc(void)
 		 * regardless of the amount of stripped pointers and their location.
 		 */
 
+		g_assert(old_count <= xgctx.largest);
+
 		for (j = 0; j < old_count; j++) {
 			const void *p = fl->pointers[j];
 			struct xgc_range key, *xr;
@@ -4847,6 +4864,7 @@ xgc(void)
 			g_assert(size_is_non_negative(fl->count));
 			g_assert(size_is_non_negative(fl->sorted));
 			g_assert(fl->count >= fl->sorted);
+			g_assert(fl->count < xgctx.largest);
 
 			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
 		}
