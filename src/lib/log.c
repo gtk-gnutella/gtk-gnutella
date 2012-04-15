@@ -602,12 +602,13 @@ log_abort(void)
 	crash_save_stackframe(log_stack, count);
 
 	/*
-	 * In case the error occurs within a critical section with
-	 * all the signals blocked, make sure to unblock SIGBART.
+	 * This is a synchronous error from the logging layer, so make sure we
+	 * won't handle it as an asynchronous interrupt preventing symbol loading
+	 * or fully decorated stack tracing if the crash handler has been
+	 * installed.
 	 */
 
-	signal_unblock(SIGABRT);
-	raise(SIGABRT);
+	signal_abort();
 
 	/*
 	 * Back from raise(), that's bad.

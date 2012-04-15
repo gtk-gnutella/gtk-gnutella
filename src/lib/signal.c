@@ -359,13 +359,17 @@ sig_get_pc(const void *u)
 #endif	/* USE_UC_MCONTEXT && SA_SIGINFO */
 
 static volatile sig_atomic_t in_signal_handler;
+static volatile sig_atomic_t in_signal_abort;
 
 /**
- * Are we in a signal handler?
+ * Are we in an asynchronous signal handler?
  */
 bool
 signal_in_handler(void)
 {
+	if (in_signal_abort && 1 == in_signal_handler)
+		return FALSE;		/* Handle signal_abort() specially */
+
 	return in_signal_handler != 0 && !mingw_in_exception();
 }
 
@@ -918,6 +922,33 @@ signal_leave_critical(const sigset_t *oset)
 #else
 	(void) oset;
 #endif
+}
+
+/**
+ * Synchronously raise a fatal SIGBART signal.
+ *
+ * If we were not in a signal handler or in a critical section already, this
+ * call ensures that signal_in_handler() will return FALSE, since everything
+ * is happening synchronously and we cannot be interrupting a memory allocation
+ * routine or be in the presence of dangling data structures.
+ */
+void
+signal_abort(void)
+{
+	/*
+	 * In case the error occurs within a critical section with all the
+	 * signals blocked, make sure to unblock SIGABRT.  In that case, we
+	 * are asynchronous with respect to the program, as we are interrupting
+	 * a section that is supposed to be signal-safe, so don't set the
+	 * ``in_signal_abort'' flag.
+	 */
+
+	if (in_critical_section)
+		signal_unblock(SIGABRT);
+	else
+		in_signal_abort = TRUE;
+
+	raise(SIGABRT);
 }
 
 /**
