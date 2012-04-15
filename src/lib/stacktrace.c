@@ -1289,7 +1289,10 @@ stacktrace_routine_name(const void *pc, bool offset)
 {
 	const char *name;
 
-	name = symbols_name_only(symbols, pc, offset);
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
+
+	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
 
 	/*
 	 * This routine can be called from a signal handler.  We assume it will
