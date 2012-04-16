@@ -819,6 +819,7 @@ src/lib/rbtree.c
 src/lib/rbtree.h
 src/lib/regex.c
 src/lib/regex.h
+src/lib/registers.h
 src/lib/sbool.h
 src/lib/sectoken.c
 src/lib/sectoken.h

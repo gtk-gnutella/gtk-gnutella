@@ -33,13 +33,6 @@
 
 #include "common.h"		/* For RCSID */
 
-#ifdef I_UCONTEXT
-#include <ucontext.h>
-#endif
-#ifdef I_SYS_UCONTEXT
-#include <sys/ucontext.h>
-#endif
-
 #include "signal.h"
 #include "ckalloc.h"
 #include "crash.h"
@@ -48,6 +41,7 @@
 #include "log.h"
 #include "misc.h"
 #include "once.h"
+#include "registers.h"
 #include "str.h"
 #include "unsigned.h"
 
@@ -59,10 +53,6 @@
 
 #define SIGNAL_CHUNK_SIZE		4000	/**< Safety allocation pool */
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
-
-#if defined(HAS_UCONTEXT_MCONTEXT_GREGS) || defined(HAS_UCONTEXT_MCONTEXT)
-#define USE_UC_MCONTEXT
-#endif
 
 /**
  * Table mapping a signal number with a symbolic name.
@@ -228,33 +218,6 @@ sig_compute_pc_index(void)
 	g_assert_not_reached();
 }
 
-/*
- * Accessing the machine registers is inherently non-portable.
- *
- * The REGISTER_COUNT macro defines the amount of registers we see.
- * The REGISTER_VALUE macro lets us access a register by index.
- *
- * When the gregs[] array is present in the uc_mcontext field, the access
- * is straightforward.
- *
- * When there is no gregs[] array, assume the uc_mcontext field is a structure
- * containing registers whose size will be that of the "unsigned long" type.
- * This is a reasonable assumption which should prove correct on many systems.
- *
- * The uc_mcontext field could also be a pointer as on OSX, which we'll detect
- * when REGISTER_COUNT ends up being 1, in which case we're hosed.
- */
-
-#if defined(HAS_UCONTEXT_MCONTEXT_GREGS)
-#define REGISTER_COUNT		G_N_ELEMENTS(uc->uc_mcontext.gregs)
-#define REGISTER_VALUE(x)	((ulong) uc->uc_mcontext.gregs[x])
-#elif defined(HAS_UCONTEXT_MCONTEXT)
-#define REGISTER_COUNT		(sizeof(uc->uc_mcontext) / sizeof(ulong))
-#define REGISTER_VALUE(x)	((ulong *) &uc->uc_mcontext)[x]
-#else
-#error "impossible situation here"
-#endif
-
 #define SIG_PC_OFFSET_MAX	100		/* Bytes after start of routine */
 
 /**
@@ -271,7 +234,7 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	g_assert(SIGSEGV == signo);
 	g_assert(si != NULL);
 
-	if (1 == REGISTER_COUNT) {
+	if (1 == REGISTER_COUNT(uc)) {
 		/*
 		 * The uc_mcontext field is a pointer, sorry.
 		 *
@@ -286,8 +249,8 @@ sig_get_pc_handler(int signo, siginfo_t *si, void *u)
 	sig_pc_regnum = SIG_PC_UNKNOWN;
 	caller = pointer_to_ulong(cast_func_to_pointer(sig_compute_pc_index));
 
-	for (i = 0; i < REGISTER_COUNT; i++) {
-		size_t off = REGISTER_VALUE(i) - caller;
+	for (i = 0; i < REGISTER_COUNT(uc); i++) {
+		size_t off = REGISTER_VALUE(uc, i) - caller;
 		if (off < SIG_PC_OFFSET_MAX) {
 			if (found) {
 				sig_pc_regnum = SIG_PC_MULTIPLE;
@@ -346,7 +309,7 @@ sig_get_pc(const void *u)
 	if (sig_pc_regnum < 0)
 		return NULL;
 
-	return ulong_to_pointer(REGISTER_VALUE(sig_pc_regnum));
+	return ulong_to_pointer(REGISTER_VALUE(uc, sig_pc_regnum));
 }
 #else	/* !USE_UC_MCONTEXT || !SA_SIGINFO */
 static int
