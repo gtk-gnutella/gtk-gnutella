@@ -344,7 +344,7 @@ static struct xfreelist {
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
 	uint shrinking:1;		/**< Is being shrinked */
-	uint resize:1;			/**< Asked to expand by xgc() */
+	uint expand:1;			/**< Asked to expand by xgc() */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
 /**
@@ -352,7 +352,8 @@ static struct xfreelist {
  */
 static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
 
-#define XMALLOC_SHRINK_PERIOD	5	/**< Seconds between shrinking attempts */
+#define XMALLOC_SHRINK_PERIOD		5	/**< Secs between shrinking attempts */
+#define XMALLOC_XGC_SHRINK_PERIOD	60	/**< Idem, but from xgc() */
 
 /**
  * Table containing the split lengths to use for blocks that do not fit
@@ -460,6 +461,7 @@ static struct {
 	uint64 xgc_coalescing_failed;		/**< Failed block coalescing */
 	uint64 xgc_page_freeing_failed;		/**< Cannot free embedded pages */
 	uint64 xgc_bucket_expansions;		/**< How often do we expand buckets */
+	uint64 xgc_bucket_shrinkings;		/**< How often do we shrink buckets */
 	size_t user_memory;					/**< Current user memory allocated */
 	size_t user_blocks;					/**< Current amount of user blocks */
 	memusage_t *user_mem;				/**< EMA tracker */
@@ -1074,8 +1076,10 @@ xfl_find_freelist(size_t len)
 
 /**
  * Remove trailing excess memory in pointers[], accounting for hysteresis.
+ *
+ * @return TRUE if we actually shrank the bucket.
  */
-static void
+static bool
 xfl_shrink(struct xfreelist *fl)
 {
 	void *new_ptr;
@@ -1103,7 +1107,7 @@ xfl_shrink(struct xfreelist *fl)
 	new_size = xmalloc_round_blocksize(new_size);
 
 	if (new_size >= old_size)
-		return;
+		return FALSE;
 
 	new_ptr = xfl_bucket_alloc(fl, new_size, FALSE, &allocated_size);
 
@@ -1113,7 +1117,7 @@ xfl_shrink(struct xfreelist *fl)
 	 */
 
 	if G_UNLIKELY(NULL == new_ptr)
-		return;
+		return FALSE;
 
 	/*
 	 * Detect possible recursion.
@@ -1144,7 +1148,7 @@ xfl_shrink(struct xfreelist *fl)
 		}
 
 		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
-		return;
+		return FALSE;
 	}
 
 	g_assert(allocated_size >= new_size);
@@ -1165,7 +1169,7 @@ xfl_shrink(struct xfreelist *fl)
 				new_ptr, allocated_size, xfl_index(fl));
 		}
 		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
-		return;
+		return FALSE;
 	}
 
 	memcpy(new_ptr, old_ptr, old_used);
@@ -1190,6 +1194,8 @@ xfl_shrink(struct xfreelist *fl)
 	 */
 
 	xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
+
+	return TRUE;
 }
 
 /*
@@ -1493,7 +1499,7 @@ xfl_extend(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
-	g_assert(fl->count >= fl->capacity || fl->resize);
+	g_assert(fl->count >= fl->capacity || fl->expand);
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1591,7 +1597,7 @@ xfl_extend(struct xfreelist *fl)
 	memcpy(new_ptr, old_ptr, old_used);
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
-	fl->resize = FALSE;
+	fl->expand = FALSE;
 	mutex_release(&fl->lock);
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
@@ -4857,7 +4863,7 @@ xgc_freelist_has_room(size_t idx, struct xgc_context *xgctx)
 
 	if G_UNLIKELY(0 == xgctx->available[idx]) {
 		struct xfreelist *fl = &xfreelist[idx];
-		fl->resize = TRUE;		/* For next time */
+		fl->expand = TRUE;		/* For next time */
 		return FALSE;
 	}
 
@@ -5230,8 +5236,8 @@ xgc(void)
 	ZERO(&xga);
 
 	/*
-	 * Pass 1a: lock buckets with items, resize buckets that were flagged too
-	 * small for coalescing.
+	 * Pass 1a: lock buckets with items, expand buckets that were flagged too
+	 * small for coalescing, shrink buckets that are too large.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -5246,13 +5252,26 @@ xgc(void)
 
 		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
 
-		if G_UNLIKELY(fl->resize) {
+		if G_UNLIKELY(fl->expand) {
 			if (xmalloc_debugging(1)) {
 				t_debug("XM GC resizing freelist #%zu (cap=%zu, cnt=%zu)",
 					xfl_index(fl), fl->capacity, fl->count);
 			}
 			xfl_extend(fl);
 			xstats.xgc_bucket_expansions++;
+		} else if (
+			fl->capacity > XM_BUCKET_MINSIZE &&
+			delta_time(now, fl->last_shrink) > XMALLOC_XGC_SHRINK_PERIOD &&
+			(
+				0 == fl->count ||
+				fl->capacity - fl->count >= XM_BUCKET_INCREMENT ||
+				fl->capacity / fl->count >= 2
+			)
+		) {
+			fl->shrinking = TRUE;
+			if (xfl_shrink(fl))
+				xstats.xgc_bucket_shrinkings++;
+			fl->shrinking = FALSE;
 		}
 	}
 
@@ -5630,6 +5649,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(xgc_coalescing_failed);
 	DUMP(xgc_page_freeing_failed);
 	DUMP(xgc_bucket_expansions);
+	DUMP(xgc_bucket_shrinkings);
 	DUMP(user_memory);
 	DUMP(user_blocks);
 
