@@ -1059,6 +1059,26 @@ s_error(const char *format, ...)
 	log_abort();
 }
 
+/**
+ * Safe error.
+ *
+ * This returns a value so that we can use it in comma expressions, but
+ * the behaviour is really the same as s_error(), i.e. it aborts the
+ * process.
+ */
+int
+s_error_expr(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	va_end(args);
+
+	log_abort();
+	return 0;
+}
+
 /*
  * Safe error, recording the source of the crash to allow crash hooks.
  */

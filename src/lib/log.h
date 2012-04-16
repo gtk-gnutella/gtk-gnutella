@@ -90,6 +90,7 @@ int log_get_fd(enum log_file which);
 
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+int s_error_expr(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
