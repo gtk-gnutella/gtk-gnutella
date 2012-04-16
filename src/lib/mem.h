@@ -34,12 +34,41 @@
 #ifndef _mem_h_
 #define _mem_h_
 
+/**
+ * Memory protections we know how to probe for.
+ */
+#define MEM_PROT_NONE		0
+#define MEM_PROT_READ		(1U << 0)
+#define MEM_PROT_WRITE		(1U << 1)
+#define MEM_PROT_RW			(MEM_PROT_READ | MEM_PROT_WRITE)
+
 /*
  * Public interface.
  */
 
+int mem_protection(const void *p);
+
 bool mem_is_valid_ptr(const void *p);
 bool mem_is_valid_range(const void *p, size_t len);
+
+bool mem_is_writable(const void *p);
+bool mem_is_writable_range(const void *p, size_t len);
+
+/*
+ * Convenience aliases, for symetry with mem_is_writable().
+ */
+
+static inline bool
+mem_is_readable(const void *p)
+{
+	return mem_is_valid_ptr(p);
+}
+
+static inline bool
+mem_is_readable_range(const void *p, size_t len)
+{
+	return mem_is_valid_range(p, len);
+}
 
 #endif /* _mem_h_ */
 
