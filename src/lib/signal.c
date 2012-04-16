@@ -955,6 +955,7 @@ signal_abort(void)
 		in_signal_abort = TRUE;
 
 	raise(SIGABRT);
+	s_error("raise() failed: %m");
 }
 
 /**

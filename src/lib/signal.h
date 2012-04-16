@@ -58,7 +58,7 @@ const char *signal_name(int signo);
 bool signal_in_handler(void);
 struct ckhunk *signal_chunk(void);
 void signal_unblock(int signo);
-void signal_abort(void);
+void signal_abort(void) G_GNUC_NORETURN;
 
 bool signal_enter_critical(sigset_t *oset);
 void signal_leave_critical(const sigset_t *oset);
