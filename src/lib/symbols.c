@@ -551,7 +551,7 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 /**
  * Compute starting address of routine.
  *
- * @param st		the symbol table
+ * @param st		the symbol table (may be NULL)
  * @param pc		the PC within the routine
  *
  * @return start of the routine, NULL if we cannot find it.
@@ -560,6 +560,9 @@ const void *
 symbols_addr(const symbols_t *st, const void *pc)
 {
 	struct symbol *s;
+
+	if G_UNLIKELY(NULL == st)
+		return NULL;
 
 	symbols_check(st);
 
