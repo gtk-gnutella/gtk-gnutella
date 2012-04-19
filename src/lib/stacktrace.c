@@ -65,7 +65,12 @@
 #endif
 
 #define STACKTRACE_DLFT_SYMBOLS	8192	/**< Pre-sizing of symbol table */
-#define STACKTRACE_DECORATION	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE)
+
+/**
+ * Default stacktrace decoration flags we're using here.
+ */
+#define STACKTRACE_DECORATION	\
+	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_MAIN_STOP)
 
 /**
  * Deferred loading support.
@@ -918,6 +923,9 @@ struct sxfile {
  *	Use gdb-like words to link items, such as "from", "at", "in", put
  *  parenthesis after routine names, don't display offsets.
  *
+ * STACKTRACE_F_MAIN_STOP:
+ *	Stop printing as soon as we reach the main() symbol.
+ *
  * When no flags are specified, this is equivalent to a mere stack_print().
  */
 static void
@@ -930,6 +938,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	static char name[256];
 	str_t s;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
+	bool reached_main = FALSE;
 
 	/*
 	 * The BFD environment is only opened once.
@@ -948,7 +957,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	 * which source file location it maps to if the information is available.
 	 */
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < count && !reached_main; i++) {
 		const void *pc = stack[i];
 		const char *sopath = "??";	/* Shared object path */
 		const void *base;			/* Mapping base for the shared object */
@@ -1053,6 +1062,9 @@ stack_print_decorated_to(struct sxfile *xf,
 
 				disp = (NULL == start) ? 0 : ptr_diff(pc, start);
 
+				if (flags & STACKTRACE_F_MAIN_STOP)
+					reached_main = 0 == strcmp(sym, "main");
+
 				/*
 				 * When not displaying a gdb-like trace, visually distinguish
 				 * the names we resolve through the dynamic loader and the
@@ -1068,8 +1080,13 @@ stack_print_decorated_to(struct sxfile *xf,
 					str_bprintf(name, sizeof name, "<%s%+ld>", sym, disp);
 				sym = name;
 			} else {
-				if (symbols != NULL)
+				if (symbols != NULL) {
 					sym = symbols_name(symbols, pc, !gdb_like);
+					if (flags & STACKTRACE_F_MAIN_STOP) {
+						reached_main = 0 == strcmp(sym, "main") ||
+							(!gdb_like && is_strprefix(sym, "main+"));
+					}
+				}
 			}
 			loc.function = sym;
 		} else if (located_via_bfd) {
@@ -1077,6 +1094,9 @@ stack_print_decorated_to(struct sxfile *xf,
 			 * Flag the BFD-recognized symbols with trailing parentheses, since
 			 * there will be no trailing offset in that case, ever.
 			 */
+
+			if (flags & STACKTRACE_F_MAIN_STOP)
+				reached_main = 0 == strcmp(loc.function, "main");
 
 			str_bprintf(name, sizeof name, "%s()", loc.function);
 			has_parens = TRUE;

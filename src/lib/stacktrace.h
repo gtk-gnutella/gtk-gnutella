@@ -77,6 +77,7 @@ enum stacktrace_sym_quality {
 #define STACKTRACE_F_NO_INDENT	(1U << 3)	/**< Turn off indentation */
 #define STACKTRACE_F_GDB		(1U << 4)	/**< Show a gdb-like trace */
 #define STACKTRACE_F_ADDRESS	(1U << 5)	/**< Display addresses */
+#define STACKTRACE_F_MAIN_STOP	(1U << 6)	/**< Stop printing at main() */
 
 /**
  * Hashing /equality functions for "struct stacktrace" atomic traces.
