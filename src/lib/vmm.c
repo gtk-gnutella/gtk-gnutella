@@ -4357,6 +4357,8 @@ vmm_post_init(void)
 		vmm_reserve_stack(room);
 	}
 
+	mingw_vmm_post_init();
+
 #ifdef TRACK_VMM
 	vmm_track_post_init();
 #endif

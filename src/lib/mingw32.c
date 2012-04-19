@@ -1737,78 +1737,121 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
  *** Memory allocation routines.
  ***/
 
-static void *mingw_vmm_res_mem;
-static size_t mingw_vmm_res_size;
-static int mingw_vmm_res_nonhinted = 0;
+static struct {
+	void *reserved;			/* Reserved memory */
+	size_t size;			/* Size for hinted allocation */
+	size_t later;			/* Size of "later" memory we did not reserve */
+	int hinted;
+} mingw_vmm;
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
 	void *p = NULL;
 
-	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
+	if (NULL == hint && mingw_vmm.hinted >= 0) {
 		size_t n;
 
-		if G_UNLIKELY(NULL == mingw_vmm_res_mem) {
+		if G_UNLIKELY(NULL == mingw_vmm.reserved) {
 			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
 			void *mem_later;
+			size_t mem_latersize;
+			size_t mem_size;
 
 			/* Determine maximum possible memory first */
 
 			GetNativeSystemInfo(&system_info);
 
-			mingw_vmm_res_size =
+			mingw_vmm.size =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
 
 			memStatus.dwLength = sizeof memStatus;
 			if (GlobalMemoryStatusEx(&memStatus)) {
-				if (memStatus.ullTotalPhys < mingw_vmm_res_size)
-					mingw_vmm_res_size = memStatus.ullTotalPhys;
+				if (memStatus.ullTotalPhys < mingw_vmm.size)
+					mingw_vmm.size = memStatus.ullTotalPhys;
 			}
 
-			/* Declare some space for future allocations without hinting */
-			mem_later = VirtualAlloc(
-				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
+			/*
+			 * Declare some space for future allocations without hinting.
+			 * We initially reserve 1/4th of the virtual address space,
+			 * with VMM_MINSIZE at least but we make sure we have more room 
+			 * available for the VMM layer.
+			 *
+			 * We'll iterate, dividing the amount of memory we keep for later
+			 * allocations by half at each loop until we can reserve more
+			 * memory for GTKG than the amount we leave to the system or other
+			 * non-hinted allocations.
+			 */
 
-			/* Try to reserve it */
-			while (
-				NULL == mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE
-			) {
-				mingw_vmm_res_mem = p = VirtualAlloc(
-					NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
+			mem_size = mingw_vmm.size;		/* For the VMM layer */
+			mem_latersize = mem_size / 2;	/* For non-hinted allocation */
 
-				if (NULL == mingw_vmm_res_mem)
-					mingw_vmm_res_size -= system_info.dwAllocationGranularity;
-			}
+			do {
+				if (mingw_vmm.reserved != NULL) {
+					VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
+					mingw_vmm.reserved = NULL;
+				}
 
-			VirtualFree(mem_later, 0, MEM_RELEASE);
+				mem_latersize /= 2;
+				mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
+				mingw_vmm.later = mem_latersize;
+				mem_later = VirtualAlloc(NULL,
+					mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
 
-			if (NULL == mingw_vmm_res_mem) {
-				s_error("could not reserve %s of memory",
-					compact_size(mingw_vmm_res_size, FALSE));
-			} else if (vmm_is_debugging(0)) {
-				s_debug("reserved %s of memory",
-					compact_size(mingw_vmm_res_size, FALSE));
+				if (NULL == mem_later) {
+					errno = mingw_last_error();
+					s_error("could not reserve %s of memory: %m",
+						compact_size(mem_latersize, FALSE));
+				}
+
+				/*
+				 * Try to reserve the remaining virtual space, asking for as
+				 * much as we can and reducing the requested size by the
+				 * system's granularity until we get a success status.
+				 */
+
+				mingw_vmm.size = mem_size;
+
+				while (
+					NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
+				) {
+					mingw_vmm.reserved = p = VirtualAlloc(
+						NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
+
+					if (NULL == mingw_vmm.reserved)
+						mingw_vmm.size -= system_info.dwAllocationGranularity;
+				}
+
+				VirtualFree(mem_later, 0, MEM_RELEASE);
+			} while (
+				mingw_vmm.size > VMM_MINSIZE && mingw_vmm.size < mem_latersize
+			);
+
+			if (NULL == mingw_vmm.reserved) {
+				s_error("could not reserve additional %s of memory "
+					"on top of the %s put aside",
+					compact_size(mingw_vmm.size, FALSE),
+					compact_size2(mem_latersize, FALSE));
 			}
 		}
 
 		if (vmm_is_debugging(0)) {
 			s_debug("no hint given for %s allocation #%d",
-				compact_size(size, FALSE), mingw_vmm_res_nonhinted);
+				compact_size(size, FALSE), mingw_vmm.hinted);
 		}
 
 		n = mingw_getpagesize();
-		n = size_saturate_mult(n, mingw_vmm_res_nonhinted++);
-		if (n + size >= mingw_vmm_res_size) {
-			s_warning("%s(): out of reserved memory for %zu bytes",
+		n = size_saturate_mult(n, mingw_vmm.hinted++);
+		if (n + size >= mingw_vmm.size) {
+			s_carp("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
 			goto failed;
 		}
-		p = ptr_add_offset(mingw_vmm_res_mem, n);
-	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
+		p = ptr_add_offset(mingw_vmm.reserved, n);
+	} else if (NULL == hint && mingw_vmm.hinted < 0) {
 		/*
 		 * Non-hinted request after hinted requests have been used.
 		 * Allow usage of non-reserved space.
@@ -1818,13 +1861,12 @@ mingw_valloc(void *hint, size_t size)
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			s_warning("%s(): failed to allocate %zu bytes: %m",
-				G_STRFUNC, size);
+			s_carp("%s(): failed to allocate %zu bytes: %m", G_STRFUNC, size);
 			goto failed;
 		}
 		return p;
 	} else {
-		mingw_vmm_res_nonhinted = -1;	/* Can now handle non-hinted allocs */
+		mingw_vmm.hinted = -1;	/* Can now handle non-hinted allocs */
 		p = hint;
 	}
 
@@ -1832,7 +1874,7 @@ mingw_valloc(void *hint, size_t size)
 
 	if (p == NULL) {
 		errno = mingw_last_error();
-		s_warning("%s(): failed to commit %zu bytes at %p: %m",
+		s_carp("%s(): failed to commit %zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
 		goto failed;
 	}
@@ -1861,9 +1903,9 @@ mingw_vfree(void *addr, size_t size)
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	void *end = ptr_add_offset(mingw_vmm_res_mem, mingw_vmm_res_size);
+	void *end = ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size);
 
-	if (ptr_cmp(mingw_vmm_res_mem, addr) <= 0 && ptr_cmp(end, addr) > 0) {
+	if (ptr_cmp(mingw_vmm.reserved, addr) <= 0 && ptr_cmp(end, addr) > 0) {
 		/* Allocated in reserved space */
 		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
 			errno = mingw_last_error();
@@ -3065,6 +3107,16 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 	return 0;
 }
 #endif	/* EMULATE_GETTIMEOFDAY */
+
+void mingw_vmm_post_init(void)
+{
+	s_info("VMM reserved %s of virtual space at [%p, %p]",
+		compact_size(mingw_vmm.size, FALSE),
+		mingw_vmm.reserved,
+		ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size));
+	s_info("VMM left %s of virtual space unreserved",
+		compact_size(mingw_vmm.later, FALSE));
+}
 
 void
 mingw_init(void)
