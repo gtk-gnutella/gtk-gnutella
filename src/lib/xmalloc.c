@@ -6178,7 +6178,7 @@ xzones_init(void)
 	xzones_capacity = highest_bit_set(xmalloc_pagesize) - XALIGN_SHIFT;
 	g_assert(size_is_positive(xzones_capacity));
 
-	xzones = xmalloc(xzones_capacity * sizeof xzones[0]);
+	xzones = xmalloc0(xzones_capacity * sizeof xzones[0]);
 	xstats.aligned_overhead_bytes += xzones_capacity * sizeof xzones[0];
 }
 
