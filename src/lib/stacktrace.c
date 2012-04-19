@@ -65,6 +65,7 @@
 #endif
 
 #define STACKTRACE_DLFT_SYMBOLS	8192	/**< Pre-sizing of symbol table */
+#define STACKTRACE_DECORATION	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE)
 
 /**
  * Deferred loading support.
@@ -1375,7 +1376,7 @@ stacktrace_where_sym_print(FILE *f)
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
-	stack_print(f, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1391,7 +1392,7 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print(f, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1411,29 +1412,7 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print(f, stack, count);
-}
-
-/**
- * Safely print current stack trace to specified file, with specified offset.
- *
- * Safety comes from the fact that this routine may be safely called from
- * a signal handler.  However, symbolic names will not be loaded from the
- * executable if they haven't already and we're in a signal handler.
- *
- * @param fd		file descriptor where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
- */
-void
-stacktrace_where_safe_print_offset(int fd, size_t offset)
-{
-	void *stack[STACKTRACE_DEPTH_MAX];
-	size_t count;
-
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	if (!signal_in_handler())
-		stacktrace_load_symbols();
-	stack_safe_print(fd, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1453,11 +1432,30 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 {
 	if (!signal_in_handler()) {
 		stacktrace_load_symbols();
-		stack_safe_print_decorated(fd, stack, count,
-			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
 	} else {
 		stack_safe_print(fd, stack, count);
 	}
+}
+
+/**
+ * Safely print current stack trace to specified file, with specified offset.
+ *
+ * Safety comes from the fact that this routine may be safely called from
+ * a signal handler.  However, symbolic names will not be loaded from the
+ * executable if they haven't already and we're in a signal handler.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_safe_print_offset(int fd, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	stacktrace_stack_safe_print(fd, stack, count);
 }
 
 /**
