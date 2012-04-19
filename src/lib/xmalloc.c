@@ -277,11 +277,17 @@ struct xheader {
 
 /**
  * Free list data structure for thread-specific allocations.
+ *
+ * Normally these chunks are handled without locks, that is the idea of having
+ * thread-specific data structures.  However, sometimes we have cross-thread
+ * freeing and in that case we turn on locking for the chunk.
  */
 static struct xchunkhead {
 	size_t blocksize;		/**< Block size handled by this list */
 	size_t allocations;		/**< Number of allocations done */
+	uint shared:1;			/**< A chunk was used during cross-thread frees */
 	elist_t list;			/**< List of chunks (struct xchunk) */
+	spinlock_t lock;		/**< Lock used as soon as chunks become shared */
 } xchunkhead[XMALLOC_CHUNKHEAD_COUNT][XM_THREAD_COUNT];
 
 enum xchunk_magic { XCHUNK_MAGIC = 0x45488613 };
@@ -2101,6 +2107,7 @@ xmalloc_freelist_setup(void)
 
 			ch->blocksize = xch_block_size_idx(i);
 			elist_init(&ch->list, offsetof(struct xchunk, xc_lnk));
+			spinlock_init(&ch->lock);
 		}
 	}
 
@@ -3292,7 +3299,22 @@ xmalloc_thread_alloc(const size_t len)
 		return NULL;
 	}
 
-	return xmalloc_chunkhead_alloc(ch, stid);
+	/*
+	 * If this chunkhead was the target of cross-thread freeing, we have
+	 * to take a lock unfortunately.
+	 */
+
+	if G_UNLIKELY(ch->shared) {
+		void *p;
+
+		spinlock(&ch->lock);
+		p = xmalloc_chunkhead_alloc(ch, stid);
+		spinunlock(&ch->lock);
+
+		return p;
+	} else {
+		return xmalloc_chunkhead_alloc(ch, stid);
+	}
 }
 
 /**
@@ -3331,15 +3353,80 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid)
 
 	/*
 	 * If a thread allocates a block, it must be the one freeing it or
-	 * reallocating it.
+	 * reallocating it since by construction we cannot put back a block in
+	 * the thread-specific pool of another thread in a thread-safe way.
+	 *
+	 * We used to panic here, but this sometimes happen on systems that
+	 * create other threads unbeknown to us, as on Windows or Ubuntu, probably
+	 * created by GTK or other library with which we exchange pointers.
+	 *
+	 * When this happens, we'll use locking on all the chunks for this size
+	 * in this thread.
 	 */
 
 	if (xck->xc_stid != stid) {
-		t_error("thread #%u freeing %zu-byte block %p allocated by thread #%u",
-			stid, xck->xc_size, p, xck->xc_stid);
+		struct xchunkhead *ch = xck->xc_head;
+
+		/*
+		 * Turn on locking from now on, to be on the safe side, hopefully.
+		 *
+		 * Note that this is not 100% safe since the other thread could be
+		 * in the process of allocating data for this chunk at the same
+		 * moment, and there is a window for chunk corruption.
+		 *
+		 * Warn loudly before turning locking on.
+		 */
+
+		if (!ch->shared) {
+			t_carp(
+				"thread #%u freeing %zu-byte block %p allocated by thread #%u",
+				stid, xck->xc_size, p, xck->xc_stid);
+			ch->shared = TRUE;
+		}
 	}
 
 	return xck;
+}
+
+/**
+ * Return block to chunk.
+ */
+static void
+xmalloc_chunk_return(struct xchunk *xck, void *p)
+{
+	/*
+	 * If returning the block makes the whole chunk free, free that chunk.
+	 * Otherwise put block back at the head of the chunk's free list.
+	 */
+
+	if (xck->xc_capacity == xck->xc_count + 1) {
+		struct xchunkhead *ch = xck->xc_head;
+
+		/*
+		 * Before freeing the chunk, zero the header part so as to make
+		 * sure we will not mistake this for a valid header again.  Simply
+		 * zeroing the magic number is not enough here, we want to prevent
+		 * mistakes: freeing blocks on a page with an apparently valid header
+		 * but which is not a thread-private chunk would corrupt memory.
+		 */
+
+		elist_remove(&ch->list, xck);
+		ZERO(xck);
+		vmm_core_free(xck, xmalloc_pagesize);
+		xstats.vmm_thread_pages--;
+
+		if (xmalloc_debugging(1)) {
+			t_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
+				xck, ch->blocksize, thread_small_id());
+		}
+	} else {
+		void *head = 0 == xck->xc_free_offset ? NULL :
+			ptr_add_offset(xck, xck->xc_free_offset);
+
+		*(char **) p = head;
+		xck->xc_free_offset = ptr_diff(p, xck);
+		xck->xc_count++;
+	}
 }
 
 /**
@@ -3372,44 +3459,20 @@ xmalloc_thread_free(void *p)
 	if (NULL == xck)
 		return FALSE;
 
-	/*
-	 * We now have all the reasons to believe that the block belongs to
-	 * the chunk.  If freeing the block makes the whole chunk free, just
-	 * free the whole chunk.
-	 *
-	 * Otherwise put block back at the head of the chunk's free list.
-	 */
-
 	xstats.user_memory -= xck->xc_size;
 	xstats.user_blocks--;
 
-	if (xck->xc_capacity == xck->xc_count + 1) {
-		struct xchunkhead *ch = xck->xc_head;
+	/*
+	 * We have all the reasons to believe that the block belongs to the chunk.
+	 * Lock chunkhead if it became shared between threads.
+	 */
 
-		/*
-		 * Before freeing the chunk, zero the header part so as to make
-		 * sure we will not mistake this for a valid header again.  Simply
-		 * zeroing the magic number is not enough here, we want to prevent
-		 * mistakes: freeing blocks on a page with an apparently valid header
-		 * but which is not a thread-private chunk would corrupt memory.
-		 */
-
-		elist_remove(&ch->list, xck);
-		ZERO(xck);
-		vmm_core_free(xck, xmalloc_pagesize);
-		xstats.vmm_thread_pages--;
-
-		if (xmalloc_debugging(1)) {
-			t_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
-				xck, ch->blocksize, stid);
-		}
+	if G_UNLIKELY(xck->xc_head->shared) {
+		spinlock(&xck->xc_head->lock);
+		xmalloc_chunk_return(xck, p);
+		spinunlock(&xck->xc_head->lock);
 	} else {
-		void *head = 0 == xck->xc_free_offset ? NULL :
-			ptr_add_offset(xck, xck->xc_free_offset);
-
-		*(char **) p = head;
-		xck->xc_free_offset = ptr_diff(p, xck);
-		xck->xc_count++;
+		xmalloc_chunk_return(xck, p);
 	}
 
 	return TRUE;
@@ -5670,6 +5733,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		size_t chunks;
 		uint64 freebytes;
 		size_t freeblocks;
+		size_t shared;
 	} tstats[XM_THREAD_COUNT];
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -5705,6 +5769,9 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			link_t *lk;
 			size_t tchunks = 0, tcap = 0, tcnt = 0;
 
+			if (ch->shared)
+				tstats[j].shared++;
+
 			if (0 == elist_count(&ch->list))
 				continue;
 
@@ -5720,7 +5787,9 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			}
 
 			log_info(la, "XM chunklist #%zu (%zu bytes, stid=%u): cap=%zu, "
-				"cnt=%zu, chk=%zu", i, ch->blocksize, j, tcap, tcnt, tchunks);
+				"cnt=%zu, chk=%zu, shr=%c",
+					i, ch->blocksize, j, tcap, tcnt, tchunks,
+					ch->shared ? 'y' : 'n');
 		}
 	}
 
@@ -5731,15 +5800,27 @@ xmalloc_dump_freelist_log(logagent_t *la)
 	log_info(la, "XM freelist largest block is %zu bytes", largest);
 
 	for (j = 0; j < XM_THREAD_COUNT; j++) {
+		size_t pool;
+
 		if (0 == tstats[j].chunks)
 			continue;
+
 		log_info(la, "XM thread #%zu holds %s bytes (%s) spread "
-			"among %zu block%s on %zu page%s", j,
+			"among %zu block%s", j,
 			uint64_to_string(tstats[j].freebytes),
 			short_size(tstats[j].freebytes, FALSE),
-			tstats[j].freeblocks, 1 == tstats[j].freeblocks ? "" : "s",
+			tstats[j].freeblocks, 1 == tstats[j].freeblocks ? "" : "s");
+
+		pool = size_saturate_mult(tstats[j].chunks, xmalloc_pagesize);
+
+		log_info(la, "XM thread #%zu uses a pool of %zu bytes (%s, %zu page%s)",
+			j, pool, short_size(pool, FALSE),
 			tstats[j].chunks, 1 == tstats[j].chunks ? "" : "s");
 
+		if (0 != tstats[j].shared) {
+			log_warning(la, "XM thread #%zu has %zu size%s requiring locking",
+				j, tstats[j].shared, 1 == tstats[j].shared ? "" : "s");
+		}
 	}
 }
 
