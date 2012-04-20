@@ -342,12 +342,26 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 		count = bfd_read_minisymbols(b, TRUE, &symbols, &size);
 	}
 
-	if (count < 0) {
-		s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, libpath);
-		symbols = NULL;
-		count = 0;
-	}
+	if (count >= 0)
+		goto done;
 
+	s_miniwarn("%s: unable to load symbols from %s ", G_STRFUNC, libpath);
+	symbols = NULL;
+	/* FALL THROUGH */
+
+	/*
+	 * We keep the context on errors to avoid logging them over and over
+	 * each time we attempt to access the same file.  The BFD and system
+	 * resources are released though.
+	 */
+
+failed:
+	bfd_close(b);
+	b = NULL;
+	count = 0;
+	/* FALL THROUGH */
+
+done:
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
 	bc->symbols = symbols;		/* Allocated by the bfd library */
@@ -355,10 +369,6 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	bc->symsize = size;
 
 	return TRUE;
-
-failed:
-	bfd_close(b);
-	return FALSE;
 }
 
 /**
@@ -383,7 +393,8 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 		 * for this BFD library bug.
 		 */
 
-		bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
+		if (bc->handle != NULL)
+			bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
 		symbols_free_null(&bc->text_symbols);
 		bc->magic = 0;
 		xfree(bc);
@@ -463,6 +474,8 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 		return;
 
 	b = bc->handle;
+	if (NULL == b)
+		return;
 
 	/*
 	 * Take the first section of the file and look where its page would start.
