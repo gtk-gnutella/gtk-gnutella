@@ -2089,6 +2089,9 @@ vmm_is_stack_pointer(const void *p, const void *top)
 	if G_UNLIKELY(0 == sp_direction)
 		init_stack_shape();
 
+	if (!thread_is_single())
+		return thread_is_stack_pointer(p, top, NULL);
+
 	if (NULL == top)
 		top = &sp;
 

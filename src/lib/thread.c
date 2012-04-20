@@ -42,6 +42,7 @@
 #define THREAD_SOURCE			/* We want hash_table_new_real() */
 
 #include "thread.h"
+#include "alloca.h"				/* For alloca_stack_direction() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "omalloc.h"
@@ -55,6 +56,7 @@
 
 #define THREAD_QID_BITS		8		/**< QID bits used for hashing */
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
+#define THREAD_MAX			64		/**< Max amount of threads we can track */
 
 /**
  * A thread-private value.
@@ -73,6 +75,7 @@ struct thread_element {
 	thread_qid_t last_qid;			/**< The last QID used to access record */
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
+	const void *stack_base;			/**< Plausible stack base */
 };
 
 /**
@@ -86,6 +89,11 @@ struct thread_element {
  * descriptor being held at the head of the first zone arena.
  */
 static zone_t *pvzone;		/* For private values */
+
+/**
+ * Array of threads, by small thread ID.
+ */
+static struct thread_element *threads[THREAD_MAX];
 
 /**
  * QID cache.
@@ -104,8 +112,32 @@ static zone_t *pvzone;		/* For private values */
  */
 static struct thread_element *thread_qid_cache[THREAD_QID_CACHE];
 static uint8 thread_qid_busy[THREAD_QID_CACHE];
+
+static bool thread_inited;
 static int thread_pageshift = 12;		/* Safe default: 4K pages */
-static bool thread_pageshift_inited;
+static int thread_sp_direction;			/* Stack growth direction */
+
+static spinlock_t thread_private_slk = SPINLOCK_INIT;
+static spinlock_t thread_insert_slk = SPINLOCK_INIT;
+
+/**
+ * Compare two stack pointers according to the stack growth direction.
+ * A pointer is larger than another if it is further away from the base.
+ */
+static inline int
+thread_stack_ptr_cmp(const void *a, const void *b)
+{
+	return thread_sp_direction > 0 ? ptr_cmp(a, b) : ptr_cmp(b, a);
+}
+
+/**
+ * Compute the stack offset, for a pointer that is "above" the stack base.
+ */
+static inline size_t
+thread_stack_ptr_offset(const void *base, const void *sp)
+{
+	return thread_sp_direction > 0 ? ptr_diff(sp, base) : ptr_diff(base, sp);
+}
 
 /**
  * Small thread ID.
@@ -133,20 +165,48 @@ thread_equal(const void *a, const void *b)
 }
 
 /**
- * Fast computation of the Quasi Thread ID (QID) of current thread.
+ * Initialize global configuration.
+ */
+static void
+thread_init(void)
+{
+	if G_UNLIKELY(thread_inited)
+		return;
+
+	thread_pageshift = ctz(compat_pagesize());
+	thread_sp_direction = alloca_stack_direction();
+	thread_inited = TRUE;
+}
+
+/**
+ * Initialize the thread stack shape for the thread element.
+ */
+static void
+thread_stack_init_shape(struct thread_element *te, const void *sp)
+{
+	te->stack_base = vmm_page_start(sp);
+
+	if (thread_sp_direction < 0) {
+		te->stack_base = const_ptr_add_offset(te->stack_base,
+			compat_pagesize() - sizeof(void *));
+	}
+}
+
+/**
+ * Fast computation of the Quasi Thread ID (QID) of a thread.
+ *
+ * @param sp		a stack pointer belonging to the thread
  *
  * The concept of QID relies on the fact that a given stack page can only
  * belong to one thread, by definition.
  */
 static inline ALWAYS_INLINE thread_qid_t
-thread_quasi_id_fast(void)
+thread_quasi_id_fast(const void *sp)
 {
-	ulong sp;
-
 	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
-		return pointer_to_ulong(&sp) >> thread_pageshift;
+		return pointer_to_ulong(sp) >> thread_pageshift;
 	} else {
-		uint64 qid = pointer_to_ulong(&sp) >> thread_pageshift;
+		uint64 qid = pointer_to_ulong(sp) >> thread_pageshift;
 		return (qid >> 32) ^ (unsigned) qid;
 	}
 }
@@ -157,16 +217,22 @@ thread_quasi_id_fast(void)
 thread_qid_t
 thread_quasi_id(void)
 {
-	if G_UNLIKELY(!thread_pageshift_inited) {
-		thread_pageshift = ctz(compat_pagesize());
-		thread_pageshift_inited = TRUE;
-	}
+	int sp;
 
-	return thread_quasi_id_fast();
+	if G_UNLIKELY(!thread_inited)
+		thread_init();
+
+	return thread_quasi_id_fast(&sp);
 }
 
-static spinlock_t thread_private_slk = SPINLOCK_INIT;
-static spinlock_t thread_insert_slk = SPINLOCK_INIT;
+/**
+ * @return whether thread element is matching the QID.
+ */
+static inline ALWAYS_INLINE bool
+thread_element_matches(const struct thread_element *te, const thread_qid_t qid)
+{
+	return te != NULL && te->last_qid == qid;
+}
 
 /**
  * Get the main hash table.
@@ -205,6 +271,11 @@ thread_new_element(thread_t t)
 	te->last_qid = (thread_qid_t) -1;
 	te->pht = hash_table_once_new_real();	/* Never freed! */
 	te->stid = thread_next_stid++;
+
+	if G_LIKELY(te->stid < THREAD_MAX)
+		threads[te->stid] = te;
+
+	thread_stack_init_shape(te, &te);
 
 	return te;
 }
@@ -349,7 +420,7 @@ thread_current(void)
 	 * to succeed and should be faster than pthread_self().
 	 */
 
-	qid = thread_quasi_id_fast();
+	qid = thread_quasi_id_fast(&qid);
 	idx = hashing_fold(qid, THREAD_QID_BITS);
 	te = thread_qid_cache[idx];
 
@@ -425,19 +496,120 @@ thread_count(void)
 bool
 thread_is_single(void)
 {
-	static thread_t last_thread;
-	thread_t t;
-
 	if (thread_next_stid > 1)
 		return FALSE;
 
-	t = thread_current();		/* Counts threads */
+	(void) thread_current();		/* Counts threads */
 
-	if (thread_eq(last_thread, t))
-		return TRUE;
-
-	last_thread = t;
 	return 1 == thread_next_stid;
+}
+
+/**
+ * Find existing thread based on the supplied stack pointer.
+ *
+ * @param sp		a pointer to the stack
+ *
+ * @return the likely thread element to which the stack pointer could relate,
+ * NULL if we cannot determine the thread.
+ */
+static struct thread_element *
+thread_find(const void *sp)
+{
+	size_t i;
+	struct thread_element *te = NULL;
+	size_t smallest = (size_t) -1;
+	thread_qid_t qid;
+	unsigned idx;
+
+	/*
+	 * Since we have a stack pointer belonging to the thread we're looking,
+	 * check whether we have it cached by its QID.
+	 */
+
+	qid = thread_quasi_id_fast(sp);
+	idx = hashing_fold(qid, THREAD_QID_BITS);
+
+	if (thread_element_matches(te, qid))
+		return te;
+
+	/*
+	 * Perform linear lookup, looking for the thread for which the stack
+	 * pointer is "above" the parameter and for which the distance to the
+	 * base of the stack is the smallest.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if (thread_stack_ptr_cmp(sp, xte->stack_base) > 0) {
+			size_t offset;
+
+			/*
+			 * Pointer is "above" the stack base, track the thread whith
+			 * the smallest offset relative to the stack base.
+			 */
+
+			offset = thread_stack_ptr_offset(xte->stack_base, sp);
+			if (offset < smallest) {
+				te = xte;
+				smallest = offset;
+			}
+		}
+	}
+
+	/*
+	 * Cache result.
+	 */
+
+	thread_qid_cache[idx] = te;
+	te->last_qid = qid;
+
+	return te;
+}
+
+/**
+ * Is pointer a valid stack pointer?
+ *
+ * When top is NULL, we must be querying for the current thread or the routine
+ * will likely return FALSE unless the pointer is in the same page as the
+ * stack bottom.
+ *
+ * @param p		pointer to check
+ * @param top	pointer to stack's top
+ * @param stid	if non-NULL, filled with the small ID of the thread
+ *
+ * @return whether the pointer is within the bottom and the top of the stack.
+ */
+bool
+thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
+{
+	struct thread_element *te;
+
+	if G_UNLIKELY(NULL == p)
+		return FALSE;
+
+	te = thread_find(p);
+	if (NULL == te)
+		return FALSE;
+
+	if (NULL == top) {
+		if (thread_get_element() != te)
+			return FALSE;		/* Not in the current thread */
+		top = &te;
+	}
+
+	if (stid != NULL)
+		*stid = te->stid;
+
+	if (thread_sp_direction < 0) {
+		/* Stack growing down, stack_base is its highest address */
+		g_assert(ptr_cmp(te->stack_base, top) > 0);
+		return ptr_cmp(p, top) >= 0 && ptr_cmp(p, te->stack_base) < 0;
+	} else {
+		/* Stack growing up, stack_base is its lowest address */
+		g_assert(ptr_cmp(te->stack_base, top) < 0);
+		return ptr_cmp(p, top) <= 0 && ptr_cmp(p, te->stack_base) >= 0;
+	}
 }
 
 /**

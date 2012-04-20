@@ -98,6 +98,7 @@ const char *thread_to_string(const thread_t t);
 
 unsigned thread_count();
 bool thread_is_single(void);
+bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
