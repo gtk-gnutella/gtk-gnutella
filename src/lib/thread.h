@@ -55,37 +55,12 @@ typedef unsigned int thread_qid_t;		/* Quasi Thread ID */
 #define thread_set(t,v)	((t) = (v))
 #endif
 
-static inline thread_t
-thread_self(void)
-{
-	union {
-		thread_t t;
-		pthread_t pt;
-	} u;
+#else	/* !I_PTHREAD */
 
-	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
-
-	/*
-	 * We truncate the pthread_t to the first "unsigned long" bytes.
-	 *
-	 * On Linux, pthread_t is already an unsigned long.
-	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
-	 *
-	 * On Windows, pthread_t is a structure, whose first member is a pointer.
-	 * And we don't want to use the whole pthread_t structure there, because
-	 * the second member is changing over time and we want a unique thread
-	 * identifier.
-	 */
-
-	u.pt = pthread_self();
-	return u.t;
-}
-
-#else
-#define thread_self()	0xc5db8dd3UL	/* Random, odd number */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
-#endif
+
+#endif	/* I_PTHREAD */
 
 /*
  * Public interface.
