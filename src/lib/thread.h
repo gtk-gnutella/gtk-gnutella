@@ -100,6 +100,10 @@ unsigned thread_count();
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 
+size_t thread_suspend_others(void);
+size_t thread_unsuspend_others(void);
+void thread_check_suspended(void);
+
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);

@@ -76,6 +76,7 @@ struct thread_element {
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
+	int suspend;					/**< Suspend at next thread_current() */
 };
 
 /**
@@ -119,6 +120,7 @@ static int thread_sp_direction;			/* Stack growth direction */
 
 static spinlock_t thread_private_slk = SPINLOCK_INIT;
 static spinlock_t thread_insert_slk = SPINLOCK_INIT;
+static spinlock_t thread_suspend_slk = SPINLOCK_INIT;
 
 /**
  * Compare two stack pointers according to the stack growth direction.
@@ -281,6 +283,17 @@ thread_new_element(thread_t t)
 }
 
 /**
+ * Voluntarily suspend execution of the current thread, as described by the
+ * supplied thread element.
+ */
+static void
+thread_suspend_self(const volatile struct thread_element *te)
+{
+	while (te->suspend)
+		do_sched_yield();
+}
+
+/**
  * Get the thread-private element.
  *
  * If no element was already associated with the current thread, a new one
@@ -306,8 +319,26 @@ thread_get_element(void)
 	idx = hashing_fold(qid, THREAD_QID_BITS);
 	te = thread_qid_cache[idx];
 
-	if (te != NULL && te->last_qid == qid)
+	G_PREFETCH_R(&te->stack_base);
+	G_PREFETCH_R(&te->suspend);
+
+	if (thread_element_matches(te, qid)) {
+		/*
+		 * Maintain lowest stack address for thread.
+		 */
+
+		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
+			thread_stack_init_shape(te, &qid);
+
+		/*
+		 * Check for advisory suspension.
+		 */
+
+		if G_UNLIKELY(te->suspend)
+			thread_suspend_self(te);
+
 		return te;
+	}
 
 	/*
 	 * No matching element was found in the cache, perform the slow lookup
@@ -397,6 +428,117 @@ thread_small_id(void)
 }
 
 /**
+ * Check whether thread is suspended.
+ */
+void
+thread_check_suspended(void)
+{
+	/*
+	 * It is not critical to be in a thread that has not been seen yet, and
+	 * we don't want this call to be too expensive, so detect mono-threaded
+	 * conditions using a fast-path shortcut that should be correct 99.9% of
+	 * the time.
+	 */
+
+	if (thread_next_stid <= 1)
+		return;		/* Mono-threaded, most likely */
+
+	thread_suspend_self(thread_get_element());
+}
+
+/**
+ * Suspend other threads (advisory, not kernel-enforced).
+ *
+ * This is voluntary suspension, which will only occur when threads enter
+ * the thread_current() routine, or actively check for supension by calling
+ * thread_check_suspended().
+ *
+ * It is possible to call this routine multiple times, provided each call is
+ * matched with a corresponding thread_unsuspend_others().
+ *
+ * @return the amount of threads suspended.
+ */
+size_t
+thread_suspend_others(void)
+{
+	struct thread_element *te;
+	size_t i, n = 0;
+
+	te = thread_get_element();		/* Ourselves */
+
+retry:
+	spinlock(&thread_suspend_slk);
+
+	/*
+	 * If we were concurrently asked to suspend ourselves, wait.
+	 */
+
+	if (te->suspend) {
+		spinunlock(&thread_suspend_slk);
+		thread_suspend_self(te);
+		goto retry;
+	}
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if G_UNLIKELY(xte == te)
+			continue;
+
+		xte->suspend++;
+		n++;
+	}
+
+	/*
+	 * Make sure that we remain the sole thread running.
+	 */
+
+	te->suspend = 0;
+	spinunlock(&thread_suspend_slk);
+
+	return n;
+}
+
+/**
+ * Un-suspend all threads.
+ *
+ * This should only be called by a thread after it used thread_suspend_others()
+ * to resume concurrent execution.
+ *
+ * @attention
+ * If thread_suspend_others() was called multiple times, then this routine
+ * must be called an identical amount of times before other threads can resume
+ * their execution.  This means each call to the former must be paired with
+ * a call to the latter, usually surrounding a critical section that should be
+ * executed by one single thread at a time.
+ *
+ * @return the amount of threads unsuspended.
+ */
+size_t
+thread_unsuspend_others(void)
+{
+	bool locked;
+	size_t i, n = 0;
+
+	locked = spinlock_try(&thread_suspend_slk);
+
+	g_assert(locked);		/* All other threads should be sleeping */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+
+		if G_LIKELY(te->suspend) {
+			te->suspend--;
+			n++;
+		}
+	}
+
+	spinunlock(&thread_suspend_slk);
+
+	return n;
+}
+
+/**
  * Get current thread.
  *
  * This allows us to count the running threads as long as each thread uses
@@ -424,8 +566,26 @@ thread_current(void)
 	idx = hashing_fold(qid, THREAD_QID_BITS);
 	te = thread_qid_cache[idx];
 
-	if (te != NULL && te->last_qid == qid)
+	G_PREFETCH_R(&te->stack_base);
+	G_PREFETCH_R(&te->suspend);
+
+	if (thread_element_matches(te, qid)) {
+		/*
+		 * Maintain lowest stack address for thread.
+		 */
+
+		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
+			thread_stack_init_shape(te, &qid);
+
+		/*
+		 * Check for advisory suspension.
+		 */
+
+		if G_UNLIKELY(te->suspend)
+			thread_suspend_self(te);
+
 		return te->tid;
+	}
 
 	/*
 	 * There is no current thread record.  If this QID is marked busy, or if
