@@ -724,6 +724,8 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 static void NO_INLINE
 s_stacktrace(bool no_stdio, unsigned offset)
 {
+	thread_suspend_others();
+
 	if (no_stdio) {
 		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
 		if (log_stdout_is_distinct())
@@ -739,6 +741,8 @@ s_stacktrace(bool no_stdio, unsigned offset)
 			fflush(stdout);
 		}
 	}
+
+	thread_unsuspend_others();
 }
 
 /**
@@ -767,6 +771,13 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
+
+	/*
+	 * Avoid mixing log traces from multiple threads, especially if a stack
+	 * is being dumped, which is a funnelled operation.
+	 */
+
+	thread_check_suspended();
 
 	/*
 	 * Detect recursion, but don't make it fatal.
@@ -1013,10 +1024,14 @@ s_carp(const char *format, ...)
 	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
+	thread_suspend_others();
+
 	if (in_signal_handler)
 		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 	else
 		stacktrace_where_sym_print_offset(stderr, 1);
+
+	thread_unsuspend_others();
 }
 
 /**
@@ -1290,7 +1305,9 @@ t_carp(const char *format, ...)
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
+	thread_suspend_others();
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+	thread_unsuspend_others();
 }
 
 /**
@@ -1554,12 +1571,14 @@ log_handler(const char *domain, GLogLevelFlags level,
 		G_LOG_LEVEL_ERROR == loglvl ||
 		(level & (G_LOG_FLAG_RECURSION|G_LOG_FLAG_FATAL))
 	) {
+		thread_suspend_others();
 		stacktrace_where_sym_print_offset(stderr, 3);
 		if (log_stdout_is_distinct()) {
 			stacktrace_where_sym_print_offset(stdout, 3);
 			if (is_running_on_mingw())
 				fflush(stdout);		/* Unbuffering does not work on Windows */
 		}
+		thread_unsuspend_others();
 	}
 
 	if G_UNLIKELY(safer != message) {
