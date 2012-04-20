@@ -3149,6 +3149,7 @@ mingw_init(void)
 #define MINGW_FORWARD_SCAN			32
 #define MINGW_SP_ALIGN				4
 #define MINGW_SP_MASK				(MINGW_SP_ALIGN - 1)
+#define MINGW_EMPTY_STACKFRAME		((void *) 1)
 
 static inline bool
 valid_ptr(const void * const p)
@@ -3368,7 +3369,7 @@ mingw_opcode_is_sub_esp(const uint8 *op)
  *
  * @return pointer to the start of the SUB instruction, NULL if we can't
  * find it, meaning the starting point was probably not the start of
- * a routine.
+ * a routine, MINGW_EMPTY_STACKFRAME if there is no SUB instruction.
  */
 static const void *
 mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
@@ -3506,6 +3507,9 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			p += 1;				/* Skip mode byte */
 			break;
 		case OPCODE_CALL:
+			/* Stackframe link created, no stack adjustment */
+			if (saved_ebp)
+				return MINGW_EMPTY_STACKFRAME;
 			p += 4;				/* Skip offset */
 			break;
 		case OPCODE_XOR_1:
@@ -3600,7 +3604,12 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 
 	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
 
-	if (sub != NULL) {
+	if (MINGW_EMPTY_STACKFRAME == sub) {
+		BACKTRACE_DEBUG("%s: no SUB operation at pc=%p, %s frame",
+			G_STRFUNC, pc, *has_frame ? "with" : "no");
+		*offset = 0;
+		return TRUE;
+	} else if (sub != NULL) {
 		uint8 op;
 
 		BACKTRACE_DEBUG("%s: found SUB operation at "
@@ -3695,6 +3704,9 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 		BACKTRACE_DEBUG("%s: %p does not seem to be a valid prologue, scanning",
 			G_STRFUNC, p);
+	} else {
+		BACKTRACE_DEBUG("%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
+			stacktrace_routine_name(pc, TRUE), dl_util_get_path(pc));
 	}
 
 	/*
@@ -3961,6 +3973,8 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	}
 
 done:
+	BACKTRACE_DEBUG("%s: returning %d", G_STRFUNC, i);
+
 	return i;
 }
 
