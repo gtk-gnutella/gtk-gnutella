@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Hashtable-tracked allocator. Small chunks are allocated via walloc(),
+ * Hashtable-tracked allocator. Small chunks are allocated via xpmalloc(),
  * whereas large chunks are served via vmm_alloc(). The interface
  * is the same as that of malloc()/free(). The hashtable keeps track of
  * the sizes which should gain a more compact memory layout and is
@@ -54,17 +54,17 @@
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
-#include "zalloc.h"			/* Only for possible zalloc_shift_pointer() */
+#include "xmalloc.h"
 
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
- * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
+ * Under TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
 #if defined(USE_HALLOC)
-#if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
+#if defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
 #endif	/* USE_HALLOC */
@@ -75,7 +75,7 @@
 static struct {
 	uint64 allocations;					/**< Total # of allocations */
 	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
-	uint64 alloc_via_walloc;			/**< Allocations from walloc */
+	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 freeings;					/**< Total # of freeings */
 	uint64 reallocs;					/**< Total # of reallocs */
@@ -94,7 +94,7 @@ static struct {
 static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
-static size_t walloc_threshold;		/* walloc() size upper limit */
+static size_t xpmalloc_threshold;		/* xpmalloc() size upper limit */
 
 union align {
   size_t	size;
@@ -172,20 +172,15 @@ page_destroy(void)
 }
 
 static inline size_t
-halloc_get_size(void *p)
+halloc_get_size(const void *p, bool complete)
 {
-	size_t size;
+	size_t size = 0;
 
 	size = page_lookup(p);
 	if (size) {
-		RUNTIME_ASSERT(size >= walloc_threshold);
-	} else {
-		union align *head = p;
-
-		head--;
-		RUNTIME_ASSERT(head->size > 0);
-		RUNTIME_ASSERT(head->size < walloc_threshold);
-		size = head->size;
+		RUNTIME_ASSERT(size >= xpmalloc_threshold);
+	} else if (complete) {
+		size = xallocated(p);
 	}
 	return size;
 }
@@ -209,26 +204,15 @@ halloc(size_t size)
 	if (0 == size)
 		return NULL;
 
-	if G_UNLIKELY(0 == walloc_threshold)
+	if G_UNLIKELY(0 == xpmalloc_threshold)
 		halloc_init(TRUE);
 
 	hstats.allocations++;
 
-	if (size < walloc_threshold) {
-		union align *head;
-
-		allocated = size + sizeof head[0];
-#ifdef TRACK_ZALLOC
-		head = walloc_track(allocated, file, line);
-#else
-		head = walloc(allocated);
-#endif
-		head->size = size;
-		p = &head[1];
-#if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
-		zalloc_shift_pointer(head, p);
-#endif
-		hstats.alloc_via_walloc++;
+	if (size < xpmalloc_threshold) {
+		p = xpmalloc(size);
+		allocated = xallocated(p);
+		hstats.alloc_via_xpmalloc++;
 	} else {
 		int inserted;
 
@@ -283,15 +267,11 @@ hfree(void *p)
 
 	hstats.freeings++;
 
-	size = halloc_get_size(p);
-	RUNTIME_ASSERT(size > 0);
+	size = halloc_get_size(p, FALSE);
 
-	if (size < walloc_threshold) {
-		union align *head = p;
-
-		head--;
-		allocated = size + sizeof(union align);
-		wfree(head, allocated);
+	if (size < xpmalloc_threshold) {
+		allocated = xallocated(p);
+		xfree(p);
 	} else {
 		allocated = size;
 		page_remove(p);
@@ -321,7 +301,7 @@ hrealloc(void *old, size_t new_size)
 		return NULL;
 	}
 
-	old_size = halloc_get_size(old);
+	old_size = halloc_get_size(old, TRUE);
 	RUNTIME_ASSERT(size_is_positive(old_size));
 
 	/*
@@ -331,28 +311,16 @@ hrealloc(void *old, size_t new_size)
 	hstats.reallocs++;
 	rounded_new_size = round_pagesize(new_size);
 
-	if (old_size >= walloc_threshold) {
+	if (old_size >= xpmalloc_threshold) {
 		if (vmm_is_relocatable(old, rounded_new_size)) {
 			hstats.realloc_relocatable++;
 			goto relocate;
 		}
-	} else {
-		if (new_size < walloc_threshold) {
-			union align *old_head = old;
-			union align *new_head;
-			size_t old_allocated = old_size + sizeof old_head[0];
-			size_t new_allocated = new_size + sizeof new_head[0];
-
-			old_head--;
-			new_head = wrealloc(old_head, old_allocated, new_allocated);
-			new_head->size = new_size;
-			hstats.realloc_via_wrealloc++;
-			hstats.memory += new_allocated - old_allocated;
-			return &new_head[1];
-		}
+	} else if (new_size < xpmalloc_threshold) {
+		return xrealloc(old, new_size);
 	}
 
-	if (new_size >= walloc_threshold) {
+	if (new_size >= xpmalloc_threshold) {
 		if (rounded_new_size == old_size) {
 			hstats.realloc_noop++;
 			hstats.realloc_noop_same_vmm++;
@@ -524,7 +492,7 @@ halloc_init(bool replace_malloc)
 	vmm_init();		/* Just in case, since we're built on top of VMM */
 
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == compat_pagesize();
-	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
+	xpmalloc_threshold = compat_pagesize() - MAX(8, MEM_ALIGNBYTES) + 1;
 
 	if (use_page_table) {
 		pt_pages = page_table_new();
@@ -873,7 +841,7 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
-	DUMP(alloc_via_walloc);
+	DUMP(alloc_via_xpmalloc);
 	DUMP(alloc_via_vmm);
 	DUMP(freeings);
 	DUMP(reallocs);

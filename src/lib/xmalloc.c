@@ -3321,13 +3321,14 @@ xmalloc_thread_alloc(const size_t len)
 /**
  * Check whether block belongs to a thread-specific pool.
  *
- * @param p		the user block pointer
- * @param stid	the thread's small ID
+ * @param p			the user block pointer
+ * @param stid		the thread's small ID
+ * @param freeing	whether we may be freeing block
  *
  * @return the chunk to which block belongs, or NULL.
  */
 static struct xchunk *
-xmalloc_thread_get_chunk(const void *p, unsigned stid)
+xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 {
 	struct xchunk *xck;
 	unsigned offset;
@@ -3348,8 +3349,9 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid)
 
 	offset = ptr_diff(ptr_add_offset(xck, xmalloc_pagesize), p);
 	if (0 != offset % xck->xc_size) {
-		t_error("thread #%u freeing mis-aligned %zu-byte %sblock %p",
-			stid, xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
+		t_error("thread #%u %s mis-aligned %zu-byte %sblock %p",
+			stid, freeing ? "freeing" : "accessing",
+			xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
 	}
 
 	/*
@@ -3365,7 +3367,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid)
 	 * in this thread.
 	 */
 
-	if (xck->xc_stid != stid) {
+	if (xck->xc_stid != stid && freeing) {
 		struct xchunkhead *ch = xck->xc_head;
 
 		/*
@@ -3432,6 +3434,39 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 }
 
 /**
+ * Computes length of block allocated from a thread-specific pool.
+ *
+ * @return length of block, 0 if it was not allocated through a pool.
+ */
+static size_t
+xmalloc_thread_allocated(const void *p)
+{
+	struct xchunk *xck;
+	unsigned stid;
+
+	stid = thread_small_id();
+
+	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
+		return FALSE;
+
+	if (!xmalloc_is_valid_pointer(p)) {
+		t_error_from(_WHERE_, "attempt to access invalid pointer %p: %s",
+			p, xmalloc_invalid_ptrstr(p));
+	}
+
+	/*
+	 * Check whether the block lies on a thread-private chunk page.
+	 */
+
+	xck = xmalloc_thread_get_chunk(p, stid, FALSE);
+
+	if (NULL == xck)
+		return 0;
+
+	return xck->xc_size;
+}
+
+/**
  * Attempt to free block if it belongs to a thread-specific pool.
  *
  * @return TRUE if we freed the block.
@@ -3456,7 +3491,7 @@ xmalloc_thread_free(void *p)
 	 * Check whether the block lies on a thread-private chunk page.
 	 */
 
-	xck = xmalloc_thread_get_chunk(p, stid);
+	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (NULL == xck)
 		return FALSE;
@@ -3500,9 +3535,11 @@ xmalloc_thread_free(void *p)
 #define xaligned(p)		(0 == (pointer_to_ulong(p) & XALIGN_MASK))
 
 static bool xalign_free(const void *p);
+static size_t xalign_allocated(const void *p);
 
 #else	/* !XMALLOC_IS_MALLOC */
 #define is_trapping_malloc()	0
+#define xalign_allocated(p)		0
 #define xalign_free(p)			FALSE
 #define xaligned(p)				FALSE
 #endif	/* XMALLOC_IS_MALLOC */
@@ -3947,6 +3984,46 @@ xpstrndup(const char *str, size_t n)
 }
 
 /**
+ * Computes size of allocated block, 0 if not allocated via xmalloc().
+ */
+size_t
+xallocated(const void *p)
+{
+	size_t len;
+	const struct xheader *xh;
+
+	if G_UNLIKELY(NULL == p)
+		return 0;
+
+	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
+	G_PREFETCH_R(&xh->length);
+
+	if (is_trapping_malloc() && xaligned(p)) {
+		len = xalign_allocated(p);
+		if G_LIKELY(len != 0)
+			return len;
+	}
+
+	len = xmalloc_thread_allocated(p);
+	if (len != 0)
+		return len;
+
+	if (!xmalloc_is_valid_pointer(xh))
+		return 0;
+
+	if (xmalloc_is_walloc(xh->length)) 
+		return xmalloc_walloc_size(xh->length);
+
+	if (!xmalloc_is_valid_length(xh, xh->length)) {
+		t_error_from(_WHERE_,
+			"corrupted malloc header for pointer %p: bad lengh %zu",
+			p, xh->length);
+	}
+
+	return xh->length;
+}
+
+/**
  * Free memory block allocated via xmalloc() or xrealloc().
  */
 void
@@ -4073,7 +4150,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	 */
 
 	stid = thread_small_id();
-	xck = xmalloc_thread_get_chunk(p, stid);
+	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
 		if G_UNLIKELY(xmalloc_no_freeing) {
@@ -6410,6 +6487,68 @@ xzfree(struct xdesc_zone *xz, const void *p)
 		spinunlock(&xmalloc_zone_slk);
 		return FALSE;
 	}
+}
+
+/**
+ * Compute size of block allocated on an aligned boundary, supposedly.
+ *
+ * @return length of physical block, 0 if block was not allocated by the
+ * aligning layer.
+ */
+static size_t
+xalign_allocated(const void *p)
+{
+	size_t idx;
+	const void *start;
+	struct xdesc_type *xt;
+	bool lookup_was_safe;
+	size_t len = 0;
+
+	start = vmm_page_start(p);
+
+	lookup_was_safe = spinlock_try(&xmalloc_xa_slk);
+
+	idx = xa_lookup(start, NULL);
+
+	if G_LIKELY((size_t) -1 == idx) {
+		if (lookup_was_safe)
+			spinunlock(&xmalloc_xa_slk);
+		return 0;
+	}
+
+	if (!lookup_was_safe) {
+		spinlock(&xmalloc_xa_slk);
+		idx = xa_lookup(start, NULL);
+		g_assert((size_t) -1 != idx);
+	}
+
+	xt = aligned[idx].pdesc;
+	xstats.aligned_freed++;
+
+	switch (xt->type) {
+	case XPAGE_SET:
+		{
+			struct xdesc_set *xs = (struct xdesc_set *) xt;
+
+			len = xs->len;
+			g_assert(0 != len);
+		}
+		goto done;
+	case XPAGE_ZONE:
+		{
+			struct xdesc_zone *xz = (struct xdesc_zone *) xt;
+
+			len = xz->alignment;
+			g_assert(0 != len);
+		}
+		goto done;
+	}
+
+	g_assert_not_reached();
+
+done:
+	spinunlock(&xmalloc_xa_slk);
+	return len;
 }
 
 /**

@@ -34,7 +34,6 @@
 #include "common.h"
 
 #include "walloc.h"
-#include "halloc.h"
 #include "log.h"
 #include "pow2.h"
 #include "spinlock.h"
@@ -68,7 +67,7 @@
 
 static struct zone *wzone[WZONE_SIZE];
 static struct zone *wtzone[WZONE_THREAD_SIZE][WALLOC_THREADS];
-static size_t halloc_threshold = -1;
+static bool walloc_inited;
 static bool walloc_stopped;
 
 /*
@@ -106,7 +105,7 @@ wzone_get(size_t rounded, bool private)
 
 	g_assert(rounded == zalloc_round(rounded));
 
-	if G_UNLIKELY((size_t) -1 == halloc_threshold)
+	if G_UNLIKELY(!walloc_inited)
 		walloc_init();
 
 	/*
@@ -203,7 +202,7 @@ walloc_get_zone(size_t rounded, bool allocate)
  *
  * The basics for this algorithm is to allocate from fixed-sized zones, which
  * are multiples of ZALLOC_ALIGNBYTES until WALLOC_MAX (e.g. 8, 16, 24, 40, ...)
- * and to halloc()/xpmalloc() if size is greater than WALLOC_MAX.
+ * and to xpmalloc() if size is greater than WALLOC_MAX.
  * Naturally, zones are allocated on demand only.
  *
  * @return a pointer to the start of the allocated block.
@@ -221,7 +220,7 @@ walloc(size_t size)
 
 	if (rounded > WALLOC_MAX) {
 		/* Too big for efficient zalloc() */
-		return size >= halloc_threshold ? halloc(size) : xpmalloc(size);
+		return xpmalloc(size);
 	}
 
 	zone = walloc_get_zone(rounded, TRUE);
@@ -262,16 +261,7 @@ wfree(void *ptr, size_t size)
 		return;
 
 	if (rounded > WALLOC_MAX) {
-#ifdef TRACK_ZALLOC
-		/* halloc_track() is going to walloc_track() which uses malloc() */ 
 		xfree(ptr);
-#else
-		if (rounded >= halloc_threshold) {
-			hfree(ptr);
-		} else {
-			xfree(ptr);
-		}
-#endif
 		return;
 	}
 
@@ -391,7 +381,6 @@ walloc_track(size_t size, const char *file, int line)
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
-			/* Can't reroute to halloc() since it may come back here */
 			xpmalloc(size);
 #endif
 			return p;
@@ -493,16 +482,10 @@ wdestroy(void)
 G_GNUC_COLD void
 walloc_init(void)
 {
-	if G_UNLIKELY((size_t) -1 != halloc_threshold)
+	if G_LIKELY(walloc_inited)
 		return;			/* Already done */
 
-	/*
-	 * We know that halloc() will redirect to walloc() if the size of the
-	 * block is slightly smaller than the halloc_threshold computed below.
-	 * It is safe to call halloc() on blocks larger than this threshold.
-	 */
-
-	halloc_threshold = MAX(WALLOC_MAX, compat_pagesize());
+	walloc_inited = TRUE;
 
 	/*
 	 * Make sure the layers on top of which we are built are initialized.
