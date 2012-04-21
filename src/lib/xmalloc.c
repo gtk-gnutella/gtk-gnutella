@@ -3393,7 +3393,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 }
 
 /**
- * Return block to chunk.
+ * Return block to thread-private chunk.
  */
 static void
 xmalloc_chunk_return(struct xchunk *xck, void *p)
@@ -3505,9 +3505,10 @@ xmalloc_thread_free(void *p)
 	 */
 
 	if G_UNLIKELY(xck->xc_head->shared) {
-		spinlock(&xck->xc_head->lock);
+		struct xchunkhead *ch = xck->xc_head;
+		spinlock(&ch->lock);
 		xmalloc_chunk_return(xck, p);
-		spinunlock(&xck->xc_head->lock);
+		spinunlock(&ch->lock);
 	} else {
 		xmalloc_chunk_return(xck, p);
 	}
