@@ -3984,7 +3984,7 @@ xpstrndup(const char *str, size_t n)
 }
 
 /**
- * Computes size of allocated block, 0 if not allocated via xmalloc().
+ * Computes user size of allocated block, 0 if not allocated via xmalloc().
  */
 size_t
 xallocated(const void *p)
@@ -4020,7 +4020,7 @@ xallocated(const void *p)
 			p, xh->length);
 	}
 
-	return xh->length;
+	return xh->length - sizeof *xh;		/* User size, substract overhead */
 }
 
 /**
