@@ -4020,7 +4020,7 @@ xallocated(const void *p)
 			p, xh->length);
 	}
 
-	return xh->length - sizeof *xh;		/* User size, substract overhead */
+	return xh->length - XHEADER_SIZE;	/* User size, substract overhead */
 }
 
 /**

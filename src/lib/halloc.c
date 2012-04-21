@@ -492,7 +492,7 @@ halloc_init(bool replace_malloc)
 
 	halloc_pagesize = compat_pagesize();
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
-	xpmalloc_threshold = halloc_pagesize - sizeof(size_t);
+	xpmalloc_threshold = halloc_pagesize - MAX(8, MEM_ALIGNBYTES);	/* XXX */
 
 	if (use_page_table) {
 		pt_pages = page_table_new();
