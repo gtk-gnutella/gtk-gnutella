@@ -80,7 +80,7 @@ static struct {
 	uint64 freeings;					/**< Total # of freeings */
 	uint64 reallocs;					/**< Total # of reallocs */
 	uint64 realloc_noop;				/**< Nothing to do */
-	uint64 realloc_via_wrealloc;		/**< Reallocs handled by wrealloc() */
+	uint64 realloc_via_xrealloc;		/**< Reallocs handled by xrealloc() */
 	uint64 realloc_via_vmm;				/**< Reallocs handled by VMM */
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
 	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
@@ -316,6 +316,7 @@ hrealloc(void *old, size_t new_size)
 			goto relocate;
 		}
 	} else if (new_size < xpmalloc_threshold) {
+		hstats.realloc_via_xrealloc++;
 		return xrealloc(old, new_size);
 	}
 
@@ -847,7 +848,7 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(reallocs);
 	DUMP(realloc_noop);
 	DUMP(realloc_noop_same_vmm);
-	DUMP(realloc_via_wrealloc);
+	DUMP(realloc_via_xrealloc);
 	DUMP(realloc_via_vmm);
 	DUMP(realloc_via_vmm_shrink);
 	DUMP(realloc_relocatable);
