@@ -125,9 +125,9 @@ static inline void
 page_replace(const void *p, size_t size)
 {
 	if (use_page_table) {
-		return page_table_replace(pt_pages, p, size);
+		page_table_replace(pt_pages, p, size);
 	} else {
-		return hash_table_replace(ht_pages, p, size_to_pointer(size));
+		hash_table_replace(ht_pages, p, size_to_pointer(size));
 	}
 }
 
