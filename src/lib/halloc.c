@@ -145,7 +145,7 @@ static void
 hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
 {
 	(void) unused_udata;
-	RUNTIME_ASSERT(size > 0);
+	g_assert(size > 0);
 	hfree(key);
 }
 
@@ -153,7 +153,7 @@ static void
 hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	RUNTIME_ASSERT((size_t) value > 0);
+	g_assert((size_t) value > 0);
 	hfree(deconstify_pointer(key));
 }
 
@@ -172,14 +172,14 @@ page_destroy(void)
 }
 
 static inline size_t
-halloc_get_size(const void *p, bool complete)
+halloc_get_size(const void *p)
 {
 	size_t size = 0;
 
 	size = page_lookup(p);
 	if (size) {
-		RUNTIME_ASSERT(size >= xpmalloc_threshold);
-	} else if (complete) {
+		g_assert(size >= xpmalloc_threshold);
+	} else {
 		size = xallocated(p);
 	}
 	return size;
@@ -218,11 +218,11 @@ halloc(size_t size)
 
 		/* round_pagesize() is unsafe and wraps! */
 		allocated = round_pagesize(size);
-		RUNTIME_ASSERT(allocated >= size);
+		g_assert(allocated >= size);
 
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
-		RUNTIME_ASSERT(inserted);
+		g_assert(inserted);
 		hstats.alloc_via_vmm++;
 	}
 	hstats.memory += allocated;
@@ -259,7 +259,6 @@ halloc0(size_t size)
 void
 hfree(void *p)
 {
-	size_t size;
 	size_t allocated;
 
 	if (NULL == p)
@@ -267,15 +266,14 @@ hfree(void *p)
 
 	hstats.freeings++;
 
-	size = halloc_get_size(p, FALSE);
+	allocated = halloc_get_size(p);
+	g_assert(size_is_positive(allocated));
 
-	if (size < xpmalloc_threshold) {
-		allocated = xallocated(p);
+	if (allocated < xpmalloc_threshold) {
 		xfree(p);
 	} else {
-		allocated = size;
 		page_remove(p);
-		vmm_free(p, size);
+		vmm_free(p, allocated);
 	}
 	hstats.memory -= allocated;
 	hstats.blocks--;
@@ -301,8 +299,8 @@ hrealloc(void *old, size_t new_size)
 		return NULL;
 	}
 
-	old_size = halloc_get_size(old, TRUE);
-	RUNTIME_ASSERT(size_is_positive(old_size));
+	old_size = halloc_get_size(old);
+	g_assert(size_is_positive(old_size));
 
 	/*
 	 * This is our chance to move a virtual memory fragment out of the way.
@@ -342,7 +340,7 @@ hrealloc(void *old, size_t new_size)
 
 relocate:
 	p = halloc(new_size);
-	RUNTIME_ASSERT(NULL != p);
+	g_assert(NULL != p);
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
@@ -485,14 +483,14 @@ halloc_init(bool replace_malloc)
 {
 	static int initialized;
 
-	RUNTIME_ASSERT(!initialized);
+	g_assert(!initialized);
 	initialized = TRUE;
 	replacing_malloc = replace_malloc;
 
 	vmm_init();		/* Just in case, since we're built on top of VMM */
 
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == compat_pagesize();
-	xpmalloc_threshold = compat_pagesize() - MAX(8, MEM_ALIGNBYTES) + 1;
+	xpmalloc_threshold = compat_pagesize() - MAX(8, MEM_ALIGNBYTES);
 
 	if (use_page_table) {
 		pt_pages = page_table_new();
