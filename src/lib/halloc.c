@@ -95,6 +95,7 @@ static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
 static size_t xpmalloc_threshold;		/* xpmalloc() size upper limit */
+static size_t halloc_pagesize;
 
 union align {
   size_t	size;
@@ -269,7 +270,7 @@ hfree(void *p)
 	allocated = halloc_get_size(p);
 	g_assert(size_is_positive(allocated));
 
-	if (allocated < xpmalloc_threshold) {
+	if (allocated < halloc_pagesize) {
 		xfree(p);
 	} else {
 		page_remove(p);
@@ -309,7 +310,7 @@ hrealloc(void *old, size_t new_size)
 	hstats.reallocs++;
 	rounded_new_size = round_pagesize(new_size);
 
-	if (old_size >= xpmalloc_threshold) {
+	if (old_size >= halloc_pagesize) {
 		if (vmm_is_relocatable(old, rounded_new_size)) {
 			hstats.realloc_relocatable++;
 			goto relocate;
@@ -489,8 +490,9 @@ halloc_init(bool replace_malloc)
 
 	vmm_init();		/* Just in case, since we're built on top of VMM */
 
-	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == compat_pagesize();
-	xpmalloc_threshold = compat_pagesize() - MAX(8, MEM_ALIGNBYTES);
+	halloc_pagesize = compat_pagesize();
+	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
+	xpmalloc_threshold = halloc_pagesize - sizeof(size_t);
 
 	if (use_page_table) {
 		pt_pages = page_table_new();
