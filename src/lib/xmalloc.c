@@ -397,6 +397,7 @@ static struct {
 	uint64 free_coalesced_vmm;			/**< VMM-freeing of coalesced block */
 	uint64 free_walloc;					/**< Freeing a walloc()'ed block */
 	uint64 free_thread_pool;			/**< Freeing a thread-specific block */
+	uint64 free_foreign_thread_pool;	/**< Freeing accross threads */
 	uint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	uint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
 	uint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
@@ -3382,6 +3383,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid)
 				"thread #%u freeing %zu-byte block %p allocated by thread #%u",
 				stid, xck->xc_size, p, xck->xc_stid);
 			ch->shared = TRUE;
+			xstats.free_foreign_thread_pool++;
 		}
 	}
 
@@ -5642,6 +5644,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(free_coalesced_vmm);
 	DUMP(free_walloc);
 	DUMP(free_thread_pool);
+	DUMP(free_foreign_thread_pool);
 	DUMP(sbrk_alloc_bytes);
 	DUMP(sbrk_freed_bytes);
 	DUMP(sbrk_wasted_bytes);
