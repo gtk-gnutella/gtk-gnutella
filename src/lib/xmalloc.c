@@ -3140,8 +3140,7 @@ static struct xchunk *
 xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 {
 	struct xchunk *xck;
-	unsigned capacity;
-	unsigned offset;
+	unsigned capacity, offset;
 
 	/*
 	 * Each allocated thread-specific chunk looks like this:
@@ -3186,7 +3185,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 /**
  * Find chunk from which we can allocate a block.
  *
- * @return the address of a chunk with at least one free block.
+ * @return the address of a chunk with at least one free block, NULL if we
+ * want to prevent allocation from the thread-specific pool.
  */
 static struct xchunk *
 xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
@@ -3205,7 +3205,54 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 
 	/*
 	 * No free chunk, allocate a new one and move it to the head of the list.
+	 *
+	 * If the thread-pool is shared, it is not worth continuing to expand
+	 * the thread-specific pool for sizes where we lose more from the memory
+	 * alignment constraints in the chunk than the typical overhead we stuff
+	 * at the front of each block: prefer regular allocations.
 	 */
+
+	if G_UNLIKELY(ch->shared) {
+		unsigned capacity, overhead;
+
+		/*
+		 * If we no longer have any chunks, redirect to the main freelist.
+		 * Regardless of the possible per-block overhead saving that this
+		 * thread-specific pool could provide, we can nonetheless fragment
+		 * the space with some sub-optimal allocation patterns.  Avoid it.
+		 */
+
+		if (0 == elist_count(&ch->list))
+			return NULL;
+
+		/*
+		 * The overhead of each chunk is the largest between the size of
+		 * the chunk overhead structure and the block size, due to alignment
+		 * of the first available block.
+		 */
+
+		capacity = (xmalloc_pagesize - sizeof *xck) / ch->blocksize;
+		overhead = MAX(sizeof *xck, ch->blocksize);
+
+		if (overhead / capacity >= XHEADER_SIZE) {
+			if (xmalloc_debugging(1)) {
+				t_debug("XM not creating new %zu-byte blocks for thread #%u: "
+					"shared blocks have %F bytes overhead (%u per page), "
+					"currently has %zu chunk%s",
+					ch->blocksize, stid, (double) overhead / capacity,
+					capacity, elist_count(&ch->list),
+					1 == elist_count(&ch->list) ? "" : "s");
+			}
+			return NULL;
+		}
+
+		if (xmalloc_debugging(1)) {
+			t_debug("XM still creating new %zu-byte blocks for thread #%u: "
+				"shared blocks have only %F bytes overhead (%u per page)",
+				ch->blocksize, stid, (double) overhead / capacity,
+				capacity);
+		}
+	}
 
 	xck = xmalloc_chunk_allocate(ch, stid);
 	elist_prepend(&ch->list, xck);
@@ -3235,14 +3282,20 @@ found:
  *
  * The pool is thread-specific and determines the block size.
  *
- * @return allocated block address.
+ * @return allocated block address, NULL if we cannot allocate from the
+ * thread-specific pool.
  */
 static void *
 xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 {
-	struct xchunk *xck = xmalloc_chunk_find(ch, stid);
+	struct xchunk *xck;
 	void *p;
 	void *next;
+
+	xck = xmalloc_chunk_find(ch, stid);
+
+	if G_UNLIKELY(NULL == xck)
+		return NULL;
 
 	xchunk_check(xck);
 	g_assert(uint_is_positive(xck->xc_count));
