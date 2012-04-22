@@ -72,7 +72,8 @@
  * Default stacktrace decoration flags we're using here.
  */
 #define STACKTRACE_DECORATION	\
-	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_MAIN_STOP)
+	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | \
+		STACKTRACE_F_MAIN_STOP | STACKTRACE_F_THREAD)
 
 /**
  * Deferred loading support.
@@ -952,6 +953,9 @@ struct sxfile {
  * STACKTRACE_F_MAIN_STOP:
  *	Stop printing as soon as we reach the main() symbol.
  *
+ * STACKTRACE_F_THREAD:
+ *	Print leading thread ID between brackets if it's not the main thread (#0).
+ *
  * When no flags are specified, this is equivalent to a mere stack_print().
  */
 static void
@@ -962,6 +966,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	size_t i;
 	static char buf[512];
 	static char name[256];
+	static char tid[32];
 	str_t s, *trace = NULL;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
@@ -994,6 +999,20 @@ stack_print_decorated_to(struct sxfile *xf,
 		} else {
 			mutex_release(&stacktrace_buffer.lock);
 		}
+	}
+
+	/*
+	 * Compute leading thread ID, shown only when not in the main thread.
+	 */
+
+	if (flags & STACKTRACE_F_THREAD) {
+		unsigned stid = thread_small_id();
+		if (stid != 0)
+			str_bprintf(tid, sizeof tid, "[%u] ", stid);
+		else
+			tid[0] = 0;
+	} else {
+		tid[0] = 0;
 	}
 
 	/*
@@ -1163,6 +1182,9 @@ stack_print_decorated_to(struct sxfile *xf,
 
 		if (0 == (flags & STACKTRACE_F_NO_INDENT))
 			str_putc(&s, '\t');
+
+		if (tid[0] != '\0')
+			str_catf(&s, "%s", tid);
 
 		if (0 != (flags & STACKTRACE_F_NUMBER)) {
 			if (count < 10)
