@@ -44,6 +44,22 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#ifdef SPINLOCK_ACCOUNTING
+static inline void
+mutex_get_account(void)
+{
+	thread_mutex_add(+1);
+}
+static inline void
+mutex_release_account(void)
+{
+	thread_mutex_add(-1);
+}
+#else	/* !SPINLOCK_ACCOUNTING */
+#define mutex_get_account()
+#define mutex_release_account()
+#endif	/* SPINLOCK_ACCOUNT */
+
 static inline void
 mutex_check(const volatile struct mutex * const mutex)
 {
@@ -181,6 +197,7 @@ mutex_grab(mutex_t *m)
 		thread_set(m->owner, t);
 		m->depth = 1;
 	}
+	mutex_get_account();
 }
 
 /**
@@ -192,17 +209,18 @@ bool
 mutex_grab_try(mutex_t *m)
 {
 	mutex_check(m);
+	thread_t t = thread_current();
 
 	if (spinlock_try(&m->lock)) {
-		thread_t t = thread_current();
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned(m)) {
+	} else if (mutex_is_owned_by(m, t)) {
 		m->depth++;
 	} else {
 		return FALSE;
 	}
 
+	mutex_get_account();
 	return TRUE;
 }
 
@@ -253,6 +271,7 @@ mutex_release(mutex_t *m)
 	if (0 == --m->depth) {
 		m->owner = 0;
 		spinunlock(&m->lock);	/* Acts as a "release barrier" */
+		mutex_release_account();
 	}
 }
 

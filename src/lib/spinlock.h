@@ -37,7 +37,10 @@
 #include "atomic.h"		/* For atomic_lock_t */
 
 #if 1
-#define SPINLOCK_DEBUG
+#define SPINLOCK_DEBUG			/* Tracks where we take the lock */
+#endif
+#if 0
+#define SPINLOCK_ACCOUNTING		/* Count spinlocks and mutexes held by thread */
 #endif
 
 enum spinlock_magic {

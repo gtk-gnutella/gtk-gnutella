@@ -46,6 +46,7 @@
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
+#include "mutex.h"
 #include "omalloc.h"
 #include "pow2.h"
 #include "spinlock.h"
@@ -58,6 +59,9 @@
 #define THREAD_QID_BITS		8		/**< QID bits used for hashing */
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
+
+#define THREAD_SUSPEND_CHECK	5000
+#define THREAD_SUSPEND_TIMEOUT	10	/* seconds */
 
 /**
  * A thread-private value.
@@ -78,6 +82,10 @@ struct thread_element {
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
 	int suspend;					/**< Suspend at next thread_current() */
+#ifdef SPINLOCK_ACCOUNTING
+	int spinlocks;					/**< Spinlocks held by thread */
+	int mutexes;					/**< Mutexes held by thread */
+#endif
 };
 
 /**
@@ -121,7 +129,7 @@ static int thread_sp_direction;			/* Stack growth direction */
 
 static spinlock_t thread_private_slk = SPINLOCK_INIT;
 static spinlock_t thread_insert_slk = SPINLOCK_INIT;
-static spinlock_t thread_suspend_slk = SPINLOCK_INIT;
+static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 #ifdef I_PTHREAD
 /**
@@ -317,14 +325,99 @@ thread_new_element(thread_t t)
 }
 
 /**
+ * Called when thread has been suspended for too long.
+ */
+static void
+thread_timeout(const volatile struct thread_element *te)
+{
+	static spinlock_t thread_timeout_slk = SPINLOCK_INIT;
+	unsigned i;
+	unsigned ostid = (unsigned) -1;
+	bool multiple = FALSE;
+	struct thread_element *wte;
+
+	spinlock(&thread_timeout_slk);
+
+	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+		const struct thread_element *xte = threads[i];
+
+		if (0 == xte->suspend) {
+			if ((unsigned) -1 == ostid)
+				ostid = xte->stid;
+			else {
+				multiple = TRUE;
+				break;		/* Concurrency update detected */
+			}
+		}
+	}
+
+	wte = (struct thread_element *) te;
+	wte->suspend = 0;					/* Make us running again */
+
+	spinunlock(&thread_timeout_slk);
+
+	s_minicrit("thread #%u suspended for too long", te->stid);
+
+	if (ostid != (unsigned) -1) {
+		s_minicrit("%ssuspending thread was #%u",
+			multiple ? "first " : "", ostid);
+	}
+
+	s_error("thread suspension timeout detected");
+}
+
+/**
  * Voluntarily suspend execution of the current thread, as described by the
- * supplied thread element.
+ * supplied thread element, if it is flagged as being suspended.
  */
 static void
 thread_suspend_self(const volatile struct thread_element *te)
 {
-	while (te->suspend)
+	time_t start = 0;
+	unsigned i;
+
+	/*
+	 * We cannot let a thread holding spinlocks or mutexes to suspend itself
+	 * since that could cause a deadlock with the concurrent thread that will
+	 * be running.  For instance, the VMM layer could be logging a message
+	 * whilst it holds an internal mutex.
+	 */
+
+#ifdef SPINLOCK_ACCOUNTING
+	if (te->suspend && te->spinlocks != 0) {
+		int spinlocks;
+
+		/*
+		 * Each mutex has a spinlock, so getting a mutex accounts for one
+		 * spinlock and one mutex.  Adjust the number of pure spinlocks.
+		 */
+
+		spinlocks = te->spinlocks - te->mutexes;
+
+		s_miniwarn("thread #%u cannot be suspended with "
+			"%d spinlock%s and %d mutex%s held",
+			te->stid, spinlocks, 1 == spinlocks ? "" : "s",
+			te->mutexes, 1 == te->mutexes ? "" : "es");
+
+		return;
+	}
+#endif
+
+	for (i = 0; te->suspend; i++) {
 		do_sched_yield();
+
+		/*
+		 * Make sure we don't stay suspended indefinitely: funnelling from
+		 * other threads should occur only for a short period of time.
+		 */
+
+		if G_UNLIKELY(i != 0 && 0 == i % THREAD_SUSPEND_CHECK) {
+			if (0 == start)
+				start = tm_time();
+			if (delta_time(tm_time_exact(), start) > THREAD_SUSPEND_TIMEOUT)
+				thread_timeout(te);
+		}
+	}
 }
 
 /**
@@ -454,6 +547,72 @@ thread_small_id(void)
 }
 
 /**
+ * Find existing thread based on the supplied stack pointer.
+ *
+ * @param sp		a pointer to the stack
+ *
+ * @return the likely thread element to which the stack pointer could relate,
+ * NULL if we cannot determine the thread.
+ */
+static struct thread_element *
+thread_find(const void *sp)
+{
+	size_t i;
+	struct thread_element *te = NULL;
+	size_t smallest = (size_t) -1;
+	thread_qid_t qid;
+	unsigned idx;
+
+	/*
+	 * Since we have a stack pointer belonging to the thread we're looking,
+	 * check whether we have it cached by its QID.
+	 */
+
+	qid = thread_quasi_id_fast(sp);
+	idx = hashing_fold(qid, THREAD_QID_BITS);
+	te = thread_qid_cache[idx];
+
+	if (thread_element_matches(te, qid))
+		return te;
+
+	/*
+	 * Perform linear lookup, looking for the thread for which the stack
+	 * pointer is "above" the parameter and for which the distance to the
+	 * base of the stack is the smallest.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if (thread_stack_ptr_cmp(sp, xte->stack_base) > 0) {
+			size_t offset;
+
+			/*
+			 * Pointer is "above" the stack base, track the thread whith
+			 * the smallest offset relative to the stack base.
+			 */
+
+			offset = thread_stack_ptr_offset(xte->stack_base, sp);
+			if (offset < smallest) {
+				te = xte;
+				smallest = offset;
+			}
+		}
+	}
+
+	/*
+	 * Cache result.
+	 */
+
+	if G_LIKELY(te != NULL) {
+		thread_qid_cache[idx] = te;
+		te->last_qid = qid;
+	}
+
+	return te;
+}
+
+/**
  * Check whether thread is suspended.
  */
 void
@@ -475,9 +634,8 @@ thread_check_suspended(void)
 /**
  * Suspend other threads (advisory, not kernel-enforced).
  *
- * This is voluntary suspension, which will only occur when threads enter
- * the thread_current() routine, or actively check for supension by calling
- * thread_check_suspended().
+ * This is voluntary suspension, which will only occur when threads actively
+ * check for supension by calling thread_check_suspended().
  *
  * It is possible to call this routine multiple times, provided each call is
  * matched with a corresponding thread_unsuspend_others().
@@ -490,17 +648,26 @@ thread_suspend_others(void)
 	struct thread_element *te;
 	size_t i, n = 0;
 
-	te = thread_get_element();		/* Ourselves */
+	/*
+	 * Must use thread_find() and not thread_get_element() to avoid taking
+	 * any internal locks which could be already held from earlier (deadlock
+	 * assurred) or by other threads (dealock threat if we end up needing
+	 * these locks).
+	 */
+
+	te = thread_find(&te);		/* Ourselves */
+	if (NULL == te)
+		return 0;
 
 retry:
-	spinlock(&thread_suspend_slk);
+	mutex_get(&thread_suspend_mtx);
 
 	/*
 	 * If we were concurrently asked to suspend ourselves, wait.
 	 */
 
 	if (te->suspend) {
-		spinunlock(&thread_suspend_slk);
+		mutex_release(&thread_suspend_mtx);
 		thread_suspend_self(te);
 		goto retry;
 	}
@@ -520,7 +687,7 @@ retry:
 	 */
 
 	te->suspend = 0;
-	spinunlock(&thread_suspend_slk);
+	mutex_release(&thread_suspend_mtx);
 
 	return n;
 }
@@ -545,21 +712,26 @@ thread_unsuspend_others(void)
 {
 	bool locked;
 	size_t i, n = 0;
+	struct thread_element *te;
 
-	locked = spinlock_try(&thread_suspend_slk);
+	te = thread_find(&te);		/* Ourselves */
+	if (NULL == te)
+		return 0;
+
+	locked = mutex_get_try(&thread_suspend_mtx);
 
 	g_assert(locked);		/* All other threads should be sleeping */
 
 	for (i = 0; i < thread_next_stid; i++) {
-		struct thread_element *te = threads[i];
+		struct thread_element *xte = threads[i];
 
-		if G_LIKELY(te->suspend) {
-			te->suspend--;
+		if G_LIKELY(xte->suspend) {
+			xte->suspend--;
 			n++;
 		}
 	}
 
-	spinunlock(&thread_suspend_slk);
+	mutex_release(&thread_suspend_mtx);
 
 	return n;
 }
@@ -679,70 +851,7 @@ thread_is_single(void)
 
 	(void) thread_current();		/* Counts threads */
 
-	return 1 == thread_next_stid;
-}
-
-/**
- * Find existing thread based on the supplied stack pointer.
- *
- * @param sp		a pointer to the stack
- *
- * @return the likely thread element to which the stack pointer could relate,
- * NULL if we cannot determine the thread.
- */
-static struct thread_element *
-thread_find(const void *sp)
-{
-	size_t i;
-	struct thread_element *te = NULL;
-	size_t smallest = (size_t) -1;
-	thread_qid_t qid;
-	unsigned idx;
-
-	/*
-	 * Since we have a stack pointer belonging to the thread we're looking,
-	 * check whether we have it cached by its QID.
-	 */
-
-	qid = thread_quasi_id_fast(sp);
-	idx = hashing_fold(qid, THREAD_QID_BITS);
-
-	if (thread_element_matches(te, qid))
-		return te;
-
-	/*
-	 * Perform linear lookup, looking for the thread for which the stack
-	 * pointer is "above" the parameter and for which the distance to the
-	 * base of the stack is the smallest.
-	 */
-
-	for (i = 0; i < thread_next_stid; i++) {
-		struct thread_element *xte = threads[i];
-
-		if (thread_stack_ptr_cmp(sp, xte->stack_base) > 0) {
-			size_t offset;
-
-			/*
-			 * Pointer is "above" the stack base, track the thread whith
-			 * the smallest offset relative to the stack base.
-			 */
-
-			offset = thread_stack_ptr_offset(xte->stack_base, sp);
-			if (offset < smallest) {
-				te = xte;
-				smallest = offset;
-			}
-		}
-	}
-
-	/*
-	 * Cache result.
-	 */
-
-	thread_qid_cache[idx] = te;
-	te->last_qid = qid;
-
-	return te;
+	return 1 >= thread_next_stid;
 }
 
 /**
@@ -892,5 +1001,76 @@ thread_to_string(const thread_t t)
 	ulong_to_string_buf(t, buf, sizeof buf);
 	return buf;
 }
+
+#ifdef SPINLOCK_ACCOUNTING
+/**
+ * Account for spinlock acquisition by current thread.
+ */
+void
+thread_spinlock_add(int increment)
+{
+	struct thread_element *te;
+
+	/*
+	 * Don't use thread_get_element(), we MUST not be taking any locks here
+	 * since we're in a spinlock path.  We could end-up locking the lock we're
+	 * accounting for.
+	 */
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return;
+
+	if (increment > 0) {
+		te->spinlocks += increment;
+	} else {
+		/* Lenient, because we may not always account for spinlock grabs */
+		if G_LIKELY(te->spinlocks >= -increment)
+			te->spinlocks += increment;
+		else
+			te->spinlocks = 0;
+	}
+}
+
+/**
+ * Account for spinlock acquisition by current thread.
+ */
+void
+thread_mutex_add(int increment)
+{
+	struct thread_element *te;
+
+	/*
+	 * Don't use thread_get_element(), we MUST not be taking any locks here
+	 * since we're in a spinlock path.  We could end-up locking the lock we're
+	 * accounting for.
+	 */
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return;
+
+	if (increment > 0) {
+		te->mutexes += increment;
+	} else {
+		/* Lenient, because we may not always account for mutex grabs */
+		if G_LIKELY(te->mutexes >= -increment)
+			te->mutexes += increment;
+		else
+			te->mutexes = 0;
+	}
+}
+#else	/* !SPINLOCK_ACCOUNTING */
+void thread_spinlock_add(int increment)
+{
+	(void) increment;
+	g_assert_not_reached();
+}
+void thread_mutex_add(int increment)
+{
+	(void) increment;
+	g_assert_not_reached();
+}
+#endif	/* SPINLOCK_ACCOUNTING */
 
 /* vi: set ts=4 sw=4 cindent: */

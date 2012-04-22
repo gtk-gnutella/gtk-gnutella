@@ -85,6 +85,9 @@ void thread_private_add(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
 
+void thread_spinlock_add(int increment);
+void thread_mutex_add(int increment);
+
 #endif /* _thread_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

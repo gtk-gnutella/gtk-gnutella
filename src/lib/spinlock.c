@@ -54,6 +54,22 @@
 #define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
+#ifdef SPINLOCK_ACCOUNTING
+static inline void
+spinlock_account(void)
+{
+	thread_spinlock_add(+1);
+}
+static inline void
+spinunlock_account(void)
+{
+	thread_spinlock_add(-1);
+}
+#else	/* !SPINLOCK_ACCOUNTING */
+#define spinlock_account()
+#define spinunlock_account()
+#endif	/* SPINLOCK_ACCOUNT */
+
 static inline void
 spinlock_check(const volatile struct spinlock * const slock)
 {
@@ -136,7 +152,7 @@ spinlock_loop(volatile spinlock_t *s,
 	 */
 
 	if (thread_is_single())
-		(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
+		(*deadlocked)(src_object, 0);
 
 #ifdef HAS_SCHED_YIELD
 	if (1 == cpus)
@@ -174,7 +190,7 @@ spinlock_loop(volatile spinlock_t *s,
 			(*deadlock)(src_object, i / SPINLOCK_DEAD);
 
 		if G_UNLIKELY(0 == start)
-			start = tm_time();
+			start = tm_time_exact();
 
 		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT)
 			(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
@@ -237,6 +253,7 @@ spinlock_grab(spinlock_t *s)
 		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
 			spinlock_deadlock, spinlock_deadlocked);
 	}
+	spinlock_account();
 }
 
 /**
@@ -249,7 +266,11 @@ spinlock_grab_try(spinlock_t *s)
 {
 	spinlock_check(s);
 
-	return atomic_acquire(&s->lock);
+	if G_LIKELY(atomic_acquire(&s->lock)) {
+		spinlock_account();
+		return TRUE;
+	}
+	return FALSE;
 }
 
 #ifdef SPINLOCK_DEBUG
@@ -268,6 +289,7 @@ spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
 
 	s->file = file;
 	s->line = line;
+	spinlock_account();
 }
 
 /**
@@ -283,6 +305,7 @@ spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line)
 	if (atomic_acquire(&s->lock)) {
 		s->file = file;
 		s->line = line;
+		spinlock_account();
 		return TRUE;
 	}
 
@@ -305,6 +328,7 @@ spinunlock(spinlock_t *s)
 	 */
 
 	atomic_release(&s->lock);
+	spinunlock_account();
 }
 
 /**
