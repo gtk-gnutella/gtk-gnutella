@@ -194,9 +194,10 @@ static struct logfile logfile[LOG_MAX_FILES];
 
 
 /**
- * This is used to detect recurstion in s_logv().
+ * This is used to detect recurstions.
  */
-static volatile sig_atomic_t in_safe_handler;
+static volatile sig_atomic_t in_safe_handler;	/* in s_logv() */
+static volatile sig_atomic_t in_error;			/* in s_error() / t_error() */
 
 static const char DEV_NULL[] = "/dev/null";
 
@@ -953,6 +954,27 @@ done:
 }
 
 /**
+ * Make sure there is no recursive s_error() or t_error() calls.
+ */
+static void
+log_check_recursive(void)
+{
+	static int recursive;
+
+	if (in_error++) {
+		if (0 == recursive) {
+			recursive++;
+			s_minicrit("recursive or concurrent error, aborting");
+			log_abort();
+		} else if (1 == recursive) {
+			abort();
+		} else {
+			_exit(EXIT_FAILURE);
+		}
+	}
+}
+
+/**
  * Safe fatal warning message, resulting in an exit with specified status.
  */
 void
@@ -987,6 +1009,8 @@ s_error(const char *format, ...)
 {
 	va_list args;
 
+	log_check_recursive();
+
 	va_start(args, format);
 	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
@@ -1002,6 +1026,7 @@ s_error_from(const char *file, const char *format, ...)
 {
 	va_list args;
 
+	log_check_recursive();
 	crash_set_filename(file);
 
 	va_start(args, format);
@@ -1267,6 +1292,8 @@ t_error(const char *format, ...)
 {
 	va_list args;
 
+	log_check_recursive();
+
 	va_start(args, format);
 	s_logv(logthread_object(TRUE),
 		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
@@ -1283,6 +1310,7 @@ t_error_from(const char *file, const char *format, ...)
 {
 	va_list args;
 
+	log_check_recursive();
 	crash_set_filename(file);
 
 	va_start(args, format);
