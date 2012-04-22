@@ -67,22 +67,13 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 		return;
 	}
 
-	logging = TRUE;
-
 	/*
-	 * Avoid mixing log traces from multiple threads, especially if a stack
-	 * is being dumped, which is a funnelled operation.
-	 *
 	 * This call is thread-unsafe by construction, and supposed to be called
 	 * only from the main thread.  This is why it's OK to have a global
 	 * ``logging'' variable.
-	 *
-	 * Still, being always called from the main thread by design does not mean
-	 * we're not running in a multi-threaded environment.
 	 */
 
-	thread_check_suspended();
-
+	logging = TRUE;
 
 	if G_UNLIKELY(NULL == msg)
 		msg = str_new_not_leaking(0);
