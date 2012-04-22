@@ -81,11 +81,12 @@ struct thread_element {
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
-	int suspend;					/**< Suspend at next thread_current() */
+	int suspend;					/**< Suspend at thread_check_suspended() */
 #ifdef SPINLOCK_ACCOUNTING
 	int spinlocks;					/**< Spinlocks held by thread */
 	int mutexes;					/**< Mutexes held by thread */
 #endif
+	int pending;					/**< Pending messages to emit */
 };
 
 /**
@@ -275,7 +276,28 @@ thread_quasi_id(void)
 static inline ALWAYS_INLINE bool
 thread_element_matches(const struct thread_element *te, const thread_qid_t qid)
 {
-	return te != NULL && te->last_qid == qid;
+	if (NULL == te)
+		return FALSE;
+	if (te->last_qid == qid)
+		return TRUE;
+
+	/*
+	 * This only holds for 32-bit machines:
+	 *
+	 * The QID is the stack page number of the thread.  The kernel needs to
+	 * add at least one unmapped page between threads to detect stack overflows.
+	 * Therefore, if the QID is the "upper" neighbour of the last QID, it means
+	 * the stack has slightly grown since last time.  Likewise, if the QID is
+	 * the "lower" neighbour of the last QID, it means the stack has slightly
+	 * shrank, but it has to be the same thread.
+	 */
+
+	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
+		if (te->last_qid == qid + 1 || te->last_qid == qid - 1)
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -1000,6 +1022,50 @@ thread_to_string(const thread_t t)
 
 	ulong_to_string_buf(t, buf, sizeof buf);
 	return buf;
+}
+
+/**
+ * Account or clear pending message to be emitted by some thread before
+ * final exit.
+ */
+void
+thread_pending_add(int increment)
+{
+	struct thread_element *te;
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return;
+
+	if (increment > 0) {
+		te->pending += increment;
+	} else {
+		/* We may not always account when thread_find() returns NULL */
+		if G_LIKELY(te->pending >= -increment)
+			te->pending += increment;
+		else
+			te->pending = 0;
+	}
+}
+
+/**
+ * Report amount of pending messages registered by threads.
+ *
+ * This is not taking locks, so it may be slightly off.
+ *
+ * @return amount of pending messages.
+ */
+size_t
+thread_pending_count(void)
+{
+	unsigned i;
+	size_t count = 0;
+
+	for (i = 0; i < thread_next_stid; i++) {
+		count += threads[i]->pending;
+	}
+
+	return count;
 }
 
 #ifdef SPINLOCK_ACCOUNTING
