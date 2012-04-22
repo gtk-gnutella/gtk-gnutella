@@ -189,6 +189,41 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 }
 
 /**
+ * Cram a string at the start of the buffer, the remaining space being
+ * used to hold the string arena.
+ *
+ * @param buf		buffer where we can allocate the string
+ * @param len		length of buffer
+ *
+ * @return newly create string, NULL if buffer is too small
+ */
+str_t *
+str_new_in_buffer(void *buf, size_t len)
+{
+	str_t *str;
+
+	g_assert(buf != NULL);
+	g_assert(size_is_positive(len));
+
+	if (len <= sizeof *str)
+		return NULL;
+
+	/*
+	 * Don't set the STR_OBJECT because the object is non-freeable.
+	 * Force STR_FOREIGN_PTR because the arena is non-freeable.
+	 */
+
+	str = buf;
+	str->s_magic = STR_MAGIC;
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = ptr_add_offset(buf, sizeof *str);
+	str->s_len = 0;
+	str->s_size = len - sizeof *str;
+
+	return str;
+}
+
+/**
  * Allocate a new string structure, of the specified hint size.
  *
  * @param szhint	initial length of the data buffer (0 for default)
