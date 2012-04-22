@@ -89,6 +89,11 @@ static struct {
 	size_t blocks;						/**< Amount of blocks allocated */
 } hstats;
 
+enum halloc_type {
+	HALLOC_XMALLOC,
+	HALLOC_VMM
+};
+
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 
 static int use_page_table;
@@ -173,15 +178,17 @@ page_destroy(void)
 }
 
 static inline size_t
-halloc_get_size(const void *p)
+halloc_get_size(const void *p, enum halloc_type *type)
 {
 	size_t size = 0;
 
 	size = page_lookup(p);
 	if (size) {
 		g_assert(size >= xpmalloc_threshold);
+		*type = HALLOC_VMM;
 	} else {
 		size = xallocated(p);
+		*type = HALLOC_XMALLOC;
 	}
 	return size;
 }
@@ -261,16 +268,17 @@ void
 hfree(void *p)
 {
 	size_t allocated;
+	enum halloc_type type;
 
 	if (NULL == p)
 		return;
 
 	hstats.freeings++;
 
-	allocated = halloc_get_size(p);
+	allocated = halloc_get_size(p, &type);
 	g_assert(size_is_positive(allocated));
 
-	if (allocated < halloc_pagesize) {
+	if (HALLOC_XMALLOC == type) {
 		xfree(p);
 	} else {
 		page_remove(p);
@@ -291,6 +299,7 @@ hrealloc(void *old, size_t new_size)
 	size_t old_size;
 	size_t rounded_new_size;
 	void *p;
+	enum halloc_type type;
 
 	if (NULL == old)
 		return halloc(new_size);
@@ -300,7 +309,7 @@ hrealloc(void *old, size_t new_size)
 		return NULL;
 	}
 
-	old_size = halloc_get_size(old);
+	old_size = halloc_get_size(old, &type);
 	g_assert(size_is_positive(old_size));
 
 	/*
@@ -310,29 +319,28 @@ hrealloc(void *old, size_t new_size)
 	hstats.reallocs++;
 	rounded_new_size = round_pagesize(new_size);
 
-	if (old_size >= halloc_pagesize) {
+	if (HALLOC_VMM == type) {
 		if (vmm_is_relocatable(old, rounded_new_size)) {
 			hstats.realloc_relocatable++;
 			goto relocate;
 		}
+		if (new_size >= xpmalloc_threshold) {
+			if (rounded_new_size == old_size) {
+				hstats.realloc_noop++;
+				hstats.realloc_noop_same_vmm++;
+				return old;
+			}
+			if (old_size > rounded_new_size) {
+				vmm_shrink(old, old_size, rounded_new_size);
+				page_replace(old, rounded_new_size);
+				hstats.memory += rounded_new_size - old_size;
+				hstats.realloc_via_vmm_shrink++;
+				return old;
+			}
+		}
 	} else if (new_size < xpmalloc_threshold) {
 		hstats.realloc_via_xrealloc++;
 		return xrealloc(old, new_size);
-	}
-
-	if (new_size >= xpmalloc_threshold) {
-		if (rounded_new_size == old_size) {
-			hstats.realloc_noop++;
-			hstats.realloc_noop_same_vmm++;
-			return old;
-		}
-		if (old_size > rounded_new_size) {
-			vmm_shrink(old, old_size, rounded_new_size);
-			page_replace(old, rounded_new_size);
-			hstats.memory += rounded_new_size - old_size;
-			hstats.realloc_via_vmm_shrink++;
-			return old;
-		}
 	}
 
 	if (old_size >= new_size && old_size / 2 < new_size) {
@@ -421,6 +429,7 @@ halloc_glib12_check(void)
 {
 #if !GLIB_CHECK_VERSION(2,0,0)
 	void *p;
+	enum halloc_type type;
 
 	/*
 	 * Check whether the remapping is effective. This may not be
@@ -428,7 +437,7 @@ halloc_glib12_check(void)
 	 * for example.
 	 */
 	p = g_strdup("");
-	if (0 == halloc_get_size(p)) {
+	if (0 == halloc_get_size(p, &type)) {
 		static GMemVTable zero_vtable;
 		fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
 		g_mem_set_vtable(&zero_vtable);
