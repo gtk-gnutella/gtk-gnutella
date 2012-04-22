@@ -354,7 +354,6 @@ thread_get_element(void)
 	te = thread_qid_cache[idx];
 
 	G_PREFETCH_R(&te->stack_base);
-	G_PREFETCH_R(&te->suspend);
 
 	if (thread_element_matches(te, qid)) {
 		/*
@@ -363,13 +362,6 @@ thread_get_element(void)
 
 		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
 			thread_stack_init_shape(te, &qid);
-
-		/*
-		 * Check for advisory suspension.
-		 */
-
-		if G_UNLIKELY(te->suspend)
-			thread_suspend_self(te);
 
 		return te;
 	}
@@ -601,7 +593,6 @@ thread_current(void)
 	te = thread_qid_cache[idx];
 
 	G_PREFETCH_R(&te->stack_base);
-	G_PREFETCH_R(&te->suspend);
 
 	if (thread_element_matches(te, qid)) {
 		/*
@@ -610,13 +601,6 @@ thread_current(void)
 
 		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
 			thread_stack_init_shape(te, &qid);
-
-		/*
-		 * Check for advisory suspension.
-		 */
-
-		if G_UNLIKELY(te->suspend)
-			thread_suspend_self(te);
 
 		return te->tid;
 	}
