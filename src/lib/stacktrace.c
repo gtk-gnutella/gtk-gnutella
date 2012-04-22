@@ -44,6 +44,7 @@
 #include "log.h"
 #include "mem.h"
 #include "misc.h"		/* For is_strprefix() and is_strsuffix() */
+#include "mutex.h"
 #include "omalloc.h"
 #include "path.h"
 #include "signal.h"
@@ -64,7 +65,8 @@
 #include <execinfo.h>	/* For backtrace() */
 #endif
 
-#define STACKTRACE_DLFT_SYMBOLS	8192	/**< Pre-sizing of symbol table */
+#define STACKTRACE_DLFT_SYMBOLS	8192	/* Pre-sizing of symbol table */
+#define STACKTRACE_BUFFER_SIZE	8192	/* Amount reserved for stack tracing */
 
 /**
  * Default stacktrace decoration flags we're using here.
@@ -82,6 +84,16 @@ static bool symbols_loaded;
 static symbols_t *symbols;
 
 static const char *executable_absolute_path;	/* Read-only string */
+
+/**
+ * This buffer is allocated to construct the stack trace atomically to make
+ * sure it can be logged as a whole.
+ */
+struct {
+	void *arena;
+	mutex_t lock;
+	bool inited;
+} stacktrace_buffer;
 
 /**
  * Auto-tuning stack trace offset.
@@ -530,6 +542,20 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 }
 
 /**
+ * Initialize the buffer used to atomically construct a stack trace.
+ */
+static G_GNUC_COLD void
+stacktrace_buffer_init(void)
+{
+	if G_UNLIKELY(stacktrace_buffer.inited)
+		return;		/* Avoid recursions */
+
+	stacktrace_buffer.inited = TRUE;
+	mutex_init(&stacktrace_buffer.lock);
+	stacktrace_buffer.arena = vmm_alloc_not_leaking(STACKTRACE_BUFFER_SIZE);
+}
+
+/**
  * Initialize stack tracing.
  *
  * @param argv0		the value of argv[0], from main(): the program's filename
@@ -547,8 +573,8 @@ stacktrace_init(const char *argv0, bool deferred)
 		return;		/* Already initialized */
 
 	path = program_path_allocate(argv0);
-
 	symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	stacktrace_buffer_init();
 
 	if (NULL == path)
 		goto done;
@@ -936,7 +962,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	size_t i;
 	static char buf[512];
 	static char name[256];
-	str_t s;
+	str_t s, *trace = NULL;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 
@@ -949,6 +975,26 @@ stack_print_decorated_to(struct sxfile *xf,
 		be = bfd_util_init();
 
 	str_new_buffer(&s, buf, 0, sizeof buf);
+
+	/*
+	 * If we have a pre-allocated buffer, use it to construct the stack
+	 * trace so that we can atomically emit it in the logs without possible
+	 * output from other threads being intermixed.
+	 */
+
+	stacktrace_buffer_init();
+
+	if (NULL != stacktrace_buffer.arena) {
+		mutex_get(&stacktrace_buffer.lock);
+		if (1 == mutex_held_depth(&stacktrace_buffer.lock)) {
+			void *arena = stacktrace_buffer.arena;
+			trace = str_new_in_buffer(arena, STACKTRACE_BUFFER_SIZE);
+			g_assert(trace != NULL);
+			/* Keep mutex, since we hold the buffer */
+		} else {
+			mutex_release(&stacktrace_buffer.lock);
+		}
+	}
 
 	/*
 	 * Iterate over the call stack and try to decipher each address: which
@@ -1160,14 +1206,35 @@ stack_print_decorated_to(struct sxfile *xf,
 
 		str_putc(&s, '\n');
 
+		if (NULL == trace) {
+			switch (xf->type) {
+			case SXFILE_STDIO:
+				fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
+				break;
+			case SXFILE_FD:
+				write(xf->u.fd, str_2c(&s), str_len(&s));
+				break;
+			}
+		} else {
+			/* This will silently truncate output if buffer is too small */
+			str_ncat_safe(trace, str_2c(&s), str_len(&s));
+		}
+	}
+
+	/*
+	 * Emit the constructed trace if we were holding output.
+	 */
+
+	if (trace != NULL) {
 		switch (xf->type) {
 		case SXFILE_STDIO:
-			fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
+			fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
 			break;
 		case SXFILE_FD:
-			write(xf->u.fd, str_2c(&s), str_len(&s));
+			write(xf->u.fd, str_2c(trace), str_len(trace));
 			break;
 		}
+		mutex_release(&stacktrace_buffer.lock);
 	}
 
 	/*
