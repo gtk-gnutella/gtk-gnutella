@@ -499,9 +499,11 @@ log_printable(enum log_file which)
  */
 static void
 log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
-	const char *prefix, const char *msg)
+	const char *prefix, unsigned stid, const char *msg)
 {
 	struct logfile *lf;
+	char buf[32];
+	const char *tprefix;
 
 #define FORMAT_STR	"%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n"
 
@@ -511,6 +513,13 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 		return;
 
 	lf = &logfile[which];
+
+	if (stid != 0) {
+		str_bprintf(buf, sizeof buf, "%s-%u", prefix, stid);
+		tprefix = buf;
+	} else {
+		tprefix = prefix;
+	}
 
 	/*
 	 * When crashing. we use a pre-allocated string object to format the
@@ -524,7 +533,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 		str_printf(log_str, FORMAT_STR,
 			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 			ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
 			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
 			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 			msg);
@@ -551,7 +560,7 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 		ioerr = 0 > fprintf(lf->f, FORMAT_STR,
 			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
 			ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, prefix,
+			ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
 			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
 			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
 			msg);
@@ -667,10 +676,11 @@ void
 s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
-	DECLARE_STR(9);
+	DECLARE_STR(11);
 	char time_buf[18];
 	const char *prefix;
 	GLogLevelFlags loglvl;
+	unsigned stid;
 
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
@@ -691,6 +701,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
 	prefix = log_prefix(loglvl);
+	stid = thread_small_id();
 
 	/*
 	 * Because str_vncatf() is recursion-safe, we know we can't return
@@ -703,14 +714,20 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	print_str(time_buf);		/* 0 */
 	print_str(" (");			/* 1 */
 	print_str(prefix);			/* 2 */
-	print_str(")");				/* 3 */
+	if (stid != 0) {
+		char stid_buf[ULONG_DEC_BUFLEN];
+		const char *stid_str = print_number(stid_buf, sizeof stid_buf, stid);
+		print_str("-");			/* 3 */
+		print_str(stid_str);	/* 4 */
+	}
+	print_str(")");				/* 5 */
 	if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
-		print_str(" [RECURSIVE]");	/* 4 */
+		print_str(" [RECURSIVE]");	/* 6 */
 	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
-		print_str(" [FATAL]");		/* 5 */
-	print_str(": ");			/* 6 */
-	print_str(data);			/* 7 */
-	print_str("\n");			/* 8 */
+		print_str(" [FATAL]");		/* 7 */
+	print_str(": ");			/* 8 */
+	print_str(data);			/* 9 */
+	print_str("\n");			/* 10 */
 	log_flush_err();
 	if (copy && log_stdout_is_distinct())
 		log_flush_out();
@@ -765,6 +782,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	void *saved;
 	bool recursing;
 	GLogLevelFlags loglvl;
+	unsigned stid;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -861,6 +879,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
 	prefix = log_prefix(loglvl);
+	stid = thread_small_id();
 
 	/*
 	 * Avoid stdio's fprintf() from within a signal handler since we
@@ -869,21 +888,28 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	{
-		DECLARE_STR(9);
+		DECLARE_STR(11);
 		char time_buf[18];
 
 		crash_time(time_buf, sizeof time_buf);
 		print_str(time_buf);	/* 0 */
 		print_str(" (");		/* 1 */
 		print_str(prefix);		/* 2 */
-		print_str(")");			/* 3 */
+		if (stid != 0) {
+			char stid_buf[ULONG_DEC_BUFLEN];
+			const char *stid_str =
+				print_number(stid_buf, sizeof stid_buf, stid);
+			print_str("-");			/* 3 */
+			print_str(stid_str);	/* 4 */
+		}
+		print_str(")");			/* 5 */
 		if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
-			print_str(" [RECURSIVE]");	/* 4 */
+			print_str(" [RECURSIVE]");	/* 6 */
 		if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
-			print_str(" [FATAL]");		/* 5 */
-		print_str(": ");		/* 6 */
-		print_str(str_2c(msg));	/* 7 */
-		print_str("\n");		/* 8 */
+			print_str(" [FATAL]");		/* 7 */
+		print_str(": ");		/* 8 */
+		print_str(str_2c(msg));	/* 9 */
+		print_str("\n");		/* 10 */
 		log_flush_err();
 
 		if G_UNLIKELY(
@@ -1034,6 +1060,8 @@ s_carp(const char *format, ...)
 	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
+	thread_pending_add(+1);
+
 	va_start(args, format);
 	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
@@ -1042,6 +1070,8 @@ s_carp(const char *format, ...)
 		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 	else
 		stacktrace_where_sym_print_offset(stderr, 1);
+
+	thread_pending_add(-1);
 }
 
 /**
@@ -1314,11 +1344,15 @@ t_carp(const char *format, ...)
 {
 	va_list args;
 
+	thread_pending_add(+1);
+
 	va_start(args, format);
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+
+	thread_pending_add(-1);
 }
 
 /**
@@ -1545,6 +1579,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 	const char *prefix;
 	char *safer;
 	GLogLevelFlags loglvl;
+	unsigned stid;
 
 	(void) unused_data;
 
@@ -1556,6 +1591,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
 	prefix = log_prefix(loglvl);
+	stid = thread_small_id();
 
 	if (level & G_LOG_FLAG_RECURSION) {
 		/* Probably logging from memory allocator, string should be safe */
@@ -1564,7 +1600,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 		safer = control_escape(message);
 	}
 
-	log_fprint(LOG_STDERR, ct, level, prefix, safer);
+	log_fprint(LOG_STDERR, ct, level, prefix, stid, safer);
 
 	if G_UNLIKELY(
 		(level & G_LOG_FLAG_FATAL) ||
@@ -1572,7 +1608,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 		G_LOG_LEVEL_ERROR == loglvl
 	) {
 		if (log_stdout_is_distinct())
-			log_fprint(LOG_STDOUT, ct, level, prefix, safer);
+			log_fprint(LOG_STDOUT, ct, level, prefix, stid, safer);
 		if (level & G_LOG_FLAG_FATAL)
 			crash_set_error(safer);
 	}
