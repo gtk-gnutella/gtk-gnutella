@@ -143,6 +143,7 @@
 #include "lib/tea.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
@@ -743,6 +744,26 @@ gtk_gnutella_exit(int exit_code)
 	DO(xmalloc_pre_close);
 	DO(vmm_close);
 	DO(signal_close);
+
+	/*
+	 * Wait for pending messages from other threads.
+	 */
+
+	exit_time = time(NULL);
+	exit_grace = 10;
+
+	while (0 != thread_pending_count()) {
+		time_t now = time(NULL);
+		time_delta_t d;
+
+		if (signal_received)
+			break;
+
+		if ((d = delta_time(now, exit_time)) >= exit_grace)
+			break;
+
+		do_sched_yield();
+	}
 
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("gtk-gnutella shut down cleanly.");
