@@ -92,6 +92,17 @@ static NO_INLINE void G_GNUC_NORETURN
 mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 {
 	const volatile mutex_t *m = obj;
+	static int deadlocked;
+
+	if (deadlocked != 0) {
+		if (1 == deadlocked)
+			thread_lock_deadlock(obj);
+		s_minierror("recursive deadlock on mutex %p (depth %zu)",
+			obj, m->depth);
+	}
+
+	deadlocked++;
+	atomic_mb();
 
 	mutex_check(m);
 
@@ -100,6 +111,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 
+	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs)",
 		obj, m->depth, elapsed);
 }

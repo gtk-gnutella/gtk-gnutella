@@ -114,6 +114,16 @@ static NO_INLINE void G_GNUC_NORETURN
 spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 {
 	const volatile spinlock_t *s = obj;
+	static int deadlocked;
+
+	if (deadlocked != 0) {
+		if (1 == deadlocked)
+			thread_lock_deadlock(obj);
+		s_minierror("recursive deadlock on spinlock %p", obj);
+	}
+
+	deadlocked++;
+	atomic_mb();
 
 	spinlock_check(s);
 

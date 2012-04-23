@@ -103,6 +103,7 @@ struct thread_element {
 	const void *stack_base;			/**< Plausible stack base */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
+	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 };
 
@@ -1383,12 +1384,22 @@ thread_lock_owner(const volatile void *lock)
 
 /**
  * Report a deadlock condition whilst attempting to get a lock.
+ *
+ * This is only executed once per thread, since a deadlock is an issue that
+ * will only be resolved through process termination.
  */
 void
 thread_lock_deadlock(const volatile void *lock)
 {
 	struct thread_element *te;
 	struct thread_element *towner;
+	static bool deadlocked;
+
+	if (deadlocked)
+		return;				/* Recursion, avoid problems */
+
+	deadlocked = TRUE;
+	atomic_mb();
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te) {
@@ -1396,6 +1407,10 @@ thread_lock_deadlock(const volatile void *lock)
 		return;
 	}
 
+	if (te->deadlocked)
+		return;		/* Do it once per thread since there is no way out */
+
+	te->deadlocked = TRUE;
 	towner = thread_lock_owner(lock);
 
 	if (NULL == towner || towner == te) {
