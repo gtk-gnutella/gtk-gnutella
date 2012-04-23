@@ -3327,6 +3327,7 @@ xmalloc_thread_alloc(const size_t len)
 	unsigned stid;			/* Thread small ID */
 	struct xchunkhead *ch;
 	size_t idx;
+	void *p;
 
 	g_assert(size_is_non_negative(len));
 	g_assert(len <= XM_THREAD_MAXSIZE);
@@ -3356,19 +3357,24 @@ xmalloc_thread_alloc(const size_t len)
 	/*
 	 * If this chunkhead was the target of cross-thread freeing, we have
 	 * to take a lock unfortunately.
+	 *
+	 * Otherwise, we take a "direct" lock which merely by-passes all atomic
+	 * accesses.  The aim is to further narrow the window of opportunity
+	 * for memory corruption should the chunkhead become shared in the middle
+	 * of our allocation.
 	 */
 
 	if G_UNLIKELY(ch->shared) {
-		void *p;
-
 		spinlock(&ch->lock);
 		p = xmalloc_chunkhead_alloc(ch, stid);
 		spinunlock(&ch->lock);
-
-		return p;
 	} else {
-		return xmalloc_chunkhead_alloc(ch, stid);
+		spinlock_direct(&ch->lock);
+		p = xmalloc_chunkhead_alloc(ch, stid);
+		spinunlock_direct(&ch->lock);
 	}
+
+	return p;
 }
 
 /**
@@ -3434,10 +3440,11 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 		 */
 
 		if (!ch->shared) {
+			ch->shared = TRUE;
+			atomic_mb();
 			t_carp(
 				"thread #%u freeing %zu-byte block %p allocated by thread #%u",
 				stid, xck->xc_size, p, xck->xc_stid);
-			ch->shared = TRUE;
 			xstats.free_foreign_thread_pool++;
 		}
 	}
@@ -3529,6 +3536,7 @@ xmalloc_thread_free(void *p)
 {
 	struct xchunk *xck;
 	unsigned stid;
+	struct xchunkhead *ch;
 
 	stid = thread_small_id();
 
@@ -3555,15 +3563,22 @@ xmalloc_thread_free(void *p)
 	/*
 	 * We have all the reasons to believe that the block belongs to the chunk.
 	 * Lock chunkhead if it became shared between threads.
+	 *
+	 * To minimize the window of opportunity for corruption due to concurrent
+	 * sharing of the thread-specific pool, we take a lightweight lock without
+	 * any atomic operations.
 	 */
 
-	if G_UNLIKELY(xck->xc_head->shared) {
-		struct xchunkhead *ch = xck->xc_head;
+	ch = xck->xc_head;
+
+	if G_UNLIKELY(ch->shared) {
 		spinlock(&ch->lock);
 		xmalloc_chunk_return(xck, p);
 		spinunlock(&ch->lock);
 	} else {
+		spinlock_direct(&ch->lock);
 		xmalloc_chunk_return(xck, p);
+		spinunlock_direct(&ch->lock);
 	}
 
 	return TRUE;
