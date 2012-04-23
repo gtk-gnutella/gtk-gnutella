@@ -1155,6 +1155,35 @@ s_minilog(GLogLevelFlags flags, const char *format, ...)
 }
 
 /**
+ * Safe termination with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer,
+ * deadlock condition).
+ */
+void
+s_minierror(const char *format, ...)
+{
+	va_list args;
+	char data[LOG_MSG_MAXLEN];
+	char time_buf[18];
+	DECLARE_STR(4);
+
+	va_start(args, format);
+	str_vbprintf(data, sizeof data, format, args);
+	va_end(args);
+
+	crash_time(time_buf, sizeof time_buf);
+	print_str(time_buf);					/* 0 */
+	print_str(" (CRITICAL): ");				/* 1 */
+	print_str(data);						/* 2 */
+	print_str("\n");						/* 3 */
+	flush_err_str();
+
+	abort();
+}
+
+/**
  * Safe logging of critical message with minimal resource consumption.
  *
  * This is intended to be used in emergency situations when higher-level
