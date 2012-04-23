@@ -54,21 +54,17 @@
 #define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
-#ifdef SPINLOCK_ACCOUNTING
 static inline void
-spinlock_account(void)
+spinlock_account(const spinlock_t *s)
 {
-	thread_spinlock_add(+1);
+	thread_lock_got(s, THREAD_LOCK_SPINLOCK);
 }
+
 static inline void
-spinunlock_account(void)
+spinunlock_account(const spinlock_t *s)
 {
-	thread_spinlock_add(-1);
+	thread_lock_released(s, THREAD_LOCK_SPINLOCK);
 }
-#else	/* !SPINLOCK_ACCOUNTING */
-#define spinlock_account()
-#define spinunlock_account()
-#endif	/* SPINLOCK_ACCOUNT */
 
 static inline void
 spinlock_check(const volatile struct spinlock * const slock)
@@ -245,7 +241,7 @@ spinlock_destroy(spinlock_t *s)
  * Grab a spinlock.
  */
 void
-spinlock_grab(spinlock_t *s)
+spinlock_grab(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
 
@@ -253,7 +249,9 @@ spinlock_grab(spinlock_t *s)
 		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
 			spinlock_deadlock, spinlock_deadlocked);
 	}
-	spinlock_account();
+
+	if G_LIKELY(!hidden)
+		spinlock_account(s);
 }
 
 /**
@@ -262,12 +260,13 @@ spinlock_grab(spinlock_t *s)
  * @return whether we obtained the lock.
  */
 bool
-spinlock_grab_try(spinlock_t *s)
+spinlock_grab_try(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
 
 	if G_LIKELY(atomic_acquire(&s->lock)) {
-		spinlock_account();
+		if G_LIKELY(!hidden)
+			spinlock_account(s);
 		return TRUE;
 	}
 	return FALSE;
@@ -278,7 +277,7 @@ spinlock_grab_try(spinlock_t *s)
  * Grab a spinlock from said location.
  */
 void
-spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
+spinlock_grab_from(spinlock_t *s, bool hidden, const char *file, unsigned line)
 {
 	spinlock_check(s);
 
@@ -289,7 +288,9 @@ spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
 
 	s->file = file;
 	s->line = line;
-	spinlock_account();
+
+	if G_LIKELY(!hidden)
+		spinlock_account(s);
 }
 
 /**
@@ -298,14 +299,16 @@ spinlock_grab_from(spinlock_t *s, const char *file, unsigned line)
  * @return whether we obtained the lock.
  */
 bool
-spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line)
+spinlock_grab_try_from(spinlock_t *s,
+	bool hidden, const char *file, unsigned line)
 {
 	spinlock_check(s);
 
 	if (atomic_acquire(&s->lock)) {
 		s->file = file;
 		s->line = line;
-		spinlock_account();
+		if G_LIKELY(!hidden)
+			spinlock_account(s);
 		return TRUE;
 	}
 
@@ -314,10 +317,10 @@ spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line)
 #endif	/* SPINLOCK_DEBUG */
 
 /**
- * Unlock a spinlock, which must be locked currently.
+ * Release spinlock, which must be locked currently.
  */
 void
-spinunlock(spinlock_t *s)
+spinlock_release(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
 	g_assert(s->lock != 0);
@@ -328,7 +331,9 @@ spinunlock(spinlock_t *s)
 	 */
 
 	atomic_release(&s->lock);
-	spinunlock_account();
+
+	if G_LIKELY(!hidden)
+		spinunlock_account(s);
 }
 
 /**

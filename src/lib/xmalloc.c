@@ -5638,15 +5638,15 @@ xgc(void)
 	erbtree_foreach(&rbt, xgc_range_process, NULL);
 
 	/*
-	 * Pass 6: unlock buckets.
+	 * Pass 6: unlock buckets (in reverse order, for assertions).
 	 */
 
 unlock:
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
-		G_PREFETCH_W(&xfreelist[i + 1]);
-		G_PREFETCH_W(&xfreelist[i + 1].lock);
-		if (xgctx.locked[i]) {
-			struct xfreelist *fl = &xfreelist[i];
+	for (i = G_N_ELEMENTS(xfreelist); i != 0; i--) {
+		G_PREFETCH_W(&xfreelist[i - 2]);
+		G_PREFETCH_W(&xfreelist[i - 2].lock);
+		if (xgctx.locked[i - 1]) {
+			struct xfreelist *fl = &xfreelist[i - 1];
 			mutex_release(&fl->lock);
 		}
 	}

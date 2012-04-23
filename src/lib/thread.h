@@ -62,6 +62,14 @@ typedef unsigned int thread_qid_t;		/* Quasi Thread ID */
 
 #endif	/* I_PTHREAD */
 
+/**
+ * Type of locks we track.
+ */
+enum thread_lock_kind {
+	THREAD_LOCK_SPINLOCK,
+	THREAD_LOCK_MUTEX
+};
+
 /*
  * Public interface.
  */
@@ -85,8 +93,10 @@ void thread_private_add(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
 
-void thread_spinlock_add(int increment);
-void thread_mutex_add(int increment);
+void thread_lock_got(const void *lock, enum thread_lock_kind kind);
+void thread_lock_released(const void *lock, enum thread_lock_kind kind);
+bool thread_lock_holds(const void *lock);
+size_t thread_lock_count(void);
 
 void thread_pending_add(int increment);
 size_t thread_pending_count(void);

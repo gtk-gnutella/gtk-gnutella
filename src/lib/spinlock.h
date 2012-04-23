@@ -39,9 +39,6 @@
 #if 1
 #define SPINLOCK_DEBUG			/* Tracks where we take the lock */
 #endif
-#if 0
-#define SPINLOCK_ACCOUNTING		/* Count spinlocks and mutexes held by thread */
-#endif
 
 enum spinlock_magic {
 	SPINLOCK_MAGIC = 0x3918493e,
@@ -76,16 +73,19 @@ typedef struct spinlock {
  * These should not be called directly by user code to allow debugging.
  */
 
-void spinlock_grab(spinlock_t *s);
-bool spinlock_grab_try(spinlock_t *s);
+void spinlock_grab(spinlock_t *s, bool hidden);
+bool spinlock_grab_try(spinlock_t *s, bool hidden);
+void spinlock_release(spinlock_t *s, bool hidden);
 
 /*
  * Public interface.
  */
 
 #ifdef SPINLOCK_DEBUG
-void spinlock_grab_from(spinlock_t *s, const char *file, unsigned line);
-bool spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
+void spinlock_grab_from(spinlock_t *s,
+	bool hidden, const char *file, unsigned line);
+bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
+	const char *file, unsigned line);
 
 /*
  * Direction operations should only be used when locking and unlocking is
@@ -106,9 +106,17 @@ bool spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)		spinlock_grab_from((x), _WHERE_, __LINE__)
-#define spinlock_try(x)	spinlock_grab_try_from((x), _WHERE_, __LINE__)
-#else
+#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_hidden(x) \
+	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_hidden_try(x) \
+	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
+
+#else	/* !SPINLOCK_DEBUG */
+
 #define spinlock_direct(x) G_STMT_START {	\
 	(x)->lock = 1;							\
 } G_STMT_END
@@ -117,13 +125,18 @@ bool spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)		spinlock_grab((x))
-#define spinlock_try(x)	spinlock_grab_try((x))
+#define spinlock(x)				spinlock_grab((x), FALSE)
+#define spinlock_hidden(x)		spinlock_grab((x), TRUE)
+#define spinlock_try(x)			spinlock_grab_try((x), FALSE)
+#define spinlock_hidden_try(x)	spinlock_grab_try((x), TRUE)
+
 #endif	/* SPINLOCK_DEBUG */
+
+#define spinunlock(x)			spinlock_release((x), FALSE)
+#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
-void spinunlock(spinlock_t *s);
 bool spinlock_is_held(const spinlock_t *s);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)

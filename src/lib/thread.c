@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011-2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -35,7 +35,7 @@
  * threads can have the same QID at a given time.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011-2012
  */
 
 #include "common.h"
@@ -44,6 +44,7 @@
 
 #include "thread.h"
 #include "alloca.h"				/* For alloca_stack_direction() */
+#include "crash.h"				/* For print_str() et al. */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "mutex.h"
@@ -59,9 +60,28 @@
 #define THREAD_QID_BITS		8		/**< QID bits used for hashing */
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
+#define THREAD_LOCK_MAX		256		/**< Max amount of locks held */
 
 #define THREAD_SUSPEND_CHECK	5000
-#define THREAD_SUSPEND_TIMEOUT	10	/* seconds */
+#define THREAD_SUSPEND_TIMEOUT	30	/* seconds */
+
+/**
+ * A recorded lock.
+ */
+struct thread_lock {
+	const void *lock;				/**< Lock object address */
+	enum thread_lock_kind kind;		/**< Kind of lock recorded */
+};
+
+/*
+ * A lock stack.
+ */
+struct thread_lock_stack {
+	struct thread_lock *arena;		/**< The actual stack */
+	size_t capacity;				/**< Amount of entries available */
+	size_t count;					/**< Amount of entries held */
+	unsigned overflow:1;			/**< Set if stack overflow detected */
+};
 
 /**
  * A thread-private value.
@@ -81,12 +101,9 @@ struct thread_element {
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
-	int suspend;					/**< Suspend at thread_check_suspended() */
-#ifdef SPINLOCK_ACCOUNTING
-	int spinlocks;					/**< Spinlocks held by thread */
-	int mutexes;					/**< Mutexes held by thread */
-#endif
+	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
+	struct thread_lock_stack locks;	/**< Locks held by thread */
 };
 
 /**
@@ -238,6 +255,19 @@ thread_stack_init_shape(struct thread_element *te, const void *sp)
 }
 
 /**
+ * Initialize the lock stack for the thread element.
+ */
+static void
+thread_lock_stack_init(struct thread_element *te)
+{
+	struct thread_lock_stack *tls = &te->locks;
+
+	tls->arena = omalloc(THREAD_LOCK_MAX * sizeof tls->arena[0]);
+	tls->capacity = THREAD_LOCK_MAX;
+	tls->count = 0;
+}
+
+/**
  * Fast computation of the Quasi Thread ID (QID) of a thread.
  *
  * @param sp		a stack pointer belonging to the thread
@@ -332,16 +362,23 @@ thread_new_element(thread_t t)
 {
 	struct thread_element *te;
 
-	te = omalloc(sizeof *te);				/* Never freed! */
+	te = omalloc0(sizeof *te);				/* Never freed! */
 	te->tid = t;
 	te->last_qid = (thread_qid_t) -1;
 	te->pht = hash_table_once_new_real();	/* Never freed! */
-	te->stid = thread_next_stid++;
-
-	if G_LIKELY(te->stid < THREAD_MAX)
-		threads[te->stid] = te;
+	te->stid = thread_next_stid;
 
 	thread_stack_init_shape(te, &te);
+	thread_lock_stack_init(te);
+
+	if G_LIKELY(te->stid < THREAD_MAX) {
+		threads[te->stid] = te;
+	} else {
+		s_miniwarn("created thread #%u but can only track %d threads",
+			te->stid, THREAD_MAX);
+	}
+
+	thread_next_stid++;		/* Created and initialized, make it visible */
 
 	return te;
 }
@@ -405,25 +442,7 @@ thread_suspend_self(const volatile struct thread_element *te)
 	 * whilst it holds an internal mutex.
 	 */
 
-#ifdef SPINLOCK_ACCOUNTING
-	if (te->suspend && te->spinlocks != 0) {
-		int spinlocks;
-
-		/*
-		 * Each mutex has a spinlock, so getting a mutex accounts for one
-		 * spinlock and one mutex.  Adjust the number of pure spinlocks.
-		 */
-
-		spinlocks = te->spinlocks - te->mutexes;
-
-		s_miniwarn("thread #%u cannot be suspended with "
-			"%d spinlock%s and %d mutex%s held",
-			te->stid, spinlocks, 1 == spinlocks ? "" : "s",
-			te->mutexes, 1 == te->mutexes ? "" : "es");
-
-		return;
-	}
-#endif
+	g_assert(0 == te->locks.count);
 
 	for (i = 0; te->suspend; i++) {
 		do_sched_yield();
@@ -635,11 +654,13 @@ thread_find(const void *sp)
 }
 
 /**
- * Check whether thread is suspended.
+ * Check whether thread is suspended and can be suspended right now.
  */
 void
 thread_check_suspended(void)
 {
+	struct thread_element *te;
+
 	/*
 	 * It is not critical to be in a thread that has not been seen yet, and
 	 * we don't want this call to be too expensive, so detect mono-threaded
@@ -650,7 +671,10 @@ thread_check_suspended(void)
 	if (thread_next_stid <= 1)
 		return;		/* Mono-threaded, most likely */
 
-	thread_suspend_self(thread_get_element());
+	te = thread_get_element();
+
+	if (0 == te->locks.count)
+		thread_suspend_self(te);
 }
 
 /**
@@ -1068,75 +1092,245 @@ thread_pending_count(void)
 	return count;
 }
 
-#ifdef SPINLOCK_ACCOUNTING
 /**
- * Account for spinlock acquisition by current thread.
+ * @return English description for lock kind.
+ */
+static const char *
+thread_lock_kind_to_string(const enum thread_lock_kind kind)
+{
+	switch (kind) {
+	case THREAD_LOCK_SPINLOCK:	return "spinlock";
+	case THREAD_LOCK_MUTEX:		return "mutex";
+	}
+
+	return "UNKNOWN";
+}
+
+/*
+ * Dump list of locks held by thread.
+ */
+static void
+thread_lock_dump(const struct thread_element *te)
+{
+	const struct thread_lock_stack *tls = &te->locks;
+	unsigned i;
+
+	for (i = tls->count; i != 0; i--) {
+		const struct thread_lock *l = &tls->arena[i - 1];
+		const char *type;
+		char buf[POINTER_BUFLEN + 2];
+		char line[UINT_DEC_BUFLEN];
+		const char *lnum;
+		DECLARE_STR(12);
+
+		type = thread_lock_kind_to_string(l->kind);
+		buf[0] = '0';
+		buf[1] = 'x';
+		pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+
+		print_str("\t");		/* 0 */
+		print_str(buf);			/* 1 */
+		print_str(" ");			/* 2 */
+		print_str(type);		/* 3 */
+#ifdef SPINLOCK_DEBUG
+		print_str(" from ");	/* 4 */
+		switch (l->kind) {
+		case THREAD_LOCK_SPINLOCK:
+			{
+				const spinlock_t *s = l->lock;
+				lnum = print_number(line, sizeof line, s->line);
+				print_str(s->file);			/* 5 */
+				print_str(":");				/* 6 */
+				print_str(lnum);			/* 7 */
+			}
+			break;
+		case THREAD_LOCK_MUTEX:
+			{
+				const mutex_t *m = l->lock;
+				const spinlock_t *s = &m->lock;
+				lnum = print_number(line, sizeof line, s->line);
+				print_str(s->file);			/* 5 */
+				print_str(":");				/* 6 */
+				print_str(lnum);			/* 7 */
+			}
+			break;
+		}
+#endif
+		if (THREAD_LOCK_MUTEX == l->kind) {
+			char depth[ULONG_DEC_BUFLEN];
+			const char *dnum;
+			const mutex_t *m = l->lock;
+
+			dnum = print_number(depth, sizeof depth, m->depth);
+			print_str(" (depth=");		/* 8 */
+			print_str(dnum);			/* 9 */
+			print_str(")");				/* 10 */
+		}
+		print_str("\n");		/* 11 */
+		flush_err_str();
+	}
+}
+
+/**
+ * Account for spinlock / mutex acquisition by current thread.
  */
 void
-thread_spinlock_add(int increment)
+thread_lock_got(const void *lock, enum thread_lock_kind kind)
 {
 	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	struct thread_lock *l;
 
 	/*
 	 * Don't use thread_get_element(), we MUST not be taking any locks here
-	 * since we're in a spinlock path.  We could end-up locking the lock we're
-	 * accounting for.
+	 * since we're in a lock path.  We could end-up re-locking the lock we're
+	 * accounting for.  Also we don't want to create a new thread if the
+	 * thread element is already in the process of being created.
 	 */
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return;
 
-	if (increment > 0) {
-		te->spinlocks += increment;
-	} else {
-		/* Lenient, because we may not always account for spinlock grabs */
-		if G_LIKELY(te->spinlocks >= -increment)
-			te->spinlocks += increment;
-		else
-			te->spinlocks = 0;
+	tls = &te->locks;
+
+	if G_UNLIKELY(tls->capacity == tls->count) {
+		if (tls->overflow)
+			return;				/* Already signaled, we're crashing */
+		tls->overflow = TRUE;
+		s_minicrit("thread #%u overflowing its lock stack", te->stid);
+		thread_lock_dump(te);
+		s_error("too many locks grabbed simultaneously");
 	}
+
+	l = &tls->arena[tls->count++];
+	l->lock = lock;
+	l->kind = kind;
 }
 
 /**
- * Account for spinlock acquisition by current thread.
+ * Account for spinlock / mutex release by current thread.
  */
 void
-thread_mutex_add(int increment)
+thread_lock_released(const void *lock, enum thread_lock_kind kind)
 {
 	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	const struct thread_lock *l;
+	unsigned i;
 
 	/*
-	 * Don't use thread_get_element(), we MUST not be taking any locks here
-	 * since we're in a spinlock path.  We could end-up locking the lock we're
-	 * accounting for.
+	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * element.  Note that we may be in a situation where we did not get a
+	 * thread element at lock time but are able to get one now.
 	 */
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return;
 
-	if (increment > 0) {
-		te->mutexes += increment;
-	} else {
-		/* Lenient, because we may not always account for mutex grabs */
-		if G_LIKELY(te->mutexes >= -increment)
-			te->mutexes += increment;
-		else
-			te->mutexes = 0;
+	tls = &te->locks;
+
+	if G_UNLIKELY(0 == tls->count)
+		return;
+
+	/*
+	 * If lock is the top of the stack, we're done.
+	 */
+
+	l = &tls->arena[tls->count - 1];
+
+	if G_LIKELY(l->lock == lock) {
+		g_assert(l->kind == kind);
+
+		tls->count--;
+
+		/*
+		 * If the thread no longer holds any locks and it has to be suspended,
+		 * now is a good (and safe) time to do it.
+		 */
+
+		if G_UNLIKELY(te->suspend && 0 == tls->count)
+			thread_suspend_self(te);
+
+		return;
+	}
+
+	/*
+	 * Since the lock was not the one at the top of the stack, then it must be
+	 * absent in the whole stack, or we have an out-of-order lock release.
+	 */
+
+	if (tls->overflow)
+		return;				/* Stack overflowed, we're crashing */
+
+	for (i = 0; i < tls->count; i++) {
+		const struct thread_lock *ol = &tls->arena[i];
+
+		if (ol->lock == lock) {
+			tls->overflow = TRUE;	/* Avoid any overflow problems now */
+			s_minicrit("thread #%u releases %s %p at inner position %u/%u",
+				te->stid, thread_lock_kind_to_string(kind), lock, i + 1,
+				tls->count);
+			thread_lock_dump(te);
+			s_error("out-of-order %s release",
+				thread_lock_kind_to_string(kind));
+		}
 	}
 }
-#else	/* !SPINLOCK_ACCOUNTING */
-void thread_spinlock_add(int increment)
+
+/**
+ * Check whether current thread already holds a lock.
+ *
+ * @param lock		the address of a mutex of a spinlock
+ *
+ * @return TRUE if lock was registered in the current thread.
+ */
+bool
+thread_lock_holds(const void *lock)
 {
-	(void) increment;
-	g_assert_not_reached();
+	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	unsigned i;
+
+	/*
+	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * element.  Note that we may be in a situation where we did not get a
+	 * thread element at lock time but are able to get one now.
+	 */
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return FALSE;
+
+	tls = &te->locks;
+
+	if G_UNLIKELY(0 == tls->count)
+		return FALSE;
+
+	for (i = 0; i < tls->count; i++) {
+		const struct thread_lock *l = &tls->arena[i];
+
+		if (l->lock == lock)
+			return TRUE;
+	}
+
+	return FALSE;
 }
-void thread_mutex_add(int increment)
+
+/**
+ * @return amount of locks held by the current thread.
+ */
+size_t
+thread_lock_count(void)
 {
-	(void) increment;
-	g_assert_not_reached();
+	struct thread_element *te;
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return 0;
+
+	return te->locks.count;
 }
-#endif	/* SPINLOCK_ACCOUNTING */
 
 /* vi: set ts=4 sw=4 cindent: */

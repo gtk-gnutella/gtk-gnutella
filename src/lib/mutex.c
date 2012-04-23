@@ -44,21 +44,17 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#ifdef SPINLOCK_ACCOUNTING
 static inline void
-mutex_get_account(void)
+mutex_get_account(const mutex_t *m)
 {
-	thread_mutex_add(+1);
+	thread_lock_got(m, THREAD_LOCK_MUTEX);
 }
+
 static inline void
-mutex_release_account(void)
+mutex_release_account(const mutex_t *m)
 {
-	thread_mutex_add(-1);
+	thread_lock_released(m, THREAD_LOCK_MUTEX);
 }
-#else	/* !SPINLOCK_ACCOUNTING */
-#define mutex_get_account()
-#define mutex_release_account()
-#endif	/* SPINLOCK_ACCOUNT */
 
 static inline void
 mutex_check(const volatile struct mutex * const mutex)
@@ -161,7 +157,7 @@ mutex_destroy(mutex_t *m)
 {
 	mutex_check(m);
 
-	if (spinlock_try(&m->lock) || mutex_is_owned(m)) {
+	if (spinlock_hidden_try(&m->lock) || mutex_is_owned(m)) {
 		g_assert(MUTEX_MAGIC == m->magic);
 	}
 
@@ -186,7 +182,7 @@ mutex_grab(mutex_t *m)
 	 * by the memory logic.
 	 */
 
-	if (spinlock_try(&m->lock)) {
+	if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
 	} else if (mutex_is_owned_by(m, t)) {
@@ -197,7 +193,8 @@ mutex_grab(mutex_t *m)
 		thread_set(m->owner, t);
 		m->depth = 1;
 	}
-	mutex_get_account();
+
+	mutex_get_account(m);
 }
 
 /**
@@ -211,7 +208,7 @@ mutex_grab_try(mutex_t *m)
 	mutex_check(m);
 	thread_t t = thread_current();
 
-	if (spinlock_try(&m->lock)) {
+	if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
 	} else if (mutex_is_owned_by(m, t)) {
@@ -220,7 +217,7 @@ mutex_grab_try(mutex_t *m)
 		return FALSE;
 	}
 
-	mutex_get_account();
+	mutex_get_account(m);
 	return TRUE;
 }
 
@@ -270,9 +267,9 @@ mutex_release(mutex_t *m)
 
 	if (0 == --m->depth) {
 		m->owner = 0;
-		spinunlock(&m->lock);	/* Acts as a "release barrier" */
-		mutex_release_account();
+		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
+	mutex_release_account(m);
 }
 
 /**
