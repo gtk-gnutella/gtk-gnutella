@@ -95,8 +95,10 @@ void thread_private_add_extended(const void *key, const void *value,
 
 void thread_lock_got(const void *lock, enum thread_lock_kind kind);
 void thread_lock_released(const void *lock, enum thread_lock_kind kind);
-bool thread_lock_holds(const void *lock);
 size_t thread_lock_count(void);
+bool thread_lock_holds(const volatile void *lock);
+void thread_lock_deadlock(const volatile void *lock);
+void thread_lock_current_dump(void);
 
 void thread_pending_add(int increment);
 size_t thread_pending_count(void);

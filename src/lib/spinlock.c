@@ -121,11 +121,18 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 	s_miniwarn("spinlock %p still held by %s:%u", obj, s->file, s->line);
 #endif
 
+	thread_lock_deadlock(obj);
 	s_error("deadlocked on spinlock %p (after %u secs)", obj, elapsed);
 }
 
 /**
  * Obtain a lock, spinning first then spleeping.
+ *
+ * @param s				the spinlock
+ * @param src			the type of object containing the spinlock
+ * @param src_object	the lock object containing the spinlock
+ * @param deadlock		callback to invoke when we detect a possible deadlock
+ * @param deadlocked	callback to invoke when we decide we deadlocked
  */
 void
 spinlock_loop(volatile spinlock_t *s,
@@ -139,6 +146,12 @@ spinlock_loop(volatile spinlock_t *s,
 
 	spinlock_check(s);
 
+	/*
+	 * This routine is only called when there is a lock contention, and
+	 * therefore it is not on the fast locking path.  We can therefore
+	 * afford to conduct more extended checks.
+	 */
+
 	if G_UNLIKELY(0 == cpus)
 		cpus = getcpucount();
 
@@ -148,6 +161,16 @@ spinlock_loop(volatile spinlock_t *s,
 	 */
 
 	if (thread_is_single())
+		(*deadlocked)(src_object, 0);
+
+	/*
+	 * If the thread already holds the lock object, we're deadlocked.
+	 *
+	 * We don't need to check that for mutexes because we would not get here
+	 * for a mutex already held by the thread: this is not a contention case.
+	 */
+
+	if (SPINLOCK_SRC_SPINLOCK == src && thread_lock_holds(src_object))
 		(*deadlocked)(src_object, 0);
 
 #ifdef HAS_SCHED_YIELD

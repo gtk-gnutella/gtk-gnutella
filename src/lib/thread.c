@@ -1115,6 +1115,9 @@ thread_lock_dump(const struct thread_element *te)
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
 
+	s_miniinfo("list of locks owned by thread #%u, most recent first:",
+		te->stid);
+
 	for (i = tls->count; i != 0; i--) {
 		const struct thread_lock *l = &tls->arena[i - 1];
 		const char *type;
@@ -1169,6 +1172,21 @@ thread_lock_dump(const struct thread_element *te)
 		print_str("\n");		/* 11 */
 		flush_err_str();
 	}
+}
+
+/**
+ * Dump locks held by current thread, most recently taken first.
+ */
+void
+thread_lock_current_dump(void)
+{
+	struct thread_element *te;
+	
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return;
+
+	thread_lock_dump(te);
 }
 
 /**
@@ -1287,7 +1305,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind)
  * @return TRUE if lock was registered in the current thread.
  */
 bool
-thread_lock_holds(const void *lock)
+thread_lock_holds(const volatile void *lock)
 {
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
@@ -1331,6 +1349,66 @@ thread_lock_count(void)
 		return 0;
 
 	return te->locks.count;
+}
+
+/**
+ * @return thread owning a lock, NULL if we can't find it.
+ */
+static struct thread_element *
+thread_lock_owner(const volatile void *lock)
+{
+	unsigned i;
+
+	/*
+	 * We don't stop other threads because we're called in a deadlock
+	 * situation so it's highly unlikely that the thread owning the lock
+	 * will suddenly choose to release it.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		struct thread_lock_stack *tls = &te->locks;
+		unsigned j;
+
+		for (j = 0; j < tls->count; j++) {
+			const struct thread_lock *l = &tls->arena[j];
+
+			if (l->lock == lock)
+				return te;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * Report a deadlock condition whilst attempting to get a lock.
+ */
+void
+thread_lock_deadlock(const volatile void *lock)
+{
+	struct thread_element *te;
+	struct thread_element *towner;
+
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te) {
+		s_miniinfo("no thread to list owned locks");
+		return;
+	}
+
+	towner = thread_lock_owner(lock);
+
+	if (NULL == towner || towner == te) {
+		s_minicrit("thread #%u deadlocked whilst waiting on %p, owned by %s",
+			te->stid, lock, NULL == towner ? "nobody" : "itself");
+	} else {
+		s_minicrit("thread #%u deadlocked whilst waiting on %p, "
+			"owned by thread #%u", te->stid, lock, towner->stid);
+	}
+
+	thread_lock_dump(te);
+	if (towner != NULL && towner != te)
+		thread_lock_dump(towner);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
