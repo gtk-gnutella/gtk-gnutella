@@ -5045,7 +5045,7 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 	 */
 
 	if (NULL == merged) {
-		const void *old;
+		const struct xgc_range *old;
 
 		xr = xgc_alloc(xga, sizeof *xr);
 		ZERO(xr);
@@ -5060,9 +5060,12 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		 */
 
 		xr->head = ptr_diff(end, start);	/* Necessarily fits */
-
 		old = erbtree_insert(rbt, &xr->node);
-		g_assert(NULL == old);		/* Was not already present in tree */
+
+		g_assert_log(NULL == old,		/* Was not already present in tree */
+			"xr=[%p, %p[, old=[%p, %p[ (%u block%s)",
+			start, end, old->start, old->end,
+			old->blocks, 1 == old->blocks ? "" : "s");
 	}
 }
 
