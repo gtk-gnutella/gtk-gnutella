@@ -236,7 +236,11 @@ static unsigned thread_next_stid;
 static unsigned
 thread_hash(const void *key)
 {
-	return binary_hash(key, sizeof(thread_t));
+	const thread_t *t = key;
+
+	STATIC_ASSERT(sizeof(long) == sizeof(*t));
+
+	return integer_hash(* (ulong *) t);
 }
 
 static bool
