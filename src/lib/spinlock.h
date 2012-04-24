@@ -137,7 +137,6 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
-bool spinlock_is_held(const spinlock_t *s);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
 
@@ -163,6 +162,16 @@ void spinlock_loop(volatile spinlock_t *s,
 	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked);
 
 #endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
+
+/**
+ * Check that spinlock is held, for assertions.
+ */
+static inline bool NON_NULL_PARAM((1))
+spinlock_is_held(const spinlock_t *s)
+{
+	/* Make this fast, no assertion on the spinlock validity */
+	return s->lock != 0;
+}
 
 #endif /* _spinlock_h_ */
 

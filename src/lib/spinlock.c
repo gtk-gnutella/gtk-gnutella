@@ -369,15 +369,4 @@ spinlock_release(spinlock_t *s, bool hidden)
 		spinunlock_account(s);
 }
 
-/**
- * Check that spinlock is held, for assertions.
- */
-bool
-spinlock_is_held(const spinlock_t *s)
-{
-	spinlock_check(s);
-
-	return s->lock != 0;
-}
-
 /* vi: set ts=4 sw=4 cindent: */

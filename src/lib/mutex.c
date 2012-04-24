@@ -138,9 +138,7 @@ mutex_is_owned_by(const mutex_t *m, const thread_t t)
 {
 	mutex_check(m);
 
-	/* Violates spinlock encapsulation for speed */
-
-	return m->lock.lock && thread_eq(t, m->owner);
+	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
 }
 
 /**
@@ -308,9 +306,7 @@ mutex_held_depth(const mutex_t *m)
 {
 	mutex_check(m);
 
-	/* Violates spinlock encapsulation for speed */
-
-	return 0 == m->lock.lock ? 0 : m->depth;
+	return spinlock_is_held(&m->lock) ? 0 : m->depth;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
