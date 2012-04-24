@@ -1987,7 +1987,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	bool fragment;
 
-	mutex_get_const(&pm->lock);
+	g_assert(mutex_is_owned(&pm->lock));
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -1998,7 +1998,6 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 
 	fragment = p == vmf->start && npages == pagecount_fast(vmf_size(vmf));
 
-	mutex_release_const(&pm->lock);
 	return fragment;
 }
 
@@ -2133,10 +2132,17 @@ vmm_is_native_pointer(const void *p)
 bool
 vmm_is_fragment(const void *base, size_t size)
 {
+	struct pmap *pm = vmm_pmap();
+	bool is_fragment;
+
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
-	return pmap_is_fragment(vmm_pmap(), base, pagecount_fast(size));
+	mutex_get(&pm->lock);
+	is_fragment = pmap_is_fragment(pm, base, pagecount_fast(size));
+	mutex_release(&pm->lock);
+
+	return is_fragment;
 }
 
 /**
@@ -3053,6 +3059,7 @@ page_cache_insert_pages(void *base, size_t n)
 {
 	size_t pages = n;
 	void *p = base;
+	struct pmap *pm = vmm_pmap();
 
 	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE);
 
@@ -3065,12 +3072,17 @@ page_cache_insert_pages(void *base, size_t n)
 	 * memory space.
 	 */
 
-	if (pmap_is_fragment(vmm_pmap(), base, n)) {
+	mutex_get(&pm->lock);
+
+	if (pmap_is_fragment(pm, base, n)) {
 		free_pages_forced(base, n * kernel_pagesize, TRUE);
 		vmm_stats.forced_freed++;
 		vmm_stats.forced_freed_pages += n;
+		mutex_release(&pm->lock);
 		return FALSE;
 	}
+
+	mutex_release(&pm->lock);
 
 	/*
 	 * If releasing more than what we can store in the largest cache line,
