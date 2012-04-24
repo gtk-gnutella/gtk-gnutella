@@ -30,9 +30,13 @@
  * This mainly provides support for thread-private data, as well as minimal
  * thread tracking.
  *
- * To quickly access thread-private data, we introduce the notion of Quasi
- * Thread Ids, or QIDs: they are not unique for a given thread but no two
- * threads can have the same QID at a given time.
+ * It works by cooperation with the spinlock/mutex code that we're using,
+ * providing hooks so that can detect the existence of new threads on the
+ * fly and track them.
+ *
+ * We are not interested by threads that could exist out there and which never
+ * enter our code somehow, either through a lock (possibly indirectly by
+ * calling a memory allocation routine) or through logging.
  *
  * @author Raphael Manfredi
  * @date 2011-2012
@@ -44,6 +48,7 @@
 
 #include "thread.h"
 #include "alloca.h"				/* For alloca_stack_direction() */
+#include "compat_sleep_ms.h"
 #include "crash.h"				/* For print_str() et al. */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
@@ -57,8 +62,14 @@
 
 #include "override.h"			/* Must be the last header included */
 
+/**
+ * To quickly access thread-private data, we introduce the notion of Quasi
+ * Thread Ids, or QIDs: they are not unique for a given thread but no two
+ * threads can have the same QID at a given time.
+ */
 #define THREAD_QID_BITS		8		/**< QID bits used for hashing */
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
+
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
 #define THREAD_LOCK_MAX		256		/**< Max amount of locks held */
 
@@ -123,6 +134,15 @@ static zone_t *pvzone;		/* For private values */
  * Array of threads, by small thread ID.
  */
 static struct thread_element *threads[THREAD_MAX];
+
+/**
+ * This array is used solely during creation of a new thread element.
+ *
+ * Its purpose is to be able to return a thread small ID whilst we are in
+ * the process of creating that thread element, for instance if we have to
+ * call a logging routine as part of the thread creation.
+ */
+static thread_t tstid[THREAD_MAX];
 
 /**
  * QID cache.
@@ -305,7 +325,7 @@ thread_quasi_id(void)
  * @return whether thread element is matching the QID.
  */
 static inline ALWAYS_INLINE bool
-thread_element_matches(const struct thread_element *te, const thread_qid_t qid)
+thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 {
 	if (NULL == te)
 		return FALSE;
@@ -324,8 +344,11 @@ thread_element_matches(const struct thread_element *te, const thread_qid_t qid)
 	 */
 
 	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
-		if (te->last_qid == qid + 1 || te->last_qid == qid - 1)
+		if (te->last_qid == qid + 1 || te->last_qid == qid - 1) {
+			if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
+				thread_stack_init_shape(te, &qid);
 			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -362,23 +385,35 @@ static struct thread_element *
 thread_new_element(thread_t t)
 {
 	struct thread_element *te;
+	unsigned stid;
+
+	g_assert(spinlock_is_held(&thread_insert_slk));
+
+	stid = thread_next_stid;
+
+	if G_UNLIKELY(stid >= THREAD_MAX) {
+		s_error("discovered thread #%u but can only track %d threads",
+			stid, THREAD_MAX);
+	}
+
+	/*
+	 * Recording the current thread in the tstid[] array allows us to be able
+	 * to return the new thread small ID from thread_small_id() before the
+	 * allocation of the thread element is completed.
+	 */
+
+	tstid[stid] = t;
 
 	te = omalloc0(sizeof *te);				/* Never freed! */
 	te->tid = t;
 	te->last_qid = (thread_qid_t) -1;
 	te->pht = hash_table_once_new_real();	/* Never freed! */
-	te->stid = thread_next_stid;
+	te->stid = stid;
 
 	thread_stack_init_shape(te, &te);
 	thread_lock_stack_init(te);
 
-	if G_LIKELY(te->stid < THREAD_MAX) {
-		threads[te->stid] = te;
-	} else {
-		s_miniwarn("created thread #%u but can only track %d threads",
-			te->stid, THREAD_MAX);
-	}
-
+	threads[stid] = te;
 	thread_next_stid++;		/* Created and initialized, make it visible */
 
 	return te;
@@ -490,16 +525,8 @@ thread_get_element(void)
 
 	G_PREFETCH_R(&te->stack_base);
 
-	if (thread_element_matches(te, qid)) {
-		/*
-		 * Maintain lowest stack address for thread.
-		 */
-
-		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
-			thread_stack_init_shape(te, &qid);
-
+	if (thread_element_matches(te, qid))
 		return te;
-	}
 
 	/*
 	 * No matching element was found in the cache, perform the slow lookup
@@ -567,6 +594,13 @@ thread_get_element(void)
 	thread_qid_cache[idx] = te;
 	te->last_qid = qid;
 
+	/*
+	 * Maintain lowest stack address for thread.
+	 */
+
+	if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
+		thread_stack_init_shape(te, &qid);
+
 	return te;
 }
 
@@ -577,15 +611,6 @@ static hash_table_t *
 thread_get_private_hash(void)
 {
 	return thread_get_element()->pht;
-}
-
-/**
- * Get thread small ID.
- */
-unsigned
-thread_small_id(void)
-{
-	return thread_get_element()->stid;
 }
 
 /**
@@ -652,6 +677,74 @@ thread_find(const void *sp)
 	}
 
 	return te;
+}
+
+/**
+ * Get thread small ID.
+ */
+unsigned
+thread_small_id(void)
+{
+	struct thread_element *te;
+	unsigned retries = 0, i;
+	thread_t t;
+
+retry:
+
+	/*
+	 * This call is used by logging routines, so we must be very careful
+	 * about not deadlocking ourselves, yet we must use this opportunity
+	 * to register the current calling thread if not already done, so try
+	 * to call thread_get_element() when it is safe.
+	 */
+
+	if G_UNLIKELY(spinlock_is_held(&thread_private_slk))
+		return 0;		/* Creating global hash, must be the first thread */
+
+	if G_LIKELY(!spinlock_is_held(&thread_insert_slk))
+		return thread_get_element()->stid;
+
+	/*
+	 * Locate the thread by QID or by scanning the known threads.
+	 */
+
+	te = thread_find(&te);
+	if G_LIKELY(te != NULL)
+		return te->stid;
+
+	/*
+	 * We may be in the thread that is being created, however we have not
+	 * completed the thread installation yet.  Look in tstid[] for a
+	 * matching thread.
+	 */
+
+	t = thread_self();
+
+	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+		if G_UNLIKELY(i > thread_next_stid)
+			break;
+		if G_UNLIKELY(t == tstid[i])
+			return i;
+	}
+
+	/*
+	 * The current thread is not registered, the insertion lock is busy which
+	 * means we are in the process of adding a new one but we cannot determine
+	 * the exact thread ID: several threads could be requesting a small ID at
+	 * the same time.
+	 *
+	 * We are certainly multi-threaded at this point, so wait a little bit to
+	 * let other threads release the locks and retry.  After 20 loops, we
+	 * abandon all hopes and abort the execution.
+	 */
+
+	if (retries++ < 20) {
+		/* Thread is unknown, we should not be holding any locks */
+		compat_sleep_ms(50);
+		goto retry;
+	}
+
+	s_error("cannot compute thread small ID");
 }
 
 /**
@@ -813,16 +906,8 @@ thread_current(void)
 
 	G_PREFETCH_R(&te->stack_base);
 
-	if (thread_element_matches(te, qid)) {
-		/*
-		 * Maintain lowest stack address for thread.
-		 */
-
-		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
-			thread_stack_init_shape(te, &qid);
-
+	if (thread_element_matches(te, qid))
 		return te->tid;
-	}
 
 	/*
 	 * There is no current thread record.  If this QID is marked busy, or if
