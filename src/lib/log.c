@@ -117,6 +117,7 @@ typedef struct logthread {
 	enum logthread_magic magic;
 	volatile sig_atomic_t in_log_handler;	/**< Recursion detection */
 	ckhunk_t *ck;			/**< Chunk from which we can allocate memory */
+	unsigned stid;			/**< Thread small ID */
 } logthread_t;
 
 static inline void
@@ -425,6 +426,7 @@ log_thread_alloc(void)
 	lt->magic = LOGTHREAD_MAGIC;
 	lt->ck = ck;
 	lt->in_log_handler = FALSE;
+	lt->stid = thread_small_id();
 
 	return lt;
 }
@@ -835,8 +837,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	if (G_LIKELY(NULL == lt)) {
 		in_safe_handler = TRUE;
+		stid = thread_small_id();
 	} else {
 		lt->in_log_handler = TRUE;
+		stid = lt->stid;
 	}
 
 	/*
@@ -879,7 +883,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
 	prefix = log_prefix(loglvl);
-	stid = thread_small_id();
 
 	/*
 	 * Avoid stdio's fprintf() from within a signal handler since we
