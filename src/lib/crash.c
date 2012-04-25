@@ -164,6 +164,7 @@ struct crash_vars {
 G_STMT_START { \
 	STATIC_ASSERT(sizeof(src) == sizeof(vars->name)); \
 	ck_memcpy(vars->mem, (void *) &(vars->name), &(src), sizeof(vars->name)); \
+	atomic_mb(); \
 } G_STMT_END
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
@@ -2721,7 +2722,7 @@ crash_save_stackframe(void *stack[], size_t count)
 	if (count > G_N_ELEMENTS(vars->stack))
 		count = G_N_ELEMENTS(vars->stack);
 
-	if (vars != NULL) {
+	if (vars != NULL && 0 == vars->stackcnt) {
 		ck_memcpy(vars->mem,
 			&vars->stack, (void *) stack, count * sizeof(void *));
 		crash_set_var(stackcnt, count);
@@ -2740,7 +2741,7 @@ crash_save_current_stackframe(unsigned offset)
 {
 	crash_mode();
 
-	if (vars != NULL) {
+	if (vars != NULL && 0 == vars->stackcnt) {
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
