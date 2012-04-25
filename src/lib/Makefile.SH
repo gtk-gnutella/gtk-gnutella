@@ -209,6 +209,7 @@ LSRC = \
 	offtime.c \
 	ohash_table.c \
 	omalloc.c \
+	once.c \
 	options.c \
 	ostream.c \
 	pagetable.c \
@@ -356,6 +357,7 @@ LOBJ = \
 	offtime.o \
 	ohash_table.o \
 	omalloc.o \
+	once.o \
 	options.o \
 	ostream.o \
 	pagetable.o \

@@ -152,6 +152,7 @@ LSRC = \
 	offtime.c \
 	ohash_table.c \
 	omalloc.c \
+	once.c \
 	options.c \
 	ostream.c \
 	pagetable.c \
