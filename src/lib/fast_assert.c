@@ -33,11 +33,16 @@
 
 #include "common.h"
 
-#include "crash.h"				/* For print_str() and crash_time() */
 #include "fast_assert.h"
+#include "atomic.h"
+#include "crash.h"				/* For print_str() and crash_time() */
 #include "log.h"
+#include "misc.h"				/* For CONST_STRLEN() */
 #include "stacktrace.h"
 #include "str.h"
+#include "stringify.h"			/* For UINT_DEC_BUFLEN */
+#include "thread.h"
+
 #include "override.h"			/* Must be the last header included */
 
 /**
@@ -50,12 +55,21 @@ assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[22];
 	char time_buf[18];
+	char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
+	unsigned stid;
 	DECLARE_STR(16);
 
 	crash_time(time_buf, sizeof time_buf);
+	stid = thread_small_id();
 
 	print_str(time_buf);
-	print_str(fatal ? " (FATAL): " : " (WARNING): ");
+	if (0 == stid) {
+		print_str(fatal ? " (FATAL): " : " (WARNING): ");
+	} else {
+		str_bprintf(prefix, sizeof prefix, " (%s-%u): ",
+			fatal ? "FATAL" : "WARNING", stid);
+		print_str(prefix);
+	}
 	if (data->expr) {
 		print_str("Assertion failure in ");
 	} else {
@@ -97,6 +111,7 @@ assertion_abort(void)
 
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
+		atomic_mb();
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
 		if (log_stdout_is_distinct())
 			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
@@ -183,12 +198,19 @@ assertion_warning_log(const assertion_data * const data,
 
 	{
 		char time_buf[18];
+		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
+		unsigned stid = thread_small_id();
 		DECLARE_STR(4);
 
 		crash_time(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
-		print_str(" (WARNING): ");
+		if (0 == stid) {
+			print_str(" (WARNING): ");
+		} else {
+			str_bprintf(prefix, sizeof prefix, " (WARNING-%u): ", stid);
+			print_str(prefix);
+		}
 		print_str(str_2c(str));
 		print_str("\n");
 		flush_err_str();
@@ -243,12 +265,19 @@ assertion_failure_log(const assertion_data * const data,
 
 	if (msg != NULL) {
 		char time_buf[18];
+		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (FATAL-): ")];
+		unsigned stid = thread_small_id();
 		DECLARE_STR(4);
 
 		crash_time(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
-		print_str(" (FATAL): ");
+		if (0 == stid) {
+			print_str(" (FATAL): ");
+		} else {
+			str_bprintf(prefix, sizeof prefix, " (FATAL-%u): ", stid);
+			print_str(prefix);
+		}
 		print_str(msg);
 		print_str("\n");
 		flush_err_str();
