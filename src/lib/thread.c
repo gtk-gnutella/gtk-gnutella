@@ -56,6 +56,7 @@
 #include "omalloc.h"
 #include "pow2.h"
 #include "spinlock.h"
+#include "stacktrace.h"
 #include "stringify.h"
 #include "vmm.h"
 #include "zalloc.h"
@@ -1214,7 +1215,7 @@ thread_lock_dump(const struct thread_element *te)
 		char buf[POINTER_BUFLEN + 2];
 		char line[UINT_DEC_BUFLEN];
 		const char *lnum;
-		DECLARE_STR(12);
+		DECLARE_STR(16);
 
 		type = thread_lock_kind_to_string(l->kind);
 		buf[0] = '0';
@@ -1235,6 +1236,10 @@ thread_lock_dump(const struct thread_element *te)
 				print_str(s->file);			/* 5 */
 				print_str(":");				/* 6 */
 				print_str(lnum);			/* 7 */
+				if (SPINLOCK_MAGIC != s->magic)
+					print_str(" BAD_MAGIC");	/* 8 */
+				if (s->lock != 1)
+					print_str(" BAD_LOCK");		/* 9 */
 			}
 			break;
 		case THREAD_LOCK_MUTEX:
@@ -1245,6 +1250,12 @@ thread_lock_dump(const struct thread_element *te)
 				print_str(s->file);			/* 5 */
 				print_str(":");				/* 6 */
 				print_str(lnum);			/* 7 */
+				if (MUTEX_MAGIC != m->magic)
+					print_str(" BAD_MAGIC");	/* 8 */
+				if (s->lock != 1)
+					print_str(" BAD_LOCK");		/* 9 */
+				if (m->owner != te->tid)
+					print_str(" BAD_TID");		/* 10 */
 			}
 			break;
 		}
@@ -1255,11 +1266,13 @@ thread_lock_dump(const struct thread_element *te)
 			const mutex_t *m = l->lock;
 
 			dnum = print_number(depth, sizeof depth, m->depth);
-			print_str(" (depth=");		/* 8 */
-			print_str(dnum);			/* 9 */
-			print_str(")");				/* 10 */
+			print_str(" (depth=");		/* 11 */
+			print_str(dnum);			/* 12 */
+			print_str(")");				/* 13 */
+			if (0 == m->depth)
+				print_str(" BAD_DEPTH");	/* 14 */
 		}
-		print_str("\n");		/* 11 */
+		print_str("\n");		/* 15 */
 		flush_err_str();
 	}
 }
@@ -1442,10 +1455,15 @@ thread_lock_count(void)
 }
 
 /**
+ * Find who owns a lock, and what kind of lock it is.
+ *
+ * @param lock		the lock address
+ * @param kind		where type of lock is written, if owner found
+ *
  * @return thread owning a lock, NULL if we can't find it.
  */
 static struct thread_element *
-thread_lock_owner(const volatile void *lock)
+thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 {
 	unsigned i;
 
@@ -1463,8 +1481,10 @@ thread_lock_owner(const volatile void *lock)
 		for (j = 0; j < tls->count; j++) {
 			const struct thread_lock *l = &tls->arena[j];
 
-			if (l->lock == lock)
+			if (l->lock == lock) {
+				*kind = l->kind;
 				return te;
+			}
 		}
 	}
 
@@ -1483,6 +1503,7 @@ thread_lock_deadlock(const volatile void *lock)
 	struct thread_element *te;
 	struct thread_element *towner;
 	static bool deadlocked;
+	enum thread_lock_kind kind;
 
 	if (deadlocked)
 		return;				/* Recursion, avoid problems */
@@ -1500,19 +1521,26 @@ thread_lock_deadlock(const volatile void *lock)
 		return;		/* Do it once per thread since there is no way out */
 
 	te->deadlocked = TRUE;
-	towner = thread_lock_owner(lock);
+	towner = thread_lock_owner(lock, &kind);
 
 	if (NULL == towner || towner == te) {
-		s_minicrit("thread #%u deadlocked whilst waiting on %p, owned by %s",
-			te->stid, lock, NULL == towner ? "nobody" : "itself");
+		s_minicrit("thread #%u deadlocked whilst waiting on %s%s%p, "
+			"owned by %s", te->stid,
+			NULL == towner ? "" : thread_lock_kind_to_string(kind),
+			NULL == towner ? "" : " ",
+			lock, NULL == towner ? "nobody" : "itself");
 	} else {
-		s_minicrit("thread #%u deadlocked whilst waiting on %p, "
-			"owned by thread #%u", te->stid, lock, towner->stid);
+		s_minicrit("thread #%u deadlocked whilst waiting on %s %p, "
+			"owned by thread #%u", te->stid,
+			thread_lock_kind_to_string(kind), lock, towner->stid);
 	}
 
 	thread_lock_dump(te);
 	if (towner != NULL && towner != te)
 		thread_lock_dump(towner);
+
+	s_miniinfo("attempting to unwind current stack:");
+	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
