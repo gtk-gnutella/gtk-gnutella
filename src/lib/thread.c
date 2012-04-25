@@ -92,7 +92,7 @@ struct thread_lock_stack {
 	struct thread_lock *arena;		/**< The actual stack */
 	size_t capacity;				/**< Amount of entries available */
 	size_t count;					/**< Amount of entries held */
-	unsigned overflow:1;			/**< Set if stack overflow detected */
+	uint8 overflow;					/**< Set if stack overflow detected */
 };
 
 /**
@@ -750,6 +750,26 @@ retry:
 	}
 
 	s_error("cannot compute thread small ID");
+}
+
+/**
+ * Translate a thread ID into a small thread ID.
+ *
+ * @return small thread ID if thread is known, -1 otherwise.
+ */
+int
+thread_stid_from_thread(const thread_t t)
+{
+	unsigned i;
+
+	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+		if G_UNLIKELY(i > thread_next_stid)
+			break;
+		if G_UNLIKELY(t == tstid[i])
+			return i;
+	}
+
+	return -1;
 }
 
 /**
@@ -1504,6 +1524,7 @@ thread_lock_deadlock(const volatile void *lock)
 	struct thread_element *towner;
 	static bool deadlocked;
 	enum thread_lock_kind kind;
+	unsigned i;
 
 	if (deadlocked)
 		return;				/* Recursion, avoid problems */
@@ -1538,6 +1559,32 @@ thread_lock_deadlock(const volatile void *lock)
 	thread_lock_dump(te);
 	if (towner != NULL && towner != te)
 		thread_lock_dump(towner);
+
+	/*
+	 * Mark all the threads as overflowing their lock stack.
+	 *
+	 * That way we'll silently ignore lock recording overflows and will
+	 * become totally permissive about out-of-order releases.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+		struct thread_lock_stack *tls = &xte->locks;
+
+		atomic_mb();
+		tls->overflow = TRUE;
+		atomic_mb();
+	}
+
+	/*
+	 * Disable all locks: spinlocks and mutexes will be granted immediately,
+	 * preventing further deadlocks at the cost of a possible crash.  However,
+	 * this allows us to maybe collect information that we couldn't otherwise
+	 * get at, so it's worth the risk.
+	 */
+
+	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
+	mutex_crash_mode();		/* Allow release of all mutexes */
 
 	s_miniinfo("attempting to unwind current stack:");
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);

@@ -44,6 +44,8 @@
 
 #include "override.h"			/* Must be the last header included */
 
+static bool mutex_pass_through;
+
 static inline void
 mutex_get_account(const mutex_t *m)
 {
@@ -64,11 +66,20 @@ mutex_check(const volatile struct mutex * const mutex)
 }
 
 /**
+ * Enter crash mode: allow all mutexes to be silently released.
+ */
+G_GNUC_COLD void
+mutex_crash_mode(void)
+{
+	mutex_pass_through = TRUE;
+}
+
+/**
  * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static NO_INLINE void
+static G_GNUC_COLD NO_INLINE void
 mutex_deadlock(const volatile void *obj, unsigned count)
 {
 	const volatile mutex_t *m = obj;
@@ -88,7 +99,7 @@ mutex_deadlock(const volatile void *obj, unsigned count)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static NO_INLINE void G_GNUC_NORETURN
+static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
 mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 {
 	const volatile mutex_t *m = obj;
@@ -273,7 +284,21 @@ void
 mutex_release(mutex_t *m)
 {
 	mutex_check(m);
-	g_assert(mutex_is_owned(m));
+
+	/*
+	 * We don't immediately assert that the mutex is owned to not penalize
+	 * the regular path, and to cleanly cut through the assertion when we're
+	 * in crash mode.
+	 */
+
+	if G_UNLIKELY(!mutex_is_owned(m)) {	/* Precondition */
+		if (mutex_pass_through)
+			return;
+		/* OK, re-assert so that we get the precondition failure */
+		g_assert_log(mutex_is_owned(m),
+			"attempt to release unowned mutex %p (depth=%zu, owner=thread #%d)",
+			m, m->depth, thread_stid_from_thread(m->owner));
+	}
 
 	if (0 == --m->depth) {
 		m->owner = 0;
@@ -306,7 +331,7 @@ mutex_held_depth(const mutex_t *m)
 {
 	mutex_check(m);
 
-	return spinlock_is_held(&m->lock) ? 0 : m->depth;
+	return spinlock_is_held(&m->lock) ? m->depth : 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -77,6 +77,7 @@ enum thread_lock_kind {
 thread_t thread_current(void);
 thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
+int thread_stid_from_thread(const thread_t t);
 const char *thread_to_string(const thread_t t);
 
 unsigned thread_count();

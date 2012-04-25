@@ -137,6 +137,7 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
+void spinlock_crash_mode(void);
 
 #if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
 

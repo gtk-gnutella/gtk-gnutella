@@ -88,6 +88,8 @@ bool mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 #define mutex_get_const(x)	mutex_grab(deconstify_pointer(x))
 #endif	/* SPINLOCK_DEBUG */
 
+void mutex_crash_mode(void);
+
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
 void mutex_release(mutex_t *m);

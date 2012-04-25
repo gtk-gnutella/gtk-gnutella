@@ -54,6 +54,8 @@
 #define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
+static bool spinlock_pass_through;
+
 static inline void
 spinlock_account(const spinlock_t *s)
 {
@@ -87,11 +89,23 @@ spinlock_source_string(enum spinlock_source src)
 }
 
 /**
+ * Enter crash mode: let all spinlocks be grabbed immediately.
+ */
+G_GNUC_COLD void
+spinlock_crash_mode(void)
+{
+	if (!thread_is_single())
+		s_minicrit("disabling locks, running in thread-unsafe mode");
+
+	spinlock_pass_through = TRUE;
+}
+
+/**
  * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static NO_INLINE void
+static G_GNUC_COLD NO_INLINE void
 spinlock_deadlock(const volatile void *obj, unsigned count)
 {
 	const volatile spinlock_t *s = obj;
@@ -110,7 +124,7 @@ spinlock_deadlock(const volatile void *obj, unsigned count)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static NO_INLINE void G_GNUC_NORETURN
+static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
 spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 {
 	const volatile spinlock_t *s = obj;
@@ -164,6 +178,13 @@ spinlock_loop(volatile spinlock_t *s,
 
 	if G_UNLIKELY(0 == cpus)
 		cpus = getcpucount();
+
+	/*
+	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
+	 */
+
+	if G_UNLIKELY(spinlock_pass_through)
+		return;
 
 	/*
 	 * When running mono-threaded, having to loop means we're deadlocked
@@ -345,6 +366,9 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
+	if G_UNLIKELY(spinlock_pass_through)
+		return TRUE;		/* Crashing */
+
 	return FALSE;
 }
 #endif	/* SPINLOCK_DEBUG */
@@ -356,7 +380,7 @@ void
 spinlock_release(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
-	g_assert(s->lock != 0);
+	g_assert(s->lock != 0 || spinlock_pass_through);
 
 	/*
 	 * The release acts as a "release barrier", ensuring that all previous
