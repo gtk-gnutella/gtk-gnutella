@@ -118,6 +118,7 @@
 #include "memusage.h"
 #include "mutex.h"
 #include "omalloc.h"
+#include "once.h"
 #include "parse.h"
 #include "pow2.h"
 #include "spinlock.h"
@@ -4380,31 +4381,12 @@ vmm_post_init(void)
 }
 
 /**
- * Early initialization of the vitual memory manager.
- *
- * @attention
- * No external memory allocation (malloc() and friends) can be done in this
- * routine, which is called very early at startup.
+ * Initialize the VMM layer, once.
  */
-G_GNUC_COLD void
-vmm_init(void)
+static G_GNUC_COLD void
+vmm_init_once(void)
 {
-	static spinlock_t init_lck = SPINLOCK_INIT;
 	int i;
-
-	/*
-	 * Detect whether vmm_init() was already run due to an earlier vmm_alloc()
-	 * call, which indicates that something went wrong already in the startup
-	 * and the process had to allocate memory earlier than expected, probably
-	 * due to error logging.
-	 */
-
-	spinlock(&init_lck);
-
-	if G_UNLIKELY(0 != kernel_pagesize) {
-		spinunlock(&init_lck);
-		return;
-	}
 
 #ifdef HAS_SBRK
 	initial_brk = sbrk(0);
@@ -4470,9 +4452,20 @@ vmm_init(void)
 	 * We can now use the VMM layer to allocate memory via xmalloc().
 	 */
 
-	spinunlock(&init_lck);
-	vmm_inited = TRUE;
 	xmalloc_vmm_inited();
+}
+
+/**
+ * Early initialization of the vitual memory manager.
+ *
+ * @attention
+ * No external memory allocation (malloc() and friends) can be done in this
+ * routine, which is called very early at startup.
+ */
+G_GNUC_COLD void
+vmm_init(void)
+{
+	once_run(&vmm_inited, vmm_init_once);
 }
 
 /**

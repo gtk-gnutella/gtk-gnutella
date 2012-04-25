@@ -44,6 +44,7 @@
 #include "glib-missing.h"       /* For g_strlcpy() */
 #include "log.h"
 #include "misc.h"
+#include "once.h"
 #include "str.h"
 #include "unsigned.h"
 
@@ -129,6 +130,7 @@ static const char SIGNAL_NUM[] = "signal #";
 static const char SIG_PREFIX[] = "SIG";
 
 static volatile sig_atomic_t in_signal_handler;
+static bool signal_inited;
 
 /**
  * Converts signal number to a name.
@@ -725,7 +727,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
 
-	if (G_UNLIKELY(NULL == sig_chunk))		/* No signal_init() yet */
+	if G_UNLIKELY(!signal_inited)
 		signal_init();
 
 	old_handler = signal_handler[signo];
@@ -954,29 +956,23 @@ signal_abort(void)
 /**
  * Initialize the signal layer.
  */
-void
-signal_init(void)
+static G_GNUC_COLD void
+signal_init_once(void)
 {
 	int regnum;
+	size_t i;
 
-	if (NULL == sig_chunk) {		/* Allow multiple calls */
-		size_t i;
-
-		for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
-			signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
-		}
-
-		/* 
-		 * Chunk allocated as non-leaking because the signal chunk must
-		 * remain active up to the very end, way past the point where we're
-		 * supposed to have freed everything and leak detection kicks in.
-		 */
-
-		sig_chunk =
-			ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+	for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
+		signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 	}
 
-	g_assert(sig_chunk != NULL);	/* We're initialized now */
+	/* 
+	 * Chunk allocated as non-leaking because the signal chunk must
+	 * remain active up to the very end, way past the point where we're
+	 * supposed to have freed everything and leak detection kicks in.
+	 */
+
+	sig_chunk = ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
 
 	/*
 	 * Compute the PC register index in the saved user machine context.
@@ -999,6 +995,15 @@ signal_init(void)
 	default:
 		break;
 	}
+}
+
+/**
+ * Initialize the signal layer.
+ */
+void
+signal_init(void)
+{
+	once_run(&signal_inited, signal_init_once);
 }
 
 /**

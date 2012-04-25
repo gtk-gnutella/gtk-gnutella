@@ -46,6 +46,7 @@
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
+#include "once.h"
 #include "stringify.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -776,8 +777,8 @@ uint32_str(const void *v)
 /**
  * Initialize atom structures.
  */
-void
-atoms_init(void)
+static G_GNUC_COLD void
+atoms_init_once(void)
 {
 	bool has_setting = FALSE;
 	struct atom_settings {
@@ -787,11 +788,7 @@ atoms_init(void)
 	} settings;
 	uint i;
 
-	if G_UNLIKELY(atoms_inited)
-		return;		/* Already initialized */
-
 	ZERO(&settings);
-	atoms_inited = TRUE;
 
 	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
 
@@ -830,6 +827,17 @@ atoms_init(void)
 			settings.protect_atoms ? "PROTECT_ATOMS " : "",
 			settings.atoms_have_magic ? "ATOMS_HAVE_MAGIC " : "");
 	}
+
+	log_atoms_inited();		/* Atom layer is up */
+}
+
+/**
+ * Initialize atom structures.
+ */
+void
+atoms_init(void)
+{
+	once_run(&atoms_inited, atoms_init_once);
 }
 
 /**

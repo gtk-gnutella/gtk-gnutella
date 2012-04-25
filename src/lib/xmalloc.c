@@ -60,6 +60,7 @@
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
 #include "mutex.h"
+#include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
@@ -487,6 +488,7 @@ static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
 static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
 static size_t xmalloc_pagesize;		/**< Cached page size */
+static bool xmalloc_freelist_inited;
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
@@ -2072,20 +2074,12 @@ plain_insert:
 }
 
 /**
- * Initial setup of the free list that cannot be conveniently initialized
- * by static declaration.
+ * Initialize freelist buckets once.
  */
 static G_GNUC_COLD void
-xmalloc_freelist_setup(void)
+xmalloc_freelist_init_once(void)
 {
-	static bool done;
-	static spinlock_t freelist_slk = SPINLOCK_INIT;
 	size_t i;
-
-	spinlock(&freelist_slk);
-
-	if (done)
-		goto initialized;
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
@@ -2111,34 +2105,40 @@ xmalloc_freelist_setup(void)
 			spinlock_init(&ch->lock);
 		}
 	}
+}
 
-	done = TRUE;
-
-initialized:
-	spinunlock(&freelist_slk);
+/**
+ * Initial setup of the free list that cannot be conveniently initialized
+ * by static declaration.
+ */
+static G_GNUC_COLD void
+xmalloc_freelist_setup(void)
+{
+	once_run(&xmalloc_freelist_inited, xmalloc_freelist_init_once);
 
 	/*
 	 * If the address space is not growing in the same direction as the
 	 * initial default, we have to resort all the buckets.
 	 */
 
-	if (xmalloc_grows_up)
-		return;
+	if (!xmalloc_grows_up) {
+		size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
-		struct xfreelist *fl = &xfreelist[i];
+		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+			struct xfreelist *fl = &xfreelist[i];
 
-		mutex_get(&fl->lock);
+			mutex_get(&fl->lock);
 
-		/* Sort with xqsort() to guarantee no memory allocation */
+			/* Sort with xqsort() to guarantee no memory allocation */
 
-		if (0 != fl->count) {
-			void **ary = fl->pointers;
-			xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
-			fl->sorted = fl->count;
+			if (0 != fl->count) {
+				void **ary = fl->pointers;
+				xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
+				fl->sorted = fl->count;
+			}
+
+			mutex_release(&fl->lock);
 		}
-
-		mutex_release(&fl->lock);
 	}
 }
 

@@ -1740,7 +1740,6 @@ main(int argc, char **argv)
 
 	mingw_init();
 	atoms_init();
-	log_atoms_inited();		/* Atom layer is up */
 	settings_early_init();
 
 	/*
