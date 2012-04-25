@@ -48,6 +48,7 @@
 #include "omalloc.h"
 #include "path.h"
 #include "signal.h"
+#include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
 #include "symbols.h"
@@ -85,6 +86,7 @@ static bool symbols_loaded;
 static symbols_t *symbols;
 
 static const char *executable_absolute_path;	/* Read-only string */
+static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
 
 /**
  * This buffer is allocated to construct the stack trace atomically to make
@@ -1782,7 +1784,12 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
 	if G_UNLIKELY(NULL == stack_atoms) {
-		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
+		spinlock(&stacktrace_atom_slk);
+		if (NULL == stack_atoms) {
+			stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
+			hash_table_thread_safe(stack_atoms);
+		}
+		spinunlock(&stacktrace_atom_slk);
 	}
 
 	key.stack = deconstify_pointer(st->stack);
@@ -1801,6 +1808,8 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 {
 	const struct stackatom *result;
 	struct stackatom local;
+
+	g_assert(spinlock_is_held(&stacktrace_atom_slk));
 
 	/* These objects will be never freed */
 	if (len != 0) {
@@ -1832,7 +1841,11 @@ stacktrace_get_atom(const struct stacktrace *st)
 	result = stacktrace_atom_lookup(st, len);
 
 	if G_UNLIKELY(NULL == result) {
-		result = stacktrace_atom_record(st, len);
+		spinlock(&stacktrace_atom_slk);
+		result = stacktrace_atom_lookup(st, len);
+		if (NULL == result)
+			result = stacktrace_atom_record(st, len);
+		spinlock(&stacktrace_atom_slk);
 	}
 
 	return result;
@@ -1865,7 +1878,11 @@ stacktrace_caller_known(size_t offset)
 	result = stacktrace_atom_lookup(&t, len);
 
 	if G_UNLIKELY(NULL == result) {
-		(void) stacktrace_atom_record(&t, len);
+		spinlock(&stacktrace_atom_slk);
+		result = stacktrace_atom_lookup(&t, len);
+		if (NULL == result)
+			(void) stacktrace_atom_record(&t, len);
+		spinunlock(&stacktrace_atom_slk);
 		return FALSE;
 	} else {
 		return TRUE;
