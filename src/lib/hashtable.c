@@ -807,24 +807,33 @@ hash_table_replace(hash_table_t *ht, const void *key, const void *value)
 }
 
 /**
+ * Lookup key in the table.
+ *
  * @return value associated with the key.
  */
 void *
 hash_table_lookup(const hash_table_t *ht, const void *key)
 {
 	hash_item_t *item;
+	void *p;
 
 	hash_table_check(ht);
 	ht_synchronize(ht);
 
 	item = hash_table_find(ht, key, NULL);
+	p = item ? deconstify_pointer(item->value) : NULL;
 
-	ht_return(ht, item ? deconstify_pointer(item->value) : NULL);
+	ht_return(ht, p);
 }
 
 /**
  * Lookup key in the hash table, returning physical pointers to the key/value
  * items into ``kp'' and ``vp'' respectively, if non-NULL.
+ *
+ * @param ht		the hash table
+ * @param key		the key to lookup
+ * @param kp		where the key pointer is copied, if non-NULL
+ * @param vp		where the value pointer is copied, if non-NULL
  *
  * @return TRUE if item was found.
  */
@@ -852,6 +861,7 @@ hash_table_lookup_extended(const hash_table_t *ht,
 
 /**
  * Check whether hashlist contains the key.
+ *
  * @return TRUE if the key is present.
  */
 bool
