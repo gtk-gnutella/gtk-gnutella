@@ -679,7 +679,7 @@ thread_qid_lookup(void)
 /**
  * Find existing thread based on the supplied stack pointer.
  *
- * @param sp		a pointer to the stack
+ * @param sp		a pointer to the stack (NULL to use TIDs to locate thread)
  *
  * @return the likely thread element to which the stack pointer could relate,
  * NULL if we cannot determine the thread.
@@ -710,17 +710,19 @@ thread_find(const void *sp)
 	 * it is necessary to return the proper thread so that any lock acquired
 	 * during the critical section be properly attributed to the new thread,
 	 * or to none if we can't find the thread.
+	 *
+	 * We therefore mostly lookup threads by TID, the only time when we're
+	 * not is when we have a stack pointer and we wish to determine to which
+	 * thread it belongs.
 	 */
 
 	te = NULL;
 
-	if G_UNLIKELY(spinlock_is_held(&thread_insert_slk)) {
+	if G_LIKELY(NULL == sp) {
 		thread_t t = thread_self();
 
 		/*
-		 * We're in the middle of a new thread creation, hence it is wrong
-		 * to look for stacks since the new thread may not have its stack
-		 * setup yet.  We have to compare TIDs.
+		 * We have to compare TIDs.
 		 */
 
 		for (i = 0; i < thread_next_stid; i++) {
@@ -734,8 +736,8 @@ thread_find(const void *sp)
 	} else {
 		/*
 		 * Perform linear lookup, looking for the thread for which the stack
-		 * pointer is "above" the parameter and for which the distance to the
-		 * base of the stack is the smallest.
+		 * pointer is "above" the base of the stack and for which the distance
+		 * to that base is the smallest.
 		 */
 
 		for (i = 0; i < thread_next_stid; i++) {
@@ -748,7 +750,7 @@ thread_find(const void *sp)
 				size_t offset;
 
 				/*
-				 * Pointer is "above" the stack base, track the thread whith
+				 * Pointer is "above" the stack base, track the thread with
 				 * the smallest offset relative to the stack base.
 				 */
 
@@ -914,7 +916,7 @@ thread_suspend_others(void)
 	 * these locks).
 	 */
 
-	te = thread_find(&te);		/* Ourselves */
+	te = thread_find(NULL);		/* Ourselves */
 	if (NULL == te)
 		return 0;
 
@@ -973,7 +975,7 @@ thread_unsuspend_others(void)
 	size_t i, n = 0;
 	struct thread_element *te;
 
-	te = thread_find(&te);		/* Ourselves */
+	te = thread_find(NULL);		/* Ourselves */
 	if (NULL == te)
 		return 0;
 
@@ -1129,7 +1131,7 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 		return FALSE;
 
 	if (NULL == top) {
-		if (thread_get_element() != te)
+		if (thread_self() != te->tid)
 			return FALSE;		/* Not in the current thread */
 		top = &te;
 	}
@@ -1260,7 +1262,7 @@ thread_pending_add(int increment)
 {
 	struct thread_element *te;
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -1397,7 +1399,7 @@ thread_lock_current_dump(void)
 {
 	struct thread_element *te;
 	
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -1421,7 +1423,7 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 	 * thread element is already in the process of being created.
 	 */
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -1458,7 +1460,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind)
 	 * thread element at lock time but are able to get one now.
 	 */
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -1532,7 +1534,7 @@ thread_lock_holds(const volatile void *lock)
 	 * thread element at lock time but are able to get one now.
 	 */
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return FALSE;
 
@@ -1559,7 +1561,7 @@ thread_lock_count(void)
 {
 	struct thread_element *te;
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te)
 		return 0;
 
@@ -1624,7 +1626,7 @@ thread_lock_deadlock(const volatile void *lock)
 	deadlocked = TRUE;
 	atomic_mb();
 
-	te = thread_find(&te);
+	te = thread_find(NULL);
 	if G_UNLIKELY(NULL == te) {
 		s_miniinfo("no thread to list owned locks");
 		return;
