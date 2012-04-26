@@ -183,8 +183,10 @@ spinlock_loop(volatile spinlock_t *s,
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
 	 */
 
-	if G_UNLIKELY(spinlock_pass_through)
+	if G_UNLIKELY(spinlock_pass_through) {
+		spinlock_direct(s);
 		return;
+	}
 
 	/*
 	 * When running mono-threaded, having to loop means we're deadlocked
