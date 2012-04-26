@@ -60,6 +60,7 @@
 #include "common.h"
 
 #include "log.h"
+#include "atomic.h"
 #include "atoms.h"
 #include "ckalloc.h"
 #include "crash.h"
@@ -198,7 +199,6 @@ static struct logfile logfile[LOG_MAX_FILES];
  * This is used to detect recurstions.
  */
 static volatile sig_atomic_t in_safe_handler;	/* in s_logv() */
-static volatile sig_atomic_t in_error;			/* in s_error() / t_error() */
 
 static const char DEV_NULL[] = "/dev/null";
 
@@ -973,22 +973,38 @@ done:
 
 /**
  * Make sure there is no recursive s_error() or t_error() calls.
+ *
+ * @return TRUE if are in recursion and can continue.
  */
-static void
-log_check_recursive(void)
+static bool
+log_check_recursive(const char *format, va_list ap)
 {
 	static int recursive;
+	static char buf[LOG_MSG_MAXLEN];
 
-	if (in_error++) {
-		if (0 == recursive) {
-			recursive++;
-			s_minicrit("recursive or concurrent error, aborting");
-			log_abort();
-		} else if (1 == recursive) {
-			abort();
-		} else {
-			_exit(EXIT_FAILURE);
-		}
+	atomic_int_inc(&recursive);
+
+	if (1 == recursive) {
+		str_vbprintf(buf, sizeof buf, format, ap);
+		return FALSE;
+	} else if (2 == recursive) {
+		/*
+		 * Ensure we're not losing previous error in case we did not go
+		 * far enough, but flag the string as being from a previous error
+		 * in case it was already logged, to avoid confusion.
+		 */
+		crash_set_error("previous error: ");
+		crash_append_error(buf);
+		s_minicrit("error occurred whilst processing former error:");
+		s_miniinfo("previous error: %s", buf);
+		return TRUE;
+	} else if (3 == recursive) {
+		s_minicrit("recursive or concurrent error, aborting");
+		log_abort();
+	} else if (4 == recursive) {
+		abort();
+	} else {
+		_exit(EXIT_FAILURE);
 	}
 }
 
@@ -1025,12 +1041,19 @@ s_critical(const char *format, ...)
 void
 s_error(const char *format, ...)
 {
-	va_list args;
-
-	log_check_recursive();
+	va_list args, acopy;
+	unsigned flags = G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	VA_COPY(acopy, args);
+
+	if (log_check_recursive(format, acopy)) {
+		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
+	} else {
+		s_logv(NULL, flags, format, args);
+	}
+
+	va_end(acopy);
 	va_end(args);
 
 	log_abort();
@@ -1042,13 +1065,21 @@ s_error(const char *format, ...)
 void
 s_error_from(const char *file, const char *format, ...)
 {
-	va_list args;
+	va_list args, acopy;
+	unsigned flags = G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL;
 
-	log_check_recursive();
 	crash_set_filename(file);
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	VA_COPY(acopy, args);
+
+	if (log_check_recursive(format, acopy)) {
+		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
+	} else {
+		s_logv(NULL, flags, format, args);
+	}
+
+	va_end(acopy);
 	va_end(args);
 
 	log_abort();
@@ -1337,13 +1368,19 @@ t_critical(const char *format, ...)
 void
 t_error(const char *format, ...)
 {
-	va_list args;
-
-	log_check_recursive();
+	va_list args, acopy;
+	unsigned flags = G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL;
 
 	va_start(args, format);
-	s_logv(logthread_object(TRUE),
-		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	VA_COPY(acopy, args);
+
+	if (log_check_recursive(format, acopy)) {
+		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
+	} else {
+		s_logv(logthread_object(TRUE), flags, format, args);
+	}
+
+	va_end(acopy);
 	va_end(args);
 
 	log_abort();
@@ -1355,14 +1392,21 @@ t_error(const char *format, ...)
 void
 t_error_from(const char *file, const char *format, ...)
 {
-	va_list args;
+	va_list args, acopy;
+	unsigned flags = G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL;
 
-	log_check_recursive();
 	crash_set_filename(file);
 
 	va_start(args, format);
-	s_logv(logthread_object(TRUE),
-		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	VA_COPY(acopy, args);
+
+	if (log_check_recursive(format, acopy)) {
+		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
+	} else {
+		s_logv(logthread_object(TRUE), flags, format, args);
+	}
+
+	va_end(acopy);
 	va_end(args);
 
 	log_abort();
