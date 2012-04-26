@@ -698,7 +698,7 @@ thread_find(const void *sp)
 	 * check whether we have it cached by its QID.
 	 */
 
-	qid = thread_quasi_id_fast(sp);
+	qid = thread_quasi_id_fast(NULL == sp ? &i : sp);
 	idx = hashing_fold(qid, THREAD_QID_BITS);
 	te = thread_qid_cache[idx];
 
