@@ -94,8 +94,12 @@ spinlock_source_string(enum spinlock_source src)
 G_GNUC_COLD void
 spinlock_crash_mode(void)
 {
-	if (!thread_is_single())
-		s_minicrit("disabling locks, running in thread-unsafe mode");
+	unsigned count = thread_count();
+
+	if (count > 1) {
+		s_minicrit("disabling locks, now in thread-unsafe mode (%u threads)",
+			count);
+	}
 
 	spinlock_pass_through = TRUE;
 }
