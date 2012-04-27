@@ -1106,7 +1106,7 @@ thread_is_single(void)
 		 * we've registered a thread #1 yet but not yet completed the
 		 * creation of its thread element.
 		 */
-		return tstid[1] != 0;
+		return 0 == tstid[1];			/* No thread #1 => single thread */
 	} else {
 		(void) thread_current();		/* Counts threads */
 		return 1 >= thread_next_stid;
