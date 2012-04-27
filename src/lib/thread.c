@@ -1100,9 +1100,17 @@ thread_is_single(void)
 	if (thread_next_stid > 1)
 		return FALSE;
 
-	(void) thread_current();		/* Counts threads */
-
-	return 1 >= thread_next_stid;
+	if (spinlock_is_held(&thread_insert_slk)) {
+		/*
+		 * In the middle of a thread creation, we just need to look whether
+		 * we've registered a thread #1 yet but not yet completed the
+		 * creation of its thread element.
+		 */
+		return tstid[1] != 0;
+	} else {
+		(void) thread_current();		/* Counts threads */
+		return 1 >= thread_next_stid;
+	}
 }
 
 /**
