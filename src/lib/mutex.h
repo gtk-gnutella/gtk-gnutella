@@ -65,34 +65,39 @@ typedef struct mutex {
  * These should not be called directly by user code to allow debugging.
  */
 
-void mutex_grab(mutex_t *m);
+void mutex_grab(mutex_t *m, bool hidden);
 bool mutex_grab_try(mutex_t *m);
+void mutex_ungrab(mutex_t *m, bool hidden);
 
 /*
  * Public interface.
  */
 
 #ifdef SPINLOCK_DEBUG
-void mutex_grab_from(mutex_t *m, const char *file, unsigned line);
+void mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line);
 bool mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 
-#define mutex_get(x)		mutex_grab_from((x), _WHERE_, __LINE__)
+#define mutex_get(x)		mutex_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define mutex_get_hidden(x)	mutex_grab_from((x), TRUE, _WHERE_, __LINE__)
 #define mutex_get_try(x)	mutex_grab_try_from((x), _WHERE_, __LINE__)
 
 #define mutex_get_const(x)	\
-	mutex_grab_from(deconstify_pointer(x), _WHERE_, __LINE__)
+	mutex_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
 
 #else
-#define mutex_get(x)		mutex_grab((x))
+#define mutex_get(x)		mutex_grab((x), FALSE)
+#define mutex_get_hidden(x)	mutex_grab((x), TRUE)
 #define mutex_get_try(x)	mutex_grab_try((x))
-#define mutex_get_const(x)	mutex_grab(deconstify_pointer(x))
+#define mutex_get_const(x)	mutex_grab(deconstify_pointer(x), FALSE)
 #endif	/* SPINLOCK_DEBUG */
+
+#define mutex_release(x)		mutex_ungrab((x), FALSE)
+#define mutex_release_hidden(x)	mutex_ungrab((x), TRUE)
 
 void mutex_crash_mode(void);
 
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
-void mutex_release(mutex_t *m);
 void mutex_release_const(const mutex_t *m);
 bool mutex_is_owned(const mutex_t *m);
 bool mutex_is_owned_by(const mutex_t *m, const thread_t t);

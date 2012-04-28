@@ -191,7 +191,7 @@ mutex_destroy(mutex_t *m)
  * Grab a mutex.
  */
 void
-mutex_grab(mutex_t *m)
+mutex_grab(mutex_t *m, bool hidden)
 {
 	mutex_check(m);
 	thread_t t = thread_current();
@@ -215,7 +215,8 @@ mutex_grab(mutex_t *m)
 		m->depth = 1;
 	}
 
-	mutex_get_account(m);
+	if G_LIKELY(!hidden)
+		mutex_get_account(m);
 }
 
 /**
@@ -247,9 +248,9 @@ mutex_grab_try(mutex_t *m)
  * Grab a mutex from said location.
  */
 void
-mutex_grab_from(mutex_t *m, const char *file, unsigned line)
+mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line)
 {
-	mutex_grab(m);
+	mutex_grab(m, hidden);
 
 	if (1 == m->depth) {
 		m->lock.file = file;
@@ -281,7 +282,7 @@ mutex_grab_try_from(mutex_t *m, const char *file, unsigned line)
  * Release a mutex, which must be owned currently.
  */
 void
-mutex_release(mutex_t *m)
+mutex_ungrab(mutex_t *m, bool hidden)
 {
 	mutex_check(m);
 
@@ -304,7 +305,9 @@ mutex_release(mutex_t *m)
 		m->owner = 0;
 		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
-	mutex_release_account(m);
+
+	if G_LIKELY(!hidden)
+		mutex_release_account(m);
 }
 
 /**
@@ -318,7 +321,7 @@ mutex_release_const(const mutex_t *m)
 	 * de-constify it now: no mutex is really read-only.
 	 */
 
-	mutex_release(deconstify_pointer(m));
+	mutex_ungrab(deconstify_pointer(m), FALSE);
 }
 
 /**
