@@ -117,6 +117,7 @@ struct thread_element {
 	int pending;					/**< Pending messages to emit */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	uint valid:1;					/**< Whether thread is valid */
+	uint suspended:1;				/**< Whether thread is suspended */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 };
 
@@ -172,6 +173,8 @@ static bool thread_panic_mode;			/* STID overflow, most probably */
 static spinlock_t thread_private_slk = SPINLOCK_INIT;
 static spinlock_t thread_insert_slk = SPINLOCK_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
+
+static void thread_lock_dump(const struct thread_element *te);
 
 #ifdef I_PTHREAD
 /**
@@ -460,7 +463,7 @@ thread_timeout(const volatile struct thread_element *te)
 
 	s_minicrit("thread #%u suspended for too long", te->stid);
 
-	if (ostid != (unsigned) -1) {
+	if (ostid != (unsigned) -1 && (multiple || ostid != te->stid)) {
 		s_minicrit("%ssuspending thread was #%u",
 			multiple ? "first " : "", ostid);
 	}
@@ -473,7 +476,7 @@ thread_timeout(const volatile struct thread_element *te)
  * supplied thread element, if it is flagged as being suspended.
  */
 static void
-thread_suspend_self(const volatile struct thread_element *te)
+thread_suspend_self(volatile struct thread_element *te)
 {
 	time_t start = 0;
 	unsigned i;
@@ -488,6 +491,7 @@ thread_suspend_self(const volatile struct thread_element *te)
 	g_assert(0 == te->locks.count);
 
 	for (i = 0; te->suspend; i++) {
+		te->suspended = TRUE;
 		do_sched_yield();
 
 		/*
@@ -502,6 +506,8 @@ thread_suspend_self(const volatile struct thread_element *te)
 				thread_timeout(te);
 		}
 	}
+
+	te->suspended = FALSE;
 }
 
 /**
@@ -869,6 +875,50 @@ thread_stid_from_thread(const thread_t t)
 }
 
 /**
+ * Wait until all the suspended threads are indeed suspended or no longer
+ * hold any locks (meaning they will get suspended as soon as they try
+ * to acquire one).
+ */
+static void
+thread_wait_others(const struct thread_element *te)
+{
+	time_t start = 0;
+	unsigned i;
+
+	for (i = 0; /* empty */; i++) {
+		unsigned j, busy = 0;
+
+		do_sched_yield();
+
+		for (j = 0; j < thread_next_stid; j++) {
+			struct thread_element *xte = threads[j];
+
+			if G_UNLIKELY(xte == te)
+				continue;
+
+			if (xte->suspended || 0 == xte->locks.count)
+				continue;
+
+			busy++;
+		}
+
+		if (0 == busy)
+			return;
+
+		/*
+		 * Make sure we don't wait indefinitely.
+		 */
+
+		if G_UNLIKELY(i != 0 && 0 == i % THREAD_SUSPEND_CHECK) {
+			if (0 == start)
+				start = tm_time();
+			if (delta_time(tm_time_exact(), start) > THREAD_SUSPEND_TIMEOUT)
+				thread_timeout(te);
+		}
+	}
+}
+
+/**
  * Check whether thread is suspended and can be suspended right now.
  */
 void
@@ -908,6 +958,7 @@ thread_suspend_others(void)
 {
 	struct thread_element *te;
 	size_t i, n = 0;
+	unsigned busy = 0;
 
 	/*
 	 * Must use thread_find() and not thread_get_element() to avoid taking
@@ -916,21 +967,26 @@ thread_suspend_others(void)
 	 * these locks).
 	 */
 
-	te = thread_find(NULL);		/* Ourselves */
-	if (NULL == te)
-		return 0;
+	te = thread_find(NULL);			/* Ourselves */
+	if (NULL == te) {
+		(void) thread_current();	/* Register ourselves then */
+		te = thread_find(NULL);
+	}
 
-retry:
+	g_assert_log(te != NULL, "%s() called from unknown thread", G_STRFUNC);
+
 	mutex_get(&thread_suspend_mtx);
 
 	/*
-	 * If we were concurrently asked to suspend ourselves, wait.
+	 * If we were concurrently asked to suspend ourselves, warn loudly.
 	 */
 
-	if (te->suspend) {
+	if G_UNLIKELY(te->suspend) {
 		mutex_release(&thread_suspend_mtx);
-		thread_suspend_self(te);
-		goto retry;
+		s_carp("%s(): suspending thread #%u was supposed to be suspended",
+			G_STRFUNC, te->stid);
+		thread_lock_dump(te);
+		return 0;
 	}
 
 	for (i = 0; i < thread_next_stid; i++) {
@@ -941,6 +997,8 @@ retry:
 
 		xte->suspend++;
 		n++;
+		if (0 != xte->locks.count)
+			busy++;
 	}
 
 	/*
@@ -949,6 +1007,27 @@ retry:
 
 	te->suspend = 0;
 	mutex_release(&thread_suspend_mtx);
+
+	/*
+	 * Now wait for other threads to be suspended, if we identified busy
+	 * threads (the ones holding locks).  Threads not holding anything will
+	 * be suspended as soon as they successfully acquire their first lock.
+	 *
+	 * If the calling thread is holding any lock at this point, this creates
+	 * a potential deadlocking condition, should any of the busy threads
+	 * need to acquire an additional lock that we're holding.  Loudly warn
+	 * about this situation.
+	 */
+
+	if (busy != 0) {
+		if (0 != te->locks.count) {
+			s_carp("%s() waiting on %u busy thread%s whilst holding %u lock%s",
+				G_STRFUNC, busy, 1 == busy ? "" : "s",
+				te->locks.count, 1 == te->locks.count ? "" : "s");
+			thread_lock_dump(te);
+		}
+		thread_wait_others(te);
+	}
 
 	return n;
 }
@@ -1328,6 +1407,11 @@ thread_lock_dump(const struct thread_element *te)
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
 
+	if G_UNLIKELY(0 == tls->count) {
+		s_miniinfo("thread #%u currently holds no locks", te->stid);
+		return;
+	}
+
 	s_miniinfo("list of locks owned by thread #%u, most recent first:",
 		te->stid);
 
@@ -1415,6 +1499,98 @@ thread_lock_current_dump(void)
 }
 
 /**
+ * Attempt to release a single lock.
+ *
+ * Threads which have just grabbed a single lock (either a spinlock or a
+ * mutex at depth 1) can be immediately suspended before they enter the
+ * critical section protected by the lock as long as the lock is released
+ * first and re-grabbed later on when the thread can resume its activities.
+ *
+ * @return TRUE if we were about to release the lock.
+ */
+static bool
+thread_lock_release(const void *lock, enum thread_lock_kind kind,
+	const char **file, unsigned *line)
+{
+#ifndef SPINLOCK_DEBUG
+	(void) file;
+	(void) line;
+#endif
+
+	switch (kind) {
+	case THREAD_LOCK_SPINLOCK:
+		{
+			spinlock_t *s = deconstify_pointer(lock);
+
+#ifdef SPINLOCK_DEBUG
+			*file = s->file;
+			*line = s->line;
+#endif
+			spinunlock_hidden(s);
+		}
+		return TRUE;
+	case THREAD_LOCK_MUTEX:
+		{
+			mutex_t *m = deconstify_pointer(lock);
+
+			if (1 != m->depth)
+				return FALSE;
+
+#ifdef SPINLOCK_DEBUG
+			*file = m->lock.file;
+			*line = m->lock.line;
+#endif
+			mutex_release_hidden(m);
+		}
+		return TRUE;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Re-acquire a lock after suspension.
+ */
+static void
+thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
+	const char *file, unsigned line)
+{
+#ifndef SPINLOCK_DEBUG
+	(void) file;
+	(void) line;
+#endif
+
+	switch (kind) {
+	case THREAD_LOCK_SPINLOCK:
+		{
+			spinlock_t *s = deconstify_pointer(lock);
+
+			spinlock_hidden(s);
+#ifdef SPINLOCK_DEBUG
+			s->file = file;
+			s->line = line;
+#endif
+		}
+		return;
+	case THREAD_LOCK_MUTEX:
+		{
+			mutex_t *m = deconstify_pointer(lock);
+
+			mutex_get_hidden(m);
+			g_assert(1 == m->depth);
+
+#ifdef SPINLOCK_DEBUG
+			m->lock.file = file;
+			m->lock.line = line;
+#endif
+		}
+		return;
+	}
+
+	g_assert_not_reached();
+}
+
+/**
  * Account for spinlock / mutex acquisition by current thread.
  */
 void
@@ -1444,6 +1620,33 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 		s_minicrit("thread #%u overflowing its lock stack", te->stid);
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
+	}
+
+	/*
+	 * If the thread was not holding any locks and it has to be suspended,
+	 * now is a good (and safe) time to do it provided the lock is single
+	 * (i.e. either a spinlock or a mutex at depth one).
+	 *
+	 * Indeed, if the thread must be suspended, it is safer to do it before
+	 * it enters the critical section, rathen than when it leaves it.
+	 */
+
+	if (G_UNLIKELY(te->suspend && 0 == tls->count)) {
+		const char *file;
+		unsigned line;
+
+		/*
+		 * If we can release the lock, it was a single one, at which point
+		 * the thread holds no lock and can suspend itself.  When it can
+		 * resume, it needs to reacquire the lock and record it.
+		 *
+		 * Suspension will be totally transparent to the user code.
+		 */
+
+		if (thread_lock_release(lock, kind, &file, &line)) {
+			thread_suspend_self(te);
+			thread_lock_reacquire(lock, kind, file, line);
+		}
 	}
 
 	l = &tls->arena[tls->count++];
