@@ -188,8 +188,7 @@ static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
 static void change_server_addr(struct dl_server *server,
 	const host_addr_t new_addr, const uint16 new_port);
-static struct download *download_pick_another(
-	const struct download *d, const struct download *pd);
+static struct download *download_pick_another(const struct download *d);
 static void download_got_push_route(const guid_t *guid);
 
 static bool download_dirty;
@@ -4314,16 +4313,18 @@ download_switchable(struct download *d, const header_t *header)
 	if (error || len != 0)
 		return FALSE;			/* XXX would require we set sinking up */
 
-	if (GNET_PROPERTY(download_debug))
+	if (GNET_PROPERTY(download_debug)) {
 		g_debug("download \"%s\" on %s could be switchable",
 			download_basename(d), download_host_info(d));
+	}
 
 	if (!download_has_pending_on_server(d, TRUE))
 		return FALSE;
 
-	if (GNET_PROPERTY(download_debug))
+	if (GNET_PROPERTY(download_debug)) {
 		g_debug("pending downloads found on %s, \"%s\" is switchable",
 			download_host_info(d), download_basename(d));
+	}
 
 	return TRUE;
 }
@@ -4332,10 +4333,9 @@ download_switchable(struct download *d, const header_t *header)
  * Switch download to another resource on the same server if we can find one.
  *
  * @param d		the download we need to switch from
- * @param pd	the parent download we just stopped and need to avoid
  */
 static void
-download_switch(struct download *d, const struct download *pd)
+download_switch(struct download *d)
 {
 	struct gnutella_socket *s;
 	struct download *next;
@@ -4357,7 +4357,7 @@ download_switch(struct download *d, const struct download *pd)
 
 	g_assert(0 == s->pos);
 
-	next = download_pick_another(d, pd);
+	next = download_pick_another(d);
 
 	if (NULL == next) {
 		download_stop(d, GTA_DL_COMPLETED, _("Nothing else to switch to"));
@@ -4365,7 +4365,7 @@ download_switch(struct download *d, const struct download *pd)
 		return;
 	}
 
-	g_assert(next != d && next != pd);
+	g_assert(next != d);
 
 	if (GNET_PROPERTY(download_debug))
 		g_debug("switching from \"%s\" (on error) to \"%s\" (%.2f%%) at %s",
@@ -4683,8 +4683,8 @@ download_stop_switch(struct download *d, const header_t *header,
 	download_stop_v(d, new_status, reason, args);
 	va_end(args);
 
-	if (cd)
-		download_switch(cd, d);
+	if (cd != NULL)
+		download_switch(cd);
 }
 
 /**
@@ -4967,7 +4967,7 @@ download_queue_delay_switch(struct download *d, const header_t *header,
 	va_end(args);
 
 	if (cd)
-		download_switch(cd, d);
+		download_switch(cd);
 }
 
 /**
@@ -6256,12 +6256,11 @@ done:
  * downloads on the same host without respecting the delays we have configured.
  *
  * @param d		the current download
- * @param pd	the parent download
  *
  * @return the download we found, or NULL if none could be chosen.
  */
 static struct download *
-download_pick_another(const struct download *d, const struct download *pd)
+download_pick_another(const struct download *d)
 {
 	list_iter_t *iter;
 	struct download *other = NULL;
@@ -6276,7 +6275,12 @@ download_pick_another(const struct download *d, const struct download *pd)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		g_assert(cur != d && cur != pd);
+		g_assert(cur != d);
+
+		/* Make sure we're not targetting the same file */
+
+		if (cur->file_info == d->file_info)
+			continue;
 
 		/* Pay attention to retry_after */
 
@@ -6295,7 +6299,9 @@ download_pick_another(const struct download *d, const struct download *pd)
 		cur = list_iter_next(iter);
 		download_check(cur);
 
-		if (cur == d || cur == pd)
+		/* Make sure we're not targetting the same file */
+
+		if (cur->file_info == d->file_info)
 			continue;
 
 		/* Pay attention to retry_after */
