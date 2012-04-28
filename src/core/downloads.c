@@ -4350,8 +4350,8 @@ download_switch(struct download *d, const struct download *pd)
 	d->socket = NULL;
 
 	if (s->pos > 0) {
-		g_warning("download_switch(): Clearing socket buffer of %s",
-			download_host_info(d));
+		g_warning("%s(): clearing socket buffer of %s",
+			G_STRFUNC, download_host_info(d));
 	}
 	s->pos = 0;
 
@@ -5244,8 +5244,8 @@ download_remove(struct download *d)
 		case GTA_DL_MOVE_WAIT:
 		case GTA_DL_MOVING:
 			if (GNET_PROPERTY(download_debug)) {
-				g_carp("download_remove(): skipping \"%s\", status=%s",
-					download_basename(d),
+				g_carp("%s(): skipping \"%s\", status=%s",
+					G_STRFUNC, download_basename(d),
 					download_status_to_code_str(d->status));
 			}
 			return FALSE;
@@ -6839,8 +6839,7 @@ download_fallback_to_push(struct download *d,
 		return;
 
 	if (!d->socket) {
-		g_warning("download_fallback_to_push(): no socket for '%s'",
-			download_basename(d));
+		g_warning("%s(): no socket for '%s'", G_STRFUNC, download_basename(d));
     } else {
 		/*
 		 * If a DNS lookup error occurred, discard the hostname we have.
@@ -8989,8 +8988,8 @@ download_continue(struct download *d, bool trimmed)
 	 */
 	if (s->pos > 0) {
 		/* This should have already been fed to the RX stack. */
-		g_warning("download_continue(): clearing socket buffer of %s",
-			download_host_info(d));
+		g_warning("%s(): clearing socket buffer of %s",
+			G_STRFUNC, download_host_info(d));
 	}
 	s->pos = 0;
 
@@ -14044,7 +14043,7 @@ download_retrieve_old(FILE *f)
 		line++;
 
 		if (!file_line_chomp_tail(dl_tmp, sizeof dl_tmp, NULL)) {
-			g_warning("%s: line %u too long, aborting", G_STRFUNC, line);
+			g_warning("%s(): line %u too long, aborting", G_STRFUNC, line);
 			break;
 		}
 
