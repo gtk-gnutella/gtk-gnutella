@@ -284,7 +284,7 @@ bsched_unused(bsched_bws_t bws)
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return BS_BW_MAX;
 
-	unused = uint_saturate_sub(bs->bw_last_period, bs->bw_max);
+	unused = uint_saturate_sub(bs->bw_max, bs->bw_last_period);
 	return uint_saturate_sub(unused, bs->bw_urgent);
 }
 
