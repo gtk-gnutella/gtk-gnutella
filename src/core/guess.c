@@ -132,6 +132,7 @@
 #define GUESS_RPC_LIFETIME		15000	/**< 15 seconds, in ms */
 #define GUESS_FIND_DELAY		5000	/**< in ms, UDP queue flush grace */
 #define GUESS_ALPHA				5		/**< Level of query concurrency */
+#define GUESS_ALPHA_MAX			50		/**< Max level of query concurrency */
 #define GUESS_WAIT_DELAY		30000	/**< in ms, time waiting for hosts */
 #define GUESS_WARMING_COUNT		100		/**< Loose concurrency after that */
 #define GUESS_MAX_TIMEOUTS		5		/**< Max # of consecutive timeouts */
@@ -357,6 +358,7 @@ static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
 static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
 static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
+static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
 
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
@@ -2200,9 +2202,31 @@ guess_periodic_bw(void *unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
-		g_debug("GUESS outgoing b/w used: %u / %u bytes",
-			guess_out_bw, guess_target_bw);
+		g_debug("GUESS outgoing b/w used: %u / %u bytes (alpha=%u, active=%zu)",
+			guess_out_bw, guess_target_bw, guess_alpha, hevset_count(gqueries));
 	}
+
+	/*
+	 * If we did not use the whole bandwidth we have at our disposal, it means
+	 * our concurrency parameter is too low.  Increase it, as long as we
+	 * are lower than GUESS_ALPHA_MAX.
+	 *
+	 * Conversely, if we have queries waiting for b/w, then we're querying
+	 * too much so try to reduce the concurrency threshold.
+	 */
+
+	if (guess_out_bw < guess_target_bw) {
+		if (0 != hevset_count(gqueries) && guess_alpha < GUESS_ALPHA_MAX)
+			guess_alpha += GUESS_ALPHA;
+	} else if (wq_waiting(&guess_out_bw)) {
+		guess_alpha -= 2 * GUESS_ALPHA;	/* Decrease faster than increases */
+		guess_alpha = MAX(guess_alpha, GUESS_ALPHA);
+	}
+
+	/*
+	 * See how much unused Gnutella outgoing bandwidth we have that we could
+	 * spend for GUESS queries.
+	 */
 
 	guess_periodic_target_update();
 
@@ -3369,7 +3393,7 @@ guess_bandwidth_available(void *data, void *unused)
 static void
 guess_iterate(guess_t *gq)
 {
-	int alpha = GUESS_ALPHA;
+	int alpha = guess_alpha;
 	int i = 0, unsent = 0;
 	size_t attempts = 0;
 
@@ -3449,6 +3473,15 @@ guess_iterate(guess_t *gq)
 
 	gq->flags |= GQ_F_SENDING;		/* Proctect against syncrhonous UDP drops */
 	gq->flags &= ~GQ_F_UDP_DROP;	/* Clear condition */
+
+	/*
+	 * Don't send more than GUESS_ALPHA_MAX messages at a time, regardless
+	 * of the adjusted value of the alpha concurrency parameter to avoid
+	 * a query eating all the available bandwidth if alpha starts to
+	 * get large.
+	 */
+
+	alpha = MIN(alpha, GUESS_ALPHA_MAX);
 
 	while (i < alpha) {
 		const gnet_host_t *host;
