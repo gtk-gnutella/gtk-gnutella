@@ -2199,30 +2199,26 @@ guess_periodic_bw(void *unused_obj)
 {
 	(void) unused_obj;
 
-	if (guess_out_bw != 0) {
-		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_debug("GUESS outgoing b/w used: %u / %u bytes",
-				guess_out_bw, guess_target_bw);
-		}
-
-		guess_periodic_target_update();
-
-		if (guess_out_bw <= guess_target_bw) {
-			guess_out_bw = 0;
-		} else {
-			guess_out_bw -= guess_target_bw;
-		}
-
-		/*
-		 * Wakeup queries waiting for b/w in the order they went to sleep,
-		 * provided we have bandwidth to serve.
-		 */
-
-		if (guess_out_bw < guess_target_bw)
-			wq_wakeup(&guess_out_bw, NULL);
-	} else {
-		guess_target_bw = GNET_PROPERTY(bw_guess_out);
+	if (GNET_PROPERTY(guess_client_debug) > 2) {
+		g_debug("GUESS outgoing b/w used: %u / %u bytes",
+			guess_out_bw, guess_target_bw);
 	}
+
+	guess_periodic_target_update();
+
+	if (guess_out_bw <= guess_target_bw) {
+		guess_out_bw = 0;
+	} else {
+		guess_out_bw -= guess_target_bw;
+	}
+
+	/*
+	 * Wakeup queries waiting for b/w in the order they went to sleep,
+	 * provided we have bandwidth to serve.
+	 */
+
+	if (guess_out_bw < guess_target_bw)
+		wq_wakeup(&guess_out_bw, NULL);
 
 	return TRUE;				/* Keep calling */
 }
