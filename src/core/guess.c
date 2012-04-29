@@ -107,7 +107,6 @@
 #include "lib/host_addr.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
-#include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/override.h"		/* Must be the last header included */
 #include "lib/random.h"
@@ -164,7 +163,7 @@ struct guess {
 	const char *query;			/**< The query string (atom) */
 	const guid_t *muid;			/**< GUESS query MUID (atom) */
 	gnet_search_t sh;			/**< Local search handle */
-	map_t *queried;				/**< Ultrapeers already queried */
+	hset_t *queried;			/**< Ultrapeers already queried */
 	hash_list_t *pool;			/**< Pool of ultrapeers to query */
 	wq_event_t *hostwait;		/**< Waiting on more hosts event */
 	wq_event_t *bwait;			/**< Waiting on more bandwidth */
@@ -1224,7 +1223,7 @@ guess_add_pool(guess_t *gq, host_addr_t addr, uint16 port)
 
 	gnet_host_set(&host, addr, port);
 	if (
-		!map_contains(gq->queried, &host) &&
+		!hset_contains(gq->queried, &host) &&
 		!hash_list_contains(gq->pool, &host) &&
 		!guess_should_skip(&host)
 	) {
@@ -2291,7 +2290,7 @@ guess_final_stats(const guess_t *gq)
 			nid_to_string(&gq->gid),
 			lazy_safe_search(gq->query),
 			tm_elapsed_f(&end, &gq->start),
-			map_count(gq->queried),
+			hset_count(gq->queried),
 			hash_list_length(gq->pool),
 			gq->queried_nodes, gq->query_acks, gq->max_ultrapeers,
 			gq->kept_results, gq->recv_results,
@@ -2514,7 +2513,7 @@ guess_pool_from_link_cache(void *host, void *data)
 	guess_t *gq = ctx->gq;
 
 	if (
-		!map_contains(gq->queried, host) &&
+		!hset_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host) &&
 		!guess_should_skip(host)
 	) {
@@ -2544,7 +2543,7 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 			0 == qk->timeouts ||
 			delta_time(tm_time(), qk->last_timeout) >= GUESS_TIMEOUT_DELAY
 		) &&
-		!map_contains(gq->queried, host) &&
+		!hset_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host)
 	) {
 		double p = guess_entry_still_alive(qk);
@@ -2681,7 +2680,7 @@ guess_load_host_added(void *data, void *hostinfo)
 	gnet_host_set(&host, nhost->addr, nhost->port);
 
 	if (
-		map_contains(gq->queried, &host) ||
+		hset_contains(gq->queried, &host) ||
 		hash_list_contains(gq->pool, &host)
 	)
 		return WQ_SLEEP;
@@ -2772,7 +2771,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		guess_rpc_cancel(gq, pmi->host);
-		map_remove(gq->queried, pmi->host);		/* Atom moved to the pool */
+		hset_remove(gq->queried, pmi->host);	/* Atom moved to the pool */
 		hash_list_append(gq->pool, pmi->host);
 
 		/*
@@ -2827,9 +2826,8 @@ guess_ignore_alien_host(void *val, void *data)
 	 * Prevent querying of the host.
 	 */
 
-	if (!map_contains(gq->queried, host)) {
-		map_insert(gq->queried, atom_host_get(host), int_to_pointer(1));
-	}
+	if (!hset_contains(gq->queried, host))
+		hset_insert(gq->queried, atom_host_get(host));
 
 	if (hash_list_contains(gq->pool, host)) {
 		const gnet_host_t *hkey;
@@ -3052,7 +3050,7 @@ guess_handle_ack(guess_t *gq,
 	g_assert(atom_is_host(host));
 	g_assert(n != NULL);
 	g_assert(GTA_MSG_INIT_RESPONSE == gnutella_header_get_function(&n->header));
-	g_assert(map_contains(gq->queried, host));
+	g_assert(hset_contains(gq->queried, host));
 
 	/*
 	 * Once we have queried enough ultrapeers, we know that the query is for
@@ -3111,7 +3109,7 @@ guess_handle_ack(guess_t *gq,
 			g_debug("GUESS QUERY[%s] got new query key for %s, back to pool",
 				nid_to_string(&gq->gid), gnet_host_to_string(host));
 		}
-		map_remove(gq->queried, host);
+		hset_remove(gq->queried, host);
 		hash_list_prepend(gq->pool, host);
 	}
 
@@ -3187,10 +3185,10 @@ guess_send(guess_t *gq, const gnet_host_t *host)
 	 * it again.
 	 */
 
-	if (map_contains(gq->queried, host)) {
+	if (hset_contains(gq->queried, host)) {
 		marked_as_queried = FALSE;
 	} else {
-		map_insert(gq->queried, host, int_to_pointer(1));
+		hset_insert(gq->queried, host);
 	}
 
 	/*
@@ -3322,7 +3320,7 @@ unqueried:
 				nid_to_string(&gq->gid), gnet_host_to_string(host));
 		}
 
-		map_remove(gq->queried, host);
+		hset_remove(gq->queried, host);
 		hash_list_append(gq->pool, host);
 	} else {
 		/*
@@ -3483,7 +3481,7 @@ guess_iterate(guess_t *gq)
 		if (NULL == host)
 			break;
 
-		if (!map_contains(gq->queried, host)) {
+		if (!hset_contains(gq->queried, host)) {
 			if (!guess_send_query(gq, host)) {
 				if (unsent++ > alpha)
 					break;
@@ -3647,7 +3645,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->muid = atom_guid_get(muid);
 	gq->mtype = mtype;
 	gq->mode = GUESS_QUERY_BOUNDED;
-	gq->queried = map_create_hash(gnet_host_hash, gnet_host_eq);
+	gq->queried = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
 	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);
 	gq->cb = cb;
 	gq->arg = arg;
@@ -3692,14 +3690,13 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 }
 
 /**
- * Map iterator to free hosts.
+ * Hash set iterator to free hosts.
  */
 static void
-guess_host_map_free(void *key, void *unused_value, void *unused_u)
+guess_host_set_free(const void *key, void *unused_u)
 {
-	gnet_host_t *h = key;
+	const gnet_host_t *h = key;
 
-	(void) unused_value;
 	(void) unused_u;
 
 	atom_host_free(h);
@@ -3709,7 +3706,7 @@ guess_host_map_free(void *key, void *unused_value, void *unused_u)
  * Hash list iterator to free hosts.
  */
 static void
-guess_host_map_free1(void *key, void *unused_u)
+guess_host_map_free(void *key, void *unused_u)
 {
 	gnet_host_t *h = key;
 
@@ -3726,12 +3723,12 @@ guess_free(guess_t *gq)
 {
 	guess_check(gq);
 
-	map_foreach(gq->queried, guess_host_map_free, NULL);
-	hash_list_foreach(gq->pool, guess_host_map_free1, NULL);
+	hset_foreach(gq->queried, guess_host_set_free, NULL);
+	hash_list_foreach(gq->pool, guess_host_map_free, NULL);
 
 	hikset_remove(gmuid, gq->muid);
 
-	map_destroy_null(&gq->queried);
+	hset_free_null(&gq->queried);
 	hash_list_free(&gq->pool);
 	atom_str_free_null(&gq->query);
 	atom_guid_free_null(&gq->muid);
