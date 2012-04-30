@@ -553,6 +553,15 @@ short_size(uint64 size, bool metric)
 }
 
 const char *
+short_size2(uint64 size, bool metric)
+{
+	static char b[SIZE_FIELD_MAX];
+
+	short_size_to_string_buf(size, metric, b, sizeof b);
+	return b;
+}
+
+const char *
 short_frequency(uint64 freq)
 {
 	static char b[SIZE_FIELD_MAX];
