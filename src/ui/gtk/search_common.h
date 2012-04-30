@@ -141,6 +141,7 @@ void search_gui_common_shutdown(void);
 
 void search_gui_init_tree(struct search *);
 void search_gui_set_current_search(struct search *);
+void search_gui_current_search_refresh(void);
 
 void search_gui_ref_record(record_t *);
 void search_gui_unref_record(record_t *);

@@ -41,6 +41,7 @@
 #include "monitor.h"
 #include "nodes_common.h"
 #include "search.h"
+#include "search_common.h"
 #include "search_stats.h"
 #include "settings.h"
 #include "settings_cb.h"
@@ -2346,6 +2347,18 @@ show_tooltips_changed(property_t prop)
         gtk_tooltips_disable(tooltips);
         gtk_tooltips_disable(tips);
     }
+
+    return FALSE;
+}
+
+static gboolean
+search_display_guess_stats_changed(property_t prop)
+{
+    gboolean b;
+
+    gui_prop_get_boolean_val(prop, &b);
+    update_togglebutton(prop);
+	search_gui_current_search_refresh();
 
     return FALSE;
 }
@@ -5704,6 +5717,22 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_search_sort_casesense",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_SEARCH_DISPLAY_GUESS_STATS,
+        search_display_guess_stats_changed,
+        TRUE,
+        "checkbutton_search_display_guess_stats",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_main_window,
+        PROP_GUESS_STATS_SHOW_TOTAL,
+        search_display_guess_stats_changed,
+        TRUE,
+        "checkbutton_guess_stats_show_total",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

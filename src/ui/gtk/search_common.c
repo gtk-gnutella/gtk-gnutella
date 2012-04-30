@@ -113,6 +113,8 @@ static GList *list_search_history;
 static GtkNotebook *notebook_search_results;
 static GtkLabel *label_items_found;
 static GtkLabel *label_search_expiry;
+static GtkLabel *label_guess_stats;
+static GtkWidget *guess_stats_line;
 
 static gboolean store_searches_requested;
 static gboolean store_searches_disabled;
@@ -2151,8 +2153,22 @@ search_gui_switch_search(struct search *search)
 	search_gui_update_status(search);
 }
 
+static void
+search_gui_guess_stats_display(const search_t *search)
+{
+	bool guess_stats;
+
+	guess_stats = !search_gui_is_passive(search) &&
+		GUI_PROPERTY(search_display_guess_stats);
+
+	if (guess_stats)
+		gtk_widget_show(guess_stats_line);
+	else
+		gtk_widget_hide(guess_stats_line);
+}
+
 void
-search_gui_set_current_search(struct search *search)
+search_gui_set_current_search(search_t *search)
 {
 	if (search != current_search) {
 		struct search *previous = current_search;
@@ -2166,12 +2182,21 @@ search_gui_set_current_search(struct search *search)
 			search_gui_update_counters(previous);
 		}
 		if (search) {	
+			search_gui_guess_stats_display(search);
 			search_gui_show_search(search);
 			search_gui_end_massive_update(search);
 			gtk_widget_show(search->tree);
 			search->list_refreshed = FALSE;
 			search_gui_update_counters(search);
 		}
+	}
+}
+
+void
+search_gui_current_search_refresh(void)
+{
+	if (current_search != NULL) {
+		search_gui_guess_stats_display(current_search);
 	}
 }
 
@@ -4464,6 +4489,9 @@ search_gui_common_init(void)
 		gui_main_window_lookup("label_items_found"));
 	label_search_expiry = GTK_LABEL(
 		gui_main_window_lookup("label_search_expiry"));
+	label_guess_stats = GTK_LABEL(
+		gui_main_window_lookup("label_guess_stats"));
+	guess_stats_line = gui_main_window_lookup("guess_stats_line");
 
 	{
 		GtkNotebook *nb;

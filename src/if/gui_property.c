@@ -340,6 +340,10 @@ gboolean gui_property_variable_search_restart_when_pending     = FALSE;
 static const gboolean gui_property_variable_search_restart_when_pending_default = FALSE;
 gboolean gui_property_variable_search_discard_banned_guid     = TRUE;
 static const gboolean gui_property_variable_search_discard_banned_guid_default = TRUE;
+gboolean gui_property_variable_search_display_guess_stats     = TRUE;
+static const gboolean gui_property_variable_search_display_guess_stats_default = TRUE;
+gboolean gui_property_variable_guess_stats_show_total     = TRUE;
+static const gboolean gui_property_variable_guess_stats_show_total_default = TRUE;
 
 static prop_set_t *gui_property;
 
@@ -2523,6 +2527,40 @@ gui_prop_init(void) {
     gui_property->props[119].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[119].data.boolean.def   = (void *) &gui_property_variable_search_discard_banned_guid_default;
     gui_property->props[119].data.boolean.value = (void *) &gui_property_variable_search_discard_banned_guid;
+
+
+    /*
+     * PROP_SEARCH_DISPLAY_GUESS_STATS:
+     *
+     * General data:
+     */
+    gui_property->props[120].name = "search_display_guess_stats";
+    gui_property->props[120].desc = _("Whether a summary line with GUESS search stats should be dispayed.");
+    gui_property->props[120].ev_changed = event_new("search_display_guess_stats_changed");
+    gui_property->props[120].save = TRUE;
+    gui_property->props[120].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[120].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[120].data.boolean.def   = (void *) &gui_property_variable_search_display_guess_stats_default;
+    gui_property->props[120].data.boolean.value = (void *) &gui_property_variable_search_display_guess_stats;
+
+
+    /*
+     * PROP_GUESS_STATS_SHOW_TOTAL:
+     *
+     * General data:
+     */
+    gui_property->props[121].name = "guess_stats_show_total";
+    gui_property->props[121].desc = _("Whether the GUESS summary line should show total statistics or ones pertaining to the current search only.");
+    gui_property->props[121].ev_changed = event_new("guess_stats_show_total_changed");
+    gui_property->props[121].save = TRUE;
+    gui_property->props[121].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[121].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[121].data.boolean.def   = (void *) &gui_property_variable_guess_stats_show_total_default;
+    gui_property->props[121].data.boolean.value = (void *) &gui_property_variable_guess_stats_show_total;
 
     gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
