@@ -658,3 +658,4 @@ N_("Configured DHT mode");
 N_("Store DHT keys/values in memory");
 N_("Store SPAM SHA1 table in memory");
 N_("Relayed queries remembered");
+N_("Allow unused Gnutella outgoing bandwidth to supersede hint");

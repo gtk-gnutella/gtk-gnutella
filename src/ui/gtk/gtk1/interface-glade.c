@@ -10673,6 +10673,7 @@ create_dlg_prefs (void)
   GtkWidget *label8029;
   GtkObject *spinbutton_config_bw_guess_out_adj;
   GtkWidget *spinbutton_config_bw_guess_out;
+  GtkWidget *checkbutton_guess_maximize_bw;
   GtkWidget *label684;
   GtkWidget *scrolledwindow34;
   GtkWidget *viewport6;
@@ -14574,7 +14575,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame155);
   gtk_box_pack_start (GTK_BOX (vbox29), frame155, TRUE, TRUE, 0);
 
-  table103 = gtk_table_new (1, 3, FALSE);
+  table103 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table103, "table103");
   gtk_widget_ref (table103);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table103", table103,
@@ -14619,6 +14620,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_config_bw_guess_out, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bw_guess_out), TRUE);
+
+  checkbutton_guess_maximize_bw = gtk_check_button_new_with_label (_("Allow unused Gnutella outgoing bandwidth to supersede hint"));
+  gtk_widget_set_name (checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
+  gtk_widget_ref (checkbutton_guess_maximize_bw);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_guess_maximize_bw", checkbutton_guess_maximize_bw,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_guess_maximize_bw);
+  gtk_table_attach (GTK_TABLE (table103), checkbutton_guess_maximize_bw, 0, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label684 = gtk_label_new (_("Bandwidth"));
   gtk_widget_set_name (label684, "label684");

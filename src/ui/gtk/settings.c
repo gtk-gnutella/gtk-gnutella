@@ -5803,6 +5803,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_GUESS_MAXIMIZE_BW,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_guess_maximize_bw",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         gui_main_window,
         PROP_DOWNLOAD_QUEUE_FROZEN,
         update_queue_frozen,

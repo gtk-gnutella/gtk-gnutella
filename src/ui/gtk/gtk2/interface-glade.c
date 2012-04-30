@@ -11970,6 +11970,7 @@ create_dlg_prefs_bw_tab (void)
   GtkObject *spinbutton_config_bw_guess_out_adj;
   GtkWidget *spinbutton_config_bw_guess_out;
   GtkWidget *label1063;
+  GtkWidget *checkbutton_guess_maximize_bw;
   GtkWidget *label1062;
   GtkTooltips *tooltips;
 
@@ -12673,7 +12674,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_container_add (GTK_CONTAINER (frame150), vbox157);
   gtk_container_set_border_width (GTK_CONTAINER (vbox157), 2);
 
-  table119 = gtk_table_new (1, 3, FALSE);
+  table119 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table119, "table119");
   gtk_widget_show (table119);
   gtk_box_pack_start (GTK_BOX (vbox157), table119, TRUE, TRUE, 0);
@@ -12706,6 +12707,13 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label1063), 0, 0.5);
+
+  checkbutton_guess_maximize_bw = gtk_check_button_new_with_mnemonic (_("Allow unused Gnutella outgoing bandwidth to supersede hint"));
+  gtk_widget_set_name (checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
+  gtk_widget_show (checkbutton_guess_maximize_bw);
+  gtk_table_attach (GTK_TABLE (table119), checkbutton_guess_maximize_bw, 0, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label1062 = gtk_label_new_with_mnemonic (_("Bandwidth limits for GUESS queries"));
   gtk_widget_set_name (label1062, "label1062");
@@ -12815,6 +12823,7 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1057, "label1057");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bw_guess_out, "spinbutton_config_bw_guess_out");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1063, "label1063");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1062, "label1062");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_bw_tab, tooltips, "tooltips");
 
