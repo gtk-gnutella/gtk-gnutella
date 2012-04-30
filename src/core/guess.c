@@ -2643,8 +2643,9 @@ guess_load_more_hosts(guess_t *gq)
 	added = guess_load_pool(gq, FALSE);
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
-		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool",
-			nid_to_string(&gq->gid), added, 1 == added ? "" : "s");
+		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool%s",
+			nid_to_string(&gq->gid), added, 1 == added ? "" : "s",
+			(gq->flags & GQ_F_POOL_LOAD) ? " (deferred)" : "");
 	}
 }
 
@@ -3394,8 +3395,9 @@ static void
 guess_iterate(guess_t *gq)
 {
 	int alpha = guess_alpha;
-	int i = 0, unsent = 0;
-	size_t attempts = 0;
+	int i = 0;
+	unsigned unsent = 0;
+	size_t attempts = 0, poolsize;
 
 	guess_check(gq);
 
@@ -3512,7 +3514,7 @@ guess_iterate(guess_t *gq)
 
 		if (!hset_contains(gq->queried, host)) {
 			if (!guess_send_query(gq, host)) {
-				if (unsent++ > alpha)
+				if (unsent++ > UNSIGNED(alpha))
 					break;
 				continue;
 			}
@@ -3525,8 +3527,9 @@ guess_iterate(guess_t *gq)
 	}
 
 	gq->flags &= ~GQ_F_SENDING;
+	poolsize = hash_list_length(gq->pool);
 
-	if (unsent > alpha) {
+	if (unsent > UNSIGNED(alpha) || (unsent >= poolsize && 0 != poolsize)) {
 		/*
 		 * For some reason we cannot issue queries.  Probably because we need
 		 * query keys for the hosts and there are already too many registered
@@ -3534,8 +3537,8 @@ guess_iterate(guess_t *gq)
 		 */
 
 		if (GNET_PROPERTY(guess_client_debug) > 1) {
-			g_debug("GUESS QUERY[%s] too many unsent messages, delaying",
-				nid_to_string(&gq->gid));
+			g_debug("GUESS QUERY[%s] too many unsent messages (%u), delaying",
+				nid_to_string(&gq->gid), unsent);
 		}
 		guess_delay(gq);
 	} else if (0 == i) {
@@ -3575,7 +3578,7 @@ guess_iterate(guess_t *gq)
 			 * as soon as we are starving.
 			 */
 
-			starving = 0 == hash_list_length(gq->pool);
+			starving = 0 == poolsize;
 
 			if (starving && (gq->flags & GQ_F_END_STARVING)) {
 				if (gq->flags & GQ_F_POOL_LOAD) {
