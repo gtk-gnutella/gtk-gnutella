@@ -2157,6 +2157,15 @@ done:
 static knode_t *
 move_node(struct kbucket *kb, knode_t *kn)
 {
+	/*
+	 * It is no longer possible to move nodes around now that we use an
+	 * hikset to store nodes by KUID: when we return from WMOVE, the structure
+	 * still references an address that is invalid and has potentially been
+	 * freed.  We would have to revert to a classic hash table if we were
+	 * to re-enable moving nodes around.
+	 *		--RAM, 2012-04-30
+	 */
+#if 0
 	if (1 == knode_refcnt(kn)) {
 		knode_t *moved = WMOVE(kn);
 		if (moved != kn) {
@@ -2165,7 +2174,8 @@ move_node(struct kbucket *kb, knode_t *kn)
 			return moved;
 		}
 	}
-
+#endif
+	(void) kb;
 	return kn;
 }
 
