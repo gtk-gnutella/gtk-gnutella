@@ -101,6 +101,7 @@ struct accum_rs {
 };
 
 static GList *list_searches;	/**< List of search structs */
+static htable_t *ht_searches;	/**< Maps a gnet_search_t to a search_t */
 
 static search_t *current_search; /**< The search currently displayed */
 
@@ -592,6 +593,7 @@ search_gui_close_search(search_t *search)
 	next = g_list_next(next) ? g_list_next(next) : g_list_previous(next);
 
  	list_searches = g_list_remove(list_searches, search);
+	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
 	search_gui_store_searches();
 	search_gui_option_menu_searches_update();
 
@@ -1020,21 +1022,7 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 static search_t *
 search_gui_find(gnet_search_t sh)
 {
-    const GList *l;
-
-    for (l = search_gui_get_searches(); l != NULL; l = g_list_next(l)) {
-		search_t *s = l->data;
-
-        if (s->search_handle == sh) {
-            if (GUI_PROPERTY(gui_debug) >= 15) {
-                g_debug("search [%s] matched handle %x",
-					search_gui_query(s), sh);
-			}
-            return s;
-        }
-    }
-
-    return NULL;
+	return htable_lookup(ht_searches, uint_to_pointer(sh));
 }
 
 /**
@@ -2989,6 +2977,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 
 	is_only_search = NULL == list_searches;
 	list_searches = g_list_append(list_searches, search);
+	htable_insert(ht_searches, uint_to_pointer(search->search_handle), search);
 	search_gui_option_menu_searches_update();
 
 	if (is_only_search) {
@@ -4469,6 +4458,7 @@ void
 search_gui_common_init(void)
 {
 	accumulated_rs = slist_new();
+	ht_searches = htable_create(HASH_KEY_SELF, 0);
 
 	label_items_found = GTK_LABEL(
 		gui_main_window_lookup("label_items_found"));
@@ -4550,6 +4540,7 @@ search_gui_common_shutdown(void)
 	search_gui_set_details(NULL);
 
     gm_list_free_null(&list_search_history);
+	htable_free_null(&ht_searches);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
