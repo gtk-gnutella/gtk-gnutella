@@ -95,6 +95,7 @@
 #include "dht/stable.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/core/guess.h"
 
 #include "lib/aging.h"
 #include "lib/atoms.h"
@@ -107,6 +108,7 @@
 #include "lib/host_addr.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
+#include "lib/listener.h"
 #include "lib/nid.h"
 #include "lib/override.h"		/* Must be the last header included */
 #include "lib/random.h"
@@ -145,14 +147,6 @@
  * Query stops after that many hits
  */
 #define GUESS_MAX_RESULTS		SEARCH_MAX_RESULTS
-
-/**
- * Parallelism modes.
- */
-enum guess_mode {
-	GUESS_QUERY_BOUNDED,		/**< Bounded parallelism */
-	GUESS_QUERY_LOOSE			/**< Loose parallelism */
-};
 
 enum guess_magic { GUESS_MAGIC = 0x65bfef66 };
 
@@ -363,6 +357,70 @@ static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
 static void guess_discovery_enable(void);
 static void guess_iterate(guess_t *gq);
 static bool guess_send(guess_t *gq, const gnet_host_t *host);
+
+/**
+ * Listening interface, used by the GUI through the bridge to plug in
+ * notification callbacks for GUESS query creation/removal and periodic
+ * GUESS statistics collection.
+ */
+
+static listeners_t guess_event_listeners;
+static listeners_t guess_stats_listeners;
+
+void
+guess_event_listener_add(guess_event_listener_t l)
+{
+	LISTENER_ADD(guess_event, l);
+}
+
+void
+guess_event_listener_remove(guess_event_listener_t l)
+{
+	LISTENER_REMOVE(guess_event, l);
+}
+
+static void
+guess_event_fire(const guess_t *gq, bool created)
+{
+	struct guess_query query;
+
+	query.max_ultra	= gq->max_ultrapeers;
+	query.mode		= gq->mode;
+
+	LISTENER_EMIT(guess_event, (gq->sh, created ? &query : NULL));
+}
+
+void
+guess_stats_listener_add(guess_stats_listener_t l)
+{
+	LISTENER_ADD(guess_stats, l);
+}
+
+void
+guess_stats_listener_remove(guess_stats_listener_t l)
+{
+	LISTENER_REMOVE(guess_stats, l);
+}
+
+static void
+guess_stats_fire(const guess_t *gq)
+{
+	struct guess_stats stats;
+
+	stats.pool			= hash_list_length(gq->pool);
+	stats.queried		= gq->queried_nodes;
+	stats.acks			= gq->query_acks;
+	stats.results		= gq->recv_results;
+	stats.kept			= gq->kept_results;
+	stats.hops			= gq->hops;
+	stats.rpc_pending	= gq->rpc_pending;
+	stats.bw_out_query	= gq->bw_out_query;
+	stats.bw_out_qk		= gq->bw_out_qk;
+	stats.mode			= gq->mode;
+	stats.pool_load		= booleanize(gq->flags & GQ_F_POOL_LOAD);
+
+	LISTENER_EMIT(guess_stats, (gq->sh, &stats));
+}
 
 /**
  * Randomly add host to the GUESS 0.2 cache.
@@ -816,6 +874,8 @@ guess_rpc_cancel(guess_t *gq, const gnet_host_t *host)
 		!guess_should_terminate(gq, FALSE)
 	) {
 		guess_iterate(gq);
+	} else {
+		guess_stats_fire(gq);	/* Update amount of pending RPCs */
 	}
 }
 
@@ -2280,6 +2340,7 @@ guess_got_results(const guid_t *muid, uint32 hits)
 	guess_check(gq);
 	gq->recv_results += hits;
 	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERY_HITS, +1);
+	guess_stats_fire(gq);
 }
 
 /**
@@ -2292,11 +2353,12 @@ guess_kept_results(const guid_t *muid, uint32 kept)
 
 	gq = hikset_lookup(gmuid, muid);
 	if (NULL == gq)
-		return;			/* GUESS requsst terminated */
+		return;			/* GUESS request terminated */
 
 	guess_check(gq);
 
 	gq->kept_results += kept;
+	guess_stats_fire(gq);
 }
 
 /**
@@ -3647,6 +3709,8 @@ guess_iterate(guess_t *gq)
 			}
 		}
 	}
+
+	guess_stats_fire(gq);
 }
 
 /**
@@ -3736,6 +3800,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
 	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, +1);
 
+	guess_event_fire(gq, TRUE);
+
 	return gq;
 }
 
@@ -3822,6 +3888,8 @@ guess_cancel(guess_t **gq_ptr, bool callback)
 			(*gq->cb)(gq->arg);		/* Let them know query has ended */
 
 		guess_final_stats(gq);
+		guess_stats_fire(gq);
+		guess_event_fire(gq, FALSE);
 		guess_free(gq);
 		*gq_ptr = NULL;
 	}

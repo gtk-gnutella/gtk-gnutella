@@ -501,6 +501,7 @@ src/if/core/downloads.h
 src/if/core/fileinfo.h
 src/if/core/filter.h
 src/if/core/gnutella.h
+src/if/core/guess.h
 src/if/core/guid.h
 src/if/core/hcache.h
 src/if/core/hsep.h

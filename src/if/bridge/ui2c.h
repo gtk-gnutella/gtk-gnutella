@@ -42,15 +42,16 @@
 
 #include "lib/adns.h"
 
+#include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
-#include "if/core/net_stats.h"
+#include "if/core/guess.h"
 #include "if/core/hcache.h"
 #include "if/core/hsep.h"
+#include "if/core/net_stats.h"
 #include "if/core/search.h"
 #include "if/core/share.h"
 #include "if/core/uploads.h"
-#include "if/core/bitzi.h"
 
 /* Property table includes */
 #include "if/gnet_property.h"
@@ -244,6 +245,12 @@ void guc_search_status_change_listener_remove(search_status_change_listener_t);
 
 void guc_search_request_listener_add(search_request_listener_t);
 void guc_search_request_listener_remove(search_request_listener_t);
+
+/* GUESS queries interface functions */
+void guc_guess_event_listener_add(guess_event_listener_t);
+void guc_guess_event_listener_remove(guess_event_listener_t);
+void guc_guess_stats_listener_add(guess_stats_listener_t);
+void guc_guess_stats_listener_remove(guess_stats_listener_t);
 
 /* settings interface functions */
 uint16 guc_listen_port(void);

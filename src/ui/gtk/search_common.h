@@ -27,6 +27,7 @@
 #include "gtk/search.h"
 #include "gtk/search_result.h"
 
+#include "if/core/guess.h"
 #include "if/core/search.h"
 #include "if/ui/gtk/search.h"
 
@@ -52,12 +53,12 @@ typedef struct search {
     struct filter *filter;		/**< filter ruleset bound to this search */
 	struct slist *queue;		/**< records to be inserted */
 
-	gboolean	list_refreshed;
-	gboolean	clicked;
-	gboolean	sort;
+	bool	list_refreshed;
+	bool	clicked;
+	bool	sort;
 
-    int        sort_col;
-    int        sort_order;
+    int     sort_col;
+    int     sort_order;
 
 	/*
 	 * Cached attributes.
@@ -70,15 +71,40 @@ typedef struct search {
 	 * Search stats.
 	 */
 
-	guint32     items;			/**< Total number of items for the search */
-	guint32     unseen_items;	/**< How many items haven't been seen yet */
-	guint32		tcp_qhits;			/**< Query hits received from TCP */
-	guint32		udp_qhits;			/**< Query hits received from UDP */
-	guint32		skipped;			/**< Ignored hits (skipped over) */
-	guint32		ignored;			/**< Filtered out hits */
-	guint32		hidden;				/**< Hidden hits, never shown */
-	guint32		auto_downloaded;	/**< Auto-downloaded hits */
-	guint32		duplicates;			/**< Duplicate hits ignored */
+	uint32 items;				/**< Total number of items for the search */
+	uint32 unseen_items;		/**< How many items haven't been seen yet */
+	uint32 tcp_qhits;			/**< Query hits received from TCP */
+	uint32 udp_qhits;			/**< Query hits received from UDP */
+	uint32 skipped;				/**< Ignored hits (skipped over) */
+	uint32 ignored;				/**< Filtered out hits */
+	uint32 hidden;				/**< Hidden hits, never shown */
+	uint32 auto_downloaded;		/**< Auto-downloaded hits */
+	uint32 duplicates;			/**< Duplicate hits ignored */
+
+	/*
+	 * GUESS stats and attributes.
+	 */
+
+	size_t guess_queries;		/**< Total amount of queries run */
+	uint64 guess_bw_query;		/**< Total bandwidth used by queries */
+	uint64 guess_bw_qk;			/**< Total bandwidth used by query keys */
+	uint64 guess_results;		/**< Total results received */
+	uint64 guess_kept;			/**< Total results kept */
+	time_delta_t guess_elapsed;	/**< Elapsed time for last completed query */
+	time_t guess_cur_start;		/**< Start time of current query (0 if none) */
+	size_t guess_cur_max_ultra;	/**< Max amount of ultra nodes to query */
+	size_t guess_cur_pool;		/**< Current pool of unqueried nodes */
+	size_t guess_cur_queried;	/**< Current amount of queried nodes */
+	size_t guess_cur_acks;		/**< Current amount of acks received */
+	size_t guess_cur_results;	/**< Current amount of results received */
+	size_t guess_cur_kept;		/**< Current amount of results kept */
+	size_t guess_cur_hops;		/**< Current query iteration count */
+	size_t guess_cur_rpc_pending;	/**< Current RPCs pending */
+	size_t guess_cur_bw_query;		/**< Current b/w used for queries */
+	size_t guess_cur_bw_qk;			/**< Current b/w used for query keys */
+	enum guess_mode guess_cur_mode;	/**< Current query mode */
+	uint guess_cur_pool_load:1;		/**< Whether pool loading is pending */
+
 } search_t;
 
 enum {
@@ -157,20 +183,20 @@ void search_gui_query_free(struct query **query_ptr);
 void search_gui_filter_new(search_t *, GList *rules);
 
 void search_gui_add_targetted_search(void *data, void *user_data);
-gboolean search_gui_is_expired(const struct search *);
+bool search_gui_is_expired(const struct search *);
 void search_gui_new_search_entered(void);
 
 void search_gui_browse_selected(void);
-gboolean search_gui_insert_query(const char *);
+bool search_gui_insert_query(const char *);
 
 char *search_xml_indent(const char *);
 
 const char *search_gui_column_title(int column);
-gboolean search_gui_column_justify_right(int column);
+bool search_gui_column_justify_right(int column);
 
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *,
 			void *user_udata);
-gboolean on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
+bool on_search_details_key_press_event(GtkWidget *, GdkEventKey *,
 			void *user_data);
 
 void on_popup_search_metadata_activate(GtkMenuItem *, void *user_data);
@@ -183,13 +209,13 @@ GtkMenu *search_gui_get_search_list_popup_menu(void);
 
 void search_gui_callbacks_shutdown(void);
 
-gboolean on_search_list_button_release_event(GtkWidget *, GdkEventButton *,
+bool on_search_list_button_release_event(GtkWidget *, GdkEventButton *,
 			void *user_data);
-gboolean on_search_list_key_release_event(GtkWidget *, GdkEventKey *,
+bool on_search_list_key_release_event(GtkWidget *, GdkEventKey *,
 			void *user_data);
 
 GSList *search_gui_get_selected_searches(void);
-gboolean search_gui_has_selected_item(struct search *);
+bool search_gui_has_selected_item(struct search *);
 void search_gui_search_list_clicked(void);
 void search_gui_download_files(struct search *);
 void search_gui_discard_files(struct search *);
@@ -208,13 +234,13 @@ GtkWidget *search_gui_create_tree(void);
 void search_gui_option_menu_searches_thaw(void);
 void search_gui_option_menu_searches_freeze(void);
 
-gboolean search_gui_is_enabled(const struct search *);
+bool search_gui_is_enabled(const struct search *);
 
 void search_gui_download(record_t *, gnet_search_t sh);
 const char *search_gui_nice_size(const record_t *);
 const char *search_gui_get_vendor(const struct results_set *);
 
-gboolean search_gui_item_is_inspected(const record_t *);
+bool search_gui_item_is_inspected(const record_t *);
 void search_gui_set_details(const record_t *);
 void search_gui_set_bitzi_metadata(const record_t *);
 void search_gui_set_bitzi_metadata_text(const char *);

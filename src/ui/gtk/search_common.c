@@ -50,6 +50,7 @@
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/core/downloads.h"
+#include "if/core/guess.h"
 #include "if/core/guid.h"
 #include "if/core/search.h"
 #include "if/core/sockets.h"
@@ -483,6 +484,87 @@ search_gui_update_items_label(const struct search *search)
 	}
 }
 
+/**
+ * Can search be the target of a GUESS query?
+ */
+static bool
+search_gui_can_use_guess(const struct search *search)
+{
+	g_return_val_if_fail(search != NULL, FALSE);
+
+	return !search_gui_is_passive(search) &&
+		!search_gui_is_whats_new(search) &&
+		!search_gui_is_browse(search) &&
+		!search_gui_is_local(search);
+}
+
+/**
+ * Update the label string showing GUESS stats, if displayed.
+ */
+static void
+search_gui_update_guess_stats(const struct search *search)
+{
+	char buf[256];
+
+	if (
+		NULL == search ||
+		search != current_search ||
+		!search_gui_can_use_guess(search) ||
+		!GUI_PROPERTY(search_display_guess_stats)
+	)
+		return;
+
+	if (0 == search->guess_queries) {
+		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
+	} else if (GUI_PROPERTY(guess_stats_show_total)) {
+		uint64 hits = search->guess_results + search->guess_cur_results;
+		str_bprintf(buf, sizeof buf, _("GUESS %s [Total: %zu %s "
+			"(%s %s, %s kept, %s queries, %s keys)%s%s]"),
+			0 == search->guess_cur_start ? _("idle") :
+				compact_time(delta_time(tm_time(), search->guess_cur_start)),
+			search->guess_queries,
+			NG_("query", "queries", search->guess_queries),
+			uint64_to_string(hits), NG_("hit", "hits", hits),
+			uint64_to_string2(search->guess_kept + search->guess_cur_kept),
+			short_size(
+				search->guess_bw_query + search->guess_cur_bw_query, FALSE),
+			short_size2(
+				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
+			search->guess_elapsed != 0 ? _(" previous took ") : "",
+			search->guess_elapsed != 0 ?
+				compact_time2(search->guess_elapsed) : "");
+	} else if (search->guess_cur_start != 0) {
+		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
+			"(%zu %s, %zu kept, %s queries, %s keys)] "
+			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
+			"%zu %s%s]"),
+			compact_time(delta_time(tm_time(), search->guess_cur_start)),
+			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
+				_("loose") : _("bounded"),
+			search->guess_cur_results,
+			NG_("hit", "hits", search->guess_cur_results),
+			search->guess_cur_kept,
+			short_size(search->guess_cur_bw_query, FALSE),
+			short_size2(search->guess_cur_bw_qk, FALSE),
+			search->guess_cur_pool,
+			NG_("host", "hosts", search->guess_cur_pool),
+			search->guess_cur_queried, search->guess_cur_max_ultra,
+			search->guess_cur_acks,
+			NG_("ack", "acks", search->guess_cur_acks),
+			100.0 * search->guess_cur_acks /
+				(0 == search->guess_cur_queried ?
+					1 : search->guess_cur_queried),
+			search->guess_cur_rpc_pending,
+			search->guess_cur_hops,
+			NG_("hop", "hops", search->guess_cur_hops),
+			search->guess_cur_pool_load ? _(" (load pending)") : "");
+	} else {
+		g_strlcpy(buf, _("No running GUESS query"), sizeof buf);
+	}
+
+	gtk_label_printf(label_guess_stats, "%s", buf);
+}
+
 static gboolean
 search_gui_is_visible(void)
 {
@@ -510,6 +592,7 @@ search_gui_update_status(struct search *search)
 		search_gui_update_counters(search);
 		search_gui_update_status_label(search);
 		search_gui_update_items_label(search);
+		search_gui_update_guess_stats(search);
 	}
 }
 
@@ -2158,7 +2241,7 @@ search_gui_guess_stats_display(const search_t *search)
 {
 	bool guess_stats;
 
-	guess_stats = !search_gui_is_passive(search) &&
+	guess_stats = search_gui_can_use_guess(search) &&
 		GUI_PROPERTY(search_display_guess_stats);
 
 	if (guess_stats)
@@ -4351,6 +4434,63 @@ search_gui_timer(time_t now)
 }
 
 static void
+search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
+{
+	search_t *search;
+
+	search = search_gui_find(sh);
+	g_return_if_fail(search != NULL);
+
+	if (NULL == query) {
+		/* Current query terminated, consolidate results */
+		search->guess_bw_query += search->guess_cur_bw_query;
+		search->guess_bw_qk += search->guess_cur_bw_qk;
+		search->guess_results += search->guess_cur_results;
+		search->guess_kept += search->guess_cur_kept;
+		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
+		/* Reset stats for new query */
+		search->guess_cur_start = 0;
+		search->guess_cur_pool = 0;
+		search->guess_cur_queried = 0;
+		search->guess_cur_acks = 0;
+		search->guess_cur_results = 0;
+		search->guess_cur_kept = 0;
+		search->guess_cur_hops = 0;
+		search->guess_cur_rpc_pending = 0;
+		search->guess_cur_bw_query = 0;
+		search->guess_cur_bw_qk = 0;
+	} else {
+		/* New query starting */
+		search->guess_queries++;
+		search->guess_cur_start = tm_time();
+		search->guess_cur_mode = query->mode;
+		search->guess_cur_max_ultra = query->max_ultra;
+	}
+}
+
+static void
+search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
+{
+	search_t *search;
+
+	search = search_gui_find(sh);
+	g_return_if_fail(search != NULL);
+
+	search->guess_cur_pool			= stats->pool;
+	search->guess_cur_queried		= stats->queried;
+	search->guess_cur_acks			= stats->acks;
+	search->guess_cur_results		= stats->results;
+	search->guess_cur_kept			= stats->kept;
+	search->guess_cur_hops			= stats->hops;
+	search->guess_cur_rpc_pending	= stats->rpc_pending;
+	search->guess_cur_bw_query		= stats->bw_out_query;
+	search->guess_cur_bw_qk			= stats->bw_out_qk;
+	search->guess_cur_mode			= stats->mode;
+	search->guess_cur_pool_load		= stats->pool_load;
+}
+
+
+static void
 search_gui_signals_init(void)
 {
 #define WIDGET_SIGNAL_CONNECT(widget, event) \
@@ -4536,6 +4676,9 @@ search_gui_common_init(void)
     guc_search_got_results_listener_add(search_gui_got_results);
     guc_search_status_change_listener_add(search_gui_status_change);
 
+    guc_guess_event_listener_add(search_gui_guess_event);
+    guc_guess_stats_listener_add(search_gui_guess_stats);
+
 	main_gui_add_timer(search_gui_timer);
 }
 
@@ -4546,8 +4689,12 @@ void
 search_gui_common_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
+
  	guc_search_got_results_listener_remove(search_gui_got_results);
  	guc_search_status_change_listener_remove(search_gui_status_change);
+
+    guc_guess_event_listener_remove(search_gui_guess_event);
+    guc_guess_stats_listener_remove(search_gui_guess_stats);
 
 	gui_prop_remove_prop_changed_listener(PROP_SEARCH_RESULTS_SHOW_TABS,
 		search_results_show_tabs_changed);

@@ -924,6 +924,30 @@ guc_search_add_kept(gnet_search_t sh, const struct guid *muid, uint32 kept)
 	search_add_kept(sh, muid, kept);
 }
 
+void
+guc_guess_event_listener_add(guess_event_listener_t l)
+{
+	guess_event_listener_add(l);
+}
+
+void
+guc_guess_event_listener_remove(guess_event_listener_t l)
+{
+	guess_event_listener_remove(l);
+}
+
+void
+guc_guess_stats_listener_add(guess_stats_listener_t l)
+{
+	guess_stats_listener_add(l);
+}
+
+void
+guc_guess_stats_listener_remove(guess_stats_listener_t l)
+{
+	guess_stats_listener_remove(l);
+}
+
 /*	upload interface functions (UI -> Core)*/
 gnet_upload_info_t *
 guc_upload_get_info(gnet_upload_t uh)
