@@ -2454,7 +2454,8 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		if (guess_rpc_handle(n))
 			return;
 		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(udp_debug)) {
-			g_message("UDP ignoring unsolicited %s", gmsg_infostr(n->header));
+			g_message("UDP ignoring unsolicited %s from %s",
+				gmsg_infostr(n->header), node_addr(n));
 		}
 		/* FALL THROUGH */
 	case UDP_PONG_HANDLED:
