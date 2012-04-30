@@ -2558,11 +2558,20 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 
 	g_assert(len == sizeof *qk);
 
+	/*
+	 * Do not prevent loading hosts from the database on the basis that they
+	 * timed-out recently: since we're going to shuffle the pool randomly,
+	 * this information will be long stale when the host will be processed
+	 * by the query, so discriminating on the hosts now is not a good strategy.
+	 *
+	 * Timeouts from hosts are transient events that may not be the remote
+	 * host's fault but rather a problem in the UDP end-to-end transmission.
+	 * Failing to load hosts in the pool would mean we won't retry these
+	 * hosts and therefore we won't know before a long time whether they are
+	 * indeed unreacheable.
+	 */
+
 	if (
-		(
-			0 == qk->timeouts ||
-			delta_time(tm_time(), qk->last_timeout) >= GUESS_TIMEOUT_DELAY
-		) &&
 		!hset_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host)
 	) {
