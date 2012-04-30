@@ -1965,12 +1965,13 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
 	}
 
-	if (GUI_PROPERTY(gui_debug) > 6)
-		printf("search_matched: [%s] got hit with %d record%s (from %s) "
-			"need_push=%d, skipping=%d\n",
+	if (GUI_PROPERTY(gui_debug) > 6) {
+		g_debug("%s(): [%s] got hit with %d record%s (from %s) "
+			"need_push=%d, skipping=%d", G_STRFUNC,
 			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
 			(flags & SOCK_F_PUSH), skip_records);
+	}
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
@@ -1979,8 +1980,8 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		record_check(rc);
 
         if (GUI_PROPERTY(gui_debug) > 7)
-            printf("search_matched: [%s] considering %s\n",
-				search_gui_query(sch), rc->name);
+            g_debug("%s(): [%s] considering %s",
+				G_STRFUNC, search_gui_query(sch), rc->name);
 
         if (rc->flags & SR_DOWNLOADED)
 			sch->auto_downloaded++;
@@ -2309,7 +2310,7 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 		struct accum_rs *ars;
 
 		if (GUI_PROPERTY(gui_debug) >= 12)
-			printf("got incoming results...\n");
+			g_debug("%s(): got incoming results...", G_STRFUNC);
 
 		WALLOC(ars);
 		ars->muid = muid != NULL ? atom_guid_get(muid) : NULL;
@@ -2430,7 +2431,7 @@ search_gui_flush(time_t now, gboolean force)
          */
 
         if (GUI_PROPERTY(gui_debug) >= 15)
-            printf("cleaning phase\n");
+            g_debug("%s(): cleaning phase", G_STRFUNC);
 
 		for (sl = rs->records; sl != NULL; /* NOTHING */) {
 			record_t *rc = sl->data;
