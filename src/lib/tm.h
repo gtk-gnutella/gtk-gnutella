@@ -95,7 +95,7 @@ int tm_equal(const void *a, const void *b) G_GNUC_PURE;
  * e.g. if time_t is BCD-encoded, define USE_DIFFTIME.
  */
 #if defined(USE_DIFFTIME)
-typedef gint64 time_delta_t;
+typedef int64 time_delta_t;
 
 static inline time_delta_t
 delta_time(time_t t1, time_t t0)
