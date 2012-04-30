@@ -5152,4 +5152,16 @@ prop = {
     };
 };
 
+prop = {
+    name = "guess_maximize_bw";
+    desc = "Allow GUESS to use some of the unused Gnutella outgoing bandwidth "
+			"regardless of the GUESS bandwidth hint.  If FALSE, only the "
+			"configured bandwidth hint will be used.  When running as a leaf "
+			"this should be set to TRUE to make GUESS queries run faster.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

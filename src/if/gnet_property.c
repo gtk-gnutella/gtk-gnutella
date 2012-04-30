@@ -1028,6 +1028,8 @@ char   *gnet_property_variable_dump_tx_from_addrs     = "";
 static const char   *gnet_property_variable_dump_tx_from_addrs_default = "";
 char   *gnet_property_variable_dump_tx_to_addrs     = "";
 static const char   *gnet_property_variable_dump_tx_to_addrs_default = "";
+gboolean gnet_property_variable_guess_maximize_bw     = TRUE;
+static const gboolean gnet_property_variable_guess_maximize_bw_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -9486,6 +9488,23 @@ gnet_prop_init(void) {
         *gnet_property->props[442].data.string.value =
             g_strdup(eval_subst(*gnet_property->props[442].data.string.def));
     }
+
+
+    /*
+     * PROP_GUESS_MAXIMIZE_BW:
+     *
+     * General data:
+     */
+    gnet_property->props[443].name = "guess_maximize_bw";
+    gnet_property->props[443].desc = _("Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint will be used.  When running as a leaf this should be set to TRUE to make GUESS queries run faster.");
+    gnet_property->props[443].ev_changed = event_new("guess_maximize_bw_changed");
+    gnet_property->props[443].save = TRUE;
+    gnet_property->props[443].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[443].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[443].data.boolean.def   = (void *) &gnet_property_variable_guess_maximize_bw_default;
+    gnet_property->props[443].data.boolean.value = (void *) &gnet_property_variable_guess_maximize_bw;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

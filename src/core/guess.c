@@ -2179,6 +2179,15 @@ guess_periodic_target_update(void)
 
 	guess_target_bw = GNET_PROPERTY(bw_guess_out);
 
+	if (!GNET_PROPERTY(guess_maximize_bw))
+		return;
+
+	/*
+	 * If there is more unused bandwidth configured for Gnutella output
+	 * than they configured as a GUESS hint, set the target to that amount
+	 * of unused bandwidth for the next period.
+	 */
+
 	unused = bsched_unused(BSCHED_BWS_GOUT_UDP) +
 		bsched_unused(BSCHED_BWS_GOUT);
 
@@ -2190,7 +2199,7 @@ guess_periodic_target_update(void)
 	if (settings_is_ultra())
 		unused -= unused / 4;
 
-	guess_target_bw = MAX(unused, GNET_PROPERTY(bw_guess_out));
+	guess_target_bw = MAX(unused, guess_target_bw);
 }
 
 /**
