@@ -2694,8 +2694,10 @@ guess_load_pool(guess_t *gq, bool initial)
 		) {
 			if (!(gq->flags & GQ_F_POOL_LOAD)) {
 				if (GNET_PROPERTY(guess_client_debug) > 1) {
-					g_debug("GUESS QUERY[%s] deferring pool host loading",
-						nid_to_string(&gq->gid));
+					g_debug("GUESS QUERY[%s] deferring pool host loading "
+						"(previous done %s ago)",
+						nid_to_string(&gq->gid),
+						compact_time(delta_time(tm_time(), last_load)));
 				}
 				gq->flags |= GQ_F_POOL_LOAD;
 			}
