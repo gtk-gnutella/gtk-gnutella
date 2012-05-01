@@ -2487,6 +2487,10 @@ guess_pick_next(guess_t *gq)
 				g_debug("GUESS QUERY[%s] cannot recontact %s yet",
 					nid_to_string(&gq->gid), gnet_host_to_string(host));
 			}
+			if (gq->flags & GQ_F_END_STARVING) {
+				reason = "cannot recontact host + ending query";
+				goto drop;
+			}
 			continue;
 		}
 
@@ -2740,6 +2744,14 @@ guess_load_more_hosts(guess_t *gq)
 	size_t added;
 
 	guess_check(gq);
+
+	/*
+	 * If query is flagged to end as soon as it starves, don't feed it
+	 * with new hosts.
+	 */
+
+	if (gq->flags & GQ_F_END_STARVING)
+		return;
 
 	added = guess_load_pool(gq);
 
@@ -3807,8 +3819,8 @@ guess_end_when_starving(guess_t *gq)
 			nid_to_string(&gq->gid));
 	}
 
-	gq->flags |= GQ_F_END_STARVING;
 	guess_load_more_hosts(gq);		/* Fuel for not starving too early */
+	gq->flags |= GQ_F_END_STARVING;	/* Will prevent further disk pool loading */
 }
 
 /**
