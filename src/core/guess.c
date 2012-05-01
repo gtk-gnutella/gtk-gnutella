@@ -3314,6 +3314,8 @@ static void
 guess_rpc_callback(enum guess_rpc_ret type, struct guess_rpc *grp,
 	const gnutella_node_t *n, guess_t *gq)
 {
+	bool iterate;
+
 	guess_rpc_check(grp);
 	guess_check(gq);
 	g_assert(gq->rpc_pending > 0);
@@ -3327,14 +3329,15 @@ guess_rpc_callback(enum guess_rpc_ret type, struct guess_rpc *grp,
 			guess_timeout_from(grp->host);
 		}
 
-		if (0 == gq->rpc_pending)
-			guess_iterate(gq);
+		iterate = FALSE;
 	} else {
 		g_assert(NULL == grp->pmi);		/* Message sent if we get a reply */
 
-		if (guess_handle_ack(gq, n, grp->host, grp->hops))
-			guess_iterate(gq);
+		iterate = guess_handle_ack(gq, n, grp->host, grp->hops);
 	}
+
+	if (iterate || gq->rpc_pending < guess_alpha)
+		guess_iterate(gq);
 }
 
 /**
