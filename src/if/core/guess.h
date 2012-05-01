@@ -59,6 +59,7 @@ struct guess_stats {
 	size_t bw_out_qk;		/**< Estimated outgoing query key bandwidth */
 	enum guess_mode mode;	/**< Current query mode */
 	uint pool_load:1;		/**< Pending pool loading */
+	uint end_starving:1;	/**< Will end as soon as it is starving */
 };
 
 /**

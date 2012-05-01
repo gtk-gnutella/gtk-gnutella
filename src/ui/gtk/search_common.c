@@ -537,7 +537,7 @@ search_gui_update_guess_stats(const struct search *search)
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
 			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
-			"%zu %s%s]"),
+			"%zu %s%s%s]"),
 			compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
 				_("loose") : _("bounded"),
@@ -557,7 +557,8 @@ search_gui_update_guess_stats(const struct search *search)
 			search->guess_cur_rpc_pending,
 			search->guess_cur_hops,
 			NG_("hop", "hops", search->guess_cur_hops),
-			search->guess_cur_pool_load ? _(" (load pending)") : "");
+			search->guess_cur_pool_load ? _(" (load pending)") : "",
+			search->guess_cur_end_starving ? _(" (end if starving)") : "");
 	} else {
 		g_strlcpy(buf, _("No running GUESS query"), sizeof buf);
 	}
@@ -4488,6 +4489,7 @@ search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
 	search->guess_cur_bw_qk			= stats->bw_out_qk;
 	search->guess_cur_mode			= stats->mode;
 	search->guess_cur_pool_load		= stats->pool_load;
+	search->guess_cur_end_starving	= stats->end_starving;
 }
 
 

@@ -424,6 +424,7 @@ guess_stats_fire(const guess_t *gq)
 	stats.bw_out_qk		= gq->bw_out_qk;
 	stats.mode			= gq->mode;
 	stats.pool_load		= booleanize(gq->flags & GQ_F_POOL_LOAD);
+	stats.end_starving	= booleanize(gq->flags & GQ_F_END_STARVING);
 
 	LISTENER_EMIT(guess_stats, (gq->sh, &stats));
 }
