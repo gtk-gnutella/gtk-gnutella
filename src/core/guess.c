@@ -102,6 +102,7 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
+#include "lib/hashing.h"		/* For pointer_hash() */
 #include "lib/hashlist.h"
 #include "lib/hevset.h"
 #include "lib/hikset.h"
@@ -142,6 +143,8 @@
 #define GUESS_ALIVE_DECIMATION	0.85	/**< Per-timeout proba decimation */
 #define GUESS_DBLOAD_DELAY		60		/**< 1 minute, in s */
 #define GUESS_02_CACHE_SIZE		20		/**< Random cache of 0.2 hosts */
+#define GUESS_ALIVE_CACHE_SIZE	1024	/**< Hosts with recent activity */
+#define GUESS_DBLOAD_PERIOD		(GUESS_DBLOAD_DELAY * 1000)	/**< in ms */
 
 /**
  * Query stops after that many hits
@@ -343,10 +346,13 @@ static hevset_t *gqueries;				/**< Running GUESS queries */
 static hikset_t *gmuid;					/**< MUIDs of active queries */
 static htable_t *pending;				/**< Pending pong acknowledges */
 static hash_list_t *link_cache;			/**< GUESS "link cache" */
+static hash_list_t *load_pending;		/**< Queries waiting for DBMW loading */
+static hash_list_t *alive_cache;		/**< Cache of zero-timeout hosts */
 static cperiodic_t *guess_qk_prune_ev;	/**< Query keys pruning event */
 static cperiodic_t *guess_check_ev;		/**< Link cache monitoring */
 static cperiodic_t *guess_sync_ev;		/**< Periodic DBMW syncs */
 static cperiodic_t *guess_bw_ev;		/**< Periodic b/w checking */
+static cperiodic_t *guess_load_ev;		/**< Periodic DBMW load checking */
 static wq_event_t *guess_new_host_ev;	/**< Waiting for a new host */
 static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
@@ -1079,6 +1085,34 @@ guess_host_clear_v2(const gnet_host_t *h)
 }
 
 /**
+ * Add host to the alive cache if not already there, otherwise update its
+ * position in the cache.
+ */
+static void
+guess_alive_update(const gnet_host_t *h)
+{
+	/*
+	 * The alive cache is maintained as a pure LRU cache of limited size.
+	 * Newest entries are moved to the head.
+	 *
+	 * Contrary to the link cache, this is not actively maintained: we do not
+	 * regularily scan the cache to prune dead entries.  The alive cache is
+	 * there to remember a large set of not-timeouting hosts to fuel new
+	 * GUESS queries, until it can load data from the larger disk cache.
+	 */
+
+	if (hash_list_contains(alive_cache, h)) {
+		hash_list_moveto_head(alive_cache, h);
+	} else {
+		while (hash_list_length(alive_cache) > GUESS_ALIVE_CACHE_SIZE) {
+			gnet_host_t *host = hash_list_remove_tail(alive_cache);
+			atom_host_free(host);
+		}
+		hash_list_prepend(alive_cache, atom_host_get(h));
+	}
+}
+
+/**
  * Update "last_seen" event for hosts from whom we get traffic and move
  * them to the head of the link cache if present.
  */
@@ -1088,9 +1122,10 @@ guess_traffic_from(const gnet_host_t *h)
 	struct qkdata *qk;
 	struct qkdata new_qk;
 
-	if (hash_list_contains(link_cache, h)) {
+	if (hash_list_contains(link_cache, h))
 		hash_list_moveto_head(link_cache, h);
-	}
+
+	guess_alive_update(h);
 
 	qk = get_qkdata(h);
 
@@ -1114,6 +1149,15 @@ static void
 guess_timeout_from(const gnet_host_t *h)
 {
 	struct qkdata *qk;
+	const gnet_host_t *atom;
+
+	/*
+	 * Hosts that timeout are immediately removed from the "alive" cache,
+	 * by definition.
+	 */
+
+	atom = hash_list_remove(alive_cache, h);
+	atom_host_free_null(&atom);
 
 	qk = get_qkdata(h);
 
@@ -2592,13 +2636,14 @@ guess_async_iterate_if_needed(guess_t *gq)
 struct guess_load_context {
 	guess_t *gq;
 	size_t loaded;
+	const char *type;
 };
 
 /**
  * Hash list iterator to load host into query's pool if not already queried.
  */
 static void
-guess_pool_from_link_cache(void *host, void *data)
+guess_pool_from_cache(void *host, void *data)
 {
 	struct guess_load_context *ctx = data;
 	guess_t *gq = ctx->gq;
@@ -2611,8 +2656,8 @@ guess_pool_from_link_cache(void *host, void *data)
 		hash_list_append(gq->pool, atom_host_get(host));
 		ctx->loaded++;
 		if (GNET_PROPERTY(guess_client_debug) > 5) {
-			g_debug("GUESS QUERY[%s] loaded link %s to pool",
-				nid_to_string(&gq->gid), gnet_host_to_string(host));
+			g_debug("GUESS QUERY[%s] loaded %s %s to pool",
+				nid_to_string(&gq->gid), ctx->type, gnet_host_to_string(host));
 		}
 	}
 }
@@ -2646,12 +2691,8 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
 		!hset_contains(gq->queried, host) &&
 		!hash_list_contains(gq->pool, host)
 	) {
-		double p = guess_entry_still_alive(qk);
-
-		if (p >= GUESS_ALIVE_PROBA) {
-			hash_list_append(gq->pool, atom_host_get(host));
-			ctx->loaded++;
-		}
+		hash_list_append(gq->pool, atom_host_get(host));
+		ctx->loaded++;
 	}
 }
 
@@ -2659,53 +2700,31 @@ guess_pool_from_qkdata(void *host, void *value, size_t len, void *data)
  * Load more hosts into the query pool.
  *
  * @param gq		the GUESS query
- * @param initial	TRUE if initial loading (only from link cache)
  *
  * @return amount of new hosts loaded into the pool.
  */
 static size_t
-guess_load_pool(guess_t *gq, bool initial)
+guess_load_pool(guess_t *gq)
 {
 	struct guess_load_context ctx;
 
 	ctx.gq = gq;
 	ctx.loaded = 0;
 
-	hash_list_foreach(link_cache, guess_pool_from_link_cache, &ctx);
+	ctx.type = "link";
+	hash_list_foreach(link_cache, guess_pool_from_cache, &ctx);
 
-	if (!initial || 0 == ctx.loaded) {
-		static time_t last_load;
+	ctx.type = "alive";
+	hash_list_foreach(alive_cache, guess_pool_from_cache, &ctx);
 
-		/*
-		 * This can be slow, because we're iterating over a potentially large
-		 * database, and doing that too often will stuck the process completely.
-		 *
-		 * If we did load hosts recently, delay the operation, flagging the
-		 * query as needing a loading, which will happen at the next iteration.
-		 * Until it can complete successfully.
-		 *
-		 * To avoid querying hosts in roughly the same order from query to
-		 * query, shuffle the resulting pool after loading.
-		 */
+	if (!(gq->flags & GQ_F_POOL_LOAD)) {
+		g_assert(!hash_list_contains(load_pending, gq));
+		hash_list_append(load_pending, gq);
+		gq->flags |= GQ_F_POOL_LOAD;
 
-		if (
-			last_load != 0 &&
-			delta_time(tm_time(), last_load) < GUESS_DBLOAD_DELAY
-		) {
-			if (!(gq->flags & GQ_F_POOL_LOAD)) {
-				if (GNET_PROPERTY(guess_client_debug) > 1) {
-					g_debug("GUESS QUERY[%s] deferring pool host loading "
-						"(previous done %s ago)",
-						nid_to_string(&gq->gid),
-						compact_time(delta_time(tm_time(), last_load)));
-				}
-				gq->flags |= GQ_F_POOL_LOAD;
-			}
-		} else {
-			dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
-			gq->flags &= ~GQ_F_POOL_LOAD;
-			last_load = tm_time();
-			hash_list_shuffle(gq->pool);	/* Randomize order */
+		if (GNET_PROPERTY(guess_client_debug) > 1) {
+			g_debug("GUESS QUERY[%s] enqueued for pool host loading",
+				nid_to_string(&gq->gid));
 		}
 	}
 
@@ -2722,13 +2741,77 @@ guess_load_more_hosts(guess_t *gq)
 
 	guess_check(gq);
 
-	added = guess_load_pool(gq, FALSE);
+	added = guess_load_pool(gq);
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool%s",
 			nid_to_string(&gq->gid), added, 1 == added ? "" : "s",
-			(gq->flags & GQ_F_POOL_LOAD) ? " (deferred)" : "");
+			(gq->flags & GQ_F_POOL_LOAD) ? " (pool load pending)" : "");
 	}
+}
+
+/**
+ * Callout queue periodic event to process the DBMW load queue.
+ */
+static bool
+guess_periodic_load(void *unused_obj)
+{
+	tm_t start, end;
+	unsigned count = 0;
+	guess_t *gq;
+	struct guess_load_context ctx;
+
+	(void) unused_obj;
+
+	ctx.type = "disk";
+
+	tm_now_exact(&start);
+
+next:
+	gq = hash_list_shift(load_pending);
+	if (NULL == gq)
+		goto done;
+
+	guess_check(gq);
+	g_assert(gq->flags & GQ_F_POOL_LOAD);
+
+	ctx.gq = gq;
+	ctx.loaded = 0;
+
+	/*
+	 * To avoid querying hosts in roughly the same order from query to
+	 * query, shuffle the resulting pool after loading.
+	 */
+
+	dbmw_foreach(db_qkdata, guess_pool_from_qkdata, &ctx);
+	gq->flags &= ~GQ_F_POOL_LOAD;
+	hash_list_shuffle(gq->pool);	/* Randomize order */
+
+	if (GNET_PROPERTY(guess_client_debug) > 1) {
+		g_debug("GUESS QUERY[%s] loaded %zu more host%s from disk pool",
+			nid_to_string(&gq->gid), ctx.loaded, 1 == ctx.loaded ? "" : "s");
+	}
+
+	guess_stats_fire(gq);
+
+	/*
+	 * Allow up to 2 seconds of stalling every minute, at most.  If we spent
+	 * less than 1 second overall, we can process another pending query.
+	 */
+
+	count++;
+	tm_now_exact(&end);
+	if (tm_elapsed_ms(&end, &start) < 1000)
+		goto next;
+
+done:
+	if (GNET_PROPERTY(guess_client_debug) && count != 0) {
+		g_debug("GUESS %s() took %u ms for %u load%s",
+			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
+			count, 1 == count ? "" : "s");
+	}
+
+	return TRUE;				/* Keep calling */
 }
 
 /**
@@ -3493,13 +3576,6 @@ guess_iterate(guess_t *gq)
 	}
 
 	/*
-	 * If we have a pending pool loading, attempt to do it now.
-	 */
-
-	if (gq->flags & GQ_F_POOL_LOAD)
-		guess_load_more_hosts(gq);
-
-	/*
 	 * If we were delayed in another "thread" of replies, this call is about
 	 * to be rescheduled once the delay is expired.
 	 */
@@ -3785,7 +3861,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 			guid_hex_str(muid), (unsigned long) gq->max_ultrapeers);
 	}
 
-	if (0 == guess_load_pool(gq, TRUE)) {
+	if (0 == guess_load_pool(gq)) {
 		gq->hostwait = wq_sleep_timeout(
 			func_to_pointer(hcache_add),
 			GUESS_WAIT_DELAY, guess_load_host_added, gq);
@@ -3888,6 +3964,8 @@ guess_cancel(guess_t **gq_ptr, bool callback)
 
 		if (callback)
 			(*gq->cb)(gq->arg);		/* Let them know query has ended */
+
+		hash_list_remove(load_pending, gq);
 
 		guess_final_stats(gq);
 		guess_stats_fire(gq);
@@ -4065,6 +4143,8 @@ guess_init(void)
 		GUESS_CHECK_PERIOD, guess_periodic_check, NULL);
 	guess_sync_ev = cq_periodic_main_add(
 		GUESS_SYNC_PERIOD, guess_periodic_sync, NULL);
+	guess_load_ev = cq_periodic_main_add(
+		GUESS_DBLOAD_PERIOD, guess_periodic_load, NULL);
 	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
 	gqueries = hevset_create_any(
@@ -4072,6 +4152,8 @@ guess_init(void)
 	gmuid = hikset_create(
 		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
+	alive_cache = hash_list_new(gnet_host_hash, gnet_host_eq);
+	load_pending = hash_list_new(pointer_hash, NULL);
 	pending = htable_create_any(guess_rpc_key_hash, NULL, guess_rpc_key_eq);
 	guess_qk_reqs = aging_make(GUESS_QK_FREQ,
 		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
@@ -4123,6 +4205,7 @@ guess_close(void)
 	cq_periodic_remove(&guess_qk_prune_ev);
 	cq_periodic_remove(&guess_check_ev);
 	cq_periodic_remove(&guess_sync_ev);
+	cq_periodic_remove(&guess_load_ev);
 	cq_periodic_remove(&guess_bw_ev);
 	wq_cancel(&guess_new_host_ev);
 	guess_cache_free();
@@ -4135,6 +4218,8 @@ guess_close(void)
 	aging_destroy(&guess_qk_reqs);
 	aging_destroy(&guess_alien);
 	hash_list_free_all(&link_cache, gnet_host_free_atom);
+	hash_list_free_all(&alive_cache, gnet_host_free_atom);
+	hash_list_free(&load_pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
