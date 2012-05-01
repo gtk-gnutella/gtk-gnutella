@@ -2733,6 +2733,14 @@ guess_load_pool(guess_t *gq)
 		}
 	}
 
+	/*
+	 * Shuffle pool randomly to avoid querying all the hosts in the same order,
+	 * balancing the load among them.
+	 */
+
+	if (ctx.loaded)
+		hash_list_shuffle(gq->pool);
+
 	return ctx.loaded;
 }
 
