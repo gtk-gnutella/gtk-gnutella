@@ -2410,8 +2410,8 @@ search_gui_flush(time_t now, gboolean force)
              *     --BLUE, 4/1/2004
              */
 
-            if (sch) {
-				if (!g_slist_find(frozen, sch)) {
+            if (sch != NULL) {
+				if (!sch->frozen) {
                 	search_gui_start_massive_update(sch);
                 	frozen = g_slist_prepend(frozen, sch);
 				}
@@ -2458,8 +2458,8 @@ search_gui_flush(time_t now, gboolean force)
 
 	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
-		g_debug("dispatching results took %lu ms",
-			(gulong) tm_elapsed_ms(&t1, &t0));
+		g_debug("%s(): dispatching results took %lu ms",
+			G_STRFUNC, (ulong) tm_elapsed_ms(&t1, &t0));
 	}
 
 	search_gui_flush_queues();

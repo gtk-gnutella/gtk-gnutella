@@ -1425,11 +1425,13 @@ search_gui_start_massive_update(struct search *search)
 	GtkTreeModel *model;
 
 	g_return_if_fail(search);
+	g_return_if_fail(!search->frozen);
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	g_object_freeze_notify(G_OBJECT(search->tree));
 	g_object_freeze_notify(G_OBJECT(model));
 	search_gui_disable_sort(search);
+	search->frozen = TRUE;
 }
 
 void
@@ -1438,7 +1440,9 @@ search_gui_end_massive_update(struct search *search)
 	GtkTreeModel *model;
 
 	g_return_if_fail(search);
+	g_return_if_fail(search->frozen);
 
+	search->frozen = FALSE;
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	g_object_thaw_notify(G_OBJECT(model));
 	g_object_thaw_notify(G_OBJECT(search->tree));

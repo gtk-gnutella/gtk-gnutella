@@ -1940,13 +1940,19 @@ void
 search_gui_start_massive_update(struct search *search)
 {
 	g_return_if_fail(search);
+	g_return_if_fail(!search->frozen);
+
 	gtk_clist_freeze(GTK_CLIST(search->tree));
+	search->frozen = TRUE;
 }
 
 void
 search_gui_end_massive_update(struct search *search)
 {
 	g_return_if_fail(search);
+	g_return_if_fail(search->frozen);
+
+	search->frozen = FALSE;
 	gtk_clist_thaw(GTK_CLIST(search->tree));
 }
 

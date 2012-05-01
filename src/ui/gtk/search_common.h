@@ -56,6 +56,7 @@ typedef struct search {
 	bool	list_refreshed;
 	bool	clicked;
 	bool	sort;
+	bool	frozen;
 
     int     sort_col;
     int     sort_order;
@@ -105,7 +106,6 @@ typedef struct search {
 	enum guess_mode guess_cur_mode;	/**< Current query mode */
 	uint guess_cur_pool_load:1;		/**< Whether pool loading is pending */
 	uint guess_cur_end_starving:1;	/**< Whether query will end on starving */
-
 } search_t;
 
 enum {
