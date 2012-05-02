@@ -2141,8 +2141,8 @@ get_results_set(gnutella_node_t *n, bool browse)
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
 		/* packet too small 11 header, 16 GUID min */
-		g_warning("get_results_set(): given too small a packet (%d bytes)",
-				  n->size);
+		g_warning("%s(): given too small a packet (%d bytes)",
+			G_STRFUNC, n->size);
         gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
 		return NULL;
 	}
@@ -4726,10 +4726,49 @@ search_results(gnutella_node_t *n, int *results)
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
 		const guid_t *guess_muid = NULL;
 
+		/*
+		 * When dealing with a GUESS search we have to pass in the GUESS
+		 * query MUID so that this parameter may be passed back by the GUI
+		 * once it has filtered results and we know we're being notified
+		 * about kept results for a GUESS search (and which one), which in
+		 * turn allows us to track the amount of meaningful results that a
+		 * GUESS query generates.
+		 *
+		 * So this GUESS MUID we're giving to the GUID is to be construed
+		 * as an opaque ID that allows us to tie our ends in the core side.
+		 *
+		 * This complication is only necessary because results filtering
+		 * happens in the GUI and not in the core as it should (FIXME, but
+		 * this is far from trivial as the whole filtering configuration
+		 * must be exchanged between the core and the GUI, along with the
+		 * associated statistics, for proper GUI display and editing).
+		 */
+
 		if (guess_is_search_muid(muid)) {
 			rs->status |= ST_GUESS;
 			guess_got_results(muid, rs->num_recs);
 			guess_muid = muid;
+
+			if (GNET_PROPERTY(guess_client_debug) > 5) {
+				search_ctrl_t *sch;
+				sch = htable_lookup(search_by_muid, muid);
+				if (NULL == sch) {
+					g_carp("%s(): GUESS search %s not found by MUID",
+						G_STRFUNC, guid_to_string(muid));
+				} else {
+					void *data = g_slist_find(selected_searches,
+						uint_to_pointer(sch->search_handle));
+					if (NULL == data) {
+						g_carp("%s(): GUESS search %s not selected!",
+							G_STRFUNC, guid_to_string(muid));
+					} else {
+						g_debug("GUESS delivering hit with %u record%s "
+							"for \"%s\" %s",
+							rs->num_recs, 1 == rs->num_recs ? "" : "s",
+							sch->name, guid_to_string(muid));
+					}
+				}
+			}
 		}
 
 		search_results_set_flag_records(rs);

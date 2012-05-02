@@ -1967,11 +1967,15 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 	}
 
 	if (GUI_PROPERTY(gui_debug) > 6) {
-		g_debug("%s(): [%s] got hit with %d record%s (from %s) "
+		g_debug("%s(): [%s] got hit with %d record%s (from %s via %s%s%s%s) "
 			"need_push=%d, skipping=%d", G_STRFUNC,
 			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
-			(flags & SOCK_F_PUSH), skip_records);
+			(rs->status & ST_UDP) ? "UDP" : "TCP",
+			(rs->status & ST_GUESS) ? " + GUESS" : "",
+			(NULL == muid) ? "" : " ",
+			(NULL == muid) ? "" : guid_to_string(muid),
+			booleanize(flags & SOCK_F_PUSH), skip_records);
 	}
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
@@ -2310,13 +2314,21 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 	if (rs) {
 		struct accum_rs *ars;
 
-		if (GUI_PROPERTY(gui_debug) >= 12)
+		if (GUI_PROPERTY(gui_debug) >= 12) {
 			g_debug("%s(): got incoming results...", G_STRFUNC);
+		}
 
 		WALLOC(ars);
 		ars->muid = muid != NULL ? atom_guid_get(muid) : NULL;
 		ars->rs = rs;
 		slist_append(accumulated_rs, ars);
+	} else {
+		if (GUI_PROPERTY(gui_debug) >= 6) {
+			g_debug("%s(): ignoring %u result%s%s%s",
+				G_STRFUNC, r_set->num_recs, 1 == r_set->num_recs ? "" : "s",
+				NULL == muid ? "" : " for GUESS ",
+				NULL == muid ? "" : guid_to_string(muid));
+		}
 	}
 }
 
@@ -2365,9 +2377,8 @@ search_gui_flush(time_t now, gboolean force)
 	tm_t t0, t1;
 
 	if (!force) {
-		guint32 period;
+		guint32 period = GUI_PROPERTY(search_accumulation_period);
 
-		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
 		if (last && delta_time(now, last) < (time_delta_t) period)
 			return;
 	}
@@ -2389,6 +2400,12 @@ search_gui_flush(time_t now, gboolean force)
 		accum_rs_free(ars);
         schl = rs->schl;
         rs->schl = NULL;
+
+		if (GUI_PROPERTY(gui_debug) > 6 && muid != NULL) {
+			g_debug("%s(): processing accumulated %u record%s for %s",
+				G_STRFUNC, rs->num_recs, 1 == rs->num_recs ? "" : "s",
+				guid_to_string(muid));
+		}
 
 		search_gui_set_record_info(rs);
 
@@ -2417,8 +2434,8 @@ search_gui_flush(time_t now, gboolean force)
 				}
                 search_matched(sch, muid, rs);
             } else if (GUI_PROPERTY(gui_debug) >= 6) {
-				g_debug(
-					"no search for cached search result while dispatching");
+				g_debug("%s(): no search for cached search result (handle #%u)",
+					G_STRFUNC, handle);
 			}
         }
 		gm_slist_free_null(&schl);
