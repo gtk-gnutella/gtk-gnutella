@@ -173,7 +173,7 @@ random_value(uint32 max)
 	 * but using floating point computation introduces a bias because not
 	 * all the integers in the numerator can be fully represented.
 	 *
-	 * Hence we now prefer arc4random_upto() which garanteees an uniform
+	 * Hence we now prefer random_upto() which garanteees a uniform
 	 * distribution of the random numbers, using integer-only arithmetic.
 	 */
 
