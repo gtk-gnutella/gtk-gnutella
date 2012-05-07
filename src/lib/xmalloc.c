@@ -5402,7 +5402,7 @@ xgc(void)
 	double start_cpu = 0.0;
 	struct xgc_allocator xga;
 	struct xgc_context xgctx;
-	void *tmp;
+	void const **tmp;
 	erbtree_t rbt;
 
 	if (!xmalloc_vmm_is_up)
@@ -5616,6 +5616,8 @@ xgc(void)
 		/*
 		 * Copy back the kept items, if we removed anything.
 		 */
+
+		g_assert(UNSIGNED(q - tmp) == fl->count);	/* Accurate count */
 
 		if (old_count != fl->count) {
 			fl->sorted -= sorted_stripped;
