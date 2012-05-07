@@ -517,9 +517,21 @@ search_gui_update_guess_stats(const struct search *search)
 	if (0 == search->guess_queries) {
 		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
 	} else if (GUI_PROPERTY(guess_stats_show_total)) {
+		char prev[128];
 		uint64 hits = search->guess_results + search->guess_cur_results;
+		if (search->guess_elapsed != 0) {
+			str_bprintf(prev, sizeof prev,
+				_(" previous took %s querying %zu %s with %zu %s kept"),
+				compact_time(search->guess_elapsed),
+				search->guess_hosts,
+				NG_("host", "hosts", search->guess_hosts),
+				search->guess_last_kept,
+				NG_("hit", "hits", search->guess_last_kept));
+		} else {
+			prev[0] = '\0';
+		}
 		str_bprintf(buf, sizeof buf, _("GUESS %s [Total: %zu %s "
-			"(%s %s, %s kept, %s queries, %s keys)%s%s]"),
+			"(%s %s, %s kept, %s queries, %s keys)%s]"),
 			0 == search->guess_cur_start ? _("idle") :
 				compact_time(delta_time(tm_time(), search->guess_cur_start)),
 			search->guess_queries,
@@ -530,9 +542,7 @@ search_gui_update_guess_stats(const struct search *search)
 				search->guess_bw_query + search->guess_cur_bw_query, FALSE),
 			short_size2(
 				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
-			search->guess_elapsed != 0 ? _(" previous took ") : "",
-			search->guess_elapsed != 0 ?
-				compact_time2(search->guess_elapsed) : "");
+			prev);
 	} else if (search->guess_cur_start != 0) {
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
@@ -4467,6 +4477,8 @@ search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
 		search->guess_results += search->guess_cur_results;
 		search->guess_kept += search->guess_cur_kept;
 		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
+		search->guess_hosts = search->guess_cur_acks;	/* Really queried */
+		search->guess_last_kept = search->guess_cur_kept;
 		/* Reset stats for new query */
 		search->guess_cur_start = 0;
 		search->guess_cur_pool = 0;

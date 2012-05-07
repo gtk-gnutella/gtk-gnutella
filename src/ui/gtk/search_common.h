@@ -87,6 +87,8 @@ typedef struct search {
 	 */
 
 	size_t guess_queries;		/**< Total amount of queries run */
+	size_t guess_hosts;			/**< Hosts queried by last completed query */
+	size_t guess_last_kept;		/**< Kept results at last query */
 	uint64 guess_bw_query;		/**< Total bandwidth used by queries */
 	uint64 guess_bw_qk;			/**< Total bandwidth used by query keys */
 	uint64 guess_results;		/**< Total results received */
