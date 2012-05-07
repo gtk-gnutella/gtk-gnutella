@@ -516,7 +516,14 @@ search_gui_update_guess_stats(const struct search *search)
 
 	if (0 == search->guess_queries) {
 		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
-	} else if (GUI_PROPERTY(guess_stats_show_total)) {
+	} else if (
+		GUI_PROPERTY(guess_stats_show_total) ||
+		0 == search->guess_cur_start
+	) {
+		/*
+		 * Either they want summary stats or there are no currently running
+		 * GUESS search: display summary only.
+		 */
 		char prev[128];
 		uint64 hits = search->guess_results + search->guess_cur_results;
 		if (search->guess_elapsed != 0) {
@@ -543,7 +550,10 @@ search_gui_update_guess_stats(const struct search *search)
 			short_size2(
 				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
 			prev);
-	} else if (search->guess_cur_start != 0) {
+	} else {
+		/*
+		 * A GUESS search is active AND they don't want only summary stats.
+		 */
 		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
 			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
@@ -569,8 +579,6 @@ search_gui_update_guess_stats(const struct search *search)
 			NG_("hop", "hops", search->guess_cur_hops),
 			search->guess_cur_pool_load ? _(" (load pending)") : "",
 			search->guess_cur_end_starving ? _(" (end if starving)") : "");
-	} else {
-		g_strlcpy(buf, _("No running GUESS query"), sizeof buf);
 	}
 
 	gtk_label_printf(label_guess_stats, "%s", buf);
