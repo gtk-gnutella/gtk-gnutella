@@ -1920,7 +1920,6 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 	}
 
 	xfl_count_decreased(fl, TRUE);
-	mutex_release(&fl->lock);
 }
 
 /**
@@ -2471,9 +2470,9 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 				xfl_delete_slot(fl, idx);
 				base = before;
 				found_match = coalesced = TRUE;
-			} else {
-				mutex_release(&fl->lock);
 			}
+
+			mutex_release(&fl->lock);
 		}
 
 		if (!found_match)
@@ -2510,9 +2509,9 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 				xfl_delete_slot(fl, idx);
 				end = ptr_add_offset(end, blksize);
 				found_match = coalesced = TRUE;
-			} else {
-				mutex_release(&fl->lock);
 			}
+
+			mutex_release(&fl->lock);
 		}
 
 		if (!found_match)
@@ -4457,7 +4456,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 		 * Look for a match after the allocated block.
 		 */
 
-		for (i = freelist_idx; i <= xfreelist_maxidx; i++) {
+		for (i = freelist_idx; i <= xfreelist_maxidx && !coalesced; i++) {
 			struct xfreelist *fl = &xfreelist[i];
 			size_t idx;
 
@@ -4497,10 +4496,8 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				xfl_delete_slot(fl, idx);
 				end = ptr_add_offset(end, blksize);
 				coalesced = TRUE;
-				break;
-			} else {
-				mutex_release(&fl->lock);
 			}
+			mutex_release(&fl->lock);
 		}
 
 		/*
@@ -4554,7 +4551,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 		 * Look for a match before.
 		 */
 
-		for (i = freelist_idx; i <= xfreelist_maxidx; i++) {
+		for (i = freelist_idx; i <= xfreelist_maxidx && !coalesced; i++) {
 			struct xfreelist *fl = &xfreelist[i];
 			size_t blksize;
 			void *before;
@@ -4598,10 +4595,9 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				old_len = xh->length - XHEADER_SIZE;	/* Old user size */
 				xh = before;
 				coalesced = TRUE;
-				break;
-			} else {
-				mutex_release(&fl->lock);
 			}
+
+			mutex_release(&fl->lock);
 		}
 
 		/*
