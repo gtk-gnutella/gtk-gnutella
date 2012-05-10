@@ -409,6 +409,7 @@ static struct {
 	uint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	uint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	uint64 aligned_via_vmm;				/**< Idem, no freelist tried */
+	uint64 aligned_via_vmm_subpage;		/**< Idem, no freelist tried */
 	uint64 aligned_via_zone;			/**< Aligned memory from zone */
 	uint64 aligned_via_xmalloc;			/**< Aligned memory from xmalloc */
 	uint64 aligned_freed;				/**< Freed aligned memory */
@@ -985,6 +986,17 @@ xmalloc_is_valid_length(const void *p, size_t len)
 
 	adjusted = len - XMALLOC_SPLIT_MIN / 2;		/* Half of split factor */
 	if G_LIKELY(adjusted == xmalloc_round_blocksize(adjusted))
+		return TRUE;
+
+	/*
+	 * Allow simplified posix_memalign() implementation: the rounded block
+	 * can be up to XMALLOC_BLOCK_SIZE bytes longer when the size is larger
+	 * than XMALLOC_FACTOR_MAXSIZE.  This is due to the fact that rounding
+	 * to an alignment is not always compatible with the discrete malloc
+	 * block sizes.
+	 */
+
+	if (len > XMALLOC_FACTOR_MAXSIZE && len <= XMALLOC_MAXSIZE)
 		return TRUE;
 
 	/*
@@ -5802,6 +5814,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
+	DUMP(aligned_via_vmm_subpage);
 	DUMP(aligned_via_zone);
 	DUMP(aligned_via_xmalloc);
 	DUMP(aligned_freed);
@@ -6914,6 +6927,92 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		method = "zone";
 		xstats.aligned_via_zone++;
 		goto done;
+	} else if (
+		size >= xmalloc_pagesize / 2 &&
+		xmalloc_round_blocksize(size + alignment + XHEADER_SIZE) <=
+			xmalloc_pagesize - XMALLOC_SPLIT_MIN
+	) {
+		size_t len;
+		void *start, *u, *end, *uend;
+		unsigned long addr;
+		size_t mask = alignment - 1;
+
+		g_assert(size < xmalloc_pagesize);
+
+		/*
+		 * Allocate at the tail of the page, on the proper alignment boundary.
+		 */
+
+		start = vmm_core_alloc(xmalloc_pagesize);
+		len = xmalloc_round_blocksize(size + alignment) + XHEADER_SIZE;
+
+		g_assert(len <= xmalloc_pagesize);
+
+		p = ptr_add_offset(start, xmalloc_pagesize - len);
+		u = ptr_add_offset(p, XHEADER_SIZE);	/* User pointer */
+		addr = pointer_to_ulong(u);
+
+		/*
+		 * Align starting user address.
+		 */
+		
+		if ((addr & ~mask) != addr) {
+			addr = size_saturate_add(pointer_to_ulong(u), mask) & ~mask;
+			u = ulong_to_pointer(addr);
+			p = ptr_add_offset(u, -XHEADER_SIZE);
+		}
+
+		/*
+		 * Put beginning of page back to freelist.
+		 */
+
+		if (p != start) {
+			size_t before = ptr_diff(p, start);
+
+			g_assert(size_is_positive(before));
+			g_assert(before >= XMALLOC_SPLIT_MIN);
+
+			/* Beginning of block, in excess */
+			xmalloc_freelist_insert(start, before, FALSE, XM_COALESCE_BEFORE);
+			truncation |= TRUNCATION_BEFORE;
+		}
+
+		/*
+		 * Set up remainder as a malloc block.
+		 */
+
+		len = xmalloc_pagesize - ptr_diff(p, start);
+		end = ptr_add_offset(start, xmalloc_pagesize);
+		uend = ptr_add_offset(p, len);
+
+		g_assert(ptr_diff(uend, end) <= 0);
+
+		/*
+		 * If there is excess, put back to freelist.
+		 */
+
+		if (uend != end) {
+			size_t after = ptr_diff(end, uend);
+
+			g_assert_log(size_is_non_negative(after),
+				"p=%p, uend=%p, len=%zu, end=%p", p, uend, len, end);
+
+			if (after >= XMALLOC_SPLIT_MIN) {
+				/* End of block, in excess */
+				xmalloc_freelist_insert(uend, after,
+					FALSE, XM_COALESCE_AFTER);
+				truncation |= TRUNCATION_AFTER;
+			} else {
+				len += after;	/* Not truncated */
+			}
+		}
+
+		p = xmalloc_block_setup(p, len);	/* User pointer */
+
+		method = "VMM trailing sub-page";
+		xstats.aligned_via_vmm_subpage++;
+		goto done;
+
 	} else {
 		size_t nalloc, len, blen;
 		size_t mask = alignment - 1;
@@ -6922,9 +7021,13 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		/*
 		 * We add XHEADER_SIZE to account for the xmalloc() header.
+		 *
+		 * We add twice the alignment in case the first aligned address is
+		 * too close to the start of the block (less than XMALLOC_SPLIT_MIN),
+		 * so that we can move to the next aligned address safely.
 		 */
 
-		nalloc = size_saturate_add(alignment, size);
+		nalloc = size_saturate_add(alignment + alignment, size);
 		len = xmalloc_round_blocksize(xmalloc_round(nalloc) + XHEADER_SIZE);
 
 		/*
@@ -6971,9 +7074,11 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		/*
 		 * This is the physical block size we want to return in the block
 		 * header to flag it as a valid xmalloc()ed one.
+		 *
+		 * This may not be a valid xmalloc() block size, but that's OK.
 		 */
 
-		blen = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+		blen = xmalloc_round(size) + XHEADER_SIZE;
 
 		/*
 		 * Is the address already properly aligned?
@@ -7013,13 +7118,14 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			 */
 
 			addr = size_saturate_add(pointer_to_ulong(u), mask) & ~mask;
+		adjusted:
 			u = ulong_to_pointer(addr);		/* Aligned user pointer */
 
 			g_assert(ptr_cmp(u, end) <= 0);
 			g_assert(ptr_cmp(ptr_add_offset(u, size), end) <= 0);
 
 			/*
-			 * Remove excess pages at the beginning and the end.
+			 * Remove excess memory at the beginning and the end.
 			 */
 
 			g_assert(ptr_diff(u, p) >= XHEADER_SIZE);
@@ -7029,8 +7135,18 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			if (q != p) {
 				size_t before = ptr_diff(q, p);
 
-				/* Because alignment is large enough, this must hold */
-				g_assert(before >= XMALLOC_SPLIT_MIN);
+				g_assert(size_is_positive(before));
+
+				/*
+				 * If too close from the starting address, move to the next
+				 * aligned one, which is safe because we allocated at least
+				 * twice the alignment bytes.
+				 */
+
+				if G_UNLIKELY(before < XMALLOC_SPLIT_MIN) {
+					addr += alignment;
+					goto adjusted;
+				}
 
 				/* Beginning of block, in excess */
 				xmalloc_freelist_insert(p, before, FALSE, XM_COALESCE_BEFORE);
@@ -7041,6 +7157,10 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 			if (uend != end) {
 				size_t after = ptr_diff(end, uend);
+
+				g_assert_log(size_is_non_negative(after),
+					"p=%p, q=%p, blen=%zu, end=%p, uend=%p",
+					p, q, blen, end, uend);
 
 				if (after >= XMALLOC_SPLIT_MIN) {
 					/* End of block, in excess */
