@@ -46,6 +46,7 @@
 #include "misc.h"		/* For is_strprefix() and is_strsuffix() */
 #include "mutex.h"
 #include "omalloc.h"
+#include "once.h"
 #include "path.h"
 #include "signal.h"
 #include "spinlock.h"
@@ -87,6 +88,7 @@ static symbols_t *symbols;
 
 static const char *executable_absolute_path;	/* Read-only string */
 static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
+static bool stacktrace_atom_inited;
 
 /**
  * This buffer is allocated to construct the stack trace atomically to make
@@ -1767,6 +1769,18 @@ stacktrace_chop_length(const struct stacktrace *st)
 	return i;
 }
 
+/*
+ * Initialize the stack atom table.
+ */
+static void
+stacktrace_atom_init(void)
+{
+	g_assert(NULL == stack_atoms);
+
+	stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
+	hash_table_thread_safe(stack_atoms);
+}
+
 /**
  * Lookup stacktrace to see whether we already have an atom for it.
  *
@@ -1783,14 +1797,8 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
-	if G_UNLIKELY(NULL == stack_atoms) {
-		spinlock(&stacktrace_atom_slk);
-		if (NULL == stack_atoms) {
-			stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
-			hash_table_thread_safe(stack_atoms);
-		}
-		spinunlock(&stacktrace_atom_slk);
-	}
+	if G_UNLIKELY(NULL == stack_atoms)
+		once_run(&stacktrace_atom_inited, stacktrace_atom_init);
 
 	key.stack = deconstify_pointer(st->stack);
 	key.len = len;
@@ -1845,7 +1853,7 @@ stacktrace_get_atom(const struct stacktrace *st)
 		result = stacktrace_atom_lookup(st, len);
 		if (NULL == result)
 			result = stacktrace_atom_record(st, len);
-		spinlock(&stacktrace_atom_slk);
+		spinunlock(&stacktrace_atom_slk);
 	}
 
 	return result;
