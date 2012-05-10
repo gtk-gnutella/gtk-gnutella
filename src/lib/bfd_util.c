@@ -58,6 +58,7 @@
 
 #include "bfd_util.h"
 #include "concat.h"
+#include "mutex.h"
 #include "path.h"
 #include "symbols.h"
 #include "vmm.h"			/* For vmm_page_start() */
@@ -75,6 +76,7 @@ struct bfd_ctx {
 	asymbol **symbols;			/* Symbol table */
 	size_t offset;				/* Memory mapping offset */
 	symbols_t *text_symbols;	/* Text-only symbols */
+	mutex_t lock;				/* Thread-safe access */
 	unsigned symsize;			/* Symbol size in the symbols[] array */
 	long count;					/* Amount of symbols in symbols[] */
 	uint dynamic:1;				/* Whether symbols[] holds dynamic symbols */
@@ -92,6 +94,7 @@ enum bfd_env_magic { BFD_ENV_MAGIC = 0x53378fa3 };
 struct bfd_env {
 	enum bfd_env_magic magic;	/* Magic number */
 	struct bfd_list *head;		/* List of allocated contexts */
+	mutex_t lock;				/* Lock for thread-safe access */
 };
 
 struct symbol_ctx {
@@ -133,6 +136,8 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	if (0 == bc->count)
 		return;
 
+	mutex_get(&bc->lock);
+
 	g_assert(bc->symbols != NULL);
 
 	empty = bfd_make_empty_symbol(bc->handle);
@@ -157,6 +162,8 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 			}
 		}
 	}
+
+	mutex_release(&bc->lock);
 }
 
 /**
@@ -205,6 +212,8 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	bfd_ctx_check(bc);
 
+	mutex_get(&bc->lock);
+
 	ZERO(&sc);
 	lookaddr = const_ptr_add_offset(addr, bc->offset);
 	sc.addr = pointer_to_ulong(lookaddr);
@@ -214,6 +223,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	if (sc.location.function != NULL) {
 		*loc = sc.location;		/* Struct copy */
+		mutex_release(&bc->lock);
 		return TRUE;
 	}
 
@@ -236,9 +246,11 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	if (name != NULL) {
 		ZERO(loc);
 		loc->function = name;
+		mutex_release(&bc->lock);
 		return TRUE;
 	}
 
+	mutex_release(&bc->lock);
 	return FALSE;
 }
 
@@ -367,6 +379,7 @@ done:
 	bc->symbols = symbols;		/* Allocated by the bfd library */
 	bc->count = count;
 	bc->symsize = size;
+	mutex_init(&bc->lock);
 
 	return TRUE;
 }
@@ -380,6 +393,7 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 	bfd_ctx_t *bc = *bc_ptr;
 
 	if (bc != NULL) {
+		mutex_get(&bc->lock);
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
@@ -397,6 +411,7 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 			bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
 		symbols_free_null(&bc->text_symbols);
 		bc->magic = 0;
+		mutex_destroy(&bc->lock);
 		xfree(bc);
 		*bc_ptr = NULL;
 	}
@@ -470,8 +485,12 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 
 	bfd_ctx_check(bc);
 
-	if (bc->offseted)
+	mutex_get(&bc->lock);
+
+	if (bc->offseted) {
+		mutex_release(&bc->lock);
 		return;
+	}
 
 	b = bc->handle;
 	if (NULL == b)
@@ -500,6 +519,7 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	}
 
 	bc->offseted = TRUE;
+	mutex_release(&bc->lock);
 }
 
 /**
@@ -533,6 +553,7 @@ bfd_util_init(void)
 
 	XMALLOC0(be);
 	be->magic = BFD_ENV_MAGIC;
+	mutex_init(&be->lock);
 
 	if (!done) {
 		bfd_init();
@@ -554,10 +575,16 @@ bfd_util_init(void)
 bfd_ctx_t *
 bfd_util_get_context(bfd_env_t *be, const char *path)
 {
+	bfd_ctx_t *bc;
+
 	bfd_env_check(be);
 	g_assert(path != NULL);
 
-	return bfd_util_get_bc(&be->head, path);
+	mutex_get(&be->lock);
+	bc = bfd_util_get_bc(&be->head, path);
+	mutex_release(&be->lock);
+
+	return bc;
 }
 
 /**
@@ -579,8 +606,10 @@ bfd_util_close(bfd_env_t *be)
 {
 	bfd_env_check(be);
 
+	mutex_get(&be->lock);
   	bfd_util_free_list(be->head);
 	be->magic = 0;
+	mutex_destroy(&be->lock);
 	xfree(be);
 }
 
