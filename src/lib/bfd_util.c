@@ -103,6 +103,8 @@ struct symbol_ctx {
 	bfd_vma addr;
 };
 
+static mutex_t bfd_library_mtx = MUTEX_INIT;
+
 static inline void
 bfd_ctx_check(const struct bfd_ctx * const bc)
 {
@@ -332,8 +334,16 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 		return FALSE;
 	}
 
+	/*
+	 * Protect calls to BFD opening: they don't appear to be fully
+	 * thread-safe and we could enter here concurrently.
+	 */
+
+	mutex_get(&bfd_library_mtx);
+
 	b = bfd_fdopenr(libpath, NULL, fd);
 	if (NULL == b) {
+		mutex_release(&bfd_library_mtx);
 		close(fd);
 		return FALSE;
 	}
@@ -374,6 +384,8 @@ failed:
 	/* FALL THROUGH */
 
 done:
+	mutex_release(&bfd_library_mtx);
+
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
 	bc->symbols = symbols;		/* Allocated by the bfd library */
