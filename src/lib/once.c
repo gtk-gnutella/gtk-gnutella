@@ -53,7 +53,7 @@ once_run(volatile bool *flag, once_fn_t routine)
 {
 	static mutex_t once_mtx = MUTEX_INIT;
 
-	if (*flag)
+	if G_LIKELY(*flag)
 		return;
 
 	mutex_get(&once_mtx);
