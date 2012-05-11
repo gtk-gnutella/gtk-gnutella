@@ -1605,6 +1605,17 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 }
 
 /**
+ * Warn about problem during lock tracking.
+ */
+static void
+thread_lock_warn(const char *func,
+	const void *lock, enum thread_lock_kind kind, const char *message)
+{
+	s_miniwarn("%s(): cannot account for %s %p: %s",
+		func, thread_lock_kind_to_string(kind), lock, message);
+}
+
+/**
  * Account for spinlock / mutex acquisition by current thread.
  */
 void
@@ -1691,8 +1702,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind)
 
 	tls = &te->locks;
 
-	if G_UNLIKELY(0 == tls->count)
+	if G_UNLIKELY(0 == tls->count) {
+		thread_lock_warn(G_STRFUNC, lock, kind, "no locks for thread");
 		return;
+	}
 
 	/*
 	 * If lock is the top of the stack, we're done.
