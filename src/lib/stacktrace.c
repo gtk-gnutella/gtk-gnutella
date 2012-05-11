@@ -85,6 +85,7 @@ static char *program_path;		/**< Absolute program path */
 static time_t program_mtime;	/**< Last modification time of executable */
 static bool symbols_loaded;
 static symbols_t *symbols;
+static bool stacktrace_inited;
 
 static const char *executable_absolute_path;	/* Read-only string */
 static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
@@ -563,6 +564,9 @@ stacktrace_buffer_init(void)
 /**
  * Initialize stack tracing.
  *
+ * This should be called from the main thread only, before anything interesting
+ * is done. Hence there is no need to make the initialization thread-safe.
+ *
  * @param argv0		the value of argv[0], from main(): the program's filename
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
@@ -574,11 +578,13 @@ stacktrace_init(const char *argv0, bool deferred)
 
 	g_assert(argv0 != NULL);
 
-	if G_UNLIKELY(symbols != NULL)
-		return;		/* Already initialized */
+	if G_UNLIKELY(stacktrace_inited)
+		return;
 
+	stacktrace_inited = TRUE;
 	path = program_path_allocate(argv0);
-	symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	if (NULL == symbols)
+		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 	stacktrace_buffer_init();
 
 	if (NULL == path)
@@ -1758,6 +1764,23 @@ static size_t
 stacktrace_chop_length(const struct stacktrace *st)
 {
 	size_t i;
+
+	/*
+	 * Until they called stacktrace_init(), we don't know whether we're
+	 * running as part of a statically linked program or whether the whole
+	 * program is held in shared libraries, the main() entry point being
+	 * just there to load the initial shared libraray.
+	 * 
+	 * This means stack_is_our_text() is unsafe.
+	 *
+	 * NB: This is only really needed when this library is used outside
+	 * of gtk-gnutella.  The whole gtk-gnutella code is statically linked,
+	 * and we know it calls stacktrace_init().
+	 *		--RAM, 2012-05-11
+	 */
+
+	if (!stacktrace_inited)
+		return st->len;
 
 	for (i = 0; i < st->len; i++) {
 		if (!stack_is_our_text(st->stack[i])) {
