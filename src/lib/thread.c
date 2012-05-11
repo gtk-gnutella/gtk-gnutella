@@ -1432,53 +1432,67 @@ thread_lock_dump(const struct thread_element *te)
 		print_str(buf);			/* 1 */
 		print_str(" ");			/* 2 */
 		print_str(type);		/* 3 */
-#ifdef SPINLOCK_DEBUG
-		print_str(" from ");	/* 4 */
 		switch (l->kind) {
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
-				lnum = print_number(line, sizeof line, s->line);
-				print_str(s->file);			/* 5 */
-				print_str(":");				/* 6 */
-				print_str(lnum);			/* 7 */
-				if (SPINLOCK_MAGIC != s->magic)
-					print_str(" BAD_MAGIC");	/* 8 */
-				if (s->lock != 1)
-					print_str(" BAD_LOCK");		/* 9 */
+				if (SPINLOCK_MAGIC != s->magic) {
+					print_str(" BAD_MAGIC");	/* 4 */
+				} else if (s->lock != 1) {
+					print_str(" BAD_LOCK");		/* 4 */
+				} else {
+#ifdef SPINLOCK_DEBUG
+					print_str(" from ");		/* 4 */
+					lnum = print_number(line, sizeof line, s->line);
+					print_str(s->file);			/* 5 */
+					print_str(":");				/* 6 */
+					print_str(lnum);			/* 7 */
+#endif	/* SPINLOCK_DEBUG */
+				}
 			}
 			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
-				const spinlock_t *s = &m->lock;
-				lnum = print_number(line, sizeof line, s->line);
-				print_str(s->file);			/* 5 */
-				print_str(":");				/* 6 */
-				print_str(lnum);			/* 7 */
-				if (MUTEX_MAGIC != m->magic)
-					print_str(" BAD_MAGIC");	/* 8 */
-				if (s->lock != 1)
-					print_str(" BAD_LOCK");		/* 9 */
-				if (m->owner != te->tid)
-					print_str(" BAD_TID");		/* 10 */
+				if (MUTEX_MAGIC != m->magic) {
+					print_str(" BAD_MAGIC");	/* 5 */
+				} else {
+					const spinlock_t *s = &m->lock;
+
+					if (SPINLOCK_MAGIC != s->magic) {
+						print_str(" BAD_SPINLOCK");	/* 5 */
+					} else {
+						if (s->lock != 1)
+							print_str(" BAD_LOCK");	/* 5 */
+						if (m->owner != te->tid)
+							print_str(" BAD_TID");	/* 6 */
+
+#ifdef SPINLOCK_DEBUG
+						print_str(" from ");		/* 7 */
+						lnum = print_number(line, sizeof line, s->line);
+						print_str(s->file);			/* 8 */
+						print_str(":");				/* 9 */
+						print_str(lnum);			/* 10 */
+#endif	/* SPINLOCK_DEBUG */
+
+						if (0 == m->depth) {
+							print_str(" BAD_DEPTH");	/* 11 */
+						} else {
+							char depth[ULONG_DEC_BUFLEN];
+							const char *dnum;
+
+							dnum = print_number(depth, sizeof depth, m->depth);
+							print_str(" (depth=");		/* 11 */
+							print_str(dnum);			/* 12 */
+							print_str(")");				/* 13 */
+						}
+					}
+				}
 			}
 			break;
 		}
-#endif
-		if (THREAD_LOCK_MUTEX == l->kind) {
-			char depth[ULONG_DEC_BUFLEN];
-			const char *dnum;
-			const mutex_t *m = l->lock;
 
-			dnum = print_number(depth, sizeof depth, m->depth);
-			print_str(" (depth=");		/* 11 */
-			print_str(dnum);			/* 12 */
-			print_str(")");				/* 13 */
-			if (0 == m->depth)
-				print_str(" BAD_DEPTH");	/* 14 */
-		}
-		print_str("\n");		/* 15 */
+		print_str("\n");		/* 14 */
 		flush_err_str();
 	}
 }
