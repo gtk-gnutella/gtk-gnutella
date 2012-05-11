@@ -3310,17 +3310,24 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 
 	xchunk_check(xck);
 	g_assert(uint_is_positive(xck->xc_count));
+	g_assert(xck->xc_free_offset < xmalloc_pagesize);
 
 	p = ptr_add_offset(xck, xck->xc_free_offset);
 	xck->xc_count--;
 	next = *(char **) p;		/* Next free block */
 	if (next != NULL) {
-		xck->xc_free_offset = ptr_diff(next, xck);
-		g_assert(xck->xc_free_offset < xmalloc_pagesize);
+		size_t offset = ptr_diff(next, xck);
+
 		g_assert(0 != xck->xc_count);
+
+		g_assert(size_is_positive(offset));
+		g_assert(offset < xmalloc_pagesize);
+
+		xck->xc_free_offset = offset;
 	} else {
-		xck->xc_free_offset = 0;
 		g_assert(0 == xck->xc_count);
+
+		xck->xc_free_offset = 0;
 	}
 
 	return p;
@@ -3497,6 +3504,8 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 	} else {
 		void *head = 0 == xck->xc_free_offset ? NULL :
 			ptr_add_offset(xck, xck->xc_free_offset);
+
+		g_assert(xck->xc_free_offset < xmalloc_pagesize);
 
 		*(char **) p = head;
 		xck->xc_free_offset = ptr_diff(p, xck);
