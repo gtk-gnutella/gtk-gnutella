@@ -113,6 +113,7 @@ struct thread_element {
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
+	const void *stack_lock;			/**< First lock seen here */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
@@ -1659,10 +1660,10 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 	 * (i.e. either a spinlock or a mutex at depth one).
 	 *
 	 * Indeed, if the thread must be suspended, it is safer to do it before
-	 * it enters the critical section, rathen than when it leaves it.
+	 * it enters the critical section, rather than when it leaves it.
 	 */
 
-	if (G_UNLIKELY(te->suspend && 0 == tls->count)) {
+	if G_UNLIKELY(te->suspend && 0 == tls->count) {
 		const char *file;
 		unsigned line;
 
@@ -1683,6 +1684,13 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 	l = &tls->arena[tls->count++];
 	l->lock = lock;
 	l->kind = kind;
+
+	/*
+	 * Record the stack position for the first lock.
+	 */
+
+	if (1 == tls->count)
+		te->stack_lock = &te;
 }
 
 /**
@@ -1709,7 +1717,22 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind)
 	tls = &te->locks;
 
 	if G_UNLIKELY(0 == tls->count) {
-		thread_lock_warn(G_STRFUNC, lock, kind, "no locks for thread");
+		/*
+		 * Warn only if we have seen a lock once (te->stack_lock != NULL)
+		 * and when the stack is larger than the first lock acquired.
+		 *
+		 * Otherwise, it means that we're poping out from the place where
+		 * we first recorded a lock, and therefore it is obvious we cannot
+		 * have the lock recorded since we're before the call chain that
+		 * could record the first lock.
+		 */
+
+		if (
+			te->stack_lock != NULL &&
+			thread_stack_ptr_cmp(&te, te->stack_lock) >= 0
+		) {
+			thread_lock_warn(G_STRFUNC, lock, kind, "no locks for thread");
+		}
 		return;
 	}
 
