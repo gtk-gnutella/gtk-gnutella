@@ -72,7 +72,7 @@
 #define THREAD_QID_CACHE	(1U << THREAD_QID_BITS)	/**< QID cache size */
 
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
-#define THREAD_LOCK_MAX		256		/**< Max amount of locks held */
+#define THREAD_LOCK_MAX		512		/**< Max amount of locks held */
 
 #define THREAD_SUSPEND_CHECK	5000
 #define THREAD_SUSPEND_TIMEOUT	30	/* seconds */
@@ -1437,9 +1437,12 @@ thread_lock_dump(const struct thread_element *te)
 			{
 				const spinlock_t *s = l->lock;
 				if (SPINLOCK_MAGIC != s->magic) {
-					print_str(" BAD_MAGIC");	/* 4 */
+					if (SPINLOCK_DESTROYED == s->magic)
+						print_str(" DESTROYED");	/* 4 */
+					else
+						print_str(" BAD_MAGIC");	/* 4 */
 				} else if (s->lock != 1) {
-					print_str(" BAD_LOCK");		/* 4 */
+					print_str(" BAD_LOCK");			/* 4 */
 				} else {
 #ifdef SPINLOCK_DEBUG
 					print_str(" from ");		/* 4 */
@@ -1455,36 +1458,39 @@ thread_lock_dump(const struct thread_element *te)
 			{
 				const mutex_t *m = l->lock;
 				if (MUTEX_MAGIC != m->magic) {
-					print_str(" BAD_MAGIC");	/* 5 */
+					if (MUTEX_DESTROYED == m->magic)
+						print_str(" DESTROYED");	/* 4 */
+					else
+						print_str(" BAD_MAGIC");	/* 4 */
 				} else {
 					const spinlock_t *s = &m->lock;
 
 					if (SPINLOCK_MAGIC != s->magic) {
-						print_str(" BAD_SPINLOCK");	/* 5 */
+						print_str(" BAD_SPINLOCK");	/* 4 */
 					} else {
 						if (s->lock != 1)
-							print_str(" BAD_LOCK");	/* 5 */
+							print_str(" BAD_LOCK");	/* 4 */
 						if (m->owner != te->tid)
-							print_str(" BAD_TID");	/* 6 */
+							print_str(" BAD_TID");	/* 5 */
 
 #ifdef SPINLOCK_DEBUG
-						print_str(" from ");		/* 7 */
+						print_str(" from ");		/* 6 */
 						lnum = print_number(line, sizeof line, s->line);
-						print_str(s->file);			/* 8 */
-						print_str(":");				/* 9 */
-						print_str(lnum);			/* 10 */
+						print_str(s->file);			/* 7 */
+						print_str(":");				/* 8 */
+						print_str(lnum);			/* 9 */
 #endif	/* SPINLOCK_DEBUG */
 
 						if (0 == m->depth) {
-							print_str(" BAD_DEPTH");	/* 11 */
+							print_str(" BAD_DEPTH");	/* 10 */
 						} else {
 							char depth[ULONG_DEC_BUFLEN];
 							const char *dnum;
 
 							dnum = print_number(depth, sizeof depth, m->depth);
-							print_str(" (depth=");		/* 11 */
-							print_str(dnum);			/* 12 */
-							print_str(")");				/* 13 */
+							print_str(" (depth=");		/* 10 */
+							print_str(dnum);			/* 11 */
+							print_str(")");				/* 12 */
 						}
 					}
 				}
@@ -1492,7 +1498,7 @@ thread_lock_dump(const struct thread_element *te)
 			break;
 		}
 
-		print_str("\n");		/* 14 */
+		print_str("\n");		/* 13 */
 		flush_err_str();
 	}
 }
