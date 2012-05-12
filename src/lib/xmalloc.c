@@ -288,10 +288,35 @@ static struct xchunkhead {
 	size_t allocations;		/**< Number of allocations done */
 	uint shared:1;			/**< A chunk was used during cross-thread frees */
 	elist_t list;			/**< List of chunks (struct xchunk) */
-	spinlock_t lock;		/**< Lock used as soon as chunks become shared */
 } xchunkhead[XMALLOC_CHUNKHEAD_COUNT][XM_THREAD_COUNT];
 
 enum xchunk_magic { XCHUNK_MAGIC = 0x45488613 };
+
+/**
+ * Per-thread structure linking blocks belonging to a thread but released
+ * by other threads.
+ *
+ * Because chunks are thread-specific and use no locking, they serve memory
+ * quickly and we want to preserve this ability.  However, there are legitimate
+ * cases where we cannot avoid cross-thread freeing, for instance when building
+ * an IPC queue between threads, messages being allocated by the sender and
+ * possibly freed by the receiver.
+ *
+ * To preserve the no-locking condition on thread-specific chunks, we put
+ * aside blocks freed by a foreign thread, linking them using the first word
+ * of each block.  As soon as the owning thread starts allocating memory, it
+ * will check whether there are pending blocks in this list and it will take
+ * care of freeing each of them.
+ *
+ * Because this list is updated by foreign threads, it needs locking though,
+ * but the penalty is only paid when freeing blocks out of a foreign thread.
+ * Allocation remains a lock-free path.
+ */
+static struct xcross {
+	spinlock_t lock;		/**< Thread-safe lock */
+	size_t count;			/**< Amount of blocks chained */
+	void *head;				/**< Head of block list to return to chunks */
+} xcross[XM_THREAD_COUNT];
 
 /**
  * Header for thread-specific chunks (pages).
@@ -2115,8 +2140,12 @@ xmalloc_freelist_init_once(void)
 
 			ch->blocksize = xch_block_size_idx(i);
 			elist_init(&ch->list, offsetof(struct xchunk, xc_lnk));
-			spinlock_init(&ch->lock);
 		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(xcross); i++) {
+		struct xcross *xcr = &xcross[i];
+		spinlock_init(&xcr->lock);
 	}
 }
 
@@ -3105,7 +3134,7 @@ xmalloc_chunk_is_valid(const struct xchunk *xck)
 	if (xck->xc_stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (xck->xc_count > xck->xc_capacity)
+	if (xck->xc_count >= xck->xc_capacity)
 		return FALSE;
 
 	ch = &xchunkhead[xch_find_chunkhead_index(xck->xc_size)][xck->xc_stid];
@@ -3312,16 +3341,17 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 
 	xchunk_check(xck);
 	g_assert(uint_is_positive(xck->xc_count));
+	g_assert(xck->xc_count <= xck->xc_capacity);
 	g_assert(xck->xc_free_offset < xmalloc_pagesize);
+	g_assert(xck->xc_stid == stid);
 
 	p = ptr_add_offset(xck, xck->xc_free_offset);
 	xck->xc_count--;
-	next = *(char **) p;		/* Next free block */
+	next = *(void **) p;		/* Next free block */
 	if (next != NULL) {
 		size_t offset = ptr_diff(next, xck);
 
 		g_assert(0 != xck->xc_count);
-
 		g_assert(size_is_positive(offset));
 		g_assert(offset < xmalloc_pagesize);
 
@@ -3336,6 +3366,130 @@ xmalloc_chunkhead_alloc(struct xchunkhead *ch, unsigned stid)
 }
 
 /**
+ * Return block to thread-private chunk.
+ */
+static void
+xmalloc_chunk_return(struct xchunk *xck, void *p)
+{
+	xstats.user_memory -= xck->xc_size;
+	xstats.user_blocks--;
+
+	/*
+	 * If returning the block makes the whole chunk free, free that chunk.
+	 * Otherwise put block back at the head of the chunk's free list.
+	 */
+
+	if G_UNLIKELY(xck->xc_capacity == xck->xc_count + 1) {
+		struct xchunkhead *ch = xck->xc_head;
+
+		/*
+		 * Before freeing the chunk, zero the header part so as to make
+		 * sure we will not mistake this for a valid header again.  Simply
+		 * zeroing the magic number is not enough here, we want to prevent
+		 * mistakes: freeing blocks on a page with an apparently valid header
+		 * but which is not a thread-private chunk would corrupt memory.
+		 */
+
+		elist_remove(&ch->list, xck);
+		ZERO(xck);
+		vmm_core_free(xck, xmalloc_pagesize);
+		xstats.vmm_thread_pages--;
+
+		if (xmalloc_debugging(1)) {
+			t_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
+				xck, ch->blocksize, thread_small_id());
+		}
+
+		/*
+		 * As soon as the thread clears all the chunks for a given size,
+		 * turn of the "shared" status, giving thread another chance to
+		 * grow its pool again in the absence of cross-thread freeing.
+		 */
+
+		if (0 == elist_count(&ch->list))
+			ch->shared = FALSE;
+
+	} else {
+		void *head = 0 == xck->xc_free_offset ? NULL :
+			ptr_add_offset(xck, xck->xc_free_offset);
+
+		g_assert(xck->xc_free_offset < xmalloc_pagesize);
+
+		*(void **) p = head;
+		xck->xc_free_offset = ptr_diff(p, xck);
+		xck->xc_count++;
+	}
+}
+
+/**
+ * Handle freeing of deferred blocks.
+ *
+ * These blocks are enqueued by other threads to let the thread owning the
+ * thread-specific chunk release them to the appropriate chunks using a
+ * lock-free path.
+ */
+static void
+xmalloc_thread_free_deferred(unsigned stid)
+{
+	struct xchunk *xck;
+	struct xcross *xcr;
+	void *p, *next = NULL;
+	size_t n;
+
+	g_assert(size_is_non_negative(stid));
+	g_assert(stid < G_N_ELEMENTS(xcross));
+
+	xcr = &xcross[stid];
+	spinlock(&xcr->lock);
+
+	if (xmalloc_debugging(0)) {
+		s_minidbg("XM starting handling deferred %zu block%s for thread #%u",
+			xcr->count, 1 == xcr->count ? "" : "s", stid);
+	}
+
+	for (n = 0, p = xcr->head; p != NULL; p = next) {
+		next = *(void **) p;
+		n++;
+
+		/*
+		 * Validation of the chunk was done when block was enqueued, i.e.
+		 * we know the pointer belongs to a thread-specific chunk belonging
+		 * to this thread.
+		 *
+		 * Simply do a magic number validation to double-check the list,
+		 * and a thread small ID comparison. We know the chunk cannot have
+		 * been freed since we were holding some of its blocks in this list!
+		 */
+
+		xck = deconstify_pointer(vmm_page_start(p));
+
+		g_assert_log(XCHUNK_MAGIC == xck->magic,
+			"p=%p, xck=%p, xck->magic=%d", p, xck, xck->magic);
+		g_assert_log(xck->xc_stid == stid,
+			"xck->xc_stid=%u, stid=%u", xck->xc_stid, stid);
+
+		if (xmalloc_debugging(5)) {
+			s_minidbg("XM handling #%zu deferred %p to chunk %p (count=%u/%u)",
+				n, p, xck, xck->xc_count, xck->xc_capacity);
+		}
+
+		xmalloc_chunk_return(xck, p);
+	}
+
+	g_assert(n == xcr->count);
+
+	xcr->count = 0;
+	xcr->head = NULL;
+
+	spinunlock(&xcr->lock);
+
+	if (xmalloc_debugging(0)) {
+		t_debug("XM handled delayed free of %zu block%s in thread #%u",
+			n, 1 == n ? "" : "s", stid);
+	}
+}
+
+/**
  * Allocate a block from the thread-specific pool.
  *
  * @return allocated block of requested size, or NULL if no allocation was
@@ -3347,7 +3501,6 @@ xmalloc_thread_alloc(const size_t len)
 	unsigned stid;			/* Thread small ID */
 	struct xchunkhead *ch;
 	size_t idx;
-	void *p;
 
 	g_assert(size_is_non_negative(len));
 	g_assert(len <= XM_THREAD_MAXSIZE);
@@ -3375,26 +3528,15 @@ xmalloc_thread_alloc(const size_t len)
 	}
 
 	/*
-	 * If this chunkhead was the target of cross-thread freeing, we have
-	 * to take a lock unfortunately.
-	 *
-	 * Otherwise, we take a "direct" lock which merely by-passes all atomic
-	 * accesses.  The aim is to further narrow the window of opportunity
-	 * for memory corruption should the chunkhead become shared in the middle
-	 * of our allocation.
+	 * Handle pending blocks in the cross-thread free list before allocating,
+	 * in case there is a block that we can reuse immediately, preventing the
+	 * creation of a new chunk.
 	 */
 
-	if G_UNLIKELY(ch->shared) {
-		spinlock(&ch->lock);
-		p = xmalloc_chunkhead_alloc(ch, stid);
-		spinunlock(&ch->lock);
-	} else {
-		spinlock_direct(&ch->lock);
-		p = xmalloc_chunkhead_alloc(ch, stid);
-		spinunlock_direct(&ch->lock);
-	}
+	if G_UNLIKELY(xcross[stid].count != 0)
+		xmalloc_thread_free_deferred(stid);
 
-	return p;
+	return xmalloc_chunkhead_alloc(ch, stid);
 }
 
 /**
@@ -3433,86 +3575,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 			xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
 	}
 
-	/*
-	 * If a thread allocates a block, it must be the one freeing it or
-	 * reallocating it since by construction we cannot put back a block in
-	 * the thread-specific pool of another thread in a thread-safe way.
-	 *
-	 * We used to panic here, but this sometimes happen on systems that
-	 * create other threads unbeknown to us, as on Windows or Ubuntu, probably
-	 * created by GTK or other library with which we exchange pointers.
-	 *
-	 * When this happens, we'll use locking on all the chunks for this size
-	 * in this thread.
-	 */
-
-	if (xck->xc_stid != stid && freeing) {
-		struct xchunkhead *ch = xck->xc_head;
-
-		/*
-		 * Turn on locking from now on, to be on the safe side, hopefully.
-		 *
-		 * Note that this is not 100% safe since the other thread could be
-		 * in the process of allocating data for this chunk at the same
-		 * moment, and there is a window for chunk corruption.
-		 *
-		 * Warn loudly before turning locking on.
-		 */
-
-		if (!ch->shared) {
-			ch->shared = TRUE;
-			atomic_mb();
-			t_carp(
-				"thread #%u freeing %zu-byte block %p allocated by thread #%u",
-				stid, xck->xc_size, p, xck->xc_stid);
-			xstats.free_foreign_thread_pool++;
-		}
-	}
-
 	return xck;
-}
-
-/**
- * Return block to thread-private chunk.
- */
-static void
-xmalloc_chunk_return(struct xchunk *xck, void *p)
-{
-	/*
-	 * If returning the block makes the whole chunk free, free that chunk.
-	 * Otherwise put block back at the head of the chunk's free list.
-	 */
-
-	if (xck->xc_capacity == xck->xc_count + 1) {
-		struct xchunkhead *ch = xck->xc_head;
-
-		/*
-		 * Before freeing the chunk, zero the header part so as to make
-		 * sure we will not mistake this for a valid header again.  Simply
-		 * zeroing the magic number is not enough here, we want to prevent
-		 * mistakes: freeing blocks on a page with an apparently valid header
-		 * but which is not a thread-private chunk would corrupt memory.
-		 */
-
-		elist_remove(&ch->list, xck);
-		ZERO(xck);
-		vmm_core_free(xck, xmalloc_pagesize);
-		xstats.vmm_thread_pages--;
-
-		if (xmalloc_debugging(1)) {
-			t_debug("XM freed chunk %p of %zu-byte blocks for thread #%u",
-				xck, ch->blocksize, thread_small_id());
-		}
-	} else {
-		void *head = 0 == xck->xc_free_offset ? NULL :
-			ptr_add_offset(xck, xck->xc_free_offset);
-
-		g_assert(xck->xc_free_offset < xmalloc_pagesize);
-
-		*(char **) p = head;
-		xck->xc_free_offset = ptr_diff(p, xck);
-		xck->xc_count++;
-	}
 }
 
 /**
@@ -3579,29 +3642,74 @@ xmalloc_thread_free(void *p)
 	if (NULL == xck)
 		return FALSE;
 
-	xstats.user_memory -= xck->xc_size;
-	xstats.user_blocks--;
-
 	/*
-	 * We have all the reasons to believe that the block belongs to the chunk.
-	 * Lock chunkhead if it became shared between threads.
+	 * If a thread allocates a block, it usually is the one freeing it or
+	 * reallocating it.  By construction we cannot put back a block in
+	 * the thread-specific pool of another thread in a thread-safe way.
 	 *
-	 * To minimize the window of opportunity for corruption due to concurrent
-	 * sharing of the thread-specific pool, we take a lightweight lock without
-	 * any atomic operations.
+	 * Since there are legitimate use cases, we need to support cross-thread
+	 * freeing efficiently: we flag the chunk as shared to avoid growing it
+	 * too much from now on if it's not worth the waste (preferring allocation
+	 * from the main freelists), and put the block into a thread-specific
+	 * queue, processed by the owning thread to free the blocks.
 	 */
 
 	ch = xck->xc_head;
 
-	if G_UNLIKELY(ch->shared) {
-		spinlock(&ch->lock);
-		xmalloc_chunk_return(xck, p);
-		spinunlock(&ch->lock);
-	} else {
-		spinlock_direct(&ch->lock);
-		xmalloc_chunk_return(xck, p);
-		spinunlock_direct(&ch->lock);
+	if G_UNLIKELY(xck->xc_stid != stid) {
+		struct xcross *xcr = &xcross[xck->xc_stid];
+
+		/*
+		 * We can't free the block here because it belongs to another thread's
+		 * private pool for which there is no lock protection.
+		 */
+
+		if (!ch->shared) {
+			ch->shared = TRUE;
+			atomic_mb();
+
+			if (xmalloc_debugging(0)) {
+				t_warning("thread #%u freeing %zu-byte block %p "
+					"allocated by thread #%u",
+					stid, xck->xc_size, p, xck->xc_stid);
+			}
+		}
+
+		xstats.free_foreign_thread_pool++;
+
+		/*
+		 * Queue it for the owning thread to free later on by pre-pending it
+		 * to the thread-specific chained list of deferred blocks.
+		 */
+
+		spinlock(&xcr->lock);
+		*(void **) p = xcr->head;
+		xcr->head = p;
+		xcr->count++;
+		spinunlock(&xcr->lock);
+
+		if (xmalloc_debugging(5)) {
+			/* Count may be wrong since we log outside the critical region */
+			t_debug("XM deferred freeing of %zu-byte block %p "
+				"owned by thread #%u (%zu held)",
+				xck->xc_size, p, xck->xc_stid, xcr->count);
+		}
+
+		return TRUE;		/* We handled the block, freeing is just delayed */
 	}
+
+	/*
+	 * OK, block belongs to this thread, we can free safely.
+	 */
+
+	xmalloc_chunk_return(xck, p);
+
+	/*
+	 * Handle any other pending blocks in the cross-thread free list.
+	 */
+
+	if G_UNLIKELY(xcross[stid].count != 0)
+		xmalloc_thread_free_deferred(stid);
 
 	return TRUE;
 }
