@@ -871,7 +871,8 @@ xmalloc_freecore(void *ptr, size_t len)
 			bool success = FALSE;
 
 			if (xmalloc_debugging(0)) {
-				t_debug("XM releasing %zu bytes of trailing heap", len);
+				t_debug("XM releasing %zu bytes of trailing heap at %p",
+					len, ptr);
 			}
 
 #ifdef HAS_SBRK
@@ -892,7 +893,8 @@ xmalloc_freecore(void *ptr, size_t len)
 			return success;
 		} else {
 			if (xmalloc_debugging(0)) {
-				t_debug("XM releasing %zu bytes in middle of heap", len);
+				t_debug("XM releasing %zu bytes in middle of heap at %p",
+					len, ptr);
 			}
 			spinunlock(&xmalloc_sbrk_slk);
 			return FALSE;		/* Memory not freed */
