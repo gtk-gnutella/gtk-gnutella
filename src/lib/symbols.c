@@ -627,8 +627,6 @@ symbols_by_name(const symbols_t *st)
 #define FN(x) \
 	{ (func_ptr_t) x, STRINGIFY(x) }
 
-extern int main(int argc, char **argv);
-
 /**
  * Known symbols that we want to check.
  */
@@ -641,7 +639,6 @@ static struct {
 	FN(htable_create),
 	FN(is_strprefix),
 	FN(log_abort),
-	FN(main),
 	FN(make_pathname),
 	FN(parse_pointer),
 	FN(pointer_to_string_buf),
@@ -692,18 +689,18 @@ symbols_check_consistency(symbols_t *st)
 	sym_pc = symbols_by_name(st);
 
 	/*
-	 * Compute the initial offset for main().
+	 * Compute the initial offset for symbols_load_from().
 	 */
 
-	main_pc = htable_lookup(sym_pc, "main");
+	main_pc = htable_lookup(sym_pc, "symbols_load_from");
 
 	if (NULL == main_pc) {
-		s_warning("cannot find main() in the loaded symbols");
+		s_warning("cannot find symbols_load_from() in the loaded symbols");
 		st->garbage = TRUE;
 		goto done;
 	}
 
-	offset = ptr_diff(main_pc, func_to_pointer(main));
+	offset = ptr_diff(main_pc, func_to_pointer(symbols_load_from));
 
 	/*
 	 * Make sure the offset is constant among all our probed symbols.
