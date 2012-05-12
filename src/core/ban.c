@@ -579,7 +579,7 @@ ban_init(void)
 {
 	info = hevset_create_any(offsetof(struct addr_info, addr),
 		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
-	ban_cq = cq_submake("ban", callout_queue, BAN_CALLOUT);
+	ban_cq = cq_main_submake("ban", BAN_CALLOUT);
 
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);

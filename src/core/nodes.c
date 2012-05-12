@@ -3874,7 +3874,7 @@ node_is_now_connected(struct gnutella_node *n)
 		if (GNET_PROPERTY(node_debug) > 4)
 			g_debug("sending compressed data to node %s", node_addr(n));
 
-		args.cq = callout_queue;
+		args.cq = cq_main();
 		args.cb = &node_tx_deflate_cb;
 		args.nagle = TRUE;
 		args.gzip = FALSE;

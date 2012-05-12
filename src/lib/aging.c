@@ -99,7 +99,7 @@ ag_create_callout_queue(void)
 	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
 
 	if (NULL == aging_cq)
-		aging_cq = cq_submake("aging", callout_queue, AGING_CALLOUT);
+		aging_cq = cq_main_submake("aging", AGING_CALLOUT);
 
 	aging_refcnt++;
 }

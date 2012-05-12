@@ -1121,7 +1121,7 @@ roots_init(void)
 	g_assert(NULL == db_rootdata);
 	g_assert(NULL == db_contact);
 
-	roots_cq = cq_submake("roots", callout_queue, ROOTS_CALLOUT);
+	roots_cq = cq_main_submake("roots", ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */

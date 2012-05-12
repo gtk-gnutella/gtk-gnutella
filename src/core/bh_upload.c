@@ -614,7 +614,7 @@ browse_host_open(
 		struct tx_deflate_args args;
 		txdrv_t *tx;
 
-		args.cq = callout_queue;
+		args.cq = cq_main();
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
 		args.reduced = FALSE;

@@ -206,7 +206,7 @@ dmesh_init(void)
 	ban_mesh = hikset_create_any(offsetof(struct dmesh_banned, info),
 		urlinfo_hash, urlinfo_eq);
 	ban_mesh_by_sha1 = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
-	dmesh_cq = cq_submake("dmesh", callout_queue, DMESH_CALLOUT);
+	dmesh_cq = cq_main_submake("dmesh", DMESH_CALLOUT);
 	dmesh_retrieve();
 	dmesh_ban_retrieve();
 }

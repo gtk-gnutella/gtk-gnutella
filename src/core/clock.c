@@ -130,7 +130,7 @@ val_create(const host_addr_t addr, int precision)
 	WALLOC(v);
 	v->addr = addr;
 	v->precision = precision;
-	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);
+	v->cq_ev = cq_main_insert(REUSE_DELAY * 1000, val_destroy, v);
 
 	return v;
 }

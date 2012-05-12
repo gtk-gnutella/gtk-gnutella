@@ -1205,7 +1205,7 @@ slow_main_timer(time_t now)
 	 */
 
 	if (0 == j++ % 2) {
-		cq_idle(callout_queue);
+		cq_main_idle();
 	}
 }
 
@@ -1228,6 +1228,7 @@ check_cpu_usage(void)
 	double elapsed;
 	double cpu_percent;
 	double coverage;
+	cqueue_t *cqm = cq_main();
 
 	/*
 	 * Compute CPU time used this period.
@@ -1241,13 +1242,13 @@ check_cpu_usage(void)
 	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed;
 	cpu_percent = MIN(cpu_percent, 100.0);
 
-	coverage = callout_queue_coverage(ticks);
+	coverage = cq_main_coverage(ticks);
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
 	if (GNET_PROPERTY(cq_debug) > 2) {
 		g_debug("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
-			cq_name(callout_queue), cq_count(callout_queue),
-			cq_ticks(callout_queue), (int) (coverage * 100.0 + 0.5));
+			cq_name(cqm), cq_count(cqm),
+			cq_ticks(cqm), (int) (coverage * 100.0 + 0.5));
 	}
 
 	/*
@@ -1309,7 +1310,7 @@ check_cpu_usage(void)
 
 	last_cpu = cpu;
 	last_tm = cur_tm;		/* Struct copy */
-	ticks = cq_ticks(callout_queue);
+	ticks = cq_ticks(cqm);
 
 	/*
 	 * Check whether we're overloaded, or if we were, whether we decreased

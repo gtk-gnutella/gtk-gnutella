@@ -64,17 +64,17 @@ typedef uint64 cq_time_t;		/**< Virtual time for callout queue */
  * Interface routines.
  */
 
-extern cqueue_t *callout_queue;	/* Single global instance */
-
-double callout_queue_coverage(int old_ticks);
+double cq_main_coverage(int old_ticks);
 
 void cq_init(cq_invoke_t idle, const uint32 *debug);
 void cq_dispatch(void);
 void cq_halt(void);
 void cq_close(void);
 
+cqueue_t *cq_main(void);
 cqueue_t *cq_make(const char *name, cq_time_t now, int period);
 cqueue_t *cq_submake(const char *name, cqueue_t *parent, int period);
+cqueue_t *cq_main_submake(const char *name, int period);
 void cq_free_null(cqueue_t **cq_ptr);
 cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg);
 cevent_t *cq_main_insert(int delay, cq_service_t fn, void *arg);
@@ -86,6 +86,7 @@ int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
 const char *cq_name(const cqueue_t *cq);
 void cq_idle(cqueue_t *cq);
+void cq_main_idle(void);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
 	int period, cq_invoke_t event, void *arg);

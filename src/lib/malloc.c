@@ -869,7 +869,7 @@ real_malloc(size_t size)
 	void *o;
 
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 
@@ -968,7 +968,7 @@ real_free(void *p)
 #endif
 
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 
@@ -1104,7 +1104,7 @@ real_realloc(void *ptr, size_t size)
 	struct block *b = NULL;
 #endif
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 

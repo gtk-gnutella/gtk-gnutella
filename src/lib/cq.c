@@ -39,6 +39,8 @@
 #include "halloc.h"
 #include "hset.h"
 #include "log.h"
+#include "mutex.h"
+#include "once.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -114,11 +116,13 @@ struct cqueue {
 	struct chash *cq_hash;		/**< Array of buckets for hash list */
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
 	hset_t *cq_periodic;		/**< Periodic events registered */
-	hset_t *cq_idle;		/**< Idle events registered */
+	hset_t *cq_idle;			/**< Idle events registered */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
+	mutex_t cq_lock;			/**< Thread-safety for queue changes */
+	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
 };
 
 static inline void
@@ -140,7 +144,26 @@ cqueue_check(const struct cqueue * const cq)
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
 
-cqueue_t *callout_queue;
+static cqueue_t *callout_queue;			/**< The main callout queue */
+static bool cq_global_inited;			/**< Records global initialization */
+static void cq_global_init(void);
+
+static inline ALWAYS_INLINE void
+cq_main_init(void)
+{
+	if G_UNLIKELY(!cq_global_inited)
+		once_run(&cq_global_inited, cq_global_init);
+}
+
+/**
+ * @return the main callout queue.
+ */
+cqueue_t *
+cq_main(void)
+{
+	cq_main_init();
+	return callout_queue;
+}
 
 /**
  * Initialize newly created callout queue object.
@@ -167,6 +190,8 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_last_bucket = EV_HASH(now);
 	cq->cq_current = NULL;
 	cq->cq_period = period;
+	mutex_init(&cq->cq_lock);
+	mutex_init(&cq->cq_idle_lock);
 
 	cqueue_check(cq);
 	return cq;
@@ -233,6 +258,7 @@ ev_link(cevent_t *ev)
 	cq = ev->ce_cq;
 	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
+	g_assert(mutex_is_owned(&cq->cq_lock));
 
 	trigger = ev->ce_time;
 	cq->cq_items++;
@@ -325,6 +351,7 @@ ev_unlink(cevent_t *ev)
 	cevent_check(ev);
 	cq = ev->ce_cq;
 	cqueue_check(cq);
+	g_assert(mutex_is_owned(&cq->cq_lock));
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
@@ -378,7 +405,9 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	ev->ce_arg = arg;
 	ev->ce_cq = cq;
 
+	mutex_get(&cq->cq_lock);
 	ev_link(ev);
+	mutex_release(&cq->cq_lock);
 
 	return ev;
 }
@@ -407,7 +436,9 @@ cq_cancel(cevent_t **handle_ptr)
 		cqueue_check(cq);
 		g_assert(cq->cq_items > 0);
 
+		mutex_get(&cq->cq_lock);
 		ev_unlink(ev);
+		mutex_release(&cq->cq_lock);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		WFREE(ev);
 		*handle_ptr = NULL;
@@ -447,9 +478,11 @@ cq_resched(cevent_t *ev, int delay)
 	 * as doing the unlink/link blindly anyway.
 	 */
 
+	mutex_get(&cq->cq_lock);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
+	mutex_release(&cq->cq_lock);
 }
 
 /**
@@ -522,6 +555,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
+	g_assert(mutex_is_owned(&cq->cq_lock));
 
 	/*
 	 * Recursive calls are possible: in the middle of an event, we could
@@ -531,6 +565,10 @@ cq_clock(cqueue_t *cq, int elapsed)
 	 * entry and restore them at the end as appropriate. If cq_current is
 	 * NULL initially, it means we were not in the middle of any recursion
 	 * so we won't have to restore cq_last_bucket.
+	 *
+	 * Note that we enforce recursive calls to cq_clock() to be on the
+	 * same thread due to the use of a mutex. However, each initial run of
+	 * cq_clock() could happen on a different thread each time.
 	 */
 
 	old_current = cq->cq_current;
@@ -609,8 +647,13 @@ done:
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");
 	}
 
+	mutex_release(&cq->cq_lock);
+
 	/*
 	 * Run idle callbacks if nothing was processed.
+	 *
+	 * Note that we released the mutex before running idle callbacks, to let
+	 * concurrent threads register callout events.
 	 */
 
 	if (0 == processed)
@@ -624,6 +667,16 @@ void
 cq_idle(cqueue_t *cq)
 {
 	cq_run_idle(cq);
+}
+
+/**
+ * Convenience routine to run the idle tasks on the main callout queue.
+ */
+void
+cq_main_idle(void)
+{
+	cq_main_init();
+	cq_run_idle(callout_queue);
 }
 
 /**
@@ -641,6 +694,8 @@ cq_heartbeat(cqueue_t *cq)
 	 * How much milliseconds elapsed since last heart beat?
 	 */
 
+	mutex_get(&cq->cq_lock);
+
 	tm_now_exact(&tv);
 	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
 	cq->cq_last_heartbeat = tv;		/* struct copy */
@@ -653,6 +708,10 @@ cq_heartbeat(cqueue_t *cq)
 	if (delay < 0 || delay > 10 * cq->cq_period)
 		delay = cq->cq_period;
 
+	/*
+	 * We hold the mutex when calling cq_clock(), and it will be released there.
+	 */
+
 	cq_clock(cq, delay);
 }
 
@@ -661,13 +720,14 @@ cq_heartbeat(cqueue_t *cq)
  *
  * Same as calling:
  *
- *     cq_insert(callout_queue, delay, fn, arg);
+ *     cq_insert(cq_main(), delay, fn, arg);
  *
  * only it is shorter.
  */
 cevent_t *
 cq_main_insert(int delay, cq_service_t fn, void *arg)
 {
+	cq_main_init();
 	return cq_insert(callout_queue, delay, fn, arg);
 }
 
@@ -846,13 +906,14 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, void *arg)
  *
  * Same as calling:
  *
- *     cq_periodic_add(callout_queue, period, event, arg);
+ *     cq_periodic_add(cq_main(), period, event, arg);
  *
  * only it is shorter.
  */
 cperiodic_t *
 cq_periodic_main_add(int period, cq_invoke_t event, void *arg)
 {
+	cq_main_init();
 	return cq_periodic_add(callout_queue, period, event, arg);
 }
 
@@ -946,6 +1007,22 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 }
 
 /**
+ * Convenience routine: insert event in the main callout queue.
+ *
+ * Same as calling:
+ *
+ *     cq_submake(name, cq_main(), period);
+ *
+ * only it is shorter.
+ */
+cqueue_t *
+cq_main_submake(const char *name, int period)
+{
+	cq_main_init();
+	return cq_submake(name, callout_queue, period);
+}
+
+/**
  * Get rid of a sub-queue, removing its heartbeat in the parent queue and
  * freeing the sub-queue object.
  */
@@ -996,7 +1073,9 @@ cq_idle_free(cidle_t *ci)
 	cidle_check(ci);
 	cqueue_check(ci->cq);
 
+	mutex_get(&ci->cq->cq_idle_lock);
 	cq_unregister_object(ci->cq->cq_idle, ci);
+	mutex_release(&ci->cq->cq_idle_lock);
 	ci->magic = 0;
 	WFREE(ci);
 }
@@ -1028,7 +1107,9 @@ cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg)
 	ci->arg = arg;
 	ci->cq = cq;
 
+	mutex_get(&cq->cq_idle_lock);
 	cq_register_object(&cq->cq_idle, ci);
+	mutex_release(&cq->cq_idle_lock);
 
 	return ci;
 }
@@ -1080,8 +1161,11 @@ cq_run_idle(cqueue_t *cq)
 {
 	cqueue_check(cq);
 
-	if (cq->cq_idle)
+	if (cq->cq_idle != NULL) {
+		mutex_get(&cq->cq_idle_lock);
 		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
+		mutex_release(&cq->cq_idle_lock);
+	}
 }
 
 /**
@@ -1092,10 +1176,11 @@ cq_run_idle(cqueue_t *cq)
  * @param old_ticks	the previous amount of processed ticks
  */
 double
-callout_queue_coverage(int old_ticks)
+cq_main_coverage(int old_ticks)
 {
-	return (callout_queue->cq_ticks - old_ticks) *
-		callout_queue->cq_period / 1000.0;
+	cqueue_t *cqm = cq_main();
+
+	return (cqm->cq_ticks - old_ticks) * cqm->cq_period / 1000.0;
 }
 
 /***
@@ -1105,6 +1190,23 @@ callout_queue_coverage(int old_ticks)
 #define CALLOUT_PERIOD			25	/* milliseconds */
 
 static uint callout_timer_id = 0;
+
+/**
+ * Global initialization, run once.
+ *
+ * This allows the callout queue services to be available even when cq_init()
+ * is not explicitly called at the beginning of the program.
+ */
+static void
+cq_global_init(void)
+{
+	static uint32 zero;
+
+	cq_debug_ptr = &zero;
+	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
+	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
+		cq_heartbeat_trampoline, callout_queue);
+}
 
 /**
  * Initialization.
@@ -1118,12 +1220,9 @@ static uint callout_timer_id = 0;
 void
 cq_init(cq_invoke_t idle, const uint32 *debug)
 {
+	once_run(&cq_global_inited, cq_global_init);
+
 	cq_debug_ptr = debug;
-
-	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
-	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
-		cq_heartbeat_trampoline, callout_queue);
-
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
 }
@@ -1137,6 +1236,7 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 void
 cq_dispatch(void)
 {
+	cq_main_init();
 	cq_heartbeat_trampoline(callout_queue);
 }
 
@@ -1196,6 +1296,8 @@ cq_free(cqueue_t *cq)
 			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "", cq->cq_name);
 	}
 
+	mutex_get(&cq->cq_lock);
+
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
@@ -1216,6 +1318,8 @@ cq_free(cqueue_t *cq)
 
 	HFREE_NULL(cq->cq_hash);
 	atom_str_free_null(&cq->cq_name);
+	mutex_destroy(&cq->cq_lock);
+	mutex_destroy(&cq->cq_idle_lock);
 
 	/*
 	 * If freeing a sub-queue, the object is a bit larger than a queue,
@@ -1250,8 +1354,11 @@ cq_free_null(cqueue_t **cq_ptr)
 void
 cq_close(void)
 {
-	callout_queue->cq_current = NULL;	/* No warning if we were recursing */
-	cq_free_null(&callout_queue);
+	if G_LIKELY(cq_global_inited) {
+		/* No warning if we were recursing */
+		callout_queue->cq_current = NULL;
+		cq_free_null(&callout_queue);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

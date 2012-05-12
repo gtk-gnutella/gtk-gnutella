@@ -924,7 +924,7 @@ publisher_init(void)
 	dbstore_packing_t packing =
 		{ serialize_pubdata, deserialize_pubdata, NULL };
 
-	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
+	publish_cq = cq_main_submake("publisher", PUBLISHER_CALLOUT);
 	publisher_sha1 = hikset_create(
 		offsetof(struct publisher_entry, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
 

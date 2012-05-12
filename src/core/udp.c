@@ -599,7 +599,7 @@ udp_init(void)
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	udp_pings = hash_list_new(guid_hash, guid_eq);
-	udp_ping_timer(callout_queue, NULL);
+	udp_ping_timer(cq_main(), NULL);
 }
 
 /**

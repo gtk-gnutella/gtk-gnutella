@@ -407,7 +407,7 @@ dht_rpc_answer(const guid_t *muid,
 		}
 
 		dht_remove_node(rn);				/* Discard obsolete entry */
-		rpc_timed_out(callout_queue, rcb);	/* Invoke user callback if any */
+		rpc_timed_out(cq_main(), rcb);		/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
 	}

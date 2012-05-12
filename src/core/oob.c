@@ -542,7 +542,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 */
 
 	if (servent_created)
-		servent_service(callout_queue, s);
+		servent_service(cq_main(), s);
 }
 
 /**
