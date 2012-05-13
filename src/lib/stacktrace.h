@@ -109,6 +109,7 @@ void stacktrace_where_cautious_print_offset(int fd, size_t offset);
 void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
 void stacktrace_stack_print_decorated(int fd,
 	void * const *stack, size_t count, uint flags);
+void stacktrace_where_print_decorated(FILE *f, uint flags);
 bool stacktrace_cautious_was_logged(void);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);

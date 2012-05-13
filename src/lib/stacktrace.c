@@ -1597,6 +1597,20 @@ stacktrace_stack_print_decorated(int fd,
 }
 
 /**
+ * Print decorated current stack trace to specified file.
+ */
+void
+stacktrace_where_print_decorated(FILE *f, uint flags)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	stacktrace_load_symbols();
+	stack_print_decorated(f, stack, count, flags);
+}
+
+/**
  * Context for cautious stack printing, used in desperate situations
  * when we're about to crash anyway.
  */
