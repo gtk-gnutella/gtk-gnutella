@@ -328,6 +328,8 @@ static void pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm,
 	const void *p, size_t size, vmf_type_t type);
+static struct vm_fragment *pmap_lookup(const struct pmap *pm,
+	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
 
 /**
@@ -956,6 +958,9 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		}
 		p = NULL;
 	} else if G_UNLIKELY(p != hint) {
+		struct pmap *pm = vmm_pmap();
+		struct vm_fragment *vmf;
+
 		if G_UNLIKELY(hint != NULL) {
 			if (vmm_debugging(0)) {
 				s_warning("VMM kernel did not follow hint %p for %zuKiB "
@@ -977,10 +982,28 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * reason the memory was released and we could not notice it.
 		 */
 
-		pmap_overrule(vmm_pmap(), p, size, VMF_NATIVE);
+		pmap_overrule(pm, p, size, VMF_NATIVE);
 
 		if (NULL == hint)
 			goto done;
+
+		/*
+		 * There is a race condition between the computation of the
+		 * hint and the actual allocation, since the pmap is not always
+		 * kept locked (see FIXME in vmm_alloc_internal()).
+		 *
+		 * Hence we need to check that the computed hint is not already
+		 * part of a known region, resulting from a concurrent allocation
+		 * that happend since we computed the ``hole'' parameter.
+		 */
+
+		mutex_get(&pm->lock);		/* Begin critical section */
+
+		vmf = pmap_lookup(pm, hint, NULL);
+		if (vmf != NULL) {
+			mutex_release(&pm->lock);
+			goto done;		/* Concurrent allocation, ``hint'' now known */
+		}
 
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
@@ -994,7 +1017,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 		hint_followed = 0;
 
-		if (vmm_pmap() == &kernel_pmap) {
+		if (&kernel_pmap == pm) {
 			if (vmm_debugging(0)) {
 				s_debug("VMM current kernel pmap before reloading attempt:");
 				vmm_dump_pmap();
@@ -1069,6 +1092,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				}
 			}
 		}
+		mutex_release(&pm->lock);		/* End critical section */
 	} else if (hint != NULL) {
 		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
 			if (vmm_debugging(0)) {
@@ -1134,6 +1158,9 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 
 	g_assert(kernel_pagesize > 0);
 
+	if (update_pmap)
+		mutex_get(&vmm_pmap()->lock);
+
 	p = vmm_mmap_anonymous(size, hole);
 
 	return_value_unless(NULL != p, NULL);
@@ -1151,8 +1178,13 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 	 * inserting in case we do not use the kernel pmap.
 	 */
 
-	if (update_pmap && kernel_pmap.generation == generation)
-		pmap_insert(vmm_pmap(), p, size);
+	if (update_pmap) {
+		struct pmap *pm = vmm_pmap();
+
+		if (kernel_pmap.generation == generation)
+			pmap_insert(pm, p, size);
+		mutex_release(&pm->lock);
+	}
 
 	return p;
 }
@@ -1164,6 +1196,17 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 static void
 free_pages_intern(void *p, size_t size, bool update_pmap)
 {
+	/*
+	 * The critical region is required when we're going to update the
+	 * pmap since another thread could concurrently allocate memory that
+	 * was already freed at the kernel level but which could be still
+	 * accounted for as "busy" in the pmap -- a situation likely to break
+	 * assertions.
+	 */
+
+	if (update_pmap)
+		mutex_get(&vmm_pmap()->lock);
+
 	/*
 	 * If ``stop_freeing'' was set, well be only updating the pmap so that
 	 * we can spot "leaks" at vmm_close() time.
@@ -1190,8 +1233,12 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 #endif	/* HAS_POSIX_MEMALIGN || HAS_MEMALIGN */
 
 pmap_update:
-	if (update_pmap)
-		pmap_remove(vmm_pmap(), p, size);
+	if (update_pmap) {
+		struct pmap *pm = vmm_pmap();
+
+		pmap_remove(pm, p, size);
+		mutex_release(&pm->lock);
+	}
 }
 
 /**
@@ -2415,6 +2462,8 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 static void
 free_pages_forced(void *p, size_t size, bool fragment)
 {
+	struct pmap *pm = vmm_pmap();
+
 	if (vmm_debugging(fragment ? 2 : 5)) {
 		s_debug("VMM freeing %zuKiB region at %p%s",
 			size / 1024, p, fragment ? " (fragment)" : "");
@@ -2423,8 +2472,12 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	/*
 	 * Do not let free_pages_intern() update our pmap, as we are about to
 	 * do it ourselves.
+	 *
+	 * As such, we need to lock the pmap for the same reason free_pages_intern()
+	 * does when asked to update the pmap.
 	 */
 
+	mutex_get(&pm->lock);
 	free_pages_intern(p, size, FALSE);
 
 	/*
@@ -2437,6 +2490,8 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	} else {
 		pmap_remove(vmm_pmap(), p, size);
 	}
+
+	mutex_release(&pm->lock);
 }
 
 /**
@@ -3446,6 +3501,13 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	/*
 	 * First look in the page cache to avoid requesting a new memory
 	 * mapping from the kernel.
+	 *
+	 * FIXME:
+	 * There is a race condition between the hole computation and the
+	 * allocation request, if any, but that's OK for now as the hole is
+	 * really taken as a hint.  We cannot lock the pmap here because we
+	 * risk a deadlock with the page cache lock through vpc_free().
+	 *		--RAM, 2012-05-13
 	 */
 
 	p = page_cache_find_pages(n, &hole);
@@ -3469,6 +3531,7 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	/* FALL THROUGH */
 
 update_stats:
+
 	if (user_mem) {
 		vmm_stats.user_memory += size;
 		vmm_stats.user_pages += n;
@@ -3537,6 +3600,8 @@ vmm_alloc0(size_t size)
 	/*
 	 * First look in the page cache to avoid requesting a new memory
 	 * mapping from the kernel.
+	 *
+	 * FIXME: same race condition as in vmm_alloc_internal().
 	 */
 
 	p = page_cache_find_pages(n, &hole);
@@ -3563,7 +3628,6 @@ vmm_alloc0(size_t size)
 	/* FALL THROUGH */
 
 update_stats:
-
 	/*
 	 * Always allocating "user" memory: since "core" memory does not need
 	 * to be zeroed, which is why there is no vmm_core_alloc0().
@@ -4645,6 +4709,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 
 	if G_LIKELY(p != MAP_FAILED) {
 		size_t size = round_pagesize_fast(length);
+		struct pmap *pm = vmm_pmap();
 
 		vmm_stats.mmaps++;
 
@@ -4659,8 +4724,11 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		 * all the overlapping cases we can encounter.
 		 */
 
-		pmap_overrule(vmm_pmap(), p, size, VMF_MAPPED);
-		pmap_insert_mapped(vmm_pmap(), p, size);
+		mutex_get(&pm->lock);
+		pmap_overrule(pm, p, size, VMF_MAPPED);
+		pmap_insert_mapped(pm, p, size);
+		mutex_release(&pm->lock);
+
 		assert_vmm_is_allocated(p, length, VMF_MAPPED);
 
 		if (vmm_debugging(5)) {
