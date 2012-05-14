@@ -186,13 +186,13 @@ static volatile sig_atomic_t from_atexit;
 static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
-static gboolean asynchronous_exit;
+static bool asynchronous_exit;
 static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
 static unsigned shutdown_user_flags;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
-static gboolean main_timer(void *);
+static bool main_timer(void *);
 
 #ifdef SIGALRM
 /**
@@ -254,7 +254,7 @@ sig_malloc(int n)
 /**
  * Are we debugging anything at a level greater than some threshold "t"?
  */
-gboolean
+bool
 debugging(guint t)
 {
 	return
@@ -487,7 +487,7 @@ gtk_gnutella_exit(int exit_code)
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
-	gboolean byeall = TRUE;
+	bool byeall = TRUE;
 
 	if (exiting) {
 		if (safe_to_exit) {
@@ -843,7 +843,7 @@ static struct {
 	const char * const summary;
 	const enum arg_type type;
 	const char *arg;	/* memory will be allocated via halloc() */
-	gboolean used;
+	bool used;
 } options[] = {
 #define OPTION(name, type, summary) \
 	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
@@ -909,7 +909,7 @@ underscore_to_hyphen(char c)
  *
  * @return whether the two strings qualify as equivalent or not.
  */
-static gboolean
+static bool
 option_match(const char *a, const char *b)
 {
 	g_assert(a);
@@ -1334,7 +1334,7 @@ check_cpu_usage(void)
 /**
  * Main timer routine, called once per second.
  */
-static gboolean
+static bool
 main_timer(void *unused_data)
 {
 	time_t now;
@@ -1403,10 +1403,10 @@ main_timer(void *unused_data)
 /**
  * Called when the main callout queue is idle.
  */
-static gboolean
+static bool
 callout_queue_idle(void *unused_data)
 {
-	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
+	bool overloaded = GNET_PROPERTY(overloaded_cpu);
 
 	(void) unused_data;
 
