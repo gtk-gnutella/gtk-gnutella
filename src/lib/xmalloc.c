@@ -50,6 +50,7 @@
 
 #include "xmalloc.h"
 #include "bit_array.h"
+#include "cq.h"
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
 #include "elist.h"
@@ -2112,6 +2113,18 @@ plain_insert:
 }
 
 /**
+ * Called when the main callout queue is idle to attempt background compaction.
+ */
+static bool
+xmalloc_idle_collect(void *unused_data)
+{
+	(void) unused_data;
+
+	xgc();
+	return TRUE;		/* Keep calling */
+}
+
+/**
  * Initialize freelist buckets once.
  */
 static G_GNUC_COLD void
@@ -2147,6 +2160,13 @@ xmalloc_freelist_init_once(void)
 		struct xcross *xcr = &xcross[i];
 		spinlock_init(&xcr->lock);
 	}
+
+	/*
+	 * Since this routine is guaranteed to be called only once, use it to
+	 * install the periodic call to the garbage collector.
+	 */
+
+	cq_idle_add(cq_main(), xmalloc_idle_collect, NULL);
 }
 
 /**
