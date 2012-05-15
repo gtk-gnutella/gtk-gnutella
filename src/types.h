@@ -39,6 +39,8 @@
  *** Native types.
  ***/
 
+#ifndef __cplusplus
+/* In C++, "bool" is a builtin type, cannot redefine it */
 #if 0	/* Not yet */
 typedef enum bool {
 	BOOL_FALSE=0,
@@ -47,6 +49,7 @@ typedef enum bool {
 #else
 typedef int bool;
 #endif
+#endif	/* !C++ */
 
 #if CHARSIZE == 1
 typedef signed char int8;

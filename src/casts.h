@@ -107,11 +107,13 @@ cast_to_pointer(void *p)
 	return p;
 }
 
+#ifndef  __cplusplus
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
 cast_to_gchar_ptr(void *p)
 {
 	return p;
 }
+#endif	/* !C++ */
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 cast_to_void_ptr(void *p)
@@ -119,6 +121,7 @@ cast_to_void_ptr(void *p)
 	return p;
 }
 
+#ifndef  __cplusplus
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE char *
 cast_to_char_ptr(void *p)
 {
@@ -130,6 +133,7 @@ cast_to_guchar_ptr(void *p)
 {
 	return p;
 }
+#endif	/* !C++ */
 
 static inline G_GNUC_CONST WARN_UNUSED_RESULT ALWAYS_INLINE void *
 ulong_to_pointer(unsigned long value)
