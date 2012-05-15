@@ -63,8 +63,12 @@ once_run(volatile bool *flag, once_fn_t routine)
 		return;
 	}
 
-	(*routine)();
+	/*
+	 * Set flag BEFORE running so that recursive calls are not re-attempted.
+	 */
+
 	*flag = TRUE;
+	(*routine)();
 	mutex_release(&once_mtx);
 }
 
