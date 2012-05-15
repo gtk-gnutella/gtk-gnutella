@@ -49,6 +49,7 @@
 #include "malloc.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "once.h"
 #include "pagetable.h"
 #include "stringify.h"
 #include "unsigned.h"
@@ -489,15 +490,9 @@ halloc_init_vtable(void)
 static bool replacing_malloc;
 static bool halloc_is_compiled = TRUE;
 
-void
-halloc_init(bool replace_malloc)
+static void
+halloc_init_once(void)
 {
-	static int initialized;
-
-	g_assert(!initialized);
-	initialized = TRUE;
-	replacing_malloc = replace_malloc;
-
 	vmm_init();		/* Just in case, since we're built on top of VMM */
 
 	halloc_pagesize = compat_pagesize();
@@ -509,9 +504,19 @@ halloc_init(bool replace_malloc)
 	} else {
 		ht_pages = hash_table_new();
 	}
+}
 
-	if (replace_malloc)
-		halloc_init_vtable();
+void
+halloc_init(bool replace_malloc)
+{
+	static bool initialized;
+
+	if (once_run(&initialized, halloc_init_once)) {
+		replacing_malloc = replace_malloc;
+
+		if (replace_malloc)
+			halloc_init_vtable();
+	}
 }
 
 /**
