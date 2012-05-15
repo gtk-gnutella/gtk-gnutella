@@ -513,6 +513,7 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			symbols_fmt_pointer(buf, sizeof buf, pc);
 		} else {
 			size_t off = 0;
+			const void *addr = const_ptr_add_offset(pc, st->offset);
 
 			if (st->garbage) {
 				buf[0] = '?';
@@ -526,7 +527,7 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			}
 
 			symbols_fmt_name(&buf[off], sizeof buf - off, s->name,
-				offset ? ptr_diff(pc, s->addr) : 0);
+				offset ? ptr_diff(addr, s->addr) : 0);
 
 			/*
 			 * If symbols are garbage, add the hexadecimal pointer to the
@@ -568,7 +569,7 @@ symbols_addr(const symbols_t *st, const void *pc)
 
 	s = symbols_find(st, pc);
 
-	return NULL == s ? NULL : s->addr;
+	return NULL == s ? NULL : const_ptr_add_offset(s->addr, st->offset);
 }
 
 /*
@@ -585,6 +586,7 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 {
 	static char buf[256];
 	struct symbol *s;
+	const void *addr;
 
 	symbols_check(st);
 
@@ -593,8 +595,9 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		return NULL;
 
+	addr = const_ptr_add_offset(pc, st->offset);
 	symbols_fmt_name(buf, sizeof buf, s->name,
-			offset ? ptr_diff(pc, s->addr) : 0);
+			offset ? ptr_diff(addr, s->addr) : 0);
 
 	return buf;
 }
