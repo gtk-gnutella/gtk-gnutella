@@ -79,6 +79,7 @@ enum stacktrace_sym_quality {
 #define STACKTRACE_F_ADDRESS	(1U << 5)	/**< Display addresses */
 #define STACKTRACE_F_MAIN_STOP	(1U << 6)	/**< Stop printing at main() */
 #define STACKTRACE_F_THREAD		(1U << 7)	/**< Print thread small ID */
+#define STACKTRACE_F_PATH		(1U << 8)	/**< Prints full path of objects */
 
 /**
  * Hashing /equality functions for "struct stacktrace" atomic traces.

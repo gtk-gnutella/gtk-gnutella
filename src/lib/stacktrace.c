@@ -943,6 +943,9 @@ struct sxfile {
  * STACKTRACE_F_ORIGIN:
  *	Displays the shared object file name if known, at the far right.
  *
+ * STACKTRACE_F_PATH:
+ *	In combination with STACKTRACE_F_ORIGIN, display full object paths.
+ *
  * STACKTRACE_F_SOURCE:
  *	Displays the source code location, if known, after the symbol name.
  *
@@ -1229,10 +1232,12 @@ stack_print_decorated_to(struct sxfile *xf,
 		}
 
 		if (0 != (flags & STACKTRACE_F_ORIGIN) && !stack_is_our_text(pc)) {
+			const char *filename = (flags & STACKTRACE_F_PATH) ?
+				sopath : filepath_basename(sopath);
 			if (gdb_like)
-				str_catf(&s, " from %s", sopath);
+				str_catf(&s, " from %s", filename);
 			else if ('?' != sopath[0]) {
-				str_catf(&s, " : %s", sopath);
+				str_catf(&s, " : %s", filename);
 			}
 		}
 
