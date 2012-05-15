@@ -47,20 +47,22 @@
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ *
+ * @return TRUE if initialization routine was run.
  */
-void
+bool
 once_run(volatile bool *flag, once_fn_t routine)
 {
 	static mutex_t once_mtx = MUTEX_INIT;
 
 	if G_LIKELY(*flag)
-		return;
+		return FALSE;
 
 	mutex_get(&once_mtx);
 
 	if (*flag) {
 		mutex_release(&once_mtx);
-		return;
+		return FALSE;
 	}
 
 	/*
@@ -70,6 +72,8 @@ once_run(volatile bool *flag, once_fn_t routine)
 	*flag = TRUE;
 	(*routine)();
 	mutex_release(&once_mtx);
+
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

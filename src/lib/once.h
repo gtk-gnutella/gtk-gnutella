@@ -43,7 +43,7 @@ typedef void (*once_fn_t)(void);
  * Public interface.
  */
 
-void once_run(volatile bool *flag, once_fn_t routine);
+bool once_run(volatile bool *flag, once_fn_t routine);
 
 #endif /* _once_h_ */
 
