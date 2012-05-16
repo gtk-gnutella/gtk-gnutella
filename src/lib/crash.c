@@ -765,7 +765,8 @@ static G_GNUC_COLD NO_INLINE void
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
 	uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_GDB |
-			STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT | STACKTRACE_F_NUMBER;
+			STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
+			STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
 
 	if (!in_child && vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
