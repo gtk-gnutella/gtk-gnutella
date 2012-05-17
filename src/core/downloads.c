@@ -999,11 +999,9 @@ download_write(struct download *d, void *data, size_t len,
 static struct download *
 download_alloc(void)
 {
-	static const struct download zero_download;
 	struct download *d;
 	
-	WALLOC(d);
-	*d = zero_download;
+	WALLOC0(d);
 	d->magic = DOWNLOAD_MAGIC;
 	return d;
 }
@@ -6007,6 +6005,37 @@ download_request_start(struct download *d)
 	file_info_resume(d->file_info);
 
 	download_start(d, TRUE);
+}
+
+/**
+ * Restart a download after a failed SHA1 + TTH verification.
+ */
+static void
+download_restart(struct download *d)
+{
+	g_assert(DL_LIST_STOPPED == d->list_idx);
+
+	/* Reset status to "timeout wait" so that we can stop/start it again */
+
+	download_set_status(d, GTA_DL_TIMEOUT_WAIT);
+	download_move_to_list(d, DL_LIST_WAITING);
+
+	/*
+	 * If we already downloaded more than the file size from that source,
+	 * stop using it.  This is only a crude check to avoid endless loops.
+	 *		--RAM, 2012-05-17
+	 */
+
+	if (d->downloaded > d->file_size) {
+		g_message("SHA1 mismatch for \"%s\", discarding source at %s",
+			download_basename(d), download_host_info(d));
+		download_stop(d, GTA_DL_ERROR, _("SHA1 mismatch detected"));
+	} else {
+		g_message("SHA1 mismatch for \"%s\", "
+			"will be restarting download at %s",
+			download_basename(d), download_host_info(d));
+		download_start(d, TRUE);
+	}
 }
 
 /**
@@ -12295,6 +12324,7 @@ static bool
 download_read(struct download *d, pmsg_t *mb)
 {
 	fileinfo_t *fi;
+	int received;
 
 	download_check(d);
 	socket_check(d->socket);
@@ -12355,7 +12385,9 @@ download_read(struct download *d, pmsg_t *mb)
 		}
 	}
 
-	fi->recv_amount += pmsg_size(mb);
+	received = pmsg_size(mb);
+	fi->recv_amount += received;
+	d->downloaded += received;
 	buffers_add_read(d, mb);	/* mb will be kept and freed as needed */
 
 	d->last_update = tm_time();
@@ -14344,17 +14376,19 @@ download_moved_with_bad_sha1(struct download *d)
 	if (d->file_info && fi_has_bad_bitprint(d->file_info)) {
 		g_warning("SHA1 mismatch for \"%s\" but TTH was good, cannot restart",
 			download_basename(d));
+		goto pause;
 	} else if (is_faked_download(d)) {
 		g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
 			download_basename(d));
+		goto pause;
 	} else {
-		g_message("SHA1 mismatch for \"%s\", will be restarting download",
-			download_basename(d));
-
 		file_info_reset(d->file_info);
-		download_queue(d, _("SHA1 mismatch detected"));
+		download_restart(d);
 	}
 
+	return;
+
+pause:
 	/*
 	 * FIXME: If the download is not paused, the file would be downloaded
 	 *		  over and over again, even if there is just a single known
@@ -15008,6 +15042,7 @@ download_verify_tigertree_done(struct download *d,
 
 			download_tigertree_sweep(d, leaves, num_leaves);
 			queue_suspend_downloads_with_file(fi, FALSE);
+			download_restart(d);
 		} else {
 			g_message("TTH unavailable (file=\"%s\")", download_basename(d));
 			download_verifying_done(d);

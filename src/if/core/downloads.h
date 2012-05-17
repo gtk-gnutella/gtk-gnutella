@@ -229,6 +229,7 @@ struct download {
 	uint32 record_index;		/**< Index of the file on the Gnutella server */
 	const char *file_name;		/**< Name of the file on the Gnutella server */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
+	filesize_t downloaded;		/**< Amount of bytes downloaded from source */
 
 	struct dl_chunk chunk;		/**< Requested chunk */
 	filesize_t pos;				/**< Current file data writing position */
