@@ -142,14 +142,23 @@ mutex_init(mutex_t *m)
 }
 
 /**
- * Is mutex owned?
+ * Is mutex owned by thread?
+ */
+static inline ALWAYS_INLINE
+mutex_is_owned_by_fast(const mutex_t *m, const thread_t t)
+{
+	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
+}
+
+/**
+ * Is mutex owned by thread?
  */
 bool
 mutex_is_owned_by(const mutex_t *m, const thread_t t)
 {
 	mutex_check(m);
 
-	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
+	return mutex_is_owned_by_fast(m, t);
 }
 
 /**
@@ -201,13 +210,17 @@ mutex_grab(mutex_t *m, bool hidden)
 	 * the atomic test-and-set instruction should act as an acquire barrier,
 	 * meaning that anything we write after the lock cannot be moved before
 	 * by the memory logic.
+	 *
+	 * We check for a recursive grabbing of the mutex first because this is
+	 * a cheap test to perform, then we attempt the atomic operations to
+	 * actually grab it.
 	 */
 
-	if (spinlock_hidden_try(&m->lock)) {
+	if (mutex_is_owned_by_fast(m, t)) {
+		m->depth++;
+	} else if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned_by(m, t)) {
-		m->depth++;
 	} else {
 		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,
 			mutex_deadlock, mutex_deadlocked);
