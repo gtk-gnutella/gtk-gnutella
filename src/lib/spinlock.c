@@ -156,7 +156,16 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
 /**
  * Obtain a lock, spinning first then spleeping.
  *
- * @param s				the spinlock
+ * The routine does not return unless the lock is acquired.  When waiting
+ * for too long, we first warn about possible deadlocks, then force a deadlock
+ * condition after more time.  The supplied callbacks are there to perform
+ * the proper logging based on the source object being locked (and not on
+ * the spinlock itself which may be part of a more complex lock, like a mutex).
+ *
+ * No accounting of the lock is made, this must be handled by the caller
+ * upon return.
+ *
+ * @param s				the spinlock we're trying to acquire
  * @param src			the type of object containing the spinlock
  * @param src_object	the lock object containing the spinlock
  * @param deadlock		callback to invoke when we detect a possible deadlock
