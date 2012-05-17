@@ -4330,58 +4330,92 @@ download_switchable(struct download *d, const header_t *header)
 }
 
 /**
- * Switch download to another resource on the same server if we can find one.
- *
- * @param d		the download we need to switch from
+ * Is download special?
  */
-static void
-download_switch(struct download *d)
+static inline bool
+download_is_special(const struct download *d)
+{
+	return 0 != (d->flags & (DL_F_THEX | DL_F_BROWSE));
+}
+
+/**
+ * Switch socket of old download to new one.
+ *
+ * Caller must then either stop or queue the old download, as appropriate.
+ *
+ * @param od		the old download we're switching from
+ * @param nd		the new download we're switching to
+ * @param on_error	was switching consecutive to an HTTP error?
+ */
+void
+download_switch(struct download *od, struct download *nd, bool on_error)
 {
 	struct gnutella_socket *s;
-	struct download *next;
+
+	download_check(od);
+	download_check(nd);
+	g_assert(od != nd);
+
+	if (GNET_PROPERTY(download_debug)) {
+		g_debug("switching from \"%s\" %sto \"%s\" (%.2f%%) at %s",
+			download_basename(od), on_error ? "(on error) " : "",
+			download_basename(nd),
+			100.0 * download_total_progress(nd), download_host_info(nd));
+	}
+
+	gnet_stats_count_general(
+		on_error ? GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR :
+			GNR_ATTEMPTED_RESOURCE_SWITCHING, 1);
+
+	g_assert(NULL == nd->socket);
 
 	/* FIXME: there is a fair amount of code similarity with the trailing
 	 * part of download_continue(). --RAM, 2009-03-08
 	 */
 
 	/* Steal the socket because download_stop() would free it. */
-	s = d->socket;
+	s = od->socket;
 	s->resource.download = NULL;
-	d->socket = NULL;
+	od->socket = NULL;
 
 	if (s->pos > 0) {
-		g_warning("%s(): clearing socket buffer of %s",
-			G_STRFUNC, download_host_info(d));
+		g_carp("%s(): clearing socket buffer of %s",
+			G_STRFUNC, download_host_info(od));
 	}
 	s->pos = 0;
 
-	g_assert(0 == s->pos);
+	nd->socket = s;
+	nd->socket->resource.download = nd;
+	nd->flags |= DL_F_SWITCHED;
+	if (on_error)
+		nd->flags |= DL_F_FROM_ERROR;
+	if (!download_is_special(od))
+		nd->flags |= DL_F_FROM_PLAIN;
+}
+
+/**
+ * Switch download to another resource on the same server if we can find one
+ * and issue request immediately to the new download.
+ *
+ * @param d		the download we need to switch from
+ */
+static void
+download_attempt_switch(struct download *d)
+{
+	struct download *next;
 
 	next = download_pick_another(d);
 
 	if (NULL == next) {
 		download_stop(d, GTA_DL_COMPLETED, _("Nothing else to switch to"));
-		socket_free_null(&s);
 		return;
 	}
 
 	g_assert(next != d);
 
-	if (GNET_PROPERTY(download_debug))
-		g_debug("switching from \"%s\" (on error) to \"%s\" (%.2f%%) at %s",
-			download_basename(d), download_basename(next),
-			100.0 * download_total_progress(next), download_host_info(next));
-
-	gnet_stats_count_general(GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR, 1);
-
-	g_assert(NULL == next->socket);
-
-	next->socket = s;
-	next->socket->resource.download = next;
-	next->flags |= DL_F_SWITCHED | DL_F_FROM_ERROR;
-
+	download_switch(d, next, TRUE);		/* Switching after HTTP error */
 	download_stop(d, GTA_DL_COMPLETED,
-		_("Switching (after error) to \"%s\""), download_basename(next));
+		_("Switching (after error) to \"%s\""), download_basename(d));
 
 	if (download_start_prepare(next)) {
 		next->keep_alive = TRUE;		/* Was reset by _prepare() */
@@ -4684,7 +4718,7 @@ download_stop_switch(struct download *d, const header_t *header,
 	va_end(args);
 
 	if (cd != NULL)
-		download_switch(cd);
+		download_attempt_switch(cd);
 }
 
 /**
@@ -4967,7 +5001,7 @@ download_queue_delay_switch(struct download *d, const header_t *header,
 	va_end(args);
 
 	if (cd)
-		download_switch(cd);
+		download_attempt_switch(cd);
 }
 
 /**
@@ -4985,15 +5019,6 @@ download_queue_hold(struct download *d, uint32 hold, const char *fmt, ...)
 	va_start(args, fmt);
 	download_queue_hold_delay_v(d, (time_t) hold, (time_t) hold, fmt, args);
 	va_end(args);
-}
-
-/**
- * Is download special?
- */
-static inline bool
-download_is_special(const struct download *d)
-{
-	return 0 != (d->flags & (DL_F_THEX | DL_F_BROWSE));
 }
 
 /**
@@ -6247,6 +6272,44 @@ done:
 }
 
 /**
+ * Pick-up another waiting source from this server, for the next HTTP request
+ * we're going to send.
+ *
+ * @param d		the current download
+ *
+ * @return the download we found, or NULL if none could be chosen.
+ */
+struct download *
+download_pick_another_waiting(const struct download *d)
+{
+	list_iter_t *iter;
+	struct download *other = NULL;
+
+	download_check(d);
+
+	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
+	while (list_iter_has_next(iter)) {
+		struct download *cur;
+
+		cur = list_iter_next(iter);
+		download_check(cur);
+
+		/* Make sure we're not targetting the same file */
+
+		if (cur->file_info == d->file_info)
+			continue;
+
+		/* Pay attention to retry_after */
+
+		if (download_pick_process(&other, cur, FALSE, NULL, TRUE))
+			break;
+	}
+	list_iter_free(&iter);
+
+	return other;
+}
+
+/**
  * Pick-up another source from this server, for the next HTTP request.
  * We must avoid the current download and its parent download, which has
  * just been stopped / requeued.
@@ -6289,32 +6352,12 @@ download_pick_another(const struct download *d)
 	}
 	list_iter_free(&iter);
 
-	if (other)
-		goto done;
-
-	iter = list_iter_before_head(d->server->list[DL_LIST_WAITING]);
-	while (list_iter_has_next(iter)) {
-		struct download *cur;
-
-		cur = list_iter_next(iter);
-		download_check(cur);
-
-		/* Make sure we're not targetting the same file */
-
-		if (cur->file_info == d->file_info)
-			continue;
-
-		/* Pay attention to retry_after */
-
-		if (download_pick_process(&other, cur, FALSE, NULL, TRUE))
-			break;
-	}
-	list_iter_free(&iter);
+	if (NULL == other)
+		other = download_pick_another_waiting(d);
 
 	if (NULL == other)
 		return NULL;
 
-done:
 	/*
 	 * If we have elected a "running" download (awaiting push results or
 	 * connecting), then we need to move it back temporarily to the
@@ -8994,7 +9037,7 @@ download_continue(struct download *d, bool trimmed)
 	 */
 	if (s->pos > 0) {
 		/* This should have already been fed to the RX stack. */
-		g_warning("%s(): clearing socket buffer of %s",
+		g_carp("%s(): clearing socket buffer of %s",
 			G_STRFUNC, download_host_info(d));
 	}
 	s->pos = 0;

@@ -621,21 +621,65 @@ parq_download_is_passive_queued(const struct download *d)
 void
 parq_download_retry_active_queued(struct download *d)
 {
+	fileinfo_t *fi;
+	struct download *other = NULL;		/* Becomes non-NULL if we switch */
+	bool prepared;
+
 	download_check(d);
 	g_assert(d->socket != NULL);
 	g_assert(d->status == GTA_DL_ACTIVE_QUEUED);
 	g_assert(d->parq_dl != NULL);
 	g_assert(parq_download_is_active_queued(d));
 
-	if (download_start_prepare_running(d)) {
+	/*
+	 * If the file was completed during our waiting, try to switch to another
+	 * pending download on the same server, if any.
+	 */
+
+	fi = d->file_info;
+	file_info_check(fi);
+
+	if (FILE_INFO_COMPLETE(fi)) {
+		other = download_pick_another_waiting(d);
+		if (other != NULL) {
+			download_switch(d, other, FALSE);
+			/*
+			 * Don't stop download, we may be still computing the SHA1 of
+			 * the file and we need to keep the source around, just in case.
+			 */
+			download_queue(d,
+				_("Switching to \"%s\""), download_basename(other));
+
+			if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(parq_debug)) {
+				g_debug("PARQ switched resource to %s -- completed %s on %s",
+					download_basename(other),
+					download_basename(d), download_host_info(d));
+			}
+
+			d = other;	/* Now processing the new download */
+		}
+	}
+
+	prepared = NULL == other ?
+		download_start_prepare_running(d) :		/* Was already running */
+		download_start_prepare(d);				/* Was waiting */
+
+	if (prepared) {
 		struct gnutella_socket *s = d->socket;
 		d->keep_alive = TRUE;			/* was reset in start_prepare_running */
 
- 		/* Will be re initialised in download_send_request */
-		io_free(d->io_opaque);
-		d->io_opaque = NULL;
-		getline_free(s->getline);		/* No longer need this */
-		s->getline = NULL;
+		/* d->io_opaque could be NULL if we switched downloads above */
+		if (d->io_opaque != NULL) {
+			/* Will be re initialised in download_send_request */
+			io_free(d->io_opaque);
+			d->io_opaque = NULL;
+		}
+
+		/* s->getline could be NULL if we switched downloads above */
+		if (s->getline != NULL) {
+			getline_free(s->getline);		/* No longer need this */
+			s->getline = NULL;
+		}
 
 		/* Resend request for download */
 		download_send_request(d);

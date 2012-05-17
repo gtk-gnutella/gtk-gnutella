@@ -75,6 +75,8 @@ void download_free_removed(void);
 void download_redirect_to_server(struct download *d,
 		const host_addr_t addr, uint16 port);
 void download_actively_queued(struct download *d, bool queued);
+struct download *download_pick_another_waiting(const struct download *d);
+void download_switch(struct download *od, struct download *nd, bool on_error);
 
 void download_server_publishes_in_dht(const struct guid *);
 
