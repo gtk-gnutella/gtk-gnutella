@@ -15228,7 +15228,9 @@ download_resume_bg_tasks(void)
 
 			if (has_good_sha1(d))
 				download_move(d, GNET_PROPERTY(move_file_path), DL_OK_EXT);
-			else
+			else if (fi->tth != NULL)
+				download_verify_tigertree(d);
+			else 
 				download_move(d, GNET_PROPERTY(bad_file_path), DL_BAD_EXT);
 			
 			if (!(fi->flags & FI_F_SEEDING))
