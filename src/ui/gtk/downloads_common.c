@@ -338,8 +338,12 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_PASSIVE_QUEUED:	/* RAM, 2007-08-19 Passive queueing */
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
-			status = tmpstr;
+			if (d->remove_msg != NULL) {
+				status = d->remove_msg;	/* Show message if present */
+			} else {
+				gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
+				status = tmpstr;
+			}
 		} else {
 			status = d->remove_msg ? d->remove_msg : "";
 		}
