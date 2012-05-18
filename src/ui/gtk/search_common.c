@@ -417,24 +417,35 @@ search_gui_update_tab_label(const struct search *search)
 void 
 search_gui_update_status_label(const struct search *search)
 {
-	if (search != current_search) {
+	char expire[128];
+	char downloads[48];
+	unsigned dlcount;
+
+	if (search != current_search)
 		return;
-	} else if (NULL == search) {
+
+	if G_UNLIKELY(NULL == search) {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
-	} else if (!search_gui_is_enabled(search)) {
+		return;
+	}
+
+	dlcount = guc_search_associated_sha1_count(search->search_handle);
+	expire[0] = downloads[0] = '\0';
+
+	if (!search_gui_is_enabled(search)) {
 		unsigned queued = search_gui_queue_length(search);
 
 		if (queued > 0) {
-       		gtk_label_printf(label_search_expiry,
+       		str_bprintf(expire, sizeof expire,
 				_("Flushing queue (%u results pending)"), queued);
 		} else {
-			gtk_label_printf(label_search_expiry, "%s",
+			str_bprintf(expire, sizeof expire, "%s",
 				_("The search has been stopped"));
 		}
 	} else if (search_gui_is_passive(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
+		str_bprintf(expire, sizeof expire, "%s", _("Passive search"));
 	} else if (search_gui_is_expired(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
+		str_bprintf(expire, sizeof expire, "%s", _("Expired"));
 	} else {
 		unsigned time_left;
 
@@ -448,13 +459,20 @@ search_gui_update_status_label(const struct search *search)
 			d = delta_time(tm_time(), created);
 			d = MAX(0, d);
 			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
-			gtk_label_printf(label_search_expiry,
+			str_bprintf(expire, sizeof expire,
 				_("Expires in %s"), short_time(d));
 		} else {
-   			gtk_label_printf(label_search_expiry, "%s",
+   			str_bprintf(expire, sizeof expire, "%s",
 				_("Expires with this session"));
 		}
 	}
+
+	if (dlcount != 0) {
+		str_bprintf(downloads, sizeof downloads,
+			NG_(" [%u download]", " [%u downloads]", dlcount), dlcount);
+	}
+
+  	gtk_label_printf(label_search_expiry, "%s%s", expire, downloads);
 }
 
 /**
