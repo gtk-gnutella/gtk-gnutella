@@ -530,7 +530,7 @@ get_header_value(const char *const s,
  ***/
 
 /**
- * Retrieves the PARQ ID associated with an download.
+ * Retrieves the PARQ ID associated with a download.
  *
  * @return a char pointer to the ID, or NULL if no ID is available.
  */
@@ -542,7 +542,7 @@ get_parq_dl_id(const struct download *d)
 }
 
 /**
- * Retrieves the remote queued position associated with an download.
+ * Retrieves the remote queued position associated with a download.
  *
  * @returns the remote queued position or 0 if download is not queued or
  * queuing status is unknown
@@ -555,7 +555,7 @@ get_parq_dl_position(const struct download *d)
 }
 
 /**
- * Retrieves the remote queue size associated with an download.
+ * Retrieves the remote queue size associated with a download.
  *
  * @return the remote queue size or 0 if download is not queued or queueing
  * status is unknown.
@@ -614,6 +614,51 @@ parq_download_is_passive_queued(const struct download *d)
 }
 
 /**
+ * Switch PARQ downloading IDs if the position in the older download is more
+ * interesting than the one in the newer one.
+ */
+static void
+parq_download_switch(struct download *od, struct download *nd)
+{
+	struct parq_dl_queued *opd, *npd;
+
+	download_check(od);
+	download_check(nd);
+	g_assert(od->server == nd->server);
+
+	opd = od->parq_dl;
+
+	if (NULL == opd->id)
+		return;		/* Not a PARQ download */
+
+	npd = nd->parq_dl;
+	if (NULL == npd) {
+		g_carp("%s(): switching between a PARQ download and a non-PARQ one: "
+			"old was \"%s\", new is \"%s\" at %s",
+			G_STRFUNC, download_basename(od), download_basename(nd),
+			download_host_info(nd));
+		return;
+	}
+
+	if (opd->position >= npd->position)
+		return;
+
+	/*
+	 * Position in the old download is more interesting, switch the IDs.
+	 */
+
+	if (GNET_PROPERTY(parq_debug)) {
+		g_debug("PARQ switching IDs between \"%s\" and \"%s\" at %s: "
+			"old position %u lower than new %u",
+			download_basename(od), download_basename(nd),
+			download_host_info(nd), opd->position, npd->position);
+	}
+
+	od->parq_dl = npd;
+	nd->parq_dl = opd;
+}
+
+/**
  * Active queued means we didn't close the http connection on a HTTP 503 busy
  * when the server supports queueing. So prepare the download structure
  * for a 'valid' segment. And re-request the segment.
@@ -656,6 +701,7 @@ parq_download_retry_active_queued(struct download *d)
 					download_basename(d), download_host_info(d));
 			}
 
+			parq_download_switch(d, other);
 			d = other;	/* Now processing the new download */
 		}
 	}
