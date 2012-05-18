@@ -49,6 +49,7 @@
 #include "lib/hashlist.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/url_factory.h"
@@ -270,6 +271,54 @@ downloads_gui_pipeline_range_string(const struct download *d)
 	return buf;
 }
 
+/**
+ * Generates status for the queued download showing the core message and
+ * appending the rescheduling information.
+ *
+ * @param buf		where formatting is done
+ * @param buflen	length of formatting buffer
+ * @param d			the download for which we're generating a status
+ *
+ * @return the address of buf
+ */
+static const char *
+download_gui_rescheduling(char *buf, size_t buflen, const struct download *d)
+{
+	char resched[80];
+	time_t rescheduled;
+
+	/*
+	 * Rescheduling time is the largest of `retry_after' (absolute) and
+	 * `timeout_delay' secs after `last_update'.
+	 * See download_pickup_queued() for details on how this is handled.
+	 *		--RAM, 2007-05-06
+	 */
+
+	rescheduled = d->last_update + d->timeout_delay;
+	rescheduled = MAX(rescheduled, d->retry_after);
+
+	time_locale_to_string_buf(rescheduled, resched, sizeof resched);
+
+	if (NULL == d->remove_msg) {
+		if (delta_time(rescheduled, tm_time()) > 0) {
+		str_bprintf(buf, buflen, "%s %s #%u",
+			delta_time(rescheduled, tm_time()) > 0 ?
+				_("Rescheduled for") : _("Restartable since"),
+			lazy_locale_to_ui_string(resched), d->retries);
+		}
+	} else {
+		if (delta_time(rescheduled, tm_time()) > 0) {
+		str_bprintf(buf, buflen, "%s - %s %s #%u",
+			d->remove_msg,
+			delta_time(rescheduled, tm_time()) > 0 ?
+				_("rescheduled for") : _("restartable since"),
+			lazy_locale_to_ui_string(resched), d->retries);
+		}
+	}
+
+	return buf;
+}
+
 const char *
 downloads_gui_status_string(const struct download *d)
 {
@@ -339,13 +388,14 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
 			if (d->remove_msg != NULL) {
-				status = d->remove_msg;	/* Show message if present */
+				/* Show message if present */
+				status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
 			} else {
 				gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
 				status = tmpstr;
 			}
 		} else {
-			status = d->remove_msg ? d->remove_msg : "";
+			status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
 		}
 		break;
 

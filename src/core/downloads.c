@@ -4763,40 +4763,32 @@ download_unavailable(struct download *d, download_status_t new_status,
 	va_end(args);
 }
 
+/**
+ * Update the status string of a queued download.
+ *
+ * We add the time at which the queuing occurred, plus PFS indication if
+ * the source is a partial one.
+ *
+ * This string is meant to be displayed in the GUI, hence the care taken
+ * to make sure the result is in the proper encoding.
+ */
 static void
 download_queue_update_status(struct download *d)
 {
-	char event[80], resched[80], pfs[40], *buf;
-	size_t size;
-	time_t rescheduled;
+	char event[80];
+	size_t rw;
 
-	/*
-	 * Rescheduling time is the largest of `retry_after' (absolute) and
-	 * `timeout_delay' secs after `last_update'.
-	 * See download_pickup_queued() for details on how this is handled.
-	 *		--RAM, 2007-05-06
-	 */
-
-	rescheduled = d->last_update + d->timeout_delay;
-	rescheduled = MAX(rescheduled, d->retry_after);
-
-	/* Append times of event/reschedule */
+	/* Append times of event */
 	time_locale_to_string_buf(tm_time(), event, sizeof event);
-	time_locale_to_string_buf(rescheduled, resched, sizeof resched);
+	rw = strlen(d->error_str);
+	rw += gm_snprintf(&d->error_str[rw], sizeof d->error_str - rw,
+		_(" at %s"), lazy_locale_to_ui_string(event));
 
 	/* Append PFS indication */
-	pfs[0] = '\0';
-	if (d->ranges_size)
-		gm_snprintf(pfs, sizeof pfs, " <PFS %4.02f%%>",
-			d->ranges_size * 100.0 / download_filesize(d));
-
-	buf = &d->error_str[strlen(d->error_str)];
-	size = sizeof d->error_str - strlen(d->error_str);
-
-	gm_snprintf(buf, size,
-		_(" at %s - rescheduled for %s%s #%u"),
-		lazy_locale_to_ui_string(event),
-		lazy_locale_to_ui_string2(resched), pfs, d->retries);
+	if (d->ranges_size) {
+		gm_snprintf(&d->error_str[rw], sizeof d->error_str - rw,
+			" <PFS %4.02f%%>", d->ranges_size * 100.0 / download_filesize(d));
+	}
 }
 
 /**
