@@ -53,11 +53,11 @@
  * @return the starting address of the container for the node, aka the key.
  */
 #ifdef __GNUC__
-#define erbtree_key(node, type, field) ({				\
-	const struct rbnode *__mptr = (node);				\
+#define erbtree_key(node, type, field) G_GNUC_EXTENSION({	\
+	const struct rbnode *__mptr = (node);					\
 	(type *)((char *) __mptr - offsetof(type, field));})
 #else
-#define erbtree_key(node, type, field)					\
+#define erbtree_key(node, type, field)						\
 	((type *)((char *) (node) - offsetof(type, field)))
 #endif
 
