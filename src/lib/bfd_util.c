@@ -526,8 +526,8 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	if (sec != NULL) {
 		bfd_vma addr = bfd_section_vma(b, sec);
 
-		bc->offset = vmm_page_start(ulong_to_pointer(addr)) -
-			vmm_page_start(ulong_to_pointer(base));
+		bc->offset = ptr_diff(vmm_page_start(ulong_to_pointer(addr)),
+			vmm_page_start(ulong_to_pointer(base)));
 	}
 
 	bc->offseted = TRUE;
