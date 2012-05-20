@@ -144,7 +144,7 @@ mutex_init(mutex_t *m)
 /**
  * Is mutex owned by thread?
  */
-static inline ALWAYS_INLINE
+static inline ALWAYS_INLINE bool
 mutex_is_owned_by_fast(const mutex_t *m, const thread_t t)
 {
 	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
