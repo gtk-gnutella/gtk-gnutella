@@ -310,12 +310,7 @@ thread_lock_stack_init(struct thread_element *te)
 static inline ALWAYS_INLINE thread_qid_t
 thread_quasi_id_fast(const void *sp)
 {
-	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
-		return pointer_to_ulong(sp) >> thread_pageshift;
-	} else {
-		uint64 qid = pointer_to_ulong(sp) >> thread_pageshift;
-		return (qid >> 32) ^ (unsigned) qid;
-	}
+	return pointer_to_ulong(sp) >> thread_pageshift;
 }
 
 /**
@@ -344,8 +339,6 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		return TRUE;
 
 	/*
-	 * This only holds for 32-bit machines:
-	 *
 	 * The QID is the stack page number of the thread.  The kernel needs to
 	 * add at least one unmapped page between threads to detect stack overflows.
 	 * Therefore, if the QID is the "upper" neighbour of the last QID, it means
@@ -354,12 +347,10 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 	 * shrank, but it has to be the same thread.
 	 */
 
-	if (sizeof(thread_qid_t) <= sizeof(unsigned)) {
-		if (te->last_qid == qid + 1 || te->last_qid == qid - 1) {
-			if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
-				thread_stack_init_shape(te, &qid);
-			return TRUE;
-		}
+	if (te->last_qid == qid + 1 || te->last_qid == qid - 1) {
+		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
+			thread_stack_init_shape(te, &qid);
+		return TRUE;
 	}
 
 	return FALSE;

@@ -40,7 +40,7 @@
 typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 
 typedef unsigned long thread_t;
-typedef unsigned int thread_qid_t;		/* Quasi Thread ID */
+typedef size_t thread_qid_t;		/* Quasi Thread ID */
 
 #ifdef I_PTHREAD
 #include <pthread.h>
