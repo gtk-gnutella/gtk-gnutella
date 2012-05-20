@@ -170,6 +170,7 @@ static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
 static bool vmm_inited;
+static bool vmm_fully_inited;
 static bool vmm_crashing;
 
 #define VMM_CACHE_SIZE		256	/**< Amount of entries per cache line */
@@ -312,7 +313,7 @@ vmm_is_debugging(uint32 level)
 bool
 vmm_is_inited(void)
 {
-	return vmm_inited;
+	return vmm_fully_inited;
 }
 
 static inline struct pmap *
@@ -630,6 +631,9 @@ vmm_find_hole(size_t size)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
+
+	if G_UNLIKELY(!vmm_fully_inited)
+		return NULL;
 
 	mutex_get(&pm->lock);
 
@@ -4511,6 +4515,7 @@ vmm_init_once(void)
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif
+	vmm_fully_inited = TRUE;
 
 	/*
 	 * We can now use the VMM layer to allocate memory via xmalloc().

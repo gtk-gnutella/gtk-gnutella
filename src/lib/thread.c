@@ -113,6 +113,7 @@ struct thread_element {
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_base;			/**< Plausible stack base */
+	const void *stack_highest;		/**< Highest stack address seen */
 	const void *stack_lock;			/**< First lock seen here */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
@@ -170,6 +171,7 @@ static bool thread_inited;
 static int thread_pageshift = 12;		/* Safe default: 4K pages */
 static int thread_sp_direction;			/* Stack growth direction */
 static bool thread_panic_mode;			/* STID overflow, most probably */
+static size_t thread_reused;			/* Counts reused thread elements */
 
 static spinlock_t thread_private_slk = SPINLOCK_INIT;
 static spinlock_t thread_insert_slk = SPINLOCK_INIT;
@@ -279,6 +281,7 @@ static void
 thread_stack_init_shape(struct thread_element *te, const void *sp)
 {
 	te->stack_base = vmm_page_start(sp);
+	te->stack_highest = sp;
 
 	if (thread_sp_direction < 0) {
 		te->stack_base = const_ptr_add_offset(te->stack_base,
@@ -350,6 +353,8 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 	if (te->last_qid == qid + 1 || te->last_qid == qid - 1) {
 		if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
 			thread_stack_init_shape(te, &qid);
+		else if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_highest) > 0)
+			te->stack_highest = &qid;
 		return TRUE;
 	}
 
@@ -503,6 +508,67 @@ thread_suspend_self(volatile struct thread_element *te)
 }
 
 /**
+ * Find existing thread element whose stack encompasses the given stack pointer.
+ */
+static struct thread_element *
+thread_stack_match(const void *sp)
+{
+	unsigned i;
+	const void *spage;
+
+	spage = vmm_page_start(sp);
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		const void *bpage;
+
+		if G_UNLIKELY(!te->valid)
+			continue;
+
+		/*
+		 * Acount for the fact we may not have an accurate knowledge of the
+		 * base or the highest stack address -- also compare pages.
+		 */
+
+		if (thread_stack_ptr_cmp(sp, te->stack_base) > 0) {
+			const void *hpage;
+
+			if (thread_stack_ptr_cmp(sp, te->stack_highest) <= 0)
+				return te;		/* Obvious match -- within known boundaries */
+
+			hpage = vmm_page_start(te->stack_highest);
+
+			if (hpage == spage)
+				return te;		/* Highest stack page identical */
+
+			/*
+			 * We rely on the fact that there will be an ummapped page between
+			 * thread stacks, to be able to detect stack overflows.
+			 */
+
+			hpage = const_ptr_add_offset(hpage,
+				(thread_sp_direction > 0 ? +1 : -1) * compat_pagesize());
+
+			if (hpage == spage)
+				return te;		/* Just one page beyond last known highest */
+		}
+
+		bpage = vmm_page_start(te->stack_base);
+
+		if (bpage == spage)
+			return te;			/* Lowest stack page identical */
+
+		bpage = const_ptr_add_offset(bpage,
+			(thread_sp_direction > 0 ? -1 : +1) * compat_pagesize());
+
+		if (bpage == spage)
+			return te;			/* Just one page before last known base */
+	}
+
+	return NULL;		/* Not found */
+}
+
+/**
  * Get the thread-private element.
  *
  * If no element was already associated with the current thread, a new one
@@ -580,6 +646,27 @@ thread_get_element(void)
 
 		spinlock_hidden(&thread_insert_slk);	/* Don't record */
 
+		/*
+		 * Before allocating a new thread element, check whether the current
+		 * stack pointer lies within the boundaries of a known thread.  If it
+		 * does, it means the thread terminated and a new one was allocated.
+		 * Re-use the existing slot.
+		 */
+
+		te = thread_stack_match(&qid);
+
+		if (te != NULL) {
+			thread_reused++;
+			hash_table_remove(ght, &te->tid);
+			tstid[te->stid] = t;
+			thread_instantiate(te, t);
+			goto created;
+		}
+
+		/*
+		 * OK, we have an additional thread.
+		 */
+
 		stid = thread_next_stid;
 
 		if G_UNLIKELY(thread_next_stid >= THREAD_MAX) {
@@ -611,6 +698,7 @@ thread_get_element(void)
 		thread_instantiate(te, t);
 		thread_next_stid++;		/* Created and initialized, make it visible */
 
+	created:
 		/*
 		 * At this stage, the thread has been correctly initialized and it
 		 * will be correctly located by thread_find().  Any spinlock or mutex
@@ -619,7 +707,6 @@ thread_get_element(void)
 		 */
 
 		hash_table_insert(ght, &te->tid, te);
-
 		spinunlock_hidden(&thread_insert_slk);
 	}
 
@@ -634,11 +721,13 @@ thread_get_element(void)
 	te->last_qid = qid;
 
 	/*
-	 * Maintain lowest stack address for thread.
+	 * Maintain lowest and highest stack addresses for thread.
 	 */
 
 	if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
 		thread_stack_init_shape(te, &qid);
+	else if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_highest) > 0)
+		te->stack_highest = &qid;
 
 	return te;
 }
@@ -782,6 +871,13 @@ thread_small_id(void)
 	struct thread_element *te;
 	unsigned retries = 0;
 	int stid;
+
+	/*
+	 * First thread not even known yet, say we are the first thread.
+	 */
+
+	if G_UNLIKELY(0 == tstid[0])
+		return 0;
 
 retry:
 
@@ -1178,6 +1274,8 @@ thread_is_single(void)
 		 * creation of its thread element.
 		 */
 		return 0 == tstid[1];			/* No thread #1 => single thread */
+	} else if (0 == tstid[0]) {
+		return TRUE;					/* First thread not created yet */
 	} else {
 		(void) thread_current();		/* Counts threads */
 		return 1 >= thread_next_stid;

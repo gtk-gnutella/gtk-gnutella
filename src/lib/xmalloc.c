@@ -750,6 +750,7 @@ static void *
 xmalloc_addcore_from_heap(size_t len, bool can_log)
 {
 	void *p;
+	bool locked;
 
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round(len) == len);
@@ -778,7 +779,24 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	 */
 
 #ifdef HAS_SBRK
+	/*
+	 * On FreeBSD, pthread_self() calls malloc() initially, hence we have
+	 * a bootstrapping problem... Resolve it by checking whether we already
+	 * have the spinlock, and if we do, check whether we're running as a
+	 * single thread.  In which case we allow the call to continue, unlocked.
+	 *		--RAM, 2012-05-19
+	 */
+
+	if G_UNLIKELY(spinlock_is_held(&xmalloc_sbrk_slk)) {
+		if (thread_is_single()) {
+			locked = FALSE;
+			goto bypass;
+		}
+	}
+
+	locked = TRUE;
 	spinlock(&xmalloc_sbrk_slk);
+bypass:
 	p = sbrk(len);
 
 	/*
@@ -795,11 +813,14 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 		xstats.sbrk_wasted_bytes += missing;
 	}
 #else
+	(void) locked;
 	t_error("cannot allocate core on this platform (%zu bytes)", len);
 	return p = NULL;
 #endif
 
 	if ((void *) -1 == p) {
+		if (locked)
+			spinunlock(&xmalloc_sbrk_slk);
 		t_error("cannot allocate more core (%zu bytes): %m", len);
 	}
 
@@ -823,7 +844,8 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	}
 	sbrk_allocated += len;
 	xstats.sbrk_alloc_bytes += len;
-	spinunlock(&xmalloc_sbrk_slk);
+	if (locked)
+		spinunlock(&xmalloc_sbrk_slk);
 
 	if (xmalloc_debugging(1) && can_log) {
 		t_debug("XM added %zu bytes of heap core at %p", len, p);
@@ -4588,7 +4610,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	 */
 
 	if (newlen <= XMALLOC_MAXSIZE && xh->length <= XMALLOC_MAXSIZE) {
-		size_t i, needed, old_len, freelist_idx;
+		size_t i, needed, old_len = 0, freelist_idx;
 		void *end;
 		bool coalesced = FALSE;
 
