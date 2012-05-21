@@ -4391,6 +4391,14 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
+	} else if (in_exception_handler > 5) {
+		DECLARE_STR(1);
+
+		print_str("Too many exceptions in a row -- raising SIGBART.\n");
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+		signo = SIGABRT;
 	}
 
 	/*
