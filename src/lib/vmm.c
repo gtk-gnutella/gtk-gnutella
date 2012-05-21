@@ -584,7 +584,7 @@ vmm_dump_pmap_log(logagent_t *la)
 	size_t i;
 	time_t now = tm_time();
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	log_debug(la, "VMM current %s pmap (%zu/%zu region%s):",
 		pm == &kernel_pmap ? "kernel" :
@@ -610,7 +610,7 @@ vmm_dump_pmap_log(logagent_t *la)
 			size_is_non_negative(hole) ? "" : " *UNSORTED*");
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -635,10 +635,10 @@ vmm_find_hole(size_t size)
 	if G_UNLIKELY(!vmm_fully_inited)
 		return NULL;
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	if G_UNLIKELY(0 == pm->count || pm->loading) {
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 		return NULL;
 	}
 
@@ -651,13 +651,13 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(i == pm->count - 1) {
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return end;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
 
 				if (ptr_diff(next->start, end) >= size) {
-					mutex_release(&pm->lock);
+					mutex_unlock(&pm->lock);
 					return end;
 				}
 			}
@@ -671,13 +671,13 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(1 == i) {
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return page_start(const_ptr_add_offset(start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
 				if (ptr_diff(start, prev->end) >= size) {
-					mutex_release(&pm->lock);
+					mutex_unlock(&pm->lock);
 					return page_start(const_ptr_add_offset(start, -size));
 				}
 			}
@@ -688,7 +688,7 @@ vmm_find_hole(size_t size)
 		s_warning("VMM no %zuKiB hole found in pmap", size / 1024);
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 	return NULL;
 }
 
@@ -701,7 +701,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 	g_assert(pm != NULL);
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	if (vmm_debugging(0)) {
 		struct vm_fragment *vmf = &pm->array[idx];
@@ -723,7 +723,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 
 	pm->count--;
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -747,10 +747,10 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 	struct pmap *pm = vmm_pmap();
 	size_t i;
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	if G_UNLIKELY(0 == pm->count) {
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 		return 0;
 	}
 
@@ -765,7 +765,7 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 
 			if G_UNLIKELY(i == pm->count - 1) {
 				*hole_ptr = end;
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
@@ -780,7 +780,7 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 					pmap_discard_index(pm, i);
 					*hole_ptr = start;
 					len = ptr_diff(next->start, start);
-					mutex_release(&pm->lock);
+					mutex_unlock(&pm->lock);
 					return len;
 				}
 
@@ -788,7 +788,7 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 					continue;		/* Different types do not coalesce */
 				*hole_ptr = end;
 				len = ptr_diff(next->start, end);
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return len;
 			}
 		}
@@ -803,7 +803,7 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 
 			if G_UNLIKELY(1 == i) {
 				*hole_ptr = ulong_to_pointer(kernel_pagesize);	/* Not NULL */
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return SIZE_MAX;
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
@@ -818,7 +818,7 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 					pmap_discard_index(pm, i - 1);
 					*hole_ptr = end;
 					len = ptr_diff(end, prev->end);
-					mutex_release(&pm->lock);
+					mutex_unlock(&pm->lock);
 					return len;
 				}
 
@@ -826,13 +826,13 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 					continue;		/* Foreign and native do not coalesce */
 				*hole_ptr = start;
 				len = ptr_diff(start, prev->end);
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return len;
 			}
 		}
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 	return 0;
 }
 
@@ -1001,11 +1001,11 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * that happend since we computed the ``hole'' parameter.
 		 */
 
-		mutex_get(&pm->lock);		/* Begin critical section */
+		mutex_lock(&pm->lock);		/* Begin critical section */
 
 		vmf = pmap_lookup(pm, hint, NULL);
 		if (vmf != NULL) {
-			mutex_release(&pm->lock);
+			mutex_unlock(&pm->lock);
 			goto done;		/* Concurrent allocation, ``hint'' now known */
 		}
 
@@ -1096,7 +1096,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				}
 			}
 		}
-		mutex_release(&pm->lock);		/* End critical section */
+		mutex_unlock(&pm->lock);		/* End critical section */
 	} else if (hint != NULL) {
 		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
 			if (vmm_debugging(0)) {
@@ -1163,7 +1163,7 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 	g_assert(kernel_pagesize > 0);
 
 	if (update_pmap)
-		mutex_get(&vmm_pmap()->lock);
+		mutex_lock(&vmm_pmap()->lock);
 
 	p = vmm_mmap_anonymous(size, hole);
 
@@ -1187,7 +1187,7 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 
 		if (kernel_pmap.generation == generation)
 			pmap_insert(pm, p, size);
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 	}
 
 	return p;
@@ -1209,7 +1209,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 	 */
 
 	if (update_pmap)
-		mutex_get(&vmm_pmap()->lock);
+		mutex_lock(&vmm_pmap()->lock);
 
 	/*
 	 * If ``stop_freeing'' was set, well be only updating the pmap so that
@@ -1241,7 +1241,7 @@ pmap_update:
 		struct pmap *pm = vmm_pmap();
 
 		pmap_remove(pm, p, size);
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 	}
 }
 
@@ -1461,7 +1461,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	while (pm->count == pm->size)
 		pmap_extend(pm);
@@ -1496,7 +1496,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
 	vmf->mtime = tm_time();
 
 done:
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -1515,7 +1515,7 @@ pmap_insert_region(struct pmap *pm,
 	g_assert(ptr_cmp(start, end) < 0);
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	g_assert(pm->count < pm->size);
 
@@ -1639,7 +1639,7 @@ done:
 		}
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -1981,7 +1981,7 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 	struct vm_fragment *vmf;
 	bool within;
 	
-	mutex_get_const(&pm->lock);
+	mutex_lock_const(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -1992,7 +1992,7 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 
 	within = p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
 
-	mutex_release_const(&pm->lock);
+	mutex_unlock_const(&pm->lock);
 	return within;
 }
 
@@ -2012,13 +2012,13 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 	size_t distance_to_start;
 	size_t distance_to_end;
 
-	mutex_get_const(&pm->lock);
+	mutex_lock_const(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
 	if (NULL == vmf) {
 		pmap_log_missing(pm, p, size);
-		mutex_release_const(&pm->lock);
+		mutex_unlock_const(&pm->lock);
 		return 0;
 	}
 
@@ -2026,7 +2026,7 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 	distance_to_start = ptr_diff(middle, vmf->start);
 	distance_to_end = ptr_diff(vmf->end, middle);
 
-	mutex_release_const(&pm->lock);
+	mutex_unlock_const(&pm->lock);
 	return MIN(distance_to_start, distance_to_end);
 }
 
@@ -2061,10 +2061,10 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 {
 	size_t idx;
 
-	mutex_get_const(&pm->lock);
+	mutex_lock_const(&pm->lock);
 
 	if (pmap_lookup(pm, p, &idx)) {
-		mutex_release_const(&pm->lock);
+		mutex_unlock_const(&pm->lock);
 		return FALSE;
 	}
 
@@ -2076,11 +2076,11 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 		bool ret;
 
 		ret = ptr_cmp(end, vmf->start) <= 0;
-		mutex_release_const(&pm->lock);
+		mutex_unlock_const(&pm->lock);
 		return ret;
 	}
 
-	mutex_release_const(&pm->lock);
+	mutex_unlock_const(&pm->lock);
 	return TRUE;
 }
 
@@ -2099,7 +2099,7 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	vmf = pmap_lookup(vmm_pmap(), base, NULL);
 
@@ -2118,7 +2118,7 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 
 	g_assert(vmf->type == type);
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -2167,13 +2167,13 @@ vmm_is_native_pointer(const void *p)
 	bool native;
 	struct pmap *pm = vmm_pmap();
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	vmf = pmap_lookup(pm, page_start(p), NULL);
 
 	native = vmf != NULL && VMF_NATIVE == vmf->type;
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 	return native;
 }
 
@@ -2190,9 +2190,9 @@ vmm_is_fragment(const void *base, size_t size)
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 	is_fragment = pmap_is_fragment(pm, base, pagecount_fast(size));
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 
 	return is_fragment;
 }
@@ -2247,7 +2247,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -2264,7 +2264,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 			(pm->count - idx) * sizeof pm->array[0]);
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -2277,7 +2277,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -2325,7 +2325,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		}
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -2384,7 +2384,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 	const void *base = p;
 	size_t remain = size;
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	while (size_is_positive(remain)) {
 		size_t idx;
@@ -2405,7 +2405,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 			vmf = &pm->array[idx];
 
 			if (ptr_cmp(end, vmf->start) <= 0) {
-				mutex_release(&pm->lock);
+				mutex_unlock(&pm->lock);
 				return;		/* Next region starts after our target */
 			}
 
@@ -2456,7 +2456,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		}
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -2481,7 +2481,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	 * does when asked to update the pmap.
 	 */
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 	free_pages_intern(p, size, FALSE);
 
 	/*
@@ -2495,7 +2495,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 		pmap_remove(vmm_pmap(), p, size);
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 }
 
 /**
@@ -3132,17 +3132,17 @@ page_cache_insert_pages(void *base, size_t n)
 	 * memory space.
 	 */
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	if (pmap_is_fragment(pm, base, n)) {
 		free_pages_forced(base, n * kernel_pagesize, TRUE);
 		vmm_stats.forced_freed++;
 		vmm_stats.forced_freed_pages += n;
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 		return FALSE;
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 
 	/*
 	 * If releasing more than what we can store in the largest cache line,
@@ -4104,7 +4104,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 * Compute the amount of known native / mapped pages.
 	 */
 
-	mutex_get(&pm->lock);
+	mutex_lock(&pm->lock);
 
 	for (i = 0; i < pm->count; i++) {
 		struct vm_fragment *vmf = &pm->array[i];
@@ -4116,7 +4116,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 		}
 	}
 
-	mutex_release(&pm->lock);
+	mutex_unlock(&pm->lock);
 
 #define DUMP(v,x)	log_info(la, "VMM %s = %s", (v),	\
 	(options & DUMP_OPT_PRETTY) ?						\
@@ -4729,10 +4729,10 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		 * all the overlapping cases we can encounter.
 		 */
 
-		mutex_get(&pm->lock);
+		mutex_lock(&pm->lock);
 		pmap_overrule(pm, p, size, VMF_MAPPED);
 		pmap_insert_mapped(pm, p, size);
-		mutex_release(&pm->lock);
+		mutex_unlock(&pm->lock);
 
 		assert_vmm_is_allocated(p, length, VMF_MAPPED);
 

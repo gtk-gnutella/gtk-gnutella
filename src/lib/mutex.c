@@ -339,7 +339,7 @@ mutex_ungrab(mutex_t *m, bool hidden)
  * Convenience routine for locks that are part of a "const" structure.
  */
 void
-mutex_release_const(const mutex_t *m)
+mutex_unlock_const(const mutex_t *m)
 {
 	/*
 	 * A lock is not part of the abstract data type, so it's OK to

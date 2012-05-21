@@ -138,7 +138,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	if (0 == bc->count)
 		return;
 
-	mutex_get(&bc->lock);
+	mutex_lock(&bc->lock);
 
 	g_assert(bc->symbols != NULL);
 
@@ -165,7 +165,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		}
 	}
 
-	mutex_release(&bc->lock);
+	mutex_unlock(&bc->lock);
 }
 
 /**
@@ -214,7 +214,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	bfd_ctx_check(bc);
 
-	mutex_get(&bc->lock);
+	mutex_lock(&bc->lock);
 
 	ZERO(&sc);
 	lookaddr = const_ptr_add_offset(addr, bc->offset);
@@ -225,7 +225,7 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	if (sc.location.function != NULL) {
 		*loc = sc.location;		/* Struct copy */
-		mutex_release(&bc->lock);
+		mutex_unlock(&bc->lock);
 		return TRUE;
 	}
 
@@ -248,11 +248,11 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	if (name != NULL) {
 		ZERO(loc);
 		loc->function = name;
-		mutex_release(&bc->lock);
+		mutex_unlock(&bc->lock);
 		return TRUE;
 	}
 
-	mutex_release(&bc->lock);
+	mutex_unlock(&bc->lock);
 	return FALSE;
 }
 
@@ -339,11 +339,11 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 	 * thread-safe and we could enter here concurrently.
 	 */
 
-	mutex_get(&bfd_library_mtx);
+	mutex_lock(&bfd_library_mtx);
 
 	b = bfd_fdopenr(libpath, NULL, fd);
 	if (NULL == b) {
-		mutex_release(&bfd_library_mtx);
+		mutex_unlock(&bfd_library_mtx);
 		close(fd);
 		return FALSE;
 	}
@@ -384,7 +384,7 @@ failed:
 	/* FALL THROUGH */
 
 done:
-	mutex_release(&bfd_library_mtx);
+	mutex_unlock(&bfd_library_mtx);
 
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
@@ -405,7 +405,7 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 	bfd_ctx_t *bc = *bc_ptr;
 
 	if (bc != NULL) {
-		mutex_get(&bc->lock);
+		mutex_lock(&bc->lock);
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
@@ -497,10 +497,10 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 
 	bfd_ctx_check(bc);
 
-	mutex_get(&bc->lock);
+	mutex_lock(&bc->lock);
 
 	if (bc->offseted) {
-		mutex_release(&bc->lock);
+		mutex_unlock(&bc->lock);
 		return;
 	}
 
@@ -531,7 +531,7 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	}
 
 	bc->offseted = TRUE;
-	mutex_release(&bc->lock);
+	mutex_unlock(&bc->lock);
 }
 
 /**
@@ -592,9 +592,9 @@ bfd_util_get_context(bfd_env_t *be, const char *path)
 	bfd_env_check(be);
 	g_assert(path != NULL);
 
-	mutex_get(&be->lock);
+	mutex_lock(&be->lock);
 	bc = bfd_util_get_bc(&be->head, path);
-	mutex_release(&be->lock);
+	mutex_unlock(&be->lock);
 
 	return bc;
 }
@@ -618,7 +618,7 @@ bfd_util_close(bfd_env_t *be)
 {
 	bfd_env_check(be);
 
-	mutex_get(&be->lock);
+	mutex_lock(&be->lock);
   	bfd_util_free_list(be->head);
 	be->magic = 0;
 	mutex_destroy(&be->lock);

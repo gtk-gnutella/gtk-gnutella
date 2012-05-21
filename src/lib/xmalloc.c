@@ -1431,7 +1431,7 @@ xfl_remove_selected(struct xfreelist *fl)
 	 */
 
 	xfl_count_decreased(fl, FALSE);
-	mutex_release(&fl->lock);
+	mutex_unlock(&fl->lock);
 }
 
 /**
@@ -1615,10 +1615,10 @@ xfl_extend(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	mutex_get(&fl->lock);
+	mutex_lock(&fl->lock);
 
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		mutex_release(&fl->lock);
+		mutex_unlock(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug("XM recursion during extension of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -1668,7 +1668,7 @@ xfl_extend(struct xfreelist *fl)
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
 	fl->expand = FALSE;
-	mutex_release(&fl->lock);
+	mutex_unlock(&fl->lock);
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
@@ -2015,7 +2015,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	 * an object we already locked in the same thread.
 	 */
 
-	mutex_get(&fl->lock);
+	mutex_lock(&fl->lock);
 
 	sorted = fl->count == fl->sorted;
 
@@ -2055,7 +2055,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 		 */
 
 		if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 			t_error_from(_WHERE_,
 				"block %p already in free list #%zu (%zu bytes)",
 				p, xfl_index(fl), fl->blocksize);
@@ -2130,7 +2130,7 @@ plain_insert:
 			xfl_index(fl), fl->blocksize);
 	}
 
-	mutex_release(&fl->lock);	/* Issues final memory barrier */
+	mutex_unlock(&fl->lock);	/* Issues final memory barrier */
 }
 
 /**
@@ -2217,7 +2217,7 @@ xmalloc_freelist_setup(void)
 		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 			struct xfreelist *fl = &xfreelist[i];
 
-			mutex_get(&fl->lock);
+			mutex_lock(&fl->lock);
 
 			/* Sort with xqsort() to guarantee no memory allocation */
 
@@ -2227,7 +2227,7 @@ xmalloc_freelist_setup(void)
 				fl->sorted = fl->count;
 			}
 
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 	}
 }
@@ -2404,10 +2404,10 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 		if (0 == fl->count)
 			continue;
 
-		mutex_get(&fl->lock);
+		mutex_lock(&fl->lock);
 
 		if (0 == fl->count) {
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 			continue;
 		}
 
@@ -2541,7 +2541,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 			void *before;
 			size_t idx;
 
-			if (0 == fl->count || !mutex_get_try(&fl->lock))
+			if (0 == fl->count || !mutex_trylock(&fl->lock))
 				continue;
 
 			blksize = fl->blocksize;
@@ -2563,7 +2563,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 				found_match = coalesced = TRUE;
 			}
 
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 
 		if (!found_match)
@@ -2581,7 +2581,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 			struct xfreelist *fl = &xfreelist[j];
 			size_t idx;
 
-			if (0 == fl->count || !mutex_get_try(&fl->lock))
+			if (0 == fl->count || !mutex_trylock(&fl->lock))
 				continue;
 
 			idx = xfl_lookup(fl, end, NULL);
@@ -2602,7 +2602,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 				found_match = coalesced = TRUE;
 			}
 
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 
 		if (!found_match)
@@ -3082,10 +3082,10 @@ xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
 	if (0 == fl->count)
 		return NULL;
 
-	mutex_get(&fl->lock);
+	mutex_lock(&fl->lock);
 
 	if (0 == fl->count) {
-		mutex_release(&fl->lock);
+		mutex_unlock(&fl->lock);
 		return NULL;
 	}
 
@@ -4556,7 +4556,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 					 * Release lock grabbed by xmalloc_freelist_lookup().
 					 */
 
-					mutex_release(&fl->lock);
+					mutex_unlock(&fl->lock);
 				}
 			}
 		}
@@ -4640,7 +4640,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			struct xfreelist *fl = &xfreelist[i];
 			size_t idx;
 
-			if (0 == fl->count || !mutex_get_try(&fl->lock))
+			if (0 == fl->count || !mutex_trylock(&fl->lock))
 				continue;
 
 			idx = xfl_lookup(fl, end, NULL);
@@ -4655,7 +4655,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_release(&fl->lock);
+					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc NOT coalescing next %zu-byte "
 							"[%p, %p[ from list #%zu with [%p, %p[: invalid "
@@ -4677,7 +4677,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				end = ptr_add_offset(end, blksize);
 				coalesced = TRUE;
 			}
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 
 		/*
@@ -4737,7 +4737,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			void *before;
 			size_t idx;
 
-			if (0 == fl->count || !mutex_get_try(&fl->lock))
+			if (0 == fl->count || !mutex_trylock(&fl->lock))
 				continue;
 
 			blksize = fl->blocksize;
@@ -4754,7 +4754,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_release(&fl->lock);
+					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc not coalescing previous "
 							"%zu-byte [%p, %p[ from list #%zu with [%p, %p[: "
@@ -4777,7 +4777,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				coalesced = TRUE;
 			}
 
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 
 		/*
@@ -5637,7 +5637,7 @@ xgc(void)
 		G_PREFETCH_R(&xfreelist[i + 1].lock);
 		G_PREFETCH_W(&xgctx.locked[i + 1]);
 
-		if (!mutex_get_try(&fl->lock))
+		if (!mutex_trylock(&fl->lock))
 			continue;
 
 		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
@@ -5825,7 +5825,7 @@ unlock:
 		G_PREFETCH_W(&xfreelist[i - 2].lock);
 		if (xgctx.locked[i - 1]) {
 			struct xfreelist *fl = &xfreelist[i - 1];
-			mutex_release(&fl->lock);
+			mutex_unlock(&fl->lock);
 		}
 	}
 

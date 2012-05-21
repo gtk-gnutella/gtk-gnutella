@@ -1003,14 +1003,14 @@ stack_print_decorated_to(struct sxfile *xf,
 	stacktrace_buffer_init();
 
 	if (NULL != stacktrace_buffer.arena) {
-		mutex_get(&stacktrace_buffer.lock);
+		mutex_lock(&stacktrace_buffer.lock);
 		if (1 == mutex_held_depth(&stacktrace_buffer.lock)) {
 			void *arena = stacktrace_buffer.arena;
 			trace = str_new_in_buffer(arena, STACKTRACE_BUFFER_SIZE);
 			g_assert(trace != NULL);
 			/* Keep mutex, since we hold the buffer */
 		} else {
-			mutex_release(&stacktrace_buffer.lock);
+			mutex_unlock(&stacktrace_buffer.lock);
 		}
 	}
 
@@ -1271,7 +1271,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			write(xf->u.fd, str_2c(trace), str_len(trace));
 			break;
 		}
-		mutex_release(&stacktrace_buffer.lock);
+		mutex_unlock(&stacktrace_buffer.lock);
 	}
 
 	/*

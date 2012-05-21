@@ -405,9 +405,9 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	ev->ce_arg = arg;
 	ev->ce_cq = cq;
 
-	mutex_get(&cq->cq_lock);
+	mutex_lock(&cq->cq_lock);
 	ev_link(ev);
-	mutex_release(&cq->cq_lock);
+	mutex_unlock(&cq->cq_lock);
 
 	return ev;
 }
@@ -436,9 +436,9 @@ cq_cancel(cevent_t **handle_ptr)
 		cqueue_check(cq);
 		g_assert(cq->cq_items > 0);
 
-		mutex_get(&cq->cq_lock);
+		mutex_lock(&cq->cq_lock);
 		ev_unlink(ev);
-		mutex_release(&cq->cq_lock);
+		mutex_unlock(&cq->cq_lock);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		WFREE(ev);
 		*handle_ptr = NULL;
@@ -478,11 +478,11 @@ cq_resched(cevent_t *ev, int delay)
 	 * as doing the unlink/link blindly anyway.
 	 */
 
-	mutex_get(&cq->cq_lock);
+	mutex_lock(&cq->cq_lock);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
-	mutex_release(&cq->cq_lock);
+	mutex_unlock(&cq->cq_lock);
 }
 
 /**
@@ -647,7 +647,7 @@ done:
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");
 	}
 
-	mutex_release(&cq->cq_lock);
+	mutex_unlock(&cq->cq_lock);
 
 	/*
 	 * Run idle callbacks if nothing was processed.
@@ -694,7 +694,7 @@ cq_heartbeat(cqueue_t *cq)
 	 * How much milliseconds elapsed since last heart beat?
 	 */
 
-	mutex_get(&cq->cq_lock);
+	mutex_lock(&cq->cq_lock);
 
 	tm_now_exact(&tv);
 	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
@@ -1073,9 +1073,9 @@ cq_idle_free(cidle_t *ci)
 	cidle_check(ci);
 	cqueue_check(ci->cq);
 
-	mutex_get(&ci->cq->cq_idle_lock);
+	mutex_lock(&ci->cq->cq_idle_lock);
 	cq_unregister_object(ci->cq->cq_idle, ci);
-	mutex_release(&ci->cq->cq_idle_lock);
+	mutex_unlock(&ci->cq->cq_idle_lock);
 	ci->magic = 0;
 	WFREE(ci);
 }
@@ -1107,9 +1107,9 @@ cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg)
 	ci->arg = arg;
 	ci->cq = cq;
 
-	mutex_get(&cq->cq_idle_lock);
+	mutex_lock(&cq->cq_idle_lock);
 	cq_register_object(&cq->cq_idle, ci);
-	mutex_release(&cq->cq_idle_lock);
+	mutex_unlock(&cq->cq_idle_lock);
 
 	return ci;
 }
@@ -1162,9 +1162,9 @@ cq_run_idle(cqueue_t *cq)
 	cqueue_check(cq);
 
 	if (cq->cq_idle != NULL) {
-		mutex_get(&cq->cq_idle_lock);
+		mutex_lock(&cq->cq_idle_lock);
 		hset_foreach_remove(cq->cq_idle, cq_idle_trampoline, NULL);
-		mutex_release(&cq->cq_idle_lock);
+		mutex_unlock(&cq->cq_idle_lock);
 	}
 }
 
@@ -1296,7 +1296,7 @@ cq_free(cqueue_t *cq)
 			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "", cq->cq_name);
 	}
 
-	mutex_get(&cq->cq_lock);
+	mutex_lock(&cq->cq_lock);
 
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {

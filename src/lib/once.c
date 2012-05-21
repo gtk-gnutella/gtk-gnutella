@@ -58,10 +58,10 @@ once_run(volatile bool *flag, once_fn_t routine)
 	if G_LIKELY(*flag)
 		return FALSE;
 
-	mutex_get(&once_mtx);
+	mutex_lock(&once_mtx);
 
 	if (*flag) {
-		mutex_release(&once_mtx);
+		mutex_unlock(&once_mtx);
 		return FALSE;
 	}
 
@@ -71,7 +71,7 @@ once_run(volatile bool *flag, once_fn_t routine)
 
 	*flag = TRUE;
 	(*routine)();
-	mutex_release(&once_mtx);
+	mutex_unlock(&once_mtx);
 
 	return TRUE;
 }

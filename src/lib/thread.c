@@ -1063,14 +1063,14 @@ thread_suspend_others(void)
 
 	g_assert_log(te != NULL, "%s() called from unknown thread", G_STRFUNC);
 
-	mutex_get(&thread_suspend_mtx);
+	mutex_lock(&thread_suspend_mtx);
 
 	/*
 	 * If we were concurrently asked to suspend ourselves, warn loudly.
 	 */
 
 	if G_UNLIKELY(te->suspend) {
-		mutex_release(&thread_suspend_mtx);
+		mutex_unlock(&thread_suspend_mtx);
 		s_carp("%s(): suspending thread #%u was supposed to be suspended",
 			G_STRFUNC, te->stid);
 		thread_lock_dump(te);
@@ -1094,7 +1094,7 @@ thread_suspend_others(void)
 	 */
 
 	te->suspend = 0;
-	mutex_release(&thread_suspend_mtx);
+	mutex_unlock(&thread_suspend_mtx);
 
 	/*
 	 * Now wait for other threads to be suspended, if we identified busy
@@ -1146,7 +1146,7 @@ thread_unsuspend_others(void)
 	if (NULL == te)
 		return 0;
 
-	locked = mutex_get_try(&thread_suspend_mtx);
+	locked = mutex_trylock(&thread_suspend_mtx);
 
 	g_assert(locked);		/* All other threads should be sleeping */
 
@@ -1159,7 +1159,7 @@ thread_unsuspend_others(void)
 		}
 	}
 
-	mutex_release(&thread_suspend_mtx);
+	mutex_unlock(&thread_suspend_mtx);
 
 	return n;
 }
@@ -1650,7 +1650,7 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind,
 			*file = m->lock.file;
 			*line = m->lock.line;
 #endif
-			mutex_release_hidden(m);
+			mutex_unlock_hidden(m);
 		}
 		return TRUE;
 	}
@@ -1686,7 +1686,7 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 		{
 			mutex_t *m = deconstify_pointer(lock);
 
-			mutex_get_hidden(m);
+			mutex_lock_hidden(m);
 			g_assert(1 == m->depth);
 
 #ifdef SPINLOCK_DEBUG

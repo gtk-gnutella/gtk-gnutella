@@ -405,7 +405,7 @@ ht_synchronize(const hash_table_t *ht)
 {
 	if (ht->thread_safe) {
 		hash_table_t *wht = deconstify_pointer(ht);
-		mutex_get(&wht->lock);
+		mutex_lock(&wht->lock);
 		g_assert(HASHTABLE_MAGIC == ht->magic);
 	}
 }
@@ -413,7 +413,7 @@ ht_synchronize(const hash_table_t *ht)
 #define ht_return(ht,v) G_STMT_START {					\
 	if (ht->thread_safe) {								\
 		hash_table_t *wht = deconstify_pointer(ht);		\
-		mutex_release(&wht->lock);						\
+		mutex_unlock(&wht->lock);						\
 	}													\
 	return v;											\
 } G_STMT_END
@@ -421,7 +421,7 @@ ht_synchronize(const hash_table_t *ht)
 #define ht_return_void(ht) G_STMT_START {				\
 	if (ht->thread_safe) {								\
 		hash_table_t *wht = deconstify_pointer(ht);		\
-		mutex_release(&wht->lock);						\
+		mutex_unlock(&wht->lock);						\
 	}													\
 	return;												\
 } G_STMT_END
@@ -1043,7 +1043,7 @@ hash_table_lock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_get(&ht->external_lock);
+	mutex_lock(&ht->external_lock);
 }
 
 /**
@@ -1058,7 +1058,7 @@ hash_table_unlock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_release(&ht->external_lock);
+	mutex_unlock(&ht->external_lock);
 }
 
 /**
