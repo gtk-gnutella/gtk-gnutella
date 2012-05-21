@@ -296,14 +296,29 @@ spinlock_init(spinlock_t *s)
 void
 spinlock_destroy(spinlock_t *s)
 {
+	bool was_locked;
+
 	spinlock_check(s);
 
 	if (atomic_acquire(&s->lock)) {
 		g_assert(SPINLOCK_MAGIC == s->magic);
+		was_locked = FALSE;
+	} else {
+		was_locked = TRUE;
 	}
 
 	s->magic = SPINLOCK_DESTROYED;		/* Now invalid */
 	atomic_mb();
+
+	/*
+	 * The normal protocol is to spinlock() before destroying.  If the lock
+	 * was held on entry, we have to assume it was locked by the thread.
+	 * Otherwise, we have an error condition anyway (destroying a lock not
+	 * taken by the thread).
+	 */
+
+	if (was_locked)
+		spinunlock_account(s);
 }
 
 /**

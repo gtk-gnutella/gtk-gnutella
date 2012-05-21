@@ -185,15 +185,26 @@ mutex_is_owned(const mutex_t *m)
 void
 mutex_destroy(mutex_t *m)
 {
+	bool was_locked;
+
 	mutex_check(m);
 
-	if (spinlock_hidden_try(&m->lock) || mutex_is_owned(m)) {
+	if (spinlock_hidden_try(&m->lock)) {
 		g_assert(MUTEX_MAGIC == m->magic);
+		was_locked = FALSE;
+	} else if (mutex_is_owned(m)) {
+		g_assert(MUTEX_MAGIC == m->magic);
+		was_locked = TRUE;
+	} else {
+		was_locked = FALSE;
 	}
 
 	m->magic = MUTEX_DESTROYED;		/* Now invalid */
 	m->owner = 0;
 	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
+
+	if (was_locked)
+		mutex_release_account(m);
 }
 
 /**
