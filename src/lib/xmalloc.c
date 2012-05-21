@@ -604,7 +604,6 @@ xmalloc_vmm_inited(void)
 	xmalloc_pagesize = compat_pagesize();
 	xmalloc_grows_up = vmm_grows_upwards();
 	xmalloc_freelist_setup();
-	xmalloc_split_setup();
 
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
@@ -2184,6 +2183,13 @@ xmalloc_freelist_init_once(void)
 	}
 
 	/*
+	 * Split information is computed once and is required information as soon
+	 * as the freelist is in use, to be able to handle freelist insertions.
+	 */
+
+	xmalloc_split_setup();
+
+	/*
 	 * Since this routine is guaranteed to be called only once, use it to
 	 * install the periodic call to the garbage collector.
 	 */
@@ -2768,7 +2774,8 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 		/* Every size can be split as long as it is properly aligned */
 
 		g_assert(xmalloc_round(len) == len);
-		g_assert_log(0 != xs->larger, "len=%zu", len);
+		g_assert_log(0 != xs->larger, "len=%zu => smaller=%u, larger=%u",
+			len, xs->smaller, xs->larger);
 
 		if (0 != xs->smaller && xmalloc_debugging(3)) {
 			t_debug("XM breaking up %s block %p (%zu bytes) into (%zu, %zu)",
