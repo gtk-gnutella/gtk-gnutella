@@ -318,16 +318,17 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 				if (i < entry->n) {
 					addrs[i] = entry->addrs[i];
 					if (common_dbg > 0)
-						g_debug("adns_cache_lookup: \"%s\" cached (addr=%s)",
+						g_debug("%s: \"%s\" cached (addr=%s)", G_STRFUNC,
 							entry->hostname, host_addr_to_string(addrs[i]));
 				} else {
 					addrs[i] = zero_host_addr;
 				}
 			}
 		} else {
-			if (common_dbg > 0)
-				g_debug("adns_cache_lookup: removing \"%s\" from cache",
-						entry->hostname);
+			if (common_dbg > 0) {
+				g_debug("%s: removing \"%s\" from cache",
+					G_STRFUNC, entry->hostname);
+			}
 
 			hikset_remove(cache->ht, hostname);
 			adns_cache_free_entry(cache, entry->id);
@@ -353,8 +354,8 @@ adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
 
 	while (n > 0) {
 		if (common_dbg > 2)
-			g_debug("adns_do_transfer (%s): n=%zu",
-			    do_write ? "write" : "read", n);
+			g_debug("%s (%s): n=%zu", G_STRFUNC,
+				do_write ? "write" : "read", n);
 
 		if (do_write)
 			ret = write(fd, buf, n);
@@ -365,8 +366,8 @@ adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
             if (!is_helper || getppid() != 1)
-			    g_warning("adns_do_transfer (%s): %s (errno=%d)",
-				    do_write ? "write" : "read", g_strerror(errno), errno);
+			    g_warning("%s (%s): %m",
+					G_STRFUNC, do_write ? "write" : "read");
 			return FALSE;
 		} else if (0 == ret) {
 			/*
@@ -374,8 +375,8 @@ adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
 			 * parent is gone.
 			 */
 			if (!do_write && !(is_helper && getppid() == 1))
-				g_warning("adns_do_transfer (%s): EOF",
-					do_write ? "write" : "read");
+				g_warning("%s (%s): EOF",
+					G_STRFUNC, do_write ? "write" : "read");
 			return FALSE;
 		} else if (ret > 0) {
 			n -= ret;
@@ -427,8 +428,8 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (common_dbg > 1) {
-			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
-					host_addr_to_string(query->addr));
+			g_debug("%s: resolving \"%s\" ...",
+					G_STRFUNC, host_addr_to_string(query->addr));
 		}
 
 		reply->addr = query->addr;
@@ -441,8 +442,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (common_dbg > 1) {
-			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
-				query->hostname);
+			g_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
@@ -575,8 +575,8 @@ adns_reply_ready(const struct adns_response *ans)
 		if (common_dbg > 1) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
 			
-			g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
-				host_addr_to_string(reply->addr), reply->hostname);
+			g_debug("%s: resolved \"%s\" to \"%s\".",
+				G_STRFUNC, host_addr_to_string(reply->addr), reply->hostname);
 		}
 	} else {
 		const struct adns_reply *reply = &ans->reply.by_addr;
@@ -589,7 +589,7 @@ adns_reply_ready(const struct adns_response *ans)
 			size_t i;
 			
 			for (i = 0; i < num; i++) {
-				g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+				g_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}
@@ -652,13 +652,12 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
 		if ((ssize_t) -1 == ret) {
 		   	if (!is_temporary_error(errno)) {
-				g_warning("adns_reply_callback: read() failed: %s",
-					g_strerror(errno));
+				g_warning("%s: read() failed: %m", G_STRFUNC);
 				goto error;
 			}
 			break;
 		} else if (0 == ret) {
-			g_warning("adns_reply_callback: read() failed: EOF");
+			g_warning("%s: read() failed: EOF", G_STRFUNC);
 			goto error;
 		} else {
 			g_assert(ret > 0);
@@ -670,7 +669,7 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 	
 error:
 	inputevt_remove(&adns_reply_event_id);
-	g_warning("adns_reply_callback: removed myself");
+	g_warning("%s: removed myself", G_STRFUNC);
 	fd_close(&source);
 }
 
@@ -728,7 +727,7 @@ adns_query_callback(void *data, int dest, inputevt_cond_t condition)
 	g_assert(0 != adns_query_event_id);
 
 	if (condition & INPUT_EVENT_EXCEPTION) {
-		g_warning("adns_query_callback: write exception");
+		g_warning("%s: write exception", G_STRFUNC);
 		goto abort;
 	}
 
@@ -762,12 +761,12 @@ adns_query_callback(void *data, int dest, inputevt_cond_t condition)
 
 
 error:
-	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
+	g_warning("%s: write() failed: %m", G_STRFUNC);
 abort:
-	g_warning("adns_query_callback: removed myself");
+	g_warning("%s: removed myself", G_STRFUNC);
 	inputevt_remove(&adns_query_event_id);
 	fd_close(&adns_query_fd);
-	g_warning("adns_query_callback: using fallback");
+	g_warning("%s: using fallback", G_STRFUNC);
 	adns_fallback(&remain->req);
 done:
 	adns_async_write_free(remain);
@@ -788,13 +787,13 @@ adns_helper_init(void)
 	pid_t pid;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
-		g_warning("adns_init: pipe() failed: %s", g_strerror(errno));
+		g_warning("%s: pipe() failed: %m", G_STRFUNC);
 		goto prefork_failure;
 	}
 	
 	pid = fork();
 	if ((pid_t) -1 == pid) {
-		g_warning("adns_init: fork() failed: %s", g_strerror(errno));
+		g_warning("%s: fork() failed: %m", G_STRFUNC);
 		goto prefork_failure;
 	}
 	if (0 == pid) {
@@ -808,16 +807,16 @@ adns_helper_init(void)
 		 */
 
 		if (!freopen("/dev/null", "r", stdin))
-			g_error("adns_init: freopen(\"/dev/null\", \"r\", stdin) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"r\", stdin) failed: %m",
+				G_STRFUNC);
 
 		if (!freopen("/dev/null", "a", stdout))
-			g_error("adns_init: freopen(\"/dev/null\", \"a\", stdout) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"a\", stdout) failed: %m",
+				G_STRFUNC);
 
 		if (!freopen("/dev/null", "a", stderr))
-			g_error("adns_init: freopen(\"/dev/null\", \"a\", stderr) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"a\", stderr) failed: %m",
+				G_STRFUNC);
 
 		fd_close(&fd_query[1]);
 		fd_close(&fd_reply[0]);
@@ -850,7 +849,7 @@ adns_helper_init(void)
 prefork_failure:
 
 	if (!adns_reply_event_id) {
-		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
+		g_warning("cannot use ADNS; DNS lookups may cause stalling");
 		fd_close(&fd_query[0]);
 		fd_close(&fd_query[1]);
 		fd_close(&fd_reply[0]);
@@ -918,8 +917,7 @@ adns_send_request(const struct adns_request *req)
 	written = write(adns_query_fd, buf, size);
 	if (written == (ssize_t) -1) {
 		if (!is_temporary_error(errno)) {
-			g_warning("adns_resolve: write() failed: %s",
-				g_strerror(errno));
+			g_warning("%s: write() failed: %m", G_STRFUNC);
 			inputevt_remove(&adns_reply_event_id);
 			fd_close(&adns_query_fd);
 			return FALSE;
@@ -1015,8 +1013,8 @@ adns_resolve(const char *hostname, enum net_type net,
 		return TRUE; /* asynchronous */
 
 	if (adns_reply_event_id) {
-		g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-			query->hostname);
+		g_warning("%s: using synchronous resolution for \"%s\"",
+			G_STRFUNC, query->hostname);
 	}
 	adns_fallback(&req);
 
@@ -1053,8 +1051,8 @@ adns_reverse_lookup(const host_addr_t addr,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
-		host_addr_to_string(query->addr));
+	g_warning("%s: using synchronous resolution for \"%s\"",
+		G_STRFUNC, host_addr_to_string(query->addr));
 
 	adns_fallback(&req);
 
