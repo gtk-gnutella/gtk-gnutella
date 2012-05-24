@@ -34,6 +34,8 @@
 #include "common.h"
 
 #include "adns.h"
+#include "adns_msg.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "debug.h"
@@ -49,47 +51,6 @@
 #include "override.h"		/* Must be the last header included */
 
 /* private data types */
-
-struct adns_common {
-	void (*user_callback)(void);
-	void *user_data;
-	bool reverse;
-};
-
-struct adns_reverse_query {
-	host_addr_t addr;
-};
-
-struct adns_query {
-	enum net_type net;
-	char hostname[MAX_HOSTLEN + 1];
-};
-
-struct adns_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addrs[10];
-};
-
-struct adns_reverse_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addr;
-};
-
-struct adns_request {
-	struct adns_common common;
-	union {
-		struct adns_query by_addr;
-		struct adns_reverse_query reverse;
-	} query;
-};
-
-struct adns_response {
-	struct adns_common common;
-	union {
-		struct adns_reply by_addr;
-		struct adns_reverse_reply reverse;
-	} reply;
-};
 
 typedef struct adns_async_write {
 	struct adns_request req;	/**< The original ADNS request */
@@ -491,6 +452,9 @@ adns_helper(int fd_in, int fd_out)
 
 		if (!adns_do_read(fd_in, &req.common, sizeof req.common))
 			break;
+
+		if (ADNS_COMMON_MAGIC != req.common.magic)
+			break;
 	
 		if (req.common.reverse) {	
 			size = sizeof req.query.reverse;
@@ -569,7 +533,7 @@ adns_reply_ready(const struct adns_response *ans)
 {
 	time_t now = tm_time();
 
-	g_assert(ans);
+	g_assert(ans != NULL);
 
 	if (ans->common.reverse) {
 		if (common_dbg > 1) {
@@ -620,6 +584,11 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 	g_assert(NULL == data);
 	g_assert(condition & INPUT_EVENT_RX);
 
+	/*
+	 * Consume all the data available in the pipe, potentially handling
+	 * several pending replies.
+	 */
+
 	for (;;) {
 		ssize_t ret;
 		size_t n;
@@ -628,6 +597,13 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 
 			pos = 0;
 			if (cast_to_pointer(&ans.common) == buf) {
+				/*
+				 * Finished reading the generic reply header, now read
+				 * the specific part.
+				 */
+
+				g_assert(ADNS_COMMON_MAGIC == ans.common.magic);
+
 				if (ans.common.reverse) {
 					buf = &ans.reply.reverse;
 					size = sizeof ans.reply.reverse;
@@ -637,10 +613,22 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 				}
 			} else {
 				if (buf) {
+					/*
+					 * Completed reading the specific part of the reply.
+					 * Inform issuer of request by invoking the user callback.
+					 */
+
 					adns_reply_ready(&ans);
 				}
+
+				/*
+				 * Continue reading the next reply, if any, which will start
+				 * by the generic header.
+				 */
+
 				buf = &ans.common;
 				size = sizeof ans.common;
+				ans.common.magic = 0;
 			}
 		}
 
@@ -975,6 +963,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
 
+	req.common.magic = ADNS_COMMON_MAGIC;
 	req.common.user_callback = (void (*)(void)) user_callback;
 	req.common.user_data = user_data;
 	req.common.reverse = FALSE;
@@ -984,7 +973,9 @@ adns_resolve(const char *hostname, enum net_type net,
 	reply->hostname[0] = '\0';
 	reply->addrs[0] = zero_host_addr;
 
-	hostname_len = clamp_strcpy(query->hostname, sizeof query->hostname, hostname);
+	hostname_len = clamp_strcpy(query->hostname,
+		sizeof query->hostname, hostname);
+
 	if ('\0' != hostname[hostname_len]) {
 		/* truncation detected */
 		adns_invoke_user_callback(&ans);

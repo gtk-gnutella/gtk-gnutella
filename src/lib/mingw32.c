@@ -63,6 +63,7 @@
 
 #include "host_addr.h"			/* ADNS */
 #include "adns.h"
+#include "adns_msg.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "bfd_util.h"
@@ -2533,47 +2534,6 @@ struct arg_data {
 	} u;
 	char hostname[NI_MAXHOST];
 	char servinfo[NI_MAXSERV];
-};
-
-struct adns_common {
-	void (*user_callback)(void);
-	void * user_data;
-	bool reverse;
-};
-
-struct adns_reverse_query {
-	host_addr_t addr;
-};
-
-struct adns_query {
-	enum net_type net;
-	char hostname[MAX_HOSTLEN + 1];
-};
-
-struct adns_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addrs[10];
-};
-
-struct adns_reverse_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addr;
-};
-
-struct adns_request {
-	struct adns_common common;
-	union {
-		struct adns_query by_addr;
-		struct adns_reverse_query reverse;
-	} query;
-};
-
-struct adns_response {
-	struct adns_common common;
-	union {
-		struct adns_reply by_addr;
-		struct adns_reverse_reply reverse;
-	} reply;
 };
 
 /* ADNS getaddrinfo */
