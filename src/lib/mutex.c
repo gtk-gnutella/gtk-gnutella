@@ -209,6 +209,9 @@ mutex_destroy(mutex_t *m)
 
 /**
  * Grab a mutex.
+ *
+ * @param m			the mutex we're attempting to grab
+ * @param hidden	when TRUE, do not account for the mutex
  */
 void
 mutex_grab(mutex_t *m, bool hidden)
@@ -244,7 +247,7 @@ mutex_grab(mutex_t *m, bool hidden)
 }
 
 /**
- * Grab mutex only if available.
+ * Grab mutex only if available, and account for it.
  *
  * @return whether we obtained the mutex.
  */
@@ -254,11 +257,11 @@ mutex_grab_try(mutex_t *m)
 	mutex_check(m);
 	thread_t t = thread_current();
 
-	if (spinlock_hidden_try(&m->lock)) {
+	if (mutex_is_owned_by_fast(m, t)) {
+		m->depth++;
+	} else if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned_by(m, t)) {
-		m->depth++;
 	} else {
 		return FALSE;
 	}
@@ -304,6 +307,11 @@ mutex_grab_try_from(mutex_t *m, const char *file, unsigned line)
 
 /**
  * Release a mutex, which must be owned currently.
+ *
+ * The ``hidden'' parameter MUST be the same as the one used when the mutex
+ * was grabbed, although this is not something we track and enforce currently.
+ * Since hidden mutex grabbing should be the exception, this is not much of
+ * a problem right now.
  */
 void
 mutex_ungrab(mutex_t *m, bool hidden)
