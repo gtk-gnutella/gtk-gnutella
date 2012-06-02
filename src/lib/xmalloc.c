@@ -516,6 +516,7 @@ static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
 static size_t xmalloc_pagesize;		/**< Cached page size */
 static bool xmalloc_freelist_inited;
+static bool xmalloc_xgc_installed;
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
@@ -588,6 +589,27 @@ xm_ptr_cmp(const void *a, const void *b)
 }
 
 /**
+ * Called when the main callout queue is idle to attempt background compaction.
+ */
+static bool
+xmalloc_idle_collect(void *unused_data)
+{
+	(void) unused_data;
+
+	xgc();
+	return TRUE;		/* Keep calling */
+}
+
+/**
+ * Install periodic idle callback to run the freelist compactor.
+ */
+static G_GNUC_COLD void
+xmalloc_xgc_install(void)
+{
+	cq_idle_add(cq_main(), xmalloc_idle_collect, NULL);
+}
+
+/**
  * Called when the VMM layer has been initialized.
  */
 G_GNUC_COLD void
@@ -608,6 +630,15 @@ xmalloc_vmm_inited(void)
 #ifdef XMALLOC_IS_MALLOC
 	vmm_malloc_inited();
 #endif
+
+	/*
+	 * We wait for the VMM layer to be up before we install the xgc() idle
+	 * thread in an attempt to tweak the self-bootstrapping path of this
+	 * library and avoid creating some objects too early: we wish to avoid
+	 * sbrk() allocation if possible.
+	 */
+
+	once_run(&xmalloc_xgc_installed, xmalloc_xgc_install);
 }
 
 /**
@@ -2134,18 +2165,6 @@ plain_insert:
 }
 
 /**
- * Called when the main callout queue is idle to attempt background compaction.
- */
-static bool
-xmalloc_idle_collect(void *unused_data)
-{
-	(void) unused_data;
-
-	xgc();
-	return TRUE;		/* Keep calling */
-}
-
-/**
  * Initialize freelist buckets once.
  */
 static G_GNUC_COLD void
@@ -2188,13 +2207,6 @@ xmalloc_freelist_init_once(void)
 	 */
 
 	xmalloc_split_setup();
-
-	/*
-	 * Since this routine is guaranteed to be called only once, use it to
-	 * install the periodic call to the garbage collector.
-	 */
-
-	cq_idle_add(cq_main(), xmalloc_idle_collect, NULL);
 }
 
 /**
