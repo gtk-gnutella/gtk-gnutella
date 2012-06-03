@@ -82,6 +82,28 @@ fd_is_opened(const int fd)
 }
 
 /**
+ * Determine the file descriptor that will likely be used at next open().
+ *
+ * This is used at initialization time to determine the first available
+ * file descriptor so that we do not try to close special files opened by
+ * libraries.
+ *
+ * @return the first available file descriptor.
+ */
+int
+fd_first_available(void)
+{
+	int fd;
+
+	fd = open("/dev/null", O_RDWR, 0);
+	if (-1 == fd)
+		g_error("%s() failed to open /dev/null: %m", G_STRFUNC);
+	close(fd);
+
+	return fd;
+}
+
+/**
  * Closes all file descriptors greater or equal to ``first_fd''.
  */
 void
