@@ -1222,6 +1222,9 @@ mingw_open(const char *pathname, int flags, ...)
         va_end(args);
     }
 
+	if (0 == strcmp(pathname, "/dev/null"))
+		pathname = "NUL";
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
