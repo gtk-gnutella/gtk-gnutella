@@ -4589,7 +4589,7 @@ static GSList *
 list_clone_shift(fileinfo_t *fi)
 {
 	filesize_t offset = 0;
-	GSList *clone;
+	GSList *cloned;
 	GSList *sl;
 	GSList *tail;
 
@@ -4669,14 +4669,14 @@ list_clone_shift(fileinfo_t *fi)
 	 * after the offset.
 	 */
 
-	clone = NULL;
+	cloned = NULL;
 
 	for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
 		const struct dl_file_chunk *fc = sl->data;
 
 		dl_file_chunk_check(fc);
 		if (fc->from >= offset) {
-			clone = g_slist_copy(sl);
+			cloned = g_slist_copy(sl);
 			break;
 		}
 
@@ -4695,7 +4695,7 @@ list_clone_shift(fileinfo_t *fi)
 	 * Be smarter and break-up any free chunk into two at the selected offset.
 	 */
 
-	if (NULL == clone) {
+	if (NULL == cloned) {
 		for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
 			struct dl_file_chunk *fc = sl->data;
 
@@ -4718,9 +4718,9 @@ list_clone_shift(fileinfo_t *fi)
 				fc->to = nfc->from;
 
 				fi->chunklist = gm_slist_insert_after(fi->chunklist, sl, nfc);
-				clone = g_slist_copy(g_slist_next(sl));
+				cloned = g_slist_copy(g_slist_next(sl));
 
-				g_assert(clone != NULL);		/* The `nfc' chunk is there */
+				g_assert(cloned != NULL);		/* The `nfc' chunk is there */
 
 				break;
 			}
@@ -4733,18 +4733,18 @@ list_clone_shift(fileinfo_t *fi)
 	 * If still no luck, never mind.  Use original list.
 	 */
 
-	if (clone) {
+	if (cloned) {
 		struct dl_file_chunk *fc;
 
 		/*
-		 * Second pass: append to the `clone' list all the chunks that end
+		 * Second pass: append to the `cloned' list all the chunks that end
 		 * before the "from" of the first item in that list.
 		 */
 
-		fc = clone->data;
+		fc = cloned->data;
 		dl_file_chunk_check(fc);
 		offset = fc->from;			/* Cloning point: start of first chunk */
-		tail = g_slist_last(clone);
+		tail = g_slist_last(cloned);
 
 		for (sl = fi->chunklist; sl; sl = g_slist_next(sl)) {
 			fc = sl->data;
@@ -4753,11 +4753,11 @@ list_clone_shift(fileinfo_t *fi)
 			if (fc->to > offset)		/* Not ">=" or we'd miss one chunk */
 				break;					/* We've reached the cloning point */
 			g_assert(fc->from < offset);
-			clone = gm_slist_insert_after(clone, tail, fc);
+			cloned = gm_slist_insert_after(cloned, tail, fc);
 			tail = g_slist_next(tail);
 		}
 
-		return clone;
+		return cloned;
 	} else {
 		return fi->chunklist;
 	}
