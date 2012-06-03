@@ -1619,6 +1619,7 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
+	int first_fd;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -1641,10 +1642,17 @@ main(int argc, char **argv)
 	 * This must be run before we allocate memory because we might
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
+	 *
+	 * We rely on fd_first_available() to tell us the next file descriptor
+	 * that will be used by open().  We used to hardwire the value 3 here,
+	 * but this is wrong as we cannot assume that a low-level library will
+	 * not request a file descriptor before we reach this point.
+	 *		--RAM, 2012-06-03
 	 */
 
-	close_file_descriptors(3); /* Just in case */
-		
+	first_fd = fd_first_available();
+	close_file_descriptors(first_fd);	/* Just in case */
+
 	if (reserve_standard_file_descriptors()) {
 		fprintf(stderr, "unable to reserve standard file descriptors\n");
 		exit(EXIT_FAILURE);
