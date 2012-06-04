@@ -175,8 +175,7 @@ SectionIn 1 RO
 	File ${DLLDIR_GNUTLS}\libgnutls-26.dll
 	File ${DLLDIR_GNUTLS}\libgcrypt-11.dll
 	File ${DLLDIR_GNUTLS}\libgpg-error-0.dll
-	File ${DLLDIR_GNUTLS}\libtasn1-3.dll
-		
+
 	SetOutPath $INSTDIR\share
 	File /r win32\bundle\share\*.*
 	
@@ -421,7 +420,6 @@ Section Uninstall
 	Delete "$INSTDIR\libgnutls-26.dll"
 	Delete "$INSTDIR\libgcrypt-11.dll"
 	Delete "$INSTDIR\libgpg-error-0.dll"
-	Delete "$INSTDIR\libtasn1-3.dll"
 	
 	Delete "$INSTDIR\gtk-gnutella.exe"
 	Delete "$INSTDIR\gtk-gnutella.nm"
