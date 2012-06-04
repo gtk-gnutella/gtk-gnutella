@@ -32,7 +32,7 @@
 #
 
 use Getopt::Std;
-getopt('c');
+getopts('c');
 
 print "# From http://www.maxmind.com/app/geoip_country\n";
 print "# Redistributed under the OPEN DATA LICENSE (see GEO_LICENCE)\n";

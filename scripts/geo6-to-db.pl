@@ -25,7 +25,7 @@
 #----------------------------------------------------------------------
 
 use Getopt::Std;
-getopt('g');
+getopts('g');
 
 #
 # Converts the Geo IPv6 database into a suitable format for GTKG
