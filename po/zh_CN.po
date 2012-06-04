@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
@@ -61,7 +61,7 @@ msgid "Switching (after error) to \"%s\""
 msgstr ""
 
 #, c-format
-msgid " at %s - rescheduled for %s%s #%u"
+msgid " at %s"
 msgstr ""
 
 msgid "Suspended (SHA1 checking)"
@@ -96,6 +96,9 @@ msgstr "连接失败 (超出了file descriptors的范围？)"
 
 msgid "Connection failed"
 msgstr "连接失败"
+
+msgid "SHA1 mismatch detected"
+msgstr "检测到SHA不匹配"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -356,9 +359,6 @@ msgstr "写入失败：%s"
 #, fuzzy
 msgid "Malformed push reply"
 msgstr "变形的查询命中"
-
-msgid "SHA1 mismatch detected"
-msgstr "检测到SHA不匹配"
 
 msgid ", inbound"
 msgstr ""
@@ -3232,6 +3232,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "禁用"
 
@@ -3753,6 +3760,14 @@ msgid ""
 msgstr ""
 
 msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -4810,6 +4825,20 @@ msgstr "外部元数据"
 
 msgid "Bitzi URL"
 msgstr "Bitzi URL"
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "已设置稳定"
+
+msgid "rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "restartable since"
+msgstr "已设置稳定"
 
 #, c-format
 msgid " (slot %u"
@@ -7850,6 +7879,13 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "显示状态栏。"
+
 msgid "Not in database"
 msgstr "不在数据库中"
 
@@ -8269,6 +8305,11 @@ msgstr "在 %s 后过期"
 msgid "Expires with this session"
 msgstr "随此会话退出过期"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u 个下载"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8283,6 +8324,64 @@ msgstr[0] "项目"
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "UTF-8 查询"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "主机"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "智利"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "查询"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "关闭"
+
+#, fuzzy
+msgid "bounded"
+msgstr "未定义"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "被动"

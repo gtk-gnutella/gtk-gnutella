@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -64,8 +64,8 @@ msgid "Switching (after error) to \"%s\""
 msgstr ""
 
 #, fuzzy, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " στις %s - επαναπρογραμματίστηκε για %s"
+msgid " at %s"
+msgstr " μέσω %s"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Αναβλήθηκε (Έλεγχος SHA1)"
@@ -99,6 +99,9 @@ msgstr "Αποτυχία σύνδεσης (Τέλος περιγραφέων;)"
 
 msgid "Connection failed"
 msgstr "Η σύνδεση απέτυχε"
+
+msgid "SHA1 mismatch detected"
+msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -380,9 +383,6 @@ msgstr "Η εγγραφή απέτυχε: %s"
 #, fuzzy
 msgid "Malformed push reply"
 msgstr "Παραμορφωμένο χτύπημα ερωτήματος"
-
-msgid "SHA1 mismatch detected"
-msgstr "Εντοπίστηκαν αταίριαστα SHA1"
 
 msgid ", inbound"
 msgstr ""
@@ -3546,6 +3546,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -4121,6 +4128,17 @@ msgid ""
 msgstr ""
 
 msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+"Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των μεταφερόμενων "
+"ερωτημάτων."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5254,6 +5272,21 @@ msgstr ""
 
 msgid "Bitzi URL"
 msgstr ""
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "σταθερό"
+
+#, fuzzy
+msgid "rescheduled for"
+msgstr " στις %s - επαναπρογραμματίστηκε για %s"
+
+#, fuzzy
+msgid "restartable since"
+msgstr "σταθερό"
 
 #, c-format
 msgid " (slot %u"
@@ -8443,6 +8476,13 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Εμφάνιση στατιστικών αποστολής στον πλαϊνό πίνακα."
+
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
@@ -8890,6 +8930,12 @@ msgid "Expires with this session"
 msgstr ""
 
 #, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u/%u λήψη"
+msgstr[1] "%u/%u λήψεις"
+
+#, fuzzy, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
@@ -8906,6 +8952,69 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
 msgstr[1] ""
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "ερωτήματα UTF8"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Υπολογιστής"
+msgstr[1] "Υπολογιστής"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "αρχείο"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "Ερώτημα"
+msgstr[1] "Ερώτημα"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "_Κλείσιμο"
+
+#, fuzzy
+msgid "bounded"
+msgstr "Έγινε"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Παθητικός"

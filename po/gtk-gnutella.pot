@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,7 +56,7 @@ msgid "Switching (after error) to \"%s\""
 msgstr ""
 
 #, c-format
-msgid " at %s - rescheduled for %s%s #%u"
+msgid " at %s"
 msgstr ""
 
 msgid "Suspended (SHA1 checking)"
@@ -88,6 +88,9 @@ msgid "Connection failed (Out of file descriptors?)"
 msgstr ""
 
 msgid "Connection failed"
+msgstr ""
+
+msgid "SHA1 mismatch detected"
 msgstr ""
 
 msgid "Waiting for server PROX publishing"
@@ -345,9 +348,6 @@ msgid "Write failed: %s"
 msgstr ""
 
 msgid "Malformed push reply"
-msgstr ""
-
-msgid "SHA1 mismatch detected"
 msgstr ""
 
 msgid ", inbound"
@@ -3002,6 +3002,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -3519,6 +3526,14 @@ msgid ""
 msgstr ""
 
 msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -4560,6 +4575,18 @@ msgid "External metadata"
 msgstr ""
 
 msgid "Bitzi URL"
+msgstr ""
+
+msgid "Rescheduled for"
+msgstr ""
+
+msgid "Restartable since"
+msgstr ""
+
+msgid "rescheduled for"
+msgstr ""
+
+msgid "restartable since"
 msgstr ""
 
 #, c-format
@@ -7527,6 +7554,12 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+msgid "Display GUESS statistics"
+msgstr ""
+
 msgid "Not in database"
 msgstr ""
 
@@ -7936,6 +7969,12 @@ msgid "Expires with this session"
 msgstr ""
 
 #, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
 "TCP, %u UDP)"
@@ -7950,6 +7989,63 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "No GUESS queries run yet"
+msgstr ""
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+msgid "idle"
+msgstr ""
+
+msgid "query"
+msgid_plural "queries"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+msgid "loose"
+msgstr ""
+
+msgid "bounded"
+msgstr ""
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr ""

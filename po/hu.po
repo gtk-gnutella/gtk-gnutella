@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -63,7 +63,7 @@ msgid "Switching (after error) to \"%s\""
 msgstr ""
 
 #, c-format
-msgid " at %s - rescheduled for %s%s #%u"
+msgid " at %s"
 msgstr ""
 
 msgid "Suspended (SHA1 checking)"
@@ -101,6 +101,9 @@ msgstr "Használt fájleírók legnagyobb százaléka"
 #, fuzzy
 msgid "Connection failed"
 msgstr "Összekapcsolva"
+
+msgid "SHA1 mismatch detected"
+msgstr "SHA1 eltérés érzékelve"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -377,9 +380,6 @@ msgstr ""
 #, fuzzy
 msgid "Malformed push reply"
 msgstr "Hibás találat"
-
-msgid "SHA1 mismatch detected"
-msgstr "SHA1 eltérés érzékelve"
 
 msgid ", inbound"
 msgstr ""
@@ -3632,6 +3632,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 #, fuzzy
 msgid "disable"
 msgstr "biztos"
@@ -4263,6 +4270,15 @@ msgid ""
 msgstr ""
 
 msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr "Küldött találatok számának kijelzése."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5364,6 +5380,20 @@ msgstr ""
 
 msgid "Bitzi URL"
 msgstr ""
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "biztos"
+
+msgid "rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "restartable since"
+msgstr "biztos"
 
 #, c-format
 msgid " (slot %u"
@@ -8642,6 +8672,13 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Feltöltési satisztikákat mutat az oldalpanelen"
+
 msgid "Not in database"
 msgstr ""
 
@@ -9099,6 +9136,11 @@ msgstr " %d után újra"
 msgid "Expires with this session"
 msgstr ""
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u/%u letöltés"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -9114,6 +9156,64 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
 msgstr[1] ""
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "UTF-8-keresések"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Gép"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "fájl"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "Keresés"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "_Bezár"
+
+#, fuzzy
+msgid "bounded"
+msgstr "Kész"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Passzív"

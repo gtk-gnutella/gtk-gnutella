@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -126,10 +126,16 @@ msgstr "これ以上取得するデータはありません"
 msgid "Switching (after error) to \"%s\""
 msgstr ""
 
-# NOTE: both `s' show localized timestamp
-#, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " (現在時: %s - 再予定時: %s%s #%u)"
+# NOTE: this string is used as follows
+#
+# 'Failed to send push via 127.0.0.1:6346'
+# 'Push sent directly via 127.0.0.1:6346'
+# 'Push sent push via 127.0.0.1:6346'
+# 'Sending push via 127.0.0.1:6346'
+#
+#, fuzzy, c-format
+msgid " at %s"
+msgstr " (%s 経由)"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "一時休止 (SHA1確認中)"
@@ -162,6 +168,9 @@ msgstr "接続失敗 (ファイル記述子は足りていますか？)"
 
 msgid "Connection failed"
 msgstr "接続に失敗しました"
+
+msgid "SHA1 mismatch detected"
+msgstr "SHA1が一致しません"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -419,9 +428,6 @@ msgstr "書き込みに失敗しました: %s"
 
 msgid "Malformed push reply"
 msgstr ""
-
-msgid "SHA1 mismatch detected"
-msgstr "SHA1が一致しません"
 
 msgid ", inbound"
 msgstr ", 受信"
@@ -3623,6 +3629,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -4180,6 +4193,15 @@ msgstr ""
 #, fuzzy
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr "スパムと思われる検索結果を破棄します。"
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr "伝送した検索クエリーヒットの数を表示するかどうかを選択します。"
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "匿名プロキシサーバー"
@@ -5280,6 +5302,24 @@ msgstr "外部メタデータ"
 
 msgid "Bitzi URL"
 msgstr "Bitzi URL"
+
+msgid "Rescheduled for"
+msgstr ""
+
+# FIXME:
+#, fuzzy
+msgid "Restartable since"
+msgstr "「安定」になっている"
+
+# NOTE: both `s' show localized timestamp
+#, fuzzy
+msgid "rescheduled for"
+msgstr " (現在時: %s - 再予定時: %s%s #%u)"
+
+# FIXME:
+#, fuzzy
+msgid "restartable since"
+msgstr "「安定」になっている"
 
 #, c-format
 msgid " (slot %u"
@@ -8510,6 +8550,13 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "アップロード統計をサイドバーに表示します。"
+
 msgid "Not in database"
 msgstr "データベースにありません"
 
@@ -8984,6 +9031,11 @@ msgstr "%sで無効になります"
 msgid "Expires with this session"
 msgstr "このセッションで無効になります"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u 件のダウンロード"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8999,6 +9051,64 @@ msgstr[0] "個のアイテム"
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "重複"
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "UTF8検索クエリー"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "ホスト"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "個のファイル"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "検索クエリー"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "閉じる"
+
+#, fuzzy
+msgid "bounded"
+msgstr "取得済"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "受動検索"

@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2009-03-27 00:04+0100\n"
 "Last-Translator: Larry Nieves <lnieves@315-web.com>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
@@ -62,9 +62,9 @@ msgstr "Nada más a qué cambiarnos"
 msgid "Switching (after error) to \"%s\""
 msgstr "Cambiando (después de un error) a \"%s\""
 
-#, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " a las %s - reprogramado para las %s%s #%u"
+#, fuzzy, c-format
+msgid " at %s"
+msgstr " a través de %s"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Suspendido (comprobando SHA1)"
@@ -96,6 +96,9 @@ msgstr "Conexión fallida (¿Descriptores de archivo agotados?)"
 
 msgid "Connection failed"
 msgstr "Conexión fallida"
+
+msgid "SHA1 mismatch detected"
+msgstr "Detectado distinto SHA1"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -354,9 +357,6 @@ msgstr "Escritura fallida: %s"
 
 msgid "Malformed push reply"
 msgstr "Respuesta push malformada"
-
-msgid "SHA1 mismatch detected"
-msgstr "Detectado distinto SHA1"
 
 msgid ", inbound"
 msgstr ", entrante"
@@ -3643,6 +3643,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -4224,6 +4231,15 @@ msgstr ""
 #, fuzzy
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Descartar resultados de búsqueda que son considerados como spam."
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr "Si se debe mostrar el conteo de query hits transmitidos."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonimizando proxies"
@@ -5272,6 +5288,21 @@ msgstr "Meta data externa"
 
 msgid "Bitzi URL"
 msgstr "URL Bitzi"
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "estable está puesto"
+
+#, fuzzy
+msgid "rescheduled for"
+msgstr " a las %s - reprogramado para las %s%s #%u"
+
+#, fuzzy
+msgid "restartable since"
+msgstr "estable está puesto"
 
 #, c-format
 msgid " (slot %u"
@@ -8409,6 +8440,13 @@ msgstr ""
 msgid "Relayed queries remembered"
 msgstr ""
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Mostrar estadísticas de subidas en la barra lateral."
+
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -8840,6 +8878,12 @@ msgstr "Expira en %s"
 msgid "Expires with this session"
 msgstr "Expira con esta sesión"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u bajada"
+msgstr[1] "%u bajadas"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8857,6 +8901,69 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "duplicado"
 msgstr[1] "duplicados"
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "Peticiones UTF8"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Nodo"
+msgstr[1] "Nodo"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "archivo"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "Petición"
+msgstr[1] "Petición"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "Cerrar"
+
+#, fuzzy
+msgid "bounded"
+msgstr "poseído"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Pasivo"

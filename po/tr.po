@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-04-02 10:48+0200\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2011-12-11 12:04+0100\n"
 "Last-Translator: \n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -62,9 +62,9 @@ msgstr "Geçilecek bir şey yok"
 msgid "Switching (after error) to \"%s\""
 msgstr "\"%s\" değerine geçiş (hatadan sonra)"
 
-#, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " şu saatte: %s - şu vakte ertelendi: %s%s #%u"
+#, fuzzy, c-format
+msgid " at %s"
+msgstr "%s yoluyla"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Askıya alındı (SHA1 kontrolü)"
@@ -96,6 +96,9 @@ msgstr "Bağlantı başarısız oldu (Dosya tanımlayıcıları kalmamış olmas
 
 msgid "Connection failed"
 msgstr "Bağlantı başarısız"
+
+msgid "SHA1 mismatch detected"
+msgstr "SHA1 uyumsuzluğu tespit edildi"
 
 msgid "Waiting for server PROX publishing"
 msgstr "Sunucunun PROX yayınlaması bekleniyor"
@@ -350,9 +353,6 @@ msgstr "Yazma başarısız oldu: %s"
 
 msgid "Malformed push reply"
 msgstr "Yanlış yapılandırılmış itme yanıtı"
-
-msgid "SHA1 mismatch detected"
-msgstr "SHA1 uyumsuzluğu tespit edildi"
 
 msgid ", inbound"
 msgstr ", giren"
@@ -3678,6 +3678,13 @@ msgid ""
 "receive (IP addresses only)"
 msgstr ""
 
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "devre dışı"
 
@@ -4269,6 +4276,16 @@ msgstr ""
 #, fuzzy
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Spam sayılan arama sonuçlarını at."
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+"Aktarılan sorgu denkleşme sayısının gösterilip gösterilmeyeceğini belirler."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonimleştiren vekil sunucular"
@@ -5308,6 +5325,21 @@ msgstr "Harici metaveriler"
 
 msgid "Bitzi URL"
 msgstr "Bitzi URL'i"
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "kararlı koyulmuşsa"
+
+#, fuzzy
+msgid "rescheduled for"
+msgstr " şu saatte: %s - şu vakte ertelendi: %s%s #%u"
+
+#, fuzzy
+msgid "restartable since"
+msgstr "kararlı koyulmuşsa"
 
 #, c-format
 msgid " (slot %u"
@@ -8364,6 +8396,13 @@ msgstr "SPAM SHA1 tablosunu hafızada sakla"
 msgid "Relayed queries remembered"
 msgstr "Hatırlanan aktarılmış sorgular"
 
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Kenar çubuğunda gönderme istatistiklerini göster."
+
 msgid "Not in database"
 msgstr "Veritabanında mevcut değil"
 
@@ -8776,6 +8815,11 @@ msgstr "%s sonunda sona eriyor"
 msgid "Expires with this session"
 msgstr "Bu oturumla beraber sona erecektir"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u indirme"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8791,6 +8835,64 @@ msgstr[0] "öğe"
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "çift"
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "GUESS sorguları"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Bilgisayar"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "dosya"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "Sorgu"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "Kapat"
+
+#, fuzzy
+msgid "bounded"
+msgstr "sahibiz"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Pasif"
