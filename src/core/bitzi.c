@@ -164,7 +164,7 @@ struct bzdata {
  */
 
 /* cache functions */
-static gboolean bitzi_cache_add(bitzi_data_t * data, const xnode_t *root);
+static bool bitzi_cache_add(bitzi_data_t * data, const xnode_t *root);
 
 /********************************************************************
  ** Bitzi serialization & deserialization routines for DBMW
@@ -177,7 +177,7 @@ static void
 serialize_bzdata(pmsg_t *mb, const void *data)
 {
 	const struct bzdata *bz = data;
-	guint8 flags;
+	uint8 flags;
 
 	pmsg_write_u8(mb, BITZI_BZ_VERSION);
 
@@ -218,9 +218,9 @@ static void
 deserialize_bzdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct bzdata *bz = valptr;
-	guint8 version;
-	guint8 flags;
-	guint64 val;
+	uint8 version;
+	uint8 flags;
+	uint64 val;
 
 	g_assert(sizeof *bz == len);
 
@@ -566,8 +566,8 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 			const char *height = xnode_prop_ns_get(xn, BITZI_BZ, "videoHeight");
 			const char *width = xnode_prop_ns_get(xn, BITZI_BZ, "videoWidth");
 			const char *duration = xnode_prop_ns_get(xn, BITZI_MM, "duration");
-			gboolean has_res = width && height;
-			guint32 seconds;
+			bool has_res = width && height;
+			uint32 seconds;
 			char desc[256];
 			size_t len;
 
@@ -617,7 +617,7 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 			const char *srate =
 				xnode_prop_ns_get(xn, BITZI_BZ, "audioSamplerate");
 			const char *duration = xnode_prop_ns_get(xn, BITZI_MM, "duration");
-			guint32 seconds;
+			uint32 seconds;
 			char desc[256];
 			size_t len;
 
@@ -897,7 +897,7 @@ done:
  *
  * @return TRUE if an HTTP request was launched.
  */
-static gboolean
+static bool
 bitzi_launch_query(bitzi_request_t *breq)
 {
 	if (GNET_PROPERTY(bitzi_debug))
@@ -911,7 +911,7 @@ bitzi_launch_query(bitzi_request_t *breq)
 
 
 		if (bitzi_data_by_sha1(&data, breq->sha1, breq->filesize)) {
-			gboolean ignore = FALSE;
+			bool ignore = FALSE;
 
 			/*
 			 * If the cached entry indicates that the SHA1 was not in the
@@ -1005,7 +1005,7 @@ get_bzdata(const sha1_t *sha1)
  * @return TRUE if we added the ticket, FALSE if it was already present (in
  * which case the information is simply updated).
  */
-static gboolean
+static bool
 bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 {
 	struct bzdata bz;
@@ -1118,12 +1118,12 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
  * DBMW foreach iterator to remove old entries.
  * @return TRUE if entry must be deleted.
  */
-static gboolean
-bitzi_entry_prune(gpointer key, gpointer value, size_t u_len, gpointer u_data)
+static bool
+bitzi_entry_prune(void *key, void *value, size_t u_len, void *u_data)
 {
 	const sha1_t *sha1 = key;
 	const struct bzdata *bz = value;
-	gboolean expired;
+	bool expired;
 
 	(void) u_len;
 	(void) u_data;
@@ -1167,8 +1167,8 @@ bitzi_prune_old(void)
 /**
  * Callout queue periodic event to expire old entries.
  */
-static gboolean
-bitzi_prune(gpointer unused_obj)
+static bool
+bitzi_prune(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -1179,8 +1179,8 @@ bitzi_prune(gpointer unused_obj)
 /**
  * Callout queue periodic event to synchronize persistent DB.
  */
-static gboolean
-bitzi_sync(gpointer unused_obj)
+static bool
+bitzi_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -1196,8 +1196,8 @@ bitzi_sync(gpointer unused_obj)
  * The heartbeat function is a repeating glib timeout that is used to
  * pace queries to the bitzi metadata service.
  */
-static gboolean
-bitzi_heartbeat(gpointer unused_data)
+static bool
+bitzi_heartbeat(void *unused_data)
 {
 	(void) unused_data;
 
@@ -1222,7 +1222,7 @@ bitzi_heartbeat(gpointer unused_data)
 /**
  * Query the bitzi cache for this given SHA-1.
  */
-gboolean
+bool
 bitzi_has_cached_ticket(const struct sha1 *sha1)
 {
 	return NULL != get_bzdata(sha1);
@@ -1243,7 +1243,7 @@ bitzi_has_cached_ticket(const struct sha1 *sha1)
  */
 void
 bitzi_query_by_sha1(const struct sha1 *sha1,
-	filesize_t filesize, gboolean refresh)
+	filesize_t filesize, bool refresh)
 {
 	struct bzdata *bz;
 
@@ -1305,7 +1305,7 @@ bitzi_query_by_sha1(const struct sha1 *sha1,
  *
  * @return TRUE if found, FALSE if ticket does not exist.
  */
-gboolean
+bool
 bitzi_data_by_sha1(bitzi_data_t *data,
 	const struct sha1 *sha1, filesize_t filesize)
 {
@@ -1338,7 +1338,7 @@ bitzi_ticket_by_sha1(const struct sha1 *sha1, filesize_t filesize)
 
 	if (GNET_PROPERTY(bitzi_debug > 9)) {
 		if (bz != NULL) {
-			gboolean matches = 0 == filesize || bz->size == filesize;
+			bool matches = 0 == filesize || bz->size == filesize;
 			g_debug("BITZI %s: %s bz->ticket = %p, filesize %s",
 				G_STRFUNC, sha1_to_string(sha1), bz->ticket,
 				matches ? "matches": "MISMATCH");

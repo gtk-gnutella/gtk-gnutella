@@ -51,7 +51,7 @@ struct watchdog {
 	enum watchdog_magic magic;		/**< Magic number */
 	const char *name;				/**< Name, for logging (atom) */
 	wd_trigger_t trigger;			/**< Callback to trigger */
-	gpointer arg;					/**< Additionnal callback argument */
+	void *arg;						/**< Additionnal callback argument */
 	int period;						/**< Maximum period between kicks */
 	cevent_t *ev;					/**< Watchdog event in callout queue */
 	time_t last_kick;				/**< When last kick occurred */
@@ -83,7 +83,7 @@ wd_trigger(watchdog_t *wd)
  * Watchdog timer has expired.
  */
 static void
-wd_expired(cqueue_t *cq, gpointer arg)
+wd_expired(cqueue_t *cq, void *arg)
 {
 	watchdog_t *wd = arg;
 
@@ -154,7 +154,7 @@ wd_kick(watchdog_t *wd)
  *
  * @return TRUE if we woken up the watchdog, FALSE if it was already awake.
  */
-gboolean
+bool
 wd_wakeup(watchdog_t *wd)
 {
 	watchdog_check(wd);
@@ -172,7 +172,7 @@ wd_wakeup(watchdog_t *wd)
  *
  * @return TRUE if we stopped the watchdog, FALSE if it was already aslept.
  */
-gboolean
+bool
 wd_sleep(watchdog_t *wd)
 {
 	watchdog_check(wd);
@@ -192,7 +192,7 @@ wd_sleep(watchdog_t *wd)
  * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
  * in which case the trigger was not invoked.
  */
-gboolean
+bool
 wd_expire(watchdog_t *wd)
 {
 	watchdog_check(wd);
@@ -226,7 +226,7 @@ wd_expire(watchdog_t *wd)
  */
 watchdog_t *
 wd_make(const char *name, int period,
-	wd_trigger_t trigger, gpointer arg, gboolean start)
+	wd_trigger_t trigger, void *arg, bool start)
 {
 	watchdog_t *wd;
 
@@ -256,7 +256,7 @@ wd_name(const watchdog_t *wd)
 /**
  * @return TRUE if watchdog has been woken up.
  */
-gboolean
+bool
 wd_is_awake(const watchdog_t *wd)
 {
 	return wd->ev != NULL;

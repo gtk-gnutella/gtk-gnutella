@@ -39,10 +39,11 @@
  */
 typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 
+typedef unsigned long thread_t;
+typedef size_t thread_qid_t;		/* Quasi Thread ID */
+
 #ifdef I_PTHREAD
 #include <pthread.h>
-
-typedef unsigned long thread_t;
 
 #if 0
 /* General macros, optimized by GCC usually */
@@ -54,48 +55,54 @@ typedef unsigned long thread_t;
 #define thread_set(t,v)	((t) = (v))
 #endif
 
-static inline thread_t
-thread_current(void)
-{
-	union {
-		thread_t t;
-		pthread_t pt;
-	} u;
+#else	/* !I_PTHREAD */
 
-	STATIC_ASSERT(sizeof(thread_t) <= sizeof(pthread_t));
-
-	/*
-	 * We truncate the pthread_t to the first "unsigned long" bytes.
-	 *
-	 * On Linux, pthread_t is already an unsigned long.
-	 * On FreeBSD, pthread_t is a pointer, which fits in unsigned long.
-	 *
-	 * On Windows, pthread_t is a structure, whose first member is a pointer.
-	 * And we don't want to use the whole pthread_t structure there, because
-	 * the second member is changing over time and we want a unique thread
-	 * identifier.
-	 */
-
-	u.pt = pthread_self();
-	return u.t;
-}
-
-#else
-typedef unsigned thread_t;
-#define thread_current()	0xc5db8dd3U		/* Random, odd number */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
-#endif
+
+#endif	/* I_PTHREAD */
+
+/**
+ * Type of locks we track.
+ */
+enum thread_lock_kind {
+	THREAD_LOCK_SPINLOCK,
+	THREAD_LOCK_MUTEX
+};
 
 /*
  * Public interface.
  */
 
+thread_t thread_current(void);
+thread_qid_t thread_quasi_id(void);
+unsigned thread_small_id(void);
+int thread_stid_from_thread(const thread_t t);
+const char *thread_to_string(const thread_t t);
+
+unsigned thread_count();
+bool thread_is_single(void);
+bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
+
+size_t thread_suspend_others(void);
+size_t thread_unsuspend_others(void);
+void thread_check_suspended(void);
+
 void *thread_private_get(const void *key);
-gboolean thread_private_remove(const void *key);
+bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
+
+void thread_lock_got(const void *lock, enum thread_lock_kind kind);
+void thread_lock_released(const void *lock, enum thread_lock_kind kind);
+size_t thread_lock_count(void);
+bool thread_lock_holds(const volatile void *lock);
+void thread_lock_deadlock(const volatile void *lock);
+void thread_lock_current_dump(void);
+
+void thread_pending_add(int increment);
+size_t thread_pending_count(void);
 
 #endif /* _thread_h_ */
 

@@ -58,7 +58,7 @@ set_close_on_exec(int fd)
 #endif	/* FD_CLOEXEC */
 }
 
-static inline gboolean
+static inline bool
 try_close_from(const int first_fd)
 {
 #if defined(F_CLOSEM)
@@ -75,10 +75,32 @@ try_close_from(const int first_fd)
 #endif	/* HAS_CLOSEFROM */
 }
 
-static inline gboolean
+static inline bool
 fd_is_opened(const int fd)
 {
 	return is_open_fd(fd) || is_a_socket(fd) || is_a_fifo(fd);
+}
+
+/**
+ * Determine the file descriptor that will likely be used at next open().
+ *
+ * This is used at initialization time to determine the first available
+ * file descriptor so that we do not try to close special files opened by
+ * libraries.
+ *
+ * @return the first available file descriptor.
+ */
+int
+fd_first_available(void)
+{
+	int fd;
+
+	fd = open("/dev/null", O_RDWR, 0);
+	if (-1 == fd)
+		g_error("%s() failed to open /dev/null: %m", G_STRFUNC);
+	close(fd);
+
+	return fd;
 }
 
 /**
@@ -157,7 +179,7 @@ reserve_standard_file_descriptors(void)
 	return 0;
 }
 
-G_GNUC_COLD gboolean
+G_GNUC_COLD bool
 need_get_non_stdio_fd(void)
 {
 	static int needed = -1;
@@ -288,7 +310,7 @@ fd_forget_and_close(int *fd_ptr)
  * @param fd An arbitrary file descriptor.
  * @return TRUE if fd is a socket, FALSE otherwise.
  */
-gboolean
+bool
 is_a_socket(int fd)
 #ifdef S_ISSOCK
 {
@@ -316,7 +338,7 @@ is_a_socket(int fd)
  * @param fd An arbitrary file descriptor.
  * @return TRUE if fd is a FIFO, FALSE otherwise.
  */
-gboolean
+bool
 is_a_fifo(int fd)
 {
 	filestat_t sb;
@@ -330,7 +352,7 @@ is_a_fifo(int fd)
  * @param fd An arbitrary file descriptor.
  * @return TRUE if fd is opened, FALSE otherwise.
  */
-gboolean
+bool
 is_open_fd(int fd)
 {
 	return -1 != fcntl(fd, F_GETFL);

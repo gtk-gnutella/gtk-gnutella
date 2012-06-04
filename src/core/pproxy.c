@@ -316,9 +316,9 @@ pproxy_create(struct gnutella_socket *s)
  * @returns TRUE if OK, FALSE if we could not figure it out, in which case
  * we also return an error to the calling party.
  */
-static gboolean
+static bool
 get_params(struct pproxy *pp, const char *request,
-	const struct guid **guid_atom, guint32 *file_idx, gboolean *supports_tls)
+	const struct guid **guid_atom, uint32 *file_idx, bool *supports_tls)
 {
 	static const struct {
 		const char *req;
@@ -334,7 +334,7 @@ get_params(struct pproxy *pp, const char *request,
 	const char *value;
 	int datalen;
 	url_params_t *up;
-	guint i;
+	uint i;
 
 	g_assert(pp);
 	g_assert(request);
@@ -516,9 +516,9 @@ error:
  *			packet on success, an empty array on failure.
  */
 struct array
-build_push(guint8 ttl, guint8 hops, const struct guid *guid,
-	host_addr_t addr_v4, host_addr_t addr_v6, guint16 port,
-	guint32 file_idx, gboolean supports_tls)
+build_push(uint8 ttl, uint8 hops, const struct guid *guid,
+	host_addr_t addr_v4, host_addr_t addr_v6, uint16 port,
+	uint32 file_idx, bool supports_tls)
 {
 	static union {
 		gnutella_msg_push_request_t m;
@@ -528,7 +528,7 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 	size_t len = 0, size = sizeof packet;
 	ggep_stream_t gs;
 	host_addr_t primary;
-	guint32 ipv4;
+	uint32 ipv4;
 
 	g_assert(guid);
 	g_assert(0 != port);
@@ -582,7 +582,7 @@ build_push(guint8 ttl, guint8 hops, const struct guid *guid,
 		ipv6_ready_has_no_ipv4(ipv4) ||
 		(is_host_addr(addr_v6) && host_addr_is_ipv6(addr_v6))
 	) {
-		const guint8 *ipv6 = host_addr_ipv6(&addr_v6);
+		const uint8 *ipv6 = host_addr_ipv6(&addr_v6);
 
 		g_assert(ipv6 != NULL);
 
@@ -630,7 +630,7 @@ validate_vendor(char *vendor, char *token, const host_addr_t addr)
 	const char *result;
 
 	if (vendor) {
-		gboolean faked = !version_check(vendor, token, addr);
+		bool faked = !version_check(vendor, token, addr);
 
 		if (faked) {
 			char name[1024];
@@ -652,7 +652,7 @@ pproxy_fetch_addresses(struct pproxy *pp, const char *buf)
 {
 	const char *endptr;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	if (NULL == buf)
 		return;
@@ -713,7 +713,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	char *token;
 	char *user_agent;
 	GSList *nodes;
-	gboolean supports_tls = FALSE;
+	bool supports_tls = FALSE;
 
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
 		g_debug("----Push-proxy request from %s:\n%s",
@@ -819,7 +819,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			g_warning("Failed to send push for %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
-				(gulong) pp->file_idx);
+				(ulong) pp->file_idx);
 		} else {
 			gmsg_sendto_one(n, packet.data, packet.size);
 			gnet_stats_count_general(GNR_PUSH_PROXY_TCP_RELAYED, 1);
@@ -855,7 +855,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			g_warning("Failed to send push to %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
-				(gulong) pp->file_idx);
+				(ulong) pp->file_idx);
 		} else {
 			int cnt;
 
@@ -912,58 +912,58 @@ sorry:
  ***/
 
 static inline struct pproxy *
-PPROXY(gpointer obj)
+PPROXY(void *obj)
 {
 	return obj;
 }
 
 static void
-err_line_too_long(gpointer obj, header_t *unused_head)
+err_line_too_long(void *obj, header_t *unused_head)
 {
 	(void) unused_head;
 	pproxy_error_remove(PPROXY(obj), 413, "Header too large");
 }
 
 static void
-err_header_error_tell(gpointer obj, int error)
+err_header_error_tell(void *obj, int error)
 {
 	send_pproxy_error(PPROXY(obj), 413, "%s", header_strerror(error));
 }
 
 static void
-err_header_error(gpointer obj, int error)
+err_header_error(void *obj, int error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (%s)", header_strerror(error));
 }
 
 static void
-err_input_exception(gpointer obj, header_t *unused_head)
+err_input_exception(void *obj, header_t *unused_head)
 {
 	(void) unused_head;
 	pproxy_remove(PPROXY(obj), "Failed (Input Exception)");
 }
 
 static void
-err_input_buffer_full(gpointer obj)
+err_input_buffer_full(void *obj)
 {
 	pproxy_error_remove(PPROXY(obj), 500, "Input buffer full");
 }
 
 static void
-err_header_read_error(gpointer obj, int error)
+err_header_read_error(void *obj, int error)
 {
 	pproxy_remove(PPROXY(obj), "Failed (Input error: %s)", g_strerror(error));
 }
 
 static void
-err_header_read_eof(gpointer obj, header_t *unused_head)
+err_header_read_eof(void *obj, header_t *unused_head)
 {
 	(void) unused_head;
 	pproxy_remove(PPROXY(obj), "Failed (EOF)");
 }
 
 static void
-err_header_extra_data(gpointer obj, header_t *unused_head)
+err_header_extra_data(void *obj, header_t *unused_head)
 {
 	(void) unused_head;
 	pproxy_error_remove(PPROXY(obj), 400, "Extra data after HTTP header");
@@ -981,7 +981,7 @@ static const struct io_error pproxy_io_error = {
 };
 
 static void
-call_pproxy_request(gpointer obj, header_t *header)
+call_pproxy_request(void *obj, header_t *header)
 {
 	pproxy_request(PPROXY(obj), header);
 }
@@ -1066,8 +1066,7 @@ cproxy_free(struct cproxy *cp)
  * HTTP async callback for error notifications.
  */
 static void
-cproxy_http_error_ind(struct http_async *handle,
-	http_errtype_t type, gpointer v)
+cproxy_http_error_ind(struct http_async *handle, http_errtype_t type, void *v)
 {
 	struct cproxy *cp = http_async_get_opaque(handle);
 
@@ -1094,7 +1093,7 @@ cproxy_http_error_ind(struct http_async *handle,
  * HTTP async callback for header reception notification.
  * @returns whether processing can continue.
  */
-static gboolean
+static bool
 cproxy_http_header_ind(struct http_async *handle, header_t *header,
 	int code, const char *message)
 {
@@ -1190,7 +1189,7 @@ cproxy_build_request(const struct http_async *ha,
 	char addr_v4_buf[128];
 	char addr_v6_buf[128];
 	host_addr_t addr;
-	gboolean has_ipv4 = FALSE;
+	bool has_ipv4 = FALSE;
 
 	g_assert(len <= INT_MAX);
 
@@ -1247,7 +1246,7 @@ cproxy_build_request(const struct http_async *ha,
 static void
 cproxy_sent_request(const struct http_async *unused_ha,
 	const struct gnutella_socket *s, const char *req, size_t len,
-	gboolean deferred)
+	bool deferred)
 {
 	(void) unused_ha;
 
@@ -1298,7 +1297,7 @@ cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
 }
 
 static void
-cproxy_http_start(cqueue_t *unused_cq, gpointer obj)
+cproxy_http_start(cqueue_t *unused_cq, void *obj)
 {
 	struct cproxy *cp = obj;
 
@@ -1328,8 +1327,8 @@ cproxy_async_http_request(struct cproxy *cp)
  * @returns created client proxy.
  */
 struct cproxy *
-cproxy_create(struct download *d, const host_addr_t addr, guint16 port,
-	const struct guid *guid, guint32 file_idx)
+cproxy_create(struct download *d, const host_addr_t addr, uint16 port,
+	const struct guid *guid, uint32 file_idx)
 {
 	struct cproxy *cp;
 	struct array packet;
@@ -1496,7 +1495,7 @@ pproxy_set_count(const pproxy_set_t *ps)
  * @return whether timestamp is more recent than last addition made to
  * the push-proxy set.
  */
-gboolean
+bool
 pproxy_set_older_than(const pproxy_set_t *ps, time_t t)
 {
 	if (NULL == ps)
@@ -1568,11 +1567,11 @@ pproxy_set_trim(const pproxy_set_t *ps)
  *
  * @return TRUE if host was added, FALSE if we already knew it.
  */
-gboolean
-pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, guint16 port)
+bool
+pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, uint16 port)
 {
 	gnet_host_t host;
-	gboolean added = FALSE;
+	bool added = FALSE;
 
 	pproxy_set_check(ps);
 
@@ -1640,8 +1639,8 @@ pproxy_set_add_array(pproxy_set_t *ps, gnet_host_t *proxies, int proxy_count)
  *
  * @return TRUE if push-proxy was found and removed, FALSE if it was missing.
  */
-gboolean
-pproxy_set_remove(pproxy_set_t *ps, const host_addr_t addr, guint16 port)
+bool
+pproxy_set_remove(pproxy_set_t *ps, const host_addr_t addr, uint16 port)
 {
 	gnet_host_t key;
 	gnet_host_t *item;

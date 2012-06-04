@@ -55,6 +55,9 @@
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/mime_type.h"
 #include "lib/stringify.h"
@@ -102,11 +105,10 @@ clist_search(void)
  *	Emile 02/15/2004
  */
 static inline void
-add_parent_with_sha1(search_t *search, const gchar *sha1, GtkCTreeNode *data)
+add_parent_with_sha1(search_t *search, const char *sha1, GtkCTreeNode *data)
 {
-	gm_hash_table_insert_const(search->parents, sha1, data);
+	htable_insert(search->parents, sha1, data);
 }
-
 
 /**
  *	Removes the tree node matching the given sha1 from the hash table.
@@ -115,17 +117,17 @@ add_parent_with_sha1(search_t *search, const gchar *sha1, GtkCTreeNode *data)
 static inline void
 remove_parent_with_sha1(search_t *search, const struct sha1 *sha1)
 {
-	gconstpointer key;
-	gpointer orig_key;
+	const void *key;
+	const void *orig_key;
 
 	key = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup_extended(search->parents, key, &orig_key, NULL)) {
+	if (htable_lookup_extended(search->parents, key, &orig_key, NULL)) {
 		/* Must first free memory used by the original key */
 		atom_sha1_free(orig_key);
 
 		/* Then remove the key */
-		g_hash_table_remove(search->parents, key);
+		htable_remove(search->parents, key);
 	} else
 		g_warning("remove_parent_with_sha1: can't find sha1 in hash table!");
 
@@ -140,11 +142,11 @@ remove_parent_with_sha1(search_t *search, const struct sha1 *sha1)
 GtkCTreeNode *
 find_parent_with_sha1(search_t *search, gconstpointer key)
 {
-	return g_hash_table_lookup(search->parents, key);
+	return htable_lookup(search->parents, key);
 }
 
-gboolean
-search_gui_free_parent(gpointer key, gpointer unused_value, gpointer unused_x)
+static bool
+search_gui_free_parent(const void *key, void *unused_value, void *unused_x)
 {
 	(void) unused_value;
 	(void) unused_x;
@@ -162,11 +164,10 @@ search_gui_free_gui_record(gpointer gui_rc)
  * Decrement refcount of hash table key entry.
  */
 static gboolean
-dec_records_refcount(gpointer key, gpointer unused_value, gpointer unused_x)
+dec_records_refcount(const void *key, void *unused_x)
 {
-	(void) unused_value;
 	(void) unused_x;
-	search_gui_unref_record(key);
+	search_gui_unref_record(deconstify_pointer(key));
 	return TRUE;
 }
 
@@ -208,8 +209,8 @@ search_gui_clear_search(search_t *sch)
 	g_assert(sch->dups);
 
 	search_gui_clear_ctree(GTK_CTREE(sch->tree));
-	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
-	g_hash_table_foreach_remove(sch->parents, search_gui_free_parent, NULL);
+	hset_foreach_remove(sch->dups, dec_records_refcount, NULL);
+	htable_foreach_remove(sch->parents, search_gui_free_parent, NULL);
 }
 
 static gint search_gui_cursor_x, search_gui_cursor_y;
@@ -265,7 +266,7 @@ search_gui_init_tree(search_t *search)
     int row;
 
 	g_assert(NULL == search->parents);
-	search->parents = g_hash_table_new(pointer_hash_func, NULL);
+	search->parents = htable_create(HASH_KEY_SELF, 0);
 
     titles[c_sl_name] = lazy_utf8_to_ui_string(search_gui_query(search));
     titles[c_sl_hit] = "0";
@@ -1134,7 +1135,8 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 	if (NULL != rc->sha1) {
 
-		/* We use the sch->parents hash table to store pointers to all the
+		/*
+		 * We use the sch->parents hash table to store pointers to all the
 		 * parent tree nodes referenced by their atomized sha1.
 		 */
 		parent = find_parent_with_sha1(sch, rc->sha1);
@@ -1430,8 +1432,8 @@ search_gui_remove_result(struct search *search, GtkCTreeNode *node)
 	 * One is a gui reference, the other is the dups hash table reference
 	 * (Note that GTK2 hashtables allow us to define an auto remove function,
 	 *  not so with GTK1, so we have to do it ourselves)
-	*/
-	g_hash_table_remove(search->dups, rc);
+	 */
+	hset_remove(search->dups, rc);
 	search_gui_unref_record(rc);
 	search_gui_unref_record(rc);
 }
@@ -1938,13 +1940,19 @@ void
 search_gui_start_massive_update(struct search *search)
 {
 	g_return_if_fail(search);
+	g_return_if_fail(!search->frozen);
+
 	gtk_clist_freeze(GTK_CLIST(search->tree));
+	search->frozen = TRUE;
 }
 
 void
 search_gui_end_massive_update(struct search *search)
 {
 	g_return_if_fail(search);
+	g_return_if_fail(search->frozen);
+
+	search->frozen = FALSE;
 	gtk_clist_thaw(GTK_CLIST(search->tree));
 }
 

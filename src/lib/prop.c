@@ -1270,6 +1270,17 @@ prop_name(prop_set_t *ps, property_t prop)
 }
 
 /**
+ * Fetch the property type in the config files.
+ *
+ * @return property type code.
+ */
+prop_type_t
+prop_type(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).type;
+}
+
+/**
  * Fetch the property description in the config files.
  *
  * @return The human-readable name of the property. There is not need
@@ -1457,7 +1468,6 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 
 	return s;
 }
-
 
 /**
  * @return "TRUE" or "FALSE" depending on the given boolean value.
@@ -1998,7 +2008,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		s = prop_tmp;
 		/* Skip leading blanks */
 		s = skip_ascii_blanks(s);
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		/* <keyword> starts with _ or letter  */
 		if (!is_ascii_alpha(c) && c != '_')
@@ -2006,13 +2016,13 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		/* Here starts the <keyword> */
 		k = s;
-		while ((c = (guchar) *s) == '_' || is_ascii_alnum(c))
+		while ((c = (uchar) *s) == '_' || is_ascii_alnum(c))
 			s++;
 
 		*s = '\0'; /* Terminate <keyword>, original value is stored in c */
 		if (is_ascii_blank(c)) {
 			s = skip_ascii_blanks(&s[1]);
-			c = (guchar) *s;
+			c = (uchar) *s;
 		}
 		if (c != '=') {
 			/* <keyword> must be followed by a '=' and optional blanks */
@@ -2025,7 +2035,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		/* Skip optional blanks */
 		s = skip_ascii_blanks(s);
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		if (c == '"') {
 			/* Here starts the <value> part (quoted) */
@@ -2046,7 +2056,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			/* The first space terminates the value */
 			s = skip_ascii_non_spaces(s);
 		}
-		c = (guchar) *s;
+		c = (uchar) *s;
 
 		g_assert(*s == '\0' || *s == '"' || is_ascii_space(c));
 		*s = '\0'; /* Terminate value in case of trailing characters */
@@ -2082,7 +2092,7 @@ prop_get_by_name(prop_set_t *ps, const char *name)
 {
 	g_assert(ps != NULL);
 
-	return GPOINTER_TO_UINT(g_hash_table_lookup(ps->byName, name));
+	return pointer_to_uint(htable_lookup(ps->by_name, name));
 }
 
 GSList *

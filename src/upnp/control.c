@@ -136,7 +136,7 @@ upnp_ctrl_free(upnp_ctrl_t *ucd)
 /**
  * Is XML node name matching?
  */
-static gboolean
+static bool
 node_named_as(const xnode_t *xn, void *data)
 {
 	const char *name = xnode_element_name(xn);
@@ -157,7 +157,7 @@ node_named_as(const xnode_t *xn, void *data)
  *
  * @return TRUE if OK, FALSE on error.
  */
-static gboolean
+static bool
 upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 {
 	xnode_t *fcode, *fstring, *detail, *uerror;
@@ -190,7 +190,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 	 */
 
 	fcode = xnode_tree_find_depth(fault, 1, node_named_as,
-		deconstify_gchar(SOAP_FAULT_CODE));
+		deconstify_char(SOAP_FAULT_CODE));
 
 	if (NULL == fcode) {
 		parse_error = "cannot find <faultcode>";
@@ -242,7 +242,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 	 */
 
 	fstring = xnode_tree_find_depth(fault, 1, node_named_as,
-		deconstify_gchar(SOAP_FAULT_STRING));
+		deconstify_char(SOAP_FAULT_STRING));
 
 	if (NULL == fstring) {
 		parse_error = "no <faultstring> found";
@@ -263,7 +263,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 	}
 
 	detail = xnode_tree_find_depth(fault, 1, node_named_as,
-		deconstify_gchar(SOAP_FAULT_DETAIL));
+		deconstify_char(SOAP_FAULT_DETAIL));
 
 	if (NULL == detail) {
 		parse_error = "no <detail> found";
@@ -283,7 +283,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 			int err;
 
 			xn = xnode_tree_find_depth(uerror, 1,
-				node_named_as, deconstify_gchar(UPNP_ERROR_CODE));
+				node_named_as, deconstify_char(UPNP_ERROR_CODE));
 
 			if (NULL == xn) {
 				parse_error = "no <errorCode> found";
@@ -305,7 +305,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 
 		if (error != NULL) {
 			xn = xnode_tree_find_depth(uerror, 1,
-				node_named_as, deconstify_gchar(UPNP_ERROR_DESC));
+				node_named_as, deconstify_char(UPNP_ERROR_DESC));
 
 			*error = (NULL == xn) ? NULL : xnode_first_text(xn);
 		}
@@ -499,7 +499,7 @@ upnp_ctrl_soap_error(const soap_rpc_t *sr,
  * @param callback	whether to invoke the completion callback
  */
 void
-upnp_ctrl_cancel(upnp_ctrl_t *ucd, gboolean callback)
+upnp_ctrl_cancel(upnp_ctrl_t *ucd, bool callback)
 {
 	upnp_ctrl_check(ucd);
 	g_return_if_fail(ucd->sr != NULL);
@@ -521,7 +521,7 @@ upnp_ctrl_cancel(upnp_ctrl_t *ucd, gboolean callback)
  * nullify the control request pointer.
  */
 void
-upnp_ctrl_cancel_null(upnp_ctrl_t **ucd_ptr, gboolean callback)
+upnp_ctrl_cancel_null(upnp_ctrl_t **ucd_ptr, bool callback)
 {
 	upnp_ctrl_t *ucd = *ucd_ptr;
 
@@ -633,7 +633,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 
 	{
 		char action_uri[256];
-		guint32 options = SOAP_RPC_O_MAN_RETRY | SOAP_RPC_O_ALL_CAPS;
+		uint32 options = SOAP_RPC_O_MAN_RETRY | SOAP_RPC_O_ALL_CAPS;
 
 		/*
 		 * Grab our local IP address if it is unknown so far.
@@ -688,7 +688,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
  *
  * @return TRUE if OK with the address filled in, FALSE on failure.
  */
-static gboolean
+static bool
 upnp_ctrl_get_addr(nv_table_t *nvt, const char *name, host_addr_t *addrp)
 {
 	const char *ip;
@@ -709,11 +709,11 @@ upnp_ctrl_get_addr(nv_table_t *nvt, const char *name, host_addr_t *addrp)
  *
  * @return TRUE if OK with the value filled in, FALSE on failure.
  */
-static gboolean
-upnp_ctrl_get_uint16(nv_table_t *nvt, const char *name, guint16 *valp)
+static bool
+upnp_ctrl_get_uint16(nv_table_t *nvt, const char *name, uint16 *valp)
 {
 	const char *value;
-	guint16 val;
+	uint16 val;
 	int error;
 
 	value = nv_table_lookup_str(nvt, name);
@@ -737,11 +737,11 @@ upnp_ctrl_get_uint16(nv_table_t *nvt, const char *name, guint16 *valp)
  *
  * @return TRUE if OK with the value filled in, FALSE on failure.
  */
-static gboolean
-upnp_ctrl_get_uint32(nv_table_t *nvt, const char *name, guint32 *valp)
+static bool
+upnp_ctrl_get_uint32(nv_table_t *nvt, const char *name, uint32 *valp)
 {
 	const char *value;
-	guint32 val;
+	uint32 val;
 	int error;
 
 	value = nv_table_lookup_str(nvt, name);
@@ -765,10 +765,10 @@ upnp_ctrl_get_uint32(nv_table_t *nvt, const char *name, guint32 *valp)
  *
  * @return TRUE if OK with the value filled in, FALSE on failure.
  */
-static gboolean
+static bool
 upnp_ctrl_get_time_delta(nv_table_t *nvt, const char *name, time_delta_t *valp)
 {
-	guint32 val;
+	uint32 val;
 
 	if (upnp_ctrl_get_uint32(nvt, name, &val)) {
 		*valp = val;
@@ -787,11 +787,11 @@ upnp_ctrl_get_time_delta(nv_table_t *nvt, const char *name, time_delta_t *valp)
  *
  * @return TRUE if OK with the boolean filled in, FALSE on failure.
  */
-static gboolean
-upnp_ctrl_get_boolean(nv_table_t *nvt, const char *name, gboolean *valp)
+static bool
+upnp_ctrl_get_boolean(nv_table_t *nvt, const char *name, bool *valp)
 {
 	const char *value;
-	gboolean val;
+	bool val;
 
 	value = nv_table_lookup_str(nvt, name);
 	if (NULL == value)
@@ -922,8 +922,8 @@ upnp_ctrl_ret_GetSpecificPortMappingEntry(nv_table_t *ret, size_t *lenp)
 {
 	struct upnp_GetSpecificPortMappingEntry *r;
 	host_addr_t addr;
-	guint16 port;
-	gboolean enabled;
+	uint16 port;
+	bool enabled;
 	const char *description;
 	time_delta_t lease;
 
@@ -973,7 +973,7 @@ upnp_ctrl_ret_GetSpecificPortMappingEntry(nv_table_t *ret, size_t *lenp)
  */
 upnp_ctrl_t *
 upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 port,
+	enum upnp_map_proto proto, uint16 port,
 	upnp_ctrl_cb_t cb, void *arg)
 {
 	nv_pair_t *argv[3];
@@ -1010,8 +1010,8 @@ upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
  */
 upnp_ctrl_t *
 upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 ext_port,
-	host_addr_t int_addr, guint16 int_port,
+	enum upnp_map_proto proto, uint16 ext_port,
+	host_addr_t int_addr, uint16 int_port,
 	const char *desc, time_delta_t lease,
 	upnp_ctrl_cb_t cb, void *arg)
 {
@@ -1024,7 +1024,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	const char *description;
 
 	g_assert(lease >= 0);
-	g_assert(lease <= MAX_INT_VAL(gint32));
+	g_assert(lease <= MAX_INT_VAL(int32));
 	g_assert(ext_port != 0);
 	g_assert(int_port != 0);
 
@@ -1076,7 +1076,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
  */
 upnp_ctrl_t *
 upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
-	enum upnp_map_proto proto, guint16 port,
+	enum upnp_map_proto proto, uint16 port,
 	upnp_ctrl_cb_t cb, void *arg)
 {
 	nv_pair_t *argv[3];
@@ -1106,7 +1106,7 @@ static void *
 upnp_ctrl_ret_GetTotalPacketsReceived(nv_table_t *ret, size_t *lenp)
 {
 	struct upnp_counter *r;
-	guint32 value;
+	uint32 value;
 
 	if (!upnp_ctrl_get_uint32(ret, "NewTotalPacketsReceived", &value))
 		return NULL;

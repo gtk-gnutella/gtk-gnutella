@@ -42,22 +42,22 @@ struct txdrv_ops;
 struct bio_source;
 struct gnutella_node;
 
-typedef void (*tx_service_t)(gpointer obj);
+typedef void (*tx_service_t)(void *obj);
 
 /**
  * A network driver.
  */
 
 typedef struct txdriver {
-	gpointer owner;					/**< Object owning the stack */
+	void *owner;					/**< Object owning the stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct txdriver *upper;			/**< Layer above, NULL if none */
 	struct txdriver *lower;			/**< Layer underneath, NULL if none */
 	int flags;						/**< Driver flags */
 	tx_service_t srv_routine;		/**< Service routine of upper TX layer */
-	gpointer srv_arg;				/**< Service routine argument */
-	gpointer opaque;				/**< Used by heirs to store specific info */
+	void *srv_arg;					/**< Service routine argument */
+	void *opaque;					/**< Used by heirs to store specific info */
 } txdrv_t;
 
 /*
@@ -74,21 +74,21 @@ typedef struct txdriver {
  * Operations defined on all drivers.
  */
 
-typedef void (*tx_closed_t)(txdrv_t *tx, gpointer arg);
+typedef void (*tx_closed_t)(txdrv_t *tx, void *arg);
 
 struct txdrv_ops {
-	gpointer (*init)(txdrv_t *tx, gpointer args);
+	void *(*init)(txdrv_t *tx, void *args);
 	void (*destroy)(txdrv_t *tx);
-	ssize_t (*write)(txdrv_t *tx, gconstpointer data, size_t len);
+	ssize_t (*write)(txdrv_t *tx, const void *data, size_t len);
 	ssize_t (*writev)(txdrv_t *tx, iovec_t *iov, int iovcnt);
 	ssize_t (*sendto)(txdrv_t *tx, const gnet_host_t *to,
-							gconstpointer data, size_t len);
+							const void *data, size_t len);
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
 	size_t (*pending)(txdrv_t *tx);
 	void (*flush)(txdrv_t *tx);
 	void (*shutdown)(txdrv_t *tx);
-	void (*close)(txdrv_t *tx, tx_closed_t cb, gpointer arg);
+	void (*close)(txdrv_t *tx, tx_closed_t cb, void *arg);
 	struct bio_source *(*bio_source)(txdrv_t *tx);
 };
 
@@ -96,37 +96,36 @@ struct txdrv_ops {
  * Public interface
  */
 
-txdrv_t *tx_make(gpointer owner, const gnet_host_t *host,
-	const struct txdrv_ops *ops, gpointer args);
-txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops,
-	gpointer args);
+txdrv_t *tx_make(void *owner, const gnet_host_t *host,
+	const struct txdrv_ops *ops, void *args);
+txdrv_t *tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, void *args);
 
 void tx_free(txdrv_t *tx);
 void tx_collect(void);
-ssize_t tx_write(txdrv_t *tx, gconstpointer data, size_t len);
+ssize_t tx_write(txdrv_t *tx, const void *data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt);
 ssize_t tx_sendto(txdrv_t *tx, const gnet_host_t *to,
-					gconstpointer data, size_t len);
-void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, gpointer srv_arg);
+					const void *data, size_t len);
+void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, void *srv_arg);
 void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
 size_t tx_pending(txdrv_t *tx);
 struct bio_source *tx_bio_source(txdrv_t *tx);
-ssize_t tx_no_write(txdrv_t *tx, gconstpointer data, size_t len);
+ssize_t tx_no_write(txdrv_t *tx, const void *data, size_t len);
 ssize_t tx_no_writev(txdrv_t *tx, iovec_t *iov, int iovcnt);
 ssize_t tx_no_sendto(txdrv_t *tx, const gnet_host_t *to,
-			gconstpointer data, size_t len);
+			const void *data, size_t len);
 void tx_flush(txdrv_t *tx);
 void tx_shutdown(txdrv_t *tx);
-void tx_close(txdrv_t *d, tx_closed_t cb, gpointer arg);
-void tx_close_noop(txdrv_t *tx, tx_closed_t cb, gpointer arg);
-gboolean tx_has_error(txdrv_t *tx);
-void tx_eager_mode(txdrv_t *tx, gboolean on);
+void tx_close(txdrv_t *d, tx_closed_t cb, void *arg);
+void tx_close_noop(txdrv_t *tx, tx_closed_t cb, void *arg);
+bool tx_has_error(txdrv_t *tx);
+void tx_eager_mode(txdrv_t *tx, bool on);
 
 struct bio_source *tx_no_source(txdrv_t *tx);
 
 void tx_debug_set_addrs(const char *s);
-gboolean tx_debug_host(gnet_host_t *h);
+bool tx_debug_host(const gnet_host_t *h);
 
 #endif	/* _core_tx_h_ */
 

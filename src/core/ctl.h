@@ -69,7 +69,7 @@ enum ctld {
 void ctl_init(void);
 void ctl_close(void);
 void ctl_parse(const char *s);
-gboolean ctl_limit(const host_addr_t ha, unsigned flags);
+bool ctl_limit(const host_addr_t ha, unsigned flags);
 
 #endif /* _core_ctl_h_ */
 

@@ -296,7 +296,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	/* Bandwidths */
 	{	
-		const gboolean metric = GNET_PROPERTY(display_metric_units);
+		const bool metric = GNET_PROPERTY(display_metric_units);
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		short_string_t dht_in, dht_out;
 		gnet_bw_stats_t bw_stats, bw2_stats;
@@ -353,7 +353,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	
 	{
 		char line[128];
-		gboolean metric = GNET_PROPERTY(display_metric_units);
+		bool metric = GNET_PROPERTY(display_metric_units);
 
 		gm_snprintf(buf, sizeof buf, "|%s|\n", equals);
 		shell_write(sh, buf);

@@ -62,21 +62,22 @@ void guess_close(void);
 guess_t *guess_create(gnet_search_t sh,
 	const struct guid *muid, const char *query, unsigned mtype,
 	guess_query_cb_t cb, void *arg);
-void guess_cancel(guess_t **gq_ptr, gboolean callback);
+void guess_cancel(guess_t **gq_ptr, bool callback);
 void guess_end_when_starving(guess_t *gq);
-gboolean guess_is_search_muid(const guid_t *muid);
-void guess_got_results(const guid_t *muid, guint32 hits);
-void guess_kept_results(const guid_t *muid, guint32 kept);
-gboolean guess_rpc_handle(struct gnutella_node *n);
+bool guess_is_search_muid(const guid_t *muid);
+void guess_got_results(const guid_t *muid, uint32 hits);
+void guess_kept_results(const guid_t *muid, uint32 kept);
+bool guess_rpc_handle(struct gnutella_node *n);
 void guess_introduction_ping(const struct gnutella_node *n,
-	const char *buf, guint16 len);
+	const char *buf, uint16 len);
 
-int guess_fill_caught_array(host_net_t net, gnet_host_t *hosts, int hcount);
+int guess_fill_caught_array(host_net_t net,
+	bool add_02, gnet_host_t *hosts, int hcount);
 
 /**
  * Is GUESS querying enabled?
  */
-static inline gboolean
+static inline bool
 guess_query_enabled(void)
 {
 	return GNET_PROPERTY(enable_udp) && GNET_PROPERTY(enable_guess) &&

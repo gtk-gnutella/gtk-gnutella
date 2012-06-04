@@ -84,16 +84,18 @@
 
 #include "lib/atoms.h"
 #include "lib/base16.h"
+#include "lib/bigint.h"
 #include "lib/bit_array.h"
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/hikset.h"
 #include "lib/host_addr.h"
 #include "lib/map.h"
-#include "lib/patricia.h"
 #include "lib/parse.h"
+#include "lib/patricia.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/stats.h"
@@ -101,6 +103,7 @@
 #include "lib/timestamp.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define K_BUCKET_GOOD		KDA_K	/* Keep k good contacts per k-bucket */
@@ -170,15 +173,15 @@ struct kbnodes {
 	hash_list_t *good;			/**< The good nodes */
 	hash_list_t *stale;			/**< The (possibly) stale nodes */
 	hash_list_t *pending;		/**< The nodes which are awaiting decision */
-	GHashTable *all;			/**< All nodes in one of the lists */
-	GHashTable *c_class;		/**< Counts class-C networks in bucket */
+	hikset_t *all;				/**< All nodes in one of the lists */
+	acct_net_t *c_class;		/**< Counts class-C networks in bucket */
 	cevent_t *aliveness;		/**< Periodic aliveness checks */
 	cevent_t *refresh;			/**< Periodic bucket refresh */
 	cevent_t *staleness;		/**< Periodic staleness checks */
 	time_t last_lookup;			/**< Last time node lookup was performed */
 };
 
-static GHashTable *c_class;		/**< Counts class-C networks in whole table */
+static acct_net_t *c_class;		/**< Counts class-C networks in whole table */
 
 /**
  * The routing table is a binary tree.  Each node holds a k-bucket containing
@@ -192,8 +195,8 @@ struct kbucket {
 	struct kbucket *zero;		/**< Child node for "0" prefix */
 	struct kbucket *one;		/**< Child node for "1" prefix */
 	struct kbnodes *nodes;		/**< Node information, in leaf k-buckets */
-	guchar depth;				/**< Depth in tree (meaningful bits) */
-	guchar split_depth;			/**< Depth at which we left our space */
+	uchar depth;				/**< Depth in tree (meaningful bits) */
+	uchar split_depth;			/**< Depth at which we left our space */
 	unsigned ours:1;			/**< Whether our KUID falls in that bucket */
 	unsigned no_split:1;		/**< Hysteresis: forbid splits for a while */
 	unsigned frozen_depth:1;	/**< Do not split until next bucket refresh */
@@ -203,7 +206,7 @@ struct kbucket {
  * A (locallay determined) size estimate.
  */
 struct ksize {
-	guint64 estimate;			/**< Value (64 bits should be enough!) */
+	uint64 estimate;			/**< Value (64 bits should be enough!) */
 	size_t amount;				/**< Amount of nodes used to compute estimate */
 	time_t computed;			/**< When did we compute it? */
 };
@@ -240,7 +243,7 @@ struct kstats {
 	struct nsize network[K_REGIONS];	/**< K_OTHER_SIZE items at most */
 	statx_t *lookdata;			/**< Statistics on lookups[] */
 	statx_t *netdata;			/**< Statistics on network[] */
-	gboolean dirty;				/**< The "good" list was changed */
+	bool dirty;					/**< The "good" list was changed */
 };
 
 /**
@@ -248,23 +251,23 @@ struct kstats {
  */
 struct other_size {
 	kuid_t *id;					/**< Node who made the estimate (atom) */
-	guint64 size;				/**< Its own size estimate */
+	uint64 size;				/**< Its own size estimate */
 };
 
-static gboolean initialized;		/**< Whether dht_init() was called */
+static bool initialized;		/**< Whether dht_init() was called */
 static enum dht_bootsteps old_boot_status = DHT_BOOT_NONE;
 
 static struct kbucket *root = NULL;	/**< The root of the routing table tree. */
 static kuid_t *our_kuid;			/**< Our own KUID (atom) */
 static struct kstats stats;			/**< Statistics on the routing table */
 
-static const gchar dht_route_file[] = "dht_nodes";
-static const gchar dht_route_what[] = "the DHT routing table";
+static const char dht_route_file[] = "dht_nodes";
+static const char dht_route_what[] = "the DHT routing table";
 static const kuid_t kuid_null;
 
-static void bucket_alive_check(cqueue_t *cq, gpointer obj);
-static void bucket_stale_check(cqueue_t *cq, gpointer obj);
-static void bucket_refresh(cqueue_t *cq, gpointer obj);
+static void bucket_alive_check(cqueue_t *cq, void *obj);
+static void bucket_stale_check(cqueue_t *cq, void *obj);
+static void bucket_refresh(cqueue_t *cq, void *obj);
 static void dht_route_retrieve(void);
 static struct kbucket *dht_find_bucket(const kuid_t *id);
 
@@ -335,7 +338,7 @@ void
 dht_configured_mode_changed(dht_mode_t mode)
 {
 	dht_mode_t new_mode = mode;
-	gboolean bootstrap_needed = FALSE;
+	bool bootstrap_needed = FALSE;
 
 	switch (mode) {
 	case DHT_MODE_INACTIVE:
@@ -367,7 +370,7 @@ dht_configured_mode_changed(dht_mode_t mode)
 /**
  * Is DHT running in active mode?
  */
-gboolean
+bool
 dht_is_active(void)
 {
 	return GNET_PROPERTY(dht_current_mode) == DHT_MODE_ACTIVE;
@@ -410,7 +413,7 @@ dht_c_class_update_count(knode_t *kn, int pmone)
 /**
  * Is bucket a leaf?
  */
-static gboolean
+static bool
 is_leaf(const struct kbucket *kb)
 {
 	g_assert(kb);
@@ -427,7 +430,7 @@ sibling_of(const struct kbucket *kb)
 	struct kbucket *parent = kb->parent;
 
 	if (!parent)
-		return deconstify_gpointer(kb);		/* Root is its own sibling */
+		return deconstify_pointer(kb);		/* Root is its own sibling */
 
 	return (parent->one == kb) ? parent->zero : parent->one;
 }
@@ -435,7 +438,7 @@ sibling_of(const struct kbucket *kb)
 /**
  * Is the bucket under the tree spanned by the parent?
  */
-static gboolean
+static bool
 is_under(const struct kbucket *kb, const struct kbucket *parent)
 {
 	if (parent->depth >= kb->depth)
@@ -447,7 +450,7 @@ is_under(const struct kbucket *kb, const struct kbucket *parent)
 /**
  * Is the bucket in our closest subtree?
  */
-static gboolean
+static bool
 is_among_our_closest(const struct kbucket *kb)
 {
 	struct kbucket *kours;
@@ -502,7 +505,7 @@ is_among_our_closest(const struct kbucket *kb)
 /**
  * Is the k-bucket splitable?
  */
-static gboolean
+static bool
 is_splitable(const struct kbucket *kb)
 {
 	g_assert(is_leaf(kb));
@@ -574,7 +577,7 @@ is_splitable(const struct kbucket *kb)
 /**
  * Is the DHT "bootstrapped"?
  */
-gboolean
+bool
 dht_bootstrapped(void)
 {
 	return DHT_BOOT_COMPLETED == GNET_PROPERTY(dht_boot_status);
@@ -583,7 +586,7 @@ dht_bootstrapped(void)
 /**
  * Is the DHT "seeded"?
  */
-gboolean
+bool
 dht_seeded(void)
 {
 	return root && !is_leaf(root);		/* We know more than "k" hosts */
@@ -616,7 +619,7 @@ list_for(const struct kbucket *kb, knode_status_t status)
 /**
  * Compute how many nodes the leaf k-bucket contains for the given status.
  */
-static guint
+static uint
 list_count(const struct kbucket *kb, knode_status_t status)
 {
 	hash_list_t *hl;
@@ -634,7 +637,7 @@ list_count(const struct kbucket *kb, knode_status_t status)
  * Compute how mnay nodes are held with a given status under all the leaves
  * of the k-bucket.
  */
-static guint
+static uint
 recursive_list_count(const struct kbucket *kb, knode_status_t status)
 {
 	if (kb->nodes)
@@ -708,7 +711,7 @@ check_leaf_list_consistency(
 {
 	GList *nodes;
 	GList *l;
-	guint count = 0;
+	uint count = 0;
 
 	g_assert(kb->nodes);
 	g_assert(list_for(kb, status) == hl);
@@ -764,7 +767,7 @@ get_our_knode(void)
  */
 
 static unsigned int
-other_size_hash(gconstpointer key)
+other_size_hash(const void *key)
 {
 	const struct other_size *os = key;
 
@@ -772,7 +775,7 @@ other_size_hash(gconstpointer key)
 }
 
 static int
-other_size_eq(gconstpointer a, gconstpointer b)
+other_size_eq(const void *a, const void *b)
 {
 	const struct other_size *os1 = a;
 	const struct other_size *os2 = b;
@@ -824,7 +827,8 @@ allocate_node_lists(struct kbucket *kb)
 	g_assert(kb->nodes == NULL);
 
 	WALLOC(kb->nodes);
-	kb->nodes->all = g_hash_table_new(kuid_hash, kuid_eq);
+	kb->nodes->all = hikset_create(
+		offsetof(knode_t, id), HASH_KEY_FIXED, KUID_RAW_SIZE);
 	kb->nodes->good = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->stale = hash_list_new(knode_hash, knode_eq);
 	kb->nodes->pending = hash_list_new(knode_hash, knode_eq);
@@ -949,8 +953,8 @@ free_node_lists(struct kbucket *kb)
 		 * all be empty, it means this table is now referencing freed objects.
 		 */
 
-		gm_hash_table_destroy_null(&knodes->all);
-		acct_net_free(&knodes->c_class);
+		hikset_free_null(&knodes->all);
+		acct_net_free_null(&knodes->c_class);
 		cq_cancel(&knodes->aliveness);
 		cq_cancel(&knodes->staleness);
 		cq_cancel(&knodes->refresh);
@@ -1090,7 +1094,7 @@ install_bucket_periodic_checks(struct kbucket *kb, time_delta_t elapsed)
  */
 static void
 recursively_apply(
-	struct kbucket *r, void (*f)(struct kbucket *kb, gpointer u), gpointer u)
+	struct kbucket *r, void (*f)(struct kbucket *kb, void *u), void *u)
 {
 	if (r == NULL)
 		return;
@@ -1133,11 +1137,11 @@ dht_allocate_new_kuid_if_needed(void)
  * Notification callback of bucket refreshes.
  */
 static void
-bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	struct kbucket *okb = arg;		/* Original k-bucket (may be gone) */
 	struct kbucket *kb;				/* Current k-bucket where KUID lies */
-	gboolean was_split = FALSE;
+	bool was_split = FALSE;
 
 	/*
 	 * Handle disabling of DHT whilst we were busy looking.
@@ -1197,7 +1201,7 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, gpointer arg)
  * Issue a bucket refresh, if needed.
  */
 static void
-dht_bucket_refresh(struct kbucket *kb, gboolean forced)
+dht_bucket_refresh(struct kbucket *kb, bool forced)
 {
 	kuid_t id;
 
@@ -1275,7 +1279,7 @@ struct bootstrap {
 };
 
 static void bootstrap_completion_status(
-	const kuid_t *kuid, lookup_error_t error, gpointer arg);
+	const kuid_t *kuid, lookup_error_t error, void *arg);
 
 /**
  * Iterative bootstrap step.
@@ -1305,7 +1309,7 @@ completion_iterate(struct bootstrap *b)
  */
 static void
 bootstrap_completion_status(
-	const kuid_t *kuid, lookup_error_t error, gpointer arg)
+	const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	struct bootstrap *b = arg;
 
@@ -1383,7 +1387,7 @@ bootstrap_completion_status(
  * @param complete		TRUE if we managed to look up our KUID successfully
  */
 static void
-dht_complete_bootstrap(gboolean complete)
+dht_complete_bootstrap(bool complete)
 {
 	struct bootstrap *b;
 	struct kbucket *ours;
@@ -1406,9 +1410,9 @@ dht_complete_bootstrap(gboolean complete)
  * Notification callback of lookup of our own ID during DHT bootstrapping.
  */
 static void
-bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
+bootstrap_status(const kuid_t *kuid, lookup_error_t error, void *unused_arg)
 {
-	gboolean own_id;
+	bool own_id;
 
 	(void) unused_arg;
 
@@ -1452,7 +1456,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 		dht_complete_bootstrap(LOOKUP_E_OK == error);
 	else {
 		kuid_t id;
-		gboolean started;
+		bool started;
 
 		random_bytes(id.v, sizeof id.v);
 
@@ -1470,7 +1474,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, gpointer unused_arg)
 /**
  * Is the DHT bootstrapping?
  */
-static gboolean
+static bool
 dht_is_bootstrapping(void)
 {
 	return
@@ -1547,7 +1551,7 @@ dht_attempt_bootstrap(void)
  * If UDP or the DHT is not enabled, do nothing.
  */
 G_GNUC_COLD void
-dht_initialize(gboolean post_init)
+dht_initialize(bool post_init)
 {
 	size_t i;
 
@@ -1655,14 +1659,14 @@ dht_init(void)
 /**
  * Does the specified bucket manage the KUID?
  */
-static gboolean
+static bool
 dht_bucket_manages(struct kbucket *kb, const kuid_t *id)
 {
 	int bits = kb->depth;
 	int i;
 
 	for (i = 0; i < KUID_RAW_SIZE && bits > 0; i++, bits -= 8) {
-		guchar mask = 0xff;
+		uchar mask = 0xff;
 	
 		if (bits < 8)
 			mask = ~((1 << (8 - bits)) - 1) & 0xff;
@@ -1684,7 +1688,7 @@ dht_bucket_manages(struct kbucket *kb, const kuid_t *id)
  * KUID and the mask that allows to test that bit.
  */
 static inline void
-kuid_position(guchar depth, int *byt, guchar *mask)
+kuid_position(uchar depth, int *byt, uchar *mask)
 {
 	g_assert(depth <= K_BUCKET_MAX_DEPTH);
 
@@ -1703,8 +1707,8 @@ dht_find_bucket(const kuid_t *id)
 	struct kbucket *result;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guchar mask;
-		guchar val = id->v[i];
+		uchar mask;
+		uchar val = id->v[i];
 		int j;
 
 		for (j = 0, mask = 0x80; j < 8; j++, mask >>= 1) {
@@ -1784,13 +1788,13 @@ c_class_update_count(knode_t *kn, struct kbucket *kb, int pmone)
 /**
  * Total amount of nodes held in bucket (all lists).
  */
-static guint
+static uint
 bucket_count(const struct kbucket *kb)
 {
 	g_assert(kb->nodes);
 	g_assert(kb->nodes->all);
 
-	return g_hash_table_size(kb->nodes->all);
+	return hikset_count(kb->nodes->all);
 }
 
 /**
@@ -1799,10 +1803,10 @@ bucket_count(const struct kbucket *kb)
 static void
 check_leaf_bucket_consistency(const struct kbucket *kb)
 {
-	guint total;
-	guint good;
-	guint stale;
-	guint pending;
+	uint total;
+	uint good;
+	uint stale;
+	uint pending;
 
 	g_assert(is_leaf(kb));
 
@@ -1825,24 +1829,24 @@ struct node_balance {
 	struct kbucket *zero;
 	struct kbucket *one;
 	int byte;
-	guchar mask;
+	uchar mask;
 };
 
 /**
  * Hash table iterator for bucket splitting.
  */
 static void
-split_among(gpointer key, gpointer value, gpointer user_data)
+split_among(void *value, void *user_data)
 {
-	kuid_t *id = key;
+	const kuid_t *id;
 	knode_t *kn = value;
 	struct node_balance *nb = user_data;
 	struct kbucket *target;
 	hash_list_t *hl;
 
 	knode_check(kn);
-	g_assert(id == kn->id);
 
+	id = kn->id;
 	target = (id->v[nb->byte] & nb->mask) ? nb->one : nb->zero;
 
 	if (GNET_PROPERTY(dht_debug) > 1)
@@ -1855,7 +1859,7 @@ split_among(gpointer key, gpointer value, gpointer user_data)
 	g_assert(hash_list_length(hl) < list_maxsize_for(kn->status));
 
 	hash_list_append(hl, knode_refcnt_inc(kn));
-	g_hash_table_insert(target->nodes->all, kn->id, kn);
+	hikset_insert_key(target->nodes->all, &kn->id);
 	c_class_update_count(kn, target, +1);
 
 	/*
@@ -1911,7 +1915,7 @@ dht_split_bucket(struct kbucket *kb)
 {
 	struct kbucket *one, *zero;
 	int byt;
-	guchar mask;
+	uchar mask;
 	struct node_balance balance;
 
 	g_assert(kb);
@@ -1987,7 +1991,7 @@ dht_split_bucket(struct kbucket *kb)
 	balance.byte = byt;
 	balance.mask = mask;
 
-	g_hash_table_foreach(kb->nodes->all, split_among, &balance);
+	hikset_foreach(kb->nodes->all, split_among, &balance);
 
 	g_assert(bucket_count(kb) == bucket_count(zero) + bucket_count(one));
 
@@ -2025,7 +2029,7 @@ dht_split_bucket(struct kbucket *kb)
  */
 static void
 add_node_internal(struct kbucket *kb,
-	knode_t *kn, knode_status_t status, gboolean is_new)
+	knode_t *kn, knode_status_t status, bool is_new)
 {
 	hash_list_t *hl = list_for(kb, status);
 
@@ -2034,7 +2038,7 @@ add_node_internal(struct kbucket *kb,
 	g_assert(kn->status == status);
 
 	hash_list_append(hl, knode_refcnt_inc(kn));
-	g_hash_table_insert(kb->nodes->all, kn->id, kn);
+	hikset_insert_key(kb->nodes->all, &kn->id);
 	c_class_update_count(kn, kb, +1);
 
 	if (GNET_PROPERTY(dht_debug) > 2)
@@ -2068,17 +2072,17 @@ add_node(struct kbucket *kb, knode_t *kn, knode_status_t status)
  *
  * @return TRUE if we added the node to the table.
  */
-static gboolean
-dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
+static bool
+dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, bool traffic)
 {
-	gboolean added = FALSE;
-	guint good;
-	guint stale;
+	bool added = FALSE;
+	uint good;
+	uint stale;
 
 	knode_check(kn);
 	g_assert(is_leaf(kb));
 	g_assert(kb->nodes->all != NULL);
-	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
+	g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * Not enough good entries for the bucket, add at tail of list
@@ -2109,7 +2113,7 @@ dht_add_node_to_bucket(knode_t *kn, struct kbucket *kb, gboolean traffic)
 
 	while (0 == stale && is_splitable(kb)) {
 		int byt;
-		guchar mask;
+		uchar mask;
 
 		dht_split_bucket(kb);
 		kuid_position(kb->depth, &byt, &mask);
@@ -2153,15 +2157,25 @@ done:
 static knode_t *
 move_node(struct kbucket *kb, knode_t *kn)
 {
+	/*
+	 * It is no longer possible to move nodes around now that we use an
+	 * hikset to store nodes by KUID: when we return from WMOVE, the structure
+	 * still references an address that is invalid and has potentially been
+	 * freed.  We would have to revert to a classic hash table if we were
+	 * to re-enable moving nodes around.
+	 *		--RAM, 2012-04-30
+	 */
+#if 0
 	if (1 == knode_refcnt(kn)) {
 		knode_t *moved = WMOVE(kn);
 		if (moved != kn) {
-			g_hash_table_remove(kb->nodes->all, moved->id);
-			g_hash_table_insert(kb->nodes->all, moved->id, moved);
+			/* Replace value with ``moved'' */
+			hikset_insert_key(kb->nodes->all, &moved->id);
 			return moved;
 		}
 	}
-
+#endif
+	(void) kb;
 	return kn;
 }
 
@@ -2277,8 +2291,8 @@ promote_pending_node(struct kbucket *kb)
  *
  * @return TRUE if we found a collision.
  */
-static gboolean
-clashing_nodes(const knode_t *kn1, const knode_t *kn2, gboolean verifying)
+static bool
+clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying)
 {
 	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
 		if (GNET_PROPERTY(dht_debug)) {
@@ -2302,7 +2316,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 {
 	hash_list_t *hl;
 	knode_t *tkn;
-	gboolean was_good;
+	bool was_good;
 
 	knode_check(kn);
 	g_assert(kb);
@@ -2310,7 +2324,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 
 	check_leaf_bucket_consistency(kb);
 
-	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
+	tkn = hikset_lookup(kb->nodes->all, kn->id);
 
 	if (NULL == tkn)
 		return;
@@ -2344,7 +2358,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	hl = list_for(kb, tkn->status);
 
 	if (hash_list_remove(hl, tkn)) {
-		g_hash_table_remove(kb->nodes->all, tkn->id);
+		hikset_remove(kb->nodes->all, tkn->id);
 		c_class_update_count(tkn, kb, -1);
 
 		if (GNET_PROPERTY(dht_debug) > 2)
@@ -2372,7 +2386,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	hash_list_t *hl;
 	size_t maxsize;
 	struct kbucket *kb;
-	gboolean in_table;
+	bool in_table;
 	knode_status_t old;
 	knode_t *tkn;
 
@@ -2385,7 +2399,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	g_assert(kb->nodes);
 	g_assert(kb->nodes->all);
 
-	tkn = g_hash_table_lookup(kb->nodes->all, kn->id);
+	tkn = hikset_lookup(kb->nodes->all, kn->id);
 	in_table = NULL != tkn;
 
 	/*
@@ -2450,7 +2464,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 			is_splitable(kb)
 		) {
 			int byt;
-			guchar mask;
+			uchar mask;
 
 			if (GNET_PROPERTY(dht_debug)) {
 				g_debug("DHT splitting %s to make room in good list for %s",
@@ -2509,7 +2523,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 					host_addr_port_to_string(removed->addr, removed->port),
 					kbucket_to_string(kb));
 		} else {
-			g_hash_table_remove(kb->nodes->all, removed->id);
+			hikset_remove(kb->nodes->all, removed->id);
 			c_class_update_count(removed, kb, -1);
 
 			if (GNET_PROPERTY(dht_debug))
@@ -2551,7 +2565,7 @@ dht_record_activity(knode_t *kn)
 {
 	hash_list_t *hl;
 	struct kbucket *kb;
-	guint good_length;
+	uint good_length;
 
 	knode_check(kn);
 
@@ -2562,13 +2576,13 @@ dht_record_activity(knode_t *kn)
 	g_assert(is_leaf(kb));
 
 	if (kn->status == KNODE_UNKNOWN) {
-		g_assert(NULL == g_hash_table_lookup(kb->nodes->all, kn->id));
+		g_assert(!hikset_contains(kb->nodes->all, kn->id));
 		return;
 	}
 
 	hl = list_for(kb, kn->status);
 
-	g_assert(NULL != g_hash_table_lookup(kb->nodes->all, kn->id));
+	g_assert(hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * If the "good" list is not full, try promoting the node to it.
@@ -2580,7 +2594,7 @@ dht_record_activity(knode_t *kn)
 		kn->status != KNODE_GOOD &&
 		(good_length = hash_list_length(kb->nodes->good)) < K_BUCKET_GOOD
 	) {
-		guint stale_length = hash_list_length(kb->nodes->stale);
+		uint stale_length = hash_list_length(kb->nodes->stale);
 
 		if (stale_length + good_length >= K_BUCKET_GOOD) {
 			if (kn->status == KNODE_STALE) {
@@ -2609,8 +2623,8 @@ dht_record_activity(knode_t *kn)
  * @return TRUE if we added the node to the table, FALSE if we rejected it or
  * if it was already present.
  */
-static gboolean
-record_node(knode_t *kn, gboolean traffic)
+static bool
+record_node(knode_t *kn, bool traffic)
 {
 	struct kbucket *kb;
 
@@ -2638,7 +2652,7 @@ record_node(knode_t *kn, gboolean traffic)
 		return FALSE;
 	}
 
-	g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
+	g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 	/*
 	 * Protect against hosts from a class C network presenting too many
@@ -2732,7 +2746,7 @@ dht_find_node(const kuid_t *kuid)
 	g_assert(kb->nodes != NULL);
 	g_assert(kb->nodes->all != NULL);
 
-	return g_hash_table_lookup(kb->nodes->all, kuid);
+	return hikset_lookup(kb->nodes->all, kuid);
 }
 
 /**
@@ -2762,7 +2776,7 @@ dht_remove_timeouting_node(knode_t *kn)
 
 	kb = dht_find_bucket(kn->id);
 
-	if (NULL == g_hash_table_lookup(kb->nodes->all, kn->id))
+	if (!hikset_contains(kb->nodes->all, kn->id))
 		return;			/* Node not held in routing table */
 
 	dht_set_node_status(kn, KNODE_STALE);
@@ -2786,7 +2800,7 @@ struct max_depth {
 };
 
 static void
-compute_max_depth(struct kbucket *kb, gpointer u)
+compute_max_depth(struct kbucket *kb, void *u)
 {
 	struct max_depth *md = u;
 
@@ -2859,7 +2873,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 	hash_list_t *hl;
 	size_t maxsize;
 	GSList *sl;
-	gboolean forget = FALSE;
+	bool forget = FALSE;
 
 	hl = list_for(kb, status);
 	maxsize = list_maxsize_for(status);
@@ -2870,7 +2884,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 		knode_t *kn = sl->data;
 
 		knode_check(kn);
-		g_assert(!g_hash_table_lookup(kb->nodes->all, kn->id));
+		g_assert(!hikset_contains(kb->nodes->all, kn->id));
 
 		/*
 		 * Regardless of whether we forget the node or add it to the merged
@@ -2914,8 +2928,8 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
  *
  * @return TRUE if merging was completed, FALSE otherwise.
  */
-static gboolean
-dht_merge_siblings(struct kbucket *kb, gboolean forced)
+static bool
+dht_merge_siblings(struct kbucket *kb, bool forced)
 {
 	struct kbucket *sibling;
 	unsigned good_nodes;
@@ -3114,7 +3128,7 @@ dht_node_timed_out(knode_t *kn)
  * Periodic check of stale contacts.
  */
 static void
-bucket_stale_check(cqueue_t *unused_cq, gpointer obj)
+bucket_stale_check(cqueue_t *unused_cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
@@ -3185,12 +3199,12 @@ bucket_stale_check(cqueue_t *unused_cq, gpointer obj)
  * Periodic check of live contacts.
  */
 static void
-bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
+bucket_alive_check(cqueue_t *unused_cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
 	time_t now = tm_time();
-	guint good_and_stale;
+	uint good_and_stale;
 
 	(void) unused_cq;
 
@@ -3235,9 +3249,9 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 	good_and_stale = list_count(kb, KNODE_GOOD) + list_count(kb, KNODE_STALE);
 
 	if (good_and_stale < K_BUCKET_GOOD) {
-		guint missing = K_BUCKET_GOOD - good_and_stale;
-		guint old_count;
-		guint new_count;
+		uint missing = K_BUCKET_GOOD - good_and_stale;
+		uint old_count;
+		uint new_count;
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT missing %u good node%s in %s",
@@ -3254,7 +3268,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
 		} while (missing > 0 && new_count > old_count);
 
 		if (GNET_PROPERTY(dht_debug)) {
-			guint promoted = K_BUCKET_GOOD - good_and_stale - missing;
+			uint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
 				g_debug("DHT promoted %u pending node%s in %s",
 					promoted, 1 == promoted ? "" : "s", kbucket_to_string(kb));
@@ -3356,7 +3370,7 @@ bucket_alive_check(cqueue_t *unused_cq, gpointer obj)
  * Periodic bucket refresh.
  */
 static void
-bucket_refresh(cqueue_t *unused_cq, gpointer obj)
+bucket_refresh(cqueue_t *unused_cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	time_delta_t elapsed;
@@ -3458,20 +3472,16 @@ merge:
  * @param kuid		the KUID that was looked for
  * @param amount	the amount of k-closest nodes they wanted
  */
-static guint64
+static uint64
 dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 {
 	patricia_iter_t *iter;
 	size_t i;
 	size_t count;
-	guint32 squares = 0;
+	uint32 squares = 0;
 	kuid_t *id;
-	kuid_t dsum;
-	kuid_t sq;
-	kuid_t sparseness;
-	kuid_t r;
-	kuid_t max;
-	kuid_t estimate;
+	bigint_t dsum, sq, sparseness, r, max, estimate, tmp;
+	uint64 result;
 
 #define NCNT	K_LOCAL_ESTIMATE
 
@@ -3489,36 +3499,38 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 	 *  S = sum of i*i for i = 1..NCNT
 	 *
 	 *  D/S represents the sparseness of the results.  If all results were
-	 * at distance 1, 2, 3... etc, then D/S = 1.  The greater D/S, the more
-	 * sparse the results are.
+	 * at distance 1, 2, 3... etc, then D/S = 1.  The greater D/S, the sparser
+	 * the results are.
 	 *
 	 * The DHT size is then estimated by 2^160 / (D/S).
 	 */
 
 	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
 	i = 1;
-	kuid_zero(&dsum);
-	kuid_zero(&max);
-	kuid_not(&max);			/* Max amount: 2^160 - 1 */
+	bigint_init(&dsum, KUID_RAW_SIZE + 1);
+	bigint_init(&tmp, KUID_RAW_SIZE + 1);
 
-	STATIC_ASSERT(MAX_INT_VAL(guint32) >= NCNT * NCNT * NCNT);
-	STATIC_ASSERT(MAX_INT_VAL(guint8) >= NCNT);
+	STATIC_ASSERT(MAX_INT_VAL(uint32) >= NCNT * NCNT * NCNT);
+	STATIC_ASSERT(MAX_INT_VAL(uint8) >= NCNT);
 
 	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
-		kuid_t di;
-		gboolean saturated = FALSE;
+		kuid_t dix;
+		bigint_t dist;
+		bool saturated = FALSE;
 
-		kuid_xor_distance(&di, id, kuid);
+		kuid_xor_distance(&dix, id, kuid);
+		bigint_use(&dist, dix.v, sizeof dix.v);
+		bigint_copy(&tmp, &dist);	/* Result has 168 bits, not 160 */
 
 		/*
-		 * If any of these operations report a carry, then we're saturating
+		 * If any of these operations reports a carry, then we're saturating
 		 * and it's time to leave our computations: the hosts are too sparse
 		 * and the distance is getting too large.
 		 */
 
-		if (0 != kuid_mult_u8(&di, i)) {
+		if (0 != bigint_mult_u8(&tmp, i)) {
 			saturated = TRUE;
-		} else if (kuid_add(&dsum, &di)) {
+		} else if (bigint_add(&dsum, &tmp)) {
 			saturated = TRUE;
 		}
 
@@ -3526,7 +3538,8 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		i++;
 
 		if (saturated) {
-			kuid_copy(&dsum, &max);
+			bigint_zero(&dsum);
+			bigint_set_nth_bit(&dsum, 160);	/* 2^160 */
 			break;		/* DHT size too small or incomplete routing table */
 		}
 		if (i > NCNT)
@@ -3540,35 +3553,49 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 
 #undef NCNT
 
-	kuid_set32(&sq, squares);
-	kuid_divide(&dsum, &sq, &sparseness, &r);
+	bigint_init(&sq, KUID_RAW_SIZE + 1);
+	bigint_init(&sparseness, KUID_RAW_SIZE + 1);
+	bigint_init(&r, KUID_RAW_SIZE + 1);
+	bigint_init(&estimate, KUID_RAW_SIZE + 1);
+
+	bigint_set32(&sq, squares);
+	bigint_divide(&dsum, &sq, &sparseness, &r);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		double ds = kuid_to_double(&dsum);
-		double s = kuid_to_double(&sq);
+		double ds = bigint_to_double(&dsum);
+		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
 			kuid_to_hex_string(kuid), amount, 1 == amount ? "" : "s",
 			(unsigned) (i - 1));
-		g_debug("DHT dsum is %s = %F", kuid_to_hex_string(&dsum), ds);
+		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
-			kuid_to_hex_string(&sq), s, squares);
+			bigint_to_hex_string(&sq), s, squares);
 
 		g_debug("DHT sparseness over %u nodes is %s = %F (%F)",
-			(unsigned) i - 1, kuid_to_hex_string(&sparseness),
-			kuid_to_double(&sparseness), ds / s);
+			(unsigned) i - 1, bigint_to_hex_string(&sparseness),
+			bigint_to_double(&sparseness), ds / s);
 	}
 
-	/*
-	 * We can't divide 2^160 by the sparseness because we can't represent
-	 * that number in a KUID.  We're going to divide 2^160 - 1 instead, which
-	 * won't make much of a difference, and we add one (for ourselves).
-	 */
+	bigint_init(&max, KUID_RAW_SIZE + 1);
+	bigint_set_nth_bit(&max, 160);	/* 2^160 */
 
-	kuid_divide(&max, &sparseness, &estimate, &r);
-	kuid_add_u8(&estimate, 1);
+	bigint_divide(&max, &sparseness, &estimate, &r);
+	bigint_add_u8(&estimate, 1);
 
-	return kuid_to_guint64(&estimate);
+	result = bigint_to_uint64(&estimate);
+	if G_UNLIKELY(0 == result)
+		result = (uint64) -1;		/* Overflowed, very unlikely on Earth */
+
+	bigint_free(&tmp);
+	bigint_free(&estimate);
+	bigint_free(&max);
+	bigint_free(&r);
+	bigint_free(&sparseness);
+	bigint_free(&sq);
+	bigint_free(&dsum);
+
+	return result;
 }
 
 /**
@@ -3580,7 +3607,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
  * @param pt		the PATRICIA trie holding the lookup path
  * @param kuid		the KUID that was looked for
  */
-static guint64
+static uint64
 dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 {
 	patricia_iter_t *iter;
@@ -3592,7 +3619,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	size_t i;
 	size_t b_min;
 	size_t b_max;
-	guint64 estimate;
+	uint64 estimate;
 	double bits, weight, total_weight;
 
 	/*
@@ -3721,7 +3748,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 	}
 
 	bits /= total_weight;
-	estimate = (guint64) (retained * pow(2.0, bits));
+	estimate = (uint64) (retained * pow(2.0, bits));
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average common prefix is %f bits over %zu node%s",
@@ -3740,18 +3767,16 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
  * @param pt		the PATRICIA trie holding the lookup path
  * @param kuid		the KUID that was looked for
  */
-static guint64
+static uint64
 dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 {
 	patricia_iter_t *iter;
 	size_t count;
 	size_t intervals;
-	kuid_t prev;
-	kuid_t accum;
-	kuid_t remain;
-	kuid_t first;
-	kuid_t avg;
+	kuid_t first, prev;
+	bigint_t val, accum, remain, avg;
 	kuid_t *id;
+	uint64 result;
 
 	/*
 	 * Here is the algorithm used to compute the size estimate.
@@ -3773,16 +3798,22 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 
 	iter = patricia_metric_iterator_lazy(pt, kuid, TRUE);
 	count = intervals = 0;
-	kuid_zero(&accum);
+
+	bigint_init(&accum, KUID_RAW_SIZE + 1);
+	bigint_init(&remain, KUID_RAW_SIZE + 1);
+	bigint_init(&avg, KUID_RAW_SIZE + 1);
+	bigint_init(&val, KUID_RAW_SIZE + 1);
 
 	while (patricia_iter_next(iter, (void *) &id, NULL, NULL)) {
 		if (count++ > 0) {
-			kuid_t dist;
-			kuid_xor_distance(&dist, &prev, id); /* Between consecutive IDs */
-			kuid_add(&accum, &dist);
+			kuid_t di;
+			bigint_t dist;
+			kuid_xor_distance(&di, &prev, id); /* Between consecutive IDs */
+			bigint_use(&dist, di.v, sizeof di.v);
+			bigint_add(&accum, &dist);
 			intervals++;
-			kuid_xor_distance(&dist, &first, id);	/* With first ID */
-			kuid_add(&accum, &dist);
+			kuid_xor_distance(&di, &first, id);	/* With first ID */
+			bigint_add(&accum, &dist);
 			intervals += count;
 		} else {
 			kuid_copy(&first, id);
@@ -3807,14 +3838,14 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	if (count == 1)
 		return 1 + patricia_count(pt);
 
-	kuid_set32(&prev, intervals + 1);
-	kuid_divide(&accum, &prev, &avg, &remain);
+	bigint_set32(&val, intervals + 1);
+	bigint_divide(&accum, &val, &avg, &remain);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average distance of %u KUIDs near %s is %s (%F)",
 			(unsigned) count - 1,
-			kuid_to_hex_string(kuid), kuid_to_hex_string2(&avg),
-			kuid_to_double(&avg));
+			kuid_to_hex_string(kuid), bigint_to_hex_string(&avg),
+			bigint_to_double(&avg));
 	}
 
 	/*
@@ -3823,12 +3854,19 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 	 * population is therefore 2^160 / average_distance.
 	 */
 
-	kuid_zero(&prev);
-	kuid_not(&prev);		/* Max amount we can represent: 2^160 - 1 */
+	bigint_zero(&val);
+	bigint_set_nth_bit(&val, 160);	/* 2^160 */
 
-	kuid_divide(&prev, &avg, &accum, &remain);
+	bigint_divide(&val, &avg, &accum, &remain);
 
-	return kuid_to_guint64(&accum);
+	result = bigint_to_uint64(&accum);
+
+	bigint_free(&accum);
+	bigint_free(&remain);
+	bigint_free(&avg);
+	bigint_free(&val);
+
+	return result;
 }
 
 /**
@@ -3839,10 +3877,10 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
  * @param kuid		the KUID that was looked for
  * @param amount	the amount of k-closest nodes they wanted
  */
-static guint64
+static uint64
 dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 {
-	guint64 estimate_1, estimate_2, estimate_3;
+	uint64 estimate_1, estimate_2, estimate_3;
 
 	estimate_1 = dht_compute_size_estimate_1(pt, kuid, amount);
 	estimate_2 = dht_compute_size_estimate_2(pt, kuid);
@@ -3870,7 +3908,7 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 static void
 report_estimated_size(void)
 {
-	guint64 size = dht_size();
+	uint64 size = dht_size();
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT averaged global size estimate: %s "
@@ -3891,11 +3929,11 @@ update_cached_size_estimate(void)
 {
 	time_t now = tm_time();
 	int i;
-	guint64 estimate;
+	uint64 estimate;
 	int n;
-	guint64 min = 0;
-	guint64 max = MAX_INT_VAL(guint64);
-	guint64 avg_stderr;
+	uint64 min = 0;
+	uint64 max = MAX_INT_VAL(uint64);
+	uint64 avg_stderr;
 	statx_t *st;
 
 	/*
@@ -3905,19 +3943,18 @@ update_cached_size_estimate(void)
 
 	n = statx_n(stats.lookdata);
 	if (n > 1) {
-		guint64 sdev = (guint64) statx_sdev(stats.lookdata);
-		guint64 avg = (guint64) statx_avg(stats.lookdata);
+		uint64 sdev = (uint64) statx_sdev(stats.lookdata);
+		uint64 avg = (uint64) statx_avg(stats.lookdata);
 		if (sdev < avg)
 			min = avg - sdev;
 		max = avg + sdev;
-		avg_stderr = sdev / sqrt(n);
 	}
 
 	st = statx_make_nodata();
 
 	for (i = 0; i < K_REGIONS; i++) {
 		if (delta_time(now, stats.lookups[i].computed) <= ESTIMATE_LIFE) {
-			guint64 val = stats.lookups[i].estimate;
+			uint64 val = stats.lookups[i].estimate;
 			if (val >= min && val <= max) {
 				statx_add(st, (double) val);
 			}
@@ -3938,8 +3975,10 @@ update_cached_size_estimate(void)
 	if (dht_is_active() || statx_n(st) == 0)
 		statx_add(st, stats.local.estimate);
 
-	estimate = (guint64) statx_avg(st);
-	avg_stderr = statx_n(st) > 1 ? (guint64) statx_stderr(st) : 0;
+	estimate = (uint64) statx_avg(st);
+	avg_stderr = statx_n(st) > 1 ? (uint64) statx_stderr(st) : 0;
+
+	gnet_stats_set_general(GNR_DHT_ESTIMATED_SIZE_STDERR, avg_stderr);
 
 	stats.average.estimate = estimate;
 	stats.average.computed = now;
@@ -3995,9 +4034,9 @@ void
 dht_update_subspace_size_estimate(
 	patricia_t *pt, const kuid_t *kuid, int amount)
 {
-	guint8 subspace;
+	uint8 subspace;
 	time_t now = tm_time();
-	guint64 estimate;
+	uint64 estimate;
 	size_t kept;
 
 	/*
@@ -4013,8 +4052,8 @@ dht_update_subspace_size_estimate(
 
 	subspace = kuid_leading_u8(kuid);
 
-	STATIC_ASSERT(sizeof(guint8) == sizeof subspace);
-	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(guint8));
+	STATIC_ASSERT(sizeof(uint8) == sizeof subspace);
+	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(uint8));
 
 	/*
 	 * If subspace is that of our KUID, we have more precise information
@@ -4111,8 +4150,8 @@ dht_update_size_estimate(void)
 	knode_t **kvec;
 	int kcnt;
 	patricia_t *pt;
-	guint64 estimate;
-	gboolean alive = TRUE;
+	uint64 estimate;
+	bool alive = TRUE;
 
 	if (!dht_enabled())
 		return;
@@ -4179,11 +4218,14 @@ const kuid_t *
 dht_get_size_estimate(void)
 {
 	static kuid_t size_estimate;
+	bigint_t size;
 
 	if (stats.average.computed == 0)
 		dht_update_size_estimate();
 
-	kuid_set64(&size_estimate, stats.average.estimate);
+	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
+	bigint_set64(&size, stats.average.estimate);
+
 	return &size_estimate;
 }
 
@@ -4204,24 +4246,24 @@ dht_get_kball_furthest(void)
  * Record new DHT size estimate from another node.
  */
 void
-dht_record_size_estimate(knode_t *kn, kuid_t *size)
+dht_record_size_estimate(knode_t *kn, bigint_t *size)
 {
-	guint8 subspace;
+	uint8 subspace;
 	struct other_size *os;
-	gconstpointer key;
+	const void *key;
 	struct other_size *data;
 	hash_list_t *hl;
-	guint64 estimate;
+	uint64 estimate;
 
 	knode_check(kn);
 	g_assert(size);
 
-	STATIC_ASSERT(sizeof(guint8) == sizeof subspace);
-	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(guint8));
+	STATIC_ASSERT(sizeof(uint8) == sizeof subspace);
+	STATIC_ASSERT(K_REGIONS >= MAX_INT_VAL(uint8));
 
 	subspace = kuid_leading_u8(kn->id);
 	hl = stats.network[subspace].others;
-	estimate = kuid_to_guint64(size);
+	estimate = bigint_to_uint64(size);
 
 	WALLOC(os);
 	os->id = kuid_get_atom(kn->id);
@@ -4229,7 +4271,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
 	if (hash_list_find(hl, os, &key)) {
 		/* This should happen only infrequently */
 		other_size_free(os);
-		data = deconstify_gpointer(key);
+		data = deconstify_pointer(key);
 		if (data->size != estimate) {
 			statx_remove(stats.netdata, (double) data->size);
 			data->size = estimate;
@@ -4255,7 +4297,7 @@ dht_record_size_estimate(knode_t *kn, kuid_t *size)
  * For local user information, compute the probable DHT size, consisting
  * of the average of all the recent sizes we have collected plus our own.
  */
-guint64
+uint64
 dht_size(void)
 {
 	return statx_n(stats.netdata) > 0 ?
@@ -4267,7 +4309,7 @@ dht_size(void)
  * GList sort callback.
  */
 static int
-distance_to(gconstpointer a, gconstpointer b, gpointer user_data)
+distance_to(const void *a, const void *b, void *user_data)
 {
 	const knode_t *ka = a;
 	const knode_t *kb = b;
@@ -4293,7 +4335,7 @@ distance_to(gconstpointer a, gconstpointer b, gpointer user_data)
 static int
 fill_closest_in_bucket(
 	const kuid_t *id, struct kbucket *kb,
-	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive)
 {
 	GList *nodes = NULL;
 	GList *good;
@@ -4400,7 +4442,7 @@ fill_closest_in_bucket(
 	 * insert them in the vector.
 	 */
 
-	nodes = g_list_sort_with_data(nodes, distance_to, deconstify_gpointer(id));
+	nodes = g_list_sort_with_data(nodes, distance_to, deconstify_pointer(id));
 
 	for (added = 0, l = nodes; l && kcnt; l = g_list_next(l)) {
 		*kvec++ = l->data;
@@ -4431,10 +4473,10 @@ static int
 recursively_fill_closest_from(
 	const kuid_t *id,
 	struct kbucket *kb,
-	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive)
 {
 	int byt;
-	guchar mask;
+	uchar mask;
 	struct kbucket *closest;
 	int added;
 
@@ -4479,7 +4521,7 @@ recursively_fill_closest_from(
 int
 dht_fill_closest(
 	const kuid_t *id,
-	knode_t **kvec, int kcnt, const kuid_t *exclude, gboolean alive)
+	knode_t **kvec, int kcnt, const kuid_t *exclude, bool alive)
 {
 	struct kbucket *kb;
 	int added;
@@ -4643,7 +4685,7 @@ write_node(const knode_t *kn, FILE *f)
  * Store all good nodes from a leaf bucket.
  */
 static void
-dht_store_leaf_bucket(struct kbucket *kb, gpointer u)
+dht_store_leaf_bucket(struct kbucket *kb, void *u)
 {
 	FILE *f = u;
 	hash_list_iter_t *iter;
@@ -4732,7 +4774,7 @@ dht_route_store_if_dirty(void)
  * Free bucket node.
  */
 static void
-dht_free_bucket(struct kbucket *kb, gpointer unused_u)
+dht_free_bucket(struct kbucket *kb, void *unused_u)
 {
 	(void) unused_u;
 
@@ -4745,7 +4787,7 @@ dht_free_bucket(struct kbucket *kb, gpointer unused_u)
  * @param exiting	whether gtk-gnutella is exiting altogether
  */
 G_GNUC_COLD void
-dht_close(gboolean exiting)
+dht_close(bool exiting)
 {
 	size_t i;
 
@@ -4788,7 +4830,7 @@ dht_close(gboolean exiting)
 	}
 	statx_free(stats.lookdata);
 	statx_free(stats.netdata);
-	acct_net_free(&c_class);
+	acct_net_free_null(&c_class);
 
 	ZERO(&stats);			/* Clear all stats */
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
@@ -4825,7 +4867,7 @@ dht_addr_verify_cb(
 	const knode_t *kn,
 	const struct gnutella_node *unused_n,
 	kda_msg_t unused_function,
-	const gchar *unused_payload, size_t unused_len, gpointer arg)
+	const char *unused_payload, size_t unused_len, void *arg)
 {
 	struct addr_verify *av = arg;
 
@@ -4944,7 +4986,7 @@ dht_ping_cb(
 	const knode_t *kn,
 	const struct gnutella_node *unused_n,
 	kda_msg_t unused_function,
-	const gchar *unused_payload, size_t unused_len, gpointer unused_arg)
+	const char *unused_payload, size_t unused_len, void *unused_arg)
 {
 	(void) unused_n;
 	(void) unused_function;
@@ -4965,7 +5007,7 @@ dht_ping_cb(
  * every minute.
  */
 static void
-dht_ping(host_addr_t addr, guint16 port)
+dht_ping(host_addr_t addr, uint16 port)
 {
 	knode_t *kn;
 	vendor_code_t vc;
@@ -4987,7 +5029,7 @@ dht_ping(host_addr_t addr, guint16 port)
 	 * Not more than one random ping per minute though.
 	 */
 
-	if (delta_time(now, last_sent) < 60 || (random_u32() % 100) >= 10)
+	if (delta_time(now, last_sent) < 60 || random_value(99) >= 10)
 		return;
 
 	last_sent = now;
@@ -5019,7 +5061,7 @@ dht_ping(host_addr_t addr, guint16 port)
  * Send a DHT ping as a probe, hoping the pong reply will help us bootstrap.
  */
 static void
-dht_probe(host_addr_t addr, guint16 port)
+dht_probe(host_addr_t addr, uint16 port)
 {
 	knode_t *kn;
 	vendor_code_t vc;
@@ -5040,7 +5082,7 @@ dht_probe(host_addr_t addr, guint16 port)
 
 	vc.u32 = T_0000;
 	kn = knode_new(&kuid_null, 0, addr, port, vc, 0, 0);
-	guid_random_muid(cast_to_gpointer(&muid));
+	guid_random_muid(cast_to_pointer(&muid));
 	kmsg_send_ping(kn, &muid);
 	knode_free(kn);
 }
@@ -5053,7 +5095,7 @@ dht_probe(host_addr_t addr, guint16 port)
  * the bootstrapping as we will know one good node!
  */
 static void
-dht_bootstrap(host_addr_t addr, guint16 port)
+dht_bootstrap(host_addr_t addr, uint16 port)
 {
 	/*
 	 * We can be called only until we have been fully bootstrapped, but we
@@ -5078,7 +5120,7 @@ dht_bootstrap(host_addr_t addr, guint16 port)
  * randomly attempt to ping the node.
  */
 void
-dht_bootstrap_if_needed(host_addr_t addr, guint16 port)
+dht_bootstrap_if_needed(host_addr_t addr, uint16 port)
 {
 	if (!dht_enabled() || NULL == root)
 		return;
@@ -5110,7 +5152,7 @@ dht_ipp_extract(const struct gnutella_node *n, const char *payload, int paylen,
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
-		guint16 port;
+		uint16 port;
 
 		host_ip_port_peek(p, type, &ha, &port);
 
@@ -5193,19 +5235,19 @@ dht_route_parse(FILE *f)
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_DHT_ROUTE_TAGS + 1)];
 	char line[1024];
 	unsigned line_no = 0;
-	gboolean done = FALSE;
+	bool done = FALSE;
 	time_delta_t most_recent = REFRESH_PERIOD;
 	time_t now = tm_time();
 	patricia_t *nodes;
 	patricia_iter_t *iter;
 	/* Variables filled for each entry */
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 	kuid_t kuid;
 	vendor_code_t vcode = { 0 };
 	time_t seen = (time_t) -1;
 	time_t ctim = (time_t) -1;
-	guint32 major, minor;
+	uint32 major, minor;
 
 	g_return_if_fail(f);
 
@@ -5418,8 +5460,8 @@ dht_route_parse(FILE *f)
 	dht_update_size_estimate();
 }
 
-static const gchar node_file[] = "dht_nodes";
-static const gchar file_what[] = "DHT nodes";
+static const char node_file[] = "dht_nodes";
+static const char file_what[] = "DHT nodes";
 
 /**
  * Retrieve previous routing table from ~/.gtk-gnutella/dht_nodes.

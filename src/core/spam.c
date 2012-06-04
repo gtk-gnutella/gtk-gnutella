@@ -172,7 +172,7 @@ struct namesize_item {
 	filesize_t	max_size;
 };
 
-static gboolean 
+static bool 
 spam_add_name_and_size(const char *name,
 	filesize_t min_size, filesize_t max_size)
 {
@@ -205,8 +205,8 @@ struct spam_item {
 	char		*name;
 	filesize_t  min_size;
 	filesize_t  max_size;
-	gboolean	done;
-	gboolean	damaged;
+	bool	done;
+	bool	damaged;
 };
 
 /**
@@ -221,15 +221,15 @@ struct spam_item {
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD gulong
+static G_GNUC_COLD ulong
 spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;
 	struct spam_item item;
 	char line[1024];
-	guint line_no = 0;
+	uint line_no = 0;
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_SPAM_TAGS)];
-	gulong item_count = 0;
+	ulong item_count = 0;
 
 	g_assert(f);
 
@@ -325,7 +325,7 @@ spam_load(FILE *f)
 		case SPAM_TAG_SIZE:
 			{
 				const char *endptr;
-				guint64 u;
+				uint64 u;
 				int error;
 					
 				u = parse_uint64(value, &endptr, 10, &error);
@@ -424,7 +424,7 @@ spam_load(FILE *f)
  * changed.
  */
 static void
-spam_changed(const char *filename, gpointer unused_udata)
+spam_changed(const char *filename, void *unused_udata)
 {
 	FILE *f;
 
@@ -433,7 +433,7 @@ spam_changed(const char *filename, gpointer unused_udata)
 	f = file_fopen(filename, "r");
 	if (f) {
 		char buf[80];
-		gulong count;
+		ulong count;
 
 		spam_close();
 		count = spam_load(f);
@@ -531,7 +531,7 @@ spam_close(void)
  * @param filename the filename to check.
  * @returns TRUE if found, and FALSE if not.
  */
-gboolean
+bool
 spam_check_filename_size(const char *filename, filesize_t size)
 {
 	const GSList *sl;

@@ -37,6 +37,7 @@
 
 #include "if/core/main.h"
 
+#include "lib/crash.h"
 #include "lib/str.h"
 #include "lib/product.h"
 
@@ -102,6 +103,13 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 			"The -a, -e, -m and -s options are incompatible with -r.");
 		return REPLY_ERROR;
 	}
+
+	/*
+	 * Turn auto-restart on or off in case we crash from now on.
+	 */
+
+	crash_ctl(NULL == opt_r ? CRASH_FLAG_CLEAR : CRASH_FLAG_SET,
+		CRASH_F_RESTART);
 
 	gtk_gnutella_request_shutdown(mode, flags);
 

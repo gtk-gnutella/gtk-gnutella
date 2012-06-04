@@ -46,21 +46,21 @@
 void keys_init(void);
 void keys_close(void);
 
-gboolean keys_exists(const kuid_t *key);
-gboolean keys_is_store_loaded(const kuid_t *id);
-void keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded);
-guint64 keys_has(const kuid_t *id, const kuid_t *cid, gboolean store);
+bool keys_exists(const kuid_t *key);
+bool keys_is_store_loaded(const kuid_t *id);
+void keys_get_status(const kuid_t *id, bool *full, bool *loaded);
+uint64 keys_has(const kuid_t *id, const kuid_t *cid, bool store);
 void keys_add_value(const kuid_t *id, const kuid_t *cid,
-	guint64 dbkey, time_t expire);
+	uint64 dbkey, time_t expire);
 void keys_update_value(const kuid_t *id, time_t expire);
-void keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey);
+void keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey);
 int keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt);
 int keys_get(const kuid_t *id, dht_value_type_t type,
 	kuid_t **secondary, int secondary_count, dht_value_t **valvec, int valcnt,
-	float *loadptr, gboolean *cached);
-gboolean keys_within_kball(const kuid_t *id);
-gboolean keys_is_foreign(const kuid_t *id);
-gboolean keys_is_nearby(const kuid_t *id);
+	float *loadptr, bool *cached);
+bool keys_within_kball(const kuid_t *id);
+bool keys_is_foreign(const kuid_t *id);
+bool keys_is_nearby(const kuid_t *id);
 double keys_decimation_factor(const kuid_t *key);
 void keys_update_kball();
 void keys_offload(const knode_t *kn);

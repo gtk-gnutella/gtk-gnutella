@@ -40,6 +40,7 @@
 #include "lib/ascii.h"
 #include "lib/iso3166.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/halloc.h"
 #include "lib/walloc.h"
@@ -335,7 +336,7 @@ ctl_warn(const struct ctl_string *s, const struct ctl_tok *at, const char *msg)
 	}
 }
 
-static GHashTable *ctl_by_country;		/**< Options per country */
+static htable_t *ctl_by_country;		/**< Options per country */
 static unsigned ctl_all_flags;			/**< Set of flags used */
 
 /**
@@ -345,7 +346,7 @@ static unsigned ctl_all_flags;			/**< Set of flags used */
 static GSList *
 ctl_parse_country(struct ctl_string *s, const struct ctl_tok *tok)
 {
-	guint16 code;
+	uint16 code;
 
 	g_assert(CTL_TOK_ID == tok->type);
 
@@ -418,7 +419,7 @@ ctl_parse_options(struct ctl_string *s)
  * Parse a list entry.
  * @return TRUE when done with input.
  */
-static gboolean
+static bool
 ctl_parse_list_entry(struct ctl_string *s)
 {
 	struct ctl_tok *tok = ctl_next_token(s);
@@ -426,7 +427,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	GSList *sl;
 	char *opt = NULL;
 	unsigned flags;
-	gboolean done = FALSE;
+	bool done = FALSE;
 
 	switch (tok->type) {
 	case CTL_TOK_EOF:		done = TRUE; goto out;
@@ -486,7 +487,7 @@ ctl_parse_list_entry(struct ctl_string *s)
 	GM_SLIST_FOREACH(countries, sl) {
 		unsigned code = pointer_to_uint(sl->data);
 
-		g_hash_table_replace(ctl_by_country,
+		htable_insert(ctl_by_country,
 			uint_to_pointer(code), uint_to_pointer(flags));
 		ctl_all_flags |= flags;
 
@@ -513,7 +514,7 @@ ctl_parse_list(struct ctl_string *s)
 {
 	while (!ctl_parse_list_entry(s)) {
 		struct ctl_tok *tok = ctl_next_token(s);
-		gboolean done = TRUE;
+		bool done = TRUE;
 
 		switch (tok->type) {
 		case CTL_TOK_EOF:	break;
@@ -528,25 +529,12 @@ ctl_parse_list(struct ctl_string *s)
 }
 
 /**
- * Hashtable iterator callback returning TRUE.
- */
-static gboolean
-ctl_true(gpointer ukey, gpointer uvalue, gpointer udata)
-{
-	(void) ukey;
-	(void) uvalue;
-	(void) udata;
-
-	return TRUE;
-}
-
-/**
  * Reset limits.
  */
 static void
 ctl_reset(void)
 {
-	g_hash_table_foreach_remove(ctl_by_country, ctl_true, NULL);
+	htable_clear(ctl_by_country);
 	ctl_all_flags = 0;
 }
 
@@ -602,10 +590,10 @@ ctl_parse(const char *s)
 /**
  * Are specified flags all set for the country to which the IP address belongs?
  */
-gboolean
+bool
 ctl_limit(const host_addr_t ha, unsigned flags)
 {
-	guint16 code;
+	uint16 code;
 	unsigned cflags;
 
 	/*
@@ -629,7 +617,7 @@ ctl_limit(const host_addr_t ha, unsigned flags)
 		return FALSE;
 
 	cflags = pointer_to_uint(
-		g_hash_table_lookup(ctl_by_country, uint_to_pointer(code)));
+		htable_lookup(ctl_by_country, uint_to_pointer(code)));
 
 	if ((cflags & flags) != flags)
 		return FALSE;
@@ -646,7 +634,7 @@ ctl_limit(const host_addr_t ha, unsigned flags)
 void
 ctl_init(void)
 {
-	ctl_by_country = g_hash_table_new(NULL, NULL);
+	ctl_by_country = htable_create(HASH_KEY_SELF, 0);
 }
 
 /**
@@ -656,7 +644,7 @@ void
 ctl_close(void)
 {
 	ctl_reset();
-	gm_hash_table_destroy_null(&ctl_by_country);
+	htable_free_null(&ctl_by_country);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

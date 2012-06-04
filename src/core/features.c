@@ -50,8 +50,8 @@ struct header_x_feature {
 	char *name;
 	int major;
 	int minor;
-	const gboolean *guard;
-	gboolean (*guardfn)(void);
+	const bool *guard;
+	bool (*guardfn)(void);
 };
 
 struct features {
@@ -62,9 +62,9 @@ static struct features *
 features_get(xfeature_t xf)
 {
 	static struct features features[NUM_FEATURES];
-	guint i;
+	uint i;
 
-	i = (guint) xf;
+	i = (uint) xf;
 	g_return_val_if_fail(i < G_N_ELEMENTS(features), NULL);
 	return &features[i];
 }
@@ -98,7 +98,7 @@ header_features_cleanup(xfeature_t xf)
 void
 features_close(void)
 {
-	guint i;
+	uint i;
 
 	for (i = 0; i < NUM_FEATURES; i++) {
 		header_features_cleanup(i);
@@ -111,7 +111,7 @@ features_close(void)
  */
 void
 header_features_add_guarded(xfeature_t xf,
-	const char *name, int major, int minor, const gboolean *guard)
+	const char *name, int major, int minor, const bool *guard)
 {
 	struct header_x_feature *item;
 	struct features *features;
@@ -135,7 +135,7 @@ header_features_add_guarded(xfeature_t xf,
  */
 void
 header_features_add_guarded_function(xfeature_t xf,
-	const char *name, int major, int minor, gboolean (*guardfn)(void))
+	const char *name, int major, int minor, bool (*guardfn)(void))
 {
 	struct header_x_feature *item;
 	struct features *features;
@@ -227,9 +227,9 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
  * header, if no support was found both major and minor are 0 and FALSE
  * is returned.
  */
-gboolean
+bool
 header_get_feature(const char *name, const header_t *header,
-	guint *major, guint *minor)
+	uint *major, uint *minor)
 {
 	static const char x_features[] = "X-Features";
 	char *buf, *start;

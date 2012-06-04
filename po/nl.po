@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2011-06-07 09:21+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -60,9 +60,9 @@ msgstr "Geen omschakelingen meer mogelijk"
 msgid "Switching (after error) to \"%s\""
 msgstr "Omshakelen (na fout) naar \"%s\""
 
-#, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " op %s - opnieuw gepland voor %s%s #%u"
+#, fuzzy, c-format
+msgid " at %s"
+msgstr " via %s"
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Opgeschort (SHA1 verifieren)"
@@ -94,6 +94,9 @@ msgstr "Connectie mislukt (Niet genoeg file-descriptors?)"
 
 msgid "Connection failed"
 msgstr "Verbinding mislukt"
+
+msgid "SHA1 mismatch detected"
+msgstr "SHA1 komt niet overeen"
 
 msgid "Waiting for server PROX publishing"
 msgstr "Wacht op server voor PROX publicatie"
@@ -352,9 +355,6 @@ msgstr "Schrijven mislukt: %s"
 msgid "Malformed push reply"
 msgstr "Push reply misvormd"
 
-msgid "SHA1 mismatch detected"
-msgstr "SHA1 komt niet overeen"
-
 msgid ", inbound"
 msgstr ", inkomend"
 
@@ -395,6 +395,13 @@ msgstr "Tijd verstreken"
 
 msgid "Requeued due to timeout"
 msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
+
+#, fuzzy
+msgid "Partial file removed"
+msgstr "Gedeeltelijke bestand delen (PFS)"
+
+msgid "File info being reset"
+msgstr ""
 
 #, c-format
 msgid "Downloading (TR: %s)"
@@ -506,6 +513,9 @@ msgstr "Berichten smoren"
 
 msgid "Message matched limits"
 msgstr "Bericht kwam overeen met limieten"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr "\"Pong\" niet bruikbaar"
@@ -671,6 +681,9 @@ msgstr "Afgeschermd indicatie verzonden"
 
 msgid "Not an ultra node"
 msgstr "Geen ultranode"
+
+msgid "Unknown error"
+msgstr "Onbekende error"
 
 msgid "Unstable IP address"
 msgstr "Instabiel IP-adres"
@@ -848,6 +861,9 @@ msgstr "Lees fout"
 msgid "Got EOF"
 msgstr "Ontving EOF"
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr "Schrijf fout (Invoer fout)"
 
@@ -868,20 +884,126 @@ msgstr[1] "Ontving %d hosts van de UDP host cache %s"
 msgid "Connect back timeout"
 msgstr "Terug verbinden tijd verstreken"
 
+#, fuzzy
+msgid "Request timeout"
+msgstr "Verzoek verzonden"
+
 msgid "Timeout waiting for follow-up"
 msgstr "Time-out tijdens het wachten op de volgende"
 
 msgid "Lifetime expired"
 msgstr "Levenstijd verstreken"
 
+msgid "Unauthorized"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Limiting connections from %s"
+msgstr "Beperkte connectie"
+
+msgid "No reason given"
+msgstr ""
+
+#, fuzzy
+msgid "Bad Request"
+msgstr "Laatste verzoek"
+
+#, fuzzy
+msgid "Header too large"
+msgstr "Veelste groot"
+
+#, fuzzy
+msgid "Input buffer full"
+msgstr "Mislukt (Invoer buffer vol)"
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 msgid "Unable to send GIV"
 msgstr "Niet mogelijk om GIV te verzenden"
+
+#, fuzzy
+msgid "Not Found"
+msgstr ", uitgaand"
+
+msgid "File was modified"
+msgstr ""
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Bibliotheek grootte"
+
+msgid "Moved Permanently"
+msgstr ""
+
+#, fuzzy
+msgid "File index/name mismatch"
+msgstr "Bestandsgrootte komt niet overeen"
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+#, fuzzy
+msgid "SHA1 is being recomputed"
+msgstr "SHA1 komt niet overeen"
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
+msgstr ""
 
 msgid "<Browse Host Request>"
 msgstr "<Browse host verzoek>"
 
+#, fuzzy
+msgid "Browse Host Disabled"
+msgstr "<Blader Host %s>"
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+#, fuzzy
+msgid "Not Modified"
+msgstr "Gewijzigd"
+
 msgid "Stalling upload replaced"
 msgstr "Hangende upload vervangen"
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "Verzoek wordt verstuurd"
+
+#, fuzzy
+msgid "Requested range not satisfiable"
+msgstr "%s Verzocht bereik nog niet beschikbaar"
+
+#, fuzzy
+msgid "Requested range not available yet"
+msgstr "%s Verzocht bereik nog niet beschikbaar"
+
+#, fuzzy
+msgid "Queue full"
+msgstr "Wachtrij bevroren"
+
+#, fuzzy
+msgid "Another connection is still active"
+msgstr "Gnet connecties uitgeschakeld"
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum retry delay"
+msgstr "Minimale bestandsgrootte:"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -889,6 +1011,10 @@ msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
 
 msgid "Cannot send whole HTTP status"
 msgstr "Kon niet de hele HTTP status versturen"
+
+#, fuzzy
+msgid "Not Acceptable"
+msgstr "Protocol wordt niet ondersteund"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -905,6 +1031,34 @@ msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ", chunked"
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+#, fuzzy
+msgid "Not Implemented"
+msgstr "afgerond"
+
+#, fuzzy
+msgid "No Content Allowed"
+msgstr "Geen Content-Length header"
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+#, fuzzy
+msgid "Missing Host Header"
+msgstr "Poort nummer ontbreekt"
+
+#, fuzzy
+msgid "Sharing currently disabled"
+msgstr "Momenteel gebruikt"
 
 msgid "Write exception"
 msgstr "Schrijf exceptie"
@@ -3520,6 +3674,35 @@ msgstr "Debug level voor de query hit bericht generatie."
 msgid "Debug level for GUID management."
 msgstr "Debug level voor het host beheer"
 
+#, fuzzy
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr "Debug level voor de TX (verzenden) netwerk laag."
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -4110,6 +4293,19 @@ msgid ""
 msgstr ""
 "Of alleen-sessie zoekopdracht welke een wachtende download hebben opnieuw "
 "gestart moeten worden zodra gtk-gnutella is opgestart."
+
+#, fuzzy
+msgid "Discard search results coming from servents with a banned GUID."
+msgstr "Zoekresultaten uitsluiten welke als spam worden beschouwd."
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr "Of het aantal verzonden query hits getoond moet worden."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonieme proxies"
@@ -4980,6 +5176,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "Onbekende error"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "Onbekende error"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "Onbekende error"
 
@@ -5064,6 +5264,10 @@ msgstr "Ongeldige command syntax"
 msgid "too many arguments in command"
 msgstr "Teveel argumenten in command"
 
+#, fuzzy, c-format
+msgid "un-parseable argument #%u in command"
+msgstr "Teveel argumenten in command"
+
 msgid "Malformed command"
 msgstr "Commando ongeldig"
 
@@ -5146,6 +5350,21 @@ msgstr "Externe metadata"
 
 msgid "Bitzi URL"
 msgstr "Bitzi URL"
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "stabiel is gezet"
+
+#, fuzzy
+msgid "rescheduled for"
+msgstr " op %s - opnieuw gepland voor %s%s #%u"
+
+#, fuzzy
+msgid "restartable since"
+msgstr "stabiel is gezet"
 
 #, c-format
 msgid " (slot %u"
@@ -5273,9 +5492,6 @@ msgstr "volgende verzocht"
 
 msgid "Awaiting data"
 msgstr "Wacht op data"
-
-msgid "Unknown error"
-msgstr "Onbekende error"
 
 #, c-format
 msgid "Retry in %us"
@@ -5554,6 +5770,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr "DHT routetabel verouderde nodes"
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr "Duplicaten met een hogere TTL"
 
@@ -5653,6 +5872,9 @@ msgstr "GUESS query's"
 #, fuzzy
 msgid "GUESS queries (0.2)"
 msgstr "GUESS query's"
+
+msgid "GUESS link cache size"
+msgstr ""
 
 msgid "GUESS cached query keys held"
 msgstr "GUESS gecachte query sleutels in bezit"
@@ -5882,6 +6104,10 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Orphan-downloads worden opnieuw geseed door upload verzoek"
 
 msgid "DHT estimated amount of nodes"
+msgstr "DHT geschat aantal nodes"
+
+#, fuzzy
+msgid "DHT standard error of estimated amount of nodes"
 msgstr "DHT geschat aantal nodes"
 
 msgid "DHT k-ball theoretical frontier (bits)"
@@ -8197,6 +8423,10 @@ msgstr "Lokaal toe te passen zoek filter voor nieuw gecreëerde zoekopdrachten."
 msgid "Discard results bearing an alien IP address"
 msgstr "Resultaten van een vreemd IP adres negeren"
 
+#, fuzzy
+msgid "Discard results bearing a banned GUID"
+msgstr "Resultaten van een vreemd IP adres negeren"
+
 msgid "Restart session-only searches with pending downloads"
 msgstr "Start alleen-sessie zoekopdracht met wachtende downloads opnieuw"
 
@@ -8211,6 +8441,13 @@ msgstr "Bewaar SPAM SHA1 tabel in het geheugen"
 
 msgid "Relayed queries remembered"
 msgstr "Doorgegeven query's onthouden"
+
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Upload statistieken in het zijpaneel tonen."
 
 msgid "Not in database"
 msgstr "Niet in de database"
@@ -8637,6 +8874,12 @@ msgstr "Vervalt binnen %s"
 msgid "Expires with this session"
 msgstr "Vervalt in deze sessie"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u download"
+msgstr[1] "%u downloads"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8654,6 +8897,69 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "dupl."
 msgstr[1] "dupl."
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "GUESS query's"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Host"
+msgstr[1] "Host"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "bestand"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "Query"
+msgstr[1] "Query"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "Sluiten"
+
+#, fuzzy
+msgid "bounded"
+msgstr "eigenaar"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Passief"
@@ -8791,6 +9097,10 @@ msgstr "Host informatie"
 
 msgid "Hostname"
 msgstr "Hostname"
+
+#, fuzzy
+msgid "banned"
+msgstr "Verbannen: %s"
 
 msgid "Servent ID"
 msgstr "Servent ID"
@@ -9062,9 +9372,6 @@ msgstr "QUEUE verstuurd, wacht op koppen..."
 
 #~ msgid "Seaerch Media Type"
 #~ msgstr "Zoek Media Type"
-
-#~ msgid "Banned: %s"
-#~ msgstr "Verbannen: %s"
 
 #~ msgid "Banned for %s"
 #~ msgstr "Verbannen voor %s"

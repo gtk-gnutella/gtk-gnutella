@@ -34,9 +34,9 @@
 #ifndef _cpufreq_h_
 #define _cpufreq_h_
 
-guint64 cpufreq_min(void);
-guint64 cpufreq_max(void);
-guint64 cpufreq_current(void);
+uint64 cpufreq_min(void);
+uint64 cpufreq_max(void);
+uint64 cpufreq_current(void);
 
 #endif /* _cpufreq_h_ */
 

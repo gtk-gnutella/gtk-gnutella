@@ -40,7 +40,7 @@
 #include "common.h"
 #include "spam_sha1.h"
 
-gboolean spam_check_filename_size(const char *filename, filesize_t size);
+bool spam_check_filename_size(const char *filename, filesize_t size);
 void spam_init(void);
 void spam_close(void);
 

@@ -91,15 +91,16 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/hikset.h"
 #include "lib/iovec.h"
 #include "lib/path.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"       /* Must be the last header included */
 
-static GHashTable *ht_file_objects_rdonly;	/* read-only file objects */
-static GHashTable *ht_file_objects_wronly;	/* write-only file objects */
-static GHashTable *ht_file_objects_rdwr;	/* read+write-able file objects */
+static hikset_t *ht_file_objects_rdonly;	/* read-only file objects */
+static hikset_t *ht_file_objects_wronly;	/* write-only file objects */
+static hikset_t *ht_file_objects_rdwr;		/* read+write-able file objects */
 
 enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
@@ -124,7 +125,7 @@ struct file_object {
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_WRONLY or O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_writable(const int fd)
 {
 	int flags;
@@ -144,7 +145,7 @@ fd_is_writable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_RDONLY or O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_readable(const int fd)
 {
 	int flags;
@@ -165,7 +166,7 @@ fd_is_readable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is opened with O_RDWR.
  */
-static inline gboolean
+static inline bool
 fd_is_readable_and_writable(const int fd)
 {
 	int flags;
@@ -188,7 +189,7 @@ fd_is_readable_and_writable(const int fd)
  * @param fd A valid file descriptor.
  * @return TRUE if the file descriptor is compatible with the access mode.
  */
-static inline gboolean
+static inline bool
 accmode_is_valid(const int fd, const int accmode)
 {
 	g_return_val_if_fail(fd >= 0, FALSE);
@@ -220,7 +221,7 @@ file_object_check(const struct file_object * const fo)
  *
  * @return The hash table holding file object for the access mode.
  */
-static inline GHashTable *
+static inline hikset_t *
 file_object_mode_get_table(const int accmode)
 {
 	switch (accmode) {
@@ -249,7 +250,7 @@ file_object_find(const char * const pathname, int accmode)
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-	fo = g_hash_table_lookup(file_object_mode_get_table(O_RDWR), pathname);
+	fo = hikset_lookup(file_object_mode_get_table(O_RDWR), pathname);
 
 	/*
 	 * We need to find a more specific file object if looking for O_WRONLY
@@ -258,7 +259,7 @@ file_object_find(const char * const pathname, int accmode)
 
 	if (O_RDWR != accmode) {
 		struct file_object *xfo;
-		xfo = g_hash_table_lookup(file_object_mode_get_table(accmode), pathname);
+		xfo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
 		if (xfo != NULL) {
 			g_assert(xfo->accmode == accmode);
 			fo = xfo;
@@ -281,7 +282,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 {
 	static const struct file_object zero_fo;
 	struct file_object *fo;
-	GHashTable *ht;
+	hikset_t *ht;
 
 	g_return_val_if_fail(fd >= 0, NULL);
 	g_return_val_if_fail(pathname, NULL);
@@ -301,8 +302,7 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 
 	file_object_check(fo);
 	g_assert(is_valid_fd(fo->fd));
-	gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
-		fo->pathname, fo);
+	hikset_insert(ht, fo);
 
 	return fo;
 }
@@ -318,7 +318,7 @@ file_object_remove(struct file_object * const fo)
 	xfo = file_object_find(fo->pathname, fo->accmode);
 	g_assert(xfo == fo);
 
-	g_hash_table_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
+	hikset_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
 	fo->removed = TRUE;
 }
 
@@ -332,7 +332,7 @@ file_object_free(struct file_object * const fo)
 	if (fo->removed) {
 		const struct file_object *xfo;
 
-		xfo = g_hash_table_lookup(file_object_mode_get_table(fo->accmode),
+		xfo = hikset_lookup(file_object_mode_get_table(fo->accmode),
 				fo->pathname);
 		g_assert(xfo != fo);
 	} else {
@@ -467,14 +467,14 @@ file_object_op_to_string(enum file_object_op op)
  *
  * @return TRUE if operation was successful, FALSE otherwise, with errno set.
  */
-static gboolean
+static bool
 file_object_special_op(enum file_object_op op,
 	const char * const old_name, const char * const new_name)
 {
 	const int accmodes[] = { O_RDONLY, O_WRONLY, O_RDWR };
 	unsigned i;
 	GSList *objects = NULL;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 	int saved_errno = 0;
 
 	errno = EINVAL;		/* In case one of the soft assertions fails */
@@ -547,11 +547,10 @@ file_object_special_op(enum file_object_op op,
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
 
-			g_hash_table_remove(file_object_mode_get_table(fo->accmode),
+			hikset_remove(file_object_mode_get_table(fo->accmode),
 				fo->pathname);
 			atom_str_change(&fo->pathname, new_name);
-			gm_hash_table_insert_const(file_object_mode_get_table(fo->accmode),
-				fo->pathname, fo);
+			hikset_insert(file_object_mode_get_table(fo->accmode), fo);
 		}
 	} else {
 		GSList *sl;
@@ -626,7 +625,7 @@ done:
  *
  * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_rename(const char * const old_name, const char * const new_name)
 {
 	return file_object_special_op(FO_OP_RENAME, old_name, new_name);
@@ -641,7 +640,7 @@ file_object_rename(const char * const old_name, const char * const new_name)
  *
  * @return TRUE if renaming was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_moved(const char * const old_name, const char * const new_name)
 {
 	return file_object_special_op(FO_OP_MOVED, old_name, new_name);
@@ -654,7 +653,7 @@ file_object_moved(const char * const old_name, const char * const new_name)
  *
  * @return TRUE if unlinking was successful, FALSE otherwise, with errno set.
  */
-gboolean
+bool
 file_object_unlink(const char * const path)
 {
 	return file_object_special_op(FO_OP_UNLINK, path, NULL);
@@ -813,49 +812,47 @@ file_object_get_pathname(const struct file_object * const fo)
 void
 file_object_init(void)
 {
+	size_t offset = offsetof(struct file_object, pathname);
+
 	g_return_if_fail(!ht_file_objects_rdonly);
 	g_return_if_fail(!ht_file_objects_wronly);
 	g_return_if_fail(!ht_file_objects_rdwr);
 
-	ht_file_objects_rdonly = g_hash_table_new(g_str_hash, g_str_equal);
-	ht_file_objects_wronly = g_hash_table_new(g_str_hash, g_str_equal);
-	ht_file_objects_rdwr = g_hash_table_new(g_str_hash, g_str_equal);
+	ht_file_objects_rdonly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_wronly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_rdwr   = hikset_create(offset, HASH_KEY_STRING, 0);
 }
 
 static void
-file_object_show_item(gpointer key, gpointer value, gpointer unused_udata)
+file_object_show_item(void *value, void *unused_udata)
 {
 	const struct file_object * const fo = value;
 
-	g_assert(key);
-	g_assert(value);
 	(void) unused_udata;
 
 	file_object_check(fo);
-	g_assert(fo->pathname == key);
 
 	g_warning("leaked file object: ref.count=%d fd=%d pathname=\"%s\"",
 		fo->ref_count, fo->fd, fo->pathname);
 }
 
 static inline void
-file_object_destroy_table(GHashTable **ht_ptr, const char * const name)
+file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
 {
-	GHashTable *ht;
-	guint n;
+	hikset_t *ht;
+	uint n;
 
 	g_assert(ht_ptr);
 	ht = *ht_ptr;
 	g_return_if_fail(ht);
 
-	n = g_hash_table_size(ht);
+	n = hikset_count(ht);
 	if (n > 0) {
-		g_warning("file_object_destroy_table(): %s still contains %u items",
-			name, n);
-		g_hash_table_foreach(ht, file_object_show_item, NULL);
+		g_warning("%s(): %s still contains %u items", G_STRFUNC, name, n);
+		hikset_foreach(ht, file_object_show_item, NULL);
 	}
 	g_return_if_fail(0 == n);
-	g_hash_table_destroy(ht);
+	hikset_free_null(ht_ptr);
 	*ht_ptr = NULL;
 }
 

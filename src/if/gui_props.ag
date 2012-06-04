@@ -1387,6 +1387,25 @@ prop = {
     };
 };
 
+prop = {
+    name = "search_display_guess_stats";
+    desc = "Whether a summary line with GUESS search stats should be dispayed.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "guess_stats_show_total";
+    desc = "Whether the GUESS summary line should show total statistics or "
+		"ones pertaining to the current search only.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 #endif /* !USE_TOPLESS */
 
 /* vi: set ts=4: */

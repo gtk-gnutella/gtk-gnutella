@@ -59,8 +59,8 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 static const char *msg_name[256];
-static guint8 msg_weight[256];	/**< For gmsg_cmp() */
-static guint8 kmsg_weight[256];	/**< For gmsg_cmp() */
+static uint8 msg_weight[256];	/**< For gmsg_cmp() */
+static uint8 kmsg_weight[256];	/**< For gmsg_cmp() */
 
 /**
  * Ensure that the gnutella message header has the correct size,
@@ -70,7 +70,7 @@ static guint8 kmsg_weight[256];	/**< For gmsg_cmp() */
  * @param size	the payload plus header size of the gnutella message.
  */
 static inline void
-gmsg_header_check(gconstpointer msg, guint32 size)
+gmsg_header_check(const void *msg, uint32 size)
 {
 	g_assert(gnutella_header_get_ttl(msg) > 0);
 	g_assert(size >= GTA_HEADER_SIZE);
@@ -88,16 +88,16 @@ gmsg_header_check(gconstpointer msg, guint32 size)
  * if the message is valid but cannot be interpreted locally.
  */
 gmsg_valid_t
-gmsg_size_valid(gconstpointer msg, guint16 *size)
+gmsg_size_valid(const void *msg, uint16 *size)
 {
-	guint32 raw_size = gnutella_header_get_size(msg);
-	guint16 payload_size = (guint16) (raw_size & GTA_SIZE_MASK);
+	uint32 raw_size = gnutella_header_get_size(msg);
+	uint16 payload_size = (uint16) (raw_size & GTA_SIZE_MASK);
 	
 	if (raw_size == payload_size)
 		goto ok;
 
 	if (raw_size & GTA_SIZE_MARKED) {
-		guint32 flags = raw_size & ~GTA_SIZE_MASK;
+		uint32 flags = raw_size & ~GTA_SIZE_MASK;
 		flags &= ~GTA_SIZE_MARKED;
 
 		*size = payload_size;
@@ -131,7 +131,7 @@ ok:
  * to the specified file descriptor.
  */
 static void
-gmsg_dump(FILE *out, gconstpointer data, guint32 size)
+gmsg_dump(FILE *out, const void *data, uint32 size)
 {
 	g_assert(size >= GTA_HEADER_SIZE);
 
@@ -143,8 +143,8 @@ gmsg_dump(FILE *out, gconstpointer data, guint32 size)
  * Same as gmsg_dump(), but the header and the PDU data are separated.
  */
 static void
-gmsg_split_dump(FILE *out, gconstpointer head, gconstpointer data,
-	guint32 size)
+gmsg_split_dump(FILE *out, const void *head, const void *data,
+	uint32 size)
 {
 	g_assert(size >= GTA_HEADER_SIZE);
 
@@ -164,7 +164,7 @@ gmsg_init(void)
 
 	for (i = 0; i < 256; i++) {
 		const char *s = "unknown";
-		guint w = 0;
+		uint w = 0;
 
 		switch ((enum gta_msg) i) {
 		case GTA_MSG_DHT:            w = 0;      s = "DHT"; break;
@@ -198,7 +198,7 @@ gmsg_init(void)
 	 */
 
 	for (i = 0; i < 256; i++) {
-		guint w = 0;
+		uint w = 0;
 
 		switch ((enum kda_msg) i) {
 		case KDA_MSG_PING_REQUEST:        w = 1; break;
@@ -220,7 +220,7 @@ gmsg_init(void)
  * Convert message function number into name.
  */
 const char *
-gmsg_name(guint function)
+gmsg_name(uint function)
 {
 	if (function > 255)
 		return "invalid";
@@ -235,7 +235,7 @@ gmsg_name(guint function)
  * its memory.
  */
 pmsg_t *
-gmsg_to_pmsg(gconstpointer msg, guint32 size)
+gmsg_to_pmsg(const void *msg, uint32 size)
 {
 	pmsg_t *mb;
 
@@ -261,12 +261,12 @@ gmsg_to_pmsg(gconstpointer msg, guint32 size)
  * TTL having the GTA_UDP_DEFLATED bit set.
  */
 pmsg_t *
-gmsg_split_to_deflated_pmsg(const void *head, const void *data, guint32 size)
+gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 {
-	guint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
-	guint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
-	gpointer buf;								/* Compression made there */
-	guint32 deflated_length;					/* Length of deflated data */
+	uint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
+	uint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
+	void *buf;									/* Compression made there */
+	uint32 deflated_length;						/* Length of deflated data */
 	zlib_deflater_t *z;
 	pmsg_t *mb;
 
@@ -331,7 +331,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, guint32 size)
 			gmsg_infostr_full_split(head, data, size), deflated_length);
 
 	{
-		gpointer header;
+		void *header;
 		
 		header = pmsg_start(mb);
 		gnutella_header_set_ttl(header,
@@ -368,7 +368,7 @@ send_raw:
  * TTL having the GTA_UDP_DEFLATED bit set.
  */
 pmsg_t *
-gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
+gmsg_to_deflated_pmsg(const void *msg, uint32 size)
 {
 	const char *data = const_ptr_add_offset(msg, GTA_HEADER_SIZE);
 
@@ -379,7 +379,7 @@ gmsg_to_deflated_pmsg(gconstpointer msg, guint32 size)
  * Construct control PDU descriptor from message.
  */
 pmsg_t *
-gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size)
+gmsg_to_ctrl_pmsg(const void *msg, uint32 size)
 {
 	pmsg_t *mb;
 
@@ -392,8 +392,8 @@ gmsg_to_ctrl_pmsg(gconstpointer msg, guint32 size)
  * Construct extended control PDU (with free routine) from message.
  */
 pmsg_t *
-gmsg_to_ctrl_pmsg_extend(gconstpointer msg, guint32 size,
-	pmsg_free_t free_cb, gpointer arg)
+gmsg_to_ctrl_pmsg_extend(const void *msg, uint32 size,
+	pmsg_free_t free_cb, void *arg)
 {
 	pmsg_t *mb;
 
@@ -407,7 +407,7 @@ gmsg_to_ctrl_pmsg_extend(gconstpointer msg, guint32 size,
  * Write message data into new empty message buffer.
  */
 static void
-write_message(pmsg_t *mb, gconstpointer head, gconstpointer data, guint32 size)
+write_message(pmsg_t *mb, const void *head, const void *data, uint32 size)
 {
 	size_t written;
 
@@ -425,7 +425,7 @@ write_message(pmsg_t *mb, gconstpointer head, gconstpointer data, guint32 size)
  * @param size		the total size of the message, header + payload
  */
 pmsg_t *
-gmsg_split_to_pmsg(gconstpointer head, gconstpointer data, guint32 size)
+gmsg_split_to_pmsg(const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb;
 
@@ -440,8 +440,8 @@ gmsg_split_to_pmsg(gconstpointer head, gconstpointer data, guint32 size)
  * Construct extended PDU (with free routine) from header and data.
  */
 pmsg_t *
-gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
-	guint32 size, pmsg_free_t free_cb, gpointer arg)
+gmsg_split_to_pmsg_extend(const void *head, const void *data,
+	uint32 size, pmsg_free_t free_cb, void *arg)
 {
 	pmsg_t *mb;
 
@@ -472,7 +472,7 @@ gmsg_split_to_pmsg_extend(gconstpointer head, gconstpointer data,
 void
 gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb)
 {
-	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
 
 	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
 		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
@@ -496,7 +496,7 @@ gmsg_mb_routeto_one(const struct gnutella_node *from,
 	const struct gnutella_node *to, pmsg_t *mb)
 {
 	g_assert(!pmsg_was_sent(mb));
-	gmsg_header_check(cast_to_gconstpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
 
 	if (!NODE_IS_WRITABLE(to))
 		return;
@@ -529,7 +529,7 @@ gmsg_mb_sendto_one(const struct gnutella_node *n, pmsg_t *mb)
  * Send message to one node.
  */
 void
-gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
+gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 {
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -572,7 +572,7 @@ gmsg_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
  * A control message is inserted ahead any other queued regular data.
  */
 void
-gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
+gmsg_ctrl_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 {
 	g_return_if_fail(!NODE_IS_UDP(n));
 
@@ -592,7 +592,7 @@ gmsg_ctrl_sendto_one(struct gnutella_node *n, gconstpointer msg, guint32 size)
  */
 void
 gmsg_search_sendto_one(
-	struct gnutella_node *n, gnet_search_t sh, gconstpointer msg, guint32 size)
+	struct gnutella_node *n, gnet_search_t sh, const void *msg, uint32 size)
 {
 	g_return_if_fail(!NODE_IS_UDP(n));
 
@@ -613,7 +613,7 @@ gmsg_search_sendto_one(
  */
 static void
 gmsg_split_send_from_to(struct gnutella_node *from, struct gnutella_node *to,
-	gconstpointer head, gconstpointer data, guint32 size)
+	const void *head, const void *data, uint32 size)
 {
 	g_return_if_fail(!NODE_IS_UDP(to));
 
@@ -633,7 +633,7 @@ gmsg_split_send_from_to(struct gnutella_node *from, struct gnutella_node *to,
  */
 void
 gmsg_split_sendto_one(struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size)
+	const void *head, const void *data, uint32 size)
 {
 	gmsg_split_send_from_to(NULL, n, head, data, size);
 }
@@ -643,7 +643,7 @@ gmsg_split_sendto_one(struct gnutella_node *n,
  */
 static void
 gmsg_split_routeto_one(struct gnutella_node *from, struct gnutella_node *to,
-	gconstpointer head, gconstpointer data, guint32 size)
+	const void *head, const void *data, uint32 size)
 {
 	gmsg_split_send_from_to(from, to, head, data, size);
 }
@@ -652,7 +652,7 @@ gmsg_split_routeto_one(struct gnutella_node *from, struct gnutella_node *to,
  * Broadcast message to all nodes in the list.
  */
 void
-gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
+gmsg_sendto_all(const GSList *sl, const void *msg, uint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -676,7 +676,7 @@ gmsg_sendto_all(const GSList *sl, gconstpointer msg, guint32 size)
  */
 void
 gmsg_search_sendto_all(
-	const GSList *sl, gnet_search_t sh, gconstpointer msg, guint32 size)
+	const GSList *sl, gnet_search_t sh, const void *msg, uint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
 
@@ -712,10 +712,10 @@ gmsg_search_sendto_all(
 static void
 gmsg_split_routeto_all_but_one(const struct gnutella_node *from,
 	const GSList *sl, const struct gnutella_node *n,
-	gconstpointer head, gconstpointer data, guint32 size)
+	const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
-	gboolean skip_up_with_qrp = FALSE;
+	bool skip_up_with_qrp = FALSE;
 
 	/*
 	 * Special treatment for TTL=1 queries in UP mode.
@@ -755,7 +755,7 @@ void
 gmsg_split_routeto_all(
 	const GSList *sl,
 	const struct gnutella_node *from,
-	gconstpointer head, gconstpointer data, guint32 size)
+	const void *head, const void *data, uint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
 
@@ -852,11 +852,11 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
  * Therefore, unless the OOB flag is set, we always check for an existing
  * route.
  */
-static gboolean
+static bool
 gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 {
 	gnutella_node_t *n = mq_node(q);
-	gconstpointer msg = pmsg_start(mb);
+	const void *msg = pmsg_start(mb);
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
 
@@ -886,7 +886,7 @@ gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
 void
 gmsg_install_presend(pmsg_t *mb)
 {
-	gconstpointer msg = pmsg_start(mb);
+	const void *msg = pmsg_start(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
 		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
@@ -901,8 +901,8 @@ gmsg_install_presend(pmsg_t *mb)
  * Dropping of messages only happens when the connection is flow-controlled,
  * and there's not enough room in the queue.
  */
-gboolean
-gmsg_can_drop(gconstpointer pdu, int size)
+bool
+gmsg_can_drop(const void *pdu, int size)
 {
 	if ((size_t) size < GTA_HEADER_SIZE)
 		return TRUE;
@@ -929,11 +929,11 @@ gmsg_can_drop(gconstpointer pdu, int size)
  * @return algebraic -1/0/+1 depending on relative order.
  */
 int
-gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
+gmsg_cmp(const void *h1, const void *h2, bool h2_pdu)
 {
 	int w1, w2;
-	guint8 f1, f2;
-	guint8 hop1, hop2;
+	uint8 f1, f2;
+	uint8 hop1, hop2;
 
 	f1 = gnutella_header_get_function(h1);
 	f2 = gnutella_header_get_function(h2);
@@ -965,8 +965,8 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 	 */
 
 	if (f1 == GTA_MSG_DHT) {
-		guint32 s1 = gnutella_header_get_size(h1);
-		guint32 s2 = gnutella_header_get_size(h2);
+		uint32 s1 = gnutella_header_get_size(h1);
+		uint32 s2 = gnutella_header_get_size(h2);
 		return f2 == GTA_MSG_DHT ?  CMP(s2, s1) : -1;
 	} else if (f2 == GTA_MSG_DHT) {
 		return +1;		/* Gnutella message (f1) more prioritary */
@@ -993,23 +993,23 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH_RESULTS:
 			{
-				guint8 t1 = gnutella_header_get_ttl(h1);
-				guint8 t2 = gnutella_header_get_ttl(h2);
+				uint8 t1 = gnutella_header_get_ttl(h1);
+				uint8 t2 = gnutella_header_get_ttl(h2);
 				int ttlc = CMP(t2, t1);
 				/* If same TTL, favor the shortest message */
 				if (ttlc) {
 					return ttlc;
 				} else {
-					guint32 s1 = gnutella_header_get_size(h1);
-					guint32 s2 = gnutella_header_get_size(h2);
+					uint32 s1 = gnutella_header_get_size(h1);
+					uint32 s2 = gnutella_header_get_size(h2);
 					return CMP(s2, s1);
 				}
 			}
 		default:
 			/* Favor the shortest */
 			{
-				guint32 s1 = gnutella_header_get_size(h1);
-				guint32 s2 = gnutella_header_get_size(h2);
+				uint32 s1 = gnutella_header_get_size(h1);
+				uint32 s2 = gnutella_header_get_size(h2);
 				return CMP(s2, s1);
 			}
 		}
@@ -1038,7 +1038,7 @@ gmsg_cmp(gconstpointer h1, gconstpointer h2, gboolean h2_pdu)
  * payload of that message.
  */
 char *
-gmsg_infostr_full(gconstpointer msg, size_t msg_len)
+gmsg_infostr_full(const void *msg, size_t msg_len)
 {
 	const char *data = const_ptr_add_offset(msg, GTA_HEADER_SIZE);
 	size_t data_len = msg_len - GTA_HEADER_SIZE;
@@ -1055,11 +1055,11 @@ gmsg_infostr_full(gconstpointer msg, size_t msg_len)
  */
 static size_t
 gmsg_infostr_split_to_buf(
-	gconstpointer head, gconstpointer data, size_t data_len,
+	const void *head, const void *data, size_t data_len,
 	char *buf, size_t buf_size)
 {
-	guint8 function = gnutella_header_get_function(head);
-	guint16 size = gmsg_size(head);
+	uint8 function = gnutella_header_get_function(head);
+	uint16 size = gmsg_size(head);
 
 	if (
 		GTA_MSG_DHT == function &&
@@ -1083,10 +1083,10 @@ gmsg_infostr_split_to_buf(
  * string and returns the amount of bytes written.
  */
 static size_t
-gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
+gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 {
-	guint8 function = gnutella_header_get_function(msg);
-	guint16 size = gmsg_size(msg);
+	uint8 function = gnutella_header_get_function(msg);
+	uint16 size = gmsg_size(msg);
 
 	/*
 	 * We cannot assume we have more than the Gnutella header, so
@@ -1106,7 +1106,7 @@ gmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
  * the formatted string and returns the amount of bytes written.
  */
 size_t
-gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
+gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 	size_t data_len, char *buf, size_t buf_size)
 {
 	size_t rw;
@@ -1118,8 +1118,8 @@ gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
 		{
-			guint16 size = data_len & GTA_SIZE_MASK;
-			guint8 ttl = gnutella_header_get_ttl(head);
+			uint16 size = data_len & GTA_SIZE_MASK;
+			uint8 ttl = gnutella_header_get_ttl(head);
 
 			rw = gm_snprintf(buf, buf_size,
 				"%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
@@ -1144,7 +1144,7 @@ gmsg_infostr_full_split_to_buf(gconstpointer head, gconstpointer data,
  * which is ``buf_len'' bytes long and returns the amount of bytes written.
  */
 static size_t
-gmsg_infostr_full_to_buf(gconstpointer msg, size_t msg_len,
+gmsg_infostr_full_to_buf(const void *msg, size_t msg_len,
 	char *buf, size_t buf_len)
 {
 	const char *data = (const char *) msg + GTA_HEADER_SIZE;
@@ -1165,7 +1165,7 @@ gmsg_infostr_full_to_buf(gconstpointer msg, size_t msg_len,
  * and on the data of the message (which may not be consecutive in memory).
  */
 char *
-gmsg_infostr_full_split(gconstpointer head, gconstpointer data, size_t data_len)
+gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
 {
 	static char buf[160];
 
@@ -1181,7 +1181,7 @@ gmsg_infostr_full_split(gconstpointer head, gconstpointer data, size_t data_len)
  *     msg_type (payload length) [hops=x, TTL=x]
  */
 const char *
-gmsg_infostr(gconstpointer msg)
+gmsg_infostr(const void *msg)
 {
 	static char buf[80];
 	gmsg_infostr_to_buf(msg, buf, sizeof buf);
@@ -1227,7 +1227,7 @@ gmsg_node_infostr(const gnutella_node_t *n)
  */
 void
 gmsg_log_split_dropped(
-	gconstpointer head, gconstpointer data, size_t data_len,
+	const void *head, const void *data, size_t data_len,
 	const char *reason, ...)
 {
 	char rbuf[256];
@@ -1254,7 +1254,7 @@ gmsg_log_split_dropped(
  */
 void
 gmsg_log_split_duplicate(
-	gconstpointer head, gconstpointer data, size_t data_len,
+	const void *head, const void *data, size_t data_len,
 	const char *reason, ...)
 {
 	char rbuf[256];
@@ -1333,11 +1333,11 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
  * Check whether query message split between header and data is flagged
  * for OOB hit delivery.
  */
-gboolean
-gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
+bool
+gmsg_split_is_oob_query(const void *head, const void *data)
 {
-	const guint16 mask = QUERY_F_MARK | QUERY_F_OOB_REPLY;
-	guint16 flags;
+	const uint16 mask = QUERY_F_MARK | QUERY_F_OOB_REPLY;
+	uint16 flags;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(head));
 
@@ -1349,8 +1349,8 @@ gmsg_split_is_oob_query(gconstpointer head, gconstpointer data)
  * Check whether query message starting at `msg' is flagged
  * for OOB hit delivery.
  */
-gboolean
-gmsg_is_oob_query(gconstpointer msg)
+bool
+gmsg_is_oob_query(const void *msg)
 {
 	const char *data = msg;
 	return gmsg_split_is_oob_query(&data[0], &data[GTA_HEADER_SIZE]);

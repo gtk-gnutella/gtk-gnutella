@@ -1,0 +1,82 @@
+#!/bin/sh
+
+#
+# $Id$
+#
+# Copyright (c) 2012, Raphael Manfredi
+#
+# Catenate a .xt header file with a generic .xt file, substituting the
+# "generic" string in the second .xt file with the supplied parameter,
+# plus operating a variant selection via a crude pre-processor.
+#
+# All ";#" comments from both files are stripped out during the process.
+#
+#----------------------------------------------------------------------
+# This file is part of gtk-gnutella.
+#
+#  gtk-gnutella is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  gtk-gnutella is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with gtk-gnutella; if not, write to the Free Software
+#  Foundation, Inc.:
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#----------------------------------------------------------------------
+#
+
+LC_ALL=C
+export LC_ALL
+
+header=$1
+template=$2
+generic=$3
+iterator=$4
+variant=$5
+
+date=`date`
+
+cat <<EOH
+/*
+ * THIS FILE WAS AUTOMATICALLY GENERATED -- DO NOT EDIT.
+ *
+ * Generating command:
+ *
+ *     $0 $@
+ *
+ * Generated on $date.
+ */
+
+EOH
+if test -s $header; then
+	(cat $header; echo " ") | grep -v '^;#'
+fi
+GENERIC=`echo $generic | tr '[a-z]' '[A-Z]'`
+awk -v "sym=$variant" '
+	BEGIN {
+		s = 0;
+		skip[s] = 0;
+	}
+	/^@if / {
+		val = $2;
+		skip[++s] = (val == sym) ? 0 : 1;
+		next;
+	}
+	/^@end/	{ s--; next; }
+	{
+		if (!skip[s])
+			print;
+	}
+' $template |
+sed -e "/^;#/d" \
+	-e "s/<generic>/$generic/g" \
+	-e "s/<GENERIC>/$GENERIC/g" \
+	-e "s/_generic_/_${generic}_/g" \
+	-e "s/_GENERIC_/_${GENERIC}_/g" \
+	-e "s/<iterator>/$iterator/g"

@@ -192,10 +192,10 @@ struct patricia_node {
 			const void *value;			/**< Data stored in this node */
 		} item;
 	} u;
-	guint8 bit;						/**< Bit to test for choosing "z" or "o" */
-	guint8 last_kbit;				/**< Last bit # in key (7 if 8-bit key) */
-	guint8 leaf;					/**< Is a leaf node */
-	guint8 has_embedded_data;		/**< Non-leaf node has data */
+	uint8 bit;						/**< Bit to test for choosing "z" or "o" */
+	uint8 last_kbit;				/**< Last bit # in key (7 if 8-bit key) */
+	uint8 leaf;						/**< Is a leaf node */
+	uint8 has_embedded_data;		/**< Non-leaf node has data */
 };
 
 /**
@@ -302,7 +302,7 @@ struct patricia {
 	size_t count;					/**< Amount of keys stored */
 	size_t nodes;					/**< Total amount of nodes used */
 	size_t embedded;				/**< Nodes holding embedded data */
-	guint stamp;					/**< Stamp to protect iterators */
+	uint stamp;						/**< Stamp to protect iterators */
 	int refcnt;						/**< Reference count */
 };
 
@@ -428,12 +428,12 @@ bits2bytes(size_t keybits)
  * @return a pointer to a key stored in a sub node, so it has more bits
  * than the actual prefix and fills.
  */
-static gconstpointer
-node_prefix(const struct patricia_node *pn)
+static const void *
+patricia_node_prefix(const struct patricia_node *pn)
 {
 	const struct patricia_node *n;
 	int i;
-	gconstpointer result = NULL;
+	const void *result = NULL;
 
 	patricia_node_check(pn);
 
@@ -511,7 +511,7 @@ node_prefix_bits(const struct patricia_node *pn)
 /**
  * Whether node holds data.
  */
-static inline G_GNUC_PURE gboolean
+static inline G_GNUC_PURE bool
 node_has_data(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -522,7 +522,7 @@ node_has_data(const struct patricia_node *pn)
 /**
  * The key of the data held in the node.
  */
-static inline G_GNUC_PURE gconstpointer
+static inline G_GNUC_PURE const void *
 node_key(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -554,7 +554,7 @@ node_keybits(const struct patricia_node *pn)
 /**
  * The value of the data held in the node.
  */
-static inline G_GNUC_PURE gconstpointer
+static inline G_GNUC_PURE const void *
 node_value(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -570,10 +570,10 @@ node_value(const struct patricia_node *pn)
 /**
  * Is the current node test bit matched by the key?
  */
-static inline G_GNUC_PURE gboolean
-node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
+static inline G_GNUC_PURE bool
+node_matches(const struct patricia_node *pn, const void *key, size_t keybits)
 {
-	const guint8 *k = key;
+	const uint8 *k = key;
 
 	patricia_node_check(pn);
 	g_assert(key);
@@ -591,8 +591,8 @@ node_matches(const struct patricia_node *pn, gconstpointer key, size_t keybits)
  *
  * @return TRUE if keys are identical.
  */
-static gboolean G_GNUC_PURE
-key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
+static bool G_GNUC_PURE
+key_eq(const void *k1, const void *k2, size_t keybits)
 {
 	size_t bytes;			/* Amount of bytes to compare */
 	size_t bits;			/* Remaining bits in last byte */
@@ -609,10 +609,10 @@ key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
 
 	if (bits != 0) {
 		/* Compare trailing byte, but only meaningful bits */
-		guint8 mask = ~((1 << (8 - bits)) - 1);
-		const guint8 *p1 = k1;
-		const guint8 *p2 = k2;
-		guint8 diff = (p1[bytes] & mask) ^ (p2[bytes] & mask);
+		uint8 mask = ~((1 << (8 - bits)) - 1);
+		const uint8 *p1 = k1;
+		const uint8 *p2 = k2;
+		uint8 diff = (p1[bytes] & mask) ^ (p2[bytes] & mask);
 
 		return 0 == diff;
 	}
@@ -622,23 +622,23 @@ key_eq(gconstpointer k1, gconstpointer k2, size_t keybits)
 
 /**
  * Given a node and a key, determine how many leading bits in the key are
- * matched by the node returned by match_best().
+ * matched by the node returned by patricia_match_best().
  *
- * @param pn		the PATRICIA node returned by match_best()
+ * @param pn		the PATRICIA node returned by patricia_match_best()
  * @param key		the key we looked up
  * @param keybits	the size of the key in bits
  * @param pprefix	where to write the prefix for the match, if not NULL
  */
 static size_t
-matched_bits(
-	const struct patricia_node *pn, gconstpointer key, size_t keybits,
-	gconstpointer *pprefix)
+patricia_matched_bits(
+	const struct patricia_node *pn, const void *key, size_t keybits,
+	const void **pprefix)
 {
-	gconstpointer prefix;
+	const void *prefix;
 
 	patricia_node_check(pn);
 
-	prefix = node_prefix(pn);
+	prefix = patricia_node_prefix(pn);
 	if (pprefix)
 		*pprefix = prefix;
 
@@ -655,10 +655,10 @@ matched_bits(
  *
  * @return the node under which all entries share a common prefix (the amount
  * of matching leading bits within the key can be determined by calling
- * matched_bits() on the resulting node).
+ * patricia_matched_bits() on the resulting node).
  */
 static G_GNUC_HOT struct patricia_node *
-match_best(patricia_t *pt, gconstpointer key, size_t keybits)
+patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -685,11 +685,11 @@ match_best(patricia_t *pt, gconstpointer key, size_t keybits)
 		 */
 
 		if (keybits - 1 < pn->bit || pn->leaf)
-			return deconstify_gpointer(pn);
+			return deconstify_pointer(pn);
 
 		child = node_matches(pn, key, keybits) ? child_one(pn) : child_zero(pn);
 		if (child == NULL)
-			return deconstify_gpointer(pn);
+			return deconstify_pointer(pn);
 
 		g_assert(child->leaf || child->bit > pn->bit);
 
@@ -709,7 +709,7 @@ match_best(patricia_t *pt, gconstpointer key, size_t keybits)
  * @return the node which is an exact match, or NULL if not found.
  */
 static G_GNUC_HOT const struct patricia_node *
-match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
+match_exact(const patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -812,7 +812,7 @@ match_exact(const patricia_t *pt, gconstpointer key, size_t keybits)
  * spanned by the given root.
  */
 static const struct patricia_node *
-find_deepest(const struct patricia_node *root, gboolean leftmost)
+find_deepest(const struct patricia_node *root, bool leftmost)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -861,7 +861,7 @@ find_deepest(const struct patricia_node *root, gboolean leftmost)
  * @return the node which holds the best match, or NULL if not found.
  */
 static const struct patricia_node *
-lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
+lookup_best(const patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *stack[PATRICIA_MAXBITS + 1];
 	const struct patricia_node **sp = stack;
@@ -966,7 +966,7 @@ lookup_best(const patricia_t *pt, gconstpointer key, size_t keybits)
  */
 static const struct patricia_node *
 find_closest(const patricia_t *pt, const struct patricia_node *root,
-	gconstpointer key, size_t keybits, gboolean closest)
+	const void *key, size_t keybits, bool closest)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -987,7 +987,7 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
 
 	for (pn = root, i = 0; i <= PATRICIA_MAXBITS; i++) {
 		const struct patricia_node *child;
-		gboolean matches;
+		bool matches;
 
 		patricia_node_check(pn);
 
@@ -1031,7 +1031,7 @@ find_closest(const patricia_t *pt, const struct patricia_node *root,
  */
 static const struct patricia_node *
 match_closest(
-	const patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
+	const patricia_t *pt, const void *key, size_t keybits, bool closest)
 {
 	return find_closest(pt, pt->root, key, keybits, closest);
 }
@@ -1041,7 +1041,7 @@ match_closest(
  */
 static void
 fill_leaf(struct patricia_node *pn, struct patricia_node *parent,
-	gconstpointer key, size_t keybits, gconstpointer value)
+	const void *key, size_t keybits, const void *value)
 {
 	patricia_node_check(pn);
 
@@ -1125,8 +1125,8 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 static void
 unembed_data(patricia_t *pt, struct patricia_node *pn)
 {
-	gconstpointer old_key;
-	gconstpointer old_value;
+	const void *old_key;
+	const void *old_value;
 	size_t old_keybits;
 	struct patricia_node *parent;
 
@@ -1174,9 +1174,9 @@ unembed_data(patricia_t *pt, struct patricia_node *pn)
  * @param value		value to insert in the tree for this key.
  */
 static void
-insert_at(
+patricia_insert_at(
 	patricia_t *pt, struct patricia_node *pn,
-	gconstpointer key, size_t keybits, gconstpointer value)
+	const void *key, size_t keybits, const void *value)
 {
 	patricia_check(pt);
 	patricia_node_check(pn);
@@ -1277,9 +1277,9 @@ insert_at(
  * @param common	amount of common bits between key and node's prefix
  */
 static void
-insert_below(
+patricia_insert_below(
 	patricia_t *pt, struct patricia_node *pn,
-	gconstpointer key, size_t keybits, gconstpointer value, size_t common)
+	const void *key, size_t keybits, const void *value, size_t common)
 {
 	struct patricia_node *new = allocate_node(pt);
 
@@ -1293,8 +1293,8 @@ insert_below(
 
 	if (pn->leaf) {
 		size_t diffbit = common;
-		gconstpointer old_key = leaf_item_key(pn);
-		gconstpointer old_value = leaf_item_value(pn);
+		const void *old_key = leaf_item_key(pn);
+		const void *old_value = leaf_item_value(pn);
 		size_t old_keybits = leaf_item_keybits(pn);
 		struct patricia_node *old = NULL;
 
@@ -1374,10 +1374,10 @@ insert_below(
  * @param prefix	the node's prefix at the original "pn" point
  */
 static void
-insert_above(
+patricia_insert_above(
 	patricia_t *pt, struct patricia_node *pn,
-	gconstpointer key, size_t keybits, gconstpointer value, size_t common,
-	gconstpointer prefix)
+	const void *key, size_t keybits, const void *value, size_t common,
+	const void *prefix)
 {
 	struct patricia_node *new = allocate_node(pt);
 	struct patricia_node *up;
@@ -1454,9 +1454,9 @@ insert_above(
 	 */
 
 	if (common == keybits)
-		insert_at(pt, new, key, keybits, value);
+		patricia_insert_at(pt, new, key, keybits, value);
 	else
-		insert_below(pt, new, key, keybits, value, common);
+		patricia_insert_below(pt, new, key, keybits, value, common);
 }
 
 /**
@@ -1472,7 +1472,7 @@ insert_above(
  * @param value		value to insert in the tree for this key.
  */
 void
-patricia_insert(patricia_t *pt, gconstpointer key, gconstpointer value)
+patricia_insert(patricia_t *pt, const void *key, const void *value)
 {
 	patricia_insert_k(pt, key, pt->maxbits, value);
 }
@@ -1492,11 +1492,11 @@ patricia_insert(patricia_t *pt, gconstpointer key, gconstpointer value)
  */
 void
 patricia_insert_k(patricia_t *pt,
-	gconstpointer key, size_t keybits, gconstpointer value)
+	const void *key, size_t keybits, const void *value)
 {
 	struct patricia_node *pn;
 	size_t common_bits;
-	gconstpointer prefix;
+	const void *prefix;
 
 	patricia_check(pt);
 	g_assert(key);
@@ -1520,8 +1520,8 @@ patricia_insert_k(patricia_t *pt,
 	 * Find node in the tree which is the longest (partial) match for the key.
 	 */
 
-	pn = match_best(pt, key, keybits);
-	common_bits = matched_bits(pn, key, keybits, &prefix);
+	pn = patricia_match_best(pt, key, keybits);
+	common_bits = patricia_matched_bits(pn, key, keybits, &prefix);
 
 	/*
 	 * Insert at the right position, relative to the found node.
@@ -1529,14 +1529,14 @@ patricia_insert_k(patricia_t *pt,
 
 	if (common_bits == keybits && keybits >= node_prefix_bits(pn)) {
 		/* All bits from key matched: found node where insertion can be done */
-		insert_at(pt, pn, key, keybits, value);
+		patricia_insert_at(pt, pn, key, keybits, value);
 	} else if (common_bits == node_prefix_bits(pn)) {
 		/* The common bits are the node's prefix: insertion must occur below */
 		g_assert(common_bits < keybits);
-		insert_below(pt, pn, key, keybits, value, common_bits);
+		patricia_insert_below(pt, pn, key, keybits, value, common_bits);
 	} else {
 		g_assert(common_bits < node_prefix_bits(pn));
-		insert_above(pt, pn, key, keybits, value, common_bits, prefix);
+		patricia_insert_above(pt, pn, key, keybits, value, common_bits, prefix);
 	}
 }
 
@@ -1545,9 +1545,11 @@ patricia_insert_k(patricia_t *pt,
  *
  * @param pt		the PATRICIA tree
  * @param key		pointer to the start of the key bits (configured length)
+ *
+ * @return whether key is held in the PATRICIA tree.
  */
-gboolean
-patricia_contains(const patricia_t *pt, gconstpointer key)
+bool
+patricia_contains(const patricia_t *pt, const void *key)
 {
 	return match_exact(pt, key, pt->maxbits) != NULL;
 }
@@ -1558,9 +1560,11 @@ patricia_contains(const patricia_t *pt, gconstpointer key)
  * @param pt		the PATRICIA tree
  * @param key		the key we're looking for
  * @param keybits	size of key in bits
+ *
+ * @return whether key is held in the PATRICIA tree.
  */
-gboolean
-patricia_contains_k(const patricia_t *pt, gconstpointer key, size_t keybits)
+bool
+patricia_contains_k(const patricia_t *pt, const void *key, size_t keybits)
 {
 	return match_exact(pt, key, keybits) != NULL;
 }
@@ -1578,8 +1582,8 @@ patricia_contains_k(const patricia_t *pt, gconstpointer key, size_t keybits)
  *
  * @return the value for the key, or NULL if not found.
  */
-gpointer
-patricia_lookup(const patricia_t *pt, gconstpointer key)
+void *
+patricia_lookup(const patricia_t *pt, const void *key)
 {
 	const struct patricia_node *pn = match_exact(pt, key, pt->maxbits);
 
@@ -1588,7 +1592,7 @@ patricia_lookup(const patricia_t *pt, gconstpointer key)
 
 	g_assert(node_has_data(pn));
 
-	return deconstify_gpointer(node_value(pn));
+	return deconstify_pointer(node_value(pn));
 }
 
 /**
@@ -1605,8 +1609,8 @@ patricia_lookup(const patricia_t *pt, gconstpointer key)
  *
  * @return the value for the key, or NULL if not found.
  */
-gpointer
-patricia_lookup_k(const patricia_t *pt, gconstpointer key, size_t keybits)
+void *
+patricia_lookup_k(const patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn = match_exact(pt, key, keybits);
 
@@ -1615,25 +1619,24 @@ patricia_lookup_k(const patricia_t *pt, gconstpointer key, size_t keybits)
 
 	g_assert(node_has_data(pn));
 
-	return deconstify_gpointer(node_value(pn));
+	return deconstify_pointer(node_value(pn));
 }
 
 /**
  * Fetch key/value from the PATRICIA tree, returning whether the key
  * was found.  If it was, the original key/value pointers are written
- * back in keyptr and valueptr.
+ * back in keyptr and valptr.
  *
  * @param pt		the PATRICIA tree
  * @param key		pointer to the start of the key bits (configured length)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
-gboolean
+bool
 patricia_lookup_extended(
-	const patricia_t *pt, gconstpointer key,
-	gpointer *keyptr, gpointer *valptr)
+	const patricia_t *pt, const void *key, void **keyptr, void **valptr)
 {
 	const struct patricia_node *pn = match_exact(pt, key, pt->maxbits);
 
@@ -1643,9 +1646,9 @@ patricia_lookup_extended(
 	g_assert(node_has_data(pn));
 
 	if (keyptr)
-		*keyptr = deconstify_gpointer(node_key(pn));
+		*keyptr = deconstify_pointer(node_key(pn));
 	if (valptr)
-		*valptr = deconstify_gpointer(node_value(pn));
+		*valptr = deconstify_pointer(node_value(pn));
 
 	return TRUE;
 }
@@ -1653,7 +1656,7 @@ patricia_lookup_extended(
 /**
  * Fetch key/value from the PATRICIA tree, returning whether the key
  * was found.  If it was, the original key/value pointers are written
- * back in keyptr and valueptr.
+ * back in keyptr and valptr.
  *
  * @param pt		the PATRICIA tree
  * @param key		the key we're looking for
@@ -1661,12 +1664,12 @@ patricia_lookup_extended(
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
-gboolean
+bool
 patricia_lookup_extended_k(
-	const patricia_t *pt, gconstpointer key, size_t keybits,
-	gpointer *keyptr, gpointer *valptr)
+	const patricia_t *pt, const void *key, size_t keybits,
+	void **keyptr, void **valptr)
 {
 	const struct patricia_node *pn = match_exact(pt, key, keybits);
 
@@ -1676,9 +1679,9 @@ patricia_lookup_extended_k(
 	g_assert(node_has_data(pn));
 
 	if (keyptr)
-		*keyptr = deconstify_gpointer(node_key(pn));
+		*keyptr = deconstify_pointer(node_key(pn));
 	if (valptr)
-		*valptr = deconstify_gpointer(node_value(pn));
+		*valptr = deconstify_pointer(node_value(pn));
 
 	return TRUE;
 }
@@ -1704,12 +1707,12 @@ patricia_lookup_extended_k(
  * @param lenptr	if non-NULL, where the found key length in bit is written
  * @param valptr	if non-NULL, where the associated value pointer is written
  *
- * @return whether a key was found and keyptr/lenptr/valueptr written back.
+ * @return whether a key was found and keyptr/lenptr/valptr written back.
  */
-gboolean
+bool
 patricia_lookup_best(
-	const patricia_t *pt, gconstpointer key, size_t keybits,
-	gpointer *keyptr, size_t *lenptr, gpointer *valptr)
+	const patricia_t *pt, const void *key, size_t keybits,
+	void **keyptr, size_t *lenptr, void **valptr)
 {
 	const struct patricia_node *pn;
 
@@ -1721,9 +1724,9 @@ patricia_lookup_best(
 	g_assert(node_has_data(pn));
 
 	if (keyptr)
-		*keyptr = deconstify_gpointer(node_key(pn));
+		*keyptr = deconstify_pointer(node_key(pn));
 	if (valptr)
-		*valptr = deconstify_gpointer(node_value(pn));
+		*valptr = deconstify_pointer(node_value(pn));
 	if (lenptr)
 		*lenptr = node_keybits(pn);
 
@@ -1733,9 +1736,9 @@ patricia_lookup_best(
 /**
  * Common implementation for patricia_closest() and patricia_furthest().
  */
-static gpointer
+static void *
 lookup_closest(
-	const patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
+	const patricia_t *pt, const void *key, size_t keybits, bool closest)
 {
 	const struct patricia_node *pn = match_closest(pt, key, keybits, closest);
 
@@ -1746,17 +1749,17 @@ lookup_closest(
 
 	g_assert(node_has_data(pn));
 
-	return deconstify_gpointer(node_value(pn));
+	return deconstify_pointer(node_value(pn));
 }
 
 /**
  * Common implementation for patricia_closest_extended() and
  * patricia_furthest_extended().
  */
-static gboolean
+static bool
 lookup_closest_extended(
-	const patricia_t *pt, gconstpointer key, size_t keybits,
-	gpointer *keyptr, gpointer *valptr, gboolean closest)
+	const patricia_t *pt, const void *key, size_t keybits,
+	void **keyptr, void **valptr, bool closest)
 {
 	const struct patricia_node *pn = match_closest(pt, key, keybits, closest);
 
@@ -1769,9 +1772,9 @@ lookup_closest_extended(
 	g_assert(node_keybits(pn) == pt->maxbits);
 
 	if (keyptr)
-		*keyptr = deconstify_gpointer(node_key(pn));
+		*keyptr = deconstify_pointer(node_key(pn));
 	if (valptr)
-		*valptr = deconstify_gpointer(node_value(pn));
+		*valptr = deconstify_pointer(node_value(pn));
 
 	return TRUE;
 }
@@ -1797,8 +1800,8 @@ lookup_closest_extended(
  *
  * @return the value for the key, or NULL if not found.
  */
-gpointer
-patricia_closest(const patricia_t *pt, gconstpointer key)
+void *
+patricia_closest(const patricia_t *pt, const void *key)
 {
 	return lookup_closest(pt, key, pt->maxbits, TRUE);
 }
@@ -1819,12 +1822,12 @@ patricia_closest(const patricia_t *pt, gconstpointer key)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
-gboolean
+bool
 patricia_closest_extended(
-	const patricia_t *pt, gconstpointer key,
-	gpointer *keyptr, gpointer *valptr)
+	const patricia_t *pt, const void *key,
+	void **keyptr, void **valptr)
 {
 	return lookup_closest_extended(pt, key, pt->maxbits, keyptr, valptr, TRUE);
 }
@@ -1850,8 +1853,8 @@ patricia_closest_extended(
  *
  * @return the value for the key, or NULL if not found.
  */
-gpointer
-patricia_furthest(const patricia_t *pt, gconstpointer key)
+void *
+patricia_furthest(const patricia_t *pt, const void *key)
 {
 	return lookup_closest(pt, key, pt->maxbits, FALSE);
 }
@@ -1872,12 +1875,12 @@ patricia_furthest(const patricia_t *pt, gconstpointer key)
  * @param keyptr	if non-NULL, where the original key pointer is written
  * @param valptr	if non-NULL, where the original value pointer is written
  *
- * @return whether the key was found and keyptr/valueptr written back.
+ * @return whether the key was found and keyptr/valptr written back.
  */
-gboolean
+bool
 patricia_furthest_extended(
-	const patricia_t *pt, gconstpointer key,
-	gpointer *keyptr, gpointer *valptr)
+	const patricia_t *pt, const void *key,
+	void **keyptr, void **valptr)
 {
 	return lookup_closest_extended(pt, key, pt->maxbits, keyptr, valptr, FALSE);
 }
@@ -1923,8 +1926,8 @@ remove_node(patricia_t *pt, struct patricia_node *pn)
  *
  * @return TRUE if the key was found and removed from the PATRICIA tree.
  */
-gboolean
-patricia_remove(patricia_t *pt, gconstpointer key)
+bool
+patricia_remove(patricia_t *pt, const void *key)
 {
 	return patricia_remove_k(pt, key, pt->maxbits);
 }
@@ -1938,12 +1941,12 @@ patricia_remove(patricia_t *pt, gconstpointer key)
  *
  * @return TRUE if the key was found and removed from the PATRICIA tree.
  */
-gboolean
-patricia_remove_k(patricia_t *pt, gconstpointer key, size_t keybits)
+bool
+patricia_remove_k(patricia_t *pt, const void *key, size_t keybits)
 {
 	struct patricia_node *pn;
 
-	pn = deconstify_gpointer(match_exact(pt, key, keybits));
+	pn = deconstify_pointer(match_exact(pt, key, keybits));
 
 	if (NULL == pn)
 		return FALSE;
@@ -1957,13 +1960,13 @@ patricia_remove_k(patricia_t *pt, gconstpointer key, size_t keybits)
  * Common implementation for patricia_remove_closest() and
  * patricia_remove_furthest().
  */
-static gboolean
+static bool
 remove_closest(
-	patricia_t *pt, gconstpointer key, size_t keybits, gboolean closest)
+	patricia_t *pt, const void *key, size_t keybits, bool closest)
 {
 	struct patricia_node *pn;
 
-	pn = deconstify_gpointer(match_closest(pt, key, keybits, closest));
+	pn = deconstify_pointer(match_closest(pt, key, keybits, closest));
 
 	if (NULL == pn)
 		return FALSE;
@@ -1988,8 +1991,8 @@ remove_closest(
  * @return TRUE if the key was found and removed from the PATRICIA tree,
  * which is always the case unless the tree was empty.
  */
-gboolean
-patricia_remove_closest(patricia_t *pt, gconstpointer key, size_t keybits)
+bool
+patricia_remove_closest(patricia_t *pt, const void *key, size_t keybits)
 {
 	return remove_closest(pt, key, keybits, TRUE);
 }
@@ -2009,16 +2012,16 @@ patricia_remove_closest(patricia_t *pt, gconstpointer key, size_t keybits)
  * @return TRUE if the key was found and removed from the PATRICIA tree,
  * which is always the case unless the tree was empty.
  */
-gboolean
-patricia_remove_furthest(patricia_t *pt, gconstpointer key, size_t keybits)
+bool
+patricia_remove_furthest(patricia_t *pt, const void *key, size_t keybits)
 {
 	return remove_closest(pt, key, keybits, FALSE);
 }
 
 /**
- * Callback for nodes in traverse().
+ * Callback for nodes in patricia_traverse().
  */
-typedef void (*node_cb_t)(struct patricia_node *pn, gpointer un);
+typedef void (*node_cb_t)(struct patricia_node *pn, void *un);
 
 /**
  * Iterate over all the key/value pairs, invoking the callback on each item.
@@ -2031,9 +2034,8 @@ typedef void (*node_cb_t)(struct patricia_node *pn, gpointer un);
  * 
  */
 static void
-traverse(patricia_t *pt,
-	node_cb_t ncb, gpointer un,
-	patricia_cb_t cb, gpointer u)
+patricia_traverse(patricia_t *pt,
+	node_cb_t ncb, void *un, patricia_cb_t cb, void *u)
 {
 	patricia_check(pt);
 
@@ -2059,12 +2061,12 @@ traverse(patricia_t *pt,
 			}
 
 			if (cb && node_has_data(n))
-				(*cb)(deconstify_gpointer(node_key(n)), node_keybits(n),
-					deconstify_gpointer(node_value(n)), u);
+				(*cb)(deconstify_pointer(node_key(n)), node_keybits(n),
+					deconstify_pointer(node_value(n)), u);
 
 			/* Callback may free the node */
 			if (ncb)
-				(*ncb)(deconstify_gpointer(n), un);
+				(*ncb)(deconstify_pointer(n), un);
 
 			if (z) {
 				if (o) {
@@ -2084,10 +2086,10 @@ traverse(patricia_t *pt,
 }
 
 /**
- * Node callback for traverse().
+ * Node callback for patricia_traverse().
  */
 static void
-traverse_remove_node(struct patricia_node *pn, gpointer u)
+patricia_traverse_remove_node(struct patricia_node *pn, void *u)
 {
 	patricia_t *pt = u;
 
@@ -2105,7 +2107,7 @@ patricia_destroy(patricia_t *pt)
 	if (--pt->refcnt > 0)
 		return;			/* Still referenced by something internally */
 
-	traverse(pt, traverse_remove_node, pt, NULL, NULL);
+	patricia_traverse(pt, patricia_traverse_remove_node, pt, NULL, NULL);
 	g_assert(pt->nodes == 0);
 
 	pt->magic = 0;
@@ -2120,12 +2122,12 @@ patricia_destroy(patricia_t *pt)
  * @param u		additional opaque user data for the callback
  */
 void
-patricia_foreach(const patricia_t *pt, patricia_cb_t cb, gpointer u)
+patricia_foreach(const patricia_t *pt, patricia_cb_t cb, void *u)
 {
 	patricia_check(pt);
 	g_assert(cb);
 
-	traverse(deconstify_gpointer(pt), NULL, NULL, cb, u);
+	patricia_traverse(deconstify_pointer(pt), NULL, NULL, cb, u);
 }
 
 /**
@@ -2133,18 +2135,18 @@ patricia_foreach(const patricia_t *pt, patricia_cb_t cb, gpointer u)
  */
 struct remove_ctx {
 	GSList *sl;						/* List of nodes to remove */
-	gboolean last_was_removed;		/* Last key/value traversed is removed */
+	bool last_was_removed;			/* Last key/value traversed is removed */
 	patricia_cbr_t cb;				/* User callback to invoke */
-	gpointer u;						/* User data for callback */
+	void *u;						/* User data for callback */
 	size_t removed;					/* Counts amount of items removed */
 };
 
 /**
- * Node callback for traverse().
+ * Node callback for patricia_traverse().
  * Relies on the fact that it is invoked right after the user callback.
  */
 static void
-traverse_foreach_node(struct patricia_node *pn, gpointer u)
+patricia_traverse_foreach_node(struct patricia_node *pn, void *u)
 {
 	struct remove_ctx *ctx = u;
 
@@ -2152,7 +2154,8 @@ traverse_foreach_node(struct patricia_node *pn, gpointer u)
 
 	/*
 	 * ctx->last_was_removed was set possibly by previous call to the
-	 * user-supplied callback, through the traverse_foreach_item() trampoline.
+	 * user-supplied callback, through the patricia_traverse_foreach_item()
+	 * trampoline.
 	 */
 
 	if (ctx->last_was_removed) {
@@ -2166,16 +2169,17 @@ traverse_foreach_node(struct patricia_node *pn, gpointer u)
 }
 
 /**
- * Intercept user callback in traverse() during patricia_foreach_remove().
+ * Intercept user callback in patricia_traverse() during
+ * patricia_foreach_remove().
  */
 static void
-traverse_foreach_item(gpointer key, size_t keybits, gpointer value, gpointer u)
+patricia_traverse_foreach_item(void *key, size_t keybits, void *value, void *u)
 {
 	struct remove_ctx *ctx = u;
 
 	/*
 	 * Warning: action at distance.
-	 * Set ctx->last_was_removed for traverse_foreach_node().
+	 * Set ctx->last_was_removed for patricia_traverse_foreach_node().
 	 */
 
 	if (ctx->cb(key, keybits, value, ctx->u)) {
@@ -2195,7 +2199,7 @@ traverse_foreach_item(gpointer key, size_t keybits, gpointer value, gpointer u)
  * @return the number of key/value pairs removed from the PATRICIA tree.
  */
 size_t
-patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
+patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, void *u)
 {
 	struct remove_ctx ctx;
 	GSList *sl;
@@ -2209,9 +2213,9 @@ patricia_foreach_remove(patricia_t *pt, patricia_cbr_t cb, gpointer u)
 	ctx.u = u;
 	ctx.removed = 0;
 
-	traverse(pt,
-		traverse_foreach_node, &ctx,
-		traverse_foreach_item, &ctx);
+	patricia_traverse(pt,
+		patricia_traverse_foreach_node, &ctx,
+		patricia_traverse_foreach_item, &ctx);
 
 	sl = ctx.sl;
 	while (sl) {
@@ -2246,11 +2250,11 @@ struct patricia_iter {
 	patricia_t *pt;						/**< The PATRICIA tree */
 	const struct patricia_node *last;	/**< Last visited node */
 	const struct patricia_node *next;	/**< Cached next node to visit */
-	gpointer key;					/**< Target key, in metric iterators */
+	void *key;						/**< Target key, in metric iterators */
 	size_t keybits;					/**< Size of key, in metric iterators */
-	guint stamp;					/**< Tree stamp at iterator creation */
-	gboolean knows_next;			/**< Whether we determined the next node */
-	gboolean forward;				/**< Whether iterator is moving forward */
+	uint stamp;						/**< Tree stamp at iterator creation */
+	bool knows_next;				/**< Whether we determined the next node */
+	bool forward;					/**< Whether iterator is moving forward */
 };
 
 static inline void
@@ -2264,7 +2268,7 @@ patricia_iter_check(const patricia_iter_t *iter)
  * Common iterator field initialization.
  */
 static patricia_iter_t *
-common_iter_init(patricia_iter_t *iter, patricia_t *pt, gboolean forward)
+patricia_common_iter_init(patricia_iter_t *iter, patricia_t *pt, bool forward)
 {
 	iter->magic = PATRICIA_ITER_MAGIC;
 	iter->pt = pt;
@@ -2284,7 +2288,7 @@ common_iter_init(patricia_iter_t *iter, patricia_t *pt, gboolean forward)
  * @param forward	whether iteration should move forward or backwards
  */
 patricia_iter_t *
-patricia_tree_iterator(patricia_t *pt, gboolean forward)
+patricia_tree_iterator(patricia_t *pt, bool forward)
 {
 	struct patricia_iter *iter;
 
@@ -2294,7 +2298,7 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
 	iter->type = PATRICIA_ITER_TREE;
 	iter->next = find_deepest(pt->root, forward);
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2316,7 +2320,7 @@ patricia_tree_iterator(patricia_t *pt, gboolean forward)
  * A copy of the key is made and is released in patricia_iterator_release().
  */
 patricia_iter_t *
-patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
+patricia_metric_iterator(patricia_t *pt, const void *key, bool forward)
 {
 	struct patricia_iter *iter;
 	size_t keybytes = bits2bytes(pt->maxbits);
@@ -2331,7 +2335,7 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
 	memcpy(iter->key, key, keybytes);
 	iter->keybits = pt->maxbits;
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2341,7 +2345,7 @@ patricia_metric_iterator(patricia_t *pt, gconstpointer key, gboolean forward)
  */
 patricia_iter_t *
 patricia_metric_iterator_lazy(
-	patricia_t *pt, gconstpointer key, gboolean forward)
+	patricia_t *pt, const void *key, bool forward)
 {
 	struct patricia_iter *iter;
 
@@ -2351,10 +2355,10 @@ patricia_metric_iterator_lazy(
 	WALLOC(iter);
 	iter->type = PATRICIA_ITER_XOR_LAZY;
 	iter->next = find_closest(pt, pt->root, key, pt->maxbits, forward);
-	iter->key = deconstify_gpointer(key);
+	iter->key = deconstify_pointer(key);
 	iter->keybits = pt->maxbits;
 
-	return common_iter_init(iter, pt, forward);
+	return patricia_common_iter_init(iter, pt, forward);
 }
 
 /**
@@ -2362,7 +2366,7 @@ patricia_metric_iterator_lazy(
  * backwards).
  */
 static const struct patricia_node *
-next_tree_node(const struct patricia_node *prev, gboolean forward)
+patricia_next_tree_node(const struct patricia_node *prev, bool forward)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -2404,8 +2408,8 @@ next_tree_node(const struct patricia_node *prev, gboolean forward)
  * away from the original key, backwards meaning moving towards it).
  */
 static const struct patricia_node *
-next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
-	gpointer key, size_t keybits, gboolean forward)
+patricia_next_metric_node(const patricia_t *pt,
+	const struct patricia_node *prev, void *key, size_t keybits, bool forward)
 {
 	const struct patricia_node *pn;
 	int i;
@@ -2420,7 +2424,7 @@ next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
 		if (!parent) {
 			return NULL;
 		} else {
-			gboolean matches = node_matches(parent, key, keybits);
+			bool matches = node_matches(parent, key, keybits);
 			const struct patricia_node *next = NULL;
 
 			g_assert(!parent->has_embedded_data);
@@ -2453,7 +2457,7 @@ next_metric_node(const patricia_t *pt, const struct patricia_node *prev,
  * Compute next item for the iterator, given the previous one.
  */
 static const struct patricia_node *
-next_item(patricia_iter_t *iter, const struct patricia_node *prev)
+patricia_next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 {
 	const struct patricia_node *next = NULL;
 
@@ -2461,11 +2465,11 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
 
 	switch (iter->type) {
 	case PATRICIA_ITER_TREE:
-		next = next_tree_node(prev, iter->forward);
+		next = patricia_next_tree_node(prev, iter->forward);
 		break;
 	case PATRICIA_ITER_XOR:
 	case PATRICIA_ITER_XOR_LAZY:
-		next = next_metric_node(iter->pt, prev,
+		next = patricia_next_metric_node(iter->pt, prev,
 			iter->key, iter->keybits, iter->forward);
 		break;
 	}
@@ -2482,7 +2486,7 @@ next_item(patricia_iter_t *iter, const struct patricia_node *prev)
  * done.  It can be called several times with no further side effect,
  * until patricia_iter_next() is called to actually consume the next item.
  */
-gboolean
+bool
 patricia_iter_has_next(patricia_iter_t *iter)
 {
 	patricia_iter_check(iter);
@@ -2490,7 +2494,7 @@ patricia_iter_has_next(patricia_iter_t *iter)
 	if (!iter->knows_next) {
 		g_assert(iter->stamp == iter->pt->stamp);
 		g_assert(iter->last != NULL);
-		iter->next = next_item(iter, iter->last);
+		iter->next = patricia_next_item(iter, iter->last);
 		iter->knows_next = TRUE;
 	}
 
@@ -2507,10 +2511,10 @@ patricia_iter_has_next(patricia_iter_t *iter)
  * value, instead of relying on patricia_iter_next() to return NULL to
  * signify the end of the iteration...
  */
-gpointer
+void *
 patricia_iter_next_value(patricia_iter_t *iter)
 {
-	gboolean has_next;
+	bool has_next;
 
 	patricia_iter_check(iter);
 
@@ -2525,7 +2529,7 @@ patricia_iter_next_value(patricia_iter_t *iter)
 	iter->last = iter->next;
 	iter->knows_next = FALSE;
 
-	return deconstify_gpointer(node_value(iter->last));
+	return deconstify_pointer(node_value(iter->last));
 }
 
 /**
@@ -2535,11 +2539,11 @@ patricia_iter_next_value(patricia_iter_t *iter)
  * @return TRUE if we advanced to the next item, FALSE if we reached the
  * end of the iteration.
  */
-gboolean
+bool
 patricia_iter_next(patricia_iter_t *iter,
-	gpointer *key, size_t *keybits, gpointer *value)
+	void **key, size_t *keybits, void **value)
 {
-	gboolean has_next;
+	bool has_next;
 
 	patricia_iter_check(iter);
 
@@ -2552,9 +2556,9 @@ patricia_iter_next(patricia_iter_t *iter,
 	iter->last = iter->next;
 	iter->knows_next = FALSE;
 
-	if (key)     *key     = deconstify_gpointer(node_key(iter->last));
+	if (key)     *key     = deconstify_pointer(node_key(iter->last));
 	if (keybits) *keybits = node_keybits(iter->last);
-	if (value)   *value   = deconstify_gpointer(node_value(iter->last));
+	if (value)   *value   = deconstify_pointer(node_value(iter->last));
 
 	return TRUE;
 }
@@ -2595,10 +2599,10 @@ struct counter {
 };
 
 static void
-count_items(gpointer key, size_t keybits, gpointer uv, gpointer u)
+count_items(void *key, size_t keybits, void *uv, void *u)
 {
 	struct counter *ctx = u;
-	guint8 *p = key;
+	uint8 *p = key;
 
 	(void) uv;
 
@@ -2610,10 +2614,10 @@ count_items(gpointer key, size_t keybits, gpointer uv, gpointer u)
 		ctx->even_keys++;
 }
 
-static gboolean
-remove_odd_key(gpointer key, size_t keybits, gpointer uv, gpointer uu)
+static bool
+remove_odd_key(void *key, size_t keybits, void *uv, void *uu)
 {
-	guint8 *p = key;
+	uint8 *p = key;
 
 	g_assert(keybits == 32);
 
@@ -2623,12 +2627,12 @@ remove_odd_key(gpointer key, size_t keybits, gpointer uv, gpointer uu)
 }
 
 static G_GNUC_COLD void
-test_keys(guint32 keys[], size_t nkeys)
+test_keys(uint32 keys[], size_t nkeys)
 {
 	size_t i;
-	guint32 *data = g_malloc(nkeys * sizeof(guint32));
+	uint32 *data = g_malloc(nkeys * sizeof(uint32));
 	patricia_t *pt = patricia_create(32);
-	guint32 *p = data;
+	uint32 *p = data;
 	size_t even;
 
 	/* count even keys... */
@@ -2666,10 +2670,10 @@ test_keys(guint32 keys[], size_t nkeys)
 	/* lookup for closest entries to random keys, then remove them... */
 
 	for (i = 0; i < nkeys; i++) {
-		gpointer key;
-		gboolean found;
+		void *key;
+		bool found;
 		char target[4];
-		gboolean removed;
+		bool removed;
 
 		random_bytes(target, sizeof target);
 		found = patricia_closest_extended(pt, target, &key, NULL);
@@ -2699,8 +2703,8 @@ test_keys(guint32 keys[], size_t nkeys)
 	/* lookup for closest entries that exist... */
 
 	for (i = 0; i < nkeys; i++) {
-		gpointer key;
-		gboolean found;
+		void *key;
+		bool found;
 
 		found = patricia_closest_extended(pt, &data[i], &key, NULL);
 		g_assert(found);
@@ -2725,11 +2729,11 @@ test_keys(guint32 keys[], size_t nkeys)
 		patricia_iter_t *iter;
 		size_t count = 0;
 		size_t even_keys = 0;
-		gpointer key;
+		void *key;
 
 		iter = patricia_tree_iterator(pt, TRUE);
 		while (patricia_iter_next(iter, &key, NULL, NULL)) {
-			guint8 *k = key;
+			uint8 *k = key;
 			count++;
 			if (!(k[3] & 0x1))
 				even_keys++;
@@ -2746,13 +2750,13 @@ test_keys(guint32 keys[], size_t nkeys)
 		patricia_iter_t *iter;
 		size_t count = 0;
 		size_t even_keys = 0;
-		gpointer key;
-		guint32 distance;
-		guint32 previous_distance = 0;
-		gboolean first = TRUE;
+		void *key;
+		uint32 distance;
+		uint32 previous_distance = 0;
+		bool first = TRUE;
 		size_t idx = random_value(nkeys - 1);
-		gpointer furthest;
-		gboolean found;
+		void *furthest;
+		bool found;
 
 		found = patricia_furthest_extended(pt, &data[idx], &furthest, NULL);
 
@@ -2760,7 +2764,7 @@ test_keys(guint32 keys[], size_t nkeys)
 
 		iter = patricia_metric_iterator(pt, &data[idx], FALSE);
 		while (patricia_iter_next(iter, &key, NULL, NULL)) {
-			guint8 *k = key;
+			uint8 *k = key;
 			count++;
 			if (!(k[3] & 0x1))
 				even_keys++;
@@ -2800,7 +2804,7 @@ test_keys(guint32 keys[], size_t nkeys)
 
 	for (i = 0; i < nkeys; i++) {
 		if (patricia_contains(pt, &data[i])) {
-			gboolean removed = patricia_remove(pt, &data[i]);
+			bool removed = patricia_remove(pt, &data[i]);
 			g_assert(removed);
 			g_assert(!patricia_contains(pt, &data[i]));
 		}
@@ -2832,7 +2836,7 @@ test_keys(guint32 keys[], size_t nkeys)
 	/* removing keys of variable size... */
 
 	for (i = 0; i < nkeys; i++) {
-		gboolean removed;
+		bool removed;
 		size_t bitsize = 1 + highest_bit_set(keys[i]);
 
 		g_assert(patricia_contains_k(pt, &data[i], bitsize));
@@ -2858,7 +2862,7 @@ G_GNUC_COLD void
 patricia_test(void)
 {
 	size_t i;
-	static guint32 keys[] = {
+	static uint32 keys[] = {
 		0x00800000U,
 		0x00800001U,
 		0x00810001U,

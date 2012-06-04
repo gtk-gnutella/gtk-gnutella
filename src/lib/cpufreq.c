@@ -45,11 +45,11 @@
  *
  * @return minimum frequency in Hz, 0 if not supported.
  */
-guint64
+uint64
 cpufreq_min(void)
 {
-	static guint64 freq;
-	static guchar done;
+	static uint64 freq;
+	static uchar done;
 
 	if (done)
 		return freq;
@@ -76,11 +76,11 @@ cpufreq_min(void)
  *
  * @return maximum frequency in Hz, 0 if not supported.
  */
-guint64
+uint64
 cpufreq_max(void)
 {
-	static guint64 freq;
-	static guchar done;
+	static uint64 freq;
+	static uchar done;
 
 	if (done)
 		return freq;
@@ -102,11 +102,11 @@ cpufreq_max(void)
  *
  * @return current frequency in Hz, 0 if not supported.
  */
-guint64
+uint64
 cpufreq_current(void)
 {
-	static guchar supported = TRUE;
-	guint64 freq;
+	static uchar supported = TRUE;
+	uint64 freq;
 
 	if (!supported)
 		return 0;

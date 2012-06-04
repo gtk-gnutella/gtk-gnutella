@@ -244,7 +244,13 @@ create_main_window (void)
   GtkWidget *spinbutton_whats_new_search_max_results;
   GtkWidget *checkbutton_search_discard_alien_ip;
   GtkWidget *checkbutton_search_discard_banned_guid;
+  GtkWidget *checkbutton_search_display_guess_stats;
   GtkWidget *label789;
+  GtkWidget *guess_stats_line;
+  GtkWidget *viewport_fix_flashing_3;
+  GtkWidget *hbox2114;
+  GtkWidget *label_guess_stats;
+  GtkWidget *checkbutton_guess_stats_show_total;
   GtkWidget *hbox147;
   GtkWidget *viewport_fix_flashing_1;
   GtkWidget *hbox167;
@@ -2646,6 +2652,16 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  checkbutton_search_display_guess_stats = gtk_check_button_new_with_label (_("Display GUESS statistics"));
+  gtk_widget_set_name (checkbutton_search_display_guess_stats, "checkbutton_search_display_guess_stats");
+  gtk_widget_ref (checkbutton_search_display_guess_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_display_guess_stats", checkbutton_search_display_guess_stats,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_display_guess_stats);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_display_guess_stats, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label789 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label789, "label789");
   gtk_widget_ref (label789);
@@ -2653,6 +2669,49 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label789);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook4), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook4), 3), label789);
+
+  guess_stats_line = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (guess_stats_line, "guess_stats_line");
+  gtk_widget_ref (guess_stats_line);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "guess_stats_line", guess_stats_line,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (guess_stats_line);
+  gtk_box_pack_start (GTK_BOX (vbox76), guess_stats_line, FALSE, TRUE, 0);
+
+  viewport_fix_flashing_3 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport_fix_flashing_3, "viewport_fix_flashing_3");
+  gtk_widget_ref (viewport_fix_flashing_3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport_fix_flashing_3", viewport_fix_flashing_3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport_fix_flashing_3);
+  gtk_box_pack_start (GTK_BOX (guess_stats_line), viewport_fix_flashing_3, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport_fix_flashing_3), GTK_SHADOW_ETCHED_IN);
+
+  hbox2114 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox2114, "hbox2114");
+  gtk_widget_ref (hbox2114);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox2114", hbox2114,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox2114);
+  gtk_container_add (GTK_CONTAINER (viewport_fix_flashing_3), hbox2114);
+
+  label_guess_stats = gtk_label_new ("");
+  gtk_widget_set_name (label_guess_stats, "label_guess_stats");
+  gtk_widget_ref (label_guess_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_guess_stats", label_guess_stats,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_guess_stats);
+  gtk_box_pack_start (GTK_BOX (hbox2114), label_guess_stats, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_guess_stats), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_guess_stats), 5, 0);
+
+  checkbutton_guess_stats_show_total = gtk_check_button_new_with_label (_("Total"));
+  gtk_widget_set_name (checkbutton_guess_stats_show_total, "checkbutton_guess_stats_show_total");
+  gtk_widget_ref (checkbutton_guess_stats_show_total);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_guess_stats_show_total", checkbutton_guess_stats_show_total,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_guess_stats_show_total);
+  gtk_box_pack_start (GTK_BOX (guess_stats_line), checkbutton_guess_stats_show_total, FALSE, FALSE, 0);
 
   hbox147 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox147, "hbox147");
@@ -10673,6 +10732,7 @@ create_dlg_prefs (void)
   GtkWidget *label8029;
   GtkObject *spinbutton_config_bw_guess_out_adj;
   GtkWidget *spinbutton_config_bw_guess_out;
+  GtkWidget *checkbutton_guess_maximize_bw;
   GtkWidget *label684;
   GtkWidget *scrolledwindow34;
   GtkWidget *viewport6;
@@ -14574,7 +14634,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame155);
   gtk_box_pack_start (GTK_BOX (vbox29), frame155, TRUE, TRUE, 0);
 
-  table103 = gtk_table_new (1, 3, FALSE);
+  table103 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table103, "table103");
   gtk_widget_ref (table103);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table103", table103,
@@ -14619,6 +14679,16 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_config_bw_guess_out, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bw_guess_out), TRUE);
+
+  checkbutton_guess_maximize_bw = gtk_check_button_new_with_label (_("Allow unused Gnutella outgoing bandwidth to supersede hint"));
+  gtk_widget_set_name (checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
+  gtk_widget_ref (checkbutton_guess_maximize_bw);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_guess_maximize_bw", checkbutton_guess_maximize_bw,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_guess_maximize_bw);
+  gtk_table_attach (GTK_TABLE (table103), checkbutton_guess_maximize_bw, 0, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label684 = gtk_label_new (_("Bandwidth"));
   gtk_widget_set_name (label684, "label684");

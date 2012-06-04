@@ -51,24 +51,24 @@
  * A TEA cipher block is 64-bit wide.
  */
 typedef struct tea_block {
-	guchar v[TEA_BLOCK_SIZE];
+	uchar v[TEA_BLOCK_SIZE];
 } tea_block_t;
 
 /**
  * Squeeze buffer to a 32-bit value.
  * Buffer length must be a multiple of 4.
  */
-guint32
-tea_squeeze(gpointer buf, size_t len)
+uint32
+tea_squeeze(void *buf, size_t len)
 {
 	char *p;
 	size_t remain;
-	guint32 result = 0;
+	uint32 result = 0;
 
 	g_assert(0 == (len & 0x03));		/* multiple of 4 bytes */
 
 	for (remain = len, p = buf; remain >= 4; remain -= 4, p += 4) {
-		guint32 val;
+		uint32 val;
 
 		val = peek_le32(p);
 		result ^= val;
@@ -89,10 +89,10 @@ tea_squeeze(gpointer buf, size_t len)
 static G_GNUC_HOT void
 t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
-	guint32 v0, v1, sum = 0;
+	uint32 v0, v1, sum = 0;
 	int i;
-    guint32 delta = TEA_CONSTANT;
-	guint32 k0, k1, k2, k3;			/* cache key */
+    uint32 delta = TEA_CONSTANT;
+	uint32 k0, k1, k2, k3;			/* cache key */
 
 	v0 = peek_le32(&value->v[0]);
 	v1 = peek_le32(&value->v[4]);
@@ -122,10 +122,10 @@ t_encrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 static G_GNUC_HOT void
 t_decrypt(tea_block_t *res, const tea_key_t *key, const tea_block_t *value)
 {
-	guint32 v0, v1, sum = 0xC6EF3720;
+	uint32 v0, v1, sum = 0xC6EF3720;
 	int i;
-    guint32 delta = TEA_CONSTANT;
-	guint32 k0, k1, k2, k3;			/* cache key */
+    uint32 delta = TEA_CONSTANT;
+	uint32 k0, k1, k2, k3;			/* cache key */
 
 	v0 = peek_le32(&value->v[0]);
 	v1 = peek_le32(&value->v[4]);
@@ -151,7 +151,7 @@ static void
 perform(
 	void (*op)(tea_block_t *, const tea_key_t *, const tea_block_t *),
 	const tea_key_t *key,
-	gpointer dest, gconstpointer buf, size_t len)
+	void *dest, const void *buf, size_t len)
 {
 	size_t remain;
 	const char *in = buf;
@@ -186,8 +186,8 @@ perform(
  *
  * Length must be a multiple of 8 bytes.
  */
-void tea_encrypt(const tea_key_t *key,
-	gpointer dest, gconstpointer buf, size_t len)
+void
+tea_encrypt(const tea_key_t *key, void *dest, const void *buf, size_t len)
 {
 	perform(t_encrypt, key, dest, buf, len);
 }
@@ -202,8 +202,8 @@ void tea_encrypt(const tea_key_t *key,
  *
  * Length must be a multiple of 8 bytes.
  */
-void tea_decrypt(const tea_key_t *key,
-	gpointer dest, gconstpointer buf, size_t len)
+void
+tea_decrypt(const tea_key_t *key, void *dest, const void *buf, size_t len)
 {
 	perform(t_decrypt, key, dest, buf, len);
 }
@@ -228,7 +228,7 @@ tea_test(void)
 
 	for (i = 0; i < 10; i++) {
 		int j;
-		gboolean randomized = FALSE;
+		bool randomized = FALSE;
 
 		for (j = 0; j < 10; j++) {
 			random_bytes(key.v, TEA_KEY_SIZE);

@@ -44,13 +44,13 @@ struct dime_record *dime_record_alloc(void);
 void dime_record_free(struct dime_record **record_ptr);
 
 size_t dime_create_record(const struct dime_record *record,
-			char **data_ptr, gboolean first, gboolean last);
+			char **data_ptr, bool first, bool last);
 
-gboolean dime_record_set_data(struct dime_record *record,
+bool dime_record_set_data(struct dime_record *record,
 			const void *data, size_t size);
-gboolean dime_record_set_id(struct dime_record *record, const char *id);
-gboolean dime_record_set_type_uri(struct dime_record *, const char *type);
-gboolean dime_record_set_type_mime(struct dime_record *, const char *type);
+bool dime_record_set_id(struct dime_record *record, const char *id);
+bool dime_record_set_type_uri(struct dime_record *, const char *type);
+bool dime_record_set_type_mime(struct dime_record *, const char *type);
 
 void dime_list_free(GSList **list_ptr);
 GSList *dime_parse_records(const char *data, size_t size);

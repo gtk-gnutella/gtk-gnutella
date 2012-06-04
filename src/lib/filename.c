@@ -95,7 +95,7 @@ filename_shrink(const char *filename, char *buf, size_t size)
 
 static char *
 unique_pathname(const char *path, const char *filename,
-		gboolean (*name_is_uniq)(const char *pathname))
+		bool (*name_is_uniq)(const char *pathname))
 {
 	char *pathname;
 	
@@ -109,7 +109,7 @@ unique_pathname(const char *path, const char *filename,
 	return pathname;
 }
 
-static inline gboolean
+static inline bool
 filename_is_evil_char(int c)
 {
 	/**
@@ -139,7 +139,7 @@ filename_is_evil_char(int c)
 	return FALSE;
 }
 
-static gboolean
+static bool
 filename_is_reserved(const char *filename)
 {
 	const char *endptr;
@@ -204,7 +204,7 @@ filename_is_reserved(const char *filename)
  *			if it was a valid filename already.
  */
 char *
-filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
+filename_sanitize(const char *filename, bool no_spaces, bool no_evil)
 {
 	const char *p;
 	const char *s;
@@ -231,7 +231,7 @@ filename_sanitize(const char *filename, gboolean no_spaces, gboolean no_evil)
 	/* Replace shell meta characters and likely problematic characters */
 	{
 		size_t i;
-		guchar c;
+		uchar c;
 		
 		for (i = 0; '\0' != (c = s[i]); i++) {
 			if (
@@ -288,7 +288,7 @@ filename_beautify(const char *filename)
 {
 	const char *s;
 	char *q;
-	guchar c;
+	uchar c;
 	size_t len;
 	size_t j = 0;
 	static const char punct[] = "_-+=.,<>{}[]";	/* 1st MUST be '_' */
@@ -302,7 +302,7 @@ filename_beautify(const char *filename)
 	q = halloc(len + 1);		/* Trailing NUL */
 
 	while ((c = *s++)) {
-		guchar d;
+		uchar d;
 
 		/* Beautified filename cannot start with stripped characters */
 		if (j == 0) {
@@ -392,7 +392,7 @@ utf8_truncate(const char *src, char *dst, size_t size)
  */
 char *
 filename_unique(const char *path, const char *name, const char *ext,
-		gboolean (*name_is_uniq)(const char *pathname))
+		bool (*name_is_uniq)(const char *pathname))
 {
 	char filename_buf[FILENAME_MAXBYTES];
 	char name_buf[FILENAME_MAXBYTES];

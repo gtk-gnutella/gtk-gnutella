@@ -114,7 +114,8 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
-static void socket_accept(gpointer data, int, inputevt_cond_t cond);
+static void socket_accept(void *data, int, inputevt_cond_t cond);
+static bool socket_reconnect(struct gnutella_socket *s);
 
 static struct gnutella_socket *
 socket_alloc(void)
@@ -249,7 +250,7 @@ socket_evt_fd(struct gnutella_socket *s)
  */
 void
 socket_evt_set(struct gnutella_socket *s,
-	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
+	inputevt_cond_t cond, inputevt_handler_t handler, void *data)
 {
 	int fd;
 
@@ -274,7 +275,7 @@ socket_evt_set(struct gnutella_socket *s,
 
 	if (!(INPUT_EVENT_W & cond) && s->wio.flush(&s->wio) < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("socket_evt_set: flush error: %m");
+			g_warning("%s: flush error: %m", G_STRFUNC);
 		}
 	}
 }
@@ -324,7 +325,7 @@ static GSList *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(const struct gnutella_socket *s);
 static void socket_destroy(struct gnutella_socket *s, const char *reason);
-static void socket_connected(gpointer data, int source, inputevt_cond_t cond);
+static void socket_connected(void *data, int source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
 
 /*
@@ -335,7 +336,7 @@ static void socket_wio_link(struct gnutella_socket *s);
  * If the user changes /etc/protocols while running gtkg, things may
  * go badly.
  */
-static gboolean sol_got = FALSE;
+static bool sol_got = FALSE;
 static int sol_tcp_cached = -1;
 static int sol_ip_cached = -1;
 static int sol_ipv6_cached = -1;
@@ -474,7 +475,7 @@ socket_tos_normal(const struct gnutella_socket *s)
 void
 socket_tos_lowdelay(const struct gnutella_socket *s)
 {
-	static gboolean failed;
+	static bool failed;
 
 	failed = failed || socket_tos(s, iptos_lowdelay);
 }
@@ -488,7 +489,7 @@ socket_tos_lowdelay(const struct gnutella_socket *s)
 void
 socket_tos_throughput(const struct gnutella_socket *s)
 {
-	static gboolean failed;
+	static bool failed;
 
 	failed = failed || socket_tos(s, iptos_throughput);
 }
@@ -539,9 +540,9 @@ socket_connection_reset(struct gnutella_socket *s)
 }
 
 static void
-proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
+proxy_connect_helper(const host_addr_t *addr, size_t n, void *udata)
 {
-	gboolean *in_progress = udata;
+	bool *in_progress = udata;
 
 	g_assert(addr);
 	g_assert(in_progress);
@@ -563,7 +564,7 @@ proxy_connect_helper(const host_addr_t *addr, size_t n, gpointer udata)
  *
  * @return TRUE if a proxy is configured.
  */
-static gboolean
+static bool
 proxy_is_enabled(void)
 {
 	switch ((enum proxy_protocol) GNET_PROPERTY(proxy_protocol)) {
@@ -586,14 +587,14 @@ proxy_is_enabled(void)
 static socket_fd_t
 proxy_connect(socket_fd_t fd)
 {
-	static gboolean in_progress = FALSE;
+	static bool in_progress = FALSE;
 	socket_addr_t server;
 	socklen_t len;
 
 	if (!is_host_addr(GNET_PROPERTY(proxy_addr)) && proxy_is_enabled()) {
 		if (!in_progress) {
 			in_progress = TRUE;
-			g_warning("Resolving proxy name \"%s\"",
+			g_warning("resolving proxy name \"%s\"",
 				GNET_PROPERTY(proxy_hostname));
 			adns_resolve(GNET_PROPERTY(proxy_hostname), settings_dns_net(),
 				proxy_connect_helper, &in_progress);
@@ -634,16 +635,16 @@ send_socks4(struct gnutella_socket *s)
 	/* Create the request */
 	{
 		struct {
-			guint8 version;
-			guint8 command;
-			guint8 dstport[2];
-			guint8 dstip[4];
+			uint8 version;
+			uint8 command;
+			uint8 dstport[2];
+			uint8 dstip[4];
 			/* A null terminated username goes here */
 		} *req;
 
 		STATIC_ASSERT(8 == sizeof *req);
 
-		req = cast_to_gpointer(s->buf);
+		req = cast_to_pointer(s->buf);
 		req->version = 4;	/* SOCKS 4 */
 		req->command = 1;	/* Connect */
 		poke_be16(req->dstport, s->port);
@@ -664,7 +665,7 @@ send_socks4(struct gnutella_socket *s)
 			length + name_size > s->buf_size
 		) {
 			/* Such a long username would be insane, no need to malloc(). */
-			g_warning("send_socks4(): Username is too long");
+			g_warning("%s(): username is too long", G_STRFUNC);
 			return -1;
 		}
 
@@ -677,7 +678,7 @@ send_socks4(struct gnutella_socket *s)
 	ret = s_write(s->file_desc, s->buf, length);
 
 	if ((size_t) ret != length) {
-		g_warning("Error attempting to send SOCKS request (%s)",
+		g_warning("error attempting to send SOCKS request (%s)",
 			ret == (ssize_t) -1 ? strerror(errno) : "Partial write");
 		return -1;
 	}
@@ -689,10 +690,10 @@ static int
 recv_socks4(struct gnutella_socket *s)
 {
 	struct {
-		guint8 version;
-		guint8 result;
-		guint8 ignore1[2];
-		guint8 ignore2[4];
+		uint8 version;
+		uint8 result;
+		uint8 ignore1[2];
+		uint8 ignore2[4];
 	} reply;
 	static const size_t size = sizeof reply;
 	ssize_t ret;
@@ -700,13 +701,13 @@ recv_socks4(struct gnutella_socket *s)
 	STATIC_ASSERT(8 == sizeof reply);
 	socket_check(s);
 
-	ret = s_read(s->file_desc, cast_to_gpointer(&reply), size);
+	ret = s_read(s->file_desc, cast_to_pointer(&reply), size);
 	if ((ssize_t) -1 == ret) {
 		g_warning("error attempting to receive SOCKS reply: %m");
 		return ECONNREFUSED;
 	}
 	if ((size_t) ret != size) {
-		g_warning("Short reply from SOCKS server");
+		g_warning("short reply from SOCKS server");
 		/* Let the application try and see how they go */
 		return ECONNREFUSED;
 	}
@@ -763,12 +764,12 @@ connect_http(struct gnutella_socket *s)
 			iovec_t iov[G_N_ELEMENTS(parts)];
 			const char *host_port = host_addr_port_to_string(s->addr, s->port);
 			size_t size = 0;
-			guint i;
+			uint i;
 
 			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
 				size_t n;
 
-				iovec_set_base(&iov[i], deconstify_gchar(
+				iovec_set_base(&iov[i], deconstify_char(
 									parts[i].s ? parts[i].s : host_port));
 				n = strlen(iovec_base(&iov[i]));
 				iovec_set_len(&iov[i], n);
@@ -809,11 +810,11 @@ connect_http(struct gnutella_socket *s)
 		}
 		str = getline_str(s->getline);
 		if ((status = http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
-			g_warning("Bad status line");
+			g_warning("bad HTTP proxy status line");
 			return -1;
 		}
 		if ((status / 100) != 2) {
-			g_warning("Cannot use HTTP proxy: \"%s\"", str);
+			g_warning("cannot use HTTP proxy: \"%s\"", str);
 			return -1;
 		}
 		s->pos++;
@@ -822,7 +823,7 @@ connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("HTTP proxy returned a too long line");
+				g_warning("HTTP proxy returned too long a line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
@@ -851,7 +852,7 @@ connect_http(struct gnutella_socket *s)
 			getline_reset(s->getline);
 			switch (getline_read(s->getline, s->buf, ret, &parsed)) {
 			case READ_OVERFLOW:
-				g_warning("HTTP proxy returned a too long line");
+				g_warning("HTTP proxy returned too long a line");
 				return -1;
 			case READ_DONE:
 				if ((size_t) ret != parsed)
@@ -903,7 +904,7 @@ connect_socksv5(struct gnutella_socket *s)
 		addr = s->addr;
 
 	{
-		gboolean ok = FALSE;
+		bool ok = FALSE;
 
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
@@ -945,7 +946,7 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
@@ -972,30 +973,30 @@ connect_socksv5(struct gnutella_socket *s)
 
 		name = GNET_PROPERTY(socks_user);
 		if (name == NULL) {
-			g_warning("No Username to authenticate with.");
+			g_warning("SOCKS no username to authenticate with");
 			return ECONNREFUSED;
 		}
 
 		if (GNET_PROPERTY(socks_pass) == NULL) {
-			g_warning("No Password to authenticate with.");
+			g_warning("SOCKS no password to authenticate with");
 			return ECONNREFUSED;
 		}
 
 		if (strlen(name) > 255 || strlen(GNET_PROPERTY(socks_pass)) > 255) {
-			g_warning("Username or password exceeds 255 characters.");
+			g_warning("SOCKS username or password exceeds 255 characters");
 			return ECONNREFUSED;
 		}
 
 		size = gm_snprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
-					(guchar) strlen(name),
+					(uchar) strlen(name),
 					name,
-					(guchar) strlen(GNET_PROPERTY(socks_pass)),
+					(uchar) strlen(GNET_PROPERTY(socks_pass)),
 					GNET_PROPERTY(socks_pass));
 
 		/* Send out the authentication */
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
-			g_warning("Sending SOCKS authentication failed: %s",
+			g_warning("sending SOCKS authentication failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 			return -1;
 		}
@@ -1013,7 +1014,7 @@ connect_socksv5(struct gnutella_socket *s)
 		}
 
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
@@ -1058,7 +1059,7 @@ connect_socksv5(struct gnutella_socket *s)
 
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
-			g_warning("Send SOCKS connect command failed: %s",
+			g_warning("send SOCKS connect command failed: %s",
 				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
 			return (-1);
 		}
@@ -1075,45 +1076,58 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 		if (GNET_PROPERTY(socket_debug)) {
-			g_debug("connect_socksv5: Step 5, bytes recv'd %zu\n", ret);
+			g_debug("%s: step 5, bytes recv'd %zu", G_STRFUNC, ret);
 		}
 		if ((size_t) ret != size) {
-			g_warning("Short reply from SOCKS server");
+			g_warning("short reply from SOCKS server");
 			return ECONNREFUSED;
 		}
 
 		/* See the connection succeeded */
 		if (s->buf[1] != '\0') {
-			g_warning("SOCKS connect failed: ");
+			const char *msg;
+			int error;
+
 			switch (s->buf[1]) {
 			case 1:
-				g_warning("General SOCKS server failure");
-				return ECONNABORTED;
+				msg = "General SOCKS server failure";
+				error = ECONNABORTED;
+				break;
 			case 2:
-				g_warning("Connection denied by rule");
-				return ECONNABORTED;
+				msg = "Connection denied by rule";
+				error = ECONNABORTED;
+				break;
 			case 3:
-				g_warning("Network unreachable");
-				return ENETUNREACH;
+				msg = "Network unreachable";
+				error = ENETUNREACH;
+				break;
 			case 4:
-				g_warning("Host unreachable");
-				return EHOSTUNREACH;
+				msg = "Host unreachable";
+				error = EHOSTUNREACH;
+				break;
 			case 5:
-				g_warning("Connection refused");
-				return ECONNREFUSED;
+				msg = "Connection refused";
+				error = ECONNREFUSED;
+				break;
 			case 6:
-				g_warning("TTL Expired");
-				return ETIMEDOUT;
+				msg = "TTL Expired";
+				error = ETIMEDOUT;
+				break;
 			case 7:
-				g_warning("Command not supported");
-				return ECONNABORTED;
+				msg = "Command not supported";
+				error = ECONNABORTED;
+				break;
 			case 8:
-				g_warning("Address type not supported");
-				return ECONNABORTED;
+				msg = "Address type not supported";
+				error = ECONNABORTED;
+				break;
 			default:
-				g_warning("Unknown error");
-				return ECONNABORTED;
+				msg = "Unknown error";
+				error = ECONNABORTED;
+				break;
 			}
+			g_warning("SOCKS connect failed: %s", msg);
+			return error;
 		}
 
 		s->pos++;
@@ -1378,7 +1392,7 @@ socket_free(struct gnutella_socket *s)
 		socket_cork(s, FALSE);
 		socket_tx_shutdown(s);
 		if (compat_socket_close(s->file_desc)) {
-			g_warning("socket_free: close(%d) failed: %m", s->file_desc);
+			g_warning("%s: close(%d) failed: %m", G_STRFUNC, s->file_desc);
 		}
 		s->file_desc = INVALID_SOCKET;
 	}
@@ -1403,7 +1417,7 @@ socket_free_null(struct gnutella_socket **s_ptr)
  *			and the same I/O handler will be called again which must call
  *			socket_tls_setup() once more.
  */
-static gboolean
+static bool
 socket_tls_setup(struct gnutella_socket *s)
 {
 	if (!s->tls.enabled)
@@ -1419,6 +1433,9 @@ socket_tls_setup(struct gnutella_socket *s)
 	if (s->tls.stage < SOCK_TLS_ESTABLISHED) {
 		switch (tls_handshake(s)) {
 		case TLS_HANDSHAKE_ERROR:
+			if (SOCK_CONN_INCOMING != s->direction) {
+				tls_cache_remove(s->addr, s->port);
+			}
 			goto destroy;
 		case TLS_HANDSHAKE_RETRY:
 			errno = VAL_EAGAIN;
@@ -1455,7 +1472,7 @@ destroy:
  * determined.
  */
 static void
-socket_read(gpointer data, int source, inputevt_cond_t cond)
+socket_read(void *data, int source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t count;
@@ -1477,7 +1494,7 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 	 */
 
 	if (s->direction == SOCK_CONN_INCOMING && (s->flags & SOCK_F_LOCAL)) {
-		gboolean error;
+		bool error;
 
 		if (compat_accept_check(s->file_desc, &error)) {
 			if (error)
@@ -1520,7 +1537,7 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 
 		if (0 != socket_tls_setup(s)) {
 			if (!is_temporary_error(errno)) {
-				socket_destroy(s, "TLS handshake failed");
+				socket_destroy(s, _("TLS handshake failed"));
 			}
 			return;
 		}
@@ -1533,8 +1550,8 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 
 	/* 1 to allow trailing NUL */
 	if (count < 1) {
-		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
-			 host_addr_to_string(s->addr));
+		g_warning("%s(): incoming buffer full, disconnecting from %s",
+			 G_STRFUNC, host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
 		socket_destroy(s, "Incoming buffer full");
 		return;
@@ -1574,8 +1591,8 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 
 	switch (getline_read(s->getline, s->buf, s->pos, &parsed)) {
 	case READ_OVERFLOW:
-		g_warning("socket_read(): first line too long, disconnecting from %s",
-			 host_addr_to_string(s->addr));
+		g_warning("%s(): first line too long, disconnecting from %s",
+			 G_STRFUNC, host_addr_to_string(s->addr));
 		dump_hex(stderr, "Leading Data",
 			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
@@ -1765,8 +1782,8 @@ socket_read(gpointer data, int source, inputevt_cond_t cond)
 unknown:
 	if (GNET_PROPERTY(socket_debug)) {
 		size_t len = getline_length(s->getline);
-		g_warning("socket_read(): got unknown incoming connection from %s, "
-			"dropping!", host_addr_to_string(s->addr));
+		g_warning("%s(): got unknown incoming connection from %s, dropping!",
+			G_STRFUNC, host_addr_to_string(s->addr));
 		if (len > 0)
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
@@ -1815,7 +1832,7 @@ socket_connection_failed(struct gnutella_socket *s, const char *errmsg)
  * So far there are CONTROL, UPLOAD, DOWNLOAD and HTTP handlers.
  */
 static void
-socket_connected(gpointer data, int source, inputevt_cond_t cond)
+socket_connected(void *data, int source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
 
@@ -1835,7 +1852,22 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
 
 	if (0 != socket_tls_setup(s)) {
 		if (!is_temporary_error(errno)) {
-			socket_connection_failed(s, "TLS handshake failed");
+			if (GNET_PROPERTY(tls_debug)) {
+				g_debug("TLS handshake failed when connecting to %s, %s",
+					host_addr_port_to_string(s->addr, s->port),
+					GNET_PROPERTY(tls_enforce) ? "aborting" : "retrying");
+			}
+
+			/*
+			 * When TLS is not enforced, attempt to reconnect to the same
+			 * server without any TLS support, in case we had incorrectly
+			 * flagged the host as supporting TLS.
+			 *		--RAM, 2012-02-20
+			 */
+
+			if (GNET_PROPERTY(tls_enforce) || !socket_reconnect(s)) {
+				socket_connection_failed(s, _("TLS handshake failed"));
+			}
 		}
 		return;
 	}
@@ -1999,7 +2031,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
             break;
 
 		default:
-			g_warning("socket_connected(): Unknown socket type %d !", s->type);
+			g_warning("%s(): unknown socket type %d !", G_STRFUNC, s->type);
 			socket_destroy(s, NULL);		/* ? */
 			break;
 		}
@@ -2013,7 +2045,7 @@ socket_connected(gpointer data, int source, inputevt_cond_t cond)
  *
  * @return TRUE on success, FALSE on error with errno set.
  */
-gboolean
+bool
 socket_local_addr(const struct gnutella_socket *s, host_addr_t *addrptr)
 {
 	socket_addr_t saddr;
@@ -2074,7 +2106,7 @@ socket_local_port(const struct gnutella_socket *s)
  * Someone is connecting to us.
  */
 static void
-socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
+socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 {
 	socket_addr_t addr;
 	socklen_t addr_len;
@@ -2087,7 +2119,8 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning("Input exception on TCP listening socket #%d!", s->file_desc);
+		g_warning("%s(): input exception on TCP listening socket #%d!",
+			G_STRFUNC, s->file_desc);
 		return;		/* Ignore it, what else can we do? */
 	}
 
@@ -2095,8 +2128,8 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	case SOCK_TYPE_CONTROL:
 		break;
 	default:
-		g_warning("socket_accept(): Unknown listening socket type %d !",
-				  s->type);
+		g_warning("%s(): unknown listening socket type %d !",
+			G_STRFUNC, s->type);
 		socket_destroy(s, NULL);
 		return;
 	}
@@ -2202,7 +2235,7 @@ socket_accept(gpointer data, int unused_source, inputevt_cond_t cond)
 	t->tls.snarf = 0;
 
 	if (GNET_PROPERTY(tls_debug) > 2) {
-		g_debug("Incoming connection from %s",
+		g_debug("incoming connection from %s",
 			host_addr_port_to_string(t->addr, t->port));
 	}
 
@@ -2255,7 +2288,7 @@ cmsg_nxthdr(const struct msghdr *msg_, const struct cmsghdr *cmsg_)
 }
 #endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
-static inline gboolean
+static inline bool
 socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #if defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR)
 {
@@ -2327,7 +2360,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	struct sockaddr *from;
 	socklen_t from_len;
 	ssize_t r;
-	gboolean truncated = FALSE, has_dst_addr = FALSE;
+	bool truncated = FALSE, has_dst_addr = FALSE;
 	host_addr_t dst_addr;
 
 	socket_check(s);
@@ -2365,7 +2398,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		iovec_set_len(&iov, s->buf_size);
 
 		msg = zero_msg;
-		msg.msg_name = cast_to_gpointer(from);
+		msg.msg_name = cast_to_pointer(from);
 		msg.msg_namelen = from_len;
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
@@ -2400,7 +2433,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	}
 #else	/* !HAS_RECVMSG */
 	r = recvfrom(s->file_desc, s->buf, s->buf_size, 0,
-			cast_to_gpointer(from), &from_len);
+			cast_to_pointer(from), &from_len);
 #endif	/* HAS_RECVMSG */
 
 	if ((ssize_t) -1 == r)
@@ -2446,9 +2479,10 @@ socket_udp_accept(struct gnutella_socket *s)
 			!host_addr_equal(last_addr, dst_addr)
 		) {
 			last_addr = dst_addr;
-			if (GNET_PROPERTY(socket_debug))
-				g_debug("socket_udp_accept(): dst_addr=%s",
-					host_addr_to_string(dst_addr));
+			if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): dst_addr=%s",
+					G_STRFUNC, host_addr_to_string(dst_addr));
+			}
 		}
 	}
 
@@ -2466,7 +2500,7 @@ socket_udp_accept(struct gnutella_socket *s)
  * Someone is sending us a datagram.
  */
 static void
-socket_udp_event(gpointer data, int unused_source, inputevt_cond_t cond)
+socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t avail, rd;
@@ -2582,7 +2616,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 	{
 		int timeout;
 
-		timeout = MIN(GNET_PROPERTY(tcp_defer_accept_timeout), (guint) INT_MAX);
+		timeout = MIN(GNET_PROPERTY(tcp_defer_accept_timeout), (uint) INT_MAX);
 		if (
 			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT,
 				&timeout, sizeof timeout)
@@ -2713,7 +2747,7 @@ socket_connection_allowed(const host_addr_t addr, enum socket_type type)
  */
 static int
 socket_connect_prepare(struct gnutella_socket *s,
-	host_addr_t addr, guint16 port, enum socket_type type, guint32 flags)
+	host_addr_t addr, uint16 port, enum socket_type type, uint32 flags)
 {
 	static const int enable = 1;
 	int fd, family;
@@ -2834,7 +2868,8 @@ socket_connect_prepare(struct gnutella_socket *s,
  * @returns non-zero in case of failure, zero on success.
  */
 static int
-socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
+socket_connect_finalize(struct gnutella_socket *s,
+	const host_addr_t ha, bool destroy_on_error)
 {
 	socket_addr_t addr;
 	socklen_t addr_len;
@@ -2910,7 +2945,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 	if (-1 == res && EINPROGRESS != errno && !is_temporary_error(errno)) {
 		if (proxy_is_enabled() && !is_host_addr(GNET_PROPERTY(proxy_addr))) {
 			if (!is_temporary_error(errno)) {
-				g_warning("Proxy isn't properly configured (%s:%u)",
+				g_warning("SOCKS proxy isn't properly configured (%s:%u)",
 					GNET_PROPERTY(proxy_hostname), GNET_PROPERTY(proxy_port));
 			}
 			goto failure;	/* Check the proxy configuration */
@@ -2934,7 +2969,7 @@ socket_connect_finalize(struct gnutella_socket *s, const host_addr_t ha)
 
 failure:
 
-	if (!(s->adns & SOCK_ADNS_PENDING)) {
+	if (destroy_on_error) {
 		socket_destroy(s, _("Connection failed"));
 	}
 	return -1;
@@ -2947,8 +2982,8 @@ failure:
  * determined by the resource type.
  */
 struct gnutella_socket *
-socket_connect(const host_addr_t ha, guint16 port,
-	enum socket_type type, guint32 flags)
+socket_connect(const host_addr_t ha, uint16 port,
+	enum socket_type type, uint32 flags)
 {
 	struct gnutella_socket *s;
 
@@ -2959,13 +2994,40 @@ socket_connect(const host_addr_t ha, guint16 port,
 		return NULL;
 	}
 
-	return 0 != socket_connect_finalize(s, ha) ? NULL : s;
+	return 0 != socket_connect_finalize(s, ha, TRUE) ? NULL : s;
+}
+
+/**
+ * Attempt to reconnect to socket, without TLS.
+ *
+ * @return TRUE if OK, FALSE on error (with socket not destroyed).
+ */
+static bool
+socket_reconnect(struct gnutella_socket *s)
+{
+	socket_check(s);
+	g_assert(s->flags & SOCK_F_TCP);
+
+	socket_evt_clear(s);
+	s_close(s->file_desc);
+	s->file_desc = INVALID_SOCKET;
+	s->flags = 0;
+	if (socket_with_tls(s)) {
+		tls_free(s);
+	}
+
+	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
+		return FALSE;
+
+	g_soft_assert(!socket_with_tls(s));
+
+	return 0 == socket_connect_finalize(s, s->addr, FALSE);
 }
 
 /**
  * @returns whether bad hostname was reported after a DNS lookup.
  */
-gboolean
+bool
 socket_bad_hostname(struct gnutella_socket *s)
 {
 	socket_check(s);
@@ -2980,11 +3042,11 @@ socket_bad_hostname(struct gnutella_socket *s)
  */
 static void
 socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
-	gpointer user_data)
+	void *user_data)
 {
 	struct gnutella_socket *s = user_data;
 	host_addr_t addr;
-	gboolean can_tls;
+	bool can_tls;
 
 	socket_check(s);
 	g_assert(addrs);
@@ -2995,7 +3057,7 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 		goto finish;
 	}
 
-	addr = addrs[random_u32() % n];
+	addr = addrs[random_value(n - 1)];
 	can_tls = 0 != (SOCK_F_TLS & s->flags) || tls_cache_lookup(addr, s->port);
 
 	if (
@@ -3018,8 +3080,9 @@ socket_connect_by_name_helper(const host_addr_t *addrs, size_t n,
 		}
 	}
 
-	/* SOCK_ADNS_PENDING is still set to prevent socket_destroy() on error */
-	if (socket_connect_finalize(s, addr)) {
+	/* SOCK_ADNS_PENDING is still set here, will be cleared below */
+
+	if (socket_connect_finalize(s, addr, FALSE)) {
 		s->adns |= SOCK_ADNS_FAILED;
 		s->adns_msg = "Connection failed";
 		goto finish;
@@ -3037,8 +3100,8 @@ finish:
  * resolved through async DNS calls.
  */
 struct gnutella_socket *
-socket_connect_by_name(const char *host, guint16 port,
-	enum socket_type type, guint32 flags)
+socket_connect_by_name(const char *host, uint16 port,
+	enum socket_type type, uint32 flags)
 {
 	struct gnutella_socket *s;
 	host_addr_t ha;
@@ -3064,8 +3127,8 @@ socket_connect_by_name(const char *host, guint16 port,
 	} else if (s->adns & SOCK_ADNS_FAILED) {
 		/*	socket_connect_by_name_helper() was already invoked! */
 		if (GNET_PROPERTY(socket_debug) > 0)
-			g_warning("socket_connect_by_name: "
-				"adns_resolve() failed in synchronous mode");
+			g_warning("%s: adns_resolve() failed in synchronous mode",
+				G_STRFUNC);
 		socket_destroy(s, s->adns_msg);
 		return NULL;
 	}
@@ -3091,9 +3154,9 @@ socket_connect_by_name(const char *host, guint16 port,
  */
 static socket_fd_t
 socket_create_and_bind(const host_addr_t bind_addr,
-	const guint16 port, const int type)
+	const uint16 port, const int type)
 {
-	gboolean socket_failed;
+	bool socket_failed;
 	socket_fd_t fd;
 	int saved_errno, family;
 	int protocol;
@@ -3190,10 +3253,10 @@ socket_create_and_bind(const host_addr_t bind_addr,
 /**
  * @return TRUE if the socket is a local unix domain socket.
  */
-gboolean
+bool
 socket_is_local(const struct gnutella_socket *s)
 {
-	gboolean is_local, is_tcp, is_udp;
+	bool is_local, is_tcp, is_udp;
 
 	socket_check(s);
 
@@ -3209,14 +3272,13 @@ socket_is_local(const struct gnutella_socket *s)
 		sockaddr_unix_t addr = zero_addr;
 		socklen_t len = sizeof addr;
 
-		if (compat_getsockname(s->file_desc, cast_to_gpointer(&addr), &len)) {
+		if (compat_getsockname(s->file_desc, cast_to_pointer(&addr), &len)) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): getsockname() failed: %m");
+			g_warning("%s(): getsockname() failed: %m", G_STRFUNC);
 		} else if (AF_LOCAL != addr.sun_family) {
 			is_local = FALSE;
-			g_warning("socket_is_local(): "
-				"address family mismatch! (expected %u, got %u)",
-				(guint) AF_LOCAL, (guint) addr.sun_family);
+			g_warning("%s(): address family mismatch! (expected %u, got %u)",
+				G_STRFUNC, (uint) AF_LOCAL, (uint) addr.sun_family);
 		}
 	}
 
@@ -3244,7 +3306,7 @@ socket_local_listen(const char *pathname)
 		addr = zero_un;
 		addr.sun_family = AF_LOCAL;
 		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
-			g_warning("socket_local_listen(): pathname is too long");
+			g_warning("%s(): pathname is too long", G_STRFUNC);
 			return NULL;
 		}
 	}
@@ -3264,13 +3326,13 @@ socket_local_listen(const char *pathname)
 
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = compat_bind(fd, cast_to_gconstpointer(&addr), sizeof addr);
+    	ret = compat_bind(fd, cast_to_constpointer(&addr), sizeof addr);
 		saved_errno = errno;
 		(void) umask(mask);
 
 		if (0 != ret) {
 			errno = saved_errno;
-			g_warning("socket_local_listen(): bind() failed: %m");
+			g_warning("%s(): bind() failed: %m", G_STRFUNC);
 			compat_socket_close(fd);
 			return NULL;
 		}
@@ -3311,7 +3373,7 @@ socket_local_listen(const char *pathname)
  * resource of `type'.
  */
 struct gnutella_socket *
-socket_tcp_listen(host_addr_t bind_addr, guint16 port)
+socket_tcp_listen(host_addr_t bind_addr, uint16 port)
 {
 	static const int enable = 1;
 	struct gnutella_socket *s;
@@ -3385,8 +3447,8 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	case NET_TYPE_IPV4:
 #if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
 		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, &on, sizeof on)) {
-			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IP_RECVDSTADDR failed: %m");
+			g_warning("%s(): setsockopt() for IP_RECVDSTADDR failed: %m",
+				G_STRFUNC);
 		}
 #endif /* IP_RECVDSTADDR && IP_RECVDSTADDR */
 		break;
@@ -3394,8 +3456,8 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	case NET_TYPE_IPV6:
 #if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
 		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, &on, sizeof on)) {
-			g_warning("socket_enable_recvdstaddr(): "
-				"setsockopt() for IPV6_RECVPKTINFO failed: %m");
+			g_warning("%s(): setsockopt() for IPV6_RECVPKTINFO failed: %m",
+				G_STRFUNC);
 		}
 #endif /* HAS_IPV6 && IPV6_RECVPKTINFO */
 		break;
@@ -3411,7 +3473,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
  * a time.
  */
 void
-socket_set_single(struct gnutella_socket *s, gboolean on)
+socket_set_single(struct gnutella_socket *s, bool on)
 {
 	if (on) {
 		s->flags |= SOCK_F_SINGLE;
@@ -3427,7 +3489,7 @@ socket_set_single(struct gnutella_socket *s, gboolean on)
  * data will be held in s->buf, being s->pos byte-long.
  */
 struct gnutella_socket *
-socket_udp_listen(host_addr_t bind_addr, guint16 port,
+socket_udp_listen(host_addr_t bind_addr, uint16 port,
 	socket_udp_data_ind_t data_ind)
 {
 	struct gnutella_socket *s;
@@ -3504,7 +3566,7 @@ socket_disable_token(struct gnutella_socket *s)
 	s->flags |= SOCK_F_OMIT_TOKEN;
 }
 
-gboolean
+bool
 socket_omit_token(struct gnutella_socket *s)
 {
 	socket_check(s);
@@ -3519,7 +3581,7 @@ socket_omit_token(struct gnutella_socket *s)
  * it's about 1500 bytes.
  */
 void
-socket_cork(struct gnutella_socket *s, gboolean on)
+socket_cork(struct gnutella_socket *s, bool on)
 #if defined(TCP_CORK) || defined(TCP_NOPUSH)
 {
 	static const int option =
@@ -3550,7 +3612,7 @@ socket_cork(struct gnutella_socket *s, gboolean on)
 }
 #else
 {
-	static gboolean warned = FALSE;
+	static bool warned = FALSE;
 
 	socket_check(s);
 	(void) on;
@@ -3573,7 +3635,7 @@ socket_cork(struct gnutella_socket *s, gboolean on)
  */
 static unsigned
 socket_set_intern(int fd, int option, unsigned size,
-	const char *type, gboolean shrink)
+	const char *type, bool shrink)
 {
 	unsigned old_len = 0;
 	unsigned new_len = 0;
@@ -3626,7 +3688,7 @@ socket_set_intern(int fd, int option, unsigned size,
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink)
+socket_send_buf(struct gnutella_socket *s, int size, bool shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
@@ -3639,7 +3701,7 @@ socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink)
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
 void
-socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink)
+socket_recv_buf(struct gnutella_socket *s, int size, bool shrink)
 {
 	socket_check(s);
 	g_return_if_fail(!(s->flags & SOCK_F_SHUTDOWN));
@@ -3651,7 +3713,7 @@ socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink)
  * Turn TCP_NODELAY on or off on the socket.
  */
 void
-socket_nodelay(struct gnutella_socket *s, gboolean on)
+socket_nodelay(struct gnutella_socket *s, bool on)
 {
 	int arg = on ? 1 : 0;
 
@@ -3728,7 +3790,7 @@ socket_get_bufsize(struct wrap_io *wio, enum socket_buftype type)
 }
 
 static ssize_t
-socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
+socket_plain_write(struct wrap_io *wio, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
@@ -3739,7 +3801,7 @@ socket_plain_write(struct wrap_io *wio, gconstpointer buf, size_t size)
 }
 
 static ssize_t
-socket_plain_read(struct wrap_io *wio, gpointer buf, size_t size)
+socket_plain_read(struct wrap_io *wio, void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 
@@ -3773,7 +3835,7 @@ socket_plain_readv(struct wrap_io *wio, iovec_t *iov, int iovcnt)
 
 static ssize_t
 socket_plain_sendto(
-	struct wrap_io *wio, const gnet_host_t *to, gconstpointer buf, size_t size)
+	struct wrap_io *wio, const gnet_host_t *to, const void *buf, size_t size)
 {
 	struct gnutella_socket *s = wio->ctx;
 	socklen_t len;
@@ -3803,7 +3865,7 @@ socket_plain_sendto(
 
 static ssize_t
 socket_no_sendto(struct wrap_io *unused_wio, const gnet_host_t *unused_to,
-	gconstpointer unused_buf, size_t unused_size)
+	const void *unused_buf, size_t unused_size)
 {
 	(void) unused_wio;
 	(void) unused_to;
@@ -3815,7 +3877,7 @@ socket_no_sendto(struct wrap_io *unused_wio, const gnet_host_t *unused_to,
 
 static ssize_t
 socket_no_write(struct wrap_io *unused_wio,
-		gconstpointer unused_buf, size_t unused_size)
+		const void *unused_buf, size_t unused_size)
 {
 	(void) unused_wio;
 	(void) unused_buf;
@@ -3836,8 +3898,7 @@ socket_no_writev(struct wrap_io *unused_wio,
 }
 
 static ssize_t
-socket_no_read(struct wrap_io *unused_wio,
-		gpointer unused_buf, size_t unused_size)
+socket_no_read(struct wrap_io *unused_wio, void *unused_buf, size_t unused_size)
 {
 	(void) unused_wio;
 	(void) unused_buf;

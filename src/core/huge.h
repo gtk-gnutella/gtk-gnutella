@@ -57,14 +57,14 @@ void huge_close(void);		/**< Call this when servent is shutdown */
 struct tth;
 
 void request_sha1(struct shared_file *);
-gboolean sha1_is_cached(const struct shared_file *sf);
-gboolean huge_update_hashes(struct shared_file *sf,
+bool sha1_is_cached(const struct shared_file *sf);
+bool huge_update_hashes(struct shared_file *sf,
 	const struct sha1 *sha1, const struct tth *tth);
 
-gboolean huge_improbable_sha1(const char *buf, size_t len);
-gboolean huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
+bool huge_improbable_sha1(const char *buf, size_t len);
+bool huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	const struct gnutella_node *n);
-gboolean huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
+bool huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	const struct gnutella_node *n);
 void huge_collect_locations(
 	const struct sha1 *sha1, const struct header *header);

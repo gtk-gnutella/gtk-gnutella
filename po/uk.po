@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2006-07-13 22:09-0400\n"
 "Last-Translator: Vitalik\n"
 "Language-Team:  <uk@li.org>\n"
@@ -63,7 +63,7 @@ msgid "Switching (after error) to \"%s\""
 msgstr ""
 
 #, c-format
-msgid " at %s - rescheduled for %s%s #%u"
+msgid " at %s"
 msgstr ""
 
 msgid "Suspended (SHA1 checking)"
@@ -98,6 +98,9 @@ msgstr "З'єднання провалилось (більше немає опи
 
 msgid "Connection failed"
 msgstr "З'єднання не відбулось"
+
+msgid "SHA1 mismatch detected"
+msgstr ""
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -364,9 +367,6 @@ msgstr ""
 msgid "Malformed push reply"
 msgstr ""
 
-msgid "SHA1 mismatch detected"
-msgstr ""
-
 msgid ", inbound"
 msgstr ""
 
@@ -408,6 +408,12 @@ msgid "Timeout"
 msgstr "Тайм-аут"
 
 msgid "Requeued due to timeout"
+msgstr ""
+
+msgid "Partial file removed"
+msgstr ""
+
+msgid "File info being reset"
 msgstr ""
 
 #, c-format
@@ -524,6 +530,9 @@ msgstr ""
 #, fuzzy
 msgid "Message matched limits"
 msgstr "Загальна статистика"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr ""
@@ -691,6 +700,9 @@ msgstr ""
 
 msgid "Not an ultra node"
 msgstr ""
+
+msgid "Unknown error"
+msgstr "Невідома помилка"
 
 msgid "Unstable IP address"
 msgstr "Нестабільна IP адреса"
@@ -868,6 +880,9 @@ msgstr "Помилка зчитування"
 msgid "Got EOF"
 msgstr ""
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr ""
 
@@ -888,19 +903,113 @@ msgstr[1] ""
 msgid "Connect back timeout"
 msgstr ""
 
+msgid "Request timeout"
+msgstr ""
+
 msgid "Timeout waiting for follow-up"
 msgstr ""
 
 msgid "Lifetime expired"
 msgstr ""
 
+msgid "Unauthorized"
+msgstr ""
+
+#, c-format
+msgid "Limiting connections from %s"
+msgstr ""
+
+msgid "No reason given"
+msgstr ""
+
+msgid "Bad Request"
+msgstr ""
+
+#, fuzzy
+msgid "Header too large"
+msgstr "Провалилось (Помилка: %s)"
+
+#, fuzzy
+msgid "Input buffer full"
+msgstr "Зупинено (Буфер зчитування заповнений)"
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 msgid "Unable to send GIV"
+msgstr ""
+
+msgid "Not Found"
+msgstr ""
+
+msgid "File was modified"
+msgstr ""
+
+msgid "Library being rebuilt"
+msgstr ""
+
+msgid "Moved Permanently"
+msgstr ""
+
+msgid "File index/name mismatch"
+msgstr ""
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+msgid "SHA1 is being recomputed"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
 msgstr ""
 
 msgid "<Browse Host Request>"
 msgstr ""
 
+msgid "Browse Host Disabled"
+msgstr ""
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+msgid "Not Modified"
+msgstr ""
+
 msgid "Stalling upload replaced"
+msgstr ""
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "Спотворена команда"
+
+msgid "Requested range not satisfiable"
+msgstr ""
+
+msgid "Requested range not available yet"
+msgstr ""
+
+#, fuzzy
+msgid "Queue full"
+msgstr "Черга затримана"
+
+msgid "Another connection is still active"
+msgstr ""
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+msgid "Minimum retry delay"
 msgstr ""
 
 #, c-format
@@ -908,6 +1017,9 @@ msgid "Queued (slot %d, ETA: %s)"
 msgstr ""
 
 msgid "Cannot send whole HTTP status"
+msgstr ""
+
+msgid "Not Acceptable"
 msgstr ""
 
 #, c-format
@@ -924,6 +1036,31 @@ msgid ", gzip"
 msgstr ""
 
 msgid ", chunked"
+msgstr ""
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+#, fuzzy
+msgid "Not Implemented"
+msgstr "Завершено"
+
+msgid "No Content Allowed"
+msgstr ""
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+msgid "Missing Host Header"
+msgstr ""
+
+msgid "Sharing currently disabled"
 msgstr ""
 
 msgid "Write exception"
@@ -2881,6 +3018,34 @@ msgstr ""
 msgid "Debug level for GUID management."
 msgstr ""
 
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr ""
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -3401,6 +3566,17 @@ msgstr ""
 msgid ""
 "Whether session-only searches which happen to have pending downloads should "
 "be restarted when gtk-gnutella is launched."
+msgstr ""
+
+msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -4281,6 +4457,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "Невідома операція"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "Невідома операція"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "Невідома операція"
 
@@ -4370,6 +4550,10 @@ msgstr ""
 msgid "too many arguments in command"
 msgstr ""
 
+#, c-format
+msgid "un-parseable argument #%u in command"
+msgstr ""
+
 msgid "Malformed command"
 msgstr "Спотворена команда"
 
@@ -4452,6 +4636,18 @@ msgid "External metadata"
 msgstr ""
 
 msgid "Bitzi URL"
+msgstr ""
+
+msgid "Rescheduled for"
+msgstr ""
+
+msgid "Restartable since"
+msgstr ""
+
+msgid "rescheduled for"
+msgstr ""
+
+msgid "restartable since"
 msgstr ""
 
 #, c-format
@@ -4583,9 +4779,6 @@ msgstr ""
 
 msgid "Awaiting data"
 msgstr ""
-
-msgid "Unknown error"
-msgstr "Невідома помилка"
 
 #, c-format
 msgid "Retry in %us"
@@ -4866,6 +5059,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr ""
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr ""
 
@@ -4963,6 +5159,9 @@ msgid "GUESS queries"
 msgstr ""
 
 msgid "GUESS queries (0.2)"
+msgstr ""
+
+msgid "GUESS link cache size"
 msgstr ""
 
 msgid "GUESS cached query keys held"
@@ -5191,6 +5390,9 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr ""
 
 msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
 msgstr ""
 
 msgid "DHT k-ball theoretical frontier (bits)"
@@ -7466,6 +7668,9 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
+msgid "Discard results bearing a banned GUID"
+msgstr ""
+
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
@@ -7479,6 +7684,12 @@ msgid "Store SPAM SHA1 table in memory"
 msgstr ""
 
 msgid "Relayed queries remembered"
+msgstr ""
+
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+msgid "Display GUESS statistics"
 msgstr ""
 
 msgid "Not in database"
@@ -7901,6 +8112,12 @@ msgstr ""
 msgid "Expires with this session"
 msgstr ""
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "показувати _Звантаження"
+msgstr[1] "показувати _Звантаження"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -7916,6 +8133,67 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "No GUESS queries run yet"
+msgstr ""
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Хост"
+msgstr[1] "Хост"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "файл"
+
+msgid "query"
+msgid_plural "queries"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "_Закрити"
+
+#, fuzzy
+msgid "bounded"
+msgstr "Виконано"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr ""
@@ -8054,6 +8332,10 @@ msgstr "Детальна інформація"
 #, fuzzy
 msgid "Hostname"
 msgstr "Хост"
+
+#, fuzzy
+msgid "banned"
+msgstr "Забанено: %s"
 
 msgid "Servent ID"
 msgstr ""
@@ -8298,9 +8580,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Seaerch Media Type"
 #~ msgstr "Пошук додано"
-
-#~ msgid "Banned: %s"
-#~ msgstr "Забанено: %s"
 
 #~ msgid "Banned for %s"
 #~ msgstr "Забанено за %s"

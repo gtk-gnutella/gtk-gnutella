@@ -55,7 +55,8 @@
 #include "lib/array.h"
 #include "lib/getdate.h"
 #include "lib/endian.h"
-#include "lib/misc.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
 #include "lib/random.h"
 #include "lib/product.h"
 #include "lib/sequence.h"
@@ -93,11 +94,11 @@ struct found_struct {
 	size_t max_size;			/**< max query hit size */
 	const struct guid *muid;	/**< the MUID to put in all query hits */
 	const struct array *token;	/**< Optional secure OOB token */
-	GHashTable *ht;				/**< Records file indices and SHA1 atoms */
+	hset_t *hs;					/**< Records file indices and SHA1 atoms */
 	qhit_process_t process;		/**< processor once query hit is built */
-	gpointer udata;				/**< processor argument */
-	gboolean open;				/**< Set if found_open() was used */
+	void *udata;				/**< processor argument */
 	unsigned flags;				/**< Set of QHIT_F_* flags */
+	unsigned open:1;			/**< Set if found_open() was used */
 };
 
 static struct found_struct *
@@ -125,7 +126,7 @@ found_add_files(size_t n)
 	found_get()->files += n;
 }
 
-static gboolean
+static bool
 found_ggep_h(void)
 {
 	return booleanize(found_get()->flags & QHIT_F_GGEP_H);
@@ -195,8 +196,8 @@ found_left(void)
 	return sizeof f->data - f->pos;
 }
 
-static gboolean
-found_write(gconstpointer data, size_t length)
+static bool
+found_write(const void *data, size_t length)
 {
 	struct found_struct *f = found_get();
 
@@ -220,8 +221,8 @@ found_set_header(void)
 {
 	struct found_struct *f = found_get();
 	gnutella_msg_search_results_t *msg;
-	guint32 connect_speed;		/* Connection speed, in kbits/s */
-	guint32 ipv4;
+	uint32 connect_speed;		/* Connection speed, in kbits/s */
+	uint32 ipv4;
 	size_t len;
 
 	g_assert(!f->open);
@@ -308,7 +309,7 @@ found_token(void)
 
 static void
 found_init(size_t max_size, const struct guid *xuid, unsigned flags,
-	qhit_process_t proc, gpointer udata, const struct array *token)
+	qhit_process_t proc, void *udata, const struct array *token)
 {
 	struct found_struct *f = found_get();
 
@@ -316,7 +317,7 @@ found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	g_assert(xuid != NULL);
 	g_assert(proc != NULL);
 	g_assert(token != NULL);
-	g_assert(NULL == f->ht);
+	g_assert(NULL == f->hs);
 
 	f->max_size = max_size;
 	f->muid = xuid;
@@ -325,7 +326,7 @@ found_init(size_t max_size, const struct guid *xuid, unsigned flags,
 	f->udata = udata;
 	f->open = FALSE;
 	f->token = token;
-	f->ht = g_hash_table_new(pointer_hash_func, NULL);
+	f->hs = hset_create(HASH_KEY_SELF, 0);
 }
 
 static void
@@ -333,15 +334,15 @@ found_done(void)
 {
 	struct found_struct *f = found_get();
 
-	gm_hash_table_destroy_null(&f->ht);
+	hset_free_null(&f->hs);
 }
 
-static gboolean
+static bool
 found_contains(const void *key)
 {
 	struct found_struct *f = found_get();
 
-	return gm_hash_table_contains(f->ht, key);
+	return hset_contains(f->hs, key);
 }
 
 static size_t
@@ -349,7 +350,7 @@ found_contains_count(void)
 {
 	struct found_struct *f = found_get();
 
-	return g_hash_table_size(f->ht);
+	return hset_count(f->hs);
 }
 
 static void
@@ -357,7 +358,7 @@ found_insert(const void *key)
 {
 	struct found_struct *f = found_get();
 
-	gm_hash_table_insert_const(f->ht, key, NULL);
+	hset_insert(f->hs, key);
 }
 
 static time_t release_date;
@@ -366,17 +367,17 @@ static time_t release_date;
  * Processor for query hits sent inbound.
  */
 static void
-qhit_send_node(gpointer data, size_t len, gpointer udata)
+qhit_send_node(void *data, size_t len, void *udata)
 {
 	gnutella_node_t *n = udata;
 	gnutella_header_t *packet_head = data;
-	guint ttl;
+	uint ttl;
 
 	if (GNET_PROPERTY(dbg) > 3) {
 		g_debug("flushing query hit (%u entr%s, %u bytes sofar) to %s",
-			(guint) found_file_count(),
+			(uint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
-			(guint) found_size(),
+			(uint) found_size(),
 			node_addr(n));
 	}
 
@@ -465,20 +466,20 @@ flush_match(void)
 	 */
 
 	{
-		guint8 major = product_get_major();
-		guint8 minor = product_get_minor();
-		guint8 revchar = product_get_revchar();
-		guint8 patch = product_get_patchlevel();
-		guint32 release;
-		guint32 date = release_date;
-		guint32 build;
-		guint8 version = 1;		/* This is GTKGV version 1 */
-		guint8 osname;
-		guint8 flags;
-		guint8 commit_len;
+		uint8 major = product_get_major();
+		uint8 minor = product_get_minor();
+		uint8 revchar = product_get_revchar();
+		uint8 patch = product_get_patchlevel();
+		uint32 release;
+		uint32 date = release_date;
+		uint32 build;
+		uint8 version = 1;		/* This is GTKGV version 1 */
+		uint8 osname;
+		uint8 flags;
+		uint8 commit_len;
 		size_t commit_bytes;
 		const sha1_t *commit;
-		gboolean ok;
+		bool ok;
 
 		flags = GTKGV_F_GIT | GTKGV_F_OS;
 		if (version_is_dirty())
@@ -545,7 +546,7 @@ flush_match(void)
 		GNET_PROPERTY(give_server_hostname) &&
 		!is_null_or_empty(GNET_PROPERTY(server_hostname))
 	) {
-		gboolean ok;
+		bool ok;
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(HNAME),
 				GNET_PROPERTY(server_hostname),
@@ -570,7 +571,7 @@ flush_match(void)
 		ipv6 = host_addr_is_ipv6(addr) ? addr : listen_addr6();
 
 		if (is_host_addr(ipv6) && host_addr_is_ipv6(ipv6)) {
-			const guint8 *data = host_addr_ipv6(&ipv6);
+			const uint8 *data = host_addr_ipv6(&ipv6);
 			if (!ggep_stream_pack(&gs, GGEP_NAME(6), data, 16, 0))
 				qhit_log_ggep_write_failure("6");
 		}
@@ -622,20 +623,20 @@ failure:
  * @returns TRUE if we inserted the record, FALSE if we refused it due to
  * lack of space.
  */
-static gboolean
+static bool
 add_file(const shared_file_t *sf)
 {
-	gboolean sha1_available;
+	bool sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	int hcnt = 0;
-	guint32 fs32, fs32_le, idx_le;
+	uint32 fs32, fs32_le, idx_le;
 	int ggep_len;
-	gboolean ok;
+	bool ok;
 	ggep_stream_t gs;
 	size_t left, needed;
-	gpointer start;
-	gboolean is_partial;
-	guint32 file_index;
+	void *start;
+	bool is_partial;
+	uint32 file_index;
 
 	is_partial = shared_file_is_partial(sf);
 	needed = 8 + 2 + shared_file_name_nfc_len(sf);	/* size of hit entry */
@@ -807,7 +808,7 @@ unique_file_index:
 	if (sha1_available && found_ggep_h()) {
 		const struct sha1 * const sha1 = shared_file_sha1(sf);
 		const struct tth * const tth = shared_file_tth(sf);
-		const guint8 type = tth ? GGEP_H_BITPRINT : GGEP_H_SHA1;
+		const uint8 type = tth ? GGEP_H_BITPRINT : GGEP_H_SHA1;
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(H), GGEP_W_COBS) &&
@@ -843,7 +844,7 @@ unique_file_index:
 	 */
 
 	if (fs32 == ~0U) {
-		char buf[sizeof(guint64)];
+		char buf[sizeof(uint64)];
 		int len;
 
 		len = ggept_filesize_encode(shared_file_size(sf), buf);
@@ -884,7 +885,7 @@ unique_file_index:
 
 		create_time = shared_file_creation_time(sf);
 		if ((time_t) -1 != create_time) {
-			char buf[sizeof(guint64)];
+			char buf[sizeof(uint64)];
 			int len;
 
 			/*
@@ -951,7 +952,7 @@ unique_file_index:
  */
 static void
 found_reset(size_t max_size, const struct guid *muid, unsigned flags,
-	qhit_process_t process, gpointer udata, const struct array *token)
+	qhit_process_t process, void *udata, const struct array *token)
 {
 	g_assert(process != NULL);
 	g_assert(max_size <= INT_MAX);
@@ -1031,7 +1032,7 @@ qhit_send_results(struct gnutella_node *n, GSList *files, int count,
  */
 void
 qhit_build_results(const GSList *files, int count, size_t max_msgsize,
-	qhit_process_t cb, gpointer udata, const struct guid *muid, unsigned flags,
+	qhit_process_t cb, void *udata, const struct guid *muid, unsigned flags,
 	const struct array *token)
 {
 	const GSList *sl;

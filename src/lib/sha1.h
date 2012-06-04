@@ -32,10 +32,10 @@
  * If you do not have the ISO standard stdint.h header file, then you
  * must typdef the following:
  *
- *  name            meaning
- *  guint32         unsigned 32 bit integer
- *  guint8          unsigned 8 bit integer (i.e., unsigned char)
- *  int            integer of >= 16 bits
+ *  name          meaning
+ *  uint32        unsigned 32 bit integer
+ *  uint8         unsigned 8 bit integer (i.e., unsigned char)
+ *  int           integer of >= 16 bits
  *
  */
 
@@ -58,15 +58,15 @@ struct sha1;
  */
 typedef struct SHA1Context
 {
-    guint32 Intermediate_Hash[SHA1_RAW_SIZE / 4]; /* Message Digest  */
+    uint32 Intermediate_Hash[SHA1_RAW_SIZE / 4]; /* Message Digest  */
 
-    guint64 Length;            /* Message length in bits      */
+    uint64 Length;            /* Message length in bits      */
 
                               /* Index into message block array   */
     int Message_Block_Index;
-    guint8 Message_Block[64];      /* 512-bit message blocks      */
+    uint8 Message_Block[64];  /* 512-bit message blocks      */
 
-    int Computed;              /* Is the digest computed?         */
+    int Computed;             /* Is the digest computed?         */
     int Corrupted;            /* Is the message digest corrupted? */
 } SHA1Context;
 

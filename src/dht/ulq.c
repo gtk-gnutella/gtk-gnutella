@@ -91,7 +91,7 @@ struct ulq {
 	int running;					/**< Amount of launched lookups */
 	int weight;						/**< Scheduling weight */
 	int scheduled;					/**< Amount scheduled in the round */
-	gboolean runnable;				/**< Is queue placed in the runq? */
+	bool runnable;					/**< Is queue placed in the runq? */
 };
 
 enum ulqitem_magic {
@@ -117,7 +117,7 @@ struct ulq_item {
 	} u;
 	lookup_cb_start_t start;		/**< Optional starting callback */
 	lookup_cb_err_t err;			/**< Error callback */
-	gpointer arg;					/**< Common callback opaque argument */
+	void *arg;						/**< Common callback opaque argument */
 };
 
 /**
@@ -150,7 +150,7 @@ static struct ulq_sched {
 	int sz_in_ema;					/**< Slow EMA of incoming message size */
 	int sz_out_ema;					/**< Slow EMA of outgoing message size */
 	int msg_dropped;				/**< Exponentially decaying # of drops */
-	gboolean udp_flow_controlled;	/**< Whether UDP was flow-controlled */
+	bool udp_flow_controlled;		/**< Whether UDP was flow-controlled */
 } sched;
 
 static void ulq_needs_servicing(void);
@@ -175,7 +175,7 @@ ulq_item_check(const struct ulq_item *ui)
  */
 static struct ulq_item *
 allocate_ulq_item(lookup_type_t type, const kuid_t *kuid,
-	lookup_cb_start_t start, lookup_cb_err_t err, gpointer arg)
+	lookup_cb_start_t start, lookup_cb_err_t err, void *arg)
 {
 	struct ulq_item *ui;
 
@@ -263,7 +263,7 @@ ulq_completed(struct ulq_item *ui)
  * Intercepting "error" callback.
  */
 static void
-ulq_error_cb(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+ulq_error_cb(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	struct ulq_item *ui = arg;
 
@@ -279,7 +279,7 @@ ulq_error_cb(const kuid_t *kuid, lookup_error_t error, gpointer arg)
  * Intercepting "value found" callback.
  */
 static void
-ulq_value_found_cb(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
+ulq_value_found_cb(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 {
 	struct ulq_item *ui = arg;
 
@@ -295,7 +295,7 @@ ulq_value_found_cb(const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg)
  * Intercepting "node found" callback.
  */
 static void
-ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
+ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 {
 	struct ulq_item *ui = arg;
 
@@ -313,7 +313,7 @@ ulq_node_found_cb(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
  */
 static void
 ulq_lookup_stats(const kuid_t *kuid,
-	const struct lookup_stats *ls, gpointer arg)
+	const struct lookup_stats *ls, void *arg)
 {
 	struct ulq_item *ui = arg;
 	int avg;
@@ -395,7 +395,7 @@ ulq_queue_status(void)
  *
  * @return whether a lookup was actually launched
  */
-static gboolean
+static bool
 ulq_launch(struct ulq *uq)
 {
 	nlookup_t *nl;
@@ -560,7 +560,7 @@ ulq_service(void)
 
 	while (sched.pending > 0 && sched.running < max) {
 		struct ulq *uq;
-		gboolean launched;
+		bool launched;
 
 		/*
 		 * If the UDP queue would flow-control with the first batch of
@@ -616,7 +616,7 @@ ulq_service(void)
  * Callout queue callback to perform queue servicing.
  */
 static void
-ulq_do_service(cqueue_t *unused_cq, gpointer unused_obj)
+ulq_do_service(cqueue_t *unused_cq, void *unused_obj)
 {
 	(void) unused_cq;
 	(void) unused_obj;
@@ -695,7 +695,7 @@ ulq_needs_servicing(void)
  * the lookup is flagged as urgent.
  */
 static struct ulq *
-ulq_get(lookup_type_t ltype, dht_value_type_t vtype, gboolean prioritary)
+ulq_get(lookup_type_t ltype, dht_value_type_t vtype, bool prioritary)
 {
 	if (prioritary)
 		return ulq[ULQ_PRIO];
@@ -751,8 +751,8 @@ ulq_putq(struct ulq *uq, struct ulq_item *ui)
  * directly invoked by user code.
  */
 void
-ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
+ulq_find_store_roots(const kuid_t *kuid, bool prioritary,
+	lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg)
 {
 	struct ulq_item *ui;
 	struct ulq *uq;
@@ -774,7 +774,7 @@ ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 void
 ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_start_t start, lookup_cb_err_t error,
-	gpointer arg)
+	void *arg)
 {
 	struct ulq_item *ui;
 	struct ulq *uq;
@@ -799,7 +799,7 @@ ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
  */
 void
 ulq_find_any_value(const kuid_t *kuid, dht_value_type_t queue_type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, void *arg)
 {
 	struct ulq_item *ui;
 	struct ulq *uq;
@@ -889,10 +889,10 @@ ulq_init(void)
  * FIFO free item freeing callback.
  */
 static void
-free_fifo_item(gpointer item, gpointer data)
+free_fifo_item(void *item, void *data)
 {
 	struct ulq_item *ui = item;
-	gboolean *exiting = data;
+	bool *exiting = data;
 
 	ulq_item_check(ui);
 
@@ -914,10 +914,10 @@ free_fifo_item(gpointer item, gpointer data)
  * @param exiting	whether the whole process is exiting
  */
 G_GNUC_COLD void
-ulq_close(gboolean exiting)
+ulq_close(bool exiting)
 {
 	size_t i;
-	gboolean one = TRUE;
+	bool one = TRUE;
 
 	cq_cancel(&service_ev);
 	slist_free(&sched.runq);

@@ -31,19 +31,19 @@
 
 #include "common.h"
 
-#include "lib/glib-missing.h"
-#include "lib/idtable.h"
-#include "lib/random.h"
-#include "lib/walloc.h"
+#include "idtable.h"
+#include "htable.h"
+#include "random.h"
+#include "walloc.h"
 
-#include "lib/override.h"			/* Must be the last header included */
+#include "override.h"			/* Must be the last header included */
 
-#define IDTABLE_MASK (((guint32)-1) >> 1)
+#define IDTABLE_MASK (((uint32)-1) >> 1)
 #define IDTABLE_BASE (IDTABLE_MASK + 1)
 
 struct idtable {
-	GHashTable *ht;
-	guint32 last_id;
+	htable_t *ht;
+	uint32 last_id;
 };
 
 /***
@@ -62,7 +62,7 @@ idtable_new(void)
 	WALLOC(tbl);
 	*tbl = zero_idtable;
 	tbl->last_id = (random_u32() & IDTABLE_MASK) + IDTABLE_BASE;
-	tbl->ht = g_hash_table_new(NULL, NULL);
+	tbl->ht = htable_create(HASH_KEY_SELF, 0);
 	return tbl;
 }
 
@@ -73,7 +73,7 @@ idtable_new(void)
 void
 idtable_destroy(idtable_t *tbl)
 {
-	gm_hash_table_destroy_null(&tbl->ht);
+	htable_free_null(&tbl->ht);
 	WFREE(tbl);
 }
 
@@ -82,23 +82,23 @@ idtable_destroy(idtable_t *tbl)
  * not in use. If the id is outside the current table range it also returns
  * FALSE. The table is not modified by this call.
  */
-gboolean
-idtable_is_id_used(const idtable_t *tbl, guint32 id)
+bool
+idtable_is_id_used(const idtable_t *tbl, uint32 id)
 {
-	return gm_hash_table_contains(tbl->ht, uint_to_pointer(id));
+	return htable_contains(tbl->ht, uint_to_pointer(id));
 }
 
 /**
  * Get a id for the given value. The id can be used to look up the
  * value later.
  */
-guint32
+uint32
 idtable_new_id(idtable_t *tbl, void *value)
 {
 	while (idtable_is_id_used(tbl, tbl->last_id)) {
 		tbl->last_id = ((tbl->last_id + 1) & IDTABLE_MASK) + IDTABLE_BASE;
 	}
-	g_hash_table_insert(tbl->ht, uint_to_pointer(tbl->last_id), value);
+	htable_insert(tbl->ht, uint_to_pointer(tbl->last_id), value);
 	return tbl->last_id;
 }
 
@@ -106,10 +106,10 @@ idtable_new_id(idtable_t *tbl, void *value)
  * Replace the value of a give id. The id must already be in use.
  */
 void
-idtable_set_value(idtable_t *tbl, guint32 id, void * value)
+idtable_set_value(idtable_t *tbl, uint32 id, void *value)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_replace(tbl->ht, uint_to_pointer(id), value);
+	htable_insert(tbl->ht, uint_to_pointer(id), value);
 }
 
 /**
@@ -118,13 +118,12 @@ idtable_set_value(idtable_t *tbl, guint32 id, void * value)
  * after it has been dropped by idtable_drop_id.
  */
 void *
-idtable_get_value(const idtable_t *tbl, guint32 id)
+idtable_get_value(const idtable_t *tbl, uint32 id)
 {
-	void *key, *value;
-	gboolean found;
+	void *value;
+	bool found;
 
-	key = uint_to_pointer(id);
-	found = g_hash_table_lookup_extended(tbl->ht, key, NULL, &value);
+	found = htable_lookup_extended(tbl->ht, uint_to_pointer(id), NULL, &value);
 	g_assert(found);
 	return value;
 }
@@ -138,25 +137,25 @@ idtable_get_value(const idtable_t *tbl, guint32 id)
  * @return the value if the ID exists, NULL otherwise.
  */
 void *
-idtable_probe_value(const idtable_t *tbl, guint32 id)
+idtable_probe_value(const idtable_t *tbl, uint32 id)
 {
-	return g_hash_table_lookup(tbl->ht, uint_to_pointer(id));
+	return htable_lookup(tbl->ht, uint_to_pointer(id));
 }
 
 /**
  * Mark this id as unused. It will eventually be reissued.
  */
 void
-idtable_free_id(idtable_t *tbl, guint32 id)
+idtable_free_id(idtable_t *tbl, uint32 id)
 {
 	g_assert(idtable_is_id_used(tbl, id));
-	g_hash_table_remove(tbl->ht, uint_to_pointer(id));
+	htable_remove(tbl->ht, uint_to_pointer(id));
 }
 
-guint
+uint
 idtable_ids(idtable_t *tbl)
 {
-	return g_hash_table_size(tbl->ht);
+	return htable_count(tbl->ht);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

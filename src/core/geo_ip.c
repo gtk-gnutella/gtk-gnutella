@@ -77,9 +77,9 @@ static struct iprange_db *geo_db;	/**< The database of bogus CIDR ranges */
 struct range_context {
 	const char *line;			/**< The line from the input file */
 	int linenum;				/**< Line number in input file, for errors */
-	guint32 ip1;				/**< Original lower IP in global range */
-	guint32 ip2;				/**< Original upper IP in global range */
-	guint16 country;			/**< Country code (numerical encoded) */
+	uint32 ip1;					/**< Original lower IP in global range */
+	uint32 ip2;					/**< Original upper IP in global range */
+	uint16 country;				/**< Country code (numerical encoded) */
 };
 
 /**
@@ -88,11 +88,11 @@ struct range_context {
  * Insert IP range in database, linking it to the proper country code.
  */
 static void
-gip_add_cidr(guint32 ip, guint bits, gpointer udata)
+gip_add_cidr(uint32 ip, uint bits, void *udata)
 {
 	struct range_context *ctx = udata;
 	iprange_err_t error;
-	guint16 cc;
+	uint16 cc;
 
 	if (GNET_PROPERTY(reload_debug) > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
@@ -120,7 +120,7 @@ static void
 gip_parse_ipv4(const char *line, int linenum)
 {
 	const char *end;
-	guint16 code;
+	uint16 code;
 	int c;
 	struct range_context ctx;
 
@@ -220,9 +220,9 @@ static void
 gip_parse_ipv6(const char *line, int linenum)
 {
 	const char *end;
-	guint16 code;
+	uint16 code;
 	int error;
-	guint8 ip[16];
+	uint8 ip[16];
 	unsigned bits;
 
 	/*
@@ -296,7 +296,7 @@ gip_parse_ipv6(const char *line, int linenum)
  *
  * @return The amount of entries loaded.
  */
-static G_GNUC_COLD guint
+static G_GNUC_COLD uint
 gip_load(FILE *f, unsigned idx)
 {
 	char line[1024];
@@ -370,11 +370,11 @@ gip_load(FILE *f, unsigned idx)
  * geographic IP mappings changed.
  */
 static void
-gip_changed(const char *filename, gpointer idx_ptr)
+gip_changed(const char *filename, void *idx_ptr)
 {
 	FILE *f;
 	char buf[80];
-	guint count;
+	uint count;
 	unsigned idx = pointer_to_uint(idx_ptr);
 
 	f = file_fopen(filename, "r");
@@ -471,10 +471,10 @@ gip_close(void)
  * @return the country mapped to this IP address as a numerically-encoded
  *         country code, or ISO3166_INVALID when unknown.
  */
-guint16
+uint16
 gip_country(const host_addr_t ha)
 {
-	guint16 code;
+	uint16 code;
 
 	if G_UNLIKELY(NULL == geo_db)
 		return ISO3166_INVALID;
@@ -488,7 +488,7 @@ gip_country(const host_addr_t ha)
  * Same as gip_country() only returns ISO3166_INVALID if the geo_ip file
  * is too ancient: the risk of having a wrong mapping is too high.
  */
-guint16
+uint16
 gip_country_safe(const host_addr_t ha)
 {
 	/* We allow them to be ~6 months behind */

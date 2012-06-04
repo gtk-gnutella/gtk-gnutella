@@ -20,8 +20,8 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/slist.h"
 #include "lib/stacktrace.h"
 #include "lib/vmm.h"
@@ -35,15 +35,15 @@
  * The LRU page cache.
  */
 struct lru_cache {
-	GHashTable *pagnum;			/* Associates page number to cached index */
+	htable_t *pagnum;			/* Associates page number to cached index */
 	hash_list_t *used;			/* Ordered list of used cache indices */
 	slist_t *available;			/* Available indices */
 	char *arena;				/* Cache arena */
 	long *numpag;				/* Associates a cache index to a page number */
-	guint8 *dirty;				/* Flags dirty pages (write cache enabled) */
+	uint8 *dirty;				/* Flags dirty pages (write cache enabled) */
 	long pages;					/* Amount of pages in arena */
 	long next;					/* Next allocated page index */
-	guint8 write_deferred;		/* Whether writes should be deferred */
+	uint8 write_deferred;		/* Whether writes should be deferred */
 	unsigned long rhits;		/* Stats: amount of cache hits on reads */
 	unsigned long rmisses;		/* Stats: amount of cache misses on reads */
 	unsigned long whits;		/* Stats: amount of cache hits on writes */
@@ -54,12 +54,12 @@ struct lru_cache {
  * Setup allocated LRU page cache.
  */
 static int
-setup_cache(struct lru_cache *cache, long pages, gboolean wdelay)
+setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 {
 	cache->arena = vmm_alloc(pages * DBM_PBLKSIZ);
 	if (NULL == cache->arena)
 		return -1;
-	cache->pagnum = g_hash_table_new(NULL, NULL);
+	cache->pagnum = htable_create(HASH_KEY_SELF, 0);
 	cache->used = hash_list_new(NULL, NULL);
 	cache->available = slist_new();
 	cache->pages = pages;
@@ -79,7 +79,7 @@ free_cache(struct lru_cache *cache)
 {
 	hash_list_free(&cache->used);
 	slist_free(&cache->available);
-	gm_hash_table_destroy_null(&cache->pagnum);
+	htable_free_null(&cache->pagnum);
 	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
 	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
 	WFREE_NULL(cache->dirty, cache->pages);
@@ -91,7 +91,7 @@ free_cache(struct lru_cache *cache)
  * @return -1 with errno set on error, 0 if OK.
  */
 static int
-init_cache(DBM *db, long pages, gboolean wdelay)
+init_cache(DBM *db, long pages, bool wdelay)
 {
 	struct lru_cache *cache;
 
@@ -145,7 +145,7 @@ log_lrustats(DBM *db)
  * Write back cached page to disk.
  * @return TRUE on success.
  */
-static gboolean
+static bool
 writebuf(DBM *db, long oldnum, long idx)
 {
 	struct lru_cache *cache = db->cache;
@@ -203,7 +203,7 @@ int
 setcache(DBM *db, long pages)
 {
 	struct lru_cache *cache = db->cache;
-	gboolean wdelay;
+	bool wdelay;
 
 	if (pages <= 0) {
 		errno = EINVAL;
@@ -289,7 +289,7 @@ setcache(DBM *db, long pages)
  * @return -1 on error with errno set, 0 if OK.
  */
 int
-setwdelay(DBM *db, gboolean on)
+setwdelay(DBM *db, bool on)
 {
 	struct lru_cache *cache = db->cache;
 
@@ -340,8 +340,8 @@ void lru_close(DBM *db)
  * If ``force'' is TRUE, we also ignore deferred writes and flush the page.
  * @return TRUE on success.
  */
-gboolean
-dirtypag(DBM *db, gboolean force)
+bool
+dirtypag(DBM *db, bool force)
 {
 	struct lru_cache *cache = db->cache;
 	long n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
@@ -401,7 +401,7 @@ getidx(DBM *db, long num)
 	} else {
 		void *last = hash_list_tail(cache->used);
 		long oldnum;
-		gboolean had_ioerr = booleanize(db->flags & DBM_IOERR_W);
+		bool had_ioerr = booleanize(db->flags & DBM_IOERR_W);
 
 		hash_list_moveto_head(cache->used, last);
 		n = pointer_to_int(last);
@@ -418,7 +418,7 @@ getidx(DBM *db, long num)
 		if (cache->dirty[n] && !writebuf(db, oldnum, n)) {
 			hash_list_iter_t *iter;
 			void *item;
-			gboolean found = FALSE;
+			bool found = FALSE;
 
 			/*
 			 * Cannot flush dirty page now, probably because we ran out of
@@ -467,7 +467,7 @@ getidx(DBM *db, long num)
 			}
 		}
 
-		g_hash_table_remove(cache->pagnum, ulong_to_pointer(oldnum));
+		htable_remove(cache->pagnum, ulong_to_pointer(oldnum));
 		cache->dirty[n] = FALSE;
 	}
 
@@ -478,8 +478,7 @@ getidx(DBM *db, long num)
 	g_assert(n >= 0 && n < cache->pages);
 
 	cache->numpag[n] = num;
-	g_hash_table_insert(cache->pagnum,
-		ulong_to_pointer(num), int_to_pointer(n));
+	htable_insert(cache->pagnum, ulong_to_pointer(num), int_to_pointer(n));
 
 	return n;
 }
@@ -502,7 +501,7 @@ lru_cached_page(DBM *db, long num)
 
 	if (
 		cache != NULL &&
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		long idx = pointer_to_int(value);
@@ -552,7 +551,7 @@ lru_invalidate(DBM *db, long bno)
 	void *value;
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(bno), NULL, &value)
 	) {
 		long idx = pointer_to_int(value);
@@ -572,7 +571,7 @@ lru_invalidate(DBM *db, long bno)
 		}
 
 		hash_list_remove(cache->used, value);
-		g_hash_table_remove(cache->pagnum, ulong_to_pointer(bno));
+		htable_remove(cache->pagnum, ulong_to_pointer(bno));
 		cache->numpag[idx] = -1;
 		cache->dirty[idx] = FALSE;
 		slist_append(cache->available, value);	/* Make index available */
@@ -589,18 +588,18 @@ lru_invalidate(DBM *db, long bno)
  * @return TRUE if OK, FALSE if we could not allocate a suitable buffer, leaving
  * the old db->pagbuf intact.
  */
-gboolean
-readbuf(DBM *db, long num, gboolean *loaded)
+bool
+readbuf(DBM *db, long num, bool *loaded)
 {
 	struct lru_cache *cache = db->cache;
 	void *value;
 	long idx;
-	gboolean good_page;
+	bool good_page;
 
 	g_assert(num >= 0);
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		hash_list_moveto_head(cache->used, value);
@@ -631,7 +630,7 @@ readbuf(DBM *db, long num, gboolean *loaded)
  * Cache new page held in memory if there are deferred writes configured.
  * @return TRUE on success.
  */
-gboolean
+bool
 cachepag(DBM *db, char *pag, long num)
 {
 	struct lru_cache *cache = db->cache;
@@ -652,7 +651,7 @@ cachepag(DBM *db, char *pag, long num)
 	 */
 
 	if (
-		g_hash_table_lookup_extended(cache->pagnum,
+		htable_lookup_extended(cache->pagnum,
 			ulong_to_pointer(num), NULL, &value)
 	) {
 		long idx;
@@ -729,7 +728,7 @@ cachepag(DBM *db, char *pag, long num)
  * Flush page to disk.
  * @return TRUE on success
  */
-gboolean
+bool
 flushpag(DBM *db, char *pag, long num)
 {
 	ssize_t w;

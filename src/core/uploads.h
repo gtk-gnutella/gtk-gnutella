@@ -62,10 +62,10 @@ enum upload_magic { UPLOAD_MAGIC = 0x2c20f063U };	/**< Magic number */
 struct upload {
 	enum upload_magic magic;
     gnet_upload_t upload_handle;
-	guint32 flags;					/**< Operating flags */
+	uint32 flags;					/**< Operating flags */
 	upload_stage_t status;
 	int error_sent;					/**< HTTP error code sent back */
-	gpointer io_opaque;				/**< Opaque I/O callback information */
+	void *io_opaque;				/**< Opaque I/O callback information */
 	struct parq_ul_queued *parq_ul;	/**< PARQ information */
 
 	struct gnutella_socket *socket;
@@ -86,16 +86,16 @@ struct upload {
 	struct upload_http_cb cb_status_arg;
 	struct upload_http_cb cb_length_arg;
 	http_extra_desc_t hev[16];
-	guint hevcnt;
+	uint hevcnt;
 
 	char *buffer;
 	int bpos;
 	int bsize;
 	int buf_size;
 
-	guint file_index;
-	guint reqnum;				/**< Request number, incremented when serving */
-	guint error_count;			/**< Amount of errors on connection */
+	uint file_index;
+	uint reqnum;				/**< Request number, incremented when serving */
+	uint error_count;			/**< Amount of errors on connection */
 
 	time_t start_date;
 	time_t last_update;
@@ -103,8 +103,8 @@ struct upload {
 
 	host_addr_t addr;			/**< Remote IP address */
 	host_addr_t gnet_addr;		/**< Advertised remote IP address */
-	guint16 gnet_port;			/**< Advertised Gnet port, for browsing */
-	guint16 country;			/**< Country of origin, ISO3166 code */
+	uint16 gnet_port;			/**< Advertised Gnet port, for browsing */
+	uint16 country;				/**< Country of origin, ISO3166 code */
 
 	const char *user_agent;		/**< Remote user agent */
 	const struct guid *guid;	/**< Remote servent GUID (atom), if known */
@@ -150,7 +150,7 @@ upload_check(const struct upload * const u)
 /**
  * Is upload special?
  */
-static inline gboolean
+static inline bool
 upload_is_special(const struct upload *u)
 {
 	return u->browse_host || u->thex != NULL;
@@ -177,7 +177,7 @@ enum {
  * Global Functions
  */
 
-gboolean upload_is_enabled(void);
+bool upload_is_enabled(void);
 void upload_timer(time_t now);
 void upload_remove(struct upload *, const char *, ...) G_GNUC_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *);
@@ -186,9 +186,9 @@ void upload_connect_conf(struct upload *);
 void upload_init(void);
 void upload_close(void);
 void upload_stop_all(struct dl_file_info *, const char *reason);
-void upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops,
-	guint8 ttl, guint32 file_index, const char *file_name, guint32 flags);
-struct upload *upload_create(struct gnutella_socket *, gboolean push);
+void upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops,
+	uint8 ttl, uint32 file_index, const char *file_name, uint32 flags);
+struct upload *upload_create(struct gnutella_socket *, bool push);
 void upload_fire_upload_info_changed(struct upload *);
 void expect_http_header(struct upload *, upload_stage_t new_status);
 

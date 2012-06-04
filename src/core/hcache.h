@@ -50,7 +50,7 @@
 struct hcache_new_host {
 	hcache_type_t type;			/**< Type of cache to which host is added */
 	host_addr_t addr;			/**< Host address */
-	guint16 port;				/**< Host port */
+	uint16 port;				/**< Host port */
 };
 
 /*
@@ -65,33 +65,30 @@ void hcache_retrieve_all(void);
 const char *host_type_to_string(host_type_t type);
 const char *hcache_type_to_string(hcache_type_t type);
 
-gboolean hcache_add(
-    hcache_type_t type, const host_addr_t addr, guint16 port,
-    const char *what);
+bool hcache_add(
+    hcache_type_t type, const host_addr_t addr, uint16 port, const char *what);
 
-gboolean hcache_add_caught(
-    host_type_t type, const host_addr_t addr, guint16 port,
-    const char *what);
+bool hcache_add_caught(
+    host_type_t type, const host_addr_t addr, uint16 port, const char *what);
 
-gboolean hcache_add_valid(
-    host_type_t type, const host_addr_t addr, guint16 port,
-    const char *what);
+bool hcache_add_valid(
+    host_type_t type, const host_addr_t addr, uint16 port, const char *what);
 
-gboolean hcache_node_is_bad(const host_addr_t addr);
-gboolean hcache_addr_within_net(const host_addr_t addr, host_net_t net);
+bool hcache_node_is_bad(const host_addr_t addr);
+bool hcache_addr_within_net(const host_addr_t addr, host_net_t net);
 
 void hcache_prune(hcache_type_t type);
-void hcache_purge(hcache_class_t class, const host_addr_t addr, guint16 port);
+void hcache_purge(hcache_class_t class, const host_addr_t addr, uint16 port);
 
-guint hcache_size(host_type_t type);
-gboolean hcache_is_low(host_type_t type);
+uint hcache_size(host_type_t type);
+bool hcache_is_low(host_type_t type);
 
 int hcache_fill_caught_array(
 	host_net_t net, host_type_t type, gnet_host_t *hosts, int hcount);
 
-gboolean hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port);
-gboolean hcache_find_nearby(host_type_t type,
-	host_addr_t *addr, guint16 *port);
+bool hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port);
+bool hcache_find_nearby(host_type_t type,
+	host_addr_t *addr, uint16 *port);
 
 #endif /* _core_hcache_h_ */
 

@@ -75,15 +75,15 @@ struct gnutella_node;
 struct guid;
 struct pmsg;
 
-void udp_received(struct gnutella_socket *s, gboolean truncated);
-void udp_connect_back(const host_addr_t addr, guint16 port,
+void udp_received(struct gnutella_socket *s, bool truncated);
+void udp_connect_back(const host_addr_t addr, uint16 port,
 	const struct guid *muid);
-void udp_send_msg(const struct gnutella_node *n, gconstpointer buf, int len);
-gboolean udp_send_ping(const struct guid *muid,
-	const host_addr_t addr, guint16 port, gboolean uhc_ping);
-gboolean udp_send_ping_callback(gnutella_msg_init_t *m, guint32 size,
-	const host_addr_t addr, guint16 port,
-	udp_ping_cb_t cb, void *arg, gboolean multiple);
+void udp_send_msg(const struct gnutella_node *n, const void *buf, int len);
+bool udp_send_ping(const struct guid *muid,
+	const host_addr_t addr, uint16 port, bool uhc_ping);
+bool udp_send_ping_callback(gnutella_msg_init_t *m, uint32 size,
+	const host_addr_t addr, uint16 port,
+	udp_ping_cb_t cb, void *arg, bool multiple);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n);

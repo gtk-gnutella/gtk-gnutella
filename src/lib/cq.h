@@ -47,7 +47,7 @@ typedef struct cidle cidle_t;
  * @param cq		the queue which fired the event
  * @param udata		user-supplied callback data
  */
-typedef void (*cq_service_t)(struct cqueue *cq, gpointer udata);
+typedef void (*cq_service_t)(struct cqueue *cq, void *udata);
 
 /**
  * A periodic event callback.
@@ -56,28 +56,28 @@ typedef void (*cq_service_t)(struct cqueue *cq, gpointer udata);
  *
  * @return whether the perdioc event should continue to be called.
  */
-typedef gboolean (*cq_invoke_t)(gpointer udata);
+typedef bool (*cq_invoke_t)(void *udata);
 
-typedef guint64 cq_time_t;		/**< Virtual time for callout queue */
+typedef uint64 cq_time_t;		/**< Virtual time for callout queue */
 
 /*
  * Interface routines.
  */
 
-extern cqueue_t *callout_queue;	/* Single global instance */
+double cq_main_coverage(int old_ticks);
 
-double callout_queue_coverage(int old_ticks);
-
-void cq_init(cq_invoke_t idle, const guint32 *debug);
+void cq_init(cq_invoke_t idle, const uint32 *debug);
 void cq_dispatch(void);
 void cq_halt(void);
 void cq_close(void);
 
+cqueue_t *cq_main(void);
 cqueue_t *cq_make(const char *name, cq_time_t now, int period);
 cqueue_t *cq_submake(const char *name, cqueue_t *parent, int period);
+cqueue_t *cq_main_submake(const char *name, int period);
 void cq_free_null(cqueue_t **cq_ptr);
-cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, gpointer arg);
-cevent_t *cq_main_insert(int delay, cq_service_t fn, gpointer arg);
+cevent_t *cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg);
+cevent_t *cq_main_insert(int delay, cq_service_t fn, void *arg);
 cq_time_t cq_remaining(const cevent_t *ev);
 void cq_expire(cevent_t *ev);
 void cq_cancel(cevent_t **handle_ptr);
@@ -86,13 +86,14 @@ int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
 const char *cq_name(const cqueue_t *cq);
 void cq_idle(cqueue_t *cq);
+void cq_main_idle(void);
 
 cperiodic_t *cq_periodic_add(cqueue_t *cq,
-	int period, cq_invoke_t event, gpointer arg);
-cperiodic_t *cq_periodic_main_add(int period, cq_invoke_t event, gpointer arg);
+	int period, cq_invoke_t event, void *arg);
+cperiodic_t *cq_periodic_main_add(int period, cq_invoke_t event, void *arg);
 void cq_periodic_resched(cperiodic_t *cp, int period);
 void cq_periodic_remove(cperiodic_t **cp_ptr);
-cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, gpointer arg);
+cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg);
 void cq_idle_remove(cidle_t **ci_ptr);
 
 #endif	/* _cq_h_ */

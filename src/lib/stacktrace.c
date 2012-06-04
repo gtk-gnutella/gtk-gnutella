@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2010, Raphael Manfredi
+ * Copyright (c) 2004, 2010-2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,42 +25,36 @@
  * @ingroup lib
  * @file
  *
- * Stack unwinding support.
- *
- * This file is using raw malloc(), free(), strdup(), etc... because it can
- * be exercised by the debugging malloc layer, at a very low level and we
- * must not interfere.  Don't even think about using g_malloc() and friends or
- * any other glib memory-allocating routine here.
- *
- * This means this file cannot be the target of leak detection by our
- * debugging malloc layer.
+ * Stack unwinding and printing support.
  *
  * @author Raphael Manfredi
- * @date 2004, 2010
+ * @date 2004, 2010-2012
  */
 
 #include "common.h"		/* For RCSID */
 
 #include "stacktrace.h"
-#include "atoms.h"		/* For binary_hash() */
-#include "ascii.h"
-#include "base16.h"
+#include "bfd_util.h"
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
+#include "dl_util.h"
 #include "file.h"
-#include "glib-missing.h"
 #include "halloc.h"
-#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
+#include "hashing.h"	/* For binary_hash() */
 #include "log.h"
-#include "offtime.h"
+#include "mem.h"
+#include "misc.h"		/* For is_strprefix() and is_strsuffix() */
+#include "mutex.h"
 #include "omalloc.h"
-#include "parse.h"
+#include "once.h"
 #include "path.h"
 #include "signal.h"
+#include "spinlock.h"
+#include "str.h"
 #include "stringify.h"
+#include "symbols.h"
 #include "tm.h"
 #include "unsigned.h"
-#include "vmm.h"
 
 /* We need hash_table_new_real() to avoid any call to g_malloc() */
 #define MALLOC_SOURCE
@@ -73,29 +67,15 @@
 #include <execinfo.h>	/* For backtrace() */
 #endif
 
-/**
- * A routine entry in the symbol table.
- */
-struct trace {
-	const void *start;			/**< Start PC address */
-	const char *name;			/**< Routine name (omalloc() atom) */
-};
+#define STACKTRACE_DLFT_SYMBOLS	8192	/* Pre-sizing of symbol table */
+#define STACKTRACE_BUFFER_SIZE	8192	/* Amount reserved for stack tracing */
 
 /**
- * The array of trace entries.
+ * Default stacktrace decoration flags we're using here.
  */
-static struct {
-	struct trace *base;			/**< Array base */
-	size_t size;				/**< Amount of entries allocated */
-	size_t count;				/**< Amount of entries held */
-	size_t offset;				/**< Symbol offset to apply */
-	unsigned fresh:1;			/**< Symbols loaded via nm parsing */
-	unsigned indirect:1;		/**< Symbols loaded via nm pre-computed file */
-	unsigned stale:1;			/**< Pre-computed nm file was stale */
-	unsigned mismatch:1;		/**< Symbol mismatches were identified */
-	unsigned garbage:1;			/**< Symbols are probably pure garbage */
-	unsigned sorted:1;			/**< Symbols were sorted */
-} trace_array;
+#define STACKTRACE_DECORATION	\
+	(STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | \
+		STACKTRACE_F_MAIN_STOP | STACKTRACE_F_THREAD)
 
 /**
  * Deferred loading support.
@@ -103,15 +83,23 @@ static struct {
 static char *local_path;		/**< Path before a chdir() */
 static char *program_path;		/**< Absolute program path */
 static time_t program_mtime;	/**< Last modification time of executable */
-static gboolean symbols_loaded;
-static gboolean stacktrace_inited;
+static bool symbols_loaded;
+static symbols_t *symbols;
+static bool stacktrace_inited;
+
+static const char *executable_absolute_path;	/* Read-only string */
+static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
+static bool stacktrace_atom_inited;
 
 /**
- * "nm" output parsing context.
+ * This buffer is allocated to construct the stack trace atomically to make
+ * sure it can be logged as a whole.
  */
-struct nm_parser {
-	hash_table_t *atoms;		/**< To create string "atoms" */
-};
+struct {
+	void *arena;
+	mutex_t lock;
+	bool inited;
+} stacktrace_buffer;
 
 /**
  * Auto-tuning stack trace offset.
@@ -123,24 +111,38 @@ struct nm_parser {
 static size_t stack_auto_offset;
 
 static hash_table_t *stack_atoms;
-static const char NM_FILE[] = "gtk-gnutella.nm";
 
+#ifndef MINGW32
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
+#endif
 
 /**
  * Is PC a valid routine address?
  */
-static inline gboolean G_GNUC_CONST
-stack_is_text(const void *pc)
+static inline bool G_GNUC_CONST
+valid_ptr(const void *pc)
 {
-	return pointer_to_ulong(pc) >= 0x1000;
+	ulong v = pointer_to_ulong(pc);
+
+	return v >= 0x1000 &&
+		v < MAX_INT_VAL(ulong) - 0x1000 &&
+		mem_is_valid_ptr(pc);
+}
+
+/**
+ * Is SP a valid stack address?
+ */
+static inline bool G_GNUC_PURE
+valid_stack_ptr(const void *sp)
+{
+	return vmm_is_stack_pointer(sp, NULL);
 }
 
 /**
  * Is PC a routine address for something within our code?
  */
-static inline gboolean G_GNUC_CONST
+static inline bool G_GNUC_CONST
 stack_is_our_text(const void *pc)
 {
 #if defined(HAS_ETEXT_SYMBOL)
@@ -161,6 +163,7 @@ stack_is_our_text(const void *pc)
 #endif
 }
 
+#ifndef MINGW32
 /**
  * Unwind current stack into supplied stacktrace array.
  *
@@ -180,8 +183,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
-	size_t d;
-	gboolean increasing;
 
 	/*
 	 * Adjust the offset according to the auto-tunings.
@@ -195,20 +196,13 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	 */
 
 	frame = getframeaddr(0);
-	if (NULL == frame)
+	if (!valid_stack_ptr(frame))
 		return 0;
-
-	d = ptr_diff(getframeaddr(1), frame);
-	increasing = size_is_positive(d);
 
 	for (i = 0; i < offset; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (NULL == nframe)
-			return 0;
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
+		if (!valid_stack_ptr(nframe))
 			return 0;
 
 		frame = nframe;
@@ -221,26 +215,18 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 	for (;; i++) {
 		void *nframe = getframeaddr(i + 1);
 
-		if (NULL == nframe || i - offset >= count)
+		if (!valid_stack_ptr(nframe) || i - offset >= count)
 			break;
 
-        if (!stack_is_text(stack[i - offset] = getreturnaddr(i)))
+		if (!valid_ptr(stack[i - offset] = getreturnaddr(i)))
 			break;
 
-		/*
-		 * Safety precaution: if the distance between one frame and the
-		 * next is too large, we're probably facing stack corruption and
-		 * are beginning to hit random places in memory.  Break out.
-		 */
-
-		d = increasing ? ptr_diff(nframe, frame) : ptr_diff(frame, nframe);
-		if (d > 0x1000)		/* Arbitrary, large enough to be uncommon */
-			break;
 		frame = nframe;
 	}
 
 	return i - offset;
 }
+#endif	/* !MINGW32 */
 
 /**
  * Unwind current stack into supplied stacktrace array.
@@ -260,7 +246,7 @@ NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
-	static gboolean in_unwind;
+	static bool in_unwind;
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
@@ -321,12 +307,16 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	 * Only copy entries that are likely to be "text" addresses.
 	 */
 
-	for (i = 0; i < amount && stack_is_text(trace[idx]); i++) {
+	for (i = 0; i < amount && valid_ptr(trace[idx]); i++) {
 		stack[i] = trace[idx++];
 	}
 
 done:
 	return i;		/* Amount of copied entries */
+}
+#elif defined(MINGW32)
+{
+	return mingw_backtrace(stack, count, offset + stack_auto_offset);
 }
 #else	/* !HAS_BACKTRACE */
 {
@@ -385,7 +375,7 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 
 	if (Sigsetjmp(stacktrace_safe_env, TRUE)) {
 		/*
-		 * Becasue we zeroed the stack[] array before attempting the
+		 * Because we zeroed the stack[] array before attempting the
 		 * unwinding we can now go back and count the amount of items that
 		 * were put there in case we got interrupted by a signal, to be
 		 * able to save the part of the stack we were able to unwind
@@ -421,14 +411,7 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 enum stacktrace_sym_quality
 stacktrace_quality(void)
 {
-	if (trace_array.garbage)
-		return STACKTRACE_SYM_GARBAGE;
-	else if (trace_array.mismatch)
-		return STACKTRACE_SYM_MISMATCH;
-	else if (trace_array.stale)
-		return STACKTRACE_SYM_STALE;
-	else
-		return STACKTRACE_SYM_GOOD;
+	return NULL == symbols ? STACKTRACE_SYM_GOOD : symbols_quality(symbols);
 }
 
 /**
@@ -446,620 +429,6 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 	}
 
 	return "UNKNOWN";
-}
-
-/**
- * Compare two trace entries -- qsort() callback.
- */
-static int
-trace_cmp(const void *p, const void *q)
-{
-	struct trace const *a = p;
-	struct trace const *b = q;
-
-	return a->start == b->start ? 0 :
-		pointer_to_ulong(a->start) < pointer_to_ulong(b->start) ? -1 : +1;
-}
-
-/**
- * Remove duplicate entry in trace array at the specified index.
- */
-static void
-trace_remove(size_t i)
-{
-	struct trace *t;
-
-	g_assert(size_is_non_negative(i));
-	g_assert(i < trace_array.count);
-
-	t = &trace_array.base[i];
-	if (i < trace_array.count - 1)
-		memmove(t, t + 1, (trace_array.count - i - 1) * sizeof *t);
-	trace_array.count--;
-}
-
-/**
- * Sort trace array, remove duplicate entries.
- */
-static G_GNUC_COLD void
-trace_sort(void)
-{
-	size_t i = 0;
-	size_t old_count = trace_array.count;
-	const void *last = 0;
-
-	qsort(trace_array.base, trace_array.count,
-		sizeof trace_array.base[0], trace_cmp);
-
-	while (i < trace_array.count) {
-		struct trace *t = &trace_array.base[i];
-		if (last && t->start == last) {
-			trace_remove(i);
-		} else {
-			last = t->start;
-			i++;
-		}
-	}
-
-	if (old_count != trace_array.count) {
-		size_t delta = old_count - trace_array.count;
-		g_assert(size_is_non_negative(delta));
-		s_warning("stripped %zu duplicate symbol%s",
-			delta, 1 == delta ? "" : "s");
-	}
-
-	trace_array.sorted = TRUE;
-}
-
-/**
- * Insert new trace symbol.
- */
-static void
-trace_insert(const void *start, const char *name)
-{
-	struct trace *t;
-
-	if (trace_array.count >= trace_array.size) {
-		size_t old_size, new_size;
-		void *old_base;
-
-		old_base = trace_array.base;
-		old_size = trace_array.size * sizeof *t;
-		trace_array.size += 1024;
-		new_size = trace_array.size * sizeof *t;
-
-		trace_array.base = vmm_alloc_not_leaking(new_size);
-		if (old_base != NULL) {
-			memcpy(trace_array.base, old_base, old_size);
-			vmm_free(old_base, old_size);
-		}
-	}
-
-	t = &trace_array.base[trace_array.count++];
-	t->start = start;
-	t->name = name;
-}
-
-/**
- * Lookup trace structure encompassing given program counter.
- *
- * @return trace structure if found, NULL otherwise.
- */
-static struct trace *
-trace_lookup(const void *pc)
-{
-	struct trace *low = trace_array.base,
-				 *high = &trace_array.base[trace_array.count -1],
-				 *mid;
-	const void *lpc;
-
-	lpc = const_ptr_add_offset(pc, trace_array.offset);
-
-	while (low <= high) {
-		mid = low + (high - low) / 2;
-		if (lpc >= mid->start && (mid == high || lpc < (mid+1)->start))
-			return mid;			/* Found it! */
-		else if (lpc < mid->start)
-			high = mid - 1;
-		else
-			low = mid + 1;
-	}
-
-	return NULL;				/* Not found */
-}
-
-/**
- * Format pointer into specified buffer.
- *
- * This is equivalent to saying:
- *
- *    gm_snprintf(buf, buflen, "0x%lx", pointer_to_ulong(pc));
- *
- * but is safe to use in a signal handler.
- */
-static void
-trace_fmt_pointer(char *buf, size_t buflen, const void *p)
-{
-	if (buflen < 4) {
-		buf[0] = '\0';
-		return;
-	}
-
-	buf[0] = '0';
-	buf[1] = 'x';
-	pointer_to_string_buf(p, &buf[2], buflen - 2);
-}
-
-/**
- * Format "name+offset" into specified buffer.
- *
- * This is equivalent to saying:
- *
- *    gm_snprintf(buf, buflen, "%s+%u", name, offset);
- *
- * but is safe to use in a signal handler.
- */
-static void
-trace_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
-{
-	size_t namelen;
-
-	namelen = g_strlcpy(buf, name, buflen);
-	if (namelen >= buflen - 2)
-		return;
-
-	if (offset != 0) {
-		buf[namelen] = '+';
-		size_t_to_string_buf(offset, &buf[namelen+1], buflen - (namelen + 1));
-	}
-}
-
-/*
- * Attempt to transform a PC (Program Counter) address into a symbolic name,
- * showing the function name and the offset within that routine.
- *
- * When the symbols are probable garbage, the name has a leading '?', and
- * the hexadecimal address follows the name between parenthesis.
- *
- * When the symbols may be inaccurate, the name has a leading '!'.
- *
- * When the symbols were loaded from a stale source, the name has a leading '~'.
- *
- * The way formatting is done allows this routine to be used from a
- * signal handler.
- *
- * @param pc		the PC to translate into symbolic form
- * @param offset	whether decimal offset should be added, in symbolic form.
- *
- * @return symbolic name for given pc offset, if found, otherwise
- * the hexadecimal value.
- */
-static G_GNUC_COLD const char *
-trace_name(const void *pc, gboolean offset)
-{
-	static char buf[256];
-
-	if (!trace_array.sorted || 0 == trace_array.count) {
-		trace_fmt_pointer(buf, sizeof buf, pc);
-	} else {
-		struct trace *t;
-
-		t = trace_lookup(pc);
-
-		if (NULL == t || &trace_array.base[trace_array.count - 1] == t) {
-			trace_fmt_pointer(buf, sizeof buf, pc);
-		} else {
-			size_t off = 0;
-
-			if (trace_array.garbage) {
-				buf[0] = '?';
-				off = 1;
-			} else if (trace_array.mismatch) {
-				buf[0] = '!';
-				off = 1;
-			} else if (trace_array.stale) {
-				buf[0] = '~';
-				off = 1;
-			}
-
-			trace_fmt_name(&buf[off], sizeof buf - off, t->name,
-				offset ? ptr_diff(pc, t->start) : 0);
-
-			/*
-			 * If symbols are garbage, add the hexadecimal pointer to the
-			 * name so that we have a little chance of figuring out what
-			 * was the routine.
-			 */
-
-			if (trace_array.garbage) {
-				char ptr[POINTER_BUFLEN + CONST_STRLEN(" (0x)")];
-
-				g_strlcpy(ptr, " (0x", sizeof ptr);
-				pointer_to_string_buf(pc, &ptr[4], sizeof ptr - 4);
-				clamp_strcat(ptr, sizeof ptr, ")");
-				clamp_strcat(buf, sizeof buf, ptr);
-			}
-		}
-	}
-
-	return buf;
-}
-
-/**
- * Return atom string for the trace name.
- * This memory will never be freed.
- */
-static const char *
-trace_atom(struct nm_parser *ctx, const char *name)
-{
-	const char *result;
-
-	/*
-	 * On Windows and OS X, there is an obnoxious '_' prepended to all
-	 * routine names.
-	 */
-
-	if ('_' == name[0])
-		name++;
-
-	result = hash_table_lookup(ctx->atoms, name);
-
-	if (NULL == result) {
-		result = ostrdup(name);		/* Never freed */
-		hash_table_insert(ctx->atoms, result, result);
-	}
-
-	return result;
-}
-
-#define FN(x) \
-	{ (func_ptr_t) x, STRINGIFY(x) }
-
-static void stack_print(FILE *f, void * const *stack, size_t count);
-extern int main(int argc, char **argv);
-
-/**
- * Known symbols that we want to check.
- */
-static struct {
-	func_ptr_t fn;				/**< Function address */
-	const char *name;			/**< Function name */
-} trace_known_symbols[] = {
-	FN(file_locate_from_path),
-	FN(halloc_init),
-	FN(hash_table_new_full_real),
-	FN(is_strprefix),
-	FN(main),
-	FN(make_pathname),
-	FN(omalloc0),
-	FN(pointer_to_string_buf),
-	FN(s_warning),
-	FN(s_info),
-	FN(signal_set),
-	FN(stack_print),
-	FN(trace_atom),
-	FN(trace_remove),
-	FN(vmm_init),
-};
-
-#undef FN
-
-/**
- * Check whether symbols that need to be defined in the program (either because
- * they are well-known like main() or used within this file) are consistent
- * with the symbols we loaded.
- *
- * Sets trace_array.mismatch if we find at least 1 mismatch.
- * Sets trace_array.garbage if we find more than half mismatches.
- */
-static void
-trace_check(void)
-{
-	size_t matching = 0;
-	size_t mismatches;
-	size_t i;
-	size_t offset = 0;
-	GHashTable *sym_pc;
-	const void *main_pc;
-
-	if (0 == trace_array.count)
-		return;
-
-	/*
-	 * On some systems, symbols are not mapped at absolute addresses but
-	 * are relocated.
-	 *
-	 * To detect this: we locate the address of our probing routines and
-	 * compare them with what we loaded from the symbols.  Of course,
-	 * offsetting will only be working when the offset is the same for all
-	 * the symbols.
-	 */
-
-	sym_pc = g_hash_table_new(g_str_hash, g_str_equal);
-
-	for (i = 0; i < trace_array.count; i++) {
-		struct trace *t = &trace_array.base[i];
-
-		gm_hash_table_insert_const(sym_pc, t->name, t->start);
-	}
-
-	/*
-	 * Compute the initial offset for main().
-	 */
-
-	main_pc = g_hash_table_lookup(sym_pc, "main");
-
-	if (NULL == main_pc) {
-		s_warning("cannot find main() in the loaded symbols");
-		trace_array.garbage = TRUE;
-		goto done;
-	}
-
-	offset = ptr_diff(main_pc, func_to_pointer(main));
-
-	/*
-	 * Make sure the offset is constant among all our probed symbols.
-	 */
-
-	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
-		const char *name = trace_known_symbols[i].name;
-		const void *pc = cast_func_to_pointer(trace_known_symbols[i].fn);
-		const void *loaded_pc = g_hash_table_lookup(sym_pc, name);
-		size_t loaded_offset;
-
-		if (NULL == loaded_pc) {
-			s_warning("cannot find %s() in the loaded symbols", name);
-			trace_array.garbage = TRUE;
-			goto done;
-		}
-
-		loaded_offset = ptr_diff(loaded_pc, pc);
-
-		if (loaded_offset != offset) {
-			s_warning("will not offset symbol addresses (loaded garbage?)");
-			offset = 0;
-			break;
-		}
-	}
-
-	if (offset != 0) {
-		s_warning("will be offsetting symbol addresses by 0x%lx (%ld)",
-			(unsigned long) offset, (unsigned long) offset);
-		trace_array.offset = offset;
-	}
-
-	/*
-	 * Now verify whether we can match symbols.
-	 */
-
-	for (i = 0; i < G_N_ELEMENTS(trace_known_symbols); i++) {
-		struct trace *t;
-		const void *pc = cast_func_to_pointer(trace_known_symbols[i].fn);
-
-		t = trace_lookup(pc);
-
-		if (t != NULL) {
-			const char *name = trace_known_symbols[i].name;
-			if (0 == strcmp(name, t->name))
-				matching++;
-		}
-	}
-
-	g_assert(size_is_non_negative(matching));
-	g_assert(matching <= G_N_ELEMENTS(trace_known_symbols));
-
-	mismatches = G_N_ELEMENTS(trace_known_symbols) - matching;
-
-	if (mismatches != 0) {
-		if (mismatches >= G_N_ELEMENTS(trace_known_symbols) / 2) {
-			trace_array.garbage = TRUE;
-			s_warning("loaded symbols are %s",
-				G_N_ELEMENTS(trace_known_symbols) == mismatches ?
-					"pure garbage" : "highly unreliable");
-		} else {
-			trace_array.mismatch = TRUE;
-			s_warning("loaded symbols are partially inaccurate");
-		}
-	}
-
-	/*
-	 * Note that our algorithm cannot find any mismatch if we successfully
-	 * computed a valid offset above since by construction this means we were
-	 * able to find a common offset between the loaded symbol addresses and
-	 * the actual ones, meaning the lookup algorithm of trace_lookup() will
-	 * find the proper symbols.
-	 */
-
-	if (offset != 0 && mismatches != 0)
-		s_warning("BUG in trace_check()");
-
-done:
-	gm_hash_table_destroy_null(&sym_pc);
-}
-
-/**
- * Parse the nm output line, recording symbol mapping for function entries.
- *
- * We're looking for lines like:
- *
- *	082bec77 T zget
- *	082be9d3 t zn_create
- */
-static void
-parse_nm(struct nm_parser *ctx, char *line)
-{
-	int error;
-	const char *ep;
-	char *p = line;
-	const void *addr;
-
-	addr = parse_pointer(p, &ep, &error);
-	if (error || NULL == addr)
-		return;
-
-	p = skip_ascii_blanks(ep);
-
-	if ('t' == ascii_tolower(*p)) {
-		p = skip_ascii_blanks(&p[1]);
-		strchomp(p, 0);
-		trace_insert(addr, trace_atom(ctx, p));
-	}
-}
-
-static size_t
-str_hash(const void *p)
-{
-	return g_str_hash(p);
-}
-
-/**
- * Open specified file containing code symbols.
- *
- * @param exe	the executable path, to assess freshness of nm file
- * @param nm	the path to the nm file, symbols from the executable
- *
- * @return opened file if successfull, NULL on error with the error already
- * logged appropriately.
- */
-static FILE *
-stacktrace_open_symbols(const char *exe, const char *nm)
-{
-	filestat_t ebuf, nbuf;
-	FILE *f;
-
-	trace_array.stale = FALSE;
-
-	if (-1 == stat(nm, &nbuf)) {
-		s_warning("can't stat \"%s\": %m", nm);
-		return NULL;
-	}
-
-	if (-1 == stat(exe, &ebuf)) {
-		s_warning("can't stat \"%s\": %m", exe);
-		trace_array.stale = TRUE;
-		goto open_file;
-	}
-
-	if (delta_time(ebuf.st_mtime, nbuf.st_mtime) > 0) {
-		s_warning("executable \"%s\" more recent than symbol file \"%s\"",
-			exe, nm);
-		trace_array.stale = TRUE;
-		/* FALL THROUGH */
-	}
-
-open_file:
-	f = fopen(nm, is_running_on_mingw() ? "rb" : "r");
-
-	if (NULL == f)
-		s_warning("can't open \"%s\": %m", nm);
-
-	return f;
-}
-
-/**
- * Load symbols from the executable we're running.
- *
- * Symbols are loaded even if the executable is not "fresh" or if the
- * "gtk-gnutella.nm" file is older than the executable.  The rationale is
- * that it is better to have some symbols than none, in the hope that the
- * ones we list will be roughly correct.
- *
- * In any case, stale or un-fresh symbols will be clearly marked in the
- * stack traces we emit, so that there cannot be any doubt later one when
- * we analyze stacks and they seem inconsistent or impossible.  The only
- * limitation is that we cannot know which symbols are correct, so all symbols
- * will be flagged as doubtful when we detect the slightest inconsistency.
- */
-static G_GNUC_COLD void
-load_symbols(const char *path, const  char *lpath)
-{
-	char tmp[MAX_PATH_LEN + 80];
-	FILE *f;
-	struct nm_parser nm_ctx;
-	gboolean retried = FALSE;
-
-#ifdef MINGW32
-	/*
-	 * Open the "gtk-gnutella.nm" file nearby the executable.
-	 */
-
-	{
-		const char *nm;
-
-		nm = mingw_filename_nearby(NM_FILE);
-		f = stacktrace_open_symbols(path, nm);
-
-		if (NULL == f)
-			goto done;
-
-		trace_array.indirect = TRUE;
-	}
-#else	/* !MINGW32 */
-	/*
-	 * Launch "nm -p" on our executable to grab the symbols.
-	 */
-
-	{
-		size_t rw;
-
-		rw = gm_snprintf(tmp, sizeof tmp, "nm -p %s", path);
-		if (rw != strlen(path) + CONST_STRLEN("nm -p ")) {
-			s_warning("full path \"%s\" too long, cannot load symbols", path);
-			goto done;
-		}
-
-		f = popen(tmp, "r");
-
-		if (NULL == f) {
-			s_warning("can't run \"%s\": %m", tmp);
-			goto done;
-		}
-
-		trace_array.fresh = !trace_array.stale;
-	}
-#endif	/* MINGW32 */
-
-	nm_ctx.atoms = hash_table_new_full_real(str_hash, g_str_equal);
-
-retry:
-	while (fgets(tmp, sizeof tmp, f)) {
-		parse_nm(&nm_ctx, tmp);
-	}
-
-	if (retried || is_running_on_mingw())
-		fclose(f);
-	else
-		pclose(f);
-
-	/*
-	 * If we did not load any symbol, maybe the executable was stripped?
-	 * Try to open the symbols from the installed nm file.
-	 */
-
-	if (!retried && 0 == trace_array.count) {
-		char *nm = make_pathname(ARCHLIB_EXP, NM_FILE);
-
-		s_warning("no symbols loaded, trying with pre-computed \"%s\"", nm);
-		trace_array.fresh = FALSE;
-		f = stacktrace_open_symbols(path, nm);
-		retried = TRUE;
-		HFREE_NULL(nm);
-
-		if (f != NULL) {
-			trace_array.indirect = TRUE;
-			goto retry;
-		}
-
-		/* FALL THROUGH */
-	}
-
-	hash_table_destroy_real(nm_ctx.atoms);
-
-done:
-	s_info("loaded %u symbols for \"%s\"", (unsigned) trace_array.count, lpath);
-
-	trace_sort();
-	trace_check();
 }
 
 /**
@@ -1111,13 +480,13 @@ program_path_allocate(const char *argv0)
 	}
 
 	if (file != NULL && file != argv0)
-		return deconstify_gpointer(file);
+		return deconstify_pointer(file);
 
 	return h_strdup(filepath);
 
 error:
 	if (file != NULL && file != argv0)
-		hfree(deconstify_gpointer(file));
+		hfree(deconstify_pointer(file));
 
 	return NULL;
 }
@@ -1132,7 +501,7 @@ stacktrace_auto_tune(void)
 	size_t count;
 	size_t i;
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 0);
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 0);
 
 	/*
 	 * Look at the first item in the stack that is after ourselves.
@@ -1160,44 +529,88 @@ stacktrace_auto_tune(void)
 }
 
 /**
+ * Get symbols from the executable.
+ */
+static void G_GNUC_COLD
+stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
+{
+	/*
+	 * In case we're crashing so early that stacktrace_init() has not been
+	 * called, initialize properly.
+	 */
+
+	if (NULL == symbols)
+		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+
+	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
+	if (stale)
+		symbols_mark_stale(symbols);
+}
+
+/**
+ * Initialize the buffer used to atomically construct a stack trace.
+ */
+static G_GNUC_COLD void
+stacktrace_buffer_init(void)
+{
+	if G_UNLIKELY(stacktrace_buffer.inited)
+		return;		/* Avoid recursions */
+
+	stacktrace_buffer.inited = TRUE;
+	mutex_init(&stacktrace_buffer.lock);
+	stacktrace_buffer.arena = vmm_alloc_not_leaking(STACKTRACE_BUFFER_SIZE);
+}
+
+/**
  * Initialize stack tracing.
+ *
+ * This should be called from the main thread only, before anything interesting
+ * is done. Hence there is no need to make the initialization thread-safe.
  *
  * @param argv0		the value of argv[0], from main(): the program's filename
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
 G_GNUC_COLD void
-stacktrace_init(const char *argv0, gboolean deferred)
+stacktrace_init(const char *argv0, bool deferred)
 {
 	char *path;
+	filestat_t buf;
 
 	g_assert(argv0 != NULL);
 
+	if G_UNLIKELY(stacktrace_inited)
+		return;
+
 	stacktrace_inited = TRUE;
 	path = program_path_allocate(argv0);
+	if (NULL == symbols)
+		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	stacktrace_buffer_init();
 
 	if (NULL == path)
 		goto done;
 
+	if (-1 == stat(path, &buf)) {
+		s_warning("%s(): cannot stat \"%s\": %m", G_STRFUNC, path);
+		s_warning("will not be loading symbols for %s", argv0);
+		goto done;
+	}
+
+	program_path = absolute_pathname(path);
+	executable_absolute_path = ostrdup_readonly(program_path);
+
 	if (deferred) {
-		filestat_t buf;
-
-		if (-1 == stat(path, &buf)) {
-			s_warning("cannot stat \"%s\": %m", path);
-			s_warning("will not be loading symbols for %s", argv0);
-			goto done;
-		}
-
 		program_mtime = buf.st_mtime;
 		local_path = path;
-		program_path = absolute_pathname(path);
 		goto tune;
 	}
 
-	load_symbols(path, path);
+	stacktrace_get_symbols(path, path, FALSE);
 
 	/* FALL THROUGH */
 
 done:
+	HFREE_NULL(program_path);
 	HFREE_NULL(path);
 	symbols_loaded = TRUE;		/* Don't attempt again */
 
@@ -1215,7 +628,7 @@ stacktrace_memory_used(void)
 {
 	size_t res;
 
-	res = trace_array.size * sizeof trace_array.base[0];
+	res = NULL == symbols ? 0 : symbols_memory_size(symbols);
 	if (stack_atoms != NULL) {
 		res += hash_table_arena_memory(stack_atoms);
 	}
@@ -1231,11 +644,7 @@ stacktrace_close(void)
 {
 	HFREE_NULL(local_path);
 	HFREE_NULL(program_path);
-	if (trace_array.base != NULL) {
-		vmm_free(trace_array.base,
-			trace_array.size * sizeof trace_array.base[0]);
-		trace_array.base = NULL;
-	}
+	symbols_free_null(&symbols);
 	if (stack_atoms != NULL) {
 		hash_table_destroy_real(stack_atoms);	/* Does not free keys/values */
 		stack_atoms = NULL;
@@ -1248,10 +657,22 @@ stacktrace_close(void)
 G_GNUC_COLD void
 stacktrace_load_symbols(void)
 {
-	if G_UNLIKELY(symbols_loaded || !stacktrace_inited)
+	bool stale = FALSE;
+
+	if G_UNLIKELY(symbols_loaded)
 		return;
 
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
+
+	/*
+	 * If we are being called before stacktrace_init(), then derive a proper
+	 * path using the dynamic linker.
+	 */
+
+	if G_UNLIKELY(NULL == program_path) {
+		const char *path = dl_util_get_path(func_to_pointer(stacktrace_init));
+		program_path = h_strdup(path);
+	}
 
 	/*
 	 * Loading of symbols was deferred: make sure the executable is still
@@ -1271,16 +692,16 @@ stacktrace_load_symbols(void)
 		 * the symbols are marked as stale.
 		 */
 
-		if (buf.st_mtime != program_mtime) {
+		if (program_mtime != 0 && buf.st_mtime != program_mtime) {
 			s_warning("executable file \"%s\" has been tampered with",
 				program_path);
 
-			trace_array.stale = TRUE;
+			stale = TRUE;
 
 			/* FALL THROUGH */
 		}
 
-		load_symbols(program_path, local_path);
+		stacktrace_get_symbols(program_path, local_path, stale);
 	}
 
 	goto done;
@@ -1343,7 +764,7 @@ stacktrace_get_offset(struct stacktrace *st, size_t offset)
  *
  * @return TRUE if we reached main().
  */
-static gboolean
+static bool
 stack_reached_main(const char *where)
 {
 	/*
@@ -1368,9 +789,9 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	stacktrace_load_symbols();
 
 	for (i = 0; i < count; i++) {
-		const char *where = trace_name(stack[i], TRUE);
+		const char *where = symbols_name(symbols, stack[i], TRUE);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		fprintf(f, "\t%s\n", where);
@@ -1394,9 +815,9 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	stacktrace_load_symbols();
 
 	for (i = 0; i < count; i++) {
-		const char *where = trace_name(stack[i], TRUE);
+		const char *where = symbols_name(symbols, stack[i], TRUE);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		log_info(la, "\t%s", where);
@@ -1418,7 +839,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	size_t i;
 
 	for (i = 0; i < count; i++) {
-		const char *where = trace_name(stack[i], TRUE);
+		const char *where = symbols_name(symbols, stack[i], TRUE);
 		DECLARE_STR(3);
 
 		print_str("\t");		/* 0 */
@@ -1426,12 +847,472 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		print_str("\n");		/* 2 */
 		flush_str(fd);
 
-		if (!stack_is_text(stack[i]))
+		if (!valid_ptr(stack[i]))
 			break;
 
 		if (stack_reached_main(where))
 			break;
 	}
+}
+
+/**
+ * @return whether a PC is from our own executable.
+ */
+bool
+stacktrace_pc_within_our_text(const void *pc)
+{
+	return stack_is_our_text(pc);
+}
+
+/*
+ * Return pretty path from source path by using the fact that our sources
+ * lie under the "src/" root.
+ */
+static const char *
+stacktrace_pretty_filepath(const char *filepath)
+{
+	const char *p;
+	const char *q;
+	const char *start;
+
+	p = strrchr(filepath, G_DIR_SEPARATOR);
+	if (p != NULL)
+		p++;
+	else
+		p = filepath;
+
+	/*
+	 * Under operating systems that don't use '/' as path separators, we can
+	 * stop because we know our compilation process uses '/' as separators.
+	 *
+	 * For instance, on Windows, we could have "gtk-gnutella\src\lib/cq.c"
+	 * as the initial filepath and we would return "lib/cq.c" at this point.
+	 */
+
+	if ('/' != G_DIR_SEPARATOR)
+		return p;
+
+	start = filepath;
+
+	if (is_absolute_path(filepath)) {
+		const char *src = strstr(filepath, "/src/");
+		start = (NULL == src) ? p : &src[CONST_STRLEN("/src/")];
+	}
+
+	/*
+	 * We're on an operating system using '/' in paths.
+	 *
+	 * We basically recognized the basename at this point.  Move backwards
+	 * until we find a "src/" component or the head of the string.
+	 */
+
+	for (q = p - 1; q > start; q--) {
+		if ('/' == *q) {
+			if (is_strprefix(q, "/src/"))
+				return p;
+			p = q + 1;
+		}
+	}
+
+	return is_strprefix(start, "src/") ? p : start;
+}
+
+enum sxfiletype {
+	SXFILE_STDIO,
+	SXFILE_FD
+};
+
+struct sxfile {
+	enum sxfiletype type;	/* Union discriminant */
+	union {
+		FILE *f;
+		int fd;
+	} u;
+};
+
+/**
+ * Print a decorated stack trace.
+ *
+ * @param xf		where to print the stack
+ * @param stack		array of Program Counters making up the stack
+ * @param count		number of items in stack[] to print, at most.
+ * @param flags		decoration flags
+ *
+ * The available decoration flags are:
+ *
+ * STACKTRACE_F_ORIGIN:
+ *	Displays the shared object file name if known, at the far right.
+ *
+ * STACKTRACE_F_PATH:
+ *	In combination with STACKTRACE_F_ORIGIN, display full object paths.
+ *
+ * STACKTRACE_F_SOURCE:
+ *	Displays the source code location, if known, after the symbol name.
+ *
+ * STACKTRACE_F_ADDRESS:
+ *  Always display the hexadecimal address, even if the symbolic name
+ *	is known.
+ *
+ * STACKTRACE_F_NUMBER:
+ *	Number the stack items from 0 (top) and downwards.
+ *
+ * STACKTRACE_F_NO_INDENT:
+ *	Do not emit a leading tabulation when formatting.
+ *
+ * STACKTRACE_F_GDB:
+ *	Use gdb-like words to link items, such as "from", "at", "in", put
+ *  parenthesis after routine names, don't display offsets.
+ *
+ * STACKTRACE_F_MAIN_STOP:
+ *	Stop printing as soon as we reach the main() symbol.
+ *
+ * STACKTRACE_F_THREAD:
+ *	Print leading thread ID between brackets if it's not the main thread (#0).
+ *
+ * When no flags are specified, this is equivalent to a mere stack_print().
+ */
+static void
+stack_print_decorated_to(struct sxfile *xf,
+	void * const *stack, size_t count, int flags)
+{
+	static bfd_env_t *be;
+	size_t i;
+	static char buf[512];
+	static char name[256];
+	static char tid[32];
+	str_t s, *trace = NULL;
+	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
+	bool reached_main = FALSE;
+
+	/*
+	 * The BFD environment is only opened once.
+	 * See rationale at the end of this routine.
+	 */
+
+	if (NULL == be)
+		be = bfd_util_init();
+
+	str_new_buffer(&s, buf, 0, sizeof buf);
+
+	/*
+	 * If we have a pre-allocated buffer, use it to construct the stack
+	 * trace so that we can atomically emit it in the logs without possible
+	 * output from other threads being intermixed.
+	 */
+
+	stacktrace_buffer_init();
+
+	if (NULL != stacktrace_buffer.arena) {
+		mutex_lock(&stacktrace_buffer.lock);
+		if (1 == mutex_held_depth(&stacktrace_buffer.lock)) {
+			void *arena = stacktrace_buffer.arena;
+			trace = str_new_in_buffer(arena, STACKTRACE_BUFFER_SIZE);
+			g_assert(trace != NULL);
+			/* Keep mutex, since we hold the buffer */
+		} else {
+			mutex_unlock(&stacktrace_buffer.lock);
+		}
+	}
+
+	/*
+	 * Compute leading thread ID, shown only when not in the main thread.
+	 */
+
+	if (flags & STACKTRACE_F_THREAD) {
+		unsigned stid = thread_small_id();
+		if (stid != 0)
+			str_bprintf(tid, sizeof tid, "[%u] ", stid);
+		else
+			tid[0] = 0;
+	} else {
+		tid[0] = 0;
+	}
+
+	/*
+	 * Iterate over the call stack and try to decipher each address: which
+	 * file it comes from (the program itself, or a shared library object
+	 * that has been mapped dynamically), what is the symbol name, and even
+	 * which source file location it maps to if the information is available.
+	 */
+
+	for (i = 0; i < count && !reached_main; i++) {
+		const void *pc = stack[i];
+		const char *sopath = "??";	/* Shared object path */
+		const void *base;			/* Mapping base for the shared object */
+		bfd_ctx_t *bc = NULL;
+		struct symbol_loc loc;
+		bool located = FALSE;
+		bool located_via_bfd = FALSE;
+		bool has_parens = FALSE;
+
+		/*
+		 * Locate where the PC is located: in our own executable (statically
+		 * linked) or within a dynamically mapped shared library.
+		 */
+
+		base = dl_util_get_base(pc);
+		if (base != NULL) {
+			const char *pathname;
+
+			pathname = dl_util_get_path(pc);
+
+			/*
+			 * If we have a pathname, try to open the file with the BFD
+			 * library to be able to get at debugging information.
+			 */
+
+			if (pathname != NULL) {
+				if (!is_absolute_path(pathname) && stack_is_our_text(pc)) {
+					if (!file_exists(pathname))
+						pathname = executable_absolute_path;
+				}
+			}
+
+			if (pathname != NULL) {
+				bc = bfd_util_get_context(be, pathname);
+				bfd_util_compute_offset(bc, pointer_to_ulong(base));
+				sopath = pathname;
+			}
+		}
+
+		/*
+		 * If we have a BFD context, try to locate the symbol attached
+		 * to the PC, along with its source file location.
+		 */
+
+		ZERO(&loc);
+
+		if (bc != NULL && bfd_util_has_symbols(bc)) {
+			const void *call;
+
+			/*
+			 * Always move back two bytes because the return address is
+			 * what we have on the stack, and we want the place where
+			 * the call was made from a source code location perspective.
+			 *
+			 * It is assumed that the instruction to call a routine takes
+			 * at least 2 bytes (opcode + relative offset / register).
+			 * On the x86 for instance, "CALL EAX", which is used for (*f)(),
+			 * takes 2 bytes.
+			 */
+
+			call = const_ptr_add_offset(pc, -2);
+			located = bfd_util_locate(bc, call, &loc);
+
+			if (!located) {
+				/* A "CALL <address>" instruction is PTRSIZE+1 byte long */
+				call = const_ptr_add_offset(pc, -(PTRSIZE + 1));
+				located = bfd_util_locate(bc, call, &loc);
+			}
+
+			located_via_bfd = located;
+		}
+
+		/*
+		 * If symbol was not located yet, try from our local symbol table,
+		 * which will work if we are facing a symbol in our text segment
+		 * and there are symbols present in the executable that we could load.
+		 */
+
+		if (!located && symbols != NULL) {
+			const char *sym = symbols_name_only(symbols, pc, !gdb_like);
+
+			if (sym != NULL) {
+				loc.function = sym;
+				located = TRUE;
+			}
+		}
+
+		/*
+		 * If we were not able to open the shared library, or it had no
+		 * symbol available, we can try with the dynamic loader.  However,
+		 * this can only provide us information about publicly available
+		 * symbols, i.e. the symbols the dynamic loader must know about to
+		 * be able to dynamically link the routines.
+		 */
+
+		if (!located) {
+			const char *sym = dl_util_get_name(pc);
+
+			if (sym != NULL) {
+				const void *start = dl_util_get_start(pc);
+				long disp;
+
+				disp = (NULL == start) ? 0 : ptr_diff(pc, start);
+
+				if (flags & STACKTRACE_F_MAIN_STOP)
+					reached_main = 0 == strcmp(sym, "main");
+
+				/*
+				 * When not displaying a gdb-like trace, visually distinguish
+				 * the names we resolve through the dynamic loader and the
+				 * ones we resolve through symbols: all names between <> come
+				 * from the dynamic loader's tables.
+				 */
+
+				if (gdb_like)
+					str_bprintf(name, sizeof name, "%s", sym);
+				else if (0 == disp)
+					str_bprintf(name, sizeof name, "<%s>", sym);
+				else
+					str_bprintf(name, sizeof name, "<%s%+ld>", sym, disp);
+				sym = name;
+			} else {
+				if (symbols != NULL) {
+					sym = symbols_name(symbols, pc, !gdb_like);
+					if (flags & STACKTRACE_F_MAIN_STOP) {
+						reached_main = 0 == strcmp(sym, "main") ||
+							(!gdb_like && is_strprefix(sym, "main+"));
+					}
+				}
+			}
+			loc.function = sym;
+		} else if (located_via_bfd) {
+			/*
+			 * Flag the BFD-recognized symbols with trailing parentheses, since
+			 * there will be no trailing offset in that case, ever.
+			 */
+
+			if (flags & STACKTRACE_F_MAIN_STOP)
+				reached_main = 0 == strcmp(loc.function, "main");
+
+			str_bprintf(name, sizeof name, "%s()", loc.function);
+			has_parens = TRUE;
+			loc.function = name;
+		}
+
+		/*
+		 * Now foramt the information we gathered.
+		 */
+
+		str_reset(&s);
+
+		if (NULL == loc.function)
+			loc.function = "??";
+
+		if (NULL == loc.file)
+			loc.file = "??";
+
+		if (0 == (flags & STACKTRACE_F_NO_INDENT))
+			str_putc(&s, '\t');
+
+		if (tid[0] != '\0')
+			str_catf(&s, "%s", tid);
+
+		if (0 != (flags & STACKTRACE_F_NUMBER)) {
+			if (count < 10)
+				str_catf(&s, "#%-1d ", i);
+			else if (count < 100)
+				str_catf(&s, "#%-2d ", i);
+			else
+				str_catf(&s, "#%-3d ", i);
+		}
+
+		if (0 != (flags & STACKTRACE_F_ADDRESS)) {
+			str_catf(&s, "0x%0*lx ", PTRSIZE * 2, pointer_to_ulong(pc));
+
+			if (gdb_like)
+				str_cat(&s, "in ");
+		}
+
+		str_cat(&s, loc.function);
+		if ('0' == loc.function[0])		/* No valid name starts with a digit */
+			has_parens = TRUE;			/* Avoid "()" after 0x.... names */
+
+		if ('?' != loc.function[0] && gdb_like && !has_parens)
+			str_cat(&s, "()");
+
+		if (0 != (flags & STACKTRACE_F_SOURCE) && '?' != loc.file[0]) {
+			str_cat(&s, gdb_like ? " at " : " \"");
+			str_cat(&s, stacktrace_pretty_filepath(loc.file));
+			if (loc.line != 0)
+				str_catf(&s, ":%u", loc.line);
+			if (!gdb_like)
+				str_putc(&s, '"');
+		}
+
+		if (0 != (flags & STACKTRACE_F_ORIGIN) && !stack_is_our_text(pc)) {
+			const char *filename = (flags & STACKTRACE_F_PATH) ?
+				sopath : filepath_basename(sopath);
+			if (gdb_like)
+				str_catf(&s, " from %s", filename);
+			else if ('?' != sopath[0]) {
+				str_catf(&s, " : %s", filename);
+			}
+		}
+
+		str_putc(&s, '\n');
+
+		if (NULL == trace) {
+			switch (xf->type) {
+			case SXFILE_STDIO:
+				fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
+				break;
+			case SXFILE_FD:
+				write(xf->u.fd, str_2c(&s), str_len(&s));
+				break;
+			}
+		} else {
+			/* This will silently truncate output if buffer is too small */
+			str_ncat_safe(trace, str_2c(&s), str_len(&s));
+		}
+	}
+
+	/*
+	 * Emit the constructed trace if we were holding output.
+	 */
+
+	if (trace != NULL) {
+		switch (xf->type) {
+		case SXFILE_STDIO:
+			fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
+			break;
+		case SXFILE_FD:
+			write(xf->u.fd, str_2c(trace), str_len(trace));
+			break;
+		}
+		mutex_unlock(&stacktrace_buffer.lock);
+	}
+
+	/*
+	 * Don't call
+	 *
+	 * 		bfd_util_close_null(&be);
+	 *
+	 * because when we are called, we may be crashing and then we won't
+	 * release any memory anyway.  But if we start dumping a lot of stacks
+	 * (for instance dumping memory leaks), we'll be using a lot of memory!
+	 *
+	 * Hence the strategy is to keep the BFD environment opened.
+	 */
+}
+
+/**
+ * Convenience wrapper to print a decorated stack to a file descriptor.
+ */
+static void
+stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
+{
+	struct sxfile xf;
+
+	xf.type = SXFILE_FD;
+	xf.u.fd = fd;
+
+	stack_print_decorated_to(&xf, stack, count, flags);
+}
+
+/**
+ * Convenience wrapper to print a decorated stack to a FILE.
+ */
+static void
+stack_print_decorated(FILE *f, void * const *stack, size_t count, int flags)
+{
+	struct sxfile xf;
+
+	xf.type = SXFILE_STDIO;
+	xf.u.f = f;
+
+	stack_print_decorated_to(&xf, stack, count, flags);
 }
 
 /**
@@ -1457,6 +1338,18 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 }
 
 /**
+ * Print decorated stack trace atom to specified file, using symbolic names
+ * if possible.
+ */
+void
+stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
+{
+	g_assert(st != NULL);
+
+	stack_print_decorated(f, st->stack, st->len, flags);
+}
+
+/**
  * Log stack trace atom to logging agent, using symbolic names if possible.
  */
 void
@@ -1468,12 +1361,34 @@ stacktrace_atom_log(logagent_t *la, const struct stackatom *st)
 }
 
 /**
+ * Get address of the n-th caller in the stack.
+ *
+ * With n = 0, this should be the address of the current routine.
+ *
+ * @return program counter of the n-th caller, NULL if it cannot be determined.
+ */
+const void *
+stacktrace_caller(size_t n)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	g_assert(size_is_non_negative(n));
+	g_assert(n <= STACKTRACE_DEPTH_MAX);
+
+	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+
+	return n < count ? stack[n] : NULL;
+}
+
+/**
  * Return symbolic name of the n-th caller in the stack, if possible.
  *
  * With n = 0, this should be the current routine name.
  *
  * @return pointer to static data.  An empty name means there are not enough
- * items in the stack.
+ * items in the stack, "??" means that no symbols could be loaded so the
+ * symbolic name is not available.
  */
 const char *
 stacktrace_caller_name(size_t n)
@@ -1491,7 +1406,7 @@ stacktrace_caller_name(size_t n)
 	if (!signal_in_handler())
 		stacktrace_load_symbols();
 
-	return trace_name(stack[n], FALSE);
+	return NULL == symbols ? "??" : symbols_name(symbols, stack[n], FALSE);
 }
 
 /**
@@ -1505,9 +1420,48 @@ stacktrace_caller_name(size_t n)
  * a formatted hexadecimal value is returned.
  */
 const char *
-stacktrace_routine_name(const void *pc, gboolean offset)
+stacktrace_routine_name(const void *pc, bool offset)
 {
-	return trace_name(pc, offset);
+	const char *name;
+
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
+
+	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
+
+	/*
+	 * This routine can be called from a signal handler.  We assume it will
+	 * be safe to call dladdr() because that routine should not allocate
+	 * memory but rather inspect the dynamic loader's tables.
+	 *
+	 * However we forbid ourselves to call the BFD library to resolve the
+	 * name because that would force us to request to enter "crash mode" and
+	 * memory allocation may not be safe anyway.
+	 */
+
+	if (NULL == name)
+		name = dl_util_get_name(pc);
+
+	if (NULL == name) {
+		static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
+		str_bprintf(buf, sizeof buf, "%p", pc);
+		name = buf;
+	}
+
+	return name;
+}
+
+/**
+ * Return start of routine.
+ *
+ * @param pc		the PC within the routine
+ *
+ * @return start of the routine, NULL if we cannot find it.
+ */
+const void *
+stacktrace_routine_start(const void *pc)
+{
+	return symbols_addr(symbols, pc);
 }
 
 /**
@@ -1526,11 +1480,11 @@ stacktrace_where_print(FILE *f)
 /**
  * @return whether we got any symbols.
  */
-static gboolean
+static bool
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return trace_array.sorted;
+	return symbols != NULL && 0 != symbols_count(symbols);
 }
 
 /**
@@ -1546,7 +1500,7 @@ stacktrace_where_sym_print(FILE *f)
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
-	stack_print(f, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1562,7 +1516,7 @@ stacktrace_where_print_offset(FILE *f, size_t offset)
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print(f, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1582,7 +1536,30 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print(f, stack, count);
+	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
+}
+
+/**
+ * Safely print supplied trace to specified file as a symbolic stack,
+ * if possible.
+ *
+ * Safety comes from the fact that this routine may be safely called from
+ * a signal handler. However, symbolic names will not be loaded from the
+ * executable if they haven't already and we're in a signal handler.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ */
+void
+stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
+{
+	if (!signal_in_handler()) {
+		stacktrace_load_symbols();
+		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+	} else {
+		stack_safe_print(fd, stack, count);
+	}
 }
 
 /**
@@ -1602,29 +1579,40 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	if (!signal_in_handler())
-		stacktrace_load_symbols();
-	stack_safe_print(fd, stack, count);
+	stacktrace_stack_safe_print(fd, stack, count);
 }
 
 /**
- * Safely print supplied trace to specified file as a symbolic stack,
+ * Print supplied trace to specified file as a symbolic decorated stack,
  * if possible.
  *
- * Safety comes from the fact that this routine may be safely called from
- * a signal handler. However, symbolic names will not be loaded from the
- * executable if they haven't already and we're in a signal handler.
+ * This routine is NOT safe and could crash if called from a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ * @param flags		decoration flags (STACKTRACE_F_* values)
  */
 void
-stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
+stacktrace_stack_print_decorated(int fd,
+	void * const *stack, size_t count, uint flags)
 {
-	if (!signal_in_handler())
-		stacktrace_load_symbols();
+	stacktrace_load_symbols();
+	stack_safe_print_decorated(fd, stack, count, flags);
+}
 
-	stack_safe_print(fd, stack, count);
+/**
+ * Print decorated current stack trace to specified file.
+ */
+void
+stacktrace_where_print_decorated(FILE *f, uint flags)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	stacktrace_load_symbols();
+	stack_print_decorated(f, stack, count, flags);
 }
 
 /**
@@ -1640,7 +1628,7 @@ static struct {
 /*
  * Was a cautious stacktrace already logged?
  */
-gboolean
+bool
 stacktrace_cautious_was_logged(void)
 {
 	return print_context.done;
@@ -1738,9 +1726,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
-		if (!signal_in_handler())
-			stacktrace_load_symbols();
-		stack_safe_print(fd, stack, count);
+		stacktrace_stack_safe_print(fd, stack, count);
 	}
 
 	print_context.done = TRUE;
@@ -1757,7 +1743,7 @@ restore:
 /**
  * Hashing routine for a "struct stacktrace".
  */
-size_t
+unsigned
 stack_hash(const void *key)
 {
 	const struct stackatom *sa = key;
@@ -1796,16 +1782,45 @@ stack_eq(const void *a, const void *b)
 static size_t
 stacktrace_chop_length(const struct stacktrace *st)
 {
-	size_t len;
+	size_t i;
 
-	len = st->len;
-	while (len > 0) {
-		if (stack_is_our_text(st->stack[len - 1]))
+	/*
+	 * Until they called stacktrace_init(), we don't know whether we're
+	 * running as part of a statically linked program or whether the whole
+	 * program is held in shared libraries, the main() entry point being
+	 * just there to load the initial shared libraray.
+	 * 
+	 * This means stack_is_our_text() is unsafe.
+	 *
+	 * NB: This is only really needed when this library is used outside
+	 * of gtk-gnutella.  The whole gtk-gnutella code is statically linked,
+	 * and we know it calls stacktrace_init().
+	 *		--RAM, 2012-05-11
+	 */
+
+	if (!stacktrace_inited)
+		return st->len;
+
+	for (i = 0; i < st->len; i++) {
+		if (!stack_is_our_text(st->stack[i])) {
+			i++;		/* Keep first address beyond our text */
 			break;
-		len--;
+		}
 	}
 
-	return len;
+	return i;
+}
+
+/*
+ * Initialize the stack atom table.
+ */
+static void
+stacktrace_atom_init(void)
+{
+	g_assert(NULL == stack_atoms);
+
+	stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
+	hash_table_thread_safe(stack_atoms);
 }
 
 /**
@@ -1824,11 +1839,10 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
-	if G_UNLIKELY(NULL == stack_atoms) {
-		stack_atoms = hash_table_new_full_real(stack_hash, stack_eq);
-	}
+	if G_UNLIKELY(NULL == stack_atoms)
+		once_run(&stacktrace_atom_inited, stacktrace_atom_init);
 
-	key.stack = deconstify_gpointer(st->stack);
+	key.stack = deconstify_pointer(st->stack);
 	key.len = len;
 
 	return hash_table_lookup(stack_atoms, &key);
@@ -1836,20 +1850,27 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 
 /**
  * Allocate and record a new stack trace atom from given stacktrace.
+ *
+ * @return read-only atom object.
  */
-static struct stackatom *
+static const struct stackatom *
 stacktrace_atom_record(const struct stacktrace *st, size_t len)
 {
-	struct stackatom *result;
+	const struct stackatom *result;
+	struct stackatom local;
+
+	g_assert(spinlock_is_held(&stacktrace_atom_slk));
 
 	/* These objects will be never freed */
-	result = omalloc0(sizeof *result);
 	if (len != 0) {
-		result->stack = ocopy(st->stack, len * sizeof st->stack[0]);
+		const void *p = ocopy_readonly(st->stack, len * sizeof st->stack[0]);
+		local.stack = deconstify_pointer(p);
 	} else {
-		result->stack = NULL;
+		local.stack = NULL;
 	}
-	result->len = len;
+	local.len = len;
+
+	result = ocopy_readonly(&local, sizeof local);
 
 	if (!hash_table_insert(stack_atoms, result, result))
 		g_error("cannot record stack trace atom");
@@ -1858,19 +1879,23 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 }
 
 /**
- * Get a stack trace atom (never freed).
+ * Get a stack trace atom (read-only, never freed).
  */
-struct stackatom *
+const struct stackatom *
 stacktrace_get_atom(const struct stacktrace *st)
 {
-	struct stackatom *result;
+	const struct stackatom *result;
 	size_t len;
 
 	len = stacktrace_chop_length(st);
 	result = stacktrace_atom_lookup(st, len);
 
 	if G_UNLIKELY(NULL == result) {
-		result = stacktrace_atom_record(st, len);
+		spinlock(&stacktrace_atom_slk);
+		result = stacktrace_atom_lookup(st, len);
+		if (NULL == result)
+			result = stacktrace_atom_record(st, len);
+		spinunlock(&stacktrace_atom_slk);
 	}
 
 	return result;
@@ -1887,7 +1912,7 @@ stacktrace_get_atom(const struct stacktrace *st)
  *
  * @return whether calling stack was known
  */
-gboolean
+bool
 stacktrace_caller_known(size_t offset)
 {
 	struct stacktrace t;
@@ -1903,7 +1928,11 @@ stacktrace_caller_known(size_t offset)
 	result = stacktrace_atom_lookup(&t, len);
 
 	if G_UNLIKELY(NULL == result) {
-		(void) stacktrace_atom_record(&t, len);
+		spinlock(&stacktrace_atom_slk);
+		result = stacktrace_atom_lookup(&t, len);
+		if (NULL == result)
+			(void) stacktrace_atom_record(&t, len);
+		spinunlock(&stacktrace_atom_slk);
 		return FALSE;
 	} else {
 		return TRUE;
@@ -1972,6 +2001,8 @@ stacktrace_caller_known(size_t offset)
  * In order to work correctly, the proper stack offsetting must be computed
  * at run-time.  See stacktrace_auto_tune().
  */
+
+#ifndef MINGW32
 
 #if HAS_GCC(3, 0)
 static void *
@@ -2270,5 +2301,7 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
+
+#endif	/* !MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent:  */

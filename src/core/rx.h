@@ -42,7 +42,7 @@
 struct rxdriver;
 struct gnutella_node;
 
-typedef gboolean (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
+typedef bool (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
 
 enum rxdrv_magic { RXDRV_MAGIC = 0x4a9c3049U };
 
@@ -52,14 +52,14 @@ enum rxdrv_magic { RXDRV_MAGIC = 0x4a9c3049U };
 
 typedef struct rxdriver {
 	enum rxdrv_magic magic;			/**< Magic number */
-	gpointer owner;					/**< Owner of the RX stack */
+	void *owner;					/**< Owner of the RX stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct rxdriver *upper;			/**< Layer above, NULL if none */
 	struct rxdriver *lower;			/**< Layer underneath, NULL if none */
 	rx_data_t data_ind;				/**< Data indication routine */
-	gpointer opaque;				/**< Used by heirs to store specific info */
-	guint32 flags;					/**< Current layer flags */
+	void *opaque;					/**< Used by heirs to store specific info */
+	uint32 flags;					/**< Current layer flags */
 } rxdrv_t;
 
 #define rx_owner(r)	((r)->owner)
@@ -85,9 +85,9 @@ enum {
  */
 
 struct rxdrv_ops {
-	gpointer (*init)(rxdrv_t *tx, gconstpointer args);
+	void *(*init)(rxdrv_t *tx, const void *args);
 	void (*destroy)(rxdrv_t *tx);
-	gboolean (*recv)(rxdrv_t *tx, pmsg_t *mb);
+	bool (*recv)(rxdrv_t *tx, pmsg_t *mb);
 	void (*enable)(rxdrv_t *tx);
 	void (*disable)(rxdrv_t *tx);
 	struct bio_source *(*bio_source)(rxdrv_t *tx);
@@ -97,21 +97,21 @@ struct rxdrv_ops {
  * Public interface
  */
 
-rxdrv_t *rx_make(gpointer owner, gnet_host_t *host,
-	const struct rxdrv_ops *ops, gpointer args);
+rxdrv_t *rx_make(void *owner, gnet_host_t *host,
+	const struct rxdrv_ops *ops, void *args);
 
 rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
-	gconstpointer args);
+	const void *args);
 
 rx_data_t rx_get_data_ind(rxdrv_t *rx);
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 rx_data_t rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 void rx_free(rxdrv_t *d);
 void rx_collect(void);
-gboolean rx_recv(rxdrv_t *rx, pmsg_t *mb);
+bool rx_recv(rxdrv_t *rx, pmsg_t *mb);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
-void rx_change_owner(rxdrv_t *rx, gpointer owner);
+void rx_change_owner(rxdrv_t *rx, void *owner);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
 struct bio_source *rx_bio_source(rxdrv_t *rx);
 struct bio_source *rx_no_source(rxdrv_t *rx);

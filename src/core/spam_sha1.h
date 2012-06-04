@@ -38,7 +38,7 @@
 
 struct sha1;
 
-gboolean spam_sha1_check(const struct sha1 *sha1);
+bool spam_sha1_check(const struct sha1 *sha1);
 void spam_sha1_add(const struct sha1 *sha1);
 void spam_sha1_sync(void);
 void spam_sha1_init(void);

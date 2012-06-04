@@ -108,6 +108,7 @@ const char *[=(. func-prefix)=]_to_string(property_t prop);
 const char *[=(. func-prefix)=]_default_to_string(property_t);
 const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
+prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
 /*
@@ -380,7 +381,7 @@ G_GNUC_COLD prop_set_t *
     [=(. prop-set)=]->props  = omalloc(sizeof(prop_def_t) * [=(. prop-num)=]);
     [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
     [=(. prop-set)=]->dirty = FALSE;
-    [=(. prop-set)=]->byName = NULL;[=
+    [=(. prop-set)=]->by_name = NULL;[=
 
 FOR prop =][=
     (define current-prop (sprintf "%s[%u]"
@@ -524,10 +525,10 @@ FOR prop =][=
     ESAC =][=
 ENDFOR prop=]
 
-    [=(. prop-set)=]->byName = g_hash_table_new(g_str_hash, g_str_equal);
+    [=(. prop-set)=]->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < [=(. prop-num)=]; n ++) {
-        g_hash_table_insert([=(. prop-set)=]->byName,
-            [=(. prop-array)=][n].name, GINT_TO_POINTER(n+[=offset=]));
+        htable_insert([=(. prop-set)=]->by_name,
+            [=(. prop-array)=][n].name, int_to_pointer(n+[=offset=]));
     }
 
     return [=(. prop-set)=];
@@ -540,10 +541,7 @@ G_GNUC_COLD void
 [=(. func-prefix)=]_shutdown(void) {
     guint32 n;
 
-    if ([=(. prop-set)=]->byName) {
-        g_hash_table_destroy([=(. prop-set)=]->byName);
-        [=(. prop-set)=]->byName = NULL;
-    }
+    htable_free_null(&[=(. prop-set)=]->by_name);
 
     for (n = 0; n < [=(. prop-num)=]; n ++) {
         if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
@@ -715,6 +713,12 @@ const char *
     return prop_name([=(. prop-set)=], p);
 }
 
+prop_type_t
+[=(. func-prefix)=]_type(property_t p)
+{
+    return prop_type([=(. prop-set)=], p);
+}
+
 const char *
 [=(. func-prefix)=]_type_to_string(property_t p)
 {
@@ -736,8 +740,7 @@ gboolean
 property_t
 [=(. func-prefix)=]_get_by_name(const char *name)
 {
-    return GPOINTER_TO_UINT(
-        g_hash_table_lookup([=(. prop-set)=]->byName, name));
+    return pointer_to_uint(htable_lookup([=(. prop-set)=]->by_name, name));
 }
 
 GSList *

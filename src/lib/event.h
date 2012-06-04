@@ -36,14 +36,14 @@ typedef enum frequency_type {
 struct subscriber {
     GCallback           cb;
     enum frequency_type f_type;
-    guint32             f_interval;
+    uint32              f_interval;
     time_t              last_call;
 };
 
 typedef struct event {
     const char *name;
-    guint32      triggered_count;
-    GSList      *subscribers;
+    uint32      triggered_count;
+    GSList     *subscribers;
 } event_t;
 
 struct event *event_new(const char *name);
@@ -56,11 +56,11 @@ struct event *event_new(const char *name);
 void real_event_destroy(struct event *evt);
 
 void event_add_subscriber(
-    struct event *evt, GCallback cb, frequency_t t, guint32 interval);
+    struct event *evt, GCallback cb, frequency_t t, uint32 interval);
 void event_remove_subscriber(struct event *evt, GCallback cb);
 
-guint event_subscriber_count(struct event *evt);
-gboolean event_subscriber_active(struct event *evt);
+uint event_subscriber_count(struct event *evt);
+bool event_subscriber_active(struct event *evt);
 
 /*
  * T_VETO:   breaks trigger chain as soon as a subscriber returns
@@ -78,7 +78,7 @@ gboolean event_subscriber_active(struct event *evt);
 		event_t *evt;										   				\
 		struct subscriber *s;												\
 		time_t now;									   					 	\
-		gboolean t;															\
+		bool t;																\
 	} vars_;																\
 																			\
 	vars_.evt = (ev);														\
@@ -97,7 +97,7 @@ gboolean event_subscriber_active(struct event *evt);
 				if ((time_t) -1 == vars_.now)								\
 					vars_.now = tm_time();									\
 				vars_.t = vars_.s->f_interval <=							\
-						(guint32) delta_time(vars_.now, vars_.s->last_call);\
+						(uint32) delta_time(vars_.now, vars_.s->last_call); \
 				break;														\
 			default:														\
 				g_assert_not_reached();										\
@@ -115,8 +115,10 @@ gboolean event_subscriber_active(struct event *evt);
 	vars_.evt->triggered_count++;											\
 } G_STMT_END
 
+struct hikset;
+
 struct event_table {
-    GHashTable *events;
+    struct hikset *events;
 };
 
 struct event_table *event_table_new(void);
@@ -125,7 +127,7 @@ struct event_table *event_table_new(void);
     real_event_table_destroy(t);                                   \
     WFREE_NULL(t, sizeof *t);                                      \
 } G_STMT_END
-void real_event_table_destroy(struct event_table *t, gboolean cleanup);
+void real_event_table_destroy(struct event_table *t, bool cleanup);
 
 
 void event_table_add_event(struct event_table *t, struct event *evt);

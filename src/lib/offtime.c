@@ -46,7 +46,7 @@ const unsigned short mon_yday[2][13] = {
     {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}
 };
 
-static inline gboolean is_leap(long year) {
+static inline bool is_leap(long year) {
 	return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
 }
 
@@ -64,7 +64,7 @@ static inline gboolean is_leap(long year) {
  * This code was taken from the GNU libc 2.10.1 (distributed under the LGPL).
  * It was slightly adapted to meet GTKG's coding standards.
  */
-gboolean
+bool
 off_time(time_t t, time_delta_t offset, struct tm *tp)
 {
 	long days, rem, y;

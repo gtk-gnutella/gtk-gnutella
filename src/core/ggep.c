@@ -39,6 +39,7 @@
 #include "extensions.h"
 #include "lib/cobs.h"
 #include "lib/halloc.h"
+#include "lib/mempcpy.h"
 #include "lib/misc.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -50,7 +51,7 @@
 /**
  * Check whether a GGEP stream descriptor is valid.
  */
-gboolean
+bool
 ggep_stream_is_valid(ggep_stream_t *gs)
 {
 	if (NULL == gs)
@@ -91,7 +92,7 @@ ggep_stream_is_valid(ggep_stream_t *gs)
  * @param len		length of supplied buffer
  */
 void
-ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len)
+ggep_stream_init(ggep_stream_t *gs, void *data, size_t len)
 {
 	g_assert(len <= INT_MAX);
 	g_assert(len != 0);
@@ -145,7 +146,7 @@ ggep_stream_cleanup(ggep_stream_t *gs)
  *
  * @return FALSE if there's not enough room in the output.
  */
-static inline gboolean
+static inline bool
 ggep_stream_appendc(ggep_stream_t *gs, char c)
 {
 	g_assert(ggep_stream_is_valid(gs));
@@ -163,16 +164,15 @@ ggep_stream_appendc(ggep_stream_t *gs, char c)
  *
  * @return FALSE if there's not enough room in the output.
  */
-static inline gboolean
-ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
+static inline bool
+ggep_stream_append(ggep_stream_t *gs, const void *data, size_t len)
 {
 	g_assert(ggep_stream_is_valid(gs));
 
 	if (len > ggep_stream_avail(gs))
 		return FALSE;
 
-	memcpy(gs->o, data, len);
-	gs->o += len;
+	gs->o = mempcpy(gs->o, data, len);
 
 	return TRUE;
 }
@@ -187,11 +187,11 @@ ggep_stream_append(ggep_stream_t *gs, gconstpointer data, size_t len)
  * @return TRUE if OK, FALSE if there's not enough room in the output.
  * On error, the stream is left in a clean state.
  */
-gboolean
-ggep_stream_begin(ggep_stream_t *gs, const char *id, guint32 wflags)
+bool
+ggep_stream_begin(ggep_stream_t *gs, const char *id, uint32 wflags)
 {
 	int idlen;
-	guint8 flags = 0;
+	uint8 flags = 0;
 
 	g_assert(ggep_stream_is_valid(gs));
 	g_assert(gs->outbuf != NULL);		/* Stream not closed */
@@ -311,7 +311,7 @@ cleanup:
  *
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
-gboolean
+bool
 ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 {
 	const iovec_t *xiov;
@@ -373,15 +373,15 @@ cleanup:
  *
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
-gboolean
-ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len)
+bool
+ggep_stream_write(ggep_stream_t *gs, const void *data, size_t len)
 {
 	iovec_t iov;
 	const iovec_t *p_iov = &iov;
 
 	g_assert(len <= INT_MAX);
 
-	iovec_set_base(&iov, deconstify_gpointer(data));
+	iovec_set_base(&iov, deconstify_pointer(data));
 	iovec_set_len(&iov, len);
 
 	return ggep_stream_writev(gs, p_iov, 1);
@@ -392,11 +392,11 @@ ggep_stream_write(ggep_stream_t *gs, gconstpointer data, size_t len)
  *
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
-gboolean
+bool
 ggep_stream_end(ggep_stream_t *gs)
 {
 	size_t plen = 0;
-	gint8 hlen[3];
+	int8 hlen[3];
 	size_t slen;
 
 	g_assert(ggep_stream_is_valid(gs));
@@ -425,8 +425,8 @@ ggep_stream_end(ggep_stream_t *gs)
 		ilen = zlib_deflater_inlen(gs->zd);
 
 		if (plen > ilen) {
-			gpointer data;
-			gboolean ok;
+			void *data;
+			bool ok;
 
 			if (GNET_PROPERTY(ggep_debug) > 2)
 				g_warning("GGEP \"%.*s\" not compressing %d bytes into %d",
@@ -498,7 +498,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	if (gs->flags & GGEP_F_COBS) {
-		gboolean saw_nul;
+		bool saw_nul;
 
 		plen = cobs_stream_close(&gs->cs, &saw_nul);
 		if (0 == plen)
@@ -672,9 +672,9 @@ ggep_stream_close(ggep_stream_t *gs)
  *
  * @return TRUE if written successfully.
  */
-gboolean
+bool
 ggep_stream_packv(ggep_stream_t *gs,
-	const char *id, const iovec_t *iov, int iovcnt, guint32 wflags)
+	const char *id, const iovec_t *iov, int iovcnt, uint32 wflags)
 {
 	g_assert(iovcnt >= 0);
 
@@ -710,9 +710,9 @@ ggep_stream_packv(ggep_stream_t *gs,
  * if the write attempt had not taken place, so one may continue writing
  * shorter extension, if the error is due to a lack of space in the stream.
  */
-gboolean
+bool
 ggep_stream_pack(ggep_stream_t *gs,
-	const char *id, gconstpointer payload, size_t plen, guint32 wflags)
+	const char *id, const void *payload, size_t plen, uint32 wflags)
 {
 	iovec_t iov;
 	const iovec_t *p_iov = &iov;
@@ -721,7 +721,7 @@ ggep_stream_pack(ggep_stream_t *gs,
 	g_assert(0 == plen || NULL != payload);
 	g_assert(plen <= INT_MAX);
 
-	iovec_set_base(&iov, deconstify_gpointer(payload));
+	iovec_set_base(&iov, deconstify_pointer(payload));
 	iovec_set_len(&iov, plen);
 
 	return ggep_stream_packv(gs, id, p_iov, 1, wflags);

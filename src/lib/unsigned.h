@@ -51,7 +51,7 @@
  * @return TRUE if size is equal to zero or larger and smaller than
  *         SIZE_MAX / 2.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
+static inline G_GNUC_CONST ALWAYS_INLINE bool
 size_is_non_negative(size_t size)
 {
 	return size <= SIZE_MAX / 2;
@@ -61,7 +61,7 @@ size_is_non_negative(size_t size)
  * Check whether a signed representation of size would be strictly positive.
  * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
+static inline G_GNUC_CONST ALWAYS_INLINE bool
 size_is_positive(size_t size)
 {
 	return size_is_non_negative(size - 1);
@@ -111,7 +111,7 @@ size_saturate_sub(size_t a, size_t b)
  * @return TRUE if size is greater than or equal to zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
+static inline G_GNUC_CONST ALWAYS_INLINE bool
 uint_is_non_negative(unsigned v)
 {
 	return v <= MAX_INT_VAL(unsigned) / 2;
@@ -122,7 +122,7 @@ uint_is_non_negative(unsigned v)
  * @return TRUE if size is stricly larger than zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
+static inline G_GNUC_CONST ALWAYS_INLINE bool
 uint_is_positive(unsigned v)
 {
 	return uint_is_non_negative(v - 1);
@@ -139,6 +139,18 @@ uint_saturate_add(unsigned a, unsigned b)
 	if (G_UNLIKELY(ret < a))
 		return MAX_INT_VAL(unsigned);
 	return ret;
+}
+
+/*
+ * Calculate the difference between a and b but saturate towards zero.
+ * @return zero if a < b, otherwise a - b.
+ */
+static inline G_GNUC_CONST unsigned
+uint_saturate_sub(unsigned a, unsigned b)
+{
+	if (G_UNLIKELY(a < b))
+		return 0;
+	return a - b;
 }
 
 /*
@@ -159,12 +171,12 @@ uint_saturate_mult(unsigned a, unsigned b)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST guint64
-guint64_saturate_add(guint64 a, guint64 b)
+static inline G_GNUC_CONST uint64
+uint64_saturate_add(uint64 a, uint64 b)
 {
-	guint64 ret = a + b;
+	uint64 ret = a + b;
 	if (G_UNLIKELY(ret < a))
-		return MAX_INT_VAL(guint64);
+		return MAX_INT_VAL(uint64);
 	return ret;
 }
 
@@ -172,13 +184,13 @@ guint64_saturate_add(guint64 a, guint64 b)
  * Calculate the product of a and b but saturate towards MAX_UINT64.
  * @return MAX_UINT64 if a * b > MAX_UINT64, otherwise a * b.
  */
-static inline G_GNUC_CONST guint64
-guint64_saturate_mult(guint64 a, guint64 b)
+static inline G_GNUC_CONST uint64
+uint64_saturate_mult(uint64 a, uint64 b)
 {
 	if (0 == a)
 		return 0;
-	if (G_UNLIKELY(MAX_INT_VAL(guint64) / a < b))
-		return MAX_INT_VAL(guint64);
+	if (G_UNLIKELY(MAX_INT_VAL(uint64) / a < b))
+		return MAX_INT_VAL(uint64);
 	return a * b;
 }
 
@@ -186,12 +198,12 @@ guint64_saturate_mult(guint64 a, guint64 b)
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST guint32
-guint32_saturate_add(guint32 a, guint32 b)
+static inline G_GNUC_CONST uint32
+uint32_saturate_add(uint32 a, uint32 b)
 {
-	guint32 ret = a + b;
+	uint32 ret = a + b;
 	if (G_UNLIKELY(ret < a))
-		return MAX_INT_VAL(guint32);
+		return MAX_INT_VAL(uint32);
 	return ret;
 }
 
@@ -199,13 +211,13 @@ guint32_saturate_add(guint32 a, guint32 b)
  * Calculate the product of a and b but saturate towards MAX_UINT32.
  * @return MAX_UINT32 if a * b > MAX_UINT32, otherwise a * b.
  */
-static inline G_GNUC_CONST guint32
-guint32_saturate_mult(guint32 a, guint32 b)
+static inline G_GNUC_CONST uint32
+uint32_saturate_mult(uint32 a, uint32 b)
 {
 	if (0 == a)
 		return 0;
-	if (G_UNLIKELY(MAX_INT_VAL(guint32) / a < b))
-		return MAX_INT_VAL(guint32);
+	if (G_UNLIKELY(MAX_INT_VAL(uint32) / a < b))
+		return MAX_INT_VAL(uint32);
 	return a * b;
 }
 
@@ -214,10 +226,10 @@ guint32_saturate_mult(guint32 a, guint32 b)
  * @return TRUE if size is greater than or equal to zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
-guint32_is_non_negative(guint32 v)
+static inline G_GNUC_CONST ALWAYS_INLINE bool
+uint32_is_non_negative(uint32 v)
 {
-	return v <= MAX_INT_VAL(guint32) / 2;
+	return v <= MAX_INT_VAL(uint32) / 2;
 }
 
 /**
@@ -225,22 +237,22 @@ guint32_is_non_negative(guint32 v)
  * @return TRUE if size is stricly larger than zero, yet smaller than the
  * maximum positive quantity that can be represented.
  */
-static inline G_GNUC_CONST ALWAYS_INLINE gboolean
-guint32_is_positive(guint32 v)
+static inline G_GNUC_CONST ALWAYS_INLINE bool
+uint32_is_positive(uint32 v)
 {
-	return guint32_is_non_negative(v - 1);
+	return uint32_is_non_negative(v - 1);
 }
 
 /*
  * Calculate the sum of a and b but saturate towards the maximum value.
  * @return maximum if a + b > maximum, otherwise a + b.
  */
-static inline G_GNUC_CONST guint8
-guint8_saturate_add(guint8 a, guint8 b)
+static inline G_GNUC_CONST uint8
+uint8_saturate_add(uint8 a, uint8 b)
 {
-	guint8 ret = a + b;
+	uint8 ret = a + b;
 	if (G_UNLIKELY(ret < a))
-		return MAX_INT_VAL(guint8);
+		return MAX_INT_VAL(uint8);
 	return ret;
 }
 

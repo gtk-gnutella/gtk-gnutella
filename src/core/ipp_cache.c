@@ -83,11 +83,11 @@ struct ipp_cache {
 	const char *name;				/**< Cache name */
 	const char *item_name;			/**< Cache item name */
 	const char *description;		/**< Cache description for comments */
-	const guint32 *max_cache_time;	/**< Amount of time data can stay cached */
-	const guint32 *max_cache_size;	/**< Max amount od items to cache */
+	const uint32 *max_cache_time;	/**< Amount of time data can stay cached */
+	const uint32 *max_cache_size;	/**< Max amount od items to cache */
 	hash_list_t *hosts;				/**< The caching structure */
 	time_t last_stored;				/**< Last time cache was persisted */
-	const guint32 *debug;			/**< Debug level for this cache */
+	const uint32 *debug;			/**< Debug level for this cache */
 };
 
 /**
@@ -103,15 +103,15 @@ struct ipp_cache_item {
  */
 static ipp_cache_t *caches[IPP_CACHE_COUNT];
 
-static guint
-ipp_cache_item_hash(gconstpointer key)
+static uint
+ipp_cache_item_hash(const void *key)
 {
 	const struct ipp_cache_item *item = key;
 	return gnet_host_hash(&item->host);
 }
 
 static int
-ipp_cache_item_eq(gconstpointer v1, gconstpointer v2)
+ipp_cache_item_eq(const void *v1, const void *v2)
 {
 	const struct ipp_cache_item *a = v1, *b = v2;
 	return gnet_host_eq(&a->host,& b->host);
@@ -124,8 +124,8 @@ static ipp_cache_t *
 ipp_cache_alloc(
 	const char *name, const char *item_name, const char *file_name,
 	const char *description,
-	const guint32 *max_cache_time, const guint32 *max_cache_size,
-	const guint32 *debug)
+	const uint32 *max_cache_time, const uint32 *max_cache_size,
+	const uint32 *debug)
 {
 	ipp_cache_t *ic;
 
@@ -147,7 +147,7 @@ ipp_cache_alloc(
 /**
  * Has a cached entry expired?
  */
-static gboolean
+static bool
 ipp_cache_item_expired(const ipp_cache_t *ic, time_t seen, time_t now)
 {
 	time_delta_t d = delta_time(now, seen);
@@ -281,7 +281,7 @@ ipp_cache_remove_oldest(ipp_cache_t *ic)
 static void
 ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 {
-	gconstpointer key;
+	const void *key;
 	int removed;
 	size_t max_size;
 
@@ -289,7 +289,7 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 
 	key = hash_list_remove(ic->hosts, item);
 	if (key) {
-		struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
+		struct ipp_cache_item *item_ptr = deconstify_pointer(key);
 
 		/* We'll move the host to the end of the list */
 		if (*ic->debug > 3) {
@@ -339,7 +339,7 @@ get_cache(enum ipp_cache_id cid)
  * Insert host in specified cache.
  */
 void
-ipp_cache_insert(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
+ipp_cache_insert(enum ipp_cache_id cid, const host_addr_t addr, uint16 port)
 {
 	ipp_cache_t *ic = get_cache(cid);
 	struct ipp_cache_item item;
@@ -361,17 +361,17 @@ ipp_cache_insert(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
  */
 static struct ipp_cache_item *
 ipp_cache_lookup_intern(const ipp_cache_t *ic,
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, uint16 port)
 {
 	g_assert(ic);
 
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
 		struct ipp_cache_item item;
-		gconstpointer key;
+		const void *key;
 
 		gnet_host_set(&item.host, addr, port);
 		if (hash_list_find(ic->hosts, &item, &key)) {
-			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
+			struct ipp_cache_item *item_ptr = deconstify_pointer(key);
 			
 			if (!ipp_cache_item_expired(ic, item_ptr->seen, tm_time()))
 				return item_ptr;
@@ -386,8 +386,8 @@ ipp_cache_lookup_intern(const ipp_cache_t *ic,
 /**
  * @return TRUE if addr:port is currently in the cache.
  */
-gboolean
-ipp_cache_lookup(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
+bool
+ipp_cache_lookup(enum ipp_cache_id cid, const host_addr_t addr, uint16 port)
 {
 	ipp_cache_t *ic = get_cache(cid);
 	return NULL != ipp_cache_lookup_intern(ic, addr, port);
@@ -399,7 +399,7 @@ ipp_cache_lookup(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
  */
 time_t
 ipp_cache_get_timestamp(enum ipp_cache_id cid,
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, uint16 port)
 {
 	const struct ipp_cache_item *item;
 	ipp_cache_t *ic = get_cache(cid);
@@ -413,19 +413,19 @@ ipp_cache_get_timestamp(enum ipp_cache_id cid,
  *
  * @return whether entry was found and deleted.
  */
-static gboolean
+static bool
 ipp_cache_remove_intern(const ipp_cache_t *ic,
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, uint16 port)
 {
 	g_assert(ic);
 
 	if (host_addr_initialized(addr) && is_host_addr(addr) && 0 != port) {
 		struct ipp_cache_item item;
-		gconstpointer key;
+		const void *key;
 
 		gnet_host_set(&item.host, addr, port);
 		if (hash_list_find(ic->hosts, &item, &key)) {
-			struct ipp_cache_item *item_ptr = deconstify_gpointer(key);
+			struct ipp_cache_item *item_ptr = deconstify_pointer(key);
 			
 			hash_list_remove(ic->hosts, item_ptr);
 			WFREE(item_ptr);
@@ -440,8 +440,8 @@ ipp_cache_remove_intern(const ipp_cache_t *ic,
  *
  * @return TRUE if found and removed.
  */
-gboolean
-ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, guint16 port)
+bool
+ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, uint16 port)
 {
 	ipp_cache_t *ic = get_cache(cid);
 	return ipp_cache_remove_intern(ic, addr, port);
@@ -457,8 +457,8 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 	static const struct ipp_cache_item zero_item;
 	struct ipp_cache_item item;
 	char line[1024];
-	guint line_no = 0;
-	gboolean done = FALSE;
+	uint line_no = 0;
+	bool done = FALSE;
 
 	g_return_if_fail(f);
 
@@ -471,7 +471,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 	while (fgets(line, sizeof line, f)) {
 		const char *tag_name, *value;
 		char *sp;
-		gboolean damaged;
+		bool damaged;
 		ipp_cache_tag_t tag;
 
 		line_no++;
@@ -516,7 +516,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		case IPP_CACHE_TAG_HOST:
 			{
 				host_addr_t addr;
-				guint16 port;
+				uint16 port;
 
 				if (string_to_host_addr_port(value, NULL, &addr, &port)) {
 					gnet_host_set(&item.host, addr, port);
@@ -604,7 +604,7 @@ ipp_cache_load(ipp_cache_t *ic)
 
 	f = file_config_open_read(ic->name, &ic->fp, 1);
 	if (f) {
-		guint n;
+		uint n;
 		
 		ipp_cache_clear(ic);
 		ipp_cache_parse(ic, f);
@@ -626,7 +626,7 @@ ipp_cache_free(ipp_cache_t *ic)
 
 	ipp_cache_clear(ic);
 	hash_list_free(&ic->hosts);
-	g_free(deconstify_gpointer(ic->fp.dir));
+	g_free(deconstify_pointer(ic->fp.dir));
 	ic->fp.dir = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 	WFREE(ic);
 }

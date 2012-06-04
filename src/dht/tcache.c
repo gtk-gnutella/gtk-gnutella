@@ -109,7 +109,7 @@ static char db_tcache_what[] = "DHT security tokens";
  */
 struct tokdata {
 	time_t last_update;		/**< When we last updated the security token */
-	guint8 length;			/**< Token length (0 if none) */
+	uint8 length;			/**< Token length (0 if none) */
 	void *token;			/**< Token binary data -- walloc()-ed */
 };
 
@@ -151,7 +151,7 @@ delete_tokdata(const kuid_t *id)
  * Serialization routine for tokdata.
  */
 static void
-serialize_tokdata(pmsg_t *mb, gconstpointer data)
+serialize_tokdata(pmsg_t *mb, const void *data)
 {
 	const struct tokdata *td = data;
 
@@ -164,7 +164,7 @@ serialize_tokdata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for tokdata.
  */
 static void
-deserialize_tokdata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_tokdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct tokdata *td = valptr;
 
@@ -186,7 +186,7 @@ deserialize_tokdata(bstr_t *bs, gpointer valptr, size_t len)
  * the structure itself.
  */
 static void
-free_tokdata(gpointer valptr, size_t len)
+free_tokdata(void *valptr, size_t len)
 {
 	struct tokdata *td = valptr;
 
@@ -199,7 +199,7 @@ free_tokdata(gpointer valptr, size_t len)
  * Map iterator to record security tokens in the database.
  */
 static void
-record_token(gpointer key, gpointer value, gpointer unused_u)
+record_token(void *key, void *value, void *unused_u)
 {
 	kuid_t *id = key;
 	lookup_token_t *ltok = value;
@@ -252,9 +252,9 @@ tcache_record(map_t *tokens)
  * the information about the length and the token pointer.  Information is
  * returned from a static memory buffer so it must be perused immediately.
  */
-gboolean
+bool
 tcache_get(const kuid_t *id,
-	guint8 *len_ptr, const void **tok_ptr, time_t *time_ptr)
+	uint8 *len_ptr, const void **tok_ptr, time_t *time_ptr)
 {
 	struct tokdata *td;
 
@@ -292,7 +292,7 @@ tcache_get(const kuid_t *id,
  *
  * @return TRUE if entry existed
  */
-gboolean
+bool
 tcache_remove(const kuid_t *id)
 {
 	if (!dbmw_exists(db_tokdata, id))
@@ -306,8 +306,8 @@ tcache_remove(const kuid_t *id)
  * DBMW foreach iterator to remove old entries.
  * @return  TRUE if entry must be deleted.
  */
-static gboolean
-tk_prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
+static bool
+tk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 {
 	const kuid_t *id = key;
 	const struct tokdata *td = value;
@@ -349,8 +349,8 @@ tcache_prune_old(void)
 /**
  * Callout queue periodic event to expire old entries.
  */
-static gboolean
-tcache_periodic_prune(gpointer unused_obj)
+static bool
+tcache_periodic_prune(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -365,7 +365,7 @@ G_GNUC_COLD void
 tcache_init(void)
 {
 	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct tokdata),
-		sizeof(struct tokdata) + MAX_INT_VAL(guint8) };
+		sizeof(struct tokdata) + MAX_INT_VAL(uint8) };
 	dbstore_packing_t packing =
 		{ serialize_tokdata, deserialize_tokdata, free_tokdata };
 

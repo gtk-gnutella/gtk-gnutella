@@ -62,15 +62,15 @@ typedef struct bio_source {
 	bsched_bws_t bws;				/**< B/w scheduler for this source */
 	wrap_io_t *wio;					/**< Wrapped I/O object */
 	unsigned io_tag;				/**< Recorded I/O callback tag */
-	guint io_flags;					/**< Flags for I/O callback */
+	uint io_flags;					/**< Flags for I/O callback */
 	inputevt_handler_t io_callback;		/**< I/O callback routine */
-	gpointer io_arg;				/**< I/O callback argument */
-	guint32 flags;					/**< Source flags */
+	void *io_arg;					/**< I/O callback argument */
+	uint32 flags;					/**< Source flags */
 	unsigned bw_allocated;			/**< Allocated bandwidth credit */
-	guint bw_actual;				/**< Actual bandwidth used in period */
-	guint bw_last_bps;				/**< B/w used last period (bps) */
-	guint bw_fast_ema;				/**< Fast EMA of actual bandwidth used */
-	guint bw_slow_ema;				/**< Slow EMA of actual bandwidth used */
+	uint bw_actual;					/**< Actual bandwidth used in period */
+	uint bw_last_bps;				/**< B/w used last period (bps) */
+	uint bw_fast_ema;				/**< Fast EMA of actual bandwidth used */
+	uint bw_slow_ema;				/**< Slow EMA of actual bandwidth used */
 } bio_source_t;
 
 /*

@@ -63,12 +63,12 @@ const char *iprange_strerror(iprange_err_t errnum);
 
 struct iprange_db *iprange_new(void);
 iprange_err_t iprange_add_cidr(
-	struct iprange_db *db, guint32 net, unsigned bits, guint16 value);
+	struct iprange_db *db, uint32 net, unsigned bits, uint16 value);
 iprange_err_t iprange_add_cidr6(
-	struct iprange_db *db, const guint8 *net, unsigned bits, guint16 value);
-guint16 iprange_get(const struct iprange_db *db, guint32 ip);
-guint16 iprange_get6(const struct iprange_db *db, const guint8 *ip6);
-guint16 iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha);
+	struct iprange_db *db, const uint8 *net, unsigned bits, uint16 value);
+uint16 iprange_get(const struct iprange_db *db, uint32 ip);
+uint16 iprange_get6(const struct iprange_db *db, const uint8 *ip6);
+uint16 iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha);
 void iprange_sync(struct iprange_db *idb);
 void iprange_free(struct iprange_db **idb_ptr);
 void iprange_reset_ipv4(struct iprange_db *idb);

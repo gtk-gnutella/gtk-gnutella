@@ -171,6 +171,30 @@
 #endif
 
 /*
+ * Endianness, as determined by Configure.
+ */
+
+#if BYTEORDER == 0x1234
+#define IS_LITTLE_ENDIAN	1
+#define IS_BIG_ENDIAN		0
+#elif BYTEORDER == 0x4321
+#define IS_BIG_ENDIAN		1
+#define IS_LITTLE_ENDIAN	0
+#else
+#error "unknown endianness"
+#endif
+
+#if IEEE754_BYTEORDER == 0x1234
+#define IS_LITTLE_ENDIAN_FLOAT	1
+#define IS_BIG_ENDIAN_FLOAT		0
+#elif IEEE754_BYTEORDER == 0x4321
+#define IS_BIG_ENDIAN_FLOAT		1
+#define IS_LITTLE_ENDIAN_FLOAT	0
+#else
+#error "float must use IEEE 754."
+#endif
+
+/*
  * Determine how large an I/O vector the kernel can accept.
  */
 
@@ -196,6 +220,7 @@
 #endif
 
 #include <glib.h>
+#include "types.h"
 
 #ifdef USE_LINT
 #undef G_GNUC_INTERNAL
@@ -212,7 +237,11 @@
 #error "Install GLib 2.x to compile gtk-gnutella against GLib 2.x."
 #endif
 
-typedef guint64 filesize_t; /**< Use filesize_t to hold filesizes */
+typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
+
+#ifdef HAS_SCHED_YIELD
+#define do_sched_yield()	sched_yield()	/* See lib/mingw32.h */
+#endif
 
 #include "lib/mingw32.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
@@ -347,6 +376,13 @@ typedef void (*GCallback) (void);
 #define VA_COPY(dest, src)	(dest) = (src)
 #endif
 
+/**
+ * @returns the offset of the given field F within the given type T, in bytes.
+ */
+#ifndef offsetof
+#define offsetof(T, F) ((unsigned) ((char *) &((T *)0L)->F - (char *) 0L))
+#endif
+
 /*
  * Standard file descriptor numbers
  */
@@ -409,6 +445,14 @@ typedef void (*GCallback) (void);
 
 #ifndef SSIZE_MAX
 #define SSIZE_MAX MAX_INT_VAL(ssize_t)
+#endif
+
+#ifndef POINTER_MAX
+#ifdef UINTPTR_MAX
+#define POINTER_MAX	((void *) UINTPTR_MAX)
+#else
+#define POINTER_MAX	((void *) MAX_INT_VAL(size_t))
+#endif
 #endif
 
 /*
@@ -529,8 +573,8 @@ typedef void (*GCallback) (void);
  */
 #ifndef G_LIKELY
 #if HAS_GCC(3, 4)	/* Just a guess, a Configure check would be better */
-#define G_LIKELY(x)		(__builtin_expect(x, 1))
-#define G_UNLIKELY(x)	(__builtin_expect(x, 0))
+#define G_LIKELY(x)		(__builtin_expect((x), 1))
+#define G_UNLIKELY(x)	(__builtin_expect((x), 0))
 #else /* !GCC >= 3.4 */
 #define G_LIKELY(x)		(x)
 #define G_UNLIKELY(x)	(x)
@@ -548,6 +592,29 @@ typedef void (*GCallback) (void);
 #define G_GNUC_PURE
 #endif	/* GCC >= 2.96 */
 #endif	/* G_GNUC_PURE */
+
+#ifndef G_GNUC_CONST
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
+#define G_GNUC_CONST __attribute__((__const__))
+#else
+#define G_GNUC_CONST
+#endif	/* GCC >= 2.4 */
+#endif	/* G_GNUC_CONST */
+
+/**
+ * Used to signal a function that does not return.
+ *
+ * The compiler can then optimize calls to that routine by not saving
+ * registers before calling the routine.  However, this can mess up the
+ * stack unwinding past these routines.
+ */
+#ifndef G_GNUC_NORETURN
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
+#define G_GNUC_NORETURN __attribute__((__noreturn__))
+#else
+#define G_GNUC_NORETURN
+#endif	/* GCC >= 2.4 */
+#endif	/* G_GNUC_NORETURN */
 
 #ifndef G_GNUC_MALLOC
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
@@ -592,11 +659,27 @@ typedef void (*GCallback) (void);
 #define NO_INLINE
 #endif	/* GCC >= 3.1 */
 
+#if defined(HASATTRIBUTE) && HAS_GCC(2, 7)
+#define G_GNUC_ALIGNED(n)	 __attribute__((aligned(n)))
+#else
+#define G_GNUC_ALIGNED(n)
+#endif	/* GCC >= 3.1 */
+
 #if defined(HASATTRIBUTE) && defined(HAS_REGPARM)
 #define REGPARM(n)	__attribute__((__regparm__((n))))
 #else
 #define REGPARM(n)
 #endif	/* HAS_REGPARM */
+
+/**
+ * This avoid compilation warnings when handing "long long" types with gcc
+ * invoked with options -pedantic and -ansi.
+ */
+#if HAS_GCC(2, 8)
+#define G_GNUC_EXTENSION __extension__
+#else
+#define G_GNUC_EXTENSION
+#endif
 
 /*
  * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
@@ -617,6 +700,28 @@ typedef void (*GCallback) (void);
 #define IS_CONSTANT(x)	FALSE
 #endif
 
+/*
+ * Memory pre-fetching requests.
+ *
+ * One can request pre-fetch of a memory location for read or write, and
+ * with a low (default), medium or high expected lifespan in the cache.
+ */
+#if HAS_GCC(3, 0)	/* Just a guess, a Configure check would be better */
+#define G_PREFETCH_R(x)		__builtin_prefetch((x), 0, 0)
+#define G_PREFETCH_W(x)		__builtin_prefetch((x), 1, 0)
+#define G_PREFETCH_MED_R(x)	__builtin_prefetch((x), 0, 1)
+#define G_PREFETCH_MED_W(x)	__builtin_prefetch((x), 1, 1)
+#define G_PREFETCH_HI_R(x)	__builtin_prefetch((x), 0, 3)
+#define G_PREFETCH_HI_W(x)	__builtin_prefetch((x), 1, 3)
+#else /* !GCC >= 3.0 */
+#define G_PREFETCH_R(x)
+#define G_PREFETCH_W(x)
+#define G_PREFETCH_MED_R(x)
+#define G_PREFETCH_MED_W(x)
+#define G_PREFETCH_HI_R(x)
+#define G_PREFETCH_HI_W(x)
+#endif /* GCC >= 3.0 */
+
 /**
  * CMP() returns the sign of a-b, that means -1, 0, or 1.
  */
@@ -631,11 +736,11 @@ typedef void (*GCallback) (void);
  * GUINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
  * If the value is a variable, use GUINT32_SWAP().
  */
-#define GUINT32_SWAP_CONSTANT(x_) ((guint32) ( \
-    (((guint32) (x_) & (guint32) 0x000000ffU) << 24) | \
-    (((guint32) (x_) & (guint32) 0x0000ff00U) <<  8) | \
-    (((guint32) (x_) & (guint32) 0x00ff0000U) >>  8) | \
-    (((guint32) (x_) & (guint32) 0xff000000U) >> 24)))
+#define GUINT32_SWAP_CONSTANT(x_) ((uint32) ( \
+    (((uint32) (x_) & (uint32) 0x000000ffU) << 24) | \
+    (((uint32) (x_) & (uint32) 0x0000ff00U) <<  8) | \
+    (((uint32) (x_) & (uint32) 0x00ff0000U) >>  8) | \
+    (((uint32) (x_) & (uint32) 0xff000000U) >> 24)))
 
 /**
  * GUINT32_SWAP() byte-swaps a 32-bit word.
@@ -650,6 +755,20 @@ typedef void (*GCallback) (void);
 #else
 #define GUINT32_SWAP(x_) GUINT32_SWAP_CONSTANT(x_)
 #endif
+
+/**
+ * Byte-wise swap two items of specified size.
+ */
+#define SWAP(a, b, size) G_STMT_START {		\
+	register size_t __size = (size);		\
+	register char *__a = (a), *__b = (b);	\
+											\
+	do {									\
+	  char __tmp = *__a;					\
+	  *__a++ = *__b;						\
+	  *__b++ = __tmp;						\
+	} while (--__size > 0);					\
+} G_STMT_END
 
 /**
  * STATIC_ASSERT() can be used to verify conditions at compile-time. For
@@ -737,11 +856,11 @@ typedef gboolean (*reclaim_fd_t)(void);
 #endif /* ENABLE_NLS */
 
 static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 G_GNUC_FORMAT(1) G_GNUC_FORMAT(2);
 
 static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
+ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 {
 	return ngettext(msg1, msg2, n);
 }
@@ -756,15 +875,37 @@ ngettext_(const gchar *msg1, const gchar *msg2, gulong n)
  * in big endian byte order.
  */
 #define FOURCC_NATIVE(a,b,c,d) ( \
-	((guint32) (unsigned char) ((a) & 0xffU) << 24) | \
-	((guint32) (unsigned char) ((b) & 0xffU) << 16) | \
-	((guint32) (unsigned char) ((c) & 0xffU) << 8)  | \
-	((guint32) (unsigned char) ((d) & 0xffU)))
+	((uint32) (uchar) ((a) & 0xffU) << 24) | \
+	((uint32) (uchar) ((b) & 0xffU) << 16) | \
+	((uint32) (uchar) ((c) & 0xffU) << 8)  | \
+	((uint32) (uchar) ((d) & 0xffU)))
 
 /**
  * Zero memory used by structure pointed at.
  */
 #define ZERO(x)		memset((x), 0, sizeof *(x))
+
+/*
+ * Support for alloca().
+ */
+
+#if HAS_GCC(3, 0)
+#ifndef alloca
+#define alloca(size)	__builtin_alloca(size)
+#endif
+#else	/* !HAS_GCC(3, 0) */
+#ifdef I_ALLOCA
+#include <alloca.h>
+#endif
+#ifndef alloca
+#define EMULATE_ALLOCA
+#include "lib/alloca.h"
+#endif	/* alloca */
+#endif	/* HAS_GCC(3, 0) */
+
+/*
+ * Common inclusions, likely to be needed by most files.
+ */
 
 #include "casts.h"
 #include "lib/fast_assert.h"

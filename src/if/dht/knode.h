@@ -29,7 +29,7 @@
 #include "kuid.h"
 #include "lib/vendors.h"
 #include "lib/host_addr.h"
-#include "lib/unsigned.h"		/* For guint8_saturate_add() */
+#include "lib/unsigned.h"		/* For uint8_saturate_add() */
 
 struct kbucket;
 
@@ -56,15 +56,15 @@ typedef struct knode {
 	time_t last_seen;			/**< Last seen message from that node */
 	time_t last_sent;			/**< Last sent RPC to that node */
 	vendor_code_t vcode;		/**< Vendor code (vcode.u32 == 0 if unknown) */
-	guint32 rtt;				/**< Round-trip time in milliseconds */
-	guint32 flags;				/**< Operating flags */
+	uint32 rtt;					/**< Round-trip time in milliseconds */
+	uint32 flags;				/**< Operating flags */
 	host_addr_t addr;			/**< IP of the node */
 	knode_status_t status;		/**< Node status (good, stale, pending) */
-	guint16 port;				/**< Port of the node */
-	guint8 rpc_pending;			/**< Amount of pending RPCs (may saturate) */
-	guint8 rpc_timeouts;		/**< Amount of consecutive RPC timeouts */
-	guint8 major;				/**< Major version */
-	guint8 minor;				/**< Minor version */
+	uint16 port;				/**< Port of the node */
+	uint8 rpc_pending;			/**< Amount of pending RPCs (may saturate) */
+	uint8 rpc_timeouts;			/**< Amount of consecutive RPC timeouts */
+	uint8 major;				/**< Major version */
+	uint8 minor;				/**< Minor version */
 } knode_t;
 
 /**
@@ -82,13 +82,13 @@ typedef struct knode {
 knode_t *get_our_knode(void);
 
 void knode_free(knode_t *kn);
-void knode_patricia_free(gpointer, size_t, gpointer, gpointer);
-void knode_map_free(gpointer, gpointer, gpointer);
+void knode_patricia_free(void *, size_t, void *, void *);
+void knode_map_free(void *, void *, void *);
 
-unsigned int knode_hash(gconstpointer key);
-int knode_eq(gconstpointer a, gconstpointer b);
-int knode_seen_cmp(gconstpointer a, gconstpointer b);
-int knode_dead_probability_cmp(gconstpointer a, gconstpointer b);
+unsigned int knode_hash(const void *key);
+int knode_eq(const void *a, const void *b);
+int knode_seen_cmp(const void *a, const void *b);
+int knode_dead_probability_cmp(const void *a, const void *b);
 const char * knode_status_to_string(knode_status_t status);
 const char *knode_to_string(const knode_t *kn);
 const char *knode_to_string2(const knode_t *kn);
@@ -119,7 +119,7 @@ knode_refcnt(const knode_t *kn)
 static inline knode_t *
 knode_refcnt_inc(const knode_t *kn)
 {
-	knode_t *knm = deconstify_gpointer(kn);
+	knode_t *knm = deconstify_pointer(kn);
 
 	knode_check(kn);
 
@@ -135,7 +135,7 @@ knode_refcnt_inc(const knode_t *kn)
 static inline knode_t *
 knode_refcnt_dec(const knode_t *kn)
 {
-	knode_t *knm = deconstify_gpointer(kn);
+	knode_t *knm = deconstify_pointer(kn);
 
 	knode_check(kn);
 	g_assert(kn->refcnt > 1);
@@ -149,8 +149,8 @@ knode_refcnt_dec(const knode_t *kn)
  *
  * @param no_routing_table		if TRUE, do not count the routing table
  */
-static inline gboolean
-knode_is_shared(const knode_t *kn, gboolean no_routing_table)
+static inline bool
+knode_is_shared(const knode_t *kn, bool no_routing_table)
 {
 	int refcnt;
 
@@ -182,7 +182,7 @@ knode_rpc_inc(knode_t *kn)
 	 * and there's no harm done.
 	 */
 
-	kn->rpc_pending = guint8_saturate_add(kn->rpc_pending, 1);
+	kn->rpc_pending = uint8_saturate_add(kn->rpc_pending, 1);
 }
 
 /**
@@ -203,7 +203,7 @@ knode_rpc_dec(knode_t *kn)
 /**
  * Are there any RPC pending for this node?
  */
-static inline gboolean
+static inline bool
 knode_rpc_pending(knode_t *kn)
 {
 	return booleanize(kn->rpc_pending);

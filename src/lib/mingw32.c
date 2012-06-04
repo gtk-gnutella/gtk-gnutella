@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010, Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
+ * Copyright (c) 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,8 +29,9 @@
  * Win32 cross-compiling utility routines.
  *
  * @author Jeroen Asselman
- * @author Raphael Manfredi
  * @date 2010
+ * @author Raphael Manfredi
+ * @date 2010-2012
  */
 
 #include "common.h"
@@ -51,6 +53,7 @@
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
 #include <iphlpapi.h>			/* For GetBestRoute() */
+#include <bfd.h>				/* For access to debugging information */
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -60,16 +63,24 @@
 
 #include "host_addr.h"			/* ADNS */
 #include "adns.h"
+#include "adns_msg.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
+#include "bfd_util.h"
+#include "constants.h"
 #include "cq.h"
 #include "crash.h"
 #include "debug.h"
+#include "dl_util.h"
+#include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "hset.h"
 #include "iovec.h"
 #include "log.h"
+#include "mem.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
@@ -79,6 +90,7 @@
 #include "unsigned.h"
 #include "utf8.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -87,6 +99,9 @@
 #endif
 #if 0
 #define MINGW_STARTUP_DEBUG		/**< Trace early startup stages */
+#endif
+#if 0
+#define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
 #endif
 
 #undef signal
@@ -121,13 +136,16 @@
 #undef shutdown
 #undef getsockopt
 #undef setsockopt
+#undef recv
 #undef sendto
 
 #undef abort
 
-#define VMM_MINSIZE (1024*1024*100)	/* At least 100 MiB */
+#define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
+#define WS2_LIBRARY		"ws2_32.dll"
 
-#define WS2_LIBRARY "ws2_32.dll"
+/* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
+#define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
 
 #ifdef MINGW_SYSCALL_DEBUG
 #define mingw_syscall_debug()	1
@@ -136,7 +154,7 @@
 #endif
 
 static HINSTANCE libws2_32;
-static gboolean mingw_inited;
+static bool mingw_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -147,7 +165,7 @@ typedef struct processor_power_information {
   ULONG CurrentIdleState;
 } PROCESSOR_POWER_INFORMATION;
 
-extern gboolean vmm_is_debugging(guint32 level);
+extern bool vmm_is_debugging(uint32 level);
 
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 WSAPoll_func_t WSAPoll = NULL;
@@ -296,7 +314,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	int error;
 
 	/* On Windows wchar_t should always be 16-bit and use UTF-16 encoding. */
-	STATIC_ASSERT(sizeof(guint16) == sizeof(wchar_t));
+	STATIC_ASSERT(sizeof(uint16) == sizeof(wchar_t));
 
 	if (NULL == (npath = get_native_path(pathname, &error))) {
 		errno = error;
@@ -321,7 +339,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	return NULL != pncs->utf16 ? 0 : -1;
 }
 
-static inline gboolean
+static inline bool
 mingw_fd_is_opened(int fd)
 {
 	unsigned long dummy;
@@ -340,10 +358,26 @@ mingw_wsa_last_error(void)
 	int error = WSAGetLastError();
 	int result = error;
 
+	/*
+	 * Not all the Winsock error codes are translated here.  The ones
+	 * not conflicting with other POSIX defines have already been mapped.
+	 *
+	 * For instance, we have:
+	 *
+	 *     #define ENOTSOCK WSAENOTSOCK
+	 *
+	 * so there is no need to catch WSAENOTSOCK here to translate it to
+	 * ENOTSOCK since the remapping has already been done for that constant.
+	 *
+	 * So the ones that remain are those which are not really socket-specific
+	 * and for which we cannot do a remapping that would conflict with other
+	 * definitions in the MinGW headers.
+	 */
+
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
 	case WSAEINTR:			result = EINTR; break;
-	case WSAENOTSOCK:		result = ENOTSOCK; break;
+	case WSAEINVAL:			result = EINVAL; break;
 	}
 
 	if (mingw_syscall_debug()) {
@@ -361,10 +395,10 @@ mingw_wsa_last_error(void)
 static int
 mingw_win2posix(int error)
 {
-	static GHashTable *warned;
+	static hset_t *warned;
 
 	if (NULL == warned) {
-		warned = NOT_LEAKING(g_hash_table_new(NULL, NULL));
+		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	}
 
 	/*
@@ -392,14 +426,15 @@ mingw_win2posix(int error)
 		return ENOENT;
 	case ERROR_TOO_MANY_OPEN_FILES:
 		return EMFILE;
-	case ERROR_ACCESS_DENIED:
-		return EPERM;
 	case ERROR_INVALID_HANDLE:
 		return EBADF;
 	case ERROR_NOT_ENOUGH_MEMORY:
 		return ENOMEM;
+	case ERROR_ACCESS_DENIED:
 	case ERROR_INVALID_ACCESS:
-		return EPERM;
+	case ERROR_SHARING_VIOLATION:
+	case ERROR_LOCK_VIOLATION:
+		return EACCES;
 	case ERROR_OUTOFMEMORY:
 		return ENOMEM;
 	case ERROR_INVALID_DRIVE:
@@ -417,6 +452,7 @@ mingw_win2posix(int error)
 	case ERROR_BROKEN_PIPE:
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
+	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
 		return EINVAL;
 	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
 		return ENOTDIR;				/* Seems the closest mapping */
@@ -452,10 +488,9 @@ mingw_win2posix(int error)
 		return ENOSPC;
 	case ERROR_WRITE_FAULT:
 	case ERROR_READ_FAULT:
+	case ERROR_NOACCESS:		/* Invalid access to memory location */
 		return EFAULT;
 	case ERROR_GEN_FAILURE:
-	case ERROR_SHARING_VIOLATION:
-	case ERROR_LOCK_VIOLATION:
 	case ERROR_WRONG_DISK:
 	case ERROR_SHARING_BUFFER_EXCEEDED:
 		return EIO;
@@ -463,11 +498,14 @@ mingw_win2posix(int error)
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
 		return ENOSPC;
+	case ERROR_ENVVAR_NOT_FOUND:
+		/* Got this error writing to a closed stdio fd, opened via pipe() */
+		return EBADF;
 	default:
-		if (!gm_hash_table_contains(warned, int_to_pointer(error))) {
+		if (!hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
-			g_hash_table_insert(warned, int_to_pointer(error), NULL);
+			hset_insert(warned, int_to_pointer(error));
 		}
 	}
 
@@ -603,14 +641,14 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 			if (0 == arg->l_len) {
 				/* Special, 0 means the whole file */
-				len_high = MAX_INT_VAL(guint32);
-				len_low = MAX_INT_VAL(guint32);
+				len_high = MAX_INT_VAL(uint32);
+				len_low = MAX_INT_VAL(uint32);
 			} else {
-				len_high = (guint64) arg->l_len >> 32;
-				len_low = arg->l_len & MAX_INT_VAL(guint32);
+				len_high = (uint64) arg->l_len >> 32;
+				len_low = arg->l_len & MAX_INT_VAL(uint32);
 			}
-			start_high = (guint64) arg->l_start >> 32;
-			start_low = arg->l_start & MAX_INT_VAL(guint32);
+			start_high = (uint64) arg->l_start >> 32;
+			start_low = arg->l_start & MAX_INT_VAL(uint32);
 
 			if (arg->l_type == F_WRLCK) {
 				if (!LockFile(file, start_low, start_high, len_low, len_high))
@@ -662,7 +700,7 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 /**
  * Is WSAPoll() supported?
  */
-gboolean
+bool
 mingw_has_wsapoll(void)
 {
 	/*
@@ -696,44 +734,192 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 	return res;
 }
 
-const char *
-mingw_gethome(void)
+/**
+ * Get special folder path as a UTF-8 string.
+ *
+ * @param which		which special folder to get (CSIDL code)
+ * @param what		English description of ``which'', for error logging.
+ *
+ * @return read-only constant string.
+ */
+static const char *
+get_special(int which, char *what)
 {
-	static char pathname[MAX_PATH];
+	static wchar_t pathname[MAX_PATH];
+	static char utf8_path[MAX_PATH];
+	int ret;
 
-	if ('\0' == pathname[0]) {
-		int ret;
+	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
-		/* FIXME: Unicode */
-		ret = SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, pathname);
-
-		if (E_INVALIDARG == ret) {
-			s_warning("could not determine home directory");
-			g_strlcpy(pathname, "/", sizeof pathname);
+	if (E_INVALIDARG != ret) {
+		size_t conv = utf16_to_utf8(pathname, utf8_path, sizeof utf8_path);
+		if (conv > sizeof utf8_path) {
+			s_warning("cannot convert %s path from UTF-16 to UTF-8", what);
+			ret = E_INVALIDARG;
 		}
 	}
 
-	return pathname;
+	if (E_INVALIDARG == ret) {
+		s_carp("%s: could not get the %s directory", G_STRFUNC, what);
+		/* ASCII is valid UTF-8 */
+		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
+	}
+
+	return mingw_inited ? constant_str(utf8_path) : utf8_path;
 }
 
 const char *
-mingw_getpersonal(void)
+mingw_get_home_path(void)
 {
-	static char pathname[MAX_PATH];
+	static const char *result;
 
-	if ('\0' == pathname[0]) {
-		int ret;
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_LOCAL_APPDATA, "home");
 
-		/* FIXME: Unicode */
-		ret = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, pathname);
+	return result;
+}
 
-		if (E_INVALIDARG == ret) {
-			s_warning("could not determine personal document directory");
-			g_strlcpy(pathname, "/", sizeof pathname);
-		}
-	}
+const char *
+mingw_get_personal_path(void)
+{
+	static const char *result;
 
-	return pathname;
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_PERSONAL, "My Documents");
+
+	return result;
+}
+
+const char *
+mingw_get_common_docs_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COMMON_DOCUMENTS, "Common Documents");
+
+	return result;
+}
+
+const char *
+mingw_get_common_appdata_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COMMON_APPDATA, "Common Application Data");
+
+	return result;
+}
+
+const char *
+mingw_get_admin_tools_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_ADMINTOOLS, "Admin Tools");
+
+	return result;
+}
+
+const char *
+mingw_get_windows_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_WINDOWS, "Windows");
+
+	return result;
+}
+
+const char *
+mingw_get_system_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_SYSTEM, "system");
+
+	return result;
+}
+
+const char *
+mingw_get_internet_cache_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_INTERNET_CACHE, "Internet Cache");
+
+	return result;
+}
+
+const char *
+mingw_get_mypictures_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_MYPICTURES, "My Pictures");
+
+	return result;
+}
+
+const char *
+mingw_get_program_files_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_PROGRAM_FILES, "Program Files");
+
+	return result;
+}
+
+const char *
+mingw_get_fonts_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_FONTS, "Font");
+
+	return result;
+}
+
+const char *
+mingw_get_startup_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_STARTUP, "Startup");
+
+	return result;
+}
+
+const char *
+mingw_get_history_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_HISTORY, "History");
+
+	return result;
+}
+
+const char *
+mingw_get_cookies_path(void)
+{
+	static const char *result;
+
+	if G_UNLIKELY(NULL == result)
+		result = get_special(CSIDL_COOKIES, "Cookies");
+
+	return result;
 }
 
 /**
@@ -751,7 +937,15 @@ mingw_getpersonal(void)
 static const char *
 mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
-	const char *personal = mingw_getpersonal();
+	const char *personal;
+
+	/*
+	 * So early in the startup process, we cannot allocate memory via the VMM
+	 * layer, hence we cannot use mingw_get_personal_path() because that
+	 * would cache the address of a global variable.
+	 */
+
+	personal = get_special(CSIDL_PERSONAL, "My Documents");
 
 	g_strlcpy(dest, personal, size);
 
@@ -822,7 +1016,7 @@ mingw_getstderr_path(void)
 char *
 mingw_patch_personal_path(const char *pathname)
 {
-	const char *home = mingw_gethome();
+	const char *home = mingw_get_home_path();
 	const char *p;
 
 	p = is_strprefix(pathname, home);
@@ -844,7 +1038,7 @@ mingw_patch_personal_path(const char *pathname)
 			 * running from the GUI.
 			 */
 
-			patched = h_strconcat(mingw_getpersonal(),
+			patched = h_strconcat(mingw_get_personal_path(),
 				G_DIR_SEPARATOR_S, product_get_name(), p, (void *) 0);
 		}
 		s_debug("patched \"%s\" into \"%s\"", pathname, patched);
@@ -854,7 +1048,7 @@ mingw_patch_personal_path(const char *pathname)
 	}
 }
 
-guint64
+uint64
 mingw_getphysmemsize(void)
 {
 	MEMORYSTATUSEX memStatus;
@@ -1028,6 +1222,9 @@ mingw_open(const char *pathname, int flags, ...)
         va_end(args);
     }
 
+	if (0 == strcmp(pathname, "/dev/null"))
+		pathname = "NUL";
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
@@ -1182,8 +1379,7 @@ mingw_writev(int fd, const iovec_t *iov, int iov_cnt)
 		for (i = 0; i < iov_cnt; i++) {
 			size_t n = iovec_len(&iov[i]);
 
-			memcpy(p, iovec_base(&iov[i]), n);
-			p += n;
+			p = mempcpy(p, iovec_base(&iov[i]), n);
 		}
 		g_assert(ptr_diff(p, gather) <= sizeof gather);
 
@@ -1434,6 +1630,25 @@ s_close(socket_fd_t fd)
 }
 
 ssize_t
+mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags)
+{
+	DWORD r, flags = recv_flags;
+	iovec_t iov;
+	int res;
+
+	iovec_set_base(&iov, buf);
+	iovec_set_len(&iov, len);
+
+	res = WSARecv(fd, (LPWSABUF) &iov, 1, &r, &flags, NULL, NULL);
+
+	if (res != 0) {
+		errno = mingw_wsa_last_error();
+		return (ssize_t) -1;
+	}
+	return (ssize_t) r;
+}
+
+ssize_t
 mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt)
 {
 	DWORD r, flags = 0;
@@ -1526,104 +1741,153 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
  *** Memory allocation routines.
  ***/
 
-static void *mingw_vmm_res_mem;
-static size_t mingw_vmm_res_size;
-static int mingw_vmm_res_nonhinted = 0;
+static struct {
+	void *reserved;			/* Reserved memory */
+	size_t size;			/* Size for hinted allocation */
+	size_t later;			/* Size of "later" memory we did not reserve */
+	int hinted;
+} mingw_vmm;
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
 	void *p = NULL;
 
-	if (NULL == hint && mingw_vmm_res_nonhinted >= 0) {
-		if G_UNLIKELY(NULL == mingw_vmm_res_mem) {
+	if (NULL == hint && mingw_vmm.hinted >= 0) {
+		size_t n;
+
+		if G_UNLIKELY(NULL == mingw_vmm.reserved) {
 			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
 			void *mem_later;
+			size_t mem_latersize;
+			size_t mem_size;
 
 			/* Determine maximum possible memory first */
 
 			GetNativeSystemInfo(&system_info);
 
-			mingw_vmm_res_size =
+			mingw_vmm.size =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
 
 			memStatus.dwLength = sizeof memStatus;
 			if (GlobalMemoryStatusEx(&memStatus)) {
-				if (memStatus.ullTotalPhys < mingw_vmm_res_size)
-					mingw_vmm_res_size = memStatus.ullTotalPhys;
+				if (memStatus.ullTotalPhys < mingw_vmm.size)
+					mingw_vmm.size = memStatus.ullTotalPhys;
 			}
 
-			/* Declare some space for feature allocs without hinting */
-			mem_later = VirtualAlloc(
-				NULL, VMM_MINSIZE, MEM_RESERVE, PAGE_NOACCESS);
+			/*
+			 * Declare some space for future allocations without hinting.
+			 * We initially reserve 1/4th of the virtual address space,
+			 * with VMM_MINSIZE at least but we make sure we have more room 
+			 * available for the VMM layer.
+			 *
+			 * We'll iterate, dividing the amount of memory we keep for later
+			 * allocations by half at each loop until we can reserve more
+			 * memory for GTKG than the amount we leave to the system or other
+			 * non-hinted allocations.
+			 */
 
-			/* Try to reserve it */
-			while (
-				NULL == mingw_vmm_res_mem && mingw_vmm_res_size > VMM_MINSIZE
-			) {
-				mingw_vmm_res_mem = p = VirtualAlloc(
-					NULL, mingw_vmm_res_size, MEM_RESERVE, PAGE_NOACCESS);
+			mem_size = mingw_vmm.size;		/* For the VMM layer */
+			mem_latersize = mem_size / 2;	/* For non-hinted allocation */
 
-				if (NULL == mingw_vmm_res_mem)
-					mingw_vmm_res_size -= system_info.dwAllocationGranularity;
+			do {
+				if (mingw_vmm.reserved != NULL) {
+					VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
+					mingw_vmm.reserved = NULL;
+				}
+
+				mem_latersize /= 2;
+				mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
+				mingw_vmm.later = mem_latersize;
+				mem_later = VirtualAlloc(NULL,
+					mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
+
+				if (NULL == mem_later) {
+					errno = mingw_last_error();
+					s_error("could not reserve %s of memory: %m",
+						compact_size(mem_latersize, FALSE));
+				}
+
+				/*
+				 * Try to reserve the remaining virtual space, asking for as
+				 * much as we can and reducing the requested size by the
+				 * system's granularity until we get a success status.
+				 */
+
+				mingw_vmm.size = mem_size;
+
+				while (
+					NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
+				) {
+					mingw_vmm.reserved = p = VirtualAlloc(
+						NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
+
+					if (NULL == mingw_vmm.reserved)
+						mingw_vmm.size -= system_info.dwAllocationGranularity;
+				}
+
+				VirtualFree(mem_later, 0, MEM_RELEASE);
+			} while (
+				mingw_vmm.size > VMM_MINSIZE && mingw_vmm.size < mem_latersize
+			);
+
+			if (NULL == mingw_vmm.reserved) {
+				s_error("could not reserve additional %s of memory "
+					"on top of the %s put aside",
+					compact_size(mingw_vmm.size, FALSE),
+					compact_size2(mem_latersize, FALSE));
 			}
-
-			VirtualFree(mem_later, 0, MEM_RELEASE);
-
-			if (NULL == mingw_vmm_res_mem) {
-				s_error("could not reserve %s of memory",
-					compact_size(mingw_vmm_res_size, FALSE));
-			} else if (vmm_is_debugging(0)) {
-				s_debug("reserved %s of memory",
-					compact_size(mingw_vmm_res_size, FALSE));
-			}
-		} else {
-			size_t n;
-
-			if (vmm_is_debugging(0))
-				s_debug("no hint given for %s allocation",
-					compact_size(size, FALSE));
-
-			n = mingw_getpagesize();
-			n = size_saturate_mult(n, ++mingw_vmm_res_nonhinted);
-			p = ptr_add_offset(mingw_vmm_res_mem, n);
 		}
-		if (NULL == p) {
-			errno = mingw_last_error();
-			if (vmm_is_debugging(0))
-				s_debug("could not allocate %s of memory: %m",
-					compact_size(size, FALSE));
+
+		if (vmm_is_debugging(0)) {
+			s_debug("no hint given for %s allocation #%d",
+				compact_size(size, FALSE), mingw_vmm.hinted);
 		}
-	} else if (NULL == hint && mingw_vmm_res_nonhinted < 0) {
+
+		n = mingw_getpagesize();
+		n = size_saturate_mult(n, mingw_vmm.hinted++);
+		if (n + size >= mingw_vmm.size) {
+			s_carp("%s(): out of reserved memory for %zu bytes",
+				G_STRFUNC, size);
+			goto failed;
+		}
+		p = ptr_add_offset(mingw_vmm.reserved, n);
+	} else if (NULL == hint && mingw_vmm.hinted < 0) {
 		/*
-		 * Non hinted request after hinted request are used. Allow usage of
-		 * non VMM space
+		 * Non-hinted request after hinted requests have been used.
+		 * Allow usage of non-reserved space.
 		 */
 
 		p = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			p = MAP_FAILED;
+			s_carp("%s(): failed to allocate %zu bytes: %m", G_STRFUNC, size);
+			goto failed;
 		}
 		return p;
 	} else {
-		/* Can't handle non-hinted allocations anymore */
-		mingw_vmm_res_nonhinted = -1;
+		mingw_vmm.hinted = -1;	/* Can now handle non-hinted allocs */
 		p = hint;
 	}
 
 	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
 
 	if (p == NULL) {
-		p = MAP_FAILED;
 		errno = mingw_last_error();
+		s_carp("%s(): failed to commit %zu bytes at %p: %m",
+			G_STRFUNC, size, hint);
+		goto failed;
 	}
 
 	return p;
+
+failed:
+	errno = ENOMEM;		/* Expected errno value from VMM layer */
+	return MAP_FAILED;
 }
 
 int
@@ -1643,9 +1907,9 @@ mingw_vfree(void *addr, size_t size)
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	if (ptr_cmp(mingw_vmm_res_mem, addr) < 0 &&
-		ptr_cmp(ptr_add_offset(mingw_vmm_res_mem, mingw_vmm_res_size), addr) > 0)
-	{
+	void *end = ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size);
+
+	if (ptr_cmp(mingw_vmm.reserved, addr) <= 0 && ptr_cmp(end, addr) > 0) {
 		/* Allocated in reserved space */
 		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
 			errno = mingw_last_error();
@@ -1749,7 +2013,7 @@ mingw_posix_strerror(int errnum)
 	case ECHILD:	return "No child process";
 	case EAGAIN:	return "Resource temporarily unavailable";
 	case ENOMEM:	return "Not enough memory space";
-	case EACCES:	return "Permission denied";
+	case EACCES:	return "Access denied";
 	case EFAULT:	return "Bad address";
 	case EBUSY:		return "Device busy";
 	case EEXIST:	return "File already exists";
@@ -1937,17 +2201,30 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	return 0;
 }
 
+#ifdef EMULATE_SCHED_YIELD
+/**
+ * Cause the calling thread to relinquish the CPU.
+ */
+int
+mingw_sched_yield(void)
+{
+	Sleep(0);
+	return 0;
+}
+#endif	/* EMULATE_SCHED_YIELD */
+
 #ifdef EMULATE_GETRUSAGE
 /**
  * Convert a FILETIME into a timeval.
  *
  * @param ft		the FILETIME structure to convert
  * @param tv		the struct timeval to fill in
+ * @param offset	offset to substract to the FILETIME value
  */
 static void
-mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
+mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 {
-	guint64 v;
+	uint64 v;
 
 	/*
 	 * From MSDN documentation:
@@ -1966,7 +2243,8 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (guint64) 0) << 32)) / 10;
+	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
+	v -= offset;
 	tv->tv_usec = v % 1000000UL;
 	v /= 1000000UL;
 	/* If time_t is a 32-bit integer, there could be an overflow */
@@ -1995,8 +2273,8 @@ mingw_getrusage(int who, struct rusage *usage)
 		return -1;
 	}
 
-	mingw_filetime_to_timeval(&user_time, &usage->ru_utime);
-	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime);
+	mingw_filetime_to_timeval(&user_time, &usage->ru_utime, 0);
+	mingw_filetime_to_timeval(&kernel_time, &usage->ru_stime, 0);
 
 	return 0;
 }
@@ -2007,7 +2285,7 @@ mingw_getlogin(void)
 {
 	static char buf[128];
 	static char *result;
-	static gboolean inited;
+	static bool inited;
 	DWORD size;
 
 	if (G_LIKELY(inited))
@@ -2040,7 +2318,7 @@ static int
 mingw_proc_arch(void)
 {
 	static SYSTEM_INFO system_info;
-	static gboolean done;
+	static bool done;
 
 	if (done)
 		return system_info.wProcessorArchitecture;
@@ -2055,7 +2333,7 @@ mingw_proc_arch(void)
 int
 mingw_uname(struct utsname *buf)
 {
-	OSVERSIONINFOEX osvi;
+	OSVERSIONINFO osvi;
 	DWORD len;
 	const char *cpu;
 
@@ -2072,11 +2350,11 @@ mingw_uname(struct utsname *buf)
 	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
-	if (GetVersionEx((OSVERSIONINFO *) &osvi)) {
+	if (GetVersionEx(&osvi)) {
 		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		gm_snprintf(buf->version, sizeof buf->version, "%u",
-			(unsigned) osvi.dwBuildNumber);
+		gm_snprintf(buf->version, sizeof buf->version, "%u %s",
+			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
 	len = sizeof buf->nodename;
@@ -2092,7 +2370,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	static HANDLE t = NULL;
 	LARGE_INTEGER dueTime;
-	guint64 value;
+	uint64 value;
 
 	/*
 	 * There's no residual time, there cannot be early terminations.
@@ -2127,8 +2405,8 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	 * Negative values indicate relative time.
 	 */
 
-	value = guint64_saturate_add(
-				guint64_saturate_mult(req->tv_sec, 10000000UL),
+	value = uint64_saturate_add(
+				uint64_saturate_mult(req->tv_sec, 10000000UL),
 				(req->tv_nsec + 99) / 100);
 	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
 
@@ -2148,7 +2426,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 }
 #endif
 
-gboolean
+bool
 mingw_process_is_alive(pid_t pid)
 {
 	char our_process_name[1024];
@@ -2176,13 +2454,13 @@ mingw_process_is_alive(pid_t pid)
 	return res;
 }
 
-static unsigned long
+long
 mingw_cpu_count(void)
 {
-	static unsigned long result;
+	static long result;
 	SYSTEM_INFO system_info;
 
-	if (G_UNLIKELY(result == 0)) {
+	if G_UNLIKELY(0 == result) {
 		GetSystemInfo(&system_info);
 		result = system_info.dwNumberOfProcessors;
 		g_assert(result > 0);
@@ -2190,13 +2468,13 @@ mingw_cpu_count(void)
 	return result;
 }
 
-guint64
+uint64
 mingw_cpufreq(enum mingw_cpufreq freq)
 {
 	unsigned long cpus = mingw_cpu_count();
 	PROCESSOR_POWER_INFORMATION *p, powarray[16];
 	size_t len;
-	guint64 result = 0;
+	uint64 result = 0;
 
 	len = size_saturate_mult(cpus, sizeof *p);
 	if (cpus <= G_N_ELEMENTS(powarray)) {
@@ -2212,11 +2490,11 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 		switch (freq) {
 		case MINGW_CPUFREQ_CURRENT:
 			/* Convert to Hz */
-			result = guint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].CurrentMhz, 1000000UL);
 			break;
 		case MINGW_CPUFREQ_MAX:
 			/* Convert to Hz */
-			result = guint64_saturate_mult(p[0].MaxMhz, 1000000UL);
+			result = uint64_saturate_mult(p[0].MaxMhz, 1000000UL);
 			break;
 		}
 	}
@@ -2234,14 +2512,12 @@ mingw_cpufreq(enum mingw_cpufreq freq)
  *** thread, others are executed in the context of the main thread.
  ***
  *** All logging within the thread must use the t_xxx() logging routines
- *** with the ``altc'' parameter in order to be thread-safe.
+ *** in order to be thread-safe.
  ***/
 
-static logthread_t *altc;		/* ADNS logging thread context */
- 
 static GAsyncQueue *mingw_gtkg_main_async_queue;
 static GAsyncQueue *mingw_gtkg_adns_async_queue;
-static volatile gboolean mingw_adns_thread_run;
+static volatile bool mingw_adns_thread_run;
 
 struct async_data {
 	void *user_data;
@@ -2263,48 +2539,8 @@ struct arg_data {
 	char servinfo[NI_MAXSERV];
 };
 
-struct adns_common {
-	void (*user_callback)(void);
-	void * user_data;
-	gboolean reverse;
-};
-
-struct adns_reverse_query {
-	host_addr_t addr;
-};
-
-struct adns_query {
-	enum net_type net;
-	char hostname[MAX_HOSTLEN + 1];
-};
-
-struct adns_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addrs[10];
-};
-
-struct adns_reverse_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addr;
-};
-
-struct adns_request {
-	struct adns_common common;
-	union {
-		struct adns_query by_addr;
-		struct adns_reverse_query reverse;
-	} query;
-};
-
-struct adns_response {
-	struct adns_common common;
-	union {
-		struct adns_reply by_addr;
-		struct adns_reverse_reply reverse;
-	} reply;
-};
-
 /* ADNS getaddrinfo */
+
 /**
  * ADNS getaddrinfo on ADNS thread.
  */
@@ -2315,12 +2551,12 @@ mingw_adns_getaddrinfo_thread(struct async_data *ad)
 	const char *hostname = ad->thread_arg_data;
 	
 	if (common_dbg > 1) {
-		t_debug(altc, "ADNS resolving '%s'", hostname);
+		t_debug("ADNS resolving '%s'", hostname);
 	}	
 	getaddrinfo(hostname, NULL, NULL, &results);
 
 	if (common_dbg > 1) {
-		t_debug(altc, "ADNS got result for '%s' @%p", hostname, results);
+		t_debug("ADNS got result for '%s' @%p", hostname, results);
 	}
 	ad->thread_return_data = results;	
 }
@@ -2413,6 +2649,7 @@ mingw_adns_getaddrinfo(const struct adns_request *req)
 }
 
 /* ADNS Get name info */
+
 /**
  * ADNS getnameinfo on ADNS thread.
  */
@@ -2426,7 +2663,7 @@ mingw_adns_getnameinfo_thread(struct async_data *ad)
 		arg_data->servinfo, sizeof arg_data->servinfo, 
 		NI_NUMERICSERV);
 
-	t_debug(altc, "ADNS resolved to %s", arg_data->hostname);
+	t_debug("ADNS resolved to %s", arg_data->hostname);
 }
 
 /**
@@ -2533,9 +2770,8 @@ mingw_adns_thread(void *unused_data)
 		g_async_queue_push(result_queue, ad);			
 	}
 
-	if (common_dbg) {
-		t_message(altc, "adns thread exit");
-	}
+	if (common_dbg)
+		t_message("adns thread exit");
 
 	/*
 	 * FIXME: The calls below cause a:
@@ -2566,7 +2802,7 @@ mingw_adns_stop_thread(struct async_data *unused_data)
 	mingw_adns_thread_run = FALSE;
 }
 
-static gboolean
+static bool
 mingw_adns_timer(void *unused_arg)
 {
 	struct async_data *ad = g_async_queue_try_pop(mingw_gtkg_main_async_queue);
@@ -2583,7 +2819,7 @@ mingw_adns_timer(void *unused_arg)
 	return TRUE;		/* Keep calling */
 }
 
-gboolean
+bool
 mingw_adns_send_request(const struct adns_request *req)
 {
 	if (req->common.reverse) {
@@ -2594,38 +2830,49 @@ mingw_adns_send_request(const struct adns_request *req)
 	return TRUE;
 }
 
+static bool mingw_adns_running;
+
 void
 mingw_adns_init(void)
 {
-	altc = log_thread_alloc();		/* Thread-private logging context */
+	if (mingw_adns_running)
+		return;
 
-	/* Be extremely careful in the ADNS thread!
+	/*
+	 * Be extremely careful in the ADNS thread!
 	 * gtk-gnutella was designed as mono-threaded application so its regular
 	 * routines are NOT thread-safe.  Do NOT access any public functions or
-	 * modify global variables from the ADNS thread! Dynamic memory
-	 * allocation is absolutely forbidden.
+	 * modify global variables from the ADNS thread!
+	 *
+	 * Dynamic memory allocation is possible via xmalloc(), walloc() and
+	 * vmm_alloc() now that these allocators have been made thread-safe.
  	 */
+
 	g_thread_init(NULL);
 	mingw_gtkg_main_async_queue = g_async_queue_new();
 	mingw_gtkg_adns_async_queue = g_async_queue_new();
 
 	g_thread_create(mingw_adns_thread, NULL, FALSE, NULL);
 	cq_periodic_main_add(1000, mingw_adns_timer, NULL);
+	mingw_adns_running = TRUE;
 }
 
 void
 mingw_adns_close(void)
 {
-	/* Quit our ADNS thread */
 	struct async_data *ad;
 
+	if (!mingw_adns_running)
+		return;
+
+	/* Quit our ADNS thread */
 	WALLOC0(ad);
 	ad->thread_func = mingw_adns_stop_thread;
 
 	g_async_queue_push(mingw_gtkg_adns_async_queue, ad);
-
 	g_async_queue_unref(mingw_gtkg_adns_async_queue);
 	g_async_queue_unref(mingw_gtkg_main_async_queue);
+	mingw_adns_running = FALSE;
 }
 
 /*** End of ADNS section ***/
@@ -2661,21 +2908,29 @@ const char *
 mingw_filename_nearby(const char *filename)
 {
 	static char pathname[MAX_PATH_LEN];
+	static wchar_t wpathname[MAX_PATH_LEN];
 	static size_t offset;
 
-	/**
-	 * FIXME: Unicode
-	 */
 	if ('\0' == pathname[0]) {
-		if (0 == GetModuleFileName(NULL, pathname, sizeof pathname)) {
-			static gboolean done;
-			if (!done) {
-				done = TRUE;
-				errno = mingw_last_error();
-				s_warning("cannot locate my executable: %m");
+		bool error = FALSE;
+
+		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
+			error = TRUE;
+			errno = mingw_last_error();
+			s_warning("cannot locate my executable: %m");
+		} else {
+			size_t conv = utf16_to_utf8(wpathname, pathname, sizeof pathname);
+			if (conv > sizeof pathname) {
+				error = TRUE;
+				s_carp("%s: cannot convert UTF-16 path into UTF-8", G_STRFUNC);
 			}
 		}
+
+		if (error)
+			g_strlcpy(pathname, G_DIR_SEPARATOR_S, sizeof pathname);
+
 		offset = filepath_basename(pathname) - pathname;
+
 	}
 	clamp_strcpy(&pathname[offset], sizeof pathname - offset, filename);
 
@@ -2685,7 +2940,7 @@ mingw_filename_nearby(const char *filename)
 /**
  * Check whether there is pending data for us to read on a pipe.
  */
-static gboolean
+static bool
 mingw_fifo_pending(int fd)
 {
 	HANDLE h = (HANDLE) _get_osfhandle(fd);
@@ -2708,10 +2963,10 @@ mingw_fifo_pending(int fd)
 /**
  * Check whether there is pending data for us to read on a tty / fifo stdin.
  */
-gboolean
-mingw_stdin_pending(gboolean fifo)
+bool
+mingw_stdin_pending(bool fifo)
 {
-	return fifo ? mingw_fifo_pending(STDIN_FILENO) : _kbhit();
+	return fifo ? mingw_fifo_pending(STDIN_FILENO) : booleanize(_kbhit());
 }
 
 /**
@@ -2719,12 +2974,12 @@ mingw_stdin_pending(gboolean fifo)
  *
  * @return TRUE on success.
  */
-static gboolean
-mingw_get_file_id(const char *pathname, guint64 *id)
+static bool
+mingw_get_file_id(const char *pathname, uint64 *id)
 {
 	HANDLE h;
 	BY_HANDLE_FILE_INFORMATION fi;
-	gboolean ok;
+	bool ok;
 	pncs_t pncs;
 
 	if (pncs_convert(&pncs, pathname))
@@ -2743,7 +2998,7 @@ mingw_get_file_id(const char *pathname, guint64 *id)
 	if (!ok)
 		return FALSE;
 
-	*id = (guint64) fi.nFileIndexHigh << 32 | (guint64) fi.nFileIndexLow;
+	*id = (uint64) fi.nFileIndexHigh << 32 | (uint64) fi.nFileIndexLow;
 
 	return TRUE;
 }
@@ -2751,10 +3006,10 @@ mingw_get_file_id(const char *pathname, guint64 *id)
 /**
  * Are the two files sharing the same file ID?
  */
-gboolean
+bool
 mingw_same_file_id(const char *pathname_a, const char *pathname_b)
 {
-	guint64 ia, ib;
+	uint64 ia, ib;
 
 	if (!mingw_get_file_id(pathname_a, &ia))
 		return FALSE;
@@ -2773,7 +3028,7 @@ mingw_same_file_id(const char *pathname_a, const char *pathname_b)
  * @return 0 on success, -1 on failure with errno set.
  */
 int
-mingw_getgateway(guint32 *ip)
+mingw_getgateway(uint32 *ip)
 {
 	MIB_IPFORWARDROW ipf;
 
@@ -2785,6 +3040,45 @@ mingw_getgateway(guint32 *ip)
 
 	*ip = ntohl(ipf.dwForwardNextHop);
 	return 0;
+}
+
+#ifdef EMULATE_GETTIMEOFDAY
+/**
+ * Get the current system time.
+ *
+ * @param tv	the structure to fill with the current time.
+ * @param tz	(unused) normally a "struct timezone"
+ */
+int
+mingw_gettimeofday(struct timeval *tv, void *tz)
+{
+	FILETIME ft;
+
+	(void) tz;	/* We don't handle the timezone */
+
+	GetSystemTimeAsFileTime(&ft);
+
+	/*
+	 * MSDN says that FILETIME contains a 64-bit value representing the number
+	 * of 100-nanosecond intervals since January 1, 1601 (UTC).
+	 *
+	 * This is exactly 11644473600000000 usecs before the UNIX Epoch.
+	 */
+
+	mingw_filetime_to_timeval(&ft, tv, EPOCH_OFFSET);
+
+	return 0;
+}
+#endif	/* EMULATE_GETTIMEOFDAY */
+
+void mingw_vmm_post_init(void)
+{
+	s_info("VMM reserved %s of virtual space at [%p, %p]",
+		compact_size(mingw_vmm.size, FALSE),
+		mingw_vmm.reserved,
+		ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size));
+	s_info("VMM left %s of virtual space unreserved",
+		compact_size(mingw_vmm.later, FALSE));
 }
 
 void
@@ -2806,56 +3100,858 @@ mingw_init(void)
     }
 }
 
-static int
-mingw_stack_fill(void **buffer, int size, CONTEXT *c, int skip)
+#ifdef MINGW_BACKTRACE_DEBUG
+#define BACKTRACE_DEBUG(...)	s_minidbg(__VA_ARGS__)
+#define mingw_backtrace_debug()	1
+#else
+#define BACKTRACE_DEBUG(...)
+#define mingw_backtrace_debug()	0
+#endif	/* MINGW_BACKTRACE_DEBUG */
+
+#define MINGW_MAX_ROUTINE_LENGTH	0x2000
+#define MINGW_FORWARD_SCAN			32
+#define MINGW_SP_ALIGN				4
+#define MINGW_SP_MASK				(MINGW_SP_ALIGN - 1)
+#define MINGW_EMPTY_STACKFRAME		((void *) 1)
+
+static inline bool
+valid_ptr(const void * const p)
 {
-	STACKFRAME s;
-	DWORD image;
-	HANDLE proc, thread;
-	int i;
+	ulong v = pointer_to_ulong(p);
+	return v > 0x1000 && v < 0xfffff000 && mem_is_valid_ptr(p);
+}
 
-	proc = GetCurrentProcess();
-	thread = GetCurrentThread();
+static inline bool
+valid_stack_ptr(const void * const p, const void *top)
+{
+	ulong v = pointer_to_ulong(p);
 
-	ZERO(&s);
+	return 0 == (v & MINGW_SP_MASK) && vmm_is_stack_pointer(p, top);
+}
+
+/*
+ * x86 leading instruction opcodes
+ */
+#define OPCODE_RET_NEAR		0xc3
+#define OPCODE_RET_FAR		0xcb
+#define OPCODE_RET_NEAR_POP	0xc2	/* Plus pop immediate 16-bit amount */
+#define OPCODE_RET_FAR_POP	0xca	/* Plus pop immediate 16-bit amount */
+#define OPCODE_NOP			0x90
+#define OPCODE_CALL			0xe8
+#define OPCODE_PUSH_EAX		0x50
+#define OPCODE_PUSH_ECX		0x51
+#define OPCODE_PUSH_EDX		0x52
+#define OPCODE_PUSH_EBX		0x53
+#define OPCODE_PUSH_ESP		0x54
+#define OPCODE_PUSH_EBP		0x55
+#define OPCODE_PUSH_ESI		0x56
+#define OPCODE_PUSH_EDI		0x57
+#define OPCODE_SUB_1		0x29	/* Substraction between registers */
+#define OPCODE_SUB_2		0x81	/* Need further probing for real opcode */
+#define OPCODE_SUB_3		0x83	/* Need further probing for real opcode */
+#define OPCODE_MOV_REG		0x89	/* Move one register to another */
+#define OPCODE_MOV_IMM_EAX	0xb8	/* Move immediate value to register EAX */
+#define OPCODE_MOV_IMM_ECX	0xb9
+#define OPCODE_MOV_IMM_EDX	0xba
+#define OPCODE_MOV_IMM_EBX	0xbb
+#define OPCODE_MOV_IMM_ESP	0xbc
+#define OPCODE_MOV_IMM_EBP	0xbd
+#define OPCODE_MOV_IMM_ESI	0xbe
+#define OPCODE_MOV_IMM_EDI	0xbf
+#define OPCODE_JMP_SHORT	0xeb	/* Followed by signed byte */
+#define OPCODE_JMP_LONG		0xe9	/* Followed by signed 32-bit value */
+#define OPCODE_LEA			0x8d
+#define OPCODE_XOR_1		0x31	/* Between registers if mod=3 */
+#define OPCODE_XOR_2		0x33	/* Complex XOR involving memory */
+#define OPCODE_NONE_1		0x26	/* Not a valid opcode */
+#define OPCODE_NONE_2		0x2e
+#define OPCODE_NONE_3		0x36
+#define OPCODE_NONE_4		0x3E
+#define OPCODE_NONE_5		0x64
+#define OPCODE_NONE_6		0x65
+#define OPCODE_NONE_7		0x66
+#define OPCODE_NONE_8		0x67
+
+/*
+ * x86 follow-up instruction parsing
+ */
+#define OPMODE_MODE_MASK	0xc0	/* Mask to get a instruction mode code */
+#define OPMODE_OPCODE		0x38	/* Mask to extract extra opcode info */
+#define OPMODE_REG_SRC_MASK	0x38	/* Mask to extract source register */
+#define OPMODE_REG_DST_MASK	0x07	/* Mask to extract destination register */
+#define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
+#define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
+#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOVL to move ESP to EBP */
+
+/*
+ * x86 register numbers, as encoded in instructions.
+ */
+#define OPREG_EAX			0
+#define OPREG_ECX			1
+#define OPREG_EDX			2
+#define OPREG_EBX			3
+#define OPREG_ESP			4
+#define OPREG_EBP			5
+#define OPREG_ESI			6
+#define OPREG_EDI			7
+
+static inline uint8
+mingw_op_mod_code(uint8 mbyte)
+{
+	return (mbyte & OPMODE_MODE_MASK) >> 6;
+}
+
+static inline uint8
+mingw_op_src_register(uint8 mbyte)
+{
+	return (mbyte & OPMODE_REG_SRC_MASK) >> 3;
+}
+
+static inline uint8
+mingw_op_dst_register(uint8 mbyte)
+{
+	return mbyte & OPMODE_REG_DST_MASK;
+}
+
+#define MINGW_TEXT_OFFSET	0x1000	/* Text offset after mapping base */
+
+#define MINGW_ROUTINE_ALIGN	4
+#define MINGW_ROUTINE_MASK	(MINGW_ROUTINE_ALIGN - 1)
+
+#define mingw_routine_align(x) ulong_to_pointer( \
+	(pointer_to_ulong(x) + MINGW_ROUTINE_MASK) & ~MINGW_ROUTINE_MASK)
+
+/**
+ * Expected unwinding stack frame, if present and maintained by routines.
+ */
+struct stackframe {
+	struct stackframe *next;
+	void *ret;
+};
+
+#ifdef MINGW_BACKTRACE_DEBUG
+/**
+ * @return opcode leading mnemonic string.
+ */
+static const char *
+mingw_opcode_name(uint8 opcode)
+{
+	switch (opcode) {
+	case OPCODE_RET_NEAR:
+	case OPCODE_RET_FAR:
+	case OPCODE_RET_NEAR_POP:
+	case OPCODE_RET_FAR_POP:
+		return "RET";
+	case OPCODE_NOP:
+		return "NOP";
+	case OPCODE_CALL:
+		return "CALL";
+	case OPCODE_PUSH_EAX:
+	case OPCODE_PUSH_EBX:
+	case OPCODE_PUSH_ECX:
+	case OPCODE_PUSH_EDX:
+	case OPCODE_PUSH_ESP:
+	case OPCODE_PUSH_EBP:
+	case OPCODE_PUSH_ESI:
+	case OPCODE_PUSH_EDI:
+		return "PUSH";
+	case OPCODE_MOV_REG:
+	case OPCODE_MOV_IMM_EAX:
+	case OPCODE_MOV_IMM_EBX:
+	case OPCODE_MOV_IMM_ECX:
+	case OPCODE_MOV_IMM_EDX:
+	case OPCODE_MOV_IMM_ESP:
+	case OPCODE_MOV_IMM_EBP:
+	case OPCODE_MOV_IMM_ESI:
+	case OPCODE_MOV_IMM_EDI:
+		return "MOV";
+	case OPCODE_JMP_SHORT:
+	case OPCODE_JMP_LONG:
+		return "JMP";
+	case OPCODE_LEA:
+		return "LEA";
+	case OPCODE_XOR_1:
+	case OPCODE_XOR_2:
+		return "XOR";
+	case OPCODE_NONE_1:
+	case OPCODE_NONE_2:
+	case OPCODE_NONE_3:
+	case OPCODE_NONE_4:
+	case OPCODE_NONE_5:
+	case OPCODE_NONE_6:
+	case OPCODE_NONE_7:
+	case OPCODE_NONE_8:
+	default:
+		return "?";
+	}
+}
+#endif /* MINGW_BACKTRACE_DEBUG */
+
+/**
+ * Is the SUB opcode pointed at by ``op'' targetting ESP?
+ */
+static bool
+mingw_opcode_is_sub_esp(const uint8 *op)
+{
+	const uint8 *p = op;
+	uint8 mbyte = p[1];
+
+	BACKTRACE_DEBUG("%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
+
+	switch (*op) {
+	case OPCODE_SUB_1:
+		return OPREG_ESP == mingw_op_dst_register(mbyte);
+	case OPCODE_SUB_2:
+	case OPCODE_SUB_3:
+		{
+			uint8 code = mingw_op_src_register(mbyte);
+			uint8 mode = mingw_op_mod_code(mbyte);
+			if (code != OPMODE_SUB || mode != 3)
+				return FALSE;	/* Not a SUB opcode targeting a register */
+			return OPREG_ESP == mingw_op_dst_register(mbyte);
+		}
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Scan forward looking for one of the SUB instructions that can substract
+ * a value from the ESP register.
+ *
+ * This can be one of (Intel notation):
+ *
+ * 		SUB ESP, <value>		; short stack reserve
+ * 		SUB ESP, EAX			; large stack reserve
+ *
+ * @param start		initial program counter
+ * @param max		absolute maximum PC value
+ * @param at_start		known to be at the starting point of the routine
+ * @param has_frame	set to TRUE if we saw a frame linking at the beginning
+ * @param savings	indicates leading register savings done by the routine
+ *
+ * @return pointer to the start of the SUB instruction, NULL if we can't
+ * find it, meaning the starting point was probably not the start of
+ * a routine, MINGW_EMPTY_STACKFRAME if there is no SUB instruction.
+ */
+static const void *
+mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
+	bool *has_frame, size_t *savings)
+{
+	const void *maxscan;
+	const uint8 *p = start;
+	const uint8 *first_opcode = p;
+	bool saved_ebp = FALSE;
+	size_t pushes = 0;
+
+	maxscan = const_ptr_add_offset(start, MINGW_FORWARD_SCAN);
+	if (ptr_cmp(maxscan, max) > 0)
+		maxscan = max;
+
+	if (mingw_backtrace_debug()) {
+		s_minidbg("%s: next %zu bytes after pc=%p%s",
+			G_STRFUNC, 1 + ptr_diff(maxscan, p),
+			p, at_start ? " (known start)" : "");
+		dump_hex(stderr, "", p, 1 + ptr_diff(maxscan, p));
+	}
+
+	for (p = start; ptr_cmp(p, maxscan) <= 0; p++) {
+		const void *window;
+		uint8 op;
+		unsigned fill = 0;
+
+		switch ((op = *p)) {
+		case OPCODE_NONE_1:
+		case OPCODE_NONE_2:
+		case OPCODE_NONE_3:
+		case OPCODE_NONE_4:
+		case OPCODE_NONE_5:
+		case OPCODE_NONE_6:
+		case OPCODE_NONE_7:
+		case OPCODE_NONE_8:
+		case OPCODE_NOP:
+			fill = 1;
+			goto filler;
+		case OPCODE_LEA:
+			/*
+			 * Need to decode further to know how many bytes are taken
+			 * by this versatile instruction.
+			 */
+			{
+				uint8 mode = mingw_op_mod_code(p[1]);
+				uint8 reg = mingw_op_dst_register(p[1]);
+				switch (mode) {
+				case 0:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] (32-bit SIB Byte follows)
+					 * 5 = disp32
+					 * others = register
+					 */
+
+					if (4 == reg) {
+						fill = 3;
+					} if (5 == reg) {
+						fill = 6;
+					} else {
+						fill = 2;
+					}
+					goto filler;
+				case 1:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] + disp8
+					 * others = register + disp8
+					 */
+
+					if (4 == reg) {
+						fill = 4;
+					} else {
+						fill = 3;
+					}
+					goto filler;
+				case 2:
+					/*
+					 * ``reg'' encodes the following:
+					 *
+					 * 4 = [sib] + disp32
+					 * others = register + disp32
+					 */
+					if (4 == reg) {
+						fill = 7;
+					} else {
+						fill = 6;
+					}
+					goto filler;
+				case 3:
+					fill = 2;
+					goto filler;
+				default:
+					g_assert_not_reached();
+				}
+			}
+			break;
+		case OPCODE_PUSH_EBP:
+			/*
+			 * The frame pointer is saved if the routine begins with (Intel
+			 * notation):
+			 *
+			 *	PUSH EBP
+			 *  MOV  EBP, ESP
+			 *
+			 * to create the frame pointer link.
+			 */
+			first_opcode = p + 1;	/* Expects the MOV operation to follow */
+			/* FALL THROUGH */
+		case OPCODE_PUSH_EAX:
+		case OPCODE_PUSH_EBX:
+		case OPCODE_PUSH_ECX:
+		case OPCODE_PUSH_EDX:
+		case OPCODE_PUSH_ESP:
+		case OPCODE_PUSH_ESI:
+		case OPCODE_PUSH_EDI:
+			pushes++;
+			break;
+		case OPCODE_MOV_IMM_EAX:
+		case OPCODE_MOV_IMM_EBX:
+		case OPCODE_MOV_IMM_ECX:
+		case OPCODE_MOV_IMM_EDX:
+		case OPCODE_MOV_IMM_ESP:
+		case OPCODE_MOV_IMM_EBP:
+		case OPCODE_MOV_IMM_ESI:
+		case OPCODE_MOV_IMM_EDI:
+			p += 4;				/* Skip immediate value */
+			break;
+		case OPCODE_MOV_REG:
+			if (OPMODE_REG_ESP_EBP == p[1])
+				saved_ebp = p == first_opcode;
+			p += 1;				/* Skip mode byte */
+			break;
+		case OPCODE_CALL:
+			/* Stackframe link created, no stack adjustment */
+			if (saved_ebp)
+				return MINGW_EMPTY_STACKFRAME;
+			p += 4;				/* Skip offset */
+			break;
+		case OPCODE_XOR_1:
+			if (OPMODE_MODE_MASK == (OPMODE_MODE_MASK & p[1])) {
+				/* XOR between registers, same register to zero it */
+				uint8 operands = p[1];
+				uint8 reg1 = mingw_op_src_register(operands);
+				uint8 reg2 = mingw_op_dst_register(operands);
+				if (reg1 == reg2) {
+					p += 1;
+					break;
+				}
+			}
+			/* XOR REG, REG is the only instruction we allow in the prologue */
+			return NULL;
+		case OPCODE_SUB_1:
+		case OPCODE_SUB_2:
+		case OPCODE_SUB_3:
+			if (mingw_opcode_is_sub_esp(p)) {
+				*has_frame = saved_ebp;
+				*savings = pushes;
+				return p;
+			}
+			switch (*p) {
+			case OPCODE_SUB_1:
+				p += 1;
+				break;
+			case OPCODE_SUB_2:
+				p += 5;
+				break;
+			case OPCODE_SUB_3:
+				p += 2;
+				break;
+			}
+			break;
+		default:
+			/*
+			 * If we're not on an aligned routine starting point, assume
+			 * this is part of a filling instruction and ignore, provided
+			 * we haven't seen any PUSH yet.
+			 */
+			if (0 == pushes && !at_start && p != mingw_routine_align(p)) {
+				fill = 1;
+				goto filler;
+			}
+			return NULL;
+		}
+
+		continue;
+
+	filler:
+		/*
+		 * Handle "filling" instructions between last RET / JMP and
+		 * the next routine  Move the scanning window forward to avoid
+		 * counting filling instructions.
+		 */
+
+		BACKTRACE_DEBUG("%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
+			mingw_opcode_name(op), fill, 1 == fill ? "" : "s", p);
+
+		first_opcode = p + fill;
+		p += (fill - 1);
+		window = const_ptr_add_offset(maxscan, fill);
+		if (ptr_cmp(window, max) <= 0)
+			maxscan = window;
+	}
+
+	return NULL;
+}
+
+/**
+ * Parse beginning of routine to know how many registers are saved, whether
+ * there is a leading frame being formed, and how large the stack is.
+ *
+ * @param pc			starting point
+ * @param max			maximum PC we accept to scan forward
+ * @param at_start		known to be at the starting point of the routine
+ * @param has_frame		set to TRUE if we saw a frame linking at the beginning
+ * @param savings		indicates leading register savings done by the routine
+ * @param offset		computed stack offsetting
+ *
+ * @return TRUE if ``pc'' pointed to a recognized function prologue.
+ */
+static bool
+mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
+	bool *has_frame, size_t *savings, unsigned *offset)
+{
+	const uint8 *sub;
+
+	if (ptr_cmp(pc, max) >= 0)
+		return FALSE;
+
+	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
+
+	if (MINGW_EMPTY_STACKFRAME == sub) {
+		BACKTRACE_DEBUG("%s: no SUB operation at pc=%p, %s frame",
+			G_STRFUNC, pc, *has_frame ? "with" : "no");
+		*offset = 0;
+		return TRUE;
+	} else if (sub != NULL) {
+		uint8 op;
+
+		BACKTRACE_DEBUG("%s: found SUB operation at "
+			"pc=%p, opcode=0x%x, mod=0x%x, %s frame",
+			G_STRFUNC, sub, sub[0], sub[1], *has_frame ? "with" : "no");
+
+		switch (*sub) {
+		case OPCODE_SUB_1:
+			/*
+			 * This is the pattern used by gcc for large stacks.
+			 *
+			 * (Note this uses AT&T syntax, not the Intel one, so
+			 * order is source, destination as opposed to the regular
+			 * Intel convention)
+			 *
+			 *    movl    $65564, %eax
+			 *    call    ___chkstk_ms
+			 *    subl    %eax, %esp
+			 *
+			 * We found the last instruction, we need to move back 10
+			 * bytes to reach the MOV instruction
+			 */
+
+			op = *(sub - 10);
+			if (op != OPCODE_MOV_IMM_EAX)
+				return FALSE;
+
+			*offset = peek_le32(sub + 1);
+			return TRUE;
+		case OPCODE_SUB_2:
+			/* subl    $220, %esp */
+			g_assert(OPMODE_SUB_ESP == sub[1]);
+			*offset = peek_le32(sub + 2);
+			return TRUE;
+		case OPCODE_SUB_3:
+			/* subl    $28, %esp */
+			g_assert(OPMODE_SUB_ESP == sub[1]);
+			*offset = peek_u8(sub + 2);
+			return TRUE;
+		}
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Intuit return address given current PC and SP.
+ *
+ * Uses black magic: disassembles the code on the fly knowing the gcc
+ * initial function patterns to look for the instruction that alters the SP.
+ *
+ * @attention
+ * This is not perfect and based on heuristics.  Changes in the compiler
+ * generation pattern may break this routine.  Moreover, backtracing through
+ * a routine using alloca() will not work because the initial stack reserve is
+ * later altered, so the stack pointer in any routine that it calls will be
+ * perturbed and will not allow correct reading of the return address.
+ *
+ * @param next_pc		where next PC is written
+ * @param next_sp		where next SP is written
+ * @param next_sf		where next SF is written, NULL if none seen
+ *
+ * @return TRUE if we were able to recognize the start of the routine and
+ * compute the proper stack offset, FALSE otherwise.
+ */
+static bool
+mingw_get_return_address(const void **next_pc, const void **next_sp,
+	const void **next_sf)
+{
+	const void *pc = *next_pc;
+	const void *sp = *next_sp;
+	const uint8 *p;
+	unsigned offset = 0;
+	bool has_frame = FALSE;
+	size_t savings = 0;
+
+	BACKTRACE_DEBUG("%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
 
 	/*
-	 * We're MINGW32, so even on a 64-bit processor we're going to run
-	 * in 32-bit mode, using WOW64 support (if running on a 64-bit Windows).
-	 *
-	 * FIXME: How is this going to behave on AMD64?  There's no definition
-	 * of a context for this machine, and I can't test it.
-	 *		--RAM, 2011-01-12
+	 * If we can determine the start of the routine, get there first.
 	 */
 
-	image = IMAGE_FILE_MACHINE_I386;
-	s.AddrPC.Offset = c->Eip;
-	s.AddrPC.Mode = AddrModeFlat;
-	s.AddrStack.Offset = c->Esp;
-	s.AddrStack.Mode = AddrModeFlat;
-	s.AddrFrame.Offset = c->Ebp;
-	s.AddrFrame.Mode = AddrModeFlat;
+	p = stacktrace_routine_start(pc);
 
-	i = 0;
+	if (p != NULL && valid_ptr(p)) {
+		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p (%s)",
+			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
 
-	while (
-		i < size &&
-		StackWalk(image, proc, thread, &s, &c, NULL, NULL, NULL, NULL)
-	) {
-		if (0 == s.AddrPC.Offset)
+		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset))
+			goto found_offset;
+
+		BACKTRACE_DEBUG("%s: %p does not seem to be a valid prologue, scanning",
+			G_STRFUNC, p);
+	} else {
+		BACKTRACE_DEBUG("%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
+			stacktrace_routine_name(pc, TRUE), dl_util_get_path(pc));
+	}
+
+	/*
+	 * Scan backwards to find a previous RET / JMP instruction.
+	 */
+
+	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
+		uint8 op;
+		
+		const uint8 *next;
+
+		if (!valid_ptr(p))
+			return FALSE;
+
+		switch ((op = *p)) {
+		case OPCODE_RET_NEAR:
+		case OPCODE_RET_FAR:
+			next = p + 1;
+			break;
+		case OPCODE_RET_NEAR_POP:
+		case OPCODE_RET_FAR_POP:
+			next = p + 3;	/* Skip next immediate 16-bit offset */
+			break;
+		case OPCODE_JMP_SHORT:
+			next = p + 2;	/* Skip 8-bit offset */
+			break;
+		case OPCODE_JMP_LONG:
+			next = p + 5;	/* Skip 32-bit target */
+			break;
+		default:
+			goto next;
+		}
+
+		BACKTRACE_DEBUG("%s: found %s operation at pc=%p, opcode=0x%x",
+			G_STRFUNC, mingw_opcode_name(op), p, op);
+
+		/*
+		 * Could have found a byte that is part of a longer opcode, since
+		 * the x86 has variable-length instructions.
+		 *
+		 * Scan forward for a SUB instruction targetting the ESP register.
+		 */
+
+		if (
+			mingw_analyze_prologue(next, pc, FALSE,
+				&has_frame, &savings, &offset)
+		)
+			goto found_offset;
+
+	next:
+		p--;
+	}
+
+	return FALSE;
+
+found_offset:
+	g_assert(0 == (offset & 3));	/* Multiple of 4 */
+
+	BACKTRACE_DEBUG("%s: offset = %u, %zu leading push%s",
+		G_STRFUNC, offset, savings, 1 == savings ? "" : "es");
+
+	/*
+	 * We found that the current routine decreased the stack pointer by
+	 * ``offset'' bytes upon entry.  It is expected to increase the stack
+	 * pointer by the same amount before returning, at which time it will
+	 * pop from the stack the return address.
+	 *
+	 * This is what we're computing now, to find out the return address
+	 * that is on the stack.
+	 *
+	 * Once it pops the return address, the processor will also increase the
+	 * stack pointer by 4 bytes, so this will be the value of ESP upon return.
+	 *
+	 * Moreover, if we have seen a "PUSH EBP; MOV EBP, ESP" sequence at the
+	 * beginning, then the stack frame pointer was maintained by the callee.
+	 * In AT&T syntax (which reverses the order of arguments compared to the
+	 * Intel notation, becoming source, destination) used by gas, that would be:
+	 *
+	 *     pushl   %ebp
+	 *     movl    %esp, %ebp           ; frame linking now established
+	 *     subl    $56, %esp            ; reserve 56 bytes on the stack
+	 */
+
+	offset += 4 * savings;
+	sp = const_ptr_add_offset(sp, offset);
+
+	if (has_frame) {
+		const void *sf, *fp;
+		g_assert(savings >= 1);
+		sf = const_ptr_add_offset(sp, -4);
+		fp = ulong_to_pointer(peek_le32(sf));
+		if (ptr_cmp(fp, sp) <= 0) {
+			BACKTRACE_DEBUG("%s: inconsistent fp %p (\"above\" sp %p)",
+				G_STRFUNC, fp, sp);
+			has_frame = FALSE;
+		} else if (!vmm_is_stack_pointer(fp, sf)) {
+			BACKTRACE_DEBUG("%s: invalid fp %p (not a stack pointer)",
+				G_STRFUNC, fp);
+			has_frame = FALSE;
+		}
+		*next_sf = has_frame ? sf : NULL;
+	} else {
+		*next_sf = NULL;
+	}
+
+	*next_pc = ulong_to_pointer(peek_le32(sp));	/* Pushed return address */
+
+	if (!valid_ptr(*next_pc))
+		return FALSE;
+
+	*next_sp = const_ptr_add_offset(sp, 4);	/* After popping return address */
+
+	if (mingw_backtrace_debug() && has_frame) {
+		const struct stackframe *sf = *next_sf;
+		s_minidbg("%s: next frame at %p "
+			"(contains next=%p, ra=%p), computed ra=%p",
+			G_STRFUNC, sf, sf->next, sf->ret, *next_pc);
+	}
+
+	return TRUE;
+}
+
+/**
+ * Unwind the stack, using the saved context to gather the initial program
+ * counter, stack pointer and stack frame pointer.
+ *
+ * @param buffer	where function addresses are written to
+ * @param size		amount of entries in supplied buffer
+ * @param c			saved CPU context
+ * @param offset	topmost frames to skip
+ */
+static int
+mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
+{
+	int i = 0;
+	const struct stackframe *sf;
+	const void *sp, *pc, *top;
+
+	/*
+	 * We used to rely on StackWalk() here, but we no longer do because
+	 * it did not work well and failed to provide useful stacktraces.
+	 *
+	 * Neither does blind following of frame pointers because some routines
+	 * simply do not bother to maintain the frame pointers, especially
+	 * those known by gcc as being non-returning routines such as
+	 * assertion_abort(). Plain stack frame following could not unwind
+	 * past that.
+	 *
+	 * Since it is critical on Windows to obtain a somewhat meaningful
+	 * stack frame to be able to debug anything, given the absence of
+	 * core dumps (for post-mortem analysis) and of fork() (for launching
+	 * a debugger to obtain the stack trace), extraordinary measures were
+	 * called for...
+	 *
+	 * Therefore, we now perform our own unwinding which does not rely on
+	 * plain stack frame pointer following but rather (minimally)
+	 * disassembles the routine prologues to find out how many stack
+	 * space is used by each routine, so that we can find where the
+	 * caller pushed the return address on the stack.
+	 *
+	 * When the start of a routine is not known, the code attempts to
+	 * guess where it may be by scanning backwards until it finds what
+	 * is probably the end of the previous routine.  Since the x86 is a
+	 * CISC machine with a variable-length instruction set, this operation
+	 * cannot be entirely fool-proof, since the opcodes used for RET or
+	 * JMP instructions could well be actually parts of immediate operands
+	 * given to some other instruction.
+	 *
+	 * Hence there is logic to determine whether the initial starting point
+	 * is actually a valid routine prologue, relying on what we know gcc
+	 * can use before it adjusts the stack pointer.
+	 *
+	 * Despite being a hack because it is based on known routine generation
+	 * patterns from gcc, it works surprisingly well and, in any case, is
+	 * far more useful than the original code that used StackWalk(), or
+	 * the simple gcc unwinding which merely follows frame pointers.
+	 *		--RAM, 2012-03-19
+	 */
+
+	sf = ulong_to_pointer(c->Ebp);
+	sp = ulong_to_pointer(c->Esp);
+	pc = ulong_to_pointer(c->Eip);
+
+	BACKTRACE_DEBUG("%s: pc=%p, sf=%p, sp=%p [skip %d]",
+		G_STRFUNC, pc, sf, sp, skip);
+
+	if (0 == skip--)
+		buffer[i++] = deconstify_pointer(pc);
+
+	if (!valid_stack_ptr(sp, sp))
+		goto done;
+
+	top = sp;
+
+	while (i < size) {
+		const void *next = NULL;
+
+		BACKTRACE_DEBUG("%s: i=%d, sp=%p, sf=%p, pc=%p",
+			G_STRFUNC, i, sp, sf, pc);
+
+		if (!valid_ptr(pc) || !valid_stack_ptr(sp, top))
 			break;
 
-		if (skip-- > 0)
-			continue;
+		if (!valid_stack_ptr(sf, top) || ptr_cmp(sf, sp) <= 0)
+			sf = NULL;
 
-		buffer[i++] = ulong_to_pointer(s.AddrPC.Offset);
+		if (!mingw_get_return_address(&pc, &sp, &next)) {
+			if (sf != NULL) {
+				BACKTRACE_DEBUG("%s: trying to follow sf=%p", G_STRFUNC, sf);
+				next = sf->next;
+
+				if (!valid_ptr(sf->ret))
+					break;
+
+				pc = sf->ret;
+				sp = &sf[1];	/* After popping returned value */
+
+				BACKTRACE_DEBUG("%s: following frame: "
+					"next sf=%p, pc=%p, rebuilt sp=%p",
+					G_STRFUNC, next, pc, sp);
+
+				if (!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
+					next = NULL;
+			} else {
+				BACKTRACE_DEBUG("%s: out of frames", G_STRFUNC);
+				break;
+			}
+		} else {
+			int d;
+
+			BACKTRACE_DEBUG("%s: intuited next pc=%p, sp=%p, "
+				"rebuilt sf=%p [old sf=%p]",
+				G_STRFUNC, pc, sp, next, sf);
+
+			/*
+			 * Leave frame pointer intact if the stack pointer is still
+			 * smaller than the last frame pointer: it means the routine
+			 * that we backtraced through did not save a frame pointer, so
+			 * it would have been invisible if we had followed the frame
+			 * pointer.
+			 */
+
+			d = (NULL == sf) ? 0 : ptr_cmp(sp, sf);
+
+			if (d < 0) {
+				BACKTRACE_DEBUG("%s: keeping old sf=%p, since sp=%p",
+					G_STRFUNC, sf, sp);
+				next = sf;
+			} else if (d > 0) {
+				if (sp == &sf[1]) {
+					BACKTRACE_DEBUG("%s: reached sf=%p at sp=%p, "
+						"next sf=%p, current ra=%p",
+						G_STRFUNC, sf, sp, sf->next, sf->ret);
+					if (NULL == next && valid_stack_ptr(sf->next, top))
+						next = sf->next;
+				}
+			}
+		}
+
+		if (skip-- <= 0)
+			buffer[i++] = deconstify_pointer(pc);
+
+		sf = next;
 	}
+
+done:
+	BACKTRACE_DEBUG("%s: returning %d", G_STRFUNC, i);
 
 	return i;
 }
 
+/**
+ * Fill supplied buffer with current stack, skipping the topmost frames.
+ *
+ * @param buffer	where function addresses are written to
+ * @param size		amount of entries in supplied buffer
+ * @param offset	topmost frames to skip
+ *
+ * @return amount of entries written into buffer[].
+ */
 int
-mingw_backtrace(void **buffer, int size)
+mingw_backtrace(void **buffer, int size, size_t offset)
 {
 	CONTEXT c;
 	HANDLE thread;
@@ -2875,13 +3971,118 @@ mingw_backtrace(void **buffer, int size)
 
 	GetThreadContext(thread, &c);
 
+	return mingw_stack_unwind(buffer, size, &c, offset);
+}
+
+#ifdef EMULATE_DLADDR
+static int mingw_dl_error;
+
+/**
+ * Return a human readable string describing the most recent error
+ * that occurred.
+ */
+const char *
+mingw_dlerror(void)
+{
+	return g_strerror(mingw_dl_error);
+}
+
+/**
+ * Emulates linux's dladdr() routine.
+ *
+ * Given a function pointer, try to resolve name and file where it is located.
+ *
+ * If no symbol matching addr could be found, then dli_sname and dli_saddr are
+ * set to NULL.
+ *
+ * @param addr		pointer within function
+ * @param info		where results are returned
+ *
+ * @return 0 on error, non-zero on success.
+ */
+int
+mingw_dladdr(void *addr, Dl_info *info)
+{
+	static time_t last_init;
+	static char path[MAX_PATH_LEN];
+	static wchar_t wpath[MAX_PATH_LEN];
+	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
+	time_t now;
+	HANDLE process = NULL;
+	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
+	DWORD disp = 0;
+
 	/*
-	 * Experience shows we have to skip the first 2 frames to get a
-	 * correct stack frame.
+	 * Do not issue a SymInitialize() too often, yet let us do one from time
+	 * to time in case we loaded a new DLL since last time.
 	 */
 
-	return mingw_stack_fill(buffer, size, &c, 2);
+	now = tm_time();
+
+	if (0 == last_init || delta_time(now, last_init) > 5) {
+		static bool initialized;
+
+		process = GetCurrentProcess();
+
+		if (initialized)
+			SymCleanup(process);
+
+		if (!SymInitialize(process, 0, TRUE)) {
+			initialized = FALSE;
+			mingw_dl_error = GetLastError();
+			s_warning("SymInitialize() failed: error = %d (%s)",
+				mingw_dl_error, mingw_dlerror());
+		} else {
+			initialized = TRUE;
+			mingw_dl_error = 0;
+		}
+
+		last_init = now;
+	}
+
+	ZERO(info);
+
+	if (0 != mingw_dl_error)
+		return 0;		/* Signals error */
+
+	if (NULL == addr)
+		return 1;		/* OK */
+
+	if (NULL == process)
+		process = GetCurrentProcess();
+
+	info->dli_fbase = ulong_to_pointer(
+		SymGetModuleBase(process, pointer_to_ulong(addr)));
+	
+	if (NULL == info->dli_fbase) {
+		mingw_dl_error = GetLastError();
+		return 0;		/* Unknown, error */
+	}
+
+	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
+		size_t conv = utf16_to_utf8(wpath, path, sizeof path);
+		if (conv <= sizeof path)
+			info->dli_fname = path;
+	}
+
+	symbol->SizeOfStruct = sizeof buffer;
+	symbol->MaxNameLength = 255;
+
+	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
+		info->dli_sname = symbol->Name;
+		info->dli_saddr = ptr_add_offset(addr, -disp);
+	}
+
+	/*
+	 * Windows offsets the actual loading of the text by MINGW_TEXT_OFFSET
+	 * bytes, as determined empirically.
+	 */
+
+	info->dli_fbase = ptr_add_offset(info->dli_fbase, MINGW_TEXT_OFFSET);
+
+	return 1;			/* OK */
 }
+#endif	/* EMULATE_DLADDR */
 
 /**
  * Convert exception code to string.
@@ -2920,14 +4121,18 @@ mingw_exception_to_string(int code)
 static G_GNUC_COLD void
 mingw_exception_log(int code, const void *pc)
 {
-	DECLARE_STR(9);
+	DECLARE_STR(11);
 	char time_buf[18];
 	const char *name;
+	const char *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
 	name = stacktrace_routine_name(pc, TRUE);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
+
+	if (!stacktrace_pc_within_our_text(pc))
+		file = dl_util_get_path(pc);
 
 	print_str(time_buf);										/* 0 */
 	print_str(" (CRITICAL): received exception at PC=0x");		/* 1 */
@@ -2937,9 +4142,13 @@ mingw_exception_log(int code, const void *pc)
 		print_str(name);										/* 4 */
 		print_str(")");											/* 5 */
 	}
-	print_str(": ");											/* 6 */
-	print_str(mingw_exception_to_string(code));					/* 7 */
-	print_str("\n");											/* 8 */
+	if (file != NULL) {
+		print_str(" from ");									/* 6 */
+		print_str(file);										/* 7 */
+	}
+	print_str(": ");											/* 8 */
+	print_str(mingw_exception_to_string(code));					/* 9 */
+	print_str("\n");											/* 10 */
 
 	flush_err_str();
 	if (log_stdout_is_distinct())
@@ -2950,14 +4159,19 @@ mingw_exception_log(int code, const void *pc)
 	 */
 
 	{
-		char data[128];
+		char data[256];
+		str_t s;
 
-		str_bprintf(data, sizeof data, "%s at PC=%p%s%s%s",
-			mingw_exception_to_string(code), pc,
-			NULL == name ? "" : " (",
-			NULL == name ? "" : name,
-			NULL == name ? "" : ")");
-		crash_set_error(data);
+		str_new_buffer(&s, data, 0, sizeof data);
+		str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
+
+		if (name != NULL)
+			str_catf(&s, " (%s)", name);
+
+		if (file != NULL)
+			str_catf(&s, " from %s", file);
+
+		crash_set_error(str_2c(&s));
 	}
 }
 
@@ -3009,7 +4223,7 @@ mingw_memory_fault_log(const EXCEPTION_RECORD *er)
 static volatile sig_atomic_t in_exception_handler;
 static void *mingw_stack[STACKTRACE_DEPTH_MAX];
 
-int
+bool
 mingw_in_exception(void)
 {
 	return in_exception_handler;
@@ -3024,7 +4238,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er;
 	int signo = 0;
 
-	in_exception_handler = 1;	/* Will never be reset, we're crashing */
+	in_exception_handler++;		/* Will never be reset, we're crashing */
 	er = ei->ExceptionRecord;
 
 	/*
@@ -3124,17 +4338,30 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 * time the exception occurred.  When calling mingw_sigraise(), the
 	 * default crash handler will print the exception stack (the current one)
 	 * which will prove rather useless.
+	 *
+	 * We only attempt to unwind the stack when we're hitting the first
+	 * exception: recursive calls are not interesting.
 	 */
 
-	{
-		int count = mingw_stack_fill(mingw_stack, G_N_ELEMENTS(mingw_stack),
-						ei->ContextRecord, 0);
+	if (1 == in_exception_handler) {
+		int count;
+		
+		count = mingw_stack_unwind(
+			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
 
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
 		if (log_stdout_is_distinct())
 			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
 
 		crash_save_stackframe(mingw_stack, count);
+	} else if (in_exception_handler > 5) {
+		DECLARE_STR(1);
+
+		print_str("Too many exceptions in a row -- raising SIGBART.\n");
+		flush_err_str();
+		if (log_stdout_is_distinct())
+			flush_str(STDOUT_FILENO);
+		signo = SIGABRT;
 	}
 
 	/*
@@ -3147,7 +4374,8 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-void mingw_invalid_parameter(const wchar_t * expression,
+static inline void WINAPI
+mingw_invalid_parameter(const wchar_t * expression,
 	const wchar_t * function, const wchar_t * file, unsigned int line,
    uintptr_t pReserved) 
 {
@@ -3159,7 +4387,6 @@ void mingw_invalid_parameter(const wchar_t * expression,
 }
 
 #ifdef EMULATE_SBRK
-static void *initial_break;
 static void *current_break;
 
 /**
@@ -3198,9 +4425,8 @@ mingw_sbrk(long incr)
 
 	if (0 == incr) {
 		p = mingw_get_break();
-		if G_UNLIKELY(NULL == initial_break) {
-			initial_break = current_break = p;
-		}
+		if G_UNLIKELY(NULL == current_break)
+			current_break = p;
 		return p;
 	} else if (incr > 0) {
 		p = HeapAlloc(GetProcessHeap(), HEAP_NO_SERIALIZE, incr);
@@ -3212,8 +4438,8 @@ mingw_sbrk(long incr)
 
 		end = ptr_add_offset(p, incr);
 
-		if G_UNLIKELY(NULL == initial_break)
-			initial_break = current_break = p;
+		if G_UNLIKELY(NULL == current_break)
+			current_break = p;
 
 		if (ptr_cmp(end, current_break) > 0)
 			current_break = end;
@@ -3246,7 +4472,7 @@ mingw_sbrk(long incr)
 
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *
-getlog(gboolean initial)
+getlog(bool initial)
 {
 	return fopen("gtkg-log.txt", initial ? "wb" : "ab");
 }
@@ -3255,6 +4481,7 @@ getlog(gboolean initial)
 	if (lf != NULL) {						\
 		fprintf(lf, __VA_ARGS__);			\
 		fputc('\n', lf);					\
+		fflush(lf);							\
 	}										\
 } G_STMT_END
 
@@ -3266,7 +4493,7 @@ getlog(gboolean initial)
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
 static G_GNUC_COLD void
-mingw_stdio_reset(FILE *lf, gboolean console)
+mingw_stdio_reset(FILE *lf, bool console)
 {
 	(void) lf;			/* In case no MINGW_STARTUP_DEBUG */
 
@@ -3305,8 +4532,8 @@ mingw_stdio_reset(FILE *lf, gboolean console)
 			/* stdout to a terminal is line-buffered */
 			setvbuf(stdout, mingw_stdout_buf, _IOLBF, sizeof mingw_stdout_buf);
 			STARTUP_DEBUG("forced stdout (fd=%d) to buffered "
-				"(%zu bytes) binary mode",
-				fileno(stdout), sizeof mingw_stdout_buf);
+				"(%lu bytes) binary mode",
+				fileno(stdout), (ulong) sizeof mingw_stdout_buf);
 		} else {
 			setmode(fileno(stdout), O_BINARY);
 			STARTUP_DEBUG("forced stdout (fd=%d) to binary mode",
@@ -3341,22 +4568,32 @@ mingw_early_init(void)
 	int console_err;
 	FILE *lf = getlog(TRUE);
 
-	STARTUP_DEBUG("starting");
+	STARTUP_DEBUG("starting PID %d", getpid());
+	STARTUP_DEBUG("logging on fd=%d", fileno(lf));
 
 #if __MSVCRT_VERSION__ >= 0x800
+	STARTUP_DEBUG("configured invalid parameter handler");
 	_set_invalid_parameter_handler(mingw_invalid_parameter);
 #endif
 
 	/* Disable any Windows pop-up on crash or file access error */
 	SetErrorMode(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS |
 		SEM_NOGPFAULTERRORBOX);
+	STARTUP_DEBUG("disabled Windows crash pop-up");
 
 	/* Trap all unhandled exceptions */
 	SetUnhandledExceptionFilter(mingw_exception);
+	STARTUP_DEBUG("configured exception handler");
 
 	_fcloseall();
-
 	lf = getlog(FALSE);
+	if (NULL == lf) {
+		lf = getlog(TRUE);
+		STARTUP_DEBUG("had to recreate this logfile for PID %d", getpid());
+	} else {
+		STARTUP_DEBUG("reopening of this logfile successful");
+	}
+
 	STARTUP_DEBUG("attempting AttachConsole()...");
 
 	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
@@ -3373,18 +4610,27 @@ mingw_early_init(void)
 			/* We had no console, and we got no console. */
 			mingw_stdio_reset(lf, FALSE);
 			freopen("NUL", "rb", stdin);
+			STARTUP_DEBUG("stdin reopened from NUL");
 			{
 				const char *pathname;
 
 				pathname = mingw_getstdout_path();
-				freopen(pathname, "wb", stdout);
-				log_set(LOG_STDOUT, pathname);
-				STARTUP_DEBUG("stdout (unbuffered) sent to %s", pathname);
+				STARTUP_DEBUG("stdout file will be %s", pathname);
+				if (NULL != freopen(pathname, "wb", stdout)) {
+					log_set(LOG_STDOUT, pathname);
+					STARTUP_DEBUG("stdout (unbuffered) reopened");
+				} else {
+					STARTUP_DEBUG("could not reopen stdout");
+				}
 
 				pathname = mingw_getstderr_path();
-				freopen(pathname, "wb", stderr);
-				log_set(LOG_STDERR, pathname);
-				STARTUP_DEBUG("stderr (unbuffered) sent to %s", pathname);
+				STARTUP_DEBUG("stderr file will be %s", pathname);
+				if (NULL != freopen(pathname, "wb", stderr)) {
+					log_set(LOG_STDERR, pathname);
+					STARTUP_DEBUG("stderr (unbuffered) reopened");
+				} else {
+					STARTUP_DEBUG("could not reopen stderr");
+				}
 			}
 			break;
 		case ERROR_ACCESS_DENIED:

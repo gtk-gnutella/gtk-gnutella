@@ -89,7 +89,9 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/header.h"
+#include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
@@ -127,14 +129,14 @@ static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
 static watchdog_t *stall_wd;		/**< Monitor stalling events */
 
 /** Used to fall back to write() if sendfile() failed */
-static gboolean sendfile_failed = FALSE;
+static bool sendfile_failed = FALSE;
 
 static idtable_t *upload_handle_map;
 
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
 
 static inline struct upload *
-cast_to_upload(gpointer p)
+cast_to_upload(void *p)
 {
 	struct upload *u = p;
 	upload_check(u);
@@ -171,14 +173,14 @@ struct mesh_info_key {
 };
 
 struct mesh_info_val {
-	guint32 stamp;					/**< When we last sent the mesh */
+	uint32 stamp;					/**< When we last sent the mesh */
 	cevent_t *cq_ev;				/**< Scheduled cleanup callout event */
 };
 
 /* Keep mesh info about uploaders for that long (unit: ms) */
 #define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
 
-static GHashTable *mesh_info;
+static htable_t *mesh_info;
 static aging_table_t *push_requests;	/**< Throttle push requests */
 
 /* Remember IP address of stalling uploads for a while */
@@ -187,8 +189,8 @@ static aging_table_t *stalling_uploads;
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
 
-#define STALL_FIRST (deconstify_gpointer(stall_first))
-#define STALL_AGAIN (deconstify_gpointer(stall_again))
+#define STALL_FIRST (deconstify_pointer(stall_first))
+#define STALL_AGAIN (deconstify_pointer(stall_again))
 
 static void upload_request(struct upload *u, header_t *header);
 static void upload_error_remove(struct upload *u,
@@ -196,8 +198,8 @@ static void upload_error_remove(struct upload *u,
 static void upload_error_remove_ext(struct upload *u,
 		const char *extended, int code,
 		const char *msg, ...) G_GNUC_PRINTF(4, 5);
-static void upload_writable(gpointer up, int source, inputevt_cond_t cond);
-static void upload_special_writable(gpointer up);
+static void upload_writable(void *up, int source, inputevt_cond_t cond);
+static void upload_special_writable(void *up);
 static void send_upload_error(struct upload *u, int code,
 			const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
@@ -294,16 +296,24 @@ mi_key_free(struct mesh_info_key *mik)
 	WFREE(mik);
 }
 
-static guint
-mi_key_hash(gconstpointer key)
+static uint
+mi_key_hash(const void *key)
 {
 	const struct mesh_info_key *mik = key;
 
 	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
+static uint
+mi_key_hash2(const void *key)
+{
+	const struct mesh_info_key *mik = key;
+
+	return binary_hash2(mik->sha1, SHA1_RAW_SIZE) ^ host_addr_hash2(mik->addr);
+}
+
 static int
-mi_key_eq(gconstpointer a, gconstpointer b)
+mi_key_eq(const void *a, const void *b)
 {
 	const struct mesh_info_key *mika = a, *mikb = b;
 
@@ -312,7 +322,7 @@ mi_key_eq(gconstpointer a, gconstpointer b)
 }
 
 static struct mesh_info_val *
-mi_val_make(guint32 stamp)
+mi_val_make(uint32 stamp)
 {
 	struct mesh_info_val *miv;
 
@@ -336,10 +346,10 @@ mi_val_free(struct mesh_info_val *miv)
  * Hash table iterator callback.
  */
 static void
-mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
+mi_free_kv(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	mi_key_free(key);
+	mi_key_free(deconstify_pointer(key));
 	mi_val_free(value);
 }
 
@@ -347,16 +357,16 @@ mi_free_kv(gpointer key, gpointer value, gpointer unused_udata)
  * Callout queue callback invoked to clear the entry.
  */
 static void
-mi_clean(cqueue_t *unused_cq, gpointer obj)
+mi_clean(cqueue_t *unused_cq, void *obj)
 {
 	struct mesh_info_key *mik = obj;
 	struct mesh_info_val *miv;
-	gpointer key;
-	gpointer value;
-	gboolean found;
+	const void *key;
+	void *value;
+	bool found;
 
 	(void) unused_cq;
-	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
+	found = htable_lookup_extended(mesh_info, mik, &key, &value);
 	miv = value;
 
 	g_assert(found);
@@ -367,7 +377,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
 		g_debug("upload MESH info (%s/%s) discarded",
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
-	g_hash_table_remove(mesh_info, mik);
+	htable_remove(mesh_info, mik);
 	miv->cq_ev = NULL;
 	mi_free_kv(key, value, NULL);
 }
@@ -377,7 +387,7 @@ mi_clean(cqueue_t *unused_cq, gpointer obj)
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static guint32
+static uint32
 mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
@@ -387,7 +397,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	mikey.addr = addr;
 	mikey.sha1 = sha1;
 
-	miv = g_hash_table_lookup(mesh_info, &mikey);
+	miv = htable_lookup(mesh_info, &mikey);
 
 	/*
 	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
@@ -395,13 +405,13 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	 */
 
 	if (miv) {
-		guint32 oldstamp;
+		uint32 oldstamp;
 
 		g_assert(miv->cq_ev);
 		cq_resched(miv->cq_ev, MESH_INFO_TIMEOUT);
 
 		oldstamp = miv->stamp;
-		miv->stamp = (guint32) now;
+		miv->stamp = (uint32) now;
 
 		if (GNET_PROPERTY(upload_debug) > 4)
 			g_debug("upload MESH info (%s/%s) has stamp=%u",
@@ -415,14 +425,14 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 	 */
 
 	mik = mi_key_make(addr, sha1);
-	miv = mi_val_make((guint32) now);
+	miv = mi_val_make((uint32) now);
 	miv->cq_ev = cq_main_insert(MESH_INFO_TIMEOUT, mi_clean, mik);
 
-	g_hash_table_insert(mesh_info, mik, miv);
+	htable_insert(mesh_info, mik, miv);
 
 	if (GNET_PROPERTY(upload_debug) > 4)
 		g_debug("new upload MESH info (%s/%s) stamp=%u",
-			host_addr_to_string(addr), sha1_base32(sha1), (guint32) now);
+			host_addr_to_string(addr), sha1_base32(sha1), (uint32) now);
 
 	return 0;			/* Don't remember sending info about this file */
 }
@@ -430,7 +440,7 @@ mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 /**
  * Can we use bio_sendfile()?
  */
-static inline gboolean
+static inline bool
 use_sendfile(struct upload *u)
 {
 	upload_check(u);
@@ -465,8 +475,8 @@ upload_host_info(const struct upload *u)
  * This is a watchdog callback invoked when no early stalling connection has
  * been seen for the configured amount of time.
  */
-static gboolean
-upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;
@@ -508,8 +518,8 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, gpointer unused_obj)
  * This is a watchdog callback invoked when no stalling connection has been
  * seen for the configured amount of time.
  */
-static gboolean
-upload_no_more_stalling(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+upload_no_more_stalling(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;
@@ -656,7 +666,7 @@ upload_new_stalling(const struct upload *u)
 static void
 upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 {
-	gboolean ignore = FALSE;
+	bool ignore = FALSE;
 
 	/*
 	 * If IP has been stalling recently, then ignore.
@@ -695,7 +705,7 @@ upload_timer(time_t now)
 
 	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
-		gboolean is_connecting;
+		bool is_connecting;
 
 		if (UPLOAD_IS_COMPLETE(u))
 			continue;					/* Complete, no timeout possible */
@@ -722,7 +732,7 @@ upload_timer(time_t now)
 			goto not_sending;		/* Avoid deep nesting level */
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
-			gboolean skip = FALSE;
+			bool skip = FALSE;
 
 			/*
 			 * Check whether we know about this IP.  If we do, then it
@@ -750,8 +760,8 @@ upload_timer(time_t now)
 				wd_kick(stall_wd);
 			}
 		} else {
-			gboolean skip = FALSE;
-			gpointer stall;
+			bool skip = FALSE;
+			void *stall;
 
 			stall = aging_lookup_revitalise(stalling_uploads, &u->addr);
 			skip = (stall == STALL_AGAIN);
@@ -822,16 +832,17 @@ upload_timer(time_t now)
 
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
-				upload_remove(u, _("Connect back timeout"));
+				upload_remove(u, N_("Connect back timeout"));
 			else if (UPLOAD_READING_HEADERS(u))
-				upload_error_remove(u, 408, "Request timeout");
+				upload_error_remove(u, 408, N_("Request timeout"));
 			else
-				upload_remove(u, _("Timeout waiting for follow-up"));
+				upload_remove(u, N_("Timeout waiting for follow-up"));
 		} else if (UPLOAD_IS_SENDING(u))
+			/* Cannot use NG_ here because we can't pass a translated string */
 			upload_remove(u, "Data timeout after %s byte%s",
 				uint64_to_string(u->sent), u->sent == 1 ? "" : "s");
 		else
-			upload_remove(u, _("Lifetime expired"));
+			upload_remove(u, N_("Lifetime expired"));
 	}
 	g_slist_free(to_remove);
 }
@@ -864,7 +875,7 @@ upload_free(struct upload **ptr)
  * Create a new upload structure, linked to a socket.
  */
 struct upload *
-upload_create(struct gnutella_socket *s, gboolean push)
+upload_create(struct gnutella_socket *s, bool push)
 {
 	struct upload *u;
 
@@ -909,8 +920,8 @@ upload_create(struct gnutella_socket *s, gboolean push)
  * currently prohibited.
  */
 void
-upload_send_giv(const host_addr_t addr, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, const char *file_name, guint32 flags)
+upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops, uint8 ttl,
+	uint32 file_index, const char *file_name, uint32 flags)
 {
 	struct upload *u;
 	struct gnutella_socket *s;
@@ -943,8 +954,8 @@ void
 handle_push_request(struct gnutella_node *n)
 {
 	host_addr_t ha;
-	guint32 file_index, flags = 0;
-	guint16 port;
+	uint32 file_index, flags = 0;
+	uint16 port;
 	const char *info;
 	const char *file_name = "<invalid file index>";
 	int push_count;
@@ -1209,7 +1220,7 @@ static struct upload *
 upload_clone(struct upload *u)
 {
 	struct upload *cu;
-	gboolean within_error = FALSE;
+	bool within_error = FALSE;
 
 	upload_check(u);
 
@@ -1290,7 +1301,7 @@ upload_clone(struct upload *u)
 /**
  * Check whether the request was likely made from a browser.
  */
-static gboolean
+static bool
 upload_likely_from_browser(const header_t *header)
 {
 	char *buf;
@@ -1332,9 +1343,9 @@ upload_likely_from_browser(const header_t *header)
  *
  * @return TRUE if we were able to send everything, FALSE otherwise
  */
-static gboolean 
+static bool 
 upload_send_http_status(struct upload *u,
-	gboolean keep_alive, int code, const char *msg)
+	bool keep_alive, int code, const char *msg)
 {
 	upload_check(u);
 	g_assert(msg);
@@ -1343,7 +1354,7 @@ upload_send_http_status(struct upload *u,
 		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
 
 	if (u->flags & UPLOAD_F_LIMITED) {
-		send_upload_error(u, 403, "Unauthorized");
+		send_upload_error(u, 403, N_("Unauthorized"));
 		return TRUE;
 	}
 
@@ -1357,10 +1368,10 @@ upload_send_http_status(struct upload *u,
  */
 static size_t
 upload_http_xhost_add(char *buf, size_t size,
-	gpointer unused_arg, guint32 unused_flags)
+	void *unused_arg, uint32 unused_flags)
 {
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 	size_t len;
 
 	(void) unused_arg;
@@ -1396,7 +1407,7 @@ upload_http_xhost_add(char *buf, size_t size,
  */
 static size_t
 upload_xfeatures_add(char *buf, size_t size,
-	gpointer unused_arg, guint32 unused_flags)
+	void *unused_arg, uint32 unused_flags)
 {
 	size_t rw = 0;
 
@@ -1417,8 +1428,7 @@ upload_xfeatures_add(char *buf, size_t size,
  * @return length of generated content
  */
 static size_t
-upload_xguid_add(char *buf, size_t size,
-	gpointer arg, guint32 flags)
+upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	size_t rw;
 	guid_t guid;
@@ -1475,8 +1485,7 @@ upload_xguid_add(char *buf, size_t size,
  * @return length of generated content
  */
 static size_t
-upload_gnutella_content_urn_add(char *buf, size_t size,
-	gpointer arg, guint32 flags)
+upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1530,7 +1539,7 @@ upload_gnutella_content_urn_add(char *buf, size_t size,
  * @return length of generated content
  */
 static size_t
-upload_thex_uri_add(char *buf, size_t size, gpointer arg, guint32 flags)
+upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1572,8 +1581,8 @@ upload_thex_uri_add(char *buf, size_t size, gpointer arg, guint32 flags)
  * SHA1-specific headers (added to the HTTP status) into `buf'.
  */
 static size_t
-upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
-	guint32 flags)
+upload_http_content_urn_add(char *buf, size_t size, void *arg,
+	uint32 flags)
 {
 	const struct sha1 *sha1;
 	size_t rw = 0, mesh_len;
@@ -1702,7 +1711,7 @@ upload_http_content_urn_add(char *buf, size_t size, gpointer arg,
  * additionnal headers on a "416 Request range not satisfiable" error.
  */
 static size_t
-upload_416_extra(char *buf, size_t size, gpointer arg, guint32 unused_flags)
+upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 {
 	const struct upload_http_cb *a = arg;
 	const struct upload *u = a->u;
@@ -1728,7 +1737,7 @@ upload_416_extra(char *buf, size_t size, gpointer arg, guint32 unused_flags)
 
 static size_t
 upload_http_content_length_add(char *buf, size_t size,
-	gpointer arg, guint32 unused_flags)
+	void *arg, uint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1752,7 +1761,7 @@ upload_http_content_length_add(char *buf, size_t size,
 
 static size_t
 upload_http_content_type_add(char *buf, size_t size,
-	gpointer arg, guint32 unused_flags)
+	void *arg, uint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1780,7 +1789,7 @@ upload_http_content_type_add(char *buf, size_t size,
 
 static size_t
 upload_http_last_modified_add(char *buf, size_t size,
-	gpointer arg, guint32 unused_flags)
+	void *arg, uint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
 	size_t len;
@@ -1802,7 +1811,7 @@ upload_http_last_modified_add(char *buf, size_t size,
 
 static size_t
 upload_http_content_range_add(char *buf, size_t size,
-	gpointer arg, guint32 unused_flags)
+	void *arg, uint32 unused_flags)
 {
 	struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
@@ -1837,7 +1846,7 @@ upload_http_content_range_add(char *buf, size_t size,
  * upload-specific headers into `buf'.
  */
 static size_t
-upload_http_status(char *buf, size_t size, gpointer arg, guint32 flags)
+upload_http_status(char *buf, size_t size, void *arg, uint32 flags)
 {
 	size_t rw = 0;
 
@@ -1854,7 +1863,7 @@ upload_http_status(char *buf, size_t size, gpointer arg, guint32 flags)
  */
 static void
 upload_http_extra_callback_add(struct upload *u,
-	http_status_cb_t callback, gpointer user_arg)
+	http_status_cb_t callback, void *user_arg)
 {
 	upload_check(u);
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
@@ -1869,7 +1878,7 @@ upload_http_extra_callback_add(struct upload *u,
 static void
 upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
 {
-	guint i;
+	uint i;
 
 	upload_check(u);
 	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
@@ -1894,9 +1903,9 @@ upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
  */
 static void
 upload_http_extra_callback_add_once(struct upload *u,
-	http_status_cb_t callback, gpointer user_arg)
+	http_status_cb_t callback, void *user_arg)
 {
-	guint i;
+	uint i;
 
 	upload_check(u);
 	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
@@ -1960,9 +1969,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
 		u->keep_alive = FALSE;				/* Force disconnection */
 		if (u->flags & UPLOAD_F_NORMAL_LIMIT) {
-			send_upload_error(u, 403, "Unauthorized");
+			send_upload_error(u, 403, N_("Unauthorized"));
 		} else if (!(u->flags & UPLOAD_F_STEALTH_LIMIT)) {
-			send_upload_error(u, 403, "Limiting connections from %s",
+			send_upload_error(u, 403, N_("Limiting connections from %s"),
 				gip_country_name(u->socket->addr));
 		}
 		return;
@@ -1992,9 +2001,8 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		if (slen < sizeof(extra)) {
 			upload_http_extra_line_add(u, extra);
 		} else {
-			g_warning("send_upload_error_v: "
-				"ignoring too large extra header (%lu bytes)",
-				(unsigned long) slen);
+			g_warning("%s: ignoring too large extra header (%zu bytes)",
+				G_STRFUNC, slen);
 		}
 	}
 
@@ -2032,7 +2040,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 			static char buf[2048];
 			char href[1024];
 			char index_href[32];
-			glong retry;
+			long retry;
 
 			retry = delta_time(parq_upload_retry(u), tm_time());
 			retry = MAX(0, retry);
@@ -2052,7 +2060,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 			}
 
 			gm_snprintf(index_href, sizeof index_href,
-				"/get/%lu/", (gulong) u->file_index);
+				"/get/%lu/", (ulong) u->file_index);
 			gm_snprintf(buf, sizeof buf,
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
@@ -2203,13 +2211,15 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 {
 	const char *logreason;
 	char errbuf[1024];
-	gboolean was_sending;
+	bool was_sending;
+	va_list apcopy;
 
 	upload_check(u);
 
 	was_sending = UPLOAD_IS_SENDING(u);
+	VA_COPY(apcopy, ap);
 
-	if (reason && no_reason != reason) {
+	if (reason != NULL && no_reason != reason) {
 		gm_vsnprintf(errbuf, sizeof errbuf, reason, ap);
 		logreason = errbuf;
 	} else {
@@ -2218,7 +2228,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
-			logreason = "No reason given";
+			logreason = N_("No reason given");
 		}
 	}
 
@@ -2262,7 +2272,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 		u->status != GTA_UL_PUSH_RECEIVED && u->status != GTA_UL_QUEUE
 	) {
 		if (reason == NULL)
-			logreason = "Bad Request";
+			logreason = reason = N_("Bad Request");
 		send_upload_error(u, 400, "%s", logreason);
 	}
 
@@ -2285,9 +2295,19 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	if (u->was_running)
 		gnet_prop_decr_guint32(PROP_UL_RUNNING);
 
-	reason = reason != no_reason ? reason : NULL;
-    upload_fire_upload_removed(u, reason ? errbuf : NULL);
+	/*
+	 * Translation for the GUI happens here.
+	 */
 
+	if (reason != NULL && no_reason != reason) {
+		gm_vsnprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		logreason = errbuf;
+	} else {
+		logreason = NULL;
+	}
+	va_end(apcopy);
+
+	upload_fire_upload_removed(u, logreason);
 	upload_free_resources(u);
 }
 
@@ -2296,6 +2316,9 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
  *
  * If no status has been sent back on the HTTP stream yet, give them
  * a 400 error with the reason.
+ *
+ * @note The parameter "reason" is passed to gettext(). Do not pass an already
+ * translated string, use N_("string") as the argument.
  */
 void
 upload_remove(struct upload *u, const char *reason, ...)
@@ -2310,9 +2333,24 @@ upload_remove(struct upload *u, const char *reason, ...)
 }
 
 /**
+ * Same as upload_remove() but without any printf argument checking.
+ */
+static void
+upload_remove_nowarn(struct upload *u, const char *reason, ...)
+{
+	va_list args;
+
+	upload_check(u);
+
+	va_start(args, reason);
+	upload_remove_v(u, reason, args);
+	va_end(args);
+}
+
+/**
  * Utility routine.  Cancel the upload, sending back the HTTP error message.
  *
- * @note The parameter "msg" is passed to gettext(). Do not pass already
+ * @note The parameter "msg" is passed to gettext(). Do not pass an already
  *       translated strings because it's sent as an HTTP response message.
  */
 static void
@@ -2328,7 +2366,7 @@ upload_error_remove(struct upload *u, int code, const char *msg, ...)
 	send_upload_error_v(u, NULL, code, msg, errargs);
 	va_end(errargs);
 
-	upload_remove_v(u, _(msg), args);
+	upload_remove_v(u, msg, args);
 	va_end(args);
 }
 
@@ -2377,6 +2415,12 @@ upload_wait_new_request(struct upload *u)
  * Report HTTP error to remote host, but keep the connection alive so
  * that they can send a new request, unless we have reached the maximum
  * amount of errors on that connection.
+ *
+ * @attention
+ * The ``msg'' string must not be translated as it is send back in HTTP
+ * headers.  We'll call gettext() on it to translate it for logging in the
+ * GUI. Callers should use N_("string") to get the English version yet mark
+ * "string" for translation.
  */
 static void
 upload_send_error(struct upload *u, int code, const char *msg)
@@ -2396,7 +2440,7 @@ upload_send_error(struct upload *u, int code, const char *msg)
 	} else {
 		upload_send_http_status(u, FALSE, code, msg);
 	}
-	upload_remove(u, "%s", msg);
+	upload_remove_nowarn(u, _(msg));
 }
 
 /**
@@ -2423,13 +2467,14 @@ upload_stop_all(struct dl_file_info *fi, const char *reason)
 	if (to_stop == NULL)
 		return;
 
-	if (GNET_PROPERTY(upload_debug))
+	if (GNET_PROPERTY(upload_debug)) {
 		g_warning("stopping %d uploads for \"%s\": %s",
 			count, fi->pathname, reason);
+	}
 
 	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
 		struct upload *u = cast_to_upload(sl->data);
-		upload_remove(u, "%s", reason);
+		upload_remove_nowarn(u, reason);
 	}
 
 	g_slist_free(to_stop);
@@ -2457,7 +2502,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 
 	if (u->user_agent == NULL && user_agent != NULL) {
 		const char *token;
-		gboolean faked;
+		bool faked;
 
 		/*
 		 * Extract User-Agent.
@@ -2486,66 +2531,66 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
  ***/
 
 static void
-err_line_too_long(gpointer obj, header_t *head)
+err_line_too_long(void *obj, header_t *head)
 {
 	struct upload *u = cast_to_upload(obj);
 
 	upload_request_handle_user_agent(u, head);
-	upload_error_remove(u, 413, "Header too large");
+	upload_error_remove(u, 413, N_("Header too large"));
 }
 
 static void
-err_header_error_tell(gpointer obj, int error)
+err_header_error_tell(void *obj, int error)
 {
 	send_upload_error(cast_to_upload(obj), 413, "%s", header_strerror(error));
 }
 
 static void
-err_header_error(gpointer obj, int error)
+err_header_error(void *obj, int error)
 {
 	upload_remove(cast_to_upload(obj),
-		_("Failed (%s)"), header_strerror(error));
+		N_("Failed (%s)"), header_strerror(error));
 }
 
 static void
-err_input_exception(gpointer obj, header_t *head)
+err_input_exception(void *obj, header_t *head)
 {
 	struct upload *u = cast_to_upload(obj);
 
 	upload_request_handle_user_agent(u, head);
-	upload_remove(u, _("Failed (Input Exception)"));
+	upload_remove(u, N_("Failed (Input Exception)"));
 }
 
 static void
-err_input_buffer_full(gpointer obj)
+err_input_buffer_full(void *obj)
 {
-	upload_error_remove(cast_to_upload(obj), 500, "Input buffer full");
+	upload_error_remove(cast_to_upload(obj), 500, N_("Input buffer full"));
 }
 
 static void
-err_header_read_error(gpointer obj, int error)
+err_header_read_error(void *obj, int error)
 {
 	upload_remove(cast_to_upload(obj),
-		_("Failed (Input error: %s)"), g_strerror(error));
+		N_("Failed (Input error: %s)"), g_strerror(error));
 }
 
 static void
-err_header_read_eof(gpointer obj, header_t *head)
+err_header_read_eof(void *obj, header_t *head)
 {
 	struct upload *u = cast_to_upload(obj);
 
 	u->error_sent = 999;		/* No need to send anything on EOF condition */
 	upload_request_handle_user_agent(u, head);
-	upload_remove(u, _("Failed (EOF)"));
+	upload_remove(u, N_("Failed (EOF)"));
 }
 
 static void
-err_header_extra_data(gpointer obj, header_t *head)
+err_header_extra_data(void *obj, header_t *head)
 {
 	struct upload *u = cast_to_upload(obj);
 
 	upload_request_handle_user_agent(u, head);
-	upload_error_remove(u, 400, "Extra data after HTTP header");
+	upload_error_remove(u, 400, N_("Extra data after HTTP header"));
 }
 
 static const struct io_error upload_io_error = {
@@ -2560,7 +2605,7 @@ static const struct io_error upload_io_error = {
 };
 
 static void
-call_upload_request(gpointer obj, header_t *header)
+call_upload_request(void *obj, header_t *header)
 {
 	struct upload *u = cast_to_upload(obj);
 
@@ -2602,7 +2647,7 @@ upload_add(struct gnutella_socket *s)
  * Callback invoked when we start reading the follow-up HTTP request.
  */
 static void
-move_to_ul_waiting(gpointer obj)
+move_to_ul_waiting(void *obj)
 {
 	struct upload *u = cast_to_upload(obj);
 
@@ -2707,7 +2752,7 @@ upload_connect_conf(struct upload *u)
 	 */
 
 	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
-			(gulong) u->file_index,
+			(ulong) u->file_index,
 			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
 
 	s = u->socket;
@@ -2726,7 +2771,7 @@ upload_connect_conf(struct upload *u)
 	}
 
 	if ((size_t) sent != rw) {
-		upload_remove(u, _("Unable to send GIV"));
+		upload_remove(u, N_("Unable to send GIV"));
 		return;
 	}
 
@@ -2759,7 +2804,7 @@ upload_error_not_found(struct upload *u, const char *request)
 			filename ? request : "verbatim");
 	}
 
-	upload_send_error(u, 404, "Not Found");
+	upload_send_error(u, 404, N_("Not Found"));
 }
 
 /**
@@ -2767,10 +2812,10 @@ upload_error_not_found(struct upload *u, const char *request)
  *
  * @return TRUE if ok or FALSE otherwise (upload must then be aborted)
  */
-static gboolean
+static bool
 upload_http_version(struct upload *u, const char *request, size_t len)
 {
-	guint http_major, http_minor;
+	uint http_major, http_minor;
 
 	/*
 	 * Check HTTP protocol version. --RAM, 11/04/2002
@@ -2791,13 +2836,21 @@ upload_http_version(struct upload *u, const char *request, size_t len)
  *
  * @return TRUE if OK, FALSE otherwise with the upload removed.
  */
-static gboolean
+static bool
 upload_file_present(struct upload *u, shared_file_t *sf)
 {
 	fileinfo_t *fi;
 	filestat_t sb;
 
 	upload_check(u);
+
+	/*
+	 * If uploading is disabled, don't access the disk.
+	 * Act as if the file was present, the upload will be refused anyway.
+	 */
+
+	if (!upload_is_enabled())
+		return TRUE;
 
 	fi = shared_file_fileinfo(sf);
 	if (stat(shared_file_path(sf), &sb))
@@ -2839,7 +2892,7 @@ failure:
 		 */
 
 		u->file_info = NULL;
-		file_info_upload_stop(fi, "File was modified");
+		file_info_upload_stop(fi, N_("File was modified"));
 		u->file_info = current_fi;
 	}
 	return FALSE;
@@ -2881,10 +2934,10 @@ upload_collect_locations(struct upload *u,
  */
 static int
 get_file_to_upload_from_index(struct upload *u, const header_t *header,
-	const char *uri, guint idx)
+	const char *uri, uint idx)
 {
 	shared_file_t *sf;
-	gboolean sent_sha1 = FALSE;
+	bool sent_sha1 = FALSE;
 	struct sha1 sha1;
 
 	upload_check(u);
@@ -2905,7 +2958,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 	if (SHARE_REBUILDING == sf) {
 		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, "Library being rebuilt");
+		upload_error_remove(u, 503, N_("Library being rebuilt"));
 		return -1;
 	}
 
@@ -2997,7 +3050,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 					g_debug("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s",
 						sha1_base32(&sha1), idx,
-						(guint) shared_file_index(sfn),
+						(uint) shared_file_index(sfn),
 						shared_file_path(sfn));
 				sf = sfn;
 				goto found;
@@ -3024,14 +3077,14 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			gm_snprintf(location, sizeof(location),
 				"Location: /get/%lu/%s\r\n",
-				(gulong) shared_file_index(sfn), escaped);
+				(ulong) shared_file_index(sfn), escaped);
 
 			if (escaped != shared_file_name_nfc(sfn)) {
 				HFREE_NULL(escaped);
 			}
 
 			u->sf = shared_file_ref(sfn);			
-			upload_error_remove_ext(u, location, 301, "Moved Permanently");
+			upload_error_remove_ext(u, location, 301, N_("Moved Permanently"));
 			return -1;
 		}
 		else if (sf == NULL)
@@ -3061,7 +3114,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		if (GNET_PROPERTY(upload_debug) > 1) {
 			if (sf)
 				g_debug("BAD INDEX FIXED: requested %u, serving %u: %s",
-					idx, (guint) shared_file_index(sf), shared_file_path(sf));
+					idx, (uint) shared_file_index(sf), shared_file_path(sf));
 			else
 				g_debug("BAD INDEX NOT FIXED: requested %u: %s",
 					idx, u->name);
@@ -3075,7 +3128,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		if (GNET_PROPERTY(upload_debug) > 1) {
 			if (sfn)
 				g_debug("INDEX FIXED: requested %u, serving %u: %s",
-					idx, (guint) shared_file_index(sfn),
+					idx, (uint) shared_file_index(sfn),
 					shared_file_path(sfn));
 			else
 				g_debug("INDEX MISMATCH: requested %u: %s (has %s)",
@@ -3083,7 +3136,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 		}
 
 		if (NULL == sfn) {
-			upload_send_error(u, 404, "File index/name mismatch");
+			upload_send_error(u, 404, N_("File index/name mismatch"));
 			return -1;
 		} else
 			sf = sfn;
@@ -3099,11 +3152,11 @@ found:
 	return 0;
 
 urn_not_found:
-	upload_send_error(u, 404, "URN Not Found (urn:sha1)");
+	upload_send_error(u, 404, N_("URN Not Found (urn:sha1)"));
 	return -1;
 
 sha1_recomputed:
-	upload_send_error(u, 503, "SHA1 is being recomputed");
+	upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 	return -1;
 
 not_found:
@@ -3119,7 +3172,7 @@ upload_request_tth(shared_file_t *sf)
 	}
 }
 
-static gboolean
+static bool
 upload_request_tth_matches(shared_file_t *sf, const struct tth *tth)
 {
 	if (NULL == tth || NULL == shared_file_tth(sf)) {
@@ -3157,9 +3210,8 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		goto malformed;
 	}
 
-	if (spam_sha1_check(&sha1)) {
+	if (spam_sha1_check(&sha1))
 		goto not_found;
-	}
 
 	upload_collect_locations(u, &sha1, header);
 
@@ -3188,7 +3240,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 
 	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, "Library being rebuilt");
+		upload_error_remove(u, 503, N_("Library being rebuilt"));
 		return -1;
 	}
 
@@ -3196,7 +3248,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 		upload_error_not_found(u, uri);
 		return -1;
 	} else if (!sha1_hash_is_uptodate(sf)) {
-		upload_send_error(u, 503, "SHA1 is being recomputed");
+		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 		return -1;
 	} else if (!upload_file_present(u, sf)) {
 		goto not_found;
@@ -3215,7 +3267,7 @@ malformed:
 		g_warning("malformed URN \"%s\" in /uri-res/N2R request sent by %s",
 			NULL_STRING(uri), upload_host_info(u));
 	}
-	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2R request");
+	upload_error_remove(u, 400, N_("Malformed URN in /uri-res/N2R request"));
 	return -1;
 
 not_found:
@@ -3258,7 +3310,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 	if (SHARE_REBUILDING == sf) {
 		/* Retry-able by user, hence 503 */
 		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
-		upload_error_remove(u, 503, "Library being rebuilt");
+		upload_error_remove(u, 503, N_("Library being rebuilt"));
 		return -1;
 	}
 	if (sf == NULL) {
@@ -3276,7 +3328,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 	}
 	
 	if (!sha1_hash_is_uptodate(sf)) {
-		upload_send_error(u, 503, "SHA1 is being recomputed");
+		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 		return -1;
 	}
 
@@ -3307,11 +3359,11 @@ malformed:
 		g_warning("malformed URN \"%s\" in /uri-res/N2X request sent by %s",
 			NULL_STRING(uri), upload_host_info(u));
 	}
-	upload_error_remove(u, 400, "Malformed URN in /uri-res/N2X request");
+	upload_error_remove(u, 400, N_("Malformed URN in /uri-res/N2X request"));
 	return -1;
 
 tth_recomputed:
-	upload_send_error(u, 503, "TTH is being computed");
+	upload_send_error(u, 503, N_("TTH is being computed"));
 	return -1;
 }
 
@@ -3342,7 +3394,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
         u->name = atom_str_get(uri);
 
 	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
-		guint32 idx;
+		uint32 idx;
 		int error;
 
 		idx = parse_uint32(endptr, &endptr, 10, &error);
@@ -3352,7 +3404,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
 			'\0' != endptr[1] &&
 			NULL == strchr(&endptr[1], '/')
 		) {
-			endptr = deconstify_gchar(&endptr[1]);
+			endptr = deconstify_char(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, endptr, idx);
 		}
 	} else if (NULL != (endptr = is_strprefix(uri, "/uri-res/"))) {
@@ -3379,7 +3431,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
  ***/
 
 static void
-upload_tx_error(gpointer obj, const char *reason, ...)
+upload_tx_error(void *obj, const char *reason, ...)
 {
 	struct upload *u = cast_to_upload(obj);
 	va_list args;
@@ -3397,7 +3449,7 @@ static const struct tx_deflate_cb upload_tx_deflate_cb = {
 };
 
 static void
-upload_tx_add_written(gpointer obj, int amount)
+upload_tx_add_written(void *obj, int amount)
 {
 	struct upload *u = cast_to_upload(obj);
 
@@ -3474,10 +3526,10 @@ extract_downloaded(const struct upload *u, const header_t *header)
  * Checks whether the HTTP client can handle the transfer-encoding "chunked".
  * @return TRUE if the client seems to support it and otherwise FALSE.
  */
-static gboolean
+static bool
 supports_chunked(const struct upload *u, const header_t *header)
 {
-	gboolean chunked;
+	bool chunked;
 
 	upload_check(u);
 	g_assert(header);
@@ -3515,14 +3567,14 @@ static void
 extract_fw_node_info(struct upload *u, const header_t *header)
 {
 	struct guid guid;
-	gboolean seen_port_ip = FALSE;
-	gboolean seen_guid = FALSE;
+	bool seen_port_ip = FALSE;
+	bool seen_guid = FALSE;
 	const char *tok;
 	const char *msg = NULL;
 	const char *buf;
 	strtok_t *st;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	buf = header_get(header, "X-FW-Node-Info");
 	if (NULL == buf)
@@ -3645,21 +3697,21 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 
 	if (!GNET_PROPERTY(browse_host_enabled)) {
 		if (ctl_limit(u->socket->addr, CTL_D_BROWSE | CTL_D_STEALTH)) {
-			upload_remove(u, _("Limited connection"));
+			upload_remove(u, N_("Limited connection"));
 		} else {
-			upload_send_error(u, 403, "Browse Host Disabled");
+			upload_send_error(u, 403, N_("Browse Host Disabled"));
 		}
 		return -1;
 	}
 
 	if (ctl_limit(u->socket->addr, CTL_D_BROWSE)) {
 		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
-			send_upload_error(u, 403, "Browse Host Disabled");
+			send_upload_error(u, 403, N_("Browse Host Disabled"));
 		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
-			send_upload_error(u, 404, "Limiting connections from %s",
+			send_upload_error(u, 404, N_("Limiting connections from %s"),
 				gip_country_name(u->socket->addr));
 		}
-		upload_remove(u, _("Limited connection"));
+		upload_remove(u, N_("Limited connection"));
 		return -1;
 	}
 
@@ -3682,7 +3734,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, "Redirecting");
-		upload_remove(u, "Redirected to %s:%u",
+		upload_remove(u, N_("Redirected to %s:%u"),
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		return -1;
 	}
@@ -3696,7 +3748,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 			(time_t) -1 != t &&
 			delta_time((time_t) GNET_PROPERTY(library_rescan_finished), t) <= 0 
 		) {
-			upload_send_error(u, 304, "Not Modified");
+			upload_send_error(u, 304, N_("Not Modified"));
 			return -1;
 		}
 	}
@@ -3725,11 +3777,11 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
  * @return TRUE if upload is a duplicate, FALSE if it isn't or if the old
  * duplicate was stalling and thus kicked out.
  */
-static gboolean
+static bool
 upload_is_already_downloading(struct upload *upload)
 {
 	GSList *sl, *to_remove = NULL;
-	gboolean result = FALSE;
+	bool result = FALSE;
 
 	g_assert(upload);
 
@@ -3789,7 +3841,7 @@ upload_is_already_downloading(struct upload *upload)
 				host_addr_to_string(up->addr), upload_vendor_str(up),
 				uint64_to_string(up->sent));
 
-			upload_remove(up, _("Stalling upload replaced"));
+			upload_remove(up, N_("Stalling upload replaced"));
 		}
 	}
 
@@ -3802,17 +3854,17 @@ upload_is_already_downloading(struct upload *upload)
  *
  * @return TRUE if we're going to actually serve the request.
  */
-static gboolean
+static bool
 upload_request_for_shared_file(struct upload *u, const header_t *header)
 {
 	filesize_t range_skip = 0, range_end = 0;
-	gboolean range_unavailable = FALSE;
+	bool range_unavailable = FALSE;
 	const struct sha1 *sha1 = NULL;
 	const char *buf;
 	time_t now = tm_time();
-	gboolean parq_allows = FALSE;
-    guint32 idx = 0;
-	gboolean switched = FALSE;
+	bool parq_allows = FALSE;
+    uint32 idx = 0;
+	bool switched = FALSE;
 
 	upload_check(u);
 	g_assert(u->sf);
@@ -3883,7 +3935,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	u->file_size = shared_file_size(u->sf);
 
 	if (!u->head_only && upload_is_already_downloading(u)) {
-		upload_send_error(u, 409, "Already downloading this file");
+		upload_send_error(u, 409, N_("Already downloading this file"));
 		return FALSE;
 	}
 
@@ -3904,7 +3956,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				g_warning("cannot parse Range \"%s\" sent by %s",
 					buf, upload_host_info(u));
 			}
-			upload_error_remove(u, 400, "Malformed Range request");
+			upload_error_remove(u, 400, N_("Malformed Range request"));
 			return FALSE;
 		}
 
@@ -3968,11 +4020,9 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 */
 
 	if (range_skip >= u->file_size || range_end >= u->file_size) {
-		static const char msg[] = "Requested range not satisfiable";
-
 		u->cb_416_arg.u = u;
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
-		upload_send_error(u, 416, msg);
+		upload_send_error(u, 416, N_("Requested range not satisfiable"));
 		return FALSE;
 	}
 
@@ -3984,8 +4034,6 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 */
 
 	if (range_unavailable) {
-		static const char msg[] = "Requested range not available yet";
-
 		g_assert(sha1_hash_available(u->sf));
 		g_assert(GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server));
 
@@ -3993,7 +4041,8 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		upload_http_extra_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
 
-		upload_send_error(u, 416, msg);		/* Same for HEAD or GET */
+		/* Same for HEAD or GET */
+		upload_send_error(u, 416, N_("Requested range not available yet"));
 		return FALSE;
 	}
 
@@ -4020,8 +4069,8 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		u->parq_ul = parq_upload_get(u, header);
 		if (u->parq_ul == NULL) {
 			upload_error_remove(u, 503,
-				parq_upload_queue_full(u) ? "Queue full" :
-				"Another connection is still active");
+				parq_upload_queue_full(u) ? N_("Queue full") :
+				N_("Another connection is still active"));
 			return FALSE;
 		}
 
@@ -4076,9 +4125,10 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			 *		-- JA, 19/05/'03
 			 */
 			upload_error_remove_ext(u, retry_after, 403,
-				"%s not honoured; removed from PARQ queue",
+				N_("%s not honoured; removed from PARQ queue"),
 				u->was_actively_queued ?
-					"Minimum retry delay" : "Retry-After");
+					N_("Minimum retry delay") :
+					"Retry-After" /* HTTP header name, don't translate */);
 			return FALSE;
 		}
 
@@ -4108,9 +4158,9 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			upload_is_enabled() &&
 			GNET_PROPERTY(bws_out_enabled) &&
 			!wd_is_awake(stall_wd) &&
-			(gulong) bsched_pct(BSCHED_BWS_OUT)
+			(ulong) bsched_pct(BSCHED_BWS_OUT)
 				< GNET_PROPERTY(ul_usage_min_percentage) &&
-			(gulong) bsched_avg_pct(BSCHED_BWS_OUT)
+			(ulong) bsched_avg_pct(BSCHED_BWS_OUT)
 				< GNET_PROPERTY(ul_usage_min_percentage)
 		) {
 			if (parq_upload_request_force(u, u->parq_ul)) {
@@ -4127,7 +4177,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		if (!parq_allows) {
 			if (u->status == GTA_UL_QUEUED) {
 				send_upload_error(u, 503,
-					  "Queued (slot %d, ETA: %s)",
+					  N_("Queued (slot %d, ETA: %s)"),
 					  parq_upload_lookup_position(u),
 					  short_time_ascii(parq_upload_lookup_eta(u)));
 
@@ -4139,7 +4189,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				expect_http_header(u, GTA_UL_QUEUED);
 				return FALSE;
 			} else if (parq_upload_queue_full(u)) {
-				upload_error_remove(u, 503, "Queue full");
+				upload_error_remove(u, 503, N_("Queue full"));
 			} else {
 				upload_error_remove(u, 503,
 					N_("Queued (slot %d, ETA: %s)"),
@@ -4281,7 +4331,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		}
 
 		if (!upload_send_http_status(u, u->keep_alive, http_code, http_msg)) {
-			upload_remove(u, _("Cannot send whole HTTP status"));
+			upload_remove(u, N_("Cannot send whole HTTP status"));
 			return FALSE;
 		}
 	}
@@ -4342,7 +4392,7 @@ upload_determine_peer_address(struct upload *u, header_t *header)
 
 	if (buf != NULL) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 		if (string_to_host_addr_port(buf, NULL, &addr, &port)) {
 			u->gnet_addr = addr;
 			u->gnet_port = port;
@@ -4354,7 +4404,7 @@ upload_determine_peer_address(struct upload *u, header_t *header)
 static void
 upload_set_tos(struct upload *u)
 {
-	gboolean known_for_stalling;
+	bool known_for_stalling;
 
 	upload_check(u);
 
@@ -4407,7 +4457,7 @@ upload_parse_uri(header_t *header, const char *uri,
 
 		g_strlcpy(host, h, 1 + len);
 		if (':' == *ep) {
-			guint32 v;
+			uint32 v;
 			int error;
 
 			ep++; /* Skip ':' */
@@ -4426,7 +4476,7 @@ upload_parse_uri(header_t *header, const char *uri,
 			g_strlcpy(host, value, host_size);
 		}
 	}
-	return deconstify_gchar(uri);
+	return deconstify_char(uri);
 }
 
 static void
@@ -4443,11 +4493,11 @@ remove_trailing_http_tag(char *request)
 	}
 }
 
-static guint64
+static uint64
 get_content_length(header_t *header)
 {
 	const char *value;
-	guint64 length = 0;
+	uint64 length = 0;
 	
 	value = header_get(header, "Content-Length");
 	if (value) {
@@ -4490,7 +4540,7 @@ upload_handle_connection_header(struct upload *u, header_t *header)
  *
  * @return TRUE if we're going to actually serve the request.
  */
-static gboolean
+static bool
 upload_request_special(struct upload *u, const header_t *header)
 {
 	int flags = 0;
@@ -4533,7 +4583,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			) {
 				flags |= BH_F_HTML;	/* A browser probably */
 			} else {
-				upload_send_error(u, 406, "Not Acceptable");
+				upload_send_error(u, 406, N_("Not Acceptable"));
 				return FALSE;
 			}
 		}
@@ -4587,7 +4637,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			
 			u->file_size = thex_upload_get_content_length(u->thex);
 			if (0 == u->file_size) {
-				upload_send_error(u, 500, "THEX failure");
+				upload_send_error(u, 500, N_("THEX failure"));
 				return FALSE;
 			}
 			u->pos = 0;
@@ -4600,7 +4650,7 @@ upload_request_special(struct upload *u, const header_t *header)
 	}
 
 	if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {
-		upload_remove(u, _("Cannot send whole HTTP status"));
+		upload_remove(u, N_("Cannot send whole HTTP status"));
 		return FALSE;
 	}
 
@@ -4659,7 +4709,7 @@ upload_request(struct upload *u, header_t *header)
 	char *search, *uri;
 	time_t now = tm_time();
 	char host[1 + MAX_HOSTLEN];
-	gboolean first_request;
+	bool first_request;
 
 	upload_check(u);
 
@@ -4815,7 +4865,7 @@ upload_request(struct upload *u, header_t *header)
 		/* Get rid of the trailing HTTP/<whatever> */
 		remove_trailing_http_tag(u->request);
 	} else {
-		upload_error_remove(u, 500, "Unknown/Missing Protocol Tag");
+		upload_error_remove(u, 500, N_("Unknown/Missing Protocol Tag"));
 		return;
 	}
 
@@ -4853,7 +4903,7 @@ upload_request(struct upload *u, header_t *header)
 		if (endptr && is_ascii_blank(endptr[0])) {
 			uri = skip_ascii_blanks(endptr);
 		} else {
-			upload_send_error(u, 501, "Not Implemented");
+			upload_send_error(u, 501, N_("Not Implemented"));
 			return;
 		}
 	}
@@ -4867,7 +4917,7 @@ upload_request(struct upload *u, header_t *header)
 		 * send content along with GET/HEAD.
 		 *		--RAM, 2006-08-15
 		 */
-		upload_error_remove(u, 403, "No Content Allowed");
+		upload_error_remove(u, 403, N_("No Content Allowed"));
 		return;
 	}
 
@@ -4883,7 +4933,7 @@ upload_request(struct upload *u, header_t *header)
 	/* Extract the host and path from an absolute URI */
 	uri = upload_parse_uri(header, uri, host, sizeof host);
 	if (NULL == uri) {
-		upload_send_error(u, 400, "Bad URI");
+		upload_send_error(u, 400, N_("Bad URI"));
 		return;
 	}
 
@@ -4892,7 +4942,7 @@ upload_request(struct upload *u, header_t *header)
 		!url_unescape(uri, TRUE) ||
 		0 != url_canonize_path(uri)
 	) {
-		upload_send_error(u, 400, "Bad Path");
+		upload_send_error(u, 400, N_("Bad Path"));
 		return;
 	}
 
@@ -4908,7 +4958,7 @@ upload_request(struct upload *u, header_t *header)
 
 	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
 		if (NULL == header_get(header, "Host")) {
-			upload_send_error(u, 400, "Missing Host Header");
+			upload_send_error(u, 400, N_("Missing Host Header"));
 			return;
 		}
 	}
@@ -5009,7 +5059,7 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if (!upload_is_enabled()) {
-		upload_error_remove(u, 500, "Sharing currently disabled");
+		upload_error_remove(u, 500, N_("Sharing currently disabled"));
 		return;
 	}
 
@@ -5020,7 +5070,7 @@ upload_request(struct upload *u, header_t *header)
 	upload_fire_upload_info_changed(u);
 
 	if (u->flags & UPLOAD_F_LIMITED) {
-		upload_error_remove(u, 403, _("Limited connection"));
+		upload_error_remove(u, 403, N_("Limited connection"));
 		return;
 	}
 
@@ -5110,13 +5160,13 @@ upload_completed(struct upload *u)
  * @return TRUE if an exception occured, the upload has been removed
  *         in this case. FALSE if everything is OK.
  */
-static gboolean
+static bool
 upload_handle_exception(struct upload *u, inputevt_cond_t cond)
 {
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		/* If we can't write then we don't want it, kill the socket */
 		socket_eof(u->socket);
-		upload_remove(u, _("Write exception"));
+		upload_remove(u, N_("Write exception"));
 		return TRUE;
 	}
 
@@ -5127,13 +5177,13 @@ upload_handle_exception(struct upload *u, inputevt_cond_t cond)
  * Called when output source can accept more data.
  */
 static void
-upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
+upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 {
 	struct upload *u = cast_to_upload(obj);
 	ssize_t written;
 	filesize_t amount;
 	size_t available;
-	gboolean using_sendfile;
+	bool using_sendfile;
 
 	(void) unused_source;
 
@@ -5193,11 +5243,11 @@ upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
 			g_assert(u->buf_size > 0);
 			ret = file_object_pread(u->file, u->buffer, u->buf_size, u->pos);
 			if ((ssize_t) -1 == ret) {
-				upload_remove(u, _("File read error: %s"), g_strerror(errno));
+				upload_remove(u, N_("File read error: %s"), g_strerror(errno));
 				return;
 			}
 			if (0 == ret) {
-				upload_remove(u, _("File EOF?"));
+				upload_remove(u, N_("File EOF?"));
 				return;
 			}
 			u->bsize = (size_t) ret;
@@ -5230,11 +5280,11 @@ upload_writable(gpointer obj, int unused_source, inputevt_cond_t cond)
 		}
 		if (!is_temporary_error(e)) {
 			socket_eof(u->socket);
-			upload_remove(u, _("Data write error: %s"), g_strerror(e));
+			upload_remove(u, N_("Data write error: %s"), g_strerror(e));
 		}
 		return;
 	} else if (written == 0) {
-		upload_remove(u, _("No bytes written, source may be gone"));
+		upload_remove(u, N_("No bytes written, source may be gone"));
 		return;
 	}
 
@@ -5279,7 +5329,7 @@ upload_special_read(struct upload *u)
 }
 
 static inline ssize_t
-upload_special_write(struct upload *u, gconstpointer data, size_t len)
+upload_special_write(struct upload *u, const void *data, size_t len)
 {
 	ssize_t r;
 
@@ -5297,7 +5347,7 @@ upload_special_write(struct upload *u, gconstpointer data, size_t len)
  * Callback invoked when the special stack has been fully flushed.
  */
 static void
-upload_special_flushed(gpointer arg)
+upload_special_flushed(void *arg)
 {
 	struct upload *u = cast_to_upload(arg);
 
@@ -5337,7 +5387,7 @@ upload_special_flush(struct upload *u)
  * Called when output source can accept more data.
  */
 static void
-upload_special_writable(gpointer obj)
+upload_special_writable(void *obj)
 {
 	struct upload *u = cast_to_upload(obj);
 	ssize_t written;
@@ -5357,7 +5407,7 @@ upload_special_writable(gpointer obj)
 		g_assert(u->buf_size > 0);
 		ret = upload_special_read(u);
 		if ((ssize_t) -1 == ret) {
-			upload_remove(u, _("Special read error: %s"), g_strerror(errno));
+			upload_remove(u, N_("Special read error: %s"), g_strerror(errno));
 			return;
 		}
 		if (0 == ret) {
@@ -5401,7 +5451,7 @@ upload_kill(gnet_upload_t upload)
 	g_return_if_fail(u);
     if (!UPLOAD_IS_COMPLETE(u)) {
 		parq_upload_force_remove(u);
-        upload_remove(u, _("Explicitly killed"));
+        upload_remove(u, N_("Explicitly killed"));
 	}
 }
 
@@ -5424,7 +5474,7 @@ upload_kill_addr(const host_addr_t addr)
 		struct upload *u = cast_to_upload(sl->data);
 
 		parq_upload_force_remove(u);
-		upload_remove(u, _("IP denying uploads"));
+		upload_remove(u, N_("IP denying uploads"));
 	}
 	g_slist_free(to_remove);
 }
@@ -5432,7 +5482,7 @@ upload_kill_addr(const host_addr_t addr)
 /**
  * Check whether uploading is enabled: we have slots, and bandwidth.
  */
-gboolean
+bool
 upload_is_enabled(void)
 {
 	return GNET_PROPERTY(max_uploads) > 0 &&
@@ -5445,7 +5495,7 @@ upload_is_enabled(void)
 G_GNUC_COLD void
 upload_init(void)
 {
-	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
+	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
@@ -5495,8 +5545,8 @@ upload_close(void)
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
 
-	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
-	gm_hash_table_destroy_null(&mesh_info);
+	htable_foreach(mesh_info, mi_free_kv, NULL);
+	htable_free_null(&mesh_info);
 
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&push_requests);

@@ -61,22 +61,22 @@ struct xfmt_prefix {
  * Public interface.
  */
 
-gboolean xfmt_tree(const xnode_t *root, ostream_t *os, guint32 options);
-gboolean xfmt_tree_extended(const xnode_t *root, ostream_t *os,
-	guint32 options,
+bool xfmt_tree(const xnode_t *root, ostream_t *os, uint32 options);
+bool xfmt_tree_extended(const xnode_t *root, ostream_t *os,
+	uint32 options,
 	const struct xfmt_prefix *pvec, size_t pvcnt,
 	const char *default_ns);
 
-gboolean xfmt_tree_dump(const xnode_t *root, FILE *f);
-gboolean xfmt_tree_prologue_dump(const xnode_t *root, FILE *f);
-gboolean xfmt_tree_dump_extended(const xnode_t *root, FILE *f,
-	guint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
+bool xfmt_tree_dump(const xnode_t *root, FILE *f);
+bool xfmt_tree_prologue_dump(const xnode_t *root, FILE *f);
+bool xfmt_tree_dump_extended(const xnode_t *root, FILE *f,
+	uint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
 	const char *default_ns);
 size_t xfmt_tree_to_buffer(const xnode_t *root,
-	void *buf, size_t len, guint32 options);
-char *xfmt_tree_to_string(const xnode_t *root, guint32 options);
+	void *buf, size_t len, uint32 options);
+char *xfmt_tree_to_string(const xnode_t *root, uint32 options);
 char *xfmt_tree_to_string_extended(const xnode_t *root,
-	guint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
+	uint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
 	const char *default_ns);
 
 #endif /* _xml_xfmt_h_ */

@@ -215,7 +215,7 @@ main(int argc, char **argv)
 	extern char *optarg;
 
 	/* Initialize memory allocation routines used by the sdbm library */
-	vmm_init(&c);
+	vmm_init();
 	halloc_init(FALSE);
 
 	progname = argv[0];

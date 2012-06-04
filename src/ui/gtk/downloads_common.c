@@ -45,8 +45,11 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/glib-missing.h"
-#include "lib/hashlist.h"
 #include "lib/halloc.h"
+#include "lib/hashlist.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/url_factory.h"
@@ -96,9 +99,9 @@ struct fileinfo_data {
 static gnet_fi_t last_shown;
 static gboolean  last_shown_valid;
 
-static GHashTable *fi_handles;	/* gnet_fi_t -> row */
-static GHashTable *fi_updates;	/* gnet_fi_t */
-static GHashTable *src_updates;	/* gnet_src_t */
+static htable_t *fi_handles;	/* gnet_fi_t -> row */
+static hset_t *fi_updates;		/* gnet_fi_t */
+static hset_t *src_updates;		/* gnet_src_t */
 
 static enum nb_downloads_page current_page;
 
@@ -268,6 +271,54 @@ downloads_gui_pipeline_range_string(const struct download *d)
 	return buf;
 }
 
+/**
+ * Generates status for the queued download showing the core message and
+ * appending the rescheduling information.
+ *
+ * @param buf		where formatting is done
+ * @param buflen	length of formatting buffer
+ * @param d			the download for which we're generating a status
+ *
+ * @return the address of buf
+ */
+static const char *
+download_gui_rescheduling(char *buf, size_t buflen, const struct download *d)
+{
+	char resched[80];
+	time_t rescheduled;
+
+	/*
+	 * Rescheduling time is the largest of `retry_after' (absolute) and
+	 * `timeout_delay' secs after `last_update'.
+	 * See download_pickup_queued() for details on how this is handled.
+	 *		--RAM, 2007-05-06
+	 */
+
+	rescheduled = d->last_update + d->timeout_delay;
+	rescheduled = MAX(rescheduled, d->retry_after);
+
+	time_locale_to_string_buf(rescheduled, resched, sizeof resched);
+
+	if (NULL == d->remove_msg) {
+		if (delta_time(rescheduled, tm_time()) > 0) {
+		str_bprintf(buf, buflen, "%s %s #%u",
+			delta_time(rescheduled, tm_time()) > 0 ?
+				_("Rescheduled for") : _("Restartable since"),
+			lazy_locale_to_ui_string(resched), d->retries);
+		}
+	} else {
+		if (delta_time(rescheduled, tm_time()) > 0) {
+		str_bprintf(buf, buflen, "%s - %s %s #%u",
+			d->remove_msg,
+			delta_time(rescheduled, tm_time()) > 0 ?
+				_("rescheduled for") : _("restartable since"),
+			lazy_locale_to_ui_string(resched), d->retries);
+		}
+	}
+
+	return buf;
+}
+
 const char *
 downloads_gui_status_string(const struct download *d)
 {
@@ -336,10 +387,15 @@ downloads_gui_status_string(const struct download *d)
 	case GTA_DL_PASSIVE_QUEUED:	/* RAM, 2007-08-19 Passive queueing */
 	case GTA_DL_QUEUED:
 		if (FILE_INFO_COMPLETE(d->file_info)) {
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
-			status = tmpstr;
+			if (d->remove_msg != NULL) {
+				/* Show message if present */
+				status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
+			} else {
+				gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
+				status = tmpstr;
+			}
 		} else {
-			status = d->remove_msg ? d->remove_msg : "";
+			status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
 		}
 		break;
 
@@ -1363,7 +1419,7 @@ fi_gui_file_by_handle(gnet_fi_t handle)
 {
 	struct fileinfo_data *file;
 
-	file = g_hash_table_lookup(fi_handles, uint_to_pointer(handle));
+	file = htable_lookup(fi_handles, uint_to_pointer(handle));
 	g_return_val_if_fail(file, NULL);
 	g_assert(handle == file->handle);
 	return file;
@@ -1375,13 +1431,13 @@ fi_gui_fi_added(gnet_fi_t handle)
 	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
 	
-	g_return_if_fail(!g_hash_table_lookup(fi_handles, uint_to_pointer(handle)));
+	g_return_if_fail(!htable_contains(fi_handles, uint_to_pointer(handle)));
 
 	WALLOC(file);
 	*file = zero_data;
 	file->handle = handle;
 	fi_gui_file_invalidate(file);
-	g_hash_table_insert(fi_handles, uint_to_pointer(handle), file);
+	htable_insert(fi_handles, uint_to_pointer(handle), file);
 	fi_gui_file_set_filename(file);
 	fi_gui_file_fill_status(file);
 	fi_gui_file_update_visibility(file);
@@ -1419,8 +1475,8 @@ fi_gui_fi_removed(gnet_fi_t handle)
 		fi_gui_clear_info();
 	}
 	key = uint_to_pointer(handle);
-	g_hash_table_remove(fi_handles, key);
-	g_hash_table_remove(fi_updates, key);
+	htable_remove(fi_handles, key);
+	hset_remove(fi_updates, key);
 	g_assert(NULL == file->sources);
 
 	fi_gui_file_hide(file);
@@ -1514,14 +1570,14 @@ static void
 fi_gui_src_removed(gnet_src_t handle)
 {
 	fi_gui_source_remove(guc_src_get_download(handle));
-	g_hash_table_remove(src_updates, uint_to_pointer(handle));
+	hset_remove(src_updates, uint_to_pointer(handle));
 }
 
 static void
 fi_gui_src_status_changed(gnet_src_t handle)
 {
 	void *key = uint_to_pointer(handle);
-	g_hash_table_insert(src_updates, key, key);
+	hset_insert(src_updates, key);
 }
 
 static void
@@ -1629,7 +1685,7 @@ static void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
 	void *key = uint_to_pointer(handle);
-	g_hash_table_insert(fi_updates, key, key);
+	hset_insert(fi_updates, key);
 }
 
 static void
@@ -1640,36 +1696,34 @@ fi_gui_fi_status_changed_transient(gnet_fi_t handle)
 	}
 }
 
-static gboolean
-fi_gui_file_update_queued(void *key, void *unused_value, void *unused_udata)
+static bool
+fi_gui_file_update_queued(const void *key, void *unused_udata)
 {
 	gnet_fi_t handle = pointer_to_uint(key);
 
-	(void) unused_value;
 	(void) unused_udata;
 
   	fi_gui_file_update(handle);
-	return TRUE; /* Remove the handle from the hashtable */
+	return TRUE; /* Remove the handle from the set */
 }
 
-static gboolean
-fi_gui_source_update_queued(void *key, void *unused_value, void *unused_udata)
+static bool
+fi_gui_source_update_queued(const void *key, void *unused_udata)
 {
 	gnet_src_t src = pointer_to_uint(key);
 
-	(void) unused_value;
 	(void) unused_udata;
 
   	fi_gui_source_update(guc_src_get_download(src));
-	return TRUE; /* Remove the handle from the hashtable */
+	return TRUE; /* Remove the handle from the set */
 }
 
 static void
 fi_gui_update_display(void)
 {
 	fi_gui_files_freeze();
-	g_hash_table_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
-	g_hash_table_foreach_remove(src_updates, fi_gui_source_update_queued, NULL);
+	hset_foreach_remove(fi_updates, fi_gui_file_update_queued, NULL);
+	hset_foreach_remove(src_updates, fi_gui_source_update_queued, NULL);
 	fi_gui_files_thaw();
 }
 
@@ -1921,17 +1975,14 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 }
 
 static void
-fi_handles_visualize(void *key, void *value, void *unused_udata)
+fi_handles_visualize(const void *key, void *value, void *unused_udata)
 {
-	struct fileinfo_data *file;
-	gnet_fi_t handle;
+	struct fileinfo_data *file = value;
+	gnet_fi_t handle = pointer_to_uint(key);
 	
 	g_assert(value);
 	(void) unused_udata;
 	
-	handle = pointer_to_uint(key);
-	file = value;
-
 	g_assert(handle == file->handle);
 	fi_gui_file_invalidate(file);
 	fi_gui_file_update_visibility(file);
@@ -1941,7 +1992,7 @@ static void
 fi_gui_files_visualize(void)
 {
 	fi_gui_files_freeze();
-	g_hash_table_foreach(fi_handles, fi_handles_visualize, NULL);
+	htable_foreach(fi_handles, fi_handles_visualize, NULL);
 	fi_gui_files_thaw();
 }
 
@@ -2228,17 +2279,14 @@ on_checkbutton_downloads_select_regex_invert_toggled(
 }
 
 static void
-fi_handles_filter(void *key, void *value, void *unused_udata)
+fi_handles_filter(const void *key, void *value, void *unused_udata)
 {
-	struct fileinfo_data *file;
-	gnet_fi_t handle;
+	struct fileinfo_data *file = value;
+	gnet_fi_t handle = pointer_to_uint(key);
 	
 	g_assert(value);
 	(void) unused_udata;
 	
-	handle = pointer_to_uint(key);
-	file = value;
-
 	g_assert(handle == file->handle);
 	fi_gui_file_update_matched(file);
 	fi_gui_file_update_visibility(file);
@@ -2279,7 +2327,7 @@ fi_gui_filter_by_regex(const char *expr)
 	}
 	fi_gui_files_freeze();
 	fi_gui_files_filter_changed();
-	g_hash_table_foreach(fi_handles, fi_handles_filter, NULL);
+	htable_foreach(fi_handles, fi_handles_filter, NULL);
 	fi_gui_files_thaw();
 }
 
@@ -2327,9 +2375,9 @@ on_checkbutton_downloads_filter_regex_invert_toggled(
 void
 fi_gui_common_init(void)
 {
-	fi_handles = g_hash_table_new(NULL, NULL);
-	fi_updates = g_hash_table_new(NULL, NULL);
-	src_updates = g_hash_table_new(NULL, NULL);
+	fi_handles = htable_create(HASH_KEY_SELF, 0);
+	fi_updates = hset_create(HASH_KEY_SELF, 0);
+	src_updates = hset_create(HASH_KEY_SELF, 0);
 
 	notebook_downloads_init();
 
@@ -2358,21 +2406,17 @@ fi_gui_common_init(void)
 	main_gui_add_timer(fi_gui_timer);
 }
 
-static gboolean
-fi_handles_shutdown(void *key, void *value, void *unused_data)
+static void
+fi_handles_shutdown(const void *key, void *value, void *unused_data)
 {
-	struct fileinfo_data *file;
-	gnet_fi_t handle;
+	struct fileinfo_data *file = value;
+	gnet_fi_t handle = pointer_to_uint(key);
 	
 	(void) unused_data;
 	g_assert(value);
 	
-	handle = pointer_to_uint(key);
-	file = value;
 	g_assert(handle == file->handle);
 	fi_gui_file_free(file);
-
-	return TRUE; /* Remove the handle from the hashtable */
 }
 
 void
@@ -2395,11 +2439,11 @@ fi_gui_common_shutdown(void)
 
 	filter_regex_clear();
 	fi_gui_clear_info();
-	g_hash_table_foreach_remove(fi_handles, fi_handles_shutdown, NULL);
+	htable_foreach(fi_handles, fi_handles_shutdown, NULL);
 
-	gm_hash_table_destroy_null(&fi_handles);
-	gm_hash_table_destroy_null(&fi_updates);
-	gm_hash_table_destroy_null(&src_updates);
+	htable_free_null(&fi_handles);
+	hset_free_null(&fi_updates);
+	hset_free_null(&src_updates);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

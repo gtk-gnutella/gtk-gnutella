@@ -90,6 +90,7 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
+#include "lib/hikset.h"
 #include "lib/pmsg.h"
 #include "lib/patricia.h"
 #include "lib/stringify.h"
@@ -113,11 +114,11 @@
 static struct kball {
 	kuid_t *closest;			/**< KUID of closest node (atom) */
 	kuid_t *furthest;			/**< KUID of furthest node (atom) */
-	guint8 furthest_bits;		/**< Common bits with furthest node */
-	guint8 closest_bits;		/**< Common bits with closest node */
-	guint8 theoretical_bits;	/**< Theoretical furthest k-ball frontier */
-	guint8 width;				/**< k-ball width, in bits */
-	guint8 seeded;				/**< Is the DHT seeded? */
+	uint8 furthest_bits;		/**< Common bits with furthest node */
+	uint8 closest_bits;			/**< Common bits with closest node */
+	uint8 theoretical_bits;		/**< Theoretical furthest k-ball frontier */
+	uint8 width;				/**< k-ball width, in bits */
+	uint8 seeded;				/**< Is the DHT seeded? */
 } kball;
 
 /**
@@ -138,11 +139,11 @@ struct keyinfo {
 	float get_req_load;			/**< EMA of # of (read) requests per period */
 	float store_req_load;		/**< EMA of # of (store) requests per period */
 	time_t next_expire;			/**< Earliest expiration of a value */
-	guint32 get_requests;		/**< # of get requests received in period */
-	guint32 store_requests;		/**< # of store requests received in period */
-	guint8 common_bits;			/**< Leading bits shared with our KUID */
-	guint8 values;				/**< Amount of values stored under key */
-	guint8 flags;				/**< Operating flags */
+	uint32 get_requests;		/**< # of get requests received in period */
+	uint32 store_requests;		/**< # of store requests received in period */
+	uint8 common_bits;			/**< Leading bits shared with our KUID */
+	uint8 values;				/**< Amount of values stored under key */
+	uint8 flags;				/**< Operating flags */
 };
 
 static inline void
@@ -162,15 +163,15 @@ keyinfo_check(const struct keyinfo *ki)
  * values (see values.c).
  */
 struct keydata {
-	guint8 values;					/**< Amount of values stored */
+	uint8 values;					/**< Amount of values stored */
 	kuid_t creators[MAX_VALUES];	/**< Secondary keys (sorted numerically) */
-	guint64 dbkeys[MAX_VALUES];		/**< Associated SDBM keys for values */
+	uint64 dbkeys[MAX_VALUES];		/**< Associated SDBM keys for values */
 };
 
 /**
  * Hashtable holding information about all the keys we're storing.
  */
-static GHashTable *keys;		/**< KUID => struct keyinfo */
+static hikset_t *keys;		/**< KUID => struct keyinfo */
 
 /**
  * DBM wrapper to store keydata.
@@ -195,29 +196,29 @@ static double decimation_factor[KUID_RAW_BITSIZE];
 
 #define KEYS_DECIMATION_BASE 	1.2		/* Base for exponential decimation */
 
-static void keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj);
+static void keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj);
 
 /**
  * @return TRUE if key is stored here.
  */
-gboolean
+bool
 keys_exists(const kuid_t *key)
 {
-	return gm_hash_table_contains(keys, key);
+	return hikset_contains(keys, key);
 }
 
 /**
  * @return whether key is "store-loaded", i.e. if we are getting too many
  * STORE requests for it.
  */
-gboolean
+bool
 keys_is_store_loaded(const kuid_t *id)
 {
 	struct keyinfo *ki;
 
 	g_assert(id);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 	if (ki == NULL)
 		return FALSE;
 
@@ -243,7 +244,7 @@ keys_is_store_loaded(const kuid_t *id)
 /**
  * Are the amount of common leading bits sufficient to fall into our k-ball?
  */
-static inline gboolean
+static inline bool
 bits_within_kball(size_t common_bits)
 {
 	/*
@@ -261,7 +262,7 @@ bits_within_kball(size_t common_bits)
 /**
  * Is a key ID within the range of our k-ball?
  */
-gboolean
+bool
 keys_within_kball(const kuid_t *id)
 {
 	/*
@@ -282,7 +283,7 @@ keys_within_kball(const kuid_t *id)
  * A key is foreign if it does not fall into our space, i.e. it does not
  * have any common leading bits with our KUID.
  */
-gboolean
+bool
 keys_is_foreign(const kuid_t *id)
 {
 	return 0 == kuid_common_prefix(id, get_our_kuid());
@@ -294,11 +295,11 @@ keys_is_foreign(const kuid_t *id)
  * A key is "nearby" until it has less common leading bits with our KUID
  * than the external frontier of our k-ball minus the k-ball radius.
  */
-gboolean
+bool
 keys_is_nearby(const kuid_t *id)
 {
 	size_t common_bits;
-	guint8 radius;
+	uint8 radius;
 
 	/*
 	 * Until we get notified that the DHT is seeded (i.e. that we looked up
@@ -379,7 +380,7 @@ lookup_secondary_idx(const struct keydata *kd, const kuid_t *skey)
  *
  * @return 64-bit DB key for the value if found, 0 if key was not found.
  */
-static guint64
+static uint64
 lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 {
 	g_assert(kd);
@@ -426,7 +427,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 	g_assert(kd->values == ki->values);
 
 	for (i = 0; i < kd->values; i++) {
-		guint64 dbkey = kd->dbkeys[i];
+		uint64 dbkey = kd->dbkeys[i];
 		time_t expire;
 
 		if (values_has_expired(dbkey, now, &expire))
@@ -457,7 +458,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
  * Get key status (full and loaded boolean attributes).
  */
 void
-keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
+keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 {
 	struct keyinfo *ki;
 	time_t now;
@@ -469,7 +470,7 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
 	*full = FALSE;
 	*loaded = FALSE;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 	if (ki == NULL)
 		return;
 
@@ -529,14 +530,14 @@ keys_get_status(const kuid_t *id, gboolean *full, gboolean *loaded)
  * @return 64-bit DB key for the value if it does, 0 if key either does not
  * exist yet or does not hold data from the creator.
  */
-guint64
-keys_has(const kuid_t *id, const kuid_t *cid, gboolean store)
+uint64
+keys_has(const kuid_t *id, const kuid_t *cid, bool store)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
-	guint64 dbkey;
+	uint64 dbkey;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 	if (ki == NULL)
 		return 0;
 
@@ -598,13 +599,13 @@ keys_reclaim(struct keyinfo *ki)
  * @param dbkey		the 64-bit DB key (informational, for assertions)
  */
 void
-keys_remove_value(const kuid_t *id, const kuid_t *cid, guint64 dbkey)
+keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
 	int idx;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 
 	g_assert(ki);
 
@@ -662,7 +663,7 @@ keys_update_value(const kuid_t *id, time_t expire)
 {
 	struct keyinfo *ki;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 	g_assert(ki != NULL);
 
 	ki->next_expire = MIN(ki->next_expire, expire);
@@ -680,13 +681,13 @@ keys_update_value(const kuid_t *id, time_t expire)
  */
 void
 keys_add_value(const kuid_t *id, const kuid_t *cid,
-	guint64 dbkey, time_t expire)
+	uint64 dbkey, time_t expire)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
 	struct keydata new_kd;
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 
 	/*
 	 * If we're storing the first value under a key, we do not have any
@@ -695,7 +696,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 
 	if (NULL == ki) {
 		size_t common;
-		gboolean in_kball;
+		bool in_kball;
 
 		common = kuid_common_prefix(get_our_kuid(), id);
 		in_kball = bits_within_kball(common);
@@ -718,7 +719,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		ki->next_expire = expire;
 		ki->flags = in_kball ? 0 : DHT_KEY_F_CACHED;
 
-		g_hash_table_insert(keys, ki->kuid, ki);
+		hikset_insert_key(keys, &ki->kuid);
 
 		kd = &new_kd;
 		kd->values = 0;						/* will be incremented below */
@@ -832,7 +833,7 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 	g_assert(valvec);
 	g_assert(valcnt > 0);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 	if (ki == NULL)
 		return 0;
 
@@ -841,7 +842,7 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 		return 0;
 
 	for (i = 0; i < kd->values && vcnt > 0; i++) {
-		guint64 dbkey = kd->dbkeys[i];
+		uint64 dbkey = kd->dbkeys[i];
 		dht_value_t *v;
 
 		g_assert(0 != dbkey);
@@ -880,7 +881,7 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 int
 keys_get(const kuid_t *id, dht_value_type_t type,
 	kuid_t **secondary, int secondary_count, dht_value_t **valvec, int valcnt,
-	float *loadptr, gboolean *cached)
+	float *loadptr, bool *cached)
 {
 	struct keyinfo *ki;
 	struct keydata *kd;
@@ -893,7 +894,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	g_assert(valcnt > 0);
 	g_assert(loadptr);
 
-	ki = g_hash_table_lookup(keys, id);
+	ki = hikset_lookup(keys, id);
 
 	g_assert(ki);	/* If called, we know the key exists */
 
@@ -917,7 +918,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 */
 
 	for (i = 0; i < secondary_count && vcnt > 0; i++) {
-		guint64 dbkey = lookup_secondary(kd, secondary[i]);
+		uint64 dbkey = lookup_secondary(kd, secondary[i]);
 		dht_value_t *v;
 
 		if (0 == dbkey)
@@ -960,7 +961,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 */
 
 	for (i = 0; i < kd->values && vcnt > 0; i++) {
-		guint64 dbkey = kd->dbkeys[i];
+		uint64 dbkey = kd->dbkeys[i];
 		dht_value_t *v;
 
 		g_assert(0 != dbkey);
@@ -1004,7 +1005,7 @@ done:
  * Serialization routine for keydata.
  */
 static void
-serialize_keydata(pmsg_t *mb, gconstpointer data)
+serialize_keydata(pmsg_t *mb, const void *data)
 {
 	const struct keydata *kd = data;
 	int i;
@@ -1022,7 +1023,7 @@ serialize_keydata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for keydata.
  */
 static void
-deserialize_keydata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_keydata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct keydata *kd = valptr;
 	int i;
@@ -1059,13 +1060,11 @@ struct load_ctx {
  *
  * @return TRUE if the key item holds no value and must be removed.
  */
-static gboolean
-keys_update_load(gpointer u_key, gpointer val, gpointer u)
+static bool
+keys_update_load(void *val, void *u)
 {
 	struct keyinfo *ki = val;
 	struct load_ctx *ctx = u;
-
-	(void) u_key;
 
 	keyinfo_check(ki);
 
@@ -1108,8 +1107,8 @@ keys_update_load(gpointer u_key, gpointer val, gpointer u)
  * Callout queue periodic event for request load updates.
  * Also reclaims dead keys holding no values.
  */
-static gboolean
-keys_periodic_load(gpointer unused_obj)
+static bool
+keys_periodic_load(void *unused_obj)
 {
 	struct load_ctx ctx;
 
@@ -1117,12 +1116,12 @@ keys_periodic_load(gpointer unused_obj)
 
 	ctx.values = 0;
 	ctx.now = tm_time();
-	g_hash_table_foreach_remove(keys, keys_update_load, &ctx);
+	hikset_foreach_remove(keys, keys_update_load, &ctx);
 
 	g_assert(values_count() == ctx.values);
 
 	if (GNET_PROPERTY(dht_storage_debug)) {
-		size_t keys_count = g_hash_table_size(keys);
+		size_t keys_count = hikset_count(keys);
 		g_debug("DHT holding %zu value%s spread over %zu key%s",
 			ctx.values, 1 == ctx.values ? "" : "s",
 			keys_count, 1 == keys_count ? "" : "s");
@@ -1182,7 +1181,7 @@ keys_update_kball(void)
 		g_assert(cbits <= KUID_RAW_BITSIZE);
 
 		if (GNET_PROPERTY(dht_debug)) {
-			guint8 width = cbits - fbits;
+			uint8 width = cbits - fbits;
 
 			g_debug("DHT %sk-ball %s %u bit%s (was %u-bit wide)",
 				kball.seeded ? "" : "(not seeded yet) ",
@@ -1220,7 +1219,7 @@ keys_decimation_factor(const kuid_t *key)
 {
 	size_t common;
 	int delta;
-	guint8 frontier;
+	uint8 frontier;
 
 	common = kuid_common_prefix(get_our_kuid(), key);
 
@@ -1255,7 +1254,7 @@ keys_decimation_factor(const kuid_t *key)
  * Callout queue callback for k-ball updates.
  */
 static void
-keys_periodic_kball(cqueue_t *unused_cq, gpointer unused_obj)
+keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj)
 {
 	(void) unused_cq;
 	(void) unused_obj;
@@ -1282,7 +1281,8 @@ keys_init(void)
 	keys_periodic_ev = cq_periodic_main_add(LOAD_PERIOD * 1000,
 		keys_periodic_load, NULL);
 
-	keys = g_hash_table_new(kuid_hash, kuid_eq);
+	keys = hikset_create(
+		offsetof(struct keyinfo, kuid), HASH_KEY_FIXED, KUID_RAW_SIZE);
 	install_periodic_kball(KBALL_FIRST);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
@@ -1313,11 +1313,13 @@ struct offload_context {
  * nodes.
  */
 static void
-keys_offload_prepare(gpointer key, gpointer val, gpointer data)
+keys_offload_prepare(void *val, void *data)
 {
-	kuid_t *id = key;
+	const kuid_t *id;
 	struct keyinfo *ki = val;
 	struct offload_context *ctx = data;
+
+	id = ki->kuid;
 
 	if (!bits_within_kball(ki->common_bits))
 		return;		/* Key not in our k-ball, cached probably */
@@ -1330,7 +1332,7 @@ keys_offload_prepare(gpointer key, gpointer val, gpointer data)
 	 */
 
 	if (patricia_closest(ctx->kclosest, id) == ctx->our_kuid) {
-		ctx->found = g_slist_prepend(ctx->found, id);
+		ctx->found = gm_slist_prepend_const(ctx->found, id);
 		ctx->count++;
 	}
 }
@@ -1355,7 +1357,7 @@ keys_offload(const knode_t *kn)
 	struct offload_context ctx;
 	unsigned n;
 	knode_t *kclosest[KDA_K];		/* Our known k-closest nodes */
-	gboolean debug;
+	bool debug;
 
 	knode_check(kn);
 
@@ -1363,9 +1365,9 @@ keys_offload(const knode_t *kn)
 		return;
 
 	if (
-		!dht_bootstrapped() ||				/* Not bootstrapped */
-		!keys_within_kball(kn->id) ||		/* Node KUID outside our k-ball */
-		0 == g_hash_table_size(keys)		/* No keys held */
+		!dht_bootstrapped() ||			/* Not bootstrapped */
+		!keys_within_kball(kn->id) ||	/* Node KUID outside our k-ball */
+		0 == hikset_count(keys)			/* No keys held */
 	)
 		return;
 
@@ -1415,13 +1417,13 @@ keys_offload(const knode_t *kn)
 	 * Select offloading candidate keys.
 	 */
 
-	g_hash_table_foreach(keys, keys_offload_prepare, &ctx);
+	hikset_foreach(keys, keys_offload_prepare, &ctx);
 	patricia_destroy(ctx.kclosest);
 
-	if (debug)
-		g_debug("DHT found %u/%u offloading candidate%s",
-			ctx.count, (unsigned) g_hash_table_size(keys),
-			1 == ctx.count ? "" : "s");
+	if (debug) {
+		g_debug("DHT found %u/%zu offloading candidate%s",
+			ctx.count, hikset_count(keys), 1 == ctx.count ? "" : "s");
+	}
 
 	if (ctx.count)
 		publish_offload(kn, ctx.found);
@@ -1433,11 +1435,10 @@ keys_offload(const knode_t *kn)
  * Hashtable iterator to free the items held in `keys'.
  */
 static void
-keys_free_kv(gpointer u_key, gpointer val, gpointer u_x)
+keys_free_kv(void *val, void *u_x)
 {
 	struct keyinfo *ki = val;
 
-	(void) u_key;
 	(void) u_x;
 
 	keyinfo_check(ki);
@@ -1456,8 +1457,8 @@ keys_close(void)
 	db_keydata = NULL;
 
 	if (keys) {
-		g_hash_table_foreach(keys, keys_free_kv, NULL);
-		gm_hash_table_destroy_null(&keys);
+		hikset_foreach(keys, keys_free_kv, NULL);
+		hikset_free_null(&keys);
 	}
 
 	kuid_atom_free_null(&kball.furthest);

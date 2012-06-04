@@ -54,13 +54,13 @@ enum socket_tls_stage {
 
 struct socket_tls_ctx {
 	tls_context_t		 	ctx;
-	gboolean			 	enabled;
+	bool				 	enabled;
 	enum socket_tls_stage	stage;
 	size_t snarf;			/**< Pending bytes if write failed temporarily. */
 	
 	inputevt_cond_t			cb_cond;
 	inputevt_handler_t		cb_handler;
-	gpointer				cb_data;
+	void *					cb_data;
 };
 
 struct sockaddr;
@@ -85,8 +85,8 @@ typedef enum {
 struct gnutella_socket {
 	socket_magic_t magic;	/**< magic for consistency checks */
 	socket_fd_t file_desc;	/**< file descriptor */
-	guint32 flags;			/**< operating flags */
-	guint gdk_tag;			/**< gdk tag */
+	uint32 flags;			/**< operating flags */
+	uint gdk_tag;			/**< gdk tag */
 
 	enum socket_direction direction;
 	enum socket_type type;
@@ -96,9 +96,9 @@ struct gnutella_socket {
 	const char *adns_msg;	/**< ADNS error message */
 
 	host_addr_t addr;		/**< IP   of our partner */
-	guint16 port;			/**< Port of our partner */
+	uint16 port;			/**< Port of our partner */
 
-	guint16 local_port;		/**< Port on our side */
+	uint16 local_port;		/**< Port on our side */
 
 	time_t last_update;		/**< Timestamp of last activity on socket */
 
@@ -113,7 +113,7 @@ struct gnutella_socket {
 		struct pproxy *pproxy;
 		struct cproxy *cproxy;
 		struct udpctx *udp;
-		gpointer handle;
+		void *handle;
 	} resource;
 
 	struct getline *getline;	/**< Line reader object */
@@ -135,7 +135,7 @@ struct gnutella_socket {
  * Data is held in s->buf and is s->pos byte-long.
  */
 typedef void (*socket_udp_data_ind_t)(
-	struct gnutella_socket *s, gboolean truncated);
+	struct gnutella_socket *s, bool truncated);
 
 /**
  * UDP socket context.
@@ -177,19 +177,19 @@ extern struct gnutella_socket *s_local_listen;
  * Accessors.
  */
 
-static inline gboolean
+static inline bool
 socket_with_tls(const struct gnutella_socket *s)
 {
 	return s->tls.enabled && s->tls.stage >= SOCK_TLS_INITIALIZED;
 }
 
-static inline gboolean
+static inline bool
 socket_uses_tls(const struct gnutella_socket *s)
 {
 	return s->tls.enabled && s->tls.stage == SOCK_TLS_ESTABLISHED;
 }
 
-static inline gboolean
+static inline bool
 socket_is_corked(const struct gnutella_socket *s)
 {
 	return 0 != (SOCK_F_CORKED & s->flags);
@@ -199,13 +199,13 @@ socket_is_corked(const struct gnutella_socket *s)
  * This verifies whether UDP support is enabled and if the UDP socket
  * has been initialized.
  */
-static inline gboolean
+static inline bool
 udp_active(void)
 {
 	return NULL != s_udp_listen || NULL != s_udp_listen6;
 }
 
-static inline guint16
+static inline uint16
 socket_listen_port(void)
 {
 	if (s_tcp_listen)
@@ -224,37 +224,37 @@ void socket_register_fd_reclaimer(reclaim_fd_t callback);
 void socket_eof(struct gnutella_socket *s);
 void socket_connection_reset(struct gnutella_socket *s);
 void socket_free_null(struct gnutella_socket **s_ptr);
-struct gnutella_socket *socket_connect(const host_addr_t, guint16,
-		enum socket_type, guint32 flags);
+struct gnutella_socket *socket_connect(const host_addr_t, uint16,
+		enum socket_type, uint32 flags);
 struct gnutella_socket *socket_connect_by_name(
-	const char *host, guint16, enum socket_type, guint32 flags);
-struct gnutella_socket *socket_tcp_listen(const host_addr_t, guint16);
-struct gnutella_socket *socket_udp_listen(const host_addr_t, guint16,
+	const char *host, uint16, enum socket_type, uint32 flags);
+struct gnutella_socket *socket_tcp_listen(const host_addr_t, uint16);
+struct gnutella_socket *socket_udp_listen(const host_addr_t, uint16,
 	socket_udp_data_ind_t data_ind);
 struct gnutella_socket *socket_local_listen(const char *pathname);
-void socket_set_single(struct gnutella_socket *s, gboolean on);
+void socket_set_single(struct gnutella_socket *s, bool on);
 
 void socket_evt_set(struct gnutella_socket *s,
-	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data);
+	inputevt_cond_t cond, inputevt_handler_t handler, void *data);
 void socket_evt_clear(struct gnutella_socket *s);
 
-void socket_cork(struct gnutella_socket *s, gboolean on);
-void socket_send_buf(struct gnutella_socket *s, int size, gboolean shrink);
-void socket_recv_buf(struct gnutella_socket *s, int size, gboolean shrink);
-void socket_nodelay(struct gnutella_socket *s, gboolean on);
+void socket_cork(struct gnutella_socket *s, bool on);
+void socket_send_buf(struct gnutella_socket *s, int size, bool shrink);
+void socket_recv_buf(struct gnutella_socket *s, int size, bool shrink);
+void socket_nodelay(struct gnutella_socket *s, bool on);
 void socket_tx_shutdown(struct gnutella_socket *s);
 void socket_tos_default(const struct gnutella_socket *s);
 void socket_tos_throughput(const struct gnutella_socket *s);
 void socket_tos_lowdelay(const struct gnutella_socket *s);
 void socket_tos_normal(const struct gnutella_socket *s);
 void socket_set_quickack(struct gnutella_socket *s, int val);
-gboolean socket_bad_hostname(struct gnutella_socket *s);
+bool socket_bad_hostname(struct gnutella_socket *s);
 void socket_disable_token(struct gnutella_socket *s);
-gboolean socket_omit_token(struct gnutella_socket *s);
+bool socket_omit_token(struct gnutella_socket *s);
 void socket_set_bind_address(const host_addr_t addr);
 int socket_evt_fd(struct gnutella_socket *s);
-gboolean socket_is_local(const struct gnutella_socket *s);
-gboolean socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
+bool socket_is_local(const struct gnutella_socket *s);
+bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);

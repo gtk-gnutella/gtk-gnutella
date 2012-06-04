@@ -75,22 +75,22 @@ enum memusage_magic {
 struct memusage {
 	enum memusage_magic magic;
 	char *name;						/**< Name for logging (xfree-able) */
-	guint64 allocation_bytes;		/**< Total size allocated */
-	guint64 freeing_bytes;			/**< Total size freed */
-	guint64 prev_allocation_bytes;	/**< Previous size allocated */
-	guint64 prev_freeing_bytes;		/**< Previous size freed */
-	guint64 allocations;			/**< Total amount of allocations */
-	guint64 freeings;				/**< Total amount of freeings */
-	guint64 prev_allocations;		/**< Previous amount of allocations */
-	guint64 prev_freeings;			/**< Previous amount of freeings */
+	uint64 allocation_bytes;		/**< Total size allocated */
+	uint64 freeing_bytes;			/**< Total size freed */
+	uint64 prev_allocation_bytes;	/**< Previous size allocated */
+	uint64 prev_freeing_bytes;		/**< Previous size freed */
+	uint64 allocations;				/**< Total amount of allocations */
+	uint64 freeings;				/**< Total amount of freeings */
+	uint64 prev_allocations;		/**< Previous amount of allocations */
+	uint64 prev_freeings;			/**< Previous amount of freeings */
 	size_t alloc_recursions;		/**< Recursions during allocations */
 	size_t free_recursions;			/**< Recursions during freeings */
-	guint64 alloc_fast_ema;			/**< EMA of allocation rate */
-	guint64 alloc_medium_ema;		/**< EMA of allocation rate */
-	guint64 alloc_slow_ema;			/**< EMA of allocation rate */
-	guint64 free_fast_ema;			/**< EMA of allocation rate */
-	guint64 free_medium_ema;		/**< EMA of allocation rate */
-	guint64 free_slow_ema;			/**< EMA of allocation rate */
+	uint64 alloc_fast_ema;			/**< EMA of allocation rate */
+	uint64 alloc_medium_ema;		/**< EMA of allocation rate */
+	uint64 alloc_slow_ema;			/**< EMA of allocation rate */
+	uint64 free_fast_ema;			/**< EMA of allocation rate */
+	uint64 free_medium_ema;			/**< EMA of allocation rate */
+	uint64 free_slow_ema;			/**< EMA of allocation rate */
 	size_t width;					/**< Object width, if constant */
 	cperiodic_t *timer_ev;			/**< EMA updater periodic event */
 	hash_table_t *allocs;			/**< All allocations */
@@ -118,10 +118,10 @@ enum memusage_counter_magic {
  */
 struct memusage_counter {
 	enum memusage_counter_magic magic;
-	guint64 size;					/**< Total size */
-	guint64 total;					/**< Total events */
-	guint64 periodic;				/**< Events this period */
-	guint64 size_periodic;			/**< Size this period */
+	uint64 size;					/**< Total size */
+	uint64 total;					/**< Total events */
+	uint64 periodic;				/**< Events this period */
+	uint64 size_periodic;			/**< Size this period */
 };
 
 static inline void
@@ -134,7 +134,7 @@ memusage_counter_check(const struct memusage_counter * const mc)
 /**
  * Check whether memory usage tracker is valid.
  */
-gboolean
+bool
 memusage_is_valid(const memusage_t * const mu)
 {
 	return mu != NULL && MEMUSAGE_MAGIC == mu->magic;
@@ -230,11 +230,11 @@ memusage_swap(memusage_t *mu)
 /**
  * Periodic timer to update the EMAs.
  */
-static G_GNUC_HOT gboolean
+static G_GNUC_HOT bool
 memusage_timer(void *data)
 {
 	memusage_t *mu = data;
-	guint64 delta;
+	uint64 delta;
 
 	memusage_check(mu);
 
@@ -490,7 +490,7 @@ memusage_trace_frees(memusage_t *mu, size_t size)
  * Turn stackframe grabbing on/off.
  */
 void
-memusage_set_stack_accounting(memusage_t *mu, gboolean on)
+memusage_set_stack_accounting(memusage_t *mu, bool on)
 {
 	memusage_check(mu);
 
@@ -527,7 +527,7 @@ struct callframe_filler {
 	size_t capacity;
 	size_t count;
 	const memusage_t *mu;
-	gboolean periodic;
+	bool periodic;
 };
 
 /**
@@ -568,7 +568,7 @@ callframe_filler_add(const void *key, void *value, void *data)
  * usage object is tracking variable or fix-sized objects.
  */
 static void
-memusage_sort_frames(const memusage_t *mu, gboolean periodic,
+memusage_sort_frames(const memusage_t *mu, bool periodic,
 	hash_table_t *ht, struct callframe_filler *fill)
 {
 	size_t count;
@@ -712,6 +712,29 @@ memusage_add_one(memusage_t *mu)
 }
 
 /**
+ * Record batch allocation of constant-width object.
+ *
+ * No stack trace is captured, only the allocation count is updated.
+ *
+ * This is primarily used when the memusage_t object is created after some
+ * allocations were done and we wish to capture this to get an accurate block
+ * count (otherwise we could have an apparent negative count if were were to
+ * free some of the blocks that were allocated before the creation of the
+ * usage tracker).
+ */
+void
+memusage_add_batch(memusage_t *mu, size_t count)
+{
+	if G_UNLIKELY(NULL == mu)
+		return;
+
+	memusage_check(mu);
+	g_assert(0 != mu->width);
+
+	mu->allocations += count;
+}
+
+/**
  * Record allocation of object of specified size.
  */
 void
@@ -811,7 +834,7 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 			mu->alloc_recursions, mu->free_recursions,
 			compact_size(mu->allocation_bytes - mu->freeing_bytes, FALSE));
 	} else {
-		guint64 blocks = mu->allocations - mu->freeings;
+		uint64 blocks = mu->allocations - mu->freeings;
 
 		log_info(la,
 			"%s(%zu bytes): "
@@ -821,7 +844,7 @@ memusage_summary_dump_log(const memusage_t *mu, logagent_t *la, unsigned opt)
 			mu->alloc_recursions, mu->free_recursions,
 			compact_size(mu->allocation_bytes - mu->freeing_bytes, FALSE),
 			(opt & DUMP_OPT_PRETTY) ?
-				size_t_to_gstring(blocks) : size_t_to_string(blocks));
+				uint64_to_gstring(blocks) : uint64_to_string(blocks));
 	}
 
 #undef COMPUTE

@@ -46,6 +46,7 @@
 
 #include "lib/cq.h"
 #include "lib/endian.h"
+#include "lib/mempcpy.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
@@ -97,14 +98,14 @@ struct attr {
 	cevent_t *tm_ev;			/**< The timer event */
 	const struct tx_deflate_cb *cb;	/**< Layer-specific callbacks */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
-	gpointer closed_arg;		/**< Argument for closing routine */
+	void *closed_arg;			/**< Argument for closing routine */
 	time_t nagle_start;			/**< When we started the Nagle timer */
-	gboolean nagle;				/**< Whether to use Nagle or not */
 	struct {
-		gboolean	enabled;	/**< Whether to use gzip encapsulation */
-		guint32		size;		/**< Payload size counter for gzip */
+		bool		enabled;	/**< Whether to use gzip encapsulation */
+		uint32		size;		/**< Payload size counter for gzip */
 		uLong		crc;		/**< CRC-32 accumlator for gzip */
 	} gzip;
+	unsigned nagle:1;			/**< Whether to use Nagle or not */
 };
 
 /*
@@ -116,7 +117,7 @@ struct attr {
 #define DF_FLUSH		0x00000004	/**< Flushing started */
 #define DF_SHUTDOWN		0x00000008	/**< Stack has shut down */
 
-static void deflate_nagle_timeout(cqueue_t *cq, gpointer arg);
+static void deflate_nagle_timeout(cqueue_t *cq, void *arg);
 static size_t tx_deflate_pending(txdrv_t *tx);
 
 #define tx_deflate_debugging(lvl) \
@@ -312,7 +313,7 @@ deflate_buffered(const txdrv_t *tx)
  * Enter or leave flow-control.
  */
 static void
-deflate_set_flowc(txdrv_t *tx, gboolean on)
+deflate_set_flowc(txdrv_t *tx, bool on)
 {
 	struct attr *attr = tx->opaque;
 
@@ -379,7 +380,7 @@ deflate_flushed(txdrv_t *tx)
  *
  * @return success status, failure meaning we shutdown.
  */
-static gboolean
+static bool
 deflate_flush(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
@@ -408,7 +409,7 @@ retry:
 	 * be consumed.
 	 */
 
-	outz->next_out = cast_to_gpointer(b->wptr);
+	outz->next_out = cast_to_pointer(b->wptr);
 	outz->avail_out = old_avail = b->end - b->wptr;
 
 	outz->avail_in = 0;
@@ -503,7 +504,7 @@ deflate_flush_send(txdrv_t *tx)
  * If we can send the buffer, flush it and send it.  Otherwise, reschedule.
  */
 static void
-deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
+deflate_nagle_timeout(cqueue_t *unused_cq, void *arg)
 {
 	txdrv_t *tx = arg;
 	struct attr *attr = tx->opaque;
@@ -546,7 +547,7 @@ deflate_nagle_timeout(cqueue_t *unused_cq, gpointer arg)
  * @return the amount of input bytes that were consumed ("added"), -1 on error.
  */
 static int
-deflate_add(txdrv_t *tx, gconstpointer data, int len)
+deflate_add(txdrv_t *tx, const void *data, int len)
 {
 	struct attr *attr = tx->opaque;
 	z_streamp outz = attr->outz;
@@ -565,7 +566,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 		struct buffer *b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 		int ret;
 		int old_added = added;
-		gboolean flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
+		bool flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
 		int old_avail;
 		const char *in, *old_in;
 
@@ -573,12 +574,12 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 		 * Prepare call to deflate().
 		 */
 
-		outz->next_out = cast_to_gpointer(b->wptr);
+		outz->next_out = cast_to_pointer(b->wptr);
 		outz->avail_out = old_avail = b->end - b->wptr;
 
 		in = data;
 		old_in = &in[added];
-		outz->next_in = deconstify_gpointer(old_in);
+		outz->next_in = deconstify_pointer(old_in);
 		outz->avail_in = len - added;
 
 		g_assert(outz->avail_out > 0);
@@ -604,7 +605,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 		 * Update the parameters.
 		 */
 
-		b->wptr = cast_to_gpointer(outz->next_out);
+		b->wptr = cast_to_pointer(outz->next_out);
 		added = ptr_diff(outz->next_in, in);
 
 		g_assert(added >= old_added);
@@ -621,7 +622,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
 			r = ptr_diff(outz->next_in, old_in);
 			attr->gzip.size += r;
 			attr->gzip.crc = crc32(attr->gzip.crc,
-								cast_to_gconstpointer(old_in), r);
+								cast_to_constpointer(old_in), r);
 		}
 
 		if (tx_deflate_debugging(9)) {
@@ -696,7 +697,7 @@ deflate_add(txdrv_t *tx, gconstpointer data, int len)
  * Called by lower layer when it is ready to process more data.
  */
 static void
-deflate_service(gpointer data)
+deflate_service(void *data)
 {
 	txdrv_t *tx = data;
 	struct attr *attr = tx->opaque;
@@ -809,8 +810,8 @@ deflate_service(gpointer data)
  *
  * @return NULL if there is an initialization problem.
  */
-static gpointer
-tx_deflate_init(txdrv_t *tx, gpointer args)
+static void *
+tx_deflate_init(txdrv_t *tx, void *args)
 {
 	struct attr *attr;
 	struct tx_deflate_args *targs = args;
@@ -893,7 +894,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 	attr->cb = targs->cb;
 	attr->buffer_size = targs->buffer_size;
 	attr->buffer_flush = targs->buffer_flush;
-	attr->nagle = targs->nagle;
+	attr->nagle = booleanize(targs->nagle);
 	attr->gzip.enabled = targs->gzip;
 
 	attr->outz = outz;
@@ -923,8 +924,7 @@ tx_deflate_init(txdrv_t *tx, gpointer args)
 
 		b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 		g_assert(sizeof header <= (size_t) (b->end - b->wptr));
-		memcpy(b->wptr, header, sizeof header);
-		b->wptr += sizeof header;
+		b->wptr = mempcpy(b->wptr, header, sizeof header);
 
 		attr->gzip.crc = crc32(0, NULL, 0);
 		attr->gzip.size = 0;
@@ -979,7 +979,7 @@ tx_deflate_destroy(txdrv_t *tx)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_deflate_write(txdrv_t *tx, gconstpointer data, size_t len)
+tx_deflate_write(txdrv_t *tx, const void *data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 
@@ -1045,7 +1045,7 @@ tx_deflate_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 	if (tx_deflate_debugging(9)) {
 		g_debug("TX %s: (%s) sent %lu bytes (buffer #%d, nagle %s, "
 			"unflushed %zu) [%c%c]", G_STRFUNC,
-			gnet_host_to_string(&tx->host), (gulong) sent, attr->fill_idx,
+			gnet_host_to_string(&tx->host), (ulong) sent, attr->fill_idx,
 			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
@@ -1133,7 +1133,7 @@ tx_deflate_shutdown(txdrv_t *tx)
  * Once this is done, invoke the supplied callback.
  */
 static void
-tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+tx_deflate_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
 	struct attr *attr = tx->opaque;
 
@@ -1157,19 +1157,18 @@ tx_deflate_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
 	if (attr->gzip.enabled && 0 == tx_deflate_pending(tx)) {
 		/* See RFC 1952 - GZIP file format specification version 4.3 */
 		struct buffer *b;
-		guint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
+		uint32 trailer[2]; /* 0: CRC32, 1: SIZE % (1 << 32) */
 
 		/* We don't want to send the trailer more than once */
 		attr->gzip.enabled = FALSE;
 
 		attr->send_idx = 0;
 		b = &attr->buf[attr->send_idx];
-		poke_le32(&trailer[0], (guint32) attr->gzip.crc);
+		poke_le32(&trailer[0], (uint32) attr->gzip.crc);
 		poke_le32(&trailer[1], attr->gzip.size);
 
 		g_assert(sizeof trailer <= (size_t) (b->end - b->wptr));
-		memcpy(b->wptr, trailer, sizeof trailer);
-		b->wptr += sizeof trailer;
+		b->wptr = mempcpy(b->wptr, trailer, sizeof trailer);
 
 		deflate_send(tx);
 	}

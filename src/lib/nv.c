@@ -51,11 +51,13 @@
 
 #include "nv.h"
 #include "atoms.h"
-#include "glib-missing.h"
 #include "halloc.h"
+#include "hashing.h"
 #include "hashlist.h"
+#include "hikset.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum nv_pair_magic { NV_PAIR_MAGIC = 0x60f7c898U };
@@ -93,9 +95,9 @@ enum nv_table_magic { NV_TABLE_MAGIC = 0x2557a3b2U };
  */
 struct nv_table {
 	enum nv_table_magic magic;
-	gboolean ordered;			/**< Whether table is ordered */
+	bool ordered;				/**< Whether table is ordered */
 	union {						/**< Maps "name" -> nv_pair */
-		GHashTable *ht;
+		hikset_t *ht;
 		hash_list_t *hl;
 	} u;
 };
@@ -127,7 +129,7 @@ nv_table_check(const nv_table_t * const nvt)
  */
 static nv_pair_t *
 nv_pair_make_full(const char *name, const void *value, size_t length,
-	gboolean copy, gboolean atom)
+	bool copy, bool atom)
 {
 	nv_pair_t *nvp;
 
@@ -141,7 +143,7 @@ nv_pair_make_full(const char *name, const void *value, size_t length,
 	nvp->name = atom ? atom_str_get(name) : name;
 	nvp->atom = booleanize(atom);
 	if (value != NULL) {
-		nvp->value = deconstify_gpointer(copy ? hcopy(value, length) : value);
+		nvp->value = deconstify_pointer(copy ? hcopy(value, length) : value);
 	} else {
 		nvp->value = NULL;
 	}
@@ -362,13 +364,13 @@ nv_pair_hash(const void *key)
 {
 	const nv_pair_t *nv = key;
 
-	return g_str_hash(nv->name);
+	return string_mix_hash(nv->name);
 }
 
 /**
  * Are two name/vale pairs bearing the same name?
  */
-gboolean
+bool
 nv_pair_eq(const void *k1, const void *k2)
 {
 	const nv_pair_t *n1 = k1;
@@ -384,17 +386,19 @@ nv_pair_eq(const void *k1, const void *k2)
  * the hash table can later be traversed in that same order.
  */
 nv_table_t *
-nv_table_make(gboolean ordered)
+nv_table_make(bool ordered)
 {
 	nv_table_t *nvt;
 
 	WALLOC(nvt);
 	nvt->magic = NV_TABLE_MAGIC;
 	nvt->ordered = ordered;
-	if (ordered)
+	if (ordered) {
 		nvt->u.hl = hash_list_new(nv_pair_hash, nv_pair_eq);
-	else
-		nvt->u.ht = g_hash_table_new(g_str_hash, g_str_equal);
+	} else {
+		nvt->u.ht = hikset_create(
+			offsetof(nv_pair_t, name), HASH_KEY_STRING, 0);
+	}
 
 	return nvt;
 }
@@ -403,9 +407,8 @@ nv_table_make(gboolean ordered)
  * Hash table iterator to free up values in the nv_table_t.
  */
 static void
-nv_table_ht_free_value(void *u_key, void *value, void *u_data)
+nv_table_ht_free_value(void *value, void *u_data)
 {
-	(void) u_key;
 	(void) u_data;
 	nv_pair_free(value);
 }
@@ -430,8 +433,8 @@ nv_table_free(nv_table_t *nvt)
 	if (nvt->ordered) {
 		hash_list_free_all(&nvt->u.hl, nv_table_hl_free_value);
 	} else {
-		g_hash_table_foreach(nvt->u.ht, nv_table_ht_free_value, NULL);
-		gm_hash_table_destroy_null(&nvt->u.ht);
+		hikset_foreach(nvt->u.ht, nv_table_ht_free_value, NULL);
+		hikset_free_null(&nvt->u.ht);
 	}
 	nvt->magic = 0;
 	WFREE(nvt);
@@ -476,7 +479,7 @@ nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp)
 		if (nvt->ordered)
 			pos = hash_list_remove_position(nvt->u.hl, old);
 		else
-			g_hash_table_remove(nvt->u.ht, nvp->name);
+			hikset_remove(nvt->u.ht, nvp->name);
 		nv_pair_free(old);
 	}
 
@@ -486,7 +489,7 @@ nv_table_insert_pair(const nv_table_t *nvt, nv_pair_t *nvp)
 		else
 			hash_list_append(nvt->u.hl, nvp);
 	} else {
-		gm_hash_table_insert_const(nvt->u.ht, nvp->name, nvp);
+		hikset_insert_key(nvt->u.ht, &nvp->name);
 	}
 }
 
@@ -565,7 +568,7 @@ nv_table_insert_nocopy(const nv_table_t *nvt,
  *
  * @return TRUE if name/value pair existed.
  */
-gboolean
+bool
 nv_table_remove(const nv_table_t *nvt, const char *name)
 {
 	nv_pair_t *nvp;
@@ -580,7 +583,7 @@ nv_table_remove(const nv_table_t *nvt, const char *name)
 	if (nvt->ordered)
 		hash_list_remove(nvt->u.hl, nvp);
 	else
-		g_hash_table_remove(nvt->u.ht, nvp->name);
+		hikset_remove(nvt->u.ht, nvp->name);
 
 	nv_pair_free(nvp);
 	return TRUE;
@@ -604,11 +607,11 @@ nv_table_lookup(const nv_table_t *nvt, const char *name)
 		key.name = name;
 
 		if (hash_list_find(nvt->u.hl, &key, &nvp))
-			return deconstify_gpointer(nvp);
+			return deconstify_pointer(nvp);
 		else
 			return NULL;
 	} else {
-		return g_hash_table_lookup(nvt->u.ht, name);
+		return hikset_lookup(nvt->u.ht, name);
 	}
 }
 
@@ -643,7 +646,7 @@ nv_table_count(const nv_table_t *nvt)
 	if (nvt->ordered)
 		return hash_list_length(nvt->u.hl);
 	else
-		return g_hash_table_size(nvt->u.ht);
+		return hikset_count(nvt->u.ht);
 }
 
 struct nvt_foreach_remove_ctx {
@@ -651,19 +654,18 @@ struct nvt_foreach_remove_ctx {
 	void *data;					/**< User additional argument data */
 };
 
-static gboolean
-nv_table_ht_foreach_rwrap(gpointer ukey, gpointer value, gpointer data)
+static bool
+nv_table_ht_foreach_rwrap(void *value, void *data)
 {
 	nv_pair_t *nvp = value;
 	struct nvt_foreach_remove_ctx *ctx = data;
 
 	nv_pair_check(nvp);
-	(void) ukey;
 
 	return (*ctx->func)(nvp, ctx->data);
 }
 
-static gboolean
+static bool
 nv_table_hl_foreach_rwrap(void *key, void *data)
 {
 	nv_pair_t *nvp = key;
@@ -696,8 +698,7 @@ nv_table_foreach_remove(const nv_table_t *nvt, nv_table_cbr_t func, void *data)
 
 	return nvt->ordered ?
 		hash_list_foreach_remove(nvt->u.hl, nv_table_hl_foreach_rwrap, &ctx) :
-		g_hash_table_foreach_remove(nvt->u.ht, nv_table_ht_foreach_rwrap, &ctx);
-
+		hikset_foreach_remove(nvt->u.ht, nv_table_ht_foreach_rwrap, &ctx);
 }
 
 struct nvt_foreach_ctx {
@@ -706,13 +707,12 @@ struct nvt_foreach_ctx {
 };
 
 static void
-nv_table_ht_foreach_wrap(gpointer ukey, gpointer value, gpointer data)
+nv_table_ht_foreach_wrap(void *value, void *data)
 {
 	nv_pair_t *nvp = value;
 	struct nvt_foreach_ctx *ctx = data;
 
 	nv_pair_check(nvp);
-	(void) ukey;
 
 	(*ctx->func)(nvp, ctx->data);
 }
@@ -748,7 +748,7 @@ nv_table_foreach(const nv_table_t *nvt, nv_table_cb_t func, void *data)
 	if (nvt->ordered)
 		hash_list_foreach(nvt->u.hl, nv_table_hl_foreach_wrap, &ctx);
 	else
-		g_hash_table_foreach(nvt->u.ht, nv_table_ht_foreach_wrap, &ctx);
+		hikset_foreach(nvt->u.ht, nv_table_ht_foreach_wrap, &ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

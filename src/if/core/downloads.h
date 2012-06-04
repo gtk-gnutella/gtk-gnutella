@@ -29,6 +29,7 @@
 #include "lib/event.h"			/* For frequency_t */
 #include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/hashlist.h"
+#include "lib/htable.h"
 #include "lib/list.h"
 #include "lib/slist.h"
 
@@ -43,7 +44,7 @@
  *** Sources (traditionally called "downloads")
  ***/
 
-typedef guint32 gnet_src_t;
+typedef uint32 gnet_src_t;
 
 #define URN_INDEX	0xffffffff		/**< Marking index, indicates URN instead */
 
@@ -71,8 +72,8 @@ enum dl_list {
 };
 
 struct vernum {
-	guint major;
-	guint minor;
+	uint major;
+	uint minor;
 };
 
 struct guid;
@@ -80,7 +81,7 @@ struct guid;
 struct dl_key {
 	const struct guid *guid;	/**< GUID of server (atom) */
 	host_addr_t addr;			/**< IP address of server */
-	guint16 port;				/**< Port of server */
+	uint16 port;				/**< Port of server */
 };
 
 enum dl_server_magic { DL_SERVER_MAGIC = 0x5e45e4ffU };
@@ -93,18 +94,18 @@ struct dl_server {
 	const char *vendor;			/**< Remote server vendor string (atom) */
 	const char *hostname;		/**< Remote hostname, if known (atom) */
 	pproxy_set_t *proxies;		/**< Known push proxies */
-	GHashTable *sha1_counts;
+	htable_t *sha1_counts;
 	time_t retry_after;		/**< Time at which we may retry from this host */
 	time_t dns_lookup;		/**< Last DNS lookup for hostname */
 	time_t last_connect;	/**< When we last connected to that server */
 	struct vernum parq_version; /**< Supported queueing version */
-	guint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
-	unsigned latency;			/**< HTTP latency, in ms (EMA) */
-	guint32 attrs;
-	guint16 country;			/**< Country of origin -- encoded ISO3166 */
+	uint speed_avg;			/**< Average (EMA) upload speed, in bytes/sec */
+	unsigned latency;		/**< HTTP latency, in ms (EMA) */
+	uint32 attrs;
+	uint16 country;			/**< Country of origin -- encoded ISO3166 */
 };
 
-static inline gboolean
+static inline bool
 dl_server_valid(const struct dl_server *s)
 {
 	return s != NULL && s->magic == DL_SERVER_MAGIC &&
@@ -172,7 +173,7 @@ struct dl_chunk {
 	filesize_t size;			/**< Length of chunk in the request */
 	filesize_t start;			/**< Starting request offset within file */
 	filesize_t end;				/**< 1st byte offset AFTER requested range */
-	guint32 overlap;			/**< Overlap with previous chunk */
+	uint32 overlap;				/**< Overlap with previous chunk */
 };
 
 /**
@@ -216,7 +217,7 @@ struct download {
 
 	char error_str[256];		/**< Used to snprintf() error strings */
 	download_status_t status;   /**< Current status of the download */
-	gpointer io_opaque;			/**< Opaque I/O callback information */
+	void *io_opaque;			/**< Opaque I/O callback information */
 	rxdrv_t *rx;					/**< RX stack top */
 
 	struct bio_source *bio;		/**< Bandwidth-limited source */
@@ -225,9 +226,10 @@ struct download {
 	enum dl_list list_idx;		/**< List to which download belongs in server */
 
 	struct dl_file_info *file_info;
-	guint32 record_index;		/**< Index of the file on the Gnutella server */
+	uint32 record_index;		/**< Index of the file on the Gnutella server */
 	const char *file_name;		/**< Name of the file on the Gnutella server */
 	filesize_t file_size;		/**< Total size of the file, in bytes */
+	filesize_t downloaded;		/**< Amount of bytes downloaded from source */
 
 	struct dl_chunk chunk;		/**< Requested chunk */
 	filesize_t pos;				/**< Current file data writing position */
@@ -236,7 +238,7 @@ struct download {
 
 	struct gnutella_socket *socket;
 	struct file_object *out_file;	/**< downloaded file */
-	guint32 overlap_size;		/**< Size of the overlapping window on resume */
+	uint32 overlap_size;		/**< Size of the overlapping window on resume */
 	struct http_buffer *req;	/**< HTTP request, when partially sent */
 	struct dl_buffers *buffers;	/**< Buffers for reading, only when active */
 
@@ -248,12 +250,12 @@ struct download {
 	time_t head_ping_sent;		/**< Time at which last HEAD ping was sent */
 	tm_t header_sent;			/**< When we sent headers, for latency */
 
-	guint32 retries;
-	guint32 timeout_delay;
-	guint32 served_reqs;		/**< Amount of served requests on connection */
-	guint32 mismatches;			/**< Amount of resuming data mismatches */
-	guint32 header_read_eof;	/**< EOF errors with empty headers */
-	guint32 data_timeouts;		/**< # of timeouts after getting headers */
+	uint32 retries;
+	uint32 timeout_delay;
+	uint32 served_reqs;			/**< Amount of served requests on connection */
+	uint32 mismatches;			/**< Amount of resuming data mismatches */
+	uint32 header_read_eof;		/**< EOF errors with empty headers */
+	uint32 data_timeouts;		/**< # of timeouts after getting headers */
 
 	const char *remove_msg;
 
@@ -266,8 +268,8 @@ struct download {
 	filesize_t ranges_size;		/**< PFSP -- size of remotely available data */
 	filesize_t sinkleft;		/**< Amount of data left to sink */
 
-	guint32 flags;
-	guint32 cflags;
+	uint32 flags;
+	uint32 cflags;
 
 	unsigned src_handle_valid:1;/**< TRUE if src_handle is initialized */
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
@@ -435,7 +437,7 @@ enum {
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) \
 	(d->always_push && !(d->flags & DL_F_PUSH_IGN))
 
-gboolean download_has_blank_guid(const struct download *);
+bool download_has_blank_guid(const struct download *);
 
 static inline void
 download_check(const struct download * const d)
@@ -458,14 +460,14 @@ const char *download_basename(const struct download *);
  *        actually needs to be in downloads.h and should be called from
  *        search.h and not from search_gui.h.
  */
-void download_index_changed(const host_addr_t, guint16, const struct guid *,
-		guint32, guint32);
+void download_index_changed(const host_addr_t, uint16, const struct guid *,
+		uint32, uint32);
 
-gboolean download_new(const char *filename,
+bool download_new(const char *filename,
 	const char *uri,
 	filesize_t size,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	const struct guid *guid,
 	const char *hostname,
 	const struct sha1 *sha1,
@@ -473,13 +475,13 @@ gboolean download_new(const char *filename,
 	time_t stamp,
     struct dl_file_info *fi,
 	const gnet_host_vec_t *proxies,
-	guint32 flags,
+	uint32 flags,
 	const char *parq_id);
 
 void download_auto_new(const char *filename,
  	filesize_t size,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	const struct guid *guid,
 	const char *hostname,
 	const struct sha1 *sha1,
@@ -487,49 +489,49 @@ void download_auto_new(const char *filename,
 	time_t stamp,
 	struct dl_file_info *fi,
 	gnet_host_vec_t *proxies,
-	guint32 flags);
+	uint32 flags);
 
 void download_dht_auto_new(const char *filename,
  	filesize_t size,
 	const char *hostname,
 	const host_addr_t addr,
-	guint16 port,
+	uint16 port,
 	const struct guid *guid,
 	const struct sha1 *sha1,
 	const struct tth *tth,
 	time_t stamp,
 	struct dl_file_info *fi,
-	guint32 flags);
+	uint32 flags);
 
-guint download_handle_magnet(const char *url);
+uint download_handle_magnet(const char *url);
 char *download_build_url(const struct download *);
 int download_get_http_req_percent(const struct download *);
-void download_fallback_to_push(struct download *, gboolean, gboolean);
+void download_fallback_to_push(struct download *, bool, bool);
 int download_remove_all_from_peer(const struct guid *,
-		host_addr_t addr, guint16 port, gboolean unavailable);
-void download_remove_file(struct download *, gboolean reset);
-gboolean download_file_exists(const struct download *);
+		host_addr_t addr, uint16 port, bool unavailable);
+void download_remove_file(struct download *, bool reset);
+bool download_file_exists(const struct download *);
 
 void download_request_requeue(struct download *);
 void download_request_start(struct download *);
 void download_request_pause(struct download *);
-gboolean download_request_remove(struct download *);
+bool download_request_remove(struct download *);
 void download_request_abort(struct download *);
 void download_request_resume(struct download *);
 
 void download_freeze_queue(void);
 void download_thaw_queue(void);
-gboolean download_queue_is_frozen(void);
+bool download_queue_is_frozen(void);
 
 void download_gui_updates_freeze(void);
 void download_gui_updates_thaw(void);
 
-void download_clear_stopped(gboolean, gboolean, gboolean, gboolean, gboolean);
+void download_clear_stopped(bool, bool, bool, bool, bool);
 const char *download_get_hostname(const struct download *);
 double download_source_progress(const struct download *);
 double download_total_progress(const struct download *);
-gboolean download_something_to_clear(void);
-guint download_speed_avg(const struct download *);
+bool download_something_to_clear(void);
+uint download_speed_avg(const struct download *);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_downloads_h_ */

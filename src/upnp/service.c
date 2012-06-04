@@ -270,13 +270,13 @@ static struct vxml_parser_token upnp_services[] = {
  *
  * @return TRUE if parsing was successful, FALSE otherwise
  */
-static gboolean
+static bool
 upnp_service_parse_type(const char *text,
 	enum upnp_service_type *type, unsigned *version)
 {
 	char *dtext = NULL;
 	char *p;
-	gboolean ok = FALSE;
+	bool ok = FALSE;
 
 	/*
 	 * Before the trailing ':' we must find a valid version number.
@@ -284,7 +284,7 @@ upnp_service_parse_type(const char *text,
 
 	p = strrchr(text, ':');
 	if (p != NULL) {
-		guint32 v;
+		uint32 v;
 		int error;
 
 		v = parse_uint32(p + 1, NULL, 10, &error);

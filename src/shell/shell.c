@@ -82,9 +82,9 @@ struct gnutella_shell {
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
-	guint64 line_count;		/**< Number of input lines after HELO */
-	gboolean shutdown;  	/**< In shutdown mode? */
-	gboolean interactive;	/**< Interactive mode? */
+	uint64 line_count;		/**< Number of input lines after HELO */
+	uint shutdown:1;  		/**< In shutdown mode? */
+	uint interactive:1;		/**< Interactive mode? */
 };
 
 void
@@ -95,11 +95,11 @@ shell_check(const struct gnutella_shell * const sh)
 	socket_check(sh->socket);
 }
 
-static inline gboolean
+static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	return sh->output && slist_length(sh->output) > 0;
+	return sh->output != NULL && slist_length(sh->output) > 0;
 }
 
 /**
@@ -156,8 +156,9 @@ shell_destroy(struct gnutella_shell *sh)
 	shell_check(sh);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("shell_destroy");
+		g_debug("%s", G_STRFUNC);
 	}
+
 	sl_shells = g_slist_remove(sl_shells, sh);
 	socket_evt_clear(sh->socket);
 	shell_discard_output(sh);
@@ -209,14 +210,14 @@ shell_write_welcome(struct gnutella_shell *sh)
 	shell_write(sh, "\n");
 }
 
-guint64
+uint64
 shell_line_count(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 	return sh->line_count;
 }
 
-gboolean
+bool
 shell_toggle_interactive(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -248,9 +249,9 @@ shell_next_token(struct gnutella_shell *sh,
 	const char *start, const char **endptr)
 {
 	str_t *token;
-	gboolean escape = FALSE;
-	gboolean quote  = FALSE;
-	gboolean squote  = FALSE;
+	bool escape = FALSE;
+	bool quote  = FALSE;
+	bool squote  = FALSE;
 	const char *s = start;
 	char c;
 
@@ -343,7 +344,7 @@ shell_options_parse(struct gnutella_shell *sh,
  * @return TRUE if OK, FALSE on error with an error message recorded
  * in the shell structure (in which case no token was allocated).
  */
-static gboolean
+static bool
 shell_get_token(struct gnutella_shell *sh,
 	const char *line, const char **endptr, const char **token_ptr)
 {
@@ -377,7 +378,7 @@ static void
 shell_free_argv(const char ***argv_ptr)
 {
 	if (*argv_ptr) {
-		char **argv = deconstify_gpointer(*argv_ptr);
+		char **argv = deconstify_pointer(*argv_ptr);
 
 		while (NULL != argv[0]) {
 			HFREE_NULL(argv[0]);
@@ -402,7 +403,7 @@ shell_free_argv(const char ***argv_ptr)
  * @return TRUE if OK, FALSE on error with an error message recorded in the
  * shell structure.
  */
-static gboolean 
+static bool 
 shell_parse_command(struct gnutella_shell *sh,
 	const char *line, const char **endptr,
 	int *argc_ptr, const char ***argv_ptr)
@@ -410,7 +411,7 @@ shell_parse_command(struct gnutella_shell *sh,
 	const char **argv = NULL;
 	unsigned argc = 0;
 	size_t n = 0;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 	const char *start;
 
 	shell_check(sh);
@@ -428,15 +429,14 @@ shell_parse_command(struct gnutella_shell *sh,
 		}
 		if (argc > SHELL_MAX_ARGS) {
 			argv[SHELL_MAX_ARGS] = NULL;
-			shell_free_argv(&argv);
 			shell_set_msg(sh, _("too many arguments in command"));
-			argc = 0;
-			ok = FALSE;
-			break;
+			goto error;
 		}
 		if (!shell_get_token(sh, start, endptr, &argv[argc])) {
-			ok = FALSE;
-			break;
+			argv[argc] = NULL;
+			shell_set_msg(sh,
+				str_smsg(_("un-parseable argument #%u in command"), argc));
+			goto error;
 		}
 		if (NULL == argv[argc])
 			break;
@@ -456,6 +456,11 @@ shell_parse_command(struct gnutella_shell *sh,
 	*argv_ptr = argv;
 	*argc_ptr = argc;
 	return ok;
+
+error:
+	shell_free_argv(&argv);
+	argc = 0;
+	return FALSE;
 }
 
 /**
@@ -487,7 +492,7 @@ shell_cmd_get_handler(const char *cmd)
  * Flush any pending line.
  */
 static void
-shell_pending_flush(struct gnutella_shell *sh, gboolean last)
+shell_pending_flush(struct gnutella_shell *sh, bool last)
 {
 	shell_check(sh);
 	g_return_if_fail(sh->output);
@@ -635,14 +640,14 @@ shell_read_data(struct gnutella_shell *sh)
 		if (0 == ret) {
 			if (0 == s->pos) {
 				if (GNET_PROPERTY(shell_debug)) {
-					g_debug("shell connection closed: EOF");
+					g_debug("%s: shell connection closed: EOF", G_STRFUNC);
 				}
 				shell_shutdown(sh);
 				goto finish;
 			}
 		} else if ((ssize_t) -1 == ret) {
 			if (!is_temporary_error(errno)) {
-				g_warning("receiving data failed: %m");
+				g_warning("%s: receiving data failed: %m", G_STRFUNC);
 				shell_shutdown(sh);
 				goto finish;
 			}
@@ -787,6 +792,14 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	}
 }
 
+static void
+shell_pending_add(struct gnutella_shell *sh, int code, const char *text)
+{
+	shell_pending_flush(sh, FALSE);
+	sh->pending.msg = h_strdup(text);
+	sh->pending.code = code;
+}
+
 /**
  * Writes single line of text, appending final trailing "\n".
  */
@@ -796,9 +809,37 @@ shell_write_line(struct gnutella_shell *sh, int code, const char *text)
 	shell_check(sh);
 	g_return_if_fail(text);
 
-	shell_pending_flush(sh, FALSE);
-	sh->pending.msg = h_strdup(text);
-	sh->pending.code = code;
+	shell_pending_add(sh, code, text);
+}
+
+/**
+ * Writes multiple lines of text, appending final trailing "\n" if needed.
+ */
+void
+shell_write_lines(struct gnutella_shell *sh, int code, const char *text)
+{
+	str_t *str;
+	int c;
+	const char *p = text;
+
+	shell_check(sh);
+	g_return_if_fail(text);
+
+	str = str_new(0);
+
+	while ((c = *p++)) {
+		if ('\n' == c) {
+			shell_pending_add(sh, code, str_2c(str));
+			str_reset(str);
+		} else {
+			str_putc(str, c);
+		}
+	}
+
+	if (0 != str_len(str))
+		shell_pending_add(sh, code, str_2c(str));
+
+	str_destroy_null(&str);
 }
 
 /**
@@ -856,11 +897,11 @@ static const struct sha1 *
 shell_auth_cookie(void)
 {
 	static struct sha1 cookie;
-	static gboolean initialized;
+	static bool initialized;
 
 	if (!initialized) {
 		SHA1Context ctx;
-		guint32 noise[64];
+		uint32 noise[64];
 
 		random_bytes(noise, sizeof noise);
 		SHA1Reset(&ctx);
@@ -878,12 +919,12 @@ shell_auth_cookie(void)
  *
  * @return TRUE if the connection is allowed.
  */
-static gboolean
+static bool
 shell_auth(struct gnutella_shell *sh, const char *str)
 {
 	const struct sha1 *cookie;
 	const char *tok_helo = NULL, *tok_cookie = NULL;
-	gboolean ok = FALSE;
+	bool ok = FALSE;
 	const char *endptr;
 
 	if (!shell_get_token(sh, str, &endptr, &tok_helo))
@@ -892,7 +933,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 		goto done;
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("auth: [%s] [<cookie not displayed>]", tok_helo);
+		g_debug("%s: [%s] [<cookie not displayed>]", G_STRFUNC, tok_helo);
 	}
 
 	cookie = shell_auth_cookie();
@@ -908,17 +949,17 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 
 done:
 	if (tok_helo != NULL)
-		g_free(deconstify_gpointer(tok_helo));
+		g_free(deconstify_pointer(tok_helo));
 	if (tok_cookie != NULL)
-		g_free(deconstify_gpointer(tok_cookie));
+		g_free(deconstify_pointer(tok_cookie));
 
 	return ok;
 }
 
-static gboolean
+static bool
 shell_grant_remote_shell(struct gnutella_shell *sh)
 {
-	gboolean granted = FALSE;
+	bool granted = FALSE;
 
 	shell_check(sh);
 
@@ -947,7 +988,7 @@ shell_auth_cookie(void)
 	return NULL;
 }
 
-static gboolean
+static bool
 shell_grant_remote_shell(const struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -956,7 +997,7 @@ shell_grant_remote_shell(const struct gnutella_shell *sh)
 }
 #endif /* USE_REMOTE_CTRL */
 
-static gboolean
+static bool
 shell_grant_local_shell(struct gnutella_shell *sh)
 {
 	shell_check(sh);
@@ -978,15 +1019,15 @@ void
 shell_add(struct gnutella_socket *s)
 {
 	struct gnutella_shell *sh;
-	gboolean granted = FALSE;
+	bool granted = FALSE;
 
 	socket_check(s);
 	g_assert(0 == s->gdk_tag);
 	g_assert(s->getline);
 
 	if (GNET_PROPERTY(shell_debug)) {
-		g_debug("incoming shell connection from %s",
-			host_addr_port_to_string(s->addr, s->port));
+		g_debug("%s: incoming shell connection from %s",
+			G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
 	}
 
 	s->type = SOCK_TYPE_SHELL;

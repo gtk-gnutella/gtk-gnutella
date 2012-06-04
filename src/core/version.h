@@ -43,12 +43,12 @@
  * In our comments below, we are assuming a value of "0.90.3b2".
  */
 typedef struct version {
-	guint32 major;				/**< Major version number (0) */
-	guint32 minor;				/**< Minor version number (90) */
-	guint32 patchlevel;			/**< Patch level (3) */
-	guchar tag;					/**< Code letter after version number (b) */
-	guint32 taglevel;			/**< Value after code letter (2) */
-	guint32 build;				/**< Build revision number (11723) */
+	uint32 major;				/**< Major version number (0) */
+	uint32 minor;				/**< Minor version number (90) */
+	uint32 patchlevel;			/**< Patch level (3) */
+	uchar tag;					/**< Code letter after version number (b) */
+	uint32 taglevel;			/**< Value after code letter (2) */
+	uint32 build;				/**< Build revision number (11723) */
 	time_t timestamp;
 } version_t;
 
@@ -57,7 +57,7 @@ typedef struct version {
  */
 typedef struct version_ext {
 	version_t version;			/**< Basic version information */
-	guint8 commit_len;			/**< Amount of valid nybbles in commit */
+	uint8 commit_len;			/**< Amount of valid nybbles in commit */
 	sha1_t commit;				/**< Git's commit SHA1 (partial) */
 	const char *osname;			/**< Static string */
 	unsigned dirty:1;
@@ -80,21 +80,26 @@ typedef struct version_ext {
 void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
-gboolean version_check(const char *str, const char *token, const host_addr_t);
+bool version_check(const char *str, const char *token, const host_addr_t);
 int version_cmp(const version_t *a, const version_t *b);
 int version_build_cmp(const version_t *a, const version_t *b);
-gboolean version_fill(const char *version, version_t *vs);
+bool version_fill(const char *version, version_t *vs);
 
 const char *version_str(const version_t *ver);
-const char *version_ext_str(const version_ext_t *vext, gboolean full);
+const char *version_ext_str(const version_ext_t *vext, bool full);
 
 extern const char *version_string;
 extern const char *version_short_string;
 
+struct logagent;
+
+void version_string_dump_log(struct logagent *la, bool full);
+void version_string_dump(void);
+
 const char *version_build_string(void);
-guint8 version_get_code(void) G_GNUC_PURE;
-gboolean version_is_dirty(void) G_GNUC_PURE;
-const struct sha1 *version_get_commit(guint8 *len);
+uint8 version_get_code(void) G_GNUC_PURE;
+bool version_is_dirty(void) G_GNUC_PURE;
+const struct sha1 *version_get_commit(uint8 *len);
 
 #endif	/* _core_version_h_ */
 

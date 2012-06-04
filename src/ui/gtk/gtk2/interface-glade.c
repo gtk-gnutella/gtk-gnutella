@@ -4030,7 +4030,12 @@ create_main_window_search_tab (void)
   GtkWidget *spinbutton_whats_new_search_max_results;
   GtkWidget *checkbutton_search_discard_alien_ip;
   GtkWidget *checkbutton_search_discard_banned_guid;
+  GtkWidget *checkbutton_search_display_guess_stats;
   GtkWidget *label1011;
+  GtkWidget *guess_stats_line;
+  GtkWidget *viewport482;
+  GtkWidget *label_guess_stats;
+  GtkWidget *checkbutton_guess_stats_show_total;
   GtkWidget *hbox215;
   GtkWidget *viewport56;
   GtkWidget *label_items_found;
@@ -4421,10 +4426,41 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  checkbutton_search_display_guess_stats = gtk_check_button_new_with_mnemonic (_("Display GUESS statistics"));
+  gtk_widget_set_name (checkbutton_search_display_guess_stats, "checkbutton_search_display_guess_stats");
+  gtk_widget_show (checkbutton_search_display_guess_stats);
+  gtk_table_attach (GTK_TABLE (table78), checkbutton_search_display_guess_stats, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label1011 = gtk_label_new (_("General search settings (affect all searches)"));
   gtk_widget_set_name (label1011, "label1011");
   gtk_widget_show (label1011);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook1), 3), label1011);
+
+  guess_stats_line = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (guess_stats_line, "guess_stats_line");
+  gtk_widget_show (guess_stats_line);
+  gtk_box_pack_start (GTK_BOX (vbox79), guess_stats_line, FALSE, TRUE, 0);
+
+  viewport482 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport482, "viewport482");
+  gtk_widget_show (viewport482);
+  gtk_box_pack_start (GTK_BOX (guess_stats_line), viewport482, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport482), GTK_SHADOW_ETCHED_IN);
+
+  label_guess_stats = gtk_label_new ("                                                                     ");
+  gtk_widget_set_name (label_guess_stats, "label_guess_stats");
+  gtk_widget_show (label_guess_stats);
+  gtk_container_add (GTK_CONTAINER (viewport482), label_guess_stats);
+  gtk_label_set_justify (GTK_LABEL (label_guess_stats), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label_guess_stats), 7.45058e-09, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_guess_stats), 5, 0);
+
+  checkbutton_guess_stats_show_total = gtk_check_button_new_with_mnemonic (_("Total"));
+  gtk_widget_set_name (checkbutton_guess_stats_show_total, "checkbutton_guess_stats_show_total");
+  gtk_widget_show (checkbutton_guess_stats_show_total);
+  gtk_box_pack_start (GTK_BOX (guess_stats_line), checkbutton_guess_stats_show_total, FALSE, TRUE, 0);
 
   hbox215 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox215, "hbox215");
@@ -4619,7 +4655,12 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_whats_new_search_max_results, "spinbutton_whats_new_search_max_results");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_alien_ip, "checkbutton_search_discard_alien_ip");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_discard_banned_guid, "checkbutton_search_discard_banned_guid");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_search_display_guess_stats, "checkbutton_search_display_guess_stats");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label1011, "label1011");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, guess_stats_line, "guess_stats_line");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport482, "viewport482");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label_guess_stats, "label_guess_stats");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, checkbutton_guess_stats_show_total, "checkbutton_guess_stats_show_total");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox215, "hbox215");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport56, "viewport56");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label_items_found, "label_items_found");
@@ -11970,6 +12011,7 @@ create_dlg_prefs_bw_tab (void)
   GtkObject *spinbutton_config_bw_guess_out_adj;
   GtkWidget *spinbutton_config_bw_guess_out;
   GtkWidget *label1063;
+  GtkWidget *checkbutton_guess_maximize_bw;
   GtkWidget *label1062;
   GtkTooltips *tooltips;
 
@@ -12673,7 +12715,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_container_add (GTK_CONTAINER (frame150), vbox157);
   gtk_container_set_border_width (GTK_CONTAINER (vbox157), 2);
 
-  table119 = gtk_table_new (1, 3, FALSE);
+  table119 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table119, "table119");
   gtk_widget_show (table119);
   gtk_box_pack_start (GTK_BOX (vbox157), table119, TRUE, TRUE, 0);
@@ -12706,6 +12748,13 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label1063), 0, 0.5);
+
+  checkbutton_guess_maximize_bw = gtk_check_button_new_with_mnemonic (_("Allow unused Gnutella outgoing bandwidth to supersede hint"));
+  gtk_widget_set_name (checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
+  gtk_widget_show (checkbutton_guess_maximize_bw);
+  gtk_table_attach (GTK_TABLE (table119), checkbutton_guess_maximize_bw, 0, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label1062 = gtk_label_new_with_mnemonic (_("Bandwidth limits for GUESS queries"));
   gtk_widget_set_name (label1062, "label1062");
@@ -12815,6 +12864,7 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1057, "label1057");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bw_guess_out, "spinbutton_config_bw_guess_out");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1063, "label1063");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_guess_maximize_bw, "checkbutton_guess_maximize_bw");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label1062, "label1062");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_bw_tab, tooltips, "tooltips");
 

@@ -50,6 +50,7 @@
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
 #include "if/core/downloads.h"
+#include "if/core/guess.h"
 #include "if/core/guid.h"
 #include "if/core/search.h"
 #include "if/core/sockets.h"
@@ -63,6 +64,9 @@
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
@@ -98,6 +102,7 @@ struct accum_rs {
 };
 
 static GList *list_searches;	/**< List of search structs */
+static htable_t *ht_searches;	/**< Maps a gnet_search_t to a search_t */
 
 static search_t *current_search; /**< The search currently displayed */
 
@@ -109,6 +114,8 @@ static GList *list_search_history;
 static GtkNotebook *notebook_search_results;
 static GtkLabel *label_items_found;
 static GtkLabel *label_search_expiry;
+static GtkLabel *label_guess_stats;
+static GtkWidget *guess_stats_line;
 
 static gboolean store_searches_requested;
 static gboolean store_searches_disabled;
@@ -410,24 +417,35 @@ search_gui_update_tab_label(const struct search *search)
 void 
 search_gui_update_status_label(const struct search *search)
 {
-	if (search != current_search) {
+	char expire[128];
+	char downloads[48];
+	unsigned dlcount;
+
+	if (search != current_search)
 		return;
-	} else if (NULL == search) {
+
+	if G_UNLIKELY(NULL == search) {
         gtk_label_printf(label_search_expiry, "%s", _("No search"));
-	} else if (!search_gui_is_enabled(search)) {
+		return;
+	}
+
+	dlcount = guc_search_associated_sha1_count(search->search_handle);
+	expire[0] = downloads[0] = '\0';
+
+	if (!search_gui_is_enabled(search)) {
 		unsigned queued = search_gui_queue_length(search);
 
 		if (queued > 0) {
-       		gtk_label_printf(label_search_expiry,
+       		str_bprintf(expire, sizeof expire,
 				_("Flushing queue (%u results pending)"), queued);
 		} else {
-			gtk_label_printf(label_search_expiry, "%s",
+			str_bprintf(expire, sizeof expire, "%s",
 				_("The search has been stopped"));
 		}
 	} else if (search_gui_is_passive(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Passive search"));
+		str_bprintf(expire, sizeof expire, "%s", _("Passive search"));
 	} else if (search_gui_is_expired(search)) {
-		gtk_label_printf(label_search_expiry, "%s", _("Expired"));
+		str_bprintf(expire, sizeof expire, "%s", _("Expired"));
 	} else {
 		unsigned time_left;
 
@@ -441,13 +459,20 @@ search_gui_update_status_label(const struct search *search)
 			d = delta_time(tm_time(), created);
 			d = MAX(0, d);
 			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
-			gtk_label_printf(label_search_expiry,
+			str_bprintf(expire, sizeof expire,
 				_("Expires in %s"), short_time(d));
 		} else {
-   			gtk_label_printf(label_search_expiry, "%s",
+   			str_bprintf(expire, sizeof expire, "%s",
 				_("Expires with this session"));
 		}
 	}
+
+	if (dlcount != 0) {
+		str_bprintf(downloads, sizeof downloads,
+			NG_(" [%u download]", " [%u downloads]", dlcount), dlcount);
+	}
+
+  	gtk_label_printf(label_search_expiry, "%s%s", expire, downloads);
 }
 
 /**
@@ -477,6 +502,106 @@ search_gui_update_items_label(const struct search *search)
 	}
 }
 
+/**
+ * Can search be the target of a GUESS query?
+ */
+static bool
+search_gui_can_use_guess(const struct search *search)
+{
+	g_return_val_if_fail(search != NULL, FALSE);
+
+	return !search_gui_is_passive(search) &&
+		!search_gui_is_whats_new(search) &&
+		!search_gui_is_browse(search) &&
+		!search_gui_is_local(search);
+}
+
+/**
+ * Update the label string showing GUESS stats, if displayed.
+ */
+static void
+search_gui_update_guess_stats(const struct search *search)
+{
+	char buf[256];
+
+	if (
+		NULL == search ||
+		search != current_search ||
+		!search_gui_can_use_guess(search) ||
+		!GUI_PROPERTY(search_display_guess_stats)
+	)
+		return;
+
+	if (0 == search->guess_queries) {
+		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
+	} else if (
+		GUI_PROPERTY(guess_stats_show_total) ||
+		0 == search->guess_cur_start
+	) {
+		/*
+		 * Either they want summary stats or there are no currently running
+		 * GUESS search: display summary only.
+		 */
+		char prev[128];
+		uint64 hits = search->guess_results + search->guess_cur_results;
+		if (search->guess_elapsed != 0) {
+			str_bprintf(prev, sizeof prev,
+				_(" previous took %s querying %zu %s with %zu %s kept"),
+				compact_time(search->guess_elapsed),
+				search->guess_hosts,
+				NG_("host", "hosts", search->guess_hosts),
+				search->guess_last_kept,
+				NG_("hit", "hits", search->guess_last_kept));
+		} else {
+			prev[0] = '\0';
+		}
+		str_bprintf(buf, sizeof buf, _("GUESS %s [Total: %zu %s "
+			"(%s %s, %s kept, %s queries, %s keys)%s]"),
+			0 == search->guess_cur_start ? _("idle") :
+				compact_time(delta_time(tm_time(), search->guess_cur_start)),
+			search->guess_queries,
+			NG_("query", "queries", search->guess_queries),
+			uint64_to_string(hits), NG_("hit", "hits", hits),
+			uint64_to_string2(search->guess_kept + search->guess_cur_kept),
+			short_size(
+				search->guess_bw_query + search->guess_cur_bw_query, FALSE),
+			short_size2(
+				search->guess_bw_qk + search->guess_cur_bw_qk, FALSE),
+			prev);
+	} else {
+		/*
+		 * A GUESS search is active AND they don't want only summary stats.
+		 */
+		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
+			"(%zu %s, %zu kept, %s queries, %s keys)] "
+			"[Pool: %zu %s, %zu/%zu queried, %zu %s (%.2f%%), %zu pending, "
+			"%zu %s%s%s]"),
+			compact_time(delta_time(tm_time(), search->guess_cur_start)),
+			GUESS_QUERY_LOOSE == search->guess_cur_mode ?
+				_("loose") : _("bounded"),
+			search->guess_cur_results,
+			NG_("hit", "hits", search->guess_cur_results),
+			search->guess_cur_kept,
+			short_size(search->guess_cur_bw_query, FALSE),
+			short_size2(search->guess_cur_bw_qk, FALSE),
+			search->guess_cur_pool,
+			NG_("host", "hosts", search->guess_cur_pool),
+			search->guess_cur_queried, search->guess_cur_max_ultra,
+			search->guess_cur_acks,
+			NG_("ack", "acks", search->guess_cur_acks),
+			100.0 * search->guess_cur_acks /
+				(0 == search->guess_cur_queried ?
+					1 : search->guess_cur_queried),
+			search->guess_cur_rpc_pending,
+			search->guess_cur_hops,
+			NG_("hop", "hops", search->guess_cur_hops),
+			search->guess_cur_pool_load ? _(" (load pending)") : "",
+			search->guess_cur_end_starving ? _(" (end if starving)") : "");
+	}
+
+	gtk_label_printf(label_guess_stats, "%s", buf);
+}
+
 static gboolean
 search_gui_is_visible(void)
 {
@@ -504,6 +629,7 @@ search_gui_update_status(struct search *search)
 		search_gui_update_counters(search);
 		search_gui_update_status_label(search);
 		search_gui_update_items_label(search);
+		search_gui_update_guess_stats(search);
 	}
 }
 
@@ -589,6 +715,7 @@ search_gui_close_search(search_t *search)
 	next = g_list_next(next) ? g_list_next(next) : g_list_previous(next);
 
  	list_searches = g_list_remove(list_searches, search);
+	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
 	search_gui_store_searches();
 	search_gui_option_menu_searches_update();
 
@@ -603,8 +730,8 @@ search_gui_close_search(search_t *search)
 
 	filter_close_search(search);
 
-	gm_hash_table_destroy_null(&search->dups);
-	gm_hash_table_destroy_null(&search->parents);
+	hset_free_null(&search->dups);
+	htable_free_null(&search->parents);
 
     guc_search_close(search->search_handle);
 	WFREE(search);
@@ -856,12 +983,6 @@ search_gui_results_set_free(results_set_t *rs)
 {
 	results_set_check(rs);
 
-	/*
-	 * Because no one refers to us any more, we know that our embedded records
-	 * cannot be held in the hash table anymore.  Hence we may call the
-	 * search_free_record() safely, because rc->refcount must be zero.
-	 */
-
 	g_assert(0 == rs->num_recs);
 	g_assert(NULL == rs->records);
 
@@ -890,12 +1011,6 @@ search_gui_remove_record(record_t *rc)
 	rs = rc->results_set;
 	results_set_check(rs);
 	rc->results_set = NULL;
-
-	/*
-	 * It is conceivable that some records were used solely by the search
-	 * dropping the result set.  Therefore, if the refcount is not 0,  we
-	 * pass through search_clean_r_set().
-	 */
 
     g_assert(rs->num_recs > 0);
     g_assert(rs->records);
@@ -946,12 +1061,12 @@ search_gui_hash_func(gconstpointer p)
 
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
-		pointer_to_uint(rc->sha1) ^	/* atom! (may be NULL) */
-		pointer_to_uint(rc->results_set->guid) ^	/* atom! */
-		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
-		rc->size ^
+		pointer_hash(rc->sha1) ^	/* atom! (may be NULL) */
+		pointer_hash(rc->results_set->guid) ^	/* atom! */
+		(NULL != rc->sha1 ? 0 : string_mix_hash(rc->name)) ^
+		integer_hash(rc->size) ^
 		host_addr_hash(rc->results_set->addr) ^
-		rc->results_set->port;
+		port_hash(rc->results_set->port);
 }
 
 gint
@@ -978,12 +1093,12 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 static gboolean
 search_gui_result_is_dup(search_t *sch, record_t *rc)
 {
-	gpointer orig_key;
+	const void *orig_key;
 
 	record_check(rc);
 
-	if (g_hash_table_lookup_extended(sch->dups, rc, &orig_key, NULL)) {
-		record_t *old_rc = orig_key;
+	if (hset_contains_extended(sch->dups, rc, &orig_key)) {
+		record_t *old_rc = deconstify_pointer(orig_key);
 
 		/*
 		 * Actually, if the index is the only thing that changed,
@@ -1029,21 +1144,7 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 static search_t *
 search_gui_find(gnet_search_t sh)
 {
-    const GList *l;
-
-    for (l = search_gui_get_searches(); l != NULL; l = g_list_next(l)) {
-		search_t *s = l->data;
-
-        if (s->search_handle == sh) {
-            if (GUI_PROPERTY(gui_debug) >= 15) {
-                g_debug("search [%s] matched handle %x",
-					search_gui_query(s), sh);
-			}
-            return s;
-        }
-    }
-
-    return NULL;
+	return htable_lookup(ht_searches, uint_to_pointer(sh));
 }
 
 /**
@@ -1901,12 +2002,17 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		skip_records = (!send_pushes || is_firewalled) && (flags & SOCK_F_PUSH);
 	}
 
-	if (GUI_PROPERTY(gui_debug) > 6)
-		printf("search_matched: [%s] got hit with %d record%s (from %s) "
-			"need_push=%d, skipping=%d\n",
+	if (GUI_PROPERTY(gui_debug) > 6) {
+		g_debug("%s(): [%s] got hit with %d record%s (from %s via %s%s%s%s) "
+			"need_push=%d, skipping=%d", G_STRFUNC,
 			search_gui_query(sch), rs->num_recs, rs->num_recs == 1 ? "" : "s",
 			host_addr_port_to_string(rs->addr, rs->port),
-			(flags & SOCK_F_PUSH), skip_records);
+			(rs->status & ST_UDP) ? "UDP" : "TCP",
+			(rs->status & ST_GUESS) ? " + GUESS" : "",
+			(NULL == muid) ? "" : " ",
+			(NULL == muid) ? "" : guid_to_string(muid),
+			booleanize(flags & SOCK_F_PUSH), skip_records);
+	}
 
   	for (sl = rs->records; sl && !skip_records; sl = g_slist_next(sl)) {
 		record_t *rc = sl->data;
@@ -1915,8 +2021,8 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		record_check(rc);
 
         if (GUI_PROPERTY(gui_debug) > 7)
-            printf("search_matched: [%s] considering %s\n",
-				search_gui_query(sch), rc->name);
+            g_debug("%s(): [%s] considering %s",
+				G_STRFUNC, search_gui_query(sch), rc->name);
 
         if (rc->flags & SR_DOWNLOADED)
 			sch->auto_downloaded++;
@@ -2051,7 +2157,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 		}
 		sch->items++;
 
-		g_hash_table_insert(sch->dups, rc, rc);
+		hset_insert(sch->dups, rc);
 		search_gui_ref_record(rc);
 
 		if (GUI_COLOR_MARKED != color)
@@ -2172,8 +2278,22 @@ search_gui_switch_search(struct search *search)
 	search_gui_update_status(search);
 }
 
+static void
+search_gui_guess_stats_display(const search_t *search)
+{
+	bool guess_stats;
+
+	guess_stats = search_gui_can_use_guess(search) &&
+		GUI_PROPERTY(search_display_guess_stats);
+
+	if (guess_stats)
+		gtk_widget_show(guess_stats_line);
+	else
+		gtk_widget_hide(guess_stats_line);
+}
+
 void
-search_gui_set_current_search(struct search *search)
+search_gui_set_current_search(search_t *search)
 {
 	if (search != current_search) {
 		struct search *previous = current_search;
@@ -2187,12 +2307,21 @@ search_gui_set_current_search(struct search *search)
 			search_gui_update_counters(previous);
 		}
 		if (search) {	
+			search_gui_guess_stats_display(search);
 			search_gui_show_search(search);
 			search_gui_end_massive_update(search);
 			gtk_widget_show(search->tree);
 			search->list_refreshed = FALSE;
 			search_gui_update_counters(search);
 		}
+	}
+}
+
+void
+search_gui_current_search_refresh(void)
+{
+	if (current_search != NULL) {
+		search_gui_guess_stats_display(current_search);
 	}
 }
 
@@ -2221,13 +2350,21 @@ search_gui_got_results(GSList *schl, const struct guid *muid,
 	if (rs) {
 		struct accum_rs *ars;
 
-		if (GUI_PROPERTY(gui_debug) >= 12)
-			printf("got incoming results...\n");
+		if (GUI_PROPERTY(gui_debug) >= 12) {
+			g_debug("%s(): got incoming results...", G_STRFUNC);
+		}
 
 		WALLOC(ars);
 		ars->muid = muid != NULL ? atom_guid_get(muid) : NULL;
 		ars->rs = rs;
 		slist_append(accumulated_rs, ars);
+	} else {
+		if (GUI_PROPERTY(gui_debug) >= 6) {
+			g_debug("%s(): ignoring %u result%s%s%s",
+				G_STRFUNC, r_set->num_recs, 1 == r_set->num_recs ? "" : "s",
+				NULL == muid ? "" : " for GUESS ",
+				NULL == muid ? "" : guid_to_string(muid));
+		}
 	}
 }
 
@@ -2276,9 +2413,8 @@ search_gui_flush(time_t now, gboolean force)
 	tm_t t0, t1;
 
 	if (!force) {
-		guint32 period;
+		guint32 period = GUI_PROPERTY(search_accumulation_period);
 
-		gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
 		if (last && delta_time(now, last) < (time_delta_t) period)
 			return;
 	}
@@ -2301,6 +2437,12 @@ search_gui_flush(time_t now, gboolean force)
         schl = rs->schl;
         rs->schl = NULL;
 
+		if (GUI_PROPERTY(gui_debug) > 6 && muid != NULL) {
+			g_debug("%s(): processing accumulated %u record%s for %s",
+				G_STRFUNC, rs->num_recs, 1 == rs->num_recs ? "" : "s",
+				guid_to_string(muid));
+		}
+
 		search_gui_set_record_info(rs);
 
         /*
@@ -2321,15 +2463,15 @@ search_gui_flush(time_t now, gboolean force)
              *     --BLUE, 4/1/2004
              */
 
-            if (sch) {
-				if (!g_slist_find(frozen, sch)) {
+            if (sch != NULL) {
+				if (!sch->frozen) {
                 	search_gui_start_massive_update(sch);
                 	frozen = g_slist_prepend(frozen, sch);
 				}
                 search_matched(sch, muid, rs);
             } else if (GUI_PROPERTY(gui_debug) >= 6) {
-				g_debug(
-					"no search for cached search result while dispatching");
+				g_debug("%s(): no search for cached search result (handle #%u)",
+					G_STRFUNC, handle);
 			}
         }
 		gm_slist_free_null(&schl);
@@ -2343,7 +2485,7 @@ search_gui_flush(time_t now, gboolean force)
          */
 
         if (GUI_PROPERTY(gui_debug) >= 15)
-            printf("cleaning phase\n");
+            g_debug("%s(): cleaning phase", G_STRFUNC);
 
 		for (sl = rs->records; sl != NULL; /* NOTHING */) {
 			record_t *rc = sl->data;
@@ -2369,8 +2511,8 @@ search_gui_flush(time_t now, gboolean force)
 
 	if (GUI_PROPERTY(gui_debug)) {
 		tm_now_exact(&t1);
-		g_debug("dispatching results took %lu ms",
-			(gulong) tm_elapsed_ms(&t1, &t0));
+		g_debug("%s(): dispatching results took %lu ms",
+			G_STRFUNC, (ulong) tm_elapsed_ms(&t1, &t0));
 	}
 
 	search_gui_flush_queues();
@@ -2717,7 +2859,7 @@ search_gui_browse_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
 	g_assert(req);
 
 	if (n > 0) {
-		size_t i = random_u32() % n;
+		size_t i = random_value(n - 1);
 
 		search_gui_new_browse_host(req->host, addrs[i], req->port,
 			NULL, NULL, req->flags);
@@ -2972,7 +3114,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
  
 	search->search_handle = sch_id;
-	search->dups = g_hash_table_new(search_gui_hash_func,
+	search->dups = hset_create_any(search_gui_hash_func, NULL,
 						search_gui_hash_key_compare);
 
 	search_gui_filter_new(search, query->rules);
@@ -2998,6 +3140,7 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 
 	is_only_search = NULL == list_searches;
 	list_searches = g_list_append(list_searches, search);
+	htable_insert(ht_searches, uint_to_pointer(search->search_handle), search);
 	search_gui_option_menu_searches_update();
 
 	if (is_only_search) {
@@ -4346,6 +4489,66 @@ search_gui_timer(time_t now)
 }
 
 static void
+search_gui_guess_event(gnet_search_t sh, const struct guess_query *query)
+{
+	search_t *search;
+
+	search = search_gui_find(sh);
+	g_return_if_fail(search != NULL);
+
+	if (NULL == query) {
+		/* Current query terminated, consolidate results */
+		search->guess_bw_query += search->guess_cur_bw_query;
+		search->guess_bw_qk += search->guess_cur_bw_qk;
+		search->guess_results += search->guess_cur_results;
+		search->guess_kept += search->guess_cur_kept;
+		search->guess_elapsed = delta_time(tm_time(), search->guess_cur_start);
+		search->guess_hosts = search->guess_cur_acks;	/* Really queried */
+		search->guess_last_kept = search->guess_cur_kept;
+		/* Reset stats for new query */
+		search->guess_cur_start = 0;
+		search->guess_cur_pool = 0;
+		search->guess_cur_queried = 0;
+		search->guess_cur_acks = 0;
+		search->guess_cur_results = 0;
+		search->guess_cur_kept = 0;
+		search->guess_cur_hops = 0;
+		search->guess_cur_rpc_pending = 0;
+		search->guess_cur_bw_query = 0;
+		search->guess_cur_bw_qk = 0;
+	} else {
+		/* New query starting */
+		search->guess_queries++;
+		search->guess_cur_start = tm_time();
+		search->guess_cur_mode = query->mode;
+		search->guess_cur_max_ultra = query->max_ultra;
+	}
+}
+
+static void
+search_gui_guess_stats(gnet_search_t sh, const struct guess_stats *stats)
+{
+	search_t *search;
+
+	search = search_gui_find(sh);
+	g_return_if_fail(search != NULL);
+
+	search->guess_cur_pool			= stats->pool;
+	search->guess_cur_queried		= stats->queried;
+	search->guess_cur_acks			= stats->acks;
+	search->guess_cur_results		= stats->results;
+	search->guess_cur_kept			= stats->kept;
+	search->guess_cur_hops			= stats->hops;
+	search->guess_cur_rpc_pending	= stats->rpc_pending;
+	search->guess_cur_bw_query		= stats->bw_out_query;
+	search->guess_cur_bw_qk			= stats->bw_out_qk;
+	search->guess_cur_mode			= stats->mode;
+	search->guess_cur_pool_load		= stats->pool_load;
+	search->guess_cur_end_starving	= stats->end_starving;
+}
+
+
+static void
 search_gui_signals_init(void)
 {
 #define WIDGET_SIGNAL_CONNECT(widget, event) \
@@ -4478,11 +4681,15 @@ void
 search_gui_common_init(void)
 {
 	accumulated_rs = slist_new();
+	ht_searches = htable_create(HASH_KEY_SELF, 0);
 
 	label_items_found = GTK_LABEL(
 		gui_main_window_lookup("label_items_found"));
 	label_search_expiry = GTK_LABEL(
 		gui_main_window_lookup("label_search_expiry"));
+	label_guess_stats = GTK_LABEL(
+		gui_main_window_lookup("label_guess_stats"));
+	guess_stats_line = gui_main_window_lookup("guess_stats_line");
 
 	{
 		GtkNotebook *nb;
@@ -4527,6 +4734,9 @@ search_gui_common_init(void)
     guc_search_got_results_listener_add(search_gui_got_results);
     guc_search_status_change_listener_add(search_gui_status_change);
 
+    guc_guess_event_listener_add(search_gui_guess_event);
+    guc_guess_stats_listener_add(search_gui_guess_stats);
+
 	main_gui_add_timer(search_gui_timer);
 }
 
@@ -4537,8 +4747,12 @@ void
 search_gui_common_shutdown(void)
 {
 	search_gui_callbacks_shutdown();
+
  	guc_search_got_results_listener_remove(search_gui_got_results);
  	guc_search_status_change_listener_remove(search_gui_status_change);
+
+    guc_guess_event_listener_remove(search_gui_guess_event);
+    guc_guess_stats_listener_remove(search_gui_guess_stats);
 
 	gui_prop_remove_prop_changed_listener(PROP_SEARCH_RESULTS_SHOW_TABS,
 		search_results_show_tabs_changed);
@@ -4559,6 +4773,7 @@ search_gui_common_shutdown(void)
 	search_gui_set_details(NULL);
 
     gm_list_free_null(&list_search_history);
+	htable_free_null(&ht_searches);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

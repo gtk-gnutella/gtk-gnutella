@@ -1022,6 +1022,14 @@ guint32  gnet_property_variable_tx_deflate_debug     = 0;
 static const guint32  gnet_property_variable_tx_deflate_debug_default = 0;
 char   *gnet_property_variable_tx_debug_addrs     = "";
 static const char   *gnet_property_variable_tx_debug_addrs_default = "";
+char   *gnet_property_variable_dump_rx_addrs     = "";
+static const char   *gnet_property_variable_dump_rx_addrs_default = "";
+char   *gnet_property_variable_dump_tx_from_addrs     = "";
+static const char   *gnet_property_variable_dump_tx_from_addrs_default = "";
+char   *gnet_property_variable_dump_tx_to_addrs     = "";
+static const char   *gnet_property_variable_dump_tx_to_addrs_default = "";
+gboolean gnet_property_variable_guess_maximize_bw     = TRUE;
+static const gboolean gnet_property_variable_guess_maximize_bw_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -1038,7 +1046,7 @@ gnet_prop_init(void) {
     gnet_property->props  = omalloc(sizeof(prop_def_t) * GNET_PROPERTY_NUM);
     gnet_property->get_stub = gnet_prop_get_stub;
     gnet_property->dirty = FALSE;
-    gnet_property->byName = NULL;
+    gnet_property->by_name = NULL;
 
 
     /*
@@ -9404,7 +9412,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[439].name = "tx_debug_addrs";
-    gnet_property->props[439].desc = _("Comma-separated list of TX debugging host (IP addresses only)");
+    gnet_property->props[439].desc = _("Comma-separated list of TX debugging hosts (IP addresses only)");
     gnet_property->props[439].ev_changed = event_new("tx_debug_addrs_changed");
     gnet_property->props[439].save = TRUE;
     gnet_property->props[439].vector_size = 1;
@@ -9418,10 +9426,90 @@ gnet_prop_init(void) {
             g_strdup(eval_subst(*gnet_property->props[439].data.string.def));
     }
 
-    gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
+
+    /*
+     * PROP_DUMP_RX_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[440].name = "dump_rx_addrs";
+    gnet_property->props[440].desc = _("Comma-separated list of hosts for whom we want to dump RX traffic (IP addresses only)");
+    gnet_property->props[440].ev_changed = event_new("dump_rx_addrs_changed");
+    gnet_property->props[440].save = TRUE;
+    gnet_property->props[440].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[440].type               = PROP_TYPE_STRING;
+    gnet_property->props[440].data.string.def    = (void *) &gnet_property_variable_dump_rx_addrs_default;
+    gnet_property->props[440].data.string.value  = (void *) &gnet_property_variable_dump_rx_addrs;
+    if (gnet_property->props[440].data.string.def) {
+        *gnet_property->props[440].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[440].data.string.def));
+    }
+
+
+    /*
+     * PROP_DUMP_TX_FROM_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[441].name = "dump_tx_from_addrs";
+    gnet_property->props[441].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic  they emit (IP addresses only)");
+    gnet_property->props[441].ev_changed = event_new("dump_tx_from_addrs_changed");
+    gnet_property->props[441].save = TRUE;
+    gnet_property->props[441].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[441].type               = PROP_TYPE_STRING;
+    gnet_property->props[441].data.string.def    = (void *) &gnet_property_variable_dump_tx_from_addrs_default;
+    gnet_property->props[441].data.string.value  = (void *) &gnet_property_variable_dump_tx_from_addrs;
+    if (gnet_property->props[441].data.string.def) {
+        *gnet_property->props[441].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[441].data.string.def));
+    }
+
+
+    /*
+     * PROP_DUMP_TX_TO_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[442].name = "dump_tx_to_addrs";
+    gnet_property->props[442].desc = _("Comma-separated list of hosts for whom we want to dump TX traffic they receive (IP addresses only)");
+    gnet_property->props[442].ev_changed = event_new("dump_tx_to_addrs_changed");
+    gnet_property->props[442].save = TRUE;
+    gnet_property->props[442].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[442].type               = PROP_TYPE_STRING;
+    gnet_property->props[442].data.string.def    = (void *) &gnet_property_variable_dump_tx_to_addrs_default;
+    gnet_property->props[442].data.string.value  = (void *) &gnet_property_variable_dump_tx_to_addrs;
+    if (gnet_property->props[442].data.string.def) {
+        *gnet_property->props[442].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[442].data.string.def));
+    }
+
+
+    /*
+     * PROP_GUESS_MAXIMIZE_BW:
+     *
+     * General data:
+     */
+    gnet_property->props[443].name = "guess_maximize_bw";
+    gnet_property->props[443].desc = _("Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint will be used.  When running as a leaf this should be set to TRUE to make GUESS queries run faster.");
+    gnet_property->props[443].ev_changed = event_new("guess_maximize_bw_changed");
+    gnet_property->props[443].save = TRUE;
+    gnet_property->props[443].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[443].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[443].data.boolean.def   = (void *) &gnet_property_variable_guess_maximize_bw_default;
+    gnet_property->props[443].data.boolean.value = (void *) &gnet_property_variable_guess_maximize_bw;
+
+    gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gnet_property->byName,
-            gnet_property->props[n].name, GINT_TO_POINTER(n+(NO_PROP+1)));
+        htable_insert(gnet_property->by_name,
+            gnet_property->props[n].name, int_to_pointer(n+(NO_PROP+1)));
     }
 
     return gnet_property;
@@ -9434,10 +9522,7 @@ G_GNUC_COLD void
 gnet_prop_shutdown(void) {
     guint32 n;
 
-    if (gnet_property->byName) {
-        g_hash_table_destroy(gnet_property->byName);
-        gnet_property->byName = NULL;
-    }
+    htable_free_null(&gnet_property->by_name);
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         if (gnet_property->props[n].type == PROP_TYPE_STRING) {
@@ -9609,6 +9694,12 @@ gnet_prop_name(property_t p)
     return prop_name(gnet_property, p);
 }
 
+prop_type_t
+gnet_prop_type(property_t p)
+{
+    return prop_type(gnet_property, p);
+}
+
 const char *
 gnet_prop_type_to_string(property_t p)
 {
@@ -9630,8 +9721,7 @@ gnet_prop_is_saved(property_t p)
 property_t
 gnet_prop_get_by_name(const char *name)
 {
-    return GPOINTER_TO_UINT(
-        g_hash_table_lookup(gnet_property->byName, name));
+    return pointer_to_uint(htable_lookup(gnet_property->by_name, name));
 }
 
 GSList *

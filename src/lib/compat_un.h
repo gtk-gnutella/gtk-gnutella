@@ -84,7 +84,7 @@ int compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen);
 int compat_getsockname(int sd, struct sockaddr *addr, socklen_t *addrlen);
 int compat_socket_close(int sd);
 
-gboolean compat_accept_check(int sd, gboolean *error);
+bool compat_accept_check(int sd, bool *error);
 void compat_socket_duped(int sd, int nsd);
 
 #endif	/* HAS_SOCKADDR_UN */

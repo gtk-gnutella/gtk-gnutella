@@ -52,7 +52,7 @@ shell_exec_download_add(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
 	const char *url;
-	gboolean success;
+	bool success;
 
 	shell_check(sh);
 	g_assert(argv);

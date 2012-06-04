@@ -36,18 +36,18 @@
 #include "upload_stats.h"
 #include "notebooks.h"
 
-#include "lib/glib-missing.h"
+#include "lib/hset.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPDATE_MIN		60		/**< Update screen every minute at least */
 #define UPDATE_LOOKING	5		/**< Every 5 seconds when they're looking */
 
 /**
- * This table holds all the pending updates, which are buffered and
+ * This set holds all the pending updates, which are buffered and
  * displayed only periodically, to avoid too frequent updates of the GUI
  * structures, and costly operations when the columns are sorted.
  */
-static GHashTable *pending;
+static hset_t *pending;
 
 static gboolean
 upload_stats_gui_is_visible(void)
@@ -68,17 +68,30 @@ upload_stats_gui_update(struct ul_stats *us)
 	 * is being passed for a given upload.
 	 */
 
-	if (!g_hash_table_lookup(pending, us))
-		g_hash_table_insert(pending, us, GINT_TO_POINTER(1));
+	hset_insert(pending, us);
 }
 
-static gboolean
-upload_stats_update_model(gpointer key, gpointer uvalue, gpointer udata)
+/**
+ * Clear statistics.
+ */
+void
+upload_stats_gui_clear_all(void)
 {
-	(void) uvalue;
+	/*
+	 * After clearing the model we also forget about all pending updates since
+	 * the core will free up all the "ul_stats" structures.
+	 */
+
+	upload_stats_gui_clear_model();
+	hset_clear(pending);
+}
+
+static bool
+upload_stats_update_model(const void *key, void *udata)
+{
 	(void) udata;
 
-	upload_stats_gui_update_model(key);
+	upload_stats_gui_update_model(deconstify_pointer(key));
 	return TRUE;
 }
 
@@ -100,7 +113,7 @@ upload_stats_gui_update_if_required(time_t now)
 	if (delta >= threshold) {
 		last_update = now;
 		upload_stats_gui_freeze();
-		g_hash_table_foreach_remove(pending, upload_stats_update_model, NULL);
+		hset_foreach_remove(pending, upload_stats_update_model, NULL);
 		upload_stats_gui_thaw();
 	}
 }
@@ -114,14 +127,14 @@ upload_stats_common_gui_timer(time_t now)
 void
 upload_stats_common_gui_init(void)
 {
-	pending = g_hash_table_new(NULL, NULL);
+	pending = hset_create(HASH_KEY_SELF, 0);
 	main_gui_add_timer(upload_stats_common_gui_timer);
 }
 
 void
 upload_stats_common_gui_shutdown(void)
 {
-	gm_hash_table_destroy_null(&pending);
+	hset_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

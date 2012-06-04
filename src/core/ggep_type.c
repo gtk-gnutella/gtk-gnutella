@@ -145,7 +145,7 @@ static const char *gtkgv_osname[] = {
  * @return the OS name encoded into a GTKGV extension.
  */
 static const char *
-ggept_gtkgv_osname(guint8 value)
+ggept_gtkgv_osname(uint8 value)
 {
 	return value >= G_N_ELEMENTS(gtkgv_osname) ?
 		gtkgv_osname[0] : gtkgv_osname[value];
@@ -154,10 +154,10 @@ ggept_gtkgv_osname(guint8 value)
 /**
  * Given a system name, look how it should be encoded in GTKGV.
  */
-static guint8
+static uint8
 ggept_gtkgv_osname_encode(const char *sysname)
 {
-	guint8 result = 0;
+	uint8 result = 0;
 	size_t i;
 
 	/*
@@ -194,10 +194,10 @@ ggept_gtkgv_osname_encode(const char *sysname)
 /**
  * @return the value that should be advertised as the OS name.
  */
-guint8
+uint8
 ggept_gtkgv_osname_value(void)
 {
-	static guint8 result = -1;
+	static uint8 result = -1;
 
 	/*
 	 * Computation only happens once.
@@ -269,13 +269,13 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 
 	if (info->version >= 1) {
 		bstr_t *bs;
-		guint8 flags;
+		uint8 flags;
 
 		bs = bstr_open(p, tlen, GNET_PROPERTY(ggep_debug) ? BSTR_F_ERROR : 0);
 		bstr_skip(bs, 13);
 
 		if (bstr_read_u8(bs, &flags)) {
-			guint8 aflags = flags;
+			uint8 aflags = flags;
 
 			/*
 			 * Swallow extra flags, if present (for now we expect only 1 byte).
@@ -297,7 +297,7 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 					info->commit_len != 0
 				) {
 					if (info->commit_len <= 2 * SHA1_RAW_SIZE) {
-						guint8 bytes = (info->commit_len + 1) / 2;
+						uint8 bytes = (info->commit_len + 1) / 2;
 						if (!bstr_read(bs, &info->commit, bytes)) {
 							status = GGEP_INVALID;
 						}
@@ -312,7 +312,7 @@ ggept_gtkgv_extract(const extvec_t *exv, struct ggep_gtkgv *info)
 			 */
 
 			if ((aflags & GTKGV_F_OS) && GGEP_OK == status) {
-				guint8 value;
+				uint8 value;
 
 				if (bstr_read_u8(bs, &value)) {
 					info->osname = ggept_gtkgv_osname(value);
@@ -374,16 +374,16 @@ ggept_gtkgv1_extract(const extvec_t *exv, struct ggep_gtkgv1 *info)
  *
  * @return TRUE on success, FALSE on write errors.
  */
-static gboolean
+static bool
 ggept_ip_seq_append_net(ggep_stream_t *gs,
 	const sequence_t *hseq, enum net_type net,
 	const char *name, const char *name_tls,
-	const gnet_host_t *evec, size_t ecnt, size_t *count, gboolean cobs)
+	const gnet_host_t *evec, size_t ecnt, size_t *count, bool cobs)
 {
-	guchar *tls_bytes = NULL;
+	uchar *tls_bytes = NULL;
 	unsigned tls_length;
 	size_t tls_size = 0, tls_index = 0;
-	gboolean status = FALSE;
+	bool status = FALSE;
 	unsigned flags = 0;
 	size_t hcnt;
 	const char *current_extension;
@@ -427,7 +427,7 @@ ggept_ip_seq_append_net(ggep_stream_t *gs,
 
 	while (sequence_iter_has_next(iter) && tls_index < max_items) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 		char buf[18];
 		size_t len;
 		const gnet_host_t *h = sequence_iter_next(iter);
@@ -517,7 +517,7 @@ ggept_ip_seq_append(ggep_stream_t *gs,
 	const sequence_t *hseq,
 	const char *name, const char *name_tls,
 	const char *name6, const char *name6_tls,
-	const gnet_host_t *evec, size_t ecnt, size_t max_items, gboolean cobs)
+	const gnet_host_t *evec, size_t ecnt, size_t max_items, bool cobs)
 {
 	size_t count = max_items;
 
@@ -558,9 +558,9 @@ ggept_ip_seq_append(ggep_stream_t *gs,
 ggept_status_t
 ggept_ipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	const gnet_host_t *evec, size_t ecnt,
-	gboolean add_ipv6, gboolean no_ipv4)
+	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_gpointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -582,9 +582,9 @@ ggept_ipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
  */
 ggept_status_t
 ggept_dhtipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
-	gboolean add_ipv6, gboolean no_ipv4)
+	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_gpointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -624,7 +624,7 @@ ggept_push_pack(ggep_stream_t *gs, const sequence_t *hseq, size_t max,
 ggept_status_t
 ggept_a_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt)
 {
-	vector_t v = vector_create(deconstify_gpointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -647,7 +647,7 @@ ggept_status_t
 ggept_alt_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	unsigned flags)
 {
-	vector_t v = vector_create(deconstify_gpointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -684,11 +684,11 @@ ggept_ip_vec_extract(const extvec_t *exv,
 	if (hvec) {
 		gnet_host_vec_t *vec = *hvec;
 		const char *p;
-		guint n, i;
+		uint n, i;
 
 		vec = NULL == vec ? gnet_host_vec_alloc() : vec;
 		n = len / ilen;
-		n = MIN(n, 255);	/* n_ipv4 and n_ipv6 are guint8 */
+		n = MIN(n, 255);	/* n_ipv4 and n_ipv6 are uint8 */
 
 		g_assert(n > 0);
 
@@ -851,7 +851,7 @@ ggept_hname_extract(const extvec_t *exv, char *buf, int len)
  * @return the length in bytes of the encoded variable-length integer.
  */
 static inline int
-ggep_vlint_encode(guint64 v, char *data)
+ggep_vlint_encode(uint64 v, char *data)
 {
 	char *p;
 
@@ -871,16 +871,16 @@ ggep_vlint_encode(guint64 v, char *data)
  *
  * @return The decoded value.
  */
-static inline guint64
+static inline uint64
 ggep_vlint_decode(const char *data, size_t len)
 {
-	guint64 v;
-	guint i;
+	uint64 v;
+	uint i;
 
 	v = 0;
 	if (len <= 8) {
 		for (i = 0; i < len; i++) {
-			v |= (((guint64) data[i]) & 0xff) << (i * 8);
+			v |= (((uint64) data[i]) & 0xff) << (i * 8);
 		}
 	}
 	return v;
@@ -893,9 +893,9 @@ ggep_vlint_decode(const char *data, size_t len)
  * This is the format used by the payload of GGEP "LF" for instance.
  */
 ggept_status_t
-ggept_filesize_extract(const extvec_t *exv, guint64 *filesize)
+ggept_filesize_extract(const extvec_t *exv, uint64 *filesize)
 {
-	guint64 fs;
+	uint64 fs;
 	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -955,8 +955,8 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
  *
  * @return the amount of bytes written.
  */
-guint
-ggept_filesize_encode(guint64 filesize, char *data)
+uint
+ggept_filesize_encode(uint64 filesize, char *data)
 {
 	return ggep_vlint_encode(filesize, data);
 }
@@ -965,9 +965,9 @@ ggept_filesize_encode(guint64 filesize, char *data)
  * Extract unsigned (32-bit) quantity encoded as variable-length little-endian.
  */
 ggept_status_t
-ggept_uint32_extract(const extvec_t *exv, guint32 *val)
+ggept_uint32_extract(const extvec_t *exv, uint32 *val)
 {
-	guint32 v;
+	uint32 v;
 	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -987,7 +987,7 @@ ggept_uint32_extract(const extvec_t *exv, guint32 *val)
  * Extract daily uptime into `uptime', from the GGEP "DU" extensions.
  */
 ggept_status_t
-ggept_du_extract(const extvec_t *exv, guint32 *uptime)
+ggept_du_extract(const extvec_t *exv, uint32 *uptime)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_DU);
@@ -1002,8 +1002,8 @@ ggept_du_extract(const extvec_t *exv, guint32 *uptime)
  * @param data A buffer of at least 4 bytes.
  * @return the amount of chars written.
  */
-guint
-ggept_du_encode(guint32 uptime, char *data)
+uint
+ggept_du_encode(uint32 uptime, char *data)
 {
 	return ggep_vlint_encode(uptime, data);
 }
@@ -1016,8 +1016,8 @@ ggept_du_encode(guint32 uptime, char *data)
  *
  * @return the amount of chars written.
  */
-guint
-ggept_m_encode(guint32 mtype, char *data)
+uint
+ggept_m_encode(uint32 mtype, char *data)
 {
 	return ggep_vlint_encode(mtype, data);
 }
@@ -1026,7 +1026,7 @@ ggept_m_encode(guint32 mtype, char *data)
 ggept_status_t
 ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 {
-	guint64 v;
+	uint64 v;
 	size_t len;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -1050,7 +1050,7 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
  * @param data A buffer of at least 8 bytes.
  * @return the amount of chars written.
  */
-guint
+uint
 ggept_ct_encode(time_t timestamp, char *data)
 {
 	return ggep_vlint_encode(timestamp, data);

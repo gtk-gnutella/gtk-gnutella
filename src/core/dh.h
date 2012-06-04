@@ -50,7 +50,7 @@ void dh_got_results(const struct guid *muid, int count);
 void dh_timer(time_t now);
 void dh_route(
 	struct gnutella_node *src, struct gnutella_node *dest, int count);
-gboolean dh_would_route(const struct guid *muid, struct gnutella_node *dest);
+bool dh_would_route(const struct guid *muid, struct gnutella_node *dest);
 
 #endif	/* _core_dh_h_ */
 

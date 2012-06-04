@@ -66,6 +66,8 @@
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
+#include "lib/hashing.h"
+#include "lib/hset.h"
 #include "lib/nid.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
@@ -77,15 +79,16 @@
 #define PCACHE_MAX_FILES	10000000	/**< Arbitrarily large file count */
 #define PCACHE_UHC_MAX_IP	30			/**< Max amount of IP:port returned */
 #define PCACHE_DHT_MAX_IP	10			/**< Max amount of IP:port returned */
+#define PCACHE_TRANSIENT	60			/**< Once every minute */
 
 /**
  * Basic pong information.
  */
 struct pong_info {
 	host_addr_t addr;				/**< Values from the pong message */
-	guint32 port;
-	guint32 files_count;
-	guint32 kbytes_count;
+	uint32 port;
+	uint32 files_count;
+	uint32 kbytes_count;
 };
 
 enum ping_flag {
@@ -132,10 +135,10 @@ ping_net(enum ping_flag flags)
  * Sends a ping to given node.
  */
 static void
-send_ping(struct gnutella_node *n, guint8 ttl)
+send_ping(struct gnutella_node *n, uint8 ttl)
 {
 	gnutella_msg_init_t *m;
-	guint32 size;
+	uint32 size;
 
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
@@ -162,15 +165,15 @@ send_ping(struct gnutella_node *n, guint8 ttl)
  * @return pointer to static data, and the size of the message in `size'.
  */
 gnutella_msg_init_t *
-build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
+build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 {
 	static union {
 		gnutella_msg_init_t s;
 		char buf[256];
-		guint64 align8;
+		uint64 align8;
 	} msg_init;
 	gnutella_msg_init_t *m = &msg_init.s;
-	guint32 sz;
+	uint32 sz;
 
 	g_assert(ttl);
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
@@ -194,12 +197,12 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
 	 */
 
 	if (uhc || ttl > 1) {
-		guchar *ggep;
+		uchar *ggep;
 		ggep_stream_t gs;
-		gboolean ok;
+		bool ok;
 		char spp;
 
-		ggep = cast_to_gpointer(&m[1]);
+		ggep = cast_to_pointer(&m[1]);
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 		
 		spp = settings_is_leaf() ? 0 : SCP_F_ULTRA;
@@ -261,20 +264,19 @@ build_ping_msg(const struct guid *muid, guint8 ttl, gboolean uhc, guint32 *size)
  * @return pointer to static data, and the size of the message in `size'.
  */
 gnutella_msg_init_t *
-build_guess_ping_msg(const struct guid *muid,
-	gboolean qk, gboolean intro, gboolean scp,
-	guint32 *size)
+build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
+	uint32 *size)
 {
 	static union {
 		gnutella_msg_init_t s;
 		char buf[256];
-		guint64 align8;
+		uint64 align8;
 	} msg_init;
 	gnutella_msg_init_t *m = &msg_init.s;
-	guint32 sz;
-	guchar *ggep;
+	uint32 sz;
+	uchar *ggep;
 	ggep_stream_t gs;
-	gboolean ok;
+	bool ok;
 
 	g_assert(qk || intro);
 
@@ -291,7 +293,7 @@ build_guess_ping_msg(const struct guid *muid,
 	gnutella_header_set_hops(m, 0);
 
 	sz = 0;			/* Payload size if no extensions */
-	ggep = cast_to_gpointer(&m[1]);
+	ggep = cast_to_pointer(&m[1]);
 	ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
 
 	if (scp) {
@@ -358,30 +360,60 @@ build_guess_ping_msg(const struct guid *muid,
 }
 
 /**
+ * Are we missing node connections?
+ */
+static bool
+pcache_node_missing(void)
+{
+	if (node_missing() != 0)
+		return TRUE;
+
+	return settings_is_ultra() && node_leaves_missing() != 0;
+}
+
+/**
+ * Should we answer a ping?
+ */
+static bool
+pcache_can_answer_ping(void)
+{
+	/*
+	 * When we (think we) are firewalled, there is a period when we can answer
+	 * pings to make sure we can receive incoming connections.  This logic
+	 * is held in inet_can_answer_ping(), and we must ensure we're calling it
+	 * when we are flagged as firewalled, regardless of whether we miss
+	 * Gnutella connections.
+	 */
+
+ 	return (GNET_PROPERTY(is_firewalled) || pcache_node_missing()) &&
+		inet_can_answer_ping();
+}
+
+/**
  * Build pong message.
  *
  * @return pointer to static data, and the size of the message in `size'.
  */
 static gnutella_msg_init_response_t *
-build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
-	guint8 hops, guint8 ttl, const struct guid *muid,
+build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
+	uint8 hops, uint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta, enum ping_flag flags,
-	guint32 *size)
+	uint32 *size)
 {
 	static union {
 		gnutella_msg_init_response_t s;
 		char buf[1024];
-		guint64 align8;
+		uint64 align8;
 	} msg_pong;
 	gnutella_msg_init_response_t *pong = &msg_pong.s;
 	ggep_stream_t gs;
-	guchar *ggep;
-	guint32 sz;
-	guint32 ipv4;
-	gboolean ipv6_included = FALSE;
+	uchar *ggep;
+	uint32 sz;
+	uint32 ipv4;
+	bool ipv6_included = FALSE;
 
 	STATIC_ASSERT(37 == sizeof *pong);
-	ggep = cast_to_gpointer(&pong[1]);
+	ggep = cast_to_pointer(&pong[1]);
 
 	{
 		gnutella_header_t *header = gnutella_msg_init_response_header(pong);
@@ -438,7 +470,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 
 		if (meta->flags & PONG_META_HAS_GUE) {	/* GUESS support */
 			ggep_stream_pack(&gs, GGEP_NAME(GUE),
-				cast_to_gpointer(&meta->guess), 1, 0);
+				cast_to_pointer(&meta->guess), 1, 0);
 		}
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
@@ -450,7 +482,7 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_LOC) {	/* Locale preferencing */
-			gboolean ok;
+			bool ok;
 
 			ok = ggep_stream_begin(&gs, GGEP_NAME(LOC), 0) &&
 				ggep_stream_write(&gs, meta->language, 2);
@@ -463,9 +495,9 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		}
 
 		if (meta->flags & PONG_META_HAS_DU) {	/* Daily average uptime */
-			char uptime[sizeof(guint64)];
-			guint32 value = MIN(meta->daily_uptime, 86400);
-			guint len;
+			char uptime[sizeof(uint64)];
+			uint32 value = MIN(meta->daily_uptime, 86400);
+			uint len;
 
 			len = ggept_du_encode(value, uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
@@ -523,10 +555,23 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
 		 */
 
 		if (GNET_PROPERTY(enable_guess) && (flags & (PING_F_QK | PING_F_GUE))) {
-			hcount = guess_fill_caught_array(net, host, PCACHE_UHC_MAX_IP);
+			hcount = guess_fill_caught_array(net, TRUE,
+				host, PCACHE_UHC_MAX_IP);
 		} else {
 			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
 				host, PCACHE_UHC_MAX_IP);
+
+			/*
+			 * If we are missing node connections, be sure to include
+			 * ourselves in the list, replacing a random node from the
+			 * returned set.
+			 */
+
+			if (pcache_can_answer_ping()) {
+				uint idx = hcount != 0 ? random_value(hcount - 1) : 0;
+				gnet_host_set(&host[idx],
+					listen_addr_primary(), socket_listen_port());
+			}
 		}
 
 		if (hcount > 0) {
@@ -618,12 +663,12 @@ build_pong_msg(host_addr_t sender_addr, guint16 sender_port,
  */
 static void
 send_pong(
-	struct gnutella_node *n, gboolean control, enum ping_flag flags,
-	guint8 hops, guint8 ttl, const struct guid *muid,
+	struct gnutella_node *n, bool control, enum ping_flag flags,
+	uint8 hops, uint8 ttl, const struct guid *muid,
 	struct pong_info *info, pong_meta_t *meta)
 {
 	gnutella_msg_init_response_t *r;
-	guint32 size;
+	uint32 size;
 
 	g_assert(ttl >= 1);
 
@@ -661,8 +706,8 @@ ping_type(const gnutella_node_t *n)
 {
 	int i;
 	enum ping_flag flags = PING_F_NONE;
-	gboolean has_gue = FALSE;
-	gboolean has_scp = FALSE;
+	bool has_gue = FALSE;
+	bool has_scp = FALSE;
 
 	for (i = 0; i < n->extcount; i++) {
 		const extvec_t *e = &n->extvec[i];
@@ -676,8 +721,8 @@ ping_type(const gnutella_node_t *n)
 
 			/* Accept only the first SCP, just in case there are multiple */
 			if (!(flags & PING_F_UHC) && ext_paylen(e) >= 1) {
-				const guchar *payload = ext_payload(e);
-				guint8 mask = payload[0];
+				const uchar *payload = ext_payload(e);
+				uint8 mask = payload[0];
 				flags |= (mask & SCP_F_ULTRA) ?
 					PING_F_UHC_ULTRA : PING_F_UHC_LEAF;
 				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
@@ -704,8 +749,8 @@ ping_type(const gnutella_node_t *n)
 		case EXT_T_GGEP_DHTIPP:
 			/* Accept only the first DHTIPP, just in case there are multiple */
 			if (ext_paylen(e) >= 1 && !(flags & PING_F_DHTIPP)) {
-				const guchar *payload = ext_payload(e);
-				guint8 mask = payload[0];
+				const uchar *payload = ext_payload(e);
+				uint8 mask = payload[0];
 				flags |= (mask & SCP_F_IPV6) ? PING_F_IPV6 : 0;
 				flags |= (mask & SCP_F_NO_IPV4) ? PING_F_NO_IPV4 : 0;
 			}
@@ -761,29 +806,29 @@ ping_type(const gnutella_node_t *n)
  * If `uhc' is not UHC_NONE, we'll send IPs in a packed IPP reply.
  */
 static void
-send_personal_info(struct gnutella_node *n, gboolean control,
+send_personal_info(struct gnutella_node *n, bool control,
 	enum ping_flag flags)
 {
-	guint32 kbytes;
-	guint32 files;
+	uint32 kbytes;
+	uint32 files;
 	struct pong_info info;
-	guint32 ip_uptime;
-	guint32 avg_uptime;
+	uint32 ip_uptime;
+	uint32 avg_uptime;
 
 	/* Replying to a ping */
 	g_assert(gnutella_header_get_function(&n->header) == GTA_MSG_INIT);
 
-	files = MIN(shared_files_scanned(), ~((guint32) 0U));
+	files = MIN(shared_files_scanned(), ~((uint32) 0U));
 
 	/*
 	 * Mark pong if we are an ultra node: the amount of kbytes scanned must
 	 * be an exact power of two, and at minimum 8.
 	 */
 
-	kbytes = MIN(shared_kbytes_scanned(), ~((guint32) 0U));
+	kbytes = MIN(shared_kbytes_scanned(), ~((uint32) 0U));
 
 	if (settings_is_ultra()) {
-		guint32 next, prev;
+		uint32 next, prev;
 		
 		next = next_pow2(kbytes);
 		prev = next / 2;
@@ -940,6 +985,18 @@ send_neighbouring_info(struct gnutella_node *n)
 
 		if (!NODE_IS_CONNECTED(n))
 			return;
+
+		/*
+		 * Careful with transient nodes, their lifetime is reduced so don't
+		 * waste too much banwdwidth with them.
+		 *		--RAM, 2012-01-15
+		 */
+
+		if (NODE_IS_TRANSIENT(n)) {
+			unsigned pcnt = NODE_TX_COMPRESSED(n) ? 10 : 2;
+			if (random_value(99) < pcnt || node_above_low_watermark(n))
+				break;
+		}
 	}
 }
 
@@ -952,19 +1009,23 @@ send_neighbouring_info(struct gnutella_node *n)
  */
 void
 pcache_guess_acknowledge(struct gnutella_node *n,
-	gboolean good_query_key, gboolean wants_ipp, host_net_t net)
+	bool good_query_key, bool wants_ipp, host_net_t net)
 {
 	struct pong_info info;
 	pong_meta_t meta;
-	gnet_host_t host[2 + PCACHE_UHC_MAX_IP];
+	gnet_host_t host[2];
 	int hcount;
 	int flags = PING_F_NONE;
 
 	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 
-	hcount = guess_fill_caught_array(net, host,
-		wants_ipp ? G_N_ELEMENTS(host) : 2);
+	/*
+	 * We request more than one host to make sure we include an address
+	 * for a host different from the one sending us the message.
+	 */
+
+	hcount = guess_fill_caught_array(net, FALSE, host, G_N_ELEMENTS(host));
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;
@@ -1051,10 +1112,10 @@ struct cache_line {			/**< A cache line for a given hop value */
 };
 
 struct recent {
-	GHashTable *ht_recent_pongs;	/**< Recent pongs we know about */
-	GList *recent_pongs;			/**< Recent pongs we got */
-	GList *last_returned_pong;		/**< Last returned from list */
-	int recent_pong_count;			/**< # of pongs in recent list */
+	hset_t *hs_recent_pongs;	/**< Recent pongs we know about */
+	GList *recent_pongs;		/**< Recent pongs we got */
+	GList *last_returned_pong;	/**< Last returned from list */
+	int recent_pong_count;		/**< # of pongs in recent list */
 };
 
 #define PONG_CACHE_SIZE		(MAX_CACHE_HOPS+1)
@@ -1080,19 +1141,19 @@ static struct recent recent_pongs[HOST_MAX];
  * cached_pong_hash
  * cached_pong_eq
  *
- * Callbacks for the `ht_recent_pongs' hash table.
+ * Callbacks for the `hs_recent_pongs' hash set.
  */
 
-static guint
-cached_pong_hash(gconstpointer key)
+static uint
+cached_pong_hash(const void *key)
 {
 	const struct cached_pong *cp = key;
 
-	return host_addr_hash(cp->info.addr) ^
-		((cp->info.port << 16) | cp->info.port);
+	return host_addr_hash(cp->info.addr) ^ port_hash(cp->info.port);
 }
+
 static int
-cached_pong_eq(gconstpointer v1, gconstpointer v2)
+cached_pong_eq(const void *v1, const void *v2)
 {
 	const struct cached_pong *h1 = v1, *h2 = v2;
 
@@ -1193,11 +1254,11 @@ G_STMT_START {											\
 	for (h = 0; h < PONG_CACHE_SIZE; h++)
 		pong_cache[h].hops = h;
 
-	recent_pongs[HOST_ANY].ht_recent_pongs =
-		g_hash_table_new(cached_pong_hash, cached_pong_eq);
+	recent_pongs[HOST_ANY].hs_recent_pongs =
+		hset_create_any(cached_pong_hash, NULL, cached_pong_eq);
 
-	recent_pongs[HOST_ULTRA].ht_recent_pongs =
-		g_hash_table_new(cached_pong_hash, cached_pong_eq);
+	recent_pongs[HOST_ULTRA].hs_recent_pongs =
+		hset_create_any(cached_pong_hash, NULL, cached_pong_eq);
 }
 
 /**
@@ -1233,16 +1294,16 @@ free_cached_pong(struct cached_pong *cp)
  * XXX demultiplexing logic?
  * XXX		--RAM, 2008-03-11
  */
-gboolean
-pcache_get_recent(host_type_t type, host_addr_t *addr, guint16 *port)
+bool
+pcache_get_recent(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	static host_addr_t last_addr;
-	static guint16 last_port = 0;
+	static uint16 last_port = 0;
 	GList *l;
 	struct cached_pong *cp;
 	struct recent *rec;
 
-	g_assert((guint) type < HOST_MAX);
+	g_assert((uint) type < HOST_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -1326,8 +1387,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 
     if (
         !host_is_valid(cp->info.addr, cp->info.port) ||
-        (NULL != g_hash_table_lookup(
-            rec->ht_recent_pongs, (gconstpointer) cp)) ||
+        hset_contains(rec->hs_recent_pongs, cp) ||
         hcache_node_is_bad(cp->info.addr)
     ) {
         return;
@@ -1338,7 +1398,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 		struct cached_pong *p = lnk->data;
 
 		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
-		g_hash_table_remove(rec->ht_recent_pongs, p);
+		hset_remove(rec->hs_recent_pongs, p);
 
 		if (lnk == rec->last_returned_pong)
 			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
@@ -1349,7 +1409,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 		rec->recent_pong_count++;
 
 	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
-	g_hash_table_insert(rec->ht_recent_pongs, cp, GUINT_TO_POINTER(1));
+	hset_insert(rec->hs_recent_pongs, cp);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
 
@@ -1359,7 +1419,7 @@ add_recent_pong(host_type_t type, struct cached_pong *cp)
 static host_type_t
 pong_type(gnutella_init_response_t *pong)
 {
-	guint32 kbytes;
+	uint32 kbytes;
 
 	kbytes = gnutella_init_response_get_kbytes_count(pong);
 
@@ -1387,7 +1447,7 @@ pcache_clear_recent(host_type_t type)
 	for (l = rec->recent_pongs; l; l = g_list_next(l)) {
 		struct cached_pong *cp = l->data;
 
-		g_hash_table_remove(rec->ht_recent_pongs, cp);
+		hset_remove(rec->hs_recent_pongs, cp);
 		free_cached_pong(cp);
 	}
 
@@ -1465,7 +1525,7 @@ G_GNUC_COLD void
 pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };
-	guint i;
+	uint i;
 
 	pcache_expire();
 
@@ -1473,7 +1533,7 @@ pcache_close(void)
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);
-		gm_hash_table_destroy_null(&recent_pongs[type].ht_recent_pongs);
+		hset_free_null(&recent_pongs[type].hs_recent_pongs);
 	}
 
 	aging_destroy(&udp_pings);
@@ -1600,7 +1660,7 @@ pcache_set_peermode(node_peer_t mode)
  * those as being "his" pongs.
  */
 static void
-setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
+setup_pong_demultiplexing(struct gnutella_node *n, uint8 ttl)
 {
 	int remains;
 	int h;
@@ -1634,7 +1694,7 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
 	n->pong_missing = remains = MAX_PONGS;
 
 	for (h = 0; h <= MAX_CACHE_HOPS; h++) {
-		guchar amount = (guchar) (remains / (MAX_CACHE_HOPS + 1 - h));
+		uchar amount = (uchar) (remains / (MAX_CACHE_HOPS + 1 - h));
 		n->pong_needed[h] = amount;
 		remains -= amount;
 		if (GNET_PROPERTY(pcache_debug) > 7)
@@ -1653,10 +1713,10 @@ setup_pong_demultiplexing(struct gnutella_node *n, guint8 ttl)
  *
  * @return FALSE if we're definitely done, TRUE if we can still iterate.
  */
-static gboolean
+static bool
 iterate_on_cached_line(
-	struct gnutella_node *n, struct cache_line *cl, guint8 ttl,
-	GSList *start, GSList *end, gboolean strict)
+	struct gnutella_node *n, struct cache_line *cl, uint8 ttl,
+	GSList *start, GSList *end, bool strict)
 {
 	int hops = cl->hops;
 	GSList *sl;
@@ -1738,7 +1798,7 @@ iterate_on_cached_line(
 static void
 send_cached_pongs(
 	struct gnutella_node *n,
-	struct cache_line *cl, guint8 ttl, gboolean strict)
+	struct cache_line *cl, uint8 ttl, bool strict)
 {
 	int hops = cl->hops;
 	GSList *old = cl->cursor;
@@ -1767,7 +1827,7 @@ static void
 send_demultiplexed_pongs(gnutella_node_t *n)
 {
 	enum ping_flag flags;
-	guint h, ttl;
+	uint h, ttl;
 
 	/*
 	 * Look whether the "ping" they sent bore the "SCP" extension, meaning
@@ -1843,7 +1903,7 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 static void
 pong_all_neighbours_but_one(
 	struct gnutella_node *n, struct cached_pong *cp, host_type_t ptype,
-	guint8 hops, guint8 ttl)
+	uint8 hops, uint8 ttl)
 {
 	const GSList *sl;
 
@@ -1903,7 +1963,7 @@ pong_all_neighbours_but_one(
  * Send it to one randomly selected leaf, which is not already missing pongs.
  */
 static void
-pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
+pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
 	const GSList *sl;
 	unsigned leaves;
@@ -1913,7 +1973,6 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 
 	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *cn = sl->data;
-		unsigned threshold;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
@@ -1933,9 +1992,8 @@ pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		 */
 
 		leaves++;
-		threshold = 1000.0 / leaves;
 
-		if (random_value(999) < threshold)
+		if (0 == random_value(leaves - 1))
 			leaf = cn;
 	}
 
@@ -1979,8 +2037,8 @@ pong_extract_metadata(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
-		const guchar *payload;
-		guint16 paylen;
+		const uchar *payload;
+		uint16 paylen;
 
 		switch (e->ext_token) {
 		case EXT_T_GGEP_DU:
@@ -1990,7 +2048,7 @@ pong_extract_metadata(struct gnutella_node *n)
 			 */
 
 			{
-				guint32 uptime;
+				uint32 uptime;
 				if (GGEP_OK == ggept_du_extract(e, &uptime)) {
 					ALLOCATE(DU);
 					meta->daily_uptime = uptime;
@@ -2126,13 +2184,13 @@ static struct cached_pong *
 record_fresh_pong(
 	host_type_t type,
 	struct gnutella_node *n,
-	guint8 hops, host_addr_t addr, guint16 port,
-	guint32 files_count, guint32 kbytes_count,
+	uint8 hops, host_addr_t addr, uint16 port,
+	uint32 files_count, uint32 kbytes_count,
 	pong_meta_t *meta)
 {
 	struct cache_line *cl;
 	struct cached_pong *cp;
-	guint8 hop;
+	uint8 hop;
 
 	g_assert(UNSIGNED(type) < HOST_MAX);
 
@@ -2201,6 +2259,45 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	send_personal_info(n, FALSE, ping_type(n));
 }
 
+/*
+ * Shall we accept the ping?.
+ */
+static bool
+pcache_ping_accept(gnutella_node_t *n)
+{
+	time_t now = tm_time();
+
+	if (now < n->ping_accept) {
+		n->n_ping_throttle++;		/* Drop the ping */
+        gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return FALSE;
+	} else {
+		n->n_ping_accepted++;
+		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
+
+		/*
+		 * Add penalty for non TX-compressed nodes (uncompressed pong traffic
+		 * can really waste bandwidth).
+		 */
+
+		if (!NODE_TX_COMPRESSED(n))
+			n->ping_accept += n->ping_throttle;
+
+		/*
+		 * Throttle pings from transient nodes a little more since their
+		 * connection is unlikely to stay up very long.  The more they
+		 * insist the longer we'll throttle them, as a safety net.
+		 */
+
+		if (NODE_IS_TRANSIENT(n)) {
+			unsigned extra = n->n_ping_throttle + PCACHE_TRANSIENT / 10;
+			n->ping_accept += MIN(extra, PCACHE_TRANSIENT);
+		}
+
+		return TRUE;
+	}
+}
+
 /**
  * Called when a ping is received from a node.
  *
@@ -2235,11 +2332,10 @@ pcache_ping_received(struct gnutella_node *n)
 	 * Besides, we always accept them.
 	 *
 	 * If we get a TTL=0 ping, assume it's used to ack an "alive ping" we
-	 * sent earlier.  Don't event log we got a message with TTL=0, we're
+	 * sent earlier.  Don't even log we got a message with TTL=0, we're
 	 * getting way too many of them and nobody on the GDF seems to care.
 	 * BearShare is known to do this, and they admitted it publicly like
 	 * it was a good idea!
-	 *
 	 *		--RAM, 2004-08-09
 	 */
 
@@ -2247,12 +2343,24 @@ pcache_ping_received(struct gnutella_node *n)
 		gnutella_header_get_hops(&n->header) == 0 &&
 		gnutella_header_get_ttl(&n->header) <= 2
 	) {
+		uint8 ttl = gnutella_header_get_ttl(&n->header);
+
 		n->n_ping_special++;
+
+		/*
+		 * Transient nodes are severely limited, because we don't want
+		 * to waste traffic to them.
+		 *		--RAM, 2012-01-15
+		 */
+
+		if (NODE_IS_TRANSIENT(n) && ttl > 1 && !pcache_ping_accept(n))
+			return;
+
 		n->n_ping_accepted++;
 
-		if (gnutella_header_get_ttl(&n->header) == 1)
+		if (1 == ttl)
 			send_personal_info(n, TRUE, PING_F_NONE);	/* Prioritary */
-		else if (gnutella_header_get_ttl(&n->header) == 2) {
+		else if (2 == ttl) {
 			if (settings_is_ultra())
 				send_neighbouring_info(n);
 		} else
@@ -2285,14 +2393,8 @@ pcache_ping_received(struct gnutella_node *n)
 	 * Accept the ping?.
 	 */
 
-	if (now < n->ping_accept) {
-		n->n_ping_throttle++;		/* Drop the ping */
-        gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+	if (!pcache_ping_accept(n))
 		return;
-	} else {
-		n->n_ping_accepted++;
-		n->ping_accept = now + n->ping_throttle;	/* Drop all until then */
-	}
 
 	/*
 	 * Purge cache if needed.
@@ -2316,13 +2418,7 @@ pcache_ping_received(struct gnutella_node *n)
 	 * personal information (reply to initial ping sent after handshake).
 	 */
 
-	if (
-		n->n_ping_accepted == 1 ||
-		(
-		 	(GNET_PROPERTY(is_firewalled) || node_missing() > 0) &&
-			inet_can_answer_ping()
-		)
-	) {
+	if (1 == n->n_ping_accepted || pcache_can_answer_ping()) {
 		send_personal_info(n, FALSE, PING_F_NONE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
@@ -2346,9 +2442,9 @@ pcache_udp_pong_received(struct gnutella_node *n)
 {
 	host_addr_t ipv4_addr;
 	host_addr_t ipv6_addr;
-	gboolean supports_tls;
-	gboolean supports_dht;
-	guint16 port;
+	bool supports_tls;
+	bool supports_dht;
+	uint16 port;
 	int i;
 
 	g_assert(NODE_IS_UDP(n));
@@ -2358,7 +2454,8 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		if (guess_rpc_handle(n))
 			return;
 		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(udp_debug)) {
-			g_message("UDP ignoring unsolicited %s", gmsg_infostr(n->header));
+			g_message("UDP ignoring unsolicited %s from %s",
+				gmsg_infostr(n->header), node_addr(n));
 		}
 		/* FALL THROUGH */
 	case UDP_PONG_HANDLED:
@@ -2381,7 +2478,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
-		guint16 paylen;
+		uint16 paylen;
 		const char *payload;
 
 		switch (e->ext_token) {
@@ -2441,7 +2538,7 @@ pcache_udp_pong_received(struct gnutella_node *n)
 			break;
 		case EXT_T_GGEP_DHT:
 			if (ext_paylen(e) >= 3) {
-				guint8 mode;
+				uint8 mode;
 
 				payload = ext_payload(e);
 				mode = payload[2];
@@ -2508,10 +2605,10 @@ pcache_udp_pong_received(struct gnutella_node *n)
 void
 pcache_pong_received(struct gnutella_node *n)
 {
-	guint16 port;
-	guint32 files_count;
-	guint32 kbytes_count;
-	guint32 swapped_count;
+	uint16 port;
+	uint32 files_count;
+	uint32 kbytes_count;
+	uint32 swapped_count;
 	struct cached_pong *cp;
 	host_type_t ptype;
 	host_addr_t addr;
@@ -2560,9 +2657,9 @@ pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (files_count > PCACHE_MAX_FILES) {	/* Arbitrarily large constant */
-		gboolean fixed = FALSE;
+		bool fixed = FALSE;
 
-		swapped_count = swap_guint32(files_count);
+		swapped_count = swap_uint32(files_count);
 
 		if (swapped_count > PCACHE_MAX_FILES) {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equal(addr, n->addr))
@@ -2583,7 +2680,7 @@ pcache_pong_received(struct gnutella_node *n)
 		 * Maybe the kbytes_count is correct if the files_count was?
 		 */
 
-		swapped_count = swap_guint32(kbytes_count);
+		swapped_count = swap_uint32(kbytes_count);
 
 		if (fixed && swapped_count < kbytes_count)
 			kbytes_count = swapped_count;		/* Probably wrong as well */
@@ -2715,7 +2812,7 @@ pcache_pong_received(struct gnutella_node *n)
 			addr, port, files_count, kbytes_count, meta);
 	meta = NULL;	/* Metadata now owned by cached pong */
 
-	ptype = pong_type((gpointer) n->data);
+	ptype = pong_type(cast_to_pointer(n->data));
 	if (cp->meta != NULL && (cp->meta->flags & PONG_META_HAS_UP))
 		ptype = HOST_ULTRA;
 
@@ -2789,7 +2886,7 @@ done:
  * connections as well.
  */
 void
-pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, guint16 port)
+pcache_pong_fake(struct gnutella_node *n, const host_addr_t addr, uint16 port)
 {
 	g_assert(n->attrs & NODE_A_ULTRA);
 

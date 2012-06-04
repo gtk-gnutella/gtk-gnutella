@@ -360,7 +360,7 @@ add_node_helper(const host_addr_t *addrs, size_t n, gpointer data)
 	g_assert(0 != ctx->port);
 
 	if (n > 0) {
-		guc_node_add(addrs[random_u32() % n], ctx->port, ctx->flags);
+		guc_node_add(addrs[random_value(n - 1)], ctx->port, ctx->flags);
 	}
 
 	WFREE(ctx);

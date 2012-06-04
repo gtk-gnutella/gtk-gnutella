@@ -39,10 +39,11 @@
 #include "watcher.h"
 #include "atoms.h"
 #include "cq.h"
-#include "glib-missing.h"
 #include "halloc.h"
+#include "hikset.h"
 #include "path.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define MONITOR_PERIOD_MS	(30*1000)	/**< 30 seconds */
@@ -54,10 +55,10 @@ struct monitored {
 	const char *filename;	/**< Filename to monitor */
 	time_t mtime;			/**< Last known modified time */
 	watcher_cb_t cb;		/**< Callback to invoke on change */
-	gpointer udata;			/**< User supplied data to hand-out to callback */
+	void *udata;			/**< User supplied data to hand-out to callback */
 };
 
-static GHashTable *monitored;	/**< filename -> struct monitored */
+static hikset_t *monitored;	/**< filename -> struct monitored */
 
 /**
  * Compute the modified time of the file on disk.
@@ -77,12 +78,11 @@ watcher_mtime(const char *filename)
  * Check each registered file for change -- hash table iterator callback.
  */
 static void
-watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
+watcher_check_mtime(void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 	time_t new_mtime;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	new_mtime = watcher_mtime(m->filename);
@@ -97,12 +97,12 @@ watcher_check_mtime(gpointer unused_key, gpointer value, gpointer unused_udata)
  * Callout queue periodic event to perform periodic monitoring of the
  * registered files.
  */
-static gboolean
-watcher_timer(gpointer unused_udata)
+static bool
+watcher_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
-	g_hash_table_foreach(monitored, watcher_check_mtime, NULL);
+	hikset_foreach(monitored, watcher_check_mtime, NULL);
 
 	return TRUE;		/* Keep calling */
 }
@@ -118,7 +118,7 @@ watcher_timer(gpointer unused_udata)
  * @param udata extra data to pass to the callback, along with filename
  */
 void
-watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
+watcher_register(const char *filename, watcher_cb_t cb, void *udata)
 {
 	struct monitored *m;
 
@@ -128,10 +128,10 @@ watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
 	m->udata = udata;
 	m->mtime = watcher_mtime(filename);
 
-	if (g_hash_table_lookup(monitored, filename) != NULL)
+	if (hikset_contains(monitored, filename))
 		watcher_unregister(filename);
 
-	gm_hash_table_insert_const(monitored, m->filename, m);
+	hikset_insert_key(monitored, &m->filename);
 }
 
 /**
@@ -139,7 +139,7 @@ watcher_register(const char *filename, watcher_cb_t cb, gpointer udata)
  * given instead of a complete filename.
  */
 void
-watcher_register_path(const file_path_t *fp, watcher_cb_t cb, gpointer udata)
+watcher_register_path(const file_path_t *fp, watcher_cb_t cb, void *udata)
 {
 	char *path;
 
@@ -166,11 +166,11 @@ watcher_unregister(const char *filename)
 {
 	struct monitored *m;
 
-	m = g_hash_table_lookup(monitored, filename);
+	m = hikset_lookup(monitored, filename);
 
 	g_assert(m != NULL);
 
-	g_hash_table_remove(monitored, m->filename);
+	hikset_remove(monitored, m->filename);
 	watcher_free(m);
 }
 
@@ -194,7 +194,8 @@ watcher_unregister_path(const file_path_t *fp)
 void
 watcher_init(void)
 {
-	monitored = g_hash_table_new(g_str_hash, g_str_equal);
+	monitored = hikset_create(
+		offsetof(struct monitored, filename), HASH_KEY_STRING, 0);
 	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
@@ -202,11 +203,10 @@ watcher_init(void)
  * Free monitored structure -- hash table iterator callback.
  */
 static void
-free_monitored_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_monitored_kv(void *value, void *unused_udata)
 {
 	struct monitored *m = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 	watcher_free(m);
 }
@@ -217,8 +217,8 @@ free_monitored_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 void
 watcher_close(void)
 {
-	g_hash_table_foreach(monitored, free_monitored_kv, NULL);
-	gm_hash_table_destroy_null(&monitored);
+	hikset_foreach(monitored, free_monitored_kv, NULL);
+	hikset_free_null(&monitored);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -108,7 +108,7 @@ finish:																		\
 }
 
 #define GENERATE_PARSE_UINTX(bits) \
-	GENERATE_PARSE_UNSIGNED(CAT2(parse_uint,bits), CAT2(guint,bits))
+	GENERATE_PARSE_UNSIGNED(CAT2(parse_uint,bits), CAT2(uint,bits))
 GENERATE_PARSE_UINTX(64)
 GENERATE_PARSE_UINTX(32)
 GENERATE_PARSE_UINTX(16)
@@ -144,17 +144,17 @@ parse_pointer(const char *src, char const **endptr, int *errorptr)
  *        character which caused the failure.
  * @returns FALSE if ``s'' is not a valid IPv6 address; TRUE on success.
  */
-gboolean
-parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
+bool
+parse_ipv6_addr(const char *s, uint8 *dst, const char **endptr)
 {
 	const char *p = s;
-	guint8 buf[16];
+	uint8 buf[16];
 	int i;
-	guchar c = 0, last;
+	uchar c = 0, last;
 	int dc_start = -1;
 	int error;
-	gboolean leading_bracket = FALSE;
-	gboolean ok = TRUE;
+	bool leading_bracket = FALSE;
+	bool ok = TRUE;
 
 	g_assert(s != NULL);
 
@@ -170,7 +170,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 	
 	for (i = 0; i < 16; /* NOTHING */) {
 		const char *ep;
-		guint32 v;
+		uint32 v;
 
 		last = c;
 		c = *p;
@@ -196,7 +196,7 @@ parse_ipv6_addr(const char *s, guint8 *dst, const char **endptr)
 			break;		/* parse_uint32() failed */
 
 		if (*ep == '.' && i <= 12) {
-			guint32 ip;
+			uint32 ip;
 
 			if (string_to_ip_strict(p, &ip, &ep)) {
 				p = ep;
@@ -271,7 +271,7 @@ parse_major_minor(const char *src, char const **endptr,
 {
 	const char *ep;
 	int error;
-	guint32 maj, min;
+	uint32 maj, min;
 
 	g_assert(src);
 
@@ -300,10 +300,10 @@ parse_major_minor(const char *src, char const **endptr,
  * @returns 0 if ``s'' is not a valid IPv4 address. Otherwise, the parsed
  * 			IPv4 address in host byte order.
  */
-guint32
+uint32
 string_to_ip(const char *s)
 {
-	guint32 ip;
+	uint32 ip;
 
 	s = skip_ascii_spaces(s);
 	return string_to_ip_strict(s, &ip, NULL) ? ip : 0;
@@ -320,12 +320,12 @@ string_to_ip(const char *s)
  * byte order and ``*endptr'' will point to the character after the
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
-gboolean
-string_to_ip_strict(const char *s, guint32 *addr, const char **endptr)
+bool
+string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 {
 	const char *p = s;
-	guint32 a = 0; /* 'pid compiler */
-	gboolean valid;
+	uint32 a = 0; /* 'pid compiler */
+	bool valid;
 	int i;
 
 	g_assert(s != NULL);
@@ -375,11 +375,11 @@ string_to_ip_strict(const char *s, guint32 *addr, const char **endptr)
  *
  * @return TRUE if it parsed correctly, FALSE otherwise.
  */
-gboolean
-string_to_ip_port(const char *s, guint32 *ip_ptr, guint16 *port_ptr)
+bool
+string_to_ip_port(const char *s, uint32 *ip_ptr, uint16 *port_ptr)
 {
 	const char *ep;
-	guint32 v;
+	uint32 v;
 	int error;
 
 	s = skip_ascii_spaces(s);
@@ -409,8 +409,8 @@ string_to_ip_port(const char *s, guint32 *ip_ptr, guint16 *port_ptr)
  *
  * If the IP address or the netmask is zero, the function will return FALSE.
  */
-gboolean
-string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask)
+bool
+string_to_ip_and_mask(const char *str, uint32 *ip, uint32 *netmask)
 {
 	const char *ep, *s = str;
 
@@ -433,7 +433,7 @@ string_to_ip_and_mask(const char *str, guint32 *ip, guint32 *netmask)
 	if (string_to_ip_strict(s, netmask, &ep)) {
 		return 0 != *netmask;
 	} else {
-		guint32 u;
+		uint32 u;
 		int error;
 		
 		u = parse_uint32(s, &ep, 10, &error);

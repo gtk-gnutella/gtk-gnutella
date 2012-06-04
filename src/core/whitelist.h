@@ -40,10 +40,10 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-gboolean whitelist_check(const host_addr_t addr);
+bool whitelist_check(const host_addr_t addr);
 void whitelist_init(void);
 void whitelist_close(void);
-guint whitelist_connect(void);
+uint whitelist_connect(void);
 
 #endif /* _core_whitelist_h_ */
 /* vi: set ts=4 sw=4 cindent: */

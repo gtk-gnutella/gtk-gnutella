@@ -33,14 +33,14 @@
 
 struct gnutella_node;
 
-void kmsg_received(gconstpointer data, size_t len,
-	host_addr_t addr, guint16 port,
+void kmsg_received(const void *data, size_t len,
+	host_addr_t addr, uint16 port,
 	struct gnutella_node *n);
-gboolean kmsg_can_drop(gconstpointer pdu, int size);
+bool kmsg_can_drop(const void *pdu, int size);
 
-const char *kmsg_infostr(gconstpointer msg);
-const char *kmsg_name(guint function);
-size_t kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size);
+const char *kmsg_infostr(const void *msg);
+const char *kmsg_name(uint function);
+size_t kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size);
 
 /*
  * Inlined routines.
@@ -49,8 +49,8 @@ size_t kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size);
 /**
  * Returns the size (16-bit quantity) of a Kademlia payload.
  */
-static inline guint16
-kmsg_size(gconstpointer msg)
+static inline uint16
+kmsg_size(const void *msg)
 {
 	return kademlia_header_get_size(msg) -
 		kademlia_header_get_extended_length(msg);

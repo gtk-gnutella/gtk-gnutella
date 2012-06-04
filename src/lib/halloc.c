@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Hashtable-tracked allocator. Small chunks are allocated via walloc(),
+ * Hashtable-tracked allocator. Small chunks are allocated via xpmalloc(),
  * whereas large chunks are served via vmm_alloc(). The interface
  * is the same as that of malloc()/free(). The hashtable keeps track of
  * the sizes which should gain a more compact memory layout and is
@@ -43,38 +43,65 @@
 #include "common.h"
 
 #include "halloc.h"
-#include "hashtable.h"
-#include "pagetable.h"
 #include "concat.h"
-#include "misc.h"
+#include "dump_options.h"
+#include "hashtable.h"
 #include "malloc.h"
-#include "walloc.h"
+#include "mempcpy.h"
+#include "misc.h"
+#include "once.h"
+#include "pagetable.h"
+#include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
-#include "zalloc.h"			/* Only for possible zalloc_shift_pointer() */
+#include "walloc.h"
+#include "xmalloc.h"
 
 #include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
- * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
+ * Under TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
 #if defined(USE_HALLOC)
-#if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
+#if defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
 #endif	/* USE_HALLOC */
 
-static size_t bytes_allocated;	/* Amount of bytes allocated */
-static size_t chunks_allocated;	/* Amount of chunks allocated */
+/**
+ * Internal statistics collected.
+ */
+static struct {
+	uint64 allocations;					/**< Total # of allocations */
+	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
+	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc */
+	uint64 alloc_via_vmm;				/**< Allocations from VMM */
+	uint64 freeings;					/**< Total # of freeings */
+	uint64 reallocs;					/**< Total # of reallocs */
+	uint64 realloc_noop;				/**< Nothing to do */
+	uint64 realloc_via_xrealloc;		/**< Reallocs handled by xrealloc() */
+	uint64 realloc_via_vmm;				/**< Reallocs handled by VMM */
+	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
+	uint64 realloc_noop_same_vmm;		/**< Same VMM size */
+	uint64 realloc_relocatable;			/**< Forced relocation for VMM */
+	size_t memory;						/**< Amount of bytes allocated */
+	size_t blocks;						/**< Amount of blocks allocated */
+} hstats;
+
+enum halloc_type {
+	HALLOC_XMALLOC,
+	HALLOC_VMM
+};
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 
 static int use_page_table;
 static page_table_t *pt_pages;
 static hash_table_t *ht_pages;
-static size_t walloc_threshold;		/* walloc() size upper limit */
+static size_t xpmalloc_threshold;		/* xpmalloc() size upper limit */
+static size_t halloc_pagesize;
 
 union align {
   size_t	size;
@@ -82,7 +109,7 @@ union align {
 };
 
 static inline size_t
-page_lookup(void *p)
+page_lookup(const void *p)
 {
 	if (use_page_table) {
 		return page_table_lookup(pt_pages, p);
@@ -92,17 +119,27 @@ page_lookup(void *p)
 }
 
 static inline int
-page_insert(void *p, size_t size)
+page_insert(const void *p, size_t size)
 {
 	if (use_page_table) {
 		return page_table_insert(pt_pages, p, size);
 	} else {
-		return hash_table_insert(ht_pages, p, (void *) size);
+		return hash_table_insert(ht_pages, p, size_to_pointer(size));
+	}
+}
+
+static inline void
+page_replace(const void *p, size_t size)
+{
+	if (use_page_table) {
+		page_table_replace(pt_pages, p, size);
+	} else {
+		hash_table_replace(ht_pages, p, size_to_pointer(size));
 	}
 }
 
 static inline int
-page_remove(void *p)
+page_remove(const void *p)
 {
 	if (use_page_table) {
 		return page_table_remove(pt_pages, p);
@@ -115,7 +152,7 @@ static void
 hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
 {
 	(void) unused_udata;
-	RUNTIME_ASSERT(size > 0);
+	g_assert(size > 0);
 	hfree(key);
 }
 
@@ -123,8 +160,8 @@ static void
 hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
-	RUNTIME_ASSERT((size_t) value > 0);
-	hfree(deconstify_gpointer(key));
+	g_assert((size_t) value > 0);
+	hfree(deconstify_pointer(key));
 }
 
 static inline void
@@ -142,20 +179,17 @@ page_destroy(void)
 }
 
 static inline size_t
-halloc_get_size(void *p)
+halloc_get_size(const void *p, enum halloc_type *type)
 {
-	size_t size;
+	size_t size = 0;
 
 	size = page_lookup(p);
 	if (size) {
-		RUNTIME_ASSERT(size >= walloc_threshold);
+		g_assert(size >= xpmalloc_threshold);
+		*type = HALLOC_VMM;
 	} else {
-		union align *head = p;
-
-		head--;
-		RUNTIME_ASSERT(head->size > 0);
-		RUNTIME_ASSERT(head->size < walloc_threshold);
-		size = head->size;
+		size = xallocated(p);
+		*type = HALLOC_XMALLOC;
 	}
 	return size;
 }
@@ -179,36 +213,29 @@ halloc(size_t size)
 	if (0 == size)
 		return NULL;
 
-	if G_UNLIKELY(0 == walloc_threshold)
+	if G_UNLIKELY(0 == xpmalloc_threshold)
 		halloc_init(TRUE);
 
-	if (size < walloc_threshold) {
-		union align *head;
+	hstats.allocations++;
 
-		allocated = size + sizeof head[0];
-#ifdef TRACK_ZALLOC
-		head = walloc_track(allocated, file, line);
-#else
-		head = walloc(allocated);
-#endif
-		head->size = size;
-		p = &head[1];
-#if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
-		zalloc_shift_pointer(head, p);
-#endif
+	if (size < xpmalloc_threshold) {
+		p = xpmalloc(size);
+		allocated = xallocated(p);
+		hstats.alloc_via_xpmalloc++;
 	} else {
 		int inserted;
 
 		/* round_pagesize() is unsafe and wraps! */
 		allocated = round_pagesize(size);
-		RUNTIME_ASSERT(allocated >= size);
+		g_assert(allocated >= size);
 
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
-		RUNTIME_ASSERT(inserted);
+		g_assert(inserted);
+		hstats.alloc_via_vmm++;
 	}
-	bytes_allocated += allocated;
-	chunks_allocated++;
+	hstats.memory += allocated;
+	hstats.blocks++;
 	return p;
 }
 
@@ -231,6 +258,7 @@ halloc0(size_t size)
 	if (p) {
 		memset(p, 0, size);
 	}
+	hstats.allocations_zeroed++;
 	return p;
 }
 
@@ -240,28 +268,25 @@ halloc0(size_t size)
 void
 hfree(void *p)
 {
-	size_t size;
 	size_t allocated;
+	enum halloc_type type;
 
 	if (NULL == p)
 		return;
 
-	size = halloc_get_size(p);
-	RUNTIME_ASSERT(size > 0);
+	hstats.freeings++;
 
-	if (size < walloc_threshold) {
-		union align *head = p;
+	allocated = halloc_get_size(p, &type);
+	g_assert(size_is_positive(allocated));
 
-		head--;
-		allocated = size + sizeof(union align);
-		wfree(head, allocated);
+	if (HALLOC_XMALLOC == type) {
+		xfree(p);
 	} else {
-		allocated = size;
 		page_remove(p);
-		vmm_free(p, size);
+		vmm_free(p, allocated);
 	}
-	bytes_allocated -= allocated;
-	chunks_allocated--;
+	hstats.memory -= allocated;
+	hstats.blocks--;
 }
 
 /**
@@ -275,6 +300,7 @@ hrealloc(void *old, size_t new_size)
 	size_t old_size;
 	size_t rounded_new_size;
 	void *p;
+	enum halloc_type type;
 
 	if (NULL == old)
 		return halloc(new_size);
@@ -284,45 +310,52 @@ hrealloc(void *old, size_t new_size)
 		return NULL;
 	}
 
-	old_size = halloc_get_size(old);
-	RUNTIME_ASSERT(size_is_positive(old_size));
+	old_size = halloc_get_size(old, &type);
+	g_assert(size_is_positive(old_size));
 
 	/*
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
+	hstats.reallocs++;
 	rounded_new_size = round_pagesize(new_size);
 
-	if (old_size >= walloc_threshold) {
-		if (vmm_is_relocatable(old, rounded_new_size))
+	if (HALLOC_VMM == type) {
+		if (vmm_is_relocatable(old, rounded_new_size)) {
+			hstats.realloc_relocatable++;
 			goto relocate;
-	} else {
-		if (new_size < walloc_threshold) {
-			union align *old_head = old;
-			union align *new_head;
-			size_t old_allocated = old_size + sizeof old_head[0];
-			size_t new_allocated = new_size + sizeof new_head[0];
-
-			old_head--;
-			new_head = wrealloc(old_head, old_allocated, new_allocated);
-			new_head->size = new_size;
-			bytes_allocated += new_allocated - old_allocated;
-			return &new_head[1];
 		}
+		if (new_size >= xpmalloc_threshold) {
+			if (rounded_new_size == old_size) {
+				hstats.realloc_noop++;
+				hstats.realloc_noop_same_vmm++;
+				return old;
+			}
+			if (old_size > rounded_new_size) {
+				vmm_shrink(old, old_size, rounded_new_size);
+				page_replace(old, rounded_new_size);
+				hstats.memory += rounded_new_size - old_size;
+				hstats.realloc_via_vmm_shrink++;
+				return old;
+			}
+		}
+	} else if (new_size < xpmalloc_threshold) {
+		hstats.realloc_via_xrealloc++;
+		return xrealloc(old, new_size);
 	}
 
-	if (new_size >= walloc_threshold && rounded_new_size == old_size)
+	if (old_size >= new_size && old_size / 2 < new_size) {
+		hstats.realloc_noop++;
 		return old;
-
-	if (old_size >= new_size && old_size / 2 < new_size)
-		return old;
+	}
 
 relocate:
 	p = halloc(new_size);
-	RUNTIME_ASSERT(NULL != p);
+	g_assert(NULL != p);
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
+	hstats.realloc_via_vmm++;
 
 	return p;
 }
@@ -374,20 +407,20 @@ hrealloc(void *old, size_t size)
 
 #ifdef USE_HALLOC
 
-static gpointer
+static void *
 ha_malloc(gsize size)
 {
 	return halloc(size);
 }
 
-static gpointer
-ha_realloc(gpointer p, gsize size)
+static void *
+ha_realloc(void *p, gsize size)
 {
 	return hrealloc(p, size);
 }
 
 static void
-ha_free(gpointer p)
+ha_free(void *p)
 {
 	hfree(p);
 }
@@ -396,7 +429,8 @@ static void
 halloc_glib12_check(void)
 {
 #if !GLIB_CHECK_VERSION(2,0,0)
-	gpointer p;
+	void *p;
+	enum halloc_type type;
 
 	/*
 	 * Check whether the remapping is effective. This may not be
@@ -404,7 +438,7 @@ halloc_glib12_check(void)
 	 * for example.
 	 */
 	p = g_strdup("");
-	if (0 == halloc_get_size(p)) {
+	if (0 == halloc_get_size(p, &type)) {
 		static GMemVTable zero_vtable;
 		fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
 		g_mem_set_vtable(&zero_vtable);
@@ -419,6 +453,10 @@ halloc_init_vtable(void)
 {
 	static GMemVTable vtable;
 
+#undef malloc
+#undef realloc
+#undef free
+
 #if GLIB_CHECK_VERSION(2,0,0)
 	{
 		/* NOTE: This string is not read-only because it will be overwritten
@@ -428,15 +466,11 @@ halloc_init_vtable(void)
 		static char variable[] = "G_SLICE=always-malloc";
 		putenv(variable);
 	}
+#endif	/* GLib >= 2.0.0 */
 
 	vtable.malloc = ha_malloc;
 	vtable.realloc = ha_realloc;
 	vtable.free = ha_free;
-#else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = ha_malloc;
-	vtable.gmvt_realloc = ha_realloc;
-	vtable.gmvt_free = ha_free;
-#endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
 
@@ -453,55 +487,59 @@ halloc_init_vtable(void)
 #endif	/* USE_HALLOC */
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
-static gboolean replacing_malloc;
-static gboolean halloc_is_compiled = TRUE;
+static bool replacing_malloc;
+static bool halloc_is_compiled = TRUE;
 
-void
-halloc_init(gboolean replace_malloc)
+static void
+halloc_init_once(void)
 {
-	static int initialized;
-	int sp;
+	vmm_init();		/* Just in case, since we're built on top of VMM */
 
-	RUNTIME_ASSERT(!initialized);
-	initialized = TRUE;
-	replacing_malloc = replace_malloc;
-
-	vmm_init(&sp);		/* Just in case, since we're built on top of VMM */
-
-	use_page_table = (size_t) -1 == (guint32) -1 && 4096 == compat_pagesize();
-	walloc_threshold = WALLOC_MAX - sizeof(union align) + 1;
+	halloc_pagesize = compat_pagesize();
+	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
+	xpmalloc_threshold = halloc_pagesize - MAX(8, MEM_ALIGNBYTES);	/* XXX */
 
 	if (use_page_table) {
 		pt_pages = page_table_new();
 	} else {
 		ht_pages = hash_table_new();
 	}
+}
 
-	if (replace_malloc)
-		halloc_init_vtable();
+void
+halloc_init(bool replace_malloc)
+{
+	static bool initialized;
+
+	if (once_run(&initialized, halloc_init_once)) {
+		replacing_malloc = replace_malloc;
+
+		if (replace_malloc)
+			halloc_init_vtable();
+	}
 }
 
 /**
  * Did they request that halloc() be a malloc() replacement?
  */
-gboolean
+bool
 halloc_replaces_malloc(void)
 {
 	return replacing_malloc;
 }
 #else	/* REMAP_ZALLOC || TRACK_MALLOC */
 
-static gboolean halloc_is_compiled = FALSE;
+static bool halloc_is_compiled = FALSE;
 
 void
-halloc_init(gboolean unused_replace_malloc)
+halloc_init(bool unused_replace_malloc)
 {
 	(void) unused_replace_malloc;
 
 	/* EMPTY */
 }
 
-gboolean
+bool
 halloc_replaces_malloc(void)
 {
 	return FALSE;
@@ -509,7 +547,7 @@ halloc_replaces_malloc(void)
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
-gboolean
+bool
 halloc_is_available(void)
 {
 	return halloc_is_compiled;
@@ -518,13 +556,13 @@ halloc_is_available(void)
 size_t
 halloc_bytes_allocated(void)
 {
-	return bytes_allocated;
+	return hstats.memory;
 }
 
 size_t
 halloc_chunks_allocated(void)
 {
-	return chunks_allocated;
+	return hstats.blocks;
 }
 
 #ifndef TRACK_MALLOC
@@ -557,10 +595,11 @@ h_strndup(const char *str, size_t n)
 	if (str != NULL) {
 		size_t len = clamp_strlen(str, n);
 		char *result = halloc(len + 1);
-		
+		char *p;
+
 		/* Not hcopy() because we shouldn't even read the nth byte of src. */
-		memcpy(result, str, len);
-		result[len] = '\0';
+		p = mempcpy(result, str, len);
+		*p = '\0';
 
 		return result;
 	} else {
@@ -799,5 +838,39 @@ h_strdup_printf(const char *format, ...)
 	return buf;
 }
 #endif /* !TRACK_MALLOC */
+
+/**
+ * Dump halloc statistics to specified log agent.
+ */
+G_GNUC_COLD void
+halloc_dump_stats_log(logagent_t *la, unsigned options)
+{
+#define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 uint64_to_gstring(hstats.x) : uint64_to_string(hstats.x))
+
+#define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
+	(options & DUMP_OPT_PRETTY) ?						\
+		 size_t_to_gstring(hstats.x) : size_t_to_string(hstats.x))
+
+
+	DUMP(allocations);
+	DUMP(allocations_zeroed);
+	DUMP(alloc_via_xpmalloc);
+	DUMP(alloc_via_vmm);
+	DUMP(freeings);
+	DUMP(reallocs);
+	DUMP(realloc_noop);
+	DUMP(realloc_noop_same_vmm);
+	DUMP(realloc_via_xrealloc);
+	DUMP(realloc_via_vmm);
+	DUMP(realloc_via_vmm_shrink);
+	DUMP(realloc_relocatable);
+	DUMS(memory);
+	DUMS(blocks);
+
+#undef DUMP
+#undef DUMS
+}
 
 /* vi: set ts=4 sw=4 cindent: */

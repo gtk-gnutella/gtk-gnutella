@@ -41,11 +41,11 @@
 void hostiles_init(void);
 void hostiles_close(void);
 
-gboolean hostiles_check(const host_addr_t addr);
-gboolean hostiles_spam_check(const host_addr_t addr, guint16 port);
+bool hostiles_check(const host_addr_t addr);
+bool hostiles_spam_check(const host_addr_t addr, uint16 port);
 
 void hostiles_dynamic_add(const host_addr_t addr, const char *reason);
-void hostiles_spam_add(const host_addr_t addr, guint16 port);
+void hostiles_spam_add(const host_addr_t addr, uint16 port);
 
 #endif /* _core_hostiles_h_ */
 

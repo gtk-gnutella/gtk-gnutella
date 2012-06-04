@@ -41,20 +41,21 @@
 
 #include "ascii.h"
 #include "atoms.h"		/* For binary_hash() */
-#include "concat.h"		/* For concat_strings() */
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
 #include "glib-missing.h"
+#include "hashing.h"
 #include "hashtable.h"
+#include "leak.h"
 #include "log.h"
 #include "omalloc.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
 #include "stacktrace.h"
-#include "stringify.h"	/* For uint64_to_string() and short_time() */
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
 #include "xmalloc.h"
+#include "xsort.h"
 
 /*
  * The following setups are more or less independent from each other.
@@ -140,13 +141,13 @@
 #define MALLOC_TRAILER_MARK	'\245'	/* 0xa5 */
 
 union mem_chunk {
-  void      *next;
-  guint8   u8;
-  guint16  u16;
-  guint32  u32;
-  guint64  u64;
-  float     f;
-  double    d;
+  void   *next;
+  uint8   u8;
+  uint16  u16;
+  uint32  u32;
+  uint64  u64;
+  float   f;
+  double  d;
 };
 
 #ifdef MALLOC_SAFE_HEAD
@@ -204,7 +205,17 @@ static hash_table_t *unknowns;
 #endif
 
 #ifdef MALLOC_VTABLE
-static gboolean vtable_works;	/* Whether we can trap glib memory calls */
+static bool vtable_works;	/* Whether we can trap glib memory calls */
+#endif
+
+#ifdef malloc
+#error "malloc() should not be a macro here."
+#endif
+#ifdef free
+#error "free() should not be a macro here."
+#endif
+#ifdef realloc
+#error "realloc() should not be a macro here."
 #endif
 
 /**
@@ -249,7 +260,7 @@ struct realblock {
 static time_t init_time = 0;
 static time_t reset_time = 0;
 
-static gboolean free_record(gconstpointer o, const char *file, int line);
+static bool free_record(const void *o, const char *file, int line);
 #endif
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
@@ -343,12 +354,12 @@ static hash_table_t *stats = NULL; /**< maps stats(file, line) -> stats */
  * Hashing routine for "struct stats".
  * Only the "file" and "line" fields are considered.
  */
-static guint
-stats_hash(gconstpointer key)
+static unsigned
+stats_hash(const void *key)
 {
 	const struct stats *s = key;
 
-	return g_str_hash(s->file) ^ s->line;
+	return string_mix_hash(s->file) ^ integer_hash(s->line);
 }
 
 /**
@@ -356,7 +367,7 @@ stats_hash(gconstpointer key)
  * Only the "file" and "line" fields are considered.
  */
 static int
-stats_eq(gconstpointer a, gconstpointer b)
+stats_eq(const void *a, const void *b)
 {
 	const struct stats *sa = a, *sb = b;
 
@@ -384,16 +395,16 @@ struct stats {
 
 #ifdef MALLOC_SAFE_HEAD
 static inline struct malloc_header *
-malloc_header_from_arena(gconstpointer o)
+malloc_header_from_arena(const void *o)
 {
-	return (gpointer) ((char *) o - SAFE_ARENA_OFFSET);
+	return cast_to_pointer((char *) o - SAFE_ARENA_OFFSET);
 }
 #endif /* MALLOC_SAFE_HEAD */
 
 static inline struct real_malloc_header *
-real_malloc_header_from_arena(gconstpointer o)
+real_malloc_header_from_arena(const void *o)
 {
-	return (gpointer) ((char *) o - REAL_ARENA_OFFSET);
+	return cast_to_pointer((char *) o - REAL_ARENA_OFFSET);
 }
 
 static inline size_t
@@ -403,20 +414,20 @@ malloc_safe_size(size_t size)
 #ifdef MALLOC_SAFE_HEAD
 		SAFE_ARENA_OFFSET +
 #endif
-		sizeof(guint32) + MALLOC_TRAILER_LEN;
+		sizeof(uint32) + MALLOC_TRAILER_LEN;
 }
 
 static inline size_t
 real_malloc_safe_size(size_t size)
 {
-	return size + REAL_ARENA_OFFSET + sizeof(guint32) + MALLOC_TRAILER_LEN;
+	return size + REAL_ARENA_OFFSET + sizeof(uint32) + MALLOC_TRAILER_LEN;
 }
 
 /**
  * Mark allocated block trailer.
  */
 static void
-block_write_trailer(gpointer o, size_t size)
+block_write_trailer(void *o, size_t size)
 {
 	size_t trailer = MALLOC_TRAILER_LEN;
 	char *p;
@@ -439,12 +450,12 @@ block_write_trailer(gpointer o, size_t size)
  *
  * @return whether an error was detected.
  */
-static gboolean
-block_check_trailer(gconstpointer o, size_t size,
+static bool
+block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
-	gboolean showstack)
+	bool showstack)
 {
-	gboolean error = FALSE;
+	bool error = FALSE;
 	size_t trailer = MALLOC_TRAILER_LEN;
 	const char *p;
 
@@ -457,7 +468,7 @@ block_check_trailer(gconstpointer o, size_t size,
 		goto done;
 	}
 
-	p = const_ptr_add_offset(o, size + sizeof(guint32));
+	p = const_ptr_add_offset(o, size + sizeof(uint32));
 	while (trailer--) {
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
@@ -487,10 +498,10 @@ done:
  * @param size	the user-known size of the buffer
  */
 static void
-block_check_marks(gconstpointer o, struct block *b,
+block_check_marks(const void *o, struct block *b,
 	const char *file, int line)
 {
-	gboolean error = FALSE;
+	bool error = FALSE;
 
 	if (b->corrupted)
 		return;			/* Already identified it was corrupted */
@@ -524,13 +535,13 @@ block_check_marks(gconstpointer o, struct block *b,
 #endif	/* TRACK_MALLOC */
 
 #else	/* !MALLOC_SAFE */
-static inline void block_write_trailer(gpointer o, size_t size)
+static inline void block_write_trailer(void *o, size_t size)
 {
 	(void) o; (void) size;
 }
-static inline gboolean block_check_trailer(gconstpointer o, size_t size,
+static inline bool block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
-	gboolean showstack)
+	bool showstack)
 {
 	(void) o; (void) size; (void) file; (void) line;
 	(void) op_file; (void) op_line; (void) showstack;
@@ -548,7 +559,7 @@ static inline gboolean block_check_trailer(gconstpointer o, size_t size,
 static inline void
 block_erase(const void *o, size_t size)
 {
-	void *p = deconstify_gpointer(o);
+	void *p = deconstify_pointer(o);
 	memset(p, MALLOC_ERASE_MARK, size);
 }
 #else	/* !MALLOC_FREE_ERASE */
@@ -566,24 +577,24 @@ block_erase(const void *o, size_t size)
 static inline void
 block_mark_dead(const void *p, size_t size)
 {
-	if (size >= sizeof(guint)) {
-		*(guint *) p = MALLOC_DEAD_MARK;
+	if (size >= sizeof(uint)) {
+		*(uint *) p = MALLOC_DEAD_MARK;
 	}
 }
 
 static inline void
 block_clear_dead(const void *p, size_t size)
 {
-	if (size >= sizeof(guint)) {
-		*(guint *) p = MALLOC_DEAD_CLEAR;
+	if (size >= sizeof(uint)) {
+		*(uint *) p = MALLOC_DEAD_CLEAR;
 	}
 }
 
-static inline gboolean
+static inline bool
 block_is_dead(const void *p, size_t size)
 {
-	if (size >= sizeof(guint)) {
-		return MALLOC_DEAD_MARK == *(guint *) p;
+	if (size >= sizeof(uint)) {
+		return MALLOC_DEAD_MARK == *(uint *) p;
 	}
 
 	return FALSE;
@@ -602,7 +613,7 @@ block_is_dead(const void *p, size_t size)
  */
 #ifdef MALLOC_PERIODIC
 
-static gboolean need_periodic;
+static bool need_periodic;
 
 struct block_check_context {
 	size_t tracked_size;
@@ -622,7 +633,7 @@ block_check(const void *key, void *value, void *ctx)
 {
 	struct block_check_context *bc = ctx;
 	struct block *b = value;
-	gboolean was_corrupted;
+	bool was_corrupted;
 
 	bc->tracked_count++;
 	bc->tracked_size = size_saturate_add(bc->tracked_size, b->size);
@@ -654,7 +665,7 @@ real_check(const void *key, void *value, void *ctx)
 {
 	struct block_check_context *bc = ctx;
 	struct realblock *rb = value;
-	void *p = deconstify_gpointer(key);
+	void *p = deconstify_pointer(key);
 
 	bc->real_count++;
 	bc->real_size = size_saturate_add(bc->real_size, rb->size);
@@ -697,11 +708,11 @@ real_check(const void *key, void *value, void *ctx)
 /**
  * Periodic check to make sure all the known blocks are correct.
  */
-static gboolean
-malloc_periodic(gpointer unused_obj)
+static bool
+malloc_periodic(void *unused_obj)
 {
 	struct block_check_context ctx;
-	gboolean checked = FALSE;
+	bool checked = FALSE;
 	tm_t start, end;
 	static unsigned errors;
 	char tracked_size[SIZE_FIELD_MAX];
@@ -858,7 +869,7 @@ real_malloc(size_t size)
 	void *o;
 
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 
@@ -939,6 +950,7 @@ real_check_free(void *p)
 }
 #endif	/* MALLOC_SAFE */
 
+#if defined(TRACK_MALLOC) || defined(TRACK_VMM)
 /**
  * Calls real free(), no tracking.
  * Block must have been allocated via real_malloc().
@@ -947,8 +959,8 @@ static void
 real_free(void *p)
 {
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
-	gboolean owned = FALSE;
-	gboolean real = FALSE;
+	bool owned = FALSE;
+	bool real = FALSE;
 	void *start = p;
 #endif
 #ifdef TRACK_MALLOC
@@ -956,7 +968,7 @@ real_free(void *p)
 #endif
 
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 
@@ -1011,12 +1023,12 @@ real_free(void *p)
 			free(rb);
 			real = TRUE;		/* Was allocated via real_malloc() */
 		} else {
-			if (block_is_dead(start, sizeof(guint))) {
+			if (block_is_dead(start, sizeof(uint))) {
 				g_warning("MALLOC probable duplicate free of %p", p);
 				stacktrace_where_print(stderr);
 				g_error("MALLOC invalid free()");
 			} else {
-				gboolean ok = FALSE;
+				bool ok = FALSE;
 #ifdef MALLOC_VTABLE
 				/* See comment in free_track() */
 				ok = hash_table_lookup(unknowns, p) != NULL;
@@ -1055,9 +1067,10 @@ real_free(void *p)
 		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
 }
+#endif	/* TRACK_MALLOC || TRACK_VMM */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
 
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
+#if defined(TRACK_MALLOC) || defined(TRACK_VMM)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
@@ -1076,7 +1089,7 @@ real_strdup(const char *s)
 
 	return p;
 }
-#endif	/* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
+#endif	/* TRACK_MALLOC || TRACK_VMM */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 /**
@@ -1091,7 +1104,7 @@ real_realloc(void *ptr, size_t size)
 	struct block *b = NULL;
 #endif
 #ifdef MALLOC_PERIODIC
-	if (need_periodic && NULL != callout_queue)
+	if (need_periodic)
 		install_malloc_periodic();
 #endif
 
@@ -1260,7 +1273,7 @@ track_init(void)
  * Log used block, and record it among the `leaksort' set for future summary.
  */
 static void
-malloc_log_block(const void *k, void *v, gpointer leaksort)
+malloc_log_block(const void *k, void *v, void *leaksort)
 {
 	const struct block *b = v;
 	char ago[32];
@@ -1282,7 +1295,7 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
 
 	if (b->reallocations) {
 		struct block *r = b->reallocations->data;
-		guint cnt = g_slist_length(b->reallocations);
+		uint cnt = g_slist_length(b->reallocations);
 
 		g_warning("   (realloc'ed %u time%s, lastly from \"%s:%d\")",
 			cnt, cnt == 1 ? "" : "s", r->file, r->line);
@@ -1312,7 +1325,7 @@ malloc_log_block(const void *k, void *v, gpointer leaksort)
  * Log used block, and record it among the `leaksort' set for future summary.
  */
 static void
-malloc_log_real_block(const void *k, void *v, gpointer leaksort)
+malloc_log_real_block(const void *k, void *v, void *leaksort)
 {
 	const struct realblock *rb = v;
 	const void *p = k;
@@ -1384,8 +1397,8 @@ malloc_log_real_block(const void *k, void *v, gpointer leaksort)
  * Flag object ``o'' as "not leaking" if not freed at exit time.
  * @return argument ``o''.
  */
-gpointer
-malloc_not_leaking(gconstpointer o)
+void *
+malloc_not_leaking(const void *o)
 {
 	/*
 	 * Could be called on memory that was not allocated dynamically or which
@@ -1424,15 +1437,15 @@ malloc_not_leaking(gconstpointer o)
 #endif
 
 done:
-	return deconstify_gpointer(o);
+	return deconstify_pointer(o);
 }
 
 /**
  * Record object `o' allocated at `file' and `line' of size `s'.
  * @return argument `o'.
  */
-gpointer
-malloc_record(gconstpointer o, size_t sz, gboolean owned,
+void *
+malloc_record(const void *o, size_t sz, bool owned,
 	const char *file, int line)
 {
 	struct block *b;
@@ -1450,7 +1463,7 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	if (b == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*b));
 
-	b->file = short_filename(deconstify_gpointer(file));
+	b->file = short_filename(deconstify_pointer(file));
 	b->line = line;
 	b->size = sz;
 	b->reallocations = NULL;
@@ -1514,16 +1527,16 @@ malloc_record(gconstpointer o, size_t sz, gboolean owned,
 	}
 #endif /* MALLOC_FRAMES */
 
-	return deconstify_gpointer(o);
+	return deconstify_pointer(o);
 }
 
 /**
  * Allocate `s' bytes.
  */
-gpointer
+void *
 malloc_track(size_t size, const char *file, int line)
 {
-	gpointer o;
+	void *o;
 
 #ifdef MALLOC_SAFE
 	{
@@ -1558,10 +1571,10 @@ malloc_track(size_t size, const char *file, int line)
 /**
  * Allocate `s' bytes, zero the allocated zone.
  */
-gpointer
+void *
 malloc0_track(size_t size, const char *file, int line)
 {
-	gpointer o;
+	void *o;
 
 	o = malloc_track(size, file, line);
 	memset(o, 0, size);
@@ -1573,14 +1586,14 @@ malloc0_track(size_t size, const char *file, int line)
  * Record freeing of allocated block.
  * @return TRUE if the block was owned
  */
-static gboolean
-free_record(gconstpointer o, const char *file, int line)
+static bool
+free_record(const void *o, const char *file, int line)
 {
 	struct block *b;
 	const void *k;
 	void *v;
 	GSList *l;
-	gboolean owned = FALSE;
+	bool owned = FALSE;
 #if defined(MALLOC_STATS) || defined(MALLOC_FRAMES)
 	struct stats *st = NULL;	/* Needed in case MALLOC_FRAMES is also set */
 #endif
@@ -1687,7 +1700,7 @@ free_record(gconstpointer o, const char *file, int line)
  * Free allocated block.
  */
 void
-free_track(gpointer o, const char *file, int line)
+free_track(void *o, const char *file, int line)
 {
 	struct block *b;
 
@@ -1751,10 +1764,10 @@ strfreev_track(char **v, const char *file, int line)
  * Update data structures to record that block `o' was re-alloced into
  * a block of `s' bytes at `n'.
  */
-static gpointer
-realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
+static void *
+realloc_record(void *o, void *n, size_t size, const char *file, int line)
 {
-	gboolean blocks_updated = FALSE;
+	bool blocks_updated = FALSE;
 	struct block *b;
 	struct block *r;
 #if defined(MALLOC_STATS) || defined(MALLOC_FRAMES)
@@ -1787,7 +1800,7 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 	if (r == NULL)
 		g_error("unable to allocate %u bytes", (unsigned) sizeof(*r));
 
-	r->file = short_filename(deconstify_gpointer(file));
+	r->file = short_filename(deconstify_pointer(file));
 	r->line = line;
 	r->size = b->size;			/* Previous size before realloc */
 	r->reallocations = NULL;
@@ -1859,8 +1872,8 @@ realloc_record(gpointer o, gpointer n, size_t size, const char *file, int line)
 /**
  * Realloc object `o' to `size' bytes.
  */
-gpointer
-realloc_track(gpointer o, size_t size, const char *file, int line)
+void *
+realloc_track(void *o, size_t size, const char *file, int line)
 {
 	if (o == NULL)
 		return malloc_track(size, file, line);
@@ -1869,7 +1882,7 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 		free_track(o, file, line);
 		return NULL;
 	} else {
-		gpointer n;
+		void *n;
 
 #ifdef MALLOC_SAFE
 		struct block *b;
@@ -1914,10 +1927,10 @@ realloc_track(gpointer o, size_t size, const char *file, int line)
 /**
  * Duplicate buffer `p' of length `size'.
  */
-gpointer
-memdup_track(gconstpointer p, size_t size, const char *file, int line)
+void *
+memdup_track(const void *p, size_t size, const char *file, int line)
 {
-	gpointer o;
+	void *o;
 
 	if (p == NULL)
 		return NULL;
@@ -1934,7 +1947,7 @@ memdup_track(gconstpointer p, size_t size, const char *file, int line)
 char *
 strdup_track(const char *s, const char *file, int line)
 {
-	gpointer o;
+	void *o;
 	size_t len;
 
 	if (s == NULL)
@@ -1953,7 +1966,7 @@ strdup_track(const char *s, const char *file, int line)
 char *
 strndup_track(const char *s, size_t n, const char *file, int line)
 {
-	gpointer o;
+	void *o;
 	char *q;
 
 	if (s == NULL)
@@ -2193,7 +2206,7 @@ gslist_record(const GSList * const list, const char *file, int line)
 	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
 		malloc_record(iter, sizeof *iter, FALSE, file, line);
 	}
-	return deconstify_gpointer(list);
+	return deconstify_pointer(list);
 }
 
 GSList *
@@ -2203,7 +2216,7 @@ track_slist_alloc(const char *file, int line)
 }
 
 GSList *
-track_slist_append(GSList *l, gpointer data, const char *file, int line)
+track_slist_append(GSList *l, void *data, const char *file, int line)
 {
 	GSList *new;
 
@@ -2219,7 +2232,7 @@ track_slist_append(GSList *l, gpointer data, const char *file, int line)
 }
 
 GSList *
-track_slist_prepend(GSList *l, gpointer data, const char *file, int line)
+track_slist_prepend(GSList *l, void *data, const char *file, int line)
 {
 	GSList *new;
 
@@ -2231,13 +2244,13 @@ track_slist_prepend(GSList *l, gpointer data, const char *file, int line)
 }
 
 GSList *
-track_slist_prepend_const(GSList *l, gconstpointer data,
+track_slist_prepend_const(GSList *l, const void *data,
 	const char *file, int line)
 {
 	GSList *new;
 
 	new = track_slist_alloc(file, line);
-	new->data = deconstify_gpointer(data);
+	new->data = deconstify_pointer(data);
 	new->next = l;
 
 	return new;
@@ -2271,7 +2284,7 @@ track_slist_free1(GSList *l, const char *file, int line)
 }
 
 GSList *
-track_slist_remove(GSList *l, gpointer data, const char *file, int line)
+track_slist_remove(GSList *l, void *data, const char *file, int line)
 {
 	GSList *lk;
 
@@ -2294,7 +2307,7 @@ track_slist_delete_link(GSList *l, GSList *lk, const char *file, int line)
 }
 
 GSList *
-track_slist_insert(GSList *l, gpointer data, int pos, const char *file, int line)
+track_slist_insert(GSList *l, void *data, int pos, const char *file, int line)
 {
 	GSList *lk;
 
@@ -2311,7 +2324,7 @@ track_slist_insert(GSList *l, gpointer data, int pos, const char *file, int line
 }
 
 GSList *
-track_slist_insert_sorted(GSList *l, gpointer d, GCompareFunc c,
+track_slist_insert_sorted(GSList *l, void *d, GCompareFunc c,
 	const char *file, int line)
 {
 	int cmp;
@@ -2348,7 +2361,7 @@ track_slist_insert_sorted(GSList *l, gpointer d, GCompareFunc c,
 }
 
 GSList *
-track_slist_insert_after(GSList *l, GSList *lk, gpointer data,
+track_slist_insert_after(GSList *l, GSList *lk, void *data,
 	const char *file, int line)
 {
 	GSList *new;
@@ -2372,7 +2385,7 @@ track_list_alloc(const char *file, int line)
 }
 
 GList *
-track_list_append(GList *l, gpointer data, const char *file, int line)
+track_list_append(GList *l, void *data, const char *file, int line)
 {
 	GList *new;
 
@@ -2389,7 +2402,7 @@ track_list_append(GList *l, gpointer data, const char *file, int line)
 }
 
 GList *
-track_list_prepend(GList *l, gpointer data, const char *file, int line)
+track_list_prepend(GList *l, void *data, const char *file, int line)
 {
 	GList *new;
 
@@ -2420,7 +2433,7 @@ glist_record(const GList * const list, const char *file, int line)
 	for (iter = list; NULL != iter; iter = g_list_next(iter)) {
 		malloc_record(iter, sizeof *iter, FALSE, file, line);
 	}
-	return deconstify_gpointer(list);
+	return deconstify_pointer(list);
 }
 
 
@@ -2452,7 +2465,7 @@ track_list_free1(GList *l, const char *file, int line)
 }
 
 GList *
-track_list_remove(GList *l, gpointer data, const char *file, int line)
+track_list_remove(GList *l, void *data, const char *file, int line)
 {
 	GList *lk;
 
@@ -2464,7 +2477,7 @@ track_list_remove(GList *l, gpointer data, const char *file, int line)
 }
 
 GList *
-track_list_insert(GList *l, gpointer data, int pos, const char *file, int line)
+track_list_insert(GList *l, void *data, int pos, const char *file, int line)
 {
 	GList *lk;
 
@@ -2481,7 +2494,7 @@ track_list_insert(GList *l, gpointer data, int pos, const char *file, int line)
 }
 
 GList *
-track_list_insert_sorted(GList *l, gpointer d, GCompareFunc c,
+track_list_insert_sorted(GList *l, void *d, GCompareFunc c,
 	const char *file, int line)
 {
 	int cmp;
@@ -2520,7 +2533,7 @@ track_list_insert_sorted(GList *l, gpointer d, GCompareFunc c,
 }
 
 GList *
-track_list_insert_after(GList *l, GList *lk, gpointer data,
+track_list_insert_after(GList *l, GList *lk, void *data,
 	const char *file, int line)
 {
 	GList *new;
@@ -2543,7 +2556,7 @@ track_list_insert_after(GList *l, GList *lk, gpointer data,
 }
 
 GList *
-track_list_insert_before(GList *l, GList *lk, gpointer data,
+track_list_insert_before(GList *l, GList *lk, void *data,
 	const char *file, int line)
 {
 	GList *new;
@@ -2576,185 +2589,6 @@ track_list_delete_link(GList *l, GList *lk, const char *file, int line)
 	return new;
 }
 #endif /* TRACK_MALLOC */
-
-/***
- *** This section contains general-purpose leak summarizing routines that
- *** can be used by both malloc() and zalloc().
- ***/
-
-#if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || defined(TRACK_VMM)
-
-struct leak_record {		/* Informations about leak at some place */
-	size_t size;			/* Total size allocated there */
-	size_t count;			/* Amount of allocations */
-};
-
-struct leak_set {
-	GHashTable *places;		/* Maps "file:4" -> leak_record */
-};
-
-/**
- * Initialize the leak accumulator by "file:line"
- */
-gpointer
-leak_init(void)
-{
-	struct leak_set *ls;
-
-	ls = real_malloc(sizeof *ls);
-	ls->places = g_hash_table_new(g_str_hash, g_str_equal);
-
-	return ls;
-}
-
-/**
- * Get rid of the key/value tupple in the leak table.
- */
-static gboolean
-leak_free_kv(gpointer key, gpointer value, gpointer unused_user)
-{
-	(void) unused_user;
-	real_free(key);
-	real_free(value);
-	return TRUE;
-}
-
-/**
- * Dispose of the leaks accumulated.
- */
-void
-leak_close(gpointer o)
-{
-	struct leak_set *ls = o;
-
-	g_hash_table_foreach_remove(ls->places, leak_free_kv, NULL);
-	gm_hash_table_destroy_null(&ls->places);
-
-	real_free(ls);
-}
-
-/**
- * Record a new leak of `size' bytes allocated at `file', line `line'.
- */
-void
-leak_add(gpointer o, size_t size, const char *file, int line)
-{
-	struct leak_set *ls = o;
-	char key[1024];
-	struct leak_record *lr;
-	gboolean found;
-	gpointer k;
-	gpointer v;
-
-	g_assert(file);
-	g_assert(line >= 0);
-
-	concat_strings(key, sizeof key,
-		file, ":", uint64_to_string(line), (void *) 0);
-	found = g_hash_table_lookup_extended(ls->places, key, &k, &v);
-
-	if (found) {
-		lr = v;
-		lr->size += size;
-		lr->count++;
-	} else {
-		lr = real_malloc(sizeof(*lr));
-		lr->size = size;
-		lr->count = 1;
-		g_hash_table_insert(ls->places, real_strdup(key), lr);
-	}
-}
-
-struct leak {			/* A memory leak, for sorting purposes */
-	char *place;
-	struct leak_record *lr;
-};
-
-/**
- * leak_size_cmp		-- qsort() callback
- *
- * Compare two pointers to "struct leak" based on their size value,
- * in reverse order.
- */
-static int
-leak_size_cmp(const void *p1, const void *p2)
-{
-	const struct leak *leak1 = p1, *leak2 = p2;
-
-	/* Reverse order: largest first */
-	return CMP(leak2->lr->size, leak1->lr->size);
-}
-
-struct filler {			/* Used by hash table iterator to fill leak array */
-	struct leak *leaks;
-	int count;			/* Size of `leaks' array */
-	int idx;			/* Next index to be filled */
-};
-
-/**
- * fill_array			-- hash table iterator
- *
- * Append current hash table entry at the end of the "leaks" array.
- */
-static void
-fill_array(gpointer key, gpointer value, gpointer user)
-{
-	struct filler *filler = user;
-	struct leak *l;
-	struct leak_record *lr = value;
-
-	g_assert(filler->idx < filler->count);
-
-	l = &filler->leaks[filler->idx++];
-	l->place = (char *) key;
-	l->lr = lr;
-}
-
-/**
- * Dump the links sorted by decreasing leak size.
- */
-G_GNUC_COLD void
-leak_dump(gpointer o)
-{
-	struct leak_set *ls =  o;
-	int count;
-	struct filler filler;
-	int i;
-
-	count = g_hash_table_size(ls->places);
-
-	if (count == 0)
-		return;
-
-	filler.leaks = real_malloc(sizeof(struct leak) * count);
-	filler.count = count;
-	filler.idx = 0;
-
-	/*
-	 * Linearize hash table into an array before sorting it by
-	 * decreasing leak size.
-	 */
-
-	g_hash_table_foreach(ls->places, fill_array, &filler);
-	qsort(filler.leaks, count, sizeof(struct leak), leak_size_cmp);
-
-	/*
-	 * Dump the leaks.
-	 */
-
-	g_warning("leak summary by total decreasing size:");
-	g_warning("leaks found: %d", count);
-
-	for (i = 0; i < count; i++) {
-		struct leak *l = &filler.leaks[i];
-		g_warning("%zu bytes (%zu block%s) from \"%s\"",
-			l->lr->size, l->lr->count, l->lr->count == 1 ? "" : "s", l->place);
-	}
-
-	real_free(filler.leaks);
-}
-
-#endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM */
 
 /***
  *** This section contains general-purpose allocation summarizing routines that
@@ -2933,7 +2767,7 @@ stats_array_dump(FILE *f, struct afiller *filler)
  * the incremental ones.
  */
 void
-alloc_dump(FILE *f, gboolean total)
+alloc_dump(FILE *f, bool total)
 {
 	int count;
 	struct afiller filler;
@@ -2994,7 +2828,7 @@ alloc_dump(FILE *f, gboolean total)
 		filler.idx = 0;
 
 		hash_table_foreach(stats, stats_fill_array, &filler);
-		qsort(filler.stats, count, sizeof(struct stats *),
+		xqsort(filler.stats, count, sizeof(struct stats *),
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -3011,7 +2845,7 @@ alloc_dump(FILE *f, gboolean total)
  * Reset incremental allocation and free counters. -- hash table iterator
  */
 static void
-stats_reset(const void *uu_key, void *value, gpointer uu_user)
+stats_reset(const void *uu_key, void *value, void *uu_user)
 {
 	struct stats *st = value;
 
@@ -3026,7 +2860,7 @@ stats_reset(const void *uu_key, void *value, gpointer uu_user)
  * statistics.
  */
 void
-alloc_reset(FILE *f, gboolean total)
+alloc_reset(FILE *f, bool total)
 {
 	time_t now = tm_time();
 
@@ -3056,7 +2890,7 @@ malloc_glib12_check(void)
 
 #if !GLIB_CHECK_VERSION(2,0,0)
 	{
-		gpointer p;
+		void *p;
 		size_t old_size = hash_table_size(reals);
 
 		/*
@@ -3127,15 +2961,9 @@ malloc_init_vtable(void)
 	{
 		static GMemVTable vtable;
 
-#if GLIB_CHECK_VERSION(2,0,0)
 		vtable.malloc = real_malloc;
 		vtable.realloc = real_realloc;
 		vtable.free = real_free;
-#else	/* GLib < 2.0.0 */
-		vtable.gmvt_malloc = real_malloc;
-		vtable.gmvt_realloc = real_realloc;
-		vtable.gmvt_free = real_free;
-#endif	/* GLib >= 2.0.0 */
 
 		g_mem_set_vtable(&vtable);
 		malloc_glib12_check();
@@ -3149,15 +2977,9 @@ malloc_init_vtable(void)
 	if (is_running_on_mingw() && xmalloc_is_malloc()) {
 		static GMemVTable vtable;
 
-#if GLIB_CHECK_VERSION(2,0,0)
 		vtable.malloc = malloc;
 		vtable.realloc = realloc;
 		vtable.free = free;
-#else	/* GLib < 2.0.0 */
-		vtable.gmvt_malloc = malloc;
-		vtable.gmvt_realloc = realloc;
-		vtable.gmvt_free = free;
-#endif	/* GLib >= 2.0.0 */
 
 		g_mem_set_vtable(&vtable);
 	}
@@ -3172,26 +2994,26 @@ malloc_init_vtable(void)
 G_GNUC_COLD void
 malloc_show_settings_log(logagent_t *la)
 {
-	gboolean has_setting = FALSE;
+	bool has_setting = FALSE;
 	struct malloc_settings {
-		guint8 use_halloc;
-		guint8 track_vmm;
-		guint8 track_malloc;
-		guint8 track_zalloc;
-		guint8 remap_zalloc;
-		guint8 malloc_stats;
-		guint8 malloc_frames;
-		guint8 malloc_safe;
-		guint8 malloc_safe_head;
-		gulong malloc_trailer_len;
-		guint8 malloc_free_erase;
-		guint8 malloc_dup_free;
-		guint8 malloc_vtable;
-		guint8 malloc_periodic;
-		gulong malloc_period;
-		gulong malloc_leak_all;
-		gulong malloc_time;
-		gboolean vtable_works;
+		uint8 use_halloc;
+		uint8 track_vmm;
+		uint8 track_malloc;
+		uint8 track_zalloc;
+		uint8 remap_zalloc;
+		uint8 malloc_stats;
+		uint8 malloc_frames;
+		uint8 malloc_safe;
+		uint8 malloc_safe_head;
+		ulong malloc_trailer_len;
+		uint8 malloc_free_erase;
+		uint8 malloc_dup_free;
+		uint8 malloc_vtable;
+		uint8 malloc_periodic;
+		ulong malloc_period;
+		ulong malloc_leak_all;
+		ulong malloc_time;
+		bool vtable_works;
 	} settings;
 
 	ZERO(&settings);
@@ -3343,7 +3165,7 @@ G_GNUC_COLD void
 malloc_close(void)
 {
 #ifdef TRACK_MALLOC
-	gpointer leaksort;
+	void *leaksort;
 #ifdef MALLOC_LEAK_ALL
 	hash_table_t *saved_reals;
 #endif	/* MALLOC_LEAK_ALL */
@@ -3375,7 +3197,7 @@ malloc_close(void)
 #endif	/* MALLOC_LEAK_ALL */
 
 	leak_dump(leaksort);
-	leak_close(leaksort);
+	leak_close_null(&leaksort);
 
 #ifdef MALLOC_LEAK_ALL
 	/*

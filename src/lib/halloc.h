@@ -83,13 +83,17 @@ char *h_strdup_vprintf(const char *format, va_list ap);
 char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len);
 #endif	/* !TRACK_MALLOC */
 
-void halloc_init(gboolean replace_malloc);
+void halloc_init(bool replace_malloc);
 void hdestroy(void);
-gboolean halloc_replaces_malloc(void);
-gboolean halloc_is_available(void);
+bool halloc_replaces_malloc(void);
+bool halloc_is_available(void);
 
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
+
+struct logagent;
+
+void halloc_dump_stats_log(struct logagent *la, unsigned options);
 
 #ifdef TRACK_MALLOC
 

@@ -102,11 +102,11 @@ struct browse_host_upload {
 	const char *b_data;	/**< Current data block */
 	size_t b_offset;		/**< Offset in data block */
 	size_t b_size;			/**< Size of the data block */
-	guint file_index;		/**< Current file index (iterator) */
+	uint file_index;		/**< Current file index (iterator) */
 	enum bh_state state;	/**< Current state of the state machine */
 	GSList *hits;			/**< Pending query hits to send back */
 	special_upload_closed_t cb;	/**< Callback to invoke when TX fully flushed */
-	gpointer cb_arg;		/**< Callback argument */
+	void *cb_arg;			/**< Callback argument */
 };
 
 static struct browse_host_upload *
@@ -180,7 +180,7 @@ browse_host_next_state(struct browse_host_upload *bh, enum bh_state state)
  */
 static ssize_t
 browse_host_read_html(struct special_upload *ctx,
-	gpointer const dest, size_t size)
+	void *const dest, size_t size)
 {
 	static const char header[] =
 		"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">\r\n"
@@ -280,7 +280,7 @@ browse_host_read_html(struct special_upload *ctx,
 						if (dir) {
 							name = h_strconcat(dir, "/", name_nfc, (void *) 0);
 						} else {
-							name = deconstify_gchar(name_nfc);
+							name = deconstify_char(name_nfc);
 						}
 
 						html_size = 1 + html_escape(name, NULL, 0);
@@ -351,14 +351,14 @@ browse_host_read_html(struct special_upload *ctx,
 			break;
 
 		case BH_STATE_EOF:
-			return p - cast_to_gchar_ptr(dest);
+			return p - cast_to_char_ptr(dest);
 
 		case NUM_BH_STATES:
 			g_assert_not_reached();
 		}
 	} while (size > 0);
 
-	return p - cast_to_gchar_ptr(dest);
+	return p - cast_to_char_ptr(dest);
 }
 
 /**
@@ -366,7 +366,7 @@ browse_host_read_html(struct special_upload *ctx,
  * Callback for qhit_build_results().
  */
 static void
-browse_host_record_hit(gpointer data, size_t len, gpointer udata)
+browse_host_record_hit(void *data, size_t len, void *udata)
 {
 	struct browse_host_upload *bh = udata;
 
@@ -390,7 +390,7 @@ browse_host_record_hit(gpointer data, size_t len, gpointer udata)
  */
 static ssize_t
 browse_host_read_qhits(struct special_upload *ctx,
-	gpointer const dest, size_t size)
+	void *const dest, size_t size)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	size_t remain = size;
@@ -416,7 +416,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
 			
-			files = g_slist_prepend(files, deconstify_gpointer(sf));
+			files = g_slist_prepend(files, deconstify_pointer(sf));
 		}
 
 		if (NULL == files)		/* Did not find any more file to include */
@@ -462,7 +462,7 @@ browse_host_read_qhits(struct special_upload *ctx,
  * Write data to the TX stack.
  */
 static ssize_t
-browse_host_write(struct special_upload *ctx, gconstpointer data, size_t size)
+browse_host_write(struct special_upload *ctx, const void *data, size_t size)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 
@@ -475,7 +475,7 @@ browse_host_write(struct special_upload *ctx, gconstpointer data, size_t size)
  * Callback invoked when the TX stack is fully flushed.
  */
 static void
-browse_tx_flushed(txdrv_t *unused_tx, gpointer arg)
+browse_tx_flushed(txdrv_t *unused_tx, void *arg)
 {
 	struct browse_host_upload *bh = arg;
 
@@ -493,7 +493,7 @@ browse_tx_flushed(txdrv_t *unused_tx, gpointer arg)
  */
 static void
 browse_host_flush(struct special_upload *ctx,
-	special_upload_closed_t cb, gpointer arg)
+	special_upload_closed_t cb, void *arg)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 
@@ -516,7 +516,7 @@ browse_host_flush(struct special_upload *ctx,
  * @return An initialized browse host context.
  */
 static void
-browse_host_close(struct special_upload *ctx, gboolean fully_served)
+browse_host_close(struct special_upload *ctx, bool fully_served)
 {
 	struct browse_host_upload *bh = cast_to_browse_host_upload(ctx);
 	GSList *sl;
@@ -566,7 +566,7 @@ browse_host_close(struct special_upload *ctx, gboolean fully_served)
  */
 struct special_upload *
 browse_host_open(
-	gpointer owner,
+	void *owner,
 	struct gnutella_host *host,
 	special_upload_writable_t writable,
 	const struct tx_deflate_cb *deflate_cb,
@@ -614,7 +614,7 @@ browse_host_open(
 		struct tx_deflate_args args;
 		txdrv_t *tx;
 
-		args.cq = callout_queue;
+		args.cq = cq_main();
 		args.cb = deflate_cb;
 		args.nagle = FALSE;
 		args.reduced = FALSE;

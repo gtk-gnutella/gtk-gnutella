@@ -40,13 +40,13 @@
  * Public interface.
  */
 
-gboolean parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1);
+bool parse_base32_sha1(const char *buf, size_t size, struct sha1 *sha1);
 
-gboolean urn_get_sha1(const char *buf, struct sha1 *sha1);
-gboolean urn_get_sha1_no_prefix(const char *buf, struct sha1 *sha1);
-gboolean urn_get_bitprint(const char *buf, size_t size,
+bool urn_get_sha1(const char *buf, struct sha1 *sha1);
+bool urn_get_sha1_no_prefix(const char *buf, struct sha1 *sha1);
+bool urn_get_bitprint(const char *buf, size_t size,
 	struct sha1 *sha1, struct tth *tth);
-gboolean urn_get_tth(const char *buf, size_t size, struct tth *tth);
+bool urn_get_tth(const char *buf, size_t size, struct tth *tth);
 
 #endif	/* _urn_h_ */
 

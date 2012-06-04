@@ -51,12 +51,15 @@
 #include "lib/getdate.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
+#include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define GLOBAL_PRE 0
@@ -158,8 +161,8 @@ static const char TAG_RULE_STATE_DOWNLOAD[]    = "Download";
 static const char search_file_xml[] = "searches.xml";
 static const char search_file_type[] = "searches";
 
-static GHashTable *target_map = NULL;
-static GHashTable *id_map = NULL;
+static htable_t *target_map;
+static htable_t *id_map;
 
 static node_parser_t parser_map[] = {
     { NODE_BUILTIN,     xml_to_builtin },
@@ -191,6 +194,15 @@ xml_new_child(xnode_t *parent, const char *name, const char *content)
 	xnode_new_text(cn, content, FALSE);
 
 	return cn;
+}
+
+/**
+ * Compare two SHA1s for GSList sorting.
+ */
+static int
+sha1_sort_cmp(const void *a, const void *b)
+{
+	return memcmp(a, b, SHA1_RAW_SIZE);
 }
 
 /**
@@ -311,7 +323,7 @@ static void
 target_map_reset(void)
 {
 	target_new_id(TRUE); /* Reset */
-	gm_hash_table_destroy_null(&target_map);
+	htable_free_null(&target_map);
 }
 
 /**
@@ -328,12 +340,12 @@ target_to_string(filter_t *target)
 
 	if (!target_map) {
 		target_new_id(TRUE); /* Reset */
-		target_map = g_hash_table_new(pointer_hash_func, NULL);
+		target_map = htable_create(HASH_KEY_SELF, 0);
 	}
 
-	if (!g_hash_table_lookup_extended(target_map, target, NULL, &value)) {
+	if (!htable_lookup_extended(target_map, target, NULL, &value)) {
 		value = target_new_id(FALSE);
-		g_hash_table_insert(target_map, target, value);
+		htable_insert(target_map, target, value);
 	}
 
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
@@ -454,7 +466,7 @@ search_retrieve_xml(void)
 		return FALSE;
 	}
 
-    id_map = g_hash_table_new(pointer_hash_func, NULL);
+    id_map = htable_create(HASH_KEY_SELF, 0);
 
     /*
      * find nodes and add them to the list, this just
@@ -496,7 +508,7 @@ search_retrieve_xml(void)
                 void *new_target;
 
                 g_assert(rule->target != NULL);
-                new_target = g_hash_table_lookup(id_map, rule->target);
+                new_target = htable_lookup(id_map, rule->target);
                 if (new_target == NULL) {
                     g_warning("Failed to resolve rule %d in \"%s\": "
 						"missing key %p",
@@ -567,7 +579,7 @@ search_retrieve_xml(void)
     g_list_free(filters_current);
     filters_current = g_list_copy(filters);
 
-    g_hash_table_destroy(id_map);
+    htable_free_null(&id_map);
 
 	return TRUE;
 }
@@ -668,6 +680,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
 		search_gui_get_sort_order(search));
 
 	sha1s = guc_search_associated_sha1(search_handle);
+	sha1s = g_slist_sort(sha1s, sha1_sort_cmp);
 	sha1s_to_xml(newxml, sha1s);
 	g_slist_free(sha1s);
 
@@ -869,7 +882,7 @@ xml_to_builtin(xnode_t *xn, void *unused_udata)
         g_warning("xml_to_builtin: %s", g_strerror(error));
 		goto failure;
 	}
-    g_hash_table_insert(id_map, target, filter_get_show_target());
+    htable_insert(id_map, target, filter_get_show_target());
 
     buf = xnode_prop_get(xn, TAG_BUILTIN_DROP_UID);
 	if (NULL == buf)
@@ -879,7 +892,7 @@ xml_to_builtin(xnode_t *xn, void *unused_udata)
         g_warning("xml_to_builtin: %s", g_strerror(error));
 		goto failure;
 	}
-    g_hash_table_insert(id_map, target, filter_get_drop_target());
+    htable_insert(id_map, target, filter_get_drop_target());
 
     buf = xnode_prop_get(xn, TAG_BUILTIN_DOWNLOAD_UID);
     if (buf != NULL) {
@@ -888,7 +901,7 @@ xml_to_builtin(xnode_t *xn, void *unused_udata)
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			goto failure;
 		}
-        g_hash_table_insert(id_map, target, filter_get_download_target());
+        htable_insert(id_map, target, filter_get_download_target());
     } else {
         g_warning("xml_to_builtin: no \"DOWNLOAD\" target");
     }
@@ -900,7 +913,7 @@ xml_to_builtin(xnode_t *xn, void *unused_udata)
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			goto failure;
 		}
-        g_hash_table_insert(id_map, target, filter_get_nodownload_target());
+        htable_insert(id_map, target, filter_get_nodownload_target());
     } else {
         g_warning("xml_to_builtin: no \"DON'T DOWNLOAD\" target");
     }
@@ -912,7 +925,7 @@ xml_to_builtin(xnode_t *xn, void *unused_udata)
             g_warning("xml_to_builtin: %s", g_strerror(error));
 			goto failure;
 		}
-        g_hash_table_insert(id_map, target, filter_get_return_target());
+        htable_insert(id_map, target, filter_get_return_target());
     } else {
         g_warning("xml_to_builtin: no \"RETURN\" target");
     }
@@ -1185,7 +1198,7 @@ xml_to_filter(xnode_t *xn, void *unused_data)
         g_warning("xml_to_filter: %s", g_strerror(error));
 		goto failure;
 	}
-    g_hash_table_insert(id_map, dest, filter);
+    htable_insert(id_map, dest, filter);
 
     /*
      * Also parse all children.

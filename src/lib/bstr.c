@@ -58,8 +58,8 @@ struct bstr {
 	const unsigned char *rptr;		/**< First unread byte in buffer */
 	const unsigned char *end;		/**< First byte beyond buffer */
 	str_t *error;					/**< Last parsing error */
-	guint32 flags;					/**< Configuration flags */
-	gboolean ok;					/**< Whether everything is OK so far */
+	uint32 flags;					/**< Configuration flags */
+	bool ok;						/**< Whether everything is OK so far */
 };
 
 static inline void
@@ -82,7 +82,7 @@ bstr_check(const struct bstr * const bs)
  * Reset the stream.
  */
 static void
-reset_stream(bstr_t *bs, const void *arena, size_t len, guint32 flags)
+reset_stream(bstr_t *bs, const void *arena, size_t len, uint32 flags)
 {
 	bs->ok = TRUE;
 	bs->flags = flags;
@@ -118,7 +118,7 @@ alloc_error(bstr_t *bs)
  * Record End of Stream condition.
  * @return FALSE
  */
-static gboolean
+static bool
 error_eos(bstr_t *bs, size_t expected, const char *where)
 {
 	bs->flags |= BSTR_F_EOS;
@@ -146,7 +146,7 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
  * which can be reused through bstr_close() and bstr_reset() at will.
  */
 bstr_t *
-bstr_open(const void *arena, size_t len, guint32 flags)
+bstr_open(const void *arena, size_t len, uint32 flags)
 {
 	bstr_t *bs;
 
@@ -172,7 +172,7 @@ bstr_open(const void *arena, size_t len, guint32 flags)
  * @param flags		configuration flags
  */
 void
-bstr_reset(bstr_t *bs, const void *arena, size_t len, guint32 flags)
+bstr_reset(bstr_t *bs, const void *arena, size_t len, uint32 flags)
 {
 	bstr_check(bs);
 	g_assert(arena);
@@ -263,7 +263,7 @@ bstr_clear_error(bstr_t *bs)
 /**
  * Check whether there was an error.
  */
-gboolean
+bool
 bstr_has_error(const bstr_t *bs)
 {
 	bstr_check(bs);
@@ -274,7 +274,7 @@ bstr_has_error(const bstr_t *bs)
 /**
  * Check whether the stream was fully deserialized with no error.
  */
-gboolean
+bool
 bstr_ended(const bstr_t *bs)
 {
 	bstr_check(bs);
@@ -308,7 +308,7 @@ bstr_error(const bstr_t *bs)
  * Report invalid length condition.
  * @return FALSE
  */
-static gboolean
+static bool
 invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
@@ -325,7 +325,7 @@ invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
  * Report invalid length condition, bounded by a maximum value.
  * @return FALSE
  */
-static gboolean
+static bool
 invalid_len_max(
 	bstr_t *bs, size_t len, size_t max, const char *what, const char *where)
 {
@@ -343,7 +343,7 @@ invalid_len_max(
  * Report invalid encoding detected.
  * @return FALSE
  */
-static gboolean
+static bool
 invalid_encoding(bstr_t *bs, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
@@ -360,7 +360,7 @@ invalid_encoding(bstr_t *bs, const char *what, const char *where)
  * Report error.
  * @return FALSE
  */
-static gboolean
+static bool
 report_error(bstr_t *bs, const char *what, const char *where)
 {
 	if (bs->flags & BSTR_F_ERROR) {
@@ -412,7 +412,7 @@ bstr_trailing_error(bstr_t *bs)
  * Check that stream contains at least the expected amount of bytes.
  * Raise the "End Of Stream" error.
  */
-static gboolean
+static bool
 expect(bstr_t *bs, size_t expected, const char *where)
 {
 	g_assert(bs);
@@ -446,7 +446,7 @@ bstr_read_base(const bstr_t *bs)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 bstr_skip(bstr_t *bs, size_t count)
 {
 	bstr_check(bs);
@@ -471,7 +471,7 @@ bstr_skip(bstr_t *bs, size_t count)
  * 
  * @return TRUE if OK.
  */
-gboolean
+bool
 bstr_read(bstr_t *bs, void *buf, size_t count)
 {
 	bstr_check(bs);
@@ -494,8 +494,8 @@ bstr_read(bstr_t *bs, void *buf, size_t count)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_u8(bstr_t *bs, guint8 *pv)
+bool
+bstr_read_u8(bstr_t *bs, uint8 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -515,8 +515,8 @@ bstr_read_u8(bstr_t *bs, guint8 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_boolean(bstr_t *bs, gboolean *pv)
+bool
+bstr_read_boolean(bstr_t *bs, bool *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -536,8 +536,8 @@ bstr_read_boolean(bstr_t *bs, gboolean *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_le16(bstr_t *bs, guint16 *pv)
+bool
+bstr_read_le16(bstr_t *bs, uint16 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -558,8 +558,8 @@ bstr_read_le16(bstr_t *bs, guint16 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_be16(bstr_t *bs, guint16 *pv)
+bool
+bstr_read_be16(bstr_t *bs, uint16 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -580,8 +580,8 @@ bstr_read_be16(bstr_t *bs, guint16 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_le32(bstr_t *bs, guint32 *pv)
+bool
+bstr_read_le32(bstr_t *bs, uint32 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -602,8 +602,8 @@ bstr_read_le32(bstr_t *bs, guint32 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_be32(bstr_t *bs, guint32 *pv)
+bool
+bstr_read_be32(bstr_t *bs, uint32 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -624,8 +624,8 @@ bstr_read_be32(bstr_t *bs, guint32 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_be64(bstr_t *bs, guint64 *pv)
+bool
+bstr_read_be64(bstr_t *bs, uint64 *pv)
 {
 	bstr_check(bs);
 	g_assert(pv);
@@ -646,7 +646,7 @@ bstr_read_be64(bstr_t *bs, guint64 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 bstr_read_time(bstr_t *bs, time_t *pv)
 {
 	bstr_check(bs);
@@ -668,7 +668,7 @@ bstr_read_time(bstr_t *bs, time_t *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 bstr_read_float_be(bstr_t *bs, float *pv)
 {
 	bstr_check(bs);
@@ -691,7 +691,7 @@ bstr_read_float_be(bstr_t *bs, float *pv)
  *
  * @return TRUE if OK
  */
-gboolean
+bool
 bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char where[] = "bstr_read_ipv4_addr";
@@ -716,7 +716,7 @@ bstr_read_ipv4_addr(bstr_t *bs, host_addr_t *ha)
  *
  * @return TRUE if OK
  */
-gboolean
+bool
 bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char where[] = "bstr_read_ipv6_addr";
@@ -744,11 +744,11 @@ bstr_read_ipv6_addr(bstr_t *bs, host_addr_t *ha)
  *
  * @return TRUE if OK
  */
-gboolean
+bool
 bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
 {
 	static const char where[] = "bstr_read_packed_ipv4_or_ipv6_addr";
-	guint8 len;
+	uint8 len;
 
 	bstr_check(bs);
 	g_assert(ha);
@@ -789,11 +789,11 @@ bstr_read_packed_ipv4_or_ipv6_addr(bstr_t *bs, host_addr_t *ha)
  *
  * @return TRUE if OK
  */
-gboolean
-bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
+bool
+bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, uint8 *pr)
 {
 	static const char where[] = "bstr_read_packed_array_u8";
-	guint8 len;
+	uint8 len;
 
 	bstr_check(bs);
 	g_assert(ptr);
@@ -830,13 +830,13 @@ bstr_read_packed_array_u8(bstr_t *bs, size_t max, void *ptr, guint8 *pr)
  *
  * @return TRUE if OK.
  */
-gboolean
-bstr_read_ule64(bstr_t *bs, guint64 *pv)
+bool
+bstr_read_ule64(bstr_t *bs, uint64 *pv)
 {
 	static const char where[] = "bstr_read_ule64";
-	guint64 value = 0;
-	guint8 shift = 0;
-	guint8 n = 0;
+	uint64 value = 0;
+	uint8 shift = 0;
+	uint8 n = 0;
 
 	bstr_check(bs);
 	g_assert(pv);
@@ -845,7 +845,7 @@ bstr_read_ule64(bstr_t *bs, guint64 *pv)
 		return FALSE;
 
 	for (;;) {
-		guint8 byt;
+		uint8 byt;
 		if (!bstr_read_u8(bs, &byt))
 			return FALSE;
 		n++;
@@ -876,11 +876,11 @@ bstr_read_ule64(bstr_t *bs, guint64 *pv)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 {
 	static const char where[] = "bstr_read_fixed_string";
-	guint64 length;
+	uint64 length;
 	size_t n;
 
 	bstr_check(bs);
@@ -899,7 +899,7 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
 
 	n = (size_t) length;
 
-	g_assert((guint64) n == length);	/* Nothing lost by casting */
+	g_assert((uint64) n == length);	/* Nothing lost by casting */
 
 	if (slen != NULL) {
 		*slen = n;
@@ -928,14 +928,14 @@ bstr_read_fixed_string(bstr_t *bs, size_t *slen, char *buf, size_t len)
  *
  * @return TRUE if OK, FALSE otherwise in which case nothing is allocated.
  */
-gboolean
+bool
 bstr_read_string(bstr_t *bs, size_t *slen, char **sptr)
 {
 	static const char where[] = "bstr_read_string";
-	guint64 length;
+	uint64 length;
 	size_t n;
 	char *buf;
-	gboolean ok;
+	bool ok;
 
 	bstr_check(bs);
 	g_assert(sptr);
@@ -951,7 +951,7 @@ bstr_read_string(bstr_t *bs, size_t *slen, char **sptr)
 
 	n = (size_t) length;
 
-	g_assert((guint64) n == length);	/* Nothing lost by casting */
+	g_assert((uint64) n == length);	/* Nothing lost by casting */
 
 	if (slen != NULL) {
 		*slen = n;

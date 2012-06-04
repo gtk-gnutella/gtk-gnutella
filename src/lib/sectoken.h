@@ -45,7 +45,7 @@ typedef struct sectoken_gen sectoken_gen_t;
  * The security tokens we generate.
  */
 typedef struct {
-	guchar v[SECTOKEN_RAW_SIZE];
+	uchar v[SECTOKEN_RAW_SIZE];
 } sectoken_t;
 
 /*
@@ -53,7 +53,7 @@ typedef struct {
  */
 typedef struct {
 	void *v;				/**< Token value (NULL if none) */
-	guint8 length;			/**< Token length (0 if none) */
+	uint8 length;			/**< Token length (0 if none) */
 } sectoken_remote_t;
 
 /*
@@ -62,11 +62,11 @@ typedef struct {
 
 time_delta_t sectoken_lifetime(const sectoken_gen_t *stg);
 void sectoken_generate(sectoken_gen_t *stg,
-	sectoken_t *tok, host_addr_t addr, guint16 port);
-gboolean sectoken_is_valid(sectoken_gen_t *stg,
-	const sectoken_t *tok, host_addr_t addr, guint16 port);
-sectoken_remote_t *sectoken_remote_alloc(guint8 length);
-void sectoken_remote_free(sectoken_remote_t *token, gboolean freedata);
+	sectoken_t *tok, host_addr_t addr, uint16 port);
+bool sectoken_is_valid(sectoken_gen_t *stg,
+	const sectoken_t *tok, host_addr_t addr, uint16 port);
+sectoken_remote_t *sectoken_remote_alloc(uint8 length);
+void sectoken_remote_free(sectoken_remote_t *token, bool freedata);
 sectoken_gen_t *sectoken_gen_new(size_t keys, time_delta_t refresh);
 void sectoken_gen_free_null(sectoken_gen_t **stg_ptr);
 

@@ -1,0 +1,809 @@
+/*
+ * Copyright (c) 2012, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Hash <generic> implementation.
+ *
+ * @author Raphael Manfredi
+ * @date 2012
+ */
+
+#include "common.h"
+
+#define H<GENERIC>_SOURCE
+
+#include "h<generic>.h"
+#include "unsigned.h"
+#include "walloc.h"
+#include "xmalloc.h"
+
+#include "override.h"			/* Must be the last header included */
+
+/* Reverse assignment attempt */
+#define HASH_<GENERIC>(x) \
+	(((x) != NULL && \
+		H<GENERIC>_MAGIC == (x)->magic) ? (h<generic>_t *) (x) : NULL)
+
+@if TABLE
+/**
+ * The hash table structure.
+ */
+struct htable {
+	HASH_COMMON_ATTRIBUTES
+	const void **values;		/* Array of values */
+};
+
+enum htable_iter_magic { HTABLE_ITER_MAGIC = 0x4b0236cd };
+@end
+@if SET
+/**
+ * The hash set structure.
+ */
+struct hset {
+	HASH_COMMON_ATTRIBUTES
+};
+
+enum hset_iter_magic { HSET_ITER_MAGIC = 0x34419ef9 };
+@end
+
+static inline void
+h<generic>_check(const h<generic>_t * const hx)
+{
+	g_assert(hx != NULL);
+	g_assert(H<GENERIC>_MAGIC == hx->magic);
+}
+
+/**
+ * A hash <generic> iterator.
+ */
+struct h<generic>_iter {
+	enum h<generic>_iter_magic magic;
+	const h<generic>_t *hx;
+	size_t pos;					/* Current position (next item returned) */
+	size_t stamp;				/* Modification stamp */
+	unsigned deleted:1;			/* Whether we deleted items */
+};
+
+static inline void
+h<generic>_iter_check(const h<generic>_iter_t * const hxi)
+{
+	g_assert(hxi != NULL);
+	g_assert(H<GENERIC>_ITER_MAGIC == hxi->magic);
+	h<generic>_check(hxi->hx);
+}
+
+static const struct hash_ops h<generic>_ops;
+
+@if TABLE
+/**
+ * Record the base of the values array.
+ */
+static void
+htable_values_set(struct hash *h, const void **values)
+{
+	htable_t *ht = HASH_TABLE(h);
+
+	g_assert(values != NULL);
+	htable_check(ht);
+
+	ht->values = values;
+}
+
+/**
+ * Return the values array.
+ */
+static const void **
+htable_values_get(const struct hash *h)
+{
+	const htable_t *ht = HASH_TABLE(h);
+
+	return ht->values;
+}
+@end
+@if SET
+static void
+hset_values_set(struct hash *h, const void **values)
+{
+	(void) h;
+	(void) values;
+
+	g_assert_not_reached();		/* Cannot be called */
+}
+
+static const void **
+hset_values_get(const struct hash *h)
+{
+	(void) h;
+
+	return NULL;	/* No values */
+}
+@end
+
+static void
+h<generic>_hash_free(struct hash *h)
+{
+	h<generic>_t *hx = HASH_<GENERIC>(h);
+
+	h<generic>_free_null(&hx);
+}
+
+/**
+ * Allocate a new hash <generic> capable of holding 2^bits items.
+ */
+static h<generic>_t *
+h<generic>_allocate(size_t bits, bool raw)
+{
+	h<generic>_t *hx;
+
+	if (raw)
+		XPMALLOC0(hx);
+	else
+		WALLOC0(hx);
+
+	hx->magic = H<GENERIC>_MAGIC;
+	hx->ops = &h<generic>_ops;
+@if TABLE
+	hx->kset.has_values = TRUE;
+@end
+	hx->kset.raw_memory = booleanize(raw);
+	hash_arena_allocate(HASH(hx), bits);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for specific
+ * key types (i.e. not HASH_KEY_ANY).
+ *
+ * @param ktype		key type
+ * @param keysize	expected for HASH_KEY_FIXED to give key size, otherwise 0
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create(enum hash_key_type ktype, size_t keysize)
+{
+	h<generic>_t *hx;
+
+	g_assert(ktype != HASH_KEY_ANY);	/* Use h<generic>_create_any() */
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, FALSE);
+	hash_keyhash_setup(&hx->kset, ktype, keysize);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for specific
+ * key types (i.e. not HASH_KEY_ANY).
+ *
+ * The object is allocated via xpmalloc() and avoids walloc() for the arena.
+ *
+ * @param ktype		key type
+ * @param keysize	expected for HASH_KEY_FIXED to give key size, otherwise 0
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create_real(enum hash_key_type ktype, size_t keysize)
+{
+	h<generic>_t *hx;
+
+	g_assert(ktype != HASH_KEY_ANY);	/* Use h<generic>_create_any() */
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, TRUE);
+	hash_keyhash_setup(&hx->kset, ktype, keysize);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for any key.
+ *
+ * @param primary	primary hash function (cannot be NULL)
+ * @param secondary	secondary hash function (may be NULL)
+ * @param eq		key equality function (NULL means '==' checks)
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create_any(hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq)
+{
+	h<generic>_t *hx;
+
+	g_assert(primary != NULL);
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, FALSE);
+	hash_keyhash_any_setup(&hx->kset, primary, secondary, eq);
+
+	return hx;
+}
+
+/**
+ * Create a new hash <generic> using default sizing approach, for any key.
+ *
+ * The object is allocated via xpmalloc() and avoids walloc() for the arena.
+ *
+ * @param primary	primary hash function (cannot be NULL)
+ * @param secondary	secondary hash function (may be NULL)
+ * @param eq		key equality function (NULL means '==' checks)
+ *
+ * @return new hash <generic>.
+ */
+h<generic>_t *
+h<generic>_create_any_real(hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq)
+{
+	h<generic>_t *hx;
+
+	g_assert(primary != NULL);
+
+	hx = h<generic>_allocate(HASH_MIN_BITS, TRUE);
+	hash_keyhash_any_setup(&hx->kset, primary, secondary, eq);
+
+	return hx;
+}
+
+/**
+ * Destroy hash <generic>.
+ */
+static void
+h<generic>_free(h<generic>_t *hx)
+{
+	h<generic>_check(hx);
+	g_assert(0 == hx->refcnt);	/* No pending iterators */
+
+	hash_arena_free(HASH(hx));
+	hx->magic = 0;
+	if (hx->kset.raw_memory)
+		xfree(hx);
+	else
+		WFREE(hx);
+}
+
+/**
+ * Destroy hash <generic> and nullify its pointer.
+ */
+void
+h<generic>_free_null(h<generic>_t **hx_ptr)
+{
+	h<generic>_t *hx = *hx_ptr;
+
+	if (hx != NULL) {
+		h<generic>_free(hx);
+		*hx_ptr = NULL;
+	}
+}
+
+@if TABLE
+/**
+ * Insert item in hash table.
+ *
+ * Any previously existing value for the key is replaced by the new one.
+ * NULL is a valid value.
+ *
+ * @param ht		the hash table
+ * @param key		the key
+ * @param value		the value
+ */
+void
+htable_insert(htable_t *ht, const void *key, void *value)
+{
+	size_t idx;
+
+	htable_check(ht);
+
+	idx = hash_insert_key(HASH(ht), key);
+	ht->values[idx] = value;
+	ht->stamp++;
+}
+@end	/* TABLE */
+@if SET
+/**
+ * Insert item in hash set.
+ *
+ * Any previously existing key is replaced by the new one.
+ *
+ * @param hs		the hash set
+ * @param key		the key
+ */
+void
+hset_insert(hset_t *hs, const void *key)
+{
+	hset_check(hs);
+
+	hash_insert_key(HASH(hs), key);
+	hs->stamp++;
+}
+@end	/* SET */
+
+/**
+ * Check whether key is held in hash <generic>.
+ *
+ * @param hx		the hash <generic>
+ * @param key		the key
+ *
+ * @return whether <generic> contains the key.
+ */
+bool
+h<generic>_contains(const h<generic>_t *hx, const void *key)
+{
+	h<generic>_check(hx);
+
+	return (size_t) -1 != hash_lookup_key(HASH(hx), key);
+}
+
+@if TABLE
+/**
+ * Fetch value from the hash table.
+ *
+ * @param ht		the hash table
+ * @param key		the key being looked up
+ *
+ * @return found value, or NULL if not found.
+ *
+ * @attention
+ * Since NULL is a valid value, one cannot use NULL as a valid signal
+ * for a missing key unless one knows that no NULL is inserted in the
+ * table.
+ */
+void *
+htable_lookup(const htable_t *ht, const void *key)
+{
+	size_t idx;
+
+	htable_check(ht);
+
+	idx = hash_lookup_key(HASH(ht), key);
+	return (size_t) -1 == idx ? NULL : deconstify_pointer(ht->values[idx]);
+}
+
+/**
+ * Fetch key/value from the hash table, returning whether the key exists.
+ * If it does, the original key/value pointers are written in keyptr and
+ * valptr.
+ *
+ * @param ht		the hash table
+ * @param key		the key being looked up
+ * @param keyptr	if non-NULL, where the original key pointer is written
+ * @param valptr	if non-NULL, where the original value pointer is written
+ *
+ * @return whether key exists in the table.
+ */
+bool
+htable_lookup_extended(const htable_t *ht, const void *key,
+	const void **keyptr, void **valptr)
+{
+	size_t idx;
+
+	htable_check(ht);
+
+	idx = hash_lookup_key(HASH(ht), key);
+
+	if ((size_t) -1 == idx)
+		return FALSE;
+
+	if (keyptr != NULL)
+		*keyptr = ht->kset.keys[idx];
+	if (valptr != NULL)
+		*valptr = deconstify_pointer(ht->values[idx]);
+
+	return TRUE;
+}
+@end	/* TABLE */
+@if SET
+/**
+ * Fetch original key from the hash set.
+ *
+ * @param hs		the hash set
+ * @param key		the key being looked up
+ *
+ * @return found key, or NULL if not found.
+ *
+ * @attention
+ * Since NULL could be a valid key, one cannot use NULL as a valid signal
+ * for a missing key unless one knows that no NULL is inserted in the set.
+ */
+void *
+hset_lookup(const hset_t *hs, const void *key)
+{
+	size_t idx;
+
+	hset_check(hs);
+
+	idx = hash_lookup_key(HASH(hs), key);
+	return (size_t) -1 == idx ? NULL : deconstify_pointer(hs->kset.keys[idx]);
+}
+
+/**
+ * Lookup key from the hash set, returning whether the key exists.
+ * If it does, the original key pointer is written in keyptr.
+ *
+ * @param hs		the hash set
+ * @param key		the key being looked up
+ * @param keyptr	if non-NULL, where the original key pointer is written
+ *
+ * @return whether key exists in the set.
+ */
+bool
+hset_contains_extended(const hset_t *hs, const void *key, const void **keyptr)
+{
+	size_t idx;
+
+	hset_check(hs);
+
+	idx = hash_lookup_key(HASH(hs), key);
+
+	if ((size_t) -1 == idx)
+		return FALSE;
+
+	if (keyptr != NULL)
+		*keyptr = hs->kset.keys[idx];
+
+	return TRUE;
+}
+@end	/* SET */
+
+/**
+ * Remove key from the hash <generic>.
+ *
+ * @return TRUE if the key was present in the <generic>.
+ */
+bool
+h<generic>_remove(h<generic>_t *hx, const void *key)
+{
+	h<generic>_check(hx);
+
+	hx->stamp++;
+	return hash_delete_key(HASH(hx), key);
+}
+
+/**
+ * @return amount of items in the <generic>.
+ */
+size_t
+h<generic>_count(const h<generic>_t *hx)
+{
+	h<generic>_check(hx);
+
+	return hx->kset.items;
+}
+
+/**
+ * Remove all items from hash table.
+ */
+void h<generic>_clear(h<generic>_t *hx)
+{
+	h<generic>_check(hx);
+
+	hash_clear(HASH(hx));
+}
+
+/**
+ * Traverse <generic>, invoking callback for each entry.
+ *
+ * @param hx	the hash <generic>
+ * @param fn	callback to invoke
+ * @param data	additional callback parameter
+ */
+void
+h<generic>_foreach(const h<generic>_t *hx, <iterator>_fn_t fn, void *data)
+{
+	unsigned *hp, *end;
+	size_t i, n;
+
+	h<generic>_check(hx);
+
+	end = &hx->kset.hashes[hx->kset.size];
+	hash_refcnt_inc(HASH(hx));		/* Prevent any key relocation */
+
+	for (i = n = 0, hp = hx->kset.hashes; hp != end; i++, hp++) {
+		if (HASH_IS_REAL(*hp)) {
+@if TABLE
+			(*fn)(hx->kset.keys[i], deconstify_pointer(hx->values[i]), data);
+@end
+@if SET
+			(*fn)(hx->kset.keys[i], data);
+@end
+			n++;
+		}
+	}
+
+	g_assert(n == hx->kset.items);
+
+	hash_refcnt_dec(HASH(hx));
+}
+
+@if TABLE
+/**
+ * Traverse table, invoking callback for each key.
+ *
+ * @param hx	the hash <generic>
+ * @param fn	callback to invoke on the key
+ * @param data	additional callback parameter
+ */
+void
+htable_foreach_key(const htable_t *ht, data_fn_t fn, void *data)
+{
+	hash_foreach(HASH(ht), fn, data);
+}
+@end
+
+/**
+ * Traverse <generic>, invoking callback for each entry and removing it when
+ * the callback function returns TRUE.
+ *
+ * @param hx	the hash <generic>
+ * @param fn	callback to invoke
+ * @param data	additional callback parameter
+ *
+ * @return the number of entries removed from the hash <generic>.
+ */
+size_t
+h<generic>_foreach_remove(h<generic>_t *hx, <iterator>_rm_fn_t fn, void *data)
+{
+	unsigned *hp, *end;
+	size_t i, n, nr;
+
+	h<generic>_check(hx);
+
+	end = &hx->kset.hashes[hx->kset.size];
+	hash_refcnt_inc(HASH(hx));		/* Prevent any key relocation */
+
+	for (i = n = nr = 0, hp = hx->kset.hashes; hp != end; i++, hp++) {
+		if (HASH_IS_REAL(*hp)) {
+@if TABLE
+			bool r = (*fn)(hx->kset.keys[i],
+				deconstify_pointer(hx->values[i]), data);
+@end
+@if SET
+			bool r = (*fn)(hx->kset.keys[i], data);
+@end
+			n++;
+			if (r) {
+				nr++;
+				hash_keyset_erect_tombstone(&hx->kset, i);
+				hx->stamp++;
+			}
+		}
+	}
+
+	g_assert(n == hx->kset.items);
+	g_assert(nr <= hx->kset.items);
+
+	hash_refcnt_dec(HASH(hx));
+
+	hx->kset.items -= nr;
+
+	if (nr != 0)
+		hash_resize_as_needed(HASH(hx));
+
+	return nr;
+}
+
+/**
+ * Create a new hash <generic> iterator.
+ */
+h<generic>_iter_t *
+h<generic>_iter_new(const h<generic>_t *hx)
+{
+	h<generic>_iter_t *hxi;
+
+	h<generic>_check(hx);
+
+	WALLOC0(hxi);
+	hxi->magic = H<GENERIC>_ITER_MAGIC;
+	hxi->hx = hx;
+	hxi->stamp = hx->stamp;
+	hash_refcnt_inc(HASH(hx));
+
+	return hxi;
+}
+
+/**
+ * Release hash <generic> iterator.
+ */
+void
+h<generic>_iter_release(h<generic>_iter_t **hxi_ptr)
+{
+	h<generic>_iter_t *hxi = *hxi_ptr;
+
+	if (hxi != NULL) {
+		h<generic>_iter_check(hxi);
+		hash_refcnt_dec(HASH(hxi->hx));
+		if (hxi->deleted && 0 == hxi->hx->refcnt)
+			hash_resize_as_needed(HASH(hxi->hx));
+		hxi->magic = 0;
+		WFREE(hxi);
+		*hxi_ptr = NULL;
+	}
+}
+
+@if TABLE
+/**
+ * Fetch next entry from iterator.
+ *
+ * @param hxi	the hash table iterator
+ * @param kp	where key is written, if non-NULL
+ * @param vp	where value is written, if non-NULL
+ *
+ * @return TRUE if a new entry exists, FALSE otherwise.
+ */
+bool
+htable_iter_next(htable_iter_t *hxi, const void **kp, void **vp)
+@end	/* TABLE */
+@if SET
+/**
+ * Fetch next entry from iterator.
+ *
+ * @param hxi	the hash set iterator
+ * @param kp	where key is written, if non-NULL
+ *
+ * @return TRUE if a new entry exists, FALSE otherwise.
+ */
+bool
+hset_iter_next(hset_iter_t *hxi, const void **kp)
+@end	/* SET */
+{
+	const h<generic>_t *hx;
+
+	h<generic>_iter_check(hxi);
+
+	hx = hxi->hx;
+
+	while (hxi->pos < hx->kset.size && !HASH_IS_REAL(hx->kset.hashes[hxi->pos]))
+		hxi->pos++;
+
+	if (hxi->pos >= hx->kset.size)
+		return FALSE;
+
+	if (kp != NULL)
+		*kp = hx->kset.keys[hxi->pos];
+@if TABLE
+	if (vp != NULL)
+		*vp = deconstify_pointer(hx->values[hxi->pos]);
+@end
+
+	hxi->pos++;
+	return TRUE;
+}
+
+/**
+ * Remove current iterator item, returned by h<generic>_iter_next().
+ */
+void
+h<generic>_iter_remove(h<generic>_iter_t *hxi)
+{
+	h<generic>_t *hx;
+	size_t idx;
+
+	h<generic>_iter_check(hxi);
+	g_assert(size_is_positive(hxi->pos));		/* Called _next() once */
+	g_assert(hxi->pos <= hxi->hx->kset.size);
+
+	hx = deconstify_pointer(hxi->hx);
+	idx = hxi->pos - 1;		/* Current item */
+	if (hash_keyset_erect_tombstone(&hx->kset, idx))
+		hx->kset.items--;
+	hxi->deleted = TRUE;
+}
+
+/**
+ * Polymorphic operations.
+ */
+static const struct hash_ops h<generic>_ops = {
+	h<generic>_values_set,		/* set_values */
+	h<generic>_values_get,		/* get_values */
+	h<generic>_hash_free,		/* hash_free */
+};
+
+/***
+ *** Unit tests.
+ ***/
+
+/*
+ * The hash set implementation is mostly derived from the same source as the
+ * hash table and therefore does not need to be tested: the only variation
+ * between the two implementations concerns the value management.
+ */
+
+@if TABLE
+static G_GNUC_COLD void
+htable_test_fill(htable_t *ht)
+{
+	size_t i;
+
+	for (i = 0; i < 256; i++) {
+		void *p = ulong_to_pointer(i);
+		g_assert(!htable_contains(ht, p));
+		htable_insert(ht, p, p);
+		g_assert(htable_contains(ht, p));
+	}
+}
+
+/**
+ * Perform unit tests for hash tables.
+ */
+G_GNUC_COLD void
+htable_test(void)
+{
+	size_t i;
+	htable_t *ht;
+	htable_iter_t *hti;
+	char flags[256];
+	const void *key;
+	int keys[4] = { 0xc7569bda, 0x65cb1432, 0x18659927, 0xf3362dc7 };
+
+	ht = htable_create(HASH_KEY_SELF, 0);
+	htable_test_fill(ht);
+	for (i = 0; i < 256; i++) {
+		void *p = ulong_to_pointer(i);
+		g_assert(htable_contains(ht, p));
+		htable_remove(ht, p);
+		g_assert(!htable_contains(ht, p));
+	}
+	htable_test_fill(ht);
+	for (i = 256; i < 512; i++) {
+		void *p = ulong_to_pointer(i);
+		void *o = ulong_to_pointer(i - 256);
+		g_assert(htable_contains(ht, o));
+		g_assert(!htable_contains(ht, p));
+		htable_remove(ht, o);
+		htable_insert(ht, p, p);
+		g_assert(htable_contains(ht, p));
+		g_assert(!htable_contains(ht, o));
+	}
+	g_assert(256 == htable_count(ht));
+	ZERO(&flags);
+	hti = htable_iter_new(ht);
+	while (htable_iter_next(hti, &key, NULL)) {
+		size_t idx = pointer_to_ulong(key) - 256;
+		g_assert(htable_contains(ht, key));
+		g_assert(size_is_non_negative(idx));
+		g_assert(idx < 256);
+		g_assert('\0' == flags[idx]);
+		flags[idx] = '1';
+		htable_iter_remove(hti);
+		g_assert(!htable_contains(ht, key));
+	}
+	htable_iter_release(&hti);
+	g_assert(0 == htable_count(ht));
+	for (i = 0; i < 256; i++) {
+		g_assert(flags[i] != '\0');
+	}
+	htable_free_null(&ht);
+
+	ht = htable_create(HASH_KEY_FIXED, sizeof(int));
+	for (i = 0; i < 16; i++) {
+		size_t idx = i % G_N_ELEMENTS(keys);
+		htable_insert(ht, &keys[idx], NULL);
+		g_assert(htable_contains(ht, &keys[idx]));
+	}
+	g_assert(G_N_ELEMENTS(keys) == htable_count(ht));
+	htable_free_null(&ht);
+}
+@end	/* TABLE */
+
+/* vi: set ts=4 sw=4 cindent: */

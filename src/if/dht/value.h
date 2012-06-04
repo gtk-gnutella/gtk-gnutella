@@ -121,24 +121,24 @@ typedef struct dht_value dht_value_t;
 
 const kuid_t *dht_value_key(const dht_value_t *v);
 const knode_t *dht_value_creator(const dht_value_t *v);
-guint16 dht_value_length(const dht_value_t *v);
+uint16 dht_value_length(const dht_value_t *v);
 dht_value_type_t dht_value_type(const dht_value_t *v);
 
-const char *dht_store_error_to_string(guint16 errnum);
+const char *dht_store_error_to_string(uint16 errnum);
 
 dht_value_t *dht_value_make(const knode_t *creator,
 	const kuid_t *primary_key, dht_value_type_t type,
-	guint8 major, guint8 minor, gpointer data, guint16 length);
+	uint8 major, uint8 minor, void *data, uint16 length);
 dht_value_t *dht_value_clone(const dht_value_t *v);
-void dht_value_free(dht_value_t *v, gboolean free_data);
-size_t dht_value_type_to_string_buf(guint32 type, char *buf, size_t size);
+void dht_value_free(dht_value_t *v, bool free_data);
+size_t dht_value_type_to_string_buf(uint32 type, char *buf, size_t size);
 time_delta_t dht_value_lifetime(dht_value_type_t type);
-const char *dht_value_type_to_string(guint32 type);
-const char *dht_value_type_to_string2(guint32 type);
+const char *dht_value_type_to_string(uint32 type);
+const char *dht_value_type_to_string2(uint32 type);
 const char *dht_value_to_string(const dht_value_t *v);
 
 unsigned dht_value_hash(const void *key);
-gboolean dht_value_eq(const void *v1, const void *v2);
+bool dht_value_eq(const void *v1, const void *v2);
 void dht_value_dump(FILE *out, const dht_value_t *v);
 
 #endif /* _if_dht_value_h */

@@ -48,8 +48,8 @@ enum ohash_table_magic { OHASH_TABLE_MAGIC = 0x4a3e2b74U };
 struct ohash_table {
 	enum ohash_table_magic magic;
 	hash_list_t *hl;		/**< Remembers order of keys, contains values */
-	GHashFunc hash_func;
-	GEqualFunc key_eq_func;
+	hash_fn_t hash_func;
+	eq_fn_t key_eq_func;
 };
 
 /**
@@ -111,7 +111,7 @@ ohash_key_eq(const void *k1, const void *k2)
  * @return the new ordered hash table.
  */
 ohash_table_t *
-ohash_table_new(GHashFunc hash_func, GEqualFunc key_eq_func)
+ohash_table_new(hash_fn_t hash_func, eq_fn_t key_eq_func)
 {
 	ohash_table_t *oh;
 
@@ -198,7 +198,7 @@ ohash_table_insert(ohash_table_t *oh, const void *key, const void *value)
  *
  * @return TRUE when replacement occurred (the key existed).
  */
-gboolean
+bool
 ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 {
 	struct ohash_pair pk;
@@ -212,7 +212,7 @@ ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
 	pk.key = key;
 
 	if (hash_list_find(oh->hl, &pk, &hkey)) {
-		op = deconstify_gpointer(hkey);
+		op = deconstify_pointer(hkey);
 		g_assert(op->oh == oh);
 		pos = hash_list_remove_position(oh->hl, &pk);
 	} else {
@@ -236,7 +236,7 @@ ohash_table_replace(ohash_table_t *oh, const void *key, const void *value)
  *
  * @return TRUE if the key was found and removed.
  */
-gboolean
+bool
 ohash_table_remove(ohash_table_t *oh, const void *key)
 {
 	struct ohash_pair pk;
@@ -260,7 +260,7 @@ ohash_table_remove(ohash_table_t *oh, const void *key)
 /**
  * Check whether a key is contained in the table.
  */
-gboolean
+bool
 ohash_table_contains(const ohash_table_t *oh, const void *key)
 {
 	struct ohash_pair pk;
@@ -290,7 +290,7 @@ ohash_table_lookup(const ohash_table_t *oh, const void *key)
 	if (hash_list_find(oh->hl, &pk, &hkey)) {
 		const struct ohash_pair *op = hkey;
 		g_assert(op->oh == oh);
-		return deconstify_gpointer(op->value);
+		return deconstify_pointer(op->value);
 	} else {
 		return NULL;
 	}
@@ -299,7 +299,7 @@ ohash_table_lookup(const ohash_table_t *oh, const void *key)
 /**
  * Extended lookup of a key in the table, returning both key/value pointers.
  */
-gboolean
+bool
 ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
 	void *okey, void *oval)
 {
@@ -315,9 +315,9 @@ ohash_table_lookup_extended(const ohash_table_t *oh, const void *key,
 		const struct ohash_pair *op = hkey;
 		g_assert(op->oh == oh);
 		if (okey != NULL)
-			*(void **) okey = deconstify_gpointer(op->key);
+			*(void **) okey = deconstify_pointer(op->key);
 		if (oval != NULL)
-			*(void **) oval = deconstify_gpointer(op->value);
+			*(void **) oval = deconstify_pointer(op->value);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -336,7 +336,7 @@ ohash_table_count(const ohash_table_t *oh)
 }
 
 struct ohash_foreach_ctx {
-	GHFunc func;
+	keyval_fn_t func;
 	void *data;
 };
 
@@ -346,7 +346,7 @@ ohash_table_foreach_helper(void *key, void *data)
 	struct ohash_pair *op = key;
 	struct ohash_foreach_ctx *ctx = data;
 
-	(*ctx->func)(deconstify_gpointer(op->key), deconstify_gpointer(op->value),
+	(*ctx->func)(deconstify_pointer(op->key), deconstify_pointer(op->value),
 		ctx->data);
 }
 
@@ -356,7 +356,7 @@ ohash_table_foreach_helper(void *key, void *data)
  * The table is traversed in the order of keys.
  */
 void
-ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
+ohash_table_foreach(const ohash_table_t *oh, keyval_fn_t func, void *data)
 {
 	struct ohash_foreach_ctx ctx;
 
@@ -367,18 +367,18 @@ ohash_table_foreach(const ohash_table_t *oh, GHFunc func, void *data)
 }
 
 struct ohash_foreach_remove_ctx {
-	GHRFunc func;
+	keyval_rm_fn_t func;
 	void *data;
 };
 
-static gboolean
+static bool
 ohash_table_foreach_remove_helper(void *key, void *data)
 {
 	struct ohash_pair *op = key;
 	struct ohash_foreach_remove_ctx *ctx = data;
 
-	return (*ctx->func)(deconstify_gpointer(op->key),
-		deconstify_gpointer(op->value), ctx->data);
+	return (*ctx->func)(deconstify_pointer(op->key),
+		deconstify_pointer(op->value), ctx->data);
 }
 
 /**
@@ -390,7 +390,8 @@ ohash_table_foreach_remove_helper(void *key, void *data)
  * @return the amount of items removed from the table.
  */
 size_t
-ohash_table_foreach_remove(const ohash_table_t *oh, GHRFunc func, void *data)
+ohash_table_foreach_remove(const ohash_table_t *oh,
+	keyval_rm_fn_t func, void *data)
 {
 	struct ohash_foreach_remove_ctx ctx;
 

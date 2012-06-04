@@ -31,11 +31,12 @@
 
 #include "common.h"
 
-#include "lib/pagetable.h"
-#include "lib/misc.h"
-#include "lib/vmm.h"
+#include "pagetable.h"
+#include "misc.h"
+#include "vmm.h"
+#include "xmalloc.h"
 
-#include "lib/override.h"
+#include "override.h"
 
 /**
  * NOTE: These values are meant for a typical 32-bit system with 4 KiB
@@ -61,10 +62,10 @@ page_table_new(void)
 	static const struct page_table zero_page_table;
 	struct page_table *tab;
 
-	g_assert((size_t)-1 == (guint32)-1);
+	g_assert((size_t)-1 == (uint32)-1);
 	g_assert(compat_pagesize() == (1 << PAGE_BITSHIFT));
 
-	tab = malloc(sizeof *tab);
+	tab = xpmalloc(sizeof *tab);	/* No walloc() re-routing */
 	g_assert(tab);
 	*tab = zero_page_table;
 	return tab;
@@ -86,7 +87,7 @@ page_table_destroy(page_table_t *tab)
 }
 
 size_t
-page_table_lookup(page_table_t *tab, void *p)
+page_table_lookup(page_table_t *tab, const void *p)
 {
 	size_t k = (size_t) p;
 	if (k && 0 == (k & ~PAGE_BITMASK)) {
@@ -100,32 +101,51 @@ page_table_lookup(page_table_t *tab, void *p)
 	}
 }
 
-int
-page_table_insert(page_table_t *tab, void *p, size_t size)
+static void
+page_table_replace_intern(page_table_t *tab, const void *p, size_t size)
+{
+	size_t i, j;
+	size_t k = (size_t) p;
+
+	i = k >> SLICE_BITSHIFT;
+	j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
+	if (NULL == tab->slice[i]) {
+		tab->slice[i] = vmm_alloc0(sizeof tab->slice[i][0]);
+	}
+	tab->slice[i]->size[j] = size;
+}
+
+void
+page_table_replace(page_table_t *tab, const void *p, size_t size)
 {
 	size_t k = (size_t) p;
 
-	RUNTIME_ASSERT(NULL != p);
-	RUNTIME_ASSERT(size > 0);
-	RUNTIME_ASSERT(0 == (k & ~PAGE_BITMASK));
+	g_assert(NULL != p);
+	g_assert(size > 0);
+	g_assert(0 == (k & ~PAGE_BITMASK));
+
+	page_table_replace_intern(tab, p, size);
+}
+
+int
+page_table_insert(page_table_t *tab, const void *p, size_t size)
+{
+	size_t k = (size_t) p;
+
+	g_assert(NULL != p);
+	g_assert(size > 0);
+	g_assert(0 == (k & ~PAGE_BITMASK));
 
 	if (page_table_lookup(tab, p)) {
 		return FALSE;
 	} else {
-		size_t i, j;
-
-		i = k >> SLICE_BITSHIFT;
-		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
-		if (NULL == tab->slice[i]) {
-			tab->slice[i] = vmm_alloc0(sizeof tab->slice[i][0]);
-		}
-		tab->slice[i]->size[j] = size;
+		page_table_replace_intern(tab, p, size);
 		return TRUE;
 	}
 }
 
 int
-page_table_remove(page_table_t *tab, void *p)
+page_table_remove(page_table_t *tab, const void *p)
 {
 	if (page_table_lookup(tab, p)) {
 		size_t k = (size_t) p;

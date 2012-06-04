@@ -34,7 +34,7 @@
 #ifndef _filehead_h_
 #define _filehead_h_
 
-guint64 filehead_uint64(const char *path, gboolean missing, int *errptr);
+uint64 filehead_uint64(const char *path, bool missing, int *errptr);
 
 #endif /* _filehead_h_ */
 

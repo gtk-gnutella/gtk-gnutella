@@ -84,7 +84,7 @@ static dbmw_t *
 dbstore_create_internal(const char *name, const char *dir, const char *base,
 	int flags, dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
-	gboolean incore)
+	bool incore)
 {
 	dbmap_t *dm;
 	dbmw_t *dw;
@@ -155,7 +155,7 @@ dbmw_t *
 dbstore_create(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
-	gboolean incore)
+	bool incore)
 {
 	dbmw_t *dw;
 
@@ -190,7 +190,7 @@ dbmw_t *
 dbstore_open(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
 	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
-	gboolean incore)
+	bool incore)
 {
 	dbmw_t *dw;
 
@@ -286,7 +286,7 @@ dbstore_sync_flush(dbmw_t *dw)
 void
 dbstore_close(dbmw_t *dw, const char *dir, const char *base)
 {
-	gboolean ok;
+	bool ok;
 	char *path;
 
 	if (NULL == dw)

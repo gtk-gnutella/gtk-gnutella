@@ -34,30 +34,30 @@ typedef void (*slist_destroy_cb)(void *data);
 
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);
-gboolean slist_remove(slist_t *slist, gpointer key);
-gpointer slist_shift(slist_t *slist);
-void slist_append(slist_t *slist, gpointer key);
-void slist_prepend(slist_t *slist, gpointer key);
-void slist_insert_sorted(slist_t *slist, gpointer key, GCompareFunc func);
-gboolean slist_moveto_head(slist_t *slist, gpointer key);
-gboolean slist_moveto_tail(slist_t *slist, gpointer key);
-gpointer slist_head(const slist_t *slist);
-gpointer slist_tail(const slist_t *slist);
-guint slist_length(const slist_t *slist);
-gboolean slist_contains(const slist_t *slist, gconstpointer key,
-		GEqualFunc func, gpointer *orig_key);
-gboolean slist_contains_identical(const slist_t *slist, gconstpointer key);
-void slist_foreach(const slist_t *slist, GFunc func, gpointer user_data);
+bool slist_remove(slist_t *slist, void *key);
+void *slist_shift(slist_t *slist);
+void slist_append(slist_t *slist, void *key);
+void slist_prepend(slist_t *slist, void *key);
+void slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func);
+bool slist_moveto_head(slist_t *slist, void *key);
+bool slist_moveto_tail(slist_t *slist, void *key);
+void *slist_head(const slist_t *slist);
+void *slist_tail(const slist_t *slist);
+uint slist_length(const slist_t *slist);
+bool slist_contains(const slist_t *slist, const void *key,
+		GEqualFunc func, void **orig_key);
+bool slist_contains_identical(const slist_t *slist, const void *key);
+void slist_foreach(const slist_t *slist, GFunc func, void *user_data);
 
 slist_iter_t *slist_iter_on_head(const slist_t *slist);
 slist_iter_t *slist_iter_before_head(const slist_t *slist);
 slist_iter_t * slist_iter_removable_on_head(slist_t *slist);
 slist_iter_t * slist_iter_removable_before_head(slist_t *slist);
 void slist_iter_free(slist_iter_t **iter_ptr);
-gboolean slist_iter_has_item(const slist_iter_t *iter);
-gboolean slist_iter_has_next(const slist_iter_t *iter);
-gpointer slist_iter_next(slist_iter_t *iter);
-gpointer slist_iter_current(const slist_iter_t *iter);
+bool slist_iter_has_item(const slist_iter_t *iter);
+bool slist_iter_has_next(const slist_iter_t *iter);
+void *slist_iter_next(slist_iter_t *iter);
+void *slist_iter_current(const slist_iter_t *iter);
 void slist_iter_remove(slist_iter_t *iter);
 void slist_free_all(slist_t **slist_ptr, slist_destroy_cb freecb);
 

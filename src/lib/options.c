@@ -95,7 +95,7 @@ options_parse_last_error(void)
 int
 options_parse(const char *argv[], const option_t *ovec, int osize)
 {
-	guchar options[127];	/* ASCII only */
+	uchar options[127];	/* ASCII only */
 	const option_t *current;
 	int i;
 
@@ -112,7 +112,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 
 	for (i = 0; i < osize; i++) {
 		const option_t *o = &ovec[i];
-		guchar idx;
+		uchar idx;
 
 		g_assert(o->letter);
 		idx = o->letter[0];
@@ -138,7 +138,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 	current = NULL;
 	for (i = 0; NULL != argv[i]; i++) {
 		const char *arg = argv[i];
-		guchar c;
+		uchar c;
 
 		if (0 == i)
 			continue;

@@ -73,7 +73,7 @@ vector_create(void *base, size_t element_size, size_t num_elements)
 	return vec;
 }
 
-static inline gboolean
+static inline bool
 vector_iter_has_next(const vector_iter_t *iter)
 {
 	g_assert(iter);
@@ -87,7 +87,7 @@ vector_iter_next(vector_iter_t *iter)
 	return &iter->vec->base[iter->i++ * iter->vec->element_size];
 }
 
-static inline gboolean
+static inline bool
 vector_iter_has_previous(const vector_iter_t *iter)
 {
 	g_assert(iter);

@@ -37,6 +37,10 @@
 struct sha1;
 
 void entropy_collect(struct sha1 *digest);
+void entropy_minimal_collect(struct sha1 *digest);
+unsigned entropy_random(void);
+void entropy_fill(void *buffer, size_t len);
+void entropy_delay(void);
 
 #endif /* _entropy_h_ */
 

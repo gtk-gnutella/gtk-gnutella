@@ -43,19 +43,17 @@
  * it has only 126 bits of entropy.
  */
 typedef struct tea_key {
-	guchar v[TEA_KEY_SIZE];
+	uchar v[TEA_KEY_SIZE];
 } tea_key_t;
 
 /*
  * Public interface.
  */
 
-guint32 tea_squeeze(gpointer buf, size_t len);
+uint32 tea_squeeze(void *buf, size_t len);
 
-void tea_encrypt(const tea_key_t *key,
-	gpointer dest, gconstpointer buf, size_t len);
-void tea_decrypt(const tea_key_t *key,
-	gpointer dest, gconstpointer buf, size_t len);
+void tea_encrypt(const tea_key_t *key, void *dest, const void *buf, size_t len);
+void tea_decrypt(const tea_key_t *key, void *dest, const void *buf, size_t len);
 
 void tea_test(void);
 

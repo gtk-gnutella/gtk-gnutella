@@ -55,21 +55,21 @@ struct cproxy {
 
 	cevent_t *udp_ev;		/**< UDP PUSH timeout */
 	host_addr_t addr;		/**< IP of the proxy servent */
-	guint16 port;			/**< Port of the proxy servent */
+	uint16 port;			/**< Port of the proxy servent */
 	const char *server;	/**< Server string */
 	const struct guid *guid;/**< GUID (atom) to which push should be sent */
-	guint32 file_idx;		/**< File index to request */
-	gpointer http_handle;	/**< Asynchronous HTTP request handle */
-	guint32 flags;			/**< Operating flags */
+	uint32 file_idx;		/**< File index to request */
+	void *http_handle;		/**< Asynchronous HTTP request handle */
+	uint32 flags;			/**< Operating flags */
 
 	/*
 	 * For GUI.
 	 */
 
 	http_state_t state;		/**< State of the HTTP request */
-	gboolean done;			/**< We're done with request */
-	gboolean sent;			/**< Whether push was sent */
-	gboolean directly;		/**< Whether push was sent directly or via Gnet */
+	bool done;				/**< We're done with request */
+	bool sent;				/**< Whether push was sent */
+	bool directly;			/**< Whether push was sent directly or via Gnet */
 };
 
 #define cproxy_vendor_str(c)	((c)->server ? (c)->server : "")

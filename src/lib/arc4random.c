@@ -2,7 +2,7 @@
  * Copyright (c) 1996, David Mazieres <dm@lcs.mit.edu>.
  *
  * Adaptated for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,15 +28,29 @@
  * @ingroup lib
  * @file
  *
- * Arc4 random number generator.
+ * ARC4 random number generator.
  *
- * @author Raphael Manfredi
- * @date 2010
+ * The arc4random() function uses the key stream generator employed by the
+ * ARC4 cipher, which uses 256 8-bit S-Boxes.  The S-Boxes can be in about
+ * 2^1700 states.
+ *
+ * There is no need to call arc4random_stir() before using arc4random()
+ * since initialization happens auto-magically.  The initial seed is collected
+ * through entropy_collect(), which supplies 160 random bits.
+ *
+ * The arc4random_upto64() routine has been added to David Mazieres's code
+ * to provide uniformly distributed random numbers over a certain range.
+ *
  * @author David Mazieres
  * @date 1996
+ * @author Raphael Manfredi
+ * @date 2010, 2012
  */
 
 #include "common.h"
+
+#include "log.h"
+#include "pow2.h"
 
 #ifndef HAS_ARC4RANDOM
 
@@ -70,16 +84,16 @@
 #include "misc.h"		/* For sha1_t */
 
 struct arc4_stream {
-	guint8 i;
-	guint8 j;
-	guint8 s[256];
+	uint8 i;
+	uint8 j;
+	uint8 s[256];
 };
 
 static struct arc4_stream rs;
-static int rs_initialized;
-static int rs_stired;
+static bool rs_initialized;
+static bool rs_stired;
 
-static inline guint8 arc4_getbyte(struct arc4_stream *);
+static inline uint8 arc4_getbyte(struct arc4_stream *);
 static void arc4_stir(struct arc4_stream *);
 
 static inline void
@@ -97,7 +111,7 @@ static inline void
 arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 {
 	int n;
-	guint8 si;
+	uint8 si;
 
 	as->i--;
 	for (n = 0; n < 256; n++) {
@@ -109,14 +123,34 @@ arc4_addrandom(struct arc4_stream *as, const unsigned char *dat, int datlen)
 	}
 }
 
+static inline void
+arc4_check_init(void)
+{
+	if G_UNLIKELY(!rs_initialized) {
+		arc4_init(&rs);
+		rs_initialized = TRUE;
+	}
+}
+
 static void
 arc4_stir(struct arc4_stream *as)
 {
 	int n;
-	sha1_t entropy;
-	
-	entropy_collect(&entropy);
-	arc4_addrandom(as, cast_to_gpointer(&entropy), sizeof entropy);
+
+	arc4_check_init();
+
+	/*
+	 * Collect 1024 bytes of initial entropy: the more randomness there
+	 * is in the initial state, the more random combinations we can produce
+	 * after initialization.
+	 */
+
+	for (n = 0; n < 4; n++) {
+		unsigned char buf[256];		/* Optimal size for arc4_addrandom() */
+
+		entropy_fill(buf, sizeof buf);
+		arc4_addrandom(as, buf, sizeof buf);
+	}
 
 	/*
 	 * Throw away the first N bytes of output, as suggested in the
@@ -125,14 +159,15 @@ arc4_stir(struct arc4_stream *as)
 	 * suggestions in the paper "(Not So) Random Shuffles of RC4"
 	 * by Ilya Mironov.
 	 */
+
 	for (n = 0; n < 1024; n++)
 		arc4_getbyte(as);
 }
 
-static inline G_GNUC_HOT guint8
+static inline G_GNUC_HOT uint8
 arc4_getbyte(struct arc4_stream *as)
 {
-	guint8 si, sj;
+	uint8 si, sj;
 
 	as->i = (as->i + 1);
 	si = as->s[as->i];
@@ -144,10 +179,10 @@ arc4_getbyte(struct arc4_stream *as)
 	return (as->s[(si + sj) & 0xff]);
 }
 
-static inline G_GNUC_HOT guint32
+static inline G_GNUC_HOT uint32
 arc4_getword(struct arc4_stream *as)
 {
-	guint32 val;
+	uint32 val;
 
 	val = arc4_getbyte(as) << 24;
 	val |= arc4_getbyte(as) << 16;
@@ -157,21 +192,12 @@ arc4_getword(struct arc4_stream *as)
 	return (val);
 }
 
-static inline void
-arc4_check_init(void)
-{
-	if G_UNLIKELY(!rs_initialized) {
-		arc4_init(&rs);
-		rs_initialized = 1;
-	}
-}
-
-static inline void
+static inline ALWAYS_INLINE void
 arc4_check_stir(void)
 {
 	if G_UNLIKELY(!rs_stired) {
 		arc4_stir(&rs);
-		rs_stired = 1;
+		rs_stired = TRUE;
 	}
 }
 
@@ -186,13 +212,26 @@ void
 arc4random_stir(void)
 {
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_stir(&rs);
 	/* THREAD_UNLOCK(); */
 }
 
 /**
+ * Perform random initialization if not already done.
+ */
+G_GNUC_COLD void
+arc4random_stir_once(void)
+{
+	arc4_check_stir();
+}
+
+/**
  * Supply additional randomness to the pool.
+ *
+ * The optimal buffer length is 256 bytes.  Any larger size will cause
+ * some bytes to be ignored (which is sub-optimal), whilst any smaller
+ * size will cause bytes to be reused during the internal state shuffle
+ * (which is OK).
  *
  * @param dat		pointer to a buffer containing random data
  * @param datlen	length of the buffer
@@ -204,7 +243,6 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	g_assert(datlen > 0);
 
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_check_stir();
 	arc4_addrandom(&rs, dat, datlen);
 	/* THREAD_UNLOCK(); */
@@ -213,13 +251,12 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 /**
  * @return a new 32-bit random number.
  */
-G_GNUC_HOT guint32
+G_GNUC_HOT uint32
 arc4random(void)
 {
-	guint32 rnd;
+	uint32 rnd;
 
 	/* THREAD_LOCK(); */
-	arc4_check_init();
 	arc4_check_stir();
 	rnd = arc4_getword(&rs);
 	/* THREAD_UNLOCK(); */
@@ -227,5 +264,90 @@ arc4random(void)
 	return rnd;
 }
 
+#else	/* HAS_ARC4RANDOM */
+
+/**
+ * Perform random initialization if not already done.
+ *
+ * @attention
+ * This is a non-standard call, specific to this library.
+ */
+G_GNUC_COLD void
+arc4random_stir_once(void)
+{
+	static int done;
+
+	if G_UNLIKELY(!done) {
+		arc4random_stir();
+		done = TRUE;
+	}
+}
+
 #endif	/* !HAS_ARC4RANDOM */
 
+/**
+ * @return 64-bit random number.
+ */
+static inline uint64
+arc4random64(void)
+{
+	return ((uint64) arc4random() << 32) | (uint64) arc4random();
+}
+
+/**
+ * @return uniformly distributed 64-bit random number in the [0, max] range.
+ */
+uint64
+arc4random_upto64(uint64 max)
+{
+	uint64 range, min, value;
+
+	if G_UNLIKELY(0 == max)
+		return 0;
+
+	if G_UNLIKELY((uint64) -1 == max)
+		return arc4random64();
+
+	range = max + 1;
+
+	if (IS_POWER_OF_2(range))
+		return arc4random64() & max;	/* max = range - 1 */
+
+	/*
+	 * Same logic as random_upto() but in 64-bit arithmetic.
+	 */
+
+	if (range > ((uint64) 1U << 63)) {
+		min = ~range + 1;		/* 2^64 - range */
+	} else {
+		min = ((uint64) -1 - range + 1) % range;
+	}
+
+	value = arc4random64();
+
+	if G_UNLIKELY(value < min) {
+		size_t i;
+
+		for (i = 0; i < 100; i++) {
+#ifdef HAS_ARC4RANDOM
+			value = arc4random64();
+#else
+			/* THREAD_LOCK(); */
+			/* All bytes are random anyway, just drop the first one */
+			value = (value << 8) | (uint64) arc4_getbyte(&rs);
+			/* THREAD_UNLOCK(); */
+#endif	/* HAS_ARC4RANDOM */
+
+			if (value >= min)
+				goto done;
+		}
+
+		/* Will occur once every 10^30 attempts */
+		s_error("no luck with random number generator");
+	}
+
+done:
+	return value % range;
+}
+
+/* vi: set ts=4 sw=4 cindent: */

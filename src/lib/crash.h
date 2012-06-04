@@ -185,11 +185,18 @@ typedef void (*crash_hook_t)(void);
 #define CRASH_F_GDB		(1 << 1)
 #define CRASH_F_RESTART	(1 << 2)
 
+enum crash_alter_mode {
+	CRASH_FLAG_SET,
+	CRASH_FLAG_CLEAR
+};
+
 struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path);
 void crash_close(void);
+bool crash_is_closed(void);
+void crash_ctl(enum crash_alter_mode mode, int flags);
 void crash_time(char *buf, size_t buflen);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
@@ -197,7 +204,7 @@ void crash_handler(int signo);
 void crash_abort(void) G_GNUC_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
-void crash_setnumbers(guint8 major, guint8 minor, guint8 patchlevel);
+void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(int argc, const char *argv[], const char *env[]);
 void crash_assert_failure(const struct assertion_data *a);

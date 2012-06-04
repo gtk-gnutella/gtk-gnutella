@@ -55,7 +55,7 @@
 #define MQ_MINIOV		2		/**< Minimum amount of I/O vectors in service */
 #define MQ_MINSEND		256		/**< Minimum size we try to send */
 
-static void mq_tcp_service(gpointer data);
+static void mq_tcp_service(void *data);
 static const struct mq_ops mq_tcp_ops;
 
 /**
@@ -88,7 +88,7 @@ mq_tcp_make(int maxsize, struct gnutella_node *n, struct txdriver *nd)
  * Service routine for TCP message queue.
  */
 static void
-mq_tcp_service(gpointer data)
+mq_tcp_service(void *data)
 {
 	mqueue_t *q = (mqueue_t *) data;
 	static iovec_t iov[MQ_MAXIOV];
@@ -99,8 +99,8 @@ mq_tcp_service(gpointer data)
 	GList *l;
 	int dropped;
 	int maxsize;
-	gboolean saturated;
-	gboolean has_prioritary = FALSE;
+	bool saturated;
+	bool has_prioritary = FALSE;
 
 again:
 	mq_check(q, 0);
@@ -143,7 +143,7 @@ again:
 			l = g_list_previous(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
-			iovec_set_base(ie, deconstify_gpointer(mb->m_rptr));
+			iovec_set_base(ie, deconstify_pointer(mb->m_rptr));
 			iovec_set_len(ie, pmsg_size(mb));
 			maxsize -= iovec_len(ie);
 			if (pmsg_prio(mb))
@@ -212,9 +212,9 @@ again:
 		iovec_t *ie = &iov[iovcnt++];
 		pmsg_t *mb = (pmsg_t *) l->data;
 
-		if ((guint) r >= iovec_len(ie)) {		/* Completely written */
+		if ((uint) r >= iovec_len(ie)) {		/* Completely written */
 			char *mb_start = pmsg_start(mb);
-			guint8 function = gmsg_function(mb_start);
+			uint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
             gnet_stats_count_sent(q->node, function, mb_start, pmsg_size(mb));
@@ -300,9 +300,9 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 {
 	int size;				/* Message size */
 	char *mbs;				/* Start of message */
-	guint8 function;		/* Gnutella message function */
-	gboolean prioritary;	/* Is message prioritary? */
-	gboolean error = FALSE;
+	uint8 function;			/* Gnutella message function */
+	bool prioritary;		/* Is message prioritary? */
+	bool error = FALSE;
 
 	dump_tx_tcp_packet(from, q->node, mb);
 
@@ -485,7 +485,7 @@ mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
  * Is the last enqueued message still unwritten, as opposed to having been
  * partially sent already?
  */
-static gboolean
+static bool
 mq_tcp_flushed(const mqueue_t *q)
 {
 	pmsg_t *mb;

@@ -260,17 +260,17 @@ int SHA1Input(    SHA1Context    *context,
  */
 G_GNUC_HOT void SHA1ProcessMessageBlock(SHA1Context *context)
 {
-    const guint32 K[] =    {       /* Constants defined in SHA-1 */
+    const uint32 K[] =    {       /* Constants defined in SHA-1 */
                             0x5A827999,
                             0x6ED9EBA1,
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
-    int          t;                 /* Loop counter              */
-    guint32      temp;              /* Temporary word value      */
-    guint32      W[80];             /* Word sequence             */
-    guint32      A, B, C, D, E;     /* Word buffers              */
-    guint32      *wp;               /* Pointer in word sequence	 */
+    int         t;                 /* Loop counter              */
+    uint32      temp;              /* Temporary word value      */
+    uint32      W[80];             /* Word sequence             */
+    uint32      A, B, C, D, E;     /* Word buffers              */
+    uint32      *wp;               /* Pointer in word sequence	 */
 
     /*
      *  Initialize the first 16 words in the array W

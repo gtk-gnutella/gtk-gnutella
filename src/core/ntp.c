@@ -60,26 +60,26 @@
  * An NTP message, as described in RFC2030 (trailing auth-data ignored).
  */
 struct ntp_msg {
-	guint8 flags;
-	guint8 stratum;
-	guint8 poll;
-	guint8 precision;
-	guchar root_delay[4];
-	guchar root_dispersion[4];
-	guchar reference_id[4];
-	guchar reference_timestamp[8];
-	guchar originate_timestamp[8];
-	guchar receive_timestamp[8];
-	guchar transmit_timestamp[8];
+	uint8 flags;
+	uint8 stratum;
+	uint8 poll;
+	uint8 precision;
+	uchar root_delay[4];
+	uchar root_dispersion[4];
+	uchar reference_id[4];
+	uchar reference_timestamp[8];
+	uchar originate_timestamp[8];
+	uchar receive_timestamp[8];
+	uchar transmit_timestamp[8];
 };
 
-static gboolean ntp_localhost_replied;
+static bool ntp_localhost_replied;
 
 /**
  * Fill 8-byte buffer with NTP's representation of a tm_t time.
  */
 static void
-ntp_tm_serialize(guchar dest[8], tm_t *t)
+ntp_tm_serialize(uchar dest[8], tm_t *t)
 {
 	poke_be32(&dest[0], t->tv_sec + OFFSET_1900);
 	poke_be32(&dest[4], t->tv_usec * 1.0e-6 * NTP_FP_SCALE);
@@ -89,10 +89,10 @@ ntp_tm_serialize(guchar dest[8], tm_t *t)
  * Construct a tm_t time from an NTP timestamp.
  */
 static void
-ntp_tm_deserialize(const guchar src[8], tm_t *dest)
+ntp_tm_deserialize(const uchar src[8], tm_t *dest)
 {
 	dest->tv_sec = peek_be32(&src[0]) - OFFSET_1900;
-	dest->tv_usec = (guint32) (peek_be32(&src[4]) * 1.0e6 / NTP_FP_SCALE);
+	dest->tv_usec = (uint32) (peek_be32(&src[4]) * 1.0e6 / NTP_FP_SCALE);
 }
 
 /**
@@ -126,8 +126,8 @@ static void
 ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 {
 	const struct ntp_msg *m;
-	guint8 version;
-	guint8 mode;
+	uint8 version;
+	uint8 mode;
 	tm_t received;
 	tm_t sent;
 	tm_t replied;
@@ -184,7 +184,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
 		g_debug("NTP local clock offset is %g secs",
 			(double) clock_offset);
 
-	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (guint32) clock_offset);
+	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, (uint32) clock_offset);
 
 	g_info("detected NTP-%u, stratum %u, offset %g secs",
 		version, m->stratum, (double) clock_offset);
@@ -194,7 +194,7 @@ ntp_got_reply(host_addr_t addr, const void *payload, size_t len)
  * Reception / timeout callback for NTP probes.
  */
 static void
-ntp_received(enum urpc_ret type, host_addr_t addr, guint16 unused_port,
+ntp_received(enum urpc_ret type, host_addr_t addr, uint16 unused_port,
 	const void *payload, size_t len, void *unused_arg)
 {
 	(void) unused_port;
@@ -209,7 +209,7 @@ ntp_received(enum urpc_ret type, host_addr_t addr, guint16 unused_port,
 	ntp_got_reply(addr, payload, len);
 }
 
-static gboolean
+static bool
 ntp_send_probe(const host_addr_t addr)
 {
 	static const struct ntp_msg zero_m;
@@ -225,7 +225,7 @@ ntp_send_probe(const host_addr_t addr)
 		ntp_received, NULL);
 }
 
-static G_GNUC_COLD gboolean
+static G_GNUC_COLD bool
 ntp_send_probes(void)
 {
 	static const struct {
@@ -239,8 +239,8 @@ ntp_send_probes(void)
 		{ "::1"		  },
 		{ "127.0.0.1" },
 	};
-	gboolean sent = FALSE;
-	guint i;
+	bool sent = FALSE;
+	uint i;
 
 	/* TODO:	The name_to_host_addr() could take a while which would
 	 *			delay startup. Thus, use ADNS for this.

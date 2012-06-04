@@ -42,6 +42,7 @@
 
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
+#include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -60,18 +61,18 @@
  * Information about query hits received.
  */
 typedef struct dqhit {
-	guint32 msg_recv;		/**< Amount of individual messages we got */
-	guint32 msg_queued;		/**< # of messages queued */
-	guint32 hits_recv;		/**< Total amount of results we saw */
-	guint32 hits_sent;		/**< Total amount of results we sent back */
-	guint32 hits_queued;	/**< Amount of hits queued */
+	uint32 msg_recv;		/**< Amount of individual messages we got */
+	uint32 msg_queued;		/**< # of messages queued */
+	uint32 hits_recv;		/**< Total amount of results we saw */
+	uint32 hits_sent;		/**< Total amount of results we sent back */
+	uint32 hits_queued;		/**< Amount of hits queued */
 } dqhit_t;
 
 /*
  * Meta-information about the query hit message.
  */
 struct dh_pmsg_info {
-	guint32 hits;			/**< Amount of query hits held in message */
+	uint32 hits;			/**< Amount of query hits held in message */
 };
 
 /**
@@ -92,16 +93,16 @@ enum dh_drop {
  *
  * The keys are MUIDs (GUID atoms), the values are the dqhit_t object.
  */
-static GHashTable *by_muid = NULL;
-static GHashTable *by_muid_old = NULL;
+static htable_t *by_muid = NULL;
+static htable_t *by_muid_old = NULL;
 static time_t last_rotation;
 
 /**
  * Hashtable iteration callback to free the MUIDs in the `by_muid' table,
  * and the associated dqhit_t objects.
  */
-static gboolean
-free_muid_true(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_muid_true(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	atom_guid_free(key);
@@ -113,24 +114,23 @@ free_muid_true(gpointer key, gpointer value, gpointer unused_udata)
  * Clear specified hash table.
  */
 static void
-dh_table_clear(GHashTable *ht)
+dh_table_clear(htable_t *ht)
 {
 	g_assert(ht != NULL);
 
-	g_hash_table_foreach_remove(ht, free_muid_true, NULL);
+	htable_foreach_remove(ht, free_muid_true, NULL);
 }
 
 /**
  * Free specified hash table.
  */
 static void
-dh_table_free(GHashTable **ptr)
+dh_table_free(htable_t **ptr)
 {
 	if (*ptr) {
-		GHashTable *ht = *ptr;
-		g_hash_table_foreach_remove(ht, free_muid_true, NULL);
-		g_hash_table_destroy(ht);
-		*ptr = NULL;
+		htable_t *ht = *ptr;
+		htable_foreach_remove(ht, free_muid_true, NULL);
+		htable_free_null(ptr);
 	}
 }
 
@@ -142,9 +142,9 @@ dh_table_free(GHashTable **ptr)
 static dqhit_t *
 dh_locate(const struct guid *muid)
 {
-	gboolean found = FALSE;
-	gpointer key;
-	gpointer value;
+	bool found = FALSE;
+	const void *key;
+	void *value;
 
 	if (NULL == by_muid_old)
 		return NULL;		/* DH layer shutdown occurred already */
@@ -155,16 +155,16 @@ dh_locate(const struct guid *muid)
 	 * for this query.
 	 */
 
-	found = g_hash_table_lookup_extended(by_muid_old, muid, &key, &value);
+	found = htable_lookup_extended(by_muid_old, muid, &key, &value);
 
 	if (found) {
-		g_hash_table_remove(by_muid_old, key);
-		g_assert(!g_hash_table_lookup(by_muid, key));
-		g_hash_table_insert(by_muid, key, value);
+		htable_remove(by_muid_old, key);
+		g_assert(!htable_contains(by_muid, key));
+		htable_insert(by_muid, key, value);
 		return value;
 	}
 
-	return g_hash_table_lookup(by_muid, muid);
+	return htable_lookup(by_muid, muid);
 }
 
 /**
@@ -180,7 +180,7 @@ dh_create(const struct guid *muid)
 	WALLOC0(dh);
 	key = atom_guid_get(muid);
 
-	gm_hash_table_insert_const(by_muid, key, dh);
+	htable_insert(by_muid, key, dh);
 
 	return dh;
 }
@@ -209,7 +209,7 @@ dh_got_results(const struct guid *muid, int count)
 void
 dh_timer(time_t now)
 {
-	GHashTable *tmp;
+	htable_t *tmp;
 
 	if (delta_time(now, last_rotation) < DH_HALF_LIFE)
 		return;
@@ -226,16 +226,17 @@ dh_timer(time_t now)
 
 	last_rotation = now;
 
-	if (GNET_PROPERTY(dh_debug) > 19)
-		g_debug("DH rotated tables, current has %d, old has %d",
-			g_hash_table_size(by_muid), g_hash_table_size(by_muid_old));
+	if (GNET_PROPERTY(dh_debug) > 19) {
+		g_debug("DH rotated tables, current has %zu, old has %zu",
+			htable_count(by_muid), htable_count(by_muid_old));
+	}
 }
 
 /**
  * Free routine for query hit message.
  */
 static void
-dh_pmsg_free(pmsg_t *mb, gpointer arg)
+dh_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct dh_pmsg_info *pmi = arg;
 	const struct guid *muid;
@@ -281,7 +282,7 @@ cleanup:
  * message on the floor or forward it.
  */
 static enum dh_drop
-dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
+dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 {
 	const char *teststr = test ? "[test] " : "";
 
@@ -552,7 +553,7 @@ drop_transient:
 /**
  * If we had to route hits to the specified node destination, would we?
  */
-gboolean
+bool
 dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 {
 	dqhit_t *dh;
@@ -574,8 +575,8 @@ dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 G_GNUC_COLD void
 dh_init(void)
 {
-	by_muid = g_hash_table_new(guid_hash, guid_eq);
-	by_muid_old = g_hash_table_new(guid_hash, guid_eq);
+	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
+	by_muid_old = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	last_rotation = tm_time();
 }
 

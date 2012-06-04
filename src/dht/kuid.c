@@ -38,8 +38,10 @@
 #include <math.h>
 
 #include "lib/atoms.h"
+#include "lib/bigint.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
+#include "lib/hashing.h"
 #include "lib/misc.h"			/* For bitcmp() */
 #include "lib/random.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -51,6 +53,7 @@ void
 kuid_random_fill(kuid_t *kuid)
 {
 	struct sha1 entropy;
+	bigint_t bk, be;
 
 	/*
 	 * Entropy collection is slow but we generate our KUID only at startup
@@ -70,21 +73,21 @@ kuid_random_fill(kuid_t *kuid)
 	 *
 	 * It's slightly better than XOR-ing the two since the propagation
 	 * of the carry bit diffuses the randomness (entropy remains the same).
-	 *
-	 * The cast below is safe due to C's structural equivalence between the
-	 * sha1 and kuid structures, guaranteed by the static assertion.
 	 */
 
-	STATIC_ASSERT(SHA1_RAW_SIZE == KUID_RAW_SIZE);
+	STATIC_ASSERT(sizeof kuid->v == sizeof entropy.data);
 
-	(void) kuid_add(kuid, (kuid_t *) &entropy);
+	bigint_use(&bk, kuid->v, sizeof kuid->v);
+	bigint_use(&be, entropy.data, sizeof entropy.data);
+
+	(void) bigint_add(&bk, &be);
 }
 
 /**
  * Copy KUID from memory buffer into kuid_t object.
  */
 void
-kuid_from_buf(kuid_t *dest, const gchar *id)
+kuid_from_buf(kuid_t *dest, const char *id)
 {
 	memcpy(dest, id, KUID_RAW_SIZE);
 }
@@ -92,7 +95,7 @@ kuid_from_buf(kuid_t *dest, const gchar *id)
 /**
  * Test whether KUID is blank.
  */
-gboolean
+bool
 kuid_is_blank(const kuid_t *kuid)
 {
 	size_t i;
@@ -124,8 +127,8 @@ kuid_cmp3(const kuid_t *target, const kuid_t *kuid1, const kuid_t *kuid2)
 	int i;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint d1 = kuid1->v[i] ^ target->v[i];
-		guint d2 = kuid2->v[i] ^ target->v[i];
+		uint d1 = kuid1->v[i] ^ target->v[i];
+		uint d2 = kuid2->v[i] ^ target->v[i];
 
 		if (d1 < d2)
 			return -1;
@@ -148,8 +151,8 @@ kuid_cmp(const kuid_t *k1, const kuid_t *k2)
 	int i;
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint b1 = k1->v[i];
-		guint b2 = k2->v[i];
+		uint b1 = k1->v[i];
+		uint b2 = k2->v[i];
 
 		if (b1 < b2)
 			return -1;
@@ -185,7 +188,7 @@ kuid_hash(const void *key)
 /**
  * Are two KUID identical?
  */
-gboolean
+bool
 kuid_eq(const void *k1, const void *k2)
 {
 	return k1 == k2 || 0 == memcmp(k1, k2, KUID_RAW_SIZE);
@@ -194,7 +197,7 @@ kuid_eq(const void *k1, const void *k2)
 /**
  * See if the n first bits of two KUID prefixes match.
  */
-gboolean
+bool
 kuid_match_nth(const kuid_t *k1, const kuid_t *k2, int bits)
 {
 	return 0 == bitcmp(k1->v, k2->v, bits);
@@ -227,7 +230,7 @@ kuid_random_within(kuid_t *dest, const kuid_t *prefix, int bits)
 		if (bits >= 8) {
 			dest->v[i] = prefix->v[i];
 		} else {
-			guchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
+			uchar mask = ~((1 << (8 - bits)) - 1) & 0xff;
 			dest->v[i] = (prefix->v[i] & mask) | (dest->v[i] & ~mask);
 		}
 	}
@@ -240,7 +243,7 @@ void
 kuid_flip_nth_leading_bit(kuid_t *res, int n)
 {
 	int byt;
-	guchar mask;
+	uchar mask;
 
 	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
 
@@ -260,12 +263,12 @@ kuid_flip_nth_leading_bit(kuid_t *res, int n)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_string(const kuid_t *kuid)
 {
-	static gchar buf[SHA1_BASE32_SIZE + 1];
+	static char buf[SHA1_BASE32_SIZE + 1];
 
-	return sha1_to_base32_buf(cast_to_gconstpointer(&kuid->v), buf, sizeof buf);
+	return sha1_to_base32_buf(cast_to_constpointer(&kuid->v), buf, sizeof buf);
 }
 
 /**
@@ -273,10 +276,10 @@ kuid_to_string(const kuid_t *kuid)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_hex_string(const kuid_t *kuid)
 {
-	static gchar buf[KUID_HEX_BUFLEN];
+	static char buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 
@@ -288,14 +291,23 @@ kuid_to_hex_string(const kuid_t *kuid)
  *
  * @return pointer to static data.
  */
-const gchar *
+const char *
 kuid_to_hex_string2(const kuid_t *kuid)
 {
-	static gchar buf[KUID_HEX_BUFLEN];
+	static char buf[KUID_HEX_BUFLEN];
 
 	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
 
 	return buf;
+}
+
+/**
+ * Zero the KUID.
+ */
+void
+kuid_zero(kuid_t *res)
+{
+	ZERO(&res->v);
 }
 
 /***
@@ -312,339 +324,6 @@ void
 kuid_atom_free(const kuid_t *k)
 {
 	atom_sha1_free((const struct sha1 *) k);
-}
-
-/***
- *** Basic integer arithmetic on KUIDs, viewed as 160-bit unsigned integers.
- ***/
-
-/**
- * Zero the KUID.
- */
-void
-kuid_zero(kuid_t *res)
-{
-	ZERO(&res->v);
-}
-
-/**
- * Set 32-bit quantity in the KUID.
- */
-void
-kuid_set32(kuid_t *res, guint32 val)
-{
-	STATIC_ASSERT(KUID_RAW_SIZE >= 4);
-
-	kuid_zero(res);
-	poke_be32(&res->v[KUID_RAW_SIZE - 4], val);
-}
-
-/**
- * Set 64-bit quantity in the KUID.
- */
-void
-kuid_set64(kuid_t *res, guint64 val)
-{
-	STATIC_ASSERT(KUID_RAW_SIZE >= 8);
-
-	kuid_zero(res);
-	poke_be64(&res->v[KUID_RAW_SIZE - 8], val);
-}
-
-/**
- * Set the nth bit in the KUID to 1 (n = 0 .. 159).
- * The lowest bit is 0, at the rightmost part of the KUID.
- */
-void
-kuid_set_nth_bit(kuid_t *res, int n)
-{
-	int byt;
-	guchar mask;
-
-	g_assert(n >=0 && n < KUID_RAW_BITSIZE);
-
-	byt = KUID_RAW_SIZE - (n / 8) - 1;
-	mask = 1 << (n % 8);
-
-	g_assert(byt >= 0 && byt < KUID_RAW_SIZE);
-
-	res->v[byt] |= mask;
-}
-
-/**
- * Is KUID positive, considering 2-complement arithmetic?
- */
-static gboolean
-kuid_is_positive(const kuid_t *k)
-{
-	return 0 == (k->v[0] & 0x80) ? TRUE : FALSE;
-}
-
-/**
- * Negate KUID, using 2-complement arithmetic.
- */
-static void
-kuid_negate(kuid_t *k)
-{
-	int i;
-	gboolean carry;
-
-	/*
-	 * Add 1 to ~k.
-	 */
-
-	for (carry = TRUE, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
-		guint32 sum;
-
-		sum = (~k->v[i] & 0xff) + (carry ? 1 : 0);
-		carry = sum >= 0x100;
-		k->v[i] = sum & 0xff;
-	}
-}
-
-/**
- * Flip all the bits of the KUID.
- */
-void
-kuid_not(kuid_t *k)
-{
-	int i;
-
-	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		k->v[i] = (~k->v[i] & 0xff);
-	}
-}
-
-/**
- * Add second KUID to the first, and return whether there was a leading
- * carry bit.
- */
-gboolean
-kuid_add(kuid_t *res, const kuid_t *other)
-{
-	int i;
-	gboolean carry;
-
-	for (carry = FALSE, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
-		guint32 sum;
-
-		sum = res->v[i] + other->v[i] + (carry ? 1 : 0);
-		carry = sum >= 0x100;
-		res->v[i] = sum & 0xff;
-	}
-
-	return carry;
-}
-
-/**
- * Add small quantity to the KUID, in place, and return whether there was
- * a leading carry bit.
- */
-gboolean
-kuid_add_u8(kuid_t *k, guint8 l)
-{
-	int i;
-	gboolean carry;
-	guint32 sum;
-
-	STATIC_ASSERT(KUID_RAW_SIZE >= 2);
-
-	sum = k->v[KUID_RAW_SIZE - 1] + l;
-	carry = sum >= 0x100;
-	k->v[KUID_RAW_SIZE - 1] = sum & 0xff;
-
-	for (i = KUID_RAW_SIZE - 2; i >= 0; i--) {
-		sum = k->v[i] + (carry ? 1 : 0);
-		carry = sum >= 0x100;
-		k->v[i] = sum & 0xff;
-	}
-
-	return carry;
-}
-
-/**
- * Left shift KUID in place by 1 bit.
- * Return whether there was a leading carry.
- */
-gboolean
-kuid_lshift(kuid_t *res)
-{
-	int i;
-	gboolean carry;
-
-	for (carry = FALSE, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
-		guint32 accum;
-
-		accum = res->v[i];
-		accum <<= 1;
-		if (carry)
-			accum |= 0x1;
-
-		carry = (accum & 0x100) == 0x100;
-		res->v[i] = accum & 0xff;
-	}
-
-	return carry;
-}
-
-/**
- * Right shift KUID in place by 1 bit.
- */
-void
-kuid_rshift(kuid_t *res)
-{
-	int i;
-	gboolean carry;
-
-	for (carry = FALSE, i = 0; i < KUID_RAW_SIZE; i++) {
-		guint32 accum;
-
-		accum = res->v[i];
-		if (carry)
-			accum |= 0x100;
-
-		carry = (accum & 0x1) == 0x1;
-		res->v[i] = accum >> 1;
-	}
-}
-
-/**
- * Multiply KUID by 8-bit lambda constant, in-place.
- *
- * @return leading carry byte (if not zero, we overflowed).
- */
-guint8
-kuid_mult_u8(kuid_t *res, guint8 l)
-{
-	int i;
-	guint8 carry;
-
-	for (carry = 0, i = KUID_RAW_SIZE - 1; i >= 0; i--) {
-		guint16 accum;
-
-		accum = res->v[i] * l + carry;
-		carry = (accum & 0xff00) >> 8;
-		res->v[i] = accum & 0xff;
-	}
-
-	return carry;
-}
-
-/**
- * Divide k1 by k2, filling q with quotient and r with remainder.
- */
-void
-kuid_divide(const kuid_t *k1, const kuid_t *k2, kuid_t *q, kuid_t *r)
-{
-	int cmp;
-	int i;
-	kuid_t nk2;
-
-	g_assert(k1 != NULL);
-	g_assert(k2 != NULL);
-	g_assert(q != NULL);
-	g_assert(r != NULL);
-
-	/*
-	 * First the trivial checks.
-	 */
-
-	cmp = kuid_cmp(k1, k2);
-
-	if (cmp < 0) {
-		kuid_copy(r, k1);			/* r = k1 */
-		kuid_zero(q);				/* q = 0 */
-		return;
-	} else if (0 == cmp) {
-		kuid_zero(r);				/* r = 0 */
-		kuid_zero(q);
-		kuid_set_nth_bit(q, 0);		/* q = 1 */
-		return;
-	}
-
-	g_assert(cmp > 0);
-
-	/*
-	 * The algorithm retained for doing the binary division is known as
-	 * the "shift, test and restore" algorithm.  In an n-bit integer space,
-	 * it can be described as follows:
-	 *
-	 * Consider the double-width register RQ as being one single 2n-bit
-	 * register made by concatenating R and Q together. (a reminder of
-	 * the "BC" register in the good old Z80...):
-	 *
-	 *    R = 0
-	 *    Q = dividend.
-	 *
-	 *    For i = 1 to n do
-	 *    {
-	 *        RQ <<= 1
-	 *        R -= divisor
-	 *        If R >= 0 {
-	 *            Q |= 1
-	 *        } else {
-	 *            R += divisor
-	 *        }
-	 *    }
-	 *
-	 * At the end, Q has the quotient and R has the remainder.
-	 */
-
-	kuid_zero(r);			/* R = 0 */
-	kuid_copy(q, k1);		/* Q = k1 */			
-
-	kuid_copy(&nk2, k2);
-	kuid_negate(&nk2);		/* nk2 = -k2 */
-
-	for (i = 0; i < KUID_RAW_BITSIZE; i++) {
-		gboolean carry;
-		kuid_t saved;
-
-		/* RQ <<= 1 */
-		carry = kuid_lshift(q);
-		kuid_lshift(r);
-		if (carry)
-			kuid_set_nth_bit(r, 0);
-
-		/* R -= divisor */
-		kuid_copy(&saved, r);
-		kuid_add(r, &nk2);
-
-		if (kuid_is_positive(r))		/* If R >= 0 */
-			kuid_set_nth_bit(q, 0);		/* Q |= 1 */
-		else							/* Else */
-			kuid_copy(r, &saved);		/* R += divisor */
-	}
-}
-
-/**
- * Convert KUID interpreted as a big-endian number into floating point.
- */
-double
-kuid_to_double(const kuid_t *value)
-{
-	int i;
-	double v = 0.0;
-	double p;
-
-	for (i = KUID_RAW_SIZE - 4, p = 0.0; i >= 0; i -= 4, p += 32.0) {
-		guint32 m = peek_be32(&value->v[i]);
-		if (m != 0)
-			v += m * pow(2.0, p);
-	}
-
-	return v;
-}
-
-/**
- * Convert KUID to 64-bit integer, truncating it if larger.
- */
-guint64
-kuid_to_guint64(const kuid_t *value)
-{
-	STATIC_ASSERT(KUID_RAW_SIZE >= 8);
-
-	return peek_be64(&value->v[KUID_RAW_SIZE - 8]);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

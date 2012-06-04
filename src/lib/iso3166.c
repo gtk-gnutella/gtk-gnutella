@@ -318,10 +318,10 @@ static iso3166_entry_t *iso3166_countries[ISO3166_NUM_CODES];
  *		   string is in a static buffer.
  */
 static const char *
-iso3166_decode_cc(guint16 code)
+iso3166_decode_cc(uint16 code)
 {
     static char s[3];
-    guint i;
+    uint i;
 
     if (code >= G_N_ELEMENTS(iso3166_countries))
         return NULL;
@@ -344,14 +344,14 @@ iso3166_decode_cc(guint16 code)
  * @return ISO3166_INVALID if the given string is obviously not
  *         a 2-letter country code.
  */
-guint16
+uint16
 iso3166_encode_cc(const char *cc)
 {
     g_assert(cc != NULL);
 
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
         const char *d;
-		guint16 code;
+		uint16 code;
 		int error;
 
 		code = parse_uint16(cc, NULL, 36, &error);
@@ -384,7 +384,7 @@ iso3166_init(void)
 
 		{
 			const char *endptr;
-			guint16 code;
+			uint16 code;
 			int error;
 
 			code = parse_uint16(entry->cc, &endptr, 36, &error);
@@ -408,7 +408,7 @@ iso3166_close(void)
 }
 
 static inline const iso3166_entry_t *
-iso3166_country_entry(guint16 code)
+iso3166_country_entry(uint16 code)
 {
 	if (ISO3166_INVALID == code) {
 		static const iso3166_entry_t unknown = { "??", "??" };
@@ -428,7 +428,7 @@ iso3166_country_entry(guint16 code)
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
 const char *
-iso3166_country_name(guint16 code)
+iso3166_country_name(uint16 code)
 {
 	return iso3166_country_entry(code)->country;
 }
@@ -441,7 +441,7 @@ iso3166_country_name(guint16 code)
  *		   string has its own buffer which is only free()d by iso3166_close().
  */
 const char *
-iso3166_country_cc(guint16 code)
+iso3166_country_cc(uint16 code)
 {
 	return iso3166_country_entry(code)->cc;
 }

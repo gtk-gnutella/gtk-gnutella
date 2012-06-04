@@ -73,7 +73,7 @@ static inline void *
 wq_timeout_data(void)
 {
 	static void *data;
-	return data != NULL ? data : (data = deconstify_gpointer(vmm_trap_page()));
+	return data != NULL ? data : (data = deconstify_pointer(vmm_trap_page()));
 }
 
 /*
@@ -88,7 +88,7 @@ wq_event_t *wq_sleep_timeout(const void *key,
 	int delay, wq_callback_t cb, void *arg);
 void wq_wakeup(const void *key, void *data);
 void wq_cancel(wq_event_t **we_ptr);
-gboolean wq_waiting(const void *key);
+bool wq_waiting(const void *key);
 
 #endif /* _wq_h_ */
 

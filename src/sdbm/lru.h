@@ -14,13 +14,13 @@
 
 void lru_init(DBM *);
 void lru_close(DBM *);
-gboolean readbuf(DBM *, long, gboolean *);
-gboolean dirtypag(DBM *, gboolean);
-gboolean flushpag(DBM *, char *, long);
+bool readbuf(DBM *, long, bool *);
+bool dirtypag(DBM *, bool);
+bool flushpag(DBM *, char *, long);
 ssize_t flush_dirtypag(DBM *);
 int setcache(DBM *, long);
-int setwdelay(DBM *, gboolean);
-gboolean cachepag(DBM *, char *, long);
+int setwdelay(DBM *, bool);
+bool cachepag(DBM *, char *, long);
 char *lru_cached_page(DBM *, long);
 void lru_discard(DBM *, long);
 void lru_invalidate(DBM *, long);

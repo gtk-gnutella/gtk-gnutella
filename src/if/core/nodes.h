@@ -51,40 +51,40 @@ typedef struct rnode_info {
 	/* General information always returned */
 	char vendor[4];			/**< Vendor code */
 	enum rnode_mode mode;		/**< Running configuration */
-	guint32 answer_flags;		/**< Flags for the "Node Info Reply" message */
-	guint32 op_flags;			/**< Operating flags */
-	guint32 features[2];		/**< Optional features */
-	guint8 features_count;		/**< # of valid entries in features[] */
-	guint8 max_ultra_up;		/**< Max # of ultrapeers in ultra mode */
-	guint8 max_ultra_lf;		/**< Max # of ultrapeers in leaf mode */
-	guint8 ultra_count;			/**< Current amount of ultra nodes */
-	guint8 ttl;					/**< TTL limit for messages sent */
-	guint8 hard_ttl;			/**< Hard TTL limit for messages relayed */
-	guint16 max_leaves;			/**< Max # of leaf nodes */
-	guint16 leaf_count;			/**< Current amount of leaf nodes */
-	guint32 startup_time;		/**< Startup time */
-	guint32 ip_change_time;		/**< Last IP change time */
+	uint32 answer_flags;		/**< Flags for the "Node Info Reply" message */
+	uint32 op_flags;			/**< Operating flags */
+	uint32 features[2];			/**< Optional features */
+	uint8 features_count;		/**< # of valid entries in features[] */
+	uint8 max_ultra_up;			/**< Max # of ultrapeers in ultra mode */
+	uint8 max_ultra_lf;			/**< Max # of ultrapeers in leaf mode */
+	uint8 ultra_count;			/**< Current amount of ultra nodes */
+	uint8 ttl;					/**< TTL limit for messages sent */
+	uint8 hard_ttl;				/**< Hard TTL limit for messages relayed */
+	uint16 max_leaves;			/**< Max # of leaf nodes */
+	uint16 leaf_count;			/**< Current amount of leaf nodes */
+	uint32 startup_time;		/**< Startup time */
+	uint32 ip_change_time;		/**< Last IP change time */
 	/* Bandwidth information, optional */
-	guint16 bw_flags;			/**< Bandwidth setting flags */
-	guint32 gnet_bw_in;			/**< Incoming Gnet b/w in KiB/s (0=no limit) */
-	guint32 gnet_bw_out;		/**< Outgoing Gnet b/w in KiB/s (0=no limit) */
-	guint32 gnet_bwl_in;		/**< Incoming leaf b/w in KiB/s (0=no limit) */
-	guint32 gnet_bwl_out;		/**< Outgoing leaf b/w in KiB/s (0=no limit) */
+	uint16 bw_flags;			/**< Bandwidth setting flags */
+	uint32 gnet_bw_in;			/**< Incoming Gnet b/w in KiB/s (0=no limit) */
+	uint32 gnet_bw_out;			/**< Outgoing Gnet b/w in KiB/s (0=no limit) */
+	uint32 gnet_bwl_in;			/**< Incoming leaf b/w in KiB/s (0=no limit) */
+	uint32 gnet_bwl_out;		/**< Outgoing leaf b/w in KiB/s (0=no limit) */
 	/* Packets remote node dropped on this TCP connection */
-	guint32 tx_dropped;			/**< Amount of dropped packets on TX */
-	guint32 rx_dropped;			/**< Amount of dropped packets on RX */
+	uint32 tx_dropped;			/**< Amount of dropped packets on TX */
+	uint32 rx_dropped;			/**< Amount of dropped packets on RX */
 	/* Query hit statistics */
-	guint16 results_max;		/**< Max # of results per query hit */
-	guint32 file_hits;			/**< Hits on shared files */
-	guint32 qhits_tcp;			/**< Query hits returned via TCP */
-	guint32 qhits_udp;			/**< Claimed query hits returned via UDP */
-	guint64 qhits_tcp_bytes;	/**< Total size of TCP qhits (with header) */ 
-	guint64 qhits_udp_bytes;	/**< Total size of UDP qhits (with header) */ 
+	uint16 results_max;			/**< Max # of results per query hit */
+	uint32 file_hits;			/**< Hits on shared files */
+	uint32 qhits_tcp;			/**< Query hits returned via TCP */
+	uint32 qhits_udp;			/**< Claimed query hits returned via UDP */
+	uint64 qhits_tcp_bytes;		/**< Total size of TCP qhits (with header) */ 
+	uint64 qhits_udp_bytes;		/**< Total size of UDP qhits (with header) */ 
 	/* CPU statistics */
-	guint64 cpu_usr;			/**< Total user CPU time used, in ms */
-	guint64 cpu_sys;			/**< Total kernel CPU time used, in ms */
+	uint64 cpu_usr;				/**< Total user CPU time used, in ms */
+	uint64 cpu_sys;				/**< Total kernel CPU time used, in ms */
 	/* Information sent via optional GGEP blocks */
-	guint32 ggep_du;			/**< Daily average uptime, from "DU" */
+	uint32 ggep_du;				/**< Daily average uptime, from "DU" */
 	const char *ggep_ua;		/**< User-Agent string (atom), from "UA" */
 	host_addr_t ggep_ipv6;		/**< IPv6 address */
 } rnode_info_t;
@@ -192,78 +192,78 @@ typedef struct rnode_info {
  */
 
 typedef struct gnet_node_status {
-	guchar status;			    /**< See possible values below */
+	uchar status;			    /**< See possible values below */
 
 	/* FIXME: the variables below should go to gnet_node_info since they
 	 *        only change very seldom
      */
 	time_t connect_date;	/**< When we got connected (after handshake) */
 	time_t up_date;			/**< When remote server started (0 if unknown) */
-	guint32 gnet_files_count;	/**< Amount of files shared */
-	guint32 gnet_kbytes_count;	/**< Size of the library, in Kbytes */
-	gboolean gnet_info_known;	/**< Whether previous two values are known */
-	gboolean is_pseudo;			/**< TRUE if it's the pseudo UDP node */
+	uint32 gnet_files_count;	/**< Amount of files shared */
+	uint32 gnet_kbytes_count;	/**< Size of the library, in Kbytes */
+	bool gnet_info_known;		/**< Whether previous two values are known */
+	bool is_pseudo;				/**< TRUE if it's the pseudo UDP node */
 
-	guint32  sent;				/**< Number of sent packets */
-	guint32  received;			/**< Number of received packets */
-	guint32  tx_dropped;		/**< Number of packets dropped at TX time */
-	guint32  rx_dropped;		/**< Number of packets dropped at RX time */
-	guint32  n_bad;				/**< Number of bad packets received */
-	guint16  n_dups;			/**< Number of dup messages received (bad) */
-	guint16  n_hard_ttl;		/**< Number of hard_ttl exceeded (bad) */
-	guint32  n_weird;			/**< Number of weird messages from that node */
-	guint32  n_hostile;			/**< Number of messages from hostile IP */
-	guint32  n_spam;			/**< Number of messages rated as spam */
-	guint32  n_evil;			/**< Number of messages with evil filenames */
+	uint32  sent;				/**< Number of sent packets */
+	uint32  received;			/**< Number of received packets */
+	uint32  tx_dropped;			/**< Number of packets dropped at TX time */
+	uint32  rx_dropped;			/**< Number of packets dropped at RX time */
+	uint32  n_bad;				/**< Number of bad packets received */
+	uint16  n_dups;				/**< Number of dup messages received (bad) */
+	uint16  n_hard_ttl;			/**< Number of hard_ttl exceeded (bad) */
+	uint32  n_weird;			/**< Number of weird messages from that node */
+	uint32  n_hostile;			/**< Number of messages from hostile IP */
+	uint32  n_spam;				/**< Number of messages rated as spam */
+	uint32  n_evil;				/**< Number of messages with evil filenames */
 
-    guint     squeue_sent;
-    guint     squeue_count;
-    guint     mqueue_count;
-    guint     mqueue_percent_used;
-    gboolean in_tx_flow_control;
-    gboolean in_tx_swift_control;
+    uint squeue_sent;
+    uint squeue_count;
+    uint mqueue_count;
+    uint mqueue_percent_used;
+    bool in_tx_flow_control;
+    bool in_tx_swift_control;
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	guint64   tx_given;			/**< Bytes fed to the TX stack (from top) */
-	guint64   tx_deflated;		/**< Bytes deflated by the TX stack */
-	guint64   tx_written;		/**< Bytes written by the TX stack */
-    gboolean tx_compressed;     /**< Is TX traffic compressed */
-    float   tx_compression_ratio; /**< TX compression ratio */
-    guint32  tx_bps;			/**< TX traffic rate */
+	uint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	uint64 tx_deflated;			/**< Bytes deflated by the TX stack */
+	uint64 tx_written;			/**< Bytes written by the TX stack */
+    bool   tx_compressed;		/**< Is TX traffic compressed */
+    float  tx_compression_ratio; /**< TX compression ratio */
+    uint32 tx_bps;				/**< TX traffic rate */
 
-	guint64   rx_given;			/**< Bytes fed to the RX stack (from bottom) */
-	guint64   rx_inflated;		/**< Bytes inflated by the RX stack */
-	guint64   rx_read;			/**< Bytes read from the RX stack */
-    gboolean rx_compressed;     /**< Is RX traffic compressed */
-    float   rx_compression_ratio;/**< RX compression ratio */
-    float   rx_bps;			/**< RX traffic rate */
+	uint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	uint64 rx_inflated;			/**< Bytes inflated by the RX stack */
+	uint64 rx_read;				/**< Bytes read from the RX stack */
+    bool   rx_compressed;		/**< Is RX traffic compressed */
+    float  rx_compression_ratio;/**< RX compression ratio */
+    float  rx_bps;				/**< RX traffic rate */
 
 	/*
 	 * Gnutella statistics -- RAM, 10/12/2003.
 	 */
 
-	gboolean has_qrp;		/**< Whether node is under QRP control */
+	bool has_qrp;			/**< Whether node is under QRP control */
 	float qrp_efficiency;	/**< Queries matched / received on QRP control */
-	guint32 rx_queries;		/**< Total amount of queries received */
-	guint32 tx_queries;		/**< Total amount of queries sent */
-	guint32 rx_qhits;		/**< Total amount of hits received */
-	guint32 tx_qhits;		/**< Total amount of hits sent */
+	uint32 rx_queries;		/**< Total amount of queries received */
+	uint32 tx_queries;		/**< Total amount of queries sent */
+	uint32 rx_qhits;		/**< Total amount of hits received */
+	uint32 tx_qhits;		/**< Total amount of hits sent */
 
-	guint qrt_slots;			/**< Amount of slots in leaf's QRT */
-	guint qrt_generation;	/**< Generation number */
-	guint qrt_fill_ratio;	/**< % of filling */
-	guint qrt_pass_throw;	/**< Query limiter pass throw when table filled */
+	uint qrt_slots;			/**< Amount of slots in leaf's QRT */
+	uint qrt_generation;	/**< Generation number */
+	uint qrt_fill_ratio;	/**< % of filling */
+	uint qrt_pass_throw;	/**< Query limiter pass throw when table filled */
 
-	guint32  rt_avg;			/**< Average ping/pong roundtrip time */
-	guint32  rt_last;			/**< Last ping/pong roundtrip time */
+	uint32  rt_avg;			/**< Average ping/pong roundtrip time */
+	uint32  rt_last;		/**< Last ping/pong roundtrip time */
 
-	guint32 tcp_rtt;			/**< RTT in ms over TCP */
-	guint32 udp_rtt;			/**< RTT in ms over UDP */
+	uint32 tcp_rtt;			/**< RTT in ms over TCP */
+	uint32 udp_rtt;			/**< RTT in ms over UDP */
 
-    guint     shutdown_remain;	/**< Number of seconds before shutdown */
+    uint    shutdown_remain;	/**< Number of seconds before shutdown */
     char    message[128];		/**< Additional information */
 } gnet_node_status_t;
 
@@ -278,14 +278,14 @@ typedef struct gnet_node_info {
 	int proto_major;		/**< Protocol major number */
 	int proto_minor;		/**< Protocol minor number */
 	vendor_code_t vcode;	/**< Vendor code (vcode.u32 == 0 when unknown) */
-	gboolean is_pseudo;		/**< TRUE if it's the pseudo UDP node */
+	bool is_pseudo;			/**< TRUE if it's the pseudo UDP node */
 
 	host_addr_t addr;		/**< ip of the node (connected) */
 	host_addr_t gnet_addr;	/**< Advertised Gnutella address for connecting */
 
-	guint16 port;			/**< port of the node (connected) */
-	guint16 gnet_port;		/**< Advertised Gnutella listening port */
-	guint16 country;		/**< Country information */
+	uint16 port;			/**< port of the node (connected) */
+	uint16 gnet_port;		/**< Advertised Gnutella listening port */
+	uint16 country;			/**< Country information */
 
 } gnet_node_info_t;
 
@@ -322,7 +322,7 @@ typedef struct gnet_node_flags {
 	qrt_state_t qrt_state;
 	qrt_state_t uqrt_state;
 	mq_status_t mq_status;
-	guint8 hops_flow;
+	uint8 hops_flow;
 	unsigned incoming:1;
 	unsigned writable:1;
 	unsigned readable:1;
@@ -381,16 +381,16 @@ void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 /*
  * Nodes public interface
  */
-void node_add(const host_addr_t addr, guint16, guint32 flags);
-void node_add_by_name(const char *host, guint16, guint32 flags);
+void node_add(const host_addr_t addr, uint16, uint32 flags);
+void node_add_by_name(const char *host, uint16, uint32 flags);
 void node_remove_by_id(const struct nid *node_id);
 void node_remove_nodes_by_id(const GSList *node_list);
-gboolean node_get_status(const struct nid *node_id, gnet_node_status_t *s);
+bool node_get_status(const struct nid *node_id, gnet_node_status_t *s);
 gnet_node_info_t *node_get_info(const struct nid *node_id);
 void node_clear_info(gnet_node_info_t *info);
 void node_free_info(gnet_node_info_t *info);
-gboolean node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags);
-gboolean node_fill_info(const struct nid *node_id, gnet_node_info_t *info);
+bool node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags);
+bool node_fill_info(const struct nid *node_id, gnet_node_info_t *info);
 const char *node_flags_to_string(const gnet_node_flags_t *flags);
 const char *node_peermode_to_string(node_peer_t m);
 

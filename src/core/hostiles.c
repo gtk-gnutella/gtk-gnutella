@@ -46,7 +46,7 @@
 #include "dht/stable.h"
 
 #include "lib/ascii.h"
-#include "lib/atoms.h"
+#include "lib/atoms.h"			/* For uint32_hash() */
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
@@ -54,6 +54,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
@@ -96,7 +97,7 @@ static hash_list_t *hl_dynamic_ipv6;
 #define HOSTILES_DYNAMIC_PENALTY	43201	/**< [s]; about 12 hours (prime) */
 
 struct hostiles_dynamic_entry4 {
-	guint32 ipv4;	/* MUST be at offset 0 due to uint32_hash/eq */
+	uint32 ipv4;	/* MUST be at offset 0 due to uint32_hash/eq */
 	unsigned long relative_time;
 };
 
@@ -104,7 +105,7 @@ struct hostiles_dynamic_entry4 {
 #define HOSTILES_IPV6_LEN		(16 - HOSTILES_IPV6_ZEROED)
 
 struct hostiles_dynamic_entry6 {
-	guint8 ip[HOSTILES_IPV6_LEN];	/* MUST be at offset 0 for hash/eq */
+	uint8 ip[HOSTILES_IPV6_LEN];	/* MUST be at offset 0 for hash/eq */
 	unsigned long relative_time;
 };
 
@@ -130,7 +131,7 @@ static char db_spam_what[] = "Spamming hosts";
 struct spamhost {
 	time_t first_seen;		/**< Time first seen returning spam */
 	time_t last_seen;		/**< Time last seen returning spam */
-	guint16 port;			/**< Port number */
+	uint16 port;			/**< Port number */
 };
 
 /**
@@ -145,7 +146,7 @@ struct spamdata {
 	struct spamhost hosts[SPAM_MAX_PORTS];
 	time_t create_time;		/**< When we first encountered that IP address */
 	time_t last_time;		/**< Last time we saw spam from this host */
-	guint8 ports;			/**< # of ports known to run spamming servents */
+	uint8 ports;			/**< # of ports known to run spamming servents */
 };
 
 /**
@@ -188,7 +189,7 @@ static void
 deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct spamdata *sd = valptr;
-	guint8 version;
+	uint8 version;
 	int i;
 
 	g_assert(sizeof *sd == len);
@@ -213,7 +214,7 @@ deserialize_spamdata(bstr_t *bs, void *valptr, size_t len)
 static void
 hostiles_close_one(hostiles_t which)
 {
-	guint i = which;
+	uint i = which;
 	
 	g_assert(i < NUM_HOSTILES);
 	iprange_free(&hostile_db[i]);
@@ -228,7 +229,7 @@ static int
 hostiles_load(FILE *f, hostiles_t which)
 {
 	char line[1024];
-	guint32 ip, netmask;
+	uint32 ip, netmask;
 	int linenum = 0;
 	int bits;
 	iprange_err_t error;
@@ -292,7 +293,7 @@ hostiles_load(FILE *f, hostiles_t which)
  * addresses changed.
  */
 static void
-hostiles_changed(const char *filename, gpointer udata)
+hostiles_changed(const char *filename, void *udata)
 {
 	FILE *f;
 	char buf[80];
@@ -415,7 +416,7 @@ hostiles_retrieve(hostiles_t which)
  * hostile_db[HOSTILE_GLOBAL]. The file watcher keeps running though during
  * this session and we keep the database in memory.
  */
-static gboolean
+static bool
 use_global_hostiles_txt_changed(property_t unused_prop)
 {
 	(void) unused_prop;
@@ -428,7 +429,7 @@ use_global_hostiles_txt_changed(property_t unused_prop)
 }
 
 static struct hostiles_dynamic_entry4 *
-hostiles_dynamic_new4(guint32 ipv4)
+hostiles_dynamic_new4(uint32 ipv4)
 {
 	struct hostiles_dynamic_entry4 entry;
 
@@ -449,7 +450,7 @@ hostiles_dynamic_free4(struct hostiles_dynamic_entry4 **entry_ptr)
 }
 
 static struct hostiles_dynamic_entry6 *
-hostiles_dynamic_new6(const guint8 *ipv6)
+hostiles_dynamic_new6(const uint8 *ipv6)
 {
 	struct hostiles_dynamic_entry6 entry;
 
@@ -470,7 +471,7 @@ hostiles_dynamic_free6(struct hostiles_dynamic_entry6 **entry_ptr)
 }
 
 static void
-hostiles_dynamic_expire4(gboolean forced)
+hostiles_dynamic_expire4(bool forced)
 {
 	unsigned long now = tm_relative_time();
 
@@ -501,7 +502,7 @@ hostiles_dynamic_expire4(gboolean forced)
 }
 
 static void
-hostiles_dynamic_expire6(gboolean forced)
+hostiles_dynamic_expire6(bool forced)
 {
 	unsigned long now = tm_relative_time();
 
@@ -532,7 +533,7 @@ hostiles_dynamic_expire6(gboolean forced)
  * Callout queue periodic event to perform periodic monitoring of the
  * registered files.
  */
-static gboolean
+static bool
 hostiles_dynamic_timer(void *unused_udata)
 {
 	(void) unused_udata;
@@ -544,7 +545,7 @@ hostiles_dynamic_timer(void *unused_udata)
 }
 
 static void
-hostiles_dynamic_add_ipv4(guint32 ipv4)
+hostiles_dynamic_add_ipv4(uint32 ipv4)
 {
 	struct hostiles_dynamic_entry4 *entry;
 
@@ -568,7 +569,7 @@ hostiles_dynamic_add_ipv4(guint32 ipv4)
 }
 
 static void
-hostiles_dynamic_add_ipv6(const guint8 *ipv6)
+hostiles_dynamic_add_ipv6(const uint8 *ipv6)
 {
 	struct hostiles_dynamic_entry6 *entry;
 
@@ -588,8 +589,8 @@ hostiles_dynamic_add_ipv6(const guint8 *ipv6)
 	}
 }
 
-static gboolean
-hostiles_static_check_ipv4(guint32 ipv4)
+static bool
+hostiles_static_check_ipv4(uint32 ipv4)
 {
 	int i;
 
@@ -603,8 +604,8 @@ hostiles_static_check_ipv4(guint32 ipv4)
 	return FALSE;
 }
 
-static gboolean
-hostiles_static_check_ipv6(const guint8 *ipv6)
+static bool
+hostiles_static_check_ipv6(const uint8 *ipv6)
 {
 	(void) ipv6;
 
@@ -627,7 +628,7 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 		host_addr_convert(addr, &ipv4_addr, NET_TYPE_IPV4) ||
 		host_addr_tunnel_client(addr, &ipv4_addr)
 	) {
-		guint32 ip = host_addr_ipv4(ipv4_addr);
+		uint32 ip = host_addr_ipv4(ipv4_addr);
 
 		if (!hostiles_static_check_ipv4(ip)) {
 			hostiles_dynamic_add_ipv4(ip);
@@ -638,7 +639,7 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 			}
 		}
 	} else if (host_addr_is_ipv6(addr)) {
-		const guint8 *ip;
+		const uint8 *ip;
 
 		ip = host_addr_ipv6(&addr);
 
@@ -653,8 +654,8 @@ hostiles_dynamic_add(const host_addr_t addr, const char *reason)
 	}
 }
 
-static inline gboolean
-hostiles_dynamic_check_ipv4(guint32 ipv4)
+static inline bool
+hostiles_dynamic_check_ipv4(uint32 ipv4)
 {
 	/**
 	 * We could check relative_time here but entries are sufficiently
@@ -663,8 +664,8 @@ hostiles_dynamic_check_ipv4(guint32 ipv4)
 	return hash_list_contains(hl_dynamic_ipv4, &ipv4);
 }
 
-static inline gboolean
-hostiles_dynamic_check_ipv6(const guint8 *ipv6)
+static inline bool
+hostiles_dynamic_check_ipv6(const uint8 *ipv6)
 {
 	/**
 	 * We could check relative_time here but entries are sufficiently
@@ -679,7 +680,7 @@ hostiles_dynamic_check_ipv6(const guint8 *ipv6)
  * @param ha the host address to check.
  * @returns TRUE if found, and FALSE if not.
  */
-gboolean
+bool
 hostiles_check(const host_addr_t ha)
 {
 	host_addr_t to;
@@ -688,12 +689,12 @@ hostiles_check(const host_addr_t ha)
 		host_addr_convert(ha, &to, NET_TYPE_IPV4) ||
 		host_addr_tunnel_client(ha, &to)
 	) {
-		guint32 ip = host_addr_ipv4(to);
+		uint32 ip = host_addr_ipv4(to);
 
 		return hostiles_dynamic_check_ipv4(ip) ||
 			hostiles_static_check_ipv4(ip);
 	} else if (host_addr_is_ipv6(ha)) {
-		const guint8 *ip;
+		const uint8 *ip;
 
 		ip = host_addr_ipv6(&ha);
 
@@ -727,7 +728,7 @@ get_spamdata(const gnet_host_t *host)
  * Record indication that we got spam from given address and port.
  */
 void
-hostiles_spam_add(const host_addr_t addr, guint16 port)
+hostiles_spam_add(const host_addr_t addr, uint16 port)
 {
 	struct spamdata *sd;
 	struct spamdata new_sd;
@@ -750,7 +751,7 @@ hostiles_spam_add(const host_addr_t addr, guint16 port)
 		gnet_stats_count_general(GNR_SPAM_IP_HELD, +1);
 	} else {
 		int i;
-		gboolean found = FALSE;
+		bool found = FALSE;
 
 		for (i = 0; i < sd->ports; i++) {
 			struct spamhost *sh = &sd->hosts[i];
@@ -813,7 +814,7 @@ hostiles_spam_add(const host_addr_t addr, guint16 port)
  * change to database.
  */
 static void
-spam_remove_port(struct spamdata *sd, const host_addr_t addr, guint16 port)
+spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 {
 	int i;
 
@@ -845,8 +846,8 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, guint16 port)
 /**
  * Is IP:port that of a known host returning spam?
  */
-gboolean
-hostiles_spam_check(const host_addr_t addr, guint16 port)
+bool
+hostiles_spam_check(const host_addr_t addr, uint16 port)
 {
 	struct spamdata *sd;
 	gnet_host_t host;
@@ -872,7 +873,7 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
 
 	for (i = 0; i < sd->ports; i++) {
 		struct spamhost *sh = &sd->hosts[i];
-		gboolean expired;
+		bool expired;
 
 		if (sh->port != port)
 			continue;
@@ -921,7 +922,7 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
 	if (100 == c) {
 		return FALSE;			/* Not a spamming host */
 	} else {
-		return random_u32() % 100 >= c;
+		return random_value(99) >= c;
 	}
 }
 
@@ -929,14 +930,14 @@ hostiles_spam_check(const host_addr_t addr, guint16 port)
  * DBMW foreach iterator to remove old entries.
  * @return TRUE if entry must be deleted.
  */
-static gboolean
+static bool
 spam_prune_old(void *key, void *value, size_t u_len, void *u_data)
 {
 	const gnet_host_t *h = key;
 	const struct spamdata *sd = value;
 	time_delta_t d;
 	double p = 0.0;
-	gboolean expired;
+	bool expired;
 
 	(void) u_len;
 	(void) u_data;
@@ -995,7 +996,7 @@ hostiles_spam_prune_old(void)
 /**
  * Callout queue periodic event to expire old entries.
  */
-static gboolean
+static bool
 hostiles_spam_periodic_prune(void *unused_obj)
 {
 	(void) unused_obj;
@@ -1007,7 +1008,7 @@ hostiles_spam_periodic_prune(void *unused_obj)
 /**
  * Callout queue periodic event to synchronize the disk image.
  */
-static gboolean
+static bool
 hostiles_spam_periodic_sync(void *unused_obj)
 {
 	(void) unused_obj;
@@ -1016,7 +1017,7 @@ hostiles_spam_periodic_sync(void *unused_obj)
 	return TRUE;		/* Keep calling */
 }
 
-static guint
+static uint
 hostiles_ipv6_hash(const void *key)
 {
 	return binary_hash(key, HOSTILES_IPV6_LEN);

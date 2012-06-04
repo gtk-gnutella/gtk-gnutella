@@ -42,16 +42,18 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/endian.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
-#include "lib/pmsg.h"
+#include "lib/hset.h"
 #include "lib/inputevt.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
 /* The currently support protocol version. */
-static const guint16 RUDP_PROTO_VERSION = 0;
+static const uint16 RUDP_PROTO_VERSION = 0;
 
 /* Standardized RUDP packet opcodes */
 enum rudp_op {
@@ -74,39 +76,39 @@ enum rudp_fin_reason {
 /* Raw layout of a RUDP packet header. This overlays/replaces the GUID area of
  * a Gnutella packet. Thus the "GUID" of these is meaningless. */
 struct rudp_header {
-  guint8 peer_conn_id;
-  guint8 op_and_len;
-  guint8 seq_no[2];
+  uint8 peer_conn_id;
+  uint8 op_and_len;
+  uint8 seq_no[2];
 };
 
 /* Raw layout of a RUDP SYN packet */
 struct rudp_syn {
   struct rudp_header common;
 
-  guint8 conn_id;
-  guint8 proto_ver[2];
+  uint8 conn_id;
+  uint8 proto_ver[2];
 };
 
 /* Raw layout of a RUDP ACK packet */
 struct rudp_ack {
   struct rudp_header common;
 
-  guint8 window_start[2];
-  guint8 window_space[2];
+  uint8 window_start[2];
+  uint8 window_space[2];
 };
 
 /* Raw layout of a RUDP DATA packet */
 struct rudp_data {
   struct rudp_header common;
 
-  guint8 data1[12];
+  uint8 data1[12];
 };
 
 /* Raw layout of a RUDP FIN packet */
 struct rudp_fin {
   struct rudp_header common;
 
-  guint8 reason;
+  uint8 reason;
 };
 
 /*
@@ -134,28 +136,28 @@ static hash_list_t *rudp_list[RUDP_NUM_LISTS];
 
 struct rudp_window {
 	pmsg_t *buffers[32];
-  	guint64 seq_no;		/* The current sequence number */
-  	guint rd;			/* Read position; wrapping index into `buffers' */
-  	guint wr;			/* Write position; wrapping index into `buffers' */
-  	guint64 start;		/* The first sequence number in this window */
-	guint16 space;		/* The size of the window */
+  	uint64 seq_no;		/* The current sequence number */
+  	uint rd;			/* Read position; wrapping index into `buffers' */
+  	uint wr;			/* Write position; wrapping index into `buffers' */
+  	uint64 start;		/* The first sequence number in this window */
+	uint16 space;		/* The size of the window */
 	tm_t last_event;	/* Timestamp of the last I/O event */
 };
 
 struct rudp_con {
   inputevt_handler_t event_handler;
   inputevt_cond_t event_cond;
-  gpointer event_data;
+  void *event_data;
   
   host_addr_t addr;
-  guint16 port;
-  guint8 conn_id;
+  uint16 port;
+  uint8 conn_id;
   struct rudp_window in;
   struct rudp_window out;
   enum rudp_status status;
 };
 
-static GHashTable *connections;
+static hset_t *connections;
 
 #define RUDP_DEBUG(x) \
 G_STMT_START { \
@@ -165,7 +167,7 @@ G_STMT_START { \
 } G_STMT_END
 
 static const char *
-rudp_op_to_string(guint8 op)
+rudp_op_to_string(uint8 op)
 {
   if (op <= 0x04) {
     enum rudp_op v = op;
@@ -184,7 +186,7 @@ rudp_op_to_string(guint8 op)
 }
 
 static const char *
-rudp_fin_reason_to_string(guint8 reason)
+rudp_fin_reason_to_string(uint8 reason)
 {
   if (reason <= 0x04) {
     enum rudp_fin_reason v = reason;
@@ -203,25 +205,24 @@ rudp_fin_reason_to_string(guint8 reason)
 }
 
 /**
- * Hash function for use in g_hash_table_new.
+ * Hash function for use in hash tables.
  */
-static guint
-rudp_con_hash(gconstpointer key)
+static uint
+rudp_con_hash(const void *key)
 {
 	const struct rudp_con *c = key;
 
-	return host_addr_hash(c->addr) ^
-		((c->port << 16) | c->port) ^
-		c->conn_id;
+	return host_addr_hash(c->addr) ^ port_hash(c->port) ^
+		integer_hash(c->conn_id);
 }
 
 /**
  * Compare function which returns TRUE if the connections are equal.
  *
- * @note For use in g_hash_table_new.
+ * @note For use in hash tables.
  */
 int
-rudp_con_eq(gconstpointer v1, gconstpointer v2)
+rudp_con_eq(const void *v1, const void *v2)
 {
 	const struct rudp_con *c1 = v1, *c2 = v2;
 
@@ -230,7 +231,7 @@ rudp_con_eq(gconstpointer v1, gconstpointer v2)
 }
 
 static void
-rudp_list_add(enum rudp_list i, struct rudp_con *con, gboolean ready)
+rudp_list_add(enum rudp_list i, struct rudp_con *con, bool ready)
 {
 	g_return_if_fail(con);
 
@@ -241,13 +242,13 @@ rudp_list_add(enum rudp_list i, struct rudp_con *con, gboolean ready)
 }
 
 static void
-rudp_set_readable(struct rudp_con *con, gboolean ready)
+rudp_set_readable(struct rudp_con *con, bool ready)
 {
 	rudp_list_add(RUDP_LIST_READABLE, con, ready);
 }
 
 static void
-rudp_set_writable(struct rudp_con *con, gboolean ready)
+rudp_set_writable(struct rudp_con *con, bool ready)
 {
 	rudp_list_add(RUDP_LIST_WRITABLE, con, ready);
 }
@@ -259,35 +260,35 @@ rudp_set_closed(struct rudp_con *con)
 }
 
 static void
-rudp_set_incoming(struct rudp_con *con, gboolean ready)
+rudp_set_incoming(struct rudp_con *con, bool ready)
 {
 	rudp_list_add(RUDP_LIST_INCOMING, con, ready);
 }
 
 static void
-rudp_set_pending(struct rudp_con *con, gboolean ready)
+rudp_set_pending(struct rudp_con *con, bool ready)
 {
 	rudp_list_add(RUDP_LIST_PENDING, con, ready);
 }
 
-static inline gboolean
-rudp_seq_number_in_recv_window(const struct rudp_con *con, guint16 seq_no)
+static inline bool
+rudp_seq_number_in_recv_window(const struct rudp_con *con, uint16 seq_no)
 {
 	/* TODO: Overflow handling */
 	return seq_no >= con->in.start &&
-		seq_no <= (guint32) con->in.start + con->in.space;
+		seq_no <= (uint32) con->in.start + con->in.space;
 }
 
-static inline gboolean
-rudp_seq_number_in_send_window(const struct rudp_con *con, guint16 seq_no)
+static inline bool
+rudp_seq_number_in_send_window(const struct rudp_con *con, uint16 seq_no)
 {
 	/* TODO: Overflow handling */
 	return seq_no >= con->out.start &&
-		seq_no <= (guint32) con->out.start + con->out.space;
+		seq_no <= (uint32) con->out.start + con->out.space;
 }
 
 struct rudp_con *
-rudp_find(const host_addr_t addr, guint16 port, guint8 conn_id)
+rudp_find(const host_addr_t addr, uint16 port, uint8 conn_id)
 {
 	static const struct rudp_con zero_con;
 	struct rudp_con key;
@@ -296,11 +297,11 @@ rudp_find(const host_addr_t addr, guint16 port, guint8 conn_id)
 	key.addr = addr;
 	key.port = port;
 	key.conn_id = conn_id;
-	return g_hash_table_lookup(connections, &key);
+	return hset_lookup(connections, &key);
 }
 
 struct rudp_con *
-rudp_alloc(const host_addr_t addr, guint16 port, guint8 conn_id)
+rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 {
 	g_return_val_if_fail(is_host_addr(addr), NULL);
 	g_return_val_if_fail(0 != port, NULL);
@@ -316,14 +317,14 @@ rudp_alloc(const host_addr_t addr, guint16 port, guint8 conn_id)
 		con->conn_id = conn_id;
 		con->in.space = 20;
 		con->out.space = 20;
-		g_hash_table_insert(connections, con, con);
+		hset_insert(connections, con);
 		return con;
 	}
 	return NULL;
 }
 
 static void
-rudp_set_gnet_header(gnutella_header_t *header, guint32 size)
+rudp_set_gnet_header(gnutella_header_t *header, uint32 size)
 {
   g_assert(size < 0xffff);
 
@@ -335,8 +336,8 @@ rudp_set_gnet_header(gnutella_header_t *header, guint32 size)
 }
 
 static void
-rudp_set_header(struct rudp_header *header, enum rudp_op op, guint8 conn_id,
-    guint8 data1_len, guint16 seq_no)
+rudp_set_header(struct rudp_header *header, enum rudp_op op, uint8 conn_id,
+    uint8 data1_len, uint16 seq_no)
 { 
   g_assert(op < 16);  
   g_assert(data1_len <= 12);
@@ -347,7 +348,7 @@ rudp_set_header(struct rudp_header *header, enum rudp_op op, guint8 conn_id,
 } 
 
 static void
-rudp_send_packet(struct rudp_con *con, gconstpointer data, size_t size)
+rudp_send_packet(struct rudp_con *con, const void *data, size_t size)
 {
   const struct gnutella_node *n;
 
@@ -363,7 +364,7 @@ rudp_send_packet(struct rudp_con *con, gconstpointer data, size_t size)
 
 	  RUDP_DEBUG(("TYPE=0x%02x TTL=%u HOPS=%u SIZE=%lu",
 		header->function, header->ttl, header->hops,
-		(gulong) peek_le32(header->size)));
+		(ulong) peek_le32(header->size)));
   }
 
   {
@@ -386,7 +387,7 @@ rudp_send_packet(struct rudp_con *con, gconstpointer data, size_t size)
   }
 }
 
-static inline gboolean
+static inline bool
 rudp_may_send_syn(const struct rudp_con *con)
 {
 	switch (con->status) {
@@ -417,8 +418,8 @@ rudp_send_syn(struct rudp_con *con)
 
 		 STATIC_ASSERT(23 == sizeof packet);
 
-		 gnet = cast_to_gpointer(&packet);
-		 syn = cast_to_gpointer(&packet);
+		 gnet = cast_to_pointer(&packet);
+		 syn = cast_to_pointer(&packet);
 
 		 rudp_set_gnet_header(gnet, 0);
 		 rudp_set_header(&syn->common, RUDP_OP_SYN, con->conn_id, 0,
@@ -456,7 +457,7 @@ rudp_send_syn(struct rudp_con *con)
 }
 
 static void
-rudp_send_ack(struct rudp_con *con, guint16 seq_no)
+rudp_send_ack(struct rudp_con *con, uint16 seq_no)
 { 
   gnutella_header_t *gnet;
   struct rudp_ack *ack;
@@ -470,8 +471,8 @@ rudp_send_ack(struct rudp_con *con, guint16 seq_no)
 	  con->in.start = seq_no + 1;
   }
 
-  gnet = cast_to_gpointer(&packet);
-  ack = cast_to_gpointer(&packet);
+  gnet = cast_to_pointer(&packet);
+  ack = cast_to_pointer(&packet);
   
   rudp_set_gnet_header(gnet, 0);
   rudp_set_header(&ack->common, RUDP_OP_ACK, con->conn_id, 0, seq_no);
@@ -487,7 +488,7 @@ rudp_send_ack(struct rudp_con *con, guint16 seq_no)
 }
 
 static void
-rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
+rudp_send_fin(struct rudp_con *con, uint16 seq_no, enum rudp_fin_reason reason)
 { 
   gnutella_header_t *gnet;
   struct rudp_fin *fin;
@@ -497,8 +498,8 @@ rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
 
   g_return_if_fail(con);
   
-  gnet = cast_to_gpointer(&packet);
-  fin = cast_to_gpointer(&packet);
+  gnet = cast_to_pointer(&packet);
+  fin = cast_to_pointer(&packet);
   
   rudp_set_gnet_header(gnet, 0);
   rudp_set_header(&fin->common, RUDP_OP_FIN, con->conn_id, 0, seq_no);
@@ -527,10 +528,10 @@ rudp_send_fin(struct rudp_con *con, guint16 seq_no, enum rudp_fin_reason reason)
  *			is returned.
  */
 int
-rudp_connect(const host_addr_t addr, guint16 port)
+rudp_connect(const host_addr_t addr, uint16 port)
 {
 	struct rudp_con *con;
-	guint i;
+	uint i;
 
 	g_return_val_if_fail(is_host_addr(addr), -1);
 	g_return_val_if_fail(0 != port, -1);
@@ -566,12 +567,12 @@ rudp_connect(const host_addr_t addr, guint16 port)
  * @param data A pointer to the first byte of the received packet.
  */
 static void
-rudp_handle_syn(struct rudp_con *con, const host_addr_t addr, guint16 port,
-	gconstpointer data)
+rudp_handle_syn(struct rudp_con *con, const host_addr_t addr, uint16 port,
+	const void *data)
 {
 	const struct rudp_syn *syn = data;
-	guint16 proto_ver;
-	guint16 seq_no;
+	uint16 proto_ver;
+	uint16 seq_no;
 
 	g_return_if_fail(syn);
 
@@ -579,7 +580,7 @@ rudp_handle_syn(struct rudp_con *con, const host_addr_t addr, guint16 port,
 	proto_ver = peek_be16(syn->proto_ver);
 
 	RUDP_DEBUG(("RUDP SYN: conn_id=%u proto_ver=%u",
-		(guint) syn->conn_id, (guint) proto_ver));
+		(uint) syn->conn_id, (uint) proto_ver));
     
 	if (RUDP_PROTO_VERSION != proto_ver) {
 		RUDP_DEBUG(("RUDP SYN: Unsupported protocol version"));
@@ -623,10 +624,10 @@ rudp_handle_syn(struct rudp_con *con, const host_addr_t addr, guint16 port,
  * @param data A pointer to the first byte of the received packet.
  */
 static void
-rudp_handle_ack(struct rudp_con *con, gconstpointer data)
+rudp_handle_ack(struct rudp_con *con, const void *data)
 {
 	const struct rudp_ack *ack = data;
-    guint16 space, start, seq_no;
+    uint16 space, start, seq_no;
 
 	g_return_if_fail(con);
 	g_return_if_fail(data);
@@ -663,8 +664,8 @@ rudp_handle_ack(struct rudp_con *con, gconstpointer data)
 	}
 	
 	{
-		gboolean pending;
-		guint i;
+		bool pending;
+		uint i;
 
 		/*
 		 * Remove all ACKed messages from the outbuf buffers. The 
@@ -676,9 +677,9 @@ rudp_handle_ack(struct rudp_con *con, gconstpointer data)
 			mb = con->out.buffers[i];
 			if (mb) {
 				const struct rudp_header *header;
-				guint16 s;
+				uint16 s;
 
-				header = cast_to_gconstpointer(pmsg_read_base(mb));
+				header = cast_to_constpointer(pmsg_read_base(mb));
 				s = peek_be16(header->seq_no);
 				if (s == seq_no || s < start) {
 					pmsg_free(mb);
@@ -712,10 +713,10 @@ rudp_handle_ack(struct rudp_con *con, gconstpointer data)
 }
 
 static void
-rudp_handle_keep_alive(struct rudp_con *con, gconstpointer data)
+rudp_handle_keep_alive(struct rudp_con *con, const void *data)
 {
 	const struct rudp_ack *keep_alive = data;
-	guint16 seq_no;
+	uint16 seq_no;
 
 	g_return_if_fail(con);
 	g_return_if_fail(data);
@@ -725,10 +726,10 @@ rudp_handle_keep_alive(struct rudp_con *con, gconstpointer data)
 }
 
 static void
-rudp_handle_fin(struct rudp_con *con, gconstpointer data)
+rudp_handle_fin(struct rudp_con *con, const void *data)
 {
 	const struct rudp_fin *fin = data;
-	guint16 seq_no;
+	uint16 seq_no;
 
 	g_return_if_fail(con);
 	g_return_if_fail(data);
@@ -749,10 +750,10 @@ rudp_handle_fin(struct rudp_con *con, gconstpointer data)
 }
 
 static void
-rudp_handle_data(struct rudp_con *con, gconstpointer data)
+rudp_handle_data(struct rudp_con *con, const void *data)
 {
 	const struct rudp_data *dat = data;
-	guint16 seq_no, i;
+	uint16 seq_no, i;
 	
 	g_return_if_fail(con);
 	g_return_if_fail(data);
@@ -764,7 +765,7 @@ rudp_handle_data(struct rudp_con *con, gconstpointer data)
 	i = seq_no - con->in.seq_no;
 	g_return_if_fail(i < G_N_ELEMENTS(con->in.buffers));
 
-	i = ((guint32) i + con->in.rd) % G_N_ELEMENTS(con->in.buffers);
+	i = ((uint32) i + con->in.rd) % G_N_ELEMENTS(con->in.buffers);
 	
 	if (con->in.buffers[i]) {
 		RUDP_DEBUG(("RUDP DATA: Received duplicate"));
@@ -791,11 +792,11 @@ rudp_handle_data(struct rudp_con *con, gconstpointer data)
 	rudp_send_ack(con, seq_no);
 }
 
-static gboolean
-rudp_send_data(struct rudp_con *con, gconstpointer data, size_t size)
+static bool
+rudp_send_data(struct rudp_con *con, const void *data, size_t size)
 {
 	const char *p = data;
-	guint data_len;
+	uint data_len;
 	pmsg_t *mb;
 
 	if (con->out.buffers[con->out.wr]) {
@@ -809,7 +810,7 @@ rudp_send_data(struct rudp_con *con, gconstpointer data, size_t size)
 			gnutella_header_t gnet;
 			struct rudp_data data;
 		} header;
-		guint data1_len, j;
+		uint data1_len, j;
 
 		data1_len = size < 12 ? size : 12;
 		rudp_set_gnet_header(&header.gnet, data_len);
@@ -831,16 +832,16 @@ rudp_send_data(struct rudp_con *con, gconstpointer data, size_t size)
 }
 
 void
-rudp_handle_packet(const host_addr_t addr, guint16 port,
-	gconstpointer data, size_t size)
+rudp_handle_packet(const host_addr_t addr, uint16 port,
+	const void *data, size_t size)
 {
 	const struct rudp_header *rudp_header;
     gnutella_header_t *gnet_header;
 	const char *op_str;
-	guint16 seq_no;
-	guint8 data1_len;
-	guint8 op;
-	guint8 conn_id;
+	uint16 seq_no;
+	uint8 data1_len;
+	uint8 op;
+	uint8 conn_id;
 	struct rudp_con *con;
 
 	g_return_if_fail(is_host_addr(addr));
@@ -862,7 +863,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 
 	RUDP_DEBUG(("RUDP: sender=%s op=%s peer_conn_id=%u data_len=%u seq_no=%u",
 		host_addr_port_to_string(addr, port), op_str ? op_str : "",
-		(guint) conn_id, (guint) data1_len, (guint) seq_no));
+		(uint) conn_id, (uint) data1_len, (uint) seq_no));
 
 	if (!op_str) {
 		RUDP_DEBUG(("RUDP: Unknown op (0x%02x)", op));
@@ -922,7 +923,7 @@ rudp_handle_packet(const host_addr_t addr, guint16 port,
 }
 
 ssize_t
-rudp_write(struct rudp_con *con, gconstpointer data, size_t size)
+rudp_write(struct rudp_con *con, const void *data, size_t size)
 {
 	const char *p;
 	
@@ -952,7 +953,7 @@ rudp_write(struct rudp_con *con, gconstpointer data, size_t size)
 	p = data;
 
 	while (size > 0) {
-		guint n;
+		uint n;
 		
 		n = MIN(512, size);
 		if (!rudp_send_data(con, p, n)) {
@@ -973,12 +974,12 @@ rudp_write(struct rudp_con *con, gconstpointer data, size_t size)
 }
 
 ssize_t
-rudp_read(struct rudp_con *con, gpointer data, size_t size)
+rudp_read(struct rudp_con *con, void *data, size_t size)
 {
 	ssize_t received;
 	pmsg_t *mb;
 	char *p;
-	guint i;
+	uint i;
 	
 	g_return_val_if_fail(con, -1);
 	g_return_val_if_fail(data, -1);
@@ -1050,7 +1051,7 @@ rudp_get_addr(struct rudp_con *con)
 	return con->addr;
 }
 
-guint16
+uint16
 rudp_get_port(struct rudp_con *con)
 {
 	g_return_val_if_fail(con, 0);
@@ -1059,7 +1060,7 @@ rudp_get_port(struct rudp_con *con)
 
 void
 rudp_set_event_handler(struct rudp_con *con,
-	inputevt_cond_t cond, inputevt_handler_t handler, gpointer data)
+	inputevt_cond_t cond, inputevt_handler_t handler, void *data)
 {
 	g_return_if_fail(con);
 	g_return_if_fail(handler);
@@ -1082,7 +1083,7 @@ rudp_clear_event_handler(struct rudp_con *con)
 }
 
 static void
-rudp_foreach_incoming(gpointer data, gpointer unused_udata)
+rudp_foreach_incoming(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
 	
@@ -1093,7 +1094,7 @@ rudp_foreach_incoming(gpointer data, gpointer unused_udata)
 }
 
 static void
-rudp_foreach_writable(gpointer data, gpointer unused_udata)
+rudp_foreach_writable(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
 	
@@ -1105,7 +1106,7 @@ rudp_foreach_writable(gpointer data, gpointer unused_udata)
 }
 
 static void
-rudp_foreach_readable(gpointer data, gpointer unused_udata)
+rudp_foreach_readable(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
 
@@ -1117,7 +1118,7 @@ rudp_foreach_readable(gpointer data, gpointer unused_udata)
 }
 
 static void
-rudp_foreach_pending(gpointer data, gpointer unused_udata)
+rudp_foreach_pending(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
 	pmsg_t *mb;
@@ -1137,7 +1138,7 @@ rudp_foreach_pending(gpointer data, gpointer unused_udata)
 }
 
 static void
-rudp_foreach_closed(gpointer data, gpointer unused_udata)
+rudp_foreach_closed(void *data, void *unused_udata)
 {
 	struct rudp_con *con = data;
 
@@ -1179,9 +1180,9 @@ rudp_timer(time_t unused_now)
 void
 rudp_init(void)
 {
-	guint i;
+	uint i;
 
-	connections = g_hash_table_new(rudp_con_hash, rudp_con_eq);
+	connections = hset_create_any(rudp_con_hash, NULL, rudp_con_eq);
 	
 	for (i = 0; i < RUDP_NUM_LISTS; i++) {
 		rudp_list[i] = hash_list_new(NULL, NULL);

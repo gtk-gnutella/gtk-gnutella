@@ -27,6 +27,7 @@
 #include "common.h"
 #include "event.h"
 #include "host_addr.h"
+#include "htable.h"
 
 #define NO_PROP (0)
 
@@ -129,7 +130,7 @@ typedef struct prop_def_storage {
     gpointer value;		/**< current data */
 } prop_def_storage_t;
 
-typedef void (*prop_set_storage_t)(property_t, gconstpointer, size_t);
+typedef void (*prop_set_storage_t)(property_t, const void *, size_t);
 typedef gpointer (*prop_get_storage_t)(property_t, gpointer, size_t);
 
 
@@ -231,7 +232,7 @@ typedef struct prop_set {
     size_t size;		/**< number of properties in the set */
     size_t offset;		/**< properties start numbering from here */
     prop_def_t *props;	/**< Pointer to first item in array of prop_def_t */
-    GHashTable *byName;	/**< hashtable to quickly look up props by name */
+    htable_t *by_name;	/**< hashtable to quickly look up props by name */
     time_t mtime;		/**< modification time of the associated file */
 	gboolean dirty;		/**< property set needs flushing to disk */
     prop_set_get_stub_t get_stub;
@@ -249,6 +250,7 @@ const char *prop_description(prop_set_t *ps, property_t prop);
 const char *prop_to_string(prop_set_t *ps, property_t prop);
 const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
+prop_type_t prop_type(prop_set_t *ps, property_t prop);
 gboolean prop_is_saved(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(

@@ -176,6 +176,7 @@
 #define write mingw_write
 #define writev mingw_writev
 #define truncate mingw_truncate
+#define recv mingw_recv
 #define sendto mingw_sendto
 #define recvfrom mingw_recvfrom
 
@@ -250,6 +251,28 @@ struct mingw_statvfs {
 #endif
 
 /*
+ * sched_yield() emulation
+ */
+#ifndef HAS_SCHED_YIELD
+#define HAS_SCHED_YIELD			/* We emulate it */
+#define EMULATE_SCHED_YIELD
+#undef I_SCHED					/* Do not include <sched.h> */
+
+/*
+ * We can't define sched_yield because on MinGW, <pthread.h> forcefully
+ * includes <sched.h> and it will cause sched_yield() to be declared as
+ * belonging to a DLL.  But since that file inclusion occurs after our
+ * remapping, mingw_sched_yield() is viewed as meaning _imp_mingw_sched_yield
+ * and causes a link failure.
+ *
+ * Hence define it as do_sched_yield.
+ */
+#define do_sched_yield() mingw_sched_yield()
+
+int mingw_sched_yield(void);
+#endif	/* !HAS_SCHED_YIELD */
+
+/*
  * getrusage() emulation.
  */
 #ifndef HAS_GETRUSAGE
@@ -278,13 +301,14 @@ int mingw_getrusage(int who, struct rusage *usage);
 #define EMULATE_UNAME
 #define uname mingw_uname
 
-#define UTSNAME_LENGTH	65
+#define UTSNAME_LENGTH		65
+#define UTSNAME_EXT_LENGTH	128
 
 struct utsname {
 	char sysname[UTSNAME_LENGTH];
 	char nodename[UTSNAME_LENGTH];
 	char release[UTSNAME_LENGTH];
-	char version[UTSNAME_LENGTH];
+	char version[UTSNAME_EXT_LENGTH];
 	char machine[UTSNAME_LENGTH];
 };
 
@@ -340,9 +364,22 @@ signal_handler_t mingw_signal(int signo, signal_handler_t handler);
 
 int mingw_fcntl(int fd, int cmd, ... /* arg */ );
 
-const char *mingw_gethome(void);
-const char *mingw_getpersonal(void);
-guint64 mingw_getphysmemsize(void);
+const char *mingw_get_admin_tools_path(void);
+const char *mingw_get_common_appdata_path(void);
+const char *mingw_get_common_docs_path(void);
+const char *mingw_get_cookies_path(void);
+const char *mingw_get_fonts_path(void);
+const char *mingw_get_history_path(void);
+const char *mingw_get_home_path(void);
+const char *mingw_get_internet_cache_path(void);
+const char *mingw_get_mypictures_path(void);
+const char *mingw_get_personal_path(void);
+const char *mingw_get_program_files_path(void);
+const char *mingw_get_startup_path(void);
+const char *mingw_get_system_path(void);
+const char *mingw_get_windows_path(void);
+
+uint64 mingw_getphysmemsize(void);
 int mingw_getdtablesize(void);
 const char *mingw_strerror(int errnum);
 int mingw_stat(const char *pathname, filestat_t *buf);
@@ -383,6 +420,37 @@ void *mingw_sbrk(long incr);
 #endif	/* !HAS_SBRK */
 
 /*
+ * gettimeofday() emulation.
+ */
+#ifndef HAS_GETTIMEOFDAY
+#define HAS_GETTIMEOFDAY	/* We emulate it */
+#define EMULATE_GETTIMEOFDAY
+#define gettimeofday mingw_gettimeofday
+
+int mingw_gettimeofday(struct timeval *tv, void *unused);
+#endif	/* !HAS_GETTIMEOFDAY */
+
+/*
+ * dladdr() emulation
+ */
+#ifndef HAS_DLADDR
+#define HAS_DLADDR			/* We emulate it */
+#define EMULATE_DLADDR
+#define dladdr mingw_dladdr
+#define dlerror mingw_dlerror
+
+typedef struct {
+	const char *dli_fname;	/* Pathname of shared object containing address */
+	void *dli_fbase;		/* Address at which shared object is loaded */
+	const char *dli_sname;	/* Name of nearest symbol with lower address */
+	void *dli_saddr;		/* Exact address of symbol named dli_sname */
+} Dl_info;
+
+int mingw_dladdr(void *addr, Dl_info *info);
+const char *dlerror(void);
+#endif	/* !HAS_DLADDR */
+
+/*
  * Socket functions
  *
  * Under windows, socket descriptors are not the same as file descriptiors.
@@ -409,6 +477,7 @@ socket_fd_t mingw_accept(socket_fd_t, struct sockaddr *addr, socklen_t *len);
 int mingw_shutdown(socket_fd_t sockfd, int how);
 int mingw_getsockopt(socket_fd_t, int level, int optname, void *, socklen_t *);
 int mingw_setsockopt(socket_fd_t, int, int, const void *, socklen_t optlen);
+ssize_t mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags);
 ssize_t mingw_sendto(socket_fd_t, const void *buf, size_t len, int flags,
 		const struct sockaddr *dest_addr, socklen_t addrlen);
 ssize_t s_write(socket_fd_t fd, const void *buf, size_t count);
@@ -429,20 +498,22 @@ int mingw_vfree_fragment(void *addr, size_t size);
 int mingw_mprotect(void *addr, size_t len, int prot);
 
 int mingw_random_bytes(void *buf, size_t len);
-gboolean mingw_process_is_alive(pid_t pid);
+bool mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
-guint64 mingw_cpufreq_min(void);
-guint64 mingw_cpufreq_max(void);
+long mingw_cpu_count(void);
+uint64 mingw_cpufreq_min(void);
+uint64 mingw_cpufreq_max(void);
 const char *mingw_getlogin(void);
 int mingw_getpagesize(void);
+int mingw_backtrace(void **buffer, int size, size_t offset);
 
 enum mingw_cpufreq {
 	MINGW_CPUFREQ_CURRENT,
 	MINGW_CPUFREQ_MAX
 };
 
-guint64 mingw_cpufreq(enum mingw_cpufreq freq);
+uint64 mingw_cpufreq(enum mingw_cpufreq freq);
 
 typedef struct pollfd {
   SOCKET fd;
@@ -456,27 +527,31 @@ socket_fd(int fd)
 	return fd;
 }
 
-gboolean mingw_has_wsapoll(void);
+bool mingw_has_wsapoll(void);
 int mingw_poll(struct pollfd *fds, unsigned n, int timeout);
 void mingw_early_init(void);
+void mingw_vmm_post_init(void);
 void mingw_init(void);
 void mingw_close(void);
 
 const char *mingw_filename_nearby(const char *file);
-gboolean mingw_stdin_pending(gboolean fifo);
-gboolean mingw_same_file_id(const char *pathname_a, const char *pathname_b);
+bool mingw_stdin_pending(bool fifo);
+bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
+
+struct tmval;	/* our own portable representation of "struct timeval" */
+void mingw_current_time(struct tmval *tv);
 
 const char *dir_entry_filename(const void *dirent);
-int mingw_getgateway(guint32 *ip);
+int mingw_getgateway(uint32 *ip);
 
-gboolean mingw_in_exception(void);
+bool mingw_in_exception(void);
 void G_GNUC_NORETURN mingw_abort(void);
 
 struct adns_request;
 
 void mingw_adns_init(void);
 void mingw_adns_close(void);
-gboolean mingw_adns_send_request(const struct adns_request *req);
+bool mingw_adns_send_request(const struct adns_request *req);
 
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
@@ -484,10 +559,25 @@ const char *mingw_native_path(const char *pathname);
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
+#define mingw_vmm_post_init()
 #define mingw_init()
 #define mingw_close()
 #define mingw_patch_personal_path(p)	(p)
-#define mingw_getpersonal()				"/"
+
+#define mingw_get_admin_tools_path()	"/"
+#define mingw_get_common_appdata_path()	"/"
+#define mingw_get_common_docs_path()	"/"
+#define mingw_get_cookies_path()		"/"
+#define mingw_get_fonts_path()			"/"
+#define mingw_get_history_path()		"/"
+#define mingw_get_home_path()			"/"
+#define mingw_get_internet_cache_path()	"/"
+#define mingw_get_mypictures_path()		"/"
+#define mingw_get_personal_path()		"/"
+#define mingw_get_program_files_path()	"/"
+#define mingw_get_startup_path()		"/"
+#define mingw_get_system_path()			"/"
+#define mingw_get_windows_path()		"/"
 
 #define mingw_in_exception()		0
 

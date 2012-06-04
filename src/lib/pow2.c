@@ -89,7 +89,7 @@ static const int bits_set_byte[256] = {
  * @returns amount of bits set in a byte.
  */
 int
-bits_set(guint8 b)
+bits_set(uint8 b)
 {
 	return bits_set_byte[b & 0xff];
 }
@@ -98,21 +98,17 @@ bits_set(guint8 b)
  * @returns amount of bits set in a 32-bit value.
  */
 int
-bits_set32(guint32 v)
+bits_set32(uint32 v)
 {
-	return
-		bits_set_byte[v & 0xff] +
-		bits_set_byte[(v >> 8) & 0xff] +
-		bits_set_byte[(v >> 16) & 0xff] +
-		bits_set_byte[(v >> 24) & 0xff];
+	return popcount(v);
 }
 
 /**
  * @returns the closest power of two greater or equal to `n'.
  * next_pow2(0) and next_pow2(0x8.......) return 0.
  */
-guint32
-next_pow2(guint32 n)
+uint32
+next_pow2(uint32 n)
 {
 	n--;
 
@@ -129,13 +125,13 @@ next_pow2(guint32 n)
  * Determine the highest bit set in `n', -1 if value was 0.
  */
 int
-highest_bit_set(guint32 n)
+highest_bit_set(uint32 n)
 {
 	int i;
-	guint32 h;
+	uint32 h;
 
 	for (i = 0, h = n; i < 32; i += 8, h >>= 8) {
-		guint32 byt = h & 0xffU;
+		uint32 byt = h & 0xffU;
 		if (byt == h)
 			return i + log2_byte[h];
 	}
@@ -148,12 +144,26 @@ highest_bit_set(guint32 n)
  * Determine the highest bit set in `n', -1 if value was 0.
  */
 int
-highest_bit_set64(guint64 n)
+highest_bit_set64(uint64 n)
 {
 	if G_LIKELY(n <= 0xffffffffU)
 		return highest_bit_set(n);
 	else
 		return 32 + highest_bit_set(n >> 32);
+}
+
+/**
+ * Count trailing zeroes in a 64-bit number, -1 for zero.
+ */
+int
+ctz64(uint64 n)
+{
+	if G_LIKELY(n <= 0xffffffffU)
+		return ctz(n);
+	else {
+		int v = ctz(n & 0xffffffffU);
+		return (-1 == v) ? 32 + ctz(n >> 32) : v;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

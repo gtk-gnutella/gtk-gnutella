@@ -84,7 +84,7 @@ struct lookup_stats {
  * @param arg		additional callback opaque argument
  */
 typedef void (*lookup_cb_stats_t)(
-	const kuid_t *kuid, const struct lookup_stats *ls, gpointer arg);
+	const kuid_t *kuid, const struct lookup_stats *ls, void *arg);
 
 /**
  * Node lookup result record.
@@ -92,7 +92,7 @@ typedef void (*lookup_cb_stats_t)(
 typedef struct lookup_rc {
 	knode_t *kn;				/**< A Kademlia node */
 	void *token;				/**< The security token (NULL if none) */
-	guint8 token_len;			/**< Length of security token */
+	uint8 token_len;			/**< Length of security token */
 } lookup_rc_t;
 
 typedef enum {
@@ -126,21 +126,21 @@ lookup_result_check(const lookup_rs_t *rs)
  */
 
 void lookup_init(void);
-void lookup_close(gboolean exiting);
+void lookup_close(bool exiting);
 
 nlookup_t *lookup_bucket_refresh(const kuid_t *kuid, size_t bits,
-	lookup_cb_err_t done, gpointer arg);
+	lookup_cb_err_t done, void *arg);
 nlookup_t *lookup_find_value(const kuid_t *kuid, dht_value_type_t type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, void *arg);
 nlookup_t *lookup_find_node(const kuid_t *kuid,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg);
 nlookup_t *lookup_store_nodes(const kuid_t *kuid,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg);
 nlookup_t *lookup_token(const knode_t *kn,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg);
 
 void lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats);
-void lookup_cancel(nlookup_t *nl, gboolean callback);
+void lookup_cancel(nlookup_t *nl, bool callback);
 
 #endif	/* _dht_lookup_h_ */
 

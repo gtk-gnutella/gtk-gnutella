@@ -55,9 +55,10 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
-#include "lib/hashlist.h"
-#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/hashlist.h"
+#include "lib/htable.h"
+#include "lib/host_addr.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
@@ -68,6 +69,7 @@
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define NL_MAX_LIFETIME		120000	/* 2 minutes, in ms */
@@ -114,12 +116,12 @@ static double log2_frequency[KDA_K][KDA_K];
  * Table keeping track of all the node lookup objects that we have created
  * and which are still running.
  */
-static GHashTable *nlookups;
+static htable_t *nlookups;
 
 static void lookup_iterate(nlookup_t *nl);
-static void lookup_value_free(nlookup_t *nl, gboolean free_vvec);
+static void lookup_value_free(nlookup_t *nl, bool free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
-static void lookup_value_expired(cqueue_t *unused_cq, gpointer obj);
+static void lookup_value_expired(cqueue_t *unused_cq, void *obj);
 static void lookup_value_delay(nlookup_t *nl);
 static void lookup_requery(nlookup_t *nl, const knode_t *kn);
 
@@ -190,7 +192,7 @@ struct nlookup {
 	patricia_t *ball;			/**< The k-closest nodes we've found so far */
 	cevent_t *expire_ev;		/**< Global expiration event for lookup */
 	cevent_t *delay_ev;			/**< Delay event for retries */
-	GHashTable *c_class;		/**< Counts class-C networks in path */
+	acct_net_t *c_class;		/**< Counts class-C networks in path */
 	union {
 		struct {
 			lookup_cb_ok_t ok;		/**< OK callback for "find node" */
@@ -205,7 +207,7 @@ struct nlookup {
 	} u;
 	lookup_cb_err_t err;		/**< Error callback */
 	lookup_cb_stats_t stats;	/**< Statistics callback */
-	gpointer arg;				/**< Common callback opaque argument */
+	void *arg;					/**< Common callback opaque argument */
 	struct nid lid;				/**< Lookup ID (unique to this object) */
 	lookup_type_t type;			/**< Type of lookup (NODE or VALUE) */
 	enum parallelism mode;		/**< Parallelism mode */
@@ -224,8 +226,8 @@ struct nlookup {
 	int bw_incoming;			/**< Amount of incoming bandwidth used */
 	int udp_drops;				/**< Amount of UDP packet drops */
 	tm_t start;					/**< Start time */
-	guint32 hops;				/**< Amount of hops in lookup so far */
-	guint32 flags;				/**< Operating flags */
+	uint32 hops;				/**< Amount of hops in lookup so far */
+	uint32 flags;				/**< Operating flags */
 	/*
 	 * XXX -- hack alert!
 	 *
@@ -275,7 +277,7 @@ lookup_check(const nlookup_t *nl)
  * This is the mode a value lookup enters when it gets results with secondary
  * keys, or not all the pending RPCs have replied yet.
  */
-static inline gboolean
+static inline bool
 lookup_is_fetching(const nlookup_t *nl)
 {
 	return LOOKUP_VALUE == nl->type && NULL != nl->u.fv.fv;
@@ -381,7 +383,7 @@ lookup_parallelism_mode_to_string(enum parallelism mode)
  * Free a lookup token.
  */
 static void
-lookup_token_free(lookup_token_t *ltok, gboolean freedata)
+lookup_token_free(lookup_token_t *ltok, bool freedata)
 {
 	sectoken_remote_free(ltok->token, freedata);
 	WFREE(ltok);
@@ -391,7 +393,7 @@ lookup_token_free(lookup_token_t *ltok, gboolean freedata)
  * Map iterator callback to free lookup tokens.
  */
 static void
-free_token(gpointer unused_key, gpointer value, gpointer unused_u)
+free_token(void *unused_key, void *value, void *unused_u)
 {
 	lookup_token_t *ltok = value;
 
@@ -435,10 +437,10 @@ lookup_free(nlookup_t *nl)
 	map_destroy(nl->fixed);
 	patricia_destroy(nl->path);
 	patricia_destroy(nl->ball);
-	acct_net_free(&nl->c_class);
+	acct_net_free_null(&nl->c_class);
 
 	if (!(nl->flags & NL_F_DONT_REMOVE))
-		g_hash_table_remove(nlookups, &nl->lid);
+		htable_remove(nlookups, &nl->lid);
 
 	nl->magic = 0;
 	WFREE(nl);
@@ -450,7 +452,7 @@ lookup_free(nlookup_t *nl)
  * may come back after the lookup was terminated...
  * @return NULL if the lookup ID is unknown, otherwise the lookup object.
  */
-static gpointer
+static void *
 lookup_is_alive(struct nid lid)
 {
 	nlookup_t *nl;
@@ -458,7 +460,7 @@ lookup_is_alive(struct nid lid)
 	if (NULL == nlookups)
 		return NULL;
 
-	nl = g_hash_table_lookup(nlookups, &lid);
+	nl = htable_lookup(nlookups, &lid);
 
 	if (nl)
 		lookup_check(nl);
@@ -540,7 +542,7 @@ lookup_result_nth_node(const lookup_rs_t *rs, size_t n)
 const lookup_rs_t *
 lookup_result_refcnt_inc(const lookup_rs_t *rs)
 {
-	lookup_rs_t *rsm = deconstify_gpointer(rs);
+	lookup_rs_t *rsm = deconstify_pointer(rs);
 
 	lookup_result_check(rs);
 
@@ -580,7 +582,7 @@ lookup_free_results(lookup_rs_t *rs)
 void
 lookup_result_free(const lookup_rs_t *rs)
 {
-	lookup_rs_t *rsm = deconstify_gpointer(rs);
+	lookup_rs_t *rsm = deconstify_pointer(rs);
 
 	lookup_result_check(rs);
 
@@ -631,7 +633,7 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 static void
 lookup_free_value_results(const lookup_val_rs_t *results)
 {
-	lookup_val_rs_t *rs = deconstify_gpointer(results);
+	lookup_val_rs_t *rs = deconstify_pointer(results);
 	size_t i;
 
 	g_assert(rs);
@@ -641,7 +643,7 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 	for (i = 0; i < rs->count; i++) {
 		lookup_val_rc_t *rc = &rs->records[i];
 		if (rc->length)
-			wfree(deconstify_gpointer(rc->data), rc->length);
+			wfree(deconstify_pointer(rc->data), rc->length);
 	}
 
 	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
@@ -652,7 +654,7 @@ lookup_free_value_results(const lookup_val_rs_t *results)
  * Dump a PATRICIA tree, from furthest to closest.
  */
 static void
-log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, guint level)
+log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, uint level)
 {
 	size_t count;
 	patricia_iter_t *iter;
@@ -806,8 +808,8 @@ lookup_terminate(nlookup_t *nl)
  * PATRICIA remove iterator to discard from the ball all the nodes which are
  * still present in the shortlist.
  */
-static gboolean
-remove_if_in_shortlist(gpointer key, size_t ukeybits, gpointer val, gpointer u)
+static bool
+remove_if_in_shortlist(void *key, size_t ukeybits, void *val, void *u)
 {
 	kuid_t *id = key;
 	nlookup_t *nl = u;
@@ -870,7 +872,7 @@ lookup_cleanup_ball(nlookup_t *nl)
  */
 static void
 lookup_value_terminate(nlookup_t *nl,
-	float load, dht_value_t **vvec, int vcnt, int vsize, gboolean local)
+	float load, dht_value_t **vvec, int vcnt, int vsize, bool local)
 {
 	lookup_val_rs_t *rs;
 	size_t count;
@@ -1322,7 +1324,7 @@ lookup_value_seen_free_kv(void *unused_key, void *value, void *unused_data)
  * When free_vvec is TRUE, the data within the DHT value is also freed.
  */
 static void
-lookup_value_free(nlookup_t *nl, gboolean free_vvec)
+lookup_value_free(nlookup_t *nl, bool free_vvec)
 {
 	GSList *sl;
 	struct fvalue *fv;
@@ -1451,7 +1453,7 @@ lookup_value_done(nlookup_t *nl)
  * Extra value fetching expiration timeout.
  */
 static void
-lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
+lookup_value_expired(cqueue_t *unused_cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -1496,16 +1498,16 @@ lookup_value_expired(cqueue_t *unused_cq, gpointer obj)
  * in which case the calling code will continue to lookup for a valid value
  * if needed.
  */
-static gboolean
+static bool
 lookup_value_found(nlookup_t *nl, const knode_t *kn,
-	const char *payload, size_t len, guint32 hop)
+	const char *payload, size_t len, uint32 hop)
 {
 	bstr_t *bs;
 	float load;
 	const char *reason;
 	char msg[120];
-	guint8 expanded;				/* Amount of expanded DHT values we got */
-	guint8 seckeys;					/* Amount of secondary keys we got */
+	uint8 expanded;					/* Amount of expanded DHT values we got */
+	uint8 seckeys;					/* Amount of secondary keys we got */
 	dht_value_t **vvec = NULL;		/* Read expanded DHT values */
 	int vcnt = 0;					/* Amount of DHT values in vector */
 	kuid_t **skeys = NULL;			/* Read secondary keys */
@@ -1519,10 +1521,11 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	type = nl->u.fv.vtype;
 	msg[0] = '\0';			/* Precaution */
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 1)
-		g_debug("DHT LOOKUP[%s] got value for %s %s from hop %u %s",
+	if (GNET_PROPERTY(dht_lookup_debug)) {
+		g_debug("DHT LOOKUP[%s] got value for %s %s at hop %u from %s",
 			nid_to_string(&nl->lid), dht_value_type_to_string(type),
 			kuid_to_hex_string(nl->kuid), hop, knode_to_string(kn));
+	}
 
 	/*
 	 * Parse payload to extract value(s).
@@ -1568,7 +1571,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 			continue;
 		}
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 3)
+		if (GNET_PROPERTY(dht_lookup_debug))
 			g_debug("DHT LOOKUP[%s] value %d/%u is %s",
 				nid_to_string(&nl->lid), i + 1, expanded,
 				dht_value_to_string(v));
@@ -1833,7 +1836,7 @@ lookup_completed(nlookup_t *nl)
  * Expiration timeout.
  */
 static void
-lookup_expired(cqueue_t *unused_cq, gpointer obj)
+lookup_expired(cqueue_t *unused_cq, void *obj)
 {
 	nlookup_t *nl = obj;
 
@@ -2182,7 +2185,7 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
  * deemed unsafe and was stripped from suspicious entries, requiring further
  * iteration to complete the lookup.
  */
-static gboolean
+static bool
 lookup_path_is_safe(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
@@ -2194,8 +2197,8 @@ lookup_path_is_safe(nlookup_t *nl)
 	knode_t *removed_kn;
 	int min_common_bits, max_common_bits;
 	size_t i;
-	gboolean shifted = FALSE;
-	gboolean empty_min_prefix = FALSE;
+	bool shifted = FALSE;
+	bool empty_min_prefix = FALSE;
 	size_t stripped;
 
 	lookup_check(nl);
@@ -2541,12 +2544,12 @@ done:
 /**
  * Do we have the requested amount of closest neighbours?
  */
-static gboolean
+static bool
 lookup_closest_ok(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
 	int i = 0;
-	gboolean enough = TRUE;
+	bool enough = TRUE;
 	knode_t *kn = NULL;
 
 	lookup_check(nl);
@@ -2681,7 +2684,7 @@ static void
 lookup_fix_contact(nlookup_t *nl, const knode_t *kn, const knode_t *an)
 {
 	knode_t *xn;
-	gboolean removed;
+	bool removed;
 
 	lookup_check(nl);
 	knode_check(kn);
@@ -2706,7 +2709,7 @@ lookup_fix_contact(nlookup_t *nl, const knode_t *kn, const knode_t *an)
 			host_addr_port_to_string(an->addr, an->port));
 	}
 
-	xn = deconstify_gpointer(kn);
+	xn = deconstify_pointer(kn);
 
 	xn->port = an->port;
 	xn->addr = an->addr;
@@ -2722,8 +2725,8 @@ lookup_fix_contact(nlookup_t *nl, const knode_t *kn, const knode_t *an)
 /**
  * Iterator callback to remove nodes from the shortlist if their token is known.
  */
-static gboolean
-remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
+static bool
+remove_from_shortlist(void *key, size_t keybits, void *value, void *u)
 {
 	map_t *tokens = u;
 	kuid_t *id = key;
@@ -2745,7 +2748,7 @@ remove_from_shortlist(gpointer key, size_t keybits, gpointer value, gpointer u)
  * @return TRUE if node is safe to query / add to path, FALSE otherwise,
  * filling buf if len is non-zero with the rejection reason.
  */
-static gboolean
+static bool
 lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	char *buf, size_t len)
 {
@@ -2873,7 +2876,7 @@ lookup_load_path(nlookup_t *nl)
 
 	while (patricia_iter_has_next(iter)) {
 		knode_t *kn;
-		guint8 toklen;
+		uint8 toklen;
 		const void *token;
 		time_t last_update;
 
@@ -2948,10 +2951,10 @@ lookup_load_path(nlookup_t *nl)
  *
  * @return TRUE if reply was parsed correctly
  */
-static gboolean
+static bool
 lookup_handle_reply(
 	nlookup_t *nl, const knode_t *kn,
-	const char *payload, size_t len, guint32 hop)
+	const char *payload, size_t len, uint32 hop)
 {
 	bstr_t *bs;
 	sectoken_remote_t *token = NULL;
@@ -2959,7 +2962,7 @@ lookup_handle_reply(
 	char msg[256];
 	char unsafe[48];
 	int n = 0;
-	guint8 contacts;
+	uint8 contacts;
 	size_t unsafe_len;
 
 	lookup_check(nl);
@@ -2983,7 +2986,7 @@ lookup_handle_reply(
 	 */
 
 	if (LOOKUP_REFRESH == nl->type) {
-		guint8 tlen;
+		uint8 tlen;
 
 		/*
 		 * Token is not required when doing a refresh lookup since we are
@@ -2995,7 +2998,7 @@ lookup_handle_reply(
 		if (!bstr_skip(bs, tlen))
 			goto bad_token;
 	} else {
-		guint8 tlen;
+		uint8 tlen;
 
 		/*
 		 * The security token of all the items in the lookup path is
@@ -3346,7 +3349,7 @@ bad:
 /**
  * Determines whether we can stop the value lookup at this node.
  */
-static gboolean
+static bool
 lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
 {
 	size_t common;
@@ -3392,7 +3395,7 @@ lookup_value_acceptable(nlookup_t *nl, const knode_t *kn)
 	nl->flags |= NL_F_KBALL_CHECK;		/* Probability check done once */
 	proba = kball_dist_proba[kball - common];
 
-	if (random_u32() % NL_KBALL_FACTOR < proba)
+	if (random_value(NL_KBALL_FACTOR - 1) < proba)
 		goto accepting;
 
 refusing:
@@ -3426,7 +3429,7 @@ accepting:
  ***/
 
 static void
-lk_freeing_msg(gpointer obj)
+lk_freeing_msg(void *obj)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
@@ -3436,7 +3439,7 @@ lk_freeing_msg(gpointer obj)
 }
 
 static void
-lk_msg_sent(gpointer obj, pmsg_t *mb)
+lk_msg_sent(void *obj, pmsg_t *mb)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
@@ -3449,7 +3452,7 @@ lk_msg_sent(gpointer obj, pmsg_t *mb)
 }
 
 static void
-lk_msg_dropped(gpointer obj, knode_t *kn, pmsg_t *unused_mb)
+lk_msg_dropped(void *obj, knode_t *kn, pmsg_t *unused_mb)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
@@ -3488,7 +3491,7 @@ lk_msg_dropped(gpointer obj, knode_t *kn, pmsg_t *unused_mb)
 }
 
 static void
-lk_rpc_cancelled(gpointer obj, guint32 hop)
+lk_rpc_cancelled(void *obj, uint32 hop)
 {
 	nlookup_t *nl = obj;
 	lookup_check(nl);
@@ -3527,11 +3530,11 @@ lk_rpc_cancelled(gpointer obj, guint32 hop)
 }
 
 static void
-lk_handling_rpc(gpointer obj, enum dht_rpc_ret type,
-	const knode_t *kn, guint32 hop)
+lk_handling_rpc(void *obj, enum dht_rpc_ret type,
+	const knode_t *kn, uint32 hop)
 {
 	nlookup_t *nl = obj;
-	gboolean removed;
+	bool removed;
 
 	lookup_check(nl);
 	knode_check(kn);
@@ -3571,9 +3574,9 @@ lk_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 	}
 }
 
-static gboolean
-lk_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 hop)
+static bool
+lk_handle_reply(void *obj, const knode_t *kn,
+	kda_msg_t function, const char *payload, size_t len, uint32 hop)
 {
 	nlookup_t *nl = obj;
 
@@ -3760,7 +3763,7 @@ lk_handle_reply(gpointer obj, const knode_t *kn,
 }
 
 static void
-lk_iterate(gpointer obj, enum dht_rpc_ret type, guint32 hop)
+lk_iterate(void *obj, enum dht_rpc_ret type, uint32 hop)
 {
 	nlookup_t *nl = obj;
 
@@ -3901,7 +3904,7 @@ lookup_requery(nlookup_t *nl, const knode_t *kn)
 	nl->rpc_latest_pending++;
 
 	map_insert(nl->pending, kn->id, knode_refcnt_inc(kn));
-	revent_find_node(deconstify_gpointer(kn),
+	revent_find_node(deconstify_pointer(kn),
 		nl->kuid, nl->lid, &lookup_ops, nl->hops);
 }
 
@@ -3909,7 +3912,7 @@ lookup_requery(nlookup_t *nl, const knode_t *kn)
  * Delay expiration.
  */
 static void
-lookup_delay_expired(cqueue_t *unused_cq, gpointer obj)
+lookup_delay_expired(cqueue_t *unused_cq, void *obj)
 {
 	nlookup_t *nl = obj;
 
@@ -4139,7 +4142,7 @@ lookup_iterate(nlookup_t *nl)
  *
  * @return TRUE if OK so far, FALSE on error.
  */
-static gboolean
+static bool
 lookup_load_shortlist(nlookup_t *nl)
 {
 	knode_t **kvec;
@@ -4209,7 +4212,7 @@ lookup_load_shortlist(nlookup_t *nl)
  */
 static nlookup_t *
 lookup_create(const kuid_t *kuid, lookup_type_t type,
-	lookup_cb_err_t error, gpointer arg)
+	lookup_cb_err_t error, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4235,7 +4238,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
 	nl->max_common_bits = KDA_C + dht_get_kball_furthest();
 	tm_now_exact(&nl->start);
 
-	g_hash_table_insert(nlookups, &nl->lid, nl);
+	htable_insert(nlookups, &nl->lid, nl);
 	dht_lookup_notify(kuid, type);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
@@ -4254,7 +4257,7 @@ lookup_create(const kuid_t *kuid, lookup_type_t type,
  * @param callback	whether to invoke the error callback
  */
 void
-lookup_cancel(nlookup_t *nl, gboolean callback)
+lookup_cancel(nlookup_t *nl, bool callback)
 {
 	lookup_check(nl);
 
@@ -4297,7 +4300,7 @@ lookup_ctrl_stats(nlookup_t *nl, lookup_cb_stats_t stats)
  */
 nlookup_t *
 lookup_find_node(
-	const kuid_t *kuid, lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	const kuid_t *kuid, lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4330,7 +4333,7 @@ lookup_find_node(
  */
 nlookup_t *
 lookup_store_nodes(
-	const kuid_t *kuid, lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	const kuid_t *kuid, lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4362,7 +4365,7 @@ lookup_store_nodes(
  */
 nlookup_t *
 lookup_token(const knode_t *kn,
-	lookup_cb_ok_t ok, lookup_cb_err_t err, gpointer arg)
+	lookup_cb_ok_t ok, lookup_cb_err_t err, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4393,7 +4396,7 @@ lookup_token(const knode_t *kn,
  * callbacks, if needed.
  */
 static void
-lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
+lookup_value_check_here(cqueue_t *unused_cq, void *obj)
 {
 	nlookup_t *nl = obj;
 
@@ -4413,7 +4416,7 @@ lookup_value_check_here(cqueue_t *unused_cq, gpointer obj)
 		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
 			vvec, G_N_ELEMENTS(vvec), &load, NULL);
 
-		if (GNET_PROPERTY(dht_lookup_debug) > 1) {
+		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] key %s found locally, with %d %s value%s",
 				nid_to_string(&nl->lid), kuid_to_string(nl->kuid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype),
@@ -4472,7 +4475,7 @@ lookup:
 nlookup_t *
 lookup_find_value(
 	const kuid_t *kuid, dht_value_type_t type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg)
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4514,7 +4517,7 @@ lookup_find_value(
  */
 nlookup_t *
 lookup_bucket_refresh(
-	const kuid_t *kuid, size_t bits, lookup_cb_err_t done, gpointer arg)
+	const kuid_t *kuid, size_t bits, lookup_cb_err_t done, void *arg)
 {
 	nlookup_t *nl;
 
@@ -4540,7 +4543,7 @@ lookup_bucket_refresh(
  * Value delay expiration.
  */
 static void
-lookup_value_delay_expired(cqueue_t *unused_cq, gpointer obj)
+lookup_value_delay_expired(cqueue_t *unused_cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -4585,7 +4588,7 @@ lookup_value_delay(nlookup_t *nl)
  * @return TRUE if the message was parsed correctly, FALSE if we had problems
  * parsing it.
  */
-static gboolean
+static bool
 lookup_value_handle_reply(nlookup_t *nl,
 	const char *payload, size_t len)
 {
@@ -4593,7 +4596,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 	float load;
 	const char *reason;
 	char msg[120];
-	guint8 expanded;				/* Amount of expanded DHT values we got */
+	uint8 expanded;				/* Amount of expanded DHT values we got */
 	dht_value_type_t type;
 	struct fvalue *fv;
 	struct seckeys *sk;
@@ -4608,10 +4611,11 @@ lookup_value_handle_reply(nlookup_t *nl,
 	kn = sk->kn;
 	msg[0] = '\0';		/* Precaution */
 
-	if (GNET_PROPERTY(dht_lookup_debug))
+	if (GNET_PROPERTY(dht_lookup_debug)) {
 		g_debug("DHT LOOKUP[%s] got value for %s %s from %s",
 			nid_to_string(&nl->lid), dht_value_type_to_string(type),
 			kuid_to_hex_string(nl->kuid), knode_to_string(kn));
+	}
 
 	/*
 	 * Parse payload to extract value.
@@ -4676,7 +4680,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 		goto bad;
 	}
 
-	if (GNET_PROPERTY(dht_lookup_debug) > 2)
+	if (GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"value for secondary key #%u is %s",
 			nid_to_string(&nl->lid), load, sk->next_skey + 1,
@@ -4715,7 +4719,7 @@ bad:
  ***/
 
 static void
-lk_value_freeing_msg(gpointer obj)
+lk_value_freeing_msg(void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -4727,7 +4731,7 @@ lk_value_freeing_msg(gpointer obj)
 }
 
 static void
-lk_value_msg_sent(gpointer obj, pmsg_t *mb)
+lk_value_msg_sent(void *obj, pmsg_t *mb)
 {
 	nlookup_t *nl = obj;
 	lookup_value_check(nl);
@@ -4737,7 +4741,7 @@ lk_value_msg_sent(gpointer obj, pmsg_t *mb)
 }
 
 static void
-lk_value_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *unused_mb)
+lk_value_msg_dropped(void *obj, knode_t *unused_kn, pmsg_t *unused_mb)
 {
 	nlookup_t *nl = obj;
 	lookup_value_check(nl);
@@ -4750,7 +4754,7 @@ lk_value_msg_dropped(gpointer obj, knode_t *unused_kn, pmsg_t *unused_mb)
 }
 
 static void
-lk_value_rpc_cancelled(gpointer obj, guint32 unused_udata)
+lk_value_rpc_cancelled(void *obj, uint32 unused_udata)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -4771,8 +4775,8 @@ lk_value_rpc_cancelled(gpointer obj, guint32 unused_udata)
 }
 
 static void
-lk_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
-	const knode_t *unused_kn, guint32 unused_udata)
+lk_value_handling_rpc(void *obj, enum dht_rpc_ret type,
+	const knode_t *unused_kn, uint32 unused_udata)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -4790,9 +4794,9 @@ lk_value_handling_rpc(gpointer obj, enum dht_rpc_ret type,
 		nl->rpc_timeouts++;
 }
 
-static gboolean
-lk_value_handle_reply(gpointer obj, const knode_t *kn,
-	kda_msg_t function, const char *payload, size_t len, guint32 hop)
+static bool
+lk_value_handle_reply(void *obj, const knode_t *kn,
+	kda_msg_t function, const char *payload, size_t len, uint32 hop)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -4845,7 +4849,7 @@ lk_value_handle_reply(gpointer obj, const knode_t *kn,
 }
 
 static void
-lk_value_iterate(gpointer obj, enum dht_rpc_ret type, guint32 unused_data)
+lk_value_iterate(void *obj, enum dht_rpc_ret type, uint32 unused_data)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
@@ -5021,7 +5025,7 @@ lookup_init(void)
 	double log_2 = log(2.0);
 	size_t i;
 
-	nlookups = g_hash_table_new(nid_hash, nid_equal);
+	nlookups = htable_create_any(nid_hash, NULL, nid_equal);
 
 	/*
 	 * Build lower triangular matrix of all possible log2(frequency).
@@ -5061,10 +5065,10 @@ lookup_init(void)
  * Hashtable iteration callback to free the nlookup_t object held as the key.
  */
 static void
-free_lookup(gpointer key, gpointer value, gpointer data)
+free_lookup(const void *key, void *value, void *data)
 {
 	nlookup_t *nl = value;
-	gboolean *exiting = data;
+	bool *exiting = data;
 
 	lookup_check(nl);
 	g_assert(key == &nl->lid);
@@ -5089,10 +5093,10 @@ free_lookup(gpointer key, gpointer value, gpointer data)
  * @param exiting		whether the whole process is about to exit
  */
 void
-lookup_close(gboolean exiting)
+lookup_close(bool exiting)
 {
-	g_hash_table_foreach(nlookups, free_lookup, &exiting);
-	gm_hash_table_destroy_null(&nlookups);
+	htable_foreach(nlookups, free_lookup, &exiting);
+	htable_free_null(&nlookups);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

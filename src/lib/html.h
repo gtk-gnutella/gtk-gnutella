@@ -112,7 +112,7 @@ void html_output_set_tag(struct html_output *output,
 	void (*tag)(struct html_output *, const struct array *));
 void *html_output_get_udata(struct html_output *output);
 enum html_tag html_parse_tag(const struct array *tag);
-gboolean html_tag_is_closing(const struct array *tag);
+bool html_tag_is_closing(const struct array *tag);
 struct array html_get_attribute(const struct array *tag,
 			enum html_attr attribute);
 void html_output_free(struct html_output **output_ptr);

@@ -49,7 +49,7 @@
  */
 #define ZALLOC_MASK	(ZALLOC_ALIGNBYTES - 1)
 #define zalloc_round(s) \
-	((gulong) (((gulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
+	((ulong) (((ulong) (s) + ZALLOC_MASK) & ~ZALLOC_MASK))
 
 struct zone;
 typedef struct zone zone_t;
@@ -58,9 +58,11 @@ typedef struct zone zone_t;
  * Memory allocation routines.
  */
 
-zone_t *zcreate(size_t, unsigned);
-zone_t *zget(size_t, unsigned);
+zone_t *zcreate(size_t, unsigned, bool);
+zone_t *zget(size_t, unsigned, bool);
 void zdestroy(zone_t *zone);
+
+size_t zone_blocksize(const zone_t *zone) G_GNUC_PURE;
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
@@ -80,12 +82,12 @@ struct logagent;
 void *zalloc(zone_t *) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
-void zgc(gboolean overloaded);
+void zgc(bool overloaded);
 
 void zinit(void);
 void zclose(void);
-void set_zalloc_debug(guint32 level);
-void set_zalloc_always_gc(gboolean val);
+void set_zalloc_debug(uint32 level);
+void set_zalloc_always_gc(bool val);
 void zalloc_memusage_init(void);
 void zalloc_memusage_close(void);
 void zalloc_dump_stats(void);
@@ -100,8 +102,7 @@ enum zalloc_stack_ctrl {
 	ZALLOC_SA_MAX
 };
 
-gboolean zalloc_stack_accounting_ctrl(size_t size,
-	enum zalloc_stack_ctrl op, ...);
+bool zalloc_stack_accounting_ctrl(size_t size, enum zalloc_stack_ctrl op, ...);
 
 #ifdef TRACK_ZALLOC
 

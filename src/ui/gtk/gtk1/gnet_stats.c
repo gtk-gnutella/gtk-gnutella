@@ -110,27 +110,21 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
         return compact_size(size, show_metric_units());
 }
 
-const gchar *
-drop_stat_str(const gnet_stats_t *stats, gint reason)
+static const gchar *
+drop_stat_str(const gnet_stats_t *stats, gint reason, gint selected_type)
 {
     static gchar strbuf[UINT64_DEC_BUFLEN];
-    guint32 total = stats->pkg.dropped[MSG_TOTAL];
-	guint i = GUI_PROPERTY(gnet_stats_drop_reasons_type);
 
-    if (stats->drop_reason[reason][i] == 0)
-        return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
+    if (stats->drop_reason[reason][selected_type] == 0)
+        return "-";
 
-    if (GUI_PROPERTY(gnet_stats_perc))
-        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) stats->drop_reason[reason][i] / total * 100);
-    else
-        uint64_to_string_buf(stats->drop_reason[reason][i],
-			strbuf, sizeof strbuf);
+	uint64_to_string_buf(stats->drop_reason[reason][selected_type],
+		strbuf, sizeof strbuf);
 
     return strbuf;
 }
 
-const gchar *
+static const gchar *
 general_stat_str(const gnet_stats_t *stats, gint type)
 {
 	static gchar strbuf[UINT64_DEC_BUFLEN];
@@ -339,17 +333,22 @@ static void
 gnet_stats_update_general(const gnet_stats_t *stats)
 {
     static GtkCList *clist_general;
+	static uint64 general[GNR_TYPE_COUNT];
 	gint n;
 
-	if (NULL == clist_general) {
+	if G_UNLIKELY(NULL == clist_general) {
 		clist_general =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_general"));
+		memset(general, 255, sizeof general);
 	}
 
     gtk_clist_freeze(clist_general);
 
     for (n = 0; n < GNR_TYPE_COUNT; n ++) {
-        gtk_clist_set_text(clist_general, n, 1, general_stat_str(stats, n));
+		if (stats->general[n] != general[n]) {
+			general[n] = stats->general[n];
+			gtk_clist_set_text(clist_general, n, 1, general_stat_str(stats, n));
+		}
 	}
 
     gtk_clist_thaw(clist_general);
@@ -359,17 +358,23 @@ static void
 gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 {
     static GtkCList *clist_reason;
+	static uint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 	gint n;
+	guint i = GUI_PROPERTY(gnet_stats_drop_reasons_type);
 
-	if (NULL == clist_reason) {
+	if G_UNLIKELY(NULL == clist_reason) {
 		clist_reason =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
+		memset(drop_reason, 255, sizeof drop_reason);
 	}
 
     gtk_clist_freeze(clist_reason);
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
-        gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(stats, n));
+		if (stats->drop_reason[n][i] != drop_reason[n][i]) {
+			drop_reason[n][i] = stats->drop_reason[n][i];
+			gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(stats, n, i));
+		}
 	}
 
     gtk_clist_thaw(clist_reason);

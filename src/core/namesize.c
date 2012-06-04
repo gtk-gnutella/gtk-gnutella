@@ -36,20 +36,22 @@
 #include "namesize.h"
 
 #include "lib/atoms.h"
+#include "lib/hashing.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /**
  * Hash a `namesize_t' key.
  */
-guint
-namesize_hash(gconstpointer key)
+uint
+namesize_hash(const void *key)
 {
 	const namesize_t *k = key;
-	guint32 hash;
+	uint32 hash;
 
-	hash = g_str_hash(k->name);
-	hash ^= k->size;
+	hash = string_mix_hash(k->name);
+	hash ^= integer_hash(k->size);
 
 	return hash;
 }
@@ -58,7 +60,7 @@ namesize_hash(gconstpointer key)
  * Compare two `namesize_t' keys.
  */
 int
-namesize_eq(gconstpointer a, gconstpointer b)
+namesize_eq(const void *a, const void *b)
 {
 	const namesize_t *ka = a, *kb = b;
 

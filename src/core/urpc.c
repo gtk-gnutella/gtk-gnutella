@@ -41,8 +41,11 @@
 
 #include "lib/cq.h"
 #include "lib/gnet_host.h"
+#include "lib/hashing.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum urpc_cb_magic { URPC_CB_MAGIC = 0x790f55e5U };
@@ -58,7 +61,7 @@ struct urpc_cb {
 	void *arg;					/**< The user-defined callback parameter */
 	struct gnutella_socket *s;	/**< The socket used to send/receive */
 	cevent_t *timeout_ev;		/**< Callout queue timeout event */
-	guint16 port;				/**< The port to which we sent the request */
+	uint16 port;				/**< The port to which we sent the request */
 };
 
 static inline void
@@ -70,20 +73,20 @@ urpc_cb_check(const struct urpc_cb * const ucb)
 	g_assert(ucb->s != NULL);
 }
 
-static GHashTable *pending;		/**< Pending RPCs (socket -> urcp_cb) */
+static htable_t *pending;		/**< Pending RPCs (socket -> urcp_cb) */
 
 /**
  * Free the callback waiting indication.
  */
 static void
-urpc_cb_free(struct urpc_cb *ucb, gboolean in_shutdown)
+urpc_cb_free(struct urpc_cb *ucb, bool in_shutdown)
 {
 	urpc_cb_check(ucb);
 
 	if (in_shutdown) {
 		(*ucb->cb)(URPC_TIMEOUT, ucb->addr, ucb->port, NULL, 0, ucb->arg);
 	} else {
-		g_hash_table_remove(pending, ucb->s);
+		htable_remove(pending, ucb->s);
 	}
 
 	cq_cancel(&ucb->timeout_ev);
@@ -98,13 +101,13 @@ urpc_cb_free(struct urpc_cb *ucb, gboolean in_shutdown)
  * socket buffer.
  */
 static void
-urpc_received(struct gnutella_socket *s, gboolean truncated)
+urpc_received(struct gnutella_socket *s, bool truncated)
 {
 	struct urpc_cb *ucb;
 
 	inet_udp_got_incoming(s->addr);
 
-	ucb = g_hash_table_lookup(pending, s);
+	ucb = htable_lookup(pending, s);
 
 	if (NULL == ucb) {
 		g_warning("UDP got unexpected %s%zu-byte RPC reply from %s",
@@ -132,7 +135,7 @@ urpc_received(struct gnutella_socket *s, gboolean truncated)
  * RPC timed out.
  */
 static void
-urpc_timed_out(cqueue_t *unused_cq, gpointer obj)
+urpc_timed_out(cqueue_t *unused_cq, void *obj)
 {
 	struct urpc_cb *ucb = obj;
 
@@ -170,7 +173,7 @@ urpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  */
 int
 urpc_send(const char *what,
-	host_addr_t addr, guint16 port, const void *data, size_t len,
+	host_addr_t addr, uint16 port, const void *data, size_t len,
 	unsigned long timeout, urpc_cb_t cb, void *arg)
 {
 	struct urpc_cb *ucb;
@@ -261,7 +264,7 @@ urpc_send(const char *what,
 	ucb->timeout_ev = cq_main_insert(timeout, urpc_timed_out, ucb);
 	ucb->what = what;
 
-	g_hash_table_insert(pending, s, ucb);
+	htable_insert(pending, s, ucb);
 
 	return 0;
 }
@@ -269,10 +272,10 @@ urpc_send(const char *what,
 /**
  * Do we have pending UDP RPCs?
  */
-gboolean
+bool
 urpc_pending(void)
 {
-	return 0 != g_hash_table_size(pending);
+	return 0 != htable_count(pending);
 }
 
 /**
@@ -281,11 +284,11 @@ urpc_pending(void)
 void
 urpc_init(void)
 {
-	pending = g_hash_table_new(pointer_hash_func, NULL);
+	pending = htable_create(HASH_KEY_SELF, 0);
 }
 
 static void
-urpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+urpc_free_kv(const void *unused_key, void *val, void *unused_x)
 {
 	(void) unused_key;
 	(void) unused_x;
@@ -299,8 +302,8 @@ urpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 void
 urpc_close(void)
 {
-	g_hash_table_foreach(pending, urpc_free_kv, NULL);
-	gm_hash_table_destroy_null(&pending);
+	htable_foreach(pending, urpc_free_kv, NULL);
+	htable_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

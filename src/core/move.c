@@ -106,7 +106,7 @@ we_alloc(struct download *d, const char *dest, const char *ext)
  * Freeing of work queue entry.
  */
 static void
-we_free(gpointer data)
+we_free(void *data)
 {
 	struct work *we = data;
 
@@ -119,7 +119,7 @@ we_free(gpointer data)
  * Signal handler for termination.
  */
 static void
-d_sighandler(struct bgtask *unused_h, gpointer u, bgsig_t sig)
+d_sighandler(struct bgtask *unused_h, void *u, bgsig_t sig)
 {
 	struct moved *md = u;
 
@@ -145,7 +145,7 @@ d_sighandler(struct bgtask *unused_h, gpointer u, bgsig_t sig)
  * Freeing of computation context.
  */
 static void
-d_free(gpointer ctx)
+d_free(void *ctx)
 {
 	struct moved *md = ctx;
 
@@ -162,7 +162,7 @@ d_free(gpointer ctx)
  * Daemon's notification of start/stop.
  */
 static void
-d_notify(struct bgtask *unused_h, gboolean on)
+d_notify(struct bgtask *unused_h, bool on)
 {
 	(void) unused_h;
 	gnet_prop_set_boolean_val(PROP_FILE_MOVING, on);
@@ -172,7 +172,7 @@ d_notify(struct bgtask *unused_h, gboolean on)
  * Daemon's notification: starting to work on item.
  */
 static void
-d_start(struct bgtask *h, gpointer ctx, gpointer item)
+d_start(struct bgtask *h, void *ctx, void *item)
 {
 	struct moved *md = ctx;
 	struct work *we = item;
@@ -255,7 +255,7 @@ abort_read:
  * Daemon's notification: finished working on item.
  */
 static void
-d_end(struct bgtask *h, gpointer ctx, gpointer item)
+d_end(struct bgtask *h, void *ctx, void *item)
 {
 	struct moved *md = ctx;
 	struct download *d = md->d;
@@ -348,7 +348,7 @@ finish:
  * Copy file around, incrementally.
  */
 static bgret_t
-d_step_copy(struct bgtask *h, gpointer u, int ticks)
+d_step_copy(struct bgtask *h, void *u, int ticks)
 {
 	struct moved *md = u;
 	ssize_t r;

@@ -51,7 +51,7 @@ struct statx {
 	int n;					/**< Amount of points */
 	double sx;				/**< Sx: sum of all points */
 	double sx2;				/**< Sx2: sum of the square of all points */
-	gboolean no_data;		/**< Do not keep data, it is managed externally */
+	bool no_data;			/**< Do not keep data, it is managed externally */
 };
 
 typedef enum op {

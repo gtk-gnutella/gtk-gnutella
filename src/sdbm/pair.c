@@ -38,13 +38,13 @@ offset(unsigned short off)
 	return off & BIG_MASK;
 }
 
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 is_big(unsigned short off)
 {
 	return booleanize(off & BIG_FLAG);
 }
 static inline ALWAYS_INLINE long
-exhash_big(DBM *db, const datum item, gboolean big)
+exhash_big(DBM *db, const datum item, bool big)
 {
 	return big ? bigkey_hash(db, item.dptr, item.dsize) :
 		sdbm_hash(item.dptr, item.dsize);
@@ -56,14 +56,14 @@ offset(unsigned short off)
 	return off;
 }
 
-static inline ALWAYS_INLINE gboolean
+static inline ALWAYS_INLINE bool
 is_big(unsigned short off)
 {
 	(void) off;
 	return FALSE;
 }
 static inline ALWAYS_INLINE long
-exhash_big(DBM *db, const datum item, gboolean big)
+exhash_big(DBM *db, const datum item, bool big)
 {
 	(void) db;
 	(void) big;
@@ -96,7 +96,7 @@ static int seepair(DBM *db, const char *, unsigned, const char *, size_t);
  * nth (ino[ino[0]]) entry's offset.
  */
 
-gboolean
+bool
 fitpair(const char *pag, size_t need)
 {
 	unsigned n;
@@ -117,8 +117,8 @@ fitpair(const char *pag, size_t need)
 /**
  * Is value data of a given old size replaceable in situ with new data?
  */
-gboolean
-replaceable(size_t old_size, size_t new_size, gboolean big)
+bool
+replaceable(size_t old_size, size_t new_size, bool big)
 {
 #ifdef BIGDATA
 	size_t ol = big ? bigval_length(old_size) : old_size;
@@ -163,7 +163,7 @@ replpair(DBM *db, char *pag, int i, datum val)
 }
 
 static void
-putpair_ext(char *pag, datum key, gboolean bigkey, datum val, gboolean bigval)
+putpair_ext(char *pag, datum key, bool bigkey, datum val, bool bigval)
 {
 	unsigned n;
 	unsigned off;
@@ -194,7 +194,7 @@ putpair_ext(char *pag, datum key, gboolean bigkey, datum val, gboolean bigval)
 	ino[0] += 2;
 }
 
-gboolean
+bool
 putpair(DBM *db, char *pag, datum key, datum val)
 {
 #ifdef BIGDATA
@@ -226,7 +226,7 @@ putpair(DBM *db, char *pag, datum key, datum val)
 		unsigned off;
 		unsigned short *ino = (unsigned short *) pag;
 		size_t vl;
-		gboolean largeval;
+		bool largeval;
 
 		off = ((n = ino[0]) > 0) ? offset(ino[n]) : DBM_PBLKSIZ;
 
@@ -290,8 +290,8 @@ putpair(DBM *db, char *pag, datum key, datum val)
  * @return TRUE if key was found, value length via *length, index via *idx,
  * and whether value is stored in a .dat file via *big.
  */
-gboolean
-infopair(DBM *db, char *pag, datum key, size_t *length, int *idx, gboolean *big)
+bool
+infopair(DBM *db, char *pag, datum key, size_t *length, int *idx, bool *big)
 {
 	int i;
 	unsigned n;
@@ -308,7 +308,7 @@ infopair(DBM *db, char *pag, datum key, size_t *length, int *idx, gboolean *big)
 
 #ifdef BIGDATA
 	if (is_big(ino[i + 1])) {
-		g_assert(dsize >= sizeof(guint32));
+		g_assert(dsize >= sizeof(uint32));
 		dsize = big_length(pag + offset(ino[i + 1]));
 	}
 #endif
@@ -385,7 +385,7 @@ getnval(DBM *db, char *pag, int num)
 	return val;
 }
 
-gboolean
+bool
 exipair(DBM *db, const char *pag, datum key)
 {
 	const unsigned short *ino = (const unsigned short *) pag;
@@ -397,7 +397,7 @@ exipair(DBM *db, const char *pag, datum key)
 }
 
 #ifdef SEEDUPS
-gboolean
+bool
 duppair(DBM *db, const char *pag, datum key)
 {
 	const unsigned short *ino = (const unsigned short *) pag;
@@ -442,8 +442,8 @@ getnkey(DBM *db, char *pag, int num)
  *
  * @return TRUE if OK.
  */
-gboolean
-delipair(DBM *db, char *pag, int i, gboolean free_bigdata)
+bool
+delipair(DBM *db, char *pag, int i, bool free_bigdata)
 {
 	int n;
 	unsigned short *ino = (unsigned short *) pag;
@@ -538,7 +538,7 @@ delipair(DBM *db, char *pag, int i, gboolean free_bigdata)
  *
  * @return TRUE if OK.
  */
-gboolean
+bool
 delnpair(DBM *db, char *pag, int num)
 {
 	int i;
@@ -552,7 +552,7 @@ delnpair(DBM *db, char *pag, int num)
 	return delipair(db, pag, i, TRUE);
 }
 
-gboolean
+bool
 delpair(DBM *db, char *pag, datum key)
 {
 	int n;
@@ -649,7 +649,7 @@ seepair(DBM *db, const char *pag, unsigned n, const char *key, size_t siz)
  *
  * @return TRUE if we can't spot anything wrong, FALSE on definitive corruption.
  */
-gboolean
+bool
 chkipair(DBM *db, char *pag, int i)
 {
 	int n;
@@ -712,7 +712,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		key.dsize = off - koff;
 		val.dptr = (char *) pag + voff;
 		val.dsize = koff - voff;
-		gboolean bk = is_big(ino[0]);
+		bool bk = is_big(ino[0]);
 
 		/*
 		 * With big data, we're moving around the indirection blocks only,
@@ -739,7 +739,7 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 /**
  * Check page sanity.
  */
-gboolean
+bool
 sdbm_internal_chkpage(const char *pag)
 {
 	unsigned n;

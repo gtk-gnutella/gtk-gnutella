@@ -1,3 +1,82 @@
+# v 0.98.3   2012-06-04  [stable]
+
+New Features:
+- [GTK] Added per-search GUESS statistics line, which can be hidden by users.
+- [GTK] Display amount of downloads associated with search in the search label.
+- Added property to control usage of unused Gnutella bandwidth by GUESS.
+- Added "memory check xmalloc" shell command to monitor the xmalloc freelists.
+- On Windows, generate a gdb-like stack trace in the crash log file.
+
+Improvements:
+- [GTK] Optimized rendering of main statistics page.
+- [GTK] Show more accurate message for queued downloads on completed files.
+- Shell now displays properties with appropriate surrounding type markers.
+- Limit pongs sent to transient nodes in order to save some bandwidth.
+- Avoid sending too many pongs on uncompressed connections.
+- Added README.Windows to document compile instructions for Windows.
+- Avoid "write() failed: EPIPE" messages from the shell for local client writes.
+- Added GUESS link cache size to the general statistics pane.
+- GUESS now uses a dynamically computed outgoing bandwidth limit.
+- Allow failed TLS connections to be retried without TLS, transparently.
+- Added "-a" switch to the shell "version" command to display glib/GTK/TLS info.
+- Added -p switch to the "stats" shell command to pretty-print numbers.
+- Memory optimization of commonly used data structures to reduce footprint.
+- Always generate a crashlog file, even when dumping a core.
+- PARQ: switch actively queued download to another when file has been completed.
+- Attempt to immediately restart download after failed SHA1 + TTH verification.
+- At startup, compute TTH if available and SHA1 checking failed.
+- When switching PARQ 1.0 downloads, switch IDs if queue position is favorable.
+- Updated translation strings, and fixed French translation.
+
+Bug Fixes:
+- bug #3286824 "Crash at startup / 0.96.9 / FreeBSD AMD64"
+- Fixed %G formatting bug whereby a zero following a dot would be missed.
+- Prevent auto-restart when they explicitly request a shutdown.
+- Fixed grave bugs in the virtual memory layer, some being Windows-specific.
+- PARQ was not properly computing amortized per-slot time.
+- Avoid random shell connection failures on Windows.
+- An un-parseable token in a shell command led to an assertion failure.
+- Fixed the "alignment optimized" code branch of msort_with_tmp().
+- Fixed bad copy-n-paste that could lead to malloc() freelist corruption.
+- Fixed GUESS corner-case crash when handling an RPC timeout.
+- [GTK] Avoid crash when user clears the upload statistics (bug #3501181).
+- On Windows, be smarter when reserving the initial amount of virtual space.
+- GUESS: always wakeup sleeping queries if we have bandwidth.
+
+Under the Hood:
+- Improved thread-safety of the VMM layer.
+- Removed perl4-ism in Perl scripts.
+- Updated IPv4 and IPv6 geo databases.
+- Attempt to drive a deadlock crash as far as possible to collect debug info.
+- When logging from another thread (not main), include the small thread ID.
+- Switched halloc() to xpmalloc() instead of walloc().
+- Added thread-private zones for blocks <= 512 bytes for faster allocations.
+- Optimized access to thread-private information, via a lock-free fast path.
+- Exit with a zero status when terminating through a regular signal or request.
+- Some UTF-8 optimizations and low-level fixes.
+- Also log the faulting PC when we get a harmful signal.
+- Use the BFD library, if available, to extract symbols from the executable.
+- Restored ability to have usable stack unwinding on Windows.
+- Extended crash log information to include full OS name and CPU architecture.
+- Sort SHA1s in the search.xml file.
+- Clear whole routing table when switching between Ultra and Leaf modes.
+- Protect xfree() from algorithmic complexity when handling bursts.
+- Added xmalloc garbage collector to reclaim fragments from freelist.
+- Allow the "TLS handshake failed" string to be translated.
+- Consider IPv4 addresses x.x.x.0 as non-routable.
+- Now uses own hash table and hash set implementations.
+- Strengthened entropy collection and ARC4 initial seeding.
+- Randomly propagate GUESS 0.2 hosts among GUESS 0.2 servents.
+- Assume we're not firewalled right after initial UPnP or NAT-PMP configuration.
+- Avoid compiler warnings on Windows.
+- Make sure random_value() returns uniformly distributed random numbers.
+- Added ability to filter dumped traffic by IP address.
+- Changed %F to display whole mantissa before switching to scientific notation.
+- Ensure memory allocated from the heap is aligned properly.
+- Show amount of detected CPUs at startup.
+- Added version numbers to the crash log file name.
+- Avoid complexity attacks on the hash table.
+
 # v 0.98.2   2011-12-30  [stable]
 
 This is a minor patch to support systems running latest Ubuntu systems,

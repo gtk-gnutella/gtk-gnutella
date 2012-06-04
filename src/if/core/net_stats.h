@@ -156,6 +156,7 @@ typedef enum {
 	GNR_QUERY_WHATS_NEW,
 	GNR_QUERY_GUESS,
 	GNR_QUERY_GUESS_02,
+	GNR_GUESS_LINK_CACHE,
 	GNR_GUESS_CACHED_QUERY_KEYS_HELD,
 	GNR_GUESS_CACHED_02_HOSTS_HELD,
 	GNR_GUESS_LOCAL_QUERIES,
@@ -232,6 +233,7 @@ typedef enum {
 	GNR_QHIT_SEEDING_OF_ORPHAN,
 	GNR_UPLOAD_SEEDING_OF_ORPHAN,
 	GNR_DHT_ESTIMATED_SIZE,
+	GNR_DHT_ESTIMATED_SIZE_STDERR,
 	GNR_DHT_KBALL_THEORETICAL,
 	GNR_DHT_KBALL_FURTHEST,
 	GNR_DHT_KBALL_CLOSEST,
@@ -322,7 +324,7 @@ typedef enum {
 	GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
 	GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS,
 	GNR_DHT_SEEDING_OF_ORPHAN,
-	
+
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;
 
@@ -330,23 +332,23 @@ typedef enum {
 #define STATS_RECV_COLUMNS 10	/**< -"- */
 
 typedef struct gnet_stat {
-	guint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
+	uint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
 	struct {
-		guint64 received[MSG_TYPE_COUNT];
-		guint64 expired[MSG_TYPE_COUNT];
-		guint64 dropped[MSG_TYPE_COUNT];
-		guint64 queued[MSG_TYPE_COUNT];
-		guint64 relayed[MSG_TYPE_COUNT];
-		guint64 gen_queued[MSG_TYPE_COUNT];
-		guint64 generated[MSG_TYPE_COUNT];
-		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-		guint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		uint64 received[MSG_TYPE_COUNT];
+		uint64 expired[MSG_TYPE_COUNT];
+		uint64 dropped[MSG_TYPE_COUNT];
+		uint64 queued[MSG_TYPE_COUNT];
+		uint64 relayed[MSG_TYPE_COUNT];
+		uint64 gen_queued[MSG_TYPE_COUNT];
+		uint64 generated[MSG_TYPE_COUNT];
+		uint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		uint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		uint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		uint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 	} pkg, byte;
 
-	guint64 general[GNR_TYPE_COUNT];
+	uint64 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
 
 typedef enum {
@@ -363,10 +365,10 @@ typedef enum {
 } gnet_bw_source;
 
 typedef struct gnet_bw_stats {
-	gboolean enabled;
-	guint32  current;
-	guint32  average;
-	guint32  limit;
+	bool enabled;
+	uint32  current;
+	uint32  average;
+	uint32  limit;
 } gnet_bw_stats_t;
 
 /***

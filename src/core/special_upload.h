@@ -38,16 +38,16 @@
 
 #include "common.h"
 
-typedef void (*special_upload_closed_t)(gpointer arg);
-typedef void (*special_upload_writable_t)(gpointer arg);
+typedef void (*special_upload_closed_t)(void *arg);
+typedef void (*special_upload_writable_t)(void *arg);
 
 struct special_upload {
 	struct txdriver *tx;
-	ssize_t (*read)(struct special_upload *, gpointer dest, size_t size);
-	ssize_t (*write)(struct special_upload *, gconstpointer data, size_t size);
+	ssize_t (*read)(struct special_upload *, void *dest, size_t size);
+	ssize_t (*write)(struct special_upload *, const void *data, size_t size);
 	void (*flush)(struct special_upload *,
-					special_upload_closed_t cb, gpointer arg);
-	void (*close)(struct special_upload *, gboolean fully_served);
+					special_upload_closed_t cb, void *arg);
+	void (*close)(struct special_upload *, bool fully_served);
 };
 
 #endif /* _core_special_upload_h_ */

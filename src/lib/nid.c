@@ -35,6 +35,7 @@
 
 #include "nid.h"
 #include "atoms.h"
+#include "hashing.h"
 #include "stringify.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -48,16 +49,17 @@ unsigned
 nid_hash(const void *key)
 {
 	const struct nid *p = key;
-	return (unsigned) (nid_value(p) >> 32) ^ (unsigned) nid_value(p);
+	uint64 v = nid_value(p);
+	return (unsigned) (v >> 32) ^ integer_hash(v);
 }
 
 /**
  * Are two numeric IDs holding the same value?
  */
-gboolean
+bool
 nid_equal(const void *p, const void *q)
 {
-	guint64 a = nid_value(p), b = nid_value(q);
+	uint64 a = nid_value(p), b = nid_value(q);
 	return a == b;
 }
 

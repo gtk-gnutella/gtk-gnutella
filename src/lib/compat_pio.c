@@ -40,11 +40,11 @@
 
 #include "common.h"
 
-#include "lib/compat_pio.h"
-#include "lib/iovec.h"
-#include "lib/misc.h"
+#include "compat_pio.h"
+#include "iovec.h"
+#include "misc.h"
 
-#include "lib/override.h"       /* Must be the last header included */
+#include "override.h"       /* Must be the last header included */
 
 /**
  * Write the given data to a file descriptor at the given offset.

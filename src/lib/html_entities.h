@@ -7,7 +7,7 @@
  */
 static const struct {
 	const char *name;
-	const guint16 uc; /* all listed codepoints are below 0xFFFF */
+	const uint16 uc; /* all listed codepoints are below 0xFFFF */
 } html_entities[] = {
 	{ "AElig", 0x00C6 },
 	{ "Aacute", 0x00C1 },

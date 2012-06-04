@@ -80,7 +80,7 @@ size_t tt_size(void);
 void tt_check(void);
 
 void tt_init(TTH_CONTEXT *ctx, filesize_t filesize);
-void tt_update(TTH_CONTEXT *ctx, gconstpointer data, size_t len);
+void tt_update(TTH_CONTEXT *ctx, const void *data, size_t len);
 void tt_digest(TTH_CONTEXT *ctx, struct tth *tth);
 
 const struct tth *tt_leaves(TTH_CONTEXT *ctx);

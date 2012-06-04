@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2011-11-22 18:27+0100\n"
+"POT-Creation-Date: 2012-06-04 11:30+0200\n"
 "PO-Revision-Date: 2006-04-30 16:30+0200\n"
 "Last-Translator: Lorenzo Gaifas <lorenzo@artiemestieri.tn.it>\n"
 "Language-Team: Italian <it@li.org>\n"
@@ -64,9 +64,9 @@ msgstr ""
 msgid "Switching (after error) to \"%s\""
 msgstr ""
 
-#, fuzzy, c-format
-msgid " at %s - rescheduled for %s%s #%u"
-msgstr " alle %s - riprogrammato per le %s"
+#, c-format
+msgid " at %s"
+msgstr ""
 
 msgid "Suspended (SHA1 checking)"
 msgstr "Sospeso (verifica SHA1)"
@@ -99,6 +99,9 @@ msgstr "Connessione fallita (Mancanza di descrizioni dei file?)"
 
 msgid "Connection failed"
 msgstr "Connessione fallita"
+
+msgid "SHA1 mismatch detected"
+msgstr "Rilevato errore SHA1"
 
 msgid "Waiting for server PROX publishing"
 msgstr ""
@@ -380,9 +383,6 @@ msgstr "Scrittura fallita : %s"
 msgid "Malformed push reply"
 msgstr "Tentativo di query malformata"
 
-msgid "SHA1 mismatch detected"
-msgstr "Rilevato errore SHA1"
-
 msgid ", inbound"
 msgstr ""
 
@@ -428,6 +428,13 @@ msgstr ""
 
 msgid "Requeued due to timeout"
 msgstr "Riaccodato per timeout"
+
+#, fuzzy
+msgid "Partial file removed"
+msgstr "Condivisione parziale file"
+
+msgid "File info being reset"
+msgstr ""
 
 #, fuzzy, c-format
 msgid "Downloading (TR: %s)"
@@ -547,6 +554,9 @@ msgstr "Soffocamento messaggio"
 #, fuzzy
 msgid "Message matched limits"
 msgstr "Limiti dimensioni messaggi rete Gnutella"
+
+msgid "Transient node"
+msgstr ""
 
 msgid "Unusable Pong"
 msgstr "Pong inusabile"
@@ -718,6 +728,9 @@ msgstr "Inviate indicazioni protette"
 
 msgid "Not an ultra node"
 msgstr "Non ci sono ultra nodi"
+
+msgid "Unknown error"
+msgstr "Errore sconosciuto"
 
 msgid "Unstable IP address"
 msgstr "Indirizzo IP instabile"
@@ -906,6 +919,9 @@ msgstr "Errore di lettura"
 msgid "Got EOF"
 msgstr ""
 
+msgid "TLS handshake failed"
+msgstr ""
+
 msgid "Write failed (Input Exception)"
 msgstr "Scrittura fallita (eccezione in ingresso)"
 
@@ -926,20 +942,123 @@ msgstr[1] "Ricerca cache dell'host UDP %s"
 msgid "Connect back timeout"
 msgstr "Tempo massimo riconnessione"
 
+#, fuzzy
+msgid "Request timeout"
+msgstr "Richiesta inviata"
+
 msgid "Timeout waiting for follow-up"
 msgstr ""
 
 msgid "Lifetime expired"
 msgstr "Tempo di vita spirato"
 
+msgid "Unauthorized"
+msgstr ""
+
+#, fuzzy, c-format
+msgid "Limiting connections from %s"
+msgstr "Connessioni ereditate"
+
+msgid "No reason given"
+msgstr ""
+
+#, fuzzy
+msgid "Bad Request"
+msgstr "Ultimo scambio"
+
+#, fuzzy
+msgid "Header too large"
+msgstr "Fallito (raga dei titoli troppo lunga)"
+
+#, fuzzy
+msgid "Input buffer full"
+msgstr "Fallito (contenitore ingresso pieno)"
+
+msgid "Extra data after HTTP header"
+msgstr ""
+
 msgid "Unable to send GIV"
 msgstr "Non posso inviare GIV"
+
+msgid "Not Found"
+msgstr ""
+
+msgid "File was modified"
+msgstr ""
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Dimensione librerie"
+
+msgid "Moved Permanently"
+msgstr ""
+
+#, fuzzy
+msgid "File index/name mismatch"
+msgstr "Errore nelle informazioni del file dell'URN"
+
+msgid "URN Not Found (urn:sha1)"
+msgstr ""
+
+#, fuzzy
+msgid "SHA1 is being recomputed"
+msgstr "Rilevato errore SHA1"
+
+msgid "Malformed URN in /uri-res/N2R request"
+msgstr ""
+
+msgid "Malformed URN in /uri-res/N2X request"
+msgstr ""
+
+msgid "TTH is being computed"
+msgstr ""
 
 msgid "<Browse Host Request>"
 msgstr "<Richiesta consultazione host>"
 
+#, fuzzy
+msgid "Browse Host Disabled"
+msgstr "<Sfoglia host %s>"
+
+#, c-format
+msgid "Redirected to %s:%u"
+msgstr ""
+
+#, fuzzy
+msgid "Not Modified"
+msgstr "No firewall"
+
 msgid "Stalling upload replaced"
 msgstr "Rimpiazzato il caricamento fermato"
+
+msgid "Already downloading this file"
+msgstr ""
+
+#, fuzzy
+msgid "Malformed Range request"
+msgstr "Invio richiesta"
+
+msgid "Requested range not satisfiable"
+msgstr ""
+
+msgid "Requested range not available yet"
+msgstr ""
+
+#, fuzzy
+msgid "Queue full"
+msgstr "Accodati"
+
+#, fuzzy
+msgid "Another connection is still active"
+msgstr "Connessioni Gnet disabilitate"
+
+#, c-format
+msgid "%s not honoured; removed from PARQ queue"
+msgstr ""
+
+#, fuzzy
+msgid "Minimum retry delay"
+msgstr "Dimensione file minima"
 
 #, c-format
 msgid "Queued (slot %d, ETA: %s)"
@@ -947,6 +1066,10 @@ msgstr "Accodato (posizione %d, ETA: %s)"
 
 msgid "Cannot send whole HTTP status"
 msgstr "Non posso inviare lo stato HTTP completo"
+
+#, fuzzy
+msgid "Not Acceptable"
+msgstr "Protocollo non accettabile"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
@@ -963,6 +1086,32 @@ msgstr ""
 
 msgid ", chunked"
 msgstr ""
+
+msgid "THEX failure"
+msgstr ""
+
+msgid "Unknown/Missing Protocol Tag"
+msgstr ""
+
+#, fuzzy
+msgid "Not Implemented"
+msgstr "Completati"
+
+msgid "No Content Allowed"
+msgstr ""
+
+msgid "Bad URI"
+msgstr ""
+
+msgid "Bad Path"
+msgstr ""
+
+msgid "Missing Host Header"
+msgstr ""
+
+#, fuzzy
+msgid "Sharing currently disabled"
+msgstr "Attualmente usato"
 
 msgid "Write exception"
 msgstr "Eccezione in scrittura"
@@ -3495,6 +3644,35 @@ msgstr "Livello di collaudo per l'interfaccia utente."
 msgid "Debug level for GUID management."
 msgstr "Livello di collaudo per la gestione del gruppo scarocato."
 
+#, fuzzy
+msgid "Debug level for the TX (transmit) deflating network layer."
+msgstr "Livello di collaudo per l'interfaccia utente."
+
+msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump RX traffic (IP "
+"addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic  they emit "
+"(IP addresses only)"
+msgstr ""
+
+msgid ""
+"Comma-separated list of hosts for whom we want to dump TX traffic they "
+"receive (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
+"of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
+"will be used.  When running as a leaf this should be set to TRUE to make "
+"GUESS queries run faster."
+msgstr ""
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -4070,6 +4248,19 @@ msgstr ""
 msgid ""
 "Whether session-only searches which happen to have pending downloads should "
 "be restarted when gtk-gnutella is launched."
+msgstr ""
+
+msgid "Discard search results coming from servents with a banned GUID."
+msgstr ""
+
+#, fuzzy
+msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgstr ""
+"Se debba essere mostrato il conteggio dei tentativi di query trasmessi."
+
+msgid ""
+"Whether the GUESS summary line should show total statistics or ones "
+"pertaining to the current search only."
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5001,6 +5192,10 @@ msgid "Unknown operation \"stats %s\""
 msgstr "Operazione sconosciuta"
 
 #, fuzzy, c-format
+msgid "Unknown operation \"check %s\""
+msgstr "Operazione sconosciuta"
+
+#, fuzzy, c-format
 msgid "Unknown operation \"usage %s\""
 msgstr "Operazione sconosciuta"
 
@@ -5089,6 +5284,10 @@ msgstr ""
 msgid "too many arguments in command"
 msgstr ""
 
+#, c-format
+msgid "un-parseable argument #%u in command"
+msgstr ""
+
 msgid "Malformed command"
 msgstr "Comando malformato"
 
@@ -5173,6 +5372,21 @@ msgstr ""
 
 msgid "Bitzi URL"
 msgstr ""
+
+msgid "Rescheduled for"
+msgstr ""
+
+#, fuzzy
+msgid "Restartable since"
+msgstr "è impostato stabile"
+
+#, fuzzy
+msgid "rescheduled for"
+msgstr " alle %s - riprogrammato per le %s"
+
+#, fuzzy
+msgid "restartable since"
+msgstr "è impostato stabile"
 
 #, c-format
 msgid " (slot %u"
@@ -5308,9 +5522,6 @@ msgstr "Richiesta inviata"
 #, fuzzy
 msgid "Awaiting data"
 msgstr "In attesa"
-
-msgid "Unknown error"
-msgstr "Errore sconosciuto"
 
 #, c-format
 msgid "Retry in %us"
@@ -5596,6 +5807,9 @@ msgstr ""
 msgid "Routing table message count"
 msgstr ""
 
+msgid "Routing through transient node avoided"
+msgstr ""
+
 msgid "Duplicates with higher TTL"
 msgstr ""
 
@@ -5699,6 +5913,9 @@ msgstr "Query RX"
 #, fuzzy
 msgid "GUESS queries (0.2)"
 msgstr "Query RX"
+
+msgid "GUESS link cache size"
+msgstr ""
 
 msgid "GUESS cached query keys held"
 msgstr ""
@@ -5931,6 +6148,9 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr ""
 
 msgid "DHT estimated amount of nodes"
+msgstr ""
+
+msgid "DHT standard error of estimated amount of nodes"
 msgstr ""
 
 msgid "DHT k-ball theoretical frontier (bits)"
@@ -8335,6 +8555,10 @@ msgstr ""
 msgid "Discard results bearing an alien IP address"
 msgstr ""
 
+#, fuzzy
+msgid "Discard results bearing a banned GUID"
+msgstr "Messaggio ai GUID esclusi"
+
 msgid "Restart session-only searches with pending downloads"
 msgstr ""
 
@@ -8350,6 +8574,13 @@ msgstr ""
 
 msgid "Relayed queries remembered"
 msgstr ""
+
+msgid "Allow unused Gnutella outgoing bandwidth to supersede hint"
+msgstr ""
+
+#, fuzzy
+msgid "Display GUESS statistics"
+msgstr "Mostra statistiche di caricamento nella barra laterale."
 
 msgid "Not in database"
 msgstr "Non c'è nel database"
@@ -8793,6 +9024,12 @@ msgstr "Spira in %s"
 msgid "Expires with this session"
 msgstr "Spira al termine di questa sessione"
 
+#, fuzzy, c-format
+msgid " [%u download]"
+msgid_plural " [%u downloads]"
+msgstr[0] "%u scaricamento di %u"
+msgstr[1] "%u scaricamenti di %u"
+
 #, c-format
 msgid ""
 "%u %s (%u skipped, %u ignored, %u hidden, %u auto-d/l, %u %s) Hits: %u (%u "
@@ -8810,6 +9047,69 @@ msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "duplicato"
 msgstr[1] "duplicati"
+
+#, fuzzy
+msgid "No GUESS queries run yet"
+msgstr "Query RX"
+
+#, c-format
+msgid " previous took %s querying %zu %s with %zu %s kept"
+msgstr ""
+
+#, fuzzy
+msgid "host"
+msgid_plural "hosts"
+msgstr[0] "Host"
+msgstr[1] "Host"
+
+msgid "hit"
+msgid_plural "hits"
+msgstr[0] ""
+msgstr[1] ""
+
+#, c-format
+msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
+msgstr ""
+
+#, fuzzy
+msgid "idle"
+msgstr "file"
+
+#, fuzzy
+msgid "query"
+msgid_plural "queries"
+msgstr[0] "tentativi query"
+msgstr[1] "tentativi query"
+
+#, c-format
+msgid ""
+"GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
+"queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
+msgstr ""
+
+#, fuzzy
+msgid "loose"
+msgstr "Chiudi"
+
+#, fuzzy
+msgid "bounded"
+msgstr "Terminato"
+
+msgid "ack"
+msgid_plural "acks"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "hop"
+msgid_plural "hops"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid " (load pending)"
+msgstr ""
+
+msgid " (end if starving)"
+msgstr ""
 
 msgid "Passive"
 msgstr "Passivo"
@@ -8958,6 +9258,10 @@ msgstr "Informazione dettagliata"
 #, fuzzy
 msgid "Hostname"
 msgstr "Cache host"
+
+#, fuzzy
+msgid "banned"
+msgstr "Esclusi: %s"
 
 #, fuzzy
 msgid "Servent ID"
@@ -9213,9 +9517,6 @@ msgstr "Coda inviata, in attesa dei titoli"
 #, fuzzy
 #~ msgid "Seaerch Media Type"
 #~ msgstr "Termina ricerca"
-
-#~ msgid "Banned: %s"
-#~ msgstr "Esclusi: %s"
 
 #~ msgid "Banned for %s"
 #~ msgstr "Esclusi per %s"

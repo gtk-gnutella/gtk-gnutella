@@ -1,3 +1,9 @@
+gtk-gnutella (0.98-3) unstable; urgency=medium
+
+  * New upstream minor release + important bug fixes.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Mon,  4 Jun 2012 17:56:23 +0000
+
 gtk-gnutella (0.98-2) unstable; urgency=critical
 
   * Avoid crashes when X programs run multi-threaded (as on recent Ubuntu).

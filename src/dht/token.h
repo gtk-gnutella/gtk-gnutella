@@ -48,7 +48,7 @@ void token_close(void);
 time_delta_t token_lifetime(void);
 
 void token_generate(sectoken_t *tok, const knode_t *kn);
-gboolean token_is_valid(const sectoken_t *tok, const knode_t *kn);
+bool token_is_valid(const sectoken_t *tok, const knode_t *kn);
 
 #endif /* _dht_token_h_ */
 

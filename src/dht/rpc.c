@@ -45,10 +45,11 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/hikset.h"
 #include "lib/host_addr.h"
-#include "lib/glib-missing.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
@@ -64,9 +65,9 @@ struct rpc_cb {
 	tm_t start;					/**< The time at which we initiated the RPC */
 	const guid_t *muid;			/**< MUID of the message sent (atom) */
 	knode_t *kn;				/**< Remote node to which RPC was sent */
-	guint32 flags;				/**< Control flags */
+	uint32 flags;				/**< Control flags */
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
-	gpointer arg;				/**< Additional opaque argument */
+	void *arg;					/**< Additional opaque argument */
 	cevent_t *timeout;			/**< Callout queue timeout event */
 };
 
@@ -78,7 +79,7 @@ rpc_cb_check(const struct rpc_cb * const rcb)
 	g_assert(NULL != rcb->muid);
 }
 
-static GHashTable *pending;		/**< Pending RPC (GUID -> rpc_cb) */
+static hikset_t *pending;		/**< Pending RPC (GUID -> rpc_cb) */
 
 /**
  * RPC operation to string, for logs.
@@ -104,14 +105,15 @@ dht_rpc_init(void)
 {
 	g_assert(NULL == pending);
 
-	pending = g_hash_table_new(guid_hash, guid_eq);
+	pending = hikset_create(
+		offsetof(struct rpc_cb, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 }
 
 /**
  * Free the callback waiting indication.
  */
 static void
-rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
+rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 {
 	rpc_cb_check(rcb);
 
@@ -120,7 +122,7 @@ rpc_cb_free(struct rpc_cb *rcb, gboolean in_shutdown)
 		if (rcb->cb)
 			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	} else {
-		g_hash_table_remove(pending, rcb->muid);
+		hikset_remove(pending, rcb->muid);
 	}
 	atom_guid_free_null(&rcb->muid);
 	knode_free(rcb->kn);
@@ -169,7 +171,7 @@ rpc_delay(const knode_t *kn)
  * Generic RPC operation timeout (callout queue callback).
  */
 static void
-rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
+rpc_timed_out(cqueue_t *unused_cq, void *obj)
 {
 	struct rpc_cb *rcb = obj;
 
@@ -210,8 +212,8 @@ rpc_timed_out(cqueue_t *unused_cq, gpointer obj)
  */
 static const guid_t *
 rpc_call_prepare(
-	enum dht_rpc_op op, knode_t *kn, int delay, guint32 flags,
-	dht_rpc_cb_t cb, gpointer arg)
+	enum dht_rpc_op op, knode_t *kn, int delay, uint32 flags,
+	dht_rpc_cb_t cb, void *arg)
 {
 	int i;
 	struct rpc_cb *rcb;
@@ -226,11 +228,11 @@ rpc_call_prepare(
 	for (i = 0; i < 100; i++) {
 		guid_random_muid(&muid);
 
-		if (NULL == g_hash_table_lookup(pending, &muid))
+		if (!hikset_contains(pending, &muid))
 			break;
 	}
 
-	if (100 == i)
+	if G_UNLIKELY(100 == i)
 		g_error("bad luck with random number generator");
 
 	/*
@@ -250,7 +252,7 @@ rpc_call_prepare(
 	tm_now_exact(&rcb->start);	/* To measure RTT when we get the reply */
 	knode_rpc_inc(kn);
 
-	gm_hash_table_insert_const(pending, rcb->muid, rcb);
+	hikset_insert_key(pending, &rcb->muid);
 
 	return rcb->muid;
 }
@@ -263,12 +265,12 @@ rpc_call_prepare(
  *
  * @return whether we found the MUID to cancel.
  */
-gboolean
+bool
 dht_rpc_cancel(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -284,12 +286,12 @@ dht_rpc_cancel(const guid_t *muid)
  *
  * @return whether we found the MUID and it was cancelled.
  */
-gboolean
+bool
 dht_rpc_cancel_if_no_callback(const guid_t *muid)
 {
 	struct rpc_cb *rcb;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -309,13 +311,13 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
  * @return TRUE if we found the pending RPC, with host and port filled (when
  * non-NULL), FALSE otherwise.
  */
-gboolean
-dht_rpc_info(const guid_t *muid, host_addr_t *addr, guint16 *port)
+bool
+dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 {
 	struct rpc_cb *rcb;
 	knode_t *rn;
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -343,12 +345,12 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, guint16 *port)
  * @return TRUE if the message was indeed bearing a MUID for which we had
  * issued an RPC call.
  */
-gboolean
+bool
 dht_rpc_answer(const guid_t *muid,
 	knode_t *kn,
 	const struct gnutella_node *n,
 	kda_msg_t function,
-	gconstpointer payload, size_t len)
+	const void *payload, size_t len)
 {
 	struct rpc_cb *rcb;
 	tm_t now;
@@ -356,7 +358,7 @@ dht_rpc_answer(const guid_t *muid,
 
 	knode_check(kn);
 
-	rcb = g_hash_table_lookup(pending, muid);
+	rcb = hikset_lookup(pending, muid);
 	if (!rcb)
 		return FALSE;
 
@@ -405,7 +407,7 @@ dht_rpc_answer(const guid_t *muid,
 		}
 
 		dht_remove_node(rn);				/* Discard obsolete entry */
-		rpc_timed_out(callout_queue, rcb);	/* Invoke user callback if any */
+		rpc_timed_out(cq_main(), rcb);		/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
 	}
@@ -419,7 +421,7 @@ dht_rpc_answer(const guid_t *muid,
 	 */
 
 	if (kn != rn) {
-		guint32 flags = kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
+		uint32 flags = kn->flags & (KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
 
 		rn->flags &= ~(KNODE_F_FIREWALLED | KNODE_F_SHUTDOWNING);
 		rn->flags |= flags | KNODE_F_ALIVE;
@@ -487,7 +489,7 @@ dht_rpc_answer(const guid_t *muid,
  * @param arg	additional opaque callback argument
  */
 void
-dht_rpc_ping_extended(knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg)
+dht_rpc_ping_extended(knode_t *kn, uint32 flags, dht_rpc_cb_t cb, void *arg)
 {
 	const guid_t *muid;
 
@@ -505,7 +507,7 @@ dht_rpc_ping_extended(knode_t *kn, guint32 flags, dht_rpc_cb_t cb, gpointer arg)
  * @param arg	additional opaque callback argument
  */
 void
-dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
+dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, void *arg)
 {
 	dht_rpc_ping_extended(kn, 0, cb, arg);
 }
@@ -521,7 +523,7 @@ dht_rpc_ping(knode_t *kn, dht_rpc_cb_t cb, gpointer arg)
  *
  * @return TRUE if PING is actually sent, FALSE if optimized out.
  */
-gboolean
+bool
 dht_lazy_rpc_ping(knode_t *kn)
 {
 	if (knode_rpc_pending(kn)) {
@@ -550,8 +552,8 @@ dht_lazy_rpc_ping(knode_t *kn)
  */
 void
 dht_rpc_find_node(knode_t *kn, const kuid_t *id,
-	dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg)
+	dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg)
 {
 	const guid_t *muid;
 
@@ -577,8 +579,8 @@ dht_rpc_find_node(knode_t *kn, const kuid_t *id,
 void
 dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg)
+	dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg)
 {
 	const guid_t *muid;
 
@@ -603,8 +605,8 @@ dht_rpc_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
  */
 void
 dht_rpc_store(knode_t *kn, pmsg_t *mb,
-	dht_rpc_cb_t cb, gpointer arg,
-	pmsg_free_t mfree, gpointer marg)
+	dht_rpc_cb_t cb, void *arg,
+	pmsg_free_t mfree, void *marg)
 {
 	const guid_t *muid;
 	pmsg_t *smb;
@@ -635,9 +637,8 @@ dht_rpc_store(knode_t *kn, pmsg_t *mb,
  * Free the RPC callback descriptor held in the hash table at shutdown time.
  */
 static void
-rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+rpc_free_kv(void *val, void *unused_x)
 {
-	(void) unused_key;
 	(void) unused_x;
 
 	/*
@@ -655,8 +656,8 @@ rpc_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 void
 dht_rpc_close(void)
 {
-	g_hash_table_foreach(pending, rpc_free_kv, NULL);
-	gm_hash_table_destroy_null(&pending);
+	hikset_foreach(pending, rpc_free_kv, NULL);
+	hikset_free_null(&pending);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -67,7 +67,7 @@ static GSList *rx_freed = NULL;
  * Tell upper layer that it got new data from us.
  * @return FALSE if there was on error or the receiver wants no more data.
  */
-static gboolean
+static bool
 rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	rx_check(rx);
@@ -83,7 +83,7 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
  * so that further indication to the user-level code is blocked.
  * @return FALSE
  */
-static gboolean
+static bool
 rx_data_ind_freed(rxdrv_t *rx, pmsg_t *mb)
 {
 	rx_check(rx);
@@ -110,9 +110,9 @@ rx_data_ind_freed(rxdrv_t *rx, pmsg_t *mb)
  */
 rxdrv_t *
 rx_make(
-	gpointer owner, gnet_host_t *host,
+	void *owner, gnet_host_t *host,
 	const struct rxdrv_ops *ops,
-	gpointer args)
+	void *args)
 {
 	rxdrv_t *rx;
 
@@ -206,7 +206,7 @@ rx_attached(rxdrv_t *rx, rxdrv_t *urx)
  * @return NULL if there is an initialization problem.
  */
 rxdrv_t *
-rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, gconstpointer args)
+rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, const void *args)
 {
 	rxdrv_t *rx;
 
@@ -258,7 +258,7 @@ rx_deep_free(rxdrv_t *rx)
  * Change RX stack owner.
  */
 void
-rx_change_owner(rxdrv_t *rx, gpointer owner)
+rx_change_owner(rxdrv_t *rx, void *owner)
 {
 	rx_check(rx);
 
@@ -304,7 +304,7 @@ rx_collect(void)
 /**
  * Inject data into driver, from lower layer.
  */
-gboolean
+bool
 rx_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	rx_check(rx);

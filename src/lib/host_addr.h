@@ -95,10 +95,10 @@ net_type_to_af(enum net_type net)
  * of which type it is.
  */
 typedef struct host_addr {
-	guint32 net;	/**< The address network type */
+	uint32 net;				/**< The address network type */
 	union {
-		guint8	ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
-		guint32 ipv4;		/**< @attention: Always in host byte order! */
+		uint8	ipv6[16];	/**< This is valid if "net == NET_TYPE_IPV6" */
+		uint32 ipv4;		/**< @attention: Always in host byte order! */
 	} addr;
 } host_addr_t;
 
@@ -106,15 +106,15 @@ typedef struct host_addr {
  * Serialized host address.
  */
 struct packed_host_addr {
-	guchar net;
-	guchar addr[sizeof ((host_addr_t *) 0)->addr];
+	uchar net;
+	uchar addr[sizeof ((host_addr_t *) 0)->addr];
 };
 
 /**
  * Serialized host (IP:port).
  */
 struct packed_host {
-	guchar port[sizeof (guint16)];
+	uchar port[sizeof (uint16)];
 	struct packed_host_addr ha;
 };
 
@@ -137,7 +137,7 @@ static const host_addr_t ipv4_unspecified = {	/* 0.0.0.0/32 */
 
 static const host_addr_t ipv4_loopback = {	/* 127.0.0.1/32 */
 	NET_TYPE_IPV4,
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if IS_BIG_ENDIAN
 	{ { 0x7f, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 #else
 	{ { 0x01, 0x00, 0x00, 0x7f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
@@ -208,13 +208,13 @@ packed_host_length(const struct packed_host *ph)
 	return ptr_diff(&ph->ha.addr[0], ph);
 }
 
-gboolean host_addr_convert(const host_addr_t from, host_addr_t *to,
+bool host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net);
-gboolean host_addr_can_convert(const host_addr_t from, enum net_type to_net);
-gboolean host_addr_tunnel_client(const host_addr_t from, host_addr_t *to);
+bool host_addr_can_convert(const host_addr_t from, enum net_type to_net);
+bool host_addr_tunnel_client(const host_addr_t from, host_addr_t *to);
 
 
-static inline gboolean
+static inline bool
 host_addr_initialized(const host_addr_t ha)
 {
 	switch (ha.net) {
@@ -248,32 +248,32 @@ host_addr_net(const host_addr_t ha)
 	return ha.net;
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_CONST bool
 host_addr_is_ipv4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net;
 }
 
-static inline G_GNUC_CONST gboolean
+static inline G_GNUC_CONST bool
 host_addr_is_ipv6(const host_addr_t ha)
 {
 	return NET_TYPE_IPV6 == ha.net;
 }
 
-static inline G_GNUC_CONST guint32
+static inline G_GNUC_CONST uint32
 host_addr_ipv4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net ? ha.addr.ipv4 : 0;
 }
 
-static inline const guint8 *
+static inline const uint8 *
 host_addr_ipv6(const host_addr_t *ha)
 {
 	return NET_TYPE_IPV6 == ha->net ? ha->addr.ipv6 : NULL;
 }
 
 static inline G_GNUC_CONST host_addr_t
-host_addr_get_ipv4(guint32 ip)
+host_addr_get_ipv4(uint32 ip)
 {
 	host_addr_t ha;
 
@@ -298,7 +298,7 @@ host_addr_peek_ipv6(const void *ipv6)
 	return ha;
 }
 
-static inline gboolean
+static inline bool
 host_addr_equal(const host_addr_t a, const host_addr_t b)
 {
 	if (a.net == b.net) {
@@ -347,7 +347,7 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 		return CMP(host_addr_ipv4(a), host_addr_ipv4(b));
 	case NET_TYPE_IPV6:
 		{
-			guint i;
+			uint i;
 
 			for (i = 0; i < G_N_ELEMENTS(a.addr.ipv6); i++) {
 				r = CMP(a.addr.ipv6[i], b.addr.ipv6[i]);
@@ -364,11 +364,11 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 	return 0;
 }
 
-static inline gboolean
-host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
+static inline bool
+host_addr_matches(const host_addr_t a, const host_addr_t b, uint8 bits)
 {
 	host_addr_t to;
-	guint8 shift;
+	uint8 shift;
 
 	if (!host_addr_convert(b, &to, a.net))
 		return FALSE;
@@ -406,7 +406,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, guint8 bits)
 }
 
 
-static inline G_GNUC_PURE gboolean
+static inline G_GNUC_PURE bool
 is_host_addr(const host_addr_t ha)
 {
 	switch (host_addr_net(ha)) {
@@ -421,36 +421,6 @@ is_host_addr(const host_addr_t ha)
 	}
 	g_assert_not_reached();
 	return FALSE;
-}
-
-static inline guint32
-host_addr_hash(host_addr_t ha)
-{
-	switch (ha.net) {
-	case NET_TYPE_IPV6:
-		{
-			host_addr_t ha_ipv4;
-
-			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4)) {
-				guint32 h = ha.net ^ ha.addr.ipv6[15];
-				guint i;
-
-				for (i = 0; i < sizeof ha.addr.ipv6; i++)
-					h ^= (guint32) ha.addr.ipv6[i] << (i * 2);
-
-				return h;
-			}
-			ha = ha_ipv4;
-		}
-		/* FALL THROUGH */
-	case NET_TYPE_IPV4:
-		return ha.net ^ host_addr_ipv4(ha);
-	case NET_TYPE_LOCAL:
-	case NET_TYPE_NONE:
-		return ha.net;
-	}
-	g_assert_not_reached();
-	return (guint32) -1;
 }
 
 /**
@@ -485,7 +455,7 @@ socket_addr_get_addr(const socket_addr_t *addr)
  * @param addr a pointer to an initialized socket_addr_t
  * @return the port number in host byte order
  */
-static inline guint16
+static inline uint16
 socket_addr_get_port(const socket_addr_t *addr)
 {
 	g_assert(addr != NULL);
@@ -523,10 +493,10 @@ socket_addr_get_const_sockaddr(const socket_addr_t *addr)
 	g_assert(addr != NULL);
 
 	if (AF_INET == addr->inet4.sin_family) {
-		return cast_to_gconstpointer(&addr->inet4);
+		return cast_to_constpointer(&addr->inet4);
 #if defined(HAS_IPV6)
 	} else if (AF_INET6 == addr->inet6.sin6_family) {
-		return cast_to_gconstpointer(&addr->inet6);
+		return cast_to_constpointer(&addr->inet6);
 #endif /* HAS_IPV6 */
 	}
 
@@ -556,23 +526,27 @@ socket_addr_get_family(const socket_addr_t *addr)
 }
 
 socklen_t socket_addr_set(socket_addr_t *sa_ptr,
-			const host_addr_t addr, guint16 port);
+			const host_addr_t addr, uint16 port);
 socklen_t socket_addr_init(socket_addr_t *sa_ptr, enum net_type net);
 int socket_addr_getpeername(socket_addr_t *p_addr, int fd);
 int socket_addr_getsockname(socket_addr_t *p_addr, int fd);
 
-guint host_addr_hash_func(gconstpointer key);
-gboolean host_addr_eq_func(gconstpointer p, gconstpointer q);
+unsigned host_addr_hash(host_addr_t ha);
+unsigned host_addr_hash2(host_addr_t ha);
+
+uint host_addr_hash_func(const void *key);
+uint host_addr_hash_func2(const void *key);
+bool host_addr_eq_func(const void *p, const void *q);
 void wfree_host_addr1(void *key);
-void wfree_host_addr(gpointer key, gpointer unused_data);
+void wfree_host_addr(void *key, void *unused_data);
 
 int host_addr_family(const host_addr_t ha);
-gboolean is_private_addr(const host_addr_t addr);
-gboolean host_addr_is_routable(const host_addr_t addr);
-gboolean host_addr_is_loopback(const host_addr_t addr);
-gboolean host_addr_is_unspecified(const host_addr_t addr);
+bool is_private_addr(const host_addr_t addr);
+bool host_addr_is_routable(const host_addr_t addr);
+bool host_addr_is_loopback(const host_addr_t addr);
+bool host_addr_is_unspecified(const host_addr_t addr);
 
-static inline gboolean
+static inline bool
 host_addr_is_ipv4_mapped(const host_addr_t addr)
 {
 	return host_addr_is_ipv6(addr) && 
@@ -582,21 +556,21 @@ host_addr_is_ipv4_mapped(const host_addr_t addr)
 const char *host_addr_to_string(const host_addr_t ha);
 const char *host_addr_to_string2(const host_addr_t ha);
 size_t host_addr_to_string_buf(const host_addr_t addr, char *, size_t);
-gboolean string_to_host_addr(const char *s, const char **endptr,
+bool string_to_host_addr(const char *s, const char **endptr,
 	host_addr_t *addr_ptr);
-const char *host_addr_port_to_string(const host_addr_t addr, guint16 port);
-const char *host_addr_port_to_string2(const host_addr_t addr, guint16 port);
+const char *host_addr_port_to_string(const host_addr_t addr, uint16 port);
+const char *host_addr_port_to_string2(const host_addr_t addr, uint16 port);
 size_t host_addr_port_to_string_buf(const host_addr_t addr,
-				guint16 port, char *, size_t);
-gboolean string_to_host_addr_port(const char *str, const char **endptr,
-	host_addr_t *addr_ptr, guint16 *port_ptr);
-gboolean
+				uint16 port, char *, size_t);
+bool string_to_host_addr_port(const char *str, const char **endptr,
+	host_addr_t *addr_ptr, uint16 *port_ptr);
+bool
 string_to_port_host_addr(const char *str, const char **endptr,
-	guint16 *port_ptr, host_addr_t *addr_ptr);
+	uint16 *port_ptr, host_addr_t *addr_ptr);
 const char *host_port_to_string(const char *hostname,
-				host_addr_t addr, guint16 port);
-const char *port_host_addr_to_string(guint16 port, const host_addr_t ha);
-size_t host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
+				host_addr_t addr, uint16 port);
+const char *port_host_addr_to_string(uint16 port, const host_addr_t ha);
+size_t host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 	char *dst, size_t size);
 
 GSList *name_to_host_addr(const char *host, enum net_type net);
@@ -609,24 +583,25 @@ host_addr_t addrinfo_to_addr(const struct addrinfo *ai);
 #endif
 
 const char *host_addr_to_name(const host_addr_t addr);
-gboolean string_to_host_or_addr(const char *s, const char **endptr,
+bool string_to_host_or_addr(const char *s, const char **endptr,
 		host_addr_t *ha);
 
 GSList *host_addr_get_interface_addrs(enum net_type net);
 void host_addr_free_interface_addrs(GSList **sl_ptr);
 
-guint packed_host_addr_size(const struct packed_host_addr paddr);
+uint packed_host_addr_size(const struct packed_host_addr paddr);
 struct packed_host_addr host_addr_pack(const host_addr_t addr);
 host_addr_t packed_host_addr_unpack(const struct packed_host_addr paddr);
 
-guint packed_host_size(const struct packed_host paddr);
-struct packed_host host_pack(const host_addr_t addr, guint16 port);
+uint packed_host_size(const struct packed_host paddr);
+struct packed_host host_pack(const host_addr_t addr, uint16 port);
 void packed_host_unpack_addr(const struct packed_host *phost,
 	host_addr_t *addr_ptr);
-guint packed_host_hash_func(gconstpointer key);
-gboolean packed_host_eq_func(gconstpointer p, gconstpointer q);
-gpointer walloc_packed_host(const host_addr_t addr, guint16 port);
-void wfree_packed_host(gpointer key, gpointer unused_data);
+uint packed_host_hash_func(const void *key);
+uint packed_host_hash_func2(const void *key);
+bool packed_host_eq_func(const void *p, const void *q);
+void *walloc_packed_host(const host_addr_t addr, uint16 port);
+void wfree_packed_host(void *key, void *unused_data);
 
 #endif /* _host_addr_h_ */
 

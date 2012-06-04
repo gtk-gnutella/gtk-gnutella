@@ -59,7 +59,7 @@ typedef void (*xnode_cb_t)(xnode_t *xn, void *data);
 /**
  * Node traversal "entry" callback signature.
  */
-typedef gboolean (*xnode_cbe_t)(xnode_t *xn, void *data);
+typedef bool (*xnode_cbe_t)(xnode_t *xn, void *data);
 
 /**
  * Namespace declaration iteration callback.
@@ -71,7 +71,7 @@ typedef void (*xnode_ns_cb_t)(const char *prefix, const char *uri, void *data);
  *
  * @return TRUE if node matches.
  */
-typedef gboolean (*xnode_match_t)(const xnode_t *xn, void *data);
+typedef bool (*xnode_match_t)(const xnode_t *xn, void *data);
 
 /*
  * Public interface.
@@ -85,16 +85,16 @@ xnode_type_t xnode_type(const xnode_t *xn);
 xnode_t *xnode_parent(const xnode_t *xn);
 xnode_t *xnode_first_child(const xnode_t *xn);
 xnode_t *xnode_next_sibling(const xnode_t *xn);
-gboolean xnode_has_text(const xnode_t *xn);
-gboolean xnode_is_text(const xnode_t *xn);
-gboolean xnode_is_comment(const xnode_t *xn);
-gboolean xnode_is_element(const xnode_t *xn);
-gboolean xnode_is_processing_instruction(const xnode_t *xn);
-gboolean xnode_has_content(const xnode_t *xn);
-gboolean xnode_is_empty(const xnode_t *xn);
-gboolean xnode_text_has_entities(const xnode_t *xn);
-gboolean xnode_is_element_named(const xnode_t *x, const char *u, const char *n);
-gboolean xnode_within_namespace(const xnode_t *xn, const char *uri);
+bool xnode_has_text(const xnode_t *xn);
+bool xnode_is_text(const xnode_t *xn);
+bool xnode_is_comment(const xnode_t *xn);
+bool xnode_is_element(const xnode_t *xn);
+bool xnode_is_processing_instruction(const xnode_t *xn);
+bool xnode_has_content(const xnode_t *xn);
+bool xnode_is_empty(const xnode_t *xn);
+bool xnode_text_has_entities(const xnode_t *xn);
+bool xnode_is_element_named(const xnode_t *x, const char *u, const char *n);
+bool xnode_within_namespace(const xnode_t *xn, const char *uri);
 
 const char *xnode_text(const xnode_t *xn);
 const char *xnode_first_text(const xnode_t *xn);
@@ -105,7 +105,7 @@ const char *xnode_pi_target(const xnode_t *xn);
 
 xnode_t *xnode_new_element(xnode_t *parent, const char *ns, const char *name);
 xnode_t *xnode_new_comment(xnode_t *parent, const char *text);
-xnode_t *xnode_new_text(xnode_t *parent, const char *text, gboolean verbatim);
+xnode_t *xnode_new_text(xnode_t *parent, const char *text, bool verbatim);
 
 void xnode_add_child(xnode_t *parent, xnode_t *node);
 void xnode_add_first_child(xnode_t *parent, xnode_t *node);
@@ -119,17 +119,17 @@ const char *xnode_prop_ns_get(const xnode_t *, const char *u, const char *n);
 const char *xnode_prop_get(const xnode_t *, const char *n);
 void xnode_prop_foreach(const xnode_t *, xattr_table_cb_t func, void *data);
 
-gboolean xnode_prop_ns_set(xnode_t *element,
+bool xnode_prop_ns_set(xnode_t *element,
 	const char *uri, const char *name, const char *value);
-gboolean xnode_prop_set(xnode_t *element, const char *name, const char *value);
-gboolean xnode_prop_unset(xnode_t *element, const char *name);
-gboolean xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *n);
+bool xnode_prop_set(xnode_t *element, const char *name, const char *value);
+bool xnode_prop_unset(xnode_t *element, const char *name);
+bool xnode_prop_ns_unset(xnode_t *element, const char *uri, const char *n);
 void xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs);
 size_t xnode_prop_count(const xnode_t *element);
 
-gboolean xnode_prop_printf(xnode_t *element, const char *name,
+bool xnode_prop_printf(xnode_t *element, const char *name,
 	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
-gboolean xnode_prop_ns_printf(xnode_t *element,
+bool xnode_prop_ns_printf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, ...)
 	G_GNUC_PRINTF(4, 5);
 

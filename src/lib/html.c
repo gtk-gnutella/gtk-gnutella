@@ -87,8 +87,8 @@ struct html_output {
 struct render_context {
 	struct html_output *output;
 	struct html_node *root;
-	gboolean preformatted;
-	gboolean closing;
+	bool preformatted;
+	bool closing;
 };
 
 static const struct render_context zero_render_context;
@@ -290,7 +290,7 @@ parse_tag(const struct array tag)
 	return HTML_TAG_UNKNOWN;
 }
 
-gboolean
+bool
 html_tag_is_closing(const struct array *tag)
 {
 	return	tag &&
@@ -350,7 +350,7 @@ html_get_attribute(const struct array *tag, enum html_attr attribute)
 			i++;
 
 		if (i < tag->size && '=' == tag->data[i]) {
-			gboolean quoted = FALSE;
+			bool quoted = FALSE;
 			size_t start;
 
 			i++;
@@ -401,7 +401,7 @@ render_tag(struct render_context *ctx, const struct array tag)
 	}
 }
 
-static guint32
+static uint32
 parse_named_entity(const struct array entity)
 {
 	size_t i, len;
@@ -430,14 +430,14 @@ error:
 	return -1;
 }
 
-static guint32
+static uint32
 parse_numeric_entity(const struct array entity)
 {
 	size_t i = 0;
 
 	if (i < entity.size && '#' == entity.data[i]) {
 		unsigned base;
-		guint32 v;
+		uint32 v;
 
 		i++;
 		switch (entity.data[i]) {
@@ -470,7 +470,7 @@ error:
 	return -1;
 }
 
-static guint32
+static uint32
 parse_entity(const struct array entity)
 {
 	if (entity.size > 0) {
@@ -488,10 +488,10 @@ parse_entity(const struct array entity)
 static void
 render_entity(struct render_context *ctx, const struct array entity)
 {
-	guint32 c;
+	uint32 c;
 
 	c = parse_entity(entity);
-	if ((guint32)-1 == c) {
+	if ((uint32)-1 == c) {
 		html_output_print(ctx->output, array_from_string("&"));
 		html_output_print(ctx->output, array_init(entity.data, entity.size));
 		html_output_print(ctx->output, array_from_string(";"));
@@ -509,7 +509,7 @@ render_text(struct render_context *ctx, const struct array text)
 {
 	unsigned c_len;
 	size_t i;
-	gboolean whitespace = FALSE;
+	bool whitespace = FALSE;
 	struct array entity, current;
 
 	entity = zero_array;
@@ -517,7 +517,7 @@ render_text(struct render_context *ctx, const struct array text)
 
 	for (i = 0; i < text.size; i += c_len) {
 		const unsigned char c = text.data[i];
-		gboolean is_whitespace;
+		bool is_whitespace;
 
 		is_whitespace = FALSE;
 		c_len = utf8_first_byte_length_hint(c);
@@ -594,7 +594,7 @@ parse(struct html_output *output, const struct array array)
 {
 	size_t i, line_num;
 	const char *msg;
-	guint32 c;
+	uint32 c;
 	unsigned c_len;
 	struct array tag, text;
 	struct html_node *nodes, *root;
@@ -611,7 +611,7 @@ parse(struct html_output *output, const struct array array)
 		const char *next_ptr;
 
 		c = utf8_decode(&array.data[i], i - array.size);
-		if ((guint32)-1 == c) {
+		if ((uint32)-1 == c) {
 			msg = "Invalid UTF-8 encoding";
 			goto error;
 		}

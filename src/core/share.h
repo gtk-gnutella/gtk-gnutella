@@ -68,7 +68,7 @@ shared_file_dummy(void)
 {
 	static shared_file_t *dummy;
 	if (!dummy) {
-		dummy = deconstify_gpointer(vmm_trap_page());
+		dummy = deconstify_pointer(vmm_trap_page());
 	}
 	return dummy;
 }
@@ -88,8 +88,8 @@ struct query_hashvec;
 void share_init(void);
 void share_close(void);
 
-shared_file_t *shared_file(guint idx);
-shared_file_t *shared_file_sorted(guint idx);
+shared_file_t *shared_file(uint idx);
+shared_file_t *shared_file_sorted(uint idx);
 shared_file_t *shared_file_by_name(const char *filename);
 shared_file_t *shared_file_ref(const shared_file_t *sf);
 shared_file_t *shared_file_by_sha1(const struct sha1 *sha1);
@@ -100,7 +100,7 @@ void shared_file_remove(shared_file_t *sf);
 void parse_extensions(const char *);
 char *get_file_path(int);
 void shared_dirs_update_prop(void);
-gboolean shared_dirs_parse(const char *);
+bool shared_dirs_parse(const char *);
 
 void shared_file_set_sha1(shared_file_t *, const struct sha1 *sha1);
 void shared_file_set_tth(shared_file_t *, const struct tth *tth);
@@ -108,13 +108,13 @@ void shared_file_set_modification_time(shared_file_t *sf, time_t mtime);
 void shared_file_set_path(shared_file_t *sf, const char *pathname);
 
 void shared_file_check(const shared_file_t *sf);
-gboolean sha1_hash_available(const shared_file_t *sf) G_GNUC_PURE;
-gboolean sha1_hash_is_uptodate(shared_file_t *sf);
-gboolean shared_file_is_partial(const shared_file_t *sf) G_GNUC_PURE;
-gboolean shared_file_is_finished(const shared_file_t *sf) G_GNUC_PURE;
-gboolean shared_file_is_shareable(const shared_file_t *sf) G_GNUC_PURE;
+bool sha1_hash_available(const shared_file_t *sf) G_GNUC_PURE;
+bool sha1_hash_is_uptodate(shared_file_t *sf);
+bool shared_file_is_partial(const shared_file_t *sf) G_GNUC_PURE;
+bool shared_file_is_finished(const shared_file_t *sf) G_GNUC_PURE;
+bool shared_file_is_shareable(const shared_file_t *sf) G_GNUC_PURE;
 filesize_t shared_file_size(const shared_file_t *sf) G_GNUC_PURE;
-guint32 shared_file_index(const shared_file_t *sf) G_GNUC_PURE;
+uint32 shared_file_index(const shared_file_t *sf) G_GNUC_PURE;
 time_t shared_file_modification_time(const shared_file_t *sf) G_GNUC_PURE;
 time_t shared_file_creation_time(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_path(const shared_file_t *sf) G_GNUC_PURE;
@@ -125,11 +125,11 @@ const char *shared_file_name_canonic(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_relative_path(const shared_file_t *sf) G_GNUC_PURE;
 size_t shared_file_name_nfc_len(const shared_file_t *sf) G_GNUC_PURE;
 size_t shared_file_name_canonic_len(const shared_file_t *sf) G_GNUC_PURE;
-guint32 shared_file_flags(const shared_file_t *sf) G_GNUC_PURE;
+uint32 shared_file_flags(const shared_file_t *sf) G_GNUC_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_GNUC_PURE;
 void shared_file_from_fileinfo(fileinfo_t *fi);
-gboolean shared_file_has_media_type(const shared_file_t *sf, unsigned m)
+bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_GNUC_PURE;
 
 void share_add_partial(const shared_file_t *sf);
@@ -137,14 +137,14 @@ void share_remove_partial(const shared_file_t *sf);
 void share_update_matching_information(void);
 
 void shared_files_match(const char *query,
-		st_search_callback callback, gpointer user_data,
-		int max_res, gboolean partials, struct query_hashvec *qhv);
+		st_search_callback callback, void *user_data,
+		int max_res, bool partials, struct query_hashvec *qhv);
 
 size_t share_fill_newest(shared_file_t **sfvec, size_t sfcount, unsigned mask);
 
 unsigned share_filename_media_mask(const char *filename);
 
-static inline gboolean
+static inline bool
 share_can_answer_partials(void)
 {
 	return GNET_PROPERTY(pfsp_server) && GNET_PROPERTY(query_answer_partials);

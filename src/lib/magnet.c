@@ -193,7 +193,7 @@ magnet_parse_path(const char *path, const char **error_str)
 
 static const char *
 magnet_parse_host_port(const char *hostport,
-	host_addr_t *addr, guint16 *port, const char **host, const char **host_end,
+	host_addr_t *addr, uint16 *port, const char **host, const char **host_end,
 	const char **error_str)
 {
 	const char *p;
@@ -221,7 +221,7 @@ magnet_parse_host_port(const char *hostport,
 	if (':' == *p) {
 		const char *ep2;
 		int error;
-		guint16 u;
+		uint16 u;
 
 		p++;
 		u = parse_uint16(p, &ep2, 10, &error);
@@ -246,7 +246,7 @@ magnet_parse_location(const char *uri, const char **error_str)
 	struct magnet_source *ms;
 	const char *p, *host, *host_end;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	clear_error_str(&error_str);
 	g_return_val_if_fail(uri, NULL);
@@ -273,7 +273,7 @@ magnet_parse_location(const char *uri, const char **error_str)
 	return ms;
 }
 
-static gboolean
+static bool
 magnet_parse_addr_list(const char *proxies,
 	const char **endptr, GSList **list, const char **error_str)
 {
@@ -287,7 +287,7 @@ magnet_parse_addr_list(const char *proxies,
 
 	while (*p == ':') {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 		gnet_host_t *host;
 
 		p = magnet_parse_host_port(p+1, &addr, &port, NULL, NULL, error_str);
@@ -492,7 +492,7 @@ magnet_handle_key(struct magnet_resource *res,
 	case MAGNET_KEY_EXACT_LENGTH:
 		{
 			int error;
-			guint64 u;
+			uint64 u;
 
 			u = parse_uint64(value, NULL, 10, &error);
 			if (!error) {
@@ -516,7 +516,7 @@ magnet_handle_key(struct magnet_resource *res,
 	case MAGNET_KEY_DHT:
 		{
 			int error;
-			guint8 u;
+			uint8 u;
 
 			u = parse_uint8(value, NULL, 10, &error);
 			if (!error) {
@@ -703,7 +703,7 @@ magnet_add_source_by_url(struct magnet_resource *res, const char *url)
 
 void
 magnet_add_sha1_source(struct magnet_resource *res, const struct sha1 *sha1,
-	const host_addr_t addr, const guint16 port, const struct guid *guid,
+	const host_addr_t addr, const uint16 port, const struct guid *guid,
 	const gnet_host_vec_t *proxies)
 {
 	struct magnet_source *s;
@@ -779,7 +779,7 @@ magnet_set_tth(struct magnet_resource *res, const struct tth *tth)
 }
 
 
-gboolean
+bool
 magnet_set_exact_topic(struct magnet_resource *res, const char *topic)
 {
 	struct sha1 sha1;
@@ -828,7 +828,7 @@ magnet_set_filesize(struct magnet_resource *res, filesize_t size)
 }
 
 static inline void
-magnet_append_item(str_t *s, gboolean escape_value,
+magnet_append_item(str_t *s, bool escape_value,
 	const char *key, const char *value)
 {
 	g_return_if_fail(s);
@@ -1100,7 +1100,7 @@ magnet_set_guid(struct magnet_resource *res, const char *guid)
  * valid for a certain source.
  */
 void
-magnet_set_dht(struct magnet_resource *res, gboolean dht_support)
+magnet_set_dht(struct magnet_resource *res, bool dht_support)
 {
 	g_return_if_fail(res);
 

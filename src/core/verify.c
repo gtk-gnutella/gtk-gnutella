@@ -44,6 +44,7 @@
 #include "lib/compat_misc.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -162,7 +163,7 @@ verify_file_free(struct verify_file **ptr)
  * If the callback returns FALSE, hashing of the current file will be
  * aborted and verify_failure() will be called afterwards.
  */
-static gboolean
+static bool
 verify_start(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -175,7 +176,7 @@ verify_start(struct verify *ctx)
  * If the callback returns FALSE, hashing of the current file will be
  * aborted and verify_failure() will be called afterwards.
  */
-static gboolean 
+static bool 
 verify_progress(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -238,7 +239,7 @@ verify_hashed(const struct verify *ctx)
  * The callback function may call this to obtain the amount of seconds
  * since hashing of the current file started.
  */
-guint
+uint
 verify_elapsed(const struct verify *ctx)
 {
 	time_delta_t d;
@@ -252,22 +253,22 @@ verify_elapsed(const struct verify *ctx)
 	return d;
 }
 
-static guint
-verify_item_hash(gconstpointer key)
+static uint
+verify_item_hash(const void *key)
 {
 	const struct verify_file *ctx = key;
 
 	verify_file_check(ctx);
 	
-	return g_str_hash(ctx->pathname)
+	return string_mix_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
 		^ uint64_hash(&ctx->amount)
-		^ pointer_hash_func(func_to_pointer(ctx->callback))
-		^ pointer_hash_func(ctx->user_data);
+		^ pointer_hash(func_to_pointer(ctx->callback))
+		^ pointer_hash(ctx->user_data);
 }
 
 static int
-verify_item_equal(gconstpointer p, gconstpointer q)
+verify_item_equal(const void *p, const void *q)
 {
 	const struct verify_file *a = p, *b = q;
 

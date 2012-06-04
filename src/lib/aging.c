@@ -36,10 +36,13 @@
 
 #include "aging.h"
 #include "cq.h"
-#include "glib-missing.h"
+#include "hash.h"
+#include "hashing.h"
+#include "htable.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define AGING_CALLOUT	1500	/**< Heartbeat every 1.5 seconds */
@@ -50,7 +53,7 @@
  * first aging table and cleared when the last aging table is gone.
  */
 static cqueue_t *aging_cq;		/**< Private callout queue */
-static guint32 aging_refcnt;	/**< Amount of alive aging tables */
+static uint32 aging_refcnt;		/**< Amount of alive aging tables */
 
 enum aging_magic {
 	AGING_MAGIC	= 0x38e2fac3
@@ -62,7 +65,7 @@ enum aging_magic {
  */
 struct aging {
 	enum aging_magic magic;	/**< Magic number */
-	GHashTable *table;		/**< The table holding values */
+	htable_t *table;		/**< The table holding values */
 	aging_free_t kvfree;	/**< The freeing callback for key/value pairs */
 	int delay;				/**< Initial aging delay, in seconds */
 };
@@ -96,7 +99,7 @@ ag_create_callout_queue(void)
 	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
 
 	if (NULL == aging_cq)
-		aging_cq = cq_submake("aging", callout_queue, AGING_CALLOUT);
+		aging_cq = cq_main_submake("aging", AGING_CALLOUT);
 
 	aging_refcnt++;
 }
@@ -128,7 +131,7 @@ ag_unref_callout_queue(void)
  * @return opaque handle to the container.
  */
 aging_table_t *
-aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
+aging_make(int delay, hash_fn_t hash, eq_fn_t eq, aging_free_t kvfree)
 {
 	aging_table_t *ag;
 
@@ -136,7 +139,7 @@ aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
 
 	WALLOC(ag);
 	ag->magic = AGING_MAGIC;
-	ag->table = g_hash_table_new(hash, eq);
+	ag->table = htable_create_any(NULL == hash ? pointer_hash : hash, NULL, eq);
 	ag->kvfree = kvfree;
 	ag->delay = delay;
 
@@ -148,7 +151,7 @@ aging_make(int delay, GHashFunc hash, GEqualFunc eq, aging_free_t kvfree)
  * Free keys and values from the aging table.
  */
 static void
-aging_free_kv(void *key, void *value, void *udata)
+aging_free_kv(const void *key, void *value, void *udata)
 {
 	aging_table_t *ag = udata;
 	struct aging_value *aval = value;
@@ -158,7 +161,7 @@ aging_free_kv(void *key, void *value, void *udata)
 	g_assert(aval->key == key);
 
 	if (ag->kvfree != NULL)
-		(*ag->kvfree)(key, aval->value);
+		(*ag->kvfree)(deconstify_pointer(key), aval->value);
 
 	cq_cancel(&aval->cq_ev);
 	WFREE(aval);
@@ -175,8 +178,8 @@ aging_destroy(aging_table_t **ag_ptr)
 	if (ag) {
 		aging_check(ag);
 
-		g_hash_table_foreach(ag->table, aging_free_kv, ag);
-		gm_hash_table_destroy_null(&ag->table);
+		htable_foreach(ag->table, aging_free_kv, ag);
+		htable_free_null(&ag->table);
 		ag->magic = 0;
 		WFREE(ag);
 
@@ -199,7 +202,7 @@ aging_expire(cqueue_t *unused_cq, void *obj)
 
 	aval->cq_ev = NULL;
 
-	g_hash_table_remove(ag->table, aval->key);
+	htable_remove(ag->table, aval->key);
 	aging_free_kv(aval->key, aval, ag);
 }
 
@@ -207,13 +210,13 @@ aging_expire(cqueue_t *unused_cq, void *obj)
  * Lookup value in table.
  */
 void *
-aging_lookup(const aging_table_t *ag, gconstpointer key)
+aging_lookup(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
 	aging_check(ag);
 
-	aval = g_hash_table_lookup(ag->table, key);
+	aval = htable_lookup(ag->table, key);
 	return aval == NULL ? NULL : aval->value;
 }
 
@@ -221,13 +224,13 @@ aging_lookup(const aging_table_t *ag, gconstpointer key)
  * Return entry age in seconds, (time_delta_t) -1  if not found.
  */
 time_delta_t
-aging_age(const aging_table_t *ag, gconstpointer key)
+aging_age(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
 	aging_check(ag);
 
-	aval = g_hash_table_lookup(ag->table, key);
+	aval = htable_lookup(ag->table, key);
 	return aval == NULL ?
 		(time_delta_t) -1 : delta_time(tm_time(), aval->last_insert);
 }
@@ -237,13 +240,13 @@ aging_age(const aging_table_t *ag, gconstpointer key)
  * initial lifetime the key/value pair had at insertion time.
  */
 void *
-aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
+aging_lookup_revitalise(const aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
 	aging_check(ag);
 
-	aval = g_hash_table_lookup(ag->table, key);
+	aval = htable_lookup(ag->table, key);
 
 	if (aval != NULL) {
 		g_assert(aval->cq_ev != NULL);
@@ -259,15 +262,16 @@ aging_lookup_revitalise(const aging_table_t *ag, gconstpointer key)
  *
  * @return wehether key was found and subsequently removed.
  */
-gboolean
+bool
 aging_remove(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
-	void *okey, *ovalue;
+	const void *okey;
+	void *ovalue;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
-	if (!g_hash_table_lookup_extended(ag->table, key, &okey, &ovalue))
+	if (!htable_lookup_extended(ag->table, key, &okey, &ovalue))
 		return FALSE;
 
 	aval = ovalue;
@@ -275,7 +279,7 @@ aging_remove(aging_table_t *ag, const void *key)
 	g_assert(aval->key == okey);
 	g_assert(aval->ag == ag);
 
-	g_hash_table_remove(ag->table, aval->key);
+	htable_remove(ag->table, aval->key);
 	aging_free_kv(aval->key, aval, ag);
 
 	return TRUE;
@@ -295,14 +299,15 @@ aging_remove(aging_table_t *ag, const void *key)
 void
 aging_insert(aging_table_t *ag, const void *key, void *value)
 {
-	gboolean found;
-	void *okey, *ovalue;
+	bool found;
+	const void *okey;
+	void *ovalue;
 	time_t now = tm_time();
 	struct aging_value *aval;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
-	found = g_hash_table_lookup_extended(ag->table, key, &okey, &ovalue);
+	found = htable_lookup_extended(ag->table, key, &okey, &ovalue);
 	if (found) {
 		aval = ovalue;
 
@@ -314,7 +319,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 			 * That way, we don't have to update the hash table.
 			 */
 
-			(*ag->kvfree)(deconstify_gpointer(key), aval->value);
+			(*ag->kvfree)(deconstify_pointer(key), aval->value);
 		}
 
 		g_assert(aval->cq_ev != NULL);
@@ -334,7 +339,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 	} else {
 		WALLOC(aval);
 		aval->value = value;
-		aval->key = deconstify_gpointer(key);
+		aval->key = deconstify_pointer(key);
 		aval->ttl = ag->delay;
 		aval->ttl = MAX(aval->ttl, 1);
 		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
@@ -342,7 +347,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 		aval->ag = ag;
 
 		aval->cq_ev = cq_insert(aging_cq, 1000 * aval->ttl, aging_expire, aval);
-		gm_hash_table_insert_const(ag->table, key, aval);
+		htable_insert(ag->table, key, aval);
 	}
 }
 

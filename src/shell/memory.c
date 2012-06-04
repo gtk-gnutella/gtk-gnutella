@@ -43,6 +43,7 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/omalloc.h"
@@ -266,7 +267,7 @@ memory_run_shower(struct gnutella_shell *sh,
 
 static enum shell_reply
 memory_run_opt_shower(struct gnutella_shell *sh,
-	shower_opt_cb_t cb, const char *prefix, gboolean options)
+	shower_opt_cb_t cb, const char *prefix, bool options)
 {
 	show_opt_vec_t v;
 
@@ -373,6 +374,16 @@ memory_stats_unsupported(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_stats_halloc(struct gnutella_shell *sh,
+	unsigned opt, unsigned which)
+{
+	if (which & STATS_USAGE)
+		return memory_stats_unsupported(sh, "halloc", STATS_USAGE_STR);
+
+	return memory_run_opt_shower(sh, halloc_dump_stats_log, "HALLOC ", opt);
+}
+
+static enum shell_reply
 shell_exec_memory_stats_vmm(struct gnutella_shell *sh,
 	unsigned opt, unsigned which)
 {
@@ -447,6 +458,7 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 		return shell_exec_memory_stats_## name(sh, opt, which); \
 } G_STMT_END
 
+	CMD(halloc);
 	CMD(vmm);
 	CMD(xmalloc);
 	CMD(zalloc);
@@ -459,13 +471,70 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
+shell_exec_memory_check_xmalloc(struct gnutella_shell *sh, bool verbose)
+{
+	size_t errors;
+	logagent_t *la = log_agent_string_make(0, "XM ");
+
+	if (verbose)
+		shell_write(sh, "100~\n");
+
+	errors = xmalloc_freelist_check(la, verbose);
+	shell_write(sh, log_agent_string_get(la));
+	log_agent_free_null(&la);
+
+	if (verbose)
+		shell_write(sh, ".\n");
+
+	shell_write_linef(sh, REPLY_READY, "Found %zu freelist%s in error",
+		errors, 1 == errors ? "" : "s");
+
+	return REPLY_READY;
+}
+
+static enum shell_reply
+shell_exec_memory_check(struct gnutella_shell *sh,
+	int argc, const char *argv[])
+{
+	const char *verbose;
+	const option_t options[] = {
+		{ "v", &verbose },		/* verbosely report */
+	};
+	int parsed;
+
+	shell_check(sh);
+
+	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	if (parsed < 0)
+		return REPLY_ERROR;
+
+	argv += parsed;	/* args[0] is first command argument */
+	argc -= parsed;	/* counts only command arguments now */
+
+	if (argc < 1)
+		return REPLY_ERROR;
+
+#define CMD(name) G_STMT_START { \
+	if (0 == ascii_strcasecmp(argv[0], #name)) \
+		return shell_exec_memory_check_## name(sh, verbose != NULL); \
+} G_STMT_END
+
+	CMD(xmalloc);
+
+#undef CMD
+
+	shell_set_formatted(sh, _("Unknown operation \"check %s\""), argv[0]);
+	return REPLY_ERROR;
+}
+
+static enum shell_reply
 shell_exec_memory_usage_zone(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
 	size_t size;
 	const char *endptr;
 	int error;
-	gboolean ok;
+	bool ok;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -560,6 +629,7 @@ shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
 #ifdef ALLOW_DUMP
 	CMD(dump);
 #endif
+	CMD(check);
 	CMD(show);
 	CMD(stats);
 	CMD(usage);
@@ -589,14 +659,19 @@ shell_help_memory(int argc, const char *argv[])
 				"dumps LENGTH bytes of memory starting at ADDRESS\n";
 		} else
 #endif
-		if (0 == ascii_strcasecmp(argv[1], "show")) {
+		if (0 == ascii_strcasecmp(argv[1], "check")) {
+			return "memory check [-v] xmalloc\n"
+				"run consistency checks on freelists\n"
+				"-v : verbosely report for each freelist\n";
+		}
+		else if (0 == ascii_strcasecmp(argv[1], "show")) {
 			return
 				"memory show options   # display memory options\n"
 				"memory show pmap      # display VMM pmap\n"
 				"memory show xmalloc   # display xmalloc() freelist info\n"
 				"memory show zones     # display zone usage\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "stats")) {
-			return "memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
+			return "memory stats [-pu] halloc|omalloc|vmm|xmalloc|zalloc\n"
 				"show statistics about specified memory sub-system\n"
 				"-p : pretty-print numbers with thousands separators\n"
 				"-u : show allocation usage statistics, if available\n";
@@ -609,6 +684,7 @@ shell_help_memory(int argc, const char *argv[])
 #ifdef ALLOW_DUMP
 		"memory dump ADDRESS LENGTH\n"
 #endif
+		"memory check xmalloc\n"
 		"memory show options|pmap|xmalloc|zones\n"
 		"memory stats [-pu] omalloc|vmm|xmalloc|zalloc\n"
 		"memory usage zone <size> on|off|show\n"

@@ -35,11 +35,12 @@
 
 #include "pmsg.h"
 #include "halloc.h"
+#include "mempcpy.h"
 #include "walloc.h"
 #include "override.h"			/* Must be the last header included */
 
 #define implies(a,b)	(!(a) || (b))
-#define valid_ptr(a)	(((gulong) (a)) > 100L)
+#define valid_ptr(a)	(((ulong) (a)) > 100L)
 
 #define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
 
@@ -53,7 +54,7 @@ typedef struct pmsg_ext {
 	struct pmsg pmsg;				/**< Must be the first member */
 	/* Additional fields */
 	pmsg_free_t m_free;				/**< Free routine */
-	gpointer m_arg;					/**< Argument to pass to free routine */
+	void *m_arg;					/**< Argument to pass to free routine */
 } pmsg_ext_t;
 
 static inline void
@@ -120,7 +121,7 @@ pmsg_reset(pmsg_t *mb)
  * @return the message block given as argument.
  */
 static pmsg_t *
-pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, gconstpointer buf, int len)
+pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, const void *buf, int len)
 {
 	mb->magic = (PMSG_PF_EXT & prio) ? PMSG_EXT_MAGIC : PMSG_MAGIC;
 	mb->m_data = db;
@@ -149,7 +150,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, gconstpointer buf, int len)
  * @return a message made of one message block referencing one new data block.
  */
 pmsg_t *
-pmsg_new(int prio, gconstpointer buf, int len)
+pmsg_new(int prio, const void *buf, int len)
 {
 	pmsg_t *mb;
 	pdata_t *db;
@@ -168,8 +169,8 @@ pmsg_new(int prio, gconstpointer buf, int len)
  * Like pmsg_new() but returns an extended form with a free routine callback.
  */
 pmsg_t *
-pmsg_new_extend(int prio, gconstpointer buf, int len,
-	pmsg_free_t free_cb, gpointer arg)
+pmsg_new_extend(int prio, const void *buf, int len,
+	pmsg_free_t free_cb, void *arg)
 {
 	pmsg_ext_t *emb;
 	pdata_t *db;
@@ -221,7 +222,7 @@ pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
  * Extended cloning of message, adds a free routine callback.
  */
 pmsg_t *
-pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
+pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 {
 	pmsg_ext_t *nmb;
 
@@ -260,7 +261,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, gpointer arg)
  * @return the old free routine.
  */
 pmsg_free_t
-pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg)
+pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg)
 {
 	pmsg_ext_t *nmb;
 	pmsg_free_t fn;
@@ -280,7 +281,7 @@ pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, gpointer narg, gpointer *oarg)
  * Get the "meta data" from an extended message block (the argument passed
  * to the embedded free routine).
  */
-gpointer
+void *
 pmsg_get_metadata(pmsg_t *mb)
 {
 	return cast_to_pmsg_ext(mb)->m_arg;
@@ -422,7 +423,7 @@ pmsg_writable_length(const pmsg_t *mb)
  * @returns amount of written data.
  */
 int
-pmsg_write(pmsg_t *mb, gconstpointer data, int len)
+pmsg_write(pmsg_t *mb, const void *data, int len)
 {
 	pdata_t *arena;
 	int available, written;
@@ -435,10 +436,9 @@ pmsg_write(pmsg_t *mb, gconstpointer data, int len)
 	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
 
 	written = len >= available ? available : len;
-	if (written != 0) {
-		memcpy(mb->m_wptr, data, written);
-		mb->m_wptr += written;
-	}
+	if (written != 0)
+		mb->m_wptr = mempcpy(mb->m_wptr, data, written);
+
 	return written;
 }
 
@@ -446,7 +446,7 @@ pmsg_write(pmsg_t *mb, gconstpointer data, int len)
  * Read data from the message, returning the amount of bytes transferred.
  */
 int
-pmsg_read(pmsg_t *mb, gpointer data, int len)
+pmsg_read(pmsg_t *mb, void *data, int len)
 {
 	int available, readable;
 
@@ -531,8 +531,7 @@ pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
 	copied = MIN(copied, available);
 
 	if (copied > 0) {
-		memcpy(dest->m_wptr, src->m_rptr, copied);
-		dest->m_wptr += copied;
+		dest->m_wptr = mempcpy(dest->m_wptr, src->m_rptr, copied);
 		src->m_rptr += copied;
 	}
 
@@ -645,7 +644,7 @@ pdata_new(int len)
  * arena will be freed with wfree(buf, len) when the data buffer is reclaimed.
  */
 pdata_t *
-pdata_allocb(void *buf, int len, pdata_free_t freecb, gpointer freearg)
+pdata_allocb(void *buf, int len, pdata_free_t freecb, void *freearg)
 {
 	pdata_t *db;
 
@@ -675,7 +674,7 @@ pdata_allocb(void *buf, int len, pdata_free_t freecb, gpointer freearg)
  * the data buffer is reclaimed.
  */
 pdata_t *
-pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, gpointer freearg)
+pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, void *freearg)
 {
 	pdata_t *db;
 
@@ -700,7 +699,7 @@ pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, gpointer freearg)
  * the buffer, probably because it was made out of a static buffer.
  */
 void
-pdata_free_nop(gpointer unused_p, gpointer unused_arg)
+pdata_free_nop(void *unused_p, void *unused_arg)
 {
 	(void) unused_p;
 	(void) unused_arg;
@@ -712,7 +711,7 @@ pdata_free_nop(gpointer unused_p, gpointer unused_arg)
 static void
 pdata_free(pdata_t *db)
 {
-	gboolean is_embedded = (db->d_arena == db->d_embedded);
+	bool is_embedded = (db->d_arena == db->d_embedded);
 
 	g_assert(db->d_refcnt == 0);
 
@@ -721,7 +720,7 @@ pdata_free(pdata_t *db)
 	 */
 
 	if (db->d_free) {
-		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
+		void *p = is_embedded ? (void *) db : (void *) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
 		if (!is_embedded)
 			WFREE(db);
@@ -787,7 +786,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			g_assert(size > 0);
 			held += size;
 
-			iovec_set_base(&iov[i], deconstify_gpointer(pmsg_read_base(mb)));
+			iovec_set_base(&iov[i], deconstify_pointer(pmsg_read_base(mb)));
 			iovec_set_len(&iov[i], size);
 		}
 		slist_iter_free(&iter);
@@ -989,15 +988,15 @@ pmsg_write_ipv4_or_ipv6_addr(pmsg_t *mb, host_addr_t addr)
  * this is the last byte of the encoded value.
  */
 void
-pmsg_write_ule64(pmsg_t *mb, guint64 v)
+pmsg_write_ule64(pmsg_t *mb, uint64 v)
 {
-	guint64 value = v;
+	uint64 value = v;
 
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 	g_assert(pmsg_available(mb) >= 10);	/* Will need 10 bytes at most */
 
 	do {
-		guint8 byt = (guint8) (value & 0x7f);	/* Lowest 7 bits */
+		uint8 byt = (uint8) (value & 0x7f);		/* Lowest 7 bits */
 		value >>= 7;
 		if (0 == value) {
 			byt |= 0x80;						/* Last byte emitted */
@@ -1022,7 +1021,7 @@ pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
 
 	len = strlen(str);
 	len = MIN(n, len);
-	pmsg_write_ule64(mb, (guint64) len);
+	pmsg_write_ule64(mb, (uint64) len);
 
 	if (len != 0) {
 		pmsg_write(mb, str, len);
@@ -1049,7 +1048,7 @@ pmsg_write_string(pmsg_t *mb, const char *str, size_t length)
 
 	g_assert(UNSIGNED(pmsg_available(mb)) >= len + 10);	/* Need ule64 length */
 
-	pmsg_write_ule64(mb, (guint64) len);
+	pmsg_write_ule64(mb, (uint64) len);
 	if (len != 0) {
 		pmsg_write(mb, str, len);
 	}

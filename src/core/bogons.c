@@ -70,7 +70,7 @@ static G_GNUC_COLD int
 bogons_load(FILE *f)
 {
 	char line[1024];
-	guint32 ip, netmask;
+	uint32 ip, netmask;
 	int linenum = 0;
 	int bits;
 	iprange_err_t error;
@@ -136,7 +136,7 @@ bogons_load(FILE *f)
  * addresses changed.
  */
 static void
-bogons_changed(const char *filename, gpointer unused_udata)
+bogons_changed(const char *filename, void *unused_udata)
 {
 	FILE *f;
 	char buf[80];
@@ -229,7 +229,7 @@ bogons_close(void)
  *
  * @returns TRUE if found, and FALSE if not.
  */
-gboolean
+bool
 bogons_check(const host_addr_t ha)
 {
 	if G_UNLIKELY(NULL == bogons_db)

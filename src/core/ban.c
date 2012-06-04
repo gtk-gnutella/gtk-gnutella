@@ -39,9 +39,10 @@
 #include "whitelist.h"
 
 #include "lib/atoms.h"
+#include "lib/cq.h"
 #include "lib/fd.h"
 #include "lib/file.h"		/* For file_register_fd_reclaimer() */
-#include "lib/cq.h"
+#include "lib/hevset.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -52,7 +53,7 @@
 #include "lib/override.h"	/* Must be the last header included */
 
 /*
- * We keep a hash table, indexed by IP address, which records all the
+ * We keep a hash set, indexed by IP address, which records all the
  * requests we have from the various IPs.  When hammering is detected,
  * the IP address is banned for some time.
  *
@@ -69,7 +70,7 @@
 
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 
-static GHashTable *info;		/**< Info by IP address */
+static hevset_t *info;			/**< Info by IP address */
 static cqueue_t *ban_cq;		/**< Private callout queue */
 
 /**< Decay coefficient, per second */
@@ -84,16 +85,16 @@ static const float decay_coeff = (float) MAX_REQUEST / MAX_PERIOD;
  */
 struct addr_info {
 	float counter;				/**< Counts connection, decayed linearily */
-	host_addr_t addr;			/**< IP address */
+	host_addr_t addr;			/**< IP address -- the embedded key */
 	time_t created;				/**< When did last connection occur? */
 	cevent_t *cq_ev;			/**< Scheduled callout event */
 	int ban_delay;				/**< Banning delay, in seconds */
 	int ban_count;				/**< Amount of time we banned this source */
 	const char *ban_msg;		/**< Banning message (atom) */
-	gboolean banned;			/**< Is this IP currently banned? */
+	unsigned banned:1;			/**< Is this IP currently banned? */
 };
 
-static void ipf_destroy(cqueue_t *cq, gpointer obj);
+static void ipf_destroy(cqueue_t *cq, void *obj);
 
 /**
  * Create new addr_info structure for said IP.
@@ -148,20 +149,19 @@ ipf_free(struct addr_info *ipf)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-ipf_destroy(cqueue_t *unused_cq, gpointer obj)
+ipf_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(!ipf->banned);
-	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	if (GNET_PROPERTY(ban_debug) > 8)
 		g_debug("disposing of BAN %s: %s",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-	g_hash_table_remove(info, &ipf->addr);
+	hevset_remove(info, &ipf->addr);
 	ipf->cq_ev = NULL;
 	ipf_free(ipf);
 }
@@ -170,7 +170,7 @@ ipf_destroy(cqueue_t *unused_cq, gpointer obj)
  * Called from callout queue when it's time to unban the IP.
  */
 static void
-ipf_unban(cqueue_t *unused_cq, gpointer obj)
+ipf_unban(cqueue_t *unused_cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
@@ -179,7 +179,6 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 	(void) unused_cq;
 	g_assert(ipf);
 	g_assert(ipf->banned);
-	g_assert(ipf == g_hash_table_lookup(info, &ipf->addr));
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -210,7 +209,7 @@ ipf_unban(cqueue_t *unused_cq, gpointer obj)
 			g_debug("disposing of BAN %s: %s",
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-		g_hash_table_remove(info, &ipf->addr);
+		hevset_remove(info, &ipf->addr);
 		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
@@ -248,7 +247,7 @@ ban_allow(const host_addr_t addr)
 	if (whitelist_check(addr))
 		return BAN_OK;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = hevset_lookup(info, &addr);
 
 	/*
 	 * First time we see this IP?  It's OK then.
@@ -256,7 +255,7 @@ ban_allow(const host_addr_t addr)
 
 	if (NULL == ipf) {
 		ipf = ipf_make(addr, now);
-		g_hash_table_insert(info, &ipf->addr, ipf);
+		hevset_insert(info, ipf);
 		return BAN_OK;
 	}
 
@@ -362,11 +361,11 @@ ban_record(const host_addr_t addr, const char *msg)
 	 * If is possible that we already have an addr_info for that host.
 	 */
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = hevset_lookup(info, &addr);
 
 	if (NULL == ipf) {
 		ipf = ipf_make(addr, tm_time());
-		g_hash_table_insert(info, &ipf->addr, ipf);
+		hevset_insert(info, ipf);
 	}
 
 	atom_str_change(&ipf->ban_msg, msg);
@@ -421,7 +420,7 @@ ban_close_fd(void **data_ptr)
  *
  * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-static gboolean
+static bool
 reclaim_fd(void)
 {
 	GList *prev;
@@ -459,10 +458,10 @@ reclaim_fd(void)
  *
  * @returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-static gboolean
+static bool
 ban_reclaim_fd(void)
 {
-	gboolean reclaimed;
+	bool reclaimed;
 
 	reclaimed = reclaim_fd();
 
@@ -534,12 +533,12 @@ ban_force(struct gnutella_socket *s)
 /**
  * Check whether IP is already recorded as being banned.
  */
-gboolean
+bool
 ban_is_banned(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = hevset_lookup(info, &addr);
 
 	return ipf != NULL && ipf->banned;
 }
@@ -552,7 +551,7 @@ ban_delay(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = hevset_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_delay;
@@ -566,7 +565,7 @@ ban_message(const host_addr_t addr)
 {
 	struct addr_info *ipf;
 
-	ipf = g_hash_table_lookup(info, &addr);
+	ipf = hevset_lookup(info, &addr);
 	g_assert(ipf);
 
 	return ipf->ban_msg;
@@ -578,8 +577,9 @@ ban_message(const host_addr_t addr)
 G_GNUC_COLD void
 ban_init(void)
 {
-	info = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
-	ban_cq = cq_submake("ban", callout_queue, BAN_CALLOUT);
+	info = hevset_create_any(offsetof(struct addr_info, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
+	ban_cq = cq_main_submake("ban", BAN_CALLOUT);
 
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);
@@ -592,7 +592,7 @@ ban_init(void)
 void
 ban_max_recompute(void)
 {
-	guint32 max;
+	uint32 max;
 
 	max = (GNET_PROPERTY(sys_nofile) * GNET_PROPERTY(ban_ratio_fds)) / 100;
 	max = MIN(GNET_PROPERTY(ban_max_fds), max);
@@ -606,9 +606,8 @@ ban_max_recompute(void)
 }
 
 static void
-free_info(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_info(void *value, void *unused_udata)
 {
-	(void) unused_key;
 	(void) unused_udata;
 	ipf_free(value);
 }
@@ -621,8 +620,8 @@ ban_close(void)
 {
 	GList *l;
 
-	g_hash_table_foreach(info, free_info, NULL);
-	gm_hash_table_destroy_null(&info);
+	hevset_foreach(info, free_info, NULL);
+	hevset_free_null(&info);
 
 	for (l = banned_head; NULL != l; l = g_list_next(l)) {
 		ban_close_fd(&l->data); /* Reclaim fd */
@@ -685,7 +684,7 @@ ban_vendor(const char *vendor)
 			"0.93",
 			"0.94",
 		};
-		guint i;
+		uint i;
 
 		for (i = 0; i < G_N_ELEMENTS(versions); i++) {
 			if (is_strprefix(gtkg_version, versions[i]))

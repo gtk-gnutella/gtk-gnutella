@@ -299,7 +299,7 @@ upload_stats_gui_update_model(struct ul_stats *us)
 }
 
 void
-upload_stats_gui_clear_all(void)
+upload_stats_gui_clear_model(void)
 {
 	gtk_clist_clear(clist_ul_stats());
 }

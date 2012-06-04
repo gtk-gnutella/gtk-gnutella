@@ -36,6 +36,7 @@
 #include "glog.h"
 #include "log.h"
 #include "str.h"
+#include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -59,12 +60,18 @@ void
 gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 {
 	static str_t *msg;
-	static gboolean logging;
+	static bool logging;
 
 	if (logging) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, FALSE, fmt, args);
 		return;
 	}
+
+	/*
+	 * This call is thread-unsafe by construction, and supposed to be called
+	 * only from the main thread.  This is why it's OK to have a global
+	 * ``logging'' variable.
+	 */
 
 	logging = TRUE;
 

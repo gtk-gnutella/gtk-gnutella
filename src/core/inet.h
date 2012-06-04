@@ -53,9 +53,9 @@ void inet_init(void);
 void inet_close(void);
 
 void inet_firewalled(void);
-void inet_udp_firewalled(gboolean new_env);
+void inet_udp_firewalled(bool new_env);
 
-gboolean inet_can_answer_ping(void);
+bool inet_can_answer_ping(void);
 
 void inet_got_incoming(const host_addr_t addr);
 void inet_read_activity(void);
@@ -63,6 +63,7 @@ void inet_udp_got_incoming(const host_addr_t addr);
 void inet_udp_record_sent(const host_addr_t addr);
 void inet_udp_got_unsolicited_incoming(void);
 void inet_udp_check_unsolicited(void);
+void inet_router_configured(void);
 
 void inet_connection_attempted(const host_addr_t addr);
 void inet_connection_succeeded(const host_addr_t addr);

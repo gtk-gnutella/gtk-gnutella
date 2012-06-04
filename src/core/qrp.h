@@ -66,6 +66,7 @@ struct gnutella_node;
 struct routing_table;
 struct shared_file;
 struct query_hashvec;
+struct htable;
 
 typedef struct query_hashvec query_hashvec_t;
 
@@ -76,41 +77,41 @@ void qrp_leaf_changed(void);
 void qrp_peermode_changed(void);
 
 void qrp_prepare_computation(void);
-void qrp_add_file(const struct shared_file *sf, GHashTable *words);
-void qrp_finalize_computation(GHashTable *words);
-void qrp_dispose_words(GHashTable **h_ptr);
+void qrp_add_file(const struct shared_file *sf, struct htable *words);
+void qrp_finalize_computation(struct htable *words);
+void qrp_dispose_words(struct htable **h_ptr);
 
 struct qrt_update *qrt_update_create(struct gnutella_node *n,
 						struct routing_table *);
 void qrt_update_free(struct qrt_update *);
-gboolean qrt_update_send_next(struct qrt_update *);
-gboolean qrt_update_was_ok(struct qrt_update *);
+bool qrt_update_send_next(struct qrt_update *);
+bool qrt_update_was_ok(struct qrt_update *);
 
 struct qrt_receive *qrt_receive_create(struct gnutella_node *n,
 						struct routing_table *);
 void qrt_receive_free(struct qrt_receive *);
-gboolean qrt_receive_next(struct qrt_receive *, gboolean *done);
+bool qrt_receive_next(struct qrt_receive *, bool *done);
 
 struct routing_table *qrt_get_table(void);
 struct routing_table *qrt_ref(struct routing_table *);
 void qrt_unref(struct routing_table *);
 void qrt_get_info(const struct routing_table *, qrt_info_t *qi);
 
-struct query_hashvec *qhvec_alloc(guint size);
+struct query_hashvec *qhvec_alloc(uint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
 query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
 void qhvec_add(struct query_hashvec *qhvec, const char *word,
 	enum query_hsrc src);
-gboolean qhvec_has_urn(const struct query_hashvec *qhv);
-gboolean qhvec_whats_new(const struct query_hashvec *qhv);
-void qhvec_set_whats_new(struct query_hashvec *qhv, gboolean val);
-guint qhvec_count(const struct query_hashvec *qhv);
+bool qhvec_has_urn(const struct query_hashvec *qhv);
+bool qhvec_whats_new(const struct query_hashvec *qhv);
+void qhvec_set_whats_new(struct query_hashvec *qhv, bool val);
+uint qhvec_count(const struct query_hashvec *qhv);
 
 GSList *qrt_build_query_target(
 	query_hashvec_t *qhvec, int hops, int ttl, struct gnutella_node *source);
 void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
-gboolean qrp_node_can_route(const struct gnutella_node *n,
+bool qrp_node_can_route(const struct gnutella_node *n,
 			const query_hashvec_t *qhv);
 
 #endif	/* _core_qrp_h_ */

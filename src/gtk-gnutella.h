@@ -37,21 +37,21 @@
  * Constants
  */
 
-#define GTA_PRODUCT_NAME "gtk-gnutella"	/**< Normally "gtk-gnutella" */
-#define GTA_VERSION 0				/**< major version */
-#define GTA_SUBVERSION 98			/**< minor version */
-#define GTA_PATCHLEVEL 2			/**< patch level or teeny version */
-#define GTA_REVISION "stable"		/**< unstable, beta, stable */
-#define GTA_REVCHAR ""				/**< (u)nstable, (b)eta, none -> stable */
-#define GTA_RELEASE "2011-12-30"	/**< ISO 8601 format YYYY-MM-DD */
-#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+#define GTA_PRODUCT_NAME	"gtk-gnutella"	/**< Normally "gtk-gnutella" */
+#define GTA_VERSION			0			/**< major version */
+#define GTA_SUBVERSION 		98			/**< minor version */
+#define GTA_PATCHLEVEL 		3			/**< patch level or teeny version */
+#define GTA_REVISION 		"stable"	/**< unstable, beta, stable */
+#define GTA_REVCHAR			""			/**< (u)nstable, (b)eta, "" -> stable */
+#define GTA_RELEASE			"2012-06-04"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
-#define GTA_INTERFACE "GTK1"
+#define GTA_INTERFACE		"GTK1"
 #elif defined(USE_GTK2)
-#define GTA_INTERFACE "GTK2"
+#define GTA_INTERFACE		"GTK2"
 #elif defined(USE_TOPLESS)
-#define GTA_INTERFACE "Topless"
+#define GTA_INTERFACE		"Topless"
 #else
 #error "Expected Gtk+ 1.2, Gtk+ 2.x or headless as user-interface."
 #endif
@@ -69,7 +69,7 @@
 #define GTA_PORT			6346	/**< Default "standard" port */
 
 #ifndef GTA_BUILD
-#define GTA_BUILD					"$Revision$"
+#define GTA_BUILD			"$Revision$"
 #endif
 
 /*

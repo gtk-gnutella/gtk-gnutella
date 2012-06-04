@@ -24,9 +24,8 @@
 #      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #----------------------------------------------------------------------
 
-require 'getopt.pl';
-
-&Getopt;
+use Getopt::Std;
+getopts('g');
 
 #
 # Converts the Geo IPv6 database into a suitable format for GTKG

@@ -39,6 +39,7 @@
 #include "getline.h"		/* For MAX_LINE_SIZE */
 #include "glib-missing.h"
 #include "halloc.h"
+#include "htable.h"
 #include "log.h"			/* For log_file_printable() */
 #include "misc.h"
 #include "slist.h"
@@ -63,7 +64,7 @@ enum header_magic { HEADER_MAGIC = 0x71b8484fU };
 
 struct header {
 	enum header_magic magic;
-	GHashTable *headers;		/**< Indexed by name */
+	htable_t *headers;			/**< Indexed by name (case-insensitively) */
 	slist_t *fields;			/**< Ordered list of header_field_t */
 	int flags;					/**< Various operating flags */
 	int size;					/**< Total header size, in bytes */
@@ -142,7 +143,7 @@ static const char *error_str[] = {
  * @return human-readable error string corresponding to error code `errnum'.
  */
 const char *
-header_strerror(guint errnum)
+header_strerror(uint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str))
 		return "Invalid error code";
@@ -218,7 +219,7 @@ static void
 hfield_dump(const header_field_t *h, FILE *out)
 {
 	slist_iter_t *iter;
-	gboolean first;
+	bool first;
 
 	header_field_check(h);
 	g_assert(h->lines);
@@ -261,13 +262,15 @@ hfield_dump(const header_field_t *h, FILE *out)
  *** header object
  ***/
 
-static GHashTable *
+static htable_t *
 header_get_table(header_t *o)
 {
 	header_check(o);
 
-	if (!o->headers)
-		o->headers = g_hash_table_new(ascii_strcase_hash, ascii_strcase_eq);
+	if (NULL == o->headers) {
+		o->headers = htable_create_any(ascii_strcase_hash,
+			NULL, ascii_strcase_eq);
+	}
 
 	return o->headers;
 }
@@ -289,12 +292,15 @@ header_make(void)
 /**
  * Frees the key/values from the headers hash.
  */
-static gboolean
-free_header_data(gpointer key, gpointer value, gpointer unused_udata)
+static bool
+free_header_data(const void *key, void *value, void *unused_udata)
 {
+	void *k;
+
 	(void) unused_udata;
 
-	HFREE_NULL(key);			/* XXX if shared, don't do that */
+	k = deconstify_pointer(key);
+	hfree(k);					/* XXX if shared, don't do that */
 	str_destroy(value);
 	return TRUE;
 }
@@ -352,9 +358,9 @@ header_reset(header_t *o)
 {
 	header_check(o);
 
-	if (o->headers) {
-		g_hash_table_foreach_remove(o->headers, free_header_data, NULL);
-		gm_hash_table_destroy_null(&o->headers);
+	if (o->headers != NULL) {
+		htable_foreach_remove(o->headers, free_header_data, NULL);
+		htable_free_null(&o->headers);
 	}
 	slist_free_all(&o->fields, cast_to_slist_destroy(hfield_free));
 	o->flags = o->size = o->num_lines = 0;
@@ -373,7 +379,7 @@ header_get(const header_t *o, const char *field)
 	header_check(o);
 
 	if (o->headers) {
-		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
+		v = htable_lookup(o->headers, deconstify_char(field));
 	} else {
 		v = NULL;
 	}
@@ -396,7 +402,7 @@ header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 	header_check(o);
 
 	if (o->headers) {
-		v = g_hash_table_lookup(o->headers, deconstify_gchar(field));
+		v = htable_lookup(o->headers, deconstify_char(field));
 	} else {
 		v = NULL;
 	}
@@ -413,13 +419,13 @@ header_get_extended(const header_t *o, const char *field, size_t *len_ptr)
 static void
 add_header(header_t *o, const char *field, const char *text)
 {
-	GHashTable *ht;
+	htable_t *ht;
 	str_t *v;
 
 	header_check(o);
 
 	ht = header_get_table(o);
-	v = g_hash_table_lookup(ht, field);
+	v = htable_lookup(ht, field);
 	if (v) {
 		/*
 		 * Header already exists, according to RFC2616 we need to append
@@ -438,7 +444,7 @@ add_header(header_t *o, const char *field, const char *text)
 
 		key = h_strdup(field);
 		v = str_new_from(text);
-		g_hash_table_insert(ht, key, v);
+		htable_insert(ht, key, v);
 	}
 }
 
@@ -454,7 +460,7 @@ add_continuation(header_t *o, const char *field, const char *text)
 	header_check(o);
 	g_assert(o->headers);
 
-	v = g_hash_table_lookup(o->headers, field);
+	v = htable_lookup(o->headers, field);
 	g_assert(v != NULL);
 	str_putc(v, ' ');
 	str_cat(v, text);
@@ -471,7 +477,7 @@ header_append(header_t *o, const char *text, int len)
 {
 	char buf[MAX_LINE_SIZE];
 	const char *p = text;
-	guchar c;
+	uchar c;
 	header_field_t *hf;
 
 	header_check(o);
@@ -562,7 +568,7 @@ header_append(header_t *o, const char *text, int len)
 
 	} else {
 		char *b;
-		gboolean seen_space = FALSE;
+		bool seen_space = FALSE;
 
 		/*
 		 * It's a new header line.
@@ -642,7 +648,7 @@ header_append(header_t *o, const char *text, int len)
 }
 
 static void
-header_dump_item(gpointer p, gpointer user_data)
+header_dump_item(void *p, void *user_data)
 {
 	hfield_dump(p, user_data);
 }
@@ -821,7 +827,7 @@ header_fmt_free(header_fmt_t **hf_ptr)
  * within the maximum header size requirement in case a continuation
  * is emitted, and using the configured separator.
  */
-gboolean
+bool
 header_fmt_value_fits(const header_fmt_t *hf, size_t len)
 {
 	size_t final_len;
@@ -868,13 +874,13 @@ header_fmt_value_fits(const header_fmt_t *hf, size_t len)
  * resulted in the header being larger than the configured max size (the
  * header line is left in the state it was in upon entry, in that case).
  */
-static gboolean
+static bool
 header_fmt_append_full(header_fmt_t *hf, const char *str,
 	const char *separator, size_t slen, size_t sslen)
 {
 	size_t len, curlen;
 	gsize gslen;
-	gboolean success;
+	bool success;
 
 	header_fmt_check(hf);
 	g_assert(size_is_non_negative(slen));
@@ -944,7 +950,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
  * @return TRUE if we were able to append the data whilst remaining under
  * the configured maximum length.
  */
-gboolean
+bool
 header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 {
 	size_t seplen;
@@ -969,7 +975,7 @@ header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
  * @return TRUE if we were able to append the data whilst remaining under
  * the configured maximum length.
  */
-gboolean
+bool
 header_fmt_append_value(header_fmt_t *hf, const char *str)
 {
 	header_fmt_check(hf);

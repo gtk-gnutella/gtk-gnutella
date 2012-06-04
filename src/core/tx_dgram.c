@@ -61,7 +61,7 @@ struct attr {
  * Invoked when the output file descriptor can accept more data.
  */
 static void
-is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
+is_writable(void *data, int unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
 
@@ -90,8 +90,8 @@ is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
  *
  * Always succeeds, so never returns NULL.
  */
-static gpointer
-tx_dgram_init(txdrv_t *tx, gpointer args)
+static void *
+tx_dgram_init(txdrv_t *tx, void *args)
 {
 	struct attr *attr;
 	struct tx_dgram_args *targs = args;
@@ -205,7 +205,7 @@ tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
  */
 static ssize_t
 tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
-	gconstpointer data, size_t len)
+	const void *data, size_t len)
 {
 	ssize_t r;
 	struct attr *attr = tx->opaque;
@@ -235,7 +235,7 @@ tx_dgram_enable(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
+	bio_add_callback(attr->bio, is_writable, tx);
 }
 
 /**

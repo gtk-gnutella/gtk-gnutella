@@ -59,7 +59,7 @@ struct attr {
  * Invoked when the output file descriptor can accept more data.
  */
 static void
-is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
+is_writable(void *data, int unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = data;
 	struct attr *attr = tx->opaque;
@@ -90,8 +90,8 @@ is_writable(gpointer data, int unused_source, inputevt_cond_t cond)
  *
  * Always succeeds, so never returns NULL.
  */
-static gpointer
-tx_link_init(txdrv_t *tx, gpointer args)
+static void *
+tx_link_init(txdrv_t *tx, void *args)
 {
 	struct tx_link_args *targs = args;
 	struct attr *attr;
@@ -198,7 +198,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
  * @return amount of bytes written, or -1 on error.
  */
 static ssize_t
-tx_link_write(txdrv_t *tx, gconstpointer data, size_t len)
+tx_link_write(txdrv_t *tx, const void *data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 	ssize_t r;
@@ -242,7 +242,7 @@ tx_link_enable(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
+	bio_add_callback(attr->bio, is_writable, tx);
 }
 
 /**

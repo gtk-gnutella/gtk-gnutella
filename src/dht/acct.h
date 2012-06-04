@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,10 +25,10 @@
  * @ingroup dht
  * @file
  *
- * Accounting.
+ * IP address / network accounting.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008, 2012
  */
 
 #ifndef _dht_acct_h_
@@ -39,15 +39,17 @@
 #define NET_CLASS_C_MASK	0xffffff00U		/**< Class C network mask */
 #define NET_IPv4_MASK		0xffffffffU		/**< IPv4 address mask */
 
+struct acct_net;
+typedef struct acct_net acct_net_t;
 
 /*
  * Public interface.
  */
 
-GHashTable *acct_net_create(void);
-int acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask);
-void acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone);
-void acct_net_free(GHashTable **hptr);
+acct_net_t *acct_net_create(void);
+int acct_net_get(const acct_net_t *an, host_addr_t addr, uint32 mask);
+void acct_net_update(acct_net_t *an, host_addr_t addr, uint32 mask, int pmone);
+void acct_net_free_null(acct_net_t **anptr);
 
 #endif /* _dht_acct_h_ */
 

@@ -340,6 +340,10 @@ gboolean gui_property_variable_search_restart_when_pending     = FALSE;
 static const gboolean gui_property_variable_search_restart_when_pending_default = FALSE;
 gboolean gui_property_variable_search_discard_banned_guid     = TRUE;
 static const gboolean gui_property_variable_search_discard_banned_guid_default = TRUE;
+gboolean gui_property_variable_search_display_guess_stats     = TRUE;
+static const gboolean gui_property_variable_search_display_guess_stats_default = TRUE;
+gboolean gui_property_variable_guess_stats_show_total     = TRUE;
+static const gboolean gui_property_variable_guess_stats_show_total_default = TRUE;
 
 static prop_set_t *gui_property;
 
@@ -356,7 +360,7 @@ gui_prop_init(void) {
     gui_property->props  = omalloc(sizeof(prop_def_t) * GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
     gui_property->dirty = FALSE;
-    gui_property->byName = NULL;
+    gui_property->by_name = NULL;
 
 
     /*
@@ -2524,10 +2528,44 @@ gui_prop_init(void) {
     gui_property->props[119].data.boolean.def   = (void *) &gui_property_variable_search_discard_banned_guid_default;
     gui_property->props[119].data.boolean.value = (void *) &gui_property_variable_search_discard_banned_guid;
 
-    gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
+
+    /*
+     * PROP_SEARCH_DISPLAY_GUESS_STATS:
+     *
+     * General data:
+     */
+    gui_property->props[120].name = "search_display_guess_stats";
+    gui_property->props[120].desc = _("Whether a summary line with GUESS search stats should be dispayed.");
+    gui_property->props[120].ev_changed = event_new("search_display_guess_stats_changed");
+    gui_property->props[120].save = TRUE;
+    gui_property->props[120].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[120].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[120].data.boolean.def   = (void *) &gui_property_variable_search_display_guess_stats_default;
+    gui_property->props[120].data.boolean.value = (void *) &gui_property_variable_search_display_guess_stats;
+
+
+    /*
+     * PROP_GUESS_STATS_SHOW_TOTAL:
+     *
+     * General data:
+     */
+    gui_property->props[121].name = "guess_stats_show_total";
+    gui_property->props[121].desc = _("Whether the GUESS summary line should show total statistics or ones pertaining to the current search only.");
+    gui_property->props[121].ev_changed = event_new("guess_stats_show_total_changed");
+    gui_property->props[121].save = TRUE;
+    gui_property->props[121].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[121].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[121].data.boolean.def   = (void *) &gui_property_variable_guess_stats_show_total_default;
+    gui_property->props[121].data.boolean.value = (void *) &gui_property_variable_guess_stats_show_total;
+
+    gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
-        g_hash_table_insert(gui_property->byName,
-            gui_property->props[n].name, GINT_TO_POINTER(n+1000));
+        htable_insert(gui_property->by_name,
+            gui_property->props[n].name, int_to_pointer(n+1000));
     }
 
     return gui_property;
@@ -2540,10 +2578,7 @@ G_GNUC_COLD void
 gui_prop_shutdown(void) {
     guint32 n;
 
-    if (gui_property->byName) {
-        g_hash_table_destroy(gui_property->byName);
-        gui_property->byName = NULL;
-    }
+    htable_free_null(&gui_property->by_name);
 
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
@@ -2715,6 +2750,12 @@ gui_prop_name(property_t p)
     return prop_name(gui_property, p);
 }
 
+prop_type_t
+gui_prop_type(property_t p)
+{
+    return prop_type(gui_property, p);
+}
+
 const char *
 gui_prop_type_to_string(property_t p)
 {
@@ -2736,8 +2777,7 @@ gui_prop_is_saved(property_t p)
 property_t
 gui_prop_get_by_name(const char *name)
 {
-    return GPOINTER_TO_UINT(
-        g_hash_table_lookup(gui_property->byName, name));
+    return pointer_to_uint(htable_lookup(gui_property->by_name, name));
 }
 
 GSList *

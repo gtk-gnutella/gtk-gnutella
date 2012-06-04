@@ -59,12 +59,13 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/aging.h"
+#include "lib/bigint.h"
 #include "lib/bstr.h"
-#include "lib/host_addr.h"
 #include "lib/glib-missing.h"
+#include "lib/host_addr.h"
 #include "lib/pmsg.h"
-#include "lib/sectoken.h"
 #include "lib/random.h"
+#include "lib/sectoken.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -132,19 +133,19 @@ static aging_table_t *kmsg_aging_finds;
 
 typedef void (*kmsg_handler_t)(knode_t *kn, struct gnutella_node *n,
 	const kademlia_header_t *header,
-	guint8 extlen, const void *payload, size_t len);
+	uint8 extlen, const void *payload, size_t len);
 
 /**
  * A Kademlia message descriptor.
  */
 struct kmsg {
-	guint8 function;
-	guint8 rpc_call;
+	uint8 function;
+	uint8 rpc_call;
 	kmsg_handler_t handler;
 	const char *name;
 };
 
-static const struct kmsg *kmsg_find(guint8 function);
+static const struct kmsg *kmsg_find(uint8 function);
 
 /**
  * Test whether the Kademlia message can be safely dropped.
@@ -153,8 +154,8 @@ static const struct kmsg *kmsg_find(guint8 function);
  * Dropping of messages only happens when the connection is flow-controlled,
  * and there's not enough room in the queue.
  */
-gboolean
-kmsg_can_drop(gconstpointer pdu, int size)
+bool
+kmsg_can_drop(const void *pdu, int size)
 {
 	if (UNSIGNED(size) < KDA_HEADER_SIZE)
 		return TRUE;
@@ -202,10 +203,10 @@ kmsg_can_drop(gconstpointer pdu, int size)
 static void
 kmsg_handle(knode_t *kn,
 	struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
-	guint8 function;
+	uint8 function;
 	const struct kmsg *km;
 
 	if (GNET_PROPERTY(dht_debug > 1)) {
@@ -254,10 +255,10 @@ kmsg_handle(knode_t *kn,
  */
 static void
 warn_no_header_extension(const knode_t *kn,
-	const kademlia_header_t *header, guint8 extlen)
+	const kademlia_header_t *header, uint8 extlen)
 {
 	if (extlen && GNET_PROPERTY(dht_debug)) {
-		guint8 function = kademlia_header_get_function(header);
+		uint8 function = kademlia_header_get_function(header);
 		g_warning("DHT unhandled extended header (%u byte%s) in %s from %s",
 			extlen, extlen == 1 ? "" : "s", kmsg_name(function),
 			knode_to_string(kn));
@@ -277,7 +278,7 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
 	size_t unparsed = bstr_unread_size(bs);
 
 	if (unparsed && GNET_PROPERTY(dht_debug)) {
-		guint8 function = kademlia_header_get_function(header);
+		uint8 function = kademlia_header_get_function(header);
 		g_warning("DHT message %s from %s "
 			"has %zu byte%s of unparsed trailing data (ignored)",
 			kmsg_name(function), knode_to_string(kn),
@@ -303,7 +304,7 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
  */
 static void
 kmsg_build_header(kademlia_header_t *header,
-	guint8 op, guint8 major, guint8 minor, const guid_t *muid)
+	uint8 op, uint8 major, uint8 minor, const guid_t *muid)
 {
 	kademlia_header_set_muid(header, muid);
 	kademlia_header_set_dht(header, major, minor);
@@ -336,7 +337,7 @@ kmsg_build_header(kademlia_header_t *header,
  */
 static void
 kmsg_build_header_pmsg(pmsg_t *mb,
-	guint8 op, guint8 major, guint8 minor, const guid_t *muid)
+	uint8 op, uint8 major, uint8 minor, const guid_t *muid)
 {
 	kmsg_build_header((void *) pmsg_start(mb), op, major, minor, muid);
 	kademlia_header_set_size(pmsg_start(mb),
@@ -355,7 +356,7 @@ serialize_size_estimate(pmsg_t *mb)
 	g_assert(pmsg_available(mb) >= KUID_RAW_SIZE + 1);
 
 	for (i = 0; i < KUID_RAW_SIZE; i++) {
-		guint8 v = estimate->v[i];
+		uint8 v = estimate->v[i];
 		if (v)
 			break;		/* Found non-zero byte */
 	}
@@ -386,7 +387,7 @@ serialize_contact_vector(pmsg_t *mb, knode_t **kvec, size_t klen)
 {
 	size_t i;
 
-	g_assert(klen <= MAX_INT_VAL(guint8));
+	g_assert(klen <= MAX_INT_VAL(uint8));
 
 	pmsg_write_u8(mb, klen);
 
@@ -404,9 +405,9 @@ kmsg_deserialize_contact(bstr_t *bs)
 {
 	kuid_t kuid;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 	vendor_code_t vcode;
-	guint8 major, minor;
+	uint8 major, minor;
 
 	bstr_read_be32(bs, &vcode.u32);
 	bstr_read_u8(bs, &major);
@@ -563,7 +564,7 @@ static void
 k_send_find_value_response(
 	struct gnutella_node *n,
 	const knode_t *unused_kn,
-	dht_value_t **vvec, size_t vlen, float load, gboolean cached,
+	dht_value_t **vvec, size_t vlen, float load, bool cached,
 	const guid_t *muid)
 {
 	pmsg_t *mb;
@@ -723,16 +724,16 @@ static void
 k_send_store_response(
 	struct gnutella_node *n,
 	const knode_t *kn,
-	dht_value_t **vec, guint8 vlen,
-	gboolean valid_token,
+	dht_value_t **vec, uint8 vlen,
+	bool valid_token,
 	const guid_t *muid)
 {
 	pmsg_t *mb;
 	kademlia_header_t *header;
-	guint16 *status;
+	uint16 *status;
 	int i;
 
-	status = walloc(vlen * sizeof(guint16));
+	status = walloc(vlen * sizeof(uint16));
 
 	for (i = 0; i < vlen; i++)
 		status[i] = values_store(kn, vec[i], valid_token);
@@ -809,7 +810,7 @@ k_send_store_response(
 	 * Cleanup.
 	 */
 
-	wfree(status, vlen * sizeof(guint16));
+	wfree(status, vlen * sizeof(uint16));
 }
 
 /**
@@ -817,7 +818,7 @@ k_send_store_response(
  */
 static void
 k_handle_ping(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
 	const char *msg = NULL;
@@ -895,7 +896,7 @@ throttle:
  */
 static void
 k_handle_pong(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
 	char *reason;
@@ -921,7 +922,7 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 
 	{
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		bstr_read_packed_ipv4_or_ipv6_addr(bs, &addr);
 		bstr_read_le16(bs, &port);
@@ -954,10 +955,11 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	{
-		kuid_t estimated;
-		guint8 bytes;
+		char buf[KUID_RAW_SIZE];
+		bigint_t estimated;
+		uint8 bytes;
 
-		bstr_read_packed_array_u8(bs, KUID_RAW_SIZE, &estimated.v[0], &bytes);
+		bstr_read_packed_array_u8(bs, KUID_RAW_SIZE, buf, &bytes);
 
 		if (bstr_has_error(bs)) {
 			reason = "could not decompile estimated DHT size";
@@ -966,13 +968,16 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 
 		g_assert(bytes <= KUID_RAW_SIZE);
 
-		memmove(&estimated.v[KUID_RAW_SIZE - bytes], estimated.v, bytes);
-		memset(&estimated.v[0], 0, KUID_RAW_SIZE - bytes);
+		memmove(&buf[KUID_RAW_SIZE - bytes], buf, bytes);
+		memset(buf, 0, KUID_RAW_SIZE - bytes);
 
-		if (GNET_PROPERTY(dht_debug))
+		bigint_use(&estimated, buf, sizeof buf);
+
+		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT node %s estimates DHT size to %s hosts",
 				knode_to_string(kn),
-				uint64_to_string(kuid_to_guint64(&estimated)));
+				uint64_to_string(bigint_to_uint64(&estimated)));
+		}
 
 		dht_record_size_estimate(kn, &estimated);
 	}
@@ -1010,8 +1015,8 @@ answer_find_node(struct gnutella_node *n,
 	int requested = KDA_K;
 	int cnt;
 	const char *msg = NULL;
-	gboolean delayed;
-	gboolean within_kball;
+	bool delayed;
+	bool within_kball;
 	const guid_t *muid = kademlia_header_get_muid(header);
 
 	/*
@@ -1191,7 +1196,7 @@ throttle:
  * Is lookup of ID by the given node something that can be accounted for
  * as peer replication among the k-closest nodes?
  */
-static inline gboolean
+static inline bool
 peer_replication(const knode_t *kn, const kuid_t *id)
 {
 	return keys_within_kball(kn->id) && keys_within_kball(id);
@@ -1202,7 +1207,7 @@ peer_replication(const knode_t *kn, const kuid_t *id)
  */
 static void
 k_handle_find_node(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
 	kuid_t *id = (kuid_t *) payload;
@@ -1264,13 +1269,13 @@ k_handle_find_node(knode_t *kn, struct gnutella_node *n,
  */
 static void
 k_handle_store(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
-	gboolean valid_token = FALSE;
+	bool valid_token = FALSE;
 	bstr_t *bs;
 	char *reason;
-	guint8 values;
+	uint8 values;
 	int i = 0;
 	char msg[80];
 	dht_value_t **vec = NULL;
@@ -1285,7 +1290,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 
 	{
 		sectoken_t security;
-		guint8 token_len;
+		uint8 token_len;
 
 		if (!bstr_read_u8(bs, &token_len)) {
 			reason = "could not read security token length";
@@ -1331,7 +1336,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	 */
 
 	if (!valid_token) {
-		gboolean in_kball = keys_within_kball(kn->id);
+		bool in_kball = keys_within_kball(kn->id);
 		int ignored = in_kball ? values - 1 : values;
 
 		if (ignored && GNET_PROPERTY(dht_debug))
@@ -1381,7 +1386,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			(kn->flags & KNODE_F_PCONTACT) &&
 			kuid_eq(kn->id, dht_value_creator(v)->id)
 		) {
-			knode_t *cn = deconstify_gpointer(dht_value_creator(v));
+			knode_t *cn = deconstify_pointer(dht_value_creator(v));
 
 			if (GNET_PROPERTY(dht_storage_debug))
 				g_warning(
@@ -1450,12 +1455,12 @@ cleanup:
  */
 static void
 k_handle_find_value(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
 	kuid_t *id = (kuid_t *) payload;
 	bstr_t *bs;
-	guint8 count;
+	uint8 count;
 	kuid_t **secondary = NULL;
 	const char *reason;
 	char msg[80];
@@ -1463,7 +1468,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	dht_value_t *vvec[MAX_VALUES_PER_KEY];
 	int vcnt = 0;
 	float load;
-	gboolean cached;
+	bool cached;
 
 	warn_no_header_extension(kn, header, extlen);
 
@@ -1655,10 +1660,10 @@ cleanup:
  */
 static void
 k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
-	const kademlia_header_t *header, guint8 extlen,
+	const kademlia_header_t *header, uint8 extlen,
 	const void *payload, size_t len)
 {
-	guint8 function = kademlia_header_get_function(header);
+	uint8 function = kademlia_header_get_function(header);
 
 	warn_no_header_extension(kn, header, extlen);
 
@@ -1734,7 +1739,7 @@ kmsg_send_ping(knode_t *kn, const guid_t *muid)
  */
 void
 kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
-	pmsg_free_t mfree, gpointer marg)
+	pmsg_free_t mfree, void *marg)
 {
 	pmsg_t *mb;
 	int msize = KDA_HEADER_SIZE + KUID_RAW_SIZE;
@@ -1765,14 +1770,14 @@ kmsg_send_find_node(knode_t *kn, const kuid_t *id, const guid_t *muid,
 void
 kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 	kuid_t **skeys, int scnt,
-	const guid_t *muid, pmsg_free_t mfree, gpointer marg)
+	const guid_t *muid, pmsg_free_t mfree, void *marg)
 {
 	pmsg_t *mb;
 	int msize;
 	int i;
 
 	g_assert(skeys == NULL || scnt > 0);
-	g_assert(scnt >= 0 && scnt <= MAX_INT_VAL(guint8));
+	g_assert(scnt >= 0 && scnt <= MAX_INT_VAL(uint8));
 
 	/* Header + target KUID + count + array-of-sec-keys + type */
 	msize = KDA_HEADER_SIZE + KUID_RAW_SIZE + 1 +
@@ -1804,7 +1809,7 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 static void
 store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
 {
-	guint8 function = kademlia_header_get_function(pmsg_start(mb));
+	uint8 function = kademlia_header_get_function(pmsg_start(mb));
 
 	g_assert(KDA_MSG_STORE_REQUEST == function);
 
@@ -1850,7 +1855,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 	g_assert(vvec);
 	g_assert(size_is_non_negative(toklen));
 	g_assert(token == NULL || size_is_positive(toklen));
-	g_assert(vcnt > 0 && vcnt <= MAX_INT_VAL(guint8));
+	g_assert(vcnt > 0 && vcnt <= MAX_INT_VAL(uint8));
 
 	/*
 	 * Sort values by increasing size, so that we can stuff as many smaller
@@ -1868,7 +1873,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 		 */
 
 		if (mb && UNSIGNED(pmsg_available(mb)) < value_size) {
-			g_assert(vheld > 0 && vheld <= MAX_INT_VAL(guint8));
+			g_assert(vheld > 0 && vheld <= MAX_INT_VAL(uint8));
 
 			store_finalize_pmsg(mb, vheld, value_count);
 
@@ -1927,7 +1932,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 	 */
 
 	g_assert(mb != NULL);
-	g_assert(vheld > 0 && vheld <= MAX_INT_VAL(guint8));
+	g_assert(vheld > 0 && vheld <= MAX_INT_VAL(uint8));
 
 	store_finalize_pmsg(mb, vheld, value_count);
 
@@ -1952,23 +1957,23 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
  * @param n			the DHT Gnutella node, for some core function calls
  */
 void kmsg_received(
-	gconstpointer data, size_t len,
-	host_addr_t addr, guint16 port,
+	const void *data, size_t len,
+	host_addr_t addr, uint16 port,
 	struct gnutella_node *n)
 {
-	const kademlia_header_t *header = deconstify_gpointer(data);
+	const kademlia_header_t *header = deconstify_pointer(data);
 	char *reason;
-	guint8 major;
-	guint8 minor;
+	uint8 major;
+	uint8 minor;
 	knode_t *kn;
 	host_addr_t kaddr;
-	guint16 kport;
+	uint16 kport;
 	vendor_code_t vcode;
-	guint8 kmajor;
-	guint8 kminor;
+	uint8 kmajor;
+	uint8 kminor;
 	const kuid_t *id;
-	guint8 flags;
-	guint16 extended_length;
+	uint8 flags;
+	uint16 extended_length;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 	g_assert(NODE_IS_DHT(n));
@@ -2009,7 +2014,7 @@ void kmsg_received(
 
 	extended_length = kademlia_header_get_extended_length(header);
 
-	if (extended_length + (guint) KDA_HEADER_SIZE > len) {
+	if (extended_length + (uint) KDA_HEADER_SIZE > len) {
 		reason = "invalid extended header length";
 		goto drop;
 	}
@@ -2050,7 +2055,7 @@ void kmsg_received(
 
 	if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
 		host_addr_t raddr;
-		guint16 rport;
+		uint16 rport;
 
 		/*
 		 * LimeWire nodes suffer from a bug whereby the contact is not
@@ -2142,7 +2147,7 @@ void kmsg_received(
 	g_assert(kn == NULL || !(kn->flags & KNODE_F_FIREWALLED));
 
 	if (NULL == kn) {
-		gboolean patched = FALSE;
+		bool patched = FALSE;
 
 		/*
 		 * If the node is not already in our routing table, but its advertised
@@ -2388,7 +2393,7 @@ static const struct kmsg kmsg_map[] = {
  * Find message description based on function.
  */
 static const struct kmsg *
-kmsg_find(guint8 function)
+kmsg_find(uint8 function)
 {
 	const struct kmsg *km;
 
@@ -2406,7 +2411,7 @@ kmsg_find(guint8 function)
  * Convert message function number into name.
  */
 const char *
-kmsg_name(guint function)
+kmsg_name(uint function)
 {
 	if (function >= G_N_ELEMENTS(kmsg_map))
 		return "invalid";
@@ -2419,10 +2424,10 @@ kmsg_name(guint function)
  * string and returns the amount of bytes written.
  */
 size_t
-kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
+kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 {
-	guint size = kmsg_size(msg);
-	guint16 extlen = kademlia_header_get_extended_length(msg);
+	uint size = kmsg_size(msg);
+	uint16 extlen = kademlia_header_get_extended_length(msg);
 	char host[HOST_ADDR_PORT_BUFLEN];
 	char ext[UINT32_DEC_BUFLEN + 4];	/* +1 for NUL, +3 for "(+)" */
 
@@ -2458,7 +2463,7 @@ kmsg_infostr_to_buf(gconstpointer msg, char *buf, size_t buf_size)
  * size of that extension.
  */
 const char *
-kmsg_infostr(gconstpointer msg)
+kmsg_infostr(const void *msg)
 {
 	static char buf[80];
 	kmsg_infostr_to_buf(msg, buf, sizeof buf);

@@ -36,6 +36,7 @@
 #include "wordvec.h"
 #include "utf8.h"
 #include "halloc.h"
+#include "htable.h"
 #include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
@@ -60,7 +61,7 @@ word_vec_init(void)
 	 * If we need to expand that, it will be done through regular malloc().
 	 */
 
-	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2);
+	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2, TRUE);
 }
 
 /**
@@ -109,25 +110,25 @@ word_vec_zrealloc(word_vec_t *wv, int ncount)
  * with the pointer to the allocated vector.  If there are no items, there
  * is no vector returned.
  */
-guint
+uint
 word_vec_make(const char *query_str, word_vec_t **wovec)
 {
-	guint n = 0;
-	GHashTable *seen_word = NULL;
-	guint nv = WOVEC_DFLT;
+	uint n = 0;
+	htable_t *seen_word = NULL;
+	uint nv = WOVEC_DFLT;
 	word_vec_t *wv = zalloc(wovec_zone);
 	const char *start = NULL;
 	char * const query_dup = h_strdup(query_str);
 	char *query;
 	char first = TRUE;
-	guchar c;
+	uchar c;
 
 	g_assert(wovec != NULL);
 
 	for (query = query_dup; /* empty */; query++) {
-		gboolean is_separator;
+		bool is_separator;
 
-		c = *(guchar *) query;
+		c = *(uchar *) query;
 		/*
 	 	 * We can't meet other separators than space, because the
 	 	 * string is normalised.
@@ -138,7 +139,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 			if (!is_separator)
 				start = query;
 		} else {
-			guint np1;
+			uint np1;
 
 			if (!is_separator)
 				continue;
@@ -149,10 +150,9 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 			if (first)
 				np1 = 0;
 			else {
-				if (seen_word == NULL) {
-					seen_word = g_hash_table_new(g_str_hash, g_str_equal);
-					g_hash_table_insert(seen_word, wv[0].word,
-						GUINT_TO_POINTER(1));
+				if G_UNLIKELY(NULL == seen_word) {
+					seen_word = htable_create(HASH_KEY_STRING, 0);
+					htable_insert(seen_word, wv[0].word, uint_to_pointer(1));
 				}
 
 				/*
@@ -160,7 +160,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 		 	 	 * The associated value is the index in the vector plus 1.
 		 	 	 */
 
-				np1 = GPOINTER_TO_UINT(g_hash_table_lookup(seen_word, start));
+				np1 = pointer_to_uint(htable_lookup(seen_word, start));
 			}
 
 			if (np1--) {
@@ -192,8 +192,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 				if (first)
 					first = FALSE;
 				else {
-					g_hash_table_insert(seen_word, entry->word,
-						GUINT_TO_POINTER(n));
+					htable_insert(seen_word, entry->word, uint_to_pointer(n));
 				}
 			}
 			start = NULL;
@@ -202,8 +201,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 		if (c == '\0') break;
 	}
 
-	if (NULL != seen_word)
-		g_hash_table_destroy(seen_word);	/* Key pointers belong to vector */
+	htable_free_null(&seen_word);	/* Key pointers belong to vector */
 	if (n)
 		*wovec = wv;
 	else
@@ -216,9 +214,9 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
  * Release a word vector, containing `n' items.
  */
 void
-word_vec_free(word_vec_t *wovec, guint n)
+word_vec_free(word_vec_t *wovec, uint n)
 {
-	guint i;
+	uint i;
 
 	for (i = 0; i < n; i++)
 		wfree(wovec[i].word, wovec[i].len + 1);

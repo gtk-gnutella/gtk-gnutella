@@ -43,6 +43,7 @@
 #include "lib/cq.h"
 #include "lib/glib-missing.h"	/* For gm_snprintf() */
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/pmsg.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/walloc.h"
@@ -55,9 +56,9 @@
 
 static void qlink_free(mqueue_t *q);
 static void mq_update_flowc(mqueue_t *q);
-static gboolean make_room_header(
-	mqueue_t *q, char *header, guint prio, int needed, int *offset);
-static void mq_swift_timer(cqueue_t *cq, gpointer obj);
+static bool make_room_header(
+	mqueue_t *q, char *header, uint prio, int needed, int *offset);
+static void mq_swift_timer(cqueue_t *cq, void *obj);
 
 /**
  * @return queue's fullness status.
@@ -80,18 +81,18 @@ mq_status(const mqueue_t *q)
 	return (q->size > q->lowat) ? MQ_S_WARNZONE : MQ_S_DELAY;
 }
 
-guint32 mq_debug(const mqueue_t *q)
+uint32 mq_debug(const mqueue_t *q)
 {
 	return *q->debug;
 }
 
-gboolean
+bool
 mq_is_flow_controlled(const mqueue_t *q)
 {
 	return 0 != (q->flags & MQ_FLOWC);
 }
 
-gboolean
+bool
 mq_is_swift_controlled(const mqueue_t *q)
 {
 	return 0 != (q->flags & MQ_SWIFT);
@@ -154,7 +155,7 @@ mq_node(const mqueue_t *q)
 /**
  * Would `additional' bytes of traffic cause the queue to enter flow-control?
  */
-gboolean
+bool
 mq_would_flow_control(const mqueue_t *q, size_t additional)
 {
 	return size_saturate_add(q->size, additional) >= UNSIGNED(q->hiwat);
@@ -163,7 +164,7 @@ mq_would_flow_control(const mqueue_t *q, size_t additional)
 /**
  * Are we already at or above the low watermark?
  */
-gboolean
+bool
 mq_above_low_watermark(const mqueue_t *q)
 {
 	return q->size >= q->lowat;
@@ -181,7 +182,7 @@ mq_info(const mqueue_t *q)
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
-		gboolean udp = NODE_IS_UDP(q->node);
+		bool udp = NODE_IS_UDP(q->node);
 
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
@@ -204,7 +205,7 @@ mq_info(const mqueue_t *q)
 /*
  * This hashtable tracks the queue owning a given glist linkable.
  */
-static GHashTable *qown = NULL;
+static htable_t *qown = NULL;
 
 /**
  * Add linkable into queue
@@ -219,9 +220,9 @@ mq_add_linkable(mqueue_t *q, GList *l)
 	g_assert(l->data != NULL);
 	
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
+		qown = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 
-	owner = g_hash_table_lookup(qown, l);
+	owner = htable_lookup(qown, l);
 	if (owner) {
 		g_carp("BUG: added linkable %p already owned by %s%s",
 			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
@@ -231,7 +232,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 		g_assert_not_reached();
 	}
 
-	g_hash_table_insert(qown, l, q);
+	htable_insert(qown, l, q);
 }
 
 /**
@@ -246,7 +247,7 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 	g_assert(l != NULL);
 	g_assert(qown != NULL);		/* Must have added something before */
 
-	owner = g_hash_table_lookup(qown, l);
+	owner = htable_lookup(qown, l);
 
 	if (owner == NULL)
 		g_error("BUG: removed linkable %p from %s belongs to no queue!",
@@ -255,7 +256,7 @@ mq_remove_linkable(mqueue_t *q, GList *l)
 		g_error("BUG: removed linkable %p from %s is from another queue!",
 			(void *) l, mq_info(q));
 	else
-		g_hash_table_remove(qown, l);
+		htable_remove(qown, l);
 }
 
 /**
@@ -271,7 +272,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 	g_assert(q);
 
 	if (qown == NULL)
-		qown = NOT_LEAKING(g_hash_table_new(pointer_hash_func, NULL));
+		qown = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 
 	if (q->magic != MQ_MAGIC)
 		g_error("BUG: %s at %s:%d", mq_info(q), where, line);
@@ -299,7 +300,7 @@ mq_check_track(mqueue_t *q, int offset, const char *where, int line)
 
 		g_assert(qown);		/* If we have a qlink, we have added items */
 
-		owner = g_hash_table_lookup(qown, item);
+		owner = htable_lookup(qown, item);
 		if (owner != q)
 			g_error("BUG: linkable #%d/%d from %s "
 				"%s at %s:%d",
@@ -396,7 +397,7 @@ mq_rmlink_prev(mqueue_t *q, GList *l, int size)
  * A "swift" checkpoint was reached.
  */
 static void
-mq_swift_checkpoint(mqueue_t *q, gboolean initial)
+mq_swift_checkpoint(mqueue_t *q, bool initial)
 {
 	int elapsed = q->swift_elapsed;	/* Elapsed since we were scheduled */
 	int target_to_lowmark;
@@ -558,7 +559,7 @@ done:
  * Callout queue callback: periodic "swift" mode timer.
  */
 static void
-mq_swift_timer(cqueue_t *unused_cq, gpointer obj)
+mq_swift_timer(cqueue_t *unused_cq, void *obj)
 {
 	mqueue_t *q = obj;
 
@@ -572,7 +573,7 @@ mq_swift_timer(cqueue_t *unused_cq, gpointer obj)
  * Callout queue callback invoked when the queue must enter "swift" mode.
  */
 static void
-mq_enter_swift(cqueue_t *unused_cq, gpointer obj)
+mq_enter_swift(cqueue_t *unused_cq, void *obj)
 {
 	mqueue_t *q = obj;
 
@@ -852,14 +853,11 @@ qlink_insert_before(mqueue_t *q, int hint, GList *l)
 	q->qlink_count++;
 	q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
 
-	{
-		int i;
+	
+	/* Shift right */
+	memmove(&q->qlink[hint + 1], &q->qlink[hint],
+		(q->qlink_count - hint - 1) * sizeof q->qlink[0]);
 
-		/* Shift right */
-		for (i = q->qlink_count - 1; i > hint; i--) {
-			q->qlink[i] = q->qlink[i - 1];
-		} 
-	}
 	q->qlink[hint] = l;
 }
 
@@ -1048,7 +1046,7 @@ qlink_remove(mqueue_t *q, GList *l)
 	if (n > q->count * 3) {
 		GList **dest = qlink;
 		int copied = 0;
-		gboolean found = FALSE;
+		bool found = FALSE;
 
 		while (n-- > 0) {
 			GList *entry = *qlink++;
@@ -1103,13 +1101,13 @@ qlink_remove(mqueue_t *q, GList *l)
  *
  * @returns TRUE if we were able to make enough room.
  */
-static gboolean
+static bool
 make_room_internal(mqueue_t *q,
-	char *header, size_t msglen, guint prio, int needed, int *offset)
+	char *header, size_t msglen, uint prio, int needed, int *offset)
 {
 	int n;
 	int dropped = 0;				/* Amount of messages dropped */
-	gboolean qlink_corrupted = FALSE;	/* BUG catcher */
+	bool qlink_corrupted = FALSE;	/* BUG catcher */
 
 	g_assert(needed > 0);
 	mq_check(q, 0);
@@ -1297,11 +1295,11 @@ restart:
  *
  * @returns TRUE if we were able to make enough room.
  */
-static gboolean
+static bool
 make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
 {
 	char *header = pmsg_start(mb);
-	guint prio = pmsg_prio(mb);
+	uint prio = pmsg_prio(mb);
 	size_t msglen = pmsg_written_size(mb);
 
 	return make_room_internal(q, header, msglen, prio, needed, offset);
@@ -1311,9 +1309,9 @@ make_room(mqueue_t *q, pmsg_t *mb, int needed, int *offset)
  * Same as make_room(), but we are not given a "pmsg_t" as a comparison
  * point but a Gnutella header and a message priority explicitly.
  */
-static gboolean
+static bool
 make_room_header(
-	mqueue_t *q, char *header, guint prio, int needed, int *offset)
+	mqueue_t *q, char *header, uint prio, int needed, int *offset)
 {
 	return make_room_internal(q, header, 0, prio, needed, offset);
 }
@@ -1327,8 +1325,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	int needed;
 	int qlink_offset = -1;
 	GList *new = NULL;
-	gboolean make_room_called = FALSE;
-	gboolean has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
+	bool make_room_called = FALSE;
+	bool has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
 
 	mq_check(q, 0);
 
@@ -1445,8 +1443,8 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 			q->qtail = q->qhead;
 	} else {
 		GList *l;
-		guint prio = pmsg_prio(mb);
-		gboolean inserted = FALSE;
+		uint prio = pmsg_prio(mb);
+		bool inserted = FALSE;
 
 		for (l = q->qtail; l; l = g_list_previous(l)) {
 			pmsg_t *m = l->data;

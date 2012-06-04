@@ -52,13 +52,13 @@ enum ipp_cache_id {
 };
 
 void ipp_cache_insert(enum ipp_cache_id cid,
-	const host_addr_t addr, guint16 port);
-gboolean ipp_cache_lookup(enum ipp_cache_id cid,
-	const host_addr_t addr, guint16 port);
+	const host_addr_t addr, uint16 port);
+bool ipp_cache_lookup(enum ipp_cache_id cid,
+	const host_addr_t addr, uint16 port);
 time_t ipp_cache_get_timestamp(enum ipp_cache_id cid,
-	const host_addr_t addr, guint16 port);
-gboolean ipp_cache_remove(enum ipp_cache_id cid,
-	const host_addr_t addr, guint16 port);
+	const host_addr_t addr, uint16 port);
+bool ipp_cache_remove(enum ipp_cache_id cid,
+	const host_addr_t addr, uint16 port);
 
 void ipp_cache_init(void);
 void ipp_cache_load_all(void);
@@ -70,25 +70,25 @@ void ipp_cache_close(void);
  */
 
 static inline void
-tls_cache_insert(const host_addr_t addr, guint16 port)
+tls_cache_insert(const host_addr_t addr, uint16 port)
 {
 	ipp_cache_insert(IPP_CACHE_TLS, addr, port);
 }
 
 static inline void
-tls_cache_remove(const host_addr_t addr, guint16 port)
+tls_cache_remove(const host_addr_t addr, uint16 port)
 {
 	ipp_cache_remove(IPP_CACHE_TLS, addr, port);
 }
 
-static inline gboolean
-tls_cache_lookup(const host_addr_t addr, guint16 port)
+static inline bool
+tls_cache_lookup(const host_addr_t addr, uint16 port)
 {
 	return ipp_cache_lookup(IPP_CACHE_TLS, addr, port);
 }
 
 static inline time_t
-tls_cache_get_timestamp(const host_addr_t addr, guint16 port)
+tls_cache_get_timestamp(const host_addr_t addr, uint16 port)
 {
 	return ipp_cache_get_timestamp(IPP_CACHE_TLS, addr, port);
 }
@@ -98,13 +98,13 @@ tls_cache_get_timestamp(const host_addr_t addr, guint16 port)
  */
 
 static inline void
-g2_cache_insert(const host_addr_t addr, guint16 port)
+g2_cache_insert(const host_addr_t addr, uint16 port)
 {
 	ipp_cache_insert(IPP_CACHE_G2, addr, port);
 }
 
-static inline gboolean
-g2_cache_lookup(const host_addr_t addr, guint16 port)
+static inline bool
+g2_cache_lookup(const host_addr_t addr, uint16 port)
 {
 	return ipp_cache_lookup(IPP_CACHE_G2, addr, port);
 }
@@ -114,13 +114,13 @@ g2_cache_lookup(const host_addr_t addr, guint16 port)
  */
 
 static inline void
-local_addr_cache_insert(const host_addr_t addr, guint16 port)
+local_addr_cache_insert(const host_addr_t addr, uint16 port)
 {
 	ipp_cache_insert(IPP_CACHE_LOCAL_ADDR, addr, port);
 }
 
-static inline gboolean
-local_addr_cache_lookup(const host_addr_t addr, guint16 port)
+static inline bool
+local_addr_cache_lookup(const host_addr_t addr, uint16 port)
 {
 	return ipp_cache_lookup(IPP_CACHE_LOCAL_ADDR, addr, port);
 }

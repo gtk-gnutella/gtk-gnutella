@@ -41,9 +41,11 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/cq.h"
+#include "lib/hevset.h"
 #include "lib/nid.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 #define TSYNC_EXPIRE_MS		(60*1000)	/**< Expiration time: 60 secs */
@@ -61,13 +63,13 @@ struct tsync {
 	tm_t sent;			 /**< Time at which we sent the synchronization */
 	struct nid *node_id; /**< Node to which we sent the request */
 	cevent_t *expire_ev; /**< Expiration callout queue callback */
-	gboolean udp;		 /**< Whether request was sent using UDP */
+	unsigned udp:1;		 /**< Whether request was sent using UDP */
 };
 
 /*
  * Table recording the "tsync" structures, indexed by sent time.
  */
-static GHashTable *tsync_by_time;	/**< tm_t -> tsync */
+static hevset_t *tsync_by_time;	/**< tm_t -> tsync */
 
 /**
  * Free a tsync structure.
@@ -88,7 +90,7 @@ tsync_free(struct tsync *ts)
  * Expire the tsync record.
  */
 static void
-tsync_expire(cqueue_t *unused_cq, gpointer obj)
+tsync_expire(cqueue_t *unused_cq, void *obj)
 {
 	struct tsync *ts = obj;
 	struct gnutella_node *n;
@@ -103,7 +105,7 @@ tsync_expire(cqueue_t *unused_cq, gpointer obj)
 			(int) ts->sent.tv_sec, (int) ts->sent.tv_usec);
 
 	ts->expire_ev = NULL;
-	g_hash_table_remove(tsync_by_time, &ts->sent);
+	hevset_remove(tsync_by_time, &ts->sent);
 
 	/*
 	 * If we sent the request via UDP, the node is probably UDP-firewalled:
@@ -139,7 +141,7 @@ tsync_send(struct gnutella_node *n, const struct nid *node_id)
 	tm_now_exact(&ts->sent);
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = nid_ref(node_id);
-	ts->udp = NODE_IS_UDP(n);
+	ts->udp = booleanize(NODE_IS_UDP(n));
 
 	/*
 	 * As far as time synchronization goes, we must get the reply within
@@ -148,7 +150,7 @@ tsync_send(struct gnutella_node *n, const struct nid *node_id)
 
 	ts->expire_ev = cq_main_insert(TSYNC_EXPIRE_MS, tsync_expire, ts);
 
-	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+	hevset_insert(tsync_by_time, ts);
 
 	vmsg_send_time_sync_req(n, GNET_PROPERTY(ntp_detected), &ts->sent);
 }
@@ -175,7 +177,7 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 			tm2f(&elapsed));
 	}
 
-	ts = g_hash_table_lookup(tsync_by_time, orig);
+	ts = hevset_lookup(tsync_by_time, orig);
 	if (ts == NULL) {
 		if (GNET_PROPERTY(tsync_debug) > 1) {
 			g_debug("TSYNC request %d.%d not found, expired already?",
@@ -187,9 +189,9 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 	g_assert(ts);
 	g_assert(ts->magic == TSYNC_MAGIC);
 
-	g_hash_table_remove(tsync_by_time, orig);
+	hevset_remove(tsync_by_time, orig);
 	ts->sent = *final;
-	g_hash_table_insert(tsync_by_time, &ts->sent, ts);
+	hevset_insert(tsync_by_time, ts);
 
 	/*
 	 * Now that we sent the message, expect a reply in TSYNC_EXPIRE_MS
@@ -218,7 +220,7 @@ tsync_got_request(struct gnutella_node *n, tm_t *got)
  */
 void
 tsync_got_reply(struct gnutella_node *n,
-	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, gboolean ntp)
+	tm_t *sent, tm_t *received, tm_t *replied, tm_t *got, bool ntp)
 {
 	struct tsync *ts;
 	tm_t delay;
@@ -249,7 +251,7 @@ tsync_got_reply(struct gnutella_node *n,
 	 * round-trip delay between ourselves and the remote node.
 	 */
 
-	ts = g_hash_table_lookup(tsync_by_time, sent);
+	ts = hevset_lookup(tsync_by_time, sent);
 
 	if (ts == NULL) {
 		if (GNET_PROPERTY(tsync_debug) > 1) {
@@ -308,7 +310,7 @@ tsync_got_reply(struct gnutella_node *n,
 
 		clock_update(got->tv_sec + (int) clock_offset, precision,  n->addr);
 
-		g_hash_table_remove(tsync_by_time, &ts->sent);
+		hevset_remove(tsync_by_time, &ts->sent);
 		tsync_free(ts);
 	}
 }
@@ -319,18 +321,18 @@ tsync_got_reply(struct gnutella_node *n,
 void
 tsync_init(void)
 {
-	tsync_by_time = g_hash_table_new(tm_hash, tm_equal);
+	tsync_by_time = hevset_create_any(offsetof(struct tsync, sent),
+		tm_hash, NULL, tm_equal);
 }
 
 /**
  * Get rid of the tsync structure held in the value.
  */
 static void
-free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
+free_tsync_kv(void *value, void *unused_udata)
 {
 	struct tsync *ts = value;
 
-	(void) unused_key;
 	(void) unused_udata;
 
 	g_assert(ts);
@@ -345,8 +347,8 @@ free_tsync_kv(gpointer unused_key, gpointer value, gpointer unused_udata)
 void
 tsync_close(void)
 {
-	g_hash_table_foreach(tsync_by_time, free_tsync_kv, NULL);
-	gm_hash_table_destroy_null(&tsync_by_time);
+	hevset_foreach(tsync_by_time, free_tsync_kv, NULL);
+	hevset_free_null(&tsync_by_time);
 }
 
 

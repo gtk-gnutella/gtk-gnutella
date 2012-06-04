@@ -39,9 +39,9 @@
 
 char *make_pathname(const char *dir, const char *file);
 char *absolute_pathname(const char *file);
-gboolean path_does_not_exist(const char *pathname);
-gboolean is_absolute_path(const char *pathname);
-gboolean filepath_exists(const char *dir, const char *file);
+bool path_does_not_exist(const char *pathname);
+bool is_absolute_path(const char *pathname);
+bool filepath_exists(const char *dir, const char *file);
 const char *filepath_basename(const char *pathname);
 char *filepath_directory(const char *pathname);
 

@@ -178,7 +178,7 @@ static char db_stable_what[] = "DHT stable nodes";
 struct lifedata {
 	time_t first_seen;			/**< Time when we first seen the node */
 	time_t last_seen;			/**< Last time we saw the node */
-	guint8 version;				/**< Structure version information */
+	uint8 version;				/**< Structure version information */
 };
 
 /**
@@ -321,7 +321,7 @@ stable_record_activity(const knode_t *kn)
  */
 double
 stable_store_presence(time_delta_t d,
-	const lookup_rs_t *rs, const guint16 *status)
+	const lookup_rs_t *rs, const uint16 *status)
 {
 	double q = 1.0;
 	size_t i;
@@ -369,13 +369,13 @@ stable_store_presence(time_delta_t d,
  * DBMW foreach iterator to remove old entries.
  * @return  TRUE if entry must be deleted.
  */
-static gboolean
-prune_old(gpointer key, gpointer value, size_t u_len, gpointer u_data)
+static bool
+prune_old(void *key, void *value, size_t u_len, void *u_data)
 {
 	const kuid_t *id = key;
 	const struct lifedata *ld = value;
 	time_delta_t d;
-	gboolean expired;
+	bool expired;
 	double p;
 
 	(void) u_len;
@@ -429,8 +429,8 @@ stable_prune_old(void)
 /**
  * Callout queue periodic event to expire old entries.
  */
-static gboolean
-stable_periodic_prune(gpointer unused_obj)
+static bool
+stable_periodic_prune(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -441,8 +441,8 @@ stable_periodic_prune(gpointer unused_obj)
 /**
  * Callout queue periodic event to synchronize persistent DB.
  */
-static gboolean
-stable_sync(gpointer unused_obj)
+static bool
+stable_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -454,7 +454,7 @@ stable_sync(gpointer unused_obj)
  * Serialization routine for lifedata.
  */
 static void
-serialize_lifedata(pmsg_t *mb, gconstpointer data)
+serialize_lifedata(pmsg_t *mb, const void *data)
 {
 	const struct lifedata *ld = data;
 
@@ -467,7 +467,7 @@ serialize_lifedata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for lifedata.
  */
 static void
-deserialize_lifedata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_lifedata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct lifedata *ld = valptr;
 

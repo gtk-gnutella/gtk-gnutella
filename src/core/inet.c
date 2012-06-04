@@ -153,7 +153,7 @@ static unsigned unsolicited_checks_in;
 
 static watchdog_t *outgoing_wd;			/**< Watchdog for outgoing activity */
 
-static void inet_set_is_connected(gboolean val);
+static void inet_set_is_connected(bool val);
 
 /**
  * Checks whether a host address is considered being "local".
@@ -162,7 +162,7 @@ static void inet_set_is_connected(gboolean val);
  * @returns TRUE if the IP address is that of the local machine or
  *			a private address. Otherwise FALSE is returned.
  */
-static gboolean
+static bool
 is_local_addr(const host_addr_t addr)
 {
 	static host_addr_t our_addr, our_addr_v6;
@@ -175,7 +175,7 @@ is_local_addr(const host_addr_t addr)
 	 */
 	if (settings_use_ipv4()) {
 		if (!is_host_addr(our_addr)) {
-			static gboolean tried;
+			static bool tried;
 
 			if (!tried) {
 				tried = TRUE;
@@ -187,7 +187,7 @@ is_local_addr(const host_addr_t addr)
 		if (!is_host_addr(our_addr))
 			our_addr = listen_addr();
 		if (!is_host_addr(our_addr)) {
-			static gboolean tried;
+			static bool tried;
 
 			if (!tried) {
 				tried = TRUE;
@@ -202,7 +202,7 @@ is_local_addr(const host_addr_t addr)
 	
 	if (settings_use_ipv6()) {
 		if (!is_host_addr(our_addr_v6)) {
-			static gboolean tried;
+			static bool tried;
 
 			if (!tried) {
 				/* This should not change */
@@ -214,7 +214,7 @@ is_local_addr(const host_addr_t addr)
 		if (!is_host_addr(our_addr_v6))
 			our_addr = listen_addr6();
 		if (!is_host_addr(our_addr_v6)) {
-			static gboolean tried;
+			static bool tried;
 
 			if (!tried) {
 				tried = TRUE;
@@ -280,7 +280,7 @@ inet_firewalled(void)
  * @param new_env	when TRUE, we become firewalled due to a new environment
  */
 void
-inet_udp_firewalled(gboolean new_env)
+inet_udp_firewalled(bool new_env)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
 	node_became_udp_firewalled();
@@ -296,7 +296,7 @@ inet_udp_firewalled(gboolean new_env)
  * Enter the UNSOLICITED_CHECK state.
  */
 static void
-move_to_unsolicited_check(cqueue_t *unused_cq, gpointer unused_data)
+move_to_unsolicited_check(cqueue_t *unused_cq, void *unused_data)
 {
 	(void) unused_cq;
 	(void) unused_data;
@@ -354,8 +354,8 @@ move_to_unsolicited_off(void)
  * for some amount of time.  We conclude we're no longer able to get
  * solicited UDP traffic.
  */
-static gboolean
-got_no_udp_solicited(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+got_no_udp_solicited(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;
@@ -389,8 +389,8 @@ inet_udp_got_solicited(void)
  * This is a callback invoked when no incoming connection has been received
  * for some amount of time.  We conclude we became firewalled.
  */
-static gboolean
-got_no_connection(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+got_no_connection(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;
@@ -408,8 +408,8 @@ got_no_connection(watchdog_t *unused_wd, gpointer unused_obj)
  * This is a callback invoked when no unsolicited UDP datagrams have been
  * received for some amount of time.  We conclude we became firewalled.
  */
-static gboolean
-got_no_udp_unsolicited(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+got_no_udp_unsolicited(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;
@@ -465,9 +465,23 @@ inet_not_firewalled(void)
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 	node_proxy_cancel_all();
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: we're not TCP-firewalled for port %u",
 			socket_listen_port());
+	}
+}
+
+/**
+ * Switch to non TCP-firewalled if we were indeed firewalled.
+ */
+static void
+inet_switch_to_not_firewalled(void)
+{
+	if (GNET_PROPERTY(is_firewalled)) {
+		wd_wakeup(incoming_wd);
+		inet_not_firewalled();
+		inet_where();
+	}
 }
 
 /**
@@ -478,11 +492,46 @@ inet_udp_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
 
-	if (GNET_PROPERTY(fw_debug))
+	if (GNET_PROPERTY(fw_debug)) {
 		g_debug("FW: we're not UDP-firewalled for port %u",
 			socket_listen_port());
+	}
 
 	unsolicited_wait_periods = 0;
+}
+
+/**
+ * Switch to non UDP-firewalled if we were indeed firewalled.
+ */
+static void
+inet_switch_to_udp_not_firewalled(void)
+{
+	if (GNET_PROPERTY(is_udp_firewalled)) {
+		inet_udp_not_firewalled();
+		inet_where();
+	}
+}
+
+/**
+ * Called when we established UPnP or NAT-PMP router configuration.
+ */
+void
+inet_router_configured(void)
+{
+	if (GNET_PROPERTY(fw_debug)) {
+		g_debug("FW: configured router to forward port %u",
+			socket_listen_port());
+	}
+
+	/*
+	 * Assume mapping will be all-right, which will be the case usually.
+	 *
+	 * In case something gets wrong afterwards or the router lied, we can
+	 * still go back to a firewalled status later on anyway.
+	 */
+
+	inet_switch_to_not_firewalled();
+	inet_switch_to_udp_not_firewalled();
 }
 
 /**
@@ -522,12 +571,7 @@ inet_got_incoming(const host_addr_t addr)
 	 * We're not firewalled.
 	 */
 
-	if (GNET_PROPERTY(is_firewalled)) {
-		wd_wakeup(incoming_wd);
-		inet_not_firewalled();
-		inet_where();
-	}
-
+	inet_switch_to_not_firewalled();
 	wd_kick(incoming_wd);
 }
 
@@ -546,21 +590,15 @@ void
 inet_udp_got_unsolicited_incoming(void)
 {
 	if (outgoing_udp_state != UNSOLICITED_OFF) {
-		if (GNET_PROPERTY(fw_debug)) {
+		if (GNET_PROPERTY(fw_debug))
 			g_debug("FW: got unsolicited UDP message => not firewalled");
-			inet_where();
-		}
 		move_to_unsolicited_off();
 	} else if (GNET_PROPERTY(is_udp_firewalled)) {
-		if (GNET_PROPERTY(fw_debug)) {
+		if (GNET_PROPERTY(fw_debug))
 			g_debug("FW: got unsolicited UDP message");
-			inet_where();
-		}
 	}
 
-	if (GNET_PROPERTY(is_udp_firewalled))
-		inet_udp_not_firewalled();
-
+	inet_switch_to_udp_not_firewalled();
 	wd_kick(incoming_udp_wd);
 }
 
@@ -641,7 +679,7 @@ inet_udp_check_unsolicited(void)
  * a non-private IP and are within a "grace period", act as if we were not:
  * we can only know we're not firewalled when we get an incoming connection.
  */
-gboolean
+bool
 inet_can_answer_ping(void)
 {
 	int elapsed;
@@ -685,7 +723,7 @@ inet_can_answer_ping(void)
  * Sets our internet connection status.
  */
 static void
-inet_set_is_connected(gboolean val)
+inet_set_is_connected(bool val)
 {
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
@@ -698,8 +736,8 @@ inet_set_is_connected(gboolean val)
  * This callback fires when there was no outgoing activity for the period
  * after the watchdog was started.
  */
-static gboolean
-no_outgoing_connection(watchdog_t *unused_wd, gpointer unused_obj)
+static bool
+no_outgoing_connection(watchdog_t *unused_wd, void *unused_obj)
 {
 	(void) unused_wd;
 	(void) unused_obj;

@@ -47,11 +47,11 @@ typedef enum {
 	INPUT_EVENT_W			= 1 << 1,	/* poll for Write events */
 	INPUT_EVENT_EXCEPTION	= 1 << 2,	/* poll for exceptions */
 
-	INPUT_EVENT_RX = ((unsigned) INPUT_EVENT_R | (guint) INPUT_EVENT_EXCEPTION),
-	INPUT_EVENT_WX = ((unsigned) INPUT_EVENT_W | (guint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_RX = ((unsigned) INPUT_EVENT_R | (uint) INPUT_EVENT_EXCEPTION),
+	INPUT_EVENT_WX = ((unsigned) INPUT_EVENT_W | (uint) INPUT_EVENT_EXCEPTION),
 	
-	INPUT_EVENT_RW = ((unsigned) INPUT_EVENT_R | (guint) INPUT_EVENT_W),
-	INPUT_EVENT_RWX = ((unsigned) INPUT_EVENT_RW | (guint) INPUT_EVENT_EXCEPTION)
+	INPUT_EVENT_RW = ((unsigned) INPUT_EVENT_R | (uint) INPUT_EVENT_W),
+	INPUT_EVENT_RWX = ((unsigned) INPUT_EVENT_RW | (uint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;
 
 /**

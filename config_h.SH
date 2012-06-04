@@ -74,6 +74,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define BIN "$bin"	/**/
 
+/* BYTEORDER:
+ *	This symbol holds the hexadecimal constant defined in byteorder,
+ *	i.e. 1234 for little-endian or 4321 for big-ending.
+ */
+#define BYTEORDER 0x$byteorder	/* large digits for MSB */
+
+/* CHARSIZE:
+ *	This symbol contains the size of a char, so that the C preprocessor
+ *	can make decisions based on it.
+ */
+#define CHARSIZE $charsize
+
 /* CAT2:
  *	This macro catenates 2 tokens together.
  */
@@ -147,11 +159,30 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bcopy HAS_BCOPY	/**/
 
+/* HAS_BFD_LIBRARY:
+ *	This symbol, if defined, indicates that the bfd library is available
+ *	to inspect symbols and debugging information.  You can safely include
+ *	the <bfd.h> file when this symbol is defined.
+ */
+#$d_bfd_lib HAS_BFD_LIBRARY		/**/
+
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
+
+/* HAS_BUILTIN_CLZ:
+ *	This symbol, if defined, indicates that the __builtin_clz routine is
+ *	available to count leading zeroes in a word.
+ */
+#$d_built_clz HAS_BUILTIN_CLZ	/**/
+
+/* HAS_BUILTIN_CTZ:
+ *	This symbol, if defined, indicates that __builtin_ctz routine is
+ *	available to count trailing zeroes in a word.
+ */
+#$d_built_ctz HAS_BUILTIN_CTZ	/**/
 
 /* HAS_BUILTIN_POPCOUNT:
  *	This symbol, if defined, indicates that __builtin_popcount routine is
@@ -192,6 +223,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dirent_d_type HAS_DIRENT_D_TYPE		/**/
 
+/* HAS_DLADDR:
+ *	This symbol, if defined, indicates that the dladdr() routine is
+ *	available to query the dynamic linker about a specified address.
+ */
+#$d_dladdr HAS_DLADDR		/**/
+
 /* HAS_END_SYMBOL:
  *	This symbol, if defined, indicates that the C program can declare
  *		extern const int end;
@@ -223,6 +260,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.
  */
 #$d_fork HAS_FORK		/**/
+
+/* HAS_GETTIMEOFDAY:
+ *	This symbol, if defined, indicates that the gettimeofday() system
+ *	call is available for a sub-second accuracy clock. Usually, the file
+ *	<sys/resource.h> needs to be included (see I_SYS_RESOURCE).
+ *	The type "Timeval" should be used to refer to "struct timeval".
+ */
+#$d_gettimeod HAS_GETTIMEOFDAY	/**/
+#ifdef HAS_GETTIMEOFDAY
+#define Timeval struct timeval	/* Structure used by gettimeofday() */
+#endif
 
 /* HAS_GETADDRINFO:
  *	This symbol is defined when getaddrinfo() can be used.
@@ -291,6 +339,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_hstrerror HAS_HSTRERROR		/**/
 
+/* USE_IEEE754_FLOAT:
+ *	When defined, this symbol indicates that float and double values are
+ *	stored using the IEEE-754 floating point format.  See IEEE754_BYTEORDER
+ *	to determine the endianness in case these values need to be serialized.
+ */
+/* IEEE754_BYTEORDER:
+ *	This symbol holds the hexadecimal constant defined in ieee754_byteorder,
+ *	i.e. 1234 for little-endian or 4321 for big-ending floats.  It is 0 when
+ *	floats are not stored in IEEE-754 format.
+ */
+#$d_ieee754 USE_IEEE754_FLOAT
+#define IEEE754_BYTEORDER 0x$ieee754_byteorder	/* large digits for MSB */
+
 /* USE_IP_TOS:
  *	This symbol, if defined, indicates that the IP TOS services are
  *	available and can be used.  Be prepared to include <sys/socket.h>,
@@ -357,6 +418,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	own version.
  */
 #$d_memmove HAS_MEMMOVE	/**/
+
+/* HAS_MEMPCPY:
+ *	This symbol, if defined, indicates that the mempcpy routine is available
+ *	to copy blocks of memory, returning a pointer past the last written byte.
+ */
+#$d_mempcpy HAS_MEMPCPY	/**/
 
 /* HAS_MMAP:
  *	This symbol, if defined, indicates that the mmap system call is
@@ -463,6 +530,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available to add/relase core. Always true on Unix.
  */
 #$d_sbrk HAS_SBRK	/**/
+
+/* HAS_SCHED_YIELD:
+ *	This symbol, if defined, indicates that the sched_yield() routine is
+ *	available to yield the CPU.
+ */
+#$d_sched_yield HAS_SCHED_YIELD		/**/
 
 /* HAS_SELECT:
  *	This symbol, if defined, indicates that the select routine is
@@ -607,6 +680,20 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_ttyname HAS_TTYNAME	/**/
 
+/* HAS_UCONTEXT_MCONTEXT:
+ *	This symbol, if defined, indicates that the C program can access the
+ *	processor's general registers through some field in the uc_mcontext
+ *	machine context field from the ucontext_t structure.
+ */
+#$d_uctx_mctx HAS_UCONTEXT_MCONTEXT	/**/
+
+/* HAS_UCONTEXT_MCONTEXT_GREGS:
+ *	This symbol, if defined, indicates that the C program can access the
+ *	processor's general registers through the gregs[] array in the uc_mcontext
+ *	machine context field from the ucontext_t structure.
+ */
+#$d_uctx_mctx_gregs HAS_UCONTEXT_MCONTEXT_GREGS	/**/
+
 /* HAS_USLEEP:
  *	This symbol, if defined, indicates that the usleep routine is
  *	available to let the process sleep on a sub-second accuracy.
@@ -665,6 +752,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	'struct direct' depending on the availability of <dirent.h>.
  */
 #$i_dirent I_DIRENT		/**/
+
+/* I_DLFCN:
+ *	This symbol, if defined, indicates that <dlfcn.h> exists and should
+ *	be included.
+ */
+#$i_dlfcn I_DLFCN		/**/
 
 /* I_EXECINFO:
  *	This symbol, if defined, indicates to the C program that it should
@@ -787,6 +880,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	be included.
  */
 #$i_regex I_REGEX	/**/
+
+/* I_SCHED:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sched.h> to get the definition of sched_yield().
+ */
+#$i_sched I_SCHED		/**/
 
 /* I_STDLIB:
  *	This symbol, if defined, indicates that <stdlib.h> exists and should
@@ -922,6 +1021,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$i_systime I_SYS_TIME		/**/
 #$i_systimek I_SYS_TIME_KERNEL		/**/
 
+/* I_UCONTEXT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <ucontext.h> to get at the user thread context.
+ */
+#$i_ucontext I_UCONTEXT		/**/
+
 /* I_UNISTD:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <unistd.h>.
@@ -939,6 +1044,30 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <Winsock2.h>.
  */
 #$i_winsock2 I_WINSOCK2		/**/
+
+/* CAN_HANDLE_64BITS:
+ *	When defined, this indicates that the compiler can handle 64-bit values
+ *	despite the CPU having only 32-bit registers.  These are available using
+ *	the "long long" C type.  It is only defined for ILP32 machines, since
+ *	64-bit support is naturally available on ILP64 and LP64 machines.
+ */
+#$d_can64 CAN_HANDLE_64BITS	/**/
+
+/* INTSIZE:
+ *	This symbol contains the value of sizeof(int) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+/* LONGSIZE:
+ *	This symbol contains the value of sizeof(long) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+/* SHORTSIZE:
+ *	This symbol contains the value of sizeof(short) so that the C
+ *	preprocessor can make decisions based on it.
+ */
+#define INTSIZE $intsize
+#define LONGSIZE $longsize
+#define SHORTSIZE $shortsize
 
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization
@@ -989,6 +1118,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	in programs that are not prepared to deal with ~ expansion at run-time.
  */
 #define PRIVLIB_EXP "$privlibexp"		/**/
+
+/* PTRSIZE:
+ *	This symbol contains the size of a pointer, so that the C preprocessor
+ *	can make decisions based on it.
+ */
+#define PTRSIZE $ptrsize
 
 /* SIG_NAME:
  *	This symbol contains a list of signal names in order of

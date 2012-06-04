@@ -38,6 +38,7 @@
 #include "dime.h"
 
 #include "lib/endian.h"
+#include "lib/mempcpy.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"
@@ -65,10 +66,10 @@ struct dime_record {
 	const char	*options;
 	const char	*type;
 	const char	*id;
-	guint32	 data_length;
-	guint16	 options_length;
-	guint16	 type_length;
-	guint16	 id_length;
+	uint32	 data_length;
+	uint16	 options_length;
+	uint16	 type_length;
+	uint16	 id_length;
 
 	unsigned char	flags;
 	unsigned char	version;
@@ -129,7 +130,7 @@ dime_ceil(size_t value)
  */
 static void
 dime_fill_record_header(const struct dime_record *record,
-	char *data, size_t size, guint flags)
+	char *data, size_t size, uint flags)
 {
 	unsigned char value;
 
@@ -157,9 +158,10 @@ copy_and_pad(char *dst, const char *src, size_t size)
 
 	g_assert(NULL != src || 0 == size);	
 	if (size > 0) {
+		void *p;
 		pad = dime_ceil(size) - size;
-		memcpy(dst, src, size);
-		memset(&dst[size], 0, pad);
+		p = mempcpy(dst, src, size);
+		memset(p, 0, pad);
 	} else {
 		pad = 0;
 	}
@@ -168,7 +170,7 @@ copy_and_pad(char *dst, const char *src, size_t size)
 
 size_t
 dime_create_record(const struct dime_record *record,
-	char **data_ptr, gboolean first, gboolean last)
+	char **data_ptr, bool first, bool last)
 {
 	size_t size;
 
@@ -180,7 +182,7 @@ dime_create_record(const struct dime_record *record,
 
 	if (data_ptr) {
 		char *data0, *data;
-		guint flags;
+		uint flags;
 
 		data0 = g_malloc(size);
 		data = data0;
@@ -356,7 +358,7 @@ error:
 	return NULL;
 }
 
-gboolean
+bool
 dime_record_set_data(struct dime_record *record, const void *data, size_t size)
 {
 	g_return_val_if_fail(record, FALSE);
@@ -366,14 +368,14 @@ dime_record_set_data(struct dime_record *record, const void *data, size_t size)
 	 */
 	g_return_val_if_fail(NULL != data || 0 == size, FALSE);
 #endif
-	g_return_val_if_fail(size < (guint32)-1, FALSE);
+	g_return_val_if_fail(size < (uint32)-1, FALSE);
 
 	record->data = data;
 	record->data_length = size;
 	return TRUE;
 }
 	
-gboolean
+bool
 dime_record_set_id(struct dime_record *record, const char *id)
 {
 	size_t length;
@@ -381,14 +383,14 @@ dime_record_set_id(struct dime_record *record, const char *id)
 	g_return_val_if_fail(record, FALSE);
 
 	length = id ? strlen(id) : 0;
-	g_return_val_if_fail(length < (guint16)-1, FALSE);
+	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->id = id;
 	record->id_length = length;
 	return TRUE;
 }
 
-static gboolean
+static bool
 dime_record_set_type(struct dime_record *record,
 	enum dime_type_t type_t, const char *type)
 {
@@ -397,7 +399,7 @@ dime_record_set_type(struct dime_record *record,
 	g_return_val_if_fail(record, FALSE);
 
 	length = type ? strlen(type) : 0;
-	g_return_val_if_fail(length < (guint16)-1, FALSE);
+	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->type = type;
 	record->type_length = length;
@@ -405,13 +407,13 @@ dime_record_set_type(struct dime_record *record,
 	return TRUE;
 }
 
-gboolean
+bool
 dime_record_set_type_uri(struct dime_record *record, const char *type)
 {
 	return dime_record_set_type(record, DIME_T_URI, type);
 }
 
-gboolean
+bool
 dime_record_set_type_mime(struct dime_record *record, const char *type)
 {
 	return dime_record_set_type(record, DIME_T_MIME, type);

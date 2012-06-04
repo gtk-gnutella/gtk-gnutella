@@ -79,9 +79,9 @@ struct attr {
 	ssize_t head_len;			/**< Length of chunk header */
 	ssize_t head_remain;		/**< Amount of unwritten header data */
 	ssize_t data_remain;		/**< Data required to complete chunk */
-	gboolean first;				/**< True for first chunk */
 	tx_closed_t closed;			/**< Callback to invoke when layer closed */
-	gpointer closed_arg;		/**< Argument for closing routine */
+	void *closed_arg;			/**< Argument for closing routine */
+	unsigned first:1;			/**< True for first chunk */
 };
 
 /**
@@ -134,7 +134,7 @@ chunk_flush_header(txdrv_t *tx)
  * if we encountered an error.
  */
 static ssize_t
-chunk_begin(txdrv_t *tx, size_t len, gboolean final)
+chunk_begin(txdrv_t *tx, size_t len, bool final)
 {
 	struct attr *attr = tx->opaque;
 	size_t hlen = 0;
@@ -165,7 +165,7 @@ chunk_begin(txdrv_t *tx, size_t len, gboolean final)
 			"0\r\n\r\n");
 	else
 		hlen += gm_snprintf(&attr->head[hlen], sizeof attr->head - hlen,
-			"%lx\r\n", (gulong) len);
+			"%lx\r\n", (ulong) len);
 
 	attr->head_len = attr->head_remain = hlen;
 	attr->data_remain = len;
@@ -214,7 +214,7 @@ chunk_acceptable(txdrv_t *tx, size_t len)
  * Called by lower layer when it is ready to process more data.
  */
 static void
-chunk_service(gpointer data)
+chunk_service(void *data)
 {
 	txdrv_t *tx = data;
 	struct attr *attr = tx->opaque;
@@ -260,8 +260,8 @@ chunk_service(gpointer data)
  *
  * Always succeeds, so never returns NULL.
  */
-static gpointer
-tx_chunk_init(txdrv_t *tx, gpointer unused_args)
+static void *
+tx_chunk_init(txdrv_t *tx, void *unused_args)
 {
 	struct attr *attr;
 
@@ -302,7 +302,7 @@ tx_chunk_destroy(txdrv_t *tx)
  * @return amount of data bytes written, or -1 on error.
  */
 static ssize_t
-tx_chunk_write(txdrv_t *tx, gconstpointer data, size_t len)
+tx_chunk_write(txdrv_t *tx, const void *data, size_t len)
 {
 	struct attr *attr = tx->opaque;
 	size_t remain = len;
@@ -446,7 +446,7 @@ tx_chunk_shutdown(txdrv_t *tx)
  * Once this is done, invoke the supplied callback.
  */
 static void
-tx_chunk_close(txdrv_t *tx, tx_closed_t cb, gpointer arg)
+tx_chunk_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
 	struct attr *attr = tx->opaque;
 

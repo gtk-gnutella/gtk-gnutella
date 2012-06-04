@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,10 +25,10 @@
  * @ingroup dht
  * @file
  *
- * Accounting.
+ * IP address / network accounting.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008, 2012
  */
 
 #include "common.h"
@@ -36,62 +36,79 @@
 #include "acct.h"
 
 #include "lib/atoms.h"
+#include "lib/htable.h"
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
+
+enum acct_net_magic { ACCT_NET_MAGIC = 0x1aff6618 };
+
+struct acct_net {
+	enum acct_net_magic magic;
+	htable_t *ht;
+};
+
+static inline void
+acct_net_check(const struct acct_net * const an)
+{
+	g_assert(an != NULL);
+	g_assert(ACCT_NET_MAGIC == an->magic);
+}
 
 /**
  * Get number of items accounted for by an IP or class C network.
  */
 int
-acct_net_get(GHashTable *ht, host_addr_t addr, guint32 mask)
+acct_net_get(const acct_net_t *an, host_addr_t addr, uint32 mask)
 {
-	guint32 net;
-	gpointer val;
+	uint32 net;
+	void *val;
 
-	g_assert(ht);
+	acct_net_check(an);
 	g_assert(host_addr_is_ipv4(addr));
 
 	net = host_addr_ipv4(addr) & mask;
-	val = g_hash_table_lookup(ht, &net);
+	val = htable_lookup(an->ht, &net);
 
-	return GPOINTER_TO_INT(val);
+	return pointer_to_int(val);
 }
 
 /**
  * Update count of items accounted for by an IP or class C network.
  */
 void
-acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
+acct_net_update(acct_net_t *an, host_addr_t addr, uint32 mask, int pmone)
 {
-	guint32 net;
-	gpointer key;
-	gpointer val;
-	gboolean found;
+	uint32 net;
+	const void *key;
+	void *val;
+	bool found;
 
-	g_assert(ht);
+	acct_net_check(an);
 	g_assert(host_addr_is_ipv4(addr));
 	g_assert(pmone == +1 || pmone == -1);
 
 	net = host_addr_ipv4(addr) & mask;
-	found = g_hash_table_lookup_extended(ht, &net, &key, &val);
+	found = htable_lookup_extended(an->ht, &net, &key, &val);
 
 	if (found) {
-		int count = GPOINTER_TO_INT(val);
+		int count = pointer_to_int(val);
 		count += pmone;
 
-		g_assert(net == *(guint32 *) key);
+		g_assert(net == *(uint32 *) key);
 
 		if (count) {
 			g_assert(count > 0);
-			g_hash_table_insert(ht, key, GINT_TO_POINTER(count));
+			htable_insert(an->ht, key, int_to_pointer(count));
 		} else {
-			g_hash_table_remove(ht, key);
+			htable_remove(an->ht, key);
 			atom_uint32_free(key);
 		}
 	} else {
 		g_assert(pmone == +1);
 
-		key = (gpointer) atom_uint32_get(&net);
-		g_hash_table_insert(ht, key, GINT_TO_POINTER(1));
+		key = (void *) atom_uint32_get(&net);
+		htable_insert(an->ht, key, int_to_pointer(1));
 	}
 }
 
@@ -99,11 +116,10 @@ acct_net_update(GHashTable *ht, host_addr_t addr, guint32 mask, int pmone)
  * Hash table iterator callback
  */
 static void
-acct_net_free_kv(gpointer key, gpointer unused_val, gpointer unused_x)
+acct_net_free_kv(void *key, void *unused_x)
 {
-	const guint32 *net = key;
+	const uint32 *net = key;
 
-	(void) unused_val;
 	(void) unused_x;
 
 	atom_uint32_free(net);
@@ -112,9 +128,30 @@ acct_net_free_kv(gpointer key, gpointer unused_val, gpointer unused_x)
 /**
  * Allocate a hash table to track network/IP information.
  */
-GHashTable *acct_net_create(void)
+acct_net_t *
+acct_net_create(void)
 {
-	return g_hash_table_new(uint32_hash, uint32_eq);
+	acct_net_t *an;
+
+	WALLOC0(an);
+	an->magic = ACCT_NET_MAGIC;
+	an->ht = htable_create_any(uint32_hash, NULL, uint32_eq);
+
+	return an;
+}
+
+/**
+ * Free traffic accounting.
+ */
+static void
+acct_net_free(acct_net_t *an)
+{
+	acct_net_check(an);
+
+	htable_foreach_key(an->ht, acct_net_free_kv, NULL);
+	htable_free_null(&an->ht);
+	an->magic = 0;
+	WFREE(an);
 }
 
 /**
@@ -122,14 +159,13 @@ GHashTable *acct_net_create(void)
  * The parameter `hptr' is written back to nullify the value it points to.
  */
 void
-acct_net_free(GHashTable **hptr)
+acct_net_free_null(acct_net_t **anptr)
 {
-	GHashTable *ht = *hptr;
+	acct_net_t *an = *anptr;
 
-	if (ht) {
-		g_hash_table_foreach(ht, acct_net_free_kv, NULL);
-		g_hash_table_destroy(ht);
-		*hptr = NULL;
+	if (an != NULL) {
+		acct_net_free(an);
+		*anptr = NULL;
 	}
 }
 

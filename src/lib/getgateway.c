@@ -47,6 +47,7 @@
 #include "ascii.h"
 #include "fd.h"
 #include "host_addr.h"
+#include "mempcpy.h"
 #include "misc.h"
 #include "parse.h"
 
@@ -66,7 +67,7 @@ parse_netstat(host_addr_t *addrp)
 {
 	FILE *f = NULL;
 	char tmp[80];
-	guint32 gate = 0;
+	uint32 gate = 0;
 
 	/*
 	 * This implementation should be a safe default on UNIX platforms, but
@@ -97,7 +98,7 @@ parse_netstat(host_addr_t *addrp)
 
 	while (fgets(tmp, sizeof tmp, f)) {
 		char *p;
-		guint32 ip;
+		uint32 ip;
 
 		p = is_strprefix(tmp, "default");
 		if (NULL == p)
@@ -125,7 +126,7 @@ parse_netstat(host_addr_t *addrp)
 }
 #else
 {
-	static gboolean warned;
+	static bool warned;
 
 	(void) addrp;
 
@@ -153,7 +154,7 @@ G_GNUC_COLD int
 getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {
-	guint32 ip;
+	uint32 ip;
 
 	if (-1 == mingw_getgateway(&ip)) {
 		g_warning("getgateway(): GetBestRoute() failed: %m");
@@ -170,7 +171,7 @@ getgateway(host_addr_t *addrp)
 	unsigned seq = 1;
 	__u32 pid = getpid(); /* not pid_t because nlmsg_pid is of type __u32 */
 	host_addr_t gateway;
-	gboolean done;
+	bool done;
 	struct {
 		struct nlmsghdr hdr;
 		struct rtmsg rtm;
@@ -319,10 +320,8 @@ found:
 	STATIC_ASSERT(2 * sizeof dest <= sizeof rtm.data);
 
 	p = payload;
-	memcpy(p, &dest, sizeof dest);
-	p += sizeof dest;
-	memcpy(p, &mask, sizeof mask);
-	p += sizeof mask;
+	p = mempcpy(p, &dest, sizeof dest);
+	p = mempcpy(p, &mask, sizeof mask);
 
 	rt->rtm_msglen = (p - payload) + sizeof *rt;
 
@@ -408,7 +407,7 @@ found:
 }
 #else
 {
-	static gboolean warned;
+	static bool warned;
 
 	/*
 	 * Let's get information about which systems cannot benefit from a

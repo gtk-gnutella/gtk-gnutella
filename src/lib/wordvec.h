@@ -41,16 +41,16 @@
  */
 
 typedef struct {				/**< Query word vector */
-	char *word;				/**< The word to search */
+	char *word;					/**< The word to search */
 	int len;					/**< The word's length */
-	guint amount;				/**< Amount of expected occurrences */
+	uint amount;				/**< Amount of expected occurrences */
 } word_vec_t;
 
 void word_vec_init(void);
 void word_vec_close(void);
 
-guint word_vec_make(const char *query, word_vec_t **wovec);
-void word_vec_free(word_vec_t *wovec, guint n);
+uint word_vec_make(const char *query, word_vec_t **wovec);
+void word_vec_free(word_vec_t *wovec, uint n);
 
 #endif	/* _wordvec_h_ */
 

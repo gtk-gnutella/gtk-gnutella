@@ -120,16 +120,16 @@ void upnp_close(void);
 void upnp_disabled(void);
 void upnp_natpmp_disabled(void);
 
-void upnp_map_tcp(guint16 port);
-void upnp_map_udp(guint16 port);
-void upnp_unmap_tcp(guint16 port);
-void upnp_unmap_udp(guint16 port);
+void upnp_map_tcp(uint16 port);
+void upnp_map_udp(uint16 port);
+void upnp_unmap_tcp(uint16 port);
+void upnp_unmap_udp(uint16 port);
 
 host_addr_t upnp_get_local_addr(void);
 void upnp_set_local_addr(host_addr_t addr);
 
 const char *upnp_igd_ip_routed(void);
-gboolean upnp_delete_pending(void);
+bool upnp_delete_pending(void);
 
 #endif /* _upnp_upnp_h_ */
 

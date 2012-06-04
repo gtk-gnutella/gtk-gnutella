@@ -47,17 +47,70 @@
 #endif /* I_NETDB */
 
 #include "ascii.h"
-#include "atoms.h"				/* For binary_hash */
 #include "host_addr.h"
 #include "concat.h"
 #include "endian.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
+#include "hashing.h"			/* For binary_hash() */
+#include "hset.h"
 #include "parse.h"
 #include "random.h"
 #include "stringify.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+/**
+ * Hashing of host_addr_t.
+ */
+unsigned
+host_addr_hash(host_addr_t ha)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net ^ integer_hash(host_addr_ipv4(ha));
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net;
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
+
+/**
+ * Alternate hashing of host_addr_t.
+ */
+unsigned
+host_addr_hash2(host_addr_t ha)
+{
+	switch (ha.net) {
+	case NET_TYPE_IPV6:
+		{
+			host_addr_t ha_ipv4;
+
+			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
+				return binary_hash2(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+			ha = ha_ipv4;
+		}
+		/* FALL THROUGH */
+	case NET_TYPE_IPV4:
+		return ha.net ^ integer_hash2(host_addr_ipv4(ha));
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		return ha.net;
+	}
+	g_assert_not_reached();
+	return (unsigned) -1;
+}
 
 /**
  * @param ha An initialized host address.
@@ -67,7 +120,7 @@ int
 host_addr_family(const host_addr_t ha)
 {
 	if (!host_addr_initialized(ha)) {
-		g_error("host_addr_family(): ha.net=%u", (guint8) ha.net);
+		g_error("host_addr_family(): ha.net=%u", (uint8) ha.net);
     }	
 	switch (ha.net) {
 	case NET_TYPE_IPV4:
@@ -92,13 +145,13 @@ host_addr_family(const host_addr_t ha)
  *
  * @return TRUE if is a private address.
  */
-gboolean
+bool
 is_private_addr(const host_addr_t addr)
 {
 	host_addr_t addr_ipv4;
 
 	if (host_addr_convert(addr, &addr_ipv4, NET_TYPE_IPV4)) {
-		guint32 ip = host_addr_ipv4(addr_ipv4);
+		uint32 ip = host_addr_ipv4(addr_ipv4);
 
 		/* 10.0.0.0 -- (10/8 prefix) */
 		if ((ip & 0xff000000) == 0xa000000)
@@ -133,11 +186,11 @@ is_private_addr(const host_addr_t addr)
 	return FALSE;
 }
 
-static inline gboolean
-ipv4_addr_is_routable(guint32 ip)
+static inline bool
+ipv4_addr_is_routable(uint32 ip)
 {
 	static const struct {
-		const guint32 addr, mask;
+		const uint32 addr, mask;
 	} net[] = {
 		{ 0x00000000UL, 0xff000000UL },	/* 0.0.0.0/8	"This" Network */
 		{ 0xe0000000UL, 0xe0000000UL },	/* 224.0.0.0/4	Multicast + Reserved */
@@ -146,41 +199,46 @@ ipv4_addr_is_routable(guint32 ip)
 		{ 0xc0586300UL, 0xffffff00UL },	/* 192.88.99.0/24	6to4 [RFC 3068] */
 		{ 0xc6120000UL, 0xfffe0000UL },	/* 198.18.0.0/15	[RFC 2544] */
 	};
-	guint i;
+	uint i;
 
 	for (i = 0; i < G_N_ELEMENTS(net); i++) {
 		if ((ip & net[i].mask) == net[i].addr)
 			return FALSE;
 	}
 
+	/* x.x.x.0 is an invalid destination address -- RAM, 2012-02-16 */
+
+	if (0 == (ip & 0xff))
+		return FALSE;
+
 	return TRUE;
 }
 
-static inline gboolean
+static inline bool
 host_addr_is_6to4(const host_addr_t ha)
 {
 	return host_addr_is_ipv6(ha) && 0x2002 == peek_be16(&ha.addr.ipv6[0]);
 }
 
-static inline gboolean
+static inline bool
 host_addr_is_teredo(const host_addr_t ha)
 {
 	return host_addr_is_ipv6(ha) && 0x20010000UL == peek_be32(&ha.addr.ipv6[0]);
 }
 
-static inline guint32
+static inline uint32
 host_addr_6to4_client_ipv4(const host_addr_t ha)
 {
 	return peek_be32(&ha.addr.ipv6[2]);	/* 2002:AABBCCDD::/48 */
 }
 
-static inline guint32
+static inline uint32
 host_addr_teredo_client_ipv4(const host_addr_t ha)
 {
 	return ~peek_be32(&ha.addr.ipv6[12]);	/* 2001::~A~B~C~D */
 }
 
-gboolean
+bool
 host_addr_6to4_client(const host_addr_t from, host_addr_t *to)
 {
 	if (host_addr_is_6to4(from)) {
@@ -196,7 +254,7 @@ host_addr_6to4_client(const host_addr_t from, host_addr_t *to)
 	}
 }
 
-gboolean
+bool
 host_addr_teredo_client(const host_addr_t from, host_addr_t *to)
 {
 	if (host_addr_is_teredo(from)) {
@@ -212,19 +270,19 @@ host_addr_teredo_client(const host_addr_t from, host_addr_t *to)
 	}
 }
 
-static gboolean
+static bool
 host_addr_is_tunneled(const host_addr_t ha)
 {
 	return host_addr_is_teredo(ha) || host_addr_is_6to4(ha);
 }
 
-gboolean
+bool
 host_addr_tunnel_client(const host_addr_t from, host_addr_t *to)
 {
 	return host_addr_teredo_client(from, to) || host_addr_6to4_client(from, to);
 }
 
-guint32
+uint32
 host_addr_tunnel_client_ipv4(const host_addr_t from)
 {
 	host_addr_t to;
@@ -235,7 +293,7 @@ host_addr_tunnel_client_ipv4(const host_addr_t from)
 /**
  * Checks whether the given address is 127.0.0.1 or ::1.
  */
-gboolean
+bool
 host_addr_is_loopback(const host_addr_t addr)
 {
 	host_addr_t ha;
@@ -262,7 +320,7 @@ host_addr_is_loopback(const host_addr_t addr)
 /**
  * Checks whether the given address is unspecified (all zeroes).
  */
-gboolean
+bool
 host_addr_is_unspecified(const host_addr_t addr)
 {
 	switch (host_addr_net(addr)) {
@@ -285,7 +343,7 @@ host_addr_is_unspecified(const host_addr_t addr)
  * Check whether host can be reached from the Internet.
  * We rule out IPs of private networks, plus some other invalid combinations.
  */
-gboolean
+bool
 host_addr_is_routable(const host_addr_t addr)
 {
 	host_addr_t ha;
@@ -319,7 +377,7 @@ host_addr_is_routable(const host_addr_t addr)
 	return FALSE;
 }
 
-gboolean
+bool
 host_addr_can_convert(const host_addr_t from, enum net_type to_net)
 {
 	if (from.net == to_net)
@@ -367,7 +425,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
  * 
  * @return TRUE if the address could be converted, FALSE otherwise.
  */
-gboolean
+bool
 host_addr_convert(const host_addr_t from, host_addr_t *to,
 	enum net_type to_net)
 {
@@ -488,7 +546,7 @@ host_addr_to_string2(const host_addr_t ha)
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
 size_t
-host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
+host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 		char *dst, size_t size)
 {
 	char host_buf[HOST_ADDR_BUFLEN];
@@ -523,7 +581,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, guint16 port,
  *         representing the given host address and port.
  */
 const char *
-host_addr_port_to_string(const host_addr_t ha, guint16 port)
+host_addr_port_to_string(const host_addr_t ha, uint16 port)
 {
 	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
@@ -534,7 +592,7 @@ host_addr_port_to_string(const host_addr_t ha, guint16 port)
 }
 
 const char *
-host_addr_port_to_string2(const host_addr_t ha, guint16 port)
+host_addr_port_to_string2(const host_addr_t ha, uint16 port)
 {
 	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
@@ -557,7 +615,7 @@ host_addr_port_to_string2(const host_addr_t ha, guint16 port)
  * @return The length of the resulting string assuming ``size'' is sufficient.
  */
 size_t
-host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
+host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 	char *dst, size_t size)
 {
 	char port_buf[UINT32_DEC_BUFLEN];
@@ -592,7 +650,7 @@ host_port_addr_to_string_buf(guint16 port, const host_addr_t ha,
  *         representing the given host address and port.
  */
 const char *
-port_host_addr_to_string(guint16 port, const host_addr_t ha)
+port_host_addr_to_string(uint16 port, const host_addr_t ha)
 {
 	static char buf[HOST_ADDR_PORT_BUFLEN];
 	size_t n;
@@ -603,7 +661,7 @@ port_host_addr_to_string(guint16 port, const host_addr_t ha)
 }
 
 const char *
-host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
+host_port_to_string(const char *hostname, host_addr_t addr, uint16 port)
 {
 	static char buf[MAX_HOSTLEN + 32];
 
@@ -634,11 +692,11 @@ host_port_to_string(const char *hostname, host_addr_t addr, guint16 port)
  *        ``zero_host_addr'' on failure.
  * @return Returns TRUE on success; otherwise FALSE.
  */
-gboolean
+bool
 string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
 {
-	guint32 ip;
-	gboolean brackets = FALSE;
+	uint32 ip;
+	bool brackets = FALSE;
 
 	g_assert(s);
 
@@ -653,9 +711,9 @@ string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
 		}
 		return TRUE;
 	} else {
-		guint8 ipv6[16];
+		uint8 ipv6[16];
 		const char *end;
-		gboolean ok;
+		bool ok;
 
 		ok = parse_ipv6_addr(s, ipv6, &end);
 		if (ok) {
@@ -699,7 +757,7 @@ string_to_host_addr(const char *s, const char **endptr, host_addr_t *addr_ptr)
  * @return TRUE if the string points to host address or is a possible
  *         hostname.
  */
-gboolean
+bool
 string_to_host_or_addr(const char *s, const char **endptr, host_addr_t *ha)
 {
 	const char *ep;
@@ -739,14 +797,14 @@ string_to_host_or_addr(const char *s, const char **endptr, host_addr_t *ha)
  * @return TRUE if we parsed the string correctly, FALSE if it did not
  * look like a valid "IP:port" string.
  */
-gboolean
+bool
 string_to_host_addr_port(const char *str, const char **endptr,
-	host_addr_t *addr_ptr, guint16 *port_ptr)
+	host_addr_t *addr_ptr, uint16 *port_ptr)
 {
 	const char *ep;
 	host_addr_t addr;
-	gboolean ret;
-	guint16 port;
+	bool ret;
+	uint16 port;
 
 	ret = string_to_host_or_addr(str, &ep, &addr);
 	if (ret && ':' == *ep && is_host_addr(addr)) {
@@ -782,14 +840,14 @@ string_to_host_addr_port(const char *str, const char **endptr,
  * @return TRUE if we parsed the string correctly, FALSE if it did not
  * look like a valid "port:IP" string.
  */
-gboolean
+bool
 string_to_port_host_addr(const char *str, const char **endptr,
-	guint16 *port_ptr, host_addr_t *addr_ptr)
+	uint16 *port_ptr, host_addr_t *addr_ptr)
 {
 	const char *ep;
 	host_addr_t addr;
-	gboolean ret;
-	guint16 port;
+	bool ret;
+	uint16 port;
 	int error;
 
 	port = parse_uint16(str, &ep, 10, &error);
@@ -834,7 +892,7 @@ gethostbyname_error(const char *host)
  * @return The length of the initialized structure.
  */
 socklen_t
-socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, guint16 port)
+socket_addr_set(socket_addr_t *sa_ptr, const host_addr_t addr, uint16 port)
 {
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
@@ -903,11 +961,11 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 	struct sockaddr_in sin4;
 	socklen_t len;
 	host_addr_t addr = zero_host_addr;
-	guint16 port = 0;
-	gboolean success = FALSE;
+	uint16 port = 0;
+	bool success = FALSE;
 
 	len = sizeof sin4;
-	if (-1 != getsockname(fd, cast_to_gpointer(&sin4), &len)) {
+	if (-1 != getsockname(fd, cast_to_pointer(&sin4), &len)) {
 		addr = host_addr_peek_ipv4(&sin4.sin_addr.s_addr);
 		port = ntohs(sin4.sin_port);
 		success = TRUE;
@@ -918,7 +976,7 @@ socket_addr_getsockname(socket_addr_t *p_addr, int fd)
 		struct sockaddr_in6 sin6;
 
 		len = sizeof sin6;
-		if (-1 != getsockname(fd, cast_to_gpointer(&sin6), &len)) {
+		if (-1 != getsockname(fd, cast_to_pointer(&sin6), &len)) {
 			addr = host_addr_peek_ipv6(sin6.sin6_addr.s6_addr);
 			port = ntohs(sin6.sin6_port);
 			success = TRUE;
@@ -1050,7 +1108,7 @@ addrinfo_to_addr(const struct addrinfo *ai)
 		if (ai->ai_addrlen >= 4) {
 			const struct sockaddr_in *sin4;
 
-			sin4 = cast_to_gconstpointer(ai->ai_addr);
+			sin4 = cast_to_constpointer(ai->ai_addr);
 			addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
 		}
 		break;
@@ -1060,8 +1118,8 @@ addrinfo_to_addr(const struct addrinfo *ai)
 		if (ai->ai_addrlen >= 16) {
 			const struct sockaddr_in6 *sin6;
 
-			sin6 = cast_to_gconstpointer(ai->ai_addr);
-			addr = host_addr_peek_ipv6(cast_to_gconstpointer(
+			sin6 = cast_to_constpointer(ai->ai_addr);
+			addr = host_addr_peek_ipv6(cast_to_constpointer(
 						sin6->sin6_addr.s6_addr));
 		}
 		break;
@@ -1078,7 +1136,7 @@ resolve_hostname(const char *host, enum net_type net)
 {
 	static const struct addrinfo zero_hints;
 	struct addrinfo hints, *ai, *ai0 = NULL;
-	GHashTable *ht;
+	hset_t *hs;
 	GSList *sl_addr;
 	int error;
 
@@ -1095,7 +1153,7 @@ resolve_hostname(const char *host, enum net_type net)
 	}
 
 	sl_addr = NULL;
-	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	hs = hset_create_any(host_addr_hash_func, NULL, host_addr_eq_func);
 	for (ai = ai0; ai; ai = ai->ai_next) {
 		host_addr_t addr;
 
@@ -1104,15 +1162,15 @@ resolve_hostname(const char *host, enum net_type net)
 
 		addr = addrinfo_to_addr(ai);
 
-		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
 			sl_addr = g_slist_prepend(sl_addr, addr_copy);
-			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
+			hset_insert(hs, addr_copy);
 		}
 	}
-	g_hash_table_destroy(ht);
+	hset_free_null(&hs);
 
 	if (ai0)
 		freeaddrinfo(ai0);
@@ -1122,7 +1180,7 @@ resolve_hostname(const char *host, enum net_type net)
 #else /* !HAS_GETADDRINFO */
 {
 	const struct hostent *he;
-	GHashTable *ht;
+	hset_t *hs;
 	GSList *sl_addr;
 	int af;
 	size_t i;
@@ -1164,7 +1222,7 @@ resolve_hostname(const char *host, enum net_type net)
 	}
 	
 	sl_addr = NULL;
-	ht = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	hs = hset_create_any(host_addr_hash_func, NULL, host_addr_eq_func);
 	for (i = 0; NULL != he->h_addr_list[i]; i++) {
 		host_addr_t addr;
 
@@ -1176,22 +1234,22 @@ resolve_hostname(const char *host, enum net_type net)
 #ifdef HAS_IPV6
 		case AF_INET6:
 			addr = host_addr_peek_ipv6(
-						cast_to_gconstpointer(he->h_addr_list[i]));
+						cast_to_constpointer(he->h_addr_list[i]));
 			break;
 #endif /* !HAS_IPV6 */
 		default:
 			g_assert_not_reached();
 		}
 
-		if (is_host_addr(addr) && !g_hash_table_lookup(ht, &addr)) {
+		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
 			addr_copy = wcopy(&addr, sizeof addr);
 			sl_addr = g_slist_prepend(sl_addr, addr_copy);
-			g_hash_table_insert(ht, addr_copy, GINT_TO_POINTER(1));
+			hset_insert(hs, addr_copy);
 		}
 	}
-	g_hash_table_destroy(ht);
+	hset_free_null(&hs);
 
 	return g_slist_reverse(sl_addr);
 }
@@ -1269,7 +1327,7 @@ name_to_single_host_addr(const char *host, enum net_type net)
 		size_t i, len;
 
 		len = g_slist_length(sl_addr);
-		i = len > 1 ? (random_u32() % len) : 0;
+		i = len > 1 ? random_value(len - 1) : 0;
 
 		for (sl = sl_addr; NULL != sl; sl = g_slist_next(sl)) {
 			const host_addr_t *addr_ptr = sl->data;
@@ -1287,15 +1345,22 @@ name_to_single_host_addr(const char *host, enum net_type net)
 	return addr;
 }
 
-guint
-host_addr_hash_func(gconstpointer key)
+uint
+host_addr_hash_func(const void *key)
 {
 	const host_addr_t *addr = key;
 	return host_addr_hash(*addr);
 }
 
-gboolean
-host_addr_eq_func(gconstpointer p, gconstpointer q)
+uint
+host_addr_hash_func2(const void *key)
+{
+	const host_addr_t *addr = key;
+	return host_addr_hash2(*addr);
+}
+
+bool
+host_addr_eq_func(const void *p, const void *q)
 {
 	const host_addr_t *a = p, *b = q;
 	return host_addr_equal(*a, *b);
@@ -1314,7 +1379,7 @@ wfree_host_addr1(void *key)
  * Aging table callback.
  */
 void
-wfree_host_addr(gpointer key, gpointer unused_data)
+wfree_host_addr(void *key, void *unused_data)
 {
 	(void) unused_data;
 	wfree(key, sizeof(host_addr_t));
@@ -1352,13 +1417,13 @@ host_addr_get_interface_addrs(const enum net_type net)
 		if (AF_INET == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in *sin4;
 			
-			sin4 = cast_to_gconstpointer(ifa->ifa_addr);
+			sin4 = cast_to_constpointer(ifa->ifa_addr);
 			addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
 #ifdef HAS_IPV6
 		} else if (AF_INET6 == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in6 *sin6;
 
-			sin6 = cast_to_gconstpointer(ifa->ifa_addr);
+			sin6 = cast_to_constpointer(ifa->ifa_addr);
 			addr = host_addr_peek_ipv6(sin6->sin6_addr.s6_addr);
 #endif /* HAS_IPV6 */
 		} else {
@@ -1447,7 +1512,7 @@ packed_host_addr_unpack(const struct packed_host_addr paddr)
 	return zero_host_addr;
 }
 
-guint
+uint
 packed_host_addr_size(const struct packed_host_addr paddr)
 {
 	switch (paddr.net) {
@@ -1461,7 +1526,7 @@ packed_host_addr_size(const struct packed_host_addr paddr)
 }
 
 struct packed_host
-host_pack(const host_addr_t addr, guint16 port)
+host_pack(const host_addr_t addr, uint16 port)
 {
 	struct packed_host phost;
 
@@ -1475,6 +1540,8 @@ packed_host_unpack_addr(
 	const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr)
 {
+	g_assert(phost != NULL);
+
 	switch (phost->ha.net) {
 	case NET_TYPE_IPV4:
 		if (addr_ptr) {
@@ -1524,7 +1591,7 @@ packed_host_unpack_addr(
 /**
  * Significant size of a packed host (serialization size), given by address.
  */
-static inline guint
+static inline uint
 packed_host_size_ptr(const struct packed_host *phost)
 {
 	switch (phost->ha.net) {
@@ -1541,7 +1608,7 @@ packed_host_size_ptr(const struct packed_host *phost)
 /**
  * Significant size of a packed host (serialization size).
  */
-guint
+uint
 packed_host_size(const struct packed_host phost)
 {
 	return packed_host_size_ptr(&phost);
@@ -1555,22 +1622,32 @@ packed_host_size(const struct packed_host phost)
 /**
  * Hash a packed host buffer (variable-sized).
  */
-guint
-packed_host_hash_func(gconstpointer key)
+uint
+packed_host_hash_func(const void *key)
 {
 	const struct packed_host *p = key;
 	return binary_hash(key, packed_host_size_ptr(p));
 }
 
 /**
+ * Alternate hash for a packed host buffer (variable-sized).
+ */
+uint
+packed_host_hash_func2(const void *key)
+{
+	const struct packed_host *p = key;
+	return binary_hash2(key, packed_host_size_ptr(p));
+}
+
+/**
  * Compare two packed host buffers (variable-sized).
  */
-gboolean
-packed_host_eq_func(gconstpointer p, gconstpointer q)
+bool
+packed_host_eq_func(const void *p, const void *q)
 {
 	const struct packed_host *a = p, *b = q;
-	guint asize = packed_host_size_ptr(a);
-	guint bsize = packed_host_size_ptr(b);
+	uint asize = packed_host_size_ptr(a);
+	uint bsize = packed_host_size_ptr(b);
 
 	if (asize != bsize)
 		return FALSE;
@@ -1581,12 +1658,12 @@ packed_host_eq_func(gconstpointer p, gconstpointer q)
 /**
  * Allocate a packed_host key.
  */
-gpointer
-walloc_packed_host(const host_addr_t addr, guint16 port)
+void *
+walloc_packed_host(const host_addr_t addr, uint16 port)
 {
 	struct packed_host packed;
-	gpointer key;
-	guint len;
+	void *key;
+	uint len;
 
 	packed = host_pack(addr, port);
 	len = packed_host_size_ptr(&packed);
@@ -1600,7 +1677,7 @@ walloc_packed_host(const host_addr_t addr, guint16 port)
  * Release packed_host key.
  */
 void
-wfree_packed_host(gpointer key, gpointer unused_data)
+wfree_packed_host(void *key, void *unused_data)
 {
 	const struct packed_host *p = key;
 

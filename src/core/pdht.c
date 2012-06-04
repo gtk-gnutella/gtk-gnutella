@@ -59,10 +59,12 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PDHT_ALOC_MAJOR		0	/**< We generate v0.1 "ALOC" values */
@@ -83,12 +85,12 @@
 /**
  * Hash table holding all the pending file publishes by SHA1.
  */
-static GHashTable *aloc_publishes;		/* SHA1 -> pdht_publish_t */
+static hikset_t *aloc_publishes;	/* SHA1 -> pdht_publish_t */
 
 /**
  * Hash table holding all the pending push-entry publishing by GUID.
  */
-static GHashTable *nope_publishes;		/* GUID -> pdht_publish_t */
+static hikset_t *nope_publishes;	/* GUID -> pdht_publish_t */
 
 typedef enum { PDHT_PUBLISH_MAGIC = 0x680182c5U } pdht_magic_t;
 
@@ -108,7 +110,7 @@ typedef enum {
  * not enable us to know why the STORE attempt failed.
  */
 struct pdht_bg {
-	guint16 *status;			/**< Consolidated STORE statuses */
+	uint16 *status;				/**< Consolidated STORE statuses */
 	const lookup_rs_t *rs;		/**< STORE lookup path */
 	cevent_t *ev;				/**< Scheduling for background store */
 	unsigned published;			/**< Consolidated amount of publishes */
@@ -124,7 +126,7 @@ typedef struct pdht_publish {
 	pdht_magic_t magic;
 	pdht_type_t type;
 	pdht_cb_t cb;				/**< Callback to invoke when finished */
-	gpointer arg;				/**< Callback argument */
+	void *arg;					/**< Callback argument */
 	const kuid_t *id;			/**< Publishing key (atom) */
 	publish_t *pb;				/**< The publishing request */
 	dht_value_t *value;			/**< The value being published */
@@ -139,7 +141,7 @@ typedef struct pdht_publish {
 			struct nid *nid;		/**< ID of node for which we're a proxy */
 		} nope;
 	} u;
-	guint32 flags;				/**< Operating flags */
+	uint32 flags;				/**< Operating flags */
 } pdht_publish_t;
 
 static inline void
@@ -174,10 +176,10 @@ static struct {
 	time_t last_enqueued;		/**< When republish event was fired */
 	time_t last_publish;		/**< Time at which last publish completed */
 	time_t last_delayed;		/**< When republish event was set */
-	gboolean backgrounded;		/**< Whether background republish runs */
+	bool backgrounded;			/**< Whether background republish runs */
 } pdht_proxy;
 
-static void pdht_bg_publish(cqueue_t *unused_cq, gpointer obj);
+static void pdht_bg_publish(cqueue_t *unused_cq, void *obj);
 
 /**
  * English version of the publish type.
@@ -199,7 +201,7 @@ pdht_type_to_string(pdht_type_t type)
  * Allocate a publishing context.
  */
 static pdht_publish_t *
-pdht_publish_allocate(pdht_type_t type, pdht_cb_t cb, gpointer arg)
+pdht_publish_allocate(pdht_type_t type, pdht_cb_t cb, void *arg)
 {
 	pdht_publish_t *pp;
 
@@ -216,7 +218,7 @@ pdht_publish_allocate(pdht_type_t type, pdht_cb_t cb, gpointer arg)
  * Allocate a background publishing context.
  */
 static struct pdht_bg *
-pdht_bg_alloc(const lookup_rs_t *rs, const guint16 *status,
+pdht_bg_alloc(const lookup_rs_t *rs, const uint16 *status,
 	unsigned published, unsigned candidates)
 {
 	struct pdht_bg *pbg;
@@ -253,7 +255,7 @@ pdht_bg_free_null(struct pdht_bg **pbg_ptr)
  * Free publishing context.
  */
 static void
-pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
+pdht_free_publish(pdht_publish_t *pp, bool do_remove)
 {
 	pdht_publish_check(pp);
 
@@ -272,13 +274,13 @@ pdht_free_publish(pdht_publish_t *pp, gboolean do_remove)
 	switch (pp->type) {
 	case PDHT_T_ALOC:
 		if (do_remove)
-			g_hash_table_remove(aloc_publishes, pp->u.aloc.sha1);
+			hikset_remove(aloc_publishes, pp->u.aloc.sha1);
 		atom_sha1_free_null(&pp->u.aloc.sha1);
 		shared_file_unref(&pp->u.aloc.sf);
 		break;
 	case PDHT_T_NOPE:
 		if (do_remove)
-			g_hash_table_remove(nope_publishes, pp->u.nope.guid);
+			hikset_remove(nope_publishes, pp->u.nope.guid);
 		if (pp->u.nope.nid != NULL) {
 			nid_unref(pp->u.nope.nid);
 			pp->u.nope.nid = NULL;
@@ -377,14 +379,14 @@ pdht_publish_error(pdht_publish_t *pp, pdht_error_t code)
  * Callback when publish_value() is done.
  */
 static void
-pdht_publish_done(gpointer arg,
+pdht_publish_done(void *arg,
 	publish_error_t code, const publish_info_t *info)
 {
 	pdht_publish_t *pp = arg;
 	pdht_error_t status = PDHT_E_OK;		/* Shut compiler warning up */
 	unsigned published = info->published;
 	unsigned candidates = info->candidates;
-	gboolean can_bg = TRUE;
+	bool can_bg = TRUE;
 	pdht_info_t pinfo;
 
 	pdht_publish_check(pp);
@@ -525,7 +527,7 @@ terminate:
  * Callout queue callback to launch a background publish.
  */
 static void
-pdht_bg_publish(cqueue_t *unused_cq, gpointer obj)
+pdht_bg_publish(cqueue_t *unused_cq, void *obj)
 {
 	pdht_publish_t *pp = obj;
 
@@ -567,7 +569,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 	void *value;
 	ggep_stream_t gs;
 	int ggep_len;
-	gboolean ok;
+	bool ok;
 	const struct tth *tth;
 	dht_value_t *aloc;
 	knode_t *our_knode;
@@ -596,12 +598,12 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		GNET_PROPERTY(servent_guid), GUID_RAW_SIZE, 0);
 
 	{
-		guint8 fw = booleanize(GNET_PROPERTY(is_firewalled));
+		uint8 fw = booleanize(GNET_PROPERTY(is_firewalled));
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(firewalled), &fw, 1, 0);
 	}
 
 	{
-		char buf[sizeof(guint64)];
+		char buf[sizeof(uint64)];
 		int len;
 
 		len = ggept_filesize_encode(shared_file_size(sf), buf);
@@ -613,7 +615,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		fileinfo_t *fi = shared_file_fileinfo(sf);
 
 		if (shared_file_size(sf) != fi->done) {
-			char buf[sizeof(guint64)];
+			char buf[sizeof(uint64)];
 			int len;
 
 			len = ggept_filesize_encode(fi->done, buf);
@@ -623,8 +625,8 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 	}
 
 	{
-		char buf[sizeof(guint16)];
-		guint16 port = socket_listen_port();
+		char buf[sizeof(uint16)];
+		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
@@ -691,10 +693,10 @@ pdht_get_prox(const kuid_t *key)
 	void *value;
 	ggep_stream_t gs;
 	int ggep_len;
-	gboolean ok;
+	bool ok;
 	dht_value_t *prox;
 	knode_t *our_knode;
-	guint8 zero = 0;
+	uint8 zero = 0;
 
 	/*
 	 * A PROX value bears the following GGEP keys:
@@ -722,8 +724,8 @@ pdht_get_prox(const kuid_t *key)
 		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), &zero, sizeof zero, 0);
 
 	{
-		char buf[sizeof(guint16)];
-		guint16 port = socket_listen_port();
+		char buf[sizeof(uint16)];
+		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
@@ -732,8 +734,8 @@ pdht_get_prox(const kuid_t *key)
 	ok = ok && pdht_proxy.proxies_count > 0;
 
 	if (ok) {
-		guchar tls_bytes[(PDHT_MAX_PROXIES + 7) / 8];
-		guint tls_length;
+		uchar tls_bytes[(PDHT_MAX_PROXIES + 7) / 8];
+		uint tls_length;
 		size_t i = 0;
 
 		ok = ok && ggep_stream_begin(&gs, GGEP_NAME(proxies), 0);
@@ -743,10 +745,10 @@ pdht_get_prox(const kuid_t *key)
 		while (ok && i < pdht_proxy.proxies_count) {
 			const gnet_host_t *host = &pdht_proxy.proxies[i];
 			host_addr_t addr = gnet_host_get_addr(host);
-			guint16 port = gnet_host_get_port(host);
+			uint16 port = gnet_host_get_port(host);
 			char proxy[18];
-			guint8 len;
-			gboolean tls = FALSE;
+			uint8 len;
+			bool tls = FALSE;
 
 			switch (host_addr_net(addr)) {
 			case NET_TYPE_IPV4:
@@ -828,7 +830,7 @@ pdht_get_nope(const guid_t *guid, const kuid_t *key)
 	void *value;
 	ggep_stream_t gs;
 	int ggep_len;
-	gboolean ok;
+	bool ok;
 	dht_value_t *nope;
 	knode_t *our_knode;
 
@@ -846,8 +848,8 @@ pdht_get_nope(const guid_t *guid, const kuid_t *key)
 	ok = ggep_stream_pack(&gs, GGEP_NAME(guid), guid, GUID_RAW_SIZE, 0);
 
 	{
-		char buf[sizeof(guint16)];
-		guint16 port = socket_listen_port();
+		char buf[sizeof(uint16)];
+		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
@@ -888,7 +890,7 @@ pdht_get_nope(const guid_t *guid, const kuid_t *key)
  * Callback when lookup for STORE roots succeeded.
  */
 static void
-pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
+pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 {
 	pdht_publish_t *pp = arg;
 	dht_value_t *value = NULL;
@@ -992,7 +994,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg)
  * Callback for errors during root node lookups.
  */
 static void
-pdht_roots_error(const kuid_t *kuid, lookup_error_t error, gpointer arg)
+pdht_roots_error(const kuid_t *kuid, lookup_error_t error, void *arg)
 {
 	pdht_publish_t *pp = arg;
 	pdht_error_t status;
@@ -1065,7 +1067,7 @@ struct pdht_async {
  * Callout queue callback to report error asynchronously.
  */
 static void
-pdht_report_async_error(struct cqueue *cq, gpointer udata)
+pdht_report_async_error(struct cqueue *cq, void *udata)
 {
 	struct pdht_async *pa = udata;
 
@@ -1097,7 +1099,7 @@ pdht_publish_error_async(pdht_publish_t *pp, pdht_error_t code)
  * @param arg		argument to supply to callback
  */
 void
-pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg)
+pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, void *arg)
 {
 	const char *error = NULL;
 	const sha1_t *sha1;
@@ -1124,13 +1126,13 @@ pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg)
 	pp->id = gdht_kuid_from_sha1(sha1);
 	paloc->sha1 = atom_sha1_get(sha1);
 
-	if (g_hash_table_lookup(aloc_publishes, sha1)) {
+	if (hikset_contains(aloc_publishes, sha1)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	gm_hash_table_insert_const(aloc_publishes, paloc->sha1, pp);
+	hikset_insert_key(aloc_publishes, &paloc->sha1);
 
 	/*
 	 * Publishing will occur in three steps:
@@ -1168,7 +1170,7 @@ error:
  * @param callabck	whether callbacks need to be invoked
  */
 static void
-pdht_cancel(pdht_publish_t *pp, gboolean callback)
+pdht_cancel(pdht_publish_t *pp, bool callback)
 {
 	pdht_publish_check(pp);
 
@@ -1195,14 +1197,14 @@ pdht_cancel(pdht_publish_t *pp, gboolean callback)
  * @param callabck	whether callbacks need to be invoked
  */
 void
-pdht_cancel_file(const sha1_t *sha1, gboolean callback)
+pdht_cancel_file(const sha1_t *sha1, bool callback)
 {
 	pdht_publish_t *pp;
 
 	if (NULL == aloc_publishes)
 		return;
 
-	pp = g_hash_table_lookup(aloc_publishes, sha1);
+	pp = hikset_lookup(aloc_publishes, sha1);
 
 	if (NULL == pp)
 		return;
@@ -1232,7 +1234,7 @@ static void pdht_prox_install_republish(time_t t);
  * @param callabck	whether callbacks need to be invoked
  */
 static void
-pdht_cancel_prox(gboolean callback)
+pdht_cancel_prox(bool callback)
 {
 	pdht_publish_t *pp;
 
@@ -1260,10 +1262,10 @@ pdht_cancel_prox(gboolean callback)
  * publishing layer to continue attempts to failed STORE roots and report
  * on progress using the same callback.
  */
-static gboolean
-pdht_prox_done(gpointer u_arg, pdht_error_t code, const pdht_info_t *info)
+static bool
+pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 {
-	gboolean accepted = TRUE;
+	bool accepted = TRUE;
 	int delay = PDHT_PROX_RETRY;
 
 	(void) u_arg;
@@ -1367,7 +1369,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 	if (NULL == seq || sequence_is_empty(seq)) {
 		host_addr_t addr;
-		guint16 port = socket_listen_port();
+		uint16 port = socket_listen_port();
 
 		sequence_release(&seq);
 
@@ -1427,7 +1429,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
  * @return TRUE if the list changed, FALSE if it is the same as the
  * one we had before.
  */
-static gboolean
+static bool
 pdht_prox_update_list(void)
 {
 	gnet_host_t proxies[PDHT_MAX_PROXIES];
@@ -1466,10 +1468,10 @@ new_proxies:
  * the last time we published it.
  */
 static void
-pdht_prox_publish(gboolean force)
+pdht_prox_publish(bool force)
 {
-	gboolean changed;
-	gboolean publishing;
+	bool changed;
+	bool publishing;
 	time_t now;
 
 	changed = pdht_prox_update_list();
@@ -1605,7 +1607,7 @@ pdht_prox_publish_if_changed(void)
  * Callout queue callback to initiate a new PROX publish.
  */
 static void
-pdht_prox_timer(cqueue_t *unused_cq, gpointer unused_obj)
+pdht_prox_timer(cqueue_t *unused_cq, void *unused_obj)
 {
 	(void) unused_cq;
 	(void) unused_obj;
@@ -1636,14 +1638,14 @@ pdht_prox_install_republish(time_t t)
  * @param callabck	whether callbacks need to be invoked
  */
 void
-pdht_cancel_nope(const struct guid *guid, gboolean callback)
+pdht_cancel_nope(const struct guid *guid, bool callback)
 {
 	pdht_publish_t *pp;
 
 	if (NULL == nope_publishes)
 		return;
 
-	pp = g_hash_table_lookup(nope_publishes, guid);
+	pp = hikset_lookup(nope_publishes, guid);
 
 	if (NULL == pp)
 		return;
@@ -1666,10 +1668,10 @@ pdht_cancel_nope(const struct guid *guid, gboolean callback)
  * publishing layer to continue attempts to failed STORE roots and report
  * on progress using the same callback.
  */
-static gboolean
-pdht_nope_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
+static bool
+pdht_nope_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 {
-	gboolean accepted = TRUE;
+	bool accepted = TRUE;
 	struct nid *node_id = arg;
 	gnutella_node_t *n;
 
@@ -1724,20 +1726,20 @@ pdht_publish_proxy(const gnutella_node_t *n)
 	g_return_if_fail(node_guid(n) != NULL);
 
 	pp = pdht_publish_allocate(PDHT_T_NOPE,
-		pdht_nope_done, deconstify_gpointer(nid));
+		pdht_nope_done, deconstify_pointer(nid));
 
 	pnope = &pp->u.nope;
 	pnope->guid = atom_guid_get(node_guid(n));
 	pnope->nid = nid_ref(nid);
 	pp->id = gdht_kuid_from_guid(pnope->guid);
 
-	if (g_hash_table_lookup(nope_publishes, pnope->guid)) {
+	if (hikset_contains(nope_publishes, pnope->guid)) {
 		error = "previous publish still pending";
 		code = PDHT_E_PENDING;
 		goto error;
 	}
 
-	gm_hash_table_insert_const(nope_publishes, pnope->guid, pp);
+	hikset_insert_key(nope_publishes, &pnope->guid);
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT NOPE initiating publishing for GUID %s at %s <%s> "
@@ -1785,8 +1787,12 @@ error:
 G_GNUC_COLD void
 pdht_init(void)
 {
-	aloc_publishes = g_hash_table_new(sha1_hash, sha1_eq);
-	nope_publishes = g_hash_table_new(guid_hash, guid_eq);
+	aloc_publishes = hikset_create(
+		offsetof(struct pdht_publish, u.aloc.sha1),
+		HASH_KEY_FIXED, SHA1_RAW_SIZE);
+	nope_publishes = hikset_create(
+		offsetof(struct pdht_publish, u.nope.guid),
+		HASH_KEY_FIXED, GUID_RAW_SIZE);
 	ZERO(&pdht_proxy);
 	pdht_prox_install_republish(PDHT_PROX_DELAY);
 }
@@ -1795,11 +1801,10 @@ pdht_init(void)
  * Hash table iterator to free a pdht_publish_t
  */
 static void
-free_publish_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+free_publish_kv(void *val, void *unused_x)
 {
 	pdht_publish_t *pp = val;
 
-	(void) unused_key;
 	(void) unused_x;
 
 	pdht_free_publish(pp, FALSE);
@@ -1816,11 +1821,11 @@ pdht_close(void)
 	}
 	cq_cancel(&pdht_proxy.publish_ev);
 
-	g_hash_table_foreach(aloc_publishes, free_publish_kv, NULL);
-	gm_hash_table_destroy_null(&aloc_publishes);
+	hikset_foreach(aloc_publishes, free_publish_kv, NULL);
+	hikset_free_null(&aloc_publishes);
 
-	g_hash_table_foreach(nope_publishes, free_publish_kv, NULL);
-	gm_hash_table_destroy_null(&nope_publishes);
+	hikset_foreach(nope_publishes, free_publish_kv, NULL);
+	hikset_free_null(&nope_publishes);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

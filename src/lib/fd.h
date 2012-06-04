@@ -38,16 +38,17 @@
 #define _fd_h_
 
 void close_file_descriptors(const int first_fd);
+int fd_first_available(void);
 int reserve_standard_file_descriptors(void);
 void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
 int fd_forget_and_close(int *fd_ptr);
 int fd_close(int *fd_ptr);
 int get_non_stdio_fd(int fd);
-gboolean need_get_non_stdio_fd();
-gboolean is_a_socket(int fd);
-gboolean is_a_fifo(int fd);
-gboolean is_open_fd(int fd);
+bool need_get_non_stdio_fd();
+bool is_a_socket(int fd);
+bool is_a_fifo(int fd);
+bool is_open_fd(int fd);
 
 static inline int
 is_valid_fd(int fd)

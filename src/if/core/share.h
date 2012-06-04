@@ -34,8 +34,8 @@
 
 void shared_dir_add(const char *);
 void share_scan(void);
-guint64 shared_files_scanned(void);
-guint64 shared_kbytes_scanned(void);
+uint64 shared_files_scanned(void);
+uint64 shared_kbytes_scanned(void);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_share_h */

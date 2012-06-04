@@ -60,13 +60,13 @@ typedef enum {
  * Value lookup result record.
  */
 typedef struct lookup_value_rc {
-	gconstpointer data;			/**< The data payload */
+	const void *data;			/**< The data payload */
 	size_t length;				/**< Length of value, in bytes */
 	host_addr_t addr;			/**< Address of creator */
 	dht_value_type_t type;		/**< Type of value */
-	guint16 port;				/**< Port of creator */
-	guint8 major;				/**< Major version of value */
-	guint8 minor;				/**< Minor version of value */
+	uint16 port;				/**< Port of creator */
+	uint8 major;				/**< Major version of value */
+	uint8 minor;				/**< Minor version of value */
 	vendor_code_t vcode;		/**< Vendor code of creator (informative) */
 } lookup_val_rc_t;
 
@@ -87,7 +87,7 @@ typedef struct lookup_value {
  * @param arg		additional callback opaque argument
  */
 typedef void (*lookup_cbv_ok_t)(
-	const kuid_t *kuid, const lookup_val_rs_t *rs, gpointer arg);
+	const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg);
 
 /**
  * Lookup callback invoked on error (both for value lookups and node lookups).
@@ -97,7 +97,7 @@ typedef void (*lookup_cbv_ok_t)(
  * @param arg		additional callback opaque argument
  */
 typedef void (*lookup_cb_err_t)(
-	const kuid_t *kuid, lookup_error_t error, gpointer arg);
+	const kuid_t *kuid, lookup_error_t error, void *arg);
 
 /**
  * Lookup callback invoked on dequeuing (notifies item is being processed).
@@ -107,7 +107,7 @@ typedef void (*lookup_cb_err_t)(
  *
  * @return TRUE if OK, FALSE if lookup must be aborted.
  */
-typedef gboolean (*lookup_cb_start_t)( const kuid_t *kuid, gpointer arg);
+typedef bool (*lookup_cb_start_t)( const kuid_t *kuid, void *arg);
 
 typedef struct lookup_result lookup_rs_t;
 
@@ -119,7 +119,7 @@ typedef struct lookup_result lookup_rs_t;
  * @param arg		additional callback opaque argument
  */
 typedef void (*lookup_cb_ok_t)(
-	const kuid_t *kuid, const lookup_rs_t *rs, gpointer arg);
+	const kuid_t *kuid, const lookup_rs_t *rs, void *arg);
 
 /*
  * Public interface.
@@ -131,8 +131,8 @@ const knode_t *lookup_result_nth_node(const lookup_rs_t *rs, size_t n);
 void lookup_result_free(const lookup_rs_t *rs);
 
 const char *lookup_strerror(lookup_error_t error);
-void ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
-	lookup_cb_ok_t ok, lookup_cb_err_t error, gpointer arg);
+void ulq_find_store_roots(const kuid_t *kuid, bool prioritary,
+	lookup_cb_ok_t ok, lookup_cb_err_t error, void *arg);
 
 /*
  * User value lookups.
@@ -141,11 +141,11 @@ void ulq_find_store_roots(const kuid_t *kuid, gboolean prioritary,
 
 void ulq_find_value(const kuid_t *kuid, dht_value_type_t type,
 	lookup_cbv_ok_t ok, lookup_cb_start_t start, lookup_cb_err_t error,
-	gpointer arg);
+	void *arg);
 
 void ulq_find_any_value(const kuid_t *kuid,
 	dht_value_type_t queue_type,
-	lookup_cbv_ok_t ok, lookup_cb_err_t error, gpointer arg);
+	lookup_cbv_ok_t ok, lookup_cb_err_t error, void *arg);
 
 #endif	/* _if_dht_lookup_h_ */
 

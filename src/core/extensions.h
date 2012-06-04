@@ -188,7 +188,7 @@ typedef struct extvec {
 	const char *ext_name;	/**< Extension name (may be NULL) */
 	ext_token_t ext_token;	/**< Extension token */
 	ext_type_t ext_type;	/**< Extension type */
-	gpointer opaque;		/**< Internal information */
+	void *opaque;			/**< Internal information */
 } extvec_t;
 
 #define MAX_EXTVEC		32	/**< Maximum amount of extensions in vector */
@@ -205,20 +205,20 @@ int ext_parse(const char *buf, int len, extvec_t *exv, int exvcnt);
 int ext_parse_nul(const char *buf, int len, char **endptr, extvec_t *, int);
 void ext_reset(extvec_t *exv, int exvcnt);
 
-gboolean ext_is_printable(const extvec_t *e);
-gboolean ext_is_ascii(const extvec_t *e);
-gboolean ext_has_ascii_word(const extvec_t *e);
+bool ext_is_printable(const extvec_t *e);
+bool ext_is_ascii(const extvec_t *e);
+bool ext_has_ascii_word(const extvec_t *e);
 
 void ext_dump(FILE *fd, const extvec_t *extvec, int extcnt,
-	const char *prefix, const char *postfix, gboolean payload);
+	const char *prefix, const char *postfix, bool payload);
 
-gconstpointer ext_payload(const extvec_t *e);
-guint16 ext_paylen(const extvec_t *e);
+const void *ext_payload(const extvec_t *e);
+uint16 ext_paylen(const extvec_t *e);
 const char *ext_base(const extvec_t *e);
-guint16 ext_headlen(const extvec_t *e);
-guint16 ext_len(const extvec_t *e);
+uint16 ext_headlen(const extvec_t *e);
+uint16 ext_len(const extvec_t *e);
 const char *ext_ggep_id_str(const extvec_t *e);
-gboolean ext_ggep_is_deflated(const extvec_t *e);
+bool ext_ggep_is_deflated(const extvec_t *e);
 const char *ext_huge_urn_name(const extvec_t *e);
 const char *ext_ggep_name(ext_token_t id);
 

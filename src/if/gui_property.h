@@ -156,6 +156,8 @@ typedef enum {
     PROP_SEARCH_DISCARD_ALIEN_IP,
     PROP_SEARCH_RESTART_WHEN_PENDING,
     PROP_SEARCH_DISCARD_BANNED_GUID,
+    PROP_SEARCH_DISPLAY_GUESS_STATS,
+    PROP_GUESS_STATS_SHOW_TOTAL,
     GUI_PROPERTY_END
 } gui_property_t;
 
@@ -176,6 +178,7 @@ const char *gui_prop_to_string(property_t prop);
 const char *gui_prop_default_to_string(property_t);
 const char *gui_prop_description(property_t);
 gboolean gui_prop_is_saved(property_t);
+prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
 
 /*

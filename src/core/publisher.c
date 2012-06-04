@@ -65,11 +65,13 @@
 #include "lib/dbstore.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
+#include "lib/hikset.h"
 #include "lib/misc.h"
-#include "lib/tm.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define PUBLISHER_CALLOUT	10000	/**< Heartbeat every 10 seconds */
@@ -119,7 +121,7 @@ struct publisher_entry {
 	time_t last_enqueued;		/**< When file was last enqueued */
 	time_t last_publish;		/**< When file was last published */
 	time_t last_delayed;		/**< When republish event was set */
-	guint8 backgrounded;		/**< Whether PDHT is continuing publishing */
+	uint8 backgrounded;			/**< Whether PDHT is continuing publishing */
 };
 
 static inline void
@@ -129,7 +131,7 @@ publisher_check(const struct publisher_entry *pe)
 	g_assert(PUBLISHER_MAGIC == pe->magic);
 }
 
-static GHashTable *publisher_sha1;	/** Known entries by SHA1 */
+static hikset_t *publisher_sha1;	/** Known entries by SHA1 */
 
 /**
  * Private callout queue used to trigger republish events.
@@ -154,7 +156,7 @@ static char db_pubdata_what[] = "DHT published SHA-1 information";
 struct pubdata {
 	time_t next_enqueue;		/**< When file should be enqueued again */
 	time_t expiration;			/**< Expiration date of published information */
-	guint8 version;				/**< Structure version */
+	uint8 version;				/**< Structure version */
 };
 
 static void publisher_handle(struct publisher_entry *pe);
@@ -214,12 +216,12 @@ publisher_entry_alloc(const sha1_t *sha1)
  * Free publisher entry.
  */
 static void
-publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
+publisher_entry_free(struct publisher_entry *pe, bool do_remove)
 {
 	publisher_check(pe);
 
 	if (do_remove) {
-		g_hash_table_remove(publisher_sha1, pe->sha1);
+		hikset_remove(publisher_sha1, pe->sha1);
 		delete_pubdata(pe->sha1);
 	}
 
@@ -235,7 +237,7 @@ publisher_entry_free(struct publisher_entry *pe, gboolean do_remove)
  * Callout queue callback to handle an entry.
  */
 static void
-handle_entry(cqueue_t *unused_cq, gpointer obj)
+handle_entry(cqueue_t *unused_cq, void *obj)
 {
 	struct publisher_entry *pe = obj;
 
@@ -343,7 +345,7 @@ publisher_delay(const pdht_info_t *info, time_delta_t expiration)
 /**
  * Is publishing acceptable or should we attempt background republish?
  */
-gboolean
+bool
 publisher_is_acceptable(const pdht_info_t *info)
 {
 	return info->presence >= PUBLISH_MIN_PROBABILITY ||
@@ -358,14 +360,14 @@ publisher_is_acceptable(const pdht_info_t *info)
  * publishing layer to continue attempts to failed STORE roots and report
  * on progress using the same callback.
  */
-static gboolean
-publisher_done(gpointer arg, pdht_error_t code, const pdht_info_t *info)
+static bool
+publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 {
 	struct publisher_entry *pe = arg;
 	struct pubdata *pd;
 	int delay = PUBLISH_BUSY;
-	gboolean expired = FALSE;
-	gboolean accepted = TRUE;
+	bool expired = FALSE;
+	bool accepted = TRUE;
 
 	publisher_check(pe);
 
@@ -545,10 +547,10 @@ static void
 publisher_handle(struct publisher_entry *pe)
 {
 	shared_file_t *sf;
-	gboolean is_partial = FALSE;
+	bool is_partial = FALSE;
 	int alt_locs;
 	time_delta_t min_uptime;
-	guint32 avg_uptime;
+	uint32 avg_uptime;
 
 	publisher_check(pe);
 	g_assert(NULL == pe->publish_ev);
@@ -755,7 +757,7 @@ publisher_add(const sha1_t *sha1)
 	 * If already known, ignore silently.
 	 */
 
-	if (g_hash_table_lookup(publisher_sha1, sha1))
+	if (hikset_lookup(publisher_sha1, sha1))
 		return;
 
 	/*
@@ -795,7 +797,7 @@ publisher_add(const sha1_t *sha1)
 	 */
 
 	pe = publisher_entry_alloc(sha1);
-	gm_hash_table_insert_const(publisher_sha1, pe->sha1, pe);
+	hikset_insert_key(publisher_sha1, &pe->sha1);
 
 	publisher_handle(pe);
 }
@@ -804,7 +806,7 @@ publisher_add(const sha1_t *sha1)
  * Serialization routine for pubdata.
  */
 static void
-serialize_pubdata(pmsg_t *mb, gconstpointer data)
+serialize_pubdata(pmsg_t *mb, const void *data)
 {
 	const struct pubdata *pd = data;
 
@@ -827,7 +829,7 @@ serialize_pubdata(pmsg_t *mb, gconstpointer data)
  * Deserialization routine for pubdata.
  */
 static void
-deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
+deserialize_pubdata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct pubdata *pd = valptr;
 
@@ -855,8 +857,8 @@ deserialize_pubdata(bstr_t *bs, gpointer valptr, size_t len)
 /**
  * Periodic DB synchronization.
  */
-static gboolean
-publisher_sync(gpointer unused_obj)
+static bool
+publisher_sync(void *unused_obj)
 {
 	(void) unused_obj;
 
@@ -868,9 +870,8 @@ publisher_sync(gpointer unused_obj)
  * DBMW foreach iterator to remove expired DB keys.
  * @return TRUE if entry must be deleted.
  */
-static gboolean
-publisher_remove_expired(gpointer u_key,
-	gpointer value, size_t u_len, gpointer u_data)
+static bool
+publisher_remove_expired(void *u_key, void *value, size_t u_len, void *u_data)
 {
 	const struct pubdata *pd = value;
 
@@ -923,8 +924,9 @@ publisher_init(void)
 	dbstore_packing_t packing =
 		{ serialize_pubdata, deserialize_pubdata, NULL };
 
-	publish_cq = cq_submake("publisher", callout_queue, PUBLISHER_CALLOUT);
-	publisher_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
+	publish_cq = cq_main_submake("publisher", PUBLISHER_CALLOUT);
+	publisher_sha1 = hikset_create(
+		offsetof(struct publisher_entry, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
@@ -968,11 +970,10 @@ publisher_init(void)
  * Hash table iterator callback to free entry.
  */
 static void
-free_entry(gpointer key, gpointer val, gpointer data)
+free_entry(void *val, void *data)
 {
 	struct publisher_entry *pe = val;
 
-	(void) key;
 	(void) data;
 
 	publisher_entry_free(pe, FALSE);
@@ -982,9 +983,8 @@ free_entry(gpointer key, gpointer val, gpointer data)
  * DBMW foreach iterator to remove keys otherwise unknown by the publisher.
  * @return TRUE if entry is to be deleted.
  */
-static gboolean
-publisher_remove_orphan(gpointer key,
-	gpointer u_value, size_t u_len, gpointer u_data)
+static bool
+publisher_remove_orphan(void *key, void *u_value, size_t u_len, void *u_data)
 {
 	const sha1_t *sha1 = key;
 
@@ -992,7 +992,7 @@ publisher_remove_orphan(gpointer key,
 	(void) u_len;
 	(void) u_data;
 
-	return NULL == g_hash_table_lookup(publisher_sha1, sha1);
+	return !hikset_contains(publisher_sha1, sha1);
 }
 
 /**
@@ -1011,8 +1011,8 @@ publisher_close(void)
 	 * Final cleanup.
 	 */
 
-	g_hash_table_foreach(publisher_sha1, free_entry, NULL);
-	gm_hash_table_destroy_null(&publisher_sha1);
+	hikset_foreach(publisher_sha1, free_entry, NULL);
+	hikset_free_null(&publisher_sha1);
 
 	dbstore_close(db_pubdata, settings_dht_db_dir(), db_pubdata_base);
 	db_pubdata = NULL;

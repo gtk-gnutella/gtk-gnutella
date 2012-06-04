@@ -40,6 +40,7 @@
 
 #include "lib/atoms.h"
 #include "lib/halloc.h"
+#include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/walloc.h"
 
@@ -91,15 +92,15 @@ xattr_hash(const void *key)
 
 	/* xa->uri can be NULL, xa->local cannot */
 
-	hash = (NULL == xa->uri) ? 0 : g_str_hash(xa->uri);
+	hash = (NULL == xa->uri) ? 0 : string_mix_hash(xa->uri);
 
-	return hash ^ g_str_hash(xa->local);
+	return hash ^ string_mix_hash(xa->local);
 }
 
 /**
  * Test two attribute keys for equality.
  */
-static gboolean
+static bool
 xattr_eq(const void *k1, const void *k2)
 {
 	const struct xattr *x1 = k1;
@@ -203,7 +204,7 @@ xattr_table_lookup_key(const xattr_table_t *xat, const struct xattr *key)
 
 	xattr_table_check(xat);
 
-	return hash_list_find(xat->hl, key, &it) ? deconstify_gpointer(it) : NULL;
+	return hash_list_find(xat->hl, key, &it) ? deconstify_pointer(it) : NULL;
 }
 
 /**
@@ -216,7 +217,7 @@ xattr_table_lookup_key(const xattr_table_t *xat, const struct xattr *key)
  * @return TRUE when we create a new attribute, FALSE if we replaced the
  * value of an existing one.
  */
-static gboolean
+static bool
 xattr_table_insert(xattr_table_t *xat, struct xattr *xa)
 {
 	struct xattr *old;
@@ -246,7 +247,7 @@ xattr_table_insert(xattr_table_t *xat, struct xattr *xa)
  *
  * @return TRUE if we found the attribute and removed it.
  */
-static gboolean
+static bool
 xattr_table_remove_key(xattr_table_t *xat, const struct xattr *key)
 {
 	struct xattr *old;
@@ -281,7 +282,7 @@ xattr_table_remove_key(xattr_table_t *xat, const struct xattr *key)
  * @param local		the local name (copied)
  * @param value		the attribute value (copied)
  */
-gboolean
+bool
 xattr_table_add(xattr_table_t *xat,
 	const char *uri, const char *local, const char *value)
 {
@@ -304,7 +305,7 @@ xattr_table_add(xattr_table_t *xat,
  *
  * @return TRUE if attribute existed and was removed.
  */
-gboolean
+bool
 xattr_table_remove(xattr_table_t *xat, const char *uri, const char *local)
 {
 	struct xattr key;

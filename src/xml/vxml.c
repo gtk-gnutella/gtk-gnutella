@@ -77,7 +77,7 @@ struct vxml_buffer;
  * @param len		the length of the string
  * @param retlen	where the byte length of the returned character is written
  */
-typedef guint32 (*vxml_reader_t)(const char *str, size_t len, guint *retlen);
+typedef uint32 (*vxml_reader_t)(const char *str, size_t len, uint *retlen);
 
 enum vxml_buffer_type {
 	VXML_BUFFER_MEMORY,
@@ -262,7 +262,7 @@ struct vxml_parser {
 	char *user_error;				/**< User-defined error string */
 	struct vxml_output out;			/**< Output parsing buffer (UTF-8) */
 	struct vxml_output entity;		/**< Entity parsing buffer (UTF-8) */
-	guint32 unread[VXML_LOOKAHEAD];	/**< Unread character stack */
+	uint32 unread[VXML_LOOKAHEAD];	/**< Unread character stack */
 	size_t unread_offset;			/**< Current offset in unread[] */
 	enum vxml_encoding encoding;	/**< Character encoding */
 	enum vxml_encsrc encsource;		/**< How we determined character encoding */
@@ -275,11 +275,11 @@ struct vxml_parser {
 	unsigned ignores;				/**< Counts nested ignored DTD sections */
 	unsigned expansions;			/**< Counts stacked entity expansions */
 	unsigned last_uc_generation;	/**< Generation # of last character */
-	guint32 last_uc;				/**< Last read character */
-	guint32 flags;					/**< Parsing flags */
-	guint32 options;				/**< Parsing options */
-	guint8 major;					/**< XML version (major) */
-	guint8 minor;					/**< XML version (minor) */
+	uint32 last_uc;					/**< Last read character */
+	uint32 flags;					/**< Parsing flags */
+	uint32 options;					/**< Parsing options */
+	uint8 major;					/**< XML version (major) */
+	uint8 minor;					/**< XML version (minor) */
 	unsigned elem_token_valid:1;	/**< Field "elem_token" is valid */
 	unsigned elem_no_content:1;		/**< Element has no content (no end tag) */
 	unsigned standalone:1;			/**< Is document standalone? */
@@ -303,7 +303,7 @@ vxml_parser_check(const struct vxml_parser * const vp)
 #define VXML_F_XML_DECL		(1 << 3)	/**< Set when "<?xml... ?>" was seen */
 #define VXML_F_SUBPARSE		(1 << 4)	/**< Can issue sub-parsing */
 
-static guint32 vxml_debug;
+static uint32 vxml_debug;
 
 /**
  * Important character constants
@@ -419,8 +419,8 @@ static struct vxml_parser_token vxml_immediate_tokens[] = {
 
 static const char *vxml_token_strings[VXT_MAX_TOKEN];
 
-static gboolean vxml_handle_decl(vxml_parser_t *vp, gboolean doctype);
-static gboolean vxml_handle_special(vxml_parser_t *vp, gboolean dtd);
+static bool vxml_handle_decl(vxml_parser_t *vp, bool doctype);
+static bool vxml_handle_special(vxml_parser_t *vp, bool dtd);
 static void vxml_parser_namespace_global(vxml_parser_t *vp,
 	const char *ns, const char *uri);
 
@@ -428,7 +428,7 @@ static void vxml_parser_namespace_global(vxml_parser_t *vp,
  * Set the VXML debug level.
  */
 void
-set_vxml_debug(guint32 level)
+set_vxml_debug(uint32 level)
 {
 	vxml_debug = level;
 }
@@ -436,8 +436,8 @@ set_vxml_debug(guint32 level)
 /**
  * Are we debugging the VXML layer at the specified level or above?
  */
-gboolean
-vxml_debugging(guint32 level)
+bool
+vxml_debugging(uint32 level)
 {
 	return vxml_debug > level;
 }
@@ -748,7 +748,7 @@ vxml_buffer_free(struct vxml_buffer *vb)
  */
 static struct vxml_buffer *
 vxml_buffer_alloc(unsigned gen, const char *data, size_t length,
-	gboolean allocated, gboolean user, vxml_reader_t reader)
+	bool allocated, bool user, vxml_reader_t reader)
 {
 	struct vxml_buffer *vb;
 	struct vxml_buffer_memory *m;
@@ -762,7 +762,7 @@ vxml_buffer_alloc(unsigned gen, const char *data, size_t length,
 
 	WALLOC0(vb->u.m);
 	m = vb->u.m;
-	m->vb_rptr = m->data = deconstify_gpointer(data);
+	m->vb_rptr = m->data = deconstify_pointer(data);
 	m->length = length;
 	m->vb_end = data + length;
 	m->reader = reader;
@@ -842,7 +842,7 @@ vxml_buffer_entity_mark(const struct vxml_buffer *vb)
  *
  * @return TRUE if OK, FALSE on error.
  */
-static gboolean
+static bool
 vxml_buffer_convert_to_utf8(struct vxml_buffer *vb, const char *charset)
 {
 	char *converted;
@@ -972,7 +972,9 @@ vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
 
 		memmove(f->data, m->vb_rptr, held);
 		r = fread(ptr_add_offset(f->data, held), 1, f->len - held, f->fd);
+		m->vb_rptr = f->data;
 		m->vb_end = ptr_add_offset(f->data, held + r);
+		G_PREFETCH_HI_R(m->vb_rptr);
 	} else {
 		/*
 		 * Buffer was converted to UTF-8, we need to convert any more data
@@ -1091,7 +1093,7 @@ vxml_output_init(struct vxml_output *vo)
  * Append character read as UTF-8 into the specified output buffer.
  */
 static void
-vxml_output_append(struct vxml_output *vo, guint32 uc)
+vxml_output_append(struct vxml_output *vo, uint32 uc)
 {
 	unsigned len;
 
@@ -1134,7 +1136,7 @@ vxml_path_entry_free(struct vxml_path_entry *pe)
  * @return a new XML parser.
  */
 vxml_parser_t *
-vxml_parser_make(const char *name, guint32 options)
+vxml_parser_make(const char *name, uint32 options)
 {
 	vxml_parser_t *vp;
 
@@ -1445,7 +1447,7 @@ vxml_parser_strerror(const vxml_parser_t *vp, vxml_error_t error)
 /**
  * Is encoding UTF-16?
  */
-static gboolean
+static bool
 vxml_encoding_is_utf16(enum vxml_encoding e)
 {
 	return VXML_ENC_UTF16_BE == e || VXML_ENC_UTF16_LE == e;
@@ -1454,7 +1456,7 @@ vxml_encoding_is_utf16(enum vxml_encoding e)
 /**
  * Is encoding UTF-32?
  */
-static gboolean
+static bool
 vxml_encoding_is_utf32(enum vxml_encoding e)
 {
 	return VXML_ENC_UTF32_BE == e || VXML_ENC_UTF32_LE == e;
@@ -1548,13 +1550,13 @@ vxml_parser_error(vxml_parser_t *vp, const char *errstr, ...)
  * @param uc	the problematic character
  */
 static void
-vxml_fatal_error_uc(vxml_parser_t *vp, vxml_error_t error, guint32 uc)
+vxml_fatal_error_uc(vxml_parser_t *vp, vxml_error_t error, uint32 uc)
 {
 	if (vp->flags & VXML_F_FATAL_ERROR)
 		return;
 
 	if (vxml_debugging(0)) {
-		guint32 s32[2];
+		uint32 s32[2];
 		char s8[5];
 
 		s32[0] = uc;
@@ -1690,10 +1692,23 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				 * Move to next buffer when current one is fully read.
 				 */
 
-				if (0 == remains) {
+				if G_UNLIKELY(0 == remains) {
 					vxml_parser_remove_buffer(vp, vb);
+
+					/*
+					 * Request cacheline pre-fill of next memory buffer.
+					 */
+
+					if (vp->input != NULL) {
+						vb = vp->input->data;
+						if (VXML_BUFFER_MEMORY == vb->type) {
+							m = vb->u.m;
+							G_PREFETCH_HI_R(m->vb_rptr);
+						}
+					}
 					continue;
 				}
+
 				return remains;
 			}
 		case VXML_BUFFER_FILE:
@@ -1713,7 +1728,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 				 */
 
 				vnext = vxml_buffer_read(vb, &error);
-				if (NULL == vnext) {
+				if G_UNLIKELY(NULL == vnext) {
 					if (error) {
 						vxml_fatal_error(vp, VXML_E_IO);
 						return (size_t) -1;
@@ -1794,7 +1809,7 @@ vxml_parser_skip(vxml_parser_t *vp, size_t amount)
  *
  * @return TRUE if the charset was accepted.
  */
-gboolean
+bool
 vxml_parser_set_charset(vxml_parser_t *vp, const char *charset)
 {
 	const char *alias;
@@ -1827,13 +1842,13 @@ vxml_parser_set_charset(vxml_parser_t *vp, const char *charset)
  *
  * @return TRUE if we can continue parsing, FALSE on fatal error.
  */
-static gboolean
+static bool
 vxml_intuit_encoding(vxml_parser_t *vp)
 {
-	guchar head[4];
+	uchar head[4];
 	size_t filled = 0;
-	guint32 fourcc;
-	guint16 twocc;
+	uint32 fourcc;
+	uint16 twocc;
 
 	g_assert(vp->input != NULL);
 
@@ -1968,7 +1983,7 @@ done:
  * previously read, etc....
  */
 static void
-vxml_unread_char(vxml_parser_t *vp, guint32 uc)
+vxml_unread_char(vxml_parser_t *vp, uint32 uc)
 {
 	g_assert(vp->unread_offset < G_N_ELEMENTS(vp->unread));
 	g_assert(size_is_non_negative(vp->unread_offset));
@@ -1995,13 +2010,13 @@ vxml_unread_char(vxml_parser_t *vp, guint32 uc)
  * from entity expansion output or from the unread buffer).
  * The character returned in "uc" is 0 when the end of input was reached.
  */
-static gboolean
-vxml_read_char(vxml_parser_t *vp, guint32 *uc)
+static bool
+vxml_read_char(vxml_parser_t *vp, uint32 *uc)
 {
 	struct vxml_buffer *vb;
 	struct vxml_buffer_memory *m = NULL;
-	guint retlen;
-	guint32 prev_uc;
+	uint retlen;
+	uint32 prev_uc;
 
 	if G_UNLIKELY(vp->flags & VXML_F_FATAL_ERROR) {
 		*uc = VXC_NUL;
@@ -2222,6 +2237,7 @@ has_buffer:
 	/* FALL THROUGH */
 
 uc_read:
+	G_PREFETCH_HI_R(m->vb_rptr);		/* Prefetch next char we'll read */
 
 	vp->last_uc_generation = m->generation;
 
@@ -2245,11 +2261,11 @@ illegal_byte_sequence:		/* Reached invalid character */
  * @return next Unicode character, 0 if we reached the end of input or cannot
  * continue due to a fatal error.
  */
-static guint32
+static uint32
 vxml_next_char(vxml_parser_t *vp)
 {
-	guint32 uc;
-	gboolean user_input;
+	uint32 uc;
+	bool user_input;
 
 	/*
 	 * New-line normalization.
@@ -2287,8 +2303,8 @@ new_line:
 /**
  * Is Unicode character a valid character for a name start.
  */
-static G_GNUC_CONST gboolean
-vxml_is_valid_name_start_char(guint32 uc)
+static G_GNUC_CONST bool
+vxml_is_valid_name_start_char(uint32 uc)
 {
 	/*
 	 * NameStartChar ::= ":" | [A-Z] | "_" | [a-z] | [#xC0-#xD6] |
@@ -2335,8 +2351,8 @@ vxml_is_valid_name_start_char(guint32 uc)
 /*
  * Is Unicode character a valid character within a name.
  */
-static G_GNUC_CONST gboolean
-vxml_is_valid_name_char(guint32 uc)
+static G_GNUC_CONST bool
+vxml_is_valid_name_char(uint32 uc)
 {
 	/*
 	 * NameChar ::= NameStartChar | "-" | "." | [0-9] | #xB7 |
@@ -2362,8 +2378,8 @@ vxml_is_valid_name_char(guint32 uc)
 /**
  * Is Unicode character a white space?
  */
-static G_GNUC_CONST gboolean
-vxml_is_white_space_char(guint32 uc)
+static G_GNUC_CONST bool
+vxml_is_white_space_char(uint32 uc)
 {
 	/*
 	 * S ::= (#x20 | #x9 | #xD | #xA)+
@@ -2375,8 +2391,8 @@ vxml_is_white_space_char(guint32 uc)
 /*
  * Is Unicode character in the upper-ASCII letter range?
  */
-static G_GNUC_CONST gboolean
-vxml_is_ascii_upper_letter_char(guint32 uc)
+static G_GNUC_CONST bool
+vxml_is_ascii_upper_letter_char(uint32 uc)
 {
 	return uc >= 0x41U && uc <= 0x5AU;		/* [A-Z] */
 }
@@ -2393,10 +2409,10 @@ vxml_is_ascii_upper_letter_char(guint32 uc)
  * @return TRUE if we successfuly parsed the name, FALSE on error with
  * vp->error set.
  */
-static gboolean
-vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, guint32 c)
+static bool
+vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, uint32 c)
 {
-	guint32 uc;
+	uint32 uc;
 
 	vxml_output_check(vo);
 	g_assert(0 == vxml_output_size(vo));
@@ -2453,10 +2469,10 @@ vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, guint32 c)
  * @return TRUE if we successfuly parsed the name, FALSE on error with
  * vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_uppername(vxml_parser_t *vp, struct vxml_output *vo)
 {
-	guint32 uc;
+	uint32 uc;
 
 	vxml_output_check(vo);
 	g_assert(0 == vxml_output_size(vo));
@@ -2488,13 +2504,13 @@ vxml_parser_handle_uppername(vxml_parser_t *vp, struct vxml_output *vo)
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set with the proper error code.
  */
-static gboolean
+static bool
 vxml_expand_char_ref(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 	unsigned base = 10;
-	guint32 v = 0;
-	gboolean has_digit = FALSE;
+	uint32 v = 0;
+	bool has_digit = FALSE;
 
 	vxml_parser_check(vp);
 
@@ -2604,7 +2620,7 @@ vxml_token_lookup(const char *name,
  * @return VXC_NUL if entity was not found, its single Unicode character
  * otherwise.
  */
-static guint32
+static uint32
 vxml_get_default_entity(const char *name)
 {
 	return vxml_token_lookup(name,
@@ -2671,7 +2687,7 @@ vxml_token_to_string_load(struct vxml_parser_token *tokens, size_t count)
 static const char *
 vxml_token_to_string(enum vxml_parser_token_value token)
 {
-	static gboolean inited;
+	static bool inited;
 
 	if (!inited) {
 		vxml_token_to_string_load(vxml_declaration_tokens,
@@ -2698,10 +2714,10 @@ vxml_token_to_string(enum vxml_parser_token_value token)
  * @return TRUE if we reached a non-space character, FALSE if we reached
  * an error (EOF), with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_skip_spaces(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (!vxml_is_white_space_char(uc)) {
@@ -2723,10 +2739,10 @@ vxml_parser_skip_spaces(vxml_parser_t *vp)
  * @return TRUE if we swallowed space characters, FALSE if we reached
  * an error, with vp->error set.
  */
-static gboolean
-vxml_parser_swallow_spaces(vxml_parser_t *vp, guint32 ac)
+static bool
+vxml_parser_swallow_spaces(vxml_parser_t *vp, uint32 ac)
 {
-	guint32 uc;
+	uint32 uc;
 
 	/*
 	 * The first character must be a white space.
@@ -2767,7 +2783,7 @@ truncated:
  *
  * @return TRUE if OK, FALSE on error with vp->errno set
  */
-static gboolean
+static bool
 vxml_parser_next_misc_token(vxml_parser_t *vp,
 	enum vxml_parser_token_value *token, vxml_error_t error)
 {
@@ -2800,7 +2816,7 @@ vxml_parser_next_misc_token(vxml_parser_t *vp,
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 {
 	nv_pair_t *ev;
@@ -2892,7 +2908,7 @@ not_found:
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_expand_entity(vxml_parser_t *vp, const char *name)
 {
 	return vxml_expand(vp, name, vp->entities);
@@ -2908,10 +2924,10 @@ vxml_expand_entity(vxml_parser_t *vp, const char *name)
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, gboolean inquote)
+static bool
+vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 {
-	gboolean ret;
+	bool ret;
 
 	/*
 	 * Expand the parameter entity differently when it is within a
@@ -2963,10 +2979,10 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, gboolean inquote)
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_expand_pe_reference(vxml_parser_t *vp, gboolean inquote)
+static bool
+vxml_expand_pe_reference(vxml_parser_t *vp, bool inquote)
 {
-	guint32 uc;
+	uint32 uc;
 
 	g_assert(0 == vxml_output_size(&vp->entity));
 
@@ -2999,10 +3015,10 @@ vxml_expand_pe_reference(vxml_parser_t *vp, gboolean inquote)
  * @return TRUE if the expansion was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_expand_reference(vxml_parser_t *vp, gboolean charonly)
+static bool
+vxml_expand_reference(vxml_parser_t *vp, bool charonly)
 {
-	guint32 uc;
+	uint32 uc;
 
 	g_assert(0 == vxml_output_size(&vp->entity));
 
@@ -3207,7 +3223,7 @@ vxml_parser_namespace_uri(const vxml_parser_t *vp, const char *ns)
 /**
  * Is the namespace prefix known?
  */
-static gboolean
+static bool
 vxml_parser_namespace_exists(const vxml_parser_t *vp, const char *ns)
 {
 	g_assert(ns != NULL);
@@ -3244,7 +3260,7 @@ vxml_parser_current_namespace(const vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_namespace_default(vxml_parser_t *vp, const char *value, size_t len)
 {
 	nv_pair_t *default_ns;
@@ -3272,7 +3288,7 @@ vxml_parser_namespace_default(vxml_parser_t *vp, const char *value, size_t len)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_namespace_decl(vxml_parser_t *vp,
 	const char *name, const char *value, size_t value_len)
 {
@@ -3363,7 +3379,7 @@ vxml_parser_update_current_element(vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE otherwise with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_element_prefix_known(vxml_parser_t *vp)
 {
 	if (
@@ -3421,7 +3437,7 @@ vxml_tokenize_element(vxml_parser_t *vp, nv_table_t *tokens, const char *name)
 /**
  * Do we have to notify user on available element text?
  */
-static gboolean
+static bool
 vxml_parser_notify_text(const vxml_parser_t *vp, const struct vxml_ops *ops)
 {
 	if (NULL == ops)
@@ -3453,11 +3469,11 @@ vxml_parser_notify_text(const vxml_parser_t *vp, const struct vxml_ops *ops)
 static const char *
 vxml_strip_blanks(char *text, size_t *len_ptr)
 {
-	guint32 uc;
-	guint retlen;
+	uint32 uc;
+	uint retlen;
 	size_t len;
 	char *p;
-	gboolean seen_non_blank = FALSE;
+	bool seen_non_blank = FALSE;
 	char *last_non_blank;
 	const char *first_non_blank;
 	const char *end;
@@ -3585,7 +3601,7 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 /**
  * Do we have to notify user on element start?
  */
-static gboolean
+static bool
 vxml_parser_notify_start(const vxml_parser_t *vp, const struct vxml_ops *ops)
 {
 	if (NULL == ops)
@@ -3687,10 +3703,10 @@ vxml_parser_do_notify_end(vxml_parser_t *vp,
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
-vxml_parser_swallow_until(vxml_parser_t *vp, guint32 fc)
+static bool
+vxml_parser_swallow_until(vxml_parser_t *vp, uint32 fc)
 {
-	guint32 uc;
+	uint32 uc;
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (fc == uc)
@@ -3709,19 +3725,19 @@ vxml_parser_swallow_until(vxml_parser_t *vp, guint32 fc)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_swallow_until_marker(vxml_parser_t *vp, const char *mark)
 {
-	guint32 fc;
+	uint32 fc;
 
 	fc = mark[0];
 
 	while (vxml_parser_swallow_until(vp, fc)) {
-		guint32 nc;
+		uint32 nc;
 		size_t i = 1;
 
 		while (0 != (nc = mark[i++])) {
-			guint32 uc = vxml_next_char(vp);
+			uint32 uc = vxml_next_char(vp);
 			if (uc != nc)
 				break;
 		}
@@ -3744,11 +3760,11 @@ vxml_parser_swallow_until_marker(vxml_parser_t *vp, const char *mark)
  *
  * @return TRUE if handling was successful, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_attrval(vxml_parser_t *vp, struct vxml_output *vo)
 {
-	guint32 quote;
-	guint32 uc;
+	uint32 quote;
+	uint32 uc;
 	unsigned generation;
 
 	vxml_output_check(vo);
@@ -3800,14 +3816,14 @@ vxml_parser_handle_attrval(vxml_parser_t *vp, struct vxml_output *vo)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
+static bool
+vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 {
-	guint32 uc;
+	uint32 uc;
 	const char *name;
 	char *ns = NULL;
 	const char *uri = NULL;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 
 	/*
 	 * If there is no attribute yet for the current element, create a new
@@ -3872,7 +3888,7 @@ vxml_handle_attribute(vxml_parser_t *vp, gboolean in_document)
 	 */
 
 	{
-		char *value = deconstify_gchar(vxml_output_start(&vp->out));
+		char *value = deconstify_char(vxml_output_start(&vp->out));
 		size_t len = vxml_output_size(&vp->out) - 1;
 		const char *start;
 
@@ -4003,11 +4019,11 @@ error:
  *
  * @return TRUE if reached the end of a PI, FALSE otherwise.
  */
-static gboolean
-vxml_parser_pi_has_ended(vxml_parser_t *vp, guint32 uc)
+static bool
+vxml_parser_pi_has_ended(vxml_parser_t *vp, uint32 uc)
 {
 	if (VXC_QM == uc) {			/* Reached a '?' */
-		guint32 nc = vxml_next_char(vp);
+		uint32 nc = vxml_next_char(vp);
 
 		if (VXC_GT == nc) {		/* Followed by a '>', end of PI */
 			vxml_output_discard(&vp->out);	/* Clear any pending text */
@@ -4037,11 +4053,11 @@ vxml_encoding_ignored(const vxml_parser_t *vp, const char *encoding)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_handle_xml_pi(vxml_parser_t *vp)
 {
-	guint32 uc;
-	gboolean need_space;
+	uint32 uc;
+	bool need_space;
 	const char *value;
 
 	/*
@@ -4112,12 +4128,12 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 		vp->minor = 0;
 		vp->versource = VXML_VERSRC_IMPLIED;
 	} else {
-		guint major, minor;
+		uint major, minor;
 		if (0 != parse_major_minor(value, NULL, &major, &minor)) {
 			vxml_fatal_error_str(vp, VXML_E_INVALID_VERSION, value);
 			return FALSE;
 		}
-		if (major > MAX_INT_VAL(guint8) || minor > MAX_INT_VAL(guint8)) {
+		if (major > MAX_INT_VAL(uint8) || minor > MAX_INT_VAL(uint8)) {
 			vxml_fatal_error_str(vp, VXML_E_VERSION_OUT_OF_RANGE, value);
 			return FALSE;
 		}
@@ -4214,7 +4230,7 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_handle_pi(vxml_parser_t *vp)
 {
 	/*
@@ -4262,10 +4278,10 @@ vxml_handle_pi(vxml_parser_t *vp)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_handle_comment(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	/*
 	 * Comment ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
@@ -4340,11 +4356,11 @@ vxml_handle_comment(vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_quoted_string(vxml_parser_t *vp, struct vxml_output *vo,
-	gboolean verbatim)
+	bool verbatim)
 {
-	guint32 uc, quote;
+	uint32 uc, quote;
 	unsigned generation;
 
 	g_assert(0 == vxml_output_size(vo));
@@ -4410,10 +4426,10 @@ vxml_parser_handle_quoted_string(vxml_parser_t *vp, struct vxml_output *vo,
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_at_tag_end(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	if (!vxml_parser_skip_spaces(vp))
 		return FALSE;
@@ -4435,7 +4451,7 @@ vxml_parser_at_tag_end(vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_handle_external_id(vxml_parser_t *vp)
 {
 	enum vxml_parser_token_value token;
@@ -4490,7 +4506,7 @@ vxml_handle_external_id(vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_element_decl(vxml_parser_t *vp, const char *name)
 {
 	/*
@@ -4514,11 +4530,11 @@ vxml_parser_handle_element_decl(vxml_parser_t *vp, const char *name)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
-	gboolean with_percent)
+	bool with_percent)
 {
-	guint32 uc;
+	uint32 uc;
 
 	g_assert(0 == vxml_output_size(&vp->out));
 
@@ -4634,7 +4650,7 @@ finish:
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_attlist_decl(vxml_parser_t *vp, const char *name)
 {
 	/*
@@ -4662,7 +4678,7 @@ vxml_parser_handle_attlist_decl(vxml_parser_t *vp, const char *name)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_int_subset(vxml_parser_t *vp)
 {
 	/*
@@ -4674,7 +4690,7 @@ vxml_parser_handle_int_subset(vxml_parser_t *vp)
 	 */
 
 	for (;;) {
-		guint32 uc;
+		uint32 uc;
 
 		if (!vxml_parser_skip_spaces(vp))
 			return FALSE;
@@ -4720,10 +4736,10 @@ vxml_parser_handle_int_subset(vxml_parser_t *vp)
  *
  * @return TRUE if OK, FALSE on error with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 {
-	guint32 uc;
+	uint32 uc;
 
 	/*
 	 * doctypedecl   ::= '<!DOCTYPE' S Name (S  ExternalID)? S?
@@ -4782,19 +4798,19 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
  * All the characters within the section make up verbatim text that is sent
  * as-is to the parser's output. There is no markup nor entity processing.
  */
-static gboolean
+static bool
 vxml_handle_cdata(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	if (vxml_debugging(18))
 		vxml_parser_debug(vp, "vxml_handle_cdata: begin");
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		if (VXC_RBRAK == uc) {				/* ']' */
-			guint32 nc = vxml_next_char(vp);
+			uint32 nc = vxml_next_char(vp);
 			if (VXC_RBRAK == nc) {			/* ']' */
-				guint32 fc = vxml_next_char(vp);
+				uint32 fc = vxml_next_char(vp);
 				if (VXC_GT == fc)			/* '>' */
 					goto ended;
 				vxml_unread_char(vp, fc);
@@ -4821,10 +4837,10 @@ ended:
  *
  * @return TRUE if at the end of the section, or FALSE with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_at_cond_close(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	uc = vxml_next_char(vp);
 	if (uc != VXC_RBRAK) {
@@ -4851,10 +4867,10 @@ vxml_parser_at_cond_close(vxml_parser_t *vp)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_parser_handle_ignore(vxml_parser_t *vp)
 {
-	guint32 uc;
+	uint32 uc;
 
 	g_assert(uint_is_positive(vp->ignores));
 
@@ -4915,11 +4931,11 @@ vxml_parser_handle_ignore(vxml_parser_t *vp)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_handle_special(vxml_parser_t *vp, gboolean dtd)
+static bool
+vxml_handle_special(vxml_parser_t *vp, bool dtd)
 {
 	enum vxml_parser_token_value tok;
-	guint32 uc;
+	uint32 uc;
 
 	if (!dtd) {
 		/*
@@ -5046,15 +5062,15 @@ skip_spaces:
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
-vxml_handle_decl(vxml_parser_t *vp, gboolean doctype)
+static bool
+vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 {
 	enum vxml_parser_token_value token;
-	guint32 uc;
+	uint32 uc;
 	const char *name;
-	gboolean seen_pct = FALSE;
-	gboolean mandatory_space = TRUE;
-	gboolean ret;
+	bool seen_pct = FALSE;
+	bool mandatory_space = TRUE;
+	bool ret;
 
 	/*
 	 * If it starts with '--', it's a comment.
@@ -5298,7 +5314,7 @@ vxml_parser_new_element(vxml_parser_t *vp)
  */
 static void
 vxml_parser_path_enter(vxml_parser_t *vp,
-	const char *name, const char *ns, unsigned token, gboolean token_valid)
+	const char *name, const char *ns, unsigned token, bool token_valid)
 {
 	struct vxml_path_entry *pe;
 
@@ -5346,7 +5362,7 @@ vxml_parser_path_enter(vxml_parser_t *vp,
  * @return TRUE if the element end is expected and for the proper tag, FALSE
  * otherwise with vp->error set.
  */
-static gboolean
+static bool
 vxml_parser_path_proper_ending(vxml_parser_t *vp)
 {
 	struct vxml_path_entry *pe;
@@ -5498,7 +5514,7 @@ vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 static void
 vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
-	gboolean empty;
+	bool empty;
 
 	vxml_tokenize_element(vp, ctx->tokens, vp->element);
 	vxml_parser_path_enter(vp, vp->element, vp->namespace,
@@ -5554,10 +5570,10 @@ vxml_parser_begin_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_handle_tag_end(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
-	guint32 uc;
+	uint32 uc;
 
 	/*
 	 * ETag	::= '</' Name S? '>'
@@ -5605,9 +5621,9 @@ vxml_handle_tag_end(vxml_parser_t *vp, const struct vxml_uctx *ctx)
  * @return TRUE if reached the end of a tag and no error was encountered,
  * FALSE otherwise with error possibly set.
  */
-static gboolean
-vxml_parser_tag_has_ended(vxml_parser_t *vp, guint32 uc,
-	gboolean *error, gboolean *empty)
+static bool
+vxml_parser_tag_has_ended(vxml_parser_t *vp, uint32 uc,
+	bool *error, bool *empty)
 {
 	if (vxml_debugging(18)) {
 		vxml_parser_debug(vp, "vxml_parser_tag_has_ended: char is U+%X '%c'",
@@ -5615,7 +5631,7 @@ vxml_parser_tag_has_ended(vxml_parser_t *vp, guint32 uc,
 	}
 
 	if (VXC_SLASH == uc) {		/* Reached a '/', tag has no content */
-		guint32 nc = vxml_next_char(vp);
+		uint32 nc = vxml_next_char(vp);
 		*empty = TRUE;
 		if (VXC_GT == nc)		/* Followed by a '>', end of tag */
 			goto tag_ended;
@@ -5659,13 +5675,13 @@ tag_ended:
  * @return TRUE if the handling was successful, FALSE otherwise with
  * vp->error set to the proper error code.
  */
-static gboolean
+static bool
 vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
-	guint32 uc;
-	gboolean seen_space;
-	gboolean need_space;
-	gboolean empty, error;
+	uint32 uc;
+	bool seen_space;
+	bool need_space;
+	bool empty, error;
 
 	/*
 	 * Starting a new tag, cleanup context.
@@ -5808,7 +5824,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 static void
 vxml_parse_engine(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 {
-	guint32 uc;
+	uint32 uc;
 
 	vxml_location_check(&vp->glob);
 
@@ -6404,7 +6420,7 @@ const char illseq[] = "<a>mañ</a>";
 
 static G_GNUC_COLD void
 vxml_run_simple_test(int num, const char *name,
-	const char *data, size_t len, guint32 flags, vxml_error_t error)
+	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
 	vxml_error_t e;
 	vxml_parser_t *vp;
@@ -6428,7 +6444,7 @@ vxml_run_simple_test(int num, const char *name,
 
 static G_GNUC_COLD void
 vxml_run_ns_simple_test(int num, const char *name,
-	const char *data, size_t len, guint32 flags,
+	const char *data, size_t len, uint32 flags,
 	vxml_error_t error_no_ns, vxml_error_t error_with_ns)
 {
 	char buf[128];
@@ -6452,7 +6468,7 @@ struct vxml_test_info {
 
 static G_GNUC_COLD void
 vxml_run_callback_test(int num, const char *name,
-	const char *data, size_t len, guint32 flags,
+	const char *data, size_t len, uint32 flags,
 	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen,
 	void *udata)
 {
@@ -6508,7 +6524,7 @@ vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
 
 static G_GNUC_COLD xnode_t *
 vxml_run_tree_test(int num, const char *name,
-	const char *data, size_t len, guint32 flags, vxml_error_t error)
+	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
 	vxml_error_t e;
 	vxml_parser_t *vp;
@@ -6543,7 +6559,7 @@ tricky_text(vxml_parser_t *vp,
 	const char *name, const char *text, size_t len, void *data)
 {
 	struct vxml_test_info *info = data;
-	gboolean *seen_text = info->data;
+	bool *seen_text = info->data;
 
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
@@ -6594,7 +6610,7 @@ blank_text(vxml_parser_t *vp,
 	struct vxml_test_info *info = data;
 	const char *unstripped = "   <x> <y>  &unknown; </x> [[/]] data      ";
 	const char *stripped = "<x> <y>  &unknown; </x> [[/]] data";
-	gboolean stripping = GPOINTER_TO_UINT(info->data);
+	bool stripping = GPOINTER_TO_UINT(info->data);
 
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
@@ -6741,7 +6757,7 @@ namespace_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp("urn:y-ns", vxml_parser_current_namespace(vp)));
 }
 
-static gboolean
+static bool
 vxml_node_is_named(const xnode_t *xn, void *data)
 {
 	const char *name = data;
@@ -6757,7 +6773,7 @@ vxml_test(void)
 		{ "test",	T_TEST },
 		{ "p",		T_P },
 	};
-	gboolean seen_text;
+	bool seen_text;
 	xnode_t *root, *xn;
 
 	vxml_run_simple_test(1,

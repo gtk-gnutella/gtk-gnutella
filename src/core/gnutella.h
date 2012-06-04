@@ -70,47 +70,47 @@ struct guid;
  *
  */
 
-typedef guint8 gnutella_msg_init_t[GTA_HEADER_SIZE];
+typedef uint8 gnutella_msg_init_t[GTA_HEADER_SIZE];
 
 /* The logic layout of the PONG message specific layout is as follows:
  *
  * struct gnutella_init_response_ {
- *		guint16 host_port;
- *		guint32 host_ip;
- *		guint32 files_count;
- *		guint32 kbytes_count;
+ *		uint16 host_port;
+ *		uint32 host_ip;
+ *		uint32 files_count;
+ *		uint32 kbytes_count;
  * };
  *
  */
 
-typedef guint8 gnutella_init_response_t[14];
+typedef uint8 gnutella_init_response_t[14];
 
-static inline guint16
+static inline uint16
 gnutella_init_response_get_host_port(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le16(&u8[0]);
 }
 
-static inline guint32
+static inline uint32
 gnutella_init_response_get_host_ip(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_be32(&u8[2]);
 }
 
-static inline guint32
+static inline uint32
 gnutella_init_response_get_files_count(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le32(&u8[6]);
 }
 
 
-static inline guint32
+static inline uint32
 gnutella_init_response_get_kbytes_count(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le32(&u8[10]);
 }
 
@@ -126,7 +126,8 @@ gnutella_init_response_get_kbytes_count(const void *data)
  *
  */
 
-typedef	guint8 gnutella_msg_init_response_t[GTA_HEADER_SIZE + sizeof(gnutella_init_response_t)];
+typedef	uint8
+gnutella_msg_init_response_t[GTA_HEADER_SIZE + sizeof(gnutella_init_response_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_init_response_header(gnutella_msg_init_response_t *msg)
@@ -136,43 +137,43 @@ gnutella_msg_init_response_header(gnutella_msg_init_response_t *msg)
 
 static inline void
 gnutella_msg_init_response_set_host_port(gnutella_msg_init_response_t *msg,
-	guint16 port)
+	uint16 port)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le16(&u8[GTA_HEADER_SIZE], port);
 }
 
 static inline void
 gnutella_msg_init_response_set_host_ip(gnutella_msg_init_response_t *msg,
-	guint32 ip)
+	uint32 ip)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_be32(&u8[GTA_HEADER_SIZE + 2], ip);
 }
 
 static inline void
 gnutella_msg_init_response_set_files_count(gnutella_msg_init_response_t *msg,
-	guint32 files_count)
+	uint32 files_count)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le32(&u8[GTA_HEADER_SIZE + 6], files_count);
 }
 
 static inline void
 gnutella_msg_init_response_set_kbytes_count(gnutella_msg_init_response_t *msg,
-	guint32 kbytes_count)
+	uint32 kbytes_count)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le32(&u8[GTA_HEADER_SIZE + 10], kbytes_count);
 }
 
 /* The logic layout of the QHIT message specific payload is as follows:
  *
  * struct gnutella_search_results_ {
- *	guint8 num_recs;
- *	guint16 host_port;
- *	guint32 host_ip;
- *	guint32 host_speed;
+ *	uint8 num_recs;
+ *	uint16 host_port;
+ *	uint32 host_ip;
+ *	uint32 host_speed;
  *
  *	record data follows
  *  ...
@@ -182,33 +183,33 @@ gnutella_msg_init_response_set_kbytes_count(gnutella_msg_init_response_t *msg,
  *
  */
 
-typedef	guint8 gnutella_search_results_t[11];
+typedef	uint8 gnutella_search_results_t[11];
 
-static inline guint8
+static inline uint8
 gnutella_search_results_get_num_recs(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[0];
 }
 
-static inline guint16
+static inline uint16
 gnutella_search_results_get_host_port(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le16(&u8[1]);
 }
 
-static inline guint32
+static inline uint32
 gnutella_search_results_get_host_ip(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_be32(&u8[3]);
 }
 
-static inline guint32
+static inline uint32
 gnutella_search_results_get_host_speed(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le32(&u8[7]);
 }
 
@@ -221,7 +222,8 @@ gnutella_search_results_get_host_speed(const void *data)
  *
  */
 
-typedef guint8 gnutella_msg_search_results_t[GTA_HEADER_SIZE + sizeof(gnutella_search_results_t)];
+typedef uint8
+gnutella_msg_search_results_t[GTA_HEADER_SIZE + sizeof(gnutella_search_results_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_search_results_header(gnutella_msg_search_results_t *msg)
@@ -231,47 +233,47 @@ gnutella_msg_search_results_header(gnutella_msg_search_results_t *msg)
 
 static inline void
 gnutella_msg_search_results_set_num_recs(gnutella_msg_search_results_t *msg,
-	guint8 num_recs)
+	uint8 num_recs)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE] = num_recs;
 }
 
 static inline void
 gnutella_msg_search_results_set_host_port(gnutella_msg_search_results_t *msg,
-	guint16 port)
+	uint16 port)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le16(&u8[GTA_HEADER_SIZE + 1], port);
 }
 
 static inline void
 gnutella_msg_search_results_set_host_ip(gnutella_msg_search_results_t *msg,
-	guint32 ip)
+	uint32 ip)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_be32(&u8[GTA_HEADER_SIZE + 3], ip);
 }
 
 static inline void
 gnutella_msg_search_results_set_host_speed(gnutella_msg_search_results_t *msg,
-	guint32 speed)
+	uint32 speed)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le32(&u8[GTA_HEADER_SIZE + 7], speed);
 }
 
 /* The logic layout of the QUERY message specific payload is as follows:
  *
  * struct gnutella_search_ {
- *		guint16 speed;
+ *		uint16 speed;
  *
  *		query string follows
  * };
  *
  */
 
-typedef	guint8 gnutella_search_t[2];
+typedef	uint8 gnutella_search_t[2];
 	
 /* The logic layout of the QUERY message is as follows:
  *
@@ -282,7 +284,7 @@ typedef	guint8 gnutella_search_t[2];
  *
  */
 
-typedef	guint8 gnutella_msg_search_t[GTA_HEADER_SIZE + sizeof(gnutella_search_t)];
+typedef	uint8 gnutella_msg_search_t[GTA_HEADER_SIZE + sizeof(gnutella_search_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_search_header(gnutella_msg_search_t *msg)
@@ -291,16 +293,16 @@ gnutella_msg_search_header(gnutella_msg_search_t *msg)
 }
 
 static inline void
-gnutella_msg_search_set_flags(gnutella_msg_search_t *msg, guint16 flags)
+gnutella_msg_search_set_flags(gnutella_msg_search_t *msg, uint16 flags)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_be16(&u8[GTA_HEADER_SIZE], flags);
 }
 
-static inline guint16
+static inline uint16
 gnutella_msg_search_get_flags(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_be16(&u8[GTA_HEADER_SIZE + 0]);
 }
 
@@ -311,22 +313,22 @@ gnutella_msg_search_get_flags(const void *data)
 static inline const char *
 gnutella_msg_search_get_text(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return (const char *) &u8[GTA_HEADER_SIZE + 2];
 }
 
 /* The logic layout of the PUSH message specific payload is as follows:
  *
  * struct gnutella_push_request_ {
- *		guint8 guid[16];
- *		guint32 file_id;
- *		guint32 host_ip;
- *		guint16 host_port;
+ *		uint8 guid[16];
+ *		uint32 file_id;
+ *		uint32 host_ip;
+ *		uint16 host_port;
  * };
  *
  */
 
-typedef	guint8 gnutella_push_request_t[26];
+typedef	uint8 gnutella_push_request_t[26];
 
 /* The logic layout of the PUSH message is as follows:
  *
@@ -339,7 +341,8 @@ typedef	guint8 gnutella_push_request_t[26];
  *
  */
 
-typedef	guint8 gnutella_msg_push_request_t[GTA_HEADER_SIZE + sizeof(gnutella_push_request_t)];
+typedef	uint8
+gnutella_msg_push_request_t[GTA_HEADER_SIZE + sizeof(gnutella_push_request_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_push_request_header(gnutella_msg_push_request_t *msg)
@@ -351,83 +354,83 @@ static inline void
 gnutella_msg_push_request_set_guid(gnutella_msg_push_request_t *msg,
 	const struct guid *guid)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	memcpy(&u8[GTA_HEADER_SIZE], guid, 16);	
 }
 
 static inline void
 gnutella_msg_push_request_set_file_id(gnutella_msg_push_request_t *msg,
-	guint32 file_id)
+	uint32 file_id)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le32(&u8[GTA_HEADER_SIZE + 16], file_id);
 }
 
 static inline void
 gnutella_msg_push_request_set_host_ip(gnutella_msg_push_request_t *msg,
-	guint32 ip)
+	uint32 ip)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_be32(&u8[GTA_HEADER_SIZE + 20], ip);
 }
 
 static inline void
 gnutella_msg_push_request_set_host_port(gnutella_msg_push_request_t *msg,
-	guint16 port)
+	uint16 port)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le16(&u8[GTA_HEADER_SIZE + 24], port);
 }
 
 /* The logic layout of the BYE message specific payload is as follows:
  *
  * struct gnutella_bye_ {
- *		guint16 code;
+ *		uint16 code;
  *
  *		message string follows
  * };
  *
  */
 
-typedef guint8 gnutella_bye_t[2];
+typedef uint8 gnutella_bye_t[2];
 
 static inline void
-gnutella_bye_set_code(void *data, guint16 code)
+gnutella_bye_set_code(void *data, uint16 code)
 {
-	guint8 *u8 = data;
+	uint8 *u8 = data;
 	poke_le16(&u8[0], code);
 }
 
 /* The logic layout of the QRP RESET message specific payload is as follows:
  *
  * struct gnutella_qrp_reset_ {
- *		guint8 variant;		// 0x00
- *		guint32 table_length;
- *		guint8 infinity;
+ *		uint8 variant;		// 0x00
+ *		uint32 table_length;
+ *		uint8 infinity;
  * };
  *
  */
 
-typedef guint8 gnutella_qrp_reset_t[6];
+typedef uint8 gnutella_qrp_reset_t[6];
 
-static inline guint8
+static inline uint8
 gnutella_qrp_reset_get_variant(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[0];
 }
 
-static inline guint32
+static inline uint32
 gnutella_qrp_reset_get_table_length(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le32(&u8[1]);
 }
 
-static inline guint8
+static inline uint8
 gnutella_qrp_reset_get_infinity(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[5];
 }
 
@@ -440,7 +443,8 @@ gnutella_qrp_reset_get_infinity(const void *data)
  *
  */
 
-typedef guint8 gnutella_msg_qrp_reset_t[GTA_HEADER_SIZE + sizeof(gnutella_qrp_reset_t)];
+typedef uint8
+gnutella_msg_qrp_reset_t[GTA_HEADER_SIZE + sizeof(gnutella_qrp_reset_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_qrp_reset_header(gnutella_msg_qrp_reset_t *msg)
@@ -450,74 +454,74 @@ gnutella_msg_qrp_reset_header(gnutella_msg_qrp_reset_t *msg)
 
 static inline void
 gnutella_msg_qrp_reset_set_variant(gnutella_msg_qrp_reset_t *msg,
-	guint8 variant)
+	uint8 variant)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE] = variant;
 }
 
 static inline void
 gnutella_msg_qrp_reset_set_table_length(gnutella_msg_qrp_reset_t *msg,
-	guint32 table_length)
+	uint32 table_length)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	poke_le32(&u8[GTA_HEADER_SIZE + 1], table_length);
 }
 
 static inline void
 gnutella_msg_qrp_reset_set_infinity(gnutella_msg_qrp_reset_t *msg,
-	guint8 inf_value)
+	uint8 inf_value)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE + 5] = inf_value;
 }
 
 /* The logic layout of the QRP PATCH message specific payload is as follows:
  *
  * struct gnutella_qrp_patch_ {
- *		guint8 variant;			// 0x01
- *		guint8 seq_no;
- *		guint8 seq_size;
- *		guint8 compressor;
- *		guint8 entry_bits;
+ *		uint8 variant;			// 0x01
+ *		uint8 seq_no;
+ *		uint8 seq_size;
+ *		uint8 compressor;
+ *		uint8 entry_bits;
  * };
  *
  */
 
-typedef guint8 gnutella_qrp_patch_t[5];
+typedef uint8 gnutella_qrp_patch_t[5];
 	
-static inline guint8
+static inline uint8
 gnutella_qrp_patch_get_variant(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[0];
 }
 
-static inline guint8
+static inline uint8
 gnutella_qrp_patch_get_seq_no(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[1];
 }
 
-static inline guint8
+static inline uint8
 gnutella_qrp_patch_get_seq_size(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[2];
 }
 
-static inline guint8
+static inline uint8
 gnutella_qrp_patch_get_compressor(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[3];
 }
 
-static inline guint8
+static inline uint8
 gnutella_qrp_patch_get_entry_bits(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return u8[4];
 }
 
@@ -530,7 +534,8 @@ gnutella_qrp_patch_get_entry_bits(const void *data)
  *
  */
 
-typedef	guint8 gnutella_msg_qrp_patch_t[GTA_HEADER_SIZE + sizeof(gnutella_qrp_patch_t)];
+typedef	uint8
+gnutella_msg_qrp_patch_t[GTA_HEADER_SIZE + sizeof(gnutella_qrp_patch_t)];
 
 static inline gnutella_header_t *
 gnutella_msg_qrp_patch_header(gnutella_msg_qrp_patch_t *msg)
@@ -540,97 +545,97 @@ gnutella_msg_qrp_patch_header(gnutella_msg_qrp_patch_t *msg)
 
 static inline void
 gnutella_msg_qrp_patch_set_variant(gnutella_msg_qrp_patch_t *msg,
-	guint8 variant)
+	uint8 variant)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE] = variant;
 }
 
 static inline void
 gnutella_msg_qrp_patch_set_seq_no(gnutella_msg_qrp_patch_t *msg,
-	guint8 seq_no)
+	uint8 seq_no)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE + 1] = seq_no;
 }
 
 static inline void
 gnutella_msg_qrp_patch_set_seq_size(gnutella_msg_qrp_patch_t *msg,
-	guint8 seq_size)
+	uint8 seq_size)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE + 2] = seq_size;
 }
 
 static inline void
 gnutella_msg_qrp_patch_set_compressor(gnutella_msg_qrp_patch_t *msg,
-	guint8 compressor)
+	uint8 compressor)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE + 3] = compressor;
 }
 
 static inline void
 gnutella_msg_qrp_patch_set_entry_bits(gnutella_msg_qrp_patch_t *msg,
-	guint8 entry_bits)
+	uint8 entry_bits)
 {
-	guint8 *u8 = (void *) msg;
+	uint8 *u8 = (void *) msg;
 	u8[GTA_HEADER_SIZE + 4] = entry_bits;
 }
 
 /* The logic layout of the VENDOR message specific payload is as follows:
  *
  * struct gnutella_vendor_ {
- *		guint8[4] vendor;		// For example, "GTKG"
- *		guint16 selector_id;	// Message selector ID, little endian
- *		guint16 version;		// Message version number, little endian
+ *		uint8[4] vendor;		// For example, "GTKG"
+ *		uint16 selector_id;		// Message selector ID, little endian
+ *		uint16 version;			// Message version number, little endian
  *
  *		payload follows
  * };
  *
  */
 
-typedef guint8 gnutella_vendor_t[8];
+typedef uint8 gnutella_vendor_t[8];
 	
-static inline guint32
+static inline uint32
 gnutella_vendor_get_code(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_be32(&u8[0]);
 }
 
 static inline void
-gnutella_vendor_set_code(gnutella_vendor_t *data, guint32 code)
+gnutella_vendor_set_code(gnutella_vendor_t *data, uint32 code)
 {
-	guint8 *u8 = (guint8 *) data;
+	uint8 *u8 = (uint8 *) data;
 	poke_be32(&u8[0], code);
 }
 
-static inline guint16
+static inline uint16
 gnutella_vendor_get_selector_id(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le16(&u8[4]);
 }
 
 static inline void
-gnutella_vendor_set_selector_id(gnutella_vendor_t *data, guint16 selector_id)
+gnutella_vendor_set_selector_id(gnutella_vendor_t *data, uint16 selector_id)
 {
-	guint8 *u8 = (guint8 *) data;
+	uint8 *u8 = (uint8 *) data;
 	poke_le16(&u8[4], selector_id);
 }
 
-static inline guint16
+static inline uint16
 gnutella_vendor_get_version(const void *data)
 {
-	const guint8 *u8 = data;
+	const uint8 *u8 = data;
 	return peek_le16(&u8[6]);
 }
 
 static inline void
-gnutella_vendor_set_version(gnutella_vendor_t *data, guint16 version)
+gnutella_vendor_set_version(gnutella_vendor_t *data, uint16 version)
 {
-	guint8 *u8 = (guint8 *) data;
+	uint8 *u8 = (uint8 *) data;
 	poke_le16(&u8[6], version);
 }
 
@@ -643,18 +648,18 @@ gnutella_vendor_set_version(gnutella_vendor_t *data, guint16 version)
  *
  */
 
-typedef guint8 gnutella_msg_vendor_[GTA_HEADER_SIZE + sizeof(gnutella_vendor_t)];
+typedef uint8 gnutella_msg_vendor_[GTA_HEADER_SIZE + sizeof(gnutella_vendor_t)];
 
 /* The logic layout of the HSEP message is as follows:
  *
  * struct gnutella_msg_hsep_ {
  *		gnutella_header_t header;
- *		guint64 triple[3];
+ *		uint64 triple[3];
  * };
  *
  */
 
-typedef	guint8 gnutella_msg_hsep_t[GTA_HEADER_SIZE + 3 * 8];
+typedef	uint8 gnutella_msg_hsep_t[GTA_HEADER_SIZE + 3 * 8];
 
 static inline gnutella_header_t *
 gnutella_msg_hsep_header(gnutella_msg_hsep_t *msg)

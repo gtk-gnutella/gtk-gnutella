@@ -57,18 +57,18 @@ enum iprange_db_magic {
  * A CIDR network description for IPv4 addresses.
  */
 struct iprange_net4 {
-	guint32 ip;		/**< The IP of the network */
-	guint16 value;	/**< Associated token value */
-	guint8 bits;	/**< Leading meaningful bits */
+	uint32 ip;		/**< The IP of the network */
+	uint16 value;	/**< Associated token value */
+	uint8 bits;		/**< Leading meaningful bits */
 };
 
 /**
  * A CIDR network description for IPv6 addresses.
  */
 struct iprange_net6 {
-	guint8 ip[16];	/**< The IP of the network */
-	guint16 value;	/**< Associated token value */
-	guint8 bits;	/**< Leading meaningful bits */
+	uint8 ip[16];	/**< The IP of the network */
+	uint16 value;	/**< Associated token value */
+	uint8 bits;		/**< Leading meaningful bits */
 };
 
 /*
@@ -119,7 +119,7 @@ static G_GNUC_HOT int
 iprange_net4_cmp(const void *p, const void *q)
 {
 	const struct iprange_net4 *a = p, *b = q;
-	guint32 mask, a_key, b_key;
+	uint32 mask, a_key, b_key;
 
 	mask = cidr_to_netmask(a->bits) & cidr_to_netmask(b->bits);
 	a_key = a->ip & mask;
@@ -205,8 +205,8 @@ iprange_free(struct iprange_db **idb_ptr)
  *
  * @return The data associated with the IP address or 0 if not found.
  */
-guint16
-iprange_get(const struct iprange_db *idb, guint32 ip)
+uint16
+iprange_get(const struct iprange_db *idb, uint32 ip)
 {
 	struct iprange_net4 key, *item;
 
@@ -227,8 +227,8 @@ iprange_get(const struct iprange_db *idb, guint32 ip)
  *
  * @return The data associated with the IP address or 0 if not found.
  */
-guint16
-iprange_get6(const struct iprange_db *idb, const guint8 *ip6)
+uint16
+iprange_get6(const struct iprange_db *idb, const uint8 *ip6)
 {
 	struct iprange_net6 key, *item;
 
@@ -249,7 +249,7 @@ iprange_get6(const struct iprange_db *idb, const guint8 *ip6)
  *
  * @return The data associated with the IP address or 0 if not found.
  */
-guint16
+uint16
 iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha)
 {
 	host_addr_t to;
@@ -277,10 +277,10 @@ iprange_get_addr(const struct iprange_db *idb, const host_addr_t ha)
  */
 iprange_err_t
 iprange_add_cidr(struct iprange_db *idb,
-	guint32 net, unsigned bits, guint16 value)
+	uint32 net, unsigned bits, uint16 value)
 {
 	struct iprange_net4 item;
-	guint32 mask;
+	uint32 mask;
 	
 	iprange_db_check(idb);
 	g_assert(value != 0);
@@ -314,7 +314,7 @@ iprange_add_cidr(struct iprange_db *idb,
  */
 iprange_err_t
 iprange_add_cidr6(struct iprange_db *idb,
-	const guint8 *net, unsigned bits, guint16 value)
+	const uint8 *net, unsigned bits, uint16 value)
 {
 	struct iprange_net6 item;
 	unsigned i, trailing, bytes, n;
@@ -337,7 +337,7 @@ iprange_add_cidr6(struct iprange_db *idb,
 	n = trailing - 8 * bytes;		/* Trailing bits in first zero byte */
 
 	if (n != 0) {
-		guint8 mask = ~(~0U << n);
+		uint8 mask = ~(~0U << n);
 
 		if (0 != (net[(bits - 1) / 8] & mask))
 			return IPR_ERR_BAD_PREFIX;

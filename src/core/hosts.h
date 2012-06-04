@@ -33,7 +33,7 @@
  */
 
 extern GList *sl_caught_hosts;
-extern gboolean host_low_on_pongs;
+extern bool host_low_on_pongs;
 
 /*
  * Global Functions
@@ -41,15 +41,15 @@ extern gboolean host_low_on_pongs;
 
 void host_init(void);
 void host_timer(void);
-void host_add(const host_addr_t addr, guint16, gboolean);
-void host_add_semi_pong(const host_addr_t addr, guint16 port);
+void host_add(const host_addr_t addr, uint16, bool);
+void host_add_semi_pong(const host_addr_t addr, uint16 port);
 void host_shutdown(void);
 void host_close(void);
 
 void parse_netmasks(const char *value);
-gboolean host_is_nearby(const host_addr_t addr);
-gboolean host_is_valid(const host_addr_t addr, guint16 port);
-gboolean host_address_is_usable(const host_addr_t addr);
+bool host_is_nearby(const host_addr_t addr);
+bool host_is_valid(const host_addr_t addr, uint16 port);
+bool host_address_is_usable(const host_addr_t addr);
 
 #endif /* _core_hosts_h_ */
 

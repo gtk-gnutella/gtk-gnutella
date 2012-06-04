@@ -33,9 +33,9 @@
 
 #include "common.h"
 
-#define D(x, y) ((guint64) (x) << 32 | (y))
+#define D(x, y) ((uint64) (x) << 32 | (y))
 
-static const guint64 tiger_sboxes[4 * 256] = {
+static const uint64 tiger_sboxes[4 * 256] = {
 	D(0x02AAB17CUL, 0xF7E90C5EUL)  /*    0 */,
 	D(0xAC424B03UL, 0xE243A8ECUL)  /*    1 */,
 	D(0x72CD5BE3UL, 0x0DD5FCD3UL)  /*    2 */,

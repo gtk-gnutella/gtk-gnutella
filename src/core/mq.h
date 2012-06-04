@@ -53,7 +53,7 @@ typedef struct mqueue mqueue_t;
 
 struct mq_ops {
 	void (*putq)(mqueue_t *q, pmsg_t *mb);
-	gboolean (*flushed)(const mqueue_t *q);
+	bool (*flushed)(const mqueue_t *q);
 };
 
 struct mq_cops {
@@ -102,7 +102,7 @@ struct mqueue {
 	GList *qhead, *qtail, **qlink;
 	slist_t *qwait;			/**< Waiting queue during putq recursions */
 	cevent_t *swift_ev;		/**< Callout queue event in "swift" mode */
-	const guint32 *debug;	/**< Debug config variable for this queue */
+	const uint32 *debug;	/**< Debug config variable for this queue */
 	int swift_elapsed;		/**< Scheduled elapsed time, in ms */
 	int qlink_count;		/**< Amount of entries in `qlink' */
 	int maxsize;			/**< Maximum size of this queue (total queued) */
@@ -148,11 +148,11 @@ void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
 #endif /* MQ_INTERNAL */
 
 mq_status_t mq_status(const mqueue_t *q) G_GNUC_PURE;
-gboolean mq_is_flow_controlled(const mqueue_t *q) G_GNUC_PURE;
-gboolean mq_is_swift_controlled(const mqueue_t *q) G_GNUC_PURE;
-gboolean mq_would_flow_control(const mqueue_t *q, size_t) G_GNUC_PURE;
-gboolean mq_above_low_watermark(const mqueue_t *q) G_GNUC_PURE;
-guint32 mq_debug(const mqueue_t *q) G_GNUC_PURE;
+bool mq_is_flow_controlled(const mqueue_t *q) G_GNUC_PURE;
+bool mq_is_swift_controlled(const mqueue_t *q) G_GNUC_PURE;
+bool mq_would_flow_control(const mqueue_t *q, size_t) G_GNUC_PURE;
+bool mq_above_low_watermark(const mqueue_t *q) G_GNUC_PURE;
+uint32 mq_debug(const mqueue_t *q) G_GNUC_PURE;
 int mq_maxsize(const mqueue_t *q) G_GNUC_PURE;
 int mq_size(const mqueue_t *q) G_GNUC_PURE;
 int mq_lowat(const mqueue_t *q) G_GNUC_PURE;

@@ -49,9 +49,9 @@ int ascii_strncasecmp(const char *s1, const char *s2, size_t len);
  * @return 0..15 for valid hexadecimal ASCII characters, -1 otherwise.
  */
 static inline ALWAYS_INLINE int
-hex2int_inline(guchar c)
+hex2int_inline(uchar c)
 {
-	extern const gint8 *hex2int_tab;
+	extern const int8 *hex2int_tab;
 	return hex2int_tab[c];
 }
 
@@ -62,9 +62,9 @@ hex2int_inline(guchar c)
  * @return 0..9 for valid decimal ASCII characters, -1 otherwise.
  */
 static inline ALWAYS_INLINE int
-dec2int_inline(guchar c)
+dec2int_inline(uchar c)
 {
-	extern const gint8 *dec2int_tab;
+	extern const int8 *dec2int_tab;
 	return dec2int_tab[c];
 }
 
@@ -75,9 +75,9 @@ dec2int_inline(guchar c)
  * @return 0..9 for valid alphanumeric ASCII characters, -1 otherwise.
  */
 static inline ALWAYS_INLINE int
-alnum2int_inline(guchar c)
+alnum2int_inline(uchar c)
 {
-	extern const gint8 *alnum2int_tab;
+	extern const int8 *alnum2int_tab;
 	return alnum2int_tab[c];
 }
 
@@ -89,73 +89,73 @@ alnum2int_inline(guchar c)
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_blank(int c)
 {
 	return c == 32 || c == 9;	/* space, tab */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_cntrl(int c)
 {
 	return (c >= 0 && c <= 31) || c == 127;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_digit(int c)
 {
 	return c >= 48 && c <= 57;	/* 0-9 */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_xdigit(int c)
 {
 	return -1 != hex2int_inline(c) && !(c & ~0x7f);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_upper(int c)
 {
 	return c >= 65 && c <= 90;		/* A-Z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_lower(int c)
 {
 	return c >= 97 && c <= 122;		/* a-z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_alpha(int c)
 {
 	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_alnum(int c)
 {
 	return -1 != alnum2int_inline(c) && !(c & ~0x7f); /* A-Z, a-z, 0-9 */
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_space(int c)
 {
 	return c == 32 || (c >= 9 && c <= 13);
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_graph(int c)
 {
 	return c >= 33 && c <= 126;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_print(int c)
 {
 	return is_ascii_graph(c) || c == 32;
 }
 
-static inline G_GNUC_CONST WARN_UNUSED_RESULT gboolean
+static inline G_GNUC_CONST WARN_UNUSED_RESULT bool
 is_ascii_punct(int c)
 {
 	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
@@ -238,8 +238,8 @@ char *ascii_strcasestr(const char *haystack, const char *needle);
 int ascii_strcmp_delimit(const char *a, const char *b, const char *delimit);
 size_t ascii_chomp_trailing_spaces(char *str, size_t len);
 
-guint ascii_strcase_hash(gconstpointer key);
-int ascii_strcase_eq(gconstpointer a, gconstpointer b);
+uint ascii_strcase_hash(const void *key);
+int ascii_strcase_eq(const void *a, const void *b);
 
 #endif /* _ascii_h_ */
 

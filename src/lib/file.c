@@ -63,7 +63,7 @@ static reclaim_fd_t reclaim_fd = NULL;
 /**
  * Check for file existence.
  */
-gboolean
+bool
 file_exists(const char *pathname)
 {
   	filestat_t st;
@@ -92,7 +92,7 @@ file_register_fd_reclaimer(reclaim_fd_t callback)
 char *
 file_locate_from_path(const char *argv0)
 {
-	static gboolean already_done;
+	static bool already_done;
 	char *path;
 	char *tok;
 	char filepath[MAX_PATH_LEN + 1];
@@ -170,7 +170,7 @@ done:
  */
 static FILE *
 open_read(
-	const char *what, const file_path_t *fv, int fvcnt, gboolean renaming,
+	const char *what, const file_path_t *fv, int fvcnt, bool renaming,
 	int *chosen)
 {
 	FILE *in;
@@ -365,12 +365,12 @@ file_config_open_write(const char *what, const file_path_t *fv)
  *
  * @returns TRUE on success.
  */
-gboolean
+bool
 file_config_close(FILE *out, const file_path_t *fv)
 {
 	char *path = NULL;
 	char *path_new = NULL;
-	gboolean success = FALSE;
+	bool success = FALSE;
 
 	if (0 != fclose(out)) {
 		g_warning("could not flush \"%s\": %m", fv->name);
@@ -433,13 +433,14 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
  */
 static int
 do_open(const char *path, int flags, int mode,
-	gboolean missing, gboolean absolute)
+	bool missing, bool absolute)
 {
 	const char *what;
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
-		g_warning("do_open(): can't open absolute \"%s\": relative path", path);
+		g_warning("%s(): can't open absolute \"%s\": relative path",
+			G_STRFUNC, path);
 		errno = EPERM;
 		return -1;
 	}
@@ -470,8 +471,8 @@ do_open(const char *path, int flags, int mode,
 		) {
 			fd = open(path, flags, mode);
 			if (fd >= 0) {
-				g_warning("do_open(): had to close a banned fd to %s file",
-					what);
+				g_warning("%s(): had to close a banned fd to %s file",
+					G_STRFUNC, what);
 			}
 		}
 	}
@@ -490,13 +491,13 @@ do_open(const char *path, int flags, int mode,
 	 */
 
 	if (errno == 0) {
-		g_warning("do_open(): "
-			"open() returned -1 with errno = 0, assuming ENOENT");
+		g_warning("%s(): open() returned -1 with errno = 0, assuming ENOENT",
+			G_STRFUNC);
 		errno = ENOENT;
 	}
 
 	if (!missing || errno != ENOENT) {
-		g_warning("do_open(): can't %s file \"%s\": %m", what, path);
+		g_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
 	}
 
 	return -1;
@@ -564,7 +565,7 @@ file_create_missing(const char *path, int flags, int mode)
  * is TRUE.
  */
 static FILE *
-do_fopen(const char *path, const char *mode, gboolean missing)
+do_fopen(const char *path, const char *mode, bool missing)
 {
 	char m;
 	FILE *f;
@@ -645,7 +646,7 @@ file_fopen_missing(const char *path, const char *mode)
  *
  * @return TRUE if we were facing a line terminated by "\n", FALSE otherwise.
  */
-gboolean
+bool
 file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
 {
 	size_t len;

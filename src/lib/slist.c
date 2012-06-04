@@ -58,14 +58,14 @@ struct slist {
 	GSList *head;
 	GSList *tail;
 	int length;
-	guint stamp;
+	uint stamp;
 };
 
 struct slist_iter {
 	slist_iter_magic_t magic;
 	const slist_t *slist;
 	GSList *prev, *cur, *next;
-	guint stamp;
+	uint stamp;
 	unsigned removable:1;
 };
 
@@ -82,7 +82,7 @@ slist_regression(const slist_t *slist)
 	g_assert(g_slist_first(slist->head) == slist->head);
 	g_assert(g_slist_first(slist->tail) == slist->head);
 	g_assert(g_slist_last(slist->head) == slist->tail);
-	g_assert(g_slist_length(slist->head) == (guint) slist->length);
+	g_assert(g_slist_length(slist->head) == (uint) slist->length);
 }
 #else
 #define slist_regression(slist)
@@ -172,7 +172,7 @@ slist_free(slist_t **slist_ptr)
 		if (--slist->refcount != 0) {
 			g_carp("slist_free: slist is still referenced! "
 					"(slist=%p, slist->refcount=%d)",
-					cast_to_gconstpointer(slist), slist->refcount);
+					cast_to_constpointer(slist), slist->refcount);
 		}
 
 		gm_slist_free_null(&slist->head);
@@ -187,7 +187,7 @@ slist_free(slist_t **slist_ptr)
  * Append `key' to the slist.
  */
 void
-slist_append(slist_t *slist, gpointer key)
+slist_append(slist_t *slist, void *key)
 {
 	slist_check(slist);
 	g_assert(1 == slist->refcount);
@@ -208,7 +208,7 @@ slist_append(slist_t *slist, gpointer key)
  * Prepend `key' to the slist.
  */
 void
-slist_prepend(slist_t *slist, gpointer key)
+slist_prepend(slist_t *slist, void *key)
 {
 	slist_check(slist);
 	g_assert(1 == slist->refcount);
@@ -228,7 +228,7 @@ slist_prepend(slist_t *slist, gpointer key)
  * Insert `key' into the slist.
  */
 void
-slist_insert_sorted(slist_t *slist, gpointer key, GCompareFunc func)
+slist_insert_sorted(slist_t *slist, void *key, GCompareFunc func)
 {
 	slist_check(slist);
 	g_assert(1 == slist->refcount);
@@ -277,8 +277,8 @@ slist_remove_item(slist_t *slist, GSList *prev, GSList *item)
  * Remove `key' from the slist.
  * @return TRUE if the given key was found and remove, FALSE otherwise.
  */
-gboolean
-slist_remove(slist_t *slist, gpointer key)
+bool
+slist_remove(slist_t *slist, void *key)
 {
 	GSList *item, *prev;
 
@@ -303,10 +303,10 @@ slist_remove(slist_t *slist, gpointer key)
  *
  * @return the data pointer of the removed item, or NULL if there was no item.
  */
-gpointer
+void *
 slist_shift(slist_t *slist)
 {
-	gpointer data = NULL;
+	void *data = NULL;
 
 	slist_check(slist);
 	g_assert(1 == slist->refcount);
@@ -322,7 +322,7 @@ slist_shift(slist_t *slist)
 /**
  * @returns The data associated with the tail item, or NULL if none.
  */
-gpointer
+void *
 slist_tail(const slist_t *slist)
 {
 	slist_check(slist);
@@ -333,7 +333,7 @@ slist_tail(const slist_t *slist)
 /**
  * @returns the first item of the slist, or NULL if none.
  */
-gpointer
+void *
 slist_head(const slist_t *slist)
 {
 	slist_check(slist);
@@ -344,8 +344,8 @@ slist_head(const slist_t *slist)
 /**
  * Move entry to the head of the slist.
  */
-gboolean
-slist_moveto_head(slist_t *slist, gpointer key)
+bool
+slist_moveto_head(slist_t *slist, void *key)
 {
 	if (slist_remove(slist, key)) {
 		slist_prepend(slist, key);
@@ -357,8 +357,8 @@ slist_moveto_head(slist_t *slist, gpointer key)
 /**
  * Move entry to the tail of the slist.
  */
-gboolean
-slist_moveto_tail(slist_t *slist, gpointer key)
+bool
+slist_moveto_tail(slist_t *slist, void *key)
 {
 	if (slist_remove(slist, key)) {
 		slist_append(slist, key);
@@ -370,7 +370,7 @@ slist_moveto_tail(slist_t *slist, gpointer key)
 /**
  * @returns the length of the slist.
  */
-guint
+uint
 slist_length(const slist_t *slist)
 {
 	slist_check(slist);
@@ -382,7 +382,7 @@ slist_length(const slist_t *slist)
  * Get an iterator on the slist.
  */
 static slist_iter_t *
-slist_iter_new(const slist_t *slist, gboolean before, gboolean removable)
+slist_iter_new(const slist_t *slist, bool before, bool removable)
 {
 	slist_iter_t *iter;
 
@@ -411,7 +411,7 @@ slist_iter_new(const slist_t *slist, gboolean before, gboolean removable)
 		 * the "const" contract here (the abstract data type is not  changed).
 		 */
 
-		wslist = deconstify_gpointer(slist);
+		wslist = deconstify_pointer(slist);
 		wslist->refcount++;
 	} else {
 		iter = NULL;
@@ -465,7 +465,7 @@ slist_iter_removable_before_head(slist_t *slist)
  * Moves the iterator to the next element and returns its value.
  * If there is no next element, NULL is returned.
  */
-gpointer
+void *
 slist_iter_next(slist_iter_t *iter)
 {
 	slist_iter_check(iter);
@@ -479,7 +479,7 @@ slist_iter_next(slist_iter_t *iter)
 /**
  * Checks whether there is an item at the current position.
  */
-gboolean
+bool
 slist_iter_has_item(const slist_iter_t *iter)
 {
 	if (iter) {
@@ -490,7 +490,7 @@ slist_iter_has_item(const slist_iter_t *iter)
 	}
 }
 
-gboolean
+bool
 slist_iter_has_next(const slist_iter_t *iter)
 {
 	if (iter) {
@@ -501,7 +501,7 @@ slist_iter_has_next(const slist_iter_t *iter)
 	}
 }
 
-gpointer
+void *
 slist_iter_current(const slist_iter_t *iter)
 {
 	slist_iter_check(iter);
@@ -537,7 +537,7 @@ slist_iter_remove(slist_iter_t *iter)
 	 * was not a "const".
 	 */
 
-	slist_remove_item(deconstify_gpointer(iter->slist), prev, item);
+	slist_remove_item(deconstify_pointer(iter->slist), prev, item);
 	iter->prev = prev;
 	iter->stamp++;
 }
@@ -562,7 +562,7 @@ slist_iter_free(slist_iter_t **iter_ptr)
 		 * the "const" contract here (the abstract data type is not  changed).
 		 */
 
-		wslist = deconstify_gpointer(iter->slist);
+		wslist = deconstify_pointer(iter->slist);
 		wslist->refcount--;
 		iter->magic = 0;
 
@@ -575,9 +575,9 @@ slist_iter_free(slist_iter_t **iter_ptr)
  * Check whether slist contains the `key' whereas equality is determined
  * using `func'.
  */
-gboolean
-slist_contains(const slist_t *slist, gconstpointer key, GEqualFunc func,
-	gpointer *orig_key)
+bool
+slist_contains(const slist_t *slist, const void *key, GEqualFunc func,
+	void **orig_key)
 {
 	GSList *item;
 
@@ -598,19 +598,19 @@ slist_contains(const slist_t *slist, gconstpointer key, GEqualFunc func,
 /**
  * Check whether slist contains the `key'.
  */
-gboolean
-slist_contains_identical(const slist_t *slist, gconstpointer key)
+bool
+slist_contains_identical(const slist_t *slist, const void *key)
 {
 	slist_check(slist);
 
-	return NULL != g_slist_find(slist->head, deconstify_gpointer(key));
+	return NULL != g_slist_find(slist->head, deconstify_pointer(key));
 }
 
 /**
  * Apply `func' to all the items in the structure.
  */
 void
-slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
+slist_foreach(const slist_t *slist, GFunc func, void *user_data)
 {
 	slist_check(slist);
 	g_assert(func);
@@ -621,7 +621,7 @@ slist_foreach(const slist_t *slist, GFunc func, gpointer user_data)
 }
 
 static void
-slist_freecb_wrapper(gpointer data, gpointer user_data)
+slist_freecb_wrapper(void *data, void *user_data)
 {
 	slist_destroy_cb freecb = cast_pointer_to_func(user_data);
 	(*freecb)(data);

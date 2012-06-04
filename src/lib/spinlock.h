@@ -34,8 +34,10 @@
 #ifndef _spinlock_h_
 #define _spinlock_h_
 
+#include "atomic.h"		/* For atomic_lock_t */
+
 #if 1
-#define SPINLOCK_DEBUG
+#define SPINLOCK_DEBUG			/* Tracks where we take the lock */
 #endif
 
 enum spinlock_magic {
@@ -51,7 +53,7 @@ enum spinlock_magic {
  */
 typedef struct spinlock {
 	enum spinlock_magic magic;
-	int lock;
+	atomic_lock_t lock;
 #ifdef SPINLOCK_DEBUG
 	const char *file;
 	unsigned line;
@@ -71,28 +73,106 @@ typedef struct spinlock {
  * These should not be called directly by user code to allow debugging.
  */
 
-void spinlock_grab(spinlock_t *s);
-gboolean spinlock_grab_try(spinlock_t *s);
+void spinlock_grab(spinlock_t *s, bool hidden);
+bool spinlock_grab_try(spinlock_t *s, bool hidden);
+void spinlock_release(spinlock_t *s, bool hidden);
 
 /*
  * Public interface.
  */
 
 #ifdef SPINLOCK_DEBUG
-void spinlock_grab_from(spinlock_t *s, const char *file, unsigned line);
-gboolean spinlock_grab_try_from(spinlock_t *s, const char *file, unsigned line);
+void spinlock_grab_from(spinlock_t *s,
+	bool hidden, const char *file, unsigned line);
+bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
+	const char *file, unsigned line);
 
-#define spinlock(x)		spinlock_grab_from((x), _WHERE_, __LINE__)
-#define spinlock_try(x)	spinlock_grab_try_from((x), _WHERE_, __LINE__)
-#else
-#define spinlock(x)		spinlock_grab((x))
-#define spinlock_try(x)	spinlock_grab_try((x))
+/*
+ * Direction operations should only be used when locking and unlocking is
+ * always done from a single thread, thereby not requiring that atomic
+ * operations be used.
+ *
+ * These allow assertions like spinlock_is_held() without paying a huge
+ * cost to the locking / unlocking process.
+ */
+
+#define spinlock_direct(x) G_STMT_START {	\
+	(x)->lock = 1;							\
+	(x)->file = _WHERE_;					\
+	(x)->line = __LINE__;					\
+} G_STMT_END
+
+#define spinunlock_direct(x) G_STMT_START {	\
+	(x)->lock = 0;							\
+} G_STMT_END
+
+#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_hidden(x) \
+	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_hidden_try(x) \
+	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
+
+#else	/* !SPINLOCK_DEBUG */
+
+#define spinlock_direct(x) G_STMT_START {	\
+	(x)->lock = 1;							\
+} G_STMT_END
+
+#define spinunlock_direct(x) G_STMT_START {	\
+	(x)->lock = 0;							\
+} G_STMT_END
+
+#define spinlock(x)				spinlock_grab((x), FALSE)
+#define spinlock_hidden(x)		spinlock_grab((x), TRUE)
+#define spinlock_try(x)			spinlock_grab_try((x), FALSE)
+#define spinlock_hidden_try(x)	spinlock_grab_try((x), TRUE)
+
 #endif	/* SPINLOCK_DEBUG */
+
+#define spinunlock(x)			spinlock_release((x), FALSE)
+#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);
-void spinunlock(spinlock_t *s);
-gboolean spinlock_is_held(const spinlock_t *s);
+void spinlock_crash_mode(void);
+
+#if defined(SPINLOCK_SOURCE) || defined(MUTEX_SOURCE)
+
+enum spinlock_source {
+	SPINLOCK_SRC_SPINLOCK,
+	SPINLOCK_SRC_MUTEX
+};
+
+const char *spinlock_source_string(enum spinlock_source src);
+
+/**
+ * Callback to signal possible deadlocking condition.
+ */
+typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned);
+
+/**
+ * Callback to abort on definitive deadlocking condition.
+ */
+typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned);
+
+void spinlock_loop(volatile spinlock_t *s,
+	enum spinlock_source src, const volatile void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked);
+
+#endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
+
+/**
+ * Check that spinlock is held, for assertions.
+ */
+static inline bool NON_NULL_PARAM((1))
+spinlock_is_held(const spinlock_t *s)
+{
+	/* Make this fast, no assertion on the spinlock validity */
+	return s->lock != 0;
+}
 
 #endif /* _spinlock_h_ */
 

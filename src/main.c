@@ -121,6 +121,7 @@
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
 #include "lib/exit.h"
+#include "lib/htable.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -142,6 +143,7 @@
 #include "lib/tea.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
+#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
@@ -184,13 +186,13 @@ static volatile sig_atomic_t from_atexit;
 static volatile sig_atomic_t signal_received;
 static volatile sig_atomic_t shutdown_requested;
 static volatile sig_atomic_t sig_hup_received;
-static gboolean asynchronous_exit;
+static bool asynchronous_exit;
 static enum shutdown_mode shutdown_user_mode = GTKG_SHUTDOWN_NORMAL;
 static unsigned shutdown_user_flags;
 static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
-static gboolean main_timer(void *);
+static bool main_timer(void *);
 
 #ifdef SIGALRM
 /**
@@ -252,7 +254,7 @@ sig_malloc(int n)
 /**
  * Are we debugging anything at a level greater than some threshold "t"?
  */
-gboolean
+bool
 debugging(guint t)
 {
 	return
@@ -293,6 +295,34 @@ debugging(guint t)
 
 		/* Above line left blank for easy "!}sort" under vi */
 		0;
+}
+
+/**
+ * @reeturn GTK version string, or NULL if not compiled with GTK.
+ */
+const char *
+gtk_version_string(void)
+{
+#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
+	static char buf[80];
+
+	if ('\0' == buf[0]) {
+		str_bprintf(buf, sizeof buf, "Gtk+ %u.%u.%u",
+				gtk_major_version, gtk_minor_version, gtk_micro_version);
+		if (
+				GTK_MAJOR_VERSION != gtk_major_version ||
+				GTK_MINOR_VERSION != gtk_minor_version ||
+				GTK_MICRO_VERSION != gtk_micro_version
+		   ) {
+			str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+					GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
+		}
+	}
+
+	return buf;
+#else
+	return NULL;
+#endif	/* Gtk+ */
 }
 
 /**
@@ -457,7 +487,7 @@ gtk_gnutella_exit(int exit_code)
 	static volatile sig_atomic_t safe_to_exit;
 	time_t exit_time = time(NULL);
 	time_delta_t exit_grace = EXIT_GRACE;
-	gboolean byeall = TRUE;
+	bool byeall = TRUE;
 
 	if (exiting) {
 		if (safe_to_exit) {
@@ -682,7 +712,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(pmsg_close);
 	DO(version_close);
 	DO(ignore_close);
-	DO(eval_close);
 	DO(iso3166_close);
 	atom_str_free_null(&start_rfc822_date);
 	DO(adns_close);
@@ -715,6 +744,26 @@ gtk_gnutella_exit(int exit_code)
 	DO(xmalloc_pre_close);
 	DO(vmm_close);
 	DO(signal_close);
+
+	/*
+	 * Wait for pending messages from other threads.
+	 */
+
+	exit_time = time(NULL);
+	exit_grace = 10;
+
+	while (0 != thread_pending_count()) {
+		time_t now = time(NULL);
+		time_delta_t d;
+
+		if (signal_received)
+			break;
+
+		if ((d = delta_time(now, exit_time)) >= exit_grace)
+			break;
+
+		do_sched_yield();
+	}
 
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("gtk-gnutella shut down cleanly.");
@@ -794,7 +843,7 @@ static struct {
 	const char * const summary;
 	const enum arg_type type;
 	const char *arg;	/* memory will be allocated via halloc() */
-	gboolean used;
+	bool used;
 } options[] = {
 #define OPTION(name, type, summary) \
 	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
@@ -860,7 +909,7 @@ underscore_to_hyphen(char c)
  *
  * @return whether the two strings qualify as equivalent or not.
  */
-static gboolean
+static bool
 option_match(const char *a, const char *b)
 {
 	g_assert(a);
@@ -1156,7 +1205,7 @@ slow_main_timer(time_t now)
 	 */
 
 	if (0 == j++ % 2) {
-		cq_idle(callout_queue);
+		cq_main_idle();
 	}
 }
 
@@ -1179,6 +1228,7 @@ check_cpu_usage(void)
 	double elapsed;
 	double cpu_percent;
 	double coverage;
+	cqueue_t *cqm = cq_main();
 
 	/*
 	 * Compute CPU time used this period.
@@ -1192,13 +1242,13 @@ check_cpu_usage(void)
 	cpu_percent = 100.0 * (cpu - last_cpu) / elapsed;
 	cpu_percent = MIN(cpu_percent, 100.0);
 
-	coverage = callout_queue_coverage(ticks);
+	coverage = cq_main_coverage(ticks);
 	coverage = MAX(coverage, 0.001);	/* Prevent division by zero */
 
 	if (GNET_PROPERTY(cq_debug) > 2) {
 		g_debug("CQ: callout queue \"%s\" items=%d ticks=%d coverage=%d%%",
-			cq_name(callout_queue), cq_count(callout_queue),
-			cq_ticks(callout_queue), (int) (coverage * 100.0 + 0.5));
+			cq_name(cqm), cq_count(cqm),
+			cq_ticks(cqm), (int) (coverage * 100.0 + 0.5));
 	}
 
 	/*
@@ -1260,7 +1310,7 @@ check_cpu_usage(void)
 
 	last_cpu = cpu;
 	last_tm = cur_tm;		/* Struct copy */
-	ticks = cq_ticks(callout_queue);
+	ticks = cq_ticks(cqm);
 
 	/*
 	 * Check whether we're overloaded, or if we were, whether we decreased
@@ -1284,7 +1334,7 @@ check_cpu_usage(void)
 /**
  * Main timer routine, called once per second.
  */
-static gboolean
+static bool
 main_timer(void *unused_data)
 {
 	time_t now;
@@ -1296,7 +1346,7 @@ main_timer(void *unused_data)
 			g_warning("caught %s, exiting...", signal_name(signal_received));
 		}
 		asynchronous_exit = TRUE;
- 		gtk_gnutella_exit(EXIT_FAILURE);
+ 		gtk_gnutella_exit(EXIT_SUCCESS);
 	}
 
 	now = check_cpu_usage();
@@ -1353,10 +1403,10 @@ main_timer(void *unused_data)
 /**
  * Called when the main callout queue is idle.
  */
-static gboolean
+static bool
 callout_queue_idle(void *unused_data)
 {
-	gboolean overloaded = GNET_PROPERTY(overloaded_cpu);
+	bool overloaded = GNET_PROPERTY(overloaded_cpu);
 
 	(void) unused_data;
 
@@ -1408,41 +1458,7 @@ initialize_logfiles(void)
 static void
 handle_version_argument(void)
 {
-	printf("%s\n", version_build_string());
-
-#ifndef OFFICIAL_BUILD
-	printf("(unofficial build, accessing \"%s\")\n", PACKAGE_SOURCE_DIR);
-#endif
-
-	printf("GLib %u.%u.%u",
-			glib_major_version, glib_minor_version, glib_micro_version);
-	if (
-			GLIB_MAJOR_VERSION != glib_major_version ||
-			GLIB_MINOR_VERSION != glib_minor_version ||
-			GLIB_MICRO_VERSION != glib_micro_version
-	   ) {
-		printf(" (compiled against %u.%u.%u)",
-				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
-	}
-	printf("\n");
-
-#if defined(GTK_MAJOR_VERSION) && defined(GTK_MINOR_VERSION)
-	printf("Gtk+ %u.%u.%u",
-			gtk_major_version, gtk_minor_version, gtk_micro_version);
-	if (
-			GTK_MAJOR_VERSION != gtk_major_version ||
-			GTK_MINOR_VERSION != gtk_minor_version ||
-			GTK_MICRO_VERSION != gtk_micro_version
-	   ) {
-		printf(" (compiled against %u.%u.%u)",
-				GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
-	}
-	printf("\n");
-#endif	/* Gtk+ */
-
-	if (tls_version_string()) {
-		printf("%s\n", tls_version_string());
-	}
+	version_string_dump();
 	exit(EXIT_SUCCESS);
 }
 
@@ -1602,8 +1618,8 @@ main_command_line(void)
 int
 main(int argc, char **argv)
 {
-	int sp;
 	size_t str_discrepancies;
+	int first_fd;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -1626,10 +1642,17 @@ main(int argc, char **argv)
 	 * This must be run before we allocate memory because we might
 	 * use mmap() with /dev/zero and then accidently close this
 	 * file descriptor.
+	 *
+	 * We rely on fd_first_available() to tell us the next file descriptor
+	 * that will be used by open().  We used to hardwire the value 3 here,
+	 * but this is wrong as we cannot assume that a low-level library will
+	 * not request a file descriptor before we reach this point.
+	 *		--RAM, 2012-06-03
 	 */
 
-	close_file_descriptors(3); /* Just in case */
-		
+	first_fd = fd_first_available();
+	close_file_descriptors(first_fd);	/* Just in case */
+
 	if (reserve_standard_file_descriptors()) {
 		fprintf(stderr, "unable to reserve standard file descriptors\n");
 		exit(EXIT_FAILURE);
@@ -1642,7 +1665,7 @@ main(int argc, char **argv)
 
 	/* Initialize memory allocators -- order is important */
 
-	vmm_init(&sp);
+	vmm_init();
 	signal_init();
 	halloc_init(!options[main_arg_no_halloc].used);
 	malloc_init_vtable();
@@ -1725,8 +1748,6 @@ main(int argc, char **argv)
 
 	mingw_init();
 	atoms_init();
-	log_atoms_inited();		/* Atom layer is up */
-	eval_init();
 	settings_early_init();
 
 	/*
@@ -1780,6 +1801,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
+	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
 	tiger_check();

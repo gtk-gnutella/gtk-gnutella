@@ -103,11 +103,15 @@
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hash.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
+#include "lib/hikset.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/iovec.h"
-#include "lib/log.h"			/* For log_printable() */
 #include "lib/listener.h"
+#include "lib/log.h"			/* For log_printable() */
 #include "lib/nid.h"
 #include "lib/parse.h"
 #include "lib/pattern.h"
@@ -184,8 +188,8 @@ const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
 static GSList *sl_nodes;
 static GSList *sl_up_nodes;
-static GHashTable *nodes_by_id;
-static GHashTable *nodes_by_guid;
+static hikset_t *nodes_by_id;
+static hikset_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
 static gnutella_node_t *dht_node;
@@ -203,13 +207,13 @@ static cpattern_t *pat_f2ft_1;
 static const char gtkg_vendor[] = "gtk-gnutella/";
 
 /* These two contain connected and connectING(!) nodes. */
-static GHashTable *ht_connected_nodes   = NULL;
-static guint32 total_nodes_connected;
+static htable_t *ht_connected_nodes   = NULL;
+static uint32 total_nodes_connected;
 
 static void *no_metadata;
 #define NO_METADATA		(no_metadata)	/**< No metadata for host */
 
-static GHashTable *unstable_servent = NULL;
+static htable_t *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
 
 static aging_table_t *tcp_crawls;
@@ -225,14 +229,14 @@ static int node_error_threshold = 6;
 static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 
 static pproxy_set_t *proxies;	/* Our push proxies */
-static guint32 shutdown_nodes;
-static gboolean allow_gnet_connections = FALSE;
+static uint32 shutdown_nodes;
+static bool allow_gnet_connections = FALSE;
 
 /**
  * Structure used for asynchronous reaction to peer mode changes.
  */
 static struct {
-	gboolean changed;
+	bool changed;
 	node_peer_t new;
 } peermode = { FALSE, NODE_P_UNKNOWN };
 
@@ -246,12 +250,12 @@ enum node_bad {
 	NODE_BAD_NO_VENDOR		/**< Node has no vendor string */
 };
 
-static guint connected_node_cnt = 0;
-static guint compressed_node_cnt = 0;
-static guint compressed_leaf_cnt = 0;
+static uint connected_node_cnt = 0;
+static uint compressed_node_cnt = 0;
+static uint compressed_leaf_cnt = 0;
 static int pending_byes = 0;			/* Used when shutdowning servent */
-static gboolean in_shutdown = FALSE;
-static guint32 leaf_to_up_switch = NODE_AUTO_SWITCH_MIN;
+static bool in_shutdown = FALSE;
+static uint32 leaf_to_up_switch = NODE_AUTO_SWITCH_MIN;
 static time_t no_leaves_connected = 0;
 
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
@@ -259,13 +263,13 @@ static const char no_reason[] = "<no reason>"; /* Don't translate this */
 static query_hashvec_t *query_hashvec;
 
 static void node_disable_read(struct gnutella_node *n);
-static gboolean node_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static bool node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
-static void call_node_process_handshake_ack(gpointer obj, header_t *header);
+static void call_node_process_handshake_ack(void *obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n,
 				struct routing_table *query_table);
 static void node_send_patch_step(struct gnutella_node *n);
-static void node_bye_flags(guint32 mask, int code, const char *message);
+static void node_bye_flags(uint32 mask, int code, const char *message);
 static void node_bye_all_but_one(struct gnutella_node *nskip,
 				int code, const char *message);
 static void node_set_current_peermode(node_peer_t mode);
@@ -273,9 +277,9 @@ static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
 static gnutella_node_t *node_dht_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
-static gboolean node_remove_useless_leaf(gboolean *is_gtkg);
-static gboolean node_remove_useless_ultra(gboolean *is_gtkg);
-static gboolean node_remove_uncompressed_ultra(gboolean *is_gtkg);
+static bool node_remove_useless_leaf(bool *is_gtkg);
+static bool node_remove_useless_ultra(bool *is_gtkg);
+static bool node_remove_uncompressed_ultra(bool *is_gtkg);
 
 /***
  *** Callbacks
@@ -368,49 +372,36 @@ node_fire_node_flags_changed(gnutella_node_t *n)
  * Free atom string key from hash table.
  */
 static void
-free_key(gpointer key, gpointer unused_val, gpointer unused_x)
+free_key(void *key, void *unused_x)
 {
-	(void) unused_val;
 	(void) unused_x;
 	atom_str_free(key);
-}
-
-/**
- * Free atom string key from hash table and return TRUE.
- */
-static gboolean
-free_key_true(gpointer key, gpointer unused_val, gpointer unused_x)
-{
-	(void) unused_val;
-	(void) unused_x;
-	atom_str_free(key);
-	return TRUE;
 }
 
 /**
  * Clear hash table whose keys are atoms and values ignored.
  */
 static void
-string_table_clear(GHashTable *ht)
+string_table_clear(struct hash *h)
 {
-	g_assert(ht != NULL);
+	g_assert(h != NULL);
 
-	g_hash_table_foreach_remove(ht, free_key_true, NULL);
+	hash_foreach(h, free_key, NULL);
+	hash_clear(h);
 }
 
 /**
  * Dispose of hash table whose keys are atoms and values ignored.
  */
 static void
-string_table_free(GHashTable **ht_ptr)
+string_table_free(struct hash **h_ptr)
 {
-	g_assert(ht_ptr);
-	if (*ht_ptr) {
-		GHashTable *ht = *ht_ptr;
+	struct hash *h = *h_ptr;
 
-		g_hash_table_foreach(ht, free_key, NULL);
-		g_hash_table_destroy(ht);
-		*ht_ptr = NULL;
+	if (h != NULL) {
+		hash_foreach(h, free_key, NULL);
+		hash_free(h);
+		*h_ptr = NULL;
 	}
 }
 
@@ -431,7 +422,7 @@ node_send_udp_ping(struct gnutella_node *n)
  * Send "Time Sync" via UDP if we know the remote IP:port, via TCP otherwise.
  */
 static void
-node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
+node_tsync_udp(cqueue_t *unused_cq, void *obj)
 {
 	gnutella_node_t *n = obj;
 	gnutella_node_t *udp = NULL, *tn;
@@ -505,37 +496,38 @@ node_tsync_tcp(gnutella_node_t *n)
 /**
  * Check whether we already have the host.
  */
-static gboolean
-node_ht_connected_nodes_has(const host_addr_t addr, guint16 port)
+static bool
+node_ht_connected_nodes_has(const host_addr_t addr, uint16 port)
 {
 	gnet_host_t  host;
 
 	gnet_host_set(&host, addr, port);
-	return NULL != g_hash_table_lookup(ht_connected_nodes, &host);
+	return NULL != htable_lookup(ht_connected_nodes, &host);
 }
 
 /**
  * Check whether we already have the host.
+ *
+ * @return the original host structure at this IP:port, or NULL if unknown.
  */
 static gnet_host_t *
-node_ht_connected_nodes_find(const host_addr_t addr, guint16 port)
+node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
 {
-	gnet_host_t  host;
-    gboolean     found;
-    gpointer	 orig_host, metadata;
+	gnet_host_t host;
+    bool found;
+    const void *orig_host;
 
 	gnet_host_set(&host, addr, port);
-	found = g_hash_table_lookup_extended(ht_connected_nodes, &host,
-				&orig_host, &metadata);
+	found = htable_lookup_extended(ht_connected_nodes, &host, &orig_host, NULL);
 
-    return found ? orig_host : NULL;
+    return found ? deconstify_pointer(orig_host) : NULL;
 }
 
 /**
  * Add host to the hash table host cache.
  */
 static void
-node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
+node_ht_connected_nodes_add(const host_addr_t addr, uint16 port)
 {
 	/* This is done unconditionally, whether we add host to table or not */
 	total_nodes_connected++;
@@ -543,27 +535,26 @@ node_ht_connected_nodes_add(const host_addr_t addr, guint16 port)
     if (node_ht_connected_nodes_has(addr, port))
         return;
 
-	g_hash_table_insert(ht_connected_nodes,
-		gnet_host_new(addr, port), NO_METADATA);
+	htable_insert(ht_connected_nodes, gnet_host_new(addr, port), NO_METADATA);
 }
 
 /**
  * Remove host from the hash table host cache.
  */
 static void
-node_ht_connected_nodes_remove(const host_addr_t addr, guint16 port)
+node_ht_connected_nodes_remove(const host_addr_t addr, uint16 port)
 {
     gnet_host_t *orig_host;
 
     orig_host = node_ht_connected_nodes_find(addr, port);
 
     if (orig_host) {
-		g_hash_table_remove(ht_connected_nodes, orig_host);
+		htable_remove(ht_connected_nodes, orig_host);
 		gnet_host_free(orig_host);
 	}
 
 	/* This is done unconditionally, whether host was in table or not */
-	g_assert(guint32_is_positive(total_nodes_connected));
+	g_assert(uint32_is_positive(total_nodes_connected));
 	total_nodes_connected--;
 }
 
@@ -578,13 +569,13 @@ message_dump(const struct gnutella_node *n)
 	printf("TTL = %u ", gnutella_header_get_ttl(&n->header));
 	printf("hops = %u ", gnutella_header_get_hops(&n->header));
 
-	printf(" data = %u", (guint) gmsg_size(&n->header));
+	printf(" data = %u", (uint) gmsg_size(&n->header));
 
 	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_INIT_RESPONSE:
 		{
-			guint32 ip, count, total;
-			guint16 port;
+			uint32 ip, count, total;
+			uint16 port;
 
 			port = peek_le16(n->data);
 			ip = peek_be32(n->data + 2);
@@ -597,8 +588,8 @@ message_dump(const struct gnutella_node *n)
 		break;
 	case GTA_MSG_PUSH_REQUEST:
 		{
-			guint32 ip, idx;
-			guint16 port;
+			uint32 ip, idx;
+			uint16 port;
 
 			idx = peek_le32(n->data + 16);
 			ip = peek_be32(n->data + 20);
@@ -616,7 +607,7 @@ message_dump(const struct gnutella_node *n)
 /**
  * Check whether node is a gtk-gnutella node.
  */
-static inline gboolean
+static inline bool
 node_is_gtkg(const struct gnutella_node *n)
 {
 	return 0 != (NODE_F_GTKG & n->flags);
@@ -627,7 +618,7 @@ node_is_gtkg(const struct gnutella_node *n)
  */
 static void
 node_extract_host(const struct gnutella_node *n,
-	host_addr_t *ha, guint16 *port)
+	host_addr_t *ha, uint16 *port)
 {
 	/* Read Query Hit info */
 
@@ -638,18 +629,18 @@ node_extract_host(const struct gnutella_node *n,
 /**
  * Check the Ultrapeer requirements, returning TRUE if we can become an UP.
  */
-static gboolean
+static bool
 can_become_ultra(time_t now)
 {
-	gboolean avg_servent_uptime;
-	gboolean avg_ip_uptime;
-	gboolean node_uptime;
-	gboolean not_firewalled;
-	gboolean good_udp_support;
-	gboolean enough_conn;
-	gboolean enough_fd;
-	gboolean enough_mem;
-	gboolean enough_bw;
+	bool avg_servent_uptime;
+	bool avg_ip_uptime;
+	bool node_uptime;
+	bool not_firewalled;
+	bool good_udp_support;
+	bool enough_conn;
+	bool enough_fd;
+	bool enough_mem;
+	bool enough_bw;
 	const char *ok = "** OK **";
 	const char *no = "-- NO --";
 
@@ -797,7 +788,7 @@ void
 node_slow_timer(time_t now)
 {
 	static time_t last_fw_check;
-	gboolean need_fw_check = FALSE;
+	bool need_fw_check = FALSE;
 
 	/*
 	 * If we are firewalled, periodically request connect-back from random
@@ -851,7 +842,7 @@ node_slow_timer(time_t now)
 
 		if (!last_ping || delta_time(now, last_ping) > 120) {
 			host_addr_t addr;
-			guint16 port;
+			uint16 port;
 			
 			last_ping = now;
 			if (hcache_get_caught(HOST_ANY, &addr, &port)) {
@@ -999,8 +990,8 @@ node_slow_timer(time_t now)
 /**
  * Periodic event to cleanup error data structures.
  */
-static gboolean
-node_error_cleanup(gpointer unused_x)
+static bool
+node_error_cleanup(void *unused_x)
 {
 	GSList *sl;
 	GSList *to_remove = NULL;
@@ -1025,7 +1016,7 @@ node_error_cleanup(gpointer unused_x)
 		if (GNET_PROPERTY(node_debug) > 1)
 			g_warning("[nodes up] Unbanning client: %s", bad_node->vendor);
 
-		g_hash_table_remove(unstable_servent, bad_node->vendor);
+		htable_remove(unstable_servent, bad_node->vendor);
 		unstable_servents = g_slist_remove(unstable_servents, bad_node);
 
 		atom_str_free_null(&bad_node->vendor);
@@ -1094,7 +1085,7 @@ node_supports_dht(struct gnutella_node *n, dht_mode_t mode)
 		pcache_collect_dht_hosts(n);
 }
 
-static gboolean
+static bool
 node_str_match(const char *str, size_t len, const cpattern_t *pat)
 {
 	return NULL != pattern_qsearch(pat, str, len, 0, qs_any);
@@ -1109,7 +1100,7 @@ node_str_match(const char *str, size_t len, const cpattern_t *pat)
 void
 node_supported_vmsg(struct gnutella_node *n, const char *str, size_t len)
 {
-	gboolean expect_features = FALSE;
+	bool expect_features = FALSE;
 
 	node_check(n);
 
@@ -1404,8 +1395,8 @@ node_timer(time_t now)
 				NODE_IS_ESTABLISHED(n) &&
 				delta_time(now, n->last_rx) > n->alive_period
 			) {
-				guint32 last;
-				guint32 avg;
+				uint32 last;
+				uint32 avg;
 				time_delta_t period;
 
 				/*
@@ -1458,7 +1449,7 @@ node_timer(time_t now)
 				) {
 					time_delta_t total;
 					double fc_ratio;
-					guint32 max_ratio;
+					uint32 max_ratio;
 
 					/*
 					 * If we're a leaf node, we allow the ultrapeer to flow
@@ -1489,7 +1480,7 @@ node_timer(time_t now)
 					fc_ratio = (double) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
 					fc_ratio *= 100.0;
 
-					if ((guint32) fc_ratio > max_ratio) {
+					if ((uint32) fc_ratio > max_ratio) {
 						node_bye(n, 405,
 							"Remotely flow-controlled too often "
 							"(%.2f%% > %d%% of time)", fc_ratio, max_ratio);
@@ -1515,13 +1506,13 @@ node_timer(time_t now)
 			delta_time(now, n->qrelayed_created) >=
 				(time_delta_t) GNET_PROPERTY(node_queries_half_life)
 		) {
-			GHashTable *new;
+			hset_t *new;
 
 			if (n->qrelayed_old != NULL) {
 				new = n->qrelayed_old;
-				string_table_clear(new);
+				string_table_clear(hset_cast_to_hash(new));
 			} else
-				new = g_hash_table_new(g_str_hash, g_str_equal);
+				new = hset_create(HASH_KEY_STRING, 0);
 
 			n->qrelayed_old = n->qrelayed;
 			n->qrelayed = new;
@@ -1532,7 +1523,7 @@ node_timer(time_t now)
 	sq_process(sq_global_queue(), now);
 }
 
-gboolean
+bool
 node_id_self(const struct nid *node_id)
 {
 	return 0 == nid_value(node_id);
@@ -1546,15 +1537,11 @@ node_id_get_self(void)
 }
 
 static struct nid *
-node_id_new(const struct gnutella_node *n)
+node_id_new(void)
 {
 	static struct nid counter;
-	struct nid *node_id;
 
-	node_check(n);
-	node_id = nid_new_counter(&counter);
-	gm_hash_table_insert_const(nodes_by_id, node_id, n);
-	return node_id;
+	return nid_new_counter(&counter);
 }
 
 /**
@@ -1567,7 +1554,7 @@ node_init(void)
 
 	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 
-	no_metadata = deconstify_gpointer(vmm_trap_page());
+	no_metadata = deconstify_pointer(vmm_trap_page());
 	rxbuf_init();
 	proxies = pproxy_set_allocate(0);
 
@@ -1578,10 +1565,14 @@ node_init(void)
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
-	unstable_servent   = g_hash_table_new(NULL, NULL);
-    ht_connected_nodes = g_hash_table_new(gnet_host_hash, gnet_host_eq);
-	nodes_by_id        = g_hash_table_new(nid_hash, nid_equal);
-	nodes_by_guid      = g_hash_table_new(guid_hash, guid_eq);
+	unstable_servent   = htable_create(HASH_KEY_SELF, 0);
+    ht_connected_nodes = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	nodes_by_id        = hikset_create_any(
+							offsetof(struct gnutella_node, id),
+							nid_hash, nid_equal);
+	nodes_by_guid      = hikset_create(
+							offsetof(struct gnutella_node, guid),
+							HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
 	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
@@ -1673,7 +1664,7 @@ node_set_socket_rx_size(int rx_size)
 /**
  * @return amount of nodes to whom we are connected.
  */
-guint
+uint
 connected_nodes(void)
 {
 	return connected_node_cnt;
@@ -1683,7 +1674,7 @@ connected_nodes(void)
  * @return amount of established + initiated connections to ultra nodes,
  * not counting the established connections that are being shutdown.
  */
-guint
+uint
 node_count(void)
 {
 	unsigned count = total_nodes_connected - shutdown_nodes -
@@ -1738,7 +1729,7 @@ node_keep_missing(void)
  *
  * @return 0 if none.
  */
-guint
+uint
 node_missing(void)
 {
 	int missing;
@@ -1769,7 +1760,7 @@ node_missing(void)
 /**
  * Amount of leaves we're missing (0 if not in ultra mode).
  */
-guint
+uint
 node_leaves_missing(void)
 {
 	int missing;
@@ -1786,7 +1777,7 @@ node_leaves_missing(void)
  * @return this node's outdegree, i.e. the maximum amount of peer connections
  * that we can support.
  */
-guint
+uint
 node_outdegree(void)
 {
 	switch ((node_peer_t) GNET_PROPERTY(current_peermode)) {
@@ -1812,7 +1803,7 @@ node_outdegree(void)
  * The major and minor are returned in `major' and `minor' respectively.
  */
 static void
-get_protocol_version(const char *handshake, guint *major, guint *minor)
+get_protocol_version(const char *handshake, uint *major, uint *minor)
 {
 	const char *s;
 
@@ -1839,15 +1830,15 @@ node_type_count_dec(const struct gnutella_node *n)
 {
 	switch (n->peermode) {
 	case NODE_P_LEAF:
-		g_assert(guint32_is_positive(GNET_PROPERTY(node_leaf_count)));
+		g_assert(uint32_is_positive(GNET_PROPERTY(node_leaf_count)));
 		gnet_prop_decr_guint32(PROP_NODE_LEAF_COUNT);
 		return;
 	case NODE_P_NORMAL:
-		g_assert(guint32_is_positive(GNET_PROPERTY(node_normal_count)));
+		g_assert(uint32_is_positive(GNET_PROPERTY(node_normal_count)));
 		gnet_prop_decr_guint32(PROP_NODE_NORMAL_COUNT);
 		return;
 	case NODE_P_ULTRA:
-		g_assert(guint32_is_positive(GNET_PROPERTY(node_ultra_count)));
+		g_assert(uint32_is_positive(GNET_PROPERTY(node_ultra_count)));
 		gnet_prop_decr_guint32(PROP_NODE_ULTRA_COUNT);
 		return;
 	case NODE_P_AUTO:
@@ -1887,7 +1878,7 @@ node_real_remove(gnutella_node_t *n)
     node_fire_node_removed(n);
 
 	sl_nodes = g_slist_remove(sl_nodes, n);
-	g_hash_table_remove(nodes_by_id, NODE_ID(n));
+	hikset_remove(nodes_by_id, NODE_ID(n));
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -2107,11 +2098,11 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 		pproxy_set_remove(proxies, n->proxy_addr, n->proxy_port);
 		pdht_prox_publish_if_changed();
 	}
-	string_table_free(&n->qseen);
-	string_table_free(&n->qrelayed);
-	string_table_free(&n->qrelayed_old);
+	string_table_free(htable_ptr_cast_to_hash(&n->qseen));
+	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed));
+	string_table_free(hset_ptr_cast_to_hash(&n->qrelayed_old));
 	if (n->guid) {
-		g_hash_table_remove(nodes_by_guid, n->guid);
+		hikset_remove(nodes_by_guid, n->guid);
 		atom_guid_free_null(&n->guid);
 	}
 	if (n->attrs & NODE_A_CAN_HSEP)
@@ -2219,7 +2210,7 @@ node_is_bad(struct gnutella_node *n)
 	if (!GNET_PROPERTY(node_monitor_unstable_servents))
 		return NODE_BAD_OK;	/* No monitoring of unstable servents */
 
-	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	bad_client = htable_lookup(unstable_servent, n->vendor);
 
 	if (bad_client == NULL)
 		return NODE_BAD_OK;
@@ -2301,13 +2292,12 @@ node_mark_bad_vendor(struct gnutella_node *n)
 
 	g_assert(n->vendor != NULL);
 
-	bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	bad_client = htable_lookup(unstable_servent, n->vendor);
 	if (bad_client == NULL) {
 		WALLOC0(bad_client);
 		bad_client->errors = 0;
 		bad_client->vendor = atom_str_get(n->vendor);
-		gm_hash_table_insert_const(unstable_servent,
-			bad_client->vendor, bad_client);
+		htable_insert(unstable_servent, bad_client->vendor, bad_client);
 		unstable_servents = g_slist_prepend(unstable_servents, bad_client);
 	}
 
@@ -2332,12 +2322,12 @@ node_mark_bad_vendor(struct gnutella_node *n)
  * host contacting the web caches just because it cannot fulfill its
  * anti-monopoly requirements.
  */
-static gboolean
+static bool
 node_avoid_monopoly(struct gnutella_node *n)
 {
-	guint up_cnt = 0;
-	guint leaf_cnt = 0;
-	guint normal_cnt = 0;
+	uint up_cnt = 0;
+	uint leaf_cnt = 0;
+	uint normal_cnt = 0;
 	GSList *sl;
 
 	g_assert(UNSIGNED(GNET_PROPERTY(unique_nodes) <= 100));
@@ -2446,12 +2436,12 @@ node_avoid_monopoly(struct gnutella_node *n)
  *
  * @return TRUE if we should reserve the slot for GTKG, i.e. refuse `n'.
  */
-static gboolean
+static bool
 node_reserve_slot(struct gnutella_node *n)
 {
-	guint up_cnt = 0;		/* GTKG UPs */
-	guint leaf_cnt = 0;		/* GTKG leafs */
-	guint normal_cnt = 0;	/* GTKG normal nodes */
+	uint up_cnt = 0;		/* GTKG UPs */
+	uint leaf_cnt = 0;		/* GTKG leafs */
+	uint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
 
 	g_assert(UNSIGNED(GNET_PROPERTY(reserve_gtkg_nodes)) <= 100);
@@ -2517,7 +2507,7 @@ node_reserve_slot(struct gnutella_node *n)
 			gtkg_min = GNET_PROPERTY(reserve_gtkg_nodes) * max / 100;
 
 			if (GNET_PROPERTY(node_ultra_count) >= max + up_cnt - gtkg_min) {
-				gboolean is_gtkg;
+				bool is_gtkg;
 
 				if (node_remove_useless_ultra(&is_gtkg) && is_gtkg)
 					up_cnt--;
@@ -2541,7 +2531,7 @@ node_reserve_slot(struct gnutella_node *n)
 				GNET_PROPERTY(node_leaf_count)
 					>= GNET_PROPERTY(max_leaves) + leaf_cnt - gtkg_min
 			) {
-				gboolean is_gtkg;
+				bool is_gtkg;
 				if (node_remove_useless_leaf(&is_gtkg) && is_gtkg)
 					leaf_cnt--;
 			}
@@ -2634,11 +2624,11 @@ node_remove(struct gnutella_node *n, const char *reason, ...)
  *			   connected to us.
  * @return The number of nodes that have been removed.
  */
-guint
-node_remove_by_addr(const host_addr_t addr, guint16 port)
+uint
+node_remove_by_addr(const host_addr_t addr, uint16 port)
 {
 	const GSList *sl;
-	guint n_removed = 0;
+	uint n_removed = 0;
 
 	for (sl = sl_nodes; sl; /* empty */) {
 		const struct gnutella_node *n = sl->data;
@@ -2726,7 +2716,7 @@ node_eof(struct gnutella_node *n, const char *reason, ...)
  * and make sure we flush the buffers at the fastest possible speed.
  */
 static void
-node_shutdown_mode(struct gnutella_node *n, guint32 delay)
+node_shutdown_mode(struct gnutella_node *n, uint32 delay)
 {
 
 	/*
@@ -2978,8 +2968,8 @@ node_bye_if_writable(
  * only one incoming connection per IP, even when there are several
  * instances, all on different ports.
  */
-gboolean
-node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
+bool
+node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
 {
 	if (is_my_address_and_port(addr, port)) {
 		return TRUE;
@@ -3014,8 +3004,8 @@ node_is_connected(const host_addr_t addr, guint16 port, gboolean incoming)
 /**
  * Are we directly connected to that host?
  */
-gboolean
-node_host_is_connected(const host_addr_t addr, guint16 port)
+bool
+node_host_is_connected(const host_addr_t addr, uint16 port)
 {
 	/* Check our local address */
 
@@ -3101,7 +3091,7 @@ node_gtkg_cmp(const void *np1, const void *np2)
  * @return success status, FALSE meaning the message was accounted as dropped
  * already.
  */
-static gboolean
+static bool
 node_inflate_payload(gnutella_node_t *n)
 {
 	int outlen = payload_inflate_buffer_len;
@@ -3196,13 +3186,13 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (NODE_IS_ULTRA(cn)) {
-			g_assert((guint) ux < GNET_PROPERTY(node_ultra_count));
+			g_assert((uint) ux < GNET_PROPERTY(node_ultra_count));
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (NODE_IS_LEAF(cn)) {
-			g_assert((guint) lx < GNET_PROPERTY(node_leaf_count));
+			g_assert((uint) lx < GNET_PROPERTY(node_leaf_count));
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -3309,7 +3299,7 @@ send_error(
 	char msg_tmp[256];
 	size_t rw;
 	ssize_t sent;
-	gboolean saturated = bsched_saturated(BSCHED_BWS_GOUT);
+	bool saturated = bsched_saturated(BSCHED_BWS_GOUT);
 	const char *version;
 	char *token;
 	char xlive[128];
@@ -3464,7 +3454,7 @@ void
 node_became_firewalled(void)
 {
 	GSList *sl;
-	guint sent = 0;
+	uint sent = 0;
 
 	g_assert(GNET_PROPERTY(is_firewalled));
 
@@ -3496,7 +3486,7 @@ void
 node_became_udp_firewalled(void)
 {
 	GSList *sl;
-	guint sent = 0;
+	uint sent = 0;
 
 	g_assert(GNET_PROPERTY(is_udp_firewalled));
 
@@ -3524,7 +3514,7 @@ node_became_udp_firewalled(void)
  ***/
 
 static void
-node_add_tx_deflated(gpointer o, int amount)
+node_add_tx_deflated(void *o, int amount)
 {
 	gnutella_node_t *n = o;
 
@@ -3533,7 +3523,7 @@ node_add_tx_deflated(gpointer o, int amount)
 }
 
 static void
-node_tx_shutdown(gpointer o, const char *reason, ...)
+node_tx_shutdown(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
@@ -3546,7 +3536,7 @@ node_tx_shutdown(gpointer o, const char *reason, ...)
 }
 
 static void
-node_tx_deflate_flowc(gpointer o, size_t amount)
+node_tx_deflate_flowc(void *o, size_t amount)
 {
 	gnutella_node_t *n = o;
 
@@ -3567,7 +3557,7 @@ static struct tx_deflate_cb node_tx_deflate_cb = {
  ***/
 
 static void
-node_add_tx_written(gpointer o, int amount)
+node_add_tx_written(void *o, int amount)
 {
 	gnutella_node_t *n = o;
 
@@ -3576,7 +3566,7 @@ node_add_tx_written(gpointer o, int amount)
 }
 
 static void
-node_tx_eof_remove(gpointer o, const char *reason, ...)
+node_tx_eof_remove(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
@@ -3588,7 +3578,7 @@ node_tx_eof_remove(gpointer o, const char *reason, ...)
 }
 
 static void
-node_tx_eof_shutdown(gpointer o, const char *reason, ...)
+node_tx_eof_shutdown(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
@@ -3600,7 +3590,7 @@ node_tx_eof_shutdown(gpointer o, const char *reason, ...)
 }
 
 static void
-node_tx_unflushq(gpointer o)
+node_tx_unflushq(void *o)
 {
 	gnutella_node_t *n = o;
 
@@ -3627,7 +3617,7 @@ static struct tx_dgram_cb node_tx_dgram_cb = {
  ***/
 
 static void 
-node_add_rx_inflated(gpointer o, int amount)
+node_add_rx_inflated(void *o, int amount)
 {
 	gnutella_node_t *n = o;
 
@@ -3635,7 +3625,7 @@ node_add_rx_inflated(gpointer o, int amount)
 }
 
 static void 
-node_rx_inflate_error(gpointer o, const char *reason, ...)
+node_rx_inflate_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
@@ -3656,7 +3646,7 @@ static struct rx_inflate_cb node_rx_inflate_cb = {
  ***/
 
 static void
-node_add_rx_given(gpointer o, ssize_t amount)
+node_add_rx_given(void *o, ssize_t amount)
 {
 	gnutella_node_t *n = o;
 
@@ -3664,7 +3654,7 @@ node_add_rx_given(gpointer o, ssize_t amount)
 }
 
 static void
-node_rx_read_error(gpointer o, const char *reason, ...)
+node_rx_read_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
@@ -3675,7 +3665,7 @@ node_rx_read_error(gpointer o, const char *reason, ...)
 }
 
 static void
-node_rx_got_eof(gpointer o)
+node_rx_got_eof(void *o)
 {
 	gnutella_node_t *n = o;
 
@@ -3699,7 +3689,7 @@ static struct rx_link_cb node_rx_link_cb = {
 static void
 node_is_now_connected(struct gnutella_node *n)
 {
-	gboolean peermode_changed = FALSE;
+	bool peermode_changed = FALSE;
 	gnet_host_t host;
 	txdrv_t *tx;
 
@@ -3884,7 +3874,7 @@ node_is_now_connected(struct gnutella_node *n)
 		if (GNET_PROPERTY(node_debug) > 4)
 			g_debug("sending compressed data to node %s", node_addr(n));
 
-		args.cq = callout_queue;
+		args.cq = cq_main();
 		args.cb = &node_tx_deflate_cb;
 		args.nagle = TRUE;
 		args.gzip = FALSE;
@@ -4006,10 +3996,10 @@ node_is_now_connected(struct gnutella_node *n)
 
 	if (settings_is_ultra()) {
 		if (NODE_IS_LEAF(n))
-			n->qseen = g_hash_table_new(g_str_hash, g_str_equal);
+			n->qseen = htable_create(HASH_KEY_STRING, 0);
 		else {
 			if (GNET_PROPERTY(node_watch_similar_queries)) {
-				n->qrelayed = g_hash_table_new(g_str_hash, g_str_equal);
+				n->qrelayed = hset_create(HASH_KEY_STRING, 0);
 				n->qrelayed_created = tm_time();
 			}
 		}
@@ -4036,14 +4026,14 @@ node_is_now_connected(struct gnutella_node *n)
 static void
 node_got_bye(struct gnutella_node *n)
 {
-	guint16 code;
+	uint16 code;
 	const char *message = n->data + 2;
 	const char *p;
-	guchar c;
-	guint cnt;
-	gboolean warned = FALSE;
-	gboolean is_plain_message = TRUE;
-	guint message_len = n->size - 2;
+	uchar c;
+	uint cnt;
+	bool warned = FALSE;
+	bool is_plain_message = TRUE;
+	uint message_len = n->size - 2;
 
 	code = peek_le16(n->data);
 
@@ -4060,8 +4050,8 @@ node_got_bye(struct gnutella_node *n)
 	 */
 
 	if (code > 999) {
-		guchar c1 = n->data[0];
-		guchar c2 = n->data[1];
+		uchar c1 = n->data[0];
+		uchar c2 = n->data[1];
 
 		if (is_ascii_alnum(c1) && is_ascii_alnum(c2)) {
 			message = n->data;
@@ -4129,7 +4119,7 @@ node_got_bye(struct gnutella_node *n)
  * Whether they want to be "online" within Gnutella or not.
  */
 void
-node_set_online_mode(gboolean on)
+node_set_online_mode(bool on)
 {
 	GSList *sl;
 
@@ -4191,20 +4181,21 @@ node_set_current_peermode(node_peer_t mode)
 
 	switch (mode) {
 	case NODE_P_NORMAL:
-		msg = "normal";
-		node_bye_flags(NODE_F_LEAF, 203, "Becoming a regular node");
-		if (old_mode == NODE_P_LEAF)
-			node_bye_flags(NODE_F_ULTRA, 203, "Becoming a regular node");
+		g_error("normal mode no longer supported");
 		break;
 	case NODE_P_ULTRA:
 		msg = "ultra";
-		if (old_mode == NODE_P_LEAF)
+		if (old_mode == NODE_P_LEAF) {
 			node_bye_flags(NODE_F_ULTRA, 203, "Becoming an ultra node");
+			routing_clear_all();
+		}
 		break;
 	case NODE_P_LEAF:
 		msg = "leaf";
-		if (old_mode != NODE_P_LEAF)
+		if (old_mode != NODE_P_LEAF) {
 			node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
+			routing_clear_all();
+		}
 		break;
 	case NODE_P_AUTO:
 	case NODE_P_CRAWLER:
@@ -4245,14 +4236,14 @@ node_set_current_peermode(node_peer_t mode)
  *
  * @return TRUE if parsed correctly, FALSE on errors.
  */
-static gboolean
+static bool
 parse_ip_port(const char *str, const char **endptr,
-	host_addr_t *addr_ptr, guint16 *port_ptr)
+	host_addr_t *addr_ptr, uint16 *port_ptr)
 {
 	const char *s = str;
 	host_addr_t addr;
-	guint16 port;
-	gboolean ret = FALSE;
+	uint16 port;
+	bool ret = FALSE;
 
 	s = skip_ascii_spaces(s);
 	if (!string_to_host_addr(s, &s, &addr) || !is_host_addr(addr)) {
@@ -4261,7 +4252,7 @@ parse_ip_port(const char *str, const char **endptr,
 	}
 
 	if (':' == s[0]) {
-		guint32 u;
+		uint32 u;
 		int error;
 
 		s++;
@@ -4289,17 +4280,17 @@ done:
 	return ret;
 }
 
-static guint
+static uint
 feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
 {
-	guint n;
+	uint n;
 
-    g_assert((guint) type < HOST_MAX);
+    g_assert((uint) type < HOST_MAX);
 	g_assert(s);
 
 	for (n = 0; NULL != s; s = strchr(s, ',')) {
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		if (',' == s[0])
 			s++;
@@ -4321,7 +4312,7 @@ purge_host_cache_from_hub_list(const char *s)
     
     for (; NULL != s; s = strchr(s, ',')) {
         host_addr_t addr;
-        guint16 port = 0;
+        uint16 port = 0;
         
         if (',' == s[0])
             s++;
@@ -4350,7 +4341,7 @@ purge_host_cache_from_hub_list(const char *s)
  *
  * @return TRUE if we were able to intuit an address.
  */
-static gboolean
+static bool
 node_intuit_address(struct gnutella_node *n,  header_t *header)
 {
 	static const char *fields[] = {
@@ -4359,12 +4350,12 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
 		"Listen-Ip",
 		"X-My-Address",
 	};
-	guint i;
+	uint i;
 
 	for (i = 0; i < G_N_ELEMENTS(fields); i++) {
 		const char *val = header_get(header, fields[i]);
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 
 		if (val != NULL && parse_ip_port(val, NULL, &addr, &port)) {
 			n->gnet_port = port;
@@ -4400,15 +4391,15 @@ node_intuit_address(struct gnutella_node *n,  header_t *header)
  *				"My-Address" | "Node" | "Try" | "Try-Ultrapeers"
  *
  */
-guint
+uint
 feed_host_cache_from_headers(header_t *header,
-	host_type_t sender, gboolean gnet, const host_addr_t peer,
+	host_type_t sender, bool gnet, const host_addr_t peer,
 	const char *vendor)
 {
 	static const struct {
 		const char *name;	/* Name of the header */
-		gboolean sender;	/* Host type is derived from sender */
-		gboolean gnet;		/* Definitely a Gnutella network header */
+		bool sender;		/* Host type is derived from sender */
+		bool gnet;			/* Definitely a Gnutella network header */
 		host_type_t type;	/* Default type, sender will override */
 	} headers[] = {
 		{ "X-Alt",				FALSE,	FALSE, HOST_ANY },
@@ -4419,7 +4410,7 @@ feed_host_cache_from_headers(header_t *header,
 		{ "X-Try",				FALSE,	TRUE,  HOST_ANY },
 		{ "X-Try-Ultrapeers",	FALSE,	TRUE,  HOST_ULTRA },
 	};
-	guint i, n = 0;
+	uint i, n = 0;
 
 	g_assert(header);
     g_assert(UNSIGNED(sender) < HOST_MAX);
@@ -4428,7 +4419,7 @@ feed_host_cache_from_headers(header_t *header,
 		for (i = 0; i < G_N_ELEMENTS(headers); i++) {
 			const char *val, *name, *p;
 			host_type_t type;
-			guint r;
+			uint r;
 
 			/*
 			 * One cannot assume that the same port will always be used for
@@ -4480,8 +4471,8 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 		TRUE, n->addr, node_vendor(n));
 }
 
-static inline gboolean
-extract_addr_debugging(guint32 level)
+static inline bool
+extract_addr_debugging(uint32 level)
 {
 	return
 		GNET_PROPERTY(node_debug) > level ||
@@ -4584,16 +4575,16 @@ node_check_remote_ip_header(const host_addr_t peer, header_t *head)
  * If `code' is not NULL, it is filled with the returned code, or -1 if
  * we were unable to parse the status.
  */
-static gboolean
+static bool
 analyse_status(struct gnutella_node *n, int *code)
 {
 	struct gnutella_socket *s = n->socket;
 	const char *status;
 	int ack_code;
-	guint major = 0, minor = 0;
+	uint major = 0, minor = 0;
 	const char *ack_message = "";
-	gboolean ack_ok = FALSE;
-	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
+	bool ack_ok = FALSE;
+	bool incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
 	const char *what = incoming ? "acknowledgment" : "reply";
 
 	socket_check(s);
@@ -4681,8 +4672,8 @@ analyse_status(struct gnutella_node *n, int *code)
  * @return TRUE if we can accept the connection, FALSE otherwise, with
  * the node being removed.
  */
-static gboolean
-node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
+static bool
+node_can_accept_connection(struct gnutella_node *n, bool handshaking)
 {
 	g_assert(handshaking || n->status == GTA_NODE_CONNECTED);
 	g_assert(n->attrs & (NODE_A_NO_ULTRA|NODE_A_CAN_ULTRA));
@@ -4778,7 +4769,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				return FALSE;
 			}
 		} else if (n->attrs & NODE_A_ULTRA) {
-			guint ultra_max;
+			uint ultra_max;
 
 			/*
 			 * Try to preference compressed ultrapeer connections too
@@ -4842,7 +4833,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 		 */
 
 		if (handshaking) {
-			guint connected;
+			uint connected;
 
 			connected = GNET_PROPERTY(node_normal_count)
 							+ GNET_PROPERTY(node_ultra_count);
@@ -4891,7 +4882,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 			return TRUE;
 
 		if (handshaking) {
-			guint connected;
+			uint connected;
 
 			connected = GNET_PROPERTY(node_normal_count)
 							+ GNET_PROPERTY(node_ultra_count);
@@ -5048,7 +5039,7 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
  *
  * @return TRUE if OK, FALSE if connection was denied.
  */
-static gboolean
+static bool
 node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 {
 	const char *field;
@@ -5090,9 +5081,9 @@ static void
 node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 {
 	struct gnutella_socket *s = n->socket;
-	gboolean ack_ok;
+	bool ack_ok;
 	const char *field;
-	gboolean qrp_final_set = FALSE;
+	bool qrp_final_set = FALSE;
 
 	socket_check(s);
 
@@ -5171,7 +5162,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
@@ -5179,9 +5170,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 				"%s now claims QRP version %u.%u, "
 				"but advertised %u.%u earlier",
 				node_infostr(n), major, minor,
-				(guint) n->qrp_major, (guint) n->qrp_minor);
-		n->qrp_major = (guint8) major;
-		n->qrp_minor = (guint8) minor;
+				(uint) n->qrp_major, (uint) n->qrp_minor);
+		n->qrp_major = (uint8) major;
+		n->qrp_minor = (uint8) minor;
 		qrp_final_set = TRUE;
 	}
 
@@ -5210,7 +5201,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 		if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 2)) {
 			node_bye(n, 505, "Query Routing protocol %u.%u not supported",
-				(guint) n->qrp_major, (guint) n->qrp_minor);
+				(uint) n->qrp_major, (uint) n->qrp_minor);
 			return;
 		}
 	}
@@ -5308,7 +5299,7 @@ node_query_routing_header(struct gnutella_node *n)
 /**
  * Is node authentic?
  */
-static gboolean
+static bool
 node_is_authentic(const char *vendor, const header_t *head)
 {
 	if (vendor) {
@@ -5400,7 +5391,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	size_t rw;
 	int sent;
 	const char *field;
-	gboolean incoming = (n->flags & NODE_F_INCOMING);
+	bool incoming = (n->flags & NODE_F_INCOMING);
 	const char *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	const char *compressing = "Content-Encoding: deflate\r\n";
 
@@ -5498,7 +5489,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Pong-Caching");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major != 0 && minor != 1)
@@ -5542,7 +5533,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Bye-Packet");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major != 0 || minor != 1) {
@@ -5558,7 +5549,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Vendor-Message");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || (major == 0 && minor > 2))
@@ -5764,7 +5755,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Query-Routing");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 2) {
@@ -5773,8 +5764,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					node_infostr(n), major, minor);
 			}
 		}
-		n->qrp_major = (guint8) major;
-		n->qrp_minor = (guint8) minor;
+		n->qrp_major = (uint8) major;
+		n->qrp_minor = (uint8) minor;
 	}
 
 	/*
@@ -5783,7 +5774,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Ultrapeer-Query-Routing");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1) {
@@ -5791,8 +5782,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				g_warning("%s claims Ultra QRP version %u.%u",
 					node_infostr(n), major, minor);
 		}
-		n->uqrp_major = (guint8) major;
-		n->uqrp_minor = (guint8) minor;
+		n->uqrp_major = (uint8) major;
+		n->uqrp_minor = (uint8) minor;
 		if (n->attrs & NODE_A_ULTRA)
 			n->attrs |= NODE_A_UP_QRP;	/* Only makes sense for ultra nodes */
 	}
@@ -5803,7 +5794,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Dynamic-Querying");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1) {
@@ -5822,7 +5813,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Max-Ttl");		/* Needs normalized case */
 	if (field) {
-		guint32 value;
+		uint32 value;
 		int error;
 
 		value = parse_uint32(field, NULL, 10, &error);
@@ -5843,7 +5834,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Degree");
 	if (field) {
-		guint32 value;
+		uint32 value;
 		int error;
 
 		value = parse_uint32(field, NULL, 10, &error);
@@ -5865,7 +5856,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Ext-Probes");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > 0 || minor > 1) {
@@ -5902,7 +5893,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "X-Guess");
 	if (field) {
-		guint major, minor;
+		uint major, minor;
 
 		parse_major_minor(field, NULL, &major, &minor);
 		if (major > SEARCH_GUESS_MAJOR || minor > SEARCH_GUESS_MINOR) {
@@ -5931,7 +5922,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guid_t guid;
 
 		if (hex_to_guid(field, &guid)) {
-			if (gm_hash_table_contains(nodes_by_guid, &guid)) {
+			if (hikset_contains(nodes_by_guid, &guid)) {
 				node_send_error(n, 409, "Already connected to this GUID");
 				node_remove(n, _("Already connected to this GUID"));
 				return;
@@ -5975,7 +5966,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * here, but allow minor versions earlier than ours.
 	 */
 	{
-		guint major, minor;
+		uint major, minor;
 
         /* Ensure hsep feature is present for major version zero. */
  		if (header_get_feature("hsep", head, &major, &minor)) {
@@ -5992,7 +5983,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * re-architected size field: 16-bit size and 16-bit flags.
 	 */
 	{
-		guint major, minor;
+		uint major, minor;
 
  		if (header_get_feature("sflag", head, &major, &minor))
 			n->attrs |= NODE_A_CAN_SFLAG;
@@ -6025,7 +6016,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	gnet_response = vmm_alloc(gnet_response_max);
 
 	if (!incoming) {
-		gboolean mode_changed = FALSE;
+		bool mode_changed = FALSE;
 
 		/* Make sure we only receive incoming connections from crawlers */
 
@@ -6109,7 +6100,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			(n->qrp_major > 0 || n->qrp_minor > 2) ?
 				"X-Query-Routing: 0.2\r\n" : "");
 	} else {
-		guint ultra_max;
+		uint ultra_max;
 
 		/*
 		 * Welcome the incoming node.
@@ -6306,14 +6297,14 @@ free_gnet_response:
  ***/
 
 static inline struct gnutella_node *
-cast_to_node(gpointer p)
+cast_to_node(void *p)
 {
 	node_check(p);
 	return p;
 }
 
 static void
-err_line_too_long(gpointer obj, header_t *head)
+err_line_too_long(void *obj, header_t *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 
@@ -6323,19 +6314,19 @@ err_line_too_long(gpointer obj, header_t *head)
 }
 
 static void
-err_header_error_tell(gpointer obj, int error)
+err_header_error_tell(void *obj, int error)
 {
 	node_send_error(cast_to_node(obj), 413, "%s", header_strerror(error));
 }
 
 static void
-err_header_error(gpointer obj, int error)
+err_header_error(void *obj, int error)
 {
 	node_remove(cast_to_node(obj), _("Failed (%s)"), header_strerror(error));
 }
 
 static void
-err_input_exception(gpointer obj, header_t *head)
+err_input_exception(void *obj, header_t *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 
@@ -6345,19 +6336,19 @@ err_input_exception(gpointer obj, header_t *head)
 }
 
 static void
-err_input_buffer_full(gpointer obj)
+err_input_buffer_full(void *obj)
 {
 	node_remove(cast_to_node(obj), _("Failed (Input buffer full)"));
 }
 
 static void
-err_header_read_error(gpointer obj, int error)
+err_header_read_error(void *obj, int error)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 	host_addr_t addr = n->addr;
-	guint16 port = n->port;
-	guint32 flags = n->socket->flags & (SOCK_F_FORCE | SOCK_F_TLS);
-	gboolean retry;
+	uint16 port = n->port;
+	uint32 flags = n->socket->flags & (SOCK_F_FORCE | SOCK_F_TLS);
+	bool retry;
  
 	retry = ECONNRESET == error &&
 			GTA_NODE_HELLO_SENT == n->status &&
@@ -6375,7 +6366,7 @@ err_header_read_error(gpointer obj, int error)
 }
 
 static void
-err_header_read_eof(gpointer obj, struct header *head)
+err_header_read_eof(void *obj, struct header *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 
@@ -6389,7 +6380,7 @@ err_header_read_eof(gpointer obj, struct header *head)
 }
 
 static void
-err_header_extra_data(gpointer obj, header_t *head)
+err_header_extra_data(void *obj, header_t *head)
 {
 	struct gnutella_node *n = cast_to_node(obj);
 
@@ -6409,13 +6400,13 @@ static struct io_error node_io_error = {
 };
 
 static void
-call_node_process_handshake_header(gpointer obj, header_t *header)
+call_node_process_handshake_header(void *obj, header_t *header)
 {
 	node_process_handshake_header(cast_to_node(obj), header);
 }
 
 static void
-call_node_process_handshake_ack(gpointer obj, header_t *header)
+call_node_process_handshake_ack(void *obj, header_t *header)
 {
 	node_process_handshake_ack(cast_to_node(obj), header);
 }
@@ -6433,7 +6424,7 @@ node_browse_create(void)
 	gnutella_node_t *n;
 
 	n = node_alloc();
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->proto_major = 0;
 	n->proto_minor = 6;
 	n->peermode = NODE_P_LEAF;
@@ -6445,6 +6436,8 @@ node_browse_create(void)
 	n->up_date = GNET_PROPERTY(start_stamp);
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	return n;
 }
@@ -6459,7 +6452,7 @@ node_browse_create(void)
 gnutella_node_t *
 node_browse_prepare(
 	gnet_host_t *host, const char *vendor, gnutella_header_t *header,
-	char *data, guint32 size)
+	char *data, uint32 size)
 {
 	gnutella_node_t *n = browse_node;
 
@@ -6467,7 +6460,7 @@ node_browse_prepare(
 
 	n->addr = gnet_host_get_addr(host);
 	n->port = gnet_host_get_port(host);
-	n->vendor = deconstify_gchar(vendor);
+	n->vendor = deconstify_char(vendor);
 	n->country = gip_country(n->addr);
 
 	n->size = size;
@@ -6500,7 +6493,7 @@ node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 
 	n = node_alloc();
 	n->addr = listen_addr_by_net(net);
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->port = GNET_PROPERTY(listen_port);
 	n->proto_major = 0;
 	n->proto_minor = 6;
@@ -6525,6 +6518,8 @@ node_pseudo_create(enum net_type net, node_peer_t mode, const char *name)
 	n->connect_date = GNET_PROPERTY(start_stamp);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 	n->country = gip_country(n->addr);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	return n;
 }
@@ -6554,7 +6549,7 @@ node_dht_create(enum net_type net)
  */
 static void
 node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
-	bsched_bws_t bws, guint32 qsize)
+	bsched_bws_t bws, uint32 qsize)
 {
 	txdrv_t *tx;
 	struct tx_dgram_args args;
@@ -6761,7 +6756,7 @@ node_pseudo_setup(gnutella_node_t *n, struct gnutella_socket *s)
 	node_check(n);
 	g_assert(n->socket == s);		/* Only one UDP socket */
 
-	head = cast_to_gpointer(s->buf);
+	head = cast_to_pointer(s->buf);
 	n->size = gmsg_size(head);
 	n->msg_flags = 0;
 
@@ -6795,7 +6790,7 @@ node_udp_get_outq(enum net_type net)
 /**
  * Check whether the DHT node is flow-controlled.
  */
-gboolean
+bool
 node_dht_is_flow_controlled(void)
 {
 	if (dht_node && dht_node->outq && mq_is_flow_controlled(dht_node->outq))
@@ -6810,7 +6805,7 @@ node_dht_is_flow_controlled(void)
 /**
  * Check whether additional traffic would cause the DHT node to flow-control.
  */
-gboolean
+bool
 node_dht_would_flow_control(size_t additional)
 {
 	if (
@@ -6832,7 +6827,7 @@ node_dht_would_flow_control(size_t additional)
  * Check whether we already have sufficient delay in the queue (above the
  * low water-mark), regardless of whether we are flow-controlled.
  */
-gboolean
+bool
 node_dht_above_low_watermark(void)
 {
 	if (dht_node && dht_node->outq && mq_above_low_watermark(dht_node->outq))
@@ -6845,11 +6840,23 @@ node_dht_above_low_watermark(void)
 }
 
 /**
+ * Check whether node is above its low watermark, to limit traffic when
+ * connection starts clogging.
+ */
+bool
+node_above_low_watermark(const gnutella_node_t *n)
+{
+	node_check(n);
+
+	return NULL == n->outq || mq_above_low_watermark(n->outq);
+}
+
+/**
  * Setup addr:port in pseudo node.
  */
 static inline gnutella_node_t *
 node_pseudo_set_addr_port(gnutella_node_t *n,
-	const host_addr_t addr, guint16 port)
+	const host_addr_t addr, uint16 port)
 {
 	if (n != NULL && n->outq) {
 		n->addr = addr;
@@ -6864,7 +6871,7 @@ node_pseudo_set_addr_port(gnutella_node_t *n,
  * Get "fake" node for UDP transmission.
  */
 gnutella_node_t *
-node_udp_get_addr_port(const host_addr_t addr, guint16 port)
+node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 {
 	gnutella_node_t *n;
 
@@ -6891,7 +6898,7 @@ node_udp_get_addr_port(const host_addr_t addr, guint16 port)
  * Get "fake" node for DHT transmission.
  */
 gnutella_node_t *
-node_dht_get_addr_port(const host_addr_t addr, guint16 port)
+node_dht_get_addr_port(const host_addr_t addr, uint16 port)
 {
 	gnutella_node_t *n;
 
@@ -6918,8 +6925,8 @@ node_dht_get_addr_port(const host_addr_t addr, guint16 port)
  * Get "fake" node for UDP routing.
  */
 gnutella_node_t *
-node_udp_route_get_addr_port(const host_addr_t addr, guint16 port,
-	gboolean can_deflate)
+node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
+	bool can_deflate)
 {
 	gnutella_node_t *n;
 
@@ -6958,7 +6965,7 @@ node_udp_route_get_addr_port(const host_addr_t addr, guint16 port,
  * Add new node.
  */
 void
-node_add(const host_addr_t addr, guint16 port, guint32 flags)
+node_add(const host_addr_t addr, uint16 port, uint32 flags)
 {
 	if (!is_host_addr(addr) || !port)
 		return;
@@ -6973,8 +6980,8 @@ node_add(const host_addr_t addr, guint16 port, guint32 flags)
 }
 
 struct node_add_by_name_data {
-	guint32 flags;
-	guint16 port;	
+	uint32 flags;
+	uint16 port;	
 };
 
 /**
@@ -6983,7 +6990,7 @@ struct node_add_by_name_data {
  * @todo TODO: All resolved addresses should be attempted.
  */
 static void
-node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
+node_add_by_name_helper(const host_addr_t *addrs, size_t n, void *user_data)
 {
 	struct node_add_by_name_data *data = user_data;
 
@@ -6992,7 +6999,7 @@ node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
 	g_assert(data->port);
 
 	if (n > 0) {
-		size_t i = random_u32() % n;
+		size_t i = random_value(n - 1);
 		node_add(addrs[i], data->port, data->flags);
 	}
 	WFREE(data);
@@ -7002,7 +7009,7 @@ node_add_by_name_helper(const host_addr_t *addrs, size_t n, gpointer user_data)
  * Add new node by hostname.
  */
 void
-node_add_by_name(const char *host, guint16 port, guint32 flags)
+node_add_by_name(const char *host, uint16 port, uint32 flags)
 {
 	struct node_add_by_name_data *data;
 	
@@ -7033,12 +7040,12 @@ node_add_by_name(const char *host, guint16 port, guint32 flags)
  */
 void
 node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
-	guint16 port, guint32 flags)
+	uint16 port, uint32 flags)
 {
 	struct gnutella_node *n;
-	gboolean incoming = FALSE, already_connected = FALSE;
-	guint major = 0, minor = 0;
-	gboolean forced = 0 != (SOCK_F_FORCE & flags);
+	bool incoming = FALSE, already_connected = FALSE;
+	uint major = 0, minor = 0;
+	bool forced = 0 != (SOCK_F_FORCE & flags);
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -7127,7 +7134,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	 */
 
 	n = node_alloc();
-    n->id = node_id_new(n);
+    n->id = node_id_new();
 	n->addr = addr;
 	n->port = port;
 	n->proto_major = major;
@@ -7145,6 +7152,8 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING | (forced ? NODE_F_FORCE : 0);
+
+	hikset_insert_key(nodes_by_id, &n->id);
 
 	if (incoming) {
 		/* This is an incoming control connection */
@@ -7267,14 +7276,14 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
  *
  * @note parsed extensions are left in the node's `extensions' structure.
  */
-static gboolean
+static bool
 node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 {
 	char *start;
 	int len;
 	int i;
 
-	g_assert(n->size > (guint32) regsize);	/* "fat" message */
+	g_assert(n->size > (uint32) regsize);	/* "fat" message */
 
 	len = n->size - regsize;				/* Extension length */
 
@@ -7331,8 +7340,8 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 static void
 node_parse(struct gnutella_node *n)
 {
-	gboolean drop = FALSE;
-	gboolean has_ggep = FALSE;
+	bool drop = FALSE;
+	bool has_ggep = FALSE;
 	size_t regular_size = (size_t) -1;		/* -1 signals: regular size */
 	struct route_dest dest;
 	query_hashvec_t *qhv = NULL;
@@ -7622,7 +7631,7 @@ node_parse(struct gnutella_node *n)
 			node_fire_node_flags_changed(n);
 		}
 		if (n->qrt_receive != NULL) {
-			gboolean done;
+			bool done;
 			if (!qrt_receive_next(n->qrt_receive, &done))
 				return;				/* Node BYE-ed */
 			if (done) {
@@ -7635,7 +7644,7 @@ node_parse(struct gnutella_node *n)
 	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
 		if (host_low_on_pongs) {
 			host_addr_t addr;
-			guint16 port;
+			uint16 port;
 
 			node_extract_host(n, &addr, &port);
 			host_add_semi_pong(addr, port);
@@ -7886,7 +7895,7 @@ clean_dest:
 }
 
 static void
-node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
+node_drain_hello(void *data, int source, inputevt_cond_t cond)
 {
 	struct gnutella_node *n = data;
 
@@ -7921,7 +7930,7 @@ node_drain_hello(gpointer data, int source, inputevt_cond_t cond)
 void
 node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 {
-	gboolean drop_hostile = TRUE;
+	bool drop_hostile = TRUE;
 
 	node_pseudo_setup(n, s);
 
@@ -8105,7 +8114,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 		{
 			host_addr_t addr;
-			guint16 port;
+			uint16 port;
 			
 			port = socket_listen_port();
 			addr = listen_addr();
@@ -8295,7 +8304,7 @@ node_unflushq(struct gnutella_node *n)
  * Called when the queue service routine is switched ON/OFF.
  */
 void
-node_tx_service(struct gnutella_node *n, gboolean unused_on)
+node_tx_service(struct gnutella_node *n, bool unused_on)
 {
 	(void) unused_on;
     node_fire_node_flags_changed(n);
@@ -8389,7 +8398,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
  * Callback invoked when the Hops-Flow message has been processed by the queue.
  */
 static void
-node_tx_flowc_left(gnutella_node_t *n, gboolean sent, void *unused_arg)
+node_tx_flowc_left(gnutella_node_t *n, bool sent, void *unused_arg)
 {
 	(void) unused_arg;
 
@@ -8521,14 +8530,14 @@ node_bye_sent(struct gnutella_node *n)
  *
  * @return TRUE whilst we think there is more data to read in the buffer.
  */
-static gboolean
+static bool
 node_read(struct gnutella_node *n, pmsg_t *mb)
 {
 	int r;
 
 	if (!n->have_header) {		/* We haven't got the header yet */
 		char *w = (char *) &n->header;
-		gboolean kick = FALSE;
+		bool kick = FALSE;
 
 		r = pmsg_read(mb, &w[n->pos], GTA_HEADER_SIZE - n->pos);
 		n->pos += r;
@@ -8649,7 +8658,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 			 * Since maximum could change dynamically one day, compute it.
 			 */
 
-			guint32 maxsize = settings_max_msg_size();
+			uint32 maxsize = settings_max_msg_size();
 
 			if (maxsize < n->size) {
 				g_warning("BUG got %u byte %s message, should have kicked node",
@@ -8704,7 +8713,7 @@ bad_size:
  *
  * @return FALSE if an error occurred.
  */
-static gboolean 
+static bool 
 node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct gnutella_node *n = rx_owner(rx);
@@ -8764,7 +8773,7 @@ node_sent_ttl0(struct gnutella_node *n)
  * Send a BYE message to all the nodes matching the specified flags.
  */
 static void
-node_bye_flags(guint32 mask, int code, const char *message)
+node_bye_flags(uint32 mask, int code, const char *message)
 {
 	const GSList *sl;
 
@@ -8805,7 +8814,7 @@ node_bye_all_but_one(struct gnutella_node *nskip,
  * @param all	when FALSE, will only wait for nodes advertizing BYE support
  */
 void
-node_bye_all(gboolean all)
+node_bye_all(bool all)
 {
 	GSList *sl;
 	gnutella_node_t *udp_nodes[] = { udp_node, udp6_node, dht_node, dht6_node };
@@ -8860,7 +8869,7 @@ node_bye_all(gboolean all)
 /**
  * @return true whilst there are some connections with a pending BYE.
  */
-gboolean
+bool
 node_bye_pending(void)
 {
 	g_assert(in_shutdown);		/* Cannot be called before node_bye_all() */
@@ -8889,8 +8898,8 @@ node_bye_pending(void)
  *
  * @return TRUE if we were able to remove one connection.
  */
-static gboolean
-node_remove_useless_leaf(gboolean *is_gtkg)
+static bool
+node_remove_useless_leaf(bool *is_gtkg)
 {
     GSList *sl;
 	struct gnutella_node *worst = NULL;
@@ -8988,8 +8997,8 @@ node_remove_useless_leaf(gboolean *is_gtkg)
  *
  * @return TRUE if we were able to remove one connection.
  */
-static gboolean
-node_remove_useless_ultra(gboolean *is_gtkg)
+static bool
+node_remove_useless_ultra(bool *is_gtkg)
 {
     GSList *sl;
 	struct gnutella_node *worst = NULL;
@@ -9102,8 +9111,8 @@ node_remove_useless_ultra(gboolean *is_gtkg)
  *
  * @return TRUE if we were able to remove one connection.
  */
-static gboolean
-node_remove_uncompressed_ultra(gboolean *is_gtkg)
+static bool
+node_remove_uncompressed_ultra(bool *is_gtkg)
 {
 	GSList *sl;
 	struct gnutella_node *drop = NULL;
@@ -9156,8 +9165,8 @@ node_remove_uncompressed_ultra(gboolean *is_gtkg)
  * a local node, and we're having a connection from the local LAN.
  * Otherwise, we're just removing a bad node (the BYE code is different).
  */
-gboolean
-node_remove_worst(gboolean non_local)
+bool
+node_remove_worst(bool non_local)
 {
     GSList *sl;
     GSList *m = NULL;
@@ -9242,7 +9251,7 @@ node_send_qrt(struct gnutella_node *n, struct routing_table *query_table)
 static void
 node_send_patch_step(struct gnutella_node *n)
 {
-	gboolean ok;
+	bool ok;
 
 	g_assert(NODE_IS_ULTRA(n));
 	g_assert(NODE_IS_CONNECTED(n));
@@ -9425,13 +9434,12 @@ node_close(void)
 	for (sl = unstable_servents; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_client_t *bad_node = sl->data;
 
-		g_hash_table_remove(unstable_servent, bad_node->vendor);
+		htable_remove(unstable_servent, bad_node->vendor);
 		atom_str_free_null(&bad_node->vendor);
 		WFREE(bad_node);
 	}
 	gm_slist_free_null(&unstable_servents);
-
-	gm_hash_table_destroy_null(&unstable_servent);
+	htable_free_null(&unstable_servent);
 
 	/* Clean up node info */
 	while (sl_nodes) {
@@ -9446,7 +9454,7 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route };
-		guint i;
+		uint i;
 
 		udp_route->outq = NULL;		/* Using that of udp_node or udp6_node */
 
@@ -9486,9 +9494,9 @@ node_close(void)
 
 	HFREE_NULL(payload_inflate_buffer);
 
-    gm_hash_table_destroy_null(&ht_connected_nodes);
-	gm_hash_table_destroy_null(&nodes_by_id);
-	gm_hash_table_destroy_null(&nodes_by_guid);
+    htable_free_null(&ht_connected_nodes);
+	hikset_free_null(&nodes_by_id);
+	hikset_free_null(&nodes_by_guid);
 
 	qhvec_free(query_hashvec);
 	query_hashvec = NULL;
@@ -9526,7 +9534,7 @@ node_by_guid(const struct guid *guid)
 	struct gnutella_node *n;
 
 	g_return_val_if_fail(guid, NULL);
-	n = g_hash_table_lookup(nodes_by_guid, guid);
+	n = hikset_lookup(nodes_by_guid, guid);
 	if (n) {
 		node_check(n);
 		g_assert(!NODE_USES_UDP(n));
@@ -9556,8 +9564,8 @@ node_flag_duplicate_guid(gnutella_node_t *n)
  *
  * @return TRUE if any error occured and the GUID was not set.
  */
-gboolean
-node_set_guid(struct gnutella_node *n, const struct guid *guid, gboolean gnet)
+bool
+node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 {
 	struct gnutella_node *owner;
 
@@ -9653,8 +9661,27 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, gboolean gnet)
 		goto error;
 	}
 
+	/*
+	 * Here we know no other node to which we are connected bears the same
+	 * GUID, but nonetheless that GUID could already have been identified
+	 * as being banned.  Just flag the node as potentially having a bad
+	 * GUID but still record the node in our table.
+	 */
+
+	if (guid_is_banned(guid)) {
+		if (GNET_PROPERTY(node_debug)) {
+			g_message("%s uses banned GUID %s",
+				node_infostr(n), guid_hex_str(guid));
+		}
+		/*
+		 * Don't refresh the "last-seen" time as the GUID could have made it
+		 * to our banned list after an IP address change or some other glitch.
+		 */
+		n->attrs |= NODE_A_BAD_GUID;
+	}
+
 	n->guid = atom_guid_get(guid);
-	gm_hash_table_insert_const(nodes_by_guid, n->guid, n);
+	hikset_insert_key(nodes_by_guid, &n->guid);
 	return FALSE;
 	
 error:
@@ -9678,7 +9705,7 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 		size = w_concat_strings(&wbuf, "!", vendor, (void *) 0);
 	} else {
 		static const char full[] = "Morpheus";
-		gboolean fix;
+		bool fix;
 
 		/*
 		 * Morpheus names its servents as "morph350" or "morph461" and
@@ -9710,7 +9737,7 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
  * to that node.
  */
 void
-node_set_hops_flow(gnutella_node_t *n, guint8 hops)
+node_set_hops_flow(gnutella_node_t *n, uint8 hops)
 {
 	struct node_rxfc_mon *rxfc;
 	int old_hops_flow = n->hops_flow;
@@ -9821,7 +9848,7 @@ node_free_info(gnet_node_info_t *info)
 /**
  * Fill in supplied info structure.
  */
-gboolean
+bool
 node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
 {
     gnutella_node_t *node = node_by_id(node_id);
@@ -9866,7 +9893,7 @@ node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
 /**
  * Fill in supplied flags structure.
  */
-gboolean
+bool
 node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 {
 	gnutella_node_t *node = node_by_id(node_id);
@@ -9936,7 +9963,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 /**
  * Fetch node status for the GUI display.
  */
-gboolean
+bool
 node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 {
     const gnutella_node_t  *node = node_by_id(node_id);
@@ -10172,7 +10199,7 @@ node_id_infostr(const struct nid *node_id)
  * are firewalled.
  */
 void
-node_connect_back(const gnutella_node_t *n, guint16 port)
+node_connect_back(const gnutella_node_t *n, uint16 port)
 {
 	/*
 	 * Attempt asynchronous connection.
@@ -10228,7 +10255,7 @@ node_proxying_remove(gnutella_node_t *n)
  * Periodically republish NOPE values (Node Push Entry) in the DHT.
  */
 static void
-node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
+node_publish_dht_nope(cqueue_t *unused_cq, void *obj)
 {
 	gnutella_node_t *n = obj;
 
@@ -10286,7 +10313,7 @@ node_publish_dht_nope(cqueue_t *unused_cq, gpointer obj)
  *
  * @return TRUE if we can act as this node's proxy.
  */
-gboolean
+bool
 node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 {
 	g_return_val_if_fail(n, FALSE);
@@ -10388,7 +10415,7 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
  * Add node to our list of push-proxies.
  */
 void
-node_proxy_add(gnutella_node_t *n, const host_addr_t addr, guint16 port)
+node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 {
 	if (!(n->flags & NODE_F_PROXY)) {
 		g_warning("got spurious push-proxy ack from %s", node_infostr(n));
@@ -10503,13 +10530,13 @@ node_is_firewalled(gnutella_node_t *n)
  * @param net			IP address allowed networks, for push-proxies
  */
 size_t
-node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies,
+node_http_fw_node_info_add(char *buf, size_t size, bool with_proxies,
 	host_net_t net)
 {
 	header_fmt_t *fmt;
 	size_t len;
 	struct guid guid;
-	guint16 port = socket_listen_port();
+	uint16 port = socket_listen_port();
 	size_t rw = 0;
 
 	fmt = header_fmt_make("X-FW-Node-Info", "; ", 0, size);
@@ -10571,7 +10598,7 @@ node_http_fw_node_info_add(char *buf, size_t size, gboolean with_proxies,
  * via the X-Push-Proxy header.
  */
 size_t
-node_http_proxies_add(char *buf, size_t size, void *arg, guint32 unused_flags)
+node_http_proxies_add(char *buf, size_t size, void *arg, uint32 unused_flags)
 {
 	size_t rw = 0;
 	host_net_t *netp = arg;
@@ -10683,7 +10710,7 @@ node_by_id(const struct nid *node_id)
 	gnutella_node_t *n;
 	
 	g_return_val_if_fail(!node_id_self(node_id), NULL);
-	n = g_hash_table_lookup(nodes_by_id, node_id);
+	n = hikset_lookup(nodes_by_id, node_id);
 	if (n) {
 		node_check(n);
 	}
@@ -10706,7 +10733,7 @@ node_active_by_id(const struct nid *node_id)
  * Set leaf-guidance support indication from give node ID.
  */
 void
-node_set_leaf_guidance(const struct nid *id, gboolean supported)
+node_set_leaf_guidance(const struct nid *id, bool supported)
 {
 	gnutella_node_t *n;
 
@@ -10805,7 +10832,7 @@ node_crawl_append_vendor(str_t *ua, const char *vendor)
 static int
 node_crawl_fill(pmsg_t *mb,
 	gnutella_node_t **ary, int start, int len, int want,
-	guint8 features, time_t now, str_t *ua, gboolean gtkg)
+	uint8 features, time_t now, str_t *ua, bool gtkg)
 {
 	int i, j;
 	int written = 0;
@@ -10842,8 +10869,8 @@ node_crawl_fill(pmsg_t *mb,
 		 */
 
 		if (features & NODE_CR_CONNECTION) {
-			glong connected = delta_time(now, n->connect_date);
-			guint32 minutes = connected > 0 ? connected / 60 : 0;
+			long connected = delta_time(now, n->connect_date);
+			uint32 minutes = connected > 0 ? connected / 60 : 0;
 			char value[2];
 
 			poke_le16(value, MIN(minutes, 0xffffU));
@@ -10876,7 +10903,7 @@ node_crawl_fill(pmsg_t *mb,
  * `features', a set of flags.
  */
 void
-node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
+node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 {
 	gnutella_node_t **ultras = NULL;	/* Array  of ultra nodes		*/
 	gnutella_node_t **leaves = NULL;	/* Array  of `leaves'			*/
@@ -10889,11 +10916,11 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 	int un;							/* Amount of `ultras' to send	*/
 	int ln;							/* Amount of `leaves' to send	*/
 	GSList *sl;
-	gboolean crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
-	gboolean wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
+	bool crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
+	bool wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
 	pmsg_t *mb = NULL;
 	pdata_t *db;
-	guchar *payload;					/* Start of constructed payload */
+	uchar *payload;						/* Start of constructed payload */
 	str_t *agents = NULL;				/* The string holding user-agents */
 	time_t now;
 
@@ -10947,13 +10974,13 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 			continue;
 
 		if (ucnt && NODE_IS_ULTRA(cn)) {
-			g_assert((guint) ux < GNET_PROPERTY(node_ultra_count));
+			g_assert((uint) ux < GNET_PROPERTY(node_ultra_count));
 			ultras[ux++] = cn;
 			continue;
 		}
 
 		if (lcnt && NODE_IS_LEAF(cn)) {
-			g_assert((guint) lx < GNET_PROPERTY(node_leaf_count));
+			g_assert((uint) lx < GNET_PROPERTY(node_leaf_count));
 			leaves[lx++] = cn;
 			continue;
 		}
@@ -10990,7 +11017,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, guint8 features)
 
 	db = rxbuf_new();
 	mb = pmsg_alloc(PMSG_P_DATA, db, 0, 3);		/* 3 bytes of header */
-	payload = (guchar *) pmsg_start(mb);
+	payload = (uchar *) pmsg_start(mb);
 
 	/*
 	 * The first 3 bytes of the payload are:

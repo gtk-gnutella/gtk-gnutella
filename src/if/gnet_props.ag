@@ -5115,10 +5115,52 @@ prop = {
 
 prop = {
     name = "tx_debug_addrs";
-    desc = "Comma-separated list of TX debugging host (IP addresses only)";
+    desc = "Comma-separated list of TX debugging hosts (IP addresses only)";
     type = string;
     data = {
         default = "";
+    };
+};
+
+prop = {
+    name = "dump_rx_addrs";
+    desc = "Comma-separated list of hosts for whom we want to dump RX traffic "
+		"(IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "dump_tx_from_addrs";
+    desc = "Comma-separated list of hosts for whom we want to dump TX traffic "
+		" they emit (IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "dump_tx_to_addrs";
+    desc = "Comma-separated list of hosts for whom we want to dump TX traffic "
+		"they receive (IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "guess_maximize_bw";
+    desc = "Allow GUESS to use some of the unused Gnutella outgoing bandwidth "
+			"regardless of the GUESS bandwidth hint.  If FALSE, only the "
+			"configured bandwidth hint will be used.  When running as a leaf "
+			"this should be set to TRUE to make GUESS queries run faster.";
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
 

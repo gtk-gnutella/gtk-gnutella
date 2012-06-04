@@ -79,7 +79,7 @@
 #include "fd.h"
 #include "file.h"
 #include "host_addr.h"
-#include "glib-missing.h"
+#include "htable.h"
 #include "log.h"
 #include "misc.h"
 #include "parse.h"
@@ -105,8 +105,8 @@ struct sock_un {
 	int refcnt;
 	union {
 		struct {					/* listening socket */
-			guint32 client_cookie[SUN_CLT_COOKIE_LEN];
-			guint32 server_cookie[SUN_CLT_COOKIE_LEN];
+			uint32 client_cookie[SUN_CLT_COOKIE_LEN];
+			uint32 server_cookie[SUN_CLT_COOKIE_LEN];
 		} l;
 		struct sock_un_accepted{	/* accepted socket */
 			struct sock_un *lsun;
@@ -131,7 +131,7 @@ sock_un_check(const struct sock_un * const sun)
 	g_assert(sun->refcnt > 0);
 }
 
-static GHashTable *un_desc;		/**< Maps a fd to a UNIX socket descriptor */
+static htable_t *un_desc;		/**< Maps a fd to a UNIX socket descriptor */
 
 static const char SOCK_FILE_MAGIC[] = "<?socket?>";
 
@@ -218,9 +218,9 @@ compat_socket(int domain, int type, int protocol)
 		return -1;
 
 	if (NULL == un_desc)
-		un_desc = g_hash_table_new(NULL, NULL);
+		un_desc = htable_create(HASH_KEY_SELF, 0);
 
-	g_assert(!gm_hash_table_contains(un_desc, int_to_pointer(sd)));
+	g_assert(!htable_contains(un_desc, int_to_pointer(sd)));
 
 	sun = sock_un_alloc();
 
@@ -235,7 +235,7 @@ compat_socket(int domain, int type, int protocol)
 		g_assert_not_reached();
 	}
 
-	g_hash_table_insert(un_desc, int_to_pointer(sd), sun);
+	htable_insert(un_desc, int_to_pointer(sd), sun);
 
 	return sd;
 }
@@ -250,7 +250,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 {
 	sockaddr_unix_t *saddr = (sockaddr_unix_t *) my_addr;
 	struct sock_un *sun;
-	guint16 port;
+	uint16 port;
 	int fd;
 	ssize_t rw;
 
@@ -266,7 +266,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	if (NULL == un_desc)
 		goto bad_sd;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto bad_sd;
 
@@ -439,7 +439,7 @@ compat_listen(int sd, int backlog)
 	if (NULL == un_desc)
 		goto regular;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto regular;
 
@@ -480,7 +480,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	if (NULL == un_desc)
 		goto regular;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto regular;
 
@@ -504,7 +504,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	 */
 
 	len = sizeof sin4;
-	if (getsockname(fd, cast_to_gpointer(&sin4), &len) != 0) {
+	if (getsockname(fd, cast_to_pointer(&sin4), &len) != 0) {
 		s_warning("getsockname(accepted emulated UNIX socket #%d) failed: %m",
 			fd);
 		goto bad_protocol;
@@ -559,7 +559,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 		asun->connected = TRUE;
 		asun->u.a.lsun = sock_un_refcnt_inc(sun);
 
-		g_hash_table_insert(un_desc, int_to_pointer(fd), asun);
+		htable_insert(un_desc, int_to_pointer(fd), asun);
 	}
 
 	/*
@@ -585,10 +585,10 @@ bad_protocol:
  *
  * @return TRUE on success, with value filled.
  */
-static gboolean
-sock_un_parse_cookie(const char *p, const char **endptr, guint32 *value)
+static bool
+sock_un_parse_cookie(const char *p, const char **endptr, uint32 *value)
 {
-	guint32 v;
+	uint32 v;
 	int error;
 
 	v = parse_uint32(p, endptr, 16, &error);
@@ -611,9 +611,9 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	sockaddr_unix_t *saddr = (sockaddr_unix_t *) addr;
 	struct sock_un *sun;
 	int fd;
-	guint16 port;
-	guint32 client[SUN_CLT_COOKIE_LEN];
-	guint32 server[SUN_SRV_COOKIE_LEN];
+	uint16 port;
+	uint32 client[SUN_CLT_COOKIE_LEN];
+	uint32 server[SUN_SRV_COOKIE_LEN];
 	ssize_t rw;
 
 	g_assert(addr != NULL);
@@ -628,7 +628,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	if (NULL == un_desc)
 		goto bad_sd;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto bad_sd;
 
@@ -759,7 +759,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 */
 
 	{
-		guint32 value;
+		uint32 value;
 
 		if (sizeof value != s_read(sd, &value, sizeof value))
 			return -1;
@@ -805,11 +805,11 @@ bad_prototype:
 static void
 sock_un_remove(int sd, struct sock_un *sun)
 {
-	g_hash_table_remove(un_desc, int_to_pointer(sd));
+	htable_remove(un_desc, int_to_pointer(sd));
 	sock_un_free(sun);
 
-	if (0 == g_hash_table_size(un_desc))
-		gm_hash_table_destroy_null(&un_desc);
+	if (0 == htable_count(un_desc))
+		htable_free_null(&un_desc);
 }
 
 /**
@@ -829,7 +829,7 @@ compat_socket_close(int sd)
 	 * Emulation layer for UNIX sockets.
 	 */
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto regular;
 
@@ -864,7 +864,7 @@ compat_getsockname(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	if (NULL == un_desc)
 		goto regular;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		goto regular;
 
@@ -893,8 +893,8 @@ regular:
  * @return FALSE if no more data needs to be read, TRUE if either more data
  * needs to be read or there is an error and the connection MUST be closed.
  */
-gboolean
-compat_accept_check(int sd, gboolean *error)
+bool
+compat_accept_check(int sd, bool *error)
 {
 	struct sock_un *sun;
 	ssize_t rw;
@@ -903,7 +903,7 @@ compat_accept_check(int sd, gboolean *error)
 	if (NULL == un_desc)
 		return FALSE;
 
-	sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+	sun = htable_lookup(un_desc, int_to_pointer(sd));
 	if (NULL == sun)
 		return FALSE;
 
@@ -956,9 +956,9 @@ compat_accept_check(int sd, gboolean *error)
 	 * Client cookie matched, assure the client that we're the proper server.
 	 */
 
-	rw = s_write(sd, suna->lsun->u.l.server_cookie, sizeof(guint32));
+	rw = s_write(sd, suna->lsun->u.l.server_cookie, sizeof(uint32));
 
-	if (rw != sizeof(guint32)) {
+	if (rw != sizeof(uint32)) {
 		*error = TRUE;
 		return TRUE;
 	}
@@ -981,12 +981,12 @@ void
 compat_socket_duped(int sd, int nsd)
 {
 	if (un_desc != NULL) {
-		struct sock_un *sun = g_hash_table_lookup(un_desc, int_to_pointer(sd));
+		struct sock_un *sun = htable_lookup(un_desc, int_to_pointer(sd));
 
 		if (sun != NULL) {
-			g_assert(!gm_hash_table_contains(un_desc, int_to_pointer(nsd)));
-			g_hash_table_remove(un_desc, int_to_pointer(sd));
-			g_hash_table_insert(un_desc, int_to_pointer(nsd), sun);
+			g_assert(!htable_contains(un_desc, int_to_pointer(nsd)));
+			htable_remove(un_desc, int_to_pointer(sd));
+			htable_insert(un_desc, int_to_pointer(nsd), sun);
 		}
 	}
 }

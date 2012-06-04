@@ -36,11 +36,11 @@
 
 #include "common.h"
 
-extern guint32 common_dbg;		/**< Debug level for library files */
-extern guint32 common_stats;	/**< Log level for library statistics */
+extern uint32 common_dbg;		/**< Debug level for library files */
+extern uint32 common_stats;		/**< Log level for library statistics */
 
-void set_library_debug(guint32 level);
-void set_library_stats(guint32 level);
+void set_library_debug(uint32 level);
+void set_library_stats(uint32 level);
 
 #endif /* _debug_h_ */
 

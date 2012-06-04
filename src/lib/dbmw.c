@@ -62,10 +62,10 @@ struct dbmw {
 	bstr_t *bs;					/**< Binary stream used for deserialization */
 	hash_list_t *keys;			/**< LRU list of keys cached */
 	map_t *values;				/**< Map of values cached */
-	guint64 r_access;			/**< Number of read accesses */
-	guint64 w_access;			/**< Number of write accesses */
-	guint64 r_hits;				/**< Number of read cache hits */
-	guint64 w_hits;				/**< Number of write cache hits */
+	uint64 r_access;			/**< Number of read accesses */
+	uint64 w_access;			/**< Number of write accesses */
+	uint64 r_hits;				/**< Number of read cache hits */
+	uint64 w_hits;				/**< Number of write cache hits */
 	size_t key_size;			/**< Size of keys (constant or maximum) */
 	dbmap_keylen_t key_len;		/**< Optional, computes actual key length */
 	size_t value_size;			/**< Maximum size of values (structure) */
@@ -96,7 +96,7 @@ dbmw_check(const dbmw_t *dw)
  * A deleted item has dirty=TRUE, absent=TRUE.
  */
 struct cached {
-	gpointer data;				/**< Value data */
+	void *data;					/**< Value data */
 	size_t len;					/**< Length of data */
 	unsigned dirty:1;			/**< Whether entry is dirty */
 	unsigned absent:1;			/**< Whether entry is absent from database */
@@ -122,7 +122,7 @@ dbmw_keylen(const dbmw_t *dw, const void *key)
 /**
  * Check whether I/O error has occurred during last operation.
  */
-gboolean
+bool
 dbmw_has_ioerr(const dbmw_t *dw)
 {
 	return dw->ioerr;
@@ -288,11 +288,11 @@ dbmw_create(dbmap_t *dm, const char *name,
  * Write back cached value to disk.
  * @return TRUE on success
  */
-static gboolean
-write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
+static bool
+write_back(dbmw_t *dw, const void *key, struct cached *value)
 {
 	dbmap_datum_t dval;
-	gboolean ok;
+	bool ok;
 
 	g_assert(value->dirty);
 
@@ -379,7 +379,7 @@ write_back(dbmw_t *dw, gconstpointer key, struct cached *value)
  * is not freed and can be reused.
  */
 static void
-free_value(const dbmw_t *dw, struct cached *cv, gboolean reclaim)
+free_value(const dbmw_t *dw, struct cached *cv, bool reclaim)
 {
 	if (cv->len) {
 		if (dw->valfree)
@@ -400,13 +400,13 @@ free_value(const dbmw_t *dw, struct cached *cv, gboolean reclaim)
  * indeed cached, NULL otherwise.
  */
 static struct cached *
-remove_entry(dbmw_t *dw, gconstpointer key, gboolean dispose, gboolean flush)
+remove_entry(dbmw_t *dw, const void *key, bool dispose, bool flush)
 {
 	struct cached *old;
-	gpointer old_key;
-	gboolean found;
+	void *old_key;
+	bool found;
 
-	found = map_lookup_extended(dw->values, key, &old_key, (gpointer) &old);
+	found = map_lookup_extended(dw->values, key, &old_key, (void *) &old);
 
 	if (!found)
 		return NULL;
@@ -449,10 +449,10 @@ remove_entry(dbmw_t *dw, gconstpointer key, gboolean dispose, gboolean flush)
  * @return a cache entry object that can be filled with the value.
  */
 static struct cached *
-allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
+allocate_entry(dbmw_t *dw, const void *key, struct cached *filled)
 {
 	struct cached *entry;
-	gpointer saved_key;
+	void *saved_key;
 
 	g_assert(!hash_list_contains(dw->keys, key));
 	g_assert(!map_contains(dw->values, key));
@@ -471,7 +471,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
 		else
 			WALLOC0(entry);
 	} else {
-		gpointer head;
+		void *head;
 
 		g_assert(hash_list_length(dw->keys) == dw->max_cached);
 
@@ -501,7 +501,7 @@ allocate_entry(dbmw_t *dw, gconstpointer key, struct cached *filled)
  */
 static void
 fill_entry(const dbmw_t *dw,
-	struct cached *entry, gpointer value, size_t length)
+	struct cached *entry, void *value, size_t length)
 {
 	/*
 	 * Try to reuse old entry arena if same size.
@@ -513,7 +513,7 @@ fill_entry(const dbmw_t *dw,
 	 */
 
 	if (length != (size_t) entry->len) {
-		gpointer arena = NULL;
+		void *arena = NULL;
 
 		if (length)
 			arena = wcopy(value, length);
@@ -536,7 +536,7 @@ fill_entry(const dbmw_t *dw,
  * iterating on the database.
  */
 static void
-cache_reset_before_traversal(gpointer u_key, gpointer value, gpointer u_data)
+cache_reset_before_traversal(void *u_key, void *value, void *u_data)
 {
 	struct cached *entry = value;
 
@@ -568,7 +568,7 @@ struct cache_foreach_ctx {
  * as being traversed, invoking the supplied trampoline callback.
  */
 static void
-cache_finish_traversal(gpointer key, gpointer value, gpointer data)
+cache_finish_traversal(void *key, void *value, void *data)
 {
 	struct cached *entry = value;
 	struct cache_foreach_ctx *fctx = data;
@@ -596,8 +596,8 @@ cache_finish_traversal(gpointer key, gpointer value, gpointer data)
 /**
  * Map iterator to free cached entries that have been marked as removable.
  */
-static gboolean
-cache_free_removable(gpointer key, gpointer value, gpointer data)
+static bool
+cache_free_removable(void *key, void *value, void *data)
 {
 	dbmw_t *dw = data;
 	struct cached *entry = value;
@@ -630,7 +630,7 @@ struct flush_context {
  * Map iterator to flush dirty cached entries.
  */
 static void
-flush_dirty(gpointer key, gpointer value, gpointer data)
+flush_dirty(void *key, void *value, void *data)
 {
 	struct flush_context *ctx = data;
 	struct cached *entry = value;
@@ -667,7 +667,7 @@ ssize_t
 dbmw_sync(dbmw_t *dw, int which)
 {
 	ssize_t amount = 0;
-	gboolean error = FALSE;
+	bool error = FALSE;
 
 	if (which & DBMW_SYNC_CACHE) {
 		struct flush_context ctx;
@@ -700,7 +700,7 @@ dbmw_sync(dbmw_t *dw, int which)
  *
  * @return TRUE if successful (not implying that anything was actually shrunk).
  */
-gboolean
+bool
 dbmw_shrink(dbmw_t *dw)
 {
 	return dbmap_shrink(dw->dm);
@@ -716,8 +716,8 @@ dbmw_shrink(dbmw_t *dw)
  *
  * @return TRUE if deserialization was OK.
  */
-static gboolean
-dbmw_deserialize(const dbmw_t *dw, bstr_t *bs, gpointer valptr, size_t len)
+static bool
+dbmw_deserialize(const dbmw_t *dw, bstr_t *bs, void *valptr, size_t len)
 {
 	(*dw->unpack)(bs, valptr, len);
 
@@ -739,7 +739,7 @@ dbmw_deserialize(const dbmw_t *dw, bstr_t *bs, gpointer valptr, size_t len)
  * Write data to disk immediately.
  */
 static void
-write_immediately(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
+write_immediately(dbmw_t *dw, const void *key, void *value, size_t length)
 {
 	struct cached tmp;
 
@@ -770,7 +770,7 @@ write_immediately(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
  * @param length	length of the value
  */
 void
-dbmw_write_nocache(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
+dbmw_write_nocache(dbmw_t *dw, const void *key, void *value, size_t length)
 {
 	dbmw_check(dw);
 	g_assert(key);
@@ -795,7 +795,7 @@ dbmw_write_nocache(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
  * @param length	length of the value
  */
 void
-dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
+dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
 {
 	struct cached *entry;
 
@@ -840,8 +840,8 @@ dbmw_write(dbmw_t *dw, gconstpointer key, gpointer value, size_t length)
  * @return pointer to value, or NULL if it was either not found or the
  * deserialization failed.
  */
-G_GNUC_HOT gpointer
-dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
+G_GNUC_HOT void *
+dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 {
 	struct cached *entry;
 	dbmap_datum_t dval;
@@ -937,11 +937,11 @@ dbmw_read(dbmw_t *dw, gconstpointer key, size_t *lenptr)
 /**
  * Is key present in the database?
  */
-gboolean
-dbmw_exists(dbmw_t *dw, gconstpointer key)
+bool
+dbmw_exists(dbmw_t *dw, const void *key)
 {
 	struct cached *entry;
-	gboolean ret;
+	bool ret;
 
 	dbmw_check(dw);
 	g_assert(key);
@@ -991,7 +991,7 @@ dbmw_exists(dbmw_t *dw, gconstpointer key)
  * Delete key from database.
  */
 void
-dbmw_delete(dbmw_t *dw, gconstpointer key)
+dbmw_delete(dbmw_t *dw, const void *key)
 {
 	struct cached *entry;
 
@@ -1042,8 +1042,8 @@ dbmw_delete(dbmw_t *dw, gconstpointer key)
 /**
  * Map iterator to free cached entries.
  */
-static gboolean
-free_cached(gpointer key, gpointer value, gpointer data)
+static bool
+free_cached(void *key, void *value, void *data)
 {
 	dbmw_t *dw = data;
 	struct cached *entry = value;
@@ -1080,7 +1080,7 @@ dbmw_clear_cache(dbmw_t *dw)
  *
  * @return TRUE if successful.
  */
-gboolean
+bool
 dbmw_clear(dbmw_t *dw)
 {
 	if (!dbmap_clear(dw->dm))
@@ -1097,7 +1097,7 @@ dbmw_clear(dbmw_t *dw)
  * Destroy the DBM wrapper, optionally closing the underlying DB map.
  */
 void
-dbmw_destroy(dbmw_t *dw, gboolean close_map)
+dbmw_destroy(dbmw_t *dw, bool close_map)
 {
 	dbmw_check(dw);
 
@@ -1143,7 +1143,7 @@ struct foreach_ctx {
 		dbmw_cb_t cb;
 		dbmw_cbr_t cbr;
 	} u;
-	gpointer arg;
+	void *arg;
 	dbmw_t *dw;
 };
 
@@ -1151,9 +1151,8 @@ struct foreach_ctx {
  * Common code for dbmw_foreach_trampoline() and
  * dbmw_foreach_remove_trampoline().
  */
-static gboolean
-dbmw_foreach_common(gboolean removing,
-	gpointer key, dbmap_datum_t *d, gpointer arg)
+static bool
+dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 {
 	struct foreach_ctx *ctx = arg;
 	dbmw_t *dw = ctx->dw;
@@ -1185,7 +1184,7 @@ dbmw_foreach_common(gboolean removing,
 		if (entry->absent)
 			return TRUE;		/* Key was already deleted, info cached */
 		if (removing) {
-			gboolean status;
+			bool status;
 			status = (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
 			if (status) {
 				entry->removable = TRUE;	/* Discard it after traversal */
@@ -1196,8 +1195,8 @@ dbmw_foreach_common(gboolean removing,
 			return FALSE;
 		}
 	} else {
-		gboolean status = FALSE;
-		gpointer data = d->data;
+		bool status = FALSE;
+		void *data = d->data;
 		size_t len = d->len;
 
 		/*
@@ -1242,7 +1241,7 @@ dbmw_foreach_common(gboolean removing,
  * Trampoline to invoke the DB map iterator and do the proper casts.
  */
 static void
-dbmw_foreach_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
+dbmw_foreach_trampoline(void *key, dbmap_datum_t *d, void *arg)
 {
 	dbmw_foreach_common(FALSE, key, d, arg);
 }
@@ -1250,8 +1249,8 @@ dbmw_foreach_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
 /**
  * Trampoline to invoke the map iterator and do the proper casts.
  */
-static gboolean
-dbmw_foreach_remove_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
+static bool
+dbmw_foreach_remove_trampoline(void *key, dbmap_datum_t *d, void *arg)
 {
 	return dbmw_foreach_common(TRUE, key, d, arg);
 }
@@ -1260,7 +1259,8 @@ dbmw_foreach_remove_trampoline(gpointer key, dbmap_datum_t *d, gpointer arg)
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument.
  */
-void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
+void
+dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 {
 	struct foreach_ctx ctx;
 	struct cache_foreach_ctx fctx;
@@ -1308,7 +1308,8 @@ void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, gpointer arg)
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument and removing the item when the callback returns TRUE.
  */
-void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, gpointer arg)
+void
+dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 {
 	struct foreach_ctx ctx;
 	struct cache_foreach_ctx fctx;
@@ -1391,8 +1392,8 @@ dbmw_free_all_keys(const dbmw_t *dw, GSList *keys)
  *
  * @return TRUE on success.
  */
-gboolean
-dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
+bool
+dbmw_store(dbmw_t *dw, const char *base, bool inplace)
 {
 	dbmw_check(dw);
 
@@ -1406,7 +1407,7 @@ dbmw_store(dbmw_t *dw, const char *base, gboolean inplace)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 dbmw_copy(dbmw_t *from, dbmw_t *to)
 {
 	dbmw_check(from);
@@ -1428,7 +1429,7 @@ dbmw_copy(dbmw_t *from, dbmw_t *to)
  * Set the map cache size, as an amount of 1 KiB pages.
  * @return TRUE on success.
  */
-gboolean
+bool
 dbmw_set_map_cache(dbmw_t *dw, long pages)
 {
 	dbmw_check(dw);
@@ -1441,8 +1442,8 @@ dbmw_set_map_cache(dbmw_t *dw, long pages)
  *
  * @return TRUE on success.
  */
-gboolean
-dbmw_set_volatile(dbmw_t *dw, gboolean is_volatile)
+bool
+dbmw_set_volatile(dbmw_t *dw, bool is_volatile)
 {
 	dbmw_check(dw);
 

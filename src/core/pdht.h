@@ -81,7 +81,7 @@ typedef struct pdht_info {
  * @return TRUE if receiver is OK with the publishing, FALSE to request further
  * background attempts to publish to more nodes.
  */
-typedef gboolean (*pdht_cb_t)(gpointer arg,
+typedef bool (*pdht_cb_t)(void *arg,
 	pdht_error_t code, const pdht_info_t *info);
 
 /*
@@ -93,12 +93,12 @@ struct sha1;
 void pdht_init(void);
 void pdht_close(void);
 
-void pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, gpointer arg);
+void pdht_publish_file(shared_file_t *sf, pdht_cb_t cb, void *arg);
 const char *pdht_strerror(pdht_error_t code);
-void pdht_cancel_file(const struct sha1 *sha1, gboolean callback);
+void pdht_cancel_file(const struct sha1 *sha1, bool callback);
 void pdht_prox_publish_if_changed(void);
 void pdht_publish_proxy(const gnutella_node_t *n);
-void pdht_cancel_nope(const struct guid *guid, gboolean callback);
+void pdht_cancel_nope(const struct guid *guid, bool callback);
 
 #endif	/* _core_pdht_h_ */
 

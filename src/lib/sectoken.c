@@ -34,14 +34,15 @@
 #include "common.h"
 
 #include "sectoken.h"
-#include "atoms.h"			/* For binary_hash() */
 #include "cq.h"
 #include "endian.h"
+#include "hashing.h"			/* For binary_hash() */
 #include "host_addr.h"
 #include "random.h"
 #include "tea.h"
 #include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum sectoken_gen_magic { SECTOKEN_GEN_MAGIC = 0x2a7f3219 };
@@ -88,7 +89,7 @@ sectoken_lifetime(const sectoken_gen_t *stg)
  */
 static void
 sectoken_generate_n(sectoken_gen_t *stg, size_t n,
-	sectoken_t *tok, host_addr_t addr, guint16 port)
+	sectoken_t *tok, host_addr_t addr, uint16 port)
 {
 	char block[8];
 	char enc[8];
@@ -105,7 +106,7 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 		break;
 	case NET_TYPE_IPV6:
 		{
-			guint val;
+			uint val;
 
 			val = binary_hash(host_addr_ipv6(&addr), 16);
 			p = poke_be32(p, val);
@@ -122,7 +123,7 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 
 	g_assert(p == &block[8]);
 
-	STATIC_ASSERT(sizeof(tok->v) == sizeof(guint32));
+	STATIC_ASSERT(sizeof(tok->v) == sizeof(uint32));
 	STATIC_ASSERT(sizeof(block) == sizeof(enc));
 
 	tea_encrypt(&stg->keys[n], enc, block, sizeof block);
@@ -139,7 +140,7 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
  */
 void
 sectoken_generate(sectoken_gen_t *stg,
-	sectoken_t *tok, host_addr_t addr, guint16 port)
+	sectoken_t *tok, host_addr_t addr, uint16 port)
 {
 	sectoken_generate_n(stg, 0, tok, addr, port);
 }
@@ -147,9 +148,9 @@ sectoken_generate(sectoken_gen_t *stg,
 /*
  * Is specified token still valid for this address/port tuple?
  */
-gboolean
+bool
 sectoken_is_valid(sectoken_gen_t *stg,
-	const sectoken_t *tok, host_addr_t addr, guint16 port)
+	const sectoken_t *tok, host_addr_t addr, uint16 port)
 {
 	size_t i;
 
@@ -179,7 +180,7 @@ sectoken_is_valid(sectoken_gen_t *stg,
  * Token key rotating event.
  */
 static void
-sectoken_rotate(cqueue_t *unused_cq, gpointer obj)
+sectoken_rotate(cqueue_t *unused_cq, void *obj)
 {
 	size_t i;
 	sectoken_gen_t *stg = obj;
@@ -201,7 +202,7 @@ sectoken_rotate(cqueue_t *unused_cq, gpointer obj)
  * Allocate a remote security token.
  */
 sectoken_remote_t *
-sectoken_remote_alloc(guint8 length)
+sectoken_remote_alloc(uint8 length)
 {
 	sectoken_remote_t *token;
 
@@ -216,7 +217,7 @@ sectoken_remote_alloc(guint8 length)
  * Free remote security token.
  */
 void
-sectoken_remote_free(sectoken_remote_t *token, gboolean freedata)
+sectoken_remote_free(sectoken_remote_t *token, bool freedata)
 {
 	if (token->v && freedata)
 		wfree(token->v, token->length);

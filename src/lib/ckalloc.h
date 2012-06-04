@@ -47,7 +47,7 @@ ckhunk_t *ck_init_not_leaking(size_t size, size_t reserved);
 void ck_destroy_null(ckhunk_t **ck_ptr);
 void *ck_alloc(ckhunk_t *ck, size_t len);
 void *ck_alloc_critical(ckhunk_t *ck, size_t len);
-gboolean ck_used(const ckhunk_t *ck);
+bool ck_used(const ckhunk_t *ck);
 void *ck_save(const ckhunk_t *ck);
 void ck_restore(ckhunk_t *ck, void *saved);
 void ck_free_all(ckhunk_t *ck);
@@ -58,9 +58,9 @@ void ck_writable(ckhunk_t *ck);
 void *ck_alloc_readonly(ckhunk_t *ck, size_t len);
 void *ck_copy_readonly(ckhunk_t *ck, const void *p, size_t size);
 char *ck_strdup_readonly(ckhunk_t *ck, const char *str);
-gboolean ck_shrink(ckhunk_t *ck, size_t size);
-gboolean ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size);
-gboolean ck_is_readonly(ckhunk_t *ck);
+bool ck_shrink(ckhunk_t *ck, size_t size);
+bool ck_memcpy(ckhunk_t *ck, void *dest, const void *src, size_t size);
+bool ck_is_readonly(ckhunk_t *ck);
 
 #endif /* _ckalloc_h_ */
 

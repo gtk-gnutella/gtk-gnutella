@@ -52,8 +52,9 @@ cat <<EOH
  */
 
 EOH
-grep -v '^;#' $header
-echo " "
+if test -s $header; then
+	(cat $header; echo " ") | grep -v '^;#'
+fi
 GENERIC=`echo $generic | tr '[a-z]' '[A-Z]'`
 sed -e "/^;#/d" \
 	-e "s/<generic>/$generic/g" \

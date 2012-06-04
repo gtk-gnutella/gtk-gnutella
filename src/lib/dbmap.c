@@ -107,9 +107,9 @@ static const char dbmap_superkey[] = "__dbmap_superkey__";
  * Superblock stored in the superkey.
  */
 struct dbmap_superblock {
-	guint32 key_size;		/**< Constant width keys are a requirement */
-	guint32 count;			/**< Amount of items */
-	guint32 flags;			/**< Status flags */
+	uint32 key_size;		/**< Constant width keys are a requirement */
+	uint32 count;			/**< Amount of items */
+	uint32 flags;			/**< Status flags */
 	time_t last_check;		/**< When we last checked keys */
 };
 
@@ -137,21 +137,21 @@ dbmap_keylen(const dbmap_t *dm, const void *key)
  * Store a superblock in an SDBM DB map.
  * @return TRUE on success.
  */
-static gboolean
+static bool
 dbmap_sdbm_store_superblock(const dbmap_t *dm)
 {
 	datum key, value;
 	DBM *sdbm;
 	pmsg_t *mb;
-	guint32 flags = 0;
-	gboolean ok = TRUE;
+	uint32 flags = 0;
+	bool ok = TRUE;
 
 	dbmap_check(dm);
 	g_assert(DBMAP_SDBM == dm->type);
 
 	sdbm = dm->u.s.sdbm;
 
-	key.dptr = deconstify_gpointer(dbmap_superkey);
+	key.dptr = deconstify_pointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
 
 	if (dm->had_ioerr) {
@@ -187,15 +187,15 @@ dbmap_sdbm_store_superblock(const dbmap_t *dm)
  * Read the superblock stored in an opened SDBM file.
  * @return TRUE if we read the superblock correctly.
  */
-static gboolean
+static bool
 dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
 {
 	datum key, value;
-	gboolean ok;
+	bool ok;
 	bstr_t *bs;
-	guint8 version;
+	uint8 version;
 
-	key.dptr = deconstify_gpointer(dbmap_superkey);
+	key.dptr = deconstify_pointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
 
 	value = sdbm_fetch(sdbm, key);
@@ -238,14 +238,14 @@ dbmap_sdbm_retrieve_superblock(DBM *sdbm, struct dbmap_superblock *block)
  * Remove superblock from the SDBM file.
  * @return TRUE on success.
  */
-static gboolean
+static bool
 dbmap_sdbm_strip_superblock(DBM *sdbm)
 {
 	datum key;
 
 	g_assert(!sdbm_rdonly(sdbm));
 
-	key.dptr = deconstify_gpointer(dbmap_superkey);
+	key.dptr = deconstify_pointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
 	
 	if (0 == sdbm_delete(sdbm, key))
@@ -265,14 +265,14 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
  *
  * @return TRUE on error
  */
-static gboolean
+static bool
 dbmap_sdbm_error_check(const dbmap_t *dm)
 {
 	dbmap_check(dm);
 	g_assert(DBMAP_SDBM == dm->type);
 
 	if (sdbm_error(dm->u.s.sdbm)) {
-		dbmap_t *dmw = deconstify_gpointer(dm);
+		dbmap_t *dmw = deconstify_pointer(dm);
 		dmw->ioerr = TRUE;
 		dmw->had_ioerr = TRUE;
 		dmw->error = errno;
@@ -281,7 +281,7 @@ dbmap_sdbm_error_check(const dbmap_t *dm)
 		}
 		return TRUE;
 	} else if (dm->ioerr) {
-		dbmap_t *dmw = deconstify_gpointer(dm);
+		dbmap_t *dmw = deconstify_pointer(dm);
 		dmw->ioerr = FALSE;
 		dmw->error = 0;
 	}
@@ -293,7 +293,7 @@ dbmap_sdbm_error_check(const dbmap_t *dm)
  * Helper routine to count keys in an opened SDBM database.
  */
 size_t
-dbmap_sdbm_count_keys(dbmap_t *dm, gboolean expect_superblock)
+dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 {
 	datum key;
 	size_t count = 0;
@@ -396,7 +396,7 @@ dbmap_key_length(const dbmap_t *dm)
 /**
  * Check whether I/O error has occurred.
  */
-gboolean
+bool
 dbmap_has_ioerr(const dbmap_t *dm)
 {
 	dbmap_check(dm);
@@ -612,8 +612,8 @@ dbmap_sdbm_set_name(const dbmap_t *dm, const char *name)
  *
  * @return success status.
  */
-gboolean
-dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
+bool
+dbmap_insert(dbmap_t *dm, const void *key, dbmap_datum_t value)
 {
 	dbmap_check(dm);
 
@@ -621,9 +621,9 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 	case DBMAP_MAP:
 		{
 			dbmap_datum_t *d;
-			gpointer okey;
-			gpointer ovalue;
-			gboolean found;
+			void *okey;
+			void *ovalue;
+			bool found;
 
 			WALLOC(d);
 
@@ -645,7 +645,7 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 					wfree(od->data, od->len);
 				WFREE(od);
 			} else {
-				gpointer dkey = wcopy(key, dbmap_keylen(dm, key));
+				void *dkey = wcopy(key, dbmap_keylen(dm, key));
 
 				map_insert(dm->u.m.map, dkey, d);
 				dm->count++;
@@ -656,12 +656,12 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
 		{
 			datum dkey;
 			datum dval;
-			gboolean existed = FALSE;
+			bool existed = FALSE;
 			int ret;
 
-			dkey.dptr = deconstify_gpointer(key);
+			dkey.dptr = deconstify_pointer(key);
 			dkey.dsize = dbmap_keylen(dm, key);
-			dval.dptr = deconstify_gpointer(value.data);
+			dval.dptr = deconstify_pointer(value.data);
 			dval.dsize = value.len;
 
 			errno = dm->error = 0;
@@ -687,17 +687,17 @@ dbmap_insert(dbmap_t *dm, gconstpointer key, dbmap_datum_t value)
  * @return success status (not whether the key was present, rather whether
  * the key has been physically removed).
  */
-gboolean
-dbmap_remove(dbmap_t *dm, gconstpointer key)
+bool
+dbmap_remove(dbmap_t *dm, const void *key)
 {
 	dbmap_check(dm);
 
 	switch (dm->type) {
 	case DBMAP_MAP:
 		{
-			gpointer dkey;
-			gpointer dvalue;
-			gboolean found;
+			void *dkey;
+			void *dvalue;
+			bool found;
 		
 			found = map_lookup_extended(dm->u.m.map, key, &dkey, &dvalue);
 			if (found) {
@@ -719,7 +719,7 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 			datum dkey;
 			int ret;
 
-			dkey.dptr = deconstify_gpointer(key);
+			dkey.dptr = deconstify_pointer(key);
 			dkey.dsize = dbmap_keylen(dm, key);
 
 			errno = dm->error = 0;
@@ -762,8 +762,8 @@ dbmap_remove(dbmap_t *dm, gconstpointer key)
 /**
  * Check whether DB map contains the key.
  */
-gboolean
-dbmap_contains(dbmap_t *dm, gconstpointer key)
+bool
+dbmap_contains(dbmap_t *dm, const void *key)
 {
 	dbmap_check(dm);
 
@@ -775,7 +775,7 @@ dbmap_contains(dbmap_t *dm, gconstpointer key)
 			datum dkey;
 			int ret;
 
-			dkey.dptr = deconstify_gpointer(key);
+			dkey.dptr = deconstify_pointer(key);
 			dkey.dsize = dbmap_keylen(dm, key);
 
 			dm->error = errno = 0;
@@ -797,7 +797,7 @@ dbmap_contains(dbmap_t *dm, gconstpointer key)
  * Lookup a key in the DB map.
  */
 dbmap_datum_t
-dbmap_lookup(dbmap_t *dm, gconstpointer key)
+dbmap_lookup(dbmap_t *dm, const void *key)
 {
 	dbmap_datum_t result = { NULL, 0 };
 
@@ -822,7 +822,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 			datum dkey;
 			datum value;
 
-			dkey.dptr = deconstify_gpointer(key);
+			dkey.dptr = deconstify_pointer(key);
 			dkey.dsize = dbmap_keylen(dm, key);
 
 			errno = dm->error = 0;
@@ -844,7 +844,7 @@ dbmap_lookup(dbmap_t *dm, gconstpointer key)
 /**
  * Returns the underlying dbmap implementation.
  */
-gpointer
+void *
 dbmap_implementation(const dbmap_t *dm)
 {
 	dbmap_check(dm);
@@ -865,10 +865,10 @@ dbmap_implementation(const dbmap_t *dm)
  * Release the map encapsulation, returning the underlying implementation
  * object (will need to be cast back to the proper type for perusal).
  */
-gpointer
+void *
 dbmap_release(dbmap_t *dm)
 {
-	gpointer implementation;
+	void *implementation;
 
 	dbmap_check(dm);
 
@@ -889,7 +889,7 @@ dbmap_release(dbmap_t *dm)
  * Map iterator to free key/values
  */
 static void
-free_kv(gpointer key, gpointer value, gpointer u)
+free_kv(void *key, void *value, void *u)
 {
 	dbmap_t *dm = u;
 	dbmap_datum_t *d = value;
@@ -940,9 +940,9 @@ struct insert_ctx {
  * Map iterator to insert a copy of the map keys into a singly-linked list.
  */
 static void
-insert_key(gpointer key, gpointer unused_value, gpointer u)
+insert_key(void *key, void *unused_value, void *u)
 {
-	gpointer kdup;
+	void *kdup;
 	struct insert_ctx *ctx = u;
 
 	(void) unused_value;
@@ -984,7 +984,7 @@ dbmap_all_keys(const dbmap_t *dm)
 				key.dptr != NULL;
 				key = sdbm_nextkey(sdbm)
 			) {
-				gpointer kdup;
+				void *kdup;
 
 				if (dbmap_keylen(dm, key.dptr) != key.dsize)
 					continue;		/* Invalid key, corrupted file? */
@@ -1024,14 +1024,14 @@ struct foreach_ctx {
 		dbmap_cb_t cb;
 		dbmap_cbr_t cbr;
 	} u;
-	gpointer arg;
+	void *arg;
 };
 
 /**
  * Trampoline to invoke the map iterator and do the proper casts.
  */
 static void
-dbmap_foreach_trampoline(gpointer key, gpointer value, gpointer arg)
+dbmap_foreach_trampoline(void *key, void *value, void *arg)
 {
 	dbmap_datum_t *d = value;
 	struct foreach_ctx *ctx = arg;
@@ -1042,12 +1042,12 @@ dbmap_foreach_trampoline(gpointer key, gpointer value, gpointer arg)
 /**
  * Trampoline to invoke the map iterator and do the proper casts.
  */
-static gboolean
-dbmap_foreach_remove_trampoline(gpointer key, gpointer value, gpointer arg)
+static bool
+dbmap_foreach_remove_trampoline(void *key, void *value, void *arg)
 {
 	dbmap_datum_t *d = value;
 	struct foreach_ctx *ctx = arg;
-	gboolean to_remove;
+	bool to_remove;
 
 	to_remove = (*ctx->u.cbr)(key, d, ctx->arg);
 
@@ -1065,7 +1065,7 @@ dbmap_foreach_remove_trampoline(gpointer key, gpointer value, gpointer arg)
  * supplied argument.
  */
 void
-dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
+dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 {
 	dbmap_check(dm);
 	g_assert(cb);
@@ -1111,7 +1111,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
 				}
 			}
 			if (!dbmap_sdbm_error_check(dm)) {
-				dbmap_t *dmw = deconstify_gpointer(dm);
+				dbmap_t *dmw = deconstify_pointer(dm);
 				dmw->count = count;
 			}
 			if (invalid) {
@@ -1130,7 +1130,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, gpointer arg)
  * supplied argument and removing the item when the callback returns TRUE.
  */
 void
-dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
+dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 {
 	dbmap_check(dm);
 	g_assert(cbr);
@@ -1146,7 +1146,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
 			
-			dmw = deconstify_gpointer(dm);
+			dmw = deconstify_pointer(dm);
 			dmw->count = map_count(dm->u.m.map);
 		}
 		break;
@@ -1186,7 +1186,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, gpointer arg)
 			}
 			dbmap_sdbm_error_check(dm);
 			{
-				dbmap_t *dmw = deconstify_gpointer(dm);
+				dbmap_t *dmw = deconstify_pointer(dm);
 				dmw->count = count;
 			}
 			if (invalid) {
@@ -1227,7 +1227,7 @@ dbmap_unlink_sdbm(const char *base)
 }
 
 static void
-dbmap_store_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
+dbmap_store_entry(void *key, dbmap_datum_t *d, void *arg)
 {
 	dbmap_insert(arg, key, *d);
 }
@@ -1246,11 +1246,11 @@ dbmap_store_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
  *
  * @return TRUE on success.
  */
-gboolean
-dbmap_store(dbmap_t *dm, const char *base, gboolean inplace)
+bool
+dbmap_store(dbmap_t *dm, const char *base, bool inplace)
 {
 	dbmap_t *ndm;
-	gboolean ok = TRUE;
+	bool ok = TRUE;
 
 	dbmap_check(dm);
 
@@ -1300,12 +1300,12 @@ done:
  * Copy context.
  */
 struct copy_context {
-	dbmap_t *to;			/**< Destination */
-	gboolean error;			/**< Whether an error occurred */
+	dbmap_t *to;		/**< Destination */
+	bool error;			/**< Whether an error occurred */
 };
 
 static void
-dbmap_copy_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
+dbmap_copy_entry(void *key, dbmap_datum_t *d, void *arg)
 {
 	struct copy_context *ctx = arg;
 
@@ -1322,7 +1322,7 @@ dbmap_copy_entry(gpointer key, dbmap_datum_t *d, gpointer arg)
  *
  * @return TRUE on success.
  */
-gboolean
+bool
 dbmap_copy(dbmap_t *from, dbmap_t *to)
 {
 	struct copy_context ctx;
@@ -1366,7 +1366,7 @@ dbmap_sync(dbmap_t *dm)
  * Attempt to shrink the database.
  * @return TRUE if no error occurred.
  */
-gboolean
+bool
 dbmap_shrink(dbmap_t *dm)
 {
 	dbmap_check(dm);
@@ -1387,7 +1387,7 @@ dbmap_shrink(dbmap_t *dm)
  * Discard all data from the database.
  * @return TRUE if no error occurred.
  */
-gboolean
+bool
 dbmap_clear(dbmap_t *dm)
 {
 	dbmap_check(dm);
@@ -1437,7 +1437,7 @@ dbmap_set_cachesize(dbmap_t *dm, long pages)
  * @return 0 if OK, -1 on errors with errno set.
  */
 int
-dbmap_set_deferred_writes(dbmap_t *dm, gboolean on)
+dbmap_set_deferred_writes(dbmap_t *dm, bool on)
 {
 	dbmap_check(dm);
 
@@ -1458,7 +1458,7 @@ dbmap_set_deferred_writes(dbmap_t *dm, gboolean on)
  * @return 0 if OK, -1 on errors with errno set.
  */
 int
-dbmap_set_volatile(dbmap_t *dm, gboolean is_volatile)
+dbmap_set_volatile(dbmap_t *dm, bool is_volatile)
 {
 	dbmap_check(dm);
 

@@ -38,12 +38,12 @@
 #define _filename_h_
 
 char *filename_sanitize(const char *filename,
-	gboolean no_spaces, gboolean no_evil);
+	bool no_spaces, bool no_evil);
 char *filename_beautify(const char *filename);
 
 size_t filename_shrink(const char *filename, char *buf, size_t size);
 char *filename_unique(const char *path, const char *file, const char *ext,
-		gboolean (*name_is_uniq)(const char *pathname));
+		bool (*name_is_uniq)(const char *pathname));
 
 #endif /* _filename_h_ */
 

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-109]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-146]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -57,8 +57,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c
-OBJECTS =  \$(LOBJ)  float-test.o
+SOURCES =  \$(LSRC)  float-test.c  sort-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -88,13 +88,25 @@ all:: .FORCE_DEPEND
 
 # $X-Id$
 
-GENERIC = bit_array.h bit_field.h
+GENERIC = bit_array.h bit_field.h htable.h hset.h htable.c hset.c
 
 bit_array.h: bit_array.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
 
 bit_field.h: bit_field.ht bit_generic.t
 	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+
+htable.h: hgeneric.ht
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
+
+htable.c: hgeneric.ct
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
+
+hset.h: hgeneric.ht
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
+
+hset.c: hgeneric.ct
+	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
 
 all:: $(GENERIC)
 
@@ -106,22 +118,27 @@ depend:: $(GENERIC)
 LSRC = \
 	adns.c \
 	aging.c \
+	alloca.c \
 	arc4random.c \
 	ascii.c \
 	atoms.c \
 	base16.c \
 	base32.c \
 	base64.c \
+	bfd_util.c \
 	bg.c \
+	bigint.c \
 	bstr.c \
 	ckalloc.c \
 	cobs.c \
 	compat_misc.c \
+	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sleep_ms.c \
 	compat_un.c \
 	concat.c \
+	constants.c \
 	cpufreq.c \
 	cq.c \
 	crash.c \
@@ -131,8 +148,11 @@ LSRC = \
 	dbstore.c \
 	dbus_util.c \
 	debug.c \
+	dl_util.c \
 	dualhash.c \
+	elist.c \
 	entropy.c \
+	erbtree.c \
 	eval.c \
 	event.c \
 	exit.c \
@@ -145,28 +165,40 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	getcpucount.c \
 	getdate.c \
-	getline.c \
 	getgateway.c \
+	gethomedir.c \
+	getline.c \
 	getphysmemsize.c \
 	glib-missing.c \
 	glog.c \
 	gnet_host.c \
 	halloc.c \
+	hash.c \
+	hashing.c \
 	hashlist.c \
 	hashtable.c \
 	header.c \
+	hevset.c \
+	hikset.c \
 	host_addr.c \
+	hset.c \
+	htable.c \
 	html.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
+	ipset.c \
 	iso3166.c \
-	log.c \
+	leak.c \
 	list.c \
+	log.c \
 	magnet.c \
 	malloc.c \
 	map.c \
+	mem.c \
+	mempcpy.c \
 	memusage.c \
 	mime_type.c \
 	mingw32.c \
@@ -177,11 +209,12 @@ LSRC = \
 	offtime.c \
 	ohash_table.c \
 	omalloc.c \
+	once.c \
 	options.c \
 	ostream.c \
 	pagetable.c \
-	parse.c \
 	palloc.c \
+	parse.c \
 	path.c \
 	patricia.c \
 	pattern.c \
@@ -189,6 +222,7 @@ LSRC = \
 	pow2.c \
 	product.c \
 	prop.c \
+	rand31.c \
 	random.c \
 	regex.c \
 	sectoken.c \
@@ -196,6 +230,7 @@ LSRC = \
 	sha1.c \
 	signal.c \
 	slist.c \
+	smsort.c \
 	sorted_array.c \
 	spinlock.c \
 	stacktrace.c \
@@ -203,6 +238,7 @@ LSRC = \
 	str.c \
 	stringify.c \
 	strtok.c \
+	symbols.c \
 	symtab.c \
 	tea.c \
 	thread.c \
@@ -223,28 +259,34 @@ LSRC = \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
+	xsort.c \
 	zalloc.c \
 	zlib_util.c
 
 LOBJ = \
 	adns.o \
 	aging.o \
+	alloca.o \
 	arc4random.o \
 	ascii.o \
 	atoms.o \
 	base16.o \
 	base32.o \
 	base64.o \
+	bfd_util.o \
 	bg.o \
+	bigint.o \
 	bstr.o \
 	ckalloc.o \
 	cobs.o \
 	compat_misc.o \
+	compat_pause.o \
 	compat_pio.o \
 	compat_poll.o \
 	compat_sleep_ms.o \
 	compat_un.o \
 	concat.o \
+	constants.o \
 	cpufreq.o \
 	cq.o \
 	crash.o \
@@ -254,8 +296,11 @@ LOBJ = \
 	dbstore.o \
 	dbus_util.o \
 	debug.o \
+	dl_util.o \
 	dualhash.o \
+	elist.o \
 	entropy.o \
+	erbtree.o \
 	eval.o \
 	event.o \
 	exit.o \
@@ -268,28 +313,40 @@ LOBJ = \
 	float.o \
 	fragcheck.o \
 	fs_free_space.o \
+	getcpucount.o \
 	getdate.o \
-	getline.o \
 	getgateway.o \
+	gethomedir.o \
+	getline.o \
 	getphysmemsize.o \
 	glib-missing.o \
 	glog.o \
 	gnet_host.o \
 	halloc.o \
+	hash.o \
+	hashing.o \
 	hashlist.o \
 	hashtable.o \
 	header.o \
+	hevset.o \
+	hikset.o \
 	host_addr.o \
+	hset.o \
+	htable.o \
 	html.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
+	ipset.o \
 	iso3166.o \
-	log.o \
+	leak.o \
 	list.o \
+	log.o \
 	magnet.o \
 	malloc.o \
 	map.o \
+	mem.o \
+	mempcpy.o \
 	memusage.o \
 	mime_type.o \
 	mingw32.o \
@@ -300,11 +357,12 @@ LOBJ = \
 	offtime.o \
 	ohash_table.o \
 	omalloc.o \
+	once.o \
 	options.o \
 	ostream.o \
 	pagetable.o \
-	parse.o \
 	palloc.o \
+	parse.o \
 	path.o \
 	patricia.o \
 	pattern.o \
@@ -312,6 +370,7 @@ LOBJ = \
 	pow2.o \
 	product.o \
 	prop.o \
+	rand31.o \
 	random.o \
 	regex.o \
 	sectoken.o \
@@ -319,6 +378,7 @@ LOBJ = \
 	sha1.o \
 	signal.o \
 	slist.o \
+	smsort.o \
 	sorted_array.o \
 	spinlock.o \
 	stacktrace.o \
@@ -326,6 +386,7 @@ LOBJ = \
 	str.o \
 	stringify.o \
 	strtok.o \
+	symbols.o \
 	symtab.o \
 	tea.o \
 	thread.o \
@@ -346,6 +407,7 @@ LOBJ = \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \
+	xsort.o \
 	zalloc.o \
 	zlib_util.o 
 
@@ -386,6 +448,9 @@ getdate.c: getdate.y
 		$(YACC) $(JYFLAGS) $<; \
 		echo "	$(MV) y.tab.c $@"; \
 		$(MV) y.tab.c $@; else touch $@; fi
+
+getdate: getdate.c
+	$(CC) -o $@ $(JCFLAGS) -DTEST $< libshared.a $(LIBS)
 
 #
 # Floating point formatting tests
@@ -435,6 +500,17 @@ float-test:  float-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  float-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: sort-test
+
+local_realclean::
+	$(RM) sort-test$(_EXE)
+
+sort-test:  sort-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

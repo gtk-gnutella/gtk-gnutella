@@ -32,14 +32,14 @@
 #include "common.h"
 
 #include "event.h"
-#include "glib-missing.h"
+#include "hikset.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
 static inline struct subscriber *
-subscriber_new(GCallback cb, enum frequency_type t, guint32 interval)
+subscriber_new(GCallback cb, enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 
@@ -91,7 +91,7 @@ real_event_destroy(struct event *evt)
 
 void
 event_add_subscriber(struct event *evt, GCallback cb,
-	enum frequency_type t, guint32 interval)
+	enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 	GSList *sl;
@@ -131,13 +131,13 @@ event_remove_subscriber(struct event *evt, GCallback cb)
 	subscriber_destroy(s);
 }
 
-guint
+uint
 event_subscriber_count(struct event *evt)
 {
   return g_slist_length(evt->subscribers);
 }
 
-gboolean
+bool
 event_subscriber_active(struct event *evt)
 {
   return NULL != evt->subscribers;
@@ -149,60 +149,49 @@ event_table_new(void)
     struct event_table *t;
 
 	WALLOC0(t);
-	t->events = g_hash_table_new(g_str_hash, g_str_equal);
+	t->events = hikset_create(offsetof(struct event, name), HASH_KEY_STRING, 0);
 
 	return t;
 }
 
 void
-real_event_table_destroy(struct event_table *t, gboolean cleanup)
+real_event_table_destroy(struct event_table *t, bool cleanup)
 {
     if (cleanup)
         event_table_remove_all(t);
 
-    gm_hash_table_destroy_null(&t->events);
+    hikset_free_null(&t->events);
 }
 
 void
 event_table_add_event(struct event_table *t, struct event *evt)
 {
-    GHashTable *ht;
-
     g_assert(t != NULL);
     g_assert(evt != NULL);
 
-    ht = t->events;
+    g_assert(t->events != NULL);
+    g_assert(!hikset_contains(t->events, evt->name));
 
-    g_assert(ht != NULL);
-    g_assert(g_hash_table_lookup(ht, evt->name) == NULL);
-
-    g_hash_table_insert(ht, (gpointer) evt->name, evt);
+    hikset_insert_key(t->events, &evt->name);
 }
 
 void
 event_table_remove_event(struct event_table *t, struct event *evt)
 {
-    GHashTable *ht;
-
     g_assert(t != NULL);
     g_assert(evt != NULL);
 
-    ht = t->events;
+    g_assert(t->events != NULL);
+    g_assert(hikset_contains(t->events, evt->name));
 
-    g_assert(ht != NULL);
-    g_assert(g_hash_table_lookup(ht, evt->name) != NULL);
-
-    g_hash_table_remove(ht, evt->name);
+    hikset_remove(t->events, evt->name);
 }
 
-static gboolean
-remove_helper(gpointer unused_key, gpointer value, gpointer unused_data)
+static void
+clear_helper(void *value, void *unused_data)
 {
-	(void) unused_key;
 	(void) unused_data;
     event_destroy(value);
-
-    return TRUE;
 }
 
 void
@@ -211,7 +200,8 @@ event_table_remove_all(struct event_table *t)
     g_assert(t != NULL);
     g_assert(t->events != NULL);
 
-    g_hash_table_foreach_remove(t->events, remove_helper, NULL);
+    hikset_foreach(t->events, clear_helper, NULL);
+	hikset_clear(t->events);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

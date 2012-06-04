@@ -55,12 +55,12 @@ void gcu_download_gui_updates_thaw(void);
 void gcu_download_gui_updates_freeze(void);
 
 /* misc interface functions */
-void guc_allow_rescan_dir(gboolean flag);
+void guc_allow_rescan_dir(bool flag);
 void gcu_gui_update_files_scanned(void);
-gint gcu_gtk_main_flush(void);
+int gcu_gtk_main_flush(void);
 
 /** search interface functions */
-gboolean gcu_search_gui_new_search(const gchar *query, guint32 flags);
+bool gcu_search_gui_new_search(const gchar *query, uint32 flags);
 void gcu_search_gui_store_searches(void);
 
 /* statusbar interface functions */

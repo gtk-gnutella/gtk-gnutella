@@ -44,7 +44,7 @@
  */
 
 void publish_init(void);
-void publish_close(gboolean exiting);
+void publish_close(bool exiting);
 
 publish_t *publish_cache(const kuid_t *key,
 	lookup_rc_t *target, dht_value_t **vvec, int vcnt);

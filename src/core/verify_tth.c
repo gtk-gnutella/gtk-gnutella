@@ -139,7 +139,7 @@ verify_tth_close(void)
 	HFREE_NULL(verify_tth.context);
 }
 
-static gboolean 
+static bool 
 request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
@@ -198,7 +198,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	return FALSE;
 }
 
-gboolean
+bool
 verify_tth_append(const char *pathname,
 	filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
@@ -207,7 +207,7 @@ verify_tth_append(const char *pathname,
 				pathname, offset, amount, callback, user_data);
 }
 
-gboolean
+bool
 verify_tth_prepend(const char *pathname,
 	filesize_t offset, filesize_t amount,
 	verify_callback callback, void *user_data)
@@ -217,7 +217,7 @@ verify_tth_prepend(const char *pathname,
 }
 
 void
-request_tigertree(shared_file_t *sf, gboolean high_priority)
+request_tigertree(shared_file_t *sf, bool high_priority)
 {
 	int inserted;
 

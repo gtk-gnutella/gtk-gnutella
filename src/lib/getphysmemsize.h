@@ -37,7 +37,8 @@
 #ifndef _getphysmemsize_h_
 #define _getphysmemsize_h_
 
-guint64 getphysmemsize(void);
+uint64 getphysmemsize(void);
+uint64 getphysmemsize_known(void);
 
 #endif	/* _getphysmemsize_h_ */
 /* vi: set ts=4 sw=4 cindent: */

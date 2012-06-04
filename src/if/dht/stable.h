@@ -42,7 +42,7 @@
  */
 
 double stable_store_presence(time_delta_t d,
-	const lookup_rs_t *rs, const guint16 *status);
+	const lookup_rs_t *rs, const uint16 *status);
 
 #endif	/* _if_dht_stable_h_ */
 

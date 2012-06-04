@@ -50,13 +50,13 @@ typedef enum {
  * Public interface.
  */
 
-gboolean header_get_feature(const char *name, const header_t *header,
-		guint *major, guint *minor);
+bool header_get_feature(const char *name, const header_t *header,
+		uint *major, uint *minor);
 void header_features_add(xfeature_t xf, const char *name, int major, int minor);
 void header_features_add_guarded(xfeature_t xf, const char *name,
-	int major, int minor, const gboolean *guard);
+	int major, int minor, const bool *guard);
 void header_features_add_guarded_function(xfeature_t xf,
-	const char *name, int major, int minor, gboolean (*guardfn)(void));
+	const char *name, int major, int minor, bool (*guardfn)(void));
 void header_features_generate(xfeature_t xf, char *buf, size_t len, size_t *rw);
 
 void features_close(void);

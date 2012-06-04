@@ -42,7 +42,7 @@
  */
 
 pdata_t *rxbuf_new(void);
-void rxbuf_free(gpointer p);
+void rxbuf_free(void *p);
 
 void rxbuf_init(void);
 void rxbuf_close(void);

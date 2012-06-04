@@ -66,6 +66,8 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/hashlist.h"
+#include "lib/hset.h"
+#include "lib/htable.h"
 #include "lib/path.h"
 #include "lib/random.h"
 #include "lib/timestamp.h"
@@ -108,21 +110,21 @@ typedef struct hostcache {
 	hcache_type_t   type;				/**< Cache type */
 	hcache_class_t  class;				/**< Cache class */
 
-    gboolean        addr_only;          /**< Use IP only, port always 0 */
-    gboolean        dirty;            	/**< If updated since last disk flush */
+    bool        	addr_only;			/**< Use IP only, port always 0 */
+    bool			dirty;     	      	/**< If updated since last disk flush */
     hash_list_t *   hostlist;           /**< Host list: IP/Port  */
 
-    guint           hits;               /**< Hits to the cache */
-    guint           misses;             /**< Misses to the cache */
+    uint			hits;               /**< Hits to the cache */
+    uint			misses;             /**< Misses to the cache */
 
     gnet_property_t hosts_in_catcher;   /**< Property to update host count */
-    int            mass_update;        /**< If a mass update is in progess */
+    int            mass_update;         /**< If a mass update is in progess */
 } hostcache_t;
 
 static hostcache_t *caches[HCACHE_MAX];
 static cperiodic_t *hcache_save_ev;
 static cperiodic_t *hcache_timer_ev;
-static gboolean hcache_close_running = FALSE;
+static bool hcache_close_running = FALSE;
 
 static const char HOSTS_FILE[]		= "hosts";
 static const char ULTRAS_FILE[]		= "ultras";
@@ -166,7 +168,7 @@ enum {
     HCACHE_STATS_MAX
 };
 
-static guint stats[HCACHE_STATS_MAX];
+static uint stats[HCACHE_STATS_MAX];
 
 /**
  * Maps a host cache type to its corresponding class.
@@ -259,7 +261,7 @@ stop_mass_update(hostcache_t *hc)
 			break;
 		case HCACHE_NONE:
 		case HCACHE_MAX:
-            g_error("stop_mass_update: unknown cache type: %d", hc->type);
+            g_error("%s: unknown cache type: %d", G_STRFUNC, hc->type);
         }
     }
 }
@@ -267,14 +269,14 @@ stop_mass_update(hostcache_t *hc)
 /**
  * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_HOST.
  */
-static GHashTable *ht_known_hosts;
+static htable_t *ht_known_hosts;
 
 /**
  * Hashtable: IP/Port -> Metadata for HCACHE_CLASS_GUESS.
  */
-static GHashTable *ht_guess_hosts;
+static htable_t *ht_guess_hosts;
 
-static GHashTable *
+static htable_t *
 hcache_ht_by_class(hcache_class_t class)
 {
 	switch (class) {
@@ -295,7 +297,7 @@ hcache_update_low_on_pongs(void)
 /**
  * @return TRUE if address falls within the host cache network specification.
  */
-gboolean
+bool
 hcache_addr_within_net(const host_addr_t addr, host_net_t net)
 {
 	switch (net) {
@@ -361,21 +363,22 @@ hcache_dump_info(const struct hostcache *hc, const char *what)
  *
  * @return FALSE if entry was not found in the cache.
  */
-static gboolean
-hcache_ht_get(hcache_class_t class, const host_addr_t addr, guint16 port,
+static bool
+hcache_ht_get(hcache_class_t class, const host_addr_t addr, uint16 port,
 	gnet_host_t **h, hostcache_entry_t **e)
 {
 	gnet_host_t host;
-	gpointer k, v;
-	gboolean found;
-	GHashTable *ht;
+	const void *k;
+	void *v;
+	bool found;
+	htable_t *ht;
 
 	gnet_host_set(&host, addr, port);
 	ht = hcache_ht_by_class(class);
 
-	found = g_hash_table_lookup_extended(ht, &host, &k, &v);
+	found = htable_lookup_extended(ht, &host, &k, &v);
 	if (found) {
-		*h = k;
+		*h = deconstify_pointer(k);
 		*e = v;
 	}
 
@@ -399,14 +402,14 @@ static hostcache_entry_t *
 hcache_ht_add(hcache_type_t type, const gnet_host_t *host)
 {
     hostcache_entry_t *hce;
-	GHashTable *ht;
+	htable_t *ht;
 
     hce = hce_alloc();
     hce->type = type;
     hce->time_added = tm_time();
 
 	ht = hcache_ht_by_class(hcache_class(type));
-	gm_hash_table_insert_const(ht, host, hce);
+	htable_insert(ht, host, hce);
 
     return hce;
 }
@@ -418,18 +421,18 @@ static void
 hcache_ht_remove(hcache_class_t class, gnet_host_t *host)
 {
 	hostcache_entry_t *hce;
-	gpointer key, value;
-	GHashTable *ht;
+	void *value;
+	htable_t *ht;
 
 	ht = hcache_ht_by_class(class);
 
-	if (!g_hash_table_lookup_extended(ht, host, &key, &value)) {
-		g_carp("hcache_ht_remove: attempt to remove unknown host: %s",
-			  gnet_host_to_string(host));
+	if (!htable_lookup_extended(ht, host, NULL, &value)) {
+		g_carp("%s: attempt to remove unknown host: %s",
+			  G_STRFUNC, gnet_host_to_string(host));
 		return;
 	}
 	hce = value;
-	g_hash_table_remove(ht, host);
+	htable_remove(ht, host);
 
 	if (hce != NO_METADATA)
 		hce_free(hce);
@@ -444,15 +447,15 @@ hcache_ht_remove(hcache_class_t class, gnet_host_t *host)
 static hostcache_entry_t *
 hcache_get_metadata(hcache_class_t class, const gnet_host_t *host)
 {
-	GHashTable *ht = hcache_ht_by_class(class);
+	htable_t *ht = hcache_ht_by_class(class);
 
-    return g_hash_table_lookup(ht, host);
+    return htable_lookup(ht, host);
 }
 
 /**
  * @return TRUE if the host is in one of the "bad hosts" caches.
  */
-gboolean
+bool
 hcache_node_is_bad(const host_addr_t addr)
 {
     hostcache_entry_t *hce;
@@ -495,7 +498,7 @@ static void
 hcache_move_entries(hostcache_t *to, hostcache_t *from)
 {
 	hash_list_iter_t *iter;
-	gpointer item;
+	void *item;
 
 	g_assert(to != NULL);
 	g_assert(from != NULL);
@@ -535,7 +538,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
  *
  * @return TRUE if host are available in hc after the call.
  */
-static gboolean
+static bool
 hcache_require_caught(hostcache_t *hc)
 {
     g_assert(NULL != hc);
@@ -570,7 +573,7 @@ hcache_require_caught(hostcache_t *hc)
 static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
-	gconstpointer orig_key;
+	const void *orig_key;
 	
 	g_assert(hc->hostlist != NULL);
 	g_assert(hash_list_length(hc->hostlist) > 0);
@@ -579,7 +582,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 	g_assert(orig_key);
 
     if (hc->mass_update == 0) {
-        guint32 cur;
+        uint32 cur;
         gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
     }
@@ -601,7 +604,7 @@ hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 const char *
 hcache_type_to_string(hcache_type_t type)
 {
-	g_assert((guint) type < HCACHE_MAX);
+	g_assert((uint) type < HCACHE_MAX);
 
 	return names[type];
 }
@@ -612,7 +615,7 @@ hcache_type_to_string(hcache_type_t type)
 const char *
 host_type_to_string(host_type_t type)
 {
-	g_assert((guint) type < HOST_MAX);
+	g_assert((uint) type < HOST_MAX);
 
 	return host_type_names[type];
 }
@@ -705,17 +708,17 @@ hcache_slots_left(hcache_type_t type)
  *
  * @return TRUE whether there is an available slot which should be used.
  */
-static gboolean
+static bool
 hcache_request_slot(hcache_type_t type)
 {
-	guint limit, left;
+	uint limit, left;
 
 	limit = hcache_slots_max(type);
 	left = hcache_slots_left(type);
 
 	return limit > 0
 		&& left > 0
-		&& ((left > limit / 2) || (random_u32() % limit < left));
+		&& (left > limit / 2 || random_value(limit - 1) < left);
 }
 
 /**
@@ -735,9 +738,9 @@ hcache_request_slot(hcache_type_t type)
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
-static G_GNUC_HOT gboolean
+static G_GNUC_HOT bool
 hcache_add_internal(hcache_type_t type, time_t added,
-	const host_addr_t addr, guint16 port, const char *what)
+	const host_addr_t addr, uint16 port, const char *what)
 {
 	gnet_host_t *host;
 	const gnet_host_t *host_atom;
@@ -820,7 +823,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	 */
 
 	if (hcache_ht_get(hcache_class(type), addr, port, &host, &hce)) {
-		gconstpointer orig_key;
+		const void *orig_key;
 
         g_assert(hce != NULL);
 
@@ -974,7 +977,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 	hc->dirty = TRUE;
 
     if (hc->mass_update == 0) {
-        guint32 cur;
+        uint32 cur;
         gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur + 1);
     }
@@ -995,9 +998,9 @@ hcache_add_internal(hcache_type_t type, time_t added,
 /**
  * Add host to the proper cache.
  */
-gboolean
+bool
 hcache_add(hcache_type_t type,
-	const host_addr_t addr, guint16 port, const char *what)
+	const host_addr_t addr, uint16 port, const char *what)
 {
 	return hcache_add_internal(type, tm_time(), addr, port, what);
 }
@@ -1005,8 +1008,8 @@ hcache_add(hcache_type_t type,
 /**
  * Add a caught (fresh) host to the right list depending on the host type.
  */
-gboolean
-hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
+bool
+hcache_add_caught(host_type_t type, const host_addr_t addr, uint16 port,
 	const char *what)
 {
 	if (ctl_limit(addr, CTL_D_CACHE))
@@ -1031,15 +1034,15 @@ hcache_add_caught(host_type_t type, const host_addr_t addr, guint16 port,
 		g_assert_not_reached();
     }
 
-    g_error("hcache_add_caught: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return FALSE;
 }
 
 /**
  * Add a valid host to the right list depending on the host type.
  */
-gboolean
-hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
+bool
+hcache_add_valid(host_type_t type, const host_addr_t addr, uint16 port,
 	const char *what)
 {
 	if (ctl_limit(addr, CTL_D_CACHE))
@@ -1064,7 +1067,7 @@ hcache_add_valid(host_type_t type, const host_addr_t addr, guint16 port,
 		g_assert_not_reached();
     }
 
-    g_error("hcache_add_valid: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return FALSE;
 }
 
@@ -1081,8 +1084,8 @@ hcache_remove(hcache_class_t class, gnet_host_t *h)
 
     hce = hcache_get_metadata(class, h);
     if (hce == NULL) {
-		g_warning("hcache_remove: attempt to remove unknown host: %s",
-			gnet_host_to_string(h));
+		g_warning("%s: attempt to remove unknown host: %s",
+			G_STRFUNC, gnet_host_to_string(h));
         return; /* Host is not in hashtable */
     }
 
@@ -1095,7 +1098,7 @@ hcache_remove(hcache_class_t class, gnet_host_t *h)
  * Purge host from fresh/valid caches.
  */
 void
-hcache_purge(hcache_class_t class, const host_addr_t addr, guint16 port)
+hcache_purge(hcache_class_t class, const host_addr_t addr, uint16 port)
 {
 	hostcache_entry_t *hce;
 	gnet_host_t *host;
@@ -1126,7 +1129,7 @@ hcache_purge(hcache_class_t class, const host_addr_t addr, guint16 port)
 /**
  * Do we have less that our mimumum amount of hosts in the cache?
  */
-gboolean
+bool
 hcache_is_low(host_type_t type)
 {
 	return hcache_size(type) < MIN_RESERVE_SIZE;
@@ -1163,7 +1166,7 @@ hcache_remove_all(hostcache_t *hc)
 void
 hcache_clear_host_type(host_type_t type)
 {
-	gboolean valid = FALSE;
+	bool valid = FALSE;
 
     switch (type) {
     case HOST_ANY:
@@ -1196,7 +1199,7 @@ hcache_clear_host_type(host_type_t type)
     }
 
 	if (!valid)
-        g_error("hcache_clear_host_type: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	pcache_clear_recent(type);
 }
@@ -1208,7 +1211,7 @@ hcache_clear_host_type(host_type_t type)
 void
 hcache_clear(hcache_type_t type)
 {
-    g_assert((guint) type < HCACHE_MAX);
+    g_assert((uint) type < HCACHE_MAX);
 
     hcache_remove_all(caches[type]);
 }
@@ -1216,7 +1219,7 @@ hcache_clear(hcache_type_t type)
 /**
  * @return the amount of hosts in the cache.
  */
-guint
+uint
 hcache_size(host_type_t type)
 {
     switch (type) {
@@ -1238,7 +1241,7 @@ hcache_size(host_type_t type)
     case HOST_MAX:
 		g_assert_not_reached();
     }
-    g_error("hcache_is_low: unknown host type: %d", type);
+    g_error("%s: unknown host type: %d", G_STRFUNC, type);
     return -1; /* Only here to make -Wall happy */
 }
 
@@ -1248,10 +1251,10 @@ hcache_size(host_type_t type)
  *
  * @return total number of expired entries
  */
-static guint32
+static uint32
 hcache_expire_cache(hostcache_t *hc, time_t now)
 {
-    guint32 expire_count = 0;
+    uint32 expire_count = 0;
 	gnet_host_t *h;
 
     /*
@@ -1285,10 +1288,10 @@ hcache_expire_cache(hostcache_t *hc, time_t now)
  *
  * @return total number of expired entries
  */
-static guint32
+static uint32
 hcache_expire_all(time_t now)
 {
-    guint32 expire_count = 0;
+    uint32 expire_count = 0;
 
     expire_count += hcache_expire_cache(caches[HCACHE_TIMEOUT], now);
     expire_count += hcache_expire_cache(caches[HCACHE_BUSY], now);
@@ -1312,7 +1315,7 @@ hcache_prune(hcache_type_t type)
 	hostcache_t *hc;
     int extra;
 
-    g_assert((guint) type < HCACHE_MAX);
+    g_assert((uint) type < HCACHE_MAX);
 
 	hc = caches[type];
 
@@ -1371,7 +1374,7 @@ hcache_prune(hcache_type_t type)
 
 		if (
 			(HCACHE_GUESS == hc->type || HCACHE_GUESS6 == hc->type) &&
-			random_u32() % 100 < 70
+			random_value(99) < 70
 		) {
 			/*
 			 * The newest entry is the one we just added to the cache.
@@ -1417,7 +1420,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	int i;
 	hostcache_t *hc = NULL;
 	hostcache_t *hc2 = NULL;
-	GHashTable *seen_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	hset_t *seen_host = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -1481,7 +1484,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
     }
 
 	if (NULL == hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	/*
 	 * We first try to fill IPv6 addresses, or IPv4 if they only want that.
@@ -1495,7 +1498,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		if (NULL == h)
 			break;
 
-		if (g_hash_table_lookup(seen_host, h))
+		if (hset_contains(seen_host, h))
 			continue;
 
 		/*
@@ -1505,7 +1508,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 
 		gnet_host_copy(&hosts[i], h);
 
-		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
+		hset_insert(seen_host, &hosts[i]);
 	}
 	hash_list_iter_release(&iter);
 
@@ -1525,7 +1528,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		if (NULL == h)
 			break;
 
-		if (g_hash_table_lookup(seen_host, h))
+		if (hset_contains(seen_host, h))
 			continue;
 
 		/*
@@ -1535,12 +1538,12 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 
 		gnet_host_copy(&hosts[i], h);
 
-		g_hash_table_insert(seen_host, &hosts[i], GUINT_TO_POINTER(1));
+		hset_insert(seen_host, &hosts[i]);
 	}
 	hash_list_iter_release(&iter);
 
 done:
-	gm_hash_table_destroy_null(&seen_host);	/* Keys point into vector */
+	hset_free_null(&seen_host);	/* Keys point into vector */
 
 	return i;				/* Amount of hosts we filled */
 }
@@ -1551,8 +1554,8 @@ done:
  *
  * @return TRUE if host is found
  */
-gboolean
-hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
+bool
+hcache_find_nearby(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	gnet_host_t *h;
 	hostcache_t *hc = NULL;
@@ -1578,7 +1581,7 @@ hcache_find_nearby(host_type_t type, host_addr_t *addr, guint16 *port)
     }
 
 	if (!hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
 	/* iterate through whole list */
 
@@ -1650,13 +1653,13 @@ hcache_sort_by_added_time(hcache_type_t type)
  *
  * @return TRUE on sucess, FALSE on failure.
  */
-gboolean
-hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
+bool
+hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
 {
 	hostcache_t *hc = NULL;
-	extern guint32 number_local_networks;
+	extern uint32 number_local_networks;
 	gnet_host_t *h;
-	gboolean available;
+	bool available;
 
 	g_assert(addr);
 	g_assert(port);
@@ -1689,7 +1692,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, guint16 *port)
     }
 
 	if (!hc)
-        g_error("hcache_get_caught: unknown host type: %d", type);
+        g_error("%s: unknown host type: %d", G_STRFUNC, type);
 
     available = hcache_require_caught(hc);
 
@@ -1739,7 +1742,7 @@ hcache_alloc(hcache_type_t type, gnet_property_t catcher, const char *name)
 {
 	struct hostcache *hc;
 
-	g_assert((guint) type < HCACHE_MAX);
+	g_assert((uint) type < HCACHE_MAX);
 
 	hc = g_malloc0(sizeof *hc);
 
@@ -1782,7 +1785,7 @@ hcache_load_file(hostcache_t *hc, FILE *f)
 	while (fgets(buffer, sizeof buffer, f)) {
 		const char *endptr;
 		host_addr_t addr;
-		guint16 port;
+		uint16 port;
 		time_t added;
 
 		if (!string_to_host_addr_port(buffer, &endptr, &addr, &port))
@@ -1860,8 +1863,8 @@ hcache_store(hcache_type_t type, const char *filename, hcache_type_t extra)
 	FILE *f;
 	file_path_t fp;
 
-	g_assert((guint) type < HCACHE_MAX && type != HCACHE_NONE);
-	g_assert((guint) extra < HCACHE_MAX);
+	g_assert((uint) type < HCACHE_MAX && type != HCACHE_NONE);
+	g_assert((uint) extra < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 	g_assert(extra == HCACHE_NONE || caches[extra] != NULL);
 
@@ -1887,7 +1890,7 @@ hcache_store(hcache_type_t type, const char *filename, hcache_type_t extra)
 void
 hcache_get_stats(hcache_stats_t *s)
 {
-    guint n;
+    uint n;
 
     for (n = 0; n < HCACHE_MAX; n++) {
 		if (n == HCACHE_NONE)
@@ -1902,8 +1905,8 @@ hcache_get_stats(hcache_stats_t *s)
 /**
  * Host cache timer.
  */
-static gboolean
-hcache_timer(gpointer unused_obj)
+static bool
+hcache_timer(void *unused_obj)
 {
 	time_t now = tm_time();
 
@@ -1990,8 +1993,8 @@ hcache_store_if_dirty(host_type_t type)
 /**
  * Host cache periodic saving.
  */
-static gboolean
-hcache_periodic_save(gpointer unused_obj)
+static bool
+hcache_periodic_save(void *unused_obj)
 {
 	static unsigned i;
 
@@ -2017,8 +2020,8 @@ hcache_periodic_save(gpointer unused_obj)
 G_GNUC_COLD void
 hcache_init(void)
 {
-	ht_known_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
-	ht_guess_hosts = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	ht_known_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	ht_guess_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(
@@ -2148,7 +2151,7 @@ hcache_close(void)
         HCACHE_GUESS6,
         HCACHE_GUESS6_INTRO,
     };
-	guint i;
+	uint i;
 
 	g_assert(!hcache_close_running);
 	hcache_close_running = TRUE;
@@ -2160,7 +2163,7 @@ hcache_close(void)
      */
 
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
-		guint j;
+		uint j;
 		hcache_type_t type = types[i];
 
 		/* Make sure all previous caches have been cleared */
@@ -2181,11 +2184,11 @@ hcache_close(void)
         caches[type] = NULL;
 	}
 
-    g_assert(g_hash_table_size(ht_known_hosts) == 0);
-    g_assert(g_hash_table_size(ht_guess_hosts) == 0);
+    g_assert(0 == htable_count(ht_known_hosts));
+    g_assert(0 == htable_count(ht_guess_hosts));
 
-	gm_hash_table_destroy_null(&ht_known_hosts);
-	gm_hash_table_destroy_null(&ht_guess_hosts);
+	htable_free_null(&ht_known_hosts);
+	htable_free_null(&ht_guess_hosts);
 	cq_periodic_remove(&hcache_timer_ev);
 }
 

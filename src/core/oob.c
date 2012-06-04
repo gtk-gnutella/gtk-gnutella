@@ -51,9 +51,11 @@
 #include "lib/cq.h"
 #include "lib/fifo.h"
 #include "lib/glib-missing.h"
+#include "lib/hikset.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
@@ -84,15 +86,15 @@ struct oob_results {
 	gnet_host_t dest;		/**< The host to which we must deliver */
 	int count;				/**< Amount of hits to deliver */
 	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
-	gboolean secure;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
 	unsigned flags;			/**< A combination of QHIT_F_* flags */
+	unsigned secure:1;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
 };
 
 /**
  * Indexes all OOB queries by MUID.
  * This hash table records MUID => "struct oob_results"
  */
-static GHashTable *results_by_muid;
+static hikset_t *results_by_muid;
 
 /**
  * Each servent, as identified by its IP:port, is given a FIFO for queuing
@@ -101,7 +103,7 @@ static GHashTable *results_by_muid;
  *
  * This hash table records gnet_host_t => "struct gservent"
  */
-static GHashTable *servent_by_host = NULL;
+static hikset_t *servent_by_host = NULL;
 
 /**
  * A servent entry, used as values in the `servent_by_host' table.
@@ -110,7 +112,7 @@ struct gservent {
 	cevent_t *ev_service; /**< Callout event for servicing FIFO */
 	gnet_host_t *host;	  /**< The servent host (also used as key for table) */
 	fifo_t *fifo;		  /**< The servent's FIFO, holding pmsg_t items */
-	gboolean can_deflate; /**< Whether servent supports UDP compression */
+	bool can_deflate;	  /**< Whether servent supports UDP compression */
 };
 
 /*
@@ -128,12 +130,12 @@ struct gservent {
  * Every OOB_DELIVER_MS, enqueue a hit to the UDP MQ for sending.
  */
 
-static void results_destroy(cqueue_t *cq, gpointer obj);
+static void results_destroy(cqueue_t *cq, void *obj);
 static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
-static gboolean oob_shutdown_running;
+static bool oob_shutdown_running;
 
 static void
 oob_results_check(const struct oob_results *r)
@@ -150,12 +152,12 @@ oob_results_check(const struct oob_results *r)
  */
 static struct oob_results *
 results_make(const struct guid *muid, GSList *files, int count,
-	gnet_host_t *to, gboolean secure, unsigned flags)
+	gnet_host_t *to, bool secure, unsigned flags)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
 
-	g_return_val_if_fail(!g_hash_table_lookup(results_by_muid, muid), NULL);
+	g_return_val_if_fail(!hikset_contains(results_by_muid, muid), NULL);
 
 	WALLOC(r);
 	*r = zero_results;
@@ -164,13 +166,13 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->files = files;
 	r->count = count;
 	gnet_host_copy(&r->dest, to);
-	r->secure = secure;
+	r->secure = booleanize(secure);
 	r->flags = flags;
 
 	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
 	r->refcount++;
 
-	gm_hash_table_insert_const(results_by_muid, r->muid, r);
+	hikset_insert_key(results_by_muid, &r->muid);
 
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
@@ -204,8 +206,8 @@ results_free_remove(struct oob_results *r)
 	if (0 == r->refcount) {
 		/* We must not modify the hash table whilst iterating over it */
 		if (!oob_shutdown_running) {
-			g_assert(r == g_hash_table_lookup(results_by_muid, r->muid));
-			g_hash_table_remove(results_by_muid, r->muid);
+			g_assert(r == hikset_lookup(results_by_muid, r->muid));
+			hikset_remove(results_by_muid, r->muid);
 		}
 		atom_guid_free_null(&r->muid);
 
@@ -229,7 +231,7 @@ results_free_remove(struct oob_results *r)
  * Callout queue callback to free the results.
  */
 static void
-results_destroy(cqueue_t *unused_cq, gpointer obj)
+results_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct oob_results *r = obj;
 
@@ -253,7 +255,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
  * Callout queue callback to free the results.
  */
 static void
-results_timeout(cqueue_t *unused_cq, gpointer obj)
+results_timeout(cqueue_t *unused_cq, void *obj)
 {
 	struct oob_results *r = obj;
 
@@ -279,7 +281,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 static void
 servent_free_remove(struct gservent *s)
 {
-	g_hash_table_remove(servent_by_host, s->host);
+	hikset_remove(servent_by_host, s->host);
 	servent_free(s);
 }
 
@@ -300,7 +302,7 @@ deliver_delay(void)
  * if there are more data to send.
  */
 static void
-servent_service(cqueue_t *cq, gpointer obj)
+servent_service(cqueue_t *cq, void *obj)
 {
 	struct gservent *s = obj;
 	pmsg_t *mb;
@@ -355,7 +357,7 @@ remove:
  * @param host the servent's IP:port.  Caller may free it upon return.
  */
 static struct gservent *
-servent_make(gnet_host_t *host, gboolean can_deflate)
+servent_make(gnet_host_t *host, bool can_deflate)
 {
 	struct gservent *s;
 
@@ -373,7 +375,7 @@ servent_make(gnet_host_t *host, gboolean can_deflate)
  * -- fifo_free_all() callback.
  */
 static void
-free_pmsg(gpointer item, gpointer unused_udata)
+free_pmsg(void *item, void *unused_udata)
 {
 	pmsg_t *mb = item;
 
@@ -398,7 +400,7 @@ servent_free(struct gservent *s)
  * Hit is enqueued in the FIFO, for slow delivery.
  */
 static void
-oob_record_hit(gpointer data, size_t len, gpointer udata)
+oob_record_hit(void *data, size_t len, void *udata)
 {
 	struct gservent *s = udata;
 
@@ -419,17 +421,17 @@ oob_record_hit(gpointer data, size_t len, gpointer udata)
  */
 void
 oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
-	guint8 wanted, const struct array *token)
+	uint8 wanted, const struct array *token)
 {
 	struct oob_results *r;
 	struct gservent *s;
 	int deliver_count;
-	gboolean servent_created = FALSE;
+	bool servent_created = FALSE;
 
 	g_assert(NODE_IS_UDP(n));
 	g_assert(token);
 
-	r = g_hash_table_lookup(results_by_muid, muid);
+	r = hikset_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
 		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
@@ -495,11 +497,11 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 *		--RAM, 2006-08-13
 	 */
 
-	s = g_hash_table_lookup(servent_by_host, &r->dest);
+	s = hikset_lookup(servent_by_host, &r->dest);
 	if (s == NULL) {
-		gboolean can_deflate = NODE_CAN_INFLATE(n);	/* Can we deflate? */
+		bool can_deflate = NODE_CAN_INFLATE(n);	/* Can we deflate? */
 		s = servent_make(&r->dest, can_deflate);
-		g_hash_table_insert(servent_by_host, s->host, s);
+		hikset_insert_key(servent_by_host, &s->host);
 		servent_created = TRUE;
 	}
 
@@ -540,14 +542,14 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 */
 
 	if (servent_created)
-		servent_service(callout_queue, s);
+		servent_service(cq_main(), s);
 }
 
 /**
  * Callback invoked when the LIME/12v2 message we queued is freed.
  */
 static void
-oob_pmsg_free(pmsg_t *mb, gpointer arg)
+oob_pmsg_free(pmsg_t *mb, void *arg)
 {
 	struct oob_results *r = arg;
 
@@ -641,8 +643,7 @@ oob_send_reply_ind(struct oob_results *r)
  */
 void
 oob_got_results(struct gnutella_node *n, GSList *files,
-	int count, host_addr_t addr, guint16 port,
-	gboolean secure, unsigned flags)
+	int count, host_addr_t addr, uint16 port, bool secure, unsigned flags)
 {
 	struct oob_results *r;
 	gnet_host_t to;
@@ -664,21 +665,22 @@ oob_got_results(struct gnutella_node *n, GSList *files,
 void
 oob_init(void)
 {
-	results_by_muid = g_hash_table_new(guid_hash, guid_eq);
-	servent_by_host = g_hash_table_new(gnet_host_hash, gnet_host_eq);
+	results_by_muid = hikset_create(
+		offsetof(struct oob_results, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
+	servent_by_host = hikset_create_any(
+		offsetof(struct gservent, host), gnet_host_hash, gnet_host_eq);
 }
 
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
 static void
-free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
+free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
 
 	(void) unused_udata;
 	oob_results_check(r);
-	g_assert(key == r->muid);		/* Key is same as results's MUID */
 
 	r->refcount = 0; /* Enforce release */
 	if (r->ev_timeout) {
@@ -694,13 +696,11 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
+free_servent_kv(void *value, void *unused_udata)
 {
-	gnet_host_t *host = key;
 	struct gservent *s = value;
 
 	(void) unused_udata;
-	g_assert(host == s->host);		/* Key is same as servent's host */
 
 	servent_free(s);
 }
@@ -713,11 +713,11 @@ oob_shutdown(void)
 {
 	oob_shutdown_running = TRUE;
 
-	g_hash_table_foreach(results_by_muid, free_oob_kv, NULL);
-	gm_hash_table_destroy_null(&results_by_muid);
+	hikset_foreach(results_by_muid, free_oob_kv, NULL);
+	hikset_free_null(&results_by_muid);
 
-	g_hash_table_foreach(servent_by_host, free_servent_kv, NULL);
-	gm_hash_table_destroy_null(&servent_by_host);
+	hikset_foreach(servent_by_host, free_servent_kv, NULL);
+	hikset_free_null(&servent_by_host);
 
 	g_assert(num_oob_records >= 0);
 	if (num_oob_records > 0)

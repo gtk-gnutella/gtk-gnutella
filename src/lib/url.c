@@ -33,16 +33,18 @@
 
 #include "common.h"
 
+#include "url.h"
 #include "ascii.h"
 #include "debug.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "htable.h"
+#include "mempcpy.h"
 #include "misc.h"			/* For is_strprefix() */
 #include "parse.h"
 #include "path.h"
 #include "str.h"
-#include "url.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -59,7 +61,7 @@
  * - Bit 2 encodes the set for fixing an incomplete escaping.
  * - Bit 3 encodes the set for use in a shell.
  */
-static const guint8 is_transparent[96] = {
+static const uint8 is_transparent[96] = {
 /*  0   1   2   3   4   5   6   7 */	/* 01234567 -            */
     0x0,0x0,0x0,0x0,0x7,0x0,0x4,0x0,	/*  !"#$%&' -	 32..39  */
 	0x7,0x7,0x7,0x0,0xf,0xf,0xf,0xf,	/* ()*+,-./ -	 40..47	 */
@@ -82,10 +84,10 @@ enum escape_mask {
 	SHELL_MASK	= (1 << 3)
 };
 
-static inline gboolean
+static inline bool
 is_transparent_char(const int c, const enum escape_mask m)
 {
-	return c >= 32 && c < 128 && (is_transparent[c - 32] & (guint8) m);
+	return c >= 32 && c < 128 && (is_transparent[c - 32] & (uint8) m);
 }
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
@@ -95,7 +97,7 @@ static const char http_prefix[] = "http://";
  * Parsed URL parameters (from query string).
  */
 struct url_params {
-	GHashTable *params;		/**< parameter => value (halloc'ed) */
+	htable_t *params;		/**< parameter => value (halloc'ed) */
 	size_t count;			/**< Amount of parameters */
 };
 
@@ -109,12 +111,12 @@ struct url_params {
  * which must be freed via hfree().
  */
 static char *
-url_escape_mask(const char *url, guint8 mask)
+url_escape_mask(const char *url, uint8 mask)
 {
 	const char *p;
 	char *q;
 	int need_escape = 0;
-	guchar c;
+	uchar c;
 	char *new;
 
 	for (p = url, c = *p++; c; c = *p++)
@@ -149,11 +151,11 @@ url_escape_mask(const char *url, guint8 mask)
  * NUL), or -1 if the buffer was too small.
  */
 static int
-url_escape_mask_into(const char *url, char *target, int len, guint8 mask)
+url_escape_mask_into(const char *url, char *target, int len, uint8 mask)
 {
 	const char *p = url;
 	char *q;
-	guchar c;
+	uchar c;
 	char *end = target + len;
 
 	for (q = target, c = *p++; c && q < end; c = *p++) {
@@ -254,7 +256,7 @@ url_fix_escape(const char *url)
 {
 	const char *p;
 	str_t *s;
-	guchar c;
+	uchar c;
 
 	s = str_new(0);
 
@@ -296,7 +298,7 @@ url_escape_cntrl(const char *url)
 	if (need_escape > 0) {
 		char *escaped, *q;
 		size_t size;
-		guchar c;
+		uchar c;
 
 		size = p - url + 1 + need_escape * 2;
 		escaped = halloc(size);
@@ -327,19 +329,19 @@ url_escape_cntrl(const char *url)
  * @return NULL if the argument isn't valid encoded.
  */
 char *
-url_unescape(char *url, gboolean inplace)
+url_unescape(char *url, bool inplace)
 {
 	char *p;
 	char *q;
 	int need_unescape = 0;
-	guint unescaped_memory = 0;
-	guchar c;
+	uint unescaped_memory = 0;
+	uchar c;
 	char *new;
 
 	for (p = url; (c = *p) != '\0'; c = *p++)
 		if (c == ESCAPE_CHAR) {
-			guchar h = *(++p);
-			guchar l = *(++p);
+			uchar h = *(++p);
+			uchar l = *(++p);
 
 			if (
 				(h == '0' && l == '0') ||	/* Forbid %00 */
@@ -408,10 +410,10 @@ url_params_parse(char *query)
 	char *start;
 	char *name = NULL;
 	char *value = NULL;
-	gboolean in_value = FALSE;
+	bool in_value = FALSE;
 
 	WALLOC(up);
-	up->params = g_hash_table_new(g_str_hash, g_str_equal);
+	up->params = htable_create(HASH_KEY_STRING, 0);
 	up->count = 0;
 
 	for (q = start = query; /* empty */; q++) {
@@ -429,7 +431,7 @@ url_params_parse(char *query)
 				if (value == start)				/* No unescaping took place */
 					value = h_strdup(start);
 				*q = c;
-				g_hash_table_insert(up->params, name, value);
+				htable_insert(up->params, name, value);
 				up->count++;
 				in_value = FALSE;
 				name = NULL;
@@ -466,14 +468,17 @@ url_params_get(const url_params_t *up, const char *name)
 	g_assert(up != NULL);
 	g_assert(up->params != NULL);
 
-	return g_hash_table_lookup(up->params, name);
+	return htable_lookup(up->params, name);
 }
 
 static void
-free_params_kv(gpointer key, gpointer value, gpointer unused_udata)
+free_params_kv(const void *key, void *value, void *unused_udata)
 {
+	void *k = deconstify_pointer(key);
+
 	(void) unused_udata;
-	HFREE_NULL(key);
+
+	HFREE_NULL(k);
 	HFREE_NULL(value);
 }
 
@@ -485,8 +490,8 @@ url_params_free(url_params_t *up)
 {
 	g_assert(up != NULL);
 
-	g_hash_table_foreach(up->params, free_params_kv, NULL);
-	gm_hash_table_destroy_null(&up->params);
+	htable_foreach(up->params, free_params_kv, NULL);
+	htable_free_null(&up->params);
 
 	WFREE(up);
 }
@@ -500,7 +505,7 @@ url_params_count(const url_params_t *up)
 	return up->count;
 }
 
-static gboolean
+static bool
 url_safe_char(char c, url_policy_t p)
 {
 	if (!isascii(c) || is_ascii_cntrl(c))
@@ -672,7 +677,7 @@ url_normalize(char *url, url_policy_t pol)
 
 	p = q;
 	if (':' == *q) {
-		guint32 port;
+		uint32 port;
 		int error;
 
 		q++; /* Skip ':' */
@@ -750,7 +755,7 @@ url_normalize(char *url, url_policy_t pol)
 			D(".txt"),
 #undef D
 		};
-		guint i;
+		uint i;
 
 		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
     		if (
@@ -765,13 +770,13 @@ url_normalize(char *url, url_policy_t pol)
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
 	if ('\0' == uri[0]) {
 		ssize_t len = q - url;
-		char *s;
+		char *s, *w;
 
 		g_assert(len > 0);
 		s = halloc(len + sizeof "/");
-		memcpy(s, url, len);
-		s[len] = '/';
-		s[len + 1] = '\0';
+		w = mempcpy(s, url, len);
+		*w++ = '/';
+		*w = '\0';
 		url = s;
 	}
 
@@ -787,7 +792,7 @@ bad:
 /**
  * Is URL absolute?
  */
-gboolean
+bool
 url_is_absolute(const char *url)
 {
 	return is_strprefix(url, http_prefix) != NULL;

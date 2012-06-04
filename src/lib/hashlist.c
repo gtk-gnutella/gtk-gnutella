@@ -44,9 +44,13 @@
 #include "common.h"
 
 #include "hashlist.h"
+#include "elist.h"
+#include "hashing.h"
+#include "hikset.h"
 #include "misc.h"
-#include "glib-missing.h"
+#include "unsigned.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum hash_list_magic { HASH_LIST_MAGIC = 0x338954fdU };
@@ -54,16 +58,17 @@ enum hash_list_magic { HASH_LIST_MAGIC = 0x338954fdU };
 struct hash_list {
 	enum hash_list_magic magic;
 	unsigned stamp;
-	GHashTable *ht;
-	GList *head, *tail;
-	int len;
+	hikset_t *ht;
+	elist_t list;
 	int refcount;
 };
 
 struct hash_list_item {
-	const void *orig_key;
-	GList *list;
+	const void *key;	/* The "key" is the data we store in the hashlist */
+	link_t lnk;			/* The embedded link to chain items together */
 };
+
+#define ITEM(l)	elist_item((l), struct hash_list_item, lnk);
 
 enum hash_list_iter_magic { HASH_LIST_ITER_MAGIC = 0x438954efU };
 
@@ -78,7 +83,7 @@ struct hash_list_iter {
 	enum hash_list_iter_direction dir;
 	unsigned stamp;
 	hash_list_t *hl;
-	GList *prev, *next;
+	link_t *prev, *next;
 	struct hash_list_item *item;
 };
 
@@ -93,7 +98,7 @@ hash_list_iter_check(const hash_list_iter_t * const iter)
 }
 
 #if 0
-#define USE_HASH_LIST_REGRESSION 1
+#define USE_HASH_LIST_REGRESSION
 #endif
 
 #define equiv(p,q)	(!(p) == !(q))
@@ -103,12 +108,8 @@ static inline void
 hash_list_regression(const hash_list_t * const hl)
 {
 	g_assert(NULL != hl->ht);
-	g_assert(hl->len >= 0);
-	g_assert(g_list_first(hl->head) == hl->head);
-	g_assert(g_list_first(hl->tail) == hl->head);
-	g_assert(g_list_last(hl->head) == hl->tail);
-	g_assert(g_list_length(hl->head) == UNSIGNED(hl->len));
-	g_assert(g_hash_table_size(hl->ht) == UNSIGNED(hl->len));
+	g_assert(elist_count(&hl->list) == hikset_count(hl->ht));
+	g_assert(elist_count(&hl->list) == elist_length(elist_first(&hl->list)));
 }
 #else
 #define hash_list_regression(hl)
@@ -120,7 +121,6 @@ hash_list_check(const hash_list_t * const hl)
 	g_assert(NULL != hl);
 	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(hl->refcount > 0);
-	g_assert(equiv(hl->len == 0, hl->tail == NULL));
 	hash_list_regression(hl);
 }
 
@@ -154,16 +154,16 @@ hash_list_check(const hash_list_t * const hl)
  * Create a new hash list.
  */
 hash_list_t *
-hash_list_new(GHashFunc hash_func, GEqualFunc eq_func)
+hash_list_new(hash_fn_t hash_func, eq_fn_t eq_func)
 {
 	hash_list_t *hl;
 
 	WALLOC(hl);
-	hl->ht = g_hash_table_new(hash_func, eq_func);
-	hl->head = NULL;
-	hl->tail = NULL;
+	hl->ht = hikset_create_any(
+		offsetof(struct hash_list_item, key),
+		NULL == hash_func ? pointer_hash : hash_func, eq_func);
+	elist_init(&hl->list, offsetof(struct hash_list_item, lnk));
 	hl->refcount = 1;
-	hl->len = 0;
 	hl->stamp = (unsigned) HASH_LIST_MAGIC + 1;
 	hl->magic = HASH_LIST_MAGIC;
 	hash_list_regression(hl);
@@ -186,24 +186,25 @@ hash_list_free(hash_list_t **hl_ptr)
 
 	if (*hl_ptr) {
 		hash_list_t *hl = *hl_ptr;
-		GList *iter;
+		link_t *lk, *next;
 
 		hash_list_check(hl);
 
 		if (--hl->refcount != 0) {
-			g_carp("hash_list_free: hash list is still referenced! "
-					"(hl=%p, hl->refcount=%d)",
-					cast_to_gconstpointer(hl), hl->refcount);
+			g_carp("%s: hash list is still referenced! "
+				"(hl=%p, hl->refcount=%d)",
+				G_STRFUNC, cast_to_pointer(hl), hl->refcount);
 		}
 
-		gm_hash_table_destroy_null(&hl->ht);
+		hikset_free_null(&hl->ht);
 
-		for (iter = hl->head; NULL != iter; iter = g_list_next(iter)) {
-			struct hash_list_item *item = iter->data;
+		for (lk = elist_first(&hl->list); lk != NULL; lk = next) {
+			struct hash_list_item *item = ITEM(lk);
+			next = elist_next(lk);	/* Embedded, get next before freeing */
 			WFREE(item);
 		}
-		gm_list_free_null(&hl->head);
 
+		elist_discard(&hl->list);
 		hl->magic = 0;
 		WFREE(hl);
 		*hl_ptr = NULL;
@@ -213,11 +214,11 @@ hash_list_free(hash_list_t **hl_ptr)
 static void
 hash_list_freecb_wrapper(void *data, void *user_data)
 {
-	hashlist_destroy_cb freecb = cast_pointer_to_func(user_data);
+	free_fn_t freecb = cast_pointer_to_func(user_data);
 	struct hash_list_item *item = data;
 
-	(*freecb)(deconstify_gpointer(item->orig_key));
-	item->orig_key = NULL;
+	(*freecb)(deconstify_pointer(item->key));
+	item->key = NULL;
 }
 
 /**
@@ -226,7 +227,7 @@ hash_list_freecb_wrapper(void *data, void *user_data)
  * and nullifying its pointer.
  */
 void
-hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb)
+hash_list_free_all(hash_list_t **hl_ptr, free_fn_t freecb)
 {
 	g_assert(hl_ptr != NULL);
 	g_assert(freecb != NULL);
@@ -235,7 +236,7 @@ hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb)
 		hash_list_t *hl = *hl_ptr;
 
 		hash_list_check(hl);
-		G_LIST_FOREACH_WITH_DATA(hl->head, hash_list_freecb_wrapper,
+		elist_foreach(&hl->list, hash_list_freecb_wrapper,
 			cast_func_to_pointer(freecb));
 		hash_list_free(hl_ptr);
 	}
@@ -244,11 +245,8 @@ hash_list_free_all(hash_list_t **hl_ptr, hashlist_destroy_cb freecb)
 static void
 hash_list_insert_item(hash_list_t *hl, struct hash_list_item *item)
 {
-	g_assert(NULL == g_hash_table_lookup(hl->ht, item->orig_key));
-	gm_hash_table_insert_const(hl->ht, item->orig_key, item);
-
-	g_assert(hl->len < INT_MAX);
-	hl->len++;
+	g_assert(!hikset_contains(hl->ht, item->key));
+	hikset_insert_key(hl->ht, &item->key);
 
 	/*
 	 * Insertion in the list is "safe" with respect to iterators.
@@ -279,12 +277,8 @@ hash_list_append(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 
 	WALLOC(item);
-	hl->tail = g_list_last(g_list_append(hl->tail, item));
-	if (NULL == hl->head) {
-		hl->head = hl->tail;
-	}	
-	item->orig_key = key;
-	item->list = hl->tail;
+	item->key = key;
+	elist_append(&hl->list, item);
 	hash_list_insert_item(hl, item);
 }
 
@@ -301,12 +295,8 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 
 	WALLOC(item);
-	hl->head = g_list_prepend(hl->head, item);
-	if (NULL == hl->tail) {
-		hl->tail = hl->head;
-	}
-	item->orig_key = key;
-	item->list = hl->head;
+	item->key = key;
+	elist_prepend(&hl->list, item);
 	hash_list_insert_item(hl, item);
 }
 
@@ -317,33 +307,31 @@ hash_list_prepend(hash_list_t *hl, const void *key)
  * guarantee as to whether the iteration will see the new item.
  */
 void
-hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
+hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 {
-	GList *iter;
+	link_t *lk;
 
 	hash_list_check(hl);
 	g_assert(NULL != func);
-	g_assert(NULL == g_hash_table_lookup(hl->ht, key));
+	g_assert(!hikset_contains(hl->ht, key));
 
-	for (iter = hl->head; iter; iter = g_list_next(iter)) {
-		struct hash_list_item *item = iter->data;
-		if (func(key, item->orig_key) <= 0)
+	for (lk = elist_first(&hl->list); lk != NULL; lk = elist_next(lk)) {
+		struct hash_list_item *item = ITEM(lk);
+		if ((*func)(key, item->key) <= 0)
 			break;
 	}
 
-	if (NULL == iter) {
+	if (NULL == lk) {
 		hash_list_append(hl, key);
 	} else {
 		struct hash_list_item *item;
 
 		WALLOC(item);
-		item->orig_key = key;
+		item->key = key;
 
-		/* Inserting ``item'' before ``iter'' */
+		/* Inserting ``item'' before ``lk'' */
 
-		hl->head = g_list_insert_before(hl->head, iter, item);
-		item->list = g_list_previous(iter);
-
+		elist_link_insert_before(&hl->list, lk, &item->lnk);
 		hash_list_insert_item(hl, item);
 	}
 }
@@ -351,35 +339,28 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, GCompareFunc func)
 static int
 sort_wrapper(const void *a, const void *b, void *data)
 {
-	GCompareFunc func = (GCompareFunc) cast_pointer_to_func(data);
+	cmp_fn_t func = (cmp_fn_t) cast_pointer_to_func(data);
 	const struct hash_list_item *ha = a;
 	const struct hash_list_item *hb = b;
 
-	return (*func)(ha->orig_key, hb->orig_key);
+	return (*func)(ha->key, hb->key);
 }
 
 /**
  * Sort the list with ``func'' comparing keys.
  */
 void
-hash_list_sort(hash_list_t *hl, GCompareFunc func)
+hash_list_sort(hash_list_t *hl, cmp_fn_t func)
 {
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
 
-	/*
-	 * Unfortunately, relying on g_list_sort() requires one more traversal
-	 * to update the tail. -- FIXME
-	 */
-
-	hl->head = g_list_sort_with_data(hl->head, sort_wrapper,
-		func_to_pointer(func));
-	hl->tail = g_list_last(hl->head);
+	elist_sort_with_data(&hl->list, sort_wrapper, func_to_pointer(func));
 }
 
 struct sort_with_data {
-	GCompareDataFunc func;
+	cmp_data_fn_t func;
 	void *data;
 };
 
@@ -390,7 +371,7 @@ sort_data_wrapper(const void *a, const void *b, void *data)
 	const struct hash_list_item *ha = a;
 	const struct hash_list_item *hb = b;
 
-	return (*ctx->func)(ha->orig_key, hb->orig_key, ctx->data);
+	return (*ctx->func)(ha->key, hb->key, ctx->data);
 }
 
 /**
@@ -398,23 +379,30 @@ sort_data_wrapper(const void *a, const void *b, void *data)
  * to the keys to make the comparison.
  */
 void
-hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
+hash_list_sort_with_data(hash_list_t *hl, cmp_data_fn_t func, void *data)
 {
 	struct sort_with_data ctx;
+
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 	g_assert(NULL != func);
 
-	/*
-	 * Unfortunately, relying on g_list_sort() requires one more
-	 * traversal to update the tail. -- FIXME
-	 */
-
 	ctx.func = func;
 	ctx.data = data;
 
-	hl->head = g_list_sort_with_data(hl->head, sort_data_wrapper, &ctx);
-	hl->tail = g_list_last(hl->head);
+	elist_sort_with_data(&hl->list, sort_data_wrapper, &ctx);
+}
+
+/**
+ * Randomly shuffle the list.
+ */
+void
+hash_list_shuffle(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	elist_shuffle(&hl->list);
 }
 
 /**
@@ -425,24 +413,19 @@ hash_list_sort_with_data(hash_list_t *hl, GCompareDataFunc func, void *data)
 static void * 
 hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 {
-	void *orig_key;
+	void *key;
 
 	g_assert(item);
 
-	orig_key = deconstify_gpointer(item->orig_key);
-	g_hash_table_remove(hl->ht, orig_key);
-	if (hl->tail == item->list) {
-		hl->tail = g_list_previous(hl->tail);
-	}
-	hl->head = g_list_delete_link(hl->head, item->list);
+	key = deconstify_pointer(item->key);
+	hikset_remove(hl->ht, key);
+	elist_link_remove(&hl->list, &item->lnk);
 	WFREE(item);
 
-	g_assert(hl->len > 0);
-	hl->len--;
 	hl->stamp++;		/* Unsafe operation when iterating */
 
 	hash_list_regression(hl);
-	return orig_key;
+	return key;
 }
 
 enum hash_list_position_magic { HASH_LIST_POSITION_MAGIC = 0x169eede3U };
@@ -450,7 +433,7 @@ enum hash_list_position_magic { HASH_LIST_POSITION_MAGIC = 0x169eede3U };
 struct hash_list_position {
 	enum hash_list_position_magic magic;
 	hash_list_t *hl;
-	GList *prev;
+	link_t *prev;
 	unsigned stamp;
 };
 
@@ -494,16 +477,8 @@ hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
 	g_assert(pt->stamp == hl->stamp);
 
 	WALLOC(item);
-	hl->head = gm_list_insert_after(hl->head, pt->prev, item);
-	if (pt->prev == hl->tail) {
-		if (NULL == hl->tail) {
-			hl->tail = hl->head;
-		} else {
-			hl->tail = g_list_last(pt->prev);
-		}
-	}
-	item->orig_key = key;
-	item->list = NULL == pt->prev ?  hl->head : g_list_next(pt->prev);
+	item->key = key;
+	elist_link_insert_after(&hl->list, pt->prev, &item->lnk);
 	hash_list_insert_item(hl, item);
 
 	hash_list_forget_position(position);
@@ -529,11 +504,9 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = hikset_lookup(hl->ht, key);
 	if (NULL == item)
 		return NULL;
-
-	hash_list_remove_item(hl, item);
 
 	/*
 	 * Record position in the list so that re-insertion can happen after
@@ -547,15 +520,18 @@ hash_list_remove_position(hash_list_t *hl, const void *key)
 	WALLOC(pt);
 	pt->magic = HASH_LIST_POSITION_MAGIC;
 	pt->hl = hl;
-	pt->prev = g_list_previous(item->list);
+	pt->prev = elist_prev(&item->lnk);
 	pt->stamp = hl->stamp;
+
+	hash_list_remove_item(hl, item);
 
 	return pt;
 }
 
 /**
  * Remove `data' from the list.
- * @return The data that was associated with the given key.
+ *
+ * @return the data that was associated with the given key.
  */
 void *
 hash_list_remove(hash_list_t *hl, const void *key)
@@ -565,39 +541,46 @@ hash_list_remove(hash_list_t *hl, const void *key)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = hikset_lookup(hl->ht, key);
 	return item ? hash_list_remove_item(hl, item) : NULL;
 }
 
 /**
  * Remove head item from the list.
- * @return The data that was stored there.
+ *
+ * @return the data that was stored there.
  */
 void *
 hash_list_remove_head(hash_list_t *hl)
 {
-	if (NULL == hl->head)
-		return NULL;
+	struct hash_list_item *item;
 
-	return hash_list_remove_item(hl, hl->head->data);
+	hash_list_check(hl);
+
+	item = elist_head(&hl->list);
+	return NULL == item ? NULL : hash_list_remove_item(hl, item);
 }
 
 /**
  * Remove tail item from the list.
- * @return The data that was stored there.
+ *
+ * @return the data that was stored there.
  */
 void *
 hash_list_remove_tail(hash_list_t *hl)
 {
-	if (NULL == hl->tail)
-		return NULL;
+	struct hash_list_item *item;
 
-	return hash_list_remove_item(hl, hl->tail->data);
+	hash_list_check(hl);
+
+	item = elist_tail(&hl->list);
+	return NULL == item ? NULL : hash_list_remove_item(hl, item);
 }
 
 /**
  * Remove head item from the list.
- * @return The data that was stored there.
+ *
+ * @return the data that was stored there.
  */
 void *
 hash_list_shift(hash_list_t *hl)
@@ -607,8 +590,8 @@ hash_list_shift(hash_list_t *hl)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	item = hl->head ? hl->head->data : NULL;
-	return item ? hash_list_remove_item(hl, item) : NULL;
+	item = elist_head(&hl->list);
+	return NULL == item ? NULL : hash_list_remove_item(hl, item);
 }
 
 /**
@@ -620,29 +603,24 @@ hash_list_clear(hash_list_t *hl)
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
 
-	while (NULL != hl->head) {
-		struct hash_list_item *item = hl->head->data;
+	while (0 != elist_count(&hl->list)) {
+		struct hash_list_item *item = elist_head(&hl->list);
 		hash_list_remove_item(hl, item);
 	}
 }
 
 /**
- * @returns The data associated with the last item, or NULL if none.
+ * @returns the data associated with the last item, or NULL if none.
  */
 void *
 hash_list_tail(const hash_list_t *hl)
 {
+	struct hash_list_item *item;
+
 	hash_list_check(hl);
 
-	if (hl->tail) {
-		struct hash_list_item *item;
-
-		item = hl->tail->data;
-		g_assert(item);
-		return deconstify_gpointer(item->orig_key);
-	} else {
-		return NULL;
-	}
+	item = elist_tail(&hl->list);
+	return NULL == item ? NULL : deconstify_pointer(item->key);
 }
 
 /**
@@ -651,17 +629,12 @@ hash_list_tail(const hash_list_t *hl)
 void *
 hash_list_head(const hash_list_t *hl)
 {
+	struct hash_list_item *item;
+
 	hash_list_check(hl);
 
-	if (hl->head) {
-		struct hash_list_item *item;
-
-		item = hl->head->data;
-		g_assert(item);
-		return deconstify_gpointer(item->orig_key);
-	} else {
-		return NULL;
-	}
+	item = elist_head(&hl->list);
+	return NULL == item ? NULL : deconstify_pointer(item->key);
 }
 
 /**
@@ -674,33 +647,20 @@ hash_list_moveto_head(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
-	g_assert(hl->len > 0);
+	g_assert(size_is_positive(elist_count(&hl->list)));
 
-	item = g_hash_table_lookup(hl->ht, key);
-	g_assert(item);
-
-	if (hl->head == item->list)
-		goto done;				/* Item already at the head */
+	item = hikset_lookup(hl->ht, key);
+	g_assert(item != NULL);
 
 	/*
-	 * Remove item from list
+	 * Remove item from list and insert it back at the head.
 	 */
 
-	if (hl->tail == item->list)
-		hl->tail = g_list_previous(hl->tail);
-	hl->head = g_list_delete_link(hl->head, item->list);
+	if (elist_first(&hl->list) != &item->lnk) {
+		elist_link_remove(&hl->list, &item->lnk);
+		elist_link_prepend(&hl->list, &item->lnk);
+	}
 
-	g_assert(hl->head != NULL);		/* Or item would be at the head */
-	g_assert(hl->tail != NULL);		/* Item not the head and not sole entry */
-
-	/*
-	 * Insert link back at the head.
-	 */
-
-	hl->head = g_list_prepend(hl->head, item);
-	item->list = hl->head;
-
-done:
 	hl->stamp++;
 
 	hash_list_regression(hl);
@@ -716,30 +676,20 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 	g_assert(1 == hl->refcount);
-	g_assert(hl->len > 0);
+	g_assert(size_is_positive(elist_count(&hl->list)));
 
-	item = g_hash_table_lookup(hl->ht, key);
-	g_assert(item);
-
-	if (hl->tail == item->list)
-		goto done;				/* Item already at the tail */
+	item = hikset_lookup(hl->ht, key);
+	g_assert(item != NULL);
 
 	/*
-	 * Remove item from list
+	 * Remove item from list and insert it back at the tail.
 	 */
 
-	hl->head = g_list_delete_link(hl->head, item->list);
+	if (elist_last(&hl->list) != &item->lnk) {
+		elist_link_remove(&hl->list, &item->lnk);
+		elist_link_append(&hl->list, &item->lnk);
+	}
 
-	g_assert(hl->head != NULL);		/* Or item would be at the tail */
-
-	/*
-	 * Insert link back at the tail.
-	 */
-
-	hl->tail = g_list_last(g_list_append(hl->tail, item));
-	item->list = hl->tail;
-
-done:
 	hl->stamp++;
 
 	hash_list_regression(hl);
@@ -753,7 +703,7 @@ hash_list_length(const hash_list_t *hl)
 {
 	hash_list_check(hl);
 
-	return hl->len;
+	return elist_count(&hl->list);
 }
 
 /**
@@ -767,29 +717,27 @@ GList *
 hash_list_list(hash_list_t *hl)
 {
 	GList *l = NULL;
-	GList *lc = NULL;
+	link_t *lk;
 
 	hash_list_check(hl);
 
-	for (l = hl->tail; l; l = g_list_previous(l)) {
-		struct hash_list_item *item = l->data;
+	for (lk = elist_last(&hl->list); lk != NULL; lk = elist_prev(lk)) {
+		struct hash_list_item *item = ITEM(lk);
 
-		lc = g_list_prepend(lc, deconstify_gpointer(item->orig_key));
+		l = g_list_prepend(l, deconstify_pointer(item->key));
 	}
 
-	return lc;
+	return l;
 }
 
 static hash_list_iter_t *
 hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 {
-	static const hash_list_iter_t zero_iter;
 	hash_list_iter_t *iter;
 
 	hash_list_check(hl);
 
-	WALLOC(iter);
-	*iter = zero_iter;
+	WALLOC0(iter);
 	iter->magic = HASH_LIST_ITER_MAGIC;
 	iter->dir = dir;
 	iter->hl = hl;
@@ -805,12 +753,12 @@ hash_list_iterator_new(hash_list_t *hl, enum hash_list_iter_direction dir)
 hash_list_iter_t *
 hash_list_iterator(hash_list_t *hl)
 {
-	if (hl) {
+	if (hl != NULL) {
 		hash_list_iter_t *iter;
 
 		hash_list_check(hl);
 		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_FORWARDS);
-		iter->next = hl->head;
+		iter->next = elist_first(&hl->list);
 		return iter;
 	} else {
 		return NULL;
@@ -829,7 +777,7 @@ hash_list_iterator_tail(hash_list_t *hl)
 
 		hash_list_check(hl);
 		iter = hash_list_iterator_new(hl, HASH_LIST_ITER_BACKWARDS);
-		iter->prev = hl->tail;
+		iter->prev = elist_last(&hl->list);
 		return iter;
 	} else {
 		return NULL;
@@ -850,13 +798,13 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 
 		hash_list_check(hl);
 
-		item = g_hash_table_lookup(hl->ht, key);
+		item = hikset_lookup(hl->ht, key);
 		if (item) {
 			hash_list_iter_t *iter;
 
 			iter = hash_list_iterator_new(hl, HASH_LIST_ITER_UNDEFINED);
-			iter->prev = g_list_previous(item->list);
-			iter->next = g_list_next(item->list);
+			iter->prev = elist_prev(&item->lnk);
+			iter->next = elist_next(&item->lnk);
 			iter->item = item;
 			return iter;
 		} else {
@@ -873,16 +821,16 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 G_GNUC_HOT void *
 hash_list_iter_next(hash_list_iter_t *iter)
 {
-	GList *next;
+	link_t *next;
 
 	hash_list_iter_check(iter);
 
 	next = iter->next;
-	if (next) {
-		iter->item = next->data;
-		iter->prev = g_list_previous(next);
-		iter->next = g_list_next(next);
-		return deconstify_gpointer(iter->item->orig_key);
+	if (next != NULL) {
+		iter->item = ITEM(next);
+		iter->prev = elist_prev(next);
+		iter->next = elist_next(next);
+		return deconstify_pointer(iter->item->key);
 	} else {
 		return NULL;
 	}
@@ -891,7 +839,7 @@ hash_list_iter_next(hash_list_iter_t *iter)
 /**
  * Checks whether there is a next item to be iterated over.
  */
-gboolean
+bool
 hash_list_iter_has_next(const hash_list_iter_t *iter)
 {
 	hash_list_iter_check(iter);
@@ -905,16 +853,16 @@ hash_list_iter_has_next(const hash_list_iter_t *iter)
 G_GNUC_HOT void *
 hash_list_iter_previous(hash_list_iter_t *iter)
 {
-	GList *prev;
+	link_t *prev;
 
 	hash_list_iter_check(iter);
 
 	prev = iter->prev;
-	if (prev) {
-		iter->item = prev->data;
-		iter->next = g_list_next(prev);
-		iter->prev = g_list_previous(prev);
-		return deconstify_gpointer(iter->item->orig_key);
+	if (prev != NULL) {
+		iter->item = ITEM(prev);
+		iter->next = elist_next(prev);
+		iter->prev = elist_prev(prev);
+		return deconstify_pointer(iter->item->key);
 	} else {
 		return NULL;
 	}
@@ -923,7 +871,7 @@ hash_list_iter_previous(hash_list_iter_t *iter)
 /**
  * Checks whether there is a previous item in the iterator.
  */
-gboolean
+bool
 hash_list_iter_has_previous(const hash_list_iter_t *iter)
 {
 	hash_list_iter_check(iter);
@@ -934,7 +882,7 @@ hash_list_iter_has_previous(const hash_list_iter_t *iter)
 /**
  * Checks whether there is a successor in the iterator's direction.
  */
-gboolean
+bool
 hash_list_iter_has_more(const hash_list_iter_t *iter)
 {
 	hash_list_iter_check(iter);
@@ -988,21 +936,15 @@ hash_list_iter_remove(hash_list_iter_t *iter)
 	item = iter->item;
 
 	if (item != NULL) {
-		void *orig_key = deconstify_gpointer(item->orig_key);
+		void *key = deconstify_pointer(item->key);
 		hash_list_t *hl = iter->hl;
 
 		iter->item = NULL;
-		g_hash_table_remove(hl->ht, orig_key);
-		if (hl->tail == item->list) {
-			hl->tail = g_list_previous(hl->tail);
-		}
-		hl->head = g_list_delete_link(hl->head, item->list);
-
-		g_assert(hl->len > 0);
-		hl->len--;
+		hikset_remove(hl->ht, key);
+		elist_link_remove(&hl->list, &item->lnk);
 		WFREE(item);
 
-		return orig_key;
+		return key;
 	} else {
 		return NULL;
 	}
@@ -1033,7 +975,7 @@ hash_list_iter_release(hash_list_iter_t **iter_ptr)
  *
  * @return TRUE if the key is present.
  */
-gboolean
+bool
 hash_list_find(hash_list_t *hl, const void *key,
 	const void **orig_key_ptr)
 {
@@ -1041,9 +983,9 @@ hash_list_find(hash_list_t *hl, const void *key,
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
+	item = hikset_lookup(hl->ht, key);
 	if (item && orig_key_ptr) {
-		*orig_key_ptr = item->orig_key;
+		*orig_key_ptr = item->key;
 	}
 	return NULL != item;
 }
@@ -1052,12 +994,12 @@ hash_list_find(hash_list_t *hl, const void *key,
  * Check whether hashlist contains the key.
  * @return TRUE if the key is present.
  */
-gboolean
+bool
 hash_list_contains(hash_list_t *hl, const void *key)
 {
 	hash_list_check(hl);
 
-	return NULL != g_hash_table_lookup(hl->ht, key);
+	return hikset_contains(hl->ht, key);
 }
 
 /**
@@ -1085,9 +1027,9 @@ hash_list_next(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
-	item = item ? g_list_nth_data(g_list_next(item->list), 0) : NULL;
-	return item ? deconstify_gpointer(item->orig_key) : NULL;
+	item = hikset_lookup(hl->ht, key);
+	item = item ? elist_data(&hl->list, elist_next(&item->lnk)) : NULL;
+	return item ? deconstify_pointer(item->key) : NULL;
 }
 
 /**
@@ -1100,27 +1042,25 @@ hash_list_previous(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	item = g_hash_table_lookup(hl->ht, key);
-	item = item ? g_list_nth_data(g_list_previous(item->list), 0) : NULL;
-	return item ? deconstify_gpointer(item->orig_key) : NULL;
+	item = hikset_lookup(hl->ht, key);
+	item = item ? elist_data(&hl->list, elist_prev(&item->lnk)) : NULL;
+	return item ? deconstify_pointer(item->key) : NULL;
 }
 
 /**
  * Apply `func' to all the items in the structure.
  */
 void
-hash_list_foreach(const hash_list_t *hl, GFunc func, void *user_data)
+hash_list_foreach(const hash_list_t *hl, data_fn_t func, void *user_data)
 {
-	GList *list;
+	link_t *lk;
 	
 	hash_list_check(hl);
 	g_assert(NULL != func);
 
-	for (list = hl->head; NULL != list; list = g_list_next(list)) {
-		struct hash_list_item *item;
-
-		item = list->data;
-		(*func)(deconstify_gpointer(item->orig_key), user_data);
+	for (lk = elist_first(&hl->list); lk != NULL; lk = elist_next(lk)) {
+		struct hash_list_item *item = ITEM(lk);
+		(*func)(deconstify_pointer(item->key), user_data);
 	}
 
 	hash_list_regression(hl);
@@ -1133,21 +1073,19 @@ hash_list_foreach(const hash_list_t *hl, GFunc func, void *user_data)
  * @return the amount of entries removed from the list.
  */
 size_t
-hash_list_foreach_remove(hash_list_t *hl, hashlist_cbr_t func, void *data)
+hash_list_foreach_remove(hash_list_t *hl, data_rm_fn_t func, void *data)
 {
-	GList *list;
-	GList *next;
+	link_t *lk, *next;
 	size_t removed = 0;
 	
 	hash_list_check(hl);
-	g_assert(NULL != func);
+	g_assert(func != NULL);
 
-	for (list = hl->head; NULL != list; list = next) {
-		struct hash_list_item *item;
+	for (lk = elist_first(&hl->list); lk != NULL; lk = next) {
+		struct hash_list_item *item = ITEM(lk);
 
-		next = g_list_next(list);
-		item = list->data;
-		if ((*func)(deconstify_gpointer(item->orig_key), data)) {
+		next = elist_next(lk);
+		if ((*func)(deconstify_pointer(item->key), data)) {
 			hash_list_remove_item(hl, item);
 			removed++;
 		}

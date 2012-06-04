@@ -34,9 +34,8 @@
 #ifndef _mutex_h_
 #define _mutex_h_
 
-#if 1
-#define MUTEX_DEBUG
-#endif
+#include "spinlock.h"
+#include "thread.h"
 
 enum mutex_magic {
 	MUTEX_MAGIC = 0x1a35dfeb,
@@ -54,54 +53,54 @@ typedef struct mutex {
 	enum mutex_magic magic;
 	unsigned long owner;
 	size_t depth;
-	int lock;
-#ifdef MUTEX_DEBUG
-	const char *file;
-	unsigned line;
-#endif
+	spinlock_t lock;
 } mutex_t;
 
 /**
  * Static initialization value for a mutex structure.
  */
-#ifdef MUTEX_DEBUG
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, 0, NULL, 0 }
-#else
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, 0 }
-#endif
+#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, SPINLOCK_INIT }
 
 /*
  * These should not be called directly by user code to allow debugging.
  */
 
-void mutex_grab(mutex_t *m);
-gboolean mutex_grab_try(mutex_t *m);
+void mutex_grab(mutex_t *m, bool hidden);
+bool mutex_grab_try(mutex_t *m);
+void mutex_ungrab(mutex_t *m, bool hidden);
 
 /*
  * Public interface.
  */
 
-#ifdef MUTEX_DEBUG
-void mutex_grab_from(mutex_t *m, const char *file, unsigned line);
-gboolean mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
+#ifdef SPINLOCK_DEBUG
+void mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line);
+bool mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 
-#define mutex_get(x)		mutex_grab_from((x), _WHERE_, __LINE__)
-#define mutex_get_try(x)	mutex_grab_try_from((x), _WHERE_, __LINE__)
+#define mutex_lock(x)			mutex_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define mutex_lock_hidden(x)	mutex_grab_from((x), TRUE, _WHERE_, __LINE__)
+#define mutex_trylock(x)		mutex_grab_try_from((x), _WHERE_, __LINE__)
 
-#define mutex_get_const(x)	\
-	mutex_grab_from(deconstify_gpointer(x), _WHERE_, __LINE__)
+#define mutex_lock_const(x)	\
+	mutex_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
 
 #else
-#define mutex_get(x)		mutex_grab((x))
-#define mutex_get_try(x)	mutex_grab_try((x))
-#define mutex_get_const(x)	mutex_grab(deconstify_gpointer(x))
+#define mutex_lock(x)			mutex_grab((x), FALSE)
+#define mutex_lock_hidden(x)	mutex_grab((x), TRUE)
+#define mutex_trylock(x)		mutex_grab_try((x))
+#define mutex_lock_const(x)		mutex_grab(deconstify_pointer(x), FALSE)
 #endif	/* SPINLOCK_DEBUG */
+
+#define mutex_unlock(x)			mutex_ungrab((x), FALSE)
+#define mutex_unlock_hidden(x)	mutex_ungrab((x), TRUE)
+
+void mutex_crash_mode(void);
 
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
-void mutex_release(mutex_t *m);
-void mutex_release_const(const mutex_t *m);
-gboolean mutex_is_owned(const mutex_t *m);
+void mutex_unlock_const(const mutex_t *m);
+bool mutex_is_owned(const mutex_t *m);
+bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
 
 #endif /* _mutex_h_ */

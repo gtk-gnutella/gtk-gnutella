@@ -109,7 +109,7 @@ struct TTH_CONTEXT {
 	unsigned good_depth;	/* the desired depth of the final leaves */
 	unsigned flags;
 	union {
-		guint64 u64;	/* Better alignment */
+		uint64 u64;	/* Better alignment */
 		char bytes[TTH_BLOCKSIZE + 1];
 	} block;
 	struct tth stack[56];
@@ -229,7 +229,7 @@ static void
 tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
 {
 	union {
-		guint64 u64;	/* Better alignment */
+		uint64 u64;	/* Better alignment */
 		char bytes[TIGERSIZE * 2 + 1];
 	} buf;
 

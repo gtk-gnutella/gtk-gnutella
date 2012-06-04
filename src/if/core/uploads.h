@@ -27,7 +27,7 @@
 #include "common.h"
 #include "lib/host_addr.h"
 
-typedef guint32 gnet_upload_t;
+typedef uint32 gnet_upload_t;
 
 /**
  * Upload states.
@@ -50,20 +50,20 @@ typedef enum {
 
 typedef struct gnet_upload_status {
 	upload_stage_t status;
-	filesize_t  pos;	 /**< Read position in file we're sending */
-	guint32 bps;         /**< Current transfer rate */
-	guint32 avg_bps;     /**< Average transfer rate */
-	time_t  last_update;
-	guint reqnum;		 /**< Count of uploaded chunks */
-	guint error_count;	 /**< Number of errors */
+	filesize_t pos;			/**< Read position in file we're sending */
+	uint32 bps;				/**< Current transfer rate */
+	uint32 avg_bps;			/**< Average transfer rate */
+	time_t last_update;
+	uint reqnum;			/**< Count of uploaded chunks */
+	uint error_count;		/**< Number of errors */
 
-	gboolean parq_quick;
-	gboolean parq_frozen;
-	guint	parq_position;
-	guint	parq_size;
-	guint32	parq_lifetime;
-	guint32	parq_retry;
-	guint	parq_queue_no;
+	bool parq_quick;
+	bool parq_frozen;
+	uint parq_position;
+	uint parq_size;
+	uint32 parq_lifetime;
+	uint32 parq_retry;
+	uint parq_queue_no;
 } gnet_upload_status_t;
 
 typedef struct gnet_upload_info {
@@ -82,12 +82,12 @@ typedef struct gnet_upload_info {
 	time_t  start_date;
 	time_t  last_update;
 
-	gboolean push;		/**< Whether we're pushing or not */
-	gboolean partial;	/**< Whether it's a partial file */
-	gboolean encrypted; /**< Whether the connection is (TLS) encrypted */
+	bool push;				/**< Whether we're pushing or not */
+	bool partial;			/**< Whether it's a partial file */
+	bool encrypted; 		/**< Whether the connection is (TLS) encrypted */
 	
-	guint16 gnet_port;		/**< Advertised Gnutella listening port */
-	guint16 country;  		/**< Contry of origin */
+	uint16 gnet_port;		/**< Advertised Gnutella listening port */
+	uint16 country;  		/**< Contry of origin */
 } gnet_upload_info_t;
 
 /*
@@ -121,11 +121,11 @@ struct ul_stats {
 	const char  *pathname;	/**< Atom, (from sf->pathname) */
 	const char  *filename;	/**< Atom, UTF-8 (from sf->name_nfc) */
 	filesize_t size;
-	guint32 attempts;
-	guint32 complete;
+	uint32 attempts;
+	uint32 complete;
 	time_t rtime;			/**< time of last request */
 	time_t dtime;			/**< time of last downloaded bytes */
-	guint64 bytes_sent;
+	uint64 bytes_sent;
 	double norm;			/**< bytes sent / file size */
 	const struct sha1 *sha1;	/**< SHA1 of file (atom), if known, or NULL */
 	void *user_data;		/**< Used by the GUI side to store context */

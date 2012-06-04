@@ -139,7 +139,7 @@ struct bsched {
 	int current_used;			/**< Nb of active sources this period */
 	int bw_urgent;				/**< Urgent b/w required in stealing */
 	int io_favours;				/**< Amount of sources wanting favours */
-	gboolean looped;			/**< True when looped once over sources */
+	unsigned looped:1;			/**< True when looped once over sources */
 };
 
 /*
@@ -190,7 +190,7 @@ bio_check(const bio_source_t * const bio)
  * @param `period' is the scheduling period in ms.
  */
 static bsched_t *
-bsched_make(const char *name, int type, guint32 mode,
+bsched_make(const char *name, int type, uint32 mode,
 	int bandwidth, int period)
 {
 	bsched_t *bs;
@@ -223,7 +223,7 @@ bsched_make(const char *name, int type, guint32 mode,
 static bsched_t *
 bsched_get(bsched_bws_t bws)
 {
-	guint i = (guint) bws;
+	uint i = (uint) bws;
 
 	g_assert(i < NUM_BSCHED_BWS);
 	bsched_check(bws_set[i]);	
@@ -262,7 +262,7 @@ bsched_free(bsched_t *bs)
 /**
  * Is bandwidth scheduler saturated currently?
  */
-gboolean
+bool
 bsched_saturated(bsched_bws_t bws)
 {
 	const bsched_t *bs = bsched_get(bws);
@@ -271,34 +271,51 @@ bsched_saturated(bsched_bws_t bws)
 	return bs->bw_actual > bs->bw_max;
 }
 
-gulong
+/**
+ * @return amount of unused bandwidth in this scheduler during the
+ * last period, in bytes.
+ */
+uint
+bsched_unused(bsched_bws_t bws)
+{
+	const bsched_t *bs = bsched_get(bws);
+	uint unused;
+
+	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
+		return BS_BW_MAX;
+
+	unused = uint_saturate_sub(bs->bw_max, bs->bw_last_period);
+	return uint_saturate_sub(unused, bs->bw_urgent);
+}
+
+ulong
 bsched_bps(bsched_bws_t bws)
 {
 	const bsched_t *bs = bsched_get(bws);
 	return bs->bw_last_period * 1000 / bs->period;
 }
 
-gulong
+ulong
 bsched_avg_bps(bsched_bws_t bws)
 {
 	const bsched_t *bs = bsched_get(bws);
 	return bs->bw_ema * 1000 / bs->period;
 }
 
-gulong
+ulong
 bsched_bw_per_second(bsched_bws_t bws)
 {
 	const bsched_t *bs = bsched_get(bws);
 	return bs->bw_per_second;
 }
 
-gulong
+ulong
 bsched_pct(bsched_bws_t bws)
 {
 	return bsched_bps(bws) * 100 / (1 + bsched_bw_per_second(bws));
 }
 
-gulong
+ulong
 bsched_avg_pct(bsched_bws_t bws)
 {
 	return bsched_avg_bps(bws) * 100 / (1 + bsched_bw_per_second(bws));
@@ -589,7 +606,7 @@ G_GNUC_COLD void
 bsched_close(void)
 {
 	GSList *iter;
-	guint i;
+	uint i;
 
 	for (iter = bws_list; iter; iter = g_slist_next(iter)) {
 		bsched_bws_t bws = GPOINTER_TO_UINT(iter->data);
@@ -615,7 +632,7 @@ bsched_close(void)
 void
 bsched_set_peermode(node_peer_t mode)
 {
-	guint32 steal;
+	uint32 steal;
 
 	switch (mode) {
 	case NODE_P_NORMAL:
@@ -810,7 +827,7 @@ bio_disable(bio_source_t *bio)
  * Add I/O callback to a "passive" I/O source.
  */
 void
-bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, gpointer arg)
+bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, void *arg)
 {
 	bio_check(bio);
 	g_assert(bio->io_callback == NULL);	/* "passive" source */
@@ -939,7 +956,7 @@ bsched_begin_timeslice(bsched_t *bs)
 
 	for (count = 0, iter = bs->sources; iter; iter = g_list_next(iter)) {
 		bio_source_t *bio = iter->data;
-		guint32 actual;
+		uint32 actual;
 
 		bio_check(bio);
 
@@ -981,7 +998,7 @@ bsched_begin_timeslice(bsched_t *bs)
 		actual = bio->bw_actual << BIO_EMA_SHIFT;
 		bio->bw_fast_ema += (actual >> 1) - (bio->bw_fast_ema >> 1);
 		bio->bw_slow_ema += (actual >> 6) - (bio->bw_slow_ema >> 6);
-		bio->bw_last_bps = (guint) (bio->bw_actual * norm_factor);
+		bio->bw_last_bps = (uint) (bio->bw_actual * norm_factor);
 		bio->bw_actual = 0;
 	}
 
@@ -1123,8 +1140,8 @@ bsched_bio_remove(bsched_bws_t bws, bio_source_t *bio)
  */
 bio_source_t *
 bsched_source_add(
-	bsched_bws_t bws, wrap_io_t *wio, guint32 flags,
-	inputevt_handler_t callback, gpointer arg)
+	bsched_bws_t bws, wrap_io_t *wio, uint32 flags,
+	inputevt_handler_t callback, void *arg)
 {
 	bio_source_t *bio;
 	bsched_t *bs;
@@ -1238,10 +1255,10 @@ bw_available(bio_source_t *bio, int len)
 	bsched_t *bs;
 	int available;
 	int result;
-	gboolean capped = FALSE;
-	gboolean used;
-	gboolean active;
-	gboolean favoured;
+	bool capped = FALSE;
+	bool used;
+	bool active;
+	bool favoured;
 
 	bio_check(bio);
 
@@ -1555,10 +1572,10 @@ bio_bw_update(bio_source_t *bio, ssize_t used)
  *
  * @return previous status: TRUE if it was favoured, FALSE otheriwse.
  */
-gboolean
-bio_set_favour(bio_source_t *bio, gboolean on)
+bool
+bio_set_favour(bio_source_t *bio, bool on)
 {
-	gboolean old;
+	bool old;
 
 	bio_check(bio);
 
@@ -1595,7 +1612,7 @@ bio_add_allocated(bio_source_t *bio, unsigned bw)
  * errno set to EAGAIN.
  */
 ssize_t
-bio_write(bio_source_t *bio, gconstpointer data, size_t len)
+bio_write(bio_source_t *bio, const void *data, size_t len)
 {
 	size_t available;
 	size_t amount;
@@ -1779,7 +1796,7 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
  */
 ssize_t
 bio_sendto(bio_source_t *bio, const gnet_host_t *to,
-	gconstpointer data, size_t len)
+	const void *data, size_t len)
 {
 	size_t available;
 	ssize_t r;
@@ -2061,7 +2078,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
  * bandwidth constraints.
  */
 ssize_t
-bio_read(bio_source_t *bio, gpointer data, size_t len)
+bio_read(bio_source_t *bio, void *data, size_t len)
 {
 	size_t available;
 	size_t amount;
@@ -2232,7 +2249,7 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
  * @return The amount of bytes written or (-1) if an error occurred.
  */
 ssize_t
-bws_write(bsched_bws_t bws, wrap_io_t *wio, gconstpointer data, size_t len)
+bws_write(bsched_bws_t bws, wrap_io_t *wio, const void *data, size_t len)
 {
 	bsched_t *bs;
 	ssize_t r;
@@ -2257,7 +2274,7 @@ bws_write(bsched_bws_t bws, wrap_io_t *wio, gconstpointer data, size_t len)
  * average, we stick to the requested bandwidth rate.
  */
 ssize_t
-bws_read(bsched_bws_t bws, wrap_io_t *wio, gpointer data, size_t len)
+bws_read(bsched_bws_t bws, wrap_io_t *wio, void *data, size_t len)
 {
 	bsched_t *bs;
 	ssize_t r;
@@ -2282,7 +2299,7 @@ bws_read(bsched_bws_t bws, wrap_io_t *wio, gpointer data, size_t len)
  * Account for read data from UDP.
  */
 void
-bws_udp_count_read(int len, gboolean dht)
+bws_udp_count_read(int len, bool dht)
 {
 	int count = BW_UDP_MSG + len;
 	bsched_t *bs;
@@ -2297,11 +2314,11 @@ bws_udp_count_read(int len, gboolean dht)
  *
  * @return whether bandwidth stealing was enabled.
  */
-gboolean
-bws_allow_stealing(bsched_bws_t bws, gboolean allow)
+bool
+bws_allow_stealing(bsched_bws_t bws, bool allow)
 {
 	bsched_t *bs;
-	gboolean was_disabled;
+	bool was_disabled;
 
 	bs = bsched_get(bws);
 	was_disabled = booleanize(bs->flags & BS_F_NO_STEALING);
@@ -2319,11 +2336,11 @@ bws_allow_stealing(bsched_bws_t bws, gboolean allow)
  *
  * @return whether bandwidth stealing was ignored.
  */
-gboolean
-bws_ignore_stolen(bsched_bws_t bws, gboolean ignore)
+bool
+bws_ignore_stolen(bsched_bws_t bws, bool ignore)
 {
 	bsched_t *bs;
-	gboolean was_ignoring;
+	bool was_ignoring;
 
 	bs = bsched_get(bws);
 	was_ignoring = booleanize(bs->flags & BS_F_STOLEN_IGN);
@@ -2342,11 +2359,11 @@ bws_ignore_stolen(bsched_bws_t bws, gboolean ignore)
  *
  * @return whether uniform allocation was already enabled.
  */
-gboolean
-bws_uniform_allocation(bsched_bws_t bws, gboolean uniform)
+bool
+bws_uniform_allocation(bsched_bws_t bws, bool uniform)
 {
 	bsched_t *bs;
-	gboolean was_uniform;
+	bool was_uniform;
 
 	bs = bsched_get(bws);
 	was_uniform = booleanize(bs->flags & BS_F_UNIFORM_BW);
@@ -2497,7 +2514,7 @@ bws_sock_accepted(enum socket_type type)
  * The connection was closed, remotely if `remote' is true.
  */
 void
-bws_sock_closed(enum socket_type type, gboolean remote)
+bws_sock_closed(enum socket_type type, bool remote)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
 	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
@@ -2524,7 +2541,7 @@ bws_sock_closed(enum socket_type type, gboolean remote)
 /**
  * Do we have the bandwidth to issue a new TCP/IP connection of `type'?
  */
-gboolean
+bool
 bws_can_connect(enum socket_type type)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
@@ -2767,7 +2784,7 @@ bsched_stealbeat(bsched_t *bs)
 	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
 	int all_used_count = 0;			/* Amount of bsched_t that used all b/w */
 	int all_favour_count = 0;		/* I/O sources wanting favours */
-	guint all_bw_count = 0;			/* Sum of configured bandwidth */
+	uint all_bw_count = 0;			/* Sum of configured bandwidth */
 	int steal_count = 0;
 	int underused;
 
@@ -2951,7 +2968,7 @@ bsched_timer(void)
 	GSList *l;
 	int out_used = 0;
 	int in_used = 0;
-	gboolean read_data = FALSE;
+	bool read_data = FALSE;
 
 	tm_now(&tv);
 
@@ -3026,7 +3043,7 @@ bsched_timer(void)
 		inet_read_activity();
 }
 
-static gboolean
+static bool
 true_expr(const char *expr)
 {
 	if (GNET_PROPERTY(bsched_debug)) {
@@ -3052,11 +3069,11 @@ true_expr(const char *expr)
  *  -# Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
  *     BW_OUT_GNET_MIN bytes per gnet connection available.
  */
-gboolean
+bool
 bsched_enough_up_bandwidth(void)
 {
 	static time_t last_stall;
-	guint32 total = 0;
+	uint32 total = 0;
 
 	/*
 	 * Stalling uploads are an indication that the output bandwidth is

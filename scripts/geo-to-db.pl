@@ -31,9 +31,8 @@
 # "2.0.0.0","2.6.190.55","33554432","33996343","ZA","South Africa"
 #
 
-require 'getopt.pl';
-
-&Getopt;
+use Getopt::Std;
+getopts('c');
 
 print "# From http://www.maxmind.com/app/geoip_country\n";
 print "# Redistributed under the OPEN DATA LICENSE (see GEO_LICENCE)\n";

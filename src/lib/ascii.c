@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include "ascii.h"
+#include "hashing.h"
 #include "misc.h"
 #include "override.h"			/* Must be the last header included */
 
@@ -52,12 +53,12 @@ ascii_strlower(char *dst, const char *src)
 
 	if (dst != src)
 		do {
-			c = (guchar) *src++;
+			c = (uchar) *src++;
 			*dst++ = ascii_tolower(c);
 		} while (c != '\0');
 	else
 		do {
-			c = (guchar) *src++;
+			c = (uchar) *src++;
 			if (is_ascii_upper(c))
 				*dst = ascii_tolower(c);
 			dst++;
@@ -76,8 +77,8 @@ ascii_strcasecmp(const char *s1, const char *s2)
 	g_assert(s2 != NULL);
 
 	do {
-		a = (guchar) *s1++;
-		b = (guchar) *s2++;
+		a = (uchar) *s1++;
+		b = (uchar) *s2++;
 		if (a != b) {
 			a = ascii_tolower(a);
 			b = ascii_tolower(b);
@@ -103,8 +104,8 @@ ascii_strncasecmp(const char *s1, const char *s2, size_t len)
 		return 0;
 
 	do {
-		a = (guchar) *s1++;
-		b = (guchar) *s2++;
+		a = (uchar) *s1++;
+		b = (uchar) *s2++;
 		if (a != b) {
 			a = ascii_tolower(a);
 			b = ascii_tolower(b);
@@ -121,12 +122,12 @@ ascii_strncasecmp(const char *s1, const char *s2, size_t len)
 char *
 ascii_strcasestr(const char *haystack, const char *needle)
 {
-	guint32 delta[256];
+	uint32 delta[256];
 	size_t nlen = strlen(needle);
-	guint32 *pd = delta;
+	uint32 *pd = delta;
 	size_t i;
 	const char *n;
-	guint32 haylen = strlen(haystack);
+	uint32 haylen = strlen(haystack);
 	const char *end = haystack + haylen;
 	char *tp;
 
@@ -142,7 +143,7 @@ ascii_strcasestr(const char *haystack, const char *needle)
 	nlen--;		/* Restore original pattern length */
 
 	for (n = needle, i = 0; i < nlen; i++) {
-		guchar c = *n++;
+		uchar c = *n++;
 		delta[ascii_tolower(c)] = nlen - i;
 	}
 
@@ -152,10 +153,10 @@ ascii_strcasestr(const char *haystack, const char *needle)
 
 	for (tp = *(char **) &haystack; tp + nlen <= end; /* empty */) {
 		const char *t;
-		guchar c;
+		uchar c;
 
 		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
-			if (ascii_tolower((guchar) *n) != ascii_tolower((guchar) *t))
+			if (ascii_tolower((uchar) *n) != ascii_tolower((uchar) *t))
 				break;
 
 		if (i == nlen)						/* Got a match! */
@@ -171,23 +172,23 @@ ascii_strcasestr(const char *haystack, const char *needle)
 /**
  * ASCII case-insensitive string hashing function.
  */
-guint
-ascii_strcase_hash(gconstpointer key)
+uint
+ascii_strcase_hash(const void *key)
 {
-	const guchar *s = key;
-	gulong c, hash = 0;
+	const uchar *s = key;
+	ulong c, hash = 0;
 	
 	while ((c = ascii_tolower(*s++))) {
-		hash ^= (hash << 8) | c;
+		hash += (hash << 5) + c;
 	}
-	return hash ^ (((guint64) 1048573 * hash) >> 32);
+	return integer_hash(hash);
 }
 
 /**
  * ASCII case-insensitive equality function.
  */
 int
-ascii_strcase_eq(gconstpointer a, gconstpointer b)
+ascii_strcase_eq(const void *a, const void *b)
 {
 	return a == b || 0 == ascii_strcasecmp(a, b);
 }
@@ -197,9 +198,9 @@ ascii_strcase_eq(gconstpointer a, gconstpointer b)
  */
 static int
 strcmp_delimit_full(const char *a, const char *b,
-	const char *delimitors, gboolean case_sensitive)
+	const char *delimitors, bool case_sensitive)
 {
-	guchar is_delimit[(guchar)-1];
+	uchar is_delimit[(uchar)-1];
 
 	/*
 	 * Initialize delimitors.
@@ -215,7 +216,7 @@ strcmp_delimit_full(const char *a, const char *b,
 	}
 
 	while (*delimitors) {
-		guchar c = *delimitors++;
+		uchar c = *delimitors++;
 		is_delimit[case_sensitive ? c : ascii_tolower(c)] = TRUE;
 	}
 
@@ -224,7 +225,7 @@ strcmp_delimit_full(const char *a, const char *b,
 	 */
 
 	for (;;) {
-		guchar c, d;
+		uchar c, d;
 
 		c = *a++;
 		d = *b++;

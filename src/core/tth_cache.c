@@ -127,10 +127,10 @@ tth_cache_file_open(const struct tth *tth)
 	return fd;
 }
 
-static gboolean
+static bool
 tth_cache_file_exists(const struct tth *tth)
 {
-	gboolean ret;
+	bool ret;
 	char *pathname;
 
 	g_return_val_if_fail(tth, FALSE);

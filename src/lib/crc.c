@@ -58,7 +58,7 @@
 
 #define POLYNOMIAL 0x04c11db7L
 
-static guint32 crc_table[256];
+static uint32 crc_table[256];
 
 /**
  * Generates a 256-word table containing all CRC remainders for every
@@ -67,7 +67,7 @@ static guint32 crc_table[256];
 static void
 crc32_gen_crc_table(void)
 {
-	guint32 i, crc_accum;
+	uint32 i, crc_accum;
 
 	for (i = 0; i < 256; i++) {
 		int j;
@@ -91,14 +91,14 @@ crc32_gen_crc_table(void)
  * @param len		no brief description.
  *
  */
-G_GNUC_HOT guint32
-crc32_update(guint32 crc_accum, gconstpointer data, size_t len)
+G_GNUC_HOT uint32
+crc32_update(uint32 crc_accum, const void *data, size_t len)
 {
-	const guchar *p = data;
+	const uchar *p = data;
 	size_t j;
 
 	for (j = 0; j < len; j++) {
-		guint8 i;
+		uint8 i;
 
 		i = (crc_accum >> 24) ^ *p++;
 		crc_accum = (crc_accum << 8) ^ crc_table[i];

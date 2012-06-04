@@ -34,7 +34,7 @@
 
 #include "common.h"
 #include "vmm.h"
-#include "lib/getphysmemsize.h"
+#include "getphysmemsize.h"
 
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>
@@ -44,16 +44,18 @@
 #include <invent.h>
 #endif
 
+static uint64 memsize;
+
 /**
  * @return the amount of physical RAM in bytes, or zero in case of failure.
  */
-guint64
-getphysmemsize(void)
+static uint64
+getphysmemsize_internal(void)
 #ifdef MINGW32
 {
 	return mingw_getphysmemsize();
 }
-#elif defined (_SC_PHYS_PAGES)
+#elif defined(_SC_PHYS_PAGES)
 {
 	size_t pagesize = compat_pagesize();
 	long pages;
@@ -61,51 +63,46 @@ getphysmemsize(void)
 	errno = 0;
 	pages = sysconf(_SC_PHYS_PAGES);
 	if (-1L == pages && 0 != errno) {
-		g_warning("sysconf(_SC_PHYS_PAGES) failed: %s", g_strerror(errno));
+		g_warning("%s: sysconf(_SC_PHYS_PAGES) failed: %m", G_STRFUNC);
 		return 0;
 	}
-	return pagesize * (guint64) (unsigned long) pages;
+	return pagesize * (uint64) (unsigned long) pages;
 }
-#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM64)
+#elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM64)
 {
 	/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM64 };
-	guint64 amount = 0;
+	uint64 amount = 0;
 	size_t len = sizeof amount;
 
 	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
-		g_warning(
-			"settings_getphysmemsize: sysctl() for HW_USERMEM64 failed: %s",
-			g_strerror(errno));
+		g_warning("%s: sysctl() for HW_USERMEM64 failed: %m", G_STRFUNC);
 		return 0;
 	}
 
 	return amount;
 }
-#elif defined (HAS_SYSCTL) && defined (CTL_HW) && defined (HW_USERMEM)
+#elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
 {
 	/* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
-	guint32 amount = 0;
+	uint32 amount = 0;
 	size_t len = sizeof amount;
 
 	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
-		g_warning(
-			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
-			g_strerror(errno));
+		g_warning("%s: sysctl() for HW_USERMEM failed: %m", G_STRFUNC);
 		return 0;
 	}
 
 	return amount;
 }
-#elif defined (HAS_GETINVENT)
+#elif defined(HAS_GETINVENT)
 {
 	inventory_t *inv;
 	long physmem = 0;
 
 	if (-1 == setinvent()) {
-		g_warning("settings_getphysmemsize: setinvent() failed: %s",
-			g_strerror(errno));
+		g_warning("%s: setinvent() failed: %m", G_STRFUNC);
 		return 0;
 	}
 
@@ -119,18 +116,45 @@ getphysmemsize(void)
 	endinvent();
 
 	if (-1L == physmem && 0 != errno) {
-		g_warning("settings_getphysmemsize: "
-			"getinvent() for INV_MEMORY faild: %s", g_strerror(errno));
+		g_warning("%s: getinvent() for INV_MEMORY faild: %m", G_STRFUNC);
 		return 0;
 	}
 
-	return (guint64) (unsigned long) physmem * 1024 * 1024;
+	return (uint64) (unsigned long) physmem * 1024 * 1024;
 }
 #else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
 {
-	g_warning("Unable to determine amount of physical RAM");
+	g_warning("unable to determine amount of physical RAM");
 	return 0;
 }
 #endif /* _SC_PHYS_PAGES */
+
+/**
+ * Get the amount of physical RAM available.
+ *
+ * @return the amount of physical RAM in bytes, or zero in case of failure.
+ */
+uint64
+getphysmemsize(void)
+{
+	if G_UNLIKELY(0 == memsize)
+		memsize = getphysmemsize_internal();
+
+	return memsize;
+}
+
+/**
+ * Get the amount of physical RAM available, if known.
+ *
+ * The purpose is to avoid any memory allocation, which sysconf() or sysctl()
+ * may otherwise cause.
+ *
+ * @return the known amount of physical RAM in bytes, or 0 if unknown yet.
+ */
+uint64
+getphysmemsize_known(void)
+{
+	return memsize;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

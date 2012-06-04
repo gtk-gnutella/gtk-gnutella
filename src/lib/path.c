@@ -108,7 +108,7 @@ absolute_pathname(const char *file)
 /**
  * Check that given path does not exist.
  */
-gboolean
+bool
 path_does_not_exist(const char *pathname)
 {
 	filestat_t st;
@@ -120,7 +120,7 @@ path_does_not_exist(const char *pathname)
 /**
  * Check whether path is an absolute path.
  */
-gboolean
+bool
 is_absolute_path(const char *path)
 {
 	g_assert(path != NULL);
@@ -138,11 +138,11 @@ is_absolute_path(const char *path)
 /**
  * Check whether file given by its dirname and its basename exists.
  */
-gboolean
+bool
 filepath_exists(const char *dir, const char *file)
 {
 	filestat_t buf;
-	gboolean exists;
+	bool exists;
 	char *path;
 
 	path = make_pathname(dir, file);

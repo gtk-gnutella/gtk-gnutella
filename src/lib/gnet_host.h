@@ -51,13 +51,13 @@ typedef struct gnutella_host {
 	struct packed_host data;
 } gnet_host_t;
 
-gnet_host_t *gnet_host_new(const host_addr_t addr, guint16 port);
+gnet_host_t *gnet_host_new(const host_addr_t addr, uint16 port);
 gnet_host_t *gnet_host_dup(const gnet_host_t *h);
 size_t gnet_host_length(const void *p);
 void gnet_host_free(void *h);
 void gnet_host_free_atom(void *h);
 void gnet_host_free_atom2(void *h, void *unused);
-void gnet_host_free_item(gpointer key, gpointer unused_data);
+void gnet_host_free_item(void *key, void *unused_data);
 
 /**
  * This routine MUST only be used on a gnet_host_t variable, that is to
@@ -68,7 +68,7 @@ void gnet_host_free_item(gpointer key, gpointer unused_data);
  * that is stored within.
  */
 static inline void
-gnet_host_set(gnet_host_t *h, const host_addr_t addr, guint16 port)
+gnet_host_set(gnet_host_t *h, const host_addr_t addr, uint16 port)
 {
 	h->data = host_pack(addr, port);
 }
@@ -95,7 +95,7 @@ gnet_host_get_addr(const gnet_host_t *h)
 	return addr;
 }
 
-static inline G_GNUC_PURE ALWAYS_INLINE guint16
+static inline G_GNUC_PURE ALWAYS_INLINE uint16
 gnet_host_get_port(const gnet_host_t *h)
 {
 	return peek_be16(&h->data.port);
@@ -107,13 +107,13 @@ gnet_host_get_net(const gnet_host_t *h)
 	return h->data.ha.net;
 }
 
-static inline G_GNUC_PURE gboolean
+static inline G_GNUC_PURE bool
 gnet_host_is_ipv4(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV4 == h->data.ha.net;
 }
 
-static inline G_GNUC_PURE gboolean
+static inline G_GNUC_PURE bool
 gnet_host_is_ipv6(const gnet_host_t *h)
 {
 	return NET_TYPE_IPV6 == h->data.ha.net;
@@ -128,20 +128,20 @@ size_t gnet_host_to_string_buf(
  * Gnutella host hashing and comparison functions.
  */
 
-guint gnet_host_hash(gconstpointer key) G_GNUC_PURE;
-int gnet_host_eq(gconstpointer v1, gconstpointer v2) G_GNUC_PURE;
-int gnet_host_cmp(gconstpointer v1, gconstpointer v2) G_GNUC_PURE;
+uint gnet_host_hash(const void *key) G_GNUC_PURE;
+int gnet_host_eq(const void *v1, const void *v2) G_GNUC_PURE;
+int gnet_host_cmp(const void *v1, const void *v2) G_GNUC_PURE;
 
 /*
  * Serialized IPv4 and IPv6 Gnutella hosts.
  */
 
 typedef struct {
-	guint8 data[4 + 2];		/* IPv4 address (BE) + Port (LE) */
+	uint8 data[4 + 2];		/* IPv4 address (BE) + Port (LE) */
 } gnet_ipv4_host_t;
 
 typedef struct {
-	guint8 data[16 + 2];	/* IPv6 address + Port (LE) */
+	uint8 data[16 + 2];		/* IPv6 address + Port (LE) */
 } gnet_ipv6_host_t;
 
 /*
@@ -150,8 +150,8 @@ typedef struct {
 typedef struct gnet_host_vec {
 	gnet_ipv4_host_t *hvec_v4;	/**< Vector of alternate IPv4 locations */
 	gnet_ipv6_host_t *hvec_v6;	/**< Vector of alternate IPv6 locations */
-	guint8 n_ipv4;				/**< Amount of hosts in IPv4 vector */
-	guint8 n_ipv6;				/**< Amount of hosts in IPv6 vector */
+	uint8 n_ipv4;				/**< Amount of hosts in IPv4 vector */
+	uint8 n_ipv6;				/**< Amount of hosts in IPv6 vector */
 } gnet_host_vec_t;
 
 static inline int
@@ -164,11 +164,11 @@ gnet_host_vec_count(const gnet_host_vec_t *hvec)
  * @return the ith element of the Gnutella host vector.
  */
 static inline gnet_host_t
-gnet_host_vec_get(const gnet_host_vec_t *hvec, guint i)
+gnet_host_vec_get(const gnet_host_vec_t *hvec, uint i)
 {
 	gnet_host_t host;
 	host_addr_t addr;
-	guint16 port;
+	uint16 port;
 
 	g_assert(i < UNSIGNED(gnet_host_vec_count(hvec)));
 
@@ -190,8 +190,8 @@ char *gnet_host_vec_to_string(const gnet_host_vec_t *);
 gnet_host_vec_t *gnet_host_vec_alloc(void);
 void gnet_host_vec_free(gnet_host_vec_t **vec_ptr);
 gnet_host_vec_t *gnet_host_vec_copy(const gnet_host_vec_t *);
-gboolean gnet_host_vec_contains(gnet_host_vec_t *, host_addr_t, guint16);
-void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, guint16 port);
+bool gnet_host_vec_contains(gnet_host_vec_t *, host_addr_t, uint16);
+void gnet_host_vec_add(gnet_host_vec_t *, host_addr_t addr, uint16 port);
 gnet_host_vec_t *gnet_host_vec_from_gslist(GSList *);
 gnet_host_vec_t *gnet_host_vec_from_hash_list(hash_list_t *);
 gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
@@ -200,9 +200,9 @@ gnet_host_vec_t *gnet_host_vec_from_vector(vector_t *);
  * Gnutella-style addr:port serialization routines (port as little-endian).
  */
 
-void *host_ip_port_poke(void *p, const host_addr_t ha, guint16 port, size_t *l);
+void *host_ip_port_poke(void *p, const host_addr_t ha, uint16 port, size_t *l);
 void host_ip_port_peek(const void *p, enum net_type nt,
-	host_addr_t *addr, guint16 *port);
+	host_addr_t *addr, uint16 *port);
 
 #endif /* _gnet_host_h_ */
 

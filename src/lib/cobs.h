@@ -48,10 +48,10 @@ typedef struct cobs_stream {
 	char *end;				/**< First char beyond output buffer */
 	char *o;				/**< Where next non-NUL data will be written */
 	char *cp;				/**< Where we'll write the code length */
-	guchar code;			/**< Current code length */
-	guchar last_code;		/**< Last code we emitted */
-	gboolean saw_nul;		/**< True if we saw a NUL in the input */
-	gboolean closed;		/**< True if the stream has been closed */
+	uchar code;				/**< Current code length */
+	uchar last_code;		/**< Last code we emitted */
+	bool saw_nul;			/**< True if we saw a NUL in the input */
+	bool closed;			/**< True if the stream has been closed */
 } cobs_stream_t;
 
 /*
@@ -61,17 +61,17 @@ typedef struct cobs_stream {
 
 char *cobs_encode(char *buf, size_t len, size_t *retlen);
 char *cobs_encodev(iovec_t *iov, int iovcnt, size_t *retlen);
-char *cobs_decode(char *buf, size_t len, size_t *retlen, gboolean inplace);
-gboolean cobs_decode_into(
+char *cobs_decode(char *buf, size_t len, size_t *retlen, bool inplace);
+bool cobs_decode_into(
 	const char *buf, size_t len, char *out, size_t outlen, size_t *retlen);
 
-gboolean cobs_is_valid(const char *buf, size_t len);
+bool cobs_is_valid(const char *buf, size_t len);
 
-void cobs_stream_init(cobs_stream_t *cs, gpointer data, size_t len);
-size_t cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul);
-gboolean cobs_stream_write(cobs_stream_t *cs, gpointer data, size_t len);
+void cobs_stream_init(cobs_stream_t *cs, void *data, size_t len);
+size_t cobs_stream_close(cobs_stream_t *cs, bool *saw_nul);
+bool cobs_stream_write(cobs_stream_t *cs, void *data, size_t len);
 void cobs_stream_invalidate(cobs_stream_t *cs);
-gboolean cobs_stream_is_valid(cobs_stream_t *cs);
+bool cobs_stream_is_valid(cobs_stream_t *cs);
 
 #endif	/* _cobs_h_ */
 

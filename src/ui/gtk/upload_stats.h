@@ -30,6 +30,7 @@
 void upload_stats_gui_shutdown(void);
 void upload_stats_common_gui_init(void);
 void upload_stats_common_gui_shutdown(void);
+void upload_stats_gui_clear_model();
 
 void upload_stats_gui_update_model(struct ul_stats *us);
 

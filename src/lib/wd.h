@@ -48,22 +48,22 @@ typedef struct watchdog watchdog_t;
  * @return whether watchdog should continue monitoring and trigger in another
  * period or whether it should be put in a dormant state until woken up.
  */
-typedef gboolean (*wd_trigger_t)(watchdog_t *wd, gpointer udata);
+typedef bool (*wd_trigger_t)(watchdog_t *wd, void *udata);
 
 /*
  * Public interface.
  */
 
 watchdog_t *wd_make(const char *name, int period,
-	wd_trigger_t trigger, gpointer arg, gboolean start);
+	wd_trigger_t trigger, void *arg, bool start);
 void wd_free_null(watchdog_t **wd);
 
 const char *wd_name(const watchdog_t *wd);
-gboolean wd_is_awake(const watchdog_t *wd);
+bool wd_is_awake(const watchdog_t *wd);
 
-gboolean wd_sleep(watchdog_t *wd);
-gboolean wd_wakeup(watchdog_t *wd);
-gboolean wd_expire(watchdog_t *wd);
+bool wd_sleep(watchdog_t *wd);
+bool wd_wakeup(watchdog_t *wd);
+bool wd_expire(watchdog_t *wd);
 void wd_kick(watchdog_t *wd);
 
 #endif /* _wd_h_ */

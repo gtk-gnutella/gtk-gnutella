@@ -50,6 +50,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"
+#include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
 #include "stringify.h"		/* For logging */
@@ -64,10 +65,9 @@
 #define STR_CHUNK		4096	/* Size increase if above STR_MAXGROW */
 
 #define FPREC			17		/* IEEE 64-bit double maximum digit precision */
-#define FPDIG			10		/* For free format, max # of digits before %e */
 
-static gboolean tests_completed;	/* Controls truncation warnings */
-static gboolean format_verbose;		/* Controls debugging of formatting */
+static bool tests_completed;		/* Controls truncation warnings */
+static bool format_verbose;			/* Controls debugging of formatting */
 static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 
 /**
@@ -121,7 +121,7 @@ str_new_not_leaking(size_t szhint)
 	str_create(str, szhint);
 	(void) NOT_LEAKING(str->s_data);
 
-	/* Note: STR_OBJECT not set because structure allocated via xpmalloc() */
+	/* Note: STR_OBJECT not set because structure cannot be freed. */
 
 	return str;
 }
@@ -184,6 +184,41 @@ str_new_in_chunk(ckhunk_t *ck, size_t size)
 	str->s_data = arena;
 	str->s_len = 0;
 	str->s_size = size;
+
+	return str;
+}
+
+/**
+ * Cram a string at the start of the buffer, the remaining space being
+ * used to hold the string arena.
+ *
+ * @param buf		buffer where we can allocate the string
+ * @param len		length of buffer
+ *
+ * @return newly create string, NULL if buffer is too small
+ */
+str_t *
+str_new_in_buffer(void *buf, size_t len)
+{
+	str_t *str;
+
+	g_assert(buf != NULL);
+	g_assert(size_is_positive(len));
+
+	if (len <= sizeof *str)
+		return NULL;
+
+	/*
+	 * Don't set the STR_OBJECT because the object is non-freeable.
+	 * Force STR_FOREIGN_PTR because the arena is non-freeable.
+	 */
+
+	str = buf;
+	str->s_magic = STR_MAGIC;
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = ptr_add_offset(buf, sizeof *str);
+	str->s_len = 0;
+	str->s_size = len - sizeof *str;
 
 	return str;
 }
@@ -632,14 +667,14 @@ char *
 str_dup(str_t *str)
 {
 	size_t len;
-	char *sdup;
+	char *sdup, *p;
 
 	str_check(str);
 
 	len = str->s_len;
 	sdup = halloc(len + 1);
-	memcpy(sdup, str->s_data, len);
-	sdup[len] = '\0';
+	p = mempcpy(sdup, str->s_data, len);
+	*p = '\0';
 
 	return sdup;
 }
@@ -757,13 +792,13 @@ str_ncat(str_t *str, const char *string, size_t len)
  *
  * @return TRUE if written normally, FALSE when clamping was done.
  */
-gboolean
+bool
 str_ncat_safe(str_t *str, const char *string, size_t len)
 {
 	char *p;
 	const char *q;
 	char c;
-	gboolean fits = TRUE;
+	bool fits = TRUE;
 
 	str_check(str);
 	g_assert(string != NULL);
@@ -835,7 +870,7 @@ str_shift(str_t *str, size_t n)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_ichar(str_t *str, ssize_t idx, char c)
 {
 	size_t len;
@@ -865,7 +900,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_istr(str_t *str, ssize_t idx, const char *string)
 {
 	str_check(str);
@@ -879,7 +914,7 @@ str_istr(str_t *str, ssize_t idx, const char *string)
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
-gboolean
+bool
 str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 {
 	size_t len;
@@ -952,7 +987,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
-gboolean
+bool
 str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 {
 	size_t length;
@@ -1150,7 +1185,6 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  * str_vncatf(), which comes from Perl sources.
  */
 
-#define bool			int
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
 
@@ -1173,7 +1207,7 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
  */
 static size_t
 str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
-	gboolean has_precis, const size_t precision, const size_t width,
+	bool has_precis, const size_t precision, const size_t width,
 	const char plus, const bool left, const bool alt, size_t *written)
 {
 	size_t ezeros = 0;		/* Trailing mantissa zeros in %e form */
@@ -1251,8 +1285,8 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			int e;
 			char m[32], r[33];
 			size_t mlen, rlen, asked;
-			gboolean dragon_fmt = FALSE;
-			gboolean asked_dragon = FALSE;
+			bool dragon_fmt = FALSE;
+			bool asked_dragon = FALSE;
 
 			if ('F' == c) {
 				asked_dragon = TRUE;
@@ -1332,9 +1366,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			 *
 			 * %F is our special "free format":
 			 * - If e = 0, we show the mantissa as-is.
-			 * - If e > 0, we switch to scientific notation as soon
-			 *   as the digits in the mantissa + trailing zeros would
-			 *   lead to a number with more than FPDIG digits.
+			 * - If e > 0, we switch to scientific notation as soon as
+			 *   the exponent is greater than the available significant
+			 *   digits and when e > 10.
 			 * - If e < 0, we switch to scientific notation when
 			 *   the number of leading zeros + the mantissa would be
 			 *   larger than FPREC digits (deemed harder to read at
@@ -1348,7 +1382,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 				c = 'f';				/* For logging only */
 				if (e > 0) {
 					size_t v = e;
-					if (MAX(v, mlen) > FPDIG)		c = 'E';
+					if (v > mlen && e > 10)			c = 'E';
 				} else if (e < 0) {
 					if (e < -5 || mlen - e > FPREC)	c = 'E';
 				}
@@ -1555,7 +1589,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 							/* Skip trailing zeros if %g or %G */
 							/* Trailing zeros kept with %#g (alt) */
 							if (digits && !alt && i >= d) {
-								if (r[i] != '0') {
+								if (r[i] != '0' || has_non_zero) {
 									*--mptr = r[i];
 									has_non_zero = TRUE;
 								}
@@ -1630,7 +1664,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 	 * more precisely.
 	 */
 
-	if (remain <= need)				/* Cannot fit entirely */
+	if (remain < need)				/* Cannot fit entirely */
 		goto careful;
 
 	/*
@@ -1645,20 +1679,17 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 		p += gap;
 	}
 	if (esignlen) {
-		memcpy(p, esignbuf, esignlen);
-		p += esignlen;
+		p = mempcpy(p, esignbuf, esignlen);
 	}
 	if (elen && 0 == azeros) {
-		memcpy(p, eptr, elen);
-		p += elen;
+		p = mempcpy(p, eptr, elen);
 	}
 	if (ezeros) {
 		memset(p, '0', ezeros);
 		p += ezeros;
 	}
 	if (explen) {
-		memcpy(p, expptr, explen);
-		p += explen;
+		p = mempcpy(p, expptr, explen);
 	}
 	if (dzeros) {
 		memset(p, '0', dzeros);
@@ -1674,8 +1705,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 		p += azeros;
 	}
 	if (elen && 0 != azeros) {
-		memcpy(p, eptr, elen);
-		p += elen;
+		p = mempcpy(p, eptr, elen);
 	}
 	if (fzeros) {
 		memset(p, '0', fzeros);
@@ -2259,7 +2289,7 @@ G_STMT_START {									\
 		case 'g': case 'G':
 			{
 				size_t written;
-				gboolean ok;
+				bool ok;
 
 				nv = va_arg(args, double);
 				processed++;
@@ -2327,7 +2357,7 @@ G_STMT_START {									\
 		 * more precisely.
 		 */
 
-		if (remain <= need)				/* Cannot fit entirely */
+		if (remain < need)				/* Cannot fit entirely */
 			goto careful;
 
 		/*
@@ -2338,24 +2368,21 @@ G_STMT_START {									\
 		str_makeroom(str, need);		/* we do not NUL terminate it */
 		p = str->s_data + str->s_len;	/* next "free" char in arena */
 		if (esignlen && fill == '0') {
-			memcpy(p, esignbuf, esignlen);
-			p += esignlen;
+			p = mempcpy(p, esignbuf, esignlen);
 		}
 		if (gap && !left) {
 			memset(p, fill, gap);
 			p += gap;
 		}
 		if (esignlen && fill != '0') {
-			memcpy(p, esignbuf, esignlen);
-			p += esignlen;
+			p = mempcpy(p, esignbuf, esignlen);
 		}
 		if (zeros) {
 			memset(p, '0', zeros);
 			p += zeros;
 		}
 		if (elen) {
-			memcpy(p, eptr, elen);
-			p += elen;
+			p = mempcpy(p, eptr, elen);
 		}
 		if (gap && left) {
 			memset(p, ' ', gap);
@@ -2433,7 +2460,7 @@ done:
 
 clamped:
 	{
-		static gboolean recursion;
+		static bool recursion;
 
 		/*
 		 * This routine MUST be recursion-safe since it is used indirectly
@@ -2780,7 +2807,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  * @return amount of discrepancies found with the system's snprintf().
  */
 G_GNUC_COLD size_t
-str_test(gboolean verbose)
+str_test(bool verbose)
 {
 #define MLEN		64
 #define DEADBEEF	((void *) 0xdeadbeef)
@@ -2800,7 +2827,7 @@ str_test(gboolean verbose)
 	static const char INTHEX[] = "543A8";
 	static const struct tstring {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		const char *value;
 		const char *result;
@@ -2822,7 +2849,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tchar {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		const char value;
 		const char *result;
@@ -2833,7 +2860,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tpointer {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		void *value;
 		const char *result;
@@ -2843,7 +2870,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tint {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		int value;
 		const char *result;
@@ -2868,7 +2895,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tlong {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		long value;
 		const char *result;
@@ -2893,7 +2920,7 @@ str_test(gboolean verbose)
 	};
 	static const struct tdouble {
 		const char *fmt;
-		gboolean std;
+		bool std;
 		size_t buflen;
 		double value;
 		const char *result;
@@ -3034,16 +3061,16 @@ str_test(gboolean verbose)
 		/* #120 */
 		{ "%F",			X, MLEN,	50000000000,	"50000000000" },
 		{ "%F",			X, MLEN,	500000000000,	"5E+11" },
-		{ "%F",			X, MLEN,	50000000000.25,	"5.000000000025E+10" },
-		{ "%F",			X, MLEN,	54321987654,	"5.4321987654E+10" },
-		{ "%F",			X, MLEN,	54321987654.999,"5.4321987654999E+10" },
+		{ "%F",			X, MLEN,	50000000000.25,	"50000000000.25" },
+		{ "%F",			X, MLEN,	54321987654,	"54321987654" },
+		{ "%F",			X, MLEN,	54321987654.999,"54321987654.999" },
 		{ "%.1F",		X, MLEN,	4561056.99,		"5E+6" },
 		{ "%.1F",		X, MLEN,	500000000000,	"5E+11" },
 		{ "%.12F",		X, MLEN,	500000000000,	"500000000000" },
 		{ "%.8F",		X, MLEN,	4561056.99,		"4561057" },
 		{ "%.9F",		X, MLEN,	4561056.99,		"4561056.99" },
 		/* #130 */
-		{ "%F",			X, MLEN,	5.12345678901e4,"5.12345678901E+4" },
+		{ "%F",			X, MLEN,	5.12345678901e4,"51234.5678901" },
 		{ "%F",			X, MLEN,	1.2342543e200,	"1.2342543E+200" },
 		{ "%#F",		X, MLEN,	0,				"0." },
 		{ "%#F",		X, MLEN,	-1,				"-1." },
@@ -3070,6 +3097,18 @@ str_test(gboolean verbose)
 		{ "%f",			S, MLEN,	0.0000001, 		"0.000000" },
 		{ "%#g",		S, MLEN,	0.1, 			"0.100000" },
 		{ "%#g",		S, MLEN,	0.01, 			"0.0100000" },
+		{ "%F",			X, MLEN,	13.005952380952381,	"13.005952380952381" },
+		{ "%F",			X, MLEN,	130.05952380952381,	"130.0595238095238" },
+		{ "%F",			X, MLEN,	1300.5952380952381,	"1300.595238095238" },
+		{ "%F",			X, MLEN,	13005.952380952381,	"13005.952380952382" },
+		{ "%F",			X, MLEN,	130059523.80952381,	"130059523.8095238" },
+		/* #160 */
+		{ "%F",			X, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%F",			X, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%.17F",		X, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%.17F",		X, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%.17g",		S, MLEN,	1300595238.0952381,	"1300595238.0952382" },
+		{ "%.17g",		S, MLEN,	13005952380.952381,	"13005952380.952381" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\

@@ -476,6 +476,10 @@ typedef enum {
     PROP_GUID_DEBUG,
     PROP_TX_DEFLATE_DEBUG,
     PROP_TX_DEBUG_ADDRS,
+    PROP_DUMP_RX_ADDRS,
+    PROP_DUMP_TX_FROM_ADDRS,
+    PROP_DUMP_TX_TO_ADDRS,
+    PROP_GUESS_MAXIMIZE_BW,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -496,6 +500,7 @@ const char *gnet_prop_to_string(property_t prop);
 const char *gnet_prop_default_to_string(property_t);
 const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
+prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
 
 /*

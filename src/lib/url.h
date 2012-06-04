@@ -59,7 +59,7 @@ char *url_escape_shell(const char *url);
 char *url_fix_escape(const char *url);
 int url_escape_into(const char *url, char *target, int len);
 char *url_escape_cntrl(const char *url);
-char *url_unescape(char *url, gboolean inplace);
+char *url_unescape(char *url, bool inplace);
 char *url_from_absolute_path(const char *path);
 
 url_params_t *url_params_parse(char *query);
@@ -68,7 +68,7 @@ size_t url_params_count(const url_params_t *up);
 void url_params_free(url_params_t *up);
 char *url_normalize(char *url, url_policy_t pol);
 
-gboolean url_is_absolute(const char *url);
+bool url_is_absolute(const char *url);
 char *url_absolute_within(const char *base, const char *relative);
 int url_canonize_path(char *path);
 

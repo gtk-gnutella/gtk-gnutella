@@ -34,60 +34,23 @@
 #include "common.h"
 
 #include "adns.h"
+#include "adns_msg.h"
+
 #include "ascii.h"
 #include "atoms.h"
 #include "debug.h"
 #include "fd.h"
 #include "glib-missing.h"
+#include "hikset.h"
 #include "inputevt.h"
 #include "signal.h"
 #include "tm.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
 /* private data types */
-
-struct adns_common {
-	void (*user_callback)(void);
-	void *user_data;
-	gboolean reverse;
-};
-
-struct adns_reverse_query {
-	host_addr_t addr;
-};
-
-struct adns_query {
-	enum net_type net;
-	char hostname[MAX_HOSTLEN + 1];
-};
-
-struct adns_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addrs[10];
-};
-
-struct adns_reverse_reply {
-	char hostname[MAX_HOSTLEN + 1];
-	host_addr_t addr;
-};
-
-struct adns_request {
-	struct adns_common common;
-	union {
-		struct adns_query by_addr;
-		struct adns_reverse_query reverse;
-	} query;
-};
-
-struct adns_response {
-	struct adns_common common;
-	union {
-		struct adns_reply by_addr;
-		struct adns_reverse_reply reverse;
-	} reply;
-};
 
 typedef struct adns_async_write {
 	struct adns_request req;	/**< The original ADNS request */
@@ -138,7 +101,7 @@ count_addrs(const host_addr_t *addrs, size_t m)
 static const char adns_process_title[] = "DNS helper for gtk-gnutella";
 
 typedef struct adns_cache_struct {
-	GHashTable *ht;
+	hikset_t *ht;
 	unsigned pos;
 	int timeout;
 	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
@@ -148,10 +111,12 @@ static adns_cache_t *adns_cache = NULL;
 
 /* private variables */
 
+#ifndef MINGW32
 static int adns_query_fd = -1;
 static unsigned adns_query_event_id;
+#endif	/* !MINGW32 */
 static unsigned adns_reply_event_id;
-static gboolean is_helper;		/**< Are we the DNS helper process? */
+static bool is_helper;		/**< Are we the DNS helper process? */
 
 /**
  * Private functions.
@@ -163,9 +128,10 @@ adns_cache_init(void)
 	adns_cache_t *cache;
 	size_t i;
 
-	cache = g_malloc(sizeof *cache);
+	XMALLOC(cache);
 	cache->timeout = ADNS_CACHE_TIMEOUT;
-	cache->ht = g_hash_table_new(g_str_hash, g_str_equal);
+	cache->ht = hikset_create(
+		offsetof(adns_cache_entry_t, hostname), HASH_KEY_STRING, 0);
 	cache->pos = 0;
 	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
 		cache->entries[i] = NULL;
@@ -233,10 +199,11 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
 		adns_cache_free_entry(cache, i);
 	}
-	gm_hash_table_destroy_null(&cache->ht);
-	G_FREE_NULL(cache);
+	hikset_free_null(&cache->ht);
+	XFREE_NULL(cache);
 }
 
+#ifndef MINGW32
 /**
  * Adds ``hostname'' and ``addr'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
@@ -254,16 +221,15 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	g_assert(NULL != hostname);
 	g_assert(n > 0);
 
-	g_assert(NULL == g_hash_table_lookup(cache->ht, hostname));
-
+	g_assert(!hikset_contains(cache->ht, hostname));
 	g_assert(cache->pos < G_N_ELEMENTS(cache->entries));
 	
 	entry = adns_cache_get_entry(cache, cache->pos);
 	if (entry) {
 		g_assert(entry->hostname);
-		g_assert(g_hash_table_lookup(cache->ht, entry->hostname) == entry);
+		g_assert(entry == hikset_lookup(cache->ht, entry->hostname));
 
-		g_hash_table_remove(cache->ht, entry->hostname);
+		hikset_remove(cache->ht, entry->hostname);
 		adns_cache_free_entry(cache, cache->pos);
 		entry = NULL;
 	}
@@ -276,10 +242,11 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	for (i = 0; i < entry->n; i++) {
 		entry->addrs[i] = addrs[i];
 	}
-	g_hash_table_insert(cache->ht, deconstify_gchar(entry->hostname), entry);
+	hikset_insert_key(cache->ht, &entry->hostname);
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= G_N_ELEMENTS(cache->entries);
 }
+#endif	/* !MINGW32 */
 
 /**
  * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
@@ -303,7 +270,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	g_assert(NULL != hostname);
 	g_assert(0 == n || NULL != addrs);
 
-	entry = g_hash_table_lookup(cache->ht, hostname);
+	entry = hikset_lookup(cache->ht, hostname);
 	if (entry) {
 		if (delta_time(now, entry->timestamp) < cache->timeout) {
 			size_t i;
@@ -312,18 +279,19 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 				if (i < entry->n) {
 					addrs[i] = entry->addrs[i];
 					if (common_dbg > 0)
-						g_debug("adns_cache_lookup: \"%s\" cached (addr=%s)",
+						g_debug("%s: \"%s\" cached (addr=%s)", G_STRFUNC,
 							entry->hostname, host_addr_to_string(addrs[i]));
 				} else {
 					addrs[i] = zero_host_addr;
 				}
 			}
 		} else {
-			if (common_dbg > 0)
-				g_debug("adns_cache_lookup: removing \"%s\" from cache",
-						entry->hostname);
+			if (common_dbg > 0) {
+				g_debug("%s: removing \"%s\" from cache",
+					G_STRFUNC, entry->hostname);
+			}
 
-			g_hash_table_remove(cache->ht, hostname);
+			hikset_remove(cache->ht, hostname);
 			adns_cache_free_entry(cache, entry->id);
 			entry = NULL;
 		}
@@ -339,16 +307,16 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
  * has been transferred or if an unrecoverable error occurs. This function
  * should only be used with a blocking `fd'.
  */
-static gboolean
-adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
+static bool
+adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
 {
 	ssize_t ret;
 	size_t n = len;
 
 	while (n > 0) {
 		if (common_dbg > 2)
-			g_debug("adns_do_transfer (%s): n=%zu",
-			    do_write ? "write" : "read", n);
+			g_debug("%s (%s): n=%zu", G_STRFUNC,
+				do_write ? "write" : "read", n);
 
 		if (do_write)
 			ret = write(fd, buf, n);
@@ -359,8 +327,8 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
             if (!is_helper || getppid() != 1)
-			    g_warning("adns_do_transfer (%s): %s (errno=%d)",
-				    do_write ? "write" : "read", g_strerror(errno), errno);
+			    g_warning("%s (%s): %m",
+					G_STRFUNC, do_write ? "write" : "read");
 			return FALSE;
 		} else if (0 == ret) {
 			/*
@@ -368,8 +336,8 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
 			 * parent is gone.
 			 */
 			if (!do_write && !(is_helper && getppid() == 1))
-				g_warning("adns_do_transfer (%s): EOF",
-					do_write ? "write" : "read");
+				g_warning("%s (%s): EOF",
+					G_STRFUNC, do_write ? "write" : "read");
 			return FALSE;
 		} else if (ret > 0) {
 			n -= ret;
@@ -385,7 +353,7 @@ adns_do_transfer(int fd, void *buf, size_t len, gboolean do_write)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean
+static inline bool
 adns_do_read(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, FALSE);
@@ -396,7 +364,7 @@ adns_do_read(int fd, void *buf, size_t len)
  *
  * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean
+static inline bool
 adns_do_write(int fd, void *buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, TRUE);
@@ -421,8 +389,8 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (common_dbg > 1) {
-			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
-					host_addr_to_string(query->addr));
+			g_debug("%s: resolving \"%s\" ...",
+					G_STRFUNC, host_addr_to_string(query->addr));
 		}
 
 		reply->addr = query->addr;
@@ -435,8 +403,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (common_dbg > 1) {
-			g_debug("adns_gethostbyname: Resolving \"%s\" ...",
-				query->hostname);
+			g_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
@@ -457,6 +424,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 	}
 }
 
+#ifndef MINGW32
 /**
  * The ``main'' function of the adns helper process (server).
  *
@@ -483,6 +451,9 @@ adns_helper(int fd_in, int fd_out)
 		void *buf;
 
 		if (!adns_do_read(fd_in, &req.common, sizeof req.common))
+			break;
+
+		if (ADNS_COMMON_MAGIC != req.common.magic)
 			break;
 	
 		if (req.common.reverse) {	
@@ -517,6 +488,7 @@ adns_helper(int fd_in, int fd_out)
 	fd_close(&fd_out);
 	_exit(EXIT_SUCCESS);
 }
+#endif	/* !MINGW32 */
 
 static inline void
 adns_invoke_user_callback(const struct adns_response *ans)
@@ -555,19 +527,20 @@ adns_fallback(const struct adns_request *req)
 	adns_invoke_user_callback(&ans);
 }
 
+#ifndef MINGW32
 static void
 adns_reply_ready(const struct adns_response *ans)
 {
 	time_t now = tm_time();
 
-	g_assert(ans);
+	g_assert(ans != NULL);
 
 	if (ans->common.reverse) {
 		if (common_dbg > 1) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
 			
-			g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
-				host_addr_to_string(reply->addr), reply->hostname);
+			g_debug("%s: resolved \"%s\" to \"%s\".",
+				G_STRFUNC, host_addr_to_string(reply->addr), reply->hostname);
 		}
 	} else {
 		const struct adns_reply *reply = &ans->reply.by_addr;
@@ -580,7 +553,7 @@ adns_reply_ready(const struct adns_response *ans)
 			size_t i;
 			
 			for (i = 0; i < num; i++) {
-				g_debug("adns_reply_ready: Resolved \"%s\" to \"%s\".",
+				g_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}
@@ -611,6 +584,11 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 	g_assert(NULL == data);
 	g_assert(condition & INPUT_EVENT_RX);
 
+	/*
+	 * Consume all the data available in the pipe, potentially handling
+	 * several pending replies.
+	 */
+
 	for (;;) {
 		ssize_t ret;
 		size_t n;
@@ -618,7 +596,14 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 		if (pos == size) {
 
 			pos = 0;
-			if (cast_to_gpointer(&ans.common) == buf) {
+			if (cast_to_pointer(&ans.common) == buf) {
+				/*
+				 * Finished reading the generic reply header, now read
+				 * the specific part.
+				 */
+
+				g_assert(ADNS_COMMON_MAGIC == ans.common.magic);
+
 				if (ans.common.reverse) {
 					buf = &ans.reply.reverse;
 					size = sizeof ans.reply.reverse;
@@ -628,10 +613,22 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 				}
 			} else {
 				if (buf) {
+					/*
+					 * Completed reading the specific part of the reply.
+					 * Inform issuer of request by invoking the user callback.
+					 */
+
 					adns_reply_ready(&ans);
 				}
+
+				/*
+				 * Continue reading the next reply, if any, which will start
+				 * by the generic header.
+				 */
+
 				buf = &ans.common;
 				size = sizeof ans.common;
+				ans.common.magic = 0;
 			}
 		}
 
@@ -643,13 +640,12 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
 		if ((ssize_t) -1 == ret) {
 		   	if (!is_temporary_error(errno)) {
-				g_warning("adns_reply_callback: read() failed: %s",
-					g_strerror(errno));
+				g_warning("%s: read() failed: %m", G_STRFUNC);
 				goto error;
 			}
 			break;
 		} else if (0 == ret) {
-			g_warning("adns_reply_callback: read() failed: EOF");
+			g_warning("%s: read() failed: EOF", G_STRFUNC);
 			goto error;
 		} else {
 			g_assert(ret > 0);
@@ -661,7 +657,7 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 	
 error:
 	inputevt_remove(&adns_reply_event_id);
-	g_warning("adns_reply_callback: removed myself");
+	g_warning("%s: removed myself", G_STRFUNC);
 	fd_close(&source);
 }
 
@@ -719,7 +715,7 @@ adns_query_callback(void *data, int dest, inputevt_cond_t condition)
 	g_assert(0 != adns_query_event_id);
 
 	if (condition & INPUT_EVENT_EXCEPTION) {
-		g_warning("adns_query_callback: write exception");
+		g_warning("%s: write exception", G_STRFUNC);
 		goto abort;
 	}
 
@@ -753,17 +749,18 @@ adns_query_callback(void *data, int dest, inputevt_cond_t condition)
 
 
 error:
-	g_warning("adns_query_callback: write() failed: %s", g_strerror(errno));
+	g_warning("%s: write() failed: %m", G_STRFUNC);
 abort:
-	g_warning("adns_query_callback: removed myself");
+	g_warning("%s: removed myself", G_STRFUNC);
 	inputevt_remove(&adns_query_event_id);
 	fd_close(&adns_query_fd);
-	g_warning("adns_query_callback: using fallback");
+	g_warning("%s: using fallback", G_STRFUNC);
 	adns_fallback(&remain->req);
 done:
 	adns_async_write_free(remain);
 	return;
 }
+#endif	/* !MINGW32 */
 
 static void
 adns_helper_init(void)
@@ -778,13 +775,13 @@ adns_helper_init(void)
 	pid_t pid;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
-		g_warning("adns_init: pipe() failed: %s", g_strerror(errno));
+		g_warning("%s: pipe() failed: %m", G_STRFUNC);
 		goto prefork_failure;
 	}
 	
 	pid = fork();
 	if ((pid_t) -1 == pid) {
-		g_warning("adns_init: fork() failed: %s", g_strerror(errno));
+		g_warning("%s: fork() failed: %m", G_STRFUNC);
 		goto prefork_failure;
 	}
 	if (0 == pid) {
@@ -798,16 +795,16 @@ adns_helper_init(void)
 		 */
 
 		if (!freopen("/dev/null", "r", stdin))
-			g_error("adns_init: freopen(\"/dev/null\", \"r\", stdin) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"r\", stdin) failed: %m",
+				G_STRFUNC);
 
 		if (!freopen("/dev/null", "a", stdout))
-			g_error("adns_init: freopen(\"/dev/null\", \"a\", stdout) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"a\", stdout) failed: %m",
+				G_STRFUNC);
 
 		if (!freopen("/dev/null", "a", stderr))
-			g_error("adns_init: freopen(\"/dev/null\", \"a\", stderr) failed: "
-					"%s", g_strerror(errno));
+			g_error("%s: freopen(\"/dev/null\", \"a\", stderr) failed: %m",
+				G_STRFUNC);
 
 		fd_close(&fd_query[1]);
 		fd_close(&fd_reply[0]);
@@ -840,7 +837,7 @@ adns_helper_init(void)
 prefork_failure:
 
 	if (!adns_reply_event_id) {
-		g_warning("Cannot use ADNS; DNS lookups may cause stalling");
+		g_warning("cannot use ADNS; DNS lookups may cause stalling");
 		fd_close(&fd_query[0]);
 		fd_close(&fd_query[1]);
 		fd_close(&fd_reply[0]);
@@ -865,7 +862,7 @@ adns_init(void)
 /**
  * @return TRUE on success, FALSE on failure.
  */
-static gboolean
+static bool
 adns_send_request(const struct adns_request *req)
 #ifdef MINGW32
 {
@@ -908,8 +905,7 @@ adns_send_request(const struct adns_request *req)
 	written = write(adns_query_fd, buf, size);
 	if (written == (ssize_t) -1) {
 		if (!is_temporary_error(errno)) {
-			g_warning("adns_resolve: write() failed: %s",
-				g_strerror(errno));
+			g_warning("%s: write() failed: %m", G_STRFUNC);
 			inputevt_remove(&adns_reply_event_id);
 			fd_close(&adns_query_fd);
 			return FALSE;
@@ -942,7 +938,7 @@ adns_send_request(const struct adns_request *req)
  *
  * The given function ``user_callback'' (which MUST NOT be NULL)
  * will be invoked with the resolved IP address and ``user_data''
- * as its parameters. The IP address 0.0.0.0 i.e., ``(guint32) 0''
+ * as its parameters. The IP address 0.0.0.0 i.e., ``(uint32) 0''
  * is used to indicate a failure. In case the hostname is given as
  * an IP string, it will be directly converted and the callback
  * immediately invoked. If the adns helper process is ``out of service''
@@ -953,7 +949,7 @@ adns_send_request(const struct adns_request *req)
  * synchronous i.e., the callback was called BEFORE adns_resolve()
  * returned, adns_resolve() returns FALSE.
  */
-gboolean
+bool
 adns_resolve(const char *hostname, enum net_type net,
 	adns_callback_t user_callback, void *user_data)
 {
@@ -967,6 +963,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
 
+	req.common.magic = ADNS_COMMON_MAGIC;
 	req.common.user_callback = (void (*)(void)) user_callback;
 	req.common.user_data = user_data;
 	req.common.reverse = FALSE;
@@ -976,7 +973,9 @@ adns_resolve(const char *hostname, enum net_type net,
 	reply->hostname[0] = '\0';
 	reply->addrs[0] = zero_host_addr;
 
-	hostname_len = clamp_strcpy(query->hostname, sizeof query->hostname, hostname);
+	hostname_len = clamp_strcpy(query->hostname,
+		sizeof query->hostname, hostname);
+
 	if ('\0' != hostname[hostname_len]) {
 		/* truncation detected */
 		adns_invoke_user_callback(&ans);
@@ -1005,8 +1004,8 @@ adns_resolve(const char *hostname, enum net_type net,
 		return TRUE; /* asynchronous */
 
 	if (adns_reply_event_id) {
-		g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-			query->hostname);
+		g_warning("%s: using synchronous resolution for \"%s\"",
+			G_STRFUNC, query->hostname);
 	}
 	adns_fallback(&req);
 
@@ -1026,7 +1025,7 @@ adns_resolve(const char *hostname, enum net_type net,
  * synchronous i.e., the callback was called BEFORE adns_reverse_lookup()
  * returned, adns_reverse_lookup() returns FALSE.
  */
-gboolean
+bool
 adns_reverse_lookup(const host_addr_t addr,
 	adns_reverse_callback_t user_callback, void *user_data)
 {
@@ -1043,8 +1042,8 @@ adns_reverse_lookup(const host_addr_t addr,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
-		host_addr_to_string(query->addr));
+	g_warning("%s: using synchronous resolution for \"%s\"",
+		G_STRFUNC, host_addr_to_string(query->addr));
 
 	adns_fallback(&req);
 

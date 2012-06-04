@@ -2965,6 +2965,29 @@
 			  <yfill>False</yfill>
 			</child>
 		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_search_display_guess_stats</name>
+			<can_focus>True</can_focus>
+			<label>Display GUESS statistics</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>6</top_attach>
+			  <bottom_attach>7</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
 		    </widget>
 
 		    <widget>
@@ -2981,6 +3004,67 @@
 		    </widget>
 		  </widget>
 		</widget>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkHBox</class>
+	      <name>guess_stats_line</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>False</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkViewport</class>
+		<name>viewport_fix_flashing_3</name>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox2114</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label_guess_stats</name>
+		    <label></label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>5</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+		  </widget>
+		</widget>
+	      </widget>
+
+	      <widget>
+		<class>GtkCheckButton</class>
+		<name>checkbutton_guess_stats_show_total</name>
+		<can_focus>True</can_focus>
+		<label>Total</label>
+		<active>False</active>
+		<draw_indicator>True</draw_indicator>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
 	      </widget>
 	    </widget>
 
@@ -20642,7 +20726,7 @@ allowed</label>
 	      <widget>
 		<class>GtkTable</class>
 		<name>table103</name>
-		<rows>1</rows>
+		<rows>2</rows>
 		<columns>3</columns>
 		<homogeneous>False</homogeneous>
 		<row_spacing>2</row_spacing>
@@ -20722,6 +20806,29 @@ allowed</label>
 		    <right_attach>2</right_attach>
 		    <top_attach>0</top_attach>
 		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_guess_maximize_bw</name>
+		  <can_focus>True</can_focus>
+		  <label>Allow unused Gnutella outgoing bandwidth to supersede hint</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>3</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
 		    <xexpand>False</xexpand>

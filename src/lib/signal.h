@@ -55,11 +55,12 @@ typedef void (*signal_handler_t)(int signo);
 signal_handler_t signal_set(int signo, signal_handler_t handler);
 signal_handler_t signal_catch(int signo, signal_handler_t handler);
 const char *signal_name(int signo);
-gboolean signal_in_handler(void);
+bool signal_in_handler(void);
 struct ckhunk *signal_chunk(void);
 void signal_unblock(int signo);
+void signal_abort(void);
 
-gboolean signal_enter_critical(sigset_t *oset);
+bool signal_enter_critical(sigset_t *oset);
 void signal_leave_critical(const sigset_t *oset);
 
 void signal_init(void);

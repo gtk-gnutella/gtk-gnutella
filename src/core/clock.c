@@ -45,6 +45,7 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/hevset.h"
 #include "lib/stats.h"
 #include "lib/tm.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -61,7 +62,7 @@ struct used_val {
 	int precision;				/**< The precision used for the last update */
 };
 
-static GHashTable *used;		/**< Records the IP address used */
+static hevset_t *used;			/**< Records the IP address used */
 
 /**
  * This container holds the data points (clock offset between the real UTC
@@ -103,7 +104,7 @@ val_free(struct used_val *v)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-val_destroy(cqueue_t *unused_cq, gpointer obj)
+val_destroy(cqueue_t *unused_cq, void *obj)
 {
 	struct used_val *v = obj;
 
@@ -111,7 +112,7 @@ val_destroy(cqueue_t *unused_cq, gpointer obj)
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
-	g_hash_table_remove(used, &v->addr);
+	hevset_remove(used, &v->addr);
 	v->cq_ev = NULL;
 	val_free(v);
 }
@@ -129,7 +130,7 @@ val_create(const host_addr_t addr, int precision)
 	WALLOC(v);
 	v->addr = addr;
 	v->precision = precision;
-	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);
+	v->cq_ev = cq_main_insert(REUSE_DELAY * 1000, val_destroy, v);
 
 	return v;
 }
@@ -151,16 +152,16 @@ val_reused(struct used_val *v, int precision)
 void
 clock_init(void)
 {
-	used = g_hash_table_new(host_addr_hash_func, host_addr_eq_func);
+	used = hevset_create_any(offsetof(struct used_val, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 	datapoints = statx_make();
 }
 
 static void
-used_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
+used_free_kv(void *val, void *unused_x)
 {
 	struct used_val *v = val;
 
-	(void) unused_key;
 	(void) unused_x;
 	val_free(v);
 }
@@ -171,8 +172,8 @@ used_free_kv(gpointer unused_key, gpointer val, gpointer unused_x)
 void
 clock_close(void)
 {
-	g_hash_table_foreach(used, used_free_kv, NULL);
-	gm_hash_table_destroy_null(&used);
+	hevset_foreach(used, used_free_kv, NULL);
+	hevset_free_null(&used);
 	statx_free(datapoints);
 }
 
@@ -188,7 +189,7 @@ clock_adjust(void)
 	double min;
 	double max;
 	int i;
-	guint32 new_skew;
+	uint32 new_skew;
 	int k;
 
 	/*
@@ -261,12 +262,12 @@ clock_adjust(void)
 
 	statx_clear(datapoints);
 
-	new_skew = GNET_PROPERTY(clock_skew) + (gint32) avg;
+	new_skew = GNET_PROPERTY(clock_skew) + (int32) avg;
 
 	if (GNET_PROPERTY(clock_debug))
 		g_debug("CLOCK with n=%d avg=%g sdev=%g => SKEW old=%d new=%d",
-			n, avg, sdev, (gint32) GNET_PROPERTY(clock_skew),
-			(gint32) new_skew);
+			n, avg, sdev, (int32) GNET_PROPERTY(clock_skew),
+			(int32) new_skew);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
 }
@@ -281,7 +282,7 @@ void
 clock_update(time_t update, int precision, const host_addr_t addr)
 {
 	time_t now;
-	gint32 delta;
+	int32 delta;
 	struct used_val *v;
 
 	g_assert(used);
@@ -296,24 +297,24 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	 * end is running NTP.
 	 */
 
-	if ((v = g_hash_table_lookup(used, &addr))) {
+	if ((v = hevset_lookup(used, &addr))) {
 		if (precision && precision >= v->precision)
 			return;
 		val_reused(v, precision);
 	} else {
 		v = val_create(addr, precision);
-		g_hash_table_insert(used, &v->addr, v);
+		hevset_insert(used, v);
 	}
 
 	now = tm_time();
-	delta = delta_time(update, (now + (gint32) GNET_PROPERTY(clock_skew)));
+	delta = delta_time(update, (now + (int32) GNET_PROPERTY(clock_skew)));
 
 	statx_add(datapoints, (double) (delta + precision));
 	statx_add(datapoints, (double) (delta - precision));
 
 	if (GNET_PROPERTY(clock_debug) > 1)
 		g_debug("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%g sdev=%g)",
-			(gint32) GNET_PROPERTY(clock_skew),
+			(int32) GNET_PROPERTY(clock_skew),
 			delta, precision, host_addr_to_string(addr),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
 
@@ -330,7 +331,7 @@ clock_loc2gmt(time_t stamp)
 	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp + (gint32) GNET_PROPERTY(clock_skew);
+	return stamp + (int32) GNET_PROPERTY(clock_skew);
 }
 
 /**
@@ -342,7 +343,7 @@ clock_gmt2loc(time_t stamp)
 	if (GNET_PROPERTY(host_runs_ntp))
 		return stamp;
 
-	return stamp - (gint32) GNET_PROPERTY(clock_skew);
+	return stamp - (int32) GNET_PROPERTY(clock_skew);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

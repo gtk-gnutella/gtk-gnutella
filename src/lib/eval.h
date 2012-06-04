@@ -40,9 +40,6 @@
  * Public interface
  */
 
-void eval_init(void);
-void eval_close(void);
-
 const char *eval_subst(const char *str);
 
 #endif	/* _eval_h_ */

@@ -105,7 +105,7 @@ strlcat(char *dst, const char *src, size_t dst_size)
  * @return new list head.
  */
 GSList *
-gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
+gm_slist_insert_after(GSList *list, GSList *lnk, void *data)
 {
 	GSList *new;
 
@@ -130,7 +130,7 @@ gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
  * @return new list head.
  */
 GList *
-gm_list_insert_after(GList *list, GList *lnk, gpointer data)
+gm_list_insert_after(GList *list, GList *lnk, void *data)
 {
 	GList *new;
 
@@ -178,7 +178,7 @@ g_slist_delete_link(GSList *sl, GSList *lnk)
 }
 
 GList *
-g_list_insert_before(GList *l, GList *lk, gpointer data)
+g_list_insert_before(GList *l, GList *lk, void *data)
 {
 	GList *new;
 
@@ -203,14 +203,14 @@ g_list_insert_before(GList *l, GList *lk, gpointer data)
 
 #ifdef USE_GLIB1
 void
-g_hash_table_replace(GHashTable *ht, gpointer key, gpointer value)
+g_hash_table_replace(GHashTable *ht, void *key, void *value)
 {
 	g_hash_table_remove(ht, key);
 	g_hash_table_insert(ht, key, value);
 }
 
-gboolean
-gm_hash_table_remove(GHashTable *ht, gconstpointer key)
+bool
+gm_hash_table_remove(GHashTable *ht, const void *key)
 {
 	/* In glib 1.x, g_hash_table_remove() does not return anything */
 
@@ -556,7 +556,7 @@ gm_setproctitle(const char *title)
 		iovec_t iov;
 		
 		iov = gm_setproctitle_init(orig_argc, orig_argv, orig_env);
-		args = cast_to_gpointer(iovec_base(&iov)); /* Solaris has caddr_t */
+		args = cast_to_pointer(iovec_base(&iov)); /* Solaris has caddr_t */
 		n = iovec_len(&iov);
 	}
 
@@ -583,7 +583,7 @@ gm_getproctitle(void)
 static GPollFunc gpoll_func;
 
 static gint
-compat_poll_wrapper(GPollFD *ufds, guint nfsd, gint timeout)
+compat_poll_wrapper(GPollFD *ufds, uint nfsd, int timeout)
 {
 	return compat_poll((struct pollfd *) ufds, nfsd, timeout);
 }
@@ -614,7 +614,7 @@ g_main_context_set_poll_func(GMainContext *context, GPollFunc func)
  *
  * @return TRUE if the given slist contains a loop; FALSE otherwise.
  */
-gboolean
+bool
 gm_slist_is_looping(const GSList *slist)
 {
 	const GSList *sl, *p;
@@ -632,8 +632,7 @@ gm_slist_is_looping(const GSList *slist)
 }
 
 static void
-gm_hash_table_all_keys_helper(gpointer key,
-	gpointer unused_value, gpointer udata)
+gm_hash_table_all_keys_helper(void *key, void *unused_value, void *udata)
 {
 	GSList **sl_ptr = udata;
 	
@@ -654,12 +653,11 @@ gm_hash_table_all_keys(GHashTable *ht)
 
 struct gm_hash_table_foreach_keys_helper {
 	GFunc func;			/* Function to call on each key */
-	gpointer udata;		/* Original user data */
+	void *udata;		/* Original user data */
 };
 
 static void
-gm_hash_table_foreach_keys_helper(gpointer key,
-	gpointer unused_value, gpointer udata)
+gm_hash_table_foreach_keys_helper(void *key, void *unused_value, void *udata)
 {
 	struct gm_hash_table_foreach_keys_helper *hp = udata;
 	
@@ -672,7 +670,7 @@ gm_hash_table_foreach_keys_helper(gpointer key,
  * Apply function to all the keys of the hash table.
  */
 void
-gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data)
+gm_hash_table_foreach_key(GHashTable *ht, GFunc func, void *user_data)
 {
 	struct gm_hash_table_foreach_keys_helper hp;
 
@@ -698,7 +696,7 @@ gm_hash_table_foreach_key(GHashTable *ht, GFunc func, gpointer user_data)
  */
 static GList *
 g_list_sort_merge(
-	GList *l1, GList *l2, GCompareDataFunc compare_func, gpointer user_data)
+	GList *l1, GList *l2, GCompareDataFunc compare_func, void *user_data)
 {
 	GList list, *l, *lprev;
 
@@ -732,7 +730,7 @@ g_list_sort_merge(
  */
 GList *
 g_list_sort_with_data(
-	GList *list, GCompareDataFunc compare_func, gpointer user_data)
+	GList *list, GCompareDataFunc compare_func, void *user_data)
 {
 	GList *l1, *l2;
   
@@ -807,49 +805,49 @@ gm_hash_table_destroy_null(GHashTable **h_ptr)
 static GMemVTable gm_vtable;
 
 #define GM_VTABLE_METHOD(method, params) \
-	(gm_vtable.gmvt_ ## method \
-	 ? (gm_vtable.gmvt_ ## method params) \
-	 : (method params))
+	gm_vtable. method \
+	 ? (gm_vtable. method params) \
+	 : (method params)
 
 #undef malloc
-static inline ALWAYS_INLINE gpointer
-gm_malloc(gulong size)
+static inline ALWAYS_INLINE void *
+gm_malloc(ulong size)
 {
 	return GM_VTABLE_METHOD(malloc, (size));
 }
 
 #undef calloc
-static inline ALWAYS_INLINE gpointer
-gm_malloc0(gulong size)
+static inline ALWAYS_INLINE void *
+gm_malloc0(ulong size)
 {
 	return GM_VTABLE_METHOD(calloc, (1, size));
 }
 
 #undef realloc
-static inline ALWAYS_INLINE gpointer
-gm_realloc(gpointer p, gulong size)
+static inline ALWAYS_INLINE void *
+gm_realloc(void *p, ulong size)
 {
 	return GM_VTABLE_METHOD(realloc, (p, size));
 }
 
 #undef free
 static inline ALWAYS_INLINE void
-gm_free(gpointer p)
+gm_free(void *p)
 {
 	return GM_VTABLE_METHOD(free, (p));
 }
 
 #define try_malloc malloc
-static inline ALWAYS_INLINE gpointer
-gm_try_malloc(gulong size)
+static inline ALWAYS_INLINE void *
+gm_try_malloc(ulong size)
 {
 	return GM_VTABLE_METHOD(try_malloc, (size));
 }
 #undef try_malloc
 
 #define try_realloc realloc
-static inline ALWAYS_INLINE gpointer
-gm_try_realloc(gpointer p, gulong size)
+static inline ALWAYS_INLINE void *
+gm_try_realloc(void *p, ulong size)
 {
 	return GM_VTABLE_METHOD(try_realloc, (p, size));
 }
@@ -864,11 +862,11 @@ gm_try_realloc(gpointer p, gulong size)
  ***/
 
 #undef g_malloc
-gpointer
-g_malloc(gulong size)
+void *
+g_malloc(ulong size)
 {
 	if (G_LIKELY(size != 0)) {
-		gpointer p = gm_malloc(size);
+		void *p = gm_malloc(size);
 
 		if (p)
 			return p;
@@ -879,12 +877,12 @@ g_malloc(gulong size)
 }
 
 #undef g_malloc0
-gpointer
-g_malloc0(gulong size)
+void *
+g_malloc0(ulong size)
 {
 
 	if (G_LIKELY(size != 0)) {
-		gpointer p = gm_malloc(size);
+		void *p = gm_malloc(size);
 
 		if (p) {
 			memset(p, 0, size);
@@ -897,10 +895,10 @@ g_malloc0(gulong size)
 }
 
 #undef g_realloc
-gpointer
-g_realloc(gpointer p, gulong size)
+void *
+g_realloc(void *p, ulong size)
 {
-	gpointer n;
+	void *n;
 
 	if (G_UNLIKELY(0 == size)) {
 		gm_free(p);
@@ -918,21 +916,21 @@ g_realloc(gpointer p, gulong size)
 
 #undef g_free
 void
-g_free(gpointer p)
+g_free(void *p)
 {
 	gm_free(p);
 }
 
 #undef g_try_malloc
-gpointer
-g_try_malloc(gulong size)
+void *
+g_try_malloc(ulong size)
 {
 	return size > 0 ? gm_try_malloc(size) : NULL;
 }
 
 #undef g_try_realloc
-gpointer
-g_try_realloc(gpointer p, gulong size)
+void *
+g_try_realloc(void *p, ulong size)
 {
 	return size > 0 ? gm_try_realloc(p, size) : NULL;
 }
@@ -940,10 +938,10 @@ g_try_realloc(gpointer p, gulong size)
 /**
  * Emulates a calloc().
  */
-static gpointer
+static void *
 emulate_calloc(gsize n, gsize m)
 {
-	gpointer p;
+	void *p;
 
 	if (n > 0 && m > 0 && m < ((size_t) -1) / n) {
 		size_t size = n * m;
@@ -966,31 +964,31 @@ emulate_calloc(gsize n, gsize m)
 void
 g_mem_set_vtable(GMemVTable *vtable)
 {
-	gm_vtable.gmvt_malloc = vtable->gmvt_malloc;
-	gm_vtable.gmvt_realloc = vtable->gmvt_realloc;
-	gm_vtable.gmvt_free = vtable->gmvt_free;
+	gm_vtable.malloc = vtable->malloc;
+	gm_vtable.realloc = vtable->realloc;
+	gm_vtable.free = vtable->free;
 
-	gm_vtable.gmvt_calloc = vtable->gmvt_calloc
-		? vtable->gmvt_calloc
+	gm_vtable.calloc = vtable->calloc
+		? vtable->calloc
 		: emulate_calloc;
-	gm_vtable.gmvt_try_malloc = vtable->gmvt_try_malloc
-		? vtable->gmvt_try_malloc
-		: vtable->gmvt_malloc;
-	gm_vtable.gmvt_try_realloc = vtable->gmvt_try_realloc
-		? vtable->gmvt_try_realloc
-		: vtable->gmvt_realloc;
+	gm_vtable.try_malloc = vtable->try_malloc
+		? vtable->try_malloc
+		: vtable->malloc;
+	gm_vtable.try_realloc = vtable->try_realloc
+		? vtable->try_realloc
+		: vtable->realloc;
 }
 
 /**
  * Are we using system's malloc?
  */
-gboolean
+bool
 g_mem_is_system_malloc(void)
 {
-	return NULL == gm_vtable.gmvt_malloc ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+	return NULL == gm_vtable.malloc ||
+		cast_pointer_to_func(gm_vtable.malloc) ==
 			cast_pointer_to_func(real_malloc) ||
-		cast_pointer_to_func(gm_vtable.gmvt_malloc) ==
+		cast_pointer_to_func(gm_vtable.malloc) ==
 			cast_pointer_to_func(malloc);
 }
 #else
@@ -1008,7 +1006,7 @@ g_mem_set_vtable(GMemVTable *vtable)
 /**
  * Are we using system's malloc?
  */
-gboolean
+bool
 g_mem_is_system_malloc(void)
 {
 	return TRUE;		/* Remapping is not possible natively with glib1 */
@@ -1066,15 +1064,13 @@ gm_mem_set_safe_vtable(void)
 	if (g_mem_is_system_malloc())
 		return;
 
-#if GLIB_CHECK_VERSION(2,0,0)
+#undef malloc
+#undef realloc
+#undef free
+
 	vtable.malloc = real_malloc;
 	vtable.realloc = safe_realloc;
 	vtable.free = safe_free;
-#else	/* GLib < 2.0.0 */
-	vtable.gmvt_malloc = real_malloc;
-	vtable.gmvt_realloc = safe_realloc;
-	vtable.gmvt_free = safe_free;
-#endif	/* GLib >= 2.0.0 */
 
 	g_mem_set_vtable(&vtable);
 

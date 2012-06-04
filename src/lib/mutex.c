@@ -33,19 +33,30 @@
 
 #include "common.h"
 
+#define MUTEX_SOURCE
+
 #include "mutex.h"
 #include "atomic.h"
-#include "compat_sleep_ms.h"
 #include "log.h"
+#include "spinlock.h"
 #include "thread.h"
 #include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
 
-#define MUTEX_LOOP		100		/* Loop iterations before sleeping */
-#define MUTEX_DELAY		1		/* Wait 1 ms before looping again */
-#define MUTEX_DEAD		5000	/* # of loops before flagging deadlock */
-#define MUTEX_TIMEOUT	20		/* Crash after 20 seconds */
+static bool mutex_pass_through;
+
+static inline void
+mutex_get_account(const mutex_t *m)
+{
+	thread_lock_got(m, THREAD_LOCK_MUTEX);
+}
+
+static inline void
+mutex_release_account(const mutex_t *m)
+{
+	thread_lock_released(m, THREAD_LOCK_MUTEX);
+}
 
 static inline void
 mutex_check(const volatile struct mutex * const mutex)
@@ -55,75 +66,65 @@ mutex_check(const volatile struct mutex * const mutex)
 }
 
 /**
+ * Enter crash mode: allow all mutexes to be silently released.
+ */
+G_GNUC_COLD void
+mutex_crash_mode(void)
+{
+	mutex_pass_through = TRUE;
+}
+
+/**
  * Warn about possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static NO_INLINE void
-mutex_deadlock(const volatile mutex_t *m, unsigned count)
+static G_GNUC_COLD NO_INLINE void
+mutex_deadlock(const volatile void *obj, unsigned count)
 {
-#ifdef MUTEX_DEBUG
-	s_minilog(G_LOG_LEVEL_WARNING, "mutex %p already held (depth %zu) by %s:%u",
-		(void *) m, m->depth, m->file, m->line);
+	const volatile mutex_t *m = obj;
+
+	mutex_check(m);
+
+#ifdef SPINLOCK_DEBUG
+	s_miniwarn("mutex %p already held (depth %zu) by %s:%u",
+		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 
-	s_minicarp("possible mutex deadlock #%u on %p", count, (void *) m);
+	s_minicarp("possible mutex deadlock #%u on %p", count, obj);
 }
 
 /**
- * Obtain a mutex, spinning first then spleeping.
+ * Abort on deadlock condition.
+ *
+ * Don't inline to provide a suitable breakpoint.
  */
-static void
-mutex_loop(volatile mutex_t *m, int loops)
+static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 {
-	unsigned i;
-	time_t start = 0;
+	const volatile mutex_t *m = obj;
+	static int deadlocked;
+
+	if (deadlocked != 0) {
+		if (1 == deadlocked)
+			thread_lock_deadlock(obj);
+		s_minierror("recursive deadlock on mutex %p (depth %zu)",
+			obj, m->depth);
+	}
+
+	deadlocked++;
+	atomic_mb();
 
 	mutex_check(m);
-	g_assert(loops >= 1);
 
-	for (i = 0; /* empty */; i++) {
-		int j;
-
-		for (j = 0; j < loops; j++) {
-			if G_UNLIKELY(MUTEX_MAGIC != m->magic) {
-				s_error("mutex %p %s whilst waiting, at attempt #%u",
-					(void *) m,
-					MUTEX_DESTROYED == m->magic ? "destroyed" : "corrupted",
-					i);
-			}
-
-			if (atomic_acquire(&m->lock)) {
-#ifdef MUTEX_DEBUG
-				if (i >= MUTEX_DEAD) {
-					s_minilog(G_LOG_LEVEL_INFO,
-						"finally grabbed mutex %p after %u attempts",
-						(void *) m, i);
-				}
-#endif	/* MUTEX_DEBUG */
-				return;
-			}
-		}
-
-		if G_UNLIKELY(i != 0 && 0 == i % MUTEX_DEAD) {
-			mutex_deadlock(m, i / MUTEX_DEAD);
-		}
-
-		if G_UNLIKELY(0 == start)
-			start = tm_time();
-
-		if (delta_time(tm_time_exact(), start) > MUTEX_TIMEOUT) {
-#ifdef MUTEX_DEBUG
-			s_minilog(G_LOG_LEVEL_WARNING, "mutex %p still held "
-				"(depth %zu) by %s:%u",
-				(void *) m, m->depth, m->file, m->line);
+#ifdef SPINLOCK_DEBUG
+	s_miniwarn("mutex %p still held (depth %zu) by %s:%u",
+		obj, m->depth, m->lock.file, m->lock.line);
 #endif
-			s_error("deadlocked on mutex %p (depth %zu, after %u secs)",
-				(void *) m, m->depth, (unsigned) delta_time(tm_time(), start));
-		}
 
-		compat_sleep_ms(MUTEX_DELAY);
-	}
+	thread_lock_deadlock(obj);
+	s_error("deadlocked on mutex %p (depth %zu, after %u secs)",
+		obj, m->depth, elapsed);
 }
 
 /**
@@ -137,26 +138,36 @@ mutex_init(mutex_t *m)
 	m->magic = MUTEX_MAGIC;
 	m->owner = 0;
 	m->depth = 0;
-	m->lock = 0;
-#ifdef MUTEX_DEBUG
-	m->file = NULL;
-	m->line = 0;
-#endif
-	atomic_mb();
+	spinlock_init(&m->lock);	/* Issues the memory barrier */
+}
+
+/**
+ * Is mutex owned by thread?
+ */
+static inline ALWAYS_INLINE bool
+mutex_is_owned_by_fast(const mutex_t *m, const thread_t t)
+{
+	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
+}
+
+/**
+ * Is mutex owned by thread?
+ */
+bool
+mutex_is_owned_by(const mutex_t *m, const thread_t t)
+{
+	mutex_check(m);
+
+	return mutex_is_owned_by_fast(m, t);
 }
 
 /**
  * Is mutex owned?
  */
-gboolean
+bool
 mutex_is_owned(const mutex_t *m)
 {
-	thread_t t;
-
-	mutex_check(m);
-
-	t = thread_current();
-	return m->lock && thread_eq(t, m->owner);
+	return mutex_is_owned_by(m, thread_current());
 }
 
 /**
@@ -174,76 +185,103 @@ mutex_is_owned(const mutex_t *m)
 void
 mutex_destroy(mutex_t *m)
 {
+	bool was_locked;
+
 	mutex_check(m);
 
-	if (atomic_acquire(&m->lock) || mutex_is_owned(m)) {
+	if (spinlock_hidden_try(&m->lock)) {
 		g_assert(MUTEX_MAGIC == m->magic);
+		was_locked = FALSE;
+	} else if (mutex_is_owned(m)) {
+		g_assert(MUTEX_MAGIC == m->magic);
+		was_locked = TRUE;
+	} else {
+		was_locked = FALSE;
 	}
 
 	m->magic = MUTEX_DESTROYED;		/* Now invalid */
 	m->owner = 0;
-	atomic_mb();
+	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
+
+	if (was_locked)
+		mutex_release_account(m);
 }
 
 /**
  * Grab a mutex.
+ *
+ * @param m			the mutex we're attempting to grab
+ * @param hidden	when TRUE, do not account for the mutex
  */
 void
-mutex_grab(mutex_t *m)
+mutex_grab(mutex_t *m, bool hidden)
 {
 	mutex_check(m);
+	thread_t t = thread_current();
 
-	if (atomic_acquire(&m->lock)) {
-		thread_t t = thread_current();
+	/*
+	 * We dispense with memory barriers after getting the spinlock because
+	 * the atomic test-and-set instruction should act as an acquire barrier,
+	 * meaning that anything we write after the lock cannot be moved before
+	 * by the memory logic.
+	 *
+	 * We check for a recursive grabbing of the mutex first because this is
+	 * a cheap test to perform, then we attempt the atomic operations to
+	 * actually grab it.
+	 */
+
+	if (mutex_is_owned_by_fast(m, t)) {
+		m->depth++;
+	} else if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned(m)) {
-		m->depth++;
 	} else {
-		thread_t t = thread_current();
-		mutex_loop(m, MUTEX_LOOP);
+		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,
+			mutex_deadlock, mutex_deadlocked);
 		thread_set(m->owner, t);
 		m->depth = 1;
 	}
-	atomic_mb();
+
+	if G_LIKELY(!hidden)
+		mutex_get_account(m);
 }
 
 /**
- * Grab mutex only if available.
+ * Grab mutex only if available, and account for it.
  *
  * @return whether we obtained the mutex.
  */
-gboolean
+bool
 mutex_grab_try(mutex_t *m)
 {
 	mutex_check(m);
+	thread_t t = thread_current();
 
-	if (atomic_acquire(&m->lock)) {
-		thread_t t = thread_current();
+	if (mutex_is_owned_by_fast(m, t)) {
+		m->depth++;
+	} else if (spinlock_hidden_try(&m->lock)) {
 		thread_set(m->owner, t);
 		m->depth = 1;
-	} else if (mutex_is_owned(m)) {
-		m->depth++;
 	} else {
 		return FALSE;
 	}
 
-	atomic_mb();
+	mutex_get_account(m);
 	return TRUE;
 }
 
-#ifdef MUTEX_DEBUG
+#ifdef SPINLOCK_DEBUG
 /**
  * Grab a mutex from said location.
  */
 void
-mutex_grab_from(mutex_t *m, const char *file, unsigned line)
+mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line)
 {
-	mutex_grab(m);
+	mutex_grab(m, hidden);
 
 	if (1 == m->depth) {
-		m->file = file;
-		m->line = line;
+		m->lock.file = file;
+		m->lock.line = line;
 	}
 }
 
@@ -252,49 +290,71 @@ mutex_grab_from(mutex_t *m, const char *file, unsigned line)
  *
  * @return whether we obtained the mutex.
  */
-gboolean
+bool
 mutex_grab_try_from(mutex_t *m, const char *file, unsigned line)
 {
 	if (mutex_grab_try(m)) {
 		if (1 == m->depth) {
-			m->file = file;
-			m->line = line;
+			m->lock.file = file;
+			m->lock.line = line;
 		}
 		return TRUE;
 	}
 
 	return FALSE;
 }
-#endif	/* MUTEX_DEBUG */
+#endif	/* SPINLOCK_DEBUG */
 
 /**
  * Release a mutex, which must be owned currently.
+ *
+ * The ``hidden'' parameter MUST be the same as the one used when the mutex
+ * was grabbed, although this is not something we track and enforce currently.
+ * Since hidden mutex grabbing should be the exception, this is not much of
+ * a problem right now.
  */
 void
-mutex_release(mutex_t *m)
+mutex_ungrab(mutex_t *m, bool hidden)
 {
 	mutex_check(m);
-	g_assert(mutex_is_owned(m));
+
+	/*
+	 * We don't immediately assert that the mutex is owned to not penalize
+	 * the regular path, and to cleanly cut through the assertion when we're
+	 * in crash mode.
+	 */
+
+	if G_UNLIKELY(!mutex_is_owned(m)) {	/* Precondition */
+		if (mutex_pass_through)
+			return;
+		/* OK, re-assert so that we get the precondition failure */
+		g_assert_log(mutex_is_owned(m),
+			"thread #%u attempts to release unowned mutex %p"
+			" (depth=%zu, owner=thread #%d)",
+			thread_small_id(), m, m->depth, thread_stid_from_thread(m->owner));
+	}
 
 	if (0 == --m->depth) {
 		m->owner = 0;
-		m->lock = 0;
+		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
-	atomic_mb();
+
+	if G_LIKELY(!hidden)
+		mutex_release_account(m);
 }
 
 /**
  * Convenience routine for locks that are part of a "const" structure.
  */
 void
-mutex_release_const(const mutex_t *m)
+mutex_unlock_const(const mutex_t *m)
 {
 	/*
 	 * A lock is not part of the abstract data type, so it's OK to
 	 * de-constify it now: no mutex is really read-only.
 	 */
 
-	mutex_release(deconstify_gpointer(m));
+	mutex_ungrab(deconstify_pointer(m), FALSE);
 }
 
 /**
@@ -307,7 +367,7 @@ mutex_held_depth(const mutex_t *m)
 {
 	mutex_check(m);
 
-	return 0 == m->lock ? 0 : m->depth;
+	return spinlock_is_held(&m->lock) ? m->depth : 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

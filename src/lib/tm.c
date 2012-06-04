@@ -36,12 +36,28 @@
 #ifdef I_SYS_TIMES
 #include <sys/times.h>
 #endif
+#ifdef I_SYS_SELECT
+#include <sys/select.h>		/* For "struct timeval" on some systems */
+#endif
 
 #include "tm.h"
 
 #include "override.h"		/* Must be the last header included */
 
 tm_t tm_cached_now;			/* Currently cached time */
+
+/**
+ * Get current time for the system, filling the supplied tm_t structure.
+ */
+static void
+tm_current_time(tm_t *tm)
+{
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	tm->tv_sec = tv.tv_sec;
+	tm->tv_usec = tv.tv_usec;
+}
 
 /**
  * Convert floating point time description into a struct timeval by filling
@@ -128,7 +144,8 @@ tm_now_exact(tm_t *tm)
 {
 	const tm_t past = tm_cached_now;
 	
-	g_get_current_time(&tm_cached_now);
+	tm_current_time(&tm_cached_now);
+
 	if (tm_cached_now.tv_sec < past.tv_sec) {
 		tm_cached_now = past;
 	} else if (tm_cached_now.tv_sec == past.tv_sec) {
@@ -152,8 +169,8 @@ tm_time_exact(void)
 /**
  * Hash a tm_t time structure.
  */
-guint
-tm_hash(gconstpointer key)
+uint
+tm_hash(const void *key)
 {
 	const tm_t *tm = key;
 
@@ -164,7 +181,7 @@ tm_hash(gconstpointer key)
  * Test two tm_t for equality.
  */
 int
-tm_equal(gconstpointer a, gconstpointer b)
+tm_equal(const void *a, const void *b)
 {
 	const tm_t *ta = a, *tb = b;
 
@@ -219,7 +236,7 @@ clock_hz(void)
 double
 tm_cputime(double *user, double *sys)
 {
-	static gboolean getrusage_failed;
+	static bool getrusage_failed;
 	double u;
 	double s;
 
@@ -254,7 +271,7 @@ tm_cputime(double *user, double *sys)
 		u = (double) t.tms_utime / (double) clock_hz();
 		s = (double) t.tms_stime / (double) clock_hz();
 #else
-		static gboolean warned = FALSE;
+		static bool warned = FALSE;
 
 		if (!warned) {
 			g_warning("getrusage() is unusable and times() is missing");

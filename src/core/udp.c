@@ -68,13 +68,13 @@ static aging_table_t *udp_aging_pings;
  * @return NULL if not valid, the UDP node that got the message otherwise
  */
 static gnutella_node_t *
-udp_is_valid_gnet(struct gnutella_socket *s, gboolean dht, gboolean truncated)
+udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 {
 	struct gnutella_node *n;
 	gnutella_header_t *head;
 	const char *msg;
 	const void *payload;
-	guint16 size;				/**< Payload size, from the Gnutella message */
+	uint16 size;				/**< Payload size, from the Gnutella message */
 
 	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
 		node_udp_get_addr_port(s->addr, s->port);
@@ -99,7 +99,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, gboolean dht, gboolean truncated)
 	 * Note that packet could be garbage at this point.
 	 */
 
-	head = cast_to_gpointer(s->buf);
+	head = cast_to_pointer(s->buf);
 	memcpy(n->header, head, sizeof n->header);
 	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
 	payload = ptr_add_offset(s->buf, GTA_HEADER_SIZE);
@@ -207,11 +207,11 @@ log:
  * socket buffer.
  */
 void
-udp_received(struct gnutella_socket *s, gboolean truncated)
+udp_received(struct gnutella_socket *s, bool truncated)
 {
 	gnutella_node_t *n;
-	gboolean bogus = FALSE;
-	gboolean dht = FALSE;
+	bool bogus = FALSE;
+	bool dht = FALSE;
 
 	/*
 	 * This must be regular Gnutella / DHT traffic.
@@ -265,7 +265,7 @@ udp_received(struct gnutella_socket *s, gboolean truncated)
  * forming a valid Gnutella message.
  */
 void
-udp_send_msg(const gnutella_node_t *n, gconstpointer buf, int len)
+udp_send_msg(const gnutella_node_t *n, const void *buf, int len)
 {
 	g_assert(NODE_IS_UDP(n));
 	g_return_if_fail(n->outq);
@@ -318,7 +318,7 @@ udp_dht_send_mb(const gnutella_node_t *n, pmsg_t *mb)
  * specified MUID.
  */
 void
-udp_connect_back(const host_addr_t addr, guint16 port, const struct guid *muid)
+udp_connect_back(const host_addr_t addr, uint16 port, const struct guid *muid)
 {
 	if (udp_send_ping(muid, addr, port, FALSE)) {
 		if (GNET_PROPERTY(udp_debug) > 19)
@@ -365,7 +365,7 @@ udp_ping_free(struct udp_ping *ping)
  * @param forced	TRUE if we're shutdowning and want to cleanup
  */
 static void
-udp_ping_expire(gboolean forced)
+udp_ping_expire(bool forced)
 {
 	time_t now;
 
@@ -402,7 +402,7 @@ udp_ping_expire(gboolean forced)
  * registered pings.
  */
 static void
-udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
+udp_ping_timer(cqueue_t *cq, void *unused_udata)
 {
 	(void) unused_udata;
 
@@ -414,12 +414,12 @@ udp_ping_timer(cqueue_t *cq, gpointer unused_udata)
 	udp_ping_expire(FALSE);
 }
 
-static gboolean
+static bool
 udp_ping_register(const struct guid *muid,
-	udp_ping_cb_t cb, void *data, gboolean multiple)
+	udp_ping_cb_t cb, void *data, bool multiple)
 {
 	struct udp_ping *ping;
-	guint length;
+	uint length;
 
 	g_assert(muid);
 	g_return_val_if_fail(udp_pings, FALSE);
@@ -434,7 +434,7 @@ udp_ping_register(const struct guid *muid,
 	if (length >= UDP_PING_MAX) {
 		return FALSE;
 	} else if (length > (UDP_PING_MAX / 4) * 3) {
-		if ((random_u32() % UDP_PING_MAX) < length)
+		if (random_value(UDP_PING_MAX - 1) < length)
 			return FALSE;
 	}
 
@@ -503,11 +503,11 @@ udp_ping_is_registered(const struct gnutella_node *n)
  *
  * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
-static gboolean
+static bool
 udp_send_ping_with_callback(
-	gnutella_msg_init_t *m, guint32 size,
-	const host_addr_t addr, guint16 port,
-	udp_ping_cb_t cb, void *arg, gboolean multiple)
+	gnutella_msg_init_t *m, uint32 size,
+	const host_addr_t addr, uint16 port,
+	udp_ping_cb_t cb, void *arg, bool multiple)
 {
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
@@ -532,12 +532,12 @@ udp_send_ping_with_callback(
  *
  * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
-gboolean
-udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
-	gboolean uhc_ping)
+bool
+udp_send_ping(const struct guid *muid, const host_addr_t addr, uint16 port,
+	bool uhc_ping)
 {
 	gnutella_msg_init_t *m;
-	guint32 size;
+	uint32 size;
 
 	/*
 	 * Don't send too frequent pings: they may throttle us anyway.
@@ -569,11 +569,11 @@ udp_send_ping(const struct guid *muid, const host_addr_t addr, guint16 port,
  *
  * @return TRUE if we sent the ping, FALSE it we throttled it.
  */
-gboolean
+bool
 udp_send_ping_callback(
-	gnutella_msg_init_t *m, guint32 size,
-	const host_addr_t addr, guint16 port,
-	udp_ping_cb_t cb, void *arg, gboolean multiple)
+	gnutella_msg_init_t *m, uint32 size,
+	const host_addr_t addr, uint16 port,
+	udp_ping_cb_t cb, void *arg, bool multiple)
 {
 	g_assert(cb != NULL);
 	g_assert(GTA_MSG_INIT == gnutella_header_get_function(m));
@@ -599,7 +599,7 @@ udp_init(void)
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	udp_pings = hash_list_new(guid_hash, guid_eq);
-	udp_ping_timer(callout_queue, NULL);
+	udp_ping_timer(cq_main(), NULL);
 }
 
 /**

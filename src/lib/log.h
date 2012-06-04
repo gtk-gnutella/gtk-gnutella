@@ -52,9 +52,6 @@ struct logstat {
 	unsigned need_reopen:1;	/**< Logfile pending a reopen */
 };
 
-struct logthread;
-typedef struct logthread logthread_t;
-
 struct logagent;
 typedef struct logagent logagent_t;
 
@@ -64,7 +61,6 @@ typedef struct logagent logagent_t;
 
 struct str;
 
-logthread_t *log_thread_alloc(void);
 const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
 void log_abort(void) G_GNUC_NORETURN;
 
@@ -72,18 +68,18 @@ void log_init(void);
 void log_crashing(struct str *str);
 void log_atoms_inited(void);
 void log_close(void);
-void log_set_disabled(enum log_file which, gboolean disabled);
+void log_set_disabled(enum log_file which, bool disabled);
 void log_set(enum log_file which, const char *path);
-gboolean log_reopen(enum log_file which);
-gboolean log_rename(enum log_file which, const char *newname);
-gboolean log_reopen_if_managed(enum log_file which);
-gboolean log_reopen_all(gboolean daemonized);
+bool log_reopen(enum log_file which);
+bool log_rename(enum log_file which, const char *newname);
+bool log_reopen_if_managed(enum log_file which);
+bool log_reopen_all(bool daemonized);
 void log_stat(enum log_file which, struct logstat *buf);
-gboolean log_is_managed(enum log_file which);
-gboolean log_is_disabled(enum log_file which);
-gboolean log_stdout_is_distinct(void);
-gboolean log_printable(enum log_file which);
-gboolean log_file_printable(const FILE *out);
+bool log_is_managed(enum log_file which);
+bool log_is_disabled(enum log_file which);
+bool log_stdout_is_distinct(void);
+bool log_printable(enum log_file which);
+bool log_file_printable(const FILE *out);
 void log_set_duplicate(enum log_file which, int dupfd);
 void log_force_fd(enum log_file which, int fd);
 int log_get_fd(enum log_file which);
@@ -93,7 +89,7 @@ int log_get_fd(enum log_file which);
  */
 
 void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
 void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
@@ -102,29 +98,39 @@ void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_fatal_exit(int status, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void s_error_from(const char *file, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
-void s_minilogv(GLogLevelFlags, gboolean copy, const char *fmt, va_list args);
+void s_fatal_exit(int status, const char *format, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+void s_error_from(const char *file, const char *fmt, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args);
+void s_minierror(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+void s_minicrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_miniinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /*
  * Thread-safe logging interface.
  */
 
-void t_critical(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_carp(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_carp_once(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_warning(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_message(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_info(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_debug(logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void t_error_from(const char *file,
-	logthread_t *lt, const char *format, ...) G_GNUC_PRINTF(3, 4);
+void t_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_error(const char *format, ...)
+	G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
+void t_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void t_error_from(const char *file, const char *format, ...)
+	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
 
 /*
  * Polymorphic logging interface.
  */
 
+logagent_t *log_agent_stdout_get(void);
 logagent_t *log_agent_stderr_get(void);
 logagent_t *log_agent_string_make(size_t size, const char *prefix);
 void log_agent_string_reset(logagent_t *la);
