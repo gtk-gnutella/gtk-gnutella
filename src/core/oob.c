@@ -157,7 +157,19 @@ results_make(const struct guid *muid, GSList *files, int count,
 	static const struct oob_results zero_results;
 	struct oob_results *r;
 
-	g_return_val_if_fail(!hikset_contains(results_by_muid, muid), NULL);
+	/*
+	 * Check for duplicate queries bearing the same MUID.
+	 *
+	 * We used to soft-assert here, but since this condition actually triggers
+	 * we explicitly check for it.
+	 */
+
+	if (hikset_contains(results_by_muid, muid))
+		return NULL;
+
+	/*
+	 * First time we're seeing this query (normal case).
+	 */
 
 	WALLOC(r);
 	*r = zero_results;
@@ -177,7 +189,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
 	if (GNET_PROPERTY(query_debug) > 1)
-		g_debug("results_make: num_oob_records=%d", num_oob_records);
+		g_debug("%s(): num_oob_records=%d", G_STRFUNC, num_oob_records);
 
 	return r;
 }
@@ -647,15 +659,20 @@ oob_got_results(struct gnutella_node *n, GSList *files,
 {
 	struct oob_results *r;
 	gnet_host_t to;
+	const guid_t *muid;
 
 	g_assert(count > 0);
 	g_assert(files != NULL);
 
 	gnet_host_set(&to, addr, port);
-	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to,
-			secure, flags);
-	if (r) {
+	muid = gnutella_header_get_muid(&n->header);
+	r = results_make(muid, files, count, &to, secure, flags);
+	if (r != NULL) {
 		oob_send_reply_ind(r);
+	} else {
+		g_warning("%s(): ignoring duplicate %sOOB query %s from %s via %s",
+			G_STRFUNC, secure ? "secure " : "", guid_to_string(muid),
+			gnet_host_to_string(&to), node_infostr(n));
 	}
 }
 
