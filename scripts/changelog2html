@@ -1,0 +1,190 @@
+#! /usr/bin/env perl
+
+#
+# Copyright (c) 2012 Raphael Manfredi
+#
+#----------------------------------------------------------------------
+# This file is part of gtk-gnutella.
+#
+#  gtk-gnutella is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  gtk-gnutella is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with gtk-gnutella; if not, write to the Free Software
+#  Foundation, Inc.:
+#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#----------------------------------------------------------------------
+
+#
+# Helper script to generate the HTML news for the website based on
+# the ChangeLog entry, using meta-knowledge about the formatting
+# convention to automate most of the conversion process.
+#
+
+use Getopt::Std;
+getopts('hv:');
+
+(my $me = $0) =~ s|.*/(.*)|$1|;
+
+usage() if $opt_h;
+
+sub usage {
+	print STDERR <<EOM;
+Usage: $me [-h] [-v version] ChangeLog
+  -h : print this help summary
+  -v : generate entry for specified version (default is latest one found)
+EOM
+	exit 1;
+}
+
+my ($log) = @ARGV;
+usage() unless defined $log;
+
+my $BUGURL = "https://sourceforge.net/tracker/" .
+	"?func=detail&aid=%u&group_id=4467&atid=104467";
+my $MAXLEN = 78;
+
+# Format line + XML tag to fit in 80 columns.
+# If tag is missing, only formats the text.
+# When present, tag is the name (e.g. "li") without any XML markup.
+#
+# The routine also performs some of the low level HTML conversions, like
+# escaping the problematic characters, highlighting routine names and bugs.
+#
+# Returns the formatted text with added HTML markup.
+sub format {
+	my ($text, $tag) = @_;
+	my ($xml_start, $xml_end);
+	$text =~ s/\n/ /gm;
+	$text =~ tr/ / /s;
+	$text =~ s/\s+$//;
+	# HTML escaping
+	$text =~ s/&/&amp;/g;
+	$text =~ s/</&lt;/g;
+	$text =~ s/>/&gt;/g;
+	# Routine highlight
+	$text =~ s|(\w+\(\))|<tt>$1</tt>|g;
+	$xml_start = "<$tag>" if $tag ne '';
+	$xml_end = "</$tag>" if $tag ne '';
+	my $xml_len = length($xml_start) + length($xml_end);
+	my $result = '';
+	if (length($text) + $xml_len <= $MAXLEN) {
+		$result = $xml_start . $text . $xml_end;	# Whole text fits
+	} else {
+		my $fmt = $xml_start . $text . $xml_end;
+		while (length $fmt) {
+			$fmt =~ s/^\s+//;
+			my $tmp = substr($fmt, 0, $MAXLEN);
+			$tmp =~ s/^(.*) .*/$1/
+				if length($fmt) + length($xml_start) > $MAXLEN;
+			$result .= "\n" if $result ne '';
+			$result .= ' ' x length($xml_start) if $result ne '';
+			substr($fmt, 0, length $tmp) = '';
+			$result .= $tmp;
+		}
+		$result .= $fmt;
+	}
+	# Bug highlight, after justification for now to avoid wrong splitting
+	$result =~ s|(bug\s*#)(\d+)|sprintf("$1<a href=\"$BUGURL\">$2</a>", $2)|ige;
+	return $result;
+}
+
+# Flush buffer as formatted text and clear it.
+# The first item in the buffer is the XML tag.
+sub buffer_flush {
+	my ($aref) = @_;
+	return unless @$aref;
+	my $tag = shift @$aref;
+	print &format(join(" ", @$aref), $tag);
+	print "\n";
+	@$aref = ();
+}
+
+open(LOG, $log) || die "$me: can't open $log: $!\n";
+
+#
+# Find proper version (first one found if no -v given)
+#
+
+my $version = '';
+
+while (<LOG>) {
+	next unless /^# v\s*(\d\S+)/;
+	my $ver = $1;
+	if ($opt_v eq '' || $opt_v eq $ver) {
+		$version = $_;
+		last;
+	}
+}
+
+die "$me: could not find version '$opt_h' in $log\n" if $version eq '';
+
+my @months = qw(January February March April May June July August
+	September October November December);
+
+my ($vnum, $vdate) = $version =~ /v\s*(\S+)\s+(\S+)/;
+my ($year, $month, $date) = map { $_ + 0 } $vdate =~ /(\d+)-(\d+)-(\d+)/;
+
+my $mname = $months[$month - 1];
+my @buffer;
+my $inlist = 0;
+
+print "<h4>$date $mname $year, Version $vnum Released</h4>\n";
+
+while (<LOG>) {
+	last if /^#/;
+	if (/^\s*$/) {
+		# Blank line, flush what we have so far
+		buffer_flush(\@buffer);
+		print;						# Keep blank line in output for readability
+		next;
+	}
+	chomp;
+	if (/^\w/ && s/(\w+):\s*$/$1/) {
+		# Section header
+		buffer_flush(\@buffer);
+		if ($inlist) {
+			print "</ul>\n";
+			$inlist = 0;
+		}
+		print "<h5>$_</h5>\n";
+		next;
+	}
+	if (/^\-\s+(.*)/) {
+		# Start of item in ChangeLog
+		my $text = $1;
+		buffer_flush(\@buffer);
+		if (!$inlist) {
+			$inlist = 1;
+			print "<ul>\n";
+		}
+		push(@buffer, 'li');		# First item is XML tag
+		push(@buffer, $text);
+	} elsif (/^\s+(.+)/) {
+		# Continuation line for ChangeLog item
+		push(@buffer, $1);
+	} else {
+		# Free text, formatted as paragraph
+		if ($inlist) {
+			print "</ul>\n";
+			$inlist = 0;
+		}
+		push(@buffer, 'p') unless @buffer;		# First item is XML tag
+		push(@buffer, $_);
+	}
+}
+
+buffer_flush(\@buffer);
+if ($inlist) {
+	print "</ul>\n";
+	$inlist = 0;
+}
+print "<!-- end of release $vnum -->\n";
+
