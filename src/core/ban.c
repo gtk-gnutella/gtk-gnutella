@@ -603,6 +603,16 @@ ban_max_recompute(void)
 			max, max == 1 ? "" : "s");
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
+
+	/*
+	 * Close file descriptors kept opened if we now have more banned slots
+	 * than the new maximum allowed.
+	 */
+
+	while (GNET_PROPERTY(banned_count) > max) {
+		if (!reclaim_fd())
+			break;
+	}
 }
 
 static void
