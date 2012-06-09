@@ -3438,6 +3438,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 * Regardless of the amount of simultaneous upload slots a host can get,
 	 * a given PARQ ID can only be used once.
 	 */
+
 	if (puq->u != NULL && puq->u != u) {
 		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
@@ -4098,14 +4099,6 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	puq = parq_upload_find(u);
 
 	/*
-	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
-	 * attempting to connect to the remote server.
-	 */
-
-	if (puq && u->status == GTA_UL_QUEUE)
-		parq_upload_send_queue_failed(puq);
-
-	/*
 	 * If we can't find the PARQ entry, this is probably a cloned upload.
 	 *
 	 * If the upload mismatches, then it's probably an error like "Already
@@ -4115,6 +4108,14 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 	if (puq == NULL || puq->u != u)
 		return FALSE;
+
+	/*
+	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
+	 * attempting to connect to the remote server.
+	 */
+
+	if (GTA_UL_QUEUE == u->status)
+		parq_upload_send_queue_failed(puq);
 
 	if (puq->active_queued)
 		parq_upload_clear_actively_queued(puq);
@@ -4145,6 +4146,13 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	else if (puq->flags & PARQ_UL_QUEUE_SENT)
 		puq->queue_refused = 0;
 
+	/*
+	 * Clear QUEUE-related flags, regardless of the outcome on remote servent.
+	 */
+
+	if ((puq->flags & PARQ_UL_QUEUE) && !hash_list_contains(ul_parq_queue, puq))
+		puq->flags &= ~PARQ_UL_QUEUE;
+
 	puq->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	/*
@@ -4154,6 +4162,7 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	 *
 	 * XXX What's this encapsulation breaking? Needed? --RAM, 2007-08-17
 	 */
+
 	if (
 		u->status == GTA_UL_QUEUED &&
 		delta_time(u->last_update, now) > 0
