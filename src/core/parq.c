@@ -2304,26 +2304,30 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	puq->send_next_queue = parq_upload_next_queue(now, puq);
 	puq->by_addr->last_queue_sent = now;
 
-	if (GNET_PROPERTY(parq_debug))
+	if (GNET_PROPERTY(parq_debug)) {
 		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'",
-			  puq->queue->num,
-			  ul_parqs_cnt,
-			  puq->position,
-			  puq->relative_position,
-			  puq->queue->by_position_length,
-			  puq->queue_sent,
-			  host_addr_port_to_string(puq->addr, puq->port),
-			  puq->name);
+			"Sending QUEUE #%d to %s for ID=%s: '%s'",
+			puq->queue->num,
+			ul_parqs_cnt,
+			puq->position,
+			puq->relative_position,
+			puq->queue->by_position_length,
+			puq->queue_sent,
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id),
+			puq->name);
+	}
 
 	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
 
 	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, flags);
 
 	if (!s) {
-		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
+		g_warning("[PARQ UL] could not send QUEUE #%d to %s ID=%s "
+			"(can't connect)",
 			puq->queue_sent,
-			host_addr_port_to_string(puq->addr, puq->port));
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id));
 		puq->flags &= ~PARQ_UL_QUEUE;
 		return;
 	}
@@ -2360,7 +2364,9 @@ parq_upload_send_queue_failed(struct parq_ul_queued *puq)
 	puq->by_addr->last_queue_failure = tm_time();
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
-		g_debug("PARQ UL: QUEUE callback not sent: could not connect to %s",
+		g_debug("PARQ UL: QUEUE callback not sent, ID=%s: "
+			"could not connect to %s",
+			guid_hex_str(&puq->id),
 			host_addr_to_string(puq->by_addr->addr));
 	}
 }
@@ -2544,7 +2550,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 		) {
 			if (GNET_PROPERTY(parq_debug) > 3)
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-					"Timeout: %s %s '%s'",
+					"Timeout: ID=%s %s '%s'",
 					puq->queue->num,
 					ul_parqs_cnt,
 					puq->position,
