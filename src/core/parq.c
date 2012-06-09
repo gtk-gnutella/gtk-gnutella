@@ -4223,12 +4223,24 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 			parq_ul_queued_check(puq_next);
 
-			if (!puq_next->has_slot) {
-				g_assert(puq_next->queue->active <= 1);
-				if (!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
-					parq_upload_register_send_queue(puq_next);
-				break;
-			}
+			if (puq_next->has_slot)
+				continue;
+
+			/*
+			 * Reach following entry in the waiting queue that has no uploading
+			 * slot.  If it is actively queued already, then we just have to
+			 * wait for the planned retry.  Otherwise, if we can send a QUEUE
+			 * and there is none pending, let the host know that it's next
+			 * in the line.
+			 */
+
+			g_assert(puq_next->queue->active <= 1);
+			if (
+				!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
+				!puq_next->active_queued
+			)
+				parq_upload_register_send_queue(puq_next);
+			break;
 		}
 
 		hash_list_iter_release(&iter);
