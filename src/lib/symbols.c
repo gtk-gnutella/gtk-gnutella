@@ -778,8 +778,8 @@ symbols_check_consistency(symbols_t *st)
 	 * find the proper symbols.
 	 */
 
-	if (offset != 0 && mismatches != 0)
-		s_warning("BUG in %s()", G_STRFUNC);
+	g_soft_assert_log(0 == offset || 0 == mismatches,
+		"offset=%zu, mismatches=%zu", offset, mismatches);
 
 done:
 	htable_free_null(&sym_pc);
