@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "search.h"
+#include "ban.h"
 #include "bogons.h"
 #include "ctl.h"
 #include "dh.h"
@@ -7463,10 +7464,17 @@ drop:
 /**
  * Searches requests (from others nodes)
  * Basic matching. The search request is made lowercase and
- * is matched to the filenames in the LL.
+ * is matched to the filenames in the library.
  *
  * If `qhv' is not NULL, it is filled with hashes of URN or query words,
  * so that we may later properly route the query among the leaf nodes.
+ *
+ * This routine must be called after search_request_preprocess() to actually
+ * perform the querying based on the information gathered into ``sri''.
+ *
+ * @param n			the node from which the query comes from (relay)
+ * @param sri		the information gathered during the pre-processing stage
+ * @param qhv		query hash vector (can be NULL) to fill for later routing
  */
 void
 search_request(struct gnutella_node *n,
@@ -7576,6 +7584,32 @@ search_request(struct gnutella_node *n,
 			}
 			goto finish;
 		}
+	}
+
+	/*
+	 * Before handling an OOB query, make sure the remote host is actually
+	 * claiming its hits on a regular basis.
+	 *
+	 * FIXME:
+	 * Note that banning is at the IP address level, not at the IP:port level
+	 * so if several servents run under the same IP, all will be penalized if
+	 * one behaves badly.  For now this is acceptable -- RAM, 2012-06-10
+	 *
+	 * When we ignore a query, we still relay it to neighbours so that we do
+	 * not penalize the network unduly should our ignoring logic be too
+	 * aggresive.
+	 */
+
+	if (oob && ban_is_banned(BAN_CAT_OOB_CLAIM, sri->addr)) {
+		if (GNET_PROPERTY(query_debug) > 2) {
+			g_debug("QUERY OOB %s%s \"%s\" ignored: host %s not claiming hits",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				sri->whats_new ? WHATS_NEW : safe_search,
+				host_addr_to_string(sri->addr));
+		}
+		gnet_stats_count_general(GNR_OOB_QUERIES_IGNORED, 1);
+		goto finish;
 	}
 
 	/*

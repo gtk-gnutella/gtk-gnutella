@@ -34,16 +34,17 @@
 #include "common.h"
 
 #include "oob.h"
-#include "hosts.h"
-#include "nodes.h"
-#include "share.h"
-#include "guid.h"
-#include "mq.h"
-#include "mq_udp.h"
-#include "vmsg.h"
-#include "qhit.h"
+#include "ban.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
+#include "guid.h"
+#include "hosts.h"
+#include "mq.h"
+#include "mq_udp.h"
+#include "nodes.h"
+#include "qhit.h"
+#include "share.h"
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -240,7 +241,8 @@ results_free_remove(struct oob_results *r)
 }
 
 /**
- * Callout queue callback to free the results.
+ * Callout queue callback to free the results when the time allocated for the
+ * querying party to claim all the results has expired.
  */
 static void
 results_destroy(cqueue_t *unused_cq, void *obj)
@@ -264,22 +266,42 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 }
 
 /**
- * Callout queue callback to free the results.
+ * Callout queue callback to free the results when our initial notification
+ * was not acknowledged with claims.
  */
 static void
 results_timeout(cqueue_t *unused_cq, void *obj)
 {
 	struct oob_results *r = obj;
+	host_addr_t addr;
 
 	(void) unused_cq;
 	oob_results_check(r);
 
-	if (GNET_PROPERTY(query_debug))
+	addr = gnet_host_get_addr(&r->dest);
+
+	if (GNET_PROPERTY(query_debug)) {
 		g_debug("OOB query %s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
+	}
 
 	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
+	
+	/*
+	 * Record an "event" that the OOB results went unclaimed.
+	 *
+	 * After too many unclaimed results, the IP address will be banned
+	 * for OOB query processing.
+	 */
+
+	if (BAN_OK != ban_allow(BAN_CAT_OOB_CLAIM, addr)) {
+		if (GNET_PROPERTY(query_debug)) {
+			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
+			g_debug("OOB host %s will be banned for the next %d second%s",
+				host_addr_to_string(addr), delay, 1 == delay ? "" : "s");
+		}
+	}
 
 	r->ev_timeout = NULL;		/* The timer which just triggered */
 	r->refcount--;

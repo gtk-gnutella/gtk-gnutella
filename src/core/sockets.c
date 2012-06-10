@@ -1650,7 +1650,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Check for banning.
 	 */
 
-	switch (ban_allow(s->addr)) {
+	switch (ban_allow(BAN_CAT_SOCKET, s->addr)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
@@ -1663,7 +1663,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
             if (GNET_PROPERTY(socket_debug)) {
                 g_debug("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
-					short_time(ban_delay(s->addr)), msg);
+					short_time(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
             }
 
 			if (is_strprefix(first, GNUTELLA_HELLO)) {
@@ -1672,7 +1672,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
-					GUINT_TO_POINTER(ban_delay(s->addr)));
+					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
 				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
 					"%s", msg);
 			}
@@ -1681,9 +1681,9 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
-				short_time_ascii(ban_delay(s->addr)));
+				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
 		else {
-			int delay = ban_delay(s->addr);
+			int delay = ban_delay(BAN_CAT_SOCKET, s->addr);
 			http_extra_desc_t hev;
 
 			http_extra_callback_set(&hev, http_retry_after_add,

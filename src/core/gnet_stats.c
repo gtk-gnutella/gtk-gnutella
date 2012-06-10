@@ -143,6 +143,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"oob_proxied_query_hits",
 		"oob_queries",
 		"oob_queries_stripped",
+		"oob_queries_ignored",
 		"query_oob_proxied_dups",
 		"oob_hits_for_proxied_queries",
 		"oob_hits_with_alien_ip",

@@ -38,6 +38,8 @@
 #include <netdb.h>
 #endif
 
+#include "settings.h"
+#include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
@@ -50,7 +52,6 @@
 #include "pdht.h"
 #include "routing.h"			/* For gnet_reset_guid() */
 #include "search.h"
-#include "settings.h"
 #include "share.h"
 #include "sockets.h"
 #include "tx.h"					/* For tx_debug_set_addrs() */
@@ -2052,6 +2053,15 @@ node_sendqueue_size_changed(property_t unused_prop)
 }
 
 static bool
+ban_parameter_changed(property_t unused_prop)
+{
+	(void) unused_prop;
+
+	ban_max_recompute();
+	return FALSE;
+}
+
+static bool
 scan_extensions_changed(property_t prop)
 {
     char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -2745,10 +2755,20 @@ file_descriptor_x_changed(property_t prop)
 typedef struct prop_map {
     property_t prop;            /**< property handle */
     prop_changed_listener_t cb; /**< callback function */
-    bool init;              /**< init widget with current value */
+    bool init;  	            /**< init widget with current value */
 } prop_map_t;
 
 static prop_map_t property_map[] = {
+    {
+        PROP_BAN_RATIO_FDS,
+        ban_parameter_changed,
+        FALSE
+    },
+    {
+        PROP_BAN_MAX_FDS,
+        ban_parameter_changed,
+        FALSE
+    },
     {
         PROP_NODE_SENDQUEUE_SIZE,
         node_sendqueue_size_changed,
