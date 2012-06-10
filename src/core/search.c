@@ -7608,6 +7608,7 @@ search_request(struct gnutella_node *n,
 				sri->whats_new ? WHATS_NEW : safe_search,
 				host_addr_to_string(sri->addr));
 		}
+		gnet_stats_count_general(GNR_OOB_QUERIES_IGNORED, 1);
 		goto finish;
 	}
 

@@ -120,6 +120,7 @@ general_type_str(gint value)
 		N_("Query hits received for OOB-proxied queries"),
 		N_("Queries requesting OOB hit delivery"),
 		N_("Stripped OOB flag on queries"),
+		N_("Ignored OOB queries due to unclaimed hits"),
 		N_("Duplicate OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
 		N_("OOB hits bearing alien IP address"),
