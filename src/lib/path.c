@@ -249,13 +249,22 @@ get_folder_basepath(enum special_folder which_folder)
 	case PRIVLIB_PATH:
 		{
 			static char *pathname;
+			static bool fetched_xdg_data_dirs;
 	
-			if (NULL == pathname) {
+			if (NULL == pathname && !fetched_xdg_data_dirs) {
 				special_path = getenv("XDG_DATA_DIRS");
+				fetched_xdg_data_dirs = TRUE;
+
 				if (special_path != NULL) {
-					pathname = omalloc(MAX_PATH_LEN);
-					concat_strings(pathname, MAX_PATH_LEN,
-						special_path, G_DIR_SEPARATOR_S, PACKAGE, (void *) 0);
+					if (is_absolute_path(special_path)) {
+						pathname = omalloc(MAX_PATH_LEN);
+						concat_strings(pathname, MAX_PATH_LEN,
+							special_path, G_DIR_SEPARATOR_S, PACKAGE,
+							(void *) 0);
+					} else {
+						s_warning("ignoring environment XDG_DATA_DIRS: "
+							"holds non-absolute path \"%s\"", special_path);
+					}
 				}
 			}
 
@@ -263,9 +272,28 @@ get_folder_basepath(enum special_folder which_folder)
 		}
 		break;
 	case NLS_PATH:
-		special_path = getenv("NLSPATH");
-		if (NULL == special_path)
-			special_path = LOCALE_EXP;
+		{
+			static char *pathname;
+			static bool fetched_nlspath;
+
+			if (NULL == pathname && !fetched_nlspath) {
+				pathname = getenv("NLSPATH");
+				fetched_nlspath = TRUE;
+
+				if (pathname != NULL && !is_absolute_path(pathname)) {
+					s_warning("ignoring environment NLSPATH: "
+						"holds non-absolute path \"%s\"", pathname);
+					pathname = NULL;
+				} else {
+					pathname = ostrdup(pathname);
+				}
+			}
+
+			if (NULL == pathname)
+				pathname = LOCALE_EXP;
+
+			special_path = pathname;
+		}
 		break;
 	}
 	
