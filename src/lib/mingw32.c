@@ -2886,16 +2886,17 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 	case PRIVLIB_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S PACKAGE);
-		break;
+		goto done;
 	case NLS_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S "locale");
-		break;
-	default:
-		s_warning("%s() needs implementation for foldertype %d",
-			G_STRFUNC, which_folder);
+		goto done;
 	}
 
+	s_carp("%s() needs implementation for foldertype %d",
+		G_STRFUNC, which_folder);
+
+done:
 	return special_path;
 }
 
