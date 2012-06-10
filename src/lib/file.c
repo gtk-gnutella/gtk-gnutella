@@ -40,6 +40,7 @@
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "log.h"			/* For s_carp() */
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
 #include "timestamp.h"
@@ -156,7 +157,8 @@ done:
  * If not found, try with successive alternatives, if supplied.
  *
  * @attention
- * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
+ * NB: the supplied `fv' argument is a vector of `fvcnt' elements.  Items
+ * with a NULL `dir' field are ignored, but fv[0].dir cannot be NULL.
  *
  * @param what is what is being opened, for logging purposes.
  * @param fv is a vector of files to try to open, in sequence
@@ -181,6 +183,7 @@ open_read(
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
+	g_assert(fv->dir != NULL);
 
 	path = make_pathname(fv->dir, fv->name);
 	if (!is_absolute_path(path)) {
@@ -248,6 +251,8 @@ open_read(
 
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
 			HFREE_NULL(path);
+			if (NULL == xfv->dir)	/* In alternatives, dir may be NULL */
+				continue;
 			path = make_pathname(xfv->dir, xfv->name);
 			idx++;
 			if (NULL != path && NULL != (in = fopen(path, "r")))
@@ -413,6 +418,9 @@ file_config_preamble(FILE *out, const char *what)
 
 /**
  * Initializes `fp' with directory path `dir' and filename `name'.
+ *
+ * The directory must be an absolute path or the entry is initialized with NULL
+ * values and a loud warning is emitted.
  */
 void
 file_path_set(file_path_t *fp, const char *dir, const char *name)
@@ -420,10 +428,28 @@ file_path_set(file_path_t *fp, const char *dir, const char *name)
 	g_assert(fp);
 	g_assert(dir);
 	g_assert(name);
-	g_assert(is_absolute_path(dir));
 
-	fp->dir = dir;
-	fp->name = name;
+	/*
+	 * For robustness, we no longer assert that the path must be absolute.
+	 *
+	 * The open_read() routine will skip file_path_t entries in the vector
+	 * that are NULL, the only requirement being that the first entry of the
+	 * vector be non-NULL, i.e. an absolute path.
+	 *
+	 * Since this is an abnormal situation, loudly warn so that we may find
+	 * out who the culprit is.
+	 */
+
+	if (!is_absolute_path(dir)) {
+		s_carp("%s(): ignoring non-absolute path \"%s\" for \"%s\"",
+			G_STRFUNC, dir, name);
+
+		fp->dir = NULL;
+		fp->name = NULL;
+	} else {
+		fp->dir = dir;
+		fp->name = name;
+	}
 }
 
 /**
