@@ -676,6 +676,15 @@ symbols_check_consistency(symbols_t *st)
 	htable_t *sym_pc;
 	const void *main_pc;
 
+	/*
+	 * Reset the values we're computing since we can be called multiple
+	 * times when we try to load symbols from multiple sources.
+	 */
+
+	st->garbage = FALSE;
+	st->offset = 0;
+	st->mismatch = FALSE;
+
 	if (0 == st->count)
 		return;
 
@@ -980,14 +989,14 @@ retry:
 	 * Try to open the symbols from the installed nm file.
 	 */
 
-#ifndef MINGW32
 use_pre_computed:
-#endif
 
-	if (!retried && 0 == st->count) {
+	if (!retried && (0 == st->count || st->garbage)) {
 		char *nm = make_pathname(ARCHLIB_EXP, NM_FILE);
 
-		s_warning("no symbols loaded, trying with pre-computed \"%s\"", nm);
+		s_warning("%s, trying with pre-computed \"%s\"",
+			0 == st->count ? "no symbols loaded" : "garbage symbols", nm);
+
 		st->fresh = FALSE;
 		f = symbols_open(st, exe, nm);
 		retried = TRUE;
@@ -998,6 +1007,9 @@ use_pre_computed:
 			method = "pre-computed nm output";
 			goto retry;
 		}
+
+		if (st->garbage)
+			return;			/* Already went through the "done" part */
 
 		/* FALL THROUGH */
 	}
@@ -1013,6 +1025,17 @@ done:
 	}
 
 	symbols_check_consistency(st);
+
+	/*
+	 * If symbols are garbage, retry with pre-computed symbol file.
+	 *
+	 * This usually happens when the executable has been stripped at
+	 * installation time but the BFD library still manages to find a
+	 * few symbols.
+	 */
+
+	if (!retried && !st->indirect && st->garbage)
+		goto use_pre_computed;
 }
 
 /**
