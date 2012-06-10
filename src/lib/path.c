@@ -39,6 +39,7 @@
 #include "ascii.h"
 #include "concat.h"
 #include "path.h"
+#include "log.h"				/* For s_error() */
 #include "misc.h"
 #include "halloc.h"
 #include "omalloc.h"
@@ -278,6 +279,21 @@ set_folder_basepath_func(get_folder_basepath_func_t func)
 }
 
 /**
+ * @return name of special folder.
+ */
+static char *
+special_folder_name(enum special_folder folder)
+{
+	switch (folder) {
+	case PRIVLIB_PATH:	return "PRIVLIB_PATH";
+	case NLS_PATH:		return "NLS_PATH";
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
+
+/**
  * Compute special folder path.
  *
  * @param which_folder		the special folder token
@@ -300,14 +316,28 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	pathname = halloc(MAX_PATH_LEN);
 
 	offset = clamp_strcpy(pathname, MAX_PATH_LEN, special_path);
-		
+
+	/*
+	 * A special folder MUST be an absolute path.
+	 */
+
+	if (!is_absolute_path(pathname)) {
+		s_error("special folder %s is not an absolute path: %s",
+			special_folder_name(which_folder), pathname);
+	}
+
+	/*
+	 * If we have a sub-path underneath the special folder, append it at the
+	 * tail of the path we already figured.
+	 */
+
 	if (path != NULL) {
 		/* Add directory separator if missing at the tail of the special path */
 		if (offset > 0 && pathname[offset - 1] != G_DIR_SEPARATOR)
 			pathname[offset++] = G_DIR_SEPARATOR;
 		clamp_strcpy(&pathname[offset], MAX_PATH_LEN - offset, path);
 	}
-	
+
 	return pathname;
 }
 
