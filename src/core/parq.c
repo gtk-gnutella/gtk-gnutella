@@ -1569,6 +1569,8 @@ parq_upload_insert_relative(struct parq_ul_queued *puq)
 {
 	parq_ul_queued_check(puq);
 
+	g_assert(!(puq->flags & PARQ_UL_FROZEN));
+
 	puq->relative_position = 0;
 	hash_list_insert_sorted(puq->queue->by_rel_pos, puq, parq_ul_rel_pos_cmp);
 }
@@ -2302,26 +2304,30 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	puq->send_next_queue = parq_upload_next_queue(now, puq);
 	puq->by_addr->last_queue_sent = now;
 
-	if (GNET_PROPERTY(parq_debug))
+	if (GNET_PROPERTY(parq_debug)) {
 		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'",
-			  puq->queue->num,
-			  ul_parqs_cnt,
-			  puq->position,
-			  puq->relative_position,
-			  puq->queue->by_position_length,
-			  puq->queue_sent,
-			  host_addr_port_to_string(puq->addr, puq->port),
-			  puq->name);
+			"Sending QUEUE #%d to %s for ID=%s: '%s'",
+			puq->queue->num,
+			ul_parqs_cnt,
+			puq->position,
+			puq->relative_position,
+			puq->queue->by_position_length,
+			puq->queue_sent,
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id),
+			puq->name);
+	}
 
 	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
 
 	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, flags);
 
 	if (!s) {
-		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
+		g_warning("[PARQ UL] could not send QUEUE #%d to %s ID=%s "
+			"(can't connect)",
 			puq->queue_sent,
-			host_addr_port_to_string(puq->addr, puq->port));
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id));
 		puq->flags &= ~PARQ_UL_QUEUE;
 		return;
 	}
@@ -2358,7 +2364,9 @@ parq_upload_send_queue_failed(struct parq_ul_queued *puq)
 	puq->by_addr->last_queue_failure = tm_time();
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
-		g_debug("PARQ UL: QUEUE callback not sent: could not connect to %s",
+		g_debug("PARQ UL: QUEUE callback not sent, ID=%s: "
+			"could not connect to %s",
+			guid_hex_str(&puq->id),
 			host_addr_to_string(puq->by_addr->addr));
 	}
 }
@@ -2542,7 +2550,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 		) {
 			if (GNET_PROPERTY(parq_debug) > 3)
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-					"Timeout: %s %s '%s'",
+					"Timeout: ID=%s %s '%s'",
 					puq->queue->num,
 					ul_parqs_cnt,
 					puq->position,
@@ -3436,6 +3444,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 * Regardless of the amount of simultaneous upload slots a host can get,
 	 * a given PARQ ID can only be used once.
 	 */
+
 	if (puq->u != NULL && puq->u != u) {
 		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
@@ -4096,14 +4105,6 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	puq = parq_upload_find(u);
 
 	/*
-	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
-	 * attempting to connect to the remote server.
-	 */
-
-	if (puq && u->status == GTA_UL_QUEUE)
-		parq_upload_send_queue_failed(puq);
-
-	/*
 	 * If we can't find the PARQ entry, this is probably a cloned upload.
 	 *
 	 * If the upload mismatches, then it's probably an error like "Already
@@ -4113,6 +4114,14 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 	if (puq == NULL || puq->u != u)
 		return FALSE;
+
+	/*
+	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
+	 * attempting to connect to the remote server.
+	 */
+
+	if (GTA_UL_QUEUE == u->status)
+		parq_upload_send_queue_failed(puq);
 
 	if (puq->active_queued)
 		parq_upload_clear_actively_queued(puq);
@@ -4143,6 +4152,13 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	else if (puq->flags & PARQ_UL_QUEUE_SENT)
 		puq->queue_refused = 0;
 
+	/*
+	 * Clear QUEUE-related flags, regardless of the outcome on remote servent.
+	 */
+
+	if ((puq->flags & PARQ_UL_QUEUE) && !hash_list_contains(ul_parq_queue, puq))
+		puq->flags &= ~PARQ_UL_QUEUE;
+
 	puq->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	/*
@@ -4152,6 +4168,7 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	 *
 	 * XXX What's this encapsulation breaking? Needed? --RAM, 2007-08-17
 	 */
+
 	if (
 		u->status == GTA_UL_QUEUED &&
 		delta_time(u->last_update, now) > 0
@@ -4206,12 +4223,24 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 			parq_ul_queued_check(puq_next);
 
-			if (!puq_next->has_slot) {
-				g_assert(puq_next->queue->active <= 1);
-				if (!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
-					parq_upload_register_send_queue(puq_next);
-				break;
-			}
+			if (puq_next->has_slot)
+				continue;
+
+			/*
+			 * Reach following entry in the waiting queue that has no uploading
+			 * slot.  If it is actively queued already, then we just have to
+			 * wait for the planned retry.  Otherwise, if we can send a QUEUE
+			 * and there is none pending, let the host know that it's next
+			 * in the line.
+			 */
+
+			g_assert(puq_next->queue->active <= 1);
+			if (
+				!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
+				!puq_next->active_queued
+			)
+				parq_upload_register_send_queue(puq_next);
+			break;
 		}
 
 		hash_list_iter_release(&iter);
