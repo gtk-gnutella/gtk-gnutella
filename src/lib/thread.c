@@ -1318,11 +1318,13 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 
 	if (thread_sp_direction < 0) {
 		/* Stack growing down, stack_base is its highest address */
-		g_assert(ptr_cmp(te->stack_base, top) > 0);
+		if (ptr_cmp(te->stack_base, top) <= 0)
+			return FALSE;		/* top is invalid for this thread */
 		return ptr_cmp(p, top) >= 0 && ptr_cmp(p, te->stack_base) < 0;
 	} else {
 		/* Stack growing up, stack_base is its lowest address */
-		g_assert(ptr_cmp(te->stack_base, top) < 0);
+		if (ptr_cmp(te->stack_base, top) >= 0)
+			return FALSE;		/* top is invalid for this thread */
 		return ptr_cmp(p, top) <= 0 && ptr_cmp(p, te->stack_base) >= 0;
 	}
 }
