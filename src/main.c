@@ -1651,6 +1651,7 @@ main(int argc, char **argv)
 	 */
 
 	first_fd = fd_first_available();
+	first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
 	close_file_descriptors(first_fd);	/* Just in case */
 
 	if (reserve_standard_file_descriptors()) {
