@@ -713,28 +713,45 @@ search_gui_close_search(search_t *search)
 
 	next = g_list_find(list_searches, search);
 	next = g_list_next(next) ? g_list_next(next) : g_list_previous(next);
-
  	list_searches = g_list_remove(list_searches, search);
-	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
-	search_gui_store_searches();
-	search_gui_option_menu_searches_update();
-
-	search_gui_reset_search(search);
-    search_gui_remove_search(search);
 
 	search_gui_set_current_search(next ? next->data : NULL);
+	filter_close_search(search);
+
+	/*
+	 * The association between the core search_handle and the GUI search,
+	 * which is recorded in `ht_searches' needs to be removed only after
+	 * the core side has finished its cleanup to allow GUI callback events
+	 * to proceed (e.g. GUESS cancellation events).
+	 */
+
+    guc_search_close(search->search_handle);
+	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
+
+	/*
+	 * Now that the core is done cleaning up, we can free up the GUI data
+	 * structures attached with the search.
+	 */
+
+	search_gui_clear_search(search);
+    search_gui_remove_search(search);
 
 	gtk_notebook_remove_page(notebook_search_results,
 		gtk_notebook_page_num(notebook_search_results,
 			search->scrolled_window));
 
-	filter_close_search(search);
-
 	hset_free_null(&search->dups);
 	htable_free_null(&search->parents);
 
-    guc_search_close(search->search_handle);
 	WFREE(search);
+
+	/*
+	 * One less search, update list of searches in memory and on disk.
+	 */
+
+	search_gui_store_searches();
+	search_gui_option_menu_searches_update();
+
 }
 
 /**
