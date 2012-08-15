@@ -7025,10 +7025,23 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
-	if (file_info) {
+	if (file_info != NULL) {
 		g_return_val_if_fail(!sha1 || sha1_eq(file_info->sha1, sha1), NULL);
-		if (file_info->tth) {
-			g_return_val_if_fail(!tth || tth_eq(file_info->tth, tth), NULL);
+		if (file_info->tth != NULL) {
+			if (tth != NULL && !tth_eq(file_info->tth, tth)) {
+				char buf[TTH_BASE32_SIZE + 1];
+
+				tth_to_base32_buf(tth, buf, sizeof buf);
+				g_warning("ignoring new source for %s at %s: its TTH %s "
+					"differs from known %s (SHA1 is %s)",
+					filepath_basename(file_info->pathname),
+					host_addr_port_to_string(addr, port), buf,
+					tth_base32(file_info->tth),
+					NULL == file_info->sha1 ? "unknown" :
+						sha1_base32(file_info->sha1));
+
+				return NULL;
+			}
 		}
 	}
 
