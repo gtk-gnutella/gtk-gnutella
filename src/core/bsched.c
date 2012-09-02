@@ -160,6 +160,7 @@ static int bws_in_ema = 0;
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
 #define BW_UL_STALL_TIM	21600	/**< Hysteresis for upload stalling condition */
+#define BW_UL_RUN_TIME	3600 /**< Check period for running uploads */
 
 #define BW_TCP_MSG		40	 /**< Smallest size of a TCP message */
 #define BW_UDP_MSG		28	 /**< Minimal IP+UDP overhead for a UDP message */
@@ -3055,24 +3056,23 @@ true_expr(const char *expr)
 #define noisy_check(expr) ((expr) ? true_expr(G_STRLOC ": " #expr) : 0)
 
 /**
- * Needs very short description so that doxygen can parse the following
- * list properly.
- *
- * Determine whether we have enough bandwidth to possibly become an
- * ultra node:
+ * Determine whether we have enough bandwidth to possibly become an ultra node:
  *
  *  -# Uploads must not be frequently stalling.
+ *  -# If the servent is not sharing anything, use its bandwidth for ultra mode.
  *  -# If bandwidth schedulers are enabled, leaf nodes must not be configured
  *     to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
  *  -# If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
  *     bytes per gnet connection.
  *  -# Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
  *     BW_OUT_GNET_MIN bytes per gnet connection available.
+ *
+ * @return TRUE if we have enough bandwidth to become an ultra node.
  */
 bool
 bsched_enough_up_bandwidth(void)
 {
-	static time_t last_stall;
+	static time_t last_stall, last_uploads;
 	uint32 total = 0;
 
 	/*
@@ -3095,14 +3095,43 @@ bsched_enough_up_bandwidth(void)
 	if (noisy_check(delta_time(tm_time(), last_stall) < BW_UL_STALL_TIM))
 		return FALSE;		/* 1. */
 
+	/*
+	 * Servents not sharing anything should be able to devote their outgoing
+	 * bandwidth to serve as ultra nodes.
+	 */
+
+	if (noisy_check(!upload_is_enabled()))
+		goto upload_bw_irrelevant;	/* 2. */
+
+	if (noisy_check(delta_time(tm_time(), last_uploads) >= BW_UL_RUN_TIME)) {
+		if (0 != GNET_PROPERTY(ul_registered))
+			last_uploads = tm_time();
+		else
+			goto upload_bw_irrelevant;	/* 2. */
+	}
+
+	/*
+	 * Servent is uploading, make sure configured schedulers would not steal
+	 * out all the HTTP bandwidth if promoted to ultra mode (since leaves
+	 * take their bandwidth out of the configured HTTP limit).
+	 */
+
 	if (
 		noisy_check(
 			GNET_PROPERTY(bws_glout_enabled) &&
 			GNET_PROPERTY(bws_out_enabled) &&
-			GNET_PROPERTY(bw_gnet_lout) >= GNET_PROPERTY(bw_http_out) &&
-			upload_is_enabled())
+			GNET_PROPERTY(bw_gnet_lout) >= GNET_PROPERTY(bw_http_out)
+		)
 	)
-		return FALSE;		/* 2. */
+		return FALSE;		/* 3. */
+
+upload_bw_irrelevant:
+
+	/*
+	 * If they configured outgoing limits for the Gnutella traffic, make
+	 * sure we have a reasonable setup, compatible with the predicted ultra
+	 * node usage.
+	 */
 
 	if (
 		noisy_check(
@@ -3110,7 +3139,7 @@ bsched_enough_up_bandwidth(void)
 			GNET_PROPERTY(bw_gnet_out) < BW_OUT_GNET_MIN *
 		(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)) / 2)
 	)
-		return FALSE;		/* 3. */
+		return FALSE;		/* 4. */
 
 	if (GNET_PROPERTY(bws_gout_enabled))
 		total += GNET_PROPERTY(bw_gnet_out);
@@ -3120,12 +3149,15 @@ bsched_enough_up_bandwidth(void)
 	else if (GNET_PROPERTY(bws_glout_enabled))
 		total += GNET_PROPERTY(bw_gnet_lout);
 
+	if (noisy_check(0 == total))
+		return TRUE;		/* No bandwidth limits configured */
+
 	if (
 		noisy_check(total <
 			(BW_OUT_GNET_MIN * GNET_PROPERTY(max_connections) +
 			 BW_OUT_LEAF_MIN * GNET_PROPERTY(max_leaves)))
 	) {
-		return FALSE;		/* 4. */
+		return FALSE;		/* 5. */
 	}
 
 	return TRUE;
