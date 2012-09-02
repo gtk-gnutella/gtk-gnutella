@@ -112,7 +112,7 @@
 #include "lib/override.h"	/* Must be the last header included */
 
 #define READ_BUF_SIZE	(64 * 1024)	/**< Read buffer size, if no sendfile(2) */
-#define BW_OUT_MIN		256			/**< Minimum bandwidth to enable uploads */
+#define BW_OUT_MIN		1024		/**< Minimum bandwidth to enable uploads */
 #define IO_PRE_STALL	10			/**< Pre-stalling warning */
 #define IO_RTT_STALL	15			/**< Watch for RTT larger than that */
 #define IO_STALLED		30			/**< Stalling condition */
@@ -5485,8 +5485,10 @@ upload_kill_addr(const host_addr_t addr)
 bool
 upload_is_enabled(void)
 {
-	return GNET_PROPERTY(max_uploads) > 0 &&
-		bsched_bw_per_second(BSCHED_BWS_OUT) >= BW_OUT_MIN;
+	return GNET_PROPERTY(max_uploads) > 0 && (
+		0 == GNET_PROPERTY(ul_running) + GNET_PROPERTY(ul_quick_running) ||
+		bsched_bw_per_second(BSCHED_BWS_OUT) >= BW_OUT_MIN
+	);
 }
 
 /**
