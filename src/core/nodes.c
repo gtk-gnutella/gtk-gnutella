@@ -5045,7 +5045,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 	const char *field;
 
 	/*
-	 * Accept -- protocols supported
+	 * Content-Type -- protocol used
 	 *
 	 * We ban ultrapeers claiming support for "application/x-gnutella2" if
 	 * we are an ultranode ourselves.
@@ -5056,7 +5056,7 @@ node_can_accept_protocol(struct gnutella_node *n, header_t *head)
 	 *		--RAM, 25/01/2003
 	 */
 
-	field = header_get(head, "Accept");
+	field = header_get(head, "Content-Type");
 	if (
 		field &&
 		settings_is_ultra() &&
