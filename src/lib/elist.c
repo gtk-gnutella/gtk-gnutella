@@ -802,7 +802,7 @@ elist_shuffle(elist_t *list)
 
 	elist_check(list);
 
-	if G_UNLIKELY(0 == list->count)
+	if G_UNLIKELY(list->count <= 1U)
 		return;
 
 	/*
