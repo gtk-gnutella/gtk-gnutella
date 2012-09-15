@@ -92,7 +92,7 @@ gnet_host_hash(const void *key)
  *
  * @note For use in hash tables and sets.
  */
-G_GNUC_HOT int
+G_GNUC_HOT bool
 gnet_host_eq(const void *v1, const void *v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
