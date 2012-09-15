@@ -66,6 +66,8 @@ void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_bws_t bs, int bandwidth);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, void *arg);
+void bio_add_passive_callback(bio_source_t *bio,
+	inputevt_handler_t cb, void *arg);
 void bio_remove_callback(bio_source_t *bio);
 unsigned bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type);
 bool bio_set_favour(bio_source_t *bio, bool on);

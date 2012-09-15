@@ -43,10 +43,11 @@
 
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/walloc.h"
+#include "lib/inputevt.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -779,6 +780,22 @@ bsched_shutdown(void)
 }
 
 /**
+ * Trigger the "passive" callback to signify that a new timeslice has begun
+ * and that I/Os can resume on the source.
+ */
+static void
+bio_trigger(const bio_source_t *bio)
+{
+	bio_check(bio);
+	g_assert(0 == bio->io_tag);
+	g_assert(bio->io_callback != NULL);
+	g_assert(bio->flags & BIO_F_PASSIVE);
+
+	(*bio->io_callback)(bio->io_arg, bio->wio->fd(bio->wio),
+		(bio->flags & BIO_F_READ) ? INPUT_EVENT_R : INPUT_EVENT_W);
+}
+
+/**
  * Enable an I/O source.
  */
 static void
@@ -787,6 +804,7 @@ bio_enable(bio_source_t *bio)
 	bio_check(bio);
 	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
+	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
 	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
 			(bio->flags & BIO_F_READ) ? INPUT_EVENT_RX : INPUT_EVENT_WX,
@@ -820,12 +838,17 @@ bio_disable(bio_source_t *bio)
 	bio_check(bio);
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
+	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
 	inputevt_remove(&bio->io_tag);
 }
 
 /**
- * Add I/O callback to a "passive" I/O source.
+ * Add I/O callback to a "passive" I/O source, making it active.
+ *
+ * The source will be added to the input event dispatcher and the callback
+ * will be invoked as soon as something happens on that source (for instance
+ * it becomes readable, writable, or an exception occurs).
  */
 void
 bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, void *arg)
@@ -836,9 +859,34 @@ bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, void *arg)
 
 	bio->io_callback = callback;
 	bio->io_arg = arg;
+	bio->flags &= ~BIO_F_PASSIVE;
 
 	if (!(bsched_get(bio->bws)->flags & BS_F_NOBW))
 		bio_enable(bio);
+}
+
+/**
+ * Adds I/O callback to a "passive" I/O source, without making it active.
+ *
+ * The callback will be invoked with read/write events each time a new
+ * scheduling time slice begins (which should indicate that bandwidth is
+ * available for I/Os) but the source will not be added to the input event
+ * dispatcher.
+ *
+ * Typically that would be useful on never-blocking sources (like files, on
+ * which we would like to limit read/writes) or on UDP sockets where the
+ * kernel will not buffer data, hence making them always writable.
+ */
+void
+bio_add_passive_callback(bio_source_t *bio, inputevt_handler_t cb, void *arg)
+{
+	bio_check(bio);
+	g_assert(bio->io_callback == NULL);	/* "passive" source */
+	g_assert(cb != NULL);
+
+	bio->io_callback = cb;
+	bio->io_arg = arg;
+	bio->flags |= BIO_F_PASSIVE;		/* Don't call bio_enable() */
 }
 
 /**
@@ -853,6 +901,7 @@ bio_remove_callback(bio_source_t *bio)
 	if (bio->io_tag)
 		bio_disable(bio);
 
+	bio->flags &= ~BIO_F_PASSIVE;
 	bio->io_callback = NULL;
 	bio->io_arg = NULL;
 }
@@ -908,6 +957,7 @@ bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *iter;
 	GList *last = NULL;
+	GSList *trigger = NULL;
 	double norm_factor;
 	int count;
 	unsigned bw_max;
@@ -965,8 +1015,12 @@ bsched_begin_timeslice(bsched_t *bs)
 		count++;			/* Count them for assertion */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
-		if (bio->io_tag == 0 && bio->io_callback)
-			bio_enable(bio);
+		if (bio->io_tag == 0 && bio->io_callback) {
+			if (bio->flags & BIO_F_PASSIVE)
+				trigger = g_slist_prepend(trigger, bio);
+			else
+				bio_enable(bio);
+		}
 
 		if (bio->flags & BIO_F_FAVOUR)
 			bs->io_favours++;
@@ -1084,6 +1138,17 @@ bsched_begin_timeslice(bsched_t *bs)
 
 	bs->current_used = 0;
 	bs->looped = FALSE;
+
+	/*
+	 * If there are passive callbacks installed, trigger them now.
+	 */
+
+	while (trigger != NULL) {
+		bio_source_t *bio = trigger->data;
+
+		trigger = g_slist_remove(trigger, bio);
+		bio_trigger(bio);
+	}
 }
 
 /**
@@ -1271,7 +1336,12 @@ bw_available(bio_source_t *bio, int len)
 	if (bs->flags & BS_F_NOBW)				/* No more bandwidth */
 		return 0;							/* Grant nothing */
 
-	if (bio->io_callback && !bio->io_tag)	/* Source already disabled */
+	/*
+	 * Source is already disabled if there is a callback and no tag on a
+	 * non-passive source.
+	 */
+
+	if (bio->io_callback && !bio->io_tag && !(bio->flags & BIO_F_PASSIVE))
 		return 0;							/* No bandwidth available */
 
 	/*

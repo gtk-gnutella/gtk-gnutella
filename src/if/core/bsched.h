@@ -82,6 +82,7 @@ typedef struct bio_source {
 #define BIO_F_ACTIVE		(1 << 2)	/**< Source active since b/w scheduled */
 #define BIO_F_USED			(1 << 3)	/**< Source used this period */
 #define BIO_F_FAVOUR		(1 << 4)	/**< Try to favour source this period */
+#define BIO_F_PASSIVE		(1 << 5)	/**< Don't insert source for events */
 
 #define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
 
