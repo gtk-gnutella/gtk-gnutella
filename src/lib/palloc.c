@@ -279,9 +279,10 @@ pool_free(pool_t *p)
 
 	outstanding = p->allocated - p->held;
 
-	if (outstanding != 0)
-		g_warning("freeing pool \"%s\" of %u-byte objects with %u still used",
+	if (outstanding != 0) {
+		g_carp("freeing pool \"%s\" of %u-byte objects with %u still used",
 			p->name, (uint) p->size, outstanding);
+	}
 
 	pool_needs_gc(p, FALSE);
 
