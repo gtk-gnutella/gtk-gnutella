@@ -64,6 +64,7 @@ bio_source_t *bsched_source_add(bsched_bws_t bs, wrap_io_t *wio, uint32 flags,
 	inputevt_handler_t callback, void *arg);
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_bws_t bs, int bandwidth);
+ulong bio_bw_per_second(const bio_source_t *bio);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, void *arg);
 void bio_add_passive_callback(bio_source_t *bio,

@@ -780,6 +780,21 @@ bsched_shutdown(void)
 }
 
 /**
+ * @return b/w per second configured for the scheduler to which this I/O
+ * source belongs.
+ */
+ulong
+bio_bw_per_second(const bio_source_t *bio)
+{
+	const bsched_t *bs;
+
+	bio_check(bio);
+
+	bs = bsched_get(bio->bws);
+	return bs->bw_per_second;
+}
+
+/**
  * Trigger the "passive" callback to signify that a new timeslice has begun
  * and that I/Os can resume on the source.
  */
