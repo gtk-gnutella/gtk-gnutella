@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Memory pool allocator, suitable for large fixed-size objects.
+ * Memory pool allocator, suitable for fix-sized objects.
  *
  * The pool is automatically sized to adjust the current needs, using several
  * EMA (Exponential Moving Average) and dynamically set thresholds.  There are
@@ -87,7 +87,7 @@ struct pool {
 	cevent_t *heartbeat_ev;	/**< Monitoring of pool level */
 	pool_alloc_t alloc;		/**< Memory allocation routine */
 	pool_free_t	dealloc;	/**< Memory release routine */
-	pool_frag_t	is_frag;	/**< Fragment checking routing */
+	pool_frag_t	is_frag;	/**< Fragment checking routine (optional) */
 	unsigned allocated;		/**< Amount of allocated buffers */
 	unsigned held;			/**< Amount of available buffers */
 	unsigned slow_ema;		/**< Slow EMA of pool usage (n = 31) */
@@ -240,7 +240,7 @@ pool_install_heartbeat(pool_t *p)
  * @param size		size of blocks held in the pool
  * @param alloc		allocation routine to get a new block
  * @param dealloc	deallocation routine to free an unused block
- * @param is_frag	routine to check for memory fragments
+ * @param is_frag	routine to check for memory fragments (optional)
  */
 pool_t *
 pool_create(const char *name,
@@ -357,7 +357,7 @@ pfree(pool_t *p, void *obj)
 	 * Keep the buffer in the pool, unless it is a fragment.
 	 */
 
-	if (p->is_frag(obj)) {
+	if (NULL != p->is_frag && p->is_frag(obj)) {
 		g_assert(uint_is_positive(p->allocated));
 
 		if (palloc_debug > 1)
