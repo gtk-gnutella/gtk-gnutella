@@ -49,7 +49,7 @@ struct tx_dgram_cb {
 };
 
 /**
- * Arguments to be passed when the layer is intantiated.
+ * Arguments to be passed when the layer is instantiated.
  */
 struct tx_dgram_args {
 	struct tx_dgram_cb *cb;			/**< Callbacks */

@@ -52,7 +52,7 @@ struct rx_link_cb {
 };
 
 /**
- * Arguments to be passed when the layer is intantiated.
+ * Arguments to be passed when the layer is instantiated.
  */
 struct rx_link_args {
 	const struct rx_link_cb *cb;	/**< Callbacks */
