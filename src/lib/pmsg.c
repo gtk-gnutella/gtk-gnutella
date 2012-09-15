@@ -127,6 +127,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, const void *buf, int len)
 	mb->m_data = db;
 	mb->m_prio = prio;
 	mb->m_check = NULL;
+	mb->m_refcnt = 1;
 	db->d_refcnt++;
 
 	if (buf) {
@@ -239,6 +240,7 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 	pdata_addref(nmb->pmsg.m_data);
 
 	nmb->pmsg.m_prio |= PMSG_PF_EXT;
+	nmb->pmsg.m_refcnt = 1;
 	nmb->m_free = free_cb;
 	nmb->m_arg = arg;
 
@@ -324,6 +326,7 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 
 	WALLOC(nmb);
 	*nmb = *mb;					/* Struct copy */
+	nmb->pmsg.m_refcnt = 1;
 	pdata_addref(nmb->pmsg.m_data);
 
 	return cast_to_pmsg(nmb);
@@ -331,6 +334,9 @@ pmsg_clone_ext(pmsg_ext_t *mb)
 
 /**
  * Shallow cloning of message, result is referencing the same data.
+ *
+ * This is not the same thing as pmsg_ref() because here a new message block
+ * is created (albeit the data are shared with the original message).
  */
 pmsg_t *
 pmsg_clone(pmsg_t *mb)
@@ -343,6 +349,7 @@ pmsg_clone(pmsg_t *mb)
 		pmsg_check_consistency(mb);
 		WALLOC(nmb);
 		*nmb = *mb;					/* Struct copy */
+		nmb->m_refcnt = 1;
 		pdata_addref(nmb->m_data);
 
 		return nmb;
@@ -350,7 +357,37 @@ pmsg_clone(pmsg_t *mb)
 }
 
 /**
+ * Increase the reference count on the message block.
+ *
+ * This must be used in TX stacks when there is a free routine installed
+ * on messages and we want to keep another reference to the message, yet
+ * allow upper layers to pmsg_free() the message block as if it had been
+ * sent from their point of view.
+ *
+ * It also allows correct pmsg_was_sent() checks in free routines, whereas
+ * a pmsg_clone() would create a new message.
+ *
+ * @return its argument, for convenience.
+ */
+pmsg_t *
+pmsg_ref(pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	g_assert(mb->m_refcnt != 0);
+
+	mb->m_refcnt++;
+
+	g_assert(mb->m_refcnt != 0);		/* Safeguard against overflows */
+
+	return mb;
+}
+
+/**
  * Free all message blocks, and decrease ref count on all data buffers.
+ *
+ * If the message block is referenced by more than one place, simply
+ * decrease its reference count.  No freeing occurs and the free routine
+ * is therefore not invoked.
  */
 void
 pmsg_free(pmsg_t *mb)
@@ -358,6 +395,16 @@ pmsg_free(pmsg_t *mb)
 	pdata_t *db = mb->m_data;
 
 	pmsg_check_consistency(mb);
+	g_assert(mb->m_refcnt != 0);
+
+	/*
+	 * Don't free anything if refcnt != 1.
+	 */
+
+	if (mb->m_refcnt > 1U) {
+		mb->m_refcnt--;
+		return;
+	}
 
 	/*
 	 * Invoke free routine on extended message block.
