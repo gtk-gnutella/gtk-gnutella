@@ -3519,6 +3519,7 @@ node_add_tx_deflated(void *o, int amount)
 	gnutella_node_t *n = o;
 
 	node_check(n);
+
 	n->tx_deflated += amount;
 }
 
@@ -3561,6 +3562,8 @@ node_add_tx_written(void *o, int amount)
 {
 	gnutella_node_t *n = o;
 
+	node_check(n);
+
 	n->tx_written += amount;
 	n->last_tx = tm_time();
 }
@@ -3570,6 +3573,8 @@ node_tx_eof_remove(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
+
+	node_check(n);
 
 	va_start(args, reason);
 	socket_eof(n->socket);
@@ -3583,6 +3588,8 @@ node_tx_eof_shutdown(void *o, const char *reason, ...)
 	gnutella_node_t *n = o;
 	va_list args;
 
+	node_check(n);
+
 	va_start(args, reason);
 	socket_eof(n->socket);
 	node_shutdown_v(n, reason, args);
@@ -3594,7 +3601,20 @@ node_tx_unflushq(void *o)
 {
 	gnutella_node_t *n = o;
 
+	node_check(n);
+
 	node_unflushq(n);
+}
+
+void
+node_add_txdrop(void *o, int x)
+{
+	gnutella_node_t *n = o;
+
+	node_check(n);
+
+	n->last_update = tm_time();
+	n->tx_dropped += x;
 }
 
 static struct tx_link_cb node_tx_link_cb = {
@@ -3621,6 +3641,8 @@ node_add_rx_inflated(void *o, int amount)
 {
 	gnutella_node_t *n = o;
 
+	node_check(n);
+
 	n->rx_inflated += amount;
 }
 
@@ -3629,6 +3651,8 @@ node_rx_inflate_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
+
+	node_check(n);
 
 	va_start(args, reason);
 	node_mark_bad_vendor(n);
@@ -3650,6 +3674,8 @@ node_add_rx_given(void *o, ssize_t amount)
 {
 	gnutella_node_t *n = o;
 
+	node_check(n);
+
 	n->rx_given += amount;
 }
 
@@ -3658,6 +3684,8 @@ node_rx_read_error(void *o, const char *reason, ...)
 {
 	gnutella_node_t *n = o;
 	va_list args;
+
+	node_check(n);
 
 	va_start(args, reason);
 	node_eof_v(n, reason, args);
@@ -3668,6 +3696,8 @@ static void
 node_rx_got_eof(void *o)
 {
 	gnutella_node_t *n = o;
+
+	node_check(n);
 
 	if (n->n_ping_sent <= 2 && n->n_pong_received)
 		node_eof(n, NG_("Got %d connection pong", "Got %d connection pongs",
@@ -3693,6 +3723,7 @@ node_is_now_connected(struct gnutella_node *n)
 	gnet_host_t host;
 	txdrv_t *tx;
 
+	node_check(n);
 	socket_check(n->socket);
 
 	/*
@@ -9507,18 +9538,39 @@ node_close(void)
 	rxbuf_close();
 }
 
+/**
+ * Account for Gnutella message sending to node.
+ *
+ * @param n			the node to which message was sent
+ * @param function	the message code
+ * @param mb_start	start of message (Gnutella header + payload)
+ * @param mb_size	total length of message sent
+ */
 void
-node_add_sent(gnutella_node_t *n, int x)
+node_sent_accounting(gnutella_node_t *n, uint8 function,
+	const void *mb_start, int mb_size)
 {
-   	n->last_update = tm_time();
-	n->sent += x;
+	node_inc_sent(n);
+	gnet_stats_count_sent(n, function, mb_start, mb_size);
+	switch (function) {
+	case GTA_MSG_SEARCH:
+		node_inc_tx_query(n);
+		break;
+	case GTA_MSG_SEARCH_RESULTS:
+		node_inc_tx_qhit(n);
+		break;
+	default:
+		break;
+	}
 }
 
 void
-node_add_txdrop(gnutella_node_t *n, int x)
+node_add_sent(gnutella_node_t *n, int x)
 {
-	n->last_update = tm_time();
-	n->tx_dropped += x;
+	node_check(n);
+
+   	n->last_update = tm_time();
+	n->sent += x;
 }
 
 void

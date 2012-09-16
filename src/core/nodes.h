@@ -607,8 +607,10 @@ void send_node_error(struct gnutella_socket *s, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
 void node_add_sent(gnutella_node_t *n, int x);
-void node_add_txdrop(gnutella_node_t *n, int x);
+void node_add_txdrop(void *o, int x);
 void node_add_rxdrop(gnutella_node_t *n, int x);
+void node_sent_accounting(gnutella_node_t *n, uint8 function,
+	const void *mb_start, int mb_size);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
 
