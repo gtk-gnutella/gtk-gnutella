@@ -141,6 +141,7 @@ static hevset_t *ul_all_parq_by_addr;
 static htable_t *ul_all_parq_by_id;
 static cperiodic_t *parq_dead_timer_ev;
 static cperiodic_t *parq_save_timer_ev;
+static bool parq_closed;
 
 /**
  * If enable_real_passive is TRUE, a dead upload is only marked dead,
@@ -5407,7 +5408,7 @@ parq_banned_source_expire(const host_addr_t addr)
 bool
 parq_is_enabled(void)
 {
-	return GNET_PROPERTY(parq_enabled);
+	return GNET_PROPERTY(parq_enabled) && !parq_closed;
 }
 
 /**
@@ -5547,6 +5548,7 @@ void
 parq_close(void)
 {
 	htable_free_null(&dl_all_parq_by_id);
+	parq_closed = TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
