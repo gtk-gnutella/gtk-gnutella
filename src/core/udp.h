@@ -79,6 +79,7 @@ void udp_received(struct gnutella_socket *s, bool truncated);
 void udp_connect_back(const host_addr_t addr, uint16 port,
 	const struct guid *muid);
 void udp_send_msg(const struct gnutella_node *n, const void *buf, int len);
+void udp_ctrl_send_msg(const struct gnutella_node *n, const void *buf, int len);
 bool udp_send_ping(const struct guid *muid,
 	const host_addr_t addr, uint16 port, bool uhc_ping);
 bool udp_send_ping_callback(gnutella_msg_init_t *m, uint32 size,
