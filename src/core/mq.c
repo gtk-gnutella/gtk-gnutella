@@ -195,7 +195,7 @@ mq_info(const mqueue_t *q)
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
-		bool udp = NODE_IS_UDP(q->node);
+		bool udp = NODE_USES_UDP(q->node);
 
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
@@ -1245,7 +1245,7 @@ restart:
 		if (MQ_DEBUG_LVL(q) > 4) {
 			gmsg_log_dropped_pmsg(cmb, "to %s %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), msglen ?
 					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
 		}
@@ -1362,7 +1362,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		if (MQ_DEBUG_LVL(q) > 4)
 			gmsg_log_dropped_pmsg(mb, "to %s %s node %s, %d bytes queued",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), q->size);
 
 		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
@@ -1402,7 +1402,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				gmsg_log_dropped_pmsg(mb,
 					"to %s %s node %s, %d bytes queued [FULL]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
@@ -1411,7 +1411,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				gmsg_log_dropped_pmsg(mb,
 					"to %s %s node %s, %d bytes queued [KILLING]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			/*
@@ -1426,7 +1426,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 			 * the parameter values). --RAM, 2006-12-29
 			 */
 
-			if (!NODE_IS_UDP(q->node)) {
+			if (!NODE_USES_UDP(q->node)) {
 				node_bye(q->node, 502, "Send queue reached %d bytes",
 					q->maxsize);
 			} else {
