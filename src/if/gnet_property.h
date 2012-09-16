@@ -480,6 +480,7 @@ typedef enum {
     PROP_DUMP_TX_FROM_ADDRS,
     PROP_DUMP_TX_TO_ADDRS,
     PROP_GUESS_MAXIMIZE_BW,
+    PROP_UDP_SCHED_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

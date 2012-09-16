@@ -432,6 +432,8 @@ src/core/tx_link.c
 src/core/tx_link.h
 src/core/udp.c
 src/core/udp.h
+src/core/udp_sched.c
+src/core/udp_sched.h
 src/core/uhc.c
 src/core/uhc.h
 src/core/upload_stats.c

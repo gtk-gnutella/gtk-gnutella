@@ -114,6 +114,8 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
+static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
+
 static void socket_accept(void *data, int, inputevt_cond_t cond);
 static bool socket_reconnect(struct gnutella_socket *s);
 
@@ -1254,6 +1256,13 @@ socket_timer(time_t now)
 	socket_enable_accept(s_local_listen);
 }
 
+static inline void
+socket_disable(struct gnutella_socket *s)
+{
+	if (s != NULL)
+		socket_evt_clear(s);
+}
+
 /**
  * Cleanup data structures on shutdown.
  */
@@ -1273,6 +1282,21 @@ socket_shutdown(void)
 		upnp_unmap_udp(s_udp_listen->local_port);
 	
 	/* No longer accept connections or UDP packets */
+	socket_disable(s_local_listen);
+	socket_disable(s_tcp_listen);
+	socket_disable(s_tcp_listen6);
+	socket_disable(s_udp_listen);
+	socket_disable(s_udp_listen6);
+
+	socket_shutdowned = TRUE;
+}
+
+/**
+ * Cleanup remaining data structures on final close down.
+ */
+void
+socket_closedown(void)
+{
 	socket_free_null(&s_local_listen);
 	socket_free_null(&s_tcp_listen);
 	socket_free_null(&s_tcp_listen6);
@@ -1483,7 +1507,12 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	(void) source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
 		return;
 	}
@@ -1842,7 +1871,12 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 	socket_check(s);
 	g_assert((socket_fd_t) source == s->file_desc);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		bws_sock_connect_failed(s->type);
 		socket_connection_failed(s, _("Connection failed"));
 		return;
@@ -2119,7 +2153,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	socket_check(s);
 	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("%s(): input exception on TCP listening socket #%d!",
 			G_STRFUNC, s->file_desc);
 		return;		/* Ignore it, what else can we do? */
@@ -2509,7 +2543,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	(void) unused_source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		int error;
 
 		socklen_t error_len = sizeof error;

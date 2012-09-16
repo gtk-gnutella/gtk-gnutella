@@ -56,7 +56,7 @@
 #define TX_DESTROY(o)		((*(o)->ops->destroy)((o)))
 #define TX_WRITE(o,d,l)		((*(o)->ops->write)((o), (d), (l)))
 #define TX_WRITEV(o,i,c)	((*(o)->ops->writev)((o), (i), (c)))
-#define TX_SENDTO(o,t,d,l)	((*(o)->ops->sendto)((o), (t), (d), (l)))
+#define TX_SENDTO(o,m,t)	((*(o)->ops->sendto)((o), (m), (t)))
 #define TX_ENABLE(o)		((*(o)->ops->enable)((o)))
 #define TX_DISABLE(o)		((*(o)->ops->disable)((o)))
 #define TX_PENDING(o)		((*(o)->ops->pending)((o)))
@@ -269,7 +269,7 @@ tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
  * @return amount of bytes written, or -1 on error with errno set.
  */
 ssize_t
-tx_sendto(txdrv_t *tx, const gnet_host_t *to, const void *data, size_t len)
+tx_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 {
 	tx_check(tx);
 
@@ -278,7 +278,7 @@ tx_sendto(txdrv_t *tx, const gnet_host_t *to, const void *data, size_t len)
 		return -1;
 	}
 
-	return TX_SENDTO(tx, to, data, len);
+	return TX_SENDTO(tx, mb, to);
 }
 
 /**
@@ -578,13 +578,12 @@ tx_no_writev(txdrv_t *unused_tx, iovec_t *unused_iov, int unused_iovcnt)
  * The sendto() operation is forbidden.
  */
 ssize_t
-tx_no_sendto(txdrv_t *unused_tx, const gnet_host_t *unused_to,
-		const void *unused_data, size_t unused_len)
+tx_no_sendto(txdrv_t *unused_tx,
+	pmsg_t *unused_mb, const gnet_host_t *unused_to)
 {
 	(void) unused_tx;
+	(void) unused_mb;
 	(void) unused_to;
-	(void) unused_data;
-	(void) unused_len;
 	g_error("no sendto() operation allowed");
 	errno = ENOENT;
 	return -1;

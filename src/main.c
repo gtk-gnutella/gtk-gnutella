@@ -673,6 +673,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
+	DO(socket_closedown);
 	DO(upnp_close);
 	DO(bitzi_close);
 	DO(ntp_close);

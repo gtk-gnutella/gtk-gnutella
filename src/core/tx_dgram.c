@@ -27,7 +27,8 @@
  *
  * Network driver -- datagram level.
  *
- * This driver sends datagrams to specified hosts.
+ * This driver sends datagrams to specified hosts by enqueuing them to the
+ * UDP scheduling layer.
  *
  * @author Raphael Manfredi
  * @date 2002-2003
@@ -35,26 +36,23 @@
 
 #include "common.h"
 
-#include "bsched.h"
-#include "sockets.h"
 #include "tx.h"
 #include "tx_dgram.h"
-#include "hosts.h"
-#include "inet.h"
+#include "udp_sched.h"
 
 #include "lib/gnet_host.h"
-#include "lib/misc.h"
-#include "lib/tm.h"
+#include "lib/pmsg.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
  * Private attributes for the layer.
  */
 struct attr {
-	wrap_io_t 	 *wio;			/**< Cached wrapped IO object */
-	bio_source_t *bio;			/**< Bandwidth-limited I/O source */
-	struct tx_dgram_cb *cb;		/**< Layer-specific callbacks */
+	udp_sched_t *us;				/**< UDP TX scheduler */
+	const struct tx_dgram_cb *cb;	/**< Layer-specific callbacks */
+	unsigned service:1;				/**< Is servicing requested? */
 };
 
 /**
@@ -64,9 +62,9 @@ static void
 is_writable(void *data, int unused_source, inputevt_cond_t cond)
 {
 	txdrv_t *tx = (txdrv_t *) data;
+	struct attr *attr = tx->opaque;
 
 	(void) unused_source;
-	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("input exception on UDP socket");
@@ -74,11 +72,13 @@ is_writable(void *data, int unused_source, inputevt_cond_t cond)
 	}
 
 	/*
-	 * We can write again on the node's socket.  Service the queue.
+	 * We can write again to the UDP socket.  Service the queue if needed.
 	 */
 
 	g_assert(tx->srv_routine);
-	tx->srv_routine(tx->srv_arg);
+
+	if (attr->service)
+		tx->srv_routine(tx->srv_arg);
 }
 
 /***
@@ -98,26 +98,22 @@ tx_dgram_init(txdrv_t *tx, void *args)
 
 	g_assert(tx);
 	g_assert(targs->cb != NULL);
-	g_assert(s_udp_listen != NULL || s_udp_listen6 != NULL);
 
 	WALLOC(attr);
 
 	/*
-	 * Because we handle servicing of the upper layers explicitely within
-	 * the TX stack (i.e. upper layers detect that we were unable to comply
-	 * with the whole write and enable us), there is no I/O callback attached
-	 * to the I/O source: we only create it to benefit from bandwidth limiting
-	 * through calls to bio_sendto().
+	 * This TX layer redirects all the messages to the UDP TX scheduling
+	 * layer which will take care of the actual sending and bandwidth
+	 * regulation.
 	 */
 
 	attr->cb = targs->cb;
-	attr->wio = targs->wio;
-	attr->bio = bsched_source_add(targs->bws, attr->wio, BIO_F_WRITE,
-		NULL, NULL);
+	attr->us = targs->us;
+	attr->service = FALSE;
 
 	tx->opaque = attr;
 
-	g_assert(attr->wio->sendto != NULL);
+	udp_sched_attach(attr->us, tx, is_writable);
 
 	return tx;		/* OK */
 }
@@ -130,101 +126,22 @@ tx_dgram_destroy(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	bsched_source_remove(attr->bio);
-
+	udp_sched_detach(attr->us, tx);
 	WFREE(attr);
-}
-
-static inline int
-tx_dgram_write_error(txdrv_t *tx, const gnet_host_t *to, size_t len,
-	const char *func)
-{
-	if (is_temporary_error(errno) || ENOBUFS == errno)
-		return 0;
-
-	switch (errno) {
-	/*
-	 * The following are probably due to bugs in the libc, but this is in
-	 * the same vein as write() failing with -1 whereas errno == 0!  Be more
-	 * robust against bugs in the components we rely on. --RAM, 09/10/2003
-	 */
-	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
-	{
-		const struct attr *attr = tx->opaque;
-		g_warning("%s(fd=%d, len=%zu) failed with weird errno = %m -- "
-			"assuming EAGAIN", func, attr->wio->fd(attr->wio), len);
-	}
-		return 0;
-	case EPIPE:
-	case ENOSPC:
-	case ENOMEM:
-	case EINVAL:			/* Seen this with "reserved" IP addresses */
-#ifdef EDQUOT
-	case EDQUOT:
-#endif /* EDQUOT */
-	case EMSGSIZE:			/* Message too large */
-	case EFBIG:
-	case EIO:
-	case EADDRNOTAVAIL:
-	case ECONNABORTED:
-	case ECONNRESET:
-	case ECONNREFUSED:
-	case ENETRESET:
-	case ENETDOWN:
-	case ENETUNREACH:
-	case EHOSTDOWN:
-	case EHOSTUNREACH:
-	case ENOPROTOOPT:
-	case EPROTONOSUPPORT:
-	case ETIMEDOUT:
-	case EACCES:
-	case EPERM:
-		/*
-		 * Don't set TX_ERROR here, we don't care about lost packets.
-		 */
-		g_carp("UDP write of %zu bytes to %s failed: %m",
-			len, gnet_host_to_string(to));
-		return -1;
-	default:
-		{
-			int terr = errno;
-			tx->flags |= TX_ERROR;				/* This should be fatal! */
-			g_error("%s: UDP write of %lu bytes to %s failed "
-				"with unexpected errno %d: %m",
-				func, (unsigned long) len, gnet_host_to_string(to), terr);
-		}
-	}
-
-	return 0;		/* Just in case */
 }
 
 /**
  * Send buffer datagram to specified destination `to'.
  *
- * @returns amount of bytes written, or -1 on error with errno set.
+ * @return amount of bytes written, or 0 if message was unsent and we
+ * need to flow-control the upper layer (no more bandwidth).
  */
 static ssize_t
-tx_dgram_sendto(txdrv_t *tx, const gnet_host_t *to,
-	const void *data, size_t len)
+tx_dgram_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 {
-	ssize_t r;
 	struct attr *attr = tx->opaque;
 
-	if (gnet_host_get_port(to) > 0) {
-		r = bio_sendto(attr->bio, to, data, len);
-	} else {
-		errno = EINVAL;
-		r = -1;
-	}
-	if ((ssize_t) -1 == r)
-		return tx_dgram_write_error(tx, to, len, "tx_dgram_sendto");
-
-	if (attr->cb->add_tx_written != NULL)
-		attr->cb->add_tx_written(tx->owner, r);
-
-	inet_udp_record_sent(gnet_host_get_addr(to));
-
-	return r;
+	return udp_sched_send(attr->us, mb, to, tx, attr->cb);
 }
 
 /**
@@ -235,7 +152,7 @@ tx_dgram_enable(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	bio_add_callback(attr->bio, is_writable, tx);
+	attr->service = TRUE;
 }
 
 /**
@@ -246,17 +163,18 @@ tx_dgram_disable(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	bio_remove_callback(attr->bio);
+	attr->service = FALSE;
 }
 
 /**
- * No data buffered at this level: always returns 0.
+ * @return the amount of data buffered locally.
  */
 static size_t
-tx_dgram_pending(txdrv_t *unused_tx)
+tx_dgram_pending(txdrv_t *tx)
 {
-	(void) unused_tx;
-	return 0;
+	struct attr *attr = tx->opaque;
+
+	return udp_sched_pending(attr->us);
 }
 
 /**
@@ -285,7 +203,7 @@ tx_dgram_bio_source(txdrv_t *tx)
 {
 	struct attr *attr = tx->opaque;
 
-	return attr->bio;
+	return udp_sched_bio_source(attr->us);
 }
 
 static const struct txdrv_ops tx_dgram_ops = {

@@ -493,6 +493,7 @@ extern const char   *gnet_property_variable_dump_rx_addrs;
 extern const char   *gnet_property_variable_dump_tx_from_addrs;
 extern const char   *gnet_property_variable_dump_tx_to_addrs;
 extern const gboolean gnet_property_variable_guess_maximize_bw;
+extern const guint32  gnet_property_variable_udp_sched_debug;
 
 
 prop_set_t *gnet_prop_init(void);
