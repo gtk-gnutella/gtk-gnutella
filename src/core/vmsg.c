@@ -1160,7 +1160,14 @@ vmsg_build_oob_reply_ind(const struct guid *muid, uint8 hits, bool secure)
 	payload[0] = hits;
 	payload[1] = GNET_PROPERTY(is_udp_firewalled) ? 0x0 : 0x1;
 
-	return gmsg_to_pmsg(v_tmp, msgsize);
+	/*
+	 * The "OOB Reply Indication" (LIME/12) is now sent as a control message.
+	 * We want to get this out to the querying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight.
+	 *		--RAM, 2012-09-16
+	 */
+
+	return gmsg_to_ctrl_pmsg(v_tmp, msgsize);
 }
 
 #define MAX_OOB_TOKEN_SIZE 16
