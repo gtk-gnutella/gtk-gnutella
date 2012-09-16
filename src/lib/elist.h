@@ -72,6 +72,16 @@ elist_check(const elist_t * const el)
 	g_assert(ELIST_MAGIC == el->magic);
 }
 
+static inline bool
+elist_invariant(const elist_t * const list)
+{
+	g_assert(list->count != 0 || (NULL == list->head && NULL == list->tail));
+	g_assert((list->head != list->tail) == (list->count > 1U));
+	g_assert(NULL == list->head || NULL == list->head->prev);
+	g_assert(NULL == list->tail || NULL == list->tail->next);
+	return TRUE;		/* So that we can safety_assert() this routine */
+}
+
 /**
  * Public interface.
  */
@@ -220,7 +230,7 @@ elist_nth_prev(const link_t * const lk, size_t n)
 }
 
 /**
- * @reeturn the data associated with the curernt link, NULL if none.
+ * @return the data associated with the curernt link, NULL if none.
  */
 static inline void *
 elist_data(const elist_t *list, const link_t * const lk)
@@ -261,6 +271,6 @@ void *elist_nth_next_data(const elist_t *list, const link_t *lk, size_t n);
 void *elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n);
 void elist_shuffle(elist_t *list);
 
-#endif /* _erbtree_h_ */
+#endif /* _elist_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
