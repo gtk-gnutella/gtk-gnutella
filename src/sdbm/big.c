@@ -255,7 +255,6 @@ big_open(DBMBIG *dbg)
 	if (-1 == dbg->fd)
 		return -1;
 
-	big_datfile_free_null(&dbg->file);
 	dbg->bitbuf = walloc(BIG_BLKSIZE);
 
 	if (-1 == fstat(dbg->fd, &buf)) {
