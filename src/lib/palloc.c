@@ -477,7 +477,7 @@ pool_reclaim_garbage(pool_t *p)
 	extra = p->allocated - threshold;
 	extra = MIN(extra, p->held);
 
-	if (palloc_debug > 1) {
+	if (palloc_debug) {
 		g_debug("PGC collecting %u extra block%s from \"%s\"",
 			extra, 1 == extra ? "" : "s", p->name);
 	}
