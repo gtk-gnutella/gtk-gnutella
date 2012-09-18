@@ -506,6 +506,16 @@ reset:
 }
 
 /**
+ * Hash list iterator trampoline to reclaim garbage from pool.
+ */
+static void
+pool_gc_trampoline(void *p, void *udata)
+{
+	(void) udata;
+	pool_reclaim_garbage(p);
+}
+
+/**
  * Pool garbage collector.
  *
  * If there are registered pools with identified over-capacity, reclaim the
@@ -516,7 +526,6 @@ pgc(void)
 {
 	static time_t last_run;
 	time_t now;
-	hash_list_iter_t *iter;
 
 	if (NULL == pool_gc)
 		return;
@@ -530,14 +539,7 @@ pgc(void)
 		return;
 	last_run = now;
 
-	iter = hash_list_iterator(pool_gc);
-
-	while (hash_list_iter_has_next(iter)) {
-		pool_t *p = hash_list_iter_next(iter);
-		pool_reclaim_garbage(p);
-	}
-
-	hash_list_iter_release(&iter);
+	hash_list_foreach(pool_gc, pool_gc_trampoline, NULL);
 	hash_list_free(&pool_gc);
 }
 
