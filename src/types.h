@@ -117,6 +117,10 @@ typedef void (*cdata_fn_t)(const void *data, void *udata);
 typedef bool (*data_rm_fn_t)(void *data, void *udata);
 typedef bool (*cdata_rm_fn_t)(const void *data, void *udata);
 
+/* Data structure callback for selection & matching */
+
+typedef bool (*match_fn_t)(const void *data, void *udata);
+
 /* Iterator callbacks for associative arrays, optionally with constant key */
 
 typedef void (*keyval_fn_t)(void *key, void *value, void *data);
