@@ -37,10 +37,10 @@
 #include "xattr.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/nv.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -125,20 +125,20 @@ xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
 	switch (xn->type) {
 	case XNODE_T_ELEMENT:
 		if (xn->u.e.ns_uri != NULL) {
-			return gm_snprintf(buf, len, "<%s:%s%s>",
+			return str_bprintf(buf, len, "<%s:%s%s>",
 				xn->u.e.ns_uri, xn->u.e.name,
 				xn->u.e.attrs != NULL ? " ..." : "");
 		} else {
-			return gm_snprintf(buf, len, "<%s%s>",
+			return str_bprintf(buf, len, "<%s%s>",
 				xn->u.e.name, xn->u.e.attrs != NULL ? " ..." : "");
 		}
 		break;
 	case XNODE_T_COMMENT:
-		return g_strlcpy(buf, "{XML comment node}", len);
+		return str_bprintf(buf, len, "%s", "{XML comment node}");
 	case XNODE_T_PI:
-		return gm_snprintf(buf, len, "<?%s...?>", xn->u.pi.name);
+		return str_bprintf(buf, len, "<?%s...?>", xn->u.pi.name);
 	case XNODE_T_TEXT:
-		return g_strlcpy(buf, "{XML text node}", len);
+		return str_bprintf(buf, len, "%s", "{XML text node}");
 	case XNODE_T_MAX:
 		g_assert_not_reached();
 	}
@@ -894,7 +894,7 @@ xnode_prop_ns_vprintf(xnode_t *element,
 	bool result;
 
 	VA_COPY(args2, args);
-	if (gm_vsnprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
+	if (str_vbprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
 		value = h_strdup_vprintf(fmt, args);
 	} else {
 		value = buf;
