@@ -97,6 +97,7 @@ LSRC = \
 	entropy.c \
 	erbtree.c \
 	eslist.c \
+	etree.c \
 	eval.c \
 	event.c \
 	exit.c \
