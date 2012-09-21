@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Embedded list (within another data structure).
+ * Embedded two-way list (within another data structure).
  *
  * @author Raphael Manfredi
  * @date 2012
