@@ -1844,12 +1844,52 @@ struct http_async {
 
 static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
 
+static void http_async_connected(http_async_t *handle);
+
 static inline void
 http_async_check(const http_async_t *ha)
 {
 	g_assert(ha != NULL);
 	g_assert(HTTP_ASYNC_MAGIC == ha->magic);
 }
+
+/**
+ * Callback invoked when socket is destroyed.
+ */
+static void
+http_async_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	http_async_t *ha = owner;
+
+	http_async_check(ha);
+	g_assert(s == ha->socket);
+
+	(void) reason;
+	http_async_error(ha, HTTP_ASYNC_IO_ERROR);
+}
+
+/**
+ * Callback invoked when socket is connected.
+ */
+static void
+http_async_socket_connected(gnutella_socket_t *s, void *owner)
+{
+	http_async_t *ha = owner;
+
+	http_async_check(ha);
+	g_assert(s == ha->socket);
+
+	http_async_connected(ha);
+}
+
+/**
+ * Socket-layer callbacks for asynchronous HTTP requests.
+ */
+static struct socket_ops http_async_socket_ops = {
+	NULL,							/* connect_failed */
+	http_async_socket_connected,	/* connected */
+	http_async_socket_destroy,		/* destroy */
+};
 
 /**
  * Get URL and request information, given opaque handle.
@@ -2434,8 +2474,6 @@ http_async_create(
 
 	WALLOC0(ha);
 
-	s->resource.handle = ha;
-
 	ha->magic = HTTP_ASYNC_MAGIC;
 	ha->type = type;
 	ha->state = HTTP_AS_CONNECTING;
@@ -2456,6 +2494,8 @@ http_async_create(
 	ha->parent = parent;
 	ha->children = NULL;
 	ha->delayed = NULL;
+
+	socket_attach_ops(s, SOCK_TYPE_HTTP, &http_async_socket_ops, ha);
 
 	if (post_data != NULL) {
 		ha->data = post_data->data;
@@ -3341,7 +3381,7 @@ next_buffer:
  * Callback from the socket layer when the connection to the remote
  * server is made.
  */
-void
+static void
 http_async_connected(http_async_t *ha)
 {
 	struct gnutella_socket *s;
@@ -3353,7 +3393,6 @@ http_async_connected(http_async_t *ha)
 
 	s = ha->socket;
 	socket_check(s);
-	g_assert(s->resource.handle == ha);
 
 	/*
 	 * Build the HTTP request.

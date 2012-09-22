@@ -89,6 +89,7 @@ void download_add_push_proxies(const struct guid *,
 void download_proxy_dht_lookup_done(const struct guid *);
 void download_found_server(const struct guid *,
 	const host_addr_t addr, uint16 port);
+void download_attach_socket(struct download *d, struct gnutella_socket *s);
 
 void download_move_start(struct download *d);
 void download_move_progress(struct download *d, filesize_t copied);

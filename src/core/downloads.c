@@ -3895,7 +3895,8 @@ download_clone(struct download *d)
 	cd->src_handle_valid = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
-	cd->socket->resource.download = cd;	/* Takes ownership of socket */
+	socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
+
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
@@ -4337,6 +4338,101 @@ download_is_special(const struct download *d)
 }
 
 /**
+ * Callback invoked when socket is destroyed.
+ */
+static void
+download_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	download_queue(d, "%s", reason);
+}
+
+/**
+ * Callback invoked when socket is connected.
+ */
+static void
+download_socket_connected(gnutella_socket_t *s, void *owner)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	download_connected(d);
+}
+
+/**
+ * Callback invoked when connection failed.
+ */
+static void
+download_socket_connect_failed(gnutella_socket_t *s, void *owner,
+	const char *errmsg)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	(void) errmsg;
+
+	/*
+	 * Socket will be closed by download_fallback_to_push().
+	 *
+	 * We need to call that routine regardless of whether we are
+	 * firewalled or whether the user denied pushes: that will be
+	 * checked in download_push(), and there is important processing
+	 * that needs to be done by the download layer.
+	 */
+
+	download_fallback_to_push(d, FALSE, FALSE);
+}
+
+/**
+ * Socket-layer callbacks for downloads.
+ */
+static struct socket_ops download_socket_ops = {
+	download_socket_connect_failed,		/* connect_failed */
+	download_socket_connected,			/* connected */
+	download_socket_destroy,			/* destroy */
+};
+
+/**
+ * Attach socket to download on remote connections (QUEUE or GIV callbacks).
+ */
+void
+download_attach_socket(struct download *d, gnutella_socket_t *s)
+{
+	download_check(d);
+
+	if (d->socket != NULL) {			/* Paranoid, defensive programming */
+		g_carp("%s(): download had non-NULL %s socket already (%s)",
+			G_STRFUNC, s == d->socket ? "identical" : "distinct",
+			download_basename(d));
+		if (d->socket != s) {
+			socket_detach_ops(d->socket);
+			socket_free_null(&d->socket);
+		}
+	}
+
+	/*
+	 * At this stage, we already parsed the "GIV" or "QUEUE" indication from
+	 * the socket, so we no longer need its line parser
+	 */
+
+	if (s->getline != NULL) {
+		getline_free(s->getline);
+		s->getline = NULL;
+	}
+
+	d->socket = s;
+	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
+}
+
+/**
  * Switch socket of old download to new one.
  *
  * Caller must then either stop or queue the old download, as appropriate.
@@ -4373,7 +4469,7 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 
 	/* Steal the socket because download_stop() would free it. */
 	s = od->socket;
-	s->resource.download = NULL;
+	socket_detach_ops(s);
 	od->socket = NULL;
 
 	if (s->pos > 0) {
@@ -4383,7 +4479,7 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 	s->pos = 0;
 
 	nd->socket = s;
-	nd->socket->resource.download = nd;
+	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, nd);
 	nd->flags |= DL_F_SWITCHED;
 	if (on_error)
 		nd->flags |= DL_F_FROM_ERROR;
@@ -5798,6 +5894,7 @@ download_connect(struct download *d)
 	struct dl_server *server;
 	uint16 port;
 	uint32 tls = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
+	gnutella_socket_t *s;
 
 	download_check(d);
 
@@ -5846,13 +5943,18 @@ download_connect(struct download *d)
 		d->flags |= DL_F_DNS_LOOKUP;
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
 		server->dns_lookup = tm_time();
-		return socket_connect_by_name(
+		s = socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags | tls);
 	} else {
 		server->last_connect = tm_time();
-		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
+		s = socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
 				d->cflags | tls);
 	}
+
+	if (s != NULL)
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
+
+	return s;
 }
 
 /**
@@ -5972,7 +6074,6 @@ download_start(struct download *d, bool check_allowed)
 			return;
 		}
 
-		d->socket->resource.download = d;
 		d->socket->pos = 0;
 	} else {					/* We have to send a push request */
 		download_set_status(d, GTA_DL_PUSH_SENT);
@@ -9060,7 +9161,7 @@ download_continue(struct download *d, bool trimmed)
 
 	/* Steal the socket because download_stop() would free it. */
 	s = cd->socket;
-	s->resource.download = NULL;
+	socket_detach_ops(s);
 	cd->socket = NULL;
 
 	/*
@@ -9099,7 +9200,7 @@ download_continue(struct download *d, bool trimmed)
 		gnet_stats_count_general(GNR_ATTEMPTED_RESOURCE_SWITCHING, 1);
 
 		next->socket = s;
-		next->socket->resource.download = next;
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, next);
 		next->flags |= DL_F_SWITCHED;
 		if (!download_is_special(cd))
 			next->flags |= DL_F_FROM_PLAIN;
@@ -9114,7 +9215,7 @@ download_continue(struct download *d, bool trimmed)
 	} else if (can_continue) {
 		next = cd;
 		next->socket = s;
-		next->socket->resource.download = next;
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, next);
 	} else {
 		download_stop(cd, GTA_DL_COMPLETED, _("Nothing else to switch to"));
 		socket_free_null(&s);
@@ -13207,14 +13308,6 @@ download_push_ready(struct download *d, getline_t *empty)
 		return;
 	}
 
-	/*
-	 * Free up the s->getline structure which holds the GIV line.
-	 */
-
-	g_assert(d->socket->getline);
-	getline_free(d->socket->getline);
-	d->socket->getline = NULL;
-
 	io_free(d->io_opaque);
 	download_send_request(d);		/* Will install new I/O data */
 }
@@ -13755,7 +13848,7 @@ download_push_ack(struct gnutella_socket *s)
 			giv, download_basename(d), download_host_info(d));
 
 	if (d->io_opaque) {
-		g_warning("d->io_opaque is already set!");
+		g_carp("d->io_opaque is already set!");
 		goto discard;
 	}
 
@@ -13777,8 +13870,8 @@ download_push_ack(struct gnutella_socket *s)
 
 	d->got_giv = TRUE;
 	d->last_update = tm_time();
-	d->socket = s;
-	s->resource.download = d;
+
+	download_attach_socket(d, s);
 
 	/*
 	 * Since we got a GIV, we now know the remote IP of the host and its GUID.
@@ -13807,7 +13900,6 @@ download_push_ack(struct gnutella_socket *s)
 
 discard:
 	gnet_stats_count_general(GNR_GIV_DISCARDED, 1);
-	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
 	socket_free_null(&s);
 }
 

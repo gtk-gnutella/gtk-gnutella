@@ -91,6 +91,8 @@ static void send_pproxy_error(struct pproxy *pp, int code,
 static void pproxy_error_remove(struct pproxy *pp, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
+static struct socket_ops pproxy_socket_ops;
+
 /**
  * Get rid of all the resources attached to the push-proxy struct.
  * But not the structure itself.
@@ -98,16 +100,15 @@ static void pproxy_error_remove(struct pproxy *pp, int code,
 static void
 pproxy_free_resources(struct pproxy *pp)
 {
+	pproxy_check(pp);
+
 	atom_guid_free_null(&pp->guid);
 	if (pp->io_opaque != NULL) {
 		io_free(pp->io_opaque);
 		g_assert(pp->io_opaque == NULL);
 	}
 	atom_str_free_null(&pp->user_agent);
-	if (pp->socket != NULL) {
-		g_assert(pp->socket->resource.pproxy == pp);
-		socket_free_null(&pp->socket);
-	}
+	socket_free_null(&pp->socket);
 }
 
 /**
@@ -185,7 +186,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	const char *logreason;
 	char errbuf[1024];
 
-	g_assert(pp != NULL);
+	pproxy_check(pp);
 
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof errbuf , reason, ap);
@@ -214,6 +215,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	}
 
 	pproxy_free_resources(pp);
+	pp->magic = 0;
 	WFREE(pp);
 
 	pproxies = g_slist_remove(pproxies, pp);
@@ -225,7 +227,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
  * If no status has been sent back on the HTTP stream yet, give
  * them a 400 error with the reason.
  */
-void
+void G_GNUC_PRINTF(2, 3)
 pproxy_remove(struct pproxy *pp, const char *reason, ...)
 {
 	va_list args;
@@ -245,7 +247,7 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 {
 	va_list args, errargs;
 
-	g_assert(pp != NULL);
+	pproxy_check(pp);
 
 	va_start(args, msg);
 
@@ -268,6 +270,8 @@ pproxy_timer(time_t now)
 
 	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
 		struct pproxy *pp = sl->data;
+
+		pproxy_check(pp);
 
 		/*
 		 * We can't call pproxy_remove() since it will remove the structure
@@ -299,10 +303,12 @@ pproxy_create(struct gnutella_socket *s)
 	struct pproxy *pp;
 
 	WALLOC0(pp);
+	pp->magic = PPROXY_MAGIC;
 	pp->socket = s;
 	pp->flags = 0; /* XXX: TLS? */
 	pp->last_update = tm_time();
-	s->resource.pproxy = pp;
+
+	socket_attach_ops(s, SOCK_TYPE_PPROXY, &pproxy_socket_ops, pp);
 
 	return pp;
 }
@@ -987,6 +993,29 @@ call_pproxy_request(void *obj, header_t *header)
 }
 
 /**
+ * Callback invoked when the push-proxy socket is destroyed.
+ */
+static void
+pproxy_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	struct pproxy *pp = owner;
+
+	pproxy_check(pp);
+	g_assert(s == pp->socket);
+
+	pproxy_remove(pp, "%s", reason);
+}
+
+/**
+ * Server-side push-proxy socket callbacks.
+ */
+static struct socket_ops pproxy_socket_ops = {
+	NULL,						/* connect_failed */
+	NULL,						/* connected */
+	pproxy_socket_destroy,		/* destroy */
+};
+
+/**
  * Create new push-proxy request and begin reading HTTP headers.
  */
 void
@@ -1019,6 +1048,7 @@ pproxy_close(void)
 		struct pproxy *pp = l->data;
 
 		pproxy_free_resources(pp);
+		pp->magic = 0;
 		WFREE(pp);
 	}
 

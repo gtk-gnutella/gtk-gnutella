@@ -1321,29 +1321,17 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (download_start_prepare(dl)) {
-		struct gnutella_socket *ds = dl->socket;
-		dl->socket = s;
-		ds = s;
+		download_attach_socket(dl, s);
 
-		getline_free(ds->getline);		/* No longer need this */
-		ds->getline = NULL;
-
-
-  		g_assert(dl->socket != NULL);
 		dl->last_update = tm_time();
-		s->resource.download = dl;
-
-		/* Resend request for download */
-		download_send_request(dl);
+		download_send_request(dl);		/* Resend request for download */
 	}
 
 	return;
 
 ignore:
 	gnet_stats_count_general(GNR_QUEUE_DISCARDED, 1);
-	g_assert(s->resource.download == NULL); /* Hence socket_free() allowed */
 	socket_free_null(&s);
-	return;
 }
 
 /***

@@ -1307,6 +1307,54 @@ socket_closedown(void)
 /* ----------------------------------------- */
 
 /**
+ * Attach operation callbacks to non-UDP socket, superseding its type.
+ *
+ * @param s		the socket (TCP or LOCAL, not UDP)
+ * @param type	new socket type (for logging mostly)
+ * @param ops	operation callbacks to install
+ * @param owner	socket owner, passed to callback in addition to socket
+ */
+void
+socket_attach_ops(gnutella_socket_t *s,
+	enum socket_type type, struct socket_ops *ops, void *owner)
+{
+	socket_check(s);
+	g_assert(!(s->flags & SOCK_F_UDP));
+	g_assert(ops != NULL);
+	
+	if (NULL == s->resource.tcp)
+		WALLOC(s->resource.tcp);
+
+	s->resource.tcp->owner = owner;
+	s->resource.tcp->ops = ops;
+	s->type = type;
+}
+
+/**
+ * Detach operation callbacks from non-UDP socket.
+ */
+void
+socket_detach_ops(gnutella_socket_t *s)
+{
+	socket_check(s);
+	g_assert(!(s->flags & SOCK_F_UDP));
+
+	WFREE_TYPE_NULL(s->resource.tcp);
+}
+
+/**
+ * Change owner of non-UDP socket.
+ */
+void
+socket_change_owner(gnutella_socket_t *s, void *owner)
+{
+	socket_check(s);
+	g_assert(s->resource.tcp != NULL);
+
+	s->resource.tcp->owner = owner;
+}
+
+/**
  * Destroy a socket.
  *
  * If there is an attached resource, call the resource's termination routine
@@ -1323,37 +1371,18 @@ socket_destroy(struct gnutella_socket *s, const char *reason)
 	 */
 
 	switch (s->type) {
-	case SOCK_TYPE_CONTROL:
-		if (s->resource.node) {
-			node_remove(s->resource.node, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_DOWNLOAD:
-		if (s->resource.download) {
-			download_queue(s->resource.download, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_UPLOAD:
-		if (s->resource.upload) {
-			upload_remove(s->resource.upload, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_PPROXY:
-		if (s->resource.pproxy) {
-			pproxy_remove(s->resource.pproxy, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_HTTP:
-		if (s->resource.handle) {
-			http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
-			return;
-		}
+	case SOCK_TYPE_UDP:
 		break;
 	default:
+		/*
+		 * Invoke optional destruction callback installed by the owner of
+		 * the socket, which must then invoke socket_free_null() itself.
+		 */
+
+		if (s->resource.tcp != NULL && s->resource.tcp->ops->destroy != NULL) {
+			(*s->resource.tcp->ops->destroy)(s, s->resource.tcp->owner, reason);
+			return;
+		}
 		break;
 	}
 
@@ -1385,7 +1414,10 @@ socket_free(struct gnutella_socket *s)
 			WFREE_NULL(s->resource.udp->socket_addr, sizeof(socket_addr_t));
 			WFREE(s->resource.udp);
 		}
+	} else {
+		WFREE_TYPE_NULL(s->resource.tcp);
 	}
+
 	if (s->last_update) {
 		g_assert(sl_incoming);
 		sl_incoming = g_slist_remove(sl_incoming, s);
@@ -1836,20 +1868,16 @@ cleanup:
 static void
 socket_connection_failed(struct gnutella_socket *s, const char *errmsg)
 {
-	if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download != NULL) {
-		/*
-		 * Socket will be closed by download_fallback_to_push().
-		 *
-		 * We need to call that routine regardless of whether we are
-		 * firewalled or whether the user denied pushes: that will be
-		 * checked in download_push(), and there is important processing
-		 * that needs to be done by the download layer.
-		 */
-		g_assert(s->resource.download->socket == s);
-		download_fallback_to_push(s->resource.download, FALSE, FALSE);
-	} else {
-		socket_destroy(s, errmsg);
+	if (
+		s->resource.tcp != NULL &&
+		s->resource.tcp->ops->connect_failed != NULL
+	) {
+		(*s->resource.tcp->ops->connect_failed)(s,
+			s->resource.tcp->owner, errmsg);
+		return;		/* Socket destroyed by callback */
 	}
+
+	socket_destroy(s, errmsg);
 }
 
 /**
@@ -2025,53 +2053,17 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 
 		guess_local_addr(s);
 
-		switch (s->type) {
-		case SOCK_TYPE_CONTROL:
-			{
-				struct gnutella_node *n = s->resource.node;
+		/*
+		 * Notify owner about connection success.
+		 */
 
-				g_assert(n->socket == s);
-				node_init_outgoing(n);
-			}
-			break;
-
-		case SOCK_TYPE_DOWNLOAD:
-			{
-				struct download *d = s->resource.download;
-
-				g_assert(d->socket == s);
-				download_connected(d);
-			}
-			break;
-
-		case SOCK_TYPE_UPLOAD:
-			{
-				struct upload *u = s->resource.upload;
-
-				g_assert(u->socket == s);
-				upload_connect_conf(u);
-			}
-			break;
-
-		case SOCK_TYPE_HTTP:
-			http_async_connected(s->resource.handle);
-			break;
-
-		case SOCK_TYPE_CONNBACK:
-			node_connected_back(s);
-			break;
-
-        case SOCK_TYPE_SHELL:
-            g_assert_not_reached(); /* FIXME: add code here? */
-            break;
-
-		default:
-			g_warning("%s(): unknown socket type %d !", G_STRFUNC, s->type);
-			socket_destroy(s, NULL);		/* ? */
-			break;
+		if (
+			s->resource.tcp != NULL &&
+			s->resource.tcp->ops->connected != NULL
+		) {
+			(*s->resource.tcp->ops->connected)(s, s->resource.tcp->owner);
 		}
 	}
-
 }
 
 /**

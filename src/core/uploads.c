@@ -202,6 +202,7 @@ static void upload_writable(void *up, int source, inputevt_cond_t cond);
 static void upload_special_writable(void *up);
 static void send_upload_error(struct upload *u, int code,
 			const char *msg, ...) G_GNUC_PRINTF(3, 4);
+static void upload_connect_conf(struct upload *u);
 
 /***
  *** Callbacks
@@ -872,6 +873,43 @@ upload_free(struct upload **ptr)
 }
 
 /**
+ * Callback invoked when socket is destroyed.
+ */
+static void
+upload_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	struct upload *u = owner;
+
+	upload_check(u);
+	g_assert(s == u->socket);
+
+	upload_remove(u, "%s", reason);
+}
+
+/**
+ * Callback invoked when socket is connected.
+ */
+static void
+upload_socket_connected(gnutella_socket_t *s, void *owner)
+{
+	struct upload *u = owner;
+
+	upload_check(u);
+	g_assert(s == u->socket);
+
+	upload_connect_conf(u);
+}
+
+/**
+ * Socket-layer callbacks for uploads.
+ */
+static struct socket_ops upload_socket_ops = {
+	NULL,						/* connect_failed */
+	upload_socket_connected,	/* connected */
+	upload_socket_destroy,		/* destroy */
+};
+
+/**
  * Create a new upload structure, linked to a socket.
  */
 struct upload *
@@ -885,13 +923,13 @@ upload_create(struct gnutella_socket *s, bool push)
 	u->socket = s;
     u->addr = s->addr;
 	u->country = gip_country(u->addr);
-	s->resource.upload = u;
-
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
 	u->start_date = tm_time();
 	u->last_update = u->start_date;
 	u->parq_status = FALSE;
+
+	socket_attach_ops(s, SOCK_TYPE_UPLOAD, &upload_socket_ops, u);
 
 	/*
 	 * Add the upload structure to the upload slist, so it's monitored
@@ -1194,10 +1232,7 @@ upload_free_resources(struct upload *u)
 	 * Close the socket at last because update_poll_event() needs a valid fd
 	 * and some of the above may cause a close(u->socket->fd).
 	 */
-	if (u->socket != NULL) {
-		g_assert(u->socket->resource.upload == u);
-		socket_free_null(&u->socket);
-	}
+	socket_free_null(&u->socket);
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	HFREE_NULL(u->request);
@@ -1244,13 +1279,14 @@ upload_clone(struct upload *u)
 	cu->sf = NULL;						/* File re-opened each time */
 	cu->file = NULL;					/* File re-opened each time */
 	cu->sendfile_ctx.map = NULL;		/* File re-opened each time */
-	cu->socket->resource.upload = cu;	/* Takes ownership of socket */
 	cu->accounted = FALSE;
 	cu->browse_host = FALSE;
     cu->skip = 0;
     cu->end = 0;
 	cu->sent = 0;
 	cu->hevcnt = 0;
+
+	socket_change_owner(cu->socket, cu);	/* Takes ownership of socket */
 
 	/*
 	 * This information is required to have proper GUI information displayed
@@ -2631,8 +2667,6 @@ upload_add(struct gnutella_socket *s)
 {
 	struct upload *u;
 
-	s->type = SOCK_TYPE_UPLOAD;
-
 	u = upload_create(s, FALSE);
 
 	/*
@@ -2666,7 +2700,6 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
 	io_start_cb_t start_cb = NULL;
 
 	upload_check(u);
-	g_assert(s->resource.upload == u);
 	g_assert(NULL == u->file);		/* File not opened */
 
 	/*
@@ -2725,7 +2758,7 @@ expect_http_header(struct upload *u, upload_stage_t new_status)
  * Got confirmation that the connection to the remote host was OK.
  * Send the GIV/QUEUE string, then prepare receiving back the HTTP request.
  */
-void
+static void
 upload_connect_conf(struct upload *u)
 {
 	char giv[MAX_LINE_SIZE];

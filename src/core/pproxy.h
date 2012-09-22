@@ -47,10 +47,13 @@ struct guid;
  *** Server side
  ***/
 
+enum pproxy_magic { PPROXY_MAGIC = 0x037fa833 };
+
 /**
  * A push proxy request we received.
  */
 struct pproxy {
+	enum pproxy_magic magic;
 	struct gnutella_socket *socket;
 	int error_sent;		/**< HTTP error code sent back */
 	time_t last_update;
@@ -65,11 +68,16 @@ struct pproxy {
 	void *io_opaque;		/**< Opaque I/O callback information */
 };
 
+static inline void
+pproxy_check(const struct pproxy * const p)
+{
+	g_assert(p != NULL);
+	g_assert(PPROXY_MAGIC == p->magic);
+}
+
 #define pproxy_vendor_str(p)	((p)->user_agent ? (p)->user_agent : "")
 
 void pproxy_add(struct gnutella_socket *s);
-void pproxy_remove(struct pproxy *pp,
-	const char *reason, ...) G_GNUC_PRINTF(2, 3);
 void pproxy_timer(time_t now);
 void pproxy_close(void);
 

@@ -263,6 +263,7 @@ static time_t no_leaves_connected = 0;
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
 
 static query_hashvec_t *query_hashvec;
+static struct socket_ops node_socket_ops;
 
 static void node_disable_read(struct gnutella_node *n);
 static bool node_data_ind(rxdrv_t *rx, pmsg_t *mb);
@@ -282,6 +283,7 @@ static gnutella_node_t *node_browse_create(void);
 static bool node_remove_useless_leaf(bool *is_gtkg);
 static bool node_remove_useless_ultra(bool *is_gtkg);
 static bool node_remove_uncompressed_ultra(bool *is_gtkg);
+static void node_init_outgoing(struct gnutella_node *n);
 
 /***
  *** Callbacks
@@ -2071,11 +2073,7 @@ node_remove_v(struct gnutella_node *n, const char *reason, va_list ap)
 	if (n->outq)				/* TX stack freed by node_real_remove() */
 		mq_shutdown(n->outq);	/* Prevents any further output */
 
-	if (n->socket) {
-		socket_check(n->socket);
-		g_assert(n->socket->resource.node == n);
-		socket_free_null(&n->socket);
-	}
+	socket_free_null(&n->socket);
 
 	if (n->flags & (NODE_F_EOF_WAIT|NODE_F_BYE_WAIT)) {
 		g_assert(pending_byes > 0);
@@ -7149,8 +7147,6 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	uint major = 0, minor = 0;
 	bool forced = 0 != (SOCK_F_FORCE & flags);
 
-	g_assert(s == NULL || s->resource.node == NULL);
-
 	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
 	/*
@@ -7260,8 +7256,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 	if (incoming) {
 		/* This is an incoming control connection */
 		n->socket = s;
-		s->resource.node = n;
-		s->type = SOCK_TYPE_CONTROL;
+		socket_attach_ops(s, SOCK_TYPE_CONTROL, &node_socket_ops, n);
 		n->status = (major > 0 || minor > 4) ?
 			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
 
@@ -7293,7 +7288,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 
 		if (s) {
 			n->status = GTA_NODE_CONNECTING;
-			s->resource.node = n;
+			socket_attach_ops(s, SOCK_TYPE_CONTROL, &node_socket_ops, n);
 			n->socket = s;
 			n->gnet_addr = addr;
 			n->gnet_port = port;
@@ -8166,7 +8161,7 @@ proceed:
 /**
  * Called when asynchronous connection to an outgoing node is established.
  */
-void
+static void
 node_init_outgoing(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
@@ -10316,6 +10311,34 @@ node_id_infostr(const struct nid *node_id)
 }
 
 /**
+ * Callback invoked from the socket layer when we are finally connected.
+ */
+static void
+node_connected_back(struct gnutella_socket *s, void *owner)
+{
+	static char msg[] = "\n\n";
+
+	g_assert(NULL == owner);
+
+	if (GNET_PROPERTY(node_debug) > 4)
+		g_debug("connected back to %s",
+			host_addr_port_to_string(s->addr, s->port));
+
+	(void) bws_write(BSCHED_BWS_OUT, &s->wio, msg, sizeof msg - 1);
+
+	socket_free_null(&s);
+}
+
+/**
+ * Socket callbacks for node connect backs.
+ */
+static struct socket_ops node_connect_back_socket_ops = {
+	NULL,						/* connect_failed */
+	node_connected_back,		/* connected */
+	NULL,						/* destroy */
+};
+
+/**
  * Connect back to node on specified port and emit a "\n\n" sequence.
  *
  * This is called when a "Connect Back" vendor-specific message (BEAR/7v1)
@@ -10325,6 +10348,8 @@ node_id_infostr(const struct nid *node_id)
 void
 node_connect_back(const gnutella_node_t *n, uint16 port)
 {
+	gnutella_socket_t *s;
+
 	/*
 	 * Attempt asynchronous connection.
 	 *
@@ -10332,28 +10357,16 @@ node_connect_back(const gnutella_node_t *n, uint16 port)
 	 * from the socket layer.
 	 */
 
-	(void)socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, SOCK_F_TLS);
+	s = socket_connect(n->addr, port, SOCK_TYPE_CONNBACK, SOCK_F_TLS);
 
 	/*
 	 * There is no specific resource attached to the socket.
 	 */
-}
 
-/**
- * Callback invoked from the socket layer when we are finally connected.
- */
-void
-node_connected_back(struct gnutella_socket *s)
-{
-	static char msg[] = "\n\n";
-
-	if (GNET_PROPERTY(node_debug) > 4)
-		g_debug("connected back to %s",
-			host_addr_port_to_string(s->addr, s->port));
-
-	(void) bws_write(BSCHED_BWS_OUT, &s->wio, msg, sizeof msg - 1);
-
-	socket_free_null(&s);
+	if (s != NULL) {
+		socket_attach_ops(s, SOCK_TYPE_CONNBACK,
+			&node_connect_back_socket_ops, NULL);
+	}
 }
 
 /**
@@ -11446,5 +11459,43 @@ node_post_init(void)
 		node_dht_enable();
 	}
 }
+
+/***
+ *** Socket callbacks for nodes.
+ ***/
+
+/**
+ * Callback invoked when node connection is established.
+ */
+static void
+node_socket_connected(gnutella_socket_t *s, void *owner)
+{
+	gnutella_node_t *n = owner;
+
+	node_check(n);
+	g_assert(s == n->socket);
+
+	node_init_outgoing(n);
+}
+
+/**
+ * Callback invoked when the node's socket is destroyed.
+ */
+static void
+node_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	gnutella_node_t *n = owner;
+
+	node_check(n);
+	g_assert(s == n->socket);
+
+	node_remove(n, "%s", reason);
+}
+
+static struct socket_ops node_socket_ops = {
+	NULL,					/* connect_failed */
+	node_socket_connected,	/* connected */
+	node_socket_destroy,	/* destroy */
+};
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -581,7 +581,6 @@ void node_shutdown(struct gnutella_node *n,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_bye_if_writable(struct gnutella_node *n, int code,
 	const char * reason, ...) G_GNUC_PRINTF(3, 4);
-void node_init_outgoing(struct gnutella_node *);
 void node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
@@ -613,6 +612,7 @@ void node_sent_accounting(gnutella_node_t *n, uint8 function,
 	const void *mb_start, int mb_size);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
+void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_set_hops_flow(gnutella_node_t *n, uint8 hops);
 void node_set_online_mode(bool on);
@@ -624,9 +624,6 @@ const char *node_infostr(const gnutella_node_t *n);
 const char *node_id_infostr(const struct nid *node_id);
 
 void node_connect_back(const gnutella_node_t *n, uint16 port);
-void node_connected_back(struct gnutella_socket *s);
-
-void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_proxying_remove(gnutella_node_t *n);
 bool node_proxying_add(gnutella_node_t *n, const struct guid *guid);
