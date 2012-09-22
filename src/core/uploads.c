@@ -5534,7 +5534,7 @@ upload_init(void)
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
-	upload_handle_map = idtable_new();
+	upload_handle_map = idtable_new(32);
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 

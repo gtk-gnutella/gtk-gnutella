@@ -4112,7 +4112,7 @@ G_GNUC_COLD void
 search_init(void)
 {
 	search_by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	search_handle_map = idtable_new();
+	search_handle_map = idtable_new(32);
 	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
