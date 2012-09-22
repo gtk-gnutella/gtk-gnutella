@@ -189,10 +189,18 @@ G_STMT_START {				\
 	wfree0(p, sizeof *p);	\
 } G_STMT_END
 
+#define WFREE_TYPE_NULL(p)	\
+G_STMT_START {				\
+	if (p) {				\
+		wfree(p, sizeof *p);\
+		p = NULL;			\
+	}						\
+} G_STMT_END
+
 #define WFREE_NULL(p,size)	\
 G_STMT_START {				\
 	if (p) {				\
-		wfree(p,size);		\
+		wfree(p, size);		\
 		p = NULL;			\
 	}						\
 } G_STMT_END
