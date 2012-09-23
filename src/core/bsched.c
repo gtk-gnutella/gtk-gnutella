@@ -805,6 +805,7 @@ bio_trigger(const bio_source_t *bio)
 	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback != NULL);
 	g_assert(bio->flags & BIO_F_PASSIVE);
+	wrap_io_check(bio->wio);
 
 	(*bio->io_callback)(bio->io_arg, bio->wio->fd(bio->wio),
 		(bio->flags & BIO_F_READ) ? INPUT_EVENT_R : INPUT_EVENT_W);
@@ -820,6 +821,7 @@ bio_enable(bio_source_t *bio)
 	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
+	wrap_io_check(bio->wio);
 
 	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
 			(bio->flags & BIO_F_READ) ? INPUT_EVENT_RX : INPUT_EVENT_WX,
@@ -837,6 +839,7 @@ unsigned
 bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type)
 {
 	bio_check(bio);
+	wrap_io_check(bio->wio);
 	return bio->wio->bufsize(bio->wio, type);
 }
 
@@ -1026,10 +1029,11 @@ bsched_begin_timeslice(bsched_t *bs)
 
 		bio_check(bio);
 
-		last = iter;		/* Remember last seen source  for rotation */
+		last = iter;		/* Remember last seen source for rotation */
 		count++;			/* Count them for assertion */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
+
 		if (bio->io_tag == 0 && bio->io_callback) {
 			if (bio->flags & BIO_F_PASSIVE)
 				trigger = g_slist_prepend(trigger, bio);
@@ -1227,6 +1231,8 @@ bsched_source_add(
 	bio_source_t *bio;
 	bsched_t *bs;
 
+	wrap_io_check(wio);
+
 	/*
 	 * Must insert reading sources in reading scheduler and writing ones
 	 * in a writing scheduler.
@@ -1342,6 +1348,7 @@ bw_available(bio_source_t *bio, int len)
 	bool favoured;
 
 	bio_check(bio);
+	wrap_io_check(bio->wio);	/* Make sure socket still allocated */
 
 	bs = bsched_get(bio->bws);
 
@@ -1983,7 +1990,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 	g_assert(ctx);
 	bio_check(bio);
-	g_assert(bio->wio);
+	wrap_io_check(bio->wio);
 	g_assert(bio->flags & BIO_F_WRITE);
 	g_assert(offset);
 	g_assert(len > 0);
@@ -2343,7 +2350,7 @@ bws_write(bsched_bws_t bws, wrap_io_t *wio, const void *data, size_t len)
 	bs = bsched_get(bws);
 
 	g_assert(bs->flags & BS_F_WRITE);
-	g_assert(wio);
+	wrap_io_check(wio);
 	g_assert(wio->write);
 	g_assert(len <= INT_MAX);
 
@@ -2368,7 +2375,7 @@ bws_read(bsched_bws_t bws, wrap_io_t *wio, void *data, size_t len)
 	bs = bsched_get(bws);
 
 	g_assert(bs->flags & BS_F_READ);
-	g_assert(wio);
+	wrap_io_check(wio);
 	g_assert(wio->read);
 	g_assert(len <= INT_MAX);
 
