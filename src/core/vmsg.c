@@ -1302,7 +1302,15 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 	vmsg_advertise_udp_compression(v_tmp_header);	/* Can deflate UDP */
 	gnutella_header_set_muid(v_tmp_header, muid);
 
-	udp_send_msg(n, v_tmp, msgsize);
+	/*
+	 * The "OOB Reply ACK" message (LIME/11) is now sent as a control message.
+	 * We want to get this out to the replying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight,
+	 * minimizing the chances of it being dropped.
+	 *		--RAM, 2012-09-23
+	 */
+
+	udp_ctrl_send_msg(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s",
