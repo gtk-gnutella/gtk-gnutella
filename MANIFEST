@@ -91,6 +91,7 @@ doc/gnutella/ping-pong
 doc/gnutella/push_proxy
 doc/gnutella/push_url
 doc/gnutella/query_keys
+doc/gnutella/udp_transceiver
 doc/gnutella/ultra-peers
 doc/gnutella/ultrapeer_qrp
 doc/gnutella/vendor_msg
