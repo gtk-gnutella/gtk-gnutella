@@ -1891,6 +1891,13 @@ guess_hosts_reply(enum udp_ping_ret type,
 		/*
 		 * Host did not reply, delete cached entry, if any.
 		 */
+
+		if G_UNLIKELY(NULL == alive_cache) {
+			/* We're probably coming from udp_close(), expiring old pings */
+			atom_host_free(h);
+			return;		/* GUESS layer already shutdown */
+		}
+
 		guess_remove_link_cache(h);
 		guess_timeout_from(h);
 
