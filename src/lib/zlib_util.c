@@ -44,6 +44,59 @@
 
 #define OUT_GROW	1024		/**< To grow output buffer if it's to short */
 
+enum zlib_deflater_magic { ZLIB_DEFLATER_MAGIC = 0x22a22f45 };
+
+/**
+ * Incremental deflater stream.
+ */
+struct zlib_deflater {
+	enum zlib_deflater_magic magic;
+	const void *in;		/**< Buffer being compressed */
+	int inlen;			/**< Length of input buffer */
+	void *out;			/**< Compressed data */
+	int outlen;			/**< Length of ouput buffer */
+	int inlen_total;	/**< Total input length seen */
+	void *opaque;		/**< Internal data structures */
+	uint allocated:1;	/**< Is output buffer was allocated or static? */
+	uint closed:1;		/**< Whether the stream was closed */
+};
+
+static inline void
+zlib_deflater_check(const struct zlib_deflater * const zd)
+{
+	g_assert(zd != NULL);
+	g_assert(ZLIB_DEFLATER_MAGIC == zd->magic);
+}
+
+void *
+zlib_deflater_out(const struct zlib_deflater *zd)
+{
+	zlib_deflater_check(zd);
+	return zd->out;
+}
+
+int
+zlib_deflater_outlen(const struct zlib_deflater *zd)
+{
+	zlib_deflater_check(zd);
+	g_assert(zd->closed);
+	return zd->outlen;
+}
+
+int
+zlib_deflater_inlen(const struct zlib_deflater *zd)
+{
+	zlib_deflater_check(zd);
+	return zd->inlen_total;
+}
+
+bool
+zlib_deflater_closed(const struct zlib_deflater *zd)
+{
+	zlib_deflater_check(zd);
+	return zd->closed;
+}
+
 /**
  * Maps the given error code to an error message.
  *
@@ -88,6 +141,72 @@ zlib_free_func(void *unused_opaque, void *p)
 }
 
 /**
+ * Initialize internal state for our incremental zlib deflater.
+ *
+ * @param data		data to compress; if NULL, will be incrementally given
+ * @param len		length of data to compress (if data not NULL) or estimation
+ * @param dest		where compressed data should go, or NULL if allocated
+ * @param destlen	length of supplied output buffer, if dest != NULL
+ */
+static void
+zlib_deflater_init(zlib_deflater_t *zd,
+	const void *data, int len, void *dest, int destlen)
+{
+	z_streamp outz;
+
+	zlib_deflater_check(zd);
+	g_assert(len >= 0);
+	g_assert(destlen >= 0);
+
+	zd->in = data;
+	zd->inlen = data ? len : 0;
+	zd->inlen_total = zd->inlen;
+
+	/*
+	 * zlib requires normally 0.1% more + 12 bytes, we use 0.5% to be safe.
+	 *
+	 * NB: strictly speaking, we shouldn't need to store this information
+	 * here, we could rely on the information in the Z stream.  However, to
+	 * be able to inspect what's going on and add assertions, let's be
+	 * redundant.
+	 */
+
+	if (dest == NULL) {
+		/* Compressed data go to a dynamically allocated buffer */
+		if (!zd->allocated) {
+			if (data == NULL && len == 0)
+				len = 512;
+
+			zd->outlen = (unsigned) (UNSIGNED(len) * 1.005 + 12.0);
+			g_assert(zd->outlen > len);
+			g_assert(zd->outlen - len >= 12);
+
+			zd->out = halloc(zd->outlen);
+			zd->allocated = TRUE;
+		}
+	} else {
+		/* Compressed data go to a supplied buffer, not-resizable */
+		if (zd->allocated)
+			hfree(zd->out);
+		zd->out = dest;
+		zd->outlen = destlen;
+		zd->allocated = FALSE;
+	}
+
+	/*
+	 * Initialize Z stream.
+	 */
+
+	outz = zd->opaque;
+	g_assert(outz != NULL);			/* Stream not closed yet */
+
+	outz->next_out = zd->out;
+	outz->avail_out = zd->outlen;
+	outz->next_in = deconstify_pointer(zd->in);
+	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
+}
+
+/**
  * Creates an incremental zlib deflater for `len' bytes starting at `data',
  * with specified compression `level'.
  *
@@ -120,55 +239,71 @@ zlib_deflater_alloc(
 
 	if (ret != Z_OK) {
 		WFREE(outz);
-		g_carp("unable to initialize compressor: %s", zlib_strerror(ret));
+		g_carp("%s(): unable to initialize compressor: %s",
+			G_STRFUNC, zlib_strerror(ret));
 		return NULL;
 	}
 
-	WALLOC(zd);
+	WALLOC0(zd);
+	zd->magic = ZLIB_DEFLATER_MAGIC;
 	zd->opaque = outz;
 	zd->closed = FALSE;
 
-	zd->in = data;
-	zd->inlen = data ? len : 0;
-	zd->inlen_total = zd->inlen;
-
-	/*
-	 * zlib requires normally 0.1% more + 12 bytes, we use 0.5% to be safe.
-	 *
-	 * NB: strictly speaking, we shouldn't need to store this information
-	 * here, we could rely on the information in the Z stream.  However, to
-	 * be able to inspect what's going on and add assertions, let's be
-	 * redundant.
-	 */
-
-	if (dest == NULL) {
-		/* Compressed data go to a dynamically allocated buffer */
-		if (data == NULL && len == 0)
-			len = 512;
-
-		zd->outlen = (unsigned) (UNSIGNED(len) * 1.005 + 12.0);
-		g_assert(zd->outlen > len);
-		g_assert(zd->outlen - len >= 12);
-
-		zd->out = halloc(zd->outlen);
-		zd->allocated = TRUE;
-	} else {
-		/* Compressed data go to a supplied buffer, not-resizable */
-		zd->out = dest;
-		zd->outlen = destlen;
-		zd->allocated = FALSE;
-	}
-
-	/*
-	 * Initialize Z stream.
-	 */
-
-	outz->next_out = zd->out;
-	outz->avail_out = zd->outlen;
-	outz->next_in = deconstify_pointer(zd->in);
-	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
+	zlib_deflater_init(zd, data, len, dest, destlen);
 
 	return zd;
+}
+
+/**
+ * Reset an incremental zlib deflater.
+ *
+ * The compression parameters remain the same as the ones used when the
+ * deflater was initially created.  Only the input/output settings change.
+ *
+ * @param data		data to compress; if NULL, will be incrementally given
+ * @param len		length of data to compress (if data not NULL) or estimation
+ * @param dest		where compressed data should go, or NULL if allocated
+ * @param destlen	length of supplied output buffer, if dest != NULL
+ */
+void
+zlib_deflater_reset_into(zlib_deflater_t *zd,
+	const void *data, int len, void *dest, int destlen)
+{
+	z_streamp outz;
+
+	zlib_deflater_check(zd);
+
+	outz = zd->opaque;
+	g_assert(outz != NULL);			/* Stream not closed yet */
+
+	zd->closed = FALSE;
+	deflateReset(outz);
+	zlib_deflater_init(zd, data, len, dest, destlen);
+}
+
+/**
+ * Reset an incremental zlib deflater whose output goes to a dynamically
+ * allocated message.
+ *
+ * The compression parameters remain the same as the ones used when the
+ * deflater was initially created.  Only the input/output settings change.
+ *
+ * @param data		data to compress; if NULL, will be incrementally given
+ * @param len		length of data to compress (if data not NULL) or estimation
+ */
+void
+zlib_deflater_reset(zlib_deflater_t *zd, const void *data, int len)
+{
+	z_streamp outz;
+
+	zlib_deflater_check(zd);
+
+	outz = zd->opaque;
+	g_assert(outz != NULL);			/* Stream not closed yet */
+
+	zd->closed = FALSE;
+	deflateReset(outz);
+	zlib_deflater_init(zd, data, len, NULL, 0);
 }
 
 /**
@@ -215,17 +350,21 @@ zlib_deflater_make_into(
  *
  * @return -1 on error, 1 if work remains, 0 when done.
  */
-static int
+int
 zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 {
-	z_streamp outz = zd->opaque;
+	z_streamp outz;
 	int remaining;
 	int process;
 	bool finishing;
 	int ret;
 
+	zlib_deflater_check(zd);
+
 	g_assert(amount > 0);
 	g_assert(!zd->closed);
+
+	outz = zd->opaque;
 	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	/*
@@ -236,7 +375,7 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 	g_assert(remaining >= 0);
 
 	process = MIN(remaining, amount);
-	finishing = process == remaining && may_close;
+	finishing = process == remaining;
 
 	/*
 	 * Process data.
@@ -244,21 +383,23 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 
 	outz->avail_in = process;
 
+resume:
 	ret = deflate(outz, finishing ? Z_FINISH : 0);
 
 	switch (ret) {
 	case Z_OK:
-		if (outz->avail_out == 0) {
-			g_carp("under-estimated output buffer size: input=%d, output=%d",
-				zd->inlen, zd->outlen);
-
+		if (0 == outz->avail_out) {
 			if (zd->allocated) {
 				zd->outlen += OUT_GROW;
 				zd->out = hrealloc(zd->out, zd->outlen);
-				outz->next_out = (uchar *) zd->out + (zd->outlen - OUT_GROW);
+				outz->next_out = ptr_add_offset(zd->out, zd->outlen - OUT_GROW);
 				outz->avail_out = OUT_GROW;
-			} else
+				goto resume;	/* Process remaining input */
+			} else {
+				g_carp("%s(): under-estimated output buffer size: "
+					"input=%d, output=%d", G_STRFUNC, zd->inlen, zd->outlen);
 				goto error;		/* Cannot continue */
+			}
 		}
 
 		return 1;				/* Need to call us again */
@@ -267,32 +408,46 @@ zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 	case Z_STREAM_END:
 		g_assert(finishing);
 
-		zd->outlen = (char *) outz->next_out - (char *) zd->out;
+		/*
+		 * Supersede the output length to let them probe how much data
+		 * was compressed once the stream is closed, through calls to
+		 * zlib_deflater_outlen().
+		 */
+
+		zd->outlen = ptr_diff(outz->next_out, zd->out);
 		g_assert(zd->outlen > 0);
 
-		ret = deflateEnd(outz);
-		if (ret != Z_OK)
-			g_carp("while freeing compressor: %s", zlib_strerror(ret));
+		if (may_close) {
+			ret = deflateEnd(outz);
+			if (ret != Z_OK) {
+				g_carp("%s(): while freeing compressor: %s",
+					G_STRFUNC, zlib_strerror(ret));
+			}
+			WFREE(outz);
+			zd->opaque = NULL;
+		}
 
-		WFREE(outz);
-		zd->opaque = NULL;
-		zd->closed = TRUE;
-
+		zd->closed = TRUE;		/* Signals compression stream done */
 		return 0;				/* Done */
 		/* NOTREACHED */
 
 	default:
-		g_carp("error during compression: %s", zlib_strerror(ret));
+		g_carp("%s(): error during compression: %s",
+			G_STRFUNC, zlib_strerror(ret));
 	}
 
 	/* FALL THROUGH */
 
 error:
-	ret = deflateEnd(outz);
-	if (ret != Z_OK && ret != Z_DATA_ERROR)
-		g_carp("while freeing compressor: %s", zlib_strerror(ret));
-	WFREE(outz);
-	zd->opaque = NULL;
+	if (may_close) {
+		ret = deflateEnd(outz);
+		if (ret != Z_OK && ret != Z_DATA_ERROR) {
+			g_carp("%s(): while freeing compressor: %s",
+				G_STRFUNC, zlib_strerror(ret));
+		}
+		WFREE(outz);
+		zd->opaque = NULL;
+	}
 
 	return -1;				/* Error! */
 }
@@ -318,10 +473,13 @@ zlib_deflate(zlib_deflater_t *zd, int amount)
 bool
 zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len)
 {
-	z_streamp outz = zd->opaque;
+	z_streamp outz;
 
-	g_assert(outz != NULL);			/* Stream not closed yet */
+	zlib_deflater_check(zd);
 	g_assert(len >= 0);
+
+	outz = zd->opaque;
+	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	if G_UNLIKELY(0 == len)
 		return TRUE;
@@ -344,10 +502,14 @@ zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len)
 bool
 zlib_deflate_close(zlib_deflater_t *zd)
 {
-	z_streamp outz = zd->opaque;
+	z_streamp outz;
+
 	int ret;
 
+	zlib_deflater_check(zd);
 	g_assert(!zd->closed);
+
+	outz = zd->opaque;
 	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	zd->in = NULL;
@@ -370,20 +532,26 @@ zlib_deflate_close(zlib_deflater_t *zd)
 void
 zlib_deflater_free(zlib_deflater_t *zd, bool output)
 {
-	z_streamp outz = zd->opaque;
+	z_streamp outz;
+
+	zlib_deflater_check(zd);
+
+	outz = zd->opaque;
 
 	if (outz) {
 		int ret = deflateEnd(outz);
 
-		if (ret != Z_OK && ret != Z_DATA_ERROR)
-			g_carp("while freeing compressor: %s", zlib_strerror(ret));
-
+		if (ret != Z_OK && ret != Z_DATA_ERROR) {
+			g_carp("%s(): while freeing compressor: %s",
+				G_STRFUNC, zlib_strerror(ret));
+		}
 		WFREE(outz);
 	}
 
-	if (output && zd->allocated) {
+	if (output && zd->allocated)
 		HFREE_NULL(zd->out);
-	}
+
+	zd->magic = 0;
 	WFREE(zd);
 }
 
@@ -406,12 +574,12 @@ zlib_uncompress(const void *data, int len, ulong uncompressed_len)
 
 	if (ret == Z_OK) {
 		if (retlen != uncompressed_len)
-			g_carp("expected %lu bytes of decompressed data, got %ld",
-				uncompressed_len, retlen);
+			g_carp("%s(): expected %lu bytes of decompressed data, got %ld",
+				G_STRFUNC, uncompressed_len, retlen);
 		return out;
 	}
 
-	g_carp("while decompressing data: %s", zlib_strerror(ret));
+	g_carp("%s(): while decompressing data: %s", G_STRFUNC, zlib_strerror(ret));
 	HFREE_NULL(out);
 
 	return NULL;
@@ -453,7 +621,8 @@ zlib_inflate_into(const void *data, int len, void *out, int *outlen)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		g_carp("unable to setup decompressor: %s", zlib_strerror(ret));
+		g_carp("%s(): unable to setup decompressor: %s",
+			G_STRFUNC, zlib_strerror(ret));
 		goto done;
 	}
 
