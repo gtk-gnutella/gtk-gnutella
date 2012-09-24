@@ -51,6 +51,8 @@ GList *hash_list_list(hash_list_t *);
 void hash_list_sort(hash_list_t *, cmp_fn_t);
 void hash_list_sort_with_data(hash_list_t *, cmp_data_fn_t, void *);
 void hash_list_shuffle(hash_list_t *hl);
+void hash_list_rotate_left(hash_list_t *hl);
+void hash_list_rotate_right(hash_list_t *hl);
 
 hash_list_iter_t *hash_list_iterator(hash_list_t *);
 hash_list_iter_t *hash_list_iterator_tail(hash_list_t *);
