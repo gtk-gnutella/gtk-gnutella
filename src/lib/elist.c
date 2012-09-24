@@ -915,4 +915,50 @@ elist_shuffle(elist_t *list)
 	safety_assert(elist_length(list->head) == list->count);
 }
 
+/**
+ * Rotate list by one item to the left.
+ *
+ * The head is inserted back at the tail.
+ */
+void
+elist_rotate_left(elist_t *list)
+{
+	link_t *lk;
+
+	elist_check(list);
+
+	if G_UNLIKELY(list->count <= 1U)
+		return;
+
+	lk = list->head;
+	elist_link_remove_internal(list, lk);
+	elist_link_append_internal(list, lk);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Rotate list by one item to the right.
+ *
+ * The tail is inserted back at the head.
+ */
+void
+elist_rotate_right(elist_t *list)
+{
+	link_t *lk;
+
+	elist_check(list);
+
+	if G_UNLIKELY(list->count <= 1U)
+		return;
+
+	lk = list->tail;
+	elist_link_remove_internal(list, lk);
+	elist_link_prepend_internal(list, lk);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
