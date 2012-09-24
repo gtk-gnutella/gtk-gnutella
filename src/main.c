@@ -711,6 +711,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(word_vec_close);
 	DO(pattern_close);
 	DO(pmsg_close);
+	DO(gmsg_close);
 	DO(version_close);
 	DO(ignore_close);
 	DO(iso3166_close);
