@@ -42,12 +42,12 @@
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((ulong) (a)) > 100L)
 
-#define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
+#define EMBEDDED_OFFSET	offsetof(pdata_t, d_embedded)
 
 /**
  * An extended message block.
  *
- * An extended message block can be identified by its `m_prio' field
+ * An extended message block can be identified by its `m_flags' field
  * having the PMSG_PF_EXT flag set.
  */
 typedef struct pmsg_ext {
@@ -62,11 +62,11 @@ pmsg_ext_check_consistency(const pmsg_ext_t * const emb)
 {
 	g_assert(emb);
 	g_assert(PMSG_EXT_MAGIC == emb->pmsg.magic);
-	g_assert(PMSG_PF_EXT & emb->pmsg.m_prio);
+	g_assert(PMSG_PF_EXT & emb->pmsg.m_flags);
 }
 
 static inline ALWAYS_INLINE pmsg_ext_t *
-cast_to_pmsg_ext(pmsg_t *mb)
+cast_to_pmsg_ext(const pmsg_t *mb)
 {
 	pmsg_ext_t *emb;
 
@@ -111,8 +111,8 @@ pmsg_reset(pmsg_t *mb)
 	pmsg_check_consistency(mb);
 
 	mb->m_rptr = mb->m_wptr = mb->m_data->d_arena;	/* Empty buffer */
-	mb->m_prio &= ~PMSG_PF_SENT;				/* Clear "sent" indication */
-	mb->m_check = NULL;							/* Clear "pre-send" checks */
+	mb->m_flags = PMSG_EXT_MAGIC == mb->magic ? PMSG_PF_EXT : 0;
+	mb->m_u.m_check = NULL;						/* Clear "pre-send" checks */
 }
 
 /**
@@ -121,12 +121,13 @@ pmsg_reset(pmsg_t *mb)
  * @return the message block given as argument.
  */
 static pmsg_t *
-pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, const void *buf, int len)
+pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, bool ext, const void *buf, int len)
 {
-	mb->magic = (PMSG_PF_EXT & prio) ? PMSG_EXT_MAGIC : PMSG_MAGIC;
+	mb->magic = ext ? PMSG_EXT_MAGIC : PMSG_MAGIC;
 	mb->m_data = db;
 	mb->m_prio = prio;
-	mb->m_check = NULL;
+	mb->m_flags = ext ? PMSG_PF_EXT : 0;
+	mb->m_u.m_check = NULL;
 	mb->m_refcnt = 1;
 	db->d_refcnt++;
 
@@ -158,12 +159,11 @@ pmsg_new(int prio, const void *buf, int len)
 
 	g_assert(len > 0);
 	g_assert(implies(buf, valid_ptr(buf)));
-	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
 	WALLOC(mb);
 	db = pdata_new(len);
 
-	return pmsg_fill(mb, db, prio, buf, len);
+	return pmsg_fill(mb, db, prio, FALSE, buf, len);
 }
 
 /**
@@ -178,7 +178,6 @@ pmsg_new_extend(int prio, const void *buf, int len,
 
 	g_assert(len > 0);
 	g_assert(implies(buf, valid_ptr(buf)));
-	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
 	WALLOC(emb);
 	db = pdata_new(len);
@@ -186,7 +185,7 @@ pmsg_new_extend(int prio, const void *buf, int len,
 	emb->m_free = free_cb;
 	emb->m_arg = arg;
 
-	(void) pmsg_fill(&emb->pmsg, db, prio | PMSG_PF_EXT, buf, len);
+	(void) pmsg_fill(&emb->pmsg, db, prio, TRUE, buf, len);
 
 	return cast_to_pmsg(emb);
 }
@@ -207,11 +206,10 @@ pmsg_alloc(int prio, pdata_t *db, int roff, int woff)
 	g_assert(roff >= 0 && (size_t) roff <= pdata_len(db));
 	g_assert(woff >= 0 && (size_t) woff <= pdata_len(db));
 	g_assert(woff >= roff);
-	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
 	WALLOC(mb);
 
-	pmsg_fill(mb, db, prio, NULL, 0);
+	pmsg_fill(mb, db, prio, FALSE, NULL, 0);
 
 	mb->m_rptr += roff;
 	mb->m_wptr += woff;
@@ -230,16 +228,12 @@ pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 	pmsg_check_consistency(mb);
 
 	WALLOC(nmb);
+	nmb->pmsg = *mb;		/* Struct copy */
 	nmb->pmsg.magic = PMSG_EXT_MAGIC;
 
-	nmb->pmsg.m_rptr = mb->m_rptr;
-	nmb->pmsg.m_wptr = mb->m_wptr;
-	nmb->pmsg.m_data = mb->m_data;
-	nmb->pmsg.m_prio = mb->m_prio;
-	nmb->pmsg.m_check = mb->m_check;
 	pdata_addref(nmb->pmsg.m_data);
 
-	nmb->pmsg.m_prio |= PMSG_PF_EXT;
+	nmb->pmsg.m_flags |= PMSG_PF_EXT;
 	nmb->pmsg.m_refcnt = 1;
 	nmb->m_free = free_cb;
 	nmb->m_arg = arg;
@@ -284,7 +278,7 @@ pmsg_replace_ext(pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg)
  * to the embedded free routine).
  */
 void *
-pmsg_get_metadata(pmsg_t *mb)
+pmsg_get_metadata(const pmsg_t *mb)
 {
 	return cast_to_pmsg_ext(mb)->m_arg;
 }
@@ -298,20 +292,37 @@ pmsg_get_metadata(pmsg_t *mb)
  *
  * The callback routine must not modify the message, as the buffer can
  * be shared among multiple messages, unless its refcount is 1.
- *
- * @return the previous pre-send checking routine.
  */
-pmsg_check_t
+void
 pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
 {
-	pmsg_check_t old;
-
 	pmsg_check_consistency(mb);
 
-	old = mb->m_check;
-	mb->m_check = check;
+	mb->m_u.m_check = check;
+	mb->m_flags &= ~PMSG_PF_HOOK;	/* Is not a hook */
+}
 
-	return old;
+/**
+ * Set the pre-send hook routine for the buffer.
+ *
+ * This routine, if it exists (non-NULL) is called just before sending
+ * the message at the lowest level.  If it returns FALSE, the message is
+ * immediately dropped.
+ *
+ * The callback routine must not modify the message.
+ *
+ * The difference with a "check callback" is that a hook is only invoked
+ * on the standalone buffer, the layer perusing this information being
+ * able to gather all its context from the message, using its protocol header
+ * relevant to the layer.
+ */
+void
+pmsg_set_hook(pmsg_t *mb, pmsg_hook_t hook)
+{
+	pmsg_check_consistency(mb);
+
+	mb->m_u.m_hook = hook;
+	mb->m_flags |= PMSG_PF_HOOK;	/* Is a hook */
 }
 
 /**
@@ -701,6 +712,7 @@ pdata_allocb(void *buf, int len, pdata_free_t freecb, void *freearg)
 
 	db = buf;
 
+	db->magic = PDATA_MAGIC;
 	db->d_arena = db->d_embedded;
 	db->d_end = db->d_arena + (len - EMBEDDED_OFFSET);
 	db->d_refcnt = 0;
@@ -729,6 +741,7 @@ pdata_allocb_ext(void *buf, int len, pdata_free_t freecb, void *freearg)
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
 	WALLOC(db);
+	db->magic = PDATA_MAGIC;
 	db->d_arena = buf;
 	db->d_end = (char *) buf + len;
 	db->d_refcnt = 0;
@@ -758,9 +771,12 @@ pdata_free_nop(void *unused_p, void *unused_arg)
 static void
 pdata_free(pdata_t *db)
 {
-	bool is_embedded = (db->d_arena == db->d_embedded);
+	bool is_embedded;
 
-	g_assert(db->d_refcnt == 0);
+	pdata_check(db);
+	g_assert(0 == db->d_refcnt);
+
+	is_embedded = (db->d_arena == db->d_embedded);
 
 	/*
 	 * If user supplied a free routine for the buffer, invoke it.
@@ -769,14 +785,18 @@ pdata_free(pdata_t *db)
 	if (db->d_free) {
 		void *p = is_embedded ? (void *) db : (void *) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
-		if (!is_embedded)
-			WFREE(db);
-	} else {
 		if (!is_embedded) {
-			G_FREE_NULL(db->d_arena);
+			db->magic = 0;
+			WFREE(db);
+		}
+	} else {
+		size_t len = pdata_len(db);	/* Before resetting the magic number */
+		db->magic = 0;
+		if (!is_embedded) {
+			wfree(db->d_arena, len);
 			WFREE(db);
 		} else {
-			wfree(db, pdata_len(db) + EMBEDDED_OFFSET);
+			wfree(db, len + EMBEDDED_OFFSET);
 		}
 	}
 }

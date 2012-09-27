@@ -167,7 +167,7 @@ alive_ping_drop(struct alive *a, const struct guid *muid)
  * We send only the LATEST registered one.
  */
 static bool
-alive_ping_can_send(pmsg_t *mb, const mqueue_t *q)
+alive_ping_can_send(const pmsg_t *mb, const void *q)
 {
 	const gnutella_node_t *n = mq_node(q);
 	struct alive *a = n->alive_pings;
