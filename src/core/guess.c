@@ -4182,7 +4182,7 @@ guess_init(void)
 	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
 	gqueries = hevset_create_any(
-		offsetof(guess_t, gid), nid_hash, NULL, nid_equal);
+		offsetof(guess_t, gid), nid_hash, nid_hash2, nid_equal);
 	gmuid = hikset_create(
 		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);

@@ -2544,7 +2544,7 @@ publish_init(void)
 {
 	g_assert(NULL == publishes);
 
-	publishes = htable_create_any(nid_hash, NULL, nid_equal);
+	publishes = htable_create_any(nid_hash, nid_hash2, nid_equal);
 }
 
 /** 

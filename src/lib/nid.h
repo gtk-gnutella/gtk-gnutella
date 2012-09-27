@@ -46,6 +46,7 @@ struct nid {
  */
 
 unsigned nid_hash(const void *key);
+unsigned nid_hash2(const void *key);
 bool nid_equal(const void *p, const void *q);
 const char *nid_to_string(const struct nid *nid);
 const char *nid_to_string2(const struct nid *nid);

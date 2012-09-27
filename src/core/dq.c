@@ -740,7 +740,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	if (dq->nv != NULL) {
 		int j;
 
-		old = htable_create_any(nid_hash, NULL, nid_equal);
+		old = htable_create_any(nid_hash, nid_hash2, nid_equal);
 
 		for (j = 0; j < dq->nv_found; j++) {
 			struct next_up *nup = &dq->nv[j];
@@ -1708,8 +1708,8 @@ dq_common_init(dquery_t *dq)
 
 	dquery_check(dq);
 	dq->qid = dquery_id_create();
-	dq->queried = htable_create_any(nid_hash, NULL, nid_equal);
-	dq->enqueued = hset_create_any(nid_hash, NULL, nid_equal);
+	dq->queried = htable_create_any(nid_hash, nid_hash2, nid_equal);
+	dq->enqueued = hset_create_any(nid_hash, nid_hash2, nid_equal);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = tm_time();
 
@@ -2490,8 +2490,8 @@ G_GNUC_COLD void
 dq_init(void)
 {
 	dqueries = hevset_create_any(
-		offsetof(struct dquery, qid), nid_hash, NULL, nid_equal);
-	by_node_id = htable_create_any(nid_hash, NULL, nid_equal);
+		offsetof(struct dquery, qid), nid_hash, nid_hash2, nid_equal);
+	by_node_id = htable_create_any(nid_hash, nid_hash2, nid_equal);
 	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 	by_leaf_muid = hikset_create(
 		offsetof(struct dquery, lmuid), HASH_KEY_FIXED, GUID_RAW_SIZE);

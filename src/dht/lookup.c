@@ -5025,7 +5025,7 @@ lookup_init(void)
 	double log_2 = log(2.0);
 	size_t i;
 
-	nlookups = htable_create_any(nid_hash, NULL, nid_equal);
+	nlookups = htable_create_any(nid_hash, nid_hash2, nid_equal);
 
 	/*
 	 * Build lower triangular matrix of all possible log2(frequency).

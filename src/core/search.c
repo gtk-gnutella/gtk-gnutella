@@ -5232,7 +5232,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 
 		sch->sent_nodes =
 			hset_create_any(sent_node_hash_func, NULL, sent_node_compare);
-		sch->sent_node_ids = hset_create_any(nid_hash, NULL, nid_equal);
+		sch->sent_node_ids = hset_create_any(nid_hash, nid_hash2, nid_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
