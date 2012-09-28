@@ -40,11 +40,21 @@
 
 #include "override.h"			/* Must be the last header included */
 
+enum idtable_magic { IDTABLE_MAGIC = 0x749afefb };
+
 struct idtable {
+	enum idtable_magic magic;
 	htable_t *ht;
 	uint32 last_id;
 	uint32 mask;
 };
+
+static inline void
+idtable_check(const struct idtable * const tbl)
+{
+	g_assert(tbl != NULL);
+	g_assert(IDTABLE_MAGIC == tbl->magic);
+}
 
 /***
  *** Public functions
@@ -61,6 +71,7 @@ idtable_new(int bits)
 	g_assert(bits > 0 && bits <= IDTABLE_MAXBITS);
 
 	WALLOC0(tbl);
+	tbl->magic = IDTABLE_MAGIC;
 	tbl->mask = IDTABLE_MAXBITS == bits ? (uint32) -1 : ((1U << bits) - 1);
 	tbl->last_id = random_u32() & tbl->mask;
 	tbl->ht = htable_create(HASH_KEY_SELF, 0);
@@ -74,7 +85,10 @@ idtable_new(int bits)
 void
 idtable_destroy(idtable_t *tbl)
 {
+	idtable_check(tbl);
+
 	htable_free_null(&tbl->ht);
+	tbl->magic = 0;
 	WFREE(tbl);
 }
 
@@ -86,6 +100,8 @@ idtable_destroy(idtable_t *tbl)
 bool
 idtable_is_id_used(const idtable_t *tbl, uint32 id)
 {
+	idtable_check(tbl);
+
 	return htable_contains(tbl->ht, uint_to_pointer(id));
 }
 
@@ -106,6 +122,7 @@ idtable_try_new_id(idtable_t *tbl, uint32 *id, void *value)
 {
 	uint32 i = 0;
 
+	idtable_check(tbl);
 	g_assert(id != NULL);
 
 	/*
@@ -145,6 +162,8 @@ idtable_new_id(idtable_t *tbl, void *value)
 {
 	uint32 id;
 
+	idtable_check(tbl);
+
 	if (!idtable_try_new_id(tbl, &id, value))
 		g_error("%s: table is full", G_STRFUNC);
 
@@ -158,6 +177,7 @@ void
 idtable_set_value(idtable_t *tbl, uint32 id, void *value)
 {
 	g_assert(idtable_is_id_used(tbl, id));
+
 	htable_insert(tbl->ht, uint_to_pointer(id), value);
 }
 
@@ -171,6 +191,8 @@ idtable_get_value(const idtable_t *tbl, uint32 id)
 {
 	void *value;
 	bool found;
+
+	idtable_check(tbl);
 
 	found = htable_lookup_extended(tbl->ht, uint_to_pointer(id), NULL, &value);
 	g_assert(found);
@@ -188,6 +210,8 @@ idtable_get_value(const idtable_t *tbl, uint32 id)
 void *
 idtable_probe_value(const idtable_t *tbl, uint32 id)
 {
+	idtable_check(tbl);
+
 	return htable_lookup(tbl->ht, uint_to_pointer(id));
 }
 
@@ -198,6 +222,7 @@ void
 idtable_free_id(idtable_t *tbl, uint32 id)
 {
 	g_assert(idtable_is_id_used(tbl, id));
+
 	htable_remove(tbl->ht, uint_to_pointer(id));
 }
 
@@ -207,7 +232,40 @@ idtable_free_id(idtable_t *tbl, uint32 id)
 uint
 idtable_ids(idtable_t *tbl)
 {
+	idtable_check(tbl);
+
 	return htable_count(tbl->ht);
+}
+
+struct idtable_foreach_ctx {
+	data_fn_t cb;
+	void *data;
+};
+
+static void
+idtable_foreach_wrapper(const void *unused_key, void *value, void *data)
+{
+	struct idtable_foreach_ctx *ctx = data;
+
+	(void) unused_key;
+
+	(*ctx->cb)(value, ctx->data);
+}
+
+/**
+ * Loop through all the values stored in the ID table.
+ */
+void
+idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data)
+{
+	struct idtable_foreach_ctx ctx;
+
+	idtable_check(tbl);
+
+	ctx.cb = cb;
+	ctx.data = data;
+
+	htable_foreach(tbl->ht, idtable_foreach_wrapper, &ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
