@@ -141,9 +141,8 @@ extensions (whether or not they can process them), must include a new header in
 the Gnutella 0.6 connection handshake indicating this support.  This will allow
 other servents to know what types of packets this servent can accept.  The
 format of this header is
-GGEP : majorversion'.'minorversion
 
-Format
+  GGEP : majorversion'.'minorversion
 
 
 Length Encoding
@@ -154,13 +153,9 @@ compact. In this technique, a length field is the concatenation of length
 chunks.  The format of each length chunk (which contains 6 bits of length info)
 is described in bit level below:
 
-Format
-
-
   76543210			
   MLxxxxxx
   			
-
 M = 1 if there is another length chunk in the sequence, else 0
 L = 1 if this is the last length chunk in the sequence, else 0
 xxxxxx = 6 bits of data.
@@ -232,7 +227,7 @@ GGEP Extension Prefix
 
  _____________________________________________________________________________
 |Byte_Positions|Name_|Comments________________________________________________|
-|              |     |This is a magic number is used to help distinguish GGEP |
+|              |     |This is a magic number used to help distinguish GGEP    |
 |0             |Magic|extensions from legacy data which may exist.  It must be|
 |______________|_____|set_to_the_value_0xC3.__________________________________|
 
