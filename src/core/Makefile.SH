@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-146]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -164,6 +164,7 @@ SRC = \
 	tx_deflate.c \
 	tx_dgram.c \
 	tx_link.c \
+	tx_ut.c \
 	udp.c \
 	udp_sched.c \
 	uhc.c \
@@ -261,6 +262,7 @@ OBJ = \
 	tx_deflate.o \
 	tx_dgram.o \
 	tx_link.o \
+	tx_ut.o \
 	udp.o \
 	udp_sched.o \
 	uhc.o \
