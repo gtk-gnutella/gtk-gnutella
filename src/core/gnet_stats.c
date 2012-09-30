@@ -199,6 +199,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_tx_compressed",
 		"udp_rx_compressed",
 		"udp_larger_hence_not_compressed",
+		"udp_ambiguous",
+		"udp_ambiguous_as_semi_reliable",
 		"consolidated_servers",
 		"dup_downloads_in_consolidation",
 		"discovered_server_guid",
