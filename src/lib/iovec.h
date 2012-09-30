@@ -26,6 +26,8 @@
 
 #include "common.h"
 
+#include "xmalloc.h"
+
 /**
  * Allocates an array of "struct iov" elements.
  * @param n The desired array length in elements.
@@ -39,7 +41,7 @@ iov_alloc_n(size_t n)
 		g_assert_not_reached(); /* We don't want to handle failed allocations */
 		return NULL;
 	}
-	iov = g_malloc(n * sizeof *iov);
+	iov = xmalloc0(n * sizeof *iov);
 	return iov;
 }
 
@@ -53,6 +55,15 @@ iov_get(void *base, size_t size)
 	iovec_set_base(&iov, base);
 	iovec_set_len(&iov, size);
 	return iov;
+}
+
+/**
+ * Free array of "struct iov" elements allocated via iov_alloc_n().
+ */
+static inline void
+iov_free(iovec_t *iov)
+{
+	xfree(iov);
 }
 
 /**
