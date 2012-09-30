@@ -469,6 +469,11 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 		/* Message was fully sent out */
 		if (attr->cb->msg_account != NULL)
 			(*attr->cb->msg_account)(attr->tx->owner, um->mb);
+
+		if (um->reliable)
+			gnet_stats_count_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_SENT, 1);
+		if (um->deflated)
+			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
 	} else {
 		/* Message was dropped during TX */
 		if (attr->cb->add_tx_dropped != NULL)
@@ -701,6 +706,10 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		uf->txcnt++;
+		gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_SENT, 1);
+		if (uf->txcnt > 1)
+			gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_RESENT, 1);
+
 		if (um->reliable) {
 			if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
 				g_debug("TX UT[%s]: %s: fragment #%u/%u seq=0x%04x tx=%d to %s "
@@ -1439,6 +1448,12 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		goto rejected;
 	}
 
+	gnet_stats_count_general(GNR_UDP_SR_TX_TOTAL_ACKS_RECEIVED, 1);
+	if (ack->cumulative)
+		gnet_stats_count_general(GNR_UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED, 1);
+	if (ack->received != 0)
+		gnet_stats_count_general(GNR_UDP_SR_TX_EXTENDED_ACKS_RECEIVED, 1);
+
 	/*
 	 * If all the fragments were received, we're done with the whole message.
 	 */
@@ -1741,6 +1756,16 @@ tx_ut_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 		}
 		return -1;
 	}
+
+	/*
+	 * Update statistics.
+	 */
+
+	gnet_stats_count_general(GNR_UDP_SR_TX_MESSAGES_GIVEN, 1);
+	if (um->reliable)
+		gnet_stats_count_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_GIVEN, 1);
+	if (um->deflated)
+		gnet_stats_count_general(GNR_UDP_SR_TX_MESSAGES_DEFLATED, 1);
 
 	/*
 	 * Send all the fragments immediately.
