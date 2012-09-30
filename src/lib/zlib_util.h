@@ -39,6 +39,9 @@
 struct zlib_deflater;
 typedef struct zlib_deflater zlib_deflater_t;
 
+struct zlib_inflater;
+typedef struct zlib_inflater zlib_inflater_t;
+
 /*
  * Public interface.
  */
@@ -61,6 +64,25 @@ bool zlib_deflater_closed(const struct zlib_deflater *zd);
 int zlib_deflater_inlen(const struct zlib_deflater *zd);
 int zlib_deflater_outlen(const struct zlib_deflater *zd);
 void *zlib_deflater_out(const struct zlib_deflater *zd);
+
+zlib_inflater_t *zlib_inflater_make(const void *data, int len);
+zlib_inflater_t *zlib_inflater_make_into(
+	const void *data, int len, void *dest, int destlen);
+int zlib_inflate(zlib_inflater_t *zi, int amount);
+int zlib_inflate_step(zlib_inflater_t *zi, int amount, bool may_close);
+int zlib_inflate_data(zlib_inflater_t *zi, const void *data, int len);
+bool zlib_inflate_close(zlib_inflater_t *zi);
+void zlib_inflater_free(zlib_inflater_t *zi, bool output);
+void zlib_inflater_reset(zlib_inflater_t *zi, const void *data, int len);
+void zlib_inflater_reset_into(zlib_inflater_t *zi,
+	const void *data, int len, void *dest, int destlen);
+
+bool zlib_inflater_closed(const struct zlib_inflater *zi);
+int zlib_inflater_inlen(const struct zlib_inflater *zi);
+int zlib_inflater_outlen(const struct zlib_inflater *zi);
+void *zlib_inflater_out(const struct zlib_inflater *zi);
+size_t zlib_inflater_maxoutlen(const struct zlib_inflater *zi);
+void zlib_inflater_set_maxoutlen(struct zlib_inflater *zi, size_t len);
 
 void *zlib_uncompress(const void *data, int len, ulong uncompressed_len);
 int zlib_inflate_into(const void *data, int len, void *out, int *outlen);
