@@ -405,9 +405,14 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	ev->ce_arg = arg;
 	ev->ce_cq = cq;
 
-	mutex_lock(&cq->cq_lock);
+	/*
+	 * For performance reasons, use hidden locks: we know the ev_link()
+	 * routine is not going to take locks, so it is safe.
+	 */
+
+	mutex_lock_hidden(&cq->cq_lock);
 	ev_link(ev);
-	mutex_unlock(&cq->cq_lock);
+	mutex_unlock_hidden(&cq->cq_lock);
 
 	return ev;
 }
@@ -436,9 +441,14 @@ cq_cancel(cevent_t **handle_ptr)
 		cqueue_check(cq);
 		g_assert(cq->cq_items > 0);
 
-		mutex_lock(&cq->cq_lock);
+		/*
+		 * For performance reasons, we use hidden mutexes: the ev_unlink()
+		 * routine is not using locks so there is no potential for deadlocks.
+		 */
+
+		mutex_lock_hidden(&cq->cq_lock);
 		ev_unlink(ev);
-		mutex_unlock(&cq->cq_lock);
+		mutex_unlock_hidden(&cq->cq_lock);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		WFREE(ev);
 		*handle_ptr = NULL;
@@ -476,13 +486,16 @@ cq_resched(cevent_t *ev, int delay)
 	 * the event. It's possible that it will end up being relinked at the exact
 	 * same place, but determining that in advance would probably cost as much
 	 * as doing the unlink/link blindly anyway.
+	 *
+	 * For performance reasons, use hidden locks: we know the ev_link() and
+	 * ev_unlink() routines are not going to take locks, so it is safe.
 	 */
 
-	mutex_lock(&cq->cq_lock);
+	mutex_lock_hidden(&cq->cq_lock);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
-	mutex_unlock(&cq->cq_lock);
+	mutex_unlock_hidden(&cq->cq_lock);
 }
 
 /**
@@ -517,8 +530,18 @@ cq_expire(cevent_t *ev)
 	cq = ev->ce_cq;
 	cqueue_check(cq);
 
+	/*
+	 * Need to lock to read-in callback information because of cq_replace().
+	 *
+	 * We can use a hidden lock because there's no function call in the
+	 * critical section, so no opportunity to ever deadlock.
+	 */
+
+	mutex_lock_hidden(&cq->cq_lock);
+	cevent_check(ev);		/* Not triggered in between */
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
+	mutex_unlock_hidden(&cq->cq_lock);
 
 	g_assert(fn);
 
@@ -531,6 +554,32 @@ cq_expire(cevent_t *ev)
 	 */
 
 	(*fn)(cq, arg);
+}
+
+/**
+ * Change callback and argument of an existing event.
+ */
+void
+cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
+{
+	cqueue_t *cq;
+
+	cevent_check(ev);
+	cq = ev->ce_cq;
+	cqueue_check(cq);
+
+	/*
+	 * Need to lock to coexist safely with cq_expire().
+	 *
+	 * We can use a hidden lock because there's no function call in the
+	 * critical section, so no opportunity to ever deadlock.
+	 */
+
+	mutex_lock_hidden(&cq->cq_lock);
+	cevent_check(ev);		/* Not triggered in between */
+	ev->ce_fn = fn;
+	ev->ce_arg = arg;
+	mutex_unlock_hidden(&cq->cq_lock);
 }
 
 /**
