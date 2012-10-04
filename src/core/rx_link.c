@@ -148,7 +148,7 @@ is_readable(void *data, int unused_source, inputevt_cond_t cond)
 			}
 			mb = pmsg_alloc(PMSG_P_DATA, db[i], 0, n);
 			i++;
-			if (!(*rx->data_ind)(rx, mb))
+			if (!(*rx->data.ind)(rx, mb))
 				break;
 		}
 
@@ -234,7 +234,7 @@ rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 	 * NB: `mb' is expected to be freed by the last layer using it.
 	 */
 
-	return (*rx->data_ind)(rx, mb);
+	return (*rx->data.ind)(rx, mb);
 }
 
 /**
@@ -297,6 +297,7 @@ static const struct rxdrv_ops rx_link_ops = {
 	rx_link_init,		/**< init */
 	rx_link_destroy,	/**< destroy */
 	rx_link_recv,		/**< recv */
+	NULL,				/**< recvfrom */
 	rx_link_enable,		/**< enable */
 	rx_link_disable,	/**< disable */
 	rx_link_bio_source,	/**< bio_source */
