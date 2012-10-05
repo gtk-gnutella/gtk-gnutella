@@ -130,6 +130,9 @@ rxdrv_t *rx_bottom(rxdrv_t *rx);
 struct bio_source *rx_bio_source(rxdrv_t *rx);
 struct bio_source *rx_no_source(rxdrv_t *rx);
 
+void rx_debug_set_addrs(const char *s);
+bool rx_debug_host(const gnet_host_t *h);
+
 #endif	/* _core_rx_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

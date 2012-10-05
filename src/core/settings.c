@@ -51,6 +51,7 @@
 #include "ipp_cache.h"
 #include "pdht.h"
 #include "routing.h"			/* For gnet_reset_guid() */
+#include "rx.h"					/* For rx_debug_set_addrs() */
 #include "search.h"
 #include "share.h"
 #include "sockets.h"
@@ -1290,6 +1291,7 @@ void
 settings_terminate(void)
 {
 	tx_debug_set_addrs("");		/* Free up any registered addresses */
+	rx_debug_set_addrs("");		/* Idem */
 }
 
 static void
@@ -1736,6 +1738,16 @@ tx_debug_addrs_changed(property_t prop)
 	char *s = gnet_prop_get_string(prop, NULL, 0);
 
 	tx_debug_set_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static bool
+rx_debug_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	rx_debug_set_addrs(s);
 	G_FREE_NULL(s);
 	return FALSE;
 }
@@ -3123,6 +3135,11 @@ static prop_map_t property_map[] = {
 		PROP_QUERY_ANSWER_PARTIALS,
 		query_answer_partials_changed,
 		FALSE,
+	},
+	{
+		PROP_RX_DEBUG_ADDRS,
+		rx_debug_addrs_changed,
+		TRUE,
 	},
 	{
 		PROP_TX_DEBUG_ADDRS,

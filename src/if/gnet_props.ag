@@ -5189,4 +5189,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "rx_debug_addrs";
+    desc = "Comma-separated list of RX debugging hosts (IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
 /* vi: set ts=4: */

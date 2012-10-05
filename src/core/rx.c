@@ -42,6 +42,7 @@
 #include "nodes.h"
 
 #include "lib/glib-missing.h"
+#include "lib/ipset.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -529,6 +530,30 @@ rx_no_source(rxdrv_t *unused_rx)
 
 	g_error("no I/O source available in the middle of the RX stack");
 	return NULL;
+}
+
+/***
+ *** Selective debugging RX support, to limit tracing to specific addresses.
+ ***/
+
+static ipset_t rx_addrs = IPSET_INIT;
+
+/**
+ * Record IP addresses in the set of "debuggable" destinations.
+ */
+void
+rx_debug_set_addrs(const char *s)
+{
+	ipset_set_addrs(&rx_addrs, s);
+}
+
+/**
+ * Are we debugging traffic sent from the IP of the host?
+ */
+bool
+rx_debug_host(const gnet_host_t *h)
+{
+	return ipset_contains_host(&rx_addrs, h, FALSE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

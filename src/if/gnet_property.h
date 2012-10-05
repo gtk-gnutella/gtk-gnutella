@@ -482,6 +482,7 @@ typedef enum {
     PROP_GUESS_MAXIMIZE_BW,
     PROP_UDP_SCHED_DEBUG,
     PROP_TX_UT_DEBUG_FLAGS,
+    PROP_RX_DEBUG_ADDRS,
     GNET_PROPERTY_END
 } gnet_property_t;
 
