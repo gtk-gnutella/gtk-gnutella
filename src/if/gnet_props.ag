@@ -5198,4 +5198,18 @@ prop = {
     };
 };
 
+prop = {
+	name = "rx_ut_debug_flags";
+	desc = "Debugging flags for the semi-reliable UDP RX layer: "
+		"1: messages, "
+		"2: fragments, "
+		"4: acknowledgments, "
+		"8: receptions, "
+		"16: timeouts.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

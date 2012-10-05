@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+#include <zlib.h>				/* For Z_OK */
+
 #include "udp.h"
 #include "bogons.h"
 #include "bsched.h"
@@ -44,6 +46,7 @@
 #include "nodes.h"
 #include "pcache.h"
 #include "routing.h"
+#include "rx_ut.h"
 #include "settings.h"
 #include "sockets.h"
 #include "udp_reliable.h"
@@ -54,15 +57,21 @@
 #include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
+#include "lib/gnet_host.h"
 #include "lib/hashlist.h"
 #include "lib/random.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
+#include "lib/zlib_util.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UDP_PING_FREQ	60		/**< At most 1 ping per minute to a given IP */
 
 static aging_table_t *udp_aging_pings;
+
+static rxdrv_t *rx_sr_gta;		/**< Semi-reliable RX layer for "GTA" */
+static rxdrv_t *rx_sr_gnd;		/**< Semi-reliable RX layer for "GND" */
 
 /**
  * Look whether the datagram we received is a valid Gnutella packet.
@@ -211,6 +220,156 @@ enum udp_traffic {
 };
 
 /**
+ * Look whether semi-reliable UDP header corresponds to valid traffic.
+ *
+ * This routine is only used for ambiguous traffic that looks like both
+ * Gnutella and semi-reliable UDP: we want to make sure we're not mistaking
+ * a legitimate semi-reliable fragment / ACK for a Gnutella message.
+ *
+ * @param utp		already classified semi-reliable protocol
+ * @param s			socket which received the message
+ *
+ * @return TRUE if message corresponds to valid semi-reliable UDP traffic.
+ */
+static bool
+udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
+{
+	struct ut_header uth;
+	const void *head = cast_to_pointer(s->buf);
+	void *message = NULL;
+	size_t msglen;
+	bool valid = TRUE;
+
+	/*
+	 * Since we're talking about an ambiguous message, it is highly unlikely
+	 * we'll ever be called with an acknowledgement: they should have been
+	 * ruled out earlier as improbable since ACKs are short message, much
+	 * shorter than a Gnuella header typically.
+	 *
+	 * So we'll only handle fragments for now, assuming ACKs are legitimate.
+	 */
+
+	gnet_stats_count_general(GNR_UDP_AMBIGUOUS_DEEPER_INSPECTION, 1);
+
+	uth.count = udp_reliable_header_get_count(head);
+	if (0 == uth.count)
+		return TRUE;		/* Acknoweldgments */
+
+	uth.part = udp_reliable_header_get_part(head) - 1;	/* Zero-based */
+	uth.flags = udp_reliable_header_get_flags(head);
+	uth.seqno = udp_reliable_header_get_seqno(head);
+
+	/*
+	 * We're going to ask the RX layer about the message: is it a known
+	 * sequence ID for this host?
+	 *
+	 * This works only for messages with more than one fragment, of course,
+	 * but chances are that, for these, we would have possibly already
+	 * received another fragment, not mistaken as a Gnutella message...
+	 *
+	 * This is OK for acknowledged fragments: we're not going to acknowledge
+	 * the unprocessed fragment, but we'll receive other fragments of the
+	 * message, and later on we'll get a retransmission of the unprocessed
+	 * fragment, which this time will be validated since we have already
+	 * partially received the message.
+	 */
+
+	if (uth.count > 1) {
+		rxdrv_t *rx;
+		gnet_host_t from;
+
+		gnet_host_set(&from, s->addr, s->port);
+
+		rx = SEMI_RELIABLE_GTA == utp ? rx_sr_gta :
+		     SEMI_RELIABLE_GND == utp ? rx_sr_gnd :
+			 NULL;
+
+		return NULL == rx ? FALSE : ut_valid_message(rx, &uth, &from);
+	}
+
+	/*
+	 * We're facing a single-fragment message.
+	 *
+	 * We can trivially probe it and validate it to see whether it can still
+	 * be interpreted as a valid Gnutella message on its own...  If the answer
+	 * is yes, then we can assert we're facing a valid semi-reliable UDP
+	 * message.
+	 *
+	 * For deflated payloads, we already validated that the start of the
+	 * payload is a well-formed zlib header, but we'll attempt deflation anyway
+	 * so we will know for sure whether it's a valid message!
+	 *
+	 * Of course we're doing here work that will have to be redone later when
+	 * processing the message, but this is for proper classification and not
+	 * happening very often: only on a very very small fraction of messages for
+	 * which there is a high level of ambiguity.
+	 */
+
+	g_assert(0 == uth.part);	/* First (and only) fragment */
+
+	if (uth.flags & UDP_RF_DEFLATED) {
+		int outlen = settings_max_msg_size();
+		int ret;
+
+		message = xmalloc(outlen);
+		
+		ret = zlib_inflate_into(
+			const_ptr_add_offset(head, UDP_RELIABLE_HEADER_SIZE),
+			s->pos - UDP_RELIABLE_HEADER_SIZE,
+			message, &outlen);
+
+		if (ret != Z_OK) {
+			valid = FALSE;		/* Does not inflate properly */
+			goto done;
+		}
+
+		msglen = outlen;
+	} else {
+		message = ptr_add_offset(
+			deconstify_pointer(head), UDP_RELIABLE_HEADER_SIZE);
+		msglen = s->pos - UDP_RELIABLE_HEADER_SIZE;
+	}
+
+	switch (utp) {
+	case SEMI_RELIABLE_GTA:
+		/*
+		 * Assume message is valid if the Gnutella size header is consistent
+		 * with the length of the whole message.
+		 */
+
+		{
+			uint16 size;
+
+			switch (gmsg_size_valid(message, &size)) {
+			case GMSG_VALID:
+			case GMSG_VALID_MARKED:
+				break;
+			case GMSG_VALID_NO_PROCESS: /* Header flags undefined for now */
+			case GMSG_INVALID:
+				valid = FALSE;
+				goto done;
+			}
+
+			valid = (size_t) size + GTA_HEADER_SIZE == msglen;
+		}
+		break;
+	case SEMI_RELIABLE_GND:
+		valid = TRUE;			/* For now */
+		break;
+	case GNUTELLA:
+	case DHT:
+	case UNKNOWN:
+		g_assert_not_reached();
+	}
+
+done:
+	if (uth.flags & UDP_RF_DEFLATED)
+		xfree(message);
+
+	return valid;
+}
+
+/**
  * Check message header for a valid semi-reliable UDP header.
  *
  * @param head		message header
@@ -336,11 +495,38 @@ tag_known:
 	if (part > count)
 		return UNKNOWN;		/* Invalid fragment number */
 
+	/*
+	 * If we are receiving fragment #1 of a message, we can further check
+	 * the consistency of the "deflate" flag provided we have at least 2 bytes
+	 * in the payload.
+	 */
+
+	if (
+		1 == part && (flags & UDP_RF_DEFLATED) &&
+		len >= UDP_RELIABLE_HEADER_SIZE + 2
+	) {
+		const void *payload =
+			const_ptr_add_offset(head, UDP_RELIABLE_HEADER_SIZE);
+
+		if (!zlib_is_valid_header(payload, len - UDP_RELIABLE_HEADER_SIZE))
+			return UNKNOWN;	/* Supposedly deflated payload is not valid */
+	}
+
 	return utp;
 }
 
 /**
  * Identify the traffic type received on the UDP socket.
+ *
+ * This routine uses simple heuristics that ensure we're properly discriminating
+ * incoming traffic on the UDP socket between regular Gnutella traffic and
+ * semi-reliable UDP traffic (which adds a small header before its actual
+ * payload).
+ *
+ * Most messages will be un-ambiguous, and the probabilty of misclassifying
+ * an ambiguous message (one that look like valid for both types, based on
+ * header inspections) is brought down to less than 1 in a billion, making
+ * it perfectly safe in practice.
  *
  * @return intuited type
  */
@@ -391,6 +577,22 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				 * few more bytes (say 2 at least) which are going to let us
 				 * decide with about 99% certainety.  So mis-classification
 				 * will occur only once per billion -- a ratio which is OK.
+				 *
+				 * We could also mistakenely handle a semi-reliable UDP message
+				 * as a Gnutella one.  For that to happen, the payload must
+				 * contain a field that will be exactly the message size,
+				 * a 1 / 2^32 event (since the size is 4 bytes in Gnutella).
+				 * However, if message flags are put to use for Gnutella UDP,
+				 * this ratio could lower to 1 / 2^16 and that is too large
+				 * a chance (about 1.5 in 100,000).
+				 *
+				 * So when we think an ambiguous message could be a valid
+				 * Gnutella message, we also check whether the message could
+				 * not be interpreted as a valid semi-reliable UDP one, and
+				 * we give priority to that classification if we have a match:
+				 * correct sequence number, consistent count and emitting host.
+				 * This checks roughly 3 more bytes in the message, yielding
+				 * a misclassification for about 1 / 2^(16+24) random cases.
 				 */
 
 				hops = gnutella_header_get_hops(head);
@@ -442,6 +644,14 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					if (!kademlia_header_constants_ok(head))
 						break;		/* Not a valid Kademlia header */
 
+					/*
+					 * Make sure we're not mistaking a valid semi-reliable UDP
+					 * message as a DHT message.
+					 */
+
+					if (udp_is_valid_semi_reliable(utp, s))
+						break;		/* Validated it as semi-reliable UDP */
+
 					g_warning("UDP ambiguous message from %s (%zu bytes total),"
 						" DHT function is %s",
 						host_addr_port_to_string(s->addr, s->port),
@@ -489,6 +699,14 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 
 					if ((ttl & ~(GTA_UDP_CAN_INFLATE | GTA_UDP_DEFLATED)) > 7U)
 						break;			/* Gnutella is very unlikely */
+
+					/*
+					 * Make sure we're not mistaking a valid semi-reliable UDP
+					 * message as a Gnutella message.
+					 */
+
+					if (udp_is_valid_semi_reliable(utp, s))
+						break;		/* Validated it as semi-reliable UDP */
 
 					g_warning("UDP ambiguous message from %s (%zu bytes total),"
 						" Gnutella function is %s, hops=%u, TTL=%u",
@@ -565,6 +783,7 @@ udp_received(struct gnutella_socket *s, bool truncated)
 
 	if (!truncated) {
 		enum udp_traffic utp;
+		rxdrv_t *rx;
 
 		utp = udp_intuit_traffic_type(s);
 
@@ -592,7 +811,17 @@ udp_received(struct gnutella_socket *s, bool truncated)
 
 		bws_udp_count_read(s->pos, FALSE);	/* We know it's not DHT traffic */
 
-		/* FIXME -- for now ignore, until we have the RX layer done */
+		rx = SEMI_RELIABLE_GTA == utp ? rx_sr_gta :
+		     SEMI_RELIABLE_GND == utp ? rx_sr_gnd :
+			 NULL;
+
+		if (rx != NULL) {
+			gnet_host_t from;
+
+			gnet_host_set(&from, s->addr, s->port);
+			ut_got_message(rx, s->buf, s->pos, &from);
+		}
+
 		return;
 	}
 

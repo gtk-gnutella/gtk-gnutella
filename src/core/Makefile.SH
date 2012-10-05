@@ -143,6 +143,7 @@ SRC = \
 	rx_chunk.c \
 	rx_inflate.c \
 	rx_link.c \
+	rx_ut.c \
 	rxbuf.c \
 	search.c \
 	settings.c \
@@ -241,6 +242,7 @@ OBJ = \
 	rx_chunk.o \
 	rx_inflate.o \
 	rx_link.o \
+	rx_ut.o \
 	rxbuf.o \
 	search.o \
 	settings.o \

@@ -387,6 +387,8 @@ src/core/rx_inflate.c
 src/core/rx_inflate.h
 src/core/rx_link.c
 src/core/rx_link.h
+src/core/rx_ut.c
+src/core/rx_ut.h
 src/core/rxbuf.c
 src/core/rxbuf.h
 src/core/search.c
