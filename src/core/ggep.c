@@ -381,8 +381,7 @@ ggep_stream_write(ggep_stream_t *gs, const void *data, size_t len)
 
 	g_assert(len <= INT_MAX);
 
-	iovec_set_base(&iov, deconstify_pointer(data));
-	iovec_set_len(&iov, len);
+	iovec_set(&iov, deconstify_pointer(data), len);
 
 	return ggep_stream_writev(gs, p_iov, 1);
 }
@@ -721,8 +720,7 @@ ggep_stream_pack(ggep_stream_t *gs,
 	g_assert(0 == plen || NULL != payload);
 	g_assert(plen <= INT_MAX);
 
-	iovec_set_base(&iov, deconstify_pointer(payload));
-	iovec_set_len(&iov, plen);
+	iovec_set(&iov, deconstify_pointer(payload), plen);
 
 	return ggep_stream_packv(gs, id, p_iov, 1, wflags);
 }

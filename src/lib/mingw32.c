@@ -1636,8 +1636,7 @@ mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags)
 	iovec_t iov;
 	int res;
 
-	iovec_set_base(&iov, buf);
-	iovec_set_len(&iov, len);
+	iovec_set(&iov, buf, len);
 
 	res = WSARecv(fd, (LPWSABUF) &iov, 1, &r, &flags, NULL, NULL);
 

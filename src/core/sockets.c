@@ -2394,8 +2394,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		struct msghdr msg;
 		iovec_t iov;
 
-		iovec_set_base(&iov, s->buf);
-		iovec_set_len(&iov, s->buf_size);
+		iovec_set(&iov, s->buf, s->buf_size);
 
 		msg = zero_msg;
 		msg.msg_name = cast_to_pointer(from);

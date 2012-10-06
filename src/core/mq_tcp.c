@@ -143,8 +143,7 @@ again:
 			l = g_list_previous(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
-			iovec_set_base(ie, deconstify_pointer(mb->m_rptr));
-			iovec_set_len(ie, pmsg_size(mb));
+			iovec_set(ie, deconstify_pointer(mb->m_rptr), pmsg_size(mb));
 			maxsize -= iovec_len(ie);
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;

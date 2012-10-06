@@ -87,16 +87,12 @@ G_STMT_START { \
 		print_str_text_ && \
 		print_str_iov_cnt_ < G_N_ELEMENTS(print_str_iov_) \
 	) { \
-		iovec_set_base(&print_str_iov_[print_str_iov_cnt_], \
-			print_str_text_); \
-		iovec_set_len(&print_str_iov_[print_str_iov_cnt_], \
-			strlen(print_str_text_)); \
+		iovec_set(&print_str_iov_[print_str_iov_cnt_], \
+			print_str_text_, strlen(print_str_text_)); \
 		print_str_iov_cnt_++; \
 	} else { \
-		iovec_set_base(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
-			TRUNCATION_STR); \
-		iovec_set_len(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
-			sizeof(TRUNCATION_STR) - 1); \
+		iovec_set(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+			TRUNCATION_STR, sizeof TRUNCATION_STR - 1); \
 	} \
 } G_STMT_END
 

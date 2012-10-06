@@ -107,8 +107,7 @@ is_readable(void *data, int unused_source, inputevt_cond_t cond)
 		
 		db[i] = rxbuf_new();
 		len = pdata_len(db[i]);
-		iovec_set_base(&iov[i], pdata_start(db[i]));
-		iovec_set_len(&iov[i], len);
+		iovec_set(&iov[i], pdata_start(db[i]), len);
 		i++;
 
 		if (len >= avail)
