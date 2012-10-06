@@ -74,21 +74,40 @@ static rxdrv_t *rx_sr_gta;		/**< Semi-reliable RX layer for "GTA" */
 static rxdrv_t *rx_sr_gnd;		/**< Semi-reliable RX layer for "GND" */
 
 /**
+ * Records the RX layer to use for semi-reliable UDP traffic.
+ */
+void
+udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx)
+{
+	switch (tag) {
+	case UDP_SR_GTA:
+		rx_sr_gta = rx;
+		break;
+	case UDP_SR_GND:
+		rx_sr_gnd = rx;
+		break;
+	}
+}
+
+/**
  * Look whether the datagram we received is a valid Gnutella packet.
  *
- * @return NULL if not valid, the UDP node that got the message otherwise
+ * The routine also handles traffic statistics (reception and dropping).
+ *
+ * @param n				the pseudo UDP reception node (NULL if invalid IP:port)
+ * @param truncated		whether datagram was truncated during reception
+ * @param header		header of message
+ * @param payload		payload of message (maybe not contiguous with header)
+ * @param len			total length of message (header + payload)
+ *
+ * @return TRUE if valid, FALSE otherwise.
  */
-static gnutella_node_t *
-udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
+bool
+udp_is_valid_gnet_split(gnutella_node_t *n, bool truncated,
+	const void *header, const void *payload, size_t len)
 {
-	struct gnutella_node *n;
-	gnutella_header_t *head;
 	const char *msg;
-	const void *payload;
-	uint16 size;				/**< Payload size, from the Gnutella message */
-
-	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
-		node_udp_get_addr_port(s->addr, s->port);
+	uint16 size;			/**< Payload size, from the Gnutella message */
 
 	/*
 	 * If we can't get a proper UDP node for this address/port combination,
@@ -100,7 +119,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 		goto not;
 	}
 
-	if (s->pos < GTA_HEADER_SIZE) {
+	if (len < GTA_HEADER_SIZE) {
 		msg = "Too short";
 		goto not;
 	}
@@ -110,10 +129,8 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 	 * Note that packet could be garbage at this point.
 	 */
 
-	head = cast_to_pointer(s->buf);
-	memcpy(n->header, head, sizeof n->header);
-	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
-	payload = ptr_add_offset(s->buf, GTA_HEADER_SIZE);
+	memcpy(n->header, header, sizeof n->header);
+	n->size = len - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
 
 	gnet_stats_count_received_header(n);
 	gnet_stats_count_received_payload(n, payload);
@@ -141,7 +158,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 	 * 1 byte for the function type) to identify a valid Gnutella packet.
 	 */
 
-	switch (gmsg_size_valid(head, &size)) {
+	switch (gmsg_size_valid(header, &size)) {
 	case GMSG_VALID:
 	case GMSG_VALID_MARKED:
 		break;
@@ -153,7 +170,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 		goto not;		/* Probably just garbage */
 	}
 
-	if ((size_t) size + GTA_HEADER_SIZE != s->pos) {
+	if ((size_t) size + GTA_HEADER_SIZE != len) {
 		msg = "Size mismatch";
 		goto not;
 	}
@@ -163,7 +180,7 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 	 * messages like HSEP data, BYE or QRP are not expected!
 	 */
 
-	switch (gnutella_header_get_function(head)) {
+	switch (gnutella_header_get_function(header)) {
 	case GTA_MSG_INIT:
 	case GTA_MSG_INIT_RESPONSE:
 	case GTA_MSG_VENDOR:
@@ -172,10 +189,10 @@ udp_is_valid_gnet(struct gnutella_socket *s, bool dht, bool truncated)
 	case GTA_MSG_SEARCH_RESULTS:
 	case GTA_MSG_RUDP:
 	case GTA_MSG_DHT:
-		return n;
+		return TRUE;
 	case GTA_MSG_SEARCH:
 		if (settings_is_ultra() && GNET_PROPERTY(enable_guess)) {
-			return n;	/* GUESS query accepted */
+			return TRUE;	/* GUESS query accepted */
 		}
 		msg = "Query from UDP refused";
 		goto drop;
@@ -198,17 +215,41 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
-		g_warning("got invalid Gnutella packet (%u byte%s) "
-			"\"%s\" %sfrom UDP (%s): %s",
-			(unsigned) s->pos, 1 == s->pos ? "" : "s",
-			gmsg_infostr_full(s->buf, s->pos),
+		g_warning("got invalid Gnutella packet (%zu byte%s) "
+			"\"%s\" %sfrom %s: %s",
+			len, 1 == len ? "" : "s",
+			gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE),
 			truncated ? "(truncated) " : "",
-			host_addr_port_to_string(s->addr, s->port), msg);
-		if (s->pos)
-			dump_hex(stderr, "UDP datagram", s->buf, s->pos);
+			node_infostr(n), msg);
+		if (len != 0) {
+			iovec_t iov[2];
+			iovec_set(&iov[0], header, GTA_HEADER_SIZE);
+			iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
+			dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+		}
 	}
 
-	return NULL;
+	return FALSE;		/* Dropped */
+}
+
+/**
+ * Look whether the datagram we received is a valid Gnutella packet.
+ *
+ * The routine also handles traffic statistics (reception and dropping).
+ *
+ * @param n				the pseudo UDP reception node (NULL if invalid IP:port)
+ * @param truncated		whether datagram was truncated during reception
+ * @param start			start of message (header + payload following)
+ * @param len			total length of message
+ *
+ * @return TRUE if valid, FALSE otherwise.
+ */
+static bool
+udp_is_valid_gnet(gnutella_node_t *n, bool truncated,
+	const void *start, size_t len)
+{
+	return udp_is_valid_gnet_split(n, truncated, start,
+		const_ptr_add_offset(start, GTA_HEADER_SIZE), len);
 }
 
 enum udp_traffic {
@@ -854,7 +895,17 @@ unreliable:
 		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
 	}
 
-	if (!(n = udp_is_valid_gnet(s, dht, truncated)))
+	/*
+	 * Get proper pseudo-node.
+	 *
+	 * These routines can return NULL if the address/port combination is
+	 * not correct, but this will be handled by udp_is_valid_gnet().
+	 */
+
+	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
+		node_udp_get_addr_port(s->addr, s->port);
+
+	if (!udp_is_valid_gnet(n, truncated, s->buf, s->pos))
 		return;
 
 	/*
