@@ -752,6 +752,14 @@ oob_shutdown(void)
 {
 	oob_shutdown_running = TRUE;
 
+	if (GNET_PROPERTY(search_debug)) {
+		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
+			G_STRFUNC, hikset_count(results_by_muid),
+			1 == hikset_count(results_by_muid) ? "y" : "ies",
+			hikset_count(servent_by_host),
+			1 == hikset_count(servent_by_host) ? "" : "s");
+	}
+
 	hikset_foreach(results_by_muid, free_oob_kv, NULL);
 	hikset_free_null(&results_by_muid);
 
