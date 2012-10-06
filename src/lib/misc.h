@@ -261,6 +261,8 @@ size_t strchomp(char *str, size_t len);
 int hex2int(uchar c);
 bool is_printable(const char *buf, int len);
 void dump_hex(FILE *, const char *, const void *, int);
+void dump_hex_vec(FILE *out, const char *title,
+	const iovec_t *iov, size_t iovcnt);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
 bool is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
