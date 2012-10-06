@@ -280,6 +280,13 @@ iovec_set_len(struct iovec *iov, size_t len)
 	iov->iov_len = len;
 }
 
+static inline void
+iovec_set(struct iovec *iov, const void *base, size_t len)
+{
+	iov->iov_base = (void *) base;
+	iov->iov_len = len;
+}
+
 /* FIXME: Get rid of these: */
 typedef int socket_fd_t;
 #define INVALID_SOCKET (-1)

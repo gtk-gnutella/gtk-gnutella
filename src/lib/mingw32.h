@@ -360,6 +360,13 @@ iovec_set_len(iovec_t* iovec, size_t len)
 	iovec->len = len;
 }
 
+static inline void
+iovec_set(iovec_t* iovec, const void *base, size_t len)
+{
+	iovec->buf = (void *) base;
+	iovec->len = len;
+}
+
 signal_handler_t mingw_signal(int signo, signal_handler_t handler);
 
 int mingw_fcntl(int fd, int cmd, ... /* arg */ );
