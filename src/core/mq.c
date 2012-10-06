@@ -66,8 +66,7 @@ static void mq_swift_timer(cqueue_t *cq, void *obj);
 mq_status_t
 mq_status(const mqueue_t *q)
 {
-	g_assert(q != NULL);
-	g_assert(MQ_MAGIC == q->magic);
+	mq_check_consistency(q);
 
 	if (0 == q->count)
 		return MQ_S_EMPTY;
@@ -83,72 +82,84 @@ mq_status(const mqueue_t *q)
 
 uint32 mq_debug(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return *q->debug;
 }
 
 bool
 mq_is_flow_controlled(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return 0 != (q->flags & MQ_FLOWC);
 }
 
 bool
 mq_is_swift_controlled(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return 0 != (q->flags & MQ_SWIFT);
 }
 
 int
 mq_maxsize(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->maxsize;
 }
 
 int
 mq_size(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size;
 }
 
 int
 mq_lowat(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->lowat;
 }
 
 int
 mq_hiwat(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->hiwat;
 }
 
 int
 mq_count(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->count;
 }
 
 int
 mq_pending(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size + tx_pending(q->tx_drv);
 }
 
 int
 mq_tx_pending(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return tx_pending(q->tx_drv);
 }
 
 struct bio_source *
 mq_bio(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return tx_bio_source(q->tx_drv);
 }
 
 struct gnutella_node *
 mq_node(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->node;
 }
 
@@ -158,6 +169,7 @@ mq_node(const mqueue_t *q)
 bool
 mq_would_flow_control(const mqueue_t *q, size_t additional)
 {
+	mq_check_consistency(q);
 	return size_saturate_add(q->size, additional) >= UNSIGNED(q->hiwat);
 }
 
@@ -167,6 +179,7 @@ mq_would_flow_control(const mqueue_t *q, size_t additional)
 bool
 mq_above_low_watermark(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size >= q->lowat;
 }
 
@@ -341,6 +354,8 @@ mq_free(mqueue_t *q)
 {
 	GList *l;
 	int n;
+
+	mq_check_consistency(q);
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
@@ -673,7 +688,7 @@ mq_update_flowc(mqueue_t *q)
 void
 mq_clear(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	if (q->count == 0)
 		return;					/* Queue is empty */
@@ -728,7 +743,7 @@ mq_clear(mqueue_t *q)
 void
 mq_discard(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	q->flags |= MQ_DISCARD;
 }
@@ -739,7 +754,7 @@ mq_discard(mqueue_t *q)
 void
 mq_shutdown(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	tx_shutdown(q->tx_drv);		/* No further output will be made */
 }
@@ -750,7 +765,7 @@ mq_shutdown(mqueue_t *q)
 void
 mq_flush(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	tx_flush(q->tx_drv);
 }
@@ -1525,6 +1540,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 void
 mq_putq(mqueue_t *q, pmsg_t *mb)
 {
+	mq_check_consistency(q);
 	MQ_PUTQ(q, mb);
 }
 

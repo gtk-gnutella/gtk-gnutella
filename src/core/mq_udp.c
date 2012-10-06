@@ -289,10 +289,12 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 	bool error = FALSE;
 
+	mq_check_consistency(q);
+
 	dump_tx_udp_packet(to, mb);
 
 again:
-	g_assert(q);
+	mq_check_consistency(q);
 	g_assert(mb);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
@@ -483,6 +485,8 @@ void
 mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *n)
 {
 	gnet_host_t to;
+
+	mq_check_consistency(q);
 
 	gnet_host_set(&to, n->addr, n->port);
 	mq_udp_putq(q, mb, &to);

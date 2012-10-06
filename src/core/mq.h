@@ -117,6 +117,13 @@ struct mqueue {
     int putq_entered;		/**< For recursion checks in mq_putq() */
 };
 
+static inline void
+mq_check_consistency(const struct mqueue * const q)
+{
+	g_assert(q != NULL);
+	g_assert(MQ_MAGIC == q->magic);
+}
+
 /*
  * Queue flags.
  */

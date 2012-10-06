@@ -303,10 +303,12 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 	bool prioritary;		/* Is message prioritary? */
 	bool error = FALSE;
 
+	mq_check_consistency(q);
+
 	dump_tx_tcp_packet(from, q->node, mb);
 
 again:
-	g_assert(q);
+	mq_check_consistency(q);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
 	g_assert(q->ops == &mq_tcp_ops);	/* Is a TCP queue */
