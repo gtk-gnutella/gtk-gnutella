@@ -3324,9 +3324,9 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (QUERY_F_OOB_REPLY & flags) {
-		/** 
+		/* 
 		 * Indicate support for OOB v3.
-		 * @see http://the-gdf.org/index.php?title=OutOfBandV3
+		 * See doc/gnutella/out-of-band-v3
 		 */
 
 		if (
@@ -3337,8 +3337,15 @@ build_search_message(const guid_t *muid, const char *query,
 			/*
 			 * Since our ultrapeers might not support OOB v3 and not understand
 			 * GGEP "SO" either, only add this if we're not OOB proxied.
-			 * Otherwise, we won't receive OOB results.
+			 *
+			 * Otherwise, we won't receive OOB results: the query bearing "SO"
+			 * will be understood by the servent with hits as OOBv3, and
+			 * therefore it will send back a v3 indication of hits, which our
+			 * ultrapeer may not understand and therefore drop!
+			 *
+			 * Hence avoid advertising "SO" if we are firewalled.
 			 */
+
 			if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
 				g_carp("could not add GGEP \"SO\" extension to query");
 				goto error;
