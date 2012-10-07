@@ -62,6 +62,7 @@
  * not create a problem in practice.
  */
 #define QUERY_F_SR_UDP		0x0100	/**< Accepts semi-reliable UDP, "GTA" tag */
+#define QUERY_F_MAX_HITS	0x00ff	/**< Lowest 8 bits indicate max # of hits */
 
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
