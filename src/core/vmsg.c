@@ -458,6 +458,51 @@ vmsg_bad_payload(struct gnutella_node *n,
 		: FALSE)
 
 /**
+ * Ignore message coming from wrong origin, complaining loudly when debugging.
+ */
+static void
+vmsg_ignore(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (GNET_PROPERTY(vmsg_debug)) {
+		g_warning("VMSG got %s/%uv%u \"%s\" via %s, ignoring",
+			vendor_code_to_string(vmsg->vendor),
+			vmsg->id, vmsg->version, vmsg->name, node_infostr(n));
+	}
+}
+
+/**
+ * Make sure message comes from TCP.
+ *
+ * @return TRUE if message is from TCP.
+ */
+static inline bool
+vmsg_from_tcp(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (NODE_IS_UDP(n)) {
+		vmsg_ignore(n, vmsg);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Make sure message comes from UDP.
+ *
+ * @return TRUE if message is from UDP.
+ */
+static inline bool
+vmsg_from_udp(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (!NODE_IS_UDP(n)) {
+		vmsg_ignore(n, vmsg);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Handle the "Features Supported" message.
  */
 static void
@@ -468,14 +513,8 @@ handle_features_supported(struct gnutella_node *n,
 	uint16 count;
 	str_t *feats;
 
-	if (NODE_IS_UDP(n)) {
-		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("got %s/%uv%u via %s, ignoring",
-				vendor_code_to_string(vmsg->vendor),
-				vmsg->id, vmsg->version, node_infostr(n));
-		}
+	if (!vmsg_from_tcp(n, vmsg))
 		return;
-	}
 
 	count = peek_le16(payload);
 
@@ -774,6 +813,13 @@ handle_proxy_req(struct gnutella_node *n,
 	(void) unused_size;
 
 	/*
+	 * This message is only meaningful from TCP.
+	 */
+
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
+
+	/*
 	 * Normally, a firewalled host should be a leaf node, not an UP.
 	 * Warn if node is not a leaf, but accept to be the push proxy
 	 * nonetheless.
@@ -884,15 +930,22 @@ handle_proxy_ack(struct gnutella_node *n,
  * many results the search filters of the leave (ourselves) let pass through.
  */
 static void
-handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
+handle_qstat_req(struct gnutella_node *n, const struct vmsg *vmsg,
 	const char *unused_payload, size_t unused_size)
 {
 	uint32 kept;
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
-	(void) unused_vmsg;
 	(void) unused_payload;
 	(void) unused_size;
+
+	/*
+	 * Ignore servents requesting the status of our queries via UDP.
+	 * This is only supposed to happen via TCP (from our ultra peer).
+	 */
+
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
 
 	if (!search_get_kept_results_by_muid(muid, &kept)) {
 		/*
@@ -929,6 +982,8 @@ void
 vmsg_send_qstat_req(struct gnutella_node *n, const struct guid *muid)
 {
 	uint32 msgsize;
+
+	g_assert(!NODE_IS_UDP(n));	/* Can only be sent via TCP from UP -> leaf */
 
 	msgsize = vmsg_fill_header(v_tmp_header, 0, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header, muid);
@@ -1035,16 +1090,12 @@ handle_oob_reply_ind(struct gnutella_node *n,
 	bool secure;
 	int hits;
 
-	if (!NODE_IS_UDP(n)) {
-		/*
-		 * Uh-oh, someone forwarded us a LIME/12 message.  Ignore it!
-		 */
+	/*
+	 * We only expect LIME/12 messages from UDP.
+	 */
 
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	switch (vmsg->version) {
 	case 1:
@@ -1171,12 +1222,8 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	 * We expect those ACKs to come back via UDP.
 	 */
 
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	wanted = peek_u8(&payload[0]);
 
@@ -1196,16 +1243,12 @@ static void
 handle_oob_proxy_veto(struct gnutella_node *n,
 	const struct vmsg *vmsg, const char *payload, size_t size)
 {
-	const char *msg = NULL;
-
-	if (NODE_IS_UDP(n)) {
-		msg = "UDP";
-		goto ignore;
-	}
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
 
 	if (!NODE_IS_LEAF(n)) {
-		msg = "non-leaf node";
-		goto ignore;
+		vmsg_ignore(n, vmsg);
+		return;
 	}
 
 	if (size > 0 && peek_u8(payload) < 3) {
@@ -1216,13 +1259,6 @@ handle_oob_proxy_veto(struct gnutella_node *n,
 	}
 
 	return;
-
-ignore:
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_warning("got %s/%uv%u from %s via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, msg, node_infostr(n));
-	}
 }
 
 /**
@@ -1515,12 +1551,8 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 	 * We expect those messages to come via UDP.
 	 */
 
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	/*
 	 * The format of the message was reverse-engineered from LimeWire's code.
