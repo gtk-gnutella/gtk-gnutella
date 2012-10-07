@@ -8143,6 +8143,9 @@ search_compact(struct gnutella_node *n)
 			case EXT_T_GGEP_M:
 				/* "WH", "SO" and "M" are kept with NODE_M_WHATS_NEW */
 				break;
+			case EXT_T_GGEP_NP:
+				/* "NP" only used from leaf -> ultra to prevent OOB proxying */
+				continue;	/* Strip "NP" in relayed queries */
 			default:
 				if (n->msg_flags & NODE_M_WHATS_NEW)
 					continue;
