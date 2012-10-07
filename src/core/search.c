@@ -6742,8 +6742,13 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_GGEP_NP:			/* No OOB-proxying */
-				/* This may override LIME/13v1 */
-				sri->may_oob_proxy = FALSE;
+				/*
+				 * We support OOB v3 (secure OOB) so there is no need to refuse
+				 * OOB proxying.  If they sent us an "OOB Proxy Veto", we'll
+				 * honour it, but "NP" comes from legacy servents.
+				 *		--RAM, 2012-10-07
+				 */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;	/* Strip "NP" if relayed */
 				break;
 
 			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
@@ -7248,6 +7253,8 @@ search_request_preprocess(struct gnutella_node *n,
 skip_throttling:
 
 	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
+	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
+	sri->may_oob_proxy = booleanize(0 == (n->flags & NODE_F_NO_OOB_PROXY));
 
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
