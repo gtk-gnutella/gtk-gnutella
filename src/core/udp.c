@@ -253,7 +253,7 @@ udp_received(struct gnutella_socket *s, bool truncated)
 	 * another node, only we'll use a special "pseudo UDP node" as origin.
 	 */
 
-	if (GNET_PROPERTY(udp_debug) > 19)
+	if (GNET_PROPERTY(udp_debug) > 19 || (bogus && GNET_PROPERTY(udp_debug)))
 		g_debug("UDP got %s from %s%s", gmsg_infostr_full(s->buf, s->pos),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
