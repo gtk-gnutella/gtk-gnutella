@@ -4079,7 +4079,7 @@ guess_fill_caught_array(host_net_t net,
 
 		h = guess_cache_select();
 
-		if (!hset_contains(seen_host, h)) {
+		if (h != NULL && !hset_contains(seen_host, h)) {
 			i = G_LIKELY(count != 0) ? random_value(count - 1) : 0;
 			gnet_host_copy(&hosts[i], h);
 			if G_UNLIKELY(0 == count)
