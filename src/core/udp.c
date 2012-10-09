@@ -927,10 +927,20 @@ unreliable:
 void
 udp_send_msg(const gnutella_node_t *n, const void *buf, int len)
 {
+	pmsg_t *mb;
+
 	g_assert(NODE_IS_UDP(n));
 	g_return_if_fail(n->outq);
 
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(buf, len), n);
+	/*
+	 * If message is directed to a UDP node that can do semi-reliable UDP,
+	 * then turn on reliability on the message.
+	 */
+
+	mb = gmsg_to_pmsg(buf, len);
+	if (NODE_CAN_SR_UDP(n))
+		pmsg_mark_reliable(mb);
+	mq_udp_node_putq(n->outq, mb, n);
 }
 
 /**
@@ -940,10 +950,15 @@ udp_send_msg(const gnutella_node_t *n, const void *buf, int len)
 void
 udp_ctrl_send_msg(const gnutella_node_t *n, const void *buf, int len)
 {
+	pmsg_t *mb;
+
 	g_assert(NODE_IS_UDP(n));
 	g_return_if_fail(n->outq);
 
-	mq_udp_node_putq(n->outq, gmsg_to_ctrl_pmsg(buf, len), n);
+	mb = gmsg_to_ctrl_pmsg(buf, len);
+	if (NODE_CAN_SR_UDP(n))
+		pmsg_mark_reliable(mb);		/* Send reliably if node supports it */
+	mq_udp_node_putq(n->outq, mb, n);
 }
 
 /**
@@ -963,6 +978,8 @@ udp_send_mb(const gnutella_node_t *n, pmsg_t *mb)
 		g_assert_not_reached();
 	}
 	g_assert(NODE_IS_UDP(n));
+	if (NODE_CAN_SR_UDP(n))
+		pmsg_mark_reliable(mb);		/* Send reliably if node supports it */
 	mq_udp_node_putq(n->outq, mb, n);
 }
 
