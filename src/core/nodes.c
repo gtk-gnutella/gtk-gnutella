@@ -7197,6 +7197,17 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 			g_assert_not_reached();
 			break;
 		}
+
+		/*
+		 * Since processing can freely turn on the NODE_A_CAN_INFLATE flag
+		 * when it sees indication from the message received that the UDP
+		 * node supports deflated UDP traffic, we must clear that flag
+		 * each time we get a "new" node (i.e. setup the fake node for a
+		 * new incoming address).
+		 *		--RAM, 2012-10-09
+		 */
+
+		n->attrs &= ~NODE_A_CAN_INFLATE;	/* Until negotiated */
 		return node_pseudo_set_addr_port(n, addr, port);
 	}
 	return NULL;
