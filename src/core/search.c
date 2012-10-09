@@ -7122,6 +7122,9 @@ skip_throttling:
 	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
 	sri->may_oob_proxy = booleanize(0 == (n->flags & NODE_F_NO_OOB_PROXY));
 
+	if (sri->sr_udp && NODE_IS_UDP(n))
+		n->attrs2 |= NODE_A2_HAS_SR_UDP;
+
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
 	 */

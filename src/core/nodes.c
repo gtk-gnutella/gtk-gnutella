@@ -6669,7 +6669,7 @@ node_udp_sr_create(enum net_type net)
 	gnutella_node_t *n;
 
 	n = node_pseudo_create(net, NODE_P_UDP, _("Pseudo semi-reliable UDP node"));
-	n->attrs2 |= NODE_A2_UDP_TRANCVR;
+	n->attrs2 |= NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP;
 	n->attrs |= NODE_A_TX_DEFLATE | NODE_A_RX_INFLATE;	/* Layer can compress */
 
 	return n;
@@ -7205,9 +7205,15 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 		 * each time we get a "new" node (i.e. setup the fake node for a
 		 * new incoming address).
 		 *		--RAM, 2012-10-09
+		 *
+		 * The NODE_A2_HAS_SR_UDP attribute is only set when the node from
+		 * which we got a GUESS query (a UDP node, therefore) advertised
+		 * that it understands semi-reliable UDP incoming traffic.
 		 */
 
 		n->attrs &= ~NODE_A_CAN_INFLATE;	/* Until negotiated */
+		n->attrs2 &= ~NODE_A2_HAS_SR_UDP;	/* Idem */
+
 		return node_pseudo_set_addr_port(n, addr, port);
 	}
 	return NULL;
@@ -7272,7 +7278,7 @@ node_dht_get_addr_port(const host_addr_t addr, uint16 port)
  */
 gnutella_node_t *
 node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
-	bool can_deflate)
+	bool can_deflate, bool sr_udp)
 {
 	gnutella_node_t *n;
 
@@ -7280,10 +7286,10 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
 		n = NULL;
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
-			n = dht_node;
+			n = sr_udp ? udp_sr_node : udp_node;
 			break;
 		case NET_TYPE_IPV6:
-			n = dht6_node;
+			n = sr_udp ? udp6_sr_node : udp6_node;
 			break;
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
@@ -7299,10 +7305,30 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
 		 */
 
 		udp_route->outq = n->outq;
-		udp_route->attrs = NODE_A_UDP;
+		udp_route->attrs = n->attrs;
+		udp_route->attrs2 = n->attrs2;
+
+		/*
+		 * Set appropriate flags.
+		 */
 
 		if (can_deflate)
 			udp_route->attrs |= NODE_A_CAN_INFLATE;
+		else
+			udp_route->attrs &= ~NODE_A_CAN_INFLATE;
+
+		/*
+		 * If ``sr_udp'' is TRUE, we set NODE_A2_UDP_TRANCVR because the
+		 * message queue is connected to the UDP transceiver and we set
+		 * NODE_A2_HAS_SR_UDP because the UDP node to which we are routing
+		 * the message has indicated that it understood it.  These two bits
+		 * mean two different things...
+		 */
+
+		if (sr_udp)
+			udp_route->attrs2 |= NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP;
+		else
+			udp_route->attrs2 &= ~(NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP);
 
 		return node_pseudo_set_addr_port(udp_route, addr, port);
 	}

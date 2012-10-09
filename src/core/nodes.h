@@ -357,7 +357,8 @@ enum {
  * Second attributes.
  */
 enum {
-	NODE_A2_UDP_TRANCVR	= 1 << 0	/**< Supports UDP transceiver */
+	NODE_A2_HAS_SR_UDP	= 1 << 1,	/**< Source advertised semi-reliable UDP */
+	NODE_A2_UDP_TRANCVR	= 1 << 0	/**< Message queue uses UDP transceiver */
 };
 
 /**
@@ -474,7 +475,17 @@ enum {
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+
+/*
+ * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
+ * to use the UDP transceiver layer.
+ *
+ * NODE_HAS_SR_UDP() checks whether we saw indication that the node could be
+ * forwarded GUESS results using the UDP transceiver layer...
+ */
+
 #define NODE_CAN_SR_UDP(n)		((n)->attrs2 & NODE_A2_UDP_TRANCVR)
+#define NODE_HAS_SR_UDP(n)		((n)->attrs2 & NODE_A2_HAS_SR_UDP)
 
 #define NODE_HAS_FAKE_NAME(n)	\
 	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)
@@ -664,7 +675,7 @@ gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t * node_udp_route_get_addr_port(
-	const host_addr_t addr, uint16 port, bool can_deflate);
+	const host_addr_t addr, uint16 port, bool can_deflate, bool sr_udp);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);
