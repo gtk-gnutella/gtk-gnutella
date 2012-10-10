@@ -96,6 +96,7 @@ typedef enum {
  */
 
 void gmsg_init(void);
+void gmsg_close(void);
 const char *gmsg_name(uint function);
 gmsg_valid_t gmsg_size_valid(const void *msg, uint16 *size);
 

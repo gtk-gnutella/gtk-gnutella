@@ -62,6 +62,8 @@ static const char *msg_name[256];
 static uint8 msg_weight[256];	/**< For gmsg_cmp() */
 static uint8 kmsg_weight[256];	/**< For gmsg_cmp() */
 
+static zlib_deflater_t *gmsg_deflater;
+
 /**
  * Ensure that the gnutella message header has the correct size,
  * a TTL greater than zero and that size is at least 23 (GTA_HEADER_SIZE).
@@ -214,6 +216,17 @@ gmsg_init(void)
 		}
 		kmsg_weight[i] = w;
 	}
+
+	gmsg_deflater = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
+}
+
+/**
+ * Destroy locally-allocated data.
+ */
+G_GNUC_COLD void
+gmsg_close(void)
+{
+	zlib_deflater_free(gmsg_deflater, TRUE);
 }
 
 /**
@@ -264,10 +277,8 @@ pmsg_t *
 gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 {
 	uint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
-	uint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
 	void *buf;									/* Compression made there */
 	uint32 deflated_length;						/* Length of deflated data */
-	zlib_deflater_t *z;
 	pmsg_t *mb;
 
 	/*
@@ -277,17 +288,17 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	 */
 
 	if (plen <= 5)
-		return gmsg_split_to_pmsg(head, data, size);
+		goto send_raw;
 
 	/*
-	 * Compress payload into newly allocated buffer.
+	 * Compress payload internally allocated buffer (in gmsg_deflater).
 	 */
 
-	buf = walloc(blen);
-	z = zlib_deflater_make_into(data, plen, buf, blen, Z_DEFAULT_COMPRESSION);
+	zlib_deflater_reset(gmsg_deflater, data, plen);
 
-	switch (zlib_deflate(z, plen)) {
+	switch (zlib_deflate_step(gmsg_deflater, plen, FALSE)) {
 	case -1:
+		g_carp("%s(): deflate error", G_STRFUNC);
 		goto send_raw;
 		break;
 	case 0:
@@ -297,15 +308,13 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 		break;
 	}
 
-	g_assert(zlib_deflater_closed(z));
-
 	/*
 	 * Check whether compressed data is smaller than the original payload.
 	 */
 
-	deflated_length = zlib_deflater_outlen(z);
+	deflated_length = zlib_deflater_outlen(gmsg_deflater);
+	buf = zlib_deflater_out(gmsg_deflater);
 
-	g_assert(deflated_length <= blen);
 	g_assert(zlib_is_valid_header(buf, deflated_length));
 
 	if (deflated_length >= plen) {
@@ -322,9 +331,6 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	 */
 
 	mb = gmsg_split_to_pmsg(head, buf, deflated_length + GTA_HEADER_SIZE);
-
-	wfree(buf, blen);
-	zlib_deflater_free(z, FALSE);
 
 	if (GNET_PROPERTY(udp_debug))
 		g_debug("UDP deflated %s into %d bytes",
@@ -343,11 +349,8 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 
 send_raw:
 	/*
-	 * Cleanup and send payload as-is (uncompressed).
+	 * Send payload as-is (uncompressed).
 	 */
-
-	wfree(buf, blen);
-	zlib_deflater_free(z, FALSE);
 
 	return gmsg_split_to_pmsg(head, data, size);
 }
