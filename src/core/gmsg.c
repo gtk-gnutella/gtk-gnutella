@@ -853,7 +853,7 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
  * route.
  */
 static bool
-gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
+gmsg_query_can_send(const pmsg_t *mb, const void *q)
 {
 	gnutella_node_t *n = mq_node(q);
 	const void *msg = pmsg_start(mb);
@@ -889,8 +889,7 @@ gmsg_install_presend(pmsg_t *mb)
 	const void *msg = pmsg_start(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
-		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
-		g_assert(NULL == old);
+		pmsg_set_check(mb, gmsg_query_can_send);
 	}
 }
 
@@ -1281,7 +1280,7 @@ gmsg_log_split_duplicate(
  * Log dropped message (held in message block) with supplied reason.
  */
 void
-gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
+gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 {
 	char rbuf[256];
 	char buf[128];

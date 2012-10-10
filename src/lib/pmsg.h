@@ -62,7 +62,10 @@
 
 typedef void (*pdata_free_t)(void *p, void *arg);
 
+enum pdata_magic { PDATA_MAGIC = 0x0ad505b9 };
+
 typedef struct pdata {
+	enum pdata_magic magic;
 	pdata_free_t d_free;		/**< Free routine */
 	void *d_arg;				/**< Argument to free routine */
 	int d_refcnt;				/**< Reference count */
@@ -71,18 +74,42 @@ typedef struct pdata {
 	char d_embedded[1];			/**< Start of embedded arena */
 } pdata_t;
 
-#define pdata_start(x)		((x)->d_arena)
-#define pdata_len(x)		((size_t) ((x)->d_end - (x)->d_arena))
-#define pdata_addref(x)		do { (x)->d_refcnt++; } while (0)
+static inline void
+pdata_check(const pdata_t * const pd)
+{
+	g_assert(pd != NULL);
+	g_assert(PDATA_MAGIC == pd->magic);
+}
+
+static inline char *
+pdata_start(const pdata_t *pd)
+{
+	pdata_check(pd);
+	return pd->d_arena;
+}
+
+static inline size_t
+pdata_len(const pdata_t *pd)
+{
+	pdata_check(pd);
+	return ptr_diff(pd->d_end, pd->d_arena);
+}
+
+static inline void
+pdata_addref(pdata_t *pd)
+{
+	pdata_check(pd);
+	pd->d_refcnt++;
+}
 
 /*
  * A message block
  */
 
-struct mqueue;
-
 typedef struct pmsg pmsg_t;
-typedef bool (*pmsg_check_t)(pmsg_t *mb, const struct mqueue *q);
+
+typedef bool (*pmsg_check_t)(const pmsg_t *mb, const void *arg);
+typedef bool (*pmsg_hook_t)(const pmsg_t *mb);
 
 enum pmsg_magic {
 	PMSG_MAGIC		= 0x2fa50be3U,
@@ -94,29 +121,19 @@ struct pmsg {
 	const char *m_rptr;			/**< First unread byte in buffer */
 	char *m_wptr;				/**< First unwritten byte in buffer */
 	pdata_t *m_data;			/**< Data buffer */
-	uint m_prio;				/**< Message priority (0 = normal) */
-	pmsg_check_t m_check;		/**< Optional check before sending */
+	uint8 m_flags;				/**< Message flags */
+	uint8 m_prio;				/**< Message priority (0 = normal) */
+	uint16 m_refcnt;			/**< Refs to this message block */
+	union {
+		pmsg_check_t m_check;	/**< Optional check before sending */
+		pmsg_hook_t m_hook;		/**< Optional check before transmitting */
+	} m_u;
 };
 
 typedef void (*pmsg_free_t)(pmsg_t *mb, void *arg);
 
-#define PMSG_PRIO_MASK		0x00ffffff	/**< Only lower bits are relevant */
-
-#define pmsg_start(x)		((x)->m_data->d_arena)
-#define pmsg_phys_len(x)	pdata_len((x)->m_data)
-#define pmsg_is_writable(x)	((x)->m_data->d_refcnt == 1)
-#define pmsg_prio(x)		((x)->m_prio & PMSG_PRIO_MASK)
-
-#define pmsg_is_unread(x)	((x)->m_rptr == (x)->m_data->d_arena)
-#define pmsg_read_base(x)	((x)->m_rptr)
-
-#define pmsg_check(x,y)		((x)->m_check ? (x)->m_check((x), (y)) : TRUE)
-
-/* Available room for pmsg_write() calls */
-#define pmsg_available(x)	((x)->m_data->d_end - (x)->m_wptr)
-
 /*
- * Message priorities.
+ * Message priorities (16-bit).
  */
 
 #define PMSG_P_DATA		0			/**< Regular data, lowest priority */
@@ -124,31 +141,186 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, void *arg);
 #define PMSG_P_URGENT	2			/**< Urgent message */
 #define PMSG_P_HIGHEST	3			/**< Highest priority */
 
-/*
- * Flags defined in highest bits of `m_prio'.
- */
-
-#define PMSG_PF_EXT		0x80000000	/**< Message block uses extended form */
-#define PMSG_PF_SENT	0x40000000	/**< Message was successfully sent */
-
-#define pmsg_is_extended(mb) ((mb)->m_prio & PMSG_PF_EXT)
-#define pmsg_was_sent(mb) ((mb)->m_prio & PMSG_PF_SENT)
-#define pmsg_mark_sent(mb) \
-G_STMT_START { \
-	(mb)->m_prio |= PMSG_PF_SENT; \
-} G_STMT_END
+#define PMSG_P_COUNT	4			/**< Amount of priorities defined */
 
 /*
- * Public interface
+ * Message flags.
  */
+
+#define PMSG_PF_EXT		(1U << 7)	/**< Message block uses extended form */
+#define PMSG_PF_SENT	(1U << 6)	/**< Message was successfully sent */
+#define PMSG_PF_ACKME	(1U << 5)	/**< Request remote acknowledgment */
+#define PMSG_PF_COMP	(1U << 4)	/**< Compression already attempted / done */
+#define PMSG_PF_HOOK	(1U << 3)	/**< Use ``m_check'' as standalone hook */
 
 static inline void
 pmsg_check_consistency(const pmsg_t * const mb)
 {
 	g_assert(mb != NULL);
 	g_assert((PMSG_MAGIC == mb->magic) ^ (PMSG_EXT_MAGIC == mb->magic));
-	g_assert((PMSG_MAGIC == mb->magic) ^ (0 != (PMSG_PF_EXT & mb->m_prio)));
+	g_assert((PMSG_MAGIC == mb->magic) ^ (0 != (PMSG_PF_EXT & mb->m_flags)));
 }
+
+static inline char *
+pmsg_start(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	pdata_check(mb->m_data);
+
+	return mb->m_data->d_arena;
+}
+
+static inline size_t
+pmsg_phys_len(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return pdata_len(mb->m_data);
+}
+
+static inline bool
+pmsg_is_writable(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	pdata_check(mb->m_data);
+	return 1 == mb->m_data->d_refcnt;
+}
+
+static inline unsigned
+pmsg_prio(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return mb->m_prio;
+}
+
+static inline unsigned
+pmsg_refcnt(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return mb->m_refcnt;
+}
+
+static inline bool
+pmsg_is_unread(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	pdata_check(mb->m_data);
+	return mb->m_rptr == mb->m_data->d_arena;
+}
+
+static inline const char *
+pmsg_read_base(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return mb->m_rptr;
+}
+
+/**
+ * Pre-send checks.
+ */
+static inline bool
+pmsg_check(const pmsg_t *mb, const void *arg)
+{
+	pmsg_check_consistency(mb);
+	return (NULL != mb->m_u.m_check && !(mb->m_flags & PMSG_PF_HOOK)) ?
+		mb->m_u.m_check(mb, arg) : TRUE;
+}
+
+/**
+ * Pre-transmit hook.
+ */
+static inline bool
+pmsg_hook_check(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return (NULL != mb->m_u.m_hook && (mb->m_flags & PMSG_PF_HOOK)) ?
+		mb->m_u.m_hook(mb) : TRUE;
+}
+
+/**
+ * Available room for pmsg_write() calls
+ */
+static inline size_t
+pmsg_available(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	pdata_check(mb->m_data);
+	return ptr_diff(mb->m_data->d_end, mb->m_wptr);
+}
+
+static inline bool
+pmsg_is_extended(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return 0 != (mb->m_flags & PMSG_PF_EXT);
+}
+
+static inline bool
+pmsg_was_sent(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return 0 != (mb->m_flags & PMSG_PF_SENT);
+}
+
+
+static inline bool
+pmsg_is_reliable(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return 0 != (mb->m_flags & PMSG_PF_ACKME);
+}
+
+static inline bool
+pmsg_is_compressed(const pmsg_t *mb)
+{
+	pmsg_check_consistency(mb);
+	return 0 != (mb->m_flags & PMSG_PF_COMP);
+}
+
+/**
+ * TX layer marks message as being sent when it was sent over the network.
+ */
+static inline void
+pmsg_mark_sent(pmsg_t *mb)
+{
+	mb->m_flags |= PMSG_PF_SENT;
+}
+
+/**
+ * Clear the "sent" marker on message.
+ */
+static inline void
+pmsg_clear_sent(pmsg_t *mb)
+{
+	mb->m_flags &= ~PMSG_PF_SENT;
+}
+
+/**
+ * On unreliable medium (e.g. UDP), flag message as requiring a reliable
+ * transmission, if possible.  The message will be marked as "sent" only
+ * if it was acknowledged.
+ */
+static inline void
+pmsg_mark_reliable(pmsg_t *mb)
+{
+	mb->m_flags |= PMSG_PF_ACKME;
+}
+
+/**
+ * Mark message as "compressed", whether or not it actually is.
+ *
+ * This signals the TX layers that the data has either already been compressed
+ * or that compression was already attempted and did not yield any significant
+ * gain.  Hence it would be a waste of time to attempt a compression again.
+ */
+static inline void
+pmsg_mark_compressed(pmsg_t *mb)
+{
+	mb->m_flags |= PMSG_PF_COMP;
+}
+
+/*
+ * Public interface
+ */
 
 void pmsg_init(void);
 void pmsg_close(void);
@@ -158,12 +330,14 @@ pmsg_t * pmsg_new_extend(
 	int prio, const void *buf, int len,
 	pmsg_free_t free_cb, void *arg);
 pmsg_t *pmsg_alloc(int prio, pdata_t *db, int roff, int woff);
+pmsg_t *pmsg_ref(pmsg_t *mb);
 pmsg_t *pmsg_clone(pmsg_t *mb);
 pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free_cb, void *arg);
 pmsg_free_t pmsg_replace_ext(
 	pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg);
-void *pmsg_get_metadata(pmsg_t *mb);
-pmsg_check_t pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
+void *pmsg_get_metadata(const pmsg_t *mb);
+void pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
+void pmsg_set_hook(pmsg_t *mb, pmsg_hook_t hook);
 void pmsg_free(pmsg_t *mb);
 void pmsg_free_null(pmsg_t **mb_ptr);
 int pmsg_write(pmsg_t *mb, const void *data, int len);
