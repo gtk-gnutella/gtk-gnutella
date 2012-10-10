@@ -457,6 +457,7 @@ udp_tx_desc_send(void *data, void *udata)
 {
 	struct udp_tx_desc *txd = data;
 	udp_sched_t *us = udata;
+	unsigned prio;
 
 	udp_sched_check(us);
 	udp_tx_desc_check(txd, TRUE);
@@ -465,7 +466,8 @@ udp_tx_desc_send(void *data, void *udata)
 		return FALSE;
 
 	/*
-	 * Avoid flushing consecutive queued messages to the same destination.
+	 * Avoid flushing consecutive queued messages to the same destination,
+	 * for regular (non-prioritary) messages.
 	 *
 	 * This serves two purposes:
 	 *
@@ -476,14 +478,16 @@ udp_tx_desc_send(void *data, void *udata)
 	 *    flooding and hopefully avoiding saturation of its RX flow.
 	 */
 
-	if (hset_contains(us->seen, txd->to)) {
+	prio = pmsg_prio(txd->mb);
+
+	if (PMSG_P_DATA == prio && hset_contains(us->seen, txd->to)) {
 		udp_sched_log(2, "%p: skipping mb=%p (%d bytes) to %s",
 			us, txd->mb, pmsg_size(txd->mb), gnet_host_to_string(txd->to));
 		return FALSE;
 	}
 
 	if (udp_sched_mb_sendto(us, txd->mb, txd->to, txd->tx, txd->cb)) {
-		if (pmsg_was_sent(txd->mb))
+		if (PMSG_P_DATA == prio && pmsg_was_sent(txd->mb))
 			hset_insert(us->seen, atom_host_get(txd->to));
 	} else {
 		return FALSE;		/* Unsent, leave it in the queue */
