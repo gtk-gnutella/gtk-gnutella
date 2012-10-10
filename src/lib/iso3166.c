@@ -83,6 +83,7 @@ static const struct {
 	{ "bh", N_("Bahrain") },
 	{ "bi", N_("Burundi") },
 	{ "bj", N_("Benin") },
+	{ "bl", N_("Saint Barthelemy") },
 	{ "bm", N_("Bermuda") },
 	{ "bn", N_("Brunei Darussalam") },
 	{ "bo", N_("Bolivia") },
@@ -109,6 +110,7 @@ static const struct {
 	{ "cs", N_("Serbia and Montenegro") },	/* deprecated */
 	{ "cu", N_("Cuba") },
 	{ "cv", N_("Cape Verde") },
+	{ "cw", N_("Curacao") },
 	{ "cx", N_("Christmas Island") },
 	{ "cy", N_("Cyprus") },
 	{ "cz", N_("Czech Republic") },
@@ -304,6 +306,8 @@ static const struct {
 	{ "za", N_("South Africa") },
 	{ "zm", N_("Zambia") },
 	{ "zw", N_("Zimbabwe") },
+
+	/* Above line intentionally left blank for vi sorting */
 };
 
 static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];
