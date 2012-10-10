@@ -152,8 +152,9 @@
  * The fragment transmission timeout (ACK not received) is set to 5 secs for
  * the first transmission, 10 secs for the second and 20 secs for the third
  * and last attempt (exponential retry delay).
- * The packet transmission timeout is set to 45 secs (larger than 5+10+20=35 in
- * case each fragment is not immediately sent out).
+ * The packet transmission timeout is set to 60 secs (larger than 5+10+20+20=55
+ * in case each fragment is not immediately sent out), to leave about 20 seconds
+ * to get the final acknowledgement back on the last re-transmission.
  *
  * LINK WITH THE RX SIDE
  *
@@ -200,7 +201,7 @@
 #define TX_UT_FRAG_MAX		255		/* At most 255 fragments per message */
 #define TX_UT_MSG_MAXSIZE	(TX_UT_MTU * TX_UT_FRAG_MAX)
 
-#define TX_UT_EXPIRE_MS		(45*1000)	/* Expiration time for packets, in ms */
+#define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
 #define TX_UT_SEQNO_THRESH	1024		/* Sequence ID freeing threshold */
 

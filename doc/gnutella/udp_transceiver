@@ -231,8 +231,10 @@ The recommended parameters for the reliability layer are as follows:
       5 secs for the first transmission, 10 secs for the second and 20
       secs for the third and last attempt (exponential retry delay).
 
-    - The packet transmission timeout is set to 45 secs (larger than
-      5+10+20=35 in case each fragment is not immediately sent out).
+    - The packet transmission timeout is set to 60 secs (larger than
+      5+10+20+20=35 in case each fragment is not immediately sent out),
+	  which leaves about 20 seconds to get the final acknowledgment back
+	  after the last re-transmission.
 
 The UDP/IP header being typically 28 bytes, it is best to limit the payload
 of the messages to 476 bytes. That way, with the 8-byte header we're topping
