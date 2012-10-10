@@ -163,6 +163,7 @@ socket_dealloc(struct gnutella_socket **s_ptr)
 	if (s) {
 		socket_check(s);
 		s->magic = 0;
+		s->wio.magic = 0;
 		WFREE(s);
 		*s_ptr = NULL;
 	}
@@ -3770,7 +3771,7 @@ static int
 socket_get_fd(struct wrap_io *wio)
 {
 	struct gnutella_socket *s = wio->ctx;
-	socket_check(s);
+	socket_check(s);		/* Ensures socket not freed */
 	return s->file_desc;
 }
 
@@ -3778,6 +3779,7 @@ static unsigned
 socket_get_bufsize(struct wrap_io *wio, enum socket_buftype type)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 	socket_check(s);
 
 	switch (type) {
@@ -3930,6 +3932,7 @@ socket_wio_link(struct gnutella_socket *s)
 	socket_check(s);
 	g_assert(s->flags & (SOCK_F_LOCAL | SOCK_F_TCP | SOCK_F_UDP));
 
+	s->wio.magic = WRAP_IO_MAGIC;
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 	s->wio.flush = socket_no_flush;
@@ -3975,6 +3978,8 @@ safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt)
 	iovec_t *siov;
 	int siovcnt = MAX_IOV_COUNT;
 	int iovgot = 0;
+
+	wrap_io_check(wio);
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
@@ -4074,6 +4079,8 @@ safe_writev(wrap_io_t *wio, const iovec_t *iov, int iovcnt)
 	int siovcnt = MAX_IOV_COUNT;
 	int iovsent = 0;
 	size_t sent = 0;
+
+	wrap_io_check(wio);
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		const iovec_t *xiv, *xend;
