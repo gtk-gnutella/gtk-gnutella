@@ -44,11 +44,13 @@ struct gnutella_node;
 
 typedef void (*tx_service_t)(void *obj);
 
+enum txdrv_magic { TXDRV_MAGIC = 0x5189ae4d };
+
 /**
  * A network driver.
  */
-
 typedef struct txdriver {
+	enum txdrv_magic magic;			/**< Magic number */
 	void *owner;					/**< Object owning the stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
@@ -59,6 +61,13 @@ typedef struct txdriver {
 	void *srv_arg;					/**< Service routine argument */
 	void *opaque;					/**< Used by heirs to store specific info */
 } txdrv_t;
+
+static inline void
+tx_check(const txdrv_t *tx)
+{
+	g_assert(tx != NULL);
+	g_assert(TXDRV_MAGIC == tx->magic);
+}
 
 /*
  * Driver flags.
