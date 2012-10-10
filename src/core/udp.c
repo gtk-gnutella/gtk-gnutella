@@ -218,7 +218,9 @@ log:
 		g_warning("got invalid Gnutella packet (%zu byte%s) "
 			"\"%s\" %sfrom %s: %s",
 			len, 1 == len ? "" : "s",
-			gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE),
+			len >= GTA_HEADER_SIZE ?
+				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
+				: "<incomplete Gnutella header>",
 			truncated ? "(truncated) " : "",
 			node_infostr(n), msg);
 		if (len != 0) {
