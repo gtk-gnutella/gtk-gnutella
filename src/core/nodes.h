@@ -443,12 +443,12 @@ enum {
 	((n)->attrs & NODE_A_TX_DEFLATE)
 
 #define NODE_TX_COMPRESSION_RATIO(n)	\
-	((n)->tx_given ?					\
-		(double) ((n)->tx_given - (n)->tx_deflated) / (n)->tx_given : 0.0)
+	((n)->tx_given ? (double)			\
+		(int64) ((n)->tx_given - (n)->tx_deflated) / (n)->tx_given : 0.0)
 
 #define NODE_RX_COMPRESSION_RATIO(n)	\
-	((n)->rx_inflated ?					\
-		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
+	((n)->rx_inflated ? (double)		\
+		(int64) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
 
 #define NODE_ID(n)				((n)->id)
 
