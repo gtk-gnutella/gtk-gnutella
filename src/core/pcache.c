@@ -681,12 +681,15 @@ send_pong(
 	 */
 
 	r = build_pong_msg(n->addr, n->port, hops, ttl, muid, info,
-			control ? NULL : meta, flags, &size);
+			meta, flags, &size);
 	n->n_pong_sent++;
 
-	if (NODE_IS_UDP(n))
-		udp_send_msg(n, r, size);
-	else if (control)
+	if (NODE_IS_UDP(n)) {
+		if (control)
+			udp_ctrl_send_msg(n, r, size);
+		else
+			udp_send_msg(n, r, size);
+	} else if (control)
 		gmsg_ctrl_sendto_one(n, r, size);
 	else
 		gmsg_sendto_one(n, r, size);
@@ -919,7 +922,8 @@ send_personal_info(struct gnutella_node *n, bool control,
 
 	send_pong(n, control, flags, 0,
 		MIN(gnutella_header_get_hops(&n->header) + 1U, GNET_PROPERTY(max_ttl)),
-		gnutella_header_get_muid(&n->header), &info, &local_meta);
+		gnutella_header_get_muid(&n->header), &info,
+		control ? NULL : &local_meta);
 
 	/* Reset flags that must be recomputed each time */
 	local_meta.flags &=
@@ -1065,7 +1069,12 @@ use_self_pong:
 	/* FALL THROUGH */
 
 send_pong:
-	send_pong(n, FALSE, flags,
+	/*
+	 * GUESS acknowledgments are sent as "control" messages to make sure
+	 * querying hosts get them quickly.
+	 */
+
+	send_pong(n, TRUE, flags,
 		1, 1, gnutella_header_get_muid(&n->header),
 		&info, &meta);	/* hops = 1, TTL = 1 */
 

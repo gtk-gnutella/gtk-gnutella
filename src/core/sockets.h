@@ -258,6 +258,7 @@ bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);
+void socket_closedown(void);
 
 ssize_t safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt);
 ssize_t safe_readv_fd(int fd, iovec_t *iov, int iovcnt);

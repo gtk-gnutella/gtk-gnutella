@@ -602,7 +602,14 @@ k_send_find_value_response(
 	STATIC_ASSERT(KDA_HEADER_SIZE + 61 + DHT_VALUE_MAX_LEN + 6 +
 		(MAX_VALUES_PER_KEY - 1) * KUID_RAW_SIZE < MAX_VALUE_RESPONSE_SIZE);
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_VALUE_RESPONSE_SIZE);
+	/*
+	 * Values are sent with an "urgent" priority to make sure they get
+	 * the reply quickly, even under tight outgoing bandwidth: the message
+	 * will be put ahead of the message queue and sent as soon as possible
+	 * by the UDP TX scheduler.
+	 */
+
+	mb = pmsg_new(PMSG_P_URGENT, NULL, MAX_VALUE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_FIND_VALUE_RESPONSE, 0, 0, muid);
@@ -741,9 +748,12 @@ k_send_store_response(
 	/*
 	 * The architected store response message v0.0 is Cretinus Maximus.
 	 * Limit the total size to MAX_STORE_RESPONSE_SIZE, whatever happens.
+	 *
+	 * We use a "control" priority to make sure the acknowledgement is
+	 * received rapidly enough, even under tight outgoing bandwidth.
 	 */
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_STORE_RESPONSE_SIZE);
+	mb = pmsg_new(PMSG_P_CONTROL, NULL, MAX_STORE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);

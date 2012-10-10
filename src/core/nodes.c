@@ -85,6 +85,7 @@
 #include "tx_dgram.h"
 #include "tx_link.h"
 #include "udp.h"
+#include "udp_sched.h"
 #include "uploads.h"			/* For handle_push_request() */
 #include "version.h"
 #include "vmsg.h"
@@ -231,6 +232,7 @@ static time_t node_error_cleanup_timer = 6 * 3600;	/**< 6 hours */
 static pproxy_set_t *proxies;	/* Our push proxies */
 static uint32 shutdown_nodes;
 static bool allow_gnet_connections = FALSE;
+static htable_t *node_udp_sched_ht;		/* UDP schedulers by bsched_bws_t */
 
 /**
  * Structure used for asynchronous reaction to peer mode changes.
@@ -3628,8 +3630,27 @@ static struct tx_link_cb node_tx_link_cb = {
  *** TX datagram callbacks
  ***/
 
+/**
+ * Invoked on each successfully sent datagram to update message accounting
+ * and node information.
+ */
+static void
+node_msg_accounting(void *o, const pmsg_t *mb)
+{
+	gnutella_node_t *n = o;
+	char *mb_start = pmsg_start(mb);
+	uint8 function = gmsg_function(mb_start);
+	int mb_size = pmsg_size(mb);
+
+	node_check(n);
+
+	node_add_tx_written(n, mb_size);
+	node_sent_accounting(n, function, mb_start, mb_size);
+}
+
 static struct tx_dgram_cb node_tx_dgram_cb = {
-	node_add_tx_written,		/* add_tx_written */
+	node_msg_accounting,		/* msg_account */
+	node_add_txdrop,			/* add_tx_dropped */
 };
 
 /***
@@ -6576,6 +6597,57 @@ node_dht_create(enum net_type net)
 }
 
 /**
+ * Create an UDP scheduler, once per bandwidth type.
+ */
+static udp_sched_t *
+node_udp_scheduler(gnutella_node_t *n, bsched_bws_t bws)
+{
+	udp_sched_t *us;
+
+	node_check(n);
+
+	if G_UNLIKELY(NULL == node_udp_sched_ht)
+		node_udp_sched_ht = htable_create(HASH_KEY_SELF, 0);
+
+	us = htable_lookup(node_udp_sched_ht, int_to_pointer(bws));
+
+	if G_UNLIKELY(NULL == us) {
+		socket_check(n->socket);
+		us = udp_sched_make(bws, &n->socket->wio);
+		htable_insert(node_udp_sched_ht, int_to_pointer(bws), us);
+	}
+
+	return us;
+}
+
+/**
+ * Hash table iterator to free scheduler.
+ */
+static void
+node_udp_scheduler_free(const void *unused_key, void *value, void *unused_data)
+{
+	udp_sched_t *us = value;
+
+	(void) unused_key;
+	(void) unused_data;
+
+	udp_sched_free(us);
+}
+
+/**
+ * Free all the created UDP schedulers and the recording hash.
+ */
+static void
+node_udp_scheduler_destroy_all(void)
+{
+	if (NULL == node_udp_sched_ht)
+		return;
+
+	htable_foreach(node_udp_sched_ht, node_udp_scheduler_free, NULL);
+	htable_free_null(&node_udp_sched_ht);
+}
+
+/**
  * Enable transmissions on a pseudo node by setting up a full TX stack.
  */
 static void
@@ -6592,8 +6664,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 	n->socket = s;
 
 	args.cb = &node_tx_dgram_cb;
-	args.bws = bws;
-	args.wio = &n->socket->wio;
+	args.us = node_udp_scheduler(n, bws);
 
 	gnet_host_set(&host, n->addr, n->port);
 
@@ -9536,6 +9607,7 @@ node_close(void)
 	aging_destroy(&udp_crawls);
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
+	node_udp_scheduler_destroy_all();
 }
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2012, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,41 +25,44 @@
  * @ingroup core
  * @file
  *
- * Network driver -- datagram layer.
+ * UDP TX scheduling.
  *
  * @author Raphael Manfredi
- * @date 2002-203
+ * @date 2012
  */
 
-#ifndef _core_tx_dgram_h_
-#define _core_tx_dgram_h_
+#ifndef _core_udp_sched_h_
+#define _core_udp_sched_h_
 
 #include "common.h"
 #include "tx.h"
-
-#include "lib/pmsg.h"
+#include "tx_dgram.h"
 
 #include "if/core/bsched.h"
 
-const struct txdrv_ops *tx_dgram_get_ops(void);
+#include "lib/gnet_host.h"
+#include "lib/inputevt.h"
 
-/**
- * Callbacks used by the datagram layer.
+struct udp_sched;
+typedef struct udp_sched udp_sched_t;
+
+struct bio_source;
+
+/*
+ * Public interface.
  */
-struct tx_dgram_cb {
-	void (*msg_account)(void *owner, const pmsg_t *mb);
-	void (*add_tx_dropped)(void *owner, int amount);
-};
 
-/**
- * Arguments to be passed when the layer is instantiated.
- */
-struct tx_dgram_args {
-	struct tx_dgram_cb *cb;			/**< Callbacks */
-	struct udp_sched *us;			/**< UDP TX scheduler */
-};
+udp_sched_t *udp_sched_make(bsched_bws_t bws, wrap_io_t *wio);
+void udp_sched_free(udp_sched_t *us);
+void udp_sched_attach(udp_sched_t *us, const txdrv_t *tx,
+	inputevt_handler_t writable);
+void udp_sched_detach(udp_sched_t *us, const txdrv_t *tx);
+size_t udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
+	const txdrv_t *tx, const struct tx_dgram_cb *cb);
+size_t udp_sched_pending(const udp_sched_t *us);
+struct bio_source *udp_sched_bio_source(const udp_sched_t *us);
 
-#endif	/* _core_tx_dgram_h_ */
+#endif	/* _core_udp_sched_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
 

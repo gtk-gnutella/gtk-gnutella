@@ -274,6 +274,19 @@ udp_send_msg(const gnutella_node_t *n, const void *buf, int len)
 }
 
 /**
+ * Send a datagram to the specified node, made of `len' bytes from `buf',
+ * forming a valid Gnutella message, with a "control" priority.
+ */
+void
+udp_ctrl_send_msg(const gnutella_node_t *n, const void *buf, int len)
+{
+	g_assert(NODE_IS_UDP(n));
+	g_return_if_fail(n->outq);
+
+	mq_udp_node_putq(n->outq, gmsg_to_ctrl_pmsg(buf, len), n);
+}
+
+/**
  * Send a message to specified UDP node.
  *
  * It is up to the caller to clone the message if needed, otherwise the

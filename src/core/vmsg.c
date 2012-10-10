@@ -1160,7 +1160,14 @@ vmsg_build_oob_reply_ind(const struct guid *muid, uint8 hits, bool secure)
 	payload[0] = hits;
 	payload[1] = GNET_PROPERTY(is_udp_firewalled) ? 0x0 : 0x1;
 
-	return gmsg_to_pmsg(v_tmp, msgsize);
+	/*
+	 * The "OOB Reply Indication" (LIME/12) is now sent as a control message.
+	 * We want to get this out to the querying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight.
+	 *		--RAM, 2012-09-16
+	 */
+
+	return gmsg_to_ctrl_pmsg(v_tmp, msgsize);
 }
 
 #define MAX_OOB_TOKEN_SIZE 16
@@ -1295,7 +1302,15 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 	vmsg_advertise_udp_compression(v_tmp_header);	/* Can deflate UDP */
 	gnutella_header_set_muid(v_tmp_header, muid);
 
-	udp_send_msg(n, v_tmp, msgsize);
+	/*
+	 * The "OOB Reply ACK" message (LIME/11) is now sent as a control message.
+	 * We want to get this out to the replying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight,
+	 * minimizing the chances of it being dropped.
+	 *		--RAM, 2012-09-23
+	 */
+
+	udp_ctrl_send_msg(n, v_tmp, msgsize);
 
 	if (GNET_PROPERTY(vmsg_debug) > 2)
 		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s",

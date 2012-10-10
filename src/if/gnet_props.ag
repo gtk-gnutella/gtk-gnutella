@@ -5164,4 +5164,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "udp_sched_debug";
+	desc = "Debug level for the UDP TX scheduler.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

@@ -1030,6 +1030,8 @@ char   *gnet_property_variable_dump_tx_to_addrs     = "";
 static const char   *gnet_property_variable_dump_tx_to_addrs_default = "";
 gboolean gnet_property_variable_guess_maximize_bw     = TRUE;
 static const gboolean gnet_property_variable_guess_maximize_bw_default = TRUE;
+guint32  gnet_property_variable_udp_sched_debug     = 0;
+static const guint32  gnet_property_variable_udp_sched_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9505,6 +9507,26 @@ gnet_prop_init(void) {
     gnet_property->props[443].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[443].data.boolean.def   = (void *) &gnet_property_variable_guess_maximize_bw_default;
     gnet_property->props[443].data.boolean.value = (void *) &gnet_property_variable_guess_maximize_bw;
+
+
+    /*
+     * PROP_UDP_SCHED_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[444].name = "udp_sched_debug";
+    gnet_property->props[444].desc = _("Debug level for the UDP TX scheduler.");
+    gnet_property->props[444].ev_changed = event_new("udp_sched_debug_changed");
+    gnet_property->props[444].save = TRUE;
+    gnet_property->props[444].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[444].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[444].data.guint32.def   = (void *) &gnet_property_variable_udp_sched_debug_default;
+    gnet_property->props[444].data.guint32.value = (void *) &gnet_property_variable_udp_sched_debug;
+    gnet_property->props[444].data.guint32.choices = NULL;
+    gnet_property->props[444].data.guint32.max   = 20;
+    gnet_property->props[444].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
