@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Embedded list (within another data structure).
+ * Embedded two-way list (within another data structure).
  *
  * @author Raphael Manfredi
  * @date 2012
@@ -270,6 +270,8 @@ void elist_insert_sorted(elist_t *list, void *item, cmp_fn_t cmp);
 void *elist_nth_next_data(const elist_t *list, const link_t *lk, size_t n);
 void *elist_nth_prev_data(const elist_t *list, const link_t *lk, size_t n);
 void elist_shuffle(elist_t *list);
+void elist_rotate_left(elist_t *list);
+void elist_rotate_right(elist_t *list);
 
 #endif /* _elist_h_ */
 
