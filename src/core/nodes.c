@@ -8490,7 +8490,7 @@ node_udp_sr_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 	 * is even a valid Gnutella message!
 	 */
 
-	if (!udp_is_valid_gnet_split(n, FALSE, n->header, n->data, length))
+	if (!udp_is_valid_gnet_split(n, NULL, FALSE, n->header, n->data, length))
 		goto done;
 
 	node_handle(n);

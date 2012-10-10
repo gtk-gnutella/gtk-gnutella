@@ -94,7 +94,11 @@ udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx)
  *
  * The routine also handles traffic statistics (reception and dropping).
  *
+ * If ``n'' is not NULL, then ``s'' may be NULL.  If ``n'' is NULL, then
+ * ``s'' must not be NULL.
+ *
  * @param n				the pseudo UDP reception node (NULL if invalid IP:port)
+ * @param s				the socket on which we got the UDP datagram
  * @param truncated		whether datagram was truncated during reception
  * @param header		header of message
  * @param payload		payload of message (maybe not contiguous with header)
@@ -103,11 +107,13 @@ udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx)
  * @return TRUE if valid, FALSE otherwise.
  */
 bool
-udp_is_valid_gnet_split(gnutella_node_t *n, bool truncated,
-	const void *header, const void *payload, size_t len)
+udp_is_valid_gnet_split(gnutella_node_t *n, const gnutella_socket_t *s,
+	bool truncated, const void *header, const void *payload, size_t len)
 {
 	const char *msg;
 	uint16 size;			/**< Payload size, from the Gnutella message */
+
+	g_assert(s != NULL || n != NULL);
 
 	/*
 	 * If we can't get a proper UDP node for this address/port combination,
@@ -222,7 +228,10 @@ log:
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
 				: "<incomplete Gnutella header>",
 			truncated ? "(truncated) " : "",
-			node_infostr(n), msg);
+			NULL == n ?
+				host_addr_port_to_string(s->addr, s->port) :
+				node_infostr(n),
+			msg);
 		if (len != 0) {
 			iovec_t iov[2];
 			iovec_set(&iov[0], header, GTA_HEADER_SIZE);
@@ -240,6 +249,7 @@ log:
  * The routine also handles traffic statistics (reception and dropping).
  *
  * @param n				the pseudo UDP reception node (NULL if invalid IP:port)
+ * @param s				the socket on which we got the UDP datagram
  * @param truncated		whether datagram was truncated during reception
  * @param start			start of message (header + payload following)
  * @param len			total length of message
@@ -247,10 +257,10 @@ log:
  * @return TRUE if valid, FALSE otherwise.
  */
 static bool
-udp_is_valid_gnet(gnutella_node_t *n, bool truncated,
-	const void *start, size_t len)
+udp_is_valid_gnet(gnutella_node_t *n, const gnutella_socket_t *s,
+	bool truncated, const void *start, size_t len)
 {
-	return udp_is_valid_gnet_split(n, truncated, start,
+	return udp_is_valid_gnet_split(n, s, truncated, start,
 		const_ptr_add_offset(start, GTA_HEADER_SIZE), len);
 }
 
@@ -907,7 +917,7 @@ unreliable:
 	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
 		node_udp_get_addr_port(s->addr, s->port);
 
-	if (!udp_is_valid_gnet(n, truncated, s->buf, s->pos))
+	if (!udp_is_valid_gnet(n, s, truncated, s->buf, s->pos))
 		return;
 
 	/*

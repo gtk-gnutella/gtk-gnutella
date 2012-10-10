@@ -99,6 +99,7 @@ void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n);
 
 bool udp_is_valid_gnet_split(struct gnutella_node *n,
+	const struct gnutella_socket *s,
 	bool truncated, const void *header, const void *payload, size_t len);
 
 void udp_set_rx_semi_reliable(enum udp_sr_tag tag, struct rxdriver *rx);
