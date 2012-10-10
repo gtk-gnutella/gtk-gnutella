@@ -472,7 +472,7 @@ kademlia_header_set_extended_length(kademlia_header_t *header, uint16 len)
  */
 
 static inline bool
-kademlia_header_constants_ok(void *header)
+kademlia_header_constants_ok(const void *header)
 {
 	const uint8 *u8 = header;
 	return

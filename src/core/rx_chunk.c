@@ -440,7 +440,7 @@ rx_chunk_recv(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	while ((attr->flags & IF_ENABLED) && (imb = dechunk_data(rx, mb))) {
-		error = !(*rx->data_ind)(rx, imb);
+		error = !(*rx->data.ind)(rx, imb);
 		if (error)
 			break;
 	}
@@ -483,6 +483,7 @@ static const struct rxdrv_ops rx_chunk_ops = {
 	rx_chunk_init,		/**< init */
 	rx_chunk_destroy,	/**< destroy */
 	rx_chunk_recv,		/**< recv */
+	NULL,				/**< recvfrom */
 	rx_chunk_enable,	/**< enable */
 	rx_chunk_disable,	/**< disable */
 	rx_no_source,		/**< bio_source */

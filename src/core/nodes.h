@@ -140,6 +140,7 @@ typedef struct gnutella_node {
 	gnet_node_state_t status;	/**< See possible values below */
 	uint32 flags;				/**< See possible values below */
 	uint32 attrs;				/**< See possible values below */
+	uint32 attrs2;				/**< See possible values below */
 
 	uint8 hops_flow;			/**< Don't send queries with a >= hop count */
 	uint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
@@ -235,22 +236,22 @@ typedef struct gnutella_node {
 
 	uint32 svn_release_revision;	/**< Latest SVN release known by the node */
 
-	uint32 n_ping_throttle;  /**< Number of pings we throttled */
-	uint32 n_ping_accepted;  /**< Number of pings we accepted */
-	uint32 n_ping_special;	  /**< Number of special pings we received */
-	uint32 n_ping_sent;	  /**< Number of pings we sent to this node */
-	uint32 n_pong_received;  /**< Number of pongs we received from this node */
-	uint32 n_pong_sent;	  /**< Number of pongs we sent to this node */
+	uint32 n_ping_throttle;	/**< Number of pings we throttled */
+	uint32 n_ping_accepted;	/**< Number of pings we accepted */
+	uint32 n_ping_special;	/**< Number of special pings we received */
+	uint32 n_ping_sent;		/**< Number of pings we sent to this node */
+	uint32 n_pong_received;	/**< Number of pongs we received from this node */
+	uint32 n_pong_sent;		/**< Number of pongs we sent to this node */
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	uint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	uint64 tx_given;		/**< Bytes fed to the TX stack (from top) */
 	uint64 tx_deflated;		/**< Bytes deflated by the TX stack */
-	uint64 tx_written;			/**< Bytes written by the TX stack */
+	uint64 tx_written;		/**< Bytes written by the TX stack */
 
-	uint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	uint64 rx_given;		/**< Bytes fed to the RX stack (from bottom) */
 	uint64 rx_inflated;		/**< Bytes inflated by the RX stack */
 	uint64 rx_read;			/**< Bytes read from the RX stack */
 
@@ -267,10 +268,10 @@ typedef struct gnutella_node {
 
 	uint32 qrp_queries;		/**< Queries received under QRP control */
 	uint32 qrp_matches;		/**< Queries received that incurred a match */
-	uint32 rx_queries;			/**< Total amount of queries received */
-	uint32 tx_queries;			/**< Total amount of queries sent */
-	uint32 rx_qhits;			/**< Total amount of hits received */
-	uint32 tx_qhits;			/**< Total amount of hits sent */
+	uint32 rx_queries;		/**< Total amount of queries received */
+	uint32 tx_queries;		/**< Total amount of queries sent */
+	uint32 rx_qhits;		/**< Total amount of hits received */
+	uint32 tx_qhits;		/**< Total amount of hits sent */
 
 	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004 */
 
@@ -350,6 +351,14 @@ enum {
 	NODE_A_PONG_ALIEN	= 1 << 2,	/**< Alien Pong-Caching scheme */
 	NODE_A_PONG_CACHING	= 1 << 1,	/**< Supports Pong-Caching */
 	NODE_A_BYE_PACKET	= 1 << 0	/**< Supports Bye-Packet */
+};
+
+/**
+ * Second attributes.
+ */
+enum {
+	NODE_A2_HAS_SR_UDP	= 1 << 1,	/**< Source advertised semi-reliable UDP */
+	NODE_A2_UDP_TRANCVR	= 1 << 0	/**< Message queue uses UDP transceiver */
 };
 
 /**
@@ -466,6 +475,17 @@ enum {
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+
+/*
+ * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
+ * to use the UDP transceiver layer.
+ *
+ * NODE_HAS_SR_UDP() checks whether we saw indication that the node could be
+ * forwarded GUESS results using the UDP transceiver layer...
+ */
+
+#define NODE_CAN_SR_UDP(n)		((n)->attrs2 & NODE_A2_UDP_TRANCVR)
+#define NODE_HAS_SR_UDP(n)		((n)->attrs2 & NODE_A2_HAS_SR_UDP)
 
 #define NODE_HAS_FAKE_NAME(n)	\
 	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)
@@ -645,15 +665,17 @@ void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(int rx_size);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
+mqueue_t *node_udp_sr_get_outq(enum net_type net);
 bool node_dht_is_flow_controlled(void);
 bool node_dht_would_flow_control(size_t additional);
 bool node_dht_above_low_watermark(void);
 void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
+gnutella_node_t *node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t * node_udp_route_get_addr_port(
-	const host_addr_t addr, uint16 port, bool can_deflate);
+	const host_addr_t addr, uint16 port, bool can_deflate, bool sr_udp);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);

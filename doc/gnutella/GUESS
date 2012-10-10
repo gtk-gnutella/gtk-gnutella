@@ -885,8 +885,14 @@ The GDF                          GUESS                          May 2011
    Compressed query hits are transmitted normally, with the bit 7 from
    the TTL set to flag compression, as explained in [16].
 
-   A GUESS 0.2 server SHOULD strip the "Z" GGEP extensions from the
-   Query before forwarding the message to the leaves.
+   With the coming of the Semi-Reliable UDP layer [17] in Gnutella (which
+   can natively compress payloads), the "Z" extension should be deprecated.
+   Servents should implement the Semi-Reliable UDP layer instead, to more
+   reliably transmit hits back.  Support for this new feature is advertised
+   in the Query flags (in the old "speed" field), as explained in [17].
+
+   A GUESS 0.2 server SHOULD strip the "Z" extension from the Query before
+   forwarding the message to the leaves.
 
 References
 
@@ -956,6 +962,8 @@ The GDF                          GUESS                          May 2011
    [16]  Raphael Manfredi, "Gnutella UDP Traffic Compression", August
 		 2006, <http://groups.yahoo.com/group/the_gdf/message/22739>
 
+   [17]  Raphael Manfredi, "Gnutella Semi-Reliable UDP", October
+		 2012, <http://groups.yahoo.com/group/the_gdf/message/23806>
 
 
 Daswani & Fisk                                                 [Page 15]

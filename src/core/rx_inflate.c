@@ -209,7 +209,7 @@ rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	while ((attr->flags & IF_ENABLED) && (imb = inflate_data(rx, mb))) {
-		error = !(*rx->data_ind)(rx, imb);
+		error = !(*rx->data.ind)(rx, imb);
 		if (error)
 			break;
 	}
@@ -244,6 +244,7 @@ static const struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_init,		/**< init */
 	rx_inflate_destroy,		/**< destroy */
 	rx_inflate_recv,		/**< recv */
+	NULL,					/**< recvfrom */
 	rx_inflate_enable,		/**< enable */
 	rx_inflate_disable,		/**< disable */
 	rx_no_source,			/**< bio_source */

@@ -170,6 +170,7 @@ struct search_request_info {
 	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
 	unsigned ipv6:1;				/**< Do they support IPv6? */
 	unsigned ipv6_only:1;			/**< Do they support IPv6 only? */
+	unsigned sr_udp:1;				/**< Do they support semi-reliable UDP? */
 };
 
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
@@ -3066,6 +3067,7 @@ build_search_message(const guid_t *muid, const char *query,
 	flags |= QUERY_F_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	flags |= QUERY_F_GGEP_H;		/* GTKG understands GGEP "H" in hits */
 	flags |= QUERY_F_XML;			/* GTKG can read XML in hits */
+	flags |= QUERY_F_SR_UDP;		/* GTKG supports semi-reliable UDP */
 
 	/*
 	 * We need special processing for OOB queries since the GUID has to be
@@ -7120,6 +7122,9 @@ skip_throttling:
 	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
 	sri->may_oob_proxy = booleanize(0 == (n->flags & NODE_F_NO_OOB_PROXY));
 
+	if (sri->sr_udp && NODE_IS_UDP(n))
+		n->attrs2 |= NODE_A2_HAS_SR_UDP;
+
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
 	 */
@@ -7604,17 +7609,20 @@ search_request(struct gnutella_node *n,
 								sri->exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
-				g_debug("\tflags=0x%04x (%s%s%s%s%s%s%s) ttl=%u hops=%u",
-						(uint) sri->flags,
-						(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
-						(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
-						(sri->flags & QUERY_F_XML) ? " XML" : "",
-						(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
-						(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
-						(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
-						(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
-						gnutella_header_get_ttl(&n->header),
-						gnutella_header_get_hops(&n->header));
+				g_debug("\tflags=0x%04x max-hits=%u (%s%s%s%s%s%s%s%s) "
+					"ttl=%u hops=%u",
+					(uint) sri->flags,
+					(uint) (sri->flags & QUERY_F_MAX_HITS),
+					(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
+					(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
+					(sri->flags & QUERY_F_XML) ? " XML" : "",
+					(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+					(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+					(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+					(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
+					(sri->flags & QUERY_F_SR_UDP) ? " SR_UDP" : "",
+					gnutella_header_get_ttl(&n->header),
+					gnutella_header_get_hops(&n->header));
 			}
 		}
 
@@ -7653,7 +7661,7 @@ search_request(struct gnutella_node *n,
 
 			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
-					sri->addr, sri->port, sri->secure_oob, flags);
+					sri->addr, sri->port, sri->secure_oob, sri->sr_udp, flags);
 			} else {
 				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
 			}

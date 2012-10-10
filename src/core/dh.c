@@ -508,6 +508,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
 			g_debug("GUESS sending %d hit%s (%s) for %s to %s",
 				count, 1 == count ? "" : "s",
+				NODE_CAN_SR_UDP(dest) ? "reliably" :
 				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(muid), node_infostr(dest));
 		}
@@ -516,6 +517,9 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 				src->size + GTA_HEADER_SIZE);
 		mbe = pmsg_clone_extend(mb, dh_pmsg_free, pmi);
 		pmsg_free(mb);
+
+		if (NODE_CAN_SR_UDP(dest))
+			pmsg_mark_reliable(mbe);
 
 		mq_udp_putq(mq, mbe, &to);
 	} else {

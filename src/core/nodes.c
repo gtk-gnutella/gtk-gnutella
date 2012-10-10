@@ -72,6 +72,7 @@
 #include "rx.h"
 #include "rx_inflate.h"
 #include "rx_link.h"
+#include "rx_ut.h"
 #include "rxbuf.h"
 #include "search.h"
 #include "settings.h"
@@ -84,7 +85,9 @@
 #include "tx_deflate.h"
 #include "tx_dgram.h"
 #include "tx_link.h"
+#include "tx_ut.h"
 #include "udp.h"
+#include "udp_reliable.h"
 #include "udp_sched.h"
 #include "uploads.h"			/* For handle_push_request() */
 #include "version.h"
@@ -193,6 +196,8 @@ static hikset_t *nodes_by_id;
 static hikset_t *nodes_by_guid;
 static gnutella_node_t *udp_node;
 static gnutella_node_t *udp6_node;
+static gnutella_node_t *udp_sr_node;
+static gnutella_node_t *udp6_sr_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
@@ -267,6 +272,8 @@ static struct socket_ops node_socket_ops;
 
 static void node_disable_read(struct gnutella_node *n);
 static bool node_data_ind(rxdrv_t *rx, pmsg_t *mb);
+static bool node_udp_sr_data_ind(rxdrv_t *rx, pmsg_t *mb,
+	const gnet_host_t *from);
 static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(void *obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n,
@@ -278,6 +285,7 @@ static void node_bye_all_but_one(struct gnutella_node *nskip,
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(enum net_type net);
+static gnutella_node_t *node_udp_sr_create(enum net_type net);
 static gnutella_node_t *node_dht_create(enum net_type net);
 static gnutella_node_t *node_browse_create(void);
 static bool node_remove_useless_leaf(bool *is_gtkg);
@@ -1584,6 +1592,8 @@ node_init(void)
 
 	udp_node = node_udp_create(NET_TYPE_IPV4);
 	udp6_node = node_udp_create(NET_TYPE_IPV6);
+	udp_sr_node = node_udp_sr_create(NET_TYPE_IPV4);
+	udp6_sr_node = node_udp_sr_create(NET_TYPE_IPV6);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create();
@@ -3652,6 +3662,66 @@ static struct tx_dgram_cb node_tx_dgram_cb = {
 	node_add_txdrop,			/* add_tx_dropped */
 };
 
+/**
+ * Invoked on each successfully sent datagram to update message accounting
+ * for the semi-reliable UDP TX layer (UDP transceiver).
+ *
+ * Gnutella messages are only visible when we enter the semi-reliable UDP
+ * layer, hence message accounting must be done there, whilst byte accounting
+ * is done at the lower layer (physical transmission).
+ */
+static void
+node_msg_ut_accounting(void *o, const pmsg_t *mb)
+{
+	gnutella_node_t *n = o;
+	char *mb_start = pmsg_start(mb);
+	uint8 function = gmsg_function(mb_start);
+	int mb_size = pmsg_size(mb);
+
+	node_check(n);
+	node_sent_accounting(n, function, mb_start, mb_size);
+}
+
+/**
+ * Invoked by the UDP scheduler for each physically sent message so
+ * that we can account for the bytes transmitted by the semi-reliable
+ * UDP layer, including the header overhead and acknowledgements.
+ *
+ * At this low level, we are not sending Gnutella messages (we could send
+ * deflated payloads split over multiple fragments) hence we only monitor
+ * the bytes sent.
+ */
+static void
+node_bytes_ut_accounting(void *o, const pmsg_t *mb)
+{
+	gnutella_node_t *n = o;
+	int size;
+
+	node_check(n);
+
+	size = pmsg_size(mb);
+	node_add_tx_written(n, size);
+
+	/*
+	 * Since we're natively deflating, we want to measure the overall
+	 * compression ratio (including acknoweledgment overhead), hence we also
+	 * count what we write as "deflated" output, even if it is pure overhead
+	 * like acknowledgments.
+	 */
+
+	node_add_tx_deflated(n, size);
+}
+
+static struct tx_dgram_cb node_tx_sr_dgram_cb = {
+	node_bytes_ut_accounting,	/* msg_account */
+	NULL,						/* add_tx_dropped */
+};
+
+static struct tx_ut_cb node_tx_ut_cb = {
+	node_msg_ut_accounting,		/* msg_account */
+	node_add_txdrop,			/* add_tx_dropped */
+};
+
 /***
  *** RX inflate callbacks
  ***/
@@ -3730,6 +3800,10 @@ static struct rx_link_cb node_rx_link_cb = {
 	node_add_rx_given,			/* add_rx_given */
 	node_rx_read_error,			/* read_error */
 	node_rx_got_eof,			/* got_eof */
+};
+
+static struct rx_ut_cb node_rx_ut_cb = {
+	node_add_rx_given,			/* add_rx_given */
 };
 
 /**
@@ -6587,6 +6661,22 @@ node_udp_create(enum net_type net)
 
 /**
  * Create a "fake" node that is used as a placeholder when processing
+ * Gnutella messages received from semi-reliable UDP.
+ */
+static gnutella_node_t *
+node_udp_sr_create(enum net_type net)
+{
+	gnutella_node_t *n;
+
+	n = node_pseudo_create(net, NODE_P_UDP, _("Pseudo semi-reliable UDP node"));
+	n->attrs2 |= NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP;
+	n->attrs |= NODE_A_TX_DEFLATE | NODE_A_RX_INFLATE;	/* Layer can compress */
+
+	return n;
+}
+
+/**
+ * Create a "fake" node that is used as a placeholder when processing
  * DHT messages received from UDP.
  */
 static gnutella_node_t *
@@ -6662,7 +6752,12 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 
 	n->socket = s;
 
-	args.cb = &node_tx_dgram_cb;
+	/*
+	 * The TX dgram layer will not account for messages sent at its level
+	 * when it is underneath a semi-reliable UDP layer.
+	 */
+
+	args.cb = NODE_CAN_SR_UDP(n) ? &node_tx_sr_dgram_cb : &node_tx_dgram_cb;
 	args.us = node_udp_scheduler(n, bws);
 
 	gnet_host_set(&host, n->addr, n->port);
@@ -6671,7 +6766,31 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 		mq_free(n->outq);
 		n->outq = NULL;
 	}
+
 	tx = tx_make(n, &host, tx_dgram_get_ops(), &args);	/* Cannot fail */
+
+	if (NODE_CAN_SR_UDP(n)) {
+		struct tx_ut_args targs;
+		struct rx_ut_args rargs;
+		udp_tag_t tag;
+
+		udp_tag_set(&tag, "GTA");
+		targs.cb = &node_tx_ut_cb;
+		targs.tag = tag;
+		targs.advertise_improved_acks = FALSE;
+		tx = tx_make_above(tx, tx_ut_get_ops(), &targs);
+
+		rargs.tag = tag;
+		rargs.tx = tx;
+		rargs.cb = &node_rx_ut_cb;
+		rargs.advertised_improved_acks = FALSE;
+		n->rx = rx_make(n, NULL, rx_ut_get_ops(), &rargs);
+		rx_set_datafrom_ind(n->rx, node_udp_sr_data_ind);
+		udp_set_rx_semi_reliable(UDP_SR_GTA, n->rx);
+		rx_enable(n->rx);
+		n->flags |= NODE_F_READABLE;
+	}
+
 	n->outq = mq_udp_make(qsize, n, tx);
 	n->flags |= NODE_F_WRITABLE;
 	
@@ -6696,6 +6815,12 @@ node_pseudo_disable(gnutella_node_t *n)
 		mq_free(n->outq);
 		n->outq = NULL;
 	}
+	if (n->rx != NULL) {
+		rx_free(n->rx);
+		n->rx = NULL;
+		udp_set_rx_semi_reliable(UDP_SR_GTA, NULL);
+		n->flags &= ~NODE_F_READABLE;
+	}
 	n->socket = NULL;
 }
 
@@ -6715,6 +6840,23 @@ node_udp_enable_by_net(enum net_type net)
 		break;
 	case NET_TYPE_IPV6:
 		n = udp6_node;
+		s = s_udp_listen6;
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	node_pseudo_enable(n, s, BSCHED_BWS_GOUT_UDP,
+		GNET_PROPERTY(node_udp_sendqueue_size));
+
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = udp_sr_node;
+		s = s_udp_listen;
+		break;
+	case NET_TYPE_IPV6:
+		n = udp6_sr_node;
 		s = s_udp_listen6;
 		break;
 	case NET_TYPE_LOCAL:
@@ -6754,7 +6896,7 @@ node_dht_enable_by_net(enum net_type net)
 }
 
 /**
- * Disable UDP transmission via pseudo node.
+ * Disable UDP transmission via pseudo nodes.
  */
 static void
 node_udp_disable_by_net(enum net_type net)
@@ -6767,6 +6909,20 @@ node_udp_disable_by_net(enum net_type net)
 		break;
 	case NET_TYPE_IPV6:
 		n = udp6_node;
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	node_pseudo_disable(n);
+
+	switch (net) {
+	case NET_TYPE_IPV4:
+		n = udp_sr_node;
+		break;
+	case NET_TYPE_IPV6:
+		n = udp6_sr_node;
 		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
@@ -6867,7 +7023,40 @@ node_pseudo_setup(gnutella_node_t *n, struct gnutella_socket *s)
 	n->addr = s->addr;
 	n->port = s->port;
 
-	n->attrs = NODE_A_UDP;
+	n->attrs = NODE_A_UDP;			/* Clears NODE_A_CAN_INFLATE */
+}
+
+/**
+ * Setup pseudo node after receiving data from an RX layer, for semi-reliable
+ * UDP traffic, which is necessarily Gnutella traffic, not DHT.
+ *
+ * @return setup node
+ */
+static gnutella_node_t *
+node_pseudo_get_from_mb(pmsg_t *mb, const gnet_host_t *from)
+{
+	gnutella_node_t *n;
+
+	n = node_udp_sr_get_addr_port(
+			gnet_host_get_addr(from), gnet_host_get_port(from));
+
+	node_check(n);
+
+	if (pmsg_size(mb) >= GTA_HEADER_SIZE) {
+		const gnutella_header_t *head = deconstify_pointer(pmsg_read_base(mb));
+		n->size = gmsg_size(head);
+		pmsg_read(mb, n->header, sizeof n->header);
+		n->data = deconstify_pointer(pmsg_read_base(mb));
+	} else {
+		ZERO(&n->header);
+		n->data = NULL;
+		n->size = 0;
+	}
+
+	n->msg_flags = 0;
+	n->attrs = NODE_A_UDP | NODE_A_TX_DEFLATE | NODE_A_RX_INFLATE;
+
+	return n;
 }
 
 /**
@@ -6881,6 +7070,24 @@ node_udp_get_outq(enum net_type net)
 	switch (net) {
 	case NET_TYPE_IPV4: return udp_node ? udp_node->outq : NULL;
 	case NET_TYPE_IPV6: return udp6_node ? udp6_node->outq : NULL;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+	return NULL;
+}
+
+/**
+ * Get the message queue attached to the semi-reliable UDP node.
+ *
+ * @return the UDP message queue, or NULL if UDP has been disabled.
+ */
+mqueue_t *
+node_udp_sr_get_outq(enum net_type net)
+{
+	switch (net) {
+	case NET_TYPE_IPV4: return udp_sr_node ? udp_sr_node->outq : NULL;
+	case NET_TYPE_IPV6: return udp6_sr_node ? udp6_sr_node->outq : NULL;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		break;
@@ -6990,6 +7197,50 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 			g_assert_not_reached();
 			break;
 		}
+
+		/*
+		 * Since processing can freely turn on the NODE_A_CAN_INFLATE flag
+		 * when it sees indication from the message received that the UDP
+		 * node supports deflated UDP traffic, we must clear that flag
+		 * each time we get a "new" node (i.e. setup the fake node for a
+		 * new incoming address).
+		 *		--RAM, 2012-10-09
+		 *
+		 * The NODE_A2_HAS_SR_UDP attribute is only set when the node from
+		 * which we got a GUESS query (a UDP node, therefore) advertised
+		 * that it understands semi-reliable UDP incoming traffic.
+		 */
+
+		n->attrs &= ~NODE_A_CAN_INFLATE;	/* Until negotiated */
+		n->attrs2 &= ~NODE_A2_HAS_SR_UDP;	/* Idem */
+
+		return node_pseudo_set_addr_port(n, addr, port);
+	}
+	return NULL;
+}
+
+/**
+ * Get "fake" node for semi-reliable UDP transmission.
+ */
+gnutella_node_t *
+node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port)
+{
+	gnutella_node_t *n;
+
+	if (port != 0 && udp_active()) {
+		n = NULL;
+		switch (host_addr_net(addr)) {
+		case NET_TYPE_IPV4:
+			n = udp_sr_node;
+			break;
+		case NET_TYPE_IPV6:
+			n = udp6_sr_node;
+			break;
+		case NET_TYPE_LOCAL:
+		case NET_TYPE_NONE:
+			g_assert_not_reached();
+			break;
+		}
 		return node_pseudo_set_addr_port(n, addr, port);
 	}
 	return NULL;
@@ -7027,7 +7278,7 @@ node_dht_get_addr_port(const host_addr_t addr, uint16 port)
  */
 gnutella_node_t *
 node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
-	bool can_deflate)
+	bool can_deflate, bool sr_udp)
 {
 	gnutella_node_t *n;
 
@@ -7035,10 +7286,10 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
 		n = NULL;
 		switch (host_addr_net(addr)) {
 		case NET_TYPE_IPV4:
-			n = dht_node;
+			n = sr_udp ? udp_sr_node : udp_node;
 			break;
 		case NET_TYPE_IPV6:
-			n = dht6_node;
+			n = sr_udp ? udp6_sr_node : udp6_node;
 			break;
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
@@ -7054,9 +7305,31 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
 		 */
 
 		udp_route->outq = n->outq;
-		udp_route->attrs = NODE_A_UDP;
+		udp_route->attrs = n->attrs;
+		udp_route->attrs2 = n->attrs2;
+
+		/*
+		 * Set appropriate flags.
+		 */
+
 		if (can_deflate)
 			udp_route->attrs |= NODE_A_CAN_INFLATE;
+		else
+			udp_route->attrs &= ~NODE_A_CAN_INFLATE;
+
+		/*
+		 * If ``sr_udp'' is TRUE, we set NODE_A2_UDP_TRANCVR because the
+		 * message queue is connected to the UDP transceiver and we set
+		 * NODE_A2_HAS_SR_UDP because the UDP node to which we are routing
+		 * the message has indicated that it understood it.  These two bits
+		 * mean two different things...
+		 */
+
+		if (sr_udp)
+			udp_route->attrs2 |= NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP;
+		else
+			udp_route->attrs2 &= ~(NODE_A2_UDP_TRANCVR | NODE_A2_HAS_SR_UDP);
+
 		return node_pseudo_set_addr_port(udp_route, addr, port);
 	}
 	return NULL;
@@ -8023,14 +8296,33 @@ node_drain_hello(void *data, int source, inputevt_cond_t cond)
 }
 
 /**
- * Process incoming Gnutella datagram.
+ * Check whether message comes from an hostile UDP host.
+ *
+ * @return TRUE if message came from a hostile host and must be ignored.
  */
-void
-node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
+static bool
+node_hostile_udp(gnutella_node_t *n)
+{
+	if (hostiles_check(n->addr)) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_warning("UDP got %s from hostile %s -- dropped",
+				gmsg_infostr_full_split(&n->header, n->data, n->size),
+				node_infostr(n));
+		}
+		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Process Gnutella message that has been setup in the pseudo UDP node.
+ */
+static void
+node_handle(gnutella_node_t *n)
 {
 	bool drop_hostile = TRUE;
-
-	node_pseudo_setup(n, s);
 
 	/*
 	 * The node_parse() routine was written to process incoming Gnutella
@@ -8050,10 +8342,20 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 
-	node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
+	/*
+	 * When receiving through the semi-reliable UDP layer, which can natively
+	 * deflate payloads, we want to monitor the overall performance of the
+	 * layer, including acknowledgment overhead.
+	 *
+	 * Therefore, all the data that is physically seen by the application layer
+	 * is "inflated" data (regardless of whether the message was transmitted
+	 * in deflated form).
+	 */
 
-	if (NODE_IS_DHT(n))
-		goto hostile_check;
+	if (NODE_RX_COMPRESSED(n))
+		node_add_rx_inflated(n, n->size + GTA_HEADER_SIZE);
+	else
+		node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
 
 	/*
 	 * We can't know for sure what the Gnutella node address is, so we use
@@ -8082,7 +8384,7 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 	case GTA_MSG_STANDARD:
 		/*
 		 * Check for UDP compression support, marking host if we can send
-		 * UDP compressed replies. --RAM, 2006-08-13
+		 * UDP compressed replies.
 		 */
 
 		if (gnutella_header_get_ttl(&n->header) & GTA_UDP_CAN_INFLATE)
@@ -8096,37 +8398,21 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
 
-hostile_check:
-
-	if (drop_hostile && hostiles_check(n->addr)) {
-		if (GNET_PROPERTY(udp_debug))
-			g_warning("UDP got %s from hostile %s -- dropped",
-				gmsg_infostr_full(s->buf, s->pos), node_addr(n));
-		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+	if (drop_hostile && node_hostile_udp(n))
 		return;
-	}
 
 	/*
-	 * DHT messages now leave the Gnutella processing path.
+	 * Check limits.
 	 */
 
-	if (NODE_IS_DHT(n)) {
-		kmsg_received(s->buf, s->pos, s->addr, s->port, n);
-		return;
-	}
-
-	/*
-	 * Continuing here only with Gnutella traffic.
-	 */
-
-	if (ctl_limit(s->addr, CTL_D_UDP)) {
+	if (ctl_limit(n->addr, CTL_D_UDP)) {
 		if (gnutella_header_get_function(&n->header) == GTA_MSG_PUSH_REQUEST)
 			goto proceed;	/* For now, until we know we are the target */
 
 		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2) {
 			g_warning("CTL UDP got %s from %s [%s] -- dropped",
-				gmsg_infostr_full(s->buf, s->pos), node_addr(n),
-				gip_country_cc(s->addr));
+				gmsg_infostr_full_split(n->header, n->data, n->size),
+				node_infostr(n), gip_country_cc(n->addr));
 		}
 
 		gnet_stats_count_dropped(n, MSG_DROP_LIMIT);
@@ -8149,7 +8435,7 @@ proceed:
 
 	if (GNET_PROPERTY(oob_proxy_debug) > 1) {
 		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
-			g_debug("QUERY OOB results for %s from %s",
+			g_debug("QUERY OOB (semi-reliable) results for %s from %s",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				node_addr(n));
 	}
@@ -8157,6 +8443,63 @@ proceed:
 	node_parse(n);
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
+}
+
+/**
+ * Process incoming UDP Gnutella datagram.
+ */
+void
+node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
+{
+	node_pseudo_setup(n, s);
+
+	/*
+	 * DHT messages now leave the Gnutella processing path.
+	 */
+
+	if (NODE_IS_DHT(n)) {
+		if (!node_hostile_udp(n))
+			kmsg_received(s->buf, s->pos, s->addr, s->port, n);
+		return;
+	}
+
+	node_handle(n);
+}
+
+/**
+ * Data indication callback for the semi-reliable UDP layer.
+ *
+ * @return TRUE, since it is always OK.
+ */
+static bool
+node_udp_sr_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
+{
+	gnutella_node_t *n;
+	size_t length;
+
+	(void) unused_rx;
+
+	length = pmsg_size(mb);
+	n = node_pseudo_get_from_mb(mb, from);
+
+	/*
+	 * The message was received through the semi-reliable UDP layer, hence
+	 * we never went through udp_is_valid_gnet(), which is only called on
+	 * plain Gnutella messages received from UDP.  Therefore, no accounting
+	 * of the message was done yet, and we don't know whether what we got
+	 * is even a valid Gnutella message!
+	 */
+
+	if (!udp_is_valid_gnet_split(n, FALSE, n->header, n->data, length))
+		goto done;
+
+	node_handle(n);
+
+	/* FALL THROUGH */
+
+done:
+	pmsg_free(mb);
+	return TRUE;
 }
 
 /**
@@ -8915,7 +9258,8 @@ void
 node_bye_all(bool all)
 {
 	GSList *sl;
-	gnutella_node_t *udp_nodes[] = { udp_node, udp6_node, dht_node, dht6_node };
+	gnutella_node_t *udp_nodes[] = {
+		udp_node, udp6_node, udp_sr_node, udp6_sr_node, dht_node, dht6_node };
 	unsigned i;
 
 	g_assert(!in_shutdown);		/* Meant to be called once */
@@ -9551,7 +9895,9 @@ node_close(void)
 
 	{
 		gnutella_node_t *special_nodes[] = {
-			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route };
+			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
+			udp_sr_node, udp6_sr_node
+		};
 		uint i;
 
 		udp_route->outq = NULL;		/* Using that of udp_node or udp6_node */
@@ -9578,6 +9924,8 @@ node_close(void)
 		}
 		udp_node = NULL;
 		udp6_node = NULL;
+		udp_sr_node = NULL;
+		udp6_sr_node = NULL;
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
@@ -9990,9 +10338,14 @@ node_fill_info(const struct nid *node_id, gnet_node_info_t *info)
 	info->is_pseudo = NODE_USES_UDP(node);
 
 	if (info->is_pseudo) {
-		if (NODE_IS_UDP(node))
-			info->addr = node == udp_node ? listen_addr() : listen_addr6();
-		else
+		if (NODE_IS_UDP(node)) {
+			if (NODE_CAN_SR_UDP(node)) {
+				info->addr =
+					node == udp_sr_node ? listen_addr() : listen_addr6();
+			} else {
+				info->addr = node == udp_node ? listen_addr() : listen_addr6();
+			}
+		} else
 			info->addr = node == dht_node ? listen_addr() : listen_addr6();
     	info->port = GNET_PROPERTY(listen_port);
 		info->gnet_addr = info->addr;
@@ -10278,7 +10631,8 @@ node_infostr(const gnutella_node_t *n)
 	static char buf[128];
 
 	if (NODE_IS_UDP(n)) {
-		gm_snprintf(buf, sizeof buf, "UDP node %s", node_addr(n));
+		gm_snprintf(buf, sizeof buf, "UDP %snode %s",
+			NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "", node_addr(n));
 	} else {
 		gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
 			node_type(n), node_gnet_addr(n), node_vendor(n));

@@ -86,6 +86,7 @@ SRC = \
 	rx_chunk.c \
 	rx_inflate.c \
 	rx_link.c \
+	rx_ut.c \
 	rxbuf.c \
 	search.c \
 	settings.c \
@@ -107,6 +108,7 @@ SRC = \
 	tx_deflate.c \
 	tx_dgram.c \
 	tx_link.c \
+	tx_ut.c \
 	udp.c \
 	udp_sched.c \
 	uhc.c \

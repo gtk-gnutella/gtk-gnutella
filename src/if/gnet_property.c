@@ -1032,6 +1032,12 @@ gboolean gnet_property_variable_guess_maximize_bw     = TRUE;
 static const gboolean gnet_property_variable_guess_maximize_bw_default = TRUE;
 guint32  gnet_property_variable_udp_sched_debug     = 0;
 static const guint32  gnet_property_variable_udp_sched_debug_default = 0;
+guint32  gnet_property_variable_tx_ut_debug_flags     = 0;
+static const guint32  gnet_property_variable_tx_ut_debug_flags_default = 0;
+char   *gnet_property_variable_rx_debug_addrs     = "";
+static const char   *gnet_property_variable_rx_debug_addrs_default = "";
+guint32  gnet_property_variable_rx_ut_debug_flags     = 0;
+static const guint32  gnet_property_variable_rx_ut_debug_flags_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9527,6 +9533,67 @@ gnet_prop_init(void) {
     gnet_property->props[444].data.guint32.choices = NULL;
     gnet_property->props[444].data.guint32.max   = 20;
     gnet_property->props[444].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_UT_DEBUG_FLAGS:
+     *
+     * General data:
+     */
+    gnet_property->props[445].name = "tx_ut_debug_flags";
+    gnet_property->props[445].desc = _("Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: transmissions, 16: timeouts.");
+    gnet_property->props[445].ev_changed = event_new("tx_ut_debug_flags_changed");
+    gnet_property->props[445].save = TRUE;
+    gnet_property->props[445].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[445].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[445].data.guint32.def   = (void *) &gnet_property_variable_tx_ut_debug_flags_default;
+    gnet_property->props[445].data.guint32.value = (void *) &gnet_property_variable_tx_ut_debug_flags;
+    gnet_property->props[445].data.guint32.choices = NULL;
+    gnet_property->props[445].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[445].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_RX_DEBUG_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[446].name = "rx_debug_addrs";
+    gnet_property->props[446].desc = _("Comma-separated list of RX debugging hosts (IP addresses only)");
+    gnet_property->props[446].ev_changed = event_new("rx_debug_addrs_changed");
+    gnet_property->props[446].save = TRUE;
+    gnet_property->props[446].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[446].type               = PROP_TYPE_STRING;
+    gnet_property->props[446].data.string.def    = (void *) &gnet_property_variable_rx_debug_addrs_default;
+    gnet_property->props[446].data.string.value  = (void *) &gnet_property_variable_rx_debug_addrs;
+    if (gnet_property->props[446].data.string.def) {
+        *gnet_property->props[446].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[446].data.string.def));
+    }
+
+
+    /*
+     * PROP_RX_UT_DEBUG_FLAGS:
+     *
+     * General data:
+     */
+    gnet_property->props[447].name = "rx_ut_debug_flags";
+    gnet_property->props[447].desc = _("Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: receptions, 16: timeouts.");
+    gnet_property->props[447].ev_changed = event_new("rx_ut_debug_flags_changed");
+    gnet_property->props[447].save = TRUE;
+    gnet_property->props[447].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[447].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[447].data.guint32.def   = (void *) &gnet_property_variable_rx_ut_debug_flags_default;
+    gnet_property->props[447].data.guint32.value = (void *) &gnet_property_variable_rx_ut_debug_flags;
+    gnet_property->props[447].data.guint32.choices = NULL;
+    gnet_property->props[447].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[447].data.guint32.min   = 0x00000000;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
