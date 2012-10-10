@@ -6272,6 +6272,29 @@ compact_query(char *search)
 }
 
 /**
+ * Convert query flags into a string describing the positionned flags.
+ *
+ * @return pointer to static string.
+ */
+static const char *
+search_flags_to_string(uint16 flags)
+{
+	static char buf[64];
+
+	str_bprintf(buf, sizeof buf, "%s%s%s%s%s%s%s%s",
+		(flags & QUERY_F_MARK) ? "MARKED" : "",
+		(flags & QUERY_F_FIREWALLED) ? " FW" : "",
+		(flags & QUERY_F_XML) ? " XML" : "",
+		(flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+		(flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+		(flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+		(flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
+		(flags & QUERY_F_SR_UDP) ? " SR_UDP" : "");
+
+	return buf;
+}
+
+/**
  * Remove the OOB delivery flag by patching the query message inplace.
  */
 void
@@ -6285,9 +6308,9 @@ query_strip_oob_flag(const gnutella_node_t *n, char *data)
 	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
-		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x)",
+		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_infostr(n), flags);
+			node_infostr(n), flags, search_flags_to_string(flags));
 }
 
 /**
@@ -6302,9 +6325,9 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug("QUERY %s from %s: set OOB delivery (flags = 0x%x)",
+		g_debug("QUERY %s from %s: set OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_infostr(n), flags);
+			node_infostr(n), flags, search_flags_to_string(flags));
 }
 
 /**
@@ -7609,18 +7632,11 @@ search_request(struct gnutella_node *n,
 								sri->exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
-				g_debug("\tflags=0x%04x max-hits=%u (%s%s%s%s%s%s%s%s) "
+				g_debug("\tflags=0x%04x max-hits=%u (%s) "
 					"ttl=%u hops=%u",
 					(uint) sri->flags,
 					(uint) (sri->flags & QUERY_F_MAX_HITS),
-					(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
-					(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
-					(sri->flags & QUERY_F_XML) ? " XML" : "",
-					(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
-					(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
-					(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
-					(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
-					(sri->flags & QUERY_F_SR_UDP) ? " SR_UDP" : "",
+					search_flags_to_string(sri->flags),
 					gnutella_header_get_ttl(&n->header),
 					gnutella_header_get_hops(&n->header));
 			}
