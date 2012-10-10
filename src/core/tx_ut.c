@@ -479,6 +479,11 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 		/* Message was dropped during TX */
 		if (attr->cb->add_tx_dropped != NULL)
 			(*attr->cb->add_tx_dropped)(attr->tx->owner, 1);
+
+		gnet_stats_count_general(GNR_UDP_SR_TX_MESSAGES_UNSENT, 1);
+
+		if (um->reliable)
+			gnet_stats_count_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_UNSENT, 1);
 	}
 
 	/*
@@ -646,14 +651,18 @@ ut_frag_hook(const pmsg_t *mb)
 	um = ut_msg_is_alive(pmi->mid);
 
 	if (NULL == um)
-		return FALSE;		/* Message expired */
+		goto do_not_send;	/* Message expired */
 
 	g_assert(pmi->fragno < um->fragcnt);
 
 	if (NULL == um->fragments[pmi->fragno])
-		return FALSE;		/* Fragment already acknowledged */
+		goto do_not_send;	/* Fragment already acknowledged */
 
 	return TRUE;			/* OK, can send fragment */
+
+do_not_send:
+	gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED, 1);
+	return FALSE;
 }
 
 /**

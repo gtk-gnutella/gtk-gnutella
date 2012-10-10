@@ -127,6 +127,7 @@ struct ut_rmsg {
 	unsigned reliable:1;			/* Whether fragments need ACKs */
 	unsigned deflated:1;			/* Whether PDU is deflated */
 	unsigned improved_acks:1;		/* Whether we can send improved ACKs */
+	unsigned lingering:1;			/* Set when lingering after reception */
 };
 
 static inline void
@@ -283,6 +284,7 @@ ut_rmsg_linger(struct ut_rmsg *um)
 	ut_rmsg_check(um);
 
 	ut_rmsg_fragments_free(um);		/* No longer need collected message data */
+	um->lingering = TRUE;
 	cq_replace(um->expire_ev, ut_rmsg_lingered, um);
 }
 
@@ -544,12 +546,18 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 		g_debug("RX UT[%s]: %s: got %s%s%sfragment #%u/%u from %s "
 			"(seq=0x%04x, %d-byte payload)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			um->lingering ? "lingering " :
 			bit_array_get(um->fbits, head->part) ? "duplicate " : "",
 			um->reliable ? "reliable " : "",
 			um->deflated ? "deflated " : "",
 			head->part + 1, um->fragcnt,
 			gnet_host_to_string(um->id.from),
 			head->seqno, pmsg_size(mb));
+	}
+
+	if (um->lingering) {
+		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_LINGERING, 1);
+		return;			/* Message already fully received */
 	}
 
 	if (bit_array_get(um->fbits, head->part)) {
