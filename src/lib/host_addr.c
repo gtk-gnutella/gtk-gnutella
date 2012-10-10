@@ -206,11 +206,6 @@ ipv4_addr_is_routable(uint32 ip)
 			return FALSE;
 	}
 
-	/* x.x.x.0 is an invalid destination address -- RAM, 2012-02-16 */
-
-	if (0 == (ip & 0xff))
-		return FALSE;
-
 	return TRUE;
 }
 
