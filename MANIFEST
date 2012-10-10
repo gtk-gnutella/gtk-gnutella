@@ -636,6 +636,8 @@ src/lib/erbtree.c
 src/lib/erbtree.h
 src/lib/eslist.c
 src/lib/eslist.h
+src/lib/etree.c
+src/lib/etree.h
 src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c

@@ -7688,8 +7688,9 @@ finish:
  * XML tree traversal callback.
  */
 static void
-search_xml_node_is_empty(xnode_t *xn, void *data)
+search_xml_node_is_empty(void *node, void *data)
 {
+	xnode_t *xn = node;
 	bool *empty = data;
 
 	if (!*empty)

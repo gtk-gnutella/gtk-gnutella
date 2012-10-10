@@ -154,6 +154,7 @@ LSRC = \
 	entropy.c \
 	erbtree.c \
 	eslist.c \
+	etree.c \
 	eval.c \
 	event.c \
 	exit.c \
@@ -303,6 +304,7 @@ LOBJ = \
 	entropy.o \
 	erbtree.o \
 	eslist.o \
+	etree.o \
 	eval.o \
 	event.o \
 	exit.o \
