@@ -775,7 +775,7 @@ udp_sched_make(bsched_bws_t bws, wrap_io_t *wio)
 		eslist_init(&us->lifo[i], offsetof(struct udp_tx_desc, lnk));
 	}
 	eslist_init(&us->tx_released, offsetof(struct udp_tx_desc, lnk));
-	us->seen = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	us->seen = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	us->stacks = hash_list_new(udp_tx_stack_hash, udp_tx_stack_eq);
 
 	/*

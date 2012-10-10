@@ -50,7 +50,18 @@ nid_hash(const void *key)
 {
 	const struct nid *p = key;
 	uint64 v = nid_value(p);
-	return (unsigned) (v >> 32) ^ integer_hash(v);
+	return (unsigned) integer_hash2(v >> 32) ^ integer_hash(v);
+}
+
+/**
+ * Second hash code for a numeric ID.
+ */
+unsigned
+nid_hash2(const void *key)
+{
+	const struct nid *p = key;
+	uint64 v = nid_value(p);
+	return (unsigned) integer_hash(v >> 32) ^ integer_hash2(v);
 }
 
 /**

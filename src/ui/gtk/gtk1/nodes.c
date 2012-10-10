@@ -284,8 +284,8 @@ nodes_gui_init(void)
 
 	widget_add_popup_menu(GTK_WIDGET(clist), nodes_gui_get_popup_menu);
 
-    hs_node_info_changed = hset_create_any(nid_hash, NULL, nid_equal);
-    hs_node_flags_changed = hset_create_any(nid_hash, NULL, nid_equal);
+    hs_node_info_changed = hset_create_any(nid_hash, nid_hash2, nid_equal);
+    hs_node_flags_changed = hset_create_any(nid_hash, nid_hash2, nid_equal);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);

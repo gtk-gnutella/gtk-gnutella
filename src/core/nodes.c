@@ -1570,7 +1570,8 @@ node_init(void)
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
 
 	unstable_servent   = htable_create(HASH_KEY_SELF, 0);
-    ht_connected_nodes = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+    ht_connected_nodes = htable_create_any(
+							gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	nodes_by_id        = hikset_create_any(
 							offsetof(struct gnutella_node, id),
 							nid_hash, nid_equal);

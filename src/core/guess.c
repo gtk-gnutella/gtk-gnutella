@@ -3868,7 +3868,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->muid = atom_guid_get(muid);
 	gq->mtype = mtype;
 	gq->mode = GUESS_QUERY_BOUNDED;
-	gq->queried = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	gq->queried =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);
 	gq->cb = cb;
 	gq->arg = arg;
@@ -4023,7 +4024,8 @@ guess_fill_caught_array(host_net_t net,
 {
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
-	hset_t *seen_host = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	hset_t *seen_host =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 
 	filled = hcache_fill_caught_array(net, HOST_GUESS, hosts, hcount);
 	iter = hash_list_iterator(link_cache);
@@ -4164,7 +4166,8 @@ guess_init(void)
 
 	dbmw_set_map_cache(db_qkdata, GUESS_QK_MAP_CACHE_SIZE);
 
-	guess_02_cache.hs = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	guess_02_cache.hs =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 
 	guess_qk_prune_old();
 
@@ -4179,7 +4182,7 @@ guess_init(void)
 	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
 	gqueries = hevset_create_any(
-		offsetof(guess_t, gid), nid_hash, NULL, nid_equal);
+		offsetof(guess_t, gid), nid_hash, nid_hash2, nid_equal);
 	gmuid = hikset_create(
 		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);

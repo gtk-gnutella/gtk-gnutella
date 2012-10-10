@@ -62,5 +62,6 @@ bool idtable_is_id_used(const idtable_t *tbl, uint32 id);
 void idtable_set_value(idtable_t *tbl, uint32 id, void *value);
 void *idtable_get_value(const idtable_t *tbl, uint32 id);
 void *idtable_probe_value(const idtable_t *tbl, uint32 id);
+void idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data);
 
 #endif /* _idtable_h_ */

@@ -44,7 +44,7 @@
  * byte long.  Instead, gnet_host_length(p) MUST be used to determine the
  * actual length required to represent the host.
  *
- * It follows that no struct copy must occur between to gnet_host_t pointers.
+ * It follows that no struct copy must occur between two gnet_host_t pointers.
  * Always use gnet_host_copy().
  *
  * @author Raphael Manfredi
@@ -85,6 +85,21 @@ gnet_host_hash(const void *key)
 	addr = gnet_host_get_addr(host);
 	port = gnet_host_get_port(host);
 	return host_addr_hash(addr) ^ port_hash(port);
+}
+
+/**
+ * Alternative hash function for use in hash table and sets.
+ */
+G_GNUC_HOT uint
+gnet_host_hash2(const void *key)
+{
+	const gnet_host_t *host = key;
+	host_addr_t addr;
+	uint16 port;
+
+	addr = gnet_host_get_addr(host);
+	port = gnet_host_get_port(host);
+	return host_addr_hash2(addr) ^ port_hash2(port);
 }
 
 /**
