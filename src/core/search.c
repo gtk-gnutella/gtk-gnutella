@@ -6321,7 +6321,13 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 {
 	uint16 flags;
 
-	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK;
+	/*
+	 * This is for OOB-proxied queries, so we're turning the flag for
+	 * semi-reliable UDP support because hits are going to come back
+	 * to us, so we do not care about the original querying servent settings.
+	 */
+
+	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK | QUERY_F_SR_UDP;
 	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
