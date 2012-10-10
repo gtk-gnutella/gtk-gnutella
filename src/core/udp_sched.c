@@ -406,6 +406,17 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	if (0 == gnet_host_get_port(to))
 		return TRUE;
 
+	/*
+	 * Check whether message still needs to be sent.
+	 */
+
+	if (!pmsg_hook_check(mb))
+		return TRUE;			/* Dropped */
+
+	/*
+	 * OK, proceed if we have bandwidth.
+	 */
+
 	r = bio_sendto(us->bio, to, pmsg_start(mb), len);
 
 	if (r < 0) {		/* Error, or no bandwidth */
