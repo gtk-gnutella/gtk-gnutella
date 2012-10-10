@@ -140,8 +140,11 @@
 #define GUESS_REFRESH_PERIOD	86400	/**< 1 day */
 
 #define SEARCH_ACTIVITY_TIMEOUT	120		/**< Delay before declaring idle */
+#define ORA_KEYS				2		/**< Two keys in the set */
+#define OOB_REPLY_ACK_TIMEOUT	120		/**< Timeout for OOB hit delivery */
 
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
+static sectoken_gen_t *ora_stg;			/**< OOB request ack token generator */
 
 /**
  * Gathered query information.
@@ -1405,155 +1408,6 @@ flag_all:
 	}
 }
 
-/*
- * OOB reply acks (aka "ora") are kept around to implement OOBv3: we need to
- * remember the random token we sent when claiming the results, to make sure
- * that we only get the hits when we actually claimed them, and that we only
- * get the ones we claimed.
- */
-
-static hash_list_t *oob_reply_acks;
-
-#define OOB_REPLY_ACK_TIMEOUT	120		/* 2 minutes */
-
-struct ora {
-	const guid_t *muid;		/* GUID atom */
-	time_t sent;
-	host_addr_t addr;
-	uint32 token;
-	uint16 port;
-};
-
-static struct ora *
-ora_alloc(const guid_t *muid, const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora *ora;
-
-	WALLOC(ora);
-	ora->muid = atom_guid_get(muid);
-	ora->addr = addr;
-	ora->port = port;
-	ora->token = token;
-	return ora;
-}
-
-static void
-ora_free(struct ora **ora_ptr)
-{
-	struct ora *ora;
-
-	ora = *ora_ptr;
-	if (ora) {
-		atom_guid_free_null(&ora->muid);
-		WFREE(ora);
-		*ora_ptr = NULL;
-	}
-}
-
-static uint
-ora_hash(const void *key)
-{
-	const struct ora *ora = key;
-
-	return ora->token ^
-		guid_hash(ora->muid) ^
-		host_addr_hash(ora->addr) ^
-		port_hash(ora->port);
-}
-
-static int
-ora_eq(const void *v1, const void *v2)
-{
-	const struct ora *a = v1, *b = v2;
-
-	return a->token == b->token &&
-		a->port == b->port &&
-		host_addr_equal(a->addr, b->addr) &&
-		guid_eq(a->muid, b->muid);
-}
-
-static struct ora *
-ora_lookup(const guid_t *muid,
-	const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora ora;
-	const void *key;
-
-	ora.muid = muid;
-	ora.sent = 0;
-	ora.addr = addr;
-	ora.port = port;
-	ora.token = token;
-
-	if (hash_list_find(oob_reply_acks, &ora, &key)) {
-		return deconstify_pointer(key);
-	}
-	return NULL;
-}
-
-static bool
-oob_reply_acks_remove_oldest(void)
-{
-	struct ora *ora;
-
-	ora = hash_list_head(oob_reply_acks);
-	if (ora) {
-		hash_list_remove(oob_reply_acks, ora);
-		ora_free(&ora);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-static void
-oob_reply_acks_garbage_collect(void)
-{
-	time_t now = tm_time();
-	
-	do {
-		struct ora *ora;
-
-		ora = hash_list_head(oob_reply_acks);
-		if (!ora || delta_time(now, ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
-			break;
-	} while (oob_reply_acks_remove_oldest());
-}
-
-static void
-oob_reply_acks_init(void)
-{
-	oob_reply_acks = hash_list_new(ora_hash, ora_eq);
-}
-
-static void
-oob_reply_acks_close(void)
-{
-	while (oob_reply_acks_remove_oldest()) {
-		continue;
-	}
-	hash_list_free(&oob_reply_acks);
-}
-
-static void
-oob_reply_ack_record(const guid_t *muid,
-	const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora *ora;
-	
-	g_assert(muid);
-
-	ora = ora_lookup(muid, addr, port, token);
-	if (ora) {
-		/* Move to tail of list */
-		hash_list_moveto_tail(oob_reply_acks, ora);
-	} else {
-		ora = ora_alloc(muid, addr, port, token);
-		hash_list_append(oob_reply_acks, ora);
-	}
-	ora->sent = tm_time();
-	oob_reply_acks_garbage_collect();
-}
-
 /**
  * Check whether we have explicitly claimed some OOB hits.
  *
@@ -1565,22 +1419,13 @@ static bool
 search_results_are_requested(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
-	struct ora *ora;
+	sectoken_t tok;
 
-	ora = ora_lookup(muid, addr, port, token);
-	if (ora) {
-		if (delta_time(tm_time(), ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
-			return TRUE;
+	STATIC_ASSERT(sizeof(uint32) == sizeof tok.v);
 
-		/*
-		 * Entry expired, we're no longer interested.
-		 */
-
-		hash_list_remove(oob_reply_acks, ora);
-		ora_free(&ora);
-		/* FALL THROUGH */
-	}
-	return FALSE;
+	poke_be32(tok.v, token);
+	return sectoken_is_valid_with_context(ora_stg,
+		&tok, addr, port, muid, GUID_RAW_SIZE);
 }
 
 /**
@@ -3324,9 +3169,9 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (QUERY_F_OOB_REPLY & flags) {
-		/** 
+		/* 
 		 * Indicate support for OOB v3.
-		 * @see http://the-gdf.org/index.php?title=OutOfBandV3
+		 * See doc/gnutella/out-of-band-v3
 		 */
 
 		if (
@@ -3337,8 +3182,15 @@ build_search_message(const guid_t *muid, const char *query,
 			/*
 			 * Since our ultrapeers might not support OOB v3 and not understand
 			 * GGEP "SO" either, only add this if we're not OOB proxied.
-			 * Otherwise, we won't receive OOB results.
+			 *
+			 * Otherwise, we won't receive OOB results: the query bearing "SO"
+			 * will be understood by the servent with hits as OOBv3, and
+			 * therefore it will send back a v3 indication of hits, which our
+			 * ultrapeer may not understand and therefore drop!
+			 *
+			 * Hence avoid advertising "SO" if we are firewalled.
 			 */
+
 			if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
 				g_carp("could not add GGEP \"SO\" extension to query");
 				goto error;
@@ -4248,7 +4100,6 @@ search_gc(void *unused_cq)
 	(void) unused_cq;
 
 	query_muid_map_garbage_collect();
-	oob_reply_acks_garbage_collect();
 
 	return TRUE;		/* Keep calling */
 }
@@ -4265,9 +4116,9 @@ search_init(void)
 	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
-	oob_reply_acks_init();
 	query_muid_map_init();	
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
+	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT / ORA_KEYS);
 
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
@@ -4291,9 +4142,9 @@ search_shutdown(void)
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
 
-	oob_reply_acks_close();
 	query_muid_map_close();
 	sectoken_gen_free_null(&guess_stg);
+	sectoken_gen_free_null(&ora_stg);
 }
 
 /**
@@ -5612,8 +5463,38 @@ search_oob_pending_results(
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
 
+	/*
+	 * If remote host promising hits is a known spammer or evil host, ignore.
+	 */
+
+	if (hostiles_spam_check(n->addr, n->port)) {
+		if (GNET_PROPERTY(search_debug)) {
+			g_debug("ignoring %d %sOOB hit%s for search %s "
+				"(%s is a caught spammer)",
+				hits,
+				guess_is_search_muid(muid) ? "GUESS " : "",
+				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+		}
+		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
+		return;
+	}
+
 	if (secure) {
-		token = random_u32();
+		sectoken_t tok;
+
+		/*
+		 * The generated security token depends not only on the IP:port
+		 * of the remote host, but also on the MUID of the query.
+		 *
+		 * Even though the token has a small lifetime due to the short
+		 * period of the rotating keys in the generator, this makes sure
+		 * the recipient of the token can only use it for this query, in
+		 * case it received several queries from us.
+		 */
+
+		sectoken_generate_with_context(ora_stg, &tok,
+			n->addr, n->port, muid, GUID_RAW_SIZE);
+		token = peek_be32(tok.v);
 		token_opaque = array_init(&token, sizeof token);
 	} else {
 		token = 0;
@@ -5632,15 +5513,17 @@ search_oob_pending_results(
 
 		/*
 		 * Maybe it's an OOB-proxied search?
+		 *
+		 * Note that this is done after checking for known spammers or evil
+		 * hosts to sanitize the replies for our leaves and save traffic.
 		 */
 
 		if (
 			GNET_PROPERTY(proxy_oob_queries) &&
 			oob_proxy_pending_results(n, muid, hits, udp_firewalled,
 				&token_opaque)
-		) {
-			goto record_token;	
-		}
+		)
+			return;		/* OK, sent OOB reply ack to claim hits */
 
 		if (GNET_PROPERTY(search_debug))
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
@@ -5650,22 +5533,6 @@ search_oob_pending_results(
 			gmsg_log_bad(n, "unexpected OOB hit indication");
 
 		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
-		return;
-	}
-
-	/*
-	 * If remote host promising hits is a known spammer or evil host, ignore.
-	 */
-
-	if (hostiles_spam_check(n->addr, n->port)) {
-		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %sOOB hit%s for search %s "
-				"(%s is a caught spammer)",
-				hits,
-				guess_is_search_muid(muid) ? "GUESS " : "",
-				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
-		}
-		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
 		return;
 	}
 
@@ -5725,9 +5592,6 @@ search_oob_pending_results(
 	 */
 
 	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
-
-record_token:
-	oob_reply_ack_record(muid, n->addr, n->port, token);
 }
 
 const char *
@@ -6742,8 +6606,13 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_GGEP_NP:			/* No OOB-proxying */
-				/* This may override LIME/13v1 */
-				sri->may_oob_proxy = FALSE;
+				/*
+				 * We support OOB v3 (secure OOB) so there is no need to refuse
+				 * OOB proxying.  If they sent us an "OOB Proxy Veto", we'll
+				 * honour it, but "NP" comes from legacy servents.
+				 *		--RAM, 2012-10-07
+				 */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;	/* Strip "NP" if relayed */
 				break;
 
 			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
@@ -7248,6 +7117,8 @@ search_request_preprocess(struct gnutella_node *n,
 skip_throttling:
 
 	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
+	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
+	sri->may_oob_proxy = booleanize(0 == (n->flags & NODE_F_NO_OOB_PROXY));
 
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
@@ -8136,6 +8007,9 @@ search_compact(struct gnutella_node *n)
 			case EXT_T_GGEP_M:
 				/* "WH", "SO" and "M" are kept with NODE_M_WHATS_NEW */
 				break;
+			case EXT_T_GGEP_NP:
+				/* "NP" only used from leaf -> ultra to prevent OOB proxying */
+				continue;	/* Strip "NP" in relayed queries */
 			default:
 				if (n->msg_flags & NODE_M_WHATS_NEW)
 					continue;

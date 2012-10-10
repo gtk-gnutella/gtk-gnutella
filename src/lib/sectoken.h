@@ -63,8 +63,14 @@ typedef struct {
 time_delta_t sectoken_lifetime(const sectoken_gen_t *stg);
 void sectoken_generate(sectoken_gen_t *stg,
 	sectoken_t *tok, host_addr_t addr, uint16 port);
+void sectoken_generate_with_context(sectoken_gen_t *stg,
+	sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len);
 bool sectoken_is_valid(sectoken_gen_t *stg,
 	const sectoken_t *tok, host_addr_t addr, uint16 port);
+bool sectoken_is_valid_with_context(sectoken_gen_t *stg,
+	const sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len);
 sectoken_remote_t *sectoken_remote_alloc(uint8 length);
 void sectoken_remote_free(sectoken_remote_t *token, bool freedata);
 sectoken_gen_t *sectoken_gen_new(size_t keys, time_delta_t refresh);

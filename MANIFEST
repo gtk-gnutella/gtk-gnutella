@@ -86,6 +86,7 @@ doc/gnutella/msg/route_lost
 doc/gnutella/msg/time_sync
 doc/gnutella/oob-shortcut
 doc/gnutella/out-of-band
+doc/gnutella/out-of-band-v3
 doc/gnutella/ping-pong
 doc/gnutella/push_proxy
 doc/gnutella/push_url

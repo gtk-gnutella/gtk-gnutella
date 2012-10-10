@@ -1,0 +1,120 @@
+Out of Band Query Reply Delivery Protocol Version 3
+
+V1 - obsolete
+V2
+
+A bit is set in the QueryRequest indicating OOB support. QueryRequest
+is routed through Gnutella as usual. The servent wishing to send back a
+response through UDP sends a LIME/12v2 message with the number of results
+available as a payload. The original client responds with a LIME/11v2
+with the number of responses it wishes to receive. The responder sends
+the desired number of QueryReply messages over UDP.
+
+ Querying servent              Responding Servent
+QueryRequest with minspeed ->
+                              <-- LIME/12v2
+                LIME/11v2 -->
+                              <-- QueryReply(ies)
+
+Problem
+
+There is no way to guarantee that the QueryReply arrives from the address
+it claims. A malicious party may send a LIME/12v2 with fake datagram
+source address, wait a short period of time and send the QueryReply with
+the same fake datagram address.
+
+ Querying servent           Malicious servent
+  QueryRequest  --->
+                       <--- LIME/12v2 with fake address X
+      LIME/11v2 -->X
+                       ... wait a short period of time ...
+                       <--- QueryReply with fake address X
+
+V3
+Security Token
+
+We introduce the concept of a Security Token. A security token is a
+sequence of bytes of any size greater than 0. The token is sent in
+the LIME/11v3 message and must be echoed in any QueryReplies. This
+ensures that the the internet address that sends the QueryReply has
+previously received the LIME/11v3 message. Vendors are free to choose
+how to generate their security tokens, but in order for this proposal to
+make sense SecurityTokens should be unique across OOB sessions. Also,
+since these tokens will be transfered in UDP datagrams its recommended
+that their size be kept to a minimimum.
+
+QueryRequest
+
+The QueryRequest message indicates support for OOB v3 by including the
+"SO" key in a GGEP block. Support for v2 may still be indicated as before.
+
+LIME/12v3
+
+Servents reply with LIME/12v3 to indicate support for OOBv3. If the
+QueryRequest indicates support for both v2 and v3, the servent is free to
+respond with LIME/12v2. Response with LIME/12v3 does not imply support
+for OOB v2. The payload format is the same, but its recommended that
+implementors do not discard messages with extra payload after the 2 bytes.
+
+LIME/11v3
+
+This message is sent in response to LIME/12v3. Its payload is modified to
+contain a GGEP block after the original two bytes of v2. That GGEP block
+MUST contain an entry with the "SO" key whose value will be the security
+token. The security token must be at least 1 bytes long. Implementors
+are of course free to include other entries in the GGEP block.
+
+QueryReply
+
+Any QueryReply messages sent as a result of receiving a LIME/11v3 MUST
+contain a GGEP block with the SO field. The value of that field must be
+the same as the value of the SO field of the triggering LIME/11v3.
+
+Example of a valid exchange:
+
+ Querying Servent                        Replying Servent
+ QueryRequest with empty GGEP SO -->
+                                       <---   LIME/12v3
+   LIME/11v3 with SO entry (token) -->
+                                       <---   QueryReplies with SO entry 
+                                         with the same payload as the LIME/11v3
+..verifies that tokens match
+
+
+Example of an invalid exchange:
+
+ Querying Servent                          Malicious Party
+ QueryRequest with empty GGEP SO -->
+                                      <--- LIME/12v3 with fake address X
+  LIME/11v3 with SO entry -->X
+                                         ... waits a little bit...
+                                      <--- QueryReply w/o the token since
+                                           it was sent to a fake address
+  ... discards reply as 
+  tokens don't match.
+
+Ultrapeer Proxying
+V2
+
+The presence of the "NP" entry in the QueryRequest is means the ultrapeer
+should not OOB proxy that request.
+
+V3
+
+We introduce a complementary protocol, known as OOB Proxy Veto
+Protocol. The purpose is twofold:
+
+    Decouple the OOB protocol version from the ability to veto proxying
+
+    Avoid adding GGEP keys in the Query message which would increase
+    network load
+
+Support for the new protocol is communicated through a new vendor message
+LIME/13v1. That message is sent by a leaf to its ultrapeers. The payload
+of the message is an optional single byte, indicating the highest version
+of the OOB protocol that should not be proxied. If that byte is missing,
+it is to be interpreted that all proxying is vetoed. If the value of the
+byte is 0, then all OOB proxying is allowed. The message can be issued
+repeatedly if the leaf wants to change the value.
+
+Written by Zab 

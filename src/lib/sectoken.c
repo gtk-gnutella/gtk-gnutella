@@ -81,15 +81,22 @@ sectoken_lifetime(const sectoken_gen_t *stg)
 /**
  * Create a security token from host address and port using specified key.
  *
+ * Optionally, extra contextual data may be given (i.e. the token is not
+ * only based on the address and port) to make the token more unique to
+ * a specific context.
+ *
  * @param stg		the security token generator
  * @param n			key index to use
  * @param tok		where security token is written
  * @param addr		address of the host for which we're generating a token
  * @param port		port of the host for which we're generating a token
+ * @param data		optional contextual data
+ * @param len		length of contextual data
  */
 static void
 sectoken_generate_n(sectoken_gen_t *stg, size_t n,
-	sectoken_t *tok, host_addr_t addr, uint16 port)
+	sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len)
 {
 	char block[8];
 	char enc[8];
@@ -99,6 +106,7 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 	g_assert(tok != NULL);
 	g_assert(size_is_non_negative(n));
 	g_assert(n < stg->keycnt);
+	g_assert((NULL != data) == (len != 0));
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
@@ -127,6 +135,43 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 	STATIC_ASSERT(sizeof(block) == sizeof(enc));
 
 	tea_encrypt(&stg->keys[n], enc, block, sizeof block);
+
+	/*
+	 * If they gave contextual data, encrypt them by block of 8 bytes,
+	 * filling the last partial block with zeroes if needed.
+	 */
+
+	if (data != NULL) {
+		const void *q = data;
+		size_t remain = len;
+		char denc[8];
+
+		STATIC_ASSERT(sizeof(denc) == sizeof(enc));
+
+		while (remain != 0) {
+			size_t fill = MIN(remain, 8U);
+			unsigned i;
+
+			if (fill != 8U)
+				ZERO(&block);
+
+			memcpy(block, q, fill);
+			remain -= fill;
+			q = const_ptr_add_offset(q, fill);
+
+			/*
+			 * Encrypt block of contextual data (possibly filled with trailing
+			 * zeroes) and merge back the result into the main encryption
+			 * output with XOR.
+			 */
+
+			tea_encrypt(&stg->keys[n], denc, block, sizeof block);
+
+			for (i = 0; i < sizeof denc; i++)
+				enc[i] ^= denc[i];
+		}
+	}
+
 	poke_be32(tok->v, tea_squeeze(enc, sizeof enc));
 }
 
@@ -142,20 +187,43 @@ void
 sectoken_generate(sectoken_gen_t *stg,
 	sectoken_t *tok, host_addr_t addr, uint16 port)
 {
-	sectoken_generate_n(stg, 0, tok, addr, port);
+	sectoken_generate_n(stg, 0, tok, addr, port, NULL, 0);
+}
+
+/**
+ * Create a security token from host address, port and contextual data.
+ *
+ * @param stg		the security token generator
+ * @param tok		where security token is written
+ * @param addr		address of the host for which we're generating a token
+ * @param port		port of the host for which we're generating a token
+ * @param data		contextual data
+ * @param len		length of contextual data
+ */
+void
+sectoken_generate_with_context(sectoken_gen_t *stg,
+	sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len)
+{
+	g_assert(data != NULL);
+	g_assert(size_is_positive(len));
+
+	sectoken_generate_n(stg, 0, tok, addr, port, data, len);
 }
 
 /*
  * Is specified token still valid for this address/port tuple?
  */
-bool
-sectoken_is_valid(sectoken_gen_t *stg,
-	const sectoken_t *tok, host_addr_t addr, uint16 port)
+static bool
+sectoken_is_valid_internal(sectoken_gen_t *stg,
+	const sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len)
 {
 	size_t i;
 
 	sectoken_gen_check(stg);
 	g_assert(tok != NULL);
+	g_assert((NULL != data) == (len != 0));
 
 	/*
 	 * We can't decrypt, we just generate a new token with the set of
@@ -168,12 +236,33 @@ sectoken_is_valid(sectoken_gen_t *stg,
 	for (i = 0; i < stg->keycnt; i++) {
 		sectoken_t gen;
 
-		sectoken_generate_n(stg, i, &gen, addr, port);
+		sectoken_generate_n(stg, i, &gen, addr, port, data, len);
 		if (0 == memcmp(gen.v, tok->v, sizeof(tok->v)))
 			return TRUE;
 	}
 
 	return FALSE;
+}
+
+/*
+ * Is specified token still valid for this address/port tuple?
+ */
+bool
+sectoken_is_valid(sectoken_gen_t *stg,
+	const sectoken_t *tok, host_addr_t addr, uint16 port)
+{
+	return sectoken_is_valid_internal(stg, tok, addr, port, NULL, 0);
+}
+
+/*
+ * Is specified token still valid for this address/port/data tuple?
+ */
+bool
+sectoken_is_valid_with_context(sectoken_gen_t *stg,
+	const sectoken_t *tok, host_addr_t addr, uint16 port,
+	const void *data, size_t len)
+{
+	return sectoken_is_valid_internal(stg, tok, addr, port, data, len);
 }
 
 /**
