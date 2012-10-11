@@ -192,6 +192,8 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP total acknowledgments received"),
 		N_("Semi-reliable UDP cumulative acknowledgments received"),
 		N_("Semi-reliable UDP extended acknowledgments received"),
+		N_("Semi-reliable UDP spurious acknowledgments received"),
+		N_("Semi-reliable UDP invalid acknowledgments received"),
 		N_("Semi-reliable UDP fragments received"),
 		N_("Semi-reliable UDP duplicate fragments received"),
 		N_("Semi-reliable UDP unreliable fragments received"),

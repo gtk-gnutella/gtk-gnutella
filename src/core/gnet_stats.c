@@ -215,6 +215,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_sr_tx_total_acks_received",
 		"udp_sr_tx_cumulative_acks_received",
 		"udp_sr_tx_extended_acks_received",
+		"udp_sr_tx_spurious_acks_received",
+		"udp_sr_tx_invalid_acks_received",
 		"udp_sr_rx_fragments_received",
 		"udp_sr_rx_fragments_duplicate",
 		"udp_sr_rx_fragments_unreliable",

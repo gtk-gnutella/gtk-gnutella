@@ -1416,6 +1416,7 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 	ut_attr_check(attr);
 
 	um = idtable_probe_value(attr->seq, ack->seqno);
+	gnet_stats_count_general(GNR_UDP_SR_TX_TOTAL_ACKS_RECEIVED, 1);
 
 	if (tx_ut_debugging(TX_UT_DBG_ACK, from)) {
 		g_debug("TX UT: %s: %s%sACK (seq=0x%04x, fragment #%u) from %s",
@@ -1433,7 +1434,7 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 
 	if (NULL == um) {
 		reason = "unknown sequence ID";
-		goto rejected;
+		goto spurious;		/* Probably an ACK for a message we just freed */
 	}
 
 	ut_msg_check(um);
@@ -1458,7 +1459,6 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		goto rejected;
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_TX_TOTAL_ACKS_RECEIVED, 1);
 	if (ack->cumulative)
 		gnet_stats_count_general(GNR_UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED, 1);
 	if (ack->received != 0)
@@ -1509,13 +1509,13 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 	}
 
 	/*
-	 * If the amount of fragment received is not zero, we have an extended
+	 * If the amount of fragments received is not zero, we have an extended
 	 * acknowledge with a bitmap specifying which fragments are still missing,
 	 * from which we can derive which have actually been received.
 	 *
 	 * The bit 0 is for fragment #0 (in our zero-based counting) unless
 	 * we have a cumulative acknowledge, in which case the base is the
-	 * fragment number being acknowledged.
+	 * fragment following the one being acknowledged.
 	 */
 
 	if (ack->received != 0) {
@@ -1553,7 +1553,14 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 
 	return;
 
+spurious:
+	gnet_stats_count_general(GNR_UDP_SR_TX_SPURIOUS_ACKS_RECEIVED, 1);
+	goto log;
+
 rejected:
+	gnet_stats_count_general(GNR_UDP_SR_TX_INVALID_ACKS_RECEIVED, 1);
+	/* FALL THROUGH */
+log:
 	if (tx_ut_debugging(TX_UT_DBG_ACK, NULL)) {
 		g_debug("TX UT: %s: rejecting %s%sACK "
 			"(seq=0x%04x, fragment #%u) from %s: %s (message to %s)",
