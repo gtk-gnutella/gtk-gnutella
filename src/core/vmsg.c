@@ -1433,6 +1433,15 @@ vmsg_time_sync_req_stamp(const pmsg_t *mb, const void *unused_q)
 }
 
 /**
+ * Same as vmsg_time_sync_req_stamp() but for UDP messages.
+ */
+static bool
+vmsg_time_sync_req_stamp_udp(const pmsg_t *mb)
+{
+	return vmsg_time_sync_req_stamp(mb, NULL);
+}
+
+/**
  * Send a "Time Sync Request" message, asking them to echo back their own
  * time so that we can compute our clock differences and measure round trip
  * times.  The time at which we send the message is included in the first
@@ -1468,9 +1477,19 @@ vmsg_send_time_sync_req(struct gnutella_node *n, bool ntp, tm_t *sent)
 	 * the current time now, because we have to return it to the caller,
 	 * but it will be superseded when the message is finally scheduled to
 	 * be sent by the queue.
+	 *
+	 * For UDP destinations, we install a hook check instead of a plain check
+	 * because the UDP TX scheduler can enqueue underneath the UDP message
+	 * queue and we want the timestamp to be written as late as possible.
+	 * Plain checks are invoked by the message queue whilst hooks are invoked
+	 * at the UDP TX scheduler level.
+	 *		--RAM, 2012-10-11
 	 */
 
-	pmsg_set_check(mb, vmsg_time_sync_req_stamp);
+	if (NODE_IS_UDP(n))
+		pmsg_set_hook(mb, vmsg_time_sync_req_stamp_udp);
+	else
+		pmsg_set_check(mb, vmsg_time_sync_req_stamp);
 
 	poke_be32(&muid->v[0], sent->tv_sec);
 	poke_be32(&muid->v[4], sent->tv_usec);
