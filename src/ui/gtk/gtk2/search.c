@@ -228,7 +228,9 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 		break;
 	case c_sr_protocol:
 		if (!((ST_LOCAL | ST_BROWSE) & rs->status))
-			text = ST_UDP & rs->status ? "UDP" : "TCP";
+			text = ST_UDP & rs->status ?
+				(ST_SR_UDP & rs->status ? N_("UDP (semi-reliable)") : "UDP")
+				: "TCP";
 		break;
 	case c_sr_hops:
 		if (!((ST_LOCAL | ST_BROWSE) & rs->status))

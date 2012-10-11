@@ -52,6 +52,7 @@ enum {
  * Result sets `status' flags.
  */
 enum {
+	 ST_SR_UDP				= (1 << 29), /**< Got hit via semi-reliable UDP */
 	 ST_BANNED_GUID			= (1 << 28), /**< Servent GUID is banned */
 	 ST_MEDIA				= (1 << 27), /**< No proper media type in hit */
 	 ST_ALIEN				= (1 << 26), /**< Alien IP address in UDP hit */

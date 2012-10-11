@@ -2036,6 +2036,9 @@ get_results_set(gnutella_node_t *n, bool browse)
 	if (NODE_IS_UDP(n)) {
 		rs->status |= ST_UDP;
 
+		if (NODE_CAN_SR_UDP(n))
+			rs->status |= ST_SR_UDP;
+
 		if (
 			0 == rs->hops &&	/* GUESS ultrapeers can relay hits over UDP */
 			!host_addr_equal(n->addr, rs->addr) &&
