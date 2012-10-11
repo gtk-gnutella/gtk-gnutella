@@ -189,6 +189,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"gtkg_total_queries",
 		"gtkg_requeries",
 		"queries_with_ggep_h",
+		"queries_with_sr_udp",
 		"giv_callbacks",
 		"giv_discarded",
 		"queue_callbacks",

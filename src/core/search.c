@@ -7210,9 +7210,11 @@ skip_throttling:
 		}
 	}
 
-	if (0 != (sri->flags & QUERY_F_GGEP_H)) {
+	if (0 != (sri->flags & QUERY_F_GGEP_H))
 		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
-	}
+
+	if (0 != (sri->flags & QUERY_F_SR_UDP))
+		gnet_stats_count_general(GNR_QUERIES_WITH_SR_UDP, 1);
 
 	/*
 	 * If OOB reply is wanted, validate a few things.

@@ -166,6 +166,7 @@ general_type_str(gint value)
 		N_("Queries seen from GTKG"),
 		N_("Queries seen from GTKG that were re-queries"),
 		N_("Queries advertising support of GGEP \"H\""),
+		N_("Queries advertising support of semi-reliable UDP"),
 		N_("GIV callbacks received"),
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
