@@ -530,9 +530,20 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	/*
 	 * If we already have enough data enqueued, flow-control the upper
 	 * layer by acting as if we do not have enough bandwidth.
+	 *
+	 * However, we now always accept traffic sent with the highest priority
+	 * since it is important to send those as soon as possible, i.e. ahead
+	 * of any other pending data we would otherwise flush locally before
+	 * servicing upper queues.
+	 *		--RAM, 2012-10-12
 	 */
 
-	if (us->buffered >= UDP_SCHED_FACTOR * bio_bw_per_second(us->bio)) {
+	prio = pmsg_prio(mb);
+
+	if (
+		PMSG_P_HIGHEST != prio &&
+		us->buffered >= UDP_SCHED_FACTOR * bio_bw_per_second(us->bio)
+	) {
 		udp_sched_log(1, "%p: flow-controlled", us);
 		us->flow_controlled = TRUE;
 		return 0;		/* Flow control upper layers */
@@ -571,7 +582,6 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 * datagrams first, to reduce the perceived average latency.
 	 */
 
-	prio = pmsg_prio(mb);
 	g_assert(prio < G_N_ELEMENTS(us->lifo));
 	eslist_prepend(&us->lifo[prio], txd);
 	us->buffered = size_saturate_add(us->buffered, len);

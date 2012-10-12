@@ -1020,10 +1020,18 @@ ut_ack_send(pmsg_t *mb)
 			udp_tag_to_string(tag));
 	}
 
-	if (
-		0 == eslist_count(&attr->pending[prio]) &&
-		0 != tx_sendto(attr->tx->lower, mb, pmi->to)
-	) {
+	/*
+	 * ACKs can be sent out of order, so don't check whether we have some
+	 * in the queue, try to send this one regardless.
+	 *
+	 * Anyway, the UDP TX scheduler is now configured to always accept
+	 * highest priority messages, which is what ACKs are, so we would not
+	 * need enqueuing logic.  We're keeping it in case the policy changes
+	 * one day.
+	 *		--RAM, 2012-10-12
+	 */
+
+	if (0 != tx_sendto(attr->tx->lower, mb, pmi->to)) {
 		pmsg_free(mb);
 		return;
 	}
