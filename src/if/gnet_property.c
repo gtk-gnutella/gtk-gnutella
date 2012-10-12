@@ -1038,6 +1038,10 @@ char   *gnet_property_variable_rx_debug_addrs     = "";
 static const char   *gnet_property_variable_rx_debug_addrs_default = "";
 guint32  gnet_property_variable_rx_ut_debug_flags     = 0;
 static const guint32  gnet_property_variable_rx_ut_debug_flags_default = 0;
+gboolean gnet_property_variable_log_sr_udp_tx     = FALSE;
+static const gboolean gnet_property_variable_log_sr_udp_tx_default = FALSE;
+gboolean gnet_property_variable_log_sr_udp_rx     = FALSE;
+static const gboolean gnet_property_variable_log_sr_udp_rx_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9594,6 +9598,40 @@ gnet_prop_init(void) {
     gnet_property->props[447].data.guint32.choices = NULL;
     gnet_property->props[447].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[447].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_SR_UDP_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[448].name = "log_sr_udp_tx";
+    gnet_property->props[448].desc = _("Whether to log sent semi-reliable UDP messages");
+    gnet_property->props[448].ev_changed = event_new("log_sr_udp_tx_changed");
+    gnet_property->props[448].save = TRUE;
+    gnet_property->props[448].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[448].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[448].data.boolean.def   = (void *) &gnet_property_variable_log_sr_udp_tx_default;
+    gnet_property->props[448].data.boolean.value = (void *) &gnet_property_variable_log_sr_udp_tx;
+
+
+    /*
+     * PROP_LOG_SR_UDP_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[449].name = "log_sr_udp_rx";
+    gnet_property->props[449].desc = _("Whether to log received semi-reliable UDP messages");
+    gnet_property->props[449].ev_changed = event_new("log_sr_udp_rx_changed");
+    gnet_property->props[449].save = TRUE;
+    gnet_property->props[449].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[449].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[449].data.boolean.def   = (void *) &gnet_property_variable_log_sr_udp_rx_default;
+    gnet_property->props[449].data.boolean.value = (void *) &gnet_property_variable_log_sr_udp_rx;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

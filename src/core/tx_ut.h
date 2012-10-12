@@ -42,11 +42,14 @@
 
 const struct txdrv_ops *tx_ut_get_ops(void);
 
+struct gnutella_host;
+
 /**
  * Callbacks used by the semi-reliable UDP layer.
  */
 struct tx_ut_cb {
-	void (*msg_account)(void *owner, const pmsg_t *mb);
+	void (*msg_account)(void *owner, const pmsg_t *mb,
+		const struct gnutella_host *to);
 	void (*add_tx_dropped)(void *owner, int amount);
 };
 

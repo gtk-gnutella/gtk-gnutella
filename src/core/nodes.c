@@ -3671,7 +3671,7 @@ static struct tx_dgram_cb node_tx_dgram_cb = {
  * is done at the lower layer (physical transmission).
  */
 static void
-node_msg_ut_accounting(void *o, const pmsg_t *mb)
+node_msg_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 {
 	gnutella_node_t *n = o;
 	char *mb_start = pmsg_start(mb);
@@ -3680,6 +3680,12 @@ node_msg_ut_accounting(void *o, const pmsg_t *mb)
 
 	node_check(n);
 	node_sent_accounting(n, function, mb_start, mb_size);
+
+	if (GNET_PROPERTY(log_sr_udp_tx)) {
+		g_info("UDP-SR sent %s to %s",
+			gmsg_infostr_full(mb_start, mb_size),
+			gnet_host_to_string(to));
+	}
 }
 
 /**
@@ -8492,6 +8498,12 @@ node_udp_sr_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 
 	if (!udp_is_valid_gnet_split(n, NULL, FALSE, n->header, n->data, length))
 		goto done;
+
+	if (GNET_PROPERTY(log_sr_udp_rx)) {
+		g_info("UDP-SR got %s from %s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			gnet_host_to_string(from));
+	}
 
 	node_handle(n);
 

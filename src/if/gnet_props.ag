@@ -5212,4 +5212,22 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_sr_udp_tx";
+	desc = "Whether to log sent semi-reliable UDP messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_sr_udp_rx";
+	desc = "Whether to log received semi-reliable UDP messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

@@ -478,7 +478,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 		/* Message was fully sent out */
 		if (attr->cb->msg_account != NULL)
-			(*attr->cb->msg_account)(attr->tx->owner, um->mb);
+			(*attr->cb->msg_account)(attr->tx->owner, um->mb, um->to);
 
 		if (um->reliable)
 			gnet_stats_count_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_SENT, 1);
