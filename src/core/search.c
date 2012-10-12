@@ -1184,6 +1184,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	const GSList *sl;
 	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
+	bool logged = FALSE;
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
@@ -1204,6 +1205,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with invalid file index");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_GTKG == rs->vcode.u32 &&
@@ -1215,13 +1217,16 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with %s",
 				NULL == rs->version ? "no version indication" : "bad GUID");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with %u alt-locs", n_alt);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
 			search_log_spam(n, rs, "URN %s", sha1_base32(rc->sha1));
+			logged = TRUE;
 			rs->status |= ST_URN_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
@@ -1232,9 +1237,11 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "evil timestamp 0x%lx",
 				(unsigned long) rc->create_time);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (spam_check_filename_size(rc->filename, rc->size)) {
 			search_log_spam(n, rs, "SPAM filename/size hit");
+			logged = TRUE;
 			rs->status |= ST_NAME_SPAM;
 			rc->flags |= SR_SPAM;
 			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
@@ -1243,10 +1250,12 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			is_lime_xml_spam(rc->xml, strlen(rc->xml))
 		) {
 			search_log_spam(n, rs, "LIME XML SPAM");
+			logged = TRUE;
 			rs->status |= ST_URL_SPAM;
 			rc->flags |= SR_SPAM;
 		} else if (is_evil_filename(rc->filename)) {
 			search_log_spam(n, rs, "evil filename");
+			logged = TRUE;
 			rs->status |= ST_EVIL;
 			rc->flags |= SR_IGNORED;
 		} else if (
@@ -1256,6 +1265,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			/* LimeWire is a program known to generate valid UTF-8 strings */
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "invalid UTF-8 filename");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
@@ -1266,6 +1276,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "filename mimics query \"%s\"",
 				WHATS_NEW_QUERY);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		}
 
@@ -1337,6 +1348,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 				search_results_mark_fake_spam(rs);
 				search_log_spam(n, rs, "filename similar to query \"%s\"",
 					rs->query);
+				logged = TRUE;
 				rc->flags |= SR_SPAM;
 			}
 		}
@@ -1347,7 +1359,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		 */
 
 		if (search_results_from_spammer(rs)) {
-			search_log_spam(NULL, rs, "hit from spammer");
+			search_log_spam(logged ? NULL : n, rs, "hit from spammer");
 			goto flag_all;
 		}
 	}
