@@ -9093,7 +9093,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->pos = 0;
 
-		if (n->size != n->allocated) {
+		if (n->size > n->allocated) {
 			/*
 			 * We need to grow the allocated data buffer
 			 * Since maximum could change dynamically one day, compute it.
