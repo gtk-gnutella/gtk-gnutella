@@ -4893,7 +4893,7 @@ parq_store(void *data, void *file_ptr)
 		fprintf(f, "SHA1: %s\n", sha1_base32(puq->sha1));
 
 	if (puq->supports_parq)
-		fprintf(f, "PARQ: \n");	/* No value needed, tag presence is enough */
+		fprintf(f, "PARQ:\n");	/* No value needed, tag presence is enough */
 	
 	if (
 		!(puq->flags & PARQ_UL_NOQUEUE) &&
@@ -5137,12 +5137,22 @@ parq_upload_load_queue(void)
 		*colon = '\0';
 		tag_name = line;
 		value = &colon[1];
-		if (*value != ' ') {
-			g_warning("%s(): missing space after colon in line %u",
-				G_STRFUNC, line_no);
-			break;
+
+		/*
+		 * Because of the file_line_chomp_tail() call above, a tag without
+		 * value will not have any space after its name, regardless of whether
+		 * it was emitted.  Hence we must explicly check for empty values.
+		 *		--RAM, 2012-10-12
+		 */
+
+		if (*value) {
+			if (*value != ' ') {
+				g_warning("%s(): no space after colon, line %u for tag \"%s\"",
+					G_STRFUNC, line_no, tag_name);
+				break;
+			}
+			value++;	/* skip blank after colon */
 		}
-		value++;	/* skip blank after colon */
 
 		tag = parq_string_to_tag(tag_name);
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
