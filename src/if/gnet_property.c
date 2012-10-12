@@ -1042,6 +1042,8 @@ gboolean gnet_property_variable_log_sr_udp_tx     = FALSE;
 static const gboolean gnet_property_variable_log_sr_udp_tx_default = FALSE;
 gboolean gnet_property_variable_log_sr_udp_rx     = FALSE;
 static const gboolean gnet_property_variable_log_sr_udp_rx_default = FALSE;
+guint32  gnet_property_variable_secure_oob_debug     = 0;
+static const guint32  gnet_property_variable_secure_oob_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9632,6 +9634,26 @@ gnet_prop_init(void) {
     gnet_property->props[449].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[449].data.boolean.def   = (void *) &gnet_property_variable_log_sr_udp_rx_default;
     gnet_property->props[449].data.boolean.value = (void *) &gnet_property_variable_log_sr_udp_rx;
+
+
+    /*
+     * PROP_SECURE_OOB_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[450].name = "secure_oob_debug";
+    gnet_property->props[450].desc = _("Debug level for the secured OOB query hit claiming.");
+    gnet_property->props[450].ev_changed = event_new("secure_oob_debug_changed");
+    gnet_property->props[450].save = TRUE;
+    gnet_property->props[450].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[450].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[450].data.guint32.def   = (void *) &gnet_property_variable_secure_oob_debug_default;
+    gnet_property->props[450].data.guint32.value = (void *) &gnet_property_variable_secure_oob_debug;
+    gnet_property->props[450].data.guint32.choices = NULL;
+    gnet_property->props[450].data.guint32.max   = 20;
+    gnet_property->props[450].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

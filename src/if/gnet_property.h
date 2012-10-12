@@ -486,6 +486,7 @@ typedef enum {
     PROP_RX_UT_DEBUG_FLAGS,
     PROP_LOG_SR_UDP_TX,
     PROP_LOG_SR_UDP_RX,
+    PROP_SECURE_OOB_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

@@ -72,6 +72,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/misc.h"			/* hexadecimal conversions */
 #include "lib/mempcpy.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
@@ -1312,9 +1313,14 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 
 	udp_ctrl_send_msg(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s",
-			guid_hex_str(muid), node_infostr(n), want, want == 1 ? "" : "s");
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(secure_oob_debug)) {
+		char buf[17];
+		if (token->data)
+			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
+		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s%s%s",
+			guid_hex_str(muid), node_infostr(n), want, want == 1 ? "" : "s",
+			token->data ? ", token=0x" : "", token->data ? buf : "");
+	}
 }
 
 /**

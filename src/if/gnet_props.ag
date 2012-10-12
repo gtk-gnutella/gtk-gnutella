@@ -5230,4 +5230,15 @@ prop = {
     };
 };
 
+prop = {
+	name = "secure_oob_debug";
+	desc = "Debug level for the secured OOB query hit claiming.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
 /* vi: set ts=4: */

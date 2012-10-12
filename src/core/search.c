@@ -1871,6 +1871,9 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (0 == rs->hops && (ST_UDP & rs->status)) {
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
 
+		if (!has_token)
+			token = 0;
+
 		if (search_results_are_requested(muid, n->addr, n->port, token)) {
 			if (has_token) {
 				rs->status |= ST_GOOD_TOKEN;
@@ -1882,10 +1885,19 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			/* Count only as unrequested, not as fake spam */
 			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
 
-			if (GNET_PROPERTY(search_debug) > 1) {
-				g_debug("received unrequested %squery hit from %s",
+			if (
+				GNET_PROPERTY(search_debug) > 1 ||
+				GNET_PROPERTY(secure_oob_debug)
+			) {
+				char buf[5];
+				bin_to_hex_buf(&token, sizeof token, buf, sizeof buf);
+				g_debug("OOB received unrequested %squery hit MUID=%s "
+					"from %s%s%s [%s]",
 					guess_is_search_muid(muid) ? "GUESS " : "",
-                	node_infostr(n));
+					guid_hex_str(muid), node_infostr(n),
+					has_token ? ", wrong token=0x" : ", no token",
+					has_token ? buf : "",
+					vendor_code_to_string(rs->vcode.u32));
 			}
 		}
 	}
@@ -5554,8 +5566,8 @@ search_oob_pending_results(
 	}
 
 	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1) {
-		g_debug("has %d pending %sOOB hit%s for search %s at %s",
-			hits,
+		g_debug("has %d pending %s%sOOB hit%s for search %s at %s",
+			hits, secure ? "secure " : "",
 			guess_is_search_muid(muid) ? "GUESS " : "",
 			hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 	}
@@ -5574,8 +5586,8 @@ search_oob_pending_results(
 		kept > search_max_results_for_ui(sch) * 0.15
 	) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %sOOB hit%s for search %s (already got %u)",
-				hits,
+			g_debug("ignoring %d %s%sOOB hit%s for search %s (already got %u)",
+				hits, secure ? "secure " : "",
 				guess_is_search_muid(muid) ? "GUESS " : "",
 				hits == 1 ? "" : "s", guid_hex_str(muid), kept);
 		}
