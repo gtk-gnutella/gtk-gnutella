@@ -128,6 +128,17 @@ gnet_host_cmp(const void *v1, const void *v2)
 }
 
 /**
+ * Compare function which returns TRUE if the host addresses are equal.
+ */
+bool
+gnet_host_addr_eq(const void *v1, const void *v2)
+{
+	const gnet_host_t *h1 = v1, *h2 = v2;
+
+	return host_addr_equal(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
+}
+
+/**
  * Length of "serialized" gnet host, depending on the address type it holds.
  */
 size_t
