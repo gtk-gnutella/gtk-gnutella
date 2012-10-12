@@ -464,13 +464,14 @@ ut_assemble_message(struct ut_rmsg *um)
 	ut_attr_check(um->attr);
 
 	if (rx_ut_debugging(RX_UT_DBG_MSG, um->id.from)) {
+		size_t len = iov_calculate_size(um->fragments, um->fragcnt);
 		g_debug("RX UT[%s]: %s: re-assembling %s%smessage from %s "
-			"(seq=0x%04x, %u fragment%s)",
+			"(seq=0x%04x, %u fragment%s, %zu bytes)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			um->reliable ? "reliable " : "",
 			um->deflated ? "deflated " : "",
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s");
+			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s", len);
 	}
 
 	ut_update_rx_messages_stats(um->reliable);
