@@ -961,4 +961,24 @@ elist_rotate_right(elist_t *list)
 	safety_assert(elist_length(list->head) == list->count);
 }
 
+/**
+ * Remove head of list, return pointer to item, NULL if list was empty.
+ */
+void *
+elist_shift(elist_t *list)
+{
+	void *item;
+
+	elist_check(list);
+
+	if (NULL == list->head) {
+		item = NULL;
+	} else {
+		item = ptr_add_offset(list->head, -list->offset);
+		elist_link_remove_internal(list, list->head);
+	}
+
+	return item;
+}
+
 /* vi: set ts=4 sw=4 cindent: */
