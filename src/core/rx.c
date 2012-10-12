@@ -553,7 +553,7 @@ rx_debug_set_addrs(const char *s)
 bool
 rx_debug_host(const gnet_host_t *h)
 {
-	return ipset_contains_host(&rx_addrs, h, FALSE);
+	return ipset_contains_host(&rx_addrs, h, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

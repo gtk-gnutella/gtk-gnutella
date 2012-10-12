@@ -622,7 +622,7 @@ tx_debug_set_addrs(const char *s)
 bool
 tx_debug_host(const gnet_host_t *h)
 {
-	return ipset_contains_host(&tx_addrs, h, FALSE);
+	return ipset_contains_host(&tx_addrs, h, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
