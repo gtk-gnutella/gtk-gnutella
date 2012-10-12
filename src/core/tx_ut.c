@@ -1572,7 +1572,9 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		goto rejected;
 	}
 
-	if (!gnet_host_eq(um->to, from)) {
+	/* Compare IPs, not source ports, in case of NAT and different out port */
+
+	if (!gnet_host_addr_eq(um->to, from)) {
 		reason = "coming from alien host";
 		goto rejected;
 	}
