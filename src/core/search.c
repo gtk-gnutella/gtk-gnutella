@@ -78,6 +78,7 @@
 #include "xml/xnode.h"
 #include "xml/xfmt.h"
 
+#include "lib/aging.h"
 #include "lib/array.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -145,6 +146,7 @@
 
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
 static sectoken_gen_t *ora_stg;			/**< OOB request ack token generator */
+static aging_table_t *ora_secure;		/**< Hosts supporting secure OOB */
 
 /**
  * Gathered query information.
@@ -1433,8 +1435,13 @@ search_results_are_requested(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
 	sectoken_t tok;
+	gnet_host_t host;
 
 	STATIC_ASSERT(sizeof(uint32) == sizeof tok.v);
+
+	gnet_host_set(&host, addr, port);
+	if (!aging_lookup(ora_secure, &host))
+		return TRUE;		/* Host not supporting secure OOB */
 
 	poke_be32(tok.v, token);
 	return sectoken_is_valid_with_context(ora_stg,
@@ -4148,6 +4155,8 @@ search_init(void)
 	query_muid_map_init();	
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
 	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT / ORA_KEYS);
+	ora_secure = aging_make(OOB_REPLY_ACK_TIMEOUT,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
@@ -4174,6 +4183,7 @@ search_shutdown(void)
 	query_muid_map_close();
 	sectoken_gen_free_null(&guess_stg);
 	sectoken_gen_free_null(&ora_stg);
+	aging_destroy(&ora_secure);
 }
 
 /**
@@ -5552,7 +5562,7 @@ search_oob_pending_results(
 			oob_proxy_pending_results(n, muid, hits, udp_firewalled,
 				&token_opaque)
 		)
-			return;		/* OK, sent OOB reply ack to claim hits */
+			goto record_secure;		/* OK, sent OOB reply ack to claim hits */
 
 		if (GNET_PROPERTY(search_debug))
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
@@ -5621,6 +5631,14 @@ search_oob_pending_results(
 	 */
 
 	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
+
+record_secure:
+	if (secure) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, n->addr, n->port);
+		aging_insert(ora_secure, atom_host_get(&host), int_to_pointer(1));
+	}
 }
 
 const char *
