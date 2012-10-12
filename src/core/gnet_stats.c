@@ -212,6 +212,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_sr_tx_fragments_sent",
 		"udp_sr_tx_fragments_resent",
 		"udp_sr_tx_fragments_sending_avoided",
+		"udp_sr_tx_fragments_oversent",
 		"udp_sr_tx_total_acks_received",
 		"udp_sr_tx_cumulative_acks_received",
 		"udp_sr_tx_extended_acks_received",

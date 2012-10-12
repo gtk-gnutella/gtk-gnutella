@@ -189,6 +189,7 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP fragments sent"),
 		N_("Semi-reliable UDP fragments resent"),
 		N_("Semi-reliable UDP fragment sendings avoided"),
+		N_("Semi-reliable UDP fragments sent too many times"),
 		N_("Semi-reliable UDP total acknowledgments received"),
 		N_("Semi-reliable UDP cumulative acknowledgments received"),
 		N_("Semi-reliable UDP extended acknowledgments received"),

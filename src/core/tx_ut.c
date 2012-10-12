@@ -201,6 +201,7 @@
 #define TX_UT_MTU			476		/* Our MTU (max byes per fragment) */
 #define TX_UT_FRAG_MAX		255		/* At most 255 fragments per message */
 #define TX_UT_MSG_MAXSIZE	(TX_UT_MTU * TX_UT_FRAG_MAX)
+#define TX_UT_SEND_MAX		4		/* Max amount of fragment transmissions */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
@@ -723,6 +724,26 @@ ut_frag_resend(cqueue_t *unused_cq, void *obj)
 	}
 
 	/*
+	 * If we sent the fragment too many times already, give up on the whole
+	 * message.
+	 */
+
+	if (uf->txcnt >= TX_UT_SEND_MAX) {
+		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, um->to)) {
+			g_debug("TX UT[%s]: %s: fragment #%u for %s already sent %u times "
+				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent) -- giving up",
+				nid_to_string(&um->mid), G_STRFUNC, uf->fragno + 1,
+				gnet_host_to_string(um->to), uf->txcnt,
+				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
+				um->fragcnt, 1 == um->fragsent ? "" : "s");
+		}
+
+		gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT, 1);
+		ut_msg_free(um, TRUE);
+		return;
+	}
+
+	/*
 	 * Enqueue for retransmission, done "alpha" fragments at a time to avoid
 	 * wasting outgoing bandwidth.
 	 */
@@ -924,6 +945,7 @@ ut_frag_send(const struct ut_frag *uf)
 
 	ut_frag_check(uf);
 	ut_msg_check(uf->msg);
+	g_assert(NULL == uf->resend_ev);
 
 	um = uf->msg;
 	attr = um->attr;
