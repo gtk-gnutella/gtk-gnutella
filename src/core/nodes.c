@@ -10630,7 +10630,7 @@ node_infostr(const gnutella_node_t *n)
 {
 	static char buf[128];
 
-	if (NODE_IS_UDP(n)) {
+	if (NODE_USES_UDP(n)) {
 		gm_snprintf(buf, sizeof buf, "UDP %snode %s",
 			NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "", node_addr(n));
 	} else {
