@@ -185,6 +185,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/elist.h"
 #include "lib/eslist.h"
 #include "lib/gnet_host.h"
 #include "lib/hevset.h"
@@ -263,8 +264,11 @@ struct ut_frag {
 	struct ut_msg *msg;				/* Message where fragment belongs */
 	cevent_t *resend_ev;			/* Timer for fragment retransmission */
 	pmsg_t *fb;						/* Fragment message block */
+	link_t lk;						/* Link in "resend" queue */
 	uint8 fragno;					/* Fragment number, zero-based */
 	uint8 txcnt;					/* Amount of times fragment was sent */
+	uint resend:1;					/* Enqueued for resending */
+	uint pending:1;					/* Pending ACK on resending */
 };
 
 static void
@@ -296,11 +300,15 @@ struct ut_msg {
 	pmsg_t *mb;						/* Original user message to send */
 	const gnet_host_t *to;			/* Destination address (atom) */
 	cevent_t *expire_ev;			/* Expire timer for the whole message */
+	cevent_t *iterate_ev;			/* Recorded iterate event */
 	struct ut_frag **fragments;		/* Fragments to send (NULL when ACK-ed) */
 	struct attr *attr;				/* TX layer private attributes */
+	elist_t resend;					/* Fragments to resend */
 	uint16 seqno;					/* Sequence ID number */
 	uint8 fragcnt;					/* Amount of fragments */
 	uint8 fragsent;					/* Fragments sent (and ACK-ed if needed) */
+	uint8 pending;					/* Fragments pending ACK on resend */
+	uint8 alpha;					/* Parallel factor for resending */
 	unsigned reliable:1;			/* Whether each fragment needs ACKs */
 	unsigned deflated:1;			/* Whether PDU was deflated */
 };
@@ -349,6 +357,7 @@ static unsigned ut_mset_refcnt;
 static bool ut_frag_free(struct ut_frag *uf, bool free_message);
 static void ut_frag_send(const struct ut_frag *uf);
 static void ut_ack_send(pmsg_t *mb);
+static void ut_resend_async(struct ut_msg *um);
 
 /**
  * Add a new reference to the message set.
@@ -500,6 +509,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 	attr->buffered = size_saturate_sub(attr->buffered, pmsg_size(um->mb));
 
 	cq_cancel(&um->expire_ev);
+	cq_cancel(&um->iterate_ev);
 	atom_host_free_null(&um->to);
 	wfree(um->fragments, um->fragcnt * sizeof um->fragments[0]);
 	hevset_remove(ut_mset, &um->mid);
@@ -558,6 +568,14 @@ ut_frag_free(struct ut_frag *uf, bool free_message)
 	um->fragments[uf->fragno] = NULL;
 	um->fragsent++;
 
+	if (uf->resend)
+		elist_remove(&um->resend, uf);
+
+	if (uf->pending) {
+		um->pending--;
+		ut_resend_async(um);
+	}
+
 	if (free_message && tx_ut_debugging(TX_UT_DBG_FRAG, um->to)) {
 		g_debug("TX UT[%s]: %s: %s fragment #%u/%u seq=0x%04x (%d %s) to %s",
 			nid_to_string(&um->mid), G_STRFUNC,
@@ -594,9 +612,73 @@ ut_frag_delay(const struct ut_frag *uf)
 
 	switch (uf->txcnt) {
 	case 1:  return 5000;		/* 5 seconds */
-	case 2:  return 10000;		/* 10 seconds */
-	default: return 20000;		/* 20 seconds, final retransmission normally */
+	case 2:  return 7500;		/* 7.5 seconds */
+	default: return 11250;		/* 11.25 seconds, final retransmission */
 	}
+}
+
+/**
+ * Callout queue callback invoked to trigger fragment resending.
+ */
+static void
+ut_resend_iterate(cqueue_t *unused_cq, void *obj)
+{
+	struct ut_msg *um = obj;
+
+	(void) unused_cq;
+
+	ut_msg_check(um);
+
+	g_assert(um->iterate_ev != NULL);
+
+	um->iterate_ev = NULL;	/* Callback triggered */
+
+	if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
+		g_debug("TX UT[%s]: %s: alpha=%u, pending=%u, enqueued=%zu",
+			nid_to_string(&um->mid), G_STRFUNC,
+			um->alpha, um->pending, elist_count(&um->resend));
+	}
+
+	/*
+	 * If we can't send a new batch, wait for more ACKs to come or for a
+	 * resend timeout.
+	 */
+
+	if (um->pending != 0 && um->pending >= um->alpha)
+		return;
+
+	/*
+	 * We're getting ACKs for our fragment, send more.
+	 */
+
+	um->alpha++;
+
+	while (um->pending < um->alpha) {
+		struct ut_frag *uf = elist_shift(&um->resend);
+
+		if (NULL == uf)
+			return;
+
+		g_assert(uf->resend);
+		g_assert(!uf->pending);
+
+		uf->resend = FALSE;
+		uf->pending = TRUE;
+		ut_frag_send(uf);
+		um->pending++;
+	}
+}
+
+/**
+ * Request asynchronous iteration to resend pending fragments, if needed.
+ */
+static void
+ut_resend_async(struct ut_msg *um)
+{
+	ut_msg_check(um);
+
+	if (NULL == um->iterate_ev && 0 != elist_count(&um->resend))
+		um->iterate_ev = cq_main_insert(1, ut_resend_iterate, um);
 }
 
 /**
@@ -606,6 +688,7 @@ static void
 ut_frag_resend(cqueue_t *unused_cq, void *obj)
 {
 	struct ut_frag *uf = obj;
+	struct ut_msg *um;
 
 	(void) unused_cq;
 
@@ -615,16 +698,41 @@ ut_frag_resend(cqueue_t *unused_cq, void *obj)
 	g_assert(uf->resend_ev != NULL);
 
 	uf->resend_ev = NULL;	/* Callback triggered */
+	um = uf->msg;
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
-		g_debug("TX UT[%s]: %s: resending fragment #%u/%u seq=0x%04x to %s "
+		g_debug("TX UT[%s]: %s: will resend fragment #%u/%u seq=0x%04x to %s "
 			"retransmit #%u",
-			nid_to_string(&uf->msg->mid), G_STRFUNC,
-			uf->fragno + 1, uf->msg->fragcnt, uf->msg->seqno,
-			gnet_host_to_string(uf->msg->to), uf->txcnt);
+			nid_to_string(&um->mid), G_STRFUNC,
+			uf->fragno + 1, um->fragcnt, um->seqno,
+			gnet_host_to_string(um->to), uf->txcnt);
 	}
 
-	ut_frag_send(uf);
+	/*
+	 * If fragment was marked as "pending ACK", then it was resent and the
+	 * acknowledgment did not come in the allocated time.
+	 *
+	 * Decrease the amount of pending messages, but also decrease parallelism
+	 * for the next batch.
+	 */
+
+	if (uf->pending) {				/* Was pending ACK */
+		um->pending--;
+		if (um->alpha != 0)
+			um->alpha /= 2;			/* Decrease sending parallelism */
+	}
+
+	/*
+	 * Enqueue for retransmission, done "alpha" fragments at a time to avoid
+	 * wasting outgoing bandwidth.
+	 */
+
+	g_assert(!uf->resend);
+
+	uf->resend = TRUE;
+	uf->pending = FALSE;			/* No longer pending, awaiting retransmit */
+	elist_append(&um->resend, uf);
+	ut_resend_async(um);
 }
 
 /**
@@ -842,9 +950,10 @@ ut_frag_send(const struct ut_frag *uf)
 	prio = pmsg_prio(mb);
 
 	if (tx_ut_debugging(TX_UT_DBG_SEND, um->to)) {
-		g_debug("TX UT[%s]: %s: sending fragment #%u (%d bytes, prio=%u) "
+		g_debug("TX UT[%s]: %s: %ssending fragment #%u (%d bytes, prio=%u) "
 			"to %s (%u fragment%s, seq=0x%04x, tag=\"%s\")",
 			nid_to_string(&um->mid), G_STRFUNC,
+			0 == uf->txcnt ? "" : "re",
 			uf->fragno + 1, pmsg_size(mb), prio,
 			gnet_host_to_string(um->to),
 			um->fragcnt, 1 == um->fragcnt ? "" : "s",
@@ -1281,6 +1390,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	um->mid = ut_msg_id_create();
 	um->attr = attr;
 	um->deflated = booleanize(deflated);
+	elist_init(&um->resend, offsetof(struct ut_frag, lk));
 
 	um->fragcnt = pdulen / TX_UT_MTU;
 	if (pdulen != um->fragcnt * TX_UT_MTU)

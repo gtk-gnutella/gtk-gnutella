@@ -228,13 +228,10 @@ The recommended parameters for the reliability layer are as follows:
     - Payload maximum size = 476 bytes (MTU for THIS layer)
 
     - The fragment transmission timeout (ACK not received) is set to
-      5 secs for the first transmission, 10 secs for the second and 20
+      5 secs for the first transmission, 7.5 secs for the second and 11.25
       secs for the third and last attempt (exponential retry delay).
 
-    - The packet transmission timeout is set to 60 secs (larger than
-      5+10+20+20=35 in case each fragment is not immediately sent out),
-	  which leaves about 20 seconds to get the final acknowledgment back
-	  after the last re-transmission.
+    - The overall packet transmission timeout is set to 60 secs.
 
 The UDP/IP header being typically 28 bytes, it is best to limit the payload
 of the messages to 476 bytes. That way, with the 8-byte header we're topping
@@ -337,8 +334,22 @@ This means a sender must use a transmission policy whereby it first sends
 all the fragments of each message at once, then waits for acknowledgments or
 timeouts before retransmitting the missing fragments. In other words, the
 sender should not send a fragment, wait for its acknowledge before sending
-the next one: this delays the reception of the entire message and it prevents
-using the optimizations that extended acknowledgments bring!
+the next one, a least initially: this delays the reception of the entire
+message and it prevents using the optimizations that extended acknowledgments
+bring!
+
+In case fragments are not acknowledged within the prescribed delay, they are
+enqueued for re-transmission.  This time, the sender can send a few fragments,
+waiting for them to be acknowledged before continuing with the next batch of
+un-acknowledged fragments.  It can also use a window, whereby it sends one
+fragment, and if it gets acknowledged, then it sends the next 2 fragments
+that need resending, then the next 3, etc...  On timeout, it could decrease
+that window.
+
+That strategy allows for less retransmissions when acknowledgments are lost:
+thanks to cumulative or extended acknowledgments, the sender can quickly
+realize it did not get them and therefore stop retransmission with less data
+transferred than if fragments were systematically resent on timeout.
 
 
 3. SEMI-RELIABLE NEGOCIATION
