@@ -4840,16 +4840,18 @@ parq_store(void *data, void *file_ptr)
 	}
 
 	g_assert(NULL != f);
-	if (GNET_PROPERTY(parq_debug) > 5)
-		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
+	if (GNET_PROPERTY(parq_debug) > 5) {
+		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving %s: '%s' - %s '%s'",
 			  puq->queue->num,
 			  ul_parqs_cnt,
 			  puq->position,
 			  puq->relative_position,
 			  puq->queue->by_position_length,
+			  puq->supports_parq ? "PARQ" : "slot",
 			  guid_hex_str(&puq->id),
 			  host_addr_to_string(puq->remote_addr),
 			  puq->name);
+	}
 
 	timestamp_to_string_buf(puq->enter, enter_buf, sizeof enter_buf);
 	timestamp_to_string_buf(puq->last_queue_sent, last_buf, sizeof last_buf);

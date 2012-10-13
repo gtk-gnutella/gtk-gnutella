@@ -979,7 +979,7 @@ is_evil_filename(const char *filename)
 /**
  * Log spam reason.
  */
-static void
+static void G_GNUC_PRINTF(3, 4)
 search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 	const char *reason, ...)
 {
@@ -1011,7 +1011,9 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 		rbuf[0] = '\0';
 	}
 
-	g_debug("SPAM QHIT [%s] %s %s%s", vendor_code_to_string(rs->vcode.u32),
+	g_debug("SPAM QHIT [%s] (%s) %s %s%s",
+		vendor_code_to_string(rs->vcode.u32),
+		host_addr_port_to_string(rs->addr, rs->port),
 		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
 }
 
@@ -1065,8 +1067,9 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 	htable_free_null(&ht);
 
 	if (dups != 0) {
-		search_log_spam(n, rs, "--> %u duplicate%s",
-			dups, 1 == dups ? "" : "s");
+		search_log_spam(n, rs, "--> %u duplicate%s over %u item%s",
+			dups, 1 == dups ? "" : "s",
+			rs->num_recs, 1 == rs->num_recs ? "" : "s");
 	}
 }
 
@@ -5564,9 +5567,12 @@ search_oob_pending_results(
 		)
 			goto record_secure;		/* OK, sent OOB reply ack to claim hits */
 
-		if (GNET_PROPERTY(search_debug))
-			g_warning("got OOB indication of %d hit%s for unknown search %s",
-				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
+		if (GNET_PROPERTY(search_debug)) {
+			g_warning("got OOB indication of %d hit%s for unknown search %s "
+				"at %s",
+				hits, hits == 1 ? "" : "s", guid_hex_str(muid),
+				node_infostr(n));
+		}
 
 		if (GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(n, "unexpected OOB hit indication");
@@ -5579,7 +5585,7 @@ search_oob_pending_results(
 		g_debug("has %d pending %s%sOOB hit%s for search %s at %s",
 			hits, secure ? "secure " : "",
 			guess_is_search_muid(muid) ? "GUESS " : "",
-			hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+			hits == 1 ? "" : "s", guid_hex_str(muid), node_infostr(n));
 	}
 
 	/*
@@ -5596,10 +5602,12 @@ search_oob_pending_results(
 		kept > search_max_results_for_ui(sch) * 0.15
 	) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %s%sOOB hit%s for search %s (already got %u)",
+			g_debug("ignoring %d %s%sOOB hit%s for search %s (already got %u) "
+				"at %s",
 				hits, secure ? "secure " : "",
 				guess_is_search_muid(muid) ? "GUESS " : "",
-				hits == 1 ? "" : "s", guid_hex_str(muid), kept);
+				hits == 1 ? "" : "s", guid_hex_str(muid), kept,
+				node_infostr(n));
 		}
 		return;
 	}
