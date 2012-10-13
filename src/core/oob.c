@@ -494,6 +494,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 				wanted, wanted == 1 ? "" : "s");
 		return;
 	}
+
 	oob_results_check(r);
 
 	/*
@@ -571,17 +572,19 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
-	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
+	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 		g_debug("OOB query %s: host %s wants %d hit%s, delivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
 			deliver_count);
+	}
 
-	if (deliver_count)
+	if (deliver_count) {
 		qhit_build_results(
 			r->files, deliver_count,
 			r->reliable ? OOB_MAX_SRQHIT_SIZE :
 			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
 			oob_record_hit, s, r->muid, r->flags, token);
+	}
 
 	if (wanted < r->count)
 		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
@@ -645,14 +648,18 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		}
 	} else {
 		/*
-		 * If we were not able to send the message,
+		 * If we were not able to send the message: when we use plain UDP,
+		 * we retry, but with semi-reliable UDP we trust the network layer to
+		 * do the appropriate amount of retrying and a failure is definitive.
 		 */
 
-		if (GNET_PROPERTY(query_debug))
-			g_debug("OOB query %s, previous LIME12/v2 #%d was dropped",
-					guid_hex_str(r->muid), r->notify_requeued);
+		if (GNET_PROPERTY(query_debug)) {
+			g_debug("OOB query %s, previous LIME12/v2 #%d was %s",
+				guid_hex_str(r->muid), r->notify_requeued,
+				r->reliable ? "unsent" : "dropped");
+		}
 
-		if (++r->notify_requeued < OOB_MAX_RETRY)
+		if (!r->reliable && ++r->notify_requeued < OOB_MAX_RETRY)
 			oob_send_reply_ind(r);
 		else
 			results_free_remove(r);
