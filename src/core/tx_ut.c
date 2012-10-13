@@ -1303,10 +1303,8 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 
 	g_assert(zlib_is_valid_header(buf, deflated_len));
 
-	if (deflated_len >= len) {
-		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
+	if (deflated_len >= len)
 		return FALSE;
-	}
 
 	/*
 	 * This payload will be sent deflated.
