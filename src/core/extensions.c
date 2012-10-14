@@ -1850,7 +1850,7 @@ ext_payload(const extvec_t *e)
 }
 
 /**
- * @returns a pointer to the extension's payload length.
+ * @returns the extension's payload length (after possible decompression).
  */
 uint16
 ext_paylen(const extvec_t *e)
@@ -1866,6 +1866,19 @@ ext_paylen(const extvec_t *e)
 		ext_ggep_decode(e);
 	}
 	return d->ext_paylen;
+}
+
+/**
+ * @returns the extension's payload physical length (as transmitted).
+ */
+static uint16
+ext_phys_paylen(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	return d->ext_phys_paylen;
 }
 
 /**
@@ -2090,7 +2103,7 @@ static void
 ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 	const char *postfix, bool payload)
 {
-	uint16 paylen;
+	uint16 paylen, phys_paylen;
 
 	g_assert(e->ext_type < EXT_TYPE_COUNT);
 	g_assert(e->opaque != NULL);
@@ -2105,8 +2118,15 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 		fprintf(f, "\"%s\" ", e->ext_name);
 
 	paylen = ext_paylen(e);
+	phys_paylen = ext_phys_paylen(e);
 
-	fprintf(f, "%u byte%s", paylen, paylen == 1 ? "" : "s");
+	if (paylen == phys_paylen) {
+		fprintf(f, "%u byte%s", paylen, 1 == paylen ? "" : "s");
+	} else {
+		fprintf(f, "%u byte%s <%u byte%s>",
+			paylen, 1 == paylen ? "" : "s",
+			phys_paylen, 1 == phys_paylen ? "" : "s");
+	}
 
 	if (e->ext_type == EXT_GGEP) {
 		extdesc_t *d = e->opaque;
