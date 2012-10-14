@@ -123,7 +123,7 @@ void search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, struct query_hashvec *qhv);
 size_t compact_query(char *search);
 void search_compact(struct gnutella_node *n);
-void query_strip_oob_flag(const struct gnutella_node *n, char *data);
+void query_strip_oob_flag(struct gnutella_node *n, char *data);
 void query_set_oob_flag(const struct gnutella_node *n, char *data);
 
 void record_query_string(const struct guid *muid,

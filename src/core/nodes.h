@@ -365,9 +365,11 @@ enum {
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_ADD_GE_SO	= 1 << 7,	/**< Must add GGEP "SO" */
+	NODE_M_STRIP_GE_SO	= 1 << 6,	/**< Must strip GGEP "SO" */
 	NODE_M_FINISH_IPV6	= 1 << 5,	/**< Add GGEP "6" extension for our IPv6 */
 	NODE_M_WHATS_NEW	= 1 << 4,	/**< Facing a "What's New?" query */
-	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
+	NODE_M_STRIP_GE_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
 	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup / rewrite extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
@@ -663,6 +665,7 @@ void node_set_leaf_guidance(const struct nid *node_id, bool supported);
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(int rx_size);
+void node_grow_data(struct gnutella_node *n, size_t len);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
 mqueue_t *node_udp_sr_get_outq(enum net_type net);

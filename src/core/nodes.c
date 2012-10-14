@@ -8979,6 +8979,43 @@ node_bye_sent(struct gnutella_node *n)
 }
 
 /**
+ * Grow node data space to be able to fit the amount of requested bytes,
+ * copying any data that was already present.
+ */
+void
+node_grow_data(gnutella_node_t *n, size_t len)
+{
+	node_check(n);
+	g_assert(size_is_positive(len));
+
+	/*
+	 * Be careful, we don't always dynamically allocate the space for data:
+	 * only TCP nodes do, the UDP nodes tend to use the socket buffer or
+	 * a pre-allocated buffer.
+	 *
+	 * Since this routine is only called during search_compact() to handle
+	 * queries, buffers used by UDP nodes should be already large enough,
+	 * but assertions guarantee that we're not making the wrong bet.
+	 */
+
+	if G_UNLIKELY(payload_inflate_buffer == n->data) {
+		/* There should be enough room */
+		g_assert(len <= UNSIGNED(payload_inflate_buffer_len));
+	} else if (n->data == &n->socket->buf[GTA_HEADER_SIZE]) {
+		/* There should be enough room */
+		g_assert(len <= sizeof n->socket->buf - GTA_HEADER_SIZE);
+	} else {
+		/* This is a node where we go through node_read() -- TCP connection */
+		g_assert(0 != n->allocated);
+
+		if (n->allocated < len) {
+			n->data = hrealloc(n->data, len);
+			n->allocated = len;
+		}
+	}
+}
+
+/**
  * Read data from the message buffer we just received.
  *
  * @return TRUE whilst we think there is more data to read in the buffer.
