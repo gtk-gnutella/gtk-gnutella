@@ -5241,4 +5241,22 @@ prop = {
     };
 };
 
+prop = {
+	name = "log_vmsg_tx";
+	desc = "Whether to log sent vendor messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_vmsg_rx";
+	desc = "Whether to log received vendor messages";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

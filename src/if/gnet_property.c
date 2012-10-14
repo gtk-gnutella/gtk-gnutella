@@ -1044,6 +1044,10 @@ gboolean gnet_property_variable_log_sr_udp_rx     = FALSE;
 static const gboolean gnet_property_variable_log_sr_udp_rx_default = FALSE;
 guint32  gnet_property_variable_secure_oob_debug     = 0;
 static const guint32  gnet_property_variable_secure_oob_debug_default = 0;
+gboolean gnet_property_variable_log_vmsg_tx     = FALSE;
+static const gboolean gnet_property_variable_log_vmsg_tx_default = FALSE;
+gboolean gnet_property_variable_log_vmsg_rx     = FALSE;
+static const gboolean gnet_property_variable_log_vmsg_rx_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9654,6 +9658,40 @@ gnet_prop_init(void) {
     gnet_property->props[450].data.guint32.choices = NULL;
     gnet_property->props[450].data.guint32.max   = 20;
     gnet_property->props[450].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_LOG_VMSG_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[451].name = "log_vmsg_tx";
+    gnet_property->props[451].desc = _("Whether to log sent vendor messages");
+    gnet_property->props[451].ev_changed = event_new("log_vmsg_tx_changed");
+    gnet_property->props[451].save = TRUE;
+    gnet_property->props[451].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[451].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[451].data.boolean.def   = (void *) &gnet_property_variable_log_vmsg_tx_default;
+    gnet_property->props[451].data.boolean.value = (void *) &gnet_property_variable_log_vmsg_tx;
+
+
+    /*
+     * PROP_LOG_VMSG_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[452].name = "log_vmsg_rx";
+    gnet_property->props[452].desc = _("Whether to log received vendor messages");
+    gnet_property->props[452].ev_changed = event_new("log_vmsg_rx_changed");
+    gnet_property->props[452].save = TRUE;
+    gnet_property->props[452].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[452].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[452].data.boolean.def   = (void *) &gnet_property_variable_log_vmsg_rx_default;
+    gnet_property->props[452].data.boolean.value = (void *) &gnet_property_variable_log_vmsg_rx;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

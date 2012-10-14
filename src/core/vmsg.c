@@ -229,6 +229,11 @@ vmsg_infostr(const void *data, size_t size)
 static void
 vmsg_send_reply(struct gnutella_node *n, pmsg_t *mb)
 {
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sending %s to %s",
+			gmsg_infostr_full(pmsg_start(mb), pmsg_size(mb)), node_infostr(n));
+	}
+
 	if (NODE_IS_UDP(n))
 		udp_send_mb(n, mb);
 	else
@@ -245,6 +250,28 @@ vmsg_send_data(struct gnutella_node *n, const void *data, uint32 size)
 		udp_send_msg(n, data, size);
 	else
 		gmsg_sendto_one(n, data, size);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(data, size), node_infostr(n));
+	}
+}
+
+/**
+ * Send a control message to node (data + size), via the appropriate channel.
+ */
+static void
+vmsg_ctrl_send_data(struct gnutella_node *n, const void *data, uint32 size)
+{
+	if (NODE_IS_UDP(n))
+		udp_ctrl_send_msg(n, data, size);
+	else
+		gmsg_ctrl_sendto_one(n, data, size);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(data, size), node_infostr(n));
+	}
 }
 
 /**
@@ -313,6 +340,11 @@ vmsg_send_data_notify(struct gnutella_node *n, bool prioritary,
 		}
 		gmsg_mb_sendto_one(n, mb);
 	}
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(msg, size), node_infostr(n));
+	}
 }
 
 /**
@@ -342,11 +374,11 @@ vmsg_handle(struct gnutella_node *n)
 
 	found = find_message(&vmsg, vc, id, version);
 
-	if (GNET_PROPERTY(vmsg_debug) > 4)
-		g_debug("VMSG %s \"%s\": %s/%uv%u from %s",
-			gmsg_node_infostr(n), found ? vmsg.name : "UNKNOWN",
-			vendor_code_to_string(vc.u32), id, version,
-			host_addr_port_to_string(n->addr, n->port));
+	if (GNET_PROPERTY(vmsg_debug) > 4 || GNET_PROPERTY(log_vmsg_rx)) {
+		g_debug("VMSG got %s from %s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			node_infostr(n));
+	}
 
 	/*
 	 * If we can't handle the message, we count it as "unknown type", which
@@ -648,9 +680,6 @@ handle_tcp_connect_back(struct gnutella_node *n,
 		return;
 	}
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG got TCP connect-back REQ from %s", node_infostr(n));
-
 	/* XXX forward to neighbours supporting the remote connect back message? */
 
 	node_connect_back(n, port);
@@ -676,9 +705,10 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, uint16 port)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent TCP connect-back REQ for port %u to %s",
-			port, node_infostr(n));
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s for port %u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), port, node_infostr(n));
+	}
 }
 
 /**
@@ -709,11 +739,6 @@ handle_udp_connect_back(struct gnutella_node *n,
 				port, vmsg->name, node_infostr(n));
 		}
 		return;
-	}
-
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG got UDP connect-back v%u REQ from %s",
-			vmsg->version, node_infostr(n));
 	}
 
 	/*
@@ -756,9 +781,10 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, uint16 port)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent UDP connect-back v1 REQ for port %u to %s",
-			port, node_infostr(n));
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s for port %u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), port, node_infostr(n));
+	}
 }
 
 /**
@@ -797,10 +823,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n,
 	 * proxify pushes to it ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent proxy ACK v%d to %s", version, node_infostr(n));
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -874,11 +897,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid)
 
 	(void) vmsg_fill_type(v_tmp_data, T_LIME, 21, 1);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG sent proxy REQ to %s", node_infostr(n));
-	}
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -990,7 +1009,7 @@ vmsg_send_qstat_req(struct gnutella_node *n, const struct guid *muid)
 	gnutella_header_set_muid(v_tmp_header, muid);
 	(void) vmsg_fill_type(v_tmp_data, T_BEAR, 11, 1);
 
-	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send ASAP */
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);	/* Send ASAP */
 }
 
 /**
@@ -1036,11 +1055,12 @@ vmsg_send_qstat_answer(struct gnutella_node *n,
 
 	poke_le16(payload, hits);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sending %s with hits=%u to %s",
-			gmsg_infostr_full(v_tmp, msgsize), hits, node_infostr(n));
-
 	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send it ASAP */
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s with hits=%u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), hits, node_infostr(n));
+	}
 }
 
 /**
@@ -1071,10 +1091,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gnutella_header_set_muid(v_tmp_header, &blank_guid);
 	(void) vmsg_fill_type(v_tmp_data, T_GTKG, 21, 1);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent proxy CANCEL to %s", node_infostr(n));
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -1313,12 +1330,17 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 
 	udp_ctrl_send_msg(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(secure_oob_debug)) {
+	if (
+		GNET_PROPERTY(vmsg_debug) > 2 ||
+		GNET_PROPERTY(secure_oob_debug) ||
+		GNET_PROPERTY(log_vmsg_tx)
+	) {
 		char buf[17];
 		if (token->data)
 			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
-		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s%s%s",
-			guid_hex_str(muid), node_infostr(n), want, want == 1 ? "" : "s",
+		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
+			gmsg_infostr_full(v_tmp, msgsize),
+			node_infostr(n), want, want == 1 ? "" : "s",
 			token->data ? ", token=0x" : "", token->data ? buf : "");
 	}
 }
@@ -1644,15 +1666,15 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 	memcpy(payload, pmsg_start(mb), paysize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
+	udp_send_msg(n, v_tmp, msgsize);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
 		uint8 nup = peek_u8(&payload[0]);
 		uint8 nleaves = peek_u8(&payload[1]);
 
-		g_debug("VMSG sending %s with up=%u and leaves=%u to %s",
+		g_debug("VMSG sent %s with up=%u and leaves=%u to %s",
 			gmsg_infostr_full(v_tmp, msgsize), nup, nleaves, node_infostr(n));
 	}
-
-	udp_send_msg(n, v_tmp, msgsize);
 }
 
 /**
@@ -1823,10 +1845,7 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 	 * queue, much like "alive" pongs).
 	 */
 
-	if (NODE_IS_UDP(n))
-		udp_send_msg(n, v_tmp, msgsize);
-	else
-		gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -2165,11 +2184,6 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 	ggep_len = ggep_stream_close(&gs);
 	paysize += ggep_len;
 
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG sending HEAD Pong v2 to %s (%u bytes)",
-			node_infostr(n), paysize);
-	}
-
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
@@ -2457,7 +2471,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, uint16 port,
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
 	if (head_ping_register_own(muid, sha1, n)) {
-		if (GNET_PROPERTY(vmsg_debug) > 1) {
+		if (GNET_PROPERTY(vmsg_debug) > 1 || GNET_PROPERTY(log_vmsg_tx)) {
 			g_debug(
 				"VMSG sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
 					node_infostr(n), paysize, sha1_base32(sha1));
@@ -2517,16 +2531,6 @@ handle_head_ping(struct gnutella_node *n,
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, expect_size))
 		return;
-
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%zu)",
-			vmsg->name,
-			vmsg->version,
-			node_infostr(n),
-			gnutella_header_get_ttl(n->header),
-			gnutella_header_get_hops(n->header),
-			size);
-	}
 
 	if (NODE_IS_UDP(n))
 		inet_udp_got_unsolicited_incoming();
@@ -3125,16 +3129,6 @@ handle_head_pong(struct gnutella_node *n,
 	if (VMSG_SHORT_SIZE(n, vmsg, size, expected_size))
 		return;
 
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
-			vmsg->name,
-			vmsg->version,
-			node_infostr(n),
-			gnutella_header_get_ttl(n->header),
-			gnutella_header_get_hops(n->header),
-			(unsigned long) size);
-	}
-
 	source = head_ping_is_registered(gnutella_header_get_muid(&n->header));
 	if (source) {
 		if (vmsg->version == 1) {
@@ -3172,7 +3166,7 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 	poke_u8(&payload[1], leaves);
 	poke_u8(&payload[2], features);
 
-	udp_send_msg(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 #endif	/* 0 */
 
@@ -3365,7 +3359,7 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 struct vmsg_features {
@@ -3452,7 +3446,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 
 	paysize = vmsg_features_get_length(&vmf);
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
-	gmsg_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**

@@ -500,6 +500,8 @@ extern const guint32  gnet_property_variable_rx_ut_debug_flags;
 extern const gboolean gnet_property_variable_log_sr_udp_tx;
 extern const gboolean gnet_property_variable_log_sr_udp_rx;
 extern const guint32  gnet_property_variable_secure_oob_debug;
+extern const gboolean gnet_property_variable_log_vmsg_tx;
+extern const gboolean gnet_property_variable_log_vmsg_rx;
 
 
 prop_set_t *gnet_prop_init(void);
