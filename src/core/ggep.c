@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2004, Raphael Manfredi
+ * Copyright (c) 2002-2004, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella Generic Extension Protocol (GGEP).
  *
  * @author Raphael Manfredi
- * @date 2002-2004
+ * @date 2002-2004, 2012
  */
 
 #include "common.h"
@@ -37,16 +37,48 @@
 
 #include "ggep.h"
 #include "extensions.h"
+
 #include "lib/cobs.h"
 #include "lib/halloc.h"
 #include "lib/mempcpy.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
 
 #include "if/gnet_property_priv.h"
 
 #include "lib/override.h"			/* Must be the last header included */
+
+static const char * const ggep_error_str[] = {
+	"OK",									/* GGEP_E_OK */
+	"No more space in output buffer",		/* GGEP_E_SPACE */
+	"Error during zlib deflation",			/* GGEP_E_DEFLATE */
+	"Error during COBS encoding",			/* GGEP_E_COBS */
+	"Error during zlib stream close",		/* GGEP_E_ZCLOSE */
+	"Error during zlib inflation",			/* GGEP_E_INFLATE */
+	"Error during COBS stream close",		/* GGEP_E_CCLOSE */
+	"Unable to un-COBS data",				/* GGEP_E_UNCOBS */
+	"GGEP payload too large",				/* GGEP_E_LARGE */
+	"Internal error",						/* GGEP_E_INTERNAL */
+};
+
+unsigned ggep_errno;		/**< Used to return errors on GGEP operations */
+
+/**
+ * @return human-readable error string for given error code.
+ */
+const char *
+ggep_strerror(unsigned errnum)
+{
+	if (errnum >= G_N_ELEMENTS(ggep_error_str)) {
+		static char buf[40];
+		str_bprintf(buf, sizeof buf, "Invalid GGEP error code: %u", errnum);
+		return buf;
+	}
+
+	return ggep_error_str[errnum];
+}
 
 /**
  * Check whether a GGEP stream descriptor is valid.
@@ -133,15 +165,17 @@ ggep_stream_cleanup(ggep_stream_t *gs)
 /**
  * Append char to the GGEP stream.
  *
- * @return FALSE if there's not enough room in the output.
+ * @return FALSE if there's not enough room in the output, with ggep_errno set.
  */
 static inline bool
 ggep_stream_appendc(ggep_stream_t *gs, char c)
 {
 	g_assert(ggep_stream_is_valid(gs));
 
-	if (0 == ggep_stream_avail(gs))
+	if (0 == ggep_stream_avail(gs)) {
+		ggep_errno = GGEP_E_SPACE;
 		return FALSE;
+	}
 
 	*(gs->o++) = c;
 
@@ -151,15 +185,17 @@ ggep_stream_appendc(ggep_stream_t *gs, char c)
 /**
  * Append data to the GGEP stream.
  *
- * @return FALSE if there's not enough room in the output.
+ * @return FALSE if there's not enough room in the output, with ggep_errno set.
  */
 static inline bool
 ggep_stream_append(ggep_stream_t *gs, const void *data, size_t len)
 {
 	g_assert(ggep_stream_is_valid(gs));
 
-	if (len > ggep_stream_avail(gs))
+	if (len > ggep_stream_avail(gs)) {
+		ggep_errno = GGEP_E_SPACE;
 		return FALSE;
+	}
 
 	gs->o = mempcpy(gs->o, data, len);
 
@@ -322,9 +358,12 @@ ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 		g_assert(gs->zd != NULL);
 
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (!zlib_deflate_data(gs->zd, 
-				iovec_base(xiov), iovec_len(xiov)))
+			if (
+				!zlib_deflate_data(gs->zd, iovec_base(xiov), iovec_len(xiov))
+			) {
+				ggep_errno = GGEP_E_DEFLATE;
 				goto cleanup;
+			}
 		}
 
 		return TRUE;
@@ -336,9 +375,12 @@ ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 
 	if (gs->flags & GGEP_F_COBS) {
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (!cobs_stream_write(&gs->cs, 
-				  iovec_base(xiov), iovec_len(xiov)))
+			if (
+				!cobs_stream_write(&gs->cs, iovec_base(xiov), iovec_len(xiov))
+			) {
+				ggep_errno = GGEP_E_COBS;
 				goto cleanup;
+			}
 		}
 
 		return TRUE;
@@ -349,8 +391,7 @@ ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 	 */
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
-		if (!ggep_stream_append(gs, 
-			  iovec_base(xiov), iovec_len(xiov)))
+		if (!ggep_stream_append(gs, iovec_base(xiov), iovec_len(xiov)))
 			goto cleanup;
 	}
 
@@ -403,8 +444,10 @@ ggep_stream_end(ggep_stream_t *gs)
 
 		g_assert(gs->zd);
 
-		if (!zlib_deflate_close(gs->zd))
+		if (!zlib_deflate_close(gs->zd)) {
+			ggep_errno = GGEP_E_ZCLOSE;
 			goto cleanup;
+		}
 
 		plen = zlib_deflater_outlen(gs->zd);
 
@@ -427,8 +470,10 @@ ggep_stream_end(ggep_stream_t *gs)
 
 			if (ilen != 0) {
 				data = zlib_uncompress(zlib_deflater_out(gs->zd), plen, ilen);
-				if (data == NULL)
+				if (data == NULL) {
+					ggep_errno = GGEP_E_INFLATE;
 					goto cleanup;
+				}
 			} else {
 				data = NULL;
 			}
@@ -469,8 +514,10 @@ ggep_stream_end(ggep_stream_t *gs)
 	if ((gs->flags & GGEP_F_DEFLATE) && (gs->flags & GGEP_F_COBS)) {
 		char *deflated = zlib_deflater_out(gs->zd);
 
-		if (!cobs_stream_write(&gs->cs, deflated, plen))
+		if (!cobs_stream_write(&gs->cs, deflated, plen)) {
+			ggep_errno = GGEP_E_COBS;
 			goto cleanup;
+		}
 	}
 
 	/*
@@ -481,8 +528,10 @@ ggep_stream_end(ggep_stream_t *gs)
 		bool saw_nul;
 
 		plen = cobs_stream_close(&gs->cs, &saw_nul);
-		if (0 == plen)
+		if (0 == plen) {
+			ggep_errno = GGEP_E_CCLOSE;
 			goto cleanup;
+		}
 
 		/*
 		 * If it was not necessary to COBS the data, un-COBS them in place.
@@ -491,8 +540,10 @@ ggep_stream_end(ggep_stream_t *gs)
 		if (!saw_nul) {
 			size_t ilen;
 
-			if (NULL == cobs_decode(gs->lp + 1, plen, &ilen, TRUE))
+			if (NULL == cobs_decode(gs->lp + 1, plen, &ilen, TRUE)) {
+				ggep_errno = GGEP_E_UNCOBS;
 				goto cleanup;
+			}
 
 			if (GNET_PROPERTY(ggep_debug) > 2)
 				g_warning("GGEP \"%.*s\" no need to COBS %d bytes into %d",
@@ -574,6 +625,7 @@ ggep_stream_end(ggep_stream_t *gs)
 	} else {
 		g_carp("too large GGEP payload length (%d bytes) for \"%.*s\"",
 			(int) plen, (int) (*gs->fp & GGEP_F_IDLEN), gs->fp + 1);
+		ggep_errno = GGEP_E_LARGE;
 		goto cleanup;
 	}
 
@@ -588,8 +640,10 @@ ggep_stream_end(ggep_stream_t *gs)
 	if (slen > 1) {
 		char *start = gs->lp + 1;
 
-		if ((size_t) (gs->end - gs->o) < (slen - 1))
+		if ((size_t) (gs->end - gs->o) < (slen - 1)) {
+			ggep_errno = GGEP_E_INTERNAL;
 			goto cleanup;
+		}
 
 		memmove(start + (slen - 1), start, plen);
 		gs->o += (slen - 1);
