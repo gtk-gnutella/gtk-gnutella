@@ -358,9 +358,9 @@ ggep_stream_writev(ggep_stream_t *gs, const iovec_t *iov, int iovcnt)
 		g_assert(gs->zd != NULL);
 
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
-			if (
-				!zlib_deflate_data(gs->zd, iovec_base(xiov), iovec_len(xiov))
-			) {
+			const void *data = iovec_base(xiov);
+			size_t len = iovec_len(xiov);
+			if (!zlib_deflate_data(gs->zd, data, len, FALSE)) {
 				ggep_errno = GGEP_E_DEFLATE;
 				goto cleanup;
 			}

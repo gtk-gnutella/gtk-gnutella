@@ -52,8 +52,10 @@ zlib_deflater_t *zlib_deflater_make(const void *data, int len, int level);
 zlib_deflater_t *zlib_deflater_make_into(
 	const void *data, int len, void *dest, int destlen, int level);
 int zlib_deflate(zlib_deflater_t *zd, int amount);
+int zlib_deflate_all(zlib_deflater_t *zd);
 int zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close);
-bool zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len);
+bool zlib_deflate_data(zlib_deflater_t *zd,
+	const void *data, int len, bool final);
 bool zlib_deflate_close(zlib_deflater_t *zd);
 void zlib_deflater_free(zlib_deflater_t *zd, bool output);
 void zlib_deflater_reset(zlib_deflater_t *zd, const void *data, int len);

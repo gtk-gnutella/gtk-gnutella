@@ -1283,7 +1283,7 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 
 	zlib_deflater_reset(zd, *pdu, len);
 
-	switch (zlib_deflate_step(zd, len, FALSE)) {
+	switch (zlib_deflate_all(zd)) {
 	case -1:
 		g_warning("%s(): cannot deflate payload", G_STRFUNC);
 		return TRUE;

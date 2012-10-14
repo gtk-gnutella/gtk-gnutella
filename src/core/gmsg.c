@@ -296,7 +296,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 
 	zlib_deflater_reset(gmsg_deflater, data, plen);
 
-	switch (zlib_deflate_step(gmsg_deflater, plen, FALSE)) {
+	switch (zlib_deflate_all(gmsg_deflater)) {
 	case -1:
 		g_carp("%s(): deflate error", G_STRFUNC);
 		goto send_raw;

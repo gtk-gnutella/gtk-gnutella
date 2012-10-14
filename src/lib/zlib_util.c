@@ -362,12 +362,13 @@ zlib_stream_reset_into(zlib_stream_t *zs,
  * @param amount	amount of data to process
  * @param maxout	maximum length of dynamically-allocated buffer (0 = none)
  * @param may_close	whether to allow closing when all data was consumed
+ * @param finish	whether this is the last data to process
  *
  * @return -1 on error, 1 if work remains, 0 when done.
  */
 static int
 zlib_stream_process_step(zlib_stream_t *zs, int amount, size_t maxout,
-	bool may_close)
+	bool may_close, bool finish)
 {
 	z_streamp z;
 	int remaining;
@@ -400,7 +401,7 @@ zlib_stream_process_step(zlib_stream_t *zs, int amount, size_t maxout,
 resume:
 	switch (zs->magic) {
 	case ZLIB_DEFLATER_MAGIC:
-		ret = deflate(z, finishing ? Z_FINISH : 0);
+		ret = deflate(z, finishing && finish ? Z_FINISH : 0);
 		break;
 	case ZLIB_INFLATER_MAGIC:
 		ret = inflate(z, Z_SYNC_FLUSH);
@@ -504,7 +505,7 @@ error:
  */
 static int
 zlib_stream_process_data(zlib_stream_t *zs, const void *data, int len,
-	size_t maxout)
+	size_t maxout, bool final)
 {
 	z_streamp z;
 
@@ -523,7 +524,7 @@ zlib_stream_process_data(zlib_stream_t *zs, const void *data, int len,
 	z->next_in = deconstify_pointer(zs->in);
 	z->avail_in = 0;			/* Will be set by zlib_stream_process_step() */
 
-	return zlib_stream_process_step(zs, len, maxout, FALSE);
+	return zlib_stream_process_step(zs, len, maxout, FALSE, final);
 }
 
 /**
@@ -646,7 +647,7 @@ int
 zlib_deflate_step(zlib_deflater_t *zd, int amount, bool may_close)
 {
 	zlib_deflater_check(zd);
-	return zlib_stream_process_step(&zd->zs, amount, 0, may_close);
+	return zlib_stream_process_step(&zd->zs, amount, 0, may_close, TRUE);
 }
 
 /**
@@ -662,20 +663,43 @@ zlib_deflate(zlib_deflater_t *zd, int amount)
 }
 
 /**
+ * Deflate all the data supplied during zlib_deflater_reset().
+ *
+ * @return -1 on error, 1 if work remains (which would be an error as well
+ * since we're processing all the data that remain), 0 when done.
+ */
+int
+zlib_deflate_all(zlib_deflater_t *zd)
+{
+	zlib_deflater_check(zd);
+	g_assert(zd->zs.in != NULL);		/* Data to deflate supplied */
+
+	return zlib_stream_process_step(&zd->zs, zd->zs.inlen, 0, FALSE, TRUE);
+}
+
+/**
  * Deflate the data supplied, but do not close the stream when all the
  * data have been compressed.  Needs to call zlib_deflate_close() for that.
+ *
+ * When ``final'' is set, this is going to be the last data in the stream,
+ * so we must flush the whole compression state.
  *
  * @returns TRUE if OK, FALSE on error.
  */
 bool
-zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len)
+zlib_deflate_data(zlib_deflater_t *zd, const void *data, int len, bool final)
 {
 	zlib_deflater_check(zd);
-	return booleanize(zlib_stream_process_data(&zd->zs, data, len, 0) > 0);
+	return booleanize(
+		zlib_stream_process_data(&zd->zs, data, len, 0, final) > 0);
 }
 
 /**
- * Marks the end of the data: flush the stream and close.
+ * Marks the end of the data: flush the stream and close (no further data can
+ * be given until a reset).
+ *
+ * This does NOT free the underlying zstream, which can be reset to restart
+ * another deflation.  To free everything, call zlib_deflater_free().
  *
  * @returns TRUE if OK, FALSE on error.
  */
@@ -701,8 +725,7 @@ zlib_deflate_close(zlib_deflater_t *zd)
 	outz->next_in = deconstify_pointer(zs->in);
 	outz->avail_in = 0;
 
-	ret = zlib_deflate_step(zd, 1, TRUE) == 0 ? TRUE : FALSE;
-
+	ret = booleanize(0 == zlib_stream_process_step(zs, 1, 0, FALSE, TRUE));
 	zs->closed = TRUE;				/* Even if there was an error */
 
 	return ret;
@@ -951,7 +974,8 @@ int
 zlib_inflate_step(zlib_inflater_t *zi, int amount, bool may_close)
 {
 	zlib_inflater_check(zi);
-	return zlib_stream_process_step(&zi->zs, amount, zi->maxoutlen, may_close);
+	return zlib_stream_process_step(&zi->zs, amount, zi->maxoutlen,
+		may_close, FALSE /* Does not matter when inflating */);
 }
 
 /**
@@ -964,7 +988,8 @@ int
 zlib_inflate_data(zlib_inflater_t *zi, const void *data, int len)
 {
 	zlib_inflater_check(zi);
-	return zlib_stream_process_data(&zi->zs, data, len, zi->maxoutlen);
+	return zlib_stream_process_data(&zi->zs, data, len, zi->maxoutlen,
+		FALSE /* Does not matter when inflating*/);
 }
 
 /**
