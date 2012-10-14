@@ -33,7 +33,7 @@
 
 #include "common.h"
 
-#include <zlib.h>	/* Z_DEFAULT_COMPRESSION */
+#include <zlib.h>	/* Z_BEST_COMPRESSION */
 
 #include "ggep.h"
 #include "extensions.h"
@@ -71,12 +71,6 @@ ggep_stream_is_valid(ggep_stream_t *gs)
 
 	if (gs->begun) {
 		if ((gs->flags & GGEP_F_COBS) && !cobs_stream_is_valid(&gs->cs))
-			return FALSE;
-
-		if ((gs->flags & GGEP_F_DEFLATE) && NULL == gs->zd)
-			return FALSE;
-
-		if (!(gs->flags & GGEP_F_DEFLATE) && NULL != gs->zd)
 			return FALSE;
 	}
 
@@ -134,11 +128,6 @@ ggep_stream_cleanup(ggep_stream_t *gs)
 
 	gs->begun = FALSE;
 	gs->o = gs->fp;		/* Back to the beginning of the failed extension */
-
-	if (gs->zd) {
-		zlib_deflater_free(gs->zd, TRUE);
-		gs->zd = NULL;
-	}
 }
 
 /**
@@ -268,14 +257,20 @@ ggep_stream_begin(ggep_stream_t *gs, const char *id, uint32 wflags)
 	 * data later.
 	 */
 
-	g_assert(gs->zd == NULL);
-
 	if (wflags & GGEP_W_DEFLATE) {
-		if (wflags & GGEP_W_COBS)
-			gs->zd = zlib_deflater_make(NULL, 0, Z_DEFAULT_COMPRESSION);
-		else
-			gs->zd = zlib_deflater_make_into(NULL, 0,
-				gs->o, ggep_stream_avail(gs), Z_DEFAULT_COMPRESSION);
+		if (NULL == gs->zd) {
+			if (wflags & GGEP_W_COBS)
+				gs->zd = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
+			else
+				gs->zd = zlib_deflater_make_into(NULL, 0,
+					gs->o, ggep_stream_avail(gs), Z_BEST_COMPRESSION);
+		} else {
+			if (wflags & GGEP_W_COBS)
+				zlib_deflater_reset(gs->zd, NULL, 0);
+			else
+				zlib_deflater_reset_into(gs->zd, NULL, 0,
+					gs->o, ggep_stream_avail(gs));
+		}
 	}
 
 	/*
@@ -296,8 +291,6 @@ ggep_stream_begin(ggep_stream_t *gs, const char *id, uint32 wflags)
 	gs->begun = TRUE;
 
 	g_assert(!(gs->flags & GGEP_F_COBS) || cobs_stream_is_valid(&gs->cs));
-	g_assert(!(gs->flags & GGEP_F_DEFLATE) || gs->zd != NULL);
-	g_assert((gs->flags & GGEP_F_DEFLATE) || gs->zd == NULL);
 
 	return TRUE;
 
@@ -447,9 +440,6 @@ ggep_stream_end(ggep_stream_t *gs)
 			gs->flags &= ~GGEP_F_DEFLATE;
 			*gs->fp &= ~GGEP_F_DEFLATE;
 
-			zlib_deflater_free(gs->zd, TRUE);
-			gs->zd = NULL;
-
 			/*
 			 * Rewind stream right after the begin call, and write the
 			 * original data, possibly COBS-ing it on the fly if that
@@ -481,15 +471,6 @@ ggep_stream_end(ggep_stream_t *gs)
 
 		if (!cobs_stream_write(&gs->cs, deflated, plen))
 			goto cleanup;
-	}
-
-	/*
-	 * Get rid of the deflating stream.
-	 */
-
-	if (gs->zd) {
-		zlib_deflater_free(gs->zd, TRUE);
-		gs->zd = NULL;
 	}
 
 	/*
@@ -646,6 +627,15 @@ ggep_stream_close(ggep_stream_t *gs)
 
 	g_assert(!gs->begun);			/* Not in the middle of an extension! */
 	g_assert(gs->outbuf != NULL);	/* Not closed already */
+
+	/*
+	 * Get rid of the deflating stream.
+	 */
+
+	if (gs->zd != NULL) {
+		zlib_deflater_free(gs->zd, TRUE);
+		gs->zd = NULL;
+	}
 
 	/*
 	 * If we ever wrote anything, `gs->last_fp' will point to the last
