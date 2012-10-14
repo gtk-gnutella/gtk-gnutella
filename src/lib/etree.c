@@ -87,7 +87,8 @@
  *
  * to indicate the place of the node field within the item.
  *
- * Extendd trees are available to make etree_
+ * Extended trees are available to make etree_append_child() efficient but if
+ * children can only be prepended, use normal trees (less overhead per node).
  *
  * @param tree		the tree structure to initialize
  * @param extended	whether extended nodex_t are used instead of node_t

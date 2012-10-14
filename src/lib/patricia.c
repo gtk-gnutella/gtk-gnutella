@@ -118,7 +118,7 @@
  *
  * When traversing the tree from the root with key "ab", the node flagged "[2]"
  * will bring us to node "[3]" and it is because the key length 2 is less than
- * 3 AND because the node is flagged a containing embedded data that it
+ * 3 AND because the node is flagged as containing embedded data that it
  * indicates "ab" is a valid key with an attached value.  This can happen only
  * when the keys stored in the tree are of variable length.
  *
