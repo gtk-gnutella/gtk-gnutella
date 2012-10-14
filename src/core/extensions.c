@@ -156,6 +156,8 @@ struct rwtable {
 static const struct rwtable urntable[] =
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
+	{ "ed2khash",		EXT_T_URN_ED2KHASH },
+	{ "md5",			EXT_T_URN_MD5 },
 	{ "sha1",			EXT_T_URN_SHA1 },
 	{ "ttroot",			EXT_T_URN_TTH },
 };
@@ -1941,6 +1943,8 @@ ext_huge_urn_name(const extvec_t *e)
 	case EXT_T_URN_BITPRINT:	return "urn:bitprint";
 	case EXT_T_URN_SHA1:		return "urn:sha1";
 	case EXT_T_URN_TTH:			return "urn:ttroot";
+	case EXT_T_URN_ED2KHASH:	return "urn:ed2khash";
+	case EXT_T_URN_MD5:			return "urn:md5";
 	case EXT_T_URN_EMPTY:		return "urn";
 	case EXT_T_URN_UNKNOWN:		return "urn:*";		/* Parsed but unknown */
 	default:					return "";
@@ -2056,6 +2060,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 			case EXT_T_URN_BITPRINT:
 			case EXT_T_URN_SHA1:
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_ED2KHASH:
 			case EXT_T_URN_UNKNOWN:
 			case EXT_T_URN_EMPTY:		what = ext_huge_urn_name(e); break;
 			case EXT_T_URN_BAD:			what = "bad URN"; break;

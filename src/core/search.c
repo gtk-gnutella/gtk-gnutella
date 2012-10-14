@@ -6884,6 +6884,8 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_ED2KHASH:
+			case EXT_T_URN_MD5:
 			case EXT_T_URN_UNKNOWN:
 				/*
 				 * Silently ignore unknown URNs like urn:ed2khash or urn:md5,
