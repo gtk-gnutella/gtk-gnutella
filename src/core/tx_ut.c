@@ -995,7 +995,7 @@ ut_frag_send(const struct ut_frag *uf)
 	 */
 
 	if (tx_ut_debugging(TX_UT_DBG_SEND, um->to)) {
-		g_debug("TX UT[%s]: %s: enqueuing fragment (%u already pending)",
+		g_debug("TX UT[%s]: %s: enqueuing fragment (%zu already pending)",
 			nid_to_string(&um->mid), G_STRFUNC,
 			eslist_count(&attr->pending[prio]));
 	}
@@ -1063,7 +1063,7 @@ ut_ack_send(pmsg_t *mb)
 	 */
 
 	if (tx_ut_debugging(TX_UT_DBG_SEND, pmi->to)) {
-		g_debug("TX UT: %s: enqueuing ACK (%u already pending)",
+		g_debug("TX UT: %s: enqueuing ACK (%zu already pending)",
 			G_STRFUNC, eslist_count(&attr->pending[prio]));
 	}
 
@@ -1434,7 +1434,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	 * See ut_msg_is_alive(), which is the way we "dereference" the message ID.
 	 */
 
-	idtable_set_value(attr->seq, seqno, um);
+	idtable_set_value(attr->seq, um->seqno, um);
 	hevset_insert_key(ut_mset, &um->mid);
 
 	/*
@@ -1706,7 +1706,7 @@ log:
 			"(seq=0x%04x, fragment #%u) from %s: %s (message to %s)",
 			G_STRFUNC, ack->cumulative ? "cumulative " : "",
 			0 != ack->received ? "extended " : "",
-			ack->seqno, ack->fragno, gnet_host_to_string(from),
+			ack->seqno, ack->fragno + 1, gnet_host_to_string(from),
 			reason, NULL == um ? "N/A" : gnet_host_to_string2(um->to));
 	}
 }
