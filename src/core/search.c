@@ -5521,6 +5521,32 @@ search_oob_pending_results(
 		return;
 	}
 
+	/*
+	 * If host is known to support secure OOB yet we get a non-secure OOB
+	 * promise for hits, then something is wrong: because we always send
+	 * the GGEP "SO" in queries, and force it when OOB-proxying, the remote
+	 * host had to see the extension, unless the query was maliciously altered
+	 * on the network or the IP:port is fake.
+	 *		--RAM, 2012-10-14
+	 */
+
+	if (!secure) {
+		gnet_host_t host;
+		gnet_host_set(&host, n->addr, n->port);
+
+		if (aging_lookup_revitalise(ora_secure, &host)) {
+			if (GNET_PROPERTY(search_debug)) {
+				g_debug("ignoring %d %sOOB unsecure hit%s for search %s "
+					"(%s supports secure OOB)",
+					hits,
+					guess_is_search_muid(muid) ? "GUESS " : "",
+					hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+			}
+			gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_UNSECURE_HIT, +1);
+			return;
+		}
+	}
+
 	if (secure) {
 		sectoken_t tok;
 

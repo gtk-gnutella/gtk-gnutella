@@ -125,6 +125,7 @@ general_type_str(gint value)
 		N_("OOB hits received for OOB-proxied queries"),
 		N_("OOB hits bearing alien IP address"),
 		N_("OOB hits ignored due to identified spamming address"),
+		N_("OOB hits ignored due to unsecure promise from known secure host"),
 		N_("Unclaimed locally-generated OOB hits"),
 		N_("Partially claimed locally-generated OOB hits"),
 		N_("Spurious OOB hit claiming received"),

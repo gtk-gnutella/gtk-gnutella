@@ -148,6 +148,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"oob_hits_for_proxied_queries",
 		"oob_hits_with_alien_ip",
 		"oob_hits_ignored_on_spammer_hit",
+		"oob_hits_ignored_on_unsecure_hit",
 		"unclaimed_oob_hits",
 		"partially_claimed_oob_hits",
 		"spurious_oob_hit_claim",
