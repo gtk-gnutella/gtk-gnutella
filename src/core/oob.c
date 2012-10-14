@@ -139,6 +139,7 @@ static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
+static bool oob_shutdowning;
 static bool oob_shutdown_running;
 
 static void
@@ -483,6 +484,9 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	g_assert(NODE_IS_UDP(n));
 	g_assert(token);
 
+	if G_UNLIKELY(oob_shutdowning)
+		return;
+
 	r = hikset_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
@@ -741,7 +745,7 @@ oob_got_results(struct gnutella_node *n, GSList *files,
 /**
  * Initialize out-of-band query hit delivery.
  */
-void
+G_GNUC_COLD void
 oob_init(void)
 {
 	results_by_muid = hikset_create(
@@ -753,7 +757,7 @@ oob_init(void)
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
-static void
+G_GNUC_COLD static void
 free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
@@ -787,10 +791,10 @@ free_servent_kv(void *value, void *unused_udata)
 /**
  * Cleanup at shutdown time.
  */
-void
+G_GNUC_COLD void
 oob_shutdown(void)
 {
-	oob_shutdown_running = TRUE;
+	oob_shutdowning = TRUE;
 
 	if (GNET_PROPERTY(search_debug)) {
 		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
@@ -799,6 +803,15 @@ oob_shutdown(void)
 			hikset_count(servent_by_host),
 			1 == hikset_count(servent_by_host) ? "" : "s");
 	}
+}
+
+/**
+ * Final cleanup.
+ */
+G_GNUC_COLD void
+oob_close(void)
+{
+	oob_shutdown_running = TRUE;
 
 	hikset_foreach(results_by_muid, free_oob_kv, NULL);
 	hikset_free_null(&results_by_muid);
@@ -809,14 +822,6 @@ oob_shutdown(void)
 	g_assert(num_oob_records >= 0);
 	if (num_oob_records > 0)
 		g_warning("%d OOB reply records possibly leaked", num_oob_records);
-}
-
-/**
- * Final cleanup.
- */
-void
-oob_close(void)
-{
 }
 
 /* vi: set ts=4 sw=4 cindent: */

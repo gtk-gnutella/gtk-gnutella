@@ -684,8 +684,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(hsep_close);
 	DO(file_info_close);
 	DO(ext_close);
-	DO(share_close);
 	DO(node_close);
+	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
 	DO(routing_close);	/* After node_close() */

@@ -2240,6 +2240,12 @@ share_special_close(void)
 G_GNUC_COLD void
 share_close(void)
 {
+	/*
+	 * This call must happen after node_close() to ensure the UDP TX scheduler
+	 * has been released and that no messages there could invoked callbacks
+	 * referring to OOB data that oob_close() is going to free up.
+	 */
+
 	recursive_scan_free(&recursive_scan_context);
 	share_special_close();
 	free_extensions();
@@ -2248,7 +2254,7 @@ share_close(void)
 	huge_close();
 	qrp_close();
 	oob_proxy_close();
-	oob_close();
+	oob_close();			/* References hits, so needs ``sha1_to_share'' */
 	qhit_close();
 	st_free(&partial_table);
 	htable_free_null(&share_media_types);
