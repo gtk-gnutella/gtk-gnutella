@@ -1078,9 +1078,10 @@ gmsg_infostr_split_to_buf(
 		return kmsg_infostr_to_buf(head, buf, buf_size);
 	}
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
+		guid_hex_str(gnutella_header_get_muid(head)),
 		gnutella_header_get_ttl(head) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(head),
 		gnutella_header_get_ttl(head) & ~GTA_UDP_DEFLATED);
@@ -1101,9 +1102,10 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 	 * we can't go and probe DHT messages.
 	 */
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
+		guid_hex_str(gnutella_header_get_muid(msg)),
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
 		gnutella_header_get_ttl(msg) & ~GTA_UDP_DEFLATED);
@@ -1130,10 +1132,11 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 			uint8 ttl = gnutella_header_get_ttl(head);
 
 			rw = gm_snprintf(buf, buf_size,
-				"%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
+				"%s %s (%u byte%s) %s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
 				size, size == 1 ? "" : "s",
+				guid_hex_str(gnutella_header_get_muid(head)),
 				ttl & GTA_UDP_DEFLATED ? "deflated " : 
 					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
 				gnutella_header_get_hops(head),
@@ -1167,7 +1170,7 @@ gmsg_infostr_full_to_buf(const void *msg, size_t msg_len,
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  *
  * that can also decompile vendor messages given a pointer on the header
  * and on the data of the message (which may not be consecutive in memory).
@@ -1175,7 +1178,7 @@ gmsg_infostr_full_to_buf(const void *msg, size_t msg_len,
 char *
 gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
 {
-	static char buf[160];
+	static char buf[180];
 
 	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
 	return buf;
@@ -1186,12 +1189,12 @@ gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  */
 const char *
 gmsg_infostr(const void *msg)
 {
-	static char buf[80];
+	static char buf[96];
 	gmsg_infostr_to_buf(msg, buf, sizeof buf);
 	return buf;
 }
@@ -1207,18 +1210,18 @@ gmsg_infostr(const void *msg)
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  *
  * if message is from a remote node, or
  *
- *     msg_type (payload length) [hops=x, TTL=x] //IP:port <vendor>//
+ *     msg_type (payload length) MUID [hops=x, TTL=x] //IP:port <vendor>//
  *
  * if message comes from a neighbour.
  */
 const char *
 gmsg_node_infostr(const gnutella_node_t *n)
 {
-	static char buf[160];
+	static char buf[180];
 	size_t w;
 
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
@@ -1266,7 +1269,7 @@ gmsg_log_split_duplicate(
 	const char *reason, ...)
 {
 	char rbuf[256];
-	char buf[128];
+	char buf[160];
 
 	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
 
@@ -1281,8 +1284,7 @@ gmsg_log_split_duplicate(
 		rbuf[0] = '\0';
 	}
 
-	g_debug("DUP %s %s%s",
-		guid_hex_str(gnutella_header_get_muid(head)), buf, rbuf);
+	g_debug("DUP %s%s", buf, rbuf);
 }
 
 /**
