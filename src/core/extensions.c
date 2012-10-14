@@ -731,16 +731,18 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		/*
 		 * Some broken servents don't include the trailing ':', which is a
 		 * mistake.  Try to accomodate them by looking up the next HUGE
-		 * field separator.
+		 * or GGEP field separator.
 		 */
 
-		if (NULL == name_end) {
+		if G_UNLIKELY(NULL == name_end) {
 			name_end = memchr(p, HUGE_FS, end - name_start);
+			if (NULL == name_end)
+				name_end = memchr(p, GGEP_MAGIC, end - name_start);
 		}
 
 		name_len = (name_end != NULL) ? name_end - name_start : 0;
 
-		if (0 == name_len) {
+		if G_UNLIKELY(0 == name_len) {
 			return 0;			/* No sperator found, extension is weird */
 		} else if (name_len >= sizeof name_buf) {
 			/* We shall treat this URN extension as being unknown */
