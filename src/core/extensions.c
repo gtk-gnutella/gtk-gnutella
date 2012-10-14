@@ -755,6 +755,10 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 			nend = mempcpy(name_buf, name_start, name_len);
 			*nend = '\0';
 			token = rw_urn_screen(name_buf, &name);
+
+			if (EXT_T_URN_UNKNOWN == token && GNET_PROPERTY(ggep_debug)) {
+				g_info("unknown URN name \"%s\" in HUGE extension", name_buf);
+			}
 		}
 		p = &name_end[1];	/* Skip the ':' following the URN name */
 	}
