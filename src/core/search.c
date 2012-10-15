@@ -1910,6 +1910,19 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					vendor_code_to_string(rs->vcode.u32));
 			}
 		}
+
+		/* If we have a token and did not mark hit as hostile, check source */
+
+		if (
+			((ST_GOOD_TOKEN | ST_HOSTILE) & rs->status) == ST_GOOD_TOKEN &&
+			hostiles_check(n->addr)
+		) {
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("dropping UDP query hit from secure OOB: hostile IP %s",
+					host_addr_to_string(n->addr));
+			}
+			rs->status |= ST_HOSTILE;
+		}
 	}
 
 	/*
@@ -2085,12 +2098,14 @@ get_results_set(gnutella_node_t *n, bool browse)
 
 	/* Check for hostile IP addresses */
 
-	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
-        if (GNET_PROPERTY(search_debug) > 1) {
-            g_debug("dropping %s query hit from hostile IP %s",
-                NODE_IS_UDP(n) ? "UDP" : "TCP",
-				host_addr_to_string(NODE_IS_UDP(n) ? n->addr : rs->addr));
-        }
+	if (hostiles_check(rs->addr)) {
+		if (GNET_PROPERTY(search_debug) > 1) {
+			g_debug("dropping %s query hit %s by %s: hostile source at %s",
+				NODE_IS_UDP(n) ? "UDP" : "TCP",
+				NODE_IS_UDP(n) ?
+					(0 == rs->hops ? "issued" : "relayed") : "relayed",
+				host_addr_to_string(n->addr), host_addr_to_string2(rs->addr));
+		}
 		rs->status |= ST_HOSTILE;
 	}
 
