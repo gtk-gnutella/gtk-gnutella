@@ -268,4 +268,33 @@ idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data)
 	htable_foreach(tbl->ht, idtable_foreach_wrapper, &ctx);
 }
 
+struct idtable_foreach_id_ctx {
+	id_data_fn_t cb;
+	void *data;
+};
+
+static void
+idtable_foreach_id_wrapper(const void *key, void *value, void *data)
+{
+	struct idtable_foreach_id_ctx *ctx = data;
+
+	(*ctx->cb)(pointer_to_uint(key), value, ctx->data);
+}
+
+/**
+ * Loop through all the IDs and values stored in the ID table.
+ */
+void
+idtable_foreach_id(idtable_t *tbl, id_data_fn_t cb, void *data)
+{
+	struct idtable_foreach_id_ctx ctx;
+
+	idtable_check(tbl);
+
+	ctx.cb = cb;
+	ctx.data = data;
+
+	htable_foreach(tbl->ht, idtable_foreach_id_wrapper, &ctx);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

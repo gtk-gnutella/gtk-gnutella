@@ -49,6 +49,15 @@
 
 #define IDTABLE_MAXBITS	32		/* Maximum width of IDs */
 
+/**
+ * Callback signature used by idtable_foreach_id().
+ *
+ * @param id		the ID in the table
+ * @param value		the value associated with the ID
+ * @param udata		opaque user-specific data
+ */
+typedef void (*id_data_fn_t)(uint32 id, void *value, void *udata);
+
 struct idtable;
 typedef struct idtable idtable_t;
 
@@ -63,5 +72,6 @@ void idtable_set_value(idtable_t *tbl, uint32 id, void *value);
 void *idtable_get_value(const idtable_t *tbl, uint32 id);
 void *idtable_probe_value(const idtable_t *tbl, uint32 id);
 void idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data);
+void idtable_foreach_id(idtable_t *tbl, id_data_fn_t cb, void *data);
 
 #endif /* _idtable_h_ */
