@@ -4799,11 +4799,10 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 		}
 
 		g_debug(
-			"QRP %s%s [%s] %s(%d word%s + %d URN%s) "
+			"QRP %s%s %s(%d word%s + %d URN%s) "
 			"forwarded to %d/%d leaves, %d ultra%s",
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
-			guid_hex_str(gnutella_header_get_muid(&n->header)),
 			qhvec_whats_new(qhvec) ? "\"What's New?\" " : "",
 			words, 1 == words ? "" : "s", urns, 1 == urns ? "" : "s",
 			leaves, GNET_PROPERTY(node_leaf_count),
