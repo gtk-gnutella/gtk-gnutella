@@ -102,7 +102,8 @@ bool udp_is_valid_gnet_split(struct gnutella_node *n,
 	const struct gnutella_socket *s,
 	bool truncated, const void *header, const void *payload, size_t len);
 
-void udp_set_rx_semi_reliable(enum udp_sr_tag tag, struct rxdriver *rx);
+void udp_set_rx_semi_reliable(enum udp_sr_tag tag,
+	struct rxdriver *rx, enum net_type net);
 
 void udp_init(void);
 void udp_close(void);

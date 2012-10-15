@@ -6792,7 +6792,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 		rargs.advertised_improved_acks = FALSE;
 		n->rx = rx_make(n, NULL, rx_ut_get_ops(), &rargs);
 		rx_set_datafrom_ind(n->rx, node_udp_sr_data_ind);
-		udp_set_rx_semi_reliable(UDP_SR_GTA, n->rx);
+		udp_set_rx_semi_reliable(UDP_SR_GTA, n->rx, host_addr_net(n->addr));
 		rx_enable(n->rx);
 		n->flags |= NODE_F_READABLE;
 	}
@@ -6824,7 +6824,7 @@ node_pseudo_disable(gnutella_node_t *n)
 	if (n->rx != NULL) {
 		rx_free(n->rx);
 		n->rx = NULL;
-		udp_set_rx_semi_reliable(UDP_SR_GTA, NULL);
+		udp_set_rx_semi_reliable(UDP_SR_GTA, NULL, host_addr_net(n->addr));
 		n->flags &= ~NODE_F_READABLE;
 	}
 	n->socket = NULL;

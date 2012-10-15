@@ -70,23 +70,66 @@
 
 static aging_table_t *udp_aging_pings;
 
-static rxdrv_t *rx_sr_gta;		/**< Semi-reliable RX layer for "GTA" */
-static rxdrv_t *rx_sr_gnd;		/**< Semi-reliable RX layer for "GND" */
+static rxdrv_t *rx_sr_gta[2];		/**< Semi-reliable RX layer for "GTA" */
+static rxdrv_t *rx_sr_gnd[2];		/**< Semi-reliable RX layer for "GND" */
+
+/**
+ * Types of UDP traffic we multiplex on the same socket.
+ */
+enum udp_traffic {
+	GNUTELLA,				/* Gnutella header recognized */
+	DHT,					/* DHT header recognized */
+	SEMI_RELIABLE_GTA,		/* Semi-reliable UDP, "GTA" tag (Gnutella) */
+	SEMI_RELIABLE_GND,		/* Semi-reliable UDP, "GND" tag (G2) */
+	UNKNOWN,				/* Unknown traffic */
+};
 
 /**
  * Records the RX layer to use for semi-reliable UDP traffic.
  */
 void
-udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx)
+udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx, enum net_type net)
 {
+	unsigned i = 0;
+
+	switch (net) {
+	case NET_TYPE_IPV4:		i = 0; break;
+	case NET_TYPE_IPV6:		i = 1; break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
 	switch (tag) {
 	case UDP_SR_GTA:
-		rx_sr_gta = rx;
+		rx_sr_gta[i] = rx;
 		break;
 	case UDP_SR_GND:
-		rx_sr_gnd = rx;
+		rx_sr_gnd[i] = rx;
 		break;
 	}
+}
+
+/**
+ * Select proper RX layer for semi-reliable UDP traffic.
+ */
+static rxdrv_t *
+udp_get_rx_semi_reliable(enum udp_traffic utp, host_addr_t from)
+{
+	unsigned i = 0;
+
+	switch (host_addr_net(from)) {
+	case NET_TYPE_IPV4:		i = 0; break;
+	case NET_TYPE_IPV6:		i = 1; break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		g_assert_not_reached();
+	}
+
+	return
+		SEMI_RELIABLE_GTA == utp ? rx_sr_gta[i] :
+		SEMI_RELIABLE_GND == utp ? rx_sr_gnd[i] :
+		NULL;
 }
 
 /**
@@ -264,14 +307,6 @@ udp_is_valid_gnet(gnutella_node_t *n, const gnutella_socket_t *s,
 		const_ptr_add_offset(start, GTA_HEADER_SIZE), len);
 }
 
-enum udp_traffic {
-	GNUTELLA,				/* Gnutella header recognized */
-	DHT,					/* DHT header recognized */
-	SEMI_RELIABLE_GTA,		/* Semi-reliable UDP, "GTA" tag (Gnutella) */
-	SEMI_RELIABLE_GND,		/* Semi-reliable UDP, "GND" tag (G2) */
-	UNKNOWN,				/* Unknown traffic */
-};
-
 /**
  * Look whether semi-reliable UDP header corresponds to valid traffic.
  *
@@ -332,10 +367,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		gnet_host_t from;
 
 		gnet_host_set(&from, s->addr, s->port);
-
-		rx = SEMI_RELIABLE_GTA == utp ? rx_sr_gta :
-		     SEMI_RELIABLE_GND == utp ? rx_sr_gnd :
-			 NULL;
+		rx = udp_get_rx_semi_reliable(utp, s->addr);
 
 		return NULL == rx ? FALSE : ut_valid_message(rx, &uth, &from);
 	}
@@ -864,9 +896,7 @@ udp_received(struct gnutella_socket *s, bool truncated)
 
 		bws_udp_count_read(s->pos, FALSE);	/* We know it's not DHT traffic */
 
-		rx = SEMI_RELIABLE_GTA == utp ? rx_sr_gta :
-		     SEMI_RELIABLE_GND == utp ? rx_sr_gnd :
-			 NULL;
+		rx = udp_get_rx_semi_reliable(utp, s->addr);
 
 		if (rx != NULL) {
 			gnet_host_t from;
