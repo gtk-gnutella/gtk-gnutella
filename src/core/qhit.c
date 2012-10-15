@@ -408,8 +408,10 @@ qhit_send_node(void *data, size_t len, void *udata)
 static void
 qhit_log_ggep_write_failure(const char *id)
 {
-	if (GNET_PROPERTY(qhit_debug))
-		g_warning("QHIT could not write GGEP \"%s\" extension", id);
+	if (GNET_PROPERTY(qhit_debug)) {
+		g_warning("QHIT could not write GGEP \"%s\" extension: %s",
+			id, ggep_errstr());
+	}
 }
 
 /**
