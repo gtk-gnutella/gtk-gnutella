@@ -483,7 +483,8 @@ ggept_ip_seq_append_net(ggep_stream_t *gs,
 
 done:
 	if (!status) {
-		g_carp("unable to add GGEP \"%s\"", current_extension);
+		g_carp("unable to add GGEP \"%s\": %s",
+			current_extension, ggep_errstr());
 	}
 
 	*count = tls_index;
