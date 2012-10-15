@@ -229,8 +229,8 @@ idtable_free_id(idtable_t *tbl, uint32 id)
 /**
  * @return amount of IDs used in the table.
  */
-uint
-idtable_ids(idtable_t *tbl)
+size_t
+idtable_count(idtable_t *tbl)
 {
 	idtable_check(tbl);
 

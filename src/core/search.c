@@ -4175,7 +4175,7 @@ search_shutdown(void)
 		search_close(sch->search_handle);
 	}
 
-	g_assert(idtable_ids(search_handle_map) == 0);
+	g_assert(0 == idtable_count(search_handle_map));
 
 	htable_free_null(&search_by_muid);
 	htable_free_null(&sha1_to_search);
