@@ -4120,7 +4120,7 @@ utf32_decompose_single_char(uint32 uc, size_t *len, bool nfkd)
 		*p++ = uc;
 	}
 
-	g_assert(p > buf && p < &buf[G_N_ELEMENTS(buf)]);
+	g_assert(p > buf && p <= &buf[G_N_ELEMENTS(buf)]);
 	*len = p - buf;
 	return buf;
 }
