@@ -61,7 +61,7 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 #define RX_UT_EXPIRE_MS	(60*1000)	/* Expiration time for RX messages, in ms */
-#define RX_UT_DELAY_MS	150			/* ACK delay: 150 ms */
+#define RX_UT_DELAY_MS	250			/* ACK delay: 250 ms */
 
 #define RX_UT_DBG_MSG		(1U << 0)	/* Messages */
 #define RX_UT_DBG_FRAG		(1U << 1)	/* Fragments */
