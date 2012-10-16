@@ -544,16 +544,16 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 	g_assert(head->part < um->fragcnt);
 
 	if (rx_ut_debugging(RX_UT_DBG_FRAG, um->id.from)) {
-		g_debug("RX UT[%s]: %s: got %s%s%sfragment #%u/%u from %s "
-			"(seq=0x%04x, %d-byte payload)",
+		g_debug("RX UT[%s]: %s: handling %s%s%sfragment #%u/%u from %s "
+			"(seq=0x%04x, %u pending ACK%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			um->lingering ? "lingering " :
 			bit_array_get(um->fbits, head->part) ? "duplicate " : "",
 			um->reliable ? "reliable " : "",
 			um->deflated ? "deflated " : "",
 			head->part + 1, um->fragcnt,
-			gnet_host_to_string(um->id.from),
-			head->seqno, pmsg_size(mb));
+			gnet_host_to_string(um->id.from), head->seqno,
+			um->acks_pending, 1 == um->acks_pending ? "" : "s");
 	}
 
 	if (um->lingering) {
@@ -610,6 +610,7 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 	unsigned i, mask, base, max;
 
 	g_assert(um->acks_pending != 0);
+	g_assert(um->fragcnt > 1U);		/* Delayed only if multiple fragments */
 
 	/*
 	 * Start from the highest numbered un-acknoweledged fragment remaining.
@@ -631,13 +632,13 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 	ack->seqno = um->id.seqno;
 
 	if ((size_t) -1 == first_missing) {
-		/* Everything was already received */
+		/* Everything was already received (for multi-fragment message) */
 		g_assert(um->fragcnt == um->fragrecv);
 		ack->cumulative = TRUE;
 		ack->fragno = um->fragcnt - 1;
 	} else if (first_missing > last_unacked) {
-		ack->cumulative = TRUE;
-		ack->fragno = first_missing;
+		ack->cumulative = booleanize(first_missing > 1U);
+		ack->fragno = first_missing - 1;
 	} else {
 		ack->fragno = last_unacked;
 	}
@@ -1063,6 +1064,23 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 
 		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_DROPPED, 1);
 		goto done;
+	}
+
+	/*
+	 * Log fragment reception.
+	 */
+
+	if (rx_ut_debugging(RX_UT_DBG_FRAG, um->id.from)) {
+		g_debug("RX UT[%s]: %s: got %s%s%sfragment #%u/%u from %s "
+			"(seq=0x%04x, %d-byte payload)",
+			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			um->lingering ? "lingering " :
+			bit_array_get(um->fbits, head.part) ? "duplicate " : "",
+			um->reliable ? "reliable " : "",
+			um->deflated ? "deflated " : "",
+			head.part + 1, um->fragcnt,
+			gnet_host_to_string(um->id.from),
+			head.seqno, pmsg_size(mb));
 	}
 
 	/*
