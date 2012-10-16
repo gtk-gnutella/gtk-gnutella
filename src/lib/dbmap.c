@@ -732,7 +732,7 @@ dbmap_remove(dbmap_t *dm, const void *key)
 					return FALSE;
 				}
 			} else {
-				if (0 == dm->count) {
+				if G_UNLIKELY(0 == dm->count) {
 					if (dm->validated) {
 						g_carp("DBMAP on sdbm \"%s\": BUG: "
 							"sdbm_delete() worked but we had no key tracked",
@@ -748,6 +748,12 @@ dbmap_remove(dbmap_t *dm, const void *key)
 						sdbm_name(dm->u.s.sdbm), dm->count);
 				} else {
 					dm->count--;
+					if G_UNLIKELY(size_is_negative(dm->count)) {
+						dm->count = dbmap_sdbm_count_keys(dm, FALSE);
+						g_warning("DBMAP on sdbm \"%s\": "
+							"negative key count reset to %zu after counting",
+							sdbm_name(dm->u.s.sdbm), dm->count);
+					}
 				}
 			}
 		}
