@@ -853,6 +853,23 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 		if (NULL == um->acks_ev)
 			um->acks_ev = cq_main_insert(RX_UT_DELAY_MS, ut_delayed_ack, um);
 
+		/*
+		 * If fragment was already pending ACK, then it's going to be
+		 * acknowledged when we flush the pending ACKs, hence we can ignore it.
+		 */
+
+		if (bit_array_get(um->facks, head->part)) {
+			if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
+				g_debug("RX UT[%s]: %s: already delayed ACK to %s "
+					"(seq=0x%04x, fragment #%u/%u, pending=%u)",
+					udp_tag_to_string(um->attr->tag), G_STRFUNC,
+					gnet_host_to_string(um->id.from),
+					ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
+			}
+			gnet_stats_count_general(GNR_UDP_SR_RX_AVOIDED_ACKS, 1);
+			return;
+		}
+
 		bit_array_set(um->facks, head->part);	/* Fragment is pending ACK */
 		um->acks_pending++;
 
