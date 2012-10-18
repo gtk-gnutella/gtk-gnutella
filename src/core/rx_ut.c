@@ -656,6 +656,10 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 	 * the one being acknowledged, then there is no need for an extended
 	 * acknowledgment: the cumulative acknowledgment implicitly denies
 	 * reception of other fragments.
+	 *
+	 * If there has been only one fragment received overall, then an extended
+	 * acknowledgment does not add any value: the (only) fragment received so
+	 * far can be simply acknoweldged.
 	 */
 
 	if (um->fragcnt <= 2)
@@ -669,7 +673,10 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 				ack->fragno + 1, um->fragcnt - 1)
 		)
 	)
-		return TRUE;
+		return TRUE;	/* Implicitly denies reception of upper fragments */
+
+	if (1 == um->fragrecv)
+		return TRUE;	/* One fragment received so far */
 
 	/*
 	 * Extended acknowledgment is worth sending.
