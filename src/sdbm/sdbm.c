@@ -547,6 +547,11 @@ sdbm_fetch(DBM *db, datum key)
 	return nullitem;
 }
 
+/**
+ * Does key exist in the database?
+ *
+ * @return -1 on error, 0 (FALSE) if the key is missing, 1 (TRUE) if it exists.
+ */
 int
 sdbm_exists(DBM *db, datum key)
 {
@@ -562,6 +567,11 @@ sdbm_exists(DBM *db, datum key)
 	return -1;
 }
 
+/**
+ * Delete key from the database.
+ *
+ * @return -1 on error with errno set, 0 if OK.
+ */
 int
 sdbm_delete(DBM *db, datum key)
 {
@@ -597,6 +607,18 @@ sdbm_delete(DBM *db, datum key)
 	return 0;
 }
 
+/**
+ * Store the (``key'', ``val'') pair in the database.
+ *
+ * The ``flags'' can be either DBM_INSERT (existing key left untouched) or
+ * DBM_REPLACE (replace entry if key exists).
+ *
+ * @return -1 on error, 0 if OK, 1 if the key existed and DBM_INSERT was given.
+ *
+ * When DBM_REPLACE is specified and the ``existed'' variable is not NULL,
+ * it is written with a boolean telling whether the key existed already in
+ * the database or whether a new key was created, provided 0 is returned.
+ */
 static int
 storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 {
@@ -715,6 +737,14 @@ inserted:
 	return result;		/* 0 means success */
 }
 
+/**
+ * Store the (``key'', ``val'') pair in the database.
+ *
+ * The ``flags'' can be either DBM_INSERT (existing key left untouched) or
+ * DBM_REPLACE (replace entry if key exists).
+ *
+ * @return -1 on error, 0 if OK, 1 if the key existed and DBM_INSERT was given.
+ */
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
@@ -722,6 +752,15 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 	return storepair(db, key, val, flags, NULL);
 }
 
+/**
+ * Store the (``key'', ``val'') pair in the database, replacing existing entry.
+ *
+ * @return -1 on error, 0 if OK.
+ *
+ * When 0 is returned and the ``existed'' variable is not NULL, it is written
+ * with a boolean telling whether the key existed already in the database or
+ * whether a new key was created.
+ */
 int
 sdbm_replace(DBM *db, datum key, datum val, bool *existed)
 {
