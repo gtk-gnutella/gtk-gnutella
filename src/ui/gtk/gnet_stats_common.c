@@ -184,6 +184,7 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP total messages given for transmission"),
 		N_("Semi-reliable UDP total messages deflated"),
 		N_("Semi-reliable UDP total messages unsent"),
+		N_("Semi-reliable UDP total messages partially sent due to clogging"),
 		N_("Semi-reliable UDP reliable messages given for transmission"),
 		N_("Semi-reliable UDP reliable messages correctly transmited"),
 		N_("Semi-reliable UDP reliable messages not fully acknowledged"),

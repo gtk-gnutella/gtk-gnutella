@@ -306,6 +306,8 @@ struct ut_msg {
 	struct attr *attr;				/* TX layer private attributes */
 	elist_t resend;					/* Fragments to resend */
 	uint16 seqno;					/* Sequence ID number */
+	uint16 fragtx;					/* Fragments transmitted, total */
+	uint16 fragtx2;					/* Fragments that were re-transmitted */
 	uint8 fragcnt;					/* Amount of fragments */
 	uint8 fragsent;					/* Fragments sent (and ACK-ed if needed) */
 	uint8 pending;					/* Fragments pending ACK on resend */
@@ -801,7 +803,7 @@ do_not_send:
 static void
 ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 {
-	const struct ut_msg *um;
+	struct ut_msg *um;
 	struct ut_pmsg_info *pmi = arg;
 	struct ut_frag *uf;
 
@@ -845,9 +847,12 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		uf->txcnt++;
+		um->fragtx++;
 		gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_SENT, 1);
-		if (uf->txcnt > 1)
+		if (uf->txcnt > 1) {
+			um->fragtx2++;
 			gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_RESENT, 1);
+		}
 
 		if (um->reliable) {
 			if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
@@ -1333,12 +1338,23 @@ ut_um_expired(cqueue_t *unused_cq, void *obj)
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: message for %s expired "
-			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent)",
+			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s %s, "
+			"%u transmitted with %u re-transmissions)",
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-			um->fragcnt, 1 == um->fragsent ? "" : "s");
+			um->fragcnt, 1 == um->fragsent ? "" : "s",
+			um->reliable ? "ack-ed" : "sent",
+			um->fragtx, um->fragtx2);
 	}
+
+	/*
+	 * If we were unable to transmit all the fragments of the message at
+	 * least once, count it as a clogged UDP output queue.
+	 */
+
+	if (um->fragtx - um->fragtx2 < um->fragcnt)
+		gnet_stats_count_general(GNR_UDP_SR_TX_MESSAGES_CLOGGING, 1);
 
 	/*
 	 * Because all the fragments we enqueue have a pre-TX hook, we can simply
