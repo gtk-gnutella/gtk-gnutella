@@ -97,7 +97,9 @@ udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx, enum net_type net)
 	case NET_TYPE_IPV6:		i = 1; break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
-		g_assert_not_reached();
+		g_carp("mis-configured network type %s for socket",
+			net_type_to_string(net));
+		return;		/* Ignore, indicates mis-configuration of bind address */
 	}
 
 	switch (tag) {
