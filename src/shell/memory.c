@@ -476,19 +476,19 @@ shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
 {
 	size_t errors;
 	logagent_t *la = log_agent_string_make(0, "XM ");
-	unsigned vflags = 0;
+	unsigned vflags = XMALLOC_FLCF_LOCK;
 
 	vflags |= verbose ? XMALLOC_FLCF_STATUS : 0;
 	vflags |= summary ? 0 : XMALLOC_FLCF_VERBOSE;
 
-	if (vflags != 0)
+	if (vflags != XMALLOC_FLCF_LOCK)
 		shell_write(sh, "100~\n");
 
 	errors = xmalloc_freelist_check(la, vflags);
 	shell_write(sh, log_agent_string_get(la));
 	log_agent_free_null(&la);
 
-	if (vflags != 0)
+	if (vflags != XMALLOC_FLCF_LOCK)
 		shell_write(sh, ".\n");
 
 	shell_write_linef(sh, REPLY_READY, "Found %zu freelist%s in error",

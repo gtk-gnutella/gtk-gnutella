@@ -40,6 +40,9 @@
 
 #define XMALLOC_FLCF_STATUS		(1U << 0)	/**< Log freelist status (OK/BAD) */
 #define XMALLOC_FLCF_VERBOSE	(1U << 1)	/**< Log inconsitencies */
+#define XMALLOC_FLCF_LOCK		(1U << 2)	/**< Lock buckets before checking */
+#define XMALLOC_FLCF_UNLOCKED	(1U << 3)	/**< Check unlocked buckets */
+#define XMALLOC_FLCF_LOGLOCK	(1U << 4)	/**< Log skipped locked buckets */
 
 /**
  * Public interface.

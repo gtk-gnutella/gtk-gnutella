@@ -7438,9 +7438,35 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 		const void *prev = NULL;
 		bool bad = FALSE;
 		bool unsorted = FALSE;
+		bool locked = FALSE;
 
 		if (NULL == fl->pointers)
 			continue;
+
+		/*
+		 * Only lock buckets when it was explicitly requested.
+		 *
+		 * If XMALLOC_FLCF_UNLOCKED is specified, we still allow checking of
+		 * unlocked buckets, albeit we warn if checking happens without the
+		 * lock because we may encounter an inconsistency which does not exist.
+		 */
+
+		if (flags & XMALLOC_FLCF_LOCK) {
+			if (mutex_trylock_hidden(&fl->lock)) {
+				locked = TRUE;
+			} else {
+				if (0 == (flags & XMALLOC_FLCF_UNLOCKED)) {
+					if (flags & (XMALLOC_FLCF_VERBOSE | XMALLOC_FLCF_LOGLOCK)) {
+						log_warning(la,
+							"XM freelist #%zu skipped (already locked)", i);
+					}
+					continue;
+				} else {
+					log_warning(la,
+						"XM freelist #%zu will be checked without lock", i);
+				}
+			}
+		}
 
 		if (fl->capacity < fl->count) {
 			if (flags & XMALLOC_FLCF_VERBOSE) {
@@ -7537,6 +7563,9 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 		if (bad)
 			errors++;
+
+		if (locked)
+			mutex_unlock_hidden(&fl->lock);
 	}
 
 	return errors;
@@ -7563,7 +7592,8 @@ xmalloc_crash_hook(void)
 	xmalloc_dump_stats();
 
 	s_debug("XM verifying freelist...");
-	xmalloc_freelist_check(log_agent_stderr_get(), XMALLOC_FLCF_VERBOSE);
+	xmalloc_freelist_check(log_agent_stderr_get(),
+		XMALLOC_FLCF_VERBOSE | XMALLOC_FLCF_LOCK | XMALLOC_FLCF_UNLOCKED);
 }
 
 /*
