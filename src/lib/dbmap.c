@@ -1061,6 +1061,21 @@ dbmap_foreach_remove_trampoline(void *key, void *value, void *arg)
 }
 
 /**
+ * Reset count of items.
+ *
+ * @attention
+ * The argument is "const" but nonetheless the structure is updated.  This is
+ * OK because we're only updating a cached value, not changing the abstract
+ * data type (the underlying map/database).
+ */
+static inline void
+dbmap_set_count(const dbmap_t *dm, size_t count)
+{
+	dbmap_t *dmw = deconstify_pointer(dm);
+	dmw->count = count;
+}
+
+/**
  * Iterate over the map, invoking the callback on each item along with the
  * supplied argument.
  */
@@ -1110,10 +1125,8 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 					(*cb)(key.dptr, &d, arg);
 				}
 			}
-			if (!dbmap_sdbm_error_check(dm)) {
-				dbmap_t *dmw = deconstify_pointer(dm);
-				dmw->count = count;
-			}
+			if (!dbmap_sdbm_error_check(dm))
+				dbmap_set_count(dm, count);
 			if (invalid) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
 					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
@@ -1139,15 +1152,13 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 	case DBMAP_MAP:
 		{
 			struct foreach_ctx ctx;
-			dbmap_t *dmw;
 
 			ctx.u.cbr = cbr;
 			ctx.arg = arg;
 			map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
 			
-			dmw = deconstify_pointer(dm);
-			dmw->count = map_count(dm->u.m.map);
+			dbmap_set_count(dm, map_count(dm->u.m.map));
 		}
 		break;
 	case DBMAP_SDBM:
@@ -1185,10 +1196,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 				}
 			}
 			dbmap_sdbm_error_check(dm);
-			{
-				dbmap_t *dmw = deconstify_pointer(dm);
-				dmw->count = count;
-			}
+			dbmap_set_count(dm, count);
 			if (invalid) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
 					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
