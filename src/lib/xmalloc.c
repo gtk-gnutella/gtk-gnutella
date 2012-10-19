@@ -7427,7 +7427,7 @@ valloc(size_t size)
  * @return number of freelists with problems (0 meaning everything is OK).
  */
 size_t
-xmalloc_freelist_check(logagent_t *la, bool verbose)
+xmalloc_freelist_check(logagent_t *la, unsigned flags)
 {
 	size_t errors = 0;
 	unsigned i;
@@ -7443,7 +7443,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			continue;
 
 		if (fl->capacity < fl->count) {
-			if (verbose) {
+			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
 					"XM freelist #%zu has corrupted count %zu (capacity %zu)",
 					i, fl->count, fl->capacity);
@@ -7452,7 +7452,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 		}
 
 		if (!mem_is_valid_range(fl->pointers, fl->capacity * sizeof(void *))) {
-			if (verbose) {
+			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
 					"XM freelist #%zu has corrupted pointer %p or capacity %zu",
 					i, fl->pointers, fl->capacity);
@@ -7467,7 +7467,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			if (j > 0 && j < fl->sorted && xm_ptr_cmp(p, prev) <= 0) {
 				if (!unsorted) {
 					unsorted = TRUE;	/* Emit this info once per list */
-					if (verbose) {
+					if (flags & XMALLOC_FLCF_VERBOSE) {
 						if (fl->count == fl->sorted) {
 							log_info(la,
 								"XM freelist #%zu has %zu item%s fully sorted",
@@ -7480,7 +7480,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 						}
 					}
 				}
-				if (verbose) {
+				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%zu p=%p in freelist #%zu <= prev %p",
 						j, p, i, prev);
@@ -7491,7 +7491,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			prev = p;
 
 			if (!xmalloc_is_valid_pointer(p)) {
-				if (verbose) {
+				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%zu p=%p in freelist #%zu is invalid",
 						j, p, i);
@@ -7501,7 +7501,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			}
 
 			if (!mem_is_valid_ptr(p)) {
-				if (verbose) {
+				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%zu p=%p in freelist #%zu is unreadable",
 						j, p, i);
@@ -7512,7 +7512,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 
 			len = *(size_t *) p;
 			if (len != fl->blocksize) {
-				if (verbose) {
+				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%zu p=%p in freelist #%zu (%zu bytes) "
 						"has improper length %zu", j, p, i, fl->blocksize, len);
@@ -7522,7 +7522,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 		}
 
 		if (i > xfreelist_maxidx && fl->count != 0) {
-			if (verbose) {
+			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
 					"XM freelist #%zu has %zu items and is above maxidx=%zu",
 					i, fl->count, xfreelist_maxidx);
@@ -7530,7 +7530,7 @@ xmalloc_freelist_check(logagent_t *la, bool verbose)
 			bad = TRUE;
 		}
 
-		if (verbose) {
+		if (flags & XMALLOC_FLCF_STATUS) {
 			log_debug(la,
 				"XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
 		}
@@ -7563,7 +7563,7 @@ xmalloc_crash_hook(void)
 	xmalloc_dump_stats();
 
 	s_debug("XM verifying freelist...");
-	xmalloc_freelist_check(log_agent_stderr_get(), TRUE);
+	xmalloc_freelist_check(log_agent_stderr_get(), XMALLOC_FLCF_VERBOSE);
 }
 
 /*

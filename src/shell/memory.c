@@ -471,19 +471,24 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
-shell_exec_memory_check_xmalloc(struct gnutella_shell *sh, bool verbose)
+shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
+	bool verbose, bool summary)
 {
 	size_t errors;
 	logagent_t *la = log_agent_string_make(0, "XM ");
+	unsigned vflags = 0;
 
-	if (verbose)
+	vflags |= verbose ? XMALLOC_FLCF_STATUS : 0;
+	vflags |= summary ? 0 : XMALLOC_FLCF_VERBOSE;
+
+	if (vflags != 0)
 		shell_write(sh, "100~\n");
 
-	errors = xmalloc_freelist_check(la, verbose);
+	errors = xmalloc_freelist_check(la, vflags);
 	shell_write(sh, log_agent_string_get(la));
 	log_agent_free_null(&la);
 
-	if (verbose)
+	if (vflags != 0)
 		shell_write(sh, ".\n");
 
 	shell_write_linef(sh, REPLY_READY, "Found %zu freelist%s in error",
@@ -496,9 +501,10 @@ static enum shell_reply
 shell_exec_memory_check(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	const char *verbose;
+	const char *verbose, *summary;
 	const option_t options[] = {
 		{ "v", &verbose },		/* verbosely report */
+		{ "s", &summary },		/* silent report, only show summary status */
 	};
 	int parsed;
 
@@ -516,7 +522,8 @@ shell_exec_memory_check(struct gnutella_shell *sh,
 
 #define CMD(name) G_STMT_START { \
 	if (0 == ascii_strcasecmp(argv[0], #name)) \
-		return shell_exec_memory_check_## name(sh, verbose != NULL); \
+		return shell_exec_memory_check_## name(sh, \
+			verbose != NULL, summary != NULL); \
 } G_STMT_END
 
 	CMD(xmalloc);
@@ -660,8 +667,9 @@ shell_help_memory(int argc, const char *argv[])
 		} else
 #endif
 		if (0 == ascii_strcasecmp(argv[1], "check")) {
-			return "memory check [-v] xmalloc\n"
+			return "memory check [-sv] xmalloc\n"
 				"run consistency checks on freelists\n"
+				"-s : silent mode, only display summary at the end\n"
 				"-v : verbosely report for each freelist\n";
 		}
 		else if (0 == ascii_strcasecmp(argv[1], "show")) {
