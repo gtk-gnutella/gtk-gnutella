@@ -249,10 +249,13 @@ mutex_grab(mutex_t *m, bool hidden)
 /**
  * Grab mutex only if available, and account for it.
  *
+ * @param m			the mutex we're attempting to grab
+ * @param hidden	when TRUE, do not account for the mutex
+ *
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_try(mutex_t *m)
+mutex_grab_try(mutex_t *m, bool hidden)
 {
 	mutex_check(m);
 	thread_t t = thread_current();
@@ -266,7 +269,9 @@ mutex_grab_try(mutex_t *m)
 		return FALSE;
 	}
 
-	mutex_get_account(m);
+	if G_LIKELY(!hidden)
+		mutex_get_account(m);
+
 	return TRUE;
 }
 
@@ -291,9 +296,9 @@ mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line)
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_try_from(mutex_t *m, const char *file, unsigned line)
+mutex_grab_try_from(mutex_t *m, bool hidden, const char *file, unsigned line)
 {
-	if (mutex_grab_try(m)) {
+	if (mutex_grab_try(m, hidden)) {
 		if (1 == m->depth) {
 			m->lock.file = file;
 			m->lock.line = line;

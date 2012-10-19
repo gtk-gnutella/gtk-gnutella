@@ -66,7 +66,7 @@ typedef struct mutex {
  */
 
 void mutex_grab(mutex_t *m, bool hidden);
-bool mutex_grab_try(mutex_t *m);
+bool mutex_grab_try(mutex_t *m, bool hidden);
 void mutex_ungrab(mutex_t *m, bool hidden);
 
 /*
@@ -75,11 +75,14 @@ void mutex_ungrab(mutex_t *m, bool hidden);
 
 #ifdef SPINLOCK_DEBUG
 void mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line);
-bool mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
+bool mutex_grab_try_from(mutex_t *m, bool hidden, const char *f, unsigned l);
 
 #define mutex_lock(x)			mutex_grab_from((x), FALSE, _WHERE_, __LINE__)
 #define mutex_lock_hidden(x)	mutex_grab_from((x), TRUE, _WHERE_, __LINE__)
-#define mutex_trylock(x)		mutex_grab_try_from((x), _WHERE_, __LINE__)
+#define mutex_trylock(x)		mutex_grab_try_from((x), FALSE, \
+									_WHERE_, __LINE__)
+#define mutex_trylock_hidden(x)	mutex_grab_try_from((x), TRUE, \
+									_WHERE_, __LINE__)
 
 #define mutex_lock_const(x)	\
 	mutex_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
@@ -87,7 +90,8 @@ bool mutex_grab_try_from(mutex_t *m, const char *file, unsigned line);
 #else
 #define mutex_lock(x)			mutex_grab((x), FALSE)
 #define mutex_lock_hidden(x)	mutex_grab((x), TRUE)
-#define mutex_trylock(x)		mutex_grab_try((x))
+#define mutex_trylock(x)		mutex_grab_try((x), FALSE)
+#define mutex_trylock_hidden(x)	mutex_grab_try((x), TRUE)
 #define mutex_lock_const(x)		mutex_grab(deconstify_pointer(x), FALSE)
 #endif	/* SPINLOCK_DEBUG */
 
