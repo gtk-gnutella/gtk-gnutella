@@ -68,35 +68,6 @@ typedef struct rbnode {
 	struct rbnode *left, *right, *parent;
 } G_GNUC_ALIGNED(4) rbnode_t;
 
-/**
- * Comparison routine for items in the red-black tree.
- *
- * Assuming items in the tree are defined as:
- *
- *     struct item {
- *         int key;
- *         <other fields>
- *         rbnode_t node;
- *     };
- *
- * Then a comparison function can be written as:
- *
- *     int item_cmp(const void *a, const void *b)
- *     {
- *         const struct item *p = a;
- *         const struct item *q = b;
- *
- *         return p->key - q->key;
- *     }
- *
- * Note that the comparison routine takes pointers to the structures containing
- * the nodes, not the nodes themselves.
- */
-typedef int (*erbtree_cmp_t)(const void *, const void *);
-
-typedef void (*erbtree_cb_t)(void *key, void *data);
-typedef bool (*erbtree_cbr_t)(void *key, void *data);
-
 enum erbtree_magic { ERBTREE_MAGIC = 0x6483afd6 };
 
 /**
@@ -105,7 +76,7 @@ enum erbtree_magic { ERBTREE_MAGIC = 0x6483afd6 };
 typedef struct erbtree {
 	enum erbtree_magic magic;
 	rbnode_t *root, *first, *last;
-	erbtree_cmp_t cmp;	/* Item comparison routine */
+	cmp_fn_t cmp;		/* Item comparison routine */
 	size_t offset;		/* Offset of embedded node in the item structure */
 	size_t count;		/* Amount of items held in tree */
 } erbtree_t;
@@ -114,7 +85,7 @@ typedef struct erbtree {
  * Public interface.
  */
 
-void erbtree_init(erbtree_t *tree, erbtree_cmp_t cmp, size_t offset);
+void erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset);
 
 size_t erbtree_count(const erbtree_t *tree);
 rbnode_t *erbtree_first(const erbtree_t *tree);
@@ -127,8 +98,8 @@ rbnode_t *erbtree_getnode(const erbtree_t *tree, const void *key);
 void *erbtree_insert(erbtree_t *tree, rbnode_t *node);
 void erbtree_remove(erbtree_t *tree, rbnode_t *node);
 void erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new);
-void erbtree_foreach(erbtree_t *tree, erbtree_cb_t cb, void *data);
-size_t erbtree_foreach_remove(erbtree_t *tree, erbtree_cbr_t cbr, void *data);
+void erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data);
+size_t erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data);
 
 #endif /* _erbtree_h_ */
 

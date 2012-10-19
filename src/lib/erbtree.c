@@ -870,7 +870,7 @@ erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new)
  * Traverse all the items in the tree, invoking the callback on each item.
  */
 void
-erbtree_foreach(erbtree_t *tree, erbtree_cb_t cb, void *data)
+erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data)
 {
 	rbnode_t *rn;
 
@@ -889,7 +889,7 @@ erbtree_foreach(erbtree_t *tree, erbtree_cb_t cb, void *data)
  * @return the amount of removed items.
  */
 size_t
-erbtree_foreach_remove(erbtree_t *tree, erbtree_cbr_t cbr, void *data)
+erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 {
 	rbnode_t *rn, *next;
 	size_t removed = 0;
@@ -945,7 +945,7 @@ erbtree_foreach_remove(erbtree_t *tree, erbtree_cbr_t cbr, void *data)
  * @param offset	the offset of the embedded node field within items
  */
 void
-erbtree_init(erbtree_t *tree, erbtree_cmp_t cmp, size_t offset)
+erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset)
 {
 	g_assert(tree != NULL);
 	g_assert(cmp != NULL);
