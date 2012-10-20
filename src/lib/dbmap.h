@@ -76,7 +76,7 @@ typedef bool (*dbmap_cbr_t)(void *key, dbmap_datum_t *value, void *u);
  */
 
 dbmap_t *dbmap_create_hash(size_t ks, dbmap_keylen_t kl,
-	GHashFunc hashf, GEqualFunc key_eqf);
+	hash_fn_t hashf, eq_fn_t key_eqf);
 dbmap_t * dbmap_create_sdbm(size_t ks, dbmap_keylen_t kl, const char *name,
 	const char *path, int flags, int mode);
 dbmap_t *dbmap_create_from_map(size_t ks, dbmap_keylen_t kl, map_t *map);

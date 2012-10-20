@@ -94,7 +94,7 @@ typedef bool (*dbmw_cbr_t)(void *key, void *value, size_t len, void *u);
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func);
 void dbmw_destroy(dbmw_t *dw, bool close_sdbm);
 ssize_t dbmw_sync(dbmw_t *dw, int which);
 void dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length);

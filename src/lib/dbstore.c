@@ -83,7 +83,7 @@ dbstore_set_debug(unsigned level)
 static dbmw_t *
 dbstore_create_internal(const char *name, const char *dir, const char *base,
 	int flags, dbstore_kv_t kv, dbstore_packing_t packing,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func,
 	bool incore)
 {
 	dbmap_t *dm;
@@ -154,7 +154,7 @@ dbstore_create_internal(const char *name, const char *dir, const char *base,
 dbmw_t *
 dbstore_create(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func,
 	bool incore)
 {
 	dbmw_t *dw;
@@ -189,7 +189,7 @@ dbstore_create(const char *name, const char *dir, const char *base,
 dbmw_t *
 dbstore_open(const char *name, const char *dir, const char *base,
 	dbstore_kv_t kv, dbstore_packing_t packing,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func,
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func,
 	bool incore)
 {
 	dbmw_t *dw;

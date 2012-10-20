@@ -109,7 +109,7 @@ map_create_hash(hash_fn_t hash_func, eq_fn_t key_eq_func)
  * @return the new map
  */
 map_t *
-map_create_ordered_hash(GHashFunc hash_func, GEqualFunc key_eq_func)
+map_create_ordered_hash(hash_fn_t hash_func, eq_fn_t key_eq_func)
 {
 	map_t *m;
 

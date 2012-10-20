@@ -459,7 +459,7 @@ dbmap_count(const dbmap_t *dm)
  */
 dbmap_t *
 dbmap_create_hash(size_t key_size, dbmap_keylen_t key_len,
-	GHashFunc hash_func, GEqualFunc key_eq_func)
+	hash_fn_t hash_func, eq_fn_t key_eq_func)
 {
 	dbmap_t *dm;
 

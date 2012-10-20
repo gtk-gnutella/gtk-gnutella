@@ -196,7 +196,7 @@ dbmw_t *
 dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func)
 {
 	dbmw_t *dw;
 
