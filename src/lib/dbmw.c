@@ -561,6 +561,7 @@ struct cache_foreach_ctx {
 		dbmap_cbr_t cbr;
 	} u;
 	unsigned removing:1;	/* Union discriminant */
+	size_t removed;			/* Counts cached entries that are removed */
 };
 
 /**
@@ -587,7 +588,8 @@ cache_finish_traversal(void *key, void *value, void *data)
 	 */
 
 	if (fctx->removing) {
-		(void) (*fctx->u.cbr)(key, &d, fctx->foreach);
+		if ((*fctx->u.cbr)(key, &d, fctx->foreach))
+			fctx->removed++;	/* Item removed in cache_free_removable() */
 	} else {
 		(*fctx->u.cb)(key, &d, fctx->foreach);
 	}
@@ -1297,7 +1299,7 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	 * already because they do not exist in the underlying map.
 	 */
 
-	fctx.removing = FALSE;
+	ZERO(&fctx);
 	fctx.foreach = &ctx;
 	fctx.u.cb = dbmw_foreach_trampoline;
 
@@ -1307,12 +1309,15 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 /**
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument and removing the item when the callback returns TRUE.
+ *
+ * @return the amount of removed entries.
  */
-void
+size_t
 dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 {
 	struct foreach_ctx ctx;
 	struct cache_foreach_ctx fctx;
+	size_t pruned;
 
 	dbmw_check(dw);
 
@@ -1339,8 +1344,9 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	ctx.dw = dw;
 
 	map_foreach(dw->values, cache_reset_before_traversal, NULL);
-	dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
+	pruned = dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
 
+	fctx.removed = 0;
 	fctx.removing = TRUE;
 	fctx.foreach = &ctx;
 	fctx.u.cbr = dbmw_foreach_remove_trampoline;
@@ -1356,6 +1362,8 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
 	map_foreach_remove(dw->values, cache_free_removable, dw);
+
+	return pruned + fctx.removed;
 }
 
 /**
