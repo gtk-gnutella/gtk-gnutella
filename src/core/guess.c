@@ -1269,7 +1269,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, +1);
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_info("GUESS adding %s to link cache (p=%d%%, n=%zu)",
+			g_info("GUESS adding %s to link cache (p=%d%%, n=%u)",
 				gnet_host_to_string(h), p,
 				hash_list_length(link_cache));
 		}
@@ -2427,7 +2427,7 @@ guess_final_stats(const guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] \"%s\" took %g secs, "
-			"queried_set=%zu, pool_set=%zu, "
+			"queried_set=%zu, pool_set=%u, "
 			"queried=%zu, acks=%zu, max_ultras=%zu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
 			nid_to_string(&gq->gid),
@@ -4088,7 +4088,8 @@ guess_fill_caught_array(host_net_t net,
 				added++;
 
 			if (GNET_PROPERTY(guess_server_debug) > 9) {
-				g_debug("GUESS added 0.2 server %s (%zu cached) at slot #%d/%d",
+				g_debug("GUESS added 0.2 server %s (%zu cached) "
+					"at slot #%d/%zu",
 					gnet_host_to_string(h), guess_cache_count(), i, count);
 			}
 		}

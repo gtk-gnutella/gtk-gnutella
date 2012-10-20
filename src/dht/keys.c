@@ -742,7 +742,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		g_assert(kd->values < MAX_VALUES);
 
 		if (GNET_PROPERTY(dht_storage_debug) > 5)
-			g_debug("DHT STORE existing key %s (%zu common bit%s) "
+			g_debug("DHT STORE existing key %s (%u common bit%s) "
 				"has new creator %s",
 				kuid_to_hex_string(id), ki->common_bits,
 				1 == ki->common_bits ? "" : "s",

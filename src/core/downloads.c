@@ -8802,7 +8802,7 @@ download_overlap_check(struct download *d)
 			goto out;
 		} else if ((size_t) r != d->chunk.overlap) {
 			g_warning(
-				"short read (got %zu instead of %zu bytes at offset %zu) "
+				"short read (got %zu instead of %u bytes at offset %zu) "
 				"on resuming data for \"%s\"",
 				r, d->chunk.overlap, (size_t) d->chunk.start - d->chunk.overlap,
 				fi->pathname);

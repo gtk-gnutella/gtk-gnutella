@@ -689,7 +689,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 
 				if (GNET_PROPERTY(udp_debug)) {
 					g_debug("UDP ambiguous datagram from %s: "
-						"%zu bytes (%zu-byte payload), "
+						"%zu bytes (%u-byte payload), "
 						"function=%u, hops=%u, TTL=%u, size=%u",
 						host_addr_port_to_string(s->addr, s->port),
 						s->pos, size, function, hops, ttl,

@@ -432,7 +432,8 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	}
 
 	if (r != len) {
-		g_warning("%s: partial UDP write (%d bytes) to %s for %d-byte datagram",
+		g_warning("%s: partial UDP write (%zd bytes) to %s "
+			"for %d-byte datagram",
 			G_STRFUNC, r, gnet_host_to_string(to), len);
 	} else {
 		udp_sched_log(5, "%p: sent mb=%p (%d bytes) prio=%u",

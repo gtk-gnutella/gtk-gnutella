@@ -2790,7 +2790,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 			len, xs->smaller, xs->larger);
 
 		if (0 != xs->smaller && xmalloc_debugging(3)) {
-			t_debug("XM breaking up %s block %p (%zu bytes) into (%zu, %zu)",
+			t_debug("XM breaking up %s block %p (%zu bytes) into (%u, %u)",
 				xmalloc_isheap(p, len) ? "heap" : "VMM", p, len,
 				xs->larger, xs->smaller);
 		}
@@ -3631,7 +3631,7 @@ xmalloc_thread_get_chunk(const void *p, unsigned stid, bool freeing)
 
 	offset = ptr_diff(ptr_add_offset(xck, xmalloc_pagesize), p);
 	if (0 != offset % xck->xc_size) {
-		t_error("thread #%u %s mis-aligned %zu-byte %sblock %p",
+		t_error("thread #%u %s mis-aligned %u-byte %sblock %p",
 			stid, freeing ? "freeing" : "accessing",
 			xck->xc_size, xck->xc_stid == stid ? "" : "foreign ", p);
 	}
@@ -3730,7 +3730,7 @@ xmalloc_thread_free(void *p)
 			atomic_mb();
 
 			if (xmalloc_debugging(0)) {
-				t_warning("thread #%u freeing %zu-byte block %p "
+				t_warning("thread #%u freeing %u-byte block %p "
 					"allocated by thread #%u",
 					stid, xck->xc_size, p, xck->xc_stid);
 			}
@@ -3751,7 +3751,7 @@ xmalloc_thread_free(void *p)
 
 		if (xmalloc_debugging(5)) {
 			/* Count may be wrong since we log outside the critical region */
-			t_debug("XM deferred freeing of %zu-byte block %p "
+			t_debug("XM deferred freeing of %u-byte block %p "
 				"owned by thread #%u (%zu held)",
 				xck->xc_size, p, xck->xc_stid, xcr->count);
 		}
@@ -4424,7 +4424,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			xstats.realloc_noop++;
 
 			if (xmalloc_debugging(2)) {
-				t_debug("XM realloc of %p to %zu bytes can be a noop "
+				t_debug("XM realloc of %p to %u bytes can be a noop "
 					"(already in a %zu-byte chunk for thread #%u)",
 					p, size, xck->xc_size, stid);
 			}
@@ -5434,7 +5434,7 @@ xgc_range_strategy(void *key, void *data)
 		xr->strategy = XGC_ST_FREE_PAGES;
 
 		if (xmalloc_debugging(3)) {
-			t_debug("XM GC [%p, %p[ (%zu bytes, %zu blocks) handled as: "
+			t_debug("XM GC [%p, %p[ (%zu bytes, %u blocks) handled as: "
 				"%u-byte head, %u-byte tail, VMM range [%p, %p[ released",
 				xr->start, xr->end, ptr_diff(xr->end, xr->start), xr->blocks,
 				xr->head, xr->tail, pstart, pend);
@@ -5501,7 +5501,7 @@ no_page_freeable:
 	xr->strategy = XGC_ST_COALESCE;
 
 	if (xmalloc_debugging(3)) {
-		t_debug("XM GC [%p, %p[ (%zu bytes, %zu blocks) will be coalesced",
+		t_debug("XM GC [%p, %p[ (%zu bytes, %u blocks) will be coalesced",
 			xr->start, xr->end, ptr_diff(xr->end, xr->start), xr->blocks);
 	}
 
@@ -6129,7 +6129,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 				tcnt += xck->xc_count;
 			}
 
-			log_info(la, "XM chunklist #%zu (%zu bytes, stid=%u): cap=%zu, "
+			log_info(la, "XM chunklist #%zu (%zu bytes, stid=%zu): cap=%zu, "
 				"cnt=%zu, chk=%zu, shr=%c",
 					i, ch->blocksize, j, tcap, tcnt, tchunks,
 					ch->shared ? 'y' : 'n');
@@ -7030,7 +7030,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			end = ptr_add_offset(p, nalloc);
 
 			if (xmalloc_debugging(2)) {
-				t_debug("XM aligned %p to 0x%x yields %p",
+				t_debug("XM aligned %p to 0x%zx yields %p",
 					p, alignment, q);
 			}
 
@@ -7458,12 +7458,12 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 				if (0 == (flags & XMALLOC_FLCF_UNLOCKED)) {
 					if (flags & (XMALLOC_FLCF_VERBOSE | XMALLOC_FLCF_LOGLOCK)) {
 						log_warning(la,
-							"XM freelist #%zu skipped (already locked)", i);
+							"XM freelist #%u skipped (already locked)", i);
 					}
 					continue;
 				} else {
 					log_warning(la,
-						"XM freelist #%zu will be checked without lock", i);
+						"XM freelist #%u will be checked without lock", i);
 				}
 			}
 		}
@@ -7471,7 +7471,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 		if (fl->capacity < fl->count) {
 			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
-					"XM freelist #%zu has corrupted count %zu (capacity %zu)",
+					"XM freelist #%u has corrupted count %zu (capacity %zu)",
 					i, fl->count, fl->capacity);
 			}
 			bad = TRUE;
@@ -7480,7 +7480,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 		if (!mem_is_valid_range(fl->pointers, fl->capacity * sizeof(void *))) {
 			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
-					"XM freelist #%zu has corrupted pointer %p or capacity %zu",
+					"XM freelist #%u has corrupted pointer %p or capacity %zu",
 					i, fl->pointers, fl->capacity);
 			}
 			bad = TRUE;
@@ -7496,11 +7496,11 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 					if (flags & XMALLOC_FLCF_VERBOSE) {
 						if (fl->count == fl->sorted) {
 							log_info(la,
-								"XM freelist #%zu has %zu item%s fully sorted",
+								"XM freelist #%u has %zu item%s fully sorted",
 								i, fl->count, 1 == fl->count ? "" : "s");
 						} else {
 							log_info(la,
-								"XM freelist #%zu has %zu/%zu item%s sorted",
+								"XM freelist #%u has %zu/%zu item%s sorted",
 								i, fl->sorted, fl->count,
 								1 == fl->sorted ? "" : "s");
 						}
@@ -7508,7 +7508,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 				}
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
-						"XM item #%zu p=%p in freelist #%zu <= prev %p",
+						"XM item #%u p=%p in freelist #%u <= prev %p",
 						j, p, i, prev);
 				}
 				bad = TRUE;
@@ -7519,7 +7519,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 			if (!xmalloc_is_valid_pointer(p)) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
-						"XM item #%zu p=%p in freelist #%zu is invalid",
+						"XM item #%u p=%p in freelist #%u is invalid",
 						j, p, i);
 				}
 				bad = TRUE;
@@ -7529,7 +7529,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 			if (!mem_is_valid_ptr(p)) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
-						"XM item #%zu p=%p in freelist #%zu is unreadable",
+						"XM item #%u p=%p in freelist #%u is unreadable",
 						j, p, i);
 				}
 				bad = TRUE;
@@ -7540,7 +7540,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 			if (len != fl->blocksize) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
-						"XM item #%zu p=%p in freelist #%zu (%zu bytes) "
+						"XM item #%u p=%p in freelist #%u (%zu bytes) "
 						"has improper length %zu", j, p, i, fl->blocksize, len);
 				}
 				bad = TRUE;
@@ -7550,7 +7550,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 		if (i > xfreelist_maxidx && fl->count != 0) {
 			if (flags & XMALLOC_FLCF_VERBOSE) {
 				log_warning(la,
-					"XM freelist #%zu has %zu items and is above maxidx=%zu",
+					"XM freelist #%u has %zu items and is above maxidx=%zu",
 					i, fl->count, xfreelist_maxidx);
 			}
 			bad = TRUE;
@@ -7558,7 +7558,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 		if (flags & XMALLOC_FLCF_STATUS) {
 			log_debug(la,
-				"XM freelist #%zu %s", i, bad ? "** CORRUPTED **" : "OK");
+				"XM freelist #%u %s", i, bad ? "** CORRUPTED **" : "OK");
 		}
 
 		if (bad)

@@ -426,7 +426,7 @@ resume:
 				goto resume;	/* Process remaining input */
 			} else {
 				g_carp("%s(): under-estimated output buffer size: "
-					"input=%d, output=%d", G_STRFUNC, zs->inlen, zs->outlen);
+					"input=%zu, output=%zu", G_STRFUNC, zs->inlen, zs->outlen);
 				goto error;		/* Cannot continue */
 			}
 		}
