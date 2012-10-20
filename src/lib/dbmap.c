@@ -1141,10 +1141,14 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 /**
  * Iterate over the map, invoking the callback on each item along with the
  * supplied argument and removing the item when the callback returns TRUE.
+ *
+ * @return the amount of items deleted
  */
-void
+size_t
 dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 {
+	size_t deleted = 0;
+
 	dbmap_check(dm);
 	g_assert(cbr);
 
@@ -1155,7 +1159,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 
 			ctx.u.cbr = cbr;
 			ctx.arg = arg;
-			map_foreach_remove(dm->u.m.map,
+			deleted = map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
 			
 			dbmap_set_count(dm, map_count(dm->u.m.map));
@@ -1167,6 +1171,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 			DBM *sdbm = dm->u.s.sdbm;
 			size_t count = 0;
 			size_t invalid = 0;
+			size_t errors = 0;
 
 			errno = 0;
 			for (
@@ -1191,21 +1196,30 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 					if ((*cbr)(key.dptr, &d, arg)) {
 						if (0 == sdbm_deletekey(sdbm)) {
 							count--;
+							deleted++;
+						} else {
+							errors++;
+							g_warning("DBMAP on sdbm \"%s\": "
+								"key deletion error: %m", sdbm_name(sdbm));
 						}
 					}
 				}
 			}
 			dbmap_sdbm_error_check(dm);
 			dbmap_set_count(dm, count);
-			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
-					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
+			if (invalid || errors) {
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
+					"%zu key deletion error%s", sdbm_name(sdbm),
+					invalid, 1 == invalid ? "" : "s",
+					errors, 1 == errors ? "" : "s");
 			}
 		}
 		break;
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
 	}
+
+	return deleted;
 }
 
 static void

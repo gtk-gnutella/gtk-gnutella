@@ -104,7 +104,7 @@ enum dbmap_type dbmap_type(const dbmap_t *dm);
 size_t dbmap_count(const dbmap_t *dm);
 
 void dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg);
-void dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
+size_t dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
 
 /**
  * Key snapshot utilities.
