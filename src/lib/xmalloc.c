@@ -4424,8 +4424,8 @@ xreallocate(void *p, size_t size, bool can_walloc)
 			xstats.realloc_noop++;
 
 			if (xmalloc_debugging(2)) {
-				t_debug("XM realloc of %p to %u bytes can be a noop "
-					"(already in a %zu-byte chunk for thread #%u)",
+				t_debug("XM realloc of %p to %zu bytes can be a noop "
+					"(already in a %u-byte chunk for thread #%u)",
 					p, size, xck->xc_size, stid);
 			}
 
