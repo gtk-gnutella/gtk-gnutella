@@ -55,6 +55,8 @@ struct datfile {
 	int mode;				/* file mode in case it is created */
 };
 
+enum sdbm_big_magic { SDBM_BIG_MAGIC = 0x230af3e2 };
+
 /**
  * Whenever big data (large key or value that would not fit in a single
  * DBM page) needs to be stored, it is put in a large data file (".dat").
@@ -78,6 +80,7 @@ struct datfile {
  * The DBMBIG descriptor allows access to these data.
  */
 struct DBMBIG {
+	enum sdbm_big_magic magic;
 	struct datfile *file;	/* file information, kept until file is opened */
 	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_BLKSIZE) */
 	bit_field_t *bitcheck;	/* array of ``bitmaps'' entries, for checks */
@@ -100,6 +103,13 @@ struct DBMBIG {
 	unsigned long bigwrite_blk;	/* stats: amount of big data blocks written */
 	uint8 bitbuf_dirty;		/* whether bitbuf needs flushing to disk */
 };
+
+static inline void
+sdbm_big_check(const struct DBMBIG * const dbg)
+{
+	g_assert(dbg != NULL);
+	g_assert(SDBM_BIG_MAGIC == dbg->magic);
+}
 
 static inline long
 OFF_DAT(unsigned long off)
@@ -176,6 +186,7 @@ big_alloc(const char *datname, int flags, int mode)
 	struct datfile *file;
 
 	WALLOC0(dbg);
+	dbg->magic = SDBM_BIG_MAGIC;
 	dbg->fd = -1;
 	dbg->bitbno = -1;
 
@@ -224,6 +235,8 @@ big_free(DBM *db)
 	if (NULL == dbg)
 		return;
 
+	sdbm_big_check(dbg);
+
 	if (common_stats)
 		log_bigstats(db);
 
@@ -232,6 +245,7 @@ big_free(DBM *db)
 	HFREE_NULL(dbg->bitcheck);
 	HFREE_NULL(dbg->scratch);
 	fd_forget_and_close(&dbg->fd);
+	dbg->magic = 0;
 	WFREE(dbg);
 }
 
@@ -296,6 +310,8 @@ big_check_start(DBM *db)
 {
 	DBMBIG *dbg = db->big;
 	long i;
+
+	sdbm_big_check(dbg);
 
 	if (-1 == dbg->fd && -1 == big_open(dbg))
 		return FALSE;
@@ -412,6 +428,9 @@ big_check_end(DBM *db)
 	DBMBIG *dbg = db->big;
 	long i;
 	size_t adjustments = 0;
+
+	sdbm_check(db);
+	sdbm_big_check(dbg);
 
 	if (NULL == dbg->bitcheck)
 		return 0;
@@ -846,6 +865,8 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	size_t len = big_length(bkey);
 	DBMBIG *dbg = db->big;
 
+	sdbm_big_check(dbg);
+
 	if G_UNLIKELY(bigkey_length(len) != blen) {
 		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
 			"(%zu byte%s on page instead of %zu)",
@@ -1237,6 +1258,8 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 	DBMBIG *dbg = db->big;
 
+	sdbm_big_check(dbg);
+
 	if (bigkey_length(len) != blen) {
 		g_critical("sdbm: \"%s\": "
 			"bigkey_get: inconsistent key length %zu in .pag",
@@ -1264,6 +1287,8 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 {
 	size_t len = big_length(bval);
 	DBMBIG *dbg = db->big;
+
+	sdbm_big_check(dbg);
 
 	if (bigval_length(len) != blen) {
 		g_critical("sdbm: \"%s\": "
@@ -1621,6 +1646,8 @@ big_datfno(DBM *db)
 {
 	STATIC_ASSERT(BIG_BLKSIZE == DBM_BBLKSIZ);
 
+	sdbm_big_check(db->big);
+
 	return db->big->fd;
 }
 
@@ -1633,6 +1660,8 @@ bool
 big_sync(DBM *db)
 {
 	DBMBIG *dbg = db->big;
+
+	sdbm_big_check(dbg);
 
 	if (-1 == dbg->fd)
 		return TRUE;
@@ -1697,6 +1726,8 @@ big_shrink(DBM *db)
 	long i;
 	filesize_t offset = 0;
 
+	sdbm_big_check(dbg);
+
 	if (-1 == dbg->fd) {
 		/*
 		 * We do not want to call big_open() unless the .dat file already
@@ -1749,6 +1780,8 @@ bool
 big_clear(DBM *db)
 {
 	DBMBIG *dbg = db->big;
+
+	sdbm_big_check(dbg);
 
 	if (-1 == dbg->fd) {
 		/*

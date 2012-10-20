@@ -201,10 +201,9 @@ sdbm_alloc(void)
 	DBM *db;
 
 	WALLOC0(db);
-	if (db) {
-		db->pagf = -1;
-		db->dirf = -1;
-	}
+	db->magic = SDBM_MAGIC;
+	db->pagf = -1;
+	db->dirf = -1;
 	return db;
 }
 
@@ -214,6 +213,8 @@ sdbm_alloc(void)
 void
 sdbm_set_name(DBM *db, const char *name)
 {
+	sdbm_check(db);
+
 	HFREE_NULL(db->name);
 	db->name = h_strdup(name);
 }
@@ -225,6 +226,8 @@ sdbm_set_name(DBM *db, const char *name)
 const char *
 sdbm_name(DBM *db)
 {
+	sdbm_check(db);
+
 	return db->name ? db->name : "";
 }
 
@@ -318,6 +321,8 @@ success:
 static void
 log_sdbmstats(DBM *db)
 {
+	sdbm_check(db);
+
 	g_info("sdbm: \"%s\" page reads = %lu, page writes = %lu (forced %lu)",
 		sdbm_name(db), db->pagread, db->pagwrite, db->pagwforced);
 	g_info("sdbm: \"%s\" dir reads = %lu, dir writes = %lu (deferred %lu)",
@@ -336,6 +341,8 @@ log_sdbmstats(DBM *db)
 static void
 log_sdbm_warnings(DBM *db)
 {
+	sdbm_check(db);
+
 	if (db->bad_pages) {
 		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
 			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
@@ -502,6 +509,8 @@ sdbm_close(DBM *db)
 	if G_UNLIKELY(db == NULL)
 		errno = EINVAL;
 	else {
+		sdbm_check(db);
+
 #ifdef LRU
 		if (!db->is_volatile && db->dirbuf_dirty)
 			flush_dirbuf(db);
@@ -520,6 +529,7 @@ sdbm_close(DBM *db)
 		}
 		log_sdbm_warnings(db);
 		HFREE_NULL(db->name);
+		db->magic = 0;
 		WFREE(db);
 	}
 }
@@ -539,6 +549,7 @@ sdbm_fetch(DBM *db, datum key)
 		errno = EINVAL;
 		return nullitem;
 	}
+	sdbm_check(db);
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
@@ -559,6 +570,7 @@ sdbm_exists(DBM *db, datum key)
 		errno = EINVAL;
 		return -1;
 	}
+	sdbm_check(db);
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
@@ -579,6 +591,7 @@ sdbm_delete(DBM *db, datum key)
 		errno = EINVAL;
 		return -1;
 	}
+	sdbm_check(db);
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
@@ -748,6 +761,7 @@ inserted:
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
+	sdbm_check(db);
 	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, flags, NULL);
 }
@@ -764,6 +778,7 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 int
 sdbm_replace(DBM *db, datum key, datum val, bool *existed)
 {
+	sdbm_check(db);
 	SDBM_WARN_ITERATING(db);
 	return storepair(db, key, val, DBM_REPLACE, existed);
 }
@@ -1119,6 +1134,7 @@ sdbm_firstkey(DBM *db)
 		errno = EINVAL;
 		return iteration_done(db);
 	}
+	sdbm_check(db);
 
 	if G_UNLIKELY(db->flags & DBM_ITERATING)
 		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
@@ -1152,6 +1168,7 @@ datum
 sdbm_firstkey_safe(DBM *db)
 {
 	if (db != NULL) {
+		sdbm_check(db);
 		db->flags |= DBM_KEYCHECK;
 
 		/*
@@ -1174,6 +1191,7 @@ sdbm_nextkey(DBM *db)
 		errno = EINVAL;
 		return iteration_done(db);
 	}
+	sdbm_check(db);
 	return getnext(db);
 }
 
@@ -1441,6 +1459,7 @@ sdbm_deletekey(DBM *db)
 		errno = EINVAL;
 		return -1;
 	}
+	sdbm_check(db);
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
@@ -1486,6 +1505,7 @@ sdbm_value(DBM *db)
 		return nullitem;
 	}
 
+	sdbm_check(db);
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
 	if G_UNLIKELY(0 == db->keyptr) {
@@ -1513,6 +1533,8 @@ ssize_t
 sdbm_sync(DBM *db)
 {
 	ssize_t npag = 0;
+
+	sdbm_check(db);
 
 #ifdef LRU
 	npag = flush_dirtypag(db);
@@ -1549,6 +1571,8 @@ sdbm_shrink(DBM *db)
 	filesize_t paglen;
 	filestat_t buf;
 	filesize_t offset;
+
+	sdbm_check(db);
 
 	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
 		return FALSE;
@@ -1723,6 +1747,7 @@ sdbm_clear(DBM *db)
 		errno = EINVAL;
 		return -1;
 	}
+	sdbm_check(db);
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
 		return -1;
@@ -1756,10 +1781,10 @@ sdbm_clear(DBM *db)
 int
 sdbm_set_cache(DBM *db, long pages)
 {
+	sdbm_check(db);
 #ifdef LRU
 	return setcache(db, pages);
 #else
-	(void) db;
 	(void) pages;
 	errno = ENOTSUP;
 	return -1;
@@ -1772,10 +1797,10 @@ sdbm_set_cache(DBM *db, long pages)
 int
 sdbm_set_wdelay(DBM *db, bool on)
 {
+	sdbm_check(db);
 #ifdef LRU
 	return setwdelay(db, on);
 #else
-	(void) db;
 	(void) on;
 	errno = ENOTSUP;
 	return -1;
@@ -1790,12 +1815,12 @@ sdbm_set_wdelay(DBM *db, bool on)
 int
 sdbm_set_volatile(DBM *db, bool yes)
 {
+	sdbm_check(db);
 #ifdef LRU
 	db->is_volatile = yes;
 	if (yes)
 		return setwdelay(db, TRUE);
 #else
-	(void) db;
 	(void) yes;
 #endif
 	return 0;
@@ -1804,40 +1829,45 @@ sdbm_set_volatile(DBM *db, bool yes)
 bool
 sdbm_rdonly(DBM *db)
 {
+	sdbm_check(db);
 	return 0 != (db->flags & DBM_RDONLY);
 }
 
 bool
 sdbm_error(DBM *db)
 {
+	sdbm_check(db);
 	return 0 != (db->flags & (DBM_IOERR | DBM_IOERR_W));
 }
 
 void
 sdbm_clearerr(DBM *db)
 {
+	sdbm_check(db);
 	db->flags &= ~(DBM_IOERR | DBM_IOERR_W);
 }
 
 int
 sdbm_dirfno(DBM *db)
 {
+	sdbm_check(db);
 	return db->dirf;
 }
 
 int
 sdbm_pagfno(DBM *db)
 {
+	sdbm_check(db);
 	return db->pagf;
 }
 
 int
 sdbm_datfno(DBM *db)
 {
+	sdbm_check(db);
 #ifdef BIGDATA
 	return big_datfno(db);
 #else
-	(void) db;
 	return -1;
 #endif
 }

@@ -6,7 +6,10 @@
 
 struct DBMBIG;
 
+enum sdbm_magic { SDBM_MAGIC = 0x1dac340e };
+
 struct DBM {
+	enum sdbm_magic magic;		/* magic number */
 	char *name;		/* database name, for logging */
 	char *pagbuf;	/* page file block buffer (size: DBM_PBLKSIZ) */
 	char *dirbuf;	/* directory file block buffer (size: DBM_DBLKSIZ) */
@@ -53,6 +56,13 @@ struct DBM {
 	struct DBMBIG *big;
 #endif
 };
+
+static inline void
+sdbm_check(const DBM * const db)
+{
+	g_assert(db != NULL);
+	g_assert(SDBM_MAGIC == db->magic);
+}
 
 static inline long
 OFF_PAG(unsigned long off)
