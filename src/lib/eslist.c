@@ -55,6 +55,7 @@
 
 #include "eslist.h"
 #include "random.h"
+#include "shuffle.h"
 #include "unsigned.h"
 #include "xmalloc.h"
 
@@ -713,20 +714,7 @@ eslist_shuffle(eslist_t *list)
 		array[i] = lk;
 	}
 
-	/*
-	 * Shuffle the array in-place using Knuth's modern version of the
-	 * Fisher and Yates algorithm.
-	 */
-
-	for (i = list->count - 1; i > 0; i--) {
-		slink_t *tmp;
-		size_t j = random_value(i);
-
-		/* Swap i-th and j-th items */
-		tmp = array[i];
-		array[i] = array[j];		/* i-th item has been chosen */
-		array[j] = tmp;
-	}
+	shuffle(array, list->count, sizeof array[0]);
 
 	/*
 	 * Rebuild the list.

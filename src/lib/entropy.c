@@ -80,6 +80,7 @@
 #include "misc.h"
 #include "rand31.h"
 #include "sha1.h"
+#include "shuffle.h"
 #include "stringify.h"
 #include "thread.h"
 #include "tm.h"
@@ -218,25 +219,11 @@ entropy_rand31(void)
 }
 
 /**
- * Compute uniformly distributed random number in the [0, max] range,
- * avoiding any modulo bias.
- *
- * @return uniformly distributed number from 0 to max, inclusive.
- */
-static unsigned
-entropy_rand31_value(unsigned max)
-{
-	return rand31_upto(entropy_rand31, max);
-}
- 
-/**
  * Shuffle array in-place.
  */
 static void
 entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 {
-	size_t i;
-
 	g_assert(ary != NULL);
 	g_assert(size_is_non_negative(len));
 	g_assert(size_is_positive(elem_size));
@@ -244,22 +231,7 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	/*
-	 * Shuffle the array using Knuth's modern version of the
-	 * Fisher and Yates algorithm.
-	 */
-
-	for (i = len - 1; i > 0; i--) {
-		size_t j = entropy_rand31_value(i);
-		void *iptr, *jptr;
-
-		/* Swap i-th and j-th items */
-
-		iptr = ptr_add_offset(ary, i * elem_size);
-		jptr = ptr_add_offset(ary, j * elem_size);
-
-		SWAP(iptr, jptr, elem_size);	/* i-th item now selected */
-	}
+	shuffle_with((random_fn_t) entropy_rand31, ary, len, elem_size);
 }
 
 /**
