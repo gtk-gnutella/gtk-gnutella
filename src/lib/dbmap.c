@@ -80,6 +80,7 @@ struct dbmap {
 	} u;
 	size_t key_size;		/**< Constant width keys are a requirement */
 	dbmap_keylen_t key_len;	/**< Optional, computes serialized key length */
+	const dbg_config_t *dbg;/**< Optional debugging */
 	size_t count;			/**< Amount of items */
 	int error;				/**< Last errno value consecutive to an error */
 	unsigned ioerr:1;		/**< Last operation raised an I/O error */
@@ -1065,14 +1066,21 @@ dbmap_foreach_remove_trampoline(void *key, void *value, void *arg)
  *
  * @attention
  * The argument is "const" but nonetheless the structure is updated.  This is
- * OK because we're only updating a cached value, not changing the abstract
+ * OK because we're only updating a cached attribute, not changing the abstract
  * data type (the underlying map/database).
+ *
+ * This is a macro to get a proper G_STRFUNC expansion depending on where
+ * it is being used.
  */
-static inline void
-dbmap_set_count(const dbmap_t *dm, size_t count)
-{
-	dbmap_t *dmw = deconstify_pointer(dm);
-	dmw->count = count;
+#define dbmap_reset_count(d,c)			 						\
+{							 									\
+	dbmap_t *dmw = deconstify_pointer(d);						\
+	dmw->count = (c);											\
+																\
+	if (dbg_ds_debugging(dm->dbg, 1, DBG_DSF_CACHING)) {		\
+		dbg_ds_log((d)->dbg, (d), "%s: setting count to %zu",	\
+			G_STRFUNC, (c));									\
+	}															\
 }
 
 /**
@@ -1126,7 +1134,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 				}
 			}
 			if (!dbmap_sdbm_error_check(dm))
-				dbmap_set_count(dm, count);
+				dbmap_reset_count(dm, count);
 			if (invalid) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
 					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
@@ -1162,7 +1170,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 			deleted = map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
 			
-			dbmap_set_count(dm, map_count(dm->u.m.map));
+			dbmap_reset_count(dm, map_count(dm->u.m.map));
 		}
 		break;
 	case DBMAP_SDBM:
@@ -1206,7 +1214,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 				}
 			}
 			dbmap_sdbm_error_check(dm);
-			dbmap_set_count(dm, count);
+			dbmap_reset_count(dm, count);
 			if (invalid || errors) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
 					"%zu key deletion error%s", sdbm_name(sdbm),
@@ -1495,6 +1503,22 @@ dbmap_set_volatile(dbmap_t *dm, bool is_volatile)
 	}
 
 	return 0;
+}
+
+/**
+ * Record debugging configuration.
+ */
+void
+dbmap_set_debugging(dbmap_t *dm, const dbg_config_t *dbg)
+{
+	dbmap_check(dm);
+
+	dm->dbg = dbg;
+
+	if (dbg_ds_debugging(dm->dbg, 1, DBG_DSF_DEBUGGING)) {
+		dbg_ds_log(dm->dbg, dm, "%s: attached with %s back-end (count=%zu)",
+			G_STRFUNC, DBMAP_SDBM == dm->type ? "sdbm" : "map", dm->count);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

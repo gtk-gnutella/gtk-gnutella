@@ -118,6 +118,8 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
  */
 void dbmap_unlink_sdbm(const char *base);
 
+struct dbg_config;
+
 bool dbmap_store(dbmap_t *dm, const char *base, bool inplace);
 bool dbmap_copy(dbmap_t *from, dbmap_t *to);
 bool dbmap_shrink(dbmap_t *dm);
@@ -126,6 +128,7 @@ ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);
 int dbmap_set_deferred_writes(dbmap_t *dm, bool on);
 int dbmap_set_volatile(dbmap_t *dm, bool is_volatile);
+void dbmap_set_debugging(dbmap_t *dm, const struct dbg_config *dbg);
 
 #endif	/* _dbmap_h_ */
 

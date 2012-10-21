@@ -34,17 +34,18 @@
 
 #include "common.h"
 
-#include "debug.h"
 #include "dbmw.h"
+#include "bstr.h"
 #include "dbmap.h"
+#include "debug.h"
+#include "hashlist.h"
 #include "map.h"
 #include "pmsg.h"
-#include "bstr.h"
-#include "hashlist.h"
 #include "stacktrace.h"
 #include "stringify.h"
-#include "zalloc.h"
 #include "walloc.h"
+#include "zalloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #define DBMW_CACHE	128			/**< Default amount of items to cache */
@@ -74,6 +75,8 @@ struct dbmw {
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
+	const dbg_config_t *dbg;	/**< Optional debugging */
+	dbg_config_t *dbmap_dbg;	/**< Object created for DBMAP debugging */
 	int error;					/**< Last errno value */
 	unsigned ioerr:1;			/**< Had I/O error */
 	unsigned count_needs_sync:1;/**< Whether we need to sync to get count */
@@ -341,10 +344,15 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 	 * Dirty bit is cleared on success.
 	 */
 
-	if (common_dbg > 4)
-		g_debug("DBMW \"%s\" %s dirty value (%zu byte%s)",
-			dw->name, value->absent ? "deleting" : "flushing",
-			dval.len, 1 == dval.len ? "" : "s");
+	if (
+		dbg_ds_debugging(dw->dbg, 1,
+			DBG_DSF_CACHING | DBG_DSF_UPDATE | DBG_DSF_INSERT | DBG_DSF_DELETE)
+	) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s dirty value (%zu byte%s) key=%s",
+			G_STRFUNC, value->absent ? "deleting" : "flushing",
+			dval.len, 1 == dval.len ? "" : "s",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+	}
 
 	dw->ioerr = FALSE;
 	ok = value->absent ?
@@ -412,6 +420,13 @@ remove_entry(dbmw_t *dw, const void *key, bool dispose, bool flush)
 		return NULL;
 
 	g_assert(old != NULL);
+
+	if (dbg_ds_debugging(dw->dbg, 3, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s key=%s (%s)",
+			G_STRFUNC, old->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			flush ? "flushing" : " discarding");
+	}
 
 	if (old->dirty && flush)
 		write_back(dw, key, old);
@@ -552,6 +567,18 @@ cache_reset_before_traversal(void *u_key, void *value, void *u_data)
 }
 
 /**
+ * Structure used as context by dbmw_foreach_*trampoline().
+ */
+struct foreach_ctx {
+	union {
+		dbmw_cb_t cb;
+		dbmw_cbr_t cbr;
+	} u;
+	void *arg;
+	dbmw_t *dw;
+};
+
+/**
  * Structure used to iterate on the cached entries that were not traversed.
  */
 struct cache_foreach_ctx {
@@ -577,6 +604,15 @@ cache_finish_traversal(void *key, void *value, void *data)
 
 	if (entry->traversed)
 		return;
+
+#define dw	fctx->foreach->dw
+
+	if (dbg_ds_debugging(dw->dbg, 3, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: traversing cached key=%s",
+			G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+	}
+
+#undef dw
 
 	d.data = entry->data;
 	d.len = entry->len;
@@ -669,6 +705,7 @@ ssize_t
 dbmw_sync(dbmw_t *dw, int which)
 {
 	ssize_t amount = 0;
+	size_t pages = 0, values = 0;
 	bool error = FALSE;
 
 	if (which & DBMW_SYNC_CACHE) {
@@ -679,19 +716,39 @@ dbmw_sync(dbmw_t *dw, int which)
 		ctx.deleted_only = booleanize(which & DBMW_DELETED_ONLY);
 		ctx.amount = 0;
 
+		if (dbg_ds_debugging(dw->dbg, 6, DBG_DSF_CACHING)) {
+			dbg_ds_log(dw->dbg, dw, "%s: syncing cache%s",
+				G_STRFUNC, ctx.deleted_only ? " (deleted only)" : "");
+		}
+
 		map_foreach(dw->values, flush_dirty, &ctx);
 		if (!ctx.error)
 			dw->count_needs_sync = FALSE;
 
 		amount += ctx.amount;
+		values = ctx.amount;
 		error = ctx.error;
 	}
 	if (which & DBMW_SYNC_MAP) {
-		ssize_t ret = dbmap_sync(dw->dm);
-		if (-1 == ret)
+		ssize_t ret;
+
+		if (dbg_ds_debugging(dw->dbg, 6, DBG_DSF_CACHING))
+			dbg_ds_log(dw->dbg, dw, "%s: syncing map", G_STRFUNC);
+
+		ret = dbmap_sync(dw->dm);
+		if (-1 == ret) {
 			error = TRUE;
-		else
+		} else {
 			amount += ret;
+			pages = ret;
+		}
+	}
+
+	if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s (flushed %zu value%s, %zu page%s)",
+			G_STRFUNC, error ? "FAILED" : "OK",
+			values, 1 == values ? "" : "s",
+			pages, 1 == pages ? "" : "s");
 	}
 
 	return error ? -1 : amount;
@@ -811,17 +868,36 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (was absent)" : "");
+		}
+
 		if (entry->dirty)
 			dw->w_hits++;
 		else if (entry->absent)
 			dw->count_needs_sync = TRUE;	/* Key exists now */
 		fill_entry(dw, entry, value, length);
 		hash_list_moveto_tail(dw->keys, key);
+
 	} else if (dw->max_cached > 1) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: deferring key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		entry = allocate_entry(dw, key, NULL);
 		fill_entry(dw, entry, value, length);
 		dw->count_needs_sync = TRUE;	/* Does not know whether key exists */
+
 	} else { 
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: writing key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		write_immediately(dw, key, value, length);
 	}
 }
@@ -855,6 +931,13 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING | DBG_DSF_ACCESS)) {
+			dbg_ds_log(dw->dbg, dw, "%s: read cache hit on %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (absent)" : "");
+		}
+
 		dw->r_hits++;
 		if (lenptr)
 			*lenptr = entry->len;
@@ -933,6 +1016,13 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 	(void) allocate_entry(dw, key, entry);
 
+	if (dbg_ds_debugging(dw->dbg, 4, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: cached %s key=%s%s",
+			G_STRFUNC, entry->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			entry->absent ? " (absent)" : "");
+	}
+
 	return entry->data;
 }
 
@@ -952,6 +1042,13 @@ dbmw_exists(dbmw_t *dw, const void *key)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING | DBG_DSF_ACCESS)) {
+			dbg_ds_log(dw->dbg, dw, "%s: read cache hit on %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (absent)" : "");
+		}
+
 		dw->r_hits++;
 		return !entry->absent;
 	}
@@ -984,6 +1081,12 @@ dbmw_exists(dbmw_t *dw, const void *key)
 		WALLOC0(entry);
 		entry->absent = !ret;
 		(void) allocate_entry(dw, key, entry);
+
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING)) {
+			dbg_ds_log(dw->dbg, dw, "%s: cached %s key=%s",
+				G_STRFUNC, entry->absent ? "absent" : "present",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
 	}
 
 	return ret;
@@ -1004,6 +1107,13 @@ dbmw_delete(dbmw_t *dw, const void *key)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_DELETE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (was absent)" : "");
+		}
+
 		if (entry->dirty)
 			dw->w_hits++;
 		if (!entry->absent) {
@@ -1012,7 +1122,13 @@ dbmw_delete(dbmw_t *dw, const void *key)
 			entry->absent = TRUE;
 		}
 		hash_list_moveto_tail(dw->keys, key);
+
 	} else {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_DELETE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: removing key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		dw->ioerr = FALSE;
 		dbmap_remove(dw->dm, key);
 
@@ -1037,6 +1153,11 @@ dbmw_delete(dbmw_t *dw, const void *key)
 			WALLOC0(entry);
 			entry->absent = TRUE;
 			(void) allocate_entry(dw, key, entry);
+
+			if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING)) {
+				dbg_ds_log(dw->dbg, dw, "%s: cached absent key=%s",
+					G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+			}
 		}
 	}
 }
@@ -1103,7 +1224,7 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 {
 	dbmw_check(dw);
 
-	if (common_stats)
+	if (common_stats) {
 		g_debug("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
@@ -1112,6 +1233,18 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
 			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+	}
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_DESTROY)) {
+		dbg_ds_log(dw->dbg, dw, "%s: with %s back-end "
+			"(read cache hits = %.2f%% on %s request%s, "
+			"write cache hits = %.2f%% on %s request%s)",
+			G_STRFUNC, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
+			dw->r_hits * 100.0 / MAX(1, dw->r_access),
+			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
+			dw->w_hits * 100.0 / MAX(1, dw->w_access),
+			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+	}
 
 	/*
 	 * If we close the map and we're volatile, there's no need to flush
@@ -1133,21 +1266,10 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 	if (close_map)
 		dbmap_destroy(dw->dm);
 
+	WFREE_TYPE_NULL(dw->dbmap_dbg);
 	dw->magic = 0;
 	WFREE(dw);
 }
-
-/**
- * Structure used as context by dbmw_foreach_*trampoline().
- */
-struct foreach_ctx {
-	union {
-		dbmw_cb_t cb;
-		dbmw_cbr_t cbr;
-	} u;
-	void *arg;
-	dbmw_t *dw;
-};
 
 /**
  * Common code for dbmw_foreach_trampoline() and
@@ -1269,6 +1391,11 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 
 	dbmw_check(dw);
 
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
+			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg);
+	}
+
 	/*
 	 * Before iterating we flush the deleted keys we know about in the cache
 	 * and whose deletion was deferred, so that the underlying map will
@@ -1304,6 +1431,11 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	fctx.u.cb = dbmw_foreach_trampoline;
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)", G_STRFUNC,
+			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg);
+	}
 }
 
 /**
@@ -1320,6 +1452,11 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	size_t pruned;
 
 	dbmw_check(dw);
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
+			stacktrace_routine_name(func_to_pointer(cbr), FALSE), arg);
+	}
 
 	/*
 	 * Before iterating we flush the deleted keys we know about in the cache
@@ -1362,6 +1499,14 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
 	map_foreach_remove(dw->values, cache_free_removable, dw);
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p): "
+			"pruned %zu from dbmap, %zu from cache (%zu total)",
+			G_STRFUNC,
+			stacktrace_routine_name(func_to_pointer(cbr), FALSE), arg,
+			pruned, fctx.removed, pruned + fctx.removed);
+	}
 
 	return pruned + fctx.removed;
 }
@@ -1457,6 +1602,37 @@ dbmw_set_volatile(dbmw_t *dw, bool is_volatile)
 
 	dw->is_volatile = TRUE;
 	return 0 == dbmap_set_volatile(dw->dm, is_volatile);
+}
+
+/**
+ * Record debugging configuration.
+ */
+void
+dbmw_set_debugging(dbmw_t *dw, const dbg_config_t *dbg)
+{
+	dbmw_check(dw);
+
+	dw->dbg = dbg;
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_DEBUGGING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: attached with %s back-end "
+			"(max cached = %zu, key=%zu bytes, value=%zu bytes, "
+			"%zu max serialized)", G_STRFUNC,
+			dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
+			dw->max_cached, dw->key_size, dw->value_size, dw->value_data_size);
+	}
+
+	/*
+	 * Patch in place for the DBMAP.
+	 */
+
+	WFREE_TYPE_NULL(dw->dbmap_dbg);
+
+	dw->dbmap_dbg = WCOPY(dbg);
+	dw->dbmap_dbg->o2str = NULL;
+	dw->dbmap_dbg->type = "DBMAP";
+
+	dbmap_set_debugging(dw->dm, dw->dbmap_dbg);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

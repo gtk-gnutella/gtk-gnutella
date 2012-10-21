@@ -91,6 +91,8 @@ typedef bool (*dbmw_cbr_t)(void *key, void *value, size_t len, void *u);
 #define DBMW_SYNC_MAP		(1 << 1)	/**< Sync DBMW underlying map */
 #define DBMW_DELETED_ONLY	(1 << 2)	/**< Only sync deleted keys */
 
+struct dbg_config;
+
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
@@ -109,6 +111,7 @@ bool dbmw_has_ioerr(const dbmw_t *dw);
 const char *dbmw_name(const dbmw_t *dw);
 bool dbmw_set_map_cache(dbmw_t *dw, long pages);
 bool dbmw_set_volatile(dbmw_t *dw, bool is_volatile);
+void dbmw_set_debugging(dbmw_t *dw, const struct dbg_config *dbg);
 bool dbmw_shrink(dbmw_t *dw);
 bool dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
