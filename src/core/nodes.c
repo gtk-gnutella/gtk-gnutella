@@ -122,6 +122,7 @@
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sequence.h"
+#include "lib/shuffle.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -187,6 +188,7 @@
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
+#define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
 
 const char *start_rfc822_date;			/**< RFC822 format of start_time */
 
@@ -11243,6 +11245,130 @@ node_all_ultranodes(void)
 	return sl_up_nodes;
 }
 
+/**
+ * Fill the supplied vector ``hvec'' whose size is ``hcnt'' items with ultra
+ * peers, mixing randomly selected ultra peers among our neighbours and
+ * hosts from the host cache.
+ *
+ * This is deemed suitable for replying to UHC pings: by including known live
+ * hosts, we maximize the chance that a host wanting to connect can reach
+ * a good alive address, from which it will be able to either gather more
+ * hosts via X-Try-Ultrapeers, or establish a connection in the best case.
+ *
+ * @param net		network preference
+ * @param hvec		base of vector
+ * @param hcnt		amount of entries in vector
+ *
+ * @return amount of hosts filled
+ */
+unsigned
+node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
+{
+	const gnutella_node_t **ultras;
+	unsigned reserve, ucnt, i, j, k;
+	const GSList *sl;
+	hset_t *seen_host;
+
+	ucnt = GNET_PROPERTY(node_ultra_count);
+	ultras = ucnt != 0 ? walloc(ucnt * sizeof ultras[0]) : NULL;
+	i = 0;
+	seen_host = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+
+	GM_SLIST_FOREACH(node_all_ultranodes(), sl) {
+		const gnutella_node_t *n;
+
+		if (i >= ucnt)
+			break;
+
+		n = sl->data;
+
+		/* Skip transient nodes, or nodes that have not sent us anything yet */
+		if (NODE_IS_TRANSIENT(n) || 0 == n->received)
+			continue;
+
+		/* Skip hosts for which we do not know the listening IP:port */
+		if (!host_addr_initialized(n->gnet_addr) || 0 == n->gnet_port)
+			continue;
+
+		/*
+		 * Make sure the host is correct for the selected networks.
+		 */
+
+		switch (net) {
+		case HOST_NET_IPV4:
+			if (NET_TYPE_IPV4 != host_addr_net(n->gnet_addr))
+				continue;
+			break;
+		case HOST_NET_IPV6:
+			if (NET_TYPE_IPV6 != host_addr_net(n->gnet_addr))
+				continue;
+		case HOST_NET_BOTH:
+			break;
+		case HOST_NET_MAX:
+			g_assert_not_reached();
+		}
+
+		ultras[i++] = n;
+	}
+
+	/* ``i'' is the amount of ultranodes we put in the array */
+
+	if (ultras != NULL)
+		shuffle(ultras, i, sizeof ultras[0]);
+
+	/*
+	 * Start by filling hosts from the cache, so that we can remove duplicates.
+	 *
+	 * We ask for everything and then we'll replace the entries with ultras
+	 * provided they are not already present in the list.
+	 */
+
+	reserve = MIN(NODE_IPP_NEIGHBOURS, i);
+
+	k = hcache_fill_caught_array(net, HOST_ULTRA, hvec, hcnt);
+	for (i = 0; i < k; i++) {
+		hset_insert(seen_host, &hvec[i]);
+	}
+
+	/*
+	 * ``k'' is the amount of hosts we filled from the cache.
+	 * ``i'' will be the index where we'll start superseding hosts.
+	 *
+	 * If hcache_fill_caught_array() filled the whole vector, we'll start
+	 * to supersede from the end.  However, if the vector is only partially
+	 * filled, we'll append our ultranodes until we fill the whole vector.
+	 */
+
+	i = reserve >= hcnt ? 0
+		: reserve + k >= hcnt ? hcnt - reserve
+		: k;
+
+	/*
+	 * Supersed hosts from the cache with our ultra nodes, if not already
+	 * listed in the vector.
+	 */
+
+	for (j = reserve; j > 0 && i < hcnt; /* empty */) {
+		const gnutella_node_t *n = ultras[--j];
+		gnet_host_t h;
+
+		gnet_host_set(&h, n->gnet_addr, n->gnet_port);
+
+		if (!hset_contains(seen_host, &h)) {
+			if (i < k)							/* Superseding an entry */
+				hset_remove(seen_host, &hvec[i]);
+			gnet_host_copy(&hvec[i], &h);		/* No struct copy! */
+			hset_insert(seen_host, &hvec[i++]);	/* New host we wrote */
+		}
+	}
+
+	hset_free_null(&seen_host);
+	WFREE_NULL(ultras, ucnt * sizeof ultras[0]);
+
+	g_assert(MAX(k, i) <= hcnt);
+
+	return MAX(k, i);	/* Amount of hosts we put in the array */
+}
 
 /**
  * @return writable node given its ID, or NULL if we can't reach that node.
@@ -11452,12 +11578,12 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 	gnutella_node_t **leaves = NULL;	/* Array  of `leaves'			*/
 	size_t ultras_len = 0;				/* Size   of `ultras'			*/
 	size_t leaves_len = 0;				/* Size   of `leaves'			*/
-	int ux = 0;						/* Index  in `ultras'			*/
-	int lx = 0;						/* Index  in `leaves'			*/
-	int ui;							/* Iterating index in `ultras'	*/
-	int li;							/* Iterating index in `leaves'	*/
-	int un;							/* Amount of `ultras' to send	*/
-	int ln;							/* Amount of `leaves' to send	*/
+	int ux = 0;							/* Index  in `ultras'			*/
+	int lx = 0;							/* Index  in `leaves'			*/
+	int ui;								/* Iterating index in `ultras'	*/
+	int li;								/* Iterating index in `leaves'	*/
+	int un;								/* Amount of `ultras' to send	*/
+	int ln;								/* Amount of `leaves' to send	*/
 	GSList *sl;
 	bool crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
 	bool wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;

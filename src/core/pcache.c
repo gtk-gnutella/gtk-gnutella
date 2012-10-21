@@ -558,8 +558,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			hcount = guess_fill_caught_array(net, TRUE,
 				host, PCACHE_UHC_MAX_IP);
 		} else {
-			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
-				host, PCACHE_UHC_MAX_IP);
+			hcount = node_fill_ultra(net, host, PCACHE_UHC_MAX_IP);
 
 			/*
 			 * If we are missing node connections, be sure to include

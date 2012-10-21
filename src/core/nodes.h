@@ -657,6 +657,7 @@ sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_ultranodes(void);
+unsigned node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
 gnutella_node_t *node_active_by_id(const struct nid *node_id);
