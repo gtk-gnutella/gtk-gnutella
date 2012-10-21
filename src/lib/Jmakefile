@@ -173,6 +173,7 @@ LSRC = \
 	sectoken.c \
 	sequence.c \
 	sha1.c \
+	shuffle.c \
 	signal.c \
 	slist.c \
 	smsort.c \

@@ -803,6 +803,8 @@ src/lib/sequence.c
 src/lib/sequence.h
 src/lib/sha1.c
 src/lib/sha1.h
+src/lib/shuffle.c
+src/lib/shuffle.h
 src/lib/signal.c
 src/lib/signal.h
 src/lib/slist.c
