@@ -5259,4 +5259,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "dht_tcache_debug_flags";
+	desc = "Debugging flags for the DHT token cache (developers only)."
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

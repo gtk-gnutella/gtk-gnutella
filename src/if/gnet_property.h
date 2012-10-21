@@ -489,6 +489,7 @@ typedef enum {
     PROP_SECURE_OOB_DEBUG,
     PROP_LOG_VMSG_TX,
     PROP_LOG_VMSG_RX,
+    PROP_DHT_TCACHE_DEBUG_FLAGS,
     GNET_PROPERTY_END
 } gnet_property_t;
 

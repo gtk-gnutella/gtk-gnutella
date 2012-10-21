@@ -1506,6 +1506,7 @@ update_uptimes(void)
 /***
  *** Callbacks
  ***/
+
 static bool
 up_connections_changed(property_t prop)
 {
@@ -1780,6 +1781,14 @@ dump_tx_to_addrs_changed(property_t prop)
 	dump_tx_set_to_addrs(s);
 	G_FREE_NULL(s);
 	return FALSE;
+}
+
+static bool
+dht_tcache_debug_changed(property_t prop)
+{
+	(void) prop;
+	tcache_debugging_changed();
+    return FALSE;
 }
 
 static bool
@@ -3161,6 +3170,16 @@ static prop_map_t property_map[] = {
 		dump_tx_to_addrs_changed,
 		TRUE,
 	},
+	{
+		PROP_DHT_TCACHE_DEBUG,
+		dht_tcache_debug_changed,
+		FALSE,
+	},
+	{
+		PROP_DHT_TCACHE_DEBUG_FLAGS,
+		dht_tcache_debug_changed,
+		TRUE,
+	},
 };
 
 /***
@@ -3180,8 +3199,8 @@ settings_callbacks_init(void)
         init_list[n] = FALSE;
 
     if (GNET_PROPERTY(dbg) >= 2) {
-        g_debug("settings_callbacks_init: property_map size: %u",
-            (uint) PROPERTY_MAP_SIZE);
+        g_debug("%s: property_map size: %u",
+            G_STRFUNC, (uint) PROPERTY_MAP_SIZE);
     }
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
@@ -3189,7 +3208,7 @@ settings_callbacks_init(void)
         uint32 idx = prop - GNET_PROPERTY_MIN;
 
         if (init_list[idx]) {
-            g_error("settings_callbacks_init: property %u already mapped", n);
+            g_error("%s: property %u already mapped", G_STRFUNC, n);
 		}
 
 		init_list[idx] = TRUE;
@@ -3199,16 +3218,16 @@ settings_callbacks_init(void)
                 property_map[n].cb,
                 property_map[n].init);
         } else if (GNET_PROPERTY(dbg) >= 10) {
-            g_warning("settings_callbacks_init: property ignored: %s",
-				gnet_prop_name(prop));
+            g_warning("%s: property ignored: %s",
+				G_STRFUNC, gnet_prop_name(prop));
         }
     }
 
     if (GNET_PROPERTY(dbg) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
-                g_message("settings_callbacks_init: unmapped property: %s",
-					gnet_prop_name(n+GNET_PROPERTY_MIN));
+                g_message("%s: unmapped property: %s",
+					G_STRFUNC, gnet_prop_name(n+GNET_PROPERTY_MIN));
         }
     }
 }
