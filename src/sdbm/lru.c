@@ -609,6 +609,34 @@ lru_invalidate(DBM *db, long bno)
 }
 
 /**
+ * Compute the file offset right after the last dirty page of the cache.
+ *
+ * @return 0 if no dirty page, the offset after the last dirty one otherwise.
+ */
+fileoffset_t
+lru_tail_offset(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+	long pages, n, bno;
+
+	sdbm_lru_check(cache);
+
+	pages = MIN(cache->pages, cache->next);
+
+	for (bno = -1, n = 0; n < pages; n++) {
+		long num;
+
+		if (!cache->dirty[n])
+			continue;
+
+		num = cache->numpag[n];
+		bno = MAX(bno, num);
+	}
+
+	return OFF_PAG(bno + 1);
+}
+
+/**
  * Get a suitable buffer in the cache to read a page and set db->pagbuf
  * accordingly.
  *

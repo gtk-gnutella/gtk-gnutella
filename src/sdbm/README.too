@@ -180,3 +180,10 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Fixed page splits to make them work with large keys.
 * Added detection of regular API usage to store/fetch/delete entries from
   within an iteration loop.
+
+Sun Oct 21 14:52:42 CEST 2012
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Fixed SDBM iteration in the presence of unflushed dirty LRU pages.
+

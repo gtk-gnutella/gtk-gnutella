@@ -4,6 +4,7 @@
 #define lru_cached_page sdbm__lru_cached_page
 #define lru_discard sdbm__lru_discard
 #define lru_invalidate sdbm__lru_invalidate
+#define lru_tail_offset sdbm__lru_tail_offset
 #define readbuf sdbm__readbuf
 #define flushpag sdbm__flushpag
 #define dirtypag sdbm__dirtypag
@@ -24,3 +25,4 @@ bool cachepag(DBM *, char *, long);
 char *lru_cached_page(DBM *, long);
 void lru_discard(DBM *, long);
 void lru_invalidate(DBM *, long);
+fileoffset_t lru_tail_offset(const DBM *);

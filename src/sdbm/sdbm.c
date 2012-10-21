@@ -1141,6 +1141,24 @@ sdbm_firstkey(DBM *db)
 
 	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
+
+#ifdef LRU
+	if (db->cache != NULL) {
+		fileoffset_t lrutail;
+
+		/*
+		 * Ask the LRU for the highest dirty page it has in stock, to possibly
+		 * amend the db->pagtail value: we need to iterate over the data held
+		 * in the LRU cache!
+		 *		--RAM, 2012-10-21
+		 */
+
+		lrutail = lru_tail_offset(db);
+		if (lrutail > db->pagtail)
+			db->pagtail = lrutail - 1;	/* This is the real database end */
+	}
+#endif	/* LRU */
+
 	if G_UNLIKELY(db->pagtail < 0)
 		return iteration_done(db);
 
