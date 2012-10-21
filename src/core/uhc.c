@@ -49,12 +49,13 @@
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
-#include "lib/halloc.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -160,15 +161,12 @@ uhc_get_host_port(const char *hp, const char **host, uint16 *port)
 static struct uhc *
 uhc_new(const char *host)
 {
-	static const struct uhc zero_uhc;
 	struct uhc *uhc;
 
-	g_assert(host);
-	uhc = g_malloc(sizeof *uhc);
-	*uhc = zero_uhc;
+	g_assert(host != NULL);
+
+	WALLOC0(uhc);
 	uhc->host = atom_str_get(host);
-	uhc->stamp = 0;
-	uhc->used = 0;
 	return uhc;
 }
 
@@ -178,7 +176,7 @@ uhc_free(struct uhc **ptr)
 	if (*ptr) {	
 		struct uhc *uu = *ptr;
 		atom_str_free_null(&uu->host);
-		G_FREE_NULL(uu);
+		WFREE(uu);
 		*ptr = NULL;
 	}
 }
@@ -215,7 +213,7 @@ uhc_list_add(const char *host)
 	}
 
 	if (GNET_PROPERTY(bootstrap_debug) > 1)
-			g_debug("Adding UHC %s", host);
+		g_debug("adding UHC %s", host);
 			
 	if (random_value(100) < 50) {
 		hash_list_append(uhc_list, uhc);
@@ -444,7 +442,6 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 		}
 		
 		hash_list_remove(uhc_list, uhc);
-		
 		uhc_try_random();
 		
 		return;
