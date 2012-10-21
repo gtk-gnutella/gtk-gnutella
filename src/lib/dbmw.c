@@ -72,6 +72,7 @@ struct dbmw {
 	size_t value_size;			/**< Maximum size of values (structure) */
 	size_t value_data_size;		/**< Maximum size of values (serialized form) */
 	size_t max_cached;			/**< Max amount of items to cache */
+	ssize_t cached;				/**< Cached entries not present in dbmap */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
@@ -172,7 +173,7 @@ dbmw_count(dbmw_t *dw)
 	if (dw->count_needs_sync)
 		dbmw_sync(dw, DBMW_SYNC_CACHE);
 
-	return dbmap_count(dw->dm);
+	return dbmap_count(dw->dm) + dw->cached;
 }
 
 /**
@@ -325,10 +326,9 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 			if (dval.len > dw->value_data_size) {
 				/* Don't g_carp() as this is asynchronous wrt data change */
 				g_critical("DBMW \"%s\" serialization overflow in %s() "
-					"whilst %s dirty entry",
+					"whilst flushing dirty entry",
 					dw->name,
-					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE),
-					value->absent ? "deleting" : "flushing");
+					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE));
 				return FALSE;
 			}
 		} else {
@@ -573,6 +573,7 @@ struct foreach_ctx {
 	union {
 		dbmw_cb_t cb;
 		dbmw_cbr_t cbr;
+		void *any;			/* For logging the function pointer */
 	} u;
 	void *arg;
 	dbmw_t *dw;
@@ -588,7 +589,9 @@ struct cache_foreach_ctx {
 		dbmap_cbr_t cbr;
 	} u;
 	unsigned removing:1;	/* Union discriminant */
+	unsigned warned_clean_key:1;	/* Did we warn during cache traversal? */
 	size_t removed;			/* Counts cached entries that are removed */
+	size_t cached;			/* Counts cached entries not present in dbmap */
 };
 
 /**
@@ -608,8 +611,26 @@ cache_finish_traversal(void *key, void *value, void *data)
 #define dw	fctx->foreach->dw
 
 	if (dbg_ds_debugging(dw->dbg, 3, DBG_DSF_ITERATOR)) {
-		dbg_ds_log(dw->dbg, dw, "%s: traversing cached key=%s",
-			G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		dbg_ds_log(dw->dbg, dw, "%s: traversing cached %s key=%s%s",
+			G_STRFUNC, entry->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			entry->absent ? " (absent)" : "");
+	}
+
+	if (entry->absent)
+		return;				/* Entry not there, just caching it is missing */
+
+	/*
+	 * We should not be traversing a clean entry at this stage: if the entry
+	 * is clean, it means it was flushed to the database, and we should
+	 * have traversed it already.  Loudly warn, but process anyway!
+	 */
+
+	if (!entry->dirty && !fctx->warned_clean_key) {
+		fctx->warned_clean_key = TRUE;
+		g_carp("%s(): DBMW \"%s\" iterating via %s over a clean key in cache",
+			G_STRFUNC, dw->name,
+			stacktrace_routine_name(fctx->foreach->u.any, FALSE));
 	}
 
 #undef dw
@@ -621,13 +642,21 @@ cache_finish_traversal(void *key, void *value, void *data)
 	 * We ignore the returned value because to-be-removed data (when traversing
 	 * for removal) will be marked as "removable": we can't delete them yet as
 	 * we are traversing the cache structure already.
+	 *
+	 * For values we're keeping, we increment the cached count: these are keys
+	 * present in the cache but not in the underlying database because they
+	 * have not been flushed yet.  Knowing this count allows us to compute an
+	 * accurate item count without flushing.
 	 */
 
 	if (fctx->removing) {
 		if ((*fctx->u.cbr)(key, &d, fctx->foreach))
 			fctx->removed++;	/* Item removed in cache_free_removable() */
+		else
+			fctx->cached++;
 	} else {
 		(*fctx->u.cb)(key, &d, fctx->foreach);
+		fctx->cached++;
 	}
 }
 
@@ -722,8 +751,18 @@ dbmw_sync(dbmw_t *dw, int which)
 		}
 
 		map_foreach(dw->values, flush_dirty, &ctx);
-		if (!ctx.error)
+
+		if (!ctx.error && !ctx.deleted_only)
 			dw->count_needs_sync = FALSE;
+
+		/*
+		 * We can safely reset the amount of cached entries to 0, regardless
+		 * of whether we only sync'ed deleted entries: that value is rather
+		 * meaningless when ``count_needs_sync'' is TRUE anyway since we will
+		 * come here first, and we'll then reset it to zero.
+		 */
+
+		dw->cached = 0;		/* No more dirty values */
 
 		amount += ctx.amount;
 		values = ctx.amount;
@@ -877,8 +916,8 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
 
 		if (entry->dirty)
 			dw->w_hits++;
-		else if (entry->absent)
-			dw->count_needs_sync = TRUE;	/* Key exists now */
+		if (entry->absent)
+			dw->cached++;			/* Key exists now, in unflushed status */
 		fill_entry(dw, entry, value, length);
 		hash_list_moveto_tail(dw->keys, key);
 
@@ -1117,7 +1156,23 @@ dbmw_delete(dbmw_t *dw, const void *key)
 		if (entry->dirty)
 			dw->w_hits++;
 		if (!entry->absent) {
-			dw->count_needs_sync = TRUE;	/* Deferred delete */
+			/*
+			 * Entry was present but is now deleted.
+			 *
+			 * If it was clean, then it was flushed to the database and we now
+			 * know that there is one less entry in the database than there is
+			 * physically present in the map.
+			 *
+			 * If it was dirty, then we do not know whether it exists in the
+			 * database or not, and therefore we cannot adjust the amount
+			 * of cached entries down.
+			 */
+
+			if (entry->dirty)
+				dw->count_needs_sync = TRUE;	/* Deferred delete */
+			else
+				dw->cached--;					/* One less entry in database */
+
 			fill_entry(dw, entry, NULL, 0);
 			entry->absent = TRUE;
 		}
@@ -1212,6 +1267,7 @@ dbmw_clear(dbmw_t *dw)
 	dbmw_clear_cache(dw);
 	dw->ioerr = FALSE;
 	dw->count_needs_sync = FALSE;
+	dw->cached = 0;
 
 	return TRUE;
 }
@@ -1301,12 +1357,20 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 		 *   - Should the cached key need to be deleted (as determined by
 		 *     the user callback, we make sure we delete the entry in the
 		 *     cache upon callback return).
+		 *
+		 * Because we sync the cache (the dirty deleted items only), we should
+		 * normally never iterate on a deleted entry, coming from the
+		 * underlying database, hence we loudly complain!
 		 */
 
 		entry->traversed = TRUE;	/* Signal we iterated on cached value */
 
-		if (entry->absent)
+		if (entry->absent) {
+			g_carp("%s(): DBMW \"%s\" iterating over a %s absent key in cache!",
+				G_STRFUNC, dw->name, entry->dirty ? "dirty" : "clean");
 			return TRUE;		/* Key was already deleted, info cached */
+		}
+
 		if (removing) {
 			bool status;
 			status = (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
@@ -1424,6 +1488,10 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	/*
 	 * Continue traversal with all the cached entries that were not traversed
 	 * already because they do not exist in the underlying map.
+	 *
+	 * We count these and remember how many there are so that we can determine
+	 * the correct overall item count after an iteration without having to
+	 * flush all the dirty values!
 	 */
 
 	ZERO(&fctx);
@@ -1431,10 +1499,14 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	fctx.u.cb = dbmw_foreach_trampoline;
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
+	dw->cached = fctx.cached;
+	dw->count_needs_sync = FALSE;	/* We just counted items the slow way! */
 
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
-		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)", G_STRFUNC,
-			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg);
+		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)"
+			"has %zu unflushed entr%s in cache", G_STRFUNC,
+			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg,
+			dw->cached, 1 == dw->cached ? "y" : "ies");
 	}
 }
 
@@ -1483,7 +1555,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	map_foreach(dw->values, cache_reset_before_traversal, NULL);
 	pruned = dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
 
-	fctx.removed = 0;
+	ZERO(&fctx);
 	fctx.removing = TRUE;
 	fctx.foreach = &ctx;
 	fctx.u.cbr = dbmw_foreach_remove_trampoline;
@@ -1492,6 +1564,10 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	 * Continue traversal with all the cached entries that were not traversed
 	 * already because they do not exist in the underlying map.
 	 *
+	 * We count these and remember how many there are so that we can determine
+	 * the correct overall item count after an iteration without having to
+	 * flush all the dirty values!
+	 *
 	 * Any cached entry that needs to be removed will be marked as such
 	 * and we'll complete processing by discarding from the cache all
 	 * the entries that have been marked as "removable" during the traversal.
@@ -1499,13 +1575,17 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
 	map_foreach_remove(dw->values, cache_free_removable, dw);
+	dw->cached = fctx.cached;
+	dw->count_needs_sync = FALSE;	/* We just counted items the slow way! */
 
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
 		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p): "
-			"pruned %zu from dbmap, %zu from cache (%zu total)",
+			"pruned %zu from dbmap, %zu from cache (%zu total), "
+			"has %zu unflushed entr%s in cache",
 			G_STRFUNC,
 			stacktrace_routine_name(func_to_pointer(cbr), FALSE), arg,
-			pruned, fctx.removed, pruned + fctx.removed);
+			pruned, fctx.removed, pruned + fctx.removed,
+			dw->cached, 1 == dw->cached ? "y" : "ies");
 	}
 
 	return pruned + fctx.removed;
