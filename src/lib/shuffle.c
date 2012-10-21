@@ -43,6 +43,7 @@
 /**
  * Randomly shuffle array in-place using supplied random function.
  *
+ * @param rf	the random function to use
  * @param b		the base of the array
  * @param n		amount of items in array
  * @param s		size of items in array
