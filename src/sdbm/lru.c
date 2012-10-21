@@ -30,11 +30,13 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 #ifdef LRU
+enum sdbm_lru_magic { SDBM_LRU_MAGIC = 0x6a6daa37 };
 
 /**
  * The LRU page cache.
  */
 struct lru_cache {
+	enum sdbm_lru_magic magic;	/* Magic number */
 	htable_t *pagnum;			/* Associates page number to cached index */
 	hash_list_t *used;			/* Ordered list of used cache indices */
 	slist_t *available;			/* Available indices */
@@ -49,6 +51,13 @@ struct lru_cache {
 	unsigned long whits;		/* Stats: amount of cache hits on writes */
 	unsigned long wmisses;		/* Stats: amount of cache misses on writes */
 };
+
+static inline void
+sdbm_lru_check(const struct lru_cache * const c)
+{
+	g_assert(c != NULL);
+	g_assert(SDBM_LRU_MAGIC == c->magic);
+}
 
 /**
  * Setup allocated LRU page cache.
@@ -98,6 +107,7 @@ init_cache(DBM *db, long pages, bool wdelay)
 	g_assert(NULL == db->cache);
 
 	WALLOC0(cache);
+	cache->magic = SDBM_LRU_MAGIC;
 	if (-1 == setup_cache(cache, pages, wdelay)) {
 		WFREE(cache);
 		return -1;
@@ -111,15 +121,11 @@ init_cache(DBM *db, long pages, bool wdelay)
  */
 void lru_init(DBM *db)
 {
-	struct lru_cache *cache;
-
 	g_assert(NULL == db->cache);
 	g_assert(-1 == db->pagbno);		/* We must be called before first access */
 
-	WALLOC0(cache);
-	if (-1 == setup_cache(cache, LRU_PAGES, FALSE))
+	if (-1 == init_cache(db, LRU_PAGES, FALSE))
 		g_error("out of virtual memory");
-	db->cache = cache;
 }
 
 static void
@@ -128,6 +134,8 @@ log_lrustats(DBM *db)
 	struct lru_cache *cache = db->cache;
 	unsigned long raccesses = cache->rhits + cache->rmisses;
 	unsigned long waccesses = cache->whits + cache->wmisses;
+
+	sdbm_lru_check(cache);
 
 	g_info("sdbm: \"%s\" LRU cache size = %ld page%s, %s writes, %s DB",
 		sdbm_name(db), cache->pages, 1 == cache->pages ? "" : "s",
@@ -174,7 +182,11 @@ flush_dirtypag(DBM *db)
 	int n;
 	ssize_t amount = 0;
 	int saved_errno = 0;
-	long pages = MIN(cache->pages, cache->next);
+	long pages;
+
+	sdbm_lru_check(cache);
+
+	pages = MIN(cache->pages, cache->next);
 
 	for (n = 0; n < pages; n++) {
 		if (cache->dirty[n]) {
@@ -204,6 +216,8 @@ setcache(DBM *db, long pages)
 {
 	struct lru_cache *cache = db->cache;
 	bool wdelay;
+
+	sdbm_lru_check(cache);
 
 	if (pages <= 0) {
 		errno = EINVAL;
@@ -296,6 +310,8 @@ setwdelay(DBM *db, bool on)
 	if (NULL == cache)
 		return init_cache(db, LRU_PAGES, on);
 
+	sdbm_lru_check(cache);
+
 	if (on == cache->write_deferred)
 		return 0;
 
@@ -321,6 +337,8 @@ void lru_close(DBM *db)
 	struct lru_cache *cache = db->cache;
 
 	if (cache) {
+		sdbm_lru_check(cache);
+
 		if (!db->is_volatile)
 			flush_dirtypag(db);
 
@@ -328,6 +346,7 @@ void lru_close(DBM *db)
 			log_lrustats(db);
 
 		free_cache(cache);
+		cache->magic = 0;
 		WFREE(cache);
 	}
 
@@ -344,7 +363,11 @@ bool
 dirtypag(DBM *db, bool force)
 {
 	struct lru_cache *cache = db->cache;
-	long n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
+	long n;
+
+	sdbm_lru_check(cache);
+
+	n = (db->pagbuf - cache->arena) / DBM_PBLKSIZ;
 
 	g_assert(n >= 0 && n < cache->pages);
 	g_assert(db->pagbno == cache->numpag[n]);
@@ -497,6 +520,7 @@ lru_cached_page(DBM *db, long num)
 	struct lru_cache *cache = db->cache;
 	void *value;
 
+	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 
 	if (
@@ -524,7 +548,11 @@ lru_discard(DBM *db, long bno)
 {
 	struct lru_cache *cache = db->cache;
 	int n;
-	long pages = MIN(cache->pages, cache->next);
+	long pages;
+
+	sdbm_lru_check(cache);
+
+	pages = MIN(cache->pages, cache->next);
 
 	for (n = 0; n < pages; n++) {
 		long num = cache->numpag[n];
@@ -549,6 +577,8 @@ lru_invalidate(DBM *db, long bno)
 {
 	struct lru_cache *cache = db->cache;
 	void *value;
+
+	sdbm_lru_check(cache);
 
 	if (
 		htable_lookup_extended(cache->pagnum,
@@ -596,6 +626,7 @@ readbuf(DBM *db, long num, bool *loaded)
 	long idx;
 	bool good_page;
 
+	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 
 	if (
@@ -636,6 +667,7 @@ cachepag(DBM *db, char *pag, long num)
 	struct lru_cache *cache = db->cache;
 	void *value;
 
+	sdbm_lru_check(cache);
 	g_assert(num >= 0);
 
 	/*
