@@ -823,6 +823,18 @@ gnet_stats_set_general(gnr_stats_t type, uint64 value)
     gnet_stats.general[i] = value;
 }
 
+/**
+ * Get the general stats counter.
+ */
+uint64
+gnet_stats_get_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+	return gnet_stats.general[i];
+}
+
 void
 gnet_stats_count_dropped_nosize(
 	const gnutella_node_t *n, msg_drop_reason_t reason)
