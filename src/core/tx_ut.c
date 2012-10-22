@@ -215,7 +215,7 @@
 
 #define tx_ut_debugging(mask, to) \
 	G_UNLIKELY((GNET_PROPERTY(tx_ut_debug_flags) & (mask)) && \
-		(NULL == to || tx_debug_host(to)))
+		(NULL == (to) || tx_debug_host(to)))
 
 enum tx_ut_attr_magic { TX_UT_ATTR_MAGIC = 0x7d93d0a9 };
 
@@ -462,10 +462,10 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG, um->to)) {
 		g_debug("TX UT[%s]: %s: %s message "
-			"(%d bytes, %u/%u fragment%s %s) to %s",
+			"(%d bytes, seq=0x%04x, %u/%u fragment%s %s) to %s",
 			nid_to_string(&um->mid), G_STRFUNC,
 			um->fragsent == um->fragcnt ? "sent" : "dropped",
-			pmsg_size(um->mb), um->fragsent, um->fragcnt,
+			pmsg_size(um->mb), um->seqno, um->fragsent, um->fragcnt,
 			1 == um->fragsent ? "" : "s",
 			um->reliable ? "ack'ed" : "sent", gnet_host_to_string(um->to));
 	}
@@ -493,7 +493,6 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			(*attr->cb->add_tx_dropped)(attr->tx->owner, 1);
 
 		gnet_stats_count_general(GNR_UDP_SR_TX_MESSAGES_UNSENT, 1);
-
 		if (um->reliable)
 			gnet_stats_count_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_UNSENT, 1);
 	}
@@ -651,7 +650,7 @@ ut_resend_iterate(cqueue_t *unused_cq, void *obj)
 		return;
 
 	/*
-	 * We're getting ACKs for our fragment, send more.
+	 * We're getting ACKs for our fragments, send more.
 	 */
 
 	um->alpha++;
@@ -721,8 +720,7 @@ ut_frag_resend(cqueue_t *unused_cq, void *obj)
 
 	if (uf->pending) {				/* Was pending ACK */
 		um->pending--;
-		if (um->alpha != 0)
-			um->alpha /= 2;			/* Decrease sending parallelism */
+		um->alpha /= 2;				/* Decrease sending parallelism */
 	}
 
 	/*
@@ -792,6 +790,21 @@ ut_frag_hook(const pmsg_t *mb)
 	return TRUE;			/* OK, can send fragment */
 
 do_not_send:
+	if (tx_ut_debugging(TX_UT_DBG_FRAG, NULL == um ? NULL : um->to)) {
+		struct attr *attr = pmi->attr;
+		uint16 seqno = udp_reliable_header_get_seqno(pmsg_start(mb));
+
+		g_debug("TX UT[%s]: %s: dropping fragment #%u to %s "
+			"(tag=\"%s\", seq=0x%04x): %s",
+			NULL == um ? "-" : nid_to_string(&um->mid),
+			G_STRFUNC, pmi->fragno + 1,
+			NULL == um ? "???" : gnet_host_to_string(um->to),
+			udp_tag_to_string(attr->tag), seqno,
+			NULL == um ? "message expired" :
+				um->reliable ? "fragment already ACK'ed" :
+				"fragment already sent");
+	}
+
 	gnet_stats_count_general(GNR_UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED, 1);
 	return FALSE;
 }
@@ -867,6 +880,20 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		} else {
 			ut_frag_free(uf, TRUE);
 		}
+
+		/*
+		 * If this is the first fragment being sent, reschedule the expiration
+		 * with the original time: as far as the recipient goes, this is when
+		 * we started emitting the message.
+		 *
+		 * This is important when the UDP TX scheduler is clogged with unsent
+		 * traffic, because it will then keep dropping our fragments and the
+		 * message could globally expire before we even could send the first
+		 * fragment!
+		 */
+
+		if (1 == um->fragtx)
+			cq_resched(um->expire_ev, TX_UT_EXPIRE_MS);
 	} else {
 		/*
 		 * Fragment was dropped by lower layer (expired, probably).
@@ -1339,13 +1366,16 @@ ut_um_expired(cqueue_t *unused_cq, void *obj)
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: message for %s expired "
 			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s %s, "
-			"%u transmitted with %u re-transmissions)",
+			"%u transmitted with %u re-transmissions, %u pending ACK%s, "
+			"%u fragment%s pending TX)",
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
 			um->fragcnt, 1 == um->fragsent ? "" : "s",
 			um->reliable ? "ack-ed" : "sent",
-			um->fragtx, um->fragtx2);
+			um->fragtx, um->fragtx2,
+			um->pending, 1 == um->pending ? "" : "s",
+			elist_count(&um->resend), 1 == elist_count(&um->resend) ? "" : "s");
 	}
 
 	/*
