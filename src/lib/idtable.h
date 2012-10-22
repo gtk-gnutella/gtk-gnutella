@@ -64,6 +64,7 @@ typedef struct idtable idtable_t;
 idtable_t *idtable_new(int bits);
 void idtable_destroy(idtable_t *table);
 size_t idtable_count(idtable_t *tbl);
+size_t idtable_max_id(idtable_t *tbl);
 uint32 idtable_new_id(idtable_t *tbl, void *value);
 bool idtable_try_new_id(idtable_t *tbl, uint32 *id, void *value);
 void idtable_free_id(idtable_t *tbl, uint32 id);

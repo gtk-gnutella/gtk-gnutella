@@ -237,6 +237,18 @@ idtable_count(idtable_t *tbl)
 	return htable_count(tbl->ht);
 }
 
+/**
+ * @return the highest possible ID of the table.
+ */
+size_t
+idtable_max_id(idtable_t *tbl)
+{
+	idtable_check(tbl);
+
+	return tbl->mask;
+}
+
+
 struct idtable_foreach_ctx {
 	data_fn_t cb;
 	void *data;
