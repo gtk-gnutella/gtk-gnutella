@@ -60,8 +60,18 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define RX_UT_EXPIRE_MS	(60*1000)	/* Expiration time for RX messages, in ms */
-#define RX_UT_DELAY_MS	250			/* ACK delay: 250 ms */
+/*
+ * It is important to have the RX expiration time be a little bit larger than
+ * the TX expiration time to account for transmission delays.
+ *
+ * The ACK delay time must be significantly smaller than the retransmission
+ * timeout, to avoid undue TX activity because we're holding the ACK, yet it
+ * must be large enough to make waiting worth it, i.e. get enough fragments
+ * during the holding period.
+ */
+
+#define RX_UT_EXPIRE_MS	(70*1000)	/* Expiration time for RX messages, in ms */
+#define RX_UT_DELAY_MS	500			/* ACK delay: 500 ms -- must be << 5 s */
 
 #define RX_UT_DBG_MSG		(1U << 0)	/* Messages */
 #define RX_UT_DBG_FRAG		(1U << 1)	/* Fragments */
@@ -71,7 +81,7 @@
 
 #define rx_ut_debugging(mask, from) \
 	G_UNLIKELY((GNET_PROPERTY(rx_ut_debug_flags) & (mask)) && \
-		(NULL == from || rx_debug_host(from)))
+		(NULL == (from) || rx_debug_host(from)))
 
 enum rx_ut_attr_magic { RX_UT_ATTR_MAGIC = 0x118e9a01 };
 
