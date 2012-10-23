@@ -702,16 +702,21 @@ zlib_deflate(zlib_deflater_t *zd, int amount)
 /**
  * Deflate all the data supplied during zlib_deflater_reset().
  *
- * @return -1 on error, 1 if work remains (which would be an error as well
- * since we're processing all the data that remain), 0 when done.
+ * @return -1 on error, 0 when done.
  */
 int
 zlib_deflate_all(zlib_deflater_t *zd)
 {
+	int ret;
+
 	zlib_deflater_check(zd);
 	g_assert(zd->zs.in != NULL);		/* Data to deflate supplied */
 
-	return zlib_stream_process_step(&zd->zs, zd->zs.inlen, 0, FALSE, TRUE);
+	ret = zlib_stream_process_step(&zd->zs, zd->zs.inlen, 0, FALSE, TRUE);
+
+	g_assert(ret != 1);		/* Must have processed the whole input */
+
+	return ret;
 }
 
 /**

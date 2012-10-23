@@ -291,21 +291,14 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 		goto send_raw;
 
 	/*
-	 * Compress payload internally allocated buffer (in gmsg_deflater).
+	 * Compress payload into internally allocated buffer (in gmsg_deflater).
 	 */
 
 	zlib_deflater_reset(gmsg_deflater, data, plen);
 
-	switch (zlib_deflate_all(gmsg_deflater)) {
-	case -1:
+	if (-1 == zlib_deflate_all(gmsg_deflater)) {
 		g_carp("%s(): deflate error", G_STRFUNC);
 		goto send_raw;
-		break;
-	case 0:
-		break;
-	case 1:
-		g_error("did not deflate the whole input");
-		break;
 	}
 
 	/*
