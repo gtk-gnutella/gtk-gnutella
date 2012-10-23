@@ -1367,7 +1367,7 @@ ut_um_expired(cqueue_t *unused_cq, void *obj)
 		g_debug("TX UT[%s]: %s: message for %s expired "
 			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s %s, "
 			"%u transmitted with %u re-transmissions, %u pending ACK%s, "
-			"%u fragment%s pending TX)",
+			"%zu fragment%s pending TX)",
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
