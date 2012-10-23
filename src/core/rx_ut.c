@@ -515,6 +515,8 @@ ut_assemble_message(struct ut_rmsg *um)
 		unsigned i;
 
 		len = iov_calculate_size(um->fragments, um->fragcnt);
+		if (0 == len)
+			goto empty;
 		mb = pmsg_new(PMSG_P_DATA, NULL, len);
 
 		for (i = 0; i < um->fragcnt; i++) {
@@ -529,15 +531,32 @@ ut_assemble_message(struct ut_rmsg *um)
 	return;
 
 drop:
-	if (rx_ut_debugging(RX_UT_DBG_MSG, um->id.from)) {
+	if (
+		GNET_PROPERTY(udp_debug) ||
+		rx_ut_debugging(RX_UT_DBG_MSG, um->id.from)
+	) {
+		size_t len = iov_calculate_size(um->fragments, um->fragcnt);
 		g_warning("RX UT[%s]: %s: inflation error for message from %s "
+			"(seq=0x%04x, %u fragment%s, %zu byte%s)",
+			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			gnet_host_to_string(um->id.from),
+			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s",
+			len, 1 == len ? "" : "s");
+	}
+
+	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR, 1);
+	return;
+
+empty:
+	if (rx_ut_debugging(RX_UT_DBG_MSG, um->id.from)) {
+		g_warning("RX UT[%s]: %s: dropping empty message from %s "
 			"(seq=0x%04x, %u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
 			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s");
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR, 1);
+	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_EMPTY, 1);
 }
 
 /**

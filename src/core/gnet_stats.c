@@ -230,6 +230,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_sr_rx_messages_inflated",
 		"udp_sr_rx_messages_inflation_error",
 		"udp_sr_rx_messages_unreliable",
+		"udp_sr_rx_messages_empty",
 		"udp_sr_rx_total_acks_sent",
 		"udp_sr_rx_cumulative_acks_sent",
 		"udp_sr_rx_extended_acks_sent",

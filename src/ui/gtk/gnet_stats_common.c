@@ -207,6 +207,7 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP messages inflated successfully"),
 		N_("Semi-reliable UDP messages inflated incorrectly"),
 		N_("Semi-reliable UDP unreliable messages received"),
+		N_("Semi-reliable UDP empty messages received"),
 		N_("Semi-reliable UDP total acknowledgments sent"),
 		N_("Semi-reliable UDP cumulative acknowledgments sent"),
 		N_("Semi-reliable UDP extended acknowledgments sent"),
