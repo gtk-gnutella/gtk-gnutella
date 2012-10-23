@@ -453,6 +453,11 @@ resume:
 
 	switch (ret) {
 	case Z_OK:
+		if (0 == z->avail_out) {
+			if (zlib_stream_grow_output(zs, maxout))
+				goto resume;	/* Process remaining input */
+			goto error;			/* Cannot continue */
+		}
 		return 1;				/* Need to call us again */
 		/* NOTREACHED */
 
