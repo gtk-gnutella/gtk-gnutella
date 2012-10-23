@@ -2,8 +2,7 @@
 
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
-                        September 23rd, 2012
-                         October, 7th, 2012
+                         October, 23rd, 2012
 
 
 1. OVERVIEW
@@ -261,7 +260,7 @@ should have the acknowledge request bit set.
 
 2.8 Extended Acknowledgments
 
-[This part is my addition to the original G2 specifications --RAM]
+[2.8 and beyond are my additions to the original G2 specifications --RAM]
 
 Because acknowledgment messages can be lost in the way or arrive out of
 order, it is best to include as much of the reception state as possible so
@@ -352,6 +351,57 @@ realize it did not get them and therefore stop retransmission with less data
 transferred than if fragments were systematically resent on timeout.
 
 
+2.10 Extra Acknowledgment Requests
+
+An Extra Acknowledgment Request (EAR) is a special message that can be sent
+by the transmission side (TX side, for short) to request an acknowledgment
+(ACK) from the receiving side (RX side) for everything that was successfully
+received so far for a particular sequence ID.
+
+After sending all the fragments initially, and before resending a fragment
+upon not getting any ACK back, the TX side can send an EAR, which will be
+hopefully answered to by the RX side.  This serves two purposes:
+
+1. It cheaply requests that another ACK be sent by the RX side, in case the
+   previous one was lost on its way back.
+
+2. It avoid resending fragments uselessly if there is nobody listening on the
+   other end.
+
+An EAR is kind of an ACK message, albeit it has nPart = 0 and nCount = 0.
+Moreover, the 0x02 bit in nFlags is set (ACK requested) to indicate that this
+message must somehow be replied to.  The 0x01 bit MUST be cleared as well: its
+payload is never deflated (there is none).
+
+It is easy to recognize the EAR for what it is because no valid ACK will have
+a nPart field set to zero.
+
+When the RX side gets an EAR, it looks at its nSequence field:
+
+    - If it knows the sequence ID, it has already started to receive fragments
+      for this message.  In that case, it immediately acknowledges the EAR
+      by sending back an ACK for the sequence ID, describing what has been
+      received so far.  It can be a cumulative or an extended ACK.
+
+    - If it does not know the sequence ID, it means no fragments were received
+      so far.  In that case, it immediately negatively acknowledges the EAR
+      by sending back another EAR but with the 0x02 bit in nFlags cleared!
+      This indicates to the TX side receiving the EAR that it is actually an
+      ACK for the EAR it sent, not an EAR that it must respond to.
+
+The TX side then either gets an ACK or an EAR back, and it knows that the
+remote host is up, as well as how many fragments it has received so far.
+It can then proceed with re-transmission.
+
+If the TX side gets nothing back after sending an EAR and waiting 5 seconds,
+it resends another EAR, waiting for 7.5 seconds before sending a final EAR
+and waiting 11 seconds for a reply (same parameters as for a regular fragment).
+
+After 3 EARs sent and no reply received, the TX side can assume the other end
+is not listening and it can drop the message.  Fragments will only have been
+sent once.
+
+
 3. SEMI-RELIABLE NEGOCIATION
 
 Because legacy servents do not know about this new semi-reliable UDP layer,
@@ -418,5 +468,12 @@ The discriminating logic implemented by gtk-gnutella is more complex than that
 and involves deeper inspection, but the above logic should be able to only
 mis-classify 1 message out of 1 billion, which in practice should not create
 problems.
+
+
+5. HISTORY
+
+2012-09-23: first version.
+2012-10-07: added Delayed Acknowledgments.
+2012-10-23: added Extra Acknowledgment Requests.
 
 Raphael
