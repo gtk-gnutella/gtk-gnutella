@@ -791,15 +791,16 @@ ut_frag_hook(const pmsg_t *mb)
 
 do_not_send:
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, NULL == um ? NULL : um->to)) {
-		struct attr *attr = pmi->attr;
-		uint16 seqno = udp_reliable_header_get_seqno(pmsg_start(mb));
+		const void *pdu = pmsg_start(mb);
+		udp_tag_t tag = udp_reliable_header_get_tag(pdu);
+		uint16 seqno = udp_reliable_header_get_seqno(pdu);
 
 		g_debug("TX UT[%s]: %s: dropping fragment #%u to %s "
 			"(tag=\"%s\", seq=0x%04x): %s",
 			NULL == um ? "-" : nid_to_string(&um->mid),
 			G_STRFUNC, pmi->fragno + 1,
 			NULL == um ? "???" : gnet_host_to_string(um->to),
-			udp_tag_to_string(attr->tag), seqno,
+			udp_tag_to_string(tag), seqno,
 			NULL == um ? "message expired" :
 				um->reliable ? "fragment already ACK'ed" :
 				"fragment already sent");
