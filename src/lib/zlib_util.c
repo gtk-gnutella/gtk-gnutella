@@ -356,6 +356,49 @@ zlib_stream_reset_into(zlib_stream_t *zs,
 }
 
 /**
+ * Attempt to grow the output buffer.
+ *
+ * @param zs		the zlib stream object
+ * @param maxout	maximum length of dynamically-allocated buffer (0 = none)
+ *
+ * @return TRUE if we can resume processing after the output buffer was
+ * expanded, FALSE if the buffer cannot be expanded (not dynamically allocated
+ * or reached the maximum size).
+ */
+static bool
+zlib_stream_grow_output(zlib_stream_t *zs, size_t maxout)
+{
+	if (zs->allocated) {
+		z_streamp z = zs->z;
+
+		/*
+		 * Limit growth if asked to do so.
+		 *
+		 * This is used when inflating, usually, to avoid being given a small
+		 * amount of data that will expand into megabytes...
+		 */
+
+		if (maxout != 0 && zs->outlen >= maxout) {
+			g_warning("%s(): reached maximum buffer size (%zu bytes): "
+				"input=%zu, output=%zu",
+				G_STRFUNC, maxout, zs->inlen, zs->outlen);
+			return FALSE;	/* Cannot continue */
+		}
+
+		zs->outlen += OUT_GROW;
+		zs->out = hrealloc(zs->out, zs->outlen);
+		z->next_out = ptr_add_offset(zs->out, zs->outlen - OUT_GROW);
+		z->avail_out = OUT_GROW;
+		return TRUE;	/* Can process remaining input */
+	}
+
+	g_warning("%s(): under-estimated output buffer size: "
+		"input=%zu, output=%zu", G_STRFUNC, zs->inlen, zs->outlen);
+
+	return FALSE;		/* Cannot continue */
+}
+
+/**
  * Incrementally process more data.
  *
  * @param zs		the zlib stream object
@@ -410,31 +453,21 @@ resume:
 
 	switch (ret) {
 	case Z_OK:
-		if (0 == z->avail_out) {
-			if (zs->allocated) {
-				/*
-				 * Limit inflation growth if asked to do so.
-				 */
-
-				if (maxout != 0 && zs->outlen >= maxout)
-					goto error;
-
-				zs->outlen += OUT_GROW;
-				zs->out = hrealloc(zs->out, zs->outlen);
-				z->next_out = ptr_add_offset(zs->out, zs->outlen - OUT_GROW);
-				z->avail_out = OUT_GROW;
-				goto resume;	/* Process remaining input */
-			} else {
-				g_carp("%s(): under-estimated output buffer size: "
-					"input=%zu, output=%zu", G_STRFUNC, zs->inlen, zs->outlen);
-				goto error;		/* Cannot continue */
-			}
-		}
-
 		return 1;				/* Need to call us again */
 		/* NOTREACHED */
 
-	case Z_STREAM_END:
+	case Z_BUF_ERROR:			/* Output full or need more input to continue */
+		if (0 == z->avail_out) {
+			if (zlib_stream_grow_output(zs, maxout))
+				goto resume;	/* Process remaining input */
+			goto error;			/* Cannot continue */
+		}
+		if (0 == z->avail_in)
+			return 1;			/* Need to call us again */
+		goto error;				/* Cannot continue */
+		/* NOTREACHED */
+
+	case Z_STREAM_END:			/* Reached end of input stream */
 		g_assert(finishing);
 
 		/*
@@ -469,14 +502,18 @@ resume:
 		/* NOTREACHED */
 
 	default:
-		g_carp("%s(): error during %s: %s", G_STRFUNC,
-			ZLIB_DEFLATER_MAGIC == zs->magic ? "compression" : "decompression",
-			zlib_strerror(ret));
+		break;
 	}
 
 	/* FALL THROUGH */
 
 error:
+	g_carp("%s(): error during %scompression: %s "
+		"(avail_in=%u, avail_out=%u, total_in=%lu, total_out=%lu)",
+		G_STRFUNC, ZLIB_DEFLATER_MAGIC == zs->magic ? "" : "de",
+		zlib_strerror(ret),
+		z->avail_in, z->avail_out, z->total_in, z->total_out);
+
 	if (may_close) {
 		switch (zs->magic) {
 		case ZLIB_DEFLATER_MAGIC:
