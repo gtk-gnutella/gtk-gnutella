@@ -143,7 +143,7 @@ send_ping(struct gnutella_node *n, uint8 ttl)
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
 
-	STATIC_ASSERT(23 == sizeof *m);	
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);	
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
 	if (NODE_IS_WRITABLE(n)) {
@@ -177,7 +177,7 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 
 	g_assert(ttl);
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
-	STATIC_ASSERT(23 == sizeof *m);
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);
 
 	if (muid)
 		gnutella_header_set_muid(m, muid);
@@ -281,7 +281,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 	g_assert(qk || intro);
 
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
-	STATIC_ASSERT(23 == sizeof *m);
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);
 
 	if (muid)
 		gnutella_header_set_muid(m, muid);
@@ -804,12 +804,12 @@ ping_type(const gnutella_node_t *n)
  * the header of the node structure to construct the TTL of the pong we
  * send.
  *
- * If `control' is true, send it as a higher priority message.
- * If `uhc' is not UHC_NONE, we'll send IPs in a packed IPP reply.
+ * @param n			destination node, where to send the pong
+ * @param control	if TRUE, send it as a higher priority message.
+ * @param flags		description of the ping we got
  */
 static void
-send_personal_info(struct gnutella_node *n, bool control,
-	enum ping_flag flags)
+send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
 {
 	uint32 kbytes;
 	uint32 files;
@@ -921,8 +921,7 @@ send_personal_info(struct gnutella_node *n, bool control,
 
 	send_pong(n, control, flags, 0,
 		MIN(gnutella_header_get_hops(&n->header) + 1U, GNET_PROPERTY(max_ttl)),
-		gnutella_header_get_muid(&n->header), &info,
-		control ? NULL : &local_meta);
+		gnutella_header_get_muid(&n->header), &info, &local_meta);
 
 	/* Reset flags that must be recomputed each time */
 	local_meta.flags &=
