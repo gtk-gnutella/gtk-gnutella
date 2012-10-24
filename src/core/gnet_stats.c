@@ -195,6 +195,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"udp_uhc_pings",
+		"udp_uhc_pongs",
 		"udp_bogus_source_ip",
 		"udp_alien_message",
 		"udp_unprocessed_message",

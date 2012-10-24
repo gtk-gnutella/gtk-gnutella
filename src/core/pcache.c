@@ -2225,6 +2225,9 @@ record_fresh_pong(
 static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
+	enum ping_flag flags;
+	bool is_uhc;
+
 	g_assert(NODE_IS_UDP(n));
 
 	/*
@@ -2252,6 +2255,16 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	}
 
 	/*
+	 * Count pure UHC pings (i.e. ones without GUESS).
+	 */
+
+	flags = ping_type(n);
+	is_uhc = booleanize(PING_F_UHC == ((PING_F_GUE | PING_F_UHC) & flags));
+
+	if (is_uhc)
+		gnet_stats_inc_general(GNR_UDP_UHC_PINGS);
+
+	/*
 	 * Don't answer to too frequent pings from the same IP.
 	 */
 
@@ -2263,7 +2276,14 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	aging_insert(udp_pings,
 		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
 
-	send_personal_info(n, FALSE, ping_type(n));
+	/*
+	 * Answers to UHC pings are sent back with a "control" priority.
+	 */
+
+	send_personal_info(n, is_uhc, flags);
+
+	if (is_uhc)
+		gnet_stats_inc_general(GNR_UDP_UHC_PONGS);
 }
 
 /*
