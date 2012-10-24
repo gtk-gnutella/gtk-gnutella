@@ -515,7 +515,16 @@ tag_known:
 	if (0 != (flags & UDP_RF_CRITICAL_MASK))
 		return UNKNOWN;		/* Critical flags we don't know about */
 
-	if (0 == part)
+	/*
+	 * Normally the part is non-zero, unless we're facing an Extra
+	 * Acknowledgment Request (EAR) in which case both part and count will
+	 * be set to zero.
+	 *
+	 * Hence, 0 is an invalid part number for plain fragments only, when
+	 * count is non-zero.
+	 */
+
+	if (0 == part && 0 != count)
 		return UNKNOWN;		/* Invalid fragment number */
 
 	/*
@@ -537,6 +546,9 @@ tag_known:
 			if (0 == received)
 				return UNKNOWN;		/* At least one fragment received! */
 
+			if (0 == part)
+				return UNKNOWN;		/* EARs are not extended */
+
 			if ((flags & UDP_RF_CUMULATIVE_ACK) && received < part)
 				return UNKNOWN;		/* Receiver must have ``part'' fragments */
 		}
@@ -557,6 +569,9 @@ tag_known:
 		 * specify this, but implementations should ignore that flag anyway for
 		 * acknowledgments, so a broken implementation could have it set and
 		 * it would go totally unnoticed during testing.
+		 *
+		 * Actually, EARs can have the UDP_RF_ACKME flag set, but we don't care
+		 * at this point.
 		 */
 
 		/*

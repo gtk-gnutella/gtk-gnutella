@@ -66,7 +66,9 @@ struct tx_ut_args {
  * Acknowledgment parameters.
  */
 struct ut_ack {
-	bool cumulative;		/* Cumulative: 0 .. fragno-1 received */
+	uint cumulative:1;		/* Cumulative: 0 .. fragno-1 received */
+	uint ear:1;				/* Whether this was an EAR */
+	uint ear_nack:1;		/* Whether this was a negative EAR ACK */
 	uint16 seqno;			/* Sequence ID */
 	uint8 fragno;			/* Fragment number being acknowledged, zero-based */
 	uint8 received;			/* If non-zero, amount of fragments received */

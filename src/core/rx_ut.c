@@ -250,10 +250,10 @@ ut_rmsg_expired(cqueue_t *unused_cq, void *obj)
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
 			um->id.seqno, um->fragrecv, um->fragcnt,
-			1 == um->fragrecv ? "" : "s");
+			1 == um->fragcnt ? "" : "s");
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_EXPIRED, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EXPIRED);
 	ut_rmsg_free(um, TRUE);
 }
 
@@ -372,22 +372,33 @@ static void
 ut_ack_read(const void *data, size_t len, struct ut_ack *ack)
 {
 	uint8 flags;
+	uint8 fragno;
 
 	g_assert(len >= UDP_RELIABLE_HEADER_SIZE);
 
+	ZERO(ack);
 	ack->seqno = udp_reliable_header_get_seqno(data);
 	flags = udp_reliable_header_get_flags(data);
-	ack->fragno  = udp_reliable_header_get_part(data) - 1;	/* Zero-based */
-	ack->cumulative = 0 != (flags & UDP_RF_CUMULATIVE_ACK);
+	ack->cumulative = booleanize(0 != (flags & UDP_RF_CUMULATIVE_ACK));
+
+	/*
+	 * Check for EARs (Extra Acknowledgment Requests).
+	 */
+
+	fragno = udp_reliable_header_get_part(data);
+
+	if (0 == fragno) {
+		ack->ear = TRUE;
+		ack->ear_nack = booleanize(0 == (flags & UDP_RF_ACKME));
+	} else {
+		ack->fragno  = fragno - 1;	/* Zero-based */
+	}
 
 	if (flags & UDP_RF_EXTENDED_ACK) {
 		g_assert(len >= UDP_RELIABLE_EXT_HEADER_SIZE);
 
 		ack->received = udp_reliable_get_received(data);
 		ack->missing = udp_reliable_get_missing(data);
-	} else {
-		ack->received = 0;
-		ack->missing = 0;
 	}
 }
 
@@ -416,7 +427,7 @@ ut_rmsg_clear_acks(struct ut_rmsg *um)
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			um->acks_pending, 1 == um->acks_pending ? "" : "s",
 			gnet_host_to_string(um->id.from), um->id.seqno,
-			um->fragrecv, um->fragcnt, 1 == um->fragrecv ? "" : "s");
+			um->fragrecv, um->fragcnt, 1 == um->fragcnt ? "" : "s");
 	}
 
 	gnet_stats_count_general(GNR_UDP_SR_RX_AVOIDED_ACKS, um->acks_pending);
@@ -456,9 +467,9 @@ ut_received(const struct attr *attr, pmsg_t *mb, const gnet_host_t *from)
 static void
 ut_update_rx_messages_stats(bool reliable)
 {
-	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_RECEIVED, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_RECEIVED);
 	if (!reliable)
-		gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_UNRELIABLE, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_UNRELIABLE);
 }
 
 /**
@@ -507,7 +518,7 @@ ut_assemble_message(struct ut_rmsg *um)
 		if (0 != ret)
 			goto drop;
 
-		gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_INFLATED, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATED);
 		mb = pmsg_new(PMSG_P_DATA,
 				zlib_inflater_out(zi), zlib_inflater_outlen(zi));
 	} else {
@@ -544,7 +555,7 @@ drop:
 			len, 1 == len ? "" : "s");
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR);
 	return;
 
 empty:
@@ -556,7 +567,7 @@ empty:
 			um->id.seqno, um->fragcnt, 1 == um->fragcnt ? "" : "s");
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_MESSAGES_EMPTY, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EMPTY);
 }
 
 /**
@@ -586,12 +597,12 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 	}
 
 	if (um->lingering) {
-		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_LINGERING, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_LINGERING);
 		return;			/* Message already fully received */
 	}
 
 	if (bit_array_get(um->fbits, head->part)) {
-		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_DUPLICATE, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_DUPLICATE);
 		return;			/* Already got that fragment */
 	}
 
@@ -628,51 +639,21 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 }
 
 /**
- * Build delayed improved acknowledgment, as appropriate.
+ * Upgrade improved acknowledgment, as appropriate.
+ *
+ * The acknowledgment has already been filled as either a regular or
+ * cumulative acknowledgment, and we're looking at whether we should
+ * transform it as an extended acknowledgment.
  *
  * @return TRUE if the generated ACK covers everything that was received.
  */
 static bool
-ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
+ut_upgrade_ack(const struct ut_rmsg *um, struct ut_ack *ack)
 {
-	size_t first_missing, last_unacked;
-	unsigned i, mask, base, max;
-
-	g_assert(um->acks_pending != 0);
-	g_assert(um->fragcnt > 1U);		/* Delayed only if multiple fragments */
-
-	/*
-	 * Start from the highest numbered un-acknoweledged fragment remaining.
-	 */
-
-	last_unacked = bit_array_last_set(um->facks, 0, um->fragcnt - 1);
-	g_assert((size_t) -1 != last_unacked);	/* At least 1 un-ACKed fragment */
-
-	bit_array_clear(um->facks, last_unacked);
-	um->acks_pending--;
-
-	/*
-	 * See whether we can use a cumulative acknowledgment.
-	 */
-
-	first_missing = bit_array_first_clear(um->fbits, 0, um->fragcnt - 1);
-
-	ZERO(ack);
-	ack->seqno = um->id.seqno;
-
-	if ((size_t) -1 == first_missing) {
-		/* Everything was already received (for multi-fragment message) */
-		g_assert(um->fragcnt == um->fragrecv);
-		ack->cumulative = TRUE;
-		ack->fragno = um->fragcnt - 1;
-	} else if (first_missing > last_unacked) {
-		ack->cumulative = booleanize(first_missing > 1U);
-		ack->fragno = first_missing - 1;
-	} else {
-		ack->fragno = last_unacked;
-	}
+	unsigned i, mask, max, base;
 
 	g_assert(ack->fragno < um->fragcnt);
+	g_assert(um->improved_acks);
 
 	/*
 	 * See whether we should use an extended acknowledgment.
@@ -735,6 +716,108 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 }
 
 /**
+ * Build possibly cumulative ack for message.
+ */
+static  void
+ut_cumulative_ack(const struct ut_rmsg *um, struct ut_ack *ack,
+	size_t first_missing, size_t last_unacked)
+{
+	g_assert(um->improved_acks);
+
+	if ((size_t) -1 == first_missing) {
+		/* Everything was already received (for multi-fragment message) */
+		g_assert(um->fragcnt == um->fragrecv);
+		ack->cumulative = TRUE;
+		ack->fragno = um->fragcnt - 1;
+	} else if (first_missing > last_unacked) {
+		ack->cumulative = booleanize(first_missing > 1U);
+		ack->fragno = first_missing - 1;
+	} else {
+		g_assert((size_t) -1 != last_unacked);	/* One frag received at least */
+		ack->fragno = last_unacked;
+	}
+}
+
+/**
+ * Build delayed improved acknowledgment, as appropriate.
+ *
+ * @return TRUE if the generated ACK covers everything that was received.
+ */
+static bool
+ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
+{
+	size_t first_missing, last_unacked;
+
+	g_assert(um->acks_pending != 0);
+	g_assert(um->fragcnt > 1U);		/* Delayed only if multiple fragments */
+	g_assert(um->improved_acks);	/* Remote will understand improved ACKs */
+
+	/*
+	 * Start from the highest numbered un-acknoweledged fragment remaining.
+	 */
+
+	last_unacked = bit_array_last_set(um->facks, 0, um->fragcnt - 1);
+	g_assert((size_t) -1 != last_unacked);	/* At least 1 un-ACKed fragment */
+
+	bit_array_clear(um->facks, last_unacked);
+	um->acks_pending--;
+
+	/*
+	 * See whether we can use a cumulative acknowledgment, then possibly
+	 * upgrading it to an extended acknowledgment..
+	 */
+
+	first_missing = bit_array_first_clear(um->fbits, 0, um->fragcnt - 1);
+
+	ZERO(ack);
+	ack->seqno = um->id.seqno;
+	ut_cumulative_ack(um, ack, first_missing, last_unacked);
+
+	return ut_upgrade_ack(um, ack);
+}
+
+/**
+ * Build an extra acknowledgment, as appropriate.
+ *
+ * @return TRUE if the generated ACK covers everything that was received.
+ */
+static bool
+ut_build_extra_ack(const struct ut_rmsg *um, struct ut_ack *ack)
+{
+	size_t first_missing, last_unacked;
+
+	/*
+	 * Start from the highest numbered un-acknoweledged fragment remaining.
+	 */
+
+	last_unacked = bit_array_last_set(um->facks, 0, um->fragcnt - 1);
+	first_missing = bit_array_first_clear(um->fbits, 0, um->fragcnt - 1);
+
+	/*
+	 * If we have no un-acked fragments, set the last un-acked fragment count
+	 * to the last received fragment of the message.  This is the fragment we
+	 * will then re-acknowledge.
+	 */
+
+	if ((size_t) -1 == last_unacked) {
+		last_unacked = (size_t) -1 == first_missing ?
+			um->fragcnt - 1U : first_missing - 1U;
+	}
+
+	ZERO(ack);
+	ack->seqno = um->id.seqno;
+
+	if (um->improved_acks) {
+		ut_cumulative_ack(um, ack, first_missing, last_unacked);
+		return ut_upgrade_ack(um, ack);
+	} else {
+		g_assert((size_t) -1 != last_unacked);	/* One frag received at least */
+		ack->fragno = last_unacked;
+		return ack->fragno == um->fragcnt - 1;
+	}
+}
+
+/**
  * Send back the acknowledgment.
  *
  * We have been building an acknowledgment structure, which is now going
@@ -762,11 +845,11 @@ ut_ack_sendback(const struct ut_rmsg *um, const struct ut_ack *ack)
 			ack->seqno, ack->fragno + 1, ack->missing);
 	}
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_TOTAL_ACKS_SENT, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_TOTAL_ACKS_SENT);
 	if (ack->cumulative)
-		gnet_stats_count_general(GNR_UDP_SR_RX_CUMULATIVE_ACKS_SENT, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_CUMULATIVE_ACKS_SENT);
 	if (ack->received != 0)
-		gnet_stats_count_general(GNR_UDP_SR_RX_EXTENDED_ACKS_SENT, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_EXTENDED_ACKS_SENT);
 
 	ut_send_ack(attr->tx, um->id.from, ack);	/* Sent by the TX layer */
 }
@@ -895,7 +978,7 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 					gnet_host_to_string(um->id.from),
 					ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
 			}
-			gnet_stats_count_general(GNR_UDP_SR_RX_AVOIDED_ACKS, 1);
+			gnet_stats_inc_general(GNR_UDP_SR_RX_AVOIDED_ACKS);
 			return;
 		}
 
@@ -915,6 +998,83 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 
 send_ack:
 	ut_ack_sendback(um, &ack);
+}
+
+/**
+ * Handle reception of an EAR (Extra Acknowledgment Request).
+ */
+static void
+ut_handle_ear(const struct attr *attr,
+	const gnet_host_t *from, const struct ut_ack *ack)
+{
+	struct ut_mid key;
+	struct ut_rmsg *um;
+	struct ut_ack rack;
+
+	if (rx_ut_debugging(RX_UT_DBG_ACK, from)) {
+		g_debug("RX UT[%s]: %s: got EAR from %s (seq=0x%04x)",
+			udp_tag_to_string(attr->tag), G_STRFUNC,
+			gnet_host_to_string(from), ack->seqno);
+	}
+
+	gnet_stats_inc_general(GNR_UDP_SR_RX_EARS_RECEIVED);
+
+	/*
+	 * See whether this an EAR for a known message (being received with
+	 * still missing fragments).
+	 */
+
+	key.from = from;
+	key.seqno = ack->seqno;
+	um = hevset_lookup(attr->mseq, &key);
+
+	if (NULL == um) {
+		/*
+		 * We don't know anything about this sequence ID, so negatively ACK the
+		 * EAR by sending back another EAR with the "negative ACK" indication.
+		 */
+
+		ZERO(&rack);
+		rack.ear = TRUE;
+		rack.ear_nack = TRUE;
+		rack.seqno = ack->seqno;
+
+		gnet_stats_inc_general(GNR_UDP_SR_RX_EARS_FOR_UNKNOWN_MESSAGE);
+
+		if (rx_ut_debugging(RX_UT_DBG_ACK, from)) {
+			g_debug("RX UT[%s]: %s: sending negative EAR back to %s "
+				"(unknown seq=0x%04x)",
+				udp_tag_to_string(attr->tag), G_STRFUNC,
+				gnet_host_to_string(from), ack->seqno);
+		}
+	} else {
+		/*
+		 * We know this sequence ID, hence the remote TX side probably did not
+		 * get our last ACK, hence we're getting an EAR.  Cancel any pending
+		 * delayed ACK and immediately resend an ACK for what we got so far.
+		 */
+
+		cq_cancel(&um->acks_ev);
+		ut_build_extra_ack(um, &rack);
+		ut_rmsg_clear_acks(um);
+
+		if (um->lingering)
+			gnet_stats_inc_general(GNR_UDP_SR_RX_EARS_FOR_LINGERING_MESSAGE);
+
+		if (rx_ut_debugging(RX_UT_DBG_ACK, from)) {
+			g_debug("RX UT[%s]: %s: sending extra %s%sACK back to %s "
+				"(seq=0x%04x, fragment #%u, got %u/%u fragment%s, "
+				"missing=0x%x)",
+				udp_tag_to_string(um->attr->tag), G_STRFUNC,
+				rack.cumulative ? "cumulative " : "",
+				rack.missing != 0 ? "extended " : "",
+				gnet_host_to_string(from), rack.seqno,
+				rack.fragno + 1, um->fragrecv, um->fragcnt,
+				1 == um->fragcnt ? "" : "s", rack.missing);
+		}
+	}
+
+	ut_send_ack(attr->tx, from, &rack);	/* Sent by the TX layer */
 }
 
 /***
@@ -1021,7 +1181,12 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 		(*attr->cb->add_rx_given)(rx->owner, len);
 
 	/*
-	 * Handle acknowledgments (for packets sent by the TX side).
+	 * Handle acknowledgments (for packets sent by the TX side) and EARs.
+	 *
+	 * We can get special EAR packets (Extra Acknowledgment Request) which
+	 * are either true requests (handled by the RX layer) or actually
+	 * negative ACKs (handled by the TX layer, as it is a response to a
+	 * previous EAR it sent).
 	 *
 	 * The lower layer which feeds us the received datagrams is carefully
 	 * validating that the traffic we get is well-formed.  In particular,
@@ -1034,7 +1199,10 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 	if (0 == udp_reliable_header_get_count(data)) {
 		struct ut_ack ack;
 		ut_ack_read(data, len, &ack);
-		ut_got_ack(attr->tx, from, &ack);	/* Handle it in the TX layer */
+		if (ack.ear && !ack.ear_nack)
+			ut_handle_ear(attr, from, &ack);	/* EAR for the RX layer */
+		else
+			ut_got_ack(attr->tx, from, &ack);	/* Handle it in the TX layer */
 		return;
 	}
 
@@ -1051,9 +1219,9 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 
 	ut_header_read(mb, &head);
 
-	gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_RECEIVED, 1);
+	gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_RECEIVED);
 	if (0 == (head.flags & UDP_RF_ACKME))
-		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_UNRELIABLE, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_UNRELIABLE);
 
 	/*
 	 * See whether this a fragment for a known message (being received with
@@ -1115,7 +1283,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 				um->fragcnt, 1 == um->fragcnt ? "" : "s");
 		}
 
-		gnet_stats_count_general(GNR_UDP_SR_RX_FRAGMENTS_DROPPED, 1);
+		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_DROPPED);
 		goto done;
 	}
 
