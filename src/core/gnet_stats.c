@@ -813,6 +813,30 @@ gnet_stats_count_general(gnr_stats_t type, int delta)
 }
 
 /**
+ * Increment the general stats counter by 1.
+ */
+void
+gnet_stats_inc_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i]++;
+}
+
+/**
+ * Decrement the general stats counter by 1.
+ */
+void
+gnet_stats_dec_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i]--;
+}
+
+/**
  * Set the general stats counter to the given value.
  */
 void
