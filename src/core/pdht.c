@@ -1281,7 +1281,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 			time_delta_t elapsed =
 				delta_time(tm_time(), pdht_proxy.last_publish);
 			if (elapsed > DHT_VALUE_PROX_EXPIRE)
-				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
+				gnet_stats_inc_general(GNR_DHT_REPUBLISHED_LATE);
 		}
 
 		delay = publisher_delay(info, DHT_VALUE_PROX_EXPIRE);

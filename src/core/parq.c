@@ -1193,7 +1193,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	queue = getline_str(s->getline);
 
-	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
+	gnet_stats_inc_general(GNR_QUEUE_CALLBACKS);
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got QUEUE from %s:\n", host_addr_to_string(s->addr));
@@ -1331,7 +1331,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	return;
 
 ignore:
-	gnet_stats_count_general(GNR_QUEUE_DISCARDED, 1);
+	gnet_stats_inc_general(GNR_QUEUE_DISCARDED);
 	socket_free_null(&s);
 }
 
@@ -2307,7 +2307,7 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 			puq->name);
 	}
 
-	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS);
 
 	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, flags);
 
@@ -3302,7 +3302,7 @@ check_quick:
 
 		parq_upload_unfreeze_one(puq);
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
-		gnet_stats_count_general(GNR_PARQ_QUICK_SLOTS_GRANTED, 1);
+		gnet_stats_inc_general(GNR_PARQ_QUICK_SLOTS_GRANTED);
 		puq->quick = TRUE;
 		return TRUE;
 	}
@@ -3460,7 +3460,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 */
 
 	if (puq->sha1 != u->sha1)
-		gnet_stats_count_general(GNR_PARQ_SLOT_RESOURCE_SWITCHING, 1);
+		gnet_stats_inc_general(GNR_PARQ_SLOT_RESOURCE_SWITCHING);
 
 	/*
 	 * Update SHA-1 when they switch resources being asked.
@@ -3566,7 +3566,7 @@ parq_upload_abusing(
 	struct upload *u, struct parq_ul_queued *puq,
 	time_t now, time_t org_retry)
 {
-	gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_VIOLATION, 1);
+	gnet_stats_inc_general(GNR_PARQ_RETRY_AFTER_VIOLATION);
 
 	if (
 		delta_time(puq->ban_timeout, now) > 0 &&
@@ -3590,7 +3590,7 @@ parq_upload_abusing(
 		 * queue now.
 		 */
 
-		gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_KICK_OUT, 1);
+		gnet_stats_inc_general(GNR_PARQ_RETRY_AFTER_KICK_OUT);
 
 		if (GNET_PROPERTY(parq_debug)) g_warning(
 			"[PARQ UL] "
@@ -3637,7 +3637,7 @@ parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 		if (u->status == GTA_UL_QUEUED) {
 			u->status = GTA_UL_SENDING;
 		}
-		gnet_stats_count_general(GNR_PARQ_SLOT_LIMIT_OVERRIDES, 1);
+		gnet_stats_inc_general(GNR_PARQ_SLOT_LIMIT_OVERRIDES);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -3732,7 +3732,7 @@ parq_upload_request(struct upload *u)
 	if (puq->flags & PARQ_UL_QUEUE_SENT) {
 		puq->queue_sent = 0;
 		puq->flags &= ~PARQ_UL_QUEUE_SENT;
-		gnet_stats_count_general(GNR_PARQ_QUEUE_FOLLOW_UPS, 1);
+		gnet_stats_inc_general(GNR_PARQ_QUEUE_FOLLOW_UPS);
 	}
 
 	/*
@@ -4807,7 +4807,7 @@ parq_upload_send_queue_conf(struct upload *u)
 	 */
 
 	puq->flags |= PARQ_UL_QUEUE_SENT;
-	gnet_stats_count_general(GNR_PARQ_QUEUE_SENT, 1);
+	gnet_stats_inc_general(GNR_PARQ_QUEUE_SENT);
 	expect_http_header(u, GTA_UL_QUEUE_WAITING);
 }
 

@@ -2484,7 +2484,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	s->port = socket_addr_get_port(from_addr);
 
 	if (!is_host_addr(s->addr)) {
-		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
+		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
 		bws_udp_count_read(r, FALSE);	/* Assume not from DHT */
 		errno = EINVAL;
 		return (ssize_t) -1;

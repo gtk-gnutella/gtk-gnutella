@@ -3635,7 +3635,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 				break;
 			}
 			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+				gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 				msg = "node bears our GUID";
 				break;
 			}
@@ -3927,8 +3927,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		if (u->sha1) {
 			if (u->sha1 != sha1) {
 				switched = TRUE;
-				gnet_stats_count_general(
-					GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
+				gnet_stats_inc_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING);
 				if (sha1)
 					atom_sha1_change(&u->sha1, sha1);
 				else
@@ -3936,7 +3935,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			}
 		} else if (u->file_index != idx) {
 			switched = TRUE;
-			gnet_stats_count_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING, 1);
+			gnet_stats_inc_general(GNR_CLIENT_PLAIN_RESOURCE_SWITCHING);
 		}
 	}
 
@@ -4819,7 +4818,7 @@ upload_request(struct upload *u, header_t *header)
 	}
 
 	if (u->last_was_error)
-		gnet_stats_count_general(GNR_CLIENT_FOLLOWUP_AFTER_ERROR, 1);
+		gnet_stats_inc_general(GNR_CLIENT_FOLLOWUP_AFTER_ERROR);
 
 	u->last_was_error = FALSE;
 
@@ -5036,7 +5035,7 @@ upload_request(struct upload *u, header_t *header)
 	 */
 
 	if ((u->flags & UPLOAD_F_WAS_PLAIN) && upload_is_special(u))
-		gnet_stats_count_general(GNR_CLIENT_RESOURCE_SWITCHING, 1);
+		gnet_stats_inc_general(GNR_CLIENT_RESOURCE_SWITCHING);
 
 	/* Pick up the X-Remote-IP or Remote-IP header */
 	node_check_remote_ip_header(u->addr, header);

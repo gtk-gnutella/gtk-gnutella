@@ -259,7 +259,7 @@ delete_contact(uint64 dbkey)
 	g_assert(uint_is_positive(contacts_managed));
 
 	contacts_managed--;
-	gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_CACHED_ROOTS_HELD);
 
 	dbmw_delete(db_contact, &dbkey);
 
@@ -322,7 +322,7 @@ roots_expire(cqueue_t *unused_cq, void *obj)
 	patricia_remove(roots, ri->kuid);
 	free_rootinfo(ri);
 	targets_managed--;
-	gnet_stats_count_general(GNR_DHT_CACHED_KUID_TARGETS_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_CACHED_KUID_TARGETS_HELD);
 }
 
 /**
@@ -367,7 +367,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 		rd = &new_rd;
 		new_rd.count = 0;
 		targets_managed++;
-		gnet_stats_count_general(GNR_DHT_CACHED_KUID_TARGETS_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_CACHED_KUID_TARGETS_HELD);
 	} else {
 		rd = get_rootdata(kuid);
 		if (NULL == rd) {
@@ -451,8 +451,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 				c->addr = kn->addr;
 				c->first_seen = tm_time();	/* New node address */
 				dbmw_write(db_contact, dbkey_ptr, c, sizeof *c);
-				gnet_stats_count_general(
-					GNR_DHT_CACHED_ROOTS_CONTACT_REFRESHED, 1);
+				gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_CONTACT_REFRESHED);
 			}
 
 			map_remove(existing, kn->id);	/* We reused it */
@@ -471,7 +470,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			nc.first_seen = kn->first_seen;
 			dbkey = contactid++;
 			contacts_managed++;
-			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, +1);
+			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_HELD);
 
 			dbmw_write(db_contact, &dbkey, &nc, sizeof nc);
 				
@@ -601,7 +600,7 @@ roots_fill_closest(const kuid_t *id,
 	 */
 
 	if (dht_is_active() && keys_within_kball(id)) {
-		gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_KBALL_LOOKUPS, 1);
+		gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_KBALL_LOOKUPS);
 		return 0;
 	}
 
@@ -619,7 +618,7 @@ roots_fill_closest(const kuid_t *id,
 		 */
 
 		filled = roots_fill_vector(rd, kvec, kcnt, known, NULL, NULL);
-		gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_EXACT_HITS, 1);
+		gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_EXACT_HITS);
 
 		if (GNET_PROPERTY(dht_roots_debug) > 1) {
 			g_debug("DHT ROOTS exact match for %s (%s), filled %d new node%s",
@@ -742,10 +741,9 @@ roots_fill_closest(const kuid_t *id,
 			filled += added;
 
 			if (added > 0) {
-				gnet_stats_count_general(
-					GNR_DHT_CACHED_ROOTS_APPROXIMATE_HITS, 1);
+				gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_APPROXIMATE_HITS);
 			} else if (NULL == ri) {
-				gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_MISSES, 1);
+				gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_MISSES);
 			}
 
 			if (GNET_PROPERTY(dht_roots_debug) > 1) {
@@ -757,7 +755,7 @@ roots_fill_closest(const kuid_t *id,
 					added, 1 == added ? "" : "s");
 			}
 		} else if (NULL == ri) {
-			gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_MISSES, 1);
+			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_MISSES);
 
 			if (GNET_PROPERTY(dht_roots_debug) > 1) {
 				g_debug("DHT ROOTS no suitable cached entry for %s, "
@@ -991,7 +989,7 @@ recreate_ri(void *key, void *value, size_t u_len, void *data)
 	 */
 
 	targets_managed++;
-	gnet_stats_count_general(GNR_DHT_CACHED_KUID_TARGETS_HELD, +1);
+	gnet_stats_inc_general(GNR_DHT_CACHED_KUID_TARGETS_HELD);
 
 	contacts_managed += rd->count;
 	gnet_stats_count_general(GNR_DHT_CACHED_ROOTS_HELD, rd->count);

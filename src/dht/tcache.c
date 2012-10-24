@@ -165,7 +165,7 @@ static void
 delete_tokdata(const kuid_t *id)
 {
 	dbmw_delete(db_tokdata, id);
-	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_CACHED_TOKENS_HELD);
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 2)
 		g_debug("DHT TCACHE security token from %s reclaimed",
@@ -256,7 +256,7 @@ record_token(void *key, void *value, void *unused_u)
 	 */
 
 	if (!dbmw_exists(db_tokdata, id->v))
-		gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_CACHED_TOKENS_HELD);
 
 	dbmw_write(db_tokdata, id->v, &td, sizeof td);
 
@@ -321,7 +321,7 @@ tcache_get(const kuid_t *id,
 			compact_time(delta_time(tm_time(), td->last_update)));
 	}
 
-	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HITS, 1);
+	gnet_stats_inc_general(GNR_DHT_CACHED_TOKENS_HITS);
 
 	return TRUE;
 }

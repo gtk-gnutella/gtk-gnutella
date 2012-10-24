@@ -396,7 +396,7 @@ dht_rpc_answer(const guid_t *muid,
 		 * present) and do not handle the reply.
 		 */
 
-		gnet_stats_count_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH, 1);
+		gnet_stats_inc_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH);
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT sent %s RPC %s to %s but got reply from %s",
@@ -463,7 +463,7 @@ dht_rpc_answer(const guid_t *muid,
 
 	if (kn->status == KNODE_STALE) {
 		dht_set_node_status(kn, KNODE_GOOD);
-		gnet_stats_count_general(GNR_DHT_REVITALIZED_STALE_NODES, 1);
+		gnet_stats_inc_general(GNR_DHT_REVITALIZED_STALE_NODES);
 	}
 
 	/*
@@ -532,7 +532,7 @@ dht_lazy_rpc_ping(knode_t *kn)
 				knode_to_string(kn), kn->rpc_pending,
 				1 == kn->rpc_pending ? "" : "s");
 		}
-		gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_AVOIDED, 1);
+		gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_AVOIDED);
 		return FALSE;
 	} else {
 		dht_rpc_ping(kn, NULL, NULL);

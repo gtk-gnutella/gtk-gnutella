@@ -924,19 +924,19 @@ dq_free(dquery_t *dq)
 		dq->kept_results / (node_id_self(dq->node_id) ? 1 : DQ_AVG_ULTRA_NODES)
 			>= dq->max_results
 	)
-		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_FULL, 1);
+		gnet_stats_inc_general(GNR_DYN_QUERIES_COMPLETED_FULL);
 	else if (dq->results > 0)
-		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_PARTIAL, 1);
+		gnet_stats_inc_general(GNR_DYN_QUERIES_COMPLETED_PARTIAL);
 	else
-		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_ZERO, 1);
+		gnet_stats_inc_general(GNR_DYN_QUERIES_COMPLETED_ZERO);
 
 	if (dq->linger_results) {
 		if (dq->results >= dq->max_results)
-			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_EXTRA, 1);
+			gnet_stats_inc_general(GNR_DYN_QUERIES_LINGER_EXTRA);
 		else if (dq->linger_results >= dq->max_results - dq->results)
-			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_COMPLETED, 1);
+			gnet_stats_inc_general(GNR_DYN_QUERIES_LINGER_COMPLETED);
 		else
-			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
+			gnet_stats_inc_general(GNR_DYN_QUERIES_LINGER_RESULTS);
 	}
 
 	htable_foreach(dq->queried, free_node_id, NULL);
@@ -1895,7 +1895,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 				);
 
 			if (oob_proxy_create(n)) {
-				gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+				gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
 				proxied = TRUE;
 			} else {
 				if (GNET_PROPERTY(dq_debug)) {
@@ -1987,7 +1987,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv, unsigned media_types)
 			HFREE_NULL(safe_qstr);
 	}
 
-	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
+	gnet_stats_inc_general(GNR_LEAF_DYN_QUERIES);
 
 	dq_common_init(dq);
 	dq_sendto_leaves(dq, n);
@@ -2058,7 +2058,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 			HFREE_NULL(safe_qstr);
 	}
 
-	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
+	gnet_stats_inc_general(GNR_LOCAL_DYN_QUERIES);
 
 	dq_common_init(dq);
 	search_starting(dq->sh);

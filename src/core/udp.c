@@ -252,16 +252,16 @@ udp_is_valid_gnet_split(gnutella_node_t *n, const gnutella_socket_t *s,
 
 drop:
 	gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
-	gnet_stats_count_general(GNR_UDP_UNPROCESSED_MESSAGE, 1);
+	gnet_stats_inc_general(GNR_UDP_UNPROCESSED_MESSAGE);
 	goto log;
 
 too_large:
 	gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
-	gnet_stats_count_general(GNR_UDP_UNPROCESSED_MESSAGE, 1);
+	gnet_stats_inc_general(GNR_UDP_UNPROCESSED_MESSAGE);
 	goto log;
 
 not:
-	gnet_stats_count_general(GNR_UDP_ALIEN_MESSAGE, 1);
+	gnet_stats_inc_general(GNR_UDP_ALIEN_MESSAGE);
 	/* FALL THROUGH */
 
 log:
@@ -339,7 +339,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 	 * So we'll only handle fragments for now, assuming ACKs are legitimate.
 	 */
 
-	gnet_stats_count_general(GNR_UDP_AMBIGUOUS_DEEPER_INSPECTION, 1);
+	gnet_stats_inc_general(GNR_UDP_AMBIGUOUS_DEEPER_INSPECTION);
 
 	uth.count = udp_reliable_header_get_count(head);
 	if (0 == uth.count)
@@ -700,7 +700,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				hops = gnutella_header_get_hops(head);
 				ttl = gnutella_header_get_ttl(head);
 
-				gnet_stats_count_general(GNR_UDP_AMBIGUOUS, 1);
+				gnet_stats_inc_general(GNR_UDP_AMBIGUOUS);
 
 				if (GNET_PROPERTY(udp_debug)) {
 					g_debug("UDP ambiguous datagram from %s: "
@@ -826,7 +826,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				 * Will be handled as semi-reliable UDP.
 				 */
 
-				gnet_stats_count_general(GNR_UDP_AMBIGUOUS_AS_SEMI_RELIABLE, 1);
+				gnet_stats_inc_general(GNR_UDP_AMBIGUOUS_AS_SEMI_RELIABLE);
 
 				{
 					udp_tag_t tag;
@@ -951,7 +951,7 @@ unreliable:
 				(int) s->pos, s->pos == 1 ? "" : "s",
 				host_addr_to_string(s->addr));
 		}
-		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
+		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
 	}
 
 	/*

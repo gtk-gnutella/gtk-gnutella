@@ -315,7 +315,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 			g_debug("UDP not deflating %s into %d bytes",
 				gmsg_infostr_full_split(head, data, size), deflated_length);
 
-		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
+		gnet_stats_inc_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED);
 		goto send_raw;
 	}
 

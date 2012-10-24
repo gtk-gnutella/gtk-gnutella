@@ -433,7 +433,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		 */
 
 		if (!gdht_is_our_ip_port(rc->addr, port))
-			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+			gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 
 		if (GNET_PROPERTY(download_debug))
 			g_warning("discarding %s from %s for %s: host bears our GUID",
@@ -565,7 +565,7 @@ gdht_sha1_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 	 */
 
 	if (seen_foreign) {
-		gnet_stats_count_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS, 1);
+		gnet_stats_inc_general(GNR_DHT_SUCCESSFUL_ALT_LOC_LOOKUPS);
 	}
 
 	file_info_dht_query_completed(fi, TRUE, seen_foreign);
@@ -970,7 +970,7 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 
 	if (other > 0) {
 		/* Was looking for SHA1(GUID), found some other SHA1 */
-		gnet_stats_count_general(GNR_DHT_SHA1_DATA_TYPE_COLLISIONS, 1);
+		gnet_stats_inc_general(GNR_DHT_SHA1_DATA_TYPE_COLLISIONS);
 	}
 
 	/*
@@ -985,11 +985,9 @@ gdht_guid_found(const kuid_t *kuid, const lookup_val_rs_t *rs, void *arg)
 
 	/* If we got at least one NOPE back, count a successful NOPE lookup */
 
-	gnet_stats_count_general(
-		nope ?
-			GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS :
-			GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS,
-		1);
+	gnet_stats_inc_general(nope ?
+		GNR_DHT_SUCCESSFUL_NODE_PUSH_ENTRY_LOOKUPS :
+		GNR_DHT_SUCCESSFUL_PUSH_PROXY_LOOKUPS);
 
 	gdht_free_guid_lookup(glk, TRUE);
 }

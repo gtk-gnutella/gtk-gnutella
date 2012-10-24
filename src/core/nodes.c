@@ -3112,7 +3112,7 @@ node_inflate_payload(gnutella_node_t *n)
 
 	g_assert(NODE_IS_UDP(n));
 
-	gnet_stats_count_general(GNR_UDP_RX_COMPRESSED, 1);
+	gnet_stats_inc_general(GNR_UDP_RX_COMPRESSED);
 
 	if (!zlib_is_valid_header(n->data, n->size)) {
 		if (GNET_PROPERTY(udp_debug))
@@ -10131,7 +10131,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 
 	if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
 		g_warning("%s uses our GUID", node_infostr(n));
-		gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+		gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 		n->attrs |= NODE_A_BAD_GUID;
 		goto error;
 	}
@@ -10173,7 +10173,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 					node_addr2(owner), node_vendor(owner));
 			}
 
-			gnet_stats_count_general(GNR_GUID_COLLISIONS, 1);
+			gnet_stats_inc_general(GNR_GUID_COLLISIONS);
 			node_flag_duplicate_guid(n);
 			node_flag_duplicate_guid(owner);
 		}

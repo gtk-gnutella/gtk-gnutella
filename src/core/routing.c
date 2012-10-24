@@ -813,7 +813,7 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 		entry->slot = entryp;
 		entry->chunk_idx = chunk_idx;	/* 8-bit value, must fit */
 		routing.count++;
-		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, +1);
+		gnet_stats_inc_general(GNR_ROUTING_TABLE_COUNT);
 		goto done;
 	}
 
@@ -1086,7 +1086,7 @@ get_next_slot(bool advance, unsigned *cidx)
 			routing.chunks[chunk_idx] =
 				halloc0(CHUNK_MESSAGES * sizeof(struct message *));
 
-			gnet_stats_count_general(GNR_ROUTING_TABLE_CHUNKS, +1);
+			gnet_stats_inc_general(GNR_ROUTING_TABLE_CHUNKS);
 			gnet_stats_count_general(GNR_ROUTING_TABLE_CAPACITY,
 				CHUNK_MESSAGES);
 
@@ -1207,7 +1207,7 @@ revitalize_entry(struct message *entry, bool force)
 		clean_entry(prev);
 		WFREE(prev);
 		routing.count--;
-		gnet_stats_count_general(GNR_ROUTING_TABLE_COUNT, -1);
+		gnet_stats_dec_general(GNR_ROUTING_TABLE_COUNT);
 	}
 
 	/*
@@ -1937,7 +1937,7 @@ forward_message(
 			}
 
 			if (count > 1)
-				gnet_stats_count_general(GNR_BROADCASTED_PUSHES, 1);
+				gnet_stats_inc_general(GNR_BROADCASTED_PUSHES);
 
 		} else if (target != NULL) {
 			dest->type = ROUTE_ONE;
@@ -2012,14 +2012,14 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 	 */
 
 	if (oob)
-		gnet_stats_count_general(GNR_QUERY_OOB_PROXIED_DUPS, 1);
+		gnet_stats_inc_general(GNR_QUERY_OOB_PROXIED_DUPS);
 
 	routing_log_extra(route_log, oob ? "dup OOB GUID" : "dup message");
 
 	if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
 		routing_log_extra(route_log, "higher TTL");
 
-		gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
+		gnet_stats_inc_general(GNR_DUPS_WITH_HIGHER_TTL);
 
 		if (GNET_PROPERTY(log_dup_gnutella_higher_ttl)) {
 			gmsg_log_split_duplicate(&sender->header, sender->data,
@@ -2271,7 +2271,7 @@ route_push(struct route_log *route_log,
 	 */
 
 	if (NULL != (neighbour = node_by_guid(guid))) {
-		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE, 1);
+		gnet_stats_inc_general(GNR_PUSH_RELAYED_VIA_LOCAL_ROUTE);
 
 		/*
 		 * If we got a PUSH directly through UDP, and we can relay it to
@@ -2279,7 +2279,7 @@ route_push(struct route_log *route_log,
 		 */
 
 		if (NODE_IS_UDP(sender))
-			gnet_stats_count_general(GNR_PUSH_PROXY_UDP_RELAYED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_UDP_RELAYED);
 
 		routing_log_extra(route_log, "connected to target GUID %s",
 				guid_hex_str(guid));
@@ -2292,7 +2292,7 @@ route_push(struct route_log *route_log,
 		forward_message(route_log, node, neighbour, dest, NULL);
 
 	} else if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
-		gnet_stats_count_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE, 1);
+		gnet_stats_inc_general(GNR_PUSH_RELAYED_VIA_TABLE_ROUTE);
 
 		/*
 		 * By revitalizing the entry, we'll remember the route for
@@ -2545,9 +2545,9 @@ route_query_hit(struct route_log *route_log,
 	if (route_node_sent_message(fake_node, m)) {
 		node_is_target = TRUE;		/* We are the target of the reply */
 		if (is_oob_proxied)
-			gnet_stats_count_general(GNR_OOB_PROXIED_QUERY_HITS, 1);
+			gnet_stats_inc_general(GNR_OOB_PROXIED_QUERY_HITS);
 		else
-			gnet_stats_count_general(GNR_LOCAL_QUERY_HITS, 1);
+			gnet_stats_inc_general(GNR_LOCAL_QUERY_HITS);
 		goto handle;
 	}
 
@@ -2616,8 +2616,7 @@ route_query_hit(struct route_log *route_log,
 					/* Count non-transient route found after skipping */
 
 					if (skipped_transient) {
-						gnet_stats_count_general(
-							GNR_ROUTING_TRANSIENT_AVOIDED, 1);
+						gnet_stats_inc_general(GNR_ROUTING_TRANSIENT_AVOIDED);
 					}
 				}
 			}
@@ -2759,7 +2758,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	) {
 		mangled = route_mangled_oob_muid(
 						gnutella_header_get_muid(&sender->header));
-		gnet_stats_count_general(GNR_OOB_QUERIES, 1);
+		gnet_stats_inc_general(GNR_OOB_QUERIES);
 		routing_log_extra(&route_log, "OOB");
 	}
 

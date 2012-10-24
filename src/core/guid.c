@@ -628,7 +628,7 @@ guid_add_banned(const struct guid *guid)
 	if (NULL == gd) {
 		gd = &new_gd;
 		gd->create_time = gd->last_time = tm_time();
-		gnet_stats_count_general(GNR_BANNED_GUID_HELD, +1);
+		gnet_stats_inc_general(GNR_BANNED_GUID_HELD);
 
 		if (GNET_PROPERTY(guid_debug)) {
 			g_debug("GUID banning %s", guid_hex_str(guid));

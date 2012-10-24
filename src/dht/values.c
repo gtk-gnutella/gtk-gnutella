@@ -871,7 +871,7 @@ delete_valuedata(uint64 dbkey, bool has_expired)
 	values_managed--;
 	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
 	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
-	gnet_stats_count_general(GNR_DHT_VALUES_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
 
 	if (has_expired)
 		kuid_pair_has_expired(&vd->id, &vd->cid);
@@ -1172,7 +1172,7 @@ validate_quotas(const dht_value_t *v)
 	return STORE_SC_OK;
 
 reject:
-	gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_QUOTA, 1);
+	gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_QUOTA);
 	return STORE_SC_QUOTA;
 }
 
@@ -1353,7 +1353,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	}
 
 	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
-	gnet_stats_count_general(GNR_DHT_REMOVED, 1);
+	gnet_stats_inc_general(GNR_DHT_REMOVED);
 
 done:
 	if (reason && GNET_PROPERTY(dht_storage_debug))
@@ -1405,7 +1405,7 @@ value_count_republish(struct valuedata *vd)
 	}
 
 	vd->publish = now;
-	gnet_stats_count_general(GNR_DHT_REPUBLISH, 1);
+	gnet_stats_inc_general(GNR_DHT_REPUBLISH);
 }
 
 /**
@@ -1438,7 +1438,7 @@ value_count_replication(struct valuedata *vd)
 	}
 
 	vd->replicated = now;
-	gnet_stats_count_general(GNR_DHT_REPLICATION, 1);
+	gnet_stats_inc_general(GNR_DHT_REPLICATION);
 }
 
 /**
@@ -1481,7 +1481,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		if (kuid_eq(kn->id, cn->id)) {
 			if (!validate_creator(kn, v)) {
-				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
+				gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR);
 				return STORE_SC_BAD_CREATOR;
 			}
 			vd->original = TRUE;
@@ -1501,8 +1501,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		keys_add_value(v->id, cn->id, dbkey, vd->expire);
 
 		values_managed++;
-		gnet_stats_count_general(GNR_DHT_VALUES_HELD, +1);
-		gnet_stats_count_general(GNR_DHT_PUBLISHED, 1);
+		gnet_stats_inc_general(GNR_DHT_VALUES_HELD);
+		gnet_stats_inc_general(GNR_DHT_PUBLISHED);
 	} else {
 		bool is_original = kuid_eq(kn->id, v->creator->id);
 
@@ -1548,7 +1548,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			const knode_t *cn = v->creator;
 
 			if (!validate_creator(kn, v)) {
-				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
+				gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR);
 				return STORE_SC_BAD_CREATOR;
 			}
 
@@ -1645,7 +1645,7 @@ mismatch:
 	return STORE_SC_DATA_MISMATCH;
 
 expired:
-	gnet_stats_count_general(GNR_DHT_STALE_REPLICATION, 1);
+	gnet_stats_inc_general(GNR_DHT_STALE_REPLICATION);
 
 	if (GNET_PROPERTY(dht_storage_debug))
 		g_debug("DHT STORE detected replication of expired data %s from %s",

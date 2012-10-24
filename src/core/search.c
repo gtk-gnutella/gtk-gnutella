@@ -1062,7 +1062,7 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	if (rs->status & ST_DUP_SPAM)
-		gnet_stats_count_general(GNR_SPAM_DUP_HITS, 1);
+		gnet_stats_inc_general(GNR_SPAM_DUP_HITS);
 
 	htable_free_null(&ht);
 
@@ -1124,7 +1124,7 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 {
 	if (!(rs->status & ST_FAKE_SPAM)) {
 		/* Count only once per result set */
-		gnet_stats_count_general(GNR_SPAM_FAKE_HITS, 1);
+		gnet_stats_inc_general(GNR_SPAM_FAKE_HITS);
 		rs->status |= ST_FAKE_SPAM;
 	}
 }
@@ -1234,7 +1234,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			logged = TRUE;
 			rs->status |= ST_URN_SPAM;
 			rc->flags |= SR_SPAM;
-			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
+			gnet_stats_inc_general(GNR_SPAM_SHA1_HITS);
 		} else if (
 			T_LIME == rs->vcode.u32 &&
 			is_evil_timestamp(rc->create_time)
@@ -1249,7 +1249,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			logged = TRUE;
 			rs->status |= ST_NAME_SPAM;
 			rc->flags |= SR_SPAM;
-			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
+			gnet_stats_inc_general(GNR_SPAM_NAME_HITS);
 		} else if (
 			rc->xml &&
 			is_lime_xml_spam(rc->xml, strlen(rc->xml))
@@ -1893,7 +1893,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else {
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			/* Count only as unrequested, not as fake spam */
-			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
+			gnet_stats_inc_general(GNR_UNREQUESTED_OOB_HITS);
 
 			if (
 				GNET_PROPERTY(search_debug) > 1 ||
@@ -2092,7 +2092,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 			host_addr_is_routable(rs->addr)
 		) {
 			rs->status |= ST_ALIEN;
-			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+			gnet_stats_inc_general(GNR_OOB_HITS_WITH_ALIEN_IP);
 		}
 	}
 
@@ -2807,7 +2807,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 		rs->media = media_mask;
 
 		if (NULL == query && !browse && settings_is_ultra()) {
-			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);
+			gnet_stats_inc_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY);
 		}
 
 		/*
@@ -5532,7 +5532,7 @@ search_oob_pending_results(
 				guess_is_search_muid(muid) ? "GUESS " : "",
 				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 		}
-		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
+		gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT);
 		return;
 	}
 
@@ -5557,7 +5557,7 @@ search_oob_pending_results(
 					guess_is_search_muid(muid) ? "GUESS " : "",
 					hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
 			}
-			gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_UNSECURE_HIT, +1);
+			gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_UNSECURE_HIT);
 			return;
 		}
 	}
@@ -6403,7 +6403,7 @@ query_strip_oob_flag(gnutella_node_t *n, char *data)
 	/* Strip "SO" since no OOB now */
 	n->msg_flags |= NODE_M_STRIP_GE_SO | NODE_M_EXT_CLEANUP;
 
-	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
+	gnet_stats_inc_general(GNR_OOB_QUERIES_STRIPPED);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x : %s)",
@@ -6629,7 +6629,7 @@ search_request_preprocess(struct gnutella_node *n,
 	}
 
 	if (!is_ascii_string(search)) {
-		gnet_stats_count_general(GNR_QUERY_UTF8, 1);
+		gnet_stats_inc_general(GNR_QUERY_UTF8);
 	}
 
 	/*
@@ -7011,10 +7011,10 @@ search_request_preprocess(struct gnutella_node *n,
 		}
 
 		if (sri->exv_sha1cnt)
-			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+			gnet_stats_inc_general(GNR_QUERY_SHA1);
 
 		if (sri->whats_new) {
-			gnet_stats_count_general(GNR_QUERY_WHATS_NEW, 1);
+			gnet_stats_inc_general(GNR_QUERY_WHATS_NEW);
 
 			/*
 			 * Since "What's New?" queries are broadcasted, we make sure
@@ -7048,10 +7048,10 @@ search_request_preprocess(struct gnutella_node *n,
 			} else {
 				if (wants_ipp) {
 					/* This is a GUESS 0.2 query, at least */
-					gnet_stats_count_general(GNR_QUERY_GUESS_02, 1);
+					gnet_stats_inc_general(GNR_QUERY_GUESS_02);
 				} else {
 					/* This is a GUESS query from a legacy servent */
-					gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+					gnet_stats_inc_general(GNR_QUERY_GUESS);
 				}
 				/* Send back a pong */
 				pcache_guess_acknowledge(n, TRUE, wants_ipp, ipp_net);
@@ -7292,10 +7292,10 @@ skip_throttling:
 		) {
 			bool requery;
 		   
-			gnet_stats_count_general(GNR_GTKG_TOTAL_QUERIES, 1);
+			gnet_stats_inc_general(GNR_GTKG_TOTAL_QUERIES);
 			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
 			if (requery)
-				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
+				gnet_stats_inc_general(GNR_GTKG_REQUERIES);
 
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
@@ -7313,10 +7313,10 @@ skip_throttling:
 	}
 
 	if (0 != (sri->flags & QUERY_F_GGEP_H))
-		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
+		gnet_stats_inc_general(GNR_QUERIES_WITH_GGEP_H);
 
 	if (0 != (sri->flags & QUERY_F_SR_UDP))
-		gnet_stats_count_general(GNR_QUERIES_WITH_SR_UDP, 1);
+		gnet_stats_inc_general(GNR_QUERIES_WITH_SR_UDP);
 
 	/*
 	 * If OOB reply is wanted, validate a few things.
@@ -7527,7 +7527,7 @@ search_request(struct gnutella_node *n,
 
 		if (oob_proxy_create(n)) {
 			oob = TRUE;
-			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+			gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
 
 			/*
 			 * We're supporting OOBv3, so make sure the "SO" key is present
@@ -7628,7 +7628,7 @@ search_request(struct gnutella_node *n,
 				sri->whats_new ? WHATS_NEW : safe_search,
 				host_addr_to_string(sri->addr));
 		}
-		gnet_stats_count_general(GNR_OOB_QUERIES_IGNORED, 1);
+		gnet_stats_inc_general(GNR_OOB_QUERIES_IGNORED);
 		goto finish;
 	}
 
@@ -7689,7 +7689,7 @@ search_request(struct gnutella_node *n,
 			if (settings_is_leaf() && node_ultra_received_qrp(n)) {
 				node_inc_qrp_query(n);
 			}
-			gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
+			gnet_stats_inc_general(GNR_LOCAL_SEARCHES);
 		}
 
 		qctx = share_query_context_make(sri->media_types, sri->partials);
@@ -7965,7 +7965,7 @@ search_compact(struct gnutella_node *n)
 			g_assert(mangled_search_len <= search_len - offset);
 
 			if (mangled_search_len != search_len - offset) {
-				gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+				gnet_stats_inc_general(GNR_QUERY_COMPACT_COUNT);
 				gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
 					search_len - offset - mangled_search_len);
 				n->msg_flags |= NODE_M_COMPACTED;
@@ -8338,7 +8338,7 @@ search_compact(struct gnutella_node *n)
 		search = n->data + 2;	/* skip flags, n->data could have changed */
 
 		if (!(n->msg_flags & NODE_M_COMPACTED) && size_is_positive(diff)) {
-			gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+			gnet_stats_inc_general(GNR_QUERY_COMPACT_COUNT);
 			n->msg_flags |= NODE_M_COMPACTED;
 		}
 

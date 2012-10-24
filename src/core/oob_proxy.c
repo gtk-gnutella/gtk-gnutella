@@ -336,7 +336,7 @@ oob_proxy_pending_results(
 
 	if (hostiles_spam_check(n->addr, n->port)) {
 		msg = "caught spammer";
-		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
+		gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT);
 		goto ignore;
 	}
 
@@ -486,7 +486,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 	dh_got_results(opr->leaf_muid, results);
 
 	if (NODE_IS_UDP(n))
-		gnet_stats_count_general(GNR_OOB_HITS_FOR_PROXIED_QUERIES, 1);
+		gnet_stats_inc_general(GNR_OOB_HITS_FOR_PROXIED_QUERIES);
 
 	/*
 	 * Replace the MUID of the message with the original one that

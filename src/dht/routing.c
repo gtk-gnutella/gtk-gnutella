@@ -856,7 +856,7 @@ forget_node(knode_t *kn)
 	kn->status = KNODE_UNKNOWN;
 	knode_free(kn);
 
-	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_NODES);
 }
 
 /**
@@ -882,7 +882,7 @@ forget_merged_node(knode_t *kn)
 	 * being merged are freed up.
 	 */
 
-	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_NODES);
 }
 
 /**
@@ -1153,7 +1153,7 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, void *arg)
 		return;
 	}
 
-	gnet_stats_count_general(GNR_DHT_COMPLETED_BUCKET_REFRESH, 1);
+	gnet_stats_inc_general(GNR_DHT_COMPLETED_BUCKET_REFRESH);
 
 	if (0 == GNET_PROPERTY(dht_debug) && 0 == GNET_PROPERTY(dht_lookup_debug))
 		return;		/* Not debugging, we're done */
@@ -1226,7 +1226,7 @@ dht_bucket_refresh(struct kbucket *kb, bool forced)
 	 */
 
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
-		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
+		gnet_stats_inc_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH);
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT denying %srefresh of non-splitable full %s",
 				forced ? "forced " : "", kbucket_to_string(kb));
@@ -1240,7 +1240,7 @@ dht_bucket_refresh(struct kbucket *kb, bool forced)
 	}
 
 	if (forced)
-		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_REFRESH, 1);
+		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_REFRESH);
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1591,9 +1591,9 @@ dht_initialize(bool post_init)
 	install_bucket_periodic_checks(root, 0);
 
 	stats.buckets++;
-	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_BUCKETS);
 	stats.leaves++;
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_LEAVES);
 	for (i = 0; i < K_REGIONS; i++) {
 		stats.network[i].others = hash_list_new(other_size_hash, other_size_eq);
 	}
@@ -2011,7 +2011,7 @@ dht_split_bucket(struct kbucket *kb)
 	stats.leaves++;					/* +2 - 1 == +1 */
 
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +2);
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_LEAVES);
 	
 	if (stats.max_depth < kb->depth + 1) {
 		stats.max_depth = kb->depth + 1;
@@ -2274,12 +2274,11 @@ promote_pending_node(struct kbucket *kb)
 					short_time(elapsed));
 			}
 			if (dht_lazy_rpc_ping(selected)) {
-				gnet_stats_count_general(
-					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
+				gnet_stats_inc_general(GNR_DHT_ROUTING_PINGED_PROMOTED_NODES);
 			}
 		}
 
-		gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES);
 	}
 }
 
@@ -2301,7 +2300,7 @@ clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying)
 				knode_to_string(kn1),
 				host_addr_port_to_string(kn2->addr, kn2->port));
 		}
-		gnet_stats_count_general(GNR_DHT_KUID_COLLISIONS, 1);
+		gnet_stats_inc_general(GNR_DHT_KUID_COLLISIONS);
 		return TRUE;
 	}
 
@@ -2347,7 +2346,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	 */
 
 	if (kn->flags & KNODE_F_FIREWALLED)
-		gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_FIREWALLED_NODES, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_FIREWALLED_NODES);
 
 	/*
 	 * From now on, only work on "tkn" which is known to be in the
@@ -2648,7 +2647,7 @@ record_node(knode_t *kn, bool traffic)
 			g_warning("DHT rejecting clashing node %s: bears our KUID",
 				knode_to_string(kn));
 		if (!is_my_address_and_port(kn->addr, kn->port))
-			gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
+			gnet_stats_inc_general(GNR_DHT_OWN_KUID_COLLISIONS);
 		return FALSE;
 	}
 
@@ -2667,7 +2666,7 @@ record_node(knode_t *kn, bool traffic)
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
 				kbucket_to_string(kb));
-		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA);
 		return FALSE;
 	}
 
@@ -2682,7 +2681,7 @@ record_node(knode_t *kn, bool traffic)
 				"too many hosts from same class-C network in routing table",
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port));
-		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA);
 		return FALSE;
 	}
 
@@ -2904,7 +2903,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
 			forget_merged_node(kn);
-			gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_QUOTA_NODES, 1);
+			gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_QUOTA_NODES);
 			continue;
 		}
 
@@ -2983,7 +2982,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 
 	if (forced) {
 		parent->frozen_depth = TRUE;
-		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_MERGE, 1);
+		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_MERGE);
 	}
 
 	/*
@@ -3035,7 +3034,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	stats.leaves--;			/* -2 + 1 == -1 */
 
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, -2);
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, -1);
+	gnet_stats_dec_general(GNR_DHT_ROUTING_LEAVES);
 
 	if (stats.max_depth == kb->depth) {
 		/*
@@ -3175,7 +3174,7 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 			to_remove = g_slist_prepend(to_remove, kn);
 		} else if (knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
-				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+				gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES);
 			}
 		}
 	}
@@ -3322,12 +3321,12 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 			d < ALIVE_PERIOD_MAX &&
 			knode_still_alive_probability(kn) > ALIVE_PROBA_HIGH_THRESH
 		) {
-			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_SKIPPED, 1);
+			gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_SKIPPED);
 			continue;
 		}
 
 		if (dht_lazy_rpc_ping(kn)) {
-			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
+			gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES);
 		}
 	}
 	hash_list_iter_release(&iter);
@@ -3348,14 +3347,14 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 
 		if ((kn->flags & KNODE_F_SHUTDOWNING) && knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
-				gnet_stats_count_general(
-					GNR_DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES, 1);
+				gnet_stats_inc_general(
+					GNR_DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES);
 			}
 		}
 	}
 	hash_list_iter_release(&iter);
 
-	gnet_stats_count_general(GNR_DHT_BUCKET_ALIVE_CHECK, 1);
+	gnet_stats_inc_general(GNR_DHT_BUCKET_ALIVE_CHECK);
 
 	/*
 	 * In case both this bucket and its sibling are depleted enough, consider

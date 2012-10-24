@@ -1269,7 +1269,7 @@ lookup_value_append(nlookup_t *nl, float load,
 						nid_to_string(&nl->lid), dht_value_to_string(v),
 						knode_to_string(kn));
 				}
-				gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
+				gnet_stats_inc_general(GNR_DHT_DUP_VALUES);
 				dht_value_free(v, TRUE);
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
@@ -2353,7 +2353,7 @@ compute:
 
 	if (!(nl->flags & NL_F_ACTV_PROTECT)) {
 		nl->flags |= NL_F_ACTV_PROTECT;
-		gnet_stats_count_general(GNR_DHT_ACTIVELY_PROTECTED_LOOKUP_PATH, 1);
+		gnet_stats_inc_general(GNR_DHT_ACTIVELY_PROTECTED_LOOKUP_PATH);
 	}
 
 	/*
@@ -2464,7 +2464,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 		prefix[j]--;
 		nodes--;
 
-		gnet_stats_count_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE, 1);
+		gnet_stats_inc_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE);
 		stripped++;
 	}
 
@@ -2500,8 +2500,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 
 	if (dkl >= previous_dkl) {
 		lookup_path_add(nl, removed_kn);
-		gnet_stats_count_general(
-			GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE, -1);
+		gnet_stats_dec_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE);
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] put %s back in path "
@@ -2809,13 +2808,13 @@ unsafe:
 	 */
 
 	if (!map_contains(nl->unsafe, kn->id)) {
-		gnet_stats_count_general(gnr_stat, 1);
+		gnet_stats_inc_general(gnr_stat);
 		map_insert(nl->unsafe, kn->id, knode_refcnt_inc(kn));
 	}
 
 	if (!(nl->flags & NL_F_PASV_PROTECT)) {
 		nl->flags |= NL_F_PASV_PROTECT;
-		gnet_stats_count_general(GNR_DHT_PASSIVELY_PROTECTED_LOOKUP_PATH, 1);
+		gnet_stats_inc_general(GNR_DHT_PASSIVELY_PROTECTED_LOOKUP_PATH);
 	}
 
 	return FALSE;
@@ -4904,7 +4903,7 @@ lookup_value_send(nlookup_t *nl)
 
 	lookup_value_check(nl);
 
-	gnet_stats_count_general(GNR_DHT_SECONDARY_KEY_FETCH, 1);
+	gnet_stats_inc_general(GNR_DHT_SECONDARY_KEY_FETCH);
 
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);
@@ -4991,7 +4990,7 @@ lookup_value_iterate(nlookup_t *nl)
 				"skipping already retrieved secondary key %s",
 				nid_to_string(&nl->lid), kuid_to_hex_string(sid));
 
-		gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
+		gnet_stats_inc_general(GNR_DHT_DUP_VALUES);
 		sk->next_skey++;
 	}
 

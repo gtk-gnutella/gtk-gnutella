@@ -806,7 +806,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (NULL == n) {
 		n = node_by_guid(pp->guid);
 		if (n != NULL)
-			gnet_stats_count_general(GNR_PUSH_PROXY_ROUTE_NOT_PROXIED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_ROUTE_NOT_PROXIED);
 	}
 
 	if (n != NULL) {
@@ -828,7 +828,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 				(ulong) pp->file_idx);
 		} else {
 			gmsg_sendto_one(n, packet.data, packet.size);
-			gnet_stats_count_general(GNR_PUSH_PROXY_TCP_RELAYED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_TCP_RELAYED);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 					"Push-proxy: message sent to node");
@@ -866,7 +866,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			int cnt;
 
 			gmsg_sendto_all(nodes, packet.data, packet.size);
-			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_BROADCASTED);
 
 			cnt = g_slist_length(nodes);
 
@@ -907,7 +907,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 sorry:
-	gnet_stats_count_general(GNR_PUSH_PROXY_FAILED, 1);
+	gnet_stats_inc_general(GNR_PUSH_PROXY_FAILED);
 
 	pproxy_error_remove(pp, 410, "Push proxy: no route to servent GUID %s",
 		guid_hex_str(pp->guid));

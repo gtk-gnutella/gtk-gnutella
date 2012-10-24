@@ -299,7 +299,7 @@ stable_record_activity(const knode_t *kn)
 		new_ld.first_seen = kn->first_seen;
 		new_ld.last_seen = kn->last_seen;
 
-		gnet_stats_count_general(GNR_DHT_STABLE_NODES_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_STABLE_NODES_HELD);
 	} else {
 		if (kn->last_seen <= ld->last_seen)
 			return;

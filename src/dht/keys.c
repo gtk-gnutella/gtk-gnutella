@@ -580,9 +580,9 @@ keys_reclaim(struct keyinfo *ki)
 
 	dbmw_delete(db_keydata, ki->kuid);
 
-	gnet_stats_count_general(GNR_DHT_KEYS_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_KEYS_HELD);
 	if (ki->flags & DHT_KEY_F_CACHED)
-		gnet_stats_count_general(GNR_DHT_CACHED_KEYS_HELD, -1);
+		gnet_stats_dec_general(GNR_DHT_CACHED_KEYS_HELD);
 
 	kuid_atom_free_null(&ki->kuid);
 	WFREE(ki);
@@ -726,9 +726,9 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		kd->creators[0] = *cid;				/* struct copy */
 		kd->dbkeys[0] = dbkey;
 
-		gnet_stats_count_general(GNR_DHT_KEYS_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_KEYS_HELD);
 		if (!in_kball)
-			gnet_stats_count_general(GNR_DHT_CACHED_KEYS_HELD, +1);
+			gnet_stats_inc_general(GNR_DHT_CACHED_KEYS_HELD);
 	} else {
 		int low = 0;
 		int high = ki->values - 1;
@@ -988,9 +988,9 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	 */
 
 	if (vvec != valvec) {
-		gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_HITS, 1);
+		gnet_stats_inc_general(GNR_DHT_FETCH_LOCAL_HITS);
 		if (ki->flags & DHT_KEY_F_CACHED)
-			gnet_stats_count_general(GNR_DHT_FETCH_LOCAL_CACHED_HITS, 1);
+			gnet_stats_inc_general(GNR_DHT_FETCH_LOCAL_CACHED_HITS);
 	}
 
 done:
@@ -1377,7 +1377,7 @@ keys_offload(const knode_t *kn)
 	if (debug)
 		g_debug("DHT preparing key offloading to %s", knode_to_string(kn));
 
-	gnet_stats_count_general(GNR_DHT_KEY_OFFLOADING_CHECKS, 1);
+	gnet_stats_inc_general(GNR_DHT_KEY_OFFLOADING_CHECKS);
 
 	ctx.our_kuid = get_our_kuid();
 	ctx.remote_kuid = kn->id;

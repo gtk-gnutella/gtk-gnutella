@@ -262,7 +262,7 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 
-	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
 	r->refcount--;
@@ -291,7 +291,7 @@ results_timeout(cqueue_t *unused_cq, void *obj)
 			r->count, r->count == 1 ? "" : "s");
 	}
 
-	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 	
 	/*
 	 * Record an "event" that the OOB results went unclaimed.
@@ -372,7 +372,7 @@ servent_service(cqueue_t *cq, void *obj)
 
 	if (s->can_deflate) {
 		if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
-			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
+			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	}
 
 	mq_udp_putq(q, mb, s->host);
@@ -490,7 +490,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	r = hikset_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
-		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
+		gnet_stats_inc_general(GNR_SPURIOUS_OOB_HIT_CLAIM);
 		if (GNET_PROPERTY(query_debug))
 			g_warning("OOB got spurious LIME/11 from %s for %s, "
 				"asking for %d hit%s",
@@ -591,7 +591,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	}
 
 	if (wanted < r->count)
-		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
+		gnet_stats_inc_general(GNR_PARTIALLY_CLAIMED_OOB_HITS);
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the

@@ -604,7 +604,7 @@ delete_qkdata(const gnet_host_t *host)
 {
 	guess_cache_remove(host);		/* In case it is in the 0.2 host cache */
 	dbmw_delete(db_qkdata, host);
-	gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, -1);
+	gnet_stats_dec_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 
 	if (GNET_PROPERTY(guess_client_debug) > 5) {
 		g_debug("GUESS QKCACHE query key for %s reclaimed",
@@ -1057,7 +1057,7 @@ guess_host_set_v2(const gnet_host_t *h)
 		if (!(qk->flags & GUESS_F_PONG_IPP)) {
 			qk->flags |= GUESS_F_PONG_IPP;
 			guess_02_hosts++;
-			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, +1);
+			gnet_stats_inc_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
 			guess_cache_add(h);
 		}
@@ -1078,7 +1078,7 @@ guess_host_clear_v2(const gnet_host_t *h)
 		if (qk->flags & GUESS_F_PONG_IPP) {
 			qk->flags &= ~GUESS_F_PONG_IPP;
 			guess_02_hosts--;
-			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, -1);
+			gnet_stats_dec_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
 			guess_cache_remove(h);
 		}
@@ -1135,7 +1135,7 @@ guess_traffic_from(const gnet_host_t *h)
 		new_qk.first_seen = new_qk.last_update = tm_time();
 		new_qk.query_key = NULL;	/* Query key unknown */
 		qk = &new_qk;
-		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+		gnet_stats_inc_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 	}
 
 	qk->last_seen = tm_time();
@@ -1266,7 +1266,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 
 	if (random_value(99) < UNSIGNED(p)) {
 		hash_list_prepend(link_cache, atom_host_get(h));
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, +1);
+		gnet_stats_inc_general(GNR_GUESS_LINK_CACHE);
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
 			g_info("GUESS adding %s to link cache (p=%d%%, n=%u)",
@@ -1284,7 +1284,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		}
 
 		atom_host_free(removed);
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
+		gnet_stats_dec_general(GNR_GUESS_LINK_CACHE);
 	}
 }
 
@@ -1425,7 +1425,7 @@ guess_remove_link_cache(const gnet_host_t *h)
 			g_info("GUESS removed %s from link cache", gnet_host_to_string(h));
 		}
 		atom_host_free(atom);
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
+		gnet_stats_dec_general(GNR_GUESS_LINK_CACHE);
 		guess_discovery_enable();
 	}
 }
@@ -1458,7 +1458,7 @@ guess_record_qk(const gnet_host_t *h, const void *buf, size_t len)
 	new_qk.query_key = new_qk.length ? wcopy(buf, new_qk.length) : NULL;
 
 	if (!dbmw_exists(db_qkdata, h))
-		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+		gnet_stats_inc_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 
 	/*
 	 * Writing a new value for the key will free up any dynamically allocated
@@ -2391,7 +2391,7 @@ guess_got_results(const guid_t *muid, uint32 hits)
 	gq = hikset_lookup(gmuid, muid);
 	guess_check(gq);
 	gq->recv_results += hits;
-	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERY_HITS, +1);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERY_HITS);
 	guess_stats_fire(gq);
 }
 
@@ -2967,7 +2967,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 		}
 		gq->queried_nodes++;
 		gq->bw_out_query += pmsg_written_size(mb);
-		gnet_stats_count_general(GNR_GUESS_HOSTS_QUERIED, +1);
+		gnet_stats_inc_general(GNR_GUESS_HOSTS_QUERIED);
 	} else {
 		/* Message was dropped */
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
@@ -3281,7 +3281,7 @@ guess_handle_ack(guess_t *gq,
 		guess_load_more_hosts(gq);		/* Fuel for acceleration */
 	}
 
-	gnet_stats_count_general(GNR_GUESS_HOSTS_ACKNOWLEDGED, +1);
+	gnet_stats_inc_general(GNR_GUESS_HOSTS_ACKNOWLEDGED);
 	guess_traffic_from(host);
 	{
 		uint16 port = peek_le16(&n->data[0]);
@@ -3907,8 +3907,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	 * Therefore, it is useless to send them the query again.
 	 */
 
-	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
-	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, +1);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERIES);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_RUNNING);
 
 	guess_event_fire(gq, TRUE);
 
@@ -3968,7 +3968,7 @@ guess_free(guess_t *gq)
 	gq->magic = 0;
 	WFREE(gq);
 
-	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, -1);
+	gnet_stats_dec_general(GNR_GUESS_LOCAL_RUNNING);
 }
 
 /**
