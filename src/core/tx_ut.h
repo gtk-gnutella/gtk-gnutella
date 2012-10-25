@@ -60,6 +60,7 @@ struct tx_ut_args {
 	udp_tag_t tag;					/**< Protocol tag */
 	struct tx_ut_cb *cb;			/**< Callbacks */
 	bool advertise_improved_acks;	/**< Improved acks needs flagging in TX */
+	bool ear_support;				/**< Will the RX side understand EARs? */
 };
 
 /**

@@ -234,6 +234,7 @@ struct attr {
 	udp_tag_t tag;			/* Protocol tag (e.g. "GTA" or "GND") */
 	unsigned seqno_freed;	/* Sequence IDs freed, for hysteresis */
 	unsigned improved_acks:1;	/* Advertise improved ACKs in TX fragments */
+	unsigned ear_support:1;		/* Remote RX will understand EARs */
 	unsigned out_of_seqno:1;	/* We ran out of sequence IDs */
 	unsigned upper_flowc:1;		/* Upper layer was flow-controlled */
 	unsigned lower_flowc:1;		/* Lower layer flow-controlled us */
@@ -672,7 +673,7 @@ ut_resend_iterate(cqueue_t *unused_cq, void *obj)
 	(void) unused_cq;
 
 	ut_msg_check(um);
-
+	ut_attr_check(um->attr);
 	g_assert(um->iterate_ev != NULL);
 
 	um->iterate_ev = NULL;	/* Callback triggered */
@@ -688,9 +689,12 @@ ut_resend_iterate(cqueue_t *unused_cq, void *obj)
 	 * When we don't know whether the remote host is alive yet, don't resend
 	 * fragments but rather send EARs (Extra ACK Requests) to check whether
 	 * there is a remote stack listening to our traffic.
+	 *
+	 * This is only done when we know (by configuration made at creation time)
+	 * that the remote RX side will properly understand EARs.
 	 */
 
-	if (!um->alive) {
+	if (!um->alive && um->attr->ear_support) {
 		if (NULL == um->ear_ev)
 			ut_ear_send(um);
 		return;

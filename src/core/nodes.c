@@ -6786,6 +6786,7 @@ node_pseudo_enable(gnutella_node_t *n, struct gnutella_socket *s,
 		targs.cb = &node_tx_ut_cb;
 		targs.tag = tag;
 		targs.advertise_improved_acks = FALSE;
+		targs.ear_support = TRUE;
 		tx = tx_make_above(tx, tx_ut_get_ops(), &targs);
 
 		rargs.tag = tag;
