@@ -3945,16 +3945,41 @@ http://maxmind.com/</property>
 	      </child>
 
 	      <child>
-		<widget class="GtkEventBox" id="eventbox_port_mapping_successful">
+		<widget class="GtkEventBox" id="eventbox_upnp_port_mapping_successful">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Port mapping configured through UPnP or NAT-PMP.</property>
+		  <property name="tooltip" translatable="yes">Port mapping configured through UPnP.</property>
 		  <property name="visible_window">True</property>
 		  <property name="above_child">False</property>
 
 		  <child>
-		    <widget class="GtkImage" id="image_port_mapping_successful">
+		    <widget class="GtkImage" id="image_upnp_successful">
 		      <property name="visible">True</property>
 		      <property name="pixbuf">upnp.xpm</property>
+		      <property name="xalign">0.5</property>
+		      <property name="yalign">0.5</property>
+		      <property name="xpad">0</property>
+		      <property name="ypad">0</property>
+		    </widget>
+		  </child>
+		</widget>
+		<packing>
+		  <property name="padding">0</property>
+		  <property name="expand">True</property>
+		  <property name="fill">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkEventBox" id="eventbox_natpmp_port_mapping_successful">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Port mapping configured through NAT-PMP.</property>
+		  <property name="visible_window">True</property>
+		  <property name="above_child">False</property>
+
+		  <child>
+		    <widget class="GtkImage" id="image_natpmp_successful">
+		      <property name="visible">True</property>
+		      <property name="pixbuf">natpmp.xpm</property>
 		      <property name="xalign">0.5</property>
 		      <property name="yalign">0.5</property>
 		      <property name="xpad">0</property>

@@ -593,8 +593,10 @@ create_main_window (void)
   GtkWidget *hbox_port_mapping;
   GtkWidget *eventbox_port_mapping_possible;
   GtkWidget *image_port_mapping_possible;
-  GtkWidget *eventbox_port_mapping_successful;
-  GtkWidget *image_port_mapping_successful;
+  GtkWidget *eventbox_upnp_port_mapping_successful;
+  GtkWidget *image_upnp_successful;
+  GtkWidget *eventbox_natpmp_port_mapping_successful;
+  GtkWidget *image_natpmp_successful;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
   GtkWidget *frame_status_images;
@@ -5625,23 +5627,41 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_possible), image_port_mapping_possible);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_port_mapping_possible), FALSE);
 
-  eventbox_port_mapping_successful = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
-  gtk_widget_ref (eventbox_port_mapping_successful);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_port_mapping_successful", eventbox_port_mapping_successful,
+  eventbox_upnp_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_upnp_port_mapping_successful, "eventbox_upnp_port_mapping_successful");
+  gtk_widget_ref (eventbox_upnp_port_mapping_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_upnp_port_mapping_successful", eventbox_upnp_port_mapping_successful,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox_port_mapping_successful);
-  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_successful, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_successful, _("Port mapping configured through UPnP or NAT-PMP."), NULL);
+  gtk_widget_show (eventbox_upnp_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_upnp_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_upnp_port_mapping_successful, _("Port mapping configured through UPnP."), NULL);
 
-  image_port_mapping_successful = create_pixmap (main_window, "upnp.xpm");
-  gtk_widget_set_name (image_port_mapping_successful, "image_port_mapping_successful");
-  gtk_widget_ref (image_port_mapping_successful);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_port_mapping_successful", image_port_mapping_successful,
+  image_upnp_successful = create_pixmap (main_window, "upnp.xpm");
+  gtk_widget_set_name (image_upnp_successful, "image_upnp_successful");
+  gtk_widget_ref (image_upnp_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_upnp_successful", image_upnp_successful,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (image_port_mapping_successful);
-  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_successful), image_port_mapping_successful);
-  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_port_mapping_successful), FALSE);
+  gtk_widget_show (image_upnp_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_upnp_port_mapping_successful), image_upnp_successful);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_upnp_successful), FALSE);
+
+  eventbox_natpmp_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_natpmp_port_mapping_successful, "eventbox_natpmp_port_mapping_successful");
+  gtk_widget_ref (eventbox_natpmp_port_mapping_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_natpmp_port_mapping_successful", eventbox_natpmp_port_mapping_successful,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_natpmp_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_natpmp_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_natpmp_port_mapping_successful, _("Port mapping configured through NAT-PMP."), NULL);
+
+  image_natpmp_successful = create_pixmap (main_window, "natpmp.xpm");
+  gtk_widget_set_name (image_natpmp_successful, "image_natpmp_successful");
+  gtk_widget_ref (image_natpmp_successful);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_natpmp_successful", image_natpmp_successful,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_natpmp_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_natpmp_port_mapping_successful), image_natpmp_successful);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_natpmp_successful), FALSE);
 
   alignment25 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment25, "alignment25");
