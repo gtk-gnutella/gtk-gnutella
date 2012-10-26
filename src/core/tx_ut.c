@@ -2039,6 +2039,7 @@ tx_ut_init(txdrv_t *tx, void *args)
 	attr->cb = targs->cb;
 	attr->tag = targs->tag;				/* struct copy */
 	attr->improved_acks = booleanize(targs->advertise_improved_acks);
+	attr->ear_support = booleanize(targs->ear_support);
 
 	for (i = 0; i < G_N_ELEMENTS(attr->pending); i++) {
 		eslist_init(&attr->pending[i], offsetof(struct ut_queued, lk));
