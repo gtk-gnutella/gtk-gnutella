@@ -155,6 +155,7 @@
 
 static HINSTANCE libws2_32;
 static bool mingw_inited;
+static bool mingw_vmm_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -397,7 +398,8 @@ mingw_win2posix(int error)
 {
 	static hset_t *warned;
 
-	if (NULL == warned) {
+	if (NULL == warned && mingw_vmm_inited) {
+		/* Only allocate once VMM layer has been initialized */
 		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	}
 
@@ -502,7 +504,7 @@ mingw_win2posix(int error)
 		/* Got this error writing to a closed stdio fd, opened via pipe() */
 		return EBADF;
 	default:
-		if (!hset_contains(warned, int_to_pointer(error))) {
+		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 			hset_insert(warned, int_to_pointer(error));
@@ -955,14 +957,8 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, product_get_name());
 
-	/*
-	 * Can't use mingw_mkdir() as we can't allocate memory here.
-	 * Use raw mkdir() but this won't work if there are non-ASCII chars
-	 * in the path.
-	 */
-
 	if (path_does_not_exist(dest))
-		mkdir(dest);
+		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
@@ -1839,6 +1835,8 @@ mingw_valloc(void *hint, size_t size)
 					compact_size(mingw_vmm.size, FALSE),
 					compact_size2(mem_latersize, FALSE));
 			}
+
+			mingw_vmm_inited = TRUE;
 		}
 
 		if (vmm_is_debugging(0)) {
