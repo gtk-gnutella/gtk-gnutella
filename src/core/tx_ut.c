@@ -320,6 +320,7 @@ struct ut_msg {
 	unsigned deflated:1;			/* Whether PDU was deflated */
 	unsigned alive:1;				/* Got at least an ACK from host */
 	unsigned expecting_ack:1;		/* Expecting ACK to continue */
+	unsigned ear_pending:1;			/* Sent EAR to lower layer, waiting CONF */
 };
 
 static void
@@ -659,6 +660,7 @@ ut_ear_send(struct ut_msg *um)
 	ear.ear = TRUE;
 
 	um->expecting_ack = TRUE;
+	um->ear_pending = TRUE;
 	ut_send_ack(um->attr->tx, um->to, &ear);
 }
 
@@ -695,7 +697,7 @@ ut_resend_iterate(cqueue_t *unused_cq, void *obj)
 	 */
 
 	if (!um->alive && um->attr->ear_support) {
-		if (NULL == um->ear_ev)
+		if (!um->ear_pending && NULL == um->ear_ev)
 			ut_ear_send(um);
 		return;
 	}
@@ -978,6 +980,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 					uf->fragno + 1, um->fragcnt, um->seqno, uf->txcnt,
 					gnet_host_to_string(um->to), ut_frag_delay(uf));
 			}
+			g_assert(NULL == uf->resend_ev);
 			uf->resend_ev = cq_main_insert(ut_frag_delay(uf),
 				ut_frag_resend, uf);
 		} else {
@@ -1068,6 +1071,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 			um = idtable_probe_value(pmi->attr->seq, seqno);
 			if (um != NULL) {
 				um->ears++;
+				um->ear_pending = FALSE;		/* Got CONF that it was sent */
 				g_assert(NULL == um->ear_ev);
 				um->ear_ev = cq_main_insert(
 					ut_sending_delay(um->ears), ut_ear_resend, um);
