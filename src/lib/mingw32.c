@@ -144,6 +144,8 @@
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define WS2_LIBRARY		"ws2_32.dll"
 
+#define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
+
 /* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
 #define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
 
@@ -4485,7 +4487,7 @@ getlog(bool initial)
 
 #else	/* !MINGW_STARTUP_DEBUG */
 #define getlog(x)	NULL
-#define STARTUP_DEBUG(...)
+#define STARTUP_DEBUG(...)	{}
 #endif	/* MINGW_STARTUP_DEBUG */
 
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
@@ -4560,6 +4562,36 @@ mingw_stdio_reset(FILE *lf, bool console)
 	}
 }
 
+/**
+ * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
+ * extension, etc..., up to the maximum specified.
+ */
+static G_GNUC_COLD void
+mingw_file_rotate(FILE *lf, const char *pathname, int keep)
+{
+	static char npath[MAX_PATH_LEN];
+	int i;
+
+	if (keep > 0) {
+		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
+		if (-1 != mingw_unlink(npath))
+			STARTUP_DEBUG("removed file \"%s\"", npath);
+	}
+
+	for (i = keep - 1; i > 0; i--) {
+		static char opath[MAX_PATH_LEN];
+		str_bprintf(opath, sizeof opath, "%s.%d", pathname, i - 1);
+		str_bprintf(npath, sizeof npath, "%s.%d", pathname, i);
+		if (-1 != mingw_rename(opath, npath))
+			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
+	}
+
+	str_bprintf(npath, sizeof npath, "%s.0", pathname);
+
+	if (-1 != mingw_rename(pathname, npath))
+		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
+}
+
 G_GNUC_COLD void
 mingw_early_init(void)
 {
@@ -4613,6 +4645,7 @@ mingw_early_init(void)
 				const char *pathname;
 
 				pathname = mingw_getstdout_path();
+				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout file will be %s", pathname);
 				if (NULL != freopen(pathname, "wb", stdout)) {
 					log_set(LOG_STDOUT, pathname);
@@ -4622,6 +4655,7 @@ mingw_early_init(void)
 				}
 
 				pathname = mingw_getstderr_path();
+				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr file will be %s", pathname);
 				if (NULL != freopen(pathname, "wb", stderr)) {
 					log_set(LOG_STDERR, pathname);
