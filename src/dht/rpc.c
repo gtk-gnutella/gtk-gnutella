@@ -34,9 +34,10 @@
 #include "common.h"
 
 #include "rpc.h"
-#include "routing.h"
 #include "kmsg.h"
 #include "knode.h"
+#include "routing.h"
+#include "stable.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -390,10 +391,12 @@ dht_rpc_answer(const guid_t *muid,
 		/*
 		 * This node is stale: the node to which we sent the RPC bears
 		 * a KUID different from the one we thought it had.  The node we
-		 * knew about is therefore gone.
+		 * knew about is therefore gone and has a new KUID.
 		 *
 		 * Remove the original node from the routing table (in case it is
-		 * present) and do not handle the reply.
+		 * present) and do not handle the reply: that would be misleading
+		 * if we are performing a node lookup for instance, because we do not
+		 * want to enter the new node in the path.
 		 */
 
 		gnet_stats_inc_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH);
@@ -406,8 +409,9 @@ dht_rpc_answer(const guid_t *muid,
 				knode_to_string2(kn));
 		}
 
-		dht_remove_node(rn);				/* Discard obsolete entry */
-		rpc_timed_out(cq_main(), rcb);		/* Invoke user callback if any */
+		stable_replace(kn, rn);			/* KUID was changed */
+		dht_remove_node(kn);			/* Remove obsolete entry from routing */
+		rpc_timed_out(cq_main(), rcb);	/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
 	}
@@ -461,7 +465,7 @@ dht_rpc_answer(const guid_t *muid,
 	 * found at RPC reply time, a new node in "unknown" status was created.
 	 */
 
-	if (kn->status == KNODE_STALE) {
+	if (KNODE_STALE == kn->status) {
 		dht_set_node_status(kn, KNODE_GOOD);
 		gnet_stats_inc_general(GNR_DHT_REVITALIZED_STALE_NODES);
 	}

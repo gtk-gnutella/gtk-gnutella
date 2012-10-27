@@ -49,6 +49,7 @@ double stable_alive_probability(time_delta_t t, time_delta_t d);
 double stable_still_alive_probability(time_t first_seen, time_t last_seen);
 
 void stable_record_activity(const knode_t *kn);
+void stable_replace(const knode_t *kn, const knode_t *rn);
 
 #endif /* _dht_stable_h_ */
 

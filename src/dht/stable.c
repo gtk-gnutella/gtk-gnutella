@@ -310,6 +310,40 @@ stable_record_activity(const knode_t *kn)
 }
 
 /**
+ * The KUID of the node has changed: remove its entry if it had one and make
+ * sure we have an entry for the new KUID.
+ *
+ * @param kn		the old node
+ * @param rn		the replacing node
+ */
+void
+stable_replace(const knode_t *kn, const knode_t *rn)
+{
+	struct lifedata *ld;
+
+	knode_check(kn);
+	knode_check(rn);
+	g_assert(rn->flags & KNODE_F_ALIVE);
+
+	ld = get_lifedata(kn->id);
+	if (NULL == ld)
+		return;				/* Node was not recorded in the "stable" set */
+
+	if (GNET_PROPERTY(dht_stable_debug)) {
+		g_debug("DHT STABLE removing obsolete %s, now at %s",
+			knode_to_string(kn), knode_to_string2(rn));
+	}
+
+	/*
+	 * Remove the old node and create an entry for the new one.
+	 */
+
+	dbmw_delete(db_lifedata, kn->id->v);
+	gnet_stats_dec_general(GNR_DHT_STABLE_NODES_HELD);
+	stable_record_activity(rn);
+}
+
+/**
  * Estimate probability of presence for a value published to some roots in
  * a given time frame.
  *
