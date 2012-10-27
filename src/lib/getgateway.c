@@ -131,7 +131,7 @@ parse_netstat(host_addr_t *addrp)
 	(void) addrp;
 
 	if (!warned) {
-		g_warning("getgateway(): no popen() on this platform");
+		g_warning("%s(): no popen() on this platform", G_STRFUNC);
 		warned = TRUE;
 	}
 
@@ -157,7 +157,7 @@ getgateway(host_addr_t *addrp)
 	uint32 ip;
 
 	if (-1 == mingw_getgateway(&ip)) {
-		g_warning("getgateway(): GetBestRoute() failed: %m");
+		g_warning("%s(): GetBestRoute() failed: %m", G_STRFUNC);
 		return parse_netstat(addrp);	/* Avoids "unused function" warning */
 	}
 
@@ -206,7 +206,7 @@ getgateway(host_addr_t *addrp)
 
 		rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
 		if ((ssize_t) -1 == rw) {
-			g_warning("getgateway(): recv() failed: %m");
+			g_warning("%s(): recv() failed: %m", G_STRFUNC);
 			goto error;
 		}
 
@@ -271,7 +271,7 @@ getgateway(host_addr_t *addrp)
 
 error:
 	fd_close(&fd);
-	g_warning("getgateway(): netlink failed, using the netstat command");
+	g_warning("%s(): netlink failed, using the netstat command", G_STRFUNC);
 	return parse_netstat(addrp);
 
 found:
@@ -397,7 +397,8 @@ got_gateway:
 
 error:
 	fd_close(&fd);
-	g_warning("getgateway(): route socket failed, using the netstat command");
+	g_warning("%s(): route socket failed, using the netstat command",
+		G_STRFUNC);
 	return parse_netstat(addrp);
 
 found:
@@ -415,7 +416,7 @@ found:
 	 */
 
 	if (!warned) {
-		g_warning("getgateway(): using the slow netstat command");
+		g_warning("%s(): using the slow netstat command", G_STRFUNC);
 		warned = TRUE;
 	}
 
