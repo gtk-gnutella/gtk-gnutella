@@ -242,8 +242,10 @@ local_hostname(void)
 {
 	static char name[256 + 1];
 
-	if (-1 == gethostname(name, sizeof name))
+	if (-1 == gethostname(name, sizeof name)) {
 		g_warning("gethostname() failed: %m");
+		name[0] = '\0';
+	}
 
 	name[sizeof(name) - 1] = '\0';
 	return name;
