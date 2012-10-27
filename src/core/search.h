@@ -64,6 +64,10 @@
 #define QUERY_F_SR_UDP		0x0100	/**< Accepts semi-reliable UDP, "GTA" tag */
 #define QUERY_F_MAX_HITS	0x00ff	/**< Lowest 8 bits indicate max # of hits */
 
+/**
+ * This special file index (2^32 - 3) signals that the sender wishes to
+ * establish a firewalled-to-firewalled transfer using RUDP.
+ */
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
 /*

@@ -7713,6 +7713,77 @@ node_check_ggep(struct gnutella_node *n, int maxsize, int regsize)
 }
 
 /**
+ * Patch the port of the PUSH message to be identical to the source port
+ * of the UDP datagram if it is for FW-FW transfer initiation.
+ */
+static void
+node_patch_push_fw2fw(gnutella_node_t *n)
+{
+	host_addr_t addr;
+	uint16 port;
+	uint32 file_index;
+	char *info;
+	bool patched;
+
+	g_assert(NODE_IS_UDP(n));
+	g_assert(GTA_MSG_PUSH_REQUEST == gnutella_header_get_function(&n->header));
+
+	info = &n->data[GUID_RAW_SIZE];		/* Start of file information */
+	file_index = peek_le32(&info[0]);
+
+	if (QUERY_FW2FW_FILE_INDEX != file_index)
+		return;
+
+	/*
+	 * Dealing with a PUSH sent over UDP (to a push-proxy) to initiate
+	 * a FW-FW transfer by the recipient, which may or may not be us (i.e.
+	 * we may have to route this message first, to a leaf).
+	 *
+	 * To be able to properly initiate the RUDP connection, the recipient will
+	 * have to contact the sending host on the source port of the UDP message,
+	 * not on the port that is contained in the PUSH message (to properly
+	 * handle the case of NAT firewalls).
+	 *
+	 * We also patch the address within the PUSH message with the source
+	 * address if they do not match.
+	 *
+	 * See doc/gnutella/RUDP for explanations on RUDP and FW-FW transfers.
+	 *		--RAM, 2012-10-27
+	 */
+
+	addr = host_addr_peek_ipv4(&info[4]);
+	port = peek_le16(&info[8]);
+
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("NODE %s from %s asks for FW-FW transfers to %s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			node_infostr(n), host_addr_port_to_string(addr, port));
+	}
+
+	patched = FALSE;
+
+	if (!host_addr_equal(addr, n->addr) && host_addr_is_ipv4(n->addr)) {
+		poke_be32(&info[4], host_addr_ipv4(n->addr));
+		patched = TRUE;
+	}
+
+	if (port != n->port) {
+		poke_le16(&info[8], n->port);
+		patched = TRUE;
+	}
+
+	if (patched) {
+		if (GNET_PROPERTY(node_debug)) {
+			g_debug("NODE patched PUSH target from %s to %s for FW-FW",
+				host_addr_port_to_string(addr, port),
+				host_addr_port_to_string2(host_addr_peek_ipv4(&info[4]),
+					peek_le16(&info[8])));
+		}
+		gnet_stats_inc_general(GNR_UDP_FW2FW_PUSHES_PATCHED);
+	}
+}
+
+/**
  * Processing of messages.
  *
  * @attention
@@ -8032,6 +8103,10 @@ node_parse(struct gnutella_node *n)
 			host_add_semi_pong(addr, port);
 		}
 		break;
+	case GTA_MSG_PUSH_REQUEST:		/* Push */
+		if (NODE_IS_UDP(n))
+			node_patch_push_fw2fw(n);
+		break;
 	case GTA_MSG_HSEP_DATA:
 		hsep_process_msg(n, tm_time());
 		goto reset_header;
@@ -8334,6 +8409,8 @@ static void
 node_handle(gnutella_node_t *n)
 {
 	bool drop_hostile = TRUE;
+
+	g_assert(NODE_IS_UDP(n));		/* UDP node, no DHT traffic here */
 
 	/*
 	 * The node_parse() routine was written to process incoming Gnutella

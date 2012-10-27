@@ -172,6 +172,7 @@ general_type_str(gint value)
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
 		N_("QUEUE discarded due to no suitable download"),
+		N_("UDP PUSH messages patched for firewall-to-firewall connections"),
 		N_("UDP UHC pings received"),
 		N_("UDP UHC pongs sent"),
 		N_("UDP messages with bogus source IP"),

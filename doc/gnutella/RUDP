@@ -232,6 +232,26 @@ PushProxy behavior:
   initial implementation was sane (i.e. it should note the file param and
   should fill out the Push's address, port, and file index correctly).
 
+[Notes from RAM]
+
+The above specifications will not work correctly when initiating FW-FW
+transfers behind a NAT firewall: there is no way for the sender to know
+in advance the port that will be opened by the firewall to perform NAT
+and be able to route traffic back to the sender in the internal network.
+
+Therefore, using an HTTP push-proxy to send the request will not allow the
+remote host (server) to know the port to which it must send a reply.  It is
+NOT the port advertised in the X-Node header.  HTTP push-proxies are useless
+there!
+
+So here is what must be done: the PUSH MUST be sent via UDP to the push-proxy,
+who MUST then recognize that the file-index refers to a FW-FW transfer.  The
+push-proxy then patches in-place the message, using the port in the incoming
+UDP message -- that is the port used by the NAT firewall, and only that port
+will get traffic back to the downloader behind the NAT firewall!
+
+[/Notes from RAM]
+
 Connection Negotiation and lifetime for UDP Connections:
 --------------------------------------------------------
 
@@ -243,7 +263,7 @@ locally.
 Each end of the connection starts out sending a SYN message to setup a
 connectionID, identify itself and open up the firewall in the process.
 There are dedicated ACK messages in response to every SYN, DATA or FIN
-message.  FIN messages are for shutdown.  There is also a kEEPALIVE message
+message.  FIN messages are for shutdown.  There is also a KEEPALIVE message
 that shares some of the internal state of ACK messages (windowStart,
 windowSpace but not the sequenceNumber of what they are Acking).
 
