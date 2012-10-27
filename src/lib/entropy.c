@@ -74,7 +74,10 @@
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
 #include "endian.h"
+#include "getgateway.h"
 #include "gethomedir.h"
+#include "glib-missing.h"		/* For GM_SLIST_FOREACH() */
+#include "host_addr.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -809,6 +812,48 @@ entropy_collect_thread(SHA1Context *ctx)
 }
 
 /**
+ * Collect entropy from current IP gateway.
+ */
+static void
+entropy_collect_gateway(SHA1Context *ctx)
+{
+	host_addr_t addr;
+
+	ZERO(&addr);
+
+	if (-1 == getgateway(&addr))
+		sha1_feed_ulong(ctx, errno);
+
+	SHA1Input(ctx, &addr, sizeof addr);
+}
+
+/**
+ * Collect entropy from host.
+ *
+ * This uses the host's name and its IP addresses.
+ */
+static void
+entropy_collect_host(SHA1Context *ctx)
+{
+	const char *name;
+	GSList *hosts, *sl;
+
+	name = local_hostname();
+	sha1_feed_string(ctx, name);
+
+	hosts = name_to_host_addr(name, NET_TYPE_NONE);
+
+	GM_SLIST_FOREACH(hosts, sl) {
+		host_addr_t *addr = sl->data;
+		struct packed_host_addr packed = host_addr_pack(*addr);
+
+		SHA1Input(ctx, &packed, packed_host_addr_size(packed));
+	}
+
+	host_addr_free_list(&hosts);
+}
+
+/**
  * Collect entropy from VMM information.
  */
 static void
@@ -883,6 +928,8 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_ttyname;
 		fn[i++] = entropy_collect_vmm;
 		fn[i++] = entropy_collect_thread;
+		fn[i++] = entropy_collect_gateway;
+		fn[i++] = entropy_collect_host;
 
 		g_assert(i <= G_N_ELEMENTS(fn));
 
