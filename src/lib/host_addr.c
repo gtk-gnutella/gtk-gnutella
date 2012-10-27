@@ -1196,8 +1196,8 @@ resolve_hostname(const char *host, enum net_type net)
 	switch (he->h_addrtype) {
 	case AF_INET:
 		if (4 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv4 address (\"%s\")",
-				host);
+			g_warning("%s(): wrong length %d for IPv4 address \"%s\"",
+				G_STRFUNC, he->h_length, host);
 			return NULL;
 		}
 		break;
@@ -1205,8 +1205,8 @@ resolve_hostname(const char *host, enum net_type net)
 #ifdef HAS_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv6 address (\"%s\")",
-				host);
+			g_warning("%s(): wrong length %d for IPv6 address \"%s\"",
+				G_STRFUNC, he->h_length, host);
 			return NULL;
 		}
 		break;
