@@ -409,8 +409,12 @@ dht_rpc_answer(const guid_t *muid,
 				knode_to_string2(kn));
 		}
 
-		stable_replace(kn, rn);			/* KUID was changed */
-		dht_remove_node(kn);			/* Remove obsolete entry from routing */
+		/* Mark alive for stable_replace() */
+		rn->flags |= KNODE_F_ALIVE;		/* Receiving RPC reply traffic */
+		kn->flags |= KNODE_F_ALIVE;		/* Got traffic from that node */
+
+		stable_replace(rn, kn);			/* KUID of rn was changed */
+		dht_remove_node(rn);			/* Remove obsolete entry from routing */
 		rpc_timed_out(cq_main(), rcb);	/* Invoke user callback if any */
 
 		return FALSE;	/* RPC was sent to wrong node, ignore */
