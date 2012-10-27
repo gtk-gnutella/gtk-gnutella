@@ -55,60 +55,64 @@
 /* The currently support protocol version. */
 static const uint16 RUDP_PROTO_VERSION = 0;
 
+static const uint16 RUDP_WINDOW = 20;
+
 /* Standardized RUDP packet opcodes */
 enum rudp_op {
-  RUDP_OP_SYN        = 0x00,
-  RUDP_OP_ACK        = 0x01,
-  RUDP_OP_KEEP_ALIVE = 0x02,
-  RUDP_OP_DATA       = 0x03,
-  RUDP_OP_FIN        = 0x04
+	RUDP_OP_SYN        = 0x00,
+	RUDP_OP_ACK        = 0x01,
+	RUDP_OP_KEEP_ALIVE = 0x02,
+	RUDP_OP_DATA       = 0x03,
+	RUDP_OP_FIN        = 0x04
 };
 
 /* Standardized RUDP FIN codes */
 enum rudp_fin_reason {
-  RUDP_FIN_CLOSE     = 0x00,
-  RUDP_FIN_ACK       = 0x01,
-  RUDP_FIN_TIMEOUT   = 0x02,
-  RUDP_FIN_TOO_BIG   = 0x03,
-  RUDP_FIN_TOO_BAD   = 0x04
+	RUDP_FIN_CLOSE     = 0x00,
+	RUDP_FIN_ACK       = 0x01,
+	RUDP_FIN_TIMEOUT   = 0x02,
+	RUDP_FIN_TOO_BIG   = 0x03,
+	RUDP_FIN_TOO_BAD   = 0x04
 };
 
-/* Raw layout of a RUDP packet header. This overlays/replaces the GUID area of
- * a Gnutella packet. Thus the "GUID" of these is meaningless. */
+/*
+ * Raw layout of a RUDP packet header. This overlays/replaces the GUID area of
+ * a Gnutella packet. Thus the "GUID" of these is meaningless.
+ */
 struct rudp_header {
-  uint8 peer_conn_id;
-  uint8 op_and_len;
-  uint8 seq_no[2];
+	uint8 peer_conn_id;
+	uint8 op_and_len;
+	uint8 seq_no[2];
 };
 
 /* Raw layout of a RUDP SYN packet */
 struct rudp_syn {
-  struct rudp_header common;
+	struct rudp_header common;
 
-  uint8 conn_id;
-  uint8 proto_ver[2];
+	uint8 conn_id;
+	uint8 proto_ver[2];
 };
 
 /* Raw layout of a RUDP ACK packet */
 struct rudp_ack {
-  struct rudp_header common;
+	struct rudp_header common;
 
-  uint8 window_start[2];
-  uint8 window_space[2];
+	uint8 window_start[2];
+	uint8 window_space[2];
 };
 
 /* Raw layout of a RUDP DATA packet */
 struct rudp_data {
-  struct rudp_header common;
+	struct rudp_header common;
 
-  uint8 data1[12];
+	uint8 data1[12];
 };
 
 /* Raw layout of a RUDP FIN packet */
 struct rudp_fin {
-  struct rudp_header common;
+	struct rudp_header common;
 
-  uint8 reason;
+	uint8 reason;
 };
 
 /*
@@ -116,10 +120,10 @@ struct rudp_fin {
  */
 
 enum rudp_status {
-  RUDP_ST_ALLOCED = 0,	/* Freshly allocated, nothing has been sent */
-  RUDP_ST_SYN_SENT,		/* Sent one or SYNs but not ACKed yet */
-  RUDP_ST_ESTABLISHED,	/* Our SYN was ACKed */
-  RUDP_ST_CLOSED		/* The connection was closed; FIN sent */
+	RUDP_ST_ALLOCED = 0,	/* Freshly allocated, nothing has been sent */
+	RUDP_ST_SYN_SENT,		/* Sent one or SYNs but not ACKed yet */
+	RUDP_ST_ESTABLISHED,	/* Our SYN was ACKed */
+	RUDP_ST_CLOSED			/* The connection was closed; FIN sent */
 };
 
 enum rudp_list {
@@ -145,16 +149,16 @@ struct rudp_window {
 };
 
 struct rudp_con {
-  inputevt_handler_t event_handler;
-  inputevt_cond_t event_cond;
-  void *event_data;
-  
-  host_addr_t addr;
-  uint16 port;
-  uint8 conn_id;
-  struct rudp_window in;
-  struct rudp_window out;
-  enum rudp_status status;
+	inputevt_handler_t event_handler;
+	inputevt_cond_t event_cond;
+	void *event_data;
+
+	host_addr_t addr;
+	uint16 port;
+	uint8 conn_id;
+	struct rudp_window in;
+	struct rudp_window out;
+	enum rudp_status status;
 };
 
 static hset_t *connections;
@@ -169,39 +173,39 @@ G_STMT_START { \
 static const char *
 rudp_op_to_string(uint8 op)
 {
-  if (op <= 0x04) {
-    enum rudp_op v = op;
+	if (op <= 0x04) {
+		enum rudp_op v = op;
 
-    switch (v) {
+		switch (v) {
 #define CASE(x) case ( RUDP_OP_ ##x ) : return #x;
-    CASE(SYN)
-    CASE(ACK)
-    CASE(KEEP_ALIVE)
-    CASE(DATA)
-    CASE(FIN)
+		CASE(SYN)
+		CASE(ACK)
+		CASE(KEEP_ALIVE)
+		CASE(DATA)
+		CASE(FIN)
 #undef CASE
-    }
-  }
-  return NULL;
+		}
+	}
+	return NULL;
 }
 
 static const char *
 rudp_fin_reason_to_string(uint8 reason)
 {
-  if (reason <= 0x04) {
-    enum rudp_fin_reason v = reason;
+	if (reason <= 0x04) {
+		enum rudp_fin_reason v = reason;
 
-    switch (v) {
+		switch (v) {
 #define CASE(x) case ( RUDP_FIN_ ##x ) : return #x;
-    CASE(CLOSE)
-    CASE(ACK)
-    CASE(TIMEOUT)
-    CASE(TOO_BIG)
-    CASE(TOO_BAD)
+		CASE(CLOSE)
+		CASE(ACK)
+		CASE(TIMEOUT)
+		CASE(TOO_BIG)
+		CASE(TOO_BAD)
 #undef CASE
-    }
-  }
-  return "<Unknown>";
+		}
+	}
+	return "<Unknown>";
 }
 
 /**
@@ -315,8 +319,8 @@ rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 		con->addr = addr;
 		con->port = port;
 		con->conn_id = conn_id;
-		con->in.space = 20;
-		con->out.space = 20;
+		con->in.space = RUDP_WINDOW;
+		con->out.space = RUDP_WINDOW;
 		hset_insert(connections, con);
 		return con;
 	}
@@ -326,65 +330,66 @@ rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 static void
 rudp_set_gnet_header(gnutella_header_t *header, uint32 size)
 {
-  g_assert(size < 0xffff);
+	g_assert(size < 0xffff);
 
-  ZERO(&header->muid);
-  header->function = GTA_MSG_RUDP;
-  header->ttl = 1;
-  header->hops = 0;
-  poke_le32(header->size, size);
+	ZERO(&header->muid);
+	header->function = GTA_MSG_RUDP;
+	header->ttl = 1;
+	header->hops = 0;
+	poke_le32(header->size, size);
 }
 
 static void
 rudp_set_header(struct rudp_header *header, enum rudp_op op, uint8 conn_id,
     uint8 data1_len, uint16 seq_no)
 { 
-  g_assert(op < 16);  
-  g_assert(data1_len <= 12);
+	g_assert(op < 16);  
+	g_assert(data1_len <= 12);
 
-  header->op_and_len = (op << 4) | (data1_len & 0x0f);
-  header->peer_conn_id = conn_id;
-  poke_be16(header->seq_no, seq_no);
+	header->op_and_len = (op << 4) | (data1_len & 0x0f);
+	header->peer_conn_id = conn_id;
+	poke_be16(header->seq_no, seq_no);
 } 
 
 static void
 rudp_send_packet(struct rudp_con *con, const void *data, size_t size)
 {
-  const struct gnutella_node *n;
+	const struct gnutella_node *n;
 
-  RUDP_DEBUG(("SENDING TO %s", host_addr_port_to_string(con->addr, con->port)));
+	RUDP_DEBUG(
+		("SENDING TO %s", host_addr_port_to_string(con->addr, con->port)));
 
-  {
-	  gnutella_header_t *header = data;
+	{
+		gnutella_header_t *header = data;
 
-	  g_return_if_fail(GTA_MSG_RUDP == header->function);
-	  g_return_if_fail(1 == header->ttl);
-	  g_return_if_fail(0 == header->hops);
-	  g_return_if_fail(size - 23 == peek_le32(header->size));
+		g_return_if_fail(GTA_MSG_RUDP == header->function);
+		g_return_if_fail(1 == header->ttl);
+		g_return_if_fail(0 == header->hops);
+		g_return_if_fail(size - 23 == peek_le32(header->size));
 
-	  RUDP_DEBUG(("TYPE=0x%02x TTL=%u HOPS=%u SIZE=%lu",
-		header->function, header->ttl, header->hops,
-		(ulong) peek_le32(header->size)));
-  }
+		RUDP_DEBUG(("TYPE=0x%02x TTL=%u HOPS=%u SIZE=%lu",
+			header->function, header->ttl, header->hops,
+			(ulong) peek_le32(header->size)));
+	}
 
-  {
-	  const struct rudp_header *header = data;
+	{
+		const struct rudp_header *header = data;
 
-	  g_return_if_fail((header->op_and_len & 0x0f) <= 12);
-	  g_return_if_fail(((header->op_and_len >> 4) & 0x0f) <= 0x04);
-	  g_return_if_fail(header->peer_conn_id == con->conn_id);
-	  
-	  RUDP_DEBUG(("OP=%s DATA1_LEN=%u CONN_ID=%u SEQ_NO=%u\n",
-		rudp_op_to_string((header->op_and_len >> 4) & 0x0f),
-		header->op_and_len & 0x0f, header->peer_conn_id,
-		peek_be16(header->seq_no)));
-  }
+		g_return_if_fail((header->op_and_len & 0x0f) <= 12);
+		g_return_if_fail(((header->op_and_len >> 4) & 0x0f) <= 0x04);
+		g_return_if_fail(header->peer_conn_id == con->conn_id);
 
-  n = node_udp_get_addr_port(con->addr, con->port);
-  if (n) {
-  	udp_send_msg(n, data, size);
-  	tm_now(&con->out.last_event);
-  }
+		RUDP_DEBUG(("OP=%s DATA1_LEN=%u CONN_ID=%u SEQ_NO=%u\n",
+			rudp_op_to_string((header->op_and_len >> 4) & 0x0f),
+			header->op_and_len & 0x0f, header->peer_conn_id,
+			peek_be16(header->seq_no)));
+	}
+
+	n = node_udp_get_addr_port(con->addr, con->port);
+	if (n) {
+		udp_send_msg(n, data, size);
+		tm_now(&con->out.last_event);
+	}
 }
 
 static inline bool
@@ -404,118 +409,118 @@ rudp_may_send_syn(const struct rudp_con *con)
 static void
 rudp_send_syn(struct rudp_con *con)
 { 
-  g_return_if_fail(con);
-  g_return_if_fail(0 == con->out.start);
-  g_return_if_fail(rudp_may_send_syn(con));
+	g_return_if_fail(con);
+	g_return_if_fail(0 == con->out.start);
+	g_return_if_fail(rudp_may_send_syn(con));
 
-  switch (con->status) {
-  case RUDP_ST_ALLOCED:
-	 {
-		 gnutella_header_t *gnet;
-		 struct rudp_syn *syn;
-		 char packet[MAX(sizeof *gnet, sizeof *syn)];
-		 pmsg_t *mb;
+	switch (con->status) {
+	case RUDP_ST_ALLOCED:
+		{
+			 gnutella_header_t *gnet;
+			 struct rudp_syn *syn;
+			 char packet[MAX(sizeof *gnet, sizeof *syn)];
+			 pmsg_t *mb;
 
-		 STATIC_ASSERT(23 == sizeof packet);
+			 STATIC_ASSERT(23 == sizeof packet);
 
-		 gnet = cast_to_pointer(&packet);
-		 syn = cast_to_pointer(&packet);
+			 gnet = cast_to_pointer(&packet);
+			 syn = cast_to_pointer(&packet);
 
-		 rudp_set_gnet_header(gnet, 0);
-		 rudp_set_header(&syn->common, RUDP_OP_SYN, con->conn_id, 0,
-			con->out.seq_no++);
+			 rudp_set_gnet_header(gnet, 0);
+			 rudp_set_header(&syn->common, RUDP_OP_SYN, con->conn_id, 0,
+				con->out.seq_no++);
 
-		 syn->conn_id = con->conn_id;
-		 poke_be16(syn->proto_ver, RUDP_PROTO_VERSION);
+			 syn->conn_id = con->conn_id;
+			 poke_be16(syn->proto_ver, RUDP_PROTO_VERSION);
 
-		 RUDP_DEBUG(("RUDP: Sending SYN to %s (proto_ver=%u, conn_id=%u)",
-			 host_addr_port_to_string(con->addr, con->port),
-			 peek_be16(syn->proto_ver), syn->conn_id));
+			 RUDP_DEBUG(("RUDP: Sending SYN to %s (proto_ver=%u, conn_id=%u)",
+				 host_addr_port_to_string(con->addr, con->port),
+				 peek_be16(syn->proto_ver), syn->conn_id));
 
-		 mb = pmsg_new(PMSG_P_DATA, &packet, sizeof packet);
+			 mb = pmsg_new(PMSG_P_DATA, &packet, sizeof packet);
 
-		 g_return_if_fail(0 == con->out.wr);
-		 con->out.buffers[con->out.wr++] = mb;
-		 con->status = RUDP_ST_SYN_SENT;
-	 }
+			 g_return_if_fail(0 == con->out.wr);
+			 con->out.buffers[con->out.wr++] = mb;
+			 con->status = RUDP_ST_SYN_SENT;
+		}
 	 /* FALL THROUGH */
-  case RUDP_ST_SYN_SENT:
-	 {
-		 pmsg_t *mb;
-		 
-		 g_return_if_fail(0 == con->out.rd);
-		 mb = con->out.buffers[con->out.rd];
-		 g_return_if_fail(mb);
+	case RUDP_ST_SYN_SENT:
+		{
+			 pmsg_t *mb;
+			 
+			 g_return_if_fail(0 == con->out.rd);
+			 mb = con->out.buffers[con->out.rd];
+			 g_return_if_fail(mb);
 
-		 rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
-	 }
-	 break;
-  case RUDP_ST_ESTABLISHED:
-  case RUDP_ST_CLOSED:
-	 break;
+			 rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
+		}
+		break;
+	case RUDP_ST_ESTABLISHED:
+	case RUDP_ST_CLOSED:
+		break;
   }
 }
 
 static void
 rudp_send_ack(struct rudp_con *con, uint16 seq_no)
 { 
-  gnutella_header_t *gnet;
-  struct rudp_ack *ack;
-  char packet[MAX(sizeof *ack, sizeof *gnet)];
+	gnutella_header_t *gnet;
+	struct rudp_ack *ack;
+	char packet[MAX(sizeof *ack, sizeof *gnet)];
 
-  STATIC_ASSERT(sizeof packet == 23);
+	STATIC_ASSERT(sizeof packet == 23);
 
-  g_return_if_fail(con);
+	g_return_if_fail(con);
 
-  if (seq_no >= con->in.start) {
-	  con->in.start = seq_no + 1;
-  }
+	if (seq_no >= con->in.start) {
+		con->in.start = seq_no + 1;
+	}
 
-  gnet = cast_to_pointer(&packet);
-  ack = cast_to_pointer(&packet);
-  
-  rudp_set_gnet_header(gnet, 0);
-  rudp_set_header(&ack->common, RUDP_OP_ACK, con->conn_id, 0, seq_no);
+	gnet = cast_to_pointer(&packet);
+	ack = cast_to_pointer(&packet);
 
-  poke_be16(ack->window_start, con->in.start);
-  poke_be16(ack->window_space, con->in.space);
+	rudp_set_gnet_header(gnet, 0);
+	rudp_set_header(&ack->common, RUDP_OP_ACK, con->conn_id, 0, seq_no);
 
-  RUDP_DEBUG(("RUDP: Sending ACK to %s (seq_no=%u, start=%s, space=%u)",
+	poke_be16(ack->window_start, con->in.start);
+	poke_be16(ack->window_space, con->in.space);
+
+	RUDP_DEBUG(("RUDP: Sending ACK to %s (seq_no=%u, start=%s, space=%u)",
 	host_addr_port_to_string(con->addr, con->port), seq_no,
 	uint64_to_string(con->in.start), con->in.space));
 
-  rudp_send_packet(con, &packet, sizeof packet);
+	rudp_send_packet(con, &packet, sizeof packet);
 }
 
 static void
 rudp_send_fin(struct rudp_con *con, uint16 seq_no, enum rudp_fin_reason reason)
 { 
-  gnutella_header_t *gnet;
-  struct rudp_fin *fin;
-  char packet[MAX(sizeof *fin, sizeof *gnet)];
+	gnutella_header_t *gnet;
+	struct rudp_fin *fin;
+	char packet[MAX(sizeof *fin, sizeof *gnet)];
 
-  STATIC_ASSERT(sizeof packet == 23);
+	STATIC_ASSERT(sizeof packet == 23);
 
-  g_return_if_fail(con);
-  
-  gnet = cast_to_pointer(&packet);
-  fin = cast_to_pointer(&packet);
-  
-  rudp_set_gnet_header(gnet, 0);
-  rudp_set_header(&fin->common, RUDP_OP_FIN, con->conn_id, 0, seq_no);
-  fin->reason = reason; 
+	g_return_if_fail(con);
 
-  con->status = RUDP_ST_CLOSED;
-  con->in.space = 1;
+	gnet = cast_to_pointer(&packet);
+	fin = cast_to_pointer(&packet);
 
-  rudp_set_writable(con, FALSE);
-  rudp_set_closed(con);
+	rudp_set_gnet_header(gnet, 0);
+	rudp_set_header(&fin->common, RUDP_OP_FIN, con->conn_id, 0, seq_no);
+	fin->reason = reason; 
 
-  RUDP_DEBUG(("RUDP: Sending FIN to %s (seq_no=%u, reason=%s)",
-	  host_addr_port_to_string(con->addr, con->port),
-	  seq_no, rudp_fin_reason_to_string(fin->reason)));
+	con->status = RUDP_ST_CLOSED;
+	con->in.space = 1;
 
-  rudp_send_packet(con, &packet, sizeof packet);
+	rudp_set_writable(con, FALSE);
+	rudp_set_closed(con);
+
+	RUDP_DEBUG(("RUDP: Sending FIN to %s (seq_no=%u, reason=%s)",
+		host_addr_port_to_string(con->addr, con->port),
+		seq_no, rudp_fin_reason_to_string(fin->reason)));
+
+	rudp_send_packet(con, &packet, sizeof packet);
 }
 
 /**
