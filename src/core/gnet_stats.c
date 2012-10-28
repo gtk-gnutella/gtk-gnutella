@@ -195,6 +195,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"udp_fw2fw_pushes",
+		"udp_fw2fw_pushes_to_self",
 		"udp_fw2fw_pushes_patched",
 		"udp_uhc_pings",
 		"udp_uhc_pongs",

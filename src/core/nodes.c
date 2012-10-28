@@ -7751,6 +7751,11 @@ node_patch_push_fw2fw(gnutella_node_t *n)
 	 *		--RAM, 2012-10-27
 	 */
 
+	gnet_stats_inc_general(GNR_UDP_FW2FW_PUSHES);
+
+	if (guid_eq(n->data, GNET_PROPERTY(servent_guid)))
+		gnet_stats_inc_general(GNR_UDP_FW2FW_PUSHES_TO_SELF);
+
 	addr = host_addr_peek_ipv4(&info[4]);
 	port = peek_le16(&info[8]);
 
