@@ -180,7 +180,7 @@ Requirements for FW-FW Transfer:
   connections).
 * You must be able to handle solicited UDP traffic (easy test: send out
   a UDP Ping with a certain GUID, see if you get a UDP Pong with that GUID
-  back)
+  back) -- use GGEP "IP" to get your external IP and port.
 * You must have valid PushProxy connections (really only true for
   uploaders, but for sake of simplicity apply to everyone).
 
@@ -234,21 +234,28 @@ PushProxy behavior:
 
 [Notes from RAM]
 
-The above specifications will not work correctly when initiating FW-FW
-transfers behind a NAT firewall: there is no way for the sender to know
+The above specifications could not work correctly when initiating FW-FW
+transfers behind a NAT firewall, unless there was way for the sender to know
 in advance the port that will be opened by the firewall to perform NAT
-and be able to route traffic back to the sender in the internal network.
+and be able to route traffic back to the sender in the internal network..
 
-Therefore, using an HTTP push-proxy to send the request will not allow the
-remote host (server) to know the port to which it must send a reply.  It is
-NOT the port advertised in the X-Node header.  HTTP push-proxies are useless
-there!
+The solution is to use the GGEP "IP" extension in a ping: the remote host
+will send back another "IP" in the pong echoing the source address and port
+of the ping.  That lets the firewalled servent know its external port.
 
-So here is what must be done: the PUSH MUST be sent via UDP to the push-proxy,
-who MUST then recognize that the file-index refers to a FW-FW transfer.  The
-push-proxy then patches in-place the message, using the port in the incoming
-UDP message -- that is the port used by the NAT firewall, and only that port
-will get traffic back to the downloader behind the NAT firewall!
+Therefore, when using an HTTP push-proxy to send the request, the X-Node
+header can advertise the discovered external IP:port used by the servent.
+
+When a push-proxy is getting a PUSH via UDP, it can recognize that the
+file-index refers to a FW-FW transfer.  The push-proxy can then patch the
+message in-place using the port in the incoming UDP message -- that is the
+port used by the NAT firewall, and only that port will get traffic back to
+the downloader behind the NAT firewall!
+
+That on-the-fly patching by the UDP push-proxy is useful and can help if
+the NAT firewall changed the port without the user knowing (it was rebooted,
+reset, etc...).  It nicely complements the discovery through GGEP "IP" but
+only works for UDP pushes.
 
 [/Notes from RAM]
 

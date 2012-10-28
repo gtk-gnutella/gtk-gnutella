@@ -620,7 +620,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	 */
 
 	if (flags & PING_F_IP) {
-		char ip_port[18];
+		char ip_port[18];			/* Big enough for IPv6 + port */
 		size_t len;
 
 		/* IP + Port (not UHC IPP!)*/
@@ -744,6 +744,13 @@ ping_type(const gnutella_node_t *n)
 				1 == gnutella_header_get_ttl(&n->header) &&
 				0 == ext_paylen(e)
 			) {
+				/*
+				 * Remote host wants to know its IP and port, as seen within
+				 * the UDP datagram.  This is useful to firewalled node who
+				 * want to initiate a firewalled-to-firewalled connection
+				 * via RUDP and need to communicate their external (possibly
+				 * NAT-ed) UDP port.
+				 */
 				flags |= PING_F_IP;
 			}
 			break;
@@ -886,11 +893,6 @@ send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
 			local_meta.flags |= PONG_META_HAS_GUE;
 			local_meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 		}
-	}
-
-	if ((flags & PING_F_IP)) {
-		local_meta.sender_addr = n->addr;
-		local_meta.sender_port = n->port;
 	}
 
 	/*
