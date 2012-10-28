@@ -682,6 +682,17 @@ k_send_find_value_response(
 				g_warning("DHT packed secondary key %d/%zu for %s",
 					secondaries, remain, dht_value_to_string(v));
 		}
+	} else {
+		/*
+		 * We emitted all the values in expanded form, so there are no
+		 * secondary keys.  Do not forget to emit the amount of secondary
+		 * keys present (0).  Starting with 0.98.4, GTKG will be lenient and
+		 * will correctly handle responses missing that trailing byte but
+		 * other versions were not, and other vendors may choke as well.
+		 *		--RAM, 2012-10-28
+		 */
+
+		pmsg_write_u8(mb, 0);
 	}
 
 	g_assert(UNSIGNED(values + secondaries) == vlen);	/* Sanity check */

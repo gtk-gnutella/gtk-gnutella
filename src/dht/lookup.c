@@ -1539,7 +1539,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (!bstr_read_u8(bs, &expanded)) {
-		reason = "could not read value count";
+		reason = "could not read expanded value count";
 		goto bad;
 	}
 
@@ -1582,11 +1582,27 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 	/*
 	 * Look at secondary keys.
+	 *
+	 * Normally, when there are no secondary keys in the message, there should
+	 * be a trailing 0 (count) but earlier versions of GTKG (prior 0.98.4) did
+	 * not emit it and we were considering that as an error.
+	 *
+	 * From now on, we will emit the trailing 0 byte so that legacy servents
+	 * can parse our responses properly, but we also consider the missing
+	 * trailing count as a normal situation: there are simply no secondary
+	 * keys, and the message was parsed correctly so far.
+	 *		--RAM, 2012-10-28
 	 */
 
 	if (!bstr_read_u8(bs, &seckeys)) {
-		reason = "could not read secondary key count";
-		goto bad;
+		if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT LOOKUP[%s] FIND_VALUE_RESPONSE from %s has no "
+				"secondary keys: reached end of message after %u expanded "
+				"value%s",
+				nid_to_string(&nl->lid), knode_to_string(kn),
+				expanded, 1 == expanded ? "" : "s");
+		}
+		seckeys = 0;
 	}
 
 	if (seckeys)
