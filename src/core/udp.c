@@ -1095,11 +1095,11 @@ struct udp_ping {
 };
 
 static const time_delta_t UDP_PING_TIMEOUT	   = 30;	/**< seconds */
-static const size_t		  UDP_PING_MAX 		   = 1024;	/**< amount to track */
-static const int 		  UDP_PING_PERIODIC_MS = 10000;	/**< milliseconds */
+static const size_t		  UDP_PING_MAX 		   = 2048;	/**< amount to track */
+static const int 		  UDP_PING_PERIODIC_MS = 5000;	/**< milliseconds */
 
-static hash_list_t *udp_pings;	/**< Tracks send/forwarded UDP Pings */
-static cevent_t *udp_ping_ev;	/**< Monitoring event */
+static hash_list_t *udp_pings;		/**< Tracks sent/forwarded UDP Pings */
+static cperiodic_t *udp_ping_ev;	/**< Monitoring event */
 
 static inline void
 udp_ping_free(struct udp_ping *ping)
@@ -1126,9 +1126,8 @@ udp_ping_expire(bool forced)
 		time_delta_t d;
 
 		ping = hash_list_head(udp_pings);
-		if (!ping) {
+		if (NULL == ping)
 			break;
-		}
 		if (!forced) {
 			d = delta_time(now, ping->added);
 			if (d > 0 && d <= UDP_PING_TIMEOUT) {
@@ -1147,20 +1146,15 @@ udp_ping_expire(bool forced)
 }
 
 /**
- * Callout queue callback to perform periodic monitoring of the
- * registered pings.
+ * Callout queue periodic callback to perform monitoring of registered pings.
  */
-static void
-udp_ping_timer(cqueue_t *cq, void *unused_udata)
+static bool
+udp_ping_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
-	/*
-	 * Re-install timer for next time.
-	 */
-
-	udp_ping_ev = cq_insert(cq, UDP_PING_PERIODIC_MS, udp_ping_timer, NULL);
 	udp_ping_expire(FALSE);
+	return TRUE;				/* Keep calling */
 }
 
 static bool
@@ -1352,7 +1346,8 @@ udp_init(void)
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 
 	udp_pings = hash_list_new(guid_hash, guid_eq);
-	udp_ping_timer(cq_main(), NULL);
+	udp_ping_ev = cq_periodic_main_add(UDP_PING_PERIODIC_MS,
+		udp_ping_timer, NULL);
 }
 
 /**
@@ -1366,6 +1361,7 @@ udp_close(void)
 		hash_list_free(&udp_pings);
 	}
 
+	cq_periodic_remove(&udp_ping_ev);
 	aging_destroy(&udp_aging_pings);
 }
 
