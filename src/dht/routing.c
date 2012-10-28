@@ -1117,11 +1117,18 @@ dht_allocate_new_kuid_if_needed(void)
 	 * if they do not want a sticky KUID.
 	 *
 	 * It will not be possible to run a Kademlia node with ID = 0.  That's OK.
+	 *
+	 * In the advent of an unclean restart (i.e. after a crash), we ignore
+	 * the "sticky_kuid" property though since this is merely the resuming
+	 * of the previously interrupted run.
 	 */
 
 	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 
-	if (kuid_is_blank(&buf) || !GNET_PROPERTY(sticky_kuid)) {
+	if (
+		kuid_is_blank(&buf) ||
+		(!GNET_PROPERTY(sticky_kuid) && GNET_PROPERTY(clean_restart))
+	) {
 		if (GNET_PROPERTY(dht_debug)) g_debug("generating new DHT node ID");
 		kuid_random_fill(&buf);
 		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);

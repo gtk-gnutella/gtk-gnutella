@@ -1374,11 +1374,18 @@ routing_init(void)
 	/*
 	 * If they did not configure a sticky GUID, or if the GUID ia blank,
 	 * configure a new one.
+	 *
+	 * In the advent of an unclean restart (i.e. after a crash), we ignore
+	 * the "sticky_guid" property though since this is merely the resuming
+	 * of the previously interrupted run.
 	 */
 
 	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid_buf, sizeof guid_buf);
 
-	if (guid_is_blank(&guid_buf) || !GNET_PROPERTY(sticky_guid)) {
+	if (
+		guid_is_blank(&guid_buf) ||
+		(!GNET_PROPERTY(sticky_guid) && GNET_PROPERTY(clean_restart))
+	) {
 		do {
 			guid_random_muid(&guid_buf);
 			/*
