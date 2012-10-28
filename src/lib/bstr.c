@@ -126,7 +126,8 @@ error_eos(bstr_t *bs, size_t expected, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: end of stream reached at offset %zu; expected %s more byte%s",
+			"%s(): end of stream reached at offset %zu; "
+			"expected %s more byte%s",
 			where, ptr_diff(bs->end, bs->start),
 			expected ? size_t_to_string(expected) : "some",
 			expected == 1 ? "" : "s");
@@ -314,7 +315,7 @@ invalid_len(bstr_t *bs, size_t len, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid %s length %zu at offset %zu",
+			"%s(): invalid %s length %zu at offset %zu",
 			where, what, len, ptr_diff(bs->rptr, bs->start));
 	}
 
@@ -332,7 +333,7 @@ invalid_len_max(
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid %s length %zu (max is %zu) at offset %zu",
+			"%s(): invalid %s length %zu (max is %zu) at offset %zu",
 			where, what, len, max, ptr_diff(bs->rptr, bs->start));
 	}
 
@@ -349,7 +350,7 @@ invalid_encoding(bstr_t *bs, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: invalid encoding at offset %zu: %s",
+			"%s(): invalid encoding at offset %zu: %s",
 			where, ptr_diff(bs->rptr, bs->start), what);
 	}
 
@@ -366,7 +367,7 @@ report_error(bstr_t *bs, const char *what, const char *where)
 	if (bs->flags & BSTR_F_ERROR) {
 		alloc_error(bs);
 		str_printf(bs->error,
-			"%s: error at offset %zu: %s",
+			"%s(): error at offset %zu: %s",
 			where, ptr_diff(bs->rptr, bs->start), what);
 	}
 
