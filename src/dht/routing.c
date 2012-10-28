@@ -1644,14 +1644,11 @@ dht_init(void)
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 
 	/*
-	 * If the DHT is disabled at startup time, clear the KUID.
-	 * A new one will be re-allocated the next time it is enabled.
+	 * If the DHT is disabled at startup time, do not initialize.
 	 */
 
-	if (!GNET_PROPERTY(enable_dht)) {
-		dht_reset_kuid();
+	if (!GNET_PROPERTY(enable_dht))
 		return;
-	}
 
 	dht_initialize(FALSE);		/* Do not attempt bootstrap yet */
 }
