@@ -929,9 +929,11 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		!dht_rpc_answer(kademlia_header_get_muid(header), kn, n,
 			KDA_MSG_PING_RESPONSE, payload, len)
 	) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT ignoring unexpected PONG from %s",
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_rpc_debug)) {
+			g_warning("DHT ignoring unexpected PONG #%s from %s",
+				guid_to_string(kademlia_header_get_muid(header)),
 				knode_to_string(kn));
+		}
 		return;
 	}
 
@@ -1692,9 +1694,12 @@ k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 		!dht_rpc_answer(kademlia_header_get_muid(header), kn, n,
 			function, payload, len)
 	) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT ignoring unexpected %s from %s",
-				kmsg_name(function), knode_to_string(kn));
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_rpc_debug)) {
+			g_warning("DHT ignoring unexpected %s #%s from %s",
+				kmsg_name(function),
+				guid_to_string(kademlia_header_get_muid(header)),
+				knode_to_string(kn));
+		}
 		return;
 	}
 

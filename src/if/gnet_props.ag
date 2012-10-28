@@ -5277,4 +5277,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "dht_rpc_debug";
+    desc = "Debug level for the DHT Remote Procedure Call (RPC) code.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
 /* vi: set ts=4: */

@@ -48,6 +48,7 @@
 #include "lib/cq.h"
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
+#include "lib/stacktrace.h"		/* For stacktrace_function_name() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -120,7 +121,7 @@ rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 
 	if (in_shutdown) {
 		knode_rpc_dec(rcb->kn);
-		if (rcb->cb)
+		if (rcb->cb != NULL)
 			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
 	} else {
 		hikset_remove(pending, rcb->muid);
@@ -189,8 +190,14 @@ rpc_timed_out(cqueue_t *unused_cq, void *obj)
 
 	knode_rpc_dec(rcb->kn);
 
-	if (rcb->cb)
+	if (rcb->cb != NULL) {
+		if (GNET_PROPERTY(dht_rpc_debug)) {
+			g_debug("DHT RPC %s #%s invoking %s(TIMEOUT, %p)",
+				op_to_string(rcb->op), guid_to_string(rcb->muid),
+				stacktrace_function_name(rcb->cb), rcb->arg);
+		}
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
+	}
 
 	rpc_cb_free(rcb, FALSE);
 }
@@ -255,6 +262,13 @@ rpc_call_prepare(
 
 	hikset_insert_key(pending, &rcb->muid);
 
+	if (GNET_PROPERTY(dht_rpc_debug)) {
+		g_debug("DHT RPC created %s #%s to %s with callback %s(%p), "
+			"timeout %d ms",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			knode_to_string(kn), stacktrace_function_name(cb), arg, delay);
+	}
+
 	return rcb->muid;
 }
 
@@ -272,10 +286,18 @@ dht_rpc_cancel(const guid_t *muid)
 	struct rpc_cb *rcb;
 
 	rcb = hikset_lookup(pending, muid);
-	if (!rcb)
+	if (NULL == rcb)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+
+	if (GNET_PROPERTY(dht_rpc_debug)) {
+		g_debug("DHT RPC cancelling %s #%s to %s -- not calling %s(%p)",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			knode_to_string(rcb->kn),
+			stacktrace_function_name(rcb->cb), rcb->arg);
+	}
+
 	knode_rpc_dec(rcb->kn);
 	rpc_cb_free(rcb, FALSE);
 	return TRUE;
@@ -293,11 +315,18 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 	struct rpc_cb *rcb;
 
 	rcb = hikset_lookup(pending, muid);
-	if (!rcb)
+	if (NULL == rcb)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+
 	if (NULL == rcb->cb) {
+		if (GNET_PROPERTY(dht_rpc_debug)) {
+			g_debug("DHT RPC cancelling %s #%s to %s with no callback",
+				op_to_string(rcb->op), guid_to_string(rcb->muid),
+				knode_to_string(rcb->kn));
+		}
+
 		knode_rpc_dec(rcb->kn);
 		rpc_cb_free(rcb, FALSE);
 		return TRUE;
@@ -319,7 +348,7 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 	knode_t *rn;
 
 	rcb = hikset_lookup(pending, muid);
-	if (!rcb)
+	if (NULL == rcb)
 		return FALSE;
 
 	rpc_cb_check(rcb);
@@ -360,10 +389,18 @@ dht_rpc_answer(const guid_t *muid,
 	knode_check(kn);
 
 	rcb = hikset_lookup(pending, muid);
-	if (!rcb)
+	if (NULL == rcb)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+
+	if (GNET_PROPERTY(dht_rpc_debug)) {
+		g_debug("DHT RPC answer to %s #%s sent to %s, timeout in %s ms",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			knode_to_string(rcb->kn),
+			cq_time_to_string(cq_remaining(rcb->timeout)));
+	}
+
 	cq_cancel(&rcb->timeout);
 
 	/*
@@ -401,12 +438,12 @@ dht_rpc_answer(const guid_t *muid,
 
 		gnet_stats_inc_general(GNR_DHT_RPC_KUID_REPLY_MISMATCH);
 
-		if (GNET_PROPERTY(dht_debug)) {
-			g_debug("DHT sent %s RPC %s to %s but got reply from %s",
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_rpc_debug)) {
+			g_debug("DHT RPC sent %s #%s to %s but got reply from %s via %s",
 				op_to_string(rcb->op),
 				guid_to_string(rcb->muid),
 				knode_to_string(rn),
-				knode_to_string2(kn));
+				knode_to_string2(kn), node_infostr(n));
 		}
 
 		/* Mark alive for stable_replace() */
@@ -481,8 +518,15 @@ dht_rpc_answer(const guid_t *muid,
 
 	knode_rpc_dec(rcb->kn);
 
-	if (rcb->cb)
+	if (rcb->cb != NULL) {
+		if (GNET_PROPERTY(dht_rpc_debug)) {
+			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
+				op_to_string(rcb->op), guid_to_string(rcb->muid),
+				stacktrace_function_name(rcb->cb), kmsg_name(function),
+				len, 1 == len ? "" : "s", rcb->arg);
+		}
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
+	}
 
 	rpc_cb_free(rcb, FALSE);
 	return TRUE;

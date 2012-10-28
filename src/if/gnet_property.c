@@ -1052,6 +1052,8 @@ guint32  gnet_property_variable_dht_tcache_debug_flags     = 0;
 static const guint32  gnet_property_variable_dht_tcache_debug_flags_default = 0;
 gboolean gnet_property_variable_log_weird_dht_headers     = FALSE;
 static const gboolean gnet_property_variable_log_weird_dht_headers_default = FALSE;
+guint32  gnet_property_variable_dht_rpc_debug     = 0;
+static const guint32  gnet_property_variable_dht_rpc_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9733,6 +9735,26 @@ gnet_prop_init(void) {
     gnet_property->props[454].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[454].data.boolean.def   = (void *) &gnet_property_variable_log_weird_dht_headers_default;
     gnet_property->props[454].data.boolean.value = (void *) &gnet_property_variable_log_weird_dht_headers;
+
+
+    /*
+     * PROP_DHT_RPC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[455].name = "dht_rpc_debug";
+    gnet_property->props[455].desc = _("Debug level for the DHT Remote Procedure Call (RPC) code.");
+    gnet_property->props[455].ev_changed = event_new("dht_rpc_debug_changed");
+    gnet_property->props[455].save = TRUE;
+    gnet_property->props[455].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[455].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[455].data.guint32.def   = (void *) &gnet_property_variable_dht_rpc_debug_default;
+    gnet_property->props[455].data.guint32.value = (void *) &gnet_property_variable_dht_rpc_debug;
+    gnet_property->props[455].data.guint32.choices = NULL;
+    gnet_property->props[455].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[455].data.guint32.min   = 0x00000000;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
