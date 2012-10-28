@@ -1984,17 +1984,16 @@ void kmsg_received(
 {
 	const kademlia_header_t *header = deconstify_pointer(data);
 	char *reason;
-	uint8 major;
-	uint8 minor;
+	uint8 major, minor;
 	knode_t *kn;
 	host_addr_t kaddr;
 	uint16 kport;
 	vendor_code_t vcode;
-	uint8 kmajor;
-	uint8 kminor;
+	uint8 kmajor, kminor;
 	const kuid_t *id;
 	uint8 flags;
 	uint16 extended_length;
+	bool weird_header = FALSE;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 	g_assert(NODE_IS_DHT(n));
@@ -2097,6 +2096,7 @@ void kmsg_received(
 			}
 			kaddr = raddr;
 			kport = rport;
+			weird_header = TRUE;
 		}
 	}
 
@@ -2140,6 +2140,7 @@ void kmsg_received(
 				vendor_code_to_string(vcode.u32), kmajor, kminor,
 				kuid_to_hex_string(id));
 		}
+		weird_header = TRUE;
 	}
 
 	/*
@@ -2156,6 +2157,7 @@ void kmsg_received(
 				kuid_to_hex_string(id));
 		}
 		flags |= KDA_MSG_F_FIREWALLED;
+		weird_header = TRUE;
 	}
 
 
@@ -2213,6 +2215,7 @@ void kmsg_received(
 			}
 			kaddr = addr;
 			patched = TRUE;
+			weird_header = TRUE;
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2)
@@ -2260,6 +2263,7 @@ void kmsg_received(
 							"matches" : "still different from",
 						kmsg_infostr(data));
 				}
+				weird_header = TRUE;
 				kaddr = kn->addr;
 				/* Port identical, as checked in test */
 				kn->flags |= KNODE_F_PCONTACT;	/* To adapt creator later */
@@ -2279,6 +2283,7 @@ void kmsg_received(
 							kmsg_infostr(data));
 					}
 					kn->flags |= KNODE_F_FOREIGN_IP;
+					weird_header = TRUE;
 				}
 			}
 		}
@@ -2375,7 +2380,23 @@ void kmsg_received(
 		kn->addr = addr;
 		kn->port = port;
 		kn->flags |= KNODE_F_PCONTACT;
+		weird_header = TRUE;
 	}
+
+	/*
+	 * Log weirds header when debugging.
+	 */
+
+	if (
+		weird_header &&
+		GNET_PROPERTY(dht_debug) && GNET_PROPERTY(log_weird_dht_headers)
+	) {
+		dump_hex(stderr, "DHT Header", data, extended_length + KDA_HEADER_SIZE);
+	}
+
+	/*
+	 * Handle the message.
+	 */
 
 	kmsg_handle(kn, n, header, extended_length,
 		ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),

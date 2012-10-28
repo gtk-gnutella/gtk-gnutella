@@ -490,6 +490,7 @@ typedef enum {
     PROP_LOG_VMSG_TX,
     PROP_LOG_VMSG_RX,
     PROP_DHT_TCACHE_DEBUG_FLAGS,
+    PROP_LOG_WEIRD_DHT_HEADERS,
     GNET_PROPERTY_END
 } gnet_property_t;
 

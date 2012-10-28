@@ -503,6 +503,7 @@ extern const guint32  gnet_property_variable_secure_oob_debug;
 extern const gboolean gnet_property_variable_log_vmsg_tx;
 extern const gboolean gnet_property_variable_log_vmsg_rx;
 extern const guint32  gnet_property_variable_dht_tcache_debug_flags;
+extern const gboolean gnet_property_variable_log_weird_dht_headers;
 
 
 prop_set_t *gnet_prop_init(void);

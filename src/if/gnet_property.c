@@ -1050,6 +1050,8 @@ gboolean gnet_property_variable_log_vmsg_rx     = FALSE;
 static const gboolean gnet_property_variable_log_vmsg_rx_default = FALSE;
 guint32  gnet_property_variable_dht_tcache_debug_flags     = 0;
 static const guint32  gnet_property_variable_dht_tcache_debug_flags_default = 0;
+gboolean gnet_property_variable_log_weird_dht_headers     = FALSE;
+static const gboolean gnet_property_variable_log_weird_dht_headers_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9702,7 +9704,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[453].name = "dht_tcache_debug_flags";
-    gnet_property->props[453].desc = _("Debugging flags for the DHT token cache: 1: insertions, 2: updates, 4: deletions, 8: accesses, 16: caching, 32: statistics, 64: configuration, 128: debugging, 256: destruction.");
+    gnet_property->props[453].desc = _("Debugging flags for the DHT token cache (developers only).");
     gnet_property->props[453].ev_changed = event_new("dht_tcache_debug_flags_changed");
     gnet_property->props[453].save = TRUE;
     gnet_property->props[453].vector_size = 1;
@@ -9714,6 +9716,23 @@ gnet_prop_init(void) {
     gnet_property->props[453].data.guint32.choices = NULL;
     gnet_property->props[453].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[453].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_WEIRD_DHT_HEADERS:
+     *
+     * General data:
+     */
+    gnet_property->props[454].name = "log_weird_dht_headers";
+    gnet_property->props[454].desc = _("Whether to log weird DHT message headers when debugging");
+    gnet_property->props[454].ev_changed = event_new("log_weird_dht_headers_changed");
+    gnet_property->props[454].save = TRUE;
+    gnet_property->props[454].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[454].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[454].data.boolean.def   = (void *) &gnet_property_variable_log_weird_dht_headers_default;
+    gnet_property->props[454].data.boolean.value = (void *) &gnet_property_variable_log_weird_dht_headers;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
