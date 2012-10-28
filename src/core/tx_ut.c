@@ -1800,19 +1800,6 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EXTENDED_ACKS_RECEIVED);
 
 	/*
-	 * If all the fragments were received, we're done with the whole message.
-	 */
-
-	if (
-		ack->received == um->fragcnt ||
-		(ack->cumulative && ack->fragno + 1 == um->fragcnt)
-	) {
-		um->fragsent = um->fragcnt;		/* Signals: all fragments received */
-		ut_msg_free(um, TRUE);
-		return;
-	}
-
-	/*
 	 * Got something back, so remote host is alive.
 	 */
 
@@ -1824,6 +1811,19 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 
 	if (um->expecting_ack)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EAR_FOLLOWED_BY_ACKS);
+
+	/*
+	 * If all the fragments were received, we're done with the whole message.
+	 */
+
+	if (
+		ack->received == um->fragcnt ||
+		(ack->cumulative && ack->fragno + 1 == um->fragcnt)
+	) {
+		um->fragsent = um->fragcnt;		/* Signals: all fragments received */
+		ut_msg_free(um, TRUE);
+		return;
+	}
 
 	/*
 	 * OK, fragment was properly acknowledged.
