@@ -2291,14 +2291,17 @@ promote_pending_node(struct kbucket *kb)
  * @return TRUE if we found a collision.
  */
 static bool
-clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying)
+clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying,
+	const char *where)
 {
+	g_assert(kuid_eq(kn1->id, kn2->id));
+
 	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_warning("DHT %scollision on node %s (also at %s)",
+			g_warning("DHT %scollision on node %s (also at %s) in %s()",
 				verifying ? "verification " : "",
 				knode_to_string(kn1),
-				host_addr_port_to_string(kn2->addr, kn2->port));
+				host_addr_port_to_string(kn2->addr, kn2->port), where);
 		}
 		gnet_stats_inc_general(GNR_DHT_KUID_COLLISIONS);
 		return TRUE;
@@ -2334,7 +2337,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	 */
 
 	if (tkn != kn) {
-		if (clashing_nodes(tkn, kn, FALSE))
+		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC))
 			return;
 	}
 
@@ -2441,7 +2444,7 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 */
 
 	if (tkn != kn) {
-		if (clashing_nodes(tkn, kn, FALSE))
+		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC))
 			return;
 	}
 
@@ -4908,7 +4911,7 @@ dht_addr_verify_cb(
 			if (NULL == tkn) {
 				av->new->flags |= KNODE_F_ALIVE;	/* Got traffic earlier! */
 				dht_add_node(av->new);
-			} else if (clashing_nodes(tkn, av->new, TRUE)) {
+			} else if (clashing_nodes(tkn, av->new, TRUE, G_STRFUNC)) {
 				/* Logging was done in clashing_nodes() */
 			} else {
 				if (GNET_PROPERTY(dht_debug))
