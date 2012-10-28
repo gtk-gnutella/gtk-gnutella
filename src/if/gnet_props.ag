@@ -5214,7 +5214,7 @@ prop = {
 
 prop = {
 	name = "log_sr_udp_tx";
-	desc = "Whether to log sent semi-reliable UDP messages";
+	desc = "Whether to log sent semi-reliable UDP messages.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5223,7 +5223,7 @@ prop = {
 
 prop = {
 	name = "log_sr_udp_rx";
-	desc = "Whether to log received semi-reliable UDP messages";
+	desc = "Whether to log received semi-reliable UDP messages.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5243,7 +5243,7 @@ prop = {
 
 prop = {
 	name = "log_vmsg_tx";
-	desc = "Whether to log sent vendor messages";
+	desc = "Whether to log sent vendor messages.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5252,7 +5252,7 @@ prop = {
 
 prop = {
 	name = "log_vmsg_rx";
-	desc = "Whether to log received vendor messages";
+	desc = "Whether to log received vendor messages.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5270,7 +5270,7 @@ prop = {
 
 prop = {
 	name = "log_weird_dht_headers";
-	desc = "Whether to log weird DHT message headers when debugging";
+	desc = "Whether to log weird DHT message headers when debugging.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5288,7 +5288,7 @@ prop = {
 
 prop = {
 	name = "log_uhc_pings_rx";
-	desc = "Whether to log UHC pings we receive";
+	desc = "Whether to log UHC pings we receive.";
     type = boolean;
     data = {
         default = FALSE;
@@ -5297,10 +5297,29 @@ prop = {
 
 prop = {
 	name = "log_uhc_pings_tx";
-	desc = "Whether to log UHC pings we emit";
+	desc = "Whether to log UHC pings we emit.";
     type = boolean;
     data = {
         default = FALSE;
+    };
+};
+
+prop = {
+	name = "clean_shutdown";
+	desc = "Whether the program was properly shutdown.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+	name = "clean_restart";
+	desc = "Whether the program restarted after a clean shutdown.";
+    save = FALSE;
+    type = boolean;
+    data = {
+        default = TRUE;
     };
 };
 

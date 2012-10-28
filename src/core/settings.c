@@ -731,6 +731,24 @@ settings_init(void)
 		exit(EXIT_FAILURE);
 	}
 
+	/*
+	 * Detect whether we're restarting after a clean shutdown or whether
+	 * we're being auto-restarted / manually relaunched after a crash.
+	 */
+
+	if (GNET_PROPERTY(clean_shutdown)) {
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, TRUE);
+	} else {
+		g_warning("restarting after abnormal termination");
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+	}
+
+	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
+
+	/*
+	 * Emit configuration / system information, but only if debugging.
+	 */
+
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			need_get_non_stdio_fd() ? "cannot" : "can");
@@ -789,6 +807,8 @@ settings_init(void)
 	settings_update_firewalled();
 	settings_callbacks_init();
 	settings_init_running = FALSE;
+
+	settings_save_if_dirty();		/* Ensure "clean_shutdown" is now FALSE */
 	return;
 
 no_config_dir:
@@ -1249,6 +1269,16 @@ settings_max_msg_size(void)
 G_GNUC_COLD void
 settings_shutdown(void)
 {
+	/*
+	 * We're indicating that a graceful shutdown was requested.
+	 *
+	 * We have no assurance that no crash will happen before everything
+	 * is actually completely shutdown, but at least this will signal that
+	 * the program was explicitly scheduled to terminate.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, TRUE);
+
 	update_uptimes();
 	remember_local_addr_port();
     settings_callbacks_shutdown();

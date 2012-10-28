@@ -494,6 +494,8 @@ typedef enum {
     PROP_DHT_RPC_DEBUG,
     PROP_LOG_UHC_PINGS_RX,
     PROP_LOG_UHC_PINGS_TX,
+    PROP_CLEAN_SHUTDOWN,
+    PROP_CLEAN_RESTART,
     GNET_PROPERTY_END
 } gnet_property_t;
 

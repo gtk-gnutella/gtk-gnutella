@@ -1058,6 +1058,10 @@ gboolean gnet_property_variable_log_uhc_pings_rx     = FALSE;
 static const gboolean gnet_property_variable_log_uhc_pings_rx_default = FALSE;
 gboolean gnet_property_variable_log_uhc_pings_tx     = FALSE;
 static const gboolean gnet_property_variable_log_uhc_pings_tx_default = FALSE;
+gboolean gnet_property_variable_clean_shutdown     = TRUE;
+static const gboolean gnet_property_variable_clean_shutdown_default = TRUE;
+gboolean gnet_property_variable_clean_restart     = TRUE;
+static const gboolean gnet_property_variable_clean_restart_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -9622,7 +9626,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[448].name = "log_sr_udp_tx";
-    gnet_property->props[448].desc = _("Whether to log sent semi-reliable UDP messages");
+    gnet_property->props[448].desc = _("Whether to log sent semi-reliable UDP messages.");
     gnet_property->props[448].ev_changed = event_new("log_sr_udp_tx_changed");
     gnet_property->props[448].save = TRUE;
     gnet_property->props[448].vector_size = 1;
@@ -9639,7 +9643,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[449].name = "log_sr_udp_rx";
-    gnet_property->props[449].desc = _("Whether to log received semi-reliable UDP messages");
+    gnet_property->props[449].desc = _("Whether to log received semi-reliable UDP messages.");
     gnet_property->props[449].ev_changed = event_new("log_sr_udp_rx_changed");
     gnet_property->props[449].save = TRUE;
     gnet_property->props[449].vector_size = 1;
@@ -9676,7 +9680,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[451].name = "log_vmsg_tx";
-    gnet_property->props[451].desc = _("Whether to log sent vendor messages");
+    gnet_property->props[451].desc = _("Whether to log sent vendor messages.");
     gnet_property->props[451].ev_changed = event_new("log_vmsg_tx_changed");
     gnet_property->props[451].save = TRUE;
     gnet_property->props[451].vector_size = 1;
@@ -9693,7 +9697,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[452].name = "log_vmsg_rx";
-    gnet_property->props[452].desc = _("Whether to log received vendor messages");
+    gnet_property->props[452].desc = _("Whether to log received vendor messages.");
     gnet_property->props[452].ev_changed = event_new("log_vmsg_rx_changed");
     gnet_property->props[452].save = TRUE;
     gnet_property->props[452].vector_size = 1;
@@ -9730,7 +9734,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[454].name = "log_weird_dht_headers";
-    gnet_property->props[454].desc = _("Whether to log weird DHT message headers when debugging");
+    gnet_property->props[454].desc = _("Whether to log weird DHT message headers when debugging.");
     gnet_property->props[454].ev_changed = event_new("log_weird_dht_headers_changed");
     gnet_property->props[454].save = TRUE;
     gnet_property->props[454].vector_size = 1;
@@ -9767,7 +9771,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[456].name = "log_uhc_pings_rx";
-    gnet_property->props[456].desc = _("Whether to log UHC pings we receive");
+    gnet_property->props[456].desc = _("Whether to log UHC pings we receive.");
     gnet_property->props[456].ev_changed = event_new("log_uhc_pings_rx_changed");
     gnet_property->props[456].save = TRUE;
     gnet_property->props[456].vector_size = 1;
@@ -9784,7 +9788,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[457].name = "log_uhc_pings_tx";
-    gnet_property->props[457].desc = _("Whether to log UHC pings we emit");
+    gnet_property->props[457].desc = _("Whether to log UHC pings we emit.");
     gnet_property->props[457].ev_changed = event_new("log_uhc_pings_tx_changed");
     gnet_property->props[457].save = TRUE;
     gnet_property->props[457].vector_size = 1;
@@ -9793,6 +9797,40 @@ gnet_prop_init(void) {
     gnet_property->props[457].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[457].data.boolean.def   = (void *) &gnet_property_variable_log_uhc_pings_tx_default;
     gnet_property->props[457].data.boolean.value = (void *) &gnet_property_variable_log_uhc_pings_tx;
+
+
+    /*
+     * PROP_CLEAN_SHUTDOWN:
+     *
+     * General data:
+     */
+    gnet_property->props[458].name = "clean_shutdown";
+    gnet_property->props[458].desc = _("Whether the program was properly shutdown.");
+    gnet_property->props[458].ev_changed = event_new("clean_shutdown_changed");
+    gnet_property->props[458].save = TRUE;
+    gnet_property->props[458].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[458].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[458].data.boolean.def   = (void *) &gnet_property_variable_clean_shutdown_default;
+    gnet_property->props[458].data.boolean.value = (void *) &gnet_property_variable_clean_shutdown;
+
+
+    /*
+     * PROP_CLEAN_RESTART:
+     *
+     * General data:
+     */
+    gnet_property->props[459].name = "clean_restart";
+    gnet_property->props[459].desc = _("Whether the program restarted after a clean shutdown.");
+    gnet_property->props[459].ev_changed = event_new("clean_restart_changed");
+    gnet_property->props[459].save = FALSE;
+    gnet_property->props[459].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[459].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[459].data.boolean.def   = (void *) &gnet_property_variable_clean_restart_default;
+    gnet_property->props[459].data.boolean.value = (void *) &gnet_property_variable_clean_restart;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

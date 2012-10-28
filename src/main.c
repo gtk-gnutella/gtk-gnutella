@@ -609,14 +609,13 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	DO(hcache_shutdown);	/* Save host caches to disk */
-	DO(settings_shutdown);
 	DO(oob_shutdown);		/* No longer deliver outstanding OOB hits */
 	DO(socket_shutdown);
 	DO(bsched_shutdown);
 
-	if (!running_topless) {
+	if (!running_topless)
 		DO(settings_gui_shutdown);
-	}
+	DO(settings_shutdown);
 
 	/*
 	 * Show total CPU used, and the amount spent in user / kernel, before
