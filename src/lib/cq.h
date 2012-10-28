@@ -97,6 +97,8 @@ void cq_periodic_remove(cperiodic_t **cp_ptr);
 cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg);
 void cq_idle_remove(cidle_t **ci_ptr);
 
+const char *cq_time_to_string(cq_time_t t);
+
 #endif	/* _cq_h_ */
 
 /* vi: set ts=4: */

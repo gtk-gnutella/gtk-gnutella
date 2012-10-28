@@ -41,6 +41,7 @@
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
+#include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
 
@@ -1230,6 +1231,20 @@ cq_main_coverage(int old_ticks)
 	cqueue_t *cqm = cq_main();
 
 	return (cqm->cq_ticks - old_ticks) * cqm->cq_period / 1000.0;
+}
+
+/**
+ * Stringify callout queue time.
+ *
+ * @return pointer to static buffer
+ */
+const char *
+cq_time_to_string(cq_time_t t)
+{
+	static char buf[UINT64_DEC_BUFLEN];
+
+	uint64_to_string_buf(t, buf, sizeof buf);
+	return buf;
 }
 
 /***
