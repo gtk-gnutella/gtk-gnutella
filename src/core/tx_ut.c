@@ -1049,12 +1049,15 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 			uint16 seqno = udp_reliable_header_get_seqno(pdu);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
 
-			g_debug("TX UT: %s: sent %s%s%s "
+			g_debug("TX UT: %s: sent %s%s%s%s "
 				"(tag=\"%s\", seq=0x%04x, fragment #%u) to %s",
 				G_STRFUNC,
 				(flags & UDP_RF_CUMULATIVE_ACK) ? "cumulative " : "",
 				(flags & UDP_RF_EXTENDED_ACK) ? "extended " : "",
-				0 == pmi->fragno ? "EAR" : "ACK", udp_tag_to_string(tag),
+				0 == pmi->fragno ? "EAR" : "ACK",
+				(0 == pmi->fragno && 0 == (flags & UDP_RF_ACKME)) ?
+					" NACK" : "",
+				udp_tag_to_string(tag),
 				seqno, pmi->fragno, gnet_host_to_string(pmi->to));
 		}
 
@@ -1064,7 +1067,19 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 
 		if (0 == pmi->fragno) {
 			struct ut_msg *um;
-			uint16 seqno = udp_reliable_header_get_seqno(pmsg_start(mb));
+			const void *pdu = pmsg_start(mb);
+			uint16 seqno = udp_reliable_header_get_seqno(pdu);
+			uint8 flags = udp_reliable_header_get_flags(pdu);
+
+			/*
+			 * An EAR NACK is requested by the RX layer when it gets an EAR
+			 * for an unknown sequence ID.  This is not an EAR we're sending
+			 * for a message from the TX layer and as such, don't count it
+			 * as an EAR sent.
+			 */
+
+			if (0 == (flags & UDP_RF_ACKME))
+				goto done;		/* Not an EAR for something we TX here */
 
 			gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_SENT);
 
@@ -1086,8 +1101,9 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 			}
 		}
 
-		pmi->magic = 0;
+	done:
 		atom_host_free_null(&pmi->to);	/* Reference taken on acks */
+		pmi->magic = 0;
 		WFREE(pmi);
 	}
 }
@@ -1197,13 +1213,14 @@ ut_ack_send(pmsg_t *mb)
 		uint8 fragno = udp_reliable_header_get_part(pdu);
 		uint8 flags = udp_reliable_header_get_flags(pdu);
 
-		g_debug("TX UT: %s: sending %s%s%s (%d bytes, prio=%u) "
+		g_debug("TX UT: %s: sending %s%s%s%s (%d bytes, prio=%u) "
 			"to %s (fragment #%u, seq=0x%04x, tag=\"%s\")",
 			G_STRFUNC,
 			(flags & UDP_RF_CUMULATIVE_ACK) ? "cumulative " : "",
 			(flags & UDP_RF_EXTENDED_ACK) ? "extended " : "",
-			0 == fragno ? "EAR" : "ACK", pmsg_size(mb), prio,
-			gnet_host_to_string(pmi->to), fragno, seqno,
+			0 == fragno ? "EAR" : "ACK",
+			(0 == fragno && 0 == (flags & UDP_RF_ACKME)) ? " NACK" : "",
+			pmsg_size(mb), prio, gnet_host_to_string(pmi->to), fragno, seqno,
 			udp_tag_to_string(tag));
 	}
 
@@ -1272,11 +1289,14 @@ ut_pending_send(struct attr *attr)
 				uint8 count = udp_reliable_header_get_count(pdu);
 
 				if (0 == count) {
-					g_debug("TX UT: %s: dequeuing %s%sACK (%d bytes, prio=%u) "
+					g_debug("TX UT: %s: dequeuing %s%s%s%s (%d bytes, prio=%u) "
 						"to %s (fragment #%u, seq=0x%04x, tag=\"%s\")",
 						G_STRFUNC,
 						(flags & UDP_RF_CUMULATIVE_ACK) ? "cumulative " : "",
 						(flags & UDP_RF_EXTENDED_ACK) ? "extended " : "",
+						0 == fragno ? "EAR" : "ACK",
+						(0 == fragno && 0 == (flags & UDP_RF_ACKME)) ?
+							" NACK" : "",
 						pmsg_size(mb), pmsg_prio(mb),
 						gnet_host_to_string(pmi->to), fragno, seqno,
 						udp_tag_to_string(tag));
