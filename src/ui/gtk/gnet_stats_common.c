@@ -222,7 +222,7 @@ general_type_str(gint value)
 		N_("Semi-reliable UDP extended acknowledgments sent"),
 		N_("Semi-reliable UDP avoided acknowledgment sendings"),
 		N_("Semi-reliable UDP EARs received"),
-		N_("Semi-reliable UDP invalid EARs received"),
+		N_("Semi-reliable UDP EARs received for unknown message"),
 		N_("Semi-reliable UDP EARs received whilst lingering"),
 		N_("Consolidated servers (after GUID and IP address linking)"),
 		N_("Duplicate downloads found during server consolidation"),
