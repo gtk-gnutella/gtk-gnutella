@@ -1251,6 +1251,16 @@ do_hfree(void *p)
 }
 
 static void
+scan_base_dir_free(void *data)
+{
+	/*
+	 * We need this wrapper when compiling with -DTRACK_ATOMS since
+	 * atom_str_free() becomes a macro.
+	 */
+	atom_str_free(data);
+}
+
+static void
 recursive_scan_free(struct recursive_scan **ctx_ptr)
 {
 	g_assert(ctx_ptr);
@@ -1268,7 +1278,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 
 		recursive_scan_closedir(ctx);
 
-		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
+		slist_free_all(&ctx->base_dirs, scan_base_dir_free);
 		slist_free_all(&ctx->sub_dirs, do_hfree);
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 		slist_free_all(&ctx->partial_files, recursive_sf_unref);
