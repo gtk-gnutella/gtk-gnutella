@@ -1300,6 +1300,10 @@ udp_send_ping(const struct guid *muid, const host_addr_t addr, uint16 port,
 		return FALSE;
 	}
 
+	if (uhc_ping && GNET_PROPERTY(log_uhc_pings_tx)) {
+		g_debug("UDP UHC sending ping to %s", host_addr_to_string(addr));
+	}
+
 	m = build_ping_msg(muid, 1, uhc_ping, &size);
 	return udp_send_ping_with_callback(m, size, addr, port, NULL, NULL, FALSE);
 }

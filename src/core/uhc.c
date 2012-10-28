@@ -367,9 +367,11 @@ uhc_send_ping(void)
 
 	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
-		if (GNET_PROPERTY(bootstrap_debug))
+		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(log_uhc_pings_tx)) {
 			g_debug("BOOT sent UDP SCP ping %s to %s:%u",
 				guid_hex_str(&uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
+		}
+
 		/*
 		 * Give GUI feedback.
 		 */

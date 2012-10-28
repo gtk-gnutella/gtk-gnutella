@@ -2226,7 +2226,7 @@ static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
 	enum ping_flag flags;
-	bool is_uhc;
+	bool is_uhc, throttled;
 
 	g_assert(NODE_IS_UDP(n));
 
@@ -2260,6 +2260,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 
 	flags = ping_type(n);
 	is_uhc = booleanize(PING_F_UHC == ((PING_F_GUE | PING_F_UHC) & flags));
+	throttled = FALSE;
 
 	if (is_uhc)
 		gnet_stats_inc_general(GNR_UDP_UHC_PINGS);
@@ -2270,20 +2271,27 @@ pcache_udp_ping_received(struct gnutella_node *n)
 
 	if (aging_lookup(udp_pings, &n->addr)) {
         gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
-		return;
+		throttled = TRUE;
+	} else {
+		aging_insert(udp_pings,
+			wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+
+		/*
+		 * Answers to UHC pings are sent back with a "control" priority.
+		 */
+
+		send_personal_info(n, is_uhc, flags);
+		throttled = FALSE;
+
+		if (is_uhc)
+			gnet_stats_inc_general(GNR_UDP_UHC_PONGS);
 	}
 
-	aging_insert(udp_pings,
-		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
-
-	/*
-	 * Answers to UHC pings are sent back with a "control" priority.
-	 */
-
-	send_personal_info(n, is_uhc, flags);
-
-	if (is_uhc)
-		gnet_stats_inc_general(GNR_UDP_UHC_PONGS);
+	if (is_uhc && GNET_PROPERTY(log_uhc_pings_rx)) {
+		g_debug("UDP UHC got %s from %s%s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			node_infostr(n), throttled ? " (throttled)" : "");
+	}
 }
 
 /*

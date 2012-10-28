@@ -5286,4 +5286,22 @@ prop = {
 	};
 };
 
+prop = {
+	name = "log_uhc_pings_rx";
+	desc = "Whether to log UHC pings we receive";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_uhc_pings_tx";
+	desc = "Whether to log UHC pings we emit";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

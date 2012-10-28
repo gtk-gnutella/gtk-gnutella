@@ -505,6 +505,8 @@ extern const gboolean gnet_property_variable_log_vmsg_rx;
 extern const guint32  gnet_property_variable_dht_tcache_debug_flags;
 extern const gboolean gnet_property_variable_log_weird_dht_headers;
 extern const guint32  gnet_property_variable_dht_rpc_debug;
+extern const gboolean gnet_property_variable_log_uhc_pings_rx;
+extern const gboolean gnet_property_variable_log_uhc_pings_tx;
 
 
 prop_set_t *gnet_prop_init(void);

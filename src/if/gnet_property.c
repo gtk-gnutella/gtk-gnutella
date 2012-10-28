@@ -1054,6 +1054,10 @@ gboolean gnet_property_variable_log_weird_dht_headers     = FALSE;
 static const gboolean gnet_property_variable_log_weird_dht_headers_default = FALSE;
 guint32  gnet_property_variable_dht_rpc_debug     = 0;
 static const guint32  gnet_property_variable_dht_rpc_debug_default = 0;
+gboolean gnet_property_variable_log_uhc_pings_rx     = FALSE;
+static const gboolean gnet_property_variable_log_uhc_pings_rx_default = FALSE;
+gboolean gnet_property_variable_log_uhc_pings_tx     = FALSE;
+static const gboolean gnet_property_variable_log_uhc_pings_tx_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9755,6 +9759,40 @@ gnet_prop_init(void) {
     gnet_property->props[455].data.guint32.choices = NULL;
     gnet_property->props[455].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[455].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_UHC_PINGS_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[456].name = "log_uhc_pings_rx";
+    gnet_property->props[456].desc = _("Whether to log UHC pings we receive");
+    gnet_property->props[456].ev_changed = event_new("log_uhc_pings_rx_changed");
+    gnet_property->props[456].save = TRUE;
+    gnet_property->props[456].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[456].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[456].data.boolean.def   = (void *) &gnet_property_variable_log_uhc_pings_rx_default;
+    gnet_property->props[456].data.boolean.value = (void *) &gnet_property_variable_log_uhc_pings_rx;
+
+
+    /*
+     * PROP_LOG_UHC_PINGS_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[457].name = "log_uhc_pings_tx";
+    gnet_property->props[457].desc = _("Whether to log UHC pings we emit");
+    gnet_property->props[457].ev_changed = event_new("log_uhc_pings_tx_changed");
+    gnet_property->props[457].save = TRUE;
+    gnet_property->props[457].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[457].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[457].data.boolean.def   = (void *) &gnet_property_variable_log_uhc_pings_tx_default;
+    gnet_property->props[457].data.boolean.value = (void *) &gnet_property_variable_log_uhc_pings_tx;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
