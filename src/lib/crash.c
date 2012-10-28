@@ -480,7 +480,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	 * hardwire the stderr file descriptor but get it from the log layer.
 	 */
 
-	routine = stacktrace_routine_name(func_to_pointer(hook), FALSE);
+	routine = stacktrace_function_name(hook);
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
@@ -2515,7 +2515,7 @@ crash_hook_add(const char *filename, const crash_hook_t hook)
 	if (hash_table_contains(vars->hooks, filename)) {
 		const void *oldhook = hash_table_lookup(vars->hooks, filename);
 		s_carp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
-			stacktrace_routine_name(func_to_pointer(hook), FALSE),
+			stacktrace_function_name(hook),
 			filename, stacktrace_routine_name(oldhook, FALSE));
 	} else {
 		ck_writable(vars->hookmem);			/* Holds the hash table object */

@@ -327,8 +327,7 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 				/* Don't g_carp() as this is asynchronous wrt data change */
 				g_critical("DBMW \"%s\" serialization overflow in %s() "
 					"whilst flushing dirty entry",
-					dw->name,
-					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE));
+					dw->name, stacktrace_function_name(dw->pack));
 				return FALSE;
 			}
 		} else {
@@ -1021,8 +1020,7 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
 			g_carp("DBMW \"%s\" deserialization error in %s(): %s",
-				dw->name,
-				stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+				dw->name, stacktrace_function_name(dw->unpack),
 				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
@@ -1401,7 +1399,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
 				g_carp("DBMW \"%s\" deserialization error in %s(): %s",
 					dw->name,
-					stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+					stacktrace_function_name(dw->unpack),
 					bstr_error(dw->bs));
 				/* Not calling value free routine on deserialization failures */
 				wfree(data, len);
@@ -1457,7 +1455,7 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
 		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
-			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg);
+			stacktrace_function_name(cb), arg);
 	}
 
 	/*
@@ -1505,7 +1503,7 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
 		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)"
 			"has %zu unflushed entr%s in cache", G_STRFUNC,
-			stacktrace_routine_name(func_to_pointer(cb), FALSE), arg,
+			stacktrace_function_name(cb), arg,
 			dw->cached, 1 == dw->cached ? "y" : "ies");
 	}
 }
@@ -1527,7 +1525,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 
 	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
 		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
-			stacktrace_routine_name(func_to_pointer(cbr), FALSE), arg);
+			stacktrace_function_name(cbr), arg);
 	}
 
 	/*
@@ -1583,7 +1581,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 			"pruned %zu from dbmap, %zu from cache (%zu total), "
 			"has %zu unflushed entr%s in cache",
 			G_STRFUNC,
-			stacktrace_routine_name(func_to_pointer(cbr), FALSE), arg,
+			stacktrace_function_name(cbr), arg,
 			pruned, fctx.removed, pruned + fctx.removed,
 			dw->cached, 1 == dw->cached ? "y" : "ies");
 	}
