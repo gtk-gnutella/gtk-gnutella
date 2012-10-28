@@ -547,7 +547,7 @@ gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 		gnet_host_set(&to, n->addr, n->port);
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
-			g_debug("GUESS sending local hit (%s) for %s to %s",
+			g_debug("GUESS sending local hit (%s) for #%s to %s",
 				NODE_CAN_SR_UDP(n) ? "reliably" :
 				NODE_CAN_INFLATE(n) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(gnutella_header_get_muid(msg)), node_infostr(n));
@@ -1071,7 +1071,7 @@ gmsg_infostr_split_to_buf(
 		return kmsg_infostr_to_buf(head, buf, buf_size);
 	}
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
 		guid_hex_str(gnutella_header_get_muid(head)),
@@ -1095,7 +1095,7 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 	 * we can't go and probe DHT messages.
 	 */
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
 		guid_hex_str(gnutella_header_get_muid(msg)),
@@ -1125,7 +1125,7 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 			uint8 ttl = gnutella_header_get_ttl(head);
 
 			rw = gm_snprintf(buf, buf_size,
-				"%s %s (%u byte%s) %s %s[hops=%d, TTL=%d]",
+				"%s %s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
 				size, size == 1 ? "" : "s",

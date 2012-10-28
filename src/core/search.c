@@ -1901,7 +1901,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 			) {
 				char buf[5];
 				bin_to_hex_buf(&token, sizeof token, buf, sizeof buf);
-				g_debug("OOB received unrequested %squery hit MUID=%s "
+				g_debug("OOB received unrequested %squery hit #%s "
 					"from %s%s%s [%s]",
 					guess_is_search_muid(muid) ? "GUESS " : "",
 					guid_hex_str(muid), node_infostr(n),
@@ -5526,7 +5526,7 @@ search_oob_pending_results(
 
 	if (hostiles_spam_check(n->addr, n->port)) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %sOOB hit%s for search %s "
+			g_debug("ignoring %d %sOOB hit%s for query #%s "
 				"(%s is a caught spammer)",
 				hits,
 				guess_is_search_muid(muid) ? "GUESS " : "",
@@ -5551,7 +5551,7 @@ search_oob_pending_results(
 
 		if (aging_lookup_revitalise(ora_secure, &host)) {
 			if (GNET_PROPERTY(search_debug)) {
-				g_debug("ignoring %d %sOOB unsecure hit%s for search %s "
+				g_debug("ignoring %d %sOOB unsecure hit%s for query #%s "
 					"(%s supports secure OOB)",
 					hits,
 					guess_is_search_muid(muid) ? "GUESS " : "",
@@ -5609,7 +5609,7 @@ search_oob_pending_results(
 			goto record_secure;		/* OK, sent OOB reply ack to claim hits */
 
 		if (GNET_PROPERTY(search_debug)) {
-			g_warning("got OOB indication of %d hit%s for unknown search %s "
+			g_warning("got OOB indication of %d hit%s for unknown query #%s "
 				"at %s",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid),
 				node_infostr(n));
@@ -5623,7 +5623,7 @@ search_oob_pending_results(
 	}
 
 	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1) {
-		g_debug("has %d pending %s%sOOB hit%s for search %s at %s",
+		g_debug("has %d pending %s%sOOB hit%s for query #%s at %s",
 			hits, secure ? "secure " : "",
 			guess_is_search_muid(muid) ? "GUESS " : "",
 			hits == 1 ? "" : "s", guid_hex_str(muid), node_infostr(n));
@@ -5643,7 +5643,7 @@ search_oob_pending_results(
 		kept > search_max_results_for_ui(sch) * 0.15
 	) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %s%sOOB hit%s for search %s (already got %u) "
+			g_debug("ignoring %d %s%sOOB hit%s for query #%s (already got %u) "
 				"at %s",
 				hits, secure ? "secure " : "",
 				guess_is_search_muid(muid) ? "GUESS " : "",
@@ -6406,7 +6406,7 @@ query_strip_oob_flag(gnutella_node_t *n, char *data)
 	gnet_stats_inc_general(GNR_OOB_QUERIES_STRIPPED);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
-		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x : %s)",
+		g_debug("QUERY #%s from %s: removed OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
 			node_infostr(n), flags, search_flags_to_string(flags));
 }
@@ -6429,7 +6429,7 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug("QUERY %s from %s: set OOB delivery (flags = 0x%x : %s)",
+		g_debug("QUERY #%s from %s: set OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
 			node_infostr(n), flags, search_flags_to_string(flags));
 }
@@ -6523,15 +6523,11 @@ search_request_preprocess(struct gnutella_node *n,
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(sri != NULL);
 
-	muid = gnutella_header_get_muid(&n->header);
-
-	if (GNET_PROPERTY(guess_server_debug) > 18) {
-		if (NODE_IS_UDP(n)) {
-			g_debug("GUESS got %s, GUID=%s",
-				gmsg_node_infostr(n), guid_hex_str(muid));
-		}
+	if (GNET_PROPERTY(guess_server_debug) > 18 && NODE_IS_UDP(n)) {
+		g_debug("GUESS got %s", gmsg_node_infostr(n));
 	}
 
+	muid = gnutella_header_get_muid(&n->header);
 	sri->duplicate = booleanize(isdup);
 	ZERO(&ipv6_addr);
 
@@ -6550,12 +6546,9 @@ search_request_preprocess(struct gnutella_node *n,
 	if (sri->search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(query_debug) > 10)
-			g_warning("query (hops=%u, ttl=%u) from %s had no NUL (%d byte%s)",
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header),
-				node_infostr(n),
-				n->size - 2,
-				n->size == 3 ? "" : "s");
+			g_warning("%s had no NUL (%d byte%s)",
+				gmsg_node_infostr(n),
+				n->size - 2, n->size == 3 ? "" : "s");
 		if (GNET_PROPERTY(query_debug) > 14)
 			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
@@ -6662,7 +6655,7 @@ search_request_preprocess(struct gnutella_node *n,
 		}
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
-			g_debug("QUERY %s%s [hops=%u, TTL=%u] with extensions: "
+			g_debug("QUERY %s#%s [hops=%u, TTL=%u] with extensions: "
 				"\"%s\" (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -6972,7 +6965,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 		if (sri->whats_new && sri->exv_sha1cnt) {
 			if (GNET_PROPERTY(query_debug) > 1) {
-				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+				g_debug("QUERY %s#%s [hops=%u, TTL=%u] \"%s\" "
 					"has %d SHA1%s, dropping",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -6999,7 +6992,7 @@ search_request_preprocess(struct gnutella_node *n,
 			gnutella_header_get_ttl(&n->header) > 0
 		) {
 			if (GNET_PROPERTY(query_debug) > 1) {
-				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+				g_debug("QUERY %s#%s [hops=%u, TTL=%u] \"%s\" "
 					"travelling too far, forcing TTL to 0",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7064,7 +7057,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 			if (0 != gnutella_header_get_ttl(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_warning("GUESS node %s sent query MUID=%s with TTL=%u, "
+					g_warning("GUESS node %s sent query #%s with TTL=%u, "
 						"dropping",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7080,7 +7073,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 			if (1 != gnutella_header_get_hops(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_warning("GUESS node %s sent query MUID=%s with hops=%u, "
+					g_warning("GUESS node %s sent query #%s with hops=%u, "
 						"adjusting to 1 before forwarding",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7303,7 +7296,7 @@ skip_throttling:
 					gm_snprintf(origin, sizeof origin, " from %s",
 						host_addr_port_to_string(sri->addr, sri->port));
 				}
-				g_debug("GTKG %s%squery from %d.%d%s [MUID=%s]%s",
+				g_debug("GTKG %s%squery from %d.%d%s #%s%s",
 					sri->oob ? "OOB " : "", requery ? "re-" : "",
 					major, minor, release ? "" : "u",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7363,7 +7356,7 @@ skip_throttling:
 				query_strip_oob_flag(n, n->data);
 				sri->oob = FALSE;
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_debug("QUERY (GUESS) %s from %s: removed OOB flag "
+					g_debug("QUERY (GUESS) #%s from %s: removed OOB flag "
 						"(mismatching return address %s versus UDP %s)",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
 						node_infostr(n), host_addr_to_string(sri->addr),
@@ -7400,7 +7393,7 @@ skip_throttling:
 				GNET_PROPERTY(oob_proxy_debug) ||
 				(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
 			) {
-				g_debug("QUERY %s%s from %s: removed OOB flag "
+				g_debug("QUERY %s#%s from %s: removed OOB flag "
 					"(invalid return address: %s)",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7553,7 +7546,7 @@ search_request(struct gnutella_node *n,
 		char *safe_ext = hex_escape(sri->extended_query, FALSE);
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s%s extended: original=\"%s\", extended=\"%s\"",
+			g_debug("QUERY %s#%s extended: original=\"%s\", extended=\"%s\"",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				lazy_safe_search(search), safe_ext);
@@ -7563,7 +7556,7 @@ search_request(struct gnutella_node *n,
 	} else {
 		safe_search = hex_escape(search, FALSE);
 		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s%s \"%s\"",
+			g_debug("QUERY %s#%s \"%s\"",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				sri->whats_new ? WHATS_NEW : safe_search);
@@ -7622,7 +7615,7 @@ search_request(struct gnutella_node *n,
 
 	if (oob && ban_is_banned(BAN_CAT_OOB_CLAIM, sri->addr)) {
 		if (GNET_PROPERTY(query_debug) > 2) {
-			g_debug("QUERY OOB %s%s \"%s\" ignored: host %s not claiming hits",
+			g_debug("QUERY OOB %s#%s \"%s\" ignored: host %s not claiming hits",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				sri->whats_new ? WHATS_NEW : safe_search,
@@ -7638,7 +7631,7 @@ search_request(struct gnutella_node *n,
 
 	if (sri->ipv6_only && !settings_running_ipv6()) {
 		if (GNET_PROPERTY(query_debug) > 9) {
-			g_debug("QUERY %s%s \"%s\" ignored: wants only IPv6",
+			g_debug("QUERY %s#%s \"%s\" ignored: wants only IPv6",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				sri->whats_new ? WHATS_NEW : safe_search);
@@ -7764,7 +7757,7 @@ search_request(struct gnutella_node *n,
 		}
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
+			g_debug("QUERY #%s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
 					sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
@@ -7871,7 +7864,7 @@ search_log_ggep_write_failure(const char *id, uint32 flags,
 	const gnutella_node_t *n, const char *caller)
 {
 	if (GNET_PROPERTY(query_debug)) {
-		g_warning("%s(): QUERY %s could not write %s"
+		g_warning("%s(): QUERY #%s could not write %s"
 			"GGEP \"%s\": %s",
 			caller, guid_hex_str(gnutella_header_get_muid(&n->header)),
 			(flags & GGEP_W_DEFLATE) ? "deflated " : "", id, ggep_errstr());
@@ -8050,7 +8043,7 @@ search_compact(struct gnutella_node *n)
 				err = vxml_parse_tree(vp, &root);
 				if (VXML_E_OK != err) {
 					if (GNET_PROPERTY(query_debug)) {
-						g_warning("QUERY %s dropping invalid XML payload: %s",
+						g_warning("QUERY #%s dropping invalid XML payload: %s",
 							guid_hex_str(gnutella_header_get_muid(&n->header)),
 							vxml_strerror(err));
 					}
@@ -8078,7 +8071,7 @@ search_compact(struct gnutella_node *n)
 
 						if ((size_t) -1 == w) {
 							if (GNET_PROPERTY(query_debug)) {
-								g_warning("%s(): QUERY %s "
+								g_warning("%s(): QUERY #%s "
 									"could not rewrite XML tree",
 									G_STRFUNC,
 									guid_hex_str(
@@ -8138,7 +8131,7 @@ search_compact(struct gnutella_node *n)
 							EXT_T_URN_SHA1 != e->ext_token
 						) {
 							const char *prefix = ext_huge_urn_name(e);
-							g_debug("QUERY %s rewriting %s as urn:sha1",
+							g_debug("QUERY #%s rewriting %s as urn:sha1",
 								guid_hex_str(
 									gnutella_header_get_muid(&n->header)),
 								prefix);
@@ -8316,7 +8309,7 @@ search_compact(struct gnutella_node *n)
 				GNET_PROPERTY(secure_oob_debug)
 			)
 		) {
-			g_debug("QUERY %s%s search extension part %zu -> %zu bytes%s",
+			g_debug("QUERY %s#%s search extension part %zu -> %zu bytes%s",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				extra, newlen,
@@ -8356,7 +8349,7 @@ search_compact(struct gnutella_node *n)
 	if (GNET_PROPERTY(query_debug) > 13) {
 		if (newlen != 0) {
 			exvcnt = ext_parse(start, newlen, exv, MAX_EXTVEC);
-			g_debug("QUERY %s%s rewritten extensions "
+			g_debug("QUERY %s#%s rewritten extensions "
 				"(now %zu byte%s, was %zu), payload now %u bytes",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -8365,7 +8358,7 @@ search_compact(struct gnutella_node *n)
 				GNET_PROPERTY(query_debug) > 14);
 			ext_reset(exv, MAX_EXTVEC);
 		} else if (newlen != extra) {
-			g_debug("QUERY %s%s rewritten with no extensions",
+			g_debug("QUERY %s#%s rewritten with no extensions",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)));
 		}
