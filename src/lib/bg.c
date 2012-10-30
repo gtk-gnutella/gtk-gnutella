@@ -168,6 +168,7 @@ static int bg_runcount;
 static GSList *runq;
 static GSList *sleepq;
 static GSList *dead_tasks;
+static bool bg_closed;
 
 /**
  * Add new task to the scheduler (run queue).
@@ -601,7 +602,22 @@ bg_task_terminate(struct bgtask *bt)
 
 	bt->flags |= TASK_F_EXITED;		/* Task has now exited */
 	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
-	bg_runcount--;					/* One task less to run */
+
+	/*
+	 * If they called bg_close(), then bg_runcount was reset to 0.
+	 *
+	 * However, some background tasks may have escaped killing due to some
+	 * bug and since we're probably exiting and cleaning up, there is no
+	 * need to panic.
+	 */
+
+	if (bg_runcount != 0) {
+		bg_runcount--;				/* One task less to run */
+	} else {
+		g_carp("%s(): terminating unaccounted %stask \"%s\"",
+			G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "", bt->name);
+		g_assert(bg_closed);		/* Panic only if not closed */
+	}
 
 	g_assert(bg_runcount >= 0);
 
@@ -1201,6 +1217,7 @@ bg_init(void)
 
 	bg_ticker.period = BG_TICK_IDLE;
 	bg_ticker.pev = cq_periodic_main_add(BG_TICK_IDLE, bg_sched_timer, NULL);
+	bg_closed = FALSE;
 }
 
 /**
@@ -1225,6 +1242,7 @@ bg_close(void)
 
 	bg_reclaim_dead();				/* Free dead tasks */
 	bg_runcount = 0;
+	bg_closed = TRUE;
 	cq_periodic_remove(&bg_ticker.pev);
 }
 
