@@ -3868,19 +3868,21 @@ download_clone(struct download *d)
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
 
-	if (s->getline) {
+	/* The socket can be NULL if we're acting on a queued source */
+
+	if (s != NULL && s->getline != NULL) {
 		getline_free(s->getline);	/* No longer need this */
 		s->getline = NULL;
 	}
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
-		if (d->io_opaque) {
+		if (d->io_opaque != NULL) {
 			io_free(d->io_opaque);
 			g_assert(NULL == d->io_opaque);
 		}
 	} else if (NULL == d->io_opaque) {
-		g_assert(d->buffers);
+		g_assert(d->buffers != NULL);
 		g_assert(d->buffers->held == 0);		/* All data flushed */
 	} else {
 		io_free(d->io_opaque);		/* Cloned after error, not when receiving */
@@ -3895,7 +3897,8 @@ download_clone(struct download *d)
 	cd->src_handle_valid = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
-	socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
+	if (s != NULL)
+		socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
 
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
