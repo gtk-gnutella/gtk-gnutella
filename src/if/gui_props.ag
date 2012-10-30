@@ -1305,7 +1305,6 @@ prop = {
 	name = "search_media_type_audio";
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on their audio files.";
-	save = FALSE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -1316,7 +1315,6 @@ prop = {
 	name = "search_media_type_video";
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on their video files.";
-	save = FALSE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -1328,7 +1326,6 @@ prop = {
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on their document files. "
 		"Document files are XML, HTML, Word, PDF, etc...";
-	save = FALSE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -1339,7 +1336,6 @@ prop = {
 	name = "search_media_type_image";
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on their image files.";
-	save = FALSE;
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -1351,7 +1347,6 @@ prop = {
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on archive / program files such as "
 		"ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.";
-	save = FALSE;
 	type = boolean;
 	data = {
 		default = FALSE;
