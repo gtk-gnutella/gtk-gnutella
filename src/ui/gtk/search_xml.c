@@ -949,6 +949,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
     unsigned flags = 0;
 	unsigned lifetime;
 	time_t create_time;
+	bool clean_restart;
 
 	(void) unused_udata;
     g_assert(xn != NULL);
@@ -956,6 +957,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
     g_assert(0 == ascii_strcasecmp(xnode_element_name(xn), NODE_SEARCH));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
+    gnet_prop_get_boolean_val(PROP_CLEAN_RESTART, &clean_restart);
 
 	query = xnode_prop_get(xn, TAG_SEARCH_QUERY);
     if (NULL == query) {
@@ -973,7 +975,7 @@ xml_to_search(xnode_t *xn, void *unused_udata)
 
     buf = xnode_prop_get(xn, TAG_SEARCH_SPEED);
     if (buf) {
-		g_warning("xml_to_search: found deprecated speed attribute.");
+		g_warning("%s(): found deprecated speed attribute.", G_STRFUNC);
     }
 
     buf = xnode_prop_get(xn, TAG_SEARCH_REISSUE_TIMEOUT);
@@ -1007,10 +1009,11 @@ xml_to_search(xnode_t *xn, void *unused_udata)
     if (buf) {
 		create_time = date2time(buf, tm_time());
 		if (create_time == (time_t) -1)
-			g_warning("xml_to_search: Unparseable \"%s\" attribute.",
-				TAG_SEARCH_CREATE_TIME);
+			g_warning("%s(): unparseable \"%s\" attribute",
+				G_STRFUNC, TAG_SEARCH_CREATE_TIME);
     }
-		/* consider legacy searches as created right now */
+
+	/* consider legacy searches as created right now */
 	if (create_time == (time_t) -1)
 		create_time = tm_time();
 
@@ -1020,14 +1023,17 @@ xml_to_search(xnode_t *xn, void *unused_udata)
 		gint error;
 		lifetime = parse_uint16(buf, NULL, 10, &error);
 		if (error)
-			g_warning("xml_to_search: Unparseable \"%s\" attribute.",
-				TAG_SEARCH_LIFETIME);
+			g_warning("%s(): unparseable \"%s\" attribute",
+				G_STRFUNC, TAG_SEARCH_LIFETIME);
 	}
 	/* legacy searches get a 2 week expiration time */
 	lifetime = MIN(14 * 24, lifetime);
 
-	/* A zero lifetime means the search expired with the previous session */
-	if (0 == lifetime && 0 == (flags & SEARCH_F_PASSIVE))
+	/*
+	 * A zero lifetime means the search expired with the previous session.
+	 * However, when we're resuming from a crash, let the search continue.
+	 */
+	if (0 == lifetime && 0 == (flags & SEARCH_F_PASSIVE) && clean_restart)
 		flags &= ~SEARCH_F_ENABLED;
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
@@ -1146,7 +1152,7 @@ xml_to_filter(xnode_t *xn, void *unused_data)
 
 	name = xnode_prop_get(xn, TAG_FILTER_NAME);
     if (NULL == name) {
-        g_warning("Ignored unnamed filter");
+        g_warning("%s(): ignoring unnamed filter", G_STRFUNC);
 		goto failure;
     }
 
@@ -1154,7 +1160,8 @@ xml_to_filter(xnode_t *xn, void *unused_data)
     if (buf) {
     	v = parse_number(buf, &error);
         if (error) {
-            g_warning("xml_to_filter: %s", g_strerror(error));
+            g_warning("%s(): cannot parse \"%s\" value (%s): %s",
+				G_STRFUNC, TAG_FILTER_GLOBAL, buf, g_strerror(error));
 			goto failure;
 		}
 
@@ -1167,7 +1174,8 @@ xml_to_filter(xnode_t *xn, void *unused_data)
             break;
         default:
             filter = NULL;
-            g_warning("xml_to_filter: Invalid filter");
+            g_warning("%s(): invalid filter value %s in \"%s\" tag",
+				G_STRFUNC, uint64_to_string(v), TAG_FILTER_GLOBAL);
 			goto failure;
         }
     } else {
@@ -1181,7 +1189,8 @@ xml_to_filter(xnode_t *xn, void *unused_data)
     if (buf != NULL) {
     	v = parse_number(buf, &error);
 		if (error || v > 1) {
-        	g_warning("xml_to_filter: Invalid \"active\" tag");
+        	g_warning("%s(): invalid \"%s\" tag value %s",
+				G_STRFUNC, TAG_FILTER_ACTIVE, buf);
 			goto failure;
 		}
         active = 0 != v;
@@ -1195,7 +1204,8 @@ xml_to_filter(xnode_t *xn, void *unused_data)
     g_assert(buf);
     dest = parse_target(buf, &error);
     if (error) {
-        g_warning("xml_to_filter: %s", g_strerror(error));
+        g_warning("%s(): unparseable \"%s\" tag value %s: %s",
+			G_STRFUNC, TAG_FILTER_UID, buf, g_strerror(error));
 		goto failure;
 	}
     htable_insert(id_map, dest, filter);
@@ -1210,7 +1220,8 @@ xml_to_filter(xnode_t *xn, void *unused_data)
 	return;
 
 failure:
-	g_warning("unable to parse XML node: %s", xnode_to_string(xn));
+	g_warning("%s(): unable to parse XML node: %s",
+		G_STRFUNC, xnode_to_string(xn));
 }
 
 static void
