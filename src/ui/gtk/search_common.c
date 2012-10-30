@@ -1069,7 +1069,7 @@ search_gui_unref_record(record_t *rc)
 	}
 }
 
-guint
+static guint
 search_gui_hash_func(gconstpointer p)
 {
 	const record_t *rc = p;
@@ -1086,7 +1086,24 @@ search_gui_hash_func(gconstpointer p)
 		port_hash(rc->results_set->port);
 }
 
-gint
+static guint
+search_gui_hash_func2(gconstpointer p)
+{
+	const record_t *rc = p;
+
+	record_check(rc);
+
+	/* Must use same fields as search_gui_hash_key_compare() --RAM */
+	return
+		pointer_hash2(rc->sha1) ^	/* atom! (may be NULL) */
+		pointer_hash2(rc->results_set->guid) ^	/* atom! */
+		(NULL != rc->sha1 ? 0 : string_hash(rc->name)) ^
+		integer_hash2(rc->size) ^
+		host_addr_hash2(rc->results_set->addr) ^
+		port_hash2(rc->results_set->port);
+}
+
+static gint
 search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	const record_t *rc1 = a, *rc2 = b;
@@ -3131,8 +3148,8 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
  
 	search->search_handle = sch_id;
-	search->dups = hset_create_any(search_gui_hash_func, NULL,
-						search_gui_hash_key_compare);
+	search->dups = hset_create_any(search_gui_hash_func,
+		search_gui_hash_func2, search_gui_hash_key_compare);
 
 	search_gui_filter_new(search, query->rules);
 	search_gui_query_free(&query);
