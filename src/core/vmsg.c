@@ -974,7 +974,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *vmsg,
 		 */
 
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("VMSG could not find matching search for MUID %s",
+			g_warning("VMSG could not find matching search for #%s",
 				guid_hex_str(muid));
 		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
@@ -2618,8 +2618,7 @@ handle_head_ping(struct gnutella_node *n,
 		}
 		if (has_guid) {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
-				g_debug("VMSG HEAD Ping carries GUID %s",
-					guid_hex_str(&guid));
+				g_debug("VMSG HEAD Ping #%s", guid_hex_str(&guid));
 			}
 		} else {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {

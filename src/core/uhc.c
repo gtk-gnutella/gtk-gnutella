@@ -368,7 +368,7 @@ uhc_send_ping(void)
 	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
 		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(log_uhc_pings_tx)) {
-			g_debug("BOOT sent UDP SCP ping %s to %s:%u",
+			g_debug("BOOT sent UDP SCP ping #%s to %s:%u",
 				guid_hex_str(&uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
 		}
 
@@ -527,7 +527,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 	cnt = paylen / len;
 
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_debug("extracting %d host%s in UDP IPP pong %s from %s",
+		g_debug("extracting %d host%s in UDP IPP pong #%s from %s",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 

@@ -1151,8 +1151,8 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 
 		if (rc->file_index != old_rc->file_index) {
 			if (GUI_PROPERTY(gui_debug)) {
-				g_warning("Index changed from %u to %u at %s for %s",
-					old_rc->file_index, rc->file_index,
+				g_warning("%s(): index changed from %u to %u at #%s for %s",
+					G_STRFUNC, old_rc->file_index, rc->file_index,
 					guid_hex_str(rc->results_set->guid), rc->name);
 			}
 

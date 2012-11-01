@@ -1079,7 +1079,7 @@ send_pong:
 		&info, &meta);	/* hops = 1, TTL = 1 */
 
 	if (GNET_PROPERTY(guess_server_debug) > 10) {
-		g_debug("GUESS %s query %s from %s with %spong listing %s:%u%s",
+		g_debug("GUESS %s query #%s from %s with %spong listing %s:%u%s",
 			good_query_key ? "acknowledged" : "refused",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_infostr(n),
 			good_query_key ? "" : "new query key and ",

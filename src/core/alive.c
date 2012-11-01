@@ -196,7 +196,7 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 	alive_ping_drop(a, muid);
 
 	if (GNET_PROPERTY(alive_debug))
-		g_debug("ALIVE %s dropped old alive ping %s, %d remain",
+		g_debug("ALIVE %s dropped old alive ping #%s, %d remain",
 			node_infostr(a->node), guid_hex_str(muid), a->count);
 
 	return FALSE;		/* Don't send message */
@@ -215,7 +215,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 	if (pmsg_was_sent(mb)) {
 		n->n_ping_sent++;
 		if (GNET_PROPERTY(alive_debug))
-			g_debug("ALIVE sent ping %s to %s",
+			g_debug("ALIVE sent ping #%s to %s",
 				guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
 				node_infostr(n));
 	} else {
@@ -351,7 +351,7 @@ alive_ack_ping(void *obj, const struct guid *muid)
 
 		if (guid_eq(ap->muid, muid)) {		/* Found it! */
 			if (GNET_PROPERTY(alive_debug))
-				g_debug("ALIVE got alive pong %s from %s",
+				g_debug("ALIVE got alive pong #%s from %s",
 					guid_hex_str(muid), node_infostr(a->node));
 			ap_ack(ap, a);
 			alive_trim_upto(a, sl);
@@ -394,7 +394,7 @@ alive_ack_first(void *obj, const struct guid *muid)
 	ap = sl->data;
 
 	if (GNET_PROPERTY(alive_debug))
-		g_debug("ALIVE TTL=0 ping from %s, assuming it acks %s",
+		g_debug("ALIVE TTL=0 ping from %s, assuming it acks #%s",
 			node_infostr(a->node), guid_hex_str(ap->muid));
 
 	ap_ack(ap, a);

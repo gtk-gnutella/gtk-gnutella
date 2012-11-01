@@ -450,7 +450,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
 
 	if (GNET_PROPERTY(dh_debug) > 19) {
-		g_debug("DH %s got %d hit%s: "
+		g_debug("DH #%s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u",
 			guid_hex_str(muid), count, count == 1 ? "" : "s",
 			dh->msg_recv, dh->hits_recv, dh->hits_sent,
@@ -506,7 +506,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 		 */
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
-			g_debug("GUESS sending %d hit%s (%s) for %s to %s",
+			g_debug("GUESS sending %d hit%s (%s) for #%s to %s",
 				count, 1 == count ? "" : "s",
 				NODE_CAN_SR_UDP(dest) ? "reliably" :
 				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
@@ -528,7 +528,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 		mq_tcp_putq(mq, mb, src);
 
 		if (GNET_PROPERTY(dh_debug) > 19) {
-			g_debug("DH enqueued %d hit%s for %s to %s",
+			g_debug("DH enqueued %d hit%s for #%s to %s",
 				count, count == 1 ? "" : "s", guid_hex_str(muid),
 				node_infostr(dest));
 		}

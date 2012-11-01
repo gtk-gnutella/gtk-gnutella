@@ -3458,7 +3458,7 @@ build_search_message(const guid_t *muid, const char *query,
 		msize - GTA_HEADER_SIZE);
 
 	if (GNET_PROPERTY(search_debug) > 3)
-		g_debug("%squery \"%s\" message built with MUID %s",
+		g_debug("%squery \"%s\" message built with #%s",
 			is_sha1_search ? "URN " : "", query,
 			guid_hex_str(gnutella_header_get_muid(
 							gnutella_msg_search_header(&msg.data))));

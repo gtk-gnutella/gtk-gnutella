@@ -258,7 +258,7 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 	oob_results_check(r);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug("OOB query %s from %s expired with unclaimed %d hit%s",
+		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 
@@ -286,7 +286,7 @@ results_timeout(cqueue_t *unused_cq, void *obj)
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
-		g_debug("OOB query %s, no ACK from %s to claim %d hit%s",
+		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 	}
@@ -360,7 +360,7 @@ servent_service(cqueue_t *cq, void *obj)
 		goto udp_disabled;
 
 	if (GNET_PROPERTY(udp_debug) > 19)
-		g_debug("UDP queuing OOB %s to %s for %s",
+		g_debug("UDP queuing OOB %s to %s for #%s",
 			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)),
 			gnet_host_to_string(s->host),
 			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
@@ -492,7 +492,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	if (r == NULL) {
 		gnet_stats_inc_general(GNR_SPURIOUS_OOB_HIT_CLAIM);
 		if (GNET_PROPERTY(query_debug))
-			g_warning("OOB got spurious LIME/11 from %s for %s, "
+			g_warning("OOB got spurious LIME/11 from %s for #%s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
 				wanted, wanted == 1 ? "" : "s");
@@ -532,7 +532,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 		 * have multiple network interfaces.
 		 */
 		
-		g_warning("OOB query %s might have been proxied: it had IP %s, "
+		g_warning("OOB query #%s might have been proxied: it had IP %s, "
 			"but the LIME/11v2 ACK comes from %s", guid_hex_str(muid),
 			gnet_host_to_string(&r->dest), node_addr(n));
 
@@ -577,7 +577,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
-		g_debug("OOB query %s: host %s wants %d hit%s, delivering %d",
+		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
 			deliver_count);
 	}
@@ -639,7 +639,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		} else {
 
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-				g_debug("OOB query %s, notified %s about %d hit%s",
+				g_debug("OOB query #%s, notified %s about %d hit%s",
 					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 					r->count, r->count == 1 ? "" : "s");
 
@@ -658,7 +658,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		if (GNET_PROPERTY(query_debug)) {
-			g_debug("OOB query %s, previous LIME12/v2 #%d was %s",
+			g_debug("OOB query #%s, previous LIME12/v2 #%d was %s",
 				guid_hex_str(r->muid), r->notify_requeued,
 				r->reliable ? "unsent" : "dropped");
 		}
@@ -696,7 +696,7 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_free(mb);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-		g_debug("OOB query %s, %snotifying %s about %d hit%s, try #%d",
+		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);

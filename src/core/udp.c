@@ -1071,7 +1071,7 @@ udp_connect_back(const host_addr_t addr, uint16 port, const struct guid *muid)
 {
 	if (udp_send_ping(muid, addr, port, FALSE)) {
 		if (GNET_PROPERTY(udp_debug) > 19)
-			g_debug("UDP queued connect-back PING %s to %s\n",
+			g_debug("UDP queued connect-back PING #%s to %s\n",
 				guid_hex_str(muid), host_addr_port_to_string(addr, port));
 	}
 }

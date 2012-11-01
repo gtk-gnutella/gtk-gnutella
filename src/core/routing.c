@@ -2114,7 +2114,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			*node = NULL;
 		} else {
 			if (GNET_PROPERTY(log_bad_gnutella))
-				gmsg_log_bad(sender, "dup message ID %s from same node",
+				gmsg_log_bad(sender, "dup message #%s from same node",
 				   guid_hex_str(gnutella_header_get_muid(&sender->header)));
 		}
 	} else {
@@ -2194,7 +2194,7 @@ check_duplicate(struct route_log *route_log, struct gnutella_node **node,
 	routing_log_set_new(route_log);
 
 	if (GNET_PROPERTY(log_new_gnutella)) {
-		g_debug("NEW %s %s from %s", guid_hex_str(muid),
+		g_debug("NEW #%s %s from %s", guid_hex_str(muid),
 			gmsg_infostr_full_split(
 				&sender->header, sender->data, sender->size),
 				node_infostr(sender));
@@ -2525,7 +2525,7 @@ route_query_hit(struct route_log *route_log,
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
 		if (GNET_PROPERTY(log_bad_gnutella))
-			gmsg_log_bad(sender, "got reply without matching request %s%s",
+			gmsg_log_bad(sender, "got reply without matching request #%s%s",
 				guid_hex_str(gnutella_header_get_muid(&sender->header)),
 				is_oob_proxied ? " (OOB-proxied)" : "");
 
@@ -2569,7 +2569,7 @@ route_query_hit(struct route_log *route_log,
 	 */
 
 	if (is_oob_proxied) {
-		g_carp("BUG: forgot we sent OOB-proxied query %s in routing table!",
+		g_carp("BUG: forgot we sent OOB-proxied query #%s in routing table!",
 			guid_hex_str(gnutella_header_get_muid(&sender->header)));
 		node_is_target = TRUE;		/* We are the target of the reply */
 		routing_log_extra(route_log, "forgot OOB-proxied MUID");
@@ -2672,7 +2672,7 @@ route_query_hit(struct route_log *route_log,
 	dest->ur.u_node = found;
 
 	if (GNET_PROPERTY(guess_server_debug) > 10 && NODE_IS_UDP(found)) {
-		g_debug("GUESS routing query hit [%s] to %s",
+		g_debug("GUESS routing query hit #%s to %s",
 			guid_hex_str(gnutella_header_get_muid(&sender->header)),
 			node_infostr(found));
 	}

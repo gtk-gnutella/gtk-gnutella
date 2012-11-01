@@ -929,7 +929,7 @@ guess_rpc_register(const gnet_host_t *host, const guid_t *muid,
 
 	if (htable_contains(pending, &key)) {
 		if (GNET_PROPERTY(guess_client_debug) > 1) {
-			g_message("GUESS cannot issue RPC to %s with MUID=%s yet",
+			g_message("GUESS cannot issue RPC to %s with #%s yet",
 				gnet_host_to_string(host), guid_hex_str(muid));
 		}
 		return NULL;	/* Cannot issue RPC yet */
@@ -992,7 +992,7 @@ guess_rpc_handle(struct gnutella_node *n)
 
 		if (grp->pmi != NULL) {
 			if (GNET_PROPERTY(guess_client_debug)) {
-				g_warning("GUESS QUERY[%s] got RPC reply for %s from %s "
+				g_warning("GUESS QUERY[%s] got RPC reply for #%s from %s "
 					"but message to %s still unsent?",
 					nid_to_string(&gq->gid), guid_hex_str(key.muid),
 					node_infostr(n), gnet_host_to_string(grp->pmi->host));
@@ -3888,7 +3888,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	hikset_insert_key(gmuid, &gq->muid);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s ultras=%lu",
+		g_debug("GUESS QUERY[%s] starting query for \"%s\" #%s ultras=%lu",
 			nid_to_string(&gq->gid), lazy_safe_search(query),
 			guid_hex_str(muid), (unsigned long) gq->max_ultrapeers);
 	}
