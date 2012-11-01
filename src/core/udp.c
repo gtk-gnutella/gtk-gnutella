@@ -41,6 +41,7 @@
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "gnutella.h"
+#include "hostiles.h"
 #include "inet.h"
 #include "mq_udp.h"
 #include "nodes.h"
@@ -81,8 +82,26 @@ enum udp_traffic {
 	DHT,					/* DHT header recognized */
 	SEMI_RELIABLE_GTA,		/* Semi-reliable UDP, "GTA" tag (Gnutella) */
 	SEMI_RELIABLE_GND,		/* Semi-reliable UDP, "GND" tag (G2) */
-	UNKNOWN,				/* Unknown traffic */
+	UNKNOWN					/* Unknown traffic */
 };
+
+/**
+ * @return string name of UDP traffic type.
+ */
+static const char *
+udp_traffic_to_string(enum udp_traffic utp)
+{
+	switch (utp) {
+	case GNUTELLA:				return "Gnutella";
+	case DHT:					return "DHT";
+	case UNKNOWN:				return "UNKNOWN";
+	case SEMI_RELIABLE_GTA:		return "semi-reliable GTA";
+	case SEMI_RELIABLE_GND:		return "semi-reliable GND";
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
 
 /**
  * Records the RX layer to use for semi-reliable UDP traffic.
@@ -114,11 +133,29 @@ udp_set_rx_semi_reliable(enum udp_sr_tag tag, rxdrv_t *rx, enum net_type net)
 
 /**
  * Select proper RX layer for semi-reliable UDP traffic.
+ *
+ * Source address is checked for hostile hosts in order to enforce a
+ * total blackout.
+ *
+ * @param utp		UDP traffic type
+ * @param from		source address
+ * @param len		length of message, for logging only
+ *
+ * @return the RX layer if found, NULL if none or the address is hostile.
  */
 static rxdrv_t *
-udp_get_rx_semi_reliable(enum udp_traffic utp, host_addr_t from)
+udp_get_rx_semi_reliable(enum udp_traffic utp, host_addr_t from, size_t len)
 {
 	unsigned i = 0;
+
+	if (hostiles_check(from)) {
+		if (GNET_PROPERTY(udp_debug)) {
+			g_warning("UDP got %s (%zu bytes) from hostile %s -- dropped",
+				udp_traffic_to_string(utp), len, host_addr_to_string(from));
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_RX_FROM_HOSTILE_IP);
+		return NULL;		/* Ignore message */
+	}
 
 	switch (host_addr_net(from)) {
 	case NET_TYPE_IPV4:		i = 0; break;
@@ -369,7 +406,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		gnet_host_t from;
 
 		gnet_host_set(&from, s->addr, s->port);
-		rx = udp_get_rx_semi_reliable(utp, s->addr);
+		rx = udp_get_rx_semi_reliable(utp, s->addr, s->pos);
 
 		return NULL == rx ? FALSE : ut_valid_message(rx, &uth, &from);
 	}
@@ -913,7 +950,7 @@ udp_received(struct gnutella_socket *s, bool truncated)
 
 		bws_udp_count_read(s->pos, FALSE);	/* We know it's not DHT traffic */
 
-		rx = udp_get_rx_semi_reliable(utp, s->addr);
+		rx = udp_get_rx_semi_reliable(utp, s->addr, s->pos);
 
 		if (rx != NULL) {
 			gnet_host_t from;
