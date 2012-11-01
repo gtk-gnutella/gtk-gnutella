@@ -6919,6 +6919,7 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_BTIH:
 			case EXT_T_URN_ED2KHASH:
 			case EXT_T_URN_MD5:
 			case EXT_T_URN_UNKNOWN:

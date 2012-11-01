@@ -65,6 +65,7 @@ typedef enum ext_type {
 typedef enum ext_token {
 	EXT_T_UNKNOWN = 0,		/**< Unknown */
 	EXT_T_URN_BITPRINT,		/**< urn:bitprint: */
+	EXT_T_URN_BTIH,			/**< urn:btih: */
 	EXT_T_URN_ED2KHASH,		/**< urn:ed2khash: */
 	EXT_T_URN_MD5,			/**< urn:md5: */
 	EXT_T_URN_SHA1,			/**< urn:sha1: */

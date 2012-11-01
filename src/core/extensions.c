@@ -156,6 +156,7 @@ struct rwtable {
 static const struct rwtable urntable[] =
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
+	{ "btih",			EXT_T_URN_BTIH },
 	{ "ed2khash",		EXT_T_URN_ED2KHASH },
 	{ "md5",			EXT_T_URN_MD5 },
 	{ "sha1",			EXT_T_URN_SHA1 },
@@ -1945,6 +1946,7 @@ ext_huge_urn_name(const extvec_t *e)
 {
 	switch (e->ext_token) {
 	case EXT_T_URN_BITPRINT:	return "urn:bitprint";
+	case EXT_T_URN_BTIH:		return "urn:btih";
 	case EXT_T_URN_SHA1:		return "urn:sha1";
 	case EXT_T_URN_TTH:			return "urn:ttroot";
 	case EXT_T_URN_ED2KHASH:	return "urn:ed2khash";
