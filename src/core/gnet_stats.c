@@ -173,6 +173,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"broadcasted_pushes",
 		"push_proxy_udp_relayed",
 		"push_proxy_tcp_relayed",
+		"push_proxy_tcp_fw2fw",
 		"push_proxy_broadcasted",
 		"push_proxy_route_not_proxied",
 		"push_proxy_failed",

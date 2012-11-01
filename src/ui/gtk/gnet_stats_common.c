@@ -150,6 +150,7 @@ general_type_str(gint value)
 		N_("Broadcasted push messages"),
 		N_("Push-proxy UDP relayed messages"),
 		N_("Push-proxy TCP relayed messages"),
+		N_("Push-proxy TCP for FW<->FW transfers"),
 		N_("Push-proxy broadcasted messages"),
 		N_("Push-proxy found un-proxied local route"),
 		N_("Push-proxy lookup failures"),

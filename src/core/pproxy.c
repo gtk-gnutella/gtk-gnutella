@@ -48,6 +48,7 @@
 #include "ioheader.h"
 #include "ipv6-ready.h"
 #include "routing.h"
+#include "search.h"				/* For QUERY_FW2FW_FILE_INDEX */
 #include "sockets.h"
 #include "uploads.h"
 
@@ -745,10 +746,19 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	supports_tls |= header_get_feature("tls", header, NULL, NULL);
 
-	if (GNET_PROPERTY(push_proxy_debug) > 0)
-		g_debug("PUSH-PROXY: %s requesting a push to %s for file #%d",
-			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
-			pp->file_idx);
+	if (QUERY_FW2FW_FILE_INDEX == pp->file_idx)
+		gnet_stats_inc_general(GNR_PUSH_PROXY_TCP_FW2FW);
+
+	if (GNET_PROPERTY(push_proxy_debug) > 0) {
+		if (QUERY_FW2FW_FILE_INDEX == pp->file_idx) {
+			g_debug("PUSH-PROXY: %s requesting FW-FW connection with %s",
+				host_addr_to_string(s->addr), guid_hex_str(pp->guid));
+		} else {
+			g_debug("PUSH-PROXY: %s requesting a push to %s for file #%d",
+				host_addr_to_string(s->addr), guid_hex_str(pp->guid),
+				pp->file_idx);
+		}
+	}
 
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
@@ -822,7 +832,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 					pp->file_idx, supports_tls);
 
 		if (NULL == packet.data) {
-			g_warning("Failed to send push for %s/%s (index=%lu)",
+			g_warning("failed to send push for %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(ulong) pp->file_idx);
