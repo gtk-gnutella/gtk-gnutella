@@ -74,6 +74,7 @@
 #include "dl_util.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
+#include "getphysmemsize.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
@@ -1742,6 +1743,7 @@ static struct {
 	void *reserved;			/* Reserved memory */
 	size_t size;			/* Size for hinted allocation */
 	size_t later;			/* Size of "later" memory we did not reserve */
+	size_t available;		/* Virtual memory initially available */
 	int hinted;
 } mingw_vmm;
 
@@ -1754,41 +1756,43 @@ mingw_valloc(void *hint, size_t size)
 		size_t n;
 
 		if G_UNLIKELY(NULL == mingw_vmm.reserved) {
-			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
 			void *mem_later;
 			size_t mem_latersize;
 			size_t mem_size;
+			size_t mem_available;
 
-			/* Determine maximum possible memory first */
+			/*
+			 * Determine maximum possible memory first
+			 *
+			 * Don't use GetNativeSystemInfo(), rely on GetSsystemInfo()
+			 * so that we get proper results for the 32-bit environment
+			 * if running under WOW64.
+			 */
 
-			GetNativeSystemInfo(&system_info);
+			GetSystemInfo(&system_info);
 
 			mingw_vmm.size =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
 
-			memStatus.dwLength = sizeof memStatus;
-			if (GlobalMemoryStatusEx(&memStatus)) {
-				if (memStatus.ullTotalPhys < mingw_vmm.size)
-					mingw_vmm.size = memStatus.ullTotalPhys;
-			}
+			mem_size = getphysmemsize();
+			mingw_vmm.size = MIN(mingw_vmm.size, mem_size);
 
 			/*
 			 * Declare some space for future allocations without hinting.
-			 * We initially reserve 1/4th of the virtual address space,
-			 * with VMM_MINSIZE at least but we make sure we have more room 
-			 * available for the VMM layer.
+			 * We initially reserve 1/2 of the virtual address space,
+			 * with VMM_MINSIZE at least but we make sure we have also room 
+			 * available for non-VMM allocations.
 			 *
 			 * We'll iterate, dividing the amount of memory we keep for later
-			 * allocations by half at each loop until we can reserve more
-			 * memory for GTKG than the amount we leave to the system or other
-			 * non-hinted allocations.
+			 * allocations by half at each loop until we can reserve at least
+			 * 40% of the available memory or VMM_MINSIZE for the VMM layer.
 			 */
 
 			mem_size = mingw_vmm.size;		/* For the VMM layer */
-			mem_latersize = mem_size / 2;	/* For non-hinted allocation */
+			mem_latersize = mem_size;		/* For non-hinted allocation */
 
 			do {
 				if (mingw_vmm.reserved != NULL) {
@@ -1796,16 +1800,21 @@ mingw_valloc(void *hint, size_t size)
 					mingw_vmm.reserved = NULL;
 				}
 
-				mem_latersize /= 2;
+			reserve_less:
+				mem_latersize *= 0.9;
 				mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
 				mingw_vmm.later = mem_latersize;
 				mem_later = VirtualAlloc(NULL,
 					mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
 
 				if (NULL == mem_later) {
-					errno = mingw_last_error();
-					s_error("could not reserve %s of memory: %m",
-						compact_size(mem_latersize, FALSE));
+					if (VMM_MINSIZE == mem_latersize) {
+						errno = mingw_last_error();
+						s_error("could not reserve %s of memory: %m",
+							compact_size(mem_latersize, FALSE));
+					} else {
+						goto reserve_less;
+					}
 				}
 
 				/*
@@ -1814,7 +1823,7 @@ mingw_valloc(void *hint, size_t size)
 				 * system's granularity until we get a success status.
 				 */
 
-				mingw_vmm.size = mem_size;
+				mingw_vmm.size = mem_size - mem_latersize;
 
 				while (
 					NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
@@ -1827,8 +1836,14 @@ mingw_valloc(void *hint, size_t size)
 				}
 
 				VirtualFree(mem_later, 0, MEM_RELEASE);
+
+				mem_available = mem_latersize + mingw_vmm.size;
+				if (mem_available > mingw_vmm.available)
+					mingw_vmm.available = mem_available;
 			} while (
-				mingw_vmm.size > VMM_MINSIZE && mingw_vmm.size < mem_latersize
+				mem_available >= VMM_MINSIZE && (
+					mingw_vmm.size < VMM_MINSIZE ||
+					mingw_vmm.size < mingw_vmm.available / 10 * 4)
 			);
 
 			if (NULL == mingw_vmm.reserved) {
@@ -3104,6 +3119,8 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 
 void mingw_vmm_post_init(void)
 {
+	s_info("VMM process has %s of virtual space",
+		compact_size(mingw_vmm.available, FALSE));
 	s_info("VMM reserved %s of virtual space at [%p, %p]",
 		compact_size(mingw_vmm.size, FALSE),
 		mingw_vmm.reserved,
