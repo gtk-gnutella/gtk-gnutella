@@ -7011,6 +7011,16 @@ node_udp_disable(void)
 
 	/* Can no longer operate the DHT */
 	dht_close(FALSE);
+
+	/*
+	 * UDP sockets destroyed, must now destroy the UDP TX schedulers
+	 * so that the old I/O sources (attached to the -- now gone -- sockets
+	 * through their wrap_io_t object) can be removed from the bandwidth
+	 * scheduler and all pending traffic be discarded.
+	 *		--RAM, 2012-11-01.
+	 */
+
+	node_udp_scheduler_destroy_all();
 }
 
 /**
