@@ -53,7 +53,14 @@ static uint64
 getphysmemsize_internal(void)
 #ifdef MINGW32
 {
-	return mingw_getphysmemsize();
+	uint64 mem;
+
+	if ((uint64) -1 == (mem = mingw_getphysmemsize())) {
+		g_warning("%s: GlobalMemoryStatusEx() failed: %m", G_STRFUNC);
+		return 0;
+	}
+
+	return mem;
 }
 #elif defined(_SC_PHYS_PAGES)
 {
