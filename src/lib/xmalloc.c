@@ -2361,6 +2361,8 @@ xfl_select(struct xfreelist *fl)
 		size_t i = fl->count - 1, j = (fl->sorted != 0) ? fl->sorted - 1 : 0;
 		void *q = ary[j];
 
+		g_assert(fl->sorted < fl->count);
+
 		/*
 		 * If the last sorted address makes up a better choice, select
 		 * it instead, swapping the items and updating the sorted index
