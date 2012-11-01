@@ -1430,9 +1430,12 @@ assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 
 /**
  * Remove from the free list the block selected by xmalloc_freelist_lookup().
+ *
+ * @param fl		the freelist bucket where allocation was done
+ * @param p			the allocated pointer (for assertions only)
  */
 static void
-xfl_remove_selected(struct xfreelist *fl)
+xfl_remove_selected(struct xfreelist *fl, void *p)
 {
 	size_t i;
 
@@ -1446,13 +1449,13 @@ xfl_remove_selected(struct xfreelist *fl)
 	/*
 	 * See xmalloc_freelist_lookup() for the selection algorithm.
 	 *
-	 * Because we selected the last item of the array (the typical setup
-	 * on UNIX machines where the VM space grows downwards from the end
-	 * of the VM space), then we have nothing to do.
+	 * Because we selected the last item of the array we have nothing
+	 * to do but decrease the count.
 	 */
 
-	fl->count--;
-	i = fl->count;				/* Index of removed item */
+	g_assert(p == fl->pointers[fl->count - 1]);		/* Removing last item */
+
+	i = --fl->count;				/* Index of removed item */
 	if (i < fl->sorted)
 		fl->sorted--;
 
@@ -1489,7 +1492,7 @@ xfl_freelist_alloc(const struct xfreelist *flb, size_t len, size_t *allocated)
 
 		g_assert(blksize >= len);
 
-		xfl_remove_selected(fl);
+		xfl_remove_selected(fl, p);
 
 		/*
 		 * If the block is larger than the size we requested, the remainder
@@ -3002,7 +3005,7 @@ xmalloc_freelist_grab(struct xfreelist *fl,
 
 	g_assert(blksize >= len);
 
-	xfl_remove_selected(fl);
+	xfl_remove_selected(fl, block);
 
 	/*
 	 * If the block is larger than the size we requested, the remainder
@@ -4551,7 +4554,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 
 			if (q != NULL) {
 				if (newlen == fl->blocksize && xm_ptr_cmp(xh, q) < 0) {
-					xfl_remove_selected(fl);
+					xfl_remove_selected(fl, q);
 					np = xmalloc_block_setup(q, newlen);
 					xstats.realloc_relocate_smart_success++;
 
