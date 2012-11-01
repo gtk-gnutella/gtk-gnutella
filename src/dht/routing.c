@@ -3893,11 +3893,11 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 	estimate_3 = dht_compute_size_estimate_3(pt, kuid);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT estimated size with method #1: %s",
+		g_debug("DHT estimated size with method #1: %s (LW method)",
 			uint64_to_string(estimate_1));
-		g_debug("DHT estimated size with method #2: %s",
+		g_debug("DHT estimated size with method #2: %s (prefix size)",
 			uint64_to_string(estimate_2));
-		g_debug("DHT estimated size with method #3: %s",
+		g_debug("DHT estimated size with method #3: %s (avg node distance)",
 			uint64_to_string(estimate_3));
 	}
 
