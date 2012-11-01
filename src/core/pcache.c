@@ -2478,15 +2478,16 @@ static void
 pcache_udp_pong_received(struct gnutella_node *n)
 {
 	host_addr_t ipv4_addr;
-	host_addr_t ipv6_addr;
+	host_addr_t ipv6_addr;	/* Extracted, but value unused currently */
 	bool supports_tls;
 	bool supports_dht;
+	gnet_host_t host;
 	uint16 port;
 	int i;
 
 	g_assert(NODE_IS_UDP(n));
 
-	switch (udp_ping_is_registered(n)) {
+	switch (udp_ping_is_registered(n, &host)) {
 	case UDP_PONG_UNSOLICITED:
 		if (guess_rpc_handle(n))
 			return;
@@ -2506,6 +2507,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	ipv6_addr = zero_host_addr;
 	supports_tls = FALSE;
 	supports_dht = FALSE;
+
+	if (GNET_PROPERTY(udp_debug) && port != gnet_host_get_port(&host)) {
+		g_warning("UDP ping set to %s but host advertises %s in its pong",
+			gnet_host_to_string(&host),
+			host_addr_port_to_string(ipv4_addr, port));
+	}
 	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
@@ -2596,31 +2603,26 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		}
 	}
 
-	if (port == n->port) {
+	/*
+	 * Since host replied to the ping, it is alive at the IP:port to which
+	 * the ping was sent.
+	 */
+
+	{
 		host_addr_t addr;
+		uint16 hport;
 
-		switch (host_addr_net(n->addr)) {
-		case NET_TYPE_IPV4:
-			addr = ipv4_addr;
-			break;
-		case NET_TYPE_IPV6:
-			addr = ipv6_addr;
-			break;
-		default:
-			addr = zero_host_addr;
-		}
+		addr = gnet_host_get_addr(&host);
+		hport = gnet_host_get_port(&host);
 
-		if (
-			host_addr_equal(addr, n->addr) &&
-			host_is_valid(addr, port) &&
-        	!hcache_node_is_bad(addr)
-		) {
-			host_add(addr, port, TRUE);
+		if (!hcache_node_is_bad(addr)) {
+			/* Asuume the (valid) UDP port is also a proper TCP port */
+			host_add(addr, hport, TRUE);
 			if (supports_tls) {
-				tls_cache_insert(addr, port);
+				tls_cache_insert(addr, hport);
 			}
 			if (supports_dht) {
-				dht_bootstrap_if_needed(addr, port);
+				dht_bootstrap_if_needed(addr, hport);
 			}
 		}
 	}

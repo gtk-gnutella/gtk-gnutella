@@ -1127,7 +1127,8 @@ struct udp_ping_cb {
 
 struct udp_ping {
 	struct guid muid;	/* MUST be at offset zero (for hashing function) */
-	time_t added;		/**< Timestamp of insertion */
+	time_t added;				/**< Timestamp of insertion */
+	const gnet_host_t *host; 	/**< Host to whom we've sent the ping (atom) */
 	struct udp_ping_cb *callback;	/**< Optional: callback description */
 };
 
@@ -1142,6 +1143,7 @@ static inline void
 udp_ping_free(struct udp_ping *ping)
 {
 	WFREE_NULL(ping->callback, sizeof *ping->callback);
+	atom_host_free_null(&ping->host);
 	WFREE(ping);
 }
 
@@ -1196,6 +1198,7 @@ udp_ping_timer(void *unused_udata)
 
 static bool
 udp_ping_register(const struct guid *muid,
+	host_addr_t addr, uint16 port,
 	udp_ping_cb_t cb, void *data, bool multiple)
 {
 	struct udp_ping *ping;
@@ -1221,6 +1224,12 @@ udp_ping_register(const struct guid *muid,
 	WALLOC(ping);
 	ping->muid = *muid;
 	ping->added = tm_time();
+	{
+		gnet_host_t host;
+		gnet_host_set(&host, addr, port);
+		ping->host = atom_host_get(&host);
+	}
+
 	if (cb != NULL) {
 		WALLOC0(ping->callback);
 		ping->callback->cb = cb;
@@ -1238,12 +1247,19 @@ udp_ping_register(const struct guid *muid,
  * ping bearing the given MUID.
  *
  * If there was a callback atttached to the reception of a reply, invoke it
- * before returning.
+ * before returning UDP_PONG_HANDLED.
+ *
+ * The ``host'' paramaeter MUST be a stack or static pointer to a gnet_host_t,
+ * and NOT the address of a dynamically allocated host because gnet_host_copy()
+ * is going to be used on it.
+ *
+ * @param n		the gnutella node replying
+ * @param host	if non-NULL, filled with the host to whom we sent the ping
  *
  * @return TRUE if indeed this was a reply for a ping we sent.
  */
 enum udp_pong_status
-udp_ping_is_registered(const struct gnutella_node *n)
+udp_ping_is_registered(const struct gnutella_node *n, gnet_host_t *host)
 {
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
@@ -1251,7 +1267,17 @@ udp_ping_is_registered(const struct gnutella_node *n)
 		struct udp_ping *ping;
 
 		ping = hash_list_remove(udp_pings, muid);
-		if (ping) {
+		if (ping != NULL) {
+			if (host != NULL) {
+				/*
+				 * Let caller know the exact IP:port of the host we contacted,
+				 * since the replying party can use a different port (which
+				 * we may not be able to contact, whereas we know the targeted
+				 * port did cause a reply).
+				 */
+				gnet_host_copy(host, ping->host);
+			}
+
 			if (ping->callback) {
 				(*ping->callback->cb)(UDP_PING_REPLY, n, ping->callback->data);
 				if (ping->callback->multiple) {
@@ -1292,7 +1318,8 @@ udp_send_ping_with_callback(
 	struct gnutella_node *n = node_udp_get_addr_port(addr, port);
 
 	if (n != NULL) {
-		if (udp_ping_register(gnutella_header_get_muid(m), cb, arg, multiple)) {
+		const guid_t *muid = gnutella_header_get_muid(m);
+		if (udp_ping_register(muid, addr, port, cb, arg, multiple)) {
 			aging_insert(udp_aging_pings,
 				wcopy(&addr, sizeof addr), GUINT_TO_POINTER(1));
 			udp_send_msg(n, m, size);

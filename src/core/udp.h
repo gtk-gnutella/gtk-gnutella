@@ -80,6 +80,7 @@ enum udp_sr_tag {
 
 struct gnutella_socket;
 struct gnutella_node;
+struct gnutella_host;
 struct guid;
 struct pmsg;
 struct rxdriver;
@@ -96,7 +97,8 @@ bool udp_send_ping_callback(gnutella_msg_init_t *m, uint32 size,
 	udp_ping_cb_t cb, void *arg, bool multiple);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
-enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n);
+enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n,
+	struct gnutella_host *host);
 
 bool udp_is_valid_gnet_split(struct gnutella_node *n,
 	const struct gnutella_socket *s,
