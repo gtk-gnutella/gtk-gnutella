@@ -195,6 +195,7 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define chdir mingw_chdir
 #define remove mingw_remove
 #define pipe mingw_pipe
+#define getrlimit mingw_getrlimit
 
 #define abort() mingw_abort()
 
@@ -249,6 +250,26 @@ struct mingw_statvfs {
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
 #endif
+
+/*
+ * getrlimit() emulation.
+ */
+#ifndef HAS_GETRLIMIT
+#define HAS_GETRLIMIT			/* We emulate it */
+#define EMULATE_GETRLIMIT
+
+#define RLIMIT_CORE 1
+#define RLIMIT_DATA 2
+
+typedef unsigned long rlim_t;
+
+struct rlimit {
+	rlim_t rlim_cur;
+	rlim_t rlim_max;
+};
+
+int mingw_getrlimit(int resource, struct rlimit *rlim);
+#endif	/* !HAS_GETRLIMIT */
 
 /*
  * sched_yield() emulation

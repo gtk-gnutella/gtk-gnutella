@@ -2200,6 +2200,37 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 	return 0;
 }
 
+#ifdef EMULATE_GETRLIMIT
+/**
+ * Get process resource limits.
+ */
+int
+mingw_getrlimit(int resource, struct rlimit *rlim)
+{
+	switch (resource) {
+	case RLIMIT_CORE:
+		ZERO(rlim);
+		break;
+	case RLIMIT_DATA:
+		{
+			SYSTEM_INFO system_info;
+
+			GetSystemInfo(&system_info);
+			rlim->rlim_max = rlim->rlim_cur =
+				system_info.lpMaximumApplicationAddress
+				-
+				system_info.lpMinimumApplicationAddress;
+		}
+		break;
+	default:
+		errno = ENOTSUP;
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* EMULATE_GETRLIMIT */
+
 #ifdef EMULATE_SCHED_YIELD
 /**
  * Cause the calling thread to relinquish the CPU.
@@ -4571,6 +4602,8 @@ mingw_file_rotate(FILE *lf, const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];
 	int i;
+
+	(void) lf;
 
 	if (keep > 0) {
 		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
