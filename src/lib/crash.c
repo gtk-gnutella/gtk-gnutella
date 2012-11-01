@@ -193,7 +193,7 @@ static const int signals[] = {
  */
 int
 crash_coredumps_disabled(void)
-#ifdef RLIMIT_CORE
+#if defined(HAS_GETRLIMIT) && defined(RLIMIT_CORE)
 {
 	struct rlimit lim;
 
@@ -208,7 +208,7 @@ crash_coredumps_disabled(void)
 	errno = ENOTSUP;
 	return -1;
 }
-#endif	/* RLIMIT_CORE */
+#endif	/* HAS_GETRLIMIT && RLIMIT_CORE */
 
 typedef struct cursor {
 	char *buf;

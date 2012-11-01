@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-105]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-148]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -54,8 +54,6 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 
 ########################################################################
 # Start of Jmakefile
-
-# $X-Id$
 
 all::
 

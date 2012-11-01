@@ -679,7 +679,7 @@ settings_init(void)
 
 	settings_init_running = TRUE;
 
-#ifdef RLIMIT_DATA 
+#if defined(HAS_GETRLIMIT) && defined(RLIMIT_DATA)
 	{
 		struct rlimit lim;
 	
@@ -688,7 +688,7 @@ settings_init(void)
 			amount = MIN(amount, maxdata);		/* For our purposes */
 		}
 	}
-#endif /* RLIMIT_DATA */
+#endif /* HAS_GETRLIIT && RLIMIT_DATA */
 
     properties = gnet_prop_init();
 	max_fd = getdtablesize();
