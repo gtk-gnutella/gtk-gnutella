@@ -933,15 +933,10 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 	}
 
 	/*
-	 * If UPnP support was disabled, ignore request.
+	 * We discover even if UPnP support is disabled: we won't publish
+	 * mappings via UPnP, but we want to know whether we have a UPnP
+	 * device available.
 	 */
-
-	if (!GNET_PROPERTY(enable_upnp)) {
-		if (GNET_PROPERTY(upnp_debug) > 10) {
-			g_debug("UPNP support disabled, not launching discovery");
-		}
-		return;
-	}
 
 	if (GNET_PROPERTY(upnp_debug) > 3) {
 		g_message("UPNP initating discovery (timeout %u ms)", timeout);

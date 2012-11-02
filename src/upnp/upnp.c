@@ -360,7 +360,8 @@ upnp_record_igd(upnp_device_t *ud)
 	gnet_prop_set_boolean_val(PROP_UPNP_POSSIBLE, TRUE);
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
 
-	upnp_map_publish_all();		/* Unconditionally publish all mappings */
+	if (GNET_PROPERTY(enable_upnp))
+		upnp_map_publish_all();		/* Unconditionally publish all mappings */
 }
 
 /**
@@ -538,14 +539,8 @@ upnp_natpmp_discovered(bool ok, natpmp_t *gateway, void *arg)
 
 	gw.discovery_done = TRUE;
 
-	/*
-	 * If there's no NAT-PMP available, see whether we can do UPnP.
-	 */
-
-	if (!ok) {
-		upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
-		return;
-	}
+	if (!ok)
+		goto upnp_discover;
 
 	gw.gateway = gateway;
 	upnp_check_new_wan_addr(natpmp_wan_ip(gateway));
@@ -553,7 +548,20 @@ upnp_natpmp_discovered(bool ok, natpmp_t *gateway, void *arg)
 	gnet_prop_set_boolean_val(PROP_NATPMP_POSSIBLE, TRUE);
 	gnet_prop_set_boolean_val(PROP_PORT_MAPPING_POSSIBLE, TRUE);
 
-	upnp_map_publish_all();		/* Unconditionally publish all mappings */
+	if (GNET_PROPERTY(enable_natpmp)) {
+		upnp_map_publish_all();		/* Unconditionally publish all mappings */
+		return;
+	}
+
+	/* FALL THROUGH */
+
+upnp_discover:
+	/*
+	 * If there's no NAT-PMP available, or they do not want to publish
+	 * port mappings via NAT-PMP, see whether we can do UPnP.
+	 */
+
+	upnp_discover(UPNP_DISCOVERY_TIMEOUT, upnp_discovered, NULL);
 }
 
 /**
@@ -573,6 +581,11 @@ upnp_launch_discovery(void)
 	 * The first time we're trying to discover NAT-PMP, limit the number
 	 * of retries before timeouting to 3, so that we can quickly fallback
 	 * to UPnP if we get no answers.
+	 *
+	 * Note that we are always attempting to discover port mapping devices,
+	 * even though support for UPnP or NAT-PMP is disabled (meaning we won't
+	 * publish mappings).  This is to be able to signal them that we found
+	 * port-mapping devices.
 	 */
 
 	natpmp_discover(retrying ? 0 : 3, upnp_natpmp_discovered, NULL);
