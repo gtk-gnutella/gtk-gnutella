@@ -1399,7 +1399,7 @@ cproxy_create(struct download *d, const host_addr_t addr, uint16 port,
 	 *		--RAM, 2010-10-17
 	 */
 
-	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
+	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 		cp->guid, listen_addr(), listen_addr6(), cp->port,
 		cp->file_idx, tls_enabled());
 

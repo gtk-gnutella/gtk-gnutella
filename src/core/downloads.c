@@ -8324,7 +8324,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	if (0 == port)
 		return FALSE;
 
-	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
+	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, tls_enabled());
 
