@@ -102,8 +102,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		/*
 		 * The flags are displayed as followed:
 		 *
-		 * UPM          port mapping configured via UPnP
-		 * NPM          port mapping configured via NAT-PMP
+		 * UMP          port mapping configured via UPnP
+		 * NMP          port mapping configured via NAT-PMP
 		 * pmp          port mapping available (UPnP or NAT-PMP), un-configured
 		 * CLK			clock, GTKG expired
 		 * !FD or FD	red or yellow bombs for fd shortage
@@ -129,7 +129,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			(GNET_PROPERTY(enable_upnp) || GNET_PROPERTY(enable_natpmp)) &&
 			GNET_PROPERTY(port_mapping_successful)
 		) {
-			pmp = GNET_PROPERTY(enable_natpmp) ? "NMP " : "UPM ";
+			pmp = GNET_PROPERTY(enable_natpmp) ? "NMP " : "UMP ";
 		}
 
 		if (dht_enabled()) {
