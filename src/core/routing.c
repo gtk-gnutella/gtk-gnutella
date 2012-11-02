@@ -1824,8 +1824,10 @@ check_ttl(struct route_log *route_log, struct gnutella_node *sender)
 {
 	if (gnutella_header_get_ttl(&sender->header) == 0) {
 		routing_log_extra(route_log, "TTL was 0");
-		node_sent_ttl0(sender);
-		return FALSE;	/* Don't route */
+		if (!NODE_IS_UDP(sender)) {		/* Be lenient if coming from UDP */
+			node_sent_ttl0(sender);
+			return FALSE;	/* Don't route */
+		}
 	}
 
 	return TRUE;
