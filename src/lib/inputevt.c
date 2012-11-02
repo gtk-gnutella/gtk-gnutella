@@ -502,13 +502,16 @@ collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 	struct dvpoll dvp; 
 	int ret;
 
+	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+
 	dvp.dp_timeout = timeout_ms;
 	dvp.dp_nfds = ctx->num_ev;
 	dvp.dp_fds = ctx->pfd_arr;
 
 	ret = ioctl(ctx->master_fd, DP_POLL, &dvp);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("check_dev_poll(): ioctl() failed: %m");
+		g_warning("%s(): ioctl(%d, DP_POLL) failed: %m",
+			G_STRFUNC, ctx->master_fd);
 	}
 	return ret;
 }
@@ -569,6 +572,8 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 	unsigned i, num_fd = 0;
 	int ret;
 
+	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+
 	/* FD_ZERO() */
 	r.fd_count = 0;
 	w.fd_count = 0;
@@ -617,7 +622,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 
 	if (ret < 0) {
 		if (!is_temporary_error(errno)) {
-			g_warning("select() failed: %m");
+			g_warning("%s(): select() failed: %m", G_STRFUNC);
 		}
 		return -1;
 	}
@@ -646,9 +651,11 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 {
 	int ret;
 
+	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+
 	ret = compat_poll(ctx->pfd_arr, ctx->max_poll_idx, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
-		g_warning("collect_events(): poll() failed: %m");
+		g_warning("%s(): poll() failed: %m", G_STRFUNC);
 	}
 	return ret;
 }
@@ -691,6 +698,12 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 		ctx->num_ready = 0;
 		return;
 	}
+
+	/*
+	 * Make sure event checking is non-blocking: if the timeout is negative,
+	 * then force 0 to ensure the application will not block if the kernel
+	 * has no pending events to report.
+	 */
 
 	timeout_ms = *timeout_ms_ptr;
 	timeout_ms = MAX(0, timeout_ms);
@@ -807,6 +820,9 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 	gm_slist_free_null(&ctx->removed);
 }
 
+/**
+ * Our main I/O event dispatching loop.
+ */
 static G_GNUC_HOT void
 inputevt_timer(struct poll_ctx *ctx)
 {
@@ -927,6 +943,9 @@ inputevt_timer(struct poll_ctx *ctx)
 	}
 }
 
+/**
+ * Trampoline function bridging glib's event loop with ours.
+ */
 static bool
 dispatch_poll(GIOChannel *unused_source,
 	GIOCondition unused_cond, void *udata)
@@ -966,7 +985,6 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 
 	return r;
 }
-
 
 /**
  * @todo TODO:
@@ -1249,7 +1267,7 @@ init_with_devpoll(struct poll_ctx *ctx)
 	const int fd = get_non_stdio_fd(open("/dev/poll", O_RDWR));
 
 	if (!is_valid_fd(fd)) {
-		g_warning("open(\"/dev/poll\", O_RDWR) failed: %m");
+		g_warning("%s(): open(\"/dev/poll\", O_RDWR) failed: %m", G_STRFUNC);
 		return -1;
 	}
 
