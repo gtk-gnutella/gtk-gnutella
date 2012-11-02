@@ -1948,6 +1948,30 @@ forward_message(
 			if (count > 0) {
 				dest->type = ROUTE_MULTI;
 				dest->ur.u_nodes = nodes;
+
+				/*
+				 * If PUSH was coming from UDP and we're going to route it,
+				 * make sure its TTL is reasonable, and reset its hop count
+				 * to 0 as we're going to start real routing from here.
+				 *		--RAM, 2012-11-02
+				 */
+
+				if (NODE_IS_UDP(sender)) {
+					uint8 ttl = gnutella_header_get_ttl(&sender->header);
+					uint8 hops = gnutella_header_get_hops(&sender->header);
+					uint8 ttl_max;
+
+					if (hops != 0) {
+						gnutella_header_set_hops(&sender->header, 0);
+						routing_log_extra(route_log, "hops %u => 0", hops);
+					}
+					ttl_max = MAX(ttl, GNET_PROPERTY(max_ttl));
+					if (ttl < ttl_max) {
+						gnutella_header_set_ttl(&sender->header, ttl_max);
+						routing_log_extra(route_log, "TTL %u => %u",
+							ttl, ttl_max);
+					}
+				}
 			}
 
 			if (count > 1)
