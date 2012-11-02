@@ -803,6 +803,9 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	switch (rt->type) {
 	case ROUTE_NONE:
 		return;
+	case ROUTE_LEAVES:
+		g_assert_not_reached();
+		break;
 	case ROUTE_ONE:
 		/*
 		 * If message has size flags and the recipoent cannot understand it,

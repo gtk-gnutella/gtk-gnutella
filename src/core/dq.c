@@ -863,7 +863,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	 */
 
 	nodes = qrt_build_query_target(dq->qhv,
-				gnutella_header_get_hops(head), 0, source);
+				gnutella_header_get_hops(head), 0, TRUE, source);
 
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_debug("DQ QRP %s (%d word%s%s) forwarded to %d/%d leaves",

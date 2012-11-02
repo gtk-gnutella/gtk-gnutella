@@ -3689,7 +3689,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		if (!search_whats_new_can_reissue())
 			goto cleanup;
 
-		nodes = qrt_build_query_target(query_hashvec, 0, WHATS_NEW_TTL, NULL);
+		nodes = qrt_build_query_target(
+			query_hashvec, 0, WHATS_NEW_TTL, TRUE, NULL);
+
 		if (nodes != NULL) {
 			pmsg_t *mb = gmsg_to_pmsg(msg, size);
 			gmsg_mb_sendto_all(nodes, mb);

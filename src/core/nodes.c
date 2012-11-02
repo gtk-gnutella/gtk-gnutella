@@ -8308,8 +8308,20 @@ route_only:
 			 * fixed-sized message enriched with trailing GGEP extensions.
 			 */
 
-			if (qhv != NULL)
-				qrt_route_query(n, qhv);
+			if (qhv != NULL) {
+				g_soft_assert_log(dest.type != ROUTE_NONE,
+					"%s%s", dest.duplicate ? "DUP " : "",
+					gmsg_infostr_full_split(n->header, n->data, n->size));
+
+				/*
+				 * If the message is a duplicate (with higher TTL, or we would
+				 * not route it), make sure we exclude leaves: they already
+				 * got the message the first time we saw the query (with a
+				 * lower TTL then).		--RAM, 2012-11-02
+				 */
+
+				qrt_route_query(n, qhv, !dest.duplicate);
+			}
 
 			/* Leaves do not relay queries */
 

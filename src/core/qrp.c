@@ -4563,6 +4563,11 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
  * and by its source node (so we don't send back the query where it
  * came from).
  *
+ * When ``leaves'' is FALSE, we do not include leaves in the resulting list.
+ * This is used when dealing with a duplicate (but with higher TTL) query
+ * that needs to be forwarded to neighbouring ultra-nodes, but which leaves
+ * already received.
+ *
  * @attention
  * NB: it is allowed to call this with TTL=0, in which case we won't
  * consider UPs for forwarding.  If TTL=1, we forward to all normal nodes
@@ -4574,7 +4579,8 @@ qrp_node_can_route(const gnutella_node_t *n, const query_hashvec_t *qhv)
  */
 G_GNUC_HOT GSList *
 qrt_build_query_target(
-	query_hashvec_t *qhvec, int hops, int ttl, struct gnutella_node *source)
+	query_hashvec_t *qhvec, int hops, int ttl, bool leaves,
+	struct gnutella_node *source)
 {
 	GSList *nodes = NULL;		/* Targets for the query */
 	const GSList *sl;
@@ -4618,7 +4624,7 @@ qrt_build_query_target(
 
 		/*
 		 * Avoid G_UNLIKELY() hints in the loop.  Either they are wrong hints
-		 * or they increase the code size and resuly in I-cache misses, but
+		 * or they increase the code size and result in I-cache misses, but
 		 * profiling showed that these hints actually slow down this routine.
 		 *		--RAM, 2011-10-18
 		 */
@@ -4641,11 +4647,13 @@ qrt_build_query_target(
 
 		if (is_leaf) {
 			/* Leaf node */
-			if (whats_new) {
+			if (!leaves) {
+				continue;				/* Routing duplicate query, skip! */
+			} else if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
 					goto can_send;		/* What's New? queries broadcasted */
 				} else {
-					continue;
+					continue;			/* Leaf won't understand it, skip! */
 				}
 			}
 			if (rt == NULL)				/* No QRT yet */
@@ -4755,9 +4763,12 @@ qrt_build_query_target(
 /**
  * Route query message to leaf nodes, based on their QRT, or to ultrapeers
  * that support last-hop QRP if TTL=1.
+ *
+ * When ``leaves'' is FALSE, we don't route to leaf nodes because we're
+ * routing a duplicate query (with higher TTL) which leaves already got.
  */
 void
-qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
+qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec, bool leaves)
 {
 	GSList *nodes;				/* Targets for the query */
 
@@ -4767,7 +4778,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	nodes = qrt_build_query_target(qhvec,
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				n);
+				leaves, n);
 
 	if G_UNLIKELY(
 		GNET_PROPERTY(qrp_debug) > 4 ||

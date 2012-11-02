@@ -585,6 +585,9 @@ route_string(struct route_dest *dest,
 	case ROUTE_NONE:
 		gm_snprintf(msg, sizeof msg, routed ? "stops here" : "registered");
 		break;
+	case ROUTE_LEAVES:
+		gm_snprintf(msg, sizeof msg, "all leaves");
+		break;
 	case ROUTE_ONE:
 		gm_snprintf(msg, sizeof msg, "%s %s",
 			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
@@ -2337,6 +2340,7 @@ route_query(struct route_log *route_log,
 {
 	struct gnutella_node *sender = *node;
 	bool is_oob_query;
+	bool handle_it;
 
 	/*
 	 * Leaves process all the queries and don't route them.
@@ -2351,7 +2355,8 @@ route_query(struct route_log *route_log,
 
 	if (NODE_IS_UDP(sender)) {
 		routing_log_extra(route_log, "UDP");
-		return TRUE;			/* Process it, but don't route */
+		handle_it = TRUE;			/* Process it, but don't route */
+		goto done;
 	}
 
 	is_oob_query = gmsg_split_is_oob_query(&sender->header, sender->data);
@@ -2420,7 +2425,18 @@ route_query(struct route_log *route_log,
 	}
 
 	/* Broadcast */
-	return forward_message(route_log, node, NULL, dest, NULL);
+	handle_it = forward_message(route_log, node, NULL, dest, NULL);
+
+	/*
+	 * Query needs to be forwarded to all leaves if we have to handle it
+	 * and message was not a duplicate.
+	 */
+
+done:
+	if (handle_it && ROUTE_NONE == dest->type && !dest->duplicate)
+		dest->type = ROUTE_LEAVES;
+
+	return handle_it;
 }
 
 /**
