@@ -448,6 +448,37 @@ gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 		"%s", short_kb_size(val, show_metric_units()));
 }
 
+/**
+ * Stringify value of the general stats to buffer.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination buffer
+ * @param stats		the statistics array
+ * @param idx		the index within the general statistics of value to format
+ */
+void
+gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
+	const gnet_stats_t *stats, int idx)
+{
+	const uint64 value = stats->general[idx];
+
+	if (0 == value)
+		g_strlcpy(dst, "-", size);
+	else {
+		switch (idx) {
+		case GNR_QUERY_COMPACT_SIZE:
+		case GNR_IGNORED_DATA:
+		case GNR_SUNK_DATA:
+		case GNR_RUDP_TX_BYTES:
+		case GNR_RUDP_RX_BYTES:
+			g_strlcpy(dst, compact_size(value, show_metric_units()), size);
+			break;
+		default:
+			uint64_to_string_buf(value, dst, size);
+		}
+	}
+}
+
 static gboolean
 gnet_stats_gui_is_visible(void)
 {
