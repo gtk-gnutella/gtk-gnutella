@@ -593,7 +593,8 @@ route_string(struct route_dest *dest,
 			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		gm_snprintf(msg, sizeof msg, "all but %s",
+		gm_snprintf(msg, sizeof msg, "all %sbut %s",
+			dest->duplicate ? "ultras " : "",	/* Won't be sent to leaves */
 			host_addr_to_string(origin_addr));
 		break;
 	case ROUTE_MULTI:
