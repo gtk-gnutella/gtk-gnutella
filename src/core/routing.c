@@ -624,7 +624,8 @@ routing_log_flush(struct route_log *route_log)
 		route_log->local ? "OURSELVES"
 			: host_addr_port_to_string(route_log->addr, route_log->port),
 		debug_msg[route_log->function], guid_hex_str(&route_log->muid),
-		route_log->hops, route_log->ttl, route_log->handle ? 'H' : ' ',
+		route_log->hops, route_log->ttl,
+		route_log->handle ? (route_log->dest.duplicate ? 'h' : 'H') : ' ',
 		route_log->new ? 'N' : ' ',
 		route_log->extra, route_log->extra[0] == '\0' ? "" : " ",
 		route_string(&route_log->dest, route_log->addr, route_log->routing));
