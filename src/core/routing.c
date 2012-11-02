@@ -1670,6 +1670,8 @@ message_add(const struct guid *muid, uint8 function,
 
 	if (node != fake_node)
 		entry->ttl = gnutella_header_get_ttl(&node->header);
+	else
+		entry->ttl = GNET_PROPERTY(my_ttl);
 
 	/* insert the new message into the hash table */
 	hset_insert(routing.messages_hashed, entry);
