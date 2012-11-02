@@ -264,6 +264,8 @@ general_type_str(gint value)
 		N_("Bitzi tickets held"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("Re-seeding of orphan downloads through upload requests"),
+		N_("RUDP sent bytes"),
+		N_("RUDP received bytes"),
 		N_("DHT estimated amount of nodes"),
 		N_("DHT standard error of estimated amount of nodes"),
 		N_("DHT k-ball theoretical frontier (bits)"),

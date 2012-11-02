@@ -287,6 +287,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"bitzi_tickets_held",
 		"qhit_seeding_of_orphan",
 		"upload_seeding_of_orphan",
+		"rudp_tx_bytes",
+		"rudp_rx_bytes",
 		"dht_estimated_size",
 		"dht_estimated_size_stderr",
 		"dht_kball_theoretical",

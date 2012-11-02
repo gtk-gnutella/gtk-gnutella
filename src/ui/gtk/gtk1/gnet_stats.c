@@ -136,6 +136,8 @@ general_stat_str(const gnet_stats_t *stats, gint type)
 	case GNR_QUERY_COMPACT_SIZE:
 	case GNR_IGNORED_DATA:
 	case GNR_SUNK_DATA:
+	case GNR_RUDP_TX_BYTES:
+	case GNR_RUDP_RX_BYTES:
 		return compact_size(stats->general[type], show_metric_units());
 	default:
 		break;

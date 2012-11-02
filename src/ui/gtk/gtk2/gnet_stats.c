@@ -146,15 +146,20 @@ general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 {
 	if (stats->general[type] == 0)
 		g_strlcpy(dst, "-", size);
-	else if (
-		type == GNR_QUERY_COMPACT_SIZE ||
-		type == GNR_IGNORED_DATA ||
-		type == GNR_SUNK_DATA
-	)
-		g_strlcpy(dst,
-			compact_size(stats->general[type], show_metric_units()), size);
-	else
-		uint64_to_string_buf(stats->general[type], dst, size);
+	else {
+		switch (type) {
+		case GNR_QUERY_COMPACT_SIZE:
+		case GNR_IGNORED_DATA:
+		case GNR_SUNK_DATA:
+		case GNR_RUDP_TX_BYTES:
+		case GNR_RUDP_RX_BYTES:
+			g_strlcpy(dst,
+				compact_size(stats->general[type], show_metric_units()), size);
+			break;
+		default:
+			uint64_to_string_buf(stats->general[type], dst, size);
+		}
+	}
 }
 
 static void

@@ -80,6 +80,7 @@ static rxdrv_t *rx_sr_gnd[2];		/**< Semi-reliable RX layer for "GND" */
 enum udp_traffic {
 	GNUTELLA,				/* Gnutella header recognized */
 	DHT,					/* DHT header recognized */
+	RUDP,					/* RUDP traffic */
 	SEMI_RELIABLE_GTA,		/* Semi-reliable UDP, "GTA" tag (Gnutella) */
 	SEMI_RELIABLE_GND,		/* Semi-reliable UDP, "GND" tag (G2) */
 	UNKNOWN					/* Unknown traffic */
@@ -94,6 +95,7 @@ udp_traffic_to_string(enum udp_traffic utp)
 	switch (utp) {
 	case GNUTELLA:				return "Gnutella";
 	case DHT:					return "DHT";
+	case RUDP:					return "RUDP";
 	case UNKNOWN:				return "UNKNOWN";
 	case SEMI_RELIABLE_GTA:		return "semi-reliable GTA";
 	case SEMI_RELIABLE_GND:		return "semi-reliable GND";
@@ -482,6 +484,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		break;
 	case GNUTELLA:
 	case DHT:
+	case RUDP:
 	case UNKNOWN:
 		g_assert_not_reached();
 	}
@@ -696,8 +699,11 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				 * UDP protocol, there is no ambiguity.
 				 */
 
-				if (UNKNOWN == utp)
-					return GTA_MSG_DHT == function ? DHT : GNUTELLA;
+				if (UNKNOWN == utp) {
+					return GTA_MSG_DHT == function ?
+						DHT : GTA_MSG_RUDP == function ?
+						RUDP : GNUTELLA;
+				}
 
 				/*
 				 * Message is ambiguous: its leading header appears to be
@@ -817,7 +823,6 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				case GTA_MSG_INIT_RESPONSE:
 				case GTA_MSG_VENDOR:
 				case GTA_MSG_SEARCH_RESULTS:
-				case GTA_MSG_RUDP:
 					/*
 					 * To further discriminate, look at the hop count.
 					 * Over UDP, the hop count will be low (0 or 1 mostly)
@@ -854,6 +859,26 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 
 					return GNUTELLA;
 
+				case GTA_MSG_RUDP:
+					/*
+					 * RUDP traffic is special: the only meaningful fields
+					 * of the Gnutella header are the opcode field (which we
+					 * have read here since we fall into this case) and the
+					 * Gnutella header size.
+					 *
+					 * The TTL and hops fields cannot be interpreted to
+					 * disambiguate, so our only option is deeper inspection.
+					 */
+
+					if (udp_is_valid_semi_reliable(utp, s))
+						break;		/* Validated it as semi-reliable UDP */
+
+					g_warning("UDP ambiguous message from %s (%zu bytes total),"
+						" interpreted as RUDP packet",
+						host_addr_port_to_string(s->addr, s->port), s->pos);
+
+					return RUDP;
+					
 				case GTA_MSG_STANDARD:	/* Nobody is using this function code */
 				default:
 					break;				/* Not a function we expect over UDP */
@@ -899,6 +924,7 @@ udp_received(struct gnutella_socket *s, bool truncated)
 	gnutella_node_t *n;
 	bool bogus = FALSE;
 	bool dht = FALSE;
+	bool rudp = FALSE;
 
 	/*
 	 * This must be regular Gnutella / DHT traffic.
@@ -928,8 +954,11 @@ udp_received(struct gnutella_socket *s, bool truncated)
 
 		switch (utp) {
 		case GNUTELLA:
-			dht = FALSE;
 			goto unreliable;
+		case RUDP:
+			rudp = TRUE;
+			gnet_stats_count_general(GNR_RUDP_RX_BYTES, s->pos);
+			goto rudp;		/* Don't account this message in UDP statistics */
 		case DHT:
 			dht = TRUE;
 			goto unreliable;
@@ -971,9 +1000,30 @@ unknown:
 	if (s->pos >= GTA_HEADER_SIZE)
 		dht = GTA_MSG_DHT == gnutella_header_get_function(s->buf);
 
+	/* FALL THROUGH */
+
 unreliable:
+	/*
+	 * Account for Gnutella / DHT incoming UDP traffic.
+	 */
 
 	bws_udp_count_read(s->pos, dht);
+
+	/* FALL THROUGH */
+
+rudp:
+	/*
+	 * The RUDP layer is used to implement firewalled-to-firewalled transfers
+	 * via a mini TCP-like layer built on top of UDP.  Therefore, it is used
+	 * as the basis for higher-level connections (HTTP) and will have to be
+	 * accounted for once the type of traffic is known, by upper layers, as
+	 * part of the upload/download traffic.
+	 *
+	 * Of course, the higher levels will never see all the bytes that pass
+	 * through, such as acknowledgments or retransmissions, but that is also
+	 * the case for TCP-based sockets.
+	 *		--RAM, 2012-11-02.
+	 */
 
 	/*
 	 * If we get traffic from a bogus IP (unroutable), warn, for now.
@@ -1003,6 +1053,18 @@ unreliable:
 
 	if (!udp_is_valid_gnet(n, s, truncated, s->buf, s->pos))
 		return;
+
+	/*
+	 * RUDP traffic does not go to the upper Gnutella processing layers.
+	 */
+
+	if (rudp) {
+		/* Not ready for prime time */
+#if 0
+		rudp_handle_packet(s->addr, s->port. s->buf, s->pos);
+#endif
+		return;
+	}
 
 	/*
 	 * Process message as if it had been received from regular Gnet by

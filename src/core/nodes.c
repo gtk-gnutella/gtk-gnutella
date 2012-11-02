@@ -8126,11 +8126,7 @@ node_parse(struct gnutella_node *n)
 		hsep_process_msg(n, tm_time());
 		goto reset_header;
 	case GTA_MSG_RUDP:
-		/* Not ready for prime time */
-#if 0
-		rudp_handle_packet(n->addr, n->port,
-			n->socket->buf, n->size + GTA_HEADER_SIZE);
-#endif
+		/* UDP traffic caught at a lower level, TCP traffic is just ignored */
 		goto reset_header;
 	default:
 		break;
