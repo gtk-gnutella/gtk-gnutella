@@ -870,6 +870,34 @@ ggept_filesize_extract(const extvec_t *exv, uint64 *filesize)
 }
 
 /**
+ * Extract UNIX timestamp + filesize length into `stamp' and `filesize',
+ * reading from the supplied extension payload.
+ *
+ * This is the format used by the payload of GGEP "PRU" for instance.
+ */
+ggept_status_t
+ggept_stamp_filesize_extract(const extvec_t *exv,
+	time_t *stamp, uint64 *filesize)
+{
+	size_t len;
+	const char *p;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+
+	len = ext_paylen(exv);
+	if (len < 4 || len > 12)
+		return GGEP_INVALID;
+
+	p = ext_payload(exv);
+	*stamp = peek_be32(p);
+	len -= 4;
+	p += 4;
+	*filesize = vlint_decode(p, len);		/* Can be zero */
+
+	return GGEP_OK;
+}
+
+/**
  * Extract IPv6 address into `addr' from GGEP "GTKG.IPV6" or "6" extensions.
  * When "addr" is NULL, simply validates the payload length.
  */
@@ -916,6 +944,31 @@ ggept_filesize_encode(uint64 filesize, char *data, size_t len)
 	g_assert(len >= 8);
 
 	return vlint_encode(filesize, data);
+}
+
+/**
+ * Encode `stamp' and `filesize' in buffer.
+ *
+ * @param stamp		the time to encode
+ * @param filesize	the filesize to encode
+ * @param data		a buffer of at least 12 bytes.
+ * @param len		length of buffer
+ *
+ * This is used in extensions such as GGEP "PRU" which carry the last
+ * modification time and the file length.
+ *
+ * @return the amount of bytes written
+ */
+uint
+ggept_stamp_filesize_encode(time_t stamp, uint64 filesize,
+	char *data, size_t len)
+{
+	char *p = data;
+
+	g_assert(len >= 12);
+
+	p = poke_be32(p, stamp);
+	return 4 + vlint_encode(filesize, p);
 }
 
 /**

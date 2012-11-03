@@ -947,6 +947,7 @@ search_gui_free_record(record_t *rc)
 
 	g_assert(NULL == rc->results_set);
 
+	WFREE_TYPE_NULL(rc->partial);
 	atom_str_free_null(&rc->name);
 	atom_str_free_null(&rc->utf8_name);
     atom_str_free_null(&rc->ext);
@@ -1294,6 +1295,15 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
    	rc->flags = r->flags;
    	rc->create_time = r->create_time;
 	rc->name = atom_str_get(r->filename);
+
+	if (r->available != 0 || r->mod_time != 0) {
+		struct precord *prc;
+
+		WALLOC0(prc);
+		prc->available = r->available;
+		prc->mod_time = r->mod_time;
+		rc->partial = prc;
+	}
 	
 	{
 		const gchar *utf8_name, *name;
@@ -4078,6 +4088,22 @@ search_gui_set_details(const record_t *rc)
 
 	search_gui_append_detail(_("Partial"),
 		SR_PARTIAL_HIT & rc->flags ? _("Yes") : _("No"));
+
+	if (rc->partial != NULL) {
+		struct precord *prc = rc->partial;
+
+		if (rc->size != 0) {
+			char buf[80];
+			double pct = 100.0 * prc->available / (double) rc->size;
+			str_bprintf(buf, sizeof buf, _("%s [%.2f%%]"),
+				nice_size(prc->available, show_metric_units()), pct);
+			search_gui_append_detail(_("Available"), buf);
+		}
+		search_gui_append_detail(_("Last modification"),
+			0 != prc->mod_time
+			? timestamp_to_string(prc->mod_time)
+			: _("Unknown"));
+	}
 
 	if (utf8_can_latinize(rc->utf8_name)) {
 		size_t size;

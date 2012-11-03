@@ -76,6 +76,14 @@ typedef enum {
 } record_magic_t;
 
 /**
+ * Partial results.
+ */
+struct precord {
+	filesize_t available;		/**< Available bytes, if partial file */
+	time_t mod_time;			/**< Last modification time of partial file */
+};
+
+/**
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
  *
@@ -99,6 +107,7 @@ typedef struct record {
 	const char *tag;			/**< Optional tag data string (atom) */
 	const char *info;			/**< Short version of tag (atom) */
 	const char *path;			/**< Optional path (atom) */
+	struct precord *partial;	/**< Optional: partial record information */
 	struct gnet_host_vec *alt_locs;	/**< Optional alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
 	time_t  create_time;		/**< Create Time of file; zero if unknown */
@@ -125,4 +134,5 @@ results_set_check(const results_set_t * const rs)
 }
 
 #endif /* _gtk_search_result_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

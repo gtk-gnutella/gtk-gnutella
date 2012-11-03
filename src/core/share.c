@@ -2597,6 +2597,25 @@ shared_file_creation_time(const shared_file_t *sf)
 	return sf->ctime;
 }
 
+/**
+ * @return available bytes (same as filesize, unless file is partial).
+ */
+filesize_t
+shared_file_available(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily.
+	 */
+
+	return NULL == sf->fi
+		? sf->file_size
+		: (sf->fi->buffered + sf->fi->done);
+}
+
 uint32
 shared_file_flags(const shared_file_t *sf)
 {

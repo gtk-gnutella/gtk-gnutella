@@ -108,6 +108,8 @@ ggept_status_t ggept_uint32_extract(const extvec_t *exv, uint32 *val);
 ggept_status_t ggept_du_extract(const extvec_t *, uint32 *uptime);
 ggept_status_t ggept_ct_extract(const extvec_t *, time_t *stamp_ptr);
 ggept_status_t ggept_gtkg_ipv6_extract(const extvec_t *, host_addr_t *addr);
+ggept_status_t ggept_stamp_filesize_extract(const extvec_t *exv,
+	time_t *stamp, uint64 *filesize);
 
 ggept_status_t ggept_alt_extract(const extvec_t *,
 	gnet_host_vec_t **hvec, enum net_type net);
@@ -116,6 +118,7 @@ ggept_status_t ggept_push_extract(const extvec_t *,
 ggept_status_t ggept_utf8_string_extract(const extvec_t *, char *b, size_t l);
 
 uint ggept_filesize_encode(uint64 filesize, char *data, size_t len);
+uint ggept_stamp_filesize_encode(time_t s, uint64 fs, char *data, size_t len);
 uint ggept_du_encode(uint32 uptime, char *data, size_t len);
 uint ggept_ct_encode(time_t stamp, char *data, size_t len);
 uint ggept_m_encode(uint32 mtype, char *data, size_t len);

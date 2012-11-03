@@ -2492,9 +2492,19 @@ get_results_set(gnutella_node_t *n, bool browse)
 				case EXT_T_GGEP_PR2:
 				case EXT_T_GGEP_PR3:
 				case EXT_T_GGEP_PR4:
+					rc->flags |= SR_PARTIAL_HIT;
 					/* TODO: handle intervals to compute available ranges */
+					break;
 				case EXT_T_GGEP_PRU:
 					rc->flags |= SR_PARTIAL_HIT;
+					if (0 != ext_paylen(e)) {
+						if (
+							GGEP_OK != ggept_stamp_filesize_extract(e,
+								&rc->mod_time, &rc->available)
+						) {
+							search_log_bad_ggep(n, e, NULL);
+						}
+					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (
