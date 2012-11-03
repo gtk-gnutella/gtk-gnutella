@@ -3882,30 +3882,58 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
  * @param pt		the PATRICIA trie holding the lookup path
  * @param kuid		the KUID that was looked for
  * @param amount	the amount of k-closest nodes they wanted
+ *
+ * @return the average size estimate, 0 if we think we cannot properly
+ * estimate the size  given the sample.
  */
 static uint64
 dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 {
-	uint64 estimate_1, estimate_2, estimate_3;
+	uint64 estimate[3], sum;
+	uint i;
+	statx_t *st;
+	double mean, sdev;
 
-	estimate_1 = dht_compute_size_estimate_1(pt, kuid, amount);
-	estimate_2 = dht_compute_size_estimate_2(pt, kuid);
-	estimate_3 = dht_compute_size_estimate_3(pt, kuid);
+	estimate[0] = dht_compute_size_estimate_1(pt, kuid, amount);
+	estimate[1] = dht_compute_size_estimate_2(pt, kuid);
+	estimate[2] = dht_compute_size_estimate_3(pt, kuid);
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT estimated size with method #1: %s (LW method)",
-			uint64_to_string(estimate_1));
+			uint64_to_string(estimate[0]));
 		g_debug("DHT estimated size with method #2: %s (prefix size)",
-			uint64_to_string(estimate_2));
+			uint64_to_string(estimate[1]));
 		g_debug("DHT estimated size with method #3: %s (avg node distance)",
-			uint64_to_string(estimate_3));
+			uint64_to_string(estimate[2]));
 	}
 
 	/*
-	 * Average, will not overflow, 2^64 is a lot of nodes...
+	 * Make sure we do not have points so dispersed that the computed
+	 * average is meaningless: if the mean is smaller than 1 standard
+	 * deviation, we are probably in a situation where our estimation
+	 * is meaningless (because then the chance to have the actual mean
+	 * be negative is too high, and we know that the size is a strictly
+	 * positive number).
 	 */
 
-	return (estimate_1 + estimate_2 + estimate_3) / 3;
+	st = statx_make_nodata();
+
+	for (sum = 0, i = 0; i < G_N_ELEMENTS(estimate); i++) {
+		statx_add(st, (double) estimate[i]);
+		sum = uint64_saturate_add(sum, estimate[i]);
+	}
+
+	mean = statx_avg(st);
+	sdev = statx_sdev(st);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT estimated size: mean = %F, sdev = %F, stderr = %F [%s]",
+			mean, sdev, statx_stderr(st), mean > sdev ? "OK" : "REFUSED");
+	}
+
+	statx_free(st);
+
+	return mean > sdev ? sum / G_N_ELEMENTS(estimate) : 0;
 }
 
 /**
@@ -4084,15 +4112,20 @@ dht_update_subspace_size_estimate(
 	if (stats.lookups[subspace].computed != 0)
 		statx_remove(stats.lookdata, (double) stats.lookups[subspace].estimate);
 
-	stats.lookups[subspace].estimate = estimate;
-	stats.lookups[subspace].computed = now;
-	stats.lookups[subspace].amount = kept;
-
-	statx_add(stats.lookdata, (double) estimate);
+	if (estimate != 0) {
+		stats.lookups[subspace].estimate = estimate;
+		stats.lookups[subspace].computed = now;
+		stats.lookups[subspace].amount = kept;
+	
+		statx_add(stats.lookdata, (double) estimate);
+	} else {
+		stats.lookups[subspace].computed = 0;
+	}
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT subspace \"%02x\" estimate is %s (over %u/%d nodes)",
-			subspace, uint64_to_string(estimate), (unsigned) kept, amount);
+			subspace, 0 == estimate ? "refused" : uint64_to_string(estimate),
+			(unsigned) kept, amount);
 	}
 
 	update_cached_size_estimate();
