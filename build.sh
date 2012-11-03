@@ -37,6 +37,7 @@ build_gnutls=
 build_halloc=
 build_libdir=
 build_localedir=
+build_malloc=y
 build_nls=
 build_official=
 build_so_suffix=
@@ -123,6 +124,7 @@ while [ $# -gt 0 ]; do
 	--datadir=*)		build_datadir="${1#--*=}";;
 	--disable-dbus)		build_dbus='d_dbus';;
 	--disable-gnutls)	build_gnutls='d_gnutls';;
+	--disable-malloc)	build_malloc='n';;
 	--disable-nls)		build_nls='d_enablenls';;
 	--disable-socker)	build_socker='d_socker_get';;
 	--enable-halloc)	build_halloc='true';;
@@ -152,6 +154,7 @@ The following switches are available, defaults are shown in brackets:
   --topless        Compile for topless use (no graphical user interface).
   --disable-dbus   Do not use D-Bus even if available.
   --disable-gnutls Do not use GnuTLS even if available.
+  --disable-malloc Do not supersede the system's malloc() implementation.
   --disable-nls    Disable NLS (native language support).
   --disable-socker Disable support for Socker.
   --prefix=PATH    Path prefix used for installing files. [$PREFIX]
@@ -274,6 +277,7 @@ else
     /bin/sh ./Configure -Oder \
 	$build_verbose \
 	-U usenm \
+	-D usemymalloc="$build_malloc" \
 	${CC:+-D "cc=$CC"} \
 	${CFLAGS:+-D "ccflags=$CFLAGS"} \
 	${LDFLAGS:+-D "ldflags=$LDFLAGS"} \

@@ -1082,6 +1082,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #define LOCALE_EXP "$localeexp"
 
+/* USE_MY_MALLOC:
+ *	This symbol, if defined, indicates that we're using our own malloc.
+ */
+#$d_mymalloc USE_MY_MALLOC		/**/
+
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on
  *	non-blocking I/O for the file descriptor. Note that there is no way

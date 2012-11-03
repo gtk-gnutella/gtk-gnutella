@@ -75,7 +75,7 @@
 
 #include "override.h"		/* Must be the last header included */
 
-#if 1
+#ifdef USE_MY_MALLOC			/* metaconfig symbol */
 #define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
 #endif
 
