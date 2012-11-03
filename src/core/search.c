@@ -99,6 +99,7 @@
 #include "lib/magnet.h"
 #include "lib/mempcpy.h"
 #include "lib/nid.h"
+#include "lib/pow2.h"			/* For IS_POWER_OF_2() */
 #include "lib/random.h"
 #include "lib/sbool.h"
 #include "lib/sectoken.h"
@@ -2000,7 +2001,136 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 		}
 	}
 }
-	
+
+/**
+ * Decode LimeWire's encoding of the available intervals in the file, held
+ * in the "PRi" extension they are using to encode the ranges as numbers.
+ *
+ * Numbers are taken from a binary tree starting at 1 and spanning as deep as
+ * necessary to have at least enough leaves to cover all the 1 KiB blocks of 
+ * the file.
+ *
+ * @param n		the node sending us the results with partial file (for logging)
+ * @param e		the GGEP "PRi" extension, for i = 1..4
+ * @param size	the total file size
+ *
+ * @return the size encoded by the intervals of the extension `e'.
+ */
+static filesize_t
+lime_range_decode(const gnutella_node_t *n, const extvec_t *e, filesize_t size)
+{
+	int i;
+	size_t len;
+
+	switch (e->ext_token) {
+	case EXT_T_GGEP_PR1: i = 1; break;		/* 1-byte values */
+	case EXT_T_GGEP_PR2: i = 2; break;		/* 2-byte values */
+	case EXT_T_GGEP_PR3: i = 3; break;		/* 3-byte values */
+	case EXT_T_GGEP_PR4: i = 4; break;		/* 4-byte values */
+	default:
+		g_soft_assert(FALSE);
+		return 0;
+	}
+
+	if (size < 1024)
+		return size;
+
+	len = ext_paylen(e);
+	if (0 != len % i) {
+		search_log_bad_ggep(n, e, NULL);
+		return 0;
+	} else {
+		const uint8 *p = ext_payload(e);
+		unsigned j;
+		filesize_t leaves, power, result = 0, nodemax;
+
+		leaves = size >> 10;	/* # of leaves (1 KiB blocks) in the tree */
+		if (0 != size % 1024)
+			leaves++;
+
+		/*
+		 * "power" indicates the starting index of the last row of the
+		 * binary tree spanned by 1:
+		 *
+		 *                            1
+		 *                           / \
+		 *                          2   3
+		 *                         / \ / \
+		 *              power ->  4  5 6  7  (4 leaves)
+		 *                        :  : :  :
+		 * file block numbers ->  0  1 2  3  (1 KiB each)
+		 *
+		 * "power" is the first power of 2 spanning the leaves of the tree.
+		 * Here, with 4 leaves, we can represent files of at most 4 blocks
+		 * of 1 KiB, i.e ranging from 0 bytes to 4 KiB.
+		 *
+		 * Hence, "power" is the smallest power of 2 such that leaves <= power.
+		 *
+		 * The maximum node ID, "nodemax" is 7, the last number before
+		 * going to the next power of 2 (next row, if we had one).  However,
+		 * if we have only 3 leaves, then "nodemax" is 6: we have to
+		 * substract "power - leaves" to "2 * power  -1" to get the proper
+		 * maximum ID.
+		 */
+
+		if (IS_POWER_OF_2(leaves)) {
+			power = leaves;
+		} else {
+			power = (uint64) 1 << (1 + highest_bit_set64(leaves));
+		}
+		g_assert(leaves <= power);
+
+		nodemax = 2 * power - 1 - (power - leaves);
+
+		/*
+		 * Decompile big-endian node numbers (total of len / i)
+		 */
+
+		for (j = 0; j < len; j += i) {
+			int depth, k;
+			filesize_t node;			/* The node ID in the tree */
+			filesize_t start, end;		/* Block numbers in the file */
+
+			/* Read node #j as a big-endian number over i bytes */
+
+			for (node = 0, k = 0; k < i; k++) {
+				node <<= 8;
+				node |= p[j + k] & 0xff;
+			}
+
+			/*
+			 * Determine the start and end indices of the blocks from the file.
+			 */
+
+			if (node < 1 || node > nodemax)
+				continue;		/* Invalid node number */
+
+			if (1 == node)
+				return size;	/* 1 is the root of the tree, we're done! */
+
+			depth = 0;
+			while (node < power) {
+				depth++;
+				node <<= 1;
+			}
+
+			if (node > nodemax)
+				continue;
+
+			start = node - power;
+			end = start + ((uint64) 1 << depth) - 1;
+
+			/* Leaves may not cover whole depth, therefore adjust */
+			end = MIN(end, nodemax - power);
+
+			result += 1024 * (end - start + 1);
+		}
+
+		return result;
+	}
+	g_assert_not_reached();
+}
+
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
@@ -2488,12 +2618,15 @@ get_results_set(gnutella_node_t *n, bool browse)
 					}
 					break;
 				case EXT_T_GGEP_PR0:	/* Partial results */
+					rc->flags |= SR_PARTIAL_HIT;
+					rc->available = 0;
+					break;
 				case EXT_T_GGEP_PR1:
 				case EXT_T_GGEP_PR2:
 				case EXT_T_GGEP_PR3:
 				case EXT_T_GGEP_PR4:
 					rc->flags |= SR_PARTIAL_HIT;
-					/* TODO: handle intervals to compute available ranges */
+					rc->available += lime_range_decode(n, e, rc->size);
 					break;
 				case EXT_T_GGEP_PRU:
 					rc->flags |= SR_PARTIAL_HIT;
