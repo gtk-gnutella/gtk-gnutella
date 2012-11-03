@@ -1958,6 +1958,11 @@ search_gui_set_record_info(results_set_t *rs)
 
 	results_set_check(rs);
 
+	/* If banned GUID, make it prominent: at the start of the information! */
+	if (rs->status & ST_BANNED_GUID) {
+		str_cat(vinfo, "GUID");
+	}
+
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
