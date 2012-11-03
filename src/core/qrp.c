@@ -4764,11 +4764,12 @@ qrt_build_query_target(
  * Route query message to leaf nodes, based on their QRT, or to ultrapeers
  * that support last-hop QRP if TTL=1.
  *
- * When ``leaves'' is FALSE, we don't route to leaf nodes because we're
+ * When ``with_leaves'' is FALSE, we don't route to leaf nodes because we're
  * routing a duplicate query (with higher TTL) which leaves already got.
  */
 void
-qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec, bool leaves)
+qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec,
+	bool with_leaves)
 {
 	GSList *nodes;				/* Targets for the query */
 
@@ -4778,7 +4779,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec, bool leaves)
 	nodes = qrt_build_query_target(qhvec,
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				leaves, n);
+				with_leaves, n);
 
 	if G_UNLIKELY(
 		GNET_PROPERTY(qrp_debug) > 4 ||
