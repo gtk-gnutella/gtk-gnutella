@@ -1,10 +1,13 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010, 2011 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2011 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
  * Code was slightly adapted to use standard features available in the
  * gtk-gnutella library.
+ *
+ * After 2007, the original code was enriched with new features such as
+ * native floating point formatting or other string copyout operations.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -36,7 +39,7 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010, 2011
+ * @date 1996-2000, 2007, 2010-2011
  */
 
 #include "common.h"
@@ -1072,6 +1075,197 @@ str_chomp(str_t *s)
 		len >= 1 && (s->s_data[len - 1] == '\r' || s->s_data[len - 1] == '\n')
 	) {
 		s->s_len--;
+	}
+}
+
+/**
+ * Remove penultimate character of string and return it.
+ */
+char
+str_chop(str_t *s)
+{
+	size_t len;
+	char c;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if G_UNLIKELY(0 == len)
+		return '\0';
+
+	c = s->s_data[len - 1];
+	s->s_len--;
+
+	return c;
+}
+
+/**
+ * Reverse string in-place: "noel" becomes "leon".
+ */
+void
+str_reverse(str_t *s)
+{
+	char *p, *q;
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if G_UNLIKELY(0 == len)
+		return;
+
+	p = &s->s_data[0];
+	q = &s->s_data[len - 1];
+
+	while (ptr_cmp(p, q) < 0) {
+		char t = *q;
+		*q-- = *p;
+		*p++ = t;
+	}
+}
+
+/**
+ * Move string content starting at some offset to specified buffer, clamping
+ * copy at the last character of the buffer and finishing with a NUL.
+ *
+ * @return amount of copied bytes (trailing NUL does not count).
+ */
+size_t
+str_copyout_offset(str_t *s, size_t offset, char *dest, size_t dest_size)
+{
+	size_t n;
+	size_t ds;
+	size_t len;
+
+	str_check(s);
+	g_assert(size_is_positive(dest_size));
+
+	ds = dest_size - 1;
+	len = s->s_len;
+
+	if (offset >= len)
+		return 0;
+
+	len -= offset;
+
+	n = MIN(ds, len);
+	memcpy(dest, &s->s_data[offset], n);
+	dest[n] = '\0';
+
+	return n;
+}
+
+/**
+ * Move string content to specified buffer, clamping copy at the last character
+ * of the buffer and finishing with a NUL.
+ *
+ * @return amount of copied bytes (trailing NUL does not count).
+ */
+size_t
+str_copyout(str_t *s, char *dest, size_t dest_size)
+{
+	return str_copyout_offset(s, 0, dest, dest_size);
+}
+
+/**
+ * Move string content starting at some offset to specified buffer, clamping
+ * copy at the last character of the buffer, but without NUL-terminating the
+ * copied data.
+ *
+ * To copy a "string" (NUL-terminated), use str_copyout_offset().
+ *
+ * @return amount of copied bytes.
+ */
+size_t
+str_memout_offset(str_t *s, size_t offset, char *dest, size_t dest_size)
+{
+	size_t n;
+	size_t len;
+
+	str_check(s);
+	g_assert(size_is_non_negative(dest_size));
+
+	len = s->s_len;
+
+	if (offset >= len)
+		return 0;
+
+	len -= offset;
+
+	n = MIN(dest_size, len);
+	memcpy(dest, &s->s_data[offset], n);
+
+	return n;
+}
+
+/**
+ * Move string content to specified buffer, clamping copy at the last
+ * character of the buffer, but without NUL-terminating the copied data.
+ *
+ * To copy a "string" (NUL-terminated), use str_copyout().
+ *
+ * @return amount of copied bytes.
+ */
+size_t
+str_memout(str_t *s, char *dest, size_t dest_size)
+{
+	return str_memout_offset(s, 0, dest, dest_size);
+}
+
+/**
+ * Reverse copy string content to specified buffer, clamping copy at the last
+ * character of the buffer and finishing with a NUL.
+ *
+ * @return amount of copied bytes (trailing NUL does not count).
+ */
+size_t
+str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
+{
+	size_t n;
+	size_t ds;
+	char *q;
+
+	str_check(s);
+	g_assert(size_is_positive(dest_size));
+
+	ds = dest_size - 1;
+	n = MIN(ds, s->s_len);
+	q = dest;
+
+	if (n != 0) {
+		char *p = &s->s_data[s->s_len];
+
+		while (n-- != 0)
+			*q++ = *--p;
+		*q = '\0';
+	}
+
+	return q - dest;
+}
+
+/**
+ * Fetch character at given offset.  Read from the end of the string when
+ * the offset is negative, -1 being the last character, 0 being the first.
+ *
+ * @return NUL if offset is not within the string range, but NUL may be a
+ * valid string character when dealing with binary strings.
+ */
+char
+str_at(str_t *s, ssize_t offset)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (offset >= 0) {
+		return UNSIGNED(offset) >= len ? '\0' : s->s_data[offset];
+	} else {
+		size_t pos = len + offset;
+		return pos >= len ? '\0' : s->s_data[offset];
 	}
 }
 
