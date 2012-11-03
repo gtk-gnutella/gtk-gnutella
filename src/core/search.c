@@ -2353,6 +2353,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
 			bool has_hash = FALSE;
 			bool has_unknown = FALSE;
+			filesize_t available = 0;			/* For GGEP "PRU" */
 
 			g_assert(taglen > 0);
 
@@ -2619,7 +2620,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 					break;
 				case EXT_T_GGEP_PR0:	/* Partial results */
 					rc->flags |= SR_PARTIAL_HIT;
-					rc->available = 0;
+					/* No parts of the file available yet */
 					break;
 				case EXT_T_GGEP_PR1:
 				case EXT_T_GGEP_PR2:
@@ -2632,9 +2633,17 @@ get_results_set(gnutella_node_t *n, bool browse)
 					rc->flags |= SR_PARTIAL_HIT;
 					if (0 != ext_paylen(e)) {
 						if (
-							GGEP_OK != ggept_stamp_filesize_extract(e,
-								&rc->mod_time, &rc->available)
+							GGEP_OK == ggept_stamp_filesize_extract(e,
+								&rc->mod_time, &available)
 						) {
+							/*
+							 * Do not update rc->available yet, in case there
+							 * are "PRi" extensions.  Since the file size is
+							 * more precise in "PRU" than the one computed
+							 * with "PRi" decoding, wait until we have handled
+							 * all the extensions to set the one found in "PRU".
+							 */
+						} else {
 							search_log_bad_ggep(n, e, NULL);
 						}
 					}
@@ -2663,6 +2672,15 @@ get_results_set(gnutella_node_t *n, bool browse)
 					break;
 				}
 			}
+
+			/*
+			 * The available size on the server (for partial results) is more
+			 * precise in the "PRU" extension.  So if one was present, use it
+			 * to derive the remotely available bytes.
+			 */
+
+			if (available != 0)
+				rc->available = available;
 
 			if (has_unknown) {
 				if (GNET_PROPERTY(search_debug) > 2) {
