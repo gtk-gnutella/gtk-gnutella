@@ -2332,8 +2332,11 @@ get_results_set(gnutella_node_t *n, bool browse)
 						}
 					}
 					break;
+				case EXT_T_URN_BTIH:
+				case EXT_T_URN_MD5:
+				case EXT_T_URN_ED2KHASH:
 				case EXT_T_URN_UNKNOWN:
-					/* Silently ignore unknown URNs like urn:ed2khash */
+					/* Silently ignore unknown / unhandled URNs */
 					break;
 				case EXT_T_GGEP_TT:	/* TTH (binary) */
 					paylen = ext_paylen(e);
