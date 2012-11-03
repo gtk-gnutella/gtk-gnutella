@@ -1,7 +1,10 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
 and which are not already implemented, by loose order of decreasing priority.
 
-0.99
+0.99:
+	* G2 support (leaf mode + file sharing + querying)
+
+0.100
 	* DOVE extension for the DHT, adding IPv6 support and smarter publishing
 	* Firewalled to firewalled transfers (reverse engineer LimeWire specs)
 	* Configurable SOCKS usage: Gnutella connections, downloads and/or uploads.
@@ -12,7 +15,7 @@ and which are not already implemented, by loose order of decreasing priority.
 	* PARQ: 'Rotating' queue by filename?
 	* Meta data support (locally)
 
-0.100
+0.101
 	* Optional gtk-gnutella clustering
 	* Optional locale preferencing support
 	* XML: Extraction of metadata for results sorting
