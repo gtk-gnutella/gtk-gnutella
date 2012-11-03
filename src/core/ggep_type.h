@@ -115,10 +115,10 @@ ggept_status_t ggept_push_extract(const extvec_t *,
 	gnet_host_vec_t **hvec, enum net_type net);
 ggept_status_t ggept_utf8_string_extract(const extvec_t *, char *b, size_t l);
 
-uint ggept_filesize_encode(uint64 filesize, char *data);
-uint ggept_du_encode(uint32 uptime, char *data);
-uint ggept_ct_encode(time_t stamp, char *data);
-uint ggept_m_encode(uint32 mtype, char *data);
+uint ggept_filesize_encode(uint64 filesize, char *data, size_t len);
+uint ggept_du_encode(uint32 uptime, char *data, size_t len);
+uint ggept_ct_encode(time_t stamp, char *data, size_t len);
+uint ggept_m_encode(uint32 mtype, char *data, size_t len);
 
 ggept_status_t ggept_ipp_pack(ggep_stream_t *gs,
 	const gnet_host_t *hvec, size_t hcnt,

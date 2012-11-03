@@ -898,7 +898,6 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 	return GGEP_OK;
 }
 
-
 /**
  * Encode `filesize' in variable-length little endian, with leading zeroes
  * stripped, into `data'.
@@ -907,12 +906,15 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
  *
  * @param filesize	The filesize to encode.
  * @param data		A buffer of at least 8 bytes.
+ * @param len		Length of buffer
  *
  * @return the amount of bytes written.
  */
 uint
-ggept_filesize_encode(uint64 filesize, char *data)
+ggept_filesize_encode(uint64 filesize, char *data, size_t len)
 {
+	g_assert(len >= 8);
+
 	return vlint_encode(filesize, data);
 }
 
@@ -953,30 +955,36 @@ ggept_du_extract(const extvec_t *exv, uint32 *uptime)
 /**
  * Encode `uptime' for the GGEP "DU" extension into `data'.
  *
- * @param uptime The uptime (in seconds) to encode.
- * @param data A buffer of at least 4 bytes.
+ * @param uptime	the uptime (in seconds) to encode.
+ * @param data		a buffer of at least 4 bytes.
+ * @param len		buffer length
+ *
  * @return the amount of chars written.
  */
 uint
-ggept_du_encode(uint32 uptime, char *data)
+ggept_du_encode(uint32 uptime, char *data, size_t len)
 {
+	g_assert(len >= 4);
+
 	return vlint_encode(uptime, data);
 }
 
 /**
  * Encode `media_type' for the GGEP "M" extension into `data'.
  *
- * @param mtype	The media type mask
- * @param data	A buffer of at least 4 bytes.
+ * @param mtype		the media type mask
+ * @param data		a buffer of at least 4 bytes.
+ * @param len		buffer length
  *
  * @return the amount of chars written.
  */
 uint
-ggept_m_encode(uint32 mtype, char *data)
+ggept_m_encode(uint32 mtype, char *data, size_t len)
 {
+	g_assert(len >= 4);
+
 	return vlint_encode(mtype, data);
 }
-
 
 ggept_status_t
 ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
@@ -1001,13 +1009,17 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 /**
  * Encode `timestamp' for the GGEP "CT" extension into `data'.
  *
- * @param timestamp The timestamp (seconds since epoch) to encode.
- * @param data A buffer of at least 8 bytes.
+ * @param timestamp	the timestamp (seconds since Epoch) to encode.
+ * @param data		a buffer of at least 8 bytes.
+ * @param len		buffer length
+ *
  * @return the amount of chars written.
  */
 uint
-ggept_ct_encode(time_t timestamp, char *data)
+ggept_ct_encode(time_t timestamp, char *data, size_t len)
 {
+	g_assert(len >= 4);
+
 	return vlint_encode(timestamp, data);
 }
 

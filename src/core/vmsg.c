@@ -1798,7 +1798,7 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 		char uptime[sizeof(uint64)];
 		uint len;
 
-		len = ggept_du_encode(ri->ggep_du, uptime);
+		len = ggept_du_encode(ri->ggep_du, uptime, sizeof uptime);
 		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 	}
 

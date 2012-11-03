@@ -3349,7 +3349,7 @@ build_search_message(const guid_t *muid, const char *query,
 		unsigned len;
 		bool ok;
 
-		len = ggept_m_encode(mtype, media_type);
+		len = ggept_m_encode(mtype, media_type, sizeof media_type);
 		ok = ggep_stream_pack(&gs, GGEP_NAME(M), media_type, len, 0);
 
 		if (!ok) {

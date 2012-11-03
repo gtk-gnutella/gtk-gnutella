@@ -606,7 +606,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf);
+		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
 		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(length), buf, len, 0);
 	}
@@ -618,7 +618,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 			char buf[sizeof(uint64)];
 			int len;
 
-			len = ggept_filesize_encode(fi->done, buf);
+			len = ggept_filesize_encode(fi->done, buf, sizeof buf);
 			g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 			ok = ok && ggep_stream_pack(&gs, GGEP_NAME(avail), buf, len, 0);
 		}

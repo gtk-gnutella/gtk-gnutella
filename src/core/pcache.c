@@ -499,7 +499,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			uint32 value = MIN(meta->daily_uptime, 86400);
 			uint len;
 
-			len = ggept_du_encode(value, uptime);
+			len = ggept_du_encode(value, uptime, sizeof uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 

@@ -849,7 +849,7 @@ unique_file_index:
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf);
+		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
 
 		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 
@@ -896,7 +896,7 @@ unique_file_index:
 			 */
 			create_time = MAX(0, create_time);
 
-			len = ggept_ct_encode(create_time, buf);
+			len = ggept_ct_encode(create_time, buf, sizeof buf);
 			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);
