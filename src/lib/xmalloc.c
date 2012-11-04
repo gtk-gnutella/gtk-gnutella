@@ -535,6 +535,8 @@ static void xmalloc_crash_hook(void);
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
 
+#define XM_INVALID_PTR		((void *) 0xdeadbeef)
+
 /*
  * Simplify dead-code removal by gcc, preventing #ifdef hell.
  */
@@ -1456,7 +1458,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 
 	g_assert(p == fl->pointers[fl->count - 1]);		/* Removing last item */
 
-	i = --fl->count;				/* Index of removed item */
+	i = --fl->count;					/* Index of removed item */
+	fl->pointers[i] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	if (i < fl->sorted)
 		fl->sorted--;
 
@@ -2012,6 +2015,13 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 			(fl->count - idx) * sizeof(fl->pointers[0]));
 	}
 
+	/*
+	 * Regardless of whether we removed the last item or whether we
+	 * shifted down the pointers because we removed a middle index,
+	 * the previous last slot is now unused.
+	 */
+
+	fl->pointers[fl->count] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	xfl_count_decreased(fl, TRUE);
 }
 
