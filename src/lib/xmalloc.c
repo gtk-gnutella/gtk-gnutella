@@ -1181,6 +1181,61 @@ xfl_find_freelist(size_t len)
 }
 
 /**
+ * Replace the buckets's array of pointers.
+ *
+ * @param fl		the freelist bucket
+ * @param array		new array to use
+ * @param len		length of array
+ */
+static void
+xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
+{
+	size_t used, size, capacity, i;
+	void *ptr;
+
+	g_assert(array != NULL);
+	g_assert(size_is_non_negative(len));
+	g_assert(mutex_is_owned(&fl->lock));
+	g_assert(size_is_non_negative(fl->count));
+
+	ptr = fl->pointers;							/* Can be NULL */
+	used = sizeof(void *) * fl->count;
+	size = sizeof(void *) * fl->capacity;
+	capacity = len / sizeof(void *);
+
+	g_assert(ptr != NULL || 0 == used);
+	g_assert(len >= used);
+	g_assert(capacity * sizeof(void *) == len);	/* Even split */
+	g_assert(array != ptr);
+
+	for (i = fl->count; i < capacity; i++) {
+		array[i] = XM_INVALID_PTR;		/* Clear trailing (unused) entries */
+	}
+
+	memcpy(array, ptr, used);
+	fl->pointers = array;
+	fl->capacity = capacity;
+
+	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+
+	/*
+	 * Freelist bucket is now in a coherent state, we can unconditionally
+	 * release the old bucket even if it ends up being put in the same bucket
+	 * we just extended / shrunk.
+	 *
+	 * TODO: make sure there is no deadlock possible.  Inserting in the bucket
+	 * will require grabing its mutex, and if another thread has it whilst
+	 * it is waiting for the mutex we're holding for this bucket we're
+	 * presently extending or shrinking, boom!.  Deadlock...
+	 * We'll need to defer insertion in the freelist until after we released
+	 * our fl->lock mutex.	--RAM, 2012-11-04
+	 */
+
+	if (ptr != NULL)
+		xmalloc_freelist_add(ptr, size, XM_COALESCE_ALL);
+}
+
+/**
  * Remove trailing excess memory in pointers[], accounting for hysteresis.
  *
  * @return TRUE if we actually shrank the bucket.
@@ -1278,12 +1333,7 @@ xfl_shrink(struct xfreelist *fl)
 		return FALSE;
 	}
 
-	memcpy(new_ptr, old_ptr, old_used);
-
-	fl->pointers = new_ptr;
-	fl->capacity = allocated_size / sizeof(void *);
-
-	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+	xfl_replace_pointer_array(fl, new_ptr, allocated_size);
 
 	if (xmalloc_debugging(1)) {
 		t_debug("XM shrunk freelist #%zu (%zu-byte block) to %zu items"
@@ -1292,14 +1342,6 @@ xfl_shrink(struct xfreelist *fl)
 			xfl_index(fl), fl->blocksize, fl->capacity, fl->count,
 			old_size, allocated_size, new_size, new_ptr);
 	}
-
-	/*
-	 * Freelist bucket is now in a coherent state, we can unconditionally
-	 * release the old bucket even if it ends up being put in the same bucket
-	 * we just shrank.
-	 */
-
-	xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 
 	return TRUE;
 }
@@ -1673,7 +1715,7 @@ xfl_extend(struct xfreelist *fl)
 		/*
 		 * The freelist structure is coherent, we can release the bucket
 		 * we had allocated and if it causes it to be put back in this
-		 * freelist, we may still safely recurse here since.
+		 * freelist, we may still safely recurse here.
 		 */
 
 		if (xmalloc_debugging(1)) {
@@ -1702,30 +1744,14 @@ xfl_extend(struct xfreelist *fl)
 			fl->count, fl->capacity);
 	}
 
-	g_assert(new_ptr != old_ptr);
-
-	memcpy(new_ptr, old_ptr, old_used);
-	fl->pointers = new_ptr;
-	fl->capacity = allocated_size / sizeof(void *);
+	xfl_replace_pointer_array(fl, new_ptr, allocated_size);
 	fl->expand = FALSE;
-
-	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
 	if (xmalloc_debugging(1)) {
 		t_debug("XM extended freelist #%zu (%zu-byte block) to %zu items"
 			" (holds %zu): new size is %zu bytes, requested %zu, bucket at %p",
 			xfl_index(fl), fl->blocksize, fl->capacity, fl->count,
 			allocated_size, new_size, new_ptr);
-	}
-
-	/*
-	 * Freelist bucket is now in a coherent state, we can unconditionally
-	 * release the old bucket even if it ends up being put in the same bucket
-	 * we just extended.
-	 */
-
-	if (old_ptr != NULL) {
-		xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 	}
 }
 
