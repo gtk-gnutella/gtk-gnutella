@@ -3971,7 +3971,7 @@ update_cached_size_estimate(void)
 	statx_t *st;
 
 	/*
-	 * Only retain the points that fall within one standard deviation of
+	 * Only retain the points that fall within 2 standard deviations of
 	 * the mean to remove obvious aberration.
 	 */
 
@@ -3979,9 +3979,9 @@ update_cached_size_estimate(void)
 	if (n > 1) {
 		uint64 sdev = (uint64) statx_sdev(stats.lookdata);
 		uint64 avg = (uint64) statx_avg(stats.lookdata);
-		if (sdev < avg)
-			min = avg - sdev;
-		max = avg + sdev;
+		if (2 * sdev < avg)
+			min = avg - 2 * sdev;
+		max = avg + 2 * sdev;
 	}
 
 	st = statx_make_nodata();
