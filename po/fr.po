@@ -13,7 +13,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella 0.98.4u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2012-11-03 18:23+0100\n"
-"PO-Revision-Date: 2012-11-03 18:26+0100\n"
+"PO-Revision-Date: 2012-11-04 17:16+0100\n"
 "Last-Translator: \n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -2488,13 +2488,13 @@ msgid "Debug level for the UDP TX scheduler."
 msgstr "Niveau de débogage pour l'ordonnanceur UDP TX."
 
 msgid "Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
-msgstr "Drapeaux de débogage pour la couche TX UDP semi-fiable : 1 : messages, 2 : fragments, 4 : reconnaissances, 8 : transmissions, 16 : timeouts"
+msgstr "Drapeaux de débogage pour la couche TX UDP semi-fiable : 1 : messages, 2 : fragments, 4 : accusés de réception, 8 : transmissions, 16 : timeouts"
 
 msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
 msgstr "Liste séparée par des virgules des hôtes de débogage RX (seulement les adresses IP)"
 
 msgid "Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
-msgstr "Drapeaux de débogage pour la couche RX UDP semi-fiable : 1 : messages, 2 : fragments, 4 : reconnaissances, 8 : transmissions, 16 : timeouts"
+msgstr "Drapeaux de débogage pour la couche RX UDP semi-fiable : 1 : messages, 2 : fragments, 4 : accusés de réception, 8 : transmissions, 16 : timeouts"
 
 msgid "Whether to log sent semi-reliable UDP messages."
 msgstr "Si sélectionné, trace les messages UDP semi-fiables émis"
@@ -4766,19 +4766,19 @@ msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "UDP semi-fiable fragments UDP émis trop de fois"
 
 msgid "Semi-reliable UDP total acknowledgments received"
-msgstr "UDP semi-fiable total des reconnaissances reçues"
+msgstr "UDP semi-fiable total des accusés de réception reçus"
 
 msgid "Semi-reliable UDP cumulative acknowledgments received"
-msgstr "UDP semi-fiable cumul des reconnaissances reçues"
+msgstr "UDP semi-fiable cumul des accusés de réception reçus"
 
 msgid "Semi-reliable UDP extended acknowledgments received"
-msgstr "UDP semi-fiable reconnaissances étendues reçues"
+msgstr "UDP semi-fiable accusés de réception étendues reçues"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
-msgstr "UDP semi-fiable reconnaissances contrefaites reçues"
+msgstr "UDP semi-fiable accusés de réception contrefaits reçues"
 
 msgid "Semi-reliable UDP invalid acknowledgments received"
-msgstr "UDP semi-fiable reconnaissances invalides reçues"
+msgstr "UDP semi-fiable accusés de réception invalides reçus"
 
 msgid "Semi-reliable UDP EARs sent"
 msgstr "UDP semi-fiable EARs émis"
@@ -4787,10 +4787,10 @@ msgid "Semi-reliable UDP too many EARs sent"
 msgstr "UDP semi-fiable trop d'EAR émis"
 
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
-msgstr "UDP semi-fiable EAR reconnaissances négatives reçues"
+msgstr "UDP semi-fiable EAR accusés de réception négatifs reçues"
 
 msgid "Semi-reliable UDP acknowledgments received after sending EARs"
-msgstr "UDP semi-fiable reconnaissances reçues après l'envoi d'EARs"
+msgstr "UDP semi-fiable accusés de réception reçus après l'envoi d'EARs"
 
 msgid "Semi-reliable UDP fragments received"
 msgstr "Fragments UDP semi-fiables reçus "
@@ -4826,16 +4826,16 @@ msgid "Semi-reliable UDP empty messages received"
 msgstr "Messages UDP vides semi-fiables reçus"
 
 msgid "Semi-reliable UDP total acknowledgments sent"
-msgstr "UDP semi-fiable total des reconnaissances émises"
+msgstr "UDP semi-fiable total des accusés de réception émis"
 
 msgid "Semi-reliable UDP cumulative acknowledgments sent"
-msgstr "UDP semi-fiable reconnaissances cumulées émises"
+msgstr "UDP semi-fiable accusés de réception cumulés émis"
 
 msgid "Semi-reliable UDP extended acknowledgments sent"
-msgstr "UDP semi-fiable reconnaissances étendues émises"
+msgstr "UDP semi-fiable accusés de réception étendus émis"
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
-msgstr "UDP semi-fiable envois de reconnaissance évités"
+msgstr "UDP semi-fiable envois évités d'accusés de réception"
 
 msgid "Semi-reliable UDP EARs received"
 msgstr "EARs UDP semi-fiables reçus"
