@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-149]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-152]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -50,7 +50,7 @@ RM = $rm -f
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = el en fr ja
+SUBDIRS = el en fr ja tr
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'

@@ -165,6 +165,9 @@ extra_files/magnet.svg
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
+extra_files/tr/FAQ
+extra_files/tr/Jmakefile
+extra_files/tr/Makefile.SH
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
