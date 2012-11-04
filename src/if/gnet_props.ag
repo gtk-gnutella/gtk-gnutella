@@ -1714,9 +1714,9 @@ prop = {
 		  "s3m;shn;sid;smc;smd;spx;srt;stm;"
 		  "tar;tbz2;tgz;bittorrent;torrent;txt;"
 		  "vob;voc;vqf;"
-		  "wav;"
+		  "wav;webm;"
 		  "xm;xvid;"
-		  "zip";
+		  "zip;zoo";
     };
 };
 
