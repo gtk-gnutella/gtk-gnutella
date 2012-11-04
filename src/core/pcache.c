@@ -2169,6 +2169,10 @@ pong_extract_metadata(struct gnutella_node *n)
 				meta->dht_mode = payload[2];
 			}
 			break;
+		case EXT_T_GGEP_IPP_TLS:
+		case EXT_T_GGEP_IPP6_TLS:
+			/* Silently ignored */
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 3 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
