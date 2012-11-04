@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-04 13:10+0100\n"
 "PO-Revision-Date: 2011-08-07 06:02+0100\n"
 "Last-Translator: \n"
 "Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -753,6 +753,10 @@ msgid "Failed (Extra HELLO data)"
 msgstr "Échec (Données supplémentaires HELLO)"
 
 msgid "Pseudo UDP node"
+msgstr "Noeud pseudo UDP"
+
+#, fuzzy
+msgid "Pseudo semi-reliable UDP node"
 msgstr "Noeud pseudo UDP"
 
 msgid "Pseudo DHT node"
@@ -3170,6 +3174,7 @@ msgstr ""
 "Niveau de débogage pour le code partagé entre l'interface graphique et le "
 "coeur."
 
+#, fuzzy, c-format
 msgid ""
 "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
 "fast disk database, which saves a large amount of core memory and reduces "
@@ -3657,19 +3662,88 @@ msgstr "Liste d'hôtes pour sauvegarde du traffic TX (addresses IP seulement)"
 msgid ""
 "Comma-separated list of hosts for whom we want to dump TX traffic they "
 "receive (IP addresses only)"
-msgstr "Liste d'hôtes pour sauvegarde du traffic TX qu'ils vont recevoir "
-"(addresses IP seulement)"
+msgstr ""
+"Liste d'hôtes pour sauvegarde du traffic TX qu'ils vont recevoir (addresses "
+"IP seulement)"
 
 msgid ""
 "Allow GUESS to use some of the unused Gnutella outgoing bandwidth regardless "
 "of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
 "will be used.  When running as a leaf this should be set to TRUE to make "
 "GUESS queries run faster."
-msgstr "Permet à GUESS d'utiliser la fraction de bande passante Gnutella non "
+msgstr ""
+"Permet à GUESS d'utiliser la fraction de bande passante Gnutella non "
 "utilisée en sortie, quel que soit la recommandation de limite GUESS "
-"positionnée.  Si FAUX, seule la bande passante configurée sera utilisée. Pour "
-"les hôtes en mode feuille, devrait être positionné pour permettre aux "
+"positionnée.  Si FAUX, seule la bande passante configurée sera utilisée. "
+"Pour les hôtes en mode feuille, devrait être positionné pour permettre aux "
 "requêtes GUESS d'aller plus vite."
+
+#, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "Niveau de débogage pour l'ordonnanceur de bande passante."
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr "Liste d'hôtes à déboguer en transmission (addresses IP seulement)"
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "Niveau de débogage pour les mauvaises réponses aux requêtes."
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "Si positionné, trace les messages Gnutella mis au rebut."
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "Niveau de débogage pour le cache des jetons DHT."
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr ""
+"Si positionné, trace les nouveaux messages Gnutella, jamais vus encore."
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "Niveau de débogage pour l'enregistreur de noeuds stables de la DHT."
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr ""
+"Si positionné, trace les décisions de routage pour les messages Gnutella."
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr ""
+"Si positionné, trace les décisions de routage pour les messages Gnutella."
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
+msgstr ""
 
 msgid "disable"
 msgstr "désactiver"
@@ -4272,14 +4346,16 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Écarter les résultats de recherche venant d'hôtes avec un GUID banni."
 
 msgid "Whether a summary line with GUESS search stats should be dispayed."
-msgstr "Si une ligne de résumé de statistiques sur la recherche GUESS "
-"doit être affichée."
+msgstr ""
+"Si une ligne de résumé de statistiques sur la recherche GUESS doit être "
+"affichée."
 
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
-msgstr "Si la ligne de résumé GUESS doit montrer un résumé ou les statistiques "
-"pour la recherche actuellement en cours."
+msgstr ""
+"Si la ligne de résumé GUESS doit montrer un résumé ou les statistiques pour "
+"la recherche actuellement en cours."
 
 msgid "Anonymizing proxies"
 msgstr "Proxys anonymes"
@@ -4368,6 +4444,10 @@ msgstr "Burundi"
 msgid "Benin"
 msgstr "Bénin"
 
+#, fuzzy
+msgid "Saint Barthelemy"
+msgstr "San Marin"
+
 msgid "Bermuda"
 msgstr "Bermudes"
 
@@ -4377,6 +4457,9 @@ msgstr "Brunéi Darussalam"
 msgid "Bolivia"
 msgstr "Bolivie"
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr "Brésil"
 
@@ -4385,6 +4468,10 @@ msgstr "Bahamas"
 
 msgid "Bhutan"
 msgstr "Bhoutan"
+
+#, fuzzy
+msgid "Burma"
+msgstr "Bermudes"
 
 msgid "Bouvet Island"
 msgstr "Île Bouvet"
@@ -4445,6 +4532,10 @@ msgstr "Cuba"
 
 msgid "Cape Verde"
 msgstr "Cap Vert"
+
+#, fuzzy
+msgid "Curacao"
+msgstr "Macao"
 
 msgid "Christmas Island"
 msgstr "Île Christmas"
@@ -4911,11 +5002,19 @@ msgstr "Somalie"
 msgid "Suriname"
 msgstr "Suriname"
 
+#, fuzzy
+msgid "South Sudan"
+msgstr "Corée du Sud"
+
 msgid "Sao Tome and Principe"
 msgstr "Sao Tomé et Principe"
 
 msgid "El Salvador"
 msgstr "Salvador"
+
+#, fuzzy
+msgid "Sint Maarten"
+msgstr "San Marin"
 
 msgid "Syrian Arab Republic"
 msgstr "République Arabe Syrienne"
@@ -5787,6 +5886,9 @@ msgstr "Recherches demandant un hit OOB"
 msgid "Stripped OOB flag on queries"
 msgstr "Flag OOB supprimé sur les recherches"
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 msgid "Duplicate OOB-proxied queries"
 msgstr "Recherches en double via proxy OOB"
 
@@ -5797,6 +5899,10 @@ msgid "OOB hits bearing alien IP address"
 msgstr "Résultats OOB avec une adresse IP étrangère"
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr "Résultats OOB ignorés pour cause d'adresse retournant du SPAM"
+
+#, fuzzy
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr "Résultats OOB ignorés pour cause d'adresse retournant du SPAM"
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -5871,6 +5977,9 @@ msgstr "Messages Push-proxy relayés via UDP"
 msgid "Push-proxy TCP relayed messages"
 msgstr "Messages Push-proxy relayés via TCP"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "Messages Push-proxy annoncés sur le réseau"
 
@@ -5922,6 +6031,10 @@ msgstr "Demandes vues par GTKG qui étaient des re-demandes"
 msgid "Queries advertising support of GGEP \"H\""
 msgstr "Demandes avec support de GGEP \"H\""
 
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Demandes avec support de GGEP \"H\""
+
 msgid "GIV callbacks received"
 msgstr "Rappel de GIV reçus"
 
@@ -5933,6 +6046,22 @@ msgstr "Rappel de QUEUE reçus"
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE ignorés pour cause d'absence de téléchargement adéquat"
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "Push UDP envoyé"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Messages UDP avec source IP invalide"
@@ -5951,6 +6080,138 @@ msgstr "Messages UDP compressés reçus"
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Messages UDP non compressés car pas de gain"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Messages UDP compressés reçus"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Messages UDP compressés reçus"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Messages UDP compressés reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Messages UDP compressés reçus"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Messages UDP compressés reçus"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr "SPAM adresse IP hostile déterminée dynamiquement"
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr "Serveurs consolidés (après liaison de l'adresse IP et du GUID)"
@@ -6073,6 +6334,14 @@ msgstr "Reprises de téléchargements orphelins sur réception de réponse"
 
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Reprises de téléchargements orphelins sur requête de téléchargement"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "Octets RX"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "Octets RX"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT estimation du nombre de noeuds"
@@ -8303,7 +8572,12 @@ msgstr "Limitation de la bande passante HTTP sortante."
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr "Redirection de port possible via UPnp ou NAT-PMP."
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+#, fuzzy
+msgid "Port mapping configured through NAT-PMP."
+msgstr "Redirection de port configurée via UPnP ou NAT-PMP."
+
+#, fuzzy
+msgid "Port mapping configured through UPnP."
 msgstr "Redirection de port configurée via UPnP ou NAT-PMP."
 
 msgid "Enable UPnP"
@@ -8694,6 +8968,9 @@ msgstr "La recherche inverse pour %s a échoué"
 msgid "Reverse lookup in progress..."
 msgstr "Recherche inverse en cours..."
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "Taille :"
 
@@ -8890,9 +9167,8 @@ msgid ""
 "GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, %zu/%zu "
 "queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
 msgstr ""
-"GUESS %s [%s (%zu %s, %zu gardé, %s requêtes, %s clés)] "
-"[Réserve: %zu %s, %zu/%zu contactés, %zu %s (%.2f%%), %zu en attente, "
-"%zu %s%s%s]"
+"GUESS %s [%s (%zu %s, %zu gardé, %s requêtes, %s clés)] [Réserve: %zu %s, %"
+"zu/%zu contactés, %zu %s (%.2f%%), %zu en attente, %zu %s%s%s]"
 
 msgid "loose"
 msgstr "libre"
@@ -9037,6 +9313,18 @@ msgstr "Alt-Locs"
 
 msgid "Partial"
 msgstr "Partiel"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+#, fuzzy
+msgid "Available"
+msgstr "indisponible"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "Information sur l'hôte"
 
 msgid "Latinized"
 msgstr "Latinisé"

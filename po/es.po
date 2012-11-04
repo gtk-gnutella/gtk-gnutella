@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-04 13:10+0100\n"
 "PO-Revision-Date: 2009-03-27 00:04+0100\n"
 "Last-Translator: Larry Nieves <lnieves@315-web.com>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
@@ -770,6 +770,10 @@ msgid "Failed (Extra HELLO data)"
 msgstr "Fracasado (datos HELLO adicionales)"
 
 msgid "Pseudo UDP node"
+msgstr "Pseudo-nodo UDP"
+
+#, fuzzy
+msgid "Pseudo semi-reliable UDP node"
 msgstr "Pseudo-nodo UDP"
 
 #, fuzzy
@@ -3650,6 +3654,69 @@ msgid ""
 "GUESS queries run faster."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "Nivel de depuración de la concha."
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "Nivel de depurado para el enrutado de mensajes."
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "Nivel de depurado para la caché de pongs."
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "Nivel de depuración para búsquedas en cola de usuarios DHT."
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr "Nivel de depuración para mensajes Gnutella."
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
+msgstr ""
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -4328,6 +4395,10 @@ msgstr "Burundi"
 msgid "Benin"
 msgstr "Benin"
 
+#, fuzzy
+msgid "Saint Barthelemy"
+msgstr "San Marino"
+
 msgid "Bermuda"
 msgstr "Bermuda"
 
@@ -4337,6 +4408,9 @@ msgstr "Brunéi"
 msgid "Bolivia"
 msgstr "Bolivia"
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr "Brasil"
 
@@ -4345,6 +4419,10 @@ msgstr "Bahamas"
 
 msgid "Bhutan"
 msgstr "Bhutan"
+
+#, fuzzy
+msgid "Burma"
+msgstr "Bermuda"
 
 msgid "Bouvet Island"
 msgstr "Isla Bouvet"
@@ -4405,6 +4483,10 @@ msgstr "Cuba"
 
 msgid "Cape Verde"
 msgstr "Cabo Verde"
+
+#, fuzzy
+msgid "Curacao"
+msgstr "Macao"
 
 msgid "Christmas Island"
 msgstr "Isla de Navidad"
@@ -4873,11 +4955,19 @@ msgstr "Somalia"
 msgid "Suriname"
 msgstr "Surinam"
 
+#, fuzzy
+msgid "South Sudan"
+msgstr "Corea del Sur"
+
 msgid "Sao Tome and Principe"
 msgstr "Santo Tomé y Príncipe"
 
 msgid "El Salvador"
 msgstr "El Salvador"
+
+#, fuzzy
+msgid "Sint Maarten"
+msgstr "San Marino"
 
 msgid "Syrian Arab Republic"
 msgstr "República Árabe Siria"
@@ -5769,6 +5859,9 @@ msgstr "Peticiones de entrega de hit OOB"
 msgid "Stripped OOB flag on queries"
 msgstr "Indicador OOB eliminado de peticiones"
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 msgid "Duplicate OOB-proxied queries"
 msgstr "Peticiones OOB-proxied duplicadas"
 
@@ -5779,6 +5872,9 @@ msgid "OOB hits bearing alien IP address"
 msgstr "Hits OOB con direcciones IP extrañas"
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -5860,6 +5956,9 @@ msgstr "Mensajes 'push-proxy' UDP retransmitidos"
 msgid "Push-proxy TCP relayed messages"
 msgstr "Mensajes 'push-proxy' TCP retransmitidos"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "Mensajes 'push-proxy' transmitidos"
 
@@ -5912,6 +6011,10 @@ msgstr "Peticiones vistas desde GTKG que eran repetidas"
 msgid "Queries advertising support of GGEP \"H\""
 msgstr "Peticiones anunciando soporte de GGEP \"H\""
 
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Peticiones anunciando soporte de GGEP \"H\""
+
 msgid "GIV callbacks received"
 msgstr "Llamadas GIV recibidas"
 
@@ -5923,6 +6026,22 @@ msgstr "Llamadas QUEUE recibidas"
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE descartadas al no encontrar bajadas apropiadas"
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "'Push' enviado"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Mensajes UDP con IP de origen erróneo"
@@ -5941,6 +6060,137 @@ msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Mensajes UDP no comprimidos debido a falta de ganancia"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr "Servidores consolidados (después de enlace de GUID e IP)"
@@ -6062,6 +6312,14 @@ msgstr "Re-siembra de descargas huérfanas a través de hits de peticiones"
 #, fuzzy
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Re-siembra de descargas huérfanas a través de hits de peticiones"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "mostrar bytes"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "mostrar bytes"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT número estimado de nodos"
@@ -8319,7 +8577,10 @@ msgstr ""
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr ""
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+msgid "Port mapping configured through NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP."
 msgstr ""
 
 #, fuzzy
@@ -8733,6 +8994,9 @@ msgstr "Resolución inversa de nombre para %s fracasada"
 msgid "Reverse lookup in progress..."
 msgstr "Resolución inversa de nombre en progreso..."
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "Tamaño:"
 
@@ -9089,6 +9353,18 @@ msgstr "Alt-Locs"
 #, fuzzy
 msgid "Partial"
 msgstr "parcial"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+#, fuzzy
+msgid "Available"
+msgstr "no disponible"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "Información de nodo"
 
 msgid "Latinized"
 msgstr "Latinizado"

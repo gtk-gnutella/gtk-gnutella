@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-04 13:10+0100\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
@@ -811,6 +811,9 @@ msgid "Failed (Extra HELLO data)"
 msgstr ""
 
 msgid "Pseudo UDP node"
+msgstr ""
+
+msgid "Pseudo semi-reliable UDP node"
 msgstr ""
 
 msgid "Pseudo DHT node"
@@ -3640,6 +3643,69 @@ msgid ""
 msgstr ""
 
 #, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "A gui hibajavítási szintje"
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr "A gui hibajavítási szintje"
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
+msgstr ""
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -4371,6 +4437,9 @@ msgstr ""
 msgid "Benin"
 msgstr "Végződés"
 
+msgid "Saint Barthelemy"
+msgstr ""
+
 msgid "Bermuda"
 msgstr ""
 
@@ -4380,6 +4449,9 @@ msgstr ""
 msgid "Bolivia"
 msgstr ""
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr ""
 
@@ -4387,6 +4459,9 @@ msgid "Bahamas"
 msgstr ""
 
 msgid "Bhutan"
+msgstr ""
+
+msgid "Burma"
 msgstr ""
 
 #, fuzzy
@@ -4451,6 +4526,9 @@ msgid "Cuba"
 msgstr ""
 
 msgid "Cape Verde"
+msgstr ""
+
+msgid "Curacao"
 msgstr ""
 
 msgid "Christmas Island"
@@ -4943,10 +5021,16 @@ msgstr ""
 msgid "Suriname"
 msgstr "név"
 
+msgid "South Sudan"
+msgstr ""
+
 msgid "Sao Tome and Principe"
 msgstr ""
 
 msgid "El Salvador"
+msgstr ""
+
+msgid "Sint Maarten"
 msgstr ""
 
 msgid "Syrian Arab Republic"
@@ -5882,6 +5966,9 @@ msgstr ""
 msgid "Stripped OOB flag on queries"
 msgstr ""
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 msgid "Duplicate OOB-proxied queries"
 msgstr ""
 
@@ -5892,6 +5979,9 @@ msgid "OOB hits bearing alien IP address"
 msgstr ""
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -5971,6 +6061,9 @@ msgstr "Proxy továbbította üzenetek nyomása"
 msgid "Push-proxy TCP relayed messages"
 msgstr "Proxy továbbította üzenetek nyomása"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "Proxy szórta üzenetek nyomása"
 
@@ -6024,6 +6117,9 @@ msgstr ""
 msgid "Queries advertising support of GGEP \"H\""
 msgstr ""
 
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr ""
+
 msgid "GIV callbacks received"
 msgstr ""
 
@@ -6035,6 +6131,22 @@ msgstr ""
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "Nyomás elküldve"
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
@@ -6052,6 +6164,132 @@ msgid "Compressed UDP messages received"
 msgstr ""
 
 msgid "Uncompressed UDP messages due to no gain"
+msgstr ""
+
+msgid "Ambiguous UDP messages received"
+msgstr ""
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP empty messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
 msgstr ""
 
 msgid "Consolidated servers (after GUID and IP address linking)"
@@ -6171,6 +6409,14 @@ msgstr ""
 #, fuzzy
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "bájtok"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "bájtok"
 
 msgid "DHT estimated amount of nodes"
 msgstr ""
@@ -8554,7 +8800,10 @@ msgstr ""
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr ""
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+msgid "Port mapping configured through NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP."
 msgstr ""
 
 #, fuzzy
@@ -8991,6 +9240,9 @@ msgstr ""
 msgid "Reverse lookup in progress..."
 msgstr ""
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "Méret:"
 
@@ -9338,6 +9590,18 @@ msgstr ""
 #, fuzzy
 msgid "Partial"
 msgstr "Összesen"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+#, fuzzy
+msgid "Available"
+msgstr "Nem elérhető"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "Részletes tájékoztató"
 
 msgid "Latinized"
 msgstr ""

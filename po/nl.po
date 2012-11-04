@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-04 13:10+0100\n"
 "PO-Revision-Date: 2011-06-07 09:21+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -755,6 +755,10 @@ msgid "Failed (Extra HELLO data)"
 msgstr "Mislukt (Extra HELLO data)"
 
 msgid "Pseudo UDP node"
+msgstr "Pseudo UDP node"
+
+#, fuzzy
+msgid "Pseudo semi-reliable UDP node"
 msgstr "Pseudo UDP node"
 
 msgid "Pseudo DHT node"
@@ -3703,6 +3707,69 @@ msgid ""
 "GUESS queries run faster."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "Debug level voor de bandbreedte scheduler."
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "Debug level voor de query hit bericht generatie."
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "Debug level voor DHT token caching."
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "Debug level voor de DHT stable node recorder.."
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr "Moeten vervallen gnutella berichten gelogd worden"
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
+msgstr ""
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -4394,6 +4461,10 @@ msgstr "Burundi"
 msgid "Benin"
 msgstr "Benin"
 
+#, fuzzy
+msgid "Saint Barthelemy"
+msgstr "Saint Martin"
+
 msgid "Bermuda"
 msgstr "Bermuda"
 
@@ -4403,6 +4474,9 @@ msgstr "Brunei"
 msgid "Bolivia"
 msgstr "Bolivia"
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr "Brazilië"
 
@@ -4411,6 +4485,10 @@ msgstr "Bahama's"
 
 msgid "Bhutan"
 msgstr "Bhutan"
+
+#, fuzzy
+msgid "Burma"
+msgstr "Bermuda"
 
 msgid "Bouvet Island"
 msgstr "Bouvet (eiland)"
@@ -4471,6 +4549,10 @@ msgstr "Cuba"
 
 msgid "Cape Verde"
 msgstr "Kaapverdische eilanden"
+
+#, fuzzy
+msgid "Curacao"
+msgstr "Macau"
 
 msgid "Christmas Island"
 msgstr "Christmaseiland"
@@ -4937,11 +5019,19 @@ msgstr "Somalië"
 msgid "Suriname"
 msgstr "Suriname"
 
+#, fuzzy
+msgid "South Sudan"
+msgstr "Zuid-Korea"
+
 msgid "Sao Tome and Principe"
 msgstr "Sao Tomé en Principe (eilanden)"
 
 msgid "El Salvador"
 msgstr "El Salvador"
+
+#, fuzzy
+msgid "Sint Maarten"
+msgstr "Saint Martin"
 
 msgid "Syrian Arab Republic"
 msgstr "Syrië"
@@ -5821,6 +5911,9 @@ msgstr "Query hits die OOB bezorging verzoeken"
 msgid "Stripped OOB flag on queries"
 msgstr "De OOB vlag verwijderd van query's"
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 msgid "Duplicate OOB-proxied queries"
 msgstr "Dubbele OOB geproxyde query's"
 
@@ -5831,6 +5924,10 @@ msgid "OOB hits bearing alien IP address"
 msgstr "OOB resultaten welke een vreemd IP-adres dragen"
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr "OOB hits genegeerd vanwege een geconstateerde spam-adres"
+
+#, fuzzy
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr "OOB hits genegeerd vanwege een geconstateerde spam-adres"
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -5907,6 +6004,9 @@ msgstr "Push-proxy doorgegeven berichten"
 msgid "Push-proxy TCP relayed messages"
 msgstr "Push-proxy gerouteerde berichten"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "Push-proxy broadcast berichten"
 
@@ -5959,6 +6059,10 @@ msgstr "Opdrachten gezien vanuit GTKG die opnieuw werden uitgevoerd"
 msgid "Queries advertising support of GGEP \"H\""
 msgstr "Opdrachten die ondersteuning voor GGEP \"H\" aangaven"
 
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "Opdrachten die ondersteuning voor GGEP \"H\" aangaven"
+
 msgid "GIV callbacks received"
 msgstr "GIV terug verbinden ontvangen"
 
@@ -5970,6 +6074,22 @@ msgstr "QUEUE terug verbinden ontvangen"
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE afgedankt  aangezien er geen geschikte download is"
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "UDP push verzonden"
 
 msgid "UDP messages with bogus source IP"
 msgstr "UDP berichten met ongeldig bron IP"
@@ -5988,6 +6108,138 @@ msgstr "Gecomprimeerde UDP berichten ontvangen"
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "UDP bericht gedecomprimeerd aangezien dit geen winst opleverde"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Gecomprimeerde UDP berichten ontvangen"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Gecomprimeerde UDP berichten ontvangen"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Gecomprimeerde UDP berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Gecomprimeerde UDP berichten ontvangen"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Gecomprimeerde UDP berichten ontvangen"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr "SPAM dynamisch opgevangen vijandige IP-adressen"
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr "Servers geconsolideerd (na het linken van GUID en IP adres)"
@@ -6102,6 +6354,14 @@ msgstr "Re-seeding of orphan-downloads dmv query hits"
 
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Orphan-downloads worden opnieuw geseed door upload verzoek"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "RX draad bytes"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "RX draad bytes"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT geschat aantal nodes"
@@ -8338,7 +8598,12 @@ msgstr "Uitgaande HTTP bandbreedte afgetopt"
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr "Poort mapping mogelijk via UPnP of NAT-PMP."
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+#, fuzzy
+msgid "Port mapping configured through NAT-PMP."
+msgstr "Poort mapping geconfigureerd via UPnP of NAT-PMP."
+
+#, fuzzy
+msgid "Port mapping configured through UPnP."
 msgstr "Poort mapping geconfigureerd via UPnP of NAT-PMP."
 
 msgid "Enable UPnP"
@@ -8729,6 +8994,9 @@ msgstr "Omgekeerd opzoeken van %s is mislukt"
 msgid "Reverse lookup in progress..."
 msgstr "Bezig met omgekeerd opzoeken..."
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "Grootte:"
 
@@ -9082,6 +9350,18 @@ msgstr "Alt-Locs"
 
 msgid "Partial"
 msgstr "Gedeeltelijk"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+#, fuzzy
+msgid "Available"
+msgstr "niet beschikbaar"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "Host informatie"
 
 msgid "Latinized"
 msgstr "Latinized"

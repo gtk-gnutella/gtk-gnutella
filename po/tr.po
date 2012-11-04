@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-04 13:10+0100\n"
 "PO-Revision-Date: 2011-12-11 12:04+0100\n"
 "Last-Translator: \n"
 "Language-Team: Turkish <gnu-tr-u12a@lists.sourceforge.net>\n"
@@ -748,6 +748,10 @@ msgid "Failed (Extra HELLO data)"
 msgstr "Başarısız (Ekstra HELLO verisi)"
 
 msgid "Pseudo UDP node"
+msgstr "Sözde UDP düğümü"
+
+#, fuzzy
+msgid "Pseudo semi-reliable UDP node"
 msgstr "Sözde UDP düğümü"
 
 msgid "Pseudo DHT node"
@@ -3685,6 +3689,73 @@ msgid ""
 "GUESS queries run faster."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "Bant genişliği programlayıcısı için hata ayıklama seviyesi."
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "Kötü sorgu denkleşme mesajları için hata ayıklama seviyesi."
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "DHT jetonlarının arabelleğe alınması hata ayıklama seviyesi."
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr ""
+"Daha önce hiç görülmemiş olan yeni Gnutella mesajları için kütük tutulup "
+"tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "DHT kararlı düğüm kaydedicisi için hata ayıklama seviyesi."
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr ""
+"Gnutella yönlendirme kararları için kütük tutulup tutulmayacağını ayarlar."
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr ""
+"Gnutella yönlendirme kararları için kütük tutulup tutulmayacağını ayarlar."
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
+msgstr ""
+
 msgid "disable"
 msgstr "devre dışı"
 
@@ -4374,6 +4445,10 @@ msgstr "Burundi"
 msgid "Benin"
 msgstr "Benin"
 
+#, fuzzy
+msgid "Saint Barthelemy"
+msgstr "Saint Martin"
+
 msgid "Bermuda"
 msgstr "Bermuda Adaları"
 
@@ -4383,6 +4458,9 @@ msgstr "Brunei Sultanlığı"
 msgid "Bolivia"
 msgstr "Bolivya"
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr "Brezilya"
 
@@ -4391,6 +4469,10 @@ msgstr "Bahamalar"
 
 msgid "Bhutan"
 msgstr "Bhutan"
+
+#, fuzzy
+msgid "Burma"
+msgstr "Bermuda Adaları"
 
 msgid "Bouvet Island"
 msgstr "Bouvet Adası"
@@ -4451,6 +4533,10 @@ msgstr "Küba"
 
 msgid "Cape Verde"
 msgstr "Yeşil Burun Adaları"
+
+#, fuzzy
+msgid "Curacao"
+msgstr "Makao"
 
 msgid "Christmas Island"
 msgstr "Christmas Adası"
@@ -4917,11 +5003,19 @@ msgstr "Somali"
 msgid "Suriname"
 msgstr "Surinam"
 
+#, fuzzy
+msgid "South Sudan"
+msgstr "Güney Kore"
+
 msgid "Sao Tome and Principe"
 msgstr "Sao Tome ve Principe"
 
 msgid "El Salvador"
 msgstr "El Salvador"
+
+#, fuzzy
+msgid "Sint Maarten"
+msgstr "Saint Martin"
 
 msgid "Syrian Arab Republic"
 msgstr "Suriye Arap Cumhuriyeti"
@@ -5794,6 +5888,9 @@ msgstr "OOB denkleşmesi talep eden sorgular"
 msgid "Stripped OOB flag on queries"
 msgstr "Sorgulardan kaldırılan OOB bayrağı"
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 msgid "Duplicate OOB-proxied queries"
 msgstr "Kopya OOB vekilli sorgular"
 
@@ -5804,6 +5901,10 @@ msgid "OOB hits bearing alien IP address"
 msgstr "Yabancı İP adresi taşıyan OOB denkleşmeleri"
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr "Bilinen spamcı adresi nedeniyle görmezden gelinen OOB denkleşmeleri"
+
+#, fuzzy
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr "Bilinen spamcı adresi nedeniyle görmezden gelinen OOB denkleşmeleri"
 
 msgid "Unclaimed locally-generated OOB hits"
@@ -5878,6 +5979,9 @@ msgstr "İtme vekilince yönlendirilen UDP mesajları"
 msgid "Push-proxy TCP relayed messages"
 msgstr "İtme vekilince yönlendirilen TCP mesajları"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "Yayınlanan itme vekili mesajları"
 
@@ -5929,6 +6033,10 @@ msgstr "GTKG'nın gördüğü tekrar olan sorgular"
 msgid "Queries advertising support of GGEP \"H\""
 msgstr "GGEP \"H\" desteği bildiren sorgular"
 
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "GGEP \"H\" desteği bildiren sorgular"
+
 msgid "GIV callbacks received"
 msgstr "Alınan GİV geri çağrıları"
 
@@ -5940,6 +6048,22 @@ msgstr "Alınan QUEUE geri çağrıları"
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr "Uygun indirme bulunmadığı için atılan QUEUE"
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "UDP itme yollandı"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Bozuk kaynak İP adresi içeren UDP mesajları"
@@ -5958,6 +6082,138 @@ msgstr "Alınan sıkıştırılmış UDP mesajları"
 
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Kazanım olmadığı için sıkıştırılmayan UDP mesajları"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "Alınan sıkıştırılmış UDP mesajları"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr "SPAM dinamik olarak yakalanan kötücül İP adresleri"
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr "Konsolide sunucular (GUİD ve İP adresi eşleşmesinden sonra)"
@@ -6075,6 +6331,14 @@ msgstr "Öksüz indirmelerin sorgu denkleşmeleri yoluyla tekrar sunumu"
 
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Öksüz indirmelerin gönderme istekleri yoluyla tekrar sunumu"
+
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "RX baytları"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "RX baytları"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT tahmini düğüm sayısı"
@@ -8293,7 +8557,12 @@ msgstr "Dışarıya HTTP bant genişliği sınırlanıyor."
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr "Port haritalaması UPnP ve NAT-PMP ile mümkün."
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+#, fuzzy
+msgid "Port mapping configured through NAT-PMP."
+msgstr "Port haritalama UPnP ya da NAT-PMP ile yapılandırıldı."
+
+#, fuzzy
+msgid "Port mapping configured through UPnP."
 msgstr "Port haritalama UPnP ya da NAT-PMP ile yapılandırıldı."
 
 msgid "Enable UPnP"
@@ -8680,6 +8949,9 @@ msgstr "%s için ters arama başarısız oldu"
 msgid "Reverse lookup in progress..."
 msgstr "Ters arama sürüyor..."
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "Boyut:"
 
@@ -9011,6 +9283,18 @@ msgstr "Alt-Yerler"
 
 msgid "Partial"
 msgstr "Kısmi"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+#, fuzzy
+msgid "Available"
+msgstr "müsait değil"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "Bilgisayar hakkında"
 
 msgid "Latinized"
 msgstr "Latinleştirilmiş"
