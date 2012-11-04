@@ -4586,7 +4586,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	}
 
 	/*
-	 * If the block is shrinked and its old size is less than XMALLOC_MAXSIZE,
+	 * If the block is shrunk and its old size is less than XMALLOC_MAXSIZE,
 	 * put the remainder back in the freelist.
 	 */
 
@@ -4669,7 +4669,6 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc NOT coalescing next %zu-byte "
 							"[%p, %p[ from list #%zu with [%p, %p[: invalid "
@@ -4677,6 +4676,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 							blksize, end, ptr_add_offset(end, blksize), i,
 							(void *) xh, end, csize);
 					}
+					mutex_unlock(&fl->lock);
 					break;
 				}
 
@@ -4768,7 +4768,6 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc not coalescing previous "
 							"%zu-byte [%p, %p[ from list #%zu with [%p, %p[: "
@@ -4776,6 +4775,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 							blksize, before, ptr_add_offset(before, blksize), i,
 							(void *) xh, end, csize);
 					}
+					mutex_unlock(&fl->lock);
 					break;
 				}
 
