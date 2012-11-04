@@ -382,8 +382,12 @@ static struct xfreelist {
 
 /**
  * Each bit set in this bit array indicates a freelist with blocks in it.
+ *
+ * The `xfreebits_slk' lock protects access to xfreebits[] and xfreelist_maxidx.
  */
+static spinlock_t xfreebits_slk = SPINLOCK_INIT;
 static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
+static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 
 #define XMALLOC_SHRINK_PERIOD		5	/**< Secs between shrinking attempts */
 #define XMALLOC_XGC_SHRINK_PERIOD	60	/**< Idem, but from xgc() */
@@ -503,7 +507,6 @@ static struct {
 	memusage_t *user_mem;				/**< EMA tracker */
 } xstats;
 
-static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static uint32 xmalloc_debug;		/**< Debug level */
 static bool safe_to_log;			/**< True when we can log */
 static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
@@ -573,7 +576,6 @@ xmalloc_crash_mode(void)
 	xmalloc_no_freeing = TRUE;
 	xmalloc_no_wfree = TRUE;
 }
-
 
 /**
  * Comparison function for pointers.
@@ -1321,6 +1323,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 	if G_UNLIKELY(0 == fl->count) {
 		size_t idx = xfl_index(fl);
 
+		spinlock(&xfreebits_slk);
 		bit_array_clear(xfreebits, idx);
 
 		if G_UNLIKELY(idx == xfreelist_maxidx) {
@@ -1337,6 +1340,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 					xfreelist_maxidx);
 			}
 		}
+		spinunlock(&xfreebits_slk);
 	}
 
 	/*
@@ -2142,6 +2146,7 @@ plain_insert:
 	if G_UNLIKELY(1 == fl->count) {
 		size_t fidx = xfl_index(fl);
 
+		spinlock(&xfreebits_slk);
 		bit_array_set(xfreebits, fidx);
 
 		/*
@@ -2157,6 +2162,7 @@ plain_insert:
 					xfreelist_maxidx);
 			}
 		}
+		spinunlock(&xfreebits_slk);
 	}
 
 	/*
