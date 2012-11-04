@@ -1603,6 +1603,7 @@ xfl_extend(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
+	g_assert(mutex_is_owned(&fl->lock));
 	g_assert(fl->count >= fl->capacity || fl->expand);
 
 	old_ptr = fl->pointers;
@@ -1649,10 +1650,7 @@ xfl_extend(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	mutex_lock(&fl->lock);
-
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		mutex_unlock(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug("XM recursion during extension of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -1702,7 +1700,6 @@ xfl_extend(struct xfreelist *fl)
 	fl->pointers = new_ptr;
 	fl->capacity = allocated_size / sizeof(void *);
 	fl->expand = FALSE;
-	mutex_unlock(&fl->lock);
 
 	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
@@ -2030,6 +2027,14 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	size_t idx;
 	bool sorted;
 
+	/*
+	 * We use a mutex and not a plain spinlock because we can recurse here
+	 * through freelist bucket allocations.  A mutex allows us to relock
+	 * an object we already locked in the same thread.
+	 */
+
+	mutex_lock(&fl->lock);
+
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
 
@@ -2042,14 +2047,6 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	while (fl->count >= fl->capacity)
 		xfl_extend(fl);
-
-	/*
-	 * We use a mutex and not a plain spinlock because we can recurse here
-	 * through freelist bucket allocations.  A mutex allows us to relock
-	 * an object we already locked in the same thread.
-	 */
-
-	mutex_lock(&fl->lock);
 
 	sorted = fl->count == fl->sorted;
 
