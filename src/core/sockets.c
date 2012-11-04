@@ -2530,6 +2530,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t avail, rd;
+	bool guessed;
 	unsigned i;
 	tm_t start, end;
 
@@ -2554,13 +2555,15 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	tm_now_exact(&start);
 
 	avail = inputevt_data_available();
-	avail = (avail != 0) ? avail : 64 * 1024;
+	guessed = 0 == avail;
+	avail = guessed ? 64 * 1024 : avail;
 
 	i = 0;
 	rd = 0;
 	do {
 		ssize_t r;
 
+		/* Read datagram and let the application handle it */
 		r = socket_udp_accept(s);
 
 		if ((ssize_t) -1 == r) {
@@ -2594,8 +2597,9 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
-			G_STRFUNC, i, (unsigned long) rd,
+		g_debug("%s() iterated %u times, read %'zu bytes "
+			"(out of %s%'zu pending) in %'u usecs",
+			G_STRFUNC, i, rd, guessed ? "~" : "", avail,
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
