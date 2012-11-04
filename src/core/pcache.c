@@ -2596,6 +2596,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 					supports_dht = TRUE;
 			}
 			break;
+		case EXT_T_GGEP_UP:
+		case EXT_T_GGEP_LOC:
+		case EXT_T_GGEP_IPP_TLS:
+		case EXT_T_GGEP_IPP6_TLS:
+			/* Silently ignored */
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
