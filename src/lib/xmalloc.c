@@ -2426,10 +2426,12 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 		if G_UNLIKELY(exclude == fl)
 			continue;
 
-		if (0 == fl->count)
-			continue;
+		/*
+		 * To avoid possible deadlocks, skip bucket if we cannot lock it.
+		 */
 
-		mutex_lock(&fl->lock);
+		if (0 == fl->count || !mutex_trylock(&fl->lock))
+			continue;
 
 		if (0 == fl->count) {
 			mutex_unlock(&fl->lock);
