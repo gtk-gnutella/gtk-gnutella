@@ -458,6 +458,7 @@ static struct {
 	uint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	uint64 realloc_relocate_smart_success;	/**< Smart placement was OK */
 	uint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	uint64 realloc_from_thread_pool;		/**< Original was in thread pool */
 	uint64 realloc_wrealloc;				/**< Used wrealloc() */
 	uint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
 	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
@@ -4991,6 +4992,7 @@ realloc_from_thread:
 		size_t old_size = xck->xc_size;
 
 		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
+		xstats.realloc_from_thread_pool++;
 		xstats.realloc_regular_strategy++;
 		memcpy(np, p, MIN(size, old_size));
 		xfree(p);
@@ -6019,6 +6021,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
+	DUMP(realloc_from_thread_pool);
 	DUMP(realloc_wrealloc);
 	DUMP(realloc_converted_from_walloc);
 	DUMP(realloc_promoted_to_walloc);
