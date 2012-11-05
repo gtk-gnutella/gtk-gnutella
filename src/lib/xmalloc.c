@@ -382,8 +382,12 @@ static struct xfreelist {
 
 /**
  * Each bit set in this bit array indicates a freelist with blocks in it.
+ *
+ * The `xfreebits_slk' lock protects access to xfreebits[] and xfreelist_maxidx.
  */
+static spinlock_t xfreebits_slk = SPINLOCK_INIT;
 static bit_array_t xfreebits[BIT_ARRAY_SIZE(XMALLOC_FREELIST_COUNT)];
+static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 
 #define XMALLOC_SHRINK_PERIOD		5	/**< Secs between shrinking attempts */
 #define XMALLOC_XGC_SHRINK_PERIOD	60	/**< Idem, but from xgc() */
@@ -458,6 +462,7 @@ static struct {
 	uint64 realloc_relocate_smart_attempts;	/**< Attempts to move pointer */
 	uint64 realloc_relocate_smart_success;	/**< Smart placement was OK */
 	uint64 realloc_regular_strategy;		/**< Regular resizing strategy */
+	uint64 realloc_from_thread_pool;		/**< Original was in thread pool */
 	uint64 realloc_wrealloc;				/**< Used wrealloc() */
 	uint64 realloc_converted_from_walloc;	/**< Converted from walloc() */
 	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
@@ -502,7 +507,6 @@ static struct {
 	memusage_t *user_mem;				/**< EMA tracker */
 } xstats;
 
-static size_t xfreelist_maxidx;		/**< Highest bucket with blocks */
 static uint32 xmalloc_debug;		/**< Debug level */
 static bool safe_to_log;			/**< True when we can log */
 static bool xmalloc_vmm_is_up;		/**< True when the VMM layer is up */
@@ -533,6 +537,8 @@ static void *xfl_bucket_alloc(const struct xfreelist *flb,
 static void xmalloc_crash_hook(void);
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
+
+#define XM_INVALID_PTR		((void *) 0xdeadbeef)
 
 /*
  * Simplify dead-code removal by gcc, preventing #ifdef hell.
@@ -570,7 +576,6 @@ xmalloc_crash_mode(void)
 	xmalloc_no_freeing = TRUE;
 	xmalloc_no_wfree = TRUE;
 }
-
 
 /**
  * Comparison function for pointers.
@@ -1176,6 +1181,61 @@ xfl_find_freelist(size_t len)
 }
 
 /**
+ * Replace the buckets's array of pointers.
+ *
+ * @param fl		the freelist bucket
+ * @param array		new array to use
+ * @param len		length of array
+ */
+static void
+xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
+{
+	size_t used, size, capacity, i;
+	void *ptr;
+
+	g_assert(array != NULL);
+	g_assert(size_is_non_negative(len));
+	g_assert(mutex_is_owned(&fl->lock));
+	g_assert(size_is_non_negative(fl->count));
+
+	ptr = fl->pointers;							/* Can be NULL */
+	used = sizeof(void *) * fl->count;
+	size = sizeof(void *) * fl->capacity;
+	capacity = len / sizeof(void *);
+
+	g_assert(ptr != NULL || 0 == used);
+	g_assert(len >= used);
+	g_assert(capacity * sizeof(void *) == len);	/* Even split */
+	g_assert(array != ptr);
+
+	for (i = fl->count; i < capacity; i++) {
+		array[i] = XM_INVALID_PTR;		/* Clear trailing (unused) entries */
+	}
+
+	memcpy(array, ptr, used);
+	fl->pointers = array;
+	fl->capacity = capacity;
+
+	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+
+	/*
+	 * Freelist bucket is now in a coherent state, we can unconditionally
+	 * release the old bucket even if it ends up being put in the same bucket
+	 * we just extended / shrunk.
+	 *
+	 * TODO: make sure there is no deadlock possible.  Inserting in the bucket
+	 * will require grabing its mutex, and if another thread has it whilst
+	 * it is waiting for the mutex we're holding for this bucket we're
+	 * presently extending or shrinking, boom!.  Deadlock...
+	 * We'll need to defer insertion in the freelist until after we released
+	 * our fl->lock mutex.	--RAM, 2012-11-04
+	 */
+
+	if (ptr != NULL)
+		xmalloc_freelist_add(ptr, size, XM_COALESCE_ALL);
+}
+
+/**
  * Remove trailing excess memory in pointers[], accounting for hysteresis.
  *
  * @return TRUE if we actually shrank the bucket.
@@ -1273,12 +1333,7 @@ xfl_shrink(struct xfreelist *fl)
 		return FALSE;
 	}
 
-	memcpy(new_ptr, old_ptr, old_used);
-
-	fl->pointers = new_ptr;
-	fl->capacity = allocated_size / sizeof(void *);
-
-	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+	xfl_replace_pointer_array(fl, new_ptr, allocated_size);
 
 	if (xmalloc_debugging(1)) {
 		t_debug("XM shrunk freelist #%zu (%zu-byte block) to %zu items"
@@ -1287,14 +1342,6 @@ xfl_shrink(struct xfreelist *fl)
 			xfl_index(fl), fl->blocksize, fl->capacity, fl->count,
 			old_size, allocated_size, new_size, new_ptr);
 	}
-
-	/*
-	 * Freelist bucket is now in a coherent state, we can unconditionally
-	 * release the old bucket even if it ends up being put in the same bucket
-	 * we just shrank.
-	 */
-
-	xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 
 	return TRUE;
 }
@@ -1318,6 +1365,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 	if G_UNLIKELY(0 == fl->count) {
 		size_t idx = xfl_index(fl);
 
+		spinlock(&xfreebits_slk);
 		bit_array_clear(xfreebits, idx);
 
 		if G_UNLIKELY(idx == xfreelist_maxidx) {
@@ -1334,6 +1382,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 					xfreelist_maxidx);
 			}
 		}
+		spinunlock(&xfreebits_slk);
 	}
 
 	/*
@@ -1455,7 +1504,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 
 	g_assert(p == fl->pointers[fl->count - 1]);		/* Removing last item */
 
-	i = --fl->count;				/* Index of removed item */
+	i = --fl->count;					/* Index of removed item */
+	fl->pointers[i] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	if (i < fl->sorted)
 		fl->sorted--;
 
@@ -1603,6 +1653,7 @@ xfl_extend(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
+	g_assert(mutex_is_owned(&fl->lock));
 	g_assert(fl->count >= fl->capacity || fl->expand);
 
 	old_ptr = fl->pointers;
@@ -1649,10 +1700,7 @@ xfl_extend(struct xfreelist *fl)
 	 * Detect possible recursion.
 	 */
 
-	mutex_lock(&fl->lock);
-
 	if G_UNLIKELY(fl->pointers != old_ptr) {
-		mutex_unlock(&fl->lock);
 		if (xmalloc_debugging(0)) {
 			t_debug("XM recursion during extension of freelist #%zu "
 					"(%zu-byte block): already has new bucket at %p "
@@ -1667,7 +1715,7 @@ xfl_extend(struct xfreelist *fl)
 		/*
 		 * The freelist structure is coherent, we can release the bucket
 		 * we had allocated and if it causes it to be put back in this
-		 * freelist, we may still safely recurse here since.
+		 * freelist, we may still safely recurse here.
 		 */
 
 		if (xmalloc_debugging(1)) {
@@ -1696,31 +1744,14 @@ xfl_extend(struct xfreelist *fl)
 			fl->count, fl->capacity);
 	}
 
-	g_assert(new_ptr != old_ptr);
-
-	memcpy(new_ptr, old_ptr, old_used);
-	fl->pointers = new_ptr;
-	fl->capacity = allocated_size / sizeof(void *);
+	xfl_replace_pointer_array(fl, new_ptr, allocated_size);
 	fl->expand = FALSE;
-	mutex_unlock(&fl->lock);
-
-	g_assert(fl->capacity > fl->count);		/* Extending was OK */
 
 	if (xmalloc_debugging(1)) {
 		t_debug("XM extended freelist #%zu (%zu-byte block) to %zu items"
 			" (holds %zu): new size is %zu bytes, requested %zu, bucket at %p",
 			xfl_index(fl), fl->blocksize, fl->capacity, fl->count,
 			allocated_size, new_size, new_ptr);
-	}
-
-	/*
-	 * Freelist bucket is now in a coherent state, we can unconditionally
-	 * release the old bucket even if it ends up being put in the same bucket
-	 * we just extended.
-	 */
-
-	if (old_ptr != NULL) {
-		xmalloc_freelist_add(old_ptr, old_size, XM_COALESCE_ALL);
 	}
 }
 
@@ -2014,6 +2045,13 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 			(fl->count - idx) * sizeof(fl->pointers[0]));
 	}
 
+	/*
+	 * Regardless of whether we removed the last item or whether we
+	 * shifted down the pointers because we removed a middle index,
+	 * the previous last slot is now unused.
+	 */
+
+	fl->pointers[fl->count] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	xfl_count_decreased(fl, TRUE);
 }
 
@@ -2030,6 +2068,14 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	size_t idx;
 	bool sorted;
 
+	/*
+	 * We use a mutex and not a plain spinlock because we can recurse here
+	 * through freelist bucket allocations.  A mutex allows us to relock
+	 * an object we already locked in the same thread.
+	 */
+
+	mutex_lock(&fl->lock);
+
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
 
@@ -2042,14 +2088,6 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	while (fl->count >= fl->capacity)
 		xfl_extend(fl);
-
-	/*
-	 * We use a mutex and not a plain spinlock because we can recurse here
-	 * through freelist bucket allocations.  A mutex allows us to relock
-	 * an object we already locked in the same thread.
-	 */
-
-	mutex_lock(&fl->lock);
 
 	sorted = fl->count == fl->sorted;
 
@@ -2134,6 +2172,7 @@ plain_insert:
 	if G_UNLIKELY(1 == fl->count) {
 		size_t fidx = xfl_index(fl);
 
+		spinlock(&xfreebits_slk);
 		bit_array_set(xfreebits, fidx);
 
 		/*
@@ -2149,6 +2188,7 @@ plain_insert:
 					xfreelist_maxidx);
 			}
 		}
+		spinunlock(&xfreebits_slk);
 	}
 
 	/*
@@ -2418,10 +2458,12 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 		if G_UNLIKELY(exclude == fl)
 			continue;
 
-		if (0 == fl->count)
-			continue;
+		/*
+		 * To avoid possible deadlocks, skip bucket if we cannot lock it.
+		 */
 
-		mutex_lock(&fl->lock);
+		if (0 == fl->count || !mutex_trylock(&fl->lock))
+			continue;
 
 		if (0 == fl->count) {
 			mutex_unlock(&fl->lock);
@@ -4589,7 +4631,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 	}
 
 	/*
-	 * If the block is shrinked and its old size is less than XMALLOC_MAXSIZE,
+	 * If the block is shrunk and its old size is less than XMALLOC_MAXSIZE,
 	 * put the remainder back in the freelist.
 	 */
 
@@ -4672,7 +4714,6 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc NOT coalescing next %zu-byte "
 							"[%p, %p[ from list #%zu with [%p, %p[: invalid "
@@ -4680,6 +4721,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 							blksize, end, ptr_add_offset(end, blksize), i,
 							(void *) xh, end, csize);
 					}
+					mutex_unlock(&fl->lock);
 					break;
 				}
 
@@ -4771,7 +4813,6 @@ xreallocate(void *p, size_t size, bool can_walloc)
 				 */
 
 				if (xmalloc_round_blocksize(csize) != csize) {
-					mutex_unlock(&fl->lock);
 					if (xmalloc_debugging(6)) {
 						t_debug("XM realloc not coalescing previous "
 							"%zu-byte [%p, %p[ from list #%zu with [%p, %p[: "
@@ -4779,6 +4820,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 							blksize, before, ptr_add_offset(before, blksize), i,
 							(void *) xh, end, csize);
 					}
+					mutex_unlock(&fl->lock);
 					break;
 				}
 
@@ -4994,6 +5036,7 @@ realloc_from_thread:
 		size_t old_size = xck->xc_size;
 
 		np = xallocate(size, allow_walloc() && can_walloc, TRUE);
+		xstats.realloc_from_thread_pool++;
 		xstats.realloc_regular_strategy++;
 		memcpy(np, p, MIN(size, old_size));
 		xfree(p);
@@ -6022,6 +6065,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_relocate_smart_attempts);
 	DUMP(realloc_relocate_smart_success);
 	DUMP(realloc_regular_strategy);
+	DUMP(realloc_from_thread_pool);
 	DUMP(realloc_wrealloc);
 	DUMP(realloc_converted_from_walloc);
 	DUMP(realloc_promoted_to_walloc);
