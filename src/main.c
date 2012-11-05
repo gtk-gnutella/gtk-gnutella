@@ -1060,8 +1060,10 @@ parse_arguments(int argc, char **argv)
 		const char *s;
 
 		s = is_strprefix(argv[0], "--");
-		if (!s)
+		if (NULL == s) {
+			fprintf(stderr, "Unexpected argument \"%s\"\n", argv[0]);
 			usage(EXIT_FAILURE);
+		}
 		if ('\0' == s[0])
 			break;
 
