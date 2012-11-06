@@ -43,7 +43,7 @@
  * published locally by a given IP address and by class C networks (/24) and
  * define a reasonable maximum for each.
  *
- * Values are bounded to a maximum size, which is node-dependent. For GTKG,
+ * Values are bound to a maximum size, which is node-dependent. For GTKG,
  * this is hardwired to 512 bytes and non-configurable.
  *
  * Each key tracks the amount of values stored under it and will not accept
@@ -404,6 +404,50 @@ dht_value_make(const knode_t *creator,
 	v->length = length;
 
 	return v;
+}
+
+/**
+ * Patch the creator of the value to supersede its address and port.
+ *
+ * @param v		the value
+ * @param addr	the new address to use for the creator
+ * @param port	the new port to use for the creator
+ */
+void
+dht_value_patch_creator(dht_value_t *v, host_addr_t addr, uint16 port)
+{
+	const knode_t *cn;
+
+	cn = v->creator;
+
+	/*
+	 * Creator can be shared and we cannot blindly update its IP:port.
+	 * When it is shared, clone it and patch the new private copy.
+	 */
+
+	if (knode_refcnt(cn) > 1) {
+		v->creator = knode_clone(cn);
+		knode_free(deconstify_pointer(cn));
+		cn = v->creator;
+	}
+
+	g_assert(1 == knode_refcnt(cn));
+
+	
+	if (GNET_PROPERTY(dht_storage_debug)) {
+		g_warning(
+			"DHT patching creator's IP %s:%u to match sender's %s",
+			host_addr_to_string(cn->addr), cn->port,
+			host_addr_port_to_string(addr, port));
+	}
+
+	{
+		knode_t *wcn = deconstify_pointer(cn);
+
+		wcn->addr = addr;
+		wcn->port = port;
+		wcn->flags |= KNODE_F_PCONTACT;
+	}
 }
 
 /**

@@ -58,6 +58,7 @@ void dht_value_serialize(pmsg_t *mb, const dht_value_t *v);
 dht_value_t *dht_value_deserialize(bstr_t *bs);
 int dht_value_cmp(const void *a, const void *b);
 void dht_value_fill_record(const dht_value_t *v, lookup_val_rc_t *rc);
+void dht_value_patch_creator(dht_value_t *v, host_addr_t addr, uint16 port);
 
 #endif /* _dht_values_h_ */
 

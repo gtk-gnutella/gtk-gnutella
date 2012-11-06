@@ -1409,7 +1409,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			(kn->flags & KNODE_F_PCONTACT) &&
 			kuid_eq(kn->id, dht_value_creator(v)->id)
 		) {
-			knode_t *cn = deconstify_pointer(dht_value_creator(v));
+			const knode_t *cn = dht_value_creator(v);
 
 			if (GNET_PROPERTY(dht_storage_debug))
 				g_warning(
@@ -1417,9 +1417,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 					host_addr_to_string(cn->addr), cn->port,
 					host_addr_port_to_string(kn->addr, kn->port));
 
-			cn->addr = kn->addr;
-			cn->port = kn->port;
-			cn->flags |= KNODE_F_PCONTACT;
+			dht_value_patch_creator(v, kn->addr, kn->port);
 		}
 
 		vec[i] = v;
@@ -2075,35 +2073,45 @@ void kmsg_received(
 	flags = kademlia_header_get_contact_flags(header);
 
 	/*
-	 * Check contact's address, if host not flagged as "firewalled".
+	 * Check contact's address on RPC replies.
+	 *
+	 * LimeWire nodes suffer from a bug whereby the contact is not
+	 * firewalled but replies to RPC requests come back with an
+	 * advertised address of 127.0.0.1.  This is annoying but hopefully
+	 * fixable, at the cost of extra processing.
+	 *
+	 * Given the remote host is echoing back our random RPC MUID, we can
+	 * be confident that the contact information was valid if we get a
+	 * matching reply, since the MUID cannot be otherwise guessed.
 	 */
 
-	if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
+	{
 		host_addr_t raddr;
 		uint16 rport;
 
-		/*
-		 * LimeWire nodes suffer from a bug whereby the contact is not
-		 * firewalled but replies to RPC requests come back with an
-		 * advertised address of 127.0.0.1.  This is annoying but hopefully
-		 * fixable, at the cost of extra processing.
-		 */
-
 		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
+			if (kport == rport && host_addr_equal(kaddr, raddr))
+				goto good_rpc_contact;
+
 			if (GNET_PROPERTY(dht_debug)) {
+				bool matches = port == rport && host_addr_equal(addr, raddr);
 				g_warning("DHT fixing contact address for kuid=%s "
-					"to %s:%u on RPC reply (%s UDP info) in %s",
+					"to %s:%u on RPC reply (%s UDP info%s%s) in %s",
 					kuid_to_hex_string(id),
 					host_addr_to_string(raddr), rport,
-					host_addr_equal(addr, raddr) && port == rport ?
-						"matches" : "still different from",
+					matches ?  "matches" : "still different from",
+					matches ?  "" : " ",
+					matches ?  "" : host_addr_port_to_string(addr, port),
 					kmsg_infostr(data));
 			}
+
 			kaddr = raddr;
 			kport = rport;
 			weird_header = TRUE;
 		}
 	}
+
+good_rpc_contact:
 
 	/*
 	 * Even if they are "firewalled", drop the message if contact address
@@ -2135,12 +2143,13 @@ void kmsg_received(
 
 	if (
 		!(flags & KDA_MSG_F_FIREWALLED) &&
-		(!host_addr_equal(addr, kaddr) || port != kport)
+		(port != kport || !host_addr_equal(addr, kaddr))
 	) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT contact address is %s "
-				"but message came from %s (%s v%u.%u) kuid=%s",
+				"but %s came from %s (%s v%u.%u) kuid=%s",
 				host_addr_port_to_string(kaddr, kport),
+				kmsg_name(kademlia_header_get_function(header)),
 				host_addr_port_to_string2(addr, port),
 				vendor_code_to_string(vcode.u32), kmajor, kminor,
 				kuid_to_hex_string(id));
@@ -2260,12 +2269,15 @@ void kmsg_received(
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address for kuid=%s "
-						"to %s:%u based on routing table (%s UDP info) in %s",
+					bool matches = port == kport &&
+						host_addr_equal(addr, kn->addr);
+					g_warning("DHT fixing contact address for kuid=%s to %s:%u"
+						" based on routing table (%s UDP info%s%s) in %s",
 						kuid_to_hex_string(id),
 						host_addr_to_string(kn->addr), kn->port,
-						host_addr_equal(addr, kn->addr) && port == kport ?
-							"matches" : "still different from",
+						matches ? "matches" : "still different from",
+						matches ? "" : " ",
+						matches ? "" : host_addr_port_to_string(addr, port),
 						kmsg_infostr(data));
 				}
 				weird_header = TRUE;
@@ -2389,7 +2401,7 @@ void kmsg_received(
 	}
 
 	/*
-	 * Log weirds header when debugging.
+	 * Log weird headers when debugging.
 	 */
 
 	if (

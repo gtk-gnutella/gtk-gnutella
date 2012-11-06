@@ -180,6 +180,26 @@ knode_new(
 }
 
 /**
+ * Clone a Kademlia node.
+ *
+ * @return new node with a reference count of 1, in the "unknown" status.
+ */
+knode_t *
+knode_clone(const knode_t *kn)
+{
+	knode_t *cn;
+
+	WALLOC(cn);
+	*cn = *kn;						/* Struct copy */
+	cn->status = KNODE_UNKNOWN;		/* This instance is not in routing table */
+	cn->refcnt = 1;					/* New instance */
+	cn->id = kuid_get_atom(kn->id);	/* Increase reference count */
+	cn->rpc_pending = 0;
+
+	return cn;
+}
+
+/**
  * Can the node which timed-out in the past be considered again as the
  * target of an RPC, and therefore returned in k-closest lookups?
  */

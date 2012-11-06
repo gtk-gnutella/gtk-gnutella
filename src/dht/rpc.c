@@ -64,6 +64,7 @@ struct rpc_cb {
 	enum rpc_cb_magic magic;	/**< magic */
 	enum dht_rpc_op op;			/**< Operation type */
 	host_addr_t addr;			/**< The host from which we expect a reply */
+	uint16 port;				/**< The port from which we expect a reply */
 	tm_t start;					/**< The time at which we initiated the RPC */
 	const guid_t *muid;			/**< MUID of the message sent (atom) */
 	knode_t *kn;				/**< Remote node to which RPC was sent */
@@ -191,7 +192,7 @@ rpc_timed_out(cqueue_t *unused_cq, void *obj)
 	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb != NULL) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 			g_debug("DHT RPC %s #%s invoking %s(TIMEOUT, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), rcb->arg);
@@ -254,6 +255,7 @@ rpc_call_prepare(
 	rcb->flags = flags;
 	rcb->muid = atom_guid_get(&muid);
 	rcb->addr = kn->addr;
+	rcb->port = kn->port;
 	rcb->timeout = cq_main_insert(delay, rpc_timed_out, rcb);
 	rcb->cb = cb;
 	rcb->arg = arg;
@@ -262,7 +264,7 @@ rpc_call_prepare(
 
 	hikset_insert_key(pending, &rcb->muid);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
+	if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 		g_debug("DHT RPC created %s #%s to %s with callback %s(%p), "
 			"timeout %d ms",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
@@ -291,7 +293,7 @@ dht_rpc_cancel(const guid_t *muid)
 
 	rpc_cb_check(rcb);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
+	if (GNET_PROPERTY(dht_rpc_debug) > 3) {
 		g_debug("DHT RPC cancelling %s #%s to %s -- not calling %s(%p)",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn),
@@ -321,7 +323,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 	rpc_cb_check(rcb);
 
 	if (NULL == rcb->cb) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 3) {
 			g_debug("DHT RPC cancelling %s #%s to %s with no callback",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				knode_to_string(rcb->kn));
@@ -356,8 +358,18 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 	rn = rcb->kn;
 	knode_check(rn);
 
-	if (addr) *addr = rn->addr;
-	if (port) *port = rn->port;
+	if (
+		GNET_PROPERTY(dht_rpc_debug) &&
+		(rn->port != rcb->port || !host_addr_equal(rn->addr, rcb->addr))
+	) {
+		g_warning("DHT RPC had sent %s #%s to %s, now is %s",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			host_addr_port_to_string(rcb->addr, rcb->port),
+			knode_to_string(rn));
+	}
+
+	if (addr) *addr = rcb->addr;
+	if (port) *port = rcb->port;
 
 	return TRUE;
 }
@@ -394,8 +406,8 @@ dht_rpc_answer(const guid_t *muid,
 
 	rpc_cb_check(rcb);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
-		g_debug("DHT RPC answer to %s #%s sent to %s, timeout in %s ms",
+	if (GNET_PROPERTY(dht_rpc_debug) > 2) {
+		g_debug("DHT RPC got answer to %s #%s sent to %s, timeout in %s ms",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn),
 			cq_time_to_string(cq_remaining(rcb->timeout)));
@@ -519,7 +531,7 @@ dht_rpc_answer(const guid_t *muid,
 	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb != NULL) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), kmsg_name(function),

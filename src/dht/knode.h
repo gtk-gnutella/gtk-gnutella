@@ -48,6 +48,7 @@ knode_t *knode_new(
 	const kuid_t *id, uint8 flags,
 	host_addr_t addr, uint16 port, vendor_code_t vcode,
 	uint8 major, uint8 minor);
+knode_t *knode_clone(const knode_t *kn);
 void knode_change_vendor(knode_t *kn, vendor_code_t vcode);
 void knode_change_version(knode_t *kn, uint8 major, uint8 minor);
 bool knode_can_recontact(const knode_t *kn);
