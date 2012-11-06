@@ -1278,9 +1278,9 @@ handle_oob_proxy_veto(struct gnutella_node *n,
 
 	if (size > 0 && peek_u8(payload) < 3) {
 		/* we support OOB v3 */
-		n->flags &= ~NODE_F_NO_OOB_PROXY;
+		n->attrs2 &= ~NODE_A2_NO_OOB_PROXY;
 	} else {
-		n->flags |= NODE_F_NO_OOB_PROXY;
+		n->attrs2 |= NODE_A2_NO_OOB_PROXY;
 	}
 
 	return;

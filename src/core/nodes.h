@@ -285,11 +285,11 @@ enum {
 	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
 	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
-	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
+	NODE_F_UNUSED_4		= 1 << 27,	/**< UNUSED */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
-	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
-	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
-	NODE_F_NO_OOB_PROXY	= 1 << 23,	/**< Do not OOB proxy the leaf */
+	NODE_F_UNUSED_3		= 1 << 25,	/**< UNUSED */
+	NODE_F_UNUSED_2		= 1 << 24,	/**< UNUSED */
+	NODE_F_UNUSED_1		= 1 << 23,	/**< UNUSED */
 	NODE_F_FORCE		= 1 << 22,	/**< Connection is forced */
 	NODE_F_GTKG			= 1 << 21,	/**< Node is another gtk-gnutella */
 	NODE_F_TSYNC_TCP	= 1 << 20,	/**< No replies via UDP, use TCP */
@@ -357,6 +357,10 @@ enum {
  * Second attributes.
  */
 enum {
+	NODE_A2_NOT_GENUINE	= 1 << 5,	/**< Vendor cannot be genuine */
+	NODE_A2_CAN_TLS		= 1 << 4,	/**< Indicated support for TLS */
+	NODE_A2_TLS			= 1 << 3,	/**< TLS-tunneled */
+	NODE_A2_NO_OOB_PROXY= 1 << 2,	/**< Do not OOB proxy the leaf */
 	NODE_A2_HAS_SR_UDP	= 1 << 1,	/**< Source advertised semi-reliable UDP */
 	NODE_A2_UDP_TRANCVR	= 1 << 0	/**< Message queue uses UDP transceiver */
 };
@@ -464,7 +468,7 @@ enum {
 #define NODE_ID(n)				((n)->id)
 
 #define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
-#define NODE_IS_GENUINE(n)		(!((n)->flags & NODE_F_NOT_GENUINE))
+#define NODE_IS_GENUINE(n)		(!((n)->attrs2 & NODE_A2_NOT_GENUINE))
 
 #define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)

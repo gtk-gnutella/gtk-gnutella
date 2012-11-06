@@ -2785,15 +2785,12 @@ get_results_set(gnutella_node_t *n, bool browse)
 			switch (rs->vcode.u32) {
 			case T_GTKG:
 			case T_LIME:
-				if (
-					GNET_PROPERTY(node_debug) &&
-					!(n->flags & NODE_F_NOT_GENUINE)
-				) {
+				if (GNET_PROPERTY(node_debug) && NODE_IS_GENUINE(n)) {
 					g_message("NODE %s is not a genuine %s: "
 						"sends bad query hits",
 						node_infostr(n), vendor ? vendor : "node");
 				}
-				n->flags |= NODE_F_NOT_GENUINE;
+				n->attrs2 |= NODE_A2_NOT_GENUINE;
 				break;
 			}
 		}
@@ -7411,7 +7408,7 @@ skip_throttling:
 
 	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
 	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
-	sri->may_oob_proxy = booleanize(0 == (n->flags & NODE_F_NO_OOB_PROXY));
+	sri->may_oob_proxy = booleanize(0 == (n->attrs2 & NODE_A2_NO_OOB_PROXY));
 
 	if (sri->sr_udp && NODE_IS_UDP(n))
 		n->attrs2 |= NODE_A2_HAS_SR_UDP;

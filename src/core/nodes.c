@@ -1048,7 +1048,7 @@ node_tls_refresh(struct gnutella_node *n)
 	node_check(n);
 
 	if (
-		(n->flags & NODE_F_CAN_TLS) &&
+		(n->attrs2 & NODE_A2_CAN_TLS) &&
 		n->gnet_port &&
 		is_host_addr(n->gnet_addr)
 	) {
@@ -1066,7 +1066,7 @@ node_supports_tls(struct gnutella_node *n)
 {
 	node_check(n);
 	
-	n->flags |= NODE_F_CAN_TLS;
+	n->attrs2 |= NODE_A2_CAN_TLS;
 	node_tls_refresh(n);
 }
 
@@ -1218,7 +1218,7 @@ node_missing_vmsg(gnutella_node_t *n)
 			n->received, node_infostr(n));
 	}
 
-	n->flags |= NODE_F_NOT_GENUINE;
+	n->attrs2 |= NODE_A2_NOT_GENUINE;
 	n->flags &= ~NODE_F_EXPECT_VMSG;
 }
 
@@ -7573,7 +7573,7 @@ node_add_socket(struct gnutella_socket *s, const host_addr_t addr,
 		 */
 
 		if (socket_uses_tls(s))
-			n->flags |= NODE_F_TLS;
+			n->attrs2 |= NODE_A2_TLS;
 
 		n->flags |= NODE_F_INCOMING;
 	} else {
@@ -8762,7 +8762,7 @@ node_init_outgoing(struct gnutella_node *n)
 		 */
 
 		if (socket_uses_tls(n->socket))
-			n->flags |= NODE_F_TLS;
+			n->attrs2 |= NODE_A2_TLS;
 
 	} else {
 		socket_evt_clear(s);
@@ -10550,7 +10550,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 
 	flags->is_push_proxied = booleanize(node->flags & NODE_F_PROXIED);
 	flags->is_proxying = is_host_addr(node->proxy_addr);
-	flags->tls = booleanize(node->flags & NODE_F_TLS);
+	flags->tls = booleanize(node->attrs2 & NODE_A2_TLS);
 
 	flags->qrt_state = QRT_S_NONE;
 	flags->uqrt_state = QRT_S_NONE;
