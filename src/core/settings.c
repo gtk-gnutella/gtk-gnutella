@@ -1100,15 +1100,20 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
+	/*
+	 * Ignore peers reporting new address if in the same /16 space as other
+	 * recent peers who have reported a new address before.
+	 */
+
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (host_addr_matches(peer, new_addr, 16)) /* CIDR /16 */
+		if (host_addr_matches(peer, peers[i], 16)) /* CIDR /16 */
 			return;
 	}
 
 	if (!host_addr_equal(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
-		peers[0] = peer;
+		peers[0] = peer;			/* First peer to report new address */
 		return;
 	}
 
@@ -1155,15 +1160,20 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
+	/*
+	 * Ignore peers reporting new address if in the same /64 space as other
+	 * recent peers who have reported a new address before.
+	 */
+
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (host_addr_matches(peer, new_addr, 64)) /* CIDR /64 */
+		if (host_addr_matches(peer, peers[i], 64)) /* CIDR /64 */
 			return;
 	}
 
 	if (!host_addr_equal(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
-		peers[0] = peer;
+		peers[0] = peer;		/* First peer to report new address */
 		return;
 	}
 
@@ -1184,7 +1194,6 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
 }
-
 
 /**
  * This routine is called when we determined that our IP was no longer the
