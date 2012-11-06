@@ -2089,12 +2089,14 @@ void kmsg_received(
 
 		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
 			if (GNET_PROPERTY(dht_debug)) {
+				bool matches = port == rport && host_addr_equal(addr, raddr);
 				g_warning("DHT fixing contact address for kuid=%s "
-					"to %s:%u on RPC reply (%s UDP info) in %s",
+					"to %s:%u on RPC reply (%s UDP info%s%s) in %s",
 					kuid_to_hex_string(id),
 					host_addr_to_string(raddr), rport,
-					host_addr_equal(addr, raddr) && port == rport ?
-						"matches" : "still different from",
+					matches ?  "matches" : "still different from",
+					matches ?  "" : " ",
+					matches ?  "" : host_addr_port_to_string(addr, port),
 					kmsg_infostr(data));
 			}
 			kaddr = raddr;
@@ -2258,12 +2260,15 @@ void kmsg_received(
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address for kuid=%s "
-						"to %s:%u based on routing table (%s UDP info) in %s",
+					bool matches = port == kport &&
+						host_addr_equal(addr, kn->addr);
+					g_warning("DHT fixing contact address for kuid=%s to %s:%u"
+						" based on routing table (%s UDP info%s%s) in %s",
 						kuid_to_hex_string(id),
 						host_addr_to_string(kn->addr), kn->port,
-						host_addr_equal(addr, kn->addr) && port == kport ?
-							"matches" : "still different from",
+						matches ? "matches" : "still different from",
+						matches ? "" : " ",
+						matches ? "" : host_addr_port_to_string(addr, port),
 						kmsg_infostr(data));
 				}
 				weird_header = TRUE;
