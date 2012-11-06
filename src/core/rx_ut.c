@@ -778,10 +778,8 @@ ut_build_delayed_ack(struct ut_rmsg *um, struct ut_ack *ack)
 
 /**
  * Build an extra acknowledgment, as appropriate.
- *
- * @return TRUE if the generated ACK covers everything that was received.
  */
-static bool
+static void
 ut_build_extra_ack(const struct ut_rmsg *um, struct ut_ack *ack)
 {
 	size_t first_missing, last_unacked;
@@ -800,8 +798,11 @@ ut_build_extra_ack(const struct ut_rmsg *um, struct ut_ack *ack)
 	 */
 
 	if ((size_t) -1 == last_unacked) {
-		last_unacked = (size_t) -1 == first_missing ?
-			um->fragcnt - 1U : first_missing - 1U;
+		last_unacked = (size_t) -1 == first_missing
+			? um->fragcnt - 1U
+			: bit_array_last_set(um->fbits, 0, um->fragcnt - 1);
+
+		g_assert((size_t) -1 != last_unacked);	/* One frag received at least */
 	}
 
 	ZERO(ack);
@@ -809,11 +810,11 @@ ut_build_extra_ack(const struct ut_rmsg *um, struct ut_ack *ack)
 
 	if (um->improved_acks) {
 		ut_cumulative_ack(um, ack, first_missing, last_unacked);
-		return ut_upgrade_ack(um, ack);
+		ut_upgrade_ack(um, ack);
 	} else {
-		g_assert((size_t) -1 != last_unacked);	/* One frag received at least */
-		ack->fragno = last_unacked;
-		return ack->fragno == um->fragcnt - 1;
+		size_t last_frag = bit_array_last_set(um->fbits, 0, um->fragcnt - 1);
+		g_assert((size_t) -1 != last_frag);	/* One frag received at least */
+		ack->fragno = last_frag;
 	}
 }
 
