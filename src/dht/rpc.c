@@ -64,6 +64,7 @@ struct rpc_cb {
 	enum rpc_cb_magic magic;	/**< magic */
 	enum dht_rpc_op op;			/**< Operation type */
 	host_addr_t addr;			/**< The host from which we expect a reply */
+	uint16 port;				/**< The port from which we expect a reply */
 	tm_t start;					/**< The time at which we initiated the RPC */
 	const guid_t *muid;			/**< MUID of the message sent (atom) */
 	knode_t *kn;				/**< Remote node to which RPC was sent */
@@ -254,6 +255,7 @@ rpc_call_prepare(
 	rcb->flags = flags;
 	rcb->muid = atom_guid_get(&muid);
 	rcb->addr = kn->addr;
+	rcb->port = kn->port;
 	rcb->timeout = cq_main_insert(delay, rpc_timed_out, rcb);
 	rcb->cb = cb;
 	rcb->arg = arg;
@@ -356,8 +358,18 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 	rn = rcb->kn;
 	knode_check(rn);
 
-	if (addr) *addr = rn->addr;
-	if (port) *port = rn->port;
+	if (
+		GNET_PROPERTY(dht_rpc_debug) &&
+		(rn->port != rcb->port || !host_addr_equal(rn->addr, rcb->addr))
+	) {
+		g_warning("DHT RPC had sent %s #%s to %s, now is %s",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			host_addr_port_to_string(rcb->addr, rcb->port),
+			knode_to_string(rn));
+	}
+
+	if (addr) *addr = rcb->addr;
+	if (port) *port = rcb->port;
 
 	return TRUE;
 }
