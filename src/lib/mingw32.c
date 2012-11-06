@@ -4694,10 +4694,21 @@ mingw_early_init(void)
 			{
 				const char *pathname;
 
+				/*
+				 * The stdout/stderr files which are created when GTKG is
+				 * not launched from a console are auto-rotated on startup.
+				 * However, if restarting automatically after a crash, we may
+				 * not be able to perform the renaming (you know, Windows
+				 * usually refuses to rename an opened file).
+				 *
+				 * Therefore, it is probably safest to always open stdout and
+				 * stderr for appending.
+				 */
+
 				pathname = mingw_getstdout_path();
 				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout file will be %s", pathname);
-				if (NULL != freopen(pathname, "wb", stdout)) {
+				if (NULL != freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
 				} else {
@@ -4707,7 +4718,7 @@ mingw_early_init(void)
 				pathname = mingw_getstderr_path();
 				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr file will be %s", pathname);
-				if (NULL != freopen(pathname, "wb", stderr)) {
+				if (NULL != freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
 				} else {
