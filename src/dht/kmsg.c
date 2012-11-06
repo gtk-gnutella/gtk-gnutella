@@ -1409,7 +1409,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			(kn->flags & KNODE_F_PCONTACT) &&
 			kuid_eq(kn->id, dht_value_creator(v)->id)
 		) {
-			knode_t *cn = deconstify_pointer(dht_value_creator(v));
+			const knode_t *cn = dht_value_creator(v);
 
 			if (GNET_PROPERTY(dht_storage_debug))
 				g_warning(
@@ -1417,9 +1417,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 					host_addr_to_string(cn->addr), cn->port,
 					host_addr_port_to_string(kn->addr, kn->port));
 
-			cn->addr = kn->addr;
-			cn->port = kn->port;
-			cn->flags |= KNODE_F_PCONTACT;
+			dht_value_patch_creator(v, kn->addr, kn->port);
 		}
 
 		vec[i] = v;
@@ -2389,7 +2387,7 @@ void kmsg_received(
 	}
 
 	/*
-	 * Log weirds header when debugging.
+	 * Log weird headers when debugging.
 	 */
 
 	if (
