@@ -192,7 +192,7 @@ rpc_timed_out(cqueue_t *unused_cq, void *obj)
 	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb != NULL) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 			g_debug("DHT RPC %s #%s invoking %s(TIMEOUT, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), rcb->arg);
@@ -264,7 +264,7 @@ rpc_call_prepare(
 
 	hikset_insert_key(pending, &rcb->muid);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
+	if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 		g_debug("DHT RPC created %s #%s to %s with callback %s(%p), "
 			"timeout %d ms",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
@@ -293,7 +293,7 @@ dht_rpc_cancel(const guid_t *muid)
 
 	rpc_cb_check(rcb);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
+	if (GNET_PROPERTY(dht_rpc_debug) > 3) {
 		g_debug("DHT RPC cancelling %s #%s to %s -- not calling %s(%p)",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn),
@@ -323,7 +323,7 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 	rpc_cb_check(rcb);
 
 	if (NULL == rcb->cb) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 3) {
 			g_debug("DHT RPC cancelling %s #%s to %s with no callback",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				knode_to_string(rcb->kn));
@@ -406,8 +406,8 @@ dht_rpc_answer(const guid_t *muid,
 
 	rpc_cb_check(rcb);
 
-	if (GNET_PROPERTY(dht_rpc_debug)) {
-		g_debug("DHT RPC answer to %s #%s sent to %s, timeout in %s ms",
+	if (GNET_PROPERTY(dht_rpc_debug) > 2) {
+		g_debug("DHT RPC got answer to %s #%s sent to %s, timeout in %s ms",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn),
 			cq_time_to_string(cq_remaining(rcb->timeout)));
@@ -531,7 +531,7 @@ dht_rpc_answer(const guid_t *muid,
 	knode_rpc_dec(rcb->kn);
 
 	if (rcb->cb != NULL) {
-		if (GNET_PROPERTY(dht_rpc_debug)) {
+		if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), kmsg_name(function),
