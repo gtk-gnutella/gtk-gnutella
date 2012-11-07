@@ -1964,13 +1964,43 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 }
 
 /**
+ * Check whether message origin is hostile.
+ *
+ * If it is an RPC reply (non-NULL MUID given), force a timeout when the
+ * origin if the message is now hostile (could have been dynamically set
+ * as hostile after the RPC was sent).
+ *
+ * @param n		the source of the message
+ * @param kuid	the advertised KUID of the node sending the message
+ * @param muid	if non-NULL, the MUID of the RPC to cancel for hostile source
+ *
+ * @return TRUE if message is from an hostile source and must be ignored.
+ */
+static bool
+kmsg_hostile_source(gnutella_node_t *n, const kuid_t *kuid, const guid_t *muid)
+{
+	if (node_hostile_udp(n)) {
+		knode_t *kn = dht_find_node(kuid);	/* Is node in our routing table? */
+		if (kn != NULL)
+			dht_remove_node(kn);
+		if (muid != NULL)
+			dht_rpc_timeout(muid);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Main entry point for DHT messages received from UDP.
  *
  * The Gnutella layer that comes before has validated that the message looked
  * like a valid Gnutella one (i.e. the Gnutella header size is consistent)
- * and has already performed hostile address checks.  Traffic accounting
- * was also done, based on the message being a Gnutella one (in terms of
- * header and payload).
+ * but has NOT performed hostile address checks (because we want to timeout
+ * RPCs early if we get any such messages on an RPC reply).
+
+ * Traffic accounting was also done, based on the message being a Gnutella
+ * one (in terms of header and payload).
  *
  * Validation of the Kademlia message and its processing is now our problem.
  *
@@ -1983,7 +2013,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 void kmsg_received(
 	const void *data, size_t len,
 	host_addr_t addr, uint16 port,
-	struct gnutella_node *n)
+	gnutella_node_t *n)
 {
 	const kademlia_header_t *header = deconstify_pointer(data);
 	char *reason;
@@ -2088,10 +2118,16 @@ void kmsg_received(
 	{
 		host_addr_t raddr;
 		uint16 rport;
+		const guid_t *muid = kademlia_header_get_muid(header);
 
-		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
+		if (dht_rpc_info(muid, &raddr, &rport)) {
+			if (kmsg_hostile_source(n, id, muid)) {
+				reason = "hostile UDP source on RPC reply";
+				goto drop;
+			}
+
 			if (kport == rport && host_addr_equal(kaddr, raddr))
-				goto good_rpc_contact;
+				goto hostile_checked;
 
 			if (GNET_PROPERTY(dht_debug)) {
 				bool matches = port == rport && host_addr_equal(addr, raddr);
@@ -2108,10 +2144,21 @@ void kmsg_received(
 			kaddr = raddr;
 			kport = rport;
 			weird_header = TRUE;
+
+			goto hostile_checked;	/* Check done above */
 		}
 	}
 
-good_rpc_contact:
+	/*
+	 * Check UDP origin of message for known hostile sources.
+	 */
+
+	if (kmsg_hostile_source(n, id, NULL)) {
+		reason = "hostile UDP source";
+		goto drop;
+	}
+
+hostile_checked:
 
 	/*
 	 * Even if they are "firewalled", drop the message if contact address
@@ -2429,7 +2476,7 @@ drop:
 			"\"%s\" from UDP (%s): %s",
 			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
-		if (len)
+		if (len && GNET_PROPERTY(dht_debug) > 10)
 			dump_hex(stderr, "UDP datagram", data, len);
 	}
 }

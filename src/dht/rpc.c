@@ -275,6 +275,34 @@ rpc_call_prepare(
 }
 
 /**
+ * Force a timeout on the RPC.
+ *
+ * @return whether we found the MUID to time out.
+ */
+bool
+dht_rpc_timeout(const guid_t *muid)
+{
+	struct rpc_cb *rcb;
+
+	rcb = hikset_lookup(pending, muid);
+	if (NULL == rcb)
+		return FALSE;
+
+	rpc_cb_check(rcb);
+
+	if (GNET_PROPERTY(dht_rpc_debug)) {
+		g_debug("DHT RPC forcing timeout of %s #%s to %s",
+			op_to_string(rcb->op), guid_to_string(rcb->muid),
+			knode_to_string(rcb->kn));
+	}
+
+	cq_cancel(&rcb->timeout);
+	rpc_timed_out(NULL, rcb);
+
+	return TRUE;
+}
+
+/**
  * Cancel an RPC.
  *
  * The callback will never be invoked and the MUID is cleared.  It will be

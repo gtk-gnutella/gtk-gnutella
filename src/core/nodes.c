@@ -8409,7 +8409,7 @@ node_drain_hello(void *data, int source, inputevt_cond_t cond)
  *
  * @return TRUE if message came from a hostile host and must be ignored.
  */
-static bool
+bool
 node_hostile_udp(gnutella_node_t *n)
 {
 	if (hostiles_check(n->addr)) {
@@ -8569,8 +8569,7 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 	 */
 
 	if (NODE_IS_DHT(n)) {
-		if (!node_hostile_udp(n))
-			kmsg_received(s->buf, s->pos, s->addr, s->port, n);
+		kmsg_received(s->buf, s->pos, s->addr, s->port, n);
 		return;
 	}
 
