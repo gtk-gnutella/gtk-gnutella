@@ -151,7 +151,7 @@
 
 #define	STABLE_DB_CACHE_SIZE	4096	/**< Cached amount of stable nodes */
 #define STABLE_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
-#define STABLE_UPPER_THRESH		(3600 * 24 * 30 * 3)	/**< ~ 3 months in s */
+#define STABLE_UPPER_THRESH		(3600 * 24 * 7 * 2)	/**< ~ 2 weeks in s */
 
 #define STABLE_EXPIRE (2 * DHT_VALUE_REPUBLISH)	/**< 2 republish periods */
 #define STABLE_PROBA  (0.3333)					/**< 33.33% */
