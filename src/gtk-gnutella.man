@@ -359,11 +359,6 @@ is given under the terms of the GNU General Public
 License (GPL), version 2. Please see the file COPYING in the
 distribution for complete information.
 
-Permission is granted to make and distribute verbatim copies of this
-manual page provided the copyright notice and this permission notice
-are preserved on all copies.
-
-Permission is granted to copy and distribute modified versions  of
-this manual page under the conditions for verbatim copying, provided
-that the entire resulting derived work is distributed under the
-terms of a permission notice identical to this one.
+This manual page can also be redistributed under the same conditions as
+.I gtk\-gnutella
+itself.
