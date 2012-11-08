@@ -2390,7 +2390,7 @@ hostile_checked:
 				knode_t *new;
 
 				new = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
-				dht_verify_node(kn, new);
+				dht_verify_node(kn, new, TRUE);
 				kn = new;				/* Speaking to new node for now */
 			}
 		} else {

@@ -2448,8 +2448,27 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 */
 
 	if (tkn != kn) {
-		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC))
+		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC)) {
+			/*
+			 * Because there is a clash, and `tkn' is in the routing table,
+			 * then necessarily `kn' cannot be as well.  We need to verify
+			 * whether the old `tkn' node is still alive, if no verfication
+			 * is pending and we have not recently seen traffic from it.
+			 */
+
+			g_assert(KNODE_UNKNOWN == kn->status);	/* Not in routing table */
+
+			if (delta_time(tm_time(), tkn->last_seen) < ALIVE_PERIOD) {
+				if (GNET_PROPERTY(dht_debug)) {
+					g_debug("DHT however we recently got traffic from %s",
+						knode_to_string(tkn));
+				}
+			} else if (!(tkn->flags & KNODE_F_VERIFYING)) {
+				dht_verify_node(tkn, kn, new != KNODE_STALE);
+			}
+
 			return;
+		}
 	}
 
 	/*
@@ -4888,6 +4907,7 @@ dht_close(bool exiting)
 struct addr_verify {
 	knode_t *old;
 	knode_t *new;
+	unsigned new_is_alive:1;	/* Whether `new' is alive (sent us traffic) */
 };
 
 /**
@@ -4924,13 +4944,30 @@ dht_addr_verify_cb(
 		 * unless it is firewalled.
 		 */
 
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT verification failed for node %s: %s",
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT verification failed for node %s: %s",
 				knode_to_string(av->old),
 				type == DHT_RPC_TIMEOUT ?
 					"ping timed out" : "replied with a foreign KUID");
+		}
 
-		dht_remove_node(av->old);
+		/*
+		 * Don't remove the old node if the new node was not known to be alive
+		 * and we got a timeout.
+		 */
+
+		if (type != DHT_RPC_TIMEOUT)
+			dht_remove_node(av->old);		/* KUID changed, remove */
+		else if (av->new_is_alive)
+			dht_remove_node(av->old);		/* New node alive, old timed out */
+		else {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT verification kept old node %s",
+					knode_to_string(av->old));
+			}
+			av->old->flags &= ~KNODE_F_VERIFYING;	
+			goto done;
+		}
 
 		if (av->new->flags & KNODE_F_FIREWALLED) {
 			if (GNET_PROPERTY(dht_debug))
@@ -4946,7 +4983,8 @@ dht_addr_verify_cb(
 					knode_to_string(av->new));
 
 			if (NULL == tkn) {
-				av->new->flags |= KNODE_F_ALIVE;	/* Got traffic earlier! */
+				if (av->new_is_alive)
+					av->new->flags |= KNODE_F_ALIVE;
 				dht_add_node(av->new);
 			} else if (clashing_nodes(tkn, av->new, TRUE, G_STRFUNC)) {
 				/* Logging was done in clashing_nodes() */
@@ -4959,11 +4997,17 @@ dht_addr_verify_cb(
 	} else {
 		av->old->flags &= ~KNODE_F_VERIFYING;	/* got reply from proper host */
 
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT verification OK, keeping old node %s",
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT verification OK, keeping old node %s",
 				knode_to_string(av->old));
+			if (av->new_is_alive) {
+				g_warning("DHT verification also knows clashing alive node %s",
+					knode_to_string(av->new));
+			}
+		}
 	}
 
+done:
 	knode_free(av->old);
 	knode_free(av->new);
 	WFREE(av);
@@ -4972,23 +5016,26 @@ dht_addr_verify_cb(
 /**
  * Verify the node address when we get a conflicting one.
  *
+ * @param kn		the old node we had earlier in the routing table
+ * @param new		the new node, NOT in the routing table already
+ * @param alive		whether we got traffic from new node
+ *
  * It is possible that the address of the node changed, so we send a PING to
- * the old address we had decide whether it is the case (no reply or another
+ * the old address we had to decide whether it is dead (no reply or another
  * KUID will come back), or whether the new node we found has a duplicate KUID
  * (maybe intentionally).
  */
 void
-dht_verify_node(knode_t *kn, knode_t *new)
+dht_verify_node(knode_t *kn, knode_t *new, bool alive)
 {
 	struct addr_verify *av;
 
 	knode_check(kn);
 	knode_check(new);
-	g_assert(new->refcnt == 1);
 	g_assert(new->status == KNODE_UNKNOWN);
 	g_assert(!(kn->flags & KNODE_F_VERIFYING));
 
-	WALLOC(av);
+	WALLOC0(av);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT node %s was at %s, now %s -- verifying",
@@ -4999,6 +5046,7 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	kn->flags |= KNODE_F_VERIFYING;
 	av->old = knode_refcnt_inc(kn);
 	av->new = knode_refcnt_inc(new);
+	av->new_is_alive = booleanize(alive);
 
 	/*
 	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification
