@@ -290,6 +290,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	uint16 port = 0;
 	bool tls = FALSE;
 	filesize_t filesize = 0;
+	filesize_t available = 0;
 	uint32 flags = 0;
 	char host[MAX_HOSTLEN];
 	const char *hostname = NULL;
@@ -352,7 +353,16 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			}
 			break;
 		case EXT_T_GGEP_avail:		/* Length available (for partial file) */
-			/* FIXME - handle it */
+			{
+				uint64 fs;
+				ggept_status_t ret;
+
+				ret = ggept_filesize_extract(e, &fs);
+				if (GGEP_OK == ret)
+					available = 0 == fs ? 1 : fs;
+				else
+					available = 1;		/* Force "partial" status */
+			}
 			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
@@ -373,10 +383,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	if (port) {
 		if (port != rc->port && GNET_PROPERTY(download_debug))
 			g_warning("%s: port mismatch: creator's was %u, "
-				"%sALOC is %u for %s",
+				"%sALOC is %u for %s%s",
 				value_infostr(rc), rc->port,
 				firewalled ? "firewalled " : "",
-				port, fi->pathname);
+				port, available != 0 ? "partial " : "", fi->pathname);
 	} else {
 		port = rc->port;
 	}
@@ -387,9 +397,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	if (!firewalled && !host_is_valid(rc->addr, port)) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s: invalid IP:port",
+			g_warning("discarding %s from %s for %s%s: invalid IP:port",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname);
 		goto cleanup;
 	}
 
@@ -399,9 +409,10 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	if (firewalled && !has_valid_guid) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s: firewalled host, no GUID",
+			g_warning("discarding %s from %s for %s%s: "
+				"firewalled host, no GUID",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname);
 		goto cleanup;
 	}
 
@@ -411,9 +422,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	if (hostiles_check(rc->addr)) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s: hostile IP",
+			g_warning("discarding %s from %s for %s%s: hostile IP",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname);
 		goto cleanup;
 	}
 
@@ -436,9 +447,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s: host bears our GUID",
+			g_warning("discarding %s from %s for %s%s: host bears our GUID",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname);
+				available != 0 ? "partial " : "", fi->pathname);
 		goto cleanup;
 	}
 
@@ -448,11 +459,11 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 	if (filesize != 0 && fi->size != 0 && fi->size != filesize) {
 		if (GNET_PROPERTY(download_debug))
-			g_warning("discarding %s from %s for %s: "
+			g_warning("discarding %s from %s for %s%s: "
 				"we have size=%s, ALOC says %s",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname, filesize_to_string(fi->size),
-				filesize_to_string2(filesize));
+				available != 0 ? "partial " : "", fi->pathname,
+				filesize_to_string(fi->size), filesize_to_string2(filesize));
 		goto cleanup;
 	}
 
@@ -466,10 +477,11 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 
 			base32_encode(buf, sizeof buf, tth.data, sizeof tth.data);
 
-			g_warning("discarding %s from %s for %s: "
+			g_warning("discarding %s from %s for %s%s: "
 				"we have TTH root %s, ALOC says %s",
 				value_infostr(rc), host_addr_port_to_string(rc->addr, port),
-				fi->pathname, tth_base32(fi->tth), buf);
+				available != 0 ? "partial " : "", fi->pathname,
+				tth_base32(fi->tth), buf);
 		}
 		goto cleanup;
 	}
@@ -479,8 +491,9 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 	 */
 
 	if (GNET_PROPERTY(download_debug) > 1)
-		g_debug("adding %s%ssource %s (GUID %s) from DHT ALOC for %s",
+		g_debug("adding %s%s%ssource %s (GUID %s) from DHT ALOC for %s",
 			firewalled ? "firewalled " : "", tls ? "TLS " : "",
+			available != 0 ? "partial " : "",
 			host_addr_port_to_string(rc->addr, port),
 			guid_to_string(&guid), fi->pathname);
 
