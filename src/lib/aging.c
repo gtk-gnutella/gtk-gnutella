@@ -317,4 +317,15 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 	}
 }
 
+/**
+ * @return amount of entries held in aging table.
+ */
+size_t
+aging_count(const aging_table_t *ag)
+{
+	aging_check(ag);
+
+	return hikset_count(ag->table);
+}
+
 /* vi: set ts=4: sw=4 cindent: */

@@ -57,6 +57,7 @@ void *aging_lookup(const aging_table_t *ag, const void *key);
 void *aging_lookup_revitalise(aging_table_t *ag, const void *key);
 void aging_insert(aging_table_t *ag, const void *key, void *value);
 bool aging_remove(aging_table_t *ag, const void *key);
+size_t aging_count(const aging_table_t *ag);
 
 #endif	/* _aging_h_ */
 
