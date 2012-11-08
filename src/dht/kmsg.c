@@ -2027,6 +2027,7 @@ void kmsg_received(
 	uint8 flags;
 	uint16 extended_length;
 	bool weird_header = FALSE;
+	bool rpc_reply = FALSE;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 	g_assert(NODE_IS_DHT(n));
@@ -2125,6 +2126,8 @@ void kmsg_received(
 				reason = "hostile UDP source on RPC reply";
 				goto drop;
 			}
+
+			rpc_reply = TRUE;
 
 			if (kport == rport && host_addr_equal(kaddr, raddr))
 				goto hostile_checked;
@@ -2234,6 +2237,18 @@ hostile_checked:
 		bool patched = FALSE;
 
 		/*
+		 * We do not have this KUID in our routing table.
+		 *
+		 * If we are not handling an RPC reply (where we already patched
+		 * the address), see whether we know this node because we did a
+		 * successful RPC exchange with it recently, and make sure we have
+		 * the correct contact information.
+		 */
+
+		if (!rpc_reply)
+			patched = dht_fix_kuid_contact(id, &kaddr, &kport, "incoming");
+
+		/*
 		 * If the node is not already in our routing table, but its advertised
 		 * contact information is wrong and it is not presenting itself as
 		 * being firewalled, attempt to use the UDP address and port.
@@ -2244,6 +2259,7 @@ hostile_checked:
 		 */
 
 		if (
+			!patched &&
 			!(flags & KDA_MSG_F_FIREWALLED) &&
 			(!host_is_valid(kaddr, kport) || !host_addr_equal(addr, kaddr))
 		) {
@@ -2295,6 +2311,16 @@ hostile_checked:
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
+		/*
+		 * Node is already present in our routing table.
+		 *
+		 * If we got an RPC reply, mark it so that we know its contact
+		 * information is valid.
+		 */
+
+		if (rpc_reply)
+			kn->flags |= KNODE_F_RPC;
+
 		/*
 		 * This here is again a workaround for LimeWire's bug: a good
 		 * non-firewalled host that is known in our routing table with a

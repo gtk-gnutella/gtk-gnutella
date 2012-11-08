@@ -345,7 +345,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
 	gm_snprintf(buf, len,
-		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s%s [%s]",
+		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s%s%s [%s]",
 		host_buf,
 		(kn->flags & KNODE_F_PCONTACT) ? "*" : "",
 		(kn->flags & KNODE_F_FOREIGN_IP) ? "?" : "",
@@ -354,6 +354,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 		(kn->status != KNODE_UNKNOWN && !(kn->flags & KNODE_F_ALIVE)) ?
 			" zombie" : "",
 		(kn->flags & KNODE_F_CACHED) ? " cached" : "",
+		(kn->flags & KNODE_F_RPC) ? " RPC" : "",
 		(kn->flags & KNODE_F_FIREWALLED) ? " fw" : "",
 		compact_time(delta_time(tm_time(), kn->first_seen)));
 

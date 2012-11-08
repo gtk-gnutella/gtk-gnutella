@@ -3094,6 +3094,19 @@ lookup_handle_reply(
 			goto skip;
 		}
 
+		/*
+		 * Some nodes are known to send out bad contact information that needs
+		 * fixing -- see kmsg_received().  Due to that, they can enter the
+		 * routing table of other nodes and have these wrong contact propagated
+		 * in lookups.
+		 *
+		 * Try to fix the contact address in-place if we have the KUID in our
+		 * routing table or recently got an RPC reply from that KUID.
+		 *		--RAM. 2012-11-08
+		 */
+
+		dht_fix_contact(cn, "lookup");
+
 		xn = map_lookup(nl->queried, cn->id);
 		if (xn != NULL) {
 			/*

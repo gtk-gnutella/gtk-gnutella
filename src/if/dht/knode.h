@@ -78,6 +78,7 @@ typedef struct knode {
 #define KNODE_F_SHUTDOWNING	(1 << 4)	/**< Host said it was shutdowning */
 #define KNODE_F_PCONTACT	(1 << 5)	/**< Patched contact address */
 #define KNODE_F_CACHED		(1 << 6)	/**< Node comes from root cache */
+#define KNODE_F_RPC			(1 << 7)	/**< Performed successful RPC */
 
 knode_t *get_our_knode(void);
 

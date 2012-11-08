@@ -40,12 +40,15 @@
 #include "stable.h"
 
 #include "if/gnet_property_priv.h"
+#include "if/dht/kuid.h"
 
 #include "core/guid.h"
 #include "core/gnet_stats.h"
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/gnet_host.h"
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
 #include "lib/stacktrace.h"		/* For stacktrace_function_name() */
@@ -54,8 +57,9 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
+#define DHT_RPC_RECENT_KEEP	(5*60)	/* 5 minutes */
 
+enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
 
 /**
  * An RPC callback descriptor.
@@ -85,6 +89,12 @@ rpc_cb_check(const struct rpc_cb * const rcb)
 static hikset_t *pending;		/**< Pending RPC (GUID -> rpc_cb) */
 
 /**
+ * Table recording the mappings between a KUID and an IP:port, as validated
+ * through an RPC exchange.
+ */
+static aging_table_t *rpc_recent;
+
+/**
  * RPC operation to string, for logs.
  */
 static const char *
@@ -101,6 +111,137 @@ op_to_string(enum dht_rpc_op op)
 }
 
 /**
+ * Free an entry in the `rpc_recent' aging table.
+ */
+static void
+rpc_free_kuid_addr(void *key, void *value)
+{
+	kuid_atom_free(key);
+	gnet_host_free(value);
+}
+
+/**
+ * Insert entry in the `rpc_recent' aging table, recording the IP:port used
+ * by given KUID.
+ */
+static void
+dht_record_contact(const kuid_t *kuid, host_addr_t addr, uint16 port)
+{
+	gnet_host_t *host;
+
+	host = aging_lookup_revitalise(rpc_recent, kuid);
+
+	if (host != NULL) {
+		if (
+			port == gnet_host_get_port(host) &&
+			host_addr_equal(addr, gnet_host_get_addr(host))
+		)
+			return;
+		aging_remove(rpc_recent, kuid);
+	}
+
+	aging_insert(rpc_recent, kuid_get_atom(kuid), gnet_host_new(addr, port));
+}
+
+/**
+ * Fix given IP:port if we know that the KUID maps to a different address
+ * using the recent RPC information.
+ *
+ * @param kuid		the KUID of the node
+ * @param addr		pointer to the address we want to check / update
+ * @param port		pointer to the port we want to check / update
+ * @param source	origin of the KUID, for logging purposes
+ *
+ * @return TRUE if IP:port was updated.
+ */
+bool
+dht_fix_kuid_contact(const kuid_t *kuid, host_addr_t *addr, uint16 *port,
+	const char *source)
+{
+	gnet_host_t *host;
+
+	/*
+	 * If we had a recent RPC transaction with this KUID, we may know it under
+	 * a different IP:port.
+	 */
+
+	host = aging_lookup(rpc_recent, kuid);
+
+	if (host != NULL) {
+		host_addr_t xaddr = gnet_host_get_addr(host);
+		uint16 xport = gnet_host_get_port(host);
+
+		if (xport == *port && host_addr_equal(xaddr, *addr))
+			return FALSE;
+
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_warning("DHT fixing contact address (%s) for kuid=%s"
+				" from %s to %s (using recent RPC info)",
+				source, kuid_to_hex_string(kuid),
+				host_addr_port_to_string(*addr, *port),
+				host_addr_port_to_string2(xaddr, xport));
+		}
+
+		*addr = xaddr;		/* Struct copy */
+		*port = xport;
+		return TRUE;
+	}
+	
+	return FALSE;
+}
+
+/**
+ * Fix a knode in-place by changing its IP:port if we know that its KUID
+ * maps to a different value from the RPC recent info or from the routing
+ * table.
+ *
+ * @param kn		the node contact
+ * @param source	origin of the node, for logging purposes
+ *
+ * @return TRUE if contact was updated.
+ */
+bool
+dht_fix_contact(knode_t *kn, const char *source)
+{
+	knode_t *rn;
+
+	g_assert(!knode_is_shared(kn, FALSE));	/* Since addr:port can be patched */
+
+	/*
+	 * First look using the recent RPC information.
+	 */
+
+	if (dht_fix_kuid_contact(kn->id, &kn->addr, &kn->port, source))
+		return TRUE;
+
+	/*
+	 * If we hold the node in the routing table and already did a successful
+	 * RPC exchange with it, compare the addresses.
+	 */
+
+	rn = dht_find_node(kn->id);
+
+	if (rn != NULL && (rn->flags & KNODE_F_RPC)) {
+		if (rn->port == kn->port && host_addr_equal(rn->addr, kn->addr))
+			return FALSE;
+
+		if (GNET_PROPERTY(dht_lookup_debug)) {
+			g_warning("DHT fixing contact address (%s) for kuid=%s"
+				" from %s to %s (using routing table)",
+				source, kuid_to_hex_string(kn->id),
+				host_addr_port_to_string(kn->addr, kn->port),
+				host_addr_port_to_string(rn->addr, rn->port));
+		}
+
+		kn->addr = rn->addr;	/* Struct copy */
+		kn->port = rn->port;
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Initialize the RPC layer.
  */
 void
@@ -110,6 +251,9 @@ dht_rpc_init(void)
 
 	pending = hikset_create(
 		offsetof(struct rpc_cb, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
+
+	rpc_recent = aging_make(DHT_RPC_RECENT_KEEP,
+		kuid_hash, kuid_eq, rpc_free_kuid_addr);
 }
 
 /**
@@ -552,6 +696,17 @@ dht_rpc_answer(const guid_t *muid,
 	}
 
 	/*
+	 * Record the IP:port associated with this KUID so that we may fixup the
+	 * KUID => address mappings when performing FIND_NODE operations.
+	 *
+	 * We use the IP:port to which we sent the RPC, since we got a good reply
+	 * by sending something there.
+	 */
+
+	if (!(rcb->flags & RPC_CALL_NO_VERIFY) || kuid_eq(kn->id, rn->id))
+		dht_record_contact(kn->id, rcb->addr, rcb->port);
+
+	/*
 	 * Invoke user callback, if any configured.
 	 * The amount of pending RPCs is decreased before invoking the callback.
 	 */
@@ -750,6 +905,7 @@ dht_rpc_close(void)
 {
 	hikset_foreach(pending, rpc_free_kv, NULL);
 	hikset_free_null(&pending);
+	aging_destroy(&rpc_recent);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
