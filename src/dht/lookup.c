@@ -3053,14 +3053,6 @@ lookup_handle_reply(
 			goto bad;
 		}
 
-		if (!knode_is_usable(cn)) {
-			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
-					"%s has unusable address", knode_to_string(cn));
-			}
-			goto skip;
-		}
-
 		/*
 		 * Got a valid contact, but skip it if we already queried it or if
 		 * it is already part of our (unqueried as of yet) shortlist.
@@ -3107,6 +3099,19 @@ lookup_handle_reply(
 
 		if (dht_fix_contact(cn, "lookup"))
 			gnet_stats_inc_general(GNR_DHT_LOOKUP_FIXED_NODE_CONTACT);
+
+		/*
+		 * Now that we have a proper address, check for hostiles or
+		 * otherwise unusable addresses.
+		 */
+
+		if (!knode_is_usable(cn)) {
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg,
+					"%s has unusable address", knode_to_string(cn));
+			}
+			goto skip;
+		}
 
 		xn = map_lookup(nl->queried, cn->id);
 		if (xn != NULL) {
