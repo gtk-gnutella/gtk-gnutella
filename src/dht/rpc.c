@@ -671,7 +671,7 @@ dht_rpc_answer(const guid_t *muid,
 		if (GNET_PROPERTY(dht_rpc_debug) > 1) {
 			g_debug("DHT RPC late reply for %s #%s to %s",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
-				knode_to_string(rn));
+				knode_to_string(rcb->kn));
 		}
 
 		/*
