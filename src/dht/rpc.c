@@ -58,6 +58,7 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 #define DHT_RPC_RECENT_KEEP	(5*60)	/* 5 minutes */
+#define DHT_RPC_LINGER_MS	15000 	/* ms, 15 seconds */
 
 enum rpc_cb_magic { RPC_CB_MAGIC = 0x74c8b10U };
 
@@ -76,6 +77,7 @@ struct rpc_cb {
 	dht_rpc_cb_t cb;			/**< Callback routine to invoke */
 	void *arg;					/**< Additional opaque argument */
 	cevent_t *timeout;			/**< Callout queue timeout event */
+	unsigned lingering:1;		/**< RPC was cancelled / timed out */
 };
 
 static inline void
@@ -141,6 +143,15 @@ dht_record_contact(const kuid_t *kuid, host_addr_t addr, uint16 port)
 	}
 
 	aging_insert(rpc_recent, kuid_get_atom(kuid), gnet_host_new(addr, port));
+
+	/*
+	 * Update the count, knowing that it can decrease without us knowing
+	 * immediately since there is no hook that can be plugged on the internal
+	 * cleanup that the aging table routinely performs.
+	 */
+
+	gnet_stats_set_general(GNR_DHT_RPC_RECENT_NODES_HELD,
+		aging_count(rpc_recent));
 }
 
 /**
@@ -265,9 +276,14 @@ rpc_cb_free(struct rpc_cb *rcb, bool in_shutdown)
 	rpc_cb_check(rcb);
 
 	if (in_shutdown) {
-		knode_rpc_dec(rcb->kn);
-		if (rcb->cb != NULL)
-			(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
+		/* Lingering RPCs have already invoked their callback */
+		if (!rcb->lingering) {
+			knode_rpc_dec(rcb->kn);
+			if (rcb->cb != NULL) {
+				(*rcb->cb)(DHT_RPC_TIMEOUT,
+					rcb->kn, NULL, 0, NULL, 0, rcb->arg);
+			}
+		}
 	} else {
 		hikset_remove(pending, rcb->muid);
 	}
@@ -315,15 +331,37 @@ rpc_delay(const knode_t *kn)
 }
 
 /**
- * Generic RPC operation timeout (callout queue callback).
+ * End of RPC lingering time (callout queue callback).
  */
 static void
-rpc_timed_out(cqueue_t *unused_cq, void *obj)
+rpc_lingered(cqueue_t *unused_cq, void *obj)
 {
 	struct rpc_cb *rcb = obj;
 
 	rpc_cb_check(rcb);
 	(void) unused_cq;
+
+	if (GNET_PROPERTY(dht_rpc_debug) > 5) {
+		g_debug("DHT RPC %s #%s finished lingering",
+			op_to_string(rcb->op), guid_to_string(rcb->muid));
+	}
+
+	rcb->timeout = NULL;
+	rpc_cb_free(rcb, FALSE);
+}
+
+/**
+ * Generic RPC operation timeout (callout queue callback).
+ */
+static void
+rpc_timed_out(cqueue_t *cq, void *obj)
+{
+	struct rpc_cb *rcb = obj;
+
+	rpc_cb_check(rcb);
+
+	if (cq != NULL)
+		gnet_stats_inc_general(GNR_DHT_RPC_TIMED_OUT);
 
 	rcb->timeout = NULL;
 	dht_node_timed_out(rcb->kn);
@@ -342,9 +380,19 @@ rpc_timed_out(cqueue_t *unused_cq, void *obj)
 				stacktrace_function_name(rcb->cb), rcb->arg);
 		}
 		(*rcb->cb)(DHT_RPC_TIMEOUT, rcb->kn, NULL, 0, NULL, 0, rcb->arg);
+	} else {
+		if (GNET_PROPERTY(dht_rpc_debug) > 4) {
+			g_debug("DHT RPC %s #%s timed out",
+				op_to_string(rcb->op), guid_to_string(rcb->muid));
+		}
 	}
 
-	rpc_cb_free(rcb, FALSE);
+	/*
+	 * Linger for a while to see how many "late" replies we get.
+	 */
+
+	rcb->timeout = cq_main_insert(DHT_RPC_LINGER_MS, rpc_lingered, rcb);
+	rcb->lingering = TRUE;
 }
 
 /**
@@ -392,7 +440,7 @@ rpc_call_prepare(
 	 * Create and fill the RPC control block.
 	 */
 
-	WALLOC(rcb);
+	WALLOC0(rcb);
 	rcb->magic = RPC_CB_MAGIC;
 	rcb->op = op;
 	rcb->kn = knode_refcnt_inc(kn);
@@ -407,6 +455,7 @@ rpc_call_prepare(
 	knode_rpc_inc(kn);
 
 	hikset_insert_key(pending, &rcb->muid);
+	gnet_stats_inc_general(GNR_DHT_RPC_MSG_PREPARED);
 
 	if (GNET_PROPERTY(dht_rpc_debug) > 4) {
 		g_debug("DHT RPC created %s #%s to %s with callback %s(%p), "
@@ -434,12 +483,18 @@ dht_rpc_timeout(const guid_t *muid)
 
 	rpc_cb_check(rcb);
 
+	if (rcb->lingering) {
+		cq_expire(rcb->timeout);
+		return FALSE;		/* Already timed out since we're lingering */
+	}
+
 	if (GNET_PROPERTY(dht_rpc_debug)) {
 		g_debug("DHT RPC forcing timeout of %s #%s to %s",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn));
 	}
 
+	gnet_stats_inc_general(GNR_DHT_RPC_MSG_CANCELLED);
 	cq_cancel(&rcb->timeout);
 	rpc_timed_out(NULL, rcb);
 
@@ -465,6 +520,11 @@ dht_rpc_cancel(const guid_t *muid)
 
 	rpc_cb_check(rcb);
 
+	if (rcb->lingering) {
+		cq_expire(rcb->timeout);
+		return FALSE;		/* Already timed out since we're lingering */
+	}
+
 	if (GNET_PROPERTY(dht_rpc_debug) > 3) {
 		g_debug("DHT RPC cancelling %s #%s to %s -- not calling %s(%p)",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
@@ -472,6 +532,7 @@ dht_rpc_cancel(const guid_t *muid)
 			stacktrace_function_name(rcb->cb), rcb->arg);
 	}
 
+	gnet_stats_inc_general(GNR_DHT_RPC_MSG_CANCELLED);
 	knode_rpc_dec(rcb->kn);
 	rpc_cb_free(rcb, FALSE);
 	return TRUE;
@@ -493,6 +554,11 @@ dht_rpc_cancel_if_no_callback(const guid_t *muid)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+
+	if (rcb->lingering) {
+		cq_expire(rcb->timeout);
+		return FALSE;		/* Already timed out since we're lingering */
+	}
 
 	if (NULL == rcb->cb) {
 		if (GNET_PROPERTY(dht_rpc_debug) > 3) {
@@ -526,6 +592,13 @@ dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port)
 		return FALSE;
 
 	rpc_cb_check(rcb);
+
+	/*
+	 * Note that we're not checking for lingering RPCs here because we
+	 * are not handling the RPC itself, we're trying to fixup the contact
+	 * address.  If we find a lingering RPC, it means we got a late reply,
+	 * but we can nonethless update the contact.
+	 */
 
 	rn = rcb->kn;
 	knode_check(rn);
@@ -579,13 +652,44 @@ dht_rpc_answer(const guid_t *muid,
 	rpc_cb_check(rcb);
 
 	if (GNET_PROPERTY(dht_rpc_debug) > 2) {
-		g_debug("DHT RPC got answer to %s #%s sent to %s, timeout in %s ms",
+		g_debug("DHT RPC got %sanswer to %s #%s sent to %s, timeout in %s ms",
+			rcb->lingering ? "late " : "",
 			op_to_string(rcb->op), guid_to_string(rcb->muid),
 			knode_to_string(rcb->kn),
 			cq_time_to_string(cq_remaining(rcb->timeout)));
 	}
 
-	cq_cancel(&rcb->timeout);
+	/*
+	 * If this is a late reply (received whilst lingering), do not handle
+	 * the RPC.  We can stop the lingering process though since we got
+	 * a reply and we don't expect more.
+	 */
+
+	if (rcb->lingering) {
+		gnet_stats_inc_general(GNR_DHT_RPC_LATE_REPLIES_RECEIVED);
+
+		if (GNET_PROPERTY(dht_rpc_debug) > 1) {
+			g_debug("DHT RPC late reply for %s #%s to %s",
+				op_to_string(rcb->op), guid_to_string(rcb->muid),
+				knode_to_string(rn));
+		}
+
+		/*
+		 * If the node from which we got a reply is in the routing table,
+		 * update the RTT EMA, since it took longer than expected to get a
+		 * reply -- we want to do better next time at projecting a suitable RTT.
+		 */
+
+		if (KNODE_UNKNOWN != kn->status) {
+			tm_now_exact(&now);
+			kn->rtt += (tm_elapsed_ms(&now, &rcb->start) >> 1) - (kn->rtt >> 1);
+		}
+
+		cq_expire(rcb->timeout);		/* Will free up `rcb' */
+		return FALSE;
+	}
+
+	cq_cancel(&rcb->timeout);	/* This is an RPC timeout, not a lingering */
 
 	/*
 	 * The node that was registered during the creation of the RPC was
@@ -723,7 +827,7 @@ dht_rpc_answer(const guid_t *muid,
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
 	}
 
-	rpc_cb_free(rcb, FALSE);
+	rpc_cb_free(rcb, FALSE);		/* Got a reply, no need to linger */
 	return TRUE;
 }
 

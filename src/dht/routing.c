@@ -5048,6 +5048,8 @@ dht_verify_node(knode_t *kn, knode_t *new, bool alive)
 	av->new = knode_refcnt_inc(new);
 	av->new_is_alive = booleanize(alive);
 
+	gnet_stats_inc_general(GNR_DHT_NODE_VERIFICATIONS);
+
 	/*
 	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification
 	 * of the address of the replying node ourselves in the callback because

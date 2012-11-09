@@ -3105,7 +3105,8 @@ lookup_handle_reply(
 		 *		--RAM. 2012-11-08
 		 */
 
-		dht_fix_contact(cn, "lookup");
+		if (dht_fix_contact(cn, "lookup"))
+			gnet_stats_inc_general(GNR_DHT_LOOKUP_FIXED_NODE_CONTACT);
 
 		xn = map_lookup(nl->queried, cn->id);
 		if (xn != NULL) {

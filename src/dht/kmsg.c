@@ -2104,6 +2104,17 @@ void kmsg_received(
 	flags = kademlia_header_get_contact_flags(header);
 
 	/*
+	 * Update statistics.
+	 */
+
+	gnet_stats_inc_general(GNR_DHT_MSG_RECEIVED);
+
+	/* Do not check the port, it can be off for firewalled nodes */
+
+	if (host_addr_equal(kaddr, addr))
+		gnet_stats_inc_general(GNR_DHT_MSG_MATCHING_CONTACT_ADDRESS);
+
+	/*
 	 * Check contact's address on RPC replies.
 	 *
 	 * LimeWire nodes suffer from a bug whereby the contact is not
@@ -2122,7 +2133,10 @@ void kmsg_received(
 		const guid_t *muid = kademlia_header_get_muid(header);
 
 		if (dht_rpc_info(muid, &raddr, &rport)) {
+			gnet_stats_inc_general(GNR_DHT_RPC_REPLIES_RECEIVED);
+
 			if (kmsg_hostile_source(n, id, muid)) {
+				gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_ADDRESS);
 				reason = "hostile UDP source on RPC reply";
 				goto drop;
 			}
@@ -2147,6 +2161,7 @@ void kmsg_received(
 			kaddr = raddr;
 			kport = rport;
 			weird_header = TRUE;
+			gnet_stats_inc_general(GNR_DHT_RPC_REPLIES_FIXED_CONTACT);
 
 			goto hostile_checked;	/* Check done above */
 		}
@@ -2157,6 +2172,7 @@ void kmsg_received(
 	 */
 
 	if (kmsg_hostile_source(n, id, NULL)) {
+		gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_ADDRESS);
 		reason = "hostile UDP source";
 		goto drop;
 	}
@@ -2170,10 +2186,12 @@ hostile_checked:
 	 */
 
 	if (hostiles_check(kaddr)) {
-		if (GNET_PROPERTY(dht_debug))
+		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT hostile contact address %s (%s v%u.%u)",
 				host_addr_to_string(kaddr),
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
+		}
+		gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_CONTACT_ADDRESS);
 		reason = "hostile contact address";
 		goto drop;
 	}
@@ -2467,11 +2485,24 @@ hostile_checked:
 				host_addr_port_to_string(kaddr, kport),
 				host_addr_to_string(addr), port);
 
+		/* kaddr and kport not changed since this does not count as a fixup */
+
 		kn->addr = addr;
 		kn->port = port;
 		kn->flags |= KNODE_F_PCONTACT;
 		weird_header = TRUE;
 	}
+
+	/*
+	 * Update contact fixup stats.
+	 */
+
+	if (
+		kport != kademlia_header_get_contact_port(header) ||
+		!host_addr_equal(kaddr,
+			host_addr_get_ipv4(kademlia_header_get_contact_addr(header)))
+	)
+		gnet_stats_inc_general(GNR_DHT_MSG_FIXED_CONTACT_ADDRESS);
 
 	/*
 	 * Log weird headers when debugging.
