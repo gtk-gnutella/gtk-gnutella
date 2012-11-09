@@ -7641,7 +7641,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[344].name = "spam_lut_in_memory";
-    gnet_property->props[344].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has typically a 90% hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
+    gnet_property->props[344].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has a 90 percent hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
     gnet_property->props[344].ev_changed = event_new("spam_lut_in_memory_changed");
     gnet_property->props[344].save = TRUE;
     gnet_property->props[344].vector_size = 1;
