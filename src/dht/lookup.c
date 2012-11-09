@@ -2767,7 +2767,6 @@ static bool
 lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	char *buf, size_t len)
 {
-	const char *msg;
 	gnr_stats_t gnr_stat;
 
 	lookup_check(nl);
@@ -2801,14 +2800,19 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	 */
 
 	if (lookup_c_class_get_count(nl, kn) >= NL_MAX_IN_NET) {
-		msg = "reached class-C net quota";
+		const char *msg = "reached class-C net quota";
+		if (len != 0)
+			g_strlcpy(buf, msg, len);
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA;
 		goto unsafe;
 	} else if (
 		nl->type != LOOKUP_TOKEN &&		/* These aim at a known KUID! */
 		UNSIGNED(nl->max_common_bits) < kuid_common_prefix(kn->id, nl->kuid)
 	) {
-		msg = "suspiciously close to target";
+		if (len != 0) {
+			gm_snprintf(buf, len, "suspiciously close to target %s",
+				kuid_to_hex_string(nl->kuid));
+		}
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
 		goto unsafe;
 	}
@@ -2816,9 +2820,6 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	return TRUE;
 
 unsafe:
-	if (len != 0)
-		g_strlcpy(buf, msg, len);
-
 	/*
 	 * Do not count unsafe nodes more than once per lookup.
 	 */
@@ -2880,7 +2881,7 @@ static void
 lookup_load_path(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
-	char reason[48];
+	char reason[80];
 	size_t reason_len;
 
 	lookup_check(nl);
@@ -2975,7 +2976,7 @@ lookup_handle_reply(
 	sectoken_remote_t *token = NULL;
 	const char *reason;
 	char msg[256];
-	char unsafe[48];
+	char unsafe[80];
 	int n = 0;
 	uint8 contacts;
 	size_t unsafe_len;
@@ -4010,7 +4011,7 @@ lookup_iterate(nlookup_t *nl)
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
-	char reason[48];
+	char reason[80];
 	int reason_len;
 
 	lookup_check(nl);
