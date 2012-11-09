@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-04 13:10+0100\n"
+"POT-Creation-Date: 2012-11-09 16:26+0100\n"
 "PO-Revision-Date: 2011-06-07 09:21+0100\n"
 "Last-Translator: Jeroen Asselman <j.asselman@rubicongroup.biz>\n"
 "Language-Team: Dutch <jeroen@asselman.com>\n"
@@ -3209,12 +3209,12 @@ msgstr "Debug level voor DHT root node caching."
 msgid "Logged statistics level for code shared between GUI and core."
 msgstr "Statistieken gelogged over gedeelde code tussen de GUI en de core."
 
-#, c-format
+#, fuzzy
 msgid ""
 "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
 "fast disk database, which saves a large amount of core memory and reduces "
 "the overall footprint, at the cost of an increased I/O level. However, the "
-"DB cache has typically a 90% hit rate, so the actual overhead is barely "
+"DB cache has a 90 percent hit rate, so the actual overhead is barely "
 "noticeable when running as an ultra node and should remain completely "
 "unnoticed when running as a leaf."
 msgstr ""
@@ -6466,6 +6466,9 @@ msgstr "DHT nodes geweigerd tijdens lookup op basis van verdachte nabijheid"
 msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr "DHT nodes geweigerd tijdens lookup op basis van frequentie divergentie"
 
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
 msgid "DHT keys held"
 msgstr "DHT sleutels vastgehouden"
 
@@ -6556,9 +6559,6 @@ msgstr "DHT KUID botsingen gedetecteerd"
 msgid "DHT detected collisions with our own KUID"
 msgstr "DHT botsingen gedetecteerd met onze eigen KUID"
 
-msgid "DHT detected KUID mismatches on RPC reply"
-msgstr "DHT verkeerde KUID combinaties gedetecteerd n.a.v. RPC reply"
-
 msgid "DHT caching attempts"
 msgstr "DHT cache pogingen"
 
@@ -6587,6 +6587,55 @@ msgstr "DHT sleutel verladingen gedeeltelijk afgerond"
 
 msgid "DHT values successfully offloaded"
 msgstr "DHT waardes succesvol gelost"
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "DHT bericht misvormd"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages with contact address fixed"
+msgstr "DHT gecachte roots contact adres ververst"
+
+#, fuzzy
+msgid "DHT incoming messages from hostile addresses"
+msgstr "SPAM dynamisch opgevangen vijandige IP-adressen"
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+#, fuzzy
+msgid "DHT RPC replies with contact address fixed"
+msgstr "DHT gecachte roots contact adres ververst"
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+#, fuzzy
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr "DHT verkeerde KUID combinaties gedetecteerd n.a.v. RPC reply"
+
+#, fuzzy
+msgid "DHT RPC recent nodes held"
+msgstr "DHT gecachte sleutels vastgehouden"
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "TTH bestandsverificatie begonnen"
 
 msgid "DHT publishing attempts"
 msgstr "DHT publicatie pogingen"

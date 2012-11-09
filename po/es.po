@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-04 13:10+0100\n"
+"POT-Creation-Date: 2012-11-09 16:26+0100\n"
 "PO-Revision-Date: 2009-03-27 00:04+0100\n"
 "Last-Translator: Larry Nieves <lnieves@315-web.com>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
@@ -3190,12 +3190,11 @@ msgstr ""
 "Nivel de depuración para el código compartido entre la interfaz gráfica y el "
 "núcleo"
 
-#, c-format
 msgid ""
 "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
 "fast disk database, which saves a large amount of core memory and reduces "
 "the overall footprint, at the cost of an increased I/O level. However, the "
-"DB cache has typically a 90% hit rate, so the actual overhead is barely "
+"DB cache has a 90 percent hit rate, so the actual overhead is barely "
 "noticeable when running as an ultra node and should remain completely "
 "unnoticed when running as a leaf."
 msgstr ""
@@ -6435,6 +6434,9 @@ msgstr ""
 msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
 msgid "DHT keys held"
 msgstr "DHT claves mantenidas"
 
@@ -6533,10 +6535,6 @@ msgstr "DHT colisiones de KUIDs detectadas"
 msgid "DHT detected collisions with our own KUID"
 msgstr "DHT colisiones detectadas con nuestra propia KUID"
 
-#, fuzzy
-msgid "DHT detected KUID mismatches on RPC reply"
-msgstr "DHT colisiones de KUIDs detectadas"
-
 msgid "DHT caching attempts"
 msgstr ""
 
@@ -6563,6 +6561,52 @@ msgstr ""
 
 msgid "DHT values successfully offloaded"
 msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "Mensaje DHT  malformado"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+#, fuzzy
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr "DHT colisiones de KUIDs detectadas"
+
+#, fuzzy
+msgid "DHT RPC recent nodes held"
+msgstr "DHT claves mantenidas en caché"
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "Información de nodo"
 
 #, fuzzy
 msgid "DHT publishing attempts"
