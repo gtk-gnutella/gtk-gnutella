@@ -285,7 +285,7 @@ enum {
 	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
 	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
-	NODE_F_UNUSED_4		= 1 << 27,	/**< UNUSED */
+	NODE_F_EMPTY_QRT	= 1 << 27,	/**< Has an empty Query Routing Table */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
 	NODE_F_UNUSED_3		= 1 << 25,	/**< UNUSED */
 	NODE_F_UNUSED_2		= 1 << 24,	/**< UNUSED */
@@ -467,6 +467,7 @@ enum {
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_HAS_EMPTY_QRT(n)	((n)->flags & NODE_F_EMPTY_QRT)
 #define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
 #define NODE_IS_GENUINE(n)		(!((n)->attrs2 & NODE_A2_NOT_GENUINE))
 

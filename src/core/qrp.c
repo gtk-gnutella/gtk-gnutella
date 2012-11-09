@@ -164,6 +164,7 @@ struct routing_table {
 	unsigned reset:1;		/**< This is a new table, after a RESET */
 	unsigned compacted:1;	/**< Table was compacted */
 	unsigned cancelled:1;	/**< Must supersede with next version */
+	unsigned is_empty:1;	/**< Whether table is empty (all slots cleared) */
 	/**
 	 * Whether this routing table can route the given URN query.
 	 */
@@ -175,6 +176,13 @@ struct routing_table {
 	bool (*can_route)(const query_hashvec_t *,
 						  const struct routing_table *rt);
 };
+
+static inline void
+qrt_check(const struct routing_table * const rt)
+{
+	g_assert(rt != NULL);
+	g_assert(QRP_ROUTE_MAGIC == rt->magic);
+}
 
 enum routing_patch_magic {
 	ROUTING_PATCH_MAGIC = 0x011906cf
@@ -434,7 +442,7 @@ qrt_compact(struct routing_table *rt)
 	uchar *q;
 	uint32 token = 0;
 
-	g_assert(rt);
+	qrt_check(rt);
 	g_assert(rt->slots >= 8);
 	g_assert(0 == (rt->slots & 0x7));	/* Multiple of 8 */
 	g_assert(!rt->compacted);
@@ -965,8 +973,7 @@ qrt_get_table(void)
 struct routing_table *
 qrt_ref(struct routing_table *rt)
 {
-	g_assert(rt);
-	g_assert(rt->magic == QRP_ROUTE_MAGIC);
+	qrt_check(rt);
 
 	rt->refcnt++;
 	return rt;
@@ -979,8 +986,7 @@ qrt_ref(struct routing_table *rt)
 void
 qrt_unref(struct routing_table *rt)
 {
-	g_assert(rt);
-	g_assert(rt->magic == QRP_ROUTE_MAGIC);
+	qrt_check(rt);
 	g_assert(rt->refcnt > 0);
 
 	if (--rt->refcnt == 0)
@@ -993,14 +999,34 @@ qrt_unref(struct routing_table *rt)
 void
 qrt_get_info(const struct routing_table *rt, qrt_info_t *qi)
 {
-	g_assert(rt);
-	g_assert(rt->magic == QRP_ROUTE_MAGIC);
+	qrt_check(rt);
 	g_assert(rt->refcnt > 0);
 
 	qi->slots = rt->slots;
 	qi->generation = rt->generation;
 	qi->fill_ratio = rt->fill_ratio;
-	qi->pass_throw = rt->pass_throw;
+	qi->pass_throw = rt->pass_throw & 0xff;		/* In the 0..100 range */
+	qi->is_empty   = rt->is_empty;
+}
+
+/**
+ * @return TRUE if table is empty.
+ */
+static bool
+qrt_is_empty(const struct routing_table *rt)
+{
+	int i, max;
+	uint8 *p;
+
+	qrt_check(rt);
+	g_assert(rt->compacted);
+
+	for (max = rt->slots / 8, p = rt->arena, i = 0; i < max; i++) {
+		if (*p++ != 0)
+			return FALSE;
+	}
+
+	return TRUE;
 }
 
 /***
@@ -1710,7 +1736,7 @@ qrt_eq(const struct routing_table *rt, const char *arena, int slots)
 {
 	int i;
 
-	g_assert(rt != NULL);
+	qrt_check(rt);
 	g_assert(arena != NULL);
 	g_assert(slots > 0);
 
@@ -3687,6 +3713,79 @@ CAN_ROUTE_URN(21)
 #undef CAN_ROUTE_URN
 
 /**
+ * Populate 'can_route' routines based on constant slot sizes.
+ * This allows pre-computed shift to be optimized for each table size.
+ */
+static void
+qrt_dynamic_bind(struct routing_table *rt)
+{
+	switch(rt->bits)
+	{
+		case 14:
+			rt->can_route_urn = qrp_can_route_urn_14;
+			rt->can_route     = qrp_can_route_14;
+			break;
+		case 15:
+			rt->can_route_urn = qrp_can_route_urn_15;
+			rt->can_route     = qrp_can_route_15;
+			break;
+		case 16:
+			rt->can_route_urn = qrp_can_route_urn_16;
+			rt->can_route     = qrp_can_route_16;
+			break;
+		case 17:
+			rt->can_route_urn = qrp_can_route_urn_17;
+			rt->can_route     = qrp_can_route_17;
+			break;
+		case 18:
+			rt->can_route_urn = qrp_can_route_urn_18;
+			rt->can_route     = qrp_can_route_18;
+			break;
+		case 19:
+			rt->can_route_urn = qrp_can_route_urn_19;
+			rt->can_route     = qrp_can_route_19;
+			break;
+		case 20:
+			rt->can_route_urn = qrp_can_route_urn_20;
+			rt->can_route     = qrp_can_route_20;
+			break;
+		case 21:
+			rt->can_route_urn = qrp_can_route_urn_21;
+			rt->can_route     = qrp_can_route_21;
+			break;
+		default:
+			rt->can_route_urn = qrp_can_route_default;
+			rt->can_route     = qrp_can_route_default;
+			
+	}
+}
+
+/**
+ * Routine invoked on empty tables, always returning FALSE because nothing
+ * can be routed to the node having this table.
+ */
+static bool
+qrp_cannot_route(const query_hashvec_t *qhv, const struct routing_table *rt)
+{
+	(void) qhv;
+	(void) rt;
+
+	return FALSE;
+}
+
+/**
+ * Populate 'can_route' routines for an empty table (cannot route anything).
+ */
+static void
+qrt_dynamic_bind_empty(struct routing_table *rt)
+{
+	qrt_check(rt);
+
+	rt->can_route_urn = qrp_cannot_route;
+	rt->can_route     = qrp_cannot_route;
+}
+
+/**
  * Handle reception of QRP RESET.
  *
  * @returns TRUE if we handled the message correctly, FALSE if an error
@@ -3790,48 +3889,7 @@ qrt_handle_reset(
 	rt->slots = rt->client_slots / qrcv->shrink_factor;
 	rt->bits = highest_bit_set(rt->slots);
 
-	/* Populate 'can_route' routines based on constant slot sizes.
-	 * This allows pre-computed shift to be optimized for each table size.
-	 */
-	switch(rt->bits)
-	{
-		case 14:
-			rt->can_route_urn = qrp_can_route_urn_14;
-			rt->can_route     = qrp_can_route_14;
-			break;
-		case 15:
-			rt->can_route_urn = qrp_can_route_urn_15;
-			rt->can_route     = qrp_can_route_15;
-			break;
-		case 16:
-			rt->can_route_urn = qrp_can_route_urn_16;
-			rt->can_route     = qrp_can_route_16;
-			break;
-		case 17:
-			rt->can_route_urn = qrp_can_route_urn_17;
-			rt->can_route     = qrp_can_route_17;
-			break;
-		case 18:
-			rt->can_route_urn = qrp_can_route_urn_18;
-			rt->can_route     = qrp_can_route_18;
-			break;
-		case 19:
-			rt->can_route_urn = qrp_can_route_urn_19;
-			rt->can_route     = qrp_can_route_19;
-			break;
-		case 20:
-			rt->can_route_urn = qrp_can_route_urn_20;
-			rt->can_route     = qrp_can_route_20;
-			break;
-		case 21:
-			rt->can_route_urn = qrp_can_route_urn_21;
-			rt->can_route     = qrp_can_route_21;
-			break;
-		default:
-			rt->can_route_urn = qrp_can_route_default;
-			rt->can_route     = qrp_can_route_default;
-			
-	}
+	qrt_dynamic_bind(rt);
 
 	g_assert(is_pow2(rt->slots));
 	g_assert(rt->slots <= MAX_TABLE_SIZE);
@@ -3909,6 +3967,8 @@ qrt_handle_patch(
 		qrcv->table->set_count = 0;
 		qrcv->patch = qrt_apply_patch; /* Default handler. */
 
+		qrt_dynamic_bind(qrcv->table);	/* Reset initial `can_route' */
+
 		switch (qrcv->entry_bits) {
 		case 8:
 			if (qrcv->shrink_factor == 1)
@@ -3967,7 +4027,7 @@ qrt_handle_patch(
 	{
 		struct routing_table *rt = qrcv->table;
 
-		g_assert(rt != NULL);
+		qrt_check(rt);
 		g_assert(rt->compacted);	/* 8 bits per byte, table is compacted */
 
 		rt->arena = hrealloc(rt->arena, rt->slots / 8);
@@ -4102,6 +4162,17 @@ qrt_handle_patch(
 				qrcv->shrink_factor, rt->fill_ratio, rt->pass_throw,
 				node_infostr(n),
 				rt->digest ? sha1_base32(rt->digest) : "<not computed>");
+		}
+
+		/*
+		 * If table is empty, supersede the routing entries.
+		 */
+
+		if (qrt_is_empty(rt)) {
+			rt->is_empty = TRUE;
+			qrt_dynamic_bind_empty(rt);
+		} else {
+			rt->is_empty = FALSE;
 		}
 
 		/*
@@ -4651,6 +4722,8 @@ qrt_build_query_target(
 				continue;				/* Routing duplicate query, skip! */
 			} else if (whats_new) {
 				if (NODE_CAN_WHAT(dn)) {
+					if (NODE_HAS_EMPTY_QRT(dn))
+						continue;		/* Leaf does not share, skip! */
 					goto can_send;		/* What's New? queries broadcasted */
 				} else {
 					continue;			/* Leaf won't understand it, skip! */

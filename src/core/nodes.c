@@ -9541,6 +9541,8 @@ node_remove_useless_leaf(bool *is_gtkg)
 			target = n->connect_date;
 		else if t(0 == n->gnet_files_count && (n->flags & NODE_F_SHARED_INFO))
 			target = n->connect_date;
+		else if t(NODE_HAS_EMPTY_QRT(n))
+			target = n->connect_date;
 		else if t(n->recv_query_table == NULL && n->qrt_receive == NULL)
 			target = n->connect_date;
 		else if t(n->leaf_flowc_start != 0)
@@ -9913,6 +9915,31 @@ node_qrt_discard(struct gnutella_node *n)
 }
 
 /**
+ * Got new Query Routing Table.
+ *
+ * @return whether flags changed.
+ */
+static bool
+node_qrt_new(struct gnutella_node *n, struct routing_table *query_table)
+{
+	bool changed = FALSE;
+
+	qrt_get_info(query_table, n->qrt_info);
+
+	if (n->qrt_info->is_empty) {
+		if (!NODE_HAS_EMPTY_QRT(n)) {
+			n->flags |= NODE_F_EMPTY_QRT;
+			changed = TRUE;
+		}
+	} else if (NODE_HAS_EMPTY_QRT(n)) {
+		n->flags &= ~NODE_F_EMPTY_QRT;
+		changed = TRUE;
+	}
+
+	return changed;
+}
+
+/**
  * Invoked for ultra nodes to install new Query Routing Table.
  */
 void
@@ -9924,8 +9951,8 @@ node_qrt_install(struct gnutella_node *n, struct routing_table *query_table)
 
 	n->recv_query_table = qrt_ref(query_table);
 	WALLOC(n->qrt_info);
-	qrt_get_info(query_table, n->qrt_info);
 
+	node_qrt_new(n, query_table);
     node_fire_node_flags_changed(n);
 }
 
@@ -9940,7 +9967,8 @@ node_qrt_patched(struct gnutella_node *n, struct routing_table *query_table)
 	g_assert(n->recv_query_table == query_table);
 	g_assert(n->qrt_info != NULL);
 
-	qrt_get_info(query_table, n->qrt_info);
+	if (node_qrt_new(n, query_table))
+		node_fire_node_flags_changed(n);
 }
 
 /**
@@ -10546,6 +10574,7 @@ node_fill_flags(const struct nid *node_id, gnet_node_flags_t *flags)
 	flags->mq_status = NODE_MQUEUE_STATUS(node);
     flags->rx_compressed = booleanize(NODE_RX_COMPRESSED(node));
 	flags->hops_flow = node->hops_flow;
+    flags->empty_qrt = booleanize(NODE_HAS_EMPTY_QRT(node));
 
 	flags->is_push_proxied = booleanize(node->flags & NODE_F_PROXIED);
 	flags->is_proxying = is_host_addr(node->proxy_addr);
@@ -12027,7 +12056,9 @@ node_flags_to_string(const gnet_node_flags_t *flags)
 	if (flags->hops_flow == 0)
 		status[9] = 'f';
 	else if (flags->hops_flow < GTA_NORMAL_TTL)
-		status[9] = 'h';
+		status[9] = 'h';		/* Hops-flow */
+	else if (flags->empty_qrt)
+		status[9] = 'n';		/* Not sharing */
 	else
 		status[9] = '-';
 

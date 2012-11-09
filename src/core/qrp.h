@@ -51,10 +51,11 @@ enum query_hsrc {
 };
 
 typedef struct qrt_info {
-	int slots;				/**< Amount of slots */
+	int slots;			/**< Amount of slots */
 	int generation;		/**< Generation number */
 	int fill_ratio;		/**< Percentage of slots used */
-	int pass_throw;		/**< Passing throw, on a d100 */
+	uint8 pass_throw;	/**< Passing throw, on a d100 */
+	uint8 is_empty;		/**< Set if table is empty */
 } qrt_info_t;
 
 
