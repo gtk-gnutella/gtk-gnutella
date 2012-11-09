@@ -461,24 +461,6 @@ program_path_allocate(const char *argv0)
 		}
 	}
 
-	/*
-	 * Make sure there are no problematic shell meta-characters in the path.
-	 */
-
-	{
-		const char meta[] = "$&`;()<>|";
-		const char *p = file;
-		int c;
-
-		while ((c = *p++)) {
-			if (strchr(meta, c)) {
-				s_warning("found shell meta-character '%c' in path \"%s\", "
-					"not loading symbols", c, file);
-				goto error;
-			}
-		}
-	}
-
 	if (file != NULL && file != argv0)
 		return deconstify_pointer(file);
 

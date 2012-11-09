@@ -841,7 +841,7 @@ symbols_parse_nm(symbols_t *st, char *line)
  * @param exe	the executable path, to assess freshness of nm file
  * @param nm	the path to the nm file, symbols from the executable
  *
- * @return opened file if successfull, NULL on error with the error already
+ * @return opened file if successful, NULL on error with the error already
  * logged appropriately.
  */
 static FILE *
@@ -953,11 +953,26 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 
 	if (!has_bfd) {
 		size_t rw;
+		const char meta[] = "$&`;()<>|";
+		const char *p = exe;
+		int c;
+
+		/*
+		 * Make sure there are no problematic shell meta-characters in the path.
+		 */
+
+		while ((c = *p++)) {
+			if (strchr(meta, c)) {
+				s_warning("found shell meta-character '%c' in path \"%s\", "
+					"not loading symbols", c, exe);
+				goto use_pre_computed;
+			}
+		}
 
 		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", exe);
 		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
 			s_warning("full path \"%s\" too long, cannot load symbols", exe);
-			goto done;
+			goto use_pre_computed;
 		}
 
 		f = popen(tmp, "r");
