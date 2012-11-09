@@ -2350,17 +2350,17 @@ search_gui_set_current_search(search_t *search)
 		search_gui_switch_search(search);
 		if (previous) {
 			gtk_widget_hide(previous->tree);
-			search_gui_start_massive_update(previous);
+			if (!previous->frozen)
+				search_gui_start_massive_update(previous);
 			search_gui_hide_search(previous);
 			previous->list_refreshed = FALSE;
 			search_gui_update_counters(previous);
-			search_gui_end_massive_update(previous);
 		}
 		if (search) {	
-			search_gui_start_massive_update(search);
 			search_gui_guess_stats_display(search);
 			search_gui_show_search(search);
-			search_gui_end_massive_update(search);
+			if (search->frozen)
+				search_gui_end_massive_update(search);
 			gtk_widget_show(search->tree);
 			search->list_refreshed = FALSE;
 			search_gui_update_counters(search);
