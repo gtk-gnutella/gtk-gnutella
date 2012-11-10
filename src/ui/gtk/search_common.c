@@ -1427,13 +1427,15 @@ static void
 search_gui_download_selected_files(void)
 {
 	struct search *search;
+	bool stopped;
 
     search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
    	search_gui_download_files(search);
-	search_gui_end_massive_update(search);
+	if (stopped)
+		search_gui_end_massive_update(search);
 
    	guc_search_update_items(search->search_handle, search->items);
 
@@ -1445,13 +1447,15 @@ static void
 search_gui_discard_selected_files(void)
 {
 	struct search *search;
+	bool stopped;
 
     search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
    	search_gui_discard_files(search);
-	search_gui_end_massive_update(search);
+	if (stopped)
+		search_gui_end_massive_update(search);
 
    	guc_search_update_items(search->search_handle, search->items);
 
@@ -2865,9 +2869,12 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
 			&search);
 	if (success && search) {
-		search_gui_start_massive_update(search);
+		bool stopped;
+		
+		stopped = search_gui_start_massive_update(search);
 		success = guc_search_locally(search->search_handle, text);
-		search_gui_end_massive_update(search);
+		if (stopped)
+			search_gui_end_massive_update(search);
 	}
 	*error_str = NULL;
 

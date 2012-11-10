@@ -448,14 +448,16 @@ static void
 search_gui_clear_tree(search_t *search)
 {
 	GtkTreeModel *model;
+	bool stopped;
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	gtk_tree_model_foreach(model, prepare_remove_record, search);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
 
-	search_gui_end_massive_update(search);
+	if (stopped)
+		search_gui_end_massive_update(search);
 }
 
 /**
@@ -1231,10 +1233,11 @@ search_gui_remove_search(search_t *search)
 {
 	GtkTreeIter iter;
 	GtkTreeModel *model;
+	bool stopped;
 
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
 
 	if (search_gui_get_current_search() == search) {
 		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
@@ -1250,6 +1253,9 @@ search_gui_remove_search(search_t *search)
 	if (tree_find_iter_by_data(model, c_sl_sch, search, &iter)) {
    		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
 	}
+
+	if (stopped)
+		search_gui_end_massive_update(search);
 }
 
 void
@@ -1421,19 +1427,23 @@ search_gui_collapse_all(struct search *search)
 	}
 }
 
-void
+bool
 search_gui_start_massive_update(struct search *search)
 {
 	GtkTreeModel *model;
 
-	g_return_if_fail(search);
-	g_return_if_fail(!search->frozen);
+	g_return_val_if_fail(search, FALSE);
+
+	if (search->frozen)
+		return FALSE;
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 	g_object_freeze_notify(G_OBJECT(search->tree));
 	g_object_freeze_notify(G_OBJECT(model));
 	search_gui_disable_sort(search);
 	search->frozen = TRUE;
+
+	return TRUE;
 }
 
 void
@@ -1509,12 +1519,13 @@ search_gui_request_bitzi_data(struct search *search)
 {
 	GtkTreeSelection *selection;
 	hset_t *results;
+	bool stopped;
 
 	/* collect the list of files selected */
 
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
 
 	results = hset_create(HASH_KEY_SELF, 0);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree));
@@ -1536,7 +1547,8 @@ search_gui_request_bitzi_data(struct search *search)
 	/* Make sure the column is actually visible. */
 	search_gui_make_meta_column_visible(search);
 
-	search_gui_end_massive_update(search);	
+	if (stopped)
+		search_gui_end_massive_update(search);	
 }
 
 /**
@@ -1788,8 +1800,9 @@ search_gui_flush_queue(search_t *search)
 		GtkTreeModel *model;
 		guint max_items;
 		struct result_data *data;
+		bool stopped;
 
-		search_gui_start_massive_update(search);
+		stopped = search_gui_start_massive_update(search);
 
 		model = gtk_tree_view_get_model(GTK_TREE_VIEW(search->tree));
 		max_items = search_gui_is_sorted(search) ? 100 : 500;
@@ -1798,7 +1811,8 @@ search_gui_flush_queue(search_t *search)
 			search_gui_flush_queue_data(search, model, data);
 		}
 
-		search_gui_end_massive_update(search);
+		if (stopped)
+			search_gui_end_massive_update(search);
 	}
 }
 

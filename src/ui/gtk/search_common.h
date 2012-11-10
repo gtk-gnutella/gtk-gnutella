@@ -259,7 +259,7 @@ typedef search_t *(*search_gui_synchronize_list_cb)(void *user_data);
 void search_gui_synchronize_search_list(search_gui_synchronize_list_cb,
 			void *user_data);
 
-void search_gui_start_massive_update(struct search *);
+bool search_gui_start_massive_update(struct search *);
 void search_gui_end_massive_update(struct search *);
 void search_gui_queue_bitzi_by_sha1(const record_t *);
 void search_gui_add_record(struct search *, record_t *, enum gui_color);

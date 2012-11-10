@@ -1938,14 +1938,17 @@ search_gui_collapse_all(struct search *search)
 	}
 }
 
-void
+bool
 search_gui_start_massive_update(struct search *search)
 {
-	g_return_if_fail(search);
-	g_return_if_fail(!search->frozen);
+	g_return_val_if_fail(search, FALSE);
+	
+	if (search->frozen)
+		return FALSE;
 
 	gtk_clist_freeze(GTK_CLIST(search->tree));
 	search->frozen = TRUE;
+	return TRUE;
 }
 
 void
