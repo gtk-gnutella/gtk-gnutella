@@ -1029,9 +1029,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 
 /* I_UCONTEXT:
  *	This symbol, if defined, indicates to the C program that it should
- *	include <ucontext.h> to get at the user thread context.
+ *	include <ucontext.h> to get at the user thread context.  A portable
+ *	program must also check I_SYS_UCONTEXT for <sys/ucontex.h> inclusion,
+ *	especially on OSX.
+ */
+/* I_SYS_UCONTEXT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/ucontext.h> to get at the user thread context.  A portable
+ *	program must also check I_UCONTEXT for <ucontex.h> inclusion.
  */
 #$i_ucontext I_UCONTEXT		/**/
+#$i_sys_ucontext I_SYS_UCONTEXT		/**/
 
 /* I_UNISTD:
  *	This symbol, if defined, indicates to the C program that it should

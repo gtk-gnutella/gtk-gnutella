@@ -36,6 +36,9 @@
 #ifdef I_UCONTEXT
 #include <ucontext.h>
 #endif
+#ifdef I_SYS_UCONTEXT
+#include <sys/ucontext.h>
+#endif
 
 #include "signal.h"
 #include "ckalloc.h"
