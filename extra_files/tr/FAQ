@@ -36,7 +36,7 @@
   <li><a href="#gnet2">"[FC]" unsurunun anlamı nedir?</a></li>
   <li><a href="#gnet3">Bir gönderme yaparken neden gnet bağlantılarını kaybediyorum?</a></li>
   <li><a href="#gnet4">Bayraklar sütunundaki bu şeylerin anlamı nedir?</a></li>
-  <li><a href="#gnet-user-agent">Uygulama isimlerinin önündeki  "!" işaretinin anlamı nedir?</a></li>
+  <li><a href="#gnet-user-agent">Uygulama isimlerinin önündeki "!" işaretinin anlamı nedir?</a></li>
   <li><a href="#gnet5">"Zararlı sürüm yasaklandı, güncelleme gerekiyor" mesajının anlamı nedir?</a></li>
   <li><a href="#gnet6">"Eski sürüm, lütfen güncelleyin" mesajının anlamı nedir?</a></li>
   <li><a href="#gnet7">HTTP vekil sunucum neden gerektiği gibi çalışmıyor?</a></li>
@@ -96,7 +96,8 @@ yayınlayabilirsiniz. Daha fazla bilgi için <a href="http://www.wikipedia.org/w
 
 <h3><a name="general-gtkg">"GTKG" nedir?<br>
 </a></h3>
-<p>Biz sıkça gtk-gnutella'yı GTKG ya da gtkg olarak anarız (çünkü daha kısadır). GTK, gtk-gnutella'nın kullandığı grafik araç takımı
+<p>Biz sıkça gtk-gnutella'yı GTKG ya da gtkg olarak anarız (çünkü daha 
+kısadır). GTK, gtk-gnutella'nın kullandığı grafik araç takımı
  olan GTK+'dan gelir.
 </p>
 
@@ -110,10 +111,10 @@ Tercihler penceresinin Gnutella sekmesinde değiştirilebilir. Durum
 çubuğunda bir ikon hangi kipte çalışıldığını gösterecektir.
   </li>
   <li>
-    gnet bağlantı sayısını sınırlandırın.
+    gnet (Gnutella ağı) bağlantı sayısını sınırlandırın.
   </li>
   <li>
-    İçeri gelen bağlantıları kabul edebiliyorsanız,  <em><em>Bağlantı hızını kontrol</em> </em>seçeneklerinde<em> Sıkıştırılmış bağlantıları tercih et</em> şıkkını etkinleştirin.
+    İçeri gelen bağlantıları kabul edebiliyorsanız,  <em><em>Bağlantı hızını kontrol</em> </em>seçeneklerinde <em>Sıkıştırılmış bağlantıları tercih et</em> şıkkını etkinleştirin.
   </li>
   <li>
     Yavaş bir bağlantı kullansanız bile dosya paylaşmak mühimdir. <a href="#down3">Birden çok kaynaktan indirme (swarming)</a>
@@ -250,7 +251,7 @@ engellendiğinizi düşünüyorsa <a href="#down_push">"itme"</a> sonuçlarını
 </p>
 
 <h3>"[FC]" unsurunun anlamı nedir?</h3>
-<p><em>FC</em> "flow control" yani "akış kontrolü" anlamına gelir.<br>Genelde, bağlandığınız istemcilerin akış kontrolü yapmamalarından emin olmanız önerilir. <a href="#gnet4">Bayraklar</a>
+<p><em>FC</em>,"flow control" yani "akış kontrolü" anlamına gelir.<br>Genelde, bağlandığınız istemcilerin akış kontrolü yapmamalarından emin olmanız önerilir. <a href="#gnet4">Bayraklar</a>
  sütununda FC bulunup bulunmadığına bakın. Genel bir kural olarak, 
 birden fazla düğüm akış kontrolü yapıyorsa gnete adanmış yeteri kadar 
 dışarı giden bant genişliği yok demektir ve bu şebekeye zarar verdiğiniz
@@ -259,7 +260,7 @@ dışarı giden bant genişliği yok demektir ve bu şebekeye zarar verdiğiniz
 
 <h3>Bir gönderme yaparken neden gnet bağlantılarını kaybediyorum?</h3>
 <p>Bant genişliğini sınırlamayı deneyin. Bunun bir etkisi olmazsa,  
-sorun İnternet Bağlantı Sağlayıcınızın Gnutella trafiğini bastırmasından
+sorun İnternet Erişim Sağlayıcınızın Gnutella trafiğini bastırmasından
  kaynaklanıyor olabilir. gtk-gnutella'nın şebeke ayarlarında gnutella 
 portunu değiştirmeyi deneyin.
 </p>
@@ -299,7 +300,7 @@ yasaklama hakkında bilgilendirilir.
 </p>
 
 <h3><a name="gnet6">"Eski sürüm, lütfen güncelleyin" mesajının anlamı nedir?</a></h3>
-<p>Bir seneden eski gtk-gnutella sürümleri yasaklanırlar çünkü gnet 
+<p>Bir seneden eski gtk-gnutella sürümlerin güncellenmesi önemlidir çünkü gnet 
 şebekesinin kararlılığı ve ölçeklenmesi için önemli işlevlerden yoksun 
 hâle gelmişlerdir. Buna ek olarak kararsız geliştirme sürümleri 90 gün 
 sonrasında yasaklanırlar.
@@ -311,7 +312,7 @@ sonrasında yasaklanırlar.
 vekilleri tarafından desteklenen bir uzantısıdır. Ek olarak çoğu zaman 
 devre dışı bırakılır çünkü erişim sağlayıcıları tarafından bir güvenlik 
 sorunu olarak değerlendirilebilir. Güncel olarak vekil desteği - buna 
-SOCKS dahil olarak- pek iyi değildir. Geliştiriciler vekil 
+SOCKS da dahil olarak- pek iyi değildir. Geliştiriciler vekil 
 kullanmamaktadırlar, ancak bunu düzeltebileceğinizi düşünüyorsanız 
 yamalarınız makbule geçecektir.
 </p>
@@ -332,7 +333,9 @@ yamalarınız makbule geçecektir.
     Bant genişliği programlayıcıları faalse yaprak düğümler HTTP dışarı 
 giden bant genişliğini çalacak şekilde ayarlanmamış olmalıdır.
   </li>
-  <li>Eğer Gnet dışarı programlayıcısı faalse, gnet bağlantısı (ultraeş ya da normal yani eski (legacy)) başına asgari 256 bayt/s bant genişliği olmalıdır.
+  <li>Eğer Gnet dışarı programlayıcısı faalse, gnet bağlantısı (ultraeş 
+ya da normal yani eski (legacy)) başına asgari 256 bayt/s bant genişliği
+ olmalıdır.
   </li>
   <li>
     Genel olarak yapılandırılmış her yaprak düğümü için 32 bayt/s ve her gnet bağlantısı için 256 bayt/s bulunmalıdır.
@@ -370,7 +373,7 @@ sadece sizin aramalarınızdan kaynaklanır, dolayısıyla yukarıda açıklanan
 faydalı olacak şekilde kullanmanın bir yöntemi vardır. Örneğin pasif bir
  arama başlatırsanız ve sonuçları sadece mp3 dosyaları görüntüleyecek 
 şekilde filtrelerseniz, faal aramalarınızın hepsindeki tüm mp3 dosyaları
- tek bir arama penceresinde toplanır.  Değişik filtreler ile ek pasif 
+ tek bir arama penceresinde toplanır. Değişik filtreler ile ek pasif 
 arama başlatırsanız aramaların her birinde değişik bir dosya tipi 
 görüntüleyebilirsiniz.
 </p>
@@ -397,7 +400,7 @@ gerçekten istediğiniz dosya olup olmadığını kontrol etmek için kaplama
 ve karşılaştırma yapamaz. Böyle bir durumda uygulama uzaktaki makinenin 
 ilettiği SHA1 değerine dayanır ancak hiçbir SHA1 değeri iletilmediyse 
 gtk-gnutella'nın indirmek istediği dosyanın uzaktaki makinedeki dosyayla
- aynısı olduğunu garantilemek için hiçbir seçeneği kalmaz.<br>Bu mesajlar canınızı sıkarsa <em>Dosya-&gt;Tercihler-&gt;İndirmeler </em>penceresinde <em>İyimser ilk parça</em> şıkkını seçin.
+ aynısı olduğunu garantilemek için hiçbir seçeneği kalmaz.<br>Bu mesajlar canınızı sıkarsa <em>Dosya-&gt;Tercihler-&gt;İndirmeler </em>penceresinde <em>İyimser ilk parça</em> şıkkını seçin (bu şıkkın görüntülenmesi için <em>Dosya-&gt;Tercihler-&gt;Kullanıcı arayüzüne</em> gidip <em>Uzman kipi</em> şıkkını etkinleştirmeniz gerekmektedir).
 </p>
 
 <h3><a name="down2">Neden bir dosya X kez indiriliyor?</a></h3>
@@ -459,8 +462,7 @@ da o kadar büyük demektir.
 </p>
 
 <h3><a name="down9">İndirmeler sekmesinde metnin renginin siyah yerine gri olması ne anlama gelir?</a></h3>
-<p>
-  Dosyanın bir <a href="#down_push">itme yolu</a> vasıtasıyla alındığını gösterir.
+<p>Gri renk dosyanın bir <a href="#down_push">itme yolu</a> vasıtasıyla alındığını gösterir.
 </p>
 
 <h2>Göndermeler<br>
@@ -490,11 +492,12 @@ bilgisayarda  Gtk1 ön yüzünü kullanmayı düşünebilirsiniz.
 kullandığınız kodlamaya uygun bir değere ayarlayın. Mesela dosya 
 isimlerinizde özel Almanca karakterler kullanıyorsanız, değişkeni <code>de_DE.ISO8859-1</code>
  değerine ayarlayın. Geçerli değerler işletim sisteminize göre 
-değişebilir; detaylar için setlocale(3) kılavuz (man) sayfasına bakınız.
+değişebilir, detaylar için setlocale(3) kılavuz (man) sayfasına bakınız.
  İdeal olarak herkes neredeyse tüm dilleri kapsayan UTF-8 kodlamasını kullanmalıdır.
 </p>
 
 <!-- end faq -->
 <!-- vi: set et ts=2 sw=2: -->
+
 
 </body></html>
