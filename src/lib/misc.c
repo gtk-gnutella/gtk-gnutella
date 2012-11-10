@@ -1465,14 +1465,14 @@ is_printable(const char *buf, int len)
  * @param out		the stream to print the string at.
  * @param data		a pointer to the first byte of the data to dump.
  * @param length	the length of data in bytes.
- * @param offset	the offset in data to start dumping at.
+ * @param offset	the offset of the data being printed.
  */
 static void
 dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 {
 	char char_buf[32], hex_buf[64];
 	char *p = hex_buf, *q = char_buf;
-	size_t j, i = offset;
+	size_t j, i = 0;
 
 	for (j = 0; j < 16; j++) {
 		*p++ = ' ';
@@ -1564,8 +1564,8 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 		}
 
 		dumping = MIN(len, DUMP_LINE_LENGTH);
+		dump_hex_line(out, start, dumping, length);
 		length += dumping;
-		dump_hex_line(out, start, dumping, 0);
 	}
 
 	wfree(xiov, iovcnt * sizeof iov[0]);
