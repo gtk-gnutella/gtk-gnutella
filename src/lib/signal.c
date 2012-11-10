@@ -34,7 +34,7 @@
 #include "common.h"		/* For RCSID */
 
 #ifdef I_UCONTEXT
-#include <ucontext.h>
+#include <sys/ucontext.h>
 #endif
 
 #include "signal.h"

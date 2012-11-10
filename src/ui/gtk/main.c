@@ -576,7 +576,7 @@ main_gui_show_prefences(void)
 void main_gui_init_osx()
 {
 	GError *err = NULL;
-	GtkOSXApplication *theApp = g_object_new(GTK_TYPE_OSX_APPLICATION, NULL);
+	GtkosxApplication *theApp = g_object_new(GTKOSX_TYPE_APPLICATION, NULL);
 	GtkUIManager *mgr = gtk_ui_manager_new();
 	GtkWidget *item;
 	GtkWidget *sep;
@@ -755,8 +755,8 @@ void main_gui_init_osx()
 	menubar = gtk_ui_manager_get_widget(mgr, "/MenuBar");
 	
 	
-	gtk_osxapplication_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
-	gtk_osxapplication_set_use_quartz_accelerators(theApp, TRUE);
+	gtkosx_application_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
+	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
 	
 	
 	item = gtk_ui_manager_get_widget(mgr, "/MenuBar/File/Quit");
@@ -766,13 +766,13 @@ void main_gui_init_osx()
 	gtk_widget_hide(GTK_WIDGET(item));
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/Help/About");
-	gtk_osxapplication_insert_app_menu_item  (theApp, item, 0);
+	gtkosx_application_insert_app_menu_item  (theApp, item, 0);
 	sep = gtk_separator_menu_item_new();
 	g_object_ref(sep);
-	gtk_osxapplication_insert_app_menu_item  (theApp, sep, 1);	
+	gtkosx_application_insert_app_menu_item  (theApp, sep, 1);	
 	
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/File/Preferences");
-	gtk_osxapplication_insert_app_menu_item  (theApp, item, 2);
+	gtkosx_application_insert_app_menu_item  (theApp, item, 2);
 	
 	
 	GtkWidget *dock_menu = gtk_menu_new();
@@ -781,9 +781,9 @@ void main_gui_init_osx()
 	g_signal_connect_data (item, "activate", G_CALLBACK (on_NSApplicationDidBecomeActive),0,0, 0);
 	gtk_menu_append(dock_menu, item);
 	
-	gtk_osxapplication_set_dock_menu(theApp, GTK_MENU_SHELL(dock_menu));
+	gtkosx_application_set_dock_menu(theApp, GTK_MENU_SHELL(dock_menu));
 	
-	gtk_osxapplication_ready(theApp);
+	gtkosx_application_ready(theApp);
 }
 #endif
 
