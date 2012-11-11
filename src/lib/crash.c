@@ -1792,8 +1792,7 @@ crash_try_reexec(void)
 
 	close_file_descriptors(3);
 	crash_reset_signals();
-	execve(vars->argv0,
-		(const void *) vars->argv, (const void *) vars->envp);
+	execve(vars->argv0, (const void *) vars->argv, (const void *) vars->envp);
 
 	/* Log exec() failure */
 

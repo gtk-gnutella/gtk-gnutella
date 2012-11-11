@@ -141,6 +141,7 @@
 #undef sendto
 
 #undef abort
+#undef execve
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define WS2_LIBRARY		"ws2_32.dll"
@@ -700,6 +701,91 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	}
 
 	return res;
+}
+
+/**
+ * Wrapper for execve().
+ */
+int
+mingw_execve(const char *filename, char *const argv[], char *const envp[])
+{
+	static char buf[1024];		/* Better avoid the stack during crashes */
+	const char *p;
+	char *q, *end;
+
+	/*
+	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
+	 * argument correctly after calling execve(), when there are embedded
+	 * spaces in the string.
+	 *
+	 * If we have initially:
+	 *
+	 *		argv[0] = 'C:\Program Files (x86)\gtk-gnutella\gtk-gnutella.exe'
+	 *
+	 * then the launched program will see:
+	 *
+	 *		argv[0] = 'C:\Program'
+	 *		argv[1] = 'Files'
+	 *		argv[2] = '(x86)\gtk-gnutella\gtk-gnutella.exe'
+	 *
+	 * which of course is completely wrong.
+	 *
+	 * So, as a workaround, we surround the passed argv[0] into quotes before
+	 * invoking execve(), well spawnve() actually.
+	 *
+	 * Complications arise because we are called from the crash handler most
+	 * probably and therefore we cannot allocate memory.  Furthermore, the
+	 * argv[] array can point to read-only memory.
+	 *
+	 * FIXME: we should really quote ALL the arguments, not just argv[0],
+	 * but this will do for now to enable correct auto-restart.
+	 *		--RAM, 2012-11-11
+	 */
+
+	end = &buf[sizeof buf];
+	p = argv[0];
+	buf[0] = '"';
+	q = &buf[1];
+	
+	while (q < end) {
+		char c = *p++;
+		if ('"' == c) {
+			*q++ = '\\';
+			if (q >= end)
+				break;
+			*q++ = c;
+		} else if ('\0' == c) {
+			*q++ = '"';		/* Close opening quote */
+			if (q >= end)
+				break;
+			*q++ = c;
+			break;
+		} else {
+			*q++ = c;
+		}
+	}
+
+	buf[sizeof buf - 1] = '\0';	/* In case we jumped out of the loop above */
+
+	if (-1 == mprotect((void *) argv, 4096, PROT_READ | PROT_WRITE))
+		s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+
+	*(char **) argv = buf;		/* Changes argv[0] */
+
+	/*
+	 * Now perform the execve(), which we emulate through an asynchronous
+	 * spawnve() call since we do not want to wait for the "child" process
+	 * to terminate before returning.
+	 */
+
+	errno = 0;
+	_flushall();
+	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
+
+	if (0 == errno)
+		exit(0);
+
+	return -1;		/* Failed to launch process, errno is set */
 }
 
 /**
