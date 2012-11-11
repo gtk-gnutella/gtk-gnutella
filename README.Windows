@@ -32,7 +32,7 @@ You'll have to install the following packages:
 
 	http://ftp.gnome.org/pub/gnome/binaries/win32/gtk+/2.24/
 
-  The file is called: gtk+-bundle_2.24.8-20111122_win32.zip
+  The file is called: gtk+-bundle_2.24.10-20120208_win32.zip
   Unzip that file into /mingw/lib/gtk, where "/mingw" represents the
   directory where MinGW is installed (e.g. C:\MinGW).
 
@@ -80,7 +80,7 @@ To be able to create the installer package, you'll need two extra packages:
 
 	https://sourceforge.net/projects/gtk-win/
 
-  Grab the file gtk2-runtime-2.24.8-2011-12-03-ash.exe and leave it at the
+  Grab the file gtk2-runtime-2.24.10-2012-10-10-ash.exe and leave it at the
   root of the gtk-gnutella source tree. It will be expected there by the
   package installer.
 
