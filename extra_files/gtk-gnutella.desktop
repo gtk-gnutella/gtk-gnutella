@@ -1,6 +1,5 @@
 [Desktop Entry]
 Version=1.0
-Encoding=UTF-8
 Name=gtk-gnutella
 Name[de]=gtk-gnutella
 Name[fr]=gtk-gnutella
@@ -33,5 +32,5 @@ Exec=gtk-gnutella
 StartupNotify=false
 Terminal=false
 Type=Application
-Categories=GTK;Application;Network;FileTransfer;P2P;
-Icon=gtk-gnutella.png
+Categories=GTK;Network;FileTransfer;P2P;
+Icon=gtk-gnutella
