@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-94]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -50,12 +50,12 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 18839 2011-02-25 12:32:03Z rmanfredi $
+# $X-Id$
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -85,6 +85,7 @@ PIXMAPS = \
 	magnet.16x16.png \
 	magnet.32x32.png \
 	magnet.64x64.png \
+	natpmp.xpm \
 	no_firewall.xpm \
 	offline.xpm \
 	online.xpm \
@@ -145,6 +146,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man
