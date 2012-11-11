@@ -8,8 +8,10 @@
 
 
 
+
     
 <title></title>
+
 
 
 
@@ -18,6 +20,7 @@
   </head><body>
     
 <h1>FAQ</h1>
+
 
 
 
@@ -35,8 +38,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -58,6 +63,7 @@
 
 
 
+
     
 <h2>Compiler depuis le code source</h2>
 
@@ -65,8 +71,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -81,6 +89,7 @@
 
 
 
+
     
 <h2>Les connexions Gnutella</h2>
 
@@ -88,8 +97,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -122,6 +133,7 @@
 
 
 
+
     
 <h2>Les recherches</h2>
 
@@ -129,8 +141,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -148,6 +162,7 @@
 
 
 
+
     
 <h2>Les téléchargements</h2>
 
@@ -155,8 +170,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -181,6 +198,7 @@
 
 
 
+
     
 <h2>Les envois</h2>
 
@@ -188,8 +206,10 @@
 
 
 
+
     
 <ul>
+
 
 
 
@@ -203,8 +223,10 @@
 
 
 
+
     
 <h2>GTK+ 2.x</h2>
+
 
 
 
@@ -217,11 +239,13 @@
 
 
 
+
       <li><a href="#gtk2_slow">Gtk2 est troooop lent.</a></li>
       <li><a href="#gtk2_ctype">Les caractères non ASCII s'affichent en
           tant que _ (tiret bas).</a></li>
     
 </ul>
+
 
 
 
@@ -241,8 +265,10 @@
 
 
 
+
     
 <h3><a name="general0">Qu'est-ce que Gnutella ?</a></h3>
+
 
 
 
@@ -257,9 +283,11 @@ pair. À l'heure actuelle vous pouvez publier et télécharger des fichiers
 
 
 
+
     
 <h3><a name="general-gtkg">Qu'est-ce que « GTKG » ?<br>
 </a></h3>
+
 
 
 
@@ -275,8 +303,10 @@ de gtk-gnutella. </p>
 
 
 
+
     
 <h3><a name="general1">Cette application utilise trop de bande passante !</a></h3>
+
 
 
 
@@ -290,8 +320,10 @@ solutions suivantes si vous utilisez une ligne lente (modem 56K) : </p>
 
 
 
+
     
 <ul>
+
 
 
 
@@ -320,8 +352,10 @@ sur vos fichiers. </li>
 
 
 
+
     
 <h3><a name="general-ultrapeer">Que sont les  Ultrapeers et les noeuds feuille ?</a></h3>
+
 
 
 
@@ -332,6 +366,7 @@ sur vos fichiers. </li>
  Cela divise les clients sur gnet en noeuds feuilles qui ne se connectent
  qu'aux ultrapeers, et en ultrapeers qui se connectent à de nombreux 
 noeuds feuilles et à un nombre réduit d'autres ultrapeers. (cf. <a href="#gnet0">Quel est le bon nombre de connexions ?</a>). </p>
+
 
 
 
@@ -356,8 +391,10 @@ libérant de la bande passante pour le partage et les téléchargements
 
 
 
+
     
 <h3><a name="general-firewall">Pourquoi gtk-gnutella dit qu'il est bloqué par un pare-feu alors qu'il ne l'est pas ?</a> </h3>
+
 
 
 
@@ -380,8 +417,10 @@ le port par défaut de Gnutella (6346). Voyez aussi <a href="#gnet1"><q>Dois-je 
 
 
 
+
     
 <h2>Compiler depuis le code source</h2>
+
 
 
 
@@ -396,6 +435,7 @@ toutes ces questions ?<br>
 
 
 
+
     
 <p> Vous pouvez lancer le script <code>Configure</code> de la 
 façon décrite ci-dessous pour qu'il utilise les réglages par 
@@ -405,8 +445,10 @@ défaut. Il se comporte alors comme si l'ancien script <code>configure</code> é
 
 
 
+
     
 <p> <code>$ ./Configure -ders</code> </p>
+
 
 
 
@@ -421,8 +463,10 @@ qu'il : </p>
 
 
 
+
     
 <ul>
+
 
 
 
@@ -442,9 +486,11 @@ qu'il : </p>
 
 
 
+
     
 <p> <code>$ ./Configure -ders -O -D gtkversion=1 -D remotectrl=y
         -Dccflags="-march=pentium -mmmx" -Doptimize="-g -O0"</code> </p>
+
 
 
 
@@ -457,8 +503,10 @@ qu'il : </p>
 
 
 
+
     
 <h3><a name="gnet0">Quel est le bon nombre de connexions ?</a></h3>
+
 
 
 
@@ -476,6 +524,7 @@ Particulièrement avec une connexion asymétrique câble/DSL, vous pouvez
 facilement saturer votre trafic entrant en produisant trop de trafic 
 sortant (souci de TCP/IP). Utilisez au plus la moitié de votre bande 
 passante sortante pour les connexions gnet. </p>
+
 
 
 
@@ -499,6 +548,7 @@ attribuer au partage de fichiers. </p>
 
 
 
+
     
 <p> Les réglages de bande passante vous aideront à 
 régler encore plus finement l'utilisation de bande passante par 
@@ -508,8 +558,10 @@ gtk-gnutella. </p>
 
 
 
+
     
 <h3><a name="gnet1">Dois-je rediriger un port sur mon pare-feu ?</a></h3>
+
 
 
 
@@ -530,8 +582,10 @@ utilisant une <a href="#down_push">requête push</a>. Vous pouvez configurer le 
 
 
 
+
     
 <h3><a name="gnet-forward-howto">Comment puis-je configurer la redirection de ports ?</a></h3>
+
 
 
 
@@ -544,8 +598,10 @@ utilisant une <a href="#down_push">requête push</a>. Vous pouvez configurer le 
 
 
 
+
     
 <h3><a name="gnet-udp">Est-ce que gtk-gnutella utilise l'UDP ?</a></h3>
+
 
 
 
@@ -558,8 +614,10 @@ utilisant une <a href="#down_push">requête push</a>. Vous pouvez configurer le 
 
 
 
+
     
 <h3><a name="gnet2">Que signifie « [FC] » ?</a></h3>
+
 
 
 
@@ -580,8 +638,10 @@ activiez l'option <em>Préférer les connexions compressées</em>, soit encore q
 
 
 
+
     
 <h3><a name="gnet3">Pourquoi je perds des connexions gnet lorsque que j'ai un envoi en cours ?</a></h3>
+
 
 
 
@@ -597,8 +657,10 @@ relatifs au réseau. </p>
 
 
 
+
     
 <h3><a name="gnet4">Que signifient toutes ces choses dans la colonne Drapeaux ?</a></h3>
+
 
 
 
@@ -613,10 +675,11 @@ version 0.92.1c et celles qui sont plus récentes. </p>
 
 
 
+
     
 <pre>  012345678AB (offset)
-  NIrwqxZPFhT
-  ||||||||||+ indique une connexion cryptée avec un tunnel <strong>T</strong>LS
+  NIrwqxZPFhE
+  ||||||||||+ indique une connexion cryptée avec TLS (<strong>E</strong>ncrypted)
   |||||||||+- limitation partielle (<strong>h</strong>) ou totale (<strong>f</strong>) des recherches
   ||||||||+-- contrôle de flux (<strong>F</strong>), ou données sur le fil d'attente (<strong>d</strong>)
   |||||||+--- nous somme un push-proxy pour le noeud (<strong>P</strong>) ou bien le noeud est notre push-proxy (<strong>p</strong>)
@@ -633,8 +696,10 @@ version 0.92.1c et celles qui sont plus récentes. </p>
 
 
 
+
     
 <h3><a name="gnet-user-agent">Quel est le sens du « ! » lorsqu'il précède un nom de logiciel ?</a></h3>
+
 
 
 
@@ -648,9 +713,11 @@ version 0.92.1c et celles qui sont plus récentes. </p>
 
 
 
+
     
 <h3><a name="gnet5">Que veut dire « Version néfaste bannie, mise à jour requise » ?<br>
 </a></h3>
+
 
 
 
@@ -669,9 +736,11 @@ bannissement ainsi que de ses raisons. </p>
 
 
 
+
     
 <h3><a name="gnet6">Que veut dire « Version obsolète, veuillez mettre à jour » ?<br>
 </a></h3>
+
 
 
 
@@ -689,8 +758,10 @@ plus, les versions instables (de développement) sont bannies au bout de
 
 
 
+
     
 <h3><a name="gnet7">Pourquoi mon proxy  HTTP ne marche-t-il pas ?</a></h3>
+
 
 
 
@@ -710,8 +781,10 @@ pouvez corriger ce problème, nous apprécierions votre contribution. </p>
 
 
 
+
     
 <h3><a name="gnet8">Comment puis-je augmenter le délai de déconnexion ?</a></h3>
+
 
 
 
@@ -726,8 +799,10 @@ les délais de déconnexion (timeout) pourraient se révéler utile. Allez à <e
 
 
 
+
     
 <h3><a name="gnet-auto">Comment le mode automatique choisit-il entre le fait d'être ultrapeer ou noeud feuille ?</a></h3>
+
 
 
 
@@ -740,8 +815,10 @@ les délais de déconnexion (timeout) pourraient se révéler utile. Allez à <e
 
 
 
+
     
 <ol>
+
 
 
 
@@ -763,6 +840,7 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <h2>Les recherches</h2>
 
@@ -770,8 +848,10 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <h3><a name="search0">Comment puis-je obtenir plus de résultats ?</a></h3>
+
 
 
 
@@ -785,6 +865,7 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <h3><a name="search3">Comment puis-je ignorer les fichiers qui n'ont pas de hachage SHA1 ?<br>
 </a></h3>
@@ -793,8 +874,10 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <p>Sans objet de nos jours : tous les noeuds supportent SHA1.</p>
+
 
 
 
@@ -808,8 +891,10 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <p>Les recherches doivent maintenant être entrées dans la boîte <q><em>Recherche</em></q> qui se trouve tout en haut.</p>
+
 
 
 
@@ -822,8 +907,10 @@ passante HTTP sortante. </li>
 
 
 
+
     
 <p> Une recherche <q><em>passive</em></q> retournera tous les résultats qui passent à travers gtk-gnutella. En <a href="?page=filtering_howto">filtrant</a> ces résultats, les recherches passives peuvent être utiles. </p>
+
 
 
 
@@ -839,6 +926,7 @@ supplémentaire. Par exemple, sur mon ultrapeer avec 200 <a href="#general-ultra
 approximativement 1500 résultats. Évidemment, plus la 
 recherche est populaire, et 
 plus vous êtes patient, plus cette technique devient utile. </p>
+
 
 
 
@@ -860,8 +948,10 @@ des types de fichiers différents dans chacune de ces recherches. </p>
 
 
 
+
     
 <h2>Les téléchargements</h2>
+
 
 
 
@@ -870,6 +960,7 @@ des types de fichiers différents dans chacune de ces recherches. </p>
     
 <h3><a name="down0">Que veut dire l'état « Ignore la requête
         [SHA1|name &amp; size] » ?</a></h3>
+
 
 
 
@@ -889,8 +980,10 @@ même chose avec l'autre. </p>
 
 
 
+
     
 <h3><a name="down1">Que veut dire « Pas d'URN sur le serveur » ?</a></h3>
+
 
 
 
@@ -913,8 +1006,10 @@ fichier présent sur l'hôte distant sont vraiment les mêmes.<br>
 
 
 
+
     
 <h3><a name="down2">Pourquoi le même fichier est-il téléchargé X fois ?</a></h3>
+
 
 
 
@@ -927,8 +1022,10 @@ fichier présent sur l'hôte distant sont vraiment les mêmes.<br>
 
 
 
+
     
 <h3><a name="down3">Qu'est-ce que le « swarming » ?</a></h3>
+
 
 
 
@@ -944,8 +1041,10 @@ d'attente en utilisant le <a href="#down5">maillage de téléchargement</a> et e
 
 
 
+
     
 <h3><a name="down4">Qu'est-ce qu'un « chunk » ou « bloc » ?</a></h3>
+
 
 
 
@@ -962,8 +1061,10 @@ en entier. La colonne <em>Intervalle</em> montre les blocs qui sont télécharg�
 
 
 
+
     
 <h3><a name="down5">Qu'est-ce que le « le maillage de téléchargement » ?</a></h3>
+
 
 
 
@@ -979,8 +1080,10 @@ seront alors utilisées pour le <a href="#down3">swarming</a>. </p>
 
 
 
+
     
 <h3><a name="down_push">Qu'est-ce qu'une « requête push » ?</a></h3>
+
 
 
 
@@ -1006,8 +1109,10 @@ requêtes push lorsque vous êtes bloqué par un pare-feu ou routeur
 
 
 
+
     
 <h3><a name="down7">Pourquoi est-ce que gtk-gnutella ajoute .OK à la fin des noms de fichier ?</a></h3>
+
 
 
 
@@ -1022,8 +1127,10 @@ corrompus. </p>
 
 
 
+
     
 <h3><a name="down8">Je n'arrive pas à télécharger ce fichier !</a></h3>
+
 
 
 
@@ -1038,6 +1145,7 @@ soleil dans la barre d'état, vous devriez essayer de l'obtenir. Voyez la
 
 
 
+
     
 <p>Autrement, si gtk-gnutella dit qu'il n'a que quelques sources pour le
  fichier (plus visible dans le sous-panneau informations de fichier dans
@@ -1047,8 +1155,10 @@ soleil dans la barre d'état, vous devriez essayer de l'obtenir. Voyez la
 
 
 
+
     
 <ul>
+
 
 
 
@@ -1067,12 +1177,14 @@ fichier.  </li>
 
 
 
+
     
 <p>Vous pouvez essayer de rechercher à nouveau le fichier et voir si 
 vous ne trouvez pas une autre version plus répandue. Si le « # » 
 affiche un nombre pour un fichier, c'est généralement bon signe. Plus le
  chiffre sera grand, plus les chances de pouvoir l'obtenir rapidement 
 augmenteront. </p>
+
 
 
 
@@ -1085,8 +1197,10 @@ augmenteront. </p>
 
 
 
+
     
 <p>Cela signifie que le fichier est réceptionné depuis une <a href="#down_push">route push</a>. </p>
+
 
 
 
@@ -1100,8 +1214,10 @@ augmenteront. </p>
 
 
 
+
     
 <h3><a name="up0">Que veut dire « Normalisé » ?</a></h3>
+
 
 
 
@@ -1115,6 +1231,7 @@ augmenteront. </p>
 
 
 
+
     
 <h2>GTK+ 2.x</h2>
 
@@ -1122,8 +1239,10 @@ augmenteront. </p>
 
 
 
+
     
 <h3><a name="gtk2_slow">Gtk2 est troooop lent.</a></h3>
+
 
 
 
@@ -1140,9 +1259,11 @@ lente que la bibliothèque GTK1. Donc sur une machine lente, vous devriez
 
 
 
+
     
 <h3><a name="gtk2_ctype">Les caractères non ASCII s'affichent en tant que _
         (tiret bas).</a></h3>
+
 
 
 
@@ -1156,6 +1277,7 @@ fichiers, réglez la sur <code>de_DE.ISO8859-1</code>. Les valeurs
 valides dépendent de votre système d'exploitation, voyez la page man 
 setlocale(3) pour les détails. Idéalement, tout le monde devrait 
 utiliser l'encodage UTF-8 qui couvre pratiquement toutes les langues. </p>
+
 
 
 

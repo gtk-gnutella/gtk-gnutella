@@ -1,8 +1,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <!-- $Id$ -->
 <html><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"></head><body><h1>SSS<br>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title></title>
+</head><body>
+<h1>SSS<br>
 </h1>
+
 
 <!--
   **
@@ -11,7 +15,9 @@
   -->
 
 <h2>Genel</h2>
+
 <ul>
+
   <li><a href="#general0">Nedir bu Gnutella kuzum?</a></li>
   <li><a href="#general-gtkg">GTKG nedir?</a></li>
   <li><a href="#general1">Bu çok fazla bant genişliği kullanıyor!</a></li>
@@ -20,15 +26,21 @@
   </li>
 </ul>
 
+
 <h2>Kaynak koddan derleme</h2>
+
 <ul>
+
   <li><a href="#build1">
     Configure'ün bana bütün bu soruları sormasını nasıl engellerim?</a>
   </li>
 </ul>
 
+
 <h2>Gnutella bağlantıları</h2>
+
 <ul>
+
   <li><a href="#gnet0">İyi bir bağlantı sayısı nedir?</a></li>
   <li><a href="#gnet1">Güvenlik duvarımda bir port yönlendirmem gerekir mi?</a></li>
   <li><a href="#gnet-forward-howto">Port yönlendirmesini nasıl yapılandırırım?</a></li>
@@ -44,16 +56,22 @@
   <li><a href="#gnet-auto">Otomatik kip ultra ve yaprak kipleri arasında seçimi neye dayanarak yapar?</a></li>
 </ul>
 
+
 <h2>Aramalar</h2>
+
 <ul>
+
   <li><a href="#search0">Nasıl daha fazla sonuç alabilirim?</a></li>
   <li><a href="#search3">SHA1 değeri olmayan sonuçları nasıl görmezden gelebilirim?</a></li>
   <li><a href="#search-entry">Arama kutusu nereye gitti?</a></li>
   <li><a href="#search-passive">"Pasif" aramalar nedir?</a></li>
 </ul>
 
+
 <h2>İndirmeler</h2>
+
 <ul>
+
   <li><a href="#down0">"İstek görmezden geliniyor [SHA1|isim &amp; boyut]" durumu ne anlama gelir?</a></li>
   <li><a href="#down1">"Sunucuda URN yok" durumunun anlamı nedir?</a></li>
   <li><a href="#down2">Neden bir dosya X kez indiriliyor?</a></li>
@@ -66,16 +84,23 @@
   <li><a href="#down9">İndirmeler sekmesinde metnin renginin siyah yerine gri olması ne anlama gelir?</a></li>
 </ul>
 
+
 <h2>Göndermeler</h2>
+
 <ul>
+
   <li><a href="#up0">"Normalize" ne anlama gelir?</a></li>
 </ul>
 
+
 <h2>GTK+ 2.x</h2>
+
 <ul>
+
   <li><a href="#gtk2_slow">Gtk2 çooook yavaş.</a></li>
   <li><a href="#gtk2_ctype">ASCII olmayan karakterler _ (alt çizgi) olarak gösteriliyor.</a></li>
 </ul>
+
 
 <!--
   **
@@ -87,24 +112,32 @@
 
 <h2>Genel</h2>
 
+
 <h3><a name="general0">Nedir bu Gnutella kuzum?</a></h3>
+
 <p>
   Gnutella merkezi olmayan, eşten eşe veri alışveriş şebekesidir. Güncel
  olarak Gnutella ağında her türlü dosyayı indirebilir ya da 
 yayınlayabilirsiniz. Daha fazla bilgi için <a href="http://www.wikipedia.org/wiki/Gnutella">Vikipedinin İngilizce Gnutella maddesine</a> bakabilirsiniz.
 </p>
 
+
 <h3><a name="general-gtkg">"GTKG" nedir?<br>
 </a></h3>
+
 <p>Biz sıkça gtk-gnutella'yı GTKG ya da gtkg olarak anarız (çünkü daha 
 kısadır). GTK, gtk-gnutella'nın kullandığı grafik araç takımı
  olan GTK+'dan gelir.
 </p>
 
+
 <h3><a name="general1">Bu çok fazla bant genişliği kullanıyor!</a></h3>
+
 <p>Güncel olarak yavaş bir hat kullanıyorsanız (modem ile) aşağıdaki tavsiyeleri deneyebilirsiniz:
 </p>
+
 <ul>
+
   <li>
     gtk-gnutella'yı yaprak kipinde çalıştırın. Eş kipi kurulumu 
 Tercihler penceresinin Gnutella sekmesinde değiştirilebilir. Durum 
@@ -130,11 +163,14 @@ kaynak bulamazsınız ve diğer kişiler dosyalarınızı arayamazlar.
   </li>
 </ul>
 
+
 <h3><a name="general-ultrapeer">Ultraeşler ve yaprak düğümleri nedir?</a></h3>
+
 <p>0.92 sürümünden beri, gtk-gnutella <a href="?page=features"><em>ultraeş</em></a> (ultrapeer) and <em>yaprak düğümleri</em> (leaf node) desteğini eklemiştir. Bu gnet ağındaki istemcileri sadece ultraeşlere 
 bağlanan yaprak düğümleri ve birçok yaprak düğümü ile daha az sayıda 
 başka ultraeşlere bağlanan ultraeşler olarak iki kümeye ayırır (<a href="#gnet0">İyi bir bağlantı sayısı nedir?</a> paragrafına bakınız).
 </p>
+
 <p>
   Ultraeşler bir güvenlik duvarı ile sınırlanmış olmamalıdırlar ve 
 yüksek çalışma süreleri olması beklenir
@@ -152,8 +188,10 @@ kullanılmasına imkân sağlar. Ultraeşler güvenlik duvarı arkasındaki
 yaprak düğümleri için <a href="?page=features">itme vekilliği</a> de yaparlar.
 </p>
 
+
 <h3><a name="general-firewall"></a>Neden gtk-gnutella olmadığı hâlde bir güvenlik duvarı arkasında bulunduğunu belirtiyor?<a name="general-firewall"></a>
 </h3>
+
 
 <p>Dışarıdan size erişilip erişilemeyeceğini belirlemek için 
 gtk-gnutella içeriye gelen bir bağlantı almaya ihtiyaç duyar. Bu 
@@ -170,18 +208,25 @@ Erişim Sağlayıcıları varsayılan Gnutella portunu (6346) engellerler.
 Ayrıca <a href="#gnet1"><q>Güvenlik duvarımda bir port yönlendirmem gerekir mi?</q></a> paragrafına bakınız.
 </p>
 
+
 <h2>Kaynak koddan derleme</h2>
 
 
+
 <h3><a name="build1"></a>Configure'ün bana bütün bu soruları sormasını nasıl engellerim?<a name="build1"></a></h3>
+
 <p>Varsayılan değerleri kullanması için <code>Configure</code> betiğini aşağıda gösterildiği gibi kullanabilirsiniz. Bu durumda eskiden autoconf'tan <code>configure</code> betiğinin çağrıldığı zamanki gibi davranır.
 </p>
 
+
 <p>
   <code>$ ./Configure -ders</code>
-</p><p>Derleme seçeneklerini komut satırında da ayarlayabilirsiniz. Aşağıdaki misal gtk-gnutella'yı şu şekilde derleyecektir:
 </p>
+<p>Derleme seçeneklerini komut satırında da ayarlayabilirsiniz. Aşağıdaki misal gtk-gnutella'yı şu şekilde derleyecektir:
+</p>
+
 <ul>
+
   <li>
     özel ayarları kabul et (<code>-O</code>). Bu bulunmazsa aşağıdaki parametrelerin hiçbir etkisi olmaz.
   </li>
@@ -196,13 +241,17 @@ Ayrıca <a href="#gnet1"><q>Güvenlik duvarımda bir port yönlendirmem gerekir 
     hata ayıklama verilerini derle ve aynı zamanda tüm derleyici optimizasyonlarını devre dışı bırak (<code>-Doptimize="-g -O0"</code>).
   </li>
 </ul>
+
 <p>
   <code>$ ./Configure -ders -O -D gtkversion=1 -D remotectrl=y -Dccflags="-march=pentium -mmmx" -Doptimize="-g -O0"</code>
 </p>
 
+
 <h2>Gnutella bağlantıları</h2>
 
+
 <h3><a name="gnet0">İyi bir bağlantı sayısı nedir?</a></h3>
+
 <p><a href="#general-ultrapeer">Yaprak</a> kipinde 3 ultraeş, <a href="#general-ultrapeer">ultraeş</a>
  kipinde 32/40 (asgari/azami)
   ultraeş ve yaklaşık 100 yaprak düğümü. Gerçek sayılar kullanılabilecek 
@@ -214,6 +263,7 @@ bağlantısında çok fazla dışarıya giden trafik oluşturarak içeri gelen
 trafiğin kolayca taşmasına yol açabilirsiniz (TCP/IP problemi). Dışarıya
  giden bant genişliğinizin en çok yarısını gnet bağlantılarına ayırın.
 </p>
+
 <p>
   "High outdegree" (yüksek sayıda bağlantı) işlevi desteğinin 0.95 
 sürümünde eklenmesinden beri diğer ultraeşlere 
@@ -227,30 +277,39 @@ sayaçlarını izleyin ve mikroişlemci kullanımı hakkında bir fikir edinmek
  kaynaklarına erişene dek yaprak düğümler ile bağlantı sayısını 
 arttırın.
 </p>
+
 <p>Bant genişliğini kontrol ayarları gtk-gnutella'nın bant genişliği 
 kullanımını daha da ince bir şekilde ayarlamanıza yardımcı olur.
 </p>
 
+
 <h3>Güvenlik duvarımda bir port yönlendirmem gerekir mi?<a name="gnet1"></a></h3>
+
 <p>
   gtk-gnutella'nın çalışması için herhangi bir port yönlendirmenize 
 gerek yoktur fakat yönlendirme yaparsanız çok daha etkin bir şekilde 
 çalışır. Eğer gtk-gnutella bir güvenlik duvarı tarafından 
 engellendiğinizi düşünüyorsa <a href="#down_push">"itme"</a> sonuçlarını göstermez çünkü bunları nasıl olsa indiremezsiniz.<br>Diğer kişiler size doğrudan bağlanamadıkları durumlarda bile sizin düğümünüzden <a href="#down_push">itme isteği</a> kullanarak indirme yapabilirler.<br>gtk-gnutella'nın dinlediği portu ayarlayabilirsiniz. <em>Dinlenecek port</em> ayarı <em>Dosya-&gt;Tercihler-&gt;Şebeke</em> konumundadır.
 </p>
+
  
 <h3>Port yönlendirmesini nasıl yapılandırırım?<a name="gnet-forward-howto"></a></h3>
+
 <p>En popüler yönlendiriciler için talimatları İngilizce olarak
   <a href="http://www.portforward.com/routers.htm">http://www.portforward.com/routers.htm</a> adresinde bulabilirsiniz. Port yönlendirmenizi denemek için <a href="http://www.canyouseeme.org/">http://www.canyouseeme.org/</a>
   adresini kullanabilirsiniz.
 </p>
 
+
 <h3>gtk-gnutella UDP kullanır mı?</h3>
+
 <p>Evet, 0.95 sürümünden beri gtk-gnutella <a href="http://tr.wikipedia.org/wiki/TCP">TCP</a>'ye ilâve olarak  
   <a href="http://tr.wikipedia.org/wiki/UDP">UDP</a>'de kullanır.  
 </p>
 
+
 <h3>"[FC]" unsurunun anlamı nedir?</h3>
+
 <p><em>FC</em>,"flow control" yani "akış kontrolü" anlamına gelir.<br>Genelde, bağlandığınız istemcilerin akış kontrolü yapmamalarından emin olmanız önerilir. <a href="#gnet4">Bayraklar</a>
  sütununda FC bulunup bulunmadığına bakın. Genel bir kural olarak, 
 birden fazla düğüm akış kontrolü yapıyorsa gnete adanmış yeteri kadar 
@@ -258,21 +317,26 @@ dışarı giden bant genişliği yok demektir ve bu şebekeye zarar verdiğiniz
  anlamına gelir: ya bağlantı sayısını azaltın, ya <em>Sıkıştırılmış bağlantıları tercih et</em> şıkkını seçin, ya da dışarıya giden bant genişliğini arttırın.
 </p>
 
+
 <h3>Bir gönderme yaparken neden gnet bağlantılarını kaybediyorum?</h3>
+
 <p>Bant genişliğini sınırlamayı deneyin. Bunun bir etkisi olmazsa,  
 sorun İnternet Erişim Sağlayıcınızın Gnutella trafiğini bastırmasından
  kaynaklanıyor olabilir. gtk-gnutella'nın şebeke ayarlarında gnutella 
 portunu değiştirmeyi deneyin.
 </p>
 
+
 <h3>Bayraklar sütunundaki bu şeylerin anlamı nedir?</h3>
+
 <p>Bağlantı türlerini ve bazı bağlantı ayarlarını burada görebilirsiniz.
   İtme vekillerinin 0.92.1c ve sonraki sürümlerde desteklendiğini 
 dikkatinize sunarız.
 </p>
+
 <pre>  012345678AB (offset)
-  NIrwqxZPFhT
-  ||||||||||+ <strong>T</strong>LS ile şifrelenmiş bir bağlantıyı gösterir
+  NIrwqxZPFhE
+  ||||||||||+ TLS ile şifrelenmiş bir bağlantıyı gösterir (<strong>E</strong>ncrypted)
   |||||||||+- hop akışı tetiklenmiş (<strong>h</strong>), ya da toplam sorgu akış kontrolü (<strong>f</strong>)
   ||||||||+-- akış kontrolu (flow control (<strong>F</strong>)), ya da kuyrukta beklemede olan veriler (<strong>d</strong>)
   |||||||+--- düğüm için bir itme vekiliyiz (<strong>P</strong>) ya da düğüm bizim itme vekilimiz (<strong>p</strong>)
@@ -285,12 +349,16 @@ dikkatinize sunarız.
   +---------- eş kipi: <strong>U</strong>ltra,<strong> L</strong>eaf yani yaprak, ve eski (yani <strong>N</strong>ormal)
 </pre>
 
+
 <h3><a name="gnet-user-agent">Uygulama isimlerinin önündeki "!" işaretinin anlamı nedir?</a></h3>
+
 
 <p>Uygulama adının sahte <em>olabileceğine</em> işaret eder ancak iki tarafın birinde gecikmiş bir saatten kaynaklanan yanlış pozitif olması da mümkündür.
 </p>
 
+
 <h3>"Zararlı sürüm yasaklandı, güncelleme gerekiyor" mesajının anlamı nedir?</h3>
+
 <p>Bazen istemcilerin bir hata içerdikleri ya da gnet'e zaralı bir 
 davranış sergiledikleri keşfedilir. Mesela gtk-gnutella-0.92b çok fazla 
 sorgu oluşturup <a href="?page=gwebcache">GWebCache sisteminde</a> aşırı
@@ -299,14 +367,18 @@ normalde belli sürümlere sınırlanırlar ve istemcinin hazırlayıcısı
 yasaklama hakkında bilgilendirilir.
 </p>
 
+
 <h3><a name="gnet6">"Eski sürüm, lütfen güncelleyin" mesajının anlamı nedir?</a></h3>
+
 <p>Bir seneden eski gtk-gnutella sürümlerin güncellenmesi önemlidir çünkü gnet 
 şebekesinin kararlılığı ve ölçeklenmesi için önemli işlevlerden yoksun 
 hâle gelmişlerdir. Buna ek olarak kararsız geliştirme sürümleri 90 gün 
 sonrasında yasaklanırlar.
 </p>
 
+
 <h3><a name="gnet7">HTTP vekil sunucun neden gerektiği gibi çalışmıyor?</a></h3>
+
 <p>HTTP vekilinizin <code>CONNECT</code> metotunu desteklemesi gerekir çünkü normal <code>GET</code>
   Gnutella bağlantılarıyla çalışmaz. Bu, HTTP protokolünün en çok SQUID 
 vekilleri tarafından desteklenen bir uzantısıdır. Ek olarak çoğu zaman 
@@ -317,14 +389,20 @@ kullanmamaktadırlar, ancak bunu düzeltebileceğinizi düşünüyorsanız
 yamalarınız makbule geçecektir.
 </p>
 
+
 <h3><a name="gnet8">Zaman aşımı süresini nasıl arttırabilirim?</a></h3>
+
 <p>İnternet bağlantınızda yüksek gecikmeler varsa zaman aşımı sürelerini arttırmak faydalı olabilir. <em>Dosya-&gt;Tercihler-&gt;Kullanıcı arayüzüne</em> gidip <em>Uzman kipi</em> şıkkını etkinleştirin. Bunun ardından <em>Dosya-&gt;Tercihler-&gt;Gnutella</em> konumunda değiştirilecek pek çok ek seçenek bulursunuz.
 </p>
 
+
 <h3><a name="gnet-auto">Otomatik kip ultra ve yaprak kipleri arasında seçimi neye dayanarak yapar?</a></h3>
+
 <p><a href="#general-ultrapeer">Ultra kipine</a> terfi etmek için aşağıdaki şartların yerine getirilmesi gerekir:<br>
 </p>
+
 <ol>
+
   
 <li>8192 bayt/s değerinden fazla kullanılabilecek dışarıya giden bant genişliği bulunmalıdır.
   </li>
@@ -341,31 +419,42 @@ ya da normal yani eski (legacy)) başına asgari 256 bayt/s bant genişliği
     Genel olarak yapılandırılmış her yaprak düğümü için 32 bayt/s ve her gnet bağlantısı için 256 bayt/s bulunmalıdır.
   </li>
 </ol>
+
   
 <h2>Aramalar</h2>
 
+
 <h3><a name="search0">Nasıl daha fazla sonuç alabilirim?</a></h3>
+
 <p>Aldığınız arama sonuç sayısı en çok diğer eşlerin size bağlanıp bağlanamamalarından (<a href="#gnet1">port yönlendirme</a> paragrafına bakınız) ve diğer makinelere <a href="#gnet0">bağlantı sayısından</a> etkilenir.
 </p>
 
+
 <h3><a name="search3">SHA1 değeri olmayan sonuçları nasıl görmezden gelebilirim?</a></h3>
+
 <p>Bunun hiçbir önemi kalmamıştır çünkü günümüzde tüm düğümler SHA1 hash değerlerini desteklerler.
 </p>
 
+
 <h3><a name="search-entry">Arama kutusu nereye gitti?</a></h3>
+
 <p>Aramalar artık pencerenin en üst köşesindeki <q><em>Arama</em></q> kutusunda yapılır.
 </p>
 
+
 <h3><a name="search-passive">"Pasif" aramalar nedir?</a></h3>
+
 <p><q><em>Pasif</em></q> bir arama gtk-gnutella'dan geçen tüm arama sonuçlarını sunar.  Bu sonuçlar 
   <a href="?page=filtering_howto">filtrelenirse</a> pasif aramalar faydalı olabilir.  
 </p>
+
 <p>Eğer <a href="#general-ultrapeer">ultra</a> kipindeyseniz kendi 
 aramalarınıza ek olarak birçok arama sonucu sizin düğümünüzden geçer. 
 İlâve gnet trafiği oluşturmadan arama yapmak için bu durumdan 
 faydalanabilirsiniz. Mesela 200 <a href="#general-ultrapeer">yaprak düğümüne</a> bağlı ultraeşimde pasif bir arama başlattım ve sonuçları sadece <q><em>linux</em></q> ismini içerenleri gösterecek şekilde filtreledim.  Aşağı yukarı bir saat sonunda yaklaşık 1500 sonuç elde ettim. 
   Tabii ki arama ne kadar popülerse, ve siz ne kadar sabırlıysanız, bu tekniğin faydası da o kadar artacaktır.
 </p>
+
 <p>
   Eğer yaprak kipindeyseniz gtk-gnutella'dan geçen arama sonuçları 
 sadece sizin aramalarınızdan kaynaklanır, dolayısıyla yukarıda açıklanan
@@ -378,10 +467,13 @@ arama başlatırsanız aramaların her birinde değişik bir dosya tipi
 görüntüleyebilirsiniz.
 </p>
 
+
 <h2>İndirmeler<br>
 </h2>
 
+
 <h3><a name="down0">"İstek görmezden geliniyor [SHA1|isim &amp; boyut]" durumu ne anlama gelir?</a></h3>
+
 <p>Bu, gtk-gnutella'nın  veritabanında dosyanın tamamlanmış olarak kaydedildiği manasına gelir. Bu veritabanı genelde
   <code>~/.gtk-gnutella/done.sha1</code>  ve <code>~/.gtk-gnutella/done.namesize</code>
  konumlarında bulunur.  Güncel olarak bu veritabanının herhangi bir 
@@ -391,7 +483,9 @@ düzenleyebilirsiniz. Dosyaların birine bir unsur ekler ya da
 çıkarırsanız aynı işlemi öteki dosyada da yapın.
 </p>
 
+
 <h3><a name="down1">"Sunucuda URN yok" durumunun anlamı nedir?</a></h3>
+
 <p>Bu, gtk-gnutella'nın bir düğümden yeni bir dosya indirmek istediğini,
  ancak bu düğümün dosya için bir SHA1 değeri iletmediğini gösterir. 
 Dosya yeni olduğundan
@@ -403,27 +497,37 @@ gtk-gnutella'nın indirmek istediği dosyanın uzaktaki makinedeki dosyayla
  aynısı olduğunu garantilemek için hiçbir seçeneği kalmaz.<br>Bu mesajlar canınızı sıkarsa <em>Dosya-&gt;Tercihler-&gt;İndirmeler </em>penceresinde <em>İyimser ilk parça</em> şıkkını seçin (bu şıkkın görüntülenmesi için <em>Dosya-&gt;Tercihler-&gt;Kullanıcı arayüzüne</em> gidip <em>Uzman kipi</em> şıkkını etkinleştirmeniz gerekmektedir).
 </p>
 
+
 <h3><a name="down2">Neden bir dosya X kez indiriliyor?</a></h3>
+
 <p><em>Alan</em> sütununa göz atın. Buna <a href="#down3">swarming</a> ya da çoklu indirme de denir.  gtk-gnutella dosyayı <a href="#down4">parçalar</a> hâlinde indirmeye çalışır ve mümkünse bir çok düğümden aynı zamanda indirme yapar.
 </p>
 
+
 <h3><a name="down3">"Swarming" nedir?</a></h3>
+
 <p>
   Swarming ya da çoklu indirme bir dosyayı birçok makineden aynı zamanda paralel olarak indirmeye denir. gtk-gnutella <a href="file:///home/zogzog/gtk-gnutella-gtk-gnutella-85d4f9a/extra_files/en/FAQ#down5">indirme topluluğu ya da örgüsünü</a> kullanarak ve yönlendirilen sonuçları izleyerek kuyruktaki tüm dosyalar için otomatik olarak ek kaynaklar bulmaya çalışır.
 </p>
 
+
 <h3><a name="down4">Bir "parça" nedir?</a></h3>
+
 
 <p><em>Parçalar</em> (İngilizce chunk) <em>dosyaların parçalarıdır</em>. gtk-gnutella <a href="#down3">çoklu indirme</a> kipinde çalıştığında indirilen dosya tamamlanana dek dosyanın bir çok parçasını aynı zamanda indirir. <em>Alan</em> sütunu güncel olarak indirdiğiniz paçayı gösterir.
 </p>
 
+
 <h3><a name="down5">"İndirme topluluğu" nedir?</a></h3>
+
 <p>İndirme topluluğunu (indirme örgüsü de denir) destekleyen bir 
 düğümden dosya indirdiğinizde, bu düğüm istenilen dosya için size ilâve 
 kaynaklar iletir (alternatif kaynak biliyorsa). Bu kaynaklar <a href="file:///home/zogzog/gtk-gnutella-gtk-gnutella-85d4f9a/extra_files/en/FAQ#down3">çoklu indirme</a>
  yapmak için kullanılır.</p>
 
+
 <h3><a name="down_push">"İtme isteği" nedir?</a></h3>
+
 <p><em>İtme talebi</em> (bir güvenlik duvarı tarafından engellendikleri 
 için) doğrudan bağlanamadığınız düğümlerden dosya indirmenize yarar. Bu 
 düğümlere bağlanamazsınız, ancak onlar muhtemelen size bağlanabilirler. 
@@ -437,17 +541,24 @@ engelliyorsa itme isteklerini kullanamazsınız
   (<a href="#gnet1">port yönlendirme</a> paragrafına bakınız).
 </p>
 
+
 <h3><a name="down7">Neden gtk-gnutella dosya isimlerinin sonuna .OK ilâve ediyor?</a></h3>
+
 <p>Muhtemelen indirilmiş, geçici ve bozuk dosyalar için değişik klasörler ayarlamamışsınız.
 </p>
 
+
 <h3><a name="down8">Bu dosyayı bir türlü indiremiyorum!</a></h3>
+
 <p>Eğer durum çubuğunda güneş gözlükleriyle gülümseyen sarı bir yüz görmüyorsanız, bunu değiştirmeye çalışmanız tavsiye edilir. <a href="#gnet1">Güvenlik duvarları</a> hakkındaki paragrafa bakınız.
 </p>
+
 <p>Bu sorun çözülmüşse ve yine de gtk-gnutella dosya için sadece birkaç kaynak olduğunu belirtiyorsa
   (İndirmeler sekmesinin Kaynaklar kısmında çok açık görülür) bunun iki sebebi olabilir:
 </p>
+
 <ul>
+
   <li>dosya nadirdir</li>
   <li>
     Dosyanın eşsiz bir sürümünü seçmişsinizdir. Daha yaygın bir sürüm 
@@ -455,27 +566,36 @@ bulunması mümkün olabilir. Bir dosya birisi mesela mp3 dosyasının
 mp3info verilerini değiştirirse ya da başka özel değişiklikler yaparsa 
 eşsiz hâle gelebilir.</li>
 </ul>
+
 <p>Dosyayı tekrar arayıp daha yaygın bir sürümünü bulmayı 
 deneyebilirsiniz. Genelde "#" sütunu bir dosya için sayı gösteriyorsa bu
  iyiye işarettir. Sayı ne kadar büyükse, dosyayı çabuk indirme şansınız 
 da o kadar büyük demektir.
 </p>
 
+
 <h3><a name="down9">İndirmeler sekmesinde metnin renginin siyah yerine gri olması ne anlama gelir?</a></h3>
+
 <p>Gri renk dosyanın bir <a href="#down_push">itme yolu</a> vasıtasıyla alındığını gösterir.
 </p>
+
 
 <h2>Göndermeler<br>
 </h2>
 
+
 <h3><a name="up0">"Normalize" ne anlama gelir?</a></h3>
+
 <p>
   Bu, bir dosya için yollanılan toplam bayt miktarının dosya boyutuyla bölünmüş değerini gösterir.<br>
 </p>
 
+
 <h2>GTK+ 2.x</h2>
 
+
 <h3><a name="gtk2_slow">Gtk2 çooook yavaş.</a></h3>
+
 <p>
   <code>GDK_USE_XFT</code> ortam değişkenini 0 değerine ayarlayın ve 
 bunun bir faydasının dokunup dokunmadığını denetleyin. Bu Gtk2'nin 
@@ -485,8 +605,10 @@ bilgisayarda  Gtk1 ön yüzünü kullanmayı düşünebilirsiniz.
 </p>
 
 
+
 <h3><a name="gtk2_ctype">ASCII olmayan karakterler _ (alt çizgi) olarak gösteriliyor.<br>
 </a></h3>
+
 <p>
   <code>LC_CTYPE</code> ya da <code>LC_ALL</code> ortam değişkenini 
 kullandığınız kodlamaya uygun bir değere ayarlayın. Mesela dosya 
@@ -495,6 +617,7 @@ isimlerinizde özel Almanca karakterler kullanıyorsanız, değişkeni <code>de_
 değişebilir, detaylar için setlocale(3) kılavuz (man) sayfasına bakınız.
  İdeal olarak herkes neredeyse tüm dilleri kapsayan UTF-8 kodlamasını kullanmalıdır.
 </p>
+
 
 <!-- end faq -->
 <!-- vi: set et ts=2 sw=2: -->

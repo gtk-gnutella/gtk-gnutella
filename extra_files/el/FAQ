@@ -301,8 +301,8 @@ See also,
 </p>
 <pre>
   012345678AB (offset)
-  NIrwqxZPFhT
-  ||||||||||+ indicates a <strong>T</strong>LS-tunneled connection
+  NIrwqxZPFhE
+  ||||||||||+ indicates a TLS <strong>E</strong>ncrypted connection
   |||||||||+- hops flow triggered (<strong>h</strong>), or total query flow control (<strong>f</strong>)
   ||||||||+-- flow control (<strong>F</strong>), or pending data in queue (<strong>d</strong>)
   |||||||+--- we are push-proxy for node (<strong>P</strong>) or node is our push-proxy (<strong>p</strong>)
@@ -416,7 +416,7 @@ See also,
   επιπλέον κυκλοφορία gnet.  Για παράδειγμα, στον κόμβο μου με 200 
   <a href="#general-ultrapeer">δικτυακούς κόμβους</a>, άνοιξα μια παθητική αναζήτηση και 
   φιλτράρισα τα αποτελέσματα για να εμφανίσω μόνο τα χτυπήματα με την ονομασία 
-  <q><em>eminem</em></q>.  Μέσα σε μια ώρα περίπου είχα 1500 αποτελέσματα. 
+  <q><em>linux</em></q>.  Μέσα σε μια ώρα περίπου είχα 1500 αποτελέσματα. 
   Προφανώς, όσο πιο γνωστή η αναζήτηση, και όσο μεγαλύτερη υπομονή έχετε, τόσο 
   πιο χρήσιμη είναι αυτή η τεχνική.
 </p>
