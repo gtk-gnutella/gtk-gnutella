@@ -303,8 +303,8 @@ See also,
 </p>
 <pre>
   012345678AB (offset)
-  NIrwqxZPFhT
-  ||||||||||+ indicates a <strong>T</strong>LS-tunneled connection
+  NIrwqxZPFhE
+  ||||||||||+ indicates a TLS <strong>E</strong>ncrypted connection
   |||||||||+- hops flow triggered (<strong>h</strong>), or total query flow control (<strong>f</strong>)
   ||||||||+-- flow control (<strong>F</strong>), or pending data in queue (<strong>d</strong>)
   |||||||+--- we are push-proxy for node (<strong>P</strong>) or node is our push-proxy (<strong>p</strong>)
