@@ -129,19 +129,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
 {
 	static gchar strbuf[UINT64_DEC_BUFLEN];
 
-	if (stats->general[type] == 0)
-		return "-";
-
-	switch (type) {
-	case GNR_QUERY_COMPACT_SIZE:
-	case GNR_IGNORED_DATA:
-	case GNR_SUNK_DATA:
-		return compact_size(stats->general[type], show_metric_units());
-	default:
-		break;
-	}
-
-	uint64_to_string_buf(stats->general[type], strbuf, sizeof strbuf);
+	gnet_stats_gui_general_to_string_buf(strbuf, sizeof strbuf, stats, type);
 	return strbuf;
 }
 

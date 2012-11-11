@@ -180,14 +180,10 @@ mq_udp_service(void *data)
 	mqueue_t *q = data;
 	int r;
 	GList *l;
-	int sent;
-	int dropped;
+	unsigned dropped = 0;
 
 	mq_check(q, 0);
 	g_assert(q->count);		/* Queue is serviced, we must have something */
-
-	sent = 0;
-	dropped = 0;
 
 	/*
 	 * Write as much as possible.
@@ -195,17 +191,15 @@ mq_udp_service(void *data)
 
 	for (l = q->qtail; l; /* empty */) {
 		pmsg_t *mb = l->data;
-		char *mb_start = pmsg_start(mb);
 		int mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
-		uint8 function;
 
 		if (!pmsg_check(mb, q)) {
 			dropped++;
 			goto skip;
 		}
 
-		r = tx_sendto(q->tx_drv, &mi->to, mb_start, mb_size);
+		r = tx_sendto(q->tx_drv, mb, &mi->to);
 
 		if (r < 0)		/* Error, drop packet and continue */
 			goto skip;
@@ -213,44 +207,32 @@ mq_udp_service(void *data)
 		if (r == 0)		/* No more bandwidth */
 			break;
 
-		if (r != mb_size) {
-			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
-				r, gnet_host_to_string(&mi->to), mb_size);
-			dropped++;
-			goto skip;
-		}
+		g_assert(r == mb_size);
 
 		node_add_tx_given(q->node, r);
 
 		if (q->flags & MQ_FLOWC)
 			q->flowc_written += r;
 
-		function = gmsg_function(mb_start);
-		sent++;
-		pmsg_mark_sent(mb);
-		gnet_stats_count_sent(q->node, function, mb_start, mb_size);
-		switch (function) {
-		case GTA_MSG_SEARCH:
-			node_inc_tx_query(q->node);
-			break;
-		case GTA_MSG_SEARCH_RESULTS:
-			node_inc_tx_qhit(q->node);
-			break;
-		default:
-			break;
-		}
+		/*
+		 * The UDP layer is non-reliable so the message could be dropped
+		 * later on by lower layers.
+		 *
+		 * Therefore, message statistics will be updated by a specific
+		 * accounting callback that is known to the datagram layer, such
+		 * as node_msg_accounting().
+		 */
 
 	skip:
 		if (q->qlink)
 			q->cops->qlink_remove(q, l);
+
+		/* drop the message from queue, will be freed by mq_rmlink_prev() */
 		l = q->cops->rmlink_prev(q, l, mb_size);
 	}
 
 	mq_check(q, 0);
 	g_assert(q->size >= 0 && q->count >= 0);
-
-	if (sent)
-		node_add_sent(q->node, sent);
 
 	if (dropped)
 		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
@@ -289,10 +271,12 @@ mq_udp_putq(mqueue_t *q, pmsg_t *mb, const gnet_host_t *to)
 	pmsg_t *mbe = NULL;		/* Extended message with destination info */
 	bool error = FALSE;
 
+	mq_check_consistency(q);
+
 	dump_tx_udp_packet(to, mb);
 
 again:
-	g_assert(q);
+	mq_check_consistency(q);
 	g_assert(mb);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
@@ -358,7 +342,7 @@ again:
 		ssize_t written;
 
 		if (pmsg_check(mb, q)) {
-			written = tx_sendto(q->tx_drv, to, mbs, size);
+			written = tx_sendto(q->tx_drv, mb, to);
 		} else {
 			gnet_stats_count_flowc(mbs, FALSE);
 			node_inc_txdrop(q->node);		/* Dropped during TX */
@@ -371,20 +355,6 @@ again:
 		node_add_tx_given(q->node, written);
 
 		if ((size_t) written == size) {
-			pmsg_mark_sent(mb);
-			node_inc_sent(q->node);
-			gnet_stats_count_sent(q->node, function, mbs, size);
-			switch (function) {
-			case GTA_MSG_SEARCH:
-				node_inc_tx_query(q->node);
-				break;
-			case GTA_MSG_SEARCH_RESULTS:
-				node_inc_tx_qhit(q->node);
-				break;
-			default:
-				break;
-			}
-
 			if (GNET_PROPERTY(mq_udp_debug) > 5)
 				g_debug("MQ UDP sent %s",
 					gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)));
@@ -428,6 +398,8 @@ again:
 
 	q->cops->puthere(q, mbe, size);
 	mb = NULL;
+
+	/* FALL THROUGH */
 
 cleanup:
 
@@ -483,6 +455,8 @@ void
 mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const gnutella_node_t *n)
 {
 	gnet_host_t to;
+
+	mq_check_consistency(q);
 
 	gnet_host_set(&to, n->addr, n->port);
 	mq_udp_putq(q, mb, &to);

@@ -331,6 +331,7 @@ typedef struct gnet_node_flags {
 	unsigned is_push_proxied:1;
 	unsigned is_proxying:1;
 	unsigned tls:1;
+	unsigned empty_qrt:1;
 } gnet_node_flags_t;
 
 /*

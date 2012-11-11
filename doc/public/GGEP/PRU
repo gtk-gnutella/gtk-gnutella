@@ -1,0 +1,25 @@
+The 'PRU' GGEP Extension
+========================
+
+Name: PRU (Partial Result Unverified)
+Where: Query Hit
+Status: Production 
+Date: Sat Nov  3 11:19:10 CET 2012
+Format: <UNIX timestamp> <variable-length 64-bit LE integer>
+COBS-Encoding: If neccessary 
+Deflate: No
+
+The "PRU' extension is used in query hits to indicate that the result entry
+is only partially available.  This is in response to queries holding the "PR"
+GGEP extension to indicate that they are ready to accept partial results.
+
+The payload of the PRU extension can be empty (legacy servents only) or
+will contain a binary concatenation of two values:
+
+- A 4-byte timestamp, big-endian encoding.  This is the amount of seconds
+  since the UNIX Epoch, indicating the last time data was received for this
+  file by the servent.
+
+- A variable file size encoded like the GGEP "LF" extension and giving the
+  amount of bytes available for the file.  This will be between 0 and 8-byte
+  long and is simply a little-endian encoding with trailing zeroes stripped.

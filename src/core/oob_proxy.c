@@ -226,7 +226,7 @@ oob_proxy_create(gnutella_node_t *n)
 	if (opr != NULL) {
 		if (opr->node_id != NODE_ID(n)) {
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug)) {
-				g_warning("QUERY OOB-proxying of query %s from %s as %s "
+				g_warning("QUERY OOB-proxying of query #%s from %s as #%s "
 					"failed: proxied MUID collision",
 					data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
 					node_infostr(n),
@@ -258,7 +258,7 @@ oob_proxy_create(gnutella_node_t *n)
 	message_add(gnutella_header_get_muid(&n->header), GTA_MSG_SEARCH, NULL);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug)) {
-		g_debug("QUERY OOB-proxying query %s from %s as %s",
+		g_debug("QUERY OOB-proxying query #%s from %s as #%s",
 			data_hex_str(opr->leaf_muid->v, GUID_RAW_SIZE),
 			node_infostr(n), guid_hex_str(opr->proxied_muid));
 	}
@@ -336,7 +336,7 @@ oob_proxy_pending_results(
 
 	if (hostiles_spam_check(n->addr, n->port)) {
 		msg = "caught spammer";
-		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
+		gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT);
 		goto ignore;
 	}
 
@@ -394,7 +394,7 @@ oob_proxy_pending_results(
 	 */
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_debug("QUERY OOB-proxied %s notified of %d hits at %s %s"
+		g_debug("QUERY OOB-proxied #%s notified of %d hits at %s %s"
 			" for leaf #%s %s, wants %u",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
@@ -407,7 +407,7 @@ oob_proxy_pending_results(
 
 ignore:
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_debug("QUERY OOB-proxied %s "
+		g_debug("QUERY OOB-proxied #%s "
 			"notified of %d hits at %s %s for leaf #%s %s, ignored (%s)",
 			guid_hex_str(muid), hits,
 			NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr(n),
@@ -460,7 +460,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 
 		if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
 			g_debug(
-				"QUERY OOB-proxied %s dropping %d hit%s from %s: no leaf #%s",
+				"QUERY OOB-proxied #%s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
 				results, results == 1 ? "" : "s",
 				node_addr(n), nid_to_string(opr->node_id));
@@ -486,7 +486,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 	dh_got_results(opr->leaf_muid, results);
 
 	if (NODE_IS_UDP(n))
-		gnet_stats_count_general(GNR_OOB_HITS_FOR_PROXIED_QUERIES, 1);
+		gnet_stats_inc_general(GNR_OOB_HITS_FOR_PROXIED_QUERIES);
 
 	/*
 	 * Replace the MUID of the message with the original one that
@@ -507,7 +507,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 	dh_route(n, leaf, results);
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 1)
-		g_debug("QUERY OOB-proxied %s routed %d hit%s to %s from %s %s",
+		g_debug("QUERY OOB-proxied #%s routed %d hit%s to %s from %s %s",
 			guid_hex_str(opr->proxied_muid), results, results == 1 ? "" : "s",
 			node_infostr(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
 

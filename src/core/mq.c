@@ -66,8 +66,7 @@ static void mq_swift_timer(cqueue_t *cq, void *obj);
 mq_status_t
 mq_status(const mqueue_t *q)
 {
-	g_assert(q != NULL);
-	g_assert(MQ_MAGIC == q->magic);
+	mq_check_consistency(q);
 
 	if (0 == q->count)
 		return MQ_S_EMPTY;
@@ -83,72 +82,84 @@ mq_status(const mqueue_t *q)
 
 uint32 mq_debug(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return *q->debug;
 }
 
 bool
 mq_is_flow_controlled(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return 0 != (q->flags & MQ_FLOWC);
 }
 
 bool
 mq_is_swift_controlled(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return 0 != (q->flags & MQ_SWIFT);
 }
 
 int
 mq_maxsize(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->maxsize;
 }
 
 int
 mq_size(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size;
 }
 
 int
 mq_lowat(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->lowat;
 }
 
 int
 mq_hiwat(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->hiwat;
 }
 
 int
 mq_count(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->count;
 }
 
 int
 mq_pending(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size + tx_pending(q->tx_drv);
 }
 
 int
 mq_tx_pending(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return tx_pending(q->tx_drv);
 }
 
 struct bio_source *
 mq_bio(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return tx_bio_source(q->tx_drv);
 }
 
 struct gnutella_node *
 mq_node(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->node;
 }
 
@@ -158,6 +169,7 @@ mq_node(const mqueue_t *q)
 bool
 mq_would_flow_control(const mqueue_t *q, size_t additional)
 {
+	mq_check_consistency(q);
 	return size_saturate_add(q->size, additional) >= UNSIGNED(q->hiwat);
 }
 
@@ -167,6 +179,7 @@ mq_would_flow_control(const mqueue_t *q, size_t additional)
 bool
 mq_above_low_watermark(const mqueue_t *q)
 {
+	mq_check_consistency(q);
 	return q->size >= q->lowat;
 }
 
@@ -182,7 +195,7 @@ mq_info(const mqueue_t *q)
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
-		bool udp = NODE_IS_UDP(q->node);
+		bool udp = NODE_USES_UDP(q->node);
 
 		gm_snprintf(buf, sizeof(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
@@ -341,6 +354,8 @@ mq_free(mqueue_t *q)
 {
 	GList *l;
 	int n;
+
+	mq_check_consistency(q);
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
@@ -673,7 +688,7 @@ mq_update_flowc(mqueue_t *q)
 void
 mq_clear(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	if (q->count == 0)
 		return;					/* Queue is empty */
@@ -728,7 +743,7 @@ mq_clear(mqueue_t *q)
 void
 mq_discard(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	q->flags |= MQ_DISCARD;
 }
@@ -739,7 +754,7 @@ mq_discard(mqueue_t *q)
 void
 mq_shutdown(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	tx_shutdown(q->tx_drv);		/* No further output will be made */
 }
@@ -750,7 +765,7 @@ mq_shutdown(mqueue_t *q)
 void
 mq_flush(mqueue_t *q)
 {
-	g_assert(q);
+	mq_check_consistency(q);
 
 	tx_flush(q->tx_drv);
 }
@@ -1230,7 +1245,7 @@ restart:
 		if (MQ_DEBUG_LVL(q) > 4) {
 			gmsg_log_dropped_pmsg(cmb, "to %s %s node %s, in favor of %s",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), msglen ?
 					gmsg_infostr_full(header, msglen) : gmsg_infostr(header));
 		}
@@ -1347,7 +1362,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 		if (MQ_DEBUG_LVL(q) > 4)
 			gmsg_log_dropped_pmsg(mb, "to %s %s node %s, %d bytes queued",
 				(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-				NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+				NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 				node_addr(q->node), q->size);
 
 		gnet_stats_count_flowc(pmsg_start(mb), FALSE);
@@ -1387,7 +1402,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				gmsg_log_dropped_pmsg(mb,
 					"to %s %s node %s, %d bytes queued [FULL]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			node_inc_txdrop(q->node);		/* Dropped during TX */
@@ -1396,7 +1411,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 				gmsg_log_dropped_pmsg(mb,
 					"to %s %s node %s, %d bytes queued [KILLING]",
 					(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
-					NODE_IS_UDP(q->node) ? "UDP" : "TCP",
+					NODE_USES_UDP(q->node) ? "UDP" : "TCP",
 					node_addr(q->node), q->size);
 
 			/*
@@ -1411,7 +1426,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 			 * the parameter values). --RAM, 2006-12-29
 			 */
 
-			if (!NODE_IS_UDP(q->node)) {
+			if (!NODE_USES_UDP(q->node)) {
 				node_bye(q->node, 502, "Send queue reached %d bytes",
 					q->maxsize);
 			} else {
@@ -1525,6 +1540,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 void
 mq_putq(mqueue_t *q, pmsg_t *mb)
 {
+	mq_check_consistency(q);
 	MQ_PUTQ(q, mb);
 }
 

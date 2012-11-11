@@ -499,10 +499,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 /**
  * Emit unconditional warning.
  */
-static void vxml_parser_warn(const vxml_parser_t *vp,
-	const char *format, ...) G_GNUC_PRINTF(2, 3);
-
-static void
+static void G_GNUC_PRINTF(2, 3)
 vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;
@@ -522,10 +519,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 /**
  * Emit debugging message.
  */
-static void vxml_parser_debug(const vxml_parser_t *vp,
-	const char *format, ...) G_GNUC_PRINTF(2, 3);
-
-static void
+static void G_GNUC_PRINTF(2, 3)
 vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;
@@ -6758,8 +6752,9 @@ namespace_text(vxml_parser_t *vp,
 }
 
 static bool
-vxml_node_is_named(const xnode_t *xn, void *data)
+vxml_node_is_named(const void *node, void *data)
 {
+	const xnode_t *xn = node;
 	const char *name = data;
 
 	return xnode_is_element(xn) && 0 == strcmp(name, xnode_element_name(xn));

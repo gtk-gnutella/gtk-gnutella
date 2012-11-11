@@ -25,26 +25,18 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
+ * Allocation of unique IDs tied to a value.
  *
- * The idtable provides a automatically growing table which can resolve
- * ids to values very fast. The ids are issues by the table and internally
- * refer to an array row in the table. The table starts with an initial size
- * and if full is extended by a definable number of rows. Initial size and
- * extend size are internally rounded up to a multiple of 32. There is no
- * limitation to the value and is can be queried whether a given id is in
- * use.
+ * The idtable provides an automatic generation of unique IDs that fit
+ * into a specified amount of bits.
  *
- * You can also request special id/value combinations, but you need to keep
- * in mind that the ids are row numbers. The table is then automatically
- * grown to contain the requested id, but you can't shrink it later, because
- * that would mean that the row numbers change and the ids already issued
- * would become invalid.
+ * IDs are associated with a value that can be quickly retrieved by its ID,
+ * and the value can be changed at will.
  *
- * If the application needs to shrink a table, I suggest creating a new
- * table and request the needed number of ids from that. Of course all
- * ids currently in use by the application must be updated. Once that is
- * done, flush and destroy the old table.
+ * The allocation strategy used for new IDs prevents reusing an older ID until
+ * we have allocated (and possibly already freed) all the other available IDs
+ * in the defined ID space.  This helps detection of stale IDs and enables
+ * allocation of temporally unique IDs.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -55,17 +47,32 @@
 
 #include "common.h" 
 
+#define IDTABLE_MAXBITS	32		/* Maximum width of IDs */
+
+/**
+ * Callback signature used by idtable_foreach_id().
+ *
+ * @param id		the ID in the table
+ * @param value		the value associated with the ID
+ * @param udata		opaque user-specific data
+ */
+typedef void (*id_data_fn_t)(uint32 id, void *value, void *udata);
+
 struct idtable;
 typedef struct idtable idtable_t;
 
-idtable_t *idtable_new(void);
+idtable_t *idtable_new(int bits);
 void idtable_destroy(idtable_t *table);
-uint idtable_ids(idtable_t *tbl);
+size_t idtable_count(idtable_t *tbl);
+size_t idtable_max_id(idtable_t *tbl);
 uint32 idtable_new_id(idtable_t *tbl, void *value);
+bool idtable_try_new_id(idtable_t *tbl, uint32 *id, void *value);
 void idtable_free_id(idtable_t *tbl, uint32 id);
 bool idtable_is_id_used(const idtable_t *tbl, uint32 id);
 void idtable_set_value(idtable_t *tbl, uint32 id, void *value);
 void *idtable_get_value(const idtable_t *tbl, uint32 id);
 void *idtable_probe_value(const idtable_t *tbl, uint32 id);
+void idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data);
+void idtable_foreach_id(idtable_t *tbl, id_data_fn_t cb, void *data);
 
 #endif /* _idtable_h_ */

@@ -76,7 +76,7 @@ typedef bool (*dbmap_cbr_t)(void *key, dbmap_datum_t *value, void *u);
  */
 
 dbmap_t *dbmap_create_hash(size_t ks, dbmap_keylen_t kl,
-	GHashFunc hashf, GEqualFunc key_eqf);
+	hash_fn_t hashf, eq_fn_t key_eqf);
 dbmap_t * dbmap_create_sdbm(size_t ks, dbmap_keylen_t kl, const char *name,
 	const char *path, int flags, int mode);
 dbmap_t *dbmap_create_from_map(size_t ks, dbmap_keylen_t kl, map_t *map);
@@ -104,7 +104,7 @@ enum dbmap_type dbmap_type(const dbmap_t *dm);
 size_t dbmap_count(const dbmap_t *dm);
 
 void dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg);
-void dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
+size_t dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
 
 /**
  * Key snapshot utilities.
@@ -118,6 +118,8 @@ void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
  */
 void dbmap_unlink_sdbm(const char *base);
 
+struct dbg_config;
+
 bool dbmap_store(dbmap_t *dm, const char *base, bool inplace);
 bool dbmap_copy(dbmap_t *from, dbmap_t *to);
 bool dbmap_shrink(dbmap_t *dm);
@@ -126,6 +128,7 @@ ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);
 int dbmap_set_deferred_writes(dbmap_t *dm, bool on);
 int dbmap_set_volatile(dbmap_t *dm, bool is_volatile);
+void dbmap_set_debugging(dbmap_t *dm, const struct dbg_config *dbg);
 
 #endif	/* _dbmap_h_ */
 

@@ -1420,7 +1420,8 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	int i;
 	hostcache_t *hc = NULL;
 	hostcache_t *hc2 = NULL;
-	hset_t *seen_host = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	hset_t *seen_host =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	hash_list_iter_t *iter;
 
     switch (type) {
@@ -2020,8 +2021,10 @@ hcache_periodic_save(void *unused_obj)
 G_GNUC_COLD void
 hcache_init(void)
 {
-	ht_known_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
-	ht_guess_hosts = htable_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	ht_known_hosts =
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
+	ht_guess_hosts =
+		htable_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	no_metadata = vmm_trap_page();
 
     caches[HCACHE_FRESH_ANY] = hcache_alloc(

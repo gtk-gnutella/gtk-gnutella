@@ -57,6 +57,16 @@ size_is_non_negative(size_t size)
 	return size <= SIZE_MAX / 2;
 }
 
+/*
+ * Check whether a signed representation of size would be negative.
+ * @return TRUE if size is larger than SIZE_MAX / 2.
+ */
+static inline G_GNUC_CONST ALWAYS_INLINE bool
+size_is_negative(size_t size)
+{
+	return size > SIZE_MAX / 2;
+}
+
 /**
  * Check whether a signed representation of size would be strictly positive.
  * @return TRUE if size is larger than zero and smaller than SIZE_MAX / 2.

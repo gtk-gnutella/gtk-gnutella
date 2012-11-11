@@ -195,6 +195,8 @@ ssize_t mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags);
 #define chdir mingw_chdir
 #define remove mingw_remove
 #define pipe mingw_pipe
+#define getrlimit mingw_getrlimit
+#define execve mingw_execve
 
 #define abort() mingw_abort()
 
@@ -249,6 +251,26 @@ struct mingw_statvfs {
 #ifndef HAS_GETLOGIN
 #define HAS_GETLOGIN			/* We emulate it */
 #endif
+
+/*
+ * getrlimit() emulation.
+ */
+#ifndef HAS_GETRLIMIT
+#define HAS_GETRLIMIT			/* We emulate it */
+#define EMULATE_GETRLIMIT
+
+#define RLIMIT_CORE 1
+#define RLIMIT_DATA 2
+
+typedef unsigned long rlim_t;
+
+struct rlimit {
+	rlim_t rlim_cur;
+	rlim_t rlim_max;
+};
+
+int mingw_getrlimit(int resource, struct rlimit *rlim);
+#endif	/* !HAS_GETRLIMIT */
 
 /*
  * sched_yield() emulation
@@ -357,6 +379,13 @@ iovec_set_base(iovec_t* iovec, const void *base)
 static inline void
 iovec_set_len(iovec_t* iovec, size_t len)
 {
+	iovec->len = len;
+}
+
+static inline void
+iovec_set(iovec_t* iovec, const void *base, size_t len)
+{
+	iovec->buf = (void *) base;
 	iovec->len = len;
 }
 
@@ -546,6 +575,7 @@ int mingw_getgateway(uint32 *ip);
 
 bool mingw_in_exception(void);
 void G_GNUC_NORETURN mingw_abort(void);
+int mingw_execve(const char *filename, char *const argv[], char *const envp[]);
 
 struct adns_request;
 

@@ -49,18 +49,14 @@ Release steps
    #define GTA_REVCHAR ""
    #define GTA_RELEASE "2002-10-19"
 
-4. Commit ChangeLog and src/gtk-gnutella.h with comment:
-
-	"Release 0.91 stable."
-
-5. Update and commit debian/changelog. Generate the timestamp as follows:
+4. Update debian/changelog. Generate the timestamp as follows:
 
 	TZ=UTC LC_ALL=C date +'%a, %e %b %Y %H:%M:%S %z'
 
-6. Make sure MANIFEST doesn't list any files considered unfree by Debian,
+5. Make sure MANIFEST doesn't list any files considered unfree by Debian,
    for example, RFCs and other copyrighted documentation.
 
-7. From the "top directory", run:
+6. From the "top directory", run:
 
 	git diff > ~/tmp/xxx
 
@@ -68,10 +64,15 @@ Release steps
    changes that require to be checked-in before the release is made.
    Commit them if needed.
 
-8. Tag project with a PGP signature:
+7. Commit pending changes with comment such as "Release 0.91 stable."
 
-	cd "top directory"
-	git tag -s v0.97.1
+	git commit -a -m "Release 0.91 stable."
+
+8. Merge back to the master branch and tag project with a PGP signature:
+
+	git checkout master
+	git merge --no-ff -m "Release 0.98.3 stable." devel
+	git tag -s -m "Release 0.98.3 stable." v0.98.3
 
 9. Make a clean distribution package:
 
@@ -99,18 +100,17 @@ Release steps
 
 	This will generate file ../gtk-gnutella_0.92.1-0_i386.deb
 
-13. Convert the file to an RPM package, keeping the same version number:
+13. When everything builds fine, publish the new release:
 
-	cd ..
-	fakeroot alien --to-rpm --keep-version gtk-gnutella_0.91.0-0_i386.deb
-
-	This will generate file gtk-gnutella-0.91.0-0.i386.rpm
+	 git push origin
+	 git push --tags origin
 
 14. Go to https://sourceforge.net/projects/gtk-gnutella/files/ and
     create a new directory gtk-gnutella/0.96.9 (say) to host the
 	released files.
 
-15. Upload the files to sourceforge using scp.
+15. Upload the files to sourceforge using scp, or use the web interface
+    to upload the files through HTTP.
 
 	scp gtk-gnutella-0.96.9.tar.bz2 gtk-gnutella-0.96.9.tar.bz2.asc \
 		USER@frs.sourceforge.net:\
@@ -120,13 +120,16 @@ Release steps
     default download.
 
 17. Go back to the Summary page and check if the project details are
-     still up-to-date. In particular check the set of languages
-     available in the distribution against the listing with:
+    still up-to-date. In particular check the set of languages
+    available in the distribution against the listing with:
 
 	 cat po/*.po|grep 'Language-Team:'|sort
 
 18. Update sourceforge's website: Create a news entry in htdocs/files/en using 
-    news_template as a guide and submit it.
+    news_template as a guide and submit it.  The scripts/changelog2html
+	script can automate most of this process:
+	
+	 scripts/changelog2html ChangeLog > htdocs/files/en/news_NUM
 
 19. Change the VERSION file in htdocs/files to update the version number.
 

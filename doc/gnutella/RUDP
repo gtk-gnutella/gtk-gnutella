@@ -169,3 +169,181 @@ udp packets.  DownloadStream, Upload Console reporters it is same as
 before.  Uncontrolled test  Try to download and upload from Limewire
 4.2.6, which supports firewall to firewall transfer.
 
+
+LimeWire's Internal Documentation
+=================================
+
+Requirements for FW-FW Transfer:
+--------------------------------
+* You must be firewalled (no successful incoming connections).
+* You must know your external address (snooped from Sockets for outgoing
+  connections).
+* You must be able to handle solicited UDP traffic (easy test: send out
+  a UDP Ping with a certain GUID, see if you get a UDP Pong with that GUID
+  back) -- use GGEP "IP" to get your external IP and port.
+* You must have valid PushProxy connections (really only true for
+  uploaders, but for sake of simplicity apply to everyone).
+
+In the next few sections, some information may be repeated.
+
+Client Side (Downloader) behavior:
+----------------------------------
+
+* If you meet the requirements above, nodes should mark bit 9 of their
+  queries MinSpeed field.  NOTE: If you set bit 9, you must set bit 14 ("I
+  am firewalled" bit).  Nodes that are also firewalled would usually
+  ignore your query, but if they meet the requirements above and see bit 9
+  marked they can now return a hit.
+* Nodes (from firewalled hosts) that support firewalled transfers will
+  send a GGEP header and value in their reply.  The GGEP header is "FW"
+  and the value is the FW-FW Transfer version (currently 1).  Replies from
+  firewalled hosts should be ignored unless this GGEP header is present in
+  the reply.
+* If a reply from a firewalled node is downloaded by the user, the node
+  should send a PushProxy request to the node's (uploader's) PushProxy (as
+  many as needed up to as many provided).  The PushProxy HTTP request
+  should be amended to include a file parameter with value (2^31 - 3),
+  i.e. "&file=2147483645".  Also, the HTTP exchange should have a "X-Node"
+  header value of the downloader's external address and firewalled port.
+* Assuming the PushProxy process was successful, the downloader should
+  start sending UDP Syns (as described further below) to the uploader's
+  address (which is taken from the reply).  If everything is kosher, it will
+  get a UDP Ack in reply (and the transfer can start).
+
+Client Side (Uploader) behavior:
+--------------------------------
+
+* If a node that satisifes all the FW-FW Transfer conditions receives a
+  query with MinSpeed bits 14 and 9 marked, it may send a reply to this node.
+* Any reply should satisfy the following constraints:
+   - It must have a GGEP header "FW" with value 1.
+   - The reply must have address and port info as follows: address is
+     external address as reported by symmetric TCP connections, port must be
+     your (firewalled) listening port.
+* When the node receives a Push with index 2147483645 it should start
+  sending UDP Syns to the address and port described by the Push.  If
+  everything is kosher, it will get a UDP Ack in reply (and the transfer
+  can start).
+
+PushProxy behavior:
+-------------------
+
+* Proxies should not need to do anything different, assuming their
+  initial implementation was sane (i.e. it should note the file param and
+  should fill out the Push's address, port, and file index correctly).
+
+[Notes from RAM]
+
+The above specifications could not work correctly when initiating FW-FW
+transfers behind a NAT firewall, unless there was way for the sender to know
+in advance the port that will be opened by the firewall to perform NAT
+and be able to route traffic back to the sender in the internal network..
+
+The solution is to use the GGEP "IP" extension in a ping: the remote host
+will send back another "IP" in the pong echoing the source address and port
+of the ping.  That lets the firewalled servent know its external port.
+
+Therefore, when using an HTTP push-proxy to send the request, the X-Node
+header can advertise the discovered external IP:port used by the servent.
+
+When a push-proxy is getting a PUSH via UDP, it can recognize that the
+file-index refers to a FW-FW transfer.  The push-proxy can then patch the
+message in-place using the port in the incoming UDP message -- that is the
+port used by the NAT firewall, and only that port will get traffic back to
+the downloader behind the NAT firewall!
+
+That on-the-fly patching by the UDP push-proxy is useful and can help if
+the NAT firewall changed the port without the user knowing (it was rebooted,
+reset, etc...).  It nicely complements the discovery through GGEP "IP" but
+only works for UDP pushes.
+
+[/Notes from RAM]
+
+Connection Negotiation and lifetime for UDP Connections:
+--------------------------------------------------------
+
+This is a brief description of the UDP connection setup at a low level with
+some minor updates.  Note that this presupposes that the connections have
+been kicked off on both ends via pushes/push-proxies and by the downloader
+locally.
+
+Each end of the connection starts out sending a SYN message to setup a
+connectionID, identify itself and open up the firewall in the process.
+There are dedicated ACK messages in response to every SYN, DATA or FIN
+message.  FIN messages are for shutdown.  There is also a KEEPALIVE message
+that shares some of the internal state of ACK messages (windowStart,
+windowSpace but not the sequenceNumber of what they are Acking).
+
+Everything is somewhat intellegently packed into a Gnutella message with
+parts of the GUID used for data as well.   Everything has a sequenceNumber
+which is physically sent on the wire as 2 bytes but logically and internally
+mapped to 8 bytes.
+
+The Data messages try to pack 512 bytes of data into a Gnutella message (12
+in GUID and 500 in payload).  That seems to be enough to avoid
+super-inefficiency.
+
+The data transfer algorithm is sort of a combination of SFTP with some TCP
+concepts added on.   For better throughput, a window is used to rate control
+the data messages.  The current implementation works with a data window of 20
+data messages.  The general idea is to try to send data at *intervals* so as
+to ensure that you don't overload the other ends receiving window.  The
+other end will ack these data packets with the sequenceNumber, windowStart
+and windowSpace.  The windowStart tells you the lowest sequenceNumber that
+the other side has not emptied out of its window.  Roughly speaking, as the
+windowSpace starts to approach zero on the other end, you should slow down
+and stop sending Data.
+
+Example: The windowStart value is the value of the highest sequenceNumber
+where every lower number has been received.   So, if I received: 44, 45, 47,
+48, 49.  My ACK on 49 would have a windowStart of 46 until 46 was received.
+If 46 did come in either via a resend or the original message then its
+ack would have a windowStart of 50.  I use these values to ACK any lower
+packets if necessary (without taking into account the timing of them).
+
+SYN messages start off connections and communicate the desired identifier
+(ID) for a UDP connection.  They use ID=0 until they have received
+the ID desired by the other end of the connection.  It is important to the
+LimeWire implementation that they start using the ID once received.
+They also communicate the protocol version number.  IDs for established
+connections are from 1 through 255.  They cycle so that an ID will not be
+reused for a while to avoid ID collision problems from old connections.
+
+   SYN  ID=0 SEQ=0 myID=1 V=1 ->
+   SYN  ID=0 SEQ=0 myID=1 V=1 ->
+   SYN  ID=3 SEQ=0 myID=1 V=1 -> [Repeated for up to 20 seconds
+                                  until an ACK is received]
+<- SYN  ID=0 SEQ=0 myID=3 V=1
+<- SYN  ID=0 SEQ=0 myID=3 V=1
+<- SYN  ID=1 SEQ=0 myID=3 V=1    [Repeated for up to 20 seconds
+                                  until an ACK is received]
+
+The connection is not officially set up until acks are returned from both
+ends.
+
+   ACK  ID=3 SEQ=0            ->
+<- ACK  ID=1 SEQ=0
+
+Once acks have been exchanged, data can be sent.  Note that with messages
+sent, we use the other end of the connections desired connection ID.  This
+can be true on some of the final SYN messages as well (after a SYN from the
+other side is received but before an ACK is received).
+
+   DATA ID=3 SEQ=1            ->
+<- DATA ID=1 SEQ=1
+
+<- ACK ID=1 SEQ=1
+   ACK ID=3 SEQ=1             ->
+
+....
+
+<- FIN ID=1 SEQ=702 R=0
+   FIN ID=3 SEQ=204 R=1       ->
+   ACK ID=3 SEQ=702           ->
+<- ACK ID=1 SEQ=204
+
+FIN messages signal a connection shutdown.  They carry a reason code.  Zero
+signals a normal close on the local socket.  One signals that the other end
+closed the connection.  Note that each end maintains its own sequenceNumber
+count.
+

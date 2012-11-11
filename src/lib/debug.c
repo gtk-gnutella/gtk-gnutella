@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2008, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,12 +28,16 @@
  * Debug level configuration for library files.
  *
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2008, 2012
  */
 
 #include "common.h"
 
 #include "debug.h"
+#include "misc.h"
+#include "str.h"
+#include "stringify.h"
+
 #include "override.h"			/* Must be the last header included */
 
 uint32 common_dbg = 0;			/**< Common debug level for library files */
@@ -55,6 +59,144 @@ void
 set_library_stats(uint32 level)
 {
 	common_stats = level;
+}
+
+/**
+ * Stringify the object name of a data structure.
+ *
+ * @param dc		the debug config
+ * @param o			the object being debugged
+ *
+ * @return pointer to (possibly static) name.
+ */
+const char *
+dbg_ds_name(const dbg_config_t *dc, const void *o)
+{
+	static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
+
+	if (NULL == dc->o2str) {
+		str_bprintf(buf, sizeof buf, "%p", o);
+		return buf;
+	} else {
+		return (*dc->o2str)(o);
+	}
+}
+
+/**
+ * Stringify the keys in a data structure.
+ *
+ * @param dc		the debug config
+ * @param key		the key to stringify
+ * @param len		size of key (-1 if unknown)
+ *
+ * @return pointer to (possibly static) stringified key.
+ */
+const char *
+dbg_ds_keystr(const dbg_config_t *dc, const void *key, size_t len)
+{
+	static char buf[
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<key@0x,len=>")];
+
+	if (NULL == key)
+		return "<null key>";
+
+	if ((size_t) -1 == len) {
+		if (NULL == dc->k2str) {
+			str_bprintf(buf, sizeof buf, "<key@%p>", key);
+			return buf;
+		} else {
+			return (*dc->k2str)(key);
+		}
+	} else {
+		if (NULL == dc->klen2str) {
+			if (NULL == dc->k2str) {
+				str_bprintf(buf, sizeof buf, "<key@%p,len=%zu>", key, len);
+				return buf;
+			} else {
+				return (*dc->k2str)(key);
+			}
+		} else {
+			return (*dc->klen2str)(key, len);
+		}
+	}
+}
+
+/**
+ * Stringify the values in a data structure.
+ *
+ * @param dc		the debug config
+ * @param value		the value to stringify
+ * @param len		size of value (-1 if unknown)
+ *
+ * @return pointer to (possibly static) stringified value.
+ */
+const char *
+dbg_ds_valstr(const dbg_config_t *dc, const void *value, size_t len)
+{
+	static char buf[
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<value@0x,len=>")];
+
+	if (NULL == value)
+		return "<null value>";
+
+	if ((size_t) -1 == len) {
+		if (NULL == dc->v2str) {
+			str_bprintf(buf, sizeof buf, "<value@%p>", value);
+			return buf;
+		} else {
+			return (*dc->v2str)(value);
+		}
+	} else {
+		if (NULL == dc->vlen2str) {
+			if (NULL == dc->v2str) {
+				str_bprintf(buf, sizeof buf, "<value@%p,len=%zu>", value, len);
+				return buf;
+			} else {
+				return (*dc->v2str)(value);
+			}
+		} else {
+			return (*dc->vlen2str)(value, len);
+		}
+	}
+}
+
+/**
+ * Logging wrapper for debugged data structures.
+ *
+ * @param dc		the debug config
+ * @param o			the debugged object
+ * @param fmt		formatting string
+ * @param args		points to additional format arguments
+ */
+void
+dbg_ds_logv(const dbg_config_t *dc, const void *o,
+	const char *fmt, va_list args)
+{
+	static char buf[512];
+	size_t len;
+
+	len = str_vbprintf(buf, sizeof buf, fmt, args);
+	g_debug("%s%s \"%s\" %s%s",
+		dc->prefix, dc->type, dbg_ds_name(dc, o), buf,
+		len == sizeof buf - 1 ? "...more..." : "");
+}
+
+/**
+ * Logging wrapper for debugged data structures.
+ *
+ * @param dc		the debug config
+ * @param o			the debugged object
+ * @param fmt		formatting string
+ * @param ...		additional format arguments
+ */
+void
+dbg_ds_log(const dbg_config_t *dc, const void *o, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	dbg_ds_logv(dc, o, fmt, args);
+	va_end(args);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

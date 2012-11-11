@@ -1,3 +1,107 @@
+# v 0.98.4   2012-11-04  [stable]
+
+This is an important release correcting severe bugs affecting the overall
+wealth of the system: the PARQ upload queue was not properly restored, the
+DHT was not always sending correct values back (resulting in failed lookups),
+and SDBM (our hash-on-disk database) had two well-hidden bugs that could cause
+crashes at startup or that compromised regular runtime operations.
+
+This release also introduces an interesting improvement: we are now using a
+reliable UDP layer to transfer out-of-band query hits, ensuring that these
+important messages are properly sent and received and never lost.
+
+The SPAM-detection on query hits received via UDP was too eager to discard
+results from perfectly valid sources, causing improper loss of results from
+your queries.
+
+We were also wrongly sending out more queries than necessary: a long-standing
+bug caused locally-issued OOB-proxied queries to be re-emitted a second time,
+and we were re-forwarding duplicate queries (received with higher TTL than
+before) to all the leaves.  Although not harmful, these two bugs were wasting
+some of the outgoing bandwidth when running as a ultra node.
+
+New Features:
+- Plugged support for "OOB Proxy Veto".
+- Added a Semi-Reliable UDP layer for Gnutella for safe OOB hit delivery.
+- Report and display available file size when handling hits for partial files.
+
+Internationalization:
+- Added French and Turkish translations of the FAQ.
+- Updated French and Turkish translations.
+- Fixed typo in a German translation.
+- Cleanup of the English FAQ, updating obsolete answers.
+
+Improvements:
+- [GTK] Show different icon and tooltip when port mapping done through NAT-PMP.
+- [GTK] Flag results from servents with a banned GUID in the "Info" column.
+- [GTK] Windows version now compiled with GTK 2.24.10.
+- Non-sharing servents can now be promoted to ultra peers (in automatic mode).
+- Be stricter about vendor messages origin: ignore them if from wrong protocol.
+- Strip GGEP "NP" key from relayed queries.
+- Use higher-priority UDP messages for important or time-sensitive data.
+- Use semi-reliable UDP to transfer critical data (query hits).
+- Make sure the queries we OOB-proxy have a GGEP "SO" key for secure OOB hits.
+- Ignore unsecure OOB hit promises from hosts known to support secure OOB.
+- Use some of our connected ultra nodes when filling UHC pongs.
+- Updated GeoIP databases.
+- When resuming from crashes, do not stop session-only searches.
+- Persist selected search media types from session to session.
+- Report last modification time + available size of partial files in hits.
+- Added "webm" and "zoo" to the list of file extensions that can be shared.
+- Display unexpected command-line argument before usage output.
+- The shell "status" command now shows how port mapping was done, if any.
+- Do not forward "What's New?" queries to leaf nodes with empty routing tables.
+
+Bug Fixes:
+- Avoid segmentation fault if GUESS 0.2 cache is empty.
+- Avoid SDBM crash when clearing database which had big keys/values present.
+- Use signed arithmetic to compute compression ratios.
+- Consider x.x.x.0 as a possibly valid IPv4 address.
+- Was not correctly parsing the saved PARQ queue, causing undue forgetting.
+- Fixed key accounting in DBMW.
+- SDBM was sometimes not iterating over unflushed dirty LRU pages.
+- Fixed wrong DHT value response message format.
+- Fixed crash when attempting to browse host on a queued source.
+- Do not route duplicate queries with higher TTL to leaves.
+- Prevent sending of duplicate (locally issued) OOB-proxied queries.
+- Fixed startup crash bug on Ubuntu machines.
+- Changed the Debian menu icon to use the one which is 32x32, as lintian wants.
+- Fixed auto-restart function on 64-bit Windows.
+
+Under the Hood:
+- [GTK] Darken the color used to display partial results (yellow -> dark gold).
+- Various PARQ cleanup to smooth QUEUE callback operations.
+- Fallback to pre-computed symbol file when loaded symbols are garbage.
+- Relax file_path_set() and open_read() to gracefully handle relative paths.
+- get_folder_basepath(): protect against unsuitable environment variables.
+- Recompute the amount of banned fds dynamically as config parameters change.
+- Detect series of unclaimed OOB hits from a host to ignore further queries.
+- Changed MUID marking strategy in queries to better accomodate OOB proxying.
+- Added a UDP TX scheduler to optimize datagram sending by priority.
+- Enhanced the incremental zlib operations, reusing objects across operations.
+- Added new official ISO 3166 country codes.
+- node_read(): was wrongly resizing the message buffer for each message!
+- Refactored aging table to lower memory footprint (by 6 pointers per entry).
+- On Windows, keep last 3 stdout/stderr logs, created when launched from GUI.
+- Send important UDP messages with a "control" priority.
+- Count TCP push-proxy requests aimed at firewalled-to-firewalled connections.
+- Patch UDP PUSH messages aimed at initiating firewall-to-firewall transfers.
+- Count received PUSHes requesting FW-FW transfers, plus those targeting us.
+- dht_init(): do not reset the KUID if DHT disabled at startup.
+- Detect whether we are restarting after a clean shutdown or after a crash.
+- bg_task_terminate(): don't panic at shutdown when handling unaccounted tasks.
+- Reserve only about 40% of the available virtual memory space on Windows.
+- Always discover port-mapping devices, even if they won't be used.
+- Ensure reasonable TTL and hops for PUSH messages from UDP we will route.
+- The shell "nodes" command now displays the gnet port along with the address.
+- Added metaconfig check for malloc() superseding.
+- New switch --disable-malloc added to build.sh to prevent superseding malloc().
+- When launching gdb during crash, ask for threads and thread stacks as well.
+- External IP changes were not waiting for 3 hosts in 3 different CIDR ranges.
+- Removed too restrive permissions in the man page (COPYRIGHT section).
+- Shell meta-chars in executable path do not prevent loading symbols via BFD.
+- Added more DHT statistics.
+
 # v 0.98.3   2012-06-04  [stable]
 
 New Features:

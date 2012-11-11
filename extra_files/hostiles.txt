@@ -1829,3 +1829,6 @@
 # "fake" LimeWire node, returning "blah blah [query words]" results
 # with ever-changing (random?) GUID.
 206.67.234.41
+
+# servents with "fake" names that do not behave nicely (Gnutella spammers?)
+66.212.143.0/24

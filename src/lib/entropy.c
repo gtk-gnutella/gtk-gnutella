@@ -74,12 +74,16 @@
 #include "compat_misc.h"
 #include "compat_sleep_ms.h"
 #include "endian.h"
+#include "getgateway.h"
 #include "gethomedir.h"
+#include "glib-missing.h"		/* For GM_SLIST_FOREACH() */
+#include "host_addr.h"
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "rand31.h"
 #include "sha1.h"
+#include "shuffle.h"
 #include "stringify.h"
 #include "thread.h"
 #include "tm.h"
@@ -218,25 +222,11 @@ entropy_rand31(void)
 }
 
 /**
- * Compute uniformly distributed random number in the [0, max] range,
- * avoiding any modulo bias.
- *
- * @return uniformly distributed number from 0 to max, inclusive.
- */
-static unsigned
-entropy_rand31_value(unsigned max)
-{
-	return rand31_upto(entropy_rand31, max);
-}
- 
-/**
  * Shuffle array in-place.
  */
 static void
 entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 {
-	size_t i;
-
 	g_assert(ary != NULL);
 	g_assert(size_is_non_negative(len));
 	g_assert(size_is_positive(elem_size));
@@ -244,22 +234,7 @@ entropy_array_shuffle(void *ary, size_t len, size_t elem_size)
 	if (len > RANDOM_SHUFFLE_MAX)
 		s_carp("%s: cannot shuffle %zu items without bias", G_STRFUNC, len);
 
-	/*
-	 * Shuffle the array using Knuth's modern version of the
-	 * Fisher and Yates algorithm.
-	 */
-
-	for (i = len - 1; i > 0; i--) {
-		size_t j = entropy_rand31_value(i);
-		void *iptr, *jptr;
-
-		/* Swap i-th and j-th items */
-
-		iptr = ptr_add_offset(ary, i * elem_size);
-		jptr = ptr_add_offset(ary, j * elem_size);
-
-		SWAP(iptr, jptr, elem_size);	/* i-th item now selected */
-	}
+	shuffle_with((random_fn_t) entropy_rand31, ary, len, elem_size);
 }
 
 /**
@@ -837,6 +812,48 @@ entropy_collect_thread(SHA1Context *ctx)
 }
 
 /**
+ * Collect entropy from current IP gateway.
+ */
+static void
+entropy_collect_gateway(SHA1Context *ctx)
+{
+	host_addr_t addr;
+
+	ZERO(&addr);
+
+	if (-1 == getgateway(&addr))
+		sha1_feed_ulong(ctx, errno);
+
+	SHA1Input(ctx, &addr, sizeof addr);
+}
+
+/**
+ * Collect entropy from host.
+ *
+ * This uses the host's name and its IP addresses.
+ */
+static void
+entropy_collect_host(SHA1Context *ctx)
+{
+	const char *name;
+	GSList *hosts, *sl;
+
+	name = local_hostname();
+	sha1_feed_string(ctx, name);
+
+	hosts = name_to_host_addr(name, NET_TYPE_NONE);
+
+	GM_SLIST_FOREACH(hosts, sl) {
+		host_addr_t *addr = sl->data;
+		struct packed_host_addr packed = host_addr_pack(*addr);
+
+		SHA1Input(ctx, &packed, packed_host_addr_size(packed));
+	}
+
+	host_addr_free_list(&hosts);
+}
+
+/**
  * Collect entropy from VMM information.
  */
 static void
@@ -911,6 +928,8 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_ttyname;
 		fn[i++] = entropy_collect_vmm;
 		fn[i++] = entropy_collect_thread;
+		fn[i++] = entropy_collect_gateway;
+		fn[i++] = entropy_collect_host;
 
 		g_assert(i <= G_N_ELEMENTS(fn));
 

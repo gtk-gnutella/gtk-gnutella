@@ -140,6 +140,7 @@ typedef struct gnutella_node {
 	gnet_node_state_t status;	/**< See possible values below */
 	uint32 flags;				/**< See possible values below */
 	uint32 attrs;				/**< See possible values below */
+	uint32 attrs2;				/**< See possible values below */
 
 	uint8 hops_flow;			/**< Don't send queries with a >= hop count */
 	uint8 max_ttl;				/**< Value of their advertised X-Max-TTL */
@@ -235,22 +236,22 @@ typedef struct gnutella_node {
 
 	uint32 svn_release_revision;	/**< Latest SVN release known by the node */
 
-	uint32 n_ping_throttle;  /**< Number of pings we throttled */
-	uint32 n_ping_accepted;  /**< Number of pings we accepted */
-	uint32 n_ping_special;	  /**< Number of special pings we received */
-	uint32 n_ping_sent;	  /**< Number of pings we sent to this node */
-	uint32 n_pong_received;  /**< Number of pongs we received from this node */
-	uint32 n_pong_sent;	  /**< Number of pongs we sent to this node */
+	uint32 n_ping_throttle;	/**< Number of pings we throttled */
+	uint32 n_ping_accepted;	/**< Number of pings we accepted */
+	uint32 n_ping_special;	/**< Number of special pings we received */
+	uint32 n_ping_sent;		/**< Number of pings we sent to this node */
+	uint32 n_pong_received;	/**< Number of pongs we received from this node */
+	uint32 n_pong_sent;		/**< Number of pongs we sent to this node */
 
 	/*
 	 * Traffic statistics -- RAM, 13/05/2002.
 	 */
 
-	uint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
+	uint64 tx_given;		/**< Bytes fed to the TX stack (from top) */
 	uint64 tx_deflated;		/**< Bytes deflated by the TX stack */
-	uint64 tx_written;			/**< Bytes written by the TX stack */
+	uint64 tx_written;		/**< Bytes written by the TX stack */
 
-	uint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
+	uint64 rx_given;		/**< Bytes fed to the RX stack (from bottom) */
 	uint64 rx_inflated;		/**< Bytes inflated by the RX stack */
 	uint64 rx_read;			/**< Bytes read from the RX stack */
 
@@ -267,10 +268,10 @@ typedef struct gnutella_node {
 
 	uint32 qrp_queries;		/**< Queries received under QRP control */
 	uint32 qrp_matches;		/**< Queries received that incurred a match */
-	uint32 rx_queries;			/**< Total amount of queries received */
-	uint32 tx_queries;			/**< Total amount of queries sent */
-	uint32 rx_qhits;			/**< Total amount of hits received */
-	uint32 tx_qhits;			/**< Total amount of hits sent */
+	uint32 rx_queries;		/**< Total amount of queries received */
+	uint32 tx_queries;		/**< Total amount of queries sent */
+	uint32 rx_qhits;		/**< Total amount of hits received */
+	uint32 tx_qhits;		/**< Total amount of hits sent */
 
 	hsep_ctx_t *hsep;	/**< Horizon size estimation (HSEP) -- TSC, 11/02/2004 */
 
@@ -284,11 +285,11 @@ enum {
 	NODE_F_EXPECT_VMSG	= 1 << 30,	/**< Expecting vendor message info */
 	NODE_F_DUP_GUID		= 1 << 29,	/**< Node bears duplicate GUID */
 	NODE_F_BYE_WAIT		= 1 << 28,	/**< Waiting for BYE being sent */
-	NODE_F_NOT_GENUINE	= 1 << 27,	/**< Vendor cannot be genuine */
+	NODE_F_EMPTY_QRT	= 1 << 27,	/**< Has an empty Query Routing Table */
 	NODE_F_VMSG_SUPPORT	= 1 << 26,	/**< Indicated which VMSGs are supported */
-	NODE_F_CAN_TLS		= 1 << 25,	/**< Indicated support for TLS */
-	NODE_F_TLS			= 1 << 24,	/**< TLS-tunneled */
-	NODE_F_NO_OOB_PROXY	= 1 << 23,	/**< Do not OOB proxy the leaf */
+	NODE_F_UNUSED_3		= 1 << 25,	/**< UNUSED */
+	NODE_F_UNUSED_2		= 1 << 24,	/**< UNUSED */
+	NODE_F_UNUSED_1		= 1 << 23,	/**< UNUSED */
 	NODE_F_FORCE		= 1 << 22,	/**< Connection is forced */
 	NODE_F_GTKG			= 1 << 21,	/**< Node is another gtk-gnutella */
 	NODE_F_TSYNC_TCP	= 1 << 20,	/**< No replies via UDP, use TCP */
@@ -353,12 +354,26 @@ enum {
 };
 
 /**
+ * Second attributes.
+ */
+enum {
+	NODE_A2_NOT_GENUINE	= 1 << 5,	/**< Vendor cannot be genuine */
+	NODE_A2_CAN_TLS		= 1 << 4,	/**< Indicated support for TLS */
+	NODE_A2_TLS			= 1 << 3,	/**< TLS-tunneled */
+	NODE_A2_NO_OOB_PROXY= 1 << 2,	/**< Do not OOB proxy the leaf */
+	NODE_A2_HAS_SR_UDP	= 1 << 1,	/**< Source advertised semi-reliable UDP */
+	NODE_A2_UDP_TRANCVR	= 1 << 0	/**< Message queue uses UDP transceiver */
+};
+
+/**
  * Message flags, set during parsing / processing.
  */
 enum {
+	NODE_M_ADD_GE_SO	= 1 << 7,	/**< Must add GGEP "SO" */
+	NODE_M_STRIP_GE_SO	= 1 << 6,	/**< Must strip GGEP "SO" */
 	NODE_M_FINISH_IPV6	= 1 << 5,	/**< Add GGEP "6" extension for our IPv6 */
 	NODE_M_WHATS_NEW	= 1 << 4,	/**< Facing a "What's New?" query */
-	NODE_M_STRIP_GGEP_u	= 1 << 3,	/**< Must strip GGEP "u" */
+	NODE_M_STRIP_GE_u	= 1 << 3,	/**< Must strip GGEP "u" */
 	NODE_M_STRIP_GUESS	= 1 << 2,	/**< Must strip all GUESS extensions */
 	NODE_M_EXT_CLEANUP	= 1 << 1,	/**< Must cleanup / rewrite extensions */
 	NODE_M_COMPACTED	= 1 << 0	/**< Compaction occurred */
@@ -443,17 +458,18 @@ enum {
 	((n)->attrs & NODE_A_TX_DEFLATE)
 
 #define NODE_TX_COMPRESSION_RATIO(n)	\
-	((n)->tx_given ?					\
-		(double) ((n)->tx_given - (n)->tx_deflated) / (n)->tx_given : 0.0)
+	((n)->tx_given ? (double)			\
+		(int64) ((n)->tx_given - (n)->tx_deflated) / (n)->tx_given : 0.0)
 
 #define NODE_RX_COMPRESSION_RATIO(n)	\
-	((n)->rx_inflated ?					\
-		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
+	((n)->rx_inflated ? (double)		\
+		(int64) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
 
 #define NODE_ID(n)				((n)->id)
 
+#define NODE_HAS_EMPTY_QRT(n)	((n)->flags & NODE_F_EMPTY_QRT)
 #define NODE_USES_DUP_GUID(n)	((n)->flags & NODE_F_DUP_GUID)
-#define NODE_IS_GENUINE(n)		(!((n)->flags & NODE_F_NOT_GENUINE))
+#define NODE_IS_GENUINE(n)		(!((n)->attrs2 & NODE_A2_NOT_GENUINE))
 
 #define NODE_CAN_BYE(n)			((n)->attrs & NODE_A_BYE_PACKET)
 #define NODE_CAN_SFLAG(n)		((n)->attrs & NODE_A_CAN_SFLAG)
@@ -466,6 +482,17 @@ enum {
 #define NODE_IS_FIREWALLED(n)	((n)->attrs & NODE_A_FIREWALLED)
 #define NODE_CAN_OOB(n)			((n)->attrs & NODE_A_CAN_OOB)
 #define NODE_CAN_HOPS_FLOW(n)	((n)->attrs & NODE_A_HOPS_FLOW)
+
+/*
+ * NODE_CAN_SR_UDP() checks whether the UDP node has its message queue set up
+ * to use the UDP transceiver layer.
+ *
+ * NODE_HAS_SR_UDP() checks whether we saw indication that the node could be
+ * forwarded GUESS results using the UDP transceiver layer...
+ */
+
+#define NODE_CAN_SR_UDP(n)		((n)->attrs2 & NODE_A2_UDP_TRANCVR)
+#define NODE_HAS_SR_UDP(n)		((n)->attrs2 & NODE_A2_HAS_SR_UDP)
 
 #define NODE_HAS_FAKE_NAME(n)	\
 	(((n)->flags & (NODE_F_FAKE_NAME | NODE_F_GTKG)) == NODE_F_FAKE_NAME)
@@ -581,7 +608,6 @@ void node_shutdown(struct gnutella_node *n,
 	const char * reason, ...) G_GNUC_PRINTF(2, 3);
 void node_bye_if_writable(struct gnutella_node *n, int code,
 	const char * reason, ...) G_GNUC_PRINTF(3, 4);
-void node_init_outgoing(struct gnutella_node *);
 void node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
@@ -607,10 +633,13 @@ void send_node_error(struct gnutella_socket *s, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
 void node_add_sent(gnutella_node_t *n, int x);
-void node_add_txdrop(gnutella_node_t *n, int x);
+void node_add_txdrop(void *o, int x);
 void node_add_rxdrop(gnutella_node_t *n, int x);
+void node_sent_accounting(gnutella_node_t *n, uint8 function,
+	const void *mb_start, int mb_size);
 
 void node_set_vendor(gnutella_node_t *n, const char *vendor);
+void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_set_hops_flow(gnutella_node_t *n, uint8 hops);
 void node_set_online_mode(bool on);
@@ -622,9 +651,6 @@ const char *node_infostr(const gnutella_node_t *n);
 const char *node_id_infostr(const struct nid *node_id);
 
 void node_connect_back(const gnutella_node_t *n, uint16 port);
-void node_connected_back(struct gnutella_socket *s);
-
-void node_mark_bad_vendor(struct gnutella_node *n);
 
 void node_proxying_remove(gnutella_node_t *n);
 bool node_proxying_add(gnutella_node_t *n, const struct guid *guid);
@@ -636,6 +662,7 @@ sequence_t *node_push_proxies(void);
 const gnet_host_t *node_oldest_push_proxy(void);
 const GSList *node_all_nodes(void);
 const GSList *node_all_ultranodes(void);
+unsigned node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt);
 
 gnutella_node_t *node_by_id(const struct nid *node_id);
 gnutella_node_t *node_active_by_id(const struct nid *node_id);
@@ -644,17 +671,21 @@ void node_set_leaf_guidance(const struct nid *node_id, bool supported);
 void node_became_firewalled(void);
 void node_became_udp_firewalled(void);
 void node_set_socket_rx_size(int rx_size);
+void node_grow_data(struct gnutella_node *n, size_t len);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
+mqueue_t *node_udp_sr_get_outq(enum net_type net);
+bool node_hostile_udp(struct gnutella_node *n);
 bool node_dht_is_flow_controlled(void);
 bool node_dht_would_flow_control(size_t additional);
 bool node_dht_above_low_watermark(void);
 void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
+gnutella_node_t *node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t * node_udp_route_get_addr_port(
-	const host_addr_t addr, uint16 port, bool can_deflate);
+	const host_addr_t addr, uint16 port, bool can_deflate, bool sr_udp);
 
 void node_can_tsync(gnutella_node_t *n);
 void node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features);

@@ -483,7 +483,8 @@ ggept_ip_seq_append_net(ggep_stream_t *gs,
 
 done:
 	if (!status) {
-		g_carp("unable to add GGEP \"%s\"", current_extension);
+		g_carp("unable to add GGEP \"%s\": %s",
+			current_extension, ggep_errstr());
 	}
 
 	*count = tls_index;
@@ -841,52 +842,6 @@ ggept_hname_extract(const extvec_t *exv, char *buf, int len)
 }
 
 /**
- * Encodes a variable-length integer. This encoding is equivalent to
- * little-endian encoding whereas trailing zeros are discarded.
- *
- * @param v		The value to encode.
- * @param data  Must point to a sufficiently large buffer. At maximum
- *				8 bytes are required.
- *
- * @return the length in bytes of the encoded variable-length integer.
- */
-static inline int
-ggep_vlint_encode(uint64 v, char *data)
-{
-	char *p;
-
-	for (p = data; v != 0; v >>= 8)	{
-		*p++ = v & 0xff;
-	}
-
-	return p - data;
-}
-
-/**
- * Decodes a variable-length integer. This encoding is equivalent to
- * little-endian encoding whereas trailing zeros are discarded.
- *
- * @param data The payload to decode.
- * @param len The length of data in bytes.
- *
- * @return The decoded value.
- */
-static inline uint64
-ggep_vlint_decode(const char *data, size_t len)
-{
-	uint64 v;
-	uint i;
-
-	v = 0;
-	if (len <= 8) {
-		for (i = 0; i < len; i++) {
-			v |= (((uint64) data[i]) & 0xff) << (i * 8);
-		}
-	}
-	return v;
-}
-
-/**
  * Extract filesize length into `filesize' from extension encoded in variable-
  * length little endian with leading zeroes stripped.
  *
@@ -904,13 +859,41 @@ ggept_filesize_extract(const extvec_t *exv, uint64 *filesize)
 	if (len < 1 || len > 8) {
 		return GGEP_INVALID;
 	}
-	fs = ggep_vlint_decode(ext_payload(exv), len);
+	fs = vlint_decode(ext_payload(exv), len);
 	if (0 == fs) {
 		return GGEP_INVALID;
 	}
 	if (filesize) {
 		*filesize = fs;
 	}
+	return GGEP_OK;
+}
+
+/**
+ * Extract UNIX timestamp + filesize length into `stamp' and `filesize',
+ * reading from the supplied extension payload.
+ *
+ * This is the format used by the payload of GGEP "PRU" for instance.
+ */
+ggept_status_t
+ggept_stamp_filesize_extract(const extvec_t *exv,
+	time_t *stamp, uint64 *filesize)
+{
+	size_t len;
+	const char *p;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+
+	len = ext_paylen(exv);
+	if (len < 4 || len > 12)
+		return GGEP_INVALID;
+
+	p = ext_payload(exv);
+	*stamp = peek_be32(p);
+	len -= 4;
+	p += 4;
+	*filesize = vlint_decode(p, len);		/* Can be zero */
+
 	return GGEP_OK;
 }
 
@@ -943,7 +926,6 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 	return GGEP_OK;
 }
 
-
 /**
  * Encode `filesize' in variable-length little endian, with leading zeroes
  * stripped, into `data'.
@@ -952,13 +934,41 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
  *
  * @param filesize	The filesize to encode.
  * @param data		A buffer of at least 8 bytes.
+ * @param len		Length of buffer
  *
  * @return the amount of bytes written.
  */
 uint
-ggept_filesize_encode(uint64 filesize, char *data)
+ggept_filesize_encode(uint64 filesize, char *data, size_t len)
 {
-	return ggep_vlint_encode(filesize, data);
+	g_assert(len >= 8);
+
+	return vlint_encode(filesize, data);
+}
+
+/**
+ * Encode `stamp' and `filesize' in buffer.
+ *
+ * @param stamp		the time to encode
+ * @param filesize	the filesize to encode
+ * @param data		a buffer of at least 12 bytes.
+ * @param len		length of buffer
+ *
+ * This is used in extensions such as GGEP "PRU" which carry the last
+ * modification time and the file length.
+ *
+ * @return the amount of bytes written
+ */
+uint
+ggept_stamp_filesize_encode(time_t stamp, uint64 filesize,
+	char *data, size_t len)
+{
+	char *p = data;
+
+	g_assert(len >= 12);
+
+	p = poke_be32(p, stamp);
+	return 4 + vlint_encode(filesize, p);
 }
 
 /**
@@ -976,7 +986,7 @@ ggept_uint32_extract(const extvec_t *exv, uint32 *val)
 	if (len > 4) {
 		return GGEP_INVALID;
 	}
-	v = ggep_vlint_decode(ext_payload(exv), len);
+	v = vlint_decode(ext_payload(exv), len);
 	if (val != NULL) {
 		*val = v;
 	}
@@ -998,30 +1008,36 @@ ggept_du_extract(const extvec_t *exv, uint32 *uptime)
 /**
  * Encode `uptime' for the GGEP "DU" extension into `data'.
  *
- * @param uptime The uptime (in seconds) to encode.
- * @param data A buffer of at least 4 bytes.
+ * @param uptime	the uptime (in seconds) to encode.
+ * @param data		a buffer of at least 4 bytes.
+ * @param len		buffer length
+ *
  * @return the amount of chars written.
  */
 uint
-ggept_du_encode(uint32 uptime, char *data)
+ggept_du_encode(uint32 uptime, char *data, size_t len)
 {
-	return ggep_vlint_encode(uptime, data);
+	g_assert(len >= 4);
+
+	return vlint_encode(uptime, data);
 }
 
 /**
  * Encode `media_type' for the GGEP "M" extension into `data'.
  *
- * @param mtype	The media type mask
- * @param data	A buffer of at least 4 bytes.
+ * @param mtype		the media type mask
+ * @param data		a buffer of at least 4 bytes.
+ * @param len		buffer length
  *
  * @return the amount of chars written.
  */
 uint
-ggept_m_encode(uint32 mtype, char *data)
+ggept_m_encode(uint32 mtype, char *data, size_t len)
 {
-	return ggep_vlint_encode(mtype, data);
-}
+	g_assert(len >= 4);
 
+	return vlint_encode(mtype, data);
+}
 
 ggept_status_t
 ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
@@ -1036,7 +1052,7 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 	if (len > 8) {
 		return GGEP_INVALID;
 	}
-	v = ggep_vlint_decode(ext_payload(exv), len);
+	v = vlint_decode(ext_payload(exv), len);
 	if (stamp_ptr) {
 		*stamp_ptr = MIN(v, TIME_T_MAX);
 	}
@@ -1046,14 +1062,18 @@ ggept_ct_extract(const extvec_t *exv, time_t *stamp_ptr)
 /**
  * Encode `timestamp' for the GGEP "CT" extension into `data'.
  *
- * @param timestamp The timestamp (seconds since epoch) to encode.
- * @param data A buffer of at least 8 bytes.
+ * @param timestamp	the timestamp (seconds since Epoch) to encode.
+ * @param data		a buffer of at least 8 bytes.
+ * @param len		buffer length
+ *
  * @return the amount of chars written.
  */
 uint
-ggept_ct_encode(time_t timestamp, char *data)
+ggept_ct_encode(time_t timestamp, char *data, size_t len)
 {
-	return ggep_vlint_encode(timestamp, data);
+	g_assert(len >= 4);
+
+	return vlint_encode(timestamp, data);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

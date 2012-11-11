@@ -143,8 +143,7 @@ again:
 			l = g_list_previous(l);
 			iovsize--;
 			ie = &iov[iovcnt++];
-			iovec_set_base(ie, deconstify_pointer(mb->m_rptr));
-			iovec_set_len(ie, pmsg_size(mb));
+			iovec_set(ie, deconstify_pointer(mb->m_rptr), pmsg_size(mb));
 			maxsize -= iovec_len(ie);
 			if (pmsg_prio(mb))
 				has_prioritary = TRUE;
@@ -217,17 +216,7 @@ again:
 			uint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
-            gnet_stats_count_sent(q->node, function, mb_start, pmsg_size(mb));
-			switch (function) {
-			case GTA_MSG_SEARCH:
-				node_inc_tx_query(q->node);
-				break;
-			case GTA_MSG_SEARCH_RESULTS:
-				node_inc_tx_qhit(q->node);
-				break;
-			default:
-				break;
-			}
+			node_sent_accounting(q->node, function, mb_start, pmsg_size(mb));
 			r -= iovec_len(ie);
 			if (q->qlink)
 				q->cops->qlink_remove(q, l);
@@ -304,10 +293,12 @@ mq_tcp_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *from)
 	bool prioritary;		/* Is message prioritary? */
 	bool error = FALSE;
 
+	mq_check_consistency(q);
+
 	dump_tx_tcp_packet(from, q->node, mb);
 
 again:
-	g_assert(q);
+	mq_check_consistency(q);
 	g_assert(!pmsg_was_sent(mb));
 	g_assert(pmsg_is_unread(mb));
 	g_assert(q->ops == &mq_tcp_ops);	/* Is a TCP queue */
@@ -403,18 +394,7 @@ again:
 
 		if (written == size) {
 			pmsg_mark_sent(mb);
-			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node, function, mbs, size);
-			switch (function) {
-			case GTA_MSG_SEARCH:
-				node_inc_tx_query(q->node);
-				break;
-			case GTA_MSG_SEARCH_RESULTS:
-				node_inc_tx_qhit(q->node);
-				break;
-			default:
-				break;
-			}
+			node_sent_accounting(q->node, function, mbs, size);
 			goto cleanup;
 		}
 

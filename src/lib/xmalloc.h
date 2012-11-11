@@ -34,6 +34,16 @@
 #ifndef _xmalloc_h_
 #define _xmalloc_h_
 
+/*
+ * Flags for xmalloc_freelist_check()
+ */
+
+#define XMALLOC_FLCF_STATUS		(1U << 0)	/**< Log freelist status (OK/BAD) */
+#define XMALLOC_FLCF_VERBOSE	(1U << 1)	/**< Log inconsitencies */
+#define XMALLOC_FLCF_LOCK		(1U << 2)	/**< Lock buckets before checking */
+#define XMALLOC_FLCF_UNLOCKED	(1U << 3)	/**< Check unlocked buckets */
+#define XMALLOC_FLCF_LOGLOCK	(1U << 4)	/**< Log skipped locked buckets */
+
 /**
  * Public interface.
  */
@@ -54,7 +64,7 @@ void xmalloc_dump_stats(void);
 void xmalloc_dump_stats_log(struct logagent *la, unsigned options);
 void xmalloc_dump_usage_log(struct logagent *la, unsigned options);
 void xmalloc_dump_freelist_log(struct logagent *la);
-size_t xmalloc_freelist_check(struct logagent *la, bool verbose);
+size_t xmalloc_freelist_check(struct logagent *la, unsigned flags);
 
 void xgc(void);
 

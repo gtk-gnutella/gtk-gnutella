@@ -1044,7 +1044,7 @@ bitzi_cache_add(bitzi_data_t *data, const xnode_t *root)
 		bzo = &bz;
 		ZERO(&bz);
 		bzo->ctime = tm_time();
-		gnet_stats_count_general(GNR_BITZI_TICKETS_HELD, +1);
+		gnet_stats_inc_general(GNR_BITZI_TICKETS_HELD);
 	} else {
 		if (data->expiry < bzo->etime) {
 			g_message("%s: entry for %s already present and expires later",

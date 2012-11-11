@@ -39,6 +39,7 @@
 #include "ascii.h"
 #include "concat.h"
 #include "path.h"
+#include "log.h"				/* For s_error() */
 #include "misc.h"
 #include "halloc.h"
 #include "omalloc.h"
@@ -248,13 +249,22 @@ get_folder_basepath(enum special_folder which_folder)
 	case PRIVLIB_PATH:
 		{
 			static char *pathname;
+			static bool fetched_xdg_data_dirs;
 	
-			if (NULL == pathname) {
+			if (NULL == pathname && !fetched_xdg_data_dirs) {
 				special_path = getenv("XDG_DATA_DIRS");
+				fetched_xdg_data_dirs = TRUE;
+
 				if (special_path != NULL) {
-					pathname = omalloc(MAX_PATH_LEN);
-					concat_strings(pathname, MAX_PATH_LEN,
-						special_path, G_DIR_SEPARATOR_S, PACKAGE, (void *) 0);
+					if (is_absolute_path(special_path)) {
+						pathname = omalloc(MAX_PATH_LEN);
+						concat_strings(pathname, MAX_PATH_LEN,
+							special_path, G_DIR_SEPARATOR_S, PACKAGE,
+							(void *) 0);
+					} else {
+						s_warning("ignoring environment XDG_DATA_DIRS: "
+							"holds non-absolute path \"%s\"", special_path);
+					}
 				}
 			}
 
@@ -262,9 +272,28 @@ get_folder_basepath(enum special_folder which_folder)
 		}
 		break;
 	case NLS_PATH:
-		special_path = getenv("NLSPATH");
-		if (NULL == special_path)
-			special_path = LOCALE_EXP;
+		{
+			static char *pathname;
+			static bool fetched_nlspath;
+
+			if (NULL == pathname && !fetched_nlspath) {
+				pathname = getenv("NLSPATH");
+				fetched_nlspath = TRUE;
+
+				if (pathname != NULL && !is_absolute_path(pathname)) {
+					s_warning("ignoring environment NLSPATH: "
+						"holds non-absolute path \"%s\"", pathname);
+					pathname = NULL;
+				} else {
+					pathname = ostrdup(pathname);
+				}
+			}
+
+			if (NULL == pathname)
+				pathname = LOCALE_EXP;
+
+			special_path = pathname;
+		}
 		break;
 	}
 	
@@ -275,6 +304,21 @@ void
 set_folder_basepath_func(get_folder_basepath_func_t func)
 {
 	get_folder_basepath_func = func;
+}
+
+/**
+ * @return name of special folder.
+ */
+static char *
+special_folder_name(enum special_folder folder)
+{
+	switch (folder) {
+	case PRIVLIB_PATH:	return "PRIVLIB_PATH";
+	case NLS_PATH:		return "NLS_PATH";
+	}
+
+	g_assert_not_reached();
+	return NULL;
 }
 
 /**
@@ -300,14 +344,28 @@ get_folder_path(enum special_folder which_folder, const char *path)
 	pathname = halloc(MAX_PATH_LEN);
 
 	offset = clamp_strcpy(pathname, MAX_PATH_LEN, special_path);
-		
+
+	/*
+	 * A special folder MUST be an absolute path.
+	 */
+
+	if (!is_absolute_path(pathname)) {
+		s_error("special folder %s is not an absolute path: %s",
+			special_folder_name(which_folder), pathname);
+	}
+
+	/*
+	 * If we have a sub-path underneath the special folder, append it at the
+	 * tail of the path we already figured.
+	 */
+
 	if (path != NULL) {
 		/* Add directory separator if missing at the tail of the special path */
 		if (offset > 0 && pathname[offset - 1] != G_DIR_SEPARATOR)
 			pathname[offset++] = G_DIR_SEPARATOR;
 		clamp_strcpy(&pathname[offset], MAX_PATH_LEN - offset, path);
 	}
-	
+
 	return pathname;
 }
 

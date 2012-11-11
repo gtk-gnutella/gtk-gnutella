@@ -43,7 +43,7 @@
  * published locally by a given IP address and by class C networks (/24) and
  * define a reasonable maximum for each.
  *
- * Values are bounded to a maximum size, which is node-dependent. For GTKG,
+ * Values are bound to a maximum size, which is node-dependent. For GTKG,
  * this is hardwired to 512 bytes and non-configurable.
  *
  * Each key tracks the amount of values stored under it and will not accept
@@ -404,6 +404,50 @@ dht_value_make(const knode_t *creator,
 	v->length = length;
 
 	return v;
+}
+
+/**
+ * Patch the creator of the value to supersede its address and port.
+ *
+ * @param v		the value
+ * @param addr	the new address to use for the creator
+ * @param port	the new port to use for the creator
+ */
+void
+dht_value_patch_creator(dht_value_t *v, host_addr_t addr, uint16 port)
+{
+	const knode_t *cn;
+
+	cn = v->creator;
+
+	/*
+	 * Creator can be shared and we cannot blindly update its IP:port.
+	 * When it is shared, clone it and patch the new private copy.
+	 */
+
+	if (knode_refcnt(cn) > 1) {
+		v->creator = knode_clone(cn);
+		knode_free(deconstify_pointer(cn));
+		cn = v->creator;
+	}
+
+	g_assert(1 == knode_refcnt(cn));
+
+	
+	if (GNET_PROPERTY(dht_storage_debug)) {
+		g_warning(
+			"DHT patching creator's IP %s:%u to match sender's %s",
+			host_addr_to_string(cn->addr), cn->port,
+			host_addr_port_to_string(addr, port));
+	}
+
+	{
+		knode_t *wcn = deconstify_pointer(cn);
+
+		wcn->addr = addr;
+		wcn->port = port;
+		wcn->flags |= KNODE_F_PCONTACT;
+	}
 }
 
 /**
@@ -871,7 +915,7 @@ delete_valuedata(uint64 dbkey, bool has_expired)
 	values_managed--;
 	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
 	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
-	gnet_stats_count_general(GNR_DHT_VALUES_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
 
 	if (has_expired)
 		kuid_pair_has_expired(&vd->id, &vd->cid);
@@ -1172,7 +1216,7 @@ validate_quotas(const dht_value_t *v)
 	return STORE_SC_OK;
 
 reject:
-	gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_QUOTA, 1);
+	gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_QUOTA);
 	return STORE_SC_QUOTA;
 }
 
@@ -1353,7 +1397,7 @@ values_remove(const knode_t *kn, const dht_value_t *v)
 	}
 
 	delete_valuedata(dbkey, FALSE);		/* Voluntarily deleted */
-	gnet_stats_count_general(GNR_DHT_REMOVED, 1);
+	gnet_stats_inc_general(GNR_DHT_REMOVED);
 
 done:
 	if (reason && GNET_PROPERTY(dht_storage_debug))
@@ -1405,7 +1449,7 @@ value_count_republish(struct valuedata *vd)
 	}
 
 	vd->publish = now;
-	gnet_stats_count_general(GNR_DHT_REPUBLISH, 1);
+	gnet_stats_inc_general(GNR_DHT_REPUBLISH);
 }
 
 /**
@@ -1438,7 +1482,7 @@ value_count_replication(struct valuedata *vd)
 	}
 
 	vd->replicated = now;
-	gnet_stats_count_general(GNR_DHT_REPLICATION, 1);
+	gnet_stats_inc_general(GNR_DHT_REPLICATION);
 }
 
 /**
@@ -1481,7 +1525,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 		if (kuid_eq(kn->id, cn->id)) {
 			if (!validate_creator(kn, v)) {
-				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
+				gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR);
 				return STORE_SC_BAD_CREATOR;
 			}
 			vd->original = TRUE;
@@ -1501,8 +1545,8 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		keys_add_value(v->id, cn->id, dbkey, vd->expire);
 
 		values_managed++;
-		gnet_stats_count_general(GNR_DHT_VALUES_HELD, +1);
-		gnet_stats_count_general(GNR_DHT_PUBLISHED, 1);
+		gnet_stats_inc_general(GNR_DHT_VALUES_HELD);
+		gnet_stats_inc_general(GNR_DHT_PUBLISHED);
 	} else {
 		bool is_original = kuid_eq(kn->id, v->creator->id);
 
@@ -1548,7 +1592,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			const knode_t *cn = v->creator;
 
 			if (!validate_creator(kn, v)) {
-				gnet_stats_count_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR, 1);
+				gnet_stats_inc_general(GNR_DHT_REJECTED_VALUE_ON_CREATOR);
 				return STORE_SC_BAD_CREATOR;
 			}
 
@@ -1645,7 +1689,7 @@ mismatch:
 	return STORE_SC_DATA_MISMATCH;
 
 expired:
-	gnet_stats_count_general(GNR_DHT_STALE_REPLICATION, 1);
+	gnet_stats_inc_general(GNR_DHT_STALE_REPLICATION);
 
 	if (GNET_PROPERTY(dht_storage_debug))
 		g_debug("DHT STORE detected replication of expired data %s from %s",

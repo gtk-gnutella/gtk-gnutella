@@ -345,8 +345,8 @@ guint32  gnet_property_variable_min_dup_msg     = 5;
 static const guint32  gnet_property_variable_min_dup_msg_default = 5;
 guint32  gnet_property_variable_min_dup_ratio     = 150;
 static const guint32  gnet_property_variable_min_dup_ratio_default = 150;
-char   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
-static const char   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;xm;xvid;zip";
+char   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
+static const char   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
 gboolean gnet_property_variable_scan_ignore_symlink_dirs     = FALSE;
 static const gboolean gnet_property_variable_scan_ignore_symlink_dirs_default = FALSE;
 gboolean gnet_property_variable_scan_ignore_symlink_regfiles     = FALSE;
@@ -1030,6 +1030,38 @@ char   *gnet_property_variable_dump_tx_to_addrs     = "";
 static const char   *gnet_property_variable_dump_tx_to_addrs_default = "";
 gboolean gnet_property_variable_guess_maximize_bw     = TRUE;
 static const gboolean gnet_property_variable_guess_maximize_bw_default = TRUE;
+guint32  gnet_property_variable_udp_sched_debug     = 0;
+static const guint32  gnet_property_variable_udp_sched_debug_default = 0;
+guint32  gnet_property_variable_tx_ut_debug_flags     = 0;
+static const guint32  gnet_property_variable_tx_ut_debug_flags_default = 0;
+char   *gnet_property_variable_rx_debug_addrs     = "";
+static const char   *gnet_property_variable_rx_debug_addrs_default = "";
+guint32  gnet_property_variable_rx_ut_debug_flags     = 0;
+static const guint32  gnet_property_variable_rx_ut_debug_flags_default = 0;
+gboolean gnet_property_variable_log_sr_udp_tx     = FALSE;
+static const gboolean gnet_property_variable_log_sr_udp_tx_default = FALSE;
+gboolean gnet_property_variable_log_sr_udp_rx     = FALSE;
+static const gboolean gnet_property_variable_log_sr_udp_rx_default = FALSE;
+guint32  gnet_property_variable_secure_oob_debug     = 0;
+static const guint32  gnet_property_variable_secure_oob_debug_default = 0;
+gboolean gnet_property_variable_log_vmsg_tx     = FALSE;
+static const gboolean gnet_property_variable_log_vmsg_tx_default = FALSE;
+gboolean gnet_property_variable_log_vmsg_rx     = FALSE;
+static const gboolean gnet_property_variable_log_vmsg_rx_default = FALSE;
+guint32  gnet_property_variable_dht_tcache_debug_flags     = 0;
+static const guint32  gnet_property_variable_dht_tcache_debug_flags_default = 0;
+gboolean gnet_property_variable_log_weird_dht_headers     = FALSE;
+static const gboolean gnet_property_variable_log_weird_dht_headers_default = FALSE;
+guint32  gnet_property_variable_dht_rpc_debug     = 0;
+static const guint32  gnet_property_variable_dht_rpc_debug_default = 0;
+gboolean gnet_property_variable_log_uhc_pings_rx     = FALSE;
+static const gboolean gnet_property_variable_log_uhc_pings_rx_default = FALSE;
+gboolean gnet_property_variable_log_uhc_pings_tx     = FALSE;
+static const gboolean gnet_property_variable_log_uhc_pings_tx_default = FALSE;
+gboolean gnet_property_variable_clean_shutdown     = TRUE;
+static const gboolean gnet_property_variable_clean_shutdown_default = TRUE;
+gboolean gnet_property_variable_clean_restart     = TRUE;
+static const gboolean gnet_property_variable_clean_restart_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -7609,7 +7641,7 @@ gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[344].name = "spam_lut_in_memory";
-    gnet_property->props[344].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has typically a 90% hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
+    gnet_property->props[344].desc = _("If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a fast disk database, which saves a large amount of core memory and reduces the overall footprint, at the cost of an increased I/O level. However, the DB cache has a 90 percent hit rate, so the actual overhead is barely noticeable when running as an ultra node and should remain completely unnoticed when running as a leaf.");
     gnet_property->props[344].ev_changed = event_new("spam_lut_in_memory_changed");
     gnet_property->props[344].save = TRUE;
     gnet_property->props[344].vector_size = 1;
@@ -9505,6 +9537,300 @@ gnet_prop_init(void) {
     gnet_property->props[443].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[443].data.boolean.def   = (void *) &gnet_property_variable_guess_maximize_bw_default;
     gnet_property->props[443].data.boolean.value = (void *) &gnet_property_variable_guess_maximize_bw;
+
+
+    /*
+     * PROP_UDP_SCHED_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[444].name = "udp_sched_debug";
+    gnet_property->props[444].desc = _("Debug level for the UDP TX scheduler.");
+    gnet_property->props[444].ev_changed = event_new("udp_sched_debug_changed");
+    gnet_property->props[444].save = TRUE;
+    gnet_property->props[444].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[444].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[444].data.guint32.def   = (void *) &gnet_property_variable_udp_sched_debug_default;
+    gnet_property->props[444].data.guint32.value = (void *) &gnet_property_variable_udp_sched_debug;
+    gnet_property->props[444].data.guint32.choices = NULL;
+    gnet_property->props[444].data.guint32.max   = 20;
+    gnet_property->props[444].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_TX_UT_DEBUG_FLAGS:
+     *
+     * General data:
+     */
+    gnet_property->props[445].name = "tx_ut_debug_flags";
+    gnet_property->props[445].desc = _("Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: transmissions, 16: timeouts.");
+    gnet_property->props[445].ev_changed = event_new("tx_ut_debug_flags_changed");
+    gnet_property->props[445].save = TRUE;
+    gnet_property->props[445].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[445].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[445].data.guint32.def   = (void *) &gnet_property_variable_tx_ut_debug_flags_default;
+    gnet_property->props[445].data.guint32.value = (void *) &gnet_property_variable_tx_ut_debug_flags;
+    gnet_property->props[445].data.guint32.choices = NULL;
+    gnet_property->props[445].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[445].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_RX_DEBUG_ADDRS:
+     *
+     * General data:
+     */
+    gnet_property->props[446].name = "rx_debug_addrs";
+    gnet_property->props[446].desc = _("Comma-separated list of RX debugging hosts (IP addresses only)");
+    gnet_property->props[446].ev_changed = event_new("rx_debug_addrs_changed");
+    gnet_property->props[446].save = TRUE;
+    gnet_property->props[446].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[446].type               = PROP_TYPE_STRING;
+    gnet_property->props[446].data.string.def    = (void *) &gnet_property_variable_rx_debug_addrs_default;
+    gnet_property->props[446].data.string.value  = (void *) &gnet_property_variable_rx_debug_addrs;
+    if (gnet_property->props[446].data.string.def) {
+        *gnet_property->props[446].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[446].data.string.def));
+    }
+
+
+    /*
+     * PROP_RX_UT_DEBUG_FLAGS:
+     *
+     * General data:
+     */
+    gnet_property->props[447].name = "rx_ut_debug_flags";
+    gnet_property->props[447].desc = _("Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: fragments, 4: acknowledgments, 8: receptions, 16: timeouts.");
+    gnet_property->props[447].ev_changed = event_new("rx_ut_debug_flags_changed");
+    gnet_property->props[447].save = TRUE;
+    gnet_property->props[447].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[447].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[447].data.guint32.def   = (void *) &gnet_property_variable_rx_ut_debug_flags_default;
+    gnet_property->props[447].data.guint32.value = (void *) &gnet_property_variable_rx_ut_debug_flags;
+    gnet_property->props[447].data.guint32.choices = NULL;
+    gnet_property->props[447].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[447].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_SR_UDP_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[448].name = "log_sr_udp_tx";
+    gnet_property->props[448].desc = _("Whether to log sent semi-reliable UDP messages.");
+    gnet_property->props[448].ev_changed = event_new("log_sr_udp_tx_changed");
+    gnet_property->props[448].save = TRUE;
+    gnet_property->props[448].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[448].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[448].data.boolean.def   = (void *) &gnet_property_variable_log_sr_udp_tx_default;
+    gnet_property->props[448].data.boolean.value = (void *) &gnet_property_variable_log_sr_udp_tx;
+
+
+    /*
+     * PROP_LOG_SR_UDP_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[449].name = "log_sr_udp_rx";
+    gnet_property->props[449].desc = _("Whether to log received semi-reliable UDP messages.");
+    gnet_property->props[449].ev_changed = event_new("log_sr_udp_rx_changed");
+    gnet_property->props[449].save = TRUE;
+    gnet_property->props[449].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[449].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[449].data.boolean.def   = (void *) &gnet_property_variable_log_sr_udp_rx_default;
+    gnet_property->props[449].data.boolean.value = (void *) &gnet_property_variable_log_sr_udp_rx;
+
+
+    /*
+     * PROP_SECURE_OOB_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[450].name = "secure_oob_debug";
+    gnet_property->props[450].desc = _("Debug level for the secured OOB query hit claiming.");
+    gnet_property->props[450].ev_changed = event_new("secure_oob_debug_changed");
+    gnet_property->props[450].save = TRUE;
+    gnet_property->props[450].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[450].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[450].data.guint32.def   = (void *) &gnet_property_variable_secure_oob_debug_default;
+    gnet_property->props[450].data.guint32.value = (void *) &gnet_property_variable_secure_oob_debug;
+    gnet_property->props[450].data.guint32.choices = NULL;
+    gnet_property->props[450].data.guint32.max   = 20;
+    gnet_property->props[450].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_LOG_VMSG_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[451].name = "log_vmsg_tx";
+    gnet_property->props[451].desc = _("Whether to log sent vendor messages.");
+    gnet_property->props[451].ev_changed = event_new("log_vmsg_tx_changed");
+    gnet_property->props[451].save = TRUE;
+    gnet_property->props[451].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[451].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[451].data.boolean.def   = (void *) &gnet_property_variable_log_vmsg_tx_default;
+    gnet_property->props[451].data.boolean.value = (void *) &gnet_property_variable_log_vmsg_tx;
+
+
+    /*
+     * PROP_LOG_VMSG_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[452].name = "log_vmsg_rx";
+    gnet_property->props[452].desc = _("Whether to log received vendor messages.");
+    gnet_property->props[452].ev_changed = event_new("log_vmsg_rx_changed");
+    gnet_property->props[452].save = TRUE;
+    gnet_property->props[452].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[452].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[452].data.boolean.def   = (void *) &gnet_property_variable_log_vmsg_rx_default;
+    gnet_property->props[452].data.boolean.value = (void *) &gnet_property_variable_log_vmsg_rx;
+
+
+    /*
+     * PROP_DHT_TCACHE_DEBUG_FLAGS:
+     *
+     * General data:
+     */
+    gnet_property->props[453].name = "dht_tcache_debug_flags";
+    gnet_property->props[453].desc = _("Debugging flags for the DHT token cache (developers only).");
+    gnet_property->props[453].ev_changed = event_new("dht_tcache_debug_flags_changed");
+    gnet_property->props[453].save = TRUE;
+    gnet_property->props[453].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[453].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[453].data.guint32.def   = (void *) &gnet_property_variable_dht_tcache_debug_flags_default;
+    gnet_property->props[453].data.guint32.value = (void *) &gnet_property_variable_dht_tcache_debug_flags;
+    gnet_property->props[453].data.guint32.choices = NULL;
+    gnet_property->props[453].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[453].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_WEIRD_DHT_HEADERS:
+     *
+     * General data:
+     */
+    gnet_property->props[454].name = "log_weird_dht_headers";
+    gnet_property->props[454].desc = _("Whether to log weird DHT message headers when debugging.");
+    gnet_property->props[454].ev_changed = event_new("log_weird_dht_headers_changed");
+    gnet_property->props[454].save = TRUE;
+    gnet_property->props[454].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[454].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[454].data.boolean.def   = (void *) &gnet_property_variable_log_weird_dht_headers_default;
+    gnet_property->props[454].data.boolean.value = (void *) &gnet_property_variable_log_weird_dht_headers;
+
+
+    /*
+     * PROP_DHT_RPC_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[455].name = "dht_rpc_debug";
+    gnet_property->props[455].desc = _("Debug level for the DHT Remote Procedure Call (RPC) code.");
+    gnet_property->props[455].ev_changed = event_new("dht_rpc_debug_changed");
+    gnet_property->props[455].save = TRUE;
+    gnet_property->props[455].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[455].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[455].data.guint32.def   = (void *) &gnet_property_variable_dht_rpc_debug_default;
+    gnet_property->props[455].data.guint32.value = (void *) &gnet_property_variable_dht_rpc_debug;
+    gnet_property->props[455].data.guint32.choices = NULL;
+    gnet_property->props[455].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[455].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LOG_UHC_PINGS_RX:
+     *
+     * General data:
+     */
+    gnet_property->props[456].name = "log_uhc_pings_rx";
+    gnet_property->props[456].desc = _("Whether to log UHC pings we receive.");
+    gnet_property->props[456].ev_changed = event_new("log_uhc_pings_rx_changed");
+    gnet_property->props[456].save = TRUE;
+    gnet_property->props[456].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[456].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[456].data.boolean.def   = (void *) &gnet_property_variable_log_uhc_pings_rx_default;
+    gnet_property->props[456].data.boolean.value = (void *) &gnet_property_variable_log_uhc_pings_rx;
+
+
+    /*
+     * PROP_LOG_UHC_PINGS_TX:
+     *
+     * General data:
+     */
+    gnet_property->props[457].name = "log_uhc_pings_tx";
+    gnet_property->props[457].desc = _("Whether to log UHC pings we emit.");
+    gnet_property->props[457].ev_changed = event_new("log_uhc_pings_tx_changed");
+    gnet_property->props[457].save = TRUE;
+    gnet_property->props[457].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[457].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[457].data.boolean.def   = (void *) &gnet_property_variable_log_uhc_pings_tx_default;
+    gnet_property->props[457].data.boolean.value = (void *) &gnet_property_variable_log_uhc_pings_tx;
+
+
+    /*
+     * PROP_CLEAN_SHUTDOWN:
+     *
+     * General data:
+     */
+    gnet_property->props[458].name = "clean_shutdown";
+    gnet_property->props[458].desc = _("Whether the program was properly shutdown.");
+    gnet_property->props[458].ev_changed = event_new("clean_shutdown_changed");
+    gnet_property->props[458].save = TRUE;
+    gnet_property->props[458].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[458].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[458].data.boolean.def   = (void *) &gnet_property_variable_clean_shutdown_default;
+    gnet_property->props[458].data.boolean.value = (void *) &gnet_property_variable_clean_shutdown;
+
+
+    /*
+     * PROP_CLEAN_RESTART:
+     *
+     * General data:
+     */
+    gnet_property->props[459].name = "clean_restart";
+    gnet_property->props[459].desc = _("Whether the program restarted after a clean shutdown.");
+    gnet_property->props[459].ev_changed = event_new("clean_restart_changed");
+    gnet_property->props[459].save = FALSE;
+    gnet_property->props[459].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[459].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[459].data.boolean.def   = (void *) &gnet_property_variable_clean_restart_default;
+    gnet_property->props[459].data.boolean.value = (void *) &gnet_property_variable_clean_restart;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

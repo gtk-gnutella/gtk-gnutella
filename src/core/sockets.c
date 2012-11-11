@@ -114,6 +114,8 @@ struct gnutella_socket *s_udp_listen = NULL;
 struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
+static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
+
 static void socket_accept(void *data, int, inputevt_cond_t cond);
 static bool socket_reconnect(struct gnutella_socket *s);
 
@@ -163,6 +165,7 @@ socket_dealloc(struct gnutella_socket **s_ptr)
 	if (s) {
 		socket_check(s);
 		s->magic = 0;
+		s->wio.magic = 0;
 		WFREE(s);
 		*s_ptr = NULL;
 	}
@@ -1253,6 +1256,13 @@ socket_timer(time_t now)
 	socket_enable_accept(s_local_listen);
 }
 
+static inline void
+socket_disable(struct gnutella_socket *s)
+{
+	if (s != NULL)
+		socket_evt_clear(s);
+}
+
 /**
  * Cleanup data structures on shutdown.
  */
@@ -1272,6 +1282,21 @@ socket_shutdown(void)
 		upnp_unmap_udp(s_udp_listen->local_port);
 	
 	/* No longer accept connections or UDP packets */
+	socket_disable(s_local_listen);
+	socket_disable(s_tcp_listen);
+	socket_disable(s_tcp_listen6);
+	socket_disable(s_udp_listen);
+	socket_disable(s_udp_listen6);
+
+	socket_shutdowned = TRUE;
+}
+
+/**
+ * Cleanup remaining data structures on final close down.
+ */
+void
+socket_closedown(void)
+{
 	socket_free_null(&s_local_listen);
 	socket_free_null(&s_tcp_listen);
 	socket_free_null(&s_tcp_listen6);
@@ -1280,6 +1305,54 @@ socket_shutdown(void)
 }
 
 /* ----------------------------------------- */
+
+/**
+ * Attach operation callbacks to non-UDP socket, superseding its type.
+ *
+ * @param s		the socket (TCP or LOCAL, not UDP)
+ * @param type	new socket type (for logging mostly)
+ * @param ops	operation callbacks to install
+ * @param owner	socket owner, passed to callback in addition to socket
+ */
+void
+socket_attach_ops(gnutella_socket_t *s,
+	enum socket_type type, struct socket_ops *ops, void *owner)
+{
+	socket_check(s);
+	g_assert(!(s->flags & SOCK_F_UDP));
+	g_assert(ops != NULL);
+	
+	if (NULL == s->resource.tcp)
+		WALLOC(s->resource.tcp);
+
+	s->resource.tcp->owner = owner;
+	s->resource.tcp->ops = ops;
+	s->type = type;
+}
+
+/**
+ * Detach operation callbacks from non-UDP socket.
+ */
+void
+socket_detach_ops(gnutella_socket_t *s)
+{
+	socket_check(s);
+	g_assert(!(s->flags & SOCK_F_UDP));
+
+	WFREE_TYPE_NULL(s->resource.tcp);
+}
+
+/**
+ * Change owner of non-UDP socket.
+ */
+void
+socket_change_owner(gnutella_socket_t *s, void *owner)
+{
+	socket_check(s);
+	g_assert(s->resource.tcp != NULL);
+
+	s->resource.tcp->owner = owner;
+}
 
 /**
  * Destroy a socket.
@@ -1298,37 +1371,18 @@ socket_destroy(struct gnutella_socket *s, const char *reason)
 	 */
 
 	switch (s->type) {
-	case SOCK_TYPE_CONTROL:
-		if (s->resource.node) {
-			node_remove(s->resource.node, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_DOWNLOAD:
-		if (s->resource.download) {
-			download_queue(s->resource.download, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_UPLOAD:
-		if (s->resource.upload) {
-			upload_remove(s->resource.upload, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_PPROXY:
-		if (s->resource.pproxy) {
-			pproxy_remove(s->resource.pproxy, "%s", reason);
-			return;
-		}
-		break;
-	case SOCK_TYPE_HTTP:
-		if (s->resource.handle) {
-			http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
-			return;
-		}
+	case SOCK_TYPE_UDP:
 		break;
 	default:
+		/*
+		 * Invoke optional destruction callback installed by the owner of
+		 * the socket, which must then invoke socket_free_null() itself.
+		 */
+
+		if (s->resource.tcp != NULL && s->resource.tcp->ops->destroy != NULL) {
+			(*s->resource.tcp->ops->destroy)(s, s->resource.tcp->owner, reason);
+			return;
+		}
 		break;
 	}
 
@@ -1360,7 +1414,10 @@ socket_free(struct gnutella_socket *s)
 			WFREE_NULL(s->resource.udp->socket_addr, sizeof(socket_addr_t));
 			WFREE(s->resource.udp);
 		}
+	} else {
+		WFREE_TYPE_NULL(s->resource.tcp);
 	}
+
 	if (s->last_update) {
 		g_assert(sl_incoming);
 		sl_incoming = g_slist_remove(sl_incoming, s);
@@ -1482,7 +1539,12 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 	(void) source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
 		return;
 	}
@@ -1650,7 +1712,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Check for banning.
 	 */
 
-	switch (ban_allow(s->addr)) {
+	switch (ban_allow(BAN_CAT_SOCKET, s->addr)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
@@ -1663,7 +1725,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
             if (GNET_PROPERTY(socket_debug)) {
                 g_debug("rejecting connection from banned %s (%s still): %s",
                     host_addr_to_string(s->addr),
-					short_time(ban_delay(s->addr)), msg);
+					short_time(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
             }
 
 			if (is_strprefix(first, GNUTELLA_HELLO)) {
@@ -1672,7 +1734,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
-					GUINT_TO_POINTER(ban_delay(s->addr)));
+					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
 				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
 					"%s", msg);
 			}
@@ -1681,9 +1743,9 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		if (is_strprefix(first, GNUTELLA_HELLO))
 			send_node_error(s, 550, "Banned for %s",
-				short_time_ascii(ban_delay(s->addr)));
+				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
 		else {
-			int delay = ban_delay(s->addr);
+			int delay = ban_delay(BAN_CAT_SOCKET, s->addr);
 			http_extra_desc_t hev;
 
 			http_extra_callback_set(&hev, http_retry_after_add,
@@ -1806,20 +1868,16 @@ cleanup:
 static void
 socket_connection_failed(struct gnutella_socket *s, const char *errmsg)
 {
-	if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download != NULL) {
-		/*
-		 * Socket will be closed by download_fallback_to_push().
-		 *
-		 * We need to call that routine regardless of whether we are
-		 * firewalled or whether the user denied pushes: that will be
-		 * checked in download_push(), and there is important processing
-		 * that needs to be done by the download layer.
-		 */
-		g_assert(s->resource.download->socket == s);
-		download_fallback_to_push(s->resource.download, FALSE, FALSE);
-	} else {
-		socket_destroy(s, errmsg);
+	if (
+		s->resource.tcp != NULL &&
+		s->resource.tcp->ops->connect_failed != NULL
+	) {
+		(*s->resource.tcp->ops->connect_failed)(s,
+			s->resource.tcp->owner, errmsg);
+		return;		/* Socket destroyed by callback */
 	}
+
+	socket_destroy(s, errmsg);
 }
 
 /**
@@ -1841,7 +1899,12 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 	socket_check(s);
 	g_assert((socket_fd_t) source == s->file_desc);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
+	if G_UNLIKELY(socket_shutdowned) {
+		socket_destroy(s, "Servent shutdown");
+		return;
+	}
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
 		bws_sock_connect_failed(s->type);
 		socket_connection_failed(s, _("Connection failed"));
 		return;
@@ -1990,53 +2053,17 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 
 		guess_local_addr(s);
 
-		switch (s->type) {
-		case SOCK_TYPE_CONTROL:
-			{
-				struct gnutella_node *n = s->resource.node;
+		/*
+		 * Notify owner about connection success.
+		 */
 
-				g_assert(n->socket == s);
-				node_init_outgoing(n);
-			}
-			break;
-
-		case SOCK_TYPE_DOWNLOAD:
-			{
-				struct download *d = s->resource.download;
-
-				g_assert(d->socket == s);
-				download_connected(d);
-			}
-			break;
-
-		case SOCK_TYPE_UPLOAD:
-			{
-				struct upload *u = s->resource.upload;
-
-				g_assert(u->socket == s);
-				upload_connect_conf(u);
-			}
-			break;
-
-		case SOCK_TYPE_HTTP:
-			http_async_connected(s->resource.handle);
-			break;
-
-		case SOCK_TYPE_CONNBACK:
-			node_connected_back(s);
-			break;
-
-        case SOCK_TYPE_SHELL:
-            g_assert_not_reached(); /* FIXME: add code here? */
-            break;
-
-		default:
-			g_warning("%s(): unknown socket type %d !", G_STRFUNC, s->type);
-			socket_destroy(s, NULL);		/* ? */
-			break;
+		if (
+			s->resource.tcp != NULL &&
+			s->resource.tcp->ops->connected != NULL
+		) {
+			(*s->resource.tcp->ops->connected)(s, s->resource.tcp->owner);
 		}
 	}
-
 }
 
 /**
@@ -2118,7 +2145,7 @@ socket_accept(void *data, int unused_source, inputevt_cond_t cond)
 	socket_check(s);
 	g_assert(s->flags & (SOCK_F_TCP | SOCK_F_LOCAL));
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		g_warning("%s(): input exception on TCP listening socket #%d!",
 			G_STRFUNC, s->file_desc);
 		return;		/* Ignore it, what else can we do? */
@@ -2394,8 +2421,7 @@ socket_udp_accept(struct gnutella_socket *s)
 		struct msghdr msg;
 		iovec_t iov;
 
-		iovec_set_base(&iov, s->buf);
-		iovec_set_len(&iov, s->buf_size);
+		iovec_set(&iov, s->buf, s->buf_size);
 
 		msg = zero_msg;
 		msg.msg_name = cast_to_pointer(from);
@@ -2458,7 +2484,7 @@ socket_udp_accept(struct gnutella_socket *s)
 	s->port = socket_addr_get_port(from_addr);
 
 	if (!is_host_addr(s->addr)) {
-		gnet_stats_count_general(GNR_UDP_BOGUS_SOURCE_IP, 1);
+		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
 		bws_udp_count_read(r, FALSE);	/* Assume not from DHT */
 		errno = EINVAL;
 		return (ssize_t) -1;
@@ -2504,12 +2530,13 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
 	size_t avail, rd;
+	bool guessed;
 	unsigned i;
 	tm_t start, end;
 
 	(void) unused_source;
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		int error;
 
 		socklen_t error_len = sizeof error;
@@ -2528,13 +2555,15 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	tm_now_exact(&start);
 
 	avail = inputevt_data_available();
-	avail = (avail != 0) ? avail : 64 * 1024;
+	guessed = 0 == avail;
+	avail = guessed ? 64 * 1024 : avail;
 
 	i = 0;
 	rd = 0;
 	do {
 		ssize_t r;
 
+		/* Read datagram and let the application handle it */
 		r = socket_udp_accept(s);
 
 		if ((ssize_t) -1 == r) {
@@ -2568,8 +2597,9 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if (i > 16 && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %u times, read %'lu bytes in %'u usecs",
-			G_STRFUNC, i, (unsigned long) rd,
+		g_debug("%s() iterated %u times, read %'zu bytes "
+			"(out of %s%'zu pending) in %'u usecs",
+			G_STRFUNC, i, rd, guessed ? "~" : "", avail,
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
@@ -3771,7 +3801,7 @@ static int
 socket_get_fd(struct wrap_io *wio)
 {
 	struct gnutella_socket *s = wio->ctx;
-	socket_check(s);
+	socket_check(s);		/* Ensures socket not freed */
 	return s->file_desc;
 }
 
@@ -3779,6 +3809,7 @@ static unsigned
 socket_get_bufsize(struct wrap_io *wio, enum socket_buftype type)
 {
 	struct gnutella_socket *s = wio->ctx;
+
 	socket_check(s);
 
 	switch (type) {
@@ -3931,6 +3962,7 @@ socket_wio_link(struct gnutella_socket *s)
 	socket_check(s);
 	g_assert(s->flags & (SOCK_F_LOCAL | SOCK_F_TCP | SOCK_F_UDP));
 
+	s->wio.magic = WRAP_IO_MAGIC;
 	s->wio.ctx = s;
 	s->wio.fd = socket_get_fd;
 	s->wio.flush = socket_no_flush;
@@ -3976,6 +4008,8 @@ safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt)
 	iovec_t *siov;
 	int siovcnt = MAX_IOV_COUNT;
 	int iovgot = 0;
+
+	wrap_io_check(wio);
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		ssize_t r;
@@ -4075,6 +4109,8 @@ safe_writev(wrap_io_t *wio, const iovec_t *iov, int iovcnt)
 	int siovcnt = MAX_IOV_COUNT;
 	int iovsent = 0;
 	size_t sent = 0;
+
+	wrap_io_check(wio);
 
 	for (siov = iov; siov < end; siov += siovcnt) {
 		const iovec_t *xiv, *xend;

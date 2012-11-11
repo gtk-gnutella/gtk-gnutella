@@ -493,6 +493,22 @@ extern const char   *gnet_property_variable_dump_rx_addrs;
 extern const char   *gnet_property_variable_dump_tx_from_addrs;
 extern const char   *gnet_property_variable_dump_tx_to_addrs;
 extern const gboolean gnet_property_variable_guess_maximize_bw;
+extern const guint32  gnet_property_variable_udp_sched_debug;
+extern const guint32  gnet_property_variable_tx_ut_debug_flags;
+extern const char   *gnet_property_variable_rx_debug_addrs;
+extern const guint32  gnet_property_variable_rx_ut_debug_flags;
+extern const gboolean gnet_property_variable_log_sr_udp_tx;
+extern const gboolean gnet_property_variable_log_sr_udp_rx;
+extern const guint32  gnet_property_variable_secure_oob_debug;
+extern const gboolean gnet_property_variable_log_vmsg_tx;
+extern const gboolean gnet_property_variable_log_vmsg_rx;
+extern const guint32  gnet_property_variable_dht_tcache_debug_flags;
+extern const gboolean gnet_property_variable_log_weird_dht_headers;
+extern const guint32  gnet_property_variable_dht_rpc_debug;
+extern const gboolean gnet_property_variable_log_uhc_pings_rx;
+extern const gboolean gnet_property_variable_log_uhc_pings_tx;
+extern const gboolean gnet_property_variable_clean_shutdown;
+extern const gboolean gnet_property_variable_clean_restart;
 
 
 prop_set_t *gnet_prop_init(void);

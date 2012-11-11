@@ -81,6 +81,7 @@ cevent_t *cq_main_insert(int delay, cq_service_t fn, void *arg);
 cq_time_t cq_remaining(const cevent_t *ev);
 void cq_expire(cevent_t *ev);
 void cq_cancel(cevent_t **handle_ptr);
+void cq_replace(cevent_t *ev, cq_service_t fn, void *arg);
 void cq_resched(cevent_t *handle, int delay);
 int cq_ticks(const cqueue_t *cq);
 int cq_count(const cqueue_t *cq);
@@ -95,6 +96,8 @@ void cq_periodic_resched(cperiodic_t *cp, int period);
 void cq_periodic_remove(cperiodic_t **cp_ptr);
 cidle_t *cq_idle_add(cqueue_t *cq, cq_invoke_t event, void *arg);
 void cq_idle_remove(cidle_t **ci_ptr);
+
+const char *cq_time_to_string(cq_time_t t);
 
 #endif	/* _cq_h_ */
 

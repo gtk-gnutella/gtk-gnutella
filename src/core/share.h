@@ -117,6 +117,7 @@ filesize_t shared_file_size(const shared_file_t *sf) G_GNUC_PURE;
 uint32 shared_file_index(const shared_file_t *sf) G_GNUC_PURE;
 time_t shared_file_modification_time(const shared_file_t *sf) G_GNUC_PURE;
 time_t shared_file_creation_time(const shared_file_t *sf) G_GNUC_PURE;
+filesize_t shared_file_available(const shared_file_t *sf) G_GNUC_PURE;
 const char *shared_file_path(const shared_file_t *sf) G_GNUC_PURE;
 const struct sha1 *shared_file_sha1(const shared_file_t *sf) G_GNUC_PURE;
 const struct tth *shared_file_tth(const shared_file_t *sf) G_GNUC_PURE;

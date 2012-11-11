@@ -50,7 +50,6 @@ int rand31();
 void rand31_set_seed(unsigned seed);
 unsigned rand31_initial_seed(void);
 unsigned rand31_current_seed(void);
-int rand31_upto(rand31_fn_t, unsigned max);
 int rand31_value(unsigned max);
 uint32 rand31_u32(void);
 double rand31_double(void);

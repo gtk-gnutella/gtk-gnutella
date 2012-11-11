@@ -773,16 +773,10 @@ void
 natpmp_discover(unsigned retries, natpmp_discover_cb_t cb, void *arg)
 {
 	/*
-	 * If NATPMP is disabled, ignore request but log.
+	 * We discover even if NAT-PMP support is disabled: we won't publish
+	 * mappings via NAT-PMP, but we want to know whether we have a NAT-PMP
+	 * device available.
 	 */
-
-	if (!GNET_PROPERTY(enable_natpmp)) {
-		if (GNET_PROPERTY(natpmp_debug) > 10) {
-			g_debug("NATPMP support disabled, not launching discovery");
-		}
-		(*cb)(FALSE, NULL, arg);
-		return;
-	}
 
 	if (GNET_PROPERTY(natpmp_debug) > 3)
 		g_message("NATPMP initiating discovery");

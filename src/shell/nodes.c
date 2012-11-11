@@ -84,9 +84,8 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 		con > 0 ? compact_time(con) : "?");
 
 	gm_snprintf(buf, sizeof buf,
-		"%-21.45s %5.1u %s %2.2s %6.6s %6.6s %.50s",
-		node_addr(n),
-		(unsigned) n->gnet_port,
+		"%-21.45s %s %2.2s %6.6s %6.6s %.56s",
+		node_gnet_addr(n),
 		node_flags_to_string(&flags),
 		iso3166_country_cc(n->country),
 		contime_buf,
@@ -113,7 +112,7 @@ shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	shell_write(sh,
 	  "100~ \n"
-	  "Node                  Port  Flags       CC Since  Uptime User-Agent\n");
+	  "Node                  Flags       CC Since  Uptime User-Agent\n");
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		const struct gnutella_node *n = sl->data;

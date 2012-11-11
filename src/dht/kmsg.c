@@ -602,7 +602,14 @@ k_send_find_value_response(
 	STATIC_ASSERT(KDA_HEADER_SIZE + 61 + DHT_VALUE_MAX_LEN + 6 +
 		(MAX_VALUES_PER_KEY - 1) * KUID_RAW_SIZE < MAX_VALUE_RESPONSE_SIZE);
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_VALUE_RESPONSE_SIZE);
+	/*
+	 * Values are sent with an "urgent" priority to make sure they get
+	 * the reply quickly, even under tight outgoing bandwidth: the message
+	 * will be put ahead of the message queue and sent as soon as possible
+	 * by the UDP TX scheduler.
+	 */
+
+	mb = pmsg_new(PMSG_P_URGENT, NULL, MAX_VALUE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_FIND_VALUE_RESPONSE, 0, 0, muid);
@@ -675,6 +682,17 @@ k_send_find_value_response(
 				g_warning("DHT packed secondary key %d/%zu for %s",
 					secondaries, remain, dht_value_to_string(v));
 		}
+	} else {
+		/*
+		 * We emitted all the values in expanded form, so there are no
+		 * secondary keys.  Do not forget to emit the amount of secondary
+		 * keys present (0).  Starting with 0.98.4, GTKG will be lenient and
+		 * will correctly handle responses missing that trailing byte but
+		 * other versions were not, and other vendors may choke as well.
+		 *		--RAM, 2012-10-28
+		 */
+
+		pmsg_write_u8(mb, 0);
 	}
 
 	g_assert(UNSIGNED(values + secondaries) == vlen);	/* Sanity check */
@@ -741,9 +759,12 @@ k_send_store_response(
 	/*
 	 * The architected store response message v0.0 is Cretinus Maximus.
 	 * Limit the total size to MAX_STORE_RESPONSE_SIZE, whatever happens.
+	 *
+	 * We use a "control" priority to make sure the acknowledgement is
+	 * received rapidly enough, even under tight outgoing bandwidth.
 	 */
 
-	mb = pmsg_new(PMSG_P_DATA, NULL, MAX_STORE_RESPONSE_SIZE);
+	mb = pmsg_new(PMSG_P_CONTROL, NULL, MAX_STORE_RESPONSE_SIZE);
 
 	header = (kademlia_header_t *) pmsg_start(mb);
 	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
@@ -908,9 +929,11 @@ k_handle_pong(knode_t *kn, struct gnutella_node *n,
 		!dht_rpc_answer(kademlia_header_get_muid(header), kn, n,
 			KDA_MSG_PING_RESPONSE, payload, len)
 	) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT ignoring unexpected PONG from %s",
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_rpc_debug)) {
+			g_warning("DHT ignoring unexpected PONG #%s from %s",
+				guid_to_string(kademlia_header_get_muid(header)),
 				knode_to_string(kn));
+		}
 		return;
 	}
 
@@ -1386,7 +1409,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 			(kn->flags & KNODE_F_PCONTACT) &&
 			kuid_eq(kn->id, dht_value_creator(v)->id)
 		) {
-			knode_t *cn = deconstify_pointer(dht_value_creator(v));
+			const knode_t *cn = dht_value_creator(v);
 
 			if (GNET_PROPERTY(dht_storage_debug))
 				g_warning(
@@ -1394,9 +1417,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 					host_addr_to_string(cn->addr), cn->port,
 					host_addr_port_to_string(kn->addr, kn->port));
 
-			cn->addr = kn->addr;
-			cn->port = kn->port;
-			cn->flags |= KNODE_F_PCONTACT;
+			dht_value_patch_creator(v, kn->addr, kn->port);
 		}
 
 		vec[i] = v;
@@ -1671,9 +1692,12 @@ k_handle_rpc_reply(knode_t *kn, struct gnutella_node *n,
 		!dht_rpc_answer(kademlia_header_get_muid(header), kn, n,
 			function, payload, len)
 	) {
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT ignoring unexpected %s from %s",
-				kmsg_name(function), knode_to_string(kn));
+		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_rpc_debug)) {
+			g_warning("DHT ignoring unexpected %s #%s from %s",
+				kmsg_name(function),
+				guid_to_string(kademlia_header_get_muid(header)),
+				knode_to_string(kn));
+		}
 		return;
 	}
 
@@ -1940,13 +1964,43 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 }
 
 /**
+ * Check whether message origin is hostile.
+ *
+ * If it is an RPC reply (non-NULL MUID given), force a timeout when the
+ * origin if the message is now hostile (could have been dynamically set
+ * as hostile after the RPC was sent).
+ *
+ * @param n		the source of the message
+ * @param kuid	the advertised KUID of the node sending the message
+ * @param muid	if non-NULL, the MUID of the RPC to cancel for hostile source
+ *
+ * @return TRUE if message is from an hostile source and must be ignored.
+ */
+static bool
+kmsg_hostile_source(gnutella_node_t *n, const kuid_t *kuid, const guid_t *muid)
+{
+	if (node_hostile_udp(n)) {
+		knode_t *kn = dht_find_node(kuid);	/* Is node in our routing table? */
+		if (kn != NULL)
+			dht_remove_node(kn);
+		if (muid != NULL)
+			dht_rpc_timeout(muid);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
  * Main entry point for DHT messages received from UDP.
  *
  * The Gnutella layer that comes before has validated that the message looked
  * like a valid Gnutella one (i.e. the Gnutella header size is consistent)
- * and has already performed hostile address checks.  Traffic accounting
- * was also done, based on the message being a Gnutella one (in terms of
- * header and payload).
+ * but has NOT performed hostile address checks (because we want to timeout
+ * RPCs early if we get any such messages on an RPC reply).
+
+ * Traffic accounting was also done, based on the message being a Gnutella
+ * one (in terms of header and payload).
  *
  * Validation of the Kademlia message and its processing is now our problem.
  *
@@ -1959,21 +2013,21 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 void kmsg_received(
 	const void *data, size_t len,
 	host_addr_t addr, uint16 port,
-	struct gnutella_node *n)
+	gnutella_node_t *n)
 {
 	const kademlia_header_t *header = deconstify_pointer(data);
 	char *reason;
-	uint8 major;
-	uint8 minor;
+	uint8 major, minor;
 	knode_t *kn;
 	host_addr_t kaddr;
 	uint16 kport;
 	vendor_code_t vcode;
-	uint8 kmajor;
-	uint8 kminor;
+	uint8 kmajor, kminor;
 	const kuid_t *id;
 	uint8 flags;
 	uint16 extended_length;
+	bool weird_header = FALSE;
+	bool rpc_reply = FALSE;
 
 	g_assert(len >= GTA_HEADER_SIZE);	/* Valid Gnutella packet at least */
 	g_assert(NODE_IS_DHT(n));
@@ -2050,34 +2104,80 @@ void kmsg_received(
 	flags = kademlia_header_get_contact_flags(header);
 
 	/*
-	 * Check contact's address, if host not flagged as "firewalled".
+	 * Update statistics.
 	 */
 
-	if (!(flags & KDA_MSG_F_FIREWALLED) && !host_is_valid(kaddr, kport)) {
+	gnet_stats_inc_general(GNR_DHT_MSG_RECEIVED);
+
+	/* Do not check the port, it can be off for firewalled nodes */
+
+	if (host_addr_equal(kaddr, addr))
+		gnet_stats_inc_general(GNR_DHT_MSG_MATCHING_CONTACT_ADDRESS);
+
+	/*
+	 * Check contact's address on RPC replies.
+	 *
+	 * LimeWire nodes suffer from a bug whereby the contact is not
+	 * firewalled but replies to RPC requests come back with an
+	 * advertised address of 127.0.0.1.  This is annoying but hopefully
+	 * fixable, at the cost of extra processing.
+	 *
+	 * Given the remote host is echoing back our random RPC MUID, we can
+	 * be confident that the contact information was valid if we get a
+	 * matching reply, since the MUID cannot be otherwise guessed.
+	 */
+
+	{
 		host_addr_t raddr;
 		uint16 rport;
+		const guid_t *muid = kademlia_header_get_muid(header);
 
-		/*
-		 * LimeWire nodes suffer from a bug whereby the contact is not
-		 * firewalled but replies to RPC requests come back with an
-		 * advertised address of 127.0.0.1.  This is annoying but hopefully
-		 * fixable, at the cost of extra processing.
-		 */
+		if (dht_rpc_info(muid, &raddr, &rport)) {
+			gnet_stats_inc_general(GNR_DHT_RPC_REPLIES_RECEIVED);
 
-		if (dht_rpc_info(kademlia_header_get_muid(header), &raddr, &rport)) {
+			if (kmsg_hostile_source(n, id, muid)) {
+				gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_ADDRESS);
+				reason = "hostile UDP source on RPC reply";
+				goto drop;
+			}
+
+			rpc_reply = TRUE;
+
+			if (kport == rport && host_addr_equal(kaddr, raddr))
+				goto hostile_checked;
+
 			if (GNET_PROPERTY(dht_debug)) {
+				bool matches = port == rport && host_addr_equal(addr, raddr);
 				g_warning("DHT fixing contact address for kuid=%s "
-					"to %s:%u on RPC reply (%s UDP info) in %s",
+					"to %s:%u on RPC reply (%s UDP info%s%s) in %s",
 					kuid_to_hex_string(id),
 					host_addr_to_string(raddr), rport,
-					host_addr_equal(addr, raddr) && port == rport ?
-						"matches" : "still different from",
+					matches ?  "matches" : "still different from",
+					matches ?  "" : " ",
+					matches ?  "" : host_addr_port_to_string(addr, port),
 					kmsg_infostr(data));
 			}
+
 			kaddr = raddr;
 			kport = rport;
+			weird_header = TRUE;
+			gnet_stats_inc_general(GNR_DHT_RPC_REPLIES_FIXED_CONTACT);
+
+			goto hostile_checked;	/* Check done above */
 		}
 	}
+
+	/*
+	 * Check UDP origin of message for known hostile sources.
+	 */
+
+	if (kmsg_hostile_source(n, id, NULL)) {
+		gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_ADDRESS);
+		reason = "hostile UDP source";
+		goto drop;
+	}
+
+hostile_checked:
 
 	/*
 	 * Even if they are "firewalled", drop the message if contact address
@@ -2086,10 +2186,12 @@ void kmsg_received(
 	 */
 
 	if (hostiles_check(kaddr)) {
-		if (GNET_PROPERTY(dht_debug))
+		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT hostile contact address %s (%s v%u.%u)",
 				host_addr_to_string(kaddr),
 				vendor_code_to_string(vcode.u32), kmajor, kminor);
+		}
+		gnet_stats_inc_general(GNR_DHT_MSG_FROM_HOSTILE_CONTACT_ADDRESS);
 		reason = "hostile contact address";
 		goto drop;
 	}
@@ -2109,16 +2211,18 @@ void kmsg_received(
 
 	if (
 		!(flags & KDA_MSG_F_FIREWALLED) &&
-		(!host_addr_equal(addr, kaddr) || port != kport)
+		(port != kport || !host_addr_equal(addr, kaddr))
 	) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT contact address is %s "
-				"but message came from %s (%s v%u.%u) kuid=%s",
+				"but %s came from %s (%s v%u.%u) kuid=%s",
 				host_addr_port_to_string(kaddr, kport),
+				kmsg_name(kademlia_header_get_function(header)),
 				host_addr_port_to_string2(addr, port),
 				vendor_code_to_string(vcode.u32), kmajor, kminor,
 				kuid_to_hex_string(id));
 		}
+		weird_header = TRUE;
 	}
 
 	/*
@@ -2135,6 +2239,7 @@ void kmsg_received(
 				kuid_to_hex_string(id));
 		}
 		flags |= KDA_MSG_F_FIREWALLED;
+		weird_header = TRUE;
 	}
 
 
@@ -2150,6 +2255,18 @@ void kmsg_received(
 		bool patched = FALSE;
 
 		/*
+		 * We do not have this KUID in our routing table.
+		 *
+		 * If we are not handling an RPC reply (where we already patched
+		 * the address), see whether we know this node because we did a
+		 * successful RPC exchange with it recently, and make sure we have
+		 * the correct contact information.
+		 */
+
+		if (!rpc_reply)
+			patched = dht_fix_kuid_contact(id, &kaddr, &kport, "incoming");
+
+		/*
 		 * If the node is not already in our routing table, but its advertised
 		 * contact information is wrong and it is not presenting itself as
 		 * being firewalled, attempt to use the UDP address and port.
@@ -2160,6 +2277,7 @@ void kmsg_received(
 		 */
 
 		if (
+			!patched &&
 			!(flags & KDA_MSG_F_FIREWALLED) &&
 			(!host_is_valid(kaddr, kport) || !host_addr_equal(addr, kaddr))
 		) {
@@ -2192,6 +2310,7 @@ void kmsg_received(
 			}
 			kaddr = addr;
 			patched = TRUE;
+			weird_header = TRUE;
 		}
 
 		if (GNET_PROPERTY(dht_debug) > 2)
@@ -2210,6 +2329,16 @@ void kmsg_received(
 		if (!(flags & (KDA_MSG_F_FIREWALLED | KDA_MSG_F_SHUTDOWNING)))
 			dht_traffic_from(kn);
 	} else {
+		/*
+		 * Node is already present in our routing table.
+		 *
+		 * If we got an RPC reply, mark it so that we know its contact
+		 * information is valid.
+		 */
+
+		if (rpc_reply)
+			kn->flags |= KNODE_F_RPC;
+
 		/*
 		 * This here is again a workaround for LimeWire's bug: a good
 		 * non-firewalled host that is known in our routing table with a
@@ -2231,14 +2360,18 @@ void kmsg_received(
 				)
 			) {
 				if (GNET_PROPERTY(dht_debug)) {
-					g_warning("DHT fixing contact address for kuid=%s "
-						"to %s:%u based on routing table (%s UDP info) in %s",
+					bool matches = port == kport &&
+						host_addr_equal(addr, kn->addr);
+					g_warning("DHT fixing contact address for kuid=%s to %s:%u"
+						" based on routing table (%s UDP info%s%s) in %s",
 						kuid_to_hex_string(id),
 						host_addr_to_string(kn->addr), kn->port,
-						host_addr_equal(addr, kn->addr) && port == kport ?
-							"matches" : "still different from",
+						matches ? "matches" : "still different from",
+						matches ? "" : " ",
+						matches ? "" : host_addr_port_to_string(addr, port),
 						kmsg_infostr(data));
 				}
+				weird_header = TRUE;
 				kaddr = kn->addr;
 				/* Port identical, as checked in test */
 				kn->flags |= KNODE_F_PCONTACT;	/* To adapt creator later */
@@ -2258,6 +2391,7 @@ void kmsg_received(
 							kmsg_infostr(data));
 					}
 					kn->flags |= KNODE_F_FOREIGN_IP;
+					weird_header = TRUE;
 				}
 			}
 		}
@@ -2300,7 +2434,7 @@ void kmsg_received(
 				knode_t *new;
 
 				new = knode_new(id, flags, kaddr, kport, vcode, kmajor, kminor);
-				dht_verify_node(kn, new);
+				dht_verify_node(kn, new, TRUE);
 				kn = new;				/* Speaking to new node for now */
 			}
 		} else {
@@ -2351,10 +2485,39 @@ void kmsg_received(
 				host_addr_port_to_string(kaddr, kport),
 				host_addr_to_string(addr), port);
 
+		/* kaddr and kport not changed since this does not count as a fixup */
+
 		kn->addr = addr;
 		kn->port = port;
 		kn->flags |= KNODE_F_PCONTACT;
+		weird_header = TRUE;
 	}
+
+	/*
+	 * Update contact fixup stats.
+	 */
+
+	if (
+		kport != kademlia_header_get_contact_port(header) ||
+		!host_addr_equal(kaddr,
+			host_addr_get_ipv4(kademlia_header_get_contact_addr(header)))
+	)
+		gnet_stats_inc_general(GNR_DHT_MSG_FIXED_CONTACT_ADDRESS);
+
+	/*
+	 * Log weird headers when debugging.
+	 */
+
+	if (
+		weird_header &&
+		GNET_PROPERTY(dht_debug) && GNET_PROPERTY(log_weird_dht_headers)
+	) {
+		dump_hex(stderr, "DHT Header", data, extended_length + KDA_HEADER_SIZE);
+	}
+
+	/*
+	 * Handle the message.
+	 */
 
 	kmsg_handle(kn, n, header, extended_length,
 		ptr_add_offset(header, extended_length + KDA_HEADER_SIZE),
@@ -2370,7 +2533,7 @@ drop:
 			"\"%s\" from UDP (%s): %s",
 			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
-		if (len)
+		if (len && GNET_PROPERTY(dht_debug) > 10)
 			dump_hex(stderr, "UDP datagram", data, len);
 	}
 }

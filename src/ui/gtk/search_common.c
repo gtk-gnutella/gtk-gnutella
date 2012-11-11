@@ -157,7 +157,7 @@ static struct {
 	{ "#708090", GUI_COLOR_PUSH,		{ 0, 0, 0, 0 } }, /* slate gray */
 	{ "#2F4F4F", GUI_COLOR_PUSH_PROXY,	{ 0, 0, 0, 0 } }, /* dark slate gray */
 	{ "#7B68EE", GUI_COLOR_PARTIAL_PUSH,{ 0, 0, 0, 0 } }, /* med. slate blue */
-	{ "#DCDC00", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* yellow */
+	{ "#D7B700", GUI_COLOR_PARTIAL,		{ 0, 0, 0, 0 } }, /* gold (darker) */
 	{ "#8B4513", GUI_COLOR_MEDIA,		{ 0, 0, 0, 0 } }, /* chocolate4 */
 	{ "#FFFFFF", GUI_COLOR_BACKGROUND,	{ 0, 0, 0, 0 } }, /* white */
 };
@@ -713,28 +713,45 @@ search_gui_close_search(search_t *search)
 
 	next = g_list_find(list_searches, search);
 	next = g_list_next(next) ? g_list_next(next) : g_list_previous(next);
-
  	list_searches = g_list_remove(list_searches, search);
-	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
-	search_gui_store_searches();
-	search_gui_option_menu_searches_update();
-
-	search_gui_reset_search(search);
-    search_gui_remove_search(search);
 
 	search_gui_set_current_search(next ? next->data : NULL);
+	filter_close_search(search);
+
+	/*
+	 * The association between the core search_handle and the GUI search,
+	 * which is recorded in `ht_searches' needs to be removed only after
+	 * the core side has finished its cleanup to allow GUI callback events
+	 * to proceed (e.g. GUESS cancellation events).
+	 */
+
+    guc_search_close(search->search_handle);
+	htable_remove(ht_searches, uint_to_pointer(search->search_handle));
+
+	/*
+	 * Now that the core is done cleaning up, we can free up the GUI data
+	 * structures attached with the search.
+	 */
+
+	search_gui_clear_search(search);
+    search_gui_remove_search(search);
 
 	gtk_notebook_remove_page(notebook_search_results,
 		gtk_notebook_page_num(notebook_search_results,
 			search->scrolled_window));
 
-	filter_close_search(search);
-
 	hset_free_null(&search->dups);
 	htable_free_null(&search->parents);
 
-    guc_search_close(search->search_handle);
 	WFREE(search);
+
+	/*
+	 * One less search, update list of searches in memory and on disk.
+	 */
+
+	search_gui_store_searches();
+	search_gui_option_menu_searches_update();
+
 }
 
 /**
@@ -930,6 +947,7 @@ search_gui_free_record(record_t *rc)
 
 	g_assert(NULL == rc->results_set);
 
+	WFREE_TYPE_NULL(rc->partial);
 	atom_str_free_null(&rc->name);
 	atom_str_free_null(&rc->utf8_name);
     atom_str_free_null(&rc->ext);
@@ -1052,7 +1070,7 @@ search_gui_unref_record(record_t *rc)
 	}
 }
 
-guint
+static guint
 search_gui_hash_func(gconstpointer p)
 {
 	const record_t *rc = p;
@@ -1069,7 +1087,24 @@ search_gui_hash_func(gconstpointer p)
 		port_hash(rc->results_set->port);
 }
 
-gint
+static guint
+search_gui_hash_func2(gconstpointer p)
+{
+	const record_t *rc = p;
+
+	record_check(rc);
+
+	/* Must use same fields as search_gui_hash_key_compare() --RAM */
+	return
+		pointer_hash2(rc->sha1) ^	/* atom! (may be NULL) */
+		pointer_hash2(rc->results_set->guid) ^	/* atom! */
+		(NULL != rc->sha1 ? 0 : string_hash(rc->name)) ^
+		integer_hash2(rc->size) ^
+		host_addr_hash2(rc->results_set->addr) ^
+		port_hash2(rc->results_set->port);
+}
+
+static gint
 search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	const record_t *rc1 = a, *rc2 = b;
@@ -1117,8 +1152,8 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 
 		if (rc->file_index != old_rc->file_index) {
 			if (GUI_PROPERTY(gui_debug)) {
-				g_warning("Index changed from %u to %u at %s for %s",
-					old_rc->file_index, rc->file_index,
+				g_warning("%s(): index changed from %u to %u at #%s for %s",
+					G_STRFUNC, old_rc->file_index, rc->file_index,
 					guid_hex_str(rc->results_set->guid), rc->name);
 			}
 
@@ -1260,6 +1295,15 @@ search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
    	rc->flags = r->flags;
    	rc->create_time = r->create_time;
 	rc->name = atom_str_get(r->filename);
+
+	if (r->available != 0 || r->mod_time != 0) {
+		struct precord *prc;
+
+		WALLOC0(prc);
+		prc->available = r->available;
+		prc->mod_time = r->mod_time;
+		rc->partial = prc;
+	}
 	
 	{
 		const gchar *utf8_name, *name;
@@ -1383,13 +1427,15 @@ static void
 search_gui_download_selected_files(void)
 {
 	struct search *search;
+	bool stopped;
 
     search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
    	search_gui_download_files(search);
-	search_gui_end_massive_update(search);
+	if (stopped)
+		search_gui_end_massive_update(search);
 
    	guc_search_update_items(search->search_handle, search->items);
 
@@ -1401,13 +1447,15 @@ static void
 search_gui_discard_selected_files(void)
 {
 	struct search *search;
+	bool stopped;
 
     search = search_gui_get_current_search();
 	g_return_if_fail(search);
 
-	search_gui_start_massive_update(search);
+	stopped = search_gui_start_massive_update(search);
    	search_gui_discard_files(search);
-	search_gui_end_massive_update(search);
+	if (stopped)
+		search_gui_end_massive_update(search);
 
    	guc_search_update_items(search->search_handle, search->items);
 
@@ -1914,6 +1962,11 @@ search_gui_set_record_info(results_set_t *rs)
 
 	results_set_check(rs);
 
+	/* If banned GUID, make it prominent: at the start of the information! */
+	if (rs->status & ST_BANNED_GUID) {
+		str_cat(vinfo, "GUID");
+	}
+
 	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
@@ -2301,7 +2354,8 @@ search_gui_set_current_search(search_t *search)
 		search_gui_switch_search(search);
 		if (previous) {
 			gtk_widget_hide(previous->tree);
-			search_gui_start_massive_update(previous);
+			if (!previous->frozen)
+				search_gui_start_massive_update(previous);
 			search_gui_hide_search(previous);
 			previous->list_refreshed = FALSE;
 			search_gui_update_counters(previous);
@@ -2309,7 +2363,8 @@ search_gui_set_current_search(search_t *search)
 		if (search) {	
 			search_gui_guess_stats_display(search);
 			search_gui_show_search(search);
-			search_gui_end_massive_update(search);
+			if (search->frozen)
+				search_gui_end_massive_update(search);
 			gtk_widget_show(search->tree);
 			search->list_refreshed = FALSE;
 			search_gui_update_counters(search);
@@ -2814,9 +2869,12 @@ search_gui_handle_local(const gchar *query, const gchar **error_str)
 			SEARCH_F_LOCAL | SEARCH_F_LITERAL | SEARCH_F_ENABLED,
 			&search);
 	if (success && search) {
-		search_gui_start_massive_update(search);
+		bool stopped;
+		
+		stopped = search_gui_start_massive_update(search);
 		success = guc_search_locally(search->search_handle, text);
-		search_gui_end_massive_update(search);
+		if (stopped)
+			search_gui_end_massive_update(search);
 	}
 	*error_str = NULL;
 
@@ -3114,8 +3172,8 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	}
  
 	search->search_handle = sch_id;
-	search->dups = hset_create_any(search_gui_hash_func, NULL,
-						search_gui_hash_key_compare);
+	search->dups = hset_create_any(search_gui_hash_func,
+		search_gui_hash_func2, search_gui_hash_key_compare);
 
 	search_gui_filter_new(search, query->rules);
 	search_gui_query_free(&query);
@@ -4044,6 +4102,22 @@ search_gui_set_details(const record_t *rc)
 
 	search_gui_append_detail(_("Partial"),
 		SR_PARTIAL_HIT & rc->flags ? _("Yes") : _("No"));
+
+	if (rc->partial != NULL) {
+		struct precord *prc = rc->partial;
+
+		if (rc->size != 0) {
+			char buf[80];
+			double pct = 100.0 * prc->available / (double) rc->size;
+			str_bprintf(buf, sizeof buf, _("%s [%.2f%%]"),
+				nice_size(prc->available, show_metric_units()), pct);
+			search_gui_append_detail(_("Available"), buf);
+		}
+		search_gui_append_detail(_("Last modification"),
+			0 != prc->mod_time
+			? timestamp_to_string(prc->mod_time)
+			: _("Unknown"));
+	}
 
 	if (utf8_can_latinize(rc->utf8_name)) {
 		size_t size;

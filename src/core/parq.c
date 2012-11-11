@@ -141,6 +141,7 @@ static hevset_t *ul_all_parq_by_addr;
 static htable_t *ul_all_parq_by_id;
 static cperiodic_t *parq_dead_timer_ev;
 static cperiodic_t *parq_save_timer_ev;
+static bool parq_closed;
 
 /**
  * If enable_real_passive is TRUE, a dead upload is only marked dead,
@@ -1192,7 +1193,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	queue = getline_str(s->getline);
 
-	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
+	gnet_stats_inc_general(GNR_QUEUE_CALLBACKS);
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got QUEUE from %s:\n", host_addr_to_string(s->addr));
@@ -1321,29 +1322,17 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (download_start_prepare(dl)) {
-		struct gnutella_socket *ds = dl->socket;
-		dl->socket = s;
-		ds = s;
+		download_attach_socket(dl, s);
 
-		getline_free(ds->getline);		/* No longer need this */
-		ds->getline = NULL;
-
-
-  		g_assert(dl->socket != NULL);
 		dl->last_update = tm_time();
-		s->resource.download = dl;
-
-		/* Resend request for download */
-		download_send_request(dl);
+		download_send_request(dl);		/* Resend request for download */
 	}
 
 	return;
 
 ignore:
-	gnet_stats_count_general(GNR_QUEUE_DISCARDED, 1);
-	g_assert(s->resource.download == NULL); /* Hence socket_free() allowed */
+	gnet_stats_inc_general(GNR_QUEUE_DISCARDED);
 	socket_free_null(&s);
-	return;
 }
 
 /***
@@ -1568,6 +1557,8 @@ static inline void
 parq_upload_insert_relative(struct parq_ul_queued *puq)
 {
 	parq_ul_queued_check(puq);
+
+	g_assert(!(puq->flags & PARQ_UL_FROZEN));
 
 	puq->relative_position = 0;
 	hash_list_insert_sorted(puq->queue->by_rel_pos, puq, parq_ul_rel_pos_cmp);
@@ -2302,26 +2293,30 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	puq->send_next_queue = parq_upload_next_queue(now, puq);
 	puq->by_addr->last_queue_sent = now;
 
-	if (GNET_PROPERTY(parq_debug))
+	if (GNET_PROPERTY(parq_debug)) {
 		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-			"Sending QUEUE #%d to %s: '%s'",
-			  puq->queue->num,
-			  ul_parqs_cnt,
-			  puq->position,
-			  puq->relative_position,
-			  puq->queue->by_position_length,
-			  puq->queue_sent,
-			  host_addr_port_to_string(puq->addr, puq->port),
-			  puq->name);
+			"Sending QUEUE #%d to %s for ID=%s: '%s'",
+			puq->queue->num,
+			ul_parqs_cnt,
+			puq->position,
+			puq->relative_position,
+			puq->queue->by_position_length,
+			puq->queue_sent,
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id),
+			puq->name);
+	}
 
-	gnet_stats_count_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_PARQ_QUEUE_SENDING_ATTEMPTS);
 
 	s = socket_connect(puq->addr, puq->port, SOCK_TYPE_UPLOAD, flags);
 
 	if (!s) {
-		g_warning("[PARQ UL] could not send QUEUE #%d to %s (can't connect)",
+		g_warning("[PARQ UL] could not send QUEUE #%d to %s ID=%s "
+			"(can't connect)",
 			puq->queue_sent,
-			host_addr_port_to_string(puq->addr, puq->port));
+			host_addr_port_to_string(puq->addr, puq->port),
+			guid_hex_str(&puq->id));
 		puq->flags &= ~PARQ_UL_QUEUE;
 		return;
 	}
@@ -2358,7 +2353,9 @@ parq_upload_send_queue_failed(struct parq_ul_queued *puq)
 	puq->by_addr->last_queue_failure = tm_time();
 
 	if (GNET_PROPERTY(parq_debug) > 3) {
-		g_debug("PARQ UL: QUEUE callback not sent: could not connect to %s",
+		g_debug("PARQ UL: QUEUE callback not sent, ID=%s: "
+			"could not connect to %s",
+			guid_hex_str(&puq->id),
 			host_addr_to_string(puq->by_addr->addr));
 	}
 }
@@ -2472,7 +2469,7 @@ parq_ul_queue_dead_timer(time_t now, const struct parq_ul_queue *q)
 			delta_time(puq->send_next_queue, now) < 0 &&
 			puq->queue_sent < MAX_QUEUE &&
 			puq->queue_refused < MAX_QUEUE_REFUSED &&
-			!ban_is_banned(puq->remote_addr)
+			!ban_is_banned(BAN_CAT_SOCKET, puq->remote_addr)
 		)
 			parq_upload_register_send_queue(puq);
 	}
@@ -2530,7 +2527,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 			puq->queue_sent < MAX_QUEUE &&
 			puq->queue_refused < MAX_QUEUE_REFUSED &&
 			GNET_PROPERTY(max_uploads) > 0 &&
-			!ban_is_banned(puq->remote_addr)
+			!ban_is_banned(BAN_CAT_SOCKET, puq->remote_addr)
 		)
 			parq_upload_register_send_queue(puq);
 
@@ -2542,7 +2539,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 		) {
 			if (GNET_PROPERTY(parq_debug) > 3)
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
-					"Timeout: %s %s '%s'",
+					"Timeout: ID=%s %s '%s'",
 					puq->queue->num,
 					ul_parqs_cnt,
 					puq->position,
@@ -3305,7 +3302,7 @@ check_quick:
 
 		parq_upload_unfreeze_one(puq);
 		gnet_prop_incr_guint32(PROP_UL_QUICK_RUNNING);
-		gnet_stats_count_general(GNR_PARQ_QUICK_SLOTS_GRANTED, 1);
+		gnet_stats_inc_general(GNR_PARQ_QUICK_SLOTS_GRANTED);
 		puq->quick = TRUE;
 		return TRUE;
 	}
@@ -3436,6 +3433,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 * Regardless of the amount of simultaneous upload slots a host can get,
 	 * a given PARQ ID can only be used once.
 	 */
+
 	if (puq->u != NULL && puq->u != u) {
 		if (GNET_PROPERTY(parq_debug)) {
 			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
@@ -3462,7 +3460,7 @@ parq_upload_get(struct upload *u, const header_t *header)
 	 */
 
 	if (puq->sha1 != u->sha1)
-		gnet_stats_count_general(GNR_PARQ_SLOT_RESOURCE_SWITCHING, 1);
+		gnet_stats_inc_general(GNR_PARQ_SLOT_RESOURCE_SWITCHING);
 
 	/*
 	 * Update SHA-1 when they switch resources being asked.
@@ -3568,7 +3566,7 @@ parq_upload_abusing(
 	struct upload *u, struct parq_ul_queued *puq,
 	time_t now, time_t org_retry)
 {
-	gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_VIOLATION, 1);
+	gnet_stats_inc_general(GNR_PARQ_RETRY_AFTER_VIOLATION);
 
 	if (
 		delta_time(puq->ban_timeout, now) > 0 &&
@@ -3592,7 +3590,7 @@ parq_upload_abusing(
 		 * queue now.
 		 */
 
-		gnet_stats_count_general(GNR_PARQ_RETRY_AFTER_KICK_OUT, 1);
+		gnet_stats_inc_general(GNR_PARQ_RETRY_AFTER_KICK_OUT);
 
 		if (GNET_PROPERTY(parq_debug)) g_warning(
 			"[PARQ UL] "
@@ -3639,7 +3637,7 @@ parq_upload_request_force(struct upload *u, struct parq_ul_queued *handle)
 		if (u->status == GTA_UL_QUEUED) {
 			u->status = GTA_UL_SENDING;
 		}
-		gnet_stats_count_general(GNR_PARQ_SLOT_LIMIT_OVERRIDES, 1);
+		gnet_stats_inc_general(GNR_PARQ_SLOT_LIMIT_OVERRIDES);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -3734,7 +3732,7 @@ parq_upload_request(struct upload *u)
 	if (puq->flags & PARQ_UL_QUEUE_SENT) {
 		puq->queue_sent = 0;
 		puq->flags &= ~PARQ_UL_QUEUE_SENT;
-		gnet_stats_count_general(GNR_PARQ_QUEUE_FOLLOW_UPS, 1);
+		gnet_stats_inc_general(GNR_PARQ_QUEUE_FOLLOW_UPS);
 	}
 
 	/*
@@ -4096,14 +4094,6 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	puq = parq_upload_find(u);
 
 	/*
-	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
-	 * attempting to connect to the remote server.
-	 */
-
-	if (puq && u->status == GTA_UL_QUEUE)
-		parq_upload_send_queue_failed(puq);
-
-	/*
 	 * If we can't find the PARQ entry, this is probably a cloned upload.
 	 *
 	 * If the upload mismatches, then it's probably an error like "Already
@@ -4113,6 +4103,14 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 	if (puq == NULL || puq->u != u)
 		return FALSE;
+
+	/*
+	 * If the status is still GTA_UL_QUEUE, then we got removed whilst
+	 * attempting to connect to the remote server.
+	 */
+
+	if (GTA_UL_QUEUE == u->status)
+		parq_upload_send_queue_failed(puq);
 
 	if (puq->active_queued)
 		parq_upload_clear_actively_queued(puq);
@@ -4143,6 +4141,13 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	else if (puq->flags & PARQ_UL_QUEUE_SENT)
 		puq->queue_refused = 0;
 
+	/*
+	 * Clear QUEUE-related flags, regardless of the outcome on remote servent.
+	 */
+
+	if ((puq->flags & PARQ_UL_QUEUE) && !hash_list_contains(ul_parq_queue, puq))
+		puq->flags &= ~PARQ_UL_QUEUE;
+
 	puq->flags &= ~PARQ_UL_QUEUE_SENT;
 
 	/*
@@ -4152,6 +4157,7 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 	 *
 	 * XXX What's this encapsulation breaking? Needed? --RAM, 2007-08-17
 	 */
+
 	if (
 		u->status == GTA_UL_QUEUED &&
 		delta_time(u->last_update, now) > 0
@@ -4206,12 +4212,24 @@ parq_upload_remove(struct upload *u, bool was_sending, bool was_running)
 
 			parq_ul_queued_check(puq_next);
 
-			if (!puq_next->has_slot) {
-				g_assert(puq_next->queue->active <= 1);
-				if (!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
-					parq_upload_register_send_queue(puq_next);
-				break;
-			}
+			if (puq_next->has_slot)
+				continue;
+
+			/*
+			 * Reach following entry in the waiting queue that has no uploading
+			 * slot.  If it is actively queued already, then we just have to
+			 * wait for the planned retry.  Otherwise, if we can send a QUEUE
+			 * and there is none pending, let the host know that it's next
+			 * in the line.
+			 */
+
+			g_assert(puq_next->queue->active <= 1);
+			if (
+				!(puq_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
+				!puq_next->active_queued
+			)
+				parq_upload_register_send_queue(puq_next);
+			break;
 		}
 
 		hash_list_iter_release(&iter);
@@ -4789,7 +4807,7 @@ parq_upload_send_queue_conf(struct upload *u)
 	 */
 
 	puq->flags |= PARQ_UL_QUEUE_SENT;
-	gnet_stats_count_general(GNR_PARQ_QUEUE_SENT, 1);
+	gnet_stats_inc_general(GNR_PARQ_QUEUE_SENT);
 	expect_http_header(u, GTA_UL_QUEUE_WAITING);
 }
 
@@ -4822,16 +4840,18 @@ parq_store(void *data, void *file_ptr)
 	}
 
 	g_assert(NULL != f);
-	if (GNET_PROPERTY(parq_debug) > 5)
-		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving ID: '%s' - %s '%s'",
+	if (GNET_PROPERTY(parq_debug) > 5) {
+		g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): Saving %s: '%s' - %s '%s'",
 			  puq->queue->num,
 			  ul_parqs_cnt,
 			  puq->position,
 			  puq->relative_position,
 			  puq->queue->by_position_length,
+			  puq->supports_parq ? "PARQ" : "slot",
 			  guid_hex_str(&puq->id),
 			  host_addr_to_string(puq->remote_addr),
 			  puq->name);
+	}
 
 	timestamp_to_string_buf(puq->enter, enter_buf, sizeof enter_buf);
 	timestamp_to_string_buf(puq->last_queue_sent, last_buf, sizeof last_buf);
@@ -4875,7 +4895,7 @@ parq_store(void *data, void *file_ptr)
 		fprintf(f, "SHA1: %s\n", sha1_base32(puq->sha1));
 
 	if (puq->supports_parq)
-		fprintf(f, "PARQ: \n");	/* No value needed, tag presence is enough */
+		fprintf(f, "PARQ:\n");	/* No value needed, tag presence is enough */
 	
 	if (
 		!(puq->flags & PARQ_UL_NOQUEUE) &&
@@ -5119,12 +5139,22 @@ parq_upload_load_queue(void)
 		*colon = '\0';
 		tag_name = line;
 		value = &colon[1];
-		if (*value != ' ') {
-			g_warning("%s(): missing space after colon in line %u",
-				G_STRFUNC, line_no);
-			break;
+
+		/*
+		 * Because of the file_line_chomp_tail() call above, a tag without
+		 * value will not have any space after its name, regardless of whether
+		 * it was emitted.  Hence we must explicly check for empty values.
+		 *		--RAM, 2012-10-12
+		 */
+
+		if (*value) {
+			if (*value != ' ') {
+				g_warning("%s(): no space after colon, line %u for tag \"%s\"",
+					G_STRFUNC, line_no, tag_name);
+				break;
+			}
+			value++;	/* skip blank after colon */
 		}
-		value++;	/* skip blank after colon */
 
 		tag = parq_string_to_tag(tag_name);
 		g_assert(UNSIGNED(tag) < NUM_PARQ_TAGS);
@@ -5390,7 +5420,7 @@ parq_banned_source_expire(const host_addr_t addr)
 bool
 parq_is_enabled(void)
 {
-	return GNET_PROPERTY(parq_enabled);
+	return GNET_PROPERTY(parq_enabled) && !parq_closed;
 }
 
 /**
@@ -5530,6 +5560,7 @@ void
 parq_close(void)
 {
 	htable_free_null(&dl_all_parq_by_id);
+	parq_closed = TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

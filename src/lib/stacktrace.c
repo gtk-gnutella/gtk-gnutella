@@ -461,24 +461,6 @@ program_path_allocate(const char *argv0)
 		}
 	}
 
-	/*
-	 * Make sure there are no problematic shell meta-characters in the path.
-	 */
-
-	{
-		const char meta[] = "$&`;()<>|";
-		const char *p = file;
-		int c;
-
-		while ((c = *p++)) {
-			if (strchr(meta, c)) {
-				s_warning("found shell meta-character '%c' in path \"%s\", "
-					"not loading symbols", c, file);
-				goto error;
-			}
-		}
-	}
-
 	if (file != NULL && file != argv0)
 		return deconstify_pointer(file);
 
@@ -1201,11 +1183,11 @@ stack_print_decorated_to(struct sxfile *xf,
 
 		if (0 != (flags & STACKTRACE_F_NUMBER)) {
 			if (count < 10)
-				str_catf(&s, "#%-1d ", i);
+				str_catf(&s, "#%-1zu ", i);
 			else if (count < 100)
-				str_catf(&s, "#%-2d ", i);
+				str_catf(&s, "#%-2zu ", i);
 			else
-				str_catf(&s, "#%-3d ", i);
+				str_catf(&s, "#%-3zu ", i);
 		}
 
 		if (0 != (flags & STACKTRACE_F_ADDRESS)) {
@@ -1249,7 +1231,7 @@ stack_print_decorated_to(struct sxfile *xf,
 				fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
 				break;
 			case SXFILE_FD:
-				write(xf->u.fd, str_2c(&s), str_len(&s));
+				IGNORE_RESULT(write(xf->u.fd, str_2c(&s), str_len(&s)));
 				break;
 			}
 		} else {
@@ -1268,7 +1250,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
 			break;
 		case SXFILE_FD:
-			write(xf->u.fd, str_2c(trace), str_len(trace));
+			IGNORE_RESULT(write(xf->u.fd, str_2c(trace), str_len(trace)));
 			break;
 		}
 		mutex_unlock(&stacktrace_buffer.lock);

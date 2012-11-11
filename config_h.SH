@@ -312,6 +312,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getppid HAS_GETPPID		/**/
 
+/* HAS_GETRLIMIT:
+ *	This symbol, if defined, indicates that the getrlimit() routine is
+ *	available to get process resource limits.
+ */
+#$d_getrlimit HAS_GETRLIMIT		/**/
+
 /* HAS_GETUID:
  *	This symbol is defined when getuid() can be used.
  */
@@ -1023,9 +1029,17 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 
 /* I_UCONTEXT:
  *	This symbol, if defined, indicates to the C program that it should
- *	include <ucontext.h> to get at the user thread context.
+ *	include <ucontext.h> to get at the user thread context.  A portable
+ *	program must also check I_SYS_UCONTEXT for <sys/ucontex.h> inclusion,
+ *	especially on OSX.
+ */
+/* I_SYS_UCONTEXT:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/ucontext.h> to get at the user thread context.  A portable
+ *	program must also check I_UCONTEXT for <ucontex.h> inclusion.
  */
 #$i_ucontext I_UCONTEXT		/**/
+#$i_sys_ucontext I_SYS_UCONTEXT		/**/
 
 /* I_UNISTD:
  *	This symbol, if defined, indicates to the C program that it should
@@ -1075,6 +1089,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	Only meaningful when ENABLE_NLS is defined.
  */
 #define LOCALE_EXP "$localeexp"
+
+/* USE_MY_MALLOC:
+ *	This symbol, if defined, indicates that we're using our own malloc.
+ */
+#$d_mymalloc USE_MY_MALLOC		/**/
 
 /* VAL_O_NONBLOCK:
  *	This symbol is to be used during open() or fcntl(F_SETFL) to turn on

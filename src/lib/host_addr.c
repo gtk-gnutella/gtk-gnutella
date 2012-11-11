@@ -206,11 +206,6 @@ ipv4_addr_is_routable(uint32 ip)
 			return FALSE;
 	}
 
-	/* x.x.x.0 is an invalid destination address -- RAM, 2012-02-16 */
-
-	if (0 == (ip & 0xff))
-		return FALSE;
-
 	return TRUE;
 }
 
@@ -1201,8 +1196,8 @@ resolve_hostname(const char *host, enum net_type net)
 	switch (he->h_addrtype) {
 	case AF_INET:
 		if (4 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv4 address (\"%s\")",
-				host);
+			g_warning("%s(): wrong length %d for IPv4 address \"%s\"",
+				G_STRFUNC, he->h_length, host);
 			return NULL;
 		}
 		break;
@@ -1210,8 +1205,8 @@ resolve_hostname(const char *host, enum net_type net)
 #ifdef HAS_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
-			g_warning("host_to_addr: Wrong length of IPv6 address (\"%s\")",
-				host);
+			g_warning("%s(): wrong length %d for IPv6 address \"%s\"",
+				G_STRFUNC, he->h_length, host);
 			return NULL;
 		}
 		break;
@@ -1258,16 +1253,15 @@ resolve_hostname(const char *host, enum net_type net)
 /**
  * Resolves a hostname to IP addresses per DNS.
  *
- * @todo TODO: This should return all resolved address not just the first
- *             and it should be possible to request only IPv4 or IPv6
- *             addresses.
+ * This returns a list of IP addresses (containing "host_addr_t *" values)
+ * that must be freed by the caller using host_addr_free_list().
  *
- * @param host A NUL-terminated string holding the hostname to resolve.
- * @param net Use NET_TYPE_IPV4 if you want only IPv4 addresses or like-wise
-              NET_TYPE_IPV6. If you don't care, use NET_TYPE_NONE.
- * @return On success, a single-linked list of walloc()ated host_addr_t
- *         items is returned. Use host_addr_free_list() for convience.
- *         On failure, NULL is returned.
+ * @param host	A NUL-terminated string holding the hostname to resolve.
+ * @param net	Use NET_TYPE_IPV4 if you want only IPv4 addresses or like-wise
+ *				NET_TYPE_IPV6. If you don't care, use NET_TYPE_NONE.
+ *
+ * @return a single-linked list of walloc()ated host_addr_t on success or
+ * NULL on failure.
  */
 GSList *
 name_to_host_addr(const char *host, enum net_type net)

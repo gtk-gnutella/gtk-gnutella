@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "search.h"
+#include "ban.h"
 #include "bogons.h"
 #include "ctl.h"
 #include "dh.h"
@@ -77,6 +78,7 @@
 #include "xml/xnode.h"
 #include "xml/xfmt.h"
 
+#include "lib/aging.h"
 #include "lib/array.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
@@ -97,6 +99,7 @@
 #include "lib/magnet.h"
 #include "lib/mempcpy.h"
 #include "lib/nid.h"
+#include "lib/pow2.h"			/* For IS_POWER_OF_2() */
 #include "lib/random.h"
 #include "lib/sbool.h"
 #include "lib/sectoken.h"
@@ -139,8 +142,12 @@
 #define GUESS_REFRESH_PERIOD	86400	/**< 1 day */
 
 #define SEARCH_ACTIVITY_TIMEOUT	120		/**< Delay before declaring idle */
+#define ORA_KEYS				2		/**< Two keys in the set */
+#define OOB_REPLY_ACK_TIMEOUT	120		/**< Timeout for OOB hit delivery */
 
 static sectoken_gen_t *guess_stg;		/**< GUESS token generator */
+static sectoken_gen_t *ora_stg;			/**< OOB request ack token generator */
+static aging_table_t *ora_secure;		/**< Hosts supporting secure OOB */
 
 /**
  * Gathered query information.
@@ -166,6 +173,7 @@ struct search_request_info {
 	unsigned duplicate:1;			/**< Known duplicate, with higher TTL */
 	unsigned ipv6:1;				/**< Do they support IPv6? */
 	unsigned ipv6_only:1;			/**< Do they support IPv6 only? */
+	unsigned sr_udp:1;				/**< Do they support semi-reliable UDP? */
 };
 
 enum search_ctrl_magic { SEARCH_CTRL_MAGIC = 0x0add8c06 };
@@ -972,7 +980,7 @@ is_evil_filename(const char *filename)
 /**
  * Log spam reason.
  */
-static void
+static void G_GNUC_PRINTF(3, 4)
 search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 	const char *reason, ...)
 {
@@ -1004,7 +1012,9 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 		rbuf[0] = '\0';
 	}
 
-	g_debug("SPAM QHIT [%s] %s %s%s", vendor_code_to_string(rs->vcode.u32),
+	g_debug("SPAM QHIT [%s] (%s) %s %s%s",
+		vendor_code_to_string(rs->vcode.u32),
+		host_addr_port_to_string(rs->addr, rs->port),
 		NULL == n ? "==>" : node_infostr(n), buf, rbuf);
 }
 
@@ -1053,13 +1063,14 @@ search_results_identify_dupes(const gnutella_node_t *n, gnet_results_set_t *rs)
 	}
 
 	if (rs->status & ST_DUP_SPAM)
-		gnet_stats_count_general(GNR_SPAM_DUP_HITS, 1);
+		gnet_stats_inc_general(GNR_SPAM_DUP_HITS);
 
 	htable_free_null(&ht);
 
 	if (dups != 0) {
-		search_log_spam(n, rs, "--> %u duplicate%s",
-			dups, 1 == dups ? "" : "s");
+		search_log_spam(n, rs, "--> %u duplicate%s over %u item%s",
+			dups, 1 == dups ? "" : "s",
+			rs->num_recs, 1 == rs->num_recs ? "" : "s");
 	}
 }
 
@@ -1114,7 +1125,7 @@ search_results_mark_fake_spam(gnet_results_set_t *rs)
 {
 	if (!(rs->status & ST_FAKE_SPAM)) {
 		/* Count only once per result set */
-		gnet_stats_count_general(GNR_SPAM_FAKE_HITS, 1);
+		gnet_stats_inc_general(GNR_SPAM_FAKE_HITS);
 		rs->status |= ST_FAKE_SPAM;
 	}
 }
@@ -1179,6 +1190,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	const GSList *sl;
 	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
+	bool logged = FALSE;
 
 	GM_SLIST_FOREACH(rs->records, sl) {
 		gnet_record_t *rc = sl->data;
@@ -1199,6 +1211,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		} else if (!rc->file_index && T_GTKG == rs->vcode.u32) {
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with invalid file index");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_GTKG == rs->vcode.u32 &&
@@ -1210,16 +1223,19 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with %s",
 				NULL == rs->version ? "no version indication" : "bad GUID");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (n_alt > 16 || (T_LIME == rs->vcode.u32 && n_alt > 10)) {
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "hit with %u alt-locs", n_alt);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (rc->sha1 && spam_sha1_check(rc->sha1)) {
 			search_log_spam(n, rs, "URN %s", sha1_base32(rc->sha1));
+			logged = TRUE;
 			rs->status |= ST_URN_SPAM;
 			rc->flags |= SR_SPAM;
-			gnet_stats_count_general(GNR_SPAM_SHA1_HITS, 1);
+			gnet_stats_inc_general(GNR_SPAM_SHA1_HITS);
 		} else if (
 			T_LIME == rs->vcode.u32 &&
 			is_evil_timestamp(rc->create_time)
@@ -1227,21 +1243,25 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "evil timestamp 0x%lx",
 				(unsigned long) rc->create_time);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (spam_check_filename_size(rc->filename, rc->size)) {
 			search_log_spam(n, rs, "SPAM filename/size hit");
+			logged = TRUE;
 			rs->status |= ST_NAME_SPAM;
 			rc->flags |= SR_SPAM;
-			gnet_stats_count_general(GNR_SPAM_NAME_HITS, 1);
+			gnet_stats_inc_general(GNR_SPAM_NAME_HITS);
 		} else if (
 			rc->xml &&
 			is_lime_xml_spam(rc->xml, strlen(rc->xml))
 		) {
 			search_log_spam(n, rs, "LIME XML SPAM");
+			logged = TRUE;
 			rs->status |= ST_URL_SPAM;
 			rc->flags |= SR_SPAM;
 		} else if (is_evil_filename(rc->filename)) {
 			search_log_spam(n, rs, "evil filename");
+			logged = TRUE;
 			rs->status |= ST_EVIL;
 			rc->flags |= SR_IGNORED;
 		} else if (
@@ -1251,6 +1271,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			/* LimeWire is a program known to generate valid UTF-8 strings */
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "invalid UTF-8 filename");
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		} else if (
 			T_LIME == rs->vcode.u32 && rs->query != NULL &&
@@ -1261,6 +1282,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 			search_results_mark_fake_spam(rs);
 			search_log_spam(n, rs, "filename mimics query \"%s\"",
 				WHATS_NEW_QUERY);
+			logged = TRUE;
 			rc->flags |= SR_SPAM;
 		}
 
@@ -1332,6 +1354,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 				search_results_mark_fake_spam(rs);
 				search_log_spam(n, rs, "filename similar to query \"%s\"",
 					rs->query);
+				logged = TRUE;
 				rc->flags |= SR_SPAM;
 			}
 		}
@@ -1342,7 +1365,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs)
 		 */
 
 		if (search_results_from_spammer(rs)) {
-			search_log_spam(NULL, rs, "hit from spammer");
+			search_log_spam(logged ? NULL : n, rs, "hit from spammer");
 			goto flag_all;
 		}
 	}
@@ -1404,155 +1427,6 @@ flag_all:
 	}
 }
 
-/*
- * OOB reply acks (aka "ora") are kept around to implement OOBv3: we need to
- * remember the random token we sent when claiming the results, to make sure
- * that we only get the hits when we actually claimed them, and that we only
- * get the ones we claimed.
- */
-
-static hash_list_t *oob_reply_acks;
-
-#define OOB_REPLY_ACK_TIMEOUT	120		/* 2 minutes */
-
-struct ora {
-	const guid_t *muid;		/* GUID atom */
-	time_t sent;
-	host_addr_t addr;
-	uint32 token;
-	uint16 port;
-};
-
-static struct ora *
-ora_alloc(const guid_t *muid, const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora *ora;
-
-	WALLOC(ora);
-	ora->muid = atom_guid_get(muid);
-	ora->addr = addr;
-	ora->port = port;
-	ora->token = token;
-	return ora;
-}
-
-static void
-ora_free(struct ora **ora_ptr)
-{
-	struct ora *ora;
-
-	ora = *ora_ptr;
-	if (ora) {
-		atom_guid_free_null(&ora->muid);
-		WFREE(ora);
-		*ora_ptr = NULL;
-	}
-}
-
-static uint
-ora_hash(const void *key)
-{
-	const struct ora *ora = key;
-
-	return ora->token ^
-		guid_hash(ora->muid) ^
-		host_addr_hash(ora->addr) ^
-		port_hash(ora->port);
-}
-
-static int
-ora_eq(const void *v1, const void *v2)
-{
-	const struct ora *a = v1, *b = v2;
-
-	return a->token == b->token &&
-		a->port == b->port &&
-		host_addr_equal(a->addr, b->addr) &&
-		guid_eq(a->muid, b->muid);
-}
-
-static struct ora *
-ora_lookup(const guid_t *muid,
-	const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora ora;
-	const void *key;
-
-	ora.muid = muid;
-	ora.sent = 0;
-	ora.addr = addr;
-	ora.port = port;
-	ora.token = token;
-
-	if (hash_list_find(oob_reply_acks, &ora, &key)) {
-		return deconstify_pointer(key);
-	}
-	return NULL;
-}
-
-static bool
-oob_reply_acks_remove_oldest(void)
-{
-	struct ora *ora;
-
-	ora = hash_list_head(oob_reply_acks);
-	if (ora) {
-		hash_list_remove(oob_reply_acks, ora);
-		ora_free(&ora);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-static void
-oob_reply_acks_garbage_collect(void)
-{
-	time_t now = tm_time();
-	
-	do {
-		struct ora *ora;
-
-		ora = hash_list_head(oob_reply_acks);
-		if (!ora || delta_time(now, ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
-			break;
-	} while (oob_reply_acks_remove_oldest());
-}
-
-static void
-oob_reply_acks_init(void)
-{
-	oob_reply_acks = hash_list_new(ora_hash, ora_eq);
-}
-
-static void
-oob_reply_acks_close(void)
-{
-	while (oob_reply_acks_remove_oldest()) {
-		continue;
-	}
-	hash_list_free(&oob_reply_acks);
-}
-
-static void
-oob_reply_ack_record(const guid_t *muid,
-	const host_addr_t addr, uint16 port, uint32 token)
-{
-	struct ora *ora;
-	
-	g_assert(muid);
-
-	ora = ora_lookup(muid, addr, port, token);
-	if (ora) {
-		/* Move to tail of list */
-		hash_list_moveto_tail(oob_reply_acks, ora);
-	} else {
-		ora = ora_alloc(muid, addr, port, token);
-		hash_list_append(oob_reply_acks, ora);
-	}
-	ora->sent = tm_time();
-	oob_reply_acks_garbage_collect();
-}
-
 /**
  * Check whether we have explicitly claimed some OOB hits.
  *
@@ -1564,22 +1438,18 @@ static bool
 search_results_are_requested(const guid_t *muid,
 	const host_addr_t addr, uint16 port, uint32 token)
 {
-	struct ora *ora;
+	sectoken_t tok;
+	gnet_host_t host;
 
-	ora = ora_lookup(muid, addr, port, token);
-	if (ora) {
-		if (delta_time(tm_time(), ora->sent) <= OOB_REPLY_ACK_TIMEOUT)
-			return TRUE;
+	STATIC_ASSERT(sizeof(uint32) == sizeof tok.v);
 
-		/*
-		 * Entry expired, we're no longer interested.
-		 */
+	gnet_host_set(&host, addr, port);
+	if (!aging_lookup(ora_secure, &host))
+		return TRUE;		/* Host not supporting secure OOB */
 
-		hash_list_remove(oob_reply_acks, ora);
-		ora_free(&ora);
-		/* FALL THROUGH */
-	}
-	return FALSE;
+	poke_be32(tok.v, token);
+	return sectoken_is_valid_with_context(ora_stg,
+		&tok, addr, port, muid, GUID_RAW_SIZE);
 }
 
 /**
@@ -2012,6 +1882,9 @@ search_results_handle_trailer(const gnutella_node_t *n,
 	if (0 == rs->hops && (ST_UDP & rs->status)) {
 		const guid_t *muid = gnutella_header_get_muid(&n->header);
 
+		if (!has_token)
+			token = 0;
+
 		if (search_results_are_requested(muid, n->addr, n->port, token)) {
 			if (has_token) {
 				rs->status |= ST_GOOD_TOKEN;
@@ -2021,13 +1894,35 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else {
 			rs->status |= ST_UNREQUESTED | ST_FAKE_SPAM;
 			/* Count only as unrequested, not as fake spam */
-			gnet_stats_count_general(GNR_UNREQUESTED_OOB_HITS, 1);
+			gnet_stats_inc_general(GNR_UNREQUESTED_OOB_HITS);
 
-			if (GNET_PROPERTY(search_debug) > 1) {
-				g_debug("received unrequested %squery hit from %s",
+			if (
+				GNET_PROPERTY(search_debug) > 1 ||
+				GNET_PROPERTY(secure_oob_debug)
+			) {
+				char buf[5];
+				bin_to_hex_buf(&token, sizeof token, buf, sizeof buf);
+				g_debug("OOB received unrequested %squery hit #%s "
+					"from %s%s%s [%s]",
 					guess_is_search_muid(muid) ? "GUESS " : "",
-                	node_infostr(n));
+					guid_hex_str(muid), node_infostr(n),
+					has_token ? ", wrong token=0x" : ", no token",
+					has_token ? buf : "",
+					vendor_code_to_string(rs->vcode.u32));
 			}
+		}
+
+		/* If we have a token and did not mark hit as hostile, check source */
+
+		if (
+			((ST_GOOD_TOKEN | ST_HOSTILE) & rs->status) == ST_GOOD_TOKEN &&
+			hostiles_check(n->addr)
+		) {
+			if (GNET_PROPERTY(search_debug) > 1) {
+				g_debug("dropping UDP query hit from secure OOB: hostile IP %s",
+					host_addr_to_string(n->addr));
+			}
+			rs->status |= ST_HOSTILE;
 		}
 	}
 
@@ -2106,7 +2001,136 @@ search_results_postprocess(const gnutella_node_t *n, gnet_results_set_t *rs)
 		}
 	}
 }
-	
+
+/**
+ * Decode LimeWire's encoding of the available intervals in the file, held
+ * in the "PRi" extension they are using to encode the ranges as numbers.
+ *
+ * Numbers are taken from a binary tree starting at 1 and spanning as deep as
+ * necessary to have at least enough leaves to cover all the 1 KiB blocks of 
+ * the file.
+ *
+ * @param n		the node sending us the results with partial file (for logging)
+ * @param e		the GGEP "PRi" extension, for i = 1..4
+ * @param size	the total file size
+ *
+ * @return the size encoded by the intervals of the extension `e'.
+ */
+static filesize_t
+lime_range_decode(const gnutella_node_t *n, const extvec_t *e, filesize_t size)
+{
+	int i;
+	size_t len;
+
+	switch (e->ext_token) {
+	case EXT_T_GGEP_PR1: i = 1; break;		/* 1-byte values */
+	case EXT_T_GGEP_PR2: i = 2; break;		/* 2-byte values */
+	case EXT_T_GGEP_PR3: i = 3; break;		/* 3-byte values */
+	case EXT_T_GGEP_PR4: i = 4; break;		/* 4-byte values */
+	default:
+		g_soft_assert(FALSE);
+		return 0;
+	}
+
+	if (size < 1024)
+		return size;
+
+	len = ext_paylen(e);
+	if (0 != len % i) {
+		search_log_bad_ggep(n, e, NULL);
+		return 0;
+	} else {
+		const uint8 *p = ext_payload(e);
+		unsigned j;
+		filesize_t leaves, power, result = 0, nodemax;
+
+		leaves = size >> 10;	/* # of leaves (1 KiB blocks) in the tree */
+		if (0 != size % 1024)
+			leaves++;
+
+		/*
+		 * "power" indicates the starting index of the last row of the
+		 * binary tree spanned by 1:
+		 *
+		 *                            1
+		 *                           / \
+		 *                          2   3
+		 *                         / \ / \
+		 *              power ->  4  5 6  7  (4 leaves)
+		 *                        :  : :  :
+		 * file block numbers ->  0  1 2  3  (1 KiB each)
+		 *
+		 * "power" is the first power of 2 spanning the leaves of the tree.
+		 * Here, with 4 leaves, we can represent files of at most 4 blocks
+		 * of 1 KiB, i.e ranging from 0 bytes to 4 KiB.
+		 *
+		 * Hence, "power" is the smallest power of 2 such that leaves <= power.
+		 *
+		 * The maximum node ID, "nodemax" is 7, the last number before
+		 * going to the next power of 2 (next row, if we had one).  However,
+		 * if we have only 3 leaves, then "nodemax" is 6: we have to
+		 * substract "power - leaves" to "2 * power  -1" to get the proper
+		 * maximum ID.
+		 */
+
+		if (IS_POWER_OF_2(leaves)) {
+			power = leaves;
+		} else {
+			power = (uint64) 1 << (1 + highest_bit_set64(leaves));
+		}
+		g_assert(leaves <= power);
+
+		nodemax = 2 * power - 1 - (power - leaves);
+
+		/*
+		 * Decompile big-endian node numbers (total of len / i)
+		 */
+
+		for (j = 0; j < len; j += i) {
+			int depth, k;
+			filesize_t node;			/* The node ID in the tree */
+			filesize_t start, end;		/* Block numbers in the file */
+
+			/* Read node #j as a big-endian number over i bytes */
+
+			for (node = 0, k = 0; k < i; k++) {
+				node <<= 8;
+				node |= p[j + k] & 0xff;
+			}
+
+			/*
+			 * Determine the start and end indices of the blocks from the file.
+			 */
+
+			if (node < 1 || node > nodemax)
+				continue;		/* Invalid node number */
+
+			if (1 == node)
+				return size;	/* 1 is the root of the tree, we're done! */
+
+			depth = 0;
+			while (node < power) {
+				depth++;
+				node <<= 1;
+			}
+
+			if (node > nodemax)
+				continue;
+
+			start = node - power;
+			end = start + ((uint64) 1 << depth) - 1;
+
+			/* Leaves may not cover whole depth, therefore adjust */
+			end = MIN(end, nodemax - power);
+
+			result += 1024 * (end - start + 1);
+		}
+
+		return result;
+	}
+	g_assert_not_reached();
+}
+
 /**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
@@ -2189,24 +2213,29 @@ get_results_set(gnutella_node_t *n, bool browse)
 	if (NODE_IS_UDP(n)) {
 		rs->status |= ST_UDP;
 
+		if (NODE_CAN_SR_UDP(n))
+			rs->status |= ST_SR_UDP;
+
 		if (
 			0 == rs->hops &&	/* GUESS ultrapeers can relay hits over UDP */
 			!host_addr_equal(n->addr, rs->addr) &&
 			host_addr_is_routable(rs->addr)
 		) {
 			rs->status |= ST_ALIEN;
-			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+			gnet_stats_inc_general(GNR_OOB_HITS_WITH_ALIEN_IP);
 		}
 	}
 
 	/* Check for hostile IP addresses */
 
-	if (hostiles_check(n->addr) || hostiles_check(rs->addr)) {
-        if (GNET_PROPERTY(search_debug) > 1) {
-            g_debug("dropping %s query hit from hostile IP %s",
-                NODE_IS_UDP(n) ? "UDP" : "TCP",
-				host_addr_to_string(NODE_IS_UDP(n) ? n->addr : rs->addr));
-        }
+	if (hostiles_check(rs->addr)) {
+		if (GNET_PROPERTY(search_debug) > 1) {
+			g_debug("dropping %s query hit %s by %s: hostile source at %s",
+				NODE_IS_UDP(n) ? "UDP" : "TCP",
+				NODE_IS_UDP(n) ?
+					(0 == rs->hops ? "issued" : "relayed") : "relayed",
+				host_addr_to_string(n->addr), host_addr_to_string2(rs->addr));
+		}
 		rs->status |= ST_HOSTILE;
 	}
 
@@ -2324,6 +2353,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 			gnet_host_vec_t *hvec = NULL;		/* For GGEP "ALT" */
 			bool has_hash = FALSE;
 			bool has_unknown = FALSE;
+			filesize_t available = 0;			/* For GGEP "PRU" */
 
 			g_assert(taglen > 0);
 
@@ -2433,8 +2463,11 @@ get_results_set(gnutella_node_t *n, bool browse)
 						}
 					}
 					break;
+				case EXT_T_URN_BTIH:
+				case EXT_T_URN_MD5:
+				case EXT_T_URN_ED2KHASH:
 				case EXT_T_URN_UNKNOWN:
-					/* Silently ignore unknown URNs like urn:ed2khash */
+					/* Silently ignore unknown / unhandled URNs */
 					break;
 				case EXT_T_GGEP_TT:	/* TTH (binary) */
 					paylen = ext_paylen(e);
@@ -2586,13 +2619,34 @@ get_results_set(gnutella_node_t *n, bool browse)
 					}
 					break;
 				case EXT_T_GGEP_PR0:	/* Partial results */
+					rc->flags |= SR_PARTIAL_HIT;
+					/* No parts of the file available yet */
+					break;
 				case EXT_T_GGEP_PR1:
 				case EXT_T_GGEP_PR2:
 				case EXT_T_GGEP_PR3:
 				case EXT_T_GGEP_PR4:
-					/* TODO: handle intervals to compute available ranges */
+					rc->flags |= SR_PARTIAL_HIT;
+					rc->available += lime_range_decode(n, e, rc->size);
+					break;
 				case EXT_T_GGEP_PRU:
 					rc->flags |= SR_PARTIAL_HIT;
+					if (0 != ext_paylen(e)) {
+						if (
+							GGEP_OK == ggept_stamp_filesize_extract(e,
+								&rc->mod_time, &available)
+						) {
+							/*
+							 * Do not update rc->available yet, in case there
+							 * are "PRi" extensions.  Since the file size is
+							 * more precise in "PRU" than the one computed
+							 * with "PRi" decoding, wait until we have handled
+							 * all the extensions to set the one found in "PRU".
+							 */
+						} else {
+							search_log_bad_ggep(n, e, NULL);
+						}
+					}
 					break;
 				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
 					if (
@@ -2618,6 +2672,15 @@ get_results_set(gnutella_node_t *n, bool browse)
 					break;
 				}
 			}
+
+			/*
+			 * The available size on the server (for partial results) is more
+			 * precise in the "PRU" extension.  So if one was present, use it
+			 * to derive the remotely available bytes.
+			 */
+
+			if (available != 0)
+				rc->available = available;
 
 			if (has_unknown) {
 				if (GNET_PROPERTY(search_debug) > 2) {
@@ -2722,15 +2785,12 @@ get_results_set(gnutella_node_t *n, bool browse)
 			switch (rs->vcode.u32) {
 			case T_GTKG:
 			case T_LIME:
-				if (
-					GNET_PROPERTY(node_debug) &&
-					!(n->flags & NODE_F_NOT_GENUINE)
-				) {
+				if (GNET_PROPERTY(node_debug) && NODE_IS_GENUINE(n)) {
 					g_message("NODE %s is not a genuine %s: "
 						"sends bad query hits",
 						node_infostr(n), vendor ? vendor : "node");
 				}
-				n->flags |= NODE_F_NOT_GENUINE;
+				n->attrs2 |= NODE_A2_NOT_GENUINE;
 				break;
 			}
 		}
@@ -2908,7 +2968,7 @@ get_results_set(gnutella_node_t *n, bool browse)
 		rs->media = media_mask;
 
 		if (NULL == query && !browse && settings_is_ultra()) {
-			gnet_stats_count_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY, +1);
+			gnet_stats_inc_general(GNR_QUERY_HIT_FOR_UNTRACKED_QUERY);
 		}
 
 		/*
@@ -3220,6 +3280,7 @@ build_search_message(const guid_t *muid, const char *query,
 	flags |= QUERY_F_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	flags |= QUERY_F_GGEP_H;		/* GTKG understands GGEP "H" in hits */
 	flags |= QUERY_F_XML;			/* GTKG can read XML in hits */
+	flags |= QUERY_F_SR_UDP;		/* GTKG supports semi-reliable UDP */
 
 	/*
 	 * We need special processing for OOB queries since the GUID has to be
@@ -3323,9 +3384,9 @@ build_search_message(const guid_t *muid, const char *query,
 	 */
 
 	if (QUERY_F_OOB_REPLY & flags) {
-		/** 
+		/* 
 		 * Indicate support for OOB v3.
-		 * @see http://the-gdf.org/index.php?title=OutOfBandV3
+		 * See doc/gnutella/out-of-band-v3
 		 */
 
 		if (
@@ -3336,8 +3397,15 @@ build_search_message(const guid_t *muid, const char *query,
 			/*
 			 * Since our ultrapeers might not support OOB v3 and not understand
 			 * GGEP "SO" either, only add this if we're not OOB proxied.
-			 * Otherwise, we won't receive OOB results.
+			 *
+			 * Otherwise, we won't receive OOB results: the query bearing "SO"
+			 * will be understood by the servent with hits as OOBv3, and
+			 * therefore it will send back a v3 indication of hits, which our
+			 * ultrapeer may not understand and therefore drop!
+			 *
+			 * Hence avoid advertising "SO" if we are firewalled.
 			 */
+
 			if (!ggep_stream_pack(&gs, GGEP_NAME(SO), NULL, 0, 0)) {
 				g_carp("could not add GGEP \"SO\" extension to query");
 				goto error;
@@ -3409,7 +3477,7 @@ build_search_message(const guid_t *muid, const char *query,
 
 		if (!ok) {
 			g_carp("could not add GGEP \"QK\", "
-				"\"SCP\" and \"Z\" to GUESS query");
+				"\"SCP\" and \"Z\" to GUESS query: %s", ggep_errstr());
 			goto error;
 		}
 	}
@@ -3425,7 +3493,7 @@ build_search_message(const guid_t *muid, const char *query,
 		bool ok = ggep_stream_pack(&gs, GGEP_NAME(PR), NULL, 0, 0);
 
 		if (!ok) {
-			g_carp("could not add GGEP \"PR\" to query");
+			g_carp("could not add GGEP \"PR\" to query: %s", ggep_errstr());
 			/* It's OK, "PR" is not critical and can be missing */
 		}
 	}
@@ -3439,11 +3507,11 @@ build_search_message(const guid_t *muid, const char *query,
 		unsigned len;
 		bool ok;
 
-		len = ggept_m_encode(mtype, media_type);
+		len = ggept_m_encode(mtype, media_type, sizeof media_type);
 		ok = ggep_stream_pack(&gs, GGEP_NAME(M), media_type, len, 0);
 
 		if (!ok) {
-			g_carp("could not add GGEP \"M\" to query");
+			g_carp("could not add GGEP \"M\" to query: %s", ggep_errstr());
 			/* It's OK, "M" is not critical and can be missing */
 		}
 	}
@@ -3460,7 +3528,7 @@ build_search_message(const guid_t *muid, const char *query,
 		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
 
 		if (!ok) {
-			g_carp("could not add GGEP \"WH\" to query");
+			g_carp("could not add GGEP \"WH\" to query: %s", ggep_errstr());
 			goto error;
 		}
 	}
@@ -3480,7 +3548,7 @@ build_search_message(const guid_t *muid, const char *query,
 		ok = ggep_stream_pack(&gs, GGEP_NAME(6), data, 16, 0);
 
 		if (!ok) {
-			g_carp("could not add GGEP \"6\" to query");
+			g_carp("could not add GGEP \"6\" to query: %s", ggep_errstr());
 			goto error;
 		}
 	}
@@ -3551,7 +3619,7 @@ build_search_message(const guid_t *muid, const char *query,
 		msize - GTA_HEADER_SIZE);
 
 	if (GNET_PROPERTY(search_debug) > 3)
-		g_debug("%squery \"%s\" message built with MUID %s",
+		g_debug("%squery \"%s\" message built with #%s",
 			is_sha1_search ? "URN " : "", query,
 			guid_hex_str(gnutella_header_get_muid(
 							gnutella_msg_search_header(&msg.data))));
@@ -3782,7 +3850,9 @@ search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		if (!search_whats_new_can_reissue())
 			goto cleanup;
 
-		nodes = qrt_build_query_target(query_hashvec, 0, WHATS_NEW_TTL, NULL);
+		nodes = qrt_build_query_target(
+			query_hashvec, 0, WHATS_NEW_TTL, TRUE, NULL);
+
 		if (nodes != NULL) {
 			pmsg_t *mb = gmsg_to_pmsg(msg, size);
 			gmsg_mb_sendto_all(nodes, mb);
@@ -4247,7 +4317,6 @@ search_gc(void *unused_cq)
 	(void) unused_cq;
 
 	query_muid_map_garbage_collect();
-	oob_reply_acks_garbage_collect();
 
 	return TRUE;		/* Keep calling */
 }
@@ -4260,13 +4329,15 @@ G_GNUC_COLD void
 search_init(void)
 {
 	search_by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
-	search_handle_map = idtable_new();
+	search_handle_map = idtable_new(32);
 	sha1_to_search = htable_create(HASH_KEY_FIXED, SHA1_RAW_SIZE);
 	/* Max: 128 unique words / URNs! */
 	query_hashvec = qhvec_alloc(QRP_HVEC_MAX);
-	oob_reply_acks_init();
 	query_muid_map_init();	
 	guess_stg = sectoken_gen_new(GUESS_KEYS, GUESS_REFRESH_PERIOD);
+	ora_stg = sectoken_gen_new(ORA_KEYS, OOB_REPLY_ACK_TIMEOUT / ORA_KEYS);
+	ora_secure = aging_make(OOB_REPLY_ACK_TIMEOUT,
+		gnet_host_hash, gnet_host_eq, gnet_host_free_atom2);
 
 	cq_periodic_main_add(SEARCH_GC_PERIOD * 1000, search_gc, NULL);
 }
@@ -4282,7 +4353,7 @@ search_shutdown(void)
 		search_close(sch->search_handle);
 	}
 
-	g_assert(idtable_ids(search_handle_map) == 0);
+	g_assert(0 == idtable_count(search_handle_map));
 
 	htable_free_null(&search_by_muid);
 	htable_free_null(&sha1_to_search);
@@ -4290,9 +4361,10 @@ search_shutdown(void)
 	search_handle_map = NULL;
 	qhvec_free(query_hashvec);
 
-	oob_reply_acks_close();
 	query_muid_map_close();
 	sectoken_gen_free_null(&guess_stg);
+	sectoken_gen_free_null(&ora_stg);
+	aging_destroy(&ora_secure);
 }
 
 /**
@@ -5380,7 +5452,7 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 
 		sch->sent_nodes =
 			hset_create_any(sent_node_hash_func, NULL, sent_node_compare);
-		sch->sent_node_ids = hset_create_any(nid_hash, NULL, nid_equal);
+		sch->sent_node_ids = hset_create_any(nid_hash, nid_hash2, nid_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, sch);
@@ -5611,8 +5683,64 @@ search_oob_pending_results(
 	g_assert(NODE_IS_UDP(n));
 	g_assert(hits > 0);
 
+	/*
+	 * If remote host promising hits is a known spammer or evil host, ignore.
+	 */
+
+	if (hostiles_spam_check(n->addr, n->port)) {
+		if (GNET_PROPERTY(search_debug)) {
+			g_debug("ignoring %d %sOOB hit%s for query #%s "
+				"(%s is a caught spammer)",
+				hits,
+				guess_is_search_muid(muid) ? "GUESS " : "",
+				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+		}
+		gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT);
+		return;
+	}
+
+	/*
+	 * If host is known to support secure OOB yet we get a non-secure OOB
+	 * promise for hits, then something is wrong: because we always send
+	 * the GGEP "SO" in queries, and force it when OOB-proxying, the remote
+	 * host had to see the extension, unless the query was maliciously altered
+	 * on the network or the IP:port is fake.
+	 *		--RAM, 2012-10-14
+	 */
+
+	if (!secure) {
+		gnet_host_t host;
+		gnet_host_set(&host, n->addr, n->port);
+
+		if (aging_lookup_revitalise(ora_secure, &host)) {
+			if (GNET_PROPERTY(search_debug)) {
+				g_debug("ignoring %d %sOOB unsecure hit%s for query #%s "
+					"(%s supports secure OOB)",
+					hits,
+					guess_is_search_muid(muid) ? "GUESS " : "",
+					hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+			}
+			gnet_stats_inc_general(GNR_OOB_HITS_IGNORED_ON_UNSECURE_HIT);
+			return;
+		}
+	}
+
 	if (secure) {
-		token = random_u32();
+		sectoken_t tok;
+
+		/*
+		 * The generated security token depends not only on the IP:port
+		 * of the remote host, but also on the MUID of the query.
+		 *
+		 * Even though the token has a small lifetime due to the short
+		 * period of the rotating keys in the generator, this makes sure
+		 * the recipient of the token can only use it for this query, in
+		 * case it received several queries from us.
+		 */
+
+		sectoken_generate_with_context(ora_stg, &tok,
+			n->addr, n->port, muid, GUID_RAW_SIZE);
+		token = peek_be32(tok.v);
 		token_opaque = array_init(&token, sizeof token);
 	} else {
 		token = 0;
@@ -5631,19 +5759,24 @@ search_oob_pending_results(
 
 		/*
 		 * Maybe it's an OOB-proxied search?
+		 *
+		 * Note that this is done after checking for known spammers or evil
+		 * hosts to sanitize the replies for our leaves and save traffic.
 		 */
 
 		if (
 			GNET_PROPERTY(proxy_oob_queries) &&
 			oob_proxy_pending_results(n, muid, hits, udp_firewalled,
 				&token_opaque)
-		) {
-			goto record_token;	
-		}
+		)
+			goto record_secure;		/* OK, sent OOB reply ack to claim hits */
 
-		if (GNET_PROPERTY(search_debug))
-			g_warning("got OOB indication of %d hit%s for unknown search %s",
-				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
+		if (GNET_PROPERTY(search_debug)) {
+			g_warning("got OOB indication of %d hit%s for unknown query #%s "
+				"at %s",
+				hits, hits == 1 ? "" : "s", guid_hex_str(muid),
+				node_infostr(n));
+		}
 
 		if (GNET_PROPERTY(log_bad_gnutella))
 			gmsg_log_bad(n, "unexpected OOB hit indication");
@@ -5652,27 +5785,11 @@ search_oob_pending_results(
 		return;
 	}
 
-	/*
-	 * If remote host promising hits is a known spammer or evil host, ignore.
-	 */
-
-	if (hostiles_spam_check(n->addr, n->port)) {
-		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %sOOB hit%s for search %s "
-				"(%s is a caught spammer)",
-				hits,
-				guess_is_search_muid(muid) ? "GUESS " : "",
-				hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
-		}
-		gnet_stats_count_general(GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT, +1);
-		return;
-	}
-
 	if (GNET_PROPERTY(search_debug) > 1 || GNET_PROPERTY(udp_debug) > 1) {
-		g_debug("has %d pending %sOOB hit%s for search %s at %s",
-			hits,
+		g_debug("has %d pending %s%sOOB hit%s for query #%s at %s",
+			hits, secure ? "secure " : "",
 			guess_is_search_muid(muid) ? "GUESS " : "",
-			hits == 1 ? "" : "s", guid_hex_str(muid), node_addr(n));
+			hits == 1 ? "" : "s", guid_hex_str(muid), node_infostr(n));
 	}
 
 	/*
@@ -5689,10 +5806,12 @@ search_oob_pending_results(
 		kept > search_max_results_for_ui(sch) * 0.15
 	) {
 		if (GNET_PROPERTY(search_debug)) {
-			g_debug("ignoring %d %sOOB hit%s for search %s (already got %u)",
-				hits,
+			g_debug("ignoring %d %s%sOOB hit%s for query #%s (already got %u) "
+				"at %s",
+				hits, secure ? "secure " : "",
 				guess_is_search_muid(muid) ? "GUESS " : "",
-				hits == 1 ? "" : "s", guid_hex_str(muid), kept);
+				hits == 1 ? "" : "s", guid_hex_str(muid), kept,
+				node_infostr(n));
 		}
 		return;
 	}
@@ -5725,8 +5844,14 @@ search_oob_pending_results(
 
 	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
 
-record_token:
-	oob_reply_ack_record(muid, n->addr, n->port, token);
+record_secure:
+	if (secure) {
+		gnet_host_t host;
+
+		gnet_host_set(&host, n->addr, n->port);
+		if (!aging_lookup_revitalise(ora_secure, &host))
+			aging_insert(ora_secure, atom_host_get(&host), int_to_pointer(1));
+	}
 }
 
 const char *
@@ -6405,22 +6530,48 @@ compact_query(char *search)
 }
 
 /**
+ * Convert query flags into a string describing the positionned flags.
+ *
+ * @return pointer to static string.
+ */
+static const char *
+search_flags_to_string(uint16 flags)
+{
+	static char buf[64];
+
+	str_bprintf(buf, sizeof buf, "%s%s%s%s%s%s%s%s",
+		(flags & QUERY_F_MARK) ? "MARKED" : "",
+		(flags & QUERY_F_FIREWALLED) ? " FW" : "",
+		(flags & QUERY_F_XML) ? " XML" : "",
+		(flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
+		(flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
+		(flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
+		(flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
+		(flags & QUERY_F_SR_UDP) ? " SR_UDP" : "");
+
+	return buf;
+}
+
+/**
  * Remove the OOB delivery flag by patching the query message inplace.
  */
 void
-query_strip_oob_flag(const gnutella_node_t *n, char *data)
+query_strip_oob_flag(gnutella_node_t *n, char *data)
 {
 	uint16 flags;
 
 	flags = peek_be16(data) & ~QUERY_F_OOB_REPLY;
 	poke_be16(data, flags);
 
-	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
+	/* Strip "SO" since no OOB now */
+	n->msg_flags |= NODE_M_STRIP_GE_SO | NODE_M_EXT_CLEANUP;
+
+	gnet_stats_inc_general(GNR_OOB_QUERIES_STRIPPED);
 
 	if (GNET_PROPERTY(query_debug) > 2 || GNET_PROPERTY(oob_proxy_debug) > 2)
-		g_debug("QUERY %s from %s: removed OOB delivery (flags = 0x%x)",
+		g_debug("QUERY #%s from %s: removed OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_infostr(n), flags);
+			node_infostr(n), flags, search_flags_to_string(flags));
 }
 
 /**
@@ -6431,13 +6582,19 @@ query_set_oob_flag(const gnutella_node_t *n, char *data)
 {
 	uint16 flags;
 
-	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK;
+	/*
+	 * This is for OOB-proxied queries, so we're turning the flag for
+	 * semi-reliable UDP support because hits are going to come back
+	 * to us, so we do not care about the original querying servent settings.
+	 */
+
+	flags = peek_be16(data) | QUERY_F_OOB_REPLY | QUERY_F_MARK | QUERY_F_SR_UDP;
 	poke_be16(data, flags);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug("QUERY %s from %s: set OOB delivery (flags = 0x%x)",
+		g_debug("QUERY #%s from %s: set OOB delivery (flags = 0x%x : %s)",
 			guid_hex_str(gnutella_header_get_muid(&n->header)),
-			node_infostr(n), flags);
+			node_infostr(n), flags, search_flags_to_string(flags));
 }
 
 /**
@@ -6529,15 +6686,11 @@ search_request_preprocess(struct gnutella_node *n,
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(sri != NULL);
 
-	muid = gnutella_header_get_muid(&n->header);
-
-	if (GNET_PROPERTY(guess_server_debug) > 18) {
-		if (NODE_IS_UDP(n)) {
-			g_debug("GUESS got %s, GUID=%s",
-				gmsg_node_infostr(n), guid_hex_str(muid));
-		}
+	if (GNET_PROPERTY(guess_server_debug) > 18 && NODE_IS_UDP(n)) {
+		g_debug("GUESS got %s", gmsg_node_infostr(n));
 	}
 
+	muid = gnutella_header_get_muid(&n->header);
 	sri->duplicate = booleanize(isdup);
 	ZERO(&ipv6_addr);
 
@@ -6556,12 +6709,9 @@ search_request_preprocess(struct gnutella_node *n,
 	if (sri->search_len >= n->size - 2U) {
 		g_assert(n->data[n->size - 1] != '\0');
 		if (GNET_PROPERTY(query_debug) > 10)
-			g_warning("query (hops=%u, ttl=%u) from %s had no NUL (%d byte%s)",
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header),
-				node_infostr(n),
-				n->size - 2,
-				n->size == 3 ? "" : "s");
+			g_warning("%s had no NUL (%d byte%s)",
+				gmsg_node_infostr(n),
+				n->size - 2, n->size == 3 ? "" : "s");
 		if (GNET_PROPERTY(query_debug) > 14)
 			dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
@@ -6635,7 +6785,7 @@ search_request_preprocess(struct gnutella_node *n,
 	}
 
 	if (!is_ascii_string(search)) {
-		gnet_stats_count_general(GNR_QUERY_UTF8, 1);
+		gnet_stats_inc_general(GNR_QUERY_UTF8);
 	}
 
 	/*
@@ -6668,7 +6818,7 @@ search_request_preprocess(struct gnutella_node *n,
 		}
 
 		if (exvcnt && GNET_PROPERTY(query_debug) > 13) {
-			g_debug("QUERY %s%s [hops=%u, TTL=%u] with extensions: "
+			g_debug("QUERY %s#%s [hops=%u, TTL=%u] with extensions: "
 				"\"%s\" (%zu byte%s)",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -6741,8 +6891,13 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_GGEP_NP:			/* No OOB-proxying */
-				/* This may override LIME/13v1 */
-				sri->may_oob_proxy = FALSE;
+				/*
+				 * We support OOB v3 (secure OOB) so there is no need to refuse
+				 * OOB proxying.  If they sent us an "OOB Proxy Veto", we'll
+				 * honour it, but "NP" comes from legacy servents.
+				 *		--RAM, 2012-10-07
+				 */
+				n->msg_flags |= NODE_M_EXT_CLEANUP;	/* Strip "NP" if relayed */
 				break;
 
 			case EXT_T_GGEP_PR:			/* Partial: match on downloads */
@@ -6795,7 +6950,9 @@ search_request_preprocess(struct gnutella_node *n,
 				
 					ret = ggept_h_sha1_extract(e, sha1);
 					if (GGEP_OK == ret) {
-						/* Okay */
+						/* Okay, but clean it up if it's a bitprint */
+						if (ext_paylen(e) > 1 + SHA1_RAW_SIZE)
+							n->msg_flags |= NODE_M_EXT_CLEANUP;
 					} else if (GGEP_NOT_FOUND == ret) {
 						search_log_ggep(n, e, NULL, "SHA1-less");
 						continue;		/* Unsupported hash type */
@@ -6823,7 +6980,7 @@ search_request_preprocess(struct gnutella_node *n,
 					if (!keep) {
 						/* Don't propagate if it's not containing valid info */
 						n->msg_flags |=
-							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GGEP_u;
+							NODE_M_EXT_CLEANUP | NODE_M_STRIP_GE_u;
 						continue;
 					}
 				} else if (
@@ -6925,6 +7082,9 @@ search_request_preprocess(struct gnutella_node *n,
 				break;
 
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_BTIH:
+			case EXT_T_URN_ED2KHASH:
+			case EXT_T_URN_MD5:
 			case EXT_T_URN_UNKNOWN:
 				/*
 				 * Silently ignore unknown URNs like urn:ed2khash or urn:md5,
@@ -6969,7 +7129,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 		if (sri->whats_new && sri->exv_sha1cnt) {
 			if (GNET_PROPERTY(query_debug) > 1) {
-				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+				g_debug("QUERY %s#%s [hops=%u, TTL=%u] \"%s\" "
 					"has %d SHA1%s, dropping",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -6996,7 +7156,7 @@ search_request_preprocess(struct gnutella_node *n,
 			gnutella_header_get_ttl(&n->header) > 0
 		) {
 			if (GNET_PROPERTY(query_debug) > 1) {
-				g_debug("QUERY %s%s [hops=%u, TTL=%u] \"%s\" "
+				g_debug("QUERY %s#%s [hops=%u, TTL=%u] \"%s\" "
 					"travelling too far, forcing TTL to 0",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7008,10 +7168,10 @@ search_request_preprocess(struct gnutella_node *n,
 		}
 
 		if (sri->exv_sha1cnt)
-			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+			gnet_stats_inc_general(GNR_QUERY_SHA1);
 
 		if (sri->whats_new) {
-			gnet_stats_count_general(GNR_QUERY_WHATS_NEW, 1);
+			gnet_stats_inc_general(GNR_QUERY_WHATS_NEW);
 
 			/*
 			 * Since "What's New?" queries are broadcasted, we make sure
@@ -7045,10 +7205,10 @@ search_request_preprocess(struct gnutella_node *n,
 			} else {
 				if (wants_ipp) {
 					/* This is a GUESS 0.2 query, at least */
-					gnet_stats_count_general(GNR_QUERY_GUESS_02, 1);
+					gnet_stats_inc_general(GNR_QUERY_GUESS_02);
 				} else {
 					/* This is a GUESS query from a legacy servent */
-					gnet_stats_count_general(GNR_QUERY_GUESS, 1);
+					gnet_stats_inc_general(GNR_QUERY_GUESS);
 				}
 				/* Send back a pong */
 				pcache_guess_acknowledge(n, TRUE, wants_ipp, ipp_net);
@@ -7061,7 +7221,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 			if (0 != gnutella_header_get_ttl(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_warning("GUESS node %s sent query MUID=%s with TTL=%u, "
+					g_warning("GUESS node %s sent query #%s with TTL=%u, "
 						"dropping",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7077,7 +7237,7 @@ search_request_preprocess(struct gnutella_node *n,
 
 			if (1 != gnutella_header_get_hops(&n->header)) {
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_warning("GUESS node %s sent query MUID=%s with hops=%u, "
+					g_warning("GUESS node %s sent query #%s with hops=%u, "
 						"adjusting to 1 before forwarding",
 						node_infostr(n),
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7247,6 +7407,11 @@ search_request_preprocess(struct gnutella_node *n,
 skip_throttling:
 
 	sri->oob = booleanize(sri->flags & QUERY_F_OOB_REPLY);
+	sri->sr_udp = booleanize(sri->flags & QUERY_F_SR_UDP);
+	sri->may_oob_proxy = booleanize(0 == (n->attrs2 & NODE_A2_NO_OOB_PROXY));
+
+	if (sri->sr_udp && NODE_IS_UDP(n))
+		n->attrs2 |= NODE_A2_HAS_SR_UDP;
 
 	/*
 	 * IPv6-Ready: Compute the proper IPv6 reply address if we saw GGEP "6".
@@ -7284,10 +7449,10 @@ skip_throttling:
 		) {
 			bool requery;
 		   
-			gnet_stats_count_general(GNR_GTKG_TOTAL_QUERIES, 1);
+			gnet_stats_inc_general(GNR_GTKG_TOTAL_QUERIES);
 			requery = guid_is_requery(gnutella_header_get_muid(&n->header));
 			if (requery)
-				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
+				gnet_stats_inc_general(GNR_GTKG_REQUERIES);
 
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
@@ -7295,7 +7460,7 @@ skip_throttling:
 					gm_snprintf(origin, sizeof origin, " from %s",
 						host_addr_port_to_string(sri->addr, sri->port));
 				}
-				g_debug("GTKG %s%squery from %d.%d%s [MUID=%s]%s",
+				g_debug("GTKG %s%squery from %d.%d%s #%s%s",
 					sri->oob ? "OOB " : "", requery ? "re-" : "",
 					major, minor, release ? "" : "u",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7304,9 +7469,11 @@ skip_throttling:
 		}
 	}
 
-	if (0 != (sri->flags & QUERY_F_GGEP_H)) {
-		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
-	}
+	if (0 != (sri->flags & QUERY_F_GGEP_H))
+		gnet_stats_inc_general(GNR_QUERIES_WITH_GGEP_H);
+
+	if (0 != (sri->flags & QUERY_F_SR_UDP))
+		gnet_stats_inc_general(GNR_QUERIES_WITH_SR_UDP);
 
 	/*
 	 * If OOB reply is wanted, validate a few things.
@@ -7353,7 +7520,7 @@ skip_throttling:
 				query_strip_oob_flag(n, n->data);
 				sri->oob = FALSE;
 				if (GNET_PROPERTY(guess_server_debug)) {
-					g_debug("QUERY (GUESS) %s from %s: removed OOB flag "
+					g_debug("QUERY (GUESS) #%s from %s: removed OOB flag "
 						"(mismatching return address %s versus UDP %s)",
 						guid_hex_str(gnutella_header_get_muid(&n->header)),
 						node_infostr(n), host_addr_to_string(sri->addr),
@@ -7390,7 +7557,7 @@ skip_throttling:
 				GNET_PROPERTY(oob_proxy_debug) ||
 				(NODE_IS_UDP(n) && GNET_PROPERTY(guess_server_debug))
 			) {
-				g_debug("QUERY %s%s from %s: removed OOB flag "
+				g_debug("QUERY %s#%s from %s: removed OOB flag "
 					"(invalid return address: %s)",
 					NODE_IS_UDP(n) ? "(GUESS) " : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -7463,10 +7630,17 @@ drop:
 /**
  * Searches requests (from others nodes)
  * Basic matching. The search request is made lowercase and
- * is matched to the filenames in the LL.
+ * is matched to the filenames in the library.
  *
  * If `qhv' is not NULL, it is filled with hashes of URN or query words,
  * so that we may later properly route the query among the leaf nodes.
+ *
+ * This routine must be called after search_request_preprocess() to actually
+ * perform the querying based on the information gathered into ``sri''.
+ *
+ * @param n			the node from which the query comes from (relay)
+ * @param sri		the information gathered during the pre-processing stage
+ * @param qhv		query hash vector (can be NULL) to fill for later routing
  */
 void
 search_request(struct gnutella_node *n,
@@ -7482,35 +7656,6 @@ search_request(struct gnutella_node *n,
 	g_assert(sri != NULL);
 
 	/*
-	 * NOTE: search_request_preprocess() has already handled this query,
-	 * filling ``sri'' with the gathered information.
-	 */
-
-	search = n->data + 2;	/* skip flags */
-	oob = sri->oob;
-
-	if (sri->extended_query != NULL) {
-		char *safe_ext = hex_escape(sri->extended_query, FALSE);
-
-		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s%s extended: original=\"%s\", extended=\"%s\"",
-				NODE_IS_UDP(n) ? "(GUESS) " : "",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				lazy_safe_search(search), safe_ext);
-		}
-		search = sri->extended_query;
-		safe_search = safe_ext;
-	} else {
-		safe_search = hex_escape(search, FALSE);
-		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s%s \"%s\"",
-				NODE_IS_UDP(n) ? "(GUESS) " : "",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				sri->whats_new ? WHATS_NEW : safe_search);
-		}
-	}
-
-	/*
 	 * If the query does not have an OOB mark, comes from a leaf node and
 	 * they allow us to be an OOB-proxy, then replace the IP:port of the
 	 * query with ours, so that we are the ones to get the UDP replies.
@@ -7522,6 +7667,7 @@ search_request(struct gnutella_node *n,
 	 */
 
 	muid = *gnutella_header_get_muid(&n->header);	/* Struct copy */
+	oob = sri->oob;
 
 	if (
 		!oob &&
@@ -7538,7 +7684,46 @@ search_request(struct gnutella_node *n,
 
 		if (oob_proxy_create(n)) {
 			oob = TRUE;
-			gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
+			gnet_stats_inc_general(GNR_OOB_PROXIED_QUERIES);
+
+			/*
+			 * We're supporting OOBv3, so make sure the "SO" key is present
+			 * in the query if we're OOB-proxying it.
+			 *
+			 * We'll process the query only if it is actually sent, in
+			 * search_compact().
+			 */
+
+			n->msg_flags &= ~NODE_M_STRIP_GE_SO;
+			n->msg_flags |= NODE_M_ADD_GE_SO | NODE_M_EXT_CLEANUP;
+		}
+	}
+
+	/*
+	 * NOTE: search_request_preprocess() has already handled this query,
+	 * filling ``sri'' with the gathered information.
+	 */
+
+	search = n->data + 2;	/* skip flags */
+
+	if (sri->extended_query != NULL) {
+		char *safe_ext = hex_escape(sri->extended_query, FALSE);
+
+		if (GNET_PROPERTY(query_debug) > 14) {
+			g_debug("QUERY %s#%s extended: original=\"%s\", extended=\"%s\"",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				lazy_safe_search(search), safe_ext);
+		}
+		search = sri->extended_query;
+		safe_search = safe_ext;
+	} else {
+		safe_search = hex_escape(search, FALSE);
+		if (GNET_PROPERTY(query_debug) > 14) {
+			g_debug("QUERY %s#%s \"%s\"",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				sri->whats_new ? WHATS_NEW : safe_search);
 		}
 	}
 
@@ -7579,12 +7764,38 @@ search_request(struct gnutella_node *n,
 	}
 
 	/*
+	 * Before handling an OOB query, make sure the remote host is actually
+	 * claiming its hits on a regular basis.
+	 *
+	 * FIXME:
+	 * Note that banning is at the IP address level, not at the IP:port level
+	 * so if several servents run under the same IP, all will be penalized if
+	 * one behaves badly.  For now this is acceptable -- RAM, 2012-06-10
+	 *
+	 * When we ignore a query, we still relay it to neighbours so that we do
+	 * not penalize the network unduly should our ignoring logic be too
+	 * aggresive.
+	 */
+
+	if (oob && ban_is_banned(BAN_CAT_OOB_CLAIM, sri->addr)) {
+		if (GNET_PROPERTY(query_debug) > 2) {
+			g_debug("QUERY OOB %s#%s \"%s\" ignored: host %s not claiming hits",
+				NODE_IS_UDP(n) ? "(GUESS) " : "",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				sri->whats_new ? WHATS_NEW : safe_search,
+				host_addr_to_string(sri->addr));
+		}
+		gnet_stats_inc_general(GNR_OOB_QUERIES_IGNORED);
+		goto finish;
+	}
+
+	/*
 	 * Check IP address requirements.
 	 */
 
 	if (sri->ipv6_only && !settings_running_ipv6()) {
 		if (GNET_PROPERTY(query_debug) > 9) {
-			g_debug("QUERY %s%s \"%s\" ignored: wants only IPv6",
+			g_debug("QUERY %s#%s \"%s\" ignored: wants only IPv6",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				sri->whats_new ? WHATS_NEW : safe_search);
@@ -7635,7 +7846,7 @@ search_request(struct gnutella_node *n,
 			if (settings_is_leaf() && node_ultra_received_qrp(n)) {
 				node_inc_qrp_query(n);
 			}
-			gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
+			gnet_stats_inc_general(GNR_LOCAL_SEARCHES);
 		}
 
 		qctx = share_query_context_make(sri->media_types, sri->partials);
@@ -7699,22 +7910,18 @@ search_request(struct gnutella_node *n,
 								sri->exv_sha1[i].matched ? '+' : '-',
 								sha1_base32(&sri->exv_sha1[i].sha1));
 				}
-				g_debug("\tflags=0x%04x (%s%s%s%s%s%s%s) ttl=%u hops=%u",
-						(uint) sri->flags,
-						(sri->flags & QUERY_F_MARK) ? "MARKED" : "",
-						(sri->flags & QUERY_F_FIREWALLED) ? " FW" : "",
-						(sri->flags & QUERY_F_XML) ? " XML" : "",
-						(sri->flags & QUERY_F_LEAF_GUIDED) ? " GUIDED" : "",
-						(sri->flags & QUERY_F_GGEP_H) ? " GGEP_H" : "",
-						(sri->flags & QUERY_F_OOB_REPLY) ? " OOB" : "",
-						(sri->flags & QUERY_F_FW_TO_FW) ? " FW2FW" : "",
-						gnutella_header_get_ttl(&n->header),
-						gnutella_header_get_hops(&n->header));
+				g_debug("\tflags=0x%04x max-hits=%u (%s) "
+					"ttl=%u hops=%u",
+					(uint) sri->flags,
+					(uint) (sri->flags & QUERY_F_MAX_HITS),
+					search_flags_to_string(sri->flags),
+					gnutella_header_get_ttl(&n->header),
+					gnutella_header_get_hops(&n->header));
 			}
 		}
 
 		if (GNET_PROPERTY(query_debug) > 14) {
-			g_debug("QUERY %s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
+			g_debug("QUERY #%s \"%s\" [hops=%u, TTL=%u] has %u hit%s%s%s (%s)",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
 					sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
@@ -7748,7 +7955,7 @@ search_request(struct gnutella_node *n,
 
 			if (should_oob) {
 				oob_got_results(n, qctx->files, qctx->found,
-					sri->addr, sri->port, sri->secure_oob, flags);
+					sri->addr, sri->port, sri->secure_oob, sri->sr_udp, flags);
 			} else {
 				qhit_send_results(n, qctx->files, qctx->found, &muid, flags);
 			}
@@ -7783,8 +7990,9 @@ finish:
  * XML tree traversal callback.
  */
 static void
-search_xml_node_is_empty(xnode_t *xn, void *data)
+search_xml_node_is_empty(void *node, void *data)
 {
+	xnode_t *xn = node;
 	bool *empty = data;
 
 	if (!*empty)
@@ -7813,11 +8021,59 @@ search_xml_tree_empty(xnode_t *root)
 }
 
 /**
+ * Log GGEP write failure.
+ */
+static void
+search_log_ggep_write_failure(const char *id, uint32 flags,
+	const gnutella_node_t *n, const char *caller)
+{
+	if (GNET_PROPERTY(query_debug)) {
+		g_warning("%s(): QUERY #%s could not write %s"
+			"GGEP \"%s\": %s",
+			caller, guid_hex_str(gnutella_header_get_muid(&n->header)),
+			(flags & GGEP_W_DEFLATE) ? "deflated " : "", id, ggep_errstr());
+	}
+}
+
+/**
+ * Write GGEP extension in GGEP stream for message held in the node.
+ */
+static void
+search_ggep_write(ggep_stream_t *gs, const extvec_t *e, const char *id,
+	const void *payload, size_t plen,
+	const gnutella_node_t *n, const char *caller)
+{
+	uint32 flags;
+	bool ok;
+	const char *extid;
+
+	g_assert((NULL == e) ^ (NULL == id));
+
+	if (e != NULL) {
+		flags = (plen > DEFLATE_THRESHOLD || ext_ggep_is_deflated(e)) ?
+			GGEP_W_DEFLATE : 0;
+		extid = ext_ggep_id_str(e);
+	} else {
+		flags = plen > DEFLATE_THRESHOLD ? GGEP_W_DEFLATE : 0;
+		extid = id;
+	}
+
+	ok = ggep_stream_pack(gs, extid, payload, plen, flags);
+
+	if (!ok)
+		search_log_ggep_write_failure(extid, flags, n, caller);
+}
+
+/**
  * Compact search request by removing unneeded extensions, cutting on
  * needless bloat, and by removing unnecessary bloat from the query string.
  *
- * Compaction happens in-place: upon return we have a new valid message
- * in the node buffer, ready to be sent.
+ * When NODE_M_ADD_GE_SO is set, we add the GGEP "SO" key to the message,
+ * creating a GGEP extension if needed in order to secure OOB hit delivery
+ * for OOB-proxied queries.
+ *
+ * Edition happens in-place: upon return we have a new valid message in the
+ * node buffer, ready to be sent.
  */
 void
 search_compact(struct gnutella_node *n)
@@ -7833,6 +8089,7 @@ search_compact(struct gnutella_node *n)
 	const char *end = dest + sizeof buffer;
 	size_t target;
 	bool has_ggep = FALSE;
+	char *start;
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(&n->header));
 	g_assert(n->data != NULL);
@@ -7865,7 +8122,7 @@ search_compact(struct gnutella_node *n)
 			g_assert(mangled_search_len <= search_len - offset);
 
 			if (mangled_search_len != search_len - offset) {
-				gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+				gnet_stats_inc_general(GNR_QUERY_COMPACT_COUNT);
 				gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
 					search_len - offset - mangled_search_len);
 				n->msg_flags |= NODE_M_COMPACTED;
@@ -7897,10 +8154,27 @@ search_compact(struct gnutella_node *n)
 		return;
 
 	extra = n->size - 3 - search_len;		/* Amount of extra data */
+
+	g_assert(size_is_non_negative(extra));
+
+	if G_UNLIKELY(0 == extra && !(n->msg_flags & NODE_M_ADD_GE_SO))
+		return;		/* Nothing to strip nor to add */
+
 	ext_prepare(exv, MAX_EXTVEC);
-	exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
+
+	if G_UNLIKELY(0 == extra) {
+		exvcnt = 0;
+	} else {
+		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
+	}
 
 	target = extra + (extra >> 2);		/* Add 25% margin for bad compression */
+
+	if (n->msg_flags & NODE_M_ADD_GE_SO) {
+		/* Will force an "SO" extension if missing */
+		target += 6;					/* Worst case (no GGEP block already) */
+		has_ggep = TRUE;				/* Because we'll add "SO" */
+	}
 
 	if (target > sizeof buffer) {
 		dest = halloc(target);
@@ -7933,7 +8207,7 @@ search_compact(struct gnutella_node *n)
 				err = vxml_parse_tree(vp, &root);
 				if (VXML_E_OK != err) {
 					if (GNET_PROPERTY(query_debug)) {
-						g_warning("QUERY %s dropping invalid XML payload: %s",
+						g_warning("QUERY #%s dropping invalid XML payload: %s",
 							guid_hex_str(gnutella_header_get_muid(&n->header)),
 							vxml_strerror(err));
 					}
@@ -7961,7 +8235,9 @@ search_compact(struct gnutella_node *n)
 
 						if ((size_t) -1 == w) {
 							if (GNET_PROPERTY(query_debug)) {
-								g_warning("QUERY %s could not rewrite XML tree",
+								g_warning("%s(): QUERY #%s "
+									"could not rewrite XML tree",
+									G_STRFUNC,
 									guid_hex_str(
 										gnutella_header_get_muid(&n->header)));
 							}
@@ -8019,7 +8295,7 @@ search_compact(struct gnutella_node *n)
 							EXT_T_URN_SHA1 != e->ext_token
 						) {
 							const char *prefix = ext_huge_urn_name(e);
-							g_debug("QUERY %s rewriting %s as urn:sha1",
+							g_debug("QUERY #%s rewriting %s as urn:sha1",
 								guid_hex_str(
 									gnutella_header_get_muid(&n->header)),
 								prefix);
@@ -8053,18 +8329,24 @@ search_compact(struct gnutella_node *n)
 	}
 
 	/*
+	 * If we're not going to add a GGEP extension block, the last HUGE
+	 * separator we emitted is useless and must be stripped out.
+	 */
+
+	if (p != dest && !has_ggep) {
+		g_assert(p > dest && p <= end);
+		g_assert(HUGE_FS == *(p - 1));
+		p--;		/* Remove trailing useless HUGE separator */
+	}
+
+	/*
 	 * Second pass: emit GGEP extension block.
 	 */
 
-	if (!has_ggep) {
-		if (p != dest) {
-			g_assert(p > dest && p <= end);
-			g_assert(HUGE_FS == *(p - 1));
-			p--;		/* Remove trailing useless HUGE separator */
-		}
-	} else {
+	if (has_ggep) {
 		ggep_stream_t gs;
 		size_t glen;
+		bool has_ggep_so = FALSE;
 
 		g_assert(p < end);
 
@@ -8088,7 +8370,7 @@ search_compact(struct gnutella_node *n)
 				/* "6" only required for OOB replies to an IPv6 address */
 				continue;
 			case EXT_T_GGEP_u:
-				if (n->msg_flags & (NODE_M_STRIP_GGEP_u | NODE_M_WHATS_NEW))
+				if (n->msg_flags & (NODE_M_STRIP_GE_u | NODE_M_WHATS_NEW))
 					continue;
 				break;
 			case EXT_T_GGEP_QK:
@@ -8097,11 +8379,46 @@ search_compact(struct gnutella_node *n)
 				if (n->msg_flags & (NODE_M_STRIP_GUESS | NODE_M_WHATS_NEW))
 					continue;
 				break;
-			case EXT_T_GGEP_WH:
 			case EXT_T_GGEP_SO:
-			case EXT_T_GGEP_M:
-				/* "WH", "SO" and "M" are kept with NODE_M_WHATS_NEW */
+				has_ggep_so = TRUE;
+				if (n->msg_flags & NODE_M_STRIP_GE_SO)
+					continue;
 				break;
+			case EXT_T_GGEP_WH:
+			case EXT_T_GGEP_M:
+				/* "WH", and "M" are kept with NODE_M_WHATS_NEW */
+				break;
+			case EXT_T_GGEP_NP:
+				/* "NP" only used from leaf -> ultra to prevent OOB proxying */
+				continue;	/* Strip "NP" in relayed queries */
+			case EXT_T_GGEP_H:
+				if (n->msg_flags & NODE_M_WHATS_NEW)
+					continue;		/* Strip "H" in "what's new?" queries */
+				{
+					const char *payload = ext_payload(e);
+					sha1_t sha1;
+					ggept_status_t ret = ggept_h_sha1_extract(e, &sha1);
+					const uint8 type = GGEP_H_SHA1;
+
+					if (ret != GGEP_OK)
+						continue;		/* Not a SHA1 or bitprint -- strip! */
+
+					if (GGEP_H_SHA1 == payload[0])
+						break;			/* Propagate as-is */
+
+					/*
+					 * Rewrite with only the SHA1, then continue.
+					 */
+
+					ok = ggep_stream_begin(&gs, GGEP_NAME(H), 0) &&
+						ggep_stream_write(&gs, &type, 1) &&
+						ggep_stream_write(&gs, sha1.data, SHA1_RAW_SIZE) &&
+						ggep_stream_end(&gs);
+
+					if (!ok)
+						search_log_ggep_write_failure("H", 0, n, G_STRFUNC);
+				}
+				continue;		/* We rewrote it */
 			default:
 				if (n->msg_flags & NODE_M_WHATS_NEW)
 					continue;
@@ -8109,20 +8426,8 @@ search_compact(struct gnutella_node *n)
 				break;
 			}
 
-			ok = ggep_stream_begin(&gs, ext_ggep_id_str(e),
-					(
-						ext_paylen(e) > DEFLATE_THRESHOLD ||
-						ext_ggep_is_deflated(e)
-					) ?  GGEP_W_DEFLATE : 0)
-				&& ggep_stream_write(&gs, ext_payload(e), ext_paylen(e))
-				&& ggep_stream_end(&gs);
-			if (!ok) {
-				if (GNET_PROPERTY(query_debug)) {
-					g_warning("QUERY %s could not write GGEP \"%s\"",
-						guid_hex_str(gnutella_header_get_muid(&n->header)),
-						ext_ggep_id_str(e));
-				}
-			}
+			search_ggep_write(&gs, e, NULL, ext_payload(e), ext_paylen(e),
+				n, G_STRFUNC);
 		}
 
 		/*
@@ -8131,20 +8436,18 @@ search_compact(struct gnutella_node *n)
 		 */
 
 		if (n->msg_flags & NODE_M_FINISH_IPV6) {
-			bool ok;
 			const host_addr_t addr6 = listen_addr6();
 			const uint8 *ipv6 = host_addr_ipv6(&addr6);
 
-			ok = ggep_stream_pack(&gs, GGEP_NAME(6), ipv6, 16, 0);
-
-			if (!ok) {
-				if (GNET_PROPERTY(query_debug)) {
-					g_warning("QUERY %s could not write GGEP \"6\" "
-						"for our address",
-						guid_hex_str(gnutella_header_get_muid(&n->header)));
-				}
-			}
+			search_ggep_write(&gs, NULL, GGEP_NAME(6), ipv6, 16, n, G_STRFUNC);
 		}
+
+		/*
+		 * If we have to add a GGEP "SO", do it now unless already present.
+		 */
+
+		if ((n->msg_flags & NODE_M_ADD_GE_SO) && !has_ggep_so)
+			search_ggep_write(&gs, NULL, GGEP_NAME(SO), NULL, 0, n, G_STRFUNC);
 
 		glen = ggep_stream_close(&gs);
 		p += glen;
@@ -8156,73 +8459,72 @@ search_compact(struct gnutella_node *n)
 
 	ext_reset(exv, MAX_EXTVEC);
 
-	if (newlen < extra) {
+	if (newlen != extra) {
 		size_t diff = extra - newlen;
-		char *start = deconstify_char(search) + search_len + 1;
 
 		if (
 			GNET_PROPERTY(query_debug) > 14 ||
 			(
 				(n->msg_flags & NODE_M_STRIP_GUESS) &&
 				GNET_PROPERTY(guess_server_debug) > 5
+			) ||
+			(
+				(n->msg_flags & NODE_M_ADD_GE_SO) &&
+				GNET_PROPERTY(secure_oob_debug)
 			)
 		) {
-			g_debug("QUERY %s%s search extension part %zu -> %zu bytes",
+			g_debug("QUERY %s#%s search extension part %zu -> %zu bytes%s",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				extra, newlen);
+				extra, newlen,
+				(n->msg_flags & NODE_M_ADD_GE_SO) ?
+					" (added GGEP \"SO\")" : ""
+			);
 		}
 
 		/*
-		 * Adjust message length since we managed to strip keys.
+		 * Adjust message length.
+		 *
+		 * We can add extensions on the fly, not just strip them, hence
+		 * we may have to grow n->data, which can move data around!
 		 */
 
-		g_assert(diff < n->size);
-					
 		n->size -= diff;
 		gnutella_header_set_size(&n->header, n->size);
+		node_grow_data(n, n->size);
+		search = n->data + 2;	/* skip flags, n->data could have changed */
 
-		/*
-		 * Copy new bytes over and update statistics.
-		 */
-
-		memcpy(start, dest, newlen);
-
-		if (!(n->msg_flags & NODE_M_COMPACTED)) {
-			gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+		if (!(n->msg_flags & NODE_M_COMPACTED) && size_is_positive(diff)) {
+			gnet_stats_inc_general(GNR_QUERY_COMPACT_COUNT);
 			n->msg_flags |= NODE_M_COMPACTED;
 		}
-		gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE, diff);
 
-		if (GNET_PROPERTY(query_debug) > 13) {
-			if (newlen > 0) {
-				exvcnt = ext_parse(start, newlen, exv, MAX_EXTVEC);
-				g_debug("QUERY %s%s rewritten extensions (%zu byte%s)",
-					NODE_IS_UDP(n) ? "(GUESS) " : "",
-					guid_hex_str(gnutella_header_get_muid(&n->header)),
-					newlen, 1 == newlen ? "" : "s");
-				ext_dump(stderr, exv, exvcnt, "> ", "\n",
-					GNET_PROPERTY(query_debug) > 14);
-				ext_reset(exv, MAX_EXTVEC);
-			} else {
-				g_debug("QUERY %s%s rewritten with no extensions",
-					NODE_IS_UDP(n) ? "(GUESS) " : "",
-					guid_hex_str(gnutella_header_get_muid(&n->header)));
-			}
-		}
-	} else if (newlen > extra) {
-		if (GNET_PROPERTY(query_debug)) {
-			g_warning("QUERY %s%s not rewritten: new size %zu byte%s > old %zu",
+		if (size_is_positive(diff))
+			gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE, diff);
+	}
+
+	/*
+	 * Copy new bytes over and update statistics.
+	 */
+
+	start = deconstify_char(search) + search_len + 1;
+	memcpy(start, dest, newlen);
+
+	if (GNET_PROPERTY(query_debug) > 13) {
+		if (newlen != 0) {
+			exvcnt = ext_parse(start, newlen, exv, MAX_EXTVEC);
+			g_debug("QUERY %s#%s rewritten extensions "
+				"(now %zu byte%s, was %zu), payload now %u bytes",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				newlen, 1 == newlen ? "" : "s", extra);
-		}
-	} else {
-		if (GNET_PROPERTY(query_debug) > 13) {
-			g_info("QUERY %s%s not rewritten: no change in size (%zu byte%s)",
+				newlen, 1 == newlen ? "" : "s", extra, n->size);
+			ext_dump(stderr, exv, exvcnt, "> ", "\n",
+				GNET_PROPERTY(query_debug) > 14);
+			ext_reset(exv, MAX_EXTVEC);
+		} else if (newlen != extra) {
+			g_debug("QUERY %s#%s rewritten with no extensions",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				newlen, 1 == newlen ? "" : "s");
+				guid_hex_str(gnutella_header_get_muid(&n->header)));
 		}
 	}
 

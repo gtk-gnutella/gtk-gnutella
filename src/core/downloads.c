@@ -2071,7 +2071,7 @@ download_found_server(const struct guid *guid,
 		 */
 
 		if (guid_eq(guid, GNET_PROPERTY(servent_guid))) {
-			gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+			gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 
 			if (GNET_PROPERTY(download_debug)) {
 				g_warning("discovered that host %s bears our GUID!",
@@ -2099,7 +2099,7 @@ download_found_server(const struct guid *guid,
 				}
 
 				hikset_remove(dl_by_host, key);
-				gnet_stats_count_general(GNR_DISCOVERED_SERVER_GUID, 1);
+				gnet_stats_inc_general(GNR_DISCOVERED_SERVER_GUID);
 				atom_guid_change(&key->guid, guid);
 				htable_insert(dl_by_guid, key->guid, server);
 				hikset_insert_key(dl_by_host, &server->key);
@@ -2142,7 +2142,7 @@ download_reparent_all(struct dl_server *duplicate, struct dl_server *server)
 {
 	struct download *next;
 
-	gnet_stats_count_general(GNR_CONSOLIDATED_SERVERS, 1);
+	gnet_stats_inc_general(GNR_CONSOLIDATED_SERVERS);
 
 	next = hash_list_head(sl_downloads);
 	while (next) {
@@ -2332,7 +2332,7 @@ get_server(const struct guid *guid, const host_addr_t addr, uint16 port,
 				 */
 
 				if (!is_my_address_and_port(addr, port)) {
-					gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+					gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 
 					if (GNET_PROPERTY(download_debug)) {
 						g_warning("host %s bears our GUID!",
@@ -2561,7 +2561,7 @@ change_server_addr(struct dl_server *server,
 			!guid_is_blank(duplicate->key->guid)
 		) {
 			/* Remote node changed its GUID (after restart?) */
-			gnet_stats_count_general(GNR_CHANGED_SERVER_GUID, 1);
+			gnet_stats_inc_general(GNR_CHANGED_SERVER_GUID);
 
 			if (GNET_PROPERTY(download_debug)) g_warning(
 				"found two distinct GUID for <%s> at %s:%u, keeping %s",
@@ -2751,7 +2751,7 @@ sink_data:
 	return TRUE;
 
 refused:
-	gnet_stats_count_general(GNR_IGNORING_REFUSED, 1);
+	gnet_stats_inc_general(GNR_IGNORING_REFUSED);
 	return FALSE;
 }
 
@@ -3868,19 +3868,21 @@ download_clone(struct download *d)
 	download_check(d);
 	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
 
-	if (s->getline) {
+	/* The socket can be NULL if we're acting on a queued source */
+
+	if (s != NULL && s->getline != NULL) {
 		getline_free(s->getline);	/* No longer need this */
 		s->getline = NULL;
 	}
 
 	if (d->flags & (DL_F_BROWSE | DL_F_THEX)) {
 		g_assert(NULL == d->buffers);
-		if (d->io_opaque) {
+		if (d->io_opaque != NULL) {
 			io_free(d->io_opaque);
 			g_assert(NULL == d->io_opaque);
 		}
 	} else if (NULL == d->io_opaque) {
-		g_assert(d->buffers);
+		g_assert(d->buffers != NULL);
 		g_assert(d->buffers->held == 0);		/* All data flushed */
 	} else {
 		io_free(d->io_opaque);		/* Cloned after error, not when receiving */
@@ -3895,7 +3897,9 @@ download_clone(struct download *d)
 	cd->src_handle_valid = FALSE;
 	file_info_add_source(fi, cd);	/* add cloned source */
 
-	cd->socket->resource.download = cd;	/* Takes ownership of socket */
+	if (s != NULL)
+		socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
+
 	cd->list_idx = DL_LIST_INVALID;
 	cd->sha1 = d->sha1 ? atom_sha1_get(d->sha1) : NULL;
 	cd->file_name = atom_str_get(d->file_name);
@@ -4227,7 +4231,7 @@ stop_other:
 	/* FALL THROUGH */
 
 dup_found:
-	gnet_stats_count_general(GNR_DUP_DOWNLOADS_IN_CONSOLIDATION, 1);
+	gnet_stats_inc_general(GNR_DUP_DOWNLOADS_IN_CONSOLIDATION);
 	goto reparent;
 }
 
@@ -4337,6 +4341,101 @@ download_is_special(const struct download *d)
 }
 
 /**
+ * Callback invoked when socket is destroyed.
+ */
+static void
+download_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	download_queue(d, "%s", reason);
+}
+
+/**
+ * Callback invoked when socket is connected.
+ */
+static void
+download_socket_connected(gnutella_socket_t *s, void *owner)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	download_connected(d);
+}
+
+/**
+ * Callback invoked when connection failed.
+ */
+static void
+download_socket_connect_failed(gnutella_socket_t *s, void *owner,
+	const char *errmsg)
+{
+	struct download *d = owner;
+
+	download_check(d);
+	g_assert(s == d->socket);
+
+	(void) errmsg;
+
+	/*
+	 * Socket will be closed by download_fallback_to_push().
+	 *
+	 * We need to call that routine regardless of whether we are
+	 * firewalled or whether the user denied pushes: that will be
+	 * checked in download_push(), and there is important processing
+	 * that needs to be done by the download layer.
+	 */
+
+	download_fallback_to_push(d, FALSE, FALSE);
+}
+
+/**
+ * Socket-layer callbacks for downloads.
+ */
+static struct socket_ops download_socket_ops = {
+	download_socket_connect_failed,		/* connect_failed */
+	download_socket_connected,			/* connected */
+	download_socket_destroy,			/* destroy */
+};
+
+/**
+ * Attach socket to download on remote connections (QUEUE or GIV callbacks).
+ */
+void
+download_attach_socket(struct download *d, gnutella_socket_t *s)
+{
+	download_check(d);
+
+	if (d->socket != NULL) {			/* Paranoid, defensive programming */
+		g_carp("%s(): download had non-NULL %s socket already (%s)",
+			G_STRFUNC, s == d->socket ? "identical" : "distinct",
+			download_basename(d));
+		if (d->socket != s) {
+			socket_detach_ops(d->socket);
+			socket_free_null(&d->socket);
+		}
+	}
+
+	/*
+	 * At this stage, we already parsed the "GIV" or "QUEUE" indication from
+	 * the socket, so we no longer need its line parser
+	 */
+
+	if (s->getline != NULL) {
+		getline_free(s->getline);
+		s->getline = NULL;
+	}
+
+	d->socket = s;
+	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
+}
+
+/**
  * Switch socket of old download to new one.
  *
  * Caller must then either stop or queue the old download, as appropriate.
@@ -4361,9 +4460,9 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 			100.0 * download_total_progress(nd), download_host_info(nd));
 	}
 
-	gnet_stats_count_general(
+	gnet_stats_inc_general(
 		on_error ? GNR_ATTEMPTED_RESOURCE_SWITCHING_AFTER_ERROR :
-			GNR_ATTEMPTED_RESOURCE_SWITCHING, 1);
+			GNR_ATTEMPTED_RESOURCE_SWITCHING);
 
 	g_assert(NULL == nd->socket);
 
@@ -4373,7 +4472,7 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 
 	/* Steal the socket because download_stop() would free it. */
 	s = od->socket;
-	s->resource.download = NULL;
+	socket_detach_ops(s);
 	od->socket = NULL;
 
 	if (s->pos > 0) {
@@ -4383,7 +4482,7 @@ download_switch(struct download *od, struct download *nd, bool on_error)
 	s->pos = 0;
 
 	nd->socket = s;
-	nd->socket->resource.download = nd;
+	socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, nd);
 	nd->flags |= DL_F_SWITCHED;
 	if (on_error)
 		nd->flags |= DL_F_FROM_ERROR;
@@ -5208,8 +5307,8 @@ queue_suspend_downloads_with_file(fileinfo_t *fi, bool suspend)
 					if (DOWNLOAD_IS_ESTABLISHING(d)) {
 						d->flags |= DL_F_MUST_IGNORE;
 					} else if (download_can_ignore(d)) {
-						gnet_stats_count_general(
-							GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
+						gnet_stats_inc_general(
+							GNR_IGNORING_TO_PRESERVE_CONNECTION);
 					} else {
 						download_queue(d, _("Suspended (SHA1 checking)"));
 					}
@@ -5798,6 +5897,7 @@ download_connect(struct download *d)
 	struct dl_server *server;
 	uint16 port;
 	uint32 tls = GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
+	gnutella_socket_t *s;
 
 	download_check(d);
 
@@ -5846,13 +5946,18 @@ download_connect(struct download *d)
 		d->flags |= DL_F_DNS_LOOKUP;
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
 		server->dns_lookup = tm_time();
-		return socket_connect_by_name(
+		s = socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD, d->cflags | tls);
 	} else {
 		server->last_connect = tm_time();
-		return socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
+		s = socket_connect(download_addr(d), port, SOCK_TYPE_DOWNLOAD,
 				d->cflags | tls);
 	}
+
+	if (s != NULL)
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, d);
+
+	return s;
 }
 
 /**
@@ -5972,7 +6077,6 @@ download_start(struct download *d, bool check_allowed)
 			return;
 		}
 
-		d->socket->resource.download = d;
 		d->socket->pos = 0;
 	} else {					/* We have to send a push request */
 		download_set_status(d, GTA_DL_PUSH_SENT);
@@ -6623,7 +6727,7 @@ download_got_push_proxies(const struct guid *guid,
 				added, 1 == added ? "y" : "ies",
 				guid_hex_str(guid), server_host_info(server));
 		}
-		gnet_stats_count_general(GNR_COLLECTED_PUSH_PROXIES, +1);
+		gnet_stats_inc_general(GNR_COLLECTED_PUSH_PROXIES);
 		download_push_proxy_wakeup(server, TRUE, FALSE);
 	}
 }
@@ -6646,7 +6750,7 @@ download_got_push_route(const guid_t *guid)
 	 * push-proxies known.
 	 */
 
-	gnet_stats_count_general(GNR_REVITALIZED_PUSH_ROUTES, +1);
+	gnet_stats_inc_general(GNR_REVITALIZED_PUSH_ROUTES);
 	download_push_proxy_wakeup(server, FALSE, TRUE);
 	if (server->proxies != NULL && pproxy_set_count(server->proxies) > 0) {
 		route_starving_remove(guid);
@@ -7025,10 +7129,23 @@ create_download(
 
 	g_assert(host_addr_initialized(addr));
 
-	if (file_info) {
+	if (file_info != NULL) {
 		g_return_val_if_fail(!sha1 || sha1_eq(file_info->sha1, sha1), NULL);
-		if (file_info->tth) {
-			g_return_val_if_fail(!tth || tth_eq(file_info->tth, tth), NULL);
+		if (file_info->tth != NULL) {
+			if (tth != NULL && !tth_eq(file_info->tth, tth)) {
+				char buf[TTH_BASE32_SIZE + 1];
+
+				tth_to_base32_buf(tth, buf, sizeof buf);
+				g_warning("ignoring new source for %s at %s: its TTH %s "
+					"differs from known %s (SHA1 is %s)",
+					filepath_basename(file_info->pathname),
+					host_addr_port_to_string(addr, port), buf,
+					tth_base32(file_info->tth),
+					NULL == file_info->sha1 ? "unknown" :
+						sha1_base32(file_info->sha1));
+
+				return NULL;
+			}
 		}
 	}
 
@@ -7453,8 +7570,8 @@ download_auto_new(const char *file_name,
 		 */
 
 		from_qhit = !guid_is_blank(guid);
-		gnet_stats_count_general(from_qhit ?
-			GNR_QHIT_SEEDING_OF_ORPHAN : GNR_UPLOAD_SEEDING_OF_ORPHAN, +1);
+		gnet_stats_inc_general(from_qhit ?
+			GNR_QHIT_SEEDING_OF_ORPHAN : GNR_UPLOAD_SEEDING_OF_ORPHAN);
 
 		if (GNET_PROPERTY(download_debug))
 			g_debug("%s seeding of orphan \"%s\" with %s:%u",
@@ -7493,7 +7610,7 @@ download_dht_auto_new(const char *file_name,
 	 */
 
 	if (was_orphan && 0 != fi->refcount) {
-		gnet_stats_count_general(GNR_DHT_SEEDING_OF_ORPHAN, 1);
+		gnet_stats_inc_general(GNR_DHT_SEEDING_OF_ORPHAN);
 		if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(download_debug))
 			g_debug("DHT seeding of orphan \"%s\" with %s:%u", file_name,
 				hostname ? hostname : host_addr_to_string(addr), port);
@@ -8207,7 +8324,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	if (0 == port)
 		return FALSE;
 
-	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
+	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 				download_guid(d), listen_addr(), listen_addr6(), port,
 				d->record_index, tls_enabled());
 
@@ -8688,7 +8805,7 @@ download_overlap_check(struct download *d)
 			goto out;
 		} else if ((size_t) r != d->chunk.overlap) {
 			g_warning(
-				"short read (got %zu instead of %zu bytes at offset %zu) "
+				"short read (got %zu instead of %u bytes at offset %zu) "
 				"on resuming data for \"%s\"",
 				r, d->chunk.overlap, (size_t) d->chunk.start - d->chunk.overlap,
 				fi->pathname);
@@ -8738,7 +8855,7 @@ download_overlap_check(struct download *d)
 			download_can_ignore(d)
 		) {
 			success = TRUE;			/* Act as if overlapping was OK */
-			gnet_stats_count_general(GNR_IGNORING_AFTER_MISMATCH, 1);
+			gnet_stats_inc_general(GNR_IGNORING_AFTER_MISMATCH);
 			goto out;
 		}
 
@@ -9047,7 +9164,7 @@ download_continue(struct download *d, bool trimmed)
 
 	/* Steal the socket because download_stop() would free it. */
 	s = cd->socket;
-	s->resource.download = NULL;
+	socket_detach_ops(s);
 	cd->socket = NULL;
 
 	/*
@@ -9083,10 +9200,10 @@ download_continue(struct download *d, bool trimmed)
 
 		g_assert(NULL == next->socket);
 
-		gnet_stats_count_general(GNR_ATTEMPTED_RESOURCE_SWITCHING, 1);
+		gnet_stats_inc_general(GNR_ATTEMPTED_RESOURCE_SWITCHING);
 
 		next->socket = s;
-		next->socket->resource.download = next;
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, next);
 		next->flags |= DL_F_SWITCHED;
 		if (!download_is_special(cd))
 			next->flags |= DL_F_FROM_PLAIN;
@@ -9101,7 +9218,7 @@ download_continue(struct download *d, bool trimmed)
 	} else if (can_continue) {
 		next = cd;
 		next->socket = s;
-		next->socket->resource.download = next;
+		socket_attach_ops(s, SOCK_TYPE_DOWNLOAD, &download_socket_ops, next);
 	} else {
 		download_stop(cd, GTA_DL_COMPLETED, _("Nothing else to switch to"));
 		socket_free_null(&s);
@@ -9239,13 +9356,11 @@ download_write_data(struct download *d)
 				)
 					goto done;
 				/* Will ignore data until we can switch to another file */
-				gnet_stats_count_general(
-					GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
+				gnet_stats_inc_general(GNR_IGNORING_TO_PRESERVE_CONNECTION);
 			} else if (d->pos == d->chunk.end) {
 				goto partial_done;
 			} else if (download_can_ignore(d)) {
-				gnet_stats_count_general(
-					GNR_IGNORING_DURING_AGGRESSIVE_SWARMING, 1);
+				gnet_stats_inc_general(GNR_IGNORING_DURING_AGGRESSIVE_SWARMING);
 			} else
 				download_queue(d, _("Requeued by competing download"));
 			break;
@@ -10242,7 +10357,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 				break;
 			}
 			if (guid_eq(&guid, GNET_PROPERTY(servent_guid))) {
-				gnet_stats_count_general(GNR_OWN_GUID_COLLISIONS, 1);
+				gnet_stats_inc_general(GNR_OWN_GUID_COLLISIONS);
 				msg = "node bears our GUID";
 				break;
 			}
@@ -10349,7 +10464,7 @@ download_got_fw_node_info(const struct guid *guid,
 	if (NULL == server)
 		return;				/* Don't know this server, ignore */
 
-	gnet_stats_count_general(GNR_RECEIVED_KNOWN_FW_NODE_INFO, 1);
+	gnet_stats_inc_general(GNR_RECEIVED_KNOWN_FW_NODE_INFO);
 	check_fw_node_info(server, fwinfo);
 }
 
@@ -11299,7 +11414,7 @@ http_version_nofix:
 					if (d->flags & DL_F_SWITCHED) {
 						d->flags &= ~(DL_F_SWITCHED |
 							DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
-						gnet_stats_count_general(GNR_QUEUED_AFTER_SWITCHING, 1);
+						gnet_stats_inc_general(GNR_QUEUED_AFTER_SWITCHING);
 					}
 
 					return;
@@ -12016,13 +12131,12 @@ http_version_nofix:
 	 */
 
 	if (d->flags & DL_F_SWITCHED) {
-		gnet_stats_count_general(GNR_SUCCESSFUL_RESOURCE_SWITCHING, 1);
+		gnet_stats_inc_general(GNR_SUCCESSFUL_RESOURCE_SWITCHING);
 		if (!download_is_special(d) && (d->flags & DL_F_FROM_PLAIN)) {
-			gnet_stats_count_general(
-				GNR_SUCCESSFUL_PLAIN_RESOURCE_SWITCHING, 1);
+			gnet_stats_inc_general(GNR_SUCCESSFUL_PLAIN_RESOURCE_SWITCHING);
 		} else if (d->flags & DL_F_FROM_ERROR) {
-			gnet_stats_count_general(
-				GNR_SUCCESSFUL_RESOURCE_SWITCHING_AFTER_ERROR, 1);
+			gnet_stats_inc_general(
+				GNR_SUCCESSFUL_RESOURCE_SWITCHING_AFTER_ERROR);
 		}
 		d->flags &= ~(DL_F_SWITCHED | DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 	}
@@ -12199,7 +12313,7 @@ rx_stack_setup:
 		d->flags &= ~DL_F_MUST_IGNORE;
 		must_ignore = TRUE;
 		rx_set_data_ind(d->rx, download_ignore_data_ind);
-		gnet_stats_count_general(GNR_IGNORING_TO_PRESERVE_CONNECTION, 1);
+		gnet_stats_inc_general(GNR_IGNORING_TO_PRESERVE_CONNECTION);
 	} else {
 		must_ignore = FALSE;
 		rx_set_data_ind(d->rx, download_data_ind);
@@ -13194,14 +13308,6 @@ download_push_ready(struct download *d, getline_t *empty)
 		return;
 	}
 
-	/*
-	 * Free up the s->getline structure which holds the GIV line.
-	 */
-
-	g_assert(d->socket->getline);
-	getline_free(d->socket->getline);
-	d->socket->getline = NULL;
-
 	io_free(d->io_opaque);
 	download_send_request(d);		/* Will install new I/O data */
 }
@@ -13631,7 +13737,7 @@ download_push_ack(struct gnutella_socket *s)
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
 
-	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
+	gnet_stats_inc_general(GNR_GIV_CALLBACKS);
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got GIV from %s:", host_addr_to_string(s->addr));
@@ -13742,7 +13848,7 @@ download_push_ack(struct gnutella_socket *s)
 			giv, download_basename(d), download_host_info(d));
 
 	if (d->io_opaque) {
-		g_warning("d->io_opaque is already set!");
+		g_carp("d->io_opaque is already set!");
 		goto discard;
 	}
 
@@ -13764,8 +13870,8 @@ download_push_ack(struct gnutella_socket *s)
 
 	d->got_giv = TRUE;
 	d->last_update = tm_time();
-	d->socket = s;
-	s->resource.download = d;
+
+	download_attach_socket(d, s);
 
 	/*
 	 * Since we got a GIV, we now know the remote IP of the host and its GUID.
@@ -13793,8 +13899,7 @@ download_push_ack(struct gnutella_socket *s)
 	return;
 
 discard:
-	gnet_stats_count_general(GNR_GIV_DISCARDED, 1);
-	g_assert(s->resource.download == NULL);	/* Hence socket_free() below */
+	gnet_stats_inc_general(GNR_GIV_DISCARDED);
 	socket_free_null(&s);
 }
 
@@ -14648,7 +14753,7 @@ download_verify_sha1_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_count_general(GRN_SHA1_VERIFICATIONS, 1);
+	gnet_stats_inc_general(GRN_SHA1_VERIFICATIONS);
 }
 
 /**
@@ -14875,7 +14980,7 @@ download_verify_tigertree_start(struct download *d)
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
 	download_set_status(d, GTA_DL_VERIFYING);
-	gnet_stats_count_general(GRN_TTH_VERIFICATIONS, 1);
+	gnet_stats_inc_general(GRN_TTH_VERIFICATIONS);
 }
 
 /**

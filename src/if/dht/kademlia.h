@@ -84,9 +84,26 @@ enum kda_val {
 
 #define KDA_HEADER_SIZE			61
 #define KDA_IPv4_CONTACT_SIZE	33
+#define KDA_CONTACT_OFFSET		24			/* In Kademlia header */
+
+#define KDA_GTA_HEADER_SIZE		23			/* Gnutella header size */
+#define KDA_KUID_SIZE			20
 
 typedef uint8 kademlia_header_t[KDA_HEADER_SIZE];
 typedef uint8 kademlia_ipv4_contact_t[KDA_IPv4_CONTACT_SIZE];
+
+static inline kademlia_ipv4_contact_t *
+kademlia_contact(const void *header)
+{
+	return ptr_add_offset(deconstify_pointer(header), KDA_CONTACT_OFFSET);
+}
+
+static inline const kademlia_ipv4_contact_t *
+kademlia_contact_const(const void *header)
+{
+	return (const kademlia_ipv4_contact_t *)
+		const_ptr_add_offset(header, KDA_CONTACT_OFFSET);
+}
 
 /***
  *** IPv4 Contact.
@@ -97,16 +114,17 @@ typedef uint8 kademlia_ipv4_contact_t[KDA_IPv4_CONTACT_SIZE];
  */
 
 static inline uint32
-kademlia_ipv4_contact_get_vendor(const void *contact)
+kademlia_ipv4_contact_get_vendor(const kademlia_ipv4_contact_t *contact)
 {
-	const uint8 *u8 = (void *) contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return peek_be32(&u8[0]);
 }
 
 static inline void
-kademlia_ipv4_contact_set_vendor(const void *contact, uint32 vendor)
+kademlia_ipv4_contact_set_vendor(kademlia_ipv4_contact_t *contact,
+	uint32 vendor)
 {
-	uint8 *u8 = (void *) contact;
+	uint8 *u8 = (uint8 *) contact;
 	poke_be32(&u8[0], vendor);
 }
 
@@ -115,16 +133,17 @@ kademlia_ipv4_contact_set_vendor(const void *contact, uint32 vendor)
  */
 
 static inline uint8
-kademlia_ipv4_contact_get_major_version(const void *contact)
+kademlia_ipv4_contact_get_major_version(const kademlia_ipv4_contact_t *contact)
 {
-	uint8 *u8 = (void *) contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return u8[4];
 }
 
 static inline void
-kademlia_ipv4_contact_set_major_version(const void *contact, uint8 major)
+kademlia_ipv4_contact_set_major_version(kademlia_ipv4_contact_t *contact,
+	uint8 major)
 {
-	uint8 *u8 = (void *) contact;
+	uint8 *u8 = (uint8 *) contact;
 	u8[4] = major;
 }
 
@@ -133,16 +152,17 @@ kademlia_ipv4_contact_set_major_version(const void *contact, uint8 major)
  */
 
 static inline uint8
-kademlia_ipv4_contact_get_minor_version(const void *contact)
+kademlia_ipv4_contact_get_minor_version(const kademlia_ipv4_contact_t *contact)
 {
-	uint8 *u8 = (void *) contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return u8[5];
 }
 
 static inline void
-kademlia_ipv4_contact_set_minor_version(const void *contact, uint8 minor)
+kademlia_ipv4_contact_set_minor_version(kademlia_ipv4_contact_t *contact,
+	uint8 minor)
 {
-	uint8 *u8 = (void *) contact;
+	uint8 *u8 = (uint8 *) contact;
 	u8[5] = minor;
 }
 
@@ -151,17 +171,18 @@ kademlia_ipv4_contact_set_minor_version(const void *contact, uint8 minor)
  */
 
 static inline const char *
-kademlia_ipv4_contact_get_kuid(const void *contact)
+kademlia_ipv4_contact_get_kuid(const kademlia_ipv4_contact_t *contact)
 {
-	uint8 *u8 = (void *) contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return (const char *) &u8[6];
 }
 
 static inline void
-kademlia_ipv4_contact_set_kuid(void *contact, const uchar *kuid)
+kademlia_ipv4_contact_set_kuid(kademlia_ipv4_contact_t *contact,
+	const uchar *kuid)
 {
-	uint8 *u8 = (void *) contact;
-	memcpy(&u8[6], kuid, 20);
+	uint8 *u8 = (uint8 *) contact;
+	memcpy(&u8[6], kuid, KDA_KUID_SIZE);
 }
 
 /*
@@ -171,30 +192,31 @@ kademlia_ipv4_contact_set_kuid(void *contact, const uchar *kuid)
  */
 
 static inline uint8
-kademlia_ipv4_contact_get_addr_length(const void *contact)
+kademlia_ipv4_contact_get_addr_length(const kademlia_ipv4_contact_t *contact)
 {
-	const uint8 *u8 = contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return u8[26];
 }
 
 static inline uint32
-kademlia_ipv4_contact_get_addr(const void *contact)
+kademlia_ipv4_contact_get_addr(const kademlia_ipv4_contact_t *contact)
 {
-	const uint8 *u8 = contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return peek_be32(&u8[27]);
 }
 
 static inline uint16
-kademlia_ipv4_contact_get_port(const void *contact)
+kademlia_ipv4_contact_get_port(const kademlia_ipv4_contact_t *contact)
 {
-	const uint8 *u8 = contact;
+	const uint8 *u8 = (const uint8 *) contact;
 	return peek_be16(&u8[31]);		/* Ports are big-endian in Kademlia */
 }
 
 static inline void
-kademlia_ipv4_contact_set_addr_port(void *contact, uint32 addr, uint16 port)
+kademlia_ipv4_contact_set_addr_port(kademlia_ipv4_contact_t *contact,
+	uint32 addr, uint16 port)
 {
-	uint8 *u8 = contact;
+	uint8 *u8 = (uint8 *) contact;
 	u8[26] = 4;
 	poke_be32(&u8[27], addr);
 	poke_be16(&u8[31], port);	/* Watch out: standard, unlike Gnutella... */
@@ -250,25 +272,6 @@ kademlia_header_get_minor_version(const void *header)
 }
 
 /*
- * Bytes 19-22: length of the whole payload, viewed as a Gnutella message.
- * Stored in little endian.
- */
-
-static inline uint32
-kademlia_header_get_gnutella_size(const void *data)
-{
-	const uint8 *u8 = data;
-	return peek_le32(&u8[19]);
-}
-
-static inline void
-kademlia_header_set_gnutella_size(const void *header, uint32 size)
-{
-	uint8 *u8 = (void *) header;
-	poke_le32(&u8[19], size);
-}
-
-/*
  * Bytes 19-22 interpreted externally as the payload length of a Kademlia
  * message with its header of 61 bytes.
  */
@@ -277,14 +280,14 @@ static inline uint32
 kademlia_header_get_size(const void *data)
 {
 	const uint8 *u8 = data;
-	return peek_le32(&u8[19]) + 23 - KDA_HEADER_SIZE;
+	return peek_le32(&u8[19]) + KDA_GTA_HEADER_SIZE - KDA_HEADER_SIZE;
 }
 
 static inline void
 kademlia_header_set_size(void *header, uint32 size)
 {
 	uint8 *u8 = (void *) header;
-	poke_le32(&u8[19], size + KDA_HEADER_SIZE - 23);
+	poke_le32(&u8[19], size + KDA_HEADER_SIZE - KDA_GTA_HEADER_SIZE);
 }
 
 /*
@@ -307,108 +310,80 @@ kademlia_header_set_function(kademlia_header_t *header, uint8 function)
 
 /*
  * Bytes 24-56: Contact, the node that created the message, with its address
- * architected to an IPv4 one.
+ * architected as an IPv4 one.
  */
 
 static inline uint32
 kademlia_header_get_contact_vendor(const void *header)
 {
-	const uint8 *u8 = header;
-	return kademlia_ipv4_contact_get_vendor(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_vendor(contact);
 }
 
 static inline void
 kademlia_header_set_contact_vendor(kademlia_header_t *header, uint32 vendor)
 {
-	uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_vendor(&u8[24], vendor);
+	kademlia_ipv4_contact_t *contact = kademlia_contact(header);
+	kademlia_ipv4_contact_set_vendor(contact, vendor);
 }
 
 static inline uint8
 kademlia_header_get_contact_major_version(const kademlia_header_t *header)
 {
-	const uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_major_version(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_major_version(contact);
 }
 
 static inline uint8
 kademlia_header_get_contact_minor_version(const kademlia_header_t *header)
 {
-	const uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_minor_version(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_minor_version(contact);
 }
 
 static inline void
 kademlia_header_set_contact_version(kademlia_header_t *header,
 	uint8 major, uint8 minor)
 {
-	const uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_major_version(&u8[24], major);
-	kademlia_ipv4_contact_set_minor_version(&u8[24], minor);
-}
-
-static inline void
-kademlia_header_set_contact_major_version(void *header, uint8 major)
-{
-	const uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_major_version(&u8[24], major);
-}
-
-static inline uint8
-kademlia_header_get_contact_version(const kademlia_header_t *header)
-{
-	const uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_minor_version(&u8[24]);
-}
-
-static inline void
-kademlia_header_set_contact_minor_version(void *header, uint8 minor)
-{
-	const uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_minor_version(&u8[24], minor);
+	kademlia_ipv4_contact_t *contact = kademlia_contact(header);
+	kademlia_ipv4_contact_set_major_version(contact, major);
+	kademlia_ipv4_contact_set_minor_version(contact, minor);
 }
 
 static inline const char *
 kademlia_header_get_contact_kuid(const void *header)
 {
-	uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_kuid(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_kuid(contact);
 }
 
 static inline void
 kademlia_header_set_contact_kuid(void *header, const uchar *kuid)
 {
-	uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_kuid(&u8[24], kuid);
-}
-
-static inline void *
-kademlia_header_contact_kuid_pointer(void *header)
-{
-	uint8 *u8 = (void *) header;
-	return &u8[24];
+	kademlia_ipv4_contact_t *contact = kademlia_contact(header);
+	kademlia_ipv4_contact_set_kuid(contact, kuid);
 }
 
 static inline uint32
 kademlia_header_get_contact_addr(const void *header)
 {
-	uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_addr(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_addr(contact);
 }
 
 static inline uint16
 kademlia_header_get_contact_port(const void *header)
 {
-	uint8 *u8 = (void *) header;
-	return kademlia_ipv4_contact_get_port(&u8[24]);
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+	return kademlia_ipv4_contact_get_port(contact);
 }
 
 static inline void
 kademlia_header_set_contact_addr_port(
 	const void *header, uint32 addr, uint16 port)
 {
-	uint8 *u8 = (void *) header;
-	kademlia_ipv4_contact_set_addr_port(&u8[24], addr, port);
+	kademlia_ipv4_contact_t *contact = kademlia_contact(header);
+	kademlia_ipv4_contact_set_addr_port(contact, addr, port);
 }
 
 /*
@@ -472,12 +447,14 @@ kademlia_header_set_extended_length(kademlia_header_t *header, uint16 len)
  */
 
 static inline bool
-kademlia_header_constants_ok(void *header)
+kademlia_header_constants_ok(const void *header)
 {
 	const uint8 *u8 = header;
+	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
+
 	return
 		0x44 == u8[16] && 
-		4 == kademlia_ipv4_contact_get_addr_length(&u8[24]);
+		4 == kademlia_ipv4_contact_get_addr_length(contact);
 }
 
 /**

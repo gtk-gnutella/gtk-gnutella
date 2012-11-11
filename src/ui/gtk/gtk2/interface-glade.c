@@ -1492,8 +1492,10 @@ create_main_window (void)
   GtkWidget *hbox_port_mapping;
   GtkWidget *eventbox_port_mapping_possible;
   GtkWidget *image_port_mapping_possible;
-  GtkWidget *eventbox_port_mapping_successful;
-  GtkWidget *image_port_mapping_successful;
+  GtkWidget *eventbox_upnp_port_mapping_successful;
+  GtkWidget *image_upnp_successful;
+  GtkWidget *eventbox_natpmp_port_mapping_successful;
+  GtkWidget *image_natpmp_successful;
   GtkWidget *statusbar;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_download_queue_frozen;
@@ -2367,16 +2369,27 @@ create_main_window (void)
   gtk_widget_show (image_port_mapping_possible);
   gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_possible), image_port_mapping_possible);
 
-  eventbox_port_mapping_successful = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
-  gtk_widget_show (eventbox_port_mapping_successful);
-  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_port_mapping_successful, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_port_mapping_successful, _("Port mapping configured through UPnP or NAT-PMP."), NULL);
+  eventbox_upnp_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_upnp_port_mapping_successful, "eventbox_upnp_port_mapping_successful");
+  gtk_widget_show (eventbox_upnp_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_upnp_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_upnp_port_mapping_successful, _("Port mapping configured through UPnP."), NULL);
 
-  image_port_mapping_successful = create_pixmap (main_window, "upnp.xpm");
-  gtk_widget_set_name (image_port_mapping_successful, "image_port_mapping_successful");
-  gtk_widget_show (image_port_mapping_successful);
-  gtk_container_add (GTK_CONTAINER (eventbox_port_mapping_successful), image_port_mapping_successful);
+  image_upnp_successful = create_pixmap (main_window, "upnp.xpm");
+  gtk_widget_set_name (image_upnp_successful, "image_upnp_successful");
+  gtk_widget_show (image_upnp_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_upnp_port_mapping_successful), image_upnp_successful);
+
+  eventbox_natpmp_port_mapping_successful = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_natpmp_port_mapping_successful, "eventbox_natpmp_port_mapping_successful");
+  gtk_widget_show (eventbox_natpmp_port_mapping_successful);
+  gtk_box_pack_start (GTK_BOX (hbox_port_mapping), eventbox_natpmp_port_mapping_successful, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_natpmp_port_mapping_successful, _("Port mapping configured through NAT-PMP."), NULL);
+
+  image_natpmp_successful = create_pixmap (main_window, "natpmp.xpm");
+  gtk_widget_set_name (image_natpmp_successful, "image_natpmp_successful");
+  gtk_widget_show (image_natpmp_successful);
+  gtk_container_add (GTK_CONTAINER (eventbox_natpmp_port_mapping_successful), image_natpmp_successful);
 
   statusbar = gtk_statusbar_new ();
   gtk_widget_set_name (statusbar, "statusbar");
@@ -3004,8 +3017,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hbox_port_mapping, "hbox_port_mapping");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_possible, "eventbox_port_mapping_possible");
   GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_possible, "image_port_mapping_possible");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_port_mapping_successful, "eventbox_port_mapping_successful");
-  GLADE_HOOKUP_OBJECT (main_window, image_port_mapping_successful, "image_port_mapping_successful");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_upnp_port_mapping_successful, "eventbox_upnp_port_mapping_successful");
+  GLADE_HOOKUP_OBJECT (main_window, image_upnp_successful, "image_upnp_successful");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_natpmp_port_mapping_successful, "eventbox_natpmp_port_mapping_successful");
+  GLADE_HOOKUP_OBJECT (main_window, image_natpmp_successful, "image_natpmp_successful");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_download_queue_frozen, "eventbox_image_download_queue_frozen");

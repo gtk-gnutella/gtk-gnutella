@@ -1,3 +1,11 @@
+gtk-gnutella (0.98-4) unstable; urgency=medium
+
+  * New upstream release + important bug fixes.
+  * Updated menu icon, now uses a 32x32 format.
+  * COPYRIGHT section of the manual page now states pure GPL rights.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 11 Nov 2012 17:34:21 +0000
+
 gtk-gnutella (0.98-3) unstable; urgency=medium
 
   * New upstream minor release + important bug fixes.

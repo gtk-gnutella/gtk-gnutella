@@ -18,7 +18,7 @@
 !insertmacro Script 'echo \"!define MINGW $MINGW\"'
 
 ; gtk installer name for embedding
-!define GTK_INSTALLER_EXE "gtk2-runtime-2.24.8-2011-12-03-ash.exe"
+!define GTK_INSTALLER_EXE "gtk2-runtime-2.24.10-2012-10-10-ash.exe"
 !include gtk-gnutella.nsh
 !define PRODUCT_NAME "gtk-gnutella"
 !define PRODUCT_NAME_SMALL "gtk-gnutella"

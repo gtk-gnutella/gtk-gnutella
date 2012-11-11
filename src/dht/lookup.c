@@ -1269,7 +1269,7 @@ lookup_value_append(nlookup_t *nl, float load,
 						nid_to_string(&nl->lid), dht_value_to_string(v),
 						knode_to_string(kn));
 				}
-				gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
+				gnet_stats_inc_general(GNR_DHT_DUP_VALUES);
 				dht_value_free(v, TRUE);
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug) > 2) {
@@ -1539,7 +1539,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (!bstr_read_u8(bs, &expanded)) {
-		reason = "could not read value count";
+		reason = "could not read expanded value count";
 		goto bad;
 	}
 
@@ -1582,11 +1582,27 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 	/*
 	 * Look at secondary keys.
+	 *
+	 * Normally, when there are no secondary keys in the message, there should
+	 * be a trailing 0 (count) but earlier versions of GTKG (prior 0.98.4) did
+	 * not emit it and we were considering that as an error.
+	 *
+	 * From now on, we will emit the trailing 0 byte so that legacy servents
+	 * can parse our responses properly, but we also consider the missing
+	 * trailing count as a normal situation: there are simply no secondary
+	 * keys, and the message was parsed correctly so far.
+	 *		--RAM, 2012-10-28
 	 */
 
 	if (!bstr_read_u8(bs, &seckeys)) {
-		reason = "could not read secondary key count";
-		goto bad;
+		if (GNET_PROPERTY(dht_lookup_debug) || GNET_PROPERTY(dht_debug)) {
+			g_warning("DHT LOOKUP[%s] FIND_VALUE_RESPONSE from %s has no "
+				"secondary keys: reached end of message after %u expanded "
+				"value%s",
+				nid_to_string(&nl->lid), knode_to_string(kn),
+				expanded, 1 == expanded ? "" : "s");
+		}
+		seckeys = 0;
 	}
 
 	if (seckeys)
@@ -2353,7 +2369,7 @@ compute:
 
 	if (!(nl->flags & NL_F_ACTV_PROTECT)) {
 		nl->flags |= NL_F_ACTV_PROTECT;
-		gnet_stats_count_general(GNR_DHT_ACTIVELY_PROTECTED_LOOKUP_PATH, 1);
+		gnet_stats_inc_general(GNR_DHT_ACTIVELY_PROTECTED_LOOKUP_PATH);
 	}
 
 	/*
@@ -2464,7 +2480,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 		prefix[j]--;
 		nodes--;
 
-		gnet_stats_count_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE, 1);
+		gnet_stats_inc_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE);
 		stripped++;
 	}
 
@@ -2500,8 +2516,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 
 	if (dkl >= previous_dkl) {
 		lookup_path_add(nl, removed_kn);
-		gnet_stats_count_general(
-			GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE, -1);
+		gnet_stats_dec_general(GNR_DHT_LOOKUP_REJECTED_NODE_ON_DIVERGENCE);
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] put %s back in path "
@@ -2752,7 +2767,6 @@ static bool
 lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	char *buf, size_t len)
 {
-	const char *msg;
 	gnr_stats_t gnr_stat;
 
 	lookup_check(nl);
@@ -2786,14 +2800,19 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	 */
 
 	if (lookup_c_class_get_count(nl, kn) >= NL_MAX_IN_NET) {
-		msg = "reached class-C net quota";
+		const char *msg = "reached class-C net quota";
+		if (len != 0)
+			g_strlcpy(buf, msg, len);
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA;
 		goto unsafe;
 	} else if (
 		nl->type != LOOKUP_TOKEN &&		/* These aim at a known KUID! */
 		UNSIGNED(nl->max_common_bits) < kuid_common_prefix(kn->id, nl->kuid)
 	) {
-		msg = "suspiciously close to target";
+		if (len != 0) {
+			gm_snprintf(buf, len, "suspiciously close to target %s",
+				kuid_to_hex_string(nl->kuid));
+		}
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
 		goto unsafe;
 	}
@@ -2801,21 +2820,18 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	return TRUE;
 
 unsafe:
-	if (len != 0)
-		g_strlcpy(buf, msg, len);
-
 	/*
 	 * Do not count unsafe nodes more than once per lookup.
 	 */
 
 	if (!map_contains(nl->unsafe, kn->id)) {
-		gnet_stats_count_general(gnr_stat, 1);
+		gnet_stats_inc_general(gnr_stat);
 		map_insert(nl->unsafe, kn->id, knode_refcnt_inc(kn));
 	}
 
 	if (!(nl->flags & NL_F_PASV_PROTECT)) {
 		nl->flags |= NL_F_PASV_PROTECT;
-		gnet_stats_count_general(GNR_DHT_PASSIVELY_PROTECTED_LOOKUP_PATH, 1);
+		gnet_stats_inc_general(GNR_DHT_PASSIVELY_PROTECTED_LOOKUP_PATH);
 	}
 
 	return FALSE;
@@ -2865,7 +2881,7 @@ static void
 lookup_load_path(nlookup_t *nl)
 {
 	patricia_iter_t *iter;
-	char reason[48];
+	char reason[80];
 	size_t reason_len;
 
 	lookup_check(nl);
@@ -2960,7 +2976,7 @@ lookup_handle_reply(
 	sectoken_remote_t *token = NULL;
 	const char *reason;
 	char msg[256];
-	char unsafe[48];
+	char unsafe[80];
 	int n = 0;
 	uint8 contacts;
 	size_t unsafe_len;
@@ -3038,14 +3054,6 @@ lookup_handle_reply(
 			goto bad;
 		}
 
-		if (!knode_is_usable(cn)) {
-			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
-					"%s has unusable address", knode_to_string(cn));
-			}
-			goto skip;
-		}
-
 		/*
 		 * Got a valid contact, but skip it if we already queried it or if
 		 * it is already part of our (unqueried as of yet) shortlist.
@@ -3075,6 +3083,33 @@ lookup_handle_reply(
 			if (GNET_PROPERTY(dht_lookup_debug)) {
 				gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
 					knode_to_string(cn), unsafe);
+			}
+			goto skip;
+		}
+
+		/*
+		 * Some nodes are known to send out bad contact information that needs
+		 * fixing -- see kmsg_received().  Due to that, they can enter the
+		 * routing table of other nodes and have these wrong contact propagated
+		 * in lookups.
+		 *
+		 * Try to fix the contact address in-place if we have the KUID in our
+		 * routing table or recently got an RPC reply from that KUID.
+		 *		--RAM. 2012-11-08
+		 */
+
+		if (dht_fix_contact(cn, "lookup"))
+			gnet_stats_inc_general(GNR_DHT_LOOKUP_FIXED_NODE_CONTACT);
+
+		/*
+		 * Now that we have a proper address, check for hostiles or
+		 * otherwise unusable addresses.
+		 */
+
+		if (!knode_is_usable(cn)) {
+			if (GNET_PROPERTY(dht_lookup_debug)) {
+				gm_snprintf(msg, sizeof msg,
+					"%s has unusable address", knode_to_string(cn));
 			}
 			goto skip;
 		}
@@ -3976,7 +4011,7 @@ lookup_iterate(nlookup_t *nl)
 	GSList *sl;
 	int i = 0;
 	int alpha = KDA_ALPHA;
-	char reason[48];
+	char reason[80];
 	int reason_len;
 
 	lookup_check(nl);
@@ -4904,7 +4939,7 @@ lookup_value_send(nlookup_t *nl)
 
 	lookup_value_check(nl);
 
-	gnet_stats_count_general(GNR_DHT_SECONDARY_KEY_FETCH, 1);
+	gnet_stats_inc_general(GNR_DHT_SECONDARY_KEY_FETCH);
 
 	fv = lookup_fv(nl);
 	sk = lookup_sk(fv);
@@ -4991,7 +5026,7 @@ lookup_value_iterate(nlookup_t *nl)
 				"skipping already retrieved secondary key %s",
 				nid_to_string(&nl->lid), kuid_to_hex_string(sid));
 
-		gnet_stats_count_general(GNR_DHT_DUP_VALUES, 1);
+		gnet_stats_inc_general(GNR_DHT_DUP_VALUES);
 		sk->next_skey++;
 	}
 
@@ -5025,7 +5060,7 @@ lookup_init(void)
 	double log_2 = log(2.0);
 	size_t i;
 
-	nlookups = htable_create_any(nid_hash, NULL, nid_equal);
+	nlookups = htable_create_any(nid_hash, nid_hash2, nid_equal);
 
 	/*
 	 * Build lower triangular matrix of all possible log2(frequency).

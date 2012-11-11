@@ -242,8 +242,10 @@ local_hostname(void)
 {
 	static char name[256 + 1];
 
-	if (-1 == gethostname(name, sizeof name))
+	if (-1 == gethostname(name, sizeof name)) {
 		g_warning("gethostname() failed: %m");
+		name[0] = '\0';
+	}
 
 	name[sizeof(name) - 1] = '\0';
 	return name;
@@ -1458,19 +1460,19 @@ is_printable(const char *buf, int len)
 }
 
 /**
- * Prints a single "dump hex" line which consists of 16 byte from data.
+ * Prints a single "dump hex" line which consists of 16 bytes of data.
  *
- * @param out The stream to print the string at.
- * @param data A pointer to the first byte of the data to dump.
- * @param length The length of data in bytes.
- * @param offset The offset in data to start dumping at.
+ * @param out		the stream to print the string at.
+ * @param data		a pointer to the first byte of the data to dump.
+ * @param length	the length of data in bytes.
+ * @param offset	the offset of the data being printed.
  */
 static void
 dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 {
 	char char_buf[32], hex_buf[64];
 	char *p = hex_buf, *q = char_buf;
-	size_t j, i = offset;
+	size_t j, i = 0;
 
 	for (j = 0; j < 16; j++) {
 		*p++ = ' ';
@@ -1500,39 +1502,98 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 	fprintf(out, "%5u %s  %s\n", (uint) (offset & 0xffff), hex_buf, char_buf);
 }
 
+#define DUMP_LINE_LENGTH	16		/* Amount of bytes per line */
+
 /**
+ * Dump scattered data.
+ *
  * Displays hex & ascii lines to the specified file (for debug)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 void
-dump_hex(FILE *out, const char *title, const void *data, int length)
+dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 {
-	int i;
+	unsigned i;
+	char buf[DUMP_LINE_LENGTH];
+	size_t length = 0;
+	iovec_t *xiov;
 
-	if (length < 0 || data == NULL) {
-		g_carp("dump_hex: value out of range [data=%p, length=%d] for %s",
-			data, length, title);
-		return;
-	}
+	g_assert(iov != NULL);
+	g_assert(iovcnt > 0);
 
 	if (!log_file_printable(out))
 		return;
 
 	fprintf(out, "----------------- %s:\n", title);
 
-	for (i = 0; i < length; i += MIN(length - i, 16)) {
-		if (i % 256 == 0) {
-			if (i > 0) {
+	xiov = wcopy(iov, iovcnt * sizeof iov[0]);	/* Don't modify argument */
+
+	for (i = 0; i < iovcnt; /* empty */) {
+		iovec_t *v = &xiov[i];
+		const void *start = iovec_base(v);
+		size_t len = iovec_len(v);
+		size_t dumping;
+
+		if (len < DUMP_LINE_LENGTH) {
+			memcpy(buf, start, len);
+			i++;
+			while (i < iovcnt && len < DUMP_LINE_LENGTH) {
+				size_t to_copy;
+				size_t missing = DUMP_LINE_LENGTH - len;
+
+				v = &xiov[i++];
+				start = iovec_base(v);
+				to_copy = MIN(missing, iovec_len(v));
+				memcpy(&buf[len], start, to_copy);
+				len += to_copy;
+				iovec_set_base(v, const_ptr_add_offset(start, to_copy));
+				iovec_set_len(v, iovec_len(v) - to_copy);
+			}
+			start = buf;
+		} else {
+			iovec_set_base(v, const_ptr_add_offset(start, DUMP_LINE_LENGTH));
+			iovec_set_len(v, iovec_len(v) - DUMP_LINE_LENGTH);
+		}
+
+		if (0 == length % 256) {
+			if (length != 0) {
 				fputc('\n', out);	/* break after 256 byte chunk */
 			}
 			fputs("Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
 				"0123456789abcdef\n", out);
 		}
-		dump_hex_line(out, data, length, i);
+
+		dumping = MIN(len, DUMP_LINE_LENGTH);
+		dump_hex_line(out, start, dumping, length);
+		length += dumping;
 	}
 
-	fprintf(out, "----------------- (%d bytes).\n", length);
+	wfree(xiov, iovcnt * sizeof iov[0]);
+
+	fprintf(out, "----------------- (%u byte%s).\n",
+		(unsigned) length, 1 == length ? "" : "s");
 	fflush(out);
+}
+
+/**
+ * Dump contiguous data.
+ *
+ * Displays hex & ascii lines to the specified file (for debug)
+ * Displays the "title" then the characters in "s", # of bytes to print in "b"
+ */
+void
+dump_hex(FILE *out, const char *title, const void *data, int length)
+{
+	iovec_t iov;
+
+	if (length < 0 || data == NULL) {
+		g_carp("%s: value out of range [data=%p, length=%d] for %s",
+			G_STRFUNC, data, length, title);
+		return;
+	}
+
+	iovec_set(&iov, data, length);
+	dump_hex_vec(out, title, &iov, 1);
 }
 
 /**

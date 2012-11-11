@@ -197,6 +197,7 @@ static const struct {
 	{ "tr",			MIME_TYPE_APPLICATION_TROFF },
 	{ "txt",		MIME_TYPE_TEXT_PLAIN },
 	{ "wav",		MIME_TYPE_AUDIO_WAVE },
+	{ "webm",		MIME_TYPE_VIDEO_WEBM },	/* Could also be audio-only! */
 	{ "wma",		MIME_TYPE_AUDIO_MS_ASF },
 	{ "wmv",		MIME_TYPE_VIDEO_MS_ASF },
 	{ "xhtml",		MIME_TYPE_TEXT_XHTML },
@@ -205,6 +206,7 @@ static const struct {
 	{ "xpm",		MIME_TYPE_IMAGE_XPM },
 	{ "z",			MIME_TYPE_APPLICATION_COMPRESS },
 	{ "zip",		MIME_TYPE_APPLICATION_ZIP },
+	{ "zoo",		MIME_TYPE_APPLICATION_ZOO },
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
@@ -228,6 +230,14 @@ mime_type_to_string(enum mime_type type)
 	return names[i];
 }
 
+/**
+ * Computes the MIME type to use based on the supplied file extension.
+ *
+ * @param extension		the file name extension (e.g. "zip" or "html")
+ *
+ * @return the dedicated MIME type, or MIME_TYPE_APPLICATION_OCTET_STREAM when
+ * the extension is not recognized.
+ */
 enum mime_type
 mime_type_from_extension(const char *extension)
 {
@@ -243,6 +253,17 @@ mime_type_from_extension(const char *extension)
 	return MIME_TYPE_APPLICATION_OCTET_STREAM;
 }
 
+/**
+ * Computes the MIME type to use based on the extension present in the
+ * file name.
+ *
+ * The extension is whatever comes after the final "." in the name.
+ *
+ * @param filename		the file name
+ *
+ * @return the dedicated MIME type, or MIME_TYPE_APPLICATION_OCTET_STREAM when
+ * the extension is not recognized.
+ */
 enum mime_type
 mime_type_from_filename(const char *filename)
 {
@@ -253,17 +274,24 @@ mime_type_from_filename(const char *filename)
 	return mime_type_from_extension(extension ? &extension[1] : NULL);
 }
 
+/**
+ * Initialize the MIME table.
+ */
 G_GNUC_COLD void
 mime_type_init(void)
 {
 	size_t i;
+
+	/*
+	 * Ensure the MIME table is sorted.
+	 */
 
 	for (i = 0; i < G_N_ELEMENTS(mime_type_map); i++) {
 		enum mime_type ret;
 
 		ret = mime_type_from_extension(mime_type_map[i].extension);
 		if (ret != mime_type_map[i].type) {
-			g_error("mime_type_map is not sorted!");
+			g_error("mime_type_map[] is not sorted!");
 		}
 	}
 }

@@ -1714,9 +1714,9 @@ prop = {
 		  "s3m;shn;sid;smc;smd;spx;srt;stm;"
 		  "tar;tbz2;tgz;bittorrent;torrent;txt;"
 		  "vob;voc;vqf;"
-		  "wav;"
+		  "wav;webm;"
 		  "xm;xvid;"
-		  "zip";
+		  "zip;zoo";
     };
 };
 
@@ -4023,7 +4023,7 @@ prop = {
     desc = "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it "
 		"is kept in a fast disk database, which saves a large amount of "
 		"core memory and reduces the overall footprint, at the cost of an "
-		"increased I/O level. However, the DB cache has typically a 90% hit "
+		"increased I/O level. However, the DB cache has a 90 percent hit "
 		"rate, so the actual overhead is barely noticeable when running as an "
 		"ultra node and should remain completely unnoticed when running as a "
 		"leaf.";
@@ -5158,6 +5158,165 @@ prop = {
 			"regardless of the GUESS bandwidth hint.  If FALSE, only the "
 			"configured bandwidth hint will be used.  When running as a leaf "
 			"this should be set to TRUE to make GUESS queries run faster.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+	name = "udp_sched_debug";
+	desc = "Debug level for the UDP TX scheduler.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "tx_ut_debug_flags";
+	desc = "Debugging flags for the semi-reliable UDP TX layer: "
+		"1: messages, "
+		"2: fragments, "
+		"4: acknowledgments, "
+		"8: transmissions, "
+		"16: timeouts.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "rx_debug_addrs";
+    desc = "Comma-separated list of RX debugging hosts (IP addresses only)";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+	name = "rx_ut_debug_flags";
+	desc = "Debugging flags for the semi-reliable UDP RX layer: "
+		"1: messages, "
+		"2: fragments, "
+		"4: acknowledgments, "
+		"8: receptions, "
+		"16: timeouts.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+	name = "log_sr_udp_tx";
+	desc = "Whether to log sent semi-reliable UDP messages.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_sr_udp_rx";
+	desc = "Whether to log received semi-reliable UDP messages.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "secure_oob_debug";
+	desc = "Debug level for the secured OOB query hit claiming.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
+	name = "log_vmsg_tx";
+	desc = "Whether to log sent vendor messages.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_vmsg_rx";
+	desc = "Whether to log received vendor messages.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "dht_tcache_debug_flags";
+	desc = "Debugging flags for the DHT token cache (developers only).";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+	name = "log_weird_dht_headers";
+	desc = "Whether to log weird DHT message headers when debugging.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "dht_rpc_debug";
+    desc = "Debug level for the DHT Remote Procedure Call (RPC) code.";
+	type = guint32;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "log_uhc_pings_rx";
+	desc = "Whether to log UHC pings we receive.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "log_uhc_pings_tx";
+	desc = "Whether to log UHC pings we emit.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+	name = "clean_shutdown";
+	desc = "Whether the program was properly shutdown.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+	name = "clean_restart";
+	desc = "Whether the program restarted after a clean shutdown.";
+    save = FALSE;
     type = boolean;
     data = {
         default = TRUE;

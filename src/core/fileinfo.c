@@ -2261,7 +2261,7 @@ file_info_close(void)
 	hikset_foreach(fi_by_guid, file_info_free_guid_kv, NULL);
 	hikset_foreach(fi_by_outname, file_info_free_outname_kv, NULL);
 
-	g_assert(0 == idtable_ids(src_handle_map));
+	g_assert(0 == idtable_count(src_handle_map));
 	idtable_destroy(src_handle_map);
 
 	for (i = 0; i < G_N_ELEMENTS(src_events); i++) {
@@ -2274,7 +2274,7 @@ file_info_close(void)
 	 *      --Richard, 9/3/2003
 	 */
 
-	g_assert(0 == idtable_ids(fi_handle_map));
+	g_assert(0 == idtable_count(fi_handle_map));
 	idtable_destroy(fi_handle_map);
 
 	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
@@ -7090,7 +7090,7 @@ file_info_init(void)
 	fi_by_outname  = hikset_create(offsetof(fileinfo_t, pathname),
 						HASH_KEY_STRING, 0);
 
-    fi_handle_map = idtable_new();
+    fi_handle_map = idtable_new(32);
 
     fi_events[EV_FI_ADDED]          = event_new("fi_added");
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
@@ -7100,7 +7100,7 @@ file_info_init(void)
     fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] =
 									  event_new("fi_status_changed_transient");
 
-	src_handle_map = idtable_new();
+	src_handle_map = idtable_new(32);
 
 	src_events[EV_SRC_ADDED]			= event_new("src_added");
 	src_events[EV_SRC_REMOVED]			= event_new("src_removed");

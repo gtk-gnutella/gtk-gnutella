@@ -34,17 +34,18 @@
 
 #include "common.h"
 
-#include "debug.h"
 #include "dbmw.h"
+#include "bstr.h"
 #include "dbmap.h"
+#include "debug.h"
+#include "hashlist.h"
 #include "map.h"
 #include "pmsg.h"
-#include "bstr.h"
-#include "hashlist.h"
 #include "stacktrace.h"
 #include "stringify.h"
-#include "zalloc.h"
 #include "walloc.h"
+#include "zalloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 #define DBMW_CACHE	128			/**< Default amount of items to cache */
@@ -71,9 +72,12 @@ struct dbmw {
 	size_t value_size;			/**< Maximum size of values (structure) */
 	size_t value_data_size;		/**< Maximum size of values (serialized form) */
 	size_t max_cached;			/**< Max amount of items to cache */
+	ssize_t cached;				/**< Cached entries not present in dbmap */
 	dbmw_serialize_t pack;		/**< Serialization routine for values */
 	dbmw_deserialize_t unpack;	/**< Deserialization routine for values */
 	dbmw_free_t valfree;		/**< Free routine for deserialized values */
+	const dbg_config_t *dbg;	/**< Optional debugging */
+	dbg_config_t *dbmap_dbg;	/**< Object created for DBMAP debugging */
 	int error;					/**< Last errno value */
 	unsigned ioerr:1;			/**< Had I/O error */
 	unsigned count_needs_sync:1;/**< Whether we need to sync to get count */
@@ -169,7 +173,7 @@ dbmw_count(dbmw_t *dw)
 	if (dw->count_needs_sync)
 		dbmw_sync(dw, DBMW_SYNC_CACHE);
 
-	return dbmap_count(dw->dm);
+	return dbmap_count(dw->dm) + dw->cached;
 }
 
 /**
@@ -196,7 +200,7 @@ dbmw_t *
 dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func)
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func)
 {
 	dbmw_t *dw;
 
@@ -322,10 +326,8 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 			if (dval.len > dw->value_data_size) {
 				/* Don't g_carp() as this is asynchronous wrt data change */
 				g_critical("DBMW \"%s\" serialization overflow in %s() "
-					"whilst %s dirty entry",
-					dw->name,
-					stacktrace_routine_name(func_to_pointer(dw->pack), FALSE),
-					value->absent ? "deleting" : "flushing");
+					"whilst flushing dirty entry",
+					dw->name, stacktrace_function_name(dw->pack));
 				return FALSE;
 			}
 		} else {
@@ -341,10 +343,15 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 	 * Dirty bit is cleared on success.
 	 */
 
-	if (common_dbg > 4)
-		g_debug("DBMW \"%s\" %s dirty value (%zu byte%s)",
-			dw->name, value->absent ? "deleting" : "flushing",
-			dval.len, 1 == dval.len ? "" : "s");
+	if (
+		dbg_ds_debugging(dw->dbg, 1,
+			DBG_DSF_CACHING | DBG_DSF_UPDATE | DBG_DSF_INSERT | DBG_DSF_DELETE)
+	) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s dirty value (%zu byte%s) key=%s",
+			G_STRFUNC, value->absent ? "deleting" : "flushing",
+			dval.len, 1 == dval.len ? "" : "s",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+	}
 
 	dw->ioerr = FALSE;
 	ok = value->absent ?
@@ -412,6 +419,13 @@ remove_entry(dbmw_t *dw, const void *key, bool dispose, bool flush)
 		return NULL;
 
 	g_assert(old != NULL);
+
+	if (dbg_ds_debugging(dw->dbg, 3, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s key=%s (%s)",
+			G_STRFUNC, old->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			flush ? "flushing" : " discarding");
+	}
 
 	if (old->dirty && flush)
 		write_back(dw, key, old);
@@ -552,6 +566,19 @@ cache_reset_before_traversal(void *u_key, void *value, void *u_data)
 }
 
 /**
+ * Structure used as context by dbmw_foreach_*trampoline().
+ */
+struct foreach_ctx {
+	union {
+		dbmw_cb_t cb;
+		dbmw_cbr_t cbr;
+		void *any;			/* For logging the function pointer */
+	} u;
+	void *arg;
+	dbmw_t *dw;
+};
+
+/**
  * Structure used to iterate on the cached entries that were not traversed.
  */
 struct cache_foreach_ctx {
@@ -561,6 +588,9 @@ struct cache_foreach_ctx {
 		dbmap_cbr_t cbr;
 	} u;
 	unsigned removing:1;	/* Union discriminant */
+	unsigned warned_clean_key:1;	/* Did we warn during cache traversal? */
+	size_t removed;			/* Counts cached entries that are removed */
+	size_t cached;			/* Counts cached entries not present in dbmap */
 };
 
 /**
@@ -577,6 +607,33 @@ cache_finish_traversal(void *key, void *value, void *data)
 	if (entry->traversed)
 		return;
 
+#define dw	fctx->foreach->dw
+
+	if (dbg_ds_debugging(dw->dbg, 3, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: traversing cached %s key=%s%s",
+			G_STRFUNC, entry->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			entry->absent ? " (absent)" : "");
+	}
+
+	if (entry->absent)
+		return;				/* Entry not there, just caching it is missing */
+
+	/*
+	 * We should not be traversing a clean entry at this stage: if the entry
+	 * is clean, it means it was flushed to the database, and we should
+	 * have traversed it already.  Loudly warn, but process anyway!
+	 */
+
+	if (!entry->dirty && !fctx->warned_clean_key) {
+		fctx->warned_clean_key = TRUE;
+		g_carp("%s(): DBMW \"%s\" iterating via %s over a clean key in cache",
+			G_STRFUNC, dw->name,
+			stacktrace_routine_name(fctx->foreach->u.any, FALSE));
+	}
+
+#undef dw
+
 	d.data = entry->data;
 	d.len = entry->len;
 
@@ -584,12 +641,21 @@ cache_finish_traversal(void *key, void *value, void *data)
 	 * We ignore the returned value because to-be-removed data (when traversing
 	 * for removal) will be marked as "removable": we can't delete them yet as
 	 * we are traversing the cache structure already.
+	 *
+	 * For values we're keeping, we increment the cached count: these are keys
+	 * present in the cache but not in the underlying database because they
+	 * have not been flushed yet.  Knowing this count allows us to compute an
+	 * accurate item count without flushing.
 	 */
 
 	if (fctx->removing) {
-		(void) (*fctx->u.cbr)(key, &d, fctx->foreach);
+		if ((*fctx->u.cbr)(key, &d, fctx->foreach))
+			fctx->removed++;	/* Item removed in cache_free_removable() */
+		else
+			fctx->cached++;
 	} else {
 		(*fctx->u.cb)(key, &d, fctx->foreach);
+		fctx->cached++;
 	}
 }
 
@@ -667,6 +733,7 @@ ssize_t
 dbmw_sync(dbmw_t *dw, int which)
 {
 	ssize_t amount = 0;
+	size_t pages = 0, values = 0;
 	bool error = FALSE;
 
 	if (which & DBMW_SYNC_CACHE) {
@@ -677,19 +744,49 @@ dbmw_sync(dbmw_t *dw, int which)
 		ctx.deleted_only = booleanize(which & DBMW_DELETED_ONLY);
 		ctx.amount = 0;
 
+		if (dbg_ds_debugging(dw->dbg, 6, DBG_DSF_CACHING)) {
+			dbg_ds_log(dw->dbg, dw, "%s: syncing cache%s",
+				G_STRFUNC, ctx.deleted_only ? " (deleted only)" : "");
+		}
+
 		map_foreach(dw->values, flush_dirty, &ctx);
-		if (!ctx.error)
+
+		if (!ctx.error && !ctx.deleted_only)
 			dw->count_needs_sync = FALSE;
 
+		/*
+		 * We can safely reset the amount of cached entries to 0, regardless
+		 * of whether we only sync'ed deleted entries: that value is rather
+		 * meaningless when ``count_needs_sync'' is TRUE anyway since we will
+		 * come here first, and we'll then reset it to zero.
+		 */
+
+		dw->cached = 0;		/* No more dirty values */
+
 		amount += ctx.amount;
+		values = ctx.amount;
 		error = ctx.error;
 	}
 	if (which & DBMW_SYNC_MAP) {
-		ssize_t ret = dbmap_sync(dw->dm);
-		if (-1 == ret)
+		ssize_t ret;
+
+		if (dbg_ds_debugging(dw->dbg, 6, DBG_DSF_CACHING))
+			dbg_ds_log(dw->dbg, dw, "%s: syncing map", G_STRFUNC);
+
+		ret = dbmap_sync(dw->dm);
+		if (-1 == ret) {
 			error = TRUE;
-		else
+		} else {
 			amount += ret;
+			pages = ret;
+		}
+	}
+
+	if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: %s (flushed %zu value%s, %zu page%s)",
+			G_STRFUNC, error ? "FAILED" : "OK",
+			values, 1 == values ? "" : "s",
+			pages, 1 == pages ? "" : "s");
 	}
 
 	return error ? -1 : amount;
@@ -809,17 +906,36 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (was absent)" : "");
+		}
+
 		if (entry->dirty)
 			dw->w_hits++;
-		else if (entry->absent)
-			dw->count_needs_sync = TRUE;	/* Key exists now */
+		if (entry->absent)
+			dw->cached++;			/* Key exists now, in unflushed status */
 		fill_entry(dw, entry, value, length);
 		hash_list_moveto_tail(dw->keys, key);
+
 	} else if (dw->max_cached > 1) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: deferring key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		entry = allocate_entry(dw, key, NULL);
 		fill_entry(dw, entry, value, length);
 		dw->count_needs_sync = TRUE;	/* Does not know whether key exists */
+
 	} else { 
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: writing key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		write_immediately(dw, key, value, length);
 	}
 }
@@ -853,6 +969,13 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING | DBG_DSF_ACCESS)) {
+			dbg_ds_log(dw->dbg, dw, "%s: read cache hit on %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (absent)" : "");
+		}
+
 		dw->r_hits++;
 		if (lenptr)
 			*lenptr = entry->len;
@@ -897,8 +1020,7 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
 			g_carp("DBMW \"%s\" deserialization error in %s(): %s",
-				dw->name,
-				stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+				dw->name, stacktrace_function_name(dw->unpack),
 				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
 			wfree(entry->data, dw->value_size);
@@ -931,6 +1053,13 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 
 	(void) allocate_entry(dw, key, entry);
 
+	if (dbg_ds_debugging(dw->dbg, 4, DBG_DSF_CACHING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: cached %s key=%s%s",
+			G_STRFUNC, entry->dirty ? "dirty" : "clean",
+			dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+			entry->absent ? " (absent)" : "");
+	}
+
 	return entry->data;
 }
 
@@ -950,6 +1079,13 @@ dbmw_exists(dbmw_t *dw, const void *key)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING | DBG_DSF_ACCESS)) {
+			dbg_ds_log(dw->dbg, dw, "%s: read cache hit on %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (absent)" : "");
+		}
+
 		dw->r_hits++;
 		return !entry->absent;
 	}
@@ -982,6 +1118,12 @@ dbmw_exists(dbmw_t *dw, const void *key)
 		WALLOC0(entry);
 		entry->absent = !ret;
 		(void) allocate_entry(dw, key, entry);
+
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING)) {
+			dbg_ds_log(dw->dbg, dw, "%s: cached %s key=%s",
+				G_STRFUNC, entry->absent ? "absent" : "present",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
 	}
 
 	return ret;
@@ -1002,15 +1144,44 @@ dbmw_delete(dbmw_t *dw, const void *key)
 
 	entry = map_lookup(dw->values, key);
 	if (entry) {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_DELETE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: %s key=%s%s",
+				G_STRFUNC, entry->dirty ? "dirty" : "clean",
+				dbg_ds_keystr(dw->dbg, key, (size_t) -1),
+				entry->absent ? " (was absent)" : "");
+		}
+
 		if (entry->dirty)
 			dw->w_hits++;
 		if (!entry->absent) {
-			dw->count_needs_sync = TRUE;	/* Deferred delete */
+			/*
+			 * Entry was present but is now deleted.
+			 *
+			 * If it was clean, then it was flushed to the database and we now
+			 * know that there is one less entry in the database than there is
+			 * physically present in the map.
+			 *
+			 * If it was dirty, then we do not know whether it exists in the
+			 * database or not, and therefore we cannot adjust the amount
+			 * of cached entries down.
+			 */
+
+			if (entry->dirty)
+				dw->count_needs_sync = TRUE;	/* Deferred delete */
+			else
+				dw->cached--;					/* One less entry in database */
+
 			fill_entry(dw, entry, NULL, 0);
 			entry->absent = TRUE;
 		}
 		hash_list_moveto_tail(dw->keys, key);
+
 	} else {
+		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_DELETE)) {
+			dbg_ds_log(dw->dbg, dw, "%s: removing key=%s",
+				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+		}
+
 		dw->ioerr = FALSE;
 		dbmap_remove(dw->dm, key);
 
@@ -1035,6 +1206,11 @@ dbmw_delete(dbmw_t *dw, const void *key)
 			WALLOC0(entry);
 			entry->absent = TRUE;
 			(void) allocate_entry(dw, key, entry);
+
+			if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING)) {
+				dbg_ds_log(dw->dbg, dw, "%s: cached absent key=%s",
+					G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
+			}
 		}
 	}
 }
@@ -1089,6 +1265,7 @@ dbmw_clear(dbmw_t *dw)
 	dbmw_clear_cache(dw);
 	dw->ioerr = FALSE;
 	dw->count_needs_sync = FALSE;
+	dw->cached = 0;
 
 	return TRUE;
 }
@@ -1101,7 +1278,7 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 {
 	dbmw_check(dw);
 
-	if (common_stats)
+	if (common_stats) {
 		g_debug("DBMW destroying \"%s\" with %s back-end "
 			"(read cache hits = %.2f%% on %s request%s, "
 			"write cache hits = %.2f%% on %s request%s)",
@@ -1110,6 +1287,18 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
 			dw->w_hits * 100.0 / MAX(1, dw->w_access),
 			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+	}
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_DESTROY)) {
+		dbg_ds_log(dw->dbg, dw, "%s: with %s back-end "
+			"(read cache hits = %.2f%% on %s request%s, "
+			"write cache hits = %.2f%% on %s request%s)",
+			G_STRFUNC, dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
+			dw->r_hits * 100.0 / MAX(1, dw->r_access),
+			uint64_to_string(dw->r_access), 1 == dw->r_access ? "" : "s",
+			dw->w_hits * 100.0 / MAX(1, dw->w_access),
+			uint64_to_string2(dw->w_access), 1 == dw->w_access ? "" : "s");
+	}
 
 	/*
 	 * If we close the map and we're volatile, there's no need to flush
@@ -1131,21 +1320,10 @@ dbmw_destroy(dbmw_t *dw, bool close_map)
 	if (close_map)
 		dbmap_destroy(dw->dm);
 
+	WFREE_TYPE_NULL(dw->dbmap_dbg);
 	dw->magic = 0;
 	WFREE(dw);
 }
-
-/**
- * Structure used as context by dbmw_foreach_*trampoline().
- */
-struct foreach_ctx {
-	union {
-		dbmw_cb_t cb;
-		dbmw_cbr_t cbr;
-	} u;
-	void *arg;
-	dbmw_t *dw;
-};
 
 /**
  * Common code for dbmw_foreach_trampoline() and
@@ -1177,12 +1355,20 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 		 *   - Should the cached key need to be deleted (as determined by
 		 *     the user callback, we make sure we delete the entry in the
 		 *     cache upon callback return).
+		 *
+		 * Because we sync the cache (the dirty deleted items only), we should
+		 * normally never iterate on a deleted entry, coming from the
+		 * underlying database, hence we loudly complain!
 		 */
 
 		entry->traversed = TRUE;	/* Signal we iterated on cached value */
 
-		if (entry->absent)
+		if (entry->absent) {
+			g_carp("%s(): DBMW \"%s\" iterating over a %s absent key in cache!",
+				G_STRFUNC, dw->name, entry->dirty ? "dirty" : "clean");
 			return TRUE;		/* Key was already deleted, info cached */
+		}
+
 		if (removing) {
 			bool status;
 			status = (*ctx->u.cbr)(key, entry->data, entry->len, ctx->arg);
@@ -1213,7 +1399,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
 				g_carp("DBMW \"%s\" deserialization error in %s(): %s",
 					dw->name,
-					stacktrace_routine_name(func_to_pointer(dw->unpack), FALSE),
+					stacktrace_function_name(dw->unpack),
 					bstr_error(dw->bs));
 				/* Not calling value free routine on deserialization failures */
 				wfree(data, len);
@@ -1267,6 +1453,11 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 
 	dbmw_check(dw);
 
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
+			stacktrace_function_name(cb), arg);
+	}
+
 	/*
 	 * Before iterating we flush the deleted keys we know about in the cache
 	 * and whose deletion was deferred, so that the underlying map will
@@ -1295,26 +1486,47 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 	/*
 	 * Continue traversal with all the cached entries that were not traversed
 	 * already because they do not exist in the underlying map.
+	 *
+	 * We count these and remember how many there are so that we can determine
+	 * the correct overall item count after an iteration without having to
+	 * flush all the dirty values!
 	 */
 
-	fctx.removing = FALSE;
+	ZERO(&fctx);
 	fctx.foreach = &ctx;
 	fctx.u.cb = dbmw_foreach_trampoline;
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
+	dw->cached = fctx.cached;
+	dw->count_needs_sync = FALSE;	/* We just counted items the slow way! */
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)"
+			"has %zu unflushed entr%s in cache", G_STRFUNC,
+			stacktrace_function_name(cb), arg,
+			dw->cached, 1 == dw->cached ? "y" : "ies");
+	}
 }
 
 /**
  * Iterate over the DB, invoking the callback on each item along with the
  * supplied argument and removing the item when the callback returns TRUE.
+ *
+ * @return the amount of removed entries.
  */
-void
+size_t
 dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 {
 	struct foreach_ctx ctx;
 	struct cache_foreach_ctx fctx;
+	size_t pruned;
 
 	dbmw_check(dw);
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: starting with %s(%p)", G_STRFUNC,
+			stacktrace_function_name(cbr), arg);
+	}
 
 	/*
 	 * Before iterating we flush the deleted keys we know about in the cache
@@ -1339,8 +1551,9 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	ctx.dw = dw;
 
 	map_foreach(dw->values, cache_reset_before_traversal, NULL);
-	dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
+	pruned = dbmap_foreach_remove(dw->dm, dbmw_foreach_remove_trampoline, &ctx);
 
+	ZERO(&fctx);
 	fctx.removing = TRUE;
 	fctx.foreach = &ctx;
 	fctx.u.cbr = dbmw_foreach_remove_trampoline;
@@ -1349,6 +1562,10 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 	 * Continue traversal with all the cached entries that were not traversed
 	 * already because they do not exist in the underlying map.
 	 *
+	 * We count these and remember how many there are so that we can determine
+	 * the correct overall item count after an iteration without having to
+	 * flush all the dirty values!
+	 *
 	 * Any cached entry that needs to be removed will be marked as such
 	 * and we'll complete processing by discarding from the cache all
 	 * the entries that have been marked as "removable" during the traversal.
@@ -1356,6 +1573,20 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 
 	map_foreach(dw->values, cache_finish_traversal, &fctx);
 	map_foreach_remove(dw->values, cache_free_removable, dw);
+	dw->cached = fctx.cached;
+	dw->count_needs_sync = FALSE;	/* We just counted items the slow way! */
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_ITERATOR)) {
+		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p): "
+			"pruned %zu from dbmap, %zu from cache (%zu total), "
+			"has %zu unflushed entr%s in cache",
+			G_STRFUNC,
+			stacktrace_function_name(cbr), arg,
+			pruned, fctx.removed, pruned + fctx.removed,
+			dw->cached, 1 == dw->cached ? "y" : "ies");
+	}
+
+	return pruned + fctx.removed;
 }
 
 /**
@@ -1449,6 +1680,37 @@ dbmw_set_volatile(dbmw_t *dw, bool is_volatile)
 
 	dw->is_volatile = TRUE;
 	return 0 == dbmap_set_volatile(dw->dm, is_volatile);
+}
+
+/**
+ * Record debugging configuration.
+ */
+void
+dbmw_set_debugging(dbmw_t *dw, const dbg_config_t *dbg)
+{
+	dbmw_check(dw);
+
+	dw->dbg = dbg;
+
+	if (dbg_ds_debugging(dw->dbg, 1, DBG_DSF_DEBUGGING)) {
+		dbg_ds_log(dw->dbg, dw, "%s: attached with %s back-end "
+			"(max cached = %zu, key=%zu bytes, value=%zu bytes, "
+			"%zu max serialized)", G_STRFUNC,
+			dbmw_map_type(dw) == DBMAP_SDBM ? "sdbm" : "map",
+			dw->max_cached, dw->key_size, dw->value_size, dw->value_data_size);
+	}
+
+	/*
+	 * Patch in place for the DBMAP.
+	 */
+
+	WFREE_TYPE_NULL(dw->dbmap_dbg);
+
+	dw->dbmap_dbg = WCOPY(dbg);
+	dw->dbmap_dbg->o2str = NULL;
+	dw->dbmap_dbg->type = "DBMAP";
+
+	dbmap_set_debugging(dw->dm, dw->dbmap_dbg);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

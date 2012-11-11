@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Gnutella Generic Extension Protocol (GGEP).
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2012
  */
 
 #ifndef _core_ggep_h_
@@ -81,10 +81,27 @@
 #define GGEP_W_COBS		(1U << 1)	/**< Attempt COBS encoding, if needed */
 #define GGEP_W_DEFLATE	(1U << 2)	/**< Attempt payload compression */
 
+/*
+ * Error codes.
+ */
+
+#define GGEP_E_OK		0			/**< OK */
+#define GGEP_E_SPACE	1			/**< No more space in output buffer */
+#define GGEP_E_DEFLATE	2			/**< Error during zlib deflation */
+#define GGEP_E_COBS		3			/**< Error during COBS encoding */
+#define GGEP_E_ZCLOSE	4			/**< Error during zlib stream close */
+#define GGEP_E_INFLATE	5			/**< Error during zlib inflation */
+#define GGEP_E_CCLOSE	6			/**< Error during COBS stream close */
+#define GGEP_E_UNCOBS	7			/**< Unable to un-COBS data */
+#define GGEP_E_LARGE	8			/**< GGEP payload too large */
+#define GGEP_E_INTERNAL	9			/**< Internal error */
+
 enum ggep_magic { GGEP_MAGIC_ID = 0x62961da4U };
 
 /**
  * Structure keeping track of incremental GGEP writes.
+ *
+ * It is made visible to allow allocation on the stack.
  */
 typedef struct ggep_stream {
 	enum ggep_magic magic;	/**< Magic number */
@@ -107,6 +124,9 @@ typedef struct ggep_stream {
  * Public interface.
  */
 
+const char *ggep_strerror(unsigned errnum);
+extern unsigned ggep_errno;
+
 int ggep_decode_into(extvec_t *exv, char *buf, size_t len);
 
 void ggep_stream_init(ggep_stream_t *gs, void *data, size_t len);
@@ -122,6 +142,15 @@ bool ggep_stream_pack(ggep_stream_t *gs,
 	const char *id, const void *payload, size_t plen, uint32 wflags);
 
 bool ggep_stream_is_valid(ggep_stream_t *gs);
+
+/**
+ * @return human-readable error string for last error (current ggep_errno).
+ */
+static inline const char *
+ggep_errstr(void)
+{
+	return ggep_strerror(ggep_errno);
+}
 
 #endif	/* _core_ggep_h_ */
 

@@ -37,6 +37,7 @@
 #include "common.h"
 
 #include "lib/gnet_host.h"
+#include "lib/pmsg.h"
 
 struct txdrv_ops;
 struct bio_source;
@@ -44,11 +45,13 @@ struct gnutella_node;
 
 typedef void (*tx_service_t)(void *obj);
 
+enum txdrv_magic { TXDRV_MAGIC = 0x5189ae4d };
+
 /**
  * A network driver.
  */
-
 typedef struct txdriver {
+	enum txdrv_magic magic;			/**< Magic number */
 	void *owner;					/**< Object owning the stack */
 	gnet_host_t host;				/**< Host information (ip, port) */
 	const struct txdrv_ops *ops;	/**< Dynamically dispatched operations */
@@ -59,6 +62,13 @@ typedef struct txdriver {
 	void *srv_arg;					/**< Service routine argument */
 	void *opaque;					/**< Used by heirs to store specific info */
 } txdrv_t;
+
+static inline void
+tx_check(const txdrv_t *tx)
+{
+	g_assert(tx != NULL);
+	g_assert(TXDRV_MAGIC == tx->magic);
+}
 
 /*
  * Driver flags.
@@ -81,8 +91,7 @@ struct txdrv_ops {
 	void (*destroy)(txdrv_t *tx);
 	ssize_t (*write)(txdrv_t *tx, const void *data, size_t len);
 	ssize_t (*writev)(txdrv_t *tx, iovec_t *iov, int iovcnt);
-	ssize_t (*sendto)(txdrv_t *tx, const gnet_host_t *to,
-							const void *data, size_t len);
+	ssize_t (*sendto)(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to);
 	void (*enable)(txdrv_t *tx);
 	void (*disable)(txdrv_t *tx);
 	size_t (*pending)(txdrv_t *tx);
@@ -104,8 +113,7 @@ void tx_free(txdrv_t *tx);
 void tx_collect(void);
 ssize_t tx_write(txdrv_t *tx, const void *data, size_t len);
 ssize_t tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt);
-ssize_t tx_sendto(txdrv_t *tx, const gnet_host_t *to,
-					const void *data, size_t len);
+ssize_t tx_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to);
 void tx_srv_register(txdrv_t *d, tx_service_t srv_fn, void *srv_arg);
 void tx_srv_enable(txdrv_t *tx);
 void tx_srv_disable(txdrv_t *tx);
@@ -113,8 +121,7 @@ size_t tx_pending(txdrv_t *tx);
 struct bio_source *tx_bio_source(txdrv_t *tx);
 ssize_t tx_no_write(txdrv_t *tx, const void *data, size_t len);
 ssize_t tx_no_writev(txdrv_t *tx, iovec_t *iov, int iovcnt);
-ssize_t tx_no_sendto(txdrv_t *tx, const gnet_host_t *to,
-			const void *data, size_t len);
+ssize_t tx_no_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to);
 void tx_flush(txdrv_t *tx);
 void tx_shutdown(txdrv_t *tx);
 void tx_close(txdrv_t *d, tx_closed_t cb, void *arg);

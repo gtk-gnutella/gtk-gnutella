@@ -182,7 +182,6 @@ void upload_timer(time_t now);
 void upload_remove(struct upload *, const char *, ...) G_GNUC_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *);
-void upload_connect_conf(struct upload *);
 void upload_init(void);
 void upload_close(void);
 void upload_stop_all(struct dl_file_info *, const char *reason);

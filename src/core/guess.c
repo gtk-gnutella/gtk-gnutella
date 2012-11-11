@@ -604,7 +604,7 @@ delete_qkdata(const gnet_host_t *host)
 {
 	guess_cache_remove(host);		/* In case it is in the 0.2 host cache */
 	dbmw_delete(db_qkdata, host);
-	gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, -1);
+	gnet_stats_dec_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 
 	if (GNET_PROPERTY(guess_client_debug) > 5) {
 		g_debug("GUESS QKCACHE query key for %s reclaimed",
@@ -929,7 +929,7 @@ guess_rpc_register(const gnet_host_t *host, const guid_t *muid,
 
 	if (htable_contains(pending, &key)) {
 		if (GNET_PROPERTY(guess_client_debug) > 1) {
-			g_message("GUESS cannot issue RPC to %s with MUID=%s yet",
+			g_message("GUESS cannot issue RPC to %s with #%s yet",
 				gnet_host_to_string(host), guid_hex_str(muid));
 		}
 		return NULL;	/* Cannot issue RPC yet */
@@ -992,7 +992,7 @@ guess_rpc_handle(struct gnutella_node *n)
 
 		if (grp->pmi != NULL) {
 			if (GNET_PROPERTY(guess_client_debug)) {
-				g_warning("GUESS QUERY[%s] got RPC reply for %s from %s "
+				g_warning("GUESS QUERY[%s] got RPC reply for #%s from %s "
 					"but message to %s still unsent?",
 					nid_to_string(&gq->gid), guid_hex_str(key.muid),
 					node_infostr(n), gnet_host_to_string(grp->pmi->host));
@@ -1057,7 +1057,7 @@ guess_host_set_v2(const gnet_host_t *h)
 		if (!(qk->flags & GUESS_F_PONG_IPP)) {
 			qk->flags |= GUESS_F_PONG_IPP;
 			guess_02_hosts++;
-			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, +1);
+			gnet_stats_inc_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
 			guess_cache_add(h);
 		}
@@ -1078,7 +1078,7 @@ guess_host_clear_v2(const gnet_host_t *h)
 		if (qk->flags & GUESS_F_PONG_IPP) {
 			qk->flags &= ~GUESS_F_PONG_IPP;
 			guess_02_hosts--;
-			gnet_stats_count_general(GNR_GUESS_CACHED_02_HOSTS_HELD, -1);
+			gnet_stats_dec_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
 			dbmw_write(db_qkdata, h, qk, sizeof *qk);
 			guess_cache_remove(h);
 		}
@@ -1135,7 +1135,7 @@ guess_traffic_from(const gnet_host_t *h)
 		new_qk.first_seen = new_qk.last_update = tm_time();
 		new_qk.query_key = NULL;	/* Query key unknown */
 		qk = &new_qk;
-		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+		gnet_stats_inc_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 	}
 
 	qk->last_seen = tm_time();
@@ -1266,10 +1266,10 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 
 	if (random_value(99) < UNSIGNED(p)) {
 		hash_list_prepend(link_cache, atom_host_get(h));
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, +1);
+		gnet_stats_inc_general(GNR_GUESS_LINK_CACHE);
 
 		if (GNET_PROPERTY(guess_client_debug) > 2) {
-			g_info("GUESS adding %s to link cache (p=%d%%, n=%zu)",
+			g_info("GUESS adding %s to link cache (p=%d%%, n=%u)",
 				gnet_host_to_string(h), p,
 				hash_list_length(link_cache));
 		}
@@ -1284,7 +1284,7 @@ guess_add_link_cache(const gnet_host_t *h, int p)
 		}
 
 		atom_host_free(removed);
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
+		gnet_stats_dec_general(GNR_GUESS_LINK_CACHE);
 	}
 }
 
@@ -1425,7 +1425,7 @@ guess_remove_link_cache(const gnet_host_t *h)
 			g_info("GUESS removed %s from link cache", gnet_host_to_string(h));
 		}
 		atom_host_free(atom);
-		gnet_stats_count_general(GNR_GUESS_LINK_CACHE, -1);
+		gnet_stats_dec_general(GNR_GUESS_LINK_CACHE);
 		guess_discovery_enable();
 	}
 }
@@ -1458,7 +1458,7 @@ guess_record_qk(const gnet_host_t *h, const void *buf, size_t len)
 	new_qk.query_key = new_qk.length ? wcopy(buf, new_qk.length) : NULL;
 
 	if (!dbmw_exists(db_qkdata, h))
-		gnet_stats_count_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD, +1);
+		gnet_stats_inc_general(GNR_GUESS_CACHED_QUERY_KEYS_HELD);
 
 	/*
 	 * Writing a new value for the key will free up any dynamically allocated
@@ -1891,6 +1891,13 @@ guess_hosts_reply(enum udp_ping_ret type,
 		/*
 		 * Host did not reply, delete cached entry, if any.
 		 */
+
+		if G_UNLIKELY(NULL == alive_cache) {
+			/* We're probably coming from udp_close(), expiring old pings */
+			atom_host_free(h);
+			return;		/* GUESS layer already shutdown */
+		}
+
 		guess_remove_link_cache(h);
 		guess_timeout_from(h);
 
@@ -2384,7 +2391,7 @@ guess_got_results(const guid_t *muid, uint32 hits)
 	gq = hikset_lookup(gmuid, muid);
 	guess_check(gq);
 	gq->recv_results += hits;
-	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERY_HITS, +1);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERY_HITS);
 	guess_stats_fire(gq);
 }
 
@@ -2420,7 +2427,7 @@ guess_final_stats(const guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] \"%s\" took %g secs, "
-			"queried_set=%zu, pool_set=%zu, "
+			"queried_set=%zu, pool_set=%u, "
 			"queried=%zu, acks=%zu, max_ultras=%zu, kept_results=%u/%u, "
 			"out_qk=%u bytes, out_query=%u bytes",
 			nid_to_string(&gq->gid),
@@ -2960,7 +2967,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 		}
 		gq->queried_nodes++;
 		gq->bw_out_query += pmsg_written_size(mb);
-		gnet_stats_count_general(GNR_GUESS_HOSTS_QUERIED, +1);
+		gnet_stats_inc_general(GNR_GUESS_HOSTS_QUERIED);
 	} else {
 		/* Message was dropped */
 		if (GNET_PROPERTY(guess_client_debug) > 4) {
@@ -3274,7 +3281,7 @@ guess_handle_ack(guess_t *gq,
 		guess_load_more_hosts(gq);		/* Fuel for acceleration */
 	}
 
-	gnet_stats_count_general(GNR_GUESS_HOSTS_ACKNOWLEDGED, +1);
+	gnet_stats_inc_general(GNR_GUESS_HOSTS_ACKNOWLEDGED);
 	guess_traffic_from(host);
 	{
 		uint16 port = peek_le16(&n->data[0]);
@@ -3861,7 +3868,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	gq->muid = atom_guid_get(muid);
 	gq->mtype = mtype;
 	gq->mode = GUESS_QUERY_BOUNDED;
-	gq->queried = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	gq->queried =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 	gq->pool = hash_list_new(gnet_host_hash, gnet_host_eq);
 	gq->cb = cb;
 	gq->arg = arg;
@@ -3880,7 +3888,7 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	hikset_insert_key(gmuid, &gq->muid);
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
-		g_debug("GUESS QUERY[%s] starting query for \"%s\" MUID=%s ultras=%lu",
+		g_debug("GUESS QUERY[%s] starting query for \"%s\" #%s ultras=%lu",
 			nid_to_string(&gq->gid), lazy_safe_search(query),
 			guid_hex_str(muid), (unsigned long) gq->max_ultrapeers);
 	}
@@ -3899,8 +3907,8 @@ guess_create(gnet_search_t sh, const guid_t *muid, const char *query,
 	 * Therefore, it is useless to send them the query again.
 	 */
 
-	gnet_stats_count_general(GNR_GUESS_LOCAL_QUERIES, +1);
-	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, +1);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_QUERIES);
+	gnet_stats_inc_general(GNR_GUESS_LOCAL_RUNNING);
 
 	guess_event_fire(gq, TRUE);
 
@@ -3960,7 +3968,7 @@ guess_free(guess_t *gq)
 	gq->magic = 0;
 	WFREE(gq);
 
-	gnet_stats_count_general(GNR_GUESS_LOCAL_RUNNING, -1);
+	gnet_stats_dec_general(GNR_GUESS_LOCAL_RUNNING);
 }
 
 /**
@@ -4016,7 +4024,8 @@ guess_fill_caught_array(host_net_t net,
 {
 	int i, filled, added = 0;
 	hash_list_iter_t *iter;
-	hset_t *seen_host = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	hset_t *seen_host =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 
 	filled = hcache_fill_caught_array(net, HOST_GUESS, hosts, hcount);
 	iter = hash_list_iterator(link_cache);
@@ -4072,14 +4081,15 @@ guess_fill_caught_array(host_net_t net,
 
 		h = guess_cache_select();
 
-		if (!hset_contains(seen_host, h)) {
+		if (h != NULL && !hset_contains(seen_host, h)) {
 			i = G_LIKELY(count != 0) ? random_value(count - 1) : 0;
 			gnet_host_copy(&hosts[i], h);
 			if G_UNLIKELY(0 == count)
 				added++;
 
 			if (GNET_PROPERTY(guess_server_debug) > 9) {
-				g_debug("GUESS added 0.2 server %s (%zu cached) at slot #%d/%d",
+				g_debug("GUESS added 0.2 server %s (%zu cached) "
+					"at slot #%d/%zu",
 					gnet_host_to_string(h), guess_cache_count(), i, count);
 			}
 		}
@@ -4157,7 +4167,8 @@ guess_init(void)
 
 	dbmw_set_map_cache(db_qkdata, GUESS_QK_MAP_CACHE_SIZE);
 
-	guess_02_cache.hs = hset_create_any(gnet_host_hash, NULL, gnet_host_eq);
+	guess_02_cache.hs =
+		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_eq);
 
 	guess_qk_prune_old();
 
@@ -4172,7 +4183,7 @@ guess_init(void)
 	guess_bw_ev = cq_periodic_main_add(1000, guess_periodic_bw, NULL);
 
 	gqueries = hevset_create_any(
-		offsetof(guess_t, gid), nid_hash, NULL, nid_equal);
+		offsetof(guess_t, gid), nid_hash, nid_hash2, nid_equal);
 	gmuid = hikset_create(
 		offsetof(guess_t, muid), HASH_KEY_FIXED, GUID_RAW_SIZE);
 	link_cache = hash_list_new(gnet_host_hash, gnet_host_eq);

@@ -91,10 +91,12 @@ typedef bool (*dbmw_cbr_t)(void *key, void *value, size_t len, void *u);
 #define DBMW_SYNC_MAP		(1 << 1)	/**< Sync DBMW underlying map */
 #define DBMW_DELETED_ONLY	(1 << 2)	/**< Only sync deleted keys */
 
+struct dbg_config;
+
 dbmw_t *dbmw_create(dbmap_t *dm, const char *name,
 	size_t value_size, size_t value_data_size,
 	dbmw_serialize_t pack, dbmw_deserialize_t unpack, dbmw_free_t valfree,
-	size_t cache_size, GHashFunc hash_func, GEqualFunc eq_func);
+	size_t cache_size, hash_fn_t hash_func, eq_fn_t eq_func);
 void dbmw_destroy(dbmw_t *dw, bool close_sdbm);
 ssize_t dbmw_sync(dbmw_t *dw, int which);
 void dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length);
@@ -109,6 +111,7 @@ bool dbmw_has_ioerr(const dbmw_t *dw);
 const char *dbmw_name(const dbmw_t *dw);
 bool dbmw_set_map_cache(dbmw_t *dw, long pages);
 bool dbmw_set_volatile(dbmw_t *dw, bool is_volatile);
+void dbmw_set_debugging(dbmw_t *dw, const struct dbg_config *dbg);
 bool dbmw_shrink(dbmw_t *dw);
 bool dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
@@ -117,7 +120,7 @@ GSList *dbmw_all_keys(dbmw_t *dw);
 void dbmw_free_all_keys(const dbmw_t *dw, GSList *keys);
 
 void dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg);
-void dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg);
+size_t dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg);
 
 bool dbmw_store(dbmw_t *dw, const char *base, bool inplace);
 bool dbmw_copy(dbmw_t *from, dbmw_t *to);

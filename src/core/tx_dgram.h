@@ -37,6 +37,8 @@
 #include "common.h"
 #include "tx.h"
 
+#include "lib/pmsg.h"
+
 #include "if/core/bsched.h"
 
 const struct txdrv_ops *tx_dgram_get_ops(void);
@@ -45,16 +47,16 @@ const struct txdrv_ops *tx_dgram_get_ops(void);
  * Callbacks used by the datagram layer.
  */
 struct tx_dgram_cb {
-	void (*add_tx_written)(void *owner, int amount);
+	void (*msg_account)(void *owner, const pmsg_t *mb);
+	void (*add_tx_dropped)(void *owner, int amount);
 };
 
 /**
- * Arguments to be passed when the layer is intantiated.
+ * Arguments to be passed when the layer is instantiated.
  */
 struct tx_dgram_args {
 	struct tx_dgram_cb *cb;			/**< Callbacks */
-	struct wrap_io *wio;			/**< I/O wrapping routines */
-	bsched_bws_t bws;				/**< Bandwidth scheduler to use */
+	struct udp_sched *us;			/**< UDP TX scheduler */
 };
 
 #endif	/* _core_tx_dgram_h_ */

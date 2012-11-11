@@ -151,7 +151,7 @@
 
 #define	STABLE_DB_CACHE_SIZE	4096	/**< Cached amount of stable nodes */
 #define STABLE_MAP_CACHE_SIZE	64		/**< Amount of SDBM pages to cache */
-#define STABLE_UPPER_THRESH		(3600 * 24 * 30 * 3)	/**< ~ 3 months in s */
+#define STABLE_UPPER_THRESH		(3600 * 24 * 7 * 2)	/**< ~ 2 weeks in s */
 
 #define STABLE_EXPIRE (2 * DHT_VALUE_REPUBLISH)	/**< 2 republish periods */
 #define STABLE_PROBA  (0.3333)					/**< 33.33% */
@@ -299,7 +299,7 @@ stable_record_activity(const knode_t *kn)
 		new_ld.first_seen = kn->first_seen;
 		new_ld.last_seen = kn->last_seen;
 
-		gnet_stats_count_general(GNR_DHT_STABLE_NODES_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_STABLE_NODES_HELD);
 	} else {
 		if (kn->last_seen <= ld->last_seen)
 			return;
@@ -307,6 +307,40 @@ stable_record_activity(const knode_t *kn)
 	}
 
 	dbmw_write(db_lifedata, kn->id->v, ld, sizeof *ld);
+}
+
+/**
+ * The KUID of the node has changed: remove its entry if it had one and make
+ * sure we have an entry for the new KUID.
+ *
+ * @param kn		the old node
+ * @param rn		the replacing node
+ */
+void
+stable_replace(const knode_t *kn, const knode_t *rn)
+{
+	struct lifedata *ld;
+
+	knode_check(kn);
+	knode_check(rn);
+	g_assert(rn->flags & KNODE_F_ALIVE);
+
+	ld = get_lifedata(kn->id);
+	if (NULL == ld)
+		return;				/* Node was not recorded in the "stable" set */
+
+	if (GNET_PROPERTY(dht_stable_debug)) {
+		g_debug("DHT STABLE removing obsolete %s, now at %s",
+			knode_to_string(kn), knode_to_string2(rn));
+	}
+
+	/*
+	 * Remove the old node and create an entry for the new one.
+	 */
+
+	dbmw_delete(db_lifedata, kn->id->v);
+	gnet_stats_dec_general(GNR_DHT_STABLE_NODES_HELD);
+	stable_record_activity(rn);
 }
 
 /**

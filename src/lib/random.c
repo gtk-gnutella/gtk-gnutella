@@ -59,7 +59,7 @@
  *
  * @return uniformly distributed random number in the [0, max] range.
  */
-static uint32
+uint32
 random_upto(random_fn_t rf, uint32 max)
 {
 	uint32 range, min, value;

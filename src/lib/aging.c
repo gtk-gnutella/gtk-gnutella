@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,31 +29,23 @@
  * some time has elapsed.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2012
  */
 
 #include "common.h"
 
 #include "aging.h"
 #include "cq.h"
-#include "hash.h"
+#include "elist.h"
 #include "hashing.h"
-#include "htable.h"
+#include "hikset.h"
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
-#define AGING_CALLOUT	1500	/**< Heartbeat every 1.5 seconds */
-
-/**
- * Private callout queue shared by all aging tables, to avoid cluttering
- * the main callout queue with too many entries.  It is created with the
- * first aging table and cleared when the last aging table is gone.
- */
-static cqueue_t *aging_cq;		/**< Private callout queue */
-static uint32 aging_refcnt;		/**< Amount of alive aging tables */
+#define AGING_CALLOUT	1500	/**< Cleanup every 1.5 seconds */
 
 enum aging_magic {
 	AGING_MAGIC	= 0x38e2fac3
@@ -65,8 +57,10 @@ enum aging_magic {
  */
 struct aging {
 	enum aging_magic magic;	/**< Magic number */
-	htable_t *table;		/**< The table holding values */
+	hikset_t *table;		/**< The table holding values */
+	cperiodic_t *gc_ev;		/**< Periodic garbage collecting event */
 	aging_free_t kvfree;	/**< The freeing callback for key/value pairs */
+	elist_t list;			/**< List of items in table, oldest first */
 	int delay;				/**< Initial aging delay, in seconds */
 };
 
@@ -80,48 +74,62 @@ aging_check(const aging_table_t * const ag)
 /**
  * We wrap the values we insert in the table, since each value must keep
  * track of its insertion time, and cleanup event.
+ *
+ * Because the aging_value structure (inserted in the table) refers to the key,
+ * we can use a hikset instead of a hash table, which saves a pointer for each
+ * entry.
  */
 struct aging_value {
 	void *value;			/**< The value they inserted in the table */
 	void *key;				/**< The associated key object */
-	cevent_t *cq_ev;		/**< Scheduled cleanup event */
-	aging_table_t *ag;		/**< Holding container */
 	time_t last_insert;		/**< Last insertion time */
-	int ttl;				/**< Time to live */
+	link_t lk;				/**< Embedded link to chain items together */
 };
 
 /**
- * Create private callout queue if none exists.
+ * Free keys and values from the aging table.
  */
 static void
-ag_create_callout_queue(void)
+aging_free(void *value, void *data)
 {
-	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
+	struct aging_value *aval = value;
+	aging_table_t *ag = data;
 
-	if (NULL == aging_cq)
-		aging_cq = cq_main_submake("aging", AGING_CALLOUT);
+	aging_check(ag);
 
-	aging_refcnt++;
+	if (ag->kvfree != NULL)
+		(*ag->kvfree)(aval->key, aval->value);
+
+	elist_remove(&ag->list, aval);
+	WFREE(aval);
 }
 
 /**
- * Remove one reference to callout queue, discarding it when nobody
- * references it anymore.
+ * Periodic garbage collecting routine.
  */
-static void
-ag_unref_callout_queue(void)
+static bool
+aging_gc(void *obj)
 {
-	g_assert(aging_refcnt > 0);
+	aging_table_t *ag = obj;
+	time_t now = tm_time();
+	struct aging_value *aval;
 
-	if (0 == --aging_refcnt)
-		cq_free_null(&aging_cq);
+	aging_check(ag);
+	g_assert(elist_count(&ag->list) == hikset_count(ag->table));
 
-	g_assert((aging_cq != NULL) == (aging_refcnt != 0));
+	while (NULL != (aval = elist_head(&ag->list))) {
+		if (delta_time(now, aval->last_insert) <= ag->delay)
+			break;			/* List is sorted, oldest items first */
+		hikset_remove(ag->table, aval->key);
+		aging_free(aval, ag);
+	}
+
+	return TRUE;			/* Keep calling */
 }
 
 /**
- * Create new aging container, where only keys expire and need to be freed.
- * Values are either integers (cast to pointers) or refer to parts of the keys.
+ * Create new aging container, where keys/values expire and need to be freed.
+ * Values are either integers (cast to pointers) or refer to real objects.
  *
  * @param delay		the aging delay, in seconds, for entries
  * @param hash		the hashing function for the keys in the hash table
@@ -135,36 +143,20 @@ aging_make(int delay, hash_fn_t hash, eq_fn_t eq, aging_free_t kvfree)
 {
 	aging_table_t *ag;
 
-	ag_create_callout_queue();
-
 	WALLOC(ag);
 	ag->magic = AGING_MAGIC;
-	ag->table = htable_create_any(NULL == hash ? pointer_hash : hash, NULL, eq);
+	ag->table = hikset_create_any(
+		offsetof(struct aging_value, key),
+		NULL == hash ? pointer_hash : hash, eq);
 	ag->kvfree = kvfree;
+	delay = MAX(delay, 1);
+	delay = MIN(delay, INT_MAX / 1000);
 	ag->delay = delay;
+	elist_init(&ag->list, offsetof(struct aging_value, lk));
+	ag->gc_ev = cq_periodic_main_add(AGING_CALLOUT, aging_gc, ag);
 
 	aging_check(ag);
 	return ag;
-}
-
-/**
- * Free keys and values from the aging table.
- */
-static void
-aging_free_kv(const void *key, void *value, void *udata)
-{
-	aging_table_t *ag = udata;
-	struct aging_value *aval = value;
-
-	aging_check(ag);
-	g_assert(aval->ag == ag);
-	g_assert(aval->key == key);
-
-	if (ag->kvfree != NULL)
-		(*ag->kvfree)(deconstify_pointer(key), aval->value);
-
-	cq_cancel(&aval->cq_ev);
-	WFREE(aval);
 }
 
 /**
@@ -178,32 +170,13 @@ aging_destroy(aging_table_t **ag_ptr)
 	if (ag) {
 		aging_check(ag);
 
-		htable_foreach(ag->table, aging_free_kv, ag);
-		htable_free_null(&ag->table);
+		hikset_foreach(ag->table, aging_free, ag);
+		hikset_free_null(&ag->table);
+		cq_periodic_remove(&ag->gc_ev);
 		ag->magic = 0;
 		WFREE(ag);
-
-		ag_unref_callout_queue();
 		*ag_ptr = NULL;
 	}
-}
-
-/**
- * Expire value entry.
- */
-static void
-aging_expire(cqueue_t *unused_cq, void *obj)
-{
-	struct aging_value *aval = obj;
-	aging_table_t *ag = aval->ag;
-
-	(void) unused_cq;
-	aging_check(ag);
-
-	aval->cq_ev = NULL;
-
-	htable_remove(ag->table, aval->key);
-	aging_free_kv(aval->key, aval, ag);
 }
 
 /**
@@ -216,7 +189,7 @@ aging_lookup(const aging_table_t *ag, const void *key)
 
 	aging_check(ag);
 
-	aval = htable_lookup(ag->table, key);
+	aval = hikset_lookup(ag->table, key);
 	return aval == NULL ? NULL : aval->value;
 }
 
@@ -230,9 +203,21 @@ aging_age(const aging_table_t *ag, const void *key)
 
 	aging_check(ag);
 
-	aval = htable_lookup(ag->table, key);
+	aval = hikset_lookup(ag->table, key);
 	return aval == NULL ?
 		(time_delta_t) -1 : delta_time(tm_time(), aval->last_insert);
+}
+
+/**
+ * Move value back to the tail of the list.
+ */
+static inline void
+aging_moveto_tail(aging_table_t *ag, struct aging_value *aval)
+{
+	if (elist_last(&ag->list) != &aval->lk) {
+		elist_link_remove(&ag->list, &aval->lk);
+		elist_link_append(&ag->list, &aval->lk);
+	}
 }
 
 /**
@@ -240,21 +225,20 @@ aging_age(const aging_table_t *ag, const void *key)
  * initial lifetime the key/value pair had at insertion time.
  */
 void *
-aging_lookup_revitalise(const aging_table_t *ag, const void *key)
+aging_lookup_revitalise(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
 
 	aging_check(ag);
 
-	aval = htable_lookup(ag->table, key);
+	aval = hikset_lookup(ag->table, key);
 
 	if (aval != NULL) {
-		g_assert(aval->cq_ev != NULL);
 		aval->last_insert = tm_time();
-		cq_resched(aval->cq_ev, 1000 * aval->ttl);
+		aging_moveto_tail(ag, aval);
 	}
 
-	return aval == NULL ? NULL : aval->value;
+	return NULL == aval ? NULL : aval->value;
 }
 
 /**
@@ -266,21 +250,17 @@ bool
 aging_remove(aging_table_t *ag, const void *key)
 {
 	struct aging_value *aval;
-	const void *okey;
 	void *ovalue;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
-	if (!htable_lookup_extended(ag->table, key, &okey, &ovalue))
+	if (!hikset_lookup_extended(ag->table, key, &ovalue))
 		return FALSE;
 
 	aval = ovalue;
 
-	g_assert(aval->key == okey);
-	g_assert(aval->ag == ag);
-
-	htable_remove(ag->table, aval->key);
-	aging_free_kv(aval->key, aval, ag);
+	hikset_remove(ag->table, aval->key);
+	aging_free(aval, ag);
 
 	return TRUE;
 }
@@ -288,30 +268,27 @@ aging_remove(aging_table_t *ag, const void *key)
 /**
  * Add value to the table.
  *
- * If it was already present, its lifetime is augmented by the aging delay.
+ * If it was already present, its lifetime is reset to the aging delay.
  *
  * The key argument is freed immediately if there is a free routine for
  * keys and the key was present in the table.
  *
  * The previous value is freed and replaced by the new one if there is
- * an insertion conflict and the value pointers are different.
+ * an insertion conflict and the key pointers are different.
  */
 void
 aging_insert(aging_table_t *ag, const void *key, void *value)
 {
 	bool found;
-	const void *okey;
 	void *ovalue;
 	time_t now = tm_time();
 	struct aging_value *aval;
 
 	g_assert(ag->magic == AGING_MAGIC);
 
-	found = htable_lookup_extended(ag->table, key, &okey, &ovalue);
+	found = hikset_lookup_extended(ag->table, key, &ovalue);
 	if (found) {
 		aval = ovalue;
-
-		g_assert(aval->key == okey);
 
 		if (aval->key != key && ag->kvfree != NULL) {
 			/*
@@ -322,33 +299,33 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 			(*ag->kvfree)(deconstify_pointer(key), aval->value);
 		}
 
-		g_assert(aval->cq_ev != NULL);
-
 		/*
-		 * Value existed for this key, prolonge its life.
+		 * Value existed for this key, reset its lifetime by moving the
+		 * entry to the tail of the list.
 		 */
 
 		aval->value = value;
-		aval->ttl -= delta_time(now, aval->last_insert);
-		aval->ttl += ag->delay;
-		aval->ttl = MAX(aval->ttl, 1);
-		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
-
-		cq_resched(aval->cq_ev, 1000 * aval->ttl);
+		aging_moveto_tail(ag, aval);
 	} else {
 		WALLOC(aval);
 		aval->value = value;
 		aval->key = deconstify_pointer(key);
-		aval->ttl = ag->delay;
-		aval->ttl = MAX(aval->ttl, 1);
-		aval->ttl = MIN(aval->ttl, INT_MAX / 1000);
 		aval->last_insert = now;
-		aval->ag = ag;
-
-		aval->cq_ev = cq_insert(aging_cq, 1000 * aval->ttl, aging_expire, aval);
-		htable_insert(ag->table, key, aval);
+		hikset_insert(ag->table, aval);
+		elist_append(&ag->list, aval);
 	}
+}
+
+/**
+ * @return amount of entries held in aging table.
+ */
+size_t
+aging_count(const aging_table_t *ag)
+{
+	aging_check(ag);
+
+	return hikset_count(ag->table);
 }
 
 /* vi: set ts=4: sw=4 cindent: */

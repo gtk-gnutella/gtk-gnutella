@@ -497,7 +497,7 @@ hostiles_dynamic_expire4(bool forced)
 		}
 		hash_list_remove_head(hl_dynamic_ipv4);
 		hostiles_dynamic_free4(&entry);
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, -1);
+		gnet_stats_dec_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 	}
 }
 
@@ -525,7 +525,7 @@ hostiles_dynamic_expire6(bool forced)
 		}
 		hash_list_remove_head(hl_dynamic_ipv6);
 		hostiles_dynamic_free6(&entry);
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, -1);
+		gnet_stats_dec_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 	}
 }
 
@@ -556,8 +556,8 @@ hostiles_dynamic_add_ipv4(uint32 ipv4)
 		entry = hostiles_dynamic_new4(ipv4);
 		hash_list_append(hl_dynamic_ipv4, entry);
 
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, +1);
+		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
+		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
 		if (GNET_PROPERTY(ban_debug > 0)) {
 			char buf[HOST_ADDR_BUFLEN];
@@ -580,8 +580,8 @@ hostiles_dynamic_add_ipv6(const uint8 *ipv6)
 		entry = hostiles_dynamic_new6(ipv6);
 		hash_list_append(hl_dynamic_ipv6, entry);
 
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_IP, 1);
-		gnet_stats_count_general(GNR_SPAM_CAUGHT_HOSTILE_HELD, +1);
+		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_IP);
+		gnet_stats_inc_general(GNR_SPAM_CAUGHT_HOSTILE_HELD);
 
 		if (GNET_PROPERTY(ban_debug > 0)) {
 			g_info("dynamically caught hostile: %s", ipv6_to_string(ipv6));
@@ -748,7 +748,7 @@ hostiles_spam_add(const host_addr_t addr, uint16 port)
 		sd->hosts[0].first_seen = sd->hosts[0].last_seen =
 			sd->create_time = sd->last_time = tm_time();
 		sd->hosts[0].port = port;
-		gnet_stats_count_general(GNR_SPAM_IP_HELD, +1);
+		gnet_stats_inc_general(GNR_SPAM_IP_HELD);
 	} else {
 		int i;
 		bool found = FALSE;

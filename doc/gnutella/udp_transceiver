@@ -1,0 +1,479 @@
+                     Gnutella Semi-Reliable UDP
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                         October, 23rd, 2012
+
+
+1. OVERVIEW
+
+The following specifications document a semi-reliable protocol over UDP to
+allow Gnutella servents to exchange "important" information that would be
+wasteful if lost along the way.
+
+The architecture fully follows the so-called "G2 UDP Transceiver" proposal,
+with two important changes:
+
+- The tag is "GTA" to stand for Gnutella.
+- The architecture of acknowledgments was improved for efficiency.
+
+This document fully specifies the protocol but reuses most of the existing
+G2 specifications, because they are good and need not be amended.  It however
+only targets Gnutella.
+
+The usage of the semi-reliable UDP layer in Gnutella will be for the delivery
+of query hits over UDP, provided the querying party indicated support for
+this semi-reliable UDP layer, of course (otherwise the reply would not be
+properly understood).
+
+Section 2 is a mere cut-and-paste of the original G2 specifications, slighly
+adapted for Gnutella.  My additions have been clearly flagged out.
+
+2.  ARCHITECTURE
+
+2.1 Header
+
+A small signature identifies the packet as a Gnutella semi-reliable UDP
+datagram. This allows the same port to be used for receiving UDP traffic
+for other protocols if desired, and offers some simple protection against
+random, unexpected traffic.
+
+A content code identifies the payload as a Gnutella packet message,
+allowing future protocols to be added within the same reliability layer if
+desired. Flags allow additional attributes to be specified, such as inline
+stateless compression of the payload (which is a required feature).
+
+The header has a fixed size of 8 bytes, and is architected as follows:
+
+     0               1               2               3
+     0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7| Byte
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                      idTag                    |    nFlags     | 0-3
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |           nSequence           |    nPart      |    nCount     | 4-7
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+The members of the structure are detailed below:
+
+idTag - contains a three byte encoding protocol identifier, in this case
+"GTA" for "GnuTellA". If this signature is not present the packet should
+not be interpreted as a Gnutella reliability layer message.
+
+nFlags - contains flags which modify the content of the packet. The low-order
+nibble is reserved for critical flags: if one of these bits is set but
+the decoding software does not understand the meaning, the packet must
+be discarded. The high-order nibble is reserved for non-critical flags:
+when set these bits may be interpreted, but an inability to interpret a
+bit does not cause the packet to be discarded.
+
+ Currently defined flags are:
+
+    0x01 - Deflate 
+
+    When the deflate bit is set, the entire payload is compressed with
+    the deflate algorithm. The compression method used is the Deflate
+    Compression Data Format (RFC 1951). On top of this compression a ZLIB
+    `wrapper' is applied (RFC 1950, ZLIB Compressed Data Format). The
+    ZLIB wrapper ensures packet integrity, among other things.
+
+    Note that the entire payload must be reassembled in the correct order
+    before it can be deflated if the packet was fragmented. Fragments are
+    not compressed separately!
+
+    0x02 - Acknowledge Me 
+
+    When the acknowledge-me bit is set, the sender is expecting an
+    acknowledgement for this packet.
+
+nSequence - contains the sequence number of the packet. This sequence
+number is unique to the sending host only. It is not unique to the pair
+of the sending host and receiving host as in TCP, as there is no concept
+of connection state. Sequence numbers on consecutive packets need not be
+increasing (although that is convenient), they must only be different. If
+a packet is fragmented, all of its fragments will have the same sequence
+number. Byte order is unimportant here since this is an opaque ID.
+
+nPart - contains the fragment part number (1 <= nPart <= nCount)
+
+nCount - contains the number of fragment parts in this packet. On a
+transmission, this value will be non-zero (all packets must have at least
+one fragment). If nCount is zero, this is an acknowledgement (see below).
+
+
+2.2 Fragmentation
+
+Large packets must be fragmented before they can be sent through most network
+interfaces. Different network media have different MTUs, and it is difficult
+to predict what the lowest common size will be. Fragmentation and reassembly
+is performed by the existing Internet protocols, however, there are two
+important reasons why the reliability layer performs its own fragmentation:
+
+    Sockets implementations specify a maximum datagram size. This is adequate
+    for the vast majority of transmissions, but it is desirable to have
+    the transparent ability to send larger packets without worrying about
+    the host implementation.
+
+    When the Internet protocols fragment, a packet and one or more fragments
+    are lost, it may decide to discard the whole packet in an unreliable
+    datagram protocol. The Gnutella reliability layer can compensate by
+    retransmitting the whole packet, which would then be re-fragmented and
+    each fragment resent - however, this wastes the fragments that were
+    successfully received before. Managing fragmentation natively allows
+    this optimisation.
+
+Each node determines its own MTU, often based on a best guess combined with
+information from the host's sockets implementation. Packets exceeding this
+size are fragmented into multiple datagrams of the appropriate size. Each
+datagram has the same sequence number and the same fragment count (nCount),
+but a different fragment number (nPart).
+
+
+2.3 Transmission Process
+
+When a packet is to be transmitted, the network layer must:
+
+    - Cache the payload
+
+    - Allocate a new locally and temporally unique sequence number
+
+    - Derive the appropriate number of fragments
+
+    - Queue the fragments for dispatch
+
+    - If the fragments do not need to be acknowledged, the packet can be
+      flushed now
+
+The payload will generally be cached for an appropriate timeout period,
+or until the data cache becomes full, at which time older payloads can be
+discarded. Fragments are dispatched according to the dispatch algorithm of
+choice, and the sender listens for acknowledgements.
+
+When an acknowledgement is received:
+
+    - Lookup the sent packet by sequence number
+
+    - Mark the nPart fragment as received and cancel any retransmissions
+      of this part
+
+    - If all fragments have been acknowledged, flush this packet from
+      the cache
+
+If a fragment has been transmitted but has not been acknowledged within the
+timeout, it should be retransmitted. A finite number of retransmissions are
+allowed before the packet as a whole expires, at which time it is assumed
+that the packet was not received.
+
+
+2.4 Reception Process
+
+When a new datagram is received, the network layer must:
+
+    - If the acknowledge bit was set, send an acknowledge packet for this
+      sequence number and part number, with nCount set to zero (ACK)
+
+    - Lookup any existing packet by the sending IP and sequence number
+
+    - If there is no existing packet, create a new packet entry with the IP,
+      sequence number, fragment count and flags
+
+    - If there was an existing packet, make sure it is not marked as done -
+      if so, abort
+
+    - Add the transmitted fragment to the (new or old) packet entry
+
+    - If the packet now has all fragments, mark it as done, decode it
+      and pass it up to the application layer (who will not know it was
+      received via semi-reliable UDP).
+
+    - Leave the packet on the cache even if it was finished, in case any
+      parts are retransmitted
+
+    - Expire old packets from the receive buffer after a timeout, or if
+      the buffer is full
+
+
+2.5 Dispatch Algorithm
+
+Fragment datagrams need to be dispatched intelligently, to spread the load
+on network resources and maximise the chance that the receiver will get
+the message. To do this, the dispatch algorithm should take into account
+several points:
+
+    - Prioritize acknowledgements.
+
+    - If fragments are waiting to be sent to a number of hosts, do not send
+      to the same host twice in a row. Alternating, or looping through the
+      target hosts achieves the same data rate locally, but spreads out the
+      load over downstream links.
+
+    - Do not exceed or approach the capacity of the local network
+      connection. If a host has a 128 kb/s outbound bandwidth, dispatching
+      32 KB of data in one second will likely cause massive packet loss,
+      leading to a retransmission.
+
+    - After considering the above points, prefer fragments that were queued
+      recently to older packets. A LIFO or stack type approach means that
+      even if a transmitter is becoming backed up, some fragments will get
+      there on time, while others will be delayed. A FIFO approach would mean
+      that a backed up host delivers every fragment late.
+
+
+2.6 Parameters
+
+[Settings have been changed for gkt-gnutella --RAM]
+
+The recommended parameters for the reliability layer are as follows:
+
+    - Payload maximum size = 476 bytes (MTU for THIS layer)
+
+    - The fragment transmission timeout (ACK not received) is set to
+      5 secs for the first transmission, 7.5 secs for the second and 11.25
+      secs for the third and last attempt (exponential retry delay).
+
+    - The overall packet transmission timeout is set to 60 secs.
+
+The UDP/IP header being typically 28 bytes, it is best to limit the payload
+of the messages to 476 bytes. That way, with the 8-byte header we're topping
+plus the UDP/IP header, the whole message will not be greater than 512 bytes.
+
+
+2.7 Performance Considerations
+
+Relatively low-level network implementations such as this are reasonably
+complicated, but must operate fast. It is desirable to avoid runtime
+memory allocations in network code as much as possible, and particularly
+at this level.
+
+It should be noted that in almost all cases, transmissions to "untested"
+nodes are single fragment. Replies on the other hand are often larger, and
+may be deflated in many fragments. This is optimal, because attempting to
+contact a node which may be unavailable, involves a retransmission of only
+a single fragment.
+
+Flow control is an important topic, however, it is handled at a higher layer.
+The UDP reliability layer is only responsible for guaranteeing delivery of
+selected datagrams.
+
+Only critical transmissions whose reception cannot otherwise be inferred,
+should have the acknowledge request bit set.
+
+
+2.8 Extended Acknowledgments
+
+[2.8 and beyond are my additions to the original G2 specifications --RAM]
+
+Because acknowledgment messages can be lost in the way or arrive out of
+order, it is best to include as much of the reception state as possible so
+that the sending party can optimize retransmissions.
+
+In order to do that, the following extensions to the original specifications
+has been added by gtk-gnutella:
+
+    - Cumulative Acknowledgements: when the flag 0x10 is set, it tells the
+      other party that all the fragments up to nPart have been received.
+
+    - Extended Acknowledgments: when the flag 0x20 is set, it tells the
+      other party that an acknowledgment payload is present. It immediately
+      follows the header and is architected thusly:
+
+          
+     0               1               2               3
+     0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7| Byte
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |   nReceived   |                  missingBits                  | 0-3
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+nReceived is the total amount of parts successfully received so far.
+
+missingBits is a bitfield that is read as a big-endian number and which
+contains set bits (i.e. "1") for the parts still missing. The base part
+number is normally 0, unless flag 0x10 was set, in which case the nPart
+value indicates the base. The rule is then that if bit b is set, then the
+fragment number b + base + 1 is still missing.
+
+In the unlikely case where missingBits is too small to hold all the missing
+parts, only the ones that can be represented are included, the nReceived
+field being there to provide additional information.
+
+Proper generation and parsing of the missingBits field is crucial, so to
+remove any ambiguity, it is best to interpret missingBits as a number. Then
+bit 0 is the bit corresponding to 2^0, bit n is the bit corresponding to 2^n.
+In the above pictogram, bit 0 of missingBits is the 7th bit of the 3rd byte.
+
+Bit 0 corresponds to fragment #1, unless the 0x10 flag was set. In that
+case, if for instance nPart is 3, then it means fragments #1, #2 and #3
+were already received. The base is therefore 3, and if bit 0 is set in
+missingBits, it means fragment #4 (0 + 3 + 1) is still missing.
+
+This extended acknowledgment lets the sending party optimize its
+retransmissions even when some acknowledgments are lost.
+
+Extended Acknowlegments are only useful when the total amount of fragments
+is 3 or above. Indeed, with only 2 fragments, the Cumulative Acknowledgment
+lets the receiving party know about the whole reception state.
+
+When the amount of fragments is 3 or more and only a Cumulative Acknowledgment
+is sent out, it implicitly denies reception of any other fragments. This
+optimizes bandwidth since the 4 extra bytes sent out will only be required
+for large messages (more than 2 fragments) in case fragments are received
+out-of-order.
+
+
+2.9 Delayed Acknowledgments
+
+To maximize the usefulness of Cumulative Acknowledgments, the receiver can
+delay its acknowledgments for a small period of time (100 ms, say) in the
+hope that more fragments of the message will arrive meanwhile, provided the
+message has more than 1 fragment naturally. When the 100 ms delay is expired,
+it can then acknowledge everything it got so far. Performance will not be
+impacted by this small delaying, but it can save a few acknowledgments for
+larger messages.
+
+This means a sender must use a transmission policy whereby it first sends
+all the fragments of each message at once, then waits for acknowledgments or
+timeouts before retransmitting the missing fragments. In other words, the
+sender should not send a fragment, wait for its acknowledge before sending
+the next one, a least initially: this delays the reception of the entire
+message and it prevents using the optimizations that extended acknowledgments
+bring!
+
+In case fragments are not acknowledged within the prescribed delay, they are
+enqueued for re-transmission.  This time, the sender can send a few fragments,
+waiting for them to be acknowledged before continuing with the next batch of
+un-acknowledged fragments.  It can also use a window, whereby it sends one
+fragment, and if it gets acknowledged, then it sends the next 2 fragments
+that need resending, then the next 3, etc...  On timeout, it could decrease
+that window.
+
+That strategy allows for less retransmissions when acknowledgments are lost:
+thanks to cumulative or extended acknowledgments, the sender can quickly
+realize it did not get them and therefore stop retransmission with less data
+transferred than if fragments were systematically resent on timeout.
+
+
+2.10 Extra Acknowledgment Requests
+
+An Extra Acknowledgment Request (EAR) is a special message that can be sent
+by the transmission side (TX side, for short) to request an acknowledgment
+(ACK) from the receiving side (RX side) for everything that was successfully
+received so far for a particular sequence ID.
+
+After sending all the fragments initially, and before resending a fragment
+upon not getting any ACK back, the TX side can send an EAR, which will be
+hopefully answered to by the RX side.  This serves two purposes:
+
+1. It cheaply requests that another ACK be sent by the RX side, in case the
+   previous one was lost on its way back.
+
+2. It avoid resending fragments uselessly if there is nobody listening on the
+   other end.
+
+An EAR is kind of an ACK message, albeit it has nPart = 0 and nCount = 0.
+Moreover, the 0x02 bit in nFlags is set (ACK requested) to indicate that this
+message must somehow be replied to.  The 0x01 bit MUST be cleared as well: its
+payload is never deflated (there is none).
+
+It is easy to recognize the EAR for what it is because no valid ACK will have
+a nPart field set to zero.
+
+When the RX side gets an EAR, it looks at its nSequence field:
+
+    - If it knows the sequence ID, it has already started to receive fragments
+      for this message.  In that case, it immediately acknowledges the EAR
+      by sending back an ACK for the sequence ID, describing what has been
+      received so far.  It can be a cumulative or an extended ACK.
+
+    - If it does not know the sequence ID, it means no fragments were received
+      so far.  In that case, it immediately negatively acknowledges the EAR
+      by sending back another EAR but with the 0x02 bit in nFlags cleared!
+      This indicates to the TX side receiving the EAR that it is actually an
+      ACK for the EAR it sent, not an EAR that it must respond to.
+
+The TX side then either gets an ACK or an EAR back, and it knows that the
+remote host is up, as well as how many fragments it has received so far.
+It can then proceed with re-transmission.
+
+If the TX side gets nothing back after sending an EAR and waiting 5 seconds,
+it resends another EAR, waiting for 7.5 seconds before sending a final EAR
+and waiting 11 seconds for a reply (same parameters as for a regular fragment).
+
+After 3 EARs sent and no reply received, the TX side can assume the other end
+is not listening and it can drop the message.  Fragments will only have been
+sent once.
+
+
+3. SEMI-RELIABLE NEGOCIATION
+
+Because legacy servents do not know about this new semi-reliable UDP layer,
+it is important to negotiate its usage.  This is done by stealing a bit in
+the query flags.
+
+Recall that the old "speed" field in queries (the first 2 bytes of the
+Gnutella payload) have been re-architected circa 2003 as query flags:
+the field is now read as a big-endian number, with bit 15 being set to
+mark the field as being a "modern" one.  Bits 0-8 were reserved during this
+re-architecture to specify the maximum amount of hits desired.
+
+So we're stealing bit 8 from this reserved set to flag support for the
+semi-reliable UDP layer.  If intepreted by legacy code, this will appear
+to request at least 256 hits (I say "at least" because maybe we can steal
+more bits in the future, but this bit will now always be set by gtk-gnutella
+and hopefully other modern Gnutella servents).  Therefore, since 256 hits
+constitutes a lot of hits, it should not become a problem for anyone.
+
+Here are the specs for this new bit:
+
+   #define QUERY_F_SR_UDP       0x0100  /* Accepts semi-reliable UDP */
+
+To avoid ambiguity, here are the other existing flags for queries:
+
+   #define QUERY_F_MARK         0x8000  /* Field is special: not a speed */
+   #define QUERY_F_FIREWALLED   0x4000  /* Issuing servent is firewalled */
+   #define QUERY_F_XML          0x2000  /* Supports XML in result set */
+   #define QUERY_F_LEAF_GUIDED  0x1000  /* Leaf-guided query */
+   #define QUERY_F_GGEP_H       0x0800  /* Recipient understands GGEP "H" */
+   #define QUERY_F_OOB_REPLY    0x0400  /* Out-of-band reply possible */
+   #define QUERY_F_FW_TO_FW     0x0200  /* Can do fw to fw transfers */
+
+GUESS servers and replying hosts can then peruse this information to send
+hits and "OOB Reply Indication" messages (LIME/12) through the semi-reliable
+layer instead of plain UDP, requesting acknowledgments.  This helps ensure
+the notification is not lost and that hits are subsequently reliably sent,
+and possibly better compressed.
+
+
+4. GNUTELLA VERSUS SEMI-RELIABLE TRAFFIC DISCRIMINATION
+
+Because semi-reliable UDP traffic and regular Gnutella UDP traffic all happen
+on the same socket, it is necessary to implement logic that will sort out
+which is which.
+
+When the GUID of messages is not starting with the "GTA" bytes, we know we
+are not facing semi-reliable UDP traffic.  When it starts with "GTA", it
+could be valid Gnutella or semi-reliable UDP traffic, creating an ambiguity...
+
+It is relatively easy to discriminate the traffic using simple logic.  For
+instance:
+
+- Check the "size" field of the Gnutella header for consistency.  If it is not
+  consistent with the length of the message, then the traffic is not Gnutella
+  and is therefore a semi-reliable UDP traffic.
+
+- If the semi-reliable header is inconsistent (fragment part and count being
+  off, critical flags that we do not know about being set, sequence ID unknown
+  by the receiving side -- for followup fragments, of course), then we can
+  rule out semi-reliable UDP traffic.
+
+The discriminating logic implemented by gtk-gnutella is more complex than that
+and involves deeper inspection, but the above logic should be able to only
+mis-classify 1 message out of 1 billion, which in practice should not create
+problems.
+
+
+5. HISTORY
+
+2012-09-23: first version.
+2012-10-07: added Delayed Acknowledgments.
+2012-10-23: added Extra Acknowledgment Requests.
+
+Raphael

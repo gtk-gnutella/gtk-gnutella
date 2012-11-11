@@ -143,10 +143,12 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"oob_proxied_query_hits",
 		"oob_queries",
 		"oob_queries_stripped",
+		"oob_queries_ignored",
 		"query_oob_proxied_dups",
 		"oob_hits_for_proxied_queries",
 		"oob_hits_with_alien_ip",
 		"oob_hits_ignored_on_spammer_hit",
+		"oob_hits_ignored_on_unsecure_hit",
 		"unclaimed_oob_hits",
 		"partially_claimed_oob_hits",
 		"spurious_oob_hit_claim",
@@ -171,6 +173,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"broadcasted_pushes",
 		"push_proxy_udp_relayed",
 		"push_proxy_tcp_relayed",
+		"push_proxy_tcp_fw2fw",
 		"push_proxy_broadcasted",
 		"push_proxy_route_not_proxied",
 		"push_proxy_failed",
@@ -188,16 +191,64 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"gtkg_total_queries",
 		"gtkg_requeries",
 		"queries_with_ggep_h",
+		"queries_with_sr_udp",
 		"giv_callbacks",
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"udp_fw2fw_pushes",
+		"udp_fw2fw_pushes_to_self",
+		"udp_fw2fw_pushes_patched",
+		"udp_uhc_pings",
+		"udp_uhc_pongs",
 		"udp_bogus_source_ip",
 		"udp_alien_message",
 		"udp_unprocessed_message",
 		"udp_tx_compressed",
 		"udp_rx_compressed",
 		"udp_larger_hence_not_compressed",
+		"udp_ambiguous",
+		"udp_ambiguous_deeper_inspection",
+		"udp_ambiguous_as_semi_reliable",
+		"udp_sr_tx_messages_given",
+		"udp_sr_tx_messages_deflated",
+		"udp_sr_tx_messages_unsent",
+		"udp_sr_tx_messages_clogging",
+		"udp_sr_tx_reliable_messages_given",
+		"udp_sr_tx_reliable_messages_sent",
+		"udp_sr_tx_reliable_messages_unsent",
+		"udp_sr_tx_fragments_sent",
+		"udp_sr_tx_fragments_resent",
+		"udp_sr_tx_fragments_sending_avoided",
+		"udp_sr_tx_fragments_oversent",
+		"udp_sr_tx_total_acks_received",
+		"udp_sr_tx_cumulative_acks_received",
+		"udp_sr_tx_extended_acks_received",
+		"udp_sr_tx_spurious_acks_received",
+		"udp_sr_tx_invalid_acks_received",
+		"udp_sr_tx_ears_sent",
+		"udp_sr_tx_ears_oversent",
+		"udp_sr_tx_ear_nacks_received",
+		"udp_sr_tx_ear_followed_by_acks",
+		"udp_sr_rx_fragments_received",
+		"udp_sr_rx_fragments_duplicate",
+		"udp_sr_rx_fragments_unreliable",
+		"udp_sr_rx_fragments_dropped",
+		"udp_sr_rx_fragments_lingering",
+		"udp_sr_rx_messages_expired",
+		"udp_sr_rx_messages_received",
+		"udp_sr_rx_messages_inflated",
+		"udp_sr_rx_messages_inflation_error",
+		"udp_sr_rx_messages_unreliable",
+		"udp_sr_rx_messages_empty",
+		"udp_sr_rx_total_acks_sent",
+		"udp_sr_rx_cumulative_acks_sent",
+		"udp_sr_rx_extended_acks_sent",
+		"udp_sr_rx_avoided_acks",
+		"udp_sr_rx_ears_received",
+		"udp_sr_rx_ears_for_unknown_message",
+		"udp_sr_rx_ears_for_lingering_message",
+		"udp_sr_rx_from_hostile_ip",
 		"consolidated_servers",
 		"dup_downloads_in_consolidation",
 		"discovered_server_guid",
@@ -236,6 +287,8 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"bitzi_tickets_held",
 		"qhit_seeding_of_orphan",
 		"upload_seeding_of_orphan",
+		"rudp_tx_bytes",
+		"rudp_rx_bytes",
 		"dht_estimated_size",
 		"dht_estimated_size_stderr",
 		"dht_kball_theoretical",
@@ -270,6 +323,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"dht_lookup_rejected_node_on_net_quota",
 		"dht_lookup_rejected_node_on_proximity",
 		"dht_lookup_rejected_node_on_divergence",
+		"dht_lookup_fixed_node_contact",
 		"dht_keys_held",
 		"dht_cached_keys_held",
 		"dht_values_held",
@@ -300,7 +354,6 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"dht_dup_values",
 		"dht_kuid_collisions",
 		"dht_own_kuid_collisions",
-		"dht_rpc_kuid_reply_mismatch",
 		"dht_caching_attempts",
 		"dht_caching_successful",
 		"dht_caching_partially_successful",
@@ -310,6 +363,20 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"dht_key_offloading_successful",
 		"dht_key_offloading_partially_successful",
 		"dht_values_offloaded",
+		"dht_msg_received",
+		"dht_msg_matching_contact_address",
+		"dht_msg_fixed_contact_address",
+		"dht_msg_from_hostile_address",
+		"dht_msg_from_hostile_contact_address",
+		"dht_rpc_msg_prepared",
+		"dht_rpc_msg_cancelled",
+		"dht_rpc_timed_out",
+		"dht_rpc_replies_received",
+		"dht_rpc_replies_fixed_contact",
+		"dht_rpc_late_replies_received",
+		"dht_rpc_kuid_reply_mismatch",
+		"dht_rpc_recent_nodes_held",
+		"dht_node_verifications",
 		"dht_publishing_attempts",
 		"dht_publishing_successful",
 		"dht_publishing_partially_successful",
@@ -776,6 +843,30 @@ gnet_stats_count_general(gnr_stats_t type, int delta)
 }
 
 /**
+ * Increment the general stats counter by 1.
+ */
+void
+gnet_stats_inc_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i]++;
+}
+
+/**
+ * Decrement the general stats counter by 1.
+ */
+void
+gnet_stats_dec_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+    gnet_stats.general[i]--;
+}
+
+/**
  * Set the general stats counter to the given value.
  */
 void
@@ -785,6 +876,18 @@ gnet_stats_set_general(gnr_stats_t type, uint64 value)
 
 	g_assert(i < GNR_TYPE_COUNT);
     gnet_stats.general[i] = value;
+}
+
+/**
+ * Get the general stats counter.
+ */
+uint64
+gnet_stats_get_general(gnr_stats_t type)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+	return gnet_stats.general[i];
 }
 
 void

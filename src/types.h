@@ -117,6 +117,10 @@ typedef void (*cdata_fn_t)(const void *data, void *udata);
 typedef bool (*data_rm_fn_t)(void *data, void *udata);
 typedef bool (*cdata_rm_fn_t)(const void *data, void *udata);
 
+/* Data structure callback for selection & matching */
+
+typedef bool (*match_fn_t)(const void *data, void *udata);
+
 /* Iterator callbacks for associative arrays, optionally with constant key */
 
 typedef void (*keyval_fn_t)(void *key, void *value, void *data);
@@ -138,6 +142,11 @@ typedef void (*free_data_fn_t)(void *data, void *user_data);
 
 typedef void (*notify_fn_t)(void *data);
 typedef void (*notify_data_fn_t)(void *data, void *user_data);
+
+/* Generic stringifiers */
+
+typedef const char *(*stringify_fn_t)(const void *data);
+typedef const char *(*stringify_len_fn_t)(const void *data, size_t len);
 
 /* Random number generators (32-bits) */
 

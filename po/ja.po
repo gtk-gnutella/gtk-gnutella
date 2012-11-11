@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-06-04 11:30+0200\n"
+"POT-Creation-Date: 2012-11-09 16:26+0100\n"
 "PO-Revision-Date: 2010-01-11 02:32+0900\n"
 "Last-Translator: Daichi Kawahata <daichik@users.sourceforge.net>\n"
 "Language-Team: Japanese <gtk-gnutella-devel@lists.sourceforge.net>\n"
@@ -866,6 +866,11 @@ msgstr "失敗しました (余計な HELLO データがあります)"
 
 # FIXME: node -> peer
 msgid "Pseudo UDP node"
+msgstr "擬似UDPピア"
+
+# FIXME: node -> peer
+#, fuzzy
+msgid "Pseudo semi-reliable UDP node"
 msgstr "擬似UDPピア"
 
 # FIXME: node -> peer
@@ -3188,12 +3193,11 @@ msgstr "Pong キャッシュのデバッグレベルです。"
 msgid "Logged statistics level for code shared between GUI and core."
 msgstr "GUI とコアの間で共有されるコードのデバッグレベルです。"
 
-#, c-format
 msgid ""
 "If TRUE, the spam SHA1 database is kept in memory. If FALSE, it is kept in a "
 "fast disk database, which saves a large amount of core memory and reduces "
 "the overall footprint, at the cost of an increased I/O level. However, the "
-"DB cache has typically a 90% hit rate, so the actual overhead is barely "
+"DB cache has a 90 percent hit rate, so the actual overhead is barely "
 "noticeable when running as an ultra node and should remain completely "
 "unnoticed when running as a leaf."
 msgstr ""
@@ -3634,6 +3638,69 @@ msgid ""
 "of the GUESS bandwidth hint.  If FALSE, only the configured bandwidth hint "
 "will be used.  When running as a leaf this should be set to TRUE to make "
 "GUESS queries run faster."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the UDP TX scheduler."
+msgstr "帯域幅スケジューラー機能のデバッグレベルです。"
+
+msgid ""
+"Debugging flags for the semi-reliable UDP TX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: transmissions, 16: timeouts."
+msgstr ""
+
+msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
+msgstr ""
+
+msgid ""
+"Debugging flags for the semi-reliable UDP RX layer: 1: messages, 2: "
+"fragments, 4: acknowledgments, 8: receptions, 16: timeouts."
+msgstr ""
+
+#, fuzzy
+msgid "Whether to log sent semi-reliable UDP messages."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log received semi-reliable UDP messages."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the secured OOB query hit claiming."
+msgstr "メッセージ経路制御のデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log sent vendor messages."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log received vendor messages."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debugging flags for the DHT token cache (developers only)."
+msgstr "Pong キャッシュのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log weird DHT message headers when debugging."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Debug level for the DHT Remote Procedure Call (RPC) code."
+msgstr "DHT ユーザー参照キューのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log UHC pings we receive."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+#, fuzzy
+msgid "Whether to log UHC pings we emit."
+msgstr "Gnutella メッセージのデバッグレベルです。"
+
+msgid "Whether the program was properly shutdown."
+msgstr ""
+
+msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
 msgid "disable"
@@ -4290,6 +4357,10 @@ msgstr "ブルンジ共和国"
 msgid "Benin"
 msgstr "ベナン共和国"
 
+#, fuzzy
+msgid "Saint Barthelemy"
+msgstr "サンマリノ共和国"
+
 msgid "Bermuda"
 msgstr "英領バミューダ諸島"
 
@@ -4299,6 +4370,9 @@ msgstr "ブルネイ・ダルサラーム国"
 msgid "Bolivia"
 msgstr "ボリビア共和国"
 
+msgid "Bonaire, Sint Eustatius and Saba"
+msgstr ""
+
 msgid "Brazil"
 msgstr "ブラジル連邦共和国"
 
@@ -4307,6 +4381,10 @@ msgstr "バハマ共和国"
 
 msgid "Bhutan"
 msgstr "ブータン王国"
+
+#, fuzzy
+msgid "Burma"
+msgstr "英領バミューダ諸島"
 
 msgid "Bouvet Island"
 msgstr "諾領ブーヴェ島"
@@ -4367,6 +4445,10 @@ msgstr "キューバ共和国"
 
 msgid "Cape Verde"
 msgstr "カーボヴェルデ共和国"
+
+#, fuzzy
+msgid "Curacao"
+msgstr "マカオ特別行政区"
 
 msgid "Christmas Island"
 msgstr "豪領クリスマス諸島"
@@ -4835,11 +4917,19 @@ msgstr "ソマリア"
 msgid "Suriname"
 msgstr "スリナム共和国"
 
+#, fuzzy
+msgid "South Sudan"
+msgstr "大韓民国"
+
 msgid "Sao Tome and Principe"
 msgstr "サントメ・プリンシペ民主共和国"
 
 msgid "El Salvador"
 msgstr "エルサルバドル共和国"
+
+#, fuzzy
+msgid "Sint Maarten"
+msgstr "サンマリノ共和国"
 
 msgid "Syrian Arab Republic"
 msgstr "シリア・アラブ共和国"
@@ -5811,6 +5901,9 @@ msgstr "OOBヒット配送を要求する検索クエリー"
 msgid "Stripped OOB flag on queries"
 msgstr "検索クエリーでの削除済OOBフラッグ"
 
+msgid "Ignored OOB queries due to unclaimed hits"
+msgstr ""
+
 # XXX: wtf
 msgid "Duplicate OOB-proxied queries"
 msgstr "重複するOOBプロキシ検索クエリー"
@@ -5824,6 +5917,9 @@ msgid "OOB hits bearing alien IP address"
 msgstr "無関係なIPアドレスに関するOOBヒット"
 
 msgid "OOB hits ignored due to identified spamming address"
+msgstr ""
+
+msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
 # XXX: wtf
@@ -5909,6 +6005,9 @@ msgstr "PUSHプロキシUDP中継メッセージ"
 msgid "Push-proxy TCP relayed messages"
 msgstr "PUSHプロキシTCP中継メッセージ"
 
+msgid "Push-proxy TCP for FW<->FW transfers"
+msgstr ""
+
 msgid "Push-proxy broadcasted messages"
 msgstr "PUSHプロキシ広域送信メッセージ"
 
@@ -5966,6 +6065,10 @@ msgstr "GTKGからの検索クエリー (再問合わせ)"
 msgid "Queries advertising support of GGEP \"H\""
 msgstr "GGEP「H」への対応を知らせる検索クエリー"
 
+#, fuzzy
+msgid "Queries advertising support of semi-reliable UDP"
+msgstr "GGEP「H」への対応を知らせる検索クエリー"
+
 msgid "GIV callbacks received"
 msgstr "受信したGIVコールバック"
 
@@ -5977,6 +6080,22 @@ msgstr "受信したQUEUEコールバック"
 
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
+
+msgid "UDP push messages received for FW<->FW connections"
+msgstr ""
+
+msgid "UDP push messages requesting FW<->FW connection with ourselves"
+msgstr ""
+
+msgid "UDP push messages patched for FW<->FW connections"
+msgstr ""
+
+msgid "UDP UHC pings received"
+msgstr ""
+
+#, fuzzy
+msgid "UDP UHC pongs sent"
+msgstr "PUSH を送信しました"
 
 msgid "UDP messages with bogus source IP"
 msgstr "UDPメッセージ (偽の送信元IP)"
@@ -5996,6 +6115,137 @@ msgstr "受信した圧縮UDPメッセージ"
 # XXX: wtf
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "有効性が無いため圧縮されないUDPメッセージ"
+
+#, fuzzy
+msgid "Ambiguous UDP messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Ambiguous UDP messages inspected more deeply"
+msgstr ""
+
+msgid "Ambiguous UDP messages handled as semi-reliable UDP"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages deflated"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP total messages partially sent due to clogging"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages given for transmission"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages correctly transmited"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP fragment sendings avoided"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid "Semi-reliable UDP total acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP spurious acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP invalid acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP too many EARs sent"
+msgstr ""
+
+msgid "Semi-reliable UDP EAR negative acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received after sending EARs"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP duplicate fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments received"
+msgstr ""
+
+msgid "Semi-reliable UDP dropped received fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP messages expired before re-assembly"
+msgstr ""
+
+msgid "Semi-reliable UDP messages re-assembled completely"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated successfully"
+msgstr ""
+
+msgid "Semi-reliable UDP messages inflated incorrectly"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP empty messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP total acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP cumulative acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP extended acknowledgments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP EARs received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP EARs received for unknown message"
+msgstr ""
+
+msgid "Semi-reliable UDP EARs received whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments from hostile IP addresses"
+msgstr ""
 
 msgid "Consolidated servers (after GUID and IP address linking)"
 msgstr ""
@@ -6112,6 +6362,14 @@ msgstr ""
 msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "ダウンロードのデバッグレベルです。"
 
+#, fuzzy
+msgid "RUDP sent bytes"
+msgstr "RX (受信) 伝送バイト数"
+
+#, fuzzy
+msgid "RUDP received bytes"
+msgstr "RX (受信) 伝送バイト数"
+
 msgid "DHT estimated amount of nodes"
 msgstr ""
 
@@ -6219,6 +6477,9 @@ msgstr ""
 msgid "DHT nodes rejected during lookup based on frequency divergence"
 msgstr ""
 
+msgid "DHT node contact IP addresses fixed during lookup"
+msgstr ""
+
 msgid "DHT keys held"
 msgstr ""
 
@@ -6312,9 +6573,6 @@ msgstr ""
 msgid "DHT detected collisions with our own KUID"
 msgstr ""
 
-msgid "DHT detected KUID mismatches on RPC reply"
-msgstr ""
-
 msgid "DHT caching attempts"
 msgstr ""
 
@@ -6341,6 +6599,50 @@ msgstr ""
 
 msgid "DHT values successfully offloaded"
 msgstr ""
+
+#, fuzzy
+msgid "DHT incoming messages"
+msgstr "変なコマンドです"
+
+msgid "DHT incoming messages with UDP-matching contact address"
+msgstr ""
+
+msgid "DHT incoming messages with contact address fixed"
+msgstr ""
+
+msgid "DHT incoming messages from hostile addresses"
+msgstr ""
+
+msgid "DHT incoming messages with hostile contact address"
+msgstr ""
+
+msgid "DHT RPC messages prepared"
+msgstr ""
+
+msgid "DHT RPC messages cancelled"
+msgstr ""
+
+msgid "DHT RPC timed out"
+msgstr ""
+
+msgid "DHT RPC replies received"
+msgstr ""
+
+msgid "DHT RPC replies with contact address fixed"
+msgstr ""
+
+msgid "DHT RPC late replies received"
+msgstr ""
+
+msgid "DHT RPC detected KUID mismatches on reply"
+msgstr ""
+
+msgid "DHT RPC recent nodes held"
+msgstr ""
+
+#, fuzzy
+msgid "DHT node verifications"
+msgstr "ホスト情報"
 
 msgid "DHT publishing attempts"
 msgstr ""
@@ -8426,7 +8728,10 @@ msgstr ""
 msgid "Port mapping possible through UPnP or NAT-PMP."
 msgstr ""
 
-msgid "Port mapping configured through UPnP or NAT-PMP."
+msgid "Port mapping configured through NAT-PMP."
+msgstr ""
+
+msgid "Port mapping configured through UPnP."
 msgstr ""
 
 #, fuzzy
@@ -8878,6 +9183,9 @@ msgstr "%s の逆引き検索に失敗しました。"
 msgid "Reverse lookup in progress..."
 msgstr "逆引き検索を実行中..."
 
+msgid "UDP (semi-reliable)"
+msgstr ""
+
 msgid "Size:"
 msgstr "大きさ:"
 
@@ -9232,6 +9540,26 @@ msgstr "別の送信元"
 #, fuzzy
 msgid "Partial"
 msgstr "部分取得済"
+
+#, c-format
+msgid "%s [%.2f%%]"
+msgstr ""
+
+# FIXME: should be distinguished from the other, perhaps...
+#
+# NOTE:
+# Automatically clear sources when...
+# [] completed
+# [] failed
+# [] unavailable
+#
+#, fuzzy
+msgid "Available"
+msgstr "利用できない時"
+
+#, fuzzy
+msgid "Last modification"
+msgstr "ホスト情報"
 
 msgid "Latinized"
 msgstr "ローマ字表記"

@@ -141,20 +141,10 @@ drop_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint reason,
 			dst, size);
 }
 
-static void
+static inline void
 general_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint type)
 {
-	if (stats->general[type] == 0)
-		g_strlcpy(dst, "-", size);
-	else if (
-		type == GNR_QUERY_COMPACT_SIZE ||
-		type == GNR_IGNORED_DATA ||
-		type == GNR_SUNK_DATA
-	)
-		g_strlcpy(dst,
-			compact_size(stats->general[type], show_metric_units()), size);
-	else
-		uint64_to_string_buf(stats->general[type], dst, size);
+	gnet_stats_gui_general_to_string_buf(dst, size, stats, type);
 }
 
 static void

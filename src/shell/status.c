@@ -102,7 +102,8 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		/*
 		 * The flags are displayed as followed:
 		 *
-		 * PMP          port mapping configured via UPnP or NAT-PMP
+		 * UMP          port mapping configured via UPnP
+		 * NMP          port mapping configured via NAT-PMP
 		 * pmp          port mapping available (UPnP or NAT-PMP), un-configured
 		 * CLK			clock, GTKG expired
 		 * !FD or FD	red or yellow bombs for fd shortage
@@ -122,16 +123,13 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		 * UP or LF		ultrapeer or leaf mode
 		 */
 
-		if (GNET_PROPERTY(enable_upnp) || GNET_PROPERTY(enable_natpmp)) {
-			if (GNET_PROPERTY(port_mapping_successful)) {
-				pmp = "PMP ";
-			} else if (GNET_PROPERTY(port_mapping_possible)) {
-				pmp = "pmp ";
-			} else {
-				pmp = empty;
-			}
-		} else {
-			pmp = empty;
+		pmp = (GNET_PROPERTY(upnp_possible) || GNET_PROPERTY(natpmp_possible))
+			? "pmp " : empty;
+		if (
+			(GNET_PROPERTY(enable_upnp) || GNET_PROPERTY(enable_natpmp)) &&
+			GNET_PROPERTY(port_mapping_successful)
+		) {
+			pmp = GNET_PROPERTY(enable_natpmp) ? "NMP " : "UMP ";
 		}
 
 		if (dht_enabled()) {
@@ -396,7 +394,8 @@ shell_help_status(int argc, const char *argv[])
 		"-i : display instantaneous bandwidth instead of average\n"
 		"Upper-right corner flags mimic status icons in the GUI:\n"
 		"(from left to right in lightening order)\n"
-		"  PMP           port mapping configured via UPnP or NAT-PMP\n"
+		"  UMP           port mapping configured via UPnP\n"
+		"  NMP           port mapping configured via NAT-PMP\n"
 		"  pmp           port mapping available (UPnP or NAT-PMP)\n"
 		"  DFZ           download queue is frozen\n"
 		"  CLK           clock, GTKG expired\n"

@@ -134,8 +134,7 @@ cobs_encode(char *buf, size_t len, size_t *retlen)
 {
 	iovec_t iov;
 
-	iovec_set_base(&iov, buf);
-	iovec_set_len(&iov, len);
+	iovec_set(&iov, buf, len);
 	*retlen = len;
 
 	return cobs_encodev(&iov, 1, retlen);

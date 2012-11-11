@@ -408,8 +408,10 @@ qhit_send_node(void *data, size_t len, void *udata)
 static void
 qhit_log_ggep_write_failure(const char *id)
 {
-	if (GNET_PROPERTY(qhit_debug))
-		g_warning("QHIT could not write GGEP \"%s\" extension", id);
+	if (GNET_PROPERTY(qhit_debug)) {
+		g_warning("QHIT could not write GGEP \"%s\" extension: %s",
+			id, ggep_errstr());
+	}
 }
 
 /**
@@ -795,7 +797,19 @@ unique_file_index:
 	 */
 
 	if (is_partial && !shared_file_is_finished(sf)) {
-		ok = ggep_stream_pack(&gs, GGEP_NAME(PRU), NULL, 0, GGEP_W_COBS);
+		time_t mtime = shared_file_modification_time(sf);
+		filesize_t available = shared_file_available(sf);
+		char buf[sizeof mtime + sizeof available];
+		uint len;
+
+		/*
+		 * Starting with 0.98.4, we emit a payload in the "PRU" key to indicate
+		 * the last modification time of the file and the amount of bytes
+		 * available on the server.		--RAM, 2012-11-03
+		 */
+
+		len = ggept_stamp_filesize_encode(mtime, available, buf, sizeof buf);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(PRU), buf, len, GGEP_W_COBS);
 		if (!ok)
 			qhit_log_ggep_write_failure("PRU");
 	}
@@ -847,7 +861,7 @@ unique_file_index:
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf);
+		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
 
 		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 
@@ -894,7 +908,7 @@ unique_file_index:
 			 */
 			create_time = MAX(0, create_time);
 
-			len = ggept_ct_encode(create_time, buf);
+			len = ggept_ct_encode(create_time, buf, sizeof buf);
 			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);

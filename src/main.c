@@ -609,14 +609,13 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	DO(hcache_shutdown);	/* Save host caches to disk */
-	DO(settings_shutdown);
 	DO(oob_shutdown);		/* No longer deliver outstanding OOB hits */
 	DO(socket_shutdown);
 	DO(bsched_shutdown);
 
-	if (!running_topless) {
+	if (!running_topless)
 		DO(settings_gui_shutdown);
-	}
+	DO(settings_shutdown);
 
 	/*
 	 * Show total CPU used, and the amount spent in user / kernel, before
@@ -673,6 +672,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
 
+	DO(socket_closedown);
 	DO(upnp_close);
 	DO(bitzi_close);
 	DO(ntp_close);
@@ -683,8 +683,8 @@ gtk_gnutella_exit(int exit_code)
 	DO(hsep_close);
 	DO(file_info_close);
 	DO(ext_close);
-	DO(share_close);
 	DO(node_close);
+	DO(share_close);	/* After node_close() */
 	DO(udp_close);
 	DO(urpc_close);
 	DO(routing_close);	/* After node_close() */
@@ -710,6 +710,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(word_vec_close);
 	DO(pattern_close);
 	DO(pmsg_close);
+	DO(gmsg_close);
 	DO(version_close);
 	DO(ignore_close);
 	DO(iso3166_close);
@@ -1059,8 +1060,10 @@ parse_arguments(int argc, char **argv)
 		const char *s;
 
 		s = is_strprefix(argv[0], "--");
-		if (!s)
+		if (NULL == s) {
+			fprintf(stderr, "Unexpected argument \"%s\"\n", argv[0]);
 			usage(EXIT_FAILURE);
+		}
 		if ('\0' == s[0])
 			break;
 
@@ -1651,6 +1654,7 @@ main(int argc, char **argv)
 	 */
 
 	first_fd = fd_first_available();
+	first_fd = MAX(first_fd, 3);		/* Paranoid: always keep 0,1,2 */
 	close_file_descriptors(first_fd);	/* Just in case */
 
 	if (reserve_standard_file_descriptors()) {

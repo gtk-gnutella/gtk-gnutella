@@ -40,6 +40,16 @@
 struct gnutella_socket;
 
 /**
+ * Known banning categories.
+ */
+typedef enum {
+	BAN_CAT_SOCKET = 0,		/**< Socket connection */
+	BAN_CAT_OOB_CLAIM,		/**< OOB hit claims */
+
+	BAN_CAT_COUNT			/**< Total amount of banning categories */
+} ban_category_t;
+
+/**
  * @return codes for ban_allow().
  */
 
@@ -52,12 +62,12 @@ typedef enum {
 
 void ban_init(void);
 void ban_close(void);
-ban_type_t ban_allow(const host_addr_t addr);
+ban_type_t ban_allow(const ban_category_t cat, const host_addr_t addr);
 void ban_record(const host_addr_t addr, const char *msg);
 void ban_force(struct gnutella_socket *s);
-int ban_delay(const host_addr_t addr);
+int ban_delay(const ban_category_t cat, const host_addr_t addr);
 const char *ban_message(const host_addr_t addr);
-bool ban_is_banned(const host_addr_t addr);
+bool ban_is_banned(const ban_category_t cat, const host_addr_t addr);
 void ban_max_recompute(void);
 
 const char *ban_vendor(const char *vendor);

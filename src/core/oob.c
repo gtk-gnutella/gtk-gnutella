@@ -34,16 +34,17 @@
 #include "common.h"
 
 #include "oob.h"
-#include "hosts.h"
-#include "nodes.h"
-#include "share.h"
-#include "guid.h"
-#include "mq.h"
-#include "mq_udp.h"
-#include "vmsg.h"
-#include "qhit.h"
+#include "ban.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
+#include "guid.h"
+#include "hosts.h"
+#include "mq.h"
+#include "mq_udp.h"
+#include "nodes.h"
+#include "qhit.h"
+#include "share.h"
+#include "vmsg.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -68,6 +69,7 @@
 
 #define OOB_MAX_QHIT_SIZE	645			/**< Flush hits larger than this */
 #define OOB_MAX_DQHIT_SIZE	1075		/**< Flush limit for deflated hits */
+#define OOB_MAX_SRQHIT_SIZE	4096		/**< Flush limit for UDP SR hits */
 
 typedef enum {
 	OOB_RESULTS_MAGIC = 0x7ae5e685
@@ -88,6 +90,7 @@ struct oob_results {
 	int notify_requeued;	/**< Amount of LIME/12v2 requeued after dropping */
 	unsigned flags;			/**< A combination of QHIT_F_* flags */
 	unsigned secure:1;		/**< TRUE -> secure OOB, FALSE -> normal OOB */
+	unsigned reliable:1;	/**< TRUE -> deliver through semi-reliable UDP */
 };
 
 /**
@@ -112,7 +115,8 @@ struct gservent {
 	cevent_t *ev_service; /**< Callout event for servicing FIFO */
 	gnet_host_t *host;	  /**< The servent host (also used as key for table) */
 	fifo_t *fifo;		  /**< The servent's FIFO, holding pmsg_t items */
-	bool can_deflate;	  /**< Whether servent supports UDP compression */
+	uint can_deflate:1;	  /**< Whether servent supports UDP compression */
+	uint reliable:1;	  /**< Whether servent supports semi-reliable UDP */
 };
 
 /*
@@ -135,6 +139,7 @@ static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
+static bool oob_shutdowning;
 static bool oob_shutdown_running;
 
 static void
@@ -152,12 +157,24 @@ oob_results_check(const struct oob_results *r)
  */
 static struct oob_results *
 results_make(const struct guid *muid, GSList *files, int count,
-	gnet_host_t *to, bool secure, unsigned flags)
+	gnet_host_t *to, bool secure, bool reliable, unsigned flags)
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
 
-	g_return_val_if_fail(!hikset_contains(results_by_muid, muid), NULL);
+	/*
+	 * Check for duplicate queries bearing the same MUID.
+	 *
+	 * We used to soft-assert here, but since this condition actually triggers
+	 * we explicitly check for it.
+	 */
+
+	if (hikset_contains(results_by_muid, muid))
+		return NULL;
+
+	/*
+	 * First time we're seeing this query (normal case).
+	 */
 
 	WALLOC(r);
 	*r = zero_results;
@@ -167,6 +184,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	r->count = count;
 	gnet_host_copy(&r->dest, to);
 	r->secure = booleanize(secure);
+	r->reliable = booleanize(reliable);
 	r->flags = flags;
 
 	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
@@ -177,7 +195,7 @@ results_make(const struct guid *muid, GSList *files, int count,
 	g_assert(num_oob_records >= 0);
 	num_oob_records++;
 	if (GNET_PROPERTY(query_debug) > 1)
-		g_debug("results_make: num_oob_records=%d", num_oob_records);
+		g_debug("%s(): num_oob_records=%d", G_STRFUNC, num_oob_records);
 
 	return r;
 }
@@ -228,7 +246,8 @@ results_free_remove(struct oob_results *r)
 }
 
 /**
- * Callout queue callback to free the results.
+ * Callout queue callback to free the results when the time allocated for the
+ * querying party to claim all the results has expired.
  */
 static void
 results_destroy(cqueue_t *unused_cq, void *obj)
@@ -239,11 +258,11 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 	oob_results_check(r);
 
 	if (GNET_PROPERTY(query_debug))
-		g_debug("OOB query %s from %s expired with unclaimed %d hit%s",
+		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
 
-	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
 	r->refcount--;
@@ -252,22 +271,42 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 }
 
 /**
- * Callout queue callback to free the results.
+ * Callout queue callback to free the results when our initial notification
+ * was not acknowledged with claims.
  */
 static void
 results_timeout(cqueue_t *unused_cq, void *obj)
 {
 	struct oob_results *r = obj;
+	host_addr_t addr;
 
 	(void) unused_cq;
 	oob_results_check(r);
 
-	if (GNET_PROPERTY(query_debug))
-		g_debug("OOB query %s, no ACK from %s to claim %d hit%s",
+	addr = gnet_host_get_addr(&r->dest);
+
+	if (GNET_PROPERTY(query_debug)) {
+		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s");
+	}
 
-	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
+	
+	/*
+	 * Record an "event" that the OOB results went unclaimed.
+	 *
+	 * After too many unclaimed results, the IP address will be banned
+	 * for OOB query processing.
+	 */
+
+	if (BAN_OK != ban_allow(BAN_CAT_OOB_CLAIM, addr)) {
+		if (GNET_PROPERTY(query_debug)) {
+			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
+			g_debug("OOB host %s will be banned for the next %d second%s",
+				host_addr_to_string(addr), delay, 1 == delay ? "" : "s");
+		}
+	}
 
 	r->ev_timeout = NULL;		/* The timer which just triggered */
 	r->refcount--;
@@ -307,6 +346,7 @@ servent_service(cqueue_t *cq, void *obj)
 	struct gservent *s = obj;
 	pmsg_t *mb;
 	mqueue_t *q;
+	enum net_type nt;
 
 	s->ev_service = NULL;		/* The callback that just triggered */
 
@@ -314,12 +354,13 @@ servent_service(cqueue_t *cq, void *obj)
 	if (mb == NULL)
 		goto remove;
 
-	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(s->host)));
+	nt = host_addr_net(gnet_host_get_addr(s->host));
+	q = s->reliable ? node_udp_sr_get_outq(nt) : node_udp_get_outq(nt);
 	if (q == NULL)
 		goto udp_disabled;
 
 	if (GNET_PROPERTY(udp_debug) > 19)
-		g_debug("UDP queuing OOB %s to %s for %s",
+		g_debug("UDP queuing OOB %s to %s for #%s",
 			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)),
 			gnet_host_to_string(s->host),
 			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
@@ -331,7 +372,7 @@ servent_service(cqueue_t *cq, void *obj)
 
 	if (s->can_deflate) {
 		if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
-			gnet_stats_count_general(GNR_UDP_TX_COMPRESSED, 1);
+			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	}
 
 	mq_udp_putq(q, mb, s->host);
@@ -357,7 +398,7 @@ remove:
  * @param host the servent's IP:port.  Caller may free it upon return.
  */
 static struct gservent *
-servent_make(gnet_host_t *host, bool can_deflate)
+servent_make(gnet_host_t *host, bool can_deflate, bool reliable)
 {
 	struct gservent *s;
 
@@ -365,7 +406,8 @@ servent_make(gnet_host_t *host, bool can_deflate)
 	s->host = gnet_host_dup(host);
 	s->fifo = fifo_make();
 	s->ev_service = NULL;
-	s->can_deflate = can_deflate;
+	s->can_deflate = booleanize(can_deflate);
+	s->reliable = booleanize(reliable);
 
 	return s;
 }
@@ -403,11 +445,22 @@ static void
 oob_record_hit(void *data, size_t len, void *udata)
 {
 	struct gservent *s = udata;
+	pmsg_t *mb;
 
 	g_assert(len <= INT_MAX);
-	fifo_put(s->fifo, s->can_deflate ?
-		gmsg_to_deflated_pmsg(data, len) :
-		gmsg_to_pmsg(data, len));
+
+	/*
+	 * We don't deflate if sending the hits through the semi-reliable UDP
+	 * layer since it will transparently compress for us.
+	 */
+
+	mb = (s->can_deflate && !s->reliable) ?
+		gmsg_to_deflated_pmsg(data, len) : gmsg_to_pmsg(data, len);
+
+	if (s->reliable)
+		pmsg_mark_reliable(mb);
+
+	fifo_put(s->fifo, mb);
 }
 
 /**
@@ -431,17 +484,21 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	g_assert(NODE_IS_UDP(n));
 	g_assert(token);
 
+	if G_UNLIKELY(oob_shutdowning)
+		return;
+
 	r = hikset_lookup(results_by_muid, muid);
 
 	if (r == NULL) {
-		gnet_stats_count_general(GNR_SPURIOUS_OOB_HIT_CLAIM, 1);
+		gnet_stats_inc_general(GNR_SPURIOUS_OOB_HIT_CLAIM);
 		if (GNET_PROPERTY(query_debug))
-			g_warning("OOB got spurious LIME/11 from %s for %s, "
+			g_warning("OOB got spurious LIME/11 from %s for #%s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
 				wanted, wanted == 1 ? "" : "s");
 		return;
 	}
+
 	oob_results_check(r);
 
 	/*
@@ -475,7 +532,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 		 * have multiple network interfaces.
 		 */
 		
-		g_warning("OOB query %s might have been proxied: it had IP %s, "
+		g_warning("OOB query #%s might have been proxied: it had IP %s, "
 			"but the LIME/11v2 ACK comes from %s", guid_hex_str(muid),
 			gnet_host_to_string(&r->dest), node_addr(n));
 
@@ -495,12 +552,18 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 * Likewise, if it did not request it the first time, no matter what we
 	 * get next, we will never deflate hits for this OOB delivery.
 	 *		--RAM, 2006-08-13
+	 *
+	 * Likewise, we assume that semi-reliable UDP support will not vary
+	 * over time for a given servent address, from query to query, during
+	 * the lifetime of the server record here (kept around until we no longer
+	 * have any pending hit to deliver, from any query).
+	 *		--RAM, 2012-10-08
 	 */
 
 	s = hikset_lookup(servent_by_host, &r->dest);
 	if (s == NULL) {
 		bool can_deflate = NODE_CAN_INFLATE(n);	/* Can we deflate? */
-		s = servent_make(&r->dest, can_deflate);
+		s = servent_make(&r->dest, can_deflate, r->reliable);
 		hikset_insert_key(servent_by_host, &s->host);
 		servent_created = TRUE;
 	}
@@ -513,19 +576,22 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
-	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-		g_debug("OOB query %s: host %s wants %d hit%s, delivering %d",
+	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
+		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, wanted == 1 ? "" : "s",
 			deliver_count);
+	}
 
-	if (deliver_count)
+	if (deliver_count) {
 		qhit_build_results(
 			r->files, deliver_count,
+			r->reliable ? OOB_MAX_SRQHIT_SIZE :
 			s->can_deflate ? OOB_MAX_DQHIT_SIZE : OOB_MAX_QHIT_SIZE,
 			oob_record_hit, s, r->muid, r->flags, token);
+	}
 
 	if (wanted < r->count)
-		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
+		gnet_stats_inc_general(GNR_PARTIALLY_CLAIMED_OOB_HITS);
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the
@@ -573,7 +639,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		} else {
 
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-				g_debug("OOB query %s, notified %s about %d hit%s",
+				g_debug("OOB query #%s, notified %s about %d hit%s",
 					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 					r->count, r->count == 1 ? "" : "s");
 
@@ -586,14 +652,18 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		}
 	} else {
 		/*
-		 * If we were not able to send the message,
+		 * If we were not able to send the message: when we use plain UDP,
+		 * we retry, but with semi-reliable UDP we trust the network layer to
+		 * do the appropriate amount of retrying and a failure is definitive.
 		 */
 
-		if (GNET_PROPERTY(query_debug))
-			g_debug("OOB query %s, previous LIME12/v2 #%d was dropped",
-					guid_hex_str(r->muid), r->notify_requeued);
+		if (GNET_PROPERTY(query_debug)) {
+			g_debug("OOB query #%s, previous LIME12/v2 #%d was %s",
+				guid_hex_str(r->muid), r->notify_requeued,
+				r->reliable ? "unsent" : "dropped");
+		}
 
-		if (++r->notify_requeued < OOB_MAX_RETRY)
+		if (!r->reliable && ++r->notify_requeued < OOB_MAX_RETRY)
 			oob_send_reply_ind(r);
 		else
 			results_free_remove(r);
@@ -609,21 +679,26 @@ oob_send_reply_ind(struct oob_results *r)
 	mqueue_t *q;
 	pmsg_t *mb;
 	pmsg_t *emb;
+	enum net_type nt;
 
 	oob_results_check(r);
 
-	q = node_udp_get_outq(host_addr_net(gnet_host_get_addr(&r->dest)));
+	nt = host_addr_net(gnet_host_get_addr(&r->dest));
+	q = r->reliable ? node_udp_sr_get_outq(nt) : node_udp_get_outq(nt);
 	if (q == NULL)
 		return;
 
 	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255), r->secure);
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
+	if (r->reliable)
+		pmsg_mark_reliable(emb);
 	r->refcount++;
 	pmsg_free(mb);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-		g_debug("OOB query %s, notifying %s about %d hit%s, try #%d",
-			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
+		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
+			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
+			gnet_host_to_string(&r->dest),
 			r->count, r->count == 1 ? "" : "s", r->notify_requeued);
 
 	mq_udp_putq(q, emb, &r->dest);
@@ -639,30 +714,38 @@ oob_send_reply_ind(struct oob_results *r)
  * @param addr			address where we must send the OOB result indication
  * @param port			port where we must send the OOB result indication
  * @param secure		whether secure OOB was requested
+ * @param reliable		whether reliable UDP should be used
  * @param flags			a combination of QHIT_F_* flags
  */
 void
 oob_got_results(struct gnutella_node *n, GSList *files,
-	int count, host_addr_t addr, uint16 port, bool secure, unsigned flags)
+	int count, host_addr_t addr, uint16 port,
+	bool secure, bool reliable, unsigned flags)
 {
 	struct oob_results *r;
 	gnet_host_t to;
+	const guid_t *muid;
 
 	g_assert(count > 0);
 	g_assert(files != NULL);
 
 	gnet_host_set(&to, addr, port);
-	r = results_make(gnutella_header_get_muid(&n->header), files, count, &to,
-			secure, flags);
-	if (r) {
+	muid = gnutella_header_get_muid(&n->header);
+	r = results_make(muid, files, count, &to, secure, reliable, flags);
+	if (r != NULL) {
 		oob_send_reply_ind(r);
+	} else {
+		g_warning("%s(): ignoring duplicate %s%sOOB query %s from %s via %s",
+			G_STRFUNC, secure ? "secure " : "", reliable ? "reliable " : "",
+			guid_to_string(muid),
+			gnet_host_to_string(&to), node_infostr(n));
 	}
 }
 
 /**
  * Initialize out-of-band query hit delivery.
  */
-void
+G_GNUC_COLD void
 oob_init(void)
 {
 	results_by_muid = hikset_create(
@@ -674,7 +757,7 @@ oob_init(void)
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
-static void
+G_GNUC_COLD static void
 free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
@@ -708,8 +791,25 @@ free_servent_kv(void *value, void *unused_udata)
 /**
  * Cleanup at shutdown time.
  */
-void
+G_GNUC_COLD void
 oob_shutdown(void)
+{
+	oob_shutdowning = TRUE;
+
+	if (GNET_PROPERTY(search_debug)) {
+		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
+			G_STRFUNC, hikset_count(results_by_muid),
+			1 == hikset_count(results_by_muid) ? "y" : "ies",
+			hikset_count(servent_by_host),
+			1 == hikset_count(servent_by_host) ? "" : "s");
+	}
+}
+
+/**
+ * Final cleanup.
+ */
+G_GNUC_COLD void
+oob_close(void)
 {
 	oob_shutdown_running = TRUE;
 
@@ -722,14 +822,6 @@ oob_shutdown(void)
 	g_assert(num_oob_records >= 0);
 	if (num_oob_records > 0)
 		g_warning("%d OOB reply records possibly leaked", num_oob_records);
-}
-
-/**
- * Final cleanup.
- */
-void
-oob_close(void)
-{
 }
 
 /* vi: set ts=4 sw=4 cindent: */

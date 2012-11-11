@@ -83,12 +83,15 @@ static const struct {
 	{ "bh", N_("Bahrain") },
 	{ "bi", N_("Burundi") },
 	{ "bj", N_("Benin") },
+	{ "bl", N_("Saint Barthelemy") },
 	{ "bm", N_("Bermuda") },
 	{ "bn", N_("Brunei Darussalam") },
 	{ "bo", N_("Bolivia") },
+	{ "bq", N_("Bonaire, Sint Eustatius and Saba") },
 	{ "br", N_("Brazil") },
 	{ "bs", N_("Bahamas") },
 	{ "bt", N_("Bhutan") },
+	{ "bu", N_("Burma") },					/* deprecated */
 	{ "bv", N_("Bouvet Island") },
 	{ "bw", N_("Botswana") },
 	{ "by", N_("Belarus") },
@@ -109,6 +112,7 @@ static const struct {
 	{ "cs", N_("Serbia and Montenegro") },	/* deprecated */
 	{ "cu", N_("Cuba") },
 	{ "cv", N_("Cape Verde") },
+	{ "cw", N_("Curacao") },
 	{ "cx", N_("Christmas Island") },
 	{ "cy", N_("Cyprus") },
 	{ "cz", N_("Czech Republic") },
@@ -264,8 +268,10 @@ static const struct {
 	{ "sn", N_("Senegal") },
 	{ "so", N_("Somalia") },
 	{ "sr", N_("Suriname") },
+	{ "ss", N_("South Sudan") },
 	{ "st", N_("Sao Tome and Principe") },
 	{ "sv", N_("El Salvador") },
+	{ "sx", N_("Sint Maarten") },
 	{ "sy", N_("Syrian Arab Republic") },
 	{ "sz", N_("Swaziland") },
 	{ "tc", N_("Turks and Caicos Islands") },
@@ -304,6 +310,8 @@ static const struct {
 	{ "za", N_("South Africa") },
 	{ "zm", N_("Zambia") },
 	{ "zw", N_("Zimbabwe") },
+
+	/* Above line intentionally left blank for vi sorting */
 };
 
 static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];

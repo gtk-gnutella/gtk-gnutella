@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-96]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -68,7 +68,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 94 2011-02-10 14:06:58Z rmanfredi $
+# $X-Id: Jmake.rules 106 2011-11-25 20:36:12Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -79,8 +79,6 @@ all:: .FORCE_DEPEND
 
 ########################################################################
 # Start of Jmakefile
-
-# $X-Id$
 
 SRC = \
 	alive.c \
@@ -145,6 +143,7 @@ SRC = \
 	rx_chunk.c \
 	rx_inflate.c \
 	rx_link.c \
+	rx_ut.c \
 	rxbuf.c \
 	search.c \
 	settings.c \
@@ -166,7 +165,9 @@ SRC = \
 	tx_deflate.c \
 	tx_dgram.c \
 	tx_link.c \
+	tx_ut.c \
 	udp.c \
+	udp_sched.c \
 	uhc.c \
 	upload_stats.c \
 	uploads.c \
@@ -241,6 +242,7 @@ OBJ = \
 	rx_chunk.o \
 	rx_inflate.o \
 	rx_link.o \
+	rx_ut.o \
 	rxbuf.o \
 	search.o \
 	settings.o \
@@ -262,7 +264,9 @@ OBJ = \
 	tx_deflate.o \
 	tx_dgram.o \
 	tx_link.o \
+	tx_ut.o \
 	udp.o \
+	udp_sched.o \
 	uhc.o \
 	upload_stats.o \
 	uploads.o \
@@ -337,6 +341,8 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install:: local_install
+	@exit 0
+
 install.man:: maybe_install.man
 deinstall:: local_deinstall
 deinstall.man:: maybe_deinstall.man

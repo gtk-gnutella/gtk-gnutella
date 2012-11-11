@@ -137,8 +137,9 @@ upnp_ctrl_free(upnp_ctrl_t *ucd)
  * Is XML node name matching?
  */
 static bool
-node_named_as(const xnode_t *xn, void *data)
+node_named_as(const void *node, void *data)
 {
+	const xnode_t *xn = node;
 	const char *name = xnode_element_name(xn);
 
 	return (name != NULL) ? 0 == strcmp(name, cast_to_char_ptr(data)) : FALSE;

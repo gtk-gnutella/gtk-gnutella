@@ -62,6 +62,8 @@ static const char *msg_name[256];
 static uint8 msg_weight[256];	/**< For gmsg_cmp() */
 static uint8 kmsg_weight[256];	/**< For gmsg_cmp() */
 
+static zlib_deflater_t *gmsg_deflater;
+
 /**
  * Ensure that the gnutella message header has the correct size,
  * a TTL greater than zero and that size is at least 23 (GTA_HEADER_SIZE).
@@ -214,6 +216,17 @@ gmsg_init(void)
 		}
 		kmsg_weight[i] = w;
 	}
+
+	gmsg_deflater = zlib_deflater_make(NULL, 0, Z_BEST_COMPRESSION);
+}
+
+/**
+ * Destroy locally-allocated data.
+ */
+G_GNUC_COLD void
+gmsg_close(void)
+{
+	zlib_deflater_free(gmsg_deflater, TRUE);
 }
 
 /**
@@ -264,10 +277,8 @@ pmsg_t *
 gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 {
 	uint32 plen = size - GTA_HEADER_SIZE;		/* Raw payload length */
-	uint32 blen = plen + (plen >> 4) + 12;		/* 1.0625 times orginal */
 	void *buf;									/* Compression made there */
 	uint32 deflated_length;						/* Length of deflated data */
-	zlib_deflater_t *z;
 	pmsg_t *mb;
 
 	/*
@@ -277,35 +288,26 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	 */
 
 	if (plen <= 5)
-		return gmsg_split_to_pmsg(head, data, size);
+		goto send_raw;
 
 	/*
-	 * Compress payload into newly allocated buffer.
+	 * Compress payload into internally allocated buffer (in gmsg_deflater).
 	 */
 
-	buf = walloc(blen);
-	z = zlib_deflater_make_into(data, plen, buf, blen, Z_DEFAULT_COMPRESSION);
+	zlib_deflater_reset(gmsg_deflater, data, plen);
 
-	switch (zlib_deflate(z, plen)) {
-	case -1:
+	if (-1 == zlib_deflate_all(gmsg_deflater)) {
+		g_carp("%s(): deflate error", G_STRFUNC);
 		goto send_raw;
-		break;
-	case 0:
-		break;
-	case 1:
-		g_error("did not deflate the whole input");
-		break;
 	}
-
-	g_assert(zlib_deflater_closed(z));
 
 	/*
 	 * Check whether compressed data is smaller than the original payload.
 	 */
 
-	deflated_length = zlib_deflater_outlen(z);
+	deflated_length = zlib_deflater_outlen(gmsg_deflater);
+	buf = zlib_deflater_out(gmsg_deflater);
 
-	g_assert(deflated_length <= blen);
 	g_assert(zlib_is_valid_header(buf, deflated_length));
 
 	if (deflated_length >= plen) {
@@ -313,7 +315,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 			g_debug("UDP not deflating %s into %d bytes",
 				gmsg_infostr_full_split(head, data, size), deflated_length);
 
-		gnet_stats_count_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED, 1);
+		gnet_stats_inc_general(GNR_UDP_LARGER_HENCE_NOT_COMPRESSED);
 		goto send_raw;
 	}
 
@@ -322,9 +324,6 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	 */
 
 	mb = gmsg_split_to_pmsg(head, buf, deflated_length + GTA_HEADER_SIZE);
-
-	wfree(buf, blen);
-	zlib_deflater_free(z, FALSE);
 
 	if (GNET_PROPERTY(udp_debug))
 		g_debug("UDP deflated %s into %d bytes",
@@ -343,11 +342,8 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 
 send_raw:
 	/*
-	 * Cleanup and send payload as-is (uncompressed).
+	 * Send payload as-is (uncompressed).
 	 */
-
-	wfree(buf, blen);
-	zlib_deflater_free(z, FALSE);
 
 	return gmsg_split_to_pmsg(head, data, size);
 }
@@ -551,14 +547,20 @@ gmsg_sendto_one(struct gnutella_node *n, const void *msg, uint32 size)
 		gnet_host_set(&to, n->addr, n->port);
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
-			g_debug("GUESS sending local hit (%s) for %s to %s",
+			g_debug("GUESS sending local hit (%s) for #%s to %s",
+				NODE_CAN_SR_UDP(n) ? "reliably" :
 				NODE_CAN_INFLATE(n) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(gnutella_header_get_muid(msg)), node_infostr(n));
 		}
 
-		mb = NODE_CAN_INFLATE(n) ?
-			gmsg_to_deflated_pmsg(msg, size) :
-			gmsg_to_pmsg(msg, size);
+		if (NODE_CAN_SR_UDP(n)) {
+			mb = gmsg_to_pmsg(msg, size);
+			pmsg_mark_reliable(mb);
+		} else {
+			mb = NODE_CAN_INFLATE(n) ?
+				gmsg_to_deflated_pmsg(msg, size) :
+				gmsg_to_pmsg(msg, size);
+		}
 
 		mq_udp_putq(n->outq, mb, &to);
 	} else {
@@ -801,6 +803,9 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	switch (rt->type) {
 	case ROUTE_NONE:
 		return;
+	case ROUTE_LEAVES:
+		g_assert_not_reached();
+		break;
 	case ROUTE_ONE:
 		/*
 		 * If message has size flags and the recipoent cannot understand it,
@@ -853,7 +858,7 @@ gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
  * route.
  */
 static bool
-gmsg_query_can_send(pmsg_t *mb, const mqueue_t *q)
+gmsg_query_can_send(const pmsg_t *mb, const void *q)
 {
 	gnutella_node_t *n = mq_node(q);
 	const void *msg = pmsg_start(mb);
@@ -889,8 +894,7 @@ gmsg_install_presend(pmsg_t *mb)
 	const void *msg = pmsg_start(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
-		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
-		g_assert(NULL == old);
+		pmsg_set_check(mb, gmsg_query_can_send);
 	}
 }
 
@@ -1070,9 +1074,10 @@ gmsg_infostr_split_to_buf(
 		return kmsg_infostr_to_buf(head, buf, buf_size);
 	}
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
+		guid_hex_str(gnutella_header_get_muid(head)),
 		gnutella_header_get_ttl(head) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(head),
 		gnutella_header_get_ttl(head) & ~GTA_UDP_DEFLATED);
@@ -1093,9 +1098,10 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 	 * we can't go and probe DHT messages.
 	 */
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) %s[hops=%d, TTL=%d]",
+	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
+		guid_hex_str(gnutella_header_get_muid(msg)),
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
 		gnutella_header_get_ttl(msg) & ~GTA_UDP_DEFLATED);
@@ -1122,10 +1128,11 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 			uint8 ttl = gnutella_header_get_ttl(head);
 
 			rw = gm_snprintf(buf, buf_size,
-				"%s %s (%u byte%s) %s[hops=%d, TTL=%d]",
+				"%s %s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
 				size, size == 1 ? "" : "s",
+				guid_hex_str(gnutella_header_get_muid(head)),
 				ttl & GTA_UDP_DEFLATED ? "deflated " : 
 					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
 				gnutella_header_get_hops(head),
@@ -1159,7 +1166,7 @@ gmsg_infostr_full_to_buf(const void *msg, size_t msg_len,
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  *
  * that can also decompile vendor messages given a pointer on the header
  * and on the data of the message (which may not be consecutive in memory).
@@ -1167,7 +1174,7 @@ gmsg_infostr_full_to_buf(const void *msg, size_t msg_len,
 char *
 gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
 {
-	static char buf[160];
+	static char buf[180];
 
 	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
 	return buf;
@@ -1178,12 +1185,12 @@ gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  */
 const char *
 gmsg_infostr(const void *msg)
 {
-	static char buf[80];
+	static char buf[96];
 	gmsg_infostr_to_buf(msg, buf, sizeof buf);
 	return buf;
 }
@@ -1199,18 +1206,18 @@ gmsg_infostr(const void *msg)
  *
  * @returns formatted static string:
  *
- *     msg_type (payload length) [hops=x, TTL=x]
+ *     msg_type (payload length) MUID [hops=x, TTL=x]
  *
  * if message is from a remote node, or
  *
- *     msg_type (payload length) [hops=x, TTL=x] //IP:port <vendor>//
+ *     msg_type (payload length) MUID [hops=x, TTL=x] //IP:port <vendor>//
  *
  * if message comes from a neighbour.
  */
 const char *
 gmsg_node_infostr(const gnutella_node_t *n)
 {
-	static char buf[160];
+	static char buf[180];
 	size_t w;
 
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
@@ -1258,7 +1265,7 @@ gmsg_log_split_duplicate(
 	const char *reason, ...)
 {
 	char rbuf[256];
-	char buf[128];
+	char buf[160];
 
 	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
 
@@ -1273,15 +1280,14 @@ gmsg_log_split_duplicate(
 		rbuf[0] = '\0';
 	}
 
-	g_debug("DUP %s %s%s",
-		guid_hex_str(gnutella_header_get_muid(head)), buf, rbuf);
+	g_debug("DUP %s%s", buf, rbuf);
 }
 
 /**
  * Log dropped message (held in message block) with supplied reason.
  */
 void
-gmsg_log_dropped_pmsg(pmsg_t *mb, const char *reason, ...)
+gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 {
 	char rbuf[256];
 	char buf[128];

@@ -78,6 +78,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/debug.h"
 #include "lib/map.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
@@ -97,6 +98,20 @@ static time_delta_t token_life;		/**< Lifetime of our cached tokens */
 static cperiodic_t *tcache_prune_ev;
 
 /**
+ * Debugging configuration for the DBM wrapper.
+ */
+static dbg_config_t tcache_dbmw_dbg = {
+	"DHT TCACHE ",							/* prefix */
+	"DBMW",									/* type */
+	0, 0,									/* level, flags */
+	(stringify_fn_t) dbmw_name,				/* o2str */
+	(stringify_fn_t) kuid_to_hex_string,	/* k2str */
+	NULL,									/* klen2str */
+	NULL,									/* v2str */
+	NULL,									/* vlen2str */
+};
+
+/**
  * DBM wrapper to associate a target KUID its STORE security token.
  */
 static dbmw_t *db_tokdata;
@@ -112,6 +127,16 @@ struct tokdata {
 	uint8 length;			/**< Token length (0 if none) */
 	void *token;			/**< Token binary data -- walloc()-ed */
 };
+
+/**
+ * Debugging variables changed.
+ */
+void
+tcache_debugging_changed(void)
+{
+	tcache_dbmw_dbg.level = GNET_PROPERTY(dht_tcache_debug);
+	tcache_dbmw_dbg.flags = GNET_PROPERTY(dht_tcache_debug_flags);
+}
 
 /**
  * Get tokdata from database, returning NULL if not found.
@@ -140,11 +165,18 @@ static void
 delete_tokdata(const kuid_t *id)
 {
 	dbmw_delete(db_tokdata, id);
-	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, -1);
+	gnet_stats_dec_general(GNR_DHT_CACHED_TOKENS_HELD);
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 2)
 		g_debug("DHT TCACHE security token from %s reclaimed",
 			kuid_to_hex_string(id));
+
+	if (GNET_PROPERTY(dht_tcache_debug_flags) & DBG_DSF_USR1) {
+		g_debug("DHT TCACHE %s: stats=%s, count=%zu, id=%s",
+			G_STRFUNC, uint64_to_string(
+				gnet_stats_get_general(GNR_DHT_CACHED_TOKENS_HELD)),
+			dbmw_count(db_tokdata), kuid_to_hex_string(id));
+	}
 }
 
 /**
@@ -224,9 +256,16 @@ record_token(void *key, void *value, void *unused_u)
 	 */
 
 	if (!dbmw_exists(db_tokdata, id->v))
-		gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HELD, +1);
+		gnet_stats_inc_general(GNR_DHT_CACHED_TOKENS_HELD);
 
 	dbmw_write(db_tokdata, id->v, &td, sizeof td);
+
+	if (GNET_PROPERTY(dht_tcache_debug_flags) & DBG_DSF_USR1) {
+		g_debug("DHT TCACHE %s: stats=%s, count=%zu, id=%s",
+			G_STRFUNC, uint64_to_string(
+				gnet_stats_get_general(GNR_DHT_CACHED_TOKENS_HELD)),
+			dbmw_count(db_tokdata), kuid_to_hex_string(id));
+	}
 }
 
 /**
@@ -282,7 +321,7 @@ tcache_get(const kuid_t *id,
 			compact_time(delta_time(tm_time(), td->last_update)));
 	}
 
-	gnet_stats_count_general(GNR_DHT_CACHED_TOKENS_HITS, 1);
+	gnet_stats_inc_general(GNR_DHT_CACHED_TOKENS_HITS);
 
 	return TRUE;
 }
@@ -323,6 +362,12 @@ tk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 			kuid_to_hex_string(id));
 	}
 
+	if (GNET_PROPERTY(dht_tcache_debug) > 5) {
+		g_debug("DHT TCACHE %s: %s id=%s",
+			G_STRFUNC, d > token_life ? "prune" : "keep ",
+			kuid_to_hex_string(id));
+	}
+
 	return d > token_life;
 }
 
@@ -332,17 +377,19 @@ tk_prune_old(void *key, void *value, size_t u_len, void *u_data)
 static void
 tcache_prune_old(void)
 {
+	size_t pruned;
+
 	if (GNET_PROPERTY(dht_tcache_debug)) {
 		g_debug("DHT TCACHE pruning expired tokens (%zu)",
 			dbmw_count(db_tokdata));
 	}
 
-	dbmw_foreach_remove(db_tokdata, tk_prune_old, NULL);
+	pruned = dbmw_foreach_remove(db_tokdata, tk_prune_old, NULL);
 	gnet_stats_set_general(GNR_DHT_CACHED_TOKENS_HELD, dbmw_count(db_tokdata));
 
 	if (GNET_PROPERTY(dht_tcache_debug)) {
-		g_debug("DHT TCACHE pruned expired tokens (%zu remaining)",
-			dbmw_count(db_tokdata));
+		g_debug("DHT TCACHE pruned expired tokens (%zu pruned, %zu remaining)",
+			pruned, dbmw_count(db_tokdata));
 	}
 }
 
@@ -380,6 +427,7 @@ tcache_init(void)
 		GNET_PROPERTY(dht_storage_in_memory));
 
 	dbmw_set_map_cache(db_tokdata, TOK_MAP_CACHE_SIZE);
+	dbmw_set_debugging(db_tokdata, &tcache_dbmw_dbg);
 
 	token_life = MIN(TOK_LIFE, token_lifetime());
 

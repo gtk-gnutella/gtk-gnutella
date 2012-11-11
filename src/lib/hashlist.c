@@ -406,6 +406,34 @@ hash_list_shuffle(hash_list_t *hl)
 }
 
 /**
+ * Rotate list by one item to the left.
+ *
+ * The head is inserted back at the tail.
+ */
+void
+hash_list_rotate_left(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	elist_rotate_left(&hl->list);
+}
+
+/**
+ * Rotate list by one item to the right.
+ *
+ * The tail is inserted back at the head.
+ */
+void
+hash_list_rotate_right(hash_list_t *hl)
+{
+	hash_list_check(hl);
+	g_assert(1 == hl->refcount);
+
+	elist_rotate_right(&hl->list);
+}
+
+/**
  * Remove specified item.
  *
  * @return the original key.

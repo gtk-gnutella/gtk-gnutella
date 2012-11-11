@@ -241,8 +241,9 @@ xfmt_handle_pass1_attr(const char *uri,
  * Pass 1 handler on each tree node entry.
  */
 static bool
-xfmt_handle_pass1_enter(xnode_t *xn, void *data)
+xfmt_handle_pass1_enter(const void *node, void *data)
 {
+	const xnode_t *xn = node;
 	struct xfmt_pass1 *xp1 = data;
 
 	xp1->depth++;
@@ -266,8 +267,9 @@ xfmt_handle_pass1_enter(xnode_t *xn, void *data)
  * Pass 1 handler on each tree node leave.
  */
 static void
-xfmt_handle_pass1_leave(xnode_t *xn, void *data)
+xfmt_handle_pass1_leave(void *node, void *data)
 {
+	xnode_t *xn = node;
 	struct xfmt_pass1 *xp1 = data;
 
 	g_assert(uint_is_positive(xp1->depth));
@@ -788,8 +790,9 @@ xfmt_pass2_leaving(struct xfmt_pass2 *xp2)
  * Pass 2 handler on each tree node entry.
  */
 static bool
-xfmt_handle_pass2_enter(xnode_t *xn, void *data)
+xfmt_handle_pass2_enter(const void *node, void *data)
 {
+	const xnode_t *xn = node;
 	struct xfmt_pass2 *xp2 = data;
 
 	xp2->depth++;
@@ -932,8 +935,9 @@ ignore:
  * Pass 2 handler on each tree node leave.
  */
 static void
-xfmt_handle_pass2_leave(xnode_t *xn, void *data)
+xfmt_handle_pass2_leave(void *node, void *data)
 {
+	xnode_t *xn = node;
 	struct xfmt_pass2 *xp2 = data;
 
 	if (xnode_is_element(xn)) {

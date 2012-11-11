@@ -1013,14 +1013,14 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
  * Free value from the tracking table.
  */
 static void
-tracking_free_kv(const void *key, void *value, void *uu_user)
+tracking_free_kv(const void *unused_key, void *value, void *unused_data)
 {
-	(void) uu_user;
+	(void) unused_key;
+	(void) unused_data;
 
 	/* The key is a constant */
 
 	wfree(value, sizeof(struct spot));
-	return TRUE;
 }
 
 /**
@@ -1088,7 +1088,7 @@ dump_tracking_entry(const void *key, void *value, void *user)
  * Dump the values held in the tracking table `h'.
  */
 static void
-dump_tracking_table(void *atom, htable_t *h, char *what)
+dump_tracking_table(const void *atom, htable_t *h, char *what)
 {
 	size_t count = htable_count(h);
 

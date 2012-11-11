@@ -38,6 +38,8 @@
 #include <netdb.h>
 #endif
 
+#include "settings.h"
+#include "ban.h"
 #include "bsched.h"
 #include "ctl.h"
 #include "downloads.h"
@@ -49,8 +51,8 @@
 #include "ipp_cache.h"
 #include "pdht.h"
 #include "routing.h"			/* For gnet_reset_guid() */
+#include "rx.h"					/* For rx_debug_set_addrs() */
 #include "search.h"
-#include "settings.h"
 #include "share.h"
 #include "sockets.h"
 #include "tx.h"					/* For tx_debug_set_addrs() */
@@ -677,7 +679,7 @@ settings_init(void)
 
 	settings_init_running = TRUE;
 
-#ifdef RLIMIT_DATA 
+#if defined(HAS_GETRLIMIT) && defined(RLIMIT_DATA)
 	{
 		struct rlimit lim;
 	
@@ -686,7 +688,7 @@ settings_init(void)
 			amount = MIN(amount, maxdata);		/* For our purposes */
 		}
 	}
-#endif /* RLIMIT_DATA */
+#endif /* HAS_GETRLIIT && RLIMIT_DATA */
 
     properties = gnet_prop_init();
 	max_fd = getdtablesize();
@@ -728,6 +730,24 @@ settings_init(void)
 		g_warning(_("You seem to have left another gtk-gnutella running"));
 		exit(EXIT_FAILURE);
 	}
+
+	/*
+	 * Detect whether we're restarting after a clean shutdown or whether
+	 * we're being auto-restarted / manually relaunched after a crash.
+	 */
+
+	if (GNET_PROPERTY(clean_shutdown)) {
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, TRUE);
+	} else {
+		g_warning("restarting after abnormal termination");
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+	}
+
+	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
+
+	/*
+	 * Emit configuration / system information, but only if debugging.
+	 */
 
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
@@ -787,6 +807,8 @@ settings_init(void)
 	settings_update_firewalled();
 	settings_callbacks_init();
 	settings_init_running = FALSE;
+
+	settings_save_if_dirty();		/* Ensure "clean_shutdown" is now FALSE */
 	return;
 
 no_config_dir:
@@ -1078,15 +1100,20 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
+	/*
+	 * Ignore peers reporting new address if in the same /16 space as other
+	 * recent peers who have reported a new address before.
+	 */
+
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (host_addr_matches(peer, new_addr, 16)) /* CIDR /16 */
+		if (host_addr_matches(peer, peers[i], 16)) /* CIDR /16 */
 			return;
 	}
 
 	if (!host_addr_equal(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
-		peers[0] = peer;
+		peers[0] = peer;			/* First peer to report new address */
 		return;
 	}
 
@@ -1133,15 +1160,20 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
+	/*
+	 * Ignore peers reporting new address if in the same /64 space as other
+	 * recent peers who have reported a new address before.
+	 */
+
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
-		if (host_addr_matches(peer, new_addr, 64)) /* CIDR /64 */
+		if (host_addr_matches(peer, peers[i], 64)) /* CIDR /64 */
 			return;
 	}
 
 	if (!host_addr_equal(new_addr, last_addr_seen)) {
 		last_addr_seen = new_addr;
 		same_addr_count = 1;
-		peers[0] = peer;
+		peers[0] = peer;		/* First peer to report new address */
 		return;
 	}
 
@@ -1162,7 +1194,6 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 
     gnet_prop_set_ip_val(PROP_LOCAL_IP6, new_addr);
 }
-
 
 /**
  * This routine is called when we determined that our IP was no longer the
@@ -1247,6 +1278,16 @@ settings_max_msg_size(void)
 G_GNUC_COLD void
 settings_shutdown(void)
 {
+	/*
+	 * We're indicating that a graceful shutdown was requested.
+	 *
+	 * We have no assurance that no crash will happen before everything
+	 * is actually completely shutdown, but at least this will signal that
+	 * the program was explicitly scheduled to terminate.
+	 */
+
+	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, TRUE);
+
 	update_uptimes();
 	remember_local_addr_port();
     settings_callbacks_shutdown();
@@ -1289,6 +1330,7 @@ void
 settings_terminate(void)
 {
 	tx_debug_set_addrs("");		/* Free up any registered addresses */
+	rx_debug_set_addrs("");		/* Idem */
 }
 
 static void
@@ -1503,6 +1545,7 @@ update_uptimes(void)
 /***
  *** Callbacks
  ***/
+
 static bool
 up_connections_changed(property_t prop)
 {
@@ -1740,6 +1783,16 @@ tx_debug_addrs_changed(property_t prop)
 }
 
 static bool
+rx_debug_addrs_changed(property_t prop)
+{
+	char *s = gnet_prop_get_string(prop, NULL, 0);
+
+	rx_debug_set_addrs(s);
+	G_FREE_NULL(s);
+	return FALSE;
+}
+
+static bool
 dump_rx_addrs_changed(property_t prop)
 {
 	char *s = gnet_prop_get_string(prop, NULL, 0);
@@ -1767,6 +1820,14 @@ dump_tx_to_addrs_changed(property_t prop)
 	dump_tx_set_to_addrs(s);
 	G_FREE_NULL(s);
 	return FALSE;
+}
+
+static bool
+dht_tcache_debug_changed(property_t prop)
+{
+	(void) prop;
+	tcache_debugging_changed();
+    return FALSE;
 }
 
 static bool
@@ -2049,6 +2110,15 @@ node_sendqueue_size_changed(property_t unused_prop)
     }
 
     return FALSE;
+}
+
+static bool
+ban_parameter_changed(property_t unused_prop)
+{
+	(void) unused_prop;
+
+	ban_max_recompute();
+	return FALSE;
 }
 
 static bool
@@ -2745,10 +2815,20 @@ file_descriptor_x_changed(property_t prop)
 typedef struct prop_map {
     property_t prop;            /**< property handle */
     prop_changed_listener_t cb; /**< callback function */
-    bool init;              /**< init widget with current value */
+    bool init;  	            /**< init widget with current value */
 } prop_map_t;
 
 static prop_map_t property_map[] = {
+    {
+        PROP_BAN_RATIO_FDS,
+        ban_parameter_changed,
+        FALSE
+    },
+    {
+        PROP_BAN_MAX_FDS,
+        ban_parameter_changed,
+        FALSE
+    },
     {
         PROP_NODE_SENDQUEUE_SIZE,
         node_sendqueue_size_changed,
@@ -3105,6 +3185,11 @@ static prop_map_t property_map[] = {
 		FALSE,
 	},
 	{
+		PROP_RX_DEBUG_ADDRS,
+		rx_debug_addrs_changed,
+		TRUE,
+	},
+	{
 		PROP_TX_DEBUG_ADDRS,
 		tx_debug_addrs_changed,
 		TRUE,
@@ -3122,6 +3207,16 @@ static prop_map_t property_map[] = {
 	{
 		PROP_DUMP_TX_TO_ADDRS,
 		dump_tx_to_addrs_changed,
+		TRUE,
+	},
+	{
+		PROP_DHT_TCACHE_DEBUG,
+		dht_tcache_debug_changed,
+		FALSE,
+	},
+	{
+		PROP_DHT_TCACHE_DEBUG_FLAGS,
+		dht_tcache_debug_changed,
 		TRUE,
 	},
 };
@@ -3143,8 +3238,8 @@ settings_callbacks_init(void)
         init_list[n] = FALSE;
 
     if (GNET_PROPERTY(dbg) >= 2) {
-        g_debug("settings_callbacks_init: property_map size: %u",
-            (uint) PROPERTY_MAP_SIZE);
+        g_debug("%s: property_map size: %u",
+            G_STRFUNC, (uint) PROPERTY_MAP_SIZE);
     }
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
@@ -3152,7 +3247,7 @@ settings_callbacks_init(void)
         uint32 idx = prop - GNET_PROPERTY_MIN;
 
         if (init_list[idx]) {
-            g_error("settings_callbacks_init: property %u already mapped", n);
+            g_error("%s: property %u already mapped", G_STRFUNC, n);
 		}
 
 		init_list[idx] = TRUE;
@@ -3162,16 +3257,16 @@ settings_callbacks_init(void)
                 property_map[n].cb,
                 property_map[n].init);
         } else if (GNET_PROPERTY(dbg) >= 10) {
-            g_warning("settings_callbacks_init: property ignored: %s",
-				gnet_prop_name(prop));
+            g_warning("%s: property ignored: %s",
+				G_STRFUNC, gnet_prop_name(prop));
         }
     }
 
     if (GNET_PROPERTY(dbg) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (!init_list[n])
-                g_message("settings_callbacks_init: unmapped property: %s",
-					gnet_prop_name(n+GNET_PROPERTY_MIN));
+                g_message("%s: unmapped property: %s",
+					G_STRFUNC, gnet_prop_name(n+GNET_PROPERTY_MIN));
         }
     }
 }

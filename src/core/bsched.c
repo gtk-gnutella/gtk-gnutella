@@ -43,10 +43,11 @@
 
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
-#include "lib/walloc.h"
+#include "lib/inputevt.h"
 #include "lib/parse.h"
 #include "lib/stringify.h"
 #include "lib/vmm.h"
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -160,6 +161,7 @@ static int bws_in_ema = 0;
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
 #define BW_OUT_LEAF_MIN	32	 /**< Minimum out bandwidth per leaf connection */
 #define BW_UL_STALL_TIM	21600	/**< Hysteresis for upload stalling condition */
+#define BW_UL_RUN_TIME	3600 /**< Check period for running uploads */
 
 #define BW_TCP_MSG		40	 /**< Smallest size of a TCP message */
 #define BW_UDP_MSG		28	 /**< Minimal IP+UDP overhead for a UDP message */
@@ -778,6 +780,38 @@ bsched_shutdown(void)
 }
 
 /**
+ * @return b/w per second configured for the scheduler to which this I/O
+ * source belongs.
+ */
+ulong
+bio_bw_per_second(const bio_source_t *bio)
+{
+	const bsched_t *bs;
+
+	bio_check(bio);
+
+	bs = bsched_get(bio->bws);
+	return bs->bw_per_second;
+}
+
+/**
+ * Trigger the "passive" callback to signify that a new timeslice has begun
+ * and that I/Os can resume on the source.
+ */
+static void
+bio_trigger(const bio_source_t *bio)
+{
+	bio_check(bio);
+	g_assert(0 == bio->io_tag);
+	g_assert(bio->io_callback != NULL);
+	g_assert(bio->flags & BIO_F_PASSIVE);
+	wrap_io_check(bio->wio);
+
+	(*bio->io_callback)(bio->io_arg, bio->wio->fd(bio->wio),
+		(bio->flags & BIO_F_READ) ? INPUT_EVENT_R : INPUT_EVENT_W);
+}
+
+/**
  * Enable an I/O source.
  */
 static void
@@ -786,6 +820,8 @@ bio_enable(bio_source_t *bio)
 	bio_check(bio);
 	g_assert(0 == bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
+	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
+	wrap_io_check(bio->wio);
 
 	bio->io_tag = inputevt_add(bio->wio->fd(bio->wio),
 			(bio->flags & BIO_F_READ) ? INPUT_EVENT_RX : INPUT_EVENT_WX,
@@ -803,6 +839,7 @@ unsigned
 bio_get_bufsize(const bio_source_t *bio, enum socket_buftype type)
 {
 	bio_check(bio);
+	wrap_io_check(bio->wio);
 	return bio->wio->bufsize(bio->wio, type);
 }
 
@@ -819,12 +856,17 @@ bio_disable(bio_source_t *bio)
 	bio_check(bio);
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
+	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
 	inputevt_remove(&bio->io_tag);
 }
 
 /**
- * Add I/O callback to a "passive" I/O source.
+ * Add I/O callback to a "passive" I/O source, making it active.
+ *
+ * The source will be added to the input event dispatcher and the callback
+ * will be invoked as soon as something happens on that source (for instance
+ * it becomes readable, writable, or an exception occurs).
  */
 void
 bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, void *arg)
@@ -835,9 +877,34 @@ bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, void *arg)
 
 	bio->io_callback = callback;
 	bio->io_arg = arg;
+	bio->flags &= ~BIO_F_PASSIVE;
 
 	if (!(bsched_get(bio->bws)->flags & BS_F_NOBW))
 		bio_enable(bio);
+}
+
+/**
+ * Adds I/O callback to a "passive" I/O source, without making it active.
+ *
+ * The callback will be invoked with read/write events each time a new
+ * scheduling time slice begins (which should indicate that bandwidth is
+ * available for I/Os) but the source will not be added to the input event
+ * dispatcher.
+ *
+ * Typically that would be useful on never-blocking sources (like files, on
+ * which we would like to limit read/writes) or on UDP sockets where the
+ * kernel will not buffer data, hence making them always writable.
+ */
+void
+bio_add_passive_callback(bio_source_t *bio, inputevt_handler_t cb, void *arg)
+{
+	bio_check(bio);
+	g_assert(bio->io_callback == NULL);	/* "passive" source */
+	g_assert(cb != NULL);
+
+	bio->io_callback = cb;
+	bio->io_arg = arg;
+	bio->flags |= BIO_F_PASSIVE;		/* Don't call bio_enable() */
 }
 
 /**
@@ -852,6 +919,7 @@ bio_remove_callback(bio_source_t *bio)
 	if (bio->io_tag)
 		bio_disable(bio);
 
+	bio->flags &= ~BIO_F_PASSIVE;
 	bio->io_callback = NULL;
 	bio->io_arg = NULL;
 }
@@ -907,6 +975,7 @@ bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *iter;
 	GList *last = NULL;
+	GSList *trigger = NULL;
 	double norm_factor;
 	int count;
 	unsigned bw_max;
@@ -960,12 +1029,17 @@ bsched_begin_timeslice(bsched_t *bs)
 
 		bio_check(bio);
 
-		last = iter;		/* Remember last seen source  for rotation */
+		last = iter;		/* Remember last seen source for rotation */
 		count++;			/* Count them for assertion */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
-		if (bio->io_tag == 0 && bio->io_callback)
-			bio_enable(bio);
+
+		if (bio->io_tag == 0 && bio->io_callback) {
+			if (bio->flags & BIO_F_PASSIVE)
+				trigger = g_slist_prepend(trigger, bio);
+			else
+				bio_enable(bio);
+		}
 
 		if (bio->flags & BIO_F_FAVOUR)
 			bs->io_favours++;
@@ -1083,6 +1157,17 @@ bsched_begin_timeslice(bsched_t *bs)
 
 	bs->current_used = 0;
 	bs->looped = FALSE;
+
+	/*
+	 * If there are passive callbacks installed, trigger them now.
+	 */
+
+	while (trigger != NULL) {
+		bio_source_t *bio = trigger->data;
+
+		trigger = g_slist_remove(trigger, bio);
+		bio_trigger(bio);
+	}
 }
 
 /**
@@ -1145,6 +1230,8 @@ bsched_source_add(
 {
 	bio_source_t *bio;
 	bsched_t *bs;
+
+	wrap_io_check(wio);
 
 	/*
 	 * Must insert reading sources in reading scheduler and writing ones
@@ -1261,6 +1348,7 @@ bw_available(bio_source_t *bio, int len)
 	bool favoured;
 
 	bio_check(bio);
+	wrap_io_check(bio->wio);	/* Make sure socket still allocated */
 
 	bs = bsched_get(bio->bws);
 
@@ -1270,7 +1358,12 @@ bw_available(bio_source_t *bio, int len)
 	if (bs->flags & BS_F_NOBW)				/* No more bandwidth */
 		return 0;							/* Grant nothing */
 
-	if (bio->io_callback && !bio->io_tag)	/* Source already disabled */
+	/*
+	 * Source is already disabled if there is a callback and no tag on a
+	 * non-passive source.
+	 */
+
+	if (bio->io_callback && !bio->io_tag && !(bio->flags & BIO_F_PASSIVE))
 		return 0;							/* No bandwidth available */
 
 	/*
@@ -1897,7 +1990,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 	g_assert(ctx);
 	bio_check(bio);
-	g_assert(bio->wio);
+	wrap_io_check(bio->wio);
 	g_assert(bio->flags & BIO_F_WRITE);
 	g_assert(offset);
 	g_assert(len > 0);
@@ -2257,7 +2350,7 @@ bws_write(bsched_bws_t bws, wrap_io_t *wio, const void *data, size_t len)
 	bs = bsched_get(bws);
 
 	g_assert(bs->flags & BS_F_WRITE);
-	g_assert(wio);
+	wrap_io_check(wio);
 	g_assert(wio->write);
 	g_assert(len <= INT_MAX);
 
@@ -2282,7 +2375,7 @@ bws_read(bsched_bws_t bws, wrap_io_t *wio, void *data, size_t len)
 	bs = bsched_get(bws);
 
 	g_assert(bs->flags & BS_F_READ);
-	g_assert(wio);
+	wrap_io_check(wio);
 	g_assert(wio->read);
 	g_assert(len <= INT_MAX);
 
@@ -3055,24 +3148,23 @@ true_expr(const char *expr)
 #define noisy_check(expr) ((expr) ? true_expr(G_STRLOC ": " #expr) : 0)
 
 /**
- * Needs very short description so that doxygen can parse the following
- * list properly.
- *
- * Determine whether we have enough bandwidth to possibly become an
- * ultra node:
+ * Determine whether we have enough bandwidth to possibly become an ultra node:
  *
  *  -# Uploads must not be frequently stalling.
+ *  -# If the servent is not sharing anything, use its bandwidth for ultra mode.
  *  -# If bandwidth schedulers are enabled, leaf nodes must not be configured
  *     to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
  *  -# If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
  *     bytes per gnet connection.
  *  -# Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
  *     BW_OUT_GNET_MIN bytes per gnet connection available.
+ *
+ * @return TRUE if we have enough bandwidth to become an ultra node.
  */
 bool
 bsched_enough_up_bandwidth(void)
 {
-	static time_t last_stall;
+	static time_t last_stall, last_uploads;
 	uint32 total = 0;
 
 	/*
@@ -3095,14 +3187,43 @@ bsched_enough_up_bandwidth(void)
 	if (noisy_check(delta_time(tm_time(), last_stall) < BW_UL_STALL_TIM))
 		return FALSE;		/* 1. */
 
+	/*
+	 * Servents not sharing anything should be able to devote their outgoing
+	 * bandwidth to serve as ultra nodes.
+	 */
+
+	if (noisy_check(!upload_is_enabled()))
+		goto upload_bw_irrelevant;	/* 2. */
+
+	if (noisy_check(delta_time(tm_time(), last_uploads) >= BW_UL_RUN_TIME)) {
+		if (0 != GNET_PROPERTY(ul_registered))
+			last_uploads = tm_time();
+		else
+			goto upload_bw_irrelevant;	/* 2. */
+	}
+
+	/*
+	 * Servent is uploading, make sure configured schedulers would not steal
+	 * out all the HTTP bandwidth if promoted to ultra mode (since leaves
+	 * take their bandwidth out of the configured HTTP limit).
+	 */
+
 	if (
 		noisy_check(
 			GNET_PROPERTY(bws_glout_enabled) &&
 			GNET_PROPERTY(bws_out_enabled) &&
-			GNET_PROPERTY(bw_gnet_lout) >= GNET_PROPERTY(bw_http_out) &&
-			upload_is_enabled())
+			GNET_PROPERTY(bw_gnet_lout) >= GNET_PROPERTY(bw_http_out)
+		)
 	)
-		return FALSE;		/* 2. */
+		return FALSE;		/* 3. */
+
+upload_bw_irrelevant:
+
+	/*
+	 * If they configured outgoing limits for the Gnutella traffic, make
+	 * sure we have a reasonable setup, compatible with the predicted ultra
+	 * node usage.
+	 */
 
 	if (
 		noisy_check(
@@ -3110,7 +3231,7 @@ bsched_enough_up_bandwidth(void)
 			GNET_PROPERTY(bw_gnet_out) < BW_OUT_GNET_MIN *
 		(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)) / 2)
 	)
-		return FALSE;		/* 3. */
+		return FALSE;		/* 4. */
 
 	if (GNET_PROPERTY(bws_gout_enabled))
 		total += GNET_PROPERTY(bw_gnet_out);
@@ -3120,12 +3241,15 @@ bsched_enough_up_bandwidth(void)
 	else if (GNET_PROPERTY(bws_glout_enabled))
 		total += GNET_PROPERTY(bw_gnet_lout);
 
+	if (noisy_check(0 == total))
+		return TRUE;		/* No bandwidth limits configured */
+
 	if (
 		noisy_check(total <
 			(BW_OUT_GNET_MIN * GNET_PROPERTY(max_connections) +
 			 BW_OUT_LEAF_MIN * GNET_PROPERTY(max_leaves)))
 	) {
-		return FALSE;		/* 4. */
+		return FALSE;		/* 5. */
 	}
 
 	return TRUE;

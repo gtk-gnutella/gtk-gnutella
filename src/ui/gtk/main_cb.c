@@ -193,7 +193,7 @@ on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_even
 }
 
 gboolean
-on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
+on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path, 
 						 gpointer user_data)
 {
 	(void) app;
@@ -206,7 +206,7 @@ on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path,
 }
 
 gboolean
-on_NSApplicationDidBecomeActive(GtkOSXApplication *app, gpointer user_data)
+on_NSApplicationDidBecomeActive(GtkosxApplication *app, gpointer user_data)
 {
 	(void) app;
 	(void) user_data;

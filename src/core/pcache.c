@@ -143,7 +143,7 @@ send_ping(struct gnutella_node *n, uint8 ttl)
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
 
-	STATIC_ASSERT(23 == sizeof *m);	
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);	
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
 	if (NODE_IS_WRITABLE(n)) {
@@ -177,7 +177,7 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 
 	g_assert(ttl);
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
-	STATIC_ASSERT(23 == sizeof *m);
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);
 
 	if (muid)
 		gnutella_header_set_muid(m, muid);
@@ -281,7 +281,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 	g_assert(qk || intro);
 
 	STATIC_ASSERT(sizeof *m <= sizeof msg_init.buf);
-	STATIC_ASSERT(23 == sizeof *m);
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);
 
 	if (muid)
 		gnutella_header_set_muid(m, muid);
@@ -499,7 +499,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			uint32 value = MIN(meta->daily_uptime, 86400);
 			uint len;
 
-			len = ggept_du_encode(value, uptime);
+			len = ggept_du_encode(value, uptime, sizeof uptime);
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
@@ -558,8 +558,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			hcount = guess_fill_caught_array(net, TRUE,
 				host, PCACHE_UHC_MAX_IP);
 		} else {
-			hcount = hcache_fill_caught_array(net, HOST_ULTRA,
-				host, PCACHE_UHC_MAX_IP);
+			hcount = node_fill_ultra(net, host, PCACHE_UHC_MAX_IP);
 
 			/*
 			 * If we are missing node connections, be sure to include
@@ -621,7 +620,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	 */
 
 	if (flags & PING_F_IP) {
-		char ip_port[18];
+		char ip_port[18];			/* Big enough for IPv6 + port */
 		size_t len;
 
 		/* IP + Port (not UHC IPP!)*/
@@ -681,12 +680,15 @@ send_pong(
 	 */
 
 	r = build_pong_msg(n->addr, n->port, hops, ttl, muid, info,
-			control ? NULL : meta, flags, &size);
+			meta, flags, &size);
 	n->n_pong_sent++;
 
-	if (NODE_IS_UDP(n))
-		udp_send_msg(n, r, size);
-	else if (control)
+	if (NODE_IS_UDP(n)) {
+		if (control)
+			udp_ctrl_send_msg(n, r, size);
+		else
+			udp_send_msg(n, r, size);
+	} else if (control)
 		gmsg_ctrl_sendto_one(n, r, size);
 	else
 		gmsg_sendto_one(n, r, size);
@@ -742,6 +744,13 @@ ping_type(const gnutella_node_t *n)
 				1 == gnutella_header_get_ttl(&n->header) &&
 				0 == ext_paylen(e)
 			) {
+				/*
+				 * Remote host wants to know its IP and port, as seen within
+				 * the UDP datagram.  This is useful to firewalled node who
+				 * want to initiate a firewalled-to-firewalled connection
+				 * via RUDP and need to communicate their external (possibly
+				 * NAT-ed) UDP port.
+				 */
 				flags |= PING_F_IP;
 			}
 			break;
@@ -802,12 +811,12 @@ ping_type(const gnutella_node_t *n)
  * the header of the node structure to construct the TTL of the pong we
  * send.
  *
- * If `control' is true, send it as a higher priority message.
- * If `uhc' is not UHC_NONE, we'll send IPs in a packed IPP reply.
+ * @param n			destination node, where to send the pong
+ * @param control	if TRUE, send it as a higher priority message.
+ * @param flags		description of the ping we got
  */
 static void
-send_personal_info(struct gnutella_node *n, bool control,
-	enum ping_flag flags)
+send_personal_info(struct gnutella_node *n, bool control, enum ping_flag flags)
 {
 	uint32 kbytes;
 	uint32 files;
@@ -884,11 +893,6 @@ send_personal_info(struct gnutella_node *n, bool control,
 			local_meta.flags |= PONG_META_HAS_GUE;
 			local_meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 		}
-	}
-
-	if ((flags & PING_F_IP)) {
-		local_meta.sender_addr = n->addr;
-		local_meta.sender_port = n->port;
 	}
 
 	/*
@@ -1065,12 +1069,17 @@ use_self_pong:
 	/* FALL THROUGH */
 
 send_pong:
-	send_pong(n, FALSE, flags,
+	/*
+	 * GUESS acknowledgments are sent as "control" messages to make sure
+	 * querying hosts get them quickly.
+	 */
+
+	send_pong(n, TRUE, flags,
 		1, 1, gnutella_header_get_muid(&n->header),
 		&info, &meta);	/* hops = 1, TTL = 1 */
 
 	if (GNET_PROPERTY(guess_server_debug) > 10) {
-		g_debug("GUESS %s query %s from %s with %spong listing %s:%u%s",
+		g_debug("GUESS %s query #%s from %s with %spong listing %s:%u%s",
 			good_query_key ? "acknowledged" : "refused",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_infostr(n),
 			good_query_key ? "" : "new query key and ",
@@ -2160,6 +2169,10 @@ pong_extract_metadata(struct gnutella_node *n)
 				meta->dht_mode = payload[2];
 			}
 			break;
+		case EXT_T_GGEP_IPP_TLS:
+		case EXT_T_GGEP_IPP6_TLS:
+			/* Silently ignored */
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 3 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
@@ -2218,6 +2231,9 @@ record_fresh_pong(
 static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
+	enum ping_flag flags;
+	bool is_uhc, throttled;
+
 	g_assert(NODE_IS_UDP(n));
 
 	/*
@@ -2245,18 +2261,43 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	}
 
 	/*
+	 * Count pure UHC pings (i.e. ones without GUESS).
+	 */
+
+	flags = ping_type(n);
+	is_uhc = booleanize(PING_F_UHC == ((PING_F_GUE | PING_F_UHC) & flags));
+	throttled = FALSE;
+
+	if (is_uhc)
+		gnet_stats_inc_general(GNR_UDP_UHC_PINGS);
+
+	/*
 	 * Don't answer to too frequent pings from the same IP.
 	 */
 
 	if (aging_lookup(udp_pings, &n->addr)) {
         gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
-		return;
+		throttled = TRUE;
+	} else {
+		aging_insert(udp_pings,
+			wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+
+		/*
+		 * Answers to UHC pings are sent back with a "control" priority.
+		 */
+
+		send_personal_info(n, is_uhc, flags);
+		throttled = FALSE;
+
+		if (is_uhc)
+			gnet_stats_inc_general(GNR_UDP_UHC_PONGS);
 	}
 
-	aging_insert(udp_pings,
-		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
-
-	send_personal_info(n, FALSE, ping_type(n));
+	if (is_uhc && GNET_PROPERTY(log_uhc_pings_rx)) {
+		g_debug("UDP UHC got %s from %s%s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			node_infostr(n), throttled ? " (throttled)" : "");
+	}
 }
 
 /*
@@ -2441,15 +2482,16 @@ static void
 pcache_udp_pong_received(struct gnutella_node *n)
 {
 	host_addr_t ipv4_addr;
-	host_addr_t ipv6_addr;
+	host_addr_t ipv6_addr;	/* Extracted, but value unused currently */
 	bool supports_tls;
 	bool supports_dht;
+	gnet_host_t host;
 	uint16 port;
 	int i;
 
 	g_assert(NODE_IS_UDP(n));
 
-	switch (udp_ping_is_registered(n)) {
+	switch (udp_ping_is_registered(n, &host)) {
 	case UDP_PONG_UNSOLICITED:
 		if (guess_rpc_handle(n))
 			return;
@@ -2469,6 +2511,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 	ipv6_addr = zero_host_addr;
 	supports_tls = FALSE;
 	supports_dht = FALSE;
+
+	if (GNET_PROPERTY(udp_debug) && port != gnet_host_get_port(&host)) {
+		g_warning("UDP ping set to %s but host advertises %s in its pong",
+			gnet_host_to_string(&host),
+			host_addr_port_to_string(ipv4_addr, port));
+	}
 	
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
@@ -2548,6 +2596,12 @@ pcache_udp_pong_received(struct gnutella_node *n)
 					supports_dht = TRUE;
 			}
 			break;
+		case EXT_T_GGEP_UP:
+		case EXT_T_GGEP_LOC:
+		case EXT_T_GGEP_IPP_TLS:
+		case EXT_T_GGEP_IPP6_TLS:
+			/* Silently ignored */
+			break;
 		default:
 			if (GNET_PROPERTY(ggep_debug) > 1 && e->ext_type == EXT_GGEP) {
 				paylen = ext_paylen(e);
@@ -2559,31 +2613,26 @@ pcache_udp_pong_received(struct gnutella_node *n)
 		}
 	}
 
-	if (port == n->port) {
+	/*
+	 * Since host replied to the ping, it is alive at the IP:port to which
+	 * the ping was sent.
+	 */
+
+	{
 		host_addr_t addr;
+		uint16 hport;
 
-		switch (host_addr_net(n->addr)) {
-		case NET_TYPE_IPV4:
-			addr = ipv4_addr;
-			break;
-		case NET_TYPE_IPV6:
-			addr = ipv6_addr;
-			break;
-		default:
-			addr = zero_host_addr;
-		}
+		addr = gnet_host_get_addr(&host);
+		hport = gnet_host_get_port(&host);
 
-		if (
-			host_addr_equal(addr, n->addr) &&
-			host_is_valid(addr, port) &&
-        	!hcache_node_is_bad(addr)
-		) {
-			host_add(addr, port, TRUE);
+		if (!hcache_node_is_bad(addr)) {
+			/* Asuume the (valid) UDP port is also a proper TCP port */
+			host_add(addr, hport, TRUE);
 			if (supports_tls) {
-				tls_cache_insert(addr, port);
+				tls_cache_insert(addr, hport);
 			}
 			if (supports_dht) {
-				dht_bootstrap_if_needed(addr, port);
+				dht_bootstrap_if_needed(addr, hport);
 			}
 		}
 	}

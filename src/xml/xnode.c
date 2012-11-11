@@ -37,10 +37,11 @@
 #include "xattr.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/etree.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/nv.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -79,11 +80,7 @@ struct xnode {
 			nv_table_t *ns;			/**< Namespace declarations, NULL if none */
 		} e;
 	} u;
-	/* Tree structure */
-	struct xnode *parent;		/**< Parent node, NULL if root element */
-	struct xnode *sibling;		/**< Next sibling, NULL if none */
-	struct xnode *first_child;	/**< First child, NULL if none */
-	struct xnode *last_child;	/**< Last child, NULL if none */
+	nodex_t node;				/**< Embedded (extended) tree structure */
 };
 
 static inline void
@@ -125,20 +122,20 @@ xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
 	switch (xn->type) {
 	case XNODE_T_ELEMENT:
 		if (xn->u.e.ns_uri != NULL) {
-			return gm_snprintf(buf, len, "<%s:%s%s>",
+			return str_bprintf(buf, len, "<%s:%s%s>",
 				xn->u.e.ns_uri, xn->u.e.name,
 				xn->u.e.attrs != NULL ? " ..." : "");
 		} else {
-			return gm_snprintf(buf, len, "<%s%s>",
+			return str_bprintf(buf, len, "<%s%s>",
 				xn->u.e.name, xn->u.e.attrs != NULL ? " ..." : "");
 		}
 		break;
 	case XNODE_T_COMMENT:
-		return g_strlcpy(buf, "{XML comment node}", len);
+		return str_bprintf(buf, len, "%s", "{XML comment node}");
 	case XNODE_T_PI:
-		return gm_snprintf(buf, len, "<?%s...?>", xn->u.pi.name);
+		return str_bprintf(buf, len, "<?%s...?>", xn->u.pi.name);
 	case XNODE_T_TEXT:
-		return g_strlcpy(buf, "{XML text node}", len);
+		return str_bprintf(buf, len, "%s", "{XML text node}");
 	case XNODE_T_MAX:
 		g_assert_not_reached();
 	}
@@ -182,8 +179,12 @@ xnode_to_string2(const xnode_t *xn)
 xnode_t *
 xnode_parent(const xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	return xn->parent;
+
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	return etree_parent(&t, xn);
 }
 
 /**
@@ -192,8 +193,11 @@ xnode_parent(const xnode_t *xn)
 xnode_t *
 xnode_first_child(const xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	return xn->first_child;
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	return etree_first_child(&t, xn);
 }
 
 /**
@@ -202,8 +206,11 @@ xnode_first_child(const xnode_t *xn)
 xnode_t *
 xnode_last_child(const xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	return xn->last_child;
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	return etree_last_child(&t, xn);
 }
 
 /**
@@ -212,8 +219,11 @@ xnode_last_child(const xnode_t *xn)
 xnode_t *
 xnode_next_sibling(const xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	return xn->sibling;
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	return etree_next_sibling(&t, xn);
 }
 
 /**
@@ -274,7 +284,7 @@ xnode_has_content(const xnode_t *xn)
 {
 	xnode_check(xn);
 
-	return xn->first_child != NULL;
+	return xnode_first_child(xn) != NULL;
 }
 
 /**
@@ -288,11 +298,12 @@ xnode_is_empty(const xnode_t *xn)
 
 	xnode_check(xn);
 
-	if (NULL == xn->first_child)
+	xc = xnode_first_child(xn);
+
+	if (NULL == xc)
 		return TRUE;
 
-	xc = xn->first_child;
-	if (xc->sibling != NULL)
+	if (xnode_next_sibling(xc) != NULL)
 		return FALSE;
 
 	return XNODE_T_TEXT == xc->type && '\0' == *xc->u.t.text;
@@ -367,7 +378,7 @@ xnode_first_text(const xnode_t *xn)
 
 	xnode_check(xn);
 
-	child = xn->first_child;
+	child = xnode_first_child(xn);
 	if (NULL == child)
 		return "";
 
@@ -453,11 +464,11 @@ xnode_new(xnode_type_t type)
 void
 xnode_free(xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	g_assert(NULL == xn->parent);
-	g_assert(NULL == xn->first_child);
-	g_assert(NULL == xn->last_child);
-	g_assert(NULL == xn->sibling);
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	g_assert(etree_is_standalone(&t, xn));
 
 	switch (xn->type) {
 	case XNODE_T_COMMENT:
@@ -490,9 +501,11 @@ xnode_free(xnode_t *xn)
 static void
 xnode_orphan_check(const xnode_t * const xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
-	g_assert(NULL == xn->parent);
-	g_assert(NULL == xn->sibling);
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	g_assert(etree_is_orphan(&t, xn));
 }
 
 /**
@@ -574,25 +587,13 @@ xnode_new_text(xnode_t *parent, const char *text, bool verbatim)
 void
 xnode_add_child(xnode_t *parent, xnode_t *node)
 {
+	etree_t t;
+
 	xnode_check(parent);
 	xnode_orphan_check(node);
 
-	if (parent->last_child != NULL) {
-		xnode_t *lchild = parent->last_child;
-
-		xnode_check(lchild);
-		g_assert(lchild->parent == parent);
-		g_assert(NULL == lchild->sibling);
-
-		lchild->sibling = node;
-	} else {
-		g_assert(NULL == parent->first_child);
-
-		parent->first_child = node;
-	}
-
-	node->parent = parent;
-	parent->last_child = node;
+	etree_init_root(&t, parent, TRUE, offsetof(xnode_t, node));
+	etree_append_child(&t, parent, node);
 }
 
 /**
@@ -601,19 +602,13 @@ xnode_add_child(xnode_t *parent, xnode_t *node)
 void
 xnode_add_first_child(xnode_t *parent, xnode_t *node)
 {
+	etree_t t;
+
 	xnode_check(parent);
 	xnode_orphan_check(node);
 
-	node->sibling = parent->first_child;
-
-	if (NULL == parent->last_child) {
-		g_assert(NULL == node->sibling);
-
-		parent->last_child = node;
-	}
-
-	node->parent = parent;
-	parent->first_child = node;
+	etree_init_root(&t, parent, TRUE, offsetof(xnode_t, node));
+	etree_prepend_child(&t, parent, node);
 }
 
 /**
@@ -622,16 +617,13 @@ xnode_add_first_child(xnode_t *parent, xnode_t *node)
 void
 xnode_add_sibling(xnode_t *previous, xnode_t *node)
 {
+	etree_t t;
+
 	xnode_check(previous);
 	xnode_orphan_check(node);
-	g_assert(previous->parent != NULL);
 
-	node->parent = previous->parent;
-	node->sibling = previous->sibling;
-	previous->sibling = node;
-
-	if (NULL == node->sibling)
-		previous->parent->last_child = node;
+	etree_init_root(&t, previous, TRUE, offsetof(xnode_t, node));
+	etree_add_right_sibling(&t, previous, node);
 }
 
 /**
@@ -641,45 +633,12 @@ xnode_add_sibling(xnode_t *previous, xnode_t *node)
 void
 xnode_detach(xnode_t *xn)
 {
+	etree_t t;
+
 	xnode_check(xn);
 
-	if (NULL == xn->parent) {
-		g_assert(NULL == xn->sibling);
-	} else {
-		xnode_t *parent = xn->parent;
-
-		xn->parent = NULL;
-
-		if (xn == parent->first_child) {
-			if (xn == parent->last_child) {
-				g_assert(NULL == xn->sibling);
-				parent->first_child = parent->last_child = NULL;
-			} else {
-				g_assert(xn->sibling != NULL);
-				parent->first_child = xn->sibling;
-			}
-		} else {
-			xnode_t *ch;
-			bool found = FALSE;
-
-			for (ch = parent->first_child; ch != NULL; ch = ch->sibling) {
-				if (ch->sibling == xn) {
-					found = TRUE;
-					break;
-				}
-			}
-			g_assert(found);
-
-			ch->sibling = xn->sibling;
-
-			if (xn == parent->last_child) {
-				g_assert(NULL == xn->sibling);
-				parent->last_child = ch;
-			}
-		}
-
-		xn->sibling = NULL;
-	}
+	etree_init_root(&t, xn, TRUE, offsetof(xnode_t, node));
+	etree_detach(&t, xn);
 }
 
 /**
@@ -894,7 +853,7 @@ xnode_prop_ns_vprintf(xnode_t *element,
 	bool result;
 
 	VA_COPY(args2, args);
-	if (gm_vsnprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
+	if (str_vbprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
 		value = h_strdup_vprintf(fmt, args);
 	} else {
 		value = buf;
@@ -1030,18 +989,14 @@ xnode_prop_unset(xnode_t *element, const char *name)
  * free up the local node.
  */
 void
-xnode_tree_foreach(xnode_t *root, xnode_cb_t func, void *data)
+xnode_tree_foreach(xnode_t *root, data_fn_t func, void *data)
 {
-	xnode_t *xn, *next;
+	etree_t t;
 
 	xnode_check(root);
 
-	for (xn = root->first_child; xn != NULL; xn = next) {
-		next = xn->sibling;
-		xnode_tree_foreach(xn, func, data);
-	}
-
-	(*func)(root, data);
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	etree_foreach(&t, func, data);
 }
 
 /**
@@ -1051,56 +1006,14 @@ xnode_tree_foreach(xnode_t *root, xnode_cb_t func, void *data)
  * @return the first matching node in the traversal path, NULL if none matched.
  */
 xnode_t *
-xnode_tree_find(xnode_t *root, xnode_match_t func, void *data)
+xnode_tree_find(xnode_t *root, match_fn_t func, void *data)
 {
-	xnode_t *xn, *next;
+	etree_t t;
 
 	xnode_check(root);
 
-	if ((*func)(root, data))
-		return root;
-
-	for (xn = root->first_child; xn != NULL; xn = next) {
-		xnode_t *found;
-		next = xn->sibling;
-		found = xnode_tree_find(xn, func, data);
-		if (found != NULL)
-			return found;
-	}
-
-	return NULL;
-}
-
-/**
- * Internal routine for xnode_tree_find_depth().
- *
- * @return the first matching node in the traversal path, NULL if none matched.
- */
-static xnode_t *
-xnode_tree_find_until_depth(xnode_t *root,
-	unsigned curdepth, unsigned maxdepth,
-	xnode_match_t func, void *data)
-{
-	xnode_t *xn, *next;
-
-	xnode_check(root);
-
-	if ((*func)(root, data))
-		return root;
-
-	if (maxdepth == curdepth)
-		return NULL;
-
-	for (xn = root->first_child; xn != NULL; xn = next) {
-		xnode_t *found;
-		next = xn->sibling;
-		found = xnode_tree_find_until_depth(xn,
-			curdepth + 1, maxdepth, func, data);
-		if (found != NULL)
-			return found;
-	}
-
-	return NULL;
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	return etree_find(&t, func, data);
 }
 
 /**
@@ -1112,11 +1025,15 @@ xnode_tree_find_until_depth(xnode_t *root,
  */
 xnode_t *
 xnode_tree_find_depth(xnode_t *root, unsigned depth,
-	xnode_match_t func, void *data)
+	match_fn_t func, void *data)
 {
+	etree_t t;
+
+	xnode_check(root);
 	g_assert(uint_is_non_negative(depth));
 
-	return xnode_tree_find_until_depth(root, 0, depth, func, data);
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	return etree_find_depth(&t, depth, func, data);
 }
 
 /**
@@ -1135,34 +1052,26 @@ xnode_tree_find_depth(xnode_t *root, unsigned depth,
  */
 void
 xnode_tree_enter_leave(xnode_t *root,
-	xnode_cbe_t enter, xnode_cb_t leave, void *data)
+	match_fn_t enter, data_fn_t leave, void *data)
 {
-	xnode_t *xn, *next;
+	etree_t t;
 
 	xnode_check(root);
 
-	if (!(*enter)(root, data))
-		return;
-
-	for (xn = root->first_child; xn != NULL; xn = next) {
-		next = xn->sibling;
-		xnode_tree_enter_leave(xn, enter, leave, data);
-	}
-
-	(*leave)(root, data);
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	etree_traverse(&t, ETREE_TRAVERSE_ALL | ETREE_CALL_AFTER,
+		ETREE_MAX_DEPTH, enter, leave, data);
 }
 
 /**
  * Traversal callback to free up the structure.
  */
 static void
-xnode_item_free(xnode_t *item, void *udata)
+xnode_item_free(void *item)
 {
-	xnode_check(item);
+	xnode_t *xn = item;
 
-	(void) udata;
-
-	item->parent = item->first_child = item->last_child = item->sibling = NULL;
+	ZERO(&xn->node);	/* Make node standalone */
 	xnode_free(item);
 }
 
@@ -1172,7 +1081,12 @@ xnode_item_free(xnode_t *item, void *udata)
 void
 xnode_tree_free(xnode_t *root)
 {
-	xnode_tree_foreach(root, xnode_item_free, NULL);
+	etree_t t;
+
+	xnode_check(root);
+
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	etree_free(&t, xnode_item_free);
 }
 
 /**

@@ -74,6 +74,7 @@
 #include "dl_util.h"
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
+#include "getphysmemsize.h"
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
@@ -140,9 +141,12 @@
 #undef sendto
 
 #undef abort
+#undef execve
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define WS2_LIBRARY		"ws2_32.dll"
+
+#define MINGW_TRACEFILE_KEEP	3		/* Keep traces for that many runs */
 
 /* Offset of the UNIX Epoch compared to the Window's one, in microseconds */
 #define EPOCH_OFFSET	UINT64_CONST(11644473600000000)
@@ -155,6 +159,7 @@
 
 static HINSTANCE libws2_32;
 static bool mingw_inited;
+static bool mingw_vmm_inited;
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -397,7 +402,8 @@ mingw_win2posix(int error)
 {
 	static hset_t *warned;
 
-	if (NULL == warned) {
+	if (NULL == warned && mingw_vmm_inited) {
+		/* Only allocate once VMM layer has been initialized */
 		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	}
 
@@ -502,7 +508,7 @@ mingw_win2posix(int error)
 		/* Got this error writing to a closed stdio fd, opened via pipe() */
 		return EBADF;
 	default:
-		if (!hset_contains(warned, int_to_pointer(error))) {
+		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
 			hset_insert(warned, int_to_pointer(error));
@@ -695,6 +701,91 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	}
 
 	return res;
+}
+
+/**
+ * Wrapper for execve().
+ */
+int
+mingw_execve(const char *filename, char *const argv[], char *const envp[])
+{
+	static char buf[1024];		/* Better avoid the stack during crashes */
+	const char *p;
+	char *q, *end;
+
+	/*
+	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
+	 * argument correctly after calling execve(), when there are embedded
+	 * spaces in the string.
+	 *
+	 * If we have initially:
+	 *
+	 *		argv[0] = 'C:\Program Files (x86)\gtk-gnutella\gtk-gnutella.exe'
+	 *
+	 * then the launched program will see:
+	 *
+	 *		argv[0] = 'C:\Program'
+	 *		argv[1] = 'Files'
+	 *		argv[2] = '(x86)\gtk-gnutella\gtk-gnutella.exe'
+	 *
+	 * which of course is completely wrong.
+	 *
+	 * So, as a workaround, we surround the passed argv[0] into quotes before
+	 * invoking execve(), well spawnve() actually.
+	 *
+	 * Complications arise because we are called from the crash handler most
+	 * probably and therefore we cannot allocate memory.  Furthermore, the
+	 * argv[] array can point to read-only memory.
+	 *
+	 * FIXME: we should really quote ALL the arguments, not just argv[0],
+	 * but this will do for now to enable correct auto-restart.
+	 *		--RAM, 2012-11-11
+	 */
+
+	end = &buf[sizeof buf];
+	p = argv[0];
+	buf[0] = '"';
+	q = &buf[1];
+	
+	while (q < end) {
+		char c = *p++;
+		if ('"' == c) {
+			*q++ = '\\';
+			if (q >= end)
+				break;
+			*q++ = c;
+		} else if ('\0' == c) {
+			*q++ = '"';		/* Close opening quote */
+			if (q >= end)
+				break;
+			*q++ = c;
+			break;
+		} else {
+			*q++ = c;
+		}
+	}
+
+	buf[sizeof buf - 1] = '\0';	/* In case we jumped out of the loop above */
+
+	if (-1 == mprotect((void *) argv, 4096, PROT_READ | PROT_WRITE))
+		s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+
+	*(char **) argv = buf;		/* Changes argv[0] */
+
+	/*
+	 * Now perform the execve(), which we emulate through an asynchronous
+	 * spawnve() call since we do not want to wait for the "child" process
+	 * to terminate before returning.
+	 */
+
+	errno = 0;
+	_flushall();
+	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
+
+	if (0 == errno)
+		exit(0);
+
+	return -1;		/* Failed to launch process, errno is set */
 }
 
 /**
@@ -955,14 +1046,8 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, product_get_name());
 
-	/*
-	 * Can't use mingw_mkdir() as we can't allocate memory here.
-	 * Use raw mkdir() but this won't work if there are non-ASCII chars
-	 * in the path.
-	 */
-
 	if (path_does_not_exist(dest))
-		mkdir(dest);
+		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
 
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
@@ -1636,8 +1721,7 @@ mingw_recv(socket_fd_t fd, void *buf, size_t len, int recv_flags)
 	iovec_t iov;
 	int res;
 
-	iovec_set_base(&iov, buf);
-	iovec_set_len(&iov, len);
+	iovec_set(&iov, buf, len);
 
 	res = WSARecv(fd, (LPWSABUF) &iov, 1, &r, &flags, NULL, NULL);
 
@@ -1745,6 +1829,7 @@ static struct {
 	void *reserved;			/* Reserved memory */
 	size_t size;			/* Size for hinted allocation */
 	size_t later;			/* Size of "later" memory we did not reserve */
+	size_t available;		/* Virtual memory initially available */
 	int hinted;
 } mingw_vmm;
 
@@ -1757,41 +1842,43 @@ mingw_valloc(void *hint, size_t size)
 		size_t n;
 
 		if G_UNLIKELY(NULL == mingw_vmm.reserved) {
-			MEMORYSTATUSEX memStatus;
 			SYSTEM_INFO system_info;
 			void *mem_later;
 			size_t mem_latersize;
 			size_t mem_size;
+			size_t mem_available;
 
-			/* Determine maximum possible memory first */
+			/*
+			 * Determine maximum possible memory first
+			 *
+			 * Don't use GetNativeSystemInfo(), rely on GetSsystemInfo()
+			 * so that we get proper results for the 32-bit environment
+			 * if running under WOW64.
+			 */
 
-			GetNativeSystemInfo(&system_info);
+			GetSystemInfo(&system_info);
 
 			mingw_vmm.size =
 				system_info.lpMaximumApplicationAddress
 				-
 				system_info.lpMinimumApplicationAddress;
 
-			memStatus.dwLength = sizeof memStatus;
-			if (GlobalMemoryStatusEx(&memStatus)) {
-				if (memStatus.ullTotalPhys < mingw_vmm.size)
-					mingw_vmm.size = memStatus.ullTotalPhys;
-			}
+			mem_size = getphysmemsize();
+			mingw_vmm.size = MIN(mingw_vmm.size, mem_size);
 
 			/*
 			 * Declare some space for future allocations without hinting.
-			 * We initially reserve 1/4th of the virtual address space,
-			 * with VMM_MINSIZE at least but we make sure we have more room 
-			 * available for the VMM layer.
+			 * We initially reserve 1/2 of the virtual address space,
+			 * with VMM_MINSIZE at least but we make sure we have also room 
+			 * available for non-VMM allocations.
 			 *
 			 * We'll iterate, dividing the amount of memory we keep for later
-			 * allocations by half at each loop until we can reserve more
-			 * memory for GTKG than the amount we leave to the system or other
-			 * non-hinted allocations.
+			 * allocations by half at each loop until we can reserve at least
+			 * 40% of the available memory or VMM_MINSIZE for the VMM layer.
 			 */
 
 			mem_size = mingw_vmm.size;		/* For the VMM layer */
-			mem_latersize = mem_size / 2;	/* For non-hinted allocation */
+			mem_latersize = mem_size;		/* For non-hinted allocation */
 
 			do {
 				if (mingw_vmm.reserved != NULL) {
@@ -1799,16 +1886,21 @@ mingw_valloc(void *hint, size_t size)
 					mingw_vmm.reserved = NULL;
 				}
 
-				mem_latersize /= 2;
+			reserve_less:
+				mem_latersize *= 0.9;
 				mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
 				mingw_vmm.later = mem_latersize;
 				mem_later = VirtualAlloc(NULL,
 					mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
 
 				if (NULL == mem_later) {
-					errno = mingw_last_error();
-					s_error("could not reserve %s of memory: %m",
-						compact_size(mem_latersize, FALSE));
+					if (VMM_MINSIZE == mem_latersize) {
+						errno = mingw_last_error();
+						s_error("could not reserve %s of memory: %m",
+							compact_size(mem_latersize, FALSE));
+					} else {
+						goto reserve_less;
+					}
 				}
 
 				/*
@@ -1817,7 +1909,7 @@ mingw_valloc(void *hint, size_t size)
 				 * system's granularity until we get a success status.
 				 */
 
-				mingw_vmm.size = mem_size;
+				mingw_vmm.size = mem_size - mem_latersize;
 
 				while (
 					NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
@@ -1830,8 +1922,14 @@ mingw_valloc(void *hint, size_t size)
 				}
 
 				VirtualFree(mem_later, 0, MEM_RELEASE);
+
+				mem_available = mem_latersize + mingw_vmm.size;
+				if (mem_available > mingw_vmm.available)
+					mingw_vmm.available = mem_available;
 			} while (
-				mingw_vmm.size > VMM_MINSIZE && mingw_vmm.size < mem_latersize
+				mem_available >= VMM_MINSIZE && (
+					mingw_vmm.size < VMM_MINSIZE ||
+					mingw_vmm.size < mingw_vmm.available / 10 * 4)
 			);
 
 			if (NULL == mingw_vmm.reserved) {
@@ -1840,6 +1938,8 @@ mingw_valloc(void *hint, size_t size)
 					compact_size(mingw_vmm.size, FALSE),
 					compact_size2(mem_latersize, FALSE));
 			}
+
+			mingw_vmm_inited = TRUE;
 		}
 
 		if (vmm_is_debugging(0)) {
@@ -2200,6 +2300,37 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 
 	return 0;
 }
+
+#ifdef EMULATE_GETRLIMIT
+/**
+ * Get process resource limits.
+ */
+int
+mingw_getrlimit(int resource, struct rlimit *rlim)
+{
+	switch (resource) {
+	case RLIMIT_CORE:
+		ZERO(rlim);
+		break;
+	case RLIMIT_DATA:
+		{
+			SYSTEM_INFO system_info;
+
+			GetSystemInfo(&system_info);
+			rlim->rlim_max = rlim->rlim_cur =
+				system_info.lpMaximumApplicationAddress
+				-
+				system_info.lpMinimumApplicationAddress;
+		}
+		break;
+	default:
+		errno = ENOTSUP;
+		return -1;
+	}
+
+	return 0;
+}
+#endif /* EMULATE_GETRLIMIT */
 
 #ifdef EMULATE_SCHED_YIELD
 /**
@@ -2886,16 +3017,17 @@ mingw_get_folder_basepath(enum special_folder which_folder)
 	case PRIVLIB_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S PACKAGE);
-		break;
+		goto done;
 	case NLS_PATH:
 		special_path = mingw_filename_nearby(
 			"share" G_DIR_SEPARATOR_S "locale");
-		break;
-	default:
-		s_warning("%s() needs implementation for foldertype %d",
-			G_STRFUNC, which_folder);
+		goto done;
 	}
 
+	s_carp("%s() needs implementation for foldertype %d",
+		G_STRFUNC, which_folder);
+
+done:
 	return special_path;
 }
 
@@ -3073,6 +3205,8 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 
 void mingw_vmm_post_init(void)
 {
+	s_info("VMM process has %s of virtual space",
+		compact_size(mingw_vmm.available, FALSE));
 	s_info("VMM reserved %s of virtual space at [%p, %p]",
 		compact_size(mingw_vmm.size, FALSE),
 		mingw_vmm.reserved,
@@ -4487,7 +4621,7 @@ getlog(bool initial)
 
 #else	/* !MINGW_STARTUP_DEBUG */
 #define getlog(x)	NULL
-#define STARTUP_DEBUG(...)
+#define STARTUP_DEBUG(...)	{}
 #endif	/* MINGW_STARTUP_DEBUG */
 
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
@@ -4562,6 +4696,38 @@ mingw_stdio_reset(FILE *lf, bool console)
 	}
 }
 
+/**
+ * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
+ * extension, etc..., up to the maximum specified.
+ */
+static G_GNUC_COLD void
+mingw_file_rotate(FILE *lf, const char *pathname, int keep)
+{
+	static char npath[MAX_PATH_LEN];
+	int i;
+
+	(void) lf;
+
+	if (keep > 0) {
+		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
+		if (-1 != mingw_unlink(npath))
+			STARTUP_DEBUG("removed file \"%s\"", npath);
+	}
+
+	for (i = keep - 1; i > 0; i--) {
+		static char opath[MAX_PATH_LEN];
+		str_bprintf(opath, sizeof opath, "%s.%d", pathname, i - 1);
+		str_bprintf(npath, sizeof npath, "%s.%d", pathname, i);
+		if (-1 != mingw_rename(opath, npath))
+			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
+	}
+
+	str_bprintf(npath, sizeof npath, "%s.0", pathname);
+
+	if (-1 != mingw_rename(pathname, npath))
+		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
+}
+
 G_GNUC_COLD void
 mingw_early_init(void)
 {
@@ -4614,9 +4780,21 @@ mingw_early_init(void)
 			{
 				const char *pathname;
 
+				/*
+				 * The stdout/stderr files which are created when GTKG is
+				 * not launched from a console are auto-rotated on startup.
+				 * However, if restarting automatically after a crash, we may
+				 * not be able to perform the renaming (you know, Windows
+				 * usually refuses to rename an opened file).
+				 *
+				 * Therefore, it is probably safest to always open stdout and
+				 * stderr for appending.
+				 */
+
 				pathname = mingw_getstdout_path();
+				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout file will be %s", pathname);
-				if (NULL != freopen(pathname, "wb", stdout)) {
+				if (NULL != freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
 				} else {
@@ -4624,8 +4802,9 @@ mingw_early_init(void)
 				}
 
 				pathname = mingw_getstderr_path();
+				mingw_file_rotate(lf, pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr file will be %s", pathname);
-				if (NULL != freopen(pathname, "wb", stderr)) {
+				if (NULL != freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
 				} else {

@@ -997,6 +997,15 @@ version_string_dump_log(logagent_t *la, bool full)
 	log_info(la, "(unofficial build, accessing \"%s\")", PACKAGE_SOURCE_DIR);
 #endif
 
+	/*
+	 * Flag only when compiled with --disable-malloc since this is not the
+	 * default setup.  It is important to know that fact easily from the
+	 * command line.
+	 */
+#ifndef USE_MY_MALLOC
+	log_info(la, "(libraries are using the system's malloc() implementation)");
+#endif
+
 	str_bprintf(buf, sizeof buf, "GLib %u.%u.%u",
 			glib_major_version, glib_minor_version, glib_micro_version);
 	if (

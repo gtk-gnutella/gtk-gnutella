@@ -51,8 +51,6 @@ typedef struct pong_meta {
 	uint8 guess;	      /**< Node supports GUESS, from GGEP "GUE" */
 
 	host_addr_t ipv6_addr;		/**< For GGEP "6" */
-	host_addr_t sender_addr;	/**< For GGEP "IP" */
-	uint16 sender_port;  		/**< For GGEP "IP" */
 
 	uint32 daily_uptime;	/**< Node's daily uptime, from GGEP "DU" */
 	uint8 up_slots;			/**< Free UP slots, from GGEP "UP" */

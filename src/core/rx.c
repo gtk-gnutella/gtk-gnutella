@@ -42,6 +42,7 @@
 #include "nodes.h"
 
 #include "lib/glib-missing.h"
+#include "lib/ipset.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -52,6 +53,7 @@
 #define RX_INIT(o,a)		((o)->ops->init((o), (a)))
 #define RX_DESTROY(o)		((o)->ops->destroy((o)))
 #define RX_RECV(o,m)		((o)->ops->recv((o), (m)))
+#define RX_RECVFROM(o,m,f)	((o)->ops->recvfrom((o), (m), (f)))
 #define RX_ENABLE(o)		((o)->ops->enable((o)))
 #define RX_DISABLE(o)		((o)->ops->disable((o)))
 #define RX_BIO_SOURCE(o)	((o)->ops->bio_source((o)))
@@ -75,6 +77,8 @@ rx_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	if (rx->upper == NULL)
 		g_error("Forgot to call rx_set_data_ind() on the RX stack.");
 
+	g_assert(0 == (rx->flags & RX_F_FROM));
+
 	return rx_recv(rx->upper, mb);
 }
 
@@ -89,6 +93,43 @@ rx_data_ind_freed(rxdrv_t *rx, pmsg_t *mb)
 	rx_check(rx);
 	g_assert(rx->upper == NULL);
 	g_assert(rx->flags & RX_F_FREED);
+	g_assert(0 == (rx->flags & RX_F_FROM));
+
+	pmsg_free(mb);
+	return FALSE;		/* Stop sending more data */
+}
+
+/**
+ * Tell upper layer that it got new data from us.
+ * @return FALSE if there was on error or the receiver wants no more data.
+ */
+static bool
+rx_datafrom_ind(rxdrv_t *rx, pmsg_t *mb, const gnet_host_t *from)
+{
+	rx_check(rx);
+
+	if (rx->upper == NULL)
+		g_error("Forgot to call rx_set_datafrom_ind() on the RX stack.");
+
+	g_assert(0 != (rx->flags & RX_F_FROM));
+
+	return rx_recvfrom(rx->upper, mb, from);
+}
+
+/**
+ * This data indication callback is installed when the RX stack is freed
+ * so that further indication to the user-level code is blocked.
+ * @return FALSE
+ */
+static bool
+rx_datafrom_ind_freed(rxdrv_t *rx, pmsg_t *mb, const gnet_host_t *unused_from)
+{
+	rx_check(rx);
+	g_assert(rx->upper == NULL);
+	g_assert(rx->flags & RX_F_FREED);
+	g_assert(0 != (rx->flags & RX_F_FROM));
+
+	(void) unused_from;
 
 	pmsg_free(mb);
 	return FALSE;		/* Stop sending more data */
@@ -103,6 +144,9 @@ rx_data_ind_freed(rxdrv_t *rx, pmsg_t *mb)
  *
  * Once the stack if fully built, rx_set_data_ind() must be called on the
  * top driver to set the data indication callback.
+ *
+ * When the ``host'' parameter is NULL, we're building an UDP RX stack and
+ * therefore rx_set_datafrom_ind() must be called instead.
  *
  * It is expected that the stack will be dismantled when an error is reported.
  *
@@ -123,17 +167,23 @@ rx_make(
 	rx->magic = RXDRV_MAGIC;
 	rx->owner = owner;
 	rx->ops = ops;
-	gnet_host_copy(&rx->host, host);
 	rx->upper = NULL;
 	rx->lower = NULL;
 
 	/*
 	 * The internal data_ind callback is always set to call the upper layer.
 	 * If this driver ends-up being at the top of the RX stack, then the
-	 * default will be superseded by the mandatory call to rx_set_data_ind().
+	 * default will be superseded by the mandatory call to rx_set_data_ind()
+	 * or rx_set_datafrom_ind().
 	 */
 
-	rx->data_ind = rx_data_ind;
+	if (NULL == host) {
+		rx->flags |= RX_F_FROM;
+		rx->data.from_ind = rx_datafrom_ind;
+	} else {
+		gnet_host_copy(&rx->host, host);
+		rx->data.ind = rx_data_ind;
+	}
 
 	if (NULL == RX_INIT(rx, args))		/* Let the heir class initialize */
 		return NULL;
@@ -153,8 +203,9 @@ rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 	rx_check(rx);
 	g_assert(rx->upper == NULL);			/* Called on topmost driver */
 	g_assert(!(rx->flags & RX_F_FREED));
+	g_assert(0 == (rx->flags & RX_F_FROM));
 
-	rx->data_ind = data_ind;
+	rx->data.ind = data_ind;
 }
 
 /**
@@ -165,8 +216,9 @@ rx_get_data_ind(rxdrv_t *rx)
 {
 	rx_check(rx);
 	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(0 == (rx->flags & RX_F_FROM));
 
-	return rx->data_ind;
+	return rx->data.ind;
 }
 
 /**
@@ -180,11 +232,61 @@ rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind)
 	rx_check(rx);
 	g_assert(rx->upper == NULL);			/* Called on topmost driver */
 	g_assert(!(rx->flags & RX_F_FREED));
+	g_assert(0 == (rx->flags & RX_F_FROM));
 
-	old_data_ind = rx->data_ind;
-	rx->data_ind = data_ind;
+	old_data_ind = rx->data.ind;
+	rx->data.ind = data_ind;
 
 	return old_data_ind;
+}
+
+/**
+ * Set the `datafrom_ind' callback, invoked when a new message has been fully
+ * received by the RX stack. The first argument of the routine is the layer
+ * from which data come, which will be the topmost driver when calling the
+ * external routine.
+ */
+void
+rx_set_datafrom_ind(rxdrv_t *rx, rx_datafrom_t datafrom_ind)
+{
+	rx_check(rx);
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(!(rx->flags & RX_F_FREED));
+	g_assert(0 != (rx->flags & RX_F_FROM));
+
+	rx->data.from_ind = datafrom_ind;
+}
+
+/**
+ * Fetch current `data_ind' callback.
+ */
+rx_datafrom_t
+rx_get_datafrom_ind(rxdrv_t *rx)
+{
+	rx_check(rx);
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(0 != (rx->flags & RX_F_FROM));
+
+	return rx->data.from_ind;
+}
+
+/**
+ * Replace the `data_ind' callback, returning the old one.
+ */
+rx_datafrom_t
+rx_replace_datafrom_ind(rxdrv_t *rx, rx_datafrom_t datafrom_ind)
+{
+	rx_datafrom_t old_datafrom_ind;
+
+	rx_check(rx);
+	g_assert(rx->upper == NULL);			/* Called on topmost driver */
+	g_assert(!(rx->flags & RX_F_FREED));
+	g_assert(0 != (rx->flags & RX_F_FROM));
+
+	old_datafrom_ind = rx->data.from_ind;
+	rx->data.from_ind = datafrom_ind;
+
+	return old_datafrom_ind;
 }
 
 /**
@@ -228,7 +330,7 @@ rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops, const void *args)
 	 * default will be superseded by the mandatory call to rx_set_data_ind().
 	 */
 
-	rx->data_ind = rx_data_ind;			/* Will call rx_recv() on upper layer */
+	rx->data.ind = rx_data_ind;			/* Will call rx_recv() on upper layer */
 
 	if (NULL == RX_INIT(rx, args))		/* Let the heir class initialize */
 		return NULL;
@@ -278,7 +380,10 @@ rx_free(rxdrv_t *rx)
 	g_assert(rx->upper == NULL);
 	g_assert(!(rx->flags & RX_F_FREED));
 
-	rx_set_data_ind(rx, rx_data_ind_freed);
+	if (0 == (rx->flags & RX_F_FROM))
+		rx_set_data_ind(rx, rx_data_ind_freed);
+	else
+		rx_set_datafrom_ind(rx, rx_datafrom_ind_freed);
 	rx_disable(rx);
 	rx->flags |= RX_F_FREED;
 	rx_freed = g_slist_prepend(rx_freed, rx);
@@ -311,6 +416,18 @@ rx_recv(rxdrv_t *rx, pmsg_t *mb)
 	g_assert(mb);
 
 	return RX_RECV(rx, mb);
+}
+
+/**
+ * Inject data into driver, from lower layer.
+ */
+bool
+rx_recvfrom(rxdrv_t *rx, pmsg_t *mb, const gnet_host_t *from)
+{
+	rx_check(rx);
+	g_assert(mb);
+
+	return RX_RECVFROM(rx, mb, from);
 }
 
 /**
@@ -413,6 +530,30 @@ rx_no_source(rxdrv_t *unused_rx)
 
 	g_error("no I/O source available in the middle of the RX stack");
 	return NULL;
+}
+
+/***
+ *** Selective debugging RX support, to limit tracing to specific addresses.
+ ***/
+
+static ipset_t rx_addrs = IPSET_INIT;
+
+/**
+ * Record IP addresses in the set of "debuggable" destinations.
+ */
+void
+rx_debug_set_addrs(const char *s)
+{
+	ipset_set_addrs(&rx_addrs, s);
+}
+
+/**
+ * Are we debugging traffic sent from the IP of the host?
+ */
+bool
+rx_debug_host(const gnet_host_t *h)
+{
+	return ipset_contains_host(&rx_addrs, h, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -65,6 +65,7 @@ struct socket_tls_ctx {
 
 struct sockaddr;
 struct udpctx;
+struct tcpctx;
 
 /*
  * Connection directions.
@@ -82,7 +83,7 @@ typedef enum {
 } socket_magic_t;
 
 
-struct gnutella_socket {
+typedef struct gnutella_socket {
 	socket_magic_t magic;	/**< magic for consistency checks */
 	socket_fd_t file_desc;	/**< file descriptor */
 	uint32 flags;			/**< operating flags */
@@ -107,13 +108,8 @@ struct gnutella_socket {
 	struct socket_tls_ctx tls;
 
 	union {
-		struct gnutella_node *node;
-		struct download *download;
-		struct upload *upload;
-		struct pproxy *pproxy;
-		struct cproxy *cproxy;
-		struct udpctx *udp;
-		void *handle;
+		struct tcpctx *tcp; 	/**< TCP-specific additional context */
+		struct udpctx *udp;		/**< UDP-specific additional context */
 	} resource;
 
 	struct getline *getline;	/**< Line reader object */
@@ -124,7 +120,7 @@ struct gnutella_socket {
 
 	unsigned so_rcvbuf;	/**< Configured RX buffer size, 0 if unknown */
 	unsigned so_sndbuf;	/**< Configured TX buffer size, 0 if unknown */
-};
+} gnutella_socket_t;
 
 /**
  * The UDP data indication callback.
@@ -134,8 +130,24 @@ struct gnutella_socket {
  *
  * Data is held in s->buf and is s->pos byte-long.
  */
-typedef void (*socket_udp_data_ind_t)(
-	struct gnutella_socket *s, bool truncated);
+typedef void (*socket_udp_data_ind_t)(gnutella_socket_t *s, bool truncated);
+
+/**
+ * TCP socket callback operations.
+ */
+struct socket_ops {
+	void (*connect_failed)(gnutella_socket_t *s, void *owner, const char *err);
+	void (*connected)(gnutella_socket_t *s, void *owner);
+	void (*destroy)(gnutella_socket_t *s, void *owner, const char *reason);
+};
+
+/**
+ * TCP socket context.
+ */
+struct tcpctx {
+	void *owner;				/**< Owner of the socket */
+	struct socket_ops *ops;		/**< Operational callbacks */
+};
 
 /**
  * UDP socket context.
@@ -171,7 +183,6 @@ extern struct gnutella_socket *s_tcp_listen6;
 extern struct gnutella_socket *s_udp_listen;
 extern struct gnutella_socket *s_udp_listen6;
 extern struct gnutella_socket *s_local_listen;
-
 
 /**
  * Accessors.
@@ -234,6 +245,11 @@ struct gnutella_socket *socket_udp_listen(const host_addr_t, uint16,
 struct gnutella_socket *socket_local_listen(const char *pathname);
 void socket_set_single(struct gnutella_socket *s, bool on);
 
+void socket_attach_ops(gnutella_socket_t *s,
+	enum socket_type, struct socket_ops *ops, void *owner);
+void socket_detach_ops(gnutella_socket_t *s);
+void socket_change_owner(gnutella_socket_t *s, void *owner);
+
 void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, void *data);
 void socket_evt_clear(struct gnutella_socket *s);
@@ -258,6 +274,7 @@ bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);
+void socket_closedown(void);
 
 ssize_t safe_readv(wrap_io_t *wio, iovec_t *iov, int iovcnt);
 ssize_t safe_readv_fd(int fd, iovec_t *iov, int iovcnt);

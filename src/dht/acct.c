@@ -104,9 +104,7 @@ acct_net_update(acct_net_t *an, host_addr_t addr, uint32 mask, int pmone)
 			htable_remove(an->ht, key);
 			atom_uint32_free(key);
 		}
-	} else {
-		g_assert(pmone == +1);
-
+	} else if (+1 == pmone) {
 		key = (void *) atom_uint32_get(&net);
 		htable_insert(an->ht, key, int_to_pointer(1));
 	}

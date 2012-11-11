@@ -127,6 +127,12 @@ size_t stacktrace_memory_used(void);
 enum stacktrace_sym_quality stacktrace_quality(void);
 const char *stacktrace_quality_string(const enum stacktrace_sym_quality sq);
 
+/**
+ * @return function's name given a function pointer.
+ */
+#define stacktrace_function_name(fp) \
+	stacktrace_routine_name(func_to_pointer(fp), FALSE)
+
 #endif /* _stacktrace_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */

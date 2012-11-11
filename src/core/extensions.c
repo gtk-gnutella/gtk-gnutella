@@ -156,6 +156,9 @@ struct rwtable {
 static const struct rwtable urntable[] =
 {
 	{ "bitprint",		EXT_T_URN_BITPRINT },
+	{ "btih",			EXT_T_URN_BTIH },
+	{ "ed2khash",		EXT_T_URN_ED2KHASH },
+	{ "md5",			EXT_T_URN_MD5 },
 	{ "sha1",			EXT_T_URN_SHA1 },
 	{ "ttroot",			EXT_T_URN_TTH },
 };
@@ -731,16 +734,18 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		/*
 		 * Some broken servents don't include the trailing ':', which is a
 		 * mistake.  Try to accomodate them by looking up the next HUGE
-		 * field separator.
+		 * or GGEP field separator.
 		 */
 
-		if (NULL == name_end) {
+		if G_UNLIKELY(NULL == name_end) {
 			name_end = memchr(p, HUGE_FS, end - name_start);
+			if (NULL == name_end)
+				name_end = memchr(p, GGEP_MAGIC, end - name_start);
 		}
 
 		name_len = (name_end != NULL) ? name_end - name_start : 0;
 
-		if (0 == name_len) {
+		if G_UNLIKELY(0 == name_len) {
 			return 0;			/* No sperator found, extension is weird */
 		} else if (name_len >= sizeof name_buf) {
 			/* We shall treat this URN extension as being unknown */
@@ -751,6 +756,10 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 			nend = mempcpy(name_buf, name_start, name_len);
 			*nend = '\0';
 			token = rw_urn_screen(name_buf, &name);
+
+			if (EXT_T_URN_UNKNOWN == token && GNET_PROPERTY(ggep_debug)) {
+				g_info("unknown URN name \"%s\" in HUGE extension", name_buf);
+			}
 		}
 		p = &name_end[1];	/* Skip the ':' following the URN name */
 	}
@@ -1848,7 +1857,7 @@ ext_payload(const extvec_t *e)
 }
 
 /**
- * @returns a pointer to the extension's payload length.
+ * @returns the extension's payload length (after possible decompression).
  */
 uint16
 ext_paylen(const extvec_t *e)
@@ -1864,6 +1873,19 @@ ext_paylen(const extvec_t *e)
 		ext_ggep_decode(e);
 	}
 	return d->ext_paylen;
+}
+
+/**
+ * @returns the extension's payload physical length (as transmitted).
+ */
+static uint16
+ext_phys_paylen(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	return d->ext_phys_paylen;
 }
 
 /**
@@ -1924,8 +1946,11 @@ ext_huge_urn_name(const extvec_t *e)
 {
 	switch (e->ext_token) {
 	case EXT_T_URN_BITPRINT:	return "urn:bitprint";
+	case EXT_T_URN_BTIH:		return "urn:btih";
 	case EXT_T_URN_SHA1:		return "urn:sha1";
 	case EXT_T_URN_TTH:			return "urn:ttroot";
+	case EXT_T_URN_ED2KHASH:	return "urn:ed2khash";
+	case EXT_T_URN_MD5:			return "urn:md5";
 	case EXT_T_URN_EMPTY:		return "urn";
 	case EXT_T_URN_UNKNOWN:		return "urn:*";		/* Parsed but unknown */
 	default:					return "";
@@ -2041,6 +2066,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 			case EXT_T_URN_BITPRINT:
 			case EXT_T_URN_SHA1:
 			case EXT_T_URN_TTH:
+			case EXT_T_URN_ED2KHASH:
 			case EXT_T_URN_UNKNOWN:
 			case EXT_T_URN_EMPTY:		what = ext_huge_urn_name(e); break;
 			case EXT_T_URN_BAD:			what = "bad URN"; break;
@@ -2088,7 +2114,7 @@ static void
 ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 	const char *postfix, bool payload)
 {
-	uint16 paylen;
+	uint16 paylen, phys_paylen;
 
 	g_assert(e->ext_type < EXT_TYPE_COUNT);
 	g_assert(e->opaque != NULL);
@@ -2103,8 +2129,15 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 		fprintf(f, "\"%s\" ", e->ext_name);
 
 	paylen = ext_paylen(e);
+	phys_paylen = ext_phys_paylen(e);
 
-	fprintf(f, "%u byte%s", paylen, paylen == 1 ? "" : "s");
+	if (paylen == phys_paylen) {
+		fprintf(f, "%u byte%s", paylen, 1 == paylen ? "" : "s");
+	} else {
+		fprintf(f, "%u byte%s <%u byte%s>",
+			paylen, 1 == paylen ? "" : "s",
+			phys_paylen, 1 == phys_paylen ? "" : "s");
+	}
 
 	if (e->ext_type == EXT_GGEP) {
 		extdesc_t *d = e->opaque;

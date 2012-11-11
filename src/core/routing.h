@@ -36,6 +36,7 @@ struct guid;
 
 typedef enum {
 	ROUTE_NONE = 0,			/**< No route, message stops here */
+	ROUTE_LEAVES,			/**< Route to leaves only */
 	ROUTE_ONE,				/**< Route to single node */
 	ROUTE_ALL_BUT_ONE,		/**< Route to all nodes but one */
 	ROUTE_MULTI				/**< Route to list of nodes */

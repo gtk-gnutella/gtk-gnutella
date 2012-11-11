@@ -25,6 +25,8 @@
  * @ingroup lib
  * @file
  *
+ * Embedded two-way list (within another data structure).
+ *
  * Embedded lists are created when the linking pointers are directly
  * held within the data structure, as opposed to glib's lists which are
  * containers pointing at objects.
@@ -53,10 +55,21 @@
 
 #include "elist.h"
 #include "random.h"
+#include "shuffle.h"
 #include "unsigned.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
+
+#if 0
+#define ELIST_SAFETY_ASSERT		/**< Turn on costly integrity assertions */
+#endif
+
+#ifdef ELIST_SAFETY_ASSERT
+#define safety_assert(x)	g_assert(x)
+#else
+#define safety_assert(x)
+#endif
 
 /**
  * Initialize embedded list.
@@ -125,10 +138,13 @@ elist_link_append_internal(elist_t *list, link_t *lk)
 {
 	if G_UNLIKELY(NULL == list->tail) {
 		g_assert(NULL == list->head);
+		g_assert(0 == list->count);
 		list->head = list->tail = lk;
 		lk->next = lk->prev = NULL;
 	} else {
 		g_assert(NULL == list->tail->next);
+		g_assert(NULL != list->head);	/* Since list not empty */
+		g_assert(size_is_positive(list->count));
 		list->tail->next = lk;
 		lk->prev = list->tail;
 		lk->next = NULL;
@@ -136,6 +152,8 @@ elist_link_append_internal(elist_t *list, link_t *lk)
 	}
 
 	list->count++;
+
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -174,10 +192,13 @@ elist_link_prepend_internal(elist_t *list, link_t *lk)
 {
 	if G_UNLIKELY(NULL == list->head) {
 		g_assert(NULL == list->tail);
+		g_assert(0 == list->count);
 		list->head = list->tail = lk;
 		lk->next = lk->prev = NULL;
 	} else {
 		g_assert(NULL == list->head->prev);
+		g_assert(NULL != list->tail);	/* Since list not empty */
+		g_assert(size_is_positive(list->count));
 		list->head->prev = lk;
 		lk->next = list->head;
 		lk->prev = NULL;
@@ -185,6 +206,8 @@ elist_link_prepend_internal(elist_t *list, link_t *lk)
 	}
 
 	list->count++;
+
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -218,6 +241,7 @@ static inline void
 elist_link_remove_internal(elist_t *list, link_t *lk)
 {
 	g_assert(size_is_positive(list->count));
+	elist_invariant(list);
 
 	if G_UNLIKELY(list->head == lk)
 		list->head = lk->next;
@@ -232,6 +256,9 @@ elist_link_remove_internal(elist_t *list, link_t *lk)
 
 	lk->next = lk->prev = NULL;
 	list->count--;
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -247,7 +274,6 @@ elist_link_remove(elist_t *list, link_t *lk)
 
 	elist_link_remove_internal(list, lk);
 }
-
 
 /**
  * Remove item with embedded link from list.
@@ -270,6 +296,7 @@ static void
 elist_link_insert_before_internal(elist_t *list, link_t *siblk, link_t *lk)
 {
 	g_assert(size_is_positive(list->count));
+	elist_invariant(list);
 
 	if G_UNLIKELY(list->head == siblk)
 		list->head = lk;
@@ -282,6 +309,8 @@ elist_link_insert_before_internal(elist_t *list, link_t *siblk, link_t *lk)
 	siblk->prev = lk;
 
 	list->count++;
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -323,6 +352,7 @@ static void
 elist_link_insert_after_internal(elist_t *list, link_t *siblk, link_t *lk)
 {
 	g_assert(size_is_positive(list->count));
+	elist_invariant(list);
 
 	if G_UNLIKELY(list->tail == siblk)
 		list->tail = lk;
@@ -335,6 +365,8 @@ elist_link_insert_after_internal(elist_t *list, link_t *siblk, link_t *lk)
 	siblk->next = lk;
 
 	list->count++;
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -373,18 +405,25 @@ elist_insert_after(elist_t *list, void *sibling, void *data)
 }
 
 static inline void
-elist_link_replace_internal(elist_t *list, link_t *old, link_t *new)
+elist_link_replace_internal(elist_t *list, link_t *old, link_t *new, bool valid)
 {
+	elist_invariant(list);
+
 	if G_UNLIKELY(list->head == old)
 		list->head = new;
 
 	if G_UNLIKELY(list->tail == old)
 		list->tail = new;
 
-	if (old->prev != NULL)
-		old->prev->next = new;
-	if (old->next != NULL)
-		old->next->prev = new;
+	if (valid) {
+		if (old->prev != NULL)
+			old->prev->next = new;
+		if (old->next != NULL)
+			old->next->prev = new;
+	}
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -400,7 +439,7 @@ elist_link_replace(elist_t *list, link_t *old, link_t *new)
 	if G_UNLIKELY(old == new)
 		return;
 
-	elist_link_replace_internal(list, old, new);
+	elist_link_replace_internal(list, old, new, TRUE);
 
 	*new = *old;
 	old->next = old->prev = NULL;
@@ -427,7 +466,7 @@ elist_replace(elist_t *list, void *old, void *new)
 	ol = ptr_add_offset(old, list->offset);
 	nl = ptr_add_offset(new, list->offset);
 
-	elist_link_replace_internal(list, ol, nl);
+	elist_link_replace_internal(list, ol, nl, TRUE);
 
 	*nl = *ol;
 	ol->next = ol->prev = NULL;
@@ -454,6 +493,8 @@ elist_reverse(elist_t *list)
 	lk = list->head;
 	list->head = list->tail;
 	list->tail = lk;
+
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -503,13 +544,18 @@ elist_foreach(const elist_t *list, data_fn_t cb, void *data)
 	link_t *lk, *next;
 
 	elist_check(list);
+	elist_invariant(list);
 	g_return_unless(cb != NULL);
+	safety_assert(elist_length(list->head) == list->count);
 
 	for (lk = list->head; lk != NULL; lk = next) {
 		void *item = ptr_add_offset(lk, -list->offset);
 		next = lk->next;		/* Allow callback to destroy item */
 		(*cb)(item, data);
 	}
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -529,7 +575,9 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
 	size_t removed = 0;
 
 	elist_check(list);
+	elist_invariant(list);
 	g_return_val_unless(cbr != NULL, 0);
+	safety_assert(elist_length(list->head) == list->count);
 
 	for (lk = list->head; lk != NULL; lk = next) {
 		void *item = ptr_add_offset(lk, -list->offset);
@@ -545,11 +593,14 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
 
 		if ((*cbr)(item, data)) {
 			/* Tweak the list to replace possibly gone ``lk'' */
-			elist_link_replace_internal(list, lk, &itemlk);
+			elist_link_replace_internal(list, lk, &itemlk, FALSE);
 			elist_link_remove_internal(list, &itemlk);
 			removed++;
 		}
 	}
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 
 	return removed;
 }
@@ -633,6 +684,7 @@ static void
 elist_sort_internal(elist_t *list, cmp_data_fn_t cmp, void *data)
 {
 	elist_check(list);
+	elist_invariant(list);
 	g_return_unless(cmp != NULL);
 
 	/*
@@ -645,6 +697,9 @@ elist_sort_internal(elist_t *list, cmp_data_fn_t cmp, void *data)
 	 */
 
 	list->head = elist_merge_sort(list, list->head, list->count, cmp, data);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -689,6 +744,7 @@ elist_insert_sorted_internal(elist_t *list, void *item,
 	link_t *lk, *ln;
 
 	elist_check(list);
+	elist_invariant(list);
 	g_assert(item != NULL);
 	g_assert(cmp != NULL);
 
@@ -705,6 +761,8 @@ elist_insert_sorted_internal(elist_t *list, void *item,
 	} else {
 		elist_link_insert_before_internal(list, lk, ln);
 	}
+
+	safety_assert(elist_length(list->head) == list->count);
 }
 
 /**
@@ -801,8 +859,9 @@ elist_shuffle(elist_t *list)
 	size_t i;
 
 	elist_check(list);
+	elist_invariant(list);
 
-	if G_UNLIKELY(0 == list->count)
+	if G_UNLIKELY(list->count <= 1U)
 		return;
 
 	/*
@@ -817,20 +876,7 @@ elist_shuffle(elist_t *list)
 		array[i] = lk;
 	}
 
-	/*
-	 * Shuffle the array in-place using Knuth's modern version of the
-	 * Fisher and Yates algorithm.
-	 */
-
-	for (i = list->count - 1; i > 0; i--) {
-		link_t *tmp;
-		size_t j = random_value(i);
-
-		/* Swap i-th and j-th items */
-		tmp = array[i];
-		array[i] = array[j];		/* i-th item has been chosen */
-		array[j] = tmp;
-	}
+	shuffle(array, list->count, sizeof array[0]);
 
 	/*
 	 * Rebuild the list.
@@ -852,6 +898,75 @@ elist_shuffle(elist_t *list)
 
 	lk->next = NULL;
 	xfree(array);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Rotate list by one item to the left.
+ *
+ * The head is inserted back at the tail.
+ */
+void
+elist_rotate_left(elist_t *list)
+{
+	link_t *lk;
+
+	elist_check(list);
+
+	if G_UNLIKELY(list->count <= 1U)
+		return;
+
+	lk = list->head;
+	elist_link_remove_internal(list, lk);
+	elist_link_append_internal(list, lk);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Rotate list by one item to the right.
+ *
+ * The tail is inserted back at the head.
+ */
+void
+elist_rotate_right(elist_t *list)
+{
+	link_t *lk;
+
+	elist_check(list);
+
+	if G_UNLIKELY(list->count <= 1U)
+		return;
+
+	lk = list->tail;
+	elist_link_remove_internal(list, lk);
+	elist_link_prepend_internal(list, lk);
+
+	safety_assert(elist_invariant(list));
+	safety_assert(elist_length(list->head) == list->count);
+}
+
+/**
+ * Remove head of list, return pointer to item, NULL if list was empty.
+ */
+void *
+elist_shift(elist_t *list)
+{
+	void *item;
+
+	elist_check(list);
+
+	if (NULL == list->head) {
+		item = NULL;
+	} else {
+		item = ptr_add_offset(list->head, -list->offset);
+		elist_link_remove_internal(list, list->head);
+	}
+
+	return item;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

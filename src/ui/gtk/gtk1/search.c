@@ -1062,7 +1062,9 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 				break;
 			case c_sr_protocol:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status))
-					text = ST_UDP & rs->status ? "UDP" : "TCP";
+					text = ST_UDP & rs->status ?
+						(ST_SR_UDP & rs->status ? "UDP (semi-reliable)" : "UDP")
+						: "TCP";
 				break;
 			case c_sr_hops:
 				if (!((ST_LOCAL | ST_BROWSE) & rs->status)) {
@@ -1936,14 +1938,17 @@ search_gui_collapse_all(struct search *search)
 	}
 }
 
-void
+bool
 search_gui_start_massive_update(struct search *search)
 {
-	g_return_if_fail(search);
-	g_return_if_fail(!search->frozen);
+	g_return_val_if_fail(search, FALSE);
+	
+	if (search->frozen)
+		return FALSE;
 
 	gtk_clist_freeze(GTK_CLIST(search->tree));
 	search->frozen = TRUE;
+	return TRUE;
 }
 
 void

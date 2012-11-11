@@ -39,9 +39,9 @@ gboolean on_main_window_delete_event(
 #ifdef HAVE_GTKOSXAPPLICATION
 gboolean on_main_window_delete_event_hide(GtkWidget *unused_widget, 
 	GdkEvent *unused_event, gpointer unused_udata);
-gboolean on_NSApplicationOpenFile(GtkOSXApplication *app, gchar *path, 
+gboolean on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path, 
 	gpointer user_data);
-gboolean on_NSApplicationDidBecomeActive(GtkOSXApplication *app, 
+gboolean on_NSApplicationDidBecomeActive(GtkosxApplication *app, 
 	gpointer user_data);
 #endif
 /***

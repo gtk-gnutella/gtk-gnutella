@@ -44,7 +44,7 @@
  * byte long.  Instead, gnet_host_length(p) MUST be used to determine the
  * actual length required to represent the host.
  *
- * It follows that no struct copy must occur between to gnet_host_t pointers.
+ * It follows that no struct copy must occur between two gnet_host_t pointers.
  * Always use gnet_host_copy().
  *
  * @author Raphael Manfredi
@@ -88,11 +88,26 @@ gnet_host_hash(const void *key)
 }
 
 /**
+ * Alternative hash function for use in hash table and sets.
+ */
+G_GNUC_HOT uint
+gnet_host_hash2(const void *key)
+{
+	const gnet_host_t *host = key;
+	host_addr_t addr;
+	uint16 port;
+
+	addr = gnet_host_get_addr(host);
+	port = gnet_host_get_port(host);
+	return host_addr_hash2(addr) ^ port_hash2(port);
+}
+
+/**
  * Compare function which returns TRUE if the hosts are equal.
  *
  * @note For use in hash tables and sets.
  */
-G_GNUC_HOT int
+G_GNUC_HOT bool
 gnet_host_eq(const void *v1, const void *v2)
 {
 	const gnet_host_t *h1 = v1, *h2 = v2;
@@ -110,6 +125,17 @@ int
 gnet_host_cmp(const void *v1, const void *v2)
 {
 	return gnet_host_eq(v1, v2) ? 0 : 1;
+}
+
+/**
+ * Compare function which returns TRUE if the host addresses are equal.
+ */
+bool
+gnet_host_addr_eq(const void *v1, const void *v2)
+{
+	const gnet_host_t *h1 = v1, *h2 = v2;
+
+	return host_addr_equal(gnet_host_get_addr(h1), gnet_host_get_addr(h2));
 }
 
 /**

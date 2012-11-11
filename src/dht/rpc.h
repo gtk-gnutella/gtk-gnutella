@@ -107,7 +107,11 @@ bool dht_rpc_answer(const guid_t *muid, knode_t *kn,
 	const void *payload, size_t len);
 
 bool dht_rpc_info(const guid_t *muid, host_addr_t *addr, uint16 *port);
+bool dht_fix_contact(knode_t *kn, const char *source);
+bool dht_fix_kuid_contact(const kuid_t *kuid, host_addr_t *addr, uint16 *port,
+	const char *source);
 
+bool dht_rpc_timeout(const guid_t *muid);
 bool dht_rpc_cancel(const guid_t *muid);
 bool dht_rpc_cancel_if_no_callback(const guid_t *muid);
 bool dht_lazy_rpc_ping(knode_t *kn);

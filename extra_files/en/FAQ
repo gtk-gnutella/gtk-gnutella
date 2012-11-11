@@ -92,9 +92,7 @@
   the moment you can publish and download files of any kind using the Gnutella
   network.  For more information, visit the
   <a href="http://www.wikipedia.org/wiki/Gnutella"
-  >Wikipedia definition of Gnutella</a>
-  or the <a href="http://www.infoanarchy.org/wiki/wiki.pl?Gnutella">definition
-  of gnutella</a> on the infoAnarchy wiki.
+  >Wikipedia definition of Gnutella</a>.
 </p>
 
 <h3><a name="general-gtkg">What is "GTKG?"</a></h3>
@@ -119,7 +117,7 @@
   </li>
   <li>
     If you are able to receive incoming connections, enable <em>Prefer
-    compressed connections</em> in the <em>Bandwidth control</em>
+    compressed connections</em> in the <em>Bandwidth</em>
     options.
   </li>
   <li>
@@ -258,7 +256,7 @@ See also,
   Even when people cannot connect directly to you, they can still download
   files from your node using a <a href="#down_push">push request</a>.<br>
   You can configure the port gtk-gnutella listens on. The setting
-  <em>Listen port</em> is located in the <em>Settings-&gt;Preferences-&gt;Network</em>.
+  <em>Listen port</em> is located in the <em>File-&gt;Preferences-&gt;Network</em>.
 </p>
  
 <h3><a name="gnet-forward-howto">How do I configure port forwarding?</a></h3>
@@ -305,8 +303,8 @@ See also,
 </p>
 <pre>
   012345678AB (offset)
-  NIrwqxZPFhT
-  ||||||||||+ indicates a <strong>T</strong>LS-tunneled connection
+  NIrwqxZPFhE
+  ||||||||||+ indicates a TLS <strong>E</strong>ncrypted connection
   |||||||||+- hops flow triggered (<strong>h</strong>), or total query flow control (<strong>f</strong>)
   ||||||||+-- flow control (<strong>F</strong>), or pending data in queue (<strong>d</strong>)
   |||||||+--- we are push-proxy for node (<strong>P</strong>) or node is our push-proxy (<strong>p</strong>)
@@ -336,9 +334,10 @@ See also,
 
 <h3><a name="gnet6">What does "Outdated version, please upgrade" mean?</a></h3>
 <p>
-  Versions of gtk-gnutella more than one year old are banned, since they
-  lack features that are important to the rapidly evolving gnet's health and
-  scalability.  In addition, unstable versions are banned after 90 days.
+  It is important to upgrade versions of gtk-gnutella which are older than one
+  year since they lack features that are important to the rapidly evolving
+  gnet's health and scalability.  In addition, unstable versions are banned 
+  after 90 days.
 </p>
 
 <h3><a name="gnet7">Why doesn't my HTTP proxy work?</a></h3>
@@ -355,10 +354,10 @@ See also,
 <h3><a name="gnet8">How can I increase the timeouts?</a></h3>
 <p>
   If your internet connection suffers from high latency it might help to
-  increase the timeouts. Go to <em>Settings-&gt;Preferences-&gt;User Interface</em>
+  increase the timeouts. Go to <em>File-&gt;Preferences-&gt;User Interface</em>
   and tick <em>Expert mode</em>.
   Now, you'll find a lot more settings to change when you go to
-  <em>Settings-&gt;Preferences-&gt;GnutellaNet</em>.
+  <em>File-&gt;Preferences-&gt;Gnutella</em>.
 </p>
 
 <h3><a name="gnet-auto">How does auto mode decide between ultra and leaf?</a></h3>
@@ -420,7 +419,7 @@ See also,
   any extra gnet traffic.  For example, on my ultrapeer with 200 
   <a href="#general-ultrapeer">leaf nodes</a>, I opened a passive search and 
   filtered the results to display only hits with the name 
-  <q><em>eminem</em></q>.  Within an hour or so I had about 1500 results. 
+  <q><em>linux</em></q>.  Within an hour or so I had about 1500 results. 
   Obviously, the more popular the search, and the more patient you are, the 
   more useful this technique is.
 </p>
@@ -458,7 +457,9 @@ See also,
   supplied, then gtk-gnutella has no way of assuring that the file it wants to
   download and the file on the remote server are really the same.<br>
   If you get annoyed by those messages you can activate the <em>Optimistic
-  first chunk</em> option in the <em>Settings-&gt;Preferences-&gt;Download</em>.
+  first chunk</em> option in <em>File-&gt;Preferences-&gt;Downloads</em> 
+  (first you'll need to go to <em>Settings->Preferences->User Interface</em>
+  and tick <em>Expert mode</em>).
 </p>
 
 <h3><a name="down2">Why is the same file downloaded X times?</a></h3>
@@ -574,7 +575,7 @@ See also,
   an appropriate value for the encoding you use. For example, if you use
   special German characters in your filenames, set it to
   <code>de_DE.ISO8859-1</code>. The valid values depend on your operating
-  system; see the manpage setlocale(3) for details. Ideally, everyone would
+  system, see the manpage setlocale(3) for details. Ideally, everyone would
   use UTF-8 encoding which covers nearly all languages.
 </p>
 

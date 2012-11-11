@@ -120,10 +120,12 @@ general_type_str(gint value)
 		N_("Query hits received for OOB-proxied queries"),
 		N_("Queries requesting OOB hit delivery"),
 		N_("Stripped OOB flag on queries"),
+		N_("Ignored OOB queries due to unclaimed hits"),
 		N_("Duplicate OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
 		N_("OOB hits bearing alien IP address"),
 		N_("OOB hits ignored due to identified spamming address"),
+		N_("OOB hits ignored due to unsecure promise from known secure host"),
 		N_("Unclaimed locally-generated OOB hits"),
 		N_("Partially claimed locally-generated OOB hits"),
 		N_("Spurious OOB hit claiming received"),
@@ -148,6 +150,7 @@ general_type_str(gint value)
 		N_("Broadcasted push messages"),
 		N_("Push-proxy UDP relayed messages"),
 		N_("Push-proxy TCP relayed messages"),
+		N_("Push-proxy TCP for FW<->FW transfers"),
 		N_("Push-proxy broadcasted messages"),
 		N_("Push-proxy found un-proxied local route"),
 		N_("Push-proxy lookup failures"),
@@ -165,16 +168,64 @@ general_type_str(gint value)
 		N_("Queries seen from GTKG"),
 		N_("Queries seen from GTKG that were re-queries"),
 		N_("Queries advertising support of GGEP \"H\""),
+		N_("Queries advertising support of semi-reliable UDP"),
 		N_("GIV callbacks received"),
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
 		N_("QUEUE discarded due to no suitable download"),
+		N_("UDP push messages received for FW<->FW connections"),
+		N_("UDP push messages requesting FW<->FW connection with ourselves"),
+		N_("UDP push messages patched for FW<->FW connections"),
+		N_("UDP UHC pings received"),
+		N_("UDP UHC pongs sent"),
 		N_("UDP messages with bogus source IP"),
 		N_("Alien UDP messages (non-Gnutella)"),
 		N_("Unprocessed UDP Gnutella messages"),
 		N_("Compressed UDP messages enqueued"),
 		N_("Compressed UDP messages received"),
 		N_("Uncompressed UDP messages due to no gain"),
+		N_("Ambiguous UDP messages received"),
+		N_("Ambiguous UDP messages inspected more deeply"),
+		N_("Ambiguous UDP messages handled as semi-reliable UDP"),
+		N_("Semi-reliable UDP total messages given for transmission"),
+		N_("Semi-reliable UDP total messages deflated"),
+		N_("Semi-reliable UDP total messages unsent"),
+		N_("Semi-reliable UDP total messages partially sent due to clogging"),
+		N_("Semi-reliable UDP reliable messages given for transmission"),
+		N_("Semi-reliable UDP reliable messages correctly transmited"),
+		N_("Semi-reliable UDP reliable messages not fully acknowledged"),
+		N_("Semi-reliable UDP fragments sent"),
+		N_("Semi-reliable UDP fragments resent"),
+		N_("Semi-reliable UDP fragment sendings avoided"),
+		N_("Semi-reliable UDP fragments sent too many times"),
+		N_("Semi-reliable UDP total acknowledgments received"),
+		N_("Semi-reliable UDP cumulative acknowledgments received"),
+		N_("Semi-reliable UDP extended acknowledgments received"),
+		N_("Semi-reliable UDP spurious acknowledgments received"),
+		N_("Semi-reliable UDP invalid acknowledgments received"),
+		N_("Semi-reliable UDP EARs sent"),
+		N_("Semi-reliable UDP too many EARs sent"),
+		N_("Semi-reliable UDP EAR negative acknowledgments received"),
+		N_("Semi-reliable UDP acknowledgments received after sending EARs"),
+		N_("Semi-reliable UDP fragments received"),
+		N_("Semi-reliable UDP duplicate fragments received"),
+		N_("Semi-reliable UDP unreliable fragments received"),
+		N_("Semi-reliable UDP dropped received fragments"),
+		N_("Semi-reliable UDP fragments received whilst lingering"),
+		N_("Semi-reliable UDP messages expired before re-assembly"),
+		N_("Semi-reliable UDP messages re-assembled completely"),
+		N_("Semi-reliable UDP messages inflated successfully"),
+		N_("Semi-reliable UDP messages inflated incorrectly"),
+		N_("Semi-reliable UDP unreliable messages received"),
+		N_("Semi-reliable UDP empty messages received"),
+		N_("Semi-reliable UDP total acknowledgments sent"),
+		N_("Semi-reliable UDP cumulative acknowledgments sent"),
+		N_("Semi-reliable UDP extended acknowledgments sent"),
+		N_("Semi-reliable UDP avoided acknowledgment sendings"),
+		N_("Semi-reliable UDP EARs received"),
+		N_("Semi-reliable UDP EARs received for unknown message"),
+		N_("Semi-reliable UDP EARs received whilst lingering"),
+		N_("Semi-reliable UDP fragments from hostile IP addresses"),
 		N_("Consolidated servers (after GUID and IP address linking)"),
 		N_("Duplicate downloads found during server consolidation"),
 		N_("Discovered server GUIDs"),
@@ -213,6 +264,8 @@ general_type_str(gint value)
 		N_("Bitzi tickets held"),
 		N_("Re-seeding of orphan downloads through query hits"),
 		N_("Re-seeding of orphan downloads through upload requests"),
+		N_("RUDP sent bytes"),
+		N_("RUDP received bytes"),
 		N_("DHT estimated amount of nodes"),
 		N_("DHT standard error of estimated amount of nodes"),
 		N_("DHT k-ball theoretical frontier (bits)"),
@@ -247,6 +300,7 @@ general_type_str(gint value)
 		N_("DHT nodes rejected during lookup based on network quota"),
 		N_("DHT nodes rejected during lookup based on suspicious proximity"),
 		N_("DHT nodes rejected during lookup based on frequency divergence"),
+		N_("DHT node contact IP addresses fixed during lookup"),
 		N_("DHT keys held"),
 		N_("DHT cached keys held"),
 		N_("DHT values held"),
@@ -277,7 +331,6 @@ general_type_str(gint value)
 		N_("DHT duplicate values returned in lookups"),
 		N_("DHT detected KUID collisions"),
 		N_("DHT detected collisions with our own KUID"),
-		N_("DHT detected KUID mismatches on RPC reply"),
 		N_("DHT caching attempts"),
 		N_("DHT caching ended successfully"),
 		N_("DHT caching partially completed"),
@@ -287,6 +340,20 @@ general_type_str(gint value)
 		N_("DHT key-offloading ended successfully"),
 		N_("DHT key-offloading partially completed"),
 		N_("DHT values successfully offloaded"),
+		N_("DHT incoming messages"),
+		N_("DHT incoming messages with UDP-matching contact address"),
+		N_("DHT incoming messages with contact address fixed"),
+		N_("DHT incoming messages from hostile addresses"),
+		N_("DHT incoming messages with hostile contact address"),
+		N_("DHT RPC messages prepared"),
+		N_("DHT RPC messages cancelled"),
+		N_("DHT RPC timed out"),
+		N_("DHT RPC replies received"),
+		N_("DHT RPC replies with contact address fixed"),
+		N_("DHT RPC late replies received"),
+		N_("DHT RPC detected KUID mismatches on reply"),
+		N_("DHT RPC recent nodes held"),
+		N_("DHT node verifications"),
 		N_("DHT publishing attempts"),
 		N_("DHT publishing ended successfully (all roots)"),
 		N_("DHT publishing partially completed (root subset only)"),
@@ -393,6 +460,37 @@ gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	gtk_label_printf(GTK_LABEL(
 			gui_main_window_lookup("label_statusbar_horizon_kb_count")),
 		"%s", short_kb_size(val, show_metric_units()));
+}
+
+/**
+ * Stringify value of the general stats to buffer.
+ *
+ * @param dst		destination buffer
+ * @param size		length of destination buffer
+ * @param stats		the statistics array
+ * @param idx		the index within the general statistics of value to format
+ */
+void
+gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
+	const gnet_stats_t *stats, int idx)
+{
+	const uint64 value = stats->general[idx];
+
+	if (0 == value)
+		g_strlcpy(dst, "-", size);
+	else {
+		switch (idx) {
+		case GNR_QUERY_COMPACT_SIZE:
+		case GNR_IGNORED_DATA:
+		case GNR_SUNK_DATA:
+		case GNR_RUDP_TX_BYTES:
+		case GNR_RUDP_RX_BYTES:
+			g_strlcpy(dst, compact_size(value, show_metric_units()), size);
+			break;
+		default:
+			uint64_to_string_buf(value, dst, size);
+		}
+	}
 }
 
 static gboolean

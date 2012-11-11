@@ -52,10 +52,22 @@
 #define QUERY_F_OOB_REPLY	0x0400	/**< Out-of-band reply possible */
 #define QUERY_F_FW_TO_FW	0x0200	/**< Can do fw to fw transfers */
 /**
- * NOTE: At this point all of the bits are exhausted. 0x0001 is not available
- * 		 because the next 9 bits are not available for flags.
+ * NOTE: At this point all of the bits are exhausted. 0x0100 is not available
+ * 		 because the next 9 bits are not available for flags but were reserved
+ *       to specify the maximum amout of hits wanted (0 = unlimited).
+ *
+ * On 2012-10-07, we are stealing one bit from the reserved set to indicate
+ * support for semi-reliable UDP, with the "GTA" tag.  If interpreted by a
+ * legacy servent, this will seem to request 256 hits, at least, which should
+ * not create a problem in practice.
  */
+#define QUERY_F_SR_UDP		0x0100	/**< Accepts semi-reliable UDP, "GTA" tag */
+#define QUERY_F_MAX_HITS	0x00ff	/**< Lowest 8 bits indicate max # of hits */
 
+/**
+ * This special file index (2^32 - 3) signals that the sender wishes to
+ * establish a firewalled-to-firewalled transfer using RUDP.
+ */
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
 /*
@@ -115,7 +127,7 @@ void search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, struct query_hashvec *qhv);
 size_t compact_query(char *search);
 void search_compact(struct gnutella_node *n);
-void query_strip_oob_flag(const struct gnutella_node *n, char *data);
+void query_strip_oob_flag(struct gnutella_node *n, char *data);
 void query_set_oob_flag(const struct gnutella_node *n, char *data);
 
 void record_query_string(const struct guid *muid,

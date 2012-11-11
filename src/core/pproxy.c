@@ -48,6 +48,7 @@
 #include "ioheader.h"
 #include "ipv6-ready.h"
 #include "routing.h"
+#include "search.h"				/* For QUERY_FW2FW_FILE_INDEX */
 #include "sockets.h"
 #include "uploads.h"
 
@@ -91,6 +92,8 @@ static void send_pproxy_error(struct pproxy *pp, int code,
 static void pproxy_error_remove(struct pproxy *pp, int code,
 	const char *msg, ...) G_GNUC_PRINTF(3, 4);
 
+static struct socket_ops pproxy_socket_ops;
+
 /**
  * Get rid of all the resources attached to the push-proxy struct.
  * But not the structure itself.
@@ -98,16 +101,15 @@ static void pproxy_error_remove(struct pproxy *pp, int code,
 static void
 pproxy_free_resources(struct pproxy *pp)
 {
+	pproxy_check(pp);
+
 	atom_guid_free_null(&pp->guid);
 	if (pp->io_opaque != NULL) {
 		io_free(pp->io_opaque);
 		g_assert(pp->io_opaque == NULL);
 	}
 	atom_str_free_null(&pp->user_agent);
-	if (pp->socket != NULL) {
-		g_assert(pp->socket->resource.pproxy == pp);
-		socket_free_null(&pp->socket);
-	}
+	socket_free_null(&pp->socket);
 }
 
 /**
@@ -185,7 +187,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	const char *logreason;
 	char errbuf[1024];
 
-	g_assert(pp != NULL);
+	pproxy_check(pp);
 
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof errbuf , reason, ap);
@@ -214,6 +216,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	}
 
 	pproxy_free_resources(pp);
+	pp->magic = 0;
 	WFREE(pp);
 
 	pproxies = g_slist_remove(pproxies, pp);
@@ -225,7 +228,7 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
  * If no status has been sent back on the HTTP stream yet, give
  * them a 400 error with the reason.
  */
-void
+void G_GNUC_PRINTF(2, 3)
 pproxy_remove(struct pproxy *pp, const char *reason, ...)
 {
 	va_list args;
@@ -245,7 +248,7 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 {
 	va_list args, errargs;
 
-	g_assert(pp != NULL);
+	pproxy_check(pp);
 
 	va_start(args, msg);
 
@@ -268,6 +271,8 @@ pproxy_timer(time_t now)
 
 	for (sl = pproxies; sl; sl = g_slist_next(sl)) {
 		struct pproxy *pp = sl->data;
+
+		pproxy_check(pp);
 
 		/*
 		 * We can't call pproxy_remove() since it will remove the structure
@@ -299,10 +304,12 @@ pproxy_create(struct gnutella_socket *s)
 	struct pproxy *pp;
 
 	WALLOC0(pp);
+	pp->magic = PPROXY_MAGIC;
 	pp->socket = s;
 	pp->flags = 0; /* XXX: TLS? */
 	pp->last_update = tm_time();
-	s->resource.pproxy = pp;
+
+	socket_attach_ops(s, SOCK_TYPE_PPROXY, &pproxy_socket_ops, pp);
 
 	return pp;
 }
@@ -739,10 +746,19 @@ pproxy_request(struct pproxy *pp, header_t *header)
 
 	supports_tls |= header_get_feature("tls", header, NULL, NULL);
 
-	if (GNET_PROPERTY(push_proxy_debug) > 0)
-		g_debug("PUSH-PROXY: %s requesting a push to %s for file #%d",
-			host_addr_to_string(s->addr), guid_hex_str(pp->guid),
-			pp->file_idx);
+	if (QUERY_FW2FW_FILE_INDEX == pp->file_idx)
+		gnet_stats_inc_general(GNR_PUSH_PROXY_TCP_FW2FW);
+
+	if (GNET_PROPERTY(push_proxy_debug) > 0) {
+		if (QUERY_FW2FW_FILE_INDEX == pp->file_idx) {
+			g_debug("PUSH-PROXY: %s requesting FW-FW connection with %s",
+				host_addr_to_string(s->addr), guid_hex_str(pp->guid));
+		} else {
+			g_debug("PUSH-PROXY: %s requesting a push to %s for file #%d",
+				host_addr_to_string(s->addr), guid_hex_str(pp->guid),
+				pp->file_idx);
+		}
+	}
 
 	/*
 	 * Make sure they provide an X-Node header so we know whom to set up
@@ -800,7 +816,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (NULL == n) {
 		n = node_by_guid(pp->guid);
 		if (n != NULL)
-			gnet_stats_count_general(GNR_PUSH_PROXY_ROUTE_NOT_PROXIED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_ROUTE_NOT_PROXIED);
 	}
 
 	if (n != NULL) {
@@ -816,13 +832,13 @@ pproxy_request(struct pproxy *pp, header_t *header)
 					pp->file_idx, supports_tls);
 
 		if (NULL == packet.data) {
-			g_warning("Failed to send push for %s/%s (index=%lu)",
+			g_warning("failed to send push for %s/%s (index=%lu)",
 				host_addr_port_to_string(pp->addr_v4, pp->port),
 				host_addr_port_to_string2(pp->addr_v6, pp->port),
 				(ulong) pp->file_idx);
 		} else {
 			gmsg_sendto_one(n, packet.data, packet.size);
-			gnet_stats_count_general(GNR_PUSH_PROXY_TCP_RELAYED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_TCP_RELAYED);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
 					"Push-proxy: message sent to node");
@@ -860,7 +876,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			int cnt;
 
 			gmsg_sendto_all(nodes, packet.data, packet.size);
-			gnet_stats_count_general(GNR_PUSH_PROXY_BROADCASTED, 1);
+			gnet_stats_inc_general(GNR_PUSH_PROXY_BROADCASTED);
 
 			cnt = g_slist_length(nodes);
 
@@ -901,7 +917,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	 */
 
 sorry:
-	gnet_stats_count_general(GNR_PUSH_PROXY_FAILED, 1);
+	gnet_stats_inc_general(GNR_PUSH_PROXY_FAILED);
 
 	pproxy_error_remove(pp, 410, "Push proxy: no route to servent GUID %s",
 		guid_hex_str(pp->guid));
@@ -987,6 +1003,29 @@ call_pproxy_request(void *obj, header_t *header)
 }
 
 /**
+ * Callback invoked when the push-proxy socket is destroyed.
+ */
+static void
+pproxy_socket_destroy(gnutella_socket_t *s, void *owner, const char *reason)
+{
+	struct pproxy *pp = owner;
+
+	pproxy_check(pp);
+	g_assert(s == pp->socket);
+
+	pproxy_remove(pp, "%s", reason);
+}
+
+/**
+ * Server-side push-proxy socket callbacks.
+ */
+static struct socket_ops pproxy_socket_ops = {
+	NULL,						/* connect_failed */
+	NULL,						/* connected */
+	pproxy_socket_destroy,		/* destroy */
+};
+
+/**
  * Create new push-proxy request and begin reading HTTP headers.
  */
 void
@@ -1019,6 +1058,7 @@ pproxy_close(void)
 		struct pproxy *pp = l->data;
 
 		pproxy_free_resources(pp);
+		pp->magic = 0;
 		WFREE(pp);
 	}
 
@@ -1359,7 +1399,7 @@ cproxy_create(struct download *d, const host_addr_t addr, uint16 port,
 	 *		--RAM, 2010-10-17
 	 */
 
-	packet = build_push(GNET_PROPERTY(my_ttl), 0 /* Hops */,
+	packet = build_push(GNET_PROPERTY(max_ttl), 0 /* Hops */,
 		cp->guid, listen_addr(), listen_addr6(), cp->port,
 		cp->file_idx, tls_enabled());
 

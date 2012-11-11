@@ -1251,6 +1251,16 @@ do_hfree(void *p)
 }
 
 static void
+scan_base_dir_free(void *data)
+{
+	/*
+	 * We need this wrapper when compiling with -DTRACK_ATOMS since
+	 * atom_str_free() becomes a macro.
+	 */
+	atom_str_free(data);
+}
+
+static void
 recursive_scan_free(struct recursive_scan **ctx_ptr)
 {
 	g_assert(ctx_ptr);
@@ -1268,7 +1278,7 @@ recursive_scan_free(struct recursive_scan **ctx_ptr)
 
 		recursive_scan_closedir(ctx);
 
-		slist_free_all(&ctx->base_dirs, (slist_destroy_cb) atom_str_free);
+		slist_free_all(&ctx->base_dirs, scan_base_dir_free);
 		slist_free_all(&ctx->sub_dirs, do_hfree);
 		slist_free_all(&ctx->shared_files, recursive_sf_unref);
 		slist_free_all(&ctx->partial_files, recursive_sf_unref);
@@ -2240,6 +2250,12 @@ share_special_close(void)
 G_GNUC_COLD void
 share_close(void)
 {
+	/*
+	 * This call must happen after node_close() to ensure the UDP TX scheduler
+	 * has been released and that no messages there could invoked callbacks
+	 * referring to OOB data that oob_close() is going to free up.
+	 */
+
 	recursive_scan_free(&recursive_scan_context);
 	share_special_close();
 	free_extensions();
@@ -2248,7 +2264,7 @@ share_close(void)
 	huge_close();
 	qrp_close();
 	oob_proxy_close();
-	oob_close();
+	oob_close();			/* References hits, so needs ``sha1_to_share'' */
 	qhit_close();
 	st_free(&partial_table);
 	htable_free_null(&share_media_types);
@@ -2579,6 +2595,25 @@ shared_file_creation_time(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return sf->ctime;
+}
+
+/**
+ * @return available bytes (same as filesize, unless file is partial).
+ */
+filesize_t
+shared_file_available(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily.
+	 */
+
+	return NULL == sf->fi
+		? sf->file_size
+		: (sf->fi->buffered + sf->fi->done);
 }
 
 uint32

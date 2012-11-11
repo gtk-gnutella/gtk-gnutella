@@ -52,7 +52,7 @@ void oob_close(void);
 
 void oob_got_results(struct gnutella_node *n, GSList *files,
 		int count, host_addr_t addr, uint16 port,
-		bool secure_oob, unsigned flags);
+		bool secure_oob, bool reliable_udp, unsigned flags);
 void oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 		uint8 wanted, const struct array *token);
 

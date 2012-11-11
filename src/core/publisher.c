@@ -330,7 +330,7 @@ publisher_delay(const pdht_info_t *info, time_delta_t expiration)
 		info->presence >= PUBLISH_MIN_PROBABILITY
 	) {
 		delay = expiration - PUBLISH_SAFETY;
-		gnet_stats_count_general(GNR_DHT_PUBLISHING_SATISFACTORY, +1);
+		gnet_stats_inc_general(GNR_DHT_PUBLISHING_SATISFACTORY);
 	} else {
 		g_assert(uint_is_positive(info->all_roots));
 		delay =
@@ -388,7 +388,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 					expired = TRUE;
 			}
 			if (expired)
-				gnet_stats_count_general(GNR_DHT_REPUBLISHED_LATE, +1);
+				gnet_stats_inc_general(GNR_DHT_REPUBLISHED_LATE);
 		}
 	}
 

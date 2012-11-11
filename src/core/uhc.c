@@ -49,12 +49,13 @@
 #include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
-#include "lib/halloc.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
@@ -98,7 +99,7 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "yin.cloud.bishopston.net:33558" },
+	{ "uhc.shacknet.nu:19104" },
 	{ "uhc.gtk-gnutella.nl:15749" },
 #endif	/* USE_LOCAL_UHC */
 };
@@ -160,15 +161,12 @@ uhc_get_host_port(const char *hp, const char **host, uint16 *port)
 static struct uhc *
 uhc_new(const char *host)
 {
-	static const struct uhc zero_uhc;
 	struct uhc *uhc;
 
-	g_assert(host);
-	uhc = g_malloc(sizeof *uhc);
-	*uhc = zero_uhc;
+	g_assert(host != NULL);
+
+	WALLOC0(uhc);
 	uhc->host = atom_str_get(host);
-	uhc->stamp = 0;
-	uhc->used = 0;
 	return uhc;
 }
 
@@ -178,7 +176,7 @@ uhc_free(struct uhc **ptr)
 	if (*ptr) {	
 		struct uhc *uu = *ptr;
 		atom_str_free_null(&uu->host);
-		G_FREE_NULL(uu);
+		WFREE(uu);
 		*ptr = NULL;
 	}
 }
@@ -215,7 +213,7 @@ uhc_list_add(const char *host)
 	}
 
 	if (GNET_PROPERTY(bootstrap_debug) > 1)
-			g_debug("Adding UHC %s", host);
+		g_debug("adding UHC %s", host);
 			
 	if (random_value(100) < 50) {
 		hash_list_append(uhc_list, uhc);
@@ -369,9 +367,11 @@ uhc_send_ping(void)
 
 	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
-		if (GNET_PROPERTY(bootstrap_debug))
-			g_debug("BOOT sent UDP SCP ping %s to %s:%u",
+		if (GNET_PROPERTY(bootstrap_debug) || GNET_PROPERTY(log_uhc_pings_tx)) {
+			g_debug("BOOT sent UDP SCP ping #%s to %s:%u",
 				guid_hex_str(&uhc_ctx.muid), uhc_ctx.host, uhc_ctx.port);
+		}
+
 		/*
 		 * Give GUI feedback.
 		 */
@@ -444,7 +444,6 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 		}
 		
 		hash_list_remove(uhc_list, uhc);
-		
 		uhc_try_random();
 		
 		return;
@@ -528,7 +527,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 	cnt = paylen / len;
 
 	if (GNET_PROPERTY(bootstrap_debug))
-		g_debug("extracting %d host%s in UDP IPP pong %s from %s",
+		g_debug("extracting %d host%s in UDP IPP pong #%s from %s",
 			cnt, cnt == 1 ? "" : "s",
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 

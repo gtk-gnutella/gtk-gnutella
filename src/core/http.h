@@ -396,7 +396,6 @@ const char *http_async_strerror(uint errnum);
 const char *http_async_info(
 	http_async_t *handle, const char **req, const char **path,
 	host_addr_t *addr, uint16 *port);
-void http_async_connected(http_async_t *handle);
 void http_async_close(http_async_t *handle);
 void http_async_cancel(http_async_t *handle);
 void http_async_cancel_null(http_async_t **handle_ptr);

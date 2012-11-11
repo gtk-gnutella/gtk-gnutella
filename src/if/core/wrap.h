@@ -38,7 +38,10 @@
 
 #include "lib/gnet_host.h"
 
+enum wrap_io_magic { WRAP_IO_MAGIC = 0x40b20646 };
+
 typedef struct wrap_io {
+	enum wrap_io_magic magic;
 	void *ctx;
 	ssize_t (*write)(struct wrap_io *, const void *, size_t);
 	ssize_t (*read)(struct wrap_io *, void *, size_t);
@@ -50,6 +53,13 @@ typedef struct wrap_io {
 	int (*fd)(struct wrap_io *);
 	unsigned (*bufsize)(struct wrap_io *, enum socket_buftype);
 } wrap_io_t;
+
+static inline void
+wrap_io_check(const struct wrap_io * const wio)
+{
+	g_assert(wio != NULL);
+	g_assert(WRAP_IO_MAGIC == wio->magic);
+}
 
 typedef struct wrap_buf {
 	size_t	pos;		/**< Current position in the buffer. */

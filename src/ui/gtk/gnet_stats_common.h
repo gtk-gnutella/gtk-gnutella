@@ -26,7 +26,9 @@
 
 #include "gui.h"
 #include "columns.h"
+
 #include "if/core/hsep.h"
+#include "if/core/net_stats.h"
 #include "if/ui/gtk/gnet_stats.h"
 
 const gchar *msg_type_str(gint msg_type);
@@ -36,6 +38,9 @@ const gchar *horizon_stat_str(gint row,	c_horizon_t column);
 
 gint msg_type_str_size(void);
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);
+
+void gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
+	const gnet_stats_t *stats, int idx);
 
 void gnet_stats_gui_timer(time_t now);
 void gnet_stats_gui_update_display(time_t now);

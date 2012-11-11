@@ -72,6 +72,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/misc.h"			/* hexadecimal conversions */
 #include "lib/mempcpy.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
@@ -228,6 +229,11 @@ vmsg_infostr(const void *data, size_t size)
 static void
 vmsg_send_reply(struct gnutella_node *n, pmsg_t *mb)
 {
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sending %s to %s",
+			gmsg_infostr_full(pmsg_start(mb), pmsg_size(mb)), node_infostr(n));
+	}
+
 	if (NODE_IS_UDP(n))
 		udp_send_mb(n, mb);
 	else
@@ -244,6 +250,28 @@ vmsg_send_data(struct gnutella_node *n, const void *data, uint32 size)
 		udp_send_msg(n, data, size);
 	else
 		gmsg_sendto_one(n, data, size);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(data, size), node_infostr(n));
+	}
+}
+
+/**
+ * Send a control message to node (data + size), via the appropriate channel.
+ */
+static void
+vmsg_ctrl_send_data(struct gnutella_node *n, const void *data, uint32 size)
+{
+	if (NODE_IS_UDP(n))
+		udp_ctrl_send_msg(n, data, size);
+	else
+		gmsg_ctrl_sendto_one(n, data, size);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(data, size), node_infostr(n));
+	}
 }
 
 /**
@@ -312,6 +340,11 @@ vmsg_send_data_notify(struct gnutella_node *n, bool prioritary,
 		}
 		gmsg_mb_sendto_one(n, mb);
 	}
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s to %s",
+			gmsg_infostr_full(msg, size), node_infostr(n));
+	}
 }
 
 /**
@@ -341,11 +374,11 @@ vmsg_handle(struct gnutella_node *n)
 
 	found = find_message(&vmsg, vc, id, version);
 
-	if (GNET_PROPERTY(vmsg_debug) > 4)
-		g_debug("VMSG %s \"%s\": %s/%uv%u from %s",
-			gmsg_node_infostr(n), found ? vmsg.name : "UNKNOWN",
-			vendor_code_to_string(vc.u32), id, version,
-			host_addr_port_to_string(n->addr, n->port));
+	if (GNET_PROPERTY(vmsg_debug) > 4 || GNET_PROPERTY(log_vmsg_rx)) {
+		g_debug("VMSG got %s from %s",
+			gmsg_infostr_full_split(n->header, n->data, n->size),
+			node_infostr(n));
+	}
 
 	/*
 	 * If we can't handle the message, we count it as "unknown type", which
@@ -458,6 +491,51 @@ vmsg_bad_payload(struct gnutella_node *n,
 		: FALSE)
 
 /**
+ * Ignore message coming from wrong origin, complaining loudly when debugging.
+ */
+static void
+vmsg_ignore(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (GNET_PROPERTY(vmsg_debug)) {
+		g_warning("VMSG got %s/%uv%u \"%s\" via %s, ignoring",
+			vendor_code_to_string(vmsg->vendor),
+			vmsg->id, vmsg->version, vmsg->name, node_infostr(n));
+	}
+}
+
+/**
+ * Make sure message comes from TCP.
+ *
+ * @return TRUE if message is from TCP.
+ */
+static inline bool
+vmsg_from_tcp(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (NODE_IS_UDP(n)) {
+		vmsg_ignore(n, vmsg);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Make sure message comes from UDP.
+ *
+ * @return TRUE if message is from UDP.
+ */
+static inline bool
+vmsg_from_udp(const gnutella_node_t *n, const struct vmsg *vmsg)
+{
+	if (!NODE_IS_UDP(n)) {
+		vmsg_ignore(n, vmsg);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * Handle the "Features Supported" message.
  */
 static void
@@ -468,14 +546,8 @@ handle_features_supported(struct gnutella_node *n,
 	uint16 count;
 	str_t *feats;
 
-	if (NODE_IS_UDP(n)) {
-		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("got %s/%uv%u via %s, ignoring",
-				vendor_code_to_string(vmsg->vendor),
-				vmsg->id, vmsg->version, node_infostr(n));
-		}
+	if (!vmsg_from_tcp(n, vmsg))
 		return;
-	}
 
 	count = peek_le16(payload);
 
@@ -608,9 +680,6 @@ handle_tcp_connect_back(struct gnutella_node *n,
 		return;
 	}
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG got TCP connect-back REQ from %s", node_infostr(n));
-
 	/* XXX forward to neighbours supporting the remote connect back message? */
 
 	node_connect_back(n, port);
@@ -636,9 +705,10 @@ vmsg_send_tcp_connect_back(struct gnutella_node *n, uint16 port)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent TCP connect-back REQ for port %u to %s",
-			port, node_infostr(n));
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s for port %u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), port, node_infostr(n));
+	}
 }
 
 /**
@@ -669,11 +739,6 @@ handle_udp_connect_back(struct gnutella_node *n,
 				port, vmsg->name, node_infostr(n));
 		}
 		return;
-	}
-
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG got UDP connect-back v%u REQ from %s",
-			vmsg->version, node_infostr(n));
 	}
 
 	/*
@@ -716,9 +781,10 @@ vmsg_send_udp_connect_back(struct gnutella_node *n, uint16 port)
 
 	gmsg_sendto_one(n, v_tmp, msgsize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent UDP connect-back v1 REQ for port %u to %s",
-			port, node_infostr(n));
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s for port %u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), port, node_infostr(n));
+	}
 }
 
 /**
@@ -757,10 +823,7 @@ vmsg_send_proxy_ack(struct gnutella_node *n,
 	 * proxify pushes to it ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent proxy ACK v%d to %s", version, node_infostr(n));
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -772,6 +835,13 @@ handle_proxy_req(struct gnutella_node *n,
 {
 	(void) unused_payload;
 	(void) unused_size;
+
+	/*
+	 * This message is only meaningful from TCP.
+	 */
+
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
 
 	/*
 	 * Normally, a firewalled host should be a leaf node, not an UP.
@@ -827,11 +897,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, const struct guid *muid)
 
 	(void) vmsg_fill_type(v_tmp_data, T_LIME, 21, 1);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
-		g_debug("VMSG sent proxy REQ to %s", node_infostr(n));
-	}
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -884,15 +950,22 @@ handle_proxy_ack(struct gnutella_node *n,
  * many results the search filters of the leave (ourselves) let pass through.
  */
 static void
-handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
+handle_qstat_req(struct gnutella_node *n, const struct vmsg *vmsg,
 	const char *unused_payload, size_t unused_size)
 {
 	uint32 kept;
 	const struct guid *muid = gnutella_header_get_muid(&n->header);
 
-	(void) unused_vmsg;
 	(void) unused_payload;
 	(void) unused_size;
+
+	/*
+	 * Ignore servents requesting the status of our queries via UDP.
+	 * This is only supposed to happen via TCP (from our ultra peer).
+	 */
+
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
 
 	if (!search_get_kept_results_by_muid(muid, &kept)) {
 		/*
@@ -901,7 +974,7 @@ handle_qstat_req(struct gnutella_node *n, const struct vmsg *unused_vmsg,
 		 */
 
 		if (GNET_PROPERTY(vmsg_debug)) {
-			g_warning("VMSG could not find matching search for MUID %s",
+			g_warning("VMSG could not find matching search for #%s",
 				guid_hex_str(muid));
 		}
 		kept = 0xffffU;		/* Magic value telling them to stop the search */
@@ -930,11 +1003,13 @@ vmsg_send_qstat_req(struct gnutella_node *n, const struct guid *muid)
 {
 	uint32 msgsize;
 
+	g_assert(!NODE_IS_UDP(n));	/* Can only be sent via TCP from UP -> leaf */
+
 	msgsize = vmsg_fill_header(v_tmp_header, 0, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header, muid);
 	(void) vmsg_fill_type(v_tmp_data, T_BEAR, 11, 1);
 
-	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send ASAP */
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);	/* Send ASAP */
 }
 
 /**
@@ -980,11 +1055,12 @@ vmsg_send_qstat_answer(struct gnutella_node *n,
 
 	poke_le16(payload, hits);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sending %s with hits=%u to %s",
-			gmsg_infostr_full(v_tmp, msgsize), hits, node_infostr(n));
-
 	gmsg_ctrl_sendto_one(n, v_tmp, msgsize);	/* Send it ASAP */
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
+		g_debug("VMSG sent %s with hits=%u to %s",
+			gmsg_infostr_full(v_tmp, msgsize), hits, node_infostr(n));
+	}
 }
 
 /**
@@ -1015,10 +1091,7 @@ vmsg_send_proxy_cancel(struct gnutella_node *n)
 	gnutella_header_set_muid(v_tmp_header, &blank_guid);
 	(void) vmsg_fill_type(v_tmp_data, T_GTKG, 21, 1);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
-
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent proxy CANCEL to %s", node_infostr(n));
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -1035,16 +1108,12 @@ handle_oob_reply_ind(struct gnutella_node *n,
 	bool secure;
 	int hits;
 
-	if (!NODE_IS_UDP(n)) {
-		/*
-		 * Uh-oh, someone forwarded us a LIME/12 message.  Ignore it!
-		 */
+	/*
+	 * We only expect LIME/12 messages from UDP.
+	 */
 
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	switch (vmsg->version) {
 	case 1:
@@ -1109,7 +1178,14 @@ vmsg_build_oob_reply_ind(const struct guid *muid, uint8 hits, bool secure)
 	payload[0] = hits;
 	payload[1] = GNET_PROPERTY(is_udp_firewalled) ? 0x0 : 0x1;
 
-	return gmsg_to_pmsg(v_tmp, msgsize);
+	/*
+	 * The "OOB Reply Indication" (LIME/12) is now sent as a control message.
+	 * We want to get this out to the querying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight.
+	 *		--RAM, 2012-09-16
+	 */
+
+	return gmsg_to_ctrl_pmsg(v_tmp, msgsize);
 }
 
 #define MAX_OOB_TOKEN_SIZE 16
@@ -1171,12 +1247,8 @@ handle_oob_reply_ack(struct gnutella_node *n,
 	 * We expect those ACKs to come back via UDP.
 	 */
 
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	wanted = peek_u8(&payload[0]);
 
@@ -1196,33 +1268,22 @@ static void
 handle_oob_proxy_veto(struct gnutella_node *n,
 	const struct vmsg *vmsg, const char *payload, size_t size)
 {
-	const char *msg = NULL;
-
-	if (NODE_IS_UDP(n)) {
-		msg = "UDP";
-		goto ignore;
-	}
+	if (!vmsg_from_tcp(n, vmsg))
+		return;
 
 	if (!NODE_IS_LEAF(n)) {
-		msg = "non-leaf node";
-		goto ignore;
+		vmsg_ignore(n, vmsg);
+		return;
 	}
 
 	if (size > 0 && peek_u8(payload) < 3) {
 		/* we support OOB v3 */
-		n->flags &= ~NODE_F_NO_OOB_PROXY;
+		n->attrs2 &= ~NODE_A2_NO_OOB_PROXY;
 	} else {
-		n->flags |= NODE_F_NO_OOB_PROXY;
+		n->attrs2 |= NODE_A2_NO_OOB_PROXY;
 	}
 
 	return;
-
-ignore:
-	if (GNET_PROPERTY(vmsg_debug)) {
-		g_warning("got %s/%uv%u from %s via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, msg, node_infostr(n));
-	}
 }
 
 /**
@@ -1259,11 +1320,29 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n,
 	vmsg_advertise_udp_compression(v_tmp_header);	/* Can deflate UDP */
 	gnutella_header_set_muid(v_tmp_header, muid);
 
-	udp_send_msg(n, v_tmp, msgsize);
+	/*
+	 * The "OOB Reply ACK" message (LIME/11) is now sent as a control message.
+	 * We want to get this out to the replying host quickly and ahead of
+	 * other less prioritary UDP traffic, especially if bandwidth is tight,
+	 * minimizing the chances of it being dropped.
+	 *		--RAM, 2012-09-23
+	 */
 
-	if (GNET_PROPERTY(vmsg_debug) > 2)
-		g_debug("VMSG sent OOB reply ACK %s to %s for %u hit%s",
-			guid_hex_str(muid), node_infostr(n), want, want == 1 ? "" : "s");
+	udp_ctrl_send_msg(n, v_tmp, msgsize);
+
+	if (
+		GNET_PROPERTY(vmsg_debug) > 2 ||
+		GNET_PROPERTY(secure_oob_debug) ||
+		GNET_PROPERTY(log_vmsg_tx)
+	) {
+		char buf[17];
+		if (token->data)
+			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
+		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
+			gmsg_infostr_full(v_tmp, msgsize),
+			node_infostr(n), want, want == 1 ? "" : "s",
+			token->data ? ", token=0x" : "", token->data ? buf : "");
+	}
 }
 
 /**
@@ -1346,7 +1425,7 @@ handle_time_sync_reply(struct gnutella_node *n,
  * Writes current time in the first half of the MUID.
  */
 static bool
-vmsg_time_sync_req_stamp(pmsg_t *mb, const struct mqueue *unused_q)
+vmsg_time_sync_req_stamp(const pmsg_t *mb, const void *unused_q)
 {
 	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
 	tm_t old, now;
@@ -1379,6 +1458,15 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, const struct mqueue *unused_q)
 	tsync_send_timestamp(&old, &now);
 
 	return TRUE;
+}
+
+/**
+ * Same as vmsg_time_sync_req_stamp() but for UDP messages.
+ */
+static bool
+vmsg_time_sync_req_stamp_udp(const pmsg_t *mb)
+{
+	return vmsg_time_sync_req_stamp(mb, NULL);
 }
 
 /**
@@ -1417,9 +1505,19 @@ vmsg_send_time_sync_req(struct gnutella_node *n, bool ntp, tm_t *sent)
 	 * the current time now, because we have to return it to the caller,
 	 * but it will be superseded when the message is finally scheduled to
 	 * be sent by the queue.
+	 *
+	 * For UDP destinations, we install a hook check instead of a plain check
+	 * because the UDP TX scheduler can enqueue underneath the UDP message
+	 * queue and we want the timestamp to be written as late as possible.
+	 * Plain checks are invoked by the message queue whilst hooks are invoked
+	 * at the UDP TX scheduler level.
+	 *		--RAM, 2012-10-11
 	 */
 
-	pmsg_set_check(mb, vmsg_time_sync_req_stamp);
+	if (NODE_IS_UDP(n))
+		pmsg_set_hook(mb, vmsg_time_sync_req_stamp_udp);
+	else
+		pmsg_set_check(mb, vmsg_time_sync_req_stamp);
 
 	poke_be32(&muid->v[0], sent->tv_sec);
 	poke_be32(&muid->v[4], sent->tv_usec);
@@ -1432,7 +1530,7 @@ vmsg_send_time_sync_req(struct gnutella_node *n, bool ntp, tm_t *sent)
  * Writes current time in the second half of the MUID.
  */
 static bool
-vmsg_time_sync_reply_stamp(pmsg_t *mb, const struct mqueue *unused_q)
+vmsg_time_sync_reply_stamp(const pmsg_t *mb, const void *unused_q)
 {
 	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
 	tm_t now;
@@ -1515,12 +1613,8 @@ handle_udp_crawler_ping(struct gnutella_node *n,
 	 * We expect those messages to come via UDP.
 	 */
 
-	if (!NODE_IS_UDP(n)) {
-		g_warning("got %s/%uv%u from TCP via %s, ignoring",
-			vendor_code_to_string(vmsg->vendor),
-			vmsg->id, vmsg->version, node_infostr(n));
+	if (!vmsg_from_udp(n, vmsg))
 		return;
-	}
 
 	/*
 	 * The format of the message was reverse-engineered from LimeWire's code.
@@ -1572,15 +1666,15 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 
 	memcpy(payload, pmsg_start(mb), paysize);
 
-	if (GNET_PROPERTY(vmsg_debug) > 2) {
+	udp_send_msg(n, v_tmp, msgsize);
+
+	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
 		uint8 nup = peek_u8(&payload[0]);
 		uint8 nleaves = peek_u8(&payload[1]);
 
-		g_debug("VMSG sending %s with up=%u and leaves=%u to %s",
+		g_debug("VMSG sent %s with up=%u and leaves=%u to %s",
 			gmsg_infostr_full(v_tmp, msgsize), nup, nleaves, node_infostr(n));
 	}
-
-	udp_send_msg(n, v_tmp, msgsize);
 }
 
 /**
@@ -1704,7 +1798,7 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 		char uptime[sizeof(uint64)];
 		uint len;
 
-		len = ggept_du_encode(ri->ggep_du, uptime);
+		len = ggept_du_encode(ri->ggep_du, uptime, sizeof uptime);
 		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 	}
 
@@ -1751,10 +1845,7 @@ vmsg_send_node_info_ans(struct gnutella_node *n, const rnode_info_t *ri)
 	 * queue, much like "alive" pongs).
 	 */
 
-	if (NODE_IS_UDP(n))
-		udp_send_msg(n, v_tmp, msgsize);
-	else
-		gmsg_ctrl_sendto_one(n, v_tmp, msgsize);
+	vmsg_ctrl_send_data(n, v_tmp, msgsize);
 }
 
 /**
@@ -2093,11 +2184,6 @@ vmsg_send_head_pong_v2(struct gnutella_node *n, const struct sha1 *sha1,
 	ggep_len = ggep_stream_close(&gs);
 	paysize += ggep_len;
 
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG sending HEAD Pong v2 to %s (%u bytes)",
-			node_infostr(n), paysize);
-	}
-
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
@@ -2385,7 +2471,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, uint16 port,
 	muid = gnutella_header_get_muid(v_tmp_header);
 	
 	if (head_ping_register_own(muid, sha1, n)) {
-		if (GNET_PROPERTY(vmsg_debug) > 1) {
+		if (GNET_PROPERTY(vmsg_debug) > 1 || GNET_PROPERTY(log_vmsg_tx)) {
 			g_debug(
 				"VMSG sending HEAD Ping to %s (%u bytes) for urn:sha1:%s",
 					node_infostr(n), paysize, sha1_base32(sha1));
@@ -2445,16 +2531,6 @@ handle_head_ping(struct gnutella_node *n,
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, expect_size))
 		return;
-
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%zu)",
-			vmsg->name,
-			vmsg->version,
-			node_infostr(n),
-			gnutella_header_get_ttl(n->header),
-			gnutella_header_get_hops(n->header),
-			size);
-	}
 
 	if (NODE_IS_UDP(n))
 		inet_udp_got_unsolicited_incoming();
@@ -2542,8 +2618,7 @@ handle_head_ping(struct gnutella_node *n,
 		}
 		if (has_guid) {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
-				g_debug("VMSG HEAD Ping carries GUID %s",
-					guid_hex_str(&guid));
+				g_debug("VMSG HEAD Ping #%s", guid_hex_str(&guid));
 			}
 		} else {
 		   	if (GNET_PROPERTY(vmsg_debug) > 1) {
@@ -3053,16 +3128,6 @@ handle_head_pong(struct gnutella_node *n,
 	if (VMSG_SHORT_SIZE(n, vmsg, size, expected_size))
 		return;
 
-	if (GNET_PROPERTY(vmsg_debug) > 1) {
-		g_debug("VMSG got %s v%u from %s (TTL=%u, hops=%u, size=%lu)",
-			vmsg->name,
-			vmsg->version,
-			node_infostr(n),
-			gnutella_header_get_ttl(n->header),
-			gnutella_header_get_hops(n->header),
-			(unsigned long) size);
-	}
-
 	source = head_ping_is_registered(gnutella_header_get_muid(&n->header));
 	if (source) {
 		if (vmsg->version == 1) {
@@ -3100,7 +3165,7 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 	poke_u8(&payload[1], leaves);
 	poke_u8(&payload[2], features);
 
-	udp_send_msg(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 #endif	/* 0 */
 
@@ -3293,7 +3358,7 @@ vmsg_send_messages_supported(struct gnutella_node *n)
 	paysize = count * VMS_ITEM_SIZE	+ sizeof count;
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
 
-	gmsg_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 struct vmsg_features {
@@ -3380,7 +3445,7 @@ vmsg_send_features_supported(struct gnutella_node *n)
 
 	paysize = vmsg_features_get_length(&vmf);
 	msgsize = vmsg_fill_header(v_tmp_header, paysize, sizeof v_tmp);
-	gmsg_sendto_one(n, v_tmp, msgsize);
+	vmsg_send_data(n, v_tmp, msgsize);
 }
 
 /**

@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2003, Raphael Manfredi
  *
  * Main Jmakefile for gtk-gnutella.
@@ -24,8 +22,6 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
-
-;# $Id$
 
 all::		/* So that default target is not clobber! */
 

@@ -536,26 +536,24 @@ publish_terminate(publish_t *pb, publish_error_t code)
 	case PUBLISH_CACHE:
 		if (!(pb->flags & PB_F_SUBORDINATE)) {
 			if (pb->published == pb->cnt) {
-				gnet_stats_count_general(GNR_DHT_CACHING_SUCCESSFUL, 1);
+				gnet_stats_inc_general(GNR_DHT_CACHING_SUCCESSFUL);
 			} else if (pb->published > 0) {
-				gnet_stats_count_general(
-					GNR_DHT_CACHING_PARTIALLY_SUCCESSFUL, 1);
+				gnet_stats_inc_general(GNR_DHT_CACHING_PARTIALLY_SUCCESSFUL);
 			}
 		}
 		break;
 	case PUBLISH_VALUE:
 		if (pb->published == pb->cnt) {
 			if (pb->flags & PB_F_BACKGROUND) {
-				gnet_stats_count_general(GNR_DHT_PUBLISHING_BG_SUCCESSFUL, 1);
+				gnet_stats_inc_general(GNR_DHT_PUBLISHING_BG_SUCCESSFUL);
 			} else {
-				gnet_stats_count_general(GNR_DHT_PUBLISHING_SUCCESSFUL, 1);
+				gnet_stats_inc_general(GNR_DHT_PUBLISHING_SUCCESSFUL);
 			}
 		} else if (pb->published > 0) {
 			if (pb->flags & PB_F_BACKGROUND) {
-				gnet_stats_count_general(GNR_DHT_PUBLISHING_BG_IMPROVEMENTS, 1);
+				gnet_stats_inc_general(GNR_DHT_PUBLISHING_BG_IMPROVEMENTS);
 			} else {
-				gnet_stats_count_general(
-					GNR_DHT_PUBLISHING_PARTIALLY_SUCCESSFUL, 1);
+				gnet_stats_inc_general(GNR_DHT_PUBLISHING_PARTIALLY_SUCCESSFUL);
 			}
 		}
 
@@ -584,10 +582,9 @@ publish_terminate(publish_t *pb, publish_error_t code)
 		if (pb->target.o.child)
 			publish_cancel(pb->target.o.child, FALSE);
 		if (pb->published == pb->cnt) {
-			gnet_stats_count_general(GNR_DHT_KEY_OFFLOADING_SUCCESSFUL, 1);
+			gnet_stats_inc_general(GNR_DHT_KEY_OFFLOADING_SUCCESSFUL);
 		} else if (pb->published > 0) {
-			gnet_stats_count_general(
-				GNR_DHT_KEY_OFFLOADING_PARTIALLY_SUCCESSFUL, 1);
+			gnet_stats_inc_general(GNR_DHT_KEY_OFFLOADING_PARTIALLY_SUCCESSFUL);
 		}
 		break;
 	}
@@ -2182,7 +2179,7 @@ publish_cache(const kuid_t *key,
 {
 	publish_t *pb;
 
-	gnet_stats_count_general(GNR_DHT_CACHING_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_DHT_CACHING_ATTEMPTS);
 
 	pb = publish_cache_internal(key, target, vvec, vcnt);
 	pb->target.c.cb = NULL;
@@ -2331,7 +2328,7 @@ publish_offload(const knode_t *kn, GSList *keys)
 	pb->target.o.keys = skeys;
 
 	gnet_stats_count_general(GNR_DHT_KEYS_SELECTED_FOR_OFFLOADING, pb->cnt);
-	gnet_stats_count_general(GNR_DHT_KEY_OFFLOADING_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_DHT_KEY_OFFLOADING_ATTEMPTS);
 
 	/*
 	 * Before starting to iterate, we need to fetch the security token
@@ -2402,7 +2399,7 @@ publish_self(publish_t *pb)
 		}
 
 		status = values_store(ourselves, pb->target.v.value, TRUE);
-		gnet_stats_count_general(GNR_DHT_PUBLISHING_TO_SELF, 1);
+		gnet_stats_inc_general(GNR_DHT_PUBLISHING_TO_SELF);
 
 		if (status != STORE_SC_OK) {
 			if (GNET_PROPERTY(dht_publish_debug)) {
@@ -2442,7 +2439,7 @@ publish_value(dht_value_t *value, const lookup_rs_t *rs,
 	g_assert(size_is_positive(rs->path_len));
 	lookup_result_check(rs);
 
-	gnet_stats_count_general(GNR_DHT_PUBLISHING_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_DHT_PUBLISHING_ATTEMPTS);
 
 	/*
 	 * Even though we may have more than KDA_K items in the lookup path,
@@ -2507,7 +2504,7 @@ publish_value_background(dht_value_t *value,
 	g_assert(size_is_positive(rs->path_len));
 	lookup_result_check(rs);
 
-	gnet_stats_count_general(GNR_DHT_PUBLISHING_BG_ATTEMPTS, 1);
+	gnet_stats_inc_general(GNR_DHT_PUBLISHING_BG_ATTEMPTS);
 
 	/*
 	 * Publish to at most the nodes where the status indicates that we can
@@ -2544,7 +2541,7 @@ publish_init(void)
 {
 	g_assert(NULL == publishes);
 
-	publishes = htable_create_any(nid_hash, NULL, nid_equal);
+	publishes = htable_create_any(nid_hash, nid_hash2, nid_equal);
 }
 
 /** 

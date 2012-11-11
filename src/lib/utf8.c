@@ -4120,7 +4120,7 @@ utf32_decompose_single_char(uint32 uc, size_t *len, bool nfkd)
 		*p++ = uc;
 	}
 
-	g_assert(p > buf && p < &buf[sizeof buf]);
+	g_assert(p > buf && p <= &buf[G_N_ELEMENTS(buf)]);
 	*len = p - buf;
 	return buf;
 }
@@ -4299,7 +4299,7 @@ utf8_decompose(const char *src, char *out, size_t size, bool nfkd)
 				char *p = utf8_buf;
 
 				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
-				g_assert((size_t) (&buf[sizeof buf] - q) >= utf8_len);
+				g_assert((size_t) (&buf[G_N_ELEMENTS(buf)] - q) >= utf8_len);
 				while (utf8_len-- > 0)
 					*q++ = *p++;
 			}

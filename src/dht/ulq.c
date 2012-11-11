@@ -461,13 +461,13 @@ initialized:
 				 * These are scheduled in the ULQ_PROX queue.
 				 */
 				if (uq == ulq[ULQ_PROX])
-					gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
+					gnet_stats_inc_general(GNR_DHT_PUSH_PROXY_LOOKUPS);
 				break;
 			case DHT_VT_PROX:
-				gnet_stats_count_general(GNR_DHT_PUSH_PROXY_LOOKUPS, 1);
+				gnet_stats_inc_general(GNR_DHT_PUSH_PROXY_LOOKUPS);
 				break;
 			case DHT_VT_ALOC:
-				gnet_stats_count_general(GNR_DHT_ALT_LOC_LOOKUPS, 1);
+				gnet_stats_inc_general(GNR_DHT_ALT_LOC_LOOKUPS);
 				break;
 			default:
 				break;

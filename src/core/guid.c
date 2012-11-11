@@ -173,7 +173,9 @@ guid_gtkg_encode_version(unsigned major, unsigned minor, bool rel)
 
 	/*
 	 * Low byte of result is the minor number.
-	 * MSB is set for unstable releases.
+	 *
+	 * The MSB is set for unstable releases, which means minor versions
+	 * can grow up to 127 only.
 	 */
 
 	low = minor;
@@ -193,14 +195,20 @@ guid_gtkg_encode_version(unsigned major, unsigned minor, bool rel)
 	return (high << 8) | low;
 }
 
+/*
+ * Compute HEC for GUID bytes ``start'' to ``end'', inclusive.
+ */
 static inline uint8
-calculate_hec(const struct guid *guid, size_t offset)
+calculate_hec(const struct guid *guid, int start, int end)
 {
 	int i;
 	uint8 hec = 0;
 
-	for (i = 0; i < 15; i++)
-		hec = syndrome_table[hec ^ peek_u8(&guid->v[i + offset])];
+	g_assert(start >= 0);
+	g_assert(end <= 15);
+
+	for (i = start; i <= end; i++)
+		hec = syndrome_table[hec ^ peek_u8(&guid->v[i])];
 
 	return hec ^ HEC_GTKG_MASK;
 }
@@ -211,16 +219,37 @@ calculate_hec(const struct guid *guid, size_t offset)
 static uint8
 guid_hec(const struct guid *guid)
 {
-	return calculate_hec(guid, 1);
+	return calculate_hec(guid, 1, 15);
 }
 
 /**
  * Compute GUID's HEC over bytes 0..14.
+ *
+ * This is the old way of computing the GUID HEC, and is no longer deemed
+ * appropriate because it does not work when the query is OOB proxied by
+ * an ultrapeer (the IP:port field being superseded later).
+ */
+static uint8
+guid_hec_oob_legacy(const struct guid *guid)
+{
+	return calculate_hec(guid, 0, 14);
+}
+
+/**
+ * Compute GUID's HEC for a query, leaving out bytes 0-3 (used in OOB queries
+ * to add the IP address) and bytes 13-14 (used to carry the port number in
+ * OOB queries), the HEC being stored in byte 15.
+ *
+ * That way, even if the query is later OOB-proxied by someone, we will not
+ * alter the HEC's value and preserve our ability to recognize a marked GUID.
+ *
+ * Note that starting 2012-10-07, this is the new way to encode MUIDs in
+ * queries, even for those not initially sent out with OOB.
  */
 static uint8
 guid_hec_oob(const struct guid *guid)
 {
-	return calculate_hec(guid, 0);
+	return calculate_hec(guid, 4, 12);
 }
 
 /**
@@ -260,6 +289,19 @@ guid_flag_gtkg(struct guid *guid)
 }
 
 /**
+ * Flag a MUID for OOB queries as being from GTKG, by patching `guid' in place.
+ *
+ * Bytes 4/5 become the GTKG version mark.
+ * Byte 15 becomes the HEC of the leading 15 bytes.
+ */
+static void
+guid_flag_oob_gtkg(struct guid *muid)
+{
+	poke_be16(&muid->v[4], gtkg_version_mark);
+	muid->v[15] = guid_hec_oob(muid);		/* guid_hec() skips leading byte */
+}
+
+/**
  * Decode major/minor and release information from the specified two
  * contiguous GUID bytes.
  *
@@ -285,7 +327,7 @@ guid_extract_gtkg_info(const struct guid *guid, size_t start,
 	g_assert(start < GUID_RAW_SIZE - 1);
 	major = peek_u8(&guid->v[start]) & 0x0f;
 	minor = peek_u8(&guid->v[start + 1]) & 0x7f;
-	release = (peek_u8(&guid->v[start + 1]) & 0x80) ? FALSE : TRUE;
+	release = booleanize(0 == (peek_u8(&guid->v[start + 1]) & 0x80));
 
 	mark = guid_gtkg_encode_version(major, minor, release);
 	xmark = peek_be16(&guid->v[start]);
@@ -387,30 +429,23 @@ guid_ping_muid(struct guid *muid)
 void
 guid_query_muid(struct guid *muid, bool initial)
 {
-	uint8 v;
-
 	guid_random_fill(muid);
 
-	v = peek_u8(&muid->v[15]);
-	if (initial)
-		v &= ~GUID_REQUERY;
-	else
-		v |= GUID_REQUERY;
-	muid->v[15] = v;
-	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
-}
+	/*
+	 * Since 2012-10-07, we call guid_flag_oob_gtkg() instead of
+	 * guid_flag_gtkg() to mark the MUID of the query, regardless of
+	 * whether it is sent out as an OOB query.
+	 *
+	 * That way, even if it is OOB-proxied by an ultrapeer, we will
+	 * be able to recognize the markup.
+	 */
 
-/**
- * Flag a MUID for OOB queries as being from GTKG, by patching `guid' in place.
- *
- * Bytes 4/5 become the GTKG version mark.
- * Byte 15 becomes the HEC of the leading 15 bytes.
- */
-static void
-guid_flag_oob_gtkg(struct guid *guid)
-{
-	poke_be16(&guid->v[4], gtkg_version_mark);
-	guid->v[15] = guid_hec_oob(guid);		/* guid_hec() skips leading byte */
+	guid_flag_oob_gtkg(muid);		/* Mark as being from GTKG */
+
+	if (initial)
+		muid->v[15] &= ~GUID_REQUERY;
+	else
+		muid->v[15] |= GUID_REQUERY;
 }
 
 /**
@@ -421,30 +456,46 @@ static bool
 guid_oob_is_gtkg(const struct guid *guid,
 	uint8 *majp, uint8 *minp, bool *relp)
 {
+	uint8 hec;
+
+	if (!guid_extract_gtkg_info(guid, 4, majp, minp, relp))
+		return FALSE;		/* Marking incorrect, no need to compute HEC */
+
 	/*
-	 * The HEC for OOB queries is made of the first 15 bytes.  We can offset
-	 * the argument to guid_hec() by 1 because that routine starts at the byte
-	 * after its argument.
+	 * The HEC for OOB queries was made of the first 15 bytes for versions
+	 * up to 0.98.4u (legacy encoding).  Starting with 0.98.4, we have a
+	 * different way of encoding the HEC to preserve its integrity even in
+	 * the advent of OOB-proxying.
 	 *
 	 * Also bit 0 of the HEC is not significant (used to mark requeries)
 	 * therefore it is masked out for comparison purposes.
 	 */
 
-	if (
-		(peek_u8(&guid->v[15]) & ~GUID_REQUERY) !=
-			(guid_hec_oob(guid) & ~GUID_REQUERY)
-	)
-		return FALSE;
+	hec = peek_u8(&guid->v[15]) & ~GUID_REQUERY;
 
-	return guid_extract_gtkg_info(guid, 4, majp, minp, relp);
+	if (*majp >0 || *minp >= 99)
+		return booleanize((guid_hec_oob(guid) & ~GUID_REQUERY) == hec);
+
+	/*
+	 * Transition period for servents earlier than 0.99: try the legacy marking
+	 * for 0.97 and earlier. For 0.98, try the legacy marking first, then the
+	 * new marking.
+	 */
+
+	if (*minp <= 97)
+		return booleanize((guid_hec_oob_legacy(guid) & ~GUID_REQUERY) == hec);
+
+	return booleanize((guid_hec_oob_legacy(guid) & ~GUID_REQUERY) == hec) ||
+		booleanize((guid_hec_oob(guid) & ~GUID_REQUERY) == hec);
 }
 
 /**
  * Check whether the MUID of a query is that of GTKG.
  *
- * GTKG uses GUID tagging, but unfortunately, the bytes uses to store the
+ * GTKG uses MUID tagging, but unfortunately, the bytes used to store the
  * IP and port for OOB query hit delivery conflict with the bytes used for
- * the tagging.  Hence the need for a special routine.
+ * the tagging of other MUIDs.  Hence the need for a special routine, dedicated
+ * to query MUID markup.
  *
  * @param guid	the MUID of the message
  * @param oob	whether the query requests OOB query hit delivery
@@ -456,26 +507,26 @@ bool
 guid_query_muid_is_gtkg(const struct guid *guid, bool oob,
 	uint8 *majp, uint8 *minp, bool *relp)
 {
-	bool is_gtkg;
-
-	if (oob)
-		return guid_oob_is_gtkg(guid, majp, minp, relp);
-
 	/*
-	 * There is an ambiguity if the query is not marked as being OOB,
-	 * because GTKG can initially select an OOB-encoding of the GUID yet
-	 * not emit the query with the OOB flag because it realizes the servent
-	 * is UDP-firewalled, or the user changed his mind and turned off OOB
-	 * queries.
-	 *
-	 * Therefore, try to decode as OOB first, and if it fails being recognized
-	 * as a GTKG marking, use the plain old markup instead.
+	 * We used to encode the query MUID differently depending on whether OOB
+	 * queries were used or just plain ones, but we are now always using
+	 * an encoding and a tagging that ignores the bytes which can be superseded
+	 * by OOB proxying.
+	 *		--RAM, 2012-10-07
 	 */
 
-	is_gtkg = guid_oob_is_gtkg(guid, majp, minp, relp);
-
-	if (is_gtkg)
+	if (guid_oob_is_gtkg(guid, majp, minp, relp))
 		return TRUE;
+
+	/*
+	 * For legacy GTKG servents which may have encoded non-OOB queries
+	 * differently.  This will only work if the query was not flagged for
+	 * OOB, since then our legacy markup is superseded!
+	 *		--RAM, 2012-10-07
+	 */
+
+	if (oob)
+		return FALSE;
 
 	return guid_is_gtkg(guid, majp, minp, relp);	/* Plain old markup */
 }
@@ -577,7 +628,7 @@ guid_add_banned(const struct guid *guid)
 	if (NULL == gd) {
 		gd = &new_gd;
 		gd->create_time = gd->last_time = tm_time();
-		gnet_stats_count_general(GNR_BANNED_GUID_HELD, +1);
+		gnet_stats_inc_general(GNR_BANNED_GUID_HELD);
 
 		if (GNET_PROPERTY(guid_debug)) {
 			g_debug("GUID banning %s", guid_hex_str(guid));

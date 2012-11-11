@@ -66,19 +66,30 @@ struct gnutella_node;
 typedef void (*udp_ping_cb_t)(enum udp_ping_ret type,
 	const struct gnutella_node *n, void *data);
 
+/**
+ * Known semi-reliable UDP protocol types.
+ */
+enum udp_sr_tag {
+	UDP_SR_GTA,
+	UDP_SR_GND
+};
+
 /*
  * Public interface.
  */
 
 struct gnutella_socket;
 struct gnutella_node;
+struct gnutella_host;
 struct guid;
 struct pmsg;
+struct rxdriver;
 
 void udp_received(struct gnutella_socket *s, bool truncated);
 void udp_connect_back(const host_addr_t addr, uint16 port,
 	const struct guid *muid);
 void udp_send_msg(const struct gnutella_node *n, const void *buf, int len);
+void udp_ctrl_send_msg(const struct gnutella_node *n, const void *buf, int len);
 bool udp_send_ping(const struct guid *muid,
 	const host_addr_t addr, uint16 port, bool uhc_ping);
 bool udp_send_ping_callback(gnutella_msg_init_t *m, uint32 size,
@@ -86,7 +97,15 @@ bool udp_send_ping_callback(gnutella_msg_init_t *m, uint32 size,
 	udp_ping_cb_t cb, void *arg, bool multiple);
 void udp_send_mb(const struct gnutella_node *n, struct pmsg *mb);
 void udp_dht_send_mb(const struct gnutella_node *n, struct pmsg *mb);
-enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n);
+enum udp_pong_status udp_ping_is_registered(const struct gnutella_node *n,
+	struct gnutella_host *host);
+
+bool udp_is_valid_gnet_split(struct gnutella_node *n,
+	const struct gnutella_socket *s,
+	bool truncated, const void *header, const void *payload, size_t len);
+
+void udp_set_rx_semi_reliable(enum udp_sr_tag tag,
+	struct rxdriver *rx, enum net_type net);
 
 void udp_init(void);
 void udp_close(void);

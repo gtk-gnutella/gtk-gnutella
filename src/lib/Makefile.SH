@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-146]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -153,6 +153,8 @@ LSRC = \
 	elist.c \
 	entropy.c \
 	erbtree.c \
+	eslist.c \
+	etree.c \
 	eval.c \
 	event.c \
 	exit.c \
@@ -228,6 +230,7 @@ LSRC = \
 	sectoken.c \
 	sequence.c \
 	sha1.c \
+	shuffle.c \
 	signal.c \
 	slist.c \
 	smsort.c \
@@ -301,6 +304,8 @@ LOBJ = \
 	elist.o \
 	entropy.o \
 	erbtree.o \
+	eslist.o \
+	etree.o \
 	eval.o \
 	event.o \
 	exit.o \
@@ -376,6 +381,7 @@ LOBJ = \
 	sectoken.o \
 	sequence.o \
 	sha1.o \
+	shuffle.o \
 	signal.o \
 	slist.o \
 	smsort.o \

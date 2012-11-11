@@ -545,10 +545,10 @@ nodes_gui_init(void)
 	tree_view_restore_visibility(tv, PROP_NODES_COL_VISIBLE);
 	tree_view_set_fixed_height_mode(tv, TRUE);
 
-	nodes_handles = htable_create_any(nid_hash, NULL, nid_equal);
-    ht_node_info_changed = hset_create_any(nid_hash, NULL, nid_equal);
-    ht_node_flags_changed = hset_create_any(nid_hash, NULL, nid_equal);
-    ht_pending_lookups = hset_create_any(nid_hash, NULL, nid_equal);
+	nodes_handles = htable_create_any(nid_hash, nid_hash2, nid_equal);
+    ht_node_info_changed = hset_create_any(nid_hash, nid_hash2, nid_equal);
+    ht_node_flags_changed = hset_create_any(nid_hash, nid_hash2, nid_equal);
+    ht_pending_lookups = hset_create_any(nid_hash, nid_hash2, nid_equal);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,10 +25,28 @@
  * @ingroup core
  * @file
  *
- * Banning control.
+ * Banning logic.
+ *
+ * Each time an event occurs for a given IP address (connection attempt,
+ * lack of OOB hit claiming), we record the event in the proper banning
+ * object.  Once a threshold is reached, the IP address is "banned" for
+ * some time.
+ *
+ * The application code entry point is ban_allow(). It returns a code telling
+ * we can proceeed further with the event or if we had too many events of
+ * the same kind already for the address.
+ *
+ * For connection attempts that are deemed hammering, it is possible to force
+ * the file descriptor (the connected socket) to be kept opened for some time
+ * in an attempt to slow down the request rate on the other end.
+ *
+ * Such banned file descriptors are kept in a FIFO queue and will be closed
+ * when we need to ban a new file descriptor and we reached the maximum amount
+ * of banned fds, or when we start lacking file descriptors for establishing
+ * socket connections.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2012
  */
 
 #include "common.h"
@@ -45,6 +63,7 @@
 #include "lib/hevset.h"
 #include "lib/misc.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property.h"
@@ -62,56 +81,158 @@
  */
 
 #define BAN_DELAY		300		/**< Initial ban delay: 5 minutes */
-#define MAX_REQUEST		5		/**< Maximum of 5 requests... */
-#define MAX_PERIOD		60		/**< ...per minute */
-#define MAX_BAN			10800	/**< 3 hours */
-#define BAN_REMIND		5		/**< Every so many attemps, tell them about it */
 #define BAN_CALLOUT		1000	/**< Every 1 second */
+
+#define MAX_SOCK_REQUEST	5		/**< Maximum of 5 requests... */
+#define MAX_SOCK_PERIOD		60		/**< ...per minute */
+#define MAX_SOCK_BAN		10800	/**< 3 hours */
+#define BAN_SOCK_REMIND		5		/**< Every so many attempts, remind them */
+
+#define MAX_OOB_REQUEST		5		/**< Maximum of 5 unanswered claims... */
+#define MAX_OOB_PERIOD		60		/**< ...per minute */
+#define MAX_OOB_BAN			3600	/**< 1 hour */
 
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 
-static hevset_t *info;			/**< Info by IP address */
+#define FORCE_ASSIGN(t,s,f,v) G_STMT_START {	\
+	*(t *) &(s)->f = v;							\
+} G_STMT_END
+
+enum ban_magic { BAN_MAGIC = 0x01d2f60d };
+
+/**
+ * A banning object.
+ */
+struct ban {
+	enum ban_magic magic;		/**< Magic number */
+	const ban_category_t cat;	/**< Category of banning object */
+	unsigned delay;				/**< Initial ban delay, in seconds */
+	unsigned requests;			/**< Maximum amount of requests before ban */
+	unsigned period;			/**< Period (seconds) for request threshold */
+	unsigned bantime;			/**< Banning time, in seconds */
+	unsigned remind;			/**< Reminding period, every so many attempts */
+	const float decay_coeff;	/**< Decay coefficient, per second */
+	hevset_t *info;				/**< Info by IP address */
+};
+
+static inline void
+ban_check(const struct ban * const b)
+{
+	g_assert(b != NULL);
+	g_assert(BAN_MAGIC == b->magic);
+}
+
+/**
+ * Known ban objects, indexed by categories.
+ * These are created at ban_init() time.
+ */
+static struct ban *ban_object[BAN_CAT_COUNT];
+
 static cqueue_t *ban_cq;		/**< Private callout queue */
 
-/**< Decay coefficient, per second */
-static const float decay_coeff = (float) MAX_REQUEST / MAX_PERIOD;
-
-/***
- *** Hammering-specific banning.
- ***/
+enum addr_info_magic { ADDR_INFO_MAGIC = 0x2546b3bb };
 
 /**
  * Information kept in the info table, per IP address.
  */
 struct addr_info {
-	float counter;				/**< Counts connection, decayed linearily */
+	enum addr_info_magic magic;	/**< Magic number */
 	host_addr_t addr;			/**< IP address -- the embedded key */
-	time_t created;				/**< When did last connection occur? */
-	cevent_t *cq_ev;			/**< Scheduled callout event */
-	int ban_delay;				/**< Banning delay, in seconds */
-	int ban_count;				/**< Amount of time we banned this source */
 	const char *ban_msg;		/**< Banning message (atom) */
+	cevent_t *cq_ev;			/**< Scheduled callout event */
+	const struct ban *owner;	/**< Owning ban object */
+	time_t created;				/**< When did last connection occur? */
+	unsigned ban_delay;			/**< Banning delay, in seconds */
+	int ban_count;				/**< Amount of time we banned this source */
+	float counter;				/**< Counts connection, decayed linearily */
 	unsigned banned:1;			/**< Is this IP currently banned? */
 };
 
+static inline void
+addr_info_check(const struct addr_info * const ipf)
+{
+	g_assert(ipf != NULL);
+	g_assert(ADDR_INFO_MAGIC == ipf->magic);
+}
+
 static void ipf_destroy(cqueue_t *cq, void *obj);
+
+const char *
+ban_category_string(const ban_category_t cat)
+{
+	switch (cat) {
+	case BAN_CAT_SOCKET:		return "socket";
+	case BAN_CAT_OOB_CLAIM:		return "OOB claim";
+	case BAN_CAT_COUNT:
+		break;
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
+
+/**
+ * Create a new ban object.
+ *
+ * @param cat				Category of banning events we handle
+ * @param delay				Initial ban delay, in seconds
+ * @param requests			Maximum amount of requests before ban
+ * @param period;			Period (seconds) for request threshold
+ * @param bantime			Banning time, in seconds
+ * @param remind			Reminding period, every so many attempts
+ *
+ * @return new ban object.
+ */
+static struct ban *
+ban_make(const ban_category_t cat,
+	unsigned delay, unsigned requests, unsigned period,
+	unsigned bantime, unsigned remind)
+{
+	struct ban *b;
+
+	g_assert(period != 0);
+
+	WALLOC0(b);
+
+	b->magic = BAN_MAGIC;
+	b->delay = delay;
+	b->requests = requests;
+	b->period = period;
+	b->bantime = bantime;
+	b->remind = remind;
+	b->info = hevset_create_any(offsetof(struct addr_info, addr),
+		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
+
+	/*
+	 * Assignments to read-only fields at creation time.
+	 */
+
+	FORCE_ASSIGN(ban_category_t, b, cat, cat);
+	FORCE_ASSIGN(float, b, decay_coeff, (float) requests / period);
+
+	return b;
+}
 
 /**
  * Create new addr_info structure for said IP.
  */
 static struct addr_info *
-ipf_make(const host_addr_t addr, time_t now)
+ipf_make(const host_addr_t addr, time_t now, const struct ban *owner)
 {
 	struct addr_info *ipf;
 
-	WALLOC(ipf);
+	ban_check(owner);
 
+	WALLOC0(ipf);
+
+	ipf->magic = ADDR_INFO_MAGIC;
 	ipf->counter = 1.0;
 	ipf->addr = addr;
 	ipf->created = now;
 	ipf->ban_delay = 0;
 	ipf->ban_count = 0;
 	ipf->ban_msg = NULL;
+	ipf->owner = owner;
 	ipf->banned = FALSE;
 
 	/*
@@ -123,7 +244,8 @@ ipf_make(const host_addr_t addr, time_t now)
 	 */
 	{
 		int delay;
-		
+		const float decay_coeff = owner->decay_coeff;
+
 		delay = 1000.0 / decay_coeff;
 		delay = MAX(delay, 1);
 		ipf->cq_ev = cq_insert(ban_cq, delay, ipf_destroy, ipf);
@@ -138,11 +260,33 @@ ipf_make(const host_addr_t addr, time_t now)
 static void
 ipf_free(struct addr_info *ipf)
 {
-	g_assert(ipf);
+	addr_info_check(ipf);
 
 	cq_cancel(&ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
+	ipf->magic = 0;
 	WFREE(ipf);
+}
+
+static void
+free_info(void *value, void *unused_udata)
+{
+	(void) unused_udata;
+	ipf_free(value);
+}
+
+/**
+ * Destroy a ban object.
+ */
+static void
+ban_free(struct ban *b)
+{
+	ban_check(b);
+
+	hevset_foreach(b->info, free_info, NULL);
+	hevset_free_null(&b->info);
+	b->magic = 0;
+	WFREE(b);
 }
 
 /**
@@ -154,14 +298,15 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
 	struct addr_info *ipf = obj;
 
 	(void) unused_cq;
-	g_assert(ipf);
+	addr_info_check(ipf);
 	g_assert(!ipf->banned);
 
 	if (GNET_PROPERTY(ban_debug) > 8)
-		g_debug("disposing of BAN %s: %s",
+		g_debug("disposing of %s BAN %s: %s",
+			ban_category_string(ipf->owner->cat),
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-	hevset_remove(info, &ipf->addr);
+	hevset_remove(ipf->owner->info, &ipf->addr);
 	ipf->cq_ev = NULL;
 	ipf_free(ipf);
 }
@@ -175,10 +320,14 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
 	int delay;
+	float decay_coeff;
 
 	(void) unused_cq;
-	g_assert(ipf);
+	addr_info_check(ipf);
 	g_assert(ipf->banned);
+	ban_check(ipf->owner);
+
+	decay_coeff = ipf->owner->decay_coeff;
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -206,10 +355,11 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 
 	if (delay <= 0) {
 		if (GNET_PROPERTY(ban_debug) > 8)
-			g_debug("disposing of BAN %s: %s",
+			g_debug("disposing of %s BAN %s: %s",
+				ban_category_string(ipf->owner->cat),
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
-		hevset_remove(info, &ipf->addr);
+		hevset_remove(ipf->owner->info, &ipf->addr);
 		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
@@ -221,20 +371,26 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 }
 
 /**
- * Check whether we can allow connection from `ip' to proceed.
+ * Check whether we can allow connection / event from `ip' to proceed.
  *
  * Returns:
  *
- *   BAN_OK     ok, can proceed with connection.
+ *   BAN_OK     ok, can proceed with connection / event.
  *   BAN_FIRST  will ban, but send back message, then close connection.
  *   BAN_FORCE	don't send back anything, and call ban_force().
  *   BAN_MSG	will ban with explicit message and tailored error code.
  */
 ban_type_t
-ban_allow(const host_addr_t addr)
+ban_allow(const ban_category_t cat, const host_addr_t addr)
 {
 	struct addr_info *ipf;
 	time_t now = tm_time();
+	struct ban *b;
+
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
+	ban_check(b);
 
 	switch (host_addr_net(addr)) {
 	case NET_TYPE_IPV4:
@@ -247,24 +403,26 @@ ban_allow(const host_addr_t addr)
 	if (whitelist_check(addr))
 		return BAN_OK;
 
-	ipf = hevset_lookup(info, &addr);
+	ipf = hevset_lookup(b->info, &addr);
 
 	/*
 	 * First time we see this IP?  It's OK then.
 	 */
 
 	if (NULL == ipf) {
-		ipf = ipf_make(addr, now);
-		hevset_insert(info, ipf);
+		ipf = ipf_make(addr, now, b);
+		hevset_insert(b->info, ipf);
 		return BAN_OK;
 	}
+
+	addr_info_check(ipf);
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
 	 * and applying the linear decay coefficient.
 	 */
 
-	ipf->counter -= delta_time(now, ipf->created) * decay_coeff;
+	ipf->counter -= delta_time(now, ipf->created) * b->decay_coeff;
 
 	if (ipf->counter < 0.0)
 		ipf->counter = 0.0;
@@ -279,11 +437,13 @@ ban_allow(const host_addr_t addr)
 	ipf->counter += 1.0;
 	ipf->created = now;
 
-	if (GNET_PROPERTY(ban_debug) > 4)
-		g_debug("BAN %s, counter = %.3f (%s)",
+	if (GNET_PROPERTY(ban_debug) > 4) {
+		g_debug("BAN %s %s, counter = %.3f (%s)",
+			ban_category_string(b->cat),
 			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
-			ipf->counter > (float) MAX_REQUEST ? "banning" : "OK");
+			ipf->counter > (float) b->requests ? "banning" : "OK");
+	}
 
 	g_assert(ipf->cq_ev);
 
@@ -300,13 +460,13 @@ ban_allow(const host_addr_t addr)
 			return BAN_MSG;
 
 		/**
-		 * Every BAN_REMIND attempts, return BAN_FIRST to let them know
+		 * Every ``remind'' attempts, return BAN_FIRST to let them know
 		 * that they have been banned, in case they "missed" our previous
 		 * indications or did not get the Retry-After right.
 		 *		--RAM, 2004-06-21
 		 */
 
-		if (++(ipf->ban_count) % BAN_REMIND == 0)
+		if (0 != b->remind && 0 == ++(ipf->ban_count) % b->remind)
 			return BAN_FIRST;
 
 		return BAN_FORCE;
@@ -316,7 +476,7 @@ ban_allow(const host_addr_t addr)
 	 * Ban the IP if it crossed the request limit.
 	 */
 
-	if (ipf->counter > (float) MAX_REQUEST) {
+	if (ipf->counter > (float) b->requests) {
 		cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy */
 
 		ipf->banned = TRUE;
@@ -327,8 +487,8 @@ ban_allow(const host_addr_t addr)
 		else
 			ipf->ban_delay = BAN_DELAY;
 
-		if (ipf->ban_delay > MAX_BAN)
-			ipf->ban_delay = MAX_BAN;
+		if (ipf->ban_delay > b->bantime)
+			ipf->ban_delay = b->bantime;
 
 		ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
 
@@ -341,7 +501,7 @@ ban_allow(const host_addr_t addr)
 	{
 		int delay;
 
-		delay = 1000.0 * ipf->counter / decay_coeff;
+		delay = 1000.0 * ipf->counter / b->decay_coeff;
 		delay = MAX(delay, 1);
 		cq_resched(ipf->cq_ev, delay);
 	}
@@ -351,37 +511,46 @@ ban_allow(const host_addr_t addr)
 
 /**
  * Record banning with specific message for a given IP, for MAX_BAN seconds.
+ *
+ * This applies on the BAN_CAT_SOCKET banning category implicitly
  */
 void
 ban_record(const host_addr_t addr, const char *msg)
 {
 	struct addr_info *ipf;
+	struct ban *b = ban_object[BAN_CAT_SOCKET];
+
+	ban_check(b);
 
 	/*
 	 * If is possible that we already have an addr_info for that host.
 	 */
 
-	ipf = hevset_lookup(info, &addr);
+	ipf = hevset_lookup(b->info, &addr);
 
 	if (NULL == ipf) {
-		ipf = ipf_make(addr, tm_time());
-		hevset_insert(info, ipf);
+		ipf = ipf_make(addr, tm_time(), b);
+		hevset_insert(b->info, ipf);
 	}
 
-	atom_str_change(&ipf->ban_msg, msg);
-	ipf->ban_delay = MAX_BAN;
+	addr_info_check(ipf);
 
-	if (GNET_PROPERTY(ban_debug))
-		g_debug("BAN %s record %s: %s",
+	atom_str_change(&ipf->ban_msg, msg);
+	ipf->ban_delay = b->bantime;
+
+	if (GNET_PROPERTY(ban_debug)) {
+		g_debug("BAN %s %s record %s: %s",
+			ban_category_string(b->cat),
 			ipf->banned ? "updating" : "new",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
+	}
 
 	if (ipf->banned)
-		cq_resched(ipf->cq_ev, MAX_BAN * 1000);
+		cq_resched(ipf->cq_ev, b->bantime * 1000);
 	else {
 		cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy */
 		ipf->banned = TRUE;
-		ipf->cq_ev = cq_insert(ban_cq, MAX_BAN * 1000, ipf_unban, ipf);
+		ipf->cq_ev = cq_insert(ban_cq, b->bantime * 1000, ipf_unban, ipf);
 	}
 }
 
@@ -531,42 +700,64 @@ ban_force(struct gnutella_socket *s)
 }
 
 /**
- * Check whether IP is already recorded as being banned.
+ * Check whether IP is already recorded as being banned for this category.
  */
 bool
-ban_is_banned(const host_addr_t addr)
+ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 {
 	struct addr_info *ipf;
+	struct ban *b;
 
-	ipf = hevset_lookup(info, &addr);
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
+	ban_check(b);
+
+	ipf = hevset_lookup(b->info, &addr);
+	g_assert(NULL == ipf || ADDR_INFO_MAGIC == ipf->magic);
 
 	return ipf != NULL && ipf->banned;
 }
 
 /**
- * @return banning delay for banned IP.
+ * @return banning delay for banned IP in the given category.
  */
 int
-ban_delay(const host_addr_t addr)
+ban_delay(const ban_category_t cat, const host_addr_t addr)
 {
 	struct addr_info *ipf;
+	struct ban *b;
 
-	ipf = hevset_lookup(info, &addr);
-	g_assert(ipf);
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
+	ban_check(b);
+
+	ipf = hevset_lookup(b->info, &addr);
+	addr_info_check(ipf);
 
 	return ipf->ban_delay;
 }
 
 /**
+ * Get banning message for banned IP.
+ *
+ * This only applies to BAN_CAT_SOCKET type of bans since there needs to be
+ * a configured reminder period whereby we explicitly tell them that they
+ * are banned, so we need a communication channel for that.
+ *
  * @return banning message for banned IP.
  */
 const char *
 ban_message(const host_addr_t addr)
 {
 	struct addr_info *ipf;
+	struct ban *b = ban_object[BAN_CAT_SOCKET];
 
-	ipf = hevset_lookup(info, &addr);
-	g_assert(ipf);
+	ban_check(b);
+
+	ipf = hevset_lookup(b->info, &addr);
+	addr_info_check(ipf);
 
 	return ipf->ban_msg;
 }
@@ -577,9 +768,12 @@ ban_message(const host_addr_t addr)
 G_GNUC_COLD void
 ban_init(void)
 {
-	info = hevset_create_any(offsetof(struct addr_info, addr),
-		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 	ban_cq = cq_main_submake("ban", BAN_CALLOUT);
+
+	ban_object[BAN_CAT_SOCKET] = ban_make(BAN_CAT_SOCKET, BAN_DELAY,
+		MAX_SOCK_REQUEST, MAX_SOCK_PERIOD, MAX_SOCK_BAN, BAN_SOCK_REMIND);
+	ban_object[BAN_CAT_OOB_CLAIM] = ban_make(BAN_CAT_OOB_CLAIM, BAN_DELAY,
+		MAX_OOB_REQUEST, MAX_OOB_PERIOD, MAX_OOB_BAN, 0);
 
 	ban_max_recompute();
 	file_register_fd_reclaimer(ban_reclaim_fd);
@@ -603,13 +797,16 @@ ban_max_recompute(void)
 			max, max == 1 ? "" : "s");
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
-}
 
-static void
-free_info(void *value, void *unused_udata)
-{
-	(void) unused_udata;
-	ipf_free(value);
+	/*
+	 * Close file descriptors kept opened if we now have more banned slots
+	 * than the new maximum allowed.
+	 */
+
+	while (GNET_PROPERTY(banned_count) > max) {
+		if (!reclaim_fd())
+			break;
+	}
 }
 
 /**
@@ -619,9 +816,11 @@ G_GNUC_COLD void
 ban_close(void)
 {
 	GList *l;
+	int n;
 
-	hevset_foreach(info, free_info, NULL);
-	hevset_free_null(&info);
+	for (n = 0; n < BAN_CAT_COUNT; n++) {
+		ban_free(ban_object[n]);
+	}
 
 	for (l = banned_head; NULL != l; l = g_list_next(l)) {
 		ban_close_fd(&l->data); /* Reclaim fd */

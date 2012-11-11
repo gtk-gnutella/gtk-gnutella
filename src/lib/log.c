@@ -1748,7 +1748,7 @@ log_reopen(enum log_file which)
 	bool success = TRUE;
 	FILE *f;
 	struct logfile *lf;
-	int fd;
+	int fd = -1;
 
 	log_file_check(which);
 	g_assert(logfile[which].path != NULL);	/* log_set() called */

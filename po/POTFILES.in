@@ -1,5 +1,5 @@
 # List of source files containing translatable strings.
-# Regenerated on Mon Jun  4 11:30:14 CEST 2012
+# Regenerated on Sun Nov  4 13:10:21 CET 2012
 
 src/core/bitzi.c
 src/core/downloads.c

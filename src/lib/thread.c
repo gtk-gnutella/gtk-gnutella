@@ -1109,7 +1109,7 @@ thread_suspend_others(void)
 
 	if (busy != 0) {
 		if (0 != te->locks.count) {
-			s_carp("%s() waiting on %u busy thread%s whilst holding %u lock%s",
+			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
 				G_STRFUNC, busy, 1 == busy ? "" : "s",
 				te->locks.count, 1 == te->locks.count ? "" : "s");
 			thread_lock_dump(te);
@@ -1318,11 +1318,13 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 
 	if (thread_sp_direction < 0) {
 		/* Stack growing down, stack_base is its highest address */
-		g_assert(ptr_cmp(te->stack_base, top) > 0);
+		if (ptr_cmp(te->stack_base, top) <= 0)
+			return FALSE;		/* top is invalid for this thread */
 		return ptr_cmp(p, top) >= 0 && ptr_cmp(p, te->stack_base) < 0;
 	} else {
 		/* Stack growing up, stack_base is its lowest address */
-		g_assert(ptr_cmp(te->stack_base, top) < 0);
+		if (ptr_cmp(te->stack_base, top) >= 0)
+			return FALSE;		/* top is invalid for this thread */
 		return ptr_cmp(p, top) <= 0 && ptr_cmp(p, te->stack_base) >= 0;
 	}
 }
@@ -1860,7 +1862,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind)
 
 		if (ol->lock == lock) {
 			tls->overflow = TRUE;	/* Avoid any overflow problems now */
-			s_minicrit("thread #%u releases %s %p at inner position %u/%u",
+			s_minicrit("thread #%u releases %s %p at inner position %u/%zu",
 				te->stid, thread_lock_kind_to_string(kind), lock, i + 1,
 				tls->count);
 			thread_lock_dump(te);

@@ -856,7 +856,7 @@ forget_node(knode_t *kn)
 	kn->status = KNODE_UNKNOWN;
 	knode_free(kn);
 
-	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_NODES);
 }
 
 /**
@@ -882,7 +882,7 @@ forget_merged_node(knode_t *kn)
 	 * being merged are freed up.
 	 */
 
-	gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_NODES, 1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_NODES);
 }
 
 /**
@@ -1117,11 +1117,18 @@ dht_allocate_new_kuid_if_needed(void)
 	 * if they do not want a sticky KUID.
 	 *
 	 * It will not be possible to run a Kademlia node with ID = 0.  That's OK.
+	 *
+	 * In the advent of an unclean restart (i.e. after a crash), we ignore
+	 * the "sticky_kuid" property though since this is merely the resuming
+	 * of the previously interrupted run.
 	 */
 
 	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
 
-	if (kuid_is_blank(&buf) || !GNET_PROPERTY(sticky_kuid)) {
+	if (
+		kuid_is_blank(&buf) ||
+		(!GNET_PROPERTY(sticky_kuid) && GNET_PROPERTY(clean_restart))
+	) {
 		if (GNET_PROPERTY(dht_debug)) g_debug("generating new DHT node ID");
 		kuid_random_fill(&buf);
 		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
@@ -1153,7 +1160,7 @@ bucket_refresh_status(const kuid_t *kuid, lookup_error_t error, void *arg)
 		return;
 	}
 
-	gnet_stats_count_general(GNR_DHT_COMPLETED_BUCKET_REFRESH, 1);
+	gnet_stats_inc_general(GNR_DHT_COMPLETED_BUCKET_REFRESH);
 
 	if (0 == GNET_PROPERTY(dht_debug) && 0 == GNET_PROPERTY(dht_lookup_debug))
 		return;		/* Not debugging, we're done */
@@ -1226,7 +1233,7 @@ dht_bucket_refresh(struct kbucket *kb, bool forced)
 	 */
 
 	if (list_count(kb, KNODE_GOOD) == K_BUCKET_GOOD && !is_splitable(kb)) {
-		gnet_stats_count_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH, 1);
+		gnet_stats_inc_general(GNR_DHT_DENIED_UNSPLITABLE_BUCKET_REFRESH);
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT denying %srefresh of non-splitable full %s",
 				forced ? "forced " : "", kbucket_to_string(kb));
@@ -1240,7 +1247,7 @@ dht_bucket_refresh(struct kbucket *kb, bool forced)
 	}
 
 	if (forced)
-		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_REFRESH, 1);
+		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_REFRESH);
 
 	/*
 	 * Generate a random KUID falling within this bucket's range.
@@ -1591,9 +1598,9 @@ dht_initialize(bool post_init)
 	install_bucket_periodic_checks(root, 0);
 
 	stats.buckets++;
-	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_BUCKETS);
 	stats.leaves++;
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_LEAVES);
 	for (i = 0; i < K_REGIONS; i++) {
 		stats.network[i].others = hash_list_new(other_size_hash, other_size_eq);
 	}
@@ -1644,14 +1651,11 @@ dht_init(void)
 	gnet_prop_set_guint32_val(PROP_DHT_BOOT_STATUS, DHT_BOOT_NONE);
 
 	/*
-	 * If the DHT is disabled at startup time, clear the KUID.
-	 * A new one will be re-allocated the next time it is enabled.
+	 * If the DHT is disabled at startup time, do not initialize.
 	 */
 
-	if (!GNET_PROPERTY(enable_dht)) {
-		dht_reset_kuid();
+	if (!GNET_PROPERTY(enable_dht))
 		return;
-	}
 
 	dht_initialize(FALSE);		/* Do not attempt bootstrap yet */
 }
@@ -2011,7 +2015,7 @@ dht_split_bucket(struct kbucket *kb)
 	stats.leaves++;					/* +2 - 1 == +1 */
 
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, +2);
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, +1);
+	gnet_stats_inc_general(GNR_DHT_ROUTING_LEAVES);
 	
 	if (stats.max_depth < kb->depth + 1) {
 		stats.max_depth = kb->depth + 1;
@@ -2274,12 +2278,11 @@ promote_pending_node(struct kbucket *kb)
 					short_time(elapsed));
 			}
 			if (dht_lazy_rpc_ping(selected)) {
-				gnet_stats_count_general(
-					GNR_DHT_ROUTING_PINGED_PROMOTED_NODES, 1);
+				gnet_stats_inc_general(GNR_DHT_ROUTING_PINGED_PROMOTED_NODES);
 			}
 		}
 
-		gnet_stats_count_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_PROMOTED_PENDING_NODES);
 	}
 }
 
@@ -2292,16 +2295,19 @@ promote_pending_node(struct kbucket *kb)
  * @return TRUE if we found a collision.
  */
 static bool
-clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying)
+clashing_nodes(const knode_t *kn1, const knode_t *kn2, bool verifying,
+	const char *where)
 {
+	g_assert(kuid_eq(kn1->id, kn2->id));
+
 	if (!host_addr_equal(kn1->addr, kn2->addr) || kn1->port != kn2->port) {
 		if (GNET_PROPERTY(dht_debug)) {
-			g_warning("DHT %scollision on node %s (also at %s)",
+			g_warning("DHT %scollision on node %s (also at %s) in %s()",
 				verifying ? "verification " : "",
 				knode_to_string(kn1),
-				host_addr_port_to_string(kn2->addr, kn2->port));
+				host_addr_port_to_string(kn2->addr, kn2->port), where);
 		}
-		gnet_stats_count_general(GNR_DHT_KUID_COLLISIONS, 1);
+		gnet_stats_inc_general(GNR_DHT_KUID_COLLISIONS);
 		return TRUE;
 	}
 
@@ -2335,7 +2341,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	 */
 
 	if (tkn != kn) {
-		if (clashing_nodes(tkn, kn, FALSE))
+		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC))
 			return;
 	}
 
@@ -2347,7 +2353,7 @@ dht_remove_node_from_bucket(knode_t *kn, struct kbucket *kb)
 	 */
 
 	if (kn->flags & KNODE_F_FIREWALLED)
-		gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_FIREWALLED_NODES, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_FIREWALLED_NODES);
 
 	/*
 	 * From now on, only work on "tkn" which is known to be in the
@@ -2442,8 +2448,27 @@ dht_set_node_status(knode_t *kn, knode_status_t new)
 	 */
 
 	if (tkn != kn) {
-		if (clashing_nodes(tkn, kn, FALSE))
+		if (clashing_nodes(tkn, kn, FALSE, G_STRFUNC)) {
+			/*
+			 * Because there is a clash, and `tkn' is in the routing table,
+			 * then necessarily `kn' cannot be as well.  We need to verify
+			 * whether the old `tkn' node is still alive, if no verfication
+			 * is pending and we have not recently seen traffic from it.
+			 */
+
+			g_assert(KNODE_UNKNOWN == kn->status);	/* Not in routing table */
+
+			if (delta_time(tm_time(), tkn->last_seen) < ALIVE_PERIOD) {
+				if (GNET_PROPERTY(dht_debug)) {
+					g_debug("DHT however we recently got traffic from %s",
+						knode_to_string(tkn));
+				}
+			} else if (!(tkn->flags & KNODE_F_VERIFYING)) {
+				dht_verify_node(tkn, kn, new != KNODE_STALE);
+			}
+
 			return;
+		}
 	}
 
 	/*
@@ -2648,7 +2673,7 @@ record_node(knode_t *kn, bool traffic)
 			g_warning("DHT rejecting clashing node %s: bears our KUID",
 				knode_to_string(kn));
 		if (!is_my_address_and_port(kn->addr, kn->port))
-			gnet_stats_count_general(GNR_DHT_OWN_KUID_COLLISIONS, 1);
+			gnet_stats_inc_general(GNR_DHT_OWN_KUID_COLLISIONS);
 		return FALSE;
 	}
 
@@ -2667,7 +2692,7 @@ record_node(knode_t *kn, bool traffic)
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port),
 				kbucket_to_string(kb));
-		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_REJECTED_NODE_BUCKET_QUOTA);
 		return FALSE;
 	}
 
@@ -2682,7 +2707,7 @@ record_node(knode_t *kn, bool traffic)
 				"too many hosts from same class-C network in routing table",
 				kuid_to_hex_string(kn->id),
 				host_addr_port_to_string(kn->addr, kn->port));
-		gnet_stats_count_general(GNR_DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA, 1);
+		gnet_stats_inc_general(GNR_DHT_ROUTING_REJECTED_NODE_GLOBAL_QUOTA);
 		return FALSE;
 	}
 
@@ -2904,7 +2929,7 @@ insert_nodes(struct kbucket *kb, knode_status_t status, GSList *nodes)
 					knode_to_string(kn), kbucket_to_string(kb));
 			}
 			forget_merged_node(kn);
-			gnet_stats_count_general(GNR_DHT_ROUTING_EVICTED_QUOTA_NODES, 1);
+			gnet_stats_inc_general(GNR_DHT_ROUTING_EVICTED_QUOTA_NODES);
 			continue;
 		}
 
@@ -2983,7 +3008,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 
 	if (forced) {
 		parent->frozen_depth = TRUE;
-		gnet_stats_count_general(GNR_DHT_FORCED_BUCKET_MERGE, 1);
+		gnet_stats_inc_general(GNR_DHT_FORCED_BUCKET_MERGE);
 	}
 
 	/*
@@ -3035,7 +3060,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	stats.leaves--;			/* -2 + 1 == -1 */
 
 	gnet_stats_count_general(GNR_DHT_ROUTING_BUCKETS, -2);
-	gnet_stats_count_general(GNR_DHT_ROUTING_LEAVES, -1);
+	gnet_stats_dec_general(GNR_DHT_ROUTING_LEAVES);
 
 	if (stats.max_depth == kb->depth) {
 		/*
@@ -3175,7 +3200,7 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 			to_remove = g_slist_prepend(to_remove, kn);
 		} else if (knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
-				gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES, 1);
+				gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_STALE_NODES);
 			}
 		}
 	}
@@ -3322,12 +3347,12 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 			d < ALIVE_PERIOD_MAX &&
 			knode_still_alive_probability(kn) > ALIVE_PROBA_HIGH_THRESH
 		) {
-			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_SKIPPED, 1);
+			gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_SKIPPED);
 			continue;
 		}
 
 		if (dht_lazy_rpc_ping(kn)) {
-			gnet_stats_count_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES, 1);
+			gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_TO_GOOD_NODES);
 		}
 	}
 	hash_list_iter_release(&iter);
@@ -3348,14 +3373,14 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 
 		if ((kn->flags & KNODE_F_SHUTDOWNING) && knode_can_recontact(kn)) {
 			if (dht_lazy_rpc_ping(kn)) {
-				gnet_stats_count_general(
-					GNR_DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES, 1);
+				gnet_stats_inc_general(
+					GNR_DHT_ALIVE_PINGS_TO_SHUTDOWNING_NODES);
 			}
 		}
 	}
 	hash_list_iter_release(&iter);
 
-	gnet_stats_count_general(GNR_DHT_BUCKET_ALIVE_CHECK, 1);
+	gnet_stats_inc_general(GNR_DHT_BUCKET_ALIVE_CHECK);
 
 	/*
 	 * In case both this bucket and its sibling are depleted enough, consider
@@ -3876,30 +3901,58 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
  * @param pt		the PATRICIA trie holding the lookup path
  * @param kuid		the KUID that was looked for
  * @param amount	the amount of k-closest nodes they wanted
+ *
+ * @return the average size estimate, 0 if we think we cannot properly
+ * estimate the size  given the sample.
  */
 static uint64
 dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 {
-	uint64 estimate_1, estimate_2, estimate_3;
+	uint64 estimate[3], sum;
+	uint i;
+	statx_t *st;
+	double mean, sdev;
 
-	estimate_1 = dht_compute_size_estimate_1(pt, kuid, amount);
-	estimate_2 = dht_compute_size_estimate_2(pt, kuid);
-	estimate_3 = dht_compute_size_estimate_3(pt, kuid);
+	estimate[0] = dht_compute_size_estimate_1(pt, kuid, amount);
+	estimate[1] = dht_compute_size_estimate_2(pt, kuid);
+	estimate[2] = dht_compute_size_estimate_3(pt, kuid);
 
 	if (GNET_PROPERTY(dht_debug)) {
-		g_debug("DHT estimated size with method #1: %s",
-			uint64_to_string(estimate_1));
-		g_debug("DHT estimated size with method #2: %s",
-			uint64_to_string(estimate_2));
-		g_debug("DHT estimated size with method #3: %s",
-			uint64_to_string(estimate_3));
+		g_debug("DHT estimated size with method #1: %s (LW method)",
+			uint64_to_string(estimate[0]));
+		g_debug("DHT estimated size with method #2: %s (prefix size)",
+			uint64_to_string(estimate[1]));
+		g_debug("DHT estimated size with method #3: %s (avg node distance)",
+			uint64_to_string(estimate[2]));
 	}
 
 	/*
-	 * Average, will not overflow, 2^64 is a lot of nodes...
+	 * Make sure we do not have points so dispersed that the computed
+	 * average is meaningless: if the mean is smaller than 1 standard
+	 * deviation, we are probably in a situation where our estimation
+	 * is meaningless (because then the chance to have the actual mean
+	 * be negative is too high, and we know that the size is a strictly
+	 * positive number).
 	 */
 
-	return (estimate_1 + estimate_2 + estimate_3) / 3;
+	st = statx_make_nodata();
+
+	for (sum = 0, i = 0; i < G_N_ELEMENTS(estimate); i++) {
+		statx_add(st, (double) estimate[i]);
+		sum = uint64_saturate_add(sum, estimate[i]);
+	}
+
+	mean = statx_avg(st);
+	sdev = statx_sdev(st);
+
+	if (GNET_PROPERTY(dht_debug)) {
+		g_debug("DHT estimated size: mean = %F, sdev = %F, stderr = %F [%s]",
+			mean, sdev, statx_stderr(st), mean > sdev ? "OK" : "REFUSED");
+	}
+
+	statx_free(st);
+
+	return mean > sdev ? sum / G_N_ELEMENTS(estimate) : 0;
 }
 
 /**
@@ -3937,7 +3990,7 @@ update_cached_size_estimate(void)
 	statx_t *st;
 
 	/*
-	 * Only retain the points that fall within one standard deviation of
+	 * Only retain the points that fall within 2 standard deviations of
 	 * the mean to remove obvious aberration.
 	 */
 
@@ -3945,9 +3998,9 @@ update_cached_size_estimate(void)
 	if (n > 1) {
 		uint64 sdev = (uint64) statx_sdev(stats.lookdata);
 		uint64 avg = (uint64) statx_avg(stats.lookdata);
-		if (sdev < avg)
-			min = avg - sdev;
-		max = avg + sdev;
+		if (2 * sdev < avg)
+			min = avg - 2 * sdev;
+		max = avg + 2 * sdev;
 	}
 
 	st = statx_make_nodata();
@@ -4078,15 +4131,20 @@ dht_update_subspace_size_estimate(
 	if (stats.lookups[subspace].computed != 0)
 		statx_remove(stats.lookdata, (double) stats.lookups[subspace].estimate);
 
-	stats.lookups[subspace].estimate = estimate;
-	stats.lookups[subspace].computed = now;
-	stats.lookups[subspace].amount = kept;
-
-	statx_add(stats.lookdata, (double) estimate);
+	if (estimate != 0) {
+		stats.lookups[subspace].estimate = estimate;
+		stats.lookups[subspace].computed = now;
+		stats.lookups[subspace].amount = kept;
+	
+		statx_add(stats.lookdata, (double) estimate);
+	} else {
+		stats.lookups[subspace].computed = 0;
+	}
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT subspace \"%02x\" estimate is %s (over %u/%d nodes)",
-			subspace, uint64_to_string(estimate), (unsigned) kept, amount);
+			subspace, 0 == estimate ? "refused" : uint64_to_string(estimate),
+			(unsigned) kept, amount);
 	}
 
 	update_cached_size_estimate();
@@ -4849,6 +4907,7 @@ dht_close(bool exiting)
 struct addr_verify {
 	knode_t *old;
 	knode_t *new;
+	unsigned new_is_alive:1;	/* Whether `new' is alive (sent us traffic) */
 };
 
 /**
@@ -4885,13 +4944,30 @@ dht_addr_verify_cb(
 		 * unless it is firewalled.
 		 */
 
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT verification failed for node %s: %s",
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT verification failed for node %s: %s",
 				knode_to_string(av->old),
 				type == DHT_RPC_TIMEOUT ?
 					"ping timed out" : "replied with a foreign KUID");
+		}
 
-		dht_remove_node(av->old);
+		/*
+		 * Don't remove the old node if the new node was not known to be alive
+		 * and we got a timeout.
+		 */
+
+		if (type != DHT_RPC_TIMEOUT)
+			dht_remove_node(av->old);		/* KUID changed, remove */
+		else if (av->new_is_alive)
+			dht_remove_node(av->old);		/* New node alive, old timed out */
+		else {
+			if (GNET_PROPERTY(dht_debug)) {
+				g_debug("DHT verification kept old node %s",
+					knode_to_string(av->old));
+			}
+			av->old->flags &= ~KNODE_F_VERIFYING;	
+			goto done;
+		}
 
 		if (av->new->flags & KNODE_F_FIREWALLED) {
 			if (GNET_PROPERTY(dht_debug))
@@ -4907,9 +4983,10 @@ dht_addr_verify_cb(
 					knode_to_string(av->new));
 
 			if (NULL == tkn) {
-				av->new->flags |= KNODE_F_ALIVE;	/* Got traffic earlier! */
+				if (av->new_is_alive)
+					av->new->flags |= KNODE_F_ALIVE;
 				dht_add_node(av->new);
-			} else if (clashing_nodes(tkn, av->new, TRUE)) {
+			} else if (clashing_nodes(tkn, av->new, TRUE, G_STRFUNC)) {
 				/* Logging was done in clashing_nodes() */
 			} else {
 				if (GNET_PROPERTY(dht_debug))
@@ -4920,11 +4997,17 @@ dht_addr_verify_cb(
 	} else {
 		av->old->flags &= ~KNODE_F_VERIFYING;	/* got reply from proper host */
 
-		if (GNET_PROPERTY(dht_debug))
-			g_warning("DHT verification OK, keeping old node %s",
+		if (GNET_PROPERTY(dht_debug)) {
+			g_debug("DHT verification OK, keeping old node %s",
 				knode_to_string(av->old));
+			if (av->new_is_alive) {
+				g_warning("DHT verification also knows clashing alive node %s",
+					knode_to_string(av->new));
+			}
+		}
 	}
 
+done:
 	knode_free(av->old);
 	knode_free(av->new);
 	WFREE(av);
@@ -4933,23 +5016,26 @@ dht_addr_verify_cb(
 /**
  * Verify the node address when we get a conflicting one.
  *
+ * @param kn		the old node we had earlier in the routing table
+ * @param new		the new node, NOT in the routing table already
+ * @param alive		whether we got traffic from new node
+ *
  * It is possible that the address of the node changed, so we send a PING to
- * the old address we had decide whether it is the case (no reply or another
+ * the old address we had to decide whether it is dead (no reply or another
  * KUID will come back), or whether the new node we found has a duplicate KUID
  * (maybe intentionally).
  */
 void
-dht_verify_node(knode_t *kn, knode_t *new)
+dht_verify_node(knode_t *kn, knode_t *new, bool alive)
 {
 	struct addr_verify *av;
 
 	knode_check(kn);
 	knode_check(new);
-	g_assert(new->refcnt == 1);
 	g_assert(new->status == KNODE_UNKNOWN);
 	g_assert(!(kn->flags & KNODE_F_VERIFYING));
 
-	WALLOC(av);
+	WALLOC0(av);
 
 	if (GNET_PROPERTY(dht_debug))
 		g_debug("DHT node %s was at %s, now %s -- verifying",
@@ -4960,6 +5046,9 @@ dht_verify_node(knode_t *kn, knode_t *new)
 	kn->flags |= KNODE_F_VERIFYING;
 	av->old = knode_refcnt_inc(kn);
 	av->new = knode_refcnt_inc(new);
+	av->new_is_alive = booleanize(alive);
+
+	gnet_stats_inc_general(GNR_DHT_NODE_VERIFICATIONS);
 
 	/*
 	 * We use RPC_CALL_NO_VERIFY because we want to handle the verification

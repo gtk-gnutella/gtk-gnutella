@@ -50,7 +50,7 @@ struct rx_chunk_cb {
 };
 
 /**
- * Arguments to be passed when the layer is intantiated.
+ * Arguments to be passed when the layer is instantiated.
  */
 struct rx_chunk_args {
 	const struct rx_chunk_cb *cb;		/**< Callbacks */

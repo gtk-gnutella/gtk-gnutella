@@ -41,8 +41,11 @@
 
 struct rxdriver;
 struct gnutella_node;
+struct gnutella_host;
 
 typedef bool (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
+typedef bool (*rx_datafrom_t)(struct rxdriver *, pmsg_t *mb,
+	const struct gnutella_host *from);
 
 enum rxdrv_magic { RXDRV_MAGIC = 0x4a9c3049U };
 
@@ -57,7 +60,10 @@ typedef struct rxdriver {
 	const struct rxdrv_ops *ops;	/**< Dynamically dispatched operations */
 	struct rxdriver *upper;			/**< Layer above, NULL if none */
 	struct rxdriver *lower;			/**< Layer underneath, NULL if none */
-	rx_data_t data_ind;				/**< Data indication routine */
+	union {
+		rx_data_t ind;				/**< Data indication routine */
+		rx_datafrom_t from_ind;		/**< Data indication routine with origin */
+	} data;
 	void *opaque;					/**< Used by heirs to store specific info */
 	uint32 flags;					/**< Current layer flags */
 } rxdrv_t;
@@ -76,7 +82,8 @@ rx_check(const rxdrv_t *rx)
  */
 
 enum {
-	RX_F_FREED 		= 1 << 0		/**< Will be freed asynchronously */
+	RX_F_FREED 		= 1 << 0,		/**< Will be freed asynchronously */
+	RX_F_FROM		= 1 << 1		/**< Uses rx_datafrom_t data ind */
 };
 
 
@@ -88,6 +95,7 @@ struct rxdrv_ops {
 	void *(*init)(rxdrv_t *tx, const void *args);
 	void (*destroy)(rxdrv_t *tx);
 	bool (*recv)(rxdrv_t *tx, pmsg_t *mb);
+	bool (*recvfrom)(rxdrv_t *tx, pmsg_t *mb, const struct gnutella_host *from);
 	void (*enable)(rxdrv_t *tx);
 	void (*disable)(rxdrv_t *tx);
 	struct bio_source *(*bio_source)(rxdrv_t *tx);
@@ -106,15 +114,24 @@ rxdrv_t *rx_make_above(rxdrv_t *lrx, const struct rxdrv_ops *ops,
 rx_data_t rx_get_data_ind(rxdrv_t *rx);
 void rx_set_data_ind(rxdrv_t *rx, rx_data_t data_ind);
 rx_data_t rx_replace_data_ind(rxdrv_t *rx, rx_data_t data_ind);
+
+rx_datafrom_t rx_get_datafrom_ind(rxdrv_t *rx);
+void rx_set_datafrom_ind(rxdrv_t *rx, rx_datafrom_t datafrom_ind);
+rx_datafrom_t rx_replace_datafrom_ind(rxdrv_t *rx, rx_datafrom_t datafrom_ind);
+
 void rx_free(rxdrv_t *d);
 void rx_collect(void);
 bool rx_recv(rxdrv_t *rx, pmsg_t *mb);
+bool rx_recvfrom(rxdrv_t *rx, pmsg_t *mb, const struct gnutella_host *from);
 void rx_enable(rxdrv_t *rx);
 void rx_disable(rxdrv_t *rx);
 void rx_change_owner(rxdrv_t *rx, void *owner);
 rxdrv_t *rx_bottom(rxdrv_t *rx);
 struct bio_source *rx_bio_source(rxdrv_t *rx);
 struct bio_source *rx_no_source(rxdrv_t *rx);
+
+void rx_debug_set_addrs(const char *s);
+bool rx_debug_host(const gnet_host_t *h);
 
 #endif	/* _core_rx_h_ */
 

@@ -193,7 +193,7 @@ static const int signals[] = {
  */
 int
 crash_coredumps_disabled(void)
-#ifdef RLIMIT_CORE
+#if defined(HAS_GETRLIMIT) && defined(RLIMIT_CORE)
 {
 	struct rlimit lim;
 
@@ -208,7 +208,7 @@ crash_coredumps_disabled(void)
 	errno = ENOTSUP;
 	return -1;
 }
-#endif	/* RLIMIT_CORE */
+#endif	/* HAS_GETRLIMIT && RLIMIT_CORE */
 
 typedef struct cursor {
 	char *buf;
@@ -480,7 +480,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	 * hardwire the stderr file descriptor but get it from the log layer.
 	 */
 
-	routine = stacktrace_routine_name(func_to_pointer(hook), FALSE);
+	routine = stacktrace_function_name(hook);
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
@@ -1457,7 +1457,8 @@ parent_process:
 		 */
 
 		if (could_fork) {
-			static const char commands[] = "bt\nbt full\nquit\n";
+			static const char commands[] =
+				"thread\nbt\nbt full\nthread apply bt\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
 
@@ -1791,8 +1792,7 @@ crash_try_reexec(void)
 
 	close_file_descriptors(3);
 	crash_reset_signals();
-	execve(vars->argv0,
-		(const void *) vars->argv, (const void *) vars->envp);
+	execve(vars->argv0, (const void *) vars->argv, (const void *) vars->envp);
 
 	/* Log exec() failure */
 
@@ -2515,7 +2515,7 @@ crash_hook_add(const char *filename, const crash_hook_t hook)
 	if (hash_table_contains(vars->hooks, filename)) {
 		const void *oldhook = hash_table_lookup(vars->hooks, filename);
 		s_carp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
-			stacktrace_routine_name(func_to_pointer(hook), FALSE),
+			stacktrace_function_name(hook),
 			filename, stacktrace_routine_name(oldhook, FALSE));
 	} else {
 		ck_writable(vars->hookmem);			/* Holds the hash table object */

@@ -52,6 +52,7 @@ enum {
  * Result sets `status' flags.
  */
 enum {
+	 ST_SR_UDP				= (1 << 29), /**< Got hit via semi-reliable UDP */
 	 ST_BANNED_GUID			= (1 << 28), /**< Servent GUID is banned */
 	 ST_MEDIA				= (1 << 27), /**< No proper media type in hit */
 	 ST_ALIEN				= (1 << 26), /**< Alien IP address in UDP hit */
@@ -150,7 +151,7 @@ enum {
 };
 
 /**
- * An individual hit.  It referes to a file entry on the remote servent,
+ * An individual hit.  It refers to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
  */
 typedef struct gnet_record {
@@ -162,7 +163,9 @@ typedef struct gnet_record {
 	const char  *path;			/**< Optional path (atom) */
 	gnet_host_vec_t *alt_locs;	/**< Optional: known alternate locations */
 	filesize_t size;			/**< Size of file, in bytes */
-	time_t  create_time;		/**< Create Time of file; zero if unknown */
+	filesize_t available;		/**< Available bytes, if partial file */
+	time_t create_time;			/**< Create Time of file; zero if unknown */
+	time_t mod_time;			/**< Last modification time of partial file */
 	uint32 file_index;			/**< Index for GET command */
     uint32 flags;
 } gnet_record_t;

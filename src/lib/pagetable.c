@@ -82,7 +82,7 @@ page_table_destroy(page_table_t *tab)
 				vmm_free(tab->slice[i], sizeof tab->slice[i][0]);
 			}
 		}
-		free(tab);
+		xfree(tab);
 	}
 }
 

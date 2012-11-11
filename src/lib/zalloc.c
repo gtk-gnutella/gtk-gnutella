@@ -1112,7 +1112,7 @@ adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 		if (adjusted != size) {
 			if (zalloc_debugging(0) && verbose) {
 				s_debug("ZALLOC adjusting block size from %zu to %zu "
-					"(%zu blocks will waste %zu bytes at end of "
+					"(%u blocks will waste %zu bytes at end of "
 					"%zu-byte subzone)",
 					requested, adjusted, hint, rounded - hint * adjusted,
 					rounded);
@@ -1120,7 +1120,7 @@ adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 		} else {
 			if (zalloc_debugging(0) && verbose) {
 				s_debug("ZALLOC cannot adjust block size of %zu "
-					"(%zu blocks will waste %zu bytes at end of "
+					"(%u blocks will waste %zu bytes at end of "
 					"%zu-byte subzone)",
 					requested, hint, rounded - hint * adjusted, rounded);
 			}
@@ -3075,7 +3075,7 @@ zalloc_dump_zones_log(logagent_t *la)
 		}
 
 		log_info(la, "ZALLOC zone(%zu bytes%s): "
-			"blocks=%zu, free=%u, %u %zuK-subzone%s, over=%u, %s mode",
+			"blocks=%u, free=%u, %u %zuK-subzone%s, over=%u, %s mode",
 			zone->zn_size, buf, zone->zn_blocks, bcnt, zone->zn_subzones,
 			zone->zn_arena.sz_size / 1024,
 			1 == zone->zn_subzones ? "" : "s", over,

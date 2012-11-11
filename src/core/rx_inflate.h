@@ -50,7 +50,7 @@ struct rx_inflate_cb {
 };
 
 /**
- * Arguments to be passed when the layer is intantiated.
+ * Arguments to be passed when the layer is instantiated.
  */
 struct rx_inflate_args {
 	const struct rx_inflate_cb *cb;		/**< Callbacks */

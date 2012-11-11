@@ -86,10 +86,12 @@ doc/gnutella/msg/route_lost
 doc/gnutella/msg/time_sync
 doc/gnutella/oob-shortcut
 doc/gnutella/out-of-band
+doc/gnutella/out-of-band-v3
 doc/gnutella/ping-pong
 doc/gnutella/push_proxy
 doc/gnutella/push_url
 doc/gnutella/query_keys
+doc/gnutella/udp_transceiver
 doc/gnutella/ultra-peers
 doc/gnutella/ultrapeer_qrp
 doc/gnutella/vendor_msg
@@ -125,6 +127,7 @@ doc/public/GGEP/H
 doc/public/GGEP/HNAME
 doc/public/GGEP/LF
 doc/public/GGEP/M
+doc/public/GGEP/PRU
 doc/public/GGEP/T
 doc/public/GGEP/Z
 doc/public/GGEP/bin_format
@@ -141,6 +144,9 @@ extra_files/en/FAQ
 extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
 extra_files/favicon.png      GTKG's favorite web icon
+extra_files/fr/FAQ
+extra_files/fr/Jmakefile
+extra_files/fr/Makefile.SH
 extra_files/geo-ip.txt
 extra_files/geo-ipv6.txt
 extra_files/gtk-gnutella.128.png
@@ -159,6 +165,9 @@ extra_files/magnet.svg
 extra_files/robots.txt       Default hints for web crawlers
 extra_files/spam.txt
 extra_files/spam_sha1.txt
+extra_files/tr/FAQ
+extra_files/tr/Jmakefile
+extra_files/tr/Makefile.SH
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
@@ -198,6 +207,7 @@ pixmaps/legacy.xpm
 pixmaps/magnet.16x16.png
 pixmaps/magnet.32x32.png
 pixmaps/magnet.64x64.png
+pixmaps/natpmp.xpm
 pixmaps/no_firewall.xpm
 pixmaps/offline.xpm
 pixmaps/online.xpm
@@ -385,6 +395,8 @@ src/core/rx_inflate.c
 src/core/rx_inflate.h
 src/core/rx_link.c
 src/core/rx_link.h
+src/core/rx_ut.c
+src/core/rx_ut.h
 src/core/rxbuf.c
 src/core/rxbuf.h
 src/core/search.c
@@ -429,8 +441,13 @@ src/core/tx_dgram.c
 src/core/tx_dgram.h
 src/core/tx_link.c
 src/core/tx_link.h
+src/core/tx_ut.c
+src/core/tx_ut.h
 src/core/udp.c
 src/core/udp.h
+src/core/udp_reliable.h
+src/core/udp_sched.c
+src/core/udp_sched.h
 src/core/uhc.c
 src/core/uhc.h
 src/core/upload_stats.c
@@ -631,6 +648,10 @@ src/lib/entropy.c
 src/lib/entropy.h
 src/lib/erbtree.c
 src/lib/erbtree.h
+src/lib/eslist.c
+src/lib/eslist.h
+src/lib/etree.c
+src/lib/etree.h
 src/lib/eval.c
 src/lib/eval.h
 src/lib/event.c
@@ -790,6 +811,8 @@ src/lib/sequence.c
 src/lib/sequence.h
 src/lib/sha1.c
 src/lib/sha1.h
+src/lib/shuffle.c
+src/lib/shuffle.h
 src/lib/signal.c
 src/lib/signal.h
 src/lib/slist.c

@@ -56,7 +56,7 @@
 #define TX_DESTROY(o)		((*(o)->ops->destroy)((o)))
 #define TX_WRITE(o,d,l)		((*(o)->ops->write)((o), (d), (l)))
 #define TX_WRITEV(o,i,c)	((*(o)->ops->writev)((o), (i), (c)))
-#define TX_SENDTO(o,t,d,l)	((*(o)->ops->sendto)((o), (t), (d), (l)))
+#define TX_SENDTO(o,m,t)	((*(o)->ops->sendto)((o), (m), (t)))
 #define TX_ENABLE(o)		((*(o)->ops->enable)((o)))
 #define TX_DISABLE(o)		((*(o)->ops->disable)((o)))
 #define TX_PENDING(o)		((*(o)->ops->pending)((o)))
@@ -88,6 +88,7 @@ tx_make(void *owner, const gnet_host_t *host,
 	g_assert(ops);
 
 	WALLOC0(tx);
+	tx->magic = TXDRV_MAGIC;
 	tx->owner = owner;
 	tx->host = *host;					/* stuct copy */
 
@@ -107,8 +108,8 @@ tx_make(void *owner, const gnet_host_t *host,
 static void
 tx_attached(txdrv_t *tx, txdrv_t *utx)
 {
-	g_assert(tx);
-	g_assert(utx);
+	tx_check(tx);
+	tx_check(utx);
 	g_assert(tx->upper == NULL);		/* Can only attach ONE layer */
 
 	tx->upper = utx;
@@ -124,11 +125,12 @@ tx_make_above(txdrv_t *ltx, const struct txdrv_ops *ops, void *args)
 {
 	txdrv_t *tx;
 
-	g_assert(ltx);
+	tx_check(ltx);
 	g_assert(ltx->upper == NULL);		/* Nothing above yet */
 	g_assert(ops);
 
 	WALLOC0(tx);
+	tx->magic = TXDRV_MAGIC;
 	tx->owner = ltx->owner;
 	gnet_host_copy(&tx->host, &ltx->host);
 	tx->ops = ops;
@@ -151,7 +153,7 @@ tx_shutdown(txdrv_t *tx)
 {
 	txdrv_t *t;
 
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	for (t = tx; t; t = t->lower) {
@@ -177,12 +179,13 @@ tx_shutdown(txdrv_t *tx)
 static void
 tx_deep_free(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 
 	if (tx->lower)
 		tx_deep_free(tx->lower);
 
 	TX_DESTROY(tx);
+	tx->magic = 0;
 	WFREE(tx);
 }
 
@@ -193,7 +196,7 @@ tx_deep_free(txdrv_t *tx)
 void
 tx_free(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	/*
@@ -232,7 +235,7 @@ tx_collect(void)
 ssize_t
 tx_write(txdrv_t *tx, const void *data, size_t len)
 {
-	g_assert(tx);
+	tx_check(tx);
 
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
@@ -250,7 +253,7 @@ tx_write(txdrv_t *tx, const void *data, size_t len)
 ssize_t
 tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 {
-	g_assert(tx);
+	tx_check(tx);
 
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
@@ -266,16 +269,16 @@ tx_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
  * @return amount of bytes written, or -1 on error with errno set.
  */
 ssize_t
-tx_sendto(txdrv_t *tx, const gnet_host_t *to, const void *data, size_t len)
+tx_sendto(txdrv_t *tx, pmsg_t *mb, const gnet_host_t *to)
 {
-	g_assert(tx);
+	tx_check(tx);
 
 	if (tx->flags & (TX_ERROR | TX_DOWN | TX_CLOSING)) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	return TX_SENDTO(tx, to, data, len);
+	return TX_SENDTO(tx, mb, to);
 }
 
 /**
@@ -284,8 +287,8 @@ tx_sendto(txdrv_t *tx, const gnet_host_t *to, const void *data, size_t len)
 void
 tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, void *srv_arg)
 {
-	g_assert(tx);
-	g_assert(srv_fn);
+	tx_check(tx);
+	g_assert(srv_fn != NULL);
 
 	tx->srv_routine = srv_fn;
 	tx->srv_arg = srv_arg;
@@ -297,7 +300,7 @@ tx_srv_register(txdrv_t *tx, tx_service_t srv_fn, void *srv_arg)
 void
 tx_srv_enable(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->srv_routine != NULL);
 
 	if (tx->flags & TX_SERVICE)		/* Already enabled */
@@ -313,7 +316,7 @@ tx_srv_enable(txdrv_t *tx)
 void
 tx_srv_disable(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->srv_routine != NULL);
 	g_return_if_fail(tx->flags & TX_SERVICE);
 
@@ -338,7 +341,7 @@ tx_pending(txdrv_t *tx)
 	txdrv_t *t;
 	size_t pending = 0;
 
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);		/* Called on top of the stack */
 
 	for (t = tx; t; t = t->lower)
@@ -353,7 +356,7 @@ tx_pending(txdrv_t *tx)
 static txdrv_t *
 tx_deep_bottom(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 
 	if (tx->lower)
 		return tx_deep_bottom(tx->lower);
@@ -374,7 +377,7 @@ tx_eager_mode(txdrv_t *tx, bool on)
 {
 	txdrv_t *t;
 
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	for (t = tx; t; t = t->lower) {
@@ -400,7 +403,7 @@ tx_bio_source(txdrv_t *tx)
 {
 	txdrv_t *bottom;
 
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	bottom = tx_deep_bottom(tx);
@@ -414,7 +417,7 @@ tx_bio_source(txdrv_t *tx)
 void
 tx_flush(txdrv_t *tx)
 {
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	TX_FLUSH(tx);
@@ -428,7 +431,7 @@ tx_has_error(txdrv_t *tx)
 {
 	txdrv_t *t;
 
-	g_assert(tx);
+	tx_check(tx);
 
 	for (t = tx; t; t = t->lower) {
 		if (t->flags & TX_ERROR)
@@ -458,7 +461,7 @@ tx_close_next(txdrv_t *tx, void *arg)
 	struct tx_close_arg *carg = arg;
 	txdrv_t *lower;
 
-	g_assert(tx);
+	tx_check(tx);
 
 	/*
 	 * If there is no lower driver attached to the layer we just closed,
@@ -505,7 +508,7 @@ tx_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
 	struct tx_close_arg *carg;
 
-	g_assert(tx);
+	tx_check(tx);
 	g_assert(tx->upper == NULL);
 
 	WALLOC(carg);
@@ -538,6 +541,8 @@ tx_close(txdrv_t *tx, tx_closed_t cb, void *arg)
 void
 tx_close_noop(txdrv_t *tx, tx_closed_t cb, void *arg)
 {
+	tx_check(tx);
+
 	(*cb)(tx, arg);
 }
 
@@ -573,13 +578,12 @@ tx_no_writev(txdrv_t *unused_tx, iovec_t *unused_iov, int unused_iovcnt)
  * The sendto() operation is forbidden.
  */
 ssize_t
-tx_no_sendto(txdrv_t *unused_tx, const gnet_host_t *unused_to,
-		const void *unused_data, size_t unused_len)
+tx_no_sendto(txdrv_t *unused_tx,
+	pmsg_t *unused_mb, const gnet_host_t *unused_to)
 {
 	(void) unused_tx;
+	(void) unused_mb;
 	(void) unused_to;
-	(void) unused_data;
-	(void) unused_len;
 	g_error("no sendto() operation allowed");
 	errno = ENOENT;
 	return -1;
@@ -618,7 +622,7 @@ tx_debug_set_addrs(const char *s)
 bool
 tx_debug_host(const gnet_host_t *h)
 {
-	return ipset_contains_host(&tx_addrs, h, FALSE);
+	return ipset_contains_host(&tx_addrs, h, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

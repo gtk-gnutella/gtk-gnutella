@@ -196,8 +196,8 @@ static inline ALWAYS_INLINE void
 arc4_check_stir(void)
 {
 	if G_UNLIKELY(!rs_stired) {
-		arc4_stir(&rs);
 		rs_stired = TRUE;
+		arc4_stir(&rs);
 	}
 }
 

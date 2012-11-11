@@ -52,26 +52,9 @@ struct xnode;
 typedef struct xnode xnode_t;
 
 /**
- * Node traversal "leave" callback signature.
- */
-typedef void (*xnode_cb_t)(xnode_t *xn, void *data);
-
-/**
- * Node traversal "entry" callback signature.
- */
-typedef bool (*xnode_cbe_t)(xnode_t *xn, void *data);
-
-/**
  * Namespace declaration iteration callback.
  */
 typedef void (*xnode_ns_cb_t)(const char *prefix, const char *uri, void *data);
-
-/**
- * Node lookup callback to determine whether we have found a matching node.
- *
- * @return TRUE if node matches.
- */
-typedef bool (*xnode_match_t)(const xnode_t *xn, void *data);
 
 /*
  * Public interface.
@@ -133,12 +116,12 @@ bool xnode_prop_ns_printf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, ...)
 	G_GNUC_PRINTF(4, 5);
 
-void xnode_tree_foreach(xnode_t *root, xnode_cb_t func, void *data);
+void xnode_tree_foreach(xnode_t *root, data_fn_t func, void *data);
 void xnode_tree_enter_leave(xnode_t *root,
-	xnode_cbe_t enter, xnode_cb_t leave, void *data);
-xnode_t *xnode_tree_find(xnode_t *root, xnode_match_t func, void *data);
+	match_fn_t enter, data_fn_t leave, void *data);
+xnode_t *xnode_tree_find(xnode_t *root, match_fn_t func, void *data);
 xnode_t *xnode_tree_find_depth(xnode_t *root, unsigned depth,
-	xnode_match_t func, void *data);
+	match_fn_t func, void *data);
 
 void xnode_tree_free(xnode_t *root);
 void xnode_tree_free_null(xnode_t **root_ptr);

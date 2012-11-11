@@ -61,6 +61,12 @@ dht_enabled(void)
 		GNET_PROPERTY(listen_port) != 0;
 }
 
+/*
+ * Debugging interface.
+ */
+
+void tcache_debugging_changed(void);
+
 #endif /* _if_dht_dht_h */
 
 /* vi: set ts=4 sw=4 cindent: */
