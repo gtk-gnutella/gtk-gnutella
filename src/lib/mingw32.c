@@ -90,6 +90,7 @@
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
+#include "vmm.h"				/* For vmm_page_start() */
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -704,14 +705,102 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 }
 
 /**
+ * Computes the memory necessary to include the string into quotes and escape
+ * embedded quotes, provided there are embedded spaces.
+ *
+ * @param str		the string where we want to protect embedded spaces / quotes
+ *
+ * @return 0 if no escaping is necessary (no embedded spaces or quotes), the
+ * size of the buffer required to hold the escaped string otherwise (including
+ * the trailing NUL).
+ */
+static size_t
+mingw_quotedlen(const char *str)
+{
+	const char *p = str;
+	char c;
+	size_t spaces = 0, quotes = 0;
+
+	g_assert(str != NULL);
+
+	while ('\0' != (c = *p++)) {
+		if (' ' == c)
+			spaces++;
+		else if ('"' == c)
+			quotes++;
+	}
+
+	/*
+	 * If there are spaces, we need 2 surrounding quotes, plus 1 extra
+	 * character per quote present (to escape them with a preceding "\").
+	 *
+	 * Any quote present needs also to be preserved.
+	 */
+
+	if (0 == spaces && 0 == quotes)
+		return 0;		/* No escaping required */
+
+	return 2 + quotes + ptr_diff(p, str);
+}
+
+/**
+ * Escape string into supplied buffer: two surrounding quotes are added, and
+ * each embedded quote is escaped.
+ *
+ * @param str		the string to escape
+ * @param dest		destination buffer
+ * @param len		length available in buffer
+ *
+ * @return a pointer to the next character following the escaped string.
+ */
+static char *
+mingw_quotestr(const char *str, char *dest, size_t len)
+{
+	char *end = ptr_add_offset(dest, len);
+	const char *p = str;
+	char *q;
+
+	g_assert(str != NULL);
+	g_assert(dest != NULL);
+	g_assert(size_is_positive(len));
+
+	dest[0] = '"';			/* Opening quote */
+	q = &dest[1];
+	
+	while (q < end) {
+		char c = *p++;
+
+		if ('"' == c) {
+			*q++ = '\\';	/* Escape following quote */
+			if (q >= end)
+				break;
+			*q++ = c;
+		} else if ('\0' == c) {
+			*q++ = '"';		/* Close opening quote */
+			if (q >= end)
+				break;
+			*q++ = c;		/* Final NUL */
+			break;
+		} else {
+			*q++ = c;
+		}
+	}
+
+	dest[len - 1] = '\0';	/* In case we jumped out of the loop above */
+
+	return q;
+}
+
+/**
  * Wrapper for execve().
  */
 int
 mingw_execve(const char *filename, char *const argv[], char *const envp[])
 {
-	static char buf[1024];		/* Better avoid the stack during crashes */
+	static char buf[4096];		/* Better avoid the stack during crashes */
 	const char *p;
-	char *q, *end;
+	size_t needed = 0;			/* Space needed in buf[] for escaping */
+	char * const *ap;
 
 	/*
 	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
@@ -730,47 +819,58 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 	 *
 	 * which of course is completely wrong.
 	 *
-	 * So, as a workaround, we surround the passed argv[0] into quotes before
+	 * So, as a workaround, we surround each argv[i] into quotes before
 	 * invoking execve(), well spawnve() actually.
 	 *
 	 * Complications arise because we are called from the crash handler most
 	 * probably and therefore we cannot allocate memory.  Furthermore, the
-	 * argv[] array can point to read-only memory.
-	 *
-	 * FIXME: we should really quote ALL the arguments, not just argv[0],
-	 * but this will do for now to enable correct auto-restart.
-	 *		--RAM, 2012-11-11
+	 * argv[] array can be held within read-only memory.
 	 */
 
-	end = &buf[sizeof buf];
-	p = argv[0];
-	buf[0] = '"';
-	q = &buf[1];
-	
-	while (q < end) {
-		char c = *p++;
-		if ('"' == c) {
-			*q++ = '\\';
-			if (q >= end)
-				break;
-			*q++ = c;
-		} else if ('\0' == c) {
-			*q++ = '"';		/* Close opening quote */
-			if (q >= end)
-				break;
-			*q++ = c;
-			break;
-		} else {
-			*q++ = c;
-		}
+	ap = argv;
+	while (NULL != (p = *ap++)) {
+		needed += mingw_quotedlen(p);
 	}
 
-	buf[sizeof buf - 1] = '\0';	/* In case we jumped out of the loop above */
+	if (needed != 0) {
+		char *q = &buf[0], *end = &buf[sizeof buf];
+		const void *argvnext, *argvpage = vmm_page_start(argv);
+		size_t span;
+		char **argpv;
+		unsigned i;
 
-	if (-1 == mprotect((void *) argv, 4096, PROT_READ | PROT_WRITE))
-		s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+		if (needed > sizeof buf) {
+			s_miniwarn("%s(): would need %zu bytes to escape all arguments, "
+				"has only %zu available", G_STRFUNC, needed, sizeof buf);
+		}
 
-	*(char **) argv = buf;		/* Changes argv[0] */
+		argvnext = vmm_page_next(ap - 1);
+		span = ptr_diff(argvnext, argvpage);
+
+		if (-1 == mprotect((void *) argvpage, span, PROT_READ | PROT_WRITE))
+			s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+
+		for (argpv = (char **) argv, i = 0; *argpv != NULL; argpv++, i++) {
+			char *str = *argpv;
+			size_t len = mingw_quotedlen(str);
+
+			/*
+			 * Only escape arguments that need protection and that we can
+			 * properly escape.
+			 */
+
+			if (len != 0) {
+				if (len <= ptr_diff(end, q)) {
+					*argpv = q;
+					q = mingw_quotestr(str, q, ptr_diff(end, q));
+				} else {
+					s_miniwarn("%s(): not escaping argv[%u] "
+						"(need %zu bytes, only has %zu left)",
+						G_STRFUNC, i, len, ptr_diff(end, q));
+				}
+			}
+		}
+	}
 
 	/*
 	 * Now perform the execve(), which we emulate through an asynchronous
