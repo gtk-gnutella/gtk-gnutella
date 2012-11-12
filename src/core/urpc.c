@@ -101,7 +101,8 @@ urpc_cb_free(struct urpc_cb *ucb, bool in_shutdown)
  * socket buffer.
  */
 static void
-urpc_received(struct gnutella_socket *s, bool truncated)
+urpc_received(const gnutella_socket_t *s,
+	const void *data, size_t len, bool truncated)
 {
 	struct urpc_cb *ucb;
 
@@ -111,23 +112,29 @@ urpc_received(struct gnutella_socket *s, bool truncated)
 
 	if (NULL == ucb) {
 		g_warning("UDP got unexpected %s%zu-byte RPC reply from %s",
-			truncated ? "truncated " : "", s->pos,
+			truncated ? "truncated " : "", len,
 			host_addr_port_to_string(s->addr, s->port));
 		return;
 	}
 
 	if (GNET_PROPERTY(udp_debug) > 1) {
 		g_debug("UDP [%s] got %s%zu-byte RPC reply from %s",
-			ucb->what, truncated ? "truncated " : "", s->pos,
+			ucb->what, truncated ? "truncated " : "", len,
 			host_addr_port_to_string(s->addr, s->port));
 	}
 
 	/*
-	 * Invoke user callback so that reply can be processed.
+	 * If reply was truncated, fake a timeout.
+	 * Otherwise invoke user callback so that reply can be processed.
+	 */
+
+	(*ucb->cb)(truncated ? URPC_TIMEOUT : URPC_REPLY,
+		s->addr, s->port, data, len, ucb->arg);
+
+	/*
 	 * Then discard the socket.
 	 */
 
-	(*ucb->cb)(URPC_REPLY, s->addr, s->port, s->buf, s->pos, ucb->arg);
 	urpc_cb_free(ucb, FALSE);
 }
 

@@ -45,6 +45,7 @@
 #include "if/core/sockets.h"
 
 #include "lib/inputevt.h"
+#include "lib/eslist.h"
 
 enum socket_tls_stage {
 	SOCK_TLS_NONE			= 0,
@@ -126,11 +127,14 @@ typedef struct gnutella_socket {
  * The UDP data indication callback.
  *
  * @param s				the receiving socket
- * @param truncated		whether received data was truncated
+ * @param data			start of received data (not necessarily s->buf)
+ * @param len			length of received data (not necessarily s->pos)
+ * @param truncated		whether received datagram was truncated
  *
  * Data is held in s->buf and is s->pos byte-long.
  */
-typedef void (*socket_udp_data_ind_t)(gnutella_socket_t *s, bool truncated);
+typedef void (*socket_udp_data_ind_t)(const gnutella_socket_t *s,
+	const void *data, size_t len, bool truncated);
 
 /**
  * TCP socket callback operations.
@@ -150,11 +154,26 @@ struct tcpctx {
 };
 
 /**
+ * UDP socket queued datagrams.
+ */
+struct udpq {
+	host_addr_t addr;			/**< Host sending us the datagram */
+	slink_t lnk;				/**< Embedded list link */
+	void *buf;					/**< Buffer holding data */
+	size_t len;					/**< Length of data */
+	time_t queued;				/**< Time at which we read the datagram */
+	uint16 port;				/**< Remote UDP sender port */
+	uint8 truncated;			/**< Whether data was truncated */
+};
+
+/**
  * UDP socket context.
  */
 struct udpctx {
 	void *socket_addr;					/**< To get reception address */
 	socket_udp_data_ind_t data_ind;		/**< Callback on datagram reception */
+	struct cevent *queue_ev;			/**< Queue processing event */
+	eslist_t queue;						/**< Queued items (read-ahead) */
 };
 
 static inline void
@@ -271,6 +290,7 @@ void socket_set_bind_address(const host_addr_t addr);
 int socket_evt_fd(struct gnutella_socket *s);
 bool socket_is_local(const struct gnutella_socket *s);
 bool socket_local_addr(const struct gnutella_socket *s, host_addr_t *ap);
+bool socket_udp_is_old(const struct gnutella_socket *s);
 
 void socket_timer(time_t now);
 void socket_shutdown(void);

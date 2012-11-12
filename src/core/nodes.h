@@ -680,7 +680,8 @@ bool node_dht_is_flow_controlled(void);
 bool node_dht_would_flow_control(size_t additional);
 bool node_dht_above_low_watermark(void);
 void node_udp_disable(void);
-void node_udp_process(gnutella_node_t *n, struct gnutella_socket *s);
+void node_udp_process(gnutella_node_t *n, const struct gnutella_socket *s,
+	const void *data, size_t len);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);

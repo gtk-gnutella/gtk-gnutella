@@ -664,7 +664,8 @@ remove_device:
  * socket buffer.
  */
 static void
-upnp_msearch_reply(struct gnutella_socket *s, bool truncated)
+upnp_msearch_reply(const gnutella_socket_t *s,
+	const void *data, size_t len, bool truncated)
 {
 	int code;
 	header_t *header;
@@ -698,16 +699,16 @@ upnp_msearch_reply(struct gnutella_socket *s, bool truncated)
 	}
 
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
-		g_debug("----Got HTTP reply (UDP) from %s (%u bytes):",
-			host_addr_to_string(s->addr), (unsigned) s->pos);
-		dump_string(stderr, s->buf, s->pos, "----");
+		g_debug("----Got HTTP reply (UDP) from %s (%zu bytes):",
+			host_addr_to_string(s->addr), len);
+		dump_string(stderr, data, len, "----");
 	}
 
 	/*
 	 * Parse the HTTP reply we got via UDP.
 	 */
 
-	header = http_header_parse(s->buf, s->pos, &code, NULL, NULL, NULL, NULL);
+	header = http_header_parse(data, len, &code, NULL, NULL, NULL, NULL);
 
 	if (NULL == header)
 		return;

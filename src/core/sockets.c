@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2012 Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -31,7 +31,7 @@
  * @author Daniel Walker (dwalker@cats.ucsc.edu)
  * @date 2000
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2003, 2012
  */
 
 #include "common.h"
@@ -72,6 +72,7 @@
 #include "lib/adns.h"
 #include "lib/ascii.h"
 #include "lib/compat_un.h"
+#include "lib/cq.h"
 #include "lib/endian.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
@@ -82,6 +83,7 @@
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/walloc.h"
 
 #ifdef HAS_SOCKER_GET
@@ -97,9 +99,12 @@
 #define SHUT_WR 1					/**< Shutdown TX side */
 #endif
 
-#define RQST_LINE_LENGTH	256	/**< Reasonable estimate for request line */
+#define RQST_LINE_LENGTH	256		/**< Reasonable estimate for request line */
 #define SOCK_UDP_RECV_BUF	131072	/**< 128K - Large to avoid loosing dgrams */
-#define MAX_UDP_RECV_LOOP	128		/**< Max messages read from UDP queue */
+#define MAX_UDP_AGE			5		/**< Max UDP age before RX dropping */
+#define MAX_UDP_LOOP_MS		37		/**< Amount of CPU time we can spend */
+#define UDP_QUEUED_GUESS	65536	/**< Guess amount of pending RX input */
+#define UDP_QUEUE_DELAY_MS	250		/**< RX queue processing delay */
 
 enum {
 	SOCK_ADNS_PENDING	= 1 << 0,	/**< Don't free() the socket too early */
@@ -1394,6 +1399,29 @@ socket_destroy(struct gnutella_socket *s, const char *reason)
 }
 
 /**
+ * Free UDP queued datagram.
+ */
+static void
+socket_udpq_free(struct udpq *uq)
+{
+	g_assert(uq != NULL);
+
+	WFREE_NULL(uq->buf, uq->len);
+	WFREE(uq);
+}
+
+/**
+ * Embedded list callback to free a 'struct udpq' item.
+ */
+static void
+socket_udp_qfree(void *item, void *unused_data)
+{
+	(void) unused_data;
+
+	socket_udpq_free(item);
+}
+
+/**
  * Dispose of socket, closing connection, removing input callback, and
  * reclaiming attached getline buffer.
  */
@@ -1410,8 +1438,11 @@ socket_free(struct gnutella_socket *s)
 		bws_sock_connect_timeout(s->type);
 
 	if (s->flags & SOCK_F_UDP) {
-		if (s->resource.udp != NULL) {
-			WFREE_NULL(s->resource.udp->socket_addr, sizeof(socket_addr_t));
+		struct udpctx *uctx = s->resource.udp;
+		if (uctx != NULL) {
+			WFREE_NULL(uctx->socket_addr, sizeof(socket_addr_t));
+			eslist_foreach(&uctx->queue, socket_udp_qfree, NULL);
+			cq_cancel(&uctx->queue_ev);
 			WFREE(s->resource.udp);
 		}
 	} else {
@@ -2378,10 +2409,79 @@ socket_udp_extract_dst_addr(const struct msghdr *msg, host_addr_t *dst_addr)
 #endif	/* CMSG_FIRSTHDR && CMSG_NXTHDR */
 
 /**
- * Someone is sending us a datagram.
+ * Signal reception of a datagram to the UDP layer.
+ * Note: for the Gnutella datagram socket this is udp_received().
+ */
+static inline void
+socket_udp_process(gnutella_socket_t *s, bool truncated)
+{
+	(*s->resource.udp->data_ind)(s, s->buf, s->pos, truncated);
+}
+
+/**
+ * Let the application process the queued datagram, then free it.
+ */
+static inline void
+socket_udp_process_queued(gnutella_socket_t *s, struct udpq *uq)
+{
+	/*
+	 * The application can query these fields directly to know the origin
+	 * of the UDP datagram.
+	 */
+
+	s->addr = uq->addr;
+	s->port = uq->port;
+
+	/*
+	 * The application layer can determine that it is processing an "old"
+	 * UDP datagram by checking for socket_udp_is_old().
+	 *
+	 * Note: it is critical that upper layers never access s->buf or s->pos
+	 * when receiving a message from a UDP socket but use instead the
+	 * provided data and length values.  Indeed, when delivering queued
+	 * data, the s->buf and s->pos fields are meaningless!
+	 */
+
+	if (delta_time(tm_time(), uq->queued) >= MAX_UDP_AGE) {
+		s->flags |= SOCK_F_OLD;
+		(*s->resource.udp->data_ind)(s, uq->buf, uq->len, uq->truncated);
+		s->flags &= ~SOCK_F_OLD;
+	} else {
+		(*s->resource.udp->data_ind)(s, uq->buf, uq->len, uq->truncated);
+	}
+
+	socket_udpq_free(uq);
+}
+
+/**
+ * Is processed datagram "old" (enqueued more than MAX_UDP_AGE secs ago)?
+ *
+ * This call can safely be called on any socket, but of course it will
+ * always return FALSE when the socket is not UDP.
+ *
+ * @return whether the datagram was received more than MAX_UDP_AGE secs ago.
+ */
+bool
+socket_udp_is_old(const gnutella_socket_t *s)
+{
+	socket_check(s);
+
+	if (!(s->flags & SOCK_F_UDP))
+		return FALSE;		/* Not an UDP socket */
+
+	return booleanize(s->flags & SOCK_F_OLD);
+}
+
+/**
+ * Someone is sending us a datagram.  Read it into the socket's buffer.
+ *
+ * @param s				the socket which receives a datagram
+ * @param truncation	written with whether datagram was truncated
+ *
+ * @return -1 on error, the size of the datagram otherwise.
  */
 static ssize_t
-socket_udp_accept(struct gnutella_socket *s)
+socket_udp_accept(struct gnutella_socket *s, bool *truncation)
 {
 	socket_addr_t *from_addr;
 	struct sockaddr *from;
@@ -2512,14 +2612,108 @@ socket_udp_accept(struct gnutella_socket *s)
 		}
 	}
 
+	*truncation = truncated;
+	return r;
+}
+
+/**
+ * Enqueue UDP datagram for deferred processing.
+ */
+static void
+socket_udp_queue(gnutella_socket_t *s, bool truncated)
+{
+	struct udpctx *uctx;
+	struct udpq *uq;
+
+	g_assert(s->flags & SOCK_F_UDP);
+
+	uctx = s->resource.udp;
+	
+	WALLOC(uq);
+	uq->buf = wcopy(s->buf, s->pos);
+	uq->len = s->pos;
+	uq->queued = tm_time();
+	uq->truncated = booleanize(truncated);
+	uq->addr = s->addr;
+	uq->port = s->port;
+
+	eslist_append(&uctx->queue, uq);
+}
+
+static void socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime);
+
+/**
+ * Timer installed to flush the enqueued read-ahead UDP datagrams.
+ */
+static void
+socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
+{
+	gnutella_socket_t *s = obj;
+	struct udpctx *uctx;
+
+	(void) unused_cq;
+	socket_check(s);
+	g_assert(s->flags & SOCK_F_UDP);
+
+	uctx = s->resource.udp;
+	uctx->queue_ev = NULL;			/* Timer expired */
+
+	if (GNET_PROPERTY(socket_debug)) {
+		g_debug("%s(): flushing %'zu queued datagrams on UDP socket port %u",
+			G_STRFUNC, eslist_count(&uctx->queue), s->local_port);
+	}
+
+	socket_udp_flush_queue(s, 2 * MAX_UDP_LOOP_MS);
+}
+
+/**
+ * Flush the read-ahead UDP datagrams.
+ *
+ * @param s			the gnutella socket
+ * @param maxtime	maximum processing time allowed (in ms)
+ */
+static void
+socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
+{
+	struct udpctx *uctx = s->resource.udp;
+	struct udpq *uq;
+	unsigned i;
+	tm_t start, end;
+
+	tm_now_exact(&start);
+	i = 0;
+
+	while (NULL != (uq = eslist_shift(&uctx->queue))) {
+		i++;
+		socket_udp_process_queued(s, uq);			/* Process it */
+
+		tm_now_exact(&end);
+		if (tm_elapsed_ms(&end, &start) > maxtime)
+			break;
+	}
+
+	if (GNET_PROPERTY(socket_debug)) {
+		tm_now_exact(&end);
+		g_debug("%s() processed %'u queued datagrams "
+			"(%'zu remain) in %'u usecs",
+			G_STRFUNC, i, eslist_count(&uctx->queue),
+			(unsigned) tm_elapsed_us(&end, &start));
+	}
+
 	/*
-	 * Signal reception of a datagram to the UDP layer.
-	 *
-	 * Note: for the Gnutella datagram socket this is udp_received().
+	 * Install processing timer if items remain to be processed since
+	 * we cannot wait for more incoming datagrams to trigger further
+	 * flushing.
 	 */
 
-	(*s->resource.udp->data_ind)(s, truncated);
-	return r;
+	if (0 == eslist_count(&uctx->queue)) {
+		cq_cancel(&uctx->queue_ev);
+	} else if (NULL == uctx->queue_ev) {
+		uctx->queue_ev = cq_main_insert(UDP_QUEUE_DELAY_MS,
+			socket_udp_flush_timer, s);
+	} else {
+		cq_resched(uctx->queue_ev, UDP_QUEUE_DELAY_MS);
+	}
 }
 
 /**
@@ -2529,12 +2723,15 @@ static void
 socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct gnutella_socket *s = data;
-	size_t avail, rd;
-	bool guessed;
+	size_t avail, rd, qd, qn;
+	bool guessed, truncated, enqueue;
 	unsigned i;
+	time_delta_t processing = 0;
 	tm_t start, end;
+	struct udpctx *uctx;
 
 	(void) unused_source;
+	g_assert(s->flags & SOCK_F_UDP);
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		int error;
@@ -2542,6 +2739,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		socklen_t error_len = sizeof error;
 
 		getsockopt(s->file_desc, SOL_SOCKET, SO_ERROR, &error, &error_len);
+		errno = error;
 		g_warning("input exception for UDP listening socket #%d: %m",
 			s->file_desc);
 		return;
@@ -2550,21 +2748,33 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	/*
 	 * It might be useful to call socket_udp_accept() several times
 	 * as there are often several packets queued.
+	 *
+	 * When the RX queue is full, the kernel will start dropping new
+	 * incoming UDP datagrams, and we want to avoid that because this may
+	 * cause us to lose an important UDP reply, for instance.
+	 *
+	 * Therefore, we allow read-ahead of messages from the UDP queue without
+	 * processing them in an attempt to leave enough room in the RX queue.
+	 * These queued messages are then processed at a later time.
+	 *		--RAM, 2012-11-13
 	 */
 
 	tm_now_exact(&start);
 
 	avail = inputevt_data_available();
 	guessed = 0 == avail;
-	avail = guessed ? 64 * 1024 : avail;
+	avail = guessed ? UDP_QUEUED_GUESS : avail;
+	uctx = s->resource.udp;
+	enqueue = 0 != eslist_count(&uctx->queue);
 
 	i = 0;
-	rd = 0;
-	do {
+	rd = qd = qn = 0;
+
+	for(;;) {
 		ssize_t r;
 
-		/* Read datagram and let the application handle it */
-		r = socket_udp_accept(s);
+		i++;
+		r = socket_udp_accept(s, &truncated);		/* Read datagram */
 
 		if ((ssize_t) -1 == r) {
 			/* ECONNRESET is meaningless with UDP but happens on Windows */
@@ -2573,11 +2783,24 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			}
 			break;
 		}
-		i++;
+
 		rd += r;
-		if ((size_t) r >= avail)
-			break;
-		avail -= r;
+
+		/*
+		 * If there are pending datagrams in the queue, do not process the
+		 * new datagram but rather enqueue it: we need to process the messages
+		 * in the order they were received.
+		 */
+
+		if (enqueue) {
+			socket_udp_queue(s, truncated);				/* Enqueue it */
+			qd += r;
+			qn++;
+		} else {
+			socket_udp_process(s, truncated);			/* Process it */
+		}
+
+		avail = size_saturate_sub(avail, r);
 
 		/* kevent() reports 32 more bytes than there are, maybe
 		 * it refers to header or control msg data. */
@@ -2588,19 +2811,52 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 		if (s->flags & SOCK_F_SINGLE)
 			break;
 
-		/* Do not monopolize CPU for too long -- break out after 37 ms */
-		tm_now_exact(&end);
-		if (tm_elapsed_ms(&end, &start) > 37)
-			break;
+		if (!enqueue) {
+			time_delta_t spent;
 
-	} while (i < MAX_UDP_RECV_LOOP);
+			/*
+			 * Do not monopolize CPU for too long whilst processing.
+			 *
+			 * However, once our processing quota is expired, start to enqueue
+			 * messages in order to flush the kernel RX queue.
+			 */
 
-	if (i > 16 && GNET_PROPERTY(socket_debug)) {
+			tm_now_exact(&end);
+			spent = tm_elapsed_ms(&end, &start);
+
+			if (spent > MAX_UDP_LOOP_MS) {
+				processing = spent;			/* Time already spent processing */
+				enqueue = TRUE;				/* Continue reading only */
+			}
+		}
+	}
+
+	if ((i > 16 || enqueue) && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
-		g_debug("%s() iterated %u times, read %'zu bytes "
-			"(out of %s%'zu pending) in %'u usecs",
-			G_STRFUNC, i, rd, guessed ? "~" : "", avail,
-			(unsigned) tm_elapsed_us(&end, &start));
+		g_debug("%s() iterated %'u times, read %'zu bytes "
+			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
+			"in %'u usecs",
+			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
+			qn, 1 == qn ? "" : "s", (unsigned) tm_elapsed_us(&end, &start));
+	}
+
+	/*
+	 * Dequeue some of the queued datagrams, processing them.
+	 */
+
+	if (0 != eslist_count(&uctx->queue)) {
+		time_delta_t processtime;
+
+		/*
+		 * Do not monopolize CPU for too long, but we still need to flush
+		 * our backlog, so devote more CPU time to handling the queued
+		 * items than we do when reading with no backlog.
+		 */
+
+		processtime = (processing >= 2 * MAX_UDP_LOOP_MS) ? 0 :
+			2 * MAX_UDP_LOOP_MS - processing;
+
+		socket_udp_flush_queue(s, processtime);
 	}
 }
 
@@ -3551,6 +3807,14 @@ socket_udp_listen(host_addr_t bind_addr, uint16 port,
 	
 	WALLOC(s->resource.udp);
 	s->resource.udp->data_ind = data_ind;
+
+	/*
+	 * The queue is there to read-ahead datagrams in socket_udp_event() when
+	 * we have to stop processing them: emptying the kernel RX queue is needed
+	 * if we want to avoid losing incoming datagrams.
+	 */
+
+	eslist_init(&s->resource.udp->queue, offsetof(struct udpq, lnk));
 
 	/*
 	 * Attach the socket information so that we may record the origin
