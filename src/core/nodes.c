@@ -64,6 +64,7 @@
 #include "mq.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
+#include "oob_proxy.h"
 #include "pcache.h"
 #include "pdht.h"
 #include "pproxy.h"
@@ -8545,10 +8546,14 @@ proceed:
 	g_assert(!(gnutella_header_get_ttl(&n->header) & GTA_UDP_DEFLATED));
 
 	if (GNET_PROPERTY(oob_proxy_debug) > 1) {
-		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
-			g_debug("QUERY OOB (semi-reliable) results for %s from %s",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				node_addr(n));
+		uint8 function = gnutella_header_get_function(&n->header);
+		if (GTA_MSG_SEARCH_RESULTS == function) {
+			const guid_t *muid = gnutella_header_get_muid(&n->header);
+			g_debug("QUERY OOB%s %sresults for %s from %s",
+				oob_proxy_muid_proxied(muid) ? "-proxied" : "",
+				NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "",
+				guid_hex_str(muid), node_addr(n));
+		}
 	}
 
 	node_parse(n);
