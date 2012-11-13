@@ -675,6 +675,7 @@ void node_grow_data(struct gnutella_node *n, size_t len);
 
 mqueue_t *node_udp_get_outq(enum net_type net);
 mqueue_t *node_udp_sr_get_outq(enum net_type net);
+bool node_udp_is_old(const struct gnutella_node *n);
 bool node_hostile_udp(struct gnutella_node *n);
 bool node_dht_is_flow_controlled(void);
 bool node_dht_would_flow_control(size_t additional);

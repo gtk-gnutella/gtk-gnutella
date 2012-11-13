@@ -8403,6 +8403,27 @@ node_drain_hello(void *data, int source, inputevt_cond_t cond)
 }
 
 /**
+ * Check whether datagram being process from a UDP host was received a "long"
+ * time ago (delayed processing from application-level RX UDP queue).
+ *
+ * This allows selective dropping of "old" datagrams to accelerate the flushing
+ * of the RX queue by not handling messages.  The advantage over letting the
+ * kernel blindly drop them is that we can pick which ones we want to discard!
+ *
+ * We can only get "old" messages from the unreliable UDP layer.  Indeed,
+ * messages received through the semi-reliable UDP layer take longer (there
+ * can be retransmissions at the lower level) and messages are delivered
+ * as soon as they have been fully re-assembled.
+ *
+ * @return TRUE if UDP datagram was received a while back.
+ */
+bool
+node_udp_is_old(const gnutella_node_t *n)
+{
+	return socket_udp_is_old(n->socket);
+}
+
+/**
  * Check whether message comes from an hostile UDP host.
  *
  * @return TRUE if message came from a hostile host and must be ignored.
@@ -8412,7 +8433,8 @@ node_hostile_udp(gnutella_node_t *n)
 {
 	if (hostiles_check(n->addr)) {
 		if (GNET_PROPERTY(udp_debug)) {
-			g_warning("UDP got %s from hostile %s -- dropped",
+			g_warning("UDP got %s%s from hostile %s -- dropped",
+				node_udp_is_old(n) ? "OLD " : "",
 				gmsg_infostr_full_split(&n->header, n->data, n->size),
 				node_infostr(n));
 		}
@@ -8519,7 +8541,8 @@ node_handle(gnutella_node_t *n)
 			goto proceed;	/* For now, until we know we are the target */
 
 		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2) {
-			g_warning("CTL UDP got %s from %s [%s] -- dropped",
+			g_warning("CTL UDP got %s%s from %s [%s] -- dropped",
+				node_udp_is_old(n) ? "OLD " : "",
 				gmsg_infostr_full_split(n->header, n->data, n->size),
 				node_infostr(n), gip_country_cc(n->addr));
 		}

@@ -66,6 +66,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Too small"),					 /**< MSG_DROP_TOO_SMALL */
 		N_("Too large"),					 /**< MSG_DROP_TOO_LARGE */
 		N_("Way too large"),				 /**< MSG_DROP_WAY_TOO_LARGE */
+		N_("Too old"),					 	 /**< MSG_DROP_TOO_OLD */
 		N_("Unknown message type"),			 /**< MSG_DROP_UNKNOWN_TYPE */
 		N_("Unexpected message"),			 /**< MSG_DROP_UNEXPECTED */
 		N_("Message sent with TTL = 0"),	 /**< MSG_DROP_TTL0 */

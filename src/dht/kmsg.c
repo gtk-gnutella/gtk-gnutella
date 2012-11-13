@@ -860,6 +860,13 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 		goto throttle;
 
 	/*
+	 * Ignore "old" PING requests: we're trying to catch up with a UDP burst.
+	 */
+
+	if (node_udp_is_old(n))
+		goto old;
+
+	/*
 	 * Firewalled nodes send us PINGs when they are listing us in their
 	 * routing table.  We usually try to reply to such messages unless
 	 * we're short on UDP bandwidth or we're (almost) flow-controlled.
@@ -893,13 +900,19 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	k_send_pong(n, kademlia_header_get_muid(header));
 	return;
 
+old:
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_debug("DHT ignoring OLD PING from %s", knode_to_string(kn));
+	}
+	gnet_dht_stats_count_dropped(n, KDA_MSG_PING_REQUEST, MSG_DROP_TOO_OLD);
+	return;
+
 drop:
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		g_debug("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
 	}
 	gnet_dht_stats_count_dropped(n,
 		KDA_MSG_PING_REQUEST, MSG_DROP_FLOW_CONTROL);
-
 	return;
 
 throttle:
@@ -908,8 +921,7 @@ throttle:
 			knode_to_string(kn),
 			compact_time(aging_age(kmsg_aging_pings, &kn->addr)));
 	}
-	gnet_dht_stats_count_dropped(n,
-		KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
+	gnet_dht_stats_count_dropped(n, KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
 }
 
 /**
@@ -1054,6 +1066,23 @@ answer_find_node(struct gnutella_node *n,
 
 		aging_insert(kmsg_aging_finds,
 			wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
+	}
+
+	/*
+	 * Ignore "old" requests: we are trying to catch up with a UDP burst.
+	 *
+	 * Note that FIND_VALUE requests that get here are for keys we do not
+	 * know about: we do not ignore old requests for keys we hold!
+	 */
+
+	if (node_udp_is_old(n)) {
+		uint8 function = kademlia_header_get_function(header);
+		if (GNET_PROPERTY(dht_debug > 2)) {
+			g_debug("DHT ignoring OLD %s from %s",
+				kmsg_name(function), knode_to_string(kn));
+		}
+		gnet_dht_stats_count_dropped(n, function, MSG_DROP_TOO_OLD);
+		return;
 	}
 
 	/*
@@ -2529,8 +2558,9 @@ hostile_checked:
 
 drop:
 	if (GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT got invalid Kademlia packet (%zu bytes) "
+		g_warning("DHT got invalid %sKademlia packet (%zu bytes) "
 			"\"%s\" from UDP (%s): %s",
+			node_udp_is_old(n) ? "OLD " : "",
 			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
 		if (len && GNET_PROPERTY(dht_debug) > 10)
