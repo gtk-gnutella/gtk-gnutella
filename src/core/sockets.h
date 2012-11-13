@@ -174,6 +174,7 @@ struct udpctx {
 	socket_udp_data_ind_t data_ind;		/**< Callback on datagram reception */
 	struct cevent *queue_ev;			/**< Queue processing event */
 	eslist_t queue;						/**< Queued items (read-ahead) */
+	size_t queued;						/**< Amount of bytes queued */
 };
 
 static inline void

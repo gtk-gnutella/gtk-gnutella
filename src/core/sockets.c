@@ -2424,6 +2424,8 @@ socket_udp_process(gnutella_socket_t *s, bool truncated)
 static inline void
 socket_udp_process_queued(gnutella_socket_t *s, struct udpq *uq)
 {
+	time_delta_t age;
+
 	/*
 	 * The application can query these fields directly to know the origin
 	 * of the UDP datagram.
@@ -2442,13 +2444,20 @@ socket_udp_process_queued(gnutella_socket_t *s, struct udpq *uq)
 	 * data, the s->buf and s->pos fields are meaningless!
 	 */
 
-	if (delta_time(tm_time(), uq->queued) >= MAX_UDP_AGE) {
+	age = delta_time(tm_time(), uq->queued);
+	gnet_stats_max_general(GNR_UDP_READ_AHEAD_DELAY_MAX, age);
+
+	if (age >= MAX_UDP_AGE) {
+		gnet_stats_inc_general(GNR_UDP_READ_AHEAD_OLD_SUM);
 		s->flags |= SOCK_F_OLD;
 		(*s->resource.udp->data_ind)(s, uq->buf, uq->len, uq->truncated);
 		s->flags &= ~SOCK_F_OLD;
 	} else {
 		(*s->resource.udp->data_ind)(s, uq->buf, uq->len, uq->truncated);
 	}
+
+	s->resource.udp->queued =
+		size_saturate_sub(s->resource.udp->queued, uq->len);
 
 	socket_udpq_free(uq);
 }
@@ -2638,6 +2647,8 @@ socket_udp_queue(gnutella_socket_t *s, bool truncated)
 	uq->port = s->port;
 
 	eslist_append(&uctx->queue, uq);
+	s->resource.udp->queued =
+		size_saturate_add(s->resource.udp->queued, uq->len);
 }
 
 static void socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime);
@@ -2839,6 +2850,16 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
 			qn, 1 == qn ? "" : "s", (unsigned) tm_elapsed_us(&end, &start));
 	}
+
+	/*
+	 * Update statistics.
+	 */
+
+	gnet_stats_count_general(GNR_UDP_READ_AHEAD_COUNT_SUM, qn);
+	gnet_stats_count_general(GNR_UDP_READ_AHEAD_BYTES_SUM, qd);
+	gnet_stats_max_general(GNR_UDP_READ_AHEAD_BYTES_MAX, uctx->queued);
+	gnet_stats_max_general(GNR_UDP_READ_AHEAD_COUNT_MAX,
+		eslist_count(&uctx->queue));
 
 	/*
 	 * Dequeue some of the queued datagrams, processing them.
@@ -3805,7 +3826,7 @@ socket_udp_listen(host_addr_t bind_addr, uint16 port,
 	 * Allocate the UDP context and register the datagram reception callback.
 	 */
 	
-	WALLOC(s->resource.udp);
+	WALLOC0(s->resource.udp);
 	s->resource.udp->data_ind = data_ind;
 
 	/*
