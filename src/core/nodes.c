@@ -10815,7 +10815,7 @@ node_gnet_addr(const gnutella_node_t *n)
 const char *
 node_infostr(const gnutella_node_t *n)
 {
-	static char buf[128];
+	static char buf[160];
 
 	if (NODE_USES_UDP(n)) {
 		gm_snprintf(buf, sizeof buf, "UDP %snode %s",
