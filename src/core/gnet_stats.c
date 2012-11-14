@@ -868,6 +868,19 @@ gnet_stats_dec_general(gnr_stats_t type)
 }
 
 /**
+ * Update the general stats counter to keep the maximum value.
+ */
+void
+gnet_stats_max_general(gnr_stats_t type, uint64 value)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+	if (value > gnet_stats.general[i])
+		gnet_stats.general[i] = value;
+}
+
+/**
  * Set the general stats counter to the given value.
  */
 void
