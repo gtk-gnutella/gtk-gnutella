@@ -883,7 +883,7 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
 
 	if (0 == errno)
-		exit(0);
+		_exit(0);	/* We don't want any atexit() cleanup */
 
 	return -1;		/* Failed to launch process, errno is set */
 }
