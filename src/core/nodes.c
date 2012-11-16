@@ -3374,6 +3374,13 @@ send_error(
 		pongs = 0;
 
 	/*
+	 * Do no send pongs if node vendor is faked.
+	 */
+
+	if (n != NULL && NODE_HAS_FAKE_NAME(n))
+		pongs = 0;
+
+	/*
 	 * Do not send X-Ultrapeer on 4xx errors or 550.
 	 */
 
