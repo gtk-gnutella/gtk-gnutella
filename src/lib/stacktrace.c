@@ -1257,6 +1257,13 @@ stack_print_decorated_to(struct sxfile *xf,
 	}
 
 	/*
+	 * Flush output if we were writing via stdio.
+	 */
+
+	if (SXFILE_STDIO == xf->type)
+		fflush(xf->u.f);
+
+	/*
 	 * Don't call
 	 *
 	 * 		bfd_util_close_null(&be);
