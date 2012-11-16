@@ -220,6 +220,8 @@ values_count(void)
 	return (size_t) values_managed;
 }
 
+#define VALUES_DATA_VERSION	1		/* Serialization version number */
+
 /**
  * Serialization routine for valuedata.
  */
@@ -228,6 +230,7 @@ serialize_valuedata(pmsg_t *mb, const void *data)
 {
 	const struct valuedata *vd = data;
 
+	pmsg_write_u8(mb, VALUES_DATA_VERSION);
 	pmsg_write(mb, vd->id.v, KUID_RAW_SIZE);
 	pmsg_write_time(mb, vd->publish);
 	pmsg_write_time(mb, vd->replicated);
@@ -261,9 +264,11 @@ static void
 deserialize_valuedata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct valuedata *vd = valptr;
+	uint8 version;
 
 	g_assert(sizeof *vd == len);
 
+	bstr_read_u8(bs, &version);
 	bstr_read(bs, vd->id.v, KUID_RAW_SIZE);
 	bstr_read_time(bs, &vd->publish);
 	bstr_read_time(bs, &vd->replicated);
@@ -1052,8 +1057,8 @@ values_unexpire(uint64 dbkey)
  * If it has, mark it for deletion.
  *
  * @return TRUE if value has expired and will be reclaimed the next time
- * values_reclaim_expired() is called.  If FALSE is returned, the
- * actual expiration time is returned through `expire', if not NULL.
+ * values_reclaim_expired() is called.
+ * The actual expiration time is returned through `expire', if not NULL.
  */
 bool
 values_has_expired(uint64 dbkey, time_t now, time_t *expire)
@@ -1061,16 +1066,17 @@ values_has_expired(uint64 dbkey, time_t now, time_t *expire)
 	struct valuedata *vd;
 
 	vd = get_valuedata(dbkey);
+
+	if (expire != NULL)
+		*expire = NULL == vd ? 0 : vd->expire;
+
 	if (NULL == vd)
 		return FALSE;		/* I/O error or corrupted database */
 
-	if (now >= vd->expire)  {
+	if (delta_time(now, vd->expire) >= 0)  {
 		values_expire(dbkey, vd);
 		return TRUE;
 	}
-
-	if (expire)
-		*expire = vd->expire;
 
 	return FALSE;
 }
@@ -1623,7 +1629,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 			values_unexpire(dbkey);
 			kuid_pair_was_republished(&vd->id, &vd->cid);
-			keys_update_value(&vd->id, vd->expire);
+			keys_update_value(&vd->id, &vd->cid, vd->expire);
 		}
 	}
 
@@ -1859,6 +1865,110 @@ values_get(uint64 dbkey, dht_value_type_t type)
 }
 
 /**
+ * DBMW iterator callback to reload the values from the sepcified DB keys.
+ *
+ * @return TRUE if entry must be deleted.
+ */
+static G_GNUC_COLD bool
+values_reload(void *key, void *value, size_t u_len, void *data)
+{
+	const uint64 *dbk = key;
+	const struct valuedata *vd = value;
+	const hset_t *dbkeys = data;
+	uint64 vk;
+	bool full, loaded;
+
+
+	(void) u_len;
+
+	/*
+	 * If the DB key is not in the set to keep, delete it and remove any
+	 * raw data associated with it (same DB key between the two databases).
+	 */
+
+	if (!hset_contains(dbkeys, dbk))
+		goto delete_value;
+
+	/*
+	 * Normally, keys must be unique in the database, but if the file was
+	 * corrupted then we may find ourselves with duplicates.  So be careful.
+	 */
+
+	vk = keys_has(&vd->id, &vd->cid, FALSE);
+
+	if (0 != vk) {
+		g_warning("DHT VALUE ignoring duplicate persisted value pk=%s, sk=%s",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		goto delete_value;
+	}
+
+	/*
+	 * Check that value has not expired.
+	 */
+
+	if (delta_time(tm_time(), vd->expire) >= 0)
+		goto delete_value;
+
+	/*
+	 * Ensure key is not full.  If the database is corrupted, then we may
+	 * attempt to load more values than the key can hold.
+	 */
+
+	keys_get_status(&vd->id, &full, &loaded);
+
+	if (full) {
+		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: full key!",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		goto delete_value;
+	}
+
+	if (*dbk > valueid)
+		valueid = *dbk + 1;
+
+	/*
+	 * Add the value to the key and update quota statistics as we would when
+	 * receiving a DHT publish request.
+	 */
+
+	keys_add_value(&vd->id, &vd->cid, *dbk, vd->expire);
+	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, +1);
+	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, +1);
+
+	return FALSE;		/* Keep value entry */
+
+delete_value:
+	dbmw_delete(db_rawdata, dbk);
+	return TRUE;
+}
+
+/**
+ * DBMW iterator callback to purge raw data not bearing the sepcified DB keys.
+ *
+ * @return TRUE if entry must be deleted.
+ */
+static G_GNUC_COLD bool
+values_raw_purge(void *key, void *u_value, size_t u_len, void *data)
+{
+	const uint64 *dbk = key;
+	const hset_t *dbkeys = data;		/* Contains the DB keys to keep */
+
+	(void) u_value;
+	(void) u_len;
+
+	return !hset_contains(dbkeys, dbk);
+}
+
+/**
+ * Periodic DB synchronization.
+ */
+void
+values_sync(void)
+{
+	dbstore_sync_flush(db_valuedata);
+	dbstore_sync_flush(db_rawdata);
+}
+
+/**
  * Initialize values management.
  */
 G_GNUC_COLD void
@@ -1885,12 +1995,12 @@ values_init(void)
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rawbase);
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_expbase);
 
-	db_valuedata = dbstore_create(db_valwhat, settings_dht_db_dir(),
+	db_valuedata = dbstore_open(db_valwhat, settings_dht_db_dir(),
 		db_valbase, value_kv, value_packing, VALUES_DB_CACHE_SIZE,
 		uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_rawdata = dbstore_create(db_rawwhat, settings_dht_db_dir(), db_rawbase,
+	db_rawdata = dbstore_open(db_rawwhat, settings_dht_db_dir(), db_rawbase,
 		raw_kv, no_packing, RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
@@ -1904,6 +2014,70 @@ values_init(void)
 
 	values_expire_ev = cq_periodic_main_add(EXPIRE_PERIOD * 1000,
 		values_periodic_expire, NULL);
+}
+
+/**
+ * Reload values whose DB keys are supplied in the set, and discard others.
+ *
+ * @param dbkeys		set of DB keys to reload
+ */
+G_GNUC_COLD void
+values_init_data(const hset_t *dbkeys)
+{
+	g_assert(dbkeys != NULL);
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
+			hset_count(dbkeys), 1 == hset_count(dbkeys) ? "" : "s",
+			dbmw_count(db_valuedata));
+	}
+
+	/*
+	 * When we are called, the keys have been reloaded from the database
+	 * and we now have to insert the values in the keys by looking only at
+	 * the specified DB keys.
+	 */
+
+	dbmw_foreach_remove(db_valuedata, values_reload,
+		deconstify_pointer(dbkeys));
+
+	/*
+	 * Purge any raw data that should not be there any longer.
+	 */
+
+	dbmw_foreach_remove(db_rawdata, values_raw_purge,
+		deconstify_pointer(dbkeys));
+
+	/*
+	 * Update statistics, perform sanity checks.
+	 */
+
+	values_managed = dbmw_count(db_rawdata);
+	gnet_stats_set_general(GNR_DHT_VALUES_HELD, values_managed);
+
+	g_soft_assert_log(dbmw_count(db_rawdata) == dbmw_count(db_valuedata),
+		"raw data count: %zu, value count: %zu",
+		dbmw_count(db_rawdata), dbmw_count(db_valuedata));
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
+			1 == dbmw_count(db_valuedata) ? "" : "s");
+	}
+
+	/*
+	 * Adjust database size.
+	 */
+
+	if (0 == values_managed)
+		valueid = 1;
+
+	dbstore_shrink(db_rawdata);
+	dbstore_shrink(db_valuedata);
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES first allocated value DB-key will be %s",
+			uint64_to_string(valueid));
+	}
 }
 
 static void

@@ -74,6 +74,7 @@
 #include "knode.h"
 #include "publish.h"
 #include "routing.h"
+#include "values.h"
 
 #include "if/dht/kademlia.h"
 #include "if/dht/routing.h"
@@ -91,10 +92,13 @@
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
 #include "lib/hikset.h"
-#include "lib/pmsg.h"
+#include "lib/hset.h"
 #include "lib/patricia.h"
+#include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define MAX_VALUES		MAX_VALUES_PER_KEY		/* Shortcut for this file */
@@ -107,6 +111,7 @@
 #define KBALL_FIRST		60		/**< First k-ball update after 1 minute */
 
 #define KEYS_DB_CACHE_SIZE	512	/**< Amount of keys to keep cached in RAM */
+#define KEYS_SYNC_PERIOD	(60*1000)	/**< Sync DB every minute */
 
 /**
  * Information about our neighbourhood (k-ball), updated periodically.
@@ -157,15 +162,21 @@ keyinfo_check(const struct keyinfo *ki)
  * Information about a key that is stored to disk and not kept in memory.
  * The structure is serialized first, not written as-is.
  *
- * Indices in the two arrays match, that is creators[i] and dbkeys[i] are
+ * Indices in the three arrays match, that is creators[i] and dbkeys[i] are
  * related: the first is the KUID of the node that publishes the value,
  * the second is the allocated key used within our DB backend to access
  * values (see values.c).
+ *
+ * The expire[] array tracks a copy of the value expiration time, which is
+ * also held in the value database.  It's also a consistency check and
+ * a mandatory warning is emitted when a mismatch occurs, indicating a
+ * corruption.
  */
 struct keydata {
 	uint8 values;					/**< Amount of values stored */
 	kuid_t creators[MAX_VALUES];	/**< Secondary keys (sorted numerically) */
 	uint64 dbkeys[MAX_VALUES];		/**< Associated SDBM keys for values */
+	time_t expire[MAX_VALUES];		/**< Value expiration times */
 };
 
 /**
@@ -182,6 +193,7 @@ static char db_keywhat[] = "DHT key data";
 
 static cevent_t *kball_ev;		/**< Event for periodic k-ball update */
 static cperiodic_t *keys_periodic_ev;
+static cperiodic_t *keys_sync_ev;
 
 /**
  * Decimation factor to adjust expiration time depending on the distance
@@ -195,6 +207,7 @@ static cperiodic_t *keys_periodic_ev;
 static double decimation_factor[KUID_RAW_BITSIZE];
 
 #define KEYS_DECIMATION_BASE 	1.2		/* Base for exponential decimation */
+#define KEYS_KEYDATA_VERSION	1		/* Serialization version number */
 
 static void keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj);
 
@@ -402,38 +415,85 @@ lookup_secondary(const struct keydata *kd, const kuid_t *skey)
 }
 
 /**
- * See whether we can expire values stored under the key.
+ * Reclaim key info and data.
  *
- * NB: because we update the next expiration time upon value insertion
- * but do not recompute it upon value removals, it is possible that
- * we have no values to expire currently.
- *
- * This is justified because there are few value removals and this allows
- * us to not store the expiration time of the associated values in the
- * keydata.
+ * @param ki			the keyinfo to reclaim
+ * @param can_remove	whether to remove from the `keys' set
  */
 static void
+keys_reclaim(struct keyinfo *ki, bool can_remove)
+{
+	g_assert(ki);
+	g_assert(0 == ki->values);
+
+	if (GNET_PROPERTY(dht_storage_debug) > 2)
+		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
+
+	dbmw_delete(db_keydata, ki->kuid);
+	if (can_remove)
+		hikset_remove(keys, &ki->kuid);
+
+	gnet_stats_dec_general(GNR_DHT_KEYS_HELD);
+	if (ki->flags & DHT_KEY_F_CACHED)
+		gnet_stats_dec_general(GNR_DHT_CACHED_KEYS_HELD);
+
+	kuid_atom_free_null(&ki->kuid);
+	ki->magic = 0;
+	WFREE(ki);
+}
+
+/**
+ * See whether we can expire values stored under the key.
+ *
+ * @return TRUE if OK, FALSE if keyinfo was reclaimed due to inconsistency.
+ */
+static bool
 keys_expire_values(struct keyinfo *ki, time_t now)
 {
 	struct keydata *kd;
 	int i;
 	int expired = 0;
 	time_t next_expire = TIME_T_MAX;
+	const char *reason = NULL;
+	char buf[80];
 
 	kd = get_keydata(ki->kuid);
-	if (kd == NULL)
-		return;
+	if (NULL == kd) {
+		reason = "cannot retrieve associated keydata";
+		goto discard_key;
+	}
 
-	g_assert(kd->values == ki->values);
+	if (kd->values != ki->values) {
+		str_bprintf(buf, sizeof buf, "expected %u value%s, has %u in keydata",
+			ki->values, 1 == ki->values ? "" : "s", kd->values);
+		reason = buf;
+		goto discard_key;
+	}
 
 	for (i = 0; i < kd->values; i++) {
 		uint64 dbkey = kd->dbkeys[i];
-		time_t expire;
+		time_t expire = kd->expire[i];
 
-		if (values_has_expired(dbkey, now, &expire))
+		if (
+			delta_time(now, expire) >= 0 &&
+			values_has_expired(dbkey, now, &expire)		/* Updates `expire' */
+		) {
 			expired++;
-		else
+
+			/*
+			 * A mismatch indicates a severe database corruption, hence
+			 * we use a mandatory warning.
+			 */
+
+			if (kd->expire[i] != expire) {
+				g_warning("DHT KEYS mismatching expire time for value #%d in %s"
+					" (held %u, should have been %u)",
+					i, kuid_to_hex_string(ki->kuid),
+					(uint) kd->expire[i], (uint) expire);
+			}
+		} else {
 			next_expire = MIN(expire, next_expire);
+		}
 	}
 
 	if (GNET_PROPERTY(dht_storage_debug) > 3)
@@ -450,8 +510,20 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 	 */
 
 	values_reclaim_expired();
+	keyinfo_check(ki);		/* Keyinfo reclaim is asynchronous */
+	return TRUE;			/* OK */
 
-	keyinfo_check(ki);		/* Reclaim is asynchronous */
+discard_key:
+	/*
+	 * Get rid of the key since we have a missing / corrupted keydata.
+	 */
+
+	g_warning("DHT KEYS discarding corrupted key %s (%u value%s): %s",
+		kuid_to_hex_string(ki->kuid), ki->values, 1 == ki->values ? "" : "s",
+		reason);
+
+	keys_reclaim(ki, TRUE);
+	return FALSE;
 }
 
 /**
@@ -476,7 +548,7 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 
 	keyinfo_check(ki);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 1)
+	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE key %s holds %d/%d value%s, "
 			"load avg: get = %g [%s], store = %g [%s], expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
@@ -486,6 +558,7 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 			(int) (ki->store_req_load * 100) / 100.0,
 			ki->store_req_load >= LOAD_STO_THRESH ? "LOADED" : "OK",
 			compact_time(delta_time(ki->next_expire, tm_time())));
+	}
 
 	if (ki->get_req_load >= LOAD_GET_THRESH) {
 		*loaded = TRUE;
@@ -513,8 +586,10 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 
 	now = tm_time();
 
-	if (now >= ki->next_expire)
-		keys_expire_values(ki, now);
+	if (now >= ki->next_expire) {
+		if (!keys_expire_values(ki, now))
+			return;		/* Key info reclaimed */
+	}
 
 	if (ki->values >= MAX_VALUES)
 		*full = TRUE;
@@ -552,40 +627,13 @@ keys_has(const kuid_t *id, const kuid_t *cid, bool store)
 
 	dbkey = lookup_secondary(kd, cid);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 15)
+	if (GNET_PROPERTY(dht_storage_debug) > 15) {
 		g_debug("DHT lookup secondary for %s/%s => dbkey %s",
 			kuid_to_hex_string(id), kuid_to_hex_string2(cid),
 			uint64_to_string(dbkey));
+	}
 
 	return dbkey;
-}
-
-/**
- * Reclaim key info and data.
- *
- * @attention
- * This is called from a patricia_foreach_remove() iterator callback, hence
- * we must not remove `ki' from the PATRICIA tree, this will happen as part
- * of the iteration.  It is perfectly safe to destroy the key and the value
- * however since the iterator works at the PATRICIA node level.
- */
-static void
-keys_reclaim(struct keyinfo *ki)
-{
-	g_assert(ki);
-	g_assert(0 == ki->values);
-
-	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
-
-	dbmw_delete(db_keydata, ki->kuid);
-
-	gnet_stats_dec_general(GNR_DHT_KEYS_HELD);
-	if (ki->flags & DHT_KEY_F_CACHED)
-		gnet_stats_dec_general(GNR_DHT_CACHED_KEYS_HELD);
-
-	kuid_atom_free_null(&ki->kuid);
-	WFREE(ki);
 }
 
 /**
@@ -627,6 +675,8 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 			sizeof(kd->creators[0]) * (kd->values - idx - 1));
 		memmove(&kd->dbkeys[idx], &kd->dbkeys[idx+1],
 			sizeof(kd->dbkeys[0]) * (kd->values - idx - 1));
+		memmove(&kd->expire[idx], &kd->expire[idx+1],
+			sizeof(kd->expire[0]) * (kd->values - idx - 1));
 	}
 
 	/*
@@ -637,36 +687,100 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 	 * STORE will precisely insert back another value.
 	 *
 	 * Hence lazy expiration also gives us the opportunity to further exploit
-	 * caching in memory, the keyinfo being hel there as a "cached" value.
+	 * caching in memory, the keyinfo being held there as a "cached" value.
 	 *
 	 * Reclaiming of dead keys happens during periodic key load computation.
 	 */
 
 	kd->values--;
 	ki->values--;
+
+	/*
+	 * Recompute next expiration time.
+	 */
+
+	ki->next_expire = TIME_T_MAX;
+
+	for (idx = 0; idx < ki->values; idx++) {
+		ki->next_expire = MIN(ki->next_expire, kd->expire[idx]);
+	}
+
 	dbmw_write(db_keydata, id, kd, sizeof *kd);
 
-	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_debug("DHT STORE key %s now holds only %d/%d value%s",
+	if (GNET_PROPERTY(dht_storage_debug) > 2) {
+		g_debug("DHT STORE key %s now holds only %d/%d value%s, expire in %s",
 			kuid_to_hex_string(id), ki->values, MAX_VALUES,
-			1 == ki->values ? "" : "s");
+			1 == ki->values ? "" : "s",
+			compact_time(delta_time(ki->next_expire, tm_time())));
+	}
 }
 
 /**
  * A value held under the key was updated and has a new expiration time.
  *
  * @param id		the primary key (existing already)
+ * @param cid		the secondary key (creator's ID)
  * @param expire	expiration time for the value
  */
 void
-keys_update_value(const kuid_t *id, time_t expire)
+keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 {
 	struct keyinfo *ki;
+	struct keydata *kd;
 
 	ki = hikset_lookup(keys, id);
 	g_assert(ki != NULL);
 
 	ki->next_expire = MIN(ki->next_expire, expire);
+	kd = get_keydata(id);
+
+	if (kd != NULL) {
+		int low = 0, high = ki->values - 1;
+		bool found = FALSE;
+
+		while (low <= high) {
+			int mid = low + (high - low) / 2;
+			int c;
+
+			g_assert(mid >= 0 && mid < ki->values);
+
+			c = kuid_cmp(&kd->creators[mid], cid);
+
+			if (0 == c) {
+				kd->expire[mid] = expire;
+				found = TRUE;
+				break;
+			} else if (c < 0) {
+				low = mid + 1;
+			} else {
+				high = mid - 1;
+			}
+		}
+
+		if (!found && GNET_PROPERTY(dht_keys_debug)) {
+			g_warning("DHT KEYS %s(): creator %s not found under %s",
+				G_STRFUNC, kuid_to_hex_string(cid), kuid_to_hex_string2(id));
+		}
+	}
+}
+
+/**
+ * Allocate keyinfo.
+ *
+ * @param kuid		the key's KUID
+ * @param common	common bits with our KUID
+ */
+static struct keyinfo *
+allocate_keyinfo(const kuid_t *kuid, size_t common)
+{
+	struct keyinfo *ki;
+
+	WALLOC0(ki);
+	ki->magic = KEYINFO_MAGIC;
+	ki->kuid = kuid_get_atom(kuid);
+	ki->common_bits = common & 0xff;
+
+	return ki;
 }
 
 /**
@@ -707,15 +821,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				kuid_to_hex_string(id), common, 1 == common ? "" : "s",
 				kuid_to_hex_string2(cid));
 
-		WALLOC(ki);
-		ki->magic = KEYINFO_MAGIC;
-		ki->kuid = kuid_get_atom(id);
-		ki->get_req_load = 0.0;
-		ki->get_requests = 0;
-		ki->store_req_load = 0.0;
-		ki->store_requests = 0;
-		ki->common_bits = common & 0xff;
-		ki->values = 0;						/* will be incremented below */
+		ki = allocate_keyinfo(id, common);
 		ki->next_expire = expire;
 		ki->flags = in_kball ? 0 : DHT_KEY_F_CACHED;
 
@@ -725,6 +831,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		kd->values = 0;						/* will be incremented below */
 		kd->creators[0] = *cid;				/* struct copy */
 		kd->dbkeys[0] = dbkey;
+		kd->expire[0] = expire;
 
 		gnet_stats_inc_general(GNR_DHT_KEYS_HELD);
 		if (!in_kball)
@@ -787,11 +894,16 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 				sizeof(kd->creators[0]) * (kd->values - low));
 			memmove(&kd->dbkeys[low+1], &kd->dbkeys[low],
 				sizeof(kd->dbkeys[0]) * (kd->values - low));
+			memmove(&kd->expire[low+1], &kd->expire[low],
+				sizeof(kd->expire[0]) * (kd->values - low));
 		}
+
+		/* FALL THROUGH */
 
 	empty:
 		kd->creators[low] = *cid;			/* struct copy */
 		kd->dbkeys[low] = dbkey;
+		kd->expire[low] = expire;
 
 		ki->next_expire = MIN(ki->next_expire, expire);
 	}
@@ -1012,10 +1124,13 @@ serialize_keydata(pmsg_t *mb, const void *data)
 
 	g_assert(kd->values <= MAX_VALUES);
 
+	pmsg_write_u8(mb, KEYS_KEYDATA_VERSION);
 	pmsg_write_u8(mb, kd->values);
+
 	for (i = 0; i < kd->values; i++) {
 		pmsg_write(mb, &kd->creators[i], sizeof(kd->creators[i]));
 		pmsg_write(mb, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
+		pmsg_write_time(mb, kd->expire[i]);
 	}
 }
 
@@ -1027,17 +1142,31 @@ deserialize_keydata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct keydata *kd = valptr;
 	int i;
+	uint8 version;
 
 	g_assert(sizeof *kd == len);
 
-	bstr_read_u8(bs, &kd->values);
-	g_assert(kd->values <= G_N_ELEMENTS(kd->creators));
+	/*
+	 * Early returns will cause DBMW to complain that the value could not
+	 * be deserialized properly.  We do not log anything here.
+	 */
+
+	if (!bstr_read_u8(bs, &version))
+		return;
+
+	if (!bstr_read_u8(bs, &kd->values))
+		return;
+
+	if (kd->values > G_N_ELEMENTS(kd->creators))
+		return;
 
 	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->dbkeys));
+	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->expire));
 
 	for (i = 0; i < kd->values; i++) {
 		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
 		bstr_read(bs, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
+		bstr_read_time(bs, &kd->expire[i]);
 	}
 }
 
@@ -1082,7 +1211,7 @@ keys_update_load(void *val, void *u)
 	 */
 
 	if (0 == ki->values) {
-		keys_reclaim(ki);
+		keys_reclaim(ki, FALSE);
 		return TRUE;			/* Entry deleted */
 	}
 
@@ -1263,6 +1392,224 @@ keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj)
 	keys_update_kball();
 }
 
+struct keys_create_context {
+	const kuid_t *our_kuid;
+	hset_t *dbkeys;				/* Value/raw data DB keys (atoms) */
+};
+
+/**
+ * DBMW foreach iterator to reload keyinfo.
+ *
+ * @return TRUE if persisted entry can be deleted.
+ */
+static G_GNUC_COLD bool
+reload_ki(void *key, void *value, size_t u_len, void *data)
+{
+	struct keys_create_context *ctx = data;
+	const struct keydata *kd = value;
+	const kuid_t *id = key;
+	struct keyinfo *ki;
+	size_t common;
+	time_t next_expire = TIME_T_MAX, last_expire = 0, now = tm_time();
+	unsigned i;
+
+	(void) u_len;
+
+	if (0 == kd->values)
+		return TRUE;
+
+	/*
+	 * Check whether key has expired: if all the values associated with it
+	 * have expired, there will be no need to recreate the keyinfo and
+	 * retrieve the associated value data.
+	 */
+
+	for (i = 0; i < kd->values; i++) {
+		last_expire = MAX(last_expire, kd->expire[i]);
+	}
+
+	if (delta_time(now, last_expire) >= 0)
+		return TRUE;
+
+	/*
+	 * We're going to keep at least one of the values, prepare keyinfo.
+	 */
+
+	common = kuid_common_prefix(ctx->our_kuid, id);
+	ki = allocate_keyinfo(id, common);
+	hikset_insert_key(keys, &ki->kuid);
+
+	/*
+	 * Values will be inserted later, just prepare the DB keys we need to
+	 * load to restore them.
+	 */
+
+	for (i = 0; i < kd->values; i++) {
+		uint64 dbkey = kd->dbkeys[i];
+
+		if (delta_time(now, kd->expire[i]) >= 0)
+			continue;		/* This value has already expired */
+
+		next_expire = MIN(next_expire, kd->expire[i]);
+
+		if (!hset_contains(ctx->dbkeys, &dbkey)) {
+			const uint64 *dbatom = atom_uint64_get(&dbkey);
+			hset_insert(ctx->dbkeys, dbatom);
+		}
+	}
+
+	ki->next_expire = next_expire;
+
+	return FALSE;		/* Keep keydata */
+}
+
+static G_GNUC_COLD void
+keys_free_dbkey(const void *key, void *u_data)
+{
+	const uint64 *dbkey = key;
+
+	(void) u_data;
+	atom_uint64_free(dbkey);
+}
+
+/**
+ * Set iterator to remove keys with no values.
+ */
+static G_GNUC_COLD bool
+keys_discard_if_empty(void *key, void *u_data)
+{
+	struct keyinfo *ki = key;
+
+	keyinfo_check(ki);
+	(void) u_data;
+
+	if (0 == ki->values) {
+		if (GNET_PROPERTY(dht_keys_debug) > 1) {
+			g_debug("DHT KEYS no values retrieved for key %s, discarding",
+				kuid_to_hex_string(ki->kuid));
+		}
+
+		keys_reclaim(ki, FALSE);
+		return TRUE;
+	}
+
+	return FALSE;		/* Keep key */
+}
+
+/**
+ * DBMW iterator to delete keys with no values.
+ */
+static G_GNUC_COLD bool
+keys_delete_if_empty(void *u_key, void *value, size_t u_len, void *u_data)
+{
+	struct keydata *kd = value;
+
+	(void) u_data;
+	(void) u_len;
+	(void) u_key;
+
+	return 0 == kd->values;
+}
+
+/**
+ * DBMW iterator to reset key data.
+ */
+static G_GNUC_COLD void
+keys_reset_keydata(void *key, void *u_data)
+{
+	struct keyinfo *ki = key;
+	struct keydata kd;
+
+	keyinfo_check(ki);
+	(void) u_data;
+
+	ZERO(&kd);
+	dbmw_write(db_keydata, ki->kuid, &kd, sizeof kd);
+}
+
+/**
+ * Recreate keyinfo data from persisted information.
+ */
+static G_GNUC_COLD void
+keys_init_keyinfo(void)
+{
+	struct keys_create_context ctx;
+
+	if (GNET_PROPERTY(dht_keys_debug)) {
+		size_t count = dbmw_count(db_keydata);
+		g_debug("DHT KEYS scanning %u persisted key%s",
+			(unsigned) count, 1 == count ? "" : "s");
+	}
+
+	ctx.our_kuid = get_our_kuid();
+	ctx.dbkeys = hset_create(HASH_KEY_FIXED, sizeof(uint64));
+
+	dbmw_foreach_remove(db_keydata, reload_ki, &ctx);
+
+	if (GNET_PROPERTY(dht_keys_debug)) {
+		size_t count = dbmw_count(db_keydata);
+		g_debug("DHT KEYS kept %u key%s, now loading associated values",
+			(unsigned) count, 1 == count ? "" : "s");
+	}
+
+	/*
+	 * FIXME:
+	 * Unfortunately, we have to reset the keydata database for each of
+	 * the keys we're going to recreate, because the logic adding values
+	 * back to the key will fill each of the keydata appropriately, and it
+	 * expects the amount of values in the keyinfo and the keydata to match.
+	 *
+	 * Therefore, we need to rename the old keydata database, open a new one,
+	 * write empty keydata values in it, then discard the old keydata if
+	 * everything goes well.  In case of a crash in the middle of the
+	 * restoration, we'll be able to recover by opening the old keydata first
+	 * if it exists.
+	 *
+	 * It is far from critical though: if we reset the keydata database and
+	 * we crash in the middle of the restore, then we'll lose all the persisted
+	 * keys and values and will simply restart with an empty storage.
+	 *
+	 * Given the contorsions needed to fix that, and the little value for
+	 * the user, just leaving a FIXME note.
+	 *		--RAM, 2012-11-17
+	 */
+
+	hikset_foreach(keys, keys_reset_keydata, NULL);
+	values_init_data(ctx.dbkeys);
+
+	hset_foreach(ctx.dbkeys, keys_free_dbkey, NULL);
+	hset_free_null(&ctx.dbkeys);
+
+	hikset_foreach_remove(keys, keys_discard_if_empty, NULL);
+	dbmw_foreach_remove(db_keydata, keys_delete_if_empty, NULL);
+	dbstore_shrink(db_keydata);
+
+	g_soft_assert_log(hikset_count(keys) == dbmw_count(db_keydata),
+		"keys reloaded: %zu, key data persisted: %zu",
+		hikset_count(keys), dbmw_count(db_keydata));
+
+	if (GNET_PROPERTY(dht_keys_debug)) {
+		g_debug("DHT KEYS reloaded %zu key%s",
+			hikset_count(keys), 1 == hikset_count(keys) ? "" : "s");
+	}
+
+	gnet_stats_set_general(GNR_DHT_KEYS_HELD, hikset_count(keys));
+}
+
+/**
+ * Periodic DB synchronization.
+ */
+static bool
+keys_sync(void *unused_obj)
+{
+	(void) unused_obj;
+
+	dbstore_sync_flush(db_keydata);
+	values_sync();
+
+	return TRUE;		/* Keep calling */
+}
+
 /**
  * Initialize local key management.
  */
@@ -1288,12 +1635,16 @@ keys_init(void)
 	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
 	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_keybase);
 
-	db_keydata = dbstore_create(db_keywhat, settings_dht_db_dir(), db_keybase,
+	db_keydata = dbstore_open(db_keywhat, settings_dht_db_dir(), db_keybase,
 		kv, packing, KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
 	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
+
+	values_init();
+	keys_init_keyinfo();
+	keys_sync_ev = cq_periodic_main_add(KEYS_SYNC_PERIOD, keys_sync, NULL);
 }
 
 /**
@@ -1453,6 +1804,8 @@ keys_free_kv(void *val, void *u_x)
 G_GNUC_COLD void
 keys_close(void)
 {
+	values_close();
+
 	dbstore_delete(db_keydata);
 	db_keydata = NULL;
 
@@ -1469,6 +1822,7 @@ keys_close(void)
 
 	cq_cancel(&kball_ev);
 	cq_periodic_remove(&keys_periodic_ev);
+	cq_periodic_remove(&keys_sync_ev);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
