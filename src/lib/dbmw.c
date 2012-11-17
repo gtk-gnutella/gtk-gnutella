@@ -736,6 +736,8 @@ dbmw_sync(dbmw_t *dw, int which)
 	size_t pages = 0, values = 0;
 	bool error = FALSE;
 
+	dbmw_check(dw);
+
 	if (which & DBMW_SYNC_CACHE) {
 		struct flush_context ctx;
 
