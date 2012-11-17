@@ -1553,6 +1553,12 @@ http_range_clone(http_range_t *range)
 }
 
 /**
+ * Merge ranges for the old and new lists.
+ *
+ * Ranges in the merged list are made of NEW objects: the ranges from the
+ * given lists are left in their respective lists and not further referenced,
+ * since there is no reference counting of ranges.
+ *
  * @returns a new list based on the merged ranges in the other lists given.
  */
 GSList *
