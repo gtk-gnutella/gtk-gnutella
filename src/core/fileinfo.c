@@ -6023,6 +6023,7 @@ file_info_add_source(fileinfo_t *fi, struct download *d)
 	}
 
 	src_event_trigger(d, EV_SRC_ADDED);
+	fi_update_seen_on_network(d->src_handle);
 }
 
 /**
@@ -6041,7 +6042,15 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 	g_assert(fi->refcount >= fi->lifecount);
 	g_assert(fi->hashed);
 
+	/*
+	 * Source is removed: inform whoever is monitoring the sources via an event.
+	 * Then remove the source from the fileinfo before recomputing the available
+	 * chunks in the file.
+	 */
+
 	src_event_trigger(d, EV_SRC_REMOVED);
+	fi->sources = g_slist_remove(fi->sources, d);
+	fi_update_seen_on_network(d->src_handle);
 
 	idtable_free_id(src_handle_map, d->src_handle);
 	d->src_handle_valid = FALSE;
@@ -6052,7 +6061,6 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 	fi->refcount--;
 	fi->dirty_status = TRUE;
 	d->file_info = NULL;
-	fi->sources = g_slist_remove(fi->sources, d);
 
 	/*
 	 * We don't free the structure when `discard' is FALSE: keeping the
@@ -6763,48 +6771,54 @@ fi_range_for_complete_file(filesize_t size)
 /**
  * Callback for updates to ranges available on the network.
  *
- * This function gets triggered by an event when new ranges
- * information has become available for a download source.
- * We collect the set of currently available ranges in
- * file_info->seen_on_network. Currently we only fold in new ranges
- * from a download source, but we should also remove sets of ranges when
- * a download source is no longer available.
+ * This function gets triggered by an event when new ranges information has
+ * become available for a download source.
+ *
+ * We collect the set of currently available ranges in fi>seen_on_network.
+ * We fold in new ranges from a download source, and also remove sets of
+ * ranges when a download source is no longer available.
  *
  * @param[in] srcid  The abstract id of the source that had its ranges updated.
- *
- * @bug
- * FIXME: also remove ranges when a download source is no longer available.
  */
 static void
 fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
-	GSList *old_list;    /* The previous list of ranges, no longer needed */
-	GSList *sl;           /* Temporary pointer to help remove old_list */
+	fileinfo_t *fi;
+	GSList *old_list;	/* The previous list of ranges, no longer needed */
+	GSList *sl;			/* Temporary pointer to help remove old_list */
 	GSList *r = NULL;
 	GSList *new_r = NULL;
+	bool complete;
 
 	d = src_get_download(srcid);
 	download_check(d);
 
-	old_list = d->file_info->seen_on_network;
+	fi = d->file_info;
+	file_info_check(fi);
 
-	/*
-	 * FIXME: this code is currently only triggered by new HTTP ranges
-	 * information becoming available. In addition to that we should perhaps
-	 * also include add_source and delete_source. We will miss the latter in
-	 * this setup especially.
-	 */
+	old_list = fi->seen_on_network;
 
 	/*
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file.
 	 */
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("*** Fileinfo: %s\n", d->file_info->pathname);
+		g_debug("%s(): updating ranges for %s\n", G_STRFUNC, fi->pathname);
 
-	for (sl = d->file_info->sources; sl; sl = g_slist_next(sl)) {
+	for (
+		sl = fi->sources, complete = FALSE;
+		sl != NULL && !complete;
+		sl = g_slist_next(sl)
+	) {
 		struct download *src = sl->data;
+		fileinfo_t *sfi;
+
+		download_check(src);
+
+		sfi = src->file_info;
+		file_info_check(sfi);
+
 		/*
 		 * We only count the ranges of a file if it has replied to a recent
 		 * request, and if the download request is not done or in an error
@@ -6825,37 +6839,39 @@ fi_update_seen_on_network(gnet_src_t srcid)
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
 
-			if (!src->file_info->use_swarming || !(src->flags & DL_F_PARTIAL)) {
+			if (!sfi->use_swarming || !(src->flags & DL_F_PARTIAL)) {
 				/*
 				 * Indicate that the whole file is available.
-				 * We could just stop here and assign the complete file range,
-   				 * but I'm leaving the code as-is so that we can play with the
- 				 * info more, e.g. show different colors for ranges that are
-				 * available more.
 				 */
 
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
 					g_debug("  whole file is now available");
 
-				{
-					GSList *full_r;
-
-					full_r = fi_range_for_complete_file(d->file_info->size);
-					new_r = http_range_merge(r, full_r);
-					fi_free_ranges(full_r);
-				}
+				new_r = fi_range_for_complete_file(fi->size);
+				complete = TRUE;
 			} else {
 				/* Merge in the new ranges */
-				if (GNET_PROPERTY(fileinfo_debug) > 5)
+				if (GNET_PROPERTY(fileinfo_debug) > 5) {
 					g_debug("  ranges %s available",
 						http_range_to_string(src->ranges));
+				}
 				new_r = http_range_merge(r, src->ranges);
 			}
+
 			fi_free_ranges(r);
 			r = new_r;
+
+			/*
+			 * Stop if we have the full range covered, to stop looping.
+			 */
+
+			if (!complete && r != NULL) {
+				http_range_t *hr = r->data;
+				complete = 0 == hr->start && hr->end + 1 >= fi->size;
+			}
 		}
 	}
-	d->file_info->seen_on_network = r;
+	fi->seen_on_network = r;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		g_debug("    final ranges: %s", http_range_to_string(r));
