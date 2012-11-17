@@ -1677,7 +1677,7 @@ fi_gui_fi_info_changed(gnet_fi_t handle)
 	}
 }
 
-static void
+void
 fi_gui_fi_status_changed(gnet_fi_t handle)
 {
 	void *key = uint_to_pointer(handle);

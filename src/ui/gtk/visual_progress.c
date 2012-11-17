@@ -43,6 +43,7 @@
 #include "gui.h"
 
 #include "visual_progress.h"
+#include "downloads_common.h"	/* For fi_gui_fi_status_changed() */
 
 #include "if/core/http.h"
 #include "if/gui_property_priv.h"
@@ -748,6 +749,8 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_ranges(v->ranges_list);
 	v->ranges_list = guc_fi_get_ranges(fih);
+
+	fi_gui_fi_status_changed(fih);		/* Enqueue re-drawing event */
 }
 
 
