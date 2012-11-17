@@ -8581,6 +8581,7 @@ node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
 	 */
 
 	if (NODE_IS_DHT(n)) {
+		node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
 		kmsg_received(s->buf, s->pos, s->addr, s->port, n);
 		return;
 	}
