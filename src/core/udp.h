@@ -85,7 +85,8 @@ struct guid;
 struct pmsg;
 struct rxdriver;
 
-void udp_received(struct gnutella_socket *s, bool truncated);
+void udp_received(const struct gnutella_socket *s,
+	const void *data, size_t len, bool truncated);
 void udp_connect_back(const host_addr_t addr, uint16 port,
 	const struct guid *muid);
 void udp_send_msg(const struct gnutella_node *n, const void *buf, int len);

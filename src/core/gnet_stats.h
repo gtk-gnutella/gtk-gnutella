@@ -49,6 +49,7 @@ void gnet_stats_count_dropped_nosize(
 void gnet_stats_count_general(gnr_stats_t, int);
 void gnet_stats_inc_general(gnr_stats_t);
 void gnet_stats_dec_general(gnr_stats_t);
+void gnet_stats_max_general(gnr_stats_t type, uint64 value);
 void gnet_stats_set_general(gnr_stats_t type, uint64 value);
 uint64 gnet_stats_get_general(gnr_stats_t type);
 void gnet_stats_count_flowc(const void *, bool head_only);

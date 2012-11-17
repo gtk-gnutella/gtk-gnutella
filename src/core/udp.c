@@ -305,8 +305,9 @@ not:
 
 log:
 	if (GNET_PROPERTY(udp_debug)) {
-		g_warning("got invalid Gnutella packet (%zu byte%s) "
+		g_warning("UDP got invalid %sGnutella packet (%zu byte%s) "
 			"\"%s\" %sfrom %s: %s",
+			socket_udp_is_old(s) ? "OLD " : "",
 			len, 1 == len ? "" : "s",
 			len >= GTA_HEADER_SIZE ?
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
@@ -357,14 +358,16 @@ udp_is_valid_gnet(gnutella_node_t *n, const gnutella_socket_t *s,
  *
  * @param utp		already classified semi-reliable protocol
  * @param s			socket which received the message
+ * @param data		received data
+ * @param len		length of data
  *
  * @return TRUE if message corresponds to valid semi-reliable UDP traffic.
  */
 static bool
-udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
+udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s,
+	const void *data, size_t len)
 {
 	struct ut_header uth;
-	const void *head = cast_to_pointer(s->buf);
 	void *message = NULL;
 	size_t msglen;
 	bool valid = TRUE;
@@ -380,13 +383,13 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 
 	gnet_stats_inc_general(GNR_UDP_AMBIGUOUS_DEEPER_INSPECTION);
 
-	uth.count = udp_reliable_header_get_count(head);
+	uth.count = udp_reliable_header_get_count(data);
 	if (0 == uth.count)
 		return TRUE;		/* Acknoweldgments */
 
-	uth.part = udp_reliable_header_get_part(head) - 1;	/* Zero-based */
-	uth.flags = udp_reliable_header_get_flags(head);
-	uth.seqno = udp_reliable_header_get_seqno(head);
+	uth.part = udp_reliable_header_get_part(data) - 1;	/* Zero-based */
+	uth.flags = udp_reliable_header_get_flags(data);
+	uth.seqno = udp_reliable_header_get_seqno(data);
 
 	/*
 	 * We're going to ask the RX layer about the message: is it a known
@@ -408,7 +411,7 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		gnet_host_t from;
 
 		gnet_host_set(&from, s->addr, s->port);
-		rx = udp_get_rx_semi_reliable(utp, s->addr, s->pos);
+		rx = udp_get_rx_semi_reliable(utp, s->addr, len);
 
 		return NULL == rx ? FALSE : ut_valid_message(rx, &uth, &from);
 	}
@@ -440,8 +443,8 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		message = xmalloc(outlen);
 		
 		ret = zlib_inflate_into(
-			const_ptr_add_offset(head, UDP_RELIABLE_HEADER_SIZE),
-			s->pos - UDP_RELIABLE_HEADER_SIZE,
+			const_ptr_add_offset(data, UDP_RELIABLE_HEADER_SIZE),
+			len - UDP_RELIABLE_HEADER_SIZE,
 			message, &outlen);
 
 		if (ret != Z_OK) {
@@ -452,8 +455,8 @@ udp_is_valid_semi_reliable(enum udp_traffic utp, const gnutella_socket_t *s)
 		msglen = outlen;
 	} else {
 		message = ptr_add_offset(
-			deconstify_pointer(head), UDP_RELIABLE_HEADER_SIZE);
-		msglen = s->pos - UDP_RELIABLE_HEADER_SIZE;
+			deconstify_pointer(data), UDP_RELIABLE_HEADER_SIZE);
+		msglen = len - UDP_RELIABLE_HEADER_SIZE;
 	}
 
 	switch (utp) {
@@ -673,26 +676,26 @@ tag_known:
  * @return intuited type
  */
 static enum udp_traffic
-udp_intuit_traffic_type(const gnutella_socket_t *s)
+udp_intuit_traffic_type(const gnutella_socket_t *s,
+	const void *data, size_t len)
 {
 	enum udp_traffic utp;
-	const void *head = cast_to_pointer(s->buf);
 
-	utp = udp_check_semi_reliable(head, s->pos);
+	utp = udp_check_semi_reliable(data, len);
 
-	if (s->pos >= GTA_HEADER_SIZE) {
+	if (len >= GTA_HEADER_SIZE) {
 		uint16 size;			/* Payload size, from the Gnutella message */
 		gmsg_valid_t valid;
 
-		valid = gmsg_size_valid(head, &size);
+		valid = gmsg_size_valid(data, &size);
 
 		switch (valid) {
 		case GMSG_VALID:
 		case GMSG_VALID_MARKED:
-			if ((size_t) size + GTA_HEADER_SIZE == s->pos) {
+			if ((size_t) size + GTA_HEADER_SIZE == len) {
 				uint8 function, hops, ttl;
 
-				function = gnutella_header_get_function(head);
+				function = gnutella_header_get_function(data);
 
 				/*
 				 * If the header cannot be that of a known semi-reliable
@@ -740,8 +743,8 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				 * a misclassification for about 1 / 2^(16+24) random cases.
 				 */
 
-				hops = gnutella_header_get_hops(head);
-				ttl = gnutella_header_get_ttl(head);
+				hops = gnutella_header_get_hops(data);
+				ttl = gnutella_header_get_ttl(data);
 
 				gnet_stats_inc_general(GNR_UDP_AMBIGUOUS);
 
@@ -750,9 +753,9 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 						"%zu bytes (%u-byte payload), "
 						"function=%u, hops=%u, TTL=%u, size=%u",
 						host_addr_port_to_string(s->addr, s->port),
-						s->pos, size, function, hops, ttl,
-						gnutella_header_get_size(head));
-					dump_hex(stderr, "UDP ambiguous datagram", s->buf, s->pos);
+						len, size, function, hops, ttl,
+						gnutella_header_get_size(data));
+					dump_hex(stderr, "UDP ambiguous datagram", data, len);
 				}
 
 				switch (function) {
@@ -761,7 +764,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * A DHT message must be larger than KDA_HEADER_SIZE bytes.
 					 */
 
-					if (s->pos < KDA_HEADER_SIZE)
+					if (len < KDA_HEADER_SIZE)
 						break;		/* Not a DHT message */
 
 					/*
@@ -776,7 +779,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * If it is a DHT message, it must have a valid opcode.
 					 */
 
-					function = kademlia_header_get_function(head);
+					function = kademlia_header_get_function(data);
 
 					if (function > KDA_MSG_MAX_ID)
 						break;		/* Not a valid DHT opcode */
@@ -786,7 +789,7 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * header, because there is only room for an IPv4 address.
 					 */
 
-					if (!kademlia_header_constants_ok(head))
+					if (!kademlia_header_constants_ok(data))
 						break;		/* Not a valid Kademlia header */
 
 					/*
@@ -794,13 +797,13 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * message as a DHT message.
 					 */
 
-					if (udp_is_valid_semi_reliable(utp, s))
+					if (udp_is_valid_semi_reliable(utp, s, data, len))
 						break;		/* Validated it as semi-reliable UDP */
 
 					g_warning("UDP ambiguous message from %s (%zu bytes total),"
 						" DHT function is %s",
 						host_addr_port_to_string(s->addr, s->port),
-						s->pos, kmsg_name(function));
+						len, kmsg_name(function));
 
 					return DHT;
 
@@ -849,13 +852,13 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * message as a Gnutella message.
 					 */
 
-					if (udp_is_valid_semi_reliable(utp, s))
+					if (udp_is_valid_semi_reliable(utp, s, data, len))
 						break;		/* Validated it as semi-reliable UDP */
 
 					g_warning("UDP ambiguous message from %s (%zu bytes total),"
 						" Gnutella function is %s, hops=%u, TTL=%u",
 						host_addr_port_to_string(s->addr, s->port),
-						s->pos, gmsg_name(function), hops, ttl);
+						len, gmsg_name(function), hops, ttl);
 
 					return GNUTELLA;
 
@@ -870,12 +873,12 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 					 * disambiguate, so our only option is deeper inspection.
 					 */
 
-					if (udp_is_valid_semi_reliable(utp, s))
+					if (udp_is_valid_semi_reliable(utp, s, data, len))
 						break;		/* Validated it as semi-reliable UDP */
 
 					g_warning("UDP ambiguous message from %s (%zu bytes total),"
 						" interpreted as RUDP packet",
-						host_addr_port_to_string(s->addr, s->port), s->pos);
+						host_addr_port_to_string(s->addr, s->port), len);
 
 					return RUDP;
 					
@@ -893,12 +896,12 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 				{
 					udp_tag_t tag;
 
-					memcpy(tag.value, head, sizeof tag.value);
+					memcpy(tag.value, data, sizeof tag.value);
 
 					g_warning("UDP ambiguous message (%zu bytes total), "
 						"not Gnutella (function is %d, hops=%u, TTL=%u) "
 						"handling as semi-reliable UDP (tag=\"%s\")",
-						s->pos, function, hops, ttl, udp_tag_to_string(tag));
+						len, function, hops, ttl, udp_tag_to_string(tag));
 				}
 				return utp;
 			}
@@ -915,11 +918,17 @@ udp_intuit_traffic_type(const gnutella_socket_t *s)
 /**
  * Notification from the socket layer that we got a new datagram.
  *
+ * @param s				the receiving socket (with s->addr and s->port set)
+ * @param data			start of received data (not necessarily s->buf)
+ * @param len			length of received data (not necessarily s->pos)
+ * @param truncated		whether received datagram was truncated
+ *
  * If `truncated' is true, then the message was too large for the
  * socket buffer.
  */
 void
-udp_received(struct gnutella_socket *s, bool truncated)
+udp_received(const gnutella_socket_t *s,
+	const void *data, size_t len, bool truncated)
 {
 	gnutella_node_t *n;
 	bool bogus = FALSE;
@@ -950,14 +959,14 @@ udp_received(struct gnutella_socket *s, bool truncated)
 		enum udp_traffic utp;
 		rxdrv_t *rx;
 
-		utp = udp_intuit_traffic_type(s);
+		utp = udp_intuit_traffic_type(s, data, len);
 
 		switch (utp) {
 		case GNUTELLA:
 			goto unreliable;
 		case RUDP:
 			rudp = TRUE;
-			gnet_stats_count_general(GNR_RUDP_RX_BYTES, s->pos);
+			gnet_stats_count_general(GNR_RUDP_RX_BYTES, len);
 			goto rudp;		/* Don't account this message in UDP statistics */
 		case DHT:
 			dht = TRUE;
@@ -977,15 +986,15 @@ udp_received(struct gnutella_socket *s, bool truncated)
 		 * messages.
 		 */
 
-		bws_udp_count_read(s->pos, FALSE);	/* We know it's not DHT traffic */
+		bws_udp_count_read(len, FALSE);	/* We know it's not DHT traffic */
 
-		rx = udp_get_rx_semi_reliable(utp, s->addr, s->pos);
+		rx = udp_get_rx_semi_reliable(utp, s->addr, len);
 
 		if (rx != NULL) {
 			gnet_host_t from;
 
 			gnet_host_set(&from, s->addr, s->port);
-			ut_got_message(rx, s->buf, s->pos, &from);
+			ut_got_message(rx, data, len, &from);
 		}
 
 		return;
@@ -997,8 +1006,8 @@ unknown:
 	 * can account received data with the proper bandwidth scheduler.
 	 */
 
-	if (s->pos >= GTA_HEADER_SIZE)
-		dht = GTA_MSG_DHT == gnutella_header_get_function(s->buf);
+	if (len >= GTA_HEADER_SIZE)
+		dht = GTA_MSG_DHT == gnutella_header_get_function(data);
 
 	/* FALL THROUGH */
 
@@ -1007,7 +1016,7 @@ unreliable:
 	 * Account for Gnutella / DHT incoming UDP traffic.
 	 */
 
-	bws_udp_count_read(s->pos, dht);
+	bws_udp_count_read(len, dht);
 
 	/* FALL THROUGH */
 
@@ -1033,9 +1042,9 @@ rudp:
 		bogus = TRUE;
 
 		if (GNET_PROPERTY(udp_debug)) {
-			g_warning("UDP %sdatagram (%d byte%s) received from bogus IP %s",
+			g_warning("UDP %sdatagram (%zu byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
-				(int) s->pos, s->pos == 1 ? "" : "s",
+				len, 1 == len ? "" : "s",
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
@@ -1051,7 +1060,7 @@ rudp:
 	n = dht ? node_dht_get_addr_port(s->addr, s->port) :
 		node_udp_get_addr_port(s->addr, s->port);
 
-	if (!udp_is_valid_gnet(n, s, truncated, s->buf, s->pos))
+	if (!udp_is_valid_gnet(n, s, truncated, data, len))
 		return;
 
 	/*
@@ -1061,7 +1070,7 @@ rudp:
 	if (rudp) {
 		/* Not ready for prime time */
 #if 0
-		rudp_handle_packet(s->addr, s->port. s->buf, s->pos);
+		rudp_handle_packet(s->addr, s->port. data, len);
 #endif
 		return;
 	}
@@ -1072,10 +1081,10 @@ rudp:
 	 */
 
 	if (GNET_PROPERTY(udp_debug) > 19 || (bogus && GNET_PROPERTY(udp_debug)))
-		g_debug("UDP got %s from %s%s", gmsg_infostr_full(s->buf, s->pos),
+		g_debug("UDP got %s from %s%s", gmsg_infostr_full(data, len),
 			bogus ? "BOGUS " : "", host_addr_port_to_string(s->addr, s->port));
 
-	node_udp_process(n, s);
+	node_udp_process(n, s, data, len);
 }
 
 /**

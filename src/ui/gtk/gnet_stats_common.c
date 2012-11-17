@@ -173,6 +173,12 @@ general_type_str(gint value)
 		N_("GIV discarded due to no suitable download"),
 		N_("QUEUE callbacks received"),
 		N_("QUEUE discarded due to no suitable download"),
+		N_("UDP read-ahead datagram running count"),
+		N_("UDP read-ahead datagram running bytes"),
+		N_("UDP read-ahead datagram \"old\" processed"),
+		N_("UDP read-ahead datagram max count"),
+		N_("UDP read-ahead datagram max bytes"),
+		N_("UDP read-ahead datagram max delay"),
 		N_("UDP push messages received for FW<->FW connections"),
 		N_("UDP push messages requesting FW<->FW connection with ourselves"),
 		N_("UDP push messages patched for FW<->FW connections"),
@@ -483,9 +489,14 @@ gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
 		case GNR_QUERY_COMPACT_SIZE:
 		case GNR_IGNORED_DATA:
 		case GNR_SUNK_DATA:
+		case GNR_UDP_READ_AHEAD_BYTES_SUM:
+		case GNR_UDP_READ_AHEAD_BYTES_MAX:
 		case GNR_RUDP_TX_BYTES:
 		case GNR_RUDP_RX_BYTES:
 			g_strlcpy(dst, compact_size(value, show_metric_units()), size);
+			break;
+		case GNR_UDP_READ_AHEAD_DELAY_MAX:
+			g_strlcpy(dst, compact_time(value), size);
 			break;
 		default:
 			uint64_to_string_buf(value, dst, size);
