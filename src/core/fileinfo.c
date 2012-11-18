@@ -6036,7 +6036,7 @@ void
 file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 {
 	file_info_check(fi);
-	g_assert(NULL != d->file_info);
+	g_assert(fi == d->file_info);
 	g_assert(d->src_handle_valid);
 	g_assert(fi->refcount > 0);
 	g_assert(fi->refcount >= fi->lifecount);
@@ -6050,14 +6050,21 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 
 	src_event_trigger(d, EV_SRC_REMOVED);
 	fi->sources = g_slist_remove(fi->sources, d);
-	fi_update_seen_on_network(d->src_handle);
+
+	/*
+	 * If we cloned this download, then do not update the seen parts: it is
+	 * when the cloned download will be removed that we will need to update.
+	 */
+
+	if (!d->src_cloned)
+		fi_update_seen_on_network(d->src_handle);
 
 	idtable_free_id(src_handle_map, d->src_handle);
 	d->src_handle_valid = FALSE;
 
-	if (download_is_alive(d)) {
+	if (download_is_alive(d))
 		fi->lifecount--;
-	}
+
 	fi->refcount--;
 	fi->dirty_status = TRUE;
 	d->file_info = NULL;
@@ -6080,6 +6087,47 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 			fi_free(fi);
 		}
     }
+}
+
+/**
+ * Add a cloned source.
+ *
+ * This is a specialized form of file_info_add_source().
+ *
+ * Since we're handling a cloned source, there is no need to update the
+ * list of seen parts of the file on the network, because we already have
+ * this information computed from the original download that has been cloned.
+ *
+ * @param fi	the fileinfo
+ * @param d		the original download being cloned
+ * @param cd	the new cloned download 
+ */
+void
+file_info_cloned_source(fileinfo_t *fi, download_t *d, download_t *cd)
+{
+	file_info_check(fi);
+	g_assert(NULL != d->file_info);
+	g_assert(cd->src_handle_valid);				/* Because it's a clone! */
+	g_assert(fi->refcount > 0);
+	g_assert(fi->refcount >= fi->lifecount);
+	g_assert(fi->hashed);
+	g_assert(!d->src_cloned);
+
+	d->src_cloned = TRUE;		/* This download was cloned */
+
+	cd->src_handle = idtable_new_id(src_handle_map, cd);
+	fi->sources = g_slist_prepend(fi->sources, cd);
+	src_event_trigger(cd, EV_SRC_ADDED);
+
+	/*
+	 * Do not mark fileinfo dirty, we're just increasing counters.
+	 */
+
+	fi->refcount++;
+	if (download_is_alive(d)) {
+		g_assert(fi->refcount > fi->lifecount);
+		fi->lifecount++;
+	}
 }
 
 /**

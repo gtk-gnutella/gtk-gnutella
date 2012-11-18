@@ -271,6 +271,7 @@ struct download {
 	uint32 flags;
 	uint32 cflags;
 
+	unsigned src_cloned:1;		/**< TRUE if this source was cloned */
 	unsigned src_handle_valid:1;/**< TRUE if src_handle is initialized */
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
 	unsigned always_push:1;		/**< Always send PUSH to connect */

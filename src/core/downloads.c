@@ -3892,10 +3892,8 @@ download_clone(struct download *d)
 	fi = d->file_info;
 
 	cd = download_alloc();
-	*cd = *d;						/* Struct copy */
-	cd->file_info = NULL;			/* has not been added to fi sources list */
-	cd->src_handle_valid = FALSE;
-	file_info_add_source(fi, cd);	/* add cloned source */
+	*cd = *d;							/* Struct copy */
+	file_info_cloned_source(fi, d, cd);	/* Replace by cloned source */
 
 	if (s != NULL)
 		socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
