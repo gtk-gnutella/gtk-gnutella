@@ -4789,12 +4789,11 @@ download_stop(struct download *d,
  *
  * @param d				the download (with d->keep_alive correctly set)
  * @param header		the reply headers, to get at the Content-Length
- * @param new_status	the new download status
  * @param reason		the reason for stopping, followed by arguments
  */
 static void
 download_stop_switch(struct download *d, const header_t *header,
-	download_status_t new_status, const char * reason, ...)
+	const char * reason, ...)
 {
 	struct download *cd = NULL;
 	va_list args;
@@ -4808,7 +4807,7 @@ download_stop_switch(struct download *d, const header_t *header,
 	}
 
 	va_start(args, reason);
-	download_stop_v(d, new_status, reason, args);
+	download_stop_v(d, GTA_DL_ERROR, reason, args);
 	va_end(args);
 
 	if (cd != NULL)
@@ -11847,8 +11846,8 @@ http_version_nofix:
 		}
 
 	genuine_error:
-		download_stop_switch(d, header, GTA_DL_ERROR,
-			"%sHTTP %u %s", short_read, ack_code, ack_message);
+		download_stop_switch(d, header, "%sHTTP %u %s",
+			short_read, ack_code, ack_message);
 		return;
 	}
 
