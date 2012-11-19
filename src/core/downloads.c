@@ -4498,9 +4498,18 @@ download_attempt_switch(struct download *d)
 {
 	struct download *next;
 
+	if (GNET_PROPERTY(download_debug)) {
+		g_debug("%s(): trying to reuse connection for \"%s\" on %s",
+			G_STRFUNC, download_basename(d), download_host_info(d));
+	}
+
 	next = download_pick_another(d);
 
 	if (NULL == next) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_debug("%s(): closing connection to %s",
+				G_STRFUNC, download_host_info(d));
+		}
 		download_stop(d, GTA_DL_COMPLETED, _("Nothing else to switch to"));
 		return;
 	}
@@ -6476,8 +6485,14 @@ download_pick_another(const struct download *d)
 	 * the socket structure.
 	 */
 
-	if (other->list_idx == DL_LIST_RUNNING)
+	if (other->list_idx == DL_LIST_RUNNING) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_debug("%s(): stopping %s \"%s\" on %s",
+				G_STRFUNC, download_status_to_code_str(d->status),
+				download_basename(other), download_host_info(other));
+		}
 		download_stop(other, GTA_DL_TIMEOUT_WAIT, no_reason);
+	}
 
 	g_assert(other->list_idx == DL_LIST_WAITING);
 
