@@ -3551,6 +3551,9 @@ select_encoding(const header_t *header)
 
 /**
  * Extract X-Downloaded from header, returning 0 if none.
+ *
+ * The X-Downloaded header lets us better estimate the time an upload request
+ * can take if we are the only source for the file.
  */
 static filesize_t
 extract_downloaded(const struct upload *u, const header_t *header)
@@ -4825,7 +4828,7 @@ upload_request(struct upload *u, header_t *header)
 	u->socket->getline = NULL;
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
-		g_debug("----%s Request%s #%u from %s%s%s:\n%s",
+		g_debug("----%s HTTP Request%s #%u from %s%s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
 			u->last_was_error ? " (after error)" : "",
 			u->reqnum,
