@@ -12961,18 +12961,35 @@ picked:
 		return;
 	}
 
+	/*
+	 * When sending a follow-up request to a GTKG server, we do not need
+	 * to include the User-Agent string again.  Other vendors do require
+	 * the field, unfortunately.
+	 *		--RAM, 2012-11-19
+	 */
+
+	if (
+		!d->keep_alive ||
+		!is_strprefix(download_vendor_str(d), "gtk-gnutella/")
+	) {
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+			"User-Agent: %s\r\n", version_string);
+	}
+
 	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
-		"Host: %s\r\n"
-		"User-Agent: %s\r\n",
+		"Host: %s\r\n",
 		d->server->hostname
 			? d->server->hostname
-			: host_addr_port_to_string(download_addr(d), download_port(d)),
-			version_string);
+			: host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
 		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
-	} else {
+	} else if (!d->keep_alive) {		/* Not a follow-up HTTP request */
+		/*
+		 * We never send X-Features or X-Token on follow-up requests.
+		 */
+
 		header_features_generate(FEATURES_DOWNLOADS,
 			request_buf, maxsize, &rw);
 
