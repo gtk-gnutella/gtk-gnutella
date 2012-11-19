@@ -13158,9 +13158,15 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
-				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-				sha1_base32(sha1));
+			if (d->server->attrs & DLS_A_FAKE_G2) {
+				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+					"X-Content-URN: urn:sha1:%s\r\n",
+					sha1_base32(sha1));
+			} else {
+				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+					"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+					sha1_base32(sha1));
+			}
 		}
 	}
 
