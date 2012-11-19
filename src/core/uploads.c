@@ -2526,7 +2526,15 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 
 	upload_check(u);
 	g_assert(header);
-	
+
+	/*
+	 * We remember the first User-Agent we see for a given upload, so
+	 * follow-up requests simply ignore the field.
+	 */
+
+	if (u->user_agent != NULL)
+		return;
+
 	user_agent = header_get(header, "User-Agent");
 	if (user_agent == NULL) {
 		/* Maybe they sent a Server: line, thinking they're a server? */
@@ -2536,7 +2544,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		socket_disable_token(u->socket);
 	}
 
-	if (u->user_agent == NULL && user_agent != NULL) {
+	if (user_agent != NULL) {
 		const char *token;
 		bool faked;
 
