@@ -182,8 +182,7 @@ static void download_queue_delay(struct download *d, uint32 delay,
 	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_queue_hold(struct download *d, uint32 hold,
 	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
-static void download_force_stop(struct download *d,
-	download_status_t new_status, const char * reason, ...);
+static void download_force_stop(struct download *d, const char * reason, ...);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
 static void change_server_addr(struct dl_server *server,
@@ -3907,7 +3906,7 @@ download_clone(struct download *d)
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
 	cd->server->refcnt++;
 
-	if (cd->file_info->sha1 != NULL)
+	if (fi->sha1 != NULL)
 		download_by_sha1_add(cd);
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
@@ -4212,7 +4211,7 @@ stop_this:
 			download_basename(other));
 	}
 
-	download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(d, _("Duplicate download"));
 	goto dup_found;
 
 stop_other:
@@ -4224,7 +4223,7 @@ stop_other:
 				new_server->key->addr, new_server->key->port));
 	}
 
-	download_force_stop(other, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(other, _("Duplicate download"));
 
 	/* FALL THROUGH */
 
@@ -4820,8 +4819,7 @@ download_stop_switch(struct download *d, const header_t *header,
  * Forcefully stop a download, whether active or queued.
  */
 static void
-download_force_stop(struct download *d,
-	download_status_t new_status, const char * reason, ...)
+download_force_stop(struct download *d, const char * reason, ...)
 {
 	va_list args;
 
@@ -4839,7 +4837,7 @@ download_force_stop(struct download *d,
 		download_move_to_list(d, DL_LIST_RUNNING);
 
 	va_start(args, reason);
-	download_stop_v(d, new_status, reason, args);
+	download_stop_v(d, GTA_DL_ERROR, reason, args);
 	va_end(args);
 }
 
@@ -8087,7 +8085,7 @@ download_resume(struct download *d)
 	if (
 		server_has_same_download(d->server, d->file_name, d->sha1, d->file_size)
 	) {
-		download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+		download_force_stop(d, _("Duplicate download"));
 		return;
 	}
 
@@ -12750,10 +12748,11 @@ download_send_request(struct download *d)
 	struct dl_chunk *req = NULL;
 
 	download_check(d);
-	s = d->socket;
-	g_assert(s != NULL);
 
+	s = d->socket;
 	fi = d->file_info;
+
+	socket_check(s);
 	file_info_check(fi);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
