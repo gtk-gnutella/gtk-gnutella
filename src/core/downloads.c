@@ -4590,48 +4590,38 @@ download_stop_v(struct download *d, download_status_t new_status,
 		return;
 	}
 
-	switch (new_status) {
-	case GTA_DL_COMPLETED:
-		{
-			/*
-			 * Update average download speed, computing a fast EMA on the
-			 * last 3 terms.  Average is initialized with the actual download
-			 * rate the first time we compute it.
-			 */
+	if (GTA_DL_COMPLETED == new_status) {
+		/*
+		 * Update average download speed, computing a fast EMA on the
+		 * last 3 terms.  Average is initialized with the actual download
+		 * rate the first time we compute it.
+		 */
 
-			time_delta_t t = delta_time(d->last_update, d->start_date);
-			struct dl_server *server = d->server;
+		time_delta_t t = delta_time(d->last_update, d->start_date);
+		struct dl_server *server = d->server;
 
-			g_assert(server != NULL);
+		g_assert(server != NULL);
 
-			if (t > 0) {
-				filesize_t amount =
-					d->chunk.end - d->chunk.start + d->chunk.overlap;
-				uint avg = amount / t;
+		if (t > 0) {
+			filesize_t amount =
+				d->chunk.end - d->chunk.start + d->chunk.overlap;
+			uint avg = amount / t;
 
-				if (server->speed_avg == 0)
-					server->speed_avg = avg;	/* First time */
-				else
-					server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
-			}
+			if (server->speed_avg == 0)
+				server->speed_avg = avg;	/* First time */
+			else
+				server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
 		}
-		d->data_timeouts = 0;		/* Got a full chunk all right */
-		/* FALL THROUGH */
-	case GTA_DL_ABORTED:
-	case GTA_DL_ERROR:
-		break;
-	default:
-		break;
-	}
+		d->data_timeouts = 0;	/* Got a full chunk all right */
 
-	/*
-	 * Do not reset the start_date field when the dowmload is completed.
-	 * The GUI is going to use this field to compute the average download
-	 * speed.  And it does not matter now for this request.
-	 */
-
-	if (new_status != GTA_DL_COMPLETED)
+		/*
+		 * Do not reset the start_date field when the dowmload is completed.
+		 * The GUI is going to use this field to compute the average download
+		 * speed.  And it does not matter now for this request.
+		 */
+	} else {
 		d->start_date = 0;		/* Download no longer running */
+	}
 
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
