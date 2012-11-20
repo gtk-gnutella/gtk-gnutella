@@ -27,6 +27,38 @@
  *
  * Spinning locks.
  *
+ * The API distinguishes between "regular" and "hidden" locks.  If a lock is
+ * taken in "hidden" mode, it must be released in "hidden" mode as well.
+ *
+ * A "hidden" lock is not tracked at the thread level, and therefore does not
+ * cause any memory allocation and is very fast.  A "regular" lock is tracked
+ * at the thread level in a stack, and allows sanity checks to prevent any
+ * out-of-order lock release, which can cause deadlocks later.
+ *
+ * In the advent a deadlock occurs, all the tracked locks owned by the thread
+ * are dumped.  This means "hidden" locks never appear (hence the name).
+ *
+ * The locking API is made of three calls:
+ *
+ *		spinlock()		-- takes the lock, blocking if busy
+ *		spinlock_try()	-- try to take the lock, returns whether lock was taken
+ *		spinunlock()	-- releases the lock, which must be owned
+ *
+ * Each of these calls can be suffixed with _hidden to use "hidden" locks.
+ * A lock is not inherently "hidden": this adjective refers to the way the
+ * lock taken.
+ *
+ * As a rule of thumb, "hidden" locks should be reserved to trivial low-level
+ * locking that does not require any nested locking and which has but one lock
+ * and one unlock statement, without much code in-between.
+ *
+ * The API also provided the following extra routine:
+ *
+ *		spinlock_is_held()	-- returns whether someone holds the lock
+ *
+ * When SPINLOCK_DEBUG is defined, each spinlock remembers the location that
+ * initially grabbed the lock, which can be useful when debugging deadlocks.
+ *
  * @author Raphael Manfredi
  * @date 2011
  */
