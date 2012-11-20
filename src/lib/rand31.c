@@ -59,6 +59,7 @@
 #include "mempcpy.h"
 #include "pow2.h"
 #include "random.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "tm.h"
 
@@ -67,6 +68,11 @@
 static bool rand31_seeded;			/**< Whether PRNG was seeded */
 static unsigned rand31_seed;		/**< The current seed */
 static unsigned rand31_first_seed;	/**< The initial seed */
+
+static spinlock_t rand31_lck = SPINLOCK_INIT;
+
+#define THREAD_LOCK		spinlock_hidden(&rand31_lck)
+#define THREAD_UNLOCK	spinunlock_hidden(&rand31_lck)
 
 /**
  * @return next random number following given seed.
@@ -128,6 +134,18 @@ rand31_random_seed(void)
 }
 
 /**
+ * Internal version of random seed initializer.
+ *
+ * Using a seed of 0 computes a new random seed.
+ */
+static void
+rand31_do_seed(unsigned seed)
+{
+	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
+	rand31_seeded = TRUE;
+}
+
+/**
 * Linear congruential pseudo-random number generation (PRNG).
 *
 * This PRNG is not used directly but rather through rand31().
@@ -138,19 +156,18 @@ static unsigned
 rand31_prng(void)
 {
 	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
+		rand31_do_seed(0);
 
 	return rand31_seed = rand31_prng_next(rand31_seed);
 }
 
 /**
- * Minimal pseudo-random number generation, combining a simple PRNG with
- * past-collected entropy.
+ * Internal 31-bit random number generator.
  *
  * @return a 31-bit (positive) random number.
  */
-int
-rand31(void)
+static int
+rand31_gen(void)
 {
 	/*
 	 * The low-order bits of the PRNG are less random than the upper ones,
@@ -162,6 +179,24 @@ rand31(void)
 }
 
 /**
+ * Minimal pseudo-random number generation, combining a simple PRNG with
+ * past-collected entropy.
+ *
+ * @return a 31-bit (positive) random number.
+ */
+int
+rand31(void)
+{
+	int rn;
+
+	THREAD_LOCK;
+	rn = rand31_gen();
+	THREAD_UNLOCK;
+
+	return rn;
+}
+
+/**
  * Initialize the random seed.
  *
  * Using a seed of 0 computes a new random seed.
@@ -169,8 +204,9 @@ rand31(void)
 void
 rand31_set_seed(unsigned seed)
 {
-	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
-	rand31_seeded = TRUE;
+	THREAD_LOCK;
+	rand31_do_seed(seed);
+	THREAD_UNLOCK;
 }
 
 /**
@@ -179,10 +215,15 @@ rand31_set_seed(unsigned seed)
 unsigned
 rand31_initial_seed(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
+	unsigned rs;
 
-	return rand31_first_seed;
+	THREAD_LOCK;
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_do_seed(0);
+	rs = rand31_first_seed;
+	THREAD_UNLOCK;
+
+	return rs;
 }
 
 /**
@@ -191,10 +232,15 @@ rand31_initial_seed(void)
 unsigned
 rand31_current_seed(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
+	unsigned rs;
 
-	return rand31_seed;
+	THREAD_LOCK;
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_do_seed(0);
+	rs = rand31_seed;
+	THREAD_UNLOCK;
+
+	return rs;
 }
 
 /**
@@ -219,7 +265,13 @@ rand31_value(unsigned max)
 uint32
 rand31_u32(void)
 {
-	return (rand31() << 5) + (rand31_prng() >> 15);
+	uint32 rn;
+
+	THREAD_LOCK;
+	rn = (rand31_gen() << 5) + (rand31_prng() >> 15);
+	THREAD_UNLOCK;
+
+	return rn;
 }
 
 /**
