@@ -352,6 +352,7 @@ int
 http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total);
 
+bool http_range_equal(const GSList *range1, const GSList *range2);
 filesize_t http_range_size(const GSList *list);
 void http_range_free(GSList *list);
 GSList *http_range_parse(const char *field, const char *value,
