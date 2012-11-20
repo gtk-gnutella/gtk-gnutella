@@ -10569,9 +10569,12 @@ update_available_ranges(struct download *d, const header_t *header)
 	const char *buf;
 	filesize_t available_bytes = 0;
 	bool seen_available = FALSE;
+	bool has_new_ranges = FALSE;
+	bool was_complete;
 
 	download_check(d);
 
+	was_complete = !(d->flags & DL_F_PARTIAL);
 	d->flags &= ~DL_F_PARTIAL;		/* Assume file is complete now */
 
 	if (!d->file_info->use_swarming)
@@ -10647,6 +10650,8 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->ranges = http_range_merge(old_ranges, new_ranges);
 		d->ranges_size = http_range_size(d->ranges);
 
+		has_new_ranges = !http_range_equal(old_ranges, d->ranges);
+
 		http_range_free(old_ranges);
 		http_range_free(new_ranges);
 	}
@@ -10662,6 +10667,7 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	if (available_bytes > d->ranges_size) {
 		d->ranges_size = available_bytes;
+		has_new_ranges = TRUE;
 
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("X-Available header from %s: has %s bytes for \"%s\"",
@@ -10674,7 +10680,11 @@ update_available_ranges(struct download *d, const header_t *header)
 	 * If they have the whole file, we can discard the ranges.
 	 */
 
-	if (download_filesize(d) != 0 && d->ranges_size >= download_filesize(d)) {
+	if (
+		!was_complete &&
+		download_filesize(d) != 0 &&
+		d->ranges_size >= download_filesize(d)
+	) {
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("server %s now has the whole file (%s bytes) for \"%s\"",
 				download_host_info(d), uint64_to_string(available_bytes),
@@ -10685,16 +10695,17 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->ranges = NULL;
 		d->ranges_size = download_filesize(d);
 		d->flags &= ~DL_F_PARTIAL;
+		has_new_ranges = TRUE;
 	}
 
 	/*
-	 * We should always send an update event for the ranges, even when
-	 * not using swarming or when there are no available ranges. That
-	 * way the receiver of this event can still determine that the
-	 * whole range for this file is available.
+	 * Send an update event for the ranges when there is a change, or when
+	 * we are processing the first request, to let listeners initialize the
+	 * range list
 	 */
 
-	fi_src_ranges_changed(d);
+	if (has_new_ranges || 0 == d->served_reqs)
+		fi_src_ranges_changed(d);
 
 	return seen_available;
 }
