@@ -6891,6 +6891,9 @@ fi_update_seen_on_network(gnet_src_t srcid)
 
 				new_r = fi_range_for_complete_file(fi->size);
 				complete = TRUE;
+			} else if (NULL == src->ranges) {
+				/* Partial file with no known ranges, ignore */
+				continue;
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5) {
