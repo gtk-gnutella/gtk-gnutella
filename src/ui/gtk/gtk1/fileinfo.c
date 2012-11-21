@@ -343,7 +343,7 @@ on_clist_download_sources_row_removed(void *data)
 void
 fi_gui_source_show(struct download *key)
 {
-	const char *titles[c_fi_sources];
+	const char *titles[c_src_num];
 	GtkCList *clist;
 	unsigned i;
 	int row;
@@ -362,7 +362,7 @@ fi_gui_source_show(struct download *key)
 	htable_insert(source_rows, int_to_pointer(row), key);
 	gtk_clist_set_row_data_full(clist, row, key,
 		on_clist_download_sources_row_removed);
-	for (i = 0; i < c_fi_sources; i++) {
+	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
 		render_sources(key, row, i);
 	}
 }
@@ -455,7 +455,7 @@ fi_gui_source_update(struct download *d)
 	if (htable_lookup_extended(fi_sources, d, NULL, &value)) {
 		int i, row = pointer_to_int(value);
 
-		for (i = 0; i < c_fi_sources; i++) {
+		for (i = 0; i < c_src_num; i++) {
 			render_sources(d, row, i);
 		}
 	}
