@@ -6873,14 +6873,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		 * state.
 		 */
 		if (
-			src->flags & DL_F_REPLIED &&
-			!(
-				GTA_DL_COMPLETED == src->status ||
-				GTA_DL_ERROR     == src->status ||
-				GTA_DL_ABORTED   == src->status ||
-				GTA_DL_REMOVED   == src->status ||
-				GTA_DL_DONE      == src->status
-			)
+			(src->flags & DL_F_REPLIED) &&
+			download_is_active(src)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
 				g_debug("    %s:%d replied (%x, %x), ",

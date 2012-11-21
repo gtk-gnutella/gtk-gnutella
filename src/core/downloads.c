@@ -240,7 +240,7 @@ download_is_alive(const struct download *d)
 /**
  * Did we successfully connect to the server recently?
  */
-static bool
+bool
 download_is_active(const struct download *d)
 {
 	download_check(d);
@@ -4536,6 +4536,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	bool store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
 	bool verify_sha1 = FALSE;
+	bool was_active = FALSE;
 
 	download_check(d);
 	file_info_check(d->file_info);
@@ -4547,6 +4548,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 		g_assert(d->file_info->recvcount > 0);
 		g_assert(d->file_info->recvcount <= d->file_info->refcount);
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
+
+		was_active = TRUE;
 
 		/*
 		 * If there is unflushed downloaded data, try to flush it now,
@@ -4720,12 +4723,24 @@ download_stop_v(struct download *d, download_status_t new_status,
 	file_info_clear_download(d, FALSE);
 	download_pipeline_free_null(&d->pipeline);
 	file_info_changed(d->file_info);
-	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED |
+	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_REPLIED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+
+	/*
+	 * If the download was active and we have not completed the chunk, then
+	 * we abruptly stopped and therefore we need to update the list of live
+	 * chunks in the file.
+	 *
+	 * We cleared the DL_F_REPLIED flag above to make sure this source is no
+	 * longer considered to determine the live chunks.
+	 */
+
+	if (was_active && new_status != GTA_DL_COMPLETED)
+		fi_src_ranges_changed(d);
 
 	/*
 	 * If by stopping this download we completed the file, launch SHA1
