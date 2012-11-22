@@ -1015,7 +1015,7 @@ remove_orphan(void *key, void *u_value, size_t u_len, void *data)
 	(void) u_value;
 	(void) u_len;
 
-	if (hset_contains(ctx->dbkeys, dbkey)) {
+	if (!hset_contains(ctx->dbkeys, dbkey)) {
 		ctx->orphans++;
 		return TRUE;
 	}

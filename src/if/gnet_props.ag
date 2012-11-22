@@ -5323,4 +5323,22 @@ prop = {
     };
 };
 
+prop = {
+    name = "dht_keys_debug";
+    desc = "Debug level for DHT key management.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dht_values_debug";
+    desc = "Debug level for DHT value management.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

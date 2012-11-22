@@ -52,7 +52,7 @@ void keys_get_status(const kuid_t *id, bool *full, bool *loaded);
 uint64 keys_has(const kuid_t *id, const kuid_t *cid, bool store);
 void keys_add_value(const kuid_t *id, const kuid_t *cid,
 	uint64 dbkey, time_t expire);
-void keys_update_value(const kuid_t *id, time_t expire);
+void keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire);
 void keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey);
 int keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt);
 int keys_get(const kuid_t *id, dht_value_type_t type,

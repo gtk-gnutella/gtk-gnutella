@@ -1620,7 +1620,6 @@ dht_initialize(bool post_init)
 	ulq_init();
 	token_init();
 	keys_init();
-	values_init();
 	publish_init();
 	roots_init();
 	tcache_init();
@@ -4869,7 +4868,6 @@ dht_close(bool exiting)
 	stable_close();
 	tcache_close();
 	roots_close();
-	values_close();
 	keys_close();
 	dht_rpc_close();
 	token_close();
