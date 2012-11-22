@@ -36,7 +36,6 @@
 
 #include "cq.h"
 #include "atoms.h"
-#include "halloc.h"
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
@@ -44,6 +43,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -184,7 +184,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
-	cq->cq_hash = halloc0(HASH_SIZE * sizeof *cq->cq_hash);
+	cq->cq_hash = xmalloc0(HASH_SIZE * sizeof *cq->cq_hash);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
@@ -1380,7 +1380,7 @@ cq_free(cqueue_t *cq)
 		hset_free_null(&cq->cq_idle);
 	}
 
-	HFREE_NULL(cq->cq_hash);
+	XFREE_NULL(cq->cq_hash);
 	atom_str_free_null(&cq->cq_name);
 	mutex_destroy(&cq->cq_lock);
 	mutex_destroy(&cq->cq_idle_lock);
