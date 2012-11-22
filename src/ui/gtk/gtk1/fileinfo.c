@@ -291,6 +291,8 @@ void
 fi_gui_clear_sources(void)
 {
    	gtk_clist_clear(clist_download_sources);
+	htable_clear(fi_sources);
+	htable_clear(source_rows);
 }
 
 
