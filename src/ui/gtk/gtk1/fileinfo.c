@@ -334,10 +334,25 @@ on_clist_download_sources_row_moved(int dst, void *user_data)
 static void
 on_clist_download_sources_row_removed(void *data)
 {
+	int count;
+
 	download_check(data);
+	g_return_unless(htable_contains(fi_sources, data));
+	g_soft_assert_log(htable_count(fi_sources) == htable_count(source_rows),
+		"fi_sources count: %zu, source_rows count: %zu",
+		htable_count(fi_sources), htable_count(source_rows));
+
+	count = htable_count(fi_sources);		/* Old row count */
 	htable_remove(fi_sources, data);
+
 	clist_sync_rows(clist_download_sources,
 		on_clist_download_sources_row_moved);
+
+	htable_remove(source_rows, int_to_pointer(count - 1));	/* Last row gone */
+
+	g_soft_assert_log(htable_count(fi_sources) == htable_count(source_rows),
+		"fi_sources count: %zu, source_rows count: %zu",
+		htable_count(fi_sources), htable_count(source_rows));
 }
 
 void
@@ -360,6 +375,11 @@ fi_gui_source_show(struct download *key)
 
 	htable_insert(fi_sources, key, int_to_pointer(row));
 	htable_insert(source_rows, int_to_pointer(row), key);
+
+	g_soft_assert_log(htable_count(fi_sources) == htable_count(source_rows),
+		"fi_sources count: %zu, source_rows count: %zu",
+		htable_count(fi_sources), htable_count(source_rows));
+
 	gtk_clist_set_row_data_full(clist, row, key,
 		on_clist_download_sources_row_removed);
 	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
