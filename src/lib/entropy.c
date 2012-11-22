@@ -1034,6 +1034,8 @@ entropy_collect(sha1_t *digest)
 {
 	static bool done;
 
+	misc_init();		/* Required since we have to call parse_uint32() */
+
 	entropy_collect_internal(digest, TRUE, !done);
 	done = TRUE;
 }

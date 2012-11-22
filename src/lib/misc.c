@@ -2227,11 +2227,18 @@ symbolic_errno(int errnum)
 }
 
 /**
- * Initialize miscellaneous data structures.
+ * Initialize miscellaneous data structures, once.
  */
 G_GNUC_COLD void
 misc_init(void)
 {
+	static bool done;
+
+	if G_LIKELY(done)
+		return;
+
+	done = TRUE;
+
 	hex2int_init();
 	dec2int_init();
 	alnum2int_init();
