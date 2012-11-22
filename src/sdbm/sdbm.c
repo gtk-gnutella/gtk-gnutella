@@ -155,6 +155,15 @@ sdbm_is_storable(size_t key_size, size_t value_size)
 	return sdbm_storage_needs(key_size, value_size, NULL);
 }
 
+/**
+ * Open database with specified flags and mode (like open() arguments).
+ *
+ * @param file		the basename to use for deriving .pag, .dir and .dat names
+ * @param flags		open() flags
+ * @param mode		open() mode
+ *
+ * @return the created database, or NULL on error with errno set.
+ */
 DBM *
 sdbm_open(const char *file, int flags, int mode)
 {
@@ -165,33 +174,36 @@ sdbm_open(const char *file, int flags, int mode)
 
 	if (file == NULL || '\0' == file[0]) {
 		errno = EINVAL;
-		goto finish;
+		goto error;
 	}
 	dirname = h_strconcat(file, DBM_DIRFEXT, (void *) 0);
 	if (NULL == dirname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 	pagname = h_strconcat(file, DBM_PAGFEXT, (void *) 0);
 	if (NULL == pagname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 
 #ifdef BIGDATA
 	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
 	if (NULL == pagname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 #endif
 
 	db = sdbm_prep(dirname, pagname, datname, flags, mode);
 
-finish:
+	/* FALL THROUGH */
+
+error:
 	HFREE_NULL(pagname);
 	HFREE_NULL(dirname);
 	HFREE_NULL(datname);
+
 	return db;
 }
 
@@ -231,6 +243,20 @@ sdbm_name(DBM *db)
 	return db->name ? db->name : "";
 }
 
+/**
+ * Open database with specified files, flags and mode (like open() arguments).
+ *
+ * If the `datname' argument is NULL, large keys/values are dissabled for
+ * this database.
+ *
+ * @param dirname	the file to use for .dir
+ * @param pagname	the file to use for .pag
+ * @param datname	if not-NULL, the file to use for .dat (big keys/values)
+ * @param flags		open() flags
+ * @param mode		open() mode
+ *
+ * @return the created database, or NULL on error with errno set.
+ */
 DBM *
 sdbm_prep(const char *dirname, const char *pagname,
 	const char *datname, int flags, int mode)
@@ -309,11 +335,29 @@ error:
 success:
 
 #ifdef BIGDATA
-	if (datname != NULL)
-		db->big = big_alloc(datname, flags, mode);
+	if (datname != NULL) {
+		db->datname = h_strdup(datname);
+		db->big = big_alloc();
+
+		/*
+		 * If the .dat file exists and O_TRUNC was given in the flags and the
+		 * database is opened for writing, then the database is re-initialized:
+		 * unlink the .dat file, which will be re-created on-demand.
+		 */
+
+		if ((flags & (O_RDWR | O_WRONLY)) && (flags & O_TRUNC)) {
+			if (-1 == unlink(datname))
+				g_warning("%s(): cannot delete \"%s\": %m", G_STRFUNC, datname);
+		}
+	}
 #else
 	(void) datname;
 #endif
+
+	db->dirname = h_strdup(dirname);
+	db->pagname = h_strdup(pagname);
+	db->openflags = flags;
+	db->openmode = mode;
 
 	return db;
 }
@@ -523,12 +567,15 @@ sdbm_close(DBM *db)
 		fd_forget_and_close(&db->pagf);
 #ifdef BIGDATA
 		big_free(db);
+		HFREE_NULL(db->datname);
 #endif
 		if (common_stats) {
 			log_sdbmstats(db);
 		}
 		log_sdbm_warnings(db);
 		HFREE_NULL(db->name);
+		HFREE_NULL(db->pagname);
+		HFREE_NULL(db->dirname);
 		db->magic = 0;
 		WFREE(db);
 	}

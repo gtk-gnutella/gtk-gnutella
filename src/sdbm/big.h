@@ -32,7 +32,7 @@ bool bigkey_eq(DBM *, const char *, size_t, const char *, size_t);
 long bigkey_hash(DBM *, const char *, size_t);
 char *bigkey_get(DBM *, const char *, size_t);
 char *bigval_get(DBM *, const char *, size_t);
-struct DBMBIG *big_alloc(const char *, int, int);
+struct DBMBIG *big_alloc(void);
 int big_replace(DBM *, char *, const char *, size_t);
 void big_free(DBM *);
 int big_datfno(DBM *);
