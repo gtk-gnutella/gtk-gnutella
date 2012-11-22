@@ -182,6 +182,47 @@ big_alloc(void)
 }
 
 /**
+ * Close file descriptor used for the .dat file.
+ *
+ * @return TRUE if file descriptor was opened.
+ */
+bool
+big_close(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+
+	if (NULL == dbg)
+		return FALSE;
+
+	sdbm_big_check(dbg);
+
+	if (-1 == dbg->fd)
+		return FALSE;
+
+	fd_forget_and_close(&dbg->fd);
+	return TRUE;
+}
+
+/**
+ * Re-open the .dat file.
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+big_reopen(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+
+	sdbm_big_check(dbg);
+	g_assert(-1 == dbg->fd);
+
+	dbg->fd = file_open(db->datname,
+		db->openflags & ~(O_CREAT | O_TRUNC | O_EXCL), 0);
+
+	return -1 == dbg->fd ? -1 : 0;
+}
+
+/**
  * Free descriptor managing large keys and values.
  */
 void

@@ -16,6 +16,8 @@
 #define bigkey_put sdbm__bigkey_put
 #define bigval_put sdbm__bigval_put
 #define big_sync sdbm__big_sync
+#define big_close sdbm__big_close
+#define big_reopen sdbm__big_reopen
 #define bigkey_free sdbm__bigkey_free
 #define bigval_free sdbm__bigval_free
 #define bigkey_check sdbm__bigkey_check
@@ -39,6 +41,8 @@ int big_datfno(DBM *);
 bool big_sync(DBM *);
 bool big_shrink(DBM *);
 bool big_clear(DBM *);
+bool big_close(DBM *);
+int big_reopen(DBM *);
 size_t big_check_end(DBM *);
 bool bigkey_put(DBM *, char *, size_t, const char *, size_t);
 bool bigval_put(DBM *, char *, size_t, const char *, size_t);

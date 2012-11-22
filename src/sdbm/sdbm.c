@@ -1870,6 +1870,220 @@ no_idx_change:
 }
 
 /**
+ * Rename database files.
+ *
+ * It is an error to specified a NULL `datname' if the database was opened
+ * with big key/values support.
+ *
+ * Upon success, the database is transparently reopened with the new files.
+ *
+ * @param db			the opened database to rename
+ * @param dirname		new name of the .dir file
+ * @param pagname		new name of the .pag file
+ * @param datname		new name of the .dat file
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+sdbm_rename_files(DBM *db,
+	const char *dirname, const char *pagname, const char *datname)
+{
+	int openflags, error = 0;
+	bool dat_opened, dat_reopened;
+
+	if G_UNLIKELY(db == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+	sdbm_check(db);
+
+#ifdef BIGDATA
+	if (NULL == datname && NULL != db->datname) {
+		errno = EINVAL;
+		return -1;
+	}
+#endif
+
+	/*
+	 * Clear the O_TRUNC, O_EXCL and O_CREAT flags.
+	 */
+
+	openflags = db->openflags & ~(O_TRUNC | O_EXCL | O_CREAT);
+
+	/*
+	 * We're not going to flush the LRU cache or the buffers but simply
+	 * close the files, rename them and reopen them immediately afterwards.
+	 *
+	 * If any of the rename fails or we cannot re-open the new file, then
+	 * we undo the renaming and try to reopen the original files.
+	 */
+
+	fd_forget_and_close(&db->dirf);
+	fd_forget_and_close(&db->pagf);
+
+#ifdef BIGDATA
+	dat_opened = big_close(db);
+#else
+	dat_opened = FALSE;
+#endif
+
+	if (-1 == rename(db->dirname, dirname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			db->name, db->dirname, dirname);
+		goto emergency_restore;
+	}
+
+	if (-1 == rename(db->pagname, pagname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			db->name, db->pagname, pagname);
+		if (-1 == rename(dirname, db->dirname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				db->name, dirname, db->dirname);
+		}
+		goto emergency_restore;
+	}
+
+	if (NULL == datname || !dat_opened)
+		goto rename_ok;
+
+	if (-1 == rename(db->datname, datname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			db->name, db->datname, datname);
+		if (-1 == rename(dirname, db->dirname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				db->name, dirname, db->dirname);
+		}
+		if (-1 == rename(pagname, db->pagname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				db->name, pagname, db->pagname);
+		}
+		goto emergency_restore;
+	}
+
+rename_ok:
+
+	/*
+	 * Renaming of files was OK.
+	 */
+
+	HFREE_NULL(db->dirname);
+	HFREE_NULL(db->pagname);
+	HFREE_NULL(db->datname);
+
+	db->dirname = h_strdup(dirname);
+	db->pagname = h_strdup(pagname);
+	db->datname = h_strdup(datname);
+
+	/* FALL THROUGH */
+
+emergency_restore:
+	db->pagf = file_open(db->pagname, openflags, 0);
+	if (-1 == db->pagf) {
+		error = errno;
+		goto done;
+	}
+	db->dirf = file_open(db->dirname, openflags, 0);
+	if (-1 == db->dirf) {
+		error = errno;
+		goto done;
+	}
+#ifdef BIGDATA
+	dat_reopened = !dat_opened || -1 != big_reopen(db);
+#else
+	dat_reopened = TRUE;
+#endif
+
+	if (!dat_reopened)
+		error = errno;
+
+	/* FALL THROUGH */
+
+done:
+	if (error != 0) {
+		errno = error;
+		g_carp("sdbm: \"%s\": renaming operation failed: %m", db->name);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * Rename database files.
+ *
+ * Upon success, the database is transparently reopened with the new files.
+ *
+ * @param db			the opened database to rename
+ * @param base			the base path for the .dir, .pag and .dat files.
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+sdbm_rename(DBM *db, const char *base)
+{
+	int result = -1;
+	char *dirname = NULL;
+	char *pagname = NULL;
+	char *datname = NULL;
+	bool warned = FALSE;
+
+	if G_UNLIKELY(db == NULL) {
+		errno = EINVAL;
+		goto error;
+	}
+
+	if (base == NULL || '\0' == base[0]) {
+		errno = EINVAL;
+		goto error;
+	}
+
+	sdbm_check(db);
+
+#ifdef BIGDATA
+	if (db->datname != NULL) {
+		datname = h_strconcat(base, DBM_DATFEXT, (void *) 0);
+		if (NULL == pagname) {
+			errno = ENOMEM;
+			goto error;
+		}
+	}
+#endif
+
+	dirname = h_strconcat(base, DBM_DIRFEXT, (void *) 0);
+	if (NULL == dirname) {
+		errno = ENOMEM;
+		goto error;
+	}
+	pagname = h_strconcat(base, DBM_PAGFEXT, (void *) 0);
+	if (NULL == pagname) {
+		errno = ENOMEM;
+		goto error;
+	}
+
+	if (-1 == sdbm_rename_files(db, dirname, pagname, datname)) {
+		warned = TRUE;
+		goto error;
+	}
+
+	result = 0;		/* Operation successful! */
+
+	/* FALL THROUGH */
+
+error:
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	if (result != 0 && !warned)
+		g_carp("sdbm: \"%s\": renaming operation failed: %m", db->name);
+
+	return result;
+}
+
+/**
  * Clear the whole database, discarding all the data.
  *
  * @return 0 on success, -1 on failure with errno set.

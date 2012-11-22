@@ -75,6 +75,8 @@ int sdbm_set_volatile(DBM *db, bool yes);
 bool sdbm_shrink(DBM *db);
 int sdbm_clear(DBM *db);
 void sdbm_unlink(DBM *);
+int sdbm_rename(DBM *, const char *);
+int sdbm_rename_files(DBM *, const char *, const char *, const char *);
 
 /*
  * Internal routines with clean semantics that can be used by user code.

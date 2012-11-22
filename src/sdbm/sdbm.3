@@ -43,6 +43,10 @@ int sdbm_set_volatile(\s-1DBM\s0 *db, gboolean yes)
 void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
 const char *sdbm_name(\s-1DBM\s0 *db)
 .sp
+int sdbm_rename(\s-1DBM\s0 *db, char *base)
+int sdbm_rename_files(\s-1DBM\s0 *db,
+	char *dirname, char *pagname, char *datname)
+.sp
 gboolean sdbm_rdonly(\s-1DBM\s0 *db)
 gboolean sdbm_error(\s-1DBM\s0 *db)
 gboolean sdbm_shrink(\s-1DBM\s0 *db)
@@ -307,6 +311,19 @@ on errors.
 .BR sdbm_clear (\|)
 erases all the data held in the database but keeps it opened.
 Returns -1 on errors.
+.IP
+.BR sdbm_rename (\|)
+renames the database files using the specified name base (without a
+.BR .pag
+or other
+.BR .dir
+extension) and transparently re-opens the database using the new files.
+Returns -1 on error.
+.IP
+.BR sdbm_rename_files (\|)
+works like
+.BR sdbm_rename (\|)
+but with the new filenames explicitly given.
 .SH PAGE CACHING
 This
 .B sdbm
@@ -451,24 +468,46 @@ and
 .BR sdbm_pagfno (\|)
 functions are unique to this package.
 .LP
-The
+The following functions:
+.sp
+.in +5
 .BR sdbm_datfno (\|)
-.BR sdbm_replace (\|),
-.BR sdbm_firstkey_safe (\|),
-.BR sdbm_deletekey (\|),
-.BR sdbm_value (\|),
-.BR sdbm_is_storable (\|),
-.BR sdbm_sync (\|),
-.BR sdbm_srink (\|),
-.BR sdbm_clear (\|),
-.BR sdbm_unlink (\|),
-.BR sdbm_set_cache (\|),
-.BR sdbm_set_wdelay (\|),
-.BR sdbm_set_volatile (\|),
-.BR sdbm_set_name (\|),
-and
+.br
+.BR sdbm_replace (\|)
+.br
+.BR sdbm_firstkey_safe (\|)
+.br
+.BR sdbm_deletekey (\|)
+.br
+.BR sdbm_value (\|)
+.br
+.BR sdbm_is_storable (\|)
+.br
+.BR sdbm_sync (\|)
+.br
+.BR sdbm_srink (\|)
+.br
+.BR sdbm_clear (\|)
+.br
+.BR sdbm_unlink (\|)
+.br
+.BR sdbm_rename (\|)
+.br
+.BR sdbm_rename_files (\|)
+.br
+.BR sdbm_set_cache (\|)
+.br
+.BR sdbm_set_wdelay (\|)
+.br
+.BR sdbm_set_volatile (\|)
+.br
+.BR sdbm_set_name (\|)
+.br
 .BR sdbm_name (\|)
-functions are additions made by Raphael Manfredi for
+.br
+.sp
+.in -5
+are additions made by Raphael Manfredi for
 .B gtk-gnutella
 but anyone is welcome reusing these extensions.
 .LP
