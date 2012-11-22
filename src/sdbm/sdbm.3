@@ -1,7 +1,7 @@
 .\" $Id: sdbm.3,v 1.2 90/12/13 13:00:57 oz Exp $
 .TH SDBM 3 "1 March 1990"
 .SH NAME
-sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_fetch, sdbm_store, sdbm_replace, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno, sdbm_datfno \- data base subroutines
+sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_unlink, sdbm_fetch, sdbm_store, sdbm_replace, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno, sdbm_datfno \- data base subroutines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -18,6 +18,7 @@ datum nullitem = { NULL, 0 };
 \s-1DBM\s0 *sdbm_prep(char *dirname, char *pagname, char *datname,
         int flags, int mode)
 void sdbm_close(\s-1DBM\s0 *db)
+void sdbm_unlink(\s-1DBM\s0 *db)
 .sp
 datum sdbm_fetch(\s-1DBM\s0 *db, key)
 int sdbm_store(\s-1DBM\s0 *db, datum key, datum val, int flags)
@@ -59,6 +60,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_open "" "\fLsdbm_open\fR \(em open \fLsdbm\fR database"
 .IX sdbm_prep "" "\fLsdbm_prep\fR \(em prepare \fLsdbm\fR database"
 .IX sdbm_close "" "\fLsdbm_close\fR \(em close \fLsdbm\fR routine"
+.IX sdbm_unlink "" "\fLsdbm_unlink\fR \(em close and unlink \fLsdbm\fR files"
 .IX sdbm_fetch "" "\fLsdbm_fetch\fR \(em fetch \fLsdbm\fR database data"
 .IX sdbm_store "" "\fLsdbm_store\fR \(em add data to \fLsdbm\fR database"
 .IX sdbm_replace "" "\fLsdbm_replace\fR \(em replace data in \fLsdbm\fR database"
@@ -81,6 +83,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_open  ""  \fLsdbm_open\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_prep  ""  \fLsdbm_prep\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_close  ""  \fLsdbm_close\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_unlink  ""  \fLsdbm_unlink\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_fetch  ""  \fLsdbm_fetch\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_store  ""  \fLsdbm_store\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_delete  ""  \fLsdbm_delete\fP
@@ -187,6 +190,11 @@ parameters are the same as for
 .LP
 To free the resources occupied while a database handle is active, call
 .BR sdbm_close (\|).
+The
+.BR sdbm_unlink (\|)
+call is similar to
+.BR sdbm_close (\|)
+but will additionally force the deletion of the database files.
 .LP
 Given a handle, one can retrieve data associated with a key by using the
 .BR sdbm_fetch (\|)
@@ -338,7 +346,10 @@ and this behaviour can be turned on by calling
 .BR sdbm_set_volatile (\|)
 with a
 .B \s-1TRUE\s0
-argument.  In which case it also automatically enables delayed writes.
+argument.  In which case it also automatically enables delayed writes and
+the database files will be deleted when
+.BR sdbm_close (\|)
+is called.
 .SH SEE ALSO
 .IR open (2).
 .SH DIAGNOSTICS
@@ -450,6 +461,7 @@ The
 .BR sdbm_sync (\|),
 .BR sdbm_srink (\|),
 .BR sdbm_clear (\|),
+.BR sdbm_unlink (\|),
 .BR sdbm_set_cache (\|),
 .BR sdbm_set_wdelay (\|),
 .BR sdbm_set_volatile (\|),

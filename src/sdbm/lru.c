@@ -332,7 +332,8 @@ setwdelay(DBM *db, bool on)
 /**
  * Close the LRU page cache.
  */
-void lru_close(DBM *db)
+void
+lru_close(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 

@@ -219,6 +219,14 @@ sdbm_alloc(void)
 	return db;
 }
 
+static void
+sdbm_free(DBM *db)
+{
+	sdbm_check(db);
+	db->magic = 0;
+	WFREE(db);
+}
+
 /**
  * Set the database name (copied).
  */
@@ -547,38 +555,99 @@ flush_dirbuf(DBM *db)
 	return TRUE;
 }
 
+static void
+sdbm_unlink_file(const char *name, const char *path)
+{
+	g_assert(path != NULL);
+
+	if (-1 == unlink(path))
+		g_critical("sdbm: \"%s\": cannot unlink \"%s\": %m", name, path);
+}
+
+/**
+ * Internal dabtase close.
+ *
+ * @param db			the database to close
+ * @param clearfiles	whether to unlink files after close
+ * @param destroy		whether to destroy the object
+ */
+static void
+sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
+{
+	sdbm_check(db);
+
+#ifdef LRU
+	if (!clearfiles && db->dirbuf_dirty)
+		flush_dirbuf(db);
+	lru_close(db);
+#else
+	WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+#endif
+	WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+	fd_forget_and_close(&db->dirf);
+	fd_forget_and_close(&db->pagf);
+#ifdef BIGDATA
+	big_free(db);
+#endif
+	if (common_stats) {
+		log_sdbmstats(db);
+	}
+	log_sdbm_warnings(db);
+
+	if (clearfiles) {
+		sdbm_unlink_file(db->name, db->dirname);
+		sdbm_unlink_file(db->name, db->pagname);
+#ifdef BIGDATA
+		if (db->datname != NULL)
+			sdbm_unlink_file(db->name, db->datname);
+#endif
+	}
+
+	HFREE_NULL(db->name);
+	HFREE_NULL(db->pagname);
+	HFREE_NULL(db->dirname);
+#ifdef BIGDATA
+	HFREE_NULL(db->datname);
+#endif
+
+	if (destroy)
+		sdbm_free(db);
+}
+
+/**
+ * Close the database and unlink its files.
+ */
+void
+sdbm_unlink(DBM *db)
+{
+	if G_UNLIKELY(db == NULL)
+		return;
+
+	sdbm_close_internal(db, TRUE, TRUE);
+}
+
+/**
+ * Close the database.
+ *
+ * If it was marked volatile, then its files are unlinked as well.
+ */
 void
 sdbm_close(DBM *db)
 {
+	bool clearfiles;
+
 	if G_UNLIKELY(db == NULL)
-		errno = EINVAL;
-	else {
-		sdbm_check(db);
+		return;
+
+	sdbm_check(db);
 
 #ifdef LRU
-		if (!db->is_volatile && db->dirbuf_dirty)
-			flush_dirbuf(db);
-		lru_close(db);
+	clearfiles = db->is_volatile;
 #else
-		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+	clearfiles = FALSE;
 #endif
-		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
-		fd_forget_and_close(&db->dirf);
-		fd_forget_and_close(&db->pagf);
-#ifdef BIGDATA
-		big_free(db);
-		HFREE_NULL(db->datname);
-#endif
-		if (common_stats) {
-			log_sdbmstats(db);
-		}
-		log_sdbm_warnings(db);
-		HFREE_NULL(db->name);
-		HFREE_NULL(db->pagname);
-		HFREE_NULL(db->dirname);
-		db->magic = 0;
-		WFREE(db);
-	}
+
+	sdbm_close_internal(db, clearfiles, TRUE);
 }
 
 #define SDBM_WARN_ITERATING(db) G_STMT_START {			\
