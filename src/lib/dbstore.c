@@ -345,11 +345,11 @@ dbstore_shrink(dbmw_t *dw)
 		}
 	} else {
 		if (dbstore_debug > 1) {
-			g_debug("DBSTORE shrinking database DBMW \"%s\"", dbmw_name(dw));
+			g_debug("DBSTORE rebuilding database DBMW \"%s\"", dbmw_name(dw));
 		}
-		if (!dbmw_shrink(dw)) {
+		if (!dbmw_rebuild(dw)) {
 			if (dbstore_debug) {
-				g_warning("DBSTORE unable to shrink DBMW \"%s\"",
+				g_warning("DBSTORE unable to rebuild DBMW \"%s\"",
 					dbmw_name(dw));
 			}
 		}
