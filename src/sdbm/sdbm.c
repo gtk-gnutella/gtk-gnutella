@@ -823,8 +823,10 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 		}
 	}
 #ifdef SEEDUPS
-	else if G_UNLIKELY(duppair(db, db->pagbuf, key))
+	else if G_UNLIKELY(duppair(db, db->pagbuf, key)) {
+		errno = EEXIST;
 		return 1;
+	}
 #endif
 
 	/*

@@ -388,7 +388,11 @@ As a special case of
 .BR sdbm_store (\|),
 if it is called with the
 .B \s-1DBM_INSERT\s0
-flag and the key already exists in the database, the return value will be 1.
+flag and the key already exists in the database, the returned value will be 1
+and
+.B errno
+is set to
+.B \s-1EEXIST\s0 ..
 .LP
 In general, if a function parameter is invalid,
 .B errno
