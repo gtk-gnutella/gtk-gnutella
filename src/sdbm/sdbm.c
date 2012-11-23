@@ -615,7 +615,7 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 		sdbm_unlink_file(sdbm_name(db), db->dirname);
 		sdbm_unlink_file(sdbm_name(db), db->pagname);
 #ifdef BIGDATA
-		if (db->datname != NULL)
+		if (db->datname != NULL && file_exists(db->datname))
 			sdbm_unlink_file(sdbm_name(db), db->datname);
 #endif
 	}
