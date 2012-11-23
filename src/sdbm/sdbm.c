@@ -1270,7 +1270,7 @@ iteration_done(DBM *db)
 	}
 #endif
 
-	sdbm_endkey(db);
+	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 	return nullitem;
 }
 
@@ -1382,7 +1382,13 @@ sdbm_endkey(DBM *db)
 {
 	sdbm_check(db);
 
-	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
+	/*
+	 * When starting an iteration with sdbm_firstkey_safe() and encountering
+	 * big keys or values, a checking context is allocated and it is only freed
+	 * from within iteration_done().
+	 */
+
+	(void) iteration_done(db);
 }
 
 /**
