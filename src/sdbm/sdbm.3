@@ -37,8 +37,12 @@ long sdbm_hash(char *string, size_t len)
 ssize_t sdbm_sync(\s-1DBM\s0 *db)
 .sp
 int sdbm_set_cache(\s-1DBM\s0 *db, long pages)
-int sdbm_set_wdelay(\s-1DBM\s0 *db, gboolean on)
-int sdbm_set_volatile(\s-1DBM\s0 *db, gboolean yes)
+int sdbm_set_wdelay(\s-1DBM\s0 *db, bool on)
+int sdbm_set_volatile(\s-1DBM\s0 *db, bool yes)
+.sp
+long sdbm_get_cache(const \s-1DBM\s0 *db)
+bool sdbm_get_wdelay(const \s-1DBM\s0 *db)
+bool sdbm_is_volatile(const \s-1DBM\s0 *db)
 .sp
 void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
 const char *sdbm_name(\s-1DBM\s0 *db)
@@ -367,6 +371,14 @@ argument.  In which case it also automatically enables delayed writes and
 the database files will be deleted when
 .BR sdbm_close (\|)
 is called.
+.LP
+To know how a database descriptor has been configured, one can call
+.BR sdbm_get_cache (\|)
+to get the amount of pages configured for LRU caching, use
+.BR sdbm_get_wdelay (\|)
+to know whether deferred writes have been enabled, and check volatility by
+calling
+.BR sdbm_is_volatile (\|).
 .SH SEE ALSO
 .IR open (2).
 .SH DIAGNOSTICS
@@ -498,6 +510,12 @@ The following functions:
 .BR sdbm_rename (\|)
 .br
 .BR sdbm_rename_files (\|)
+.br
+.BR sdbm_get_cache (\|)
+.br
+.BR sdbm_get_wdelay (\|)
+.br
+.BR sdbm_is_volatile (\|)
 .br
 .BR sdbm_set_cache (\|)
 .br

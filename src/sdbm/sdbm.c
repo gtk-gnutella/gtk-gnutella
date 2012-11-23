@@ -2126,6 +2126,20 @@ sdbm_clear(DBM *db)
 }
 
 /**
+ * @return the amount of pages configured for the LRU cache.
+ */
+long
+sdbm_get_cache(const DBM *db)
+{
+	sdbm_check(db);
+#ifdef LRU
+	return getcache(db);
+#else
+	return 0;
+#endif
+}
+
+/**
  * Set the LRU cache size.
  */
 int
@@ -2142,6 +2156,21 @@ sdbm_set_cache(DBM *db, long pages)
 }
 
 /**
+ * @return whether LRU write delay is enabled.
+ */
+bool
+sdbm_get_wdelay(const DBM *db)
+{
+	sdbm_check(db);
+
+#ifdef LRU
+	return getwdelay(db);
+#else
+	return FALSE;
+#endif
+}
+
+/**
  * Turn LRU write delays on or off.
  */
 int
@@ -2154,6 +2183,20 @@ sdbm_set_wdelay(DBM *db, bool on)
 	(void) on;
 	errno = ENOTSUP;
 	return -1;
+#endif
+}
+
+/**
+ * @return whether database was flagged as "volatile".
+ */
+bool
+sdbm_is_volatile(const DBM *db)
+{
+	sdbm_check(db);
+#ifdef LRU
+	return db->is_volatile;
+#else
+	return FALSE;
 #endif
 }
 
