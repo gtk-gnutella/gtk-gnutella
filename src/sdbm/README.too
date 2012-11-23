@@ -202,4 +202,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added sdbm_endkey() to abort key iteration early.
 * Added sdbm_rebuild() to reconstruct the whole database, hopefully compacting
   its disk representation by filling low-order pages.
+* Added -f switch to "dba" to only print filled pages.
 
