@@ -806,6 +806,25 @@ dbmw_shrink(dbmw_t *dw)
 }
 
 /**
+ * Attempt to rebuild the DB on disk.
+ *
+ * @return TRUE if successful.
+ */
+bool
+dbmw_rebuild(dbmw_t *dw)
+{
+	/*
+	 * We're going to work at the SDBM level, so we need to flush the cache
+	 * to make sure SDBM knows the latest database state: cached data pending
+	 * writing need to be flushed, including deleted data.
+	 */
+
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
+
+	return dbmap_rebuild(dw->dm);
+}
+
+/**
  * Wrapper to the user-supplied deserialization routine for values.
  *
  * @param dw		the DBM wrapper object

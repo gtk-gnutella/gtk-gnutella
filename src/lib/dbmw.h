@@ -113,6 +113,7 @@ bool dbmw_set_map_cache(dbmw_t *dw, long pages);
 bool dbmw_set_volatile(dbmw_t *dw, bool is_volatile);
 void dbmw_set_debugging(dbmw_t *dw, const struct dbg_config *dbg);
 bool dbmw_shrink(dbmw_t *dw);
+bool dbmw_rebuild(dbmw_t *dw);
 bool dbmw_clear(dbmw_t *dw);
 const char *dbmw_strerror(const dbmw_t *dw);
 

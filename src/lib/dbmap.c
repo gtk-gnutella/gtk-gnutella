@@ -1379,6 +1379,27 @@ dbmap_shrink(dbmap_t *dm)
 }
 
 /**
+ * Attempt to rebuild the database (to compact it on disk).
+ * @return TRUE if no error occurred.
+ */
+bool
+dbmap_rebuild(dbmap_t *dm)
+{
+	dbmap_check(dm);
+
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return TRUE;
+	case DBMAP_SDBM:
+		return 0 == sdbm_rebuild(dm->u.s.sdbm);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
  * Discard all data from the database.
  * @return TRUE if no error occurred.
  */

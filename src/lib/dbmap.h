@@ -118,6 +118,7 @@ struct dbg_config;
 bool dbmap_store(dbmap_t *dm, const char *base, bool inplace);
 bool dbmap_copy(dbmap_t *from, dbmap_t *to);
 bool dbmap_shrink(dbmap_t *dm);
+bool dbmap_rebuild(dbmap_t *dm);
 bool dbmap_clear(dbmap_t *dm);
 ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);
