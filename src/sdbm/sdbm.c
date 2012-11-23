@@ -1383,6 +1383,15 @@ sdbm_endkey(DBM *db)
 	sdbm_check(db);
 
 	/*
+	 * Loudly warn if this is called outside of an iteration.
+	 */
+
+	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
+		g_carp("%s() called outside of any key iteration over \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+	}
+
+	/*
 	 * When starting an iteration with sdbm_firstkey_safe() and encountering
 	 * big keys or values, a checking context is allocated and it is only freed
 	 * from within iteration_done().
