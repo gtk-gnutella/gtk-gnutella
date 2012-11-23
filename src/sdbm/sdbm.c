@@ -408,6 +408,10 @@ log_sdbm_warnings(DBM *db)
 {
 	sdbm_check(db);
 
+	if (db->flags & DBM_BROKEN) {
+		g_warning("sdbm: \"%s\" descriptor was broken by failed renaming",
+			sdbm_name(db));
+	}
 	if (db->bad_pages) {
 		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
 			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
@@ -590,7 +594,7 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	sdbm_check(db);
 
 #ifdef LRU
-	if (!clearfiles && db->dirbuf_dirty)
+	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN))
 		flush_dirbuf(db);
 	lru_close(db);
 #else
@@ -608,11 +612,11 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	log_sdbm_warnings(db);
 
 	if (clearfiles) {
-		sdbm_unlink_file(db->name, db->dirname);
-		sdbm_unlink_file(db->name, db->pagname);
+		sdbm_unlink_file(sdbm_name(db), db->dirname);
+		sdbm_unlink_file(sdbm_name(db), db->pagname);
 #ifdef BIGDATA
 		if (db->datname != NULL)
-			sdbm_unlink_file(db->name, db->datname);
+			sdbm_unlink_file(sdbm_name(db), db->datname);
 #endif
 	}
 
@@ -679,6 +683,10 @@ sdbm_fetch(DBM *db, datum key)
 		return nullitem;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
@@ -700,6 +708,10 @@ sdbm_exists(DBM *db, datum key)
 		return -1;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
@@ -727,6 +739,10 @@ sdbm_delete(DBM *db, datum key)
 	}
 	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
 		return -1;
 	}
 	SDBM_WARN_ITERATING(db);
@@ -782,6 +798,10 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	}
 	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
 		return -1;
 	}
 
@@ -1255,9 +1275,10 @@ iteration_done(DBM *db)
 }
 
 /*
- * the following two routines will break if
+ * the sdbm_firstkey() and sdbm_nextkey() routines will break if
  * deletions aren't taken into account. (ndbm bug)
  */
+
 datum
 sdbm_firstkey(DBM *db)
 {
@@ -1266,6 +1287,11 @@ sdbm_firstkey(DBM *db)
 		return iteration_done(db);
 	}
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 
 	if G_UNLIKELY(db->flags & DBM_ITERATING)
 		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
@@ -1338,9 +1364,13 @@ sdbm_nextkey(DBM *db)
 {
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return iteration_done(db);
+		return nullitem;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 	return getnext(db);
 }
 
@@ -1628,6 +1658,10 @@ sdbm_deletekey(DBM *db)
 		errno = EIO;
 		return -1;
 	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
@@ -1696,6 +1730,11 @@ sdbm_sync(DBM *db)
 
 	sdbm_check(db);
 
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
 #ifdef LRU
 	npag = flush_dirtypag(db);
 	if G_UNLIKELY(-1 == npag)
@@ -1733,6 +1772,11 @@ sdbm_shrink(DBM *db)
 	filesize_t offset;
 
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 
 	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
 		return FALSE;
@@ -1923,6 +1967,11 @@ sdbm_rename_files(DBM *db,
 	}
 	sdbm_check(db);
 
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
 #ifdef BIGDATA
 	if (NULL == datname && NULL != db->datname) {
 		errno = EINVAL;
@@ -1956,17 +2005,18 @@ sdbm_rename_files(DBM *db,
 	if (-1 == rename(db->dirname, dirname)) {
 		error = errno;
 		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
-			db->name, db->dirname, dirname);
+			sdbm_name(db), db->dirname, dirname);
 		goto emergency_restore;
 	}
 
 	if (-1 == rename(db->pagname, pagname)) {
 		error = errno;
 		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
-			db->name, db->pagname, pagname);
+			sdbm_name(db), db->pagname, pagname);
 		if (-1 == rename(dirname, db->dirname)) {
 			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
-				db->name, dirname, db->dirname);
+				sdbm_name(db), dirname, db->dirname);
+			db->flags |= DBM_BROKEN;
 		}
 		goto emergency_restore;
 	}
@@ -1977,14 +2027,16 @@ sdbm_rename_files(DBM *db,
 	if (-1 == rename(db->datname, datname)) {
 		error = errno;
 		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
-			db->name, db->datname, datname);
+			sdbm_name(db), db->datname, datname);
 		if (-1 == rename(dirname, db->dirname)) {
 			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
-				db->name, dirname, db->dirname);
+				sdbm_name(db), dirname, db->dirname);
+			db->flags |= DBM_BROKEN;
 		}
 		if (-1 == rename(pagname, db->pagname)) {
 			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
-				db->name, pagname, db->pagname);
+				sdbm_name(db), pagname, db->pagname);
+			db->flags |= DBM_BROKEN;
 		}
 		goto emergency_restore;
 	}
@@ -2006,14 +2058,19 @@ rename_ok:
 	/* FALL THROUGH */
 
 emergency_restore:
+	if (db->flags & DBM_BROKEN)
+		goto done;
+
 	db->pagf = file_open(db->pagname, openflags, 0);
 	if (-1 == db->pagf) {
 		error = errno;
+		db->flags |= DBM_BROKEN;
 		goto done;
 	}
 	db->dirf = file_open(db->dirname, openflags, 0);
 	if (-1 == db->dirf) {
 		error = errno;
+		db->flags |= DBM_BROKEN;
 		goto done;
 	}
 #ifdef BIGDATA
@@ -2022,15 +2079,19 @@ emergency_restore:
 	dat_reopened = TRUE;
 #endif
 
-	if (!dat_reopened)
+	if (!dat_reopened) {
 		error = errno;
+		db->flags |= DBM_BROKEN;
+	}
 
 	/* FALL THROUGH */
 
 done:
 	if (error != 0) {
 		errno = error;
-		g_carp("sdbm: \"%s\": renaming operation failed: %m", db->name);
+		g_carp("sdbm: \"%s\": renaming operation %s: %m",
+			sdbm_name(db),
+			(db->flags & DBM_BROKEN) ? "broke database" : "failed");
 		return -1;
 	}
 
@@ -2068,6 +2129,11 @@ sdbm_rename(DBM *db, const char *base)
 
 	sdbm_check(db);
 
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
 #ifdef BIGDATA
 	if (db->datname != NULL) {
 		datname = h_strconcat(base, DBM_DATFEXT, (void *) 0);
@@ -2104,7 +2170,7 @@ error:
 	HFREE_NULL(datname);
 
 	if (result != 0 && !warned)
-		g_carp("sdbm: \"%s\": renaming operation failed: %m", db->name);
+		g_carp("sdbm: \"%s\": renaming operation failed: %m", sdbm_name(db));
 
 	return result;
 }
@@ -2137,6 +2203,10 @@ sdbm_rebuild(DBM *db)
 	}
 	if (db->flags & DBM_ITERATING) {
 		errno = EBUSY;		/* Already iterating */
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;		/* Already broken handle */
 		return -1;
 	}
 
@@ -2251,6 +2321,10 @@ sdbm_clear(DBM *db)
 	sdbm_check(db);
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
 		return -1;
 	}
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
@@ -2397,6 +2471,10 @@ int
 sdbm_dirfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 	return db->dirf;
 }
 
@@ -2404,6 +2482,10 @@ int
 sdbm_pagfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 	return db->pagf;
 }
 
@@ -2411,6 +2493,10 @@ int
 sdbm_datfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 #ifdef BIGDATA
 	return big_datfno(db);
 #else

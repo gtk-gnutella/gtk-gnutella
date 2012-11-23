@@ -24,6 +24,7 @@ typedef struct DBM DBM;
 #define DBM_IOERR_W		(1 << 2)	/* data base write I/O error */
 #define DBM_KEYCHECK	(1 << 3)	/* safe mode during iteration */
 #define DBM_ITERATING	(1 << 4)	/* within an iteration */
+#define DBM_BROKEN		(1 << 5)	/* broken database, do not use */
 
 typedef struct {
 	char *dptr;

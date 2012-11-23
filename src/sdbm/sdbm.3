@@ -442,6 +442,17 @@ will contain the value set by the relevant failed system call, either
 .IR write (2),
 or
 .IR lseek (2).
+.LP
+When a
+.BR sdbm_rename (\|)
+or
+.BR sdbm_rebuild (\|)
+operation fails, the database handle may be left in a broken state, causing
+any further access to the database to fail with
+.B errno
+set to
+.BR \s-1ESTALE\s0 .
+At this point, the database handle should be closed.
 .SH AUTHORS
 "Ozan S. Yigit" <oz@nexus.yorku.ca>
 .sp

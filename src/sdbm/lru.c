@@ -365,7 +365,7 @@ lru_close(DBM *db)
 	if (cache) {
 		sdbm_lru_check(cache);
 
-		if (!db->is_volatile)
+		if (!db->is_volatile && !(db->flags & DBM_BROKEN))
 			flush_dirtypag(db);
 
 		if (common_stats)
