@@ -48,12 +48,12 @@
 #include "sdbm/sdbm.h"
 
 #include "dbmap.h"
-#include "atoms.h"
 #include "bstr.h"
 #include "debug.h"
 #include "map.h"
 #include "pmsg.h"
 #include "stringify.h"			/* For compact_time() */
+#include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -73,7 +73,6 @@ struct dbmap {
 		} m;
 		struct {
 			DBM *sdbm;
-			const char *path;		/**< SDBM file path (atom), if known */
 			time_t last_check;		/**< When we last checked keys */
 			unsigned is_volatile:1;	/**< Whether DB can be discarded */
 		} s;
@@ -514,7 +513,6 @@ dbmap_create_sdbm(size_t ksize, dbmap_keylen_t klen,
 	}
 
 	dm->magic = DBMAP_MAGIC;
-	dm->u.s.path = atom_str_get(path);
 	if (flags & O_TRUNC)
 		dm->u.s.last_check = tm_time();
 
@@ -875,10 +873,6 @@ dbmap_release(dbmap_t *dm)
 
 	implementation = dbmap_implementation(dm);
 
-	if (DBMAP_SDBM == dm->type) {
-		atom_str_free_null(&dm->u.s.path);
-	}
-
 	dm->type = DBMAP_MAXTYPE;
 	dm->magic = 0;
 	WFREE(dm);
@@ -905,7 +899,7 @@ free_kv(void *key, void *value, void *u)
  * Destroy a DB map.
  *
  * A memory-backed map is lost.
- * An SDBM-backed map is lost if marked volatile, provided its path is known.
+ * An SDBM-backed map is lost if marked volatile.
  */
 void
 dbmap_destroy(dbmap_t *dm)
@@ -919,9 +913,6 @@ dbmap_destroy(dbmap_t *dm)
 		break;
 	case DBMAP_SDBM:
 		sdbm_close(dm->u.s.sdbm);
-		if (dm->u.s.is_volatile && dm->u.s.path != NULL)
-			dbmap_unlink_sdbm(dm->u.s.path);
-		atom_str_free_null(&dm->u.s.path);
 		break;
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
@@ -1228,32 +1219,6 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 	}
 
 	return deleted;
-}
-
-static void
-unlink_sdbm(const char *file)
-{
-	if (-1 == unlink(file) && errno != ENOENT)
-		g_warning("cannot unlink SDBM file %s: %m", file);
-}
-
-/**
- * Helper routine to remove SDBM files under specified basename.
- */
-void
-dbmap_unlink_sdbm(const char *base)
-{
-	char *dir_file;
-	char *pag_file;
-
-	dir_file = g_strconcat(base, DBM_DIRFEXT, NULL);
-	pag_file = g_strconcat(base, DBM_PAGFEXT, NULL);
-
-	unlink_sdbm(dir_file);
-	unlink_sdbm(pag_file);
-
-	G_FREE_NULL(dir_file);
-	G_FREE_NULL(pag_file);
 }
 
 static void
