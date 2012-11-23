@@ -20,10 +20,12 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
-#include "lib/log.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
+#include "lib/random.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -155,6 +157,15 @@ sdbm_is_storable(size_t key_size, size_t value_size)
 	return sdbm_storage_needs(key_size, value_size, NULL);
 }
 
+/**
+ * Open database with specified flags and mode (like open() arguments).
+ *
+ * @param file		the basename to use for deriving .pag, .dir and .dat names
+ * @param flags		open() flags
+ * @param mode		open() mode
+ *
+ * @return the created database, or NULL on error with errno set.
+ */
 DBM *
 sdbm_open(const char *file, int flags, int mode)
 {
@@ -165,33 +176,36 @@ sdbm_open(const char *file, int flags, int mode)
 
 	if (file == NULL || '\0' == file[0]) {
 		errno = EINVAL;
-		goto finish;
+		goto error;
 	}
 	dirname = h_strconcat(file, DBM_DIRFEXT, (void *) 0);
 	if (NULL == dirname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 	pagname = h_strconcat(file, DBM_PAGFEXT, (void *) 0);
 	if (NULL == pagname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 
 #ifdef BIGDATA
 	datname = h_strconcat(file, DBM_DATFEXT, (void *) 0);
 	if (NULL == pagname) {
 		errno = ENOMEM;
-		goto finish;
+		goto error;
 	}
 #endif
 
 	db = sdbm_prep(dirname, pagname, datname, flags, mode);
 
-finish:
+	/* FALL THROUGH */
+
+error:
 	HFREE_NULL(pagname);
 	HFREE_NULL(dirname);
 	HFREE_NULL(datname);
+
 	return db;
 }
 
@@ -205,6 +219,25 @@ sdbm_alloc(void)
 	db->pagf = -1;
 	db->dirf = -1;
 	return db;
+}
+
+static void
+sdbm_free(DBM *db)
+{
+	sdbm_check(db);
+	db->magic = 0;
+	WFREE(db);
+}
+
+static void
+sdbm_free_null(DBM **db_ptr)
+{
+	DBM *db = *db_ptr;
+
+	if (db != NULL) {
+		sdbm_free(db);
+		*db_ptr = NULL;
+	}
 }
 
 /**
@@ -231,6 +264,20 @@ sdbm_name(DBM *db)
 	return db->name ? db->name : "";
 }
 
+/**
+ * Open database with specified files, flags and mode (like open() arguments).
+ *
+ * If the `datname' argument is NULL, large keys/values are dissabled for
+ * this database.
+ *
+ * @param dirname	the file to use for .dir
+ * @param pagname	the file to use for .pag
+ * @param datname	if not-NULL, the file to use for .dat (big keys/values)
+ * @param flags		open() flags
+ * @param mode		open() mode
+ *
+ * @return the created database, or NULL on error with errno set.
+ */
 DBM *
 sdbm_prep(const char *dirname, const char *pagname,
 	const char *datname, int flags, int mode)
@@ -309,11 +356,29 @@ error:
 success:
 
 #ifdef BIGDATA
-	if (datname != NULL)
-		db->big = big_alloc(datname, flags, mode);
+	if (datname != NULL) {
+		db->datname = h_strdup(datname);
+		db->big = big_alloc();
+
+		/*
+		 * If the .dat file exists and O_TRUNC was given in the flags and the
+		 * database is opened for writing, then the database is re-initialized:
+		 * unlink the .dat file, which will be re-created on-demand.
+		 */
+
+		if ((flags & (O_RDWR | O_WRONLY)) && (flags & O_TRUNC)) {
+			if (-1 == unlink(datname))
+				g_warning("%s(): cannot delete \"%s\": %m", G_STRFUNC, datname);
+		}
+	}
 #else
 	(void) datname;
 #endif
+
+	db->dirname = h_strdup(dirname);
+	db->pagname = h_strdup(pagname);
+	db->openflags = flags;
+	db->openmode = mode;
 
 	return db;
 }
@@ -343,6 +408,10 @@ log_sdbm_warnings(DBM *db)
 {
 	sdbm_check(db);
 
+	if (db->flags & DBM_BROKEN) {
+		g_warning("sdbm: \"%s\" descriptor was broken by failed renaming",
+			sdbm_name(db));
+	}
 	if (db->bad_pages) {
 		g_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
 			sdbm_name(db), db->bad_pages, 1 == db->bad_pages ? "" : "s");
@@ -503,35 +572,99 @@ flush_dirbuf(DBM *db)
 	return TRUE;
 }
 
+static void
+sdbm_unlink_file(const char *name, const char *path)
+{
+	g_assert(path != NULL);
+
+	if (-1 == unlink(path))
+		g_critical("sdbm: \"%s\": cannot unlink \"%s\": %m", name, path);
+}
+
+/**
+ * Internal dabtase close.
+ *
+ * @param db			the database to close
+ * @param clearfiles	whether to unlink files after close
+ * @param destroy		whether to destroy the object
+ */
+static void
+sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
+{
+	sdbm_check(db);
+
+#ifdef LRU
+	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN))
+		flush_dirbuf(db);
+	lru_close(db);
+#else
+	WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+#endif
+	WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
+	fd_forget_and_close(&db->dirf);
+	fd_forget_and_close(&db->pagf);
+#ifdef BIGDATA
+	big_free(db);
+#endif
+	if (common_stats) {
+		log_sdbmstats(db);
+	}
+	log_sdbm_warnings(db);
+
+	if (clearfiles) {
+		sdbm_unlink_file(sdbm_name(db), db->dirname);
+		sdbm_unlink_file(sdbm_name(db), db->pagname);
+#ifdef BIGDATA
+		if (db->datname != NULL)
+			sdbm_unlink_file(sdbm_name(db), db->datname);
+#endif
+	}
+
+	HFREE_NULL(db->name);
+	HFREE_NULL(db->pagname);
+	HFREE_NULL(db->dirname);
+#ifdef BIGDATA
+	HFREE_NULL(db->datname);
+#endif
+
+	if (destroy)
+		sdbm_free(db);
+}
+
+/**
+ * Close the database and unlink its files.
+ */
+void
+sdbm_unlink(DBM *db)
+{
+	if G_UNLIKELY(db == NULL)
+		return;
+
+	sdbm_close_internal(db, TRUE, TRUE);
+}
+
+/**
+ * Close the database.
+ *
+ * If it was marked volatile, then its files are unlinked as well.
+ */
 void
 sdbm_close(DBM *db)
 {
+	bool clearfiles;
+
 	if G_UNLIKELY(db == NULL)
-		errno = EINVAL;
-	else {
-		sdbm_check(db);
+		return;
+
+	sdbm_check(db);
 
 #ifdef LRU
-		if (!db->is_volatile && db->dirbuf_dirty)
-			flush_dirbuf(db);
-		lru_close(db);
+	clearfiles = db->is_volatile;
 #else
-		WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
+	clearfiles = FALSE;
 #endif
-		WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
-		fd_forget_and_close(&db->dirf);
-		fd_forget_and_close(&db->pagf);
-#ifdef BIGDATA
-		big_free(db);
-#endif
-		if (common_stats) {
-			log_sdbmstats(db);
-		}
-		log_sdbm_warnings(db);
-		HFREE_NULL(db->name);
-		db->magic = 0;
-		WFREE(db);
-	}
+
+	sdbm_close_internal(db, clearfiles, TRUE);
 }
 
 #define SDBM_WARN_ITERATING(db) G_STMT_START {			\
@@ -550,6 +683,10 @@ sdbm_fetch(DBM *db, datum key)
 		return nullitem;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return getpair(db, db->pagbuf, key);
@@ -571,6 +708,10 @@ sdbm_exists(DBM *db, datum key)
 		return -1;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 	SDBM_WARN_ITERATING(db);
 	if (getpage(db, exhash(key)))
 		return exipair(db, db->pagbuf, key);
@@ -598,6 +739,10 @@ sdbm_delete(DBM *db, datum key)
 	}
 	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
 		return -1;
 	}
 	SDBM_WARN_ITERATING(db);
@@ -655,6 +800,10 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 		errno = EIO;
 		return -1;
 	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 
 	/*
 	 * is the pair too big (or too small) for this database ?
@@ -707,8 +856,10 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 		}
 	}
 #ifdef SEEDUPS
-	else if G_UNLIKELY(duppair(db, db->pagbuf, key))
+	else if G_UNLIKELY(duppair(db, db->pagbuf, key)) {
+		errno = EEXIST;
 		return 1;
+	}
 #endif
 
 	/*
@@ -1119,14 +1270,15 @@ iteration_done(DBM *db)
 	}
 #endif
 
-	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
+	sdbm_endkey(db);
 	return nullitem;
 }
 
 /*
- * the following two routines will break if
+ * the sdbm_firstkey() and sdbm_nextkey() routines will break if
  * deletions aren't taken into account. (ndbm bug)
  */
+
 datum
 sdbm_firstkey(DBM *db)
 {
@@ -1135,6 +1287,11 @@ sdbm_firstkey(DBM *db)
 		return iteration_done(db);
 	}
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 
 	if G_UNLIKELY(db->flags & DBM_ITERATING)
 		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
@@ -1207,10 +1364,25 @@ sdbm_nextkey(DBM *db)
 {
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return iteration_done(db);
+		return nullitem;
 	}
 	sdbm_check(db);
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return nullitem;
+	}
 	return getnext(db);
+}
+
+/**
+ * Flag iteration as completed.
+ */
+void
+sdbm_endkey(DBM *db)
+{
+	sdbm_check(db);
+
+	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 }
 
 /**
@@ -1486,6 +1658,10 @@ sdbm_deletekey(DBM *db)
 		errno = EIO;
 		return -1;
 	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
@@ -1554,6 +1730,11 @@ sdbm_sync(DBM *db)
 
 	sdbm_check(db);
 
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
 #ifdef LRU
 	npag = flush_dirtypag(db);
 	if G_UNLIKELY(-1 == npag)
@@ -1591,6 +1772,11 @@ sdbm_shrink(DBM *db)
 	filesize_t offset;
 
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
 
 	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
 		return FALSE;
@@ -1754,6 +1940,373 @@ no_idx_change:
 }
 
 /**
+ * Rename database files.
+ *
+ * It is an error to specified a NULL `datname' if the database was opened
+ * with big key/values support.
+ *
+ * Upon success, the database is transparently reopened with the new files.
+ *
+ * @param db			the opened database to rename
+ * @param dirname		new name of the .dir file
+ * @param pagname		new name of the .pag file
+ * @param datname		new name of the .dat file
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+sdbm_rename_files(DBM *db,
+	const char *dirname, const char *pagname, const char *datname)
+{
+	int openflags, error = 0;
+	bool dat_opened, dat_reopened;
+
+	if G_UNLIKELY(db == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
+#ifdef BIGDATA
+	if (NULL == datname && NULL != db->datname) {
+		errno = EINVAL;
+		return -1;
+	}
+#endif
+
+	/*
+	 * Clear the O_TRUNC, O_EXCL and O_CREAT flags.
+	 */
+
+	openflags = db->openflags & ~(O_TRUNC | O_EXCL | O_CREAT);
+
+	/*
+	 * We're not going to flush the LRU cache or the buffers but simply
+	 * close the files, rename them and reopen them immediately afterwards.
+	 *
+	 * If any of the rename fails or we cannot re-open the new file, then
+	 * we undo the renaming and try to reopen the original files.
+	 */
+
+	fd_forget_and_close(&db->dirf);
+	fd_forget_and_close(&db->pagf);
+
+#ifdef BIGDATA
+	dat_opened = big_close(db);
+#else
+	dat_opened = FALSE;
+#endif
+
+	if (-1 == rename(db->dirname, dirname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			sdbm_name(db), db->dirname, dirname);
+		goto emergency_restore;
+	}
+
+	if (-1 == rename(db->pagname, pagname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			sdbm_name(db), db->pagname, pagname);
+		if (-1 == rename(dirname, db->dirname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				sdbm_name(db), dirname, db->dirname);
+			db->flags |= DBM_BROKEN;
+		}
+		goto emergency_restore;
+	}
+
+	if (NULL == datname || !dat_opened)
+		goto rename_ok;
+
+	if (-1 == rename(db->datname, datname)) {
+		error = errno;
+		g_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
+			sdbm_name(db), db->datname, datname);
+		if (-1 == rename(dirname, db->dirname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				sdbm_name(db), dirname, db->dirname);
+			db->flags |= DBM_BROKEN;
+		}
+		if (-1 == rename(pagname, db->pagname)) {
+			g_warning("sdbm: \"%s\": cannot rename \"%s\" back to \"%s\": %m",
+				sdbm_name(db), pagname, db->pagname);
+			db->flags |= DBM_BROKEN;
+		}
+		goto emergency_restore;
+	}
+
+rename_ok:
+
+	/*
+	 * Renaming of files was OK.
+	 */
+
+	HFREE_NULL(db->dirname);
+	HFREE_NULL(db->pagname);
+	HFREE_NULL(db->datname);
+
+	db->dirname = h_strdup(dirname);
+	db->pagname = h_strdup(pagname);
+	db->datname = h_strdup(datname);
+
+	/* FALL THROUGH */
+
+emergency_restore:
+	if (db->flags & DBM_BROKEN)
+		goto done;
+
+	db->pagf = file_open(db->pagname, openflags, 0);
+	if (-1 == db->pagf) {
+		error = errno;
+		db->flags |= DBM_BROKEN;
+		goto done;
+	}
+	db->dirf = file_open(db->dirname, openflags, 0);
+	if (-1 == db->dirf) {
+		error = errno;
+		db->flags |= DBM_BROKEN;
+		goto done;
+	}
+#ifdef BIGDATA
+	dat_reopened = !dat_opened || -1 != big_reopen(db);
+#else
+	dat_reopened = TRUE;
+#endif
+
+	if (!dat_reopened) {
+		error = errno;
+		db->flags |= DBM_BROKEN;
+	}
+
+	/* FALL THROUGH */
+
+done:
+	if (error != 0) {
+		errno = error;
+		g_carp("sdbm: \"%s\": renaming operation %s: %m",
+			sdbm_name(db),
+			(db->flags & DBM_BROKEN) ? "broke database" : "failed");
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * Rename database files.
+ *
+ * Upon success, the database is transparently reopened with the new files.
+ *
+ * @param db			the opened database to rename
+ * @param base			the base path for the .dir, .pag and .dat files.
+ *
+ * @return 0 on success, -1 on failure with errno set.
+ */
+int
+sdbm_rename(DBM *db, const char *base)
+{
+	int result = -1;
+	char *dirname = NULL;
+	char *pagname = NULL;
+	char *datname = NULL;
+	bool warned = FALSE;
+
+	if G_UNLIKELY(db == NULL) {
+		errno = EINVAL;
+		goto error;
+	}
+
+	if (base == NULL || '\0' == base[0]) {
+		errno = EINVAL;
+		goto error;
+	}
+
+	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		return -1;
+	}
+
+#ifdef BIGDATA
+	if (db->datname != NULL) {
+		datname = h_strconcat(base, DBM_DATFEXT, (void *) 0);
+		if (NULL == pagname) {
+			errno = ENOMEM;
+			goto error;
+		}
+	}
+#endif
+
+	dirname = h_strconcat(base, DBM_DIRFEXT, (void *) 0);
+	if (NULL == dirname) {
+		errno = ENOMEM;
+		goto error;
+	}
+	pagname = h_strconcat(base, DBM_PAGFEXT, (void *) 0);
+	if (NULL == pagname) {
+		errno = ENOMEM;
+		goto error;
+	}
+
+	if (-1 == sdbm_rename_files(db, dirname, pagname, datname)) {
+		warned = TRUE;
+		goto error;
+	}
+
+	result = 0;		/* Operation successful! */
+
+	/* FALL THROUGH */
+
+error:
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	if (result != 0 && !warned)
+		g_carp("sdbm: \"%s\": renaming operation failed: %m", sdbm_name(db));
+
+	return result;
+}
+
+/**
+ * Rebuild database from scratch, thereby compacting it on disk since only
+ * the required pages will be allocated.
+ *
+ * @return 0 if OK, -1 on failure.
+ */
+int
+sdbm_rebuild(DBM *db)
+{
+	DBM *ndb;
+	char ext[10];
+	char *dirname, *pagname, *datname;
+	int error = 0;
+	long cache;
+	datum key;
+
+	sdbm_check(db);
+
+	if (sdbm_rdonly(db)) {
+		errno = EPERM;
+		return -1;
+	}
+	if (sdbm_error(db)) {
+		errno = EIO;		/* Already got an error reported */
+		return -1;
+	}
+	if (db->flags & DBM_ITERATING) {
+		errno = EBUSY;		/* Already iterating */
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;		/* Already broken handle */
+		return -1;
+	}
+
+	str_bprintf(ext, sizeof ext, ".%08x", random_u32());
+	dirname = h_strconcat(db->dirname, ext, (void *) 0);
+	pagname = h_strconcat(db->pagname, ext, (void *) 0);
+	datname = NULL == db->datname ? NULL :
+		h_strconcat(db->datname, ext, (void *) 0);
+
+	ndb = sdbm_prep(dirname, pagname, datname,
+		db->openflags | O_CREAT | O_EXCL, db->openmode);
+
+	if (NULL == ndb) {
+		error = errno;
+		goto error;
+	}
+
+	/*
+	 * Propagates attributes to the new database: cache size, write delay,
+	 * volatile status.
+	 */
+
+	sdbm_set_name(ndb, db->name);
+	cache = sdbm_get_cache(db);
+
+	if (sdbm_is_volatile(db))	sdbm_set_volatile(ndb, TRUE);
+	if (sdbm_get_wdelay(db))	sdbm_set_wdelay(ndb, TRUE);
+	if (cache != 0)				sdbm_set_cache(ndb, cache);
+
+	/*
+	 * Copy all the keys/values from the database to the new database.
+	 */
+
+	for (key = sdbm_firstkey_safe(db); key.dptr; key = sdbm_nextkey(db)) {
+		datum value;
+
+		value = sdbm_value(db);
+		if (NULL == value.dptr) {
+			error = errno;
+			if (sdbm_error(db))
+				sdbm_clearerr(db);
+			sdbm_endkey(db);		/* Finish iteration */
+			break;
+		}
+		if (0 != sdbm_store(ndb, key, value, DBM_INSERT)) {
+			error = EEXIST;			/* Duplicate key, that's bad */
+			if (sdbm_error(db))
+				sdbm_clearerr(db);
+			sdbm_endkey(db);		/* Finish iteration */
+			break;
+		}
+	}
+
+	if (error != 0)
+		goto error;
+
+	/*
+	 * At this point, the database was successfully copied over.
+	 */
+
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	dirname = h_strdup(db->dirname);
+	pagname = h_strdup(db->pagname);
+	datname = h_strdup(db->datname);
+
+	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
+	*db = *ndb;									/* struct copy */
+	sdbm_free_null(&ndb);
+
+	/*
+	 * The original object is now the new database, we only need to rename
+	 * the files to let the rebuilt database be fully operational.
+	 */
+
+	if (-1 == sdbm_rename_files(db, dirname, pagname, datname))
+		error = errno;
+
+	/* FALL THROUGH */
+
+error:
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	if (ndb != NULL) {
+		sdbm_unlink(ndb);
+	}
+
+	if (0 != error) {
+		errno = error;
+		return -1;
+	}
+
+	return 0;		/* OK, we rebuilt the database */
+}
+
+/**
  * Clear the whole database, discarding all the data.
  *
  * @return 0 on success, -1 on failure with errno set.
@@ -1768,6 +2321,10 @@ sdbm_clear(DBM *db)
 	sdbm_check(db);
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
+		return -1;
+	}
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
 		return -1;
 	}
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
@@ -1794,6 +2351,20 @@ sdbm_clear(DBM *db)
 }
 
 /**
+ * @return the amount of pages configured for the LRU cache.
+ */
+long
+sdbm_get_cache(const DBM *db)
+{
+	sdbm_check(db);
+#ifdef LRU
+	return getcache(db);
+#else
+	return 0;
+#endif
+}
+
+/**
  * Set the LRU cache size.
  */
 int
@@ -1801,11 +2372,28 @@ sdbm_set_cache(DBM *db, long pages)
 {
 	sdbm_check(db);
 #ifdef LRU
+	if G_UNLIKELY(NULL == db->cache)
+		lru_init(db);
 	return setcache(db, pages);
 #else
 	(void) pages;
 	errno = ENOTSUP;
 	return -1;
+#endif
+}
+
+/**
+ * @return whether LRU write delay is enabled.
+ */
+bool
+sdbm_get_wdelay(const DBM *db)
+{
+	sdbm_check(db);
+
+#ifdef LRU
+	return getwdelay(db);
+#else
+	return FALSE;
 #endif
 }
 
@@ -1822,6 +2410,20 @@ sdbm_set_wdelay(DBM *db, bool on)
 	(void) on;
 	errno = ENOTSUP;
 	return -1;
+#endif
+}
+
+/**
+ * @return whether database was flagged as "volatile".
+ */
+bool
+sdbm_is_volatile(const DBM *db)
+{
+	sdbm_check(db);
+#ifdef LRU
+	return db->is_volatile;
+#else
+	return FALSE;
 #endif
 }
 
@@ -1869,6 +2471,10 @@ int
 sdbm_dirfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 	return db->dirf;
 }
 
@@ -1876,6 +2482,10 @@ int
 sdbm_pagfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 	return db->pagf;
 }
 
@@ -1883,6 +2493,10 @@ int
 sdbm_datfno(DBM *db)
 {
 	sdbm_check(db);
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		return -1;
+
 #ifdef BIGDATA
 	return big_datfno(db);
 #else

@@ -24,6 +24,7 @@ typedef struct DBM DBM;
 #define DBM_IOERR_W		(1 << 2)	/* data base write I/O error */
 #define DBM_KEYCHECK	(1 << 3)	/* safe mode during iteration */
 #define DBM_ITERATING	(1 << 4)	/* within an iteration */
+#define DBM_BROKEN		(1 << 5)	/* broken database, do not use */
 
 typedef struct {
 	char *dptr;
@@ -50,6 +51,7 @@ int sdbm_replace(DBM *, datum, datum, bool *);
 datum sdbm_firstkey(DBM *);
 datum sdbm_firstkey_safe(DBM *);
 datum sdbm_nextkey(DBM *);
+void sdbm_endkey(DBM *);
 datum sdbm_value(DBM *);
 int sdbm_deletekey(DBM *);
 int sdbm_exists(DBM *, datum);
@@ -70,10 +72,17 @@ void sdbm_set_name(DBM *, const char *);
 const char *sdbm_name(DBM *);
 ssize_t sdbm_sync(DBM *);
 int sdbm_set_cache(DBM *db, long pages);
+long sdbm_get_cache(const DBM *) G_GNUC_PURE;
 int sdbm_set_wdelay(DBM *db, bool on);
+bool sdbm_get_wdelay(const DBM *) G_GNUC_PURE;
 int sdbm_set_volatile(DBM *db, bool yes);
+bool sdbm_is_volatile(const DBM *) G_GNUC_PURE;
 bool sdbm_shrink(DBM *db);
 int sdbm_clear(DBM *db);
+void sdbm_unlink(DBM *);
+int sdbm_rename(DBM *, const char *);
+int sdbm_rename_files(DBM *, const char *, const char *, const char *);
+int sdbm_rebuild(DBM *);
 
 /*
  * Internal routines with clean semantics that can be used by user code.

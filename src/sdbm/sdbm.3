@@ -1,7 +1,7 @@
 .\" $Id: sdbm.3,v 1.2 90/12/13 13:00:57 oz Exp $
 .TH SDBM 3 "1 March 1990"
 .SH NAME
-sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_fetch, sdbm_store, sdbm_replace, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno, sdbm_datfno \- data base subroutines
+sdbm, sdbm_open, sdbm_prep, sdbm_close, sdbm_unlink, sdbm_fetch, sdbm_store, sdbm_replace, sdbm_delete, sdbm_exists, sdbm_firstkey, sdbm_nextkey, sdbm_hash, sdbm_rdonly, sdbm_error, sdbm_clearerr, sdbm_dirfno, sdbm_pagfno, sdbm_datfno \- data base subroutines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -18,10 +18,12 @@ datum nullitem = { NULL, 0 };
 \s-1DBM\s0 *sdbm_prep(char *dirname, char *pagname, char *datname,
         int flags, int mode)
 void sdbm_close(\s-1DBM\s0 *db)
+void sdbm_unlink(\s-1DBM\s0 *db)
+int sdbm_rebuild(\s-1DBM\s0 *db)
 .sp
 datum sdbm_fetch(\s-1DBM\s0 *db, key)
 int sdbm_store(\s-1DBM\s0 *db, datum key, datum val, int flags)
-int sdbm_replace(\s-1DBM\s0 *db, datum key, datum val, gboolean *existed)
+int sdbm_replace(\s-1DBM\s0 *db, datum key, datum val, bool *existed)
 int sdbm_delete(\s-1DBM\s0 *db, datum key)
 int sdbm_exists(\s-1DBM\s0 *db, datum key)
 .sp
@@ -30,28 +32,37 @@ datum sdbm_firstkey_safe(\s-1DBM\s0 *db)
 datum sdbm_nextkey(\s-1DBM\s0 *db)
 datum sdbm_value(\s-1DBM\s0 *db)
 int sdbm_deletekey(\s-1DBM\s0 *db)
+void sdbm_endkey(\s-1DBM\s0 *db)
 .sp
 long sdbm_hash(char *string, size_t len)
 .sp
 ssize_t sdbm_sync(\s-1DBM\s0 *db)
 .sp
 int sdbm_set_cache(\s-1DBM\s0 *db, long pages)
-int sdbm_set_wdelay(\s-1DBM\s0 *db, gboolean on)
-int sdbm_set_volatile(\s-1DBM\s0 *db, gboolean yes)
+int sdbm_set_wdelay(\s-1DBM\s0 *db, bool on)
+int sdbm_set_volatile(\s-1DBM\s0 *db, bool yes)
+.sp
+long sdbm_get_cache(const \s-1DBM\s0 *db)
+bool sdbm_get_wdelay(const \s-1DBM\s0 *db)
+bool sdbm_is_volatile(const \s-1DBM\s0 *db)
 .sp
 void sdbm_set_name(\s-1DBM\s0 *db, const char *string)
 const char *sdbm_name(\s-1DBM\s0 *db)
 .sp
-gboolean sdbm_rdonly(\s-1DBM\s0 *db)
-gboolean sdbm_error(\s-1DBM\s0 *db)
-gboolean sdbm_shrink(\s-1DBM\s0 *db)
-gboolean sdbm_clear(\s-1DBM\s0 *db)
-sdbm_clearerr(\s-1DBM\s0 *db)
+int sdbm_rename(\s-1DBM\s0 *db, char *base)
+int sdbm_rename_files(\s-1DBM\s0 *db,
+	char *dirname, char *pagname, char *datname)
+.sp
+bool sdbm_rdonly(\s-1DBM\s0 *db)
+bool sdbm_error(\s-1DBM\s0 *db)
+bool sdbm_shrink(\s-1DBM\s0 *db)
+bool sdbm_clear(\s-1DBM\s0 *db)
+void sdbm_clearerr(\s-1DBM\s0 *db)
 int sdbm_dirfno(\s-1DBM\s0 *db)
 int sdbm_pagfno(\s-1DBM\s0 *db)
 int sdbm_datfno(\s-1DBM\s0 *db)
 .sp
-gboolean sdbm_is_storable(size_t key, size_t value)
+bool sdbm_is_storable(size_t key, size_t value)
 .ft R
 .fi
 .SH DESCRIPTION
@@ -59,6 +70,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX sdbm_open "" "\fLsdbm_open\fR \(em open \fLsdbm\fR database"
 .IX sdbm_prep "" "\fLsdbm_prep\fR \(em prepare \fLsdbm\fR database"
 .IX sdbm_close "" "\fLsdbm_close\fR \(em close \fLsdbm\fR routine"
+.IX sdbm_unlink "" "\fLsdbm_unlink\fR \(em close and unlink \fLsdbm\fR files"
 .IX sdbm_fetch "" "\fLsdbm_fetch\fR \(em fetch \fLsdbm\fR database data"
 .IX sdbm_store "" "\fLsdbm_store\fR \(em add data to \fLsdbm\fR database"
 .IX sdbm_replace "" "\fLsdbm_replace\fR \(em replace data in \fLsdbm\fR database"
@@ -81,6 +93,7 @@ gboolean sdbm_is_storable(size_t key, size_t value)
 .IX "database functions \(em \fLsdbm\fR"  sdbm_open  ""  \fLsdbm_open\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_prep  ""  \fLsdbm_prep\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_close  ""  \fLsdbm_close\fP
+.IX "database functions \(em \fLsdbm\fR"  sdbm_unlink  ""  \fLsdbm_unlink\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_fetch  ""  \fLsdbm_fetch\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_store  ""  \fLsdbm_store\fP
 .IX "database functions \(em \fLsdbm\fR"  sdbm_delete  ""  \fLsdbm_delete\fP
@@ -187,6 +200,11 @@ parameters are the same as for
 .LP
 To free the resources occupied while a database handle is active, call
 .BR sdbm_close (\|).
+The
+.BR sdbm_unlink (\|)
+call is similar to
+.BR sdbm_close (\|)
+but will additionally force the deletion of the database files.
 .LP
 Given a handle, one can retrieve data associated with a key by using the
 .BR sdbm_fetch (\|)
@@ -247,6 +265,15 @@ and
 .B \.pag
 files are not consistent with eachother.
 .LP
+If for some reason the iteration must be aborted before
+.BR sdbm_nextkey (\|) or
+.BR sdbm_firstkey (\|)
+return
+.BR nullitem ,
+then the
+.BR sdbm_endkey (\|)
+routine must be called to clear the iteration context.
+.LP
 If you determine that the performance of the database is inadequate or
 you notice clustering or other effects that may be due to the hashing
 algorithm used by this package, you can override it by supplying your
@@ -299,6 +326,23 @@ on errors.
 .BR sdbm_clear (\|)
 erases all the data held in the database but keeps it opened.
 Returns -1 on errors.
+.IP
+.BR sdbm_rename (\|)
+renames the database files using the specified name base (without a
+.BR .pag
+or other
+.BR .dir
+extension) and transparently re-opens the database using the new files.
+Returns -1 on error.
+.IP
+.BR sdbm_rename_files (\|)
+works like
+.BR sdbm_rename (\|)
+but with the new filenames explicitly given.
+.IP
+.BR sdbm_rebuild (\|)
+rebuilds the database, hopefully leading to a more compact on-disk
+representation. It returns -1 on failure.
 .SH PAGE CACHING
 This
 .B sdbm
@@ -338,7 +382,18 @@ and this behaviour can be turned on by calling
 .BR sdbm_set_volatile (\|)
 with a
 .B \s-1TRUE\s0
-argument.  In which case it also automatically enables delayed writes.
+argument.  In which case it also automatically enables delayed writes and
+the database files will be deleted when
+.BR sdbm_close (\|)
+is called.
+.LP
+To know how a database descriptor has been configured, one can call
+.BR sdbm_get_cache (\|)
+to get the amount of pages configured for LRU caching, use
+.BR sdbm_get_wdelay (\|)
+to know whether deferred writes have been enabled, and check volatility by
+calling
+.BR sdbm_is_volatile (\|).
 .SH SEE ALSO
 .IR open (2).
 .SH DIAGNOSTICS
@@ -349,7 +404,7 @@ handle will use
 to indicate an error.
 Functions that return an
 .B int
-will use \-1 to indicate an error.  The normal return value in that case is 0.
+will use \-1 to indicate an error.  The normal returned value in that case is 0.
 Functions that return a
 .B datum
 will return
@@ -360,7 +415,11 @@ As a special case of
 .BR sdbm_store (\|),
 if it is called with the
 .B \s-1DBM_INSERT\s0
-flag and the key already exists in the database, the return value will be 1.
+flag and the key already exists in the database, the returned value will be 1
+and
+.B errno
+is set to
+.B \s-1EEXIST\s0 ..
 .LP
 In general, if a function parameter is invalid,
 .B errno
@@ -383,6 +442,17 @@ will contain the value set by the relevant failed system call, either
 .IR write (2),
 or
 .IR lseek (2).
+.LP
+When a
+.BR sdbm_rename (\|)
+or
+.BR sdbm_rebuild (\|)
+operation fails, the database handle may be left in a broken state, causing
+any further access to the database to fail with
+.B errno
+set to
+.BR \s-1ESTALE\s0 .
+At this point, the database handle should be closed.
 .SH AUTHORS
 "Ozan S. Yigit" <oz@nexus.yorku.ca>
 .sp
@@ -440,23 +510,56 @@ and
 .BR sdbm_pagfno (\|)
 functions are unique to this package.
 .LP
-The
+The following functions:
+.sp
+.in +5
 .BR sdbm_datfno (\|)
-.BR sdbm_replace (\|),
-.BR sdbm_firstkey_safe (\|),
-.BR sdbm_deletekey (\|),
-.BR sdbm_value (\|),
-.BR sdbm_is_storable (\|),
-.BR sdbm_sync (\|),
-.BR sdbm_srink (\|),
-.BR sdbm_clear (\|),
-.BR sdbm_set_cache (\|),
-.BR sdbm_set_wdelay (\|),
-.BR sdbm_set_volatile (\|),
-.BR sdbm_set_name (\|),
-and
+.br
+.BR sdbm_replace (\|)
+.br
+.BR sdbm_firstkey_safe (\|)
+.br
+.BR sdbm_deletekey (\|)
+.br
+.BR sdbm_endkey (\|)
+.br
+.BR sdbm_value (\|)
+.br
+.BR sdbm_is_storable (\|)
+.br
+.BR sdbm_sync (\|)
+.br
+.BR sdbm_srink (\|)
+.br
+.BR sdbm_clear (\|)
+.br
+.BR sdbm_unlink (\|)
+.br
+.BR sdbm_rename (\|)
+.br
+.BR sdbm_rename_files (\|)
+.br
+.BR sdbm_rebuild (\|)
+.br
+.BR sdbm_get_cache (\|)
+.br
+.BR sdbm_get_wdelay (\|)
+.br
+.BR sdbm_is_volatile (\|)
+.br
+.BR sdbm_set_cache (\|)
+.br
+.BR sdbm_set_wdelay (\|)
+.br
+.BR sdbm_set_volatile (\|)
+.br
+.BR sdbm_set_name (\|)
+.br
 .BR sdbm_name (\|)
-functions are additions made by Raphael Manfredi for
+.br
+.sp
+.in -5
+are additions made by Raphael Manfredi for
 .B gtk-gnutella
 but anyone is welcome reusing these extensions.
 .LP

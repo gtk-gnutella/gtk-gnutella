@@ -207,6 +207,20 @@ flush_dirtypag(DBM *db)
 	return amount;
 }
 
+/*
+ * @return the page cache size, 0 for no cache.
+ */
+long
+getcache(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+
+	if (NULL == cache)
+		return 0;
+
+	return cache->pages;
+}
+
 /**
  * Set the page cache size.
  * @return 0 if OK, -1 on failure with errno set.
@@ -330,16 +344,28 @@ setwdelay(DBM *db, bool on)
 }
 
 /**
+ * @return whether LRU deferred writes are enabled.
+ */
+bool
+getwdelay(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+
+	return cache != NULL && cache->write_deferred;
+}
+
+/**
  * Close the LRU page cache.
  */
-void lru_close(DBM *db)
+void
+lru_close(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 
 	if (cache) {
 		sdbm_lru_check(cache);
 
-		if (!db->is_volatile)
+		if (!db->is_volatile && !(db->flags & DBM_BROKEN))
 			flush_dirtypag(db);
 
 		if (common_stats)

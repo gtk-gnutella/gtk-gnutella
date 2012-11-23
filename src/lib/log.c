@@ -683,6 +683,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	const char *prefix;
 	GLogLevelFlags loglvl;
 	unsigned stid;
+	int saved_errno;
 
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
@@ -700,6 +701,8 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 
 	if (!copy && !log_printable(LOG_STDERR))
 		return;
+
+	saved_errno = errno;
 
 	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
 	prefix = log_prefix(loglvl);
@@ -733,6 +736,8 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	log_flush_err();
 	if (copy && log_stdout_is_distinct())
 		log_flush_out();
+
+	errno = saved_errno;
 }
 
 /**

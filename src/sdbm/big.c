@@ -45,16 +45,6 @@
  */
 #define BIG_BITCOUNT	(BIG_BLKSIZE * 8)
 
-/**
- * In order to allocate the ".dat" file only when needed, we need to
- * save the filename, flags and mode until open() time.
- */
-struct datfile {
-	char *datname;			/* name of the .dat file (before it is opened) */
-	int flags;				/* open() flags */
-	int mode;				/* file mode in case it is created */
-};
-
 enum sdbm_big_magic { SDBM_BIG_MAGIC = 0x230af3e2 };
 
 /**
@@ -81,7 +71,6 @@ enum sdbm_big_magic { SDBM_BIG_MAGIC = 0x230af3e2 };
  */
 struct DBMBIG {
 	enum sdbm_big_magic magic;
-	struct datfile *file;	/* file information, kept until file is opened */
 	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_BLKSIZE) */
 	bit_field_t *bitcheck;	/* array of ``bitmaps'' entries, for checks */
 	char *scratch;			/* scratch buffer where key/values are read */
@@ -89,18 +78,18 @@ struct DBMBIG {
 	size_t scratch_len;		/* length of the scratch buffer */
 	int fd;					/* data file descriptor */
 	long bitmaps;			/* amount of bitmaps allocated */
-	unsigned long bitfetch;		/* stats: amount of bitmap fetch calls */
-	unsigned long bitread;		/* stats: amount of bitmap read requests */
-	unsigned long bitbno_hit;	/* stats: amount of reads avoided on bitbno */
-	unsigned long bitwrite;		/* stats: amount of bitmap write requests */
-	unsigned long bitwdelayed;	/* stats: amount of deferred bitmap writes */
-	unsigned long key_matching;	/* stats: amount of keys matching attempts */
-	unsigned long key_short_match;	/* stats: keys matching size, head & tail */
-	unsigned long key_full_match;	/* stats: fully matched keys */
-	unsigned long bigread;		/* stats: amount of big data read syscalls */
-	unsigned long bigwrite;		/* stats: amount of big data write syscalls */
-	unsigned long bigread_blk;	/* stats: amount of big data blocks read */
-	unsigned long bigwrite_blk;	/* stats: amount of big data blocks written */
+	ulong bitfetch;			/* stats: amount of bitmap fetch calls */
+	ulong bitread;			/* stats: amount of bitmap read requests */
+	ulong bitbno_hit;		/* stats: amount of reads avoided on bitbno */
+	ulong bitwrite;			/* stats: amount of bitmap write requests */
+	ulong bitwdelayed;		/* stats: amount of deferred bitmap writes */
+	ulong key_matching;		/* stats: amount of keys matching attempts */
+	ulong key_short_match;	/* stats: keys matching size, head & tail */
+	ulong key_full_match;	/* stats: fully matched keys */
+	ulong bigread;			/* stats: amount of big data read syscalls */
+	ulong bigwrite;			/* stats: amount of big data write syscalls */
+	ulong bigread_blk;		/* stats: amount of big data blocks read */
+	ulong bigwrite_blk;		/* stats: amount of big data blocks written */
 	uint8 bitbuf_dirty;		/* whether bitbuf needs flushing to disk */
 };
 
@@ -180,48 +169,57 @@ log_bigstats(DBM *db)
  * Allocate a new descriptor for managing large keys and values.
  */
 DBMBIG *
-big_alloc(const char *datname, int flags, int mode)
+big_alloc(void)
 {
 	DBMBIG *dbg;
-	struct datfile *file;
 
 	WALLOC0(dbg);
 	dbg->magic = SDBM_BIG_MAGIC;
 	dbg->fd = -1;
 	dbg->bitbno = -1;
 
-	WALLOC(file);
-	file->datname = h_strdup(datname);
-	file->flags = flags;
-	file->mode = mode;
-	dbg->file = file;
-
-	/*
-	 * If the .dat file exists and O_TRUNC was given in the flags and the
-	 * database is opened for writing, then the database is re-initialized:
-	 * unlink the .dat file, which will be re-created on-demand.
-	 */
-
-	if ((flags & (O_RDWR | O_WRONLY)) && (flags & O_TRUNC)) {
-		unlink(datname);
-	}
-
 	return dbg;
 }
 
 /**
- * Free the file information.
+ * Close file descriptor used for the .dat file.
+ *
+ * @return TRUE if file descriptor was opened.
  */
-static void
-big_datfile_free_null(struct datfile **file_ptr)
+bool
+big_close(DBM *db)
 {
-	struct datfile *file = *file_ptr;
+	DBMBIG *dbg = db->big;
 
-	if (file != NULL) {
-		HFREE_NULL(file->datname);
-		WFREE(file);
-		*file_ptr = NULL;
-	}
+	if (NULL == dbg)
+		return FALSE;
+
+	sdbm_big_check(dbg);
+
+	if (-1 == dbg->fd)
+		return FALSE;
+
+	fd_forget_and_close(&dbg->fd);
+	return TRUE;
+}
+
+/**
+ * Re-open the .dat file.
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+big_reopen(DBM *db)
+{
+	DBMBIG *dbg = db->big;
+
+	sdbm_big_check(dbg);
+	g_assert(-1 == dbg->fd);
+
+	dbg->fd = file_open(db->datname,
+		db->openflags & ~(O_CREAT | O_TRUNC | O_EXCL), 0);
+
+	return -1 == dbg->fd ? -1 : 0;
 }
 
 /**
@@ -240,7 +238,6 @@ big_free(DBM *db)
 	if (common_stats)
 		log_bigstats(db);
 
-	big_datfile_free_null(&dbg->file);
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
 	HFREE_NULL(dbg->bitcheck);
 	HFREE_NULL(dbg->scratch);
@@ -255,16 +252,15 @@ big_free(DBM *db)
  * @return -1 on error with errno set, 0 if OK with cleared errno.
  */
 static int
-big_open(DBMBIG *dbg)
+big_open(DBM *db)
 {
-	struct datfile *file;
+	DBMBIG *dbg = db->big;
 	filestat_t buf;
 
 	g_assert(-1 == dbg->fd);
-	g_assert(dbg->file != NULL);
+	g_assert(db->datname != NULL);
 
-	file = dbg->file;
-	dbg->fd = file_open(file->datname, file->flags | O_CREAT, file->mode);
+	dbg->fd = file_open(db->datname, db->openflags | O_CREAT, db->openmode);
 
 	if (-1 == dbg->fd)
 		return -1;
@@ -313,7 +309,7 @@ big_check_start(DBM *db)
 
 	sdbm_big_check(dbg);
 
-	if (-1 == dbg->fd && -1 == big_open(dbg))
+	if (-1 == dbg->fd && -1 == big_open(db))
 		return FALSE;
 
 	if (dbg->bitcheck != NULL)
@@ -577,7 +573,7 @@ big_ffree(DBM *db, size_t bno)
 
 	STATIC_ASSERT(IS_POWER_OF_2(BIG_BITCOUNT));
 
-	if (-1 == dbg->fd && -1 == big_open(dbg)) {
+	if (-1 == dbg->fd && -1 == big_open(db)) {
 		g_warning("sdbm: \"%s\": cannot free block #%ld",
 			sdbm_name(db), (long) bno);
 		return;
@@ -736,7 +732,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 	size_t remain;
 	uint32 prev_bno;
 
-	if (-1 == dbg->fd && -1 == big_open(dbg))
+	if (-1 == dbg->fd && -1 == big_open(db))
 		return -1;
 
 	if (dbg->scratch_len < len)
@@ -997,7 +993,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 	g_return_val_if_fail(NULL == dbg->bitcheck, -1);
 
-	if (-1 == dbg->fd && -1 == big_open(dbg))
+	if (-1 == dbg->fd && -1 == big_open(db))
 		return -1;
 
 	/*
@@ -1152,7 +1148,7 @@ big_file_alloc(DBM *db, void *bvec, int bcnt)
 	g_assert(bcnt > 0);
 	g_return_val_if_fail(NULL == dbg->bitcheck, FALSE);
 
-	if (-1 == dbg->fd && -1 == big_open(dbg))
+	if (-1 == dbg->fd && -1 == big_open(db))
 		return FALSE;
 
 	/*
@@ -1682,18 +1678,19 @@ big_sync(DBM *db)
  * @return -1 on error with errno set, 0 if OK (file opened).
  */
 static int
-big_open_lazy(DBMBIG *dbg, bool force)
+big_open_lazy(DBM *db, bool force)
 {
+	DBMBIG *dbg = db->big;
 	filestat_t buf;
 
 	g_assert(-1 == dbg->fd);
 
-	if (NULL == dbg->file) {
+	if (NULL == db->datname) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	if (-1 == stat(dbg->file->datname, &buf)) {
+	if (-1 == stat(db->datname, &buf)) {
 		if (ENOENT == errno) {
 			errno = 0;	/* OK if .dat file is missing */
 		}
@@ -1701,14 +1698,14 @@ big_open_lazy(DBMBIG *dbg, bool force)
 	}
 
 	if (0 == buf.st_size) {
-		if (-1 != unlink(dbg->file->datname)) {
+		if (-1 != unlink(db->datname)) {
 			errno = 0;
 		}
 		return -1;
 	}
 
 	if (force)
-		return big_open(dbg);
+		return big_open(db);
 
 	errno = EEXIST;
 	return -1;			/* File not opened, but file already exists */
@@ -1734,7 +1731,7 @@ big_shrink(DBM *db)
 		 * exists because that would create it and it was not needed so far.
 		 */
 
-		if (-1 == big_open_lazy(dbg, TRUE))
+		if (-1 == big_open_lazy(db, TRUE))
 			return 0 == errno;
 	}
 
@@ -1789,9 +1786,9 @@ big_clear(DBM *db)
 		 * exists because that would create it and it was not needed so far.
 		 */
 
-		if (-1 == big_open_lazy(dbg, FALSE)) {
+		if (-1 == big_open_lazy(db, FALSE)) {
 			if (EEXIST == errno) {
-				if (-1 != unlink(dbg->file->datname)) {
+				if (-1 != unlink(db->datname)) {
 					errno = 0;
 				}
 			}
@@ -1809,7 +1806,7 @@ big_clear(DBM *db)
 	HFREE_NULL(dbg->scratch);
 	dbg->scratch_len = 0;
 
-	if (-1 == unlink(dbg->file->datname))
+	if (-1 == unlink(db->datname))
 		return FALSE;
 
 	return TRUE;
