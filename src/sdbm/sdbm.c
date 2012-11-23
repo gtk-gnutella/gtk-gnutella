@@ -20,10 +20,12 @@
 #include "lib/debug.h"
 #include "lib/fd.h"
 #include "lib/file.h"
-#include "lib/log.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/pow2.h"
+#include "lib/random.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -225,6 +227,17 @@ sdbm_free(DBM *db)
 	sdbm_check(db);
 	db->magic = 0;
 	WFREE(db);
+}
+
+static void
+sdbm_free_null(DBM **db_ptr)
+{
+	DBM *db = *db_ptr;
+
+	if (db != NULL) {
+		sdbm_free(db);
+		*db_ptr = NULL;
+	}
 }
 
 /**
@@ -2097,6 +2110,133 @@ error:
 }
 
 /**
+ * Rebuild database from scratch, thereby compacting it on disk since only
+ * the required pages will be allocated.
+ *
+ * @return 0 if OK, -1 on failure.
+ */
+int
+sdbm_rebuild(DBM *db)
+{
+	DBM *ndb;
+	char ext[10];
+	char *dirname, *pagname, *datname;
+	int error = 0;
+	long cache;
+	datum key;
+
+	sdbm_check(db);
+
+	if (sdbm_rdonly(db)) {
+		errno = EPERM;
+		return -1;
+	}
+	if (sdbm_error(db)) {
+		errno = EIO;		/* Already got an error reported */
+		return -1;
+	}
+	if (db->flags & DBM_ITERATING) {
+		errno = EBUSY;		/* Already iterating */
+		return -1;
+	}
+
+	str_bprintf(ext, sizeof ext, ".%08x", random_u32());
+	dirname = h_strconcat(db->dirname, ext, (void *) 0);
+	pagname = h_strconcat(db->pagname, ext, (void *) 0);
+	datname = NULL == db->datname ? NULL :
+		h_strconcat(db->datname, ext, (void *) 0);
+
+	ndb = sdbm_prep(dirname, pagname, datname,
+		db->openflags | O_CREAT | O_EXCL, db->openmode);
+
+	if (NULL == ndb) {
+		error = errno;
+		goto error;
+	}
+
+	/*
+	 * Propagates attributes to the new database: cache size, write delay,
+	 * volatile status.
+	 */
+
+	sdbm_set_name(ndb, db->name);
+	cache = sdbm_get_cache(db);
+
+	if (sdbm_is_volatile(db))	sdbm_set_volatile(ndb, TRUE);
+	if (sdbm_get_wdelay(db))	sdbm_set_wdelay(ndb, TRUE);
+	if (cache != 0)				sdbm_set_cache(ndb, cache);
+
+	/*
+	 * Copy all the keys/values from the database to the new database.
+	 */
+
+	for (key = sdbm_firstkey_safe(db); key.dptr; key = sdbm_nextkey(db)) {
+		datum value;
+
+		value = sdbm_value(db);
+		if (NULL == value.dptr) {
+			error = errno;
+			if (sdbm_error(db))
+				sdbm_clearerr(db);
+			sdbm_endkey(db);		/* Finish iteration */
+			break;
+		}
+		if (0 != sdbm_store(ndb, key, value, DBM_INSERT)) {
+			error = EEXIST;			/* Duplicate key, that's bad */
+			if (sdbm_error(db))
+				sdbm_clearerr(db);
+			sdbm_endkey(db);		/* Finish iteration */
+			break;
+		}
+	}
+
+	if (error != 0)
+		goto error;
+
+	/*
+	 * At this point, the database was successfully copied over.
+	 */
+
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	dirname = h_strdup(db->dirname);
+	pagname = h_strdup(db->pagname);
+	datname = h_strdup(db->datname);
+
+	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
+	*db = *ndb;									/* struct copy */
+	sdbm_free_null(&ndb);
+
+	/*
+	 * The original object is now the new database, we only need to rename
+	 * the files to let the rebuilt database be fully operational.
+	 */
+
+	if (-1 == sdbm_rename_files(db, dirname, pagname, datname))
+		error = errno;
+
+	/* FALL THROUGH */
+
+error:
+	HFREE_NULL(dirname);
+	HFREE_NULL(pagname);
+	HFREE_NULL(datname);
+
+	if (ndb != NULL) {
+		sdbm_unlink(ndb);
+	}
+
+	if (0 != error) {
+		errno = error;
+		return -1;
+	}
+
+	return 0;		/* OK, we rebuilt the database */
+}
+
+/**
  * Clear the whole database, discarding all the data.
  *
  * @return 0 on success, -1 on failure with errno set.
@@ -2158,6 +2298,8 @@ sdbm_set_cache(DBM *db, long pages)
 {
 	sdbm_check(db);
 #ifdef LRU
+	if G_UNLIKELY(NULL == db->cache)
+		lru_init(db);
 	return setcache(db, pages);
 #else
 	(void) pages;

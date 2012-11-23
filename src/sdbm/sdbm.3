@@ -19,10 +19,11 @@ datum nullitem = { NULL, 0 };
         int flags, int mode)
 void sdbm_close(\s-1DBM\s0 *db)
 void sdbm_unlink(\s-1DBM\s0 *db)
+int sdbm_rebuild(\s-1DBM\s0 *db)
 .sp
 datum sdbm_fetch(\s-1DBM\s0 *db, key)
 int sdbm_store(\s-1DBM\s0 *db, datum key, datum val, int flags)
-int sdbm_replace(\s-1DBM\s0 *db, datum key, datum val, gboolean *existed)
+int sdbm_replace(\s-1DBM\s0 *db, datum key, datum val, bool *existed)
 int sdbm_delete(\s-1DBM\s0 *db, datum key)
 int sdbm_exists(\s-1DBM\s0 *db, datum key)
 .sp
@@ -52,16 +53,16 @@ int sdbm_rename(\s-1DBM\s0 *db, char *base)
 int sdbm_rename_files(\s-1DBM\s0 *db,
 	char *dirname, char *pagname, char *datname)
 .sp
-gboolean sdbm_rdonly(\s-1DBM\s0 *db)
-gboolean sdbm_error(\s-1DBM\s0 *db)
-gboolean sdbm_shrink(\s-1DBM\s0 *db)
-gboolean sdbm_clear(\s-1DBM\s0 *db)
-sdbm_clearerr(\s-1DBM\s0 *db)
+bool sdbm_rdonly(\s-1DBM\s0 *db)
+bool sdbm_error(\s-1DBM\s0 *db)
+bool sdbm_shrink(\s-1DBM\s0 *db)
+bool sdbm_clear(\s-1DBM\s0 *db)
+void sdbm_clearerr(\s-1DBM\s0 *db)
 int sdbm_dirfno(\s-1DBM\s0 *db)
 int sdbm_pagfno(\s-1DBM\s0 *db)
 int sdbm_datfno(\s-1DBM\s0 *db)
 .sp
-gboolean sdbm_is_storable(size_t key, size_t value)
+bool sdbm_is_storable(size_t key, size_t value)
 .ft R
 .fi
 .SH DESCRIPTION
@@ -338,6 +339,10 @@ Returns -1 on error.
 works like
 .BR sdbm_rename (\|)
 but with the new filenames explicitly given.
+.IP
+.BR sdbm_rebuild (\|)
+rebuilds the database, hopefully leading to a more compact on-disk
+representation. It returns -1 on failure.
 .SH PAGE CACHING
 This
 .B sdbm
@@ -399,7 +404,7 @@ handle will use
 to indicate an error.
 Functions that return an
 .B int
-will use \-1 to indicate an error.  The normal return value in that case is 0.
+will use \-1 to indicate an error.  The normal returned value in that case is 0.
 Functions that return a
 .B datum
 will return
@@ -522,6 +527,8 @@ The following functions:
 .BR sdbm_rename (\|)
 .br
 .BR sdbm_rename_files (\|)
+.br
+.BR sdbm_rebuild (\|)
 .br
 .BR sdbm_get_cache (\|)
 .br

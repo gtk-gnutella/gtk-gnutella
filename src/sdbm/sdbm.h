@@ -81,6 +81,7 @@ int sdbm_clear(DBM *db);
 void sdbm_unlink(DBM *);
 int sdbm_rename(DBM *, const char *);
 int sdbm_rename_files(DBM *, const char *, const char *, const char *);
+int sdbm_rebuild(DBM *);
 
 /*
  * Internal routines with clean semantics that can be used by user code.
