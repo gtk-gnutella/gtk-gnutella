@@ -50,6 +50,7 @@ int sdbm_replace(DBM *, datum, datum, bool *);
 datum sdbm_firstkey(DBM *);
 datum sdbm_firstkey_safe(DBM *);
 datum sdbm_nextkey(DBM *);
+void sdbm_endkey(DBM *);
 datum sdbm_value(DBM *);
 int sdbm_deletekey(DBM *);
 int sdbm_exists(DBM *, datum);

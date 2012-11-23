@@ -31,6 +31,7 @@ datum sdbm_firstkey_safe(\s-1DBM\s0 *db)
 datum sdbm_nextkey(\s-1DBM\s0 *db)
 datum sdbm_value(\s-1DBM\s0 *db)
 int sdbm_deletekey(\s-1DBM\s0 *db)
+void sdbm_endkey(\s-1DBM\s0 *db)
 .sp
 long sdbm_hash(char *string, size_t len)
 .sp
@@ -263,6 +264,15 @@ and
 .B \.pag
 files are not consistent with eachother.
 .LP
+If for some reason the iteration must be aborted before
+.BR sdbm_nextkey (\|) or
+.BR sdbm_firstkey (\|)
+return
+.BR nullitem ,
+then the
+.BR sdbm_endkey (\|)
+routine must be called to clear the iteration context.
+.LP
 If you determine that the performance of the database is inadequate or
 you notice clustering or other effects that may be due to the hashing
 algorithm used by this package, you can override it by supplying your
@@ -494,6 +504,8 @@ The following functions:
 .BR sdbm_firstkey_safe (\|)
 .br
 .BR sdbm_deletekey (\|)
+.br
+.BR sdbm_endkey (\|)
 .br
 .BR sdbm_value (\|)
 .br

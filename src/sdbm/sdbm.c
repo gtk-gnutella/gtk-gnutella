@@ -1237,7 +1237,7 @@ iteration_done(DBM *db)
 	}
 #endif
 
-	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
+	sdbm_endkey(db);
 	return nullitem;
 }
 
@@ -1329,6 +1329,17 @@ sdbm_nextkey(DBM *db)
 	}
 	sdbm_check(db);
 	return getnext(db);
+}
+
+/**
+ * Flag iteration as completed.
+ */
+void
+sdbm_endkey(DBM *db)
+{
+	sdbm_check(db);
+
+	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
 }
 
 /**

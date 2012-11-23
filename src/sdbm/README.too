@@ -199,4 +199,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Made sdbm_close() unlink files if database was marked volatile.
 * Added sdbm_unlink() to close and unlink database files.
 * Added sdbm_get_wdelay(), sdbm_get_cache() and sdbm_is_volatile().
+* Added sdbm_endkey() to abort key iteration early.
 
