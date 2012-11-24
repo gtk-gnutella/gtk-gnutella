@@ -2097,7 +2097,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 	if ((iconv_t) -1 == cd) {
 		if (common_dbg > 1)
-			g_carp("complete_iconv: bad cd");
+			g_critical("%s(): bad cd", G_STRFUNC);
 		errno = EBADF;
 		goto error;
 	}
@@ -2105,7 +2105,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 	/* reset state */
 	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL)) {
 		if (common_dbg > 1)
-			g_warning("complete_iconv: iconv() reset failed");
+			g_warning("%s(): iconv() reset failed", G_STRFUNC);
 		goto error;
 	}
 
@@ -2139,7 +2139,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 			int e = errno;
 
 			if (common_dbg > 1)
-				g_warning("complete_iconv: iconv() failed: %m");
+				g_warning("%s(): iconv() failed: %m", G_STRFUNC);
 
 			g_assert(E2BIG != e);
 			g_assert(EINVAL == e || EILSEQ == e);

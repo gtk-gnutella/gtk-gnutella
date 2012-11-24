@@ -237,7 +237,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 
 	owner = htable_lookup(qown, l);
 	if (owner) {
-		g_carp("BUG: added linkable %p already owned by %s%s",
+		g_critical("BUG: added linkable %p already owned by %s%s",
 			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
 		if (owner != q)
 			g_warning("BUG: will make linkable %p belong to %s",

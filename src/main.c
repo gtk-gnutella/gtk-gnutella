@@ -339,7 +339,7 @@ gtk_gnutella_atexit(void)
 	 */
 
 	if (!exiting) {
-		g_carp("trapped foreign exit(), cleaning up...");
+		g_critical("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
 #ifndef USE_TOPLESS
 		running_topless = TRUE;		/* X connection may be broken, avoid GUI */

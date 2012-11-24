@@ -733,7 +733,7 @@ dbmap_remove(dbmap_t *dm, const void *key)
 			} else {
 				if G_UNLIKELY(0 == dm->count) {
 					if (dm->validated) {
-						g_carp("DBMAP on sdbm \"%s\": BUG: "
+						g_critical("DBMAP on sdbm \"%s\": BUG: "
 							"sdbm_delete() worked but we had no key tracked",
 							sdbm_name(dm->u.s.sdbm));
 					} else {

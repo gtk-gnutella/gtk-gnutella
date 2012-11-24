@@ -170,9 +170,9 @@ slist_free(slist_t **slist_ptr)
 		slist_check(slist);
 
 		if (--slist->refcount != 0) {
-			g_carp("slist_free: slist is still referenced! "
-					"(slist=%p, slist->refcount=%d)",
-					cast_to_constpointer(slist), slist->refcount);
+			g_critical("%s(): slist is still referenced! "
+				"(slist=%p, slist->refcount=%d)",
+				G_STRFUNC, cast_to_constpointer(slist), slist->refcount);
 		}
 
 		gm_slist_free_null(&slist->head);

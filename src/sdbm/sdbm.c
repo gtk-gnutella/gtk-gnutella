@@ -1293,8 +1293,10 @@ sdbm_firstkey(DBM *db)
 		return nullitem;
 	}
 
-	if G_UNLIKELY(db->flags & DBM_ITERATING)
-		g_carp("recursive iteration on SDBM database \"%s\"", sdbm_name(db));
+	if G_UNLIKELY(db->flags & DBM_ITERATING) {
+		g_critical("recursive iteration on SDBM database \"%s\"",
+			sdbm_name(db));
+	}
 
 	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
@@ -1352,7 +1354,7 @@ sdbm_firstkey_safe(DBM *db)
 		 */
 
 		if G_UNLIKELY(db->flags & DBM_RDONLY) {
-			g_carp("%s() called on read-only SDBM database \"%s\"",
+			g_critical("%s() called on read-only SDBM database \"%s\"",
 				G_STRFUNC, sdbm_name(db));
 		}
 	}
@@ -1397,7 +1399,7 @@ sdbm_endkey(DBM *db)
 	 */
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
-		g_carp("%s() called outside of any key iteration over \"%s\"",
+		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 	}
 
@@ -1831,7 +1833,7 @@ sdbm_shrink(DBM *db)
 		return FALSE;
 
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
-		g_carp("%s() called on read-only SDBM database \"%s\"",
+		g_critical("%s() called on read-only SDBM database \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 	}
 
@@ -2218,8 +2220,10 @@ error:
 	HFREE_NULL(pagname);
 	HFREE_NULL(datname);
 
-	if (result != 0 && !warned)
-		g_carp("sdbm: \"%s\": renaming operation failed: %m", sdbm_name(db));
+	if (result != 0 && !warned) {
+		g_critical("sdbm: \"%s\": renaming operation failed: %m",
+			sdbm_name(db));
+	}
 
 	return result;
 }

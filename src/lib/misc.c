@@ -1587,7 +1587,7 @@ dump_hex(FILE *out, const char *title, const void *data, int length)
 	iovec_t iov;
 
 	if (length < 0 || data == NULL) {
-		g_carp("%s: value out of range [data=%p, length=%d] for %s",
+		g_critical("%s(): value out of range [data=%p, length=%d] for %s",
 			G_STRFUNC, data, length, title);
 		return;
 	}

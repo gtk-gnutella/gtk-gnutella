@@ -2050,7 +2050,7 @@ mingw_valloc(void *hint, size_t size)
 		n = mingw_getpagesize();
 		n = size_saturate_mult(n, mingw_vmm.hinted++);
 		if (n + size >= mingw_vmm.size) {
-			s_carp("%s(): out of reserved memory for %zu bytes",
+			s_minicrit("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
 			goto failed;
 		}
@@ -2065,7 +2065,8 @@ mingw_valloc(void *hint, size_t size)
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			s_carp("%s(): failed to allocate %zu bytes: %m", G_STRFUNC, size);
+			s_minicrit("%s(): failed to allocate %zu bytes: %m",
+				G_STRFUNC, size);
 			goto failed;
 		}
 		return p;
@@ -2078,7 +2079,7 @@ mingw_valloc(void *hint, size_t size)
 
 	if (p == NULL) {
 		errno = mingw_last_error();
-		s_carp("%s(): failed to commit %zu bytes at %p: %m",
+		s_minicrit("%s(): failed to commit %zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
 		goto failed;
 	}
@@ -2142,7 +2143,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 		newProtect = PAGE_READWRITE;
 		break;
 	default:
-		g_carp("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		g_critical("mingw_mprotect(): unsupported protection flags 0x%x", prot);
 		res = EINVAL;
 		return -1;
 	}

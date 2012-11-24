@@ -627,7 +627,8 @@ cache_finish_traversal(void *key, void *value, void *data)
 
 	if (!entry->dirty && !fctx->warned_clean_key) {
 		fctx->warned_clean_key = TRUE;
-		g_carp("%s(): DBMW \"%s\" iterating via %s over a clean key in cache",
+		g_critical("%s(): DBMW \"%s\" "
+			"iterating via %s over a clean key in cache",
 			G_STRFUNC, dw->name,
 			stacktrace_routine_name(fctx->foreach->u.any, FALSE));
 	}
@@ -1040,7 +1041,7 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
-			g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+			g_critical("DBMW \"%s\" deserialization error in %s(): %s",
 				dw->name, stacktrace_function_name(dw->unpack),
 				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
@@ -1418,7 +1419,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
 
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
-				g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+				g_critical("DBMW \"%s\" deserialization error in %s(): %s",
 					dw->name,
 					stacktrace_function_name(dw->unpack),
 					bstr_error(dw->bs));

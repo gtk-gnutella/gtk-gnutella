@@ -191,7 +191,7 @@ hash_list_free(hash_list_t **hl_ptr)
 		hash_list_check(hl);
 
 		if (--hl->refcount != 0) {
-			g_carp("%s: hash list is still referenced! "
+			g_critical("%s(): hash list is still referenced! "
 				"(hl=%p, hl->refcount=%d)",
 				G_STRFUNC, cast_to_pointer(hl), hl->refcount);
 		}
