@@ -1229,7 +1229,7 @@ s_minicrit(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_minilogv(G_LOG_LEVEL_CRITICAL, FALSE, format, args);
+	s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
 	va_end(args);
 }
 
