@@ -172,7 +172,7 @@ In order to allow a process using this package to manipulate multiple
 databases, the applications interface always requires a
 .IR handle ,
 a
-.BR "DBM *" ,
+.BR "DBM\ *" ,
 to identify the database to be manipulated.  Such a handle can be obtained
 from the only routines that do not require it, namely
 .BR sdbm_open (\|)
@@ -253,7 +253,17 @@ deleted through the
 .BR sdbm_deletekey (\|)
 routine.  Usage of
 .BR sdbm_value (\|)
-outside of the outlined iterator loop is forbidden.
+or
+.BR sdbm_deletekey (\|)
+outside of the outlined iterator loop is forbidden.  Should that happen, an
+error is returned (either
+.B nullitem
+or
+.BR -1 )
+and
+.B errno
+is set to
+.BR \s-1ENOENT\s0 .
 .LP
 The iteration may begin with
 .BR sdbm_firstkey_safe (\|)
@@ -266,7 +276,8 @@ and
 files are not consistent with eachother.
 .LP
 If for some reason the iteration must be aborted before
-.BR sdbm_nextkey (\|) or
+.BR sdbm_nextkey (\|)
+or
 .BR sdbm_firstkey (\|)
 return
 .BR nullitem ,

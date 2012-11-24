@@ -204,3 +204,10 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   its disk representation by filling low-order pages.
 * Added -f switch to "dba" to only print filled pages.
 
+
+Sat Nov 24 19:51:38 CET 2012
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Loudly warn when sdbm_deletekey() or sdbm_value() are called outside an
+  iteration loop.

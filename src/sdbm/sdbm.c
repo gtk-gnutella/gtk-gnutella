@@ -1656,6 +1656,7 @@ getnext(DBM *db)
  * subsequent sdbm_nextkey() calls.
  *
  * This is a safe operation during key traversal.
+ * Must not be called outside of a key iteration loop.
  */
 int
 sdbm_deletekey(DBM *db)
@@ -1678,12 +1679,20 @@ sdbm_deletekey(DBM *db)
 		return -1;
 	}
 
+	/*
+	 * Loudly warn if this is called outside of an iteration.
+	 */
+
+	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
+		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+		goto no_entry;
+	}
+
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
-	if G_UNLIKELY(0 == db->keyptr) {
-		errno = ENOENT;
-		return -1;
-	}
+	if G_UNLIKELY(0 == db->keyptr)
+		goto no_entry;
 
 	if G_UNLIKELY(!delnpair(db, db->pagbuf, db->keyptr))
 		return -1;
@@ -1698,6 +1707,10 @@ sdbm_deletekey(DBM *db)
 		return -1;
 
 	return 0;
+
+no_entry:
+	errno = ENOENT;
+	return -1;
 }
 
 /**
@@ -1715,20 +1728,31 @@ sdbm_value(DBM *db)
 	}
 
 	sdbm_check(db);
+
+	/*
+	 * Loudly warn if this is called outside of an iteration.
+	 */
+
+	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
+		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+		goto no_entry;
+	}
+
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
-	if G_UNLIKELY(0 == db->keyptr) {
-		errno = ENOENT;
-		return nullitem;
-	}
+	if G_UNLIKELY(0 == db->keyptr)
+		goto no_entry;
 
 	val = getnval(db, db->pagbuf, db->keyptr);
-	if G_UNLIKELY(NULL == val.dptr) {
-		errno = ENOENT;
-		return nullitem;
-	}
+	if G_UNLIKELY(NULL == val.dptr)
+		goto no_entry;
 
 	return val;
+
+no_entry:
+	errno = ENOENT;
+	return nullitem;
 }
 
 /**
