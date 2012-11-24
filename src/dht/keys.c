@@ -1806,7 +1806,7 @@ keys_close(void)
 {
 	values_close();
 
-	dbstore_delete(db_keydata);
+	dbstore_close(db_keydata, settings_dht_db_dir(), db_keybase);
 	db_keydata = NULL;
 
 	if (keys) {

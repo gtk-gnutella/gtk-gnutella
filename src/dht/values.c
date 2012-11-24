@@ -2096,8 +2096,8 @@ expired_free_k(const void *key, void *u_data)
 G_GNUC_COLD void
 values_close(void)
 {
-	dbstore_delete(db_valuedata);
-	dbstore_delete(db_rawdata);
+	dbstore_close(db_valuedata, settings_dht_db_dir(), db_valbase);
+	dbstore_close(db_rawdata, settings_dht_db_dir(), db_rawbase);
 	dbstore_delete(db_expired);
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free_null(&values_per_ip);
