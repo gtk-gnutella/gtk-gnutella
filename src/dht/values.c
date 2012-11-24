@@ -1890,6 +1890,17 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 		goto delete_value;
 
 	/*
+	 * If the raw data does not exist for this value, then we have a corrupted
+	 * value or raw SDBM file.  Delete the value.
+	 */
+
+	if (!dbmw_exists(db_rawdata, dbk)) {
+		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: lost data",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		return TRUE;
+	}
+
+	/*
 	 * Normally, keys must be unique in the database, but if the file was
 	 * corrupted then we may find ourselves with duplicates.  So be careful.
 	 */
@@ -1955,7 +1966,22 @@ values_raw_purge(void *key, void *u_value, size_t u_len, void *data)
 	(void) u_value;
 	(void) u_len;
 
-	return !hset_contains(dbkeys, dbk);
+	if (!hset_contains(dbkeys, dbk))
+		return TRUE;
+
+	/*
+	 * Just because a DB key is present in the "raw database" and is among
+	 * the specified keys to reload does not mean that DB key was present
+	 * in the "value database".
+	 */
+
+	if (!dbmw_exists(db_valuedata, dbk)) {
+		g_warning("DHT VALUE missing value information for DB key %s",
+			uint64_to_string(*dbk));
+		return TRUE;
+	}
+
+	return FALSE;	/* Keep the entry: in the set, and value exists */
 }
 
 /**
