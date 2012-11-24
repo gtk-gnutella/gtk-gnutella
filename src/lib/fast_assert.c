@@ -183,7 +183,7 @@ assertion_warning_log(const assertion_data * const data,
 	static str_t *str;
 	va_list args;
 
-	assertion_message(data, TRUE);
+	assertion_message(data, FALSE);
 
 	if G_UNLIKELY(NULL == str)
 		str = str_new_not_leaking(512);
