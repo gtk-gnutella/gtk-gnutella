@@ -1736,7 +1736,7 @@ crash_try_reexec(void)
 	char dir[MAX_PATH_LEN];
 
 	if (NULL == vars) {
-		s_carp("%s(): no crash_init() yet!", G_STRFUNC);
+		s_minicrit("%s(): no crash_init() yet!", G_STRFUNC);
 		_exit(EXIT_FAILURE);
 	}
 
