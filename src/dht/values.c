@@ -2071,8 +2071,8 @@ values_init_data(const hset_t *dbkeys)
 	if (0 == values_managed)
 		valueid = 1;
 
-	dbstore_shrink(db_rawdata);
-	dbstore_shrink(db_valuedata);
+	dbstore_compact(db_rawdata);
+	dbstore_compact(db_valuedata);
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES first allocated value DB-key will be %s",

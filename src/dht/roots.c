@@ -1091,8 +1091,8 @@ roots_init_rootinfo(void)
 		}
 	}
 
-	dbstore_shrink(db_rootdata);
-	dbstore_shrink(db_contact);
+	dbstore_compact(db_rootdata);
+	dbstore_compact(db_contact);
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS first allocated contact DB-key will be %s",

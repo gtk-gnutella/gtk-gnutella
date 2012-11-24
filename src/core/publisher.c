@@ -910,7 +910,7 @@ publisher_trim_pubdata(void)
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	dbstore_shrink(db_pubdata);
+	dbstore_compact(db_pubdata);
 }
 
 /**

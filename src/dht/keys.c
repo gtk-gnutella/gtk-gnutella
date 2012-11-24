@@ -1582,7 +1582,7 @@ keys_init_keyinfo(void)
 
 	hikset_foreach_remove(keys, keys_discard_if_empty, NULL);
 	dbmw_foreach_remove(db_keydata, keys_delete_if_empty, NULL);
-	dbstore_shrink(db_keydata);
+	dbstore_compact(db_keydata);
 
 	g_soft_assert_log(hikset_count(keys) == dbmw_count(db_keydata),
 		"keys reloaded: %zu, key data persisted: %zu",

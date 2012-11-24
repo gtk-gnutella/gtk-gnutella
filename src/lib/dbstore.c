@@ -321,10 +321,14 @@ dbstore_delete(dbmw_t *dw)
 }
 
 /**
- * Attempt to clear / shrink the DBMW database.
+ * Attempt to clear / rebuild the DBMW database.
+ *
+ * The aim is to reduce the disk size of the database since it can grow very
+ * large after many insertions and deletions, with most pages being empty or
+ * holding only a few keys.
  */
 void
-dbstore_shrink(dbmw_t *dw)
+dbstore_compact(dbmw_t *dw)
 {
 	/*
 	 * If we retained no entries, issue a dbmw_clear() to restore underlying
@@ -342,6 +346,8 @@ dbstore_shrink(dbmw_t *dw)
 			if (dbstore_debug) {
 				g_warning("DBSTORE unable to clear DBMW \"%s\"", dbmw_name(dw));
 			}
+		} else if (dbstore_debug) {
+			g_debug("DBSTORE database DBMW \"%s\" cleared", dbmw_name(dw));
 		}
 	} else {
 		if (dbstore_debug > 1) {
@@ -352,6 +358,8 @@ dbstore_shrink(dbmw_t *dw)
 				g_warning("DBSTORE unable to rebuild DBMW \"%s\"",
 					dbmw_name(dw));
 			}
+		} else if (dbstore_debug) {
+			g_debug("DBSTORE database DBMW \"%s\" rebuilt", dbmw_name(dw));
 		}
 	}
 }

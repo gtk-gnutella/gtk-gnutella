@@ -1161,7 +1161,7 @@ bitzi_prune_old(void)
 			dbmw_count(db_bzdata));
 	}
 
-	dbstore_shrink(db_bzdata);
+	dbstore_compact(db_bzdata);
 }
 
 /**

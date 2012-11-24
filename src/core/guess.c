@@ -2085,7 +2085,7 @@ guess_qk_prune_old(void)
 			dbmw_count(db_qkdata));
 	}
 
-	dbstore_shrink(db_qkdata);
+	dbstore_compact(db_qkdata);
 }
 
 /**

@@ -457,7 +457,7 @@ stable_prune_old(void)
 			dbmw_count(db_lifedata));
 	}
 
-	dbstore_shrink(db_lifedata);
+	dbstore_compact(db_lifedata);
 }
 
 /**
