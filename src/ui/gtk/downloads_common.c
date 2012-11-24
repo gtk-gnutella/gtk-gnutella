@@ -372,7 +372,7 @@ downloads_gui_status_string(const struct download *d)
 		 * If source is a partial source, show it.
 		 */
 
-		if (d->ranges != NULL) {
+		if (d->ranges != NULL || d->ranges_size < fi->size) {
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 				" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 		}
@@ -637,7 +637,7 @@ downloads_gui_status_string(const struct download *d)
 			 * If source is a partial source, show it.
 			 */
 
-			if (d->ranges != NULL)
+			if (d->ranges != NULL || d->ranges_size < fi->size)
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 

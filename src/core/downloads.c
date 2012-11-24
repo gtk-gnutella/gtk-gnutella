@@ -10708,10 +10708,16 @@ update_available_ranges(struct download *d, const header_t *header)
 
 		http_range_free(d->ranges);
 		d->ranges = NULL;
-		d->ranges_size = download_filesize(d);
 		d->flags &= ~DL_F_PARTIAL;
 		has_new_ranges = TRUE;
 	}
+
+	/*
+	 * For complete files, make sure ``ranges_size'' is set to the whole file.
+	 */
+
+	if (0 == (d->flags & DL_F_PARTIAL))
+		d->ranges_size = download_filesize(d);
 
 	/*
 	 * Send an update event for the ranges when there is a change, or when
