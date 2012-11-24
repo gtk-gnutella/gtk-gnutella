@@ -211,3 +211,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 
 * Loudly warn when sdbm_deletekey() or sdbm_value() are called outside an
   iteration loop.
+* Made sdbm_rebuild() more fault-tolerant for things we cannot fix, such
+  as unreadable big keys/values or duplicate keys.

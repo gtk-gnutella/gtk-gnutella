@@ -2229,6 +2229,7 @@ sdbm_rebuild(DBM *db)
 	int error = 0;
 	long cache;
 	datum key;
+	unsigned items = 0, skipped = 0, duplicate = 0;
 
 	sdbm_check(db);
 
@@ -2280,20 +2281,27 @@ sdbm_rebuild(DBM *db)
 	 */
 
 	for (key = sdbm_firstkey_safe(db); key.dptr; key = sdbm_nextkey(db)) {
-		datum value;
+		datum value = sdbm_value(db);
 
-		value = sdbm_value(db);
+		items++;
+
 		if (NULL == value.dptr) {
-			error = errno;
 			if (sdbm_error(db))
 				sdbm_clearerr(db);
-			sdbm_endkey(db);		/* Finish iteration */
-			break;
+			skipped++;				/* Unreadable value skipped */
+			continue;
 		}
+
 		if (0 != sdbm_store(ndb, key, value, DBM_INSERT)) {
-			error = EEXIST;			/* Duplicate key, that's bad */
 			if (sdbm_error(db))
 				sdbm_clearerr(db);
+			if (EEXIST == errno) {
+				/* Duplicate key, that's bad, but we can survive */
+				duplicate++;
+				skipped++;
+				continue;
+			}
+			/* Other errors are fatal */
 			sdbm_endkey(db);		/* Finish iteration */
 			break;
 		}
@@ -2340,6 +2348,21 @@ error:
 	if (0 != error) {
 		errno = error;
 		return -1;
+	}
+
+	/*
+	 * Loudly warn if we skipped some values during the rebuilding process.
+	 *
+	 * The values we skipped were unreadable, corrupted, or otherwise not
+	 * something we could repair, so there was no point in refusing to
+	 * rebuild the database.
+	 */
+
+	if (skipped != 0) {
+		g_critical("sdbm: \"%s\": had to skip %u/%u item%s (%u duplicate%s)"
+			" during rebuild",
+			sdbm_name(db), skipped, items, 1 == skipped ? "" : "s",
+			duplicate, 1 == duplicate ? "" : "s");
 	}
 
 	return 0;		/* OK, we rebuilt the database */
