@@ -582,9 +582,9 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
  * @return pointer to static string.
  */
 const char *
-log_prefix(GLogLevelFlags loglvl)
+log_prefix(GLogLevelFlags level)
 {
-	switch (loglvl) {
+	switch (level & G_LOG_LEVEL_MASK) {
 	case G_LOG_LEVEL_CRITICAL: return "CRITICAL";
 	case G_LOG_LEVEL_ERROR:    return "ERROR";
 	case G_LOG_LEVEL_WARNING:  return "WARNING"; 
@@ -681,7 +681,6 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	DECLARE_STR(11);
 	char time_buf[18];
 	const char *prefix;
-	GLogLevelFlags loglvl;
 	unsigned stid;
 	int saved_errno;
 
@@ -704,8 +703,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 
 	saved_errno = errno;
 
-	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-	prefix = log_prefix(loglvl);
+	prefix = log_prefix(level);
 	stid = thread_small_id();
 
 	/*
@@ -788,7 +786,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	ckhunk_t *ck;
 	void *saved;
 	bool recursing;
-	GLogLevelFlags loglvl;
 	unsigned stid;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
@@ -808,6 +805,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(6);
 		char time_buf[18];
 		const char *caller;
+		bool copy;
 
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
@@ -824,15 +822,15 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * A recursion with an error message is always fatal.
 		 */
 
-		if (G_LOG_LEVEL_ERROR == level)
+		if (G_LOG_LEVEL_ERROR & level)
 			log_abort();
 
 		/*
 		 * Use minimal logging.
 		 */
 
-		s_minilogv(level | G_LOG_FLAG_RECURSION, level & G_LOG_FLAG_FATAL,
-			format, args);
+		copy = level & (G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL);
+		s_minilogv(level | G_LOG_FLAG_RECURSION, copy, format, args);
 		goto done;
 	}
 
@@ -885,9 +883,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	str_vprintf(msg, format, args);
-
-	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-	prefix = log_prefix(loglvl);
+	prefix = log_prefix(level);
 
 	/*
 	 * Avoid stdio's fprintf() from within a signal handler since we
@@ -921,9 +917,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		log_flush_err();
 
 		if G_UNLIKELY(
-			(level & G_LOG_FLAG_FATAL) ||
-			G_LOG_LEVEL_CRITICAL == loglvl ||
-			G_LOG_LEVEL_ERROR == loglvl
+			level &
+				(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR)
 		) {
 			if (log_stdout_is_distinct())
 				log_flush_out();
@@ -969,7 +964,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * until the end to avoid recursion.
 	 */
 
-	if G_UNLIKELY(G_LOG_LEVEL_CRITICAL == loglvl || G_LOG_LEVEL_ERROR == loglvl)
+	if G_UNLIKELY(level & (G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR))
 		s_stacktrace(TRUE, 2);
 
 done:
@@ -1659,7 +1654,6 @@ log_handler(const char *domain, GLogLevelFlags level,
 	struct tm *ct;
 	const char *prefix;
 	char *safer;
-	GLogLevelFlags loglvl;
 	unsigned stid;
 
 	(void) unused_data;
@@ -1670,8 +1664,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 	now = tm_time_exact();
 	ct = localtime(&now);
 
-	loglvl = level & ~(G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL);
-	prefix = log_prefix(loglvl);
+	prefix = log_prefix(level);
 	stid = thread_small_id();
 
 	if (level & G_LOG_FLAG_RECURSION) {
@@ -1684,9 +1677,8 @@ log_handler(const char *domain, GLogLevelFlags level,
 	log_fprint(LOG_STDERR, ct, level, prefix, stid, safer);
 
 	if G_UNLIKELY(
-		(level & G_LOG_FLAG_FATAL) ||
-		G_LOG_LEVEL_CRITICAL == loglvl ||
-		G_LOG_LEVEL_ERROR == loglvl
+		level &
+			(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR)
 	) {
 		if (log_stdout_is_distinct())
 			log_fprint(LOG_STDOUT, ct, level, prefix, stid, safer);
@@ -1695,9 +1687,10 @@ log_handler(const char *domain, GLogLevelFlags level,
 	}
 
 	if G_UNLIKELY(
-		G_LOG_LEVEL_CRITICAL == loglvl ||
-		G_LOG_LEVEL_ERROR == loglvl ||
-		(level & (G_LOG_FLAG_RECURSION|G_LOG_FLAG_FATAL))
+		level & (
+			G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION |
+			G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR
+		)
 	) {
 		stacktrace_where_sym_print_offset(stderr, 3);
 		if (log_stdout_is_distinct()) {
