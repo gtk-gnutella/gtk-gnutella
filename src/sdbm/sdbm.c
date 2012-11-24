@@ -366,8 +366,8 @@ success:
 		 * unlink the .dat file, which will be re-created on-demand.
 		 */
 
-		if ((flags & (O_RDWR | O_WRONLY)) && (flags & O_TRUNC)) {
-			if (-1 == unlink(datname))
+		if (O_TRUNC != (flags & (O_RDWR | O_WRONLY | O_TRUNC))) {
+			if (-1 == unlink(datname) && ENOENT != errno)
 				g_warning("%s(): cannot delete \"%s\": %m", G_STRFUNC, datname);
 		}
 	}
