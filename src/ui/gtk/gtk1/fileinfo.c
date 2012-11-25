@@ -372,6 +372,8 @@ fi_gui_source_show(struct download *key)
 	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
 		titles[i] = "";
 	}
+
+	gtk_clist_freeze(clist);
 	row = gtk_clist_append(clist, (char **) titles);
 	g_return_if_fail(row >= 0);
 
@@ -387,6 +389,7 @@ fi_gui_source_show(struct download *key)
 	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
 		render_sources(key, row, i);
 	}
+	gtk_clist_thaw(clist);
 }
 
 void
