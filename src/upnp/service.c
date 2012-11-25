@@ -38,15 +38,23 @@
 #include "if/gnet_property_priv.h"
 
 #include "xml/vxml.h"
+#include "xml/xnode.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/nv.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
+
+static const char UPNP_SVC_NS[]			= "urn:schemas-upnp-org:service-1-0";
+static const char UPNP_SVC_ACTIONLIST[] = "actionList";
+static const char UPNP_SVC_ACTION[]		= "action";
+static const char UPNP_SVC_NAME[]		= "name";
 
 enum upnp_service_msgic { UPNP_SVC_DESC_MAGIC = 0x6c960b68U };
 
@@ -58,6 +66,8 @@ struct upnp_service {
 	enum upnp_service_type type;	/**< Service type */
 	unsigned version;				/**< Service version */
 	const char *control_url;		/**< Control URL (atom) */
+	const char *scpd_url;			/**< SCPD URL (atom) */
+	nv_table_t *api;				/**< The actions available in the API */
 };
 
 static inline void
@@ -101,6 +111,17 @@ upnp_service_control_url(const upnp_service_t *usd)
 }
 
 /**
+ * @return Service Control Protocol Definition (SCPD) URL.
+ */
+const char *
+upnp_service_scpd_url(const upnp_service_t *usd)
+{
+	upnp_service_check(usd);
+
+	return usd->scpd_url;
+}
+
+/**
  * Allocate a new service description.
  *
  * The control URL is copied.
@@ -108,18 +129,20 @@ upnp_service_control_url(const upnp_service_t *usd)
  * @param type		service type
  * @param version	service version number
  * @param ctrl_url	control URL
+ * @param scpd_url	SCPD URL
  */
 static upnp_service_t *
 upnp_service_alloc(enum upnp_service_type type, unsigned version,
-	const char *ctrl_url)
+	const char *ctrl_url, const char *scpd_url)
 {
 	upnp_service_t *usd;
 
-	WALLOC(usd);
+	WALLOC0(usd);
 	usd->magic = UPNP_SVC_DESC_MAGIC;
 	usd->type = type;
 	usd->version = version;
 	usd->control_url = atom_str_get(ctrl_url);
+	usd->scpd_url = atom_str_get(scpd_url);
 
 	return usd;
 }
@@ -133,6 +156,8 @@ upnp_service_free(upnp_service_t *usd)
 	upnp_service_check(usd);
 
 	atom_str_free_null(&usd->control_url);
+	atom_str_free_null(&usd->scpd_url);
+	nv_table_free_null(&usd->api);
 	usd->magic = 0;
 	WFREE(usd);
 }
@@ -169,7 +194,7 @@ upnp_service_to_string(const upnp_service_t *usd)
 
 	upnp_service_check(usd);
 
-	gm_snprintf(buf, sizeof buf, "\"%s\" v%u at %s",
+	str_bprintf(buf, sizeof buf, "\"%s\" v%u at %s",
 		upnp_service_type_to_string(usd->type), usd->version, usd->control_url);
 
 	return buf;
@@ -360,6 +385,12 @@ upnp_service_adjust_urls(GSList *services,
 					upnp_service_to_string(usd));
 			}
 		}
+
+		absolute = url_absolute_within(base, usd->scpd_url);
+		if (absolute != usd->scpd_url) {
+			atom_str_change(&usd->scpd_url, absolute);
+			hfree(absolute);
+		}
 	}
 }
 
@@ -374,6 +405,7 @@ struct upnp_service_ctx {
 	enum upnp_service_type type;	/**< Service type */
 	unsigned version;				/**< Service version */
 	const char *control_url;		/**< Control URL (atom) */
+	const char *scpd_url;			/**< SCPD URL (atom) */
 	unsigned in_service:1;			/**< Within a <service> tag? */
 };
 
@@ -384,7 +416,8 @@ enum upnp_srvtok {
 	UPNP_SRVTOK_URL_BASE = 1,		/* URLBase */
 	UPNP_SRVTOK_SERVICE,			/* service */
 	UPNP_SRVTOK_SERVICE_TYPE,		/* serviceType */
-	UPNP_SRVTOK_CONTROL_URL			/* controlURL */
+	UPNP_SRVTOK_CONTROL_URL,		/* controlURL */
+	UPNP_SRVTOK_SCPD_URL			/* SCPDURL */
 };
 
 /**
@@ -395,6 +428,7 @@ struct vxml_token upnp_service_tokens[] = {
 	{ "service",		UPNP_SRVTOK_SERVICE },
 	{ "serviceType",	UPNP_SRVTOK_SERVICE_TYPE },
 	{ "controlURL",		UPNP_SRVTOK_CONTROL_URL },
+	{ "SCPDURL",		UPNP_SRVTOK_SCPD_URL },
 };
 
 /*
@@ -453,6 +487,11 @@ upnp_service_xml_text(vxml_parser_t *vp,
 			atom_str_change(&ctx->control_url, text);
 		}
 		break;
+	case UPNP_SRVTOK_SCPD_URL:
+		if (ctx->in_service) {
+			atom_str_change(&ctx->scpd_url, text);
+		}
+		break;
 	default:
 		break;
 	}
@@ -469,10 +508,15 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 	(void) vp;
 
 	if (UPNP_SRVTOK_SERVICE == id) {
-		if (ctx->control_url != NULL && ctx->type != UPNP_SVC_UNKNOWN) {
+		if (
+			ctx->control_url != NULL &&
+			ctx->scpd_url != NULL &&
+			ctx->type != UPNP_SVC_UNKNOWN
+		) {
 			upnp_service_t *usd;
 
-			usd = upnp_service_alloc(ctx->type, ctx->version, ctx->control_url);
+			usd = upnp_service_alloc(ctx->type, ctx->version,
+				ctx->control_url, ctx->scpd_url);
 			ctx->services = g_slist_prepend(ctx->services, usd);
 
 			if (GNET_PROPERTY(upnp_debug) > 1)
@@ -481,6 +525,7 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 
 		ctx->type = UPNP_SVC_UNKNOWN;
 		atom_str_free_null(&ctx->control_url);
+		atom_str_free_null(&ctx->scpd_url);
 		ctx->in_service = FALSE;
 	}
 }
@@ -547,8 +592,190 @@ upnp_service_extract(const char *data, size_t len, const char *desc_url)
 	vxml_parser_free(vp);
 	atom_str_free_null(&ctx.base_url);
 	atom_str_free_null(&ctx.control_url);
+	atom_str_free_null(&ctx.scpd_url);
 
 	return ctx.services;
+}
+
+/**
+ * Does service provide the action?
+ */
+bool
+upnp_service_can(const upnp_service_t *usd, const char *action)
+{
+	upnp_service_check(usd);
+
+	if (NULL == usd->api)
+		return TRUE;			/* We don't know, assume it can */
+
+	return NULL != nv_table_lookup(usd->api, action);
+}
+
+/**
+ * Is XML node an action name?
+ */
+static bool
+node_is_action_name(const void *node, void *unused_data)
+{
+	const xnode_t *xn = node;
+	const char *name = xnode_element_name(xn);
+	const char *ns = xnode_element_ns(xn);
+
+	(void) unused_data;
+
+	if (NULL == name || NULL == ns || 0 != strcmp(name, UPNP_SVC_NAME))
+		return FALSE;
+
+	return 0 == strcmp(ns, UPNP_SVC_NS);
+}
+
+/**
+ * Record action names that make up the service API.
+ */
+static void
+upnp_service_add_action(void *node, void *data)
+{
+	xnode_t *xn = node;
+	upnp_service_t *usd = data;
+	const char *ns = xnode_element_ns(xn);
+	const char *name = xnode_element_name(xn);
+	xnode_t *aname;
+	const char *action;
+
+	upnp_service_check(usd);
+
+	/*
+	 * We're going to parse the <actionList> element that looks like:
+	 *
+	 *    <actionList>
+	 *      <action>
+	 *        <name>AddPortMapping</name>
+	 *        ....
+	 *      </action>
+	 *      ...
+	 *    </actionList>
+	 *
+	 * We're only interested in knowning the names of the services that
+	 * are offered, so we fetch the <name> items that apply to each <action>.
+	 */
+
+	if (NULL == name || NULL == ns)
+		return;
+
+	if (0 != strcmp(name, UPNP_SVC_ACTION) || 0 != strcmp(ns, UPNP_SVC_NS))
+		return;
+
+	/*
+	 * There are several items in the tree that bear the tag <name>, but the
+	 * one we are interested in will be an immediate child of <action>.
+	 */
+
+	aname = xnode_tree_find_depth(xn, 1, node_is_action_name, NULL);
+
+	if (NULL == aname)
+		return;
+
+	action = xnode_first_text(aname);
+	if (NULL == action)
+		return;
+
+	/*
+	 * Avoid duplicate actions.
+	 */
+
+	if (NULL != nv_table_lookup(usd->api, action))
+		return;
+
+	/*
+	 * Found a new action name provided by this service.
+	 */
+
+	if (GNET_PROPERTY(upnp_debug)) {
+		g_info("UPNP %s supports %s()", upnp_service_to_string(usd), action);
+	}
+	
+	nv_table_insert_nocopy(usd->api, action, NULL, 0);
+}
+
+/**
+ * Is XML node the root of the action list?
+ */
+static bool
+node_is_actionlist(const void *node, void *unused_data)
+{
+	const xnode_t *xn = node;
+	const char *name = xnode_element_name(xn);
+	const char *ns = xnode_element_ns(xn);
+
+	(void) unused_data;
+
+	if (NULL == name || NULL == ns || 0 != strcmp(name, UPNP_SVC_ACTIONLIST))
+		return FALSE;
+
+	return 0 == strcmp(ns, UPNP_SVC_NS);
+}
+
+/**
+ * Extract the service API from the SCPD XML tree.
+ *
+ * @param usd		the UPnP service
+ * @param root		the root of the SCPD tree
+ */
+static void
+upnp_service_scpd_extract(upnp_service_t *usd, xnode_t *root)
+{
+	xnode_t *actions;
+
+	actions = xnode_tree_find_depth(root, 1, node_is_actionlist, NULL);
+
+	if (NULL == actions) {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP no <%s> element found in SCPD for %s",
+				UPNP_SVC_ACTIONLIST, upnp_service_to_string(usd));
+		}
+		return;
+	}
+
+	if (NULL == usd->api)
+		usd->api = nv_table_make(FALSE);
+
+	xnode_tree_foreach_children(actions, upnp_service_add_action, usd);
+}
+
+/**
+ * Parse the SCPD to get the service API.
+ *
+ * @param usd		the UPnP service
+ * @param data		data making up the SCPD
+ * @param len		data length
+ */
+void
+upnp_service_scpd_parse(upnp_service_t *usd, const char *data, size_t len)
+{
+	vxml_parser_t *vp;
+	vxml_error_t e;
+	xnode_t *root;
+
+	upnp_service_check(usd);
+	g_assert(data != NULL);
+	g_assert(size_is_non_negative(len));
+
+	vp = vxml_parser_make("SCPD", VXML_O_STRIP_BLANKS);
+	vxml_parser_add_data(vp, data, len);
+
+	e = vxml_parse_tree(vp, &root);
+
+	if (VXML_E_OK == e) {
+		upnp_service_scpd_extract(usd, root);
+		xnode_tree_free(root);
+	} else {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP error parsing XML description from \"%s\": %s",
+				upnp_service_scpd_url(usd), vxml_parser_strerror(vp, e));
+		}
+	}
+
+	vxml_parser_free(vp);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

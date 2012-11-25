@@ -192,7 +192,10 @@ etree_data(const etree_t *et, const node_t * const node)
 }
 
 void etree_foreach(const etree_t *tree, data_fn_t cb, void *data);
-size_t etree_traverse(const etree_t *tree, unsigned flags, unsigned maxdepth,
+void etree_foreach_children(const etree_t *tree, void *parent,
+	data_fn_t cb, void *data);
+size_t etree_traverse(const etree_t *tree, unsigned flags,
+	unsigned mindepth, unsigned maxdepth,
 	match_fn_t enter, data_fn_t action, void *data);
 
 /**
@@ -216,7 +219,8 @@ etree_count(const etree_t *et)
 
 	wet = deconstify_pointer(et);
 
-	return wet->count = etree_traverse(et, ETREE_TRAVERSE_ALL, ETREE_MAX_DEPTH,
+	return wet->count = etree_traverse(et,
+		ETREE_TRAVERSE_ALL, 0, ETREE_MAX_DEPTH,
 		NULL, NULL, NULL);
 }
 

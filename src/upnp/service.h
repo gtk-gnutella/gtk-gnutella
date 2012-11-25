@@ -58,6 +58,7 @@ typedef struct upnp_service upnp_service_t;
 enum upnp_service_type upnp_service_type(const upnp_service_t *usd);
 unsigned upnp_service_version(const upnp_service_t *usd);
 const char *upnp_service_control_url(const upnp_service_t *usd);
+const char *upnp_service_scpd_url(const upnp_service_t *usd);
 
 void upnp_service_gslist_free_null(GSList **list_ptr);
 GSList *upnp_service_extract(const char *, size_t, const char *desc_url);
@@ -67,6 +68,8 @@ upnp_service_t *upnp_service_gslist_find(
 	GSList *services, enum upnp_service_type type);
 upnp_service_t *upnp_service_get_wan_connection(GSList *services);
 upnp_service_t *upnp_service_get_common_if(GSList *services);
+void upnp_service_scpd_parse(upnp_service_t *usd, const char *data, size_t len);
+bool upnp_service_can(const upnp_service_t *usd, const char *action);
 
 #endif /* _upnp_service_h_ */
 

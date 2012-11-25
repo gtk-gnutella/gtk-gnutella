@@ -117,6 +117,7 @@ bool xnode_prop_ns_printf(xnode_t *element,
 	G_GNUC_PRINTF(4, 5);
 
 void xnode_tree_foreach(xnode_t *root, data_fn_t func, void *data);
+void xnode_tree_foreach_children(xnode_t *root, data_fn_t func, void *data);
 void xnode_tree_enter_leave(xnode_t *root,
 	match_fn_t enter, data_fn_t leave, void *data);
 xnode_t *xnode_tree_find(xnode_t *root, match_fn_t func, void *data);

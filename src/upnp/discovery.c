@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * UPnP device discovery.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2012
  */
 
 #include "common.h"
@@ -173,6 +173,16 @@ struct upnp_ctrl_context {
 	struct upnp_dscv *ud;		/**< device to whom control was sent */
 	upnp_service_t *usd;		/**< service to interact with */
 	size_t probe_idx;			/**< next probe in upnp_dscv_probes[] */
+};
+
+/**
+ * Device SCPD RPC context.
+ */
+struct upnp_scpd_context {
+	struct upnp_mcb *mcb;		/**< search context it belongs to */
+	struct upnp_dscv *ud;		/**< device to whom HTTP request was sent */
+	GSList *services;			/**< services to fetch SCPDs for */
+	struct http_async *ha;		/**< Asynchronous HTTP request in progress */
 };
 
 /**
@@ -377,6 +387,140 @@ upnp_dscv_got_external_ip(
 	return TRUE;
 }
 
+static void upnp_dscv_scpd_iterate(struct upnp_scpd_context *uscpd);
+
+/**
+ * Got result of SCPD fetch for a service offered by the device.
+ *
+ * This is an http_async_wget() completion callback.
+ */
+static void
+upnp_dscv_scpd_result(char *data, size_t len, int code,
+	header_t *header, void *arg)
+{
+	struct upnp_scpd_context *uscpd = arg;
+	struct upnp_dscv *ud = uscpd->ud;
+	struct upnp_mcb *mcb = uscpd->mcb;
+	upnp_service_t *usd;
+			
+	upnp_dscv_check(ud);
+	upnp_mcb_check(mcb);
+	g_assert(uint_is_positive(mcb->pending_probes));
+	g_assert(uscpd->services != NULL);
+	g_assert(ud->ha != NULL);		/* Pending HTTP request */
+
+	mcb->pending_probes--;
+	ud->ha = NULL;			/* Request ending with this callback */
+	usd = uscpd->services->data;
+
+	if (NULL == data) {
+		g_warning("UPNP SCPD fetch \"%s\" failed (HTTP %d) for %s",
+			upnp_service_scpd_url(usd), code,
+			upnp_service_to_string(usd));
+		goto next;
+	}
+
+	if (GNET_PROPERTY(upnp_debug) > 5) {
+		g_debug("UPNP SCPD fetch \"%s\" returned %zu byte%s for %s",
+			upnp_service_scpd_url(usd), len, 1 == len ? "" : "s",
+			upnp_service_to_string(usd));
+		if (GNET_PROPERTY(upnp_debug) > 8) {
+			g_debug("UPNP got HTTP %u:", code);
+			header_dump(stderr, header, "----");
+		}
+		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
+			char *xml = xml_indent(data);
+			g_debug("UPNP HTTP payload start:");
+			fwrite(xml, strlen(xml), 1, stderr);
+			g_debug("UPNP HTTP payload end (%zu bytes).", len);
+			HFREE_NULL(xml);
+		}
+	}
+
+	/*
+	 * Parse the XML to extract the service API.
+	 */
+
+	upnp_service_scpd_parse(usd, data, len);
+
+	/* FALL THROUGH */
+
+next:
+	HFREE_NULL(data);
+	uscpd->services = g_slist_remove(uscpd->services, usd);
+	upnp_dscv_scpd_iterate(uscpd);
+
+}
+
+/**
+ * Iterate to fetch SCPD for the next service listed.
+ */
+static void
+upnp_dscv_scpd_iterate(struct upnp_scpd_context *uscpd)
+{
+	struct http_async *ha;
+	const char *url;
+	upnp_service_t *usd;
+	struct upnp_dscv *ud = uscpd->ud;
+	struct upnp_mcb *mcb = uscpd->mcb;
+
+	upnp_dscv_check(ud);
+	upnp_mcb_check(mcb);
+
+	g_assert(NULL == ud->ha);		/* No pending HTTP request */
+
+	/*
+	 * If we exhausted the list of services to probe, we're done.
+	 */
+
+next:
+	if (NULL == uscpd->services) {
+		WFREE(uscpd);
+		upnp_dscv_updated(mcb);
+		return;
+	}
+
+	usd = uscpd->services->data;
+	url = upnp_service_scpd_url(usd);
+
+	ha = http_async_wget(url, UPNP_XML_MAXLEN, upnp_dscv_scpd_result, uscpd);
+
+	if (NULL == ha) {
+		g_warning("UPNP cannot fetch \"%s\": %s",
+			url, http_async_strerror(http_async_errno));
+		uscpd->services = g_slist_remove(uscpd->services, usd);
+		goto next;
+	}
+
+	if (GNET_PROPERTY(upnp_debug) > 1) {
+		g_debug("UPNP getting SCPD [%s] from %s",
+			upnp_service_to_string(usd), url);
+	}
+
+	ud->ha = ha;
+	mcb->pending_probes++;
+}
+
+/**
+ * Fetch the SCPD descriptions for all the services discovered on the device.
+ *
+ * @param mcb		the overall M-SEARCH context for discovered devices
+ * @param ud		the device for which we want to fetch SCPDs
+ */
+static void
+upnp_dscv_scpd_fetch(struct upnp_mcb *mcb, struct upnp_dscv *ud)
+{
+	struct upnp_scpd_context *uscpd;
+
+	WALLOC0(uscpd);
+
+	uscpd->mcb = mcb;
+	uscpd->ud = ud;
+	uscpd->services = g_slist_copy(ud->services);
+
+	upnp_dscv_scpd_iterate(uscpd);
+}
+
 static bool upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx);
 
 /**
@@ -430,7 +574,16 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	 */
 
 	if (G_N_ELEMENTS(upnp_dscv_probes) == ucd_ctx->probe_idx) {
+		/*
+		 * All probes were successful, so we have a device with which we
+		 * can interact to do port mappings.
+		 *
+		 * We now need to fetch the SCPD URLs of the services to know for
+		 * each service what is the appropriate web API.
+		 */
+
 		WFREE(ucd_ctx);
+		upnp_dscv_scpd_fetch(mcb, ud);
 	} else {
 		if (upnp_dscv_next_ctrl(ucd_ctx))
 			return;
@@ -600,7 +753,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	 */
 
 	ud->services = upnp_service_extract(data, len, ud->desc_url);
-	hfree(data);
+	HFREE_NULL(data);
 
 	/*
 	 * If the services do not contain UPNP_SVC_WAN_CIF and at least one
@@ -660,6 +813,7 @@ done:
 	return;
 
 remove_device:
+	HFREE_NULL(data);
 	mcb->devices = g_slist_remove(mcb->devices, ud);
 	upnp_dscv_free(ud);
 	goto done;

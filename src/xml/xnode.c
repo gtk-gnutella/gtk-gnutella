@@ -1000,6 +1000,23 @@ xnode_tree_foreach(xnode_t *root, data_fn_t func, void *data)
 }
 
 /**
+ * Apply function to each immediate children of node.
+ *
+ * Traversal is done in such a way that the applied function can safely
+ * free up the local node.
+ */
+void
+xnode_tree_foreach_children(xnode_t *root, data_fn_t func, void *data)
+{
+	etree_t t;
+
+	xnode_check(root);
+
+	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
+	etree_foreach_children(&t, root, func, data);
+}
+
+/**
  * Recursively apply matching function on each node, in depth-first order,
  * until it returns TRUE, at which time we return the matching node.
  *
@@ -1060,7 +1077,7 @@ xnode_tree_enter_leave(xnode_t *root,
 
 	etree_init_root(&t, root, TRUE, offsetof(xnode_t, node));
 	etree_traverse(&t, ETREE_TRAVERSE_ALL | ETREE_CALL_AFTER,
-		ETREE_MAX_DEPTH, enter, leave, data);
+		0, ETREE_MAX_DEPTH, enter, leave, data);
 }
 
 /**
