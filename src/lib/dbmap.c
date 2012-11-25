@@ -1098,8 +1098,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 		{
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0;
-			size_t invalid = 0;
+			size_t count = 0, invalid = 0, unreadable = 0;
 
 			errno = 0;
 			for (
@@ -1122,13 +1121,17 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 					d.data = value.dptr;
 					d.len = value.dsize;
 					(*cb)(key.dptr, &d, arg);
+				} else {
+					unreadable++;
 				}
 			}
 			if (!dbmap_sdbm_error_check(dm))
 				dbmap_reset_count(dm, count);
-			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
-					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
+			if (invalid || unreadable) {
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
+					"%zu unreadable",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
+					unreadable);
 			}
 		}
 		break;
@@ -1168,9 +1171,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 		{
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0;
-			size_t invalid = 0;
-			size_t errors = 0;
+			size_t count = 0, invalid = 0, unreadable = 0, errors = 0;
 
 			errno = 0;
 			for (
@@ -1202,15 +1203,17 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 								"key deletion error: %m", sdbm_name(sdbm));
 						}
 					}
+				} else {
+					unreadable++;
 				}
 			}
 			dbmap_sdbm_error_check(dm);
 			dbmap_reset_count(dm, count);
-			if (invalid || errors) {
+			if (invalid || errors || unreadable) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
-					"%zu key deletion error%s", sdbm_name(sdbm),
-					invalid, 1 == invalid ? "" : "s",
-					errors, 1 == errors ? "" : "s");
+					"%zu key deletion error%s, %zu unreadable",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
+					errors, 1 == errors ? "" : "s", unreadable);
 			}
 		}
 		break;
