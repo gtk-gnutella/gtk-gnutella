@@ -182,8 +182,7 @@ static void download_queue_delay(struct download *d, uint32 delay,
 	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
 static void download_queue_hold(struct download *d, uint32 hold,
 	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
-static void download_force_stop(struct download *d,
-	download_status_t new_status, const char * reason, ...);
+static void download_force_stop(struct download *d, const char * reason, ...);
 static void download_reparent(struct download *d, struct dl_server *new_server);
 static void download_silent_flush(struct download *d);
 static void change_server_addr(struct dl_server *server,
@@ -241,7 +240,7 @@ download_is_alive(const struct download *d)
 /**
  * Did we successfully connect to the server recently?
  */
-static bool
+bool
 download_is_active(const struct download *d)
 {
 	download_check(d);
@@ -3892,10 +3891,8 @@ download_clone(struct download *d)
 	fi = d->file_info;
 
 	cd = download_alloc();
-	*cd = *d;						/* Struct copy */
-	cd->file_info = NULL;			/* has not been added to fi sources list */
-	cd->src_handle_valid = FALSE;
-	file_info_add_source(fi, cd);	/* add cloned source */
+	*cd = *d;							/* Struct copy */
+	file_info_cloned_source(fi, d, cd);	/* Replace by cloned source */
 
 	if (s != NULL)
 		socket_change_owner(cd->socket, cd);	/* Takes ownership of socket */
@@ -3909,7 +3906,7 @@ download_clone(struct download *d)
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_CLONED | DL_F_NO_PIPELINE);
 	cd->server->refcnt++;
 
-	if (cd->file_info->sha1 != NULL)
+	if (fi->sha1 != NULL)
 		download_by_sha1_add(cd);
 
 	download_add_to_list(cd, DL_LIST_WAITING);	/* Will add SHA1 to server */
@@ -4214,7 +4211,7 @@ stop_this:
 			download_basename(other));
 	}
 
-	download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(d, _("Duplicate download"));
 	goto dup_found;
 
 stop_other:
@@ -4226,7 +4223,7 @@ stop_other:
 				new_server->key->addr, new_server->key->port));
 	}
 
-	download_force_stop(other, GTA_DL_ERROR, _("Duplicate download"));
+	download_force_stop(other, _("Duplicate download"));
 
 	/* FALL THROUGH */
 
@@ -4501,9 +4498,18 @@ download_attempt_switch(struct download *d)
 {
 	struct download *next;
 
+	if (GNET_PROPERTY(download_debug)) {
+		g_debug("%s(): trying to reuse connection for \"%s\" on %s",
+			G_STRFUNC, download_basename(d), download_host_info(d));
+	}
+
 	next = download_pick_another(d);
 
 	if (NULL == next) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_debug("%s(): closing connection to %s",
+				G_STRFUNC, download_host_info(d));
+		}
 		download_stop(d, GTA_DL_COMPLETED, _("Nothing else to switch to"));
 		return;
 	}
@@ -4530,6 +4536,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	bool store_queue = FALSE;		/* Shall we call download_store()? */
 	enum dl_list list_target;
 	bool verify_sha1 = FALSE;
+	bool was_active = FALSE;
 
 	download_check(d);
 	file_info_check(d->file_info);
@@ -4541,6 +4548,8 @@ download_stop_v(struct download *d, download_status_t new_status,
 		g_assert(d->file_info->recvcount > 0);
 		g_assert(d->file_info->recvcount <= d->file_info->refcount);
 		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
+
+		was_active = TRUE;
 
 		/*
 		 * If there is unflushed downloaded data, try to flush it now,
@@ -4593,48 +4602,38 @@ download_stop_v(struct download *d, download_status_t new_status,
 		return;
 	}
 
-	switch (new_status) {
-	case GTA_DL_COMPLETED:
-		{
-			/*
-			 * Update average download speed, computing a fast EMA on the
-			 * last 3 terms.  Average is initialized with the actual download
-			 * rate the first time we compute it.
-			 */
+	if (GTA_DL_COMPLETED == new_status) {
+		/*
+		 * Update average download speed, computing a fast EMA on the
+		 * last 3 terms.  Average is initialized with the actual download
+		 * rate the first time we compute it.
+		 */
 
-			time_delta_t t = delta_time(d->last_update, d->start_date);
-			struct dl_server *server = d->server;
+		time_delta_t t = delta_time(d->last_update, d->start_date);
+		struct dl_server *server = d->server;
 
-			g_assert(server != NULL);
+		g_assert(server != NULL);
 
-			if (t > 0) {
-				filesize_t amount =
-					d->chunk.end - d->chunk.start + d->chunk.overlap;
-				uint avg = amount / t;
+		if (t > 0) {
+			filesize_t amount =
+				d->chunk.end - d->chunk.start + d->chunk.overlap;
+			uint avg = amount / t;
 
-				if (server->speed_avg == 0)
-					server->speed_avg = avg;	/* First time */
-				else
-					server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
-			}
+			if (server->speed_avg == 0)
+				server->speed_avg = avg;	/* First time */
+			else
+				server->speed_avg += (avg >> 1) - (server->speed_avg >> 1);
 		}
-		d->data_timeouts = 0;		/* Got a full chunk all right */
-		/* FALL THROUGH */
-	case GTA_DL_ABORTED:
-	case GTA_DL_ERROR:
-		break;
-	default:
-		break;
-	}
+		d->data_timeouts = 0;	/* Got a full chunk all right */
 
-	/*
-	 * Do not reset the start_date field when the dowmload is completed.
-	 * The GUI is going to use this field to compute the average download
-	 * speed.  And it does not matter now for this request.
-	 */
-
-	if (new_status != GTA_DL_COMPLETED)
+		/*
+		 * Do not reset the start_date field when the dowmload is completed.
+		 * The GUI is going to use this field to compute the average download
+		 * speed.  And it does not matter now for this request.
+		 */
+	} else {
 		d->start_date = 0;		/* Download no longer running */
+	}
 
 	if (reason && no_reason != reason) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
@@ -4724,12 +4723,24 @@ download_stop_v(struct download *d, download_status_t new_status,
 	file_info_clear_download(d, FALSE);
 	download_pipeline_free_null(&d->pipeline);
 	file_info_changed(d->file_info);
-	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED |
+	d->flags &= ~(DL_F_CHUNK_CHOSEN | DL_F_SWITCHED | DL_F_REPLIED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR | DL_F_NO_PIPELINE);
 	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
+
+	/*
+	 * If the download was active and we have not completed the chunk, then
+	 * we abruptly stopped and therefore we need to update the list of live
+	 * chunks in the file.
+	 *
+	 * We cleared the DL_F_REPLIED flag above to make sure this source is no
+	 * longer considered to determine the live chunks.
+	 */
+
+	if (was_active && new_status != GTA_DL_COMPLETED)
+		fi_src_ranges_changed(d);
 
 	/*
 	 * If by stopping this download we completed the file, launch SHA1
@@ -4792,12 +4803,11 @@ download_stop(struct download *d,
  *
  * @param d				the download (with d->keep_alive correctly set)
  * @param header		the reply headers, to get at the Content-Length
- * @param new_status	the new download status
  * @param reason		the reason for stopping, followed by arguments
  */
 static void
 download_stop_switch(struct download *d, const header_t *header,
-	download_status_t new_status, const char * reason, ...)
+	const char * reason, ...)
 {
 	struct download *cd = NULL;
 	va_list args;
@@ -4811,7 +4821,7 @@ download_stop_switch(struct download *d, const header_t *header,
 	}
 
 	va_start(args, reason);
-	download_stop_v(d, new_status, reason, args);
+	download_stop_v(d, GTA_DL_ERROR, reason, args);
 	va_end(args);
 
 	if (cd != NULL)
@@ -4822,8 +4832,7 @@ download_stop_switch(struct download *d, const header_t *header,
  * Forcefully stop a download, whether active or queued.
  */
 static void
-download_force_stop(struct download *d,
-	download_status_t new_status, const char * reason, ...)
+download_force_stop(struct download *d, const char * reason, ...)
 {
 	va_list args;
 
@@ -4841,7 +4850,7 @@ download_force_stop(struct download *d,
 		download_move_to_list(d, DL_LIST_RUNNING);
 
 	va_start(args, reason);
-	download_stop_v(d, new_status, reason, args);
+	download_stop_v(d, GTA_DL_ERROR, reason, args);
 	va_end(args);
 }
 
@@ -6491,8 +6500,14 @@ download_pick_another(const struct download *d)
 	 * the socket structure.
 	 */
 
-	if (other->list_idx == DL_LIST_RUNNING)
+	if (other->list_idx == DL_LIST_RUNNING) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_debug("%s(): stopping %s \"%s\" on %s",
+				G_STRFUNC, download_status_to_code_str(d->status),
+				download_basename(other), download_host_info(other));
+		}
 		download_stop(other, GTA_DL_TIMEOUT_WAIT, no_reason);
+	}
 
 	g_assert(other->list_idx == DL_LIST_WAITING);
 
@@ -8089,7 +8104,7 @@ download_resume(struct download *d)
 	if (
 		server_has_same_download(d->server, d->file_name, d->sha1, d->file_size)
 	) {
-		download_force_stop(d, GTA_DL_ERROR, _("Duplicate download"));
+		download_force_stop(d, _("Duplicate download"));
 		return;
 	}
 
@@ -10569,9 +10584,12 @@ update_available_ranges(struct download *d, const header_t *header)
 	const char *buf;
 	filesize_t available_bytes = 0;
 	bool seen_available = FALSE;
+	bool has_new_ranges = FALSE;
+	bool was_complete;
 
 	download_check(d);
 
+	was_complete = !(d->flags & DL_F_PARTIAL);
 	d->flags &= ~DL_F_PARTIAL;		/* Assume file is complete now */
 
 	if (!d->file_info->use_swarming)
@@ -10647,6 +10665,8 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->ranges = http_range_merge(old_ranges, new_ranges);
 		d->ranges_size = http_range_size(d->ranges);
 
+		has_new_ranges = !http_range_equal(old_ranges, d->ranges);
+
 		http_range_free(old_ranges);
 		http_range_free(new_ranges);
 	}
@@ -10662,6 +10682,7 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	if (available_bytes > d->ranges_size) {
 		d->ranges_size = available_bytes;
+		has_new_ranges = TRUE;
 
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("X-Available header from %s: has %s bytes for \"%s\"",
@@ -10674,7 +10695,11 @@ update_available_ranges(struct download *d, const header_t *header)
 	 * If they have the whole file, we can discard the ranges.
 	 */
 
-	if (download_filesize(d) != 0 && d->ranges_size >= download_filesize(d)) {
+	if (
+		!was_complete &&
+		download_filesize(d) != 0 &&
+		d->ranges_size >= download_filesize(d)
+	) {
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("server %s now has the whole file (%s bytes) for \"%s\"",
 				download_host_info(d), uint64_to_string(available_bytes),
@@ -10683,18 +10708,25 @@ update_available_ranges(struct download *d, const header_t *header)
 
 		http_range_free(d->ranges);
 		d->ranges = NULL;
-		d->ranges_size = download_filesize(d);
 		d->flags &= ~DL_F_PARTIAL;
+		has_new_ranges = TRUE;
 	}
 
 	/*
-	 * We should always send an update event for the ranges, even when
-	 * not using swarming or when there are no available ranges. That
-	 * way the receiver of this event can still determine that the
-	 * whole range for this file is available.
+	 * For complete files, make sure ``ranges_size'' is set to the whole file.
 	 */
 
-	fi_src_ranges_changed(d);
+	if (0 == (d->flags & DL_F_PARTIAL))
+		d->ranges_size = download_filesize(d);
+
+	/*
+	 * Send an update event for the ranges when there is a change, or when
+	 * we are processing the first request, to let listeners initialize the
+	 * range list
+	 */
+
+	if (has_new_ranges || 0 == d->served_reqs)
+		fi_src_ranges_changed(d);
 
 	return seen_available;
 }
@@ -11851,25 +11883,25 @@ http_version_nofix:
 		}
 
 	genuine_error:
-		download_stop_switch(d, header, GTA_DL_ERROR,
-				"%sHTTP %u %s", short_read, ack_code, ack_message);
-			return;
-		}
+		download_stop_switch(d, header, "%sHTTP %u %s",
+			short_read, ack_code, ack_message);
+		return;
+	}
 
-		/*
-		 * We got a success status from the remote servent.	Parse header.
-		 */
+	/*
+	 * We got a success status from the remote servent.	Parse header.
+	 */
 
-		g_assert(ok);
+	g_assert(ok);
 
-		/*
-		 * Even upon a 2xx reply, a PARQ-compliant server may send us an ID.
-		 * That ID will be used when the server sends us a QUEUE, so it's good
-		 * to remember it.
-		 *		--RAM, 17/05/2003
-		 */
+	/*
+	 * Even upon a 2xx reply, a PARQ-compliant server may send us an ID.
+	 * That ID will be used when the server sends us a QUEUE, so it's good
+	 * to remember it.
+	 *		--RAM, 17/05/2003
+	 */
 
-		(void) parq_download_parse_queue_status(d, header, ack_code);
+	(void) parq_download_parse_queue_status(d, header, ack_code);
 
 	/*
 	 * If they configured us to require a server name, and we have none
@@ -12752,10 +12784,11 @@ download_send_request(struct download *d)
 	struct dl_chunk *req = NULL;
 
 	download_check(d);
-	s = d->socket;
-	g_assert(s != NULL);
 
+	s = d->socket;
 	fi = d->file_info;
+
+	socket_check(s);
 	file_info_check(fi);
 	g_assert(fi->lifecount > 0);
 	g_assert(fi->lifecount <= fi->refcount);
@@ -12965,18 +12998,35 @@ picked:
 		return;
 	}
 
+	/*
+	 * When sending a follow-up request to a GTKG server, we do not need
+	 * to include the User-Agent string again.  Other vendors do require
+	 * the field, unfortunately.
+	 *		--RAM, 2012-11-19
+	 */
+
+	if (
+		!d->keep_alive ||
+		!is_strprefix(download_vendor_str(d), "gtk-gnutella/")
+	) {
+		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+			"User-Agent: %s\r\n", version_string);
+	}
+
 	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
-		"Host: %s\r\n"
-		"User-Agent: %s\r\n",
+		"Host: %s\r\n",
 		d->server->hostname
 			? d->server->hostname
-			: host_addr_port_to_string(download_addr(d), download_port(d)),
-			version_string);
+			: host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
 		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
-	} else {
+	} else if (!d->keep_alive) {		/* Not a follow-up HTTP request */
+		/*
+		 * We never send X-Features or X-Token on follow-up requests.
+		 */
+
 		header_features_generate(FEATURES_DOWNLOADS,
 			request_buf, maxsize, &rw);
 
@@ -13162,9 +13212,15 @@ picked:
 
 		if (wmesh) {
 			g_assert(sha1);
-			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
-				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-				sha1_base32(sha1));
+			if (d->server->attrs & DLS_A_FAKE_G2) {
+				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+					"X-Content-URN: urn:sha1:%s\r\n",
+					sha1_base32(sha1));
+			} else {
+				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+					"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+					sha1_base32(sha1));
+			}
 		}
 	}
 

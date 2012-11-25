@@ -134,6 +134,7 @@ void download_maybe_finished(struct download *d);
 bool download_handle_http(const char *url);
 bool download_is_stalled(const struct download *);
 bool download_is_alive(const struct download *);
+bool download_is_active(const struct download *);
 bool download_is_completed_filename(const char *name);
 
 bool download_sha1_is_rare(const struct sha1 *sha1);

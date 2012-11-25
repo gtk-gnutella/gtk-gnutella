@@ -1479,6 +1479,29 @@ http_range_size(const GSList *list)
 }
 
 /**
+ * @return whether two lists of ranges are identical.
+ */
+bool
+http_range_equal(const GSList *range1, const GSList *range2)
+{
+	const GSList *sl1, *sl2;
+
+	for (
+		sl1 = range1, sl2 = range2;
+		sl1 != NULL && sl2 != NULL;
+		sl1 = g_slist_next(sl1), sl2 = g_slist_next(sl2)
+	) {
+		const http_range_t *r1 = (const http_range_t *) sl1->data;
+		const http_range_t *r2 = (const http_range_t *) sl2->data;
+
+		if (r1->start != r2->start || r1->end != r2->end)
+			return FALSE;
+	}
+
+	return NULL == sl1 && NULL == sl2;		/* Same size, all ranges equals */
+}
+
+/**
  * @returns a pointer to static data, containing the available ranges.
  */
 const char *
@@ -1553,6 +1576,12 @@ http_range_clone(http_range_t *range)
 }
 
 /**
+ * Merge ranges for the old and new lists.
+ *
+ * Ranges in the merged list are made of NEW objects: the ranges from the
+ * given lists are left in their respective lists and not further referenced,
+ * since there is no reference counting of ranges.
+ *
  * @returns a new list based on the merged ranges in the other lists given.
  */
 GSList *

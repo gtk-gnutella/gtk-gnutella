@@ -97,6 +97,8 @@ void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
 void file_info_remove_source(
     fileinfo_t *fi, struct download *dl, bool discard);
+void file_info_cloned_source(fileinfo_t *fi,
+	struct download *d, struct download *cd);
 void file_info_timer(void);
 void file_info_slow_timer(void);
 void file_info_unlink(fileinfo_t *fi);
