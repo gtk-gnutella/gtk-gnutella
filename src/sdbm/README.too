@@ -214,4 +214,7 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Made sdbm_rebuild() more fault-tolerant for things we cannot fix, such
   as unreadable big keys/values or duplicate keys.
 * Made sdbm_nextkey() fail with errno = ENOENT if called outside an iteration.
+* Inconsistencies in big keys / values are flagged with errno = EFAULT but
+  do not trigger an I/O error condition unless we actually get an error reading
+  or writing data to the disk.
 

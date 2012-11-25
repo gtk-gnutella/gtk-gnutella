@@ -481,8 +481,18 @@ or
 are called outside an iteration loop, they will fail with
 .B errno
 set to
-.BR \s-1ENOENT\s0
+.B \s-1ENOENT\s0
 and they will loudly complain to indicate misuse.
+.LP
+When dealing with large keys or values, an inconsistency in the
+.B .pag
+or
+.B .dat
+files (such as bad block number list, requesting access of unallocated data
+blocks, etc...) is reported by setting
+.B errno
+to
+.BR \s-1EFAULT\s0 .
 .SH AUTHORS
 "Ozan S. Yigit" <oz@nexus.yorku.ca>
 .sp

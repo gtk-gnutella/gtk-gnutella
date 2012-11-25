@@ -809,7 +809,6 @@ corrupted_page:
 	/* FALL THROUGH */
 
 fault:
-	ioerr(db, FALSE);
 	errno = EFAULT;		/* Data corrupted somehow (.pag or .dat file) */
 	return -1;
 }
@@ -954,17 +953,15 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
-		g_carp("sdbm: \"%s\": found %zu-byte corrupted key "
+		g_critical("sdbm: \"%s\": found %zu-byte corrupted key "
 			"(%zu byte%s on page instead of %zu)",
 			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
-		ioerr(db, FALSE);
 		return 0;
 	}
 
 	if (-1 == big_fetch(db, bigkey_blocks(bkey), len)) {
-		g_warning("sdbm: \"%s\": returning hash of 0, corrupting database",
+		g_critical("sdbm: \"%s\": returning hash of 0, corrupting database",
 			sdbm_name(db));
-		ioerr(db, FALSE);
 		return 0;
 	}
 
@@ -1056,7 +1053,6 @@ corrupted_page:
 	g_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
 		sdbm_name(db), bcnt, 1 == bcnt ? "" : "s");
 
-	ioerr(db, FALSE);
 	errno = EFAULT;		/* Data corrupted somehow (.pag file) */
 	return -1;
 }
