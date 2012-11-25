@@ -283,7 +283,8 @@ return
 .BR nullitem ,
 then the
 .BR sdbm_endkey (\|)
-routine must be called to clear the iteration context.
+routine must be called to clear the iteration context and mark the end
+of the iteration loop.
 .LP
 If you determine that the performance of the database is inadequate or
 you notice clustering or other effects that may be due to the hashing
@@ -409,7 +410,7 @@ calling
 .IR open (2).
 .SH DIAGNOSTICS
 Functions that return a
-.B "DBM *"
+.B "DBM\ *"
 handle will use
 .SM NULL
 to indicate an error.
@@ -422,15 +423,15 @@ will return
 .B nullitem
 to indicate an error.
 .LP
-As a special case of
+As a special case,
 .BR sdbm_store (\|),
-if it is called with the
+when called with the
 .B \s-1DBM_INSERT\s0
-flag and the key already exists in the database, the returned value will be 1
+flag and the key happens to already exist in the database, will return 1
 and
 .B errno
 is set to
-.B \s-1EEXIST\s0 ..
+.BR \s-1EEXIST\s0 .
 .LP
 In general, if a function parameter is invalid,
 .B errno
@@ -464,6 +465,24 @@ any further access to the database to fail with
 set to
 .BR \s-1ESTALE\s0 .
 At this point, the database handle should be closed.
+.LP
+If the
+.BR sdbm_rebuild (\|)
+routine is called from within an iteration loop, it will fail and set
+.B errno
+to
+.BR \s-1EBUSY\s0 .
+.LP
+Conversely, if
+.BR sdbm_nextkey (\|) ,
+.BR sdbm_value (\|)
+or
+.BR sdbm_deletekey (\|)
+are called outside an iteration loop, they will fail with
+.B errno
+set to
+.BR \s-1ENOENT\s0
+and they will loudly complain to indicate misuse.
 .SH AUTHORS
 "Ozan S. Yigit" <oz@nexus.yorku.ca>
 .sp

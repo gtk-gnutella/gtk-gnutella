@@ -213,3 +213,5 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   iteration loop.
 * Made sdbm_rebuild() more fault-tolerant for things we cannot fix, such
   as unreadable big keys/values or duplicate keys.
+* Made sdbm_nextkey() fail with errno = ENOENT if called outside an iteration.
+

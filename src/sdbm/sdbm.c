@@ -1366,11 +1366,21 @@ sdbm_nextkey(DBM *db)
 		errno = EINVAL;
 		return nullitem;
 	}
+
 	sdbm_check(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
 		return nullitem;
 	}
+
+	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
+		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+		errno = ENOENT;
+		return nullitem;
+	}
+
 	return getnext(db);
 }
 
