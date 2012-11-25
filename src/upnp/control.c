@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * UPnP service control.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2012
  */
 
 #include "common.h"
@@ -1094,6 +1094,54 @@ upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	return upnp_ctrl_launch(usd, "DeletePortMapping",
 		argv, G_N_ELEMENTS(argv), cb, arg,
 		NULL);
+}
+
+/**
+ * Process returned value from GetStatusInfo().
+ *
+ * @return walloc()'ed structure (whose size is written in lenp) containing
+ * the decompiled arguments, or NULL if the returned arguments cannot be
+ * processed.
+ */
+static void *
+upnp_ctrl_ret_GetStatusInfo(nv_table_t *ret, size_t *lenp)
+{
+	struct upnp_GetStatusInfo *r;
+	const char *status;
+	time_delta_t uptime;
+
+	status = nv_table_lookup_str(ret, "NewConnectionStatus");
+	if (NULL == status)
+		return NULL;
+
+	if (!upnp_ctrl_get_time_delta(ret, "NewUptime", &uptime))
+		return NULL;
+
+	WALLOC(r);
+	r->connection_status = status;
+	r->uptime = uptime;
+	*lenp = sizeof *r;
+
+	return r;
+}
+
+/**
+ * Get status information [IP or PPP connection].
+ *
+ * @param usd		the UPnP service to contact
+ * @param cb		callback to invoke when reply is available
+ * @param arg		additional callback argument
+ *
+ * @return UPnP request handle if the SOAP RPC was initiated, NULL otherwise
+ * (in which case callbacks will never be called).
+ */
+upnp_ctrl_t *
+upnp_ctrl_GetStatusInfo(const upnp_service_t *usd,
+	upnp_ctrl_cb_t cb, void *arg)
+{
+	return upnp_ctrl_launch(usd, "GetStatusInfo",
+		NULL, 0, cb, arg,
+		upnp_ctrl_ret_GetStatusInfo);
 }
 
 /**
