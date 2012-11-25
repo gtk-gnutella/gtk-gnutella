@@ -40,12 +40,13 @@
 #include "xml/vxml.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum upnp_service_msgic { UPNP_SVC_DESC_MAGIC = 0x6c960b68U };
@@ -58,6 +59,7 @@ struct upnp_service {
 	enum upnp_service_type type;	/**< Service type */
 	unsigned version;				/**< Service version */
 	const char *control_url;		/**< Control URL (atom) */
+	const char *scpd_url;			/**< SCPD URL (atom) */
 };
 
 static inline void
@@ -101,6 +103,17 @@ upnp_service_control_url(const upnp_service_t *usd)
 }
 
 /**
+ * @return Service Control Protocol Definition (SCPD) URL.
+ */
+const char *
+upnp_service_scpd_url(const upnp_service_t *usd)
+{
+	upnp_service_check(usd);
+
+	return usd->scpd_url;
+}
+
+/**
  * Allocate a new service description.
  *
  * The control URL is copied.
@@ -108,10 +121,11 @@ upnp_service_control_url(const upnp_service_t *usd)
  * @param type		service type
  * @param version	service version number
  * @param ctrl_url	control URL
+ * @param scpd_url	SCPD URL
  */
 static upnp_service_t *
 upnp_service_alloc(enum upnp_service_type type, unsigned version,
-	const char *ctrl_url)
+	const char *ctrl_url, const char *scpd_url)
 {
 	upnp_service_t *usd;
 
@@ -120,6 +134,7 @@ upnp_service_alloc(enum upnp_service_type type, unsigned version,
 	usd->type = type;
 	usd->version = version;
 	usd->control_url = atom_str_get(ctrl_url);
+	usd->scpd_url = atom_str_get(scpd_url);
 
 	return usd;
 }
@@ -133,6 +148,7 @@ upnp_service_free(upnp_service_t *usd)
 	upnp_service_check(usd);
 
 	atom_str_free_null(&usd->control_url);
+	atom_str_free_null(&usd->scpd_url);
 	usd->magic = 0;
 	WFREE(usd);
 }
@@ -169,7 +185,7 @@ upnp_service_to_string(const upnp_service_t *usd)
 
 	upnp_service_check(usd);
 
-	gm_snprintf(buf, sizeof buf, "\"%s\" v%u at %s",
+	str_bprintf(buf, sizeof buf, "\"%s\" v%u at %s",
 		upnp_service_type_to_string(usd->type), usd->version, usd->control_url);
 
 	return buf;
@@ -360,6 +376,12 @@ upnp_service_adjust_urls(GSList *services,
 					upnp_service_to_string(usd));
 			}
 		}
+
+		absolute = url_absolute_within(base, usd->scpd_url);
+		if (absolute != usd->scpd_url) {
+			atom_str_change(&usd->scpd_url, absolute);
+			hfree(absolute);
+		}
 	}
 }
 
@@ -374,6 +396,7 @@ struct upnp_service_ctx {
 	enum upnp_service_type type;	/**< Service type */
 	unsigned version;				/**< Service version */
 	const char *control_url;		/**< Control URL (atom) */
+	const char *scpd_url;			/**< SCPD URL (atom) */
 	unsigned in_service:1;			/**< Within a <service> tag? */
 };
 
@@ -384,7 +407,8 @@ enum upnp_srvtok {
 	UPNP_SRVTOK_URL_BASE = 1,		/* URLBase */
 	UPNP_SRVTOK_SERVICE,			/* service */
 	UPNP_SRVTOK_SERVICE_TYPE,		/* serviceType */
-	UPNP_SRVTOK_CONTROL_URL			/* controlURL */
+	UPNP_SRVTOK_CONTROL_URL,		/* controlURL */
+	UPNP_SRVTOK_SCPD_URL			/* SCPDURL */
 };
 
 /**
@@ -395,6 +419,7 @@ struct vxml_token upnp_service_tokens[] = {
 	{ "service",		UPNP_SRVTOK_SERVICE },
 	{ "serviceType",	UPNP_SRVTOK_SERVICE_TYPE },
 	{ "controlURL",		UPNP_SRVTOK_CONTROL_URL },
+	{ "SCPDURL",		UPNP_SRVTOK_SCPD_URL },
 };
 
 /*
@@ -453,6 +478,11 @@ upnp_service_xml_text(vxml_parser_t *vp,
 			atom_str_change(&ctx->control_url, text);
 		}
 		break;
+	case UPNP_SRVTOK_SCPD_URL:
+		if (ctx->in_service) {
+			atom_str_change(&ctx->scpd_url, text);
+		}
+		break;
 	default:
 		break;
 	}
@@ -469,10 +499,15 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 	(void) vp;
 
 	if (UPNP_SRVTOK_SERVICE == id) {
-		if (ctx->control_url != NULL && ctx->type != UPNP_SVC_UNKNOWN) {
+		if (
+			ctx->control_url != NULL &&
+			ctx->scpd_url != NULL &&
+			ctx->type != UPNP_SVC_UNKNOWN
+		) {
 			upnp_service_t *usd;
 
-			usd = upnp_service_alloc(ctx->type, ctx->version, ctx->control_url);
+			usd = upnp_service_alloc(ctx->type, ctx->version,
+				ctx->control_url, ctx->scpd_url);
 			ctx->services = g_slist_prepend(ctx->services, usd);
 
 			if (GNET_PROPERTY(upnp_debug) > 1)
@@ -481,6 +516,7 @@ upnp_service_xml_end(vxml_parser_t *vp, unsigned id, void *data)
 
 		ctx->type = UPNP_SVC_UNKNOWN;
 		atom_str_free_null(&ctx->control_url);
+		atom_str_free_null(&ctx->scpd_url);
 		ctx->in_service = FALSE;
 	}
 }
@@ -547,6 +583,7 @@ upnp_service_extract(const char *data, size_t len, const char *desc_url)
 	vxml_parser_free(vp);
 	atom_str_free_null(&ctx.base_url);
 	atom_str_free_null(&ctx.control_url);
+	atom_str_free_null(&ctx.scpd_url);
 
 	return ctx.services;
 }
