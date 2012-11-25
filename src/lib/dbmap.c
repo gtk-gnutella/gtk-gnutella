@@ -353,8 +353,12 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 	}
 
 check_db:
-	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
+	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm)) {
+		datum value = sdbm_value(sdbm);
+		if (NULL == value.dptr)
+			continue;				/* Invalid value, do not count key */
 		count++;
+	}
 
 	dm->validated = TRUE;
 	dm->u.s.last_check = tm_time();
@@ -1111,6 +1115,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 				count++;
 
 				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
+					count--;
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1123,6 +1128,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 					(*cb)(key.dptr, &d, arg);
 				} else {
 					unreadable++;
+					count--;		/* Value is invalid, key is missing! */
 				}
 			}
 			if (!dbmap_sdbm_error_check(dm))
@@ -1184,6 +1190,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 				count++;
 
 				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
+					count--;
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1205,6 +1212,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 					}
 				} else {
 					unreadable++;
+					count--;		/* Value is invalid, key is missing! */
 				}
 			}
 			dbmap_sdbm_error_check(dm);
