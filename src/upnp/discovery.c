@@ -600,7 +600,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	 */
 
 	ud->services = upnp_service_extract(data, len, ud->desc_url);
-	hfree(data);
+	HFREE_NULL(data);
 
 	/*
 	 * If the services do not contain UPNP_SVC_WAN_CIF and at least one
@@ -660,6 +660,7 @@ done:
 	return;
 
 remove_device:
+	HFREE_NULL(data);
 	mcb->devices = g_slist_remove(mcb->devices, ud);
 	upnp_dscv_free(ud);
 	goto done;
