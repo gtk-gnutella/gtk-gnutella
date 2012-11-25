@@ -521,9 +521,16 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP probe of \"%s\" returned %zu byte%s",
 			ud->desc_url, len, 1 == len ? "" : "s");
-		if (GNET_PROPERTY(upnp_debug) > 9) {
+		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
+		}
+		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
+			char *xml = xml_indent(data);
+			g_debug("UPNP HTTP payload start:");
+			fwrite(xml, strlen(xml), 1, stderr);
+			g_debug("UPNP HTTP payload end (%zu bytes).", len);
+			HFREE_NULL(xml);
 		}
 	}
 
