@@ -518,6 +518,7 @@ etree_add_left_sibling(etree_t *tree, void *node, void *item)
  * @param root		the item at which traversal starts
  * @param flags		nodes to visit + when to invoke action callback
  * @param curdepth	current depth
+ * @param mindepth	depth when callbacks start (0 = now, 1 = children, etc...)
  * @param maxdepth	0 = root node only, 1 = root + its children, etc...
  * @param enter		(optional) callback when we enter a node
  * @param action	(mandatory) action on the node
@@ -527,7 +528,7 @@ etree_add_left_sibling(etree_t *tree, void *node, void *item)
  */
 static size_t
 etree_traverse_internal(const etree_t *tree, node_t *root,
-	unsigned flags, unsigned curdepth, unsigned maxdepth,
+	unsigned flags, unsigned curdepth, unsigned mindepth, unsigned maxdepth,
 	match_fn_t enter, data_fn_t action, void *data)
 {
 	size_t visited = 0;
@@ -546,7 +547,9 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 
 	child = root->child;	/* Save pointer in case "action" frees node */
 
-	if ((flags & ETREE_TRAVERSE_NON_LEAVES) && NULL != child)
+	if (curdepth < mindepth)
+		actionable = FALSE;
+	else if ((flags & ETREE_TRAVERSE_NON_LEAVES) && NULL != child)
 		actionable = TRUE;
 	else if ((flags & ETREE_TRAVERSE_LEAVES) && NULL == child)
 		actionable = TRUE;
@@ -555,7 +558,12 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 
 	item = ptr_add_offset(root, -tree->offset);
 
-	if (enter != NULL && !(*enter)(item, data))
+	/*
+	 * The optional "enter" callback is only activated when we have reached
+	 * the minimal depth.
+	 */
+
+	if (enter != NULL && curdepth >= mindepth && !(*enter)(item, data))
 		return 0;
 
 	if (actionable && (flags & ETREE_CALL_BEFORE))
@@ -571,7 +579,7 @@ etree_traverse_internal(const etree_t *tree, node_t *root,
 		for (n = child; n != NULL; n = next) {
 			next = n->sibling;
 			visited += etree_traverse_internal(tree, n, flags,
-				curdepth + 1, maxdepth, enter, action, data);
+				curdepth + 1, mindepth, maxdepth, enter, action, data);
 		}
 	}
 
@@ -602,7 +610,40 @@ etree_foreach(const etree_t *tree, data_fn_t cb, void *data)
 
 	etree_traverse_internal(tree, tree->root,
 		ETREE_TRAVERSE_ALL | ETREE_CALL_AFTER,
-		0, ETREE_MAX_DEPTH, NULL, cb, data);
+		0, 0, ETREE_MAX_DEPTH, NULL, cb, data);
+}
+
+/**
+ * Apply function to the immediate children of the node.
+ *
+ * Traversal is done in such a way that the applied function can safely
+ * free up the local node.
+ *
+ * The root node is NOT traversed, and it MUST belong to the tree.
+ *
+ * @param tree		the tree descriptor
+ * @param parent	the parent node of the children to traverse
+ * @param cb		the callback to invoke on each item
+ * @param data		user-defined additional callback argument
+ */
+void
+etree_foreach_children(const etree_t *tree, void *parent,
+	data_fn_t cb, void *data)
+{
+	node_t *root;
+
+	etree_check(tree);
+	g_assert(cb != NULL);
+	g_assert(parent != NULL);
+
+	if G_UNLIKELY(NULL == tree->root)
+		return;
+
+	root = ptr_add_offset(parent, tree->offset);
+
+	etree_traverse_internal(tree, root,
+		ETREE_TRAVERSE_ALL | ETREE_CALL_AFTER,
+		0, 1, 1, NULL, cb, data);
 }
 
 /**
@@ -620,6 +661,7 @@ etree_foreach(const etree_t *tree, data_fn_t cb, void *data)
  *
  * @param tree		the tree descriptor
  * @param flags		nodes to visit + when to invoke action callback
+ * @param mindepth	0 = immediately, 1 = children, 2 = grand-children, etc...
  * @param maxdepth	0 = root node only, 1 = root + its children, etc...
  * @param enter		(optional) callback when we enter a node
  * @param action	(optional) action on the node
@@ -628,10 +670,12 @@ etree_foreach(const etree_t *tree, data_fn_t cb, void *data)
  * @return amount of nodes visited, regardless of whether action was run.
  */
 size_t
-etree_traverse(const etree_t *tree, unsigned flags, unsigned maxdepth,
+etree_traverse(const etree_t *tree, unsigned flags,
+	unsigned mindepth, unsigned maxdepth,
 	match_fn_t enter, data_fn_t action, void *data)
 {
 	etree_check(tree);
+	g_assert(uint_is_non_negative(mindepth));
 	g_assert(uint_is_non_negative(maxdepth) || ETREE_MAX_DEPTH == maxdepth);
 	g_assert(NULL == action ||
 		(flags & ETREE_CALL_BEFORE) ^ (flags & ETREE_CALL_AFTER));
@@ -642,7 +686,8 @@ etree_traverse(const etree_t *tree, unsigned flags, unsigned maxdepth,
 	if G_UNLIKELY(NULL == tree->root)
 		return 0;
 
-	return etree_traverse_internal(tree, tree->root, flags, 0, maxdepth,
+	return etree_traverse_internal(tree, tree->root, flags,
+		0, mindepth, maxdepth,
 		enter, action, data);
 }
 
