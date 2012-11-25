@@ -1265,7 +1265,7 @@ str_at(str_t *s, ssize_t offset)
 		return UNSIGNED(offset) >= len ? '\0' : s->s_data[offset];
 	} else {
 		size_t pos = len + offset;
-		return pos >= len ? '\0' : s->s_data[offset];
+		return pos >= len ? '\0' : s->s_data[pos];
 	}
 }
 
