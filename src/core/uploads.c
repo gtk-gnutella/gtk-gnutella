@@ -2989,11 +2989,8 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 	sf = shared_file(idx);
 
-	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
-		return -1;
-	}
+	if (SHARE_REBUILDING == sf)
+		goto library_rebuilt;
 
     atom_str_change(&u->name, uri);
 
@@ -3058,7 +3055,16 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 		sfn = shared_file_by_sha1(&sha1);
 
-		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
+		/*
+		 * Since shared_file(idx) and shared_file_by_sha1(sha1) use different
+		 * logics to determine whether the library is being rebuilt, we cannot
+		 * blindly assert that shared_file_by_sha1() will not report a
+		 * SHARE_REBUILDING condition when shared_file() did not above...
+		 *		--RAM, 2012-11-12
+		 */
+
+		if (SHARE_REBUILDING == sfn)
+			goto library_rebuilt;
 
 		if (sfn && sf != sfn) {
 			char location[1024];
@@ -3194,6 +3200,11 @@ sha1_recomputed:
 
 not_found:
 	upload_error_not_found(u, uri);
+	return -1;
+
+library_rebuilt:
+	/* Retry-able by user, hence 503 */
+	upload_error_remove(u, 503, N_("Library being rebuilt"));
 	return -1;
 }
 
