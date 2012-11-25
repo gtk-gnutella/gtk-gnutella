@@ -56,6 +56,7 @@
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/halloc.h"
+#include "lib/misc.h"			/* For xml_indent() */
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -146,7 +147,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	 */
 	if (xml) {
 		char *s = unknown_to_utf8_normalized(xml, UNI_NORM_GUI, NULL);
-		xml_txt = search_xml_indent(s);
+		xml_txt = xml_indent(s);
 		if (xml != s) {
 			G_FREE_NULL(s);
 		}

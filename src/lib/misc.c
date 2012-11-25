@@ -56,6 +56,7 @@
 #include "pow2.h"
 #include "random.h"
 #include "sha1.h"
+#include "str.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -2224,6 +2225,135 @@ symbolic_errno(int errnum)
 		return p; 	/* Unknown errno code */
 	}
 #undef BUFCNT
+}
+
+/**
+ * Adds some lexical indendation to XML-like text.
+ *
+ * The input text is assumed to be "flat" and well-formed. If these assumptions
+ * fail, the output might look worse than the input.
+ *
+ * @param text		the string to format.
+ *
+ * @return a newly allocated string which must be freed via hfree().
+ */
+char *
+xml_indent(const char *text)
+{
+	const char *p, *q;
+	bool quoted, is_special, is_end, is_start, is_singleton, has_cdata;
+	guint i, depth = 0;
+	str_t *s;
+
+	s = str_new(0);
+	q = text;
+
+	quoted = FALSE;
+	is_special = FALSE;
+	is_end = FALSE;
+	is_start = FALSE;
+	is_singleton = FALSE;
+	has_cdata = FALSE;
+
+	for (;;) {
+		bool had_cdata;
+
+		p = q;
+		/*
+		 * Find the start of the tag and append the text between the
+		 * previous and the current tag.
+		 */
+		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
+			if (is_ascii_space(*p) && is_ascii_space(p[1]))
+				continue;
+			if (has_cdata && '&' == *p) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(p, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
+					str_putc(s, uc);
+					p = endptr - 1;
+					continue;
+				}
+			}
+			str_putc(s, is_ascii_space(*p) ? ' ' : *p);
+		}
+		if ('\0' == *p)
+			break;
+
+		/* Find the end of the tag */
+		q = strchr(p, '>');
+		if (!q)
+			q = strchr(p, '\0');
+
+		is_special = '?' == p[1] || '!' == p[1];
+		is_end = '/' == p[1];
+		is_start = !(is_special || is_end);
+		is_singleton = is_start && '>' == *q && '/' == q[-1];
+		had_cdata = has_cdata;
+		has_cdata = FALSE;
+
+		if (is_end && depth > 0) {
+			depth--;
+		}
+		if (p != text && !(is_end && had_cdata)) {
+			str_putc(s, '\n');
+			for (i = 0; i < depth; i++)
+				str_putc(s, '\t');
+		}
+
+		quoted = FALSE;
+		for (q = p; '\0' != *q; q++) {
+
+			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
+				continue;
+
+			if (is_ascii_space(*q)) {
+				if (quoted || is_special) {
+					str_putc(s, ' ');
+				} else {
+					str_putc(s, '\n');
+					for (i = 0; i < depth + 1; i++)
+						str_putc(s, '\t');
+				}
+				continue;
+			}
+
+			if (quoted && '&' == *q) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(q, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
+					str_putc(s, uc);
+					q = endptr - 1;
+					continue;
+				}
+			}
+
+			str_putc(s, *q);
+			
+			if ('"' == *q) {
+				quoted ^= TRUE;
+			} else if ('>' == *q) {
+				q++;
+				break;
+			}
+		}
+		if (is_start && !is_singleton) {
+			const char *next = strchr(q, '<');
+			has_cdata = next && '/' == next[1];
+			depth++;
+		}
+	}
+
+	/* Ensure there is a final "\n" in the string */
+
+	if ('\n' != str_at(s, -1))
+		str_putc(s, '\n');
+
+	return str_s2c_null(&s);
 }
 
 /**

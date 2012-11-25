@@ -70,6 +70,7 @@
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
+#include "lib/misc.h"			/* For xml_indent() */
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/slist.h"
@@ -3239,128 +3240,6 @@ search_gui_synchronize_search_list(search_gui_synchronize_list_cb func,
 }
 
 /**
- * Adds some indendation to XML-like text. The input text is assumed to be
- * "flat" and well-formed. If these assumptions fail, the output might look
- * worse than the input.
- *
- * @param s the string to format.
- * @return a newly allocated string.
- */
-gchar *
-search_xml_indent(const gchar *text)
-{
-	const gchar *p, *q;
-	gboolean quoted, is_special, is_end, is_start, is_singleton, has_cdata;
-	guint i, depth = 0;
-	str_t *s;
-
-	s = str_new(0);
-	q = text;
-
-	quoted = FALSE;
-	is_special = FALSE;
-	is_end = FALSE;
-	is_start = FALSE;
-	is_singleton = FALSE;
-	has_cdata = FALSE;
-
-	for (;;) {
-		gboolean had_cdata;
-
-		p = q;
-		/*
-		 * Find the start of the tag and append the text between the
-		 * previous and the current tag.
-		 */
-		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
-			if (is_ascii_space(*p) && is_ascii_space(p[1]))
-				continue;
-			if (has_cdata && '&' == *p) {
-				const char *endptr;
-				guint32 uc;
-
-				uc = html_decode_entity(p, &endptr);
-				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
-					str_putc(s, uc);
-					p = endptr - 1;
-					continue;
-				}
-			}
-			str_putc(s, is_ascii_space(*p) ? ' ' : *p);
-		}
-		if ('\0' == *p)
-			break;
-
-		/* Find the end of the tag */
-		q = strchr(p, '>');
-		if (!q)
-			q = strchr(p, '\0');
-
-		is_special = '?' == p[1] || '!' == p[1];
-		is_end = '/' == p[1];
-		is_start = !(is_special || is_end);
-		is_singleton = is_start && '>' == *q && '/' == q[-1];
-		had_cdata = has_cdata;
-		has_cdata = FALSE;
-
-		if (is_end && depth > 0) {
-			depth--;
-		}
-		if (p != text && !(is_end && had_cdata)) {
-			str_putc(s, '\n');
-			for (i = 0; i < depth; i++)
-				str_putc(s, '\t');
-		}
-
-		quoted = FALSE;
-		for (q = p; '\0' != *q; q++) {
-
-			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
-				continue;
-
-			if (is_ascii_space(*q)) {
-				if (quoted || is_special) {
-					str_putc(s, ' ');
-				} else {
-					str_putc(s, '\n');
-					for (i = 0; i < depth + 1; i++)
-						str_putc(s, '\t');
-				}
-				continue;
-			}
-
-			if (quoted && '&' == *q) {
-				const char *endptr;
-				guint32 uc;
-
-				uc = html_decode_entity(q, &endptr);
-				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
-					str_putc(s, uc);
-					q = endptr - 1;
-					continue;
-				}
-			}
-
-			str_putc(s, *q);
-			
-			if ('"' == *q) {
-				quoted ^= TRUE;
-			} else if ('>' == *q) {
-				q++;
-				break;
-			}
-		}
-		if (is_start && !is_singleton) {
-			const char *next = strchr(q, '<');
-			has_cdata = next && '/' == next[1];
-			depth++;
-		}
-	}
-
-	return str_s2c_null(&s);
-}
-
-/**
  * Adds a search string to the search history combo. Makes
  * sure we do not get more than 50 entries in the history.
  * Also makes sure we don't get duplicate history entries.
@@ -4518,7 +4397,7 @@ search_gui_set_bitzi_metadata(const record_t *rc)
 	}
 
 	/* This also decodes 8-bit entities */
-	tmp = search_xml_indent(ticket);
+	tmp = xml_indent(ticket);
 
 	/*
 	 * Bitzi converts all ticket data from ISO-8859-1 to UTF-8, therefore this

@@ -57,6 +57,7 @@
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/misc.h"			/* Fox xml_indent() */
 #include "lib/utf8.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -109,7 +110,7 @@ search_set_xml_metadata(const record_t *rc)
 {
 	char *indented;
 
-	indented = (rc && rc->xml) ? search_xml_indent(rc->xml) : NULL;
+	indented = (rc && rc->xml) ? xml_indent(rc->xml) : NULL;
 	set_text_buffer(gui_main_window_lookup("text_result_info_xml"),
 		EMPTY_STRING(indented));
 	HFREE_NULL(indented);

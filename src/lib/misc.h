@@ -272,6 +272,7 @@ size_t common_leading_bits(
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
+char *xml_indent(const char *text);
 
 #if defined(S_IROTH) && defined(S_IXOTH)
 /* 0755 */
