@@ -427,7 +427,7 @@ str_destroy(str_t *str)
 	str_check(str);
 
 	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("str_destroy() called on \"static\" string object");
+		s_error("%s() called on \"static\" string object", G_STRFUNC);
 
 	str_free(str);
 	str->s_magic = 0;
@@ -466,7 +466,7 @@ str_resize(str_t *str, size_t newsize)
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (str->s_size >= newsize)
 			return;
-		s_error("str_resize() would expand \"foreign\" string");
+		s_error("%s() would expand \"foreign\" string", G_STRFUNC);
 	}
 
 	/*
@@ -524,7 +524,7 @@ str_grow(str_t *str, size_t size)
 		return;					/* Nothing to do */
 
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR)
-		s_error("str_grow() called on \"foreign\" string");
+		s_error("%s() would expand \"foreign\" string", G_STRFUNC);
 
 	str->s_data = hrealloc(str->s_data, size);
 	str->s_size = size;
@@ -620,7 +620,7 @@ str_s2c(str_t *str)
 	str_check(str);
 
 	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("str_s2c() called on \"static\" string object");
+		s_error("%s() called on \"static\" string object", G_STRFUNC);
 
 	len = str->s_len;
 
