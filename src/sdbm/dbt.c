@@ -433,6 +433,7 @@ main(int argc, char **argv)
 	long count;
 	long cache = 0;
 
+	mingw_early_init();
 	progname = argv[0];
 
 	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStUvVw")) != EOF) {

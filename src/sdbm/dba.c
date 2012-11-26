@@ -49,6 +49,7 @@ main(int argc, char **argv)
 	char *p;
 	int c;
 
+	mingw_early_init();
 	progname = argv[0];
 	(void) argc;
 

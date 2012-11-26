@@ -57,6 +57,7 @@ my_getopt(int argc, char **argv, char *optstring)
 	static int my_optind = 0;
 	static char *scan = NULL;
 
+	mingw_early_init();
 	my_optarg = NULL;
 
 	if (scan == NULL || *scan == '\0') {
