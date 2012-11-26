@@ -371,11 +371,11 @@ udp_sched_write_error(const udp_sched_t *us, const gnet_host_t *to,
 		/*
 		 * We don't care about lost packets.
 		 */
-		g_carp("UDP write of %d bytes to %s failed: %m",
-			pmsg_size(mb), gnet_host_to_string(to));
+		g_carp("%s(): UDP write of %d bytes to %s failed: %m",
+			func, pmsg_size(mb), gnet_host_to_string(to));
 		break;
 	default:
-		g_error("%s: UDP write of %d bytes to %s failed "
+		g_critical("%s(): UDP write of %d bytes to %s failed "
 			"with unexpected errno %d: %m",
 			func, pmsg_size(mb), gnet_host_to_string(to), errno);
 		break;
