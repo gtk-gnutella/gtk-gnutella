@@ -46,10 +46,11 @@
 #include "core/hostiles.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/vendors.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -344,7 +345,7 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 	bin_to_hex_buf(kn->id, KUID_RAW_SIZE, kuid_buf, sizeof kuid_buf);
 	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
 	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
-	gm_snprintf(buf, len,
+	str_bprintf(buf, len,
 		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s%s%s [%s]",
 		host_buf,
 		(kn->flags & KNODE_F_PCONTACT) ? "*" : "",

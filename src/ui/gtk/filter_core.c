@@ -49,6 +49,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -981,29 +982,29 @@ filter_rule_condition_to_string(const rule_t *r)
 			
 			switch (r->u.text.type) {
 			case RULE_TEXT_PREFIX:
-				gm_snprintf(tmp, sizeof tmp,
+				str_bprintf(tmp, sizeof tmp,
 					_("If filename begins with \"%s\" %s"), match, cs);
 				break;
 			case RULE_TEXT_WORDS:
-				gm_snprintf(tmp, sizeof tmp,
+				str_bprintf(tmp, sizeof tmp,
 					_("If filename contains the words \"%s\" %s"), match, cs);
 				break;
 			case RULE_TEXT_SUFFIX:
-				gm_snprintf(tmp, sizeof tmp,
+				str_bprintf(tmp, sizeof tmp,
 					_("If filename ends with \"%s\" %s"), match, cs);
 				break;
 			case RULE_TEXT_SUBSTR:
-				gm_snprintf(tmp, sizeof tmp,
+				str_bprintf(tmp, sizeof tmp,
 					_("If filename contains the substring \"%s\" %s"),
 					match, cs);
 				break;
 			case RULE_TEXT_REGEXP:
-				gm_snprintf(tmp, sizeof tmp,
+				str_bprintf(tmp, sizeof tmp,
 					_("If filename matches the regex pattern \"%s\" %s"),
 					match, cs);
 				break;
 			case RULE_TEXT_EXACT:
-				gm_snprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
+				str_bprintf(tmp, sizeof tmp, _("If filename is \"%s\" %s"),
 					match, cs);
 				break;
 			default:
@@ -1013,7 +1014,7 @@ filter_rule_condition_to_string(const rule_t *r)
 		}
         break;
     case RULE_IP:
-		gm_snprintf(tmp, sizeof tmp, _("If IP address matches %s/%u"),
+		str_bprintf(tmp, sizeof tmp, _("If IP address matches %s/%u"),
 			host_addr_to_string(r->u.ip.addr), r->u.ip.cidr);
         break;
     case RULE_SIZE:
@@ -1021,14 +1022,14 @@ filter_rule_condition_to_string(const rule_t *r)
             gchar smax_64[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
-			gm_snprintf(tmp, sizeof tmp , _("If filesize is exactly %s (%s)"),
+			str_bprintf(tmp, sizeof tmp , _("If filesize is exactly %s (%s)"),
 				smax_64,
 				short_size(r->u.size.upper, show_metric_units()));
 		} else if (r->u.size.lower == 0) {
             gchar smax_64[UINT64_DEC_BUFLEN];
 
 			uint64_to_string_buf(r->u.size.upper + 1, smax_64, sizeof smax_64);
-			gm_snprintf(tmp, sizeof tmp,
+			str_bprintf(tmp, sizeof tmp,
 				_("If filesize is smaller than %s (%s)"),
 				smax_64,
 				short_size(r->u.size.upper + 1, show_metric_units()));
@@ -1045,23 +1046,23 @@ filter_rule_condition_to_string(const rule_t *r)
 			uint64_to_string_buf(r->u.size.lower, smin_64, sizeof smin_64);
 			uint64_to_string_buf(r->u.size.upper, smax_64, sizeof smax_64);
 
-			gm_snprintf(tmp, sizeof tmp,
+			str_bprintf(tmp, sizeof tmp,
 				_("If filesize is between %s and %s (%s - %s)"),
 				smin_64, smax_64, smin, smax);
         }
         break;
     case RULE_SHA1:
         if (r->u.sha1.hash != NULL) {
-            gm_snprintf(tmp, sizeof tmp,
+            str_bprintf(tmp, sizeof tmp,
 				_("If urn:sha1 is same as for \"%s\""),
 				filter_lazy_utf8_to_ui_string(r->u.sha1.filename));
         } else {
-            gm_snprintf(tmp, sizeof tmp, "%s",
+            str_bprintf(tmp, sizeof tmp, "%s",
 				_("If urn:sha1 is not available"));
 		}
         break;
     case RULE_JUMP:
-       	gm_snprintf(tmp, sizeof tmp, "%s", _("Always"));
+       	str_bprintf(tmp, sizeof tmp, "%s", _("Always"));
         break;
     case RULE_FLAG:
         {
@@ -1116,10 +1117,10 @@ filter_rule_condition_to_string(const rule_t *r)
             }
 
             if (b) {
-                gm_snprintf(tmp, sizeof tmp, _("If flag %s%s%s%s%s"),
+                str_bprintf(tmp, sizeof tmp, _("If flag %s%s%s%s%s"),
                     busy_str, s1, push_str, s2, stable_str);
 			} else {
-                 gm_snprintf(tmp, sizeof tmp, "%s",
+                 str_bprintf(tmp, sizeof tmp, "%s",
 					_("Always (all flags ignored)"));
 			}
         }
@@ -1173,10 +1174,10 @@ filter_rule_condition_to_string(const rule_t *r)
             }
 
             if (b) {
-                gm_snprintf(tmp, sizeof tmp , _("If flag %s%s%s"),
+                str_bprintf(tmp, sizeof tmp , _("If flag %s%s%s"),
                     display_str, s1, download_str);
 			} else {
-	             gm_snprintf(tmp, sizeof tmp, "%s",
+	             str_bprintf(tmp, sizeof tmp, "%s",
 					_("Always (all states ignored)"));
 			}
         }
@@ -1202,7 +1203,7 @@ filter_rule_to_string(const rule_t *r)
 
     g_assert(r != NULL);
 
-	gm_snprintf(tmp, sizeof tmp, _("%s%s %s jump to \"%s\""),
+	str_bprintf(tmp, sizeof tmp, _("%s%s %s jump to \"%s\""),
         RULE_IS_NEGATED(r) ? _("(Negated) ") : "",
         RULE_IS_ACTIVE(r) ? "" : _("(deactivated)"),
         filter_rule_condition_to_string(r),

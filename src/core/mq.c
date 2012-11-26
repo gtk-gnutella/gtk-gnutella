@@ -41,10 +41,11 @@
 #include "gnet_stats.h"
 
 #include "lib/cq.h"
-#include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/glib-missing.h"	/* For gm_list_free_null() */
 #include "lib/halloc.h"
 #include "lib/htable.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
 #include "lib/walloc.h"
 
@@ -192,12 +193,12 @@ mq_info(const mqueue_t *q)
 	static char buf[160];
 
 	if (q->magic != MQ_MAGIC) {
-		gm_snprintf(buf, sizeof(buf),
+		str_bprintf(buf, sizeof(buf),
 			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
 		bool udp = NODE_USES_UDP(q->node);
 
-		gm_snprintf(buf, sizeof(buf),
+		str_bprintf(buf, sizeof(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
 			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :

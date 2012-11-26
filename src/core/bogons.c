@@ -38,12 +38,12 @@
 
 #include "lib/ascii.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
 #include "lib/iprange.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
@@ -151,7 +151,7 @@ bogons_changed(const char *filename, void *unused_udata)
 	bogons_close();
 	count = bogons_load(f);
 
-	gm_snprintf(buf, sizeof(buf), "Reloaded %d bogus IP ranges.", count);
+	str_bprintf(buf, sizeof(buf), "Reloaded %d bogus IP ranges.", count);
 	gcu_statusbar_message(buf);
 }
 

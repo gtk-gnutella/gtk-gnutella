@@ -43,7 +43,6 @@
 #include "atoms.h"		/* For binary_hash() */
 #include "cq.h"
 #include "endian.h"		/* For peek_*() and poke_*() */
-#include "glib-missing.h"
 #include "hashing.h"
 #include "hashtable.h"
 #include "leak.h"
@@ -52,6 +51,7 @@
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
 #include "stacktrace.h"
+#include "str.h"
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
 #include "xmalloc.h"
@@ -1282,7 +1282,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	gm_snprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), b->ttime)));
 #else
 	ago[0] = '\0';
@@ -1375,7 +1375,7 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 		return;		/* Was already logged through malloc_log_block() */
 
 #ifdef MALLOC_TIME
-	gm_snprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), rb->atime)));
 #else
 	ago[0] = '\0';

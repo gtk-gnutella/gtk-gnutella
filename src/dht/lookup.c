@@ -57,14 +57,15 @@
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
-#include "lib/htable.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -354,7 +355,7 @@ lookup_type_to_string(const nlookup_t *nl)
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	case LOOKUP_TOKEN:		what = "token"; break;
 	case LOOKUP_VALUE:
-		gm_snprintf(buf, sizeof buf, "\"%s\" value",
+		str_bprintf(buf, sizeof buf, "\"%s\" value",
 			dht_value_type_to_string(nl->u.fv.vtype));
 		return buf;
 	}
@@ -1551,7 +1552,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (NULL == v) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+				str_bprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
 					i + 1, expanded);
 			}
 			reason = msg;
@@ -1613,7 +1614,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+				str_bprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
 					i + 1, seckeys);
 			}
 			reason = msg;
@@ -2810,7 +2811,7 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 		UNSIGNED(nl->max_common_bits) < kuid_common_prefix(kn->id, nl->kuid)
 	) {
 		if (len != 0) {
-			gm_snprintf(buf, len, "suspiciously close to target %s",
+			str_bprintf(buf, len, "suspiciously close to target %s",
 				kuid_to_hex_string(nl->kuid));
 		}
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
@@ -3049,7 +3050,7 @@ lookup_handle_reply(
 
 		if (NULL == cn) {
 			if (GNET_PROPERTY(dht_lookup_debug))
-				gm_snprintf(msg, sizeof msg, "cannot parse contact #%d", n);
+				str_bprintf(msg, sizeof msg, "cannot parse contact #%d", n);
 			reason = msg;
 			goto bad;
 		}
@@ -3068,7 +3069,7 @@ lookup_handle_reply(
 
 		if (kuid_eq(get_our_kuid(), cn->id)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"%s bears our KUID", knode_to_string(cn));
 			}
 			goto skip;
@@ -3081,7 +3082,7 @@ lookup_handle_reply(
 
 		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
+				str_bprintf(msg, sizeof msg, "unsafe %s: %s",
 					knode_to_string(cn), unsafe);
 			}
 			goto skip;
@@ -3108,7 +3109,7 @@ lookup_handle_reply(
 
 		if (!knode_is_usable(cn)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"%s has unusable address", knode_to_string(cn));
 			}
 			goto skip;
@@ -3168,7 +3169,7 @@ lookup_handle_reply(
 					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						gm_snprintf(msg, sizeof msg,
+						str_bprintf(msg, sizeof msg,
 							"%s already queried, RPC pending, alternate IP %s",
 							knode_to_string(xn),
 							host_addr_port_to_string(cn->addr, cn->port));
@@ -3177,14 +3178,14 @@ lookup_handle_reply(
 					lookup_fix_contact(nl, xn, cn);
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						gm_snprintf(msg, sizeof msg,
+						str_bprintf(msg, sizeof msg,
 							"for now, fixed as %s and re-added to shortlist",
 							host_addr_port_to_string(cn->addr, cn->port));
 					}
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s was already queried", knode_to_string(xn));
 				}
 			}
@@ -3227,14 +3228,14 @@ lookup_handle_reply(
 				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s still in our shorlist, recorded alternate IP %s",
 						knode_to_string(cn),
 						host_addr_port_to_string(cn->addr, cn->port));
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s is still in our shortlist", knode_to_string(cn));
 				}
 			}
@@ -4670,7 +4671,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 
 	if (expanded != 1) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			gm_snprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
+			str_bprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
 		reason = msg;
 		goto bad;
 	}

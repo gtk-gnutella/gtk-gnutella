@@ -31,8 +31,9 @@
 #include "if/core/net_stats.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -404,7 +405,7 @@ horizon_stat_str(gint row, c_horizon_t column)
 		{
     		static gchar buf[UINT64_DEC_BUFLEN];
 
-			gm_snprintf(buf, sizeof(buf), "%d", row);
+			str_bprintf(buf, sizeof(buf), "%d", row);
            	return buf;
 		}
     case c_horizon_nodes:

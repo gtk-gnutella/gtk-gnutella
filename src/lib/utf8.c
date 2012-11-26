@@ -75,6 +75,7 @@
 #include "misc.h"
 #include "path.h"
 #include "random.h"
+#include "str.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -683,43 +684,43 @@ malformed:
 
 	switch (warning) {
 	case UTF8_WARN_EMPTY:
-		gm_snprintf(msg, sizeof(msg), "empty string");
+		str_bprintf(msg, sizeof(msg), "empty string");
 		break;
 	case UTF8_WARN_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
+		str_bprintf(msg, sizeof(msg),
 			"unexpected continuation byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_NON_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
+		str_bprintf(msg, sizeof(msg),
 			"unexpected non-continuation byte 0x%02lx "
 			"after start byte 0x%02lx", (ulong) s[1], (ulong) v);
 		break;
 	case UTF8_WARN_FE_FF:
-		gm_snprintf(msg, sizeof(msg), "byte 0x%02lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			len, len == 1 ? "" : "s", expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
-		gm_snprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
+		str_bprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
 			(ulong) ov, (ulong) *s);
 		break;
 	case UTF8_WARN_SURROGATE:
-		gm_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
 		break;
 	case UTF8_WARN_BOM:
-		gm_snprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (ulong) v);
 		break;
 	case UTF8_WARN_LONG:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
-		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
 		break;
 	default:
-		gm_snprintf(msg, sizeof(msg), "unknown reason");
+		str_bprintf(msg, sizeof(msg), "unknown reason");
 		break;
 	}
 

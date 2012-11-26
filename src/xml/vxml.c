@@ -38,16 +38,17 @@
 #include "xfmt.h"
 #include "xnode.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
-#include "lib/misc.h"
 #include "lib/halloc.h"
+#include "lib/misc.h"
 #include "lib/nv.h"
-#include "lib/parse.h"
 #include "lib/ostream.h"
+#include "lib/parse.h"
 #include "lib/slist.h"
+#include "lib/str.h"
 #include "lib/symtab.h"
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
@@ -472,7 +473,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 	}
 
 	if (NULL == rp) {
-		gm_snprintf(buf, sizeof buf, "/");
+		str_bprintf(buf, sizeof buf, "/");
 	} else {
 		while (rp != NULL) {
 			struct vxml_path_entry *pe = rp->data;
@@ -485,9 +486,9 @@ vxml_parser_where(const vxml_parser_t *vp)
 
 			rp = g_list_next(rp);
 
-			rw += gm_snprintf(&buf[rw], sizeof buf - rw, "/%s", element);
+			rw += str_bprintf(&buf[rw], sizeof buf - rw, "/%s", element);
 			if (children > ((NULL == rp) ? 0 : 1))
-				rw += gm_snprintf(&buf[rw], sizeof buf - rw, "[%u]", children);
+				rw += str_bprintf(&buf[rw], sizeof buf - rw, "[%u]", children);
 		}
 	}
 
@@ -506,7 +507,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	gm_vsnprintf(buf, sizeof buf, format, args);
+	str_vbprintf(buf, sizeof buf, format, args);
 	va_end(args);
 
 	g_warning("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -526,7 +527,7 @@ vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	gm_vsnprintf(buf, sizeof buf, format, args);
+	str_vbprintf(buf, sizeof buf, format, args);
 	va_end(args);
 
 	g_debug("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -1467,7 +1468,7 @@ vxml_document_where(vxml_parser_t *vp)
 
 	vxml_parser_check(vp);
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		"%sparsing \"%s\" (%s %u.%u), %soffset %zu, line %zu, at %s",
 		vp->glob.depth != vp->loc.depth ? "sub-" : "", vp->name,
 		vxml_versionsrc_to_string(vp->versource), vp->major, vp->minor,
@@ -6446,11 +6447,11 @@ vxml_run_ns_simple_test(int num, const char *name,
 	g_assert(!(flags & VXML_O_NO_NAMESPACES));
 	g_assert('\0' == data[len]);	/* Given length is correct */
 
-	gm_snprintf(buf, sizeof buf, "%s (no NS)", name);
+	str_bprintf(buf, sizeof buf, "%s (no NS)", name);
 	vxml_run_simple_test(num, buf, data, len,
 		flags | VXML_O_NO_NAMESPACES, error_no_ns);
 
-	gm_snprintf(buf, sizeof buf, "%s (with NS)", name);
+	str_bprintf(buf, sizeof buf, "%s (with NS)", name);
 	vxml_run_simple_test(num, buf, data, len, flags, error_with_ns);
 }
 

@@ -49,12 +49,12 @@
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/product.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -348,7 +348,7 @@ target_to_string(filter_t *target)
 		htable_insert(target_map, target, value);
 	}
 
-    gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
+    str_bprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
 
 	return buf;
 }

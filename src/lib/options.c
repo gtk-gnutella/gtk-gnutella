@@ -34,8 +34,9 @@
 #include "common.h"
 
 #include "options.h"
-#include "glib-missing.h"
 #include "misc.h"
+#include "str.h"
+
 #include "override.h"		/* Must be the last header included */
 
 enum {
@@ -145,7 +146,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 
 		if (0 == strcmp(arg, "--")) {		/* End of options */
 			if (current) {					/* This option lacks its argument */
-				gm_snprintf(error_string, sizeof error_string,
+				str_bprintf(error_string, sizeof error_string,
 					"missing value for -%c", current->letter[0]);
 				return -1;
 			}
@@ -181,14 +182,14 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 			int flags;
 
 			if (UNSIGNED(c) >= G_N_ELEMENTS(options)) {
-				gm_snprintf(error_string, sizeof error_string,
+				str_bprintf(error_string, sizeof error_string,
 					"invalid non-ASCII switch");
 				return -1;
 			}
 
 			flags = options[c];
 			if (!(flags & OPTION_F_VALID)) {
-				gm_snprintf(error_string, sizeof error_string,
+				str_bprintf(error_string, sizeof error_string,
 					"invalid -%c switch", c);
 				return -1;
 			}

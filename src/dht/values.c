@@ -82,7 +82,6 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
-#include "lib/glib-missing.h"
 #include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/hset.h"
@@ -90,6 +89,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
@@ -615,7 +615,7 @@ dht_value_to_string(const dht_value_t *v)
 	knode_to_string_buf(v->creator, knode, sizeof knode);
 	dht_value_type_to_string_buf(v->type, type, sizeof type);
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
 		kuid, type, v->major, v->minor, v->length, 1 == v->length ? "" : "s",
 		knode);

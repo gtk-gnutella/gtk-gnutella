@@ -59,8 +59,9 @@
 #include "if/gnet_property_priv.h"
 
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -158,13 +159,13 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 	 */
 
 	if (!attr->first)
-		hlen = gm_snprintf(attr->head, sizeof attr->head, "\r\n");
+		hlen = str_bprintf(attr->head, sizeof attr->head, "\r\n");
 
 	if (final)
-		hlen += gm_snprintf(&attr->head[hlen], sizeof attr->head - hlen,
+		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
 			"0\r\n\r\n");
 	else
-		hlen += gm_snprintf(&attr->head[hlen], sizeof attr->head - hlen,
+		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
 			"%lx\r\n", (ulong) len);
 
 	attr->head_len = attr->head_remain = hlen;

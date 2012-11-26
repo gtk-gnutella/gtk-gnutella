@@ -36,10 +36,10 @@
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"
-#include "lib/iso3166.h"
 #include "lib/hset.h"
+#include "lib/iso3166.h"
 #include "lib/nid.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -174,7 +174,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 			gtk_clist_set_text(clist, row, c_gnet_loc,
 					deconstify_gchar(iso3166_country_cc(n->country)));
 
-			gm_snprintf(ver_buf, sizeof ver_buf, "%d.%d",
+			str_bprintf(ver_buf, sizeof ver_buf, "%d.%d",
 					n->proto_major, n->proto_minor);
 			gtk_clist_set_text(clist, row, c_gnet_version, ver_buf);
 
@@ -391,7 +391,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
 
     g_assert(n != NULL);
 
-   	gm_snprintf(proto_tmp, sizeof proto_tmp, "%d.%d",
+   	str_bprintf(proto_tmp, sizeof proto_tmp, "%d.%d",
 		n->proto_major, n->proto_minor);
 
     titles[c_gnet_host]       = host_addr_port_to_string(n->addr, n->port);

@@ -61,11 +61,11 @@
 #include "lib/aging.h"
 #include "lib/bigint.h"
 #include "lib/bstr.h"
-#include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
@@ -1417,7 +1417,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
-			gm_snprintf(msg, sizeof msg,
+			str_bprintf(msg, sizeof msg,
 				"could not read value #%d/%u", i, values);
 			reason = msg;
 			goto error;
@@ -1594,7 +1594,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 			kuid_t sec_id;
 
 			if (!bstr_read(bs, sec_id.v, KUID_RAW_SIZE)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"could not read secondary key #%d/%u", i, count);
 				reason = msg;
 				goto error;
@@ -2630,12 +2630,12 @@ kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 			host, sizeof host);
 
 	if (extlen != 0) {
-		gm_snprintf(ext, sizeof ext, "(+%u)", extlen);
+		str_bprintf(ext, sizeof ext, "(+%u)", extlen);
 	} else {
 		ext[0] = '\0';
 	}
 
-	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
+	return str_bprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
 		ext, size, size == 1 ? "" : "s",
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),

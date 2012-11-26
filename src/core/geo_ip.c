@@ -38,13 +38,13 @@
 
 #include "lib/ascii.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
 #include "lib/iprange.h"
 #include "lib/iso3166.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/str.h"
 #include "lib/stringify.h"		/* For ipv6_to_string() */
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -384,7 +384,7 @@ gip_changed(const char *filename, void *idx_ptr)
 	count = gip_load(f, idx);
 	fclose(f);
 
-	gm_snprintf(buf, sizeof buf, "Reloaded %u geographic IPv%c ranges.",
+	str_bprintf(buf, sizeof buf, "Reloaded %u geographic IPv%c ranges.",
 		count, GIP_IPV4 == idx ? '4' : '6');
 
 	gcu_statusbar_message(buf);

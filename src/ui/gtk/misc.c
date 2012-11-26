@@ -48,8 +48,8 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -100,7 +100,7 @@ gui_general_timer(time_t now)
 	{
 		gchar buf[128];
 
-		gm_snprintf(buf, sizeof buf, "<tt>%s</tt>", uptime);
+		str_bprintf(buf, sizeof buf, "<tt>%s</tt>", uptime);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
 	}
@@ -134,7 +134,7 @@ update_stat(guint32 *max, GtkProgressBar *pg,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	gm_snprintf(buf, sizeof buf, "%s %s %s",
+	str_bprintf(buf, sizeof buf, "%s %s %s",
         short_rate(current, show_metric_units()),
         inout ? _("in") : _("out"),
         avg_mode ? _("(avg)") : "");

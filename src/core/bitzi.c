@@ -62,7 +62,6 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/getdate.h"	/* date2time() */
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/parse.h"
@@ -359,7 +358,7 @@ bitzi_request_create(const sha1_t *sha1, filesize_t filesize)
 
 	breq->sha1 = atom_sha1_get(sha1);
 	breq->filesize = filesize;
-	gm_snprintf(breq->bitzi_url, sizeof breq->bitzi_url,
+	str_bprintf(breq->bitzi_url, sizeof breq->bitzi_url,
 			bitzi_url_fmt, sha1_base32(sha1));
 
 	return breq;
@@ -599,7 +598,7 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 			 * fps stands for "frames per second".
 			 * kbps stands for "kilobit per second" (metric kilo).
 			 */
-			len = gm_snprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
+			len = str_bprintf(desc, sizeof desc, _("%s%s%s%s%s fps, %s kbps"),
 					has_res ? width : "",
 					has_res ? Q_("times|x") : "",
 					has_res ? height : "",
@@ -638,7 +637,7 @@ bitzi_process_rdf_description(const xnode_t *xn, bitzi_data_t *data)
 			 * or acronyms like kbps are OK because they're "international".
 			 */
 
-			len = gm_snprintf(desc, sizeof desc, "%s%s%s%s%s%s",
+			len = str_bprintf(desc, sizeof desc, "%s%s%s%s%s%s",
 				kbps ? kbps : "", kbps ? "kbps " : "",
 				srate ? srate : "", srate ? "Hz " : "",
 				channels ? channels : "", channels ? "ch" : "");

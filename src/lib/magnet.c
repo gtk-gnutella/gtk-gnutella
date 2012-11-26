@@ -944,7 +944,7 @@ magnet_source_to_string(const struct magnet_source *s)
 		if (s->hostname) {
 			host = s->hostname;
 			if (80 != s->port) {
-				gm_snprintf(port_buf, sizeof port_buf, ":%u",
+				str_bprintf(port_buf, sizeof port_buf, ":%u",
 					(unsigned) s->port);
 			}
 		} else if (s->guid) {

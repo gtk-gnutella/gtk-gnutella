@@ -41,12 +41,12 @@
 #include "atoms.h"
 #include "constants.h"
 #include "endian.h"
-#include "glib-missing.h"
 #include "hashing.h"
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
 #include "once.h"
+#include "str.h"
 #include "stringify.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -418,7 +418,7 @@ typedef struct table_desc {
 	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
 
-static size_t str_len(const void *v);
+static size_t str_xlen(const void *v);
 static const char *str_str(const void *v);
 static size_t guid_len(const void *v);
 static const char *guid_str(const void *v);
@@ -449,7 +449,7 @@ static const char *gnet_host_str(const void *v);
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {
-	{ "String",	NULL, str_hash,    str_eq,      str_len,    str_str  },	/* 0 */
+	{ "String",	NULL, str_hash,    str_eq,      str_xlen,   str_str  },	/* 0 */
 	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
 	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
 	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
@@ -474,7 +474,7 @@ static table_desc_t atoms[] = {
  * @return length of string + trailing NUL.
  */
 static size_t 
-str_len(const void *v)
+str_xlen(const void *v)
 {
 	return strlen((const char *) v) + 1;
 }
@@ -995,7 +995,7 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 		a->free = htable_create(HASH_KEY_STRING, 0);
 	}
 
-	gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
+	str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
 	if (htable_lookup_extended(a->get, buf, &k, &v)) {
 		sp = (struct spot *) v;
@@ -1056,7 +1056,7 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
 	} else {
-		gm_snprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
+		str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
 		if (htable_lookup_extended(a->free, buf, NULL, &v)) {
 			sp = (struct spot *) v;

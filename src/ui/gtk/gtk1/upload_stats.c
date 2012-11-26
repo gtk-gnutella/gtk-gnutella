@@ -65,10 +65,11 @@
 #include "gtk/upload_stats.h"
 #include "gtk/upload_stats_cb.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkCList *
@@ -180,9 +181,9 @@ upload_stats_gui_add(struct ul_stats *us)
 
 	g_strlcpy(size_tmp, short_size(us->size, show_metric_units()),
 		sizeof size_tmp);
-	gm_snprintf(attempts_tmp, sizeof attempts_tmp, "%u", us->attempts);
-	gm_snprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
-	gm_snprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
+	str_bprintf(attempts_tmp, sizeof attempts_tmp, "%u", us->attempts);
+	str_bprintf(complete_tmp, sizeof complete_tmp, "%u", us->complete);
+	str_bprintf(norm_tmp, sizeof norm_tmp, "%.3f", us->norm);
 	if (us->rtime) {
 		timestamp_to_string_buf(us->rtime, rtime_tmp, sizeof rtime_tmp);
 	} else {
@@ -275,7 +276,7 @@ upload_stats_gui_update_model(struct ul_stats *us)
 			text = uint64_to_string(us->complete);
 			break;
 		case c_us_norm:
-			gm_snprintf(tmpstr, sizeof tmpstr, "%.3f", us->norm);
+			str_bprintf(tmpstr, sizeof tmpstr, "%.3f", us->norm);
 			text = tmpstr;
 			break;
 		case c_us_rtime:

@@ -56,6 +56,7 @@
 #include "lib/host_addr.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -557,7 +558,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 		buf += len;
 
 		if (buflen > 2) {
-			int seplen = gm_snprintf(buf, buflen, "; ");
+			int seplen = str_bprintf(buf, buflen, "; ");
 
 			buflen -= seplen;
 			buf += seplen;
@@ -568,7 +569,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 		return;
 
 	va_start(args, fmt);
-	gm_vsnprintf(buf, buflen, fmt, args);
+	str_vbprintf(buf, buflen, fmt, args);
 	va_end(args);
 }
 
@@ -583,29 +584,29 @@ route_string(struct route_dest *dest,
 
 	switch (dest->type) {
 	case ROUTE_NONE:
-		gm_snprintf(msg, sizeof msg, routed ? "stops here" : "registered");
+		str_bprintf(msg, sizeof msg, routed ? "stops here" : "registered");
 		break;
 	case ROUTE_LEAVES:
-		gm_snprintf(msg, sizeof msg, "all leaves");
+		str_bprintf(msg, sizeof msg, "all leaves");
 		break;
 	case ROUTE_ONE:
-		gm_snprintf(msg, sizeof msg, "%s %s",
+		str_bprintf(msg, sizeof msg, "%s %s",
 			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		gm_snprintf(msg, sizeof msg, "all %sbut %s",
+		str_bprintf(msg, sizeof msg, "all %sbut %s",
 			dest->duplicate ? "ultras " : "",	/* Won't be sent to leaves */
 			host_addr_to_string(origin_addr));
 		break;
 	case ROUTE_MULTI:
 		{
 			int count = g_slist_length(dest->ur.u_nodes);
-			gm_snprintf(msg, sizeof msg, "selected %u node%s",
+			str_bprintf(msg, sizeof msg, "selected %u node%s",
 				count, count == 1 ? "" : "s");
 		}
 		break;
 	default:
-		gm_snprintf(msg, sizeof msg, "** BUG ** UNKNOWN ROUTE");
+		str_bprintf(msg, sizeof msg, "** BUG ** UNKNOWN ROUTE");
 		break;
 	}
 

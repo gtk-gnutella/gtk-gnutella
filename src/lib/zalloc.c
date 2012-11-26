@@ -97,10 +97,6 @@
 #include "xmalloc.h"
 #include "xsort.h"
 
-#ifdef MALLOC_TIME
-#include "glib-missing.h"	/* For gm_snprintf() */
-#endif
-
 #include "override.h"		/* Must be the last header included */
 
 #define equiv(p,q)		(!(p) == !(q))
@@ -714,7 +710,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 #ifdef MALLOC_TIME
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
-		gm_snprintf(ago, sizeof ago, " [%s]",
+		str_bprintf(ago, sizeof ago, " [%s]",
 			short_time(delta_time(tm_time(), *t)));
 	}
 #else

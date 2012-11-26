@@ -2850,13 +2850,13 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	 * Build the bye message.
 	 */
 
-	len = gm_snprintf(reason_base, sizeof reason_fmt - 3,
+	len = str_bprintf(reason_base, sizeof reason_fmt - 3,
 		"%s", n->error_str);
 
 	/* XXX Add X-Try and X-Try-Ultrapeers */
 
 	if (code != 200) {
-		len += gm_snprintf(reason_base + len, sizeof reason_fmt - len - 3,
+		len += str_bprintf(reason_base + len, sizeof reason_fmt - len - 3,
 			"\r\n"
 			"Server: %s\r\n"
 			"\r\n",
@@ -3233,7 +3233,7 @@ node_crawler_headers(struct gnutella_node *n)
 	 * First, the peers.
 	 */
 
-	rw = gm_snprintf(buf, sizeof(buf), "Peers: ");
+	rw = str_bprintf(buf, sizeof(buf), "Peers: ");
 
 	for (count = 0; count < ux && rw < maxsize; count++) {
 		struct gnutella_node *cn = ultras[count];
@@ -3242,15 +3242,15 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (uw > 0)
-			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += str_bprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "%s",
 				host_addr_port_to_string(cn->gnet_addr, cn->gnet_port));
 
 		uw++;		/* One more ultra written */
 	}
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (!settings_is_ultra() || rw >= maxsize)
 		goto cleanup;
@@ -3259,7 +3259,7 @@ node_crawler_headers(struct gnutella_node *n)
 	 * We're an ultranode, list our leaves.
 	 */
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
 
 	for (count = 0; count < lx && rw < maxsize; count++) {
 		struct gnutella_node *cn = leaves[count];
@@ -3268,15 +3268,15 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (lw > 0)
-			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += str_bprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "%s",
 				host_addr_port_to_string(cn->gnet_addr, cn->gnet_port));
 
 		lw++;		/* One more leaf written */
 	}
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (GNET_PROPERTY(node_debug)) g_debug(
 		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
@@ -3336,14 +3336,14 @@ send_error(
 		version = version_short_string;
 		token = socket_omit_token(s) ? NULL : tok_short_version();
 	} else {
-		gm_snprintf(xlive, sizeof(xlive),
+		str_bprintf(xlive, sizeof(xlive),
 			"X-Live-Since: %s\r\n", start_rfc822_date);
 		version = version_string;
 		token = socket_omit_token(s) ? NULL : tok_version();
 	}
 
 	if (token)
-		gm_snprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
+		str_bprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
 	else
 		xtoken[0] = '\0';
 
@@ -3387,7 +3387,7 @@ send_error(
 	if (code == 550 || (code >= 400 && code < 500)) {
 		xultrapeer[0] = '\0';
 	} else {
-		gm_snprintf(xultrapeer, sizeof(xultrapeer), "X-Ultrapeer: %s\r\n",
+		str_bprintf(xultrapeer, sizeof(xultrapeer), "X-Ultrapeer: %s\r\n",
 			settings_is_leaf() ? "False" : "True");
 	}
 
@@ -3403,7 +3403,7 @@ send_error(
 			net = HOST_NET_BOTH;
 	}
 
-	rw = gm_snprintf(gnet_response, sizeof(gnet_response),
+	rw = str_bprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
@@ -6229,7 +6229,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		g_assert(!mode_changed || settings_is_leaf());
 
-		rw = gm_snprintf(gnet_response, gnet_response_max,
+		rw = str_bprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
 			"%s"			/* Content-Encoding */
 			"%s"			/* X-Ultrapeer */
@@ -6253,7 +6253,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			: 0;
 
 		if (n->flags & NODE_F_CRAWLER)
-			rw = gm_snprintf(gnet_response, gnet_response_max,
+			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"%s"		/* Peers & Leaves */
@@ -6287,7 +6287,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 */
 
 			if (settings_is_ultra()) {
-				gm_snprintf(degree, sizeof(degree),
+				str_bprintf(degree, sizeof(degree),
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
 					(GNET_PROPERTY(up_connections)
@@ -6295,7 +6295,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					 - GNET_PROPERTY(normal_connections)) / 2,
 					GNET_PROPERTY(max_ttl));
 			} else if (!is_strprefix(node_vendor(n), gtkg_vendor)) {
-				gm_snprintf(degree, sizeof(degree),
+				str_bprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
@@ -6309,14 +6309,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				GNET_PROPERTY(enable_guess) &&
 				(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 			) {
-				gm_snprintf(guess, sizeof(guess),
+				str_bprintf(guess, sizeof(guess),
 					"X-Guess: %d.%d\r\n",
 					SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
 			} else {
 				guess[0] = '\0';
 			}
 
-			rw = gm_snprintf(gnet_response, gnet_response_max,
+			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"Pong-Caching: 0.1\r\n"
@@ -6367,7 +6367,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			header_features_generate(FEATURES_CONNECTIONS,
 				gnet_response, gnet_response_max, &rw);
 
-			rw += gm_snprintf(&gnet_response[rw],
+			rw += str_bprintf(&gnet_response[rw],
 					gnet_response_max - rw, "\r\n");
 		}
 	}
@@ -8689,14 +8689,14 @@ node_init_outgoing(struct gnutella_node *n)
 		 */
 
 		if (settings_is_ultra()) {
-			gm_snprintf(degree, sizeof(degree),
+			str_bprintf(degree, sizeof(degree),
 				"X-Degree: %d\r\n"
 				"X-Max-TTL: %d\r\n",
 				(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)
 				 	- GNET_PROPERTY(normal_connections)) / 2,
 				GNET_PROPERTY(max_ttl));
 		} else {
-			gm_snprintf(degree, sizeof(degree),
+			str_bprintf(degree, sizeof(degree),
 				"X-Dynamic-Querying: 0.1\r\n"
 				"X-Ultrapeer-Query-Routing: 0.1\r\n"
 				"X-Degree: 32\r\n"
@@ -8728,7 +8728,7 @@ node_init_outgoing(struct gnutella_node *n)
 			GNET_PROPERTY(enable_guess) &&
 			(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 		) {
-			gm_snprintf(guess, sizeof(guess),
+			str_bprintf(guess, sizeof(guess),
 				"X-Guess: %d.%d\r\n",
 				SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
 		} else {
@@ -8742,7 +8742,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
 
-		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
+		n->hello.len = str_bprintf(n->hello.ptr, n->hello.size,
 			"%s%d.%d\r\n"
 			"Node: %s%s%s\r\n"
 			"Remote-IP: %s\r\n"
@@ -8784,7 +8784,7 @@ node_init_outgoing(struct gnutella_node *n)
 		header_features_generate(FEATURES_CONNECTIONS,
 			n->hello.ptr, n->hello.size, &n->hello.len);
 
-		n->hello.len += gm_snprintf(&n->hello.ptr[n->hello.len],
+		n->hello.len += str_bprintf(&n->hello.ptr[n->hello.len],
 							n->hello.size - n->hello.len, "\r\n");
 
 		g_assert(n->hello.len < n->hello.size);
@@ -10285,7 +10285,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 				char guid_buf[GUID_HEX_SIZE + 1];
 
 				if (gnet)
-					gm_snprintf(buf, sizeof buf, "[weird #%d] ", n->n_weird);
+					str_bprintf(buf, sizeof buf, "[weird #%d] ", n->n_weird);
 				else
 					buf[0] = '\0';
 
@@ -10857,10 +10857,10 @@ node_infostr(const gnutella_node_t *n)
 	static char buf[160];
 
 	if (NODE_USES_UDP(n)) {
-		gm_snprintf(buf, sizeof buf, "UDP %snode %s",
+		str_bprintf(buf, sizeof buf, "UDP %snode %s",
 			NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "", node_addr(n));
 	} else {
-		gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
+		str_bprintf(buf, sizeof buf, "%s node %s <%s>",
 			node_type(n), node_gnet_addr(n), node_vendor(n));
 	}
 
@@ -10885,7 +10885,7 @@ node_id_infostr(const struct nid *node_id)
 		return node_infostr(n);
 	} else {
 		static char buf[128];
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			"unknown node ID %s", nid_to_string(node_id));
 		return buf;
 	}

@@ -113,7 +113,6 @@
 #include "crash.h"			/* For crash_hook_add() */
 #include "dump_options.h"
 #include "fd.h"
-#include "glib-missing.h"
 #include "log.h"
 #include "memusage.h"
 #include "mutex.h"
@@ -5423,7 +5422,7 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	gm_snprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ago, sizeof ago, " [%s]",
 		short_time(delta_time(tm_time(), pt->atime)));
 #else
 	ago[0] = '\0';

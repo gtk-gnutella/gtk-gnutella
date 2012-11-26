@@ -43,18 +43,19 @@
 #include "settings.h"
 #include "nodes.h"
 
-#include "lib/halloc.h"
 #include "lib/atoms.h"
 #include "lib/bit_array.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/halloc.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
+#include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/str.h"
+#include "lib/utf8.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
-#include "lib/utf8.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -439,7 +440,7 @@ spam_changed(const char *filename, void *unused_udata)
 		count = spam_load(f);
 		fclose(f);
 
-		gm_snprintf(buf, sizeof(buf), "Reloaded %lu spam items.", count);
+		str_bprintf(buf, sizeof(buf), "Reloaded %lu spam items.", count);
 		gcu_statusbar_message(buf);
 	}
 }

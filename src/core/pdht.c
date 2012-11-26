@@ -62,6 +62,7 @@
 #include "lib/hikset.h"
 #include "lib/misc.h"
 #include "lib/nid.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -1322,7 +1323,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 				late = "late, ";
 		}
 
-		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
 
 		g_debug("PDHT PROX %s%spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"

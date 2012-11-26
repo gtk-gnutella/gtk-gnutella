@@ -89,7 +89,6 @@
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
@@ -99,6 +98,7 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/stats.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/vendors.h"
@@ -806,7 +806,7 @@ kbucket_to_string(const struct kbucket *kb)
 
 	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
 
-	gm_snprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
+	str_bprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
 			" [good: %u, stale: %u, pending: %u]",
 		kuid, kb->frozen_depth ? "frozen " : "",
 		kb->depth, kb->ours ? ", ours" : "",

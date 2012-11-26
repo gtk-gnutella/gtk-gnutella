@@ -49,10 +49,11 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/atoms.h"
 #include "lib/array.h"
+#include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/gnet_host.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/walloc.h"
@@ -101,7 +102,7 @@ thex_upload_uuid(const struct tth *tth)
 	const char *data;
 
 	data = tth->data;
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		"uuid:%08x-%04x-%04x-%04x-%08x%04x",
 		peek_le32(&data[0]), peek_le16(&data[4]), peek_le16(&data[6]),
 		peek_le16(&data[8]), peek_le32(&data[10]), peek_le16(&data[14]));

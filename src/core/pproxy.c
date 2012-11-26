@@ -64,15 +64,16 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
-#include "lib/getline.h"
-#include "lib/hashlist.h"
-#include "lib/halloc.h"
-#include "lib/header.h"
-#include "lib/glib-missing.h"
 #include "lib/endian.h"
+#include "lib/getline.h"
+#include "lib/glib-missing.h"
+#include "lib/halloc.h"
+#include "lib/hashlist.h"
+#include "lib/header.h"
 #include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/sequence.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -128,7 +129,7 @@ send_pproxy_error_v(
 	int hevcnt = 0;
 
 	if (msg) {
-		gm_vsnprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(reason, sizeof reason, msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -190,11 +191,11 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	pproxy_check(pp);
 
 	if (reason) {
-		gm_vsnprintf(errbuf, sizeof errbuf , reason, ap);
+		str_vbprintf(errbuf, sizeof errbuf , reason, ap);
 		logreason = errbuf;
 	} else {
 		if (pp->error_sent) {
-			gm_snprintf(errbuf, sizeof errbuf, "HTTP %d", pp->error_sent);
+			str_bprintf(errbuf, sizeof errbuf, "HTTP %d", pp->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -1258,7 +1259,7 @@ cproxy_build_request(const struct http_async *ha,
 			(void *) 0);
 	}
 	
-	return gm_snprintf(buf, len,
+	return str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n"

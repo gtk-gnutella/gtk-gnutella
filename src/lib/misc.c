@@ -45,7 +45,6 @@
 #include "concat.h"
 #include "endian.h"
 #include "entropy.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "htable.h"
 #include "html_entities.h"
@@ -527,14 +526,14 @@ kib_size_scale(uint64 v, uint *q, uint *r, bool metric)
  * @param dst		where to write the string
  * @param len		the size of ``dst'' in bytes.
  *
- * @return The length of the resulting string assuming ``size'' is sufficient.
+ * @return The length of the resulting string.
  */
 size_t
 short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 {
 	if (size < kilo(metric)) {
 		uint n = size;
-		return gm_snprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
+		return str_bprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
 		uint q, r;
 		char c;
@@ -542,7 +541,7 @@ short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
 		return
-			gm_snprintf(dst, len, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+			str_bprintf(dst, len, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 }
 
@@ -571,14 +570,14 @@ short_frequency(uint64 freq)
 
 	if (freq < kilo(TRUE)) {
 		uint n = freq;
-		gm_snprintf(b, sizeof b, "%u Hz", n);
+		str_bprintf(b, sizeof b, "%u Hz", n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(freq, &q, &r, TRUE);
 		r = (r * 100) / kilo(TRUE);
-		gm_snprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
+		str_bprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
 	}
 
 	return b;
@@ -594,14 +593,14 @@ short_html_size(uint64 size, bool metric)
 
 	if (size < kilo(metric)) {
 		uint n = size;
-		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
+		str_bprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
+		str_bprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
 			byte_suffix(metric));
 	}
 
@@ -615,14 +614,14 @@ short_byte_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 
 	if (size < kilo(metric)) {
 		uint n = size;
-		w = gm_snprintf(buf, buflen, "%u B", n);
+		w = str_bprintf(buf, buflen, "%u B", n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
@@ -657,7 +656,7 @@ short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 	size_t w;
 
 	if (size < kilo(metric)) {
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u %s", (uint) size, metric ? "kB" : "KiB");
 	} else {
 		uint q, r;
@@ -665,7 +664,7 @@ short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
@@ -703,14 +702,14 @@ compact_kb_size(uint32 size, bool metric)
 	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
-		gm_snprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
+		str_bprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
 	} else {
 		uint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
+		str_bprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -723,7 +722,7 @@ nice_size(uint64 size, bool metric)
 	char bytes[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(size, bytes, sizeof bytes);
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		_("%s (%s bytes)"), short_size(size, metric), bytes);
 	return buf;
 }
@@ -732,14 +731,14 @@ char *
 compact_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u", (uint) v);
+		str_bprintf(buf, size, "%u", (uint) v);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
-		gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
+		str_bprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
 	}
 
 	return buf;
@@ -749,14 +748,14 @@ char *
 short_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u ", (uint) v);
+		str_bprintf(buf, size, "%u ", (uint) v);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
+		str_bprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	}
 	
 	return buf;

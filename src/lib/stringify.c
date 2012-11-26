@@ -39,10 +39,12 @@
 #include "stringify.h"
 #include "ascii.h"
 #include "endian.h"
+#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
+#include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
-#include "glib-missing.h"
-#include "halloc.h"
+#include "str.h"
+
 #include "override.h"			/* Must be the last header included */
 
 static const char hex_alphabet[] = "0123456789ABCDEF";
@@ -272,7 +274,7 @@ hostname_port_to_string(const char *hostname, uint16 port)
 {
 	static char a[300];
 
-	gm_snprintf(a, sizeof(a), "%.255s:%u", hostname, port);
+	str_bprintf(a, sizeof(a), "%.255s:%u", hostname, port);
 	return a;
 }
 
@@ -967,14 +969,14 @@ short_time(time_delta_t t)
 	uint s = MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(buf, sizeof buf, _("%ud %uh"),
+		str_bprintf(buf, sizeof buf, _("%ud %uh"),
 			s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(buf, sizeof buf, _("%uh %um"), s / 3600, (s % 3600) / 60);
+		str_bprintf(buf, sizeof buf, _("%uh %um"), s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(buf, sizeof buf, _("%um %us"), s / 60, s % 60);
+		str_bprintf(buf, sizeof buf, _("%um %us"), s / 60, s % 60);
 	else
-		gm_snprintf(buf, sizeof buf, _("%us"), s);
+		str_bprintf(buf, sizeof buf, _("%us"), s);
 
 	return buf;
 }
@@ -990,14 +992,14 @@ short_time_ascii(time_delta_t t)
 	uint s = MAX(t, 0);
 
 	if (s > 86400)
-		gm_snprintf(buf, sizeof buf, "%ud %uh",
+		str_bprintf(buf, sizeof buf, "%ud %uh",
 			s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		gm_snprintf(buf, sizeof buf, "%uh %um", s / 3600, (s % 3600) / 60);
+		str_bprintf(buf, sizeof buf, "%uh %um", s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		gm_snprintf(buf, sizeof buf, "%um %us", s / 60, s % 60);
+		str_bprintf(buf, sizeof buf, "%um %us", s / 60, s % 60);
 	else
-		gm_snprintf(buf, sizeof buf, "%us", s);
+		str_bprintf(buf, sizeof buf, "%us", s);
 
 	return buf;
 }
@@ -1019,14 +1021,14 @@ compact_time_to_buf(time_delta_t t, char *dst, size_t size)
 	size_t r;
 
 	if (s > 86400)
-		r = gm_snprintf(dst, size, "%s%ud%uh",
+		r = str_bprintf(dst, size, "%s%ud%uh",
 				m, s / 86400, (s % 86400) / 3600);
 	else if (s > 3600)
-		r = gm_snprintf(dst, size, "%s%uh%um", m, s / 3600, (s % 3600) / 60);
+		r = str_bprintf(dst, size, "%s%uh%um", m, s / 3600, (s % 3600) / 60);
 	else if (s > 60)
-		r = gm_snprintf(dst, size, "%s%um%us", m, s / 60, s % 60);
+		r = str_bprintf(dst, size, "%s%um%us", m, s / 60, s % 60);
 	else
-		r = gm_snprintf(dst, size, "%s%us", m, s);
+		r = str_bprintf(dst, size, "%s%us", m, s);
 
 	return r;
 }
@@ -1074,11 +1076,11 @@ short_uptime(time_delta_t uptime)
 
 	if (s > 86400) {
 		uint32 d = s % 86400;
-		gm_snprintf(b, sizeof(b), "%ud %02d%c%02d",
+		str_bprintf(b, sizeof(b), "%ud %02d%c%02d",
 			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
 	} else {
 		uint32 h = s % 3600;
-		gm_snprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
+		str_bprintf(b, sizeof(b), "%02d:%02d:%02d", s / 3600, h / 60, h % 60);
 	}
 
 	return b;

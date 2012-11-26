@@ -32,9 +32,9 @@
 
 #include "common.h"
 
-#include "lib/tm.h"
-#include "lib/glib-missing.h"
 #include "lib/rand31.h"
+#include "lib/str.h"
+#include "lib/tm.h"
 
 #include "sdbm.h"
 
@@ -174,9 +174,9 @@ fill_key(char *buf, size_t len, long i)
 
 	if (randomize) {
 		int v = rand31();
-		w = gm_snprintf(&buf[offset], avail, "%06d%010ld", v, i);
+		w = str_bprintf(&buf[offset], avail, "%06d%010ld", v, i);
 	} else {
-		w = gm_snprintf(&buf[offset], avail, "%016ld", i);
+		w = str_bprintf(&buf[offset], avail, "%016ld", i);
 	}
 	if (large_keys) {
 		size_t off = len - LARGE_KEY_TAIL;
@@ -184,7 +184,7 @@ fill_key(char *buf, size_t len, long i)
 		g_assert(avail > LARGE_KEY_TAIL + COMMON_HEAD_TAIL);
 		if (common_head_tail)
 			off -= COMMON_HEAD_TAIL;
-		gm_snprintf(&buf[off], LARGE_KEY_TAIL, "%016ld", i);
+		str_bprintf(&buf[off], LARGE_KEY_TAIL, "%016ld", i);
 	}
 }
 

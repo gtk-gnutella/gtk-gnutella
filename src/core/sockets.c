@@ -76,10 +76,10 @@
 #include "lib/endian.h"
 #include "lib/fd.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -995,7 +995,7 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		size = gm_snprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
+		size = str_bprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
 					(uchar) strlen(name),
 					name,
 					(uchar) strlen(GNET_PROPERTY(socks_pass)),

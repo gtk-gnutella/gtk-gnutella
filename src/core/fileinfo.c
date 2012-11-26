@@ -83,6 +83,7 @@
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -1719,13 +1720,13 @@ G_STMT_START {				\
 			goto eof;
 
 		if (0 == tmpuint) {
-			gm_snprintf(tmp, sizeof tmp, "field #%d has zero size", field);
+			str_bprintf(tmp, sizeof tmp, "field #%d has zero size", field);
 			BAILOUT(tmp);
 			/* NOT REACHED */
 		}
 
 		if (tmpuint > FI_MAX_FIELD_LEN) {
-			gm_snprintf(tmp, sizeof tmp,
+			str_bprintf(tmp, sizeof tmp,
 				"field #%d is too large (%u bytes) ", field, (uint) tmpuint);
 			BAILOUT(tmp);
 			/* NOT REACHED */
@@ -6553,7 +6554,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
 
-		gm_snprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -6637,7 +6638,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		dl_file_chunk_check(fc);	
 		g_assert(DL_CHUNK_DONE == fc->status);
 
-		gm_snprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(range, sizeof range, "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -6963,7 +6964,7 @@ file_info_foreach(file_info_foreach_cb callback, void *udata)
 const char *
 file_info_status_to_string(const gnet_fi_status_t *status)
 {
-	static char buf[4096];
+	static char buf[512];
 
 	g_return_val_if_fail(status, NULL);
 
@@ -6975,14 +6976,14 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-        gm_snprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
+        str_bprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
 		goto dht_status;
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
 		if (status->vrfy_hashed > 0) {
-			gm_snprintf(buf, sizeof buf,
+			str_bprintf(buf, sizeof buf,
 					"%s %s (%.1f%%)",
 					status->tth_check ?
 						_("Computing TTH") : _("Computing SHA1"),
@@ -6995,11 +6996,11 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 				_("Waiting for TTH check") : _("Waiting for SHA1 check");
 		}
  	} else if (status->complete) {
-		static char msg_sha1[1024], msg_copy[1024];
+		char msg_sha1[128], msg_copy[128];
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			gm_snprintf(msg_sha1, sizeof msg_sha1, "%s %s",
+			str_bprintf(msg_sha1, sizeof msg_sha1, "%s %s",
 				_("SHA1"),
 				status->sha1_matched ? _("OK") :
 				status->sha1_failed ? _("failed") : _("not computed yet"));
@@ -7008,10 +7009,10 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		msg_copy[0] = '\0';
 		if (status->moving) {
 			if (0 == status->copied) {
-				gm_snprintf(msg_copy, sizeof msg_copy, "%s",
+				str_bprintf(msg_copy, sizeof msg_copy, "%s",
 					_("Waiting for moving..."));
 			} else if (status->copied > 0 && status->copied < status->size) {
-				gm_snprintf(msg_copy, sizeof msg_copy,
+				str_bprintf(msg_copy, sizeof msg_copy,
 					"%s %s (%.1f%%)", _("Moving"),
 					short_size(status->copied,
 						GNET_PROPERTY(display_metric_units)),
@@ -7029,7 +7030,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		g_strlcpy(buf, _("No sources"), sizeof buf);
 		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
-        gm_snprintf(buf, sizeof buf,
+        str_bprintf(buf, sizeof buf,
             _("Queued (%u active, %u passive)"),
             status->active_queued, status->passive_queued);
 		goto dht_status;
@@ -7045,26 +7046,26 @@ dht_status:
 		size_t w = strlen(buf);
 
 		if (status->dht_lookup_running) {
-			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
-			w += gm_snprintf(&buf[w], sizeof buf - w,
+			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(&buf[w], sizeof buf - w,
 				_("Querying DHT"));
 		} else if (status->dht_lookup_pending) {
-			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
-			w += gm_snprintf(&buf[w], sizeof buf - w,
+			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(&buf[w], sizeof buf - w,
 				_("Pending DHT query"));
 		}
 
 		if (status->dht_lookups != 0) {
-			w += gm_snprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
 			if (status->dht_values != 0) {
-				w += gm_snprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(&buf[w], sizeof buf - w,
 					NG_(
 						"%u/%u successful DHT lookup",
 						"%u/%u successful DHT lookups",
 						status->dht_lookups),
 					status->dht_values, status->dht_lookups);
 			} else {
-				w += gm_snprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(&buf[w], sizeof buf - w,
 					NG_("%u DHT lookup", "%u DHT lookups", status->dht_lookups),
 					status->dht_lookups);
 			}

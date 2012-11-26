@@ -47,7 +47,6 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
@@ -56,6 +55,7 @@
 #include "lib/ostream.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -677,7 +677,7 @@ soap_build_request(const http_async_t *ha,
 
 	if (sr->mandatory) {
 		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
-			rw = gm_snprintf(buf, len,
+			rw = str_bprintf(buf, len,
 				"M-%s %s HTTP/1.1\r\n"
 				"HOST: %s\r\n"
 				"USER-AGENT: %s\r\n"
@@ -692,7 +692,7 @@ soap_build_request(const http_async_t *ha,
 				version_string, content_type, size_t_to_string(content_len),
 				fixed_header, SOAP_NAMESPACE, sr->action);
 		} else {
-			rw = gm_snprintf(buf, len,
+			rw = str_bprintf(buf, len,
 				"M-%s %s HTTP/1.1\r\n"
 				"Host: %s\r\n"
 				"User-Agent: %s\r\n"
@@ -709,7 +709,7 @@ soap_build_request(const http_async_t *ha,
 		}
 	} else {
 		if (sr->options & SOAP_RPC_O_ALL_CAPS) {
-			rw = gm_snprintf(buf, len,
+			rw = str_bprintf(buf, len,
 				"%s %s HTTP/1.1\r\n"
 				"HOST: %s\r\n"
 				"USER-AGENT: %s\r\n"
@@ -723,7 +723,7 @@ soap_build_request(const http_async_t *ha,
 				version_string, content_type, size_t_to_string(content_len),
 				fixed_header, sr->action);
 		} else {
-			rw = gm_snprintf(buf, len,
+			rw = str_bprintf(buf, len,
 				"%s %s HTTP/1.1\r\n"
 				"Host: %s\r\n"
 				"User-Agent: %s\r\n"

@@ -71,8 +71,8 @@
 
 #include "xml/vxml.h"
 
-#include "lib/bit_array.h"
 #include "lib/bg.h"
+#include "lib/bit_array.h"
 #include "lib/compat_misc.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
@@ -94,6 +94,7 @@
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
@@ -436,7 +437,7 @@ save_pid(int fd, const char *path)
 
 	g_assert(fd >= 0);
 
-	len = gm_snprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
+	len = str_bprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
 
 	if (GNET_PROPERTY(lockfile_debug)) {
 		g_debug("file \"%s\" about to be written with PID %lu on fd #%d",

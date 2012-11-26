@@ -1121,7 +1121,7 @@ parq_download_add_header(
 	g_assert(UNSIGNED(*rw) <= INT_MAX);
 	g_assert(len >= *rw);
 
-	*rw += gm_snprintf(&buf[*rw], len - *rw, "%s\r\n",
+	*rw += str_bprintf(&buf[*rw], len - *rw, "%s\r\n",
 		(d->server->attrs & DLS_A_FAKE_G2) ?
 			parq_get_x_queue_legacy_header() : parq_get_x_queue_header());
 
@@ -1133,7 +1133,7 @@ parq_download_add_header(
 
 	if (d->server->parq_version.major == 1) {
 		if (get_parq_dl_id(d) != NULL)
-			*rw += gm_snprintf(&buf[*rw], len - *rw,
+			*rw += str_bprintf(&buf[*rw], len - *rw,
 				  	"X-Queued: position=%d; ID=%s\r\n",
 				  	get_parq_dl_position(d),
 				  	get_parq_dl_id(d));
@@ -1154,14 +1154,14 @@ parq_download_add_header(
 	addr = listen_addr();
 	if (is_host_addr(addr)) {
 		has_ipv4 = TRUE;
-		*rw += gm_snprintf(&buf[*rw], len - *rw,
+		*rw += str_bprintf(&buf[*rw], len - *rw,
 		  	  "X-Node: %s\r\n",
 			  host_addr_port_to_string(addr, port));
 	}
 
 	addr = listen_addr6();
 	if (is_host_addr(addr)) {
-		*rw += gm_snprintf(&buf[*rw], len - *rw,
+		*rw += str_bprintf(&buf[*rw], len - *rw,
 		  	  "%s%s\r\n",
 			  has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			  host_addr_port_to_string(addr, port));
@@ -4357,11 +4357,11 @@ parq_upload_add_old_queue_header(char *buf, size_t size,
 	size_t len;
 
 	if (small_reply) {
-		len = gm_snprintf(buf, size,
+		len = str_bprintf(buf, size,
 				"X-Queue: position=%d, pollMin=%u, pollMax=%u\r\n",
 				puq->relative_position, min_poll, max_poll);
 	} else {
-		len = gm_snprintf(buf, size,
+		len = str_bprintf(buf, size,
 				"X-Queue: position=%d, length=%d, "
 				"limit=%d, pollMin=%u, pollMax=%u\r\n",
 				puq->relative_position, puq->queue->by_position_length,
@@ -4774,7 +4774,7 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	puq->flags &= ~PARQ_UL_QUEUE;
 
-	rw = gm_snprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
+	rw = str_bprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
 			guid_hex_str(&puq->id),
 			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 

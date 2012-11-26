@@ -46,7 +46,6 @@
 #include "xml/xfmt.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/nv.h"
 #include "lib/parse.h"
 #include "lib/str.h"
@@ -594,7 +593,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 	{
 		char ns[256];
 		
-		gm_snprintf(ns, sizeof ns, "%s%s:%u",
+		str_bprintf(ns, sizeof ns, "%s%s:%u",
 			UPNP_NS_BASE,
 			upnp_service_type_to_string(upnp_service_type(usd)),
 			upnp_service_version(usd));
@@ -643,7 +642,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 		if (host_addr_net(upnp_get_local_addr()) == NET_TYPE_NONE)
 			options |= SOAP_RPC_O_LOCAL_ADDR;
 
-		gm_snprintf(action_uri, sizeof action_uri, "%s#%s",
+		str_bprintf(action_uri, sizeof action_uri, "%s#%s",
 			xnode_element_ns(root), action);
 
 		ucd->action = atom_str_get(action_uri);

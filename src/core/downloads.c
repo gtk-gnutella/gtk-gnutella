@@ -847,7 +847,7 @@ download_rx_error(void *o, const char *reason, ...)
 	download_check(d);
 
 	va_start(args, reason);
-	gm_vsnprintf(msg, sizeof msg, reason, args);
+	str_vbprintf(msg, sizeof msg, reason, args);
 	download_repair(d, msg);
 	va_end(args);
 }
@@ -4636,7 +4636,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 
 	if (reason && no_reason != reason) {
-		gm_vsnprintf(d->error_str, sizeof(d->error_str), reason, ap);
+		str_vbprintf(d->error_str, sizeof(d->error_str), reason, ap);
 		d->remove_msg = d->error_str;
 	} else
 		d->remove_msg = NULL;
@@ -4889,12 +4889,12 @@ download_queue_update_status(struct download *d)
 	/* Append times of event */
 	time_locale_to_string_buf(tm_time(), event, sizeof event);
 	rw = strlen(d->error_str);
-	rw += gm_snprintf(&d->error_str[rw], sizeof d->error_str - rw,
+	rw += str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
 		_(" at %s"), lazy_locale_to_ui_string(event));
 
 	/* Append PFS indication */
 	if (d->ranges_size) {
-		gm_snprintf(&d->error_str[rw], sizeof d->error_str - rw,
+		str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
 			" <PFS %4.02f%%>", d->ranges_size * 100.0 / download_filesize(d));
 	}
 }
@@ -4927,7 +4927,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	 */
 
 	if (fmt) {
-		gm_vsnprintf(d->error_str, sizeof d->error_str, fmt, ap);
+		str_vbprintf(d->error_str, sizeof d->error_str, fmt, ap);
 	} else {
 		g_strlcpy(d->error_str, "", sizeof d->error_str);
 	}
@@ -11374,7 +11374,7 @@ http_version_nofix:
 		short_read[0] = '\0';
 	else {
 		uint count = header_num_lines(header);
-		gm_snprintf(short_read, sizeof short_read,
+		str_bprintf(short_read, sizeof short_read,
 			"[short %u line%s header] ", count, count == 1 ? "" : "s");
 
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
@@ -11729,20 +11729,20 @@ http_version_nofix:
 
 				download_passively_queued(d, TRUE);
 
-				rw = gm_snprintf(tmp, sizeof(tmp), "%s", _("Queued"));
+				rw = str_bprintf(tmp, sizeof(tmp), "%s", _("Queued"));
 				if (pos > 0) {
-					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+					rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
 						_(" (slot %d"), pos);		/* ) */
 
 					if (length > 0)
-						rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+						rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
 							"/%d", length);
 
 					if (eta > 0)
-						rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw,
+						rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
 							_(", ETA: %s"), short_time(eta));
 
-					rw += gm_snprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
+					rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
 				}
 
 				download_queue_delay(d,
@@ -12043,7 +12043,7 @@ http_version_nofix:
 			) {
 				char got[64];
 
-				gm_snprintf(got, sizeof got, "got %s - %s",
+				str_bprintf(got, sizeof got, "got %s - %s",
 					uint64_to_string(start), uint64_to_string2(end));
 
 				/* XXX: Should we check whether we can use this range
@@ -12967,19 +12967,19 @@ picked:
 		char *escaped_uri;
 
 		escaped_uri = url_fix_escape(d->uri);
-		rw = gm_snprintf(request_buf, maxsize,
+		rw = str_bprintf(request_buf, maxsize,
 				"%s %s HTTP/1.1\r\n", method, escaped_uri);
 		if (escaped_uri != d->uri) {
 			HFREE_NULL(escaped_uri);
 		}
 	} else if (sha1) {
-		rw = gm_snprintf(request_buf, maxsize,
+		rw = str_bprintf(request_buf, maxsize,
 				"%s /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 				method, sha1_base32(sha1));
 	} else {
 		char *escaped = url_escape(d->file_name);
 
-		rw = gm_snprintf(request_buf, maxsize,
+		rw = str_bprintf(request_buf, maxsize,
 				"%s /get/%lu/%s HTTP/1.1\r\n",
 				method, (ulong) d->record_index, escaped);
 
@@ -13009,18 +13009,18 @@ picked:
 		!d->keep_alive ||
 		!is_strprefix(download_vendor_str(d), "gtk-gnutella/")
 	) {
-		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"User-Agent: %s\r\n", version_string);
 	}
 
-	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+	rw += str_bprintf(&request_buf[rw], maxsize - rw,
 		"Host: %s\r\n",
 		d->server->hostname
 			? d->server->hostname
 			: host_addr_port_to_string(download_addr(d), download_port(d)));
 
 	if (d->server->attrs & DLS_A_FAKE_G2) {
-		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"X-Features: g2/1.0\r\n");
 	} else if (!d->keep_alive) {		/* Not a follow-up HTTP request */
 		/*
@@ -13035,21 +13035,21 @@ picked:
 		 * not a Gnutella peer, unless it's a THEX or browse request.
 		 */
 		if (!d->uri || (d->flags & (DL_F_THEX | DL_F_BROWSE))) {
-			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+			rw += str_bprintf(&request_buf[rw], maxsize - rw,
 					"X-Token: %s\r\n", tok_version());
 		}
 	}
 
 	if (d->flags & DL_F_BROWSE) {
-		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 				"Accept: application/x-gnutella-packets\r\n");
 	}
 	if (d->flags & DL_F_THEX) {
-		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 				"Accept: application/dime\r\n");
 	}
 
-	rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+	rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"Accept-Encoding: deflate\r\n");
 
 	/*
@@ -13077,7 +13077,7 @@ picked:
 		if (req->size != download_filesize(d)) {
 			filesize_t start = req->start - req->overlap;
 
-			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+			rw += str_bprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-%s\r\n",
 				uint64_to_string(start), uint64_to_string2(req->end - 1));
 		}
@@ -13087,7 +13087,7 @@ picked:
 		req->end = fi->file_size_known ? download_filesize(d) : (filesize_t) -1;
 
 		if (req->start > req->overlap)
-			rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+			rw += str_bprintf(&request_buf[rw], maxsize - rw,
 				"Range: bytes=%s-\r\n",
 				uint64_to_string(req->start - req->overlap));
 	}
@@ -13108,7 +13108,7 @@ picked:
 	 */
 
 	if (!download_is_special(d) && !(d->server->attrs & DLS_A_FAKE_G2)) {
-		rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+		rw += str_bprintf(&request_buf[rw], maxsize - rw,
 			"X-Downloaded: %s\r\n", uint64_to_string(download_filedone(d)));
 	}
 
@@ -13213,11 +13213,11 @@ picked:
 		if (wmesh) {
 			g_assert(sha1);
 			if (d->server->attrs & DLS_A_FAKE_G2) {
-				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+				rw += str_bprintf(&request_buf[rw], maxsize - rw,
 					"X-Content-URN: urn:sha1:%s\r\n",
 					sha1_base32(sha1));
 			} else {
-				rw += gm_snprintf(&request_buf[rw], maxsize - rw,
+				rw += str_bprintf(&request_buf[rw], maxsize - rw,
 					"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 					sha1_base32(sha1));
 			}
@@ -13230,7 +13230,7 @@ picked:
 
 	g_assert(rw + 3U <= sizeof request_buf);	/* Has room for final "\r\n" */
 
-	rw += gm_snprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
+	rw += str_bprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
 
 	/*
 	 * Send the HTTP Request

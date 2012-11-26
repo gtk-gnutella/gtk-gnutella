@@ -34,8 +34,8 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/host_addr.h"
-#include "lib/glib-missing.h"
 #include "lib/iso3166.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -198,13 +198,13 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
 			sizeof size_tmp);
 
-        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
+        range_len = str_bprintf(range_tmp, sizeof range_tmp, "%s%s",
             short_size(u->range_end - u->range_start + 1,
 				show_metric_units()),
 			u->partial ? _(" (partial)") : "");
 
 		if (u->range_start)
-			range_len += gm_snprintf(
+			range_len += str_bprintf(
 				&range_tmp[range_len], sizeof(range_tmp)-range_len,
 					" @ %s", short_size(u->range_start, show_metric_units()));
 
@@ -231,7 +231,7 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		gtk_clist_set_foreground(clist_uploads, row, color);
 	}
 
-	gm_snprintf(range_tmp, sizeof range_tmp, "%5.02f%%",
+	str_bprintf(range_tmp, sizeof range_tmp, "%5.02f%%",
 		100.0 * uploads_gui_progress(&status, rd));
 	gtk_clist_set_text(clist_uploads, row, c_ul_progress, range_tmp);
 
@@ -273,13 +273,13 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
         g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
 			sizeof size_tmp);
 
-        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
+        range_len = str_bprintf(range_tmp, sizeof range_tmp, "%s%s",
             short_size(u->range_end - u->range_start + 1,
 				show_metric_units()),
 			u->partial ? _(" (partial)") : "");
 
         if (u->range_start)
-            range_len += gm_snprintf(
+            range_len += str_bprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
                 " @ %s", short_size(u->range_start, show_metric_units()));
 
@@ -346,7 +346,7 @@ uploads_gui_update_display(time_t now)
             data->last_update = now;
             guc_upload_get_status(data->handle, &status);
 
-			gm_snprintf(tmp, sizeof tmp, "%5.02f%%",
+			str_bprintf(tmp, sizeof tmp, "%5.02f%%",
 				100.0 * uploads_gui_progress(&status, data));
 			gtk_clist_set_text(clist, row, c_ul_progress, tmp);
 

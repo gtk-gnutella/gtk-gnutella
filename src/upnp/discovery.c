@@ -58,6 +58,7 @@
 #include "lib/htable.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/strtok.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
@@ -997,7 +998,7 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 	 * it's best to adhere to the examples to maximize the success rate.
 	 */
 
-	len = gm_snprintf(req, sizeof req,
+	len = str_bprintf(req, sizeof req,
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: " UPNP_MCAST_ADDR ":" STRINGIFY(UPNP_PORT) "\r\n"
 		"USER-AGENT: %s\r\n"

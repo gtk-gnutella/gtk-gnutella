@@ -41,7 +41,8 @@
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /***
@@ -87,7 +88,7 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
     	if (type == QUERY_SHA1) {
         	/* If the query is empty and we have a SHA1 extension,
         	 * we print a urn:sha1-query instead. */
-        	gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+        	str_bprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
     	} else {
         	g_strlcpy(tmpstr, item, sizeof(tmpstr));
     	}

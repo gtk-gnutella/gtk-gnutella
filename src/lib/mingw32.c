@@ -75,7 +75,6 @@
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
 #include "iovec.h"
@@ -2613,9 +2612,9 @@ mingw_uname(struct utsname *buf)
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
-		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
+		str_bprintf(buf->release, sizeof buf->release, "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		gm_snprintf(buf->version, sizeof buf->version, "%u %s",
+		str_bprintf(buf->version, sizeof buf->version, "%u %s",
 			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 

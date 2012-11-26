@@ -68,7 +68,6 @@
 #include "lib/atoms.h"
 #include "lib/base16.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
@@ -214,10 +213,10 @@ vmsg_infostr(const void *data, size_t size)
 	version = gnutella_vendor_get_version(data);
 
 	if (!find_message(&vmsg, vc, id, version))
-		gm_snprintf(msg, sizeof msg , "%s/%uv%u",
+		str_bprintf(msg, sizeof msg , "%s/%uv%u",
 			vendor_code_to_string(vc.u32), id, version);
 	else
-		gm_snprintf(msg, sizeof msg, "%s/%uv%u '%s'",
+		str_bprintf(msg, sizeof msg, "%s/%uv%u '%s'",
 			vendor_code_to_string(vc.u32), id, version, vmsg.name);
 
 	return msg;

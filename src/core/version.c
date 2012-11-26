@@ -49,7 +49,6 @@
 #include "lib/ascii.h"
 #include "lib/base16.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
@@ -135,19 +134,19 @@ version_ext_str(const version_ext_t *vext, bool full)
 	bool has_extra = FALSE;
 	bool need_closing = FALSE;
 
-	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
 		if (ver->taglevel)
-			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
 
 	if (vext->commit_len != 0) {
 		static char digest[SHA1_BASE16_SIZE + 1];
@@ -155,32 +154,32 @@ version_ext_str(const version_ext_t *vext, bool full)
 
 		sha1_to_base16_buf(&vext->commit, digest, sizeof digest);
 		digest[offset] = '\0';
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-g%s", digest);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-g%s", digest);
 	}
 
 	if (vext->dirty)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-dirty");
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-dirty");
 
 	if (ver->timestamp || (full && vext->osname != NULL)) {
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (");
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (");
 		need_closing = TRUE;
 	}
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%d-%02d-%02d",
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%d-%02d-%02d",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 		has_extra = TRUE;
 	}
 
 	if (full && vext->osname != NULL) {
 		if (has_extra)
-			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "; ");
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
+			rw += str_bprintf(&str[rw], sizeof(str)-rw, "; ");
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
 	}
 
 	if (need_closing)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ")");
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, ")");
 
 	return str;
 }
@@ -195,23 +194,23 @@ version_str(const version_t *ver)
 	static char str[80];
 	int rw;
 
-	rw = gm_snprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
 		if (ver->taglevel)
-			rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, " (%d-%02d-%02d)",
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (%d-%02d-%02d)",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 	}
 
@@ -587,15 +586,15 @@ version_new_found(const char *text, bool stable)
         utf8_strlcpy(last_dev, text, sizeof last_dev);
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
-		gm_snprintf(s, sizeof s,
+		str_bprintf(s, sizeof s,
 			_(" - Newer versions available: release %s / from git %s"),
 			last_stable, last_dev);
 	} else if ('\0' != last_stable[0]) {
-		gm_snprintf(s, sizeof s,
+		str_bprintf(s, sizeof s,
 			_(" - Newer version available: release %s"),
 			last_stable);
 	} else if ('\0' != last_dev[0]) {
-		gm_snprintf(s, sizeof s,
+		str_bprintf(s, sizeof s,
 			_(" - Newer version available: from git %s"),
 			last_dev);
 	}
@@ -820,7 +819,7 @@ version_build_string(void)
 		}
 #endif /* HAS_UNAME */
 
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			"%s/%s%s (%s; %s; %s%s%s)",
 			product_get_name(), product_get_version(),
 			product_get_build_full(), product_get_date(),
@@ -861,7 +860,7 @@ version_init(void)
 	{
 		char buf[128];
 
-		gm_snprintf(buf, sizeof(buf),
+		str_bprintf(buf, sizeof(buf),
 			"%s/%s%s (%s)",
 			product_get_name(), product_get_version(),
 			product_get_build_full(), product_get_date());

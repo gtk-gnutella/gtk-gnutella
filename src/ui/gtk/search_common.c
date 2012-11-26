@@ -1240,23 +1240,23 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
 				info[0] != '\0' ? "; " : "", vinfo);
 	}
 
 	if (rc->flags & SR_PARTIAL_HIT) {
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
 			info[0] != '\0' ? ", " : "", _("partial"));
 	}
 
 	if (rc->alt_locs != NULL) {
 		guint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
 		if (count > 1)
-			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%u)", count);
+			rw += str_bprintf(&info[rw], sizeof info - rw, "(%u)", count);
 	}
 
 	return info[0] != '\0' ? atom_str_get(info) : NULL;
@@ -2325,7 +2325,7 @@ search_gui_switch_search(struct search *search)
 		gtk_widget_set_sensitive(tree, FALSE);
 		gtk_container_add(GTK_CONTAINER(sw), tree);
 		gtk_notebook_append_page(notebook_search_results, sw, NULL);
-		gm_snprintf(text, sizeof text, "(%s)", _("No search"));
+		str_bprintf(text, sizeof text, "(%s)", _("No search"));
 		gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
 		gtk_widget_show_all(sw);
 	}
@@ -2704,9 +2704,9 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		if (n_downloads > 0 || n_searches > 0) {
 			gchar msg_search[128], msg_download[128];
 
-			gm_snprintf(msg_download, sizeof msg_download,
+			str_bprintf(msg_download, sizeof msg_download,
 				NG_("%u download", "%u downloads", n_downloads), n_downloads);
-			gm_snprintf(msg_search, sizeof msg_search,
+			str_bprintf(msg_search, sizeof msg_search,
 				NG_("%u search", "%u searches", n_searches), n_searches);
 			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
 				msg_download, msg_search);

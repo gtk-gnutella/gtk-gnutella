@@ -178,7 +178,7 @@ source_progress_to_string(const struct download *d)
 	switch (d->status) {
 	case GTA_DL_RECEIVING:
 	case GTA_DL_IGNORING:
-		gm_snprintf(buf, sizeof buf, "%5.2f%%",
+		str_bprintf(buf, sizeof buf, "%5.2f%%",
 			100.0 * guc_download_source_progress(d));
 		break;
 	default:
@@ -218,7 +218,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	if (info->tth_num_leaves > 0) {
 		char buf[1024];
 
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			_("leaf hashes: %lu, depth: %u, granularity: %s"),
 			(unsigned long) info->tth_num_leaves,
 			info->tth_depth,
@@ -338,33 +338,33 @@ downloads_gui_status_string(const struct download *d)
 			elapsed = MAX(0, elapsed);
 			elapsed = MIN(elapsed, INT_MAX);
 			
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
+			rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" (slot %u"),		/* ) */
 					guc_get_parq_dl_position(d));
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"/%u", (unsigned) guc_get_parq_dl_queue_length(d));
 				}
 
 				if (guc_get_parq_dl_eta(d)  > 0) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_(", ETA: %s"),
 						short_time((guc_get_parq_dl_eta(d)
 							- elapsed)));
 				}
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
 			}
 
 			delay = guc_get_parq_dl_retry_delay(d) - elapsed;
 			delay = MAX(0, delay);
 
-			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+			rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" retry in %us"), (unsigned) delay);
 		}
 
@@ -373,7 +373,7 @@ downloads_gui_status_string(const struct download *d)
 		 */
 
 		if (d->ranges != NULL || d->ranges_size < fi->size) {
-			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+			rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 				" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 		}
 
@@ -387,7 +387,7 @@ downloads_gui_status_string(const struct download *d)
 				/* Show message if present */
 				status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
 			} else {
-				gm_snprintf(tmpstr, sizeof tmpstr, _("Complete"));
+				str_bprintf(tmpstr, sizeof tmpstr, _("Complete"));
 				status = tmpstr;
 			}
 		} else {
@@ -411,18 +411,18 @@ downloads_gui_status_string(const struct download *d)
 
 				if (cp->done) {
 					if (cp->sent)
-						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+						rw = str_bprintf(tmpstr, sizeof(tmpstr),
 								cp->directly
 									? _("Push sent directly")
 									: _("Push sent"));
 					else
-						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+						rw = str_bprintf(tmpstr, sizeof(tmpstr),
 								_("Failed to send push"));
 				} else
-					rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+					rw = str_bprintf(tmpstr, sizeof(tmpstr),
 							_("Sending push"));
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
 						host_addr_port_to_string(cproxy_addr(cp),
 							cproxy_port(cp)));
 
@@ -445,7 +445,7 @@ downloads_gui_status_string(const struct download *d)
 						break;
 					}
 
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 							": %s", status);
 				}
 
@@ -469,7 +469,7 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+			rw = str_bprintf(tmpstr, sizeof(tmpstr),
 					_("Sending request (%u%%)"),
 					(unsigned) guc_download_get_http_req_percent(d));
 			status = tmpstr;
@@ -496,14 +496,14 @@ downloads_gui_status_string(const struct download *d)
 			if (d->last_update != d->start_date) {
 				time_delta_t t = delta_time(d->last_update, d->start_date);
 				
-				rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
+				rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 					FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 					short_rate(
 						(d->chunk.end - d->chunk.start + d->chunk.overlap) / t,
 						show_metric_units()),
 					short_time(t));
 			} else {
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
+			rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"));
 			}
 			status = tmpstr;
@@ -522,7 +522,7 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_VERIFYING:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		gm_snprintf(tmpstr, sizeof(tmpstr),
+		str_bprintf(tmpstr, sizeof(tmpstr),
 			_("Computing %s (%.02f%%)"),
 			fi->tth_check ? "TTH" : "SHA1",
 			fi->vrfy_hashed * 100.0 / fi->size);
@@ -549,12 +549,12 @@ downloads_gui_status_string(const struct download *d)
 			} else {
 				sha1_status = _("SHA-1 VERIFICATION FAILED");
 			}
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, "%s", sha1_status);
+			rw = str_bprintf(tmpstr, sizeof tmpstr, "%s", sha1_status);
 
 			if (fi->cha1 && fi->vrfy_hashed) {
 				unsigned elapsed = fi->vrfy_elapsed;
 			
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
 					short_rate(fi->vrfy_hashed / (elapsed ? elapsed : 1),
 						show_metric_units()),
@@ -563,17 +563,17 @@ downloads_gui_status_string(const struct download *d)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"%s", _("; Waiting for moving..."));
 				break;
 			case GTA_DL_MOVING:
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_("; Moving (%.02f%%)"),
 					((gdouble) fi->copied / fi->size) * 100.0);
 				break;
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
-					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_("; Moved (%s) %s"),
 						short_rate(fi->copied / fi->copy_elapsed,
 							show_metric_units()),
@@ -624,12 +624,12 @@ downloads_gui_status_string(const struct download *d)
 					remain = 0;
 				}
                 s = remain / bps;
-				rw += gm_snprintf(&tmpstr[rw], sizeof tmpstr - rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof tmpstr - rw,
 						"(%s) TR: %s",
 						short_rate(bps, show_metric_units()),
 						short_time(s));
 			} else {
-				rw += gm_snprintf(tmpstr, sizeof tmpstr - rw, "%s",
+				rw += str_bprintf(tmpstr, sizeof tmpstr - rw, "%s",
 						stalled	? _("(stalled)") : _("Receiving data"));
 			}
 
@@ -638,7 +638,7 @@ downloads_gui_status_string(const struct download *d)
 			 */
 
 			if (d->ranges != NULL || d->ranges_size < fi->size)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 
 			/*
@@ -647,11 +647,11 @@ downloads_gui_status_string(const struct download *d)
 			 */
 
 			if (d->served_reqs)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" #%u", d->served_reqs + 1);
 
 			if (GTA_DL_IGNORING == d->status)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s)", _("ignoring"));
 
 			status = tmpstr;
@@ -672,7 +672,7 @@ downloads_gui_status_string(const struct download *d)
 				case GTA_DL_PIPE_SENT:		state = _("requested next");
 				}
 
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" {%s: %s}", state, downloads_gui_pipeline_range_string(d));
 			}
 		} else {
@@ -696,7 +696,7 @@ downloads_gui_status_string(const struct download *d)
 			} else {
 				when = 0;
 			}
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("Retry in %us"), when);
+			rw = str_bprintf(tmpstr, sizeof tmpstr, _("Retry in %us"), when);
 		}
 		status = tmpstr;
 		break;
@@ -705,7 +705,7 @@ downloads_gui_status_string(const struct download *d)
 			char buf[UINT64_DEC_BUFLEN];
 			
 			uint64_to_string_buf(d->sinkleft, buf, sizeof buf);
-			rw = gm_snprintf(tmpstr, sizeof tmpstr,
+			rw = str_bprintf(tmpstr, sizeof tmpstr,
 				_("Sinking (%s bytes left)"), buf);
 		}
 		status = tmpstr;
@@ -1929,7 +1929,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		{
 			static char buf[256];
 
-			gm_snprintf(buf, sizeof buf, "%u/%u/%u",
+			str_bprintf(buf, sizeof buf, "%u/%u/%u",
 				file->recv_count,
 				file->actively_queued + file->passively_queued,
 				file->life_count);
@@ -1953,7 +1953,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		if (file->done && file->size) {
 			static char buf[16];
 
-			gm_snprintf(buf, sizeof buf, "%u.%02u%%",
+			str_bprintf(buf, sizeof buf, "%u.%02u%%",
 				file->progress / 100, file->progress % 100);
 			text = buf;
 		}

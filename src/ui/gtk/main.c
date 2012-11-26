@@ -74,6 +74,7 @@
 #include "lib/omalloc.h"
 #include "lib/path.h"
 #include "lib/product.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 
@@ -146,10 +147,10 @@ gui_init_window_title(void)
 	const char *revision = product_get_revision();
 
 	if (revision[0] != '\0') {
-		gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
+		str_bprintf(title, sizeof(title), "gtk-gnutella %s %s",
 			product_get_version(), revision);
 	} else {
-		gm_snprintf(title, sizeof(title), "gtk-gnutella %s",
+		str_bprintf(title, sizeof(title), "gtk-gnutella %s",
 			product_get_version());
 	}
 

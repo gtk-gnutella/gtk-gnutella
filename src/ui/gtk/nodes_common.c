@@ -47,9 +47,9 @@
 #include "if/gui_property_priv.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/str.h"
 
 #include "lib/halloc.h"
 #include "lib/walloc.h"
@@ -92,7 +92,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			size_t slen = 0;
 
 			if (!GUI_PROPERTY(node_show_detailed_info)) {
-				gm_snprintf(gui_tmp, sizeof(gui_tmp),
+				str_bprintf(gui_tmp, sizeof(gui_tmp),
 					"TX=%u RX=%u Q=%u,%u%% %s",
 					n->sent, n->received,
 					n->mqueue_count, n->mqueue_percent_used,
@@ -103,10 +103,10 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (n->tx_compressed && GUI_PROPERTY(show_gnet_info_txc))
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%u,%d%%",
+				slen += str_bprintf(gui_tmp, sizeof(gui_tmp), "TXc=%u,%d%%",
 						n->sent, (int) (n->tx_compression_ratio * 100.0));
 			else
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%u",
+				slen += str_bprintf(gui_tmp, sizeof(gui_tmp), "TX=%u",
 						n->sent);
 
 			if (
@@ -115,30 +115,30 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" (" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_wire)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					"%s", compact_size(n->tx_written, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (GUI_PROPERTY(show_gnet_info_tx_speed))
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->tx_bps, show_metric_units()));
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
 			}
 
 			if (n->rx_compressed && GUI_PROPERTY(show_gnet_info_rxc))
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%u,%d%%",
 					n->received, (int) (n->rx_compression_ratio * 100.0));
 			else
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RX=%u", n->received);
 
 			if (
@@ -147,21 +147,21 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" (" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_rx_wire)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s", compact_size(n->rx_given, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (GUI_PROPERTY(show_gnet_info_rx_speed))
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->rx_bps, show_metric_units()));
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
 			}
 
@@ -173,29 +173,29 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Query(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_gen_queries)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"Gen=%u", n->squeue_sent);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_sq_queries)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sQ=%u", is_first ? "" : ", ", n->squeue_count);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_tx_queries)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sTX=%u", is_first ? "" : ", ", n->tx_queries);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_queries))
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_queries);
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
 			}
 
@@ -205,19 +205,19 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" QHit(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_hits)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TX=%u", n->tx_qhits);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_hits))
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_qhits);
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
 			}
 
@@ -227,19 +227,19 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Drop(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_dropped)) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TX=%u", n->tx_dropped);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_dropped))
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%sRX=%u", is_first ? "" : ", ", n->rx_dropped);
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ ")");
 			}
 
@@ -249,14 +249,14 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" Lib(" /* ')' */);
 
 				if (
 					GUI_PROPERTY(show_gnet_info_shared_size) &&
 					n->gnet_info_known
 				) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s",
 						compact_kb_size(n->gnet_files_count
 							? n->gnet_kbytes_count : 0, show_metric_units()));
@@ -266,21 +266,21 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					GUI_PROPERTY(show_gnet_info_shared_files) &&
 					n->gnet_info_known
 				) {
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"%s#=%u", is_first ? "" : ", ", n->gnet_files_count);
 				}
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* '(' */ "%s)", n->gnet_info_known ? "" : "?");
 			}
 
 			if (GUI_PROPERTY(show_gnet_info_qrp_stats)) {
 				if (n->has_qrp)
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						" QRP=%u%%",
 						(guint) (n->qrp_efficiency * 100.0));
 
 				if (n->qrt_slots != 0)
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						" QRT(%s, g=%u, f=%u%%, t=%u%%, e=%u%%)",
 						compact_size(n->qrt_slots, show_metric_units()),
 						n->qrt_generation,
@@ -289,25 +289,25 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (GUI_PROPERTY(show_gnet_info_dbw))
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Dup=%u Bad=%u W=%u H=%u S=%u E=%u",
 				n->n_dups, n->n_bad, n->n_weird,
 				n->n_hostile, n->n_spam, n->n_evil);
 
 			if (GUI_PROPERTY(show_gnet_info_rt)) {
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" RT(avg=%u, last=%u", n->rt_avg, n->rt_last);	/* ) */
 				if (n->tcp_rtt)
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						", tcp=%u", n->tcp_rtt);
 				if (n->udp_rtt)
-					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						", udp=%u", n->udp_rtt);
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					/* ( */ ")");
 			}
 
-			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+			slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Q=%u,%u%% %s",
 				n->mqueue_count, n->mqueue_percent_used,
 				n->in_tx_swift_control ? " [SW]" :
@@ -322,7 +322,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 	case GTA_NODE_SHUTDOWN:
 		{
-			gm_snprintf(gui_tmp, sizeof(gui_tmp),
+			str_bprintf(gui_tmp, sizeof(gui_tmp),
 				_("Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"),
 				n->message, n->shutdown_remain, n->received,
 				n->mqueue_count, n->mqueue_percent_used);

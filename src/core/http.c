@@ -49,8 +49,8 @@
 #include "rx_inflate.h"
 #include "rx_chunk.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
@@ -61,6 +61,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -125,7 +126,7 @@ http_send_status(
 	int cb_flags = 0;
 
 	va_start(args, reason);
-	gm_vsnprintf(status_msg, sizeof(status_msg)-1, reason, args);
+	str_vbprintf(status_msg, sizeof status_msg - 1, reason, args);
 	va_end(args);
 
 	/*
@@ -195,7 +196,7 @@ http_send_status(
 	g_assert(header_size <= sizeof header);
 
 	date = timestamp_rfc1123_to_string(clock_loc2gmt(tm_time()));
-	rw = gm_snprintf(header, header_size,
+	rw = str_bprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
 		"Date: %s\r\n"
@@ -233,7 +234,7 @@ http_send_status(
 		case HTTP_EXTRA_LINE:
 			if (size > strlen(he->he_msg)) {
 				/* Don't emit truncated lines */
-				rw += gm_snprintf(&header[rw], size, "%s", he->he_msg);
+				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
 			}
 			break;
 		case HTTP_EXTRA_CALLBACK:
@@ -249,21 +250,21 @@ http_send_status(
 	}
 
 	if (body) {
-		rw += gm_snprintf(&header[rw], header_size - rw,
+		rw += str_bprintf(&header[rw], header_size - rw,
 						"Content-Length: %zu\r\n", strlen(body));
 	}
 	if (rw < header_size) {
-		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
+		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 	}
 	if (body) {
-		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
+		rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
 	}
 	if (rw >= header_size && (hev || body)) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, status_msg);
 
 		rw = minimal_rw;
-		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
+		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 		g_assert(rw < header_size);
 	}
 
@@ -833,7 +834,7 @@ http_url_strerror(http_url_error_t errnum)
 {
 	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr)) {
 		static char buf[40];
-		gm_snprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
+		str_bprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
 		return buf;
 	}
 
@@ -1517,11 +1518,11 @@ http_range_to_string(const GSList *list)
 
 		uint64_to_string_buf(r->start, start_buf, sizeof start_buf);
 		uint64_to_string_buf(r->end, end_buf, sizeof end_buf);
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s-%s",
+		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%s-%s",
 				start_buf, end_buf);
 
 		if (g_slist_next(sl) != NULL)
-			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
+			rw += str_bprintf(&str[rw], sizeof(str)-rw, ", ");
 	}
 
 	return str;
@@ -1777,7 +1778,7 @@ http_async_strerror(uint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str)) {
 		static char buf[50];
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			"Invalid HTTP async error code: %u", errnum);
 		return buf;
 	}
@@ -2245,7 +2246,7 @@ http_async_remote_host_port(const http_async_t *ha)
 
 	if (ha->host) {
 		if (s->port != HTTP_PORT)
-			gm_snprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
+			str_bprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
 		else
 			g_strlcpy(buf, ha->host, sizeof buf);
 	} else {
@@ -2279,7 +2280,7 @@ http_async_build_get_request(const http_async_t *ha,
 	http_async_check(ha);
 	g_assert(len <= INT_MAX);
 
-	rw = gm_snprintf(buf, len,
+	rw = str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
@@ -2315,7 +2316,7 @@ http_async_build_post_request(const http_async_t *ha,
 	http_async_check(ha);
 	g_assert(len <= INT_MAX);
 
-	rw = gm_snprintf(buf, len,
+	rw = str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
@@ -2929,7 +2930,7 @@ http_async_rx_error(void *o, const char *reason, ...)
 		char buf[128];
 
 		va_start(args, reason);
-		gm_vsnprintf(buf, sizeof buf, reason, args);
+		str_vbprintf(buf, sizeof buf, reason, args);
 		va_end(args);
 		g_warning("HTTP RX error from %s for \"%s\": %s",
 			http_async_host(ha), ha->url, buf);

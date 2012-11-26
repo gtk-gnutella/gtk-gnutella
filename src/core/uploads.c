@@ -87,7 +87,6 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
@@ -2014,7 +2013,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	if (msg && no_reason != msg) {
-		gm_vsnprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(reason, sizeof reason, msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -2095,9 +2094,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					HFREE_NULL(uri);
 			}
 
-			gm_snprintf(index_href, sizeof index_href,
+			str_bprintf(index_href, sizeof index_href,
 				"/get/%lu/", (ulong) u->file_index);
-			gm_snprintf(buf, sizeof buf,
+			str_bprintf(buf, sizeof buf,
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
@@ -2256,11 +2255,11 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	VA_COPY(apcopy, ap);
 
 	if (reason != NULL && no_reason != reason) {
-		gm_vsnprintf(errbuf, sizeof errbuf, reason, ap);
+		str_vbprintf(errbuf, sizeof errbuf, reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			gm_snprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			str_bprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -2336,7 +2335,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	 */
 
 	if (reason != NULL && no_reason != reason) {
-		gm_vsnprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		str_vbprintf(errbuf, sizeof errbuf, _(reason), apcopy);
 		logreason = errbuf;
 	} else {
 		logreason = NULL;
@@ -2792,7 +2791,7 @@ upload_connect_conf(struct upload *u)
 	 * Send the GIV string, using our servent GUID.
 	 */
 
-	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+	rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
 			(ulong) u->file_index,
 			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
 
@@ -3122,7 +3121,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
-			gm_snprintf(location, sizeof(location),
+			str_bprintf(location, sizeof(location),
 				"Location: /get/%lu/%s\r\n",
 				(ulong) shared_file_index(sfn), escaped);
 
@@ -3785,7 +3784,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		static const char fmt[] = "Location: http://%s:%u/\r\n";
 		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		gm_snprintf(location, sizeof location, fmt,
+		str_bprintf(location, sizeof location, fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, "Redirecting");
@@ -3817,7 +3816,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	{
 		static char lm_buf[64];
 
-		gm_snprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
+		str_bprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
 		upload_http_extra_line_add(u, lm_buf);
 	}
@@ -4170,7 +4169,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
-			gm_snprintf(retry_after, sizeof(retry_after),
+			str_bprintf(retry_after, sizeof(retry_after),
 				"Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
@@ -4670,7 +4669,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			upload_http_extra_line_add(u, content_encoding);
 		}
 
-		gm_snprintf(name, sizeof name,
+		str_bprintf(name, sizeof name,
 				_("<Browse Host Request> [%s%s%s]"),
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
 				(flags & BH_F_DEFLATE) ? _(", deflate") :

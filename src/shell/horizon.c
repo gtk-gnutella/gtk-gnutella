@@ -40,7 +40,7 @@
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
@@ -111,7 +111,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 			maxlen[m] = n;
 	}
 
-	gm_snprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
+	str_bprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
 		(int) maxlen[0], hops_str,
 		(int) maxlen[1], nodes_str,
 		(int) maxlen[2], files_str,
@@ -134,7 +134,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
 				GNET_PROPERTY(display_metric_units));
 
-		gm_snprintf(buf, sizeof buf, "%*u  %*s  %*s  %*s\n",
+		str_bprintf(buf, sizeof buf, "%*u  %*s  %*s  %*s\n",
 			(int) maxlen[0], (unsigned) (i + 1),
 			(int) maxlen[1], s1,
 			(int) maxlen[2], s2,
@@ -176,7 +176,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	num_hsep = globaltable[1][HSEP_IDX_NODES];
 	num_total = globaltable[1][HSEP_IDX_NODES] + non_hsep[0][HSEP_IDX_NODES];
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		_("Total horizon size (%u/%u nodes support HSEP):"),
 		num_hsep, num_total);
 
@@ -197,7 +197,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 
 			shell_write(sh, "\n");
 
-			gm_snprintf(buf, sizeof buf,
+			str_bprintf(buf, sizeof buf,
 				_("Horizon size via HSEP node %s (%s):"),
 				node_addr(n),
 				node_peermode_to_string(n->peermode));

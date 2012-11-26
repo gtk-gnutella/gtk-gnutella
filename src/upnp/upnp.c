@@ -64,6 +64,7 @@
 #include "lib/htable.h"
 #include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
+#include "lib/str.h"
 #include "lib/stringify.h"		/* For compact_time() */
 #include "lib/walloc.h"
 
@@ -192,7 +193,7 @@ upnp_mapping_description(void)
 	static char buf[32];
 
 	if ('\0' == buf[0])
-		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
+		str_bprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
 
 	return buf;
 }

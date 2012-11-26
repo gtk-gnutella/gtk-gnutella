@@ -48,7 +48,9 @@
 
 #include "lib/glib-missing.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -295,7 +297,7 @@ gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        gm_vsnprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(buf, sizeof(buf), format, args);
     else
         buf[0] = '\0';
 
@@ -317,7 +319,7 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        gm_vsnprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(buf, sizeof(buf), format, args);
     else
         buf[0] = '\0';
 
@@ -611,7 +613,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 #if 0 
 	{
 		gchar type[32];
-#define EVENT_TYPE(x) case x: gm_snprintf(type, sizeof type, "%s", #x); break;
+#define EVENT_TYPE(x) case x: str_bprintf(type, sizeof type, "%s", #x); break;
 		switch (event->type) {
 		EVENT_TYPE(GDK_NOTHING)
 		EVENT_TYPE(GDK_DESTROY)
@@ -648,7 +650,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 		EVENT_TYPE(GDK_WINDOW_STATE)
 		EVENT_TYPE(GDK_SETTING)
 		default:
-			gm_snprintf(type, sizeof type, "%ld", (gulong) event->type);
+			str_bprintf(type, sizeof type, "%ld", (gulong) event->type);
 		}
 #undef EVENT_TYPE
 

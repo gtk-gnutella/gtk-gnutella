@@ -72,6 +72,7 @@
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -1518,11 +1519,11 @@ dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 		return (size_t) -1;
 
 	if (info->idx == URN_INDEX) {
-		rw += gm_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
+		rw += str_bprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
 		if (quoting != NULL)
 			*quoting = FALSE;			/* No "," in the generated URL */
 	} else {
-		rw += gm_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
+		rw += str_bprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
 
 		/*
 		 * Write filename, URL-escaping it directly into the buffer.
@@ -1583,7 +1584,7 @@ dmesh_fwinfo_to_string_buf(const dmesh_fwinfo_t *info, char *buf, size_t len)
 	g_assert(len <= INT_MAX);
 	g_assert(info->guid != NULL);
 
-	rw = gm_snprintf(buf, len, "%s", guid_hex_str(info->guid));
+	rw = str_bprintf(buf, len, "%s", guid_hex_str(info->guid));
 	if (rw >= maxslen)
 		goto done;
 
@@ -1595,7 +1596,7 @@ dmesh_fwinfo_to_string_buf(const dmesh_fwinfo_t *info, char *buf, size_t len)
 	while (hash_list_iter_has_next(iter) && rw < maxslen) {
 		gnet_host_t *host = hash_list_iter_next(iter);
 
-		rw += gm_snprintf(&buf[rw], len - rw, ";%s",
+		rw += str_bprintf(&buf[rw], len - rw, ";%s",
 				host_addr_port_to_string(
 					gnet_host_get_addr(host), gnet_host_get_port(host)));
 	}
@@ -1885,15 +1886,15 @@ dmesh_fwalt_string(char *buf, size_t size,
 {
 	size_t rw;
 
-	rw = gm_snprintf(buf, size, "%s", guid_to_string(guid));
+	rw = str_bprintf(buf, size, "%s", guid_to_string(guid));
 
 #if 0
 	/* No FWT support yet */
-	rw += gm_snprintf(&buf[rw], size - rw, ";fwt/1");
+	rw += str_bprintf(&buf[rw], size - rw, ";fwt/1");
 #endif
 
 	if (host_is_valid(addr, port)) {
-		rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+		rw += str_bprintf(&buf[rw], size - rw, ";%s",
 			port_host_addr_to_string(port, addr));
 	}
 
@@ -1909,7 +1910,7 @@ dmesh_fwalt_string(char *buf, size_t size,
 			if (!hcache_addr_within_net(haddr, net))
 				continue;
 
-			rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+			rw += str_bprintf(&buf[rw], size - rw, ";%s",
 				host_addr_port_to_string(haddr, gnet_host_get_port(host)));
 		}
 		sequence_iterator_release(&iter);

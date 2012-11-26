@@ -32,8 +32,9 @@
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /***
@@ -44,7 +45,7 @@ guint_to_str(guint32 i)
 {
     static gchar strbuf[UINT32_DEC_BUFLEN];
 
-    gm_snprintf(strbuf, sizeof(strbuf), "%u", i);
+    str_bprintf(strbuf, sizeof(strbuf), "%u", i);
     return strbuf;
 }
 
