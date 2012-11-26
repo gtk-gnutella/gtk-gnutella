@@ -209,6 +209,7 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"udp_uhc_pings",
 		"udp_uhc_pongs",
 		"udp_bogus_source_ip",
+		"udp_rx_truncated",
 		"udp_alien_message",
 		"udp_unprocessed_message",
 		"udp_tx_compressed",

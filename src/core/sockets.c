@@ -2621,6 +2621,9 @@ socket_udp_accept(struct gnutella_socket *s, bool *truncation)
 		}
 	}
 
+	if (truncated)
+		gnet_stats_inc_general(GNR_UDP_RX_TRUNCATED);
+
 	*truncation = truncated;
 	return r;
 }
