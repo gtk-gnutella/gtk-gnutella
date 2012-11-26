@@ -2272,7 +2272,7 @@ xmalloc_freelist_setup(void)
 		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 			struct xfreelist *fl = &xfreelist[i];
 
-			mutex_lock(&fl->lock);
+			mutex_lock_hidden(&fl->lock);
 
 			/* Sort with xqsort() to guarantee no memory allocation */
 
@@ -2282,7 +2282,7 @@ xmalloc_freelist_setup(void)
 				fl->sorted = fl->count;
 			}
 
-			mutex_unlock(&fl->lock);
+			mutex_unlock_hidden(&fl->lock);
 		}
 	}
 }
