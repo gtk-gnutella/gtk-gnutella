@@ -954,18 +954,48 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen)
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
 		g_critical("sdbm: \"%s\": found %zu-byte corrupted key "
-			"(%zu byte%s on page instead of %zu)",
-			sdbm_name(db), len, blen, 1 == blen ? "" : "s", bigkey_length(len));
-		return 0;
+			"(%zu byte%s on page instead of %zu) on page #%lu",
+			sdbm_name(db), len, blen, 1 == blen ? "" : "s",
+			bigkey_length(len), db->pagbno);
+		goto corrupted;
 	}
 
-	if (-1 == big_fetch(db, bigkey_blocks(bkey), len)) {
-		g_critical("sdbm: \"%s\": returning hash of 0, corrupting database",
-			sdbm_name(db));
-		return 0;
+	/*
+	 * This may not necessarily be a big key: we could be facing a corrupted
+	 * page and think it could be a big key whereas big key support is
+	 * not enabled.
+	 */
+
+	if G_UNLIKELY(NULL == db->datname) {
+		g_critical("sdbm: \"%s\": found a big key on page #%lu, "
+			"but support is disabled",
+			sdbm_name(db), db->pagbno);
+		goto plain;
 	}
+
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), len))
+		goto corrupted;
 
 	return sdbm_hash(db->big->scratch, len);
+
+corrupted:
+	g_critical("sdbm: \"%s\": unreadable %zu-byte big key, "
+		"hashing its %zu-byte data on page #%lu",
+		sdbm_name(db), len, blen, db->pagbno);
+
+	/* FALL THROUGH */
+
+plain:
+	db->bad_bigkeys++;
+
+	/*
+	 * This is wrong of course, but the only time we need to hash the key
+	 * again is during a page split.  Since we can't access the key data,
+	 * better return a deterministic value, which is not the key hash, but
+	 * which will random enough to let the page split occur.
+	 */
+
+	return sdbm_hash(bkey, blen);
 }
 
 /**

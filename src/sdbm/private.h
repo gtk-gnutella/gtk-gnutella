@@ -54,6 +54,9 @@ struct DBM {
 	ulong spl_corrupt;	/* stats: number of split unfixed corruptions */
 	ulong bad_pages;	/* stats: number of corrupted pages zero-ed */
 	ulong removed_keys;	/* stats: number of keys removed forcefully */
+#ifdef BIGDATA
+	ulong bad_bigkeys;	/* stats: number of bad big keys we could not hash */
+#endif
 #if defined(LRU) || defined(BIGDATA)
 	uint8 is_volatile;			/* whether consistency of database matters */
 #endif

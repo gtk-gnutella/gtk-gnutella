@@ -431,6 +431,12 @@ log_sdbm_warnings(DBM *db)
 		g_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
 			sdbm_name(db), db->spl_corrupt, 1 == db->spl_corrupt ? "" : "s");
 	}
+#ifdef BIGDATA
+	if (db->bad_bigkeys) {
+		g_warning("sdbm: \"%s\" encountered %lu bad big key%s",
+			sdbm_name(db), db->bad_bigkeys, 1 == db->bad_bigkeys ? "" : "s");
+	}
+#endif
 }
 
 /**
