@@ -38,11 +38,11 @@
 #include "debug.h"
 #include "fd.h"
 #include "file.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"			/* For s_carp() */
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
+#include "str.h"
 #include "timestamp.h"
 #include "tm.h"
 
@@ -695,6 +695,33 @@ file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
 		*lenptr = p - line + ('\0' == *p ? 0 : 1);
 
 	return TRUE;
+}
+
+/**
+ * Convert open() flags to string, for debugging and logging purposes.
+ *
+ * @param flags		open() flags value
+ *
+ * @return pointer to static string.
+ */
+const char *
+file_oflags_to_string(int flags)
+{
+	static char buf[64];
+
+	/* We assume there will be at least one of O_RDWR, O_RDONLY or O_WRONLY */
+
+	str_bprintf(buf, sizeof buf, "%s%s%s%s%s",
+		(flags & O_RDWR) ? "O_RDWR"
+			: (flags & O_WRONLY) ? "O_WRONLY"
+			: (flags & O_RDONLY) ? "O_RDONLY"
+			: (0 == O_RDONLY) ? "O_RDONLY" : "",
+		(flags & O_APPEND)	? " | O_APPEND" : "",
+		(flags & O_CREAT)	? " | O_CREAT" : "",
+		(flags & O_TRUNC)	? " | O_TRUNC" : "",
+		(flags & O_EXCL)	? " | O_EXCL" : "");
+
+	return buf;
 }
 
 /* vi: set ts=4: */

@@ -64,6 +64,7 @@ bool file_config_close(FILE *out, const file_path_t *fv);
 
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
+const char *file_oflags_to_string(int flags);
 
 int file_open(const char *path, int flags, int mode);
 int file_absolute_open(const char *path, int flags, int mode);
