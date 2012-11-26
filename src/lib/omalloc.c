@@ -595,10 +595,12 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * to funnel all the core allocation decisions to avoid extra allocations.
 	 *
 	 * This is the sole entry point for all omalloc()-based operations since
-	 * there is no reallocation nor freeing.
+	 * there is no reallocation nor freeing.  We use hidden spinlocks because
+	 * we do not hold the lock outside of this file so there is little to
+	 * gain into tracking them.
 	 */
 
-	spinlock(&omalloc_slk);
+	spinlock_hidden(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.objects_rw++;
@@ -618,7 +620,14 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 
 	/*
 	 * Request new "core" memory.
+	 *
+	 * We need to relinquish the spinlock because the VMM layer can recurse
+	 * to omalloc() through lock recording in the thread-private structures.
+	 * It's OK since we're not in a critical section at this stage and do not
+	 * need to hold the lock.
 	 */
+
+	spinunlock_hidden(&omalloc_slk);
 
 	p = vmm_core_alloc(size);
 	allocated = round_pagesize(size);
@@ -633,6 +642,13 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			count, OMALLOC_RW == mode ? "read-write" : "read-only",
 			1 == count ? "" : "s");
 	}
+
+	/*
+	 * Now that we need to possibly manipulate omalloc() internal chunk list,
+	 * re-grab the lock.
+	 */
+
+	spinlock_hidden(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.pages_rw += allocated / omalloc_pagesize;
@@ -696,7 +712,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 done:
-	spinunlock(&omalloc_slk);
+	spinunlock_hidden(&omalloc_slk);
 
 	if (init != NULL)
 		memcpy(p, init, size);
