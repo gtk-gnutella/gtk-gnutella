@@ -43,7 +43,7 @@ bool big_shrink(DBM *);
 bool big_clear(DBM *);
 bool big_close(DBM *);
 int big_reopen(DBM *);
-size_t big_check_end(DBM *);
+size_t big_check_end(DBM *, bool);
 bool bigkey_put(DBM *, char *, size_t, const char *, size_t);
 bool bigval_put(DBM *, char *, size_t, const char *, size_t);
 bool bigkey_free(DBM *, const char *, size_t);

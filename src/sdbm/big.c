@@ -415,11 +415,14 @@ fetch_bitbuf(DBM *db, long num)
  * End bitmap allocation checks that have been started by the usage of one
  * of the bigkey_mark_used() and bigval_mark_used() routines.
  *
+ * @param db		the database on which we iterated to check keys
+ * @param completed	whether we completed the iteration
+ *
  * @return the amount of corrections brought to the bitmap, 0 meaning
  * everything was consistent.
  */
 size_t
-big_check_end(DBM *db)
+big_check_end(DBM *db, bool completed)
 {
 	DBMBIG *dbg = db->big;
 	long i;
@@ -430,6 +433,15 @@ big_check_end(DBM *db)
 
 	if (NULL == dbg->bitcheck)
 		return 0;
+
+	/*
+	 * If we did not traverse the whole database, we cannot adjust the bitmap
+	 * because we did not get an opportunity to see all the blocks potentially
+	 * referred-to by keys or values.
+	 */
+
+	if (!completed)
+		goto incomplete;		/* Avoid extra indentation of loop below */
 
 	for (i = 0; i < dbg->bitmaps; i++) {
 		if (!fetch_bitbuf(db, i)) {
@@ -459,6 +471,7 @@ big_check_end(DBM *db)
 		}
 	}
 
+incomplete:
 	HFREE_NULL(dbg->bitcheck);
 
 	return adjustments;

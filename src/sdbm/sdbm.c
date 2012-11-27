@@ -1261,13 +1261,13 @@ aborted:
 }
 
 static datum
-iteration_done(DBM *db)
+iteration_done(DBM *db, bool completed)
 {
 	g_assert(db != NULL);
 
 #ifdef BIGDATA
 	if (db->flags & DBM_KEYCHECK) {
-		size_t adj = big_check_end(db);
+		size_t adj = big_check_end(db, completed);
 
 		if (adj != 0) {
 			g_warning("sdbm: \"%s\": database may have lost entries",
@@ -1290,7 +1290,7 @@ sdbm_firstkey(DBM *db)
 {
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return iteration_done(db);
+		return iteration_done(db, FALSE);
 	}
 	sdbm_check(db);
 
@@ -1325,7 +1325,7 @@ sdbm_firstkey(DBM *db)
 #endif	/* LRU */
 
 	if G_UNLIKELY(db->pagtail < 0)
-		return iteration_done(db);
+		return iteration_done(db, FALSE);
 
 	/*
 	 * Start at page 0, skipping any page we can't read.
@@ -1415,7 +1415,7 @@ sdbm_endkey(DBM *db)
 	 * from within iteration_done().
 	 */
 
-	(void) iteration_done(db);
+	(void) iteration_done(db, FALSE);		/* Iteration was interrupted */
 }
 
 /**
@@ -1666,7 +1666,7 @@ getnext(DBM *db)
 			validpage(db, db->blkptr);
 	}
 
-	return iteration_done(db);
+	return iteration_done(db, TRUE);	/* Iteration completely performed */
 }
 
 /**
