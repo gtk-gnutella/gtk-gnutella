@@ -437,6 +437,34 @@ getnkey(DBM *db, char *pag, int num)
 	return key;
 }
 
+#ifdef BIGDATA
+/**
+ * Reclaim the blocks used by big key/values at position i on the page.
+ *
+ * @return TRUE if OK.
+ */
+static bool
+delipair_big(DBM *db, char *pag, int i)
+{
+	unsigned short *ino = (unsigned short *) pag;
+	unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
+	unsigned koff = offset(ino[i]);
+	unsigned voff = offset(ino[i+1]);
+	bool status = TRUE;
+
+	g_assert(0x1 == (i & 0x1));		/* Odd position in page */
+
+	/* Free space used by large keys and values */
+
+	if (is_big(ino[i]) && !bigkey_free(db, pag + koff, end - koff))
+		status = FALSE;
+	if (is_big(ino[i+1]) && !bigval_free(db, pag + voff, koff - voff))
+		status = FALSE;
+
+	return status;
+}
+#endif	/* BIGDATA */
+
 /**
  * Delete pair from the page whose key starts at position i.
  *
@@ -447,6 +475,7 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 {
 	int n;
 	unsigned short *ino = (unsigned short *) pag;
+	bool status = TRUE;
 
 	n = ino[0];
 
@@ -455,6 +484,13 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	if G_UNLIKELY(0 == n || i >= n || !(i & 0x1))
 		return FALSE;
 
+#ifdef BIGDATA
+	if (free_bigdata)
+		status = delipair_big(db, pag, i);
+#else
+	(void) db;		/* Unused parameter unless BIGDATA */
+#endif
+
 	/*
 	 * found the key. if it is the last entry
 	 * [i.e. i == n - 1] we just adjust the entry count.
@@ -462,23 +498,6 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	 * shift offsets onto deleted offsets, and adjust them.
 	 * [note: 0 < i < n]
 	 */
-
-#ifdef BIGDATA
-	if (free_bigdata) {
-		unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
-		unsigned koff = offset(ino[i]);
-		unsigned voff = offset(ino[i+1]);
-
-		/* Free space used by large keys and values */
-
-		if (is_big(ino[i]) && !bigkey_free(db, pag + koff, end - koff))
-			return FALSE;
-		if (is_big(ino[i+1]) && !bigval_free(db, pag + voff, koff - voff))
-			return FALSE;
-	}
-#else
-	(void) db;		/* Unused parameter unless BIGDATA */
-#endif
 
 	if (i < n - 1) {
 		int m;
@@ -530,7 +549,7 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	}
 	ino[0] -= 2;
 
-	return TRUE;
+	return status;
 }
 
 /**
