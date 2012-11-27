@@ -157,6 +157,7 @@
 #define s_writev mingw_s_writev
 #define s_readv mingw_s_readv
 
+#define gethostname mingw_gethostname
 #define getaddrinfo mingw_getaddrinfo
 #define freeaddrinfo mingw_freeaddrinfo
 
@@ -494,6 +495,7 @@ const char *dlerror(void);
 int mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout);
 
+int mingw_gethostname(char *name, size_t len);
 int mingw_getaddrinfo(const char *node, const char *service,
 		const struct addrinfo *hints, struct addrinfo **res);
 void mingw_freeaddrinfo(struct addrinfo *res);

@@ -126,6 +126,7 @@
 #undef readdir
 #undef closedir
 
+#undef gethostname
 #undef getaddrinfo
 #undef freeaddrinfo
 
@@ -1633,6 +1634,22 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 		errno = mingw_wsa_last_error();
 
 	return res;
+}
+
+int
+mingw_gethostname(char *name, size_t len)
+{
+	int result;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	result = gethostname(name, len);
+
+	if (result != 0)
+		errno = mingw_wsa_last_error();
+	return result;
 }
 
 int
