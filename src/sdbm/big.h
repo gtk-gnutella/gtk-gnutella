@@ -31,7 +31,7 @@ typedef struct DBMBIG DBMBIG;
 size_t bigkey_length(size_t);
 size_t bigval_length(size_t);
 bool bigkey_eq(DBM *, const char *, size_t, const char *, size_t);
-long bigkey_hash(DBM *, const char *, size_t);
+long bigkey_hash(DBM *, const char *, size_t, bool *);
 char *bigkey_get(DBM *, const char *, size_t);
 char *bigval_get(DBM *, const char *, size_t);
 struct DBMBIG *big_alloc(void);

@@ -957,11 +957,12 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
  * @param db		the sdbm database
  * @param bkey		start of big key in the page
  * @param blen		length of big key in the page
+ * @param failed	set to TRUE on failure
  *
- * @return hashed value.
+ * @return hashed value, 0 on failure with `failed' set to TRUE.
  */
 long
-bigkey_hash(DBM *db, const char *bkey, size_t blen)
+bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 {
 	size_t len = big_length(bkey);
 
@@ -989,6 +990,7 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen)
 	if (-1 == big_fetch(db, bigkey_blocks(bkey), len))
 		goto corrupted;
 
+	*failed = FALSE;
 	return sdbm_hash(db->big->scratch, len);
 
 corrupted:
@@ -1004,11 +1006,12 @@ plain:
 	/*
 	 * This is wrong of course, but the only time we need to hash the key
 	 * again is during a page split.  Since we can't access the key data,
-	 * better return a deterministic value, which is not the key hash, but
-	 * which will random enough to let the page split occur.
+	 * better return a deterministic value, which is not the key hash,
+	 * and signal the error.
 	 */
 
-	return sdbm_hash(bkey, blen);
+	*failed = TRUE;
+	return 0;
 }
 
 /**
