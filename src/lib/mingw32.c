@@ -1621,11 +1621,17 @@ int
 mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout)
 {
-	int res = select(nfds, readfds, writefds, exceptfds, timeout);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = select(nfds, readfds, writefds, exceptfds, timeout);
 	
 	if (res < 0)
 		errno = mingw_wsa_last_error();
-		
+
 	return res;
 }
 
@@ -1633,7 +1639,14 @@ int
 mingw_getaddrinfo(const char *node, const char *service,
 	const struct addrinfo *hints, struct addrinfo **res)
 {
-	int result = getaddrinfo(node, service, hints, res);
+	int result;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	result = getaddrinfo(node, service, hints, res);
+
 	if (result != 0)
 		errno = mingw_wsa_last_error();
 	return result;
