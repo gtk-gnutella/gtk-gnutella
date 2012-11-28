@@ -3165,11 +3165,11 @@ http_got_header(http_async_t *ha, header_t *header)
 
 	/*
 	 * Transport encoding: the dechunking layer is right above the
-	 * link level and removed chunk marks, providing a stream of bytes
+	 * link level and removes chunk marks, providing a stream of bytes
 	 * to upper level.
 	 */
 
-	buf = header_get(header, "Transport-Encoding");
+	buf = header_get(header, "Transfer-Encoding");
 	if (buf != NULL && 0 == strcmp(buf, "chunked")) {
 		struct rx_chunk_args args;
 
