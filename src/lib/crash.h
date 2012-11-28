@@ -190,6 +190,7 @@ struct assertion_data;
 
 void crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path);
+void crash_exited(uint32 pid);
 void crash_close(void);
 bool crash_is_closed(void);
 void crash_ctl(enum crash_alter_mode mode, int flags);

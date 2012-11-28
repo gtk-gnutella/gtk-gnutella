@@ -511,6 +511,7 @@ extern const gboolean gnet_property_variable_clean_shutdown;
 extern const gboolean gnet_property_variable_clean_restart;
 extern const guint32  gnet_property_variable_dht_keys_debug;
 extern const guint32  gnet_property_variable_dht_values_debug;
+extern const guint32  gnet_property_variable_pid;
 
 
 prop_set_t *gnet_prop_init(void);

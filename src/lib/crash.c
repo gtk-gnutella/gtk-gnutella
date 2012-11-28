@@ -2179,6 +2179,59 @@ crash_ctl(enum crash_alter_mode mode, int flags)
 }
 
 /**
+ * Invoked when process is restarted after a crash and we are able to figure
+ * out the previous PID of the (now crashed) process from some context.
+ *
+ * The purpose is to rename the old core file, if present and if the current
+ * process is configured to dump a core during crashes.
+ *
+ * @param pid		PID of the previous process
+ */
+G_GNUC_COLD void
+crash_exited(uint32 pid)
+{
+	str_t *cfile;
+
+	/*
+	 * If there is a core file in the crash directory and the process is
+	 * configured to dump cores, then rename the old core file in case
+	 * we crash again.
+	 */
+
+	if (NULL == vars) {
+		s_minicarp("%s(): no crash_init() yet!", G_STRFUNC);
+		return;
+	}
+
+	if (!vars->dumps_core)
+		return;
+
+	/*
+	 * We're restarting: we can allocate memory and use high-level functions.
+	 */
+
+	cfile = str_new(MAX_PATH_LEN);
+	str_printf(cfile, "%s%ccore", vars->crashdir, G_DIR_SEPARATOR);
+
+	if (file_exists(str_2c(cfile))) {
+		str_t *pfile = str_clone(cfile);
+
+		str_catf(pfile, ".%u", pid);
+
+		if (-1 == rename(str_2c(cfile), str_2c(pfile))) {
+			s_miniwarn("cannot rename old core file %s: %m",
+				str_2c(cfile));
+		} else {
+			s_miniinfo("previous core file renamed as %s", str_2c(pfile));
+		}
+
+		str_destroy_null(&pfile);
+	}
+
+	str_destroy_null(&cfile);
+}
+
+/**
  * Installs a simple crash handler.
  * 
  * @param argv0		the original argv[0] from main().

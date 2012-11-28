@@ -740,11 +740,14 @@ settings_init(void)
 	if (GNET_PROPERTY(clean_shutdown)) {
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, TRUE);
 	} else {
-		g_warning("restarting after abnormal termination");
+		uint32 pid = GNET_PROPERTY(pid);
+		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		crash_exited(pid);
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
+	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
 
 	/*
 	 * Emit configuration / system information, but only if debugging.

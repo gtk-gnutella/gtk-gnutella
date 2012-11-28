@@ -498,6 +498,7 @@ typedef enum {
     PROP_CLEAN_RESTART,
     PROP_DHT_KEYS_DEBUG,
     PROP_DHT_VALUES_DEBUG,
+    PROP_PID,
     GNET_PROPERTY_END
 } gnet_property_t;
 
