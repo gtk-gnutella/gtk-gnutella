@@ -1122,10 +1122,6 @@ roots_init(void)
 	roots_cq = cq_main_submake("roots", ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rootdata_base);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_contact_base);
-
 	db_rootdata = dbstore_open(db_rootdata_what, settings_dht_db_dir(),
 		db_rootdata_base, root_kv, root_packing,
 		ROOTKEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,

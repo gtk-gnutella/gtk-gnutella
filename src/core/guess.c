@@ -4158,9 +4158,6 @@ guess_init(void)
 
 	g_assert(NULL == guess_qk_prune_ev);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_gnet_db_dir(), db_qkdata_base);
-
 	db_qkdata = dbstore_open(db_qkdata_what, settings_gnet_db_dir(),
 		db_qkdata_base, kv, packing, GUESS_QK_DB_CACHE_SIZE,
 		gnet_host_hash, gnet_host_eq, FALSE);

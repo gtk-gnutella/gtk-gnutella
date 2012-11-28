@@ -928,9 +928,6 @@ publisher_init(void)
 	publisher_sha1 = hikset_create(
 		offsetof(struct publisher_entry, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
-
 	db_pubdata = dbstore_open(db_pubdata_what, settings_dht_db_dir(),
 		db_pubdata_base, kv, packing, PUBLISH_DB_CACHE_SIZE,
 		sha1_hash, sha1_eq, GNET_PROPERTY(dht_storage_in_memory));

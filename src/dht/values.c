@@ -2016,11 +2016,6 @@ values_init(void)
 	g_assert(NULL == expired);
 	g_assert(NULL == values_expire_ev);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_valbase);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rawbase);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_expbase);
-
 	db_valuedata = dbstore_open(db_valwhat, settings_dht_db_dir(),
 		db_valbase, value_kv, value_packing, VALUES_DB_CACHE_SIZE,
 		uint64_mem_hash, uint64_mem_eq,
