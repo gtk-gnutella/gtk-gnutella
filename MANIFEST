@@ -641,6 +641,7 @@ src/lib/dl_util.h
 src/lib/dualhash.c
 src/lib/dualhash.h
 src/lib/dump_options.h
+src/lib/eclist.h
 src/lib/elist.c
 src/lib/elist.h
 src/lib/endian.h
