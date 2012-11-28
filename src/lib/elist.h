@@ -274,6 +274,9 @@ void elist_rotate_left(elist_t *list);
 void elist_rotate_right(elist_t *list);
 void *elist_shift(elist_t *list);
 
+#define ELIST_FOREACH(list, l) \
+	for ((l) = elist_first(list); NULL != (l); (l) = elist_next(l))
+
 #endif /* _elist_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

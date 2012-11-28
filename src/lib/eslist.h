@@ -228,6 +228,9 @@ void eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
 void eslist_shuffle(eslist_t *list);
 
+#define ESLIST_FOREACH(slist, l) \
+	for ((l) = eslist_first(slist); NULL != (l); (l) = eslist_next(l))
+
 #endif /* _eslist_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
