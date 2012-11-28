@@ -5911,6 +5911,9 @@ fi_get_ranges(gnet_fi_t fih)
     return g_slist_reverse(ranges);
 }
 
+/**
+ * Frees list of http_range_t items.
+ */
 void
 fi_free_ranges(GSList *ranges)
 {
@@ -5991,7 +5994,16 @@ file_info_add_source(fileinfo_t *fi, struct download *d)
 	}
 
 	src_event_trigger(d, EV_SRC_ADDED);
-	fi_update_seen_on_network(d->src_handle);
+
+	/*
+	 * Source was added, but we do not need to call fi_update_seen_on_network().
+	 * This will be done through a fi_src_ranges_changed() by the download
+	 * code when it will learn about new ranges for the file or when the first
+	 * HTTP reply will be processed after a connection is established.
+	 *
+	 * Until then, the source will not be taken into consideration for the
+	 * computation of the seen chunk since it lacks the DL_F_REPLIED mark.
+	 */
 }
 
 /**
@@ -6018,14 +6030,6 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 
 	src_event_trigger(d, EV_SRC_REMOVED);
 	fi->sources = g_slist_remove(fi->sources, d);
-
-	/*
-	 * If we cloned this download, then do not update the seen parts: it is
-	 * when the cloned download will be removed that we will need to update.
-	 */
-
-	if (!d->src_cloned)
-		fi_update_seen_on_network(d->src_handle);
 
 	idtable_free_id(src_handle_map, d->src_handle);
 	d->src_handle_valid = FALSE;
@@ -6079,9 +6083,6 @@ file_info_cloned_source(fileinfo_t *fi, download_t *d, download_t *cd)
 	g_assert(fi->refcount > 0);
 	g_assert(fi->refcount >= fi->lifecount);
 	g_assert(fi->hashed);
-	g_assert(!d->src_cloned);
-
-	d->src_cloned = TRUE;		/* This download was cloned */
 
 	cd->src_handle = idtable_new_id(src_handle_map, cd);
 	fi->sources = g_slist_prepend(fi->sources, cd);
@@ -7149,7 +7150,7 @@ void
 file_info_init_post(void)
 {
 	/*
-	 * The listener we set up here is set up in download_init, but that must
+	 * The listener we set up here is set up in download_init(), but that must
 	 * be called after file_info_init() to subscribe to src events on available
 	 * range updates
 	 */
