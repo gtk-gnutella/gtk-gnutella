@@ -217,6 +217,8 @@ void *eslist_shift(eslist_t *list);
 void eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk);
 void eslist_insert_after(eslist_t *list, void *sibling, void *data);
 void eslist_reverse(eslist_t *list);
+void eslist_remove(eslist_t *list, void *data);
+void *eslist_remove_after(eslist_t *list, void *sibling);
 void *eslist_find(const eslist_t *list, const void *key, cmp_fn_t cmp);
 void eslist_sort_with_data(eslist_t *list, cmp_data_fn_t cmp, void *data);
 void eslist_sort(eslist_t *list, cmp_fn_t cmp);

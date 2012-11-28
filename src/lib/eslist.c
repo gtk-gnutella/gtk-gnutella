@@ -234,19 +234,24 @@ eslist_prepend(eslist_t *list, void *data)
 }
 
 static inline void
-eslist_remove_head(eslist_t *list)
+eslist_link_remove_after_internal(eslist_t *list, slink_t *prevlk, slink_t *lk)
 {
-	slink_t *lk;
-
 	g_assert(size_is_positive(list->count));
 	eslist_invariant(list);
 
-	lk = list->head;
 	if G_UNLIKELY(list->tail == lk)
-		list->tail = NULL;
-	list->head = lk->next;
+		list->tail = prevlk;
+
+	if (NULL == prevlk) {
+		/* Removing the head */
+		g_assert(list->head == lk);
+		list->head = lk->next;
+	} else {
+		prevlk->next = lk->next;
+	}
+
 	lk->next = NULL;
-	list->count--;
+	list->count--
 
 	safety_assert(eslist_invariant(list));
 	safety_assert(eslist_length(list->head) == list->count);
@@ -266,7 +271,7 @@ eslist_shift(eslist_t *list)
 		item = NULL;
 	} else {
 		item = ptr_add_offset(list->head, -list->offset);
-		eslist_remove_head(list);
+		eslist_link_remove_after_internal(list, NULL, list->head);
 	}
 
 	return item;
@@ -322,6 +327,58 @@ eslist_insert_after(eslist_t *list, void *sibling, void *data)
 	lk = ptr_add_offset(data, list->offset);
 
 	eslist_link_insert_after_internal(list, siblk, lk);
+}
+
+/**
+ * Remove data item from list.
+ *
+ * This is usually very inefficient as the list needs to be traversed
+ * to find the previous item.
+ */
+void
+eslist_remove(eslist_t *list, void *data)
+{
+	slink_t *lk, *prevlk, *datalk;
+
+	eslist_check(list);
+	g_assert(data != NULL);
+
+	datalk = ptr_add_offset(data, list->offset);
+	prevlk = NULL;
+
+	for (lk = list->head; lk != NULL; prevlk = lk, lk = lk->next) {
+		if (datalk == lk) {
+			eslist_link_remove_after_internal(list, prevlk, lk);
+			return;
+		}
+	}
+
+	g_assert_not_reached();		/* Item not found in list! */
+}
+
+/**
+ * Remove data item following sibling, if any.
+ *
+ * @return the item removed, NULL if there was nother after sibling.
+ */
+void *
+eslist_remove_after(eslist_t *list, void *sibling)
+{
+	slink_t *lk;
+	void *data;
+
+	eslist_check(list);
+	g_assert(sibling != NULL);
+
+	lk = ptr_add_offset(sibling, list->offset);
+
+	if G_UNLIKELY(NULL == lk->next)
+		return NULL;		/* Nothing after, not an error */
+
+	data = ptr_add_offset(lk->next, -list->offset);
+	eslist_link_remove_after_internal(list, lk, lk->next);
+
+	return data;
 }
 
 /**
