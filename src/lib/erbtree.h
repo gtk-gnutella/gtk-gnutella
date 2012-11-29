@@ -101,6 +101,9 @@ void erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new);
 void erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data);
 size_t erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data);
 
+#define ERBTREE_FOREACH(tree, rn) \
+	for ((rn) = erbtree_first(tree); (rn) != NULL; (rn) = erbtree_next(rn))
+
 #endif /* _erbtree_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
