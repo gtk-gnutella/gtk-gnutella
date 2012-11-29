@@ -42,7 +42,8 @@
  * node pointer to be given to the erbtree_init() routine.
  *
  * Additions were made to introduce generic iterators that handle all the
- * items through callbacks: erbtree_foreach() and erbtree_foreach_remove().
+ * items through callbacks: erbtree_foreach() and erbtree_foreach_remove() plus
+ * efficient tree disposal erbtree_discard() and erbtree_discard_with_data().
  *
  * Inspired by the README of libtree:
  *
@@ -924,6 +925,101 @@ erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 }
 
 /**
+ * Recursively free items in the tree via application of given free routine.
+ */
+static void
+erbtree_discard_recursive(erbtree_t *tree, rbnode_t *node, free_fn_t fcb)
+{
+	void *item;
+
+	if (node->left != NULL)
+		erbtree_discard_recursive(tree, node->left, fcb);
+	if (node->right != NULL)
+		erbtree_discard_recursive(tree, node->right, fcb);
+
+	item = ptr_add_offset(node, -tree->offset);
+	(*fcb)(item);
+}
+
+
+/**
+ * Recursively free items in the tree via application of given free routine.
+ */
+static void
+erbtree_discard_recursive_data(erbtree_t *tree, rbnode_t *node,
+	free_data_fn_t fcb, void *data)
+{
+	void *item;
+
+	if (node->left != NULL)
+		erbtree_discard_recursive_data(tree, node->left, fcb, data);
+	if (node->right != NULL)
+		erbtree_discard_recursive_data(tree, node->right, fcb, data);
+
+	item = ptr_add_offset(node, -tree->offset);
+	(*fcb)(item, data);
+}
+
+/**
+ * Reset tree to the empty state.
+ */
+static inline void
+erbtree_reset(erbtree_t *tree)
+{
+	tree->root = NULL;
+	tree->first = NULL;
+	tree->last = NULL;
+	tree->count = 0;
+}
+
+/**
+ * Free all items in the tree with supplied callback routine.
+ *
+ * This is more efficient than running erbtree_foreach_remove() on the
+ * tree because there is no need to rebalance the tree after each item
+ * removal.
+ *
+ * @param tree		the tree where we want to free all the items
+ * @param fcb		free routine invoked on each item
+ *
+ * Upon return, the tree is completely empty.
+ */
+void
+erbtree_discard(erbtree_t *tree, free_fn_t fcb)
+{
+	erbtree_check(tree);
+
+	if (tree->root != NULL)
+		erbtree_discard_recursive(tree, tree->root, fcb);
+
+	erbtree_reset(tree);
+}
+
+/**
+ * Free all items in the tree with supplied callback routine.
+ *
+ * This is more efficient than running erbtree_foreach_remove() on the
+ * tree because there is no need to rebalance the tree after each item
+ * removal.
+ *
+ * @param tree		the tree where we want to free all the items
+ * @param fcb		free routine invoked on each item
+ * @param data		allocation context passed to the free routine
+ *
+ * Upon return, the tree is completely empty.
+ */
+void
+erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data)
+{
+	erbtree_check(tree);
+
+	if (tree->root != NULL)
+		erbtree_discard_recursive_data(tree, tree->root, fcb, data);
+
+	erbtree_reset(tree);
+}
+
+/**
  * Initialize embedded tree.
  *
  * Assuming items in the tree are defined as:
@@ -952,12 +1048,9 @@ erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset)
 	g_assert(size_is_non_negative(offset));
 
 	tree->magic = ERBTREE_MAGIC;
-	tree->root = NULL;
 	tree->cmp = cmp;
-	tree->first = NULL;
-	tree->last = NULL;
-	tree->count = 0;
 	tree->offset = offset;
+	erbtree_reset(tree);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -100,6 +100,8 @@ void erbtree_remove(erbtree_t *tree, rbnode_t *node);
 void erbtree_replace(erbtree_t *tree, rbnode_t *old, rbnode_t *new);
 void erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data);
 size_t erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data);
+void erbtree_discard(erbtree_t *tree, free_fn_t fcb);
+void erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data);
 
 #define ERBTREE_FOREACH(tree, rn) \
 	for ((rn) = erbtree_first(tree); (rn) != NULL; (rn) = erbtree_next(rn))
