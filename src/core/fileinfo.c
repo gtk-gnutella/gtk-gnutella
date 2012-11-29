@@ -6849,7 +6849,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			download_is_active(src)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				g_debug("    %s:%d replied (%x, %x), ",
+				g_debug("- %s:%d replied (%x, %x), ",
 					host_addr_to_string(src->server->key->addr),
 					src->server->key->port, src->flags, src->status);
 
@@ -6859,7 +6859,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 */
 
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					g_debug("  whole file is now available");
+					g_debug("   whole file is now available");
 
 				new_r = fi_range_for_complete_file(fi->size);
 				complete = TRUE;
@@ -6869,7 +6869,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5) {
-					g_debug("  ranges %s available",
+					g_debug("   ranges available: %s",
 						http_range_to_string(src->ranges));
 				}
 				new_r = http_range_merge(r, src->ranges);
@@ -6891,7 +6891,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	fi->seen_on_network = r;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("    final ranges: %s", http_range_to_string(r));
+		g_debug("=> final ranges: %s", http_range_to_string(r));
 
 	/*
 	 * Remove the old list and free its range elements
