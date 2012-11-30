@@ -893,7 +893,7 @@ size_t
 erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 {
 	rbnode_t *rn, *next;
-	size_t removed = 0;
+	size_t removed = 0, visited = 0;
 
 	erbtree_check(tree);
 
@@ -912,6 +912,7 @@ erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 		 */
 
 		node = *rn;					/* Struct copy */
+		visited++;
 
 		if ((*cbr)(key, data)) {
 			/* Tweak tree to remove all references to freed address ``rn'' */
@@ -920,6 +921,18 @@ erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 			removed++;
 		}
 	}
+
+	/*
+	 * Due to rebalancing of tree during removals, it might be possible we do
+	 * not visit all the items due to a traversal bug, so only do a soft assert
+	 * to get a loud trace when that happens.  This will not detect duplicate
+	 * node visits negating unvisited nodes, but we're not asserting correctness
+	 * here, just trying to spot obvious misbehaviour.
+	 */
+
+	g_soft_assert_log(tree->count + removed == visited,
+		"%s(): count=%zu, visited=%zu (removed=%zu)",
+		G_STRFUNC, tree->count, visited, removed);
 
 	return removed;
 }
