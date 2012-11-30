@@ -45,18 +45,19 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
 #include "lib/base16.h"
 #include "lib/getdate.h"
 #include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/omalloc.h"
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/str.h"			/* For str_bprintf()  and str_bcatf() */
-#include "lib/tm.h"
 #include "lib/timestamp.h"
+#include "lib/tm.h"
 #include "lib/utf8.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define SECS_PER_DAY	86400
@@ -839,7 +840,7 @@ version_init(void)
 {
 	time_t now;
 
-	version_string = atom_str_get(version_build_string());
+	version_string = ostrdup_readonly(version_build_string());
 	now = tm_time();
 
 	{
@@ -865,7 +866,7 @@ version_init(void)
 			product_get_name(), product_get_version(),
 			product_get_build_full(), product_get_date());
 
-		version_short_string = atom_str_get(buf);
+		version_short_string = ostrdup_readonly(buf);
 	}
 
 	last_rel_version = our_version;			/* struct copy */
@@ -1039,11 +1040,6 @@ version_string_dump(void)
 G_GNUC_COLD void
 version_close(void)
 {
-	atom_str_free(version_string);
-	version_string = NULL;
-	atom_str_free(version_short_string);
-	version_short_string = NULL;
-
 	if (version_cmp(&our_version, &last_rel_version) < 0)
 		g_warning("upgrade recommended: most recent released version seen: %s",
 			version_str(&last_rel_version));
