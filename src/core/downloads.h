@@ -146,6 +146,7 @@ void download_got_fw_node_info(const struct guid *guid,
 	host_addr_t addr, uint16 port, const char *fwinfo);
 
 const char *server_host_info(const struct dl_server *server);
+const char *download_status_to_string(const struct download *d);
 
 static inline const char *
 download_host_info(const struct download *d)

@@ -4464,7 +4464,7 @@ file_info_new_chunk_owner(const struct download *d,
 		 */
 
 		if (DL_CHUNK_BUSY != fc->status)
-				continue;
+			continue;
 
 		if (
 			(from >= fc->from && from < fc->to) ||
@@ -6794,7 +6794,7 @@ fi_range_for_complete_file(filesize_t size)
  * This function gets triggered by an event when new ranges information has
  * become available for a download source.
  *
- * We collect the set of currently available ranges in fi>seen_on_network.
+ * We collect the set of currently available ranges in fi->seen_on_network.
  * We fold in new ranges from a download source, and also remove sets of
  * ranges when a download source is no longer available.
  *
@@ -6819,12 +6819,14 @@ fi_update_seen_on_network(gnet_src_t srcid)
 
 	old_list = fi->seen_on_network;
 
-	/*
-	 * Look at all the download sources for this fileinfo and calculate the
-	 * overall ranges info for this file.
-	 */
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		g_debug("%s(): updating ranges for %s\n", G_STRFUNC, fi->pathname);
+
+	/*
+	 * Look at all the download sources for this fileinfo and calculate the
+	 * overall ranges info for this file, as determined by active sources
+	 * which replied to us recently -- we not not take into account all sources.
+	 */
 
 	for (
 		sl = fi->sources, complete = FALSE;
@@ -6849,9 +6851,10 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			download_is_active(src)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				g_debug("- %s:%d replied (%x, %x), ",
+				g_debug("- %s:%d replied (%s, flags=0x%x), ",
 					host_addr_to_string(src->server->key->addr),
-					src->server->key->port, src->flags, src->status);
+					src->server->key->port,
+					download_status_to_string(src), src->flags);
 
 			if (!sfi->use_swarming || !(src->flags & DL_F_PARTIAL)) {
 				/*

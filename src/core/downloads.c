@@ -293,10 +293,12 @@ download_is_running(const struct download *d)
 /**
  * Return download status string.
  */
-static const char *
-download_status_to_code_str(download_status_t status)
+const char *
+download_status_to_string(const download_t *d)
 {
-	switch (status) {
+	download_check(d);
+
+	switch (d->status) {
 	case GTA_DL_INVALID:			return "INVALID";
 	case GTA_DL_ACTIVE_QUEUED:		return "ACTIVE_QUEUED";
 	case GTA_DL_CONNECTING:			return "CONNECTING";
@@ -4982,7 +4984,7 @@ not_running:
 
 	if (GNET_PROPERTY(download_debug)) {
 		g_debug("re-queued download \"%s\" (%s) at %s: %s",
-			download_basename(d), download_status_to_code_str(d->status),
+			download_basename(d), download_status_to_string(d),
 			download_host_info(d), fmt ? d->error_str : "<no reason>");
 	}
 }
@@ -5369,7 +5371,7 @@ download_remove(struct download *d)
 			if (GNET_PROPERTY(download_debug)) {
 				g_carp("%s(): skipping \"%s\", status=%s",
 					G_STRFUNC, download_basename(d),
-					download_status_to_code_str(d->status));
+					download_status_to_string(d));
 			}
 			return FALSE;
 		default:
@@ -6503,7 +6505,7 @@ download_pick_another(const struct download *d)
 	if (other->list_idx == DL_LIST_RUNNING) {
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("%s(): stopping %s \"%s\" on %s",
-				G_STRFUNC, download_status_to_code_str(d->status),
+				G_STRFUNC, download_status_to_string(d),
 				download_basename(other), download_host_info(other));
 		}
 		download_stop(other, GTA_DL_TIMEOUT_WAIT, no_reason);
@@ -12868,8 +12870,8 @@ download_send_request(struct download *d)
 				goto fully_sent;
 		}
 
-		g_error("impossible state %d for HTTP pipelined request of \"%s\"",
-			dp->status, download_basename(d));
+		g_error("%s(): impossible state %d of HTTP pipelined "
+			"request for \"%s\"", G_STRFUNC, dp->status, download_basename(d));
 	} else {
 		req = &d->chunk;
 	}
