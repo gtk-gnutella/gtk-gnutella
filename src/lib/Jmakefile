@@ -169,6 +169,7 @@ LSRC = \
 	prop.c \
 	rand31.c \
 	random.c \
+	rbtree.c \
 	regex.c \
 	sectoken.c \
 	sequence.c \

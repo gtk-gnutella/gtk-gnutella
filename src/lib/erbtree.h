@@ -68,24 +68,50 @@ typedef struct rbnode {
 	struct rbnode *left, *right, *parent;
 } G_GNUC_ALIGNED(4) rbnode_t;
 
-enum erbtree_magic { ERBTREE_MAGIC = 0x6483afd6 };
+enum erbtree_magic {
+	ERBTREE_MAGIC		= 0x6483afd6,		/* bit 0 clear */
+	ERBTREE_EXT_MAGIC	= 0x6483afd7		/* bit 0 set */
+};
+
+#define ERBTREE_COMMON_ATTRIBUTES \
+	enum erbtree_magic magic; \
+	rbnode_t *root, *first, *last; \
+	union { \
+		cmp_fn_t cmp;		/* Item comparison routine */ \
+		cmp_data_fn_t dcmp;	/* Item comparison routine with data */ \
+	} u; \
+	size_t offset;		/* Offset of embedded node in the item structure */ \
+	size_t count;		/* Amount of items held in tree */
 
 /**
  * An embedded red-black tree is represented by this structure.
  */
 typedef struct erbtree {
-	enum erbtree_magic magic;
-	rbnode_t *root, *first, *last;
-	cmp_fn_t cmp;		/* Item comparison routine */
-	size_t offset;		/* Offset of embedded node in the item structure */
-	size_t count;		/* Amount of items held in tree */
+	ERBTREE_COMMON_ATTRIBUTES
 } erbtree_t;
+
+/**
+ * An extended embedded red-black tree is represented by this structure.
+ */
+typedef struct erbtree_ext {
+	ERBTREE_COMMON_ATTRIBUTES
+	void *data;			/* Additional data for comparison routine */
+} erbtree_ext_t;
+
+static inline void
+erbtree_check(const erbtree_t * const t)
+{
+	g_assert(t != NULL);
+	g_assert(ERBTREE_MAGIC == (t->magic & ~0x1));	/* bit 0 is a flag */
+}
 
 /**
  * Public interface.
  */
 
 void erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset);
+void erbtree_init_data(erbtree_ext_t *tree,
+	cmp_data_fn_t cmp, void *data, size_t offset);
 
 size_t erbtree_count(const erbtree_t *tree);
 rbnode_t *erbtree_first(const erbtree_t *tree);
@@ -102,6 +128,17 @@ void erbtree_foreach(erbtree_t *tree, data_fn_t cb, void *data);
 size_t erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data);
 void erbtree_discard(erbtree_t *tree, free_fn_t fcb);
 void erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data);
+
+/**
+ * Computes the data item address given the embedded node pointer.
+ */
+static inline void *
+erbtree_data(const erbtree_t *tree, rbnode_t *node)
+{
+	erbtree_check(tree);
+
+	return NULL == node ? NULL : ptr_add_offset(node, -tree->offset);
+}
 
 #define ERBTREE_FOREACH(tree, rn) \
 	for ((rn) = erbtree_first(tree); (rn) != NULL; (rn) = erbtree_next(rn))

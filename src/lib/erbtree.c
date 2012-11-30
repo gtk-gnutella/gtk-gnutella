@@ -42,8 +42,11 @@
  * node pointer to be given to the erbtree_init() routine.
  *
  * Additions were made to introduce generic iterators that handle all the
- * items through callbacks: erbtree_foreach() and erbtree_foreach_remove() plus
- * efficient tree disposal erbtree_discard() and erbtree_discard_with_data().
+ * items through callbacks: erbtree_foreach() and erbtree_foreach_remove(),
+ * efficient tree disposal erbtree_discard() and erbtree_discard_with_data()
+ * and extensions to have a comparison callback take one additional argument
+ * to suppply context (to allow implementation of red-black trees that can
+ * store arbitrary data not embedding the rbnode_t structure).
  *
  * Inspired by the README of libtree:
  *
@@ -213,11 +216,12 @@ enum rbcolor {
 
 #define RB_COLOR_MASK	3UL		/* Last 2 bits of parent pointer hold color */
 
-static inline void
-erbtree_check(const erbtree_t * const t)
+#define ERBTREE_E(x)	((erbtree_ext_t *) (x))
+
+static inline bool
+erbtree_is_extended(const erbtree_t * const t)
 {
-	g_assert(t != NULL);
-	g_assert(ERBTREE_MAGIC == t->magic);
+	return t->magic & 0x1;
 }
 
 static inline enum rbcolor
@@ -390,7 +394,7 @@ do_lookup(const erbtree_t *tree, const void *key,
 	while (node != NULL) {
 		int res;
 		const void *nbase = const_ptr_add_offset(node, -tree->offset);
-		res = (*tree->cmp)(nbase, key);
+		res = (*tree->u.cmp)(nbase, key);
 		if (0 == res)
 			return node;
 		*pparent = node;
@@ -402,6 +406,38 @@ do_lookup(const erbtree_t *tree, const void *key,
 
 	return NULL;
 }
+
+/**
+ * Lookup key in the (extended) tree.
+ *
+ * 'pparent' and 'is_left' are only used for insertions. Normally GCC
+ * will notice this and get rid of them for lookups.
+ */
+static inline rbnode_t *
+do_lookup_ext(const erbtree_ext_t *tree, const void *key,
+	rbnode_t **pparent, bool *is_left)
+{
+	rbnode_t *node = tree->root;
+
+	*pparent = NULL;
+	*is_left = FALSE;
+
+	while (node != NULL) {
+		int res;
+		const void *nbase = const_ptr_add_offset(node, -tree->offset);
+		res = (*tree->u.dcmp)(nbase, key, tree->data);
+		if (0 == res)
+			return node;
+		*pparent = node;
+		if ((*is_left = res > 0))
+			node = node->left;
+		else
+			node = node->right;
+	}
+
+	return NULL;
+}
+
 
 /*
  * Rotate operations (they preserve the binary search tree property,
@@ -473,7 +509,11 @@ erbtree_contains(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	return NULL != do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		return NULL != do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		return NULL != do_lookup(tree, key, &parent, &is_left);
+	}
 }
 
 /**
@@ -494,7 +534,12 @@ erbtree_lookup(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	rn = do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		rn = do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		rn = do_lookup(tree, key, &parent, &is_left);
+	}
+
 	return NULL == rn ? NULL : ptr_add_offset(rn, -tree->offset);
 }
 
@@ -541,7 +586,11 @@ erbtree_getnode(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	return do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		return do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		return do_lookup(tree, key, &parent, &is_left);
+	}
 }
 
 static void
@@ -570,7 +619,12 @@ erbtree_insert(erbtree_t *tree, rbnode_t *node)
 	g_assert(node != NULL);
 
 	kbase = const_ptr_add_offset(node, -tree->offset);
-	key = do_lookup(tree, kbase, &parent, &is_left);
+
+	if (erbtree_is_extended(tree)) {
+		key = do_lookup_ext(ERBTREE_E(tree), kbase, &parent, &is_left);
+	} else {
+		key = do_lookup(tree, kbase, &parent, &is_left);
+	}
 
 	if (key != NULL)
 		return ptr_add_offset(key, -tree->offset);
@@ -813,7 +867,12 @@ erbtree_cmp(erbtree_t *tree, rbnode_t *a, rbnode_t *b)
 	const void *p = const_ptr_add_offset(a, -tree->offset);
 	const void *q = const_ptr_add_offset(b, -tree->offset);
 
-	return (*tree->cmp)(p, q);
+	if (erbtree_is_extended(tree)) {
+		erbtree_ext_t *etree = ERBTREE_E(tree);
+		return (*etree->u.dcmp)(p, q, etree->data);
+	} else {
+		return (*tree->u.cmp)(p, q);
+	}
 }
 
 static inline void
@@ -954,9 +1013,9 @@ erbtree_discard_recursive(erbtree_t *tree, rbnode_t *node, free_fn_t fcb)
 	(*fcb)(item);
 }
 
-
 /**
- * Recursively free items in the tree via application of given free routine.
+ * Recursively free items in the tree via application of given free routine
+ * which takes an additional context argument.
  */
 static void
 erbtree_discard_recursive_data(erbtree_t *tree, rbnode_t *node,
@@ -1061,9 +1120,34 @@ erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset)
 	g_assert(size_is_non_negative(offset));
 
 	tree->magic = ERBTREE_MAGIC;
-	tree->cmp = cmp;
+	tree->u.cmp = cmp;
 	tree->offset = offset;
 	erbtree_reset(tree);
+}
+
+/**
+ * Initialize embedded tree with extended comparison function.
+ *
+ * This is used for red-black tree containers which can store any data
+ * and therefore need an additinal argument passed to the comparison routine.
+ *
+ * @param tree		the tree structure to initialize
+ * @param cmp		the item comparison routine
+ * @param data		the additional argument for the item comparison routine
+ * @param offset	the offset of the embedded node field within items
+ */
+void erbtree_init_data(erbtree_ext_t *tree,
+	cmp_data_fn_t cmp, void *data, size_t offset)
+{
+	g_assert(tree != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(offset));
+
+	tree->magic = ERBTREE_EXT_MAGIC;
+	tree->u.dcmp = cmp;
+	tree->data = data;
+	tree->offset = offset;
+	erbtree_reset((erbtree_t *) tree);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -226,6 +226,7 @@ LSRC = \
 	prop.c \
 	rand31.c \
 	random.c \
+	rbtree.c \
 	regex.c \
 	sectoken.c \
 	sequence.c \
@@ -377,6 +378,7 @@ LOBJ = \
 	prop.o \
 	rand31.o \
 	random.o \
+	rbtree.o \
 	regex.o \
 	sectoken.o \
 	sequence.o \
