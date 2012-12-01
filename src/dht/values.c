@@ -1878,7 +1878,6 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 	uint64 vk;
 	bool full, loaded;
 
-
 	(void) u_len;
 
 	/*
@@ -1933,8 +1932,15 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 		goto delete_value;
 	}
 
-	if (*dbk > valueid)
-		valueid = *dbk + 1;
+	/*
+	 * New values we will store in the session must not supersede any existing
+	 * value from the older session.  Therefore, make sure the starting point
+	 * for newly allocated DB keys is one higher than the largest DB key we
+	 * are keeping in the database.
+	 */
+
+	if (*dbk >= valueid)
+		valueid = *dbk + 1;		/* Update next allocated DB key */
 
 	/*
 	 * Add the value to the key and update quota statistics as we would when
