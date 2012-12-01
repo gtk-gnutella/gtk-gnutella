@@ -167,6 +167,7 @@ typedef struct dl_file_info {
 	filesize_t buffered;	/**< Amount of buffered data (unflushed) */
 	filesize_t uploaded;	/**< Amount of bytes uploaded */
 	eslist_t chunklist;		/**< List of ranges within file */
+	eslist_t available;		/**< List of ranges available, with source count */
 	GSList *seen_on_network;  /**< List of ranges available on network */
 	uint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */

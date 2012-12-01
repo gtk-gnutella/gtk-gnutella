@@ -84,6 +84,7 @@
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/rbtree.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tigertree.h"
@@ -109,9 +110,7 @@
 #define FI_DHT_RECV_DELAY	600			/**< Penalty per active source */
 #define FI_DHT_RECV_THRESH	5			/**< No query if that many active */
 
-enum dl_file_chunk_magic {
-	DL_FILE_CHUNK_MAGIC = 0x563b483dU
-};
+enum dl_file_chunk_magic { DL_FILE_CHUNK_MAGIC = 0x563b483d };
 
 /**
  * Download file chunks.
@@ -128,6 +127,36 @@ struct dl_file_chunk {
 	const download_t *download;		/**< Download which "reserved" range */
 	slink_t lk;						/**< Embedded one-way link */
 };
+
+static inline void
+dl_file_chunk_check(const struct dl_file_chunk * const fc)
+{
+	g_assert(fc != NULL);
+	g_assert(DL_FILE_CHUNK_MAGIC == fc->magic);
+}
+
+enum dl_avail_chunk_magic { DL_AVAIL_CHUNK_MAGIC = 0x3e69cf33 };
+
+/**
+ * Available chunks.
+ *
+ * For each chunk of the file, we compute the amount of sources that can
+ * serve the chunk, allowing us to pick the rarest chunk when downloading.
+ */
+struct dl_avail_chunk {
+	enum dl_avail_chunk_magic magic;
+	filesize_t from;				/**< Range offset start (byte included) */
+	filesize_t to;					/**< Range offset end (byte EXCLUDED) */
+	size_t sources;					/**< Amount of sources offering chunk */
+	slink_t lk;						/**< Embedded one-way link */
+};
+
+static inline void
+dl_avail_chunk_check(const struct dl_avail_chunk * const ac)
+{
+	g_assert(ac != NULL);
+	g_assert(DL_AVAIL_CHUNK_MAGIC == ac->magic);
+}
 
 /*
  * File information is uniquely describing an output file in the download
@@ -586,13 +615,6 @@ dl_file_chunk_alloc(void)
 }
 
 static void
-dl_file_chunk_check(const struct dl_file_chunk *fc)
-{
-	g_assert(fc);
-	g_assert(DL_FILE_CHUNK_MAGIC == fc->magic);
-}
-
-static void
 dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
 {
 	g_assert(fc_ptr);
@@ -603,6 +625,50 @@ dl_file_chunk_free(struct dl_file_chunk **fc_ptr)
 		fc->magic = 0;
 		WFREE(fc);
 		*fc_ptr = NULL;
+	}
+}
+
+static struct dl_avail_chunk *
+dl_avail_chunk_alloc(void)
+{
+	struct dl_avail_chunk *ac;
+   
+	WALLOC0(ac);
+	ac->magic = DL_AVAIL_CHUNK_MAGIC;
+	return ac;
+}
+
+static struct dl_avail_chunk *
+dl_avail_chunk_new(filesize_t from, filesize_t to, size_t sources)
+{
+	struct dl_avail_chunk *ac;
+
+	g_assert(from < to);
+	g_assert(size_is_positive(sources));
+
+	ac = dl_avail_chunk_alloc();
+	ac->from = from;
+	ac->to = to;
+	ac->sources = sources;
+	return ac;
+}
+
+static void
+dl_avail_chunk_free(void *p)
+{
+	struct dl_avail_chunk *ac = p;
+	dl_avail_chunk_check(ac);
+	ac->magic = 0;
+	WFREE(ac);
+}
+
+static void
+dl_avail_chunk_free_null(struct dl_avail_chunk **ac_ptr)
+{
+	struct dl_avail_chunk *ac = *ac_ptr;
+	if (ac != NULL) {
+		dl_avail_chunk_free(ac);
+		*ac_ptr = NULL;
 	}
 }
 
@@ -972,6 +1038,31 @@ file_info_chunklist_free(fileinfo_t *fi)
 	eslist_clear(&fi->chunklist);
 }
 
+static void
+fi_avail_chunk_free(void *item, void *unused_data)
+{
+	struct dl_avail_chunk *ac = item;
+
+	(void) unused_data;
+	dl_avail_chunk_free_null(&ac);
+}
+
+/**
+ * Frees the chunklist and all its elements of a fileinfo struct. Note that
+ * the consistency of the list isn't checked to explicitely allow freeing
+ * inconsistent chunklists.
+ *
+ * @param fi the fileinfo struct.
+ */
+static void
+file_info_available_free(fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	eslist_foreach(&fi->available, fi_avail_chunk_free, NULL);
+	eslist_clear(&fi->available);
+}
+
 /**
  * Free a `file_info' structure.
  */
@@ -984,6 +1075,7 @@ fi_free(fileinfo_t *fi)
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 	file_info_chunklist_free(fi);
+	file_info_available_free(fi);
 
 	if (fi->alias) {
 		GSList *sl;
@@ -1640,6 +1732,7 @@ file_info_allocate(void)
 	WALLOC0(fi);
 	fi->magic = FI_MAGIC;
 	eslist_init(&fi->chunklist, offsetof(struct dl_file_chunk, lk));
+	eslist_init(&fi->available, offsetof(struct dl_avail_chunk, lk));
 
 	return fi;
 }
@@ -6836,6 +6929,417 @@ file_info_get_file_url(gnet_fi_t handle)
 }
 
 /**
+ * Compares two available ranges.
+ *
+ * Our relative order is a lexicographic order on (start, length), and
+ * two chunks are identical only when they start on the same position are
+ * have the same length.
+ */
+static int
+fi_avail_cmp(const void *a, const void *b)
+{
+	const struct dl_avail_chunk *ca = a, *cb = b;
+
+	if (ca->from == cb->from) {
+		size_t la = ca->to - ca->from;
+		size_t lb = cb->to - cb->from;
+
+		return CMP(la, lb);
+	}
+
+	return CMP(ca->from, cb->from);
+}
+
+/**
+ * Compares two available ranges so that two ranges are equal when they
+ * overlap.
+ */
+static int
+fi_overlap_cmp(const void *a, const void *b)
+{
+	const struct dl_avail_chunk *ca = a, *cb = b;
+
+	if (ca->to <= cb->from)
+		return -1;
+
+	if (cb->to <= ca->from)
+		return +1;
+
+	return 0;		/* Overlapping ranges are equal */
+}
+
+/**
+ * Count one more source offering chunk [from, to[.
+ *
+ * @param rbt		the red-black tree where we store available chunks
+ * @param from		start of chunk
+ * @param to		first byte beyond chunk
+ */
+static void
+fi_count_source(rbtree_t *rbt, filesize_t from, filesize_t to)
+{
+	struct dl_avail_chunk *ac;
+	struct dl_avail_chunk key;
+
+	key.from = from;
+	key.to = to;
+
+	ac = rbtree_lookup(rbt, &key);
+	if (NULL == ac) {
+		ac = dl_avail_chunk_new(from, to, 1);
+		rbtree_insert(rbt, ac);
+	} else {
+		ac->sources++;
+	}
+}
+
+/**
+ * Spread offered chunk `ac' to the list of available chunks held in the
+ * red-black tree, updating the amount of sources offering each range of
+ * the file.
+ *
+ * This is an important step in our computation of the rarest chunks offered
+ * on the network.
+ *
+ * @param arbt		red-black tree listing available chunks with source count
+ * @param ac		the offered chunk we're adding to the existing set
+ */
+static void
+fi_update_available_forward(rbtree_t *arbt, const struct dl_avail_chunk *ac)
+{
+	filesize_t from;					/* Starting point of added chunk */
+
+	dl_avail_chunk_check(ac);
+
+	from = ac->from;
+
+	do {
+		struct dl_avail_chunk key;
+		struct dl_avail_chunk *avc;		/* Available chunk */
+		rbnode_t *node;					/* Tree node for faster iteration */
+
+		key.from = from;
+		key.to = ac->to;
+
+		avc = rbtree_lookup_node(arbt, &key, &node);
+
+		if (NULL == avc) {
+			struct dl_avail_chunk *anew;
+
+			/* Chunk overlaps with nothing -> new entry and we're done */
+
+			anew = dl_avail_chunk_new(from, ac->to, ac->sources);
+			rbtree_insert(arbt, anew);
+			break;
+		}
+
+		/*
+		 * Chunk `avc' overlaps with `ac'.
+		 * There are six main configurations possible, with case #0 being
+		 * handled flexibly (i.e. it can start / end on the same boundaries):
+		 *
+		 *   #0:         [=avc=]
+		 *              [---ac--]
+		 *
+		 *   #1:           [====avc====]
+		 *              [---ac--]
+		 *
+		 *   #2:       [====avc====]
+		 *             [---ac--]
+		 *
+		 *   #3:     [====avc====]
+		 *             [---ac--]
+		 *
+		 *   #4:   [====avc====]
+		 *             [---ac--]
+		 *
+		 *   #5: [====avc====]
+		 *             [---ac--]
+		 *
+		 * We want to find the first available chunk which overlaps with `ac'.
+		 */
+
+		 for (;;) {
+			struct dl_avail_chunk *prev;
+			rbnode_t *pnode = node;
+
+			prev = rbtree_prev_node(arbt, &pnode);
+			if (NULL == prev)
+				break;		/* No other available chunk before `avc' */
+
+			if (prev->to <= from)
+				break;		/* No overlap with `ac' */
+
+			avc = prev;
+			node = pnode;
+		}
+
+		/*
+		 * Handle cases #0 and #1 by creating a new available chunk at
+		 * the beginning, then handling the overlapping part.
+		 */
+
+		if (from < avc->from) {
+			struct dl_avail_chunk *anew;
+
+			g_assert(avc->from < ac->to);	/* Overlaps with `ac' */
+
+			anew = dl_avail_chunk_new(from, avc->from, ac->sources);
+			rbtree_insert(arbt, anew);
+			from = avc->from;
+		}
+
+		/*
+		 * Handle cases #2, #3, #4 and #5 by splitting the existing available
+		 * chunk up to the start of the offered chunk `ac', and anything
+		 * following the end of `ac'.
+		 */
+
+		if (avc->from <= from) {
+			struct dl_avail_chunk *anew;
+			filesize_t to = MIN(avc->to, ac->to);	/* Upper intersection */
+			filesize_t avc_to = avc->to;
+			size_t sources = avc->sources;
+
+			g_assert(avc->to > from);			/* Overlaps with `ac' */
+
+			if (avc->from == from) {
+				/* Case #2, or case #0 with matching start */
+				avc->sources += ac->sources;	/* For the common part */
+
+				if (avc->to > ac->to)			/* `avc' longer than `ac' */
+					avc->to = ac->to;			/* Extra part added below */
+			} else {
+				/* Not case #2 */
+				avc->to = from;					/* Truncates `avc' */
+
+				/*
+				 * Insert the common part with added source counts.
+				 */
+
+				anew = dl_avail_chunk_new(from, to, ac->sources + avc->sources);
+				rbtree_insert(arbt, anew);
+
+				avc = rbtree_next_node(arbt, &node);
+				g_soft_assert(avc == anew);		/* The chunk we just inserted */
+			}
+
+			/* Handle rightmost part of cases #2 and #3 */
+
+			if (avc_to > to) {
+				anew = dl_avail_chunk_new(to, avc_to, sources);
+				rbtree_insert(arbt, anew);
+
+				avc = rbtree_next_node(arbt, &node);
+				g_soft_assert(avc == anew);	
+
+				break;		/* We've consumed the whole `ac' */
+			}
+
+			from = to;
+		}
+	} while (from < ac->to);
+}
+
+/**
+ * Recompute rarest chunk information based on all the available sources.
+ */
+static void
+fi_update_rarest_chunks(fileinfo_t *fi)
+{
+	GSList *sl;
+	rbtree_t *rbt, *arbt;
+	rbtree_iter_t *iter;
+	size_t sources;
+	const void *item;
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
+		g_debug("%s(): updating available for %s", G_STRFUNC, fi->pathname);
+	
+	/*
+	 * The following comments highlight the important steps needed to compute
+	 * the list of chunks available for the file with, for each chunk, the
+	 * amount of source that can serve it.
+	 *
+	 * We have the following scenario, depicting the chunks offered:
+	 *
+	 * Source #1:    [-A--]   [---B--]       [--C---]
+	 * Source #2:    [-----------------D-----------------] (whole file)
+	 * Source #3:          [------E------]      [---F----]
+	 * Source #4:    [-----------------G-----------------] (whole file)
+	 *
+	 * We want to build:
+	 *
+	 * Available:    [=a==][b][==c===][d=][e][f][=g=][=h=]
+	 * # of sources:   3    3     4    3   2  3   4    3
+	 *
+	 * The rarest chunk is "e" (2 sources only provide that range) so this is
+	 * the part of the file that needs to be downloaded first.
+	 * 
+	 * To compute this, we loop over all the "alive" sources we know about
+	 * for a file and for which we have chunk availability information.
+	 *
+	 * Each of the chunks (A, B, C, D, etc..) is inserted into a red-black tree
+	 * whose ordering function is based on the chunk starting offset, then the
+	 * length of the chunk (smallest length is smaller).
+	 * When a chunk is already present, we increase its availability count:
+	 * for instance, chunks D and G are identical according to our ordering
+	 * function, hence when G is inserted, we simply increase the availability
+	 * from 1 to 2.
+	 */
+
+	rbt = rbtree_create(fi_avail_cmp);
+	sources = 0;
+
+	GM_SLIST_FOREACH(fi->sources, sl) {
+		const download_t *d = sl->data;
+
+		download_check(d);
+		g_assert(fi == d->file_info);
+
+		sources++;
+
+		if (!fi->use_swarming || !(d->flags & DL_F_PARTIAL)) {
+			/* Whole range available */
+			fi_count_source(rbt, 0, fi->size);
+		} else if (NULL == d->ranges) {
+			/* Partial file with no known ranges, ignore */
+			continue;
+		} else {
+			GSList *rl;
+
+			GM_SLIST_FOREACH(d->ranges, rl) {
+				const http_range_t *r = rl->data;
+				fi_count_source(rbt, r->start, r->end + 1);
+			}
+		}
+	}
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5) {
+		g_debug("- collected %zu range%s out of %zu source%s:",
+			rbtree_count(rbt), 1 == rbtree_count(rbt) ? "" : "s",
+			sources, 1 == sources ? "" : "s");
+
+		iter = rbtree_iter_new(rbt);
+		while (rbtree_iter_next(iter, &item)) {
+			const struct dl_avail_chunk *ac = item;		/* Chunk offered */
+			g_debug("   [%s, %s] (%.2f%%) %zu source%s",
+				filesize_to_string(ac->from), filesize_to_string2(ac->to),
+				100.0 * (ac->to - ac->from) / (0 == fi->size ? 1 : fi->size),
+				ac->sources, 1 == ac->sources ? "" : "s");
+		}
+		rbtree_iter_release(&iter);
+	}
+
+	/*
+	 * All the unique chunks are in the red-black tree, we can iterate in order
+	 * (so our visiting order will be A, D, E, B, etc..) and create the list
+	 * of chunks representing the available regions and the amount of times they
+	 * are offered (list of chunks a, b, c, d etc...).
+	 *
+	 * In our example, starting with "A" we get:
+	 *
+	 *     [--A-]
+	 *     [====]
+	 *        1
+	 *
+	 * because chunk "A" is present once. Then we process "D" so the list now
+	 * becomes:
+	 *
+	 *     [----------------D------------------]
+	 *     [====][=============================]
+	 *        3                  2
+	 *
+	 * because "A" and "D" overlap so the "A" part is available twice but the
+	 * count associated to "D" was 2 (chunks "D" and "G" are equal).  Then we
+	 * process "E" and we further split the second chunk in our list:
+	 *
+	 *           [------E------]
+	 *     [====][=============][==============]
+	 *        3         3                2 
+	 *
+	 * Encountering "B"
+	 *
+	 *              [---B--]
+	 *     [====][=][======][==][==============]
+	 *       3    3    4     3          2 
+	 * 
+	 * we further split the chunk, counting one more occurrence for the region
+	 * covered by "B".
+	 *
+	 * This list is also held in a red-black tree during construction, to
+	 * optimize lookups, but here we have only non-overlapping chunks
+	 * so we use a different comparison function.  The red-black tree will
+	 * be linearized into an embedded list at the end.
+	 */
+
+	file_info_available_free(fi);		/* Discard previous computation */
+
+	arbt = rbtree_create(fi_overlap_cmp);
+	iter = rbtree_iter_new(rbt);
+
+	while (rbtree_iter_next(iter, &item)) {
+		const struct dl_avail_chunk *ac = item;		/* Chunk offered */
+
+		fi_update_available_forward(arbt, ac);
+	}
+
+	rbtree_iter_release(&iter);
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5) {
+		filesize_t available = 0;
+
+		iter = rbtree_iter_new(arbt);
+
+		g_debug("- identified %zu available range%s over file:",
+			rbtree_count(arbt), 1 == rbtree_count(arbt) ? "" : "s");
+
+		while (rbtree_iter_next(iter, &item)) {
+			const struct dl_avail_chunk *avc = item;
+
+			dl_avail_chunk_check(avc);
+
+			g_debug("   [%s, %s] %zu source%s",
+				filesize_to_string(avc->from), filesize_to_string2(avc->to),
+				avc->sources, 1 == avc->sources ? "" : "s");
+
+			available += avc->to - avc->from;	/* For logging */
+		}
+
+		g_soft_assert_log(available <= fi->size,
+			"available=%s, fi->size=%s",
+			filesize_to_string(available), filesize_to_string2(fi->size));
+
+		g_debug("=> %s out of %s bytes available (%.2f%%)",
+			filesize_to_string(available), filesize_to_string2(fi->size),
+			100.0 * available / fi->size);
+
+		rbtree_iter_release(&iter);
+	}
+
+	/*
+	 * In the end, we can dispose of the red-black trees and need only to keep
+	 * the list of chunks available along with their availability count.
+	 */
+
+	rbtree_discard(rbt, dl_avail_chunk_free);
+	rbtree_free_null(&rbt);
+
+	iter = rbtree_iter_new(arbt);
+
+	while (rbtree_iter_next(iter, &item)) {
+		struct dl_avail_chunk *avc = deconstify_pointer(item);
+
+		dl_avail_chunk_check(avc);
+		eslist_append(&fi->available, avc);
+	}
+
+	rbtree_iter_release(&iter);
+	rbtree_free_null(&arbt);	/* Its items are now listed in fi->available */
+
+}
+
+/**
  * Create a ranges list with one item covering the whole file.
  * This may be better placed in http.c, but since it is only
  * used here as a utility function for fi_update_seen_on_network
@@ -6884,16 +7388,23 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	fi = d->file_info;
 	file_info_check(fi);
 
-	old_list = fi->seen_on_network;
+	/*
+	 * We have new range information probably, so we need to recompute
+	 * the rarest chunks.
+	 */
+
+	fi_update_rarest_chunks(fi);
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("%s(): updating ranges for %s\n", G_STRFUNC, fi->pathname);
+		g_debug("%s(): updating ranges for %s", G_STRFUNC, fi->pathname);
 
 	/*
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file, as determined by active sources
 	 * which replied to us recently -- we not not take into account all sources.
 	 */
+
+	old_list = fi->seen_on_network;
 
 	for (
 		sl = fi->sources, complete = FALSE;
