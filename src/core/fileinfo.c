@@ -1047,16 +1047,14 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 }
 
 /**
- * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
+ * Extend chunk list from `fi->size' to the new specified size.
  */
 static void
-fi_resize(fileinfo_t *fi, filesize_t size)
+fi_extend_chunklist(fileinfo_t *fi, filesize_t size)
 {
 	struct dl_file_chunk *fc;
 
-	file_info_check(fi);
 	g_assert(fi->size < size);
-	g_assert(!fi->hashed);
 
 	fc = dl_file_chunk_alloc();
 	fc->from = fi->size;
@@ -1066,12 +1064,44 @@ fi_resize(fileinfo_t *fi, filesize_t size)
 
 	/*
 	 * Don't remove/re-insert `fi' from hash tables: when this routine is
-	 * called, `fi' is no longer "hashed", or has never been "hashed".
+	 * called, `fi' may not be "hashed".
 	 */
 
 	fi->size = size;
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
+}
+
+/**
+ * Resize fileinfo to be `size' bytes, by adding empty chunk at the tail.
+ */
+static void
+fi_resize(fileinfo_t *fi, filesize_t size)
+{
+	file_info_check(fi);
+	g_assert(!fi->hashed);
+
+	fi_extend_chunklist(fi, size);
+}
+
+/**
+ * Resize fileinfo if size was not known already.
+ */
+void
+file_info_resize(fileinfo_t *fi, filesize_t size)
+{
+	file_info_check(fi);
+	g_return_unless(!fi->file_size_known);	/* Can't resize if size known */
+
+	fi_extend_chunklist(fi, size);
+	file_info_merge_adjacent(fi);
+
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+
+	if (!(fi->flags & FI_F_TRANSIENT)) {
+		fi->dirty = TRUE;
+		fileinfo_dirty = TRUE;
+	}
 }
 
 /**
@@ -3965,6 +3995,38 @@ file_info_merge_adjacent(fileinfo_t *fi)
 }
 
 /**
+ * Signals that the file size became suddenly unknown.
+ *
+ * This happens when we are receiving data past what we thought would be
+ * the end of the file.
+ */
+void
+file_info_size_unknown(fileinfo_t *fi)
+{
+	bool was_hashed;
+
+	file_info_check(fi);
+	g_assert(fi->file_size_known);
+
+	was_hashed = fi->hashed;
+
+	if (fi->hashed)
+		file_info_hash_remove(fi);
+
+	fi->file_size_known = FALSE;
+
+	if (was_hashed)
+		file_info_hash_insert(fi);
+
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+
+	if (!(fi->flags & FI_F_TRANSIENT)) {
+		fi->dirty = TRUE;
+		fileinfo_dirty = TRUE;
+	}
+}
+
+/**
  * Signals that file size became known suddenly.
  *
  * The download becomes the owner of the "busy" part between what we
@@ -4019,6 +4081,7 @@ file_info_size_known(struct download *d, filesize_t size)
 	fi->use_swarming = TRUE;
 	fi->size = size;
 	fi->dirty = TRUE;
+	fileinfo_dirty = TRUE;
 
 	if (0 == (FI_F_TRANSIENT & fi->flags)) {
 		file_info_hash_insert_name_size(fi);

@@ -15999,14 +15999,35 @@ void
 download_data_received(struct download *d, ssize_t received)
 {
 	fileinfo_t *fi;
+	filesize_t upper;
 
 	download_check(d);
 	fi = d->file_info;
 	file_info_check(fi);
 
-	file_info_update(d, d->pos, d->pos + received, DL_CHUNK_DONE);
+	upper = d->pos + received;
 
-	d->pos += received;
+	/*
+	 * If we're receiving "chunked" data, we do not know the size of what
+	 * we'll be receiving in advance, so we need to dynamically extend
+	 * the fileinfo.
+	 */
+
+	if (fi->size < upper) {
+		if (fi->file_size_known) {
+			file_info_size_unknown(fi);
+			g_critical("%s(): receiving extra data for \"%s\" from %s: "
+				"thought size was %s bytes, receiving from %zu byte%s at %s",
+				G_STRFUNC, fi->pathname, download_host_info(d),
+				filesize_to_string(fi->size), received,
+				1 == received ? "" : "s", filesize_to_string2(d->pos));
+		}
+		file_info_resize(fi, upper);
+	}
+
+	file_info_update(d, d->pos, upper, DL_CHUNK_DONE);
+
+	d->pos = upper;
 	d->last_update = tm_time();
 	fi->recv_amount += received;
 }

@@ -79,6 +79,7 @@ void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
 		const struct tth *leaves, size_t num_leaves, bool mark_dirty);
 void file_info_size_known(struct download *d, filesize_t size);
+void file_info_size_unknown(fileinfo_t *fi);
 void file_info_update(const struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
 void file_info_new_chunk_owner(const struct download *d,
@@ -128,6 +129,7 @@ void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const char *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
 bool file_info_rename(fileinfo_t *fi, const char *filename);
+void file_info_resize(fileinfo_t *fi, filesize_t size);
 
 typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, void *udata);
 void file_info_foreach(file_info_foreach_cb callback, void *udata);
