@@ -5478,6 +5478,9 @@ file_info_find_available_hole(
 			if (r->start > fc->to)
 				break;					/* No further range will intersect */
 
+			if (r->end < fc->from)
+				continue;				/* Is before chunk, cannot intersect */
+
 			/*
 			 * Intersect range and chunk, [start, end[ is the result.
 			 */
