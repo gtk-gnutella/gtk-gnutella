@@ -110,6 +110,14 @@
 #define FI_DHT_RECV_DELAY	600			/**< Penalty per active source */
 #define FI_DHT_RECV_THRESH	5			/**< No query if that many active */
 
+/*
+ * Aligning requested blocks is just a convenience, to make it easier later
+ * to validate the file against the TTH, and also because it is likely
+ * to be slightly more efficient when doing aligned disk I/Os.
+ */
+#define FI_OFFSET_BOUNDARY		((filesize_t) 128 * 1024)
+#define FI_OFFSET_ALIGNMASK		(FI_OFFSET_BOUNDARY - 1)
+
 enum dl_file_chunk_magic { DL_FILE_CHUNK_MAGIC = 0x563b483d };
 
 /**
@@ -4746,12 +4754,321 @@ fi_busy_count(fileinfo_t *fi, const struct download *d)
 }
 
 /**
+ * Compares two HTTP ranges so that two ranges are equal only when they overlap.
+ */
+static int
+fi_http_overlap_cmp(const void *a, const void *b)
+{
+	const http_range_t *ra = a, *rb = b;
+
+	if (ra->end < rb->start)		/* `end' is part of the HTTP range */
+		return -1;
+
+	if (rb->end < ra->start)
+		return +1;
+
+	return 0;		/* Overlapping ranges are equal */
+}
+
+/**
+ * Compares two offered ranges so that two ranges are equal when they overlap.
+ */
+static int
+fi_chunk_overlap_cmp(const void *a, const void *b)
+{
+	const struct dl_file_chunk *ca = a, *cb = b;
+
+	if (ca->to <= cb->from)			/* `to' is NOT part of the chunk range */
+		return -1;
+
+	if (cb->to <= ca->from)
+		return +1;
+
+	return 0;		/* Overlapping chunks are equal */
+}
+
+/**
+ * Select a chunk randomly among the rarest chunks offered on the network.
+ *
+ * If no download source is provided, then we assume we can pick any missing
+ * chunk. Otherwise, we make sure to select a chunk that is available from
+ * that source.
+ *
+ * If the first chunk is not completed or not at least "pfsp_first_chunk" bytes
+ * long, returns the first chunk.
+ *
+ * @param fi		the fileinfo where we have to pick a chunk from
+ * @param d			the possibly partial download source (may be NULL)
+ * @param size		the targeted chunk size
+ *
+ * @return the picked chunk among the fileinfo's chunklist.
+ */
+static const struct dl_file_chunk *
+fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
+{
+	http_range_t *whole = NULL;
+	rbtree_t *missing, *offered;
+	slink_t *sl;
+	const struct dl_file_chunk *first, *candidate = NULL;
+	uint32 rarest_count = 0;
+	const struct dl_avail_chunk *rarest = NULL;
+
+	file_info_check(fi);
+	g_assert(0 != eslist_count(&fi->chunklist));
+
+	first = eslist_head(&fi->chunklist);		/* First chunk */
+	dl_file_chunk_check(first);
+
+	if (!fi->file_size_known)
+		return first;
+
+	if (GNET_PROPERTY(pfsp_first_chunk) > 0) {
+		const struct dl_file_chunk *fc;
+
+		/*
+		 * See whether chunks up to ``pfsp_first_chunk'' bytes are free.
+		 */
+
+		ESLIST_FOREACH(&fi->chunklist, sl) {
+			fc = eslist_data(&fi->chunklist, sl);
+
+			if (fc->from >= GNET_PROPERTY(pfsp_first_chunk))
+				break;
+
+			if (DL_CHUNK_EMPTY == fc->status) {
+				if (GNET_PROPERTY(download_debug)) {
+					g_debug("%s(): less than %u bytes, using first chunk",
+						G_STRFUNC, GNET_PROPERTY(pfsp_first_chunk));
+				}
+
+				candidate = first;
+				goto done;
+			}
+		}
+	}
+
+	/*
+	 * The `missing' red-black tree contains the file chunks that are still
+	 * empty and need to be downloaded.
+	 *
+	 * The `offered' red-black tree contains the HTTP ranges offered by
+	 * the source, if any given.
+	 */
+
+	missing = rbtree_create(fi_chunk_overlap_cmp);
+	offered = rbtree_create(fi_http_overlap_cmp);
+
+	if (NULL == d || NULL == d->ranges) {
+		WALLOC(whole);
+		whole->start = 0;
+		whole->end = fi->size - 1;
+		rbtree_insert(offered, whole);
+	} else {
+		GSList *rl;
+
+		GM_SLIST_FOREACH(d->ranges, rl) {
+			const http_range_t *r = rl->data;
+			rbtree_insert(offered, r);
+		}
+	}
+
+	ESLIST_FOREACH(&fi->chunklist, sl) {
+		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+
+		dl_file_chunk_check(fc);
+
+		if (DL_CHUNK_EMPTY == fc->status) {
+			rbtree_insert(missing, fc);
+		}
+	}
+
+	/*
+	 * Find the first missing chunk that is also offered, starting with the
+	 * rarest available chunk: the fi->available list is sorted by increasing
+	 * source count.
+	 */
+
+	ESLIST_FOREACH(&fi->available, sl) {
+		const struct dl_avail_chunk *fa = eslist_data(&fi->available, sl);
+		struct dl_file_chunk *fc;
+		http_range_t hrange;
+		struct dl_file_chunk crange;
+
+		dl_avail_chunk_check(fa);
+
+		/*
+		 * If we have already found a candidate and this chunk has more
+		 * sources, we're done.
+		 */
+
+		if (rarest != NULL && fa->sources > rarest->sources)
+			break;
+
+		hrange.start = fa->from;
+		hrange.end = fa->to - 1;
+
+		if (!rbtree_contains(offered, &hrange))
+			continue;		/* Range not offered */
+
+		crange.from = fa->from;
+		crange.to = fa->to;
+
+		fc = rbtree_lookup(missing, &crange);
+
+		if (fc != NULL) {
+			/* Rare range overlaps with missing range */
+
+			if (
+				GNET_PROPERTY(fileinfo_debug) > 2 ||
+				GNET_PROPERTY(download_debug) > 1
+			) {
+				g_debug("%s(): possible rarest candidate #%u for \"%s\" is "
+					"[%s, %s] (%zu source%s)",
+					G_STRFUNC, rarest_count + 1, fi->pathname,
+					filesize_to_string(fa->from), filesize_to_string2(fa->to),
+					fa->sources, 1 == fa->sources ? "" : "s");
+			}
+
+			/*
+			 * If this is not the first rarest candidate we see, then randomly
+			 * select it, maybe.
+			 *
+			 * The second rarest chunk has exactly 1/2 chance to supersede
+			 * the candidate, the third has 1/3 chance, etc...  This allows
+			 * us to randomly select a candidate without knowing beforehand how
+			 * many we will find, whilst retaining an equal probability for
+			 * all the chunks to be selected.
+			 */
+
+			g_assert(fc->download == NULL);	/* Chunk is empty */
+
+			if (++rarest_count > 1 && 0 != random_value(rarest_count - 1))
+				continue;
+
+			rarest = fa;
+			candidate = fc;
+
+			/*
+			 * If we're not a PFSP server, we retain the first candidate we see.
+			 */
+
+			if (!GNET_PROPERTY(pfsp_server))
+				break;
+		}
+	}
+
+	/*
+	 * If we have a candidate, then randomly pick the starting point in the
+	 * range to maximize the dispersion if we are a PFSP server and if the
+	 * chunk is larger than the targeted size.
+	 */
+
+	if (rarest != NULL) {
+		struct dl_file_chunk *fc = deconstify_pointer(candidate);
+		struct dl_file_chunk *nfc;
+		filesize_t start, end;
+
+		g_assert(candidate != NULL);
+
+		/*
+		 * [start, end] is the intersection of the rarest chunk we selected
+		 * with the candidate chunk (missing part to be downloaded still).
+		 */
+
+		start = MAX(rarest->from, candidate->from);
+		end = MIN(rarest->to, candidate->to);
+
+		if (
+			GNET_PROPERTY(fileinfo_debug) > 2 ||
+			GNET_PROPERTY(download_debug) > 1
+		) {
+			g_debug("%s(): rarest intersection chunk for \"%s\" is "
+				"[%s, %s] (%zu source%s)",
+				G_STRFUNC, fi->pathname,
+				filesize_to_string(start), filesize_to_string2(end),
+				rarest->sources, 1 == rarest->sources ? "" : "s");
+		}
+
+		g_assert(start < end);		/* Because the two MUST overlap */
+
+		if (end - start > size && GNET_PROPERTY(pfsp_server)) {
+			filesize_t offset, length;
+
+			length = end - start;
+			length -= size;
+			offset = start + get_random_file_offset(length);
+			offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
+			offset = MAX(offset, start);
+
+			g_assert(offset >= candidate->from && offset <= candidate->to);
+
+			start = offset;		/* Randomly selected starting point */
+
+			if (
+				GNET_PROPERTY(fileinfo_debug) > 2 ||
+				GNET_PROPERTY(download_debug) > 1
+			) {
+				g_debug("%s(): randomly selected starting point is %s",
+					G_STRFUNC, filesize_to_string(start));
+			}
+		}
+
+		if (start > fc->from && start < fc->to) {
+			/*
+			 * fc was [from, to[.  It becomes [from, start[.
+			 * nfc is [start, to[ and is inserted after fc.
+			 */
+
+			nfc = dl_file_chunk_alloc();
+			nfc->from = start;
+			nfc->to = fc->to;
+			nfc->status = fc->status;
+			fc->to = start;
+
+			eslist_insert_after(&fi->chunklist, fc, nfc);
+			candidate = nfc;
+
+			if (
+				GNET_PROPERTY(fileinfo_debug) > 2 ||
+				GNET_PROPERTY(download_debug) > 1
+			) {
+				g_debug("%s(): selected chunk is [%s, %s]",
+					G_STRFUNC, filesize_to_string(nfc->from),
+					filesize_to_string2(nfc->to));
+			}
+		}
+	}
+
+	/*
+	 * If we found no candidate, use the first chunk since we have to
+	 * return something that will be a valid lookup starting point.
+	 */
+
+	if (NULL == candidate)
+		candidate = first;
+
+	rbtree_free_null(&missing);
+	rbtree_free_null(&offered);
+	WFREE_TYPE_NULL(whole);
+
+done:
+	if (GNET_PROPERTY(fileinfo_debug) || GNET_PROPERTY(download_debug)) {
+		g_debug("%s(): returning [%s, %s] (%u) for \"%s\"",
+			G_STRFUNC, filesize_to_string(candidate->from),
+			filesize_to_string2(candidate->to), candidate->status,
+			fi->pathname);
+	}
+
+	return candidate;
+}
+
+/**
  * Select a chunk randomly.
  *
  * If the first chunk is not completed or not at least "pfsp_first_chunk" bytes
  * long, returns the first chunk.
  *
- * We also strive to get the latest "pfsp_first_chunk" bytes of the file as
+ * We also strive to get the latest "pfsp_last_chunk" bytes of the file as
  * well, since some file formats store important information at the tail of
  * the file as well, so we can select some of the latest chunks.
  */
@@ -4821,14 +5138,7 @@ fi_pick_chunk(fileinfo_t *fi)
 
 	if (0 == offset) {
 		offset = get_random_file_offset(fi->size);
-
-		/*
-		 * Aligning blocks is just a convenience here, to make it easier later
-		 * to validate the file against the TTH, and also because it is likely
-		 * to be slightly more efficient when doing aligned disk I/Os.
-		 */
-
-		offset &= ~((filesize_t) 128 * 1024 - 1);
+		offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
 	}
 
 	/*
@@ -5422,10 +5732,18 @@ file_info_find_hole(const struct download *d, filesize_t *from, filesize_t *to)
 	 * Therefore, it is interesting to request chunks in random order, to
 	 * avoid everyone having the same chunks should full sources disappear.
 	 *		--RAM, 11/10/2003
+	 *
+	 * If we have some partial sources, use a more complex chunk picking
+	 * algorithm to select the rarest chunks first.
+	 *		--RAM, 2012-12-01
 	 */
 
-	chunk = GNET_PROPERTY(pfsp_server) ?
-		fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
+	if (eslist_count(&fi->available) > 1) {
+		chunk = fi_pick_rarest_chunk(fi, NULL, chunksize);
+	} else {
+		chunk = GNET_PROPERTY(pfsp_server) ?
+			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
+	}
 
 	/*
 	 * Iteration is done using a "circular" list illusion, to be able to
@@ -5497,7 +5815,7 @@ file_info_find_available_hole(
 {
 	slink_t *sl;
 	fileinfo_t *fi;
-	filesize_t chunksize;
+	filesize_t chunksize = 0;
 	eclist_t cklist;
 	uint busy = 0;
 	uint pipelined = 0;
@@ -5528,10 +5846,19 @@ file_info_find_available_hole(
 	 * Therefore, it is interesting to request chunks in random order, to
 	 * avoid everyone having the same chunks should full sources disappear.
 	 *		--RAM, 11/10/2003
+	 *
+	 * If we have some partial sources, use a more complex chunk picking
+	 * algorithm to select the rarest chunks first.
+	 *		--RAM, 2012-12-01
 	 */
 
-	chunk = GNET_PROPERTY(pfsp_server) ?
-		fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
+	if (eslist_count(&fi->available) > 1) {
+		chunksize = fi_chunksize(fi);
+		chunk = fi_pick_rarest_chunk(fi, d, chunksize);
+	} else {
+		chunk = GNET_PROPERTY(pfsp_server) ?
+			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
+	}
 
 	/*
 	 * Iteration is done using a "circular" list illusion, to be able to
@@ -5629,7 +5956,8 @@ file_info_find_available_hole(
 	return FALSE;
 
 found:
-	chunksize = fi_chunksize(fi);
+	if (0 == chunksize)
+		chunksize = fi_chunksize(fi);
 
 	if ((*to - *from) > chunksize)
 		*to = *from + chunksize;
@@ -6969,6 +7297,19 @@ fi_overlap_cmp(const void *a, const void *b)
 }
 
 /**
+ * Compares two available ranges on the amount of sources that provide them.
+ */
+static int
+fi_avail_source_cmp(const void *a, const void *b)
+{
+	const struct dl_avail_chunk *ca = a, *cb = b;
+	int c;
+
+	c = CMP(ca->sources, cb->sources);
+	return 0 == c ? CMP(ca->from, cb->from) : c;
+}
+
+/**
  * Count one more source offering chunk [from, to[.
  *
  * @param rbt		the red-black tree where we store available chunks
@@ -7152,6 +7493,9 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	rbtree_iter_t *iter;
 	size_t sources;
 	const void *item;
+
+	if (!fi->file_size_known)
+		return;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		g_debug("%s(): updating available for %s", G_STRFUNC, fi->pathname);
@@ -7337,6 +7681,14 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	rbtree_iter_release(&iter);
 	rbtree_free_null(&arbt);	/* Its items are now listed in fi->available */
 
+	/*
+	 * Sort the list so that the rarest chunks come first.
+	 *
+	 * Note that when there are no partial sources, there is only one available
+	 * chunk in the list: the chunk representing the whole file.
+	 */
+
+	eslist_sort(&fi->available, fi_avail_source_cmp);
 }
 
 /**
