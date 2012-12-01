@@ -542,6 +542,19 @@ filesize_to_string2(filesize_t v)
 }
 
 const char *
+filesize_to_string3(filesize_t v)
+{
+	static char buf[UINT64_DEC_BUFLEN];
+	size_t n;
+
+	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
+	n = uint64_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
 fileoffset_t_to_string(fileoffset_t v)
 {
 	static char buf[OFF_T_DEC_BUFLEN];
