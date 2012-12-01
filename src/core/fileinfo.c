@@ -4103,10 +4103,8 @@ again:
 
 	/* I think the algorithm is safe now, but hey... */
 	if (++againcount > 10) {
-		g_error("Eek! Internal error! "
-			"file_info_update(%s, %s, %d) "
-			"is looping for \"%s\"! Man battle stations!",
-			filesize_to_string(from), filesize_to_string2(to),
+		g_error("%s(%s, %s, %d) is looping for \"%s\"! Man battle stations!",
+			G_STRFUNC, filesize_to_string(from), filesize_to_string2(to),
 			status, d->file_name);
 		return;
 	}
@@ -4268,9 +4266,12 @@ again:
 
 	if (!found) {
 		/* Should never happen. */
-		g_critical("%s(): (%s) didn't find matching chunk for <%s-%s> (%u)",
-			G_STRFUNC, fi->pathname, filesize_to_string(from),
-			filesize_to_string2(to), status);
+		g_critical("%s(): didn't find matching chunk for <%s-%s> (%u) "
+			"for \"%s\" (%s%s bytes)",
+			G_STRFUNC, filesize_to_string(from), filesize_to_string2(to),
+			status, fi->pathname,
+			fi->file_size_known ? "" : "unknown size, currently ",
+			filesize_to_string3(fi->size));
 
 		ESLIST_FOREACH(&fi->chunklist, sl) {
 			fc = eslist_data(&fi->chunklist, sl);
