@@ -298,15 +298,18 @@ eslist_link_insert_after_internal(eslist_t *list, slink_t *siblk, slink_t *lk)
  * Insert link after another one in list.
  *
  * The sibling must already be part of the list, the new link must not.
+ * If the sibling is NULL, insertion happens at the head of the list.
  */
 void
 eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk)
 {
 	eslist_check(list);
-	g_assert(sibling_lk != NULL);
 	g_assert(lk != NULL);
 
-	eslist_link_insert_after_internal(list, sibling_lk, lk);
+	if (NULL == sibling_lk)
+		eslist_link_prepend_internal(list, lk);
+	else
+		eslist_link_insert_after_internal(list, sibling_lk, lk);
 }
 
 /**
@@ -317,16 +320,18 @@ eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk)
 void
 eslist_insert_after(eslist_t *list, void *sibling, void *data)
 {
-	slink_t *lk, *siblk;
+	slink_t *lk;
 
 	eslist_check(list);
-	g_assert(sibling != NULL);
 	g_assert(data != NULL);
 
-	siblk = ptr_add_offset(sibling, list->offset);
 	lk = ptr_add_offset(data, list->offset);
-
-	eslist_link_insert_after_internal(list, siblk, lk);
+	if (NULL == sibling) {
+		eslist_link_prepend_internal(list, lk);
+	} else {
+		slink_t *siblk = ptr_add_offset(sibling, list->offset);
+		eslist_link_insert_after_internal(list, siblk, lk);
+	}
 }
 
 /**
