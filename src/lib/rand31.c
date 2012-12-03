@@ -169,13 +169,25 @@ rand31_prng(void)
 static int
 rand31_gen(void)
 {
+	unsigned lo, hi;
+
 	/*
 	 * The low-order bits of the PRNG are less random than the upper ones,
-	 * and they have a smaller period.  Keep only the leading 16 bits of the
-	 * first value and the leading 15 bits of the second value.
+	 * and they have a smaller period.
+	 *
+	 * Discarding some of the bits produced by the random generator is bad
+	 * however because this can unexpectedly reduce the PRNG period or alter
+	 * the distribution of returned numbers.
+	 *
+	 * Therefore, we're folding the first number to 16 bits and the second
+	 * to 15 bits before concatening them to produce a 31-bit value, thereby
+	 * accounting for all the bits produced by the PRNG.
 	 */
 
-	return (rand31_prng() >> 15) | (rand31_prng() & 0x7fff0000);
+	lo = hashing_fold(rand31_prng(), 16);
+	hi = hashing_fold(rand31_prng(), 15);
+
+	return lo | (hi << 16);
 }
 
 /**
@@ -265,10 +277,10 @@ rand31_value(unsigned max)
 uint32
 rand31_u32(void)
 {
-	uint32 rn;
+	unsigned rn;
 
 	THREAD_LOCK;
-	rn = (rand31_gen() << 5) + (rand31_prng() >> 15);
+	rn = (rand31_prng() << 1) + rand31_gen();
 	THREAD_UNLOCK;
 
 	return rn;
