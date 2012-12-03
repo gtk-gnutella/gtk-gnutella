@@ -10298,12 +10298,18 @@ collect_locations:
 	file_info_check(d->file_info);
 	g_assert(d->sha1 || d->file_info->sha1);
 
-	huge_collect_locations(d->sha1 ? d->sha1 : d->file_info->sha1, header);
+	{
+		gnet_host_t host;
+		const sha1_t *dsha1 = d->sha1 != NULL ? d->sha1 : d->file_info->sha1;
 
-	buf = header_get(header, "X-Nalt");
-	if (buf)
-		dmesh_collect_negative_locations(
-			d->sha1 ? d->sha1 : d->file_info->sha1, buf, download_addr(d));
+		gnet_host_set(&host, download_addr(d), download_port(d));
+		huge_collect_locations(dsha1, header, &host);
+
+		buf = header_get(header, "X-Nalt");
+		if (buf != NULL)
+			dmesh_collect_negative_locations(dsha1, buf, download_addr(d));
+
+	}
 
 	return TRUE;
 }

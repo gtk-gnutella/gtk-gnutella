@@ -2949,15 +2949,24 @@ upload_collect_locations(struct upload *u,
 
 	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
 		char *buf;
+		gnet_host_t host;
+		gnet_host_t *origin = NULL;
 
-		huge_collect_locations(sha1, header);
 		if (host_is_valid(u->gnet_addr, u->gnet_port)) {
 			/*
-			 * The uploader is only an alt-loc if it lists itself in the
-			 * X-Alt: header. If it didn't the following has no effect.
+			 * The downloader is only an alt-loc if it lists itself in the
+			 * X-Alt: header.  To determine this, we propagate the origin
+			 * of the X-Alt header and if we find that address listed, we'll
+			 * be able to flag the alt-loc as good since we're talking
+			 * to the server that can provide it.
+			 *		--RAM, 2012-12-03
 			 */
-			dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
+
+			gnet_host_set(&host, u->gnet_addr, u->gnet_port);
+			origin = &host;
 		}
+
+		huge_collect_locations(sha1, header, origin);
 
 		buf = header_get(header, "X-Nalt");
 		if (buf)

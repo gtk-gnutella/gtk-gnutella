@@ -39,6 +39,7 @@
 #include "hcache.h"			/* For host_net_t */
 
 #include "lib/hashlist.h"
+#include "lib/gnet_host.h"
 
 /**
  * Our level of support for firewalled alt-locs.
@@ -127,9 +128,10 @@ void dmesh_good_mark(const struct sha1 *sha1,
 int dmesh_count(const struct sha1 *sha1);
 
 bool dmesh_collect_sha1(const char *value, struct sha1 *sha1);
-void dmesh_collect_locations(const struct sha1 *sha1, const char *value);
+void dmesh_collect_locations(const struct sha1 *sha1, const char *value,
+	const gnet_host_t *origin);
 void dmesh_collect_compact_locations(const struct sha1 *sha1,
-		const char *value);
+		const char *value, const gnet_host_t *origin);
 void dmesh_collect_fw_hosts(const struct sha1 *sha1, const char *value);
 void dmesh_collect_negative_locations(const struct sha1 *sha1,
 	const char *value, host_addr_t reporter);

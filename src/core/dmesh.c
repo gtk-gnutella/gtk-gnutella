@@ -915,8 +915,8 @@ dmesh_get(const struct sha1 *sha1)
  * If `idx' is URN_INDEX, then we can access this file only through an
  * /uri-res request, the URN being given as `name'.
  *
- * @return whether the entry was added in the mesh, or was discarded because
- * it was the oldest record and we have enough already.
+ * @return TRUE if the entry was added in the mesh, FALSE if it was discarded
+ * because it was the oldest record and we have enough already.
  */
 static bool
 dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
@@ -2504,22 +2504,47 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 
 static void
 dmesh_collect_compact_locations_cback(
-	const struct sha1 *sha1, host_addr_t addr, uint16 port,
-	void *unused_udata)
+	const sha1_t *sha1, host_addr_t addr, uint16 port, void *udata)
 {
-	(void) unused_udata;
-	(void) dmesh_add_alternate(sha1, addr, port);
+	const gnet_host_t *origin = udata;
+
+	dmesh_add_alternate(sha1, addr, port);
+
+	/*
+	 * If entering an alt-loc in the mesh for an URN located on the
+	 * origin, then we know it is a good one since it is being advertised
+	 * by the server itself.
+	 *		--RAM, 2012-12-03
+	 */
+
+	if (
+		origin != NULL &&
+		port == gnet_host_get_port(origin) &&
+		host_addr_equal(addr, gnet_host_get_addr(origin))
+	) {
+		dmesh_good_mark(sha1, addr, port, TRUE);
+
+		if (GNET_PROPERTY(dmesh_debug) > 3) {
+			g_debug("MESH %s: good self alt-loc from %s",
+				 sha1_base32(sha1), gnet_host_to_string(origin));
+		}
+	}
 }
 
 /**
  * Parse the value of the "X-Alt" header to extract alternate sources
  * for a given SHA1 key given in the new compact form.
+ *
+ * @param sha1		the SHA1 for which we're collecting alt-locs
+ * @param value		the value of the header field we're parsing
+ * @param origin	if not-NULL, the host supplying us with the alt-locs
  */
 void
-dmesh_collect_compact_locations(const struct sha1 *sha1, const char *value)
+dmesh_collect_compact_locations(const sha1_t *sha1, const char *value,
+	const gnet_host_t *origin)
 {
 	dmesh_parse_addr_port_list(sha1, value,
-		dmesh_collect_compact_locations_cback, NULL);
+		dmesh_collect_compact_locations_cback, deconstify_pointer(origin));
 }
 
 static void
@@ -2540,7 +2565,7 @@ dmesh_collect_negative_locations_cback(
  */
 void
 dmesh_collect_negative_locations(
-	const struct sha1 *sha1, const char *value, host_addr_t reporter)
+	const sha1_t *sha1, const char *value, host_addr_t reporter)
 {
 	dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
@@ -2549,9 +2574,14 @@ dmesh_collect_negative_locations(
 /**
  * Parse value of the "X-Gnutella-Alternate-Location" to extract alternate
  * sources for a given SHA1 key.
+ *
+ * @param sha1		the SHA1 for which we're collecting alt-locs
+ * @param value		the value of the header field we're parsing
+ * @param origin	if not-NULL, the host supplying us with the alt-locs
  */
 void
-dmesh_collect_locations(const struct sha1 *sha1, const char *value)
+dmesh_collect_locations(const sha1_t *sha1, const char *value,
+	const gnet_host_t *origin)
 {
 	const char *p = value;
 	uchar c;
@@ -2767,6 +2797,27 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 
 		}
 		ok = dmesh_raw_add(sha1, &info, stamp, TRUE);
+
+		/*
+		 * If entering an alt-loc in the mesh for an URN located on the
+		 * origin, then we know it is a good one since it is being advertised
+		 * by the server itself.
+		 *		--RAM, 2012-12-03
+		 */
+
+		if (
+			URN_INDEX == info.idx &&
+			origin != NULL &&
+			info.port == gnet_host_get_port(origin) &&
+			host_addr_equal(info.addr, gnet_host_get_addr(origin))
+		) {
+			dmesh_good_mark(sha1, info.addr, info.port, TRUE);
+
+			if (GNET_PROPERTY(dmesh_debug) > 3) {
+				g_debug("MESH %s: good self alt-loc from %s",
+					 sha1_base32(sha1), gnet_host_to_string(origin));
+			}
+		}
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
@@ -3219,7 +3270,7 @@ dmesh_retrieve(void)
 			if (GNET_PROPERTY(dmesh_debug))
 				g_debug("%s(): parsing %s", G_STRFUNC, tmp);
 			if (is_strprefix(tmp, "http://")) {
-				dmesh_collect_locations(&sha1, tmp);
+				dmesh_collect_locations(&sha1, tmp, NULL);
 			} else {
 				dmesh_collect_fw_hosts(&sha1, tmp);
 			}

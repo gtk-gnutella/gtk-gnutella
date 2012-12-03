@@ -50,7 +50,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
+#include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
@@ -819,9 +819,14 @@ huge_is_pure_xalt(const char *value, size_t len)
  * about other sources for this file.
  *
  * Also knows about "Alternate-Location", "Alt-Location", "X-Alt" and "X-Falt".
+ *
+ * @param sha1		the SHA1 for which we're parsing alt-locs
+ * @param header	the headers supplied by the remote host
+ * @param origin	if non-NULL, this is the host supplying the alt-locs
  */
 void
-huge_collect_locations(const struct sha1 *sha1, const header_t *header)
+huge_collect_locations(const sha1_t *sha1, const header_t *header,
+	const gnet_host_t * origin)
 {
 	char *alt;
 	size_t len;
@@ -843,7 +848,7 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 		alt = header_get(header, "Alt-Location");
 
 	if (alt != NULL) {
-		dmesh_collect_locations(sha1, alt);
+		dmesh_collect_locations(sha1, alt, origin);
 		return;
 	}
 
@@ -858,9 +863,9 @@ huge_collect_locations(const struct sha1 *sha1, const header_t *header)
 		 */
 
 		if (huge_is_pure_xalt(alt, len))
-			dmesh_collect_compact_locations(sha1, alt);
+			dmesh_collect_compact_locations(sha1, alt, origin);
 		else
-			dmesh_collect_locations(sha1, alt);
+			dmesh_collect_locations(sha1, alt, origin);
     }
 
 	/*
