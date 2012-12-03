@@ -146,18 +146,25 @@ rand31_do_seed(unsigned seed)
 }
 
 /**
+ * Seed the PRNG engine if not already done.
+ */
+static inline void ALWAYS_INLINE
+rand31_check_seeded(void)
+{
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_do_seed(0);
+}
+
+/**
 * Linear congruential pseudo-random number generation (PRNG).
 *
 * This PRNG is not used directly but rather through rand31().
 *
 * @return a 31-bit random number.
 */
-static unsigned
+static inline unsigned
 rand31_prng(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_do_seed(0);
-
 	return rand31_seed = rand31_prng_next(rand31_seed);
 }
 
@@ -202,6 +209,7 @@ rand31(void)
 	int rn;
 
 	THREAD_LOCK;
+	rand31_check_seeded();
 	rn = rand31_gen();
 	THREAD_UNLOCK;
 
@@ -230,8 +238,7 @@ rand31_initial_seed(void)
 	unsigned rs;
 
 	THREAD_LOCK;
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_do_seed(0);
+	rand31_check_seeded();
 	rs = rand31_first_seed;
 	THREAD_UNLOCK;
 
@@ -247,8 +254,7 @@ rand31_current_seed(void)
 	unsigned rs;
 
 	THREAD_LOCK;
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_do_seed(0);
+	rand31_check_seeded();
 	rs = rand31_seed;
 	THREAD_UNLOCK;
 
@@ -280,6 +286,7 @@ rand31_u32(void)
 	unsigned rn;
 
 	THREAD_LOCK;
+	rand31_check_seeded();
 	rn = (rand31_prng() << 1) + rand31_gen();
 	THREAD_UNLOCK;
 
