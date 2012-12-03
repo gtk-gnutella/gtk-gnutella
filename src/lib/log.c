@@ -1198,10 +1198,13 @@ s_minilog(GLogLevelFlags flags, const char *format, ...)
 void
 s_minierror(const char *format, ...)
 {
+	static int recursion;
 	va_list args;
 	char data[LOG_MSG_MAXLEN];
 	char time_buf[18];
-	DECLARE_STR(4);
+	DECLARE_STR(6);
+
+	recursion++;
 
 	va_start(args, format);
 	str_vbprintf(data, sizeof data, format, args);
@@ -1209,10 +1212,18 @@ s_minierror(const char *format, ...)
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
-	print_str(" (CRITICAL): ");				/* 1 */
-	print_str(data);						/* 2 */
-	print_str("\n");						/* 3 */
+	print_str(" (ERROR)");					/* 1 */
+	if (recursion > 1)
+		print_str(" [RECURSIVE]");			/* 2 */
+	print_str(": ");						/* 3 */
+	print_str(data);						/* 4 */
+	print_str("\n");						/* 5 */
 	flush_err_str();
+	if (log_stdout_is_distinct())
+		log_flush_out();
+
+	if (1 == recursion)
+		s_stacktrace(TRUE, 1);
 
 	abort();
 }
@@ -1226,11 +1237,14 @@ s_minierror(const char *format, ...)
 void
 s_minicrit(const char *format, ...)
 {
+	bool in_signal_handler = signal_in_handler();
 	va_list args;
 
 	va_start(args, format);
 	s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
 	va_end(args);
+
+	s_stacktrace(in_signal_handler, 1);
 }
 
 /**
