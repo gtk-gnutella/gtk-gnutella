@@ -1709,7 +1709,7 @@ static void
 thread_lock_warn(const char *func,
 	const void *lock, enum thread_lock_kind kind, const char *message)
 {
-	s_miniwarn("%s(): cannot account for %s %p: %s",
+	s_minicarp("%s(): cannot account for %s %p: %s",
 		func, thread_lock_kind_to_string(kind), lock, message);
 }
 
