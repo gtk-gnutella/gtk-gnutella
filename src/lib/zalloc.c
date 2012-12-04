@@ -1261,7 +1261,7 @@ zcreate(size_t size, unsigned hint, bool embedded)
 
 #ifndef REMAP_ZALLOC
 	if (zgc_always(zone)) {
-		spinlock(&zone->lock);
+		zlock(zone);
 		if (NULL == zone->zn_gc)
 			zgc_allocate(zone);
 		zunlock(zone);
@@ -1286,7 +1286,7 @@ zdestroy(zone_t *zone)
 	g_assert(zone != NULL);
 	g_assert(uint_is_positive(zone->zn_refcnt));
 
-	spinlock(&zone->lock);
+	zlock(zone);
 
 	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
 		zunlock(zone);
