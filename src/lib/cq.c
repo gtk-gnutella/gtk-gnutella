@@ -1382,6 +1382,26 @@ cq_free(cqueue_t *cq)
 
 	XFREE_NULL(cq->cq_hash);
 	atom_str_free_null(&cq->cq_name);
+
+	/*
+	 * Unlocking the cq->cq_lock mutex (taken above) prevents a loud warning in
+	 * mutex_destroy() in case the mutex was already locked by our thread,
+	 * meaning we were already in cq_clock().  In that situation however,
+	 * we already warned upon entry, and therefore there is no need for a
+	 * second warning.
+	 *
+	 * If the mutex was not taken and someone else attempts to grab it at that
+	 * stage, there will be a slight window which fortunately will be loudly
+	 * detected by mutex_destroy(), as a case of a mutex being destroyed
+	 * whilst owned by another thread.
+	 *
+	 * No valid application code should attempt to sneak in at this stage to
+	 * grab that mutex anyway, so our logic is safe and we will be copiously
+	 * warned if something unexpected happens.
+	 *		--RAM, 2012-12-04.
+	 */
+
+	mutex_unlock(&cq->cq_lock);
 	mutex_destroy(&cq->cq_lock);
 	mutex_destroy(&cq->cq_idle_lock);
 
