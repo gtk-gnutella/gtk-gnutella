@@ -635,7 +635,7 @@ file_info_check_chunklist(const fileinfo_t *fi, bool assertion)
 	 * are run.  Do that only when debugging.
 	 */
 
-	if (assertion && !GNET_PROPERTY(fileinfo_debug))
+	if (assertion && GNET_PROPERTY(fileinfo_debug) < 10)
 		return TRUE;
 
 	file_info_check(fi);
