@@ -553,15 +553,15 @@ zprepare(zone_t *zone, char **blk)
 
 /**
  * Lock zone.
+ *
+ * Don't inline to get proper lock location whith SPINLOCK_DEBUG
  */
-static inline void ALWAYS_INLINE
-zlock(zone_t *zone)
-{
-	if (zone->private)
-		spinlock_direct(&zone->lock);
-	else
-		spinlock(&zone->lock);
-}
+#define zlock(zone) G_STMT_START {		\
+	if (zone->private)					\
+		spinlock_direct(&zone->lock);	\
+	else								\
+		spinlock(&zone->lock);			\
+} G_STMT_END
 
 /**
  * Try to lock zone.
