@@ -71,9 +71,9 @@ assertion_message(const assertion_data * const data, int fatal)
 		print_str(prefix);
 	}
 	if (data->expr) {
-		print_str("Assertion failure in ");
+		print_str("Assertion failure at ");
 	} else {
-		print_str("Code should not have been reached in ");
+		print_str("Code should not have been reached at ");
 	}
 	print_str(data->file);
 	print_str(":");
