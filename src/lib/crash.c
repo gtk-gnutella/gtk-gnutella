@@ -129,6 +129,7 @@ struct crash_vars {
 	const char *exec_path;	/**< Path of program (optional, may be NULL) */
 	const char *crashfile;	/**< Environment variable "Crashfile=..." */
 	const char *cwd;		/**< Current working directory (NULL if unknown) */
+	const char *crashlog;	/**< Full path to the crash file */
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
@@ -169,6 +170,8 @@ G_STMT_START { \
 
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
+
+static const char CRASHFILE_ENV[] = "Crashfile=";
 
 /**
  * Signals that usually lead to a crash.
@@ -758,15 +761,52 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
+static Sigjmp_buf crash_safe_env;
+
+/**
+ * Invoked on a fatal signal during decorated stack building.
+ */
+static G_GNUC_COLD void
+crash_decorated_got_signal(int signo)
+{
+	s_miniwarn("got %s during stack dump generation", signal_name(signo));
+	Siglongjmp(crash_safe_env, signo);
+}
+
 /**
  * Emit a decorated stack frame to specified file, using a gdb-like format.
+ *
+ * @return TRUE on success, FALSE if we caught a harmful signal
  */
-static G_GNUC_COLD NO_INLINE void
+static G_GNUC_COLD NO_INLINE bool
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
-	uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_GDB |
-			STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
-			STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
+	const uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE |
+		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
+		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
+	bool success = TRUE;
+	signal_handler_t old_sigsegv;
+#ifdef SIGBUS
+	signal_handler_t old_sigbus;
+#endif
+
+	/*
+	 * Install signal handlers for harmful signals that could happen during
+	 * symbols loading and stack unwinding.
+	 *
+	 * We use signal_catch() and not signal_set() because we do not want any
+	 * extra information collected when these signals occur.
+	 */
+
+	old_sigsegv = signal_catch(SIGSEGV, crash_decorated_got_signal);
+#ifdef SIGBUS
+	old_sigbus = signal_catch(SIGBUS, crash_decorated_got_signal);
+#endif
+
+	if (Sigsetjmp(crash_safe_env, TRUE)) {
+		success = FALSE;
+		goto done;
+	}
 
 	if (!in_child && vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
@@ -779,6 +819,16 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 		stacktrace_stack_print_decorated(fd, stack, count, flags);
 	}
+
+	/* FALL THROUGH */
+
+done:
+	signal_set(SIGSEGV, old_sigsegv);
+#ifdef SIGBUS
+	signal_set(SIGBUS, old_sigbus);
+#endif
+
+	return success;
 }
 
 /**
@@ -788,9 +838,55 @@ static G_GNUC_COLD NO_INLINE void
 crash_emit_decorated_stack(size_t offset, bool in_child)
 {
 	crash_decorating_stack();
-	crash_stack_print_decorated(STDERR_FILENO, offset + 1, in_child);
+	if (!crash_stack_print_decorated(STDERR_FILENO, offset + 1, in_child))
+		return;
 	if (log_stdout_is_distinct())
 		crash_stack_print_decorated(STDOUT_FILENO, offset + 1, in_child);
+}
+
+/**
+ * Append a decorated stack to the crashlog.
+ *
+ * @return TRUE on success.
+ */
+static G_GNUC_COLD NO_INLINE bool
+crash_append_decorated_stack(size_t offset)
+{
+	int clf;
+	bool success = TRUE;
+
+	if (NULL == vars || NULL == vars->crashlog) {
+		s_miniwarn("%s(): path to crashlog file unknown", G_STRFUNC);
+		return FALSE;
+	}
+
+	if (!file_exists(vars->crashlog)) {
+		s_miniwarn("%s(): crash log \"%s\" does not exist",
+			G_STRFUNC, vars->crashlog);
+		return FALSE;
+	}
+
+	clf = open(vars->crashlog, O_APPEND | O_WRONLY);
+	if (-1 == clf) {
+		s_miniwarn("%s(): cannot append to crash log \"%s\": %m",
+			G_STRFUNC, vars->crashlog);
+		return FALSE;
+	}
+
+	if (!crash_stack_print_decorated(clf, offset + 1, FALSE)) {
+		success = FALSE;
+		goto done;
+	}
+
+	/* Since we were able to dump before, we should be OK for these copies */
+
+	crash_stack_print_decorated(STDERR_FILENO, offset + 1, FALSE);
+	if (log_stdout_is_distinct())
+		crash_stack_print_decorated(STDOUT_FILENO, offset + 1, FALSE);
+
+done:
+	close(clf);
+	return success;
 }
 
 /**
@@ -1593,6 +1689,34 @@ no_fork:
 			flush_err_str();
 			if (log_stdout_is_distinct())
 				flush_str(parent_stdout);
+
+			/*
+			 * If we could fork but the child failed, append a decorated
+			 * stack trace to the crashlog.
+			 */
+
+			if (could_fork && !child_ok) {
+				bool success;
+
+				rewind_str(iov_prolog);
+				print_str("attempting to append a decorated stacktrace to ");
+				print_str(buf);
+				print_str("\n");
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
+
+				success = crash_append_decorated_stack(2);
+
+				rewind_str(iov_prolog);
+				if (success)
+					print_str("appending was successful\n");
+				else
+					print_str("appending attempt failed\n");
+				flush_err_str();
+				if (log_stdout_is_distinct())
+					flush_str(parent_stdout);
+			}
 		}
 
 		/*
@@ -2429,7 +2553,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 		dst_size = 0;
 	}
 
-	item = "Crashfile=";
+	item = CRASHFILE_ENV;
 	clamp_strcpy(dst, dst_size, item);
 	size = size_saturate_add(size, strlen(item));
 
@@ -2466,23 +2590,33 @@ crash_setdir(const char *pathname)
 	}
 
 	/*
-	 * When they specified an exec_path, we generate the environment
-	 * string "Crashfile=pathname" which will be used to pass the name
-	 * of the crashfile to the program.
+	 * When they specified an exec_path, we will use the environment
+	 * string "Crashfile=pathname" which to pass the name of the crashfile
+	 * to the program.
+	 *
+	 * We always generate the variable when they have fork(), regardless of
+	 * whether they specified an exec_path to be able to determine the full
+	 * path of the crashlog file if we need to access the full path to append
+	 * something to the crash log from the parent process.
+	 *		--RAM, 2012-12-08
 	 */
 
-	if (has_fork() && NULL != vars->exec_path) {
+	if (has_fork())
 		crashfile_size = crashfile_name(NULL, 0, pathname);
-	}
 
 	if (crashfile_size > 0) {
 		char *crashfile = xmalloc(crashfile_size);
+		const char *crashlog;
 		const char *ro;
 
 		crashfile_name(crashfile, crashfile_size, pathname);
 		ro = ostrdup_readonly(crashfile);
 		crash_set_var(crashfile, ro);
 		xfree(crashfile);
+
+		crashlog = is_strprefix(ro, CRASHFILE_ENV);
+		g_assert(crashlog != NULL);
+		crash_set_var(crashlog, crashlog);
 	}
 
 	curdir = ostrdup_readonly(curdir);
