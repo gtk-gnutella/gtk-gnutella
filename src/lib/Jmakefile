@@ -201,6 +201,7 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
+	vsort.c \
 	walloc.c \
 	watcher.c \
 	wd.c \

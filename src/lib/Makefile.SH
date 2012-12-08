@@ -258,6 +258,7 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
+	vsort.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
@@ -411,6 +412,7 @@ LOBJ = \
 	vector.o \
 	vendors.o \
 	vmm.o \
+	vsort.o \
 	walloc.o \
 	watcher.o \
 	wd.o \

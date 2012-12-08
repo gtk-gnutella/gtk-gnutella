@@ -141,13 +141,14 @@
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
+#include "lib/thread.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
-#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/vmm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
@@ -1805,6 +1806,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
+	vsort_init(1);
 	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);

@@ -872,6 +872,8 @@ src/lib/vendors.c
 src/lib/vendors.h
 src/lib/vmm.c
 src/lib/vmm.h
+src/lib/vsort.c
+src/lib/vsort.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c
