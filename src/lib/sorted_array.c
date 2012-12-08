@@ -34,8 +34,10 @@
 #include "common.h"
 
 #include "sorted_array.h"
+
 #include "halloc.h"
 #include "misc.h"
+#include "vsort.h"
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -176,7 +178,7 @@ sorted_array_sync(struct sorted_array *tab,
 
 	g_assert(tab);
 
-	qsort(tab->items, tab->num_added, tab->item_size, tab->cmp_func);
+	vsort(tab->items, tab->num_added, tab->item_size, tab->cmp_func);
 
 	/*
 	 * Remove duplicates and overlapping ranges. Wider ranges override
@@ -214,7 +216,8 @@ sorted_array_sync(struct sorted_array *tab,
 		if (removed > 0) {
 			/* Finally, correct order and item count. */
 			tab->num_added -= removed;
-			qsort(tab->items, tab->num_added, tab->item_size, tab->cmp_func);
+			vsort_almost(tab->items, tab->num_added, tab->item_size,
+				tab->cmp_func);
 		}
 	}
 

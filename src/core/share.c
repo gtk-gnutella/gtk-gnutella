@@ -79,6 +79,7 @@
 #include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -1716,7 +1717,7 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 	}
 
 	/* Sort file list by modification time to get a relatively stable index */
-	qsort(ctx->files, ctx->files_scanned, sizeof ctx->files[0],
+	vsort(ctx->files, ctx->files_scanned, sizeof ctx->files[0],
 		shared_file_sort_by_mtime);
 
 next:
@@ -1814,7 +1815,7 @@ recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 
 	ctx->sorted = hcopy(ctx->files, ctx->files_scanned * sizeof ctx->files[0]);
 
-	qsort(ctx->sorted, ctx->files_scanned, sizeof ctx->sorted[0],
+	vsort(ctx->sorted, ctx->files_scanned, sizeof ctx->sorted[0],
 		shared_file_sort_by_name);
 
 	/*

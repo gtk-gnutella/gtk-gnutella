@@ -51,6 +51,7 @@
 #include "stacktrace.h"
 #include "stringify.h"
 #include "unsigned.h"
+#include "vsort.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -600,7 +601,7 @@ memusage_sort_frames(const memusage_t *mu, bool periodic,
 
 	g_assert(fill->count == fill->capacity);
 
-	qsort(fill->array, fill->count, sizeof fill->array[0], callframe_cmp);
+	vsort(fill->array, fill->count, sizeof fill->array[0], callframe_cmp);
 }
 
 /**

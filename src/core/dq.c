@@ -66,6 +66,7 @@
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		   /* Must be the last header included */
@@ -1505,7 +1506,7 @@ dq_send_next(dquery_t *dq)
 	 * with a QRP match.
 	 */
 
-	qsort(nv, found, sizeof nv[0], node_mq_qrp_cmp);
+	vsort(nv, found, sizeof nv[0], node_mq_qrp_cmp);
 
 	/*
 	 * Select the first node, and compute the proper TTL for the query.
@@ -1663,7 +1664,7 @@ dq_send_probe(dquery_t *dq)
 	 * the less pending data are listed first.
 	 */
 
-	qsort(nv, found, sizeof nv[0], node_mq_cmp);
+	vsort(nv, found, sizeof nv[0], node_mq_cmp);
 
 	/*
 	 * Send the probe query to the first DQ_PROBE_UP nodes.

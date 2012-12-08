@@ -132,6 +132,7 @@
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vmm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 #include "lib/wq.h"
 #include "lib/zlib_util.h"
@@ -3218,9 +3219,9 @@ node_crawler_headers(struct gnutella_node *n)
 	 */
 
 	if (ux)
-		qsort(ultras, ux, sizeof(gnutella_node_t *), node_gtkg_cmp);
+		vsort(ultras, ux, sizeof(gnutella_node_t *), node_gtkg_cmp);
 	if (lx)
-		qsort(leaves, lx, sizeof(gnutella_node_t *), node_gtkg_cmp);
+		vsort(leaves, lx, sizeof(gnutella_node_t *), node_gtkg_cmp);
 
 	/*
 	 * Avoid sending an incomplete trailing IP address by roughly avoiding
@@ -11838,9 +11839,9 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 
 	if (wants_ua) {
 		if (ux)
-			qsort(ultras, ux, sizeof(gnutella_node_t *), node_ua_cmp);
+			vsort(ultras, ux, sizeof(gnutella_node_t *), node_ua_cmp);
 		if (lx)
-			qsort(leaves, lx, sizeof(gnutella_node_t *), node_ua_cmp);
+			vsort(leaves, lx, sizeof(gnutella_node_t *), node_ua_cmp);
 	}
 
 	/*

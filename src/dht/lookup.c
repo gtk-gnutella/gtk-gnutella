@@ -69,6 +69,7 @@
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -2447,7 +2448,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 			items[i].contrib /= prefix[i];
 	}
 
-	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
+	vsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %zu-bit prefix",

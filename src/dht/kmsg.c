@@ -69,6 +69,7 @@
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -628,7 +629,7 @@ k_send_find_value_response(
 	 * know how large the values are).
 	 */
 
-	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+	vsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
@@ -1915,7 +1916,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 	 * values as possible in the first messages.
 	 */
 
-	qsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
+	vsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];

@@ -47,6 +47,7 @@
 #include "lib/pmsg.h"
 #include "lib/str.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -823,7 +824,7 @@ qlink_create(mqueue_t *q)
 	 */
 
 	q->qlink_count = n;
-	qsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
+	vsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
 
 	mq_check(q, 0);
 }

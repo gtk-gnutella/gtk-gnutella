@@ -54,8 +54,8 @@
 #include "str.h"
 #include "tm.h"			/* For tm_time() */
 #include "unsigned.h"	/* For size_is_non_negative() */
+#include "vsort.h"
 #include "xmalloc.h"
-#include "xsort.h"
 
 /*
  * The following setups are more or less independent from each other.
@@ -2792,7 +2792,7 @@ alloc_dump(FILE *f, bool total)
 	 */
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	qsort(filler.stats, count, sizeof(struct stats *),
+	vsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_allocated_cmp : stats_allocated_cmp);
 
 	/*
@@ -2811,7 +2811,7 @@ alloc_dump(FILE *f, bool total)
 	filler.idx = 0;
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	qsort(filler.stats, count, sizeof(struct stats *),
+	vsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
 	fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -2828,7 +2828,7 @@ alloc_dump(FILE *f, bool total)
 		filler.idx = 0;
 
 		hash_table_foreach(stats, stats_fill_array, &filler);
-		xqsort(filler.stats, count, sizeof(struct stats *),
+		vsort(filler.stats, count, sizeof(struct stats *),
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
