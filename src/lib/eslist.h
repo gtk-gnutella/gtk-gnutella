@@ -214,6 +214,7 @@ void eslist_append(eslist_t *list, void *data);
 void eslist_link_prepend(eslist_t *list, slink_t *lk);
 void eslist_prepend(eslist_t *list, void *data);
 void *eslist_shift(eslist_t *list);
+void eslist_rotate_left(eslist_t *list);
 void eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk);
 void eslist_insert_after(eslist_t *list, void *sibling, void *data);
 void eslist_reverse(eslist_t *list);

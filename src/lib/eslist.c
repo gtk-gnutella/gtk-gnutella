@@ -277,6 +277,28 @@ eslist_shift(eslist_t *list)
 	return item;
 }
 
+/**
+ * Rotate list by one item to the left.
+ *
+ * The head is inserted back at the tail.
+ */
+void
+eslist_rotate_left(eslist_t *list)
+{
+	slink_t *lk;
+
+	eslist_check(list);
+
+	if G_UNLIKELY(list->count <= 1U)
+		return;
+
+	lk = list->head;
+	eslist_link_remove_after_internal(list, NULL, lk);
+	eslist_link_append_internal(list, lk);
+
+	safety_assert(eslist_invariant(list));
+}
+
 static void
 eslist_link_insert_after_internal(eslist_t *list, slink_t *siblk, slink_t *lk)
 {
