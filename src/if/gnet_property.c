@@ -1068,6 +1068,8 @@ guint32  gnet_property_variable_dht_values_debug     = 0;
 static const guint32  gnet_property_variable_dht_values_debug_default = 0;
 guint32  gnet_property_variable_pid     = 0;
 static const guint32  gnet_property_variable_pid_default = 0;
+guint32  gnet_property_variable_http_range_debug     = 0;
+static const guint32  gnet_property_variable_http_range_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9897,6 +9899,26 @@ gnet_prop_init(void) {
     gnet_property->props[462].data.guint32.choices = NULL;
     gnet_property->props[462].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[462].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_HTTP_RANGE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[463].name = "http_range_debug";
+    gnet_property->props[463].desc = _("Debug level for HTTP range parsing / handling.");
+    gnet_property->props[463].ev_changed = event_new("http_range_debug_changed");
+    gnet_property->props[463].save = TRUE;
+    gnet_property->props[463].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[463].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[463].data.guint32.def   = (void *) &gnet_property_variable_http_range_debug_default;
+    gnet_property->props[463].data.guint32.value = (void *) &gnet_property_variable_http_range_debug;
+    gnet_property->props[463].data.guint32.choices = NULL;
+    gnet_property->props[463].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[463].data.guint32.min   = 0x00000000;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

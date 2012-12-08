@@ -131,6 +131,7 @@ LSRC = \
 	hset.c \
 	htable.c \
 	html.c \
+	http_range.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \

@@ -25,13 +25,14 @@
 #ifndef _if_core_downloads_h_
 #define _if_core_downloads_h_
 
-#include "lib/tm.h"				/* For tm_t */
 #include "lib/event.h"			/* For frequency_t */
-#include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/hashlist.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
+#include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/list.h"
 #include "lib/slist.h"
+#include "lib/tm.h"				/* For tm_t */
 
 #include "core/pproxy.h"
 #include "core/rx.h"
@@ -264,7 +265,7 @@ struct download {
 								 **< file download */
 	time_t last_dmesh;			/**< Time when last download mesh was sent */
 
-	GSList *ranges;				/**< PFSP -- known list of ranges, or NULL */
+	http_rangeset_t *ranges;	/**< PFSP -- known set of ranges, or NULL */
 	filesize_t ranges_size;		/**< PFSP -- size of remotely available data */
 	filesize_t sinkleft;		/**< Amount of data left to sink */
 
@@ -364,7 +365,7 @@ enum {
 #define download_pipelining(d)	((d)->pipeline != NULL)
 
 /*
- * Sorted list of http_range_t objects, telling us about the available ranges
+ * Set of http_range_t objects, telling us about the available ranges
  * on the remote size, in case the file is partial.
  */
 #define download_is_partial(d)	(0 != ((d)->flags & DL_F_PARTIAL))

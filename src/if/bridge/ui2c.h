@@ -168,10 +168,6 @@ const char *guc_hsep_get_static_str(int row, int column);
 void guc_hsep_add_global_table_listener(GCallback, frequency_t, uint32);
 void guc_hsep_remove_global_table_listener(GCallback);
 
-/* http interface functions */
-const char *guc_http_range_to_string(const GSList *);
-GSList * guc_http_range_merge(GSList *old_list, GSList *new_list);
-
 /* node interface functions */
 void guc_node_add_node_added_listener(node_added_listener_t);
 void guc_node_add_node_removed_listener(node_removed_listener_t);

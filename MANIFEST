@@ -722,6 +722,8 @@ src/lib/host_addr.h
 src/lib/html.c
 src/lib/html.h
 src/lib/html_entities.h
+src/lib/http_range.c
+src/lib/http_range.h
 src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c

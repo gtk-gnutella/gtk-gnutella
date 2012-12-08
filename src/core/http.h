@@ -352,13 +352,6 @@ int
 http_content_range_parse(const char *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total);
 
-bool http_range_equal(const GSList *range1, const GSList *range2);
-filesize_t http_range_size(const GSList *list);
-void http_range_free(GSList *list);
-GSList *http_range_parse(const char *field, const char *value,
-		filesize_t size, const char *vendor);
-bool http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
-
 const char *http_url_strerror(http_url_error_t errnum);
 bool http_url_parse(
 	const char *url, uint16 *port, const char **host, const char **path);

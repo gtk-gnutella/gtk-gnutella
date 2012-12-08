@@ -36,8 +36,6 @@
 
 #include "if/bridge/ui2c.h"
 #include "if/core/bsched.h"
-#include "if/core/http.h"
-#include "if/core/http.h"
 #include "if/core/pproxy.h"
 #include "if/core/sockets.h"
 #include "if/gui_property_priv.h"

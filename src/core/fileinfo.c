@@ -51,7 +51,6 @@
 #include "gmsg.h"
 #include "guid.h"
 #include "hosts.h"
-#include "http.h"					/* For http_range_t */
 #include "huge.h"
 #include "namesize.h"
 #include "nodes.h"
@@ -78,6 +77,7 @@
 #include "lib/header.h"
 #include "lib/hikset.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/magnet.h"
 #include "lib/mempcpy.h"
@@ -1094,9 +1094,8 @@ fi_free(fileinfo_t *fi)
 		}
 		gm_slist_free_null(&fi->alias);
 	}
-	if (fi->seen_on_network) {
-		fi_free_ranges(fi->seen_on_network);
-	}
+
+	http_rangeset_free_null(&fi->seen_on_network);
 	fi_tigertree_free(fi);
 
 	atom_guid_free_null(&fi->guid);
@@ -4754,23 +4753,6 @@ fi_busy_count(fileinfo_t *fi, const struct download *d)
 }
 
 /**
- * Compares two HTTP ranges so that two ranges are equal only when they overlap.
- */
-static int
-fi_http_overlap_cmp(const void *a, const void *b)
-{
-	const http_range_t *ra = a, *rb = b;
-
-	if (ra->end < rb->start)		/* `end' is part of the HTTP range */
-		return -1;
-
-	if (rb->end < ra->start)
-		return +1;
-
-	return 0;		/* Overlapping ranges are equal */
-}
-
-/**
  * Compares two offered ranges so that two ranges are equal when they overlap.
  */
 static int
@@ -4806,8 +4788,8 @@ fi_chunk_overlap_cmp(const void *a, const void *b)
 static const struct dl_file_chunk *
 fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 {
-	http_range_t *whole = NULL;
-	rbtree_t *missing, *offered;
+	rbtree_t *missing;
+	http_rangeset_t *offered;
 	slink_t *sl;
 	const struct dl_file_chunk *first, *candidate = NULL;
 	uint32 rarest_count = 0;
@@ -4851,26 +4833,12 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	 * The `missing' red-black tree contains the file chunks that are still
 	 * empty and need to be downloaded.
 	 *
-	 * The `offered' red-black tree contains the HTTP ranges offered by
-	 * the source, if any given.
+	 * The `offered' set contains the HTTP ranges offered by the source,
+	 * if any given.  If NULL, it means the source covers the whole file.
 	 */
 
 	missing = rbtree_create(fi_chunk_overlap_cmp);
-	offered = rbtree_create(fi_http_overlap_cmp);
-
-	if (NULL == d || NULL == d->ranges) {
-		WALLOC(whole);
-		whole->start = 0;
-		whole->end = fi->size - 1;
-		rbtree_insert(offered, whole);
-	} else {
-		GSList *rl;
-
-		GM_SLIST_FOREACH(d->ranges, rl) {
-			const http_range_t *r = rl->data;
-			rbtree_insert(offered, r);
-		}
-	}
+	offered = NULL == d ? NULL : d->ranges;
 
 	ESLIST_FOREACH(&fi->chunklist, sl) {
 		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
@@ -4891,7 +4859,6 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	ESLIST_FOREACH(&fi->available, sl) {
 		const struct dl_avail_chunk *fa = eslist_data(&fi->available, sl);
 		struct dl_file_chunk *fc;
-		http_range_t hrange;
 		struct dl_file_chunk crange;
 
 		dl_avail_chunk_check(fa);
@@ -4904,10 +4871,10 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		if (rarest != NULL && fa->sources > rarest->sources)
 			break;
 
-		hrange.start = fa->from;
-		hrange.end = fa->to - 1;
-
-		if (!rbtree_contains(offered, &hrange))
+		if (
+			offered != NULL &&
+			!http_rangeset_contains(offered, fa->from, fa->to - 1)
+		)
 			continue;		/* Range not offered */
 
 		crange.from = fa->from;
@@ -5048,8 +5015,6 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		candidate = first;
 
 	rbtree_free_null(&missing);
-	rbtree_free_null(&offered);
-	WFREE_TYPE_NULL(whole);
 
 done:
 	if (GNET_PROPERTY(fileinfo_debug) || GNET_PROPERTY(download_debug)) {
@@ -5264,7 +5229,7 @@ fi_chunksize(fileinfo_t *fi)
 static double
 fi_missing_coverage(const struct download *d)
 {
-	GSList *ranges;
+	http_rangeset_t *ranges;
 	fileinfo_t *fi;
 	filesize_t missing_size = 0;
 	filesize_t covered_size = 0;
@@ -5294,7 +5259,7 @@ fi_missing_coverage(const struct download *d)
 
 	ESLIST_FOREACH(&fi->chunklist, cl) {
 		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, cl);
-		const GSList *sl;
+		const http_range_t *r;
 
 		if (DL_CHUNK_EMPTY != fc->status)
 			continue;
@@ -5305,30 +5270,28 @@ fi_missing_coverage(const struct download *d)
 		 * Look whether this empty chunk intersects with one of the
 		 * available ranges.
 		 *
-		 * NB: the list of ranges is sorted.  And contrary to fi chunks,
-		 * the upper boundary of the range (r->end) is part of the range.
+		 * NB: Contrary to fi chunks, the upper boundary of the range
+		 * (r->end) is part of the range.
 		 */
 
-		for (sl = ranges; sl; sl = g_slist_next(sl)) {
-			const http_range_t *r = sl->data;
-			filesize_t from, to;
+		r = http_rangeset_lookup_first(ranges, fc->from, fc->to - 1);
 
-			if (r->start > fc->to)
-				break;					/* No further range will intersect */
+		while (r != NULL) {
+			filesize_t start, end;
 
-			if (r->start >= fc->from && r->start < fc->to) {
-				from = r->start;
-				to = MIN(r->end + 1, fc->to);
-				covered_size += to - from;
-				continue;
-			}
+			/*
+			 * Compute the intersection between range and chunk.
+			 */
 
-			if (r->end >= fc->from && r->end < fc->to) {
-				from = MAX(r->start, fc->from);
-				to = r->end + 1;
-				covered_size += to - from;
-				continue;
-			}
+			start = MAX(r->start, fc->from);
+			end = r->end + 1;
+			end = MIN(end, fc->to);
+
+			if (start >= end)
+				break;					/* No longer intersecting */
+
+			covered_size += end - start;
+			r = http_range_next(ranges, r);
 		}
 	}
 
@@ -5811,7 +5774,8 @@ selected:	/* Selected a hole to download */
  */
 bool
 file_info_find_available_hole(
-	const struct download *d, GSList *ranges, filesize_t *from, filesize_t *to)
+	const struct download *d, http_rangeset_t *ranges,
+	filesize_t *from, filesize_t *to)
 {
 	slink_t *sl;
 	fileinfo_t *fi;
@@ -5822,7 +5786,7 @@ file_info_find_available_hole(
 	const struct dl_file_chunk *chunk = NULL;
 
 	download_check(d);
-	g_assert(ranges);
+	g_assert(ranges != NULL);
 
 	fi = d->file_info;
 	file_info_check(fi);
@@ -5870,7 +5834,7 @@ file_info_find_available_hole(
 
 	ECLIST_FOREACH(&cklist, sl) {
 		const struct dl_file_chunk *fc = eclist_data(&cklist, sl);
-		const GSList *rl;
+		const http_range_t *r;
 
 		if (DL_CHUNK_EMPTY != fc->status) {
 			if (DL_CHUNK_BUSY == fc->status) {
@@ -5887,19 +5851,14 @@ file_info_find_available_hole(
 		 * Look whether this empty chunk intersects with one of the
 		 * available ranges.
 		 *
-		 * NB: the list of ranges is sorted.  And contrary to fi chunks,
-		 * the upper boundary of the range (r->end) is part of the range.
+		 * NB: Contrary to fi chunks, the upper boundary of the range
+		 * (r->end) is part of the range.
 		 */
 
-		for (rl = ranges; rl; rl = g_slist_next(rl)) {
-			const http_range_t *r = rl->data;
+		r = http_rangeset_lookup(ranges, fc->from, fc->to - 1);
+
+		if (r != NULL) {
 			filesize_t start, end;
-
-			if (r->start > fc->to)
-				break;					/* No further range will intersect */
-
-			if (r->end < fc->from)
-				continue;				/* Is before chunk, cannot intersect */
 
 			/*
 			 * Intersect range and chunk, [start, end[ is the result.
@@ -5909,15 +5868,11 @@ file_info_find_available_hole(
 			end = r->end + 1;
 			end = MIN(end, fc->to);
 
-			/*
-			 * If intersection is non-null, we got our chunk.
-			 */
+			g_assert(start < end);		/* Intersection is non-empty */
 
-			if (start < end) {
-				*from = start;
-				*to = end;
-				goto found;
-			}
+			*from = start;
+			*to = end;
+			goto found;
 		}
 	}
 
@@ -5927,28 +5882,27 @@ file_info_find_available_hole(
 		filesize_t start, end;
 
 		if (fi_find_aggressive_candidate(d, busy, &start, &end, &chunk)) {
-			const GSList *rl;
+			const http_range_t *r;
 
 			/*
 			 * Look whether this candidate chunk is fully held in the
 			 * available remote chunks.
 			 *
-			 * NB: the list of ranges is sorted.  And contrary to fi chunks,
-			 * the upper boundary of the range (r->end) is part of the range.
+			 * NB: contrary to fi chunks, the upper boundary of the range
+			 * (r->end) is part of the range.
 			 */
 
-			for (rl = ranges; rl; rl = g_slist_next(rl)) {
-				const http_range_t *r = rl->data;
+			r = http_rangeset_lookup(ranges, start, end - 1);
 
-				if (r->start > end)
-					break;				/* No further range will intersect */
-
-				if (r->start <= start && r->end >= (end - 1)) {
-					/* Selected chunk is fully contained in remote range */
-					*from = start;
-					*to = end;
-					goto selected;
-				}
+			if (
+				r != NULL &&
+				r->start <= start &&
+				r->end >= end - 1
+			) {
+				/* Selected chunk is fully contained in remote range */
+				*from = start;
+				*to = end;
+				goto selected;
 			}
 		}
 	}
@@ -6381,14 +6335,14 @@ GSList *
 fi_get_ranges(gnet_fi_t fih)
 {
     fileinfo_t *fi = file_info_find_by_handle(fih);
-    http_range_t *range = NULL;
 	GSList *ranges = NULL;
-    const GSList *sl;
+	const http_range_t *r;
 
     file_info_check(fi);
 
-    for (sl = fi->seen_on_network; NULL != sl; sl = g_slist_next(sl)) {
-        const http_range_t *r = sl->data;
+	HTTP_RANGE_FOREACH(fi->seen_on_network, r) {
+		http_range_t *range;
+
         WALLOC(range);
         range->start = r->start;
         range->end   = r->end;
@@ -7550,10 +7504,9 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 			/* Partial file with no known ranges, ignore */
 			continue;
 		} else {
-			GSList *rl;
+			const http_range_t *r;
 
-			GM_SLIST_FOREACH(d->ranges, rl) {
-				const http_range_t *r = rl->data;
+			HTTP_RANGE_FOREACH(d->ranges, r) {
 				fi_count_source(rbt, r->start, r->end + 1);
 			}
 		}
@@ -7692,26 +7645,6 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 }
 
 /**
- * Create a ranges list with one item covering the whole file.
- * This may be better placed in http.c, but since it is only
- * used here as a utility function for fi_update_seen_on_network
- * it is now placed here.
- *
- * @param[in] size  File size to be used in range creation
- */
-static GSList *
-fi_range_for_complete_file(filesize_t size)
-{
-	http_range_t *range;
-
-	WALLOC(range);
-	range->start = 0;
-	range->end = size - 1;
-
-    return g_slist_append(NULL, range);
-}
-
-/**
  * Callback for updates to ranges available on the network.
  *
  * This function gets triggered by an event when new ranges information has
@@ -7727,12 +7660,9 @@ static void
 fi_update_seen_on_network(gnet_src_t srcid)
 {
 	struct download *d;
+	http_rangeset_t *hrs;
+	GSList *sl;
 	fileinfo_t *fi;
-	GSList *old_list;	/* The previous list of ranges, no longer needed */
-	GSList *sl;			/* Temporary pointer to help remove old_list */
-	GSList *r = NULL;
-	GSList *new_r = NULL;
-	bool complete;
 
 	d = src_get_download(srcid);
 	download_check(d);
@@ -7756,13 +7686,10 @@ fi_update_seen_on_network(gnet_src_t srcid)
 	 * which replied to us recently -- we not not take into account all sources.
 	 */
 
-	old_list = fi->seen_on_network;
+	http_rangeset_free_null(&fi->seen_on_network);
+	hrs = fi->seen_on_network = http_rangeset_create();
 
-	for (
-		sl = fi->sources, complete = FALSE;
-		sl != NULL && !complete;
-		sl = g_slist_next(sl)
-	) {
+	GM_SLIST_FOREACH(fi->sources, sl) {
 		struct download *src = sl->data;
 		fileinfo_t *sfi;
 
@@ -7776,6 +7703,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		 * request, and if the download request is not done or in an error
 		 * state.
 		 */
+
 		if (
 			(src->flags & DL_F_REPLIED) &&
 			download_is_active(src)
@@ -7794,8 +7722,9 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
 					g_debug("   whole file is now available");
 
-				new_r = fi_range_for_complete_file(fi->size);
-				complete = TRUE;
+				http_rangeset_clear(hrs);
+				http_rangeset_insert(hrs, 0, fi->size - 1);
+				break;
 			} else if (NULL == src->ranges) {
 				/* Partial file with no known ranges, ignore */
 				continue;
@@ -7803,33 +7732,23 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5) {
 					g_debug("   ranges available: %s",
-						http_range_to_string(src->ranges));
+						http_rangeset_to_string(src->ranges));
 				}
-				new_r = http_range_merge(r, src->ranges);
-			}
 
-			fi_free_ranges(r);
-			r = new_r;
+				http_rangeset_merge(hrs, src->ranges);
+			}
 
 			/*
-			 * Stop if we have the full range covered, to stop looping.
+			 * Stop looping if we have the full range covered.
 			 */
 
-			if (!complete && r != NULL) {
-				http_range_t *hr = r->data;
-				complete = 0 == hr->start && hr->end + 1 >= fi->size;
-			}
+			if (http_rangeset_length(hrs) == fi->size)
+				break;
 		}
 	}
-	fi->seen_on_network = r;
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("=> final ranges: %s", http_range_to_string(r));
-
-	/*
-	 * Remove the old list and free its range elements
-	 */
-	fi_free_ranges(old_list);
+		g_debug("=> final ranges: %s", http_rangeset_to_string(hrs));
 
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.

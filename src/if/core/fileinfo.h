@@ -27,7 +27,9 @@
 #include "common.h"
 
 #include "lib/eslist.h"
+#include "lib/http_range.h"
 #include "lib/path.h"
+
 #include "if/core/downloads.h"	/* For gnet_srt_t */
 
 struct shared_file;
@@ -168,7 +170,7 @@ typedef struct dl_file_info {
 	filesize_t uploaded;	/**< Amount of bytes uploaded */
 	eslist_t chunklist;		/**< List of ranges within file */
 	eslist_t available;		/**< List of ranges available, with source count */
-	GSList *seen_on_network;  /**< List of ranges available on network */
+	http_rangeset_t *seen_on_network;  /**< Ranges available on network */
 	uint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
 	uint32 active_queued;	/**< Actively queued sources */

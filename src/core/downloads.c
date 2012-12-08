@@ -102,6 +102,7 @@
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
@@ -4697,8 +4698,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		switch (new_status) {
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
-			http_range_free(d->ranges);
-			d->ranges = NULL;
+			http_rangeset_free_null(&d->ranges);
 			break;
 		default:
 			break;
@@ -5409,10 +5409,7 @@ download_remove(struct download *d)
 	if (d->file_info->sha1 != NULL)
 		download_by_sha1_remove(d);
 
-	if (d->ranges) {
-		http_range_free(d->ranges);
-		d->ranges = NULL;
-	}
+	http_rangeset_free_null(&d->ranges);
 
 	if (d->req) {
 		http_buffer_free(d->req);
@@ -5839,7 +5836,7 @@ download_pick_available(struct download *d, struct dl_chunk *chunk)
 			g_debug("PFSP no interesting chunks from %s for \"%s\", "
 				"available was: %s",
 				host_addr_port_to_string(download_addr(d), download_port(d)),
-				download_basename(d), http_range_to_string(d->ranges));
+				download_basename(d), http_rangeset_to_string(d->ranges));
 
 		return FALSE;
 	}
@@ -5866,7 +5863,7 @@ download_pick_available(struct download *d, struct dl_chunk *chunk)
 		file_info_chunk_status(d->file_info,
 			from - GNET_PROPERTY(download_overlap_range),
 			from) == DL_CHUNK_DONE &&
-		http_range_contains(d->ranges,
+		http_rangeset_contains(d->ranges,
 			from - GNET_PROPERTY(download_overlap_range),
 			from - 1)
 	)
@@ -5877,7 +5874,7 @@ download_pick_available(struct download *d, struct dl_chunk *chunk)
 			"from %s for \"%s\", available was: %s",
 			uint64_to_string(from), uint64_to_string2(to - 1), chunk->overlap,
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			download_basename(d), http_range_to_string(d->ranges));
+			download_basename(d), http_rangeset_to_string(d->ranges));
 
 	return TRUE;
 }
@@ -10664,19 +10661,30 @@ update_available_ranges(struct download *d, const header_t *header)
 	 */
 
 	{
-		GSList *old_ranges = d->ranges;
-		GSList *new_ranges;
+		filesize_t old_length, new_length;
+		http_rangeset_t *new_ranges;
 
-		new_ranges = http_range_parse(available_ranges, buf,
+		old_length = NULL == d->ranges ? 0 : http_rangeset_length(d->ranges);
+
+		new_ranges = http_rangeset_extract(available_ranges, buf,
 			download_filesize(d), download_vendor_str(d));
 
-		d->ranges = http_range_merge(old_ranges, new_ranges);
-		d->ranges_size = http_range_size(d->ranges);
+		if (new_ranges != NULL) {
+			if (d->ranges != NULL) {
+				new_length = http_rangeset_merge(d->ranges, new_ranges);
+			} else {
+				new_length = http_rangeset_length(new_ranges);
+				d->ranges = new_ranges;
+			}
+		} else {
+			new_length = old_length;
+		}
+		
+		d->ranges_size = new_length;
+		has_new_ranges = old_length != new_length;
 
-		has_new_ranges = !http_range_equal(old_ranges, d->ranges);
-
-		http_range_free(old_ranges);
-		http_range_free(new_ranges);
+		if (d->ranges != new_ranges)
+			http_rangeset_free_null(&new_ranges);
 	}
 
 	/* FALL THROUGH */
@@ -10714,8 +10722,7 @@ update_available_ranges(struct download *d, const header_t *header)
 				download_basename(d));
 		}
 
-		http_range_free(d->ranges);
-		d->ranges = NULL;
+		http_rangeset_free_null(&d->ranges);
 		d->flags &= ~DL_F_PARTIAL;
 		has_new_ranges = TRUE;
 	}
@@ -11407,7 +11414,7 @@ http_version_nofix:
 		 */
 		if (
 			ack_code == 503 && d->ranges != NULL &&
-			!http_range_contains(d->ranges,
+			!http_rangeset_contains(d->ranges,
 				d->chunk.start, d->chunk.end - 1) &&
 			NULL == header_get(header, "X-Queue") &&
 			NULL == header_get(header, "X-Queued")
@@ -11477,7 +11484,7 @@ http_version_nofix:
 	 * replies are possible with PFSP.
 	 */
 
-	if (d->ranges && d->keep_alive && d->file_info->use_swarming) {
+	if (d->ranges != NULL && d->keep_alive && d->file_info->use_swarming) {
 		switch (ack_code) {
 		case 503:				/* Range not available, maybe */
 		case 416:				/* Range not satisfiable */
@@ -11487,18 +11494,19 @@ http_version_nofix:
 			 */
 
 			if (
-				http_range_contains(
-					d->ranges, d->chunk.start, d->chunk.end - 1)
+				http_rangeset_contains(d->ranges,
+					d->chunk.start, d->chunk.end - 1)
 			) {
-				if (GNET_PROPERTY(download_debug) > 3)
+				if (GNET_PROPERTY(download_debug) > 3) {
 					g_debug("PFSP currently requested chunk %s-%s from %s "
 						"for \"%s\" already in the available ranges: %s",
 						uint64_to_string(d->chunk.start),
 						uint64_to_string2(d->chunk.end - 1),
 						host_addr_port_to_string(download_addr(d),
 								download_port(d)),
-						download_basename(d), http_range_to_string(d->ranges));
-
+						download_basename(d),
+						http_rangeset_to_string(d->ranges));
+				}
 				break;
 			}
 
@@ -12911,8 +12919,10 @@ download_send_request(struct download *d)
 			d->flags &= ~DL_F_CHUNK_CHOSEN;
 		else {
 			if (NULL == d->ranges || !download_pick_available(d, &d->chunk)) {
-				http_range_free(d->ranges);	/* May have changed on server */
-				d->ranges = NULL;			/* Request normally */
+				/*
+				 * Ranges may have changed on server, attempt to grab
+				 * any chunk, regardless of what we can think is available.
+				 */
 
 				if (!download_pick_chunk(d, &d->chunk, TRUE))
 					return;
@@ -16465,8 +16475,11 @@ download_timer(time_t now)
 						continue;		/* Was requeued */
 					}
 
-					http_range_free(d->ranges);	/* May have changed on server */
-					d->ranges = NULL;			/* Request normally next time */
+					/*
+					 * Ranges may have changed on server, pick a chunk without
+					 * relying on what we think is available.  If that fails,
+					 * we'll get an updated range list from the server.
+					 */
 
 					if (!download_pick_chunk(d, &d->pipeline->chunk, FALSE)) {
 						d->flags |= DL_F_NO_PIPELINE;

@@ -81,6 +81,7 @@
 #define USHRT_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned short)
 #define UINT_DEC_BUFLEN		TYPE_DEC_BUFLEN(unsigned int)
 #define ULONG_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned long)
+#define FILESIZE_DEC_BUFLEN	TYPE_DEC_BUFLEN(filesize_t)
 
 #define INT_DEC_BUFLEN		TYPE_DEC_BUFLEN(int)
 #define LONG_DEC_BUFLEN		TYPE_DEC_BUFLEN(long)

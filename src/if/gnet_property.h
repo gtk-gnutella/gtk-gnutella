@@ -499,6 +499,7 @@ typedef enum {
     PROP_DHT_KEYS_DEBUG,
     PROP_DHT_VALUES_DEBUG,
     PROP_PID,
+    PROP_HTTP_RANGE_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 

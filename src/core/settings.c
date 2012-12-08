@@ -88,6 +88,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/http_range.h"
 #include "lib/log.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -2499,6 +2500,17 @@ inputevt_debug_changed(property_t prop)
 }
 
 static bool
+http_range_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_http_range_debug(val);
+
+    return FALSE;
+}
+
+static bool
 omalloc_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3041,6 +3053,11 @@ static prop_map_t property_map[] = {
     {
         PROP_INPUTEVT_DEBUG,
         inputevt_debug_changed,
+        TRUE
+    },
+    {
+        PROP_HTTP_RANGE_DEBUG,
+        http_range_debug_changed,
         TRUE
     },
     {

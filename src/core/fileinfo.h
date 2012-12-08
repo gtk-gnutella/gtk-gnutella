@@ -62,7 +62,7 @@ void file_info_set_discard(fileinfo_t *fi, bool state);
 enum dl_chunk_status file_info_find_hole(
 	const struct download *d, filesize_t *from, filesize_t *to);
 bool file_info_find_available_hole(const struct download *d,
-	GSList *ranges, filesize_t *from, filesize_t *to);
+	http_rangeset_t *ranges, filesize_t *from, filesize_t *to);
 void file_info_merge_adjacent(fileinfo_t *fi);
 void file_info_clear_download(struct download *d, bool lifecount);
 enum dl_chunk_status file_info_chunk_status(

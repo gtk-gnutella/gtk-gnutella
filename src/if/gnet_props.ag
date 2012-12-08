@@ -5350,4 +5350,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "http_range_debug";
+    desc = "Debug level for HTTP range parsing / handling.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

@@ -91,6 +91,7 @@
 #include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
@@ -4007,13 +4008,13 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	buf = header_get(header, "Range");
 	if (buf && shared_file_size(u->sf) > 0) {
-		http_range_t *r;
-		GSList *ranges;
+		enum http_range_extract_status rs;
 
-		ranges = http_range_parse("Range", buf,
-					shared_file_size(u->sf), u->user_agent);
+		rs = http_range_extract_first("Range", buf,
+			shared_file_size(u->sf), u->user_agent,
+			&range_skip, &range_end);
 
-		if (ranges == NULL) {
+		if (HTTP_RANGE_NONE == rs) {
 			if (GNET_PROPERTY(upload_debug)) {
 				g_warning("cannot parse Range \"%s\" sent by %s",
 					buf, upload_host_info(u));
@@ -4029,23 +4030,15 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		 *		--RAM, 27/01/2003
 		 */
 
-		if (g_slist_next(ranges) != NULL) {
+		if (HTTP_RANGE_MULTI == rs) {
 			if (GNET_PROPERTY(upload_debug)) {
 				g_warning("%s requested several ranges for \"%s\": %s",
-					upload_host_info(u), shared_file_name_nfc(u->sf),
-					http_range_to_string(ranges));
+					upload_host_info(u), shared_file_name_nfc(u->sf), buf);
 			}
 		}
 
-		r = ranges->data;
-
-		g_assert(r->start <= r->end);
-		g_assert(r->end < shared_file_size(u->sf));
-
-		range_skip = r->start;
-		range_end = r->end;
-
-		http_range_free(ranges);
+		g_assert(range_skip <= range_end);
+		g_assert(range_end < shared_file_size(u->sf));
 	} else {
 		range_end = u->file_size - 1;
 	}

@@ -50,7 +50,6 @@
 #include "if/core/net_stats.h"
 #include "if/core/hcache.h"
 #include "if/core/hsep.h"
-#include "if/core/http.h"
 #include "if/core/parq.h"
 #include "if/core/search.h"
 #include "if/core/share.h"
@@ -509,20 +508,6 @@ void
 guc_hsep_remove_global_table_listener(GCallback cb)
 {
 	hsep_remove_global_table_listener(cb);
-}
-
-
-/*	HTTP interface functions (UI -> Core)*/
-const char *
-guc_http_range_to_string(const GSList *list)
-{
-	return http_range_to_string(list);
-}
-
-GSList *
-guc_http_range_merge(GSList *old_list, GSList *new_list)
-{
-	return http_range_merge(old_list, new_list);
 }
 
 

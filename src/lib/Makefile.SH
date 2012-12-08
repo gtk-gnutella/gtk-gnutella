@@ -188,6 +188,7 @@ LSRC = \
 	hset.c \
 	htable.c \
 	html.c \
+	http_range.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
@@ -340,6 +341,7 @@ LOBJ = \
 	hset.o \
 	htable.o \
 	html.o \
+	http_range.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
