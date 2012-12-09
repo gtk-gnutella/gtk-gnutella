@@ -2685,6 +2685,7 @@ socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
 
 	if G_UNLIKELY(socket_shutdowned) {
 		eslist_foreach(&uctx->queue, socket_udp_qfree, NULL);
+		eslist_clear(&uctx->queue);
 	} else {
 		socket_udp_flush_queue(s, 2 * MAX_UDP_LOOP_MS);
 	}
