@@ -116,7 +116,7 @@ struct dmesh_entry {
 #define MAX_LIBLIFETIME	3600		/**< 1 hour for shared/seeded files */
 #define MAX_ENTRIES		256			/**< Max amount of entries kept per SHA1 */
 
-#define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
+#define MIN_BAD_REPORT	3			/**< Don't ban before that many X-Nalt */
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
 #define DMESH_BAN_VETO	300			/**< 5 minutes, to keep banned entry */
 #define EXPIRE_DELAY	600			/**< 10 minutes after last update */
@@ -327,7 +327,8 @@ dmesh_ban_expire(cqueue_t *unused_cq, void *obj)
  * If stamp is 0, the current timestamp is used.
  */
 static void
-dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
+dmesh_ban_add(const struct sha1 *sha1,
+	const dmesh_urlinfo_t *info, time_t stamp)
 {
 	time_t now = tm_time();
 	struct dmesh_banned *dmb;
@@ -1344,8 +1345,14 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 		WALLOC(raddr);
 		*raddr = reporter;
 		hash_list_append(dme->bad, raddr);
-	} else
+	} else {
+		/* Add entry to the banned mesh if not a firewalled source */
+
+		if (!dme->fw_entry)
+			dmesh_ban_add(sha1, &dme->e.url, 0);
+
 		dm_remove_entry(dm, dme);
+	}
 }
 
 /**
