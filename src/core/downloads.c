@@ -615,6 +615,9 @@ download_pipeline_can_initiate(const struct download *d)
 	if ((DLS_A_FOOBAR & d->server->attrs) && 0 == d->served_reqs)
 		return FALSE;
 
+	if (d->server->attrs & DLS_A_NO_PIPELINE)
+		return FALSE;				/* Server seems to choke on pipelining */
+
 	/*
 	 * If we have a pending THEX download, do not use pipelining so that
 	 * we can switch to the THEX download once the current chunk is done
@@ -848,6 +851,25 @@ download_rx_error(void *o, const char *reason, ...)
 	va_list args;
 
 	download_check(d);
+
+	/*
+	 * If we sent a pipelined request and got an RX error with the server not
+	 * known to support pipelining, them flag it as not supporting pipelining!
+	 *		--RAM, 2012-12-09
+	 */
+
+	if (
+		0 == (d->server->attrs & DLS_A_PIPELINING) &&
+		d->pipeline != NULL &&
+		GTA_DL_PIPE_SENT == d->pipeline->status
+	) {
+		d->server->attrs |= DLS_A_NO_PIPELINE;		/* Disable pipelining */
+
+		if (GNET_PROPERTY(download_debug)) {
+			g_message("disabled pipelining to %s on I/O error",
+				download_host_info(d));
+		}
+	}
 
 	va_start(args, reason);
 	str_vbprintf(msg, sizeof msg, reason, args);
@@ -1538,9 +1560,9 @@ buffers_add_read(struct download *d, pmsg_t *mb)
 		pmsg_free(mb);
 
 		if (GNET_PROPERTY(download_debug) > 10)
-			g_debug("buffers_add_read(): copied %d bytes "
+			g_debug("%s(): copied %d bytes "
 				"into %d-byte long previous #%d (had %d bytes free)",
-				written, pmsg_size(prev_mb) - written,
+				G_STRFUNC, written, pmsg_size(prev_mb) - written,
 				slist_length(b->list), available);
 	} else
 		slist_append(b->list, mb);
@@ -12860,6 +12882,18 @@ download_send_request(struct download *d)
 				d->req = dp->req;		/* Currently pending request */
 				dp->req = NULL;			/* Transferred to the download now */
 			}
+
+			/*
+			 * Since we went this far, assume the server supports pipelining.
+			 *
+			 * Some broken servers will close the connection as soon as they
+			 * receive extra data on the HTTP socket (the pipelined request)
+			 * and this is detected by download_rx_error() now.
+			 *		--RAM, 2012-12-09
+			 */
+
+			d->server->attrs |= DLS_A_PIPELINING;
+
 			/*
 			 * Before discarding the pipeline structure (because we're now
 			 * going to process the reply to the pipelined request soon),
@@ -12870,6 +12904,7 @@ download_send_request(struct download *d)
 			 * A NULL pipeline structure will signal download_request_sent()
 			 * that it can parse the HTTP reply.
 			 */
+
 			download_pipeline_read(d);
 			download_pipeline_free_null(&d->pipeline);
 			if (GTA_DL_PIPE_SENDING == status)
@@ -15629,6 +15664,7 @@ download_get_hostname(const struct download *d)
 		inbound ? _(", inbound") : "",
 		outbound ? _(", outbound") : "",
 		encrypted ? ", TLS" : "",
+		(d->server->attrs & DLS_A_NO_PIPELINE) ? _(", no-pipeline") : "",
 		(d->server->attrs & DLS_A_BANNING) ? _(", banning") : "",
 		(d->server->attrs & (DLS_A_G2_ONLY | DLS_A_FAKE_G2)) ? _(", g2") : "",
 		(d->server->attrs & DLS_A_FAKED_VENDOR) ? _(", vendor?") : "",

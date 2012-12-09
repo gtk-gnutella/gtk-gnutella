@@ -325,6 +325,8 @@ enum {
  * Server attributes.
  */
 enum {
+	DLS_A_PIPELINING	= 1 << 18,	/**< Server known to support pipelining */
+	DLS_A_NO_PIPELINE	= 1 << 17,	/**< Server chokes when pipelining */
 	DLS_A_IPV6_ONLY		= 1 << 16,	/**< Server only supports IPv6 */
 	DLS_A_CAN_IPV6		= 1 << 15,	/**< Server supports IPv6 */
 	DLS_A_DHT_PUBLISH	= 1 << 14,	/**< Server known to publish in the DHT */
