@@ -118,6 +118,7 @@ struct dmesh_entry {
 
 #define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
+#define DMESH_BAN_VETO	300			/**< 5 minutes, to keep banned entry */
 #define EXPIRE_DELAY	600			/**< 10 minutes after last update */
 
 #define FW_MAX_PROXIES	4			/**< At most 4 push-proxies */
@@ -403,9 +404,12 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 }
 
 /**
- * Forcefully remove an entry from the banned mesh.
+ * Conditionally remove an entry from the banned mesh provided it has not
+ * been updated in the last DMESH_BAN_VETO seconds.
+ *
+ * @return TRUE if ban was lifted, FALSE otherwise.
  */
-static void
+static bool
 dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 {
 	dmesh_urlinfo_t info;
@@ -414,10 +418,13 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 	dmb = hikset_lookup(ban_mesh, &info);
 
-	if (dmb) {
+	if (dmb != NULL && delta_time(tm_time(), dmb->created) > DMESH_BAN_VETO) {
 		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_remove_entry(dmb);
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
 /**
@@ -1376,7 +1383,8 @@ retry:
 		}
 
 		if (good) {
-			dmesh_ban_remove(sha1, addr, port);
+			if (!dmesh_ban_remove(sha1, addr, port))
+				return;		/* Entry too recent to lift ban yet */
 			dmesh_add_alternate(sha1, addr, port);
 			retried = TRUE;
 			goto retry;
