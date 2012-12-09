@@ -4139,22 +4139,37 @@ file_info_size_known(struct download *d, filesize_t size)
 	file_info_check(fi);
 
 	g_assert(!fi->file_size_known);
-	g_assert(!fi->use_swarming);
-	g_assert(0 == eslist_count(&fi->chunklist));
 
 	/*
 	 * Mark everything we have so far as done.
 	 */
 
 	if (fi->done) {
-		struct dl_file_chunk *fc;
+		struct dl_file_chunk *fc = eslist_head(&fi->chunklist);
 
-		fc = dl_file_chunk_alloc();
-		fc->from = 0;
-		fc->to = fi->done;			/* Byte at that offset is excluded */
-		fc->status = DL_CHUNK_DONE;
+		if (NULL == fc) {
+			fc = dl_file_chunk_alloc();
+			fc->from = 0;
+			fc->to = fi->done;			/* Byte at that offset is excluded */
+			fc->status = DL_CHUNK_DONE;
 
-		eslist_append(&fi->chunklist, fc);
+			eslist_append(&fi->chunklist, fc);
+		} else {
+			slink_t *next;
+
+			fc->to = fi->done;
+
+			/*
+			 * Remove subsequent chunks.
+			 */
+
+			while (NULL != (next = eslist_next(&fc->lk))) {
+				struct dl_file_chunk *fcn;
+
+				fcn = eslist_remove_after(&fi->chunklist, fc);
+				dl_file_chunk_free(&fcn);
+			}
+		}
 	}
 
 	/*
@@ -4233,12 +4248,11 @@ file_info_update(const struct download *d, filesize_t from, filesize_t to,
 status_ok:
 
 	/*
-	 * If file size is not known yet, the chunk list will be empty.
+	 * If file size is not known yet, the chunk list could be empty.
 	 * Simply update the downloaded amount if the chunk is marked as done.
 	 */
 
-	if (!fi->file_size_known) {
-		g_assert(0 == eslist_count(&fi->chunklist));
+	if (!fi->file_size_known && 0 == eslist_count(&fi->chunklist)) {
 		g_assert(!fi->use_swarming);
 
 		if (status == DL_CHUNK_DONE) {
