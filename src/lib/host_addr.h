@@ -553,6 +553,8 @@ host_addr_is_ipv4_mapped(const host_addr_t addr)
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 
+host_addr_t host_addr_mask_net(host_addr_t addr, int v4, int v6);
+
 const char *host_addr_to_string(const host_addr_t ha);
 const char *host_addr_to_string2(const host_addr_t ha);
 size_t host_addr_to_string_buf(const host_addr_t addr, char *, size_t);
