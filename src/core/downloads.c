@@ -16062,11 +16062,12 @@ download_data_received(struct download *d, ssize_t received)
 	if (fi->size < upper) {
 		if (fi->file_size_known) {
 			file_info_size_unknown(fi);
-			g_critical("%s(): receiving extra data for \"%s\" from %s: "
-				"thought size was %s bytes, receiving from %zu byte%s at %s",
+			g_warning("%s(): receiving extra data for \"%s\" from %s: "
+				"thought size was %s bytes, receiving %zu byte%s at %s -> %s",
 				G_STRFUNC, fi->pathname, download_host_info(d),
 				filesize_to_string(fi->size), received,
-				1 == received ? "" : "s", filesize_to_string2(d->pos));
+				1 == received ? "" : "s", filesize_to_string2(d->pos),
+				filesize_to_string3(upper));
 		}
 		file_info_resize(fi, upper);
 	}
