@@ -354,9 +354,6 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 	xqsort(vt.data, vt.items, vt.isize, vsort_long_cmp);
 	vsort_perturb_sorted_array(vt.data, vt.items, vt.isize);
 
-	vmm_free(vt.data, len);
-	vmm_free(vt.copy, len);
-
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 		tests[i].v_elapsed = vsort_timeit(tests[i].v_timer, &vt, &loops);
 
@@ -373,6 +370,9 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 		s_info("vsort_almost() will use %s() for %s arrays",
 			tests[0].v_name, which);
 	}
+
+	vmm_free(vt.data, len);
+	vmm_free(vt.copy, len);
 }
 
 /**
