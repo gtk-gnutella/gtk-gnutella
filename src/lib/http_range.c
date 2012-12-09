@@ -450,6 +450,9 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 
 	hri = erbtree_lookup(&hrs->tree, &range);
 
+	if (NULL == hri)
+		return NULL;
+
 	/*
 	 * Move to the earliest overlapping range.
 	 */
