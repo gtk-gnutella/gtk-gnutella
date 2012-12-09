@@ -1294,7 +1294,8 @@ dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 /**
  * Record that addr:port was signalled negatively as an alternate location
  * for given sha1.  The reporter's address is also given so that we can wait
- * until we have sufficient evidence from at least 2 different parties.
+ * until we have sufficient evidence from at least MIN_BAD_REPORT different
+ * parties from different networks to mitigate local collusion.
  *
  * When there is sufficient evidence, the entry is evicted from the mesh
  * and placed into the banned mesh.
@@ -1306,6 +1307,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	struct dmesh *dm;
 	struct packed_host packed;
 	struct dmesh_entry *dme;
+	host_addr_t net;
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
@@ -1329,10 +1331,13 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
 
 	/*
-	 * If this host already reported this addr:port as being bad, ignore.
+	 * If this host already reported this network as being bad, ignore.
+	 * We define "network" as CIDR/16 for IPv4 and CIDR/64 for IPv6.
 	 */
 
-	if (hash_list_contains(dme->bad, &reporter))
+	net = host_addr_mask_net(reporter, 16, 64);
+
+	if (hash_list_contains(dme->bad, &net))
 		return;
 
 	/*
@@ -1340,11 +1345,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 */
 
 	if (hash_list_length(dme->bad) + 1 < MIN_BAD_REPORT) {
-		host_addr_t *raddr;
-
-		WALLOC(raddr);
-		*raddr = reporter;
-		hash_list_append(dme->bad, raddr);
+		hash_list_append(dme->bad, WCOPY(&net));
 	} else {
 		/* Add entry to the banned mesh if not a firewalled source */
 
