@@ -2672,12 +2672,22 @@ socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
 	uctx = s->resource.udp;
 	uctx->queue_ev = NULL;			/* Timer expired */
 
+	/*
+	 * If the socket layer has already began shutdown, do not process
+	 * read-ahead datagrams.
+	 */
+
 	if (GNET_PROPERTY(socket_debug)) {
-		g_debug("%s(): flushing %'zu queued datagrams on UDP socket port %u",
-			G_STRFUNC, eslist_count(&uctx->queue), s->local_port);
+		g_debug("%s(): %s %'zu queued datagrams on UDP socket port %u",
+			G_STRFUNC, socket_shutdowned ? "dropping" : "flushing",
+			eslist_count(&uctx->queue), s->local_port);
 	}
 
-	socket_udp_flush_queue(s, 2 * MAX_UDP_LOOP_MS);
+	if G_UNLIKELY(socket_shutdowned) {
+		eslist_foreach(&uctx->queue, socket_udp_qfree, NULL);
+	} else {
+		socket_udp_flush_queue(s, 2 * MAX_UDP_LOOP_MS);
+	}
 }
 
 /**
