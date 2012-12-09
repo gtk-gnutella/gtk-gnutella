@@ -1129,7 +1129,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 
 	nsk.size = fi->size;
 
-	for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
+	GM_SLIST_FOREACH(fi->alias, sl) {
 		GSList *slist;
 		
 		nsk.name = sl->data;
@@ -1141,6 +1141,47 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 			namesize_t *ns = namesize_make(nsk.name, nsk.size);
 			slist = g_slist_append(slist, fi);
 			htable_insert(fi_by_namesize, ns, slist);
+		}
+	}
+}
+
+static void
+file_info_hash_remove_name_size(fileinfo_t *fi)
+{
+	namesize_t nsk;
+	GSList *sl;
+
+	/*
+	 * Remove all the aliases from the (name, size) table.
+	 */
+
+	nsk.size = fi->size;
+
+	GM_SLIST_FOREACH(fi->alias, sl) {
+		namesize_t *ns;
+		GSList *slist, *head;
+		const void *key;
+		void *value;
+		bool found;
+
+		nsk.name = sl->data;
+
+		found = htable_lookup_extended(fi_by_namesize, &nsk, &key, &value);
+
+		ns = deconstify_pointer(key);
+		slist = value;
+		g_assert(found);
+		g_assert(NULL != slist);
+		g_assert(ns->size == fi->size);
+
+		head = slist;
+		slist = g_slist_remove(slist, fi);
+
+		if (NULL == slist) {
+			htable_remove(fi_by_namesize, ns);
+			namesize_free(ns);
+		} else if (head != slist) {
+			htable_insert(fi_by_namesize, ns, slist); /* Head changed */
 		}
 	}
 }
@@ -2550,8 +2591,6 @@ static void
 file_info_hash_remove(fileinfo_t *fi)
 {
 	const fileinfo_t *xfi;
-	namesize_t nsk;
-	bool found;
 
 	file_info_check(fi);
 	g_assert(fi->hashed);
@@ -2590,42 +2629,8 @@ file_info_hash_remove(fileinfo_t *fi)
 	if (fi->sha1)
 		hikset_remove(fi_by_sha1, fi->sha1);
 
-	if (fi->file_size_known) {
-		GSList *sl, *head;
-
-		/*
-		 * Remove all the aliases from the (name, size) table.
-		 */
-
-		nsk.size = fi->size;
-
-		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl)) {
-			namesize_t *ns;
-			GSList *slist;
-			const void *key;
-			void *value;
-
-			nsk.name = sl->data;
-
-			found = htable_lookup_extended(fi_by_namesize, &nsk, &key, &value);
-
-			ns = deconstify_pointer(key);
-			slist = value;
-			g_assert(found);
-			g_assert(NULL != slist);
-			g_assert(ns->size == fi->size);
-
-			head = slist;
-			slist = g_slist_remove(slist, fi);
-
-			if (NULL == slist) {
-				htable_remove(fi_by_namesize, ns);
-				namesize_free(ns);
-			} else if (head != slist) {
-				htable_insert(fi_by_namesize, ns, slist); /* Head changed */
-			}
-		}
-	}
+	if (fi->file_size_known)
+		file_info_hash_remove_name_size(fi);
 
 transient:
 	hikset_remove(fi_by_guid, fi->guid);
@@ -4103,27 +4108,18 @@ file_info_merge_adjacent(fileinfo_t *fi)
 void
 file_info_size_unknown(fileinfo_t *fi)
 {
-	bool was_hashed;
-
 	file_info_check(fi);
 	g_assert(fi->file_size_known);
 
-	was_hashed = fi->hashed;
-
-	if (fi->hashed)
-		file_info_hash_remove(fi);
-
-	fi->file_size_known = FALSE;
-
-	if (was_hashed)
-		file_info_hash_insert(fi);
-
-	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
-
-	if (!(fi->flags & FI_F_TRANSIENT)) {
+	if (0 == (fi->flags & FI_F_TRANSIENT)) {
+		file_info_hash_remove_name_size(fi);
 		fi->dirty = TRUE;
 		fileinfo_dirty = TRUE;
 	}
+
+	fi->file_size_known = FALSE;
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+
 }
 
 /**
