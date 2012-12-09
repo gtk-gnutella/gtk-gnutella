@@ -4892,8 +4892,8 @@ download_queue_update_status(struct download *d)
 	rw += str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
 		_(" at %s"), lazy_locale_to_ui_string(event));
 
-	/* Append PFS indication */
-	if (d->ranges_size) {
+	/* Append PFS indication if needed */
+	if (download_is_partial(d)) {
 		str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
 			" <PFS %4.02f%%>", d->ranges_size * 100.0 / download_filesize(d));
 	}
@@ -10607,7 +10607,7 @@ update_available_ranges(struct download *d, const header_t *header)
 		int error;
 		char *p = is_strprefix(buf, "bytes");
 
-		d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+		d->flags |= DL_F_PARTIAL;	/* Definitely a partial file */
 		seen_available = TRUE;
 
 		if (p) {
@@ -10637,7 +10637,7 @@ update_available_ranges(struct download *d, const header_t *header)
 	if (NULL == buf || download_filesize(d) == 0)
 		goto send_event;
 
-	d->flags |= DL_F_PARTIAL;	/* Definitevely a partial file */
+	d->flags |= DL_F_PARTIAL;	/* Definitely a partial file */
 	seen_available = TRUE;
 
 	/*

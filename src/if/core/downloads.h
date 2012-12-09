@@ -368,6 +368,7 @@ enum {
  * Sorted list of http_range_t objects, telling us about the available ranges
  * on the remote size, in case the file is partial.
  */
+#define download_is_partial(d)	(0 != ((d)->flags & DL_F_PARTIAL))
 #define download_ranges(d)		((d)->ranges)
 #define download_ranges_size(d)	((d)->ranges_size)
 
