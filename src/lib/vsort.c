@@ -154,7 +154,7 @@ vsort_smsort(struct vsort_timing *vt, size_t loops)
 static size_t
 vsort_loops(size_t items)
 {
-	double target, l2, used;
+	double target, used;
 
 	/*
 	 * Assume VSORT_LOOPS loops for VSORT_ITEMS items will take about the time
@@ -164,9 +164,8 @@ vsort_loops(size_t items)
 	 * We know the running time is O(n * log n) where n is the amount of items.
 	 */
 
-	l2 = log(2.0);
-	target = VSORT_ITEMS * log(VSORT_ITEMS) / l2;
-	used = items * log(items) / l2;
+	target = VSORT_ITEMS * log(VSORT_ITEMS);
+	used = items * log(items);
 
 	return target / used * VSORT_LOOPS;
 }
