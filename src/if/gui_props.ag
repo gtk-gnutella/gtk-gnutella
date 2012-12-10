@@ -1355,7 +1355,7 @@ prop = {
 
 prop = {
     name = "search_discard_alien_ip";
-    desc = "Discard search results whith an alien IP address, not matching "
+    desc = "Discard search results with an alien IP address, not matching "
 		"the one from which the results come from.";
     type = boolean;
     data = {
@@ -1384,7 +1384,8 @@ prop = {
 
 prop = {
     name = "search_display_guess_stats";
-    desc = "Whether a summary line with GUESS search stats should be dispayed.";
+    desc = "Whether a summary line with GUESS search stats "
+		"should be displayed.";
     type = boolean;
     data = {
         default = TRUE;

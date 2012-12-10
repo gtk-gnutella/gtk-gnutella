@@ -8038,7 +8038,7 @@
 	    <widget>
 	      <class>GtkEventBox</class>
 	      <name>eventbox_early_stall_2</name>
-	      <tooltip>Splitting ougoing HTTP bandwidth evenly.</tooltip>
+	      <tooltip>Splitting outgoing HTTP bandwidth evenly.</tooltip>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
@@ -23297,7 +23297,7 @@ allowed</label>
 		  <class>GtkCheckButton</class>
 		  <name>checkbutton_pfsp_rare_server</name>
 		  <can_focus>True</can_focus>
-		  <label>Enable upload of patial files deemed rare</label>
+		  <label>Enable upload of partial files deemed rare</label>
 		  <active>False</active>
 		  <draw_indicator>True</draw_indicator>
 		  <child>

@@ -554,7 +554,7 @@ zprepare(zone_t *zone, char **blk)
 /**
  * Lock zone.
  *
- * Don't inline to get proper lock location whith SPINLOCK_DEBUG
+ * Don't inline to get proper lock location with SPINLOCK_DEBUG
  */
 #define zlock(zone) G_STMT_START {		\
 	if (zone->private)					\

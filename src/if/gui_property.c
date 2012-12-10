@@ -2484,7 +2484,7 @@ gui_prop_init(void) {
      * General data:
      */
     gui_property->props[117].name = "search_discard_alien_ip";
-    gui_property->props[117].desc = _("Discard search results whith an alien IP address, not matching the one from which the results come from.");
+    gui_property->props[117].desc = _("Discard search results with an alien IP address, not matching the one from which the results come from.");
     gui_property->props[117].ev_changed = event_new("search_discard_alien_ip_changed");
     gui_property->props[117].save = TRUE;
     gui_property->props[117].vector_size = 1;
@@ -2535,7 +2535,7 @@ gui_prop_init(void) {
      * General data:
      */
     gui_property->props[120].name = "search_display_guess_stats";
-    gui_property->props[120].desc = _("Whether a summary line with GUESS search stats should be dispayed.");
+    gui_property->props[120].desc = _("Whether a summary line with GUESS search stats should be displayed.");
     gui_property->props[120].ev_changed = event_new("search_display_guess_stats_changed");
     gui_property->props[120].save = TRUE;
     gui_property->props[120].vector_size = 1;

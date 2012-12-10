@@ -635,7 +635,7 @@ settings_update_firewalled(void)
 {
 	/*
 	 * The determination of the UDP firewalled status is not 100% safe,
-	 * since any datagram received from a host whith whom we recently
+	 * since any datagram received from a host with whom we recently
 	 * communicated could lead us into believing we are receiving usolicited
 	 * traffic.
 	 *

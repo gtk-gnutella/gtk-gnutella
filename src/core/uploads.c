@@ -506,7 +506,8 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
 		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, FALSE);
 		if (GNET_PROPERTY(upload_debug)) {
-			g_warning("UL switched back to non-uniform HTTP ougoing bandwidth");
+			g_warning("UL switched back to non-uniform HTTP "
+				"outgoing bandwidth");
 		}
 	}
 
@@ -586,7 +587,7 @@ upload_early_stall(void)
 		if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
 			gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, TRUE);
 			if (GNET_PROPERTY(upload_debug)) {
-				g_warning("UL switching to uniform HTTP ougoing bandwidth");
+				g_warning("UL switching to uniform HTTP outgoing bandwidth");
 			}
 		}
 	}

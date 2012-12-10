@@ -12484,7 +12484,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_dht_out), TRUE);
 
-  checkbutton_config_bws_dht_out = gtk_check_button_new_with_mnemonic (_("Global DHT ougoing traffic"));
+  checkbutton_config_bws_dht_out = gtk_check_button_new_with_mnemonic (_("Global DHT outgoing traffic"));
   gtk_widget_set_name (checkbutton_config_bws_dht_out, "checkbutton_config_bws_dht_out");
   gtk_widget_show (checkbutton_config_bws_dht_out);
   gtk_table_attach (GTK_TABLE (table116), checkbutton_config_bws_dht_out, 0, 1, 0, 1,

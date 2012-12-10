@@ -5784,7 +5784,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_early_stall_2);
   gtk_box_pack_start (GTK_BOX (hbox2110), eventbox_early_stall_2, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting ougoing HTTP bandwidth evenly."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting outgoing HTTP bandwidth evenly."), NULL);
 
   image_early_stall_2 = create_pixmap (main_window, "upload-yellow.xpm");
   gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
@@ -15990,7 +15990,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_pfsp_rare_server = gtk_check_button_new_with_label (_("Enable upload of patial files deemed rare"));
+  checkbutton_pfsp_rare_server = gtk_check_button_new_with_label (_("Enable upload of partial files deemed rare"));
   gtk_widget_set_name (checkbutton_pfsp_rare_server, "checkbutton_pfsp_rare_server");
   gtk_widget_ref (checkbutton_pfsp_rare_server);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_pfsp_rare_server", checkbutton_pfsp_rare_server,
