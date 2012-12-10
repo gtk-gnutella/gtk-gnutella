@@ -6810,8 +6810,8 @@ download_push(struct download *d, bool on_timeout)
 	download_check(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_debug("download_push timeout=%s for \"%s\" at %s",
-			on_timeout ? "y" : "n",
+		g_debug("%s(): timeout=%s for \"%s\" at %s",
+			G_STRFUNC, on_timeout ? "y" : "n",
 			download_basename(d), download_host_info(d));
 
 	if (
@@ -7015,9 +7015,8 @@ download_fallback_to_push(struct download *d,
 	download_check(d);
 
 	if (GNET_PROPERTY(download_debug) > 2)
-		g_debug("download_fallback_to_push "
-			"timeout=%s, user=%s for \"%s\" at %s",
-			on_timeout ? "y" : "n", user_request ? "y" : "n",
+		g_debug("%s(): timeout=%s, user=%s for \"%s\" at %s",
+			G_STRFUNC, on_timeout ? "y" : "n", user_request ? "y" : "n",
 			download_basename(d), download_host_info(d));
 
 	/*
@@ -7478,8 +7477,8 @@ create_download(
 
 fail:
 	if (GNET_PROPERTY(download_debug)) {
-		g_debug("create_download(\"%s\", SHA1=%s): %s",
-			file, sha1 ? sha1_base32(sha1) : "none", msg);
+		g_debug("%s(\"%s\", SHA1=%s): %s",
+			G_STRFUNC, file, sha1 ? sha1_base32(sha1) : "none", msg);
 	}
 	atom_str_free_null(&file_name);
 	return NULL;
@@ -13695,9 +13694,8 @@ merge_push_servers(GSList *servers, const struct guid *guid)
 		duplicate->key->port : server->key->port;
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_debug("merging servers: GUID %s at %s into GUID %s at %s"
-			" (using %s:%u)",
-			guid_hex_str(duplicate->key->guid),
+		g_debug("%s(): GUID %s at %s into GUID %s at %s (using %s:%u)",
+			G_STRFUNC, guid_hex_str(duplicate->key->guid),
 			host_addr_port_to_string(
 				duplicate->key->addr, duplicate->key->port),
 			guid_to_string(server->key->guid),
