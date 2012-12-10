@@ -153,6 +153,13 @@ http_rangeset_invariant(const struct http_rangeset * const hrs)
 static const http_range_t *
 HTTP_RANGE(const struct http_range_item *x)
 {
+	/* Assert structural equivalence, which guarantees cast safety */
+
+	STATIC_ASSERT(offsetof(http_range_t, start) ==
+		offsetof(struct http_range_item, start));
+	STATIC_ASSERT(offsetof(http_range_t, end) ==
+		offsetof(struct http_range_item, end));
+
 	if G_LIKELY(x != NULL)
 		http_range_item_check(x);
 
