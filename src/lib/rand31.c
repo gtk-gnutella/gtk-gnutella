@@ -198,8 +198,7 @@ rand31_gen(void)
 }
 
 /**
- * Minimal pseudo-random number generation, combining a simple PRNG with
- * past-collected entropy.
+ * Minimal pseudo-random number generation.
  *
  * @return a 31-bit (positive) random number.
  */
@@ -278,7 +277,7 @@ rand31_value(unsigned max)
 }
 
 /**
- * Build a 32-bit random number from a 31-bit number generator.
+ * Build a 32-bit random number using a 31-bit number generator.
  */
 uint32
 rand31_u32(void)

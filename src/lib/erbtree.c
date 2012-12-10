@@ -38,8 +38,8 @@
  *
  * The most radical change is that the comparison routine compares items, not
  * embedded nodes, and lookups are done by passing pointers to items, not nodes
- * and return pointers to items.  This requires the offset of the embedded
- * node pointer to be given to the erbtree_init() routine.
+ * and lookups return pointers to items.  This requires the offset of the
+ * embedded node pointer to be given to the erbtree_init() routine.
  *
  * Additions were made to introduce generic iterators that handle all the
  * items through callbacks: erbtree_foreach() and erbtree_foreach_remove(),
@@ -54,7 +54,7 @@
  *
  * Here's a list of the major points:
  *
- * - Nodes of the tree aims to be embedded inside your own structure.
+ * - Nodes of the tree aim to be embedded inside your own structure.
  *   This removes the need to do some malloc/free during insertion/removal
  *   operations and saves some space since no allocation infrastructure
  *   (such as object descriptors or object alignment) is required.
@@ -116,13 +116,13 @@
  * with the ones inside the tree.
  *
  * The lookup routine takes a key as parameter, and returns a pointer to
- * the item, or NULL if the key does not exist.  It is possible to get
+ * the item, or NULL if the key does not exist.  It is then possible to get
  * the node directly, which is more convenient for traversing.
  *
  * 4. INSERTION
  *
  * Trees don't store duplicate keys, since rotations don't preserve the
- * binary search tree property in this case. If the user needs to do so,
+ * binary search tree property in that case. If the user needs to do so,
  * then he can keep a separate list of all records having the same key.
  *
  * This is the reason why the insertion functions do insert a key only if
@@ -156,7 +156,7 @@
  *
  * For that, you can retrieve the next or the previous of any inserted node.
  * You can also get the first (leftmost) and the last (rightmost) node of
- * a tree.
+ * a tree in O(1) because these values are maintained..
  * 
  * @author Franck Bui-Huu <fbuihuu@gmail.com>
  * @date 2010
