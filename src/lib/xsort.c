@@ -133,7 +133,7 @@ typedef struct {
  * @return TRUE if OK, FALSE when we decide to bail-out.
  */
 static G_GNUC_HOT bool
-insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
+insertsort(void *const pbase, size_t lastoff, size_t size, cmp_fn_t cmp)
 {
 	char *base = pbase;
 	char *const end = &base[lastoff];	/* Last item */
@@ -253,7 +253,7 @@ insertsort(void *const pbase, size_t lastoff, size_t size, xsort_cmp_t cmp)
  * Return position of median among 3 items without re-arranging items.
  */
 static inline void *
-median_three(void *a, void *b, void *c, xsort_cmp_t cmp)
+median_three(void *a, void *b, void *c, cmp_fn_t cmp)
 {
 	return (*cmp)(a, b) < 0 ?
 		((*cmp)(b, c) < 0 ? b : ((*cmp)(a, c) < 0 ? c : a )) :
@@ -287,7 +287,7 @@ median_three(void *a, void *b, void *c, xsort_cmp_t cmp)
  */
 
 static G_GNUC_HOT void
-quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
+quicksort(void *const pbase, size_t total_elems, size_t size, cmp_fn_t cmp)
 {
 	char *base = pbase;
 	const size_t max_thresh = MAX_THRESH * size;
@@ -498,7 +498,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size, xsort_cmp_t cmp)
  */
 
 static void
-msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
+msort_with_tmp(void *b, size_t n, size_t s, cmp_fn_t cmp, char *t)
 {
 	char *tmp;
 	char *b1, *b2;
@@ -569,7 +569,7 @@ msort_with_tmp(void *b, size_t n, size_t s, xsort_cmp_t cmp, char *t)
  * function ``cmp''.
  */
 void
-xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
+xsort(void *b, size_t n, size_t s, cmp_fn_t cmp)
 {
 	const size_t size = size_saturate_mult(n, s);
 
@@ -621,7 +621,7 @@ xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
  * function ``cmp''.
  */
 void
-xqsort(void *b, size_t n, size_t s, xsort_cmp_t cmp)
+xqsort(void *b, size_t n, size_t s, cmp_fn_t cmp)
 {
 	quicksort(b, n, s, cmp);
 }

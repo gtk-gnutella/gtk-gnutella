@@ -123,7 +123,7 @@ typedef struct {
 typedef struct {
 	char *m;
 	size_t s;
-	smsort_cmp_t cmp;
+	cmp_fn_t cmp;
 	smsort_less_t less;
 	smsort_swap_t swap;
 	uint8 aligned;
@@ -381,7 +381,7 @@ smoothsort(array const *ary, size_t first, size_t N)
  * @param cmp		sort comparison returning -1, 0, +1 for m[a] <=> m[b]
  */
 void
-smsort(void *base, size_t N, size_t S, smsort_cmp_t cmp)
+smsort(void *base, size_t N, size_t S, cmp_fn_t cmp)
 {
 	array const ary[1] = {
 		{ base, S, cmp, NULL, NULL, OPSIZ == S && op_aligned(base) }

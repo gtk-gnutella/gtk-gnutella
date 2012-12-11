@@ -58,7 +58,7 @@ static unsigned initial_seed;
 static const char *current_test;
 static const char *current_algorithm;
 
-typedef void (*xsort_routine)(void *b, size_t n, size_t s, xsort_cmp_t cmp);
+typedef void (*xsort_routine)(void *b, size_t n, size_t s, cmp_fn_t cmp);
 
 static void G_GNUC_NORETURN
 usage(void)

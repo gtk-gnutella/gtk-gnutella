@@ -34,7 +34,6 @@
 #ifndef _smsort_h_
 #define _smsort_h_
 
-typedef int (*smsort_cmp_t)(const void *, const void *);
 typedef bool (*smsort_less_t)(void *, size_t, size_t);
 typedef void (*smsort_swap_t)(void *, size_t, size_t);
 
@@ -42,7 +41,7 @@ typedef void (*smsort_swap_t)(void *, size_t, size_t);
  * Public interface.
  */
 
-void smsort(void *b, size_t n, size_t s, smsort_cmp_t cmp);
+void smsort(void *b, size_t n, size_t s, cmp_fn_t cmp);
 void smsort_ext(void *base, size_t r, size_t N,
 	smsort_less_t less, smsort_swap_t swap);
 
