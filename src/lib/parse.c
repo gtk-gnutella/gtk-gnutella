@@ -74,8 +74,8 @@ NAME(const char *src, char const **endptr, unsigned base, int *errorptr) 	\
 																			\
 	STATIC_ASSERT((TYPE) -1 > 35); /* works for unsigned integers only */	\
 																			\
-	g_assert(src);															\
-	g_assert(errorptr);														\
+	g_assert(src != NULL);													\
+	g_assert(errorptr != NULL);												\
 	g_assert(base >= 2 && base <= 36);										\
 																			\
 	p = src;																\
@@ -100,7 +100,7 @@ NAME(const char *src, char const **endptr, unsigned base, int *errorptr) 	\
 		error = EINVAL;														\
 																			\
 finish:																		\
-	if (endptr)																\
+	if (endptr != NULL)														\
 		*endptr = p;														\
 																			\
 	*errorptr = error;														\
@@ -119,7 +119,106 @@ GENERATE_PARSE_UNSIGNED(parse_ulong, unsigned long)
 GENERATE_PARSE_UNSIGNED(parse_size, size_t)
 
 /**
- * Parse a pointer in hexadecimal notation, with optional leading "Ox" or "0X".
+ * Determine which base the number held in `src' is expressed in.
+ *
+ * If the number starts with "0x" or "0X", hexadecimal is assumed.
+ * If the number starts with "0b" or "0B", binary is assumed.
+ * If the number starts with "0", octal is assumed.
+ * Otherwise, decimal is assumed if it starts with 1-9.
+ *
+ * @param src		the number to parse, with leading base indication
+ * @param endptr	if non-NULL, set with the start of the number, past base
+ *
+ * @return the intuited number base, 0 if first character is not a number.
+ */
+uint
+parse_base(const char *src, char const **endptr)
+{
+	uint base;
+	const char *p = src;
+
+	g_assert(src != NULL);
+
+	if ('0' == src[0]) {
+		if ('x' == ascii_tolower(src[1])) {
+			base = 16;
+			p = &src[2];
+		} else if ('b' == ascii_tolower(src[1])) {
+			base = 2;
+			p = &src[2];
+		} else {
+			base = 8;
+			p = &src[1];
+		}
+	} else if (is_ascii_digit(src[0])) {
+		base = 10;
+	} else {
+		base = 0;
+	}
+
+
+	if (endptr != NULL)
+		*endptr = p;
+
+	return base;
+}
+
+/**
+ * Parse 32-bit value which can be given as decimal, octal (prefix "0"),
+ * hexadecimal (prefix "0x" or "OX"), binary (prefix "0b" or "OB").
+ *
+ * If an error occurs, *errorptr is set with EINVAL or ERANGE, otherwise
+ * *errorptr is written with 0.
+ *
+ * @return the parsed value, 0 meaning possible error (check *errorptr).
+ */
+uint32
+parse_v32(const char *src, char const **endptr, int *errorptr)
+{
+	uint base;
+	const char *start;
+	
+	base = parse_base(src, &start);
+
+	if G_UNLIKELY(0 == base) {
+		if (endptr != NULL)
+			*endptr = src;
+		*errorptr = EINVAL;
+		return 0;
+	}
+
+	return parse_uint32(start, endptr, base, errorptr);
+}
+
+/**
+ * Parse 64-bit value which can be given as decimal, octal (prefix "0"),
+ * hexadecimal (prefix "0x" or "OX"), binary (prefix "0b" or "OB").
+ *
+ * If an error occurs, *errorptr is set with EINVAL or ERANGE, otherwise
+ * *errorptr is written with 0.
+ *
+ * @return the parsed value, 0 meaning possible error (check *errorptr).
+ */
+uint64
+parse_v64(const char *src, char const **endptr, int *errorptr)
+{
+	uint base;
+	const char *start;
+	
+	base = parse_base(src, &start);
+
+	if G_UNLIKELY(0 == base) {
+		if (endptr != NULL)
+			*endptr = src;
+		*errorptr = EINVAL;
+		return 0;
+	}
+
+	return parse_uint64(start, endptr, base, errorptr);
+}
+
+/**
+ * Parse a pointer in hexadecimal notation, with optional leading "0x" or "0X".
  */
 const void *
 parse_pointer(const char *src, char const **endptr, int *errorptr)

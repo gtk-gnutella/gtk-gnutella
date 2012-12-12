@@ -59,6 +59,10 @@ int parse_major_minor(const char *src, char const **endptr,
 	unsigned *major, unsigned *minor)
 	NON_NULL_PARAM((1));
 
+uint parse_base(const char *src, char const **) NON_NULL_PARAM((1));
+uint32 parse_v32(const char *, char const **, int *) NON_NULL_PARAM((1));
+uint64 parse_v64(const char *, char const **, int *) NON_NULL_PARAM((1));
+
 uint32 string_to_ip(const char *);
 bool string_to_ip_strict(const char *s, uint32 *addr, const char **ep);
 bool string_to_ip_and_mask(const char *str, uint32 *ip, uint32 *netmask);
