@@ -417,7 +417,7 @@ hash_compute_increment(const struct hkeys *hk, const void *key, unsigned hv)
 	if (HASH_KEY_FIXED == hk->type) {
 		hv2 = binary_hash2(key, hk->uk.keysize);
 	} else if (HASH_KEY_ANY_DATA == hk->type || NULL == hk->uh.h.hash2) {
-		hv2 = GUINT32_SWAP(hv) ^ GOLDEN_RATIO_32;
+		hv2 = UINT32_SWAP(hv) ^ GOLDEN_RATIO_32;
 	} else {
 		hv2 = (*hk->uh.h.hash2)(key);
 	}

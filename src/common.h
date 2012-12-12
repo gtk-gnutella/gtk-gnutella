@@ -740,27 +740,27 @@ typedef void (*GCallback) (void);
 #define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
 
 /**
- * GUINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
- * If the value is a variable, use GUINT32_SWAP().
+ * UINT32_SWAP_CONSTANT() byte-swaps a 32-bit word, preferrably a constant.
+ * If the value is a variable, use UINT32_SWAP().
  */
-#define GUINT32_SWAP_CONSTANT(x_) ((uint32) ( \
+#define UINT32_SWAP_CONSTANT(x_) ((uint32) (		 \
     (((uint32) (x_) & (uint32) 0x000000ffU) << 24) | \
     (((uint32) (x_) & (uint32) 0x0000ff00U) <<  8) | \
     (((uint32) (x_) & (uint32) 0x00ff0000U) >>  8) | \
     (((uint32) (x_) & (uint32) 0xff000000U) >> 24)))
 
 /**
- * GUINT32_SWAP() byte-swaps a 32-bit word.
+ * UINT32_SWAP() byte-swaps a 32-bit word.
  *
  * Avoid using glib's GUINT32_SWAP_LE_BE(): it triggers compile-time
  * warnings on a wrong __asm__ statement with glib 1.2.  This version
  * should be as efficient as the one defined by glib.
  */
 #if HAS_GCC(4, 0)
-#define GUINT32_SWAP(x_) \
-	(IS_CONSTANT(x_) ? GUINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
+#define UINT32_SWAP(x_) \
+	(IS_CONSTANT(x_) ? UINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
 #else
-#define GUINT32_SWAP(x_) GUINT32_SWAP_CONSTANT(x_)
+#define UINT32_SWAP(x_) UINT32_SWAP_CONSTANT(x_)
 #endif
 
 /**
