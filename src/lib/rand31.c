@@ -176,7 +176,7 @@ rand31_prng(void)
 static int
 rand31_gen(void)
 {
-	unsigned lo, hi;
+	unsigned lo, hi, r1, r2;
 
 	/*
 	 * The low-order bits of the PRNG are less random than the upper ones,
@@ -186,13 +186,18 @@ rand31_gen(void)
 	 * however because this can unexpectedly reduce the PRNG period or alter
 	 * the distribution of returned numbers.
 	 *
-	 * Therefore, we're folding the first number to 16 bits and the second
-	 * to 15 bits before concatening them to produce a 31-bit value, thereby
-	 * accounting for all the bits produced by the PRNG.
+	 * Therefore, we're mixing bits from two consecutive random numbers,
+	 * byte-swapping one of them so that the less random bits mix with more
+	 * random ones.  We also fold the first mixed number to 16 bits and the
+	 * second mixed one to 15 bits before concatening them to produce the
+	 * 31-bit value, thereby accounting for all the bits produced by the PRNG.
 	 */
 
-	lo = hashing_fold(rand31_prng(), 16);
-	hi = hashing_fold(rand31_prng(), 15);
+	r1 = rand31_prng();
+	r2 = rand31_prng();
+
+	lo = hashing_fold(r1 + (UINT32_SWAP(r2) & 0xffff), 16);
+	hi = hashing_fold(r2 - (UINT32_SWAP(r1) & 0x7fff), 15);
 
 	return lo | (hi << 16);
 }
@@ -282,11 +287,12 @@ rand31_value(unsigned max)
 uint32
 rand31_u32(void)
 {
-	unsigned rn;
+	unsigned rn, rx;
 
 	THREAD_LOCK;
 	rand31_check_seeded();
-	rn = (rand31_prng() << 1) + rand31_gen();
+	rx = rand31_prng();
+	rn = UINT32_SWAP(rx) + rand31_gen();
 	THREAD_UNLOCK;
 
 	return rn;
