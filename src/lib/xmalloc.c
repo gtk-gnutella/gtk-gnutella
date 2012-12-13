@@ -4291,6 +4291,21 @@ xpstrndup(const char *str, size_t n)
 }
 
 /**
+ * Free NULL-terminated array of strings, including the array itself.
+ */
+void
+xstrfreev(char **str)
+{
+	char *p;
+	char **vec = str;
+
+	while (NULL != (p = *vec++))
+		xfree(p);
+
+	xfree(str);
+}
+
+/**
  * Computes user size of allocated block, 0 if not allocated via xmalloc().
  */
 size_t

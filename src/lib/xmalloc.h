@@ -81,6 +81,7 @@ char *xstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xpstrdup(const char *str) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
 char *xpstrndup(const char *str, size_t n) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void xstrfreev(char **str);
 size_t xallocated(const void *p);
 
 static inline void * WARN_UNUSED_RESULT G_GNUC_MALLOC
