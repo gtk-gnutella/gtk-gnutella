@@ -72,6 +72,7 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	chi2.c \
 	ckalloc.c \
 	cobs.c \
 	compat_misc.c \

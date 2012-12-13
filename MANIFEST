@@ -598,6 +598,8 @@ src/lib/bit_field.ht
 src/lib/bit_generic.t
 src/lib/bstr.c
 src/lib/bstr.h
+src/lib/chi2.c
+src/lib/chi2.h
 src/lib/ckalloc.c
 src/lib/ckalloc.h
 src/lib/cobs.c
