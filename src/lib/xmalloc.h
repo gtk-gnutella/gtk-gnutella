@@ -127,6 +127,21 @@ G_STMT_START {			\
 	}					\
 } G_STMT_END
 
+#define XMALLOC_ARRAY(p,n)			\
+G_STMT_START {						\
+	p = xmalloc((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define XMALLOC0_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = xmalloc0((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define XREALLOC_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = xrealloc(p, (n) * sizeof p[0]);	\
+} G_STMT_END
+
 #endif /* _xmalloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */
