@@ -805,6 +805,7 @@ src/lib/prop.c
 src/lib/prop.h
 src/lib/rand31.c
 src/lib/rand31.h
+src/lib/random-test.c
 src/lib/random.c
 src/lib/random.h
 src/lib/rbtree.c
