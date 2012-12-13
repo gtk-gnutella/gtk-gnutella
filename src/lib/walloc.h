@@ -205,5 +205,36 @@ G_STMT_START {				\
 	}						\
 } G_STMT_END
 
+#define WALLOC_ARRAY(p,n)			\
+G_STMT_START {						\
+	p = walloc((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define WALLOC0_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = walloc0((n) * sizeof p[0]);		\
+} G_STMT_END
+
+#define WFREE_ARRAY(p,n)			\
+G_STMT_START {						\
+	wfree(p, (n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define WFREE_ARRAY_NULL(p,n)			\
+G_STMT_START {							\
+	if (p) {							\
+		wfree(p, (n) * sizeof p[0]);	\
+		p = NULL;						\
+	}									\
+} G_STMT_END
+
+#define WREALLOC_ARRAY(p,n,m)								\
+G_STMT_START {												\
+	p = wrealloc(p, (n) * sizeof p[0], (m) * sizeof p[0]);	\
+} G_STMT_END
+
+#define WCOPY_ARRAY(p,n)	wcopy(p, (n) * sizeof p[0])
+
 #endif /* _walloc_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */
