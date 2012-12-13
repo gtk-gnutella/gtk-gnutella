@@ -117,5 +117,23 @@ G_STMT_START {			\
 
 #endif	/* TRACK_MALLOC */
 
+#define HALLOC_ARRAY(p,n)			\
+G_STMT_START {						\
+	p = halloc((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define HALLOC0_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = halloc0((n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define HREALLOC_ARRAY(p,n)				\
+G_STMT_START {							\
+	p = hrealloc(p, (n) * sizeof p[0]);	\
+} G_STMT_END
+
+#define HCOPY_ARRAY(p,n)	hcopy(p, (n) * sizeof p[0])
+
 #endif /* _halloc_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */
