@@ -78,7 +78,8 @@ pio_init_once(void)
 	g_assert(NULL == pio_locks);
 
 	pio_capacity = getdtablesize();
-	pio_locks = NOT_LEAKING(xmalloc(pio_capacity * sizeof pio_locks[0]));
+	XMALLOC_ARRAY(pio_locks, pio_capacity);
+	NOT_LEAKING(pio_locks);
 
 	for (i = 0; i < pio_capacity; i++) {
 		spinlock_init(&pio_locks[i]);

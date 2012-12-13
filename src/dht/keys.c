@@ -1271,7 +1271,7 @@ keys_update_kball(void)
 	patricia_t *pt;
 	int i;
 
-	kvec = walloc(KDA_K * sizeof(knode_t *));
+	WALLOC_ARRAY(kvec, KDA_K);
 	kcnt = dht_fill_closest(our_kuid, kvec, KDA_K, NULL, TRUE);
 	kball.seeded = TRUE;
 
@@ -1336,7 +1336,7 @@ keys_update_kball(void)
 		gnet_stats_set_general(GNR_DHT_KBALL_CLOSEST, kball.closest_bits);
 	}
 
-	wfree(kvec, KDA_K * sizeof(knode_t *));
+	WFREE_ARRAY(kvec, KDA_K);
 	patricia_destroy(pt);
 }
 

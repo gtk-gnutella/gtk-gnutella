@@ -1213,7 +1213,7 @@ static cperiodic_t *udp_ping_ev;	/**< Monitoring event */
 static inline void
 udp_ping_free(struct udp_ping *ping)
 {
-	WFREE_NULL(ping->callback, sizeof *ping->callback);
+	WFREE_TYPE_NULL(ping->callback);
 	atom_host_free_null(&ping->host);
 	WFREE(ping);
 }

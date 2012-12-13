@@ -341,8 +341,8 @@ gnet_host_vec_free(gnet_host_vec_t **vec_ptr)
 	if (*vec_ptr) {
 		gnet_host_vec_t *vec = *vec_ptr;
 	
-		WFREE_NULL(vec->hvec_v4, vec->n_ipv4 * sizeof vec->hvec_v4[0]);
-		WFREE_NULL(vec->hvec_v6, vec->n_ipv6 * sizeof vec->hvec_v6[0]);
+		WFREE_ARRAY_NULL(vec->hvec_v4, vec->n_ipv4);
+		WFREE_ARRAY_NULL(vec->hvec_v6, vec->n_ipv6);
 		WFREE(vec);
 		*vec_ptr = NULL;
 	}
@@ -400,14 +400,10 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
 	g_return_val_if_fail(vec->n_ipv4 + vec->n_ipv6 > 0, NULL);
 
 	vec_copy = wcopy(vec, sizeof *vec);
-	if (vec->n_ipv4 > 0) {
-		vec_copy->hvec_v4 = wcopy(vec->hvec_v4,
-								vec->n_ipv4 * sizeof vec->hvec_v4[0]);
-	}
-	if (vec->n_ipv6 > 0) {
-		vec_copy->hvec_v6 = wcopy(vec->hvec_v6,
-								vec->n_ipv6 * sizeof vec->hvec_v6[0]);
-	}
+	if (vec->n_ipv4 > 0)
+		vec_copy->hvec_v4 = WCOPY_ARRAY(vec->hvec_v4, vec->n_ipv4);
+	if (vec->n_ipv6 > 0)
+		vec_copy->hvec_v6 = WCOPY_ARRAY(vec->hvec_v6, vec->n_ipv6);
 	return vec_copy;
 }
 
@@ -534,12 +530,10 @@ gnet_host_vec_from_sequence(sequence_t *s)
 	vec->n_ipv4 = MIN(n_ipv4, 255);
 	vec->n_ipv6 = MIN(n_ipv6, 255);
 
-	if (vec->n_ipv4 > 0) {
-		vec->hvec_v4 = walloc(vec->n_ipv4 * sizeof vec->hvec_v4[0]);
-	}
-	if (vec->n_ipv6 > 0) {
-		vec->hvec_v6 = walloc(vec->n_ipv6 * sizeof vec->hvec_v6[0]);
-	}
+	if (vec->n_ipv4 > 0)
+		WALLOC_ARRAY(vec->hvec_v4, vec->n_ipv4);
+	if (vec->n_ipv6 > 0)
+		WALLOC_ARRAY(vec->hvec_v6, vec->n_ipv6);
 
 	n_ipv4 = 0;
 	n_ipv6 = 0;

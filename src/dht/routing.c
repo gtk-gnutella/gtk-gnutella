@@ -4213,7 +4213,7 @@ dht_update_size_estimate(void)
 	if (!dht_enabled())
 		return;
 
-	kvec = walloc(K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	WALLOC_ARRAY(kvec, K_LOCAL_ESTIMATE);
 	kcnt = dht_fill_closest(our_kuid, kvec, K_LOCAL_ESTIMATE, NULL, TRUE);
 	pt = patricia_create(KUID_RAW_BITSIZE);
 
@@ -4257,7 +4257,7 @@ dht_update_size_estimate(void)
 	stats.local.estimate = estimate;
 	stats.local.amount = K_LOCAL_ESTIMATE;
 
-	wfree(kvec, K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	WFREE_ARRAY(kvec, K_LOCAL_ESTIMATE);
 	patricia_destroy(pt);
 
 	/*

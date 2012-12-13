@@ -3001,10 +3001,10 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 
 	hash_table_lock(zt);
 	zcount = hash_table_size(zt);
-	fill->array = xmalloc(zcount * sizeof fill->array[0]);
+	XMALLOC_ARRAY(fill->array, zcount);
 	while (hash_table_size(zt) != zcount) {
 		zcount = hash_table_size(zt);
-		fill->array = xrealloc(fill->array, zcount * sizeof fill->array[0]);
+		XREALLOC_ARRAY(fill->array, zcount);
 	}
 	fill->capacity = zcount;
 	fill->count = 0;

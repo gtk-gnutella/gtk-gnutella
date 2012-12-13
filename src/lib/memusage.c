@@ -589,10 +589,10 @@ memusage_sort_frames(const memusage_t *mu, bool periodic,
 	 */
 
 	count = hash_table_size(ht);
-	fill->array = xmalloc(count * sizeof fill->array[0]);
+	XMALLOC_ARRAY(fill->array, count);
 	while (hash_table_size(ht) != count) {
 		count = hash_table_size(ht);
-		fill->array = xrealloc(fill->array, count * sizeof fill->array[0]);
+		XREALLOC_ARRAY(fill->array, count);
 	}
 	fill->capacity = count;
 	fill->count = 0;

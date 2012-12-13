@@ -401,8 +401,7 @@ publish_free(publish_t *pb)
 		break;
 	case PUBLISH_VALUE:
 		dht_value_free(pb->target.v.value, TRUE);
-		WFREE_NULL(pb->target.v.status,
-			pb->target.v.rs->path_len * sizeof *pb->target.v.status);
+		WFREE_ARRAY_NULL(pb->target.v.status, pb->target.v.rs->path_len);
 		lookup_result_free(pb->target.v.rs);
 		break;
 	case PUBLISH_OFFLOAD:
@@ -2468,7 +2467,7 @@ publish_value(dht_value_t *value, const lookup_rs_t *rs,
 	 * Initially the array is zeroed because 0 is not a valid store status.
 	 */
 
-	pb->target.v.status = walloc0(rs->path_len * sizeof *pb->target.v.status);
+	WALLOC0_ARRAY(pb->target.v.status, rs->path_len);
 
 	/*
 	 * Before iterating, attempt to publish to ourselves if our node happens
@@ -2518,8 +2517,7 @@ publish_value_background(dht_value_t *value,
 	pb->target.v.value = value;
 	pb->target.v.cb = cb;
 	pb->target.v.arg = arg;
-	pb->target.v.status = wcopy(status,
-		rs->path_len * sizeof *pb->target.v.status);
+	pb->target.v.status = WCOPY_ARRAY(status, rs->path_len);
 	pb->flags |= PB_F_BACKGROUND;
 	pb->target.v.idx = publish_value_next_unstored(pb, 0);
 

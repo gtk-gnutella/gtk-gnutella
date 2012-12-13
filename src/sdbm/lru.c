@@ -75,7 +75,7 @@ setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 	cache->next = 0;
 	cache->write_deferred = wdelay;
 	cache->dirty = walloc(cache->pages);
-	cache->numpag = walloc(cache->pages * sizeof(long));
+	WALLOC_ARRAY(cache->numpag, cache->pages);
 
 	return 0;
 }
@@ -90,7 +90,7 @@ free_cache(struct lru_cache *cache)
 	slist_free(&cache->available);
 	htable_free_null(&cache->pagnum);
 	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
-	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
+	WFREE_ARRAY_NULL(cache->numpag, cache->pages);
 	WFREE_NULL(cache->dirty, cache->pages);
 	cache->pages = cache->next = 0;
 }

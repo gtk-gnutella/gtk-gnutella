@@ -1526,7 +1526,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 
 	fprintf(out, "----------------- %s:\n", title);
 
-	xiov = wcopy(iov, iovcnt * sizeof iov[0]);	/* Don't modify argument */
+	xiov = WCOPY_ARRAY(iov, iovcnt);	/* Don't modify argument */
 
 	for (i = 0; i < iovcnt; /* empty */) {
 		iovec_t *v = &xiov[i];
@@ -1568,7 +1568,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 		length += dumping;
 	}
 
-	wfree(xiov, iovcnt * sizeof iov[0]);
+	WFREE_ARRAY(xiov, iovcnt);
 
 	fprintf(out, "----------------- (%u byte%s).\n",
 		(unsigned) length, 1 == length ? "" : "s");

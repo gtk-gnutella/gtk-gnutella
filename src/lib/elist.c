@@ -882,7 +882,7 @@ elist_shuffle(elist_t *list)
 	 * array.
 	 */
 
-	array = xmalloc(list->count * sizeof array[0]);
+	XMALLOC_ARRAY(array, list->count);
 
 	for (i = 0, lk = list->head; lk != NULL; i++, lk = lk->next) {
 		array[i] = lk;

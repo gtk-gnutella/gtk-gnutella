@@ -1652,7 +1652,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		if (p->save == FALSE)
 			continue;
 
-		vbuf = halloc((p->vector_size + 1) * sizeof(char *));
+		HALLOC_ARRAY(vbuf, p->vector_size + 1);
 		vbuf[0] = NULL;
 
 		{

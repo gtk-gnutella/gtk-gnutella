@@ -57,6 +57,7 @@
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -407,7 +408,7 @@ uint32 number_local_networks;
 static void
 free_networks(void)
 {
-	G_FREE_NULL(local_networks);
+	XFREE_NULL(local_networks);
 }
 
 /**
@@ -437,7 +438,7 @@ parse_netmasks(const char *str)
 		return;
     }
 
-	local_networks = g_malloc(i * sizeof *local_networks);
+	XMALLOC_ARRAY(local_networks, i);
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */

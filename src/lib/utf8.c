@@ -3323,7 +3323,7 @@ utf8_to_utf16_string(const char *in)
 	uint16 *out;
 
 	n = 1 + utf8_to_utf16(in, NULL, 0);
-	out = halloc(n * sizeof *out);
+	HALLOC_ARRAY(out, n);
 	utf8_to_utf16(in, out, n);
 	return out;
 }
@@ -3441,7 +3441,7 @@ utf16_to_utf8_string(const uint16 *in)
 	char *out;
 
 	n = 1 + utf16_to_utf8(in, NULL, 0);
-	out = halloc(n * sizeof *out);
+	HALLOC_ARRAY(out, n);
 	utf16_to_utf8(in, out, n);
 	return out;
 }
@@ -5600,13 +5600,13 @@ utf32_canonize(const uint32 *src0)
 
 	/* Convert to NFC */
 	size = utf32_strlen(src0) + 1;
-	src = hcopy(src0, size * sizeof *src);
+	src = HCOPY_ARRAY(src0, size);
 	(void) utf32_compose(src);
 
 	/* Apply simple and special folding */
 	n = utf32_case_fold(src, NULL, 0);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_case_fold(src, dst, size);
 	HFREE_NULL(src);
 	src = dst;
@@ -5614,7 +5614,7 @@ utf32_canonize(const uint32 *src0)
 	/* Convert to NFKD */
 	n = utf32_decompose(src, NULL, 0, TRUE);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_decompose(src, dst, size, TRUE);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5628,7 +5628,7 @@ utf32_canonize(const uint32 *src0)
 	 * operations did not destroy the NFKD */
 	n = utf32_decompose(src, NULL, 0, FALSE);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_decompose(src, dst, size, FALSE);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5641,7 +5641,7 @@ utf32_canonize(const uint32 *src0)
 	/* Insert an ASCII space at block changes, this keeps NFC */
 	n = utf32_split_blocks(src, NULL, 0);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_split_blocks(src, dst, size);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5670,7 +5670,7 @@ utf8_canonize(const char *src)
 		} else {
 			size_t size = n + 1;
 
-			s = halloc(size * sizeof *s);
+			HALLOC_ARRAY(s, size);
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
 		}

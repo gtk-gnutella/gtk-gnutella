@@ -53,6 +53,7 @@
 #include "lib/url_factory.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -1490,7 +1491,7 @@ fi_gui_set_aliases(struct fileinfo_data *file)
 	g_return_if_fail(aliases);
 	
 	fi_gui_show_aliases((const char **) aliases);
-    g_strfreev(aliases);
+    xstrfreev(aliases);
 }
 
 static struct fileinfo_data *

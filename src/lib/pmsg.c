@@ -839,7 +839,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 		int i;
 
 		n = MIN(n, MAX_IOV_COUNT);
-		iov = halloc(n * sizeof *iov);
+		HALLOC_ARRAY(iov, n);
 
 		iter = slist_iter_before_head(slist);
 		for (i = 0; i < n; i++) {

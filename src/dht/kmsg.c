@@ -752,7 +752,7 @@ k_send_store_response(
 	uint16 *status;
 	int i;
 
-	status = walloc(vlen * sizeof(uint16));
+	WALLOC_ARRAY(status, vlen);
 
 	for (i = 0; i < vlen; i++)
 		status[i] = values_store(kn, vec[i], valid_token);
@@ -832,7 +832,7 @@ k_send_store_response(
 	 * Cleanup.
 	 */
 
-	wfree(status, vlen * sizeof(uint16));
+	WFREE_ARRAY(status, vlen);
 }
 
 /**
@@ -1412,7 +1412,7 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	 * Decompile remaining fields: values to store.
 	 */
 
-	vec = walloc(values * sizeof *vec);
+	WALLOC_ARRAY(vec, values);
 
 	for (i = 0; i < values; i++) {
 		dht_value_t *v = dht_value_deserialize(bs);
@@ -1495,7 +1495,7 @@ cleanup:
 		for (j = 0; j < i; j++)
 			dht_value_free(vec[j], TRUE);
 
-		wfree(vec, values * sizeof *vec);
+		WFREE_ARRAY(vec, values);
 	}
 
 	bstr_free(&bs);
@@ -1589,7 +1589,7 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	if (count) {
 		int i;
 
-		secondary = walloc0(count * sizeof(secondary[0]));
+		WALLOC0_ARRAY(secondary, count);
 
 		for (i = 0; i < count; i++) {
 			kuid_t sec_id;
@@ -1690,7 +1690,7 @@ cleanup:
 				break;
 			kuid_atom_free_null(&secondary[i]);
 		}
-		wfree(secondary, count * sizeof(secondary[0]));
+		WFREE_ARRAY(secondary, count);
 	}
 
 	if (vcnt) {

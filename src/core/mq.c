@@ -378,7 +378,7 @@ mq_free(mqueue_t *q)
 	pmsg_slist_free(&q->qwait);
 
 	q->magic = 0;
-	wfree(q, sizeof(*q));
+	WFREE(q);
 }
 
 /**
@@ -800,7 +800,7 @@ qlink_create(mqueue_t *q)
 
 	g_assert(q->qlink == NULL);
 
-	q->qlink = halloc(q->count * sizeof q->qlink[0]);
+	HALLOC_ARRAY(q->qlink, q->count);
 
 	/*
 	 * Prepare sorting of queued messages.
@@ -868,7 +868,7 @@ qlink_insert_before(mqueue_t *q, int hint, GList *l)
 	 */
 
 	q->qlink_count++;
-	q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+	HREALLOC_ARRAY(q->qlink, q->qlink_count);
 
 	
 	/* Shift right */
@@ -899,7 +899,7 @@ qlink_insert(mqueue_t *q, GList *l)
 	if (high < 0) {
 		g_assert(q->count == 1);		/* `l' is already part of the queue */
 		q->qlink_count++;
-		q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+		HREALLOC_ARRAY(q->qlink, q->qlink_count);
 		q->qlink[0] = l;
 		return;
 	}
@@ -919,7 +919,7 @@ qlink_insert(mqueue_t *q, GList *l)
 
 	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high]) >= 0) {
 		q->qlink_count++;
-		q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+		HREALLOC_ARRAY(q->qlink, q->qlink_count);
 		q->qlink[q->qlink_count - 1] = l;
 		return;
 	}

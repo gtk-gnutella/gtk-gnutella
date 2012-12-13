@@ -131,7 +131,7 @@ bin_initialize(struct st_bin *bin, int size)
 	bin->nvals = 0;
 	bin->nslots = size;
 
-	bin->vals = halloc(bin->nslots * sizeof bin->vals[0]);
+	HALLOC_ARRAY(bin->vals, bin->nslots);
 	for (i = 0; i < bin->nslots; i++)
 		bin->vals[i] = NULL;
 }
@@ -170,7 +170,7 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 {
 	if (bin->nvals == bin->nslots) {
 		bin->nslots *= 2;
-		bin->vals = hrealloc(bin->vals, bin->nslots * sizeof bin->vals[0]);
+		HREALLOC_ARRAY(bin->vals, bin->nslots);
 	}
 	bin->vals[bin->nvals++] = entry;
 }
@@ -183,7 +183,7 @@ bin_compact(struct st_bin *bin)
 {
 	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
 
-	bin->vals = hrealloc(bin->vals, bin->nvals * sizeof bin->vals[0]);
+	HREALLOC_ARRAY(bin->vals, bin->nvals);
 	bin->nslots = bin->nvals;
 }
 
@@ -277,7 +277,7 @@ st_recreate(search_table_t *table)
 	search_table_check(table);
 	g_assert(NULL == table->bins);
 
-	table->bins = halloc(table->nbins * sizeof table->bins[0]);
+	HALLOC_ARRAY(table->bins, table->nbins);
 	for (i = 0; i < table->nbins; i++)
 		table->bins[i] = NULL;
 
@@ -642,7 +642,7 @@ st_search(
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
 
 
-	pattern = walloc0(wocnt * sizeof *pattern);
+	WALLOC0_ARRAY(pattern, wocnt);
 
 	/*
 	 * Prepare matching optimization, an idea from Mike Green.
@@ -733,7 +733,7 @@ st_search(
 		if (pattern[i])					/* Lazily compiled by entry_match() */
 			pattern_free(pattern[i]);
 
-	wfree(pattern, wocnt * sizeof *pattern);
+	WFREE_ARRAY(pattern, wocnt);
 	word_vec_free(wovec, wocnt);
 
 finish:

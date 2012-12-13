@@ -15135,7 +15135,7 @@ download_tigertree_sweep(struct download *d,
 	if (num_leaves > fi->tigertree.num_leaves) {
 		size_t dst;
 
-		nodes = halloc0(num_leaves * sizeof nodes[0]);
+		HALLOC0_ARRAY(nodes, num_leaves);
 		dst = num_leaves;
 
 		do {

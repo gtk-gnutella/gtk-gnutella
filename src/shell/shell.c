@@ -424,7 +424,7 @@ shell_parse_command(struct gnutella_shell *sh,
 	for (start = line; /* empty */; /* empty */) {
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
-			argv = hrealloc(argv, n * sizeof argv[0]);
+			HREALLOC_ARRAY(argv, n);
 		}
 		if (argc > SHELL_MAX_ARGS) {
 			argv[SHELL_MAX_ARGS] = NULL;
@@ -443,7 +443,7 @@ shell_parse_command(struct gnutella_shell *sh,
 		argc++;
 		if (';' == *start) {
 			if (argc >= n)
-				argv = hrealloc(argv, (argc + 1) * sizeof argv[0]);
+				HREALLOC_ARRAY(argv, argc + 1);
 			argv[argc] = NULL;
 			*endptr = ++start;
 			break;

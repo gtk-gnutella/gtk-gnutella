@@ -327,7 +327,7 @@ sectoken_gen_new(size_t keys, time_delta_t refresh)
 
 	WALLOC0(stg);
 	stg->magic = SECTOKEN_GEN_MAGIC;
-	stg->keys = walloc(keys * sizeof stg->keys[0]);
+	WALLOC_ARRAY(stg->keys, keys);
 	stg->keycnt = keys;
 	stg->refresh = refresh;
 
@@ -351,7 +351,7 @@ sectoken_gen_free_null(sectoken_gen_t **stg_ptr)
 		sectoken_gen_check(stg);
 
 		cq_cancel(&stg->rotate_ev);
-		WFREE_NULL(stg->keys, stg->keycnt * sizeof stg->keys[0]);
+		WFREE_ARRAY_NULL(stg->keys, stg->keycnt);
 		stg->magic = 0;
 		WFREE(stg);
 		*stg_ptr = NULL;

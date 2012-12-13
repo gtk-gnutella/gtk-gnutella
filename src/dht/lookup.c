@@ -487,7 +487,7 @@ lookup_create_results(nlookup_t *nl)
 	rs->magic = LOOKUP_RESULT_MAGIC;
 	rs->refcnt = 1;
 	len = patricia_count(nl->path);
-	rs->path = walloc(len * sizeof(lookup_rc_t));
+	WALLOC_ARRAY(rs->path, len);
 	rs->path_len = len;
 
 	iter = patricia_metric_iterator_lazy(nl->path, nl->kuid, TRUE);
@@ -573,7 +573,7 @@ lookup_free_results(lookup_rs_t *rs)
 		rc->token = NULL;
 	}
 
-	wfree(rs->path, rs->path_len * sizeof(lookup_rc_t));
+	WFREE_ARRAY(rs->path, rs->path_len);
 	WFREE(rs);
 }
 
@@ -615,7 +615,7 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 
 	WALLOC(rs);
 	rs->load = load;
-	rs->records = walloc(vcnt * sizeof(lookup_val_rc_t));
+	WALLOC_ARRAY(rs->records, vcnt);
 	rs->count = (size_t) vcnt;
 
 	for (i = 0; i < vcnt; i++) {
@@ -648,7 +648,7 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 			wfree(deconstify_pointer(rc->data), rc->length);
 	}
 
-	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
+	WFREE_ARRAY(rs->records, rs->count);
 	WFREE(rs);
 }
 
@@ -995,7 +995,7 @@ cleanup:
 	 */
 
 	if (!local)
-		wfree(vvec, vsize * sizeof *vvec);
+		WFREE_ARRAY(vvec, vsize);
 }
 
 /**
@@ -1035,7 +1035,7 @@ seckeys_free(struct seckeys *sk)
 	}
 
 	knode_free(sk->kn);
-	wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
+	WFREE_ARRAY(sk->skeys, sk->scnt);
 	WFREE(sk);
 }
 
@@ -1080,11 +1080,8 @@ lookup_value_create(nlookup_t *nl, float load,
 	g_assert(vsize == 0 || vvec);
 	g_assert(expected > 0);
 
-	if (expected > vsize) {
-		vvec = vvec ?
-			wrealloc(vvec, vsize * sizeof *vvec, expected * sizeof *vvec) :
-			walloc(expected * sizeof *vvec);
-	}
+	if (expected > vsize)
+		WREALLOC_ARRAY(vvec, vsize, expected);
 
 	WALLOC0(fv);
 	nl->u.fv.fv = fv;
@@ -1217,8 +1214,7 @@ lookup_value_append(nlookup_t *nl, float load,
 	g_assert(remain <= fv->vsize - fv->vcnt);
 
 	if (needed > fv->vsize) {
-		fv->vvec = wrealloc(fv->vvec,
-			fv->vsize * sizeof fv->vvec[0], needed * sizeof fv->vvec[0]);
+		WREALLOC_ARRAY(fv->vvec, fv->vsize, needed);
 		fv->vsize = needed;
 	}
 
@@ -1290,7 +1286,7 @@ lookup_value_append(nlookup_t *nl, float load,
 	}
 
 	if (vvec)
-		wfree(vvec, vsize * sizeof vvec[0]);
+		WFREE_ARRAY(vvec, vsize);
 
 	/*
 	 * If there are secondary keys to grab, record the vector and the
@@ -1340,7 +1336,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		for (i = 0; i < fv->vcnt; i++)
 			dht_value_free(fv->vvec[i], TRUE);
 
-		wfree(fv->vvec, fv->vsize * sizeof fv->vvec[0]);
+		WFREE_ARRAY(fv->vvec, fv->vsize);
 	}
 
 	GM_SLIST_FOREACH(fv->seckeys, sl) {
@@ -1546,7 +1542,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (expanded)
-		vvec = walloc(expanded * sizeof vvec[0]);
+		WALLOC_ARRAY(vvec, expanded);
 
 	for (i = 0; i < expanded; i++) {
 		dht_value_t *v = dht_value_deserialize(bs);
@@ -1608,7 +1604,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (seckeys)
-		skeys = walloc(seckeys * sizeof skeys[0]);
+		WALLOC_ARRAY(skeys, seckeys);
 
 	for (i = 0; i < seckeys; i++) {
 		kuid_t tmp;
@@ -1754,13 +1750,13 @@ ignore:
 	if (vvec) {
 		for (i = 0; i < vcnt; i++)
 			dht_value_free(vvec[i], TRUE);
-		wfree(vvec, expanded * sizeof *vvec);
+		WFREE_ARRAY(vvec, expanded);
 	}
 
 	if (skeys) {
 		for (i = 0; i < scnt; i++)
 			kuid_atom_free(skeys[i]);
-		wfree(skeys, seckeys * sizeof *skeys);
+		WFREE_ARRAY(skeys, seckeys);
 	}
 
 	bstr_free(&bs);
@@ -4193,7 +4189,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	 * Start with nodes from the routing table.
 	 */
 
-	kvec = walloc(KDA_K * sizeof(knode_t *));
+	WALLOC_ARRAY(kvec, KDA_K);
 	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL, FALSE);
 
 	for (i = 0; i < kcnt; i++) {
@@ -4225,7 +4221,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	nl->closest = patricia_closest(nl->shortlist, nl->kuid);
 	nl->initial_contactable = contactable;
 
-	wfree(kvec, KDA_K * sizeof(knode_t *));
+	WFREE_ARRAY(kvec, KDA_K);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
 		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 3);

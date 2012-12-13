@@ -1705,7 +1705,7 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 	 *		--RAM, 08/10/2001
 	 */
 
-	ctx->files = halloc0(ctx->files_scanned * sizeof ctx->files[0]);
+	HALLOC0_ARRAY(ctx->files, ctx->files_scanned);
 
 	for (i = 0, sl = ctx->shared; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = sl->data;
@@ -1813,7 +1813,7 @@ recursive_scan_step_build_sorted_table(struct bgtask *bt, void *data, int ticks)
 	if (0 == ctx->files_scanned)
 		goto next;
 
-	ctx->sorted = hcopy(ctx->files, ctx->files_scanned * sizeof ctx->files[0]);
+	ctx->sorted = HCOPY_ARRAY(ctx->files, ctx->files_scanned);
 
 	vsort(ctx->sorted, ctx->files_scanned, sizeof ctx->sorted[0],
 		shared_file_sort_by_name);

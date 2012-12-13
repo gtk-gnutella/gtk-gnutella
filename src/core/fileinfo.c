@@ -93,6 +93,7 @@
 #include "lib/url.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "if/dht/dht.h"
 
@@ -906,8 +907,7 @@ fi_tigertree_free(fileinfo_t *fi)
 	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
 
 	if (fi->tigertree.leaves) {
-		wfree(fi->tigertree.leaves,
-				fi->tigertree.num_leaves * sizeof fi->tigertree.leaves[0]);
+		WFREE_ARRAY(fi->tigertree.leaves, fi->tigertree.num_leaves);
 		fi->tigertree.slice_size = 0;
 		fi->tigertree.num_leaves = 0;
 		fi->tigertree.leaves = NULL;
@@ -928,7 +928,7 @@ file_info_got_tigertree(fileinfo_t *fi,
 	g_return_if_fail(fi->file_size_known);
 
 	fi_tigertree_free(fi);
-	fi->tigertree.leaves = wcopy(leaves, num_leaves * sizeof leaves[0]);
+	fi->tigertree.leaves = WCOPY_ARRAY(leaves, num_leaves);
 	fi->tigertree.num_leaves = num_leaves;
 
 	fi->tigertree.slice_size = TTH_BLOCKSIZE;
@@ -6381,7 +6381,7 @@ fi_free_ranges(GSList *ranges)
 
 /**
  * @return NULL terminated array of char * pointing to the aliases.
- * You can easily free the returned array with g_strfreev().
+ * You can easily free the returned array with xstrfreev().
  *
  * O(2n) - n: number of aliases
  */
@@ -6396,12 +6396,12 @@ fi_get_aliases(gnet_fi_t fih)
 
     len = g_slist_length(fi->alias);
 
-    a = g_malloc((len + 1) * sizeof a[0]);
+	XMALLOC_ARRAY(a, len + 1);
     a[len] = NULL; /* terminate with NULL */;
 
     for (sl = fi->alias, n = 0; NULL != sl; sl = g_slist_next(sl), n++) {
         g_assert(n < len);
-        a[n] = g_strdup(sl->data);
+        a[n] = xstrdup(sl->data);
     }
 
     return a;
@@ -7033,9 +7033,9 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 
 	g_assert(count > 0);		/* Or there would be nothing to emit */
 
-	fc_ary = halloc(count * sizeof fc_ary[0]);
-
+	HALLOC_ARRAY(fc_ary, count);
 	i = 0;
+
 	ESLIST_FOREACH(&fi->chunklist, sl) {
 		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
 		dl_file_chunk_check(fc);

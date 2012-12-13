@@ -521,7 +521,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 	cq_cancel(&um->iterate_ev);
 	cq_cancel(&um->ear_ev);
 	atom_host_free_null(&um->to);
-	wfree(um->fragments, um->fragcnt * sizeof um->fragments[0]);
+	WFREE_ARRAY(um->fragments, um->fragcnt);
 	hevset_remove(ut_mset, &um->mid);
 	pmsg_free_null(&um->mb);
 
@@ -1617,7 +1617,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	um->fragcnt = pdulen / TX_UT_MTU;
 	if (pdulen != um->fragcnt * TX_UT_MTU)
 		um->fragcnt++;
-	um->fragments = walloc(um->fragcnt * sizeof um->fragments[0]);
+	WALLOC_ARRAY(um->fragments, um->fragcnt);
 
 	/*
 	 * The sequence ID (seqno) is going to be echoed back by the receiving

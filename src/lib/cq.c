@@ -184,7 +184,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
-	cq->cq_hash = xmalloc0(HASH_SIZE * sizeof *cq->cq_hash);
+	XMALLOC0_ARRAY(cq->cq_hash, HASH_SIZE);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
