@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2010, Raphael Manfredi
+ * Copyright (c) 2001-2010, 2012 Raphael Manfredi
  * Copyright (c) 2003-2008, Christian Biere
  *
  *----------------------------------------------------------------------
@@ -28,8 +28,30 @@
  *
  * Random numbers.
  *
+ * This layer provides generic operations on random number generators, such
+ * as generating uniform random numbers over an interval, or producing random
+ * double value based on integer PRNG routines.
+ *
+ * It also hides to client code the choice of the underlying PRNG routines.
+ *
+ * Most of the random number generating functions here are based on the
+ * Mersenne Twister, which is faster than ARC4.
+ *
+ * The only exception is the random_bytes() routine, which still relies on
+ * arc4random().  The reason is that we use random_pool_append() and
+ * random_add() to inject external sources of randomness to the ARC4 engine.
+ * This lets us perturb the output of the PRNG algorithm, which is not an
+ * operation supported by the Mersenne Twister.
+ *
+ * Because random_bytes() is used to generate unique IDs, it is also better
+ * to rely on ARC4 due to the fact that its output cannot be guessed given
+ * a long sequence of output numbers, contrary to the Mersenne Twister.
+ * Our random perturbation to the ARC4 engine further help to ensure strong
+ * sequences of IDs that cannot be predicted and hopefully global unicity of
+ * the generated random IDs.
+ *
  * @author Raphael Manfredi
- * @date 2001-2010
+ * @date 2001-2010, 2012
  * @author Christian Biere
  * @date 2003-2008
  */
@@ -43,6 +65,7 @@
 #include "log.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "mtwist.h"
 #include "pow2.h"
 #include "sha1.h"
 #include "tm.h"
@@ -211,7 +234,16 @@ done:
 uint32
 random_u32(void)
 {
-	return arc4random();
+	return mt_rand();
+}
+
+/**
+ * @return random value between 0 and (2**64)-1. All 64 bits are random.
+ */
+uint64
+random_u64(void)
+{
+	return mt_rand64();
 }
 
 /**
@@ -230,9 +262,11 @@ random_value(uint32 max)
 	 *
 	 * Hence we now prefer random_upto() which garanteees a uniform
 	 * distribution of the random numbers, using integer-only arithmetic.
+	 *
+	 * We also switched to mt_rand() because it is faster than arc4random().
 	 */
 
-	return random_upto(arc4random, max);
+	return random_upto(mt_rand, max);
 }
 
 /**
@@ -241,7 +275,7 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
-	return random64_upto(arc4random64, max);
+	return random64_upto(mt_rand64, max);
 }
 
 /**
@@ -265,10 +299,25 @@ random_bytes_with(random_fn_t rf, void *dst, size_t size)
 
 /**
  * Fills buffer 'dst' with 'size' bytes of random data.
+ *
+ * The random pool used by this routine can be perturbed by collecting
+ * randomness externally.  It is therefore desirable that it be used
+ * when continuously generating random buffers, such as GUIDs or other
+ * global IDs that need to be as unique and unpredictable as possible
+ * during the lifetime of the program.
  */
 void
 random_bytes(void *dst, size_t size)
 {
+	/*
+	 * This routine must continue to use arc4random(), even though it is
+	 * slower than mt_rand(), because of random_add_pool(): periodic collection
+	 * of external randomness can usefully perturb the random number generator
+	 * and should yield better results than a pure PRNG delivering its sequence,
+	 * even one as good as the one coming out of the Mersenne Twister.
+	 *		--RAM, 2012-12-15
+	 */
+
 	random_bytes_with(arc4random, dst, size);
 }
 
@@ -295,8 +344,8 @@ random_cpu_noise(void)
 }
 
 /**
- * Add collected random byte(s) to the random pool, flushing to the random
- * number generator when enough has been collected.
+ * Add collected random byte(s) to the random pool used by random_bytes(),
+ * flushing to the random number generator when enough has been collected.
  *
  * @param buf		buffer holding random data
  * @param len		length of random data
@@ -336,6 +385,8 @@ random_add_pool(void *buf, size_t len)
  * This routine is meant to be called periodically and generates a little
  * bit of random information. Once in a while, when enough randomness has
  * been collected, it feeds it to the random number generator.
+ *
+ * This helps generating unique sequences via random_bytes().
  *
  * @param cb		routine to invoke if non-NULL when randomness is fed
  */
@@ -404,6 +455,8 @@ random_collect(void (*cb)(void))
  * bit of random information. Once in a while, when enough randomness has
  * been collected, it feeds it to the random number generator.
  *
+ * This helps generating unique sequences via random_bytes().
+ *
  * @param buf		buffer holding random data
  * @param len		length of random data
  * @param cb		routine to invoke if non-NULL when randomness is fed
@@ -421,7 +474,7 @@ random_pool_append(void *buf, size_t len, void (*cb)(void))
 }
 
 /**
- * Add new randomness to the random number generator.
+ * Add new randomness to the random number generator used by random_bytes().
  */
 void
 random_add(const void *data, size_t datalen)
@@ -513,16 +566,17 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
-	return random_double_generate(arc4random);
+	return random_double_generate(mt_rand);
 }
 
 /**
- * Initialize random number generator.
+ * Initialize random number generators.
  */
 void
 random_init(void)
 {
 	arc4random_stir_once();
+	mt_init();
 }
 
 /* vi: set ts=4 sw=4 cindent: */
