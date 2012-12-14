@@ -34,7 +34,7 @@
 #include "common.h"
 
 #include "shuffle.h"
-#include "arc4random.h"
+#include "mtwist.h"
 #include "random.h"
 #include "unsigned.h"
 
@@ -89,7 +89,13 @@ shuffle_with(random_fn_t rf, void *b, size_t n, size_t s)
 void
 shuffle(void *b, size_t n, size_t s)
 {
-	shuffle_with(arc4random, b, n, s);
+	/*
+	 * After benchmarking, mt_rand() is faster than arc4random() hence
+	 * we now use the former as the default random function.
+	 *		--RAM, 2012-12-15
+	 */
+
+	shuffle_with(mt_rand, b, n, s);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
