@@ -50,6 +50,7 @@
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */
 #include "mempcpy.h"
+#include "once.h"
 #include "parse.h"
 #include "path.h"
 #include "pow2.h"
@@ -2358,16 +2359,9 @@ xml_indent(const char *text)
 /**
  * Initialize miscellaneous data structures, once.
  */
-G_GNUC_COLD void
-misc_init(void)
+static G_GNUC_COLD void
+misc_init_once(void)
 {
-	static bool done;
-
-	if G_LIKELY(done)
-		return;
-
-	done = TRUE;
-
 	hex2int_init();
 	dec2int_init();
 	alnum2int_init();
@@ -2442,6 +2436,17 @@ misc_init(void)
 		}
 	}
 
+}
+
+/**
+ * Initialize miscellaneous data structures.
+ */
+G_GNUC_COLD void
+misc_init(void)
+{
+	static bool done;
+
+	once_run(&done, misc_init_once);
 }
 
 /**
