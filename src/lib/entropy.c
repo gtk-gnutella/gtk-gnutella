@@ -1064,16 +1064,28 @@ entropy_minimal_collect(sha1_t *digest)
  *
  * @return 32-bit random number.
  */
-unsigned
+uint32
 entropy_random(void)
 {
-	sha1_t digest;
-	void *folded;
+	static sha1_t digest;
+	static void *p = &digest;
 
-	entropy_minimal_collect(&digest);
-	folded = entropy_fold(&digest, 4);
+	/*
+	 * Collect entropy again once we have exhausted reading from the pool.
+	 */
 
-	return peek_be32(folded);
+	if G_UNLIKELY(&digest == p) {
+		entropy_minimal_collect(&digest);
+		p = ptr_add_offset(&digest, sizeof digest);
+	}
+
+	/*
+	 * Get the next 32-bit value from the pool, moving right to left.
+	 */
+
+	p = ptr_add_offset(p, -4);
+
+	return peek_be32(p);
 }
 
 /**
