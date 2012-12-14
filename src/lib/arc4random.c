@@ -275,7 +275,7 @@ arc4random(void)
 /**
  * @return 64-bit random number.
  */
-static inline uint64
+uint64
 arc4random64(void)
 {
 	uint32 hi, lo;
@@ -307,67 +307,11 @@ arc4random_stir_once(void)
 /**
  * @return 64-bit random number.
  */
-static inline uint64
+uint64
 arc4random64(void)
 {
 	return ((uint64) arc4random() << 32) | (uint64) arc4random();
 }
 #endif	/* !HAS_ARC4RANDOM */
-
-/**
- * @return uniformly distributed 64-bit random number in the [0, max] range.
- */
-uint64
-arc4random_upto64(uint64 max)
-{
-	uint64 range, min, value;
-
-	if G_UNLIKELY(0 == max)
-		return 0;
-
-	if G_UNLIKELY((uint64) -1 == max)
-		return arc4random64();
-
-	range = max + 1;
-
-	if (IS_POWER_OF_2(range))
-		return arc4random64() & max;	/* max = range - 1 */
-
-	/*
-	 * Same logic as random_upto() but in 64-bit arithmetic.
-	 */
-
-	if (range > ((uint64) 1U << 63)) {
-		min = ~range + 1;		/* 2^64 - range */
-	} else {
-		min = ((uint64) -1 - range + 1) % range;
-	}
-
-	value = arc4random64();
-
-	if G_UNLIKELY(value < min) {
-		size_t i;
-
-		for (i = 0; i < 100; i++) {
-#ifdef HAS_ARC4RANDOM
-			value = arc4random64();
-#else
-			/* THREAD_LOCK(); */
-			/* All bytes are random anyway, just drop the first one */
-			value = (value << 8) | (uint64) arc4_getbyte(&rs);
-			/* THREAD_UNLOCK(); */
-#endif	/* HAS_ARC4RANDOM */
-
-			if (value >= min)
-				goto done;
-		}
-
-		/* Will occur once every 10^30 attempts */
-		s_error("no luck with random number generator");
-	}
-
-done:
-	return value % range;
-}
 
 /* vi: set ts=4 sw=4 cindent: */

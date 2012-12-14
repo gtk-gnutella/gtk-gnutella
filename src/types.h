@@ -148,9 +148,10 @@ typedef void (*notify_data_fn_t)(void *data, void *user_data);
 typedef const char *(*stringify_fn_t)(const void *data);
 typedef const char *(*stringify_len_fn_t)(const void *data, size_t len);
 
-/* Random number generators (32-bits) */
+/* Random number generators (32-bit and 64-bit routines) */
 
 typedef uint32 (*random_fn_t)(void);
+typedef uint64 (*random64_fn_t)(void);
 
 #endif /* _types_h_ */
 

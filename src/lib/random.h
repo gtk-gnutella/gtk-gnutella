@@ -42,7 +42,7 @@
 
 void random_init(void);
 uint32 random_value(uint32 max) WARN_UNUSED_RESULT;
-uint64 random_value64(uint64 max) WARN_UNUSED_RESULT;
+uint64 random64_value(uint64 max) WARN_UNUSED_RESULT;
 uint32 random_u32(void) WARN_UNUSED_RESULT;
 void random_bytes(void *dst, size_t size);
 void random_bytes_with(random_fn_t rf, void *dst, size_t size);
@@ -53,6 +53,7 @@ void random_add(const void *data, size_t datalen);
 double random_double_generate(random_fn_t rf);
 double random_double(void);
 uint32 random_upto(random_fn_t rf, uint32 max);
+uint64 random64_upto(random64_fn_t rf, uint64 max);
 
 #endif /* _random_h_ */
 

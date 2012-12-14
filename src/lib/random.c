@@ -151,6 +151,61 @@ done:
 }
 
 /**
+ * Generate uniformly distributed random numbers using supplied random
+ * function to generate random 64-bit quantities.
+ *
+ * @param rf	random function generating 64-bit random numbers
+ * @param max	maximum value allowed for number (inclusive)
+ *
+ * @return uniformly distributed random number in the [0, max] range.
+ */
+uint64
+random64_upto(random64_fn_t rf, uint64 max)
+{
+	uint64 range, min, value;
+
+	if G_UNLIKELY(0 == max)
+		return 0;
+
+	if G_UNLIKELY((uint64) -1 == max)
+		return (*rf)();
+
+	range = max + 1;
+
+	if (IS_POWER_OF_2(range))
+		return (*rf)() & max;	/* max = range - 1 */
+
+	/*
+	 * Same logic as random_upto() but in 64-bit arithmetic.
+	 */
+
+	if (range > ((uint64) 1U << 63)) {
+		min = ~range + 1;		/* 2^64 - range */
+	} else {
+		min = ((uint64) -1 - range + 1) % range;
+	}
+
+	value = (*rf)();
+
+	if G_UNLIKELY(value < min) {
+		size_t i;
+
+		for (i = 0; i < 100; i++) {
+			value = (*rf)();
+
+			if (value >= min)
+				goto done;
+		}
+
+		/* Will occur once every 10^30 attempts */
+		s_error("no luck with random number generator");
+	}
+
+done:
+	return value % range;
+}
+
+/**
  * @return random value between 0 and (2**32)-1. All 32 bits are random.
  */
 uint32
@@ -184,9 +239,9 @@ random_value(uint32 max)
  * @return 64-bit random value between [0, max], inclusive.
  */
 uint64
-random_value64(uint64 max)
+random64_value(uint64 max)
 {
-	return arc4random_upto64(max);
+	return random64_upto(arc4random64, max);
 }
 
 /**

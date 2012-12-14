@@ -409,7 +409,7 @@ filesize_t
 get_random_file_offset(const filesize_t size)
 {
 	if (sizeof(size) == sizeof(uint64)) {
-		return random_value64(size - 1);
+		return random64_value(size - 1);
 	} else {
 		return random_value(size - 1);
 	}
