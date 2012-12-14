@@ -150,6 +150,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	mtwist.c \
 	mutex.c \
 	nid.c \
 	nv.c \

@@ -36,6 +36,7 @@
 #include "lib/chi2.h"
 #include "lib/entropy.h"
 #include "lib/misc.h"
+#include "lib/mtwist.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/rand31.h"
@@ -67,7 +68,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehuBP] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-4ehuwBP] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
 		"  -4 : test arc4random() instead of rand31()\n"
@@ -80,6 +81,7 @@ usage(void)
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
+		"  -w : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
@@ -381,7 +383,7 @@ retry:
 		chi2 += d * d / e;
 
 		s = str_new(0);
-		str_printf(s, "%5u o=%g (%u/%u),", i, o, values[i], n);
+		str_printf(s, "%5u o=%.6f (%u/%u),", i, o, values[i], n);
 		if (str_len(s) < middle)
 			str_catf(s, "%*s", middle - str_len(s), " ");
 		str_catf(s, "e=%g (%u/%u)\n", e, expected, n);
@@ -501,7 +503,7 @@ main(int argc, char **argv)
 	progname = filepath_basename(argv[0]);
 	misc_init();
 
-	while ((c = getopt(argc, argv, "4b:c:ehm:p:s:t:uBC:D:F:PR:U:X:")) != EOF) {
+	while ((c = getopt(argc, argv, "4b:c:ehm:p:s:t:uwBC:D:F:PR:U:X:")) != EOF) {
 		switch (c) {
 		case '4':			/* test arc4random() */
 			SET_RANDOM(arc4random);
@@ -529,6 +531,9 @@ main(int argc, char **argv)
 			break;
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
+			break;
+		case 'w':			/* check mt_rand() instead */
+			SET_RANDOM(mt_rand);
 			break;
 		case 'B':			/* count occurrences of each bit */
 			countbits = TRUE;
