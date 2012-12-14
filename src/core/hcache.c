@@ -812,7 +812,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		port >= 6346 &&
 		port <= 6350 &&
 		!host_low_on_pongs &&
-		(random_u32() & 0xff) > 31
+		random_value(255) > 31
 	) {
 		return FALSE;		/* Did not pass port sanity checks */
 	}
