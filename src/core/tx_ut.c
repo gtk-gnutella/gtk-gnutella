@@ -2106,6 +2106,15 @@ tx_ut_destroy(txdrv_t *tx)
 
 	ut_attr_check(attr);
 
+	/*
+	 * Make sure we get rid of the per-message callbacks since we cannot
+	 * be sure that the owner of the TX stack is still around to process
+	 * the notifications correctly when we destroy pending messages.
+	 *		--RAM, 2012-12-14
+	 */
+
+	ZERO(attr->cb);
+
 	zlib_deflater_free(attr->zd, TRUE);
 	idtable_foreach(attr->seq, ut_destroy_msg, NULL);
 	idtable_destroy(attr->seq);
