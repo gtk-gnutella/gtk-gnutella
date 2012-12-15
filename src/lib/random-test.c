@@ -323,6 +323,7 @@ display_bits(unsigned bits[], unsigned nbits, unsigned period)
 #define CHI_MIN			5		/* Min amount of values per class */
 #define CHI_MAX_CLASSES	20
 #define CHI_CONFIDENCE	0.97
+#define CHI_MAX_RETRY	3
 
 static void
 chi2_test(random_fn_t fn, unsigned max)
@@ -331,6 +332,7 @@ chi2_test(random_fn_t fn, unsigned max)
 	unsigned *values;
 	unsigned n, i, expected;
 	double ratio, chi2, p;
+	int retried = 0;
 
 	classes = MIN(CHI_MAX_CLASSES, max);
 	XMALLOC0_ARRAY(values, classes);
@@ -360,10 +362,12 @@ retry:
 	}
 
 	for (i = 0; i < classes; i++) {
-		if (values[i] < CHI_MIN) {
+		if (values[i] < CHI_MIN && retried < CHI_MAX_RETRY) {
 			n *= 2;
 			expected *= 2;
-			printf("Need to double count of random numbers, now %u\n", n);
+			printf("Need to double count of random numbers, now %u "
+				"(class #%u has %u)\n", n, i, values[i]);
+			retried++;
 			goto retry;
 		}
 	}
