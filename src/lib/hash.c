@@ -194,11 +194,11 @@ hash_arena_size(size_t items, bool has_values)
 	 * To avoid too much fragmentation, we allocate the arena as a contiguous
 	 * memory region, using walloc() or vmm_alloc() as appropriate.
 	 *
-	 * When the hash has keys, the layout in memory is:
+	 * When the hash table has values, the layout in memory is:
 	 *
 	 *     key array | value array | hashes array
 	 *
-	 * When the has has no keys, the layout is:
+	 * When the hash table has no values, the layout is:
 	 *
 	 *     key array | hashes array
 	 *
