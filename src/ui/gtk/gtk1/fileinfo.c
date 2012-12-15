@@ -357,6 +357,32 @@ on_clist_download_sources_row_removed(void *data)
 		htable_count(fi_sources), htable_count(source_rows));
 }
 
+/**
+ * Called before invoking fi_gui_source_show() repeatedly.
+ *
+ * This allows freezing the download clist to avoid a costly redrawing of
+ * the list after each addition, preventing O(n^2) GUI updates.
+ */
+void
+fi_gui_source_massive_update(bool starting)
+{
+	GtkCList *clist = clist_download_sources;
+
+	g_return_if_fail(clist);
+
+	/*
+	 * Freeze / thaw operations are counted by the clist, so it is perfectly
+	 * fine to freeze here even though fi_gui_source_show() will also perform
+	 * some freeze/thaw operations.
+	 */
+
+	if (starting) {
+		gtk_clist_freeze(clist);
+	} else {
+		gtk_clist_thaw(clist);
+	}
+}
+
 void
 fi_gui_source_show(struct download *key)
 {

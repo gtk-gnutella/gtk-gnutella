@@ -152,6 +152,7 @@ void fi_gui_clear_aliases(void);
 void fi_gui_clear_sources(void);
 void fi_gui_clear_details(void);
 
+void fi_gui_source_massive_update(bool starting);
 void fi_gui_source_show(struct download *);
 void fi_gui_source_update(struct download *);
 void fi_gui_source_hide(struct download *);
