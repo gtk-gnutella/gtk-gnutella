@@ -118,6 +118,19 @@
 
 #define HASH_HOPS_MIN	4		/* Theoretical hops when full at 75% */
 
+/*
+ * The following definitions help control the amount of hash codes we can keep
+ * in a single CPU cacheline, whose size is estimated by HASH_CACHELINE.
+ *
+ * It's OK if HASH_CACHELINE is not the exact hardware CPU cacheline: we
+ * accept to load a few cache lines and have a few cache misses when looking
+ * for a match in the hash array.
+ *
+ * A hash code is an "uint", therefore its size is INTSIZE bytes.
+ */
+#define HASH_CACHELINE	64		/* Amount of bytes in a CPU cacheline */
+#define HASH_LINE_ITEMS	(HASH_CACHELINE / INTSIZE)	/* hashes are `uint' */
+
 /**
  * Type of table resizing we want to perform.
  */
@@ -125,6 +138,7 @@ enum hash_resize_mode {
 	HASH_RESIZE_SAME,			/* Rebuild table, no size change */
 	HASH_RESIZE_GROW,			/* Grow table */
 	HASH_RESIZE_SHRINK,			/* Shrink table */
+	HASH_RESIZE_CACHELINE,		/* Shrink small table fitting in cacheline */
 
 	HASH_RESIZE_MAXMODE
 };
@@ -177,7 +191,17 @@ hash_hops_max(const struct hkeys *hk)
 	 * However we want the hash table to be more efficient than what a binary
 	 * search on a sorted table would bring, which would require hk->bits
 	 * comparisons at most.
+	 *
+	 * The exception is when there are up to HASH_LINE_ITEMS slots in the
+	 * hash table: when everything fits in the "memory cacheline", it's pretty
+	 * cheap to iterate through the hash array, even if it's completely full.
+	 * This trade-off helps hash tables with a small amount of items keep a
+	 * small memory footprint.
+	 *		--RAM, 2012-12-15
 	 */
+
+	if G_UNLIKELY(hk->size <= HASH_LINE_ITEMS)
+		return HASH_LINE_ITEMS;			/* Allows to loop over all keys */
 
 	return HASH_HOPS_MIN + (hk->bits - HASH_MIN_BITS) / 2;
 }
@@ -207,6 +231,7 @@ hash_arena_size(size_t items, bool has_values)
 	 */
 
 	STATIC_ASSERT(sizeof(void *) >= sizeof(unsigned));
+	STATIC_ASSERT(INTSIZE == sizeof(unsigned));
 
 	size = items * sizeof(void *);
 	if (has_values)
@@ -622,11 +647,33 @@ hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx)
 }
 
 /**
+ * Resize empty table to its minimal state.
+ *
+ * @return TRUE if we actually re-allocated the arena.
+ */
+static bool
+hash_resize_min(struct hash *h)
+{
+	if G_UNLIKELY(HASH_MIN_BITS == h->kset.bits) {
+		memset(h->kset.hashes, 0,
+			(1U << HASH_MIN_BITS) * sizeof h->kset.hashes[0]);
+		h->kset.tombs = 0;
+		h->kset.resize = FALSE;
+		return FALSE;
+	} else {
+		hash_arena_free(h);
+		hash_arena_allocate(h, HASH_MIN_BITS);
+		return TRUE;
+	}
+}
+
+/**
  * Resize table according to the resizing mode:
  *
- * HASH_RESIZE_SAME		Rebuild table, no size change
- * HASH_RESIZE_GROW		Double the table size
- * HASH_RESIZE_SHRINK	Reduce table size
+ * HASH_RESIZE_SAME			Rebuild table, no size change
+ * HASH_RESIZE_GROW			Double the table size
+ * HASH_RESIZE_SHRINK		Reduce table size
+ * HASH_RESIZE_CACHELINE	Reduce small table fitting in CPU cacheline
  */
 static void
 hash_resize(struct hash *h, enum hash_resize_mode mode)
@@ -647,17 +694,30 @@ hash_resize(struct hash *h, enum hash_resize_mode mode)
 
 	switch (mode) {
 	case HASH_RESIZE_SAME:
+		g_assert(h->kset.items <= h->kset.size);
 		goto size_computed;
 	case HASH_RESIZE_GROW:
+		g_assert(h->kset.items <= h->kset.size);
 		h->kset.bits++;
 		goto size_computed;
 	case HASH_RESIZE_SHRINK:
 		g_assert(size_is_positive(h->kset.bits));
+		g_assert(h->kset.items <= h->kset.size / 2);	/* Can loop once */
 		do {
 			h->kset.bits--;
 			h->kset.size = 1UL << h->kset.bits;
 		} while
 			(h->kset.items < h->kset.size / 4 && h->kset.bits > HASH_MIN_BITS);
+		goto size_computed;
+	case HASH_RESIZE_CACHELINE:
+		g_assert(size_is_positive(h->kset.bits));
+		g_assert(h->kset.items <= HASH_LINE_ITEMS);
+		g_assert(h->kset.items <= h->kset.size / 2);	/* Can loop once */
+		do {
+			h->kset.bits--;
+			h->kset.size = 1UL << h->kset.bits;
+		} while
+			(h->kset.items < h->kset.size / 2 && h->kset.bits > HASH_MIN_BITS);
 		goto size_computed;
 	case HASH_RESIZE_MAXMODE:
 		break;
@@ -689,7 +749,9 @@ size_computed:
 		}
 	}
 
-	g_assert(keys == h->kset.items);
+	g_assert_log(keys == h->kset.items,
+		"keys=%zu, h->kset.items=%zu, resize mode=%d",
+		keys, h->kset.items, mode);
 
 	hash_arena_size_free(old_keys, old_arena_size, h->kset.raw_memory);
 }
@@ -711,6 +773,61 @@ hash_resize_as_needed(struct hash *h)
 
 	if G_UNLIKELY(0 != h->refcnt)
 		return FALSE;
+
+	if (h->kset.items <= HASH_LINE_ITEMS) {
+		/*
+		 * An empty table is immediately brought back to its minimal state.
+		 */
+
+		if G_UNLIKELY(0 == h->kset.items)
+			return hash_resize_min(h);
+
+		/*
+		 * When reducing the table, we use hysteresis to make sure we're not
+		 * going to rebuild a smaller table that will later need to grow
+		 * again.  Since the table is small at this stage, we do not waste
+		 * a lot of memory by keeping the table a little oversized.
+		 *		--RAM, 2012-12-15
+		 */
+
+		if (
+			h->kset.items + 1 < h->kset.size / 2 &&	/* Note the hysteresis */
+			h->kset.bits > HASH_MIN_BITS
+		) {
+			hash_resize(h, HASH_RESIZE_CACHELINE);	/* Table is oversized */
+			return TRUE;
+		}
+
+		/*
+		 * If the table is small enough (up to HASH_LINE_ITEMS), it is dealt
+		 * with specially: we wish to let this table fill-up, to the point
+		 * where there are no free slots.  Because the hashes array is held in
+		 * a few memory cache lines and therefore is efficiently looked at even
+		 * if it means going through all the slots, we can trade extra CPU
+		 * cycles for optimum memory footprint for small tables.
+		 */
+
+		if (h->kset.size <= HASH_LINE_ITEMS) {
+			/*
+			 * We also allow for more tomb density than in the general case:
+			 * we only rebuild when 50% of the slots are tombs, as opposed to
+			 * 25% in the general case.  Again, since the cost of looping over
+			 * the hashes array is small (no memory fetching required past the
+			 * first), the runtime penalty is negligeable.
+			 *		--RAM, 2012-12-15
+			 */
+
+			if (h->kset.tombs > h->kset.size / 2) {
+				hash_resize(h, HASH_RESIZE_SAME);		/* Remove tombstones */
+				return TRUE;
+			}
+
+			h->kset.resize = FALSE;						/* No resize wanted */
+			return FALSE;
+		}
+
+		/* FALL THROUGH -- table has not many items but is not "small" */
+	}
 
 	if (h->kset.items < h->kset.size / 4) {
 		if (h->kset.bits > HASH_MIN_BITS) {
@@ -909,15 +1026,7 @@ hash_clear(struct hash *h)
 	hash_check(h);
 	g_assert(0 == h->refcnt);
 
-	if G_UNLIKELY(HASH_MIN_BITS == h->kset.bits) {
-		memset(h->kset.hashes, 0, h->kset.size * sizeof h->kset.hashes[0]);
-		h->kset.tombs = 0;
-		h->kset.resize = FALSE;
-	} else {
-		hash_arena_free(h);
-		hash_arena_allocate(h, HASH_MIN_BITS);
-	}
-
+	hash_resize_min(h);
 	h->kset.items = 0;
 }
 
