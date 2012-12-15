@@ -79,7 +79,7 @@ pio_init_once(void)
 
 	pio_capacity = getdtablesize();
 	XMALLOC_ARRAY(pio_locks, pio_capacity);
-	NOT_LEAKING(pio_locks);
+	(void) NOT_LEAKING(pio_locks);
 
 	for (i = 0; i < pio_capacity; i++) {
 		spinlock_init(&pio_locks[i]);
