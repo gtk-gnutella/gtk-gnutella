@@ -484,28 +484,22 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  *
  * @param hk		the keyset structure
  * @param key		the key we are looking for
- * @param hashed	where the hashed value is returned (or given if known)
+ * @param hv		the hashed value for the key (primary hash)
  * @param kidx		where the key was found or can be inserted
  * @param tombidx	index of the first tomb in the lookup path, -1 if none
- * @param known		TRUE if hashed value is known and given initially
  *
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
 static G_GNUC_HOT bool
-hash_keyset_lookup(struct hkeys *hk, const void *key,
-	unsigned *hashed, size_t *kidx, size_t *tombidx, bool known)
+hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
+	size_t *kidx, size_t *tombidx)
 {
-	unsigned hv, inc, ih;
+	unsigned inc, ih;
 	size_t idx, nidx;
 	size_t first_tomb, mask, hops;
 	bool found;
 
-	if (known) {
-		hv = *hashed;
-	} else {
-		*hashed = hv = hash_compute_primary(hk, key);
-	}
 	idx = hashing_fold(hv, hk->bits);
 	ih = hk->hashes[idx];
 
@@ -738,7 +732,7 @@ size_computed:
 			size_t idx;
 			bool found;
 
-			found = hash_keyset_lookup(&h->kset, *hk, hp, &idx, NULL, TRUE);
+			found = hash_keyset_lookup(&h->kset, *hk, *hp, &idx, NULL);
 			g_assert(!found);
 
 			keys++;
@@ -889,7 +883,8 @@ hash_insert_key(struct hash *h, const void *key)
 	hash_check(h);
 
 	hash_resize_as_needed(h);
-	found = hash_keyset_lookup(&h->kset, key, &hv, &idx, &tombidx, FALSE);
+	hv = hash_compute_primary(&h->kset, key);
+	found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
 
 	if (!found) {
 		g_assert(size_is_non_negative(idx));
@@ -920,12 +915,13 @@ hash_lookup_key(struct hash *h, const void *key)
 
 	hash_check(h);
 
-	found = hash_keyset_lookup(&h->kset, key, &hv, &idx, &tombidx, FALSE);
+	hv = hash_compute_primary(&h->kset, key);
+	found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
 
 	/*
 	 * Regardless of whether key was found, attempt a resize if we went
 	 * through too many hops.  If the table ends-up being resized, then
-	 * we'll have to look the key again if it was initially present.
+	 * we'll have to look up the key again if it was initially present.
 	 */
 
 	if G_UNLIKELY(h->kset.resize) {
@@ -935,9 +931,7 @@ hash_lookup_key(struct hash *h, const void *key)
 		if (found) {
 			bool kept;
 
-			/* This time we know the key's hash value in ``hv'' */
-
-			kept = hash_keyset_lookup(&h->kset, key, &hv, &idx, &tombidx, TRUE);
+			kept = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
 			g_assert(kept);		/* Since key existed before resizing */
 		}
 	}
@@ -1000,7 +994,8 @@ hash_delete_key(struct hash *h, const void *key)
 
 	hash_check(h);
 
-	found = hash_keyset_lookup(&h->kset, key, &hv, &idx, NULL, FALSE);
+	hv = hash_compute_primary(&h->kset, key);
+	found = hash_keyset_lookup(&h->kset, key, hv, &idx, NULL);
 
 	if (found) {
 		bool erected;
