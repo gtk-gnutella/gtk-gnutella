@@ -883,16 +883,44 @@ hash_insert_key(struct hash *h, const void *key)
 
 	hash_check(h);
 
-	hash_resize_as_needed(h);
+	/*
+	 * When table is small, don't resize immediately because maybe the
+	 * key already exists hence we won't need to resize to insert it
+	 * even when the table is full.
+	 */
+
 	hv = hash_compute_primary(&h->kset, key);
-	found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
+
+	if (h->kset.size <= HASH_LINE_ITEMS) {
+		found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
+		if (!found && 0 == h->kset.tombs) {
+			/*
+			 * Key does not exist and there are no tombstones to reuse.
+			 * Resize the table if full then look up the key again to find
+			 * the proper insertion index in the grown table.
+			 */
+
+			if (h->kset.items == h->kset.size) {
+				hash_resize(h, HASH_RESIZE_GROW);		/* No more room */
+				found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
+			}
+		} else {
+			h->kset.resize = FALSE;		/* Don't resize even if already full */
+		}
+	} else {
+		hash_resize_as_needed(h);
+		found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
+	}
 
 	if (!found) {
 		g_assert(size_is_non_negative(idx));
 		g_assert(idx < h->kset.size);
+		g_assert(h->kset.items < h->kset.size);
 
 		if (tombidx == idx) {
 			g_assert(size_is_positive(h->kset.tombs));
+			g_assert(HASH_TOMB == h->kset.hashes[idx]);
+
 			h->kset.tombs--;
 		}
 		h->kset.items++;
