@@ -759,6 +759,7 @@ bool
 hash_resize_as_needed(struct hash *h)
 {
 	hash_check(h);
+	g_assert(h->kset.items + h->kset.tombs <= h->kset.size);
 
 	/*
 	 * Never resize when iterating, since this would perturb the order
