@@ -507,6 +507,9 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 				*tombidx = (size_t) -1;
 			return TRUE;
 		}
+		first_tomb = (size_t) -1;
+	} else {
+		first_tomb = idx;		/* Not free and not real -> must be a tomb */
 	}
 
 	/*
@@ -514,7 +517,6 @@ hash_keyset_lookup(struct hkeys *hk, const void *key,
 	 */
 
 	inc = hash_compute_increment(hk, key, hv);
-	first_tomb = (size_t) -1;
 	found = FALSE;
 	mask = hk->size - 1;		/* Size is power of two */
 
