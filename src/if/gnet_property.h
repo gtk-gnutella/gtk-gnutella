@@ -500,6 +500,7 @@ typedef enum {
     PROP_DHT_VALUES_DEBUG,
     PROP_PID,
     PROP_HTTP_RANGE_DEBUG,
+    PROP_UPNP_MAPPING_LEASE_TIME,
     GNET_PROPERTY_END
 } gnet_property_t;
 

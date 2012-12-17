@@ -73,7 +73,6 @@
 #define UPNP_DISCOVERY_TIMEOUT	3000	/**< Timeout in ms */
 #define UPNP_MONITOR_DELAY		300		/**< Every 5 minutes */
 #define UPNP_CHECK_DELAY		1800	/**< Every 30 minutes */
-#define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
 #define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
 #define UPNP_PUBLISH_RETRY		2		/**< 2 seconds */
 
@@ -97,10 +96,10 @@ static struct {
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
 	uint32 rcvd_pkts;			/**< Amount of received packets */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
-	time_delta_t lease_time;	/**< Lease time to request */
 	time_delta_t uptime;		/**< Connection uptime */
 	unsigned discover:1;		/**< Force discovery again */
 	unsigned discovery_done:1;	/**< Was discovery completed? */
+	unsigned only_permanent:1;	/**< Only permanent mappings supported */
 } igd;
 
 /**
@@ -359,8 +358,8 @@ upnp_record_igd(upnp_device_t *ud)
 	upnp_dev_free_null(&igd.dev);
 	igd.rcvd_pkts = 0;
 	igd.dev = ud;
-	igd.lease_time = UPNP_MAPPING_LIFE;
 	igd.uptime = 0;
+	igd.only_permanent = FALSE;
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_info("UPNP using Internet Gateway Device at \"%s\" (WAN IP: %s)",
@@ -1149,7 +1148,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 		 */
 
 		if (UPNP_ERR_ONLY_PERMANENT_LEASE == code && 0 != um->lease_time) {
-			igd.lease_time = 0;
+			igd.only_permanent = TRUE;
 			um->lease_time = 0;
 			cq_resched(um->install_ev, 1);	/* Re-publish immediately */
 		} else {
@@ -1285,8 +1284,12 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 */
 
 	if (gw.gateway != NULL && GNET_PROPERTY(enable_natpmp)) {
-		if (UPNP_UNDEFINED_LEASE == um->lease_time)
-			um->lease_time = UPNP_MAPPING_LIFE;
+		/*
+		 * No permanent mappings with NAT-PMP.
+		 */
+
+		um->lease_time = GNET_PROPERTY(upnp_mapping_lease_time);
+		um->lease_time = MAX(UPNP_MAPPING_CAUTION, um->lease_time);
 
 		natpmp_map(gw.gateway, um->proto, um->port, um->lease_time,
 			upnp_map_natpmp_publish_reply, um);
@@ -1296,8 +1299,17 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 		usd = upnp_service_get_wan_connection(igd.dev->services);
 		upnp_ctrl_cancel_null(&um->rpc, TRUE);
 
-		if (UPNP_UNDEFINED_LEASE == um->lease_time)
-			um->lease_time = igd.lease_time;
+		/*
+		 * Impose minimal UPNP_MAPPING_CAUTION lease time if not permanent.
+		 * When the IGD only supports permanent mappings, there is no need
+		 * to request anything else!
+		 */
+
+		um->lease_time = igd.only_permanent ? 0 :
+			GNET_PROPERTY(upnp_mapping_lease_time);
+
+		if (um->lease_time != 0)
+			um->lease_time = MAX(UPNP_MAPPING_CAUTION, um->lease_time);
 
 		um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
 			upnp_get_local_addr(), um->port,

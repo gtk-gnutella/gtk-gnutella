@@ -47,6 +47,7 @@
 #include "if/core/sockets.h"
 #include "dht/kuid.h"
 #include "if/dht/routing.h"
+#include "upnp/upnp.h"
 
 
 extern const gboolean gnet_property_variable_reading_hostfile;
@@ -513,6 +514,7 @@ extern const guint32  gnet_property_variable_dht_keys_debug;
 extern const guint32  gnet_property_variable_dht_values_debug;
 extern const guint32  gnet_property_variable_pid;
 extern const guint32  gnet_property_variable_http_range_debug;
+extern const guint32  gnet_property_variable_upnp_mapping_lease_time;
 
 
 prop_set_t *gnet_prop_init(void);

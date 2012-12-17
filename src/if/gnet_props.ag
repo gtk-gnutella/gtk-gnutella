@@ -16,6 +16,7 @@ uses = "if/core/nodes.h";
 uses = "if/core/sockets.h";
 uses = "dht/kuid.h";
 uses = "if/dht/routing.h";
+uses = "upnp/upnp.h";
 
 prop = {
     name = "reading_hostfile";
@@ -5356,6 +5357,18 @@ prop = {
     type = guint32;
     data = {
         default = 0;
+    };
+};
+
+prop = {
+	name = "upnp_mapping_lease_time";
+	desc = "Lease time when installing port mappings via UPnP or NAT-PMP, "
+		"in seconds.  A value of 0 requests permanent mappings.";
+    type = guint32;
+    data = {
+        default = UPNP_MAPPING_LIFE;
+        min     = 0;
+        max     = 31536000;	/* About a year */
     };
 };
 
