@@ -70,6 +70,7 @@ upnp_service_t *upnp_service_get_wan_connection(GSList *services);
 upnp_service_t *upnp_service_get_common_if(GSList *services);
 void upnp_service_scpd_parse(upnp_service_t *usd, const char *data, size_t len);
 bool upnp_service_can(const upnp_service_t *usd, const char *action);
+void upnp_service_cannot(upnp_service_t *usd, const char *action);
 
 #endif /* _upnp_service_h_ */
 
