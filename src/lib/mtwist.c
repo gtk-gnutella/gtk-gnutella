@@ -451,7 +451,7 @@ mts_rand_internal(register mt_state_t *mts)
 {
 	register uint32	rn;		/* Pseudo-random value generated */
 
-	if (mts->sp <= 0)
+	if G_UNLIKELY(mts->sp <= 0)
 		mts_refresh(mts);
 
 	rn = mts->vec[--mts->sp];
@@ -490,7 +490,7 @@ mts_rand64_internal(register mt_state_t *mts)
 	 * the expense of an extra one in the overflow case.
 	 */
 
-	if (--mts->sp <= 0) {
+	if G_UNLIKELY(--mts->sp <= 0) {
 		if (mts->sp < 0) {
 			mts_refresh(mts);
 			rn1 = mts->vec[--mts->sp];
@@ -499,7 +499,7 @@ mts_rand64_internal(register mt_state_t *mts)
 			mts_refresh(mts);
 		}
 	} else {
-		rn1 = mts->vec[--mts->sp];
+		rn1 = mts->vec[mts->sp];
 	}
 
 	MT_TEMPER(rn1);
