@@ -145,6 +145,15 @@ cqueue_check(const struct cqueue * const cq)
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
 
+/**
+ * Locking of the callout queue for short period of time, in sections that
+ * do not encompass memory allocation or do not call other routines that may
+ * take other locks.  These locks can be "hidden" and therefore faster because
+ * they do not involve the lock tracking logic.
+ */
+#define CQ_LOCK(q)		mutex_lock_hidden(&(q)->cq_lock)
+#define CQ_UNLOCK(q)	mutex_unlock_hidden(&(q)->cq_lock)
+
 static cqueue_t *callout_queue;			/**< The main callout queue */
 static bool cq_global_inited;			/**< Records global initialization */
 static void cq_global_init(void);
@@ -411,9 +420,9 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	 * routine is not going to take locks, so it is safe.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	ev_link(ev);
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 
 	return ev;
 }
@@ -447,9 +456,9 @@ cq_cancel(cevent_t **handle_ptr)
 		 * routine is not using locks so there is no potential for deadlocks.
 		 */
 
-		mutex_lock_hidden(&cq->cq_lock);
+		CQ_LOCK(cq);
 		ev_unlink(ev);
-		mutex_unlock_hidden(&cq->cq_lock);
+		CQ_UNLOCK(cq);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		WFREE(ev);
 		*handle_ptr = NULL;
@@ -492,11 +501,11 @@ cq_resched(cevent_t *ev, int delay)
 	 * ev_unlink() routines are not going to take locks, so it is safe.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 }
 
 /**
@@ -538,11 +547,11 @@ cq_expire(cevent_t *ev)
 	 * critical section, so no opportunity to ever deadlock.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
-	cevent_check(ev);		/* Not triggered in between */
+	CQ_LOCK(cq);
+	cevent_check(ev);		/* Not triggered since routine start */
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 
 	g_assert(fn);
 
@@ -576,11 +585,11 @@ cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
 	 * critical section, so no opportunity to ever deadlock.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	cevent_check(ev);		/* Not triggered in between */
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 }
 
 /**
