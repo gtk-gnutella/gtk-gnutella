@@ -661,3 +661,4 @@ N_("Store SPAM SHA1 table in memory");
 N_("Relayed queries remembered");
 N_("Allow unused Gnutella outgoing bandwidth to supersede hint");
 N_("Display GUESS statistics");
+N_("Mapping lease time");

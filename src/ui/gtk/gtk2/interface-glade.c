@@ -9196,6 +9196,9 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *table118;
   GtkWidget *checkbutton_enable_natpmp;
   GtkWidget *checkbutton_enable_upnp;
+  GtkWidget *label1077;
+  GtkObject *spinbutton_config_upnp_mapping_lease_time_adj;
+  GtkWidget *spinbutton_config_upnp_mapping_lease_time;
   GtkWidget *label1054;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
@@ -9523,7 +9526,7 @@ create_dlg_prefs_net_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_port_mapping, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_port_mapping), 4);
 
-  table118 = gtk_table_new (1, 2, FALSE);
+  table118 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table118, "table118");
   gtk_widget_show (table118);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_port_mapping), table118);
@@ -9543,6 +9546,22 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (checkbutton_enable_upnp);
   gtk_table_attach (GTK_TABLE (table118), checkbutton_enable_upnp, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label1077 = gtk_label_new (_("Mapping lease time"));
+  gtk_widget_set_name (label1077, "label1077");
+  gtk_widget_show (label1077);
+  gtk_table_attach (GTK_TABLE (table118), label1077, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1077), 0, 0.5);
+
+  spinbutton_config_upnp_mapping_lease_time_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_upnp_mapping_lease_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upnp_mapping_lease_time_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
+  gtk_widget_show (spinbutton_config_upnp_mapping_lease_time);
+  gtk_table_attach (GTK_TABLE (table118), spinbutton_config_upnp_mapping_lease_time, 1, 2, 1, 2,
+                    (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
 
   label1054 = gtk_label_new (_("Port Mapping"));
@@ -10082,6 +10101,8 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table118, "table118");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_upnp, "checkbutton_enable_upnp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1077, "label1077");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1054, "label1054");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");

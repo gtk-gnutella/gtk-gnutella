@@ -5680,6 +5680,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_dlg_prefs,
+        PROP_UPNP_MAPPING_LEASE_TIME,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_upnp_mapping_lease_time",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
         PROP_ENABLE_UDP,
         enable_udp_changed,
         TRUE,
