@@ -135,7 +135,7 @@ mutex_init(mutex_t *m)
 	g_assert(m != NULL);
 
 	m->magic = MUTEX_MAGIC;
-	m->owner = 0;
+	thread_set(m->owner, THREAD_NONE);
 	m->depth = 0;
 	spinlock_init(&m->lock);	/* Issues the memory barrier */
 }
@@ -229,7 +229,7 @@ mutex_destroy(mutex_t *m)
 	}
 
 	m->magic = MUTEX_DESTROYED;		/* Now invalid */
-	m->owner = 0;
+	thread_set(m->owner, THREAD_NONE);
 
 	/*
 	 * Given we internally grab the spinlock in "hidden" mode but
@@ -377,7 +377,7 @@ mutex_ungrab(mutex_t *m, bool hidden)
 	}
 
 	if (0 == --m->depth) {
-		m->owner = 0;
+		thread_set(m->owner, THREAD_NONE);
 		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
 

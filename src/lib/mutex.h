@@ -81,7 +81,7 @@ enum mutex_magic {
  */
 typedef struct mutex {
 	enum mutex_magic magic;
-	unsigned long owner;
+	thread_t owner;
 	size_t depth;
 	spinlock_t lock;
 } mutex_t;
@@ -98,7 +98,7 @@ mutex_is_valid(const volatile mutex_t * const m)
 /**
  * Static initialization value for a mutex structure.
  */
-#define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, SPINLOCK_INIT }
+#define MUTEX_INIT	{ MUTEX_MAGIC, THREAD_NONE, 0L, SPINLOCK_INIT }
 
 /*
  * These should not be called directly by user code to allow debugging.
