@@ -59,10 +59,9 @@ mutex_release_account(const mutex_t *m)
 }
 
 static inline void
-mutex_check(const volatile struct mutex * const mutex)
+mutex_check(const volatile struct mutex * const m)
 {
-	g_assert(mutex != NULL);
-	g_assert(MUTEX_MAGIC == mutex->magic);
+	g_assert(mutex_is_valid(m));
 }
 
 /**

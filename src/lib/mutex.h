@@ -87,6 +87,15 @@ typedef struct mutex {
 } mutex_t;
 
 /**
+ * Verify mutex is valid.
+ */
+static inline bool
+mutex_is_valid(const volatile mutex_t * const m)
+{
+	return m != NULL && MUTEX_MAGIC == m->magic;
+}
+
+/**
  * Static initialization value for a mutex structure.
  */
 #define MUTEX_INIT	{ MUTEX_MAGIC, 0L, 0L, SPINLOCK_INIT }
