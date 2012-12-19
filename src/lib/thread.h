@@ -49,16 +49,22 @@ typedef size_t thread_qid_t;		/* Quasi Thread ID */
 /* General macros, optimized by GCC usually */
 #define thread_eq(a, b)	(0 == memcmp(&(a), &(b), sizeof(thread_t)))
 #define thread_set(t,v)	memcpy(&(t), &(v), sizeof(thread_t))
+
+#define THREAD_NONE		((thread_t) 0)
 #else
 /* Specific macros, suitable when we know thread_t is an unsigned long */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
+
+#define THREAD_NONE		0
 #endif
 
 #else	/* !I_PTHREAD */
 
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
+
+#define THREAD_NONE		0
 
 #endif	/* I_PTHREAD */
 
