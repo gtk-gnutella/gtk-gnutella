@@ -1366,6 +1366,20 @@ thread_private_get(const void *key)
 }
 
 /**
+ * Remove thread-private data from supplied hash table, invoking its free
+ * routine if any present.
+ */
+static void
+thread_private_remove_value(hash_table_t *pht,
+	const void *key, struct thread_pvalue *pv)
+{
+	hash_table_remove(pht, key);
+	if (pv->p_free != NULL)
+		(*pv->p_free)(pv->value, pv->p_arg);
+	zfree(pvzone, pv);
+}
+
+/**
  * Remove thread-private data indexed by key.
  *
  * If any free-routine was registered for the value, it is invoked before
@@ -1381,13 +1395,7 @@ thread_private_remove(const void *key)
 
 	pht = thread_get_private_hash();
 	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
-		struct thread_pvalue *pv = v;
-
-		hash_table_remove(pht, key);
-		if (pv->p_free != NULL)
-			(*pv->p_free)(pv->value, pv->p_arg);
-		zfree(pvzone, pv);
-
+		thread_private_remove_value(pht, key, v);
 		return TRUE;
 	} else {
 		return FALSE;
@@ -1395,7 +1403,66 @@ thread_private_remove(const void *key)
 }
 
 /**
+ * Update possibly existing thread-private data.
+ *
+ * If "existing" is TRUE, then any existing key has its value updated.
+ * Moreover, if "p_free" is not NULL, it is used along with "p_arg" to
+ * update the value's free routine (if the value remains otherwise unchanged).
+ *
+ * When replacing an existing key and the value is changed, the old value
+ * is removed first, possibly invoking its free routine if defined.
+ *
+ * @param key		the key for the private data
+ * @param value		private value to store
+ * @param p_free	free-routine to invoke when key is removed
+ * @param p_arg		additional opaque argument for the freeing callback
+ * @param existing	whether key can be already existing
+ */
+void
+thread_private_update_extended(const void *key, const void *value,
+	thread_pvalue_free_t p_free, void *p_arg, bool existing)
+{
+	hash_table_t *pht;
+	struct thread_pvalue *pv;
+	void *v;
+	bool ok;
+
+	thread_pvzone_init();
+
+	pht = thread_get_private_hash();
+	if (hash_table_lookup_extended(pht, key, NULL, &v)) {
+		struct thread_pvalue *opv = v;
+
+		if (!existing)
+			s_minierror("attempt to add already existing thread-private key");
+
+		if (opv->value != value) {
+			thread_private_remove_value(pht, key, opv);
+		} else {
+			/* Free routine and argument could have changed, if non-NULL */
+			if (p_free != NULL) {
+				opv->p_free = p_free;
+				opv->p_arg = p_arg;
+			}
+			return;				/* Key was already present with same value */
+		}
+	}
+
+	pv = zalloc(pvzone);
+	ZERO(pv);
+	pv->value = deconstify_pointer(value);
+	pv->p_free = p_free;
+	pv->p_arg = p_arg;
+
+	ok = hash_table_insert(pht, key, pv);
+
+	g_assert(ok);		/* No duplicate insertions */
+}
+
+/**
  * Add thread-private data with a free routine.
+ *
+ * The key must not already exist in the thread-private area.
  *
  * @param key		the key for the private data
  * @param value		private value to store
@@ -1406,31 +1473,47 @@ void
 thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg)
 {
-	hash_table_t *pht;
-	struct thread_pvalue *pv;
-	bool ok;
+	thread_private_update_extended(key, value, p_free, p_arg, FALSE);
+}
 
-	thread_pvzone_init();
-
-	pv = zalloc(pvzone);
-	ZERO(pv);
-	pv->value = deconstify_pointer(value);
-	pv->p_free = p_free;
-	pv->p_arg = p_arg;
-
-	pht = thread_get_private_hash();
-	ok = hash_table_insert(pht, key, pv);
-
-	g_assert(ok);		/* No duplicate insertions */
+/**
+ * Set thread-private data with a free routine.
+ *
+ * Any previously existing data for this key is replaced provided the value
+ * is different.  Otherwise, the free routine and its argument are updated.
+ *
+ * @param key		the key for the private data
+ * @param value		private value to store
+ * @param p_free	free-routine to invoke when key is removed
+ * @param p_arg		additional opaque argument for the freeing callback
+ */
+void
+thread_private_set_extended(const void *key, const void *value,
+	thread_pvalue_free_t p_free, void *p_arg)
+{
+	thread_private_update_extended(key, value, p_free, p_arg, TRUE);
 }
 
 /**
  * Add thread-private data indexed by key.
+ *
+ * The key must not already exist in the thread-private area.
  */
 void
 thread_private_add(const void *key, const void *value)
 {
-	thread_private_add_extended(key, value, NULL, NULL);
+	thread_private_update_extended(key, value, NULL, NULL, FALSE);
+}
+
+/**
+ * Set thread-private data indexed by key.
+ *
+ * The key is created if it did not already exist.
+ */
+void
+thread_private_set(const void *key, const void *value)
+{
+	thread_private_update_extended(key, value, NULL, NULL, TRUE);
 }
 
 /**
