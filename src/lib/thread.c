@@ -54,6 +54,7 @@
 #include "hashtable.h"
 #include "mutex.h"
 #include "omalloc.h"
+#include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "stacktrace.h"
@@ -134,6 +135,7 @@ struct thread_element {
  * descriptor being held at the head of the first zone arena.
  */
 static zone_t *pvzone;		/* For private values */
+static bool pvzone_inited;
 
 /**
  * Array of threads, by small thread ID.
@@ -229,6 +231,25 @@ static inline size_t
 thread_stack_ptr_offset(const void *base, const void *sp)
 {
 	return thread_sp_direction > 0 ? ptr_diff(sp, base) : ptr_diff(base, sp);
+}
+
+/**
+ * Create the private value zone.
+ */
+static void
+thread_pvzone_init_once(void)
+{
+	pvzone = zcreate(sizeof(struct thread_pvalue), 0, TRUE);
+}
+
+/**
+ * Initialize pvzone if not already done.
+ */
+static inline void ALWAYS_INLINE
+thread_pvzone_init(void)
+{
+	if G_UNLIKELY(NULL == pvzone)
+		once_run(&pvzone_inited, thread_pvzone_init_once);
 }
 
 /**
@@ -1389,13 +1410,7 @@ thread_private_add_extended(const void *key, const void *value,
 	struct thread_pvalue *pv;
 	bool ok;
 
-	if G_UNLIKELY(NULL == pvzone) {
-		static spinlock_t pvzone_slk = SPINLOCK_INIT;
-		spinlock(&pvzone_slk);
-		if (NULL == pvzone)
-			pvzone = zcreate(sizeof *pv, 0, TRUE);	/* Embedded zone */
-		spinunlock(&pvzone_slk);
-	}
+	thread_pvzone_init();
 
 	pv = zalloc(pvzone);
 	ZERO(pv);
