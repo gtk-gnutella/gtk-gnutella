@@ -66,16 +66,28 @@ atomic_test_and_set(atomic_lock_t *p)
 	return __sync_bool_compare_and_swap(p, 0, 1);
 }
 
-static inline ALWAYS_INLINE void
+static inline ALWAYS_INLINE int
 atomic_int_inc(int *p)
 {
-	(void) __sync_fetch_and_add(p, 1);
+	return __sync_fetch_and_add(p, 1);		/* Previous value */
 }
 
-static inline ALWAYS_INLINE void
+static inline ALWAYS_INLINE int
+atomic_int_dec(int *p)
+{
+	return __sync_fetch_and_sub(p, 1);		/* Previous value */
+}
+
+static inline ALWAYS_INLINE uint
 atomic_uint_inc(unsigned *p)
 {
-	(void) __sync_fetch_and_add(p, 1);
+	return __sync_fetch_and_add(p, 1);		/* Previous value */
+}
+
+static inline ALWAYS_INLINE uint
+atomic_uint_dec(unsigned *p)
+{
+	return __sync_fetch_and_sub(p, 1);		/* Previous value */
 }
 
 static inline ALWAYS_INLINE bool
@@ -101,8 +113,10 @@ atomic_test_and_set(atomic_lock_t *p)
 	return ok;
 }
 
-#define atomic_int_inc(p)			((*(p))++)
-#define atomic_uint_inc(p)			((*(p))++)
+#define atomic_int_inc(p)			((*(p))++)		/* Previous value */
+#define atomic_int_dec(p)			((*(p))--)		/* Previous value */
+#define atomic_uint_inc(p)			((*(p))++)		/* Previous value */
+#define atomic_uint_dec(p)			((*(p))--)		/* Previous value */
 #define atomic_int_dec_is_zero(p)	(0 == --(*(p)))
 #define atomic_uint_dec_is_zero(p)	(0 == --(*(p)))
 #define atomic_release(p)			(*(p) = 0)
