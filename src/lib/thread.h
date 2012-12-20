@@ -39,6 +39,17 @@
  */
 typedef void (*thread_pvalue_free_t)(void *value, void *arg);
 
+/**
+ * Main entry point for thread_create().
+ */
+typedef void *(*thread_main_t)(void *arg);
+
+/**
+ * Thread exiting callback, which will be invoked asynchronously in the
+ * context of the main thread, NOT the thread which created that exiting thread.
+ */
+typedef void (*thread_exit_t)(void *result, void *earg);
+
 typedef unsigned long thread_t;
 typedef size_t thread_qid_t;		/* Quasi Thread ID */
 
@@ -110,6 +121,13 @@ void thread_assert_no_locks(const char *routine);
 
 void thread_pending_add(int increment);
 size_t thread_pending_count(void);
+
+struct tmval;
+
+unsigned thread_block_prepare(void);
+void thread_block_self(unsigned events);
+bool thread_timed_block_self(unsigned events, const struct tmval *timeout);
+int thread_unblock(unsigned id);
 
 #endif /* _thread_h_ */
 

@@ -47,9 +47,12 @@
 #define THREAD_SOURCE			/* We want hash_table_new_real() */
 
 #include "thread.h"
+
 #include "alloca.h"				/* For alloca_stack_direction() */
+#include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "crash.h"				/* For print_str() et al. */
+#include "fd.h"					/* For fd_close() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "mutex.h"
@@ -77,6 +80,12 @@
 
 #define THREAD_SUSPEND_CHECK	5000
 #define THREAD_SUSPEND_TIMEOUT	30	/* seconds */
+
+#ifdef HAS_SOCKETPAIR
+#define INVALID_FD		INVALID_SOCKET
+#else
+#define INVALID_FD		-1
+#endif
 
 /**
  * A recorded lock.
@@ -118,11 +127,19 @@ struct thread_element {
 	const void *stack_lock;			/**< First lock seen here */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
+	socket_fd_t wfd[2];				/**< For the block/unblock interface */
+	unsigned unblock_events;		/**< Counts unblock events received */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	uint valid:1;					/**< Whether thread is valid */
 	uint suspended:1;				/**< Whether thread is suspended */
+	uint blocked:1;					/**< Whether thread is blocked */
+	uint unblocked:1;				/**< Whether unblocking was requested */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
+	spinlock_t lock;				/**< Protects concurrent updates */
 };
+
+#define THREAD_LOCK(te)		spinlock_hidden(&(te)->lock)
+#define THREAD_UNLOCK(te)	spinunlock_hidden(&(te)->lock)
 
 /**
  * Private zones.
@@ -407,6 +424,58 @@ thread_get_global_hash(void)
 }
 
 /**
+ * Create block/unblock synchronization socketpair or pipe if necessary.
+ */
+static void
+thread_block_init(struct thread_element *te)
+{
+	/*
+	 * This is called in the context of the thread attempting to block,
+	 * hence there is no need to lock the thread element.
+	 *
+	 * It is a fatal error if we cannot get the pipe since it means we
+	 * will not be able to correctly block or be unblocked, hence the whole
+	 * thread synchronization logic is jeopardized.
+	 *
+	 * If socketpair() is available, we prefer it over pipe() because on
+	 * Windows one can only select() on sockets...  This means we need to
+	 * use s_read() and s_write() on the file descriptors, since on Windows
+	 * sockets are not plain file descriptors.
+	 *
+	 * FIXME: on linux, we can use eventfd() to save one file descriptor but
+	 * this will require new metaconfig checks.
+	 */
+
+	if G_UNLIKELY(INVALID_FD == te->wfd[0]) {
+#ifdef HAS_SOCKETPAIR
+		if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, te->wfd))
+			s_minierror("%s(): socketpair() failed: %m", G_STRFUNC);
+#else
+		if (-1 == pipe(te->wfd))
+			s_minierror("%s(): pipe() failed: %m", G_STRFUNC);
+#endif
+	}
+}
+
+/**
+ * Destroy block/unblock synchronization socketpair or pipe if it exists.
+ */
+static void
+thread_block_close(struct thread_element *te)
+{
+#ifdef HAS_SOCKETPAIR
+	if (INVALID_SOCKET != te->wfd[0]) {
+		s_close(te->wfd[0]);
+		s_close(te->wfd[1]);
+		te->wfd[0] = te->wfd[1] = INVALID_SOCKET;
+	}
+#else
+	fd_close(&te->wfd[0]);
+	fd_close(&te->wfd[1]);
+#endif
+}
+
+/**
  * Instantiate an already allocated thread element to be a descriptor for
  * the current thread.
  */
@@ -416,9 +485,13 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	struct thread_lock_stack *tls = &te->locks;
 
 	thread_stack_init_shape(te, &te);
+	thread_block_close(te);
 	te->tid = t;
 	tls->count = 0;
 	te->valid = TRUE;		/* Flags a correctly instantiated element */
+
+	te->blocked = FALSE;
+	te->unblocked = FALSE;
 }
 
 /**
@@ -439,6 +512,8 @@ thread_new_element(unsigned stid)
 	te->last_qid = (thread_qid_t) -1;
 	te->pht = hash_table_once_new_real();	/* Never freed! */
 	te->stid = stid;
+	te->wfd[0] = te->wfd[1] = INVALID_FD;
+	spinlock_init(&te->lock);
 
 	thread_lock_stack_init(te);
 
@@ -976,7 +1051,7 @@ thread_stid_from_thread(const thread_t t)
 		/* Allow look-ahead of to-be-created slot, hence the ">" */
 		if G_UNLIKELY(i > thread_next_stid)
 			break;
-		if G_UNLIKELY(t == tstid[i])
+		if G_UNLIKELY(thread_eq(t, tstid[i]))
 			return i;
 	}
 
@@ -2167,6 +2242,272 @@ thread_lock_deadlock(const volatile void *lock)
 
 	s_miniinfo("attempting to unwind current stack:");
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+}
+
+/**
+ * Get amount of unblock events received by the thread so far.
+ *
+ * This is then passed to thread_block_self() and if there is a change
+ * between the amount passed and the amount returned by this routine, it
+ * means the thread received an unblock event whilst it was preparing to
+ * block.
+ */
+unsigned
+thread_block_prepare(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	g_assert(!te->blocked);
+
+	return te->unblock_events;
+}
+
+/**
+ * Block execution of current thread until a thread_unblock() is posted to it
+ * or until the timeout expires.
+ *
+ * The thread must not be holding any locks since it could cause deadlocks.
+ * The main thread cannot block itself either since it runs the callout queue.
+ *
+ * When this routine returns, the thread has been either successfully unblocked
+ * and is resuming its execution normally or the timeout expired.
+ *
+ * @param te		the thread element for the current thread
+ * @param events	the amount of events returned by thread_block_prepare()
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return TRUE if we were properly unblocked, FALSE if we timed out.
+ */
+static bool
+thread_element_block_until(struct thread_element *te,
+	unsigned events, const tm_t *end)
+{
+	char c;
+
+	g_assert(!te->blocked);
+
+	/*
+	 * Make sure the main thread never attempts to block itself.
+	 */
+
+	if (0 == te->stid)
+		s_minierror("%s() called from main thread", G_STRFUNC);
+
+	/*
+	 * Blocking works thusly: the thread attempts to read one byte out of its
+	 * pipe and that will block it until someone uses thread_unblock() to
+	 * write a single byte to that same pipe.
+	 */
+
+	thread_block_init(te);
+
+	/*
+	 * Make sure the thread has not been unblocked concurrently whilst it
+	 * was setting up for blocking.  When that happens, there is nothing
+	 * to read on the pipe since the unblocking thread did not send us
+	 * anything as we were not flagged as "blocked" yet.
+	 */
+
+	THREAD_LOCK(te);
+	if (te->unblock_events != events) {
+		THREAD_UNLOCK(te);
+		return TRUE;				/* Was sent an "unblock" event already */
+	}
+
+	/*
+	 * Lock is required for the te->unblocked update, since this can be
+	 * concurrently updated by the unblocking thread.  Whilst we hold the
+	 * lock we also update the te->blocked field, since it lies in the same
+	 * bitfield in memory, and therefore it cannot be accessed atomically.
+	 */
+
+	te->blocked = TRUE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
+	/*
+	 * If we have a time limit, poll the file descriptor first before reading.
+	 */
+
+	if (end != NULL) {
+		long remain = tm_remaining_ms(end);
+		struct pollfd fds;
+		int r;
+
+		if G_UNLIKELY(remain <= 0)
+			goto timed_out;			/* Waiting time expired */
+
+		remain = MIN(remain, MAX_INT_VAL(int));		/* poll() takes an int */
+		fds.fd = te->wfd[0];
+		fds.events = POLLIN;
+
+		r = compat_poll(&fds, 1, remain);
+
+		if (-1 == r)
+			s_minierror("%s(): thread #%u could not block itself on poll(): %m",
+				G_STRFUNC, te->stid);
+
+		if (0 == r)
+			goto timed_out;			/* The poll() timed out */
+
+		/* FALL THROUGH -- we can now safely read from the file descriptor */
+	}
+
+	if (-1 == s_read(te->wfd[0], &c, 1)) {
+		s_minierror("%s(): thread #%u could not block itself on read(): %m",
+			G_STRFUNC, te->stid);
+	}
+
+	THREAD_LOCK(te);
+	te->blocked = FALSE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
+	return TRUE;
+
+timed_out:
+	THREAD_LOCK(te);
+	te->blocked = FALSE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
+	return FALSE;
+}
+
+/**
+ * Block execution of current thread until a thread_unblock() is posted to it.
+ *
+ * The thread must not be holding any locks since it could cause deadlocks.
+ * The main thread cannot block itself either since it runs the callout queue.
+ *
+ * When this routine returns, the thread has been successfully unblocked and
+ * is resuming its execution normally.
+ *
+ * @param events	the amount of events returned by thread_block_prepare()
+ */
+void
+thread_block_self(unsigned events)
+{
+	struct thread_element *te = thread_get_element();
+
+	thread_assert_no_locks(G_STRFUNC);
+
+	thread_element_block_until(te, events, NULL);
+}
+
+/**
+ * Block execution of current thread until a thread_unblock() is posted to it
+ * or until the timeout expires.
+ *
+ * The thread must not be holding any locks since it could cause deadlocks.
+ * The main thread cannot block itself either since it runs the callout queue.
+ *
+ * When this routine returns, the thread has either been successfully unblocked
+ * and is resuming its execution normally or the timeout expired.
+ *
+ * @param events	the amount of events returned by thread_block_prepare()
+ * @param tmout		timeout (NULL = infinite)
+ *
+ * @return TRUE if we were properly unblocked, FALSE if we timed out.
+ */
+bool
+thread_timed_block_self(unsigned events, const tm_t *tmout)
+{
+	struct thread_element *te = thread_get_element();
+	tm_t end;
+
+	thread_assert_no_locks(G_STRFUNC);
+
+	if (tmout != NULL) {
+		tm_now_exact(&end);
+		tm_add(&end, tmout);
+	}
+
+	return thread_element_block_until(te, events, NULL == tmout ? NULL : &end);
+}
+
+/**
+ * Unblock thread blocked via thread_block_self().
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+static int
+thread_element_unblock(struct thread_element *te)
+{
+	bool need_unblock = TRUE;
+	char c = '\0';
+
+	/*
+	 * If the targeted thread is not blocked yet, count the event nonetheless.
+	 * This will prevent any race condition between the preparation for
+	 * blocking and the blocking itself.
+	 *
+	 * We also need to record when the thread is unblocked to avoid writing
+	 * more than one character to the pipe.  That way, once the unblocked
+	 * thread has read that character, it will be able to block again by
+	 * reusing the same pipe.
+	 */
+
+	THREAD_LOCK(te);
+	te->unblock_events++;
+	if (te->unblocked || !te->blocked)
+		need_unblock = FALSE;
+	else
+		te->unblocked = TRUE;
+	THREAD_UNLOCK(te);
+
+	if (!need_unblock)
+		return 0;				/* Already unblocked */
+
+	if (-1 == s_write(te->wfd[1], &c, 1)) {
+		s_minicarp("%s(): cannot unblock thread #%u: %m", G_STRFUNC, te->stid);
+		return -1;
+	}
+	return 0;
+}
+
+/**
+ * Get thread element by thread (small) ID.
+ *
+ * @return the thread element if found, NULL otherwise with errno set.
+ */
+static struct thread_element *
+thread_get_element_by_id(unsigned id)
+{
+	struct thread_element *te;
+
+	if (id >= thread_next_stid) {
+		errno = ESRCH;
+		return NULL;
+	}
+	te = threads[id];
+	if (!te->valid) {
+		errno = ESRCH;
+		return NULL;
+	}
+
+	return te;
+}
+
+/**
+ * Unblock thread blocked via thread_block_self().
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+thread_unblock(unsigned id)
+{
+	struct thread_element *te;
+
+	g_assert(id != thread_small_id());	/* Can't unblock oneself */
+
+	te = thread_get_element_by_id(id);
+	if (NULL == te) {
+		s_minicarp("%s(): cannot unblock thread #%u: %m", G_STRFUNC, id);
+		return -1;
+	}
+
+	return thread_element_unblock(te);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
