@@ -292,4 +292,5 @@ local_clean::
 NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
 NormalProgramLibTarget(sort-test, sort-test.c, sort-test.o, libshared.a)
 NormalProgramLibTarget(random-test, random-test.c, random-test.o, libshared.a)
+NormalProgramLibTarget(thread-test, thread-test.c, thread-test.o, libshared.a)
 

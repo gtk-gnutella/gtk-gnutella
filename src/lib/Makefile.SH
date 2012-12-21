@@ -57,8 +57,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o
+SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -538,6 +538,17 @@ random-test:  random-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: thread-test
+
+local_realclean::
+	$(RM) thread-test$(_EXE)
+
+thread-test:  thread-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  thread-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

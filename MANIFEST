@@ -856,6 +856,7 @@ src/lib/symtab.c
 src/lib/symtab.h
 src/lib/tea.c
 src/lib/tea.h
+src/lib/thread-test.c
 src/lib/thread.c
 src/lib/thread.h
 src/lib/tiger.c
