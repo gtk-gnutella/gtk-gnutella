@@ -79,6 +79,7 @@
 #include "bfd_util.h"
 #include "concat.h"
 #include "mutex.h"
+#include "once.h"
 #include "path.h"
 #include "symbols.h"
 #include "vmm.h"			/* For vmm_page_start() */
@@ -587,10 +588,7 @@ bfd_util_init(void)
 	be->magic = BFD_ENV_MAGIC;
 	mutex_init(&be->lock);
 
-	if (!done) {
-		bfd_init();
-		done = TRUE;
-	}
+	ONCE_RUN(done, bfd_init);
 
 	return be;
 }
