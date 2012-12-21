@@ -45,6 +45,11 @@ typedef void (*once_fn_t)(void);
 
 bool once_run(volatile bool *flag, once_fn_t routine);
 
+#define ONCE_RUN(f, r) G_STMT_START {	\
+	if G_UNLIKELY(!(f))					\
+		once_run(&(f), (r));			\
+} G_STMT_END
+
 #endif /* _once_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
