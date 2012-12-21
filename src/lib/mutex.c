@@ -372,8 +372,9 @@ mutex_ungrab(mutex_t *m, bool hidden)
 		/* OK, re-assert so that we get the precondition failure */
 		g_assert_log(mutex_is_owned(m),
 			"thread #%u attempts to release unowned mutex %p"
-			" (depth=%zu, owner=thread #%d)",
-			thread_small_id(), m, m->depth, thread_stid_from_thread(m->owner));
+			" (depth=%zu, owner=thread #%d [%lu], self=[%lu])",
+			thread_small_id(), m, m->depth, thread_stid_from_thread(m->owner),
+			(ulong) m->owner, (ulong) thread_current());
 	}
 
 	if (0 == --m->depth) {
