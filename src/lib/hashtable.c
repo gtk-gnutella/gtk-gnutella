@@ -63,6 +63,7 @@
 #include "hashing.h"
 #include "mutex.h"
 #include "omalloc.h"
+#include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "vmm.h"
@@ -146,29 +147,52 @@ static unsigned hash_offset;
  */
 static size_t hash_min_bins;
 
+static bool hash_offset_inited;
+static bool hash_min_bins_computed;
+
+static G_GNUC_COLD void
+hash_offset_init_once(void)
+{
+	/* Don't allocate any memory, hence can't call arc4random() */
+	hash_offset = entropy_random();
+}
+
 /**
  * Initialize hash offset if not already done.
  */
-static G_GNUC_COLD void
+static inline void ALWAYS_INLINE
 hash_offset_init(void)
 {
-	static spinlock_t offset_slk = SPINLOCK_INIT;
-	static bool done;
+	ONCE_RUN(hash_offset_inited, hash_offset_init_once);
+}
 
-	if G_UNLIKELY(!done) {
-		spinlock(&offset_slk);
-		if (!done) {
-			/* Don't allocate any memory, hence can't call arc4random() */
-			hash_offset = entropy_random();
-			done = TRUE;
-			/* Memory barrier will be done by spinunlock() */
-		}
-		spinunlock(&offset_slk);
-	}
+/**
+ * Computes the minimum amount of bins we can have to fill one VMM page.
+ */
+static G_GNUC_COLD void
+hash_compute_min_bins_once(void)
+{
+	size_t n;
+	hash_table_t ht;
+
+	n = compat_pagesize() / (sizeof ht.bins[0] +
+		HASH_ITEMS_PER_BIN * sizeof ht.items[0]);
+
+	hash_min_bins = 1 << highest_bit_set(n);
+
+	g_assert(hash_min_bins > 1);
+	g_assert(IS_POWER_OF_2(hash_min_bins));
+}
+
+static inline size_t
+hash_min_bin_count(void)
+{
+	ONCE_RUN(hash_min_bins_computed, hash_compute_min_bins_once);
+	return hash_min_bins;
 }
 
 static inline void *
-hash_vmm_alloc(const struct hash_table *ht, size_t size)
+hash_vmm_alloc(const hash_table_t *ht, size_t size)
 {
 #ifdef TRACK_VMM
 	if (ht->real || ht->not_leaking)
@@ -183,7 +207,7 @@ hash_vmm_alloc(const struct hash_table *ht, size_t size)
 }
 
 static inline void
-hash_vmm_free(const struct hash_table *ht, void *p, size_t size)
+hash_vmm_free(const hash_table_t *ht, void *p, size_t size)
 {
 #ifdef TRACK_VMM
 	if (ht->real || ht->not_leaking)
@@ -217,7 +241,7 @@ hash_copy_flags(hash_table_t *dest, const hash_table_t *src)
 }
 
 static inline void
-hash_table_check(const struct hash_table *ht)
+hash_table_check(const hash_table_t *ht)
 {
 	g_assert(ht != NULL);
 	g_assert(HASHTABLE_MAGIC == ht->magic);
@@ -296,7 +320,7 @@ static void
 hash_table_new_intern(hash_table_t *ht,
 	size_t num_bins, hash_fn_t hash, eq_fn_t eq)
 {
-	size_t i;
+	size_t i, min_bins;
 	size_t arena;
 	size_t items_off;
 
@@ -317,20 +341,9 @@ hash_table_new_intern(hash_table_t *ht,
 	 * else, make sure we're filling the page as much as we can.
 	 */
 
-	if G_UNLIKELY(0 == hash_min_bins) {
-		size_t n;
+	min_bins = hash_min_bin_count();
 
-		/* No spinlock, at worst we'll do this computation more than once */
-
-		n = compat_pagesize() / (sizeof ht->bins[0] +
-			HASH_ITEMS_PER_BIN * sizeof ht->items[0]);
-		hash_min_bins = 1 << highest_bit_set(n);
-
-		g_assert(hash_min_bins > 1);
-		g_assert(IS_POWER_OF_2(hash_min_bins));
-	}
-
-	ht->num_bins = MAX(num_bins, hash_min_bins);
+	ht->num_bins = MAX(num_bins, min_bins);
 	ht->num_items = ht->num_bins * HASH_ITEMS_PER_BIN;
 	ht->bin_bits = highest_bit_set64(ht->num_bins);
 
@@ -670,14 +683,28 @@ hash_table_resize_on_remove(hash_table_t *ht)
 {
 	size_t n;
 	size_t needed_bins = ht->num_held / HASH_ITEMS_PER_BIN;
+	size_t min_bins = hash_min_bin_count();
+
+#define EXTRA 	(HASH_ITEMS_GROW / HASH_ITEMS_PER_BIN)
 
 	n = ht->num_bins / 2;
 
-	if (needed_bins + (HASH_ITEMS_GROW / HASH_ITEMS_PER_BIN) >= n)
+	if (n < min_bins || needed_bins + EXTRA >= n)
 		return;
 
+	for (;;) {
+		size_t v = n / 2;
+
+		if (v < min_bins || needed_bins + EXTRA >= v)
+			break;
+
+		n = v;
+	}
+
+#undef EXTRA
+
 	n = MAX(2, n);
-	if (n < needed_bins)
+	if (n < MAX(needed_bins, min_bins))
 		return;
 
 	hash_table_resize(ht, n);
