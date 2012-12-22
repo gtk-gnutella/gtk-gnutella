@@ -1167,7 +1167,12 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 
 	p = vmm_mmap_anonymous(size, hole);
 
-	return_value_unless(NULL != p, NULL);
+	if G_UNLIKELY(NULL == p) {
+		if (update_pmap)
+			mutex_unlock(&vmm_pmap()->lock);
+		return NULL;
+	}
+
 	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
 
 	if (vmm_debugging(5)) {
@@ -2614,9 +2619,11 @@ vpc_insert(struct page_cache *pc, void *p)
 	size_t idx;
 	void *base = p;
 	size_t pages = pc->pages;
+	void *evicted = NULL;
 
 	g_assert(size_is_non_negative(pc->current) &&
 		pc->current <= VMM_CACHE_SIZE);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 
 	spinlock(&pc->lock);
 
@@ -2625,7 +2632,6 @@ vpc_insert(struct page_cache *pc, void *p)
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
-	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
 
 	/*
 	 * If we're inserting in the highest-order cache, there's no need
@@ -2707,13 +2713,28 @@ insert:
 
 	if G_UNLIKELY(VMM_CACHE_SIZE == pc->current) {
 		size_t kidx = kernel_mapaddr_increasing ? VMM_CACHE_SIZE - 1 : 0;
+
+		evicted = pc->info[kidx].base;
+
 		if (vmm_debugging(4)) {
-			void *lbase = pc->info[kidx].base;
 			s_debug("VMM page cache #%zu: kicking out [%p, %p] %zuKiB",
-				pc->pages - 1, lbase, ptr_add_offset(lbase, pc->chunksize - 1),
+				pc->pages - 1, evicted,
+				ptr_add_offset(evicted, pc->chunksize - 1),
 				pc->chunksize / 1024);
 		}
-		vpc_free(pc, kidx);
+
+		/*
+		 * Can't call vpc_free() here because we already hold the spinlock
+		 * and vpc_free() will need to call free_pages_forced() which will
+		 * then grab a mutex.  This is a recipe for deadlocks.
+		 *
+		 * Hence we memorize the address to free and will do that at the
+		 * end when we have released the spinlock.
+		 */
+
+		evicted = pc->info[kidx].base;
+		vpc_remove_at(pc, evicted, kidx);
+
 		if (idx > kidx)
 			idx--;
 		vmm_stats.cache_evictions++;
@@ -2743,6 +2764,14 @@ insert:
 	}
 
 	spinunlock(&pc->lock);
+
+	/*
+	 * Free the page we evicted now that we have released the spinlock.
+	 */
+
+	if G_UNLIKELY(evicted != NULL) {
+		free_pages_forced(evicted, pc->chunksize, FALSE);
+	}
 }
 
 /**
