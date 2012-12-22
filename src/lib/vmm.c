@@ -2094,7 +2094,8 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
  * of the specified type.
  */
 static void
-assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
+assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
+	bool locked)
 {
 	struct vm_fragment *vmf;
 	const void *end;
@@ -2104,7 +2105,18 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type)
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
-	mutex_lock(&pm->lock);
+	if (locked) {
+		/*
+		 * Must prevent deadlocks if we are called with a spinlock held.
+		 * Since this is only used for assertions, it's OK to not always
+		 * be able to run it.
+		 */
+
+		if (!mutex_trylock(&pm->lock))
+			return;
+	} else {
+		mutex_lock(&pm->lock);
+	}
 
 	vmf = pmap_lookup(vmm_pmap(), base, NULL);
 
@@ -2556,7 +2568,7 @@ vpc_remove_at(struct page_cache *pc, const void *p, size_t idx)
 {
 	g_assert(size_is_non_negative(idx) && idx < pc->current);
 	g_assert(p == pc->info[idx].base);
-	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE, TRUE);
 	g_assert(size_is_positive(pc->current));
 	g_assert(spinlock_is_held(&pc->lock));
 
@@ -2623,7 +2635,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	g_assert(size_is_non_negative(pc->current) &&
 		pc->current <= VMM_CACHE_SIZE);
-	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE);
+	assert_vmm_is_allocated(p, pc->chunksize, VMF_NATIVE, FALSE);
 
 	spinlock(&pc->lock);
 
@@ -3150,7 +3162,7 @@ page_cache_insert_pages(void *base, size_t n)
 	void *p = base;
 	struct pmap *pm = vmm_pmap();
 
-	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE);
+	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
@@ -3211,7 +3223,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	const size_t old_pages = pages;
 	void *end;
 
-	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
+	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
@@ -3253,7 +3265,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						ptr_add_offset(base, pages * kernel_pagesize - 1));
 				}
 				assert_vmm_is_allocated(before,
-					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
+					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
 				base = before;
 				pages += lopc->pages;
 				vpc_remove_at(lopc, before, loidx);
@@ -3300,7 +3312,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					base, ptr_add_offset(base, pages * kernel_pagesize - 1));
 			}
 			assert_vmm_is_allocated(before,
-				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
+				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
 			base = before;
 			pages += hopc->pages;
 			vpc_remove_at(hopc, before, hoidx);
@@ -3343,7 +3355,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						lopc->pages - 1, base, ptr_add_offset(end, -1));
 				}
 				assert_vmm_is_allocated(base,
-					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE);
+					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
 				pages += lopc->pages;
 				vpc_remove_at(lopc, end, loidx);
 				end = ptr_add_offset(end, lopc->chunksize);
@@ -3388,7 +3400,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					hopc->pages - 1, base, ptr_add_offset(end, -1));
 			}
 			assert_vmm_is_allocated(base,
-				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE);
+				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
 			pages += hopc->pages;
 			vpc_remove_at(hopc, end, hoidx);
 			end = ptr_add_offset(end, hopc->chunksize);
@@ -3401,7 +3413,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	}
 
 done:
-	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE);
+	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE, FALSE);
 	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
 
 	if G_UNLIKELY(pages != old_pages) {
@@ -3546,7 +3558,7 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
-		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
@@ -3557,7 +3569,7 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	if (NULL == p)
 		s_error("cannot allocate %zu bytes: out of virtual memory", size);
 
-	assert_vmm_is_allocated(p, size, VMF_NATIVE);
+	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
 
@@ -3641,7 +3653,7 @@ vmm_alloc0(size_t size)
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
 		memset(p, 0, size);
-		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
@@ -3654,7 +3666,7 @@ vmm_alloc0(size_t size)
 
 	/* Memory allocated by the kernel is already zero-ed */
 
-	assert_vmm_is_allocated(p, size, VMF_NATIVE);
+	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
 
@@ -3703,7 +3715,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 		g_assert(n >= 1);			/* Asserts that size != 0 */
 
-		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		/*
 		 * Memory regions that are larger than our highest-order cache
@@ -3789,7 +3801,7 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 	} else if (p != NULL) {
 		size_t osize, nsize;
 
-		assert_vmm_is_allocated(p, size, VMF_NATIVE);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		osize = round_pagesize_fast(size);
 		nsize = round_pagesize_fast(new_size);
@@ -4790,7 +4802,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		pmap_insert_mapped(pm, p, size);
 		mutex_unlock(&pm->lock);
 
-		assert_vmm_is_allocated(p, length, VMF_MAPPED);
+		assert_vmm_is_allocated(p, length, VMF_MAPPED, FALSE);
 
 		if (vmm_debugging(5)) {
 			s_debug("VMM mapped %zuKiB region at %p (fd #%d, offset 0x%lx)",
@@ -4824,7 +4836,7 @@ vmm_munmap(void *addr, size_t length)
 #if defined(HAS_MMAP)
 	int ret;
 
-	assert_vmm_is_allocated(addr, length, VMF_MAPPED);
+	assert_vmm_is_allocated(addr, length, VMF_MAPPED, FALSE);
 
 	ret = munmap(addr, length);
 
