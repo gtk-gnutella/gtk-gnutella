@@ -2028,6 +2028,32 @@ thread_lock_count(void)
 }
 
 /**
+ * Assert that thread holds no locks.
+ *
+ * This can be used before issuing a potentially blocking operation to
+ * make sure that no deadlocks are possible.
+ *
+ * If the function returns, it means that the thread did not hold any
+ * registered locks (hidden locks are, by construction, invisible).
+ *
+ * @param routine		name of the routine making the assertion
+ */
+void
+thread_assert_no_locks(const char *routine)
+{
+	struct thread_element *te = thread_get_element();
+
+	if G_UNLIKELY(0 != te->locks.count) {
+		s_minicrit("%s(): thread #%u currently holds %zu lock%s",
+			routine, te->stid, te->locks.count,
+			1 == te->locks.count ? "" : "s");
+		thread_lock_dump(te);
+		s_minierror("%s() expected no locks, found %zu held",
+			routine, te->locks.count);
+	}
+}
+
+/**
  * Find who owns a lock, and what kind of lock it is.
  *
  * @param lock		the lock address
