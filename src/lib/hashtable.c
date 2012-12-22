@@ -413,15 +413,22 @@ hash_table_size(const hash_table_t *ht)
 /**
  * Synchronize access to hash table if thread-safe.
  */
-static inline ALWAYS_INLINE void
-ht_synchronize(const hash_table_t *ht)
-{
-	if (ht->thread_safe) {
-		hash_table_t *wht = deconstify_pointer(ht);
-		mutex_lock(&wht->lock);
-		g_assert(HASHTABLE_MAGIC == ht->magic);
-	}
-}
+
+/* Not an inlined routine to get proper lines in mutex_lock() when debugging */
+#define ht_synchronize(ht) G_STMT_START {				\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_pointer(ht);		\
+		mutex_lock(&wht->lock);							\
+		g_assert(HASHTABLE_MAGIC == ht->magic);			\
+	}													\
+} G_STMT_END
+
+#define ht_unsynchronize(ht) G_STMT_START {				\
+	if (ht->thread_safe) {								\
+		hash_table_t *wht = deconstify_pointer(ht);		\
+		mutex_unlock(&wht->lock);						\
+	}													\
+} G_STMT_END
 
 #define ht_return(ht,v) G_STMT_START {					\
 	if (ht->thread_safe) {								\
@@ -1180,21 +1187,35 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 	 * significant overhead (just another hash_table_size() call).  However,
 	 * it can prevent having to allocate more core since small-enough objects
 	 * will be allocated using walloc().
+	 *
+	 * Cannot hold the lock when going to xmalloc() in case this is the hash
+	 * table used by the thread layer to record threads -- since xmalloc()
+	 * will need to call thread_small_id(), if we keep the lock here we'll
+	 * block all the other threads attempting to allocate memory and then
+	 * we could cause a deadlock.
 	 */
+
+again:
+	ht_unsynchronize(ht);
 
 	XMALLOC_ARRAY(htl.array, htl.count);
 
-	while (hash_table_size(ht) != htl.count) {
+	while (hash_table_size(ht) > htl.count) {
 		htl.count = hash_table_size(ht);
 		XREALLOC_ARRAY(htl.array, htl.count);
 	}
 
+	ht_synchronize(ht);
+
+	if (hash_table_size(ht) > htl.count)
+		goto again;
+
 	hash_table_foreach(ht, hash_table_linearize_item, &htl);
 
-	g_assert(htl.count == htl.i);
+	g_assert(htl.count >= htl.i);
 
 	if (count != NULL)
-		*count = htl.count;
+		*count = htl.i;		/* This is the real amount of items we inserted */
 
 	ht_return(ht, htl.array);
 }
