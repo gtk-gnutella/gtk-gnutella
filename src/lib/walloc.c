@@ -51,12 +51,8 @@
 #undef wrealloc
 #endif
 
-#define WALLOC_MINCOUNT			8	/* Minimum amount of structs in a chunk */
-#define WALLOC_THREADS			16	/* Max # of threads we handle */
-#define WALLOC_THREAD_MAXLEN	512	/* Max size for thread-private zones */
-
+#define WALLOC_MINCOUNT		8	/* Minimum amount of structs in a chunk */
 #define WZONE_SIZE			(WALLOC_MAX / ZALLOC_ALIGNBYTES + 1)
-#define WZONE_THREAD_SIZE	(WALLOC_THREAD_MAXLEN / ZALLOC_ALIGNBYTES + 1)
 
 /**
  * Small blocks should be handled via a thread-private zone, assuming that
@@ -66,7 +62,6 @@
  */
 
 static struct zone *wzone[WZONE_SIZE];
-static struct zone *wtzone[WZONE_THREAD_SIZE][WALLOC_THREADS];
 static bool walloc_inited;
 static bool walloc_stopped;
 
@@ -99,7 +94,7 @@ wzone_index(size_t rounded)
  * Allocate a new zone of given rounded size.
  */
 static zone_t *
-wzone_get(size_t rounded, bool private)
+wzone_get(size_t rounded)
 {
 	zone_t *zone;
 
@@ -111,9 +106,17 @@ wzone_get(size_t rounded, bool private)
 	/*
 	 * We're paying this computation/allocation cost once per size!
 	 * Create chunks capable of holding at least WALLOC_MINCOUNT structures.
+	 *
+	 * We don't create private zones because walloc() must be usable by
+	 * any thread, hence we must use global (locked) zones.  Using private
+	 * zone would force tagging of allocated blocks with the thread that
+	 * got them.  And we would have to handle foreign thread returning, since
+	 * it is very hard for a thread to guarantee that it will be freeing only
+	 * the blocks it allocated.
+	 *		--RAM, 2012-12-22
 	 */
 
-	if (!(zone = zget(rounded, WALLOC_MINCOUNT, private)))
+	if (!(zone = zget(rounded, WALLOC_MINCOUNT, FALSE)))
 		s_error("zget() failed?");
 
 	return zone;
@@ -150,46 +153,16 @@ walloc_get_zone(size_t rounded, bool allocate)
 
 	idx = wzone_index(rounded);
 
-	/*
-	 * Must be made thread-safe because xmalloc() uses walloc() and when
-	 * xmalloc() replaces the system malloc(), we can be in a multi-threaded
-	 * environment due to GTK.
-	 *		--RAM, 2011-12-28
-	 *
-	 * Small blocks (up to WALLOC_THREAD_MAXLEN bytes) are allocated through
-	 * a thread-private array provided their small thread ID is less than
-	 * WALLOC_THREADS.  This should heavily reduce spinlock() pressure.
-	 *		--RAM, 2012-04-14
-	 */
-
-	if (rounded <= WALLOC_THREAD_MAXLEN) {
-		unsigned stid = thread_small_id();
-
-		if (stid < WALLOC_THREADS) {
-			if (NULL == (zone = wtzone[idx][stid])) {
-				if (!allocate) {
-					s_error("missing %zu-byte zone for thread #%u",
-						rounded, stid);
-				}
-				zone = wtzone[idx][stid] = wzone_get(rounded, TRUE);
-			}
-			return zone;
-		}
-
-		/* FALL THROUGH */
-	}
-
 	if (NULL == (zone = wzone[idx])) {
 		static spinlock_t walloc_slk = SPINLOCK_INIT;
 
 		if (!allocate)
 			s_error("missing %zu-byte zone", rounded);
 
-		if (!spinlock_try(&walloc_slk))
-			return NULL;	/* Recursion, cannot allocate memory */
+		spinlock(&walloc_slk);
 
 		if (NULL == (zone = wzone[idx]))
-			zone = wzone[idx] = wzone_get(rounded, FALSE);
+			zone = wzone[idx] = wzone_get(rounded);
 
 		spinunlock(&walloc_slk);
 	}
@@ -461,17 +434,6 @@ wdestroy(void)
 		if (wzone[i] != NULL) {
 			zdestroy(wzone[i]);
 			wzone[i] = NULL;
-		}
-	}
-
-	for (i = 0; i < WZONE_THREAD_SIZE; i++) {
-		size_t j;
-
-		for (j = 0; j < WALLOC_THREADS; j++) {
-			if (wtzone[i][j] != NULL) {
-				zdestroy(wtzone[i][j]);
-				wtzone[i][j] = NULL;
-			}
 		}
 	}
 }
