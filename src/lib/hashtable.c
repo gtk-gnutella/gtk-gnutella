@@ -626,9 +626,9 @@ hash_table_insert_no_resize(hash_table_t *ht,
 	g_assert(key);
 	g_assert(value);
 
-	if (hash_table_find(ht, key, &bin)) {
+	if (hash_table_find(ht, key, &bin))
 		return FALSE;
-	}
+
 	safety_assert(NULL == hash_table_lookup(ht, key));
 
 	item = hash_item_alloc(ht, key, value);
@@ -756,12 +756,16 @@ hash_table_status(const hash_table_t *ht)
 #endif	/* UNUSED */
 
 /**
- * Remove item from the hash table.
+ * Remove item from the hash table, optionally allowing resizing at the end.
+ *
+ * @param ht			the hash table
+ * @param key			the key to remove
+ * @param can_resize	whether to resize table after item removal
  *
  * @return TRUE if item was present in the hash table.
  */
-bool
-hash_table_remove(hash_table_t *ht, const void *key)
+static bool
+hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 {
 	hash_item_t *item;
 	size_t bin;
@@ -802,12 +806,35 @@ hash_table_remove(hash_table_t *ht, const void *key)
 
 		safety_assert(!hash_table_lookup(ht, key));
 
-		hash_table_resize_on_remove(ht);
+		if (can_resize)
+			hash_table_resize_on_remove(ht);
 
 		ht_return(ht, TRUE);
 	}
 	safety_assert(!hash_table_lookup(ht, key));
 	ht_return(ht, FALSE);
+}
+
+/**
+ * Remove item from the hash table, without resizing it.
+ *
+ * @return TRUE if item was present in the hash table.
+ */
+bool
+hash_table_remove_no_resize(hash_table_t *ht, const void *key)
+{
+	return hash_table_remove_key(ht, key, FALSE);
+}
+
+/**
+ * Remove item from the hash table.
+ *
+ * @return TRUE if item was present in the hash table.
+ */
+bool
+hash_table_remove(hash_table_t *ht, const void *key)
+{
+	return hash_table_remove_key(ht, key, TRUE);
 }
 
 /**
