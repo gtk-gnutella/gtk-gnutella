@@ -554,10 +554,19 @@ zprepare(zone_t *zone, char **blk)
 /**
  * Lock zone.
  *
+ * All locking of public zones is done with normal spinlocks, which are
+ * not hidden and therefore need to be accounted for in the thread.
+ *
+ * Although this increases the lock cost, it also provides a safer zalloc()
+ * implementation and makes the routines taking these locks proper "suspension"
+ * points.  In case there is a crash or a fork() call, this is an important
+ * property that greatly outweighs the additional cost, which then becomes
+ * a necessary cost and not just overhead.
+ *
  * Don't inline to get proper lock location with SPINLOCK_DEBUG
  */
 #define zlock(zone) G_STMT_START {		\
-	if (zone->private)					\
+	if G_UNLIKELY(zone->private)		\
 		spinlock_direct(&zone->lock);	\
 	else								\
 		spinlock(&zone->lock);			\
@@ -569,7 +578,7 @@ zprepare(zone_t *zone, char **blk)
 static bool
 zlock_try(zone_t *zone)
 {
-	if (zone->private) {
+	if G_UNLIKELY(zone->private) {
 		if (thread_small_id() == zone->zn_stid) {
 			spinlock_direct(&zone->lock);
 			return TRUE;
@@ -586,7 +595,7 @@ zlock_try(zone_t *zone)
 static inline void ALWAYS_INLINE
 zunlock(zone_t *zone)
 {
-	if (zone->private)
+	if G_UNLIKELY(zone->private)
 		spinunlock_direct(&zone->lock);
 	else
 		spinunlock(&zone->lock);
@@ -1322,6 +1331,15 @@ zdestroy(zone_t *zone)
 		if (!zalloc_closing)
 			hash_table_remove(zt, zone);
 	}
+
+	/*
+	 * If the zone is private, unlock it to avoid spinlock_destroy()
+	 * complaining about the lock being not registered (since a private
+	 * zone is not really locked).
+	 */
+
+	if (zone->private)
+		zunlock(zone);
 
 	spinlock_destroy(&zone->lock);
 
