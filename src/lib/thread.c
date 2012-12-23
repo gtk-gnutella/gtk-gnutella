@@ -55,6 +55,7 @@
 #include "fd.h"					/* For fd_close() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
+#include "mem.h"
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
@@ -1710,7 +1711,9 @@ thread_lock_dump(const struct thread_element *te)
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
-				if (SPINLOCK_MAGIC != s->magic) {
+				if (!mem_is_valid_range(s, sizeof *s)) {
+					print_str(" FREED");			/* 4 */
+				} else if (SPINLOCK_MAGIC != s->magic) {
 					if (SPINLOCK_DESTROYED == s->magic)
 						print_str(" DESTROYED");	/* 4 */
 					else
@@ -1733,7 +1736,9 @@ thread_lock_dump(const struct thread_element *te)
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
-				if (MUTEX_MAGIC != m->magic) {
+				if (!mem_is_valid_range(m, sizeof *m)) {
+					print_str(" FREED");			/* 4 */
+				} else if (MUTEX_MAGIC != m->magic) {
 					if (MUTEX_DESTROYED == m->magic)
 						print_str(" DESTROYED");	/* 4 */
 					else
@@ -1748,7 +1753,7 @@ thread_lock_dump(const struct thread_element *te)
 							print_str(" UNLOCKED");	/* 4 */
 						else if (s->lock != 1)
 							print_str(" BAD_LOCK");	/* 4 */
-						if (m->owner != te->tid)
+						if (!thread_eq(m->owner, te->tid))
 							print_str(" BAD_TID");	/* 5 */
 #ifdef SPINLOCK_DEBUG
 						print_str(" from ");		/* 6 */
