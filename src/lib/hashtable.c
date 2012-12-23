@@ -47,7 +47,7 @@
  * - The access interface can be dynamically configured to be thread-safe.
  *
  * As such, this hash table is suitable for being used by low-level memory
- * allocators.
+ * allocators and by the thread management code.
  *
  * @author Raphael Manfredi
  * @date 2009-2012
@@ -100,7 +100,6 @@ enum hashtable_magic { HASHTABLE_MAGIC = 0x54452ad4 };
 struct hash_table {
 	enum hashtable_magic magic; /* Magic number */
 	mutex_t lock;				/* Lock for thread-safe operations */
-	mutex_t external_lock;		/* Lock for external atomic operations */
 	size_t num_items;			/* Array length of "items" */
 	size_t num_bins;			/* Number of bins */
 	size_t bin_bits;			/* Number of bits to fold hashed value to */
@@ -1006,7 +1005,6 @@ hash_table_destroy(hash_table_t *ht)
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {
-		mutex_destroy(&ht->external_lock);
 		mutex_destroy(&ht->lock);
 	}
 	ht->magic = 0;
@@ -1080,7 +1078,6 @@ hash_table_thread_safe(hash_table_t *ht)
 
 	if (!ht->thread_safe) {
 		mutex_init(&ht->lock);
-		mutex_init(&ht->external_lock);
 		ht->thread_safe = TRUE;
 		atomic_mb();
 	}
@@ -1101,7 +1098,7 @@ hash_table_lock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_lock(&ht->external_lock);
+	mutex_lock(&ht->lock);
 }
 
 /**
@@ -1116,7 +1113,7 @@ hash_table_unlock(hash_table_t *ht)
 	hash_table_check(ht);
 	g_assert(ht->thread_safe);
 
-	mutex_unlock(&ht->external_lock);
+	mutex_unlock(&ht->lock);
 }
 
 /**
@@ -1398,7 +1395,6 @@ hash_table_destroy_real(hash_table_t *ht)
 
 	hash_table_reset(ht);
 	if (ht->thread_safe) {
-		mutex_destroy(&ht->external_lock);
 		mutex_destroy(&ht->lock);
 	}
 	ht->magic = 0;
