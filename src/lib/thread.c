@@ -114,10 +114,13 @@ struct thread_pvalue {
 	void *p_arg;					/**< Optional argument to free routine */
 };
 
+enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
+
 /**
  * A thread element, describing a thread.
  */
 struct thread_element {
+	enum thread_element_magic magic;
 	thread_t tid;					/**< The thread ID */
 	thread_qid_t last_qid;			/**< The last QID used to access record */
 	hash_table_t *pht;				/**< Private hash table */
@@ -137,6 +140,13 @@ struct thread_element {
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	spinlock_t lock;				/**< Protects concurrent updates */
 };
+
+static inline void
+thread_element_check(const struct thread_element * const te)
+{
+	g_assert(te != NULL);
+	g_assert(THREAD_ELEMENT_MAGIC == te->magic);
+}
 
 #define THREAD_LOCK(te)		spinlock_hidden(&(te)->lock)
 #define THREAD_UNLOCK(te)	spinunlock_hidden(&(te)->lock)
@@ -509,6 +519,7 @@ thread_new_element(unsigned stid)
 	g_assert(NULL == threads[stid]);
 
 	te = omalloc0(sizeof *te);				/* Never freed! */
+	te->magic = THREAD_ELEMENT_MAGIC;
 	te->last_qid = (thread_qid_t) -1;
 	te->pht = hash_table_once_new_real();	/* Never freed! */
 	te->stid = stid;
@@ -1265,9 +1276,31 @@ thread_unsuspend_others(void)
  *
  * This allows us to count the running threads as long as each thread uses
  * mutexes at some point or calls thread_current().
+ *
+ * @return the current thread
  */
 thread_t
 thread_current(void)
+{
+	return thread_current_element(NULL);
+}
+
+/**
+ * Get current thread plus a pointer to the thread element (opaque).
+ *
+ * This allows us to count the running threads as long as each thread uses
+ * mutexes at some point or calls thread_current().
+ *
+ * The opaque thread element pointer can then speed-up the recording of
+ * mutexes in the thread since we won't have to lookup the thread element
+ * again.
+ *
+ * @param element		if not-NULL, gets back a pointer to the thread element
+ *
+ * @return the current thread
+ */
+thread_t
+thread_current_element(const void **element)
 {
 	thread_qid_t qid;
 	unsigned idx;
@@ -1289,7 +1322,7 @@ thread_current(void)
 	te = thread_qid_cache[idx];
 
 	if (thread_element_matches(te, qid))
-		return te->tid;
+		goto done;
 
 	/*
 	 * There is no current thread record.  If this QID is marked busy, or if
@@ -1305,8 +1338,11 @@ thread_current(void)
 		spinlock_is_held(&thread_private_slk) ||
 		spinlock_is_held(&thread_insert_slk) ||
 		!vmm_is_inited()
-	)
+	) {
+		if (element != NULL)
+			*element = NULL;
 		return thread_self();
+	}
 
 	/*
 	 * Mark the QID busy so that we use a short path on further recursions
@@ -1335,6 +1371,12 @@ thread_current(void)
 	thread_qid_cache[idx] = te;
 	te->last_qid = qid;
 	thread_qid_busy[idx] = FALSE;
+
+	g_assert(!thread_eq(THREAD_INVALID, te->tid));
+
+done:
+	if (element != NULL)
+		*element = te;
 
 	return te->tid;
 }
@@ -1404,7 +1446,7 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 		return FALSE;
 
 	if (NULL == top) {
-		if (thread_self() != te->tid)
+		if (!thread_eq(te->tid, thread_self()))
 			return FALSE;		/* Not in the current thread */
 		top = &te;
 	}
@@ -1895,7 +1937,18 @@ thread_lock_warn(const char *func,
 void
 thread_lock_got(const void *lock, enum thread_lock_kind kind)
 {
-	struct thread_element *te;
+	thread_lock_got_extended(lock, kind, NULL);
+}
+
+/**
+ * Account for spinlock / mutex acquisition by current thread, whose
+ * thread element is already known (as opaque pointer).
+ */
+void
+thread_lock_got_extended(const void *lock, enum thread_lock_kind kind,
+	const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
 	struct thread_lock_stack *tls;
 	struct thread_lock *l;
 
@@ -1906,7 +1959,12 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 	 * thread element is already in the process of being created.
 	 */
 
-	te = thread_find(NULL);
+	if (NULL == te) {
+		te = thread_find(NULL);
+	} else {
+		thread_element_check(te);
+	}
+
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -1966,18 +2024,34 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind)
 void
 thread_lock_released(const void *lock, enum thread_lock_kind kind)
 {
-	struct thread_element *te;
+	thread_lock_released_extended(lock, kind, NULL);
+}
+
+/**
+ * Account for spinlock / mutex release by current thread whose thread
+ * element is known (as an opaque pointer).
+ */
+void
+thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
+	const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
 	struct thread_lock_stack *tls;
 	const struct thread_lock *l;
 	unsigned i;
 
 	/*
-	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * For the same reasons as in thread_lock_got(), lazily grab the thread
 	 * element.  Note that we may be in a situation where we did not get a
 	 * thread element at lock time but are able to get one now.
 	 */
 
-	te = thread_find(NULL);
+	if (NULL == te) {
+		te = thread_find(NULL);
+	} else {
+		thread_element_check(te);
+	}
+
 	if G_UNLIKELY(NULL == te)
 		return;
 

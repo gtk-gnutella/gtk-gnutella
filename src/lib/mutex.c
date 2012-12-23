@@ -47,15 +47,15 @@
 static bool mutex_pass_through;
 
 static inline void
-mutex_get_account(const mutex_t *m)
+mutex_get_account(const mutex_t *m, const void *element)
 {
-	thread_lock_got(m, THREAD_LOCK_MUTEX);
+	thread_lock_got_extended(m, THREAD_LOCK_MUTEX, element);
 }
 
 static inline void
-mutex_release_account(const mutex_t *m)
+mutex_release_account(const mutex_t *m, const void *element)
 {
-	thread_lock_released(m, THREAD_LOCK_MUTEX);
+	thread_lock_released_extended(m, THREAD_LOCK_MUTEX, element);
 }
 
 static inline void
@@ -103,6 +103,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 {
 	const volatile mutex_t *m = obj;
 	static int deadlocked;
+	int stid;
 
 	if (deadlocked != 0) {
 		if (1 == deadlocked)
@@ -121,9 +122,13 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 
+	stid = thread_stid_from_thread(m->owner);
+	if (-1 == stid)
+		s_miniwarn("unknown thread owner may explain deadlock");
+
 	thread_lock_deadlock(obj);
-	s_error("deadlocked on mutex %p (depth %zu, after %u secs)",
-		obj, m->depth, elapsed);
+	s_error("deadlocked on mutex %p (depth %zu, after %u secs), "
+		"owned by thread #%d", obj, m->depth, elapsed, stid);
 }
 
 /**
@@ -241,7 +246,7 @@ mutex_destroy(mutex_t *m)
 	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
 
 	if (was_locked)
-		mutex_release_account(m);
+		mutex_release_account(m, NULL);
 }
 
 /**
@@ -253,8 +258,10 @@ mutex_destroy(mutex_t *m)
 void
 mutex_grab(mutex_t *m, bool hidden)
 {
+	const void *element;
+	thread_t t = thread_current_element(&element);
+
 	mutex_check(m);
-	thread_t t = thread_current();
 
 	/*
 	 * We dispense with memory barriers after getting the spinlock because
@@ -280,7 +287,7 @@ mutex_grab(mutex_t *m, bool hidden)
 	}
 
 	if G_LIKELY(!hidden)
-		mutex_get_account(m);
+		mutex_get_account(m, element);
 }
 
 /**
@@ -294,8 +301,10 @@ mutex_grab(mutex_t *m, bool hidden)
 bool
 mutex_grab_try(mutex_t *m, bool hidden)
 {
+	const void *element;
+	thread_t t = thread_current_element(&element);
+
 	mutex_check(m);
-	thread_t t = thread_current();
 
 	if (mutex_is_owned_by_fast(m, t)) {
 		m->depth++;
@@ -307,7 +316,7 @@ mutex_grab_try(mutex_t *m, bool hidden)
 	}
 
 	if G_LIKELY(!hidden)
-		mutex_get_account(m);
+		mutex_get_account(m, element);
 
 	return TRUE;
 }
@@ -358,6 +367,9 @@ mutex_grab_try_from(mutex_t *m, bool hidden, const char *file, unsigned line)
 void
 mutex_ungrab(mutex_t *m, bool hidden)
 {
+	const void *element;
+	thread_t t = thread_current_element(&element);
+
 	mutex_check(m);
 
 	/*
@@ -366,7 +378,7 @@ mutex_ungrab(mutex_t *m, bool hidden)
 	 * in crash mode.
 	 */
 
-	if G_UNLIKELY(!mutex_is_owned(m)) {	/* Precondition */
+	if G_UNLIKELY(!mutex_is_owned_by_fast(m, t)) {	/* Precondition */
 		if (mutex_pass_through)
 			return;
 		/* OK, re-assert so that we get the precondition failure */
@@ -383,7 +395,7 @@ mutex_ungrab(mutex_t *m, bool hidden)
 	}
 
 	if G_LIKELY(!hidden)
-		mutex_release_account(m);
+		mutex_release_account(m, element);
 }
 
 /**

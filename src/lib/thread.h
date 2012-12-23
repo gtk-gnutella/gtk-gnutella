@@ -62,12 +62,14 @@ typedef size_t thread_qid_t;		/* Quasi Thread ID */
 #define thread_set(t,v)	memcpy(&(t), &(v), sizeof(thread_t))
 
 #define THREAD_NONE		((thread_t) 0)
+#define THREAD_INVALID	((thread_t) -1U)
 #else
 /* Specific macros, suitable when we know thread_t is an unsigned long */
 #define thread_eq(a, b)	((a) == (b))
 #define thread_set(t,v)	((t) = (v))
 
 #define THREAD_NONE		0
+#define THREAD_INVALID	-1U
 #endif
 
 #else	/* !I_PTHREAD */
@@ -76,6 +78,7 @@ typedef size_t thread_qid_t;		/* Quasi Thread ID */
 #define thread_set(t,v)	((t) = (v))
 
 #define THREAD_NONE		0
+#define THREAD_INVALID	-1U
 
 #endif	/* I_PTHREAD */
 
@@ -92,6 +95,7 @@ enum thread_lock_kind {
  */
 
 thread_t thread_current(void);
+thread_t thread_current_element(const void **element);
 thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
 int thread_stid_from_thread(const thread_t t);
@@ -113,6 +117,10 @@ void thread_private_add_extended(const void *key, const void *value,
 
 void thread_lock_got(const void *lock, enum thread_lock_kind kind);
 void thread_lock_released(const void *lock, enum thread_lock_kind kind);
+void thread_lock_got_extended(const void *lock, enum thread_lock_kind kind,
+	const void *element);
+void thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
+	const void *element);
 size_t thread_lock_count(void);
 bool thread_lock_holds(const volatile void *lock);
 void thread_lock_deadlock(const volatile void *lock);
