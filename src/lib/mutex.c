@@ -171,7 +171,13 @@ mutex_is_owned_by(const mutex_t *m, const thread_t t)
 bool
 mutex_is_owned(const mutex_t *m)
 {
-	return mutex_is_owned_by(m, thread_current());
+	/*
+	 * This is mostly used during assertions, so we do not need to call
+	 * thread_current().  Use thread_self() for speed and safety, in case
+	 * something goes wrong in the thread-checking code.
+	 */
+
+	return mutex_is_owned_by(m, thread_self());
 }
 
 /**
@@ -250,18 +256,44 @@ mutex_destroy(mutex_t *m)
 }
 
 /**
+ * Computes the current thread, optionally caching the element that will
+ * allow quicker accounting later on.
+ *
+ * @param mode		the mutex mode
+ * @param element	the opaque thread element pointer
+ */
+static inline thread_t NON_NULL_PARAM((2))
+mutex_thread(const enum mutex_mode mode, const void **element)
+{
+	/*
+	 * The "fast" mode mutex does not enter the thread-tracking layer
+	 * to compute the current thread.  This makes it faster of course,
+	 * but also safer during critical code that runs when something goes
+	 * wrong, e.g. during assertion failures or deadlocks.
+	 */
+
+	if G_UNLIKELY(MUTEX_MODE_FAST == mode) {
+		return thread_self();
+	} else {
+		return thread_current_element(element);
+	}
+}
+
+/**
  * Grab a mutex.
  *
  * @param m			the mutex we're attempting to grab
- * @param hidden	when TRUE, do not account for the mutex
+ * @param mode		thread management mode
  */
 void
-mutex_grab(mutex_t *m, bool hidden)
+mutex_grab(mutex_t *m, enum mutex_mode mode)
 {
-	const void *element;
-	thread_t t = thread_current_element(&element);
+	const void *element = NULL;
+	thread_t t;
 
 	mutex_check(m);
+
+	t = mutex_thread(mode, &element);
 
 	/*
 	 * We dispense with memory barriers after getting the spinlock because
@@ -286,7 +318,7 @@ mutex_grab(mutex_t *m, bool hidden)
 		m->depth = 1;
 	}
 
-	if G_LIKELY(!hidden)
+	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_get_account(m, element);
 }
 
@@ -294,17 +326,19 @@ mutex_grab(mutex_t *m, bool hidden)
  * Grab mutex only if available, and account for it.
  *
  * @param m			the mutex we're attempting to grab
- * @param hidden	when TRUE, do not account for the mutex
+ * @param mode		thread management mode
  *
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_try(mutex_t *m, bool hidden)
+mutex_grab_try(mutex_t *m, enum mutex_mode mode)
 {
-	const void *element;
-	thread_t t = thread_current_element(&element);
+	const void *element = NULL;
+	thread_t t;
 
 	mutex_check(m);
+
+	t = mutex_thread(mode, &element);
 
 	if (mutex_is_owned_by_fast(m, t)) {
 		m->depth++;
@@ -315,7 +349,7 @@ mutex_grab_try(mutex_t *m, bool hidden)
 		return FALSE;
 	}
 
-	if G_LIKELY(!hidden)
+	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_get_account(m, element);
 
 	return TRUE;
@@ -326,9 +360,10 @@ mutex_grab_try(mutex_t *m, bool hidden)
  * Grab a mutex from said location.
  */
 void
-mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line)
+mutex_grab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
 {
-	mutex_grab(m, hidden);
+	mutex_grab(m, mode);
 
 	if (1 == m->depth) {
 		m->lock.file = file;
@@ -342,9 +377,10 @@ mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line)
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_try_from(mutex_t *m, bool hidden, const char *file, unsigned line)
+mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
 {
-	if (mutex_grab_try(m, hidden)) {
+	if (mutex_grab_try(m, mode)) {
 		if (1 == m->depth) {
 			m->lock.file = file;
 			m->lock.line = line;
@@ -359,18 +395,20 @@ mutex_grab_try_from(mutex_t *m, bool hidden, const char *file, unsigned line)
 /**
  * Release a mutex, which must be owned currently.
  *
- * The ``hidden'' parameter MUST be the same as the one used when the mutex
+ * The ``mode'' parameter MUST be the same as the one used when the mutex
  * was grabbed, although this is not something we track and enforce currently.
- * Since hidden mutex grabbing should be the exception, this is not much of
+ * Since abnormal mutex grabbing should be the exception, this is not much of
  * a problem right now.
  */
 void
-mutex_ungrab(mutex_t *m, bool hidden)
+mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 {
-	const void *element;
-	thread_t t = thread_current_element(&element);
+	const void *element = NULL;
+	thread_t t;
 
 	mutex_check(m);
+
+	t = mutex_thread(mode, &element);
 
 	/*
 	 * We don't immediately assert that the mutex is owned to not penalize
@@ -394,7 +432,7 @@ mutex_ungrab(mutex_t *m, bool hidden)
 		spinunlock_hidden(&m->lock);	/* Acts as a "release barrier" */
 	}
 
-	if G_LIKELY(!hidden)
+	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_release_account(m, element);
 }
 

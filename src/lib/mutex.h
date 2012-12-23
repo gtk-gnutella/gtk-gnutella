@@ -100,42 +100,65 @@ mutex_is_valid(const volatile mutex_t * const m)
  */
 #define MUTEX_INIT	{ MUTEX_MAGIC, THREAD_NONE, 0L, SPINLOCK_INIT }
 
+/**
+ * Mode of operation for mutexes.
+ */
+enum mutex_mode {
+	MUTEX_MODE_NORMAL = 0,	/**< Normal mode */
+	MUTEX_MODE_HIDDEN,		/**< Hidden mode: do not declare in thread */
+	MUTEX_MODE_FAST			/**< By-pass all thread management code */
+};
+
 /*
  * These should not be called directly by user code to allow debugging.
  */
 
-void mutex_grab(mutex_t *m, bool hidden);
-bool mutex_grab_try(mutex_t *m, bool hidden);
-void mutex_ungrab(mutex_t *m, bool hidden);
+void mutex_grab(mutex_t *m, enum mutex_mode mode);
+bool mutex_grab_try(mutex_t *m, enum mutex_mode mode);
+void mutex_ungrab(mutex_t *m, enum mutex_mode mode);
 
 /*
  * Public interface.
  */
 
 #ifdef SPINLOCK_DEBUG
-void mutex_grab_from(mutex_t *m, bool hidden, const char *file, unsigned line);
-bool mutex_grab_try_from(mutex_t *m, bool hidden, const char *f, unsigned l);
+void mutex_grab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line);
+bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *f, unsigned l);
 
-#define mutex_lock(x)			mutex_grab_from((x), FALSE, _WHERE_, __LINE__)
-#define mutex_lock_hidden(x)	mutex_grab_from((x), TRUE, _WHERE_, __LINE__)
-#define mutex_trylock(x)		mutex_grab_try_from((x), FALSE, \
-									_WHERE_, __LINE__)
-#define mutex_trylock_hidden(x)	mutex_grab_try_from((x), TRUE, \
-									_WHERE_, __LINE__)
+#define mutex_lock(x) \
+	mutex_grab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_lock_hidden(x) \
+	mutex_grab_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_lock_fast(x) \
+	mutex_grab_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
+
+#define mutex_trylock(x) \
+	mutex_grab_try_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_trylock_hidden(x)	\
+	mutex_grab_try_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_trylock_fast(x)	\
+	mutex_grab_try_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
 
 #define mutex_lock_const(x)	\
-	mutex_grab_from(deconstify_pointer(x), FALSE, _WHERE_, __LINE__)
+	mutex_grab_from(deconstify_pointer(x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 
 #else
-#define mutex_lock(x)			mutex_grab((x), FALSE)
-#define mutex_lock_hidden(x)	mutex_grab((x), TRUE)
-#define mutex_trylock(x)		mutex_grab_try((x), FALSE)
-#define mutex_trylock_hidden(x)	mutex_grab_try((x), TRUE)
-#define mutex_lock_const(x)		mutex_grab(deconstify_pointer(x), FALSE)
+#define mutex_lock(x)			mutex_grab((x), MUTEX_MODE_NORMAL)
+#define mutex_lock_hidden(x)	mutex_grab((x), MUTEX_MODE_HIDDEN)
+#define mutex_lock_fast(x)		mutex_grab((x), MUTEX_MODE_FAST)
+#define mutex_trylock(x)		mutex_grab_try((x), MUTEX_MODE_NORMAL)
+#define mutex_trylock_hidden(x)	mutex_grab_try((x), MUTEX_MODE_HIDDEN)
+
+#define mutex_lock_const(x)	\
+	mutex_grab(deconstify_pointer(x), MUTEX_MODE_NORMAL)
+
 #endif	/* SPINLOCK_DEBUG */
 
-#define mutex_unlock(x)			mutex_ungrab((x), FALSE)
-#define mutex_unlock_hidden(x)	mutex_ungrab((x), TRUE)
+#define mutex_unlock(x)			mutex_ungrab((x), MUTEX_MODE_NORMAL)
+#define mutex_unlock_hidden(x)	mutex_ungrab((x), MUTEX_MODE_HIDDEN)
+#define mutex_unlock_fast(x)	mutex_ungrab((x), MUTEX_MODE_FAST)
 
 void mutex_crash_mode(void);
 
