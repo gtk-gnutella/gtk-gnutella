@@ -1002,7 +1002,7 @@ xmalloc_freecore(void *ptr, size_t len)
  * Check whether pointer is valid.
  */
 static bool
-xmalloc_is_valid_pointer(const void *p)
+xmalloc_is_valid_pointer(const void *p, bool locked)
 {
 	if (xmalloc_round(p) != pointer_to_ulong(p))
 		return FALSE;
@@ -1011,7 +1011,12 @@ xmalloc_is_valid_pointer(const void *p)
 		return TRUE;	/* Don't validate if we're shutdowning */
 
 	if G_LIKELY(xmalloc_vmm_is_up) {
-		return vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
+		/*
+		 * Can't call vmm_is_native_pointer() if we hold a lock for fear
+		 * of creating a deadlock.
+		 */
+		return locked ||
+			vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
 	} else {
 		return xmalloc_isheap(p, sizeof p);
 	}
@@ -1459,7 +1464,7 @@ xfl_block_falls_in(const struct xfreelist *flb, size_t len)
 static void
 assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 {
-	if (!xmalloc_is_valid_pointer(p)) {
+	if (!xmalloc_is_valid_pointer(p, TRUE)) {
 		t_error_from(_WHERE_,
 			"invalid pointer %p in %zu-byte malloc freelist: %s",
 			p, fl->blocksize, xmalloc_invalid_ptrstr(p));
@@ -3704,7 +3709,7 @@ xmalloc_thread_allocated(const void *p)
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (!xmalloc_is_valid_pointer(p)) {
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
 		t_error_from(_WHERE_, "attempt to access invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
@@ -3738,7 +3743,7 @@ xmalloc_thread_free(void *p)
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
 
-	if (!xmalloc_is_valid_pointer(p)) {
+	if (!xmalloc_is_valid_pointer(p, FALSE)) {
 		t_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
@@ -4332,7 +4337,7 @@ xallocated(const void *p)
 	if (len != 0)
 		return len;
 
-	if (!xmalloc_is_valid_pointer(xh))
+	if (!xmalloc_is_valid_pointer(xh, FALSE))
 		return 0;
 
 	if (xmalloc_is_walloc(xh->length)) 
@@ -4398,7 +4403,7 @@ xfree(void *p)
 		return;
 	}
 
-	if (!xmalloc_is_valid_pointer(xh)) {
+	if (!xmalloc_is_valid_pointer(xh, FALSE)) {
 		t_error_from(_WHERE_, "attempt to free invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
@@ -4499,7 +4504,7 @@ xreallocate(void *p, size_t size, bool can_walloc)
 		goto realloc_from_thread;	/* Move block around */
 	}
 		
-	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh)) {
+	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh, FALSE)) {
 		t_error_from(_WHERE_, "attempt to realloc invalid pointer %p: %s",
 			p, xmalloc_invalid_ptrstr(p));
 	}
@@ -7605,7 +7610,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 			prev = p;
 
-			if (!xmalloc_is_valid_pointer(p)) {
+			if (!xmalloc_is_valid_pointer(p, locked)) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%u p=%p in freelist #%u is invalid",
