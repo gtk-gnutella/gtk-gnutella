@@ -4013,7 +4013,6 @@ download_server_retry_after(struct dl_server *server, time_t now, int hold)
 	time_t after;
 
 	g_assert(dl_server_valid(server));
-	g_assert(server_list_length(server, DL_LIST_WAITING) > 0);
 
 	/*
 	 * Always consider the earliest time in the future for all the downloads
@@ -4027,8 +4026,24 @@ download_server_retry_after(struct dl_server *server, time_t now, int hold)
 	 */
 
 	d = server_list_head(server, DL_LIST_WAITING);
-	download_check(d);
-	after = d->retry_after;
+
+	/*
+	 * We used to required that there be something waiting for this server,
+	 * but this is way too strong.  If there is something, good, use its
+	 * retry_after as a basis, otherwise use the current time.
+	 *
+	 * This avoids crashes when we get EOF conditions for downloads at the
+	 * same time we've completed the whole file and wait to attempt file
+	 * verification.
+	 *		--RAM, 2012-12-25
+	 */
+
+	if (d != NULL) {
+		download_check(d);
+		after = d->retry_after;
+	} else {
+		after = now;	/* Nothing waiting on server, weird! */
+	}
 
 	/*
 	 * We impose a minimum of DOWNLOAD_SERVER_HOLD seconds between retries.
