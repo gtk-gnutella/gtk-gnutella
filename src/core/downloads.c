@@ -12952,11 +12952,18 @@ download_send_request(struct download *d)
 	/*
 	 * If we're swarming, pick a free chunk.
 	 * (will set d->chunk.start and d->chunk.overlap).
+	 *
+	 * We combine use_swarming + file_size_known because when the file size
+	 * is not known, we only know to request the trailing part.  For the upper
+	 * file part, we cannot swarm obviously since we do not know when the file
+	 * will end.  For lower (inner) parts that could be missing or have been
+	 * invalidated for some reason, we could one day support swarming, but
+	 * it remains to be determined that this is useful and will happpen: we
+	 * have no reason to invalidate inner parts (no TTH or the file size would
+	 * necessarily be known).
 	 */
 
-	if (fi->use_swarming) {
-		g_assert(fi->file_size_known);
-
+	if (fi->use_swarming && fi->file_size_known) {
 		/*
 		 * PFSP -- client side
 		 *
@@ -12977,7 +12984,7 @@ download_send_request(struct download *d)
 					return;
 			}
 		}
-	} else if (!fi->file_size_known) {
+	} else {
 		/* XXX -- revisit this encapsulation violation after 0.96 -- RAM */
 		/* XXX (when filesize is not known, fileinfo should handle this) */
 		d->chunk.start = fi->done;		/* XXX no overlapping here */
