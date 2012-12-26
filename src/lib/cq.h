@@ -82,6 +82,7 @@ cevent_t *cq_main_insert(int delay, cq_service_t fn, void *arg);
 cevent_t *cq_main_insert_foreign(int delay, cq_service_t fn, void *arg);
 cq_time_t cq_remaining(const cevent_t *ev);
 bool cq_expire(cevent_t *ev);
+void cq_zero(cqueue_t *cq, cevent_t **ev_ptr);
 void cq_cancel(cevent_t **handle_ptr);
 bool cq_replace(cevent_t *ev, cq_service_t fn, void *arg);
 bool cq_resched(cevent_t *handle, int delay);

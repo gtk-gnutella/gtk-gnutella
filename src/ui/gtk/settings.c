@@ -2477,7 +2477,7 @@ widget_sensitive_event(cqueue_t *cq, void *data)
 	struct widget_change *wc = data;
 
     gtk_widget_set_sensitive(wc->widget, wc->sensitive);
-	wc->ev = NULL;
+	cq_zero(cq, &wc->ev);
 }
 
 static gboolean

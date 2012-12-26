@@ -90,7 +90,8 @@ cevent_check(const struct cevent * const ce)
  * An extended event is created by cq_insert_foreign() (or any wrapping
  * convenience routine) when the caller wants to keep a reference on the
  * created event.  The caller will need to explictly call cq_cancel() to free
- * the event, regardless of whether it was already scheduled.
+ * the event, regardless of whether it was already scheduled, unless it does
+ * not call cq_zero(), in which case it will be freed upon return.
  */
 struct cevent_ext {
 	struct cevent event;
@@ -154,10 +155,12 @@ struct cqueue {
 	struct chash *cq_current;	/**< Current bucket scanned in cq_clock() */
 	hset_t *cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
+	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
 	int cq_period;				/**< Regular callout period, in ms */
+	uint8 cq_call_extended;		/**< Is cq_call an extended event? */
 	mutex_t cq_lock;			/**< Thread-safety for queue changes */
 	mutex_t cq_idle_lock;		/**< Protects idle callbacks */
 };
@@ -230,11 +233,8 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
 	XMALLOC0_ARRAY(cq->cq_hash, HASH_SIZE);
-	cq->cq_items = 0;
-	cq->cq_ticks = 0;
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
-	cq->cq_current = NULL;
 	cq->cq_period = period;
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
@@ -365,6 +365,7 @@ ev_free(cevent_t *ev)
 		ev->ce_magic = 0;
 		wfree(ev, sizeof(struct cevent_ext));
 	} else {
+		g_assert(CEVENT_MAGIC == ev->ce_magic);
 		ev->ce_magic = 0;
 		WFREE(ev);
 	}
@@ -522,7 +523,6 @@ cq_insert_internal(cqueue_t *cq, cevent_t *ev,
 	g_assert(fn);
 	g_assert(delay >= 0);
 
-	ev->ce_time = cq->cq_time + delay;
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
 	ev->ce_cq = cq;
@@ -533,6 +533,7 @@ cq_insert_internal(cqueue_t *cq, cevent_t *ev,
 	 */
 
 	CQ_LOCK(cq);
+	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
 	CQ_UNLOCK(cq);
 
@@ -598,6 +599,71 @@ cq_insert_foreign(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 }
 
 /**
+ * Zero pointer referring to the current event being dispatched.
+ *
+ * This is the preferred way of zeroing a reference to the event because it
+ * checks that this is indeed the event being dispatched.  It can only be
+ * called from a callout callback, where the queue is already locked.
+ *
+ * It can be used on normal or extended events (registrations from a foreign
+ * thread).  It must only be called once per event, but client code should not
+ * keep multiple references to the same event anyway or they would have no way
+ * to track which ones have triggered.
+ *
+ * If the callback does not call cq_zero(), then it means it does not hold any
+ * reference to the event being triggered and therefore the event will be
+ * freed immediately upon return.
+ *
+ * If cq_zero() is called, it means a reference to the event was kept and
+ * cq_cancel() will be called.  Note that cq_zero() only clears the reference
+ * to a normal event, not a foreign event.
+ *
+ * @param cq		the callout queue that dispatched the event
+ * @param ev_ptr	reference to the event
+ */
+void
+cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
+{
+	cevent_t *ev;
+
+	cqueue_check(cq);
+	g_assert(mutex_is_owned(&cq->cq_lock));
+	g_assert(ev_ptr != NULL);
+
+	ev = *ev_ptr;
+
+	/*
+	 * One nice side effect of calling cq_zero() is that we can assert that
+	 * the proper reference is being cleared, namely the one referring to
+	 * the event being dispatched.
+	 *
+	 * Note that for external events, it is perfectly possible to get a NULL
+	 * "ev" at this point: if the item is dispatched before the event address
+	 * was returned to the calling thread to be stored in "ev_ptr".
+	 */
+
+	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
+		"%s() not called on current event: %p points to ev=%p, current is %s%p",
+		G_STRFUNC, ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
+		cq->cq_call);
+
+	cq->cq_call = NULL;		/* cq_zero() can only be called once */
+
+	/*
+	 * If the event was not extended, we need to nullify its reference
+	 * so that cq_cancel() will do nothing: the event was already freed.
+	 *
+	 * If the event is extended, we will let cq_cancel() do the cleanup.
+	 * That way, there is no race condition between the callout queue thread
+	 * and the thread that keeps a reference to the event.
+	 */
+
+	if G_LIKELY(!cq->cq_call_extended) {
+		*ev_ptr = NULL;
+	}
+}
+
+/**
  * Cancel a recorded timeout.
  *
  * They give us a pointer to the opaque handle we returned via cq_insert().
@@ -649,6 +715,7 @@ cq_resched(cevent_t *ev, int delay)
 
 	if G_UNLIKELY(ev_triggered(ev)) {
 		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
 		return FALSE;
 	}
 
@@ -688,19 +755,26 @@ cq_resched(cevent_t *ev, int delay)
 cq_time_t
 cq_remaining(const cevent_t *ev)
 {
+	bool triggered = FALSE;
 	cqueue_t *cq;
 	cq_time_t remaining;
 
 	cq = EV_CQ_LOCK(ev);
 
-	if G_UNLIKELY(ev_triggered(ev))
+	if G_UNLIKELY(ev_triggered(ev)) {
+		triggered = TRUE;
 		remaining = 0;
-	else if (ev->ce_time <= cq->cq_time)
+	} else if (ev->ce_time <= cq->cq_time) {
 		remaining = 0;
-	else
+	} else {
 		remaining = ev->ce_time - cq->cq_time;
+	}
 
 	CQ_UNLOCK(cq);
+
+	if G_UNLIKELY(triggered) {
+		s_carp("%s() called on already triggered event", G_STRFUNC);
+	}
 
 	return remaining;
 }
@@ -734,19 +808,46 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 		struct cevent_ext *evx = cast_to_cevent_ext(ev);
 		g_assert(2 == evx->cex_refcnt);		/* Not fired nor canceled yet */
 		evx->cex_refcnt--;					/* Was fired */
+		cq->cq_call_extended = TRUE;
 	} else {
 		ev_free(ev);
+		cq->cq_call_extended = FALSE;
 	}
 
-	g_assert(fn != NULL);
+	/*
+	 * Record the address of the event being dispatched.  Even though it may
+	 * have been freed, we allow one cq_zero() call on it.
+	 */
+
+	cq->cq_call = ev;
 
 	/*
 	 * All the callout queue data structures were updated.
 	 * It is now safe to invoke the callback, even if there is some
 	 * re-entry to the same callout queue.
+	 *
+	 * The called-out routine may invoke cq_zero() to zero pointers
+	 * to the event being dispatched.
 	 */
 
+	g_assert(fn != NULL);
+
 	(*fn)(cq, arg);
+
+	/*
+	 * If the event was extended and they did not call cq_zero(),
+	 * then we assume they do not own any reference on the event to
+	 * call cq_cancel(), and therefore we need to free the event
+	 * immediately.
+	 */
+
+	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
+		if (cq_debug()) {
+			s_debug("CQ called-out %s() did not to call cq_zero() on event %p",
+				stacktrace_function_name(fn), ev);
+		}
+		ev_free(ev);
+	}
 }
 
 /**
@@ -759,15 +860,30 @@ bool
 cq_expire(cevent_t *ev)
 {
 	cqueue_t *cq;
+	const cevent_t *saved_call;
+	bool saved_call_extended;
 
 	cq = EV_CQ_LOCK(ev);
 
 	if G_UNLIKELY(ev_triggered(ev)) {
 		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
 		return FALSE;
 	}
 
+	/*
+	 * To allow cq_expire() calls from a callout event, we need to save and
+	 * restore the current call being made so that cq_zero() can work properly.
+	 */
+
+	saved_call = cq->cq_call;
+	saved_call_extended = cq->cq_call_extended;
+
 	cq_expire_internal(cq, ev);
+
+	cq->cq_call = saved_call;
+	cq->cq_call_extended = saved_call_extended;
+
 	CQ_UNLOCK(cq);
 
 	return TRUE;
@@ -788,6 +904,7 @@ cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
 
 	if G_UNLIKELY(ev_triggered(ev)) {
 		CQ_UNLOCK(cq);
+		s_carp("%s() called on already triggered event", G_STRFUNC);
 		return FALSE;
 	}
 
@@ -815,6 +932,8 @@ cq_clock(cqueue_t *cq, int elapsed)
 	int last_bucket, old_last_bucket;
 	struct chash *ch, *old_current;
 	cevent_t *ev;
+	const cevent_t *old_call;
+	bool old_call_extended;
 	cq_time_t now;
 	int processed = 0;
 
@@ -837,6 +956,8 @@ cq_clock(cqueue_t *cq, int elapsed)
 	 */
 
 	old_current = cq->cq_current;
+	old_call = cq->cq_call;
+	old_call_extended = cq->cq_call_extended;
 	old_last_bucket = cq->cq_last_bucket;
 
 	cq->cq_ticks++;
@@ -900,6 +1021,8 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 done:
 	cq->cq_current = old_current;
+	cq->cq_call = old_call;
+	cq->cq_call_extended = old_call_extended;
 
 	if G_UNLIKELY(old_current != NULL)
 		cq->cq_last_bucket = old_last_bucket;	/* Was in recursive call */
@@ -1120,7 +1243,7 @@ cq_periodic_trampoline(cqueue_t *cq, void *data)
 	cqueue_check(cq);
 	cperiodic_check(cp);
 
-	cp->ev = NULL;
+	cq_zero(cq, &cp->ev);
 
 	/*
 	 * As long as the periodic event returns TRUE, keep scheduling it.
