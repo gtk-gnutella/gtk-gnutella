@@ -66,6 +66,7 @@
 
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
+#include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
@@ -106,6 +107,7 @@
 #endif
 
 #undef signal
+#undef sleep
 
 #undef stat
 #undef fstat
@@ -539,6 +541,18 @@ mingw_last_error(void)
 	}
 
 	return result;
+}
+
+unsigned int
+mingw_sleep(unsigned int seconds)
+{
+	while (seconds != 0) {
+		uint d = MIN(seconds, 1000);
+		compat_sleep_ms(d * 1000);
+		seconds -= d;
+	}
+
+	return 0;	/* Never interrupted by a signal here */
 }
 
 static signal_handler_t mingw_sighandler[SIGNAL_COUNT];

@@ -140,6 +140,7 @@
 #define getppid()		1
 #define fcntl mingw_fcntl
 #define ffs __builtin_ffs
+#define sleep mingw_sleep
 
 #define select mingw_select
 #define socket mingw_socket
@@ -541,6 +542,7 @@ int mingw_random_bytes(void *buf, size_t len);
 bool mingw_process_is_alive(pid_t pid);
 
 int mingw_statvfs(const char *pathname, struct mingw_statvfs *buf);
+unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
 uint64 mingw_cpufreq_min(void);
 uint64 mingw_cpufreq_max(void);
