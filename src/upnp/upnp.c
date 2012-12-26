@@ -1203,13 +1203,14 @@ upnp_map_natpmp_publish_reply(int code,
  * Callout queue callback to publish a UPnP mapping to the IGD.
  */
 static void
-upnp_map_publish(cqueue_t *unused_cq, void *obj)
+upnp_map_publish(cqueue_t *cq, void *obj)
 {
 	struct upnp_mapping *um = obj;
 	int delay;
 
-	(void) unused_cq;
 	upnp_mapping_check(um);
+
+	cq_zero(cq, &um->install_ev);
 
 	/*
 	 * Re-install callback for next time.

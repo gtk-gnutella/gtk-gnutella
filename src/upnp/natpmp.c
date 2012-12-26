@@ -125,7 +125,7 @@ natpmp_rpc_check(const struct natpmp_rpc * const rd)
 
 static unsigned natpmp_rpc_pending;
 
-static void natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj);
+static void natpmp_rpc_iterate(cqueue_t *cq, void *obj);
 
 /**
  * Allocate a new NAT-PMP gateway.

@@ -188,7 +188,7 @@ wq_sleep(const void *key, wq_callback_t cb, void *arg)
  * Callout queue callback fired when waiting event times out.
  */
 static void
-wq_timed_out(cqueue_t *unused_cq, void *arg)
+wq_timed_out(cqueue_t *cq, void *arg)
 {
 	wq_event_t *we = arg;
 	hash_list_t *hl;
@@ -197,9 +197,7 @@ wq_timed_out(cqueue_t *unused_cq, void *arg)
 	wq_event_check(we);
 	g_assert(we->tm != NULL);
 
-	(void) unused_cq;
-
-	we->tm->timeout_ev = NULL;
+	cq_zero(cq, &we->tm->timeout_ev);
 	hl = htable_lookup(waitqueue, we->key);
 
 	g_assert(hl != NULL);

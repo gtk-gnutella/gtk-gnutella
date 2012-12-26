@@ -2271,6 +2271,8 @@ head_ping_timer(cqueue_t *cq, void *unused_udata)
 	 * Re-install timer for next time.
 	 */
 
+	cq_zero(cq, &head_ping_ev);
+
 	head_ping_ev = cq_insert(cq, HEAD_PING_PERIODIC_MS, head_ping_timer, NULL);
 	head_ping_expire(FALSE);
 }

@@ -664,14 +664,13 @@ publish_cancel(publish_t *pb, bool callback)
  * Expiration timeout on caching requesst.
  */
 static void
-publish_cache_expired(cqueue_t *unused_cq, void *obj)
+publish_cache_expired(cqueue_t *cq, void *obj)
 {
 	publish_t *pb = obj;
 
-	(void) unused_cq;
 	publish_check(pb);
 
-	pb->expire_ev = NULL;
+	cq_zero(cq, &pb->expire_ev);
 
 	if (GNET_PROPERTY(dht_publish_debug))
 		g_debug("DHT PUBLISH[%s] %s%s%s publish of %d value%s for %s expired",
@@ -689,14 +688,13 @@ publish_cache_expired(cqueue_t *unused_cq, void *obj)
  * Expiration timeout for offloading.
  */
 static void
-publish_offload_expired(cqueue_t *unused_cq, void *obj)
+publish_offload_expired(cqueue_t *cq, void *obj)
 {
 	publish_t *pb = obj;
 
-	(void) unused_cq;
 	publish_check(pb);
 
-	pb->expire_ev = NULL;
+	cq_zero(cq, &pb->expire_ev);
 
 	if (GNET_PROPERTY(dht_publish_debug))
 		g_debug("DHT PUBLISH[%s] %s publish of %d key%s to %s expired",
@@ -711,14 +709,13 @@ publish_offload_expired(cqueue_t *unused_cq, void *obj)
  * Expiration timeout for STORE.
  */
 static void
-publish_store_expired(cqueue_t *unused_cq, void *obj)
+publish_store_expired(cqueue_t *cq, void *obj)
 {
 	publish_t *pb = obj;
 
-	(void) unused_cq;
 	publish_check(pb);
 
-	pb->expire_ev = NULL;
+	cq_zero(cq, &pb->expire_ev);
 
 	if (GNET_PROPERTY(dht_publish_debug))
 		g_debug("DHT PUBLISH[%s] %s publish of %s expired: "
@@ -818,18 +815,16 @@ first_creator_kuid(pmsg_t *mb)
  * Delay expiration.
  */
 static void
-publish_delay_expired(cqueue_t *unused_cq, void *obj)
+publish_delay_expired(cqueue_t *cq, void *obj)
 {
 	publish_t *pb = obj;
-
-	(void) unused_cq;
 
 	if (G_UNLIKELY(NULL == publishes))
 		return;		/* Shutdown occurred */
 
 	publish_check(pb);
 
-	pb->delay_ev = NULL;
+	cq_zero(cq, &pb->delay_ev);
 	pb->flags &= ~PB_F_DELAYED;
 	publish_iterate(pb);
 }

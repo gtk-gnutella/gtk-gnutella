@@ -890,15 +890,14 @@ guess_rpc_cancel(guess_t *gq, const gnet_host_t *host)
  * RPC timeout function.
  */
 static void
-guess_rpc_timeout(cqueue_t *unused_cq, void *obj)
+guess_rpc_timeout(cqueue_t *cq, void *obj)
 {
 	struct guess_rpc *grp = obj;
 	guess_t *gq;
 
 	guess_rpc_check(grp);
-	(void) unused_cq;
 
-	grp->timeout = NULL;
+	cq_zero(cq, &grp->timeout);
 	gq = guess_is_alive(grp->gid);
 	if (gq != NULL)
 		(*grp->cb)(GUESS_RPC_TIMEOUT, grp, NULL, gq);
@@ -2544,15 +2543,13 @@ guess_pick_next(guess_t *gq)
  * Delay expiration -- callout queue callabck.
  */
 static void
-guess_delay_expired(cqueue_t *unused_cq, void *obj)
+guess_delay_expired(cqueue_t *cq, void *obj)
 {
 	guess_t *gq = obj;
 
-	(void) unused_cq;
-
 	guess_check(gq);
 
-	gq->delay_ev = NULL;
+	cq_zero(cq, &gq->delay_ev);
 	gq->flags &= ~GQ_F_DELAYED;
 	guess_iterate(gq);
 }
@@ -2606,16 +2603,14 @@ guess_async_iterate(guess_t *gq)
  * Cancel delay expiration -- callout queue callabck.
  */
 static void
-guess_cancel_expired(cqueue_t *unused_cq, void *obj)
+guess_cancel_expired(cqueue_t *cq, void *obj)
 {
 	guess_t *gq = obj;
-
-	(void) unused_cq;
 
 	guess_check(gq);
 	g_assert(gq->flags & GQ_F_TERMINATED);
 
-	gq->delay_ev = NULL;
+	cq_zero(cq, &gq->delay_ev);
 	gq->flags &= ~GQ_F_DELAYED;
 	guess_cancel(&gq, TRUE);
 }

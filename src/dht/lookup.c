@@ -123,7 +123,7 @@ static htable_t *nlookups;
 static void lookup_iterate(nlookup_t *nl);
 static void lookup_value_free(nlookup_t *nl, bool free_vvec);
 static void lookup_value_iterate(nlookup_t *nl);
-static void lookup_value_expired(cqueue_t *unused_cq, void *obj);
+static void lookup_value_expired(cqueue_t *cq, void *obj);
 static void lookup_value_delay(nlookup_t *nl);
 static void lookup_requery(nlookup_t *nl, const knode_t *kn);
 
@@ -1451,15 +1451,14 @@ lookup_value_done(nlookup_t *nl)
  * Extra value fetching expiration timeout.
  */
 static void
-lookup_value_expired(cqueue_t *unused_cq, void *obj)
+lookup_value_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 
-	(void) unused_cq;
 	lookup_value_check(nl);
 
-	nl->expire_ev = NULL;
+	cq_zero(cq, &nl->expire_ev);
 	fv = lookup_fv(nl);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
@@ -1850,14 +1849,13 @@ lookup_completed(nlookup_t *nl)
  * Expiration timeout.
  */
 static void
-lookup_expired(cqueue_t *unused_cq, void *obj)
+lookup_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 
-	(void) unused_cq;
 	lookup_check(nl);
 
-	nl->expire_ev = NULL;
+	cq_zero(cq, &nl->expire_ev);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] %s lookup for %s expired (%s)",
@@ -3945,18 +3943,16 @@ lookup_requery(nlookup_t *nl, const knode_t *kn)
  * Delay expiration.
  */
 static void
-lookup_delay_expired(cqueue_t *unused_cq, void *obj)
+lookup_delay_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
-
-	(void) unused_cq;
 
 	if (G_UNLIKELY(NULL == nlookups))
 		return;			/* Shutdown occurred */
 
 	lookup_check(nl);
 
-	nl->delay_ev = NULL;
+	cq_zero(cq, &nl->delay_ev);
 	nl->flags &= ~NL_F_DELAYED;
 	lookup_iterate(nl);
 }
@@ -4576,16 +4572,15 @@ lookup_bucket_refresh(
  * Value delay expiration.
  */
 static void
-lookup_value_delay_expired(cqueue_t *unused_cq, void *obj)
+lookup_value_delay_expired(cqueue_t *cq, void *obj)
 {
 	nlookup_t *nl = obj;
 	struct fvalue *fv;
 
-	(void) unused_cq;
 	lookup_value_check(nl);
 
 	fv = lookup_fv(nl);
-	fv->delay_ev = NULL;
+	cq_zero(cq, &fv->delay_ev);
 
 	lookup_value_iterate(nl);
 }

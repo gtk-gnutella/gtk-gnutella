@@ -3157,14 +3157,12 @@ dht_node_timed_out(knode_t *kn)
  * Periodic check of stale contacts.
  */
 static void
-bucket_stale_check(cqueue_t *unused_cq, void *obj)
+bucket_stale_check(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
 	GSList *to_remove = NULL;
 	GSList *sl;
-
-	(void) unused_cq;
 
 	g_assert(is_leaf(kb));
 
@@ -3172,6 +3170,7 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
 	 * Re-instantiate the periodic callback for next time.
 	 */
 
+	cq_zero(cq, &kb->nodes->staleness);
 	install_stale_check(kb);
 
 	if (0 == list_count(kb, KNODE_STALE))
@@ -3228,14 +3227,12 @@ bucket_stale_check(cqueue_t *unused_cq, void *obj)
  * Periodic check of live contacts.
  */
 static void
-bucket_alive_check(cqueue_t *unused_cq, void *obj)
+bucket_alive_check(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	hash_list_iter_t *iter;
 	time_t now = tm_time();
 	uint good_and_stale;
-
-	(void) unused_cq;
 
 	g_assert(is_leaf(kb));
 
@@ -3243,6 +3240,7 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
 	 * Re-instantiate the periodic callback for next time.
 	 */
 
+	cq_zero(cq, &kb->nodes->aliveness);
 	install_alive_check(kb);
 
 	if (!GNET_PROPERTY(is_inet_connected)) {
@@ -3399,14 +3397,14 @@ bucket_alive_check(cqueue_t *unused_cq, void *obj)
  * Periodic bucket refresh.
  */
 static void
-bucket_refresh(cqueue_t *unused_cq, void *obj)
+bucket_refresh(cqueue_t *cq, void *obj)
 {
 	struct kbucket *kb = obj;
 	time_delta_t elapsed;
 
 	g_assert(is_leaf(kb));
 
-	(void) unused_cq;
+	cq_zero(cq, &kb->nodes->refresh);
 
 	/*
 	 * To adapt the size of the routing table to the local usage of the node

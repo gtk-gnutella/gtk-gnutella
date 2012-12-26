@@ -237,14 +237,13 @@ publisher_entry_free(struct publisher_entry *pe, bool do_remove)
  * Callout queue callback to handle an entry.
  */
 static void
-handle_entry(cqueue_t *unused_cq, void *obj)
+handle_entry(cqueue_t *cq, void *obj)
 {
 	struct publisher_entry *pe = obj;
 
-	(void) unused_cq;
 	publisher_check(pe);
 
-	pe->publish_ev = NULL;
+	cq_zero(cq, &pe->publish_ev);
 	publisher_handle(pe);
 }
 

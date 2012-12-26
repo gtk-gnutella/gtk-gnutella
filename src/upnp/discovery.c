@@ -1036,14 +1036,13 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
  * Discovery timed out.
  */
 static void
-upnp_dscv_timeout(cqueue_t *unused_cq, void *obj)
+upnp_dscv_timeout(cqueue_t *cq, void *obj)
 {
 	struct upnp_mcb *mcb = obj;
 
 	upnp_mcb_check(mcb);
-	(void) unused_cq;
 
-	mcb->timeout_ev = NULL;
+	cq_zero(cq, &mcb->timeout_ev);
 
 	/*
 	 * If we already received one reply to our M-SEARCH, then it's OK and

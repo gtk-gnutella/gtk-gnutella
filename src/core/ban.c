@@ -293,11 +293,10 @@ ban_free(struct ban *b)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-ipf_destroy(cqueue_t *unused_cq, void *obj)
+ipf_destroy(cqueue_t *cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 
-	(void) unused_cq;
 	addr_info_check(ipf);
 	g_assert(!ipf->banned);
 
@@ -307,7 +306,7 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 	hevset_remove(ipf->owner->info, &ipf->addr);
-	ipf->cq_ev = NULL;
+	cq_zero(cq, &ipf->cq_ev);
 	ipf_free(ipf);
 }
 
@@ -315,18 +314,18 @@ ipf_destroy(cqueue_t *unused_cq, void *obj)
  * Called from callout queue when it's time to unban the IP.
  */
 static void
-ipf_unban(cqueue_t *unused_cq, void *obj)
+ipf_unban(cqueue_t *cq, void *obj)
 {
 	struct addr_info *ipf = obj;
 	time_t now = tm_time();
 	int delay;
 	float decay_coeff;
 
-	(void) unused_cq;
 	addr_info_check(ipf);
 	g_assert(ipf->banned);
 	ban_check(ipf->owner);
 
+	cq_zero(cq, &ipf->cq_ev);
 	decay_coeff = ipf->owner->decay_coeff;
 
 	/*
@@ -360,7 +359,6 @@ ipf_unban(cqueue_t *unused_cq, void *obj)
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
 
 		hevset_remove(ipf->owner->info, &ipf->addr);
-		ipf->cq_ev = NULL;
 		ipf_free(ipf);
 		return;
 	}

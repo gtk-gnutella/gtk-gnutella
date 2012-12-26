@@ -104,16 +104,15 @@ val_free(struct used_val *v)
  * Called from callout queue when it's time to destroy the record.
  */
 static void
-val_destroy(cqueue_t *unused_cq, void *obj)
+val_destroy(cqueue_t *cq, void *obj)
 {
 	struct used_val *v = obj;
 
-	(void) unused_cq;
 	g_assert(v);
 	g_assert(is_host_addr(v->addr));
 
 	hevset_remove(used, &v->addr);
-	v->cq_ev = NULL;
+	cq_zero(cq, &v->cq_ev);
 	val_free(v);
 }
 

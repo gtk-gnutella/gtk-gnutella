@@ -209,7 +209,7 @@ static double decimation_factor[KUID_RAW_BITSIZE];
 #define KEYS_DECIMATION_BASE 	1.2		/* Base for exponential decimation */
 #define KEYS_KEYDATA_VERSION	1		/* Serialization version number */
 
-static void keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj);
+static void keys_periodic_kball(cqueue_t *cq, void *obj);
 
 /**
  * @return TRUE if key is stored here.
@@ -1383,11 +1383,11 @@ keys_decimation_factor(const kuid_t *key)
  * Callout queue callback for k-ball updates.
  */
 static void
-keys_periodic_kball(cqueue_t *unused_cq, void *unused_obj)
+keys_periodic_kball(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
+	cq_zero(cq, &kball_ev);
 	install_periodic_kball(KBALL_PERIOD);
 	keys_update_kball();
 }

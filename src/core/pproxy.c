@@ -1338,14 +1338,13 @@ cproxy_http_newstate(struct http_async *handle, http_state_t newstate)
 }
 
 static void
-cproxy_http_start(cqueue_t *unused_cq, void *obj)
+cproxy_http_start(cqueue_t *cq, void *obj)
 {
 	struct cproxy *cp = obj;
 
-	(void) unused_cq;
 	cproxy_check(cp);
 
-	cp->udp_ev = NULL;
+	cq_zero(cq, &cp->udp_ev);
 	cproxy_http_request(cp);
 }
 

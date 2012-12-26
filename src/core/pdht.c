@@ -180,7 +180,7 @@ static struct {
 	bool backgrounded;			/**< Whether background republish runs */
 } pdht_proxy;
 
-static void pdht_bg_publish(cqueue_t *unused_cq, void *obj);
+static void pdht_bg_publish(cqueue_t *cq, void *obj);
 
 /**
  * English version of the publish type.
@@ -528,17 +528,15 @@ terminate:
  * Callout queue callback to launch a background publish.
  */
 static void
-pdht_bg_publish(cqueue_t *unused_cq, void *obj)
+pdht_bg_publish(cqueue_t *cq, void *obj)
 {
 	pdht_publish_t *pp = obj;
-
-	(void) unused_cq;
 
 	pdht_publish_check(pp);
 	g_assert(pp->bg != NULL);
 	g_assert(NULL == pp->pb);
 
-	pp->bg->ev = NULL;
+	cq_zero(cq, &pp->bg->ev);
 	pp->bg->runs++;
 
 	/*
@@ -1620,12 +1618,11 @@ pdht_prox_publish_if_changed(void)
  * Callout queue callback to initiate a new PROX publish.
  */
 static void
-pdht_prox_timer(cqueue_t *unused_cq, void *unused_obj)
+pdht_prox_timer(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
-	pdht_proxy.publish_ev = NULL;
+	cq_zero(cq, &pdht_proxy.publish_ev);
 	pdht_prox_publish(TRUE);
 }
 

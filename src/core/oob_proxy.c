@@ -160,11 +160,10 @@ oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
  * Callout queue callback to free OOB proxy record.
  */
 static void
-oob_proxy_rec_destroy(cqueue_t *unused_cq, void *obj)
+oob_proxy_rec_destroy(cqueue_t *cq, void *obj)
 {
 	struct oob_proxy_rec *opr = obj;
 
-	(void) unused_cq;
 	oob_proxy_rec_check(opr);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(oob_proxy_debug))
@@ -172,7 +171,7 @@ oob_proxy_rec_destroy(cqueue_t *unused_cq, void *obj)
 			guid_hex_str(opr->leaf_muid),
 			data_hex_str(opr->proxied_muid->v, GUID_RAW_SIZE));
 
-	opr->expire_ev = NULL;		/* The timer which just triggered */
+	cq_zero(cq, &opr->expire_ev);		/* The timer which just triggered */
 	oob_proxy_rec_free_remove(opr);
 }
 

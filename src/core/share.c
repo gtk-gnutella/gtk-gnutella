@@ -2876,12 +2876,11 @@ shared_files_scanned(void)
  * insertion or removal.
  */
 static void
-share_qrp_rebuild(cqueue_t *unused_cq, void *unused_data)
+share_qrp_rebuild(cqueue_t *cq, void *unused_data)
 {
-	(void) unused_cq;
 	(void) unused_data;
 
-	share_qrp_rebuild_ev = NULL;
+	cq_zero(cq, &share_qrp_rebuild_ev);
 
 	if (share_update_qrp()) {
 		if (GNET_PROPERTY(share_debug) > 1) {

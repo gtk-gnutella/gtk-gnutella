@@ -229,14 +229,13 @@ static cevent_t *row_selected_ev;
 #define ROW_SELECT_TIMEOUT	100 /* milliseconds */
 
 static void
-row_selected_expire(cqueue_t *unused_cq, gpointer unused_udata)
+row_selected_expire(cqueue_t *cq, gpointer unused_udata)
 {
 	search_t *search;
 
-	(void) unused_cq;
 	(void) unused_udata;
 
-	row_selected_ev = NULL;
+	cq_zero(cq, &row_selected_ev);
 
     search = search_gui_get_current_search();
 	if (search) {

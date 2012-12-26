@@ -358,7 +358,7 @@ mi_free_kv(const void *key, void *value, void *unused_udata)
  * Callout queue callback invoked to clear the entry.
  */
 static void
-mi_clean(cqueue_t *unused_cq, void *obj)
+mi_clean(cqueue_t *cq, void *obj)
 {
 	struct mesh_info_key *mik = obj;
 	struct mesh_info_val *miv;
@@ -366,7 +366,6 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 	void *value;
 	bool found;
 
-	(void) unused_cq;
 	found = htable_lookup_extended(mesh_info, mik, &key, &value);
 	miv = value;
 
@@ -379,7 +378,7 @@ mi_clean(cqueue_t *unused_cq, void *obj)
 			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
 
 	htable_remove(mesh_info, mik);
-	miv->cq_ev = NULL;
+	cq_zero(cq, &miv->cq_ev);
 	mi_free_kv(key, value, NULL);
 }
 

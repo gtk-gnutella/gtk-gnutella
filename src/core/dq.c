@@ -1039,19 +1039,17 @@ dq_free(dquery_t *dq)
  * Callout queue callback invoked when the dynamic query has expired.
  */
 static void
-dq_expired(cqueue_t *unused_cq, void *obj)
+dq_expired(cqueue_t *cq, void *obj)
 {
 	dquery_t *dq = obj;
 
 	dquery_check(dq);
 	g_assert(dq->expire_ev != NULL);
 
-	(void) unused_cq;
-
 	if (GNET_PROPERTY(dq_debug) > 3)
 		g_debug("DQ[%s] expired", nid_to_string(&dq->qid));
 
-	dq->expire_ev = NULL;	/* Indicates callback fired */
+	cq_zero(cq, &dq->expire_ev);	/* Indicates callback fired */
 
 	/*
 	 * If query was lingering, free it.
@@ -1075,7 +1073,7 @@ dq_expired(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when the result timer has expired.
  */
 static void
-dq_results_expired(cqueue_t *unused_cq, void *obj)
+dq_results_expired(cqueue_t *cq, void *obj)
 {
 	dquery_t *dq = obj;
 	gnutella_node_t *n;
@@ -1084,12 +1082,11 @@ dq_results_expired(cqueue_t *unused_cq, void *obj)
 	uint32 last;
 	bool was_waiting = FALSE;
 
-	(void) unused_cq;
 	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev != NULL);
 
-	dq->results_ev = NULL;	/* Indicates callback fired */
+	cq_zero(cq, &dq->results_ev);	/* Indicates callback fired */
 
 	/*
 	 * If we were waiting for a status reply from the queryier, well, we

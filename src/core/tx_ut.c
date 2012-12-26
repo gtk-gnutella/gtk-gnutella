@@ -708,17 +708,15 @@ ut_ear_send(struct ut_msg *um)
  * Callout queue callback invoked to trigger fragment resending.
  */
 static void
-ut_resend_iterate(cqueue_t *unused_cq, void *obj)
+ut_resend_iterate(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
-
-	(void) unused_cq;
 
 	ut_msg_check(um);
 	ut_attr_check(um->attr);
 	g_assert(um->iterate_ev != NULL);
 
-	um->iterate_ev = NULL;	/* Callback triggered */
+	cq_zero(cq, &um->iterate_ev);	/* Callback triggered */
 
 	if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: alpha=%u, pending=%u, enqueued=%zu, alive=%c",
@@ -788,16 +786,14 @@ ut_resend_async(struct ut_msg *um)
  * Callout queue callback invoked when no acknowledgment was received.
  */
 static void
-ut_ear_resend(cqueue_t *unused_cq, void *obj)
+ut_ear_resend(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
-
-	(void) unused_cq;
 
 	ut_msg_check(um);
 	g_assert(um->ear_ev != NULL);
 
-	um->ear_ev = NULL;		/* Callback triggered */
+	cq_zero(cq, &um->ear_ev);		/* Callback triggered */
 
 	/*
 	 * If the host was "banned" temporarily due to being unresponsive, abort.
@@ -841,18 +837,16 @@ ut_ear_resend(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when no acknowledgment was received.
  */
 static void
-ut_frag_resend(cqueue_t *unused_cq, void *obj)
+ut_frag_resend(cqueue_t *cq, void *obj)
 {
 	struct ut_frag *uf = obj;
 	struct ut_msg *um;
-
-	(void) unused_cq;
 
 	ut_frag_check(uf);
 	ut_msg_check(uf->msg);
 	g_assert(uf->resend_ev != NULL);
 
-	uf->resend_ev = NULL;	/* Callback triggered */
+	cq_zero(cq, &uf->resend_ev);	/* Callback triggered */
 	um = uf->msg;
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
@@ -1558,16 +1552,14 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
  * Callout queue callback invoked when the whole packet has expired.
  */
 static void
-ut_um_expired(cqueue_t *unused_cq, void *obj)
+ut_um_expired(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
 
 	ut_msg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Indicates that callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
 		g_debug("TX UT[%s]: %s: message for %s expired "

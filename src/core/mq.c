@@ -576,13 +576,13 @@ done:
  * Callout queue callback: periodic "swift" mode timer.
  */
 static void
-mq_swift_timer(cqueue_t *unused_cq, void *obj)
+mq_swift_timer(cqueue_t *cq, void *obj)
 {
 	mqueue_t *q = obj;
 
-	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == (MQ_FLOWC|MQ_SWIFT));
 
+	cq_zero(cq, &q->swift_ev);
 	mq_swift_checkpoint(q, FALSE);
 }
 
@@ -590,15 +590,15 @@ mq_swift_timer(cqueue_t *unused_cq, void *obj)
  * Callout queue callback invoked when the queue must enter "swift" mode.
  */
 static void
-mq_enter_swift(cqueue_t *unused_cq, void *obj)
+mq_enter_swift(cqueue_t *cq, void *obj)
 {
 	mqueue_t *q = obj;
 
-	(void) unused_cq;
 	g_assert((q->flags & (MQ_FLOWC|MQ_SWIFT)) == MQ_FLOWC);
 
 	q->flags |= MQ_SWIFT;
 
+	cq_zero(cq, &q->swift_ev);
 	node_tx_swift_changed(q->node);
 	mq_swift_checkpoint(q, TRUE);
 }

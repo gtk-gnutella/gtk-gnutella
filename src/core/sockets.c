@@ -2693,17 +2693,16 @@ static void socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime);
  * Timer installed to flush the enqueued read-ahead UDP datagrams.
  */
 static void
-socket_udp_flush_timer(cqueue_t *unused_cq, void *obj)
+socket_udp_flush_timer(cqueue_t *cq, void *obj)
 {
 	gnutella_socket_t *s = obj;
 	struct udpctx *uctx;
 
-	(void) unused_cq;
 	socket_check(s);
 	g_assert(s->flags & SOCK_F_UDP);
 
 	uctx = s->resource.udp;
-	uctx->queue_ev = NULL;			/* Timer expired */
+	cq_zero(cq, &uctx->queue_ev);		/* Timer expired */
 
 	/*
 	 * If the socket layer has already began shutdown, do not process

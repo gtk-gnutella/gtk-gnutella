@@ -309,15 +309,14 @@ reclaim_dbkey(void *u_key, void *val, void *u_data)
  * Callout queue callback to expire target.
  */
 static void
-roots_expire(cqueue_t *unused_cq, void *obj)
+roots_expire(cqueue_t *cq, void *obj)
 {
 	struct rootinfo *ri = obj;
-	(void) unused_cq;
 
 	rootinfo_check(ri);
 	g_assert(uint_is_positive(targets_managed));
 
-	ri->expire_ev = NULL;		/* Event triggered */
+	cq_zero(cq, &ri->expire_ev);		/* Event triggered */
 	delete_rootdata(ri->kuid);
 	patricia_remove(roots, ri->kuid);
 	free_rootinfo(ri);

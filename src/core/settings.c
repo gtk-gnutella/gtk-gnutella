@@ -2788,17 +2788,16 @@ static cevent_t *ev_file_descriptor_runout;
  * Reset the property.
  */
 static void
-reset_property_cb(cqueue_t *unused_cq, void *obj)
+reset_property_cb(cqueue_t *cq, void *obj)
 {
 	property_t prop = (property_t) GPOINTER_TO_UINT(obj);
 
-	(void) unused_cq;
 	switch (prop) {
 	case PROP_FILE_DESCRIPTOR_SHORTAGE:
-		ev_file_descriptor_shortage = NULL;
+		cq_zero(cq, &ev_file_descriptor_shortage);
 		break;
 	case PROP_FILE_DESCRIPTOR_RUNOUT:
-		ev_file_descriptor_runout = NULL;
+		cq_zero(cq, &ev_file_descriptor_runout);
 		break;
 	default:
 		g_error("unhandled property #%d", prop);

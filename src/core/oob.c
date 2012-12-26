@@ -137,6 +137,7 @@ struct gservent {
 static void results_destroy(cqueue_t *cq, void *obj);
 static void servent_free(struct gservent *s);
 static void oob_send_reply_ind(struct oob_results *r);
+static void servent_service(struct gservent *s, cqueue_t *cq);
 
 static int num_oob_records;	/**< Leak and duplicate free detector */
 static bool oob_shutdowning;
@@ -250,11 +251,10 @@ results_free_remove(struct oob_results *r)
  * querying party to claim all the results has expired.
  */
 static void
-results_destroy(cqueue_t *unused_cq, void *obj)
+results_destroy(cqueue_t *cq, void *obj)
 {
 	struct oob_results *r = obj;
 
-	(void) unused_cq;
 	oob_results_check(r);
 
 	if (GNET_PROPERTY(query_debug))
@@ -264,7 +264,7 @@ results_destroy(cqueue_t *unused_cq, void *obj)
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
 
-	r->ev_expire = NULL;		/* The timer which just triggered */
+	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
 	r->refcount--;
 
 	results_free_remove(r);
@@ -275,14 +275,14 @@ results_destroy(cqueue_t *unused_cq, void *obj)
  * was not acknowledged with claims.
  */
 static void
-results_timeout(cqueue_t *unused_cq, void *obj)
+results_timeout(cqueue_t *cq, void *obj)
 {
 	struct oob_results *r = obj;
 	host_addr_t addr;
 
-	(void) unused_cq;
 	oob_results_check(r);
 
+	cq_zero(cq, &r->ev_timeout);
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
@@ -337,18 +337,27 @@ deliver_delay(void)
 }
 
 /**
+ * Callout queue event to service the servent's FIFO.
+ */
+static void
+servent_call_service(cqueue_t *cq, void *obj)
+{
+	struct gservent *s = obj;
+
+	cq_zero(cq, &s->ev_service);	/* The callback that just triggered */
+	servent_service(s, cq);
+}
+
+/**
  * Service servent's FIFO: send next packet, and re-arm servicing callback
  * if there are more data to send.
  */
 static void
-servent_service(cqueue_t *cq, void *obj)
+servent_service(struct gservent *s, cqueue_t *cq)
 {
-	struct gservent *s = obj;
 	pmsg_t *mb;
 	mqueue_t *q;
 	enum net_type nt;
-
-	s->ev_service = NULL;		/* The callback that just triggered */
 
 	mb = fifo_remove(s->fifo);
 	if (mb == NULL)
@@ -380,7 +389,7 @@ servent_service(cqueue_t *cq, void *obj)
 	if (0 == fifo_count(s->fifo))
 		goto remove;
 
-	s->ev_service = cq_insert(cq, deliver_delay(), servent_service, s);
+	s->ev_service = cq_insert(cq, deliver_delay(), servent_call_service, s);
 
 	return;
 
@@ -608,7 +617,7 @@ oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 	 */
 
 	if (servent_created)
-		servent_service(cq_main(), s);
+		servent_service(s, cq_main());
 }
 
 /**

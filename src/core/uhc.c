@@ -344,16 +344,15 @@ uhc_try_random(void)
  * get a reply within the specified timeout.
  */
 static void
-uhc_ping_timeout(cqueue_t *unused_cq, void *unused_obj)
+uhc_ping_timeout(cqueue_t *cq, void *unused_obj)
 {
-	(void) unused_cq;
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_warning("no reply from UDP host cache %s:%u",
 			uhc_ctx.host, uhc_ctx.port);
 
-	uhc_ctx.timeout_ev = NULL;
+	cq_zero(cq, &uhc_ctx.timeout_ev);
 	uhc_try_random();
 }
 

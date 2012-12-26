@@ -142,14 +142,13 @@ urpc_received(const gnutella_socket_t *s,
  * RPC timed out.
  */
 static void
-urpc_timed_out(cqueue_t *unused_cq, void *obj)
+urpc_timed_out(cqueue_t *cq, void *obj)
 {
 	struct urpc_cb *ucb = obj;
 
 	urpc_cb_check(ucb);
-	(void) unused_cq;
 
-	ucb->timeout_ev = NULL;
+	cq_zero(cq, &ucb->timeout_ev);
 
 	if (GNET_PROPERTY(udp_debug)) {
 		g_message("UDP [%s] RPC to %s timed out",

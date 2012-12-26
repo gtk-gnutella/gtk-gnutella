@@ -236,16 +236,14 @@ ut_rmsg_free(struct ut_rmsg *um, bool free_sequence)
  * Callout queue callback invoked when the whole packet has expired.
  */
 static void
-ut_rmsg_expired(cqueue_t *unused_cq, void *obj)
+ut_rmsg_expired(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	if (rx_ut_debugging(RX_UT_DBG_TIMEOUT, um->id.from)) {
 		g_debug("RX UT[%s]: %s: message from %s timed out "
@@ -273,7 +271,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	um->expire_ev = NULL;	/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	/*
 	 * This is an advance notice that the message could expire.  Probably our
@@ -309,16 +307,14 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
  * Callout queue callback invoked when the packet has finished lingering.
  */
 static void
-ut_rmsg_lingered(cqueue_t *unused_cq, void *obj)
+ut_rmsg_lingered(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	(void) unused_cq;
-
-	um->expire_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
 	/*
 	 * We delayed freeing to be able to re-ACK messages and avoid duplicate
@@ -907,7 +903,7 @@ ut_ack_sendback(const struct ut_rmsg *um, const struct ut_ack *ack)
  * Callout queue callback invoked when pending ACKs must be sent back.
  */
 static void
-ut_delayed_ack(cqueue_t *unused_cq, void *obj)
+ut_delayed_ack(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 	struct ut_ack ack;
@@ -915,9 +911,7 @@ ut_delayed_ack(cqueue_t *unused_cq, void *obj)
 	ut_rmsg_check(um);
 	g_assert(um->acks_ev != NULL);
 
-	(void) unused_cq;
-
-	um->acks_ev = NULL;		/* Callback has fired */
+	cq_zero(cq, &um->acks_ev);		/* Callback has fired */
 
 	while (um->acks_pending) {
 		bool exhausted = ut_build_delayed_ack(um, &ack);

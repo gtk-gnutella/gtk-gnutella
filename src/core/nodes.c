@@ -438,16 +438,15 @@ node_send_udp_ping(struct gnutella_node *n)
  * Send "Time Sync" via UDP if we know the remote IP:port, via TCP otherwise.
  */
 static void
-node_tsync_udp(cqueue_t *unused_cq, void *obj)
+node_tsync_udp(cqueue_t *cq, void *obj)
 {
 	gnutella_node_t *n = obj;
 	gnutella_node_t *udp = NULL, *tn;
 
-	(void) unused_cq;
 	g_assert(!NODE_USES_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
-	n->tsync_ev = NULL;	/* has been freed before calling this function */
+	cq_zero(cq, &n->tsync_ev);	/* freed before calling this function */
 
 	/*
 	 * If we did not get replies within the reasonable time period, we
@@ -10977,13 +10976,11 @@ node_proxying_remove(gnutella_node_t *n)
  * Periodically republish NOPE values (Node Push Entry) in the DHT.
  */
 static void
-node_publish_dht_nope(cqueue_t *unused_cq, void *obj)
+node_publish_dht_nope(cqueue_t *cq, void *obj)
 {
 	gnutella_node_t *n = obj;
 
-	(void) unused_cq;
-
-	n->dht_nope_ev = NULL;	/* has been freed before calling this function */
+	cq_zero(cq, &n->dht_nope_ev);	/* freed before calling this function */
 
 	/*
 	 * If the node told us it was a member of the DHT, then it will publish

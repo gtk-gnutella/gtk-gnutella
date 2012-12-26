@@ -269,15 +269,14 @@ sectoken_is_valid_with_context(sectoken_gen_t *stg,
  * Token key rotating event.
  */
 static void
-sectoken_rotate(cqueue_t *unused_cq, void *obj)
+sectoken_rotate(cqueue_t *cq, void *obj)
 {
 	size_t i;
 	sectoken_gen_t *stg = obj;
 
 	sectoken_gen_check(stg);
 
-	(void) unused_cq;
-
+	cq_zero(cq, &stg->rotate_ev);
 	stg->rotate_ev = cq_main_insert(stg->refresh * 1000, sectoken_rotate, stg);
 
 	for (i = 0; i < stg->keycnt - 1; i++)

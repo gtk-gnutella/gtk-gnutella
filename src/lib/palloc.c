@@ -149,7 +149,7 @@ pool_needs_gc(const pool_t *p, bool need)
  * Pool heartbeat to monitor usage level.
  */
 static void
-pool_heartbeat(cqueue_t *unused_cq, void *obj)
+pool_heartbeat(cqueue_t *cq, void *obj)
 {
 	pool_t *p = obj;
 	unsigned used;
@@ -157,8 +157,8 @@ pool_heartbeat(cqueue_t *unused_cq, void *obj)
 
 	pool_check(p);
 	g_assert(p->allocated >= p->held);
-	(void) unused_cq;
 
+	cq_zero(cq, &p->heartbeat_ev);
 	pool_install_heartbeat(p);
 
 	/*
