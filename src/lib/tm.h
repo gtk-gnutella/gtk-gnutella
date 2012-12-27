@@ -241,6 +241,17 @@ tm_relative_time(void)
 {
 	return delta_time(tm_time(), tm_start_time().tv_sec);
 }
+
+/**
+ * Fill supplied tm_t structure with specified amount of milliseconds.
+ */
+static inline void
+tm_fill_ms(tm_t *tm, ulong ms)
+{
+	tm->tv_sec = ms / 1000;
+	tm->tv_usec = (ms - 1000 * tm->tv_sec) * 1000;
+}
+
 #endif /* _tm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
