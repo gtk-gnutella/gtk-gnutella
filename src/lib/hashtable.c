@@ -623,9 +623,6 @@ hash_table_insert_no_resize(hash_table_t *ht,
 
 	hash_table_check(ht);
 
-	g_assert(key);
-	g_assert(value);
-
 	if (hash_table_find(ht, key, &bin))
 		return FALSE;
 
