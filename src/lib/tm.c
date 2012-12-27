@@ -288,8 +288,8 @@ tm_cputime(double *user, double *sys)
 			s = 0;
 			g_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
 		} else {
-			u = tm2f(&usage.ru_utime);
-			s = tm2f(&usage.ru_stime);
+			u = tm2f(timeval_to_tm(&usage.ru_utime));
+			s = tm2f(timeval_to_tm(&usage.ru_stime));
 		}
 #else
 		getrusage_failed = TRUE;

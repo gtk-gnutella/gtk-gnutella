@@ -70,34 +70,6 @@ time_t_check(void)
 #define TIME_DELTA_T_MAX	MAX_INT_VAL(time_delta_t)
 
 /**
- * tm_zero
- *
- * Returns true if time is zero.
- */
-#define tm_zero(t)	((t)->tv_sec == 0 && (t)->tv_usec == 0)
-
-/**
- * tm2f
- *
- * Convert timeval description into floating point representation.
- */
-#define tm2f(t)		((double) (t)->tv_sec + (t)->tv_usec / 1000000.0)
-
-/**
- * tm2ms
- *
- * Convert timeval description into milliseconds.
- */
-#define tm2ms(t)	((t)->tv_sec * 1000 + (t)->tv_usec / 1000)
-
-/**
- * tm2us
- *
- * Convert timeval description into microseconds.
- */
-#define tm2us(t)	((t)->tv_sec * 1000000 + (t)->tv_usec)
-
-/**
  * Portable representation of the "struct timeval" values, which is used
  * internally by all time handling routines.  All time information are
  * relative to the UNIX Epoch.
@@ -106,6 +78,48 @@ typedef struct tmval {
 	long tv_sec;
 	long tv_usec;
 } tm_t;
+
+static inline ALWAYS_INLINE tm_t *
+timeval_to_tm(const struct timeval * const tv)
+{
+	return (tm_t *) tv;
+}
+
+/**
+ * @return TRUE if time is zero.
+ */
+static inline bool
+tm_is_zero(const tm_t * const t)
+{
+	return 0 == t->tv_sec && 0 == t->tv_usec;
+}
+
+/**
+ * Convert timeval description into floating point representation.
+ */
+static inline double
+tm2f(const tm_t * const t)
+{
+	return (double) t->tv_sec + t->tv_usec / 1000000.0;
+}
+
+/**
+ * Convert timeval description into milliseconds.
+ */
+static inline ulong
+tm2ms(const tm_t * const t)
+{
+	return (ulong) t->tv_sec * 1000UL + (ulong) t->tv_usec / 1000U;
+}
+
+/**
+ * Convert timeval description into microseconds.
+ */
+static inline ulong
+tm2us(const tm_t * const t)
+{
+	return (ulong) t->tv_sec * 1000000UL + (ulong) t->tv_usec;
+}
 
 void tm_init(void);
 void f2tm(double t, tm_t *tm);
