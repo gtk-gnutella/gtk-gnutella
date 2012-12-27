@@ -480,6 +480,18 @@ uint64_to_string2(uint64 v)
 }
 
 const char *
+ulong_to_string(ulong v)
+{
+	static char buf[ULONG_DEC_BUFLEN];
+	size_t n;
+
+	n = ulong_to_string_buf(v, buf, sizeof buf);
+	g_assert(n > 0);
+	g_assert(n < sizeof buf);
+	return buf;
+}
+
+const char *
 uint_to_string(unsigned v)
 {
 	static char buf[UINT_DEC_BUFLEN];

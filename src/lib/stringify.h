@@ -117,6 +117,7 @@ size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
 const char *uint32_to_string(uint32);
 const char *uint64_to_string(uint64);
 const char *uint64_to_string2(uint64);
+const char *ulong_to_string(ulong v);
 const char *uint_to_string(unsigned v);
 const char *fileoffset_t_to_string(fileoffset_t);
 const char *size_t_to_string(size_t);
