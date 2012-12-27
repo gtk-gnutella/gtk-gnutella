@@ -538,6 +538,51 @@ mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2]);
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 
+/*
+ * Semaphore emulation.
+ */
+
+#define semget mingw_semget
+#define semctl mingw_semctl
+#define semop mingw_semop
+#define semtimedop mingw_semtimedop
+
+typedef int key_t;
+#define IPC_PRIVATE		0			/* private resource */
+#define IPC_CREAT		00001000	/* create if key is nonexistent */
+#define IPC_EXCL		00002000	/* fail if key exists */
+#define IPC_NOWAIT		00004000	/* return error on wait */
+#define IPC_RMID		0			/* remove resource */
+#define SEM_UNDO		0x1000		/* undo the operation on exit */
+#define GETVAL			12			/* get semaphore value */
+#define SETVAL			16			/* set semaphore value */
+
+#define SEMMSL			64		/* Maximum amount of semaphores per set */
+
+#define EIDRM			(INT_MAX - 100)	/* Identifier removed */
+
+struct sembuf {
+	ushort sem_num;				/* semaphore number in the set */
+	short sem_op;				/* semaphore operation */
+	short sem_flg;				/* operation flags */
+};
+
+/* metaconfig symbols that should not be defined on Windows */
+#define HAS_SEMGET
+#define HAS_SEMCTL
+#define HAS_SEMOP
+#define HAS_SEMTIMEDOP
+
+int mingw_semget(key_t key, int nsems, int semflg);
+int mingw_semctl(int semid, int semnum, int cmd, ...);
+int mingw_semop(int semid, struct sembuf *sops, unsigned nsops);
+int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
+	struct timespec *timeout);
+
+/*
+ * Miscellaneous.
+ */
+
 #define rename(oldpath, newpath) mingw_rename((oldpath), (newpath))
 #define g_strerror(errnum) mingw_strerror(errnum)
 

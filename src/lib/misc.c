@@ -2101,7 +2101,7 @@ symbolic_errno(int errnum)
 	CASE(EAGAIN);
 	CASE(EALREADY);
 	CASE(EBADF);
-#ifdef EBADMSG	/* MingW */
+#ifdef EBADMSG	/* MinGW */
 	CASE(EBADMSG);
 #endif
 	CASE(EBUSY);
@@ -2118,9 +2118,7 @@ symbolic_errno(int errnum)
 	CASE(EFAULT);
 	CASE(EFBIG);
 	CASE(EHOSTUNREACH);
-#ifdef EIDRM	/* MingW */
-	CASE(EIDRM);
-#endif
+	CASE(EIDRM);				/* Faked on MinGW */
 	CASE(EILSEQ);
 	CASE(EINPROGRESS);
 	CASE(EINTR);
@@ -2132,7 +2130,7 @@ symbolic_errno(int errnum)
 	CASE(EMFILE);
 	CASE(EMLINK);
 	CASE(EMSGSIZE);
-#ifdef EMULTIHOP	/* MingW */
+#ifdef EMULTIHOP	/* MinGW */
 	CASE(EMULTIHOP);
 #endif
 	CASE(ENAMETOOLONG);
@@ -2141,26 +2139,26 @@ symbolic_errno(int errnum)
 	CASE(ENETUNREACH);
 	CASE(ENFILE);
 	CASE(ENOBUFS);
-#ifdef ENODATA	/* MingW */
+#ifdef ENODATA	/* MinGW */
 	CASE(ENODATA);
 #endif
 	CASE(ENODEV);
 	CASE(ENOENT);
 	CASE(ENOEXEC);
 	CASE(ENOLCK);
-#ifdef ENOLINK	/* MingW */
+#ifdef ENOLINK	/* MinGW */
 	CASE(ENOLINK);
 #endif
 	CASE(ENOMEM);
-#ifdef ENOMSG	/* MingW */
+#ifdef ENOMSG	/* MinGW */
 	CASE(ENOMSG);
 #endif
 	CASE(ENOPROTOOPT);
 	CASE(ENOSPC);
-#ifdef ENOSR	/* MingW */
+#ifdef ENOSR	/* MinGW */
 	CASE(ENOSR);
 #endif
-#ifdef ENOSTR	/* MingW */
+#ifdef ENOSTR	/* MinGW */
 	CASE(ENOSTR);
 #endif
 	CASE(ENOSYS);
@@ -2171,10 +2169,10 @@ symbolic_errno(int errnum)
 	CASE(ENOTSUP);
 	CASE(ENOTTY);
 	CASE(ENXIO);
-#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC and MingW */
+#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC and MinGW */
 	CASE(EOPNOTSUPP);
 #endif
-#ifdef EOVERFLOW	/* MingW */
+#ifdef EOVERFLOW	/* MinGW */
 	CASE(EOVERFLOW);
 #endif
 	CASE(EPERM);
@@ -2189,11 +2187,11 @@ symbolic_errno(int errnum)
 	CASE(ESPIPE);
 	CASE(ESRCH);
 	CASE(ESTALE);
-#ifdef ETIME	/* MingW */
+#ifdef ETIME	/* MinGW */
 	CASE(ETIME);
 #endif
 	CASE(ETIMEDOUT);
-#ifdef ETXTBSY	/* MingW */
+#ifdef ETXTBSY	/* MinGW */
 	CASE(ETXTBSY);
 #endif
 #if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN

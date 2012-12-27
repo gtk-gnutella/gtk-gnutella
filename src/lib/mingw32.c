@@ -60,6 +60,8 @@
 #include <stdio.h>
 #include <wchar.h>
 
+#define THREAD_SOURCE			/* we want hash_table_once_new_full_real() */
+
 #include "host_addr.h"			/* ADNS */
 #include "adns.h"
 #include "adns_msg.h"
@@ -76,6 +78,7 @@
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
 #include "halloc.h"
+#include "hashtable.h"
 #include "hset.h"
 #include "iovec.h"
 #include "log.h"
@@ -2446,6 +2449,7 @@ mingw_posix_strerror(int errnum)
 	case ENOTEMPTY:	return "Directory not empty";
 	case EILSEQ:	return "Illegal byte sequence";
 	case EOVERFLOW:	return "Value too large to be stored in data type";
+	case EIDRM:		return "Identifier removed";	/* Emulated */
 	default:		return NULL;
 	}
 
@@ -3508,6 +3512,431 @@ mingw_gettimeofday(struct timeval *tv, void *tz)
 	return 0;
 }
 #endif	/* EMULATE_GETTIMEOFDAY */
+
+static hash_table_t *semaphores;	/* semaphore sets by ID */
+static int next_semid;				/* next ID we create */
+static spinlock_t sem_slk = SPINLOCK_INIT;
+
+/**
+ * A semaphore set.
+ */
+struct semset {
+	int count;					/* amount of semaphores */
+	int refcnt;					/* amount of users in a sem*() call */
+	int semid;					/* semaphore set internal ID */
+	HANDLE *handle;				/* semaphore handles */
+	int *token;					/* tokens per semaphore */
+	spinlock_t lock;			/* thread-safe lock */
+	uint destroyed:1;			/* signals the semaphore was destroyed */
+};
+
+static hash_table_t *
+sem_table(void)
+{
+	if G_UNLIKELY(NULL == semaphores) {
+		static spinlock_t semaphores_slk = SPINLOCK_INIT;
+
+		spinlock(&semaphores_slk);
+		if (NULL == semaphores) {
+			semaphores = hash_table_once_new_full_real(NULL, NULL);
+			hash_table_thread_safe(semaphores);
+		}
+		spinunlock(&semaphores_slk);
+	}
+
+	return semaphores;
+}
+
+static void
+semset_destroy(struct semset *s)
+{
+	int i;
+
+	g_assert(spinlock_is_held(&s->lock));
+	g_assert(0 == s->refcnt);
+
+	spinlock_destroy(&s->lock);
+
+	for (i = 0; i < s->count; i++) {
+		if (s->handle[i] != NULL) {
+			if (0 == CloseHandle(s->handle[i])) {
+				errno = mingw_last_error();
+				s_minicarp("%s(%d, IPC_RMID) cannot close handle "
+					"for semaphore #%d: %m", G_STRFUNC, s->semid, i);
+				/* Ignore error */
+			}
+		}
+	}
+
+	WFREE_ARRAY(s->handle, s->count);
+	WFREE_ARRAY(s->token, s->count);
+	WFREE(s);
+}
+
+/* Must be a macro for proper spinlock source tracking */
+#define SEMSET_LOCK(s) G_STMT_START {	\
+	spinlock(&(s)->lock);				\
+	atomic_int_inc(&(s)->refcnt);		\
+} G_STMT_END
+
+static void
+SEMSET_UNLOCK(struct semset *s)
+{
+	g_assert(spinlock_is_held(&s->lock));
+
+	/*
+	 * Because we release the spinlock on the set before issuing a system call,
+	 * we need to reference count the users of the semaphore set and defer
+	 * cleanup of the structure until after the last user is gone.
+	 */
+
+	if (1 == atomic_int_dec(&s->refcnt)) {
+		if G_UNLIKELY(s->destroyed) {
+			semset_destroy(s);
+			return;
+		}
+	}
+
+	spinunlock(&s->lock);
+}
+
+int
+mingw_semget(key_t key, int nsems, int semflg)
+{
+	int id;
+	struct semset *s;
+	bool ok;
+
+	g_assert_log(IPC_PRIVATE == key,
+		"%s() only supports IPC_PRIVATE keys", G_STRFUNC);
+
+	if (nsems < 0 || nsems > SEMMSL) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (0 == (semflg & IPC_CREAT)) {
+		errno = ENOENT;			/* since we only support IPC_PRIVATE */
+		return -1;
+	}
+
+	id = next_semid++;
+	WALLOC0(s);
+	s->count = nsems;
+	s->semid = id;
+	WALLOC0_ARRAY(s->handle, nsems);
+	WALLOC0_ARRAY(s->token, nsems);
+	spinlock_init(&s->lock);
+
+	ok = hash_table_insert(sem_table(), int_to_pointer(id), s);
+	g_assert(ok);
+
+	return id;
+}
+
+int
+mingw_semctl(int semid, int semnum, int cmd, ...)
+{
+	hash_table_t *sems = sem_table();
+	struct semset *s;
+	va_list args;
+	int value, result = 0;
+
+	spinlock(&sem_slk);
+
+	s = hash_table_lookup(sems, int_to_pointer(semid));
+	if (NULL == s) {
+		spinunlock(&sem_slk);
+		errno = EIDRM;
+		return -1;
+	}
+
+	/*
+	 * To avoid grabbing another lock whilst we are still in the critical
+	 * section, we increase the refcnt of the spinlock atomically, then
+	 * release the global lock before grabbing the lock of the semaphore set,
+	 * which will also increment the count.  After taking the lock, we decrease
+	 * the reference count once again.
+	 *
+	 * This sequence guarantees that nobody can free "s" in-between the two
+	 * critical sections.
+	 */
+
+	atomic_int_inc(&s->refcnt);
+	spinunlock(&sem_slk);
+	SEMSET_LOCK(s);
+	atomic_int_dec(&s->refcnt);
+
+	if (s->destroyed) {
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	switch (cmd) {
+	case IPC_RMID:
+		/* The semnum argument is ignored, hence not validated */
+		s->destroyed = TRUE; /* Defer destruction until last user is gone */
+		hash_table_remove(sems, int_to_pointer(semid));
+		break;
+
+	case GETVAL:
+		if (semnum < 0 || semnum >= s->count) {
+			errno = ERANGE;
+			result = -1;
+			break;
+		}
+
+		if (NULL == s->handle[semnum]) {
+			result = 0;
+		} else {
+			result = s->token[semnum];
+		}
+		break;
+
+	case SETVAL:
+		if (semnum < 0 || semnum >= s->count) {
+			errno = ERANGE;
+			result = -1;
+			break;
+		}
+
+		/*
+		 * The SETVAL command is our signal that the semaphore is initialized.
+		 * Any previous existing handle is just closed.
+		 */
+
+		if (s->handle[semnum] != NULL) {
+			HANDLE h = s->handle[semnum];
+			BOOL r;
+
+			spinunlock(&s->lock);
+			r = CloseHandle(h);
+			spinlock(&s->lock);
+			if (s->destroyed) {
+				errno = EIDRM;
+				result = -1;
+				break;
+			} else if (0 == r) {
+				errno = mingw_last_error();
+				s_minicarp("%s(%d, SETVAL) cannot close semaphore #%d: %m",
+					G_STRFUNC, s->semid, semnum);
+				/* Ignore error */
+			}
+			s->handle[semnum] = NULL;
+		}
+
+		va_start(args, cmd);
+		value = va_arg(args, int);
+		va_end(args);
+
+		/*
+		 * We release the lock but we do not call SEMSET_UNLOCK(), hence the
+		 * reference count is not altered and this prevents any physical
+		 * destruction of the object.
+		 *
+		 * However, once we release the lock we open the door for concurrent
+		 * destruction of the semaphore set so we need to recheck for that
+		 * condition once we re-enter the critical section.
+		 */
+
+		spinunlock(&s->lock);
+		s->handle[semnum] = CreateSemaphore(NULL, value, INT_MAX, NULL);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+		} else if (NULL == s->handle[semnum]) {
+			errno = mingw_last_error();
+			result = -1;
+		}
+
+		if G_UNLIKELY(-1 == result) {
+			/* Warn loudly since we use semaphores for inter-thread synchro */
+			s_minicarp("%s(%d, SETVAL) cannot create new semaphore #%d: %m",
+				G_STRFUNC, s->semid, semnum);
+		} else {
+			s->token[semnum] = value;
+		}
+		break;
+
+	default:
+		s_error("%s() only supports the GETVAL, SETVAL and IPC_RMID commands",
+			G_STRFUNC);
+	}
+
+done:
+	SEMSET_UNLOCK(s);
+	return result;
+}
+
+int
+mingw_semop(int semid, struct sembuf *sops, unsigned nsops)
+{
+	return mingw_semtimedop(semid, sops, nsops, NULL);
+}
+
+int
+mingw_semtimedop(int semid, struct sembuf *sops,
+	unsigned nsops, struct timespec *timeout)
+{
+	DWORD ms;
+	struct semset *s;
+	int result = 0;
+	HANDLE h;
+
+	g_assert_log(1 == nsops,
+		"%s() only supports operations on one semaphore at a time", G_STRFUNC);
+
+	spinlock(&sem_slk);
+
+	s = hash_table_lookup(sem_table(), int_to_pointer(semid));
+	if (NULL == s) {
+		spinunlock(&sem_slk);
+		errno = EIDRM;
+		return -1;
+	}
+
+	/*
+	 * This is the same critical handling as in mingw_semctl().
+	 */
+
+	atomic_int_inc(&s->refcnt);
+	spinunlock(&sem_slk);
+	SEMSET_LOCK(s);
+	atomic_int_dec(&s->refcnt);
+
+	if (s->destroyed) {
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	if (NULL == sops) {
+		errno = EFAULT;
+		result = -1;
+		goto done;
+	}
+
+	g_assert_log(0 != sops->sem_op,
+		"%s() does not support waiting for semaphores which reach zero",
+		G_STRFUNC);
+
+	g_assert_log(0 == (sops->sem_flg & SEM_UNDO),
+		"%s() does not support SEM_UNDO", G_STRFUNC);
+
+	if (sops->sem_num >= s->count) {
+		errno = EFBIG;
+		result = -1;
+		goto done;
+	}
+
+	h = s->handle[sops->sem_num];
+
+	if (NULL == h) {
+		s_minicarp("%s(%d) called on un-initialized semaphore #%d",
+			G_STRFUNC, s->semid, sops->sem_num);
+		errno = EIDRM;
+		result = -1;
+		goto done;
+	}
+
+	if (sops->sem_op > 0) {
+		BOOL r;
+
+		/*
+		 * We release the spinlock before calling ReleaseSemaphore() even if
+		 * that call cannot block because we don't want to keep a lock across
+		 * a system call.  This opens a window for failure if another thread
+		 * comes in and destroys the semaphore, but in that case our handle
+		 * would become invalid.  We trap that to transform EBADF into EIDRM.
+		 *
+		 * We update the token count before the system call to prevent a race
+		 * condition with the waiting side which could be awoken before we
+		 * re-grab the lock.
+		 */
+
+		s->token[sops->sem_num] += sops->sem_op;
+
+		/* See comment in mingw_semctl() about the following sequence */
+
+		spinunlock(&s->lock);
+		r = ReleaseSemaphore(h, sops->sem_op, NULL);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+		} else if (0 == r) {
+			errno = mingw_last_error();
+			if (EBADF == errno)
+				errno = EIDRM;
+			result = -1;
+		}
+		if G_UNLIKELY(-1 == result) {
+			/* Fail loudly since semaphores are used for inter-thread synchro */
+			s_minicarp("%s(%d, +%d) failed on semaphore #%d: %m",
+				G_STRFUNC, s->semid, sops->sem_op, sops->sem_num);
+		}
+	} else {
+		DWORD w;
+
+		/*
+		 * Acquiring semaphores is the tricky part because Windows does not
+		 * support atomic acquisition of more than one token.
+		 *
+		 * Fortunately, we should only need increments of 1.
+		 *		--RAM, 2012-12-27
+		 */
+
+		g_assert_log(-1 == sops->sem_op,
+			"%s(): sorry, Windows does not support getting %d tokens at a time",
+			G_STRFUNC, -sops->sem_op);
+
+		if (sops->sem_flg & IPC_NOWAIT)
+			ms = 0;
+		else if (timeout != NULL)
+			ms = timeout->tv_nsec / 1000000 + timeout->tv_sec * 1000;
+		else
+			ms = INFINITE;
+
+		/* See comment in mingw_semctl() about the following sequence */
+
+		spinunlock(&s->lock);
+		w = WaitForSingleObject(h, ms);
+		spinlock(&s->lock);
+
+		if G_UNLIKELY(s->destroyed) {
+			errno = EIDRM;
+			result = -1;
+			goto done;
+		}
+
+		switch (w) {
+		case WAIT_OBJECT_0:
+			s->token[sops->sem_num]--;
+			g_assert(s->token[sops->sem_num] >= 0);
+			break;
+		case WAIT_TIMEOUT:
+			errno = EAGAIN;
+			result = -1;
+			break;
+		case WAIT_ABANDONED:	/* Should not happen for a semaphore */
+		default:
+			errno = mingw_last_error();
+			s_minicarp("%s(%d): acquisition of semaphore failed: %m",
+				G_STRFUNC, s->semid);
+			result = -1;
+			break;
+		}
+	}
+
+	/* FALL THROUGH */
+done:
+	SEMSET_UNLOCK(s);
+	return result;
+}
 
 void mingw_vmm_post_init(void)
 {
