@@ -232,6 +232,7 @@ LSRC = \
 	rbtree.c \
 	regex.c \
 	sectoken.c \
+	semaphore.c \
 	sequence.c \
 	sha1.c \
 	shuffle.c \
@@ -388,6 +389,7 @@ LOBJ = \
 	rbtree.o \
 	regex.o \
 	sectoken.o \
+	semaphore.o \
 	sequence.o \
 	sha1.o \
 	shuffle.o \

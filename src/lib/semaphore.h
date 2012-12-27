@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2012, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,52 +25,39 @@
  * @ingroup lib
  * @file
  *
- * Exit wrapper.
+ * Semaphore management.
  *
- * Our own exit() wrapper makes sure anything allocated by the libc startup
- * will not be freed, as it could not have proper block sizes when xmalloc()
- * supersedes malloc(): at startup time, we had no chance to initialize the
- * necessary constants to compute page size alignments.
+ * A semaphore is a global token pool that anybody can attempt to grab from
+ * and release to.  When attempting to grab more than the amount of tokens it
+ * has available, the process blocks until the corresponding amount of tokens
+ * is made available by somebody else.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2012
  */
 
-#include "common.h"
+#ifndef _semaphore_h_
+#define _semaphore_h_
 
-#include "exit.h"
-#include "crash.h"
-#include "signal.h"
-#include "xmalloc.h"
+#include "tm.h"
 
-#include "override.h"			/* Must be the last header included */
+struct semaphore;
+typedef struct semaphore semaphore_t;
 
-#undef exit
-#undef _exit
-
-/**
- * Exit with given status for the parent process.
+/*
+ * Public interface.
  */
-G_GNUC_COLD void
-do_exit(int status)
-{
-	xmalloc_stop_freeing();
-	signal_perform_cleanup();
-	crash_close();
-	exit(status);
-}
 
-/**
- * Exit with given status for the parent process.
- *
- * Handlers registered with atexit() are not invoked.
- */
-G_GNUC_COLD void
-do__exit(int status)
-{
-	xmalloc_stop_freeing();
-	signal_perform_cleanup();
-	_exit(status);
-}
+semaphore_t *semaphore_create(int tokens);
+semaphore_t *semaphore_create_full(int tokens, bool emulated);
+int semaphore_value(const semaphore_t *s);
+bool semaphore_acquire(semaphore_t *s, int amount, const tm_t *timeout);
+bool semaphore_acquire_try(semaphore_t *s, int amount);
+void semaphore_release(semaphore_t *s, int amount);
+void semaphore_destroy(semaphore_t **s_ptr);
+
+size_t semaphore_kernel_usage(size_t *inuse);
+
+#endif /* _semaphore_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

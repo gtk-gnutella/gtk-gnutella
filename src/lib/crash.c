@@ -1914,6 +1914,7 @@ crash_try_reexec(void)
 	signal_set(SIGPROF, SIG_IGN);	/* In case we're running under profiler */
 #endif
 
+	signal_perform_cleanup();
 	close_file_descriptors(3);
 	crash_reset_signals();
 	execve(vars->argv0, (const void *) vars->argv, (const void *) vars->envp);
@@ -2105,6 +2106,16 @@ crash_handler(int signo)
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
 	}
+
+	/*
+	 * Since we're about to crash, we need to perform emergency cleanup.
+	 *
+	 * This is cleanup meant to release precious system resources, as necessary,
+	 * which would not otherwise be cleaned up by the kernel upon process exit.
+	 */
+
+	if (1 == crashed)
+		signal_perform_cleanup();
 
 	/*
 	 * If we are in the child process, prevent any exec() or pausing.

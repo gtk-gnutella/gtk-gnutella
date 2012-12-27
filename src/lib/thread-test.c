@@ -38,6 +38,7 @@
 #include "misc.h"
 #include "parse.h"
 #include "path.h"
+#include "semaphore.h"
 #include "str.h"
 #include "thread.h"
 #include "xmalloc.h"
@@ -51,13 +52,15 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hjsAC] [-n count]"
+		"Usage: %s [-hejsACS] [-n count]"
 		"  -h : prints this help message\n"
+		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -C : test thread creation\n"
+		"  -S : test semaphore layer\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
 	exit(EXIT_FAILURE);
@@ -170,6 +173,113 @@ test_create(unsigned repeat, bool join)
 	}
 }
 
+struct test_semaphore_arg {
+	int n;			/* thread number */
+	semaphore_t *s;	/* semaphore to use */
+};
+
+static void *
+test_semaphore_main(void *arg)
+{
+	struct test_semaphore_arg *ta = arg;
+	int i;
+	int n = ta->n;
+	semaphore_t *s = ta->s;
+
+	xfree(ta);
+
+	for (i = 0; i < 6; i++) {
+		bool got = TRUE;
+		printf("thread #%d alive, waiting for event\n", n);
+		fflush(stdout);
+		if (semaphore_acquire(s, 1, NULL)) {
+			printf("#%d got semaphore!\n", n);
+			fflush(stdout);
+		} else {
+			s_warning("thread #%d cannot get semaphore: %m", n);
+			got = FALSE;
+		}
+		sleep(1);
+		if (got) {
+			printf("#%d releasing semaphore!\n", n);
+			fflush(stdout);
+			semaphore_release(s, 1);
+		}
+	}
+
+	printf("thread #%d exiting!\n", n);
+	return NULL;
+}
+
+static int
+test_semaphore_thread_launch(int n, semaphore_t *s)
+{
+	struct test_semaphore_arg *arg;
+	int r;
+
+	XMALLOC(arg);
+	arg->n = n;
+	arg->s = s;
+	r = thread_create(test_semaphore_main, arg, 0, 0);
+	if (-1 == r)
+		s_error("could not launch thread #%d: %m", n);
+
+	return r;
+}
+
+static void
+test_semaphore(bool emulated)
+{
+	semaphore_t *s;
+	tm_t timeout;
+	int i;
+	int r[3];
+
+	s = semaphore_create_full(0, emulated);
+	if (semaphore_acquire_try(s, 1))
+		s_error("could acquire empty semaphore!");
+	semaphore_release(s, 2);
+
+	tm_fill_ms(&timeout, 1000);
+
+	if (!semaphore_acquire(s, 1, &timeout))
+		s_error("could not acquire semaphore, first time!");
+	if (!semaphore_acquire(s, 1, &timeout))
+		s_error("could not acquire semaphore, second time!");
+
+	tm_fill_ms(&timeout, 500);
+	printf("will wait 1/2 second...\n");
+	if (semaphore_acquire(s, 1, &timeout))
+		s_error("could acquire empty semaphore!");
+	g_assert_log(EAGAIN == errno,
+		"improper errno, expected EAGAIN (%d) but got %m", EAGAIN);
+	printf("good, failed to acquire empty semaphore.\n");
+
+	r[0] = test_semaphore_thread_launch(1, s);
+	r[1] = test_semaphore_thread_launch(2, s);
+	r[2] = test_semaphore_thread_launch(3, s);
+
+	semaphore_release(s, 1);
+
+	for (i = 0; i < 6; i++) {
+		printf("main alive\n");
+		fflush(stdout);
+		sleep(1);
+	}
+
+	printf("main waiting for subthreads\n");
+	fflush(stdout);
+
+	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
+		if (-1 == thread_join(r[i], NULL, FALSE))
+			s_error("failed to join with thread #%d: %m", i+1);
+	}
+
+	printf("main is done, final semaphore value is %d\n", semaphore_value(s));
+
+	semaphore_destroy(&s);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -192,7 +302,7 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	int c;
-	bool create = FALSE, join = FALSE;
+	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	unsigned repeat = 1;
 
 	mingw_early_init();
@@ -201,13 +311,19 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hjn:sAC")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:sACS")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
+			break;
+		case 'S':			/* test semaphore layer */
+			sem = TRUE;
+			break;
+		case 'e':			/* use emulated semaphores */
+			emulated = TRUE;
 			break;
 		case 'j':			/* join threads */
 			join = TRUE;
@@ -228,9 +344,12 @@ main(int argc, char **argv)
 	if ((argc -= optind) != 0)
 		usage();
 
+	if (sem)
+		test_semaphore(emulated);
+
 	if (create)
 		test_create(repeat, join);
 
-	return 0;
+	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
 

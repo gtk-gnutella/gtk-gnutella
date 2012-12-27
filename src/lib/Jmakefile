@@ -175,6 +175,7 @@ LSRC = \
 	rbtree.c \
 	regex.c \
 	sectoken.c \
+	semaphore.c \
 	sequence.c \
 	sha1.c \
 	shuffle.c \
