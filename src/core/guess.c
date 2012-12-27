@@ -2986,7 +2986,9 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 
 		guess_rpc_cancel(gq, pmi->host);
 		hset_remove(gq->queried, pmi->host);	/* Atom moved to the pool */
-		hash_list_append(gq->pool, pmi->host);
+		if (!hash_list_contains(gq->pool, pmi->host)) {
+			hash_list_append(gq->pool, pmi->host);
+		}
 
 		/*
 		 * Because the queue dropped the message, we're going to delay the
