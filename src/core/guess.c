@@ -3596,6 +3596,7 @@ guess_iterate(guess_t *gq)
 	int i = 0;
 	unsigned unsent = 0;
 	size_t attempts = 0, poolsize;
+	bool starving_defacto = FALSE;
 
 	guess_check(gq);
 
@@ -3697,11 +3698,16 @@ guess_iterate(guess_t *gq)
 
 		/*
 		 * Send query to next host in the pool.
+		 *
+		 * If we cannot pick any host from the pool, we're de-facto starving,
+		 * regardless of whether the pool is empty.
 		 */
 
 		host = guess_pick_next(gq);
-		if (NULL == host)
+		if (NULL == host) {
+			starving_defacto = TRUE;
 			break;
+		}
 
 		if (!hset_contains(gq->queried, host)) {
 			if (!guess_send_query(gq, host)) {
@@ -3763,13 +3769,14 @@ guess_iterate(guess_t *gq)
 			bool starving;
 
 			/*
-			 * Query is starving when its pool is empty.
+			 * Query is starving when its pool is empty or when we cannot
+			 * actually pick any host to contact right now.
 			 *
 			 * When GQ_F_END_STARVING is set, they want us to end the query
 			 * as soon as we are starving.
 			 */
 
-			starving = 0 == poolsize;
+			starving = 0 == poolsize || starving_defacto;
 
 			if (starving && (gq->flags & GQ_F_END_STARVING)) {
 				if (gq->flags & GQ_F_POOL_LOAD) {
