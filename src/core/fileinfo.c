@@ -4190,7 +4190,7 @@ file_info_size_known(struct download *d, filesize_t size)
 
 	fi->file_size_known = TRUE;
 	fi->use_swarming = TRUE;
-	fi->size = size;
+	fi->size = MAX(size, fi->done);
 	fi->dirty = TRUE;
 	fileinfo_dirty = TRUE;
 
