@@ -614,6 +614,15 @@ gtk_gnutella_exit(int exit_code)
 	DO(socket_shutdown);
 	DO(bsched_shutdown);
 
+	/*
+	 * If auto-restart was requested, flag that in the properties so that
+	 * we'll know about that request when we restart.
+	 */
+
+	if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
+	}
+
 	if (!running_topless)
 		DO(settings_gui_shutdown);
 	DO(settings_shutdown);

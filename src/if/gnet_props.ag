@@ -5372,4 +5372,13 @@ prop = {
     };
 };
 
+prop = {
+	name = "user_auto_restart";
+	desc = "Whether the program is auto-restarting at the user's request.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

@@ -515,6 +515,7 @@ extern const guint32  gnet_property_variable_dht_values_debug;
 extern const guint32  gnet_property_variable_pid;
 extern const guint32  gnet_property_variable_http_range_debug;
 extern const guint32  gnet_property_variable_upnp_mapping_lease_time;
+extern const gboolean gnet_property_variable_user_auto_restart;
 
 
 prop_set_t *gnet_prop_init(void);

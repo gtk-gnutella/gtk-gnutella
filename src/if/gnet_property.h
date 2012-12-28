@@ -501,6 +501,7 @@ typedef enum {
     PROP_PID,
     PROP_HTTP_RANGE_DEBUG,
     PROP_UPNP_MAPPING_LEASE_TIME,
+    PROP_USER_AUTO_RESTART,
     GNET_PROPERTY_END
 } gnet_property_t;
 

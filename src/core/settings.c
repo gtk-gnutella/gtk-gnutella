@@ -739,7 +739,17 @@ settings_init(void)
 	 */
 
 	if (GNET_PROPERTY(clean_shutdown)) {
-		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, TRUE);
+		bool auto_restart = GNET_PROPERTY(user_auto_restart);
+		/*
+		 * An (explicit) auto-restart is an implicit continuation of the
+		 * previous session, therefore we unset "clean_restart" to signal that.
+		 * In effect, this keeps the same GUID and KUID regardless of whether
+		 * they are sticky, and it lets "session-only" searches restart.
+		 *		--RAM, 2012-12-28
+		 */
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, !auto_restart);
+		if (auto_restart)
+			g_info("restarting session as requested");
 	} else {
 		uint32 pid = GNET_PROPERTY(pid);
 		g_warning("restarting after abnormal termination (pid was %u)", pid);
@@ -748,6 +758,7 @@ settings_init(void)
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
+	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
 	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
 
 	/*

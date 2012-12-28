@@ -1073,6 +1073,8 @@ guint32  gnet_property_variable_http_range_debug     = 0;
 static const guint32  gnet_property_variable_http_range_debug_default = 0;
 guint32  gnet_property_variable_upnp_mapping_lease_time     = UPNP_MAPPING_LIFE;
 static const guint32  gnet_property_variable_upnp_mapping_lease_time_default = UPNP_MAPPING_LIFE;
+gboolean gnet_property_variable_user_auto_restart     = FALSE;
+static const gboolean gnet_property_variable_user_auto_restart_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -9942,6 +9944,23 @@ gnet_prop_init(void) {
     gnet_property->props[464].data.guint32.choices = NULL;
     gnet_property->props[464].data.guint32.max   = 31536000;
     gnet_property->props[464].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_USER_AUTO_RESTART:
+     *
+     * General data:
+     */
+    gnet_property->props[465].name = "user_auto_restart";
+    gnet_property->props[465].desc = _("Whether the program is auto-restarting at the user's request.");
+    gnet_property->props[465].ev_changed = event_new("user_auto_restart_changed");
+    gnet_property->props[465].save = TRUE;
+    gnet_property->props[465].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[465].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[465].data.boolean.def   = (void *) &gnet_property_variable_user_auto_restart_default;
+    gnet_property->props[465].data.boolean.value = (void *) &gnet_property_variable_user_auto_restart;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
