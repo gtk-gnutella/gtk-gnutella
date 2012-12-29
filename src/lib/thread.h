@@ -110,6 +110,9 @@ thread_qid_t thread_quasi_id(void);
 unsigned thread_small_id(void);
 int thread_stid_from_thread(const thread_t t);
 const char *thread_to_string(const thread_t t);
+void thread_set_name(const char *name);
+const char *thread_name(void);
+const char *thread_id_name(unsigned id);
 
 unsigned thread_count();
 bool thread_is_single(void);

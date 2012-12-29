@@ -67,6 +67,7 @@
 #include "pow2.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -160,7 +161,10 @@ struct thread_element {
 	const void *stack_base;			/**< Plausible stack base */
 	const void *stack_highest;		/**< Highest stack address seen */
 	const void *stack_lock;			/**< First lock seen here */
+	const char *name;				/**< Thread name, explicitly set */
 	size_t stack_size;				/**< For created threads, 0 otherwise */
+	func_ptr_t entry;				/**< Thread entry point (created threads) */
+	const void *argument;			/**< Initial thread argument, for logging */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
 	socket_fd_t wfd[2];				/**< For the block/unblock interface */
@@ -184,6 +188,7 @@ struct thread_element {
 	uint reusable:1;				/**< Whether element is reusable */
 	uint pending_reuse:1;			/**< Whether thread element kept aside */
 	uint async_exit:1;				/**< Whether exit callback done in main */
+	uint main_thread:1;				/**< Whether this is the main thread */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	spinlock_t lock;				/**< Protects concurrent updates */
 };
@@ -642,6 +647,50 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 }
 
 /**
+ * Format thread name into supplied buffer.
+ *
+ * @return pointer to the start of the buffer.
+ */
+static const char *
+thread_element_name_to_buf(const struct thread_element *te,
+	char *buf, size_t len)
+{
+	if G_UNLIKELY(te->name != NULL) {
+		str_bprintf(buf, len, "thread \"%s\"", te->name);
+	} else if (te->created) {
+		if (pointer_to_uint(te->argument) < 1000) {
+			str_bprintf(buf, len, "thread #%u:%s(%u)",
+				te->stid, stacktrace_function_name(te->entry),
+				pointer_to_uint(te->argument));
+		} else {
+			str_bprintf(buf, len, "thread #%u:%s(%p)",
+				te->stid, stacktrace_function_name(te->entry), te->argument);
+		}
+	} else if (te->main_thread) {
+		str_bprintf(buf, len, "thread #%u:main()", te->stid);
+	} else {
+		str_bprintf(buf, len, "thread #%u", te->stid);
+	}
+
+	return buf;
+}
+
+/**
+ * Format the name of the thread element.
+ *
+ * @return the thread name as "thread name" if name is known, or a default
+ * name which is "thread #n" followed by the entry point for a thread we
+ * created and ":main()" for the main thread (necessarily discovered).
+ */
+static const char *
+thread_element_name(const struct thread_element *te)
+{
+	static char buf[128];
+
+	return thread_element_name_to_buf(te, buf, sizeof buf);
+}
+
+/**
  * Get the main hash table.
  *
  * This hash table is indexed by thread_t and holds a thread element which
@@ -814,6 +863,7 @@ thread_element_reset(struct thread_element *te)
 	te->high_qid = (thread_qid_t) -1;
 	te->valid = TRUE;		/* Flags a correctly instantiated element */
 	te->stack_lock = NULL;	/* Stack position when first lock recorded */
+	te->name = NULL;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	te->join_requested = FALSE;
@@ -825,6 +875,8 @@ thread_element_reset(struct thread_element *te)
 	te->discovered = FALSE;
 	te->exit_cb = NULL;
 	te->stack_size = 0;
+	te->entry = NULL;
+	te->argument = NULL;
 }
 
 /**
@@ -960,6 +1012,11 @@ thread_main_element(thread_t t)
 
 	/*
 	 * Do not use any memory allocation at this stage.
+	 *
+	 * Indeed, if we call xmalloc() it will auto-initialize and install
+	 * its periodic xgc() call through the callout queue.  We do not want
+	 * the callout queue created yet since that could put it in thread #0,
+	 * if the main thread is recorded blockable via thread_set_main().
 	 */
 
 	te = &te_main;
@@ -971,7 +1028,9 @@ thread_main_element(thread_t t)
 	te->tid = t;
 	te->low_qid = 0;
 	te->high_qid = (thread_qid_t) -1;
+	te->main_thread = TRUE;
 	te->stamp = atomic_uint_inc(&thread_stamp);
+	te->name = "main";
 	spinlock_init(&te->lock);
 
 	tls = &te->locks;
@@ -986,11 +1045,16 @@ thread_main_element(thread_t t)
 	tstamp[0] = te->stamp;
 	thread_next_stid++;
 
-	spinunlock_hidden(&thread_insert_slk);
-
 	/*
-	 * Now we can allocate memory.
+	 * Now we can allocate memory because we have created enough context
+	 * for the main thread to let any other thread created be thread #1.
+	 *
+	 * We need to release the spinlock before proceeding though, in case
+	 * xmalloc() is called and we need to create a new thread for the
+	 * callout queue.
 	 */
+
+	spinunlock_hidden(&thread_insert_slk);
 
 	ght = thread_get_global_hash();
 	ok = hash_table_insert(ght, &te->tid, te);
@@ -1200,7 +1264,7 @@ thread_find_element(void)
  * Called when thread has been suspended for too long.
  */
 static void
-thread_timeout(const volatile struct thread_element *te)
+thread_timeout(const struct thread_element *te)
 {
 	static spinlock_t thread_timeout_slk = SPINLOCK_INIT;
 	unsigned i;
@@ -1228,11 +1292,11 @@ thread_timeout(const volatile struct thread_element *te)
 
 	spinunlock(&thread_timeout_slk);
 
-	s_minicrit("thread #%u suspended for too long", te->stid);
+	s_minicrit("%s suspended for too long", thread_element_name(te));
 
 	if (ostid != (unsigned) -1 && (multiple || ostid != te->stid)) {
-		s_minicrit("%ssuspending thread was #%u",
-			multiple ? "first " : "", ostid);
+		s_minicrit("%ssuspending thread was %s",
+			multiple ? "first " : "", thread_element_name(threads[ostid]));
 	}
 
 	s_error("thread suspension timeout detected");
@@ -1870,6 +1934,62 @@ thread_stid_from_thread(const thread_t t)
 }
 
 /**
+ * Set the name of the current thread.
+ */
+void
+thread_set_name(const char *name)
+{
+	struct thread_element *te = thread_get_element();
+
+	te->name = name;
+}
+
+/**
+ * Get the current thread name.
+ *
+ * The returned name starts with the word "thread", hence message formatting
+ * must take that into account.
+ *
+ * @return the name of the current thread, as pointer to static data.
+ */
+const char *
+thread_name(void)
+{
+	static char buf[THREAD_MAX][128];
+	const struct thread_element *te = thread_get_element();
+	char *b = &buf[te->stid][0];
+
+	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+}
+
+/**
+ * @return the name of the thread id, as pointer to static data.
+ */
+const char *
+thread_id_name(unsigned id)
+{
+	static char buf[THREAD_MAX][128];
+	const struct thread_element *te;
+	char *b = &buf[thread_small_id()][0];
+
+	if (id >= THREAD_MAX) {
+		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
+		return b;
+	}
+
+	te = threads[id];
+	if (NULL == te || !te->valid) {
+		str_bprintf(b, sizeof buf[0], "<unknown thread ID %u>", id);
+		return b;
+	} else if (te->reusable) {
+		str_bprintf(b, sizeof buf[0], "<terminated thread ID %u>", id);
+		return b;
+	}
+
+	return thread_element_name_to_buf(te, b, sizeof buf[0]);
+}
+
+/**
  * Wait until all the suspended threads are indeed suspended or no longer
  * hold any locks (meaning they will get suspended as soon as they try
  * to acquire one).
@@ -1980,8 +2100,8 @@ thread_suspend_others(void)
 
 	if G_UNLIKELY(te->suspend) {
 		mutex_unlock(&thread_suspend_mtx);
-		s_carp("%s(): suspending thread #%u was supposed to be suspended",
-			G_STRFUNC, te->stid);
+		s_carp("%s(): suspending %s was supposed to be already suspended",
+			G_STRFUNC, thread_element_name(te));
 		thread_lock_dump(te);
 		return 0;
 	}
@@ -2575,12 +2695,12 @@ thread_lock_dump(const struct thread_element *te)
 	unsigned i;
 
 	if G_UNLIKELY(0 == tls->count) {
-		s_miniinfo("thread #%u currently holds no locks", te->stid);
+		s_miniinfo("%s currently holds no locks", thread_element_name(te));
 		return;
 	}
 
-	s_miniinfo("list of locks owned by thread #%u, most recent first:",
-		te->stid);
+	s_miniinfo("list of locks owned by %s, most recent first:",
+		thread_element_name(te));
 
 	for (i = tls->count; i != 0; i--) {
 		const struct thread_lock *l = &tls->arena[i - 1];
@@ -2842,7 +2962,7 @@ found:
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_minicrit("thread #%u overflowing its lock stack", te->stid);
+		s_minicrit("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
 	}
@@ -2981,9 +3101,9 @@ thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
 
 		if (ol->lock == lock) {
 			tls->overflow = TRUE;	/* Avoid any overflow problems now */
-			s_minicrit("thread #%u releases %s %p at inner position %u/%zu",
-				te->stid, thread_lock_kind_to_string(kind), lock, i + 1,
-				tls->count);
+			s_minicrit("%s releases %s %p at inner position %u/%zu",
+				thread_element_name(te), thread_lock_kind_to_string(kind),
+				lock, i + 1, tls->count);
 			thread_lock_dump(te);
 			s_error("out-of-order %s release",
 				thread_lock_kind_to_string(kind));
@@ -3062,8 +3182,8 @@ thread_assert_no_locks(const char *routine)
 	struct thread_element *te = thread_get_element();
 
 	if G_UNLIKELY(0 != te->locks.count) {
-		s_minicrit("%s(): thread #%u currently holds %zu lock%s",
-			routine, te->stid, te->locks.count,
+		s_minicrit("%s(): %s currently holds %zu lock%s",
+			routine, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
 		s_minierror("%s() expected no locks, found %zu held",
@@ -3142,15 +3262,16 @@ thread_lock_deadlock(const volatile void *lock)
 	towner = thread_lock_owner(lock, &kind);
 
 	if (NULL == towner || towner == te) {
-		s_minicrit("thread #%u deadlocked whilst waiting on %s%s%p, "
-			"owned by %s", te->stid,
+		s_minicrit("%s deadlocked whilst waiting on %s%s%p, owned by %s",
+			thread_element_name(te),
 			NULL == towner ? "" : thread_lock_kind_to_string(kind),
 			NULL == towner ? "" : " ",
 			lock, NULL == towner ? "nobody" : "itself");
 	} else {
-		s_minicrit("thread #%u deadlocked whilst waiting on %s %p, "
-			"owned by thread #%u", te->stid,
-			thread_lock_kind_to_string(kind), lock, towner->stid);
+		s_minicrit("%s deadlocked whilst waiting on %s %p, owned by %s",
+			thread_element_name(te),
+			thread_lock_kind_to_string(kind), lock,
+			thread_element_name(towner));
 	}
 
 	thread_lock_dump(te);
@@ -3288,8 +3409,8 @@ thread_element_block_until(struct thread_element *te,
 		r = compat_poll(&fds, 1, remain);
 
 		if (-1 == r)
-			s_minierror("%s(): thread #%u could not block itself on poll(): %m",
-				G_STRFUNC, te->stid);
+			s_minierror("%s(): %s could not block itself on poll(): %m",
+				G_STRFUNC, thread_element_name(te));
 
 		if (0 == r)
 			goto timed_out;			/* The poll() timed out */
@@ -3298,8 +3419,8 @@ thread_element_block_until(struct thread_element *te,
 	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_minierror("%s(): thread #%u could not block itself on read(): %m",
-			G_STRFUNC, te->stid);
+		s_minierror("%s(): %s could not block itself on read(): %m",
+			G_STRFUNC, thread_element_name(te));
 	}
 
 	THREAD_LOCK(te);
@@ -3424,7 +3545,8 @@ thread_element_unblock(struct thread_element *te)
 		return 0;				/* Already unblocked */
 
 	if (-1 == s_write(te->wfd[1], &c, 1)) {
-		s_minicarp("%s(): cannot unblock thread #%u: %m", G_STRFUNC, te->stid);
+		s_minicarp("%s(): cannot unblock %s: %m",
+			G_STRFUNC, thread_element_name(te));
 		return -1;
 	}
 	return 0;
@@ -3669,8 +3791,11 @@ thread_launch(struct thread_element *te,
 
 	te->detached = booleanize(flags & THREAD_F_DETACH);
 	te->async_exit = booleanize(flags & THREAD_F_ASYNC_EXIT);
+
 	te->created = TRUE;			/* This is a thread we created */
 	te->stack_size = stacksize;
+	te->argument = arg;
+	te->entry = (func_ptr_t) routine;
 
 	/*
 	 * We always create detached threads because we provide our own exit
@@ -3816,12 +3941,14 @@ thread_exit(void *value)
 	if (thread_main_stid == te->stid)
 		s_minierror("%s() called by the main thread", G_STRFUNC);
 
-	if (!te->created)
-		s_minierror("%s() called by foreigner thread #%u", G_STRFUNC, te->stid);
+	if (!te->created) {
+		s_minierror("%s() called by foreigner %s",
+			G_STRFUNC, thread_element_name(te));
+	}
 
 	if (0 != te->locks.count) {
-		s_minicrit("%s() called by thread #%u with %zu lock%s still held",
-			G_STRFUNC, te->stid, te->locks.count,
+		s_minicrit("%s() called by %s with %zu lock%s still held",
+			G_STRFUNC, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
 		s_minierror("thread exiting without clearing its locks");
@@ -3991,8 +4118,8 @@ thread_join(unsigned id, void **result, bool nowait)
 
 	THREAD_LOCK(te);
 	if (!te->join_pending) {
-		s_minierror("%s(): thread #%u has not terminated yet, spurious wakeup?",
-			G_STRFUNC, te->stid);
+		s_minierror("%s(): %s has not terminated yet, spurious wakeup?",
+			G_STRFUNC, thread_element_name(te));
 	}
 
 	g_assert(tself->stid == te->joining_id);
