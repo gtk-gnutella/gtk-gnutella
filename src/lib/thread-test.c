@@ -83,7 +83,7 @@ compute_length(void *arg)
 	const char *name = arg;
 	char *scratch = xstrdup(name);
 
-	printf("thread #%u given \"%s\"\n", stid, scratch);
+	printf("%s given \"%s\"\n", thread_id_name(stid), scratch);
 	xfree(scratch);
 	if (sleep_before_exit)
 		sleep(1);
@@ -117,16 +117,20 @@ test_create_one(bool repeat, bool join)
 		} else {
 			int j;
 			if (!repeat)
-				printf("thread i=%u created as #%d\n", i, r);
+				printf("thread i=%u created as %s\n", i, thread_id_name(r));
 			if (!join) {
 				j = thread_join(r, NULL, FALSE);
 				if (-1 != j) {
-					s_warning("thread_join() worked for thread #%u?\n", r);
+					s_warning("thread_join() worked for %s?\n",
+						thread_id_name(r));
 				} else if (errno != EINVAL) {
-					s_warning("thread_join() failure on thread #%u: %m", r);
+					s_warning("thread_join() failure on %s: %m",
+						thread_id_name(r));
 				} else {
-					if (!repeat)
-						printf("thread #%u cannot be joined, that's OK\n", r);
+					if (!repeat) {
+						printf("%s cannot be joined, that's OK\n",
+							thread_id_name(r));
+					}
 				}
 			}
 		}
@@ -147,12 +151,13 @@ test_create_one(bool repeat, bool join)
 				void *result;
 				int j = thread_join(r, &result, FALSE);		/* Block */
 				if (-1 == j) {
-					s_warning("thread_join() failed for thread #%u: %m", r);
+					s_warning("thread_join() failed for %s: %m",
+						thread_id_name(r));
 				} else {
 					ulong length = pointer_to_ulong(result);
 					if (!repeat) {
-						printf("thread #%u finished, result length is %lu\n",
-							r, length);
+						printf("%s finished, result length is %lu\n",
+							thread_id_name(r), length);
 					}
 				}
 			}
@@ -272,7 +277,7 @@ test_semaphore(bool emulated)
 
 	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
 		if (-1 == thread_join(r[i], NULL, FALSE))
-			s_error("failed to join with thread #%d: %m", i+1);
+			s_error("failed to join with %s: %m", thread_id_name(r[i]));
 	}
 
 	printf("main is done, final semaphore value is %d\n", semaphore_value(s));
