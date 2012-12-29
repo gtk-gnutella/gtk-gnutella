@@ -3956,9 +3956,14 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 	/*
 	 * If we can determine the start of the routine, get there first.
+	 *
+	 * We substract 1 because when the return address is pushed, it is
+	 * after the previous instruction (a CALL or a JMP) and when calling
+	 * a non-returning routine, the pc will lie outside the routine and
+	 * will point to the next routine in the code.
 	 */
 
-	p = stacktrace_routine_start(pc);
+	p = stacktrace_routine_start(pc - 1);
 
 	if (p != NULL && valid_ptr(p)) {
 		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p (%s)",
@@ -4155,8 +4160,8 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	sp = ulong_to_pointer(c->Esp);
 	pc = ulong_to_pointer(c->Eip);
 
-	BACKTRACE_DEBUG("%s: pc=%p, sf=%p, sp=%p [skip %d]",
-		G_STRFUNC, pc, sf, sp, skip);
+	BACKTRACE_DEBUG("%s: pc=%p, sf=%p, sp=%p [skip %d] (current SP=%p)",
+		G_STRFUNC, pc, sf, sp, skip, &i);
 
 	if (0 == skip--)
 		buffer[i++] = deconstify_pointer(pc);
