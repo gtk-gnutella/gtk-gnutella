@@ -215,6 +215,7 @@ void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const crash_hook_t hook);
 void crash_reexec(void) G_GNUC_NORETURN;
+void crash_print_decorated_stack(int fd);
 
 #endif	/* _crash_h_ */
 

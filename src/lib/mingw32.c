@@ -606,6 +606,7 @@ mingw_sigraise(int signo)
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
 	} else if (SIG_DFL == mingw_sighandler[signo]) {
+		static bool done;
 		DECLARE_STR(3);
 
 		print_str("Got uncaught ");			/* 0 */
@@ -614,6 +615,14 @@ mingw_sigraise(int signo)
 		flush_err_str();
 		if (log_stdout_is_distinct())
 			flush_str(STDOUT_FILENO);
+
+		if (!done) {
+			done = TRUE;
+			crash_print_decorated_stack(STDERR_FILENO);
+			if (log_stdout_is_distinct())
+				crash_print_decorated_stack(STDOUT_FILENO);
+		}
+
 	} else {
 		(*mingw_sighandler[signo])(signo);
 	}

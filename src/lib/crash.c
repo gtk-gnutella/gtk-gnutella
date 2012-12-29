@@ -97,6 +97,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"				/* For thread_name() */
 #include "timestamp.h"
 #include "tm.h"
 #include "unsigned.h"			/* For size_is_positive() */
@@ -829,6 +830,23 @@ done:
 #endif
 
 	return success;
+}
+
+/**
+ * Print a decorated stack for the current frame to given file descriptor.
+ */
+void
+crash_print_decorated_stack(int fd)
+{
+	const char *name = thread_name();
+	DECLARE_STR(3);
+
+	print_str("Currently in ");
+	print_str(name);
+	print_str(":\n");
+	flush_str(fd);
+
+	crash_stack_print_decorated(fd, 2, FALSE);
 }
 
 /**
