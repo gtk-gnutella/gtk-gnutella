@@ -390,6 +390,50 @@ mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 
 	return FALSE;
 }
+
+/**
+ * Get lock source.
+ *
+ * If the mutex is not owned, the information returned would be inconsistent
+ * hence we require that it be owned.
+ *
+ * @param m		the (owned) mutex
+ * @param line	where line number is written
+ *
+ * @return the source file where lock was last taken.
+ *
+ */
+const char *
+mutex_get_lock_source(const mutex_t * const m, unsigned *line)
+{
+	mutex_check(m);
+	g_assert(mutex_is_owned(m));
+
+	*line = m->lock.line;
+	return m->lock.file;
+}
+
+/**
+ * Override lock source in the (owned) mutex.
+ *
+ * To safely override the lock source, the mutex must be owned at depth=1,
+ * otherwise we would be corrupting the real origin of the lock.
+ *
+ * @param m		the (owned) mutex
+ * @param file	the file name to store as the locking point
+ * @param line	the line number in the file to store as the locking point
+ */
+void
+mutex_set_lock_source(mutex_t *m, const char *file, unsigned line)
+{
+	mutex_check(m);
+	g_assert(mutex_is_owned(m));
+	g_assert(1 == m->depth);
+
+	m->lock.file = file;
+	m->lock.line = line;
+}
+
 #endif	/* SPINLOCK_DEBUG */
 
 /**

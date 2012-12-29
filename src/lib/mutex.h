@@ -127,6 +127,9 @@ void mutex_grab_from(mutex_t *m, enum mutex_mode mode,
 bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 	const char *f, unsigned l);
 
+const char *mutex_get_lock_source(const mutex_t * const m, unsigned *line);
+void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
+
 #define mutex_lock(x) \
 	mutex_grab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 #define mutex_lock_hidden(x) \
@@ -144,7 +147,8 @@ bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 #define mutex_lock_const(x)	\
 	mutex_grab_from(deconstify_pointer(x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 
-#else
+#else	/* !SPINLOCK_DEBUG */
+
 #define mutex_lock(x)			mutex_grab((x), MUTEX_MODE_NORMAL)
 #define mutex_lock_hidden(x)	mutex_grab((x), MUTEX_MODE_HIDDEN)
 #define mutex_lock_fast(x)		mutex_grab((x), MUTEX_MODE_FAST)
@@ -153,6 +157,9 @@ bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 
 #define mutex_lock_const(x)	\
 	mutex_grab(deconstify_pointer(x), MUTEX_MODE_NORMAL)
+
+#define mutex_get_lock_source(m,l)		((void) (l), NULL)
+#define mutex_set_lock_source(m,f,l)	(void) (f), (void) (l)
 
 #endif	/* SPINLOCK_DEBUG */
 
