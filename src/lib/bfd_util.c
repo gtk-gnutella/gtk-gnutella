@@ -526,8 +526,10 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	}
 
 	b = bc->handle;
-	if (NULL == b)
+	if (NULL == b) {
+		mutex_unlock(&bc->lock);
 		return;
+	}
 
 	/*
 	 * Take the first section of the file and look where its page would start.
