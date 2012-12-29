@@ -1292,10 +1292,10 @@ thread_timeout(const struct thread_element *te)
 
 	spinunlock(&thread_timeout_slk);
 
-	s_minicrit("%s suspended for too long", thread_element_name(te));
+	s_miniwarn("%s suspended for too long", thread_element_name(te));
 
 	if (ostid != (unsigned) -1 && (multiple || ostid != te->stid)) {
-		s_minicrit("%ssuspending thread was %s",
+		s_miniwarn("%ssuspending thread was %s",
 			multiple ? "first " : "", thread_element_name(threads[ostid]));
 	}
 
@@ -2962,7 +2962,7 @@ found:
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_minicrit("%s overflowing its lock stack", thread_element_name(te));
+		s_miniwarn("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
 	}
@@ -3101,7 +3101,7 @@ thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
 
 		if (ol->lock == lock) {
 			tls->overflow = TRUE;	/* Avoid any overflow problems now */
-			s_minicrit("%s releases %s %p at inner position %u/%zu",
+			s_miniwarn("%s releases %s %p at inner position %u/%zu",
 				thread_element_name(te), thread_lock_kind_to_string(kind),
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
@@ -3182,7 +3182,7 @@ thread_assert_no_locks(const char *routine)
 	struct thread_element *te = thread_get_element();
 
 	if G_UNLIKELY(0 != te->locks.count) {
-		s_minicrit("%s(): %s currently holds %zu lock%s",
+		s_miniwarn("%s(): %s currently holds %zu lock%s",
 			routine, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
@@ -3262,13 +3262,13 @@ thread_lock_deadlock(const volatile void *lock)
 	towner = thread_lock_owner(lock, &kind);
 
 	if (NULL == towner || towner == te) {
-		s_minicrit("%s deadlocked whilst waiting on %s%s%p, owned by %s",
+		s_miniwarn("%s deadlocked whilst waiting on %s%s%p, owned by %s",
 			thread_element_name(te),
 			NULL == towner ? "" : thread_lock_kind_to_string(kind),
 			NULL == towner ? "" : " ",
 			lock, NULL == towner ? "nobody" : "itself");
 	} else {
-		s_minicrit("%s deadlocked whilst waiting on %s %p, owned by %s",
+		s_miniwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name(te),
 			thread_lock_kind_to_string(kind), lock,
 			thread_element_name(towner));
@@ -3947,7 +3947,7 @@ thread_exit(void *value)
 	}
 
 	if (0 != te->locks.count) {
-		s_minicrit("%s() called by %s with %zu lock%s still held",
+		s_miniwarn("%s() called by %s with %zu lock%s still held",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
