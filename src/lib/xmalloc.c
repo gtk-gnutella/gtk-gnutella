@@ -224,7 +224,7 @@ struct xheader {
 /**
  * Thread-specific buckets.
  */
-#define XM_THREAD_COUNT			16		/* Threads with STID from 0 to 15 */
+#define XM_THREAD_COUNT			THREAD_MAX
 #define XM_THREAD_MAXSIZE		512		/* Maximum block length */
 #define XM_THREAD_ALLOC_THRESH	4		/* Wait for that many allocations */
 
@@ -319,6 +319,7 @@ static struct xcross {
 	spinlock_t lock;		/**< Thread-safe lock */
 	size_t count;			/**< Amount of blocks chained */
 	void *head;				/**< Head of block list to return to chunks */
+	uint8 dead;				/**< Thread known to be dead */
 } xcross[XM_THREAD_COUNT];
 
 /**
@@ -3517,7 +3518,7 @@ xmalloc_chunk_return(struct xchunk *xck, void *p)
 
 		/*
 		 * As soon as the thread clears all the chunks for a given size,
-		 * turn of the "shared" status, giving thread another chance to
+		 * turn off the "shared" status, giving thread another chance to
 		 * grow its pool again in the absence of cross-thread freeing.
 		 */
 
@@ -3601,6 +3602,114 @@ xmalloc_thread_free_deferred(unsigned stid)
 	if (xmalloc_debugging(0)) {
 		t_debug("XM handled delayed free of %zu block%s in thread #%u",
 			n, 1 == n ? "" : "s", stid);
+	}
+}
+
+/**
+ * Count chunks used by thread.
+ */
+static size_t
+xmalloc_thread_chunk_count(unsigned stid)
+{
+	unsigned i;
+	size_t count = 0;
+
+	g_assert(uint_is_non_negative(stid));
+	g_assert(stid < XM_THREAD_COUNT);
+
+	for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
+		count += elist_count(&xchunkhead[i][stid].list);
+	}
+
+	return count;
+}
+
+/**
+ * Called by the thread management layer when a thread is about to start.
+ */
+void
+xmalloc_thread_starting(unsigned stid)
+{
+	struct xcross *xcr;
+
+	g_assert(uint_is_non_negative(stid));
+	g_assert(stid < XM_THREAD_COUNT);
+
+	/*
+	 * Mark the thread as "alive" so that freeing of any block belonging to
+	 * the thread made by another thread will again be deferred.
+	 */
+
+	xcr = &xcross[stid];
+	spinlock_hidden(&xcr->lock);
+	xcr->dead = FALSE;
+	spinunlock_hidden(&xcr->lock);
+}
+
+/**
+ * Called by the thread management layer when a thread exits.
+ */
+void
+xmalloc_thread_ended(unsigned stid)
+{
+	struct xcross *xcr;
+	size_t i;
+
+	g_assert(uint_is_non_negative(stid));
+	g_assert(stid < XM_THREAD_COUNT);
+
+	/*
+	 * Mark the thread as "dead".  Until it is marked aligned again, all
+	 * the blocks allocated by this thread which could be freed by other
+	 * threads will be returned directly.
+	 */
+
+	xcr = &xcross[stid];
+	spinlock_hidden(&xcr->lock);
+	xcr->dead = TRUE;
+	spinunlock_hidden(&xcr->lock);
+
+	/*
+	 * Since the thread is gone, there are no risks it can run now so we
+	 * may safely process its cross-freed blocks to return them to the
+	 * thread chunks, therefore freeing them if they no longer hold data.
+	 *
+	 * This is important since we have no guarantee the thread will be
+	 * reused any time soon.
+	 */
+
+	xmalloc_thread_free_deferred(stid);
+
+	/*
+	 * Reset thread allocation counts per chunk, which is only useful
+	 * when there is an empty chunk list: if we have unfreed chunks,
+	 * then a new thread re-using this ID will be able to immediately
+	 * use these chunks to allocate thread-private memory for the given size.
+	 */
+
+	for (i = 0; i < XMALLOC_CHUNKHEAD_COUNT; i++) {
+		struct xchunkhead *ch = &xchunkhead[i][stid];
+
+		if (0 == elist_count(&ch->list))
+			ch->allocations = 0;
+	}
+
+	/*
+	 * When debugging, see how may thread-private chunks we still have
+	 * and emit an informative note if we have any.
+	 *
+	 * This does not necessarily indicate a memory leak since it is possible
+	 * that the blocks allocated have been passed to another thread and will
+	 * be freed later by that thread.
+	 */
+
+	if (xmalloc_debugging(0)) {
+		size_t n = xmalloc_thread_chunk_count(stid);
+
+		if (n != 0) {
+			t_info("XM dead thread #%u still holds %zu thread-private chunk%s",
+				stid, n , 1 == n ? "" : "s");
+		}
 	}
 }
 
@@ -3783,8 +3892,8 @@ xmalloc_thread_free(void *p)
 			ch->shared = TRUE;
 			atomic_mb();
 
-			if (xmalloc_debugging(0)) {
-				t_warning("thread #%u freeing %u-byte block %p "
+			if (xmalloc_debugging(2)) {
+				t_debug("thread #%u freeing %u-byte block %p "
 					"allocated by thread #%u",
 					stid, xck->xc_size, p, xck->xc_stid);
 			}
@@ -3795,12 +3904,20 @@ xmalloc_thread_free(void *p)
 		/*
 		 * Queue it for the owning thread to free later on by pre-pending it
 		 * to the thread-specific chained list of deferred blocks.
+		 *
+		 * If the thread is flagged as "dead" however, then we're returning
+		 * a block allocated by a thread that is no longer there, hence we
+		 * can do it safely as long as we hold the lock.
 		 */
 
 		spinlock(&xcr->lock);
-		*(void **) p = xcr->head;
-		xcr->head = p;
-		xcr->count++;
+		if G_UNLIKELY(xcr->dead) {
+			xmalloc_chunk_return(xck, p);
+		} else {
+			*(void **) p = xcr->head;
+			xcr->head = p;
+			xcr->count++;
+		}
 		spinunlock(&xcr->lock);
 
 		if (xmalloc_debugging(5)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011-2012, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Minimal thread support.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011-2012
  */
 
 #ifndef _thread_h_
@@ -52,6 +52,16 @@ typedef void (*thread_exit_t)(void *result, void *earg);
 
 typedef unsigned long thread_t;
 typedef size_t thread_qid_t;		/* Quasi Thread ID */
+
+#define THREAD_MAX			64		/**< Max amount of threads we can track */
+#define THREAD_STACK_MIN	32768	/**< Minimum stack requested (32 KiB) */
+#define THREAD_STACK_DFLT	524288	/**< Default stack requested (512 KiB) */
+
+/**
+ * Thread creation flags.
+ */
+#define THREAD_F_DETACH		(1U << 0)	/**< Create a detached thread */
+#define THREAD_F_ASYNC_EXIT	(1U << 1)	/**< Exit callback delivered by main */
 
 #ifdef I_PTHREAD
 #include <pthread.h>
@@ -137,8 +147,9 @@ void thread_block_self(unsigned events);
 bool thread_timed_block_self(unsigned events, const struct tmval *timeout);
 int thread_unblock(unsigned id);
 
-void thread_set_main(void);
+void thread_set_main(bool can_block);
 unsigned thread_get_main(void);
+bool thread_main_is_blockable(void);
 
 int thread_create(thread_main_t routine, void *arg, uint flags, size_t stack);
 int thread_create_full(thread_main_t routine, void *arg, uint flags,

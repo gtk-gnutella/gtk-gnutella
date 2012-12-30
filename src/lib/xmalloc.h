@@ -44,7 +44,16 @@
 #define XMALLOC_FLCF_UNLOCKED	(1U << 3)	/**< Check unlocked buckets */
 #define XMALLOC_FLCF_LOGLOCK	(1U << 4)	/**< Log skipped locked buckets */
 
-/**
+/*
+ * Used by the thread management layer only.
+ */
+
+#ifdef THREAD_SOURCE
+void xmalloc_thread_starting(unsigned stid);
+void xmalloc_thread_ended(unsigned stid);
+#endif
+
+/*
  * Public interface.
  */
 
