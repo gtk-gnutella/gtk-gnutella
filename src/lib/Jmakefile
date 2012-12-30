@@ -82,6 +82,7 @@ LSRC = \
 	compat_sleep_ms.c \
 	compat_un.c \
 	concat.c \
+	cond.c \
 	constants.c \
 	cpufreq.c \
 	cq.c \

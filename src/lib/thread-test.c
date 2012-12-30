@@ -1,5 +1,5 @@
 /*
- * thread-test -- thread unit tests.
+ * thread-test -- thread and related synchronization tools unit tests.
  *
  * Copyright (c) 2012 Raphael Manfredi <Raphael_Manfredi@pobox.com>
  * All rights reserved.
@@ -32,10 +32,13 @@
 
 #include "common.h"
 
+#include "atomic.h"
 #include "compat_sleep_ms.h"
+#include "cond.h"
 #include "cq.h"
 #include "log.h"
 #include "misc.h"
+#include "mutex.h"
 #include "parse.h"
 #include "path.h"
 #include "semaphore.h"
@@ -47,20 +50,24 @@ const char *progname;
 
 static bool sleep_before_exit;
 static bool async_exit;
+static unsigned cond_timeout;
 
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACS] [-n count]"
+		"Usage: %s [-hejsACNS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
+		"  -t : timeout value (ms) for condition waits\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -C : test thread creation\n"
+		"  -N : add broadcast noise during tennis session\n"
 		"  -S : test semaphore layer\n"
+		"  -T : test condition layer via tennis session for specified secs\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
 	exit(EXIT_FAILURE);
@@ -285,6 +292,183 @@ test_semaphore(bool emulated)
 	semaphore_destroy(&s);
 }
 
+/*
+ * The tennis game is a C port of a C++ demo program posted to
+ * comp.programming.threads circa 2001 to test condition waiting
+ * implementations and outline bugs in them.
+ *
+ * When run normally without noise, no spurious wakeups should happen and
+ * of course no deadlocks.
+ *
+ * When broadcast noise is added, there will be spurious wakeups but there
+ * should be no deadlocks either.
+ */
+
+enum game_state {
+	START_GAME,			/* Game starting */
+	PLAYER_A,			/* Player A's turn */
+	PLAYER_B,			/* Player B's turn */
+	GAME_OVER,			/* Game over */
+	ONE_PLAYER_GONE,
+	BOTH_PLAYER_GONE,
+};
+
+static enum game_state game_state;
+static mutex_t game_state_lock = MUTEX_INIT;
+static cond_t game_state_change = COND_INIT;
+static struct game_stats {
+	int play;
+	int spurious;
+	int timeout;
+} game_stats[2];
+const char *name[] = { "A", "B" };
+enum game_state other[] = { PLAYER_B, PLAYER_A };
+
+static void
+create_player(thread_main_t start, int n)
+{
+	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(name));
+
+	if (-1 == thread_create(start, int_to_pointer(n), THREAD_F_DETACH, 8192))
+		s_error("cannot launch player %s: %m", name[n]);
+}
+
+static void *
+player(void *num)
+{
+	int n;
+	enum game_state other_player;
+	const char *me;
+	struct game_stats *stats;
+	tm_t timeout;
+
+	n = pointer_to_int(num);
+	me = name[n];
+	other_player = other[n];
+	stats = &game_stats[n];
+
+	if (cond_timeout != 0)
+		tm_fill_ms(&timeout, cond_timeout);
+
+	mutex_lock(&game_state_lock);
+
+	while (game_state < GAME_OVER) {
+		stats->play++;
+		printf("%s plays\n", me);
+		fflush(stdout);
+
+		game_state = other_player;
+		cond_signal(&game_state_change, &game_state_lock);
+
+		/* Wait until it's my turn to play again */
+
+		do {
+			if (cond_timeout != 0) {
+				bool success = cond_timed_wait(
+					&game_state_change, &game_state_lock, &timeout);
+
+				if (!success) {
+					stats->timeout++;
+					printf("** TIMEOUT ** %s wakeup\n", me);
+					fflush(stdout);
+					continue;
+				}
+			} else {
+				cond_wait(&game_state_change, &game_state_lock);
+			}
+
+			if (other_player == game_state) {
+				stats->spurious++;
+				printf("** SPURIOUS ** %s wakeup\n", me);
+				fflush(stdout);
+			}
+		} while (other_player == game_state);
+	}
+
+	game_state++;
+	printf("%s leaving\n", me);
+	fflush(stdout);
+
+	cond_broadcast(&game_state_change, &game_state_lock);
+	mutex_unlock(&game_state_lock);
+
+	return NULL;
+}
+
+static void
+player_stats(int n)
+{
+	struct game_stats *stats;
+
+	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(game_stats));
+
+	stats = &game_stats[n];
+
+	printf("%s played %d times (%d spurious event%s, %d timeout%s)\n",
+		name[n], stats->play, stats->spurious, 1 == stats->spurious ? "" : "s",
+		stats->timeout, 1 == stats->timeout ? "" : "s");
+}
+
+static void
+test_condition(unsigned play_time, bool emulated, bool noise)
+{
+	int i;
+	game_state = START_GAME;
+
+	g_assert(0 == cond_waiting_count(&game_state_change));
+
+	if (emulated)
+		cond_init_full(&game_state_change, &game_state_lock, emulated);
+
+	g_assert(0 == cond_waiting_count(&game_state_change));
+	g_assert(0 == cond_pending_count(&game_state_change));
+
+	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+		create_player(player, i);
+	}
+
+	sleep(play_time);	/* Let them play */
+
+	if (noise) {
+		printf("** Noise ON **\n");
+		for (i = 0; i < 100000; i++) {
+			mutex_lock(&game_state_lock);
+			cond_broadcast(&game_state_change, &game_state_lock);
+			mutex_unlock(&game_state_lock);
+		}
+		printf("** Noise OFF **\n");
+	}
+
+	mutex_lock(&game_state_lock);
+	game_state = GAME_OVER;
+
+	printf("Stopping the game...\n");
+	fflush(stdout);
+
+	cond_broadcast(&game_state_change, &game_state_lock);
+
+	do {
+		cond_wait(&game_state_change, &game_state_lock);
+	} while (game_state < BOTH_PLAYER_GONE);
+
+	g_assert(0 == cond_waiting_count(&game_state_change));
+
+	printf("Game over!\n");
+
+	mutex_unlock(&game_state_lock);
+	mutex_destroy(&game_state_lock);
+	cond_destroy(&game_state_change);
+
+	/* Must work also after destruction */
+
+	g_assert(0 == cond_waiting_count(&game_state_change));
+	g_assert(0 == cond_pending_count(&game_state_change));
+
+	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+		player_stats(i);
+	}
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -308,7 +492,8 @@ main(int argc, char **argv)
 	extern char *optarg;
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
-	unsigned repeat = 1;
+	bool play_tennis = FALSE, noise = FALSE;
+	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -316,7 +501,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:sACS")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACNST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -324,8 +509,15 @@ main(int argc, char **argv)
 		case 'C':			/* test thread creation */
 			create = TRUE;
 			break;
+		case 'N':			/* add cond_broadcast() noise */
+			noise = TRUE;
+			break;
 		case 'S':			/* test semaphore layer */
 			sem = TRUE;
+			break;
+		case 'T':			/* test condition layer */
+			play_time = get_number(optarg, c);
+			play_tennis = TRUE;
 			break;
 		case 'e':			/* use emulated semaphores */
 			emulated = TRUE;
@@ -335,6 +527,9 @@ main(int argc, char **argv)
 			break;
 		case 'n':			/* repeat tests */
 			repeat = get_number(optarg, c);
+			break;
+		case 't':			/* condition wait timeout (0 = none) */
+			cond_timeout = get_number(optarg, c);
 			break;
 		case 's':			/* threads sleep for 1 second before ending */
 			sleep_before_exit = TRUE;
@@ -349,8 +544,14 @@ main(int argc, char **argv)
 	if ((argc -= optind) != 0)
 		usage();
 
+	if (!atomic_ops_available())
+		s_warning("Atomic memory operations not supported!");
+
 	if (sem)
 		test_semaphore(emulated);
+
+	if (play_tennis)
+		test_condition(play_time, emulated, noise);
 
 	if (create)
 		test_create(repeat, join);
