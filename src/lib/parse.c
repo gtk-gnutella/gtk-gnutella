@@ -146,6 +146,8 @@ parse_base(const char *src, char const **endptr)
 		} else if ('b' == ascii_tolower(src[1])) {
 			base = 2;
 			p = &src[2];
+		} else if ('\0' == src[1]) {
+			base = 10;		/* This is a plain "0" */
 		} else {
 			base = 8;
 			p = &src[1];
