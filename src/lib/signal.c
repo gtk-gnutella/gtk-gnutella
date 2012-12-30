@@ -34,6 +34,7 @@
 #include "common.h"		/* For RCSID */
 
 #include "signal.h"
+#include "atomic.h"
 #include "ckalloc.h"
 #include "crash.h"
 #include "dl_util.h"
@@ -1099,8 +1100,10 @@ signal_enter_critical(sigset_t *oset)
 	 * interrupted by a signal on that platform.
 	 */
 
-	if (is_running_on_mingw())
+	if (is_running_on_mingw()) {
+		ATOMIC_INC(&in_critical_section);
 		goto ok;
+	}
 
 #ifdef HAS_SIGPROCMASK
 	{
@@ -1113,7 +1116,7 @@ signal_enter_critical(sigset_t *oset)
 		 * leave the outermost one.
 		 */
 
-		if (in_critical_section)
+		if (ATOMIC_INC(&in_critical_section))
 			goto ok;
 
 		sigfillset(&set);		/* Block everything */
@@ -1127,8 +1130,6 @@ signal_enter_critical(sigset_t *oset)
 #endif
 
 ok:
-	in_critical_section++;
-
 	return TRUE;
 }
 
@@ -1140,7 +1141,7 @@ signal_leave_critical(const sigset_t *oset)
 {
 	g_assert(in_critical_section > 0);
 
-	in_critical_section--;
+	ATOMIC_DEC(&in_critical_section);
 
 	if (is_running_on_mingw())
 		return;
