@@ -35,6 +35,7 @@
 
 #include "walloc.h"
 #include "log.h"
+#include "once.h"
 #include "pow2.h"
 #include "spinlock.h"
 #include "thread.h"			/* For thread_small_id() */
@@ -62,7 +63,7 @@
  */
 
 static struct zone *wzone[WZONE_SIZE];
-static bool walloc_inited;
+static once_flag_t walloc_inited;
 static bool walloc_stopped;
 
 /*
@@ -100,7 +101,7 @@ wzone_get(size_t rounded)
 
 	g_assert(rounded == zalloc_round(rounded));
 
-	if G_UNLIKELY(!walloc_inited)
+	if G_UNLIKELY(!ONCE_DONE(walloc_inited))
 		walloc_init();
 
 	/*
@@ -439,22 +440,26 @@ wdestroy(void)
 }
 
 /**
+ * Initialize the width-based allocator, once.
+ */
+static G_GNUC_COLD void
+walloc_init_once(void)
+{
+	/*
+	 * The zalloc() layer is not auto-initializing but the VMM layer is
+	 * so there's no need to call vmm_init().
+	 */
+
+	zinit();
+}
+
+/**
  * Initialize the width-based allocator.
  */
 G_GNUC_COLD void
 walloc_init(void)
 {
-	if G_LIKELY(walloc_inited)
-		return;			/* Already done */
-
-	walloc_inited = TRUE;
-
-	/*
-	 * Make sure the layers on top of which we are built are initialized.
-	 */
-
-	vmm_init();
-	zinit();
+	ONCE_FLAG_RUN(walloc_inited, walloc_init_once);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

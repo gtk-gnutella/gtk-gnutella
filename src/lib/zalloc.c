@@ -86,6 +86,7 @@
 #include "malloc.h"			/* For MALLOC_FRAMES */
 #include "memusage.h"
 #include "misc.h"			/* For short_filename() */
+#include "once.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -2803,21 +2804,26 @@ zgc(bool overloaded)
 #endif	/* !REMAP_ZALLOC */
 
 /**
+ * Initialize the zone allocator, once.
+ */
+static G_GNUC_COLD void
+zinit_once(void)
+{
+	addr_grows_upwards = vmm_grows_upwards();
+#ifdef TRACK_ZALLOC
+	z_leakset = leak_init();
+#endif
+}
+
+/**
  * Initialize zone allocator.
  */
 G_GNUC_COLD void
 zinit(void)
 {
-	static int initialized;
+	static once_flag_t initialized;
 
-	if G_UNLIKELY(initialized)
-		return;
-
-	initialized = TRUE;
-	addr_grows_upwards = vmm_grows_upwards();
-#ifdef TRACK_ZALLOC
-	z_leakset = leak_init();
-#endif
+	ONCE_FLAG_RUN(initialized, zinit_once);
 }
 
 /**
