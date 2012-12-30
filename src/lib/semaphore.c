@@ -147,7 +147,7 @@ semaphore_check(const struct semaphore * const s)
 #define SEM_LOCK(s)		spinlock_hidden(&(s)->lock)
 #define SEM_UNLOCK(s)	spinunlock_hidden(&(s)->lock)
 
-static bool semaphore_inited;
+static once_flag_t semaphore_inited;
 
 /***
  *** Emulated semaphores.
@@ -467,9 +467,9 @@ semaphore_cleanup_install_once(void)
 static void
 semaphore_cleanup_install(void)
 {
-	static bool done;
+	static once_flag_t done;
 
-	once_run(&done, semaphore_cleanup_install_once);
+	once_flag_run(&done, semaphore_cleanup_install_once);
 }
 
 /**
@@ -627,7 +627,7 @@ semaphore_init_once(void)
 static void
 semaphore_init(void)
 {
-	once_run(&semaphore_inited, semaphore_init_once);
+	once_flag_run(&semaphore_inited, semaphore_init_once);
 }
 
 /**
@@ -652,7 +652,7 @@ semaphore_create_full(int tokens, bool emulated)
 
 	g_assert(tokens >= 0);
 
-	if G_UNLIKELY(!semaphore_inited)
+	if G_UNLIKELY(!ONCE_DONE(semaphore_inited))
 		semaphore_init();
 
 	if G_UNLIKELY(atomic_bool_get(&sem_cleaned_up))

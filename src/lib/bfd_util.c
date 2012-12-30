@@ -583,14 +583,14 @@ bfd_util_free_list(struct bfd_list *list)
 bfd_env_t *
 bfd_util_init(void)
 {
-	static bool done;
+	static once_flag_t done;
 	bfd_env_t *be;
 
 	XMALLOC0(be);
 	be->magic = BFD_ENV_MAGIC;
 	mutex_init(&be->lock);
 
-	ONCE_RUN(done, bfd_init);
+	ONCE_FLAG_RUN(done, bfd_init);
 
 	return be;
 }

@@ -51,33 +51,27 @@
  * @return TRUE if initialization routine was run.
  */
 bool
-once_run(volatile bool *flag, once_fn_t routine)
+once_flag_run(once_flag_t *flag, once_fn_t routine)
 {
-	static mutex_t once_mtx = MUTEX_INIT;
+	static mutex_t once_flag_mtx = MUTEX_INIT;
 
-	if G_LIKELY(*flag)
+	if G_LIKELY(ONCE_F_DONE == *flag)
 		return FALSE;
 
-	mutex_lock(&once_mtx);
+	mutex_lock(&once_flag_mtx);
 
-	if (*flag) {
-		mutex_unlock(&once_mtx);
+	if (ONCE_F_DONE == *flag) {
+		mutex_unlock(&once_flag_mtx);
 		return FALSE;
 	}
 
-	/*
-	 * Set flag BEFORE running so that recursive calls are not re-attempted.
-	 *
-	 * As soon as the flag is positionned, we release the lock: since it is
-	 * a global lock used to funnel the flag-positioning logic, it would
-	 * be sub-optimal to keep it when the routine is run because that would
-	 * unduly block other once_run() calls from other threads.
-	 */
+	g_assert_log(ONCE_F_PROGRESS != *flag,
+		"%s(): recursive attempt to initialize routine", G_STRFUNC);
 
-	*flag = TRUE;
-	mutex_unlock(&once_mtx);
-
+	*flag = ONCE_F_PROGRESS;
 	(*routine)();
+	*flag = ONCE_F_DONE;
+	mutex_unlock(&once_flag_mtx);
 
 	return TRUE;
 }

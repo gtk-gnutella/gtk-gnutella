@@ -136,7 +136,7 @@ static const char SIGNAL_NUM[] = "signal #";
 static const char SIG_PREFIX[] = "SIG";
 
 static volatile sig_atomic_t in_signal_handler;
-static bool signal_inited;
+static once_flag_t signal_inited;
 
 static void signal_uncaught(int signo);
 
@@ -933,7 +933,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
 
-	if G_UNLIKELY(!signal_inited)
+	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
 
 	mutex_lock(&signal_lock);
@@ -1234,7 +1234,7 @@ signal_init_once(void)
 void
 signal_init(void)
 {
-	once_run(&signal_inited, signal_init_once);
+	once_flag_run(&signal_inited, signal_init_once);
 }
 
 /**

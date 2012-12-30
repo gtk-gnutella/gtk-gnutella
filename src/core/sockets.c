@@ -126,7 +126,7 @@ struct gnutella_socket *s_udp_listen6 = NULL;
 struct gnutella_socket *s_local_listen = NULL;
 
 static aging_table_t *tls_ban;
-static bool tls_ban_inited;
+static once_flag_t tls_ban_inited;
 
 static bool socket_shutdowned;		/**< Set when layer has been shutdowned */
 
@@ -3396,7 +3396,7 @@ socket_reconnect(struct gnutella_socket *s)
 	 *		--RAM, 2013-12-08
 	 */
 
-	once_run(&tls_ban_inited, tls_ban_init);
+	once_flag_run(&tls_ban_inited, tls_ban_init);
 
 	gnet_host_set(&to, s->addr, s->port);
 	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));

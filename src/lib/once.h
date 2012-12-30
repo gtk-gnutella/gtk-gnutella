@@ -35,6 +35,15 @@
 #define _once_h_
 
 /**
+ * Tri-state once initialization flag.
+ */
+typedef enum once_flag {
+	ONCE_F_UNDONE = 0,
+	ONCE_F_PROGRESS = 1,
+	ONCE_F_DONE = 2
+} once_flag_t;
+
+/**
  * Once initialization routine.
  */
 typedef void (*once_fn_t)(void);
@@ -43,11 +52,13 @@ typedef void (*once_fn_t)(void);
  * Public interface.
  */
 
-bool once_run(volatile bool *flag, once_fn_t routine);
+bool once_flag_run(once_flag_t *flag, once_fn_t routine);
 
-#define ONCE_RUN(f, r) G_STMT_START {	\
-	if G_UNLIKELY(!(f))					\
-		once_run(&(f), (r));			\
+#define ONCE_DONE(f)	(ONCE_F_DONE == (f))
+
+#define ONCE_FLAG_RUN(f, r) G_STMT_START {	\
+	if G_UNLIKELY(!ONCE_DONE((f)))			\
+		once_flag_run(&(f), (r));			\
 } G_STMT_END
 
 #endif /* _once_h_ */

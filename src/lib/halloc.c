@@ -509,9 +509,9 @@ halloc_init_once(void)
 void
 halloc_init(bool replace_malloc)
 {
-	static bool initialized;
+	static once_flag_t initialized;
 
-	if (once_run(&initialized, halloc_init_once)) {
+	if (once_flag_run(&initialized, halloc_init_once)) {
 		replacing_malloc = replace_malloc;
 
 		if (replace_malloc)

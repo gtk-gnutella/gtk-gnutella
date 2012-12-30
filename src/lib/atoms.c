@@ -132,7 +132,7 @@ atom_check(const atom_t *a)
 	ATOM_MAGIC_CHECK(a);
 }
 
-static bool atoms_inited;
+static once_flag_t atoms_inited;
 
 #ifdef PROTECT_ATOMS
 struct mem_pool {
@@ -837,7 +837,7 @@ atoms_init_once(void)
 void
 atoms_init(void)
 {
-	once_run(&atoms_inited, atoms_init_once);
+	once_flag_run(&atoms_inited, atoms_init_once);
 }
 
 /**
@@ -850,7 +850,7 @@ atom_exists(enum atom_type type, const void *key)
 {
 	g_assert(key != NULL);
 
-	if G_UNLIKELY(!atoms_inited)
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
 		return 0;
 
 	return htable_contains(atoms[type].table, key);
@@ -876,7 +876,7 @@ atom_get(enum atom_type type, const void *key)
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
 
-	if G_UNLIKELY(!atoms_inited)
+	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
 		atoms_init();
 
 	td = &atoms[type];		/* Where atoms of this type are held */

@@ -146,8 +146,8 @@ static unsigned hash_offset;
  */
 static size_t hash_min_bins;
 
-static bool hash_offset_inited;
-static bool hash_min_bins_computed;
+static once_flag_t hash_offset_inited;
+static once_flag_t hash_min_bins_computed;
 
 static G_GNUC_COLD void
 hash_offset_init_once(void)
@@ -162,7 +162,7 @@ hash_offset_init_once(void)
 static inline void ALWAYS_INLINE
 hash_offset_init(void)
 {
-	ONCE_RUN(hash_offset_inited, hash_offset_init_once);
+	ONCE_FLAG_RUN(hash_offset_inited, hash_offset_init_once);
 }
 
 /**
@@ -186,7 +186,7 @@ hash_compute_min_bins_once(void)
 static inline size_t
 hash_min_bin_count(void)
 {
-	ONCE_RUN(hash_min_bins_computed, hash_compute_min_bins_once);
+	ONCE_FLAG_RUN(hash_min_bins_computed, hash_compute_min_bins_once);
 	return hash_min_bins;
 }
 

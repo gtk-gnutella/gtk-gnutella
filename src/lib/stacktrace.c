@@ -89,7 +89,7 @@ static bool stacktrace_inited;
 
 static const char *executable_absolute_path;	/* Read-only string */
 static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
-static bool stacktrace_atom_inited;
+static once_flag_t stacktrace_atom_inited;
 
 /**
  * This buffer is allocated to construct the stack trace atomically to make
@@ -1830,8 +1830,7 @@ stacktrace_atom_lookup(const struct stacktrace *st, size_t len)
 
 	STATIC_ASSERT(sizeof st->stack[0] == sizeof result->stack[0]);
 
-	if G_UNLIKELY(NULL == stack_atoms)
-		once_run(&stacktrace_atom_inited, stacktrace_atom_init);
+	ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);
 
 	key.stack = deconstify_pointer(st->stack);
 	key.len = len;

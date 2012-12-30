@@ -727,9 +727,9 @@ mt_init_once(void)
 G_GNUC_COLD void
 mt_init(void)
 {
-	static bool inited;
+	static once_flag_t inited;
 
-	once_run(&inited, mt_init_once);
+	once_flag_run(&inited, mt_init_once);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

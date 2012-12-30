@@ -2442,9 +2442,9 @@ misc_init_once(void)
 G_GNUC_COLD void
 misc_init(void)
 {
-	static bool done;
+	static once_flag_t done;
 
-	once_run(&done, misc_init_once);
+	once_flag_run(&done, misc_init_once);
 }
 
 /**

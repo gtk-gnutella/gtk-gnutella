@@ -65,7 +65,7 @@
 #ifdef PIO_EMULATION
 static spinlock_t *pio_locks;		/* Array of spinlocks */
 static unsigned pio_capacity;		/* Capacity of the spinlock array */
-static bool pio_inited;				/* Whether array of spinlocks was inited */
+static once_flag_t pio_inited;		/* Whether array of spinlocks was inited */
 
 /**
  * Initialize the spinlock array, once.
@@ -86,20 +86,10 @@ pio_init_once(void)
 	}
 }
 
-/**
- * Initialize the emulation.
- */
-static void
-pio_init(void)
-{
-	once_run(&pio_inited, pio_init_once);
-}
-
 static inline ALWAYS_INLINE void
 PIO_LOCK(int fd)
 {
-	if G_UNLIKELY(!pio_inited)
-		pio_init();
+	ONCE_FLAG_RUN(pio_inited, pio_init_once);
 
 	g_assert(fd >= 0);
 	g_assert(UNSIGNED(fd) < pio_capacity);

@@ -248,7 +248,7 @@ static struct thread_stats {
  * descriptor being held at the head of the first zone arena.
  */
 static zone_t *pvzone;		/* For private values */
-static bool pvzone_inited;
+static once_flag_t pvzone_inited;
 
 /**
  * Array of threads, by small thread ID.
@@ -355,8 +355,7 @@ thread_pvzone_init_once(void)
 static inline void ALWAYS_INLINE
 thread_pvzone_init(void)
 {
-	if G_UNLIKELY(NULL == pvzone)
-		once_run(&pvzone_inited, thread_pvzone_init_once);
+	ONCE_FLAG_RUN(pvzone_inited, thread_pvzone_init_once);
 }
 
 /**

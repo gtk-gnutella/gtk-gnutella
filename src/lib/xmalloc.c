@@ -522,8 +522,8 @@ static bool xmalloc_crashing;		/**< Crashing mode, minimal servicing */
 static void *lowest_break;			/**< Lowest heap address we know */
 static void *current_break;			/**< Current known heap break */
 static size_t xmalloc_pagesize;		/**< Cached page size */
-static bool xmalloc_freelist_inited;
-static bool xmalloc_xgc_installed;
+static once_flag_t xmalloc_freelist_inited;
+static once_flag_t xmalloc_xgc_installed;
 
 static spinlock_t xmalloc_sbrk_slk = SPINLOCK_INIT;
 
@@ -646,7 +646,7 @@ xmalloc_vmm_inited(void)
 	 * sbrk() allocation if possible.
 	 */
 
-	once_run(&xmalloc_xgc_installed, xmalloc_xgc_install);
+	once_flag_run(&xmalloc_xgc_installed, xmalloc_xgc_install);
 }
 
 /**
@@ -2267,7 +2267,7 @@ xmalloc_freelist_init_once(void)
 static G_GNUC_COLD void
 xmalloc_freelist_setup(void)
 {
-	once_run(&xmalloc_freelist_inited, xmalloc_freelist_init_once);
+	once_flag_run(&xmalloc_freelist_inited, xmalloc_freelist_init_once);
 
 	/*
 	 * If the address space is not growing in the same direction as the

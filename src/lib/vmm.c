@@ -168,8 +168,8 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
-static bool vmm_early_inited;
-static bool vmm_inited;
+static once_flag_t vmm_early_inited;
+static once_flag_t vmm_inited;
 static bool vmm_fully_inited;
 static bool vmm_crashing;
 
@@ -4588,7 +4588,7 @@ vmm_init_once(void)
 G_GNUC_COLD void
 vmm_early_init(void)
 {
-	once_run(&vmm_early_inited, vmm_early_init_once);
+	once_flag_run(&vmm_early_inited, vmm_early_init_once);
 }
 
 /**
@@ -4602,7 +4602,7 @@ G_GNUC_COLD void
 vmm_init(void)
 {
 	vmm_early_init();
-	once_run(&vmm_inited, vmm_init_once);
+	once_flag_run(&vmm_inited, vmm_init_once);
 }
 
 /**

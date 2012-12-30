@@ -301,9 +301,9 @@ arc4random64(void)
 G_GNUC_COLD void
 arc4random_stir_once(void)
 {
-	static int done;
+	static once_flag_t done;
 
-	once_run(&done, arc4random_stir);
+	once_flag_run(&done, arc4random_stir);
 }
 
 /**

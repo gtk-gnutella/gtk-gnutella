@@ -201,14 +201,13 @@ cqueue_check(const struct cqueue * const cq)
 #define CQ_UNLOCK(q)	mutex_unlock_hidden(&(q)->cq_lock)
 
 static cqueue_t *callout_queue;			/**< The main callout queue */
-static bool cq_global_inited;			/**< Records global initialization */
+static once_flag_t cq_global_inited;	/**< Records global initialization */
 static void cq_global_init(void);
 
 static inline ALWAYS_INLINE void
 cq_main_init(void)
 {
-	if G_UNLIKELY(!cq_global_inited)
-		once_run(&cq_global_inited, cq_global_init);
+	ONCE_FLAG_RUN(cq_global_inited, cq_global_init);
 }
 
 /**
@@ -1680,9 +1679,9 @@ cq_global_init(void)
 void
 cq_init(cq_invoke_t idle, const uint32 *debug)
 {
-	once_run(&cq_global_inited, cq_global_init);
-
+	cq_main_init();
 	cq_debug_ptr = debug;
+
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
 
@@ -1839,7 +1838,7 @@ cq_free_null(cqueue_t **cq_ptr)
 void
 cq_close(void)
 {
-	if G_LIKELY(cq_global_inited) {
+	if G_LIKELY(ONCE_DONE(cq_global_inited)) {
 		cq_halt();
 		/* No warning if we were recursing */
 		callout_queue->cq_current = NULL;
