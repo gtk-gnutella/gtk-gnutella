@@ -101,7 +101,19 @@ atomic_uint_dec_is_zero(unsigned *p)
 {
 	return 1 == __sync_fetch_and_sub(p, 1);
 }
+
+/*
+ * These can be used on "opaque" types like sig_atomic_t
+ * Otherwise, use the type-safe inline routines whenever possible.
+ *
+ * The ATOMIC_INC() and ATOMIC_DEC() macros return the previous value.
+ */
+
+#define ATOMIC_INC(p)		__sync_fetch_and_add(p, 1)
+#define ATOMIC_DEC(p)		__sync_fetch_and_sub(p, 1)
+
 #else	/* !HAS_SYNC_ATOMIC */
+
 #define atomic_mb()					(void) 0
 
 static inline bool
@@ -112,6 +124,9 @@ atomic_test_and_set(atomic_lock_t *p)
 		*(p) = 1;
 	return ok;
 }
+
+#define ATOMIC_INC(p)				((*(p))++)
+#define ATOMIC_DEC(p)				((*(p))--)
 
 #define atomic_int_inc(p)			((*(p))++)		/* Previous value */
 #define atomic_int_dec(p)			((*(p))--)		/* Previous value */
