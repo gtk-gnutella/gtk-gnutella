@@ -85,6 +85,7 @@
 #include "mem.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "mutex.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "spinlock.h"
@@ -5004,6 +5005,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 	static char path[MAX_PATH_LEN];
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
+	static mutex_t dladdr_lk = MUTEX_INIT;
 	time_t now;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
@@ -5015,6 +5017,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 	 */
 
 	now = tm_time();
+	mutex_lock_hidden(&dladdr_lk);
 
 	if (0 == last_init || delta_time(now, last_init) > 5) {
 		static bool initialized;
@@ -5036,6 +5039,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 
 		last_init = now;
 	}
+	mutex_unlock_hidden(&dladdr_lk);
 
 	ZERO(info);
 
