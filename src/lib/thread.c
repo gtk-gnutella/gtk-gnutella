@@ -2685,61 +2685,80 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 }
 
 /*
- * Dump list of locks held by thread.
+ * Dump list of locks held by thread to specified file descriptor.
+ *
+ * This routine is called during critical conditions and therefore it must
+ * use as little resources as possible and be as safe as possible.
  */
 static void
-thread_lock_dump(const struct thread_element *te)
+thread_lock_dump_fd(int fd, const struct thread_element *te)
 {
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
+	DECLARE_STR(17);
 
 	if G_UNLIKELY(0 == tls->count) {
-		s_miniinfo("%s currently holds no locks", thread_element_name(te));
+		print_str(thread_element_name(te));			/* 0 */
+		print_str("currently holds no locks.\n");	/* 1 */
+		flush_str(fd);
 		return;
 	}
 
-	s_miniinfo("list of locks owned by %s, most recent first:",
-		thread_element_name(te));
+	print_str("Locks owned by ");				/* 0 */
+	print_str(thread_element_name(te));			/* 1 */
+	print_str(", most recent first:\n");		/* 2 */
+	flush_str(fd);
 
 	for (i = tls->count; i != 0; i--) {
 		const struct thread_lock *l = &tls->arena[i - 1];
 		const char *type;
 		char buf[POINTER_BUFLEN + 2];
 		char line[UINT_DEC_BUFLEN];
-		const char *lnum;
-		DECLARE_STR(16);
+		char pos[UINT_DEC_BUFLEN];
+		const char *lnum, *lpos;
 
 		type = thread_lock_kind_to_string(l->kind);
 		buf[0] = '0';
 		buf[1] = 'x';
 		pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
 
+		rewind_str(0);
+
 		print_str("\t");		/* 0 */
-		print_str(buf);			/* 1 */
-		print_str(" ");			/* 2 */
-		print_str(type);		/* 3 */
+		lpos = print_number(pos, sizeof pos, i - 1);
+		if (i <= 10)
+			print_str("  #");	/* 1 */
+		else if (i <= 100)
+			print_str(" #");	/* 1 */
+		else
+			print_str("#");		/* 1 */
+		print_str(lpos);		/* 2 */
+		print_str(" ");			/* 3 */
+		print_str(buf);			/* 4 */
+		print_str(" ");			/* 5 */
+		print_str(type);		/* 6 */
 		switch (l->kind) {
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
 				if (!mem_is_valid_range(s, sizeof *s)) {
-					print_str(" FREED");			/* 4 */
+					print_str(" FREED");			/* 7 */
 				} else if (SPINLOCK_MAGIC != s->magic) {
 					if (SPINLOCK_DESTROYED == s->magic)
-						print_str(" DESTROYED");	/* 4 */
+						print_str(" DESTROYED");	/* 7 */
 					else
-						print_str(" BAD_MAGIC");	/* 4 */
+						print_str(" BAD_MAGIC");	/* 7 */
 				} else {
 					if (0 == s->lock)
-						print_str(" UNLOCKED");		/* 4 */
+						print_str(" UNLOCKED");		/* 7 */
 					else if (1 != s->lock)
-						print_str(" BAD_LOCK");		/* 4 */
+						print_str(" BAD_LOCK");		/* 7 */
 #ifdef SPINLOCK_DEBUG
-					print_str(" from ");		/* 5 */
+					print_str(" from ");		/* 8 */
 					lnum = print_number(line, sizeof line, s->line);
-					print_str(s->file);			/* 6 */
-					print_str(":");				/* 7 */
-					print_str(lnum);			/* 8 */
+					print_str(s->file);			/* 9 */
+					print_str(":");				/* 10 */
+					print_str(lnum);			/* 11 */
 #endif	/* SPINLOCK_DEBUG */
 				}
 			}
@@ -2748,42 +2767,42 @@ thread_lock_dump(const struct thread_element *te)
 			{
 				const mutex_t *m = l->lock;
 				if (!mem_is_valid_range(m, sizeof *m)) {
-					print_str(" FREED");			/* 4 */
+					print_str(" FREED");			/* 7 */
 				} else if (MUTEX_MAGIC != m->magic) {
 					if (MUTEX_DESTROYED == m->magic)
-						print_str(" DESTROYED");	/* 4 */
+						print_str(" DESTROYED");	/* 7 */
 					else
-						print_str(" BAD_MAGIC");	/* 4 */
+						print_str(" BAD_MAGIC");	/* 7 */
 				} else {
 					const spinlock_t *s = &m->lock;
 
 					if (SPINLOCK_MAGIC != s->magic) {
-						print_str(" BAD_SPINLOCK");	/* 4 */
+						print_str(" BAD_SPINLOCK");	/* 7 */
 					} else {
 						if (0 == s->lock)
-							print_str(" UNLOCKED");	/* 4 */
+							print_str(" UNLOCKED");	/* 7 */
 						else if (s->lock != 1)
-							print_str(" BAD_LOCK");	/* 4 */
+							print_str(" BAD_LOCK");	/* 7 */
 						if (!thread_eq(m->owner, te->tid))
-							print_str(" BAD_TID");	/* 5 */
+							print_str(" BAD_TID");	/* 8 */
 #ifdef SPINLOCK_DEBUG
-						print_str(" from ");		/* 6 */
+						print_str(" from ");		/* 9 */
 						lnum = print_number(line, sizeof line, s->line);
-						print_str(s->file);			/* 7 */
-						print_str(":");				/* 8 */
-						print_str(lnum);			/* 9 */
+						print_str(s->file);			/* 10 */
+						print_str(":");				/* 11 */
+						print_str(lnum);			/* 12 */
 #endif	/* SPINLOCK_DEBUG */
 
 						if (0 == m->depth) {
-							print_str(" BAD_DEPTH");	/* 10 */
+							print_str(" BAD_DEPTH");	/* 13 */
 						} else {
 							char depth[ULONG_DEC_BUFLEN];
 							const char *dnum;
 
 							dnum = print_number(depth, sizeof depth, m->depth);
-							print_str(" (depth=");		/* 10 */
-							print_str(dnum);			/* 11 */
-							print_str(")");				/* 12 */
+							print_str(" (depth=");		/* 13 */
+							print_str(dnum);			/* 14 */
+							print_str(")");				/* 15 */
 						}
 					}
 				}
@@ -2791,24 +2810,46 @@ thread_lock_dump(const struct thread_element *te)
 			break;
 		}
 
-		print_str("\n");		/* 13 */
-		flush_err_str();
+		print_str("\n");		/* 16 */
+		flush_str(fd);
 	}
 }
 
+/*
+ * Dump list of locks held by thread to stderr.
+ */
+static void
+thread_lock_dump(const struct thread_element *te)
+{
+	thread_lock_dump_fd(STDERR_FILENO, te);
+}
+
 /**
- * Dump locks held by current thread, most recently taken first.
+ * Dump locks held by all known threads to specified file descriptor.
  */
 void
-thread_lock_current_dump(void)
+thread_lock_dump_all(int fd)
 {
-	struct thread_element *te;
-	
-	te = thread_find(NULL, NULL);
-	if G_UNLIKELY(NULL == te)
-		return;
+	unsigned i;
 
-	thread_lock_dump(te);
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		const struct thread_lock_stack *tls = &te->locks;
+		bool locked;
+
+		if (!te->valid)
+			continue;
+
+		locked = THREAD_TRY_LOCK(te);
+		if (te->reusable || 0 == tls->count)
+			goto next;
+
+		thread_lock_dump_fd(fd, te);
+
+	next:
+		if (locked)
+			THREAD_UNLOCK(te);
+	}
 }
 
 /**

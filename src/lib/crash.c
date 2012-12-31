@@ -847,6 +847,7 @@ crash_print_decorated_stack(int fd)
 	flush_str(fd);
 
 	crash_stack_print_decorated(fd, 2, FALSE);
+	thread_lock_dump_all(fd);
 }
 
 /**
@@ -858,8 +859,11 @@ crash_emit_decorated_stack(size_t offset, bool in_child)
 	crash_decorating_stack();
 	if (!crash_stack_print_decorated(STDERR_FILENO, offset + 1, in_child))
 		return;
-	if (log_stdout_is_distinct())
+	thread_lock_dump_all(STDERR_FILENO);
+	if (log_stdout_is_distinct()) {
 		crash_stack_print_decorated(STDOUT_FILENO, offset + 1, in_child);
+		thread_lock_dump_all(STDOUT_FILENO);
+	}
 }
 
 /**
@@ -1216,6 +1220,7 @@ crash_generate_crashlog(int signo)
 	}
 	crash_log_write_header(clf, signo, filename);
 	crash_stack_print_decorated(clf, 2, FALSE);
+	thread_lock_dump_all(clf);
 	crash_run_hooks(NULL, clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
@@ -1452,6 +1457,7 @@ retry_child:
 				}
 				flush_str(clf);
 				crash_stack_print_decorated(clf, 2, FALSE);
+				thread_lock_dump_all(clf);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1471,6 +1477,7 @@ retry_child:
 			if (!retried_child) {
 				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
 				log_set_disabled(LOG_STDOUT, TRUE);
+				thread_lock_dump_all(STDOUT_FILENO);
 				crash_run_hooks(NULL, STDOUT_FILENO);
 				log_set_disabled(LOG_STDOUT, FALSE);
 			}
