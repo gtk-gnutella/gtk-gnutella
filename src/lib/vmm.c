@@ -685,7 +685,7 @@ vmm_find_hole(size_t size)
 	}
 
 	if (vmm_debugging(0)) {
-		s_warning("VMM no %zuKiB hole found in pmap", size / 1024);
+		s_miniwarn("VMM no %zuKiB hole found in pmap", size / 1024);
 	}
 
 	mutex_unlock(&pm->lock);
@@ -708,7 +708,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 
 		g_assert_log(vmf_is_foreign(vmf), "vmf={%s}", vmf_to_string(vmf));
 
-		s_debug("VMM discarding %s region at %p (%zuKiB) updated %us ago",
+		s_minidbg("VMM discarding %s region at %p (%zuKiB) updated %us ago",
 			vmf_type_str(vmf->type), vmf->start,
 			vmf_size(vmf) / 1024, (unsigned) delta_time(tm_time(), vmf->mtime));
 
@@ -948,7 +948,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 	if G_UNLIKELY(hint != NULL) {
 		if (vmm_debugging(8)) {
-			s_debug("VMM hinting %s%p for new %zuKiB region",
+			s_minidbg("VMM hinting %s%p for new %zuKiB region",
 				NULL == hole ? "" : "supplied ", hint, size / 1024);
 		}
 	}
@@ -967,7 +967,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 		if G_UNLIKELY(hint != NULL) {
 			if (vmm_debugging(0)) {
-				s_warning("VMM kernel did not follow hint %p for %zuKiB "
+				s_miniwarn("VMM kernel did not follow hint %p for %zuKiB "
 					"region, picked %p (after %zu followed hint%s)",
 					hint, size / 1024, p, (size_t) hint_followed,
 					hint_followed == 1 ? "" : "s");
@@ -1023,7 +1023,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 
 		if (&kernel_pmap == pm) {
 			if (vmm_debugging(0)) {
-				s_debug("VMM current kernel pmap before reloading attempt:");
+				s_minidbg("VMM current kernel pmap before reloading attempt:");
 				vmm_dump_pmap();
 			}
 			pmap_load(&kernel_pmap);
@@ -1032,7 +1032,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			if (size <= kernel_pagesize) {
 				pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
 				if (vmm_debugging(0)) {
-					s_debug("VMM marked hint %p as foreign", hint);
+					s_minidbg("VMM marked hint %p as foreign", hint);
 				}
 			} else if (
 				ptr_cmp(hint, ptr_add_offset(p, size)) >= 0 ||
@@ -1055,7 +1055,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					if (try != hint) {
 						pmap_insert_foreign(&local_pmap, hint, kernel_pagesize);
 						if (vmm_debugging(0)) {
-							s_debug("VMM marked hint %p as foreign", hint);
+							s_minidbg("VMM marked hint %p as foreign", hint);
 						}
 					} else if (2 == pagecount_fast(size)) {
 						void *next = ptr_add_offset(hint, kernel_pagesize);
@@ -1063,35 +1063,35 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 							pmap_insert_foreign(&local_pmap, next,
 								kernel_pagesize);
 							if (vmm_debugging(0)) {
-								s_debug("VMM marked %p (page after %p) "
+								s_minidbg("VMM marked %p (page after %p) "
 									"as foreign", next, hint);
 							}
 						} else {
 							if (vmm_debugging(0)) {
-								s_debug("VMM funny kernel ignored hint %p "
+								s_minidbg("VMM funny kernel ignored hint %p "
 									"and allocated 8 KiB at %p whereas hint "
 									"was free", hint, p);
 							}
 						}
 					} else {
 						if (vmm_debugging(1)) {
-							s_debug("VMM hinted %p is not a foreign page",
+							s_minidbg("VMM hinted %p is not a foreign page",
 								hint);
 						}
 					}
 					if (0 != vmm_vfree(try, kernel_pagesize)) {
-						s_warning("VMM cannot free single page at %p: %m", try);
+						s_miniwarn("VMM cannot free one page at %p: %m", try);
 					}
 
 				} else {
 					if (vmm_debugging(0)) {
-						s_warning("VMM cannot allocate one page at %p: %m",
+						s_miniwarn("VMM cannot allocate one page at %p: %m",
 							hint);
 					}
 				}
 			} else {
 				if (vmm_debugging(0)) {
-					s_debug("VMM hint %p fell within allocated [%p, %p]",
+					s_minidbg("VMM hint %p fell within allocated [%p, %p]",
 						hint, p, ptr_add_offset(p, size - 1));
 				}
 			}
@@ -1100,7 +1100,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 	} else if (hint != NULL) {
 		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
 			if (vmm_debugging(0)) {
-				s_debug("VMM hint %p followed for %zuKiB (%zu consecutive)",
+				s_minidbg("VMM hint %p followed for %zuKiB (%zu consecutive)",
 					hint, size / 1024, (size_t) hint_followed);
 			}
 		}
@@ -1176,7 +1176,7 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
 
 	if (vmm_debugging(5)) {
-		s_debug("VMM allocated %zuKiB region at %p", size / 1024, p);
+		s_minidbg("VMM allocated %zuKiB region at %p", size / 1024, p);
 	}
 
 	/*
@@ -1257,7 +1257,7 @@ static void
 free_pages(void *p, size_t size, bool update_pmap)
 {
 	if (vmm_debugging(5)) {
-		s_debug("VMM freeing %zuKiB region at %p", size / 1024, p);
+		s_minidbg("VMM freeing %zuKiB region at %p", size / 1024, p);
 	}
 
 	free_pages_intern(p, size, update_pmap);
@@ -1323,7 +1323,7 @@ pmap_allocate(struct pmap *pm)
 	pm->size = kernel_pagesize / sizeof pm->array[0];
 
 	if (NULL == pm->array)
-		s_error("cannot initialize the VMM layer: out of memory already?");
+		s_minierror("cannot initialize the VMM layer: out of memory already?");
 
 	pmap_insert(vmm_pmap(), pm->array, kernel_pagesize);
 }
@@ -1350,7 +1350,7 @@ retry:
 	old_generation = vmm_pmap()->generation;
 
 	if (vmm_debugging(0)) {
-		s_debug("VMM extending %s%s%s pmap from %zu KiB to %zu KiB",
+		s_minidbg("VMM extending %s%s%s pmap from %zu KiB to %zu KiB",
 			pm->extending ? "(recursively) " : "",
 			pm->loading ? "loading " : "",
 			pm == &kernel_pmap ? "kernel" : "local",
@@ -1378,7 +1378,7 @@ retry:
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
-				s_warning("VMM already recursed to pmap_extend(), "
+				s_miniwarn("VMM already recursed to pmap_extend(), "
 					"pmap is now %zu KiB",
 					(kernel_pagesize * pm->pages) / 1024);
 			}
@@ -1395,19 +1395,19 @@ retry:
 				return;
 
 			if (vmm_debugging(0))
-				s_warning("VMM however pmap is still full, extending again...");
+				s_miniwarn("VMM however pmap is still full, extending again!");
 			
 			goto retry;
 		} else {
 			if (vmm_debugging(0)) {
-				s_debug("VMM allocated new %zu KiB %s pmap at %p",
+				s_minidbg("VMM allocated new %zu KiB %s pmap at %p",
 					nsize / 1024, pm == &kernel_pmap ? "kernel" : "local",
 					narray);
 			}
 		}
 
 		if (NULL == narray)
-			s_error("cannot extend pmap: out of virtual memory");
+			s_minierror("cannot extend pmap: out of virtual memory");
 	}
 
 	oarray = pm->array;
@@ -1442,7 +1442,7 @@ retry:
 				pmap_insert(vpm, narray, nsize);
 			} else {
 				if (vmm_debugging(0)) {
-					s_debug("VMM kernel pmap reloaded during extension");
+					s_minidbg("VMM kernel pmap reloaded during extension");
 				}
 				/* New pages must be there! */
 				g_assert(NULL != pmap_lookup(vpm, narray, NULL));
@@ -1528,7 +1528,7 @@ pmap_insert_region(struct pmap *pm,
 
 	if G_UNLIKELY(vmf != NULL) {
 		if (vmm_debugging(0)) {
-			s_warning("pmap already contains new %s region [%p, %p]",
+			s_miniwarn("pmap already contains new %s region [%p, %p]",
 				vmf_type_str(vmf->type),
 				start, const_ptr_add_offset(start, size - 1));
 			vmm_dump_pmap();
@@ -1638,7 +1638,8 @@ done:
 
 		if G_UNLIKELY(kernel_pmap.generation != generation) {
 			if (vmm_debugging(1)) {
-				s_debug("VMM kernel pmap reloaded after inserting %s [%p, %p]",
+				s_minidbg("VMM kernel pmap reloaded after "
+					"inserting %s [%p, %p]",
 					vmf_type_str(type), start, const_ptr_add_offset(end, -1));
 			}
 		}
@@ -1661,7 +1662,7 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 	bool foreign = FALSE;
 
 	if (vmm_debugging(9))
-		s_debug("VMM parsing \"%s\"", line);
+		s_minidbg("VMM parsing \"%s\"", line);
 
 	/*
 	 * Typical format of lines on linux:
@@ -1678,7 +1679,7 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 	start = parse_pointer(p, &ep, &error);
 	if (error || NULL == start) {
 		if (vmm_debugging(0))
-			s_warning("VMM cannot parse start address");
+			s_miniwarn("VMM cannot parse start address");
 		return FALSE;
 	}
 
@@ -1689,13 +1690,13 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 	end = parse_pointer(p, &ep, &error);
 	if (error || NULL == end) {
 		if (vmm_debugging(0))
-			s_warning("VMM cannot parse end address");
+			s_miniwarn("VMM cannot parse end address");
 		return FALSE;
 	}
 
 	if (ptr_cmp(end, start) <= 0) {
 		if (vmm_debugging(0))
-			s_warning("VMM invalid start/end address pair");
+			s_miniwarn("VMM invalid start/end address pair");
 		return FALSE;
 	}
 
@@ -1710,7 +1711,7 @@ pmap_parse_and_add(struct pmap *pm, const char *line)
 			c = *p++;
 			if ('0' == c) {
 				if (vmm_debugging(0))
-					s_warning("VMM short permission string");
+					s_miniwarn("VMM short permission string");
 				return FALSE;
 			}
 			perms[i] = c;
@@ -1837,7 +1838,7 @@ pmap_load_data(struct pmap *pm)
 	fd = open("/proc/self/maps", O_RDONLY);
 	if (fd < 0) {
 		if (vmm_debugging(0)) {
-			s_warning("VMM cannot open /proc/self/maps: %m");
+			s_miniwarn("VMM cannot open /proc/self/maps: %m");
 		}
 		goto failure;
 	}
@@ -1859,13 +1860,13 @@ pmap_load_data(struct pmap *pm)
 		if (NULL == line) {
 			if (iob.error) {
 				if (vmm_debugging(0)) {
-					s_warning("VMM error reading /proc/self/maps: %m");
+					s_miniwarn("VMM error reading /proc/self/maps: %m");
 				}
 				goto failure;
 			}
 			if (iob.toobig) {
 				if (vmm_debugging(0)) {
-					s_warning("VMM too long a line in /proc/self/maps output");
+					s_miniwarn("VMM too long a line in /proc/self/maps output");
 				}
 				goto failure;
 			}
@@ -1873,7 +1874,7 @@ pmap_load_data(struct pmap *pm)
 		}
 		if (!pmap_parse_and_add(pm, line)) {
 			if (vmm_debugging(0)) {
-				s_warning("VMM error parsing \"%s\"", buf);
+				s_miniwarn("VMM error parsing \"%s\"", buf);
 			}
 			goto failure;
 		}
@@ -1920,7 +1921,7 @@ pmap_load(struct pmap *pm)
 	g_assert(&kernel_pmap == pm);
 
 	if (vmm_debugging(8)) {
-		s_debug("VMM loading kernel memory map (for generation #%zu)",
+		s_minidbg("VMM loading kernel memory map (for generation #%zu)",
 			pm->generation + 1);
 	}
 
@@ -1940,13 +1941,13 @@ pmap_load(struct pmap *pm)
 
 		if (++attempt > 10) {
 			/* Unconditional warning -- something may break afterwards */
-			s_warning("VMM unable to reload kernel pmap after %u attempts",
+			s_miniwarn("VMM unable to reload kernel pmap after %u attempts",
 					attempt);
 			break;
 		}
 
 		if (vmm_debugging(0)) {
-			s_warning("VMM kernel pmap resized during loading attempt #%u"
+			s_miniwarn("VMM kernel pmap resized during loading attempt #%u"
 				", retrying", attempt);
 		}
 	}
@@ -1957,7 +1958,7 @@ pmap_load(struct pmap *pm)
 		pm->generation++;
 
 	if (vmm_debugging(1)) {
-		s_debug("VMM kernel memory map (generation #%zu) holds %zu region%s",
+		s_minidbg("VMM kernel memory map (generation #%zu) holds %zu region%s",
 			pm->generation, pm->count, 1 == pm->count ? "" : "s");
 	}
 #endif
@@ -1970,7 +1971,7 @@ static void
 pmap_log_missing(const struct pmap *pm, const void *p, size_t size)
 {
 	if (vmm_debugging(0)) {
-		s_warning("VMM %zuKiB region at %p missing from %s pmap",
+		s_miniwarn("VMM %zuKiB region at %p missing from %s pmap",
 			size / 1024, p,
 			pm == &kernel_pmap ? "kernel" :
 			pm == &local_pmap ? "local" : "unknown");
@@ -2307,7 +2308,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		if (p == vmf->start) {
 
 			if (vmm_debugging(2)) {
-				s_debug("VMM %s %zuKiB region at %p was %s fragment",
+				s_minidbg("VMM %s %zuKiB region at %p was %s fragment",
 					vmf_type_str(vmf->type), size / 1024, p,
 					end == vend ? "a whole" : "start of a");
 			}
@@ -2328,7 +2329,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 
 			if (end != vend) {
 				if (vmm_debugging(1)) {
-					s_debug("VMM freeing %s %zuKiB region at %p "
+					s_minidbg("VMM freeing %s %zuKiB region at %p "
 						"fragments VM space",
 						vmf_type_str(vmf->type), size / 1024, p);
 				}
@@ -2337,7 +2338,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		}
 	} else {
 		if (vmm_debugging(0)) {
-			s_warning("VMM %zuKiB region at %p missing from pmap",
+			s_miniwarn("VMM %zuKiB region at %p missing from pmap",
 				size / 1024, p);
 		}
 	}
@@ -2368,7 +2369,7 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 	g_assert(ptr_cmp(end, vend) <= 0);
 
 	if (vmm_debugging(0)) {
-		s_warning("VMM forgetting %s %zuKiB region at %p in pmap",
+		s_miniwarn("VMM forgetting %s %zuKiB region at %p in pmap",
 			vmf_type_str(vmf->type), size / 1024, p);
 	}
 
@@ -2486,7 +2487,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	struct pmap *pm = vmm_pmap();
 
 	if (vmm_debugging(fragment ? 2 : 5)) {
-		s_debug("VMM freeing %zuKiB region at %p%s",
+		s_minidbg("VMM freeing %zuKiB region at %p%s",
 			size / 1024, p, fragment ? " (fragment)" : "");
 	}
 
@@ -2664,7 +2665,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if G_UNLIKELY(bend == p) {
 			if (vmm_debugging(6)) {
-				s_debug("VMM page cache #%zu: "
+				s_minidbg("VMM page cache #%zu: "
 					"coalescing previous [%p, %p] with [%p, %p]",
 					pc->pages - 1, before, ptr_add_offset(bend, -1), p,
 					ptr_add_offset(p, pc->chunksize - 1));
@@ -2687,7 +2688,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 		if G_UNLIKELY(next == end) {
 			if (vmm_debugging(6)) {
-				s_debug("VMM page cache #%zu: "
+				s_minidbg("VMM page cache #%zu: "
 					"coalescing [%p, %p] with next [%p, %p]",
 					pc->pages - 1, base, ptr_add_offset(end, -1), next,
 					ptr_add_offset(next, pc->chunksize - 1));
@@ -2704,7 +2705,7 @@ vpc_insert(struct page_cache *pc, void *p)
 
 	if G_UNLIKELY(pages != pc->pages) {
 		if (vmm_debugging(2)) {
-			s_debug("VMM coalesced %zuKiB region [%p, %p] into "
+			s_minidbg("VMM coalesced %zuKiB region [%p, %p] into "
 				"%zuKiB region [%p, %p] (recursing)",
 				pc->chunksize / 1024,
 				p, ptr_add_offset(p, pc->chunksize - 1),
@@ -2729,7 +2730,7 @@ insert:
 		evicted = pc->info[kidx].base;
 
 		if (vmm_debugging(4)) {
-			s_debug("VMM page cache #%zu: kicking out [%p, %p] %zuKiB",
+			s_minidbg("VMM page cache #%zu: kicking out [%p, %p] %zuKiB",
 				pc->pages - 1, evicted,
 				ptr_add_offset(evicted, pc->chunksize - 1),
 				pc->chunksize / 1024);
@@ -2769,7 +2770,7 @@ insert:
 	pc->info[idx].stamp = tm_time();
 
 	if (vmm_debugging(4)) {
-		s_debug("VMM page cache #%zu: inserted [%p, %p] %zuKiB, "
+		s_minidbg("VMM page cache #%zu: inserted [%p, %p] %zuKiB, "
 			"now holds %zu item%s",
 			pc->pages - 1, base, ptr_add_offset(base, pc->chunksize - 1),
 			pc->chunksize / 1024, pc->current, 1 == pc->current ? "" : "s");
@@ -2842,7 +2843,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(base, hole) > 0) {
 				if (vmm_debugging(7)) {
-					s_debug("VMM page cache #%zu: stopping lookup attempt "
+					s_minidbg("VMM page cache #%zu: stopping lookup attempt "
 						"for %zu page%s at %p (upper than hole %p)",
 						pc->pages - 1, n, 1 == n ? "" : "s", base, hole);
 				}
@@ -2881,7 +2882,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 
 			if (hole != NULL && vmm_ptr_cmp(p, hole) > 0) {
 				if (vmm_debugging(7)) {
-					s_debug("VMM page cache #%zu: "
+					s_minidbg("VMM page cache #%zu: "
 						"stopping lookup for %zu page%s at %p "
 						"(upper than hole %p)",
 						pc->pages - 1, n, 1 == n ? "" : "s", p, hole);
@@ -2934,7 +2935,7 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(start, hole) > 0) {
 						if (vmm_debugging(7)) {
-							s_debug("VMM cache #%zu: stopping merge for "
+							s_minidbg("VMM cache #%zu: stopping merge for "
 								"%zu page%s (had %zu already) at %p "
 								"(upper than hole %p)",
 								pc->pages - 1, n, 1 == n ? "" : "s",
@@ -2967,7 +2968,7 @@ selected:
 				} else {
 					if (hole != NULL && vmm_ptr_cmp(prev_base, hole) > 0) {
 						if (vmm_debugging(7)) {
-							s_debug("VMM cache #%zu: stopping merge for "
+							s_minidbg("VMM cache #%zu: stopping merge for "
 								"%zu page%s (had %zu already) at %p "
 								"(upper than hole %p)",
 								pc->pages - 1, n, 1 == n ? "" : "s",
@@ -3081,7 +3082,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	if G_UNLIKELY(hole != NULL) {
 		if (vmm_debugging(8)) {
 			size_t np = pagecount_fast(len);
-			s_debug("VMM lowest hole of %zu page%s at %p (%zu page%s)",
+			s_minidbg("VMM lowest hole of %zu page%s at %p (%zu page%s)",
 				n, 1 == n ? "" : "s", hole, np, 1 == np ? "" : "s");
 		}
 	}
@@ -3105,7 +3106,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 			vmm_stats.high_order_coalescing++;
 
 		if (vmm_debugging(3)) {
-			s_debug("VMM lookup for large area (%zu pages) returned %p", n, p);
+			s_minidbg("VMM lookup for large area (%zu pages) returned %p", n, p);
 		}
 	} else {
 		/*
@@ -3137,7 +3138,7 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 
 	if (p != NULL) {
 		if (vmm_debugging(5)) {
-			s_debug("VMM found %zuKiB region at %p in cache #%zu%s",
+			s_minidbg("VMM found %zuKiB region at %p in cache #%zu%s",
 				n * kernel_pagesize / 1024, p, pc->pages - 1,
 				pc->pages == n ? "" :
 				n > VMM_CACHE_LINES ? " (merged)" : " (split)");
@@ -3258,7 +3259,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 			if G_UNLIKELY(loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					s_debug("VMM iter #%zu, coalescing previous "
+					s_minidbg("VMM iter #%zu, coalescing previous "
 						"[%p, %p] from lower cache #%zu with [%p, %p]",
 						i, before, ptr_add_offset(base, -1),
 						lopc->pages - 1, base,
@@ -3306,7 +3307,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 		if G_UNLIKELY(hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
-				s_debug("VMM coalescing previous [%p, %p] "
+				s_minidbg("VMM coalescing previous [%p, %p] "
 					"from higher cache #%zu with [%p, %p]",
 					before, ptr_add_offset(base, -1), hopc->pages - 1,
 					base, ptr_add_offset(base, pages * kernel_pagesize - 1));
@@ -3349,7 +3350,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 			if G_UNLIKELY(loidx != (size_t) -1) {
 				if (vmm_debugging(6)) {
-					s_debug("VMM iter #%zu, coalescing next [%p, %p] "
+					s_minidbg("VMM iter #%zu, coalescing next [%p, %p] "
 						"from lower cache #%zu with [%p, %p]",
 						i, end, ptr_add_offset(end, lopc->chunksize - 1),
 						lopc->pages - 1, base, ptr_add_offset(end, -1));
@@ -3394,7 +3395,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 
 		if G_UNLIKELY(hoidx != (size_t) -1) {
 			if (vmm_debugging(6)) {
-				s_debug("VMM coalescing next [%p, %p] "
+				s_minidbg("VMM coalescing next [%p, %p] "
 					"from higher cache #%zu with [%p, %p]",
 					end, ptr_add_offset(end, hopc->chunksize - 1),
 					hopc->pages - 1, base, ptr_add_offset(end, -1));
@@ -3418,7 +3419,7 @@ done:
 
 	if G_UNLIKELY(pages != old_pages) {
 		if (vmm_debugging(2)) {
-			s_debug("VMM coalesced %zuKiB region [%p, %p] into "
+			s_minidbg("VMM coalesced %zuKiB region [%p, %p] into "
 				"%zuKiB region [%p, %p]",
 				old_pages * kernel_pagesize / 1024, *base_ptr,
 				ptr_add_offset(*base_ptr, old_pages * compat_pagesize() - 1),
@@ -3952,7 +3953,7 @@ page_cache_timer(void *unused_udata)
 	spinlock(&pc->lock);
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
-		s_debug("VMM scanning page cache #%zu (%zu item%s)",
+		s_minidbg("VMM scanning page cache #%zu (%zu item%s)",
 			line, pc->current, 1 == pc->current ? "" : "s");
 	}
 
@@ -3984,7 +3985,7 @@ page_cache_timer(void *unused_udata)
 	if G_UNLIKELY(expired > 0) {
 		if (vmm_debugging(1)) {
 			size_t regions = vmm_pmap()->count;
-			s_debug("VMM expired %zu item%s (%zuKiB total) from "
+			s_minidbg("VMM expired %zu item%s (%zuKiB total) from "
 				"page cache #%zu (%zu item%s remaining), "
 				"process has %zu VM regions%s",
 				expired, 1 == expired ? "" : "s",
@@ -4223,11 +4224,11 @@ vmm_crash_hook(void)
 {
 	int sp;
 
-	s_debug("VMM pagesize=%zu bytes, virtual addresses are %s",
+	s_minidbg("VMM pagesize=%zu bytes, virtual addresses are %s",
 		kernel_pagesize,
 		kernel_mapaddr_increasing ? "increasing" : "decreasing");
 
-	s_debug("VMM base=%p, base_sp=%p, current_sp=%p (stack growing %s)",
+	s_minidbg("VMM base=%p, base_sp=%p, current_sp=%p (stack growing %s)",
 		vmm_base, stack_base, (void *) &sp,
 		ptr_cmp(stack_base, &sp) < 0 ? "up" : "down");
 
@@ -4266,7 +4267,7 @@ vmm_reserve_stack(size_t amount)
 			const void *reserve_start;
 
 			if (vmm_debugging(1)) {
-				s_debug("VMM stack region found in the kernel pmap (%zu KiB)",
+				s_minidbg("VMM stack region found in the kernel pmap (%zu KiB)",
 					vmf_size(vmf) / 1024);
 			}
 
@@ -4288,7 +4289,7 @@ vmm_reserve_stack(size_t amount)
 				pmap_insert_foreign(&kernel_pmap,
 					reserve_start, VMM_STACK_MINSIZE);
 				if (vmm_debugging(1)) {
-					s_debug("VMM reserved [%p, %p] "
+					s_minidbg("VMM reserved [%p, %p] "
 						"%s stack for possible growing",
 						reserve_start,
 						const_ptr_add_offset(reserve_start,
@@ -4325,7 +4326,7 @@ vmm_reserve_stack(size_t amount)
 	if (pmap_is_available(&local_pmap, stack_low, amount)) {
 		pmap_insert_foreign(&local_pmap, stack_low, amount);
 		if (vmm_debugging(1)) {
-			s_debug("VMM reserved %zuKiB [%p, %p] for the stack",
+			s_minidbg("VMM reserved %zuKiB [%p, %p] for the stack",
 				amount / 1024, stack_low,
 				const_ptr_add_offset(stack_low, amount - 1));
 		}
@@ -4351,7 +4352,7 @@ vmm_reserve_stack(size_t amount)
 
 vm_setup:
 	if (vmm_debugging(0)) {
-		s_debug("VMM will allocate pages from %p %swards",
+		s_minidbg("VMM will allocate pages from %p %swards",
 			vmm_base, kernel_mapaddr_increasing ? "up" : "down");
 	}
 }
@@ -4406,19 +4407,19 @@ vmm_post_init(void)
 	}
 
 	if (vmm_debugging(0)) {
-		s_debug("VMM using %zu bytes for the page cache", sizeof page_cache);
-		s_debug("VMM kernel grows virtual memory by %s addresses",
+		s_minidbg("VMM using %zu bytes for the page cache", sizeof page_cache);
+		s_minidbg("VMM kernel grows virtual memory by %s addresses",
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
-		s_debug("VMM stack grows by %s addresses",
+		s_minidbg("VMM stack grows by %s addresses",
 			sp_direction > 0 ? "increasing" : "decreasing");
-		s_debug("VMM running in thread #%u", thread_small_id());
+		s_minidbg("VMM running in thread #%u", thread_small_id());
 	}
 
 	if (vmm_debugging(1)) {
 #ifdef HAS_SBRK
-		s_debug("VMM initial break at %p", initial_brk);
+		s_minidbg("VMM initial break at %p", initial_brk);
 #endif
-		s_debug("VMM %screasing stack bottom at %p",
+		s_minidbg("VMM %screasing stack bottom at %p",
 			sp_direction > 0 ? "in" : "de", stack_base);
 	}
 
@@ -4471,12 +4472,12 @@ vmm_post_init(void)
 
 		if ((size_t) -1 == room) {
 			if (vmm_debugging(0)) {
-				s_debug("VMM kernel can grow the stack as needed");
+				s_minidbg("VMM kernel can grow the stack as needed");
 			}
 		} else if (room < VMM_STACK_MINSIZE) {
 			s_warning("VMM stack has only %zuKiB to grow!", room / 1024);
 		} else if (vmm_debugging(0)) {
-			s_debug("VMM stack has at most %zuKiB to grow", room / 1024);
+			s_minidbg("VMM stack has at most %zuKiB to grow", room / 1024);
 		}
 
 		/*
@@ -4636,7 +4637,7 @@ vmm_stop_freeing(void)
 	stop_freeing = TRUE;
 
 	if (vmm_debugging(0))
-		s_debug("VMM will no longer release freed pages");
+		s_minidbg("VMM will no longer release freed pages");
 }
 
 /**
@@ -4805,7 +4806,7 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		assert_vmm_is_allocated(p, length, VMF_MAPPED, FALSE);
 
 		if (vmm_debugging(5)) {
-			s_debug("VMM mapped %zuKiB region at %p (fd #%d, offset 0x%lx)",
+			s_minidbg("VMM mapped %zuKiB region at %p (fd #%d, offset 0x%lx)",
 				length / 1024, p, fd, (unsigned long) offset);
 		}
 	} else if (vmm_debugging(0)) {
@@ -4845,7 +4846,7 @@ vmm_munmap(void *addr, size_t length)
 		vmm_stats.munmaps++;
 
 		if (vmm_debugging(5)) {
-			s_debug("VMM unmapped %zuKiB region at %p", length / 1024, addr);
+			s_minidbg("VMM unmapped %zuKiB region at %p", length / 1024, addr);
 		}
 	} else {
 		s_warning("munmap() failed: %m");
@@ -5457,11 +5458,11 @@ static void
 vmm_track_post_init(void)
 {
 	if (vmm_buffer.max > 0 && vmm_debugging(0)) {
-		s_debug("VMM required %zu bufferred event%s",
+		s_minidbg("VMM required %zu bufferred event%s",
 			vmm_buffer.max, 1 == vmm_buffer.max ? "" : "s");
 	}
 	if (vmm_nl_buffer.max > 0 && vmm_debugging(0)) {
-		s_debug("VMM required %zu bufferred non-leaking event%s",
+		s_minidbg("VMM required %zu bufferred non-leaking event%s",
 			vmm_nl_buffer.max, 1 == vmm_nl_buffer.max ? "" : "s");
 	}
 }
