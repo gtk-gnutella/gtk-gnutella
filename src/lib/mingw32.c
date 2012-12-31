@@ -91,6 +91,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
+#include "thread.h"
 #include "unsigned.h"
 #include "utf8.h"
 #include "vmm.h"				/* For vmm_page_start() */
@@ -2818,7 +2819,14 @@ mingw_uname(struct utsname *buf)
 int
 mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	static HANDLE t = NULL;
+	static struct thread_timer {
+		HANDLE timer;
+		atomic_lock_t lock;
+	} thread_timer[THREAD_MAX];
+	static uint idx;
+	uint i;
+	struct thread_timer *tt;
+	HANDLE t;
 	LARGE_INTEGER dueTime;
 	uint64 value;
 
@@ -2831,23 +2839,54 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		rem->tv_nsec = 0;
 	}
 
-	if (G_UNLIKELY(NULL == t)) {
-		t = CreateWaitableTimer(NULL, TRUE, NULL);
-
-		if (NULL == t)
-			g_carp("unable to create waitable timer, ignoring nanosleep()");
-
-		errno = ENOMEM;		/* System problem anyway */
-		return -1;
-	}
+	if (0 == req->tv_sec && 0 == req->tv_nsec)
+		return 0;
 
 	if (req->tv_sec < 0 || req->tv_nsec < 0 || req->tv_nsec > 999999999L) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	if (0 == req->tv_sec && 0 == req->tv_nsec)
-		return 0;
+	/*
+	 * We need one timer per thread, but since nanosleep() is called by
+	 * spinlock_loop() indirectly through compat_sleep_ms(), we have to
+	 * manage this expectation specially.
+	 *
+	 * Since a given thread can only wait once at a time, we have a rotating
+	 * array of existing timers, one per thread at most and we rotate
+	 * atomically each time.
+	 *
+	 * Each timer is locked using a low-level lock (since we cannot recurse
+	 * into the spinlock code).
+	 */
+	
+	for (i = 0; i < 1000; i++) {
+		uint j, k;
+		for (k = 0, j = atomic_uint_inc(&idx); k < THREAD_MAX; k++, j++) {
+			tt = &thread_timer[j % THREAD_MAX];
+			if (atomic_acquire(&tt->lock))
+				goto found;
+		}
+	}
+
+	s_minierror("%s() unable to get a timer", G_STRFUNC);
+
+found:
+
+	t = tt->timer;
+
+	if (G_UNLIKELY(NULL == t)) {
+		t = CreateWaitableTimer(NULL, TRUE, NULL);
+
+		if (NULL == t) {
+			atomic_release(&tt->lock);
+			t_carp("unable to create waitable timer, ignoring nanosleep()");
+			errno = ENOMEM;		/* System problem anyway */
+			return -1;
+		}
+
+		tt->timer = t;
+	}
 
 	/*
 	 * For Windows, the time specification unit is 100 nsec.
@@ -2861,17 +2900,21 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	dueTime.QuadPart = -MIN(value, MAX_INT_VAL(gint64));
 
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
+		atomic_release(&tt->lock);
 		errno = mingw_last_error();
-		s_carp("could not set timer, unable to nanosleep(): %m");
+		t_carp("could not set timer, unable to nanosleep(): %m");
 		return -1;
 	}
 
 	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
-		s_warning("timer returned an unexpected value, nanosleep() failed");
+		atomic_release(&tt->lock);
+		errno = mingw_last_error();
+		t_carp("timer returned an unexpected value, nanosleep() failed: %m");
 		errno = EINTR;
 		return -1;
 	}
 
+	atomic_release(&tt->lock);
 	return 0;
 }
 #endif
