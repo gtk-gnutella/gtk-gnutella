@@ -124,8 +124,6 @@ struct symbol_ctx {
 	bfd_vma addr;
 };
 
-static mutex_t bfd_library_mtx = MUTEX_INIT;
-
 static inline void
 bfd_ctx_check(const struct bfd_ctx * const bc)
 {
@@ -316,6 +314,7 @@ bfd_util_check_format(bfd *b, bfd_format fmt, const char *path)
 static bool
 bfd_util_open(bfd_ctx_t *bc, const char *path)
 {
+	static mutex_t bfd_library_mtx = MUTEX_INIT;
 	bfd *b;
 	void *symbols = NULL;
 	unsigned size = 0;
