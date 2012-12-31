@@ -445,7 +445,12 @@ mutex_set_lock_source(mutex_t *m, const char *file, unsigned line)
  * a problem right now.
  */
 void
+#ifdef SPINLOCK_DEBUG
+mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
+#else
 mutex_ungrab(mutex_t *m, enum mutex_mode mode)
+#endif
 {
 	const void *element = NULL;
 	thread_t t;
@@ -464,11 +469,21 @@ mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 		if (mutex_pass_through)
 			return;
 		/* OK, re-assert so that we get the precondition failure */
+#ifdef SPINLOCK_DEBUG
+		g_assert_log(mutex_is_owned(m),
+			"thread #%u attempts to release unowned mutex %p at %s:%d"
+			" (depth=%zu, owner=thread #%d [%lu] from %s:%u, self=[%lu])",
+			thread_small_id(), m, file, line, m->depth,
+			thread_stid_from_thread(m->owner),
+			(ulong) m->owner, m->lock.file, m->lock.line,
+			(ulong) thread_current());
+#else	/* !SPINLOCK_DEBUG */
 		g_assert_log(mutex_is_owned(m),
 			"thread #%u attempts to release unowned mutex %p"
 			" (depth=%zu, owner=thread #%d [%lu], self=[%lu])",
 			thread_small_id(), m, m->depth, thread_stid_from_thread(m->owner),
 			(ulong) m->owner, (ulong) thread_current());
+#endif	/* SPINLOCK_DEBUG */
 	}
 
 	if (0 == --m->depth) {
@@ -480,9 +495,21 @@ mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 		mutex_release_account(m, element);
 }
 
+#ifdef SPINLOCK_DEBUG
 /**
  * Convenience routine for locks that are part of a "const" structure.
  */
+void
+mutex_unlock_const_from(const mutex_t *m, const char *file, unsigned line)
+{
+	/*
+	 * A lock is not part of the abstract data type, so it's OK to
+	 * de-constify it now: no mutex is really read-only.
+	 */
+
+	mutex_ungrab_from(deconstify_pointer(m), FALSE, file, line);
+}
+#else	/* !SPINLOCK_DEBUG */
 void
 mutex_unlock_const(const mutex_t *m)
 {
@@ -493,6 +520,7 @@ mutex_unlock_const(const mutex_t *m)
 
 	mutex_ungrab(deconstify_pointer(m), FALSE);
 }
+#endif	/* SPINLOCK_DEBUG */
 
 /**
  * Check whether someone holds the mutex and at which depth.

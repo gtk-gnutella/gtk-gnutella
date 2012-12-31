@@ -115,7 +115,6 @@ enum mutex_mode {
 
 void mutex_grab(mutex_t *m, enum mutex_mode mode);
 bool mutex_grab_try(mutex_t *m, enum mutex_mode mode);
-void mutex_ungrab(mutex_t *m, enum mutex_mode mode);
 
 /*
  * Public interface.
@@ -125,6 +124,10 @@ void mutex_ungrab(mutex_t *m, enum mutex_mode mode);
 void mutex_grab_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line);
 bool mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *f, unsigned l);
+void mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
+	const char *f, unsigned l);
+void mutex_unlock_const_from(const mutex_t *m,
 	const char *f, unsigned l);
 
 const char *mutex_get_lock_source(const mutex_t * const m, unsigned *line);
@@ -147,7 +150,20 @@ void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
 #define mutex_lock_const(x)	\
 	mutex_grab_from(deconstify_pointer(x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 
+#define mutex_unlock(x)	\
+	mutex_ungrab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
+#define mutex_unlock_hidden(x) \
+	mutex_ungrab_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
+#define mutex_unlock_fast(x) \
+	mutex_ungrab_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
+
+#define mutex_unlock_const(x) \
+	mutex_unlock_const_from((x), _WHERE_, __LINE__)
+
 #else	/* !SPINLOCK_DEBUG */
+
+void mutex_ungrab(mutex_t *m, enum mutex_mode mode);
+void mutex_unlock_const(const mutex_t *m);
 
 #define mutex_lock(x)			mutex_grab((x), MUTEX_MODE_NORMAL)
 #define mutex_lock_hidden(x)	mutex_grab((x), MUTEX_MODE_HIDDEN)
@@ -158,20 +174,19 @@ void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
 #define mutex_lock_const(x)	\
 	mutex_grab(deconstify_pointer(x), MUTEX_MODE_NORMAL)
 
+#define mutex_unlock(x)			mutex_ungrab((x), MUTEX_MODE_NORMAL)
+#define mutex_unlock_hidden(x)	mutex_ungrab((x), MUTEX_MODE_HIDDEN)
+#define mutex_unlock_fast(x)	mutex_ungrab((x), MUTEX_MODE_FAST)
+
 #define mutex_get_lock_source(m,l)		((void) (l), NULL)
 #define mutex_set_lock_source(m,f,l)	(void) (f), (void) (l)
 
 #endif	/* SPINLOCK_DEBUG */
 
-#define mutex_unlock(x)			mutex_ungrab((x), MUTEX_MODE_NORMAL)
-#define mutex_unlock_hidden(x)	mutex_ungrab((x), MUTEX_MODE_HIDDEN)
-#define mutex_unlock_fast(x)	mutex_ungrab((x), MUTEX_MODE_FAST)
-
 void mutex_crash_mode(void);
 
 void mutex_init(mutex_t *m);
 void mutex_destroy(mutex_t *m);
-void mutex_unlock_const(const mutex_t *m);
 bool mutex_is_owned(const mutex_t *m);
 bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
