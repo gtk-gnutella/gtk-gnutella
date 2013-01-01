@@ -963,7 +963,6 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		p = NULL;
 	} else if G_UNLIKELY(p != hint) {
 		struct pmap *pm = vmm_pmap();
-		struct vm_fragment *vmf;
 
 		if G_UNLIKELY(hint != NULL) {
 			if (vmm_debugging(0)) {
@@ -991,23 +990,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		if (NULL == hint)
 			goto done;
 
-		/*
-		 * There is a race condition between the computation of the
-		 * hint and the actual allocation, since the pmap is not always
-		 * kept locked (see FIXME in vmm_alloc_internal()).
-		 *
-		 * Hence we need to check that the computed hint is not already
-		 * part of a known region, resulting from a concurrent allocation
-		 * that happend since we computed the ``hole'' parameter.
-		 */
-
 		mutex_lock(&pm->lock);		/* Begin critical section */
-
-		vmf = pmap_lookup(pm, hint, NULL);
-		if (vmf != NULL) {
-			mutex_unlock(&pm->lock);
-			goto done;		/* Concurrent allocation, ``hint'' now known */
-		}
 
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
@@ -3528,6 +3511,7 @@ vmm_invalidate_pages(void *p, size_t size)
 static void *
 vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 {
+	static spinlock_t vmm_alloc_slk = SPINLOCK_INIT;
 	size_t n;
 	void *p;
 	const void *hole;
@@ -3548,19 +3532,31 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		vmm_stats.allocations_zeroed++;
 
 	/*
+	 * We need to funnel the allocations among all the threads because the
+	 * computed hole in the VM space must not be filled by a successful
+	 * concurrent request.
+	 *
+	 * We cannot lock the pmap here because we risk a deadlock with the page
+	 * cache lock through vpc_free().
+	 *
+	 * Note that we do not care about memory freeing or memory shrinking.
+	 * We just want to make sure only one thread at a time will be able to
+	 * compute the memory hole and then allocate memory using that hint,
+	 * when we cannot allocate from the page cache.
+	 *
+	 * No re-entry is possible here, so we don't need a mutex.
+	 */
+
+	spinlock(&vmm_alloc_slk);
+
+	/*
 	 * First look in the page cache to avoid requesting a new memory
 	 * mapping from the kernel.
-	 *
-	 * FIXME:
-	 * There is a race condition between the hole computation and the
-	 * allocation request, if any, but that's OK for now as the hole is
-	 * really taken as a hint.  We cannot lock the pmap here because we
-	 * risk a deadlock with the page cache lock through vpc_free().
-	 *		--RAM, 2012-05-13
 	 */
 
 	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
+		spinunlock(&vmm_alloc_slk);
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
 			memset(p, 0, size);
@@ -3573,6 +3569,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	}
 
 	p = alloc_pages(size, TRUE, hole);
+	spinunlock(&vmm_alloc_slk);
 	if (NULL == p)
 		s_error("cannot allocate %zu bytes: out of virtual memory", size);
 
