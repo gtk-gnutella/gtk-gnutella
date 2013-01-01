@@ -5017,10 +5017,26 @@ mingw_dladdr(void *addr, Dl_info *info)
 	 */
 
 	now = tm_time();
-	mutex_lock_hidden(&dladdr_lk);
 
 	if (0 == last_init || delta_time(now, last_init) > 5) {
 		static bool initialized;
+		static bool first_init;
+		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
+		bool is_first = FALSE;
+
+		spinlock_hidden(&dladdr_first_slk);
+		if (!first_init) {
+			is_first = TRUE;
+			first_init = TRUE;
+		}
+		spinunlock_hidden(&dladdr_first_slk);
+
+		if (is_first) {
+			mutex_lock_fast(&dladdr_lk);
+		} else {
+			if (!mutex_trylock_fast(&dladdr_lk))
+				goto skip_init;
+		}
 
 		process = GetCurrentProcess();
 
@@ -5038,9 +5054,10 @@ mingw_dladdr(void *addr, Dl_info *info)
 		}
 
 		last_init = now;
+		mutex_unlock_fast(&dladdr_lk);
 	}
-	mutex_unlock_hidden(&dladdr_lk);
 
+skip_init:
 	ZERO(info);
 
 	if (0 != mingw_dl_error)
