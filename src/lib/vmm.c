@@ -3521,11 +3521,12 @@ vmm_invalidate_pages(void *p, size_t size)
  *
  * @param size 		size in bytes to allocate; will be rounded to the pagesize.
  * @param user_mem	whether this memory is meant for "user" consumption
+ * @param zero_mem	whether memory needs to be zeroed
  *
  * @return pointer to allocated memory region
  */
 static void *
-vmm_alloc_internal(size_t size, bool user_mem)
+vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 {
 	size_t n;
 	void *p;
@@ -3539,10 +3540,12 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	size = round_pagesize_fast(size);
 
 	if G_UNLIKELY(vmm_crashing)
-		return vmm_valloc(NULL, size);
+		return vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
 
 	n = pagecount_fast(size);
 	vmm_stats.allocations++;
+	if G_UNLIKELY(zero_mem)
+		vmm_stats.allocations_zeroed++;
 
 	/*
 	 * First look in the page cache to avoid requesting a new memory
@@ -3559,6 +3562,9 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	p = page_cache_find_pages(n, &hole);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
+		if G_UNLIKELY(zero_mem)
+			memset(p, 0, size);
+
 		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		vmm_stats.alloc_from_cache++;
@@ -3569,6 +3575,8 @@ vmm_alloc_internal(size_t size, bool user_mem)
 	p = alloc_pages(size, TRUE, hole);
 	if (NULL == p)
 		s_error("cannot allocate %zu bytes: out of virtual memory", size);
+
+	/* Memory allocated by the kernel is already zero-ed */
 
 	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 	vmm_stats.alloc_direct_core++;
@@ -3601,7 +3609,7 @@ update_stats:
 void *
 vmm_alloc(size_t size)
 {
-	return vmm_alloc_internal(size, TRUE);
+	return vmm_alloc_internal(size, TRUE, FALSE);
 }
 
 /**
@@ -3616,7 +3624,7 @@ vmm_alloc(size_t size)
 void *
 vmm_core_alloc(size_t size)
 {
-	return vmm_alloc_internal(size, FALSE);
+	return vmm_alloc_internal(size, FALSE, FALSE);
 }
 
 /**
@@ -3625,66 +3633,7 @@ vmm_core_alloc(size_t size)
 void *
 vmm_alloc0(size_t size)
 {
-	size_t n;
-	void *p;
-	const void *hole;
-
-	g_assert(size_is_positive(size));
-
-	if G_UNLIKELY(0 == kernel_pagesize)
-		vmm_init();
-
-	size = round_pagesize_fast(size);
-
-	if G_UNLIKELY(vmm_crashing)
-		return vmm_valloc(NULL, size);	/* Memory is always zeroed by kernel */
-
-	n = pagecount_fast(size);
-	vmm_stats.allocations++;
-	vmm_stats.allocations_zeroed++;
-
-	/*
-	 * First look in the page cache to avoid requesting a new memory
-	 * mapping from the kernel.
-	 *
-	 * FIXME: same race condition as in vmm_alloc_internal().
-	 */
-
-	p = page_cache_find_pages(n, &hole);
-	if (p != NULL) {
-		vmm_validate_pages(p, size);
-		memset(p, 0, size);
-		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
-
-		vmm_stats.alloc_from_cache++;
-		vmm_stats.alloc_from_cache_pages += n;
-		goto update_stats;
-	}
-
-	p = alloc_pages(size, TRUE, hole);
-	if (NULL == p)
-		s_error("cannot allocate %zu bytes: out of virtual memory", size);
-
-	/* Memory allocated by the kernel is already zero-ed */
-
-	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
-	vmm_stats.alloc_direct_core++;
-	vmm_stats.alloc_direct_core_pages += n;
-
-	/* FALL THROUGH */
-
-update_stats:
-	/*
-	 * Always allocating "user" memory: since "core" memory does not need
-	 * to be zeroed, which is why there is no vmm_core_alloc0().
-	 */
-
-	vmm_stats.user_memory += size;
-	vmm_stats.user_pages += n;
-	vmm_stats.user_blocks++;
-	memusage_add(vmm_stats.user_mem, size);
-
-	return p;
+	return vmm_alloc_internal(size, TRUE, TRUE);
 }
 
 /**
@@ -3918,7 +3867,7 @@ vmm_resize(void *p, size_t size, size_t new_size)
 	 * Have to allocate a new region and move data around.
 	 */
 
-	np = vmm_alloc_internal(new_size, TRUE);
+	np = vmm_alloc_internal(new_size, TRUE, FALSE);
 	memcpy(np, p, size);
 	vmm_free_internal(p, size, TRUE);
 
@@ -5318,7 +5267,7 @@ vmm_alloc_track(size_t size, bool user_mem, const char *file, int line)
 {
 	void *p;
 
-	p = vmm_alloc_internal(size, user_mem);
+	p = vmm_alloc_internal(size, user_mem, FALSE);
 	return vmm_alloc_record(p, size, user_mem, file, line);
 }
 
