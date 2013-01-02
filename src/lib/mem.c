@@ -42,6 +42,7 @@
 #include "mem.h"
 #include "fd.h"					/* For is_a_fifo() */
 #include "file.h"
+#include "spinlock.h"
 #include "unsigned.h"
 #include "vmm.h"
 
@@ -50,11 +51,22 @@
 static int fd[2];				/* For the pipe() */
 
 /**
+ * This lock funnels all the memory checking operation which rely on the
+ * same pipe() resources.
+ */
+static spinlock_t mem_slk = SPINLOCK_INIT;
+
+#define MEM_FUNNEL		spinlock_hidden(&mem_slk)
+#define MEM_UNFUNNEL	spinunlock_hidden(&mem_slk)
+
+/**
  * Close pipe on error.
  */
 static void
 mem_close_pipe(void)
 {
+	g_assert(spinlock_is_held(&mem_slk));
+
 	close(fd[0]);
 	close(fd[1]);
 	ZERO(&fd);
@@ -69,6 +81,8 @@ static bool
 mem_open_pipe(void)
 {
 	static bool warned;
+
+	g_assert(spinlock_is_held(&mem_slk));
 
 	if (-1 == pipe(fd) && !warned) {
 		s_miniwarn("%s: pipe() failed: %m", G_STRFUNC);
@@ -110,8 +124,10 @@ mem_is_valid_ptr(const void *p)
 {
 	char c;
 
+	MEM_FUNNEL;
+
 	/*
-	 * The check for is_open_fd() is necessary because these routines may be
+	 * The check for is_a_fifo() is necessary because these routines may be
 	 * called during crashes, after all file descriptors have been closed, and
 	 * we are not notified.
 	 *
@@ -120,8 +136,10 @@ mem_is_valid_ptr(const void *p)
 	 */
 
 	if G_UNLIKELY(0 == fd[0] || !mem_valid_pipe()) {
-		if (!mem_open_pipe())
+		if (!mem_open_pipe()) {
+			MEM_UNFUNNEL;
 			return TRUE;		/* Assume memory pointer is valid */
+		}
 	}
 
 	/*
@@ -132,15 +150,20 @@ mem_is_valid_ptr(const void *p)
 retry:
 
 	if (-1 == write(fd[1], p, 1)) {
-		if (EFAULT == errno)
+		if (EFAULT == errno) {
+			MEM_UNFUNNEL;
 			return FALSE;
+		}
 		if (EPIPE == errno) {
 			/* fd[0], the original reading end, was closed */
 			mem_close_pipe();
-			if (!mem_open_pipe())
+			if (!mem_open_pipe()) {
+				MEM_UNFUNNEL;
 				return TRUE;
+			}
 			goto retry;
 		}
+		MEM_UNFUNNEL;
 		s_miniwarn("%s: write(%p, 1) to pipe failed: %m", G_STRFUNC, p);
 		return TRUE;	/* Assume memory pointer is valid */
 	}
@@ -150,6 +173,7 @@ retry:
 		mem_close_pipe();
 	}
 
+	MEM_UNFUNNEL;
 	return TRUE;
 }
 
@@ -172,6 +196,8 @@ mem_protection(const void *p)
 {
 	char c, o;
 
+	MEM_FUNNEL;
+
 	/*
 	 * The check for is_open_fd() is necessary because these routines may be
 	 * called during crashes, after all file descriptors have been closed, and
@@ -182,8 +208,10 @@ mem_protection(const void *p)
 	 */
 
 	if G_UNLIKELY(0 == fd[0] || !mem_valid_pipe()) {
-		if (!mem_open_pipe())
+		if (!mem_open_pipe()) {
+			MEM_UNFUNNEL;
 			return MEM_PROT_NONE;	/* Assume memory pointer is not writable */
+		}
 	}
 
 	/*
@@ -194,15 +222,20 @@ mem_protection(const void *p)
 retry:
 
 	if (-1 == write(fd[1], p, 1)) {
-		if (EFAULT == errno)
+		if (EFAULT == errno) {
+			MEM_UNFUNNEL;
 			return MEM_PROT_NONE;	/* Not readable, assume not writable */
+		}
 		if (EPIPE == errno) {
 			/* fd[0], the original reading end, was closed */
 			mem_close_pipe();
-			if (!mem_open_pipe())
+			if (!mem_open_pipe()) {
+				MEM_UNFUNNEL;
 				return MEM_PROT_NONE;	/* Assume not accessible */
+			}
 			goto retry;
 		}
+		MEM_UNFUNNEL;
 		s_miniwarn("%s: write(%p, 1) to pipe failed: %m", G_STRFUNC, p);
 		return MEM_PROT_READ;	/* Assume memory pointer is not writable */
 	}
@@ -225,10 +258,12 @@ retry:
 			mem_close_pipe();
 		}
 		g_assert(o == *(char *) p);
+		MEM_UNFUNNEL;
 		return MEM_PROT_READ;		/* Not writable */
 	}
 
 	g_assert(o == *(char *) p);
+	MEM_UNFUNNEL;
 
 	return MEM_PROT_READ | MEM_PROT_WRITE;
 }
