@@ -125,6 +125,7 @@ void thread_check_suspended(void);
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);
+void thread_private_add_permanent(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
 

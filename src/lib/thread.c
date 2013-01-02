@@ -144,6 +144,12 @@ struct thread_pvalue {
 	void *p_arg;					/**< Optional argument to free routine */
 };
 
+/**
+ * Special free routine for thread-private value which indicates that the
+ * thread-private entry must not be reclaimed when the thread exists.
+ */
+#define THREAD_PRIVATE_KEEP		((thread_pvalue_free_t) 1)
+
 enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
 
 /**
@@ -364,6 +370,8 @@ thread_pvzone_init(void)
 static void
 thread_pvalue_free(struct thread_pvalue *pv)
 {
+	g_assert(pv->p_free != THREAD_PRIVATE_KEEP);
+
 	if (pv->p_free != NULL)
 		(*pv->p_free)(pv->value, pv->p_arg);
 	zfree(pvzone, pv);
@@ -766,13 +774,18 @@ thread_block_close(struct thread_element *te)
 }
 
 /**
- * Hashtable iterator to remove thread-private values.
+ * Hashtable iterator to remove non-permanent thread-private values.
  */
 static bool
 thread_private_drop_value(const void *u_key, void *value, void *u_data)
 {
+	struct thread_pvalue *pv = value;
+
 	(void) u_key;
 	(void) u_data;
+
+	if (THREAD_PRIVATE_KEEP == pv->p_free)
+		return FALSE;
 
 	thread_pvalue_free(value);
 	return TRUE;
@@ -2570,6 +2583,26 @@ thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg)
 {
 	thread_private_update_extended(key, value, p_free, p_arg, FALSE);
+}
+
+/**
+ * Add permanent thread-private data.
+ *
+ * The key must not already exist in the thread-private area.
+ *
+ * This data will be kept when the thread exits and will be reused when
+ * another thread reuses the same thread small ID.  This is meant for
+ * global thread-agnostic objects, such as a per-thread logging object,
+ * which can be reused freely and need only be created once per thread.
+ *
+ * @param key		the key for the private data
+ * @param value		private value to store
+ */
+void
+thread_private_add_permanent(const void *key, const void *value)
+{
+	thread_private_update_extended(key, value,
+		THREAD_PRIVATE_KEEP, NULL, FALSE);
 }
 
 /**
