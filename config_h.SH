@@ -675,6 +675,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_socker_get HAS_SOCKER_GET
 
+/* HAS_SOCKETPAIR:
+ *	This symbol, if defined, indicates that the BSD socketpair() call is
+ *	supported.
+ */
+#$d_sockpair HAS_SOCKETPAIR	/**/
+
 /* HAS_STATFS:
  *	This symbol, if defined, indicates that the Linux statfs() system call
  *	is available to get filesystem statistics.

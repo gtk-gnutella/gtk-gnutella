@@ -206,6 +206,7 @@ LSRC = \
 	vendors.c \
 	vmm.c \
 	vsort.c \
+	waiter.c \
 	walloc.c \
 	watcher.c \
 	wd.c \

@@ -33,6 +33,7 @@
 #include "common.h"
 
 #include "atomic.h"
+#include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
@@ -44,6 +45,8 @@
 #include "semaphore.h"
 #include "str.h"
 #include "thread.h"
+#include "tm.h"
+#include "waiter.h"
 #include "xmalloc.h"
 
 const char *progname;
@@ -56,7 +59,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACNS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACIMNS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -65,6 +68,8 @@ usage(void)
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -C : test thread creation\n"
+		"  -I : test inter-thread waiter signaling\n"
+		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
@@ -183,6 +188,52 @@ test_create(unsigned repeat, bool join)
 	for (i = 0; i < repeat; i++) {
 		test_create_one(repeat > 1, join);
 	}
+}
+
+static void *
+test_inter_main(void *arg)
+{
+	waiter_t *w = waiter_refcnt_inc(arg);
+
+	sleep(1);
+	printf("signaling main thread\n");
+	fflush(stdout);
+	waiter_signal(w);
+	
+	compat_sleep_ms(5);
+	waiter_refcnt_dec(arg);
+	return NULL;
+}
+
+static void
+test_inter(void)
+{
+	int r;
+	waiter_t *mw, *w;
+	bool refed;
+
+	mw = waiter_make(NULL);
+	w = waiter_spawn(mw, int_to_pointer(31416));
+	
+	r = thread_create(test_inter_main, w, THREAD_F_DETACH, 0);
+	if (-1 == r)
+		s_error("could not launch thread: %m");
+
+	printf("main thread waiting\n");
+	fflush(stdout);
+	if (!waiter_suspend(mw))
+		s_error("could not suspend itself");
+	printf("main thread awoken\n");
+
+	refed = waiter_refcnt_dec(w);
+	printf("child waiter %s referenced\n", refed ? "still" : "no longer");
+	while (waiter_child_count(mw) != 1) {
+		printf("waiting for all children in waiter to go\n");
+		fflush(stdout);
+		compat_sleep_ms(5);
+	}
+	refed = waiter_refcnt_dec(mw);
+	printf("master waiter %s referenced\n", refed ? "still" : "no longer");
 }
 
 struct test_semaphore_arg {
@@ -410,10 +461,12 @@ player_stats(int n)
 }
 
 static void
-test_condition(unsigned play_time, bool emulated, bool noise)
+test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 {
 	int i;
 	game_state = START_GAME;
+	waiter_t *w;
+	uint notifications = 0;
 
 	g_assert(0 == cond_waiting_count(&game_state_change));
 
@@ -422,12 +475,61 @@ test_condition(unsigned play_time, bool emulated, bool noise)
 
 	g_assert(0 == cond_waiting_count(&game_state_change));
 	g_assert(0 == cond_pending_count(&game_state_change));
+	g_assert(0 == cond_signal_count(&game_state_change));
 
 	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
 		create_player(player, i);
 	}
 
-	sleep(play_time);	/* Let them play */
+	if (monitor) {
+		struct pollfd wfd[1];
+		tm_t end, play;
+
+		tm_now_exact(&end);
+		tm_fill_ms(&play, play_time * 1000);
+		tm_add(&end, &play);
+
+		w = waiter_make(NULL);
+		cond_waiter_add(&game_state_change, &game_state_lock, w);
+		g_assert(2 == waiter_refcnt(w));
+
+		if (!waiter_suspend(w))
+			s_warning("cannot suspend myself");
+		if (waiter_notified(w)) {
+			waiter_ack(w);
+			notifications++;
+		} else {
+			s_warning("waiter should have been notified");
+		}
+
+		wfd[0].fd = waiter_fd(w);
+		wfd[0].events = POLLIN;
+
+		for (;;) {
+			tm_t now;
+			int ret;
+
+			tm_now_exact(&now);
+			if (tm_elapsed_f(&end, &now) <= 0.0)
+				break;
+
+			ret = compat_poll(wfd, G_N_ELEMENTS(wfd), 1000);
+			if (ret < 0) {
+				s_warning("poll() failed: %m");
+			} else {
+				printf("[match still on]\n");
+				fflush(stdout);
+				notifications++;
+				waiter_ack(w);
+			}
+		}
+
+		cond_waiter_remove(&game_state_change, &game_state_lock, w);
+		g_assert(1 == waiter_refcnt(w));
+		waiter_refcnt_dec(w);
+	} else {
+		sleep(play_time);	/* Let them play */
+	}
 
 	if (noise) {
 		printf("** Noise ON **\n");
@@ -467,6 +569,10 @@ test_condition(unsigned play_time, bool emulated, bool noise)
 	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
 		player_stats(i);
 	}
+	if (monitor) {
+		printf("main got %u notification%s\n",
+			notifications, 1 == notifications ? "" : "s");
+	}
 }
 
 static unsigned
@@ -492,7 +598,8 @@ main(int argc, char **argv)
 	extern char *optarg;
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
-	bool play_tennis = FALSE, noise = FALSE;
+	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE;
+	bool inter = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -501,13 +608,19 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACNST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACIMNST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
+			break;
+		case 'I':			/* test inter-thread signaling */
+			inter = TRUE;
+			break;
+		case 'M':			/* monitor tennis match */
+			monitor = TRUE;
 			break;
 		case 'N':			/* add cond_broadcast() noise */
 			noise = TRUE;
@@ -551,10 +664,13 @@ main(int argc, char **argv)
 		test_semaphore(emulated);
 
 	if (play_tennis)
-		test_condition(play_time, emulated, noise);
+		test_condition(play_time, emulated, monitor, noise);
 
 	if (create)
 		test_create(repeat, join);
+
+	if (inter)
+		test_inter();
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }

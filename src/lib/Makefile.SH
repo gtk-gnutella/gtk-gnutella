@@ -263,6 +263,7 @@ LSRC = \
 	vendors.c \
 	vmm.c \
 	vsort.c \
+	waiter.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
@@ -421,6 +422,7 @@ LOBJ = \
 	vendors.o \
 	vmm.o \
 	vsort.o \
+	waiter.o \
 	walloc.o \
 	watcher.o \
 	wd.o \

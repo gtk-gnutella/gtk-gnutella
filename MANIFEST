@@ -890,6 +890,8 @@ src/lib/vmm.c
 src/lib/vmm.h
 src/lib/vsort.c
 src/lib/vsort.h
+src/lib/waiter.c
+src/lib/waiter.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c

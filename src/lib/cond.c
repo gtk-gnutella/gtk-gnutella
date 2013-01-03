@@ -36,13 +36,18 @@
 #include "cond.h"
 #include "mutex.h"
 #include "semaphore.h"
+#include "slist.h"
 #include "spinlock.h"
 #include "tm.h"
+#include "waiter.h"
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
-enum cond_magic { COND_MAGIC = 0x4983d0fe };
+enum cond_magic {
+	COND_MAGIC = 0x4983d0fe,
+	COND_EXT_MAGIC = 0x29a7f826
+};
 
 /**
  * A condition variable.
@@ -57,11 +62,36 @@ struct cond {
 	spinlock_t lock;			/* Thread-safe lock for updating condition */
 };
 
+/**
+ * An extended condition variable has a list of implicit waiters which do not
+ * necessarily hold the mutex whilst waiting and which nonetheless want to
+ * be notified when the condition has been signaled.
+ */
+struct cond_ext {
+	struct cond cond;
+	/* Extra fields specific to an extended condition */
+	slist_t *waiters;			/* Registered waiters */
+};
+
 static inline void
 cond_check(const struct cond * const cd)
 {
 	g_assert(cd != NULL);
-	g_assert(COND_MAGIC == cd->magic);
+	g_assert(COND_MAGIC == cd->magic || COND_EXT_MAGIC == cd->magic);
+}
+
+static inline bool
+cond_is_extended(const struct cond * const cd)
+{
+	return COND_EXT_MAGIC == cd->magic;
+}
+
+static inline ALWAYS_INLINE struct cond_ext *
+cast_to_cond_ext(const struct cond * const cd)
+{
+	g_assert(COND_EXT_MAGIC == cd->magic);
+
+	return (struct cond_ext *) cd;
 }
 
 static spinlock_t cond_init_slk = SPINLOCK_INIT;
@@ -71,23 +101,40 @@ static spinlock_t cond_init_slk = SPINLOCK_INIT;
  *
  * @param m			the mutex guarding the condition
  * @param emulated	whether to use emulated semaphores, for testing
+ * @param extended	whether to create an extended condtion
  *
  * @return a new condition that can be freed with cond_free().
  */
 static struct cond *
-cond_create(const mutex_t *m, bool emulated)
+cond_create(const mutex_t *m, bool emulated, bool extended)
 {
 	struct cond *cd;
 
 	g_assert(mutex_is_valid(m));
 
-	WALLOC0(cd);
-	cd->magic = COND_MAGIC;
+	if (extended) {
+		struct cond_ext *cde;
+
+		WALLOC0(cde);
+		cde->waiters = slist_new();
+		cd = &cde->cond;
+		cd->magic = COND_EXT_MAGIC;
+	} else {
+		WALLOC0(cd);
+		cd->magic = COND_MAGIC;
+	}
+
 	cd->sem = semaphore_create_full(0, emulated);
 	cd->mutex = m;
 	spinlock_init(&cd->lock);
 
 	return cd;
+}
+
+static void
+cond_waiter_release(void *p)
+{
+	(void) waiter_refcnt_dec(p);
 }
 
 /**
@@ -106,8 +153,191 @@ cond_free(struct cond *c)
 	}
 	spinlock_destroy(&c->lock);
 	semaphore_destroy(&c->sem);
-	c->magic = 0;
-	WFREE(c);
+
+	if (cond_is_extended(c)) {
+		struct cond_ext *ce = cast_to_cond_ext(c);
+		slist_free_all(&ce->waiters, cond_waiter_release);
+		c->magic = 0;
+		WFREE(ce);
+	} else {
+		c->magic = 0;
+		WFREE(c);
+	}
+}
+
+/**
+ * Extend an already allocated condition.
+ *
+ * @param cd		the regular condition to extend
+ *
+ * @return pointer to the new (extended) condition
+ */
+static struct cond *
+cond_extend(const struct cond *cd)
+{
+	struct cond_ext *cde;
+
+	g_assert(COND_MAGIC == cd->magic);		/* Not already extended */
+	g_assert(spinlock_is_held(&cd->lock));
+
+	WALLOC0(cde);
+	cde->cond = *cd;		/* Struct copy */
+	cde->cond.magic = COND_EXT_MAGIC;
+	cde->waiters = slist_new();
+
+	return &cde->cond;
+}
+
+/**
+ * Check whether we need to auto-initialize a condition set to COND_INIT.
+ *
+ * @param c			pointer to the condition to initialize
+ * @param m			the mutex protecting the predicate (locked normally)
+ * @param extended	whether we need an extended condition variable
+ *
+ * @return the possibly initialized condition variable.
+ */
+static struct cond *
+cond_check_init(cond_t *c, const mutex_t *m, bool extended)
+{
+	struct cond *cn;
+	bool success = TRUE;
+
+	cn = cond_create(m, FALSE, extended);	/* Auto-init uses real semaphores */
+
+	spinlock(&cond_init_slk);
+	if G_UNLIKELY(*c != COND_INIT)
+		success = FALSE;
+	else
+		*c = cn;
+	spinunlock(&cond_init_slk);
+
+	if G_UNLIKELY(!success)
+		cond_free(cn);
+
+	return *c;
+}
+
+/**
+ * Access the extended condition, promoting the existing condition to the
+ * extended status if needed.
+ *
+ * @param c			pointer to the condition to initialize
+ * @param m			the mutex protecting the predicate (locked normally)
+ */
+static struct cond_ext *
+cond_get_extended(cond_t *c, mutex_t *m)
+{
+	struct cond *cv;
+
+	g_assert(c != NULL);
+
+	/*
+	 * Check whether we need to auto-initialize.
+	 */
+
+	cv = *c;
+
+	if G_UNLIKELY(COND_INIT == cv)
+		cv = cond_check_init(c, m, TRUE);
+
+	if G_UNLIKELY(COND_DESTROYED == cv)
+		s_error("%s(): condition already destroyed", G_STRFUNC);
+
+	cond_check(cv);
+
+	if (!cond_is_extended(cv)) {
+		struct cond *cn;
+
+		mutex_lock(m);
+
+		/*
+		 * We protect the extension (and the writing to *c) with the global
+		 * spinlock to guard against any possible race with cond_wait_until()
+		 * during the section where the condition mutex is not held.
+		 *
+		 * No deadlocks are possible despite the critical section overlaps
+		 * because the lock order is always the same: the global spinlock,
+		 * then the condition variable.
+		 */
+
+		spinlock_hidden(&cond_init_slk);
+		spinlock_hidden(&cv->lock);		/* Will be copied, must be hidden */
+		cn = cond_extend(cv);
+		*c = cn;
+		spinunlock_hidden(&cond_init_slk);
+		spinunlock_hidden(&cn->lock);	/* Not the same lock but the copy  */
+		spinunlock_hidden(&cv->lock);	/* This is the lock we took above */
+
+		mutex_unlock(m);
+
+		/* All the resources were copied, we don't need to free anything */
+
+		spinlock_destroy(&cv->lock);
+		cv->magic = 0;
+		WFREE(cv);
+		cv = cn;
+	}
+
+	return cast_to_cond_ext(cv);
+}
+
+/**
+ * Add a new waiter to the condition.
+ *
+ * The mutex is only given in case this is the first call on an uninitialized
+ * condition and we need to create it.  It does not need to be locked.
+ *
+ * @param c			pointer to the condition to initialize
+ * @param m			the mutex protecting the predicate (no lock needed)
+ * @param w			the waiter to add
+ */
+void
+cond_waiter_add(cond_t *c, mutex_t *m, waiter_t *w)
+{
+	struct cond_ext *cve;
+	struct cond *cv;
+
+	cve = cond_get_extended(c, m);
+	cv = &cve->cond;
+
+	spinlock(&cv->lock);
+	if (!slist_contains_identical(cve->waiters, w)) {
+		slist_append(cve->waiters, waiter_refcnt_inc(w));
+	}
+	spinunlock(&cv->lock);
+}
+
+/**
+ * Remove a waiter from the condition.
+ *
+ * The mutex is only given in case this is the first call on an uninitialized
+ * condition and we need to create it.  It does not need to be locked.
+ *
+ * @param c			pointer to the condition to initialize
+ * @param m			the mutex protecting the predicate (no lock needed)
+ * @param w			the waiter to add
+ *
+ * @return TRUE if the waiter was removed, FALSE if it was not found.
+ */
+bool
+cond_waiter_remove(cond_t *c, mutex_t *m, waiter_t *w)
+{
+	struct cond_ext *cve;
+	struct cond *cv;
+	bool found;
+
+	cve = cond_get_extended(c, m);
+	cv = &cve->cond;
+
+	spinlock(&cv->lock);
+	found = slist_remove(cve->waiters, w);
+	spinunlock(&cv->lock);
+
+	if (found)
+		waiter_refcnt_dec(w);
+
+	return found;
 }
 
 /**
@@ -125,7 +355,7 @@ cond_init_full(cond_t *c, const mutex_t *m, bool emulated)
 	g_assert(c != NULL);
 	g_assert(mutex_is_valid(m));
 
-	cn = cond_create(m, emulated);
+	cn = cond_create(m, emulated, FALSE);
 
 	/*
 	 * Make sure there are no concurrent initialization of the same variable
@@ -168,32 +398,6 @@ cond_destroy(cond_t *c)
 	spinunlock(&cond_init_slk);
 
 	cond_free(cv);
-}
-
-/**
- * Check whether we need to auto-initialize a condition set to COND_INIT.
- *
- * @return the possibly initialized condition variable.
- */
-static struct cond *
-cond_check_init(cond_t *c, const mutex_t *m)
-{
-	struct cond *cn;
-	bool success = TRUE;
-
-	cn = cond_create(m, FALSE);		/* Auto-init uses real semaphores */
-
-	spinlock(&cond_init_slk);
-	if G_UNLIKELY(*c != COND_INIT)
-		success = FALSE;
-	else
-		*c = cn;
-	spinunlock(&cond_init_slk);
-
-	if G_UNLIKELY(!success)
-		cond_free(cn);
-
-	return *c;
 }
 
 /**
@@ -315,7 +519,7 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	 */
 
 	if G_UNLIKELY(COND_INIT == cv)
-		cv = cond_check_init(c, m);
+		cv = cond_check_init(c, m, FALSE);
 
 	if G_UNLIKELY(COND_DESTROYED == cv)
 		s_error("%s(): condition already destroyed", G_STRFUNC);
@@ -404,6 +608,39 @@ retry:
 	}
 
 	/*
+	 * Make sure the condition variable did not change whilst we were
+	 * waiting on it.
+	 *
+	 * Because we do not own the mutex at this point, and the condition could
+	 * be extended at any time between now and the time we attempt to re-grab
+	 * the mutex, we need to be careful.
+	 *
+	 * On-the-fly extensions of a condition variable is only possible under
+	 * rare circumstances, and we protect it with a global spinlock.  We need
+	 * to hold that lock until after we can lock the condition variable.
+	 * 
+	 * Therefore we must use a hidden lock because normal locks have strict
+	 * release ordering checking (to avoid deadlock potential later).  Here
+	 * we know there won't be any deadlock possible because the locking order
+	 * is always the same: the global lock, then the condition variable.
+	 */
+
+	spinlock_hidden(&cond_init_slk);	/* Held until we grab cv->lock */
+
+	cv = *c;
+
+	if G_UNLIKELY(COND_DESTROYED == cv)
+		s_error("%s(): condition destroyed whilst we were waiting", G_STRFUNC);
+
+	cond_check(cv);
+
+	g_assert_log(cv->mutex == m,
+		"%s(): mutex changed in condition %p (used %p, now %p)",
+		G_STRFUNC, c, m, cv->mutex);
+
+	/*
+	 * Signal we're not waiting any more.
+	 *
 	 * If we were awoken (no timeout), then we consume a signal.
 	 *
 	 * If we timed out, we may have been sent a signal before we got a chance
@@ -418,6 +655,8 @@ retry:
 signaled:
 
 	spinlock(&cv->lock);
+	spinunlock_hidden(&cond_init_slk);	/* Critical section overlap */
+	atomic_mb();		/* Safe access to atomically updated variables */
 	if (awaked) {
 		if G_UNLIKELY(cv->generation == generation) {
 			/* Consumed a signal that was not for us */
@@ -461,6 +700,22 @@ signaled:
 
 	mutex_lock(m);
 	mutex_set_lock_source(m, file, line);
+
+	/*
+	 * Now that we own the mutex, re-ensure that the condition variable
+	 * on which the application waits is still valid.
+	 */
+
+	cv = *c;
+
+	if G_UNLIKELY(COND_DESTROYED == cv)
+		s_error("%s(): condition destroyed whilst we were waiting", G_STRFUNC);
+
+	cond_check(cv);
+
+	g_assert_log(cv->mutex == m,
+		"%s(): mutex changed in condition %p (used %p, now %p)",
+		G_STRFUNC, c, m, cv->mutex);
 
 	return awaked;
 
@@ -517,6 +772,39 @@ cond_timed_wait(cond_t *c, mutex_t *m, const tm_t *timeout)
 	}
 
 	return cond_wait_until(c, m, NULL == timeout ? NULL : &end);
+}
+
+static void
+cond_waiter_signal(void *p, void *unused_data)
+{
+	waiter_t *w = p;
+
+	(void) unused_data;
+	waiter_signal(w);
+}
+
+/**
+ * Notify waiters on the extended condition that it got signaled.
+ *
+ * @param cve		the extended condition listing all the waiters
+ * @param all		whether all or just one waiter should be notified
+ */
+static void
+cond_notify(struct cond_ext *cve, bool all)
+{
+	struct cond *cv = &cve->cond;
+
+	spinlock(&cv->lock);
+	if (all) {
+		slist_foreach(cve->waiters, cond_waiter_signal, NULL);
+	} else {
+		waiter_t *w = slist_shift(cve->waiters);
+		if (w != NULL) {
+			slist_append(cve->waiters, w);
+			waiter_signal(w);
+		}
+	}
+	spinunlock(&cv->lock);
 }
 
 /**
@@ -581,6 +869,21 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
 	if (signals != 0) {
 		semaphore_release(cv->sem, signals);
 	}
+
+	/*
+	 * If the condition is extended, notify waiters that a signal was posted
+	 * to the variable (regardless of whether we ended up sending signals at
+	 * all).  The waiters are not counted in cv->waiting because they are not
+	 * blocked waiting for the condition but may be doing something else until
+	 * the condition is signaled.
+	 *
+	 * When waiters will process the signal, they will need to acquire the
+	 * mutex, check the predicate and decide whether they now want to block
+	 * or whether they resume other activities, up to the next notification.
+	 */
+
+	if (cond_is_extended(cv))
+		cond_notify(cast_to_cond_ext(cv), all);
 }
 
 /**

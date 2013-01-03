@@ -412,6 +412,11 @@ d_sockaddr_un=''
 d_socker_get=''
 sockercflags=''
 sockerldflags=''
+d_oldsock=''
+d_socket=''
+d_sockpair=''
+sockethdr=''
+socketlib=''
 d_statfs=''
 d_statvfs=''
 d_index=''
@@ -7762,6 +7767,76 @@ EOC
 	;;
 esac
 
+: see whether socket exists
+socketlib=''
+sockethdr=''
+echo " "
+$echo $n "Hmm... $c" >&4
+if set socket val -f d_socket; eval $csym; $val; then
+	echo "Looks like you have Berkeley networking support." >&4
+	d_socket="$define"
+	if set setsockopt val -f; eval $csym; $val; then
+		d_oldsock="$undef"
+	else
+		echo "...but it uses the old 4.1c interface, rather than 4.2" >&4
+		d_oldsock="$define"
+	fi
+else
+	if $contains socklib libc.list >/dev/null 2>&1; then
+		echo "Looks like you have Berkeley networking support." >&4
+		d_socket="$define"
+		: we will have to assume that it supports the 4.2 BSD interface
+		d_oldsock="$undef"
+	else
+		echo "You don't have Berkeley networking in libc$_a..." >&4
+		if test -f /usr/lib/libnet$_a; then
+			( (nm $nm_opt /usr/lib/libnet$_a | eval $nm_extract) ||  \
+			ar t /usr/lib/libnet$_a) 2>/dev/null >> libc.list
+			if $contains socket libc.list >/dev/null 2>&1; then
+			echo "...but the Wollongong group seems to have hacked it in." >&4
+				socketlib="-lnet"
+				sockethdr="-I/usr/netinclude"
+				d_socket="$define"
+				if $contains setsockopt libc.list >/dev/null 2>&1; then
+					d_oldsock="$undef"
+				else
+					echo "...using the old 4.1c interface, rather than 4.2" >&4
+					d_oldsock="$define"
+				fi
+			else
+				echo "or even in libnet$_a, which is peculiar." >&4
+				d_socket="$undef"
+				d_oldsock="$undef"
+			fi
+		else
+			echo "or anywhere else I see." >&4
+			d_socket="$undef"
+			d_oldsock="$undef"
+		fi
+	fi
+fi
+
+: see if socketpair exists
+$cat >try.c <<EOC
+#$i_syssock I_SYS_SOCKET
+#$i_winsock2 I_WINSOCK2
+#ifdef I_SYS_SOCKET
+#include <sys/socket.h>
+#endif
+#ifdef I_WINSOCK2
+#include <Winsock2.h>
+#endif
+int main(void)
+{
+	static int ret, domain, type, protocol, sv[2];
+	ret |= socketpair(domain, type, protocol, sv);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=socketpair
+set d_sockpair
+eval $trylink
+
 : see if this is a sys/mount system
 set sys/mount.h i_sysmount
 eval $inhdr
@@ -11021,6 +11096,7 @@ d_mymalloc='$d_mymalloc'
 d_nanosleep='$d_nanosleep'
 d_nls='$d_nls'
 d_official='$d_official'
+d_oldsock='$d_oldsock'
 d_open3='$d_open3'
 d_os2='$d_os2'
 d_pause='$d_pause'
@@ -11061,6 +11137,8 @@ d_sigsetjmp='$d_sigsetjmp'
 d_sockaddr_in_sin_len='$d_sockaddr_in_sin_len'
 d_sockaddr_un='$d_sockaddr_un'
 d_socker_get='$d_socker_get'
+d_socket='$d_socket'
+d_sockpair='$d_sockpair'
 d_statfs='$d_statfs'
 d_statvfs='$d_statvfs'
 d_strchr='$d_strchr'
@@ -11319,6 +11397,8 @@ small='$small'
 so='$so'
 sockercflags='$sockercflags'
 sockerldflags='$sockerldflags'
+sockethdr='$sockethdr'
+socketlib='$socketlib'
 sort='$sort'
 spackage='$spackage'
 spitshell='$spitshell'
