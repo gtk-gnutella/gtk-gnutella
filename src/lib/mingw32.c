@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Jeroen Asselman
  * @date 2010
  * @author Raphael Manfredi
- * @date 2010-2012
+ * @date 2010-2013
  */
 
 #include "common.h"
@@ -86,6 +86,7 @@
 #include "mempcpy.h"
 #include "misc.h"
 #include "mutex.h"
+#include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
 #include "spinlock.h"
@@ -168,7 +169,7 @@
 #endif
 
 static HINSTANCE libws2_32;
-static bool mingw_inited;
+static once_flag_t mingw_inited;
 static bool mingw_vmm_inited;
 
 typedef struct processor_power_information {
@@ -1013,7 +1014,7 @@ get_special(int which, char *what)
 		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
 	}
 
-	return mingw_inited ? constant_str(utf8_path) : utf8_path;
+	return ONCE_DONE(mingw_inited) ? constant_str(utf8_path) : utf8_path;
 }
 
 const char *
@@ -1681,7 +1682,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
@@ -1698,7 +1699,7 @@ mingw_gethostname(char *name, size_t len)
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	result = gethostname(name, len);
@@ -1715,7 +1716,7 @@ mingw_getaddrinfo(const char *node, const char *service,
 	int result;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	result = getaddrinfo(node, service, hints, res);
@@ -1737,7 +1738,7 @@ mingw_socket(int domain, int type, int protocol)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	/*
@@ -1763,7 +1764,7 @@ mingw_bind(socket_fd_t sockfd, const struct sockaddr *addr, socklen_t addrlen)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = bind(sockfd, addr, addrlen);
@@ -1779,7 +1780,7 @@ mingw_connect(socket_fd_t sockfd, const struct sockaddr *addr,
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = connect(sockfd, addr, addrlen);
@@ -1794,7 +1795,7 @@ mingw_listen(socket_fd_t sockfd, int backlog)
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = listen(sockfd, backlog);
@@ -1809,7 +1810,7 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 	socket_fd_t res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = accept(sockfd, addr, addrlen);
@@ -1821,11 +1822,10 @@ mingw_accept(socket_fd_t sockfd, struct sockaddr *addr, socklen_t *addrlen)
 int
 mingw_shutdown(socket_fd_t sockfd, int how)
 {
-
 	int res;
 
 	/* Initialize the socket layer */
-	if G_UNLIKELY(!mingw_inited)
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
 		mingw_init();
 
 	res = shutdown(sockfd, how);
@@ -4003,15 +4003,10 @@ void mingw_vmm_post_init(void)
 		compact_size(mingw_vmm.later, FALSE));
 }
 
-void
-mingw_init(void)
+static void
+mingw_init_once(void)
 {
 	WSADATA wsaData;
-
-	if G_UNLIKELY(mingw_inited)
-		return;
-
-	mingw_inited = TRUE;
 
 	if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
 		s_error("WSAStartup() failed");
@@ -4020,6 +4015,12 @@ mingw_init(void)
     if (libws2_32 != NULL) {
         WSAPoll = (WSAPoll_func_t) GetProcAddress(libws2_32, "WSAPoll");
     }
+}
+
+void
+mingw_init(void)
+{
+	ONCE_FLAG_RUN(mingw_inited, mingw_init_once);
 }
 
 #ifdef MINGW_BACKTRACE_DEBUG
