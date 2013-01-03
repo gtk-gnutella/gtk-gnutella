@@ -153,6 +153,12 @@
 #define shutdown mingw_shutdown
 #define s_writev mingw_s_writev
 #define s_readv mingw_s_readv
+#define socketpair mingw_socketpair
+
+#ifndef HAS_SOCKETPAIR
+#define EMULATE_SOCKETPAIR
+#define HAS_SOCKETPAIR
+#endif	/* !HAS_SOCKETPAIR */
 
 #define gethostname mingw_gethostname
 #define getaddrinfo mingw_getaddrinfo
@@ -526,6 +532,8 @@ ssize_t s_read(socket_fd_t fd, void *buf, size_t count);
 ssize_t mingw_s_readv(socket_fd_t fd, const iovec_t *iov, int iovcnt);
 ssize_t mingw_recvfrom(socket_fd_t, void *, size_t, int,
 			struct sockaddr *, socklen_t *);
+int
+mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2]);
 
 int s_close(socket_fd_t fd);
 ssize_t mingw_s_writev(socket_fd_t fd, const iovec_t *iov, int iovcnt);

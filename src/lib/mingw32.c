@@ -143,6 +143,7 @@
 #undef setsockopt
 #undef recv
 #undef sendto
+#undef socketpair
 
 #undef abort
 #undef execve
@@ -1816,6 +1817,129 @@ mingw_shutdown(socket_fd_t sockfd, int how)
 	res = shutdown(sockfd, how);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
+	return res;
+}
+
+#ifdef EMULATE_SOCKETPAIR
+static int
+socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
+{
+	socket_fd_t as = INVALID_SOCKET, cs = INVALID_SOCKET, ls = INVALID_SOCKET;
+	struct sockaddr_in laddr, caddr;
+	socklen_t laddrlen, caddrlen;
+	int r;
+
+	if (AF_UNIX != domain) {
+		errno = EAFNOSUPPORT;
+		return -1;
+	}
+
+	if (NULL == sv) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	g_assert_log(SOCK_STREAM == type,
+		"%s() only emulates SOCK_STREAM pairs", G_STRFUNC);
+
+	ZERO(&laddr);
+	ZERO(&caddr);
+
+	ls = socket(AF_INET, type, protocol);
+	if (INVALID_SOCKET == ls) {
+		errno = mingw_wsa_last_error();
+		return -1;
+	}
+
+	laddr.sin_family = AF_INET;
+	laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	laddr.sin_port = 0;
+
+	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
+	if (-1 == r)
+		goto failed;
+	r = listen(ls, 1);
+	if (-1 == r)
+		goto failed;
+
+	cs = socket(AF_INET, type, protocol);
+	if (INVALID_SOCKET == cs)
+		goto failed;
+
+	/*
+	 * Where do we connect to (the kernel chooses the port)?
+	 */
+
+	laddrlen = sizeof laddr;
+	r = getsockname(ls, (struct sockaddr *) &laddr, &laddrlen);
+	if (-1 == r || laddrlen != sizeof laddr)
+		goto failed;
+
+	/*
+	 * The following won't block because the listening socket has a backlog
+	 * of 1 and the connection will happen "immediately".
+	 */
+
+	r = connect(cs, (struct sockaddr *) &laddr, sizeof laddr);
+	if (-1 == r)
+		goto failed;
+
+	/*
+	 * Now that we have a half-opened connection on the listening socket
+	 * we can accept without blocking.
+	 */
+
+	caddrlen = sizeof caddr;
+	as = accept(ls, (struct sockaddr *) &caddr, &caddrlen);
+	if (INVALID_SOCKET == as || caddrlen != sizeof caddr)
+		goto failed;
+
+	s_close(ls);
+	ls = -1;
+
+	/*
+	 * Check that the two sockets are indeed connected to each other.
+	 */
+
+	r = getsockname(as, (struct sockaddr *) &caddr, &caddrlen);
+	if (-1 == r || caddrlen != sizeof caddr)
+		goto failed;
+
+	g_assert(caddr.sin_addr.s_addr == laddr.sin_addr.s_addr);
+	g_assert(caddr.sin_port == laddr.sin_port);
+
+	sv[0] = cs;
+	sv[1] = as;
+
+	return 0;
+
+failed:
+	errno = mingw_wsa_last_error();
+	if (INVALID_SOCKET != ls)
+		s_close(ls);
+	if (INVALID_SOCKET != as)
+		s_close(as);
+	if (INVALID_SOCKET != cs)
+		s_close(cs);
+
+	return -1;
+}
+#endif	/* EMULATE_SOCKETPAIR */
+
+int
+mingw_socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
+{
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!ONCE_DONE(mingw_inited))
+		mingw_init();
+
+	res = socketpair(domain, type, protocol, sv);
+#ifndef EMULATE_SOCKETPAIR
+	if (-1 == res)
+		errno = mingw_wsa_last_error();
+#endif
 	return res;
 }
 
