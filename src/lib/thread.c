@@ -2075,15 +2075,21 @@ thread_check_suspended(void)
  * Suspend other threads (advisory, not kernel-enforced).
  *
  * This is voluntary suspension, which will only occur when threads actively
- * check for supension by calling thread_check_suspended().
+ * check for supension by calling thread_check_suspended() or when they
+ * attempt to acquire their first registered lock or release their last one.
  *
  * It is possible to call this routine multiple times, provided each call is
  * matched with a corresponding thread_unsuspend_others().
  *
+ * Optionally the routine can wait for other threads to be no longer holding
+ * any locks before returning.
+ *
+ * @param lockwait	if set, wait until all other threads released their locks
+ *
  * @return the amount of threads suspended.
  */
 size_t
-thread_suspend_others(void)
+thread_suspend_others(bool lockwait)
 {
 	struct thread_element *te;
 	size_t i, n = 0;
@@ -2152,7 +2158,7 @@ thread_suspend_others(void)
 	 * about this situation.
 	 */
 
-	if (busy != 0) {
+	if (lockwait && busy != 0) {
 		if (0 != te->locks.count) {
 			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
 				G_STRFUNC, busy, 1 == busy ? "" : "s",

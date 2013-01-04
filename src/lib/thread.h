@@ -118,7 +118,7 @@ unsigned thread_count();
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 
-size_t thread_suspend_others(void);
+size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
 void thread_check_suspended(void);
 
