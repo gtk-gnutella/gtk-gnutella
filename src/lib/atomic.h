@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * and mutexes.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011, 2013
  */
 
 #ifndef _atomic_h_
@@ -140,6 +140,34 @@ atomic_acquire(atomic_lock_t *lock)
 	 */
 
 	return atomic_test_and_set(lock);
+}
+
+static inline ALWAYS_INLINE int
+atomic_int_get(int *p)
+{
+	atomic_mb();
+	return *p;
+}
+
+static inline ALWAYS_INLINE void
+atomic_int_set(int *p, int v)
+{
+	*p = v;
+	atomic_mb();
+}
+
+static inline ALWAYS_INLINE uint
+atomic_uint_get(uint *p)
+{
+	atomic_mb();
+	return *p;
+}
+
+static inline ALWAYS_INLINE void
+atomic_uint_set(uint *p, uint v)
+{
+	*p = v;
+	atomic_mb();
 }
 
 #endif /* _atomic_h_ */
