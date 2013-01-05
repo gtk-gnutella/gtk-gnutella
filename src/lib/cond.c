@@ -719,7 +719,7 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	semaphore_t *sem;
 
 	g_assert(c != NULL);
-	g_assert(mutex_is_owned(m));
+	assert_mutex_is_owned(m);
 	g_assert(1 == mutex_held_depth(m));
 
 	cv = cond_get_init(c, m, TRUE);
@@ -1013,7 +1013,7 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
 	int signals = 0;		/* Amount of signals to send */
 
 	g_assert(c != NULL);
-	g_assert(mutex_is_owned(m));
+	assert_mutex_is_owned(m);
 
 	cv = cond_get_init(c, m, FALSE);
 

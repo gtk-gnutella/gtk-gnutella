@@ -407,7 +407,7 @@ const char *
 mutex_get_lock_source(const mutex_t * const m, unsigned *line)
 {
 	mutex_check(m);
-	g_assert(mutex_is_owned(m));
+	assert_mutex_is_owned(m);
 
 	*line = m->lock.line;
 	return m->lock.file;
@@ -427,14 +427,39 @@ void
 mutex_set_lock_source(mutex_t *m, const char *file, unsigned line)
 {
 	mutex_check(m);
-	g_assert(mutex_is_owned(m));
+	assert_mutex_is_owned(m);
 	g_assert(1 == m->depth);
 
 	m->lock.file = file;
 	m->lock.line = line;
 }
-
 #endif	/* SPINLOCK_DEBUG */
+
+/**
+ * Log mutex ownership error.
+ */
+static void G_GNUC_NORETURN
+mutex_log_error(const mutex_t *m, const char *file, unsigned line)
+{
+	thread_t t = thread_current();
+
+#ifdef SPINLOCK_DEBUG
+	s_minierror("thread #%u expected to own mutex %p (%s) at %s:%u"
+		" (depth=%zu, owner=thread #%d [%lu] from %s:%u,"
+		" current/self=[%lu, %lu] #%d)",
+		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
+		file, line, m->depth, thread_stid_from_thread(m->owner),
+		(ulong) m->owner, m->lock.file, m->lock.line,
+		(ulong) t, (ulong) thread_self(), thread_stid_from_thread(t));
+#else	/* !SPINLOCK_DEBUG */
+	s_minierror("thread #%u expected to own mutex %p (%s) at %s:%u"
+		" (depth=%zu, owner=thread #%d [%lu], current/self=[%lu, %lu] #%d)",
+		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
+		file, line, m->depth, thread_stid_from_thread(m->owner),
+		(ulong) m->owner, (ulong) t, (ulong) thread_self(),
+		thread_stid_from_thread(t));
+#endif	/* SPINLOCK_DEBUG */
+}
 
 /**
  * Release a mutex, which must be owned currently.
@@ -468,22 +493,13 @@ mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 	if G_UNLIKELY(!mutex_is_owned_by_fast(m, t)) {	/* Precondition */
 		if (mutex_pass_through)
 			return;
-		/* OK, re-assert so that we get the precondition failure */
+		/* OK, log the precondition failure */
 #ifdef SPINLOCK_DEBUG
-		g_assert_log(mutex_is_owned(m),
-			"thread #%u attempts to release unowned mutex %p at %s:%d"
-			" (depth=%zu, owner=thread #%d [%lu] from %s:%u, self=[%lu])",
-			thread_small_id(), m, file, line, m->depth,
-			thread_stid_from_thread(m->owner),
-			(ulong) m->owner, m->lock.file, m->lock.line,
-			(ulong) thread_current());
-#else	/* !SPINLOCK_DEBUG */
-		g_assert_log(mutex_is_owned(m),
-			"thread #%u attempts to release unowned mutex %p"
-			" (depth=%zu, owner=thread #%d [%lu], self=[%lu])",
-			thread_small_id(), m, m->depth, thread_stid_from_thread(m->owner),
-			(ulong) m->owner, (ulong) thread_current());
-#endif	/* SPINLOCK_DEBUG */
+		mutex_log_error(m, file, line);
+#else
+		/* Location does not have the same semantics as above here... */
+		mutex_log_error(m, _WHERE_, __LINE__);
+#endif
 	}
 
 	if (0 == --m->depth) {
@@ -493,6 +509,22 @@ mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 
 	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_release_account(m, element);
+}
+
+/**
+ * Complain when a mutex is not owned by the curent thread.
+ *
+ * This is a fatal error, there is no returning from this routine.
+ * It is invoked through the assert_mutex_is_owned() macro.
+ */
+void
+mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
+{
+
+	s_minicrit("Mutex %p not owned at %s:%u in %s",
+		m, file, line, thread_name());
+
+	mutex_log_error(m, file, line);
 }
 
 #ifdef SPINLOCK_DEBUG

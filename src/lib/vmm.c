@@ -1324,7 +1324,7 @@ pmap_extend(struct pmap *pm)
 	size_t old_generation;
 	bool was_extending = pm->extending;
 
-	g_assert(mutex_is_owned(&pm->lock));
+	assert_mutex_is_owned(&pm->lock);
 
 retry:
 
@@ -2028,7 +2028,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	bool fragment;
 
-	g_assert(mutex_is_owned(&pm->lock));
+	assert_mutex_is_owned(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 

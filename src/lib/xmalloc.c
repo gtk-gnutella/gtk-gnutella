@@ -1203,7 +1203,7 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 
 	g_assert(array != NULL);
 	g_assert(size_is_non_negative(len));
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 	g_assert(size_is_non_negative(fl->count));
 
 	ptr = fl->pointers;							/* Can be NULL */
@@ -1257,7 +1257,7 @@ xfl_shrink(struct xfreelist *fl)
 
 	g_assert(fl->count < fl->capacity);
 	g_assert(size_is_non_negative(fl->count));
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1363,7 +1363,7 @@ xfl_shrink(struct xfreelist *fl)
 static void
 xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 {
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	/*
 	 * Update maximum bucket index and clear freelist bit if we removed
@@ -1498,7 +1498,7 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 
 	g_assert(size_is_positive(fl->count));
 	g_assert(fl->count >= fl->sorted);
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	xstats.freelist_blocks--;
 	xstats.freelist_memory -= fl->blocksize;
@@ -1661,7 +1661,7 @@ xfl_extend(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 	g_assert(fl->count >= fl->capacity || fl->expand);
 
 	old_ptr = fl->pointers;
@@ -1827,7 +1827,7 @@ xfl_sort(struct xfreelist *fl)
 	void **ary = fl->pointers;
 	size_t x = fl->sorted;			/* Index of first unsorted item */
 
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	/*
 	 * Items from 0 to fl->sorted are already fully sorted, so we only need
@@ -1972,7 +1972,7 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 {
 	size_t unsorted;
 
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	if G_UNLIKELY(0 == fl->count) {
 		if (low_ptr != NULL)
@@ -2040,7 +2040,7 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 	g_assert(size_is_positive(fl->count));
 	g_assert(size_is_non_negative(idx) && idx < fl->count);
 	g_assert(fl->count >= fl->sorted);
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 
 	fl->count--;
 	if (idx < fl->sorted)
@@ -2380,7 +2380,7 @@ xfl_select(struct xfreelist *fl)
 {
 	void *p;
 
-	g_assert(mutex_is_owned(&fl->lock));
+	assert_mutex_is_owned(&fl->lock);
 	g_assert(fl->count != 0);
 
 	/*

@@ -404,7 +404,7 @@ ev_link(cevent_t *ev)
 	cq = ev->ce_cq;
 	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	trigger = ev->ce_time;
 	cq->cq_items++;
@@ -497,7 +497,7 @@ ev_unlink(cevent_t *ev)
 	cevent_check(ev);
 	cq = ev->ce_cq;
 	cqueue_check(cq);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
@@ -639,7 +639,7 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
 	cevent_t *ev;
 
 	cqueue_check(cq);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 	g_assert(ev_ptr != NULL);
 
 	ev = *ev_ptr;
@@ -800,7 +800,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	cq_service_t fn;
 	void *arg;
 
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	/*
 	 * Remove event from queue before firing.
@@ -951,7 +951,7 @@ cq_clock(cqueue_t *cq, int elapsed)
 
 	cqueue_check(cq);
 	g_assert(elapsed >= 0);
-	g_assert(mutex_is_owned(&cq->cq_lock));
+	assert_mutex_is_owned(&cq->cq_lock);
 
 	/*
 	 * Recursive calls are possible: in the middle of an event, we could

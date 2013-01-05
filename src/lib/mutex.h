@@ -191,6 +191,14 @@ bool mutex_is_owned(const mutex_t *m);
 bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
 
+void NON_NULL_PARAM((1, 2)) G_GNUC_NORETURN
+mutex_not_owned(const mutex_t *m, const char *file, unsigned line);
+
+#define assert_mutex_is_owned(mtx) G_STMT_START {	\
+	if G_UNLIKELY(!mutex_is_owned(mtx))				\
+		mutex_not_owned((mtx), _WHERE_, __LINE__);	\
+} G_STMT_END
+
 #endif /* _mutex_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
