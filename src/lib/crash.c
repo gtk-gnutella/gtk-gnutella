@@ -90,10 +90,12 @@
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
+#include "mutex.h"				/* For mutex_crash_mode() */
 #include "offtime.h"
 #include "omalloc.h"
 #include "path.h"
 #include "signal.h"
+#include "spinlock.h"			/* For spinlock_crash_mode() */
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
@@ -953,7 +955,7 @@ crash_fork_timeout(int signo)
 #endif	/* HAS_FORK */
 
 /**
- * A fork() wrapper to work around libc6 bugs causing hangs within fork().
+ * A fork() wrapper to handle multi-threaded environments "safely".
  */
 static G_GNUC_COLD pid_t
 crash_fork(void)
@@ -996,6 +998,21 @@ restore:
 	alarm(remain);
 	signal_set(SIGALRM, old_sigalrm);
 #endif
+
+	/*
+	 * If we are in the child process, we are now the sole thread running
+	 * because only the thread executing the fork() is kept running.
+	 *
+	 * However, we are in crash-mode, hence all the locks are pass-through
+	 * and we cannot deadlock with a lock that one of the other threads could
+	 * have been taking in the parent process.
+	 *
+	 * We MUST NOT call thread_forked() here as we would in normal user code
+	 * because that would reset the thread information that we are going to
+	 * propagate in the crash log, in particular the list of locks held by
+	 * the other non-crashing threads, or corrupt the amount of running threads
+	 * as returned by thread_count().
+	 */
 
 	return pid;
 #else
@@ -1831,6 +1848,31 @@ crash_mode(void)
 
 	vmm_crash_mode();
 	xmalloc_crash_mode();
+
+	/*
+	 * Suspend the other threads if possible, to avoid a cascade of errors
+	 * and other assertion failures.  If a thread is crashing, something is
+	 * wrong in the aplication global state.
+	 *
+	 * This is advisory suspension only, and we do not wait for all the other
+	 * threads to have released their locks since we are in a rather emergency
+	 * situation.
+	 */
+
+	thread_suspend_others(FALSE);
+
+	/*
+	 * Locks that can be "hidden" need to become pass-through since suspension
+	 * can cause threads holding these hidden locks to not be released, causing
+	 * deadlocks during the crash sequence.
+	 */
+
+	spinlock_crash_mode();
+	mutex_crash_mode();
+
+	/*
+	 * Activate crash mode.
+	 */
 
 	if (vars != NULL) {
 		if (!vars->crash_mode) {

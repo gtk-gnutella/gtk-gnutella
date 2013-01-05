@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 Raphael Manfredi
+ * Copyright (c) 2011-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -43,7 +43,7 @@
  * thread-private data and make sure no locks are held.
  *
  * @author Raphael Manfredi
- * @date 2011-2012
+ * @date 2011-2013
  */
 
 #include "common.h"
@@ -1189,7 +1189,7 @@ thread_reuse_element(void)
 			}
 			THREAD_UNLOCK(t);
 			if (te != NULL) {
-				hash_table_t * ght = thread_get_global_hash();
+				hash_table_t *ght = thread_get_global_hash();
 				hash_table_remove_no_resize(ght, &te->tid);
 				break;
 			}
@@ -2737,8 +2737,8 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	DECLARE_STR(17);
 
 	if G_UNLIKELY(0 == tls->count) {
-		print_str(thread_element_name(te));			/* 0 */
-		print_str("currently holds no locks.\n");	/* 1 */
+		print_str(thread_element_name(te));					/* 0 */
+		print_str(" currently holds no recorded locks.\n");	/* 1 */
 		flush_str(fd);
 		return;
 	}
@@ -3385,6 +3385,252 @@ thread_lock_deadlock(const volatile void *lock)
 
 	s_miniinfo("attempting to unwind current stack:");
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+}
+
+static void
+thread_element_clear_locks(struct thread_element *te)
+{
+	struct thread_lock_stack *tls = &te->locks;
+	unsigned i;
+
+	for (i = 0; i < tls->count; i++) {
+		const struct thread_lock *l = &tls->arena[i];
+		const char *type;
+		const char *file = NULL;
+		unsigned line = 0;
+		bool unlocked = FALSE;
+
+		type = thread_lock_kind_to_string(l->kind);
+
+		switch(l->kind) {
+		case THREAD_LOCK_SPINLOCK:
+			{
+				spinlock_t *s = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(s, sizeof *s) &&
+					SPINLOCK_MAGIC == s->magic &&
+					1 == s->lock
+				) {
+					unlocked = TRUE;
+					s->lock = 0;
+#ifdef SPINLOCK_DEBUG
+					file = s->file;
+					line = s->line;
+#endif
+				}
+			}
+			break;
+		case THREAD_LOCK_MUTEX:
+			{
+				mutex_t *m = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(m, sizeof *m) &&
+					MUTEX_MAGIC == m->magic &&
+					1 == m->lock.lock
+				) {
+					unlocked = TRUE;
+					m->lock.lock = 0;
+					m->depth = 0;
+#ifdef SPINLOCK_DEBUG
+					file = m->lock.file;
+					line = m->lock.line;
+#endif
+				}
+			}
+			break;
+		}
+
+		if (unlocked) {
+			char time_buf[18];
+			char buf[POINTER_BUFLEN + 2];
+			DECLARE_STR(10);
+
+			buf[0] = '0';
+			buf[1] = 'x';
+			pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);				/* 0 */
+			print_str(" WARNING: unlocked ");	/* 1 */
+			print_str(type);					/* 2 */
+			print_str(" ");						/* 3 */
+			print_str(buf);						/* 4 */
+			if (file != NULL) {
+				const char *lnum;
+				char lbuf[UINT_DEC_BUFLEN];
+
+				lnum = print_number(lbuf, sizeof lbuf, line);
+				print_str(" from ");			/* 5 */
+				print_str(file);				/* 6 */
+				print_str(":");					/* 7 */
+				print_str(lnum);				/* 8 */
+			}
+			print_str("\n");					/* 9 */
+			flush_err_str();
+		}
+	}
+}
+
+/**
+ * Wrapper over fork() to be as thread-safe as possible when forking.
+ *
+ * A forking thread must be out of all its critical sections, i.e. it must
+ * not hold any locks.
+ *
+ * If "safe" is TRUE (recommended setting), the fork() only occurs when all
+ * the other threads have been suspended and are out of their (advertised)
+ * critical sections.
+ *
+ * Otherwise, the fork() happens immediately but depending where the other
+ * threads were in their critical sections, this may have adverse effects.
+ * For instance, if a thread was updating malloc() data structures, the
+ * new process may be facing inconstencies that could lead to failure or
+ * memory corruption.
+ *
+ * @note
+ * The safety offered here is only partial since many low-level routines take
+ * "hidden" or "fast" locks, either because the penalty of recording the lock
+ * would be too great or because the current thread may be hard to assess and
+ * therefore a "fast" lock is the only option.
+ *
+ * Taking a "fast" or "hidden" lock to be able to consistently read data is OK
+ * because no inconsistency can be created, but taking such a lock for modifying
+ * data means that there is a potential for failure when thread_fork() is
+ * called.
+ *
+ * @param safe		if FALSE, immediately fork, otherwise wait for others
+ */
+pid_t
+thread_fork(bool safe)
+{
+	/*
+	 * A forking thread must be out of all its critical sections.
+	 */
+
+	thread_assert_no_locks(G_STRFUNC);
+
+#ifdef HAS_FORK
+	{
+		pid_t child;
+
+		/*
+		 * If "safe" is TRUE, wait for all the other threads to no longer hold
+		 * any locks, thereby ensuring all their critical sections have been
+		 * completed.
+		 */
+
+		thread_suspend_others(safe);
+
+		switch ((child = fork())) {
+		case 0:
+			thread_forked();
+			return 0;
+		default:
+			thread_unsuspend_others();
+			return child;
+		}
+		g_assert_not_reached();
+	}
+#else
+	(void) safe;
+	errno = ENOSYS;
+	return -1;
+#endif
+}
+
+/**
+ * Signals that current thread has forked and is now running in the child.
+ *
+ * When a thread has called fork(), its child should invoke this routine.
+ *
+ * Alternatively, threads willing to fork() can call thread_fork() to handle
+ * the necessary cleanup appropriately.
+ */
+void
+thread_forked(void)
+{
+	hash_table_t *ght;
+	struct thread_element *te;
+	unsigned i;
+
+	te = thread_find(&te, NULL);
+	if (NULL == te) {
+		char time_buf[18];
+		DECLARE_STR(4);
+
+		crash_time(time_buf, sizeof time_buf);
+		print_str(time_buf);								/* 0 */
+		print_str(" WARNING: ");							/* 1 */
+		print_str(G_STRFUNC);								/* 2 */
+		print_str("(): cannot determine current thread\n");	/* 3 */
+		flush_err_str();
+		return;
+	}
+
+	/*
+	 * After fork() we are the main thread and the only one running.
+	 */
+
+	thread_main_stid = te->stid;
+	thread_stamp++;
+	thread_running = 0;
+	thread_discovered = 1;		/* We're discovering ourselves */
+	te->created = FALSE;
+	te->discovered = TRUE;
+
+	/*
+	 * FIXME:
+	 * If thread_forked() is really used through thread_fork() then we'll
+	 * need to complete the support:
+	 *
+	 * - need to add semaphore_forget() to forget about the parent's semaphores.
+	 * - need cond_reset_all() to reset all known condition variables, which
+	 *   means we'll have to track them somehow.
+	 *
+	 * For now, we only reset all the other threads' locks to prevent any
+	 * deadlock at crash time.  When we come from thread_fork(TRUE), no thread
+	 * should hold any lock since we waited, but when coming from the
+	 * crash handler or thread_fork(FALSE), we cannot be sure.
+	 *
+	 * All the reset locks will be traced.  By construction "hidden" locks are
+	 * invisible and "fast" locks are not recorded, so this can only affect
+	 * registered (normal) locks.
+	 *		--RAM, 2013-01-05
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if (te == xte)
+			continue;
+
+		if (0 != xte->locks.count)
+			thread_element_clear_locks(xte);
+
+		xmalloc_thread_ended(xte->stid);
+		thread_element_reset(xte);
+		xte->reusable = TRUE;
+		xte->main_thread = FALSE;
+	}
+
+	/*
+	 * Re-insert ourselves in the global hash.
+	 */
+
+	ght = thread_get_global_hash();
+	hash_table_clear(ght);
+	thread_set(te->tid, thread_self());	/* May have changed after fork() */
+	hash_table_insert(ght, &te->tid, te);
+	te->main_thread = TRUE;
+
+	/*
+	 * Reset statistics.
+	 */
+
+	ZERO(&thread_stats);
+	THREAD_STATS_INC(discovered);
 }
 
 /**

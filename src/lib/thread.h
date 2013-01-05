@@ -161,6 +161,9 @@ int thread_create_full(thread_main_t routine, void *arg, uint flags,
 void thread_exit(void *value) G_GNUC_NORETURN;
 int thread_join(unsigned id, void **result, bool nowait);
 
+pid_t thread_fork(bool safe);
+void thread_forked(void);
+
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
 #ifdef I_PTHREAD
 /**

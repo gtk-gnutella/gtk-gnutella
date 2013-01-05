@@ -43,6 +43,7 @@
 #include "parse.h"
 #include "path.h"
 #include "semaphore.h"
+#include "spinlock.h"
 #include "str.h"
 #include "thread.h"
 #include "tm.h"
@@ -59,7 +60,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACIMNS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACFIMNS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -68,6 +69,7 @@ usage(void)
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -C : test thread creation\n"
+		"  -F : test thread fork\n"
 		"  -I : test inter-thread waiter signaling\n"
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
@@ -577,6 +579,118 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	}
 }
 
+static spinlock_t locks[] = { SPINLOCK_INIT, SPINLOCK_INIT };
+static mutex_t mutexes[] = { MUTEX_INIT, MUTEX_INIT };
+const char *fork_names[] = { "locker #1", "locker #2" };
+
+static void *
+fork_locker(void *arg)
+{
+	int n = pointer_to_int(arg);
+
+	thread_set_name(fork_names[n]);
+
+	printf("%s locking...\n", thread_name());
+	fflush(stdout);
+
+	spinlock(&locks[n]);
+	mutex_lock(&mutexes[n]);
+
+	printf("%s locked, sleeping for 5 secs\n", thread_name());
+	fflush(stdout);
+
+	sleep(5);
+
+	printf("%s unlocking\n", thread_name());
+	fflush(stdout);
+
+	mutex_unlock(&mutexes[n]);
+	spinunlock(&locks[n]);
+
+	return NULL;
+}
+
+static void *
+fork_forker(void *arg)
+{
+	pid_t pid;
+	unsigned running;
+	bool safe = booleanize(pointer_to_int(arg));
+
+	printf("%s() waiting 1 sec\n", G_STRFUNC);
+	fflush(stdout);
+	sleep(1);
+
+	running = thread_count();
+	printf("%s() forking with %u running thread%s, STID=%u\n", G_STRFUNC,
+		running, 1 == running ? "" : "s", thread_small_id());
+	fflush(stdout);
+
+	thread_lock_dump_all(STDOUT_FILENO);
+
+	switch ((pid = thread_fork(safe))) {
+	case -1:
+		s_error("%s() cannot fork(): %m", G_STRFUNC);
+	case 0:
+		printf("%s() child process started as STID=%u\n",
+			G_STRFUNC, thread_small_id());
+		printf("%s() child has %u thread\n", G_STRFUNC, thread_count());
+		fflush(stdout);
+		thread_lock_dump_all(STDOUT_FILENO);
+		exit(EXIT_SUCCESS);
+	default:
+		printf("%s() child forked, waiting...\n", G_STRFUNC);
+		fflush(stdout);
+#ifdef HAS_WAITPID
+		{
+			pid_t w = waitpid(pid, NULL, 0);
+			if (-1 == w)
+				s_error("%s() cannot wait(): %m", G_STRFUNC);
+		}
+#endif
+		printf("%s() child terminated, exiting thread\n", G_STRFUNC);
+		fflush(stdout);
+	}
+
+	return NULL;
+}
+
+static void
+test_fork(bool safe)
+{
+	int l1, l2, fk, r;
+	unsigned running;
+
+	printf("--- testing thread_fork(%s)\n", safe ? "TRUE" : "FALSE");
+
+	running = thread_count();
+	printf("starting with %u running thread%s\n",
+		running, 1 == running ? "" : "s");
+
+	l1 = thread_create(fork_locker, int_to_pointer(0), 0, 8192);
+	l2 = thread_create(fork_locker, int_to_pointer(1), 0, 8192);
+	fk = thread_create(fork_forker, int_to_pointer(safe), 0, 8192);
+
+	if (-1 == l1 || -1 == l2 || -1 == fk)
+		s_error("%s() could not create threads", G_STRFUNC);
+
+	r = thread_join(l1, NULL, FALSE);
+	if (-1 == r)
+		s_error("first thread_join() failed: %m");
+	r = thread_join(l2, NULL, FALSE);
+	if (-1 == r)
+		s_error("second thread_join() failed: %m");
+	r = thread_join(fk, NULL, FALSE);
+	if (-1 == r)
+		s_error("final thread_join() failed: %m");
+
+	running = thread_count();
+	printf("ending with %u running thread%s\n",
+		running, 1 == running ? "" : "s");
+
+	printf("--- test of thread_fork(%s) done!\n", safe ? "TRUE" : "FALSE");
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -601,7 +715,7 @@ main(int argc, char **argv)
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE;
-	bool inter = FALSE;
+	bool inter = FALSE, forking = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -610,13 +724,16 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACIMNST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACFIMNST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
+			break;
+		case 'F':			/* test thread_fork() */
+			forking = TRUE;
 			break;
 		case 'I':			/* test inter-thread signaling */
 			inter = TRUE;
@@ -673,6 +790,11 @@ main(int argc, char **argv)
 
 	if (inter)
 		test_inter();
+
+	if (forking) {
+		test_fork(TRUE);
+		test_fork(FALSE);
+	}
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
