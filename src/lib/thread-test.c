@@ -490,7 +490,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 		tm_add(&end, &play);
 
 		w = waiter_make(NULL);
-		cond_waiter_add(&game_state_change, &game_state_lock, w);
+		cond_waiter_add(&game_state_change, w);
 		g_assert(2 == waiter_refcnt(w));
 
 		if (!waiter_suspend(w))
@@ -524,7 +524,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 			}
 		}
 
-		cond_waiter_remove(&game_state_change, &game_state_lock, w);
+		cond_waiter_remove(&game_state_change, w);
 		g_assert(1 == waiter_refcnt(w));
 		waiter_refcnt_dec(w);
 	} else {
@@ -559,6 +559,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 
 	mutex_unlock(&game_state_lock);
 	mutex_destroy(&game_state_lock);
+	if (!cond_reset(&game_state_change))
+		s_warning("cannot reset condition?");
 	cond_destroy(&game_state_change);
 
 	/* Must work also after destruction */
