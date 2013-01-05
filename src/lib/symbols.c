@@ -91,6 +91,16 @@ symbols_check(const struct symbols * const s)
 }
 
 static const char NM_FILE[] = "gtk-gnutella.nm";
+static bool symbols_verbose;
+
+/**
+ * Should symbol loading be verbosely notified?
+ */
+void
+symbols_set_verbose(bool verbose)
+{
+	symbols_verbose = verbose;
+}
 
 /**
  * @return amount of symbols
@@ -1226,11 +1236,14 @@ use_pre_computed:
 	}
 
 done:
-	s_info("loaded %zu symbols for \"%s\" via %s", st->count, lpath, method);
+	if (symbols_verbose) {
+		s_info("loaded %zu symbols for \"%s\" via %s",
+			st->count, lpath, method);
+	}
 
 	stripped = symbols_sort(st);
 
-	if (stripped != 0) {
+	if (stripped != 0 && symbols_verbose) {
 		s_warning("stripped %zu duplicate symbol%s",
 			stripped, 1 == stripped ? "" : "s");
 	}

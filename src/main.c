@@ -140,6 +140,7 @@
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
+#include "lib/symbols.h"
 #include "lib/tea.h"
 #include "lib/thread.h"
 #include "lib/tiger.h"
@@ -1761,6 +1762,7 @@ main(int argc, char **argv)
 	stacktrace_init(argv[0], TRUE);	/* Defer loading until needed */
 	handle_arguments_asap();
 
+	symbols_set_verbose(TRUE);
 	mingw_init();
 	atoms_init();
 	settings_early_init();
