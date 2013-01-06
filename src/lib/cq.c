@@ -36,11 +36,14 @@
 
 #include "cq.h"
 #include "atoms.h"
+#include "compat_sleep_ms.h"
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
 #include "once.h"
+#include "stacktrace.h"
 #include "stringify.h"
+#include "thread.h"
 #include "tm.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -87,11 +90,14 @@ cevent_check(const struct cevent * const ce)
  * Structural equivalence guarantees that we can use an extended event as
  * a regular event as long as we don't need to access the extra fields.
  *
- * An extended event is created by cq_insert_foreign() (or any wrapping
- * convenience routine) when the caller wants to keep a reference on the
- * created event.  The caller will need to explictly call cq_cancel() to free
- * the event, regardless of whether it was already scheduled, unless it does
- * not call cq_zero(), in which case it will be freed upon return.
+ * An extended event is created by cq_insert() (or any wrapping convenience
+ * routine) when the caller is not the thread that runs the queue, and the
+ * caller will need to keep a reference on the created event.
+ *
+ * The caller will need to explictly call cq_cancel() to free the event,
+ * regardless of whether it was already scheduled, unless it does not call
+ * cq_zero(), in which case it will be freed upon return.  This would happen
+ * if the caller does not (need to) remember the value returned by cq_insert().
  */
 struct cevent_ext {
 	struct cevent event;
@@ -156,6 +162,7 @@ struct cqueue {
 	hset_t *cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
 	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
+	unsigned cq_stid;			/**< Thread where callout queue runs */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
 	int cq_items;				/**< Amount of recorded events */
 	int cq_last_bucket;			/**< Last bucket slot we were at */
@@ -215,6 +222,16 @@ cq_main(void)
 }
 
 /**
+ * @return the thread ID running the main callout queue.
+ */
+unsigned
+cq_main_thread_id(void)
+{
+	cq_main_init();
+	return callout_queue->cq_stid;
+}
+
+/**
  * Initialize newly created callout queue object.
  *
  * @param name		queue name, for logging
@@ -236,6 +253,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 	cq->cq_time = now;
 	cq->cq_last_bucket = EV_HASH(now);
 	cq->cq_period = period;
+	cq->cq_stid = thread_small_id();	/* Assume it runs in current thread */
 	mutex_init(&cq->cq_lock);
 	mutex_init(&cq->cq_idle_lock);
 
@@ -548,6 +566,13 @@ cq_insert_internal(cqueue_t *cq, cevent_t *ev,
  * time we shall call fn(cq, arg), where cq is the callout queue from
  * where we triggered, and arg is an additional argument.
  *
+ * The call will happen from the thread that runs the callout queue, not
+ * necessarily from * the thread that is registering this event (which could
+ * be a "foreign" thread).
+ *
+ * Regardless of whether the call is triggered, the registering thread will
+ * need to run cq_cancel() on the event handle returned to clean it up.
+ *
  * @param cq		The callout queue
  * @param delay		The delay, expressed in cq's "virtual time" (see cq_clock)
  * @param fn		The callback function
@@ -560,42 +585,30 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 {
 	cevent_t *ev;				/* Event to insert */
 
-	WALLOC(ev);
-	ev->ce_magic = CEVENT_MAGIC;
+	/*
+	 * If we are called from a "foreign" thread, i.e. not from the thread
+	 * that runs the callout queue, we create extended events.
+	 */
+
+	if (thread_small_id() != cq->cq_stid) {
+		struct cevent_ext *evx;				/* Event to insert */
+
+		/*
+		 * The exented event is reference-counted: at creation time, it is
+		 * supposed to be * referenced by the queue and by the thread, which
+		 * will keep the returned value in a variable.
+		 */
+
+		WALLOC(evx);
+		ev = &evx->event;
+		ev->ce_magic = CEVENT_EXT_MAGIC;
+		evx->cex_refcnt = 2;				/* One by queue, one by thread */
+	} else {
+		WALLOC(ev);
+		ev->ce_magic = CEVENT_MAGIC;
+	}
 
 	return cq_insert_internal(cq, ev, delay, fn, arg);
-}
-
-/**
- * Insert a new event in the callout queue and return an opaque handle that
- * can be used to cancel the event.
- *
- * The event is specified to occur in some "delay" amount of time, at which
- * time we shall call fn(cq, arg), where cq is the callout queue from
- * where we triggered, and arg is an additional argument.
- *
- * The call will happen from the thread that runs the callout queue, not from
- * the thread that is registering this event (which is a "foreign" thread).
- * Regardless of whether the call is triggered, the registering thread will
- * need to run cq_cancel() on the event handle returned to clean it up.
- *
- * @param cq		the callout queue
- * @param delay		the delay, expressed in cq's "virtual time" (see cq_clock)
- * @param fn		the callback function
- * @param arg		the argument to be passed to the callback function
- *
- * @returns the event handle.
- */
-cevent_t *
-cq_insert_foreign(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
-{
-	struct cevent_ext *evx;				/* Event to insert */
-
-	WALLOC(evx);
-	evx->event.ce_magic = CEVENT_EXT_MAGIC;
-	evx->cex_refcnt = 2;				/* One by queue, one by thread */
-
-	return cq_insert_internal(cq, &evx->event, delay, fn, arg);
 }
 
 /**
@@ -1119,13 +1132,6 @@ cq_main_insert(int delay, cq_service_t fn, void *arg)
 	return cq_insert(callout_queue, delay, fn, arg);
 }
 
-cevent_t *
-cq_main_insert_foreign(int delay, cq_service_t fn, void *arg)
-{
-	cq_main_init();
-	return cq_insert_foreign(callout_queue, delay, fn, arg);
-}
-
 /**
  * Trampoline to invoke heartbeat.
  */
@@ -1391,6 +1397,7 @@ cq_submake(const char *name, cqueue_t *parent, int period)
 	WALLOC0(csq);
 	cq_initialize(&csq->sub_cq, name, parent->cq_time, period);
 	csq->sub_cq.cq_magic = CSUBQUEUE_MAGIC;
+	csq->sub_cq.cq_stid = parent->cq_stid;	/* Runs out of same thread */
 
 	csq->heartbeat = cq_periodic_add(parent, period,
 		cq_heartbeat_trampoline, &csq->sub_cq);
@@ -1597,8 +1604,32 @@ cq_time_to_string(cq_time_t t)
  ***/
 
 #define CALLOUT_PERIOD			25	/* milliseconds */
+#define CALLOUT_THREAD_STACK	(256 * 1024)
 
-static uint callout_timer_id = 0;
+static uint callout_timer_id;
+static bool callout_thread;
+
+/**
+ * Callout queue thread.
+ *
+ * This is launched only when the main thread has been identified as blockable,
+ * meaning it will not be suitable for proper callout manangement.
+ *
+ * A working callout queue is necessary for semaphore emulation, otherwise
+ * timed operations will not work and deadlocks can occur.
+ */
+static void *
+cq_thread_main(void *unused_arg)
+{
+	(void) unused_arg;
+
+	while (callout_thread) {
+		cq_heartbeat(callout_queue);
+		compat_sleep_ms(CALLOUT_PERIOD);
+	}
+
+	return NULL;
+}
 
 /**
  * Global initialization, run once.
@@ -1613,8 +1644,28 @@ cq_global_init(void)
 
 	cq_debug_ptr = &zero;
 	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
-	callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
-		cq_heartbeat_trampoline, callout_queue);
+
+	/*
+	 * If the main thread is blockable, instantiate the callout queue in
+	 * a separate thread to make sure events can still be called out even
+	 * when the main thread is blocked.
+	 *
+	 * The cq_insert() routine will automatically create extended events
+	 * when it is called from a different thread.
+	 */
+
+	if (thread_main_is_blockable()) {
+		callout_thread = TRUE;
+		callout_queue->cq_stid = thread_create(cq_thread_main, NULL,
+			THREAD_F_DETACH, CALLOUT_THREAD_STACK);
+		if (-1U == callout_queue->cq_stid) {
+			s_minierror("%s(): cannot launch callout queue thread: %m",
+				G_STRFUNC);
+		}
+	} else {
+		callout_timer_id = g_timeout_add(CALLOUT_PERIOD,
+			cq_heartbeat_trampoline, callout_queue);
+	}
 }
 
 /**
@@ -1634,6 +1685,11 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 	cq_debug_ptr = debug;
 	if (idle != NULL)
 		cq_idle_add(callout_queue, idle, callout_queue);
+
+	if (callout_queue->cq_stid != 0) {
+		s_miniinfo("callout queue will be running in thread #%u",
+			callout_queue->cq_stid);
+	}
 }
 
 /**
@@ -1659,6 +1715,7 @@ cq_halt(void)
 		g_source_remove(callout_timer_id);
 		callout_timer_id = 0;
 	}
+	callout_thread = FALSE;
 }
 
 static bool
@@ -1783,6 +1840,7 @@ void
 cq_close(void)
 {
 	if G_LIKELY(cq_global_inited) {
+		cq_halt();
 		/* No warning if we were recursing */
 		callout_queue->cq_current = NULL;
 		cq_free_null(&callout_queue);
