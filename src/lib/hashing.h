@@ -88,6 +88,49 @@ bool string_eq(const void *a, const void *b) G_GNUC_PURE;
 
 unsigned hashing_fold(unsigned hash, size_t bits) G_GNUC_CONST;
 
+/**
+ * Hashing of a 32-bit value.
+ */
+static inline ALWAYS_INLINE unsigned
+u32_hash(uint32 v)
+{
+	uint64 hash;
+
+	hash = GOLDEN_RATIO_32 * (uint64) v;
+	return (hash >> 3) ^ (hash >> 32);
+}
+
+/**
+ * Fast inlined hashing of integers.
+ *
+ * The identity function makes a poor hash for consecutive integers.
+ */
+static inline ALWAYS_INLINE unsigned
+integer_hash_fast(ulong v)
+{
+#if LONGSIZE <= 4
+	return u32_hash(v);
+#else
+	return u32_hash(v) + u32_hash(v >> 32);
+#endif
+}
+
+/**
+ * Fast inlined hashing of pointers.
+ *
+ * The identity function makes a poor hash for pointers.
+ */
+static inline ALWAYS_INLINE unsigned
+pointer_hash_fast(const void *p)
+{
+#if PTRSIZE <= 4
+	return u32_hash(pointer_to_ulong(p));
+#else
+	uint64 v = pointer_to_ulong(p);
+	return u32_hash(v) + u32_hash(v >> 32);
+#endif
+}
+
 #endif /* _hashing_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
