@@ -4466,10 +4466,14 @@ thread_exit(void *value)
  * until the targeted thread finishes its execution path, unless "nowait"
  * is set to TRUE.
  *
+ * @param id		the STID of the thread we want to join with
+ * @param result	where thread's result is stored, if non NULL
+ * @param nowait	whether to conduct non-blocking joining
+ *
  * @return 0 if OK and we successfully joined, -1 otherwise with errno set.
  */
-int
-thread_join(unsigned id, void **result, bool nowait)
+static int
+thread_join_internal(unsigned id, void **result, bool nowait)
 {
 	struct thread_element *te, *tself;
 	unsigned events;
@@ -4571,6 +4575,151 @@ joinable:
 		*result = te->exit_value;
 	thread_exiting(te);
 	return 0;					/* OK, successfuly joined */
+}
+
+/**
+ * A blocking join with the specified thread ID.
+ *
+ * @param id		the STID of the thread we want to join with
+ * @param result	where thread's result is stored, if non NULL
+ *
+ * @return 0 if OK and we successfully joined, -1 otherwise with errno set.
+ */
+int
+thread_join(unsigned id, void **result)
+{
+	return thread_join_internal(id, result, FALSE);
+}
+
+/**
+ * A non-blocking join with the specified thread ID.
+ *
+ * When the thread cannot be joined yet (it is still running), errno is
+ * set to EAGAIN.
+ *
+ * @param id		the STID of the thread we want to join with
+ * @param result	where thread's result is stored, if non NULL
+ *
+ * @return 0 if OK and we successfully joined, -1 otherwise with errno set.
+ */
+int
+thread_join_try(unsigned id, void **result)
+{
+	return thread_join_internal(id, result, TRUE);
+}
+
+/**
+ * Copy information from the internal thread_element to the public thread_info.
+ */
+static void
+thread_info_copy(thread_info_t *info, struct thread_element *te)
+{
+	g_assert(info != NULL);
+	g_assert(te != NULL);
+
+	thread_set(info->tid, te->tid);
+	info->last_qid = te->last_qid;
+	info->low_qid = te->low_qid;
+	info->high_qid = te->high_qid;
+	info->stid = te->stid;
+	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
+	info->name = te->name;
+	info->stack_size = te->stack_size;
+	info->locks = te->locks.count;
+	info->entry = te->entry;
+	info->exit_value = te->join_pending ? te->exit_value : NULL;
+	info->discovered = te->discovered;
+	info->exited = te->join_pending || te->pending_reuse;
+	info->suspended = te->suspended;
+	info->blocked = te->blocked;
+	info->main_thread = te->main_thread;
+}
+
+/**
+ * Get information about the current thread.
+ *
+ * @param info		where information is returned if non-NULL
+ */
+void
+thread_current_info(thread_info_t *info)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (info != NULL)
+		thread_info_copy(info, te);
+}
+
+/**
+ * Get information about specified thread.
+ *
+ * @param stid		the STID of the thread we want information about
+ * @param info		where information is returned if non-NULL
+ *
+ * @return 0 if OK, -1 otherwise with errno set.
+ */
+int
+thread_get_info(unsigned stid, thread_info_t *info)
+{
+	struct thread_element *te;
+
+	if (stid >= THREAD_MAX) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	te = threads[stid];
+
+	if (NULL == te || !te->valid || te->reusable) {
+		errno = ESRCH;
+		return -1;
+	}
+
+	if (info != NULL) {
+		THREAD_LOCK(te);
+		thread_info_copy(info, te);
+		THREAD_UNLOCK(te);
+	}
+
+	return 0;
+}
+
+/**
+ * Pretty-printing of thread information into supplied buffer.
+ *
+ * @param info		the thread information to format
+ * @param buf		buffer where printing is done
+ * @param len		size of buffer
+ *
+ * @return pointer to the start of the generated string
+ */
+const char *
+thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
+{
+	if G_UNLIKELY(NULL == info) {
+		str_bprintf(buf, len, "<null thread info>");
+	} else {
+		char entry[128];
+		if (info->main_thread) {
+			str_bprintf(entry, sizeof entry, " main()");
+		} else if (info->entry != NULL) {
+			str_bprintf(entry, sizeof entry, " %s()",
+				stacktrace_function_name(info->entry));
+		} else {
+			entry[0] = '\0';
+		}
+		str_bprintf(buf, len, "<%s%s%s%s thread #%u \"%s\"%s "
+			"QID=%zu [%zu, %zu], TID=%lu, lock=%zu>",
+			info->exited ? "exited " : "",
+			info->suspended ? "suspended " : "",
+			info->blocked ? "blocked " : "",
+			info->discovered ? "discovered" : "created",
+			info->stid,
+			NULL == info->name ? "" : info->name, entry,
+			info->last_qid, info->low_qid, info->high_qid,
+			(unsigned long) info->tid, info->locks);
+	}
+
+	return buf;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

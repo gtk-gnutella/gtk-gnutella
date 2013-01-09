@@ -100,6 +100,28 @@ enum thread_lock_kind {
 	THREAD_LOCK_MUTEX
 };
 
+/**
+ * Thread information that can be collected.
+ */
+typedef struct thread_info {
+	thread_t tid;				/**< The internal thread ID */
+	thread_qid_t last_qid;		/**< Last QID used by thread */
+	thread_qid_t low_qid;		/**< Lowest QID */
+	thread_qid_t high_qid;		/**< Highest QID */
+	unsigned stid;				/**< Small thread ID */
+	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
+	const char *name;			/**< Thread name, NULL if none set */
+	size_t stack_size;			/**< Size of stack, 0 for discovered threads */
+	size_t locks;				/**< Amount of locks registered */
+	func_ptr_t entry;			/**< Thread entry point, NULL if discovered */
+	void *exit_value;			/**< Exit value, if exited, NULL otherwise */
+	uint discovered:1;			/**< Was thread discovered or created? */
+	uint exited:1;				/**< Whether thread has exited */
+	uint suspended:1;			/**< Whether thread is suspended */
+	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */
+	uint main_thread:1;			/**< Whether this is the main thread */
+} thread_info_t;
+
 /*
  * Public interface.
  */
@@ -161,10 +183,18 @@ int thread_create(thread_main_t routine, void *arg, uint flags, size_t stack);
 int thread_create_full(thread_main_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
 void thread_exit(void *value) G_GNUC_NORETURN;
-int thread_join(unsigned id, void **result, bool nowait);
+int thread_join(unsigned id, void **result);
+int thread_join_try(unsigned id, void **result);
 
 pid_t thread_fork(bool safe);
 void thread_forked(void);
+
+int thread_get_info(unsigned stid, thread_info_t *info);
+void thread_current_info(thread_info_t *info);
+const char *thread_info_to_string_buf(
+	const thread_info_t *info, char buf[], size_t len);
+
+#define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 
 #if defined(THREAD_SOURCE) || defined(MUTEX_SOURCE)
 #ifdef I_PTHREAD

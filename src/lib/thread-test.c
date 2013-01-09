@@ -133,7 +133,7 @@ test_create_one(bool repeat, bool join)
 			if (!repeat)
 				printf("thread i=%u created as %s\n", i, thread_id_name(r));
 			if (!join) {
-				j = thread_join(r, NULL, FALSE);
+				j = thread_join(r, NULL);
 				if (-1 != j) {
 					s_warning("thread_join() worked for %s?\n",
 						thread_id_name(r));
@@ -163,7 +163,7 @@ test_create_one(bool repeat, bool join)
 					printf("skipping unlaunched thread i=%u\n", i);
 			} else {
 				void *result;
-				int j = thread_join(r, &result, FALSE);		/* Block */
+				int j = thread_join(r, &result);		/* Block */
 				if (-1 == j) {
 					s_warning("thread_join() failed for %s: %m",
 						thread_id_name(r));
@@ -336,7 +336,7 @@ test_semaphore(bool emulated)
 	fflush(stdout);
 
 	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
-		if (-1 == thread_join(r[i], NULL, FALSE))
+		if (-1 == thread_join(r[i], NULL))
 			s_error("failed to join with %s: %m", thread_id_name(r[i]));
 	}
 
@@ -674,13 +674,13 @@ test_fork(bool safe)
 	if (-1 == l1 || -1 == l2 || -1 == fk)
 		s_error("%s() could not create threads", G_STRFUNC);
 
-	r = thread_join(l1, NULL, FALSE);
+	r = thread_join(l1, NULL);
 	if (-1 == r)
 		s_error("first thread_join() failed: %m");
-	r = thread_join(l2, NULL, FALSE);
+	r = thread_join(l2, NULL);
 	if (-1 == r)
 		s_error("second thread_join() failed: %m");
-	r = thread_join(fk, NULL, FALSE);
+	r = thread_join(fk, NULL);
 	if (-1 == r)
 		s_error("final thread_join() failed: %m");
 
