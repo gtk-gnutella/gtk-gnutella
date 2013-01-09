@@ -595,12 +595,10 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * to funnel all the core allocation decisions to avoid extra allocations.
 	 *
 	 * This is the sole entry point for all omalloc()-based operations since
-	 * there is no reallocation nor freeing.  We use hidden spinlocks because
-	 * we do not hold the lock outside of this file so there is little to
-	 * gain into tracking them.
+	 * there is no reallocation nor freeing.
 	 */
 
-	spinlock_hidden(&omalloc_slk);
+	spinlock(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.objects_rw++;
@@ -627,7 +625,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * need to hold the lock.
 	 */
 
-	spinunlock_hidden(&omalloc_slk);
+	spinunlock(&omalloc_slk);
 
 	p = vmm_core_alloc(size);
 	allocated = round_pagesize(size);
@@ -648,7 +646,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * re-grab the lock.
 	 */
 
-	spinlock_hidden(&omalloc_slk);
+	spinlock(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.pages_rw += allocated / omalloc_pagesize;
@@ -712,7 +710,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 done:
-	spinunlock_hidden(&omalloc_slk);
+	spinunlock(&omalloc_slk);
 
 	if (init != NULL)
 		memcpy(p, init, size);
