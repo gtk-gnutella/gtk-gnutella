@@ -121,8 +121,8 @@ static int recursion_level = -1;
 static bool float_inited;
 static mutex_t float_lock = MUTEX_INIT;
 
-#define THREAD_FUNNEL		mutex_lock_hidden(&float_lock)
-#define THREAD_UNFUNNEL		mutex_unlock_hidden(&float_lock)
+#define THREAD_FUNNEL		mutex_lock(&float_lock)
+#define THREAD_UNFUNNEL		mutex_unlock(&float_lock)
 
 #define R			float_context[recursion_level].c_R
 #define S			float_context[recursion_level].c_S

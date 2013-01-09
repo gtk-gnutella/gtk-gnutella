@@ -306,7 +306,7 @@ cond_get_init(cond_t * const c, const mutex_t *m, bool destroyed)
 
 	g_assert(c != NULL);
 
-	spinlock_hidden(lock);
+	spinlock(lock);
 	cv = *c;
 	if G_UNLIKELY(COND_INIT == cv || NULL == cv || COND_DESTROYED == cv) {
 		if G_UNLIKELY(!destroyed && COND_DESTROYED == cv) {
@@ -319,7 +319,7 @@ cond_get_init(cond_t * const c, const mutex_t *m, bool destroyed)
 		cond_check(cv);
 		atomic_int_inc(&cv->refcnt);
 	}
-	spinunlock_hidden(lock);
+	spinunlock(lock);
 
 	return cv;
 }
@@ -344,14 +344,14 @@ cond_get_extended(cond_t *c)
 		return cast_to_cond_ext(cv);
 
 	lock = cond_get_lock(c);
-	spinlock_hidden(lock);
+	spinlock(lock);
 
 	if (cv != NULL)
 		goto extend;
 
 	cv = *c;
 	if G_UNLIKELY(COND_DESTROYED == cv) {
-		spinunlock_hidden(lock);
+		spinunlock(lock);
 		s_error("%s(): condition already destroyed", G_STRFUNC);
 	} else if G_UNLIKELY(COND_INIT == cv || NULL == cv) {
 		/* Auto-init uses real semaphores */
@@ -363,7 +363,7 @@ cond_get_extended(cond_t *c)
 	}
 
 	if (cond_is_extended(cv)) {
-		spinunlock_hidden(lock);
+		spinunlock(lock);
 		return cast_to_cond_ext(cv);
 	}
 
@@ -401,9 +401,9 @@ extend:
 
 	*c = cn;						/* Upgraded the condition variable */
 
-	spinunlock_hidden(lock);
 	spinunlock_hidden(&cn->lock);	/* Not the same lock but the copy  */
 	spinunlock_hidden(&cv->lock);	/* This is the lock we took above */
+	spinunlock(lock);
 
 	cond_free(cv, FALSE);
 	cv = cn;

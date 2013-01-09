@@ -94,13 +94,13 @@ PIO_LOCK(int fd)
 	g_assert(fd >= 0);
 	g_assert(UNSIGNED(fd) < pio_capacity);
 
-	spinlock_hidden(&pio_locks[fd]);
+	spinlock(&pio_locks[fd]);
 }
 
 static inline ALWAYS_INLINE void
 PIO_UNLOCK(int fd)
 {
-	spinunlock_hidden(&pio_locks[fd]);
+	spinunlock(&pio_locks[fd]);
 }
 #endif	/* PIO_EMULATION */
 

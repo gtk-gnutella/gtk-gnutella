@@ -46,11 +46,12 @@
  *
  * Each of these calls can be suffixed with _hidden to use "hidden" locks.
  * A lock is not inherently "hidden": this adjective refers to the way the
- * lock taken.
+ * lock is taken.
  *
  * As a rule of thumb, "hidden" locks should be reserved to trivial low-level
  * locking that does not require any nested locking and which has but one lock
- * and one unlock statement, without much code in-between.
+ * and one unlock statement, without much code in-between.  The rationale is
+ * that we want outer critical section boundaries to be valid suspension points.
  *
  * The API also provided the following extra routine:
  *

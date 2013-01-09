@@ -142,8 +142,11 @@ cast_to_mwaiter(const struct waiter *w)
 	return (struct mwaiter *) w;
 }
 
-#define MWAITER_LOCK(m)		spinlock_hidden(&(m)->lock)
-#define MWAITER_UNLOCK(m)	spinunlock_hidden(&(m)->lock)
+#define MWAITER_LOCK(m)			spinlock(&(m)->lock)
+#define MWAITER_UNLOCK(m)		spinunlock(&(m)->lock)
+
+#define MWAITER_LOCK_QUICK(m)	spinlock_hidden(&(m)->lock)
+#define MWAITER_UNLOCK_QUICK(m)	spinunlock_hidden(&(m)->lock)
 
 #ifdef HAS_SOCKETPAIR
 #define INVALID_FD		INVALID_SOCKET
@@ -328,10 +331,10 @@ waiter_refcnt_dec(waiter_t *w)
 
 	unblock = FALSE;
 
-	MWAITER_LOCK(mw);
+	MWAITER_LOCK_QUICK(mw);
 	if (mw->blocking && 1 == mw->children && 1 == mw->waiter.refcnt)
 		unblock = TRUE;
-	MWAITER_UNLOCK(mw);
+	MWAITER_UNLOCK_QUICK(mw);
 
 	if (unblock)
 		waiter_signal(&mw->waiter);
@@ -681,12 +684,12 @@ waiter_suspend(const waiter_t *w)
 	 * know we'll be signaled even if we blocked.
 	 */
 
-	MWAITER_LOCK(mw);
+	MWAITER_LOCK_QUICK(mw);
 	if (mw->blocking || (1 == mw->waiter.refcnt && 1 == mw->children))
 		allowed = FALSE;
 	else
 		mw->blocking = TRUE;
-	MWAITER_UNLOCK(mw);
+	MWAITER_UNLOCK_QUICK(mw);
 
 	if (!allowed)
 		return FALSE;
@@ -699,14 +702,14 @@ waiter_suspend(const waiter_t *w)
 
 	if G_UNLIKELY(-1 == s_read(mw->wfd[0], &c, 1)) {
 		s_minicarp("%s(): could not receive event: %m", G_STRFUNC);
-		MWAITER_LOCK(mw);
+		MWAITER_LOCK_QUICK(mw);
 		mw->blocking = FALSE;
-		MWAITER_UNLOCK(mw);
+		MWAITER_UNLOCK_QUICK(mw);
 	} else {
-		MWAITER_LOCK(mw);
+		MWAITER_LOCK_QUICK(mw);
 		mw->notified = FALSE;
 		mw->blocking = FALSE;
-		MWAITER_UNLOCK(mw);
+		MWAITER_UNLOCK_QUICK(mw);
 	}
 
 	return TRUE;

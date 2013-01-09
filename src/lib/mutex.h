@@ -33,6 +33,12 @@
  * are "hidden".  See "spinlock.h" for more details on "hidden" versus
  * "regular" locks.
  *
+ * As a rule of thumb, user-level code should never use "hidden" of "fast"
+ * mutexes, only "regular" ones because mutexes are supposed to be valid
+ * suspension points.  When the lock duration is just a few instructions and
+ * the critical section does not make any function calls to routines that are
+ * taking "regular" locks, then a hidden lock may be used.
+ *
  * The basic API is straightforward:
  *
  *		mutex_lock()	-- takes the lock, blocking if busy
