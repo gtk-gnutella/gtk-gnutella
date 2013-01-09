@@ -59,13 +59,13 @@ static bool spinlock_pass_through;
 static inline void
 spinlock_account(const spinlock_t *s)
 {
-	thread_lock_got(s, THREAD_LOCK_SPINLOCK);
+	thread_lock_got(s, THREAD_LOCK_SPINLOCK, NULL);
 }
 
 static inline void
 spinunlock_account(const spinlock_t *s)
 {
-	thread_lock_released(s, THREAD_LOCK_SPINLOCK);
+	thread_lock_released(s, THREAD_LOCK_SPINLOCK, NULL);
 }
 
 static inline void

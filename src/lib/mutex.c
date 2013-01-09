@@ -49,13 +49,13 @@ static bool mutex_pass_through;
 static inline void
 mutex_get_account(const mutex_t *m, const void *element)
 {
-	thread_lock_got_extended(m, THREAD_LOCK_MUTEX, element);
+	thread_lock_got(m, THREAD_LOCK_MUTEX, element);
 }
 
 static inline void
 mutex_release_account(const mutex_t *m, const void *element)
 {
-	thread_lock_released_extended(m, THREAD_LOCK_MUTEX, element);
+	thread_lock_released(m, THREAD_LOCK_MUTEX, element);
 }
 
 static inline void
@@ -248,7 +248,7 @@ mutex_destroy(mutex_t *m)
 	 * record it to avoid a warning.
 	 */
 
-	thread_lock_got(&m->lock, THREAD_LOCK_SPINLOCK);
+	thread_lock_got(&m->lock, THREAD_LOCK_SPINLOCK, NULL);
 	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
 
 	if (was_locked)

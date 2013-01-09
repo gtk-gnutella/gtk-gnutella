@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Raphael Manfredi
+ * Copyright (c) 2011-2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,10 +25,10 @@
  * @ingroup lib
  * @file
  *
- * Minimal thread support.
+ * Minimal thread runtime support.
  *
  * @author Raphael Manfredi
- * @date 2011-2012
+ * @date 2011-2013
  */
 
 #ifndef _thread_h_
@@ -151,11 +151,9 @@ void thread_private_add_permanent(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
 	thread_pvalue_free_t p_free, void *p_arg);
 
-void thread_lock_got(const void *lock, enum thread_lock_kind kind);
-void thread_lock_released(const void *lock, enum thread_lock_kind kind);
-void thread_lock_got_extended(const void *lock, enum thread_lock_kind kind,
+void thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const void *element);
-void thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
+void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element);
 size_t thread_lock_count(void);
 bool thread_lock_holds(const volatile void *lock);

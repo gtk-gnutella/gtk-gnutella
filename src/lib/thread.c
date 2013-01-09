@@ -25,10 +25,11 @@
  * @ingroup lib
  * @file
  *
- * Minimal thread management.
+ * Minimal runtime thread management.
  *
- * This mainly provides support for thread-private data, as well as minimal
- * thread tracking (on-the-fly discovery) and creation.
+ * This layer provides support for thread-private data, as well as thread
+ * tracking (on-the-fly discovery of running threads) and creation of new
+ * threads.
  *
  * Discovery works by cooperation with the spinlock/mutex code that we're using,
  * providing hooks so that can detect the existence of new threads on the
@@ -3199,20 +3200,11 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 }
 
 /**
- * Account for spinlock / mutex acquisition by current thread.
- */
-void
-thread_lock_got(const void *lock, enum thread_lock_kind kind)
-{
-	thread_lock_got_extended(lock, kind, NULL);
-}
-
-/**
  * Account for spinlock / mutex acquisition by current thread, whose
  * thread element is already known (as opaque pointer).
  */
 void
-thread_lock_got_extended(const void *lock, enum thread_lock_kind kind,
+thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const void *element)
 {
 	struct thread_element *te = deconstify_pointer(element);
@@ -3305,20 +3297,11 @@ found:
 }
 
 /**
- * Account for spinlock / mutex release by current thread.
- */
-void
-thread_lock_released(const void *lock, enum thread_lock_kind kind)
-{
-	thread_lock_released_extended(lock, kind, NULL);
-}
-
-/**
  * Account for spinlock / mutex release by current thread whose thread
  * element is known (as an opaque pointer).
  */
 void
-thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
+thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element)
 {
 	struct thread_element *te = deconstify_pointer(element);
