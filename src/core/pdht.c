@@ -541,6 +541,15 @@ pdht_bg_publish(cqueue_t *unused_cq, void *obj)
 	pp->bg->ev = NULL;
 	pp->bg->runs++;
 
+	/*
+	 * If the DHT was disabled dynamically, abort the publishing.
+	 */
+
+	if G_UNLIKELY(!dht_enabled()) {
+		pdht_free_publish(pp, TRUE);
+		return;
+	}
+
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT starting background %s publish for %s (run #%d)",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
@@ -1477,6 +1486,9 @@ pdht_prox_publish(bool force)
 
 	changed = pdht_prox_update_list();
 	publishing = pdht_proxy.proxies_count > 0 && (changed || force);
+
+	if G_UNLIKELY(!dht_enabled())
+		publishing = FALSE;			/* DHT was disabled */
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
