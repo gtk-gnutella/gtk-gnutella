@@ -524,14 +524,14 @@ cond_destroy(cond_t *c)
 	 * condition.
 	 */
 
-	spinlock_hidden(lock);
+	spinlock(lock);
 	cv = *c;
 	if (cv != COND_DESTROYED && cv != COND_INIT && cv != NULL) {
-		spinlock(&cv->lock);
+		spinlock_swap(&cv->lock, lock);
 		locked = TRUE;
 	}
 	*c = COND_DESTROYED;
-	spinunlock_hidden(lock);
+	spinunlock(lock);
 
 	if (locked) {
 		if G_UNLIKELY(cv->waiting != 0) {
@@ -559,7 +559,7 @@ cond_reset(cond_t *c)
 
 	g_assert(c != NULL);
 
-	spinlock_hidden(lock);
+	spinlock(lock);
 	cv = *c;
 	if (cv != NULL && cv != COND_INIT && cv != COND_DESTROYED) {
 		spinlock(&cv->lock);
@@ -567,7 +567,7 @@ cond_reset(cond_t *c)
 	}
 
 	if (!locked) {
-		spinunlock_hidden(lock);
+		spinunlock(lock);
 		return FALSE;
 	}
 
@@ -593,7 +593,7 @@ cond_reset(cond_t *c)
 
 done:
 	spinunlock(&cv->lock);
-	spinunlock_hidden(lock);
+	spinunlock(lock);
 
 	if (reset)
 		cond_free(cv, FALSE);
@@ -815,6 +815,8 @@ retry:
 		awaked = TRUE;
 	}
 
+signaled:
+
 	/*
 	 * Make sure the condition variable did not change whilst we were
 	 * waiting on it.
@@ -827,13 +829,11 @@ retry:
 	 * rare circumstances, and we protect it with a global spinlock.  We need
 	 * to hold that lock until after we can lock the condition variable.
 	 * 
-	 * Therefore we must use a hidden lock because normal locks have strict
-	 * release ordering checking (to avoid deadlock potential later).  Here
-	 * we know there won't be any deadlock possible because the locking order
-	 * is always the same: the global lock, then the condition variable.
+	 * Here we know there won't be any deadlock possible because the locking
+	 * order is always the same: the global lock, then the condition variable.
 	 */
 
-	spinlock_hidden(lock);	/* Held until we grab cv->lock */
+	spinlock(lock);			/* Held until we grab cv->lock */
 
 	cv = *c;
 
@@ -848,8 +848,6 @@ retry:
 		G_STRFUNC, c, m, cv->mutex);
 
 	/*
-	 * Signal we're not waiting any more.
-	 *
 	 * If we were awoken (no timeout), then we consume a signal.
 	 *
 	 * If we timed out, we may have been sent a signal before we got a chance
@@ -861,10 +859,9 @@ retry:
 	 * in cond_wakeup().
 	 */
 
-signaled:
+	spinlock_swap(&cv->lock, lock);
+	spinunlock(lock);		/* Critical section overlap */
 
-	spinlock(&cv->lock);
-	spinunlock_hidden(lock);	/* Critical section overlap */
 	if (awaked) {
 		if G_UNLIKELY(cv->generation == generation) {
 			/* Consumed a signal that was not for us */
@@ -895,6 +892,7 @@ signaled:
 		}
 	}
 	g_assert(cv->signals >= 0);
+
 	spinunlock(&cv->lock);
 
 	cond_free(cv, FALSE);

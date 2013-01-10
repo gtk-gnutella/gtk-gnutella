@@ -53,6 +53,12 @@ mutex_get_account(const mutex_t *m, const void *element)
 }
 
 static inline void
+mutex_get_account_swap(const mutex_t *m, const void *plock, const void *element)
+{
+	thread_lock_got_swap(m, THREAD_LOCK_MUTEX, plock, element);
+}
+
+static inline void
 mutex_release_account(const mutex_t *m, const void *element)
 {
 	thread_lock_released(m, THREAD_LOCK_MUTEX, element);
@@ -279,6 +285,30 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	}
 }
 
+#define MUTEX_GRAB											\
+	if (mutex_is_owned_by_fast(m, t)) {						\
+		m->depth++;											\
+	} else if (spinlock_hidden_try(&m->lock)) {				\
+		thread_set(m->owner, t);							\
+		m->depth = 1;										\
+	} else {												\
+		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
+			mutex_deadlock, mutex_deadlocked);				\
+		thread_set(m->owner, t);							\
+		m->depth = 1;										\
+	}
+
+#define MUTEX_GRAB_TRY										\
+	if (mutex_is_owned_by_fast(m, t)) {						\
+		m->depth++;											\
+	} else if (spinlock_hidden_try(&m->lock)) {				\
+		thread_set(m->owner, t);							\
+		m->depth = 1;										\
+	} else {												\
+		return FALSE;										\
+	}
+
+
 /**
  * Grab a mutex.
  *
@@ -293,8 +323,6 @@ mutex_grab(mutex_t *m, enum mutex_mode mode)
 
 	mutex_check(m);
 
-	t = mutex_thread(mode, &element);
-
 	/*
 	 * We dispense with memory barriers after getting the spinlock because
 	 * the atomic test-and-set instruction should act as an acquire barrier,
@@ -306,17 +334,8 @@ mutex_grab(mutex_t *m, enum mutex_mode mode)
 	 * actually grab it.
 	 */
 
-	if (mutex_is_owned_by_fast(m, t)) {
-		m->depth++;
-	} else if (spinlock_hidden_try(&m->lock)) {
-		thread_set(m->owner, t);
-		m->depth = 1;
-	} else {
-		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,
-			mutex_deadlock, mutex_deadlocked);
-		thread_set(m->owner, t);
-		m->depth = 1;
-	}
+	t = mutex_thread(mode, &element);
+	MUTEX_GRAB
 
 	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_get_account(m, element);
@@ -339,18 +358,53 @@ mutex_grab_try(mutex_t *m, enum mutex_mode mode)
 	mutex_check(m);
 
 	t = mutex_thread(mode, &element);
-
-	if (mutex_is_owned_by_fast(m, t)) {
-		m->depth++;
-	} else if (spinlock_hidden_try(&m->lock)) {
-		thread_set(m->owner, t);
-		m->depth = 1;
-	} else {
-		return FALSE;
-	}
+	MUTEX_GRAB_TRY
 
 	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
 		mutex_get_account(m, element);
+
+	return TRUE;
+}
+
+/**
+ * Grab a mutex, swapping its position with a previously acquired lock.
+ *
+ * @param m			the mutex we're attempting to grab
+ * @param plock		the previous lock we wish to exchange position with
+ */
+void
+mutex_grab_swap(mutex_t *m, const void *plock)
+{
+	const void *element = NULL;
+	thread_t t;
+
+	mutex_check(m);
+
+	t = mutex_thread(MUTEX_MODE_NORMAL, &element);
+	MUTEX_GRAB
+	mutex_get_account_swap(m, plock, element);
+}
+
+/**
+ * Grab mutex only if available, and if we get it exchange lock position with
+ * that of the previous lock we hold.
+ *
+ * @param m			the mutex we're attempting to grab
+ * @param plock		the previous lock we wish to exchange position with
+ *
+ * @return whether we obtained the mutex.
+ */
+bool
+mutex_grab_swap_try(mutex_t *m, const void *plock)
+{
+	const void *element = NULL;
+	thread_t t;
+
+	mutex_check(m);
+
+	t = mutex_thread(MUTEX_MODE_NORMAL, &element);
+	MUTEX_GRAB_TRY
+	mutex_get_account_swap(m, plock, element);
 
 	return TRUE;
 }
@@ -381,6 +435,43 @@ mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line)
 {
 	if (mutex_grab_try(m, mode)) {
+		if (1 == m->depth) {
+			m->lock.file = file;
+			m->lock.line = line;
+		}
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/**
+ * Grab a mutex from said location, exchanging its position with previously
+ * held lock in the stack.
+ */
+void
+mutex_grab_swap_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
+{
+	mutex_grab_swap(m, plock);
+
+	if (1 == m->depth) {
+		m->lock.file = file;
+		m->lock.line = line;
+	}
+}
+
+/**
+ * Grab mutex from said location, only if available, then exchange its position
+ * with a previously held lock in the stack.
+ *
+ * @return whether we obtained the mutex.
+ */
+bool
+mutex_grab_swap_try_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
+{
+	if (mutex_grab_swap_try(m, plock)) {
 		if (1 == m->depth) {
 			m->lock.file = file;
 			m->lock.line = line;

@@ -63,6 +63,12 @@ spinlock_account(const spinlock_t *s)
 }
 
 static inline void
+spinlock_account_swap(const spinlock_t *s, const void *plock)
+{
+	thread_lock_got_swap(s, THREAD_LOCK_SPINLOCK, plock, NULL);
+}
+
+static inline void
 spinunlock_account(const spinlock_t *s)
 {
 	thread_lock_released(s, THREAD_LOCK_SPINLOCK, NULL);
@@ -321,41 +327,6 @@ spinlock_destroy(spinlock_t *s)
 		spinunlock_account(s);
 }
 
-/**
- * Grab a spinlock.
- */
-void
-spinlock_grab(spinlock_t *s, bool hidden)
-{
-	spinlock_check(s);
-
-	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
-		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-			spinlock_deadlock, spinlock_deadlocked);
-	}
-
-	if G_LIKELY(!hidden)
-		spinlock_account(s);
-}
-
-/**
- * Grab spinlock only if available.
- *
- * @return whether we obtained the lock.
- */
-bool
-spinlock_grab_try(spinlock_t *s, bool hidden)
-{
-	spinlock_check(s);
-
-	if G_LIKELY(atomic_acquire(&s->lock)) {
-		if G_LIKELY(!hidden)
-			spinlock_account(s);
-		return TRUE;
-	}
-	return FALSE;
-}
-
 #ifdef SPINLOCK_DEBUG
 /**
  * Grab a spinlock from said location.
@@ -401,6 +372,131 @@ spinlock_grab_try_from(spinlock_t *s,
 
 	return FALSE;
 }
+
+/**
+ * Grab regular spinlock, exchanging lock position with previous lock.
+ */
+void
+spinlock_grab_swap_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked);
+	}
+
+	s->file = file;
+	s->line = line;
+
+	spinlock_account_swap(s, plock);
+}
+
+/**
+ * Attempt to grab regular spinlock, exchanging lock position with previous
+ * lock.
+ *
+ * @return whether we obtained the lock.
+ */
+bool
+spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line)
+{
+	spinlock_check(s);
+
+	if (atomic_acquire(&s->lock)) {
+		s->file = file;
+		s->line = line;
+		spinlock_account_swap(s, plock);
+		return TRUE;
+	}
+
+	if G_UNLIKELY(spinlock_pass_through)
+		return TRUE;		/* Crashing */
+
+	return FALSE;
+}
+
+#else		/* !SPINLOCK_DEBUG */
+
+/**
+ * Grab a spinlock.
+ */
+void
+spinlock_grab(spinlock_t *s, bool hidden)
+{
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked);
+	}
+
+	if G_LIKELY(!hidden)
+		spinlock_account(s);
+}
+
+/**
+ * Grab spinlock only if available.
+ *
+ * @return whether we obtained the lock.
+ */
+bool
+spinlock_grab_try(spinlock_t *s, bool hidden)
+{
+	spinlock_check(s);
+
+	if G_LIKELY(atomic_acquire(&s->lock)) {
+		if G_LIKELY(!hidden)
+			spinlock_account(s);
+		return TRUE;
+	}
+
+	if G_UNLIKELY(spinlock_pass_through)
+		return TRUE;		/* Crashing */
+
+	return FALSE;
+}
+
+/**
+ * Grab regular spinlock, exchanging lock position with previous lock.
+ */
+void
+spinlock_grab_swap(spinlock_t *s, const void *plock)
+{
+	spinlock_check(s);
+
+	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
+		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
+			spinlock_deadlock, spinlock_deadlocked);
+	}
+
+	spinlock_account_swap(s, plock);
+}
+
+/**
+ * Attempt to grab regular spinlock, exchanging lock position with previous
+ * lock.
+ *
+ * @return whether we obtained the lock.
+ */
+bool
+spinlock_grab_swap_try(spinlock_t *s, const void *plock)
+{
+	spinlock_check(s);
+
+	if G_LIKELY(atomic_acquire(&s->lock)) {
+		spinlock_account_swap(s, plock);
+		return TRUE;
+	}
+
+	if G_UNLIKELY(spinlock_pass_through)
+		return TRUE;		/* Crashing */
+
+	return FALSE;
+}
+
 #endif	/* SPINLOCK_DEBUG */
 
 /**

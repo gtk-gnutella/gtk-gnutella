@@ -3627,8 +3627,8 @@ semset_destroy(struct semset *s)
 }
 
 /* Must be a macro for proper spinlock source tracking */
-#define SEMSET_LOCK(s) G_STMT_START {	\
-	spinlock(&(s)->lock);				\
+#define SEMSET_LOCK(s,y) G_STMT_START {	\
+	spinlock_swap(&(s)->lock, (y));		\
 	atomic_int_inc(&(s)->refcnt);		\
 } G_STMT_END
 
@@ -3705,20 +3705,13 @@ mingw_semctl(int semid, int semnum, int cmd, ...)
 	}
 
 	/*
-	 * To avoid grabbing another lock whilst we are still in the critical
-	 * section, we increase the refcnt of the spinlock atomically, then
-	 * release the global lock before grabbing the lock of the semaphore set,
-	 * which will also increment the count.  After taking the lock, we decrease
-	 * the reference count once again.
-	 *
-	 * This sequence guarantees that nobody can free "s" in-between the two
-	 * critical sections.
+	 * This critical section crossing ensures that nobody can free up the
+	 * semaphore set until we SEMSET_UNLOCK() it.  The reference count is
+	 * increased by SEMSET_LOCK().
 	 */
 
-	atomic_int_inc(&s->refcnt);
+	SEMSET_LOCK(s, &sem_slk);
 	spinunlock(&sem_slk);
-	SEMSET_LOCK(s);
-	atomic_int_dec(&s->refcnt);
 
 	if (s->destroyed) {
 		errno = EIDRM;
@@ -3855,10 +3848,8 @@ mingw_semtimedop(int semid, struct sembuf *sops,
 	 * This is the same critical handling as in mingw_semctl().
 	 */
 
-	atomic_int_inc(&s->refcnt);
+	SEMSET_LOCK(s, &sem_slk);
 	spinunlock(&sem_slk);
-	SEMSET_LOCK(s);
-	atomic_int_dec(&s->refcnt);
 
 	if (s->destroyed) {
 		errno = EIDRM;

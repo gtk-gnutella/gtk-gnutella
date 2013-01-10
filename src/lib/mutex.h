@@ -55,6 +55,26 @@
  * between thread descriptors to determine whether a grabbing thread already
  * owns the mutex.
  *
+ * To allow critical section overlap, it is possible to use one of the
+ * following calls:
+ *
+ *		mutex_lock_swap()		-- take the lock, then swap lock ordering
+ *		mutex_trylock_swap()	-- try to take the lock and swap order
+ *
+ * It is possible to intermix mutexes with spinlocks during critical section
+ * overlaps, this way:
+ *
+ *		spinlock(A);
+ *		....
+ *		mutex_lock_swap(B, A);	// the critical section overlap
+ *		spinunlock(A);
+ *		....
+ *		mutex_unlock(B);
+ *
+ * Without the mutex_lock_swap() which reverses the order of A and B, it would
+ * not be possible to release A first since A was taken initially before B:
+ * the lock monitoring runtime would forbid it.
+ *
  * The following extra routines are available:
  *
  *		mutex_is_owned()	-- is the thread owning the lock?
@@ -121,6 +141,8 @@ enum mutex_mode {
 
 void mutex_grab(mutex_t *m, enum mutex_mode mode);
 bool mutex_grab_try(mutex_t *m, enum mutex_mode mode);
+void mutex_grab_swap(mutex_t *m, const void *plock);
+bool mutex_grab_swap_try(mutex_t *m, const void *plock);
 
 /*
  * Public interface.
@@ -135,6 +157,10 @@ void mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 	const char *f, unsigned l);
 void mutex_unlock_const_from(const mutex_t *m,
 	const char *f, unsigned l);
+void mutex_grab_swap_from(mutex_t *m, const void *plock,
+	const char *f, unsigned l);
+bool mutex_grab_swap_try_from(mutex_t *m, const void *plock,
+	const char *f, unsigned l);
 
 const char *mutex_get_lock_source(const mutex_t * const m, unsigned *line);
 void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
@@ -146,12 +172,18 @@ void mutex_set_lock_source(mutex_t *m, const char *file, unsigned line);
 #define mutex_lock_fast(x) \
 	mutex_grab_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
 
+#define mutex_lock_swap(x,y) \
+	mutex_grab_from((x), (y), _WHERE_, __LINE__)
+
 #define mutex_trylock(x) \
 	mutex_grab_try_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 #define mutex_trylock_hidden(x)	\
 	mutex_grab_try_from((x), MUTEX_MODE_HIDDEN, _WHERE_, __LINE__)
 #define mutex_trylock_fast(x)	\
 	mutex_grab_try_from((x), MUTEX_MODE_FAST, _WHERE_, __LINE__)
+
+#define mutex_trylock_swap(x,y) \
+	mutex_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
 
 #define mutex_lock_const(x)	\
 	mutex_grab_from(deconstify_pointer(x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
@@ -176,6 +208,9 @@ void mutex_unlock_const(const mutex_t *m);
 #define mutex_lock_fast(x)		mutex_grab((x), MUTEX_MODE_FAST)
 #define mutex_trylock(x)		mutex_grab_try((x), MUTEX_MODE_NORMAL)
 #define mutex_trylock_hidden(x)	mutex_grab_try((x), MUTEX_MODE_HIDDEN)
+
+#define mutex_lock_swap(x,y)	mutex_grab_swap((x), (y))
+#define mutex_trylock_swap(x,y)	mutex_grab_swap_try((x), (y))
 
 #define mutex_lock_const(x)	\
 	mutex_grab(deconstify_pointer(x), MUTEX_MODE_NORMAL)

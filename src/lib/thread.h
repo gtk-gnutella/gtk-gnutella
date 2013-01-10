@@ -153,6 +153,8 @@ void thread_private_add_extended(const void *key, const void *value,
 
 void thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const void *element);
+void thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
+	const void *plock, const void *element);
 void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element);
 size_t thread_lock_count(void);

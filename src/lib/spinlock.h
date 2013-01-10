@@ -38,7 +38,7 @@
  * In the advent a deadlock occurs, all the tracked locks owned by the thread
  * are dumped.  This means "hidden" locks never appear (hence the name).
  *
- * The locking API is made of three calls:
+ * The locking API is made of three basic calls:
  *
  *		spinlock()		-- takes the lock, blocking if busy
  *		spinlock_try()	-- try to take the lock, returns whether lock was taken
@@ -52,6 +52,28 @@
  * locking that does not require any nested locking and which has but one lock
  * and one unlock statement, without much code in-between.  The rationale is
  * that we want outer critical section boundaries to be valid suspension points.
+ *
+ * For situations where critical sections must overlap (e.g. grab lock A,
+ * then lock B, release A and then release B), one must use one of the
+ * following routines:
+ *
+ *		spinlock_swap()		-- takes lock, then swap order of locks
+ *		spinlock_try_swap()	-- try to take lock, swapping order
+ *
+ * To achieve the critical section overlap, one would do this:
+ *
+ *		spinlock(A);
+ *		...
+ *		spinlock_swap(B, A);	// the critical section overlap
+ *		spinunlock(A);
+ *		...
+ *		spinunlock(B);
+ *
+ * The swapping allows to release locks in the reverse order, something that
+ * the runtime normally forbids.
+ *
+ * When critical sections overlap, it is necessary to ensure that the locking
+ * order will always be the same.  Otherwise, a deadlock could happen.
  *
  * The API also provided the following extra routine:
  *
@@ -106,8 +128,6 @@ typedef struct spinlock {
  * These should not be called directly by user code to allow debugging.
  */
 
-void spinlock_grab(spinlock_t *s, bool hidden);
-bool spinlock_grab_try(spinlock_t *s, bool hidden);
 void spinlock_release(spinlock_t *s, bool hidden);
 
 /*
@@ -118,6 +138,10 @@ void spinlock_release(spinlock_t *s, bool hidden);
 void spinlock_grab_from(spinlock_t *s,
 	bool hidden, const char *file, unsigned line);
 bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
+	const char *file, unsigned line);
+void spinlock_grab_swap_from(spinlock_t *s, const void *plock,
+	const char *file, unsigned line);
+bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
 	const char *file, unsigned line);
 
 /*
@@ -148,7 +172,18 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 #define spinlock_hidden_try(x) \
 	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
 
+#define spinlock_swap(x,y) \
+	spinlock_grab_swap_from((x), (y), _WHERE_, __LINE__)
+
+#define spinlock_swap_try(x,y) \
+	spinlock_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
+
 #else	/* !SPINLOCK_DEBUG */
+
+void spinlock_grab(spinlock_t *s, bool hidden);
+bool spinlock_grab_try(spinlock_t *s, bool hidden);
+void spinlock_grab_swap(spinlock_t *s, const void *plock);
+bool spinlock_grab_swap_try(spinlock_t *s, const void *plock);
 
 #define spinlock_direct(x) G_STMT_START {	\
 	(x)->lock = 1;							\
@@ -162,6 +197,9 @@ bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
 #define spinlock_hidden(x)		spinlock_grab((x), TRUE)
 #define spinlock_try(x)			spinlock_grab_try((x), FALSE)
 #define spinlock_hidden_try(x)	spinlock_grab_try((x), TRUE)
+
+#define spinlock_swap(x,y)		spinlock_grab_swap((x), (y))
+#define spinlock_swap_try(x,y)	spinlock_grab_swap_try((x), (y))
 
 #endif	/* SPINLOCK_DEBUG */
 

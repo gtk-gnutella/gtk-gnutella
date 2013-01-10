@@ -3201,7 +3201,7 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 
 /**
  * Account for spinlock / mutex acquisition by current thread, whose
- * thread element is already known (as opaque pointer).
+ * thread element is already known (as an opaque pointer).
  */
 void
 thread_lock_got(const void *lock, enum thread_lock_kind kind,
@@ -3294,6 +3294,98 @@ found:
 
 	if G_UNLIKELY(NULL == te->stack_lock && 1 == tls->count)
 		te->stack_lock = &te;
+}
+
+/**
+ * Account for spinlock / mutex acquisition by current thread, whose
+ * thread element is already known (as an opaque pointer), then swap the
+ * locks at the top of the lock stack.
+ *
+ * This is used when critical sections overlap and lock A is taken, then B
+ * followed by a release of A.  Note that to avoid deadlocks, lock B must
+ * always be taken after A, never before under any circumstances.
+ *
+ * Because we monitor unlock ordering and enforce strict unlocking order,
+ * critical section overlaping is not possible without swapping support.
+ * For assertion checking, the lock which needs to be swapped is also supplied
+ * and needs to be in the lock stack already.
+ *
+ * @param lock		the lock we've just taken
+ * @param kind		the type of lock
+ * @param plock		the previous lock we took and we want to swap order with
+ * @param element	the thread element (NULL if unknown yet)
+ */
+void
+thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
+	const void *plock, const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
+	struct thread_lock_stack *tls;
+	struct thread_lock *l, *pl;
+
+	/*
+	 * This starts as thread_lock_got() would...
+	 */
+
+	if (NULL == te) {
+		te = thread_find(&te);
+	} else {
+		thread_element_check(te);
+	}
+
+	if G_UNLIKELY(NULL == te) {
+		/*
+		 * Cheaply check whether we are in the main thread, whilst it is
+		 * being created.
+		 */
+
+		if G_UNLIKELY(NULL == threads[0]) {
+			te = thread_get_main_if_first();
+			if (te != NULL)
+				goto found;
+		}
+		return;
+	}
+
+found:
+
+	THREAD_STATS_INCX(locks_tracked);
+
+	tls = &te->locks;
+
+	if G_UNLIKELY(tls->capacity == tls->count) {
+		if (tls->overflow)
+			return;				/* Already signaled, we're crashing */
+		tls->overflow = TRUE;
+		s_miniwarn("%s overflowing its lock stack", thread_element_name(te));
+		thread_lock_dump(te);
+		s_error("too many locks grabbed simultaneously");
+	}
+
+	/*
+	 * No thread suspension is possible here contrary to thread_lock_got()
+	 * since we are already holding another lock.
+	 */
+
+	g_assert_log(tls->count != 0,
+		"%s(): expected at least 1 lock to be already held", G_STRFUNC);
+
+	pl = &tls->arena[tls->count - 1];
+
+	g_assert_log(plock == pl->lock,
+		"%s(): expected topmost lock to be %p, found %s %p",
+		G_STRFUNC, plock, thread_lock_kind_to_string(pl->kind), pl->lock);
+
+	/*
+	 * Record new lock before the previous lock so that the previous lock
+	 * can now be released without triggering any assertion failure.
+	 */
+
+	l = &tls->arena[tls->count++];
+	l->lock = pl->lock;			/* Previous lock becomes topmost lock */
+	l->kind = pl->kind;
+	pl->lock = lock;			/* New lock registered in place of previous */
+	pl->kind = kind;
 }
 
 /**
