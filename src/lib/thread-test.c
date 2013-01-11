@@ -32,6 +32,7 @@
 
 #include "common.h"
 
+#include "aq.h"
 #include "atomic.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
@@ -60,7 +61,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACFIMNS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACFIMNQS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -73,6 +74,7 @@ usage(void)
 		"  -I : test inter-thread waiter signaling\n"
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
+		"  -Q : test asynchronous queue\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
@@ -691,6 +693,82 @@ test_fork(bool safe)
 	printf("--- test of thread_fork(%s) done!\n", safe ? "TRUE" : "FALSE");
 }
 
+struct aqt_arg { 
+	aqueue_t *r, *a;
+};
+
+static void *
+aqt_processor(void *arg)
+{
+	struct aqt_arg *aa = arg;
+	aqueue_t *r = aq_refcnt_inc(aa->r);
+	aqueue_t *a = aq_refcnt_inc(aa->a);
+
+	t_message("%s starting", thread_name());
+
+	for (;;) {
+		void *msg = aq_remove(r);
+		ulong len;
+
+		if (NULL == msg)
+			break;			/* NULL signals end of processing */
+
+		len = strlen(msg);
+		compat_sleep_ms(300 * len);		/* Think hard */
+		aq_put(a, ulong_to_pointer(len));
+	}
+
+	t_message("%s exiting", thread_name());
+
+	aq_refcnt_dec(a);
+	aq_refcnt_dec(r);
+
+	return NULL;
+}
+
+static void
+test_aqueue(bool emulated)
+{
+	aqueue_t *r, *a;
+	struct aqt_arg arg;
+	int t;
+	uint i;
+
+	printf("%s() starting...\n", G_STRFUNC);
+
+	arg.r = r = aq_make_full(emulated);		/* requests */
+	arg.a = a = aq_make_full(emulated);		/* answers */
+
+	t = thread_create(aqt_processor, &arg, 0, 0);
+	if (-1 == t)
+		s_error("cannot create processor thread: %m");
+
+	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+		ulong res;
+
+		printf("computing length of \"%s\"\n", names[i]);
+		fflush(stdout);
+
+		aq_put(r, names[i]);
+		res = pointer_to_ulong(aq_remove(a));
+
+		printf("\t=> %lu bytes\n", res);
+		fflush(stdout);
+	}
+
+	printf("sending EOF\n");
+	fflush(stdout);
+
+	aq_put(r, NULL);		/* Signals end to thread */
+	if (-1 == thread_join(t, NULL))
+		s_error("cannot join with processor thread: %m");
+
+	aq_refcnt_dec(a);
+	aq_refcnt_dec(r);
+
+	printf("%s() all done.\n", G_STRFUNC);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -715,7 +793,7 @@ main(int argc, char **argv)
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE;
-	bool inter = FALSE, forking = FALSE;
+	bool inter = FALSE, forking = FALSE, aqueue = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -724,7 +802,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACFIMNST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACFIMNQST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -743,6 +821,9 @@ main(int argc, char **argv)
 			break;
 		case 'N':			/* add cond_broadcast() noise */
 			noise = TRUE;
+			break;
+		case 'Q':			/* test asynchronous queue */
+			aqueue = TRUE;
 			break;
 		case 'S':			/* test semaphore layer */
 			sem = TRUE;
@@ -778,6 +859,9 @@ main(int argc, char **argv)
 
 	if (!atomic_ops_available())
 		s_warning("Atomic memory operations not supported!");
+
+	if (aqueue)
+		test_aqueue(emulated);
 
 	if (sem)
 		test_semaphore(emulated);

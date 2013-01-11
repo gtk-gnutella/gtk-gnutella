@@ -119,6 +119,7 @@ LSRC = \
 	adns.c \
 	aging.c \
 	alloca.c \
+	aq.c \
 	arc4random.c \
 	ascii.c \
 	atoms.c \
@@ -278,6 +279,7 @@ LOBJ = \
 	adns.o \
 	aging.o \
 	alloca.o \
+	aq.o \
 	arc4random.o \
 	ascii.o \
 	atoms.o \
