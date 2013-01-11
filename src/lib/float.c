@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 1996, Robert G. Burger
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 1996 Robert G. Burger
+ * Copyright (c) 2011, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -51,14 +51,14 @@
  * Floating point formatting.
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011, 2013
  * @author Robert G. Burger
  * @date 1996
  */
 
 #include "common.h"
 #include "float.h"
-#include "mutex.h"
+#include "once.h"
 #include "unsigned.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -104,40 +104,14 @@ typedef struct {
  * keep the context static but have a set of context elements indexed by a
  * global recursion variable.
  *		--RAM, 2011-11-06
+ *
+ * Finally went with big context on the stack to make the float formatting
+ * routines thread-safe, without having to funnel code execution.
+ *		--RAM, 2013-01-11
  */
 
-#define FLOAT_RECURSION	3	/**< Maximum recursion levels allowed */
-
-static struct float_context {
-	bignum_t c_R, c_S, c_MM;
-	bignum_t c_S2, c_S3, c_S4, c_S5, c_S6, c_S7, c_S8, c_S9;
-	int c_s_n, c_qr_shift;
-	/* For float_dragon() */
-	bignum_t c_MP;
-} float_context[FLOAT_RECURSION];
-
 static bignum_t five[MAX_FIVE];
-static int recursion_level = -1;
-static bool float_inited;
-static mutex_t float_lock = MUTEX_INIT;
-
-#define THREAD_FUNNEL		mutex_lock(&float_lock)
-#define THREAD_UNFUNNEL		mutex_unlock(&float_lock)
-
-#define R			float_context[recursion_level].c_R
-#define S			float_context[recursion_level].c_S
-#define MM			float_context[recursion_level].c_MM
-#define S2			float_context[recursion_level].c_S2
-#define S3			float_context[recursion_level].c_S3
-#define S4			float_context[recursion_level].c_S4
-#define S5			float_context[recursion_level].c_S5
-#define S6			float_context[recursion_level].c_S6
-#define S7			float_context[recursion_level].c_S7
-#define S8			float_context[recursion_level].c_S8
-#define S9			float_context[recursion_level].c_S9
-#define s_n			float_context[recursion_level].c_s_n
-#define qr_shift	float_context[recursion_level].c_qr_shift
-#define MP			float_context[recursion_level].c_MP
+static once_flag_t float_inited;
 
 #define ADD(x, y, z, k) {\
 	uint64 x_add, z_add;\
@@ -453,57 +427,57 @@ add_big(bignum_t *x, bignum_t *y, bignum_t *z)
 }
 
 static int
-qr(void)
+float_qr(bignum_t *r, bignum_t *s,
+	bignum_t *s2, bignum_t *s3, bignum_t *s4, bignum_t *s5,
+	bignum_t *s6, bignum_t *s7, bignum_t *s8, bignum_t *s9)
 {
-	if (big_comp(&R, &S5) < 0) {
-		if (big_comp(&R, &S2) < 0) {
-			if (big_comp(&R, &S) < 0) {
+	if (big_comp(r, s5) < 0) {
+		if (big_comp(r, s2) < 0) {
+			if (big_comp(r, s) < 0) {
 				return 0;
 			} else {
-				sub_big(&R, &S, &R);
+				sub_big(r, s, r);
 				return 1;
 			}
-		} else if (big_comp(&R, &S3) < 0) {
-			sub_big(&R, &S2, &R);
+		} else if (big_comp(r, s3) < 0) {
+			sub_big(r, s2, r);
 			return 2;
-		} else if (big_comp(&R, &S4) < 0) {
-			sub_big(&R, &S3, &R);
+		} else if (big_comp(r, s4) < 0) {
+			sub_big(r, s3, r);
 			return 3;
 		} else {
-			sub_big(&R, &S4, &R);
+			sub_big(r, s4, r);
 			return 4;
 		}
-	} else if (big_comp(&R, &S7) < 0) {
-		if (big_comp(&R, &S6) < 0) {
-			sub_big(&R, &S5, &R);
+	} else if (big_comp(r, s7) < 0) {
+		if (big_comp(r, s6) < 0) {
+			sub_big(r, s5, r);
 			return 5;
 		} else {
-			sub_big(&R, &S6, &R);
+			sub_big(r, s6, r);
 			return 6;
 		}
-	} else if (big_comp(&R, &S9) < 0) {
-		if (big_comp(&R, &S8) < 0) {
-			sub_big(&R, &S7, &R);
+	} else if (big_comp(r, s9) < 0) {
+		if (big_comp(r, s8) < 0) {
+			sub_big(r, s7, r);
 			return 7;
 		} else {
-			sub_big(&R, &S8, &R);
+			sub_big(r, s8, r);
 			return 8;
 		}
 	} else {
-		sub_big(&R, &S9, &R);
+		sub_big(r, s9, r);
 		return 9;
 	}
 }
 
 /**
- * Initialized floating point formatting constants.
+ * Initialize floating point formatting constants.
  *
- * This routine will be called as needed the first time the API is
- * used but is made public to allow setting a baseline when doing
- * timing measurements.
+ * This routine will be called once, as needed the first time the API is used.
  */
-G_GNUC_COLD void
-float_init(void)
+static G_GNUC_COLD void
+float_init_once(void)
 {
 	int n, i, l;
 	bignum_t *b;
@@ -530,32 +504,43 @@ float_init(void)
 
 #ifdef FLOAT_DEBUG
 	for (n = 1, b = &five[0]; n <= MAX_FIVE; n++) {
+		bignum_t R;
 		big_shift_left(b++, n, &R);
 		print_big(&R);
 		putchar('\n');
 	}
 	fflush(0);
 #endif	/* FLOAT_DEBUG */
+}
 
-	float_inited = TRUE;
+/**
+ * Initialize floating point formatting constants.
+ *
+ * This routine is made public to allow setting a baseline when doing
+ * timing measurements.
+ */
+G_GNUC_COLD void
+float_init(void)
+{
+	ONCE_FLAG_RUN(float_inited, float_init_once);
 }
 
 static int
-add_cmp(int use_mp)
+add_cmp(bignum_t *b, bignum_t *r, bignum_t *s)
 {
 	int rl, ml, sl, suml;
-	static bignum_t sum;
+	bignum_t sum;
 
-	rl = R.l;
-	ml = (use_mp ? MP.l : MM.l);
-	sl = S.l;
+	rl = r->l;
+	ml = b->l;
+	sl = s->l;
 
 	suml = rl >= ml ? rl : ml;
-	if ((sl > suml+1) || ((sl == suml+1) && (S.d[sl] > 1))) return -1;
+	if ((sl > suml+1) || ((sl == suml+1) && (s->d[sl] > 1))) return -1;
 	if (sl < suml) return 1;
 
-	add_big(&R, (use_mp ? &MP : &MM), &sum);
-	return big_comp(&sum, &S);
+	add_big(r, b, &sum);
+	return big_comp(&sum, s);
 }
 
 static uint64
@@ -628,26 +613,17 @@ G_STMT_START {							\
 size_t
 float_dragon(char *dest, size_t len, double v, int *exponent)
 {
-	int sign, e = 0, f_n, m_n, i, d, tc1, tc2;
+	int sign, e = 0, f_n, s_n, m_n, i, d, tc1, tc2, qr_shift;
 	uint64 f;
 	int ruf, k, sl = 0, slr = 0;
 	int use_mp;
 	char *bp = dest;
 	size_t remain = len;
+	bignum_t MP, MM, R, S;
+	bignum_t S2, S3, S4, S5, S6, S7, S8, S9;
 
-	/*
-	 * This code is not thread-safe because it uses global variables.
-	 * Hence we need to funnel execution to limit access to one thread
-	 * only, not counting recursion which we handle.
-	 */
-
-	THREAD_FUNNEL;
-
-	if G_UNLIKELY(!float_inited)
+	if G_UNLIKELY(!ONCE_DONE(float_inited))
 		float_init();
-
-	recursion_level++;
-	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
 	f = float_decompose(v, &sign, &e);
@@ -720,7 +696,7 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 	}
 
 	/* fixup */
-	if (add_cmp(use_mp) <= -ruf) {
+	if (add_cmp(use_mp ? &MP : &MM, &R, &S) <= -ruf) {
 		k--;
 		mul10(&R);
 		mul10(&MM);
@@ -777,11 +753,11 @@ again:
 		}
 	} else {
 		/* We need to do quotient-remainder */
-		d = qr();
+		d = float_qr(&R, &S, &S2, &S3, &S4, &S5, &S6, &S7, &S8, &S9);
 	}
 
 	tc1 = big_comp(&R, &MM) < ruf;
-	tc2 = add_cmp(use_mp) > -ruf;
+	tc2 = add_cmp(use_mp ? &MP : &MM, &R, &S) > -ruf;
 	if (!tc1) {
 		if (!tc2) {
 			mul10(&R);
@@ -814,11 +790,6 @@ done:
 		"ptr_diff=%zu, len=%zu, remain=%zu, len-remain=%zu",
 		ptr_diff(bp, dest), len, remain, len - remain);
 
-	recursion_level--;
-	g_assert(recursion_level >= -1);
-
-	THREAD_UNFUNNEL;
-
 	return ptr_diff(bp, dest);
 }
 
@@ -844,31 +815,22 @@ done:
 size_t
 float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 {
-	int sign, e = 0, f_n, i, d, n;
+	int sign, e = 0, f_n, s_n, i, d, n, qr_shift;
 	uint64 f;
 	int k, sl = 0, slr = 0;
 	char *bp = dest;
 	size_t remain = len;
 	size_t flen;
+	bignum_t MM, R, S;
+	bignum_t S2, S3, S4, S5, S6, S7, S8, S9;
 
 	g_assert(dest != NULL);
 	g_assert(exponent != NULL);
 	g_assert(size_is_positive(len));
 	g_assert(prec >= 0);
 
-	/*
-	 * This code is not thread-safe because it uses global variables.
-	 * Hence we need to funnel execution to limit access to one thread
-	 * only, not counting recursion which we handle.
-	 */
-
-	THREAD_FUNNEL;
-
-	if G_UNLIKELY(!float_inited)
+	if G_UNLIKELY(!ONCE_DONE(float_inited))
 		float_init();
-
-	recursion_level++;
-	g_assert(recursion_level < FLOAT_RECURSION);
 
 	/* decompose float into sign, mantissa & exponent */
 	f = float_decompose(v, &sign, &e);
@@ -969,7 +931,7 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 			}
 		} else {
 			/* We need to do quotient-remainder */
-			d = qr();
+			d = float_qr(&R, &S, &S2, &S3, &S4, &S5, &S6, &S7, &S8, &S9);
 		}
 
 		PUTINC_CHAR(d + '0');
@@ -1018,11 +980,6 @@ done:
 
 	g_assert(size_is_positive(flen));
 	g_assert(flen <= len);
-
-	recursion_level--;
-	g_assert(recursion_level >= -1);
-
-	THREAD_UNFUNNEL;
 
 	return flen;
 }
