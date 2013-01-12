@@ -134,7 +134,6 @@ void spinlock_release(spinlock_t *s, bool hidden);
  * Public interface.
  */
 
-#ifdef SPINLOCK_DEBUG
 void spinlock_grab_from(spinlock_t *s,
 	bool hidden, const char *file, unsigned line);
 bool spinlock_grab_try_from(spinlock_t *s, bool hidden,
@@ -144,8 +143,27 @@ void spinlock_grab_swap_from(spinlock_t *s, const void *plock,
 bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
 	const char *file, unsigned line);
 
+#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
+#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
+
+#define spinlock_hidden(x) \
+	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_hidden_try(x) \
+	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
+
+#define spinlock_swap(x,y) \
+	spinlock_grab_swap_from((x), (y), _WHERE_, __LINE__)
+
+#define spinlock_swap_try(x,y) \
+	spinlock_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
+
+#define spinunlock(x)			spinlock_release((x), FALSE)
+#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
+
+#ifdef SPINLOCK_DEBUG
 /*
- * Direction operations should only be used when locking and unlocking is
+ * Direct operations should only be used when locking and unlocking is
  * always done from a single thread, thereby not requiring that atomic
  * operations be used.
  *
@@ -163,27 +181,7 @@ bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
-#define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
-
-#define spinlock_hidden(x) \
-	spinlock_grab_from((x), TRUE, _WHERE_, __LINE__)
-
-#define spinlock_hidden_try(x) \
-	spinlock_grab_try_from((x), TRUE, _WHERE_, __LINE__)
-
-#define spinlock_swap(x,y) \
-	spinlock_grab_swap_from((x), (y), _WHERE_, __LINE__)
-
-#define spinlock_swap_try(x,y) \
-	spinlock_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
-
 #else	/* !SPINLOCK_DEBUG */
-
-void spinlock_grab(spinlock_t *s, bool hidden);
-bool spinlock_grab_try(spinlock_t *s, bool hidden);
-void spinlock_grab_swap(spinlock_t *s, const void *plock);
-bool spinlock_grab_swap_try(spinlock_t *s, const void *plock);
 
 #define spinlock_direct(x) G_STMT_START {	\
 	(x)->lock = 1;							\
@@ -193,18 +191,7 @@ bool spinlock_grab_swap_try(spinlock_t *s, const void *plock);
 	(x)->lock = 0;							\
 } G_STMT_END
 
-#define spinlock(x)				spinlock_grab((x), FALSE)
-#define spinlock_hidden(x)		spinlock_grab((x), TRUE)
-#define spinlock_try(x)			spinlock_grab_try((x), FALSE)
-#define spinlock_hidden_try(x)	spinlock_grab_try((x), TRUE)
-
-#define spinlock_swap(x,y)		spinlock_grab_swap((x), (y))
-#define spinlock_swap_try(x,y)	spinlock_grab_swap_try((x), (y))
-
 #endif	/* SPINLOCK_DEBUG */
-
-#define spinunlock(x)			spinlock_release((x), FALSE)
-#define spinunlock_hidden(x)	spinlock_release((x), TRUE)
 
 void spinlock_init(spinlock_t *s);
 void spinlock_destroy(spinlock_t *s);

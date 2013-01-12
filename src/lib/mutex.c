@@ -47,15 +47,17 @@
 static bool mutex_pass_through;
 
 static inline void
-mutex_get_account(const mutex_t *m, const void *element)
+mutex_get_account(const mutex_t *m, const char *file, unsigned line,
+	const void *element)
 {
-	thread_lock_got(m, THREAD_LOCK_MUTEX, element);
+	thread_lock_got(m, THREAD_LOCK_MUTEX, file, line, element);
 }
 
 static inline void
-mutex_get_account_swap(const mutex_t *m, const void *plock, const void *element)
+mutex_get_account_swap(const mutex_t *m, const char *file, unsigned line,
+	const void *plock, const void *element)
 {
-	thread_lock_got_swap(m, THREAD_LOCK_MUTEX, plock, element);
+	thread_lock_got_swap(m, THREAD_LOCK_MUTEX, file, line, plock, element);
 }
 
 static inline void
@@ -254,7 +256,7 @@ mutex_destroy(mutex_t *m)
 	 * record it to avoid a warning.
 	 */
 
-	thread_lock_got(&m->lock, THREAD_LOCK_SPINLOCK, NULL);
+	thread_lock_got(&m->lock, THREAD_LOCK_SPINLOCK, _WHERE_, __LINE__, NULL);
 	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
 
 	if (was_locked)
@@ -291,11 +293,15 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	} else if (spinlock_hidden_try(&m->lock)) {				\
 		thread_set(m->owner, t);							\
 		m->depth = 1;										\
+		m->lock.file = file;								\
+		m->lock.line = line;								\
 	} else {												\
 		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
 			mutex_deadlock, mutex_deadlocked);				\
 		thread_set(m->owner, t);							\
 		m->depth = 1;										\
+		m->lock.file = file;								\
+		m->lock.line = line;								\
 	}
 
 #define MUTEX_GRAB_TRY										\
@@ -304,6 +310,8 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	} else if (spinlock_hidden_try(&m->lock)) {				\
 		thread_set(m->owner, t);							\
 		m->depth = 1;										\
+		m->lock.file = file;								\
+		m->lock.line = line;								\
 	} else {												\
 		return FALSE;										\
 	}
@@ -314,9 +322,12 @@ mutex_thread(const enum mutex_mode mode, const void **element)
  *
  * @param m			the mutex we're attempting to grab
  * @param mode		thread management mode
+ * @param file		file where mutex is grabbed
+ * @param line		line where mutex is grabbed
  */
 void
-mutex_grab(mutex_t *m, enum mutex_mode mode)
+mutex_grab_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
 {
 	const void *element = NULL;
 	thread_t t;
@@ -338,7 +349,7 @@ mutex_grab(mutex_t *m, enum mutex_mode mode)
 	MUTEX_GRAB
 
 	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
-		mutex_get_account(m, element);
+		mutex_get_account(m, file, line, element);
 }
 
 /**
@@ -346,11 +357,14 @@ mutex_grab(mutex_t *m, enum mutex_mode mode)
  *
  * @param m			the mutex we're attempting to grab
  * @param mode		thread management mode
+ * @param file		file where mutex is grabbed
+ * @param line		line where mutex is grabbed
  *
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_try(mutex_t *m, enum mutex_mode mode)
+mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
+	const char *file, unsigned line)
 {
 	const void *element = NULL;
 	thread_t t;
@@ -361,7 +375,7 @@ mutex_grab_try(mutex_t *m, enum mutex_mode mode)
 	MUTEX_GRAB_TRY
 
 	if G_LIKELY(MUTEX_MODE_NORMAL == mode)
-		mutex_get_account(m, element);
+		mutex_get_account(m, file, line, element);
 
 	return TRUE;
 }
@@ -371,9 +385,12 @@ mutex_grab_try(mutex_t *m, enum mutex_mode mode)
  *
  * @param m			the mutex we're attempting to grab
  * @param plock		the previous lock we wish to exchange position with
+ * @param file		file where mutex is grabbed
+ * @param line		line where mutex is grabbed
  */
 void
-mutex_grab_swap(mutex_t *m, const void *plock)
+mutex_grab_swap_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
 {
 	const void *element = NULL;
 	thread_t t;
@@ -382,7 +399,7 @@ mutex_grab_swap(mutex_t *m, const void *plock)
 
 	t = mutex_thread(MUTEX_MODE_NORMAL, &element);
 	MUTEX_GRAB
-	mutex_get_account_swap(m, plock, element);
+	mutex_get_account_swap(m, file, line, plock, element);
 }
 
 /**
@@ -391,11 +408,14 @@ mutex_grab_swap(mutex_t *m, const void *plock)
  *
  * @param m			the mutex we're attempting to grab
  * @param plock		the previous lock we wish to exchange position with
+ * @param file		file where mutex is grabbed
+ * @param line		line where mutex is grabbed
  *
  * @return whether we obtained the mutex.
  */
 bool
-mutex_grab_swap_try(mutex_t *m, const void *plock)
+mutex_grab_swap_try_from(mutex_t *m, const void *plock,
+	const char *file, unsigned line)
 {
 	const void *element = NULL;
 	thread_t t;
@@ -404,84 +424,12 @@ mutex_grab_swap_try(mutex_t *m, const void *plock)
 
 	t = mutex_thread(MUTEX_MODE_NORMAL, &element);
 	MUTEX_GRAB_TRY
-	mutex_get_account_swap(m, plock, element);
+	mutex_get_account_swap(m, file, line, plock, element);
 
 	return TRUE;
 }
 
 #ifdef SPINLOCK_DEBUG
-/**
- * Grab a mutex from said location.
- */
-void
-mutex_grab_from(mutex_t *m, enum mutex_mode mode,
-	const char *file, unsigned line)
-{
-	mutex_grab(m, mode);
-
-	if (1 == m->depth) {
-		m->lock.file = file;
-		m->lock.line = line;
-	}
-}
-
-/**
- * Grab mutex from said location, only if available.
- *
- * @return whether we obtained the mutex.
- */
-bool
-mutex_grab_try_from(mutex_t *m, enum mutex_mode mode,
-	const char *file, unsigned line)
-{
-	if (mutex_grab_try(m, mode)) {
-		if (1 == m->depth) {
-			m->lock.file = file;
-			m->lock.line = line;
-		}
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
- * Grab a mutex from said location, exchanging its position with previously
- * held lock in the stack.
- */
-void
-mutex_grab_swap_from(mutex_t *m, const void *plock,
-	const char *file, unsigned line)
-{
-	mutex_grab_swap(m, plock);
-
-	if (1 == m->depth) {
-		m->lock.file = file;
-		m->lock.line = line;
-	}
-}
-
-/**
- * Grab mutex from said location, only if available, then exchange its position
- * with a previously held lock in the stack.
- *
- * @return whether we obtained the mutex.
- */
-bool
-mutex_grab_swap_try_from(mutex_t *m, const void *plock,
-	const char *file, unsigned line)
-{
-	if (mutex_grab_swap_try(m, plock)) {
-		if (1 == m->depth) {
-			m->lock.file = file;
-			m->lock.line = line;
-		}
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
 /**
  * Get lock source.
  *
@@ -561,12 +509,8 @@ mutex_log_error(const mutex_t *m, const char *file, unsigned line)
  * a problem right now.
  */
 void
-#ifdef SPINLOCK_DEBUG
 mutex_ungrab_from(mutex_t *m, enum mutex_mode mode,
 	const char *file, unsigned line)
-#else
-mutex_ungrab(mutex_t *m, enum mutex_mode mode)
-#endif
 {
 	const void *element = NULL;
 	thread_t t;
@@ -585,12 +529,7 @@ mutex_ungrab(mutex_t *m, enum mutex_mode mode)
 		if (mutex_pass_through)
 			return;
 		/* OK, log the precondition failure */
-#ifdef SPINLOCK_DEBUG
 		mutex_log_error(m, file, line);
-#else
-		/* Location does not have the same semantics as above here... */
-		mutex_log_error(m, _WHERE_, __LINE__);
-#endif
 	}
 
 	if (0 == --m->depth) {
@@ -618,7 +557,6 @@ mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
 	mutex_log_error(m, file, line);
 }
 
-#ifdef SPINLOCK_DEBUG
 /**
  * Convenience routine for locks that are part of a "const" structure.
  */
@@ -632,18 +570,6 @@ mutex_unlock_const_from(const mutex_t *m, const char *file, unsigned line)
 
 	mutex_ungrab_from(deconstify_pointer(m), FALSE, file, line);
 }
-#else	/* !SPINLOCK_DEBUG */
-void
-mutex_unlock_const(const mutex_t *m)
-{
-	/*
-	 * A lock is not part of the abstract data type, so it's OK to
-	 * de-constify it now: no mutex is really read-only.
-	 */
-
-	mutex_ungrab(deconstify_pointer(m), FALSE);
-}
-#endif	/* SPINLOCK_DEBUG */
 
 /**
  * Check whether someone holds the mutex and at which depth.

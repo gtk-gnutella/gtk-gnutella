@@ -114,6 +114,8 @@
  */
 struct thread_lock {
 	const void *lock;				/**< Lock object address */
+	const char *file;				/**< Place where lock was grabbed */
+	unsigned line;					/**< Place where lock was grabbed */
 	enum thread_lock_kind kind;		/**< Kind of lock recorded */
 };
 
@@ -3008,13 +3010,11 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 						print_str(" UNLOCKED");		/* 7 */
 					else if (1 != s->lock)
 						print_str(" BAD_LOCK");		/* 7 */
-#ifdef SPINLOCK_DEBUG
 					print_str(" from ");		/* 8 */
-					lnum = print_number(line, sizeof line, s->line);
-					print_str(s->file);			/* 9 */
+					lnum = print_number(line, sizeof line, l->line);
+					print_str(l->file);			/* 9 */
 					print_str(":");				/* 10 */
 					print_str(lnum);			/* 11 */
-#endif	/* SPINLOCK_DEBUG */
 				}
 			}
 			break;
@@ -3040,13 +3040,11 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 							print_str(" BAD_LOCK");	/* 7 */
 						if (!thread_eq(m->owner, te->tid))
 							print_str(" BAD_TID");	/* 8 */
-#ifdef SPINLOCK_DEBUG
 						print_str(" from ");		/* 9 */
-						lnum = print_number(line, sizeof line, s->line);
-						print_str(s->file);			/* 10 */
+						lnum = print_number(line, sizeof line, l->line);
+						print_str(l->file);			/* 10 */
 						print_str(":");				/* 11 */
 						print_str(lnum);			/* 12 */
-#endif	/* SPINLOCK_DEBUG */
 
 						if (0 == m->depth) {
 							print_str(" BAD_DEPTH");	/* 13 */
@@ -3118,23 +3116,13 @@ thread_lock_dump_all(int fd)
  * @return TRUE if we were about to release the lock.
  */
 static bool
-thread_lock_release(const void *lock, enum thread_lock_kind kind,
-	const char **file, unsigned *line)
+thread_lock_release(const void *lock, enum thread_lock_kind kind)
 {
-#ifndef SPINLOCK_DEBUG
-	(void) file;
-	(void) line;
-#endif
-
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:
 		{
 			spinlock_t *s = deconstify_pointer(lock);
 
-#ifdef SPINLOCK_DEBUG
-			*file = s->file;
-			*line = s->line;
-#endif
 			spinunlock_hidden(s);
 		}
 		return TRUE;
@@ -3145,10 +3133,6 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind,
 			if (1 != m->depth)
 				return FALSE;
 
-#ifdef SPINLOCK_DEBUG
-			*file = m->lock.file;
-			*line = m->lock.line;
-#endif
 			mutex_unlock_hidden(m);
 		}
 		return TRUE;
@@ -3205,7 +3189,7 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
  */
 void
 thread_lock_got(const void *lock, enum thread_lock_kind kind,
-	const void *element)
+	const char *file, unsigned line, const void *element)
 {
 	struct thread_element *te = deconstify_pointer(element);
 	struct thread_lock_stack *tls;
@@ -3252,7 +3236,8 @@ found:
 			return;				/* Stack not created yet */
 		}
 		tls->overflow = TRUE;
-		s_miniwarn("%s overflowing its lock stack", thread_element_name(te));
+		s_miniwarn("%s overflowing its lock stack at %s:%u",
+			thread_element_name(te), file, line);
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
 	}
@@ -3267,9 +3252,6 @@ found:
 	 */
 
 	if G_UNLIKELY(te->suspend && 0 == tls->count) {
-		const char *file;
-		unsigned line;
-
 		/*
 		 * If we can release the lock, it was a single one, at which point
 		 * the thread holds no lock and can suspend itself.  When it can
@@ -3278,7 +3260,7 @@ found:
 		 * Suspension will be totally transparent to the user code.
 		 */
 
-		if (thread_lock_release(lock, kind, &file, &line)) {
+		if (thread_lock_release(lock, kind)) {
 			thread_suspend_self(te);
 			thread_lock_reacquire(lock, kind, file, line);
 		}
@@ -3286,6 +3268,8 @@ found:
 
 	l = &tls->arena[tls->count++];
 	l->lock = lock;
+	l->file = file;
+	l->line = line;
 	l->kind = kind;
 
 	/*
@@ -3312,12 +3296,14 @@ found:
  *
  * @param lock		the lock we've just taken
  * @param kind		the type of lock
+ * @param file		file where the lock was taken
+ * @param line		line where the lock was taken
  * @param plock		the previous lock we took and we want to swap order with
  * @param element	the thread element (NULL if unknown yet)
  */
 void
 thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
-	const void *plock, const void *element)
+	const char *file, unsigned line, const void *plock, const void *element)
 {
 	struct thread_element *te = deconstify_pointer(element);
 	struct thread_lock_stack *tls;
@@ -3383,8 +3369,12 @@ found:
 
 	l = &tls->arena[tls->count++];
 	l->lock = pl->lock;			/* Previous lock becomes topmost lock */
+	l->file = pl->file;
+	l->line = pl->line;
 	l->kind = pl->kind;
 	pl->lock = lock;			/* New lock registered in place of previous */
+	pl->file = file;
+	pl->line = line;
 	pl->kind = kind;
 }
 
@@ -3772,8 +3762,6 @@ thread_element_clear_locks(struct thread_element *te)
 	for (i = 0; i < tls->count; i++) {
 		const struct thread_lock *l = &tls->arena[i];
 		const char *type;
-		const char *file = NULL;
-		unsigned line = 0;
 		bool unlocked = FALSE;
 
 		type = thread_lock_kind_to_string(l->kind);
@@ -3790,10 +3778,6 @@ thread_element_clear_locks(struct thread_element *te)
 				) {
 					unlocked = TRUE;
 					s->lock = 0;
-#ifdef SPINLOCK_DEBUG
-					file = s->file;
-					line = s->line;
-#endif
 				}
 			}
 			break;
@@ -3809,10 +3793,6 @@ thread_element_clear_locks(struct thread_element *te)
 					unlocked = TRUE;
 					m->lock.lock = 0;
 					m->depth = 0;
-#ifdef SPINLOCK_DEBUG
-					file = m->lock.file;
-					line = m->lock.line;
-#endif
 				}
 			}
 			break;
@@ -3833,13 +3813,13 @@ thread_element_clear_locks(struct thread_element *te)
 			print_str(type);					/* 2 */
 			print_str(" ");						/* 3 */
 			print_str(buf);						/* 4 */
-			if (file != NULL) {
+			{
 				const char *lnum;
 				char lbuf[UINT_DEC_BUFLEN];
 
-				lnum = print_number(lbuf, sizeof lbuf, line);
+				lnum = print_number(lbuf, sizeof lbuf, l->line);
 				print_str(" from ");			/* 5 */
-				print_str(file);				/* 6 */
+				print_str(l->file);				/* 6 */
 				print_str(":");					/* 7 */
 				print_str(lnum);				/* 8 */
 			}
