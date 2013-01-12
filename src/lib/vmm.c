@@ -700,8 +700,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 {
 	g_assert(pm != NULL);
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
-
-	mutex_lock(&pm->lock);
+	assert_mutex_is_owned(&pm->lock);
 
 	if (vmm_debugging(0)) {
 		struct vm_fragment *vmf = &pm->array[idx];
@@ -722,8 +721,6 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 	}
 
 	pm->count--;
-
-	mutex_unlock(&pm->lock);
 }
 
 /**
