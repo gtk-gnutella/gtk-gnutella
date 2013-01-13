@@ -51,7 +51,8 @@
 
 #define SPINLOCK_LOOP		100		/* Loop iterations before sleeping */
 #define SPINLOCK_DELAY		2		/* Wait 2 ms before looping again */
-#define SPINLOCK_DEAD		5000	/* # of loops before flagging deadlock */
+#define SPINLOCK_DEAD		4096	/* # of loops before flagging deadlock */
+#define SPINLOCK_DEADMASK	(SPINLOCK_DEAD - 1)
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
 static bool spinlock_pass_through;
@@ -231,7 +232,7 @@ spinlock_loop(volatile spinlock_t *s,
 		loops /= 10;
 #endif
 
-	for (i = 0; /* empty */; i++) {
+	for (i = 1; /* empty */; i++) {
 		int j;
 
 		for (j = 0; j < loops; j++) {
@@ -258,7 +259,15 @@ spinlock_loop(volatile spinlock_t *s,
 #endif
 		}
 
-		if G_UNLIKELY(i != 0 && 0 == i % SPINLOCK_DEAD)
+		/*
+		 * We're about to sleep, hence we were not able to quickly grab the
+		 * lock during our earlier spinning.  We can therefore afford more
+		 * expensive checks now.
+		 */
+
+		thread_check_suspended();
+
+		if G_UNLIKELY(0 == (i & SPINLOCK_DEADMASK))
 			(*deadlock)(src_object, i / SPINLOCK_DEAD);
 
 		if G_UNLIKELY(0 == start)
