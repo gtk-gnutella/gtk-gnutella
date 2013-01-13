@@ -260,6 +260,14 @@ assertion_failure_log(const assertion_data * const data,
 	va_end(args);
 
 	/*
+	 * If the thread holds any locks, dump them.
+	 */
+
+	thread_lock_dump_self_if_any(STDERR_FILENO);
+	if (log_stdout_is_distinct())
+		thread_lock_dump_self_if_any(STDOUT_FILENO);
+
+	/*
 	 * Log additional message.
 	 */
 

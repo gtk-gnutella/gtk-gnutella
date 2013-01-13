@@ -289,6 +289,19 @@ spinlock_init(spinlock_t *s)
 }
 
 /**
+ * Reset a spinlock.
+ *
+ * This is intended to be used only by the thread management layer.
+ */
+void
+spinlock_reset(spinlock_t *s)
+{
+	spinlock_check(s);
+
+	s->lock = 0;
+}
+
+/**
  * Destroy a spinlock.
  *
  * It is not necessary to hold the lock on the spinlock to do this, although

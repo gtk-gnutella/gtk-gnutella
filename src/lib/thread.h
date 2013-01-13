@@ -163,6 +163,7 @@ bool thread_lock_holds_default(const volatile void *lock, bool dflt);
 size_t thread_lock_held_count(const void *lock);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
+void thread_lock_dump_self_if_any(int fd);
 void thread_assert_no_locks(const char *routine);
 
 void thread_pending_add(int increment);

@@ -136,6 +136,14 @@ enum mutex_mode {
 };
 
 /*
+ * Internal.
+ */
+
+#ifdef THREAD_SOURCE
+void mutex_reset(mutex_t *m);
+#endif	/* THREAD_SOURCE */
+
+/*
  * These should not be called directly by user code to allow debugging.
  */
 

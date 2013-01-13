@@ -222,6 +222,10 @@ void spinlock_loop(volatile spinlock_t *s,
 
 #endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
 
+#ifdef THREAD_SOURCE
+void spinlock_reset(spinlock_t *s);
+#endif	/* THREAD_SOURCE */
+
 /**
  * Check that spinlock is held, for assertions.
  */

@@ -2340,7 +2340,6 @@ thread_suspend_others(bool lockwait)
 		mutex_unlock(&thread_suspend_mtx);
 		s_carp("%s(): suspending %s was supposed to be already suspended",
 			G_STRFUNC, thread_element_name(te));
-		thread_lock_dump(te);
 		return 0;
 	}
 
@@ -3106,6 +3105,29 @@ thread_lock_dump_all(int fd)
 }
 
 /**
+ * Dump locks held by current thread to specified file descriptor, if any.
+ *
+ * If the thread holds no locks, nothing is printed.
+ */
+void
+thread_lock_dump_self_if_any(int fd)
+{
+	struct thread_element *te;
+	unsigned stid;
+
+	/*
+	 * We don't call thread_get_element() because this routine can be used on
+	 * the assertion failure path and we must be as robust as possible.
+	 */
+
+	stid = thread_small_id();
+	te = threads[stid];
+
+	if (te != NULL && te->valid && 0 != te->locks.count)
+		thread_lock_dump_fd(fd, te);
+}
+
+/**
  * Attempt to release a single lock.
  *
  * Threads which have just grabbed a single lock (either a spinlock or a
@@ -3777,7 +3799,7 @@ thread_element_clear_locks(struct thread_element *te)
 					1 == s->lock
 				) {
 					unlocked = TRUE;
-					s->lock = 0;
+					spinlock_reset(s);
 				}
 			}
 			break;
@@ -3791,8 +3813,7 @@ thread_element_clear_locks(struct thread_element *te)
 					1 == m->lock.lock
 				) {
 					unlocked = TRUE;
-					m->lock.lock = 0;
-					m->depth = 0;
+					mutex_reset(m);
 				}
 			}
 			break;

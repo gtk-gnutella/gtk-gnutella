@@ -154,6 +154,21 @@ mutex_init(mutex_t *m)
 }
 
 /**
+ * Reset a mutex.
+ *
+ * This is intended to be used by the thread management layer only.
+ */
+void
+mutex_reset(mutex_t *m)
+{
+	mutex_check(m);
+
+	m->depth = 0;
+	m->lock.lock = 0;
+	thread_set(m->owner, THREAD_NONE);
+}
+
+/**
  * Is mutex owned by thread?
  */
 static inline ALWAYS_INLINE bool
