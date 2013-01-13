@@ -553,8 +553,10 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 		 */
 
 		if (lf->duplicate) {
-			IGNORE_RESULT(write(lf->crash_fd, msg, strlen(msg)));
-			IGNORE_RESULT(write(lf->crash_fd, "\n", 1));
+			iovec_t iov[2];
+			iovec_set(&iov[0], msg, strlen(msg));
+			iovec_set(&iov[1], "\n", 1);
+			IGNORE_RESULT(writev(lf->crash_fd, iov, G_N_ELEMENTS(iov)));
 		}
 	} else {
 		bool ioerr;
@@ -933,8 +935,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 		if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
 			int fd = logfile[LOG_STDERR].crash_fd;
-			IGNORE_RESULT(write(fd, str_2c(msg), str_len(msg)));
-			IGNORE_RESULT(write(fd, "\n", 1));
+			iovec_t iov[2];
+			iovec_set(&iov[0], str_2c(msg), str_len(msg));
+			iovec_set(&iov[1], "\n", 1);
+			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
 		}
 	}
 
