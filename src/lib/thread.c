@@ -66,6 +66,7 @@
 #include "omalloc.h"
 #include "once.h"
 #include "pow2.h"
+#include "rwlock.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -2934,6 +2935,8 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 {
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:	return "spinlock";
+	case THREAD_LOCK_RLOCK:		return "rwlock (R)";
+	case THREAD_LOCK_WLOCK:		return "rwlock (W)";
 	case THREAD_LOCK_MUTEX:		return "mutex";
 	}
 
@@ -2951,7 +2954,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 {
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
-	DECLARE_STR(17);
+	DECLARE_STR(22);
 
 	if G_UNLIKELY(0 == tls->count) {
 		print_str(thread_element_name(te));					/* 0 */
@@ -3017,6 +3020,55 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_RLOCK:
+		case THREAD_LOCK_WLOCK:
+			{
+				const rwlock_t *rw = l->lock;
+				char rdbuf[UINT_DEC_BUFLEN];
+				char wrbuf[UINT_DEC_BUFLEN];
+				char qrbuf[UINT_DEC_BUFLEN];
+				char qwbuf[UINT_DEC_BUFLEN];
+				const char *r, *w, *qr, *qw;
+
+				if (!mem_is_valid_range(rw, sizeof *rw)) {
+					print_str(" FREED");			/* 7 */
+				} else if (RWLOCK_MAGIC != rw->magic) {
+					if (RWLOCK_DESTROYED == rw->magic)
+						print_str(" DESTROYED");	/* 7 */
+					else
+						print_str(" BAD_MAGIC");	/* 7 */
+				} else {
+					if (RWLOCK_WFREE == rw->owner)
+						print_str(" rdonly");		/* 7 */
+					else if (te->stid != rw->owner)
+						print_str(" read");			/* 7 */
+					else
+						print_str(" write");		/* 7 */
+
+					print_str(" from ");		/* 8 */
+					lnum = print_number(line, sizeof line, l->line);
+					print_str(l->file);			/* 9 */
+					print_str(":");				/* 10 */
+					print_str(lnum);			/* 11 */
+
+					r = print_number(rdbuf, sizeof rdbuf, rw->readers);
+					w = print_number(wrbuf, sizeof wrbuf, rw->writers);
+					qr = print_number(qrbuf, sizeof qrbuf,
+							rw->waiters - rw->write_waiters);
+					qw = print_number(qwbuf, sizeof qwbuf, rw->write_waiters);
+
+					print_str(" (r:");			/* 12 */
+					print_str(r);				/* 13 */
+					print_str(" w:");			/* 14 */
+					print_str(w);				/* 15 */
+					print_str(" q:");			/* 16 */
+					print_str(qr);				/* 17 */
+					print_str("+");				/* 18 */
+					print_str(qw);				/* 19 */
+					print_str(")");				/* 20 */
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
@@ -3062,7 +3114,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			break;
 		}
 
-		print_str("\n");		/* 16 */
+		print_str("\n");		/* 21 */
 		flush_str(fd);
 	}
 }
@@ -3144,8 +3196,19 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 	case THREAD_LOCK_SPINLOCK:
 		{
 			spinlock_t *s = deconstify_pointer(lock);
-
 			spinunlock_hidden(s);
+		}
+		return TRUE;
+	case THREAD_LOCK_RLOCK:
+		{
+			rwlock_t *r = deconstify_pointer(lock);
+			rwlock_rungrab(r);
+		}
+		return TRUE;
+	case THREAD_LOCK_WLOCK:
+		{
+			rwlock_t *w = deconstify_pointer(lock);
+			rwlock_wungrab(w);
 		}
 		return TRUE;
 	case THREAD_LOCK_MUTEX:
@@ -3185,6 +3248,18 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 			s->file = file;
 			s->line = line;
 #endif
+		}
+		return;
+	case THREAD_LOCK_RLOCK:
+		{
+			rwlock_t *r = deconstify_pointer(lock);
+			rwlock_rgrab(r);
+		}
+		return;
+	case THREAD_LOCK_WLOCK:
+		{
+			rwlock_t *w = deconstify_pointer(lock);
+			rwlock_wgrab(w, file, line);
 		}
 		return;
 	case THREAD_LOCK_MUTEX:
@@ -3401,6 +3476,73 @@ found:
 }
 
 /**
+ * Account for lock type change (e.g. promotion of a read lock to a write one).
+ *
+ * No swapping of lock order occurs, however the locking origin is updated.
+ *
+ * @param lock		the lock we've just updated
+ * @param okind		the old type of lock
+ * @param nkind		the new type of lock
+ * @param file		file where the lock was updated
+ * @param line		line where the lock was updated
+ * @param element	the thread element (NULL if unknown yet)
+ */
+void
+thread_lock_changed(const void *lock, enum thread_lock_kind okind,
+	enum thread_lock_kind nkind, const char *file, unsigned line,
+	const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
+	struct thread_lock_stack *tls;
+	unsigned i;
+
+	/*
+	 * This starts as thread_lock_got() would...
+	 */
+
+	if (NULL == te) {
+		te = thread_find(&te);
+	} else {
+		thread_element_check(te);
+	}
+
+	if G_UNLIKELY(NULL == te) {
+		/*
+		 * Cheaply check whether we are in the main thread, whilst it is
+		 * being created.
+		 */
+
+		if G_UNLIKELY(NULL == threads[0]) {
+			te = thread_get_main_if_first();
+			if (te != NULL)
+				goto found;
+		}
+		return;
+	}
+
+found:
+
+	tls = &te->locks;
+
+	g_assert_log(tls->count != 0,
+		"%s(): expected at least 1 lock to be already held", G_STRFUNC);
+
+	for (i = tls->count; i != 0; i--) {
+		struct thread_lock *l = &tls->arena[i - 1];
+
+		if G_LIKELY(l->lock == lock && l->kind == okind) {
+			l->kind = nkind;
+			l->file = file;
+			l->line = line;
+			return;
+		}
+	}
+
+	s_minicarp("%s(): %s %p was not registered in thread #%u",
+		G_STRFUNC, thread_lock_kind_to_string(okind), lock, te->stid);
+}
+
+/**
  * Account for spinlock / mutex release by current thread whose thread
  * element is known (as an opaque pointer).
  */
@@ -3458,7 +3600,10 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	l = &tls->arena[tls->count - 1];
 
 	if G_LIKELY(l->lock == lock) {
-		g_assert(l->kind == kind);
+		g_assert_log(l->kind == kind,
+			"%s(): %s %p is actually registered as %s in thread #%u",
+			G_STRFUNC, thread_lock_kind_to_string(kind), lock,
+			thread_lock_kind_to_string(l->kind), te->stid);
 
 		tls->count--;
 
@@ -3548,7 +3693,7 @@ thread_lock_holds_default(const volatile void *lock, bool dflt)
 	for (i = 0; i < tls->count; i++) {
 		const struct thread_lock *l = &tls->arena[i];
 
-		if (l->lock == lock)
+		if G_UNLIKELY(l->lock == lock)
 			return TRUE;
 	}
 
@@ -3707,6 +3852,7 @@ thread_crash_mode(void)
 
 	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
 	mutex_crash_mode();		/* Allow release of all mutexes */
+	rwlock_crash_mode();
 
 	/*
 	 * Suspend the other threads now that we are running with all locks
@@ -3823,6 +3969,21 @@ thread_element_clear_locks(struct thread_element *te)
 				) {
 					unlocked = TRUE;
 					spinlock_reset(s);
+				}
+			}
+			break;
+		case THREAD_LOCK_RLOCK:
+		case THREAD_LOCK_WLOCK:
+			{
+				rwlock_t *rw = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(rw, sizeof *rw) &&
+					RWLOCK_MAGIC == rw->magic &&
+					(0 != rw->readers || 0 != rw->writers || 0 != rw->waiters)
+				) {
+					unlocked = TRUE;
+					rwlock_reset(rw);
 				}
 			}
 			break;

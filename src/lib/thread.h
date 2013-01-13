@@ -97,6 +97,8 @@ typedef size_t thread_qid_t;		/* Quasi Thread ID */
  */
 enum thread_lock_kind {
 	THREAD_LOCK_SPINLOCK,
+	THREAD_LOCK_RLOCK,
+	THREAD_LOCK_WLOCK,
 	THREAD_LOCK_MUTEX
 };
 
@@ -156,6 +158,9 @@ void thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *element);
 void thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *plock, const void *element);
+void thread_lock_changed(const void *lock, enum thread_lock_kind okind,
+	enum thread_lock_kind nkind, const char *file, unsigned line,
+	const void *element);
 void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element);
 size_t thread_lock_count(void);

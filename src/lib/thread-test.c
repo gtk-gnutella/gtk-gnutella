@@ -43,6 +43,7 @@
 #include "mutex.h"
 #include "parse.h"
 #include "path.h"
+#include "rwlock.h"
 #include "semaphore.h"
 #include "spinlock.h"
 #include "str.h"
@@ -61,7 +62,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACFIMNQS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACFIMNQRS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -75,6 +76,7 @@ usage(void)
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
 		"  -Q : test asynchronous queue\n"
+		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
@@ -583,6 +585,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 
 static spinlock_t locks[] = { SPINLOCK_INIT, SPINLOCK_INIT };
 static mutex_t mutexes[] = { MUTEX_INIT, MUTEX_INIT };
+static rwlock_t rlocks[] = { RWLOCK_INIT, RWLOCK_INIT };
+static rwlock_t wlocks[] = { RWLOCK_INIT, RWLOCK_INIT };
 const char *fork_names[] = { "locker #1", "locker #2" };
 
 static void *
@@ -597,6 +601,8 @@ fork_locker(void *arg)
 
 	spinlock(&locks[n]);
 	mutex_lock(&mutexes[n]);
+	rwlock_rlock(&rlocks[n]);
+	rwlock_wlock(&wlocks[n]);
 
 	printf("%s locked, sleeping for 5 secs\n", thread_name());
 	fflush(stdout);
@@ -606,6 +612,8 @@ fork_locker(void *arg)
 	printf("%s unlocking\n", thread_name());
 	fflush(stdout);
 
+	rwlock_wunlock(&wlocks[n]);
+	rwlock_runlock(&rlocks[n]);
 	mutex_unlock(&mutexes[n]);
 	spinunlock(&locks[n]);
 
@@ -769,6 +777,105 @@ test_aqueue(bool emulated)
 	printf("%s() all done.\n", G_STRFUNC);
 }
 
+static rwlock_t rwsync = RWLOCK_INIT;
+
+static void *
+test_rwthreads(void *unused_arg)
+{
+	const char *tname = thread_name();
+
+	(void) unused_arg;
+
+	t_info("%s - starting concurrent read tests", tname);
+	rwlock_rlock(&rwsync);
+
+	t_info("%s - has read lock", tname);
+	compat_sleep_ms(100);
+	t_info("%s - and now trying to upgrade it", tname);
+
+	if (rwlock_upgrade(&rwsync)) {
+		t_info("%s - could upgrade to write lock, pausing 1 second", tname);
+		sleep(1);
+		t_info("%s - downgrading back to read lock, pausing 1 second", tname);
+		rwlock_downgrade(&rwsync);
+		sleep(1);
+		t_info("%s - releasing read lock, re-getting write lock", tname);
+		rwlock_runlock(&rwsync);
+		rwlock_wlock(&rwsync);
+		t_info("%s - ok, got write lock back", tname);
+	} else {
+		t_info("%s - could not upgrade, releasing read lock", tname);
+		rwlock_runlock(&rwsync);
+		t_info("%s - waiting for write lock", tname);
+		rwlock_wlock(&rwsync);
+		t_info("%s - ok, got write lock, sleeping 1 second", tname);
+		sleep(1);
+	}
+
+	t_info("%s - releasing write lock", tname);
+	rwlock_wunlock(&rwsync);
+	t_info("%s - exiting", tname);
+
+	return NULL;
+}
+
+static void
+test_rwlock(void)
+{
+	int t[9];
+	rwlock_t rw = RWLOCK_INIT;
+	unsigned i;
+
+	t_info("%s starting, will be launching %s()", thread_name(),
+		stacktrace_function_name(test_rwthreads));
+
+	/* The mono-threaded "cannot fail" sequence */
+
+	printf("%s(): mono-threaded tests...\n", G_STRFUNC);
+	fflush(stdout);
+
+	if (!rwlock_rlock_try(&rw))
+		s_error("cannot read-lock");
+
+	if (!rwlock_rlock_try(&rw))
+		s_error("cannot recursively read-lock");
+
+	rwlock_runlock(&rw);
+
+	if (!rwlock_upgrade(&rw))
+		s_error("cannot upgrade read-lock");
+
+	if (rwlock_is_free(&rw))
+		s_error("lock should not be free");
+
+	rwlock_downgrade(&rw);
+	rwlock_runlock(&rw);
+
+	if (!rwlock_is_free(&rw))
+		s_error("lock should be free");
+
+	printf("%s(): mono-threaded tests succeded.\n", G_STRFUNC);
+	fflush(stdout);
+
+	/* Now for multi-threaded tests.... */
+
+	printf("%s(): multi-threaded tests...\n", G_STRFUNC);
+	fflush(stdout);
+
+	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+		t[i] = thread_create(test_rwthreads, NULL, 0, 0);
+		if (-1 == t[i])
+			s_error("%s() cannot create thread %u: %m", G_STRFUNC, i);
+	}
+
+	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+		thread_join(t[i], NULL);
+	}
+
+	printf("%s(): multi-threaded tests done.\n", G_STRFUNC);
+	fflush(stdout);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -793,7 +900,7 @@ main(int argc, char **argv)
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE;
-	bool inter = FALSE, forking = FALSE, aqueue = FALSE;
+	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -802,7 +909,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACFIMNQST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACFIMNQRST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -824,6 +931,9 @@ main(int argc, char **argv)
 			break;
 		case 'Q':			/* test asynchronous queue */
 			aqueue = TRUE;
+			break;
+		case 'R':			/* test rwlock */
+			rwlock = TRUE;
 			break;
 		case 'S':			/* test semaphore layer */
 			sem = TRUE;
@@ -862,6 +972,9 @@ main(int argc, char **argv)
 
 	if (aqueue)
 		test_aqueue(emulated);
+
+	if (rwlock)
+		test_rwlock();
 
 	if (sem)
 		test_semaphore(emulated);
