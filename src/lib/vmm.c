@@ -652,16 +652,15 @@ vmm_find_hole(size_t size)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
+	const void *result = NULL;
 
 	if G_UNLIKELY(!vmm_fully_inited)
 		return NULL;
 
 	rwlock_rlock(&pm->lock);
 
-	if G_UNLIKELY(0 == pm->count || pm->loading) {
-		rwlock_runlock(&pm->lock);
-		return NULL;
-	}
+	if G_UNLIKELY(0 == pm->count || pm->loading)
+		goto done;
 
 	if (kernel_mapaddr_increasing) {
 		for (i = 0; i < pm->count; i++) {
@@ -672,14 +671,14 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(i == pm->count - 1) {
-				rwlock_runlock(&pm->lock);
-				return end;
+				result = end;
+				goto done;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
 
 				if (ptr_diff(next->start, end) >= size) {
-					rwlock_runlock(&pm->lock);
-					return end;
+					result = end;
+					goto done;
 				}
 			}
 		}
@@ -692,14 +691,14 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(1 == i) {
-				rwlock_runlock(&pm->lock);
-				return page_start(const_ptr_add_offset(start, -size));
+				result = page_start(const_ptr_add_offset(start, -size));
+				goto done;
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
 				if (ptr_diff(start, prev->end) >= size) {
-					rwlock_runlock(&pm->lock);
-					return page_start(const_ptr_add_offset(start, -size));
+					result = page_start(const_ptr_add_offset(start, -size));
+					goto done;
 				}
 			}
 		}
@@ -709,8 +708,9 @@ vmm_find_hole(size_t size)
 		s_miniwarn("VMM no %zuKiB hole found in pmap", size / 1024);
 	}
 
+done:
 	rwlock_runlock(&pm->lock);
-	return NULL;
+	return result;
 }
 
 /**
@@ -982,22 +982,17 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 #if defined(HAS_MMAP) || defined(MINGW32)
 {
 	static int failed;
-	void *hint, *p;
+	void *p;
+	void *hint = deconstify_pointer(hole);
 	static uint64 hint_followed;
 
 	if G_UNLIKELY(failed)
 		return NULL;
 
-	if (G_UNLIKELY(stop_freeing)) {
-		hint = NULL;
-	} else {
-		hint = deconstify_pointer(NULL == hole ? vmm_find_hole(size) : hole);
-	}
-
 	if G_UNLIKELY(hint != NULL) {
 		if (vmm_debugging(8)) {
-			s_minidbg("VMM hinting %s%p for new %zuKiB region",
-				NULL == hole ? "" : "supplied ", hint, size / 1024);
+			s_minidbg("VMM hinting %p for new %zuKiB region",
+				hint, size / 1024);
 		}
 	}
 
@@ -1145,7 +1140,7 @@ done:
 {
 	void *p;
 
-	(void) hole;
+	(void) hint;
 	size = round_pagesize_fast(size);
 #if defined(HAS_POSIX_MEMALIGN)
 	if (posix_memalign(&p, kernel_pagesize, size)) {
@@ -1180,21 +1175,34 @@ pmap_insert(struct pmap *pm, const void *start, size_t size)
  *
  * @param size			the amount of bytes to allocate.
  * @param update_pmap	whether our VMM pmap should be updated
- * @param hole			if non-NULL, identified VM hole of size bytes at least
  *
  * @return On success a pointer to the allocated chunk is returned. On
  *		   failure NULL is returned.
  */
 static void *
-alloc_pages(size_t size, bool update_pmap, const void *hole)
+alloc_pages(size_t size, bool update_pmap)
 {
 	void *p;
 	size_t generation = kernel_pmap.generation;
+	const void *hole = NULL;
 
 	g_assert(kernel_pagesize > 0);
 
-	if (update_pmap)
+
+	if (update_pmap) {
+		/*
+		 * We only compute a hole when we're going to update the pmap.
+		 * Because we hold the pmap's write lock, only one thread at a time
+		 * will be able to perform the allocation with that selected hole.
+		 */
+
 		rwlock_wlock(&vmm_pmap()->lock);
+		if (G_UNLIKELY(stop_freeing)) {
+			hole = NULL;
+		} else {
+			hole = vmm_find_hole(size);
+		}
+	}
 
 	p = vmm_mmap_anonymous(size, hole);
 
@@ -1348,7 +1356,7 @@ pmap_allocate(struct pmap *pm)
 	g_assert(0 == pm->pages);
 
 	rwlock_init(&pm->lock);
-	pm->array = alloc_pages(kernel_pagesize, FALSE, NULL);
+	pm->array = alloc_pages(kernel_pagesize, FALSE);
 	pm->pages = 1;
 	pm->count = 0;
 	pm->size = kernel_pagesize / sizeof pm->array[0];
@@ -1405,7 +1413,7 @@ retry:
 	{
 		size_t old_pages = pm->pages;
 
-		narray = alloc_pages(nsize, FALSE, NULL);	/* May recurse here */
+		narray = alloc_pages(nsize, FALSE);	/* May recurse here */
 
 		if (pm->pages != old_pages) {
 			if (vmm_debugging(0)) {
@@ -2016,7 +2024,7 @@ static bool
 pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 {
 	struct vm_fragment *vmf;
-	bool within;
+	bool within = FALSE;
 	struct pmap *wpm = deconstify_pointer(pm);
 
 	rwlock_rlock(&wpm->lock);
@@ -2025,11 +2033,12 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 
 	if (NULL == vmf) {
 		pmap_log_missing(pm, p, size);
-		return FALSE;
+		goto done;
 	}
 
 	within = p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
 
+done:
 	rwlock_runlock(&wpm->lock);
 	return within;
 }
@@ -2100,28 +2109,25 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 {
 	size_t idx;
 	struct pmap *wpm = deconstify_pointer(pm);
+	bool result = FALSE;
 
 	rwlock_rlock(&wpm->lock);
 
-	if (pmap_lookup(pm, p, &idx)) {
-		rwlock_runlock(&wpm->lock);
-		return FALSE;
-	}
+	if (pmap_lookup(pm, p, &idx))
+		goto done;
 
 	g_assert(size_is_non_negative(idx));
 
 	if (idx < pm->count) {
 		struct vm_fragment *vmf = &pm->array[idx];
 		const void *end = const_ptr_add_offset(p, size);
-		bool ret;
 
-		ret = ptr_cmp(end, vmf->start) <= 0;
-		rwlock_runlock(&wpm->lock);
-		return ret;
+		result = ptr_cmp(end, vmf->start) <= 0;
 	}
 
+done:
 	rwlock_runlock(&wpm->lock);
-	return TRUE;
+	return result;
 }
 
 /**
@@ -3075,14 +3081,12 @@ not_found:
  * Find "n" consecutive pages in the page cache, and remove them if found.
  *
  * @param n			number of pages we want
- * @param hole_ptr	variable where first hole we found is written to
  *
  * @return a pointer to the start of the memory region, NULL if we were
- * unable to find that amount of contiguous memory.  In any case, ``hole_ptr''
- * is written with the first suitable hole we identified in the VM space.
+ * unable to find that amount of contiguous memory.
  */
 static void *
-page_cache_find_pages(size_t n, const void **hole_ptr)
+page_cache_find_pages(size_t n)
 {
 	void *p;
 	size_t len;
@@ -3090,7 +3094,6 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 	struct page_cache *pc = NULL;
 
 	g_assert(size_is_positive(n));
-	g_assert(hole_ptr != NULL);
 
 	/*
 	 * Before using pages from the cache, look where the first hole is
@@ -3120,8 +3123,6 @@ page_cache_find_pages(size_t n, const void **hole_ptr)
 				n, 1 == n ? "" : "s", hole, np, 1 == np ? "" : "s");
 		}
 	}
-
-	*hole_ptr = hole;
 
 	if (n >= VMM_CACHE_LINES) {
 		/*
@@ -3587,10 +3588,8 @@ vmm_invalidate_pages(void *p, size_t size)
 static void *
 vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 {
-	static spinlock_t vmm_alloc_slk = SPINLOCK_INIT;
 	size_t n;
 	void *p;
-	const void *hole;
 
 	g_assert(size_is_positive(size));
 
@@ -3608,31 +3607,12 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		vmm_stats.allocations_zeroed++;
 
 	/*
-	 * We need to funnel the allocations among all the threads because the
-	 * computed hole in the VM space must not be filled by a successful
-	 * concurrent request.
-	 *
-	 * We cannot lock the pmap here because we risk a deadlock with the page
-	 * cache lock through vpc_free().
-	 *
-	 * Note that we do not care about memory freeing or memory shrinking.
-	 * We just want to make sure only one thread at a time will be able to
-	 * compute the memory hole and then allocate memory using that hint,
-	 * when we cannot allocate from the page cache.
-	 *
-	 * No re-entry is possible here, so we don't need a mutex.
-	 */
-
-	spinlock(&vmm_alloc_slk);
-
-	/*
 	 * First look in the page cache to avoid requesting a new memory
 	 * mapping from the kernel.
 	 */
 
-	p = page_cache_find_pages(n, &hole);
+	p = page_cache_find_pages(n);
 	if (p != NULL) {
-		spinunlock(&vmm_alloc_slk);
 		vmm_validate_pages(p, size);
 		if G_UNLIKELY(zero_mem)
 			memset(p, 0, size);
@@ -3644,8 +3624,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		goto update_stats;
 	}
 
-	p = alloc_pages(size, TRUE, hole);
-	spinunlock(&vmm_alloc_slk);
+	p = alloc_pages(size, TRUE);
 	if (NULL == p)
 		s_error("cannot allocate %zu bytes: out of virtual memory", size);
 
@@ -4047,7 +4026,7 @@ vmm_trap_page(void)
 		if G_UNLIKELY(0 == kernel_pagesize)
 			vmm_init();
 
-		p = alloc_pages(kernel_pagesize, FALSE, NULL);
+		p = alloc_pages(kernel_pagesize, FALSE);
 		g_assert(p);
 		mprotect(p, kernel_pagesize, PROT_NONE);
 		trap_page = p;
@@ -4572,8 +4551,8 @@ vmm_early_init_once(void)
 	kernel_mapaddr_increasing = 1;
 #else
 	{
-		void *p = alloc_pages(kernel_pagesize, FALSE, NULL);
-		void *q = alloc_pages(kernel_pagesize, FALSE, NULL);
+		void *p = alloc_pages(kernel_pagesize, FALSE);
+		void *q = alloc_pages(kernel_pagesize, FALSE);
 
 		kernel_mapaddr_increasing = ptr_cmp(q, p) > 0;
 
