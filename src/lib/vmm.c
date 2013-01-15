@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2011, Raphael Manfredi
+ * Copyright (c) 2006, 2011, 2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -99,7 +99,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009, 2011
+ * @date 2006, 2009, 2011, 2013
  */
 
 #include "common.h"
@@ -115,11 +115,11 @@
 #include "fd.h"
 #include "log.h"
 #include "memusage.h"
-#include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
 #include "parse.h"
 #include "pow2.h"
+#include "rwlock.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_bprintf() */
 #include "stringify.h"
@@ -228,7 +228,7 @@ struct vm_fragment {
  */
 struct pmap {
 	struct vm_fragment *array;		/**< Sorted array of vm_fragment structs */
-	mutex_t lock;					/**< Thread-safe locking */
+	rwlock_t lock;					/**< Thread-safe locking */
 	size_t count;					/**< Amount of entries in array */
 	size_t size;					/**< Total amount of slots in array */
 	size_t pages;					/**< Amount of pages for the array */
@@ -584,7 +584,19 @@ vmm_dump_pmap_log(logagent_t *la)
 	size_t i;
 	time_t now = tm_time();
 
-	mutex_lock(&pm->lock);
+	/*
+	 * We use a write-lock and not a read-lock here, which can seem surprising
+	 * at first since we're in essence reading the pmap.  However, we are
+	 * using external routines that can allocate memory and recurse back to
+	 * the VMM layer, attempting to then grab the write-lock.  And it is not
+	 * allowed to request a write-lock when the read-lock is already owned.
+	 *
+	 * Therefore we need to take the write-lock to be fully protected, since
+	 * we can then take it again or request read-locks whilst we own the
+	 * write-lock.
+	 */
+
+	rwlock_wlock(&pm->lock);
 
 	log_debug(la, "VMM current %s pmap (%zu/%zu region%s):",
 		pm == &kernel_pmap ? "kernel" :
@@ -600,6 +612,15 @@ vmm_dump_pmap_log(logagent_t *la)
 			hole = ptr_diff(next, vmf->end);
 		}
 
+		/*
+		 * Because log_debug() can allocate memory, which could then recurse
+		 * and update the pmap, we MUST NOT access ``vmf'' afterwards.
+		 *
+		 * Since all the arguments will be evaluated and pushed on the stack
+		 * before we can recurse, there is no need to copy the content of
+		 * ``vmf'' before making the call though.
+		 */
+
 		log_debug(la, "VMM [%p, %p] %zuKiB %s%s%s%s (%s)%s",
 			vmf->start, const_ptr_add_offset(vmf->end, -1),
 			vmf_size(vmf) / 1024, vmf_type_str(vmf->type),
@@ -610,7 +631,7 @@ vmm_dump_pmap_log(logagent_t *la)
 			size_is_non_negative(hole) ? "" : " *UNSORTED*");
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -635,10 +656,10 @@ vmm_find_hole(size_t size)
 	if G_UNLIKELY(!vmm_fully_inited)
 		return NULL;
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 
 	if G_UNLIKELY(0 == pm->count || pm->loading) {
-		mutex_unlock(&pm->lock);
+		rwlock_runlock(&pm->lock);
 		return NULL;
 	}
 
@@ -651,13 +672,13 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(i == pm->count - 1) {
-				mutex_unlock(&pm->lock);
+				rwlock_runlock(&pm->lock);
 				return end;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
 
 				if (ptr_diff(next->start, end) >= size) {
-					mutex_unlock(&pm->lock);
+					rwlock_runlock(&pm->lock);
 					return end;
 				}
 			}
@@ -671,13 +692,13 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(1 == i) {
-				mutex_unlock(&pm->lock);
+				rwlock_runlock(&pm->lock);
 				return page_start(const_ptr_add_offset(start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
 				if (ptr_diff(start, prev->end) >= size) {
-					mutex_unlock(&pm->lock);
+					rwlock_runlock(&pm->lock);
 					return page_start(const_ptr_add_offset(start, -size));
 				}
 			}
@@ -688,7 +709,7 @@ vmm_find_hole(size_t size)
 		s_miniwarn("VMM no %zuKiB hole found in pmap", size / 1024);
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_runlock(&pm->lock);
 	return NULL;
 }
 
@@ -700,7 +721,7 @@ pmap_discard_index(struct pmap *pm, size_t idx)
 {
 	g_assert(pm != NULL);
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
-	assert_mutex_is_owned(&pm->lock);
+	assert_rwlock_is_owned(&pm->lock);
 
 	if (vmm_debugging(0)) {
 		struct vm_fragment *vmf = &pm->array[idx];
@@ -742,28 +763,30 @@ static G_GNUC_HOT size_t
 vmm_first_hole(const void **hole_ptr, bool discard)
 {
 	struct pmap *pm = vmm_pmap();
-	size_t i;
+	size_t i, result = 0;
+	bool wlock = FALSE;
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 
 	if G_UNLIKELY(0 == pm->count) {
-		mutex_unlock(&pm->lock);
+		rwlock_runlock(&pm->lock);
 		return 0;
 	}
+
+retry:
 
 	if (kernel_mapaddr_increasing) {
 		for (i = 0; i < pm->count; i++) {
 			struct vm_fragment *vmf = &pm->array[i];
 			const void *end = vmf->end;
-			size_t len;
 
 			if G_UNLIKELY(ptr_cmp(end, vmm_base) < 0)
 				continue;
 
 			if G_UNLIKELY(i == pm->count - 1) {
 				*hole_ptr = end;
-				mutex_unlock(&pm->lock);
-				return SIZE_MAX;
+				result = SIZE_MAX;
+				goto done;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
 
@@ -774,34 +797,45 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 
 				if G_UNLIKELY(discard && vmf_is_old_foreign(vmf)) {
 					const void *start = vmf->start;
+
+					/* Upgrade from read to write lock if needed */
+
+					if G_UNLIKELY(!wlock) {
+						if (rwlock_upgrade(&pm->lock)) {
+							wlock = TRUE;
+						} else {
+							rwlock_runlock(&pm->lock);
+							rwlock_wlock(&pm->lock);
+							wlock = TRUE;
+							goto retry;
+						}
+					}
+
 					pmap_discard_index(pm, i);
 					*hole_ptr = start;
-					len = ptr_diff(next->start, start);
-					mutex_unlock(&pm->lock);
-					return len;
+					result = ptr_diff(next->start, start);
+					goto done;
 				}
 
 				if (next->start == end)
 					continue;		/* Different types do not coalesce */
 				*hole_ptr = end;
-				len = ptr_diff(next->start, end);
-				mutex_unlock(&pm->lock);
-				return len;
+				result = ptr_diff(next->start, end);
+				goto done;
 			}
 		}
 	} else {
 		for (i = pm->count; i > 0; i--) {
 			struct vm_fragment *vmf = &pm->array[i - 1];
 			const void *start = vmf->start;
-			size_t len;
 
 			if G_UNLIKELY(ptr_cmp(start, vmm_base) > 0)
 				continue;
 
 			if G_UNLIKELY(1 == i) {
 				*hole_ptr = ulong_to_pointer(kernel_pagesize);	/* Not NULL */
-				mutex_unlock(&pm->lock);
-				return SIZE_MAX;
+				result = SIZE_MAX;
+				goto done;
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
@@ -812,25 +846,42 @@ vmm_first_hole(const void **hole_ptr, bool discard)
 
 				if G_UNLIKELY(discard && vmf_is_old_foreign(vmf)) {
 					const void *end = vmf->end;
+
+					/* Upgrade from read to write lock if needed */
+
+					if G_UNLIKELY(!wlock) {
+						if (rwlock_upgrade(&pm->lock)) {
+							wlock = TRUE;
+						} else {
+							rwlock_runlock(&pm->lock);
+							rwlock_wlock(&pm->lock);
+							wlock = TRUE;
+							goto retry;
+						}
+					}
+
 					pmap_discard_index(pm, i - 1);
 					*hole_ptr = end;
-					len = ptr_diff(end, prev->end);
-					mutex_unlock(&pm->lock);
-					return len;
+					result = ptr_diff(end, prev->end);
+					goto done;
 				}
 
 				if (start == prev->end)
 					continue;		/* Foreign and native do not coalesce */
 				*hole_ptr = start;
-				len = ptr_diff(start, prev->end);
-				mutex_unlock(&pm->lock);
-				return len;
+				result = ptr_diff(start, prev->end);
+				goto done;
 			}
 		}
 	}
 
-	mutex_unlock(&pm->lock);
-	return 0;
+done:
+	if (wlock)
+		rwlock_wunlock(&pm->lock);
+	else
+		rwlock_runlock(&pm->lock);
+
+	return result;
 }
 
 /**
@@ -987,7 +1038,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		if (NULL == hint)
 			goto done;
 
-		mutex_lock(&pm->lock);		/* Begin critical section */
+		rwlock_wlock(&pm->lock);		/* Begin critical section */
 
 		/*
 		 * Kernel did not use our hint, maybe it was wrong because something
@@ -1076,7 +1127,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 				}
 			}
 		}
-		mutex_unlock(&pm->lock);		/* End critical section */
+		rwlock_wunlock(&pm->lock);		/* End critical section */
 	} else if (hint != NULL) {
 		if G_UNLIKELY(0 == (hint_followed & 0xff)) {
 			if (vmm_debugging(0)) {
@@ -1143,13 +1194,13 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 	g_assert(kernel_pagesize > 0);
 
 	if (update_pmap)
-		mutex_lock(&vmm_pmap()->lock);
+		rwlock_wlock(&vmm_pmap()->lock);
 
 	p = vmm_mmap_anonymous(size, hole);
 
 	if G_UNLIKELY(NULL == p) {
 		if (update_pmap)
-			mutex_unlock(&vmm_pmap()->lock);
+			rwlock_wunlock(&vmm_pmap()->lock);
 		return NULL;
 	}
 
@@ -1172,7 +1223,7 @@ alloc_pages(size_t size, bool update_pmap, const void *hole)
 
 		if (kernel_pmap.generation == generation)
 			pmap_insert(pm, p, size);
-		mutex_unlock(&pm->lock);
+		rwlock_wunlock(&pm->lock);
 	}
 
 	return p;
@@ -1194,7 +1245,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 	 */
 
 	if (update_pmap)
-		mutex_lock(&vmm_pmap()->lock);
+		rwlock_wlock(&vmm_pmap()->lock);
 
 	/*
 	 * If ``stop_freeing'' was set, well be only updating the pmap so that
@@ -1209,7 +1260,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		int ret = 0;
 
 		ret = vmm_vfree_fragment(p, size);
-		return_unless(0 == ret);
+		g_assert(0 == ret);
 	}
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
@@ -1226,7 +1277,7 @@ pmap_update:
 		struct pmap *pm = vmm_pmap();
 
 		pmap_remove(pm, p, size);
-		mutex_unlock(&pm->lock);
+		rwlock_wunlock(&pm->lock);
 	}
 }
 
@@ -1296,7 +1347,7 @@ pmap_allocate(struct pmap *pm)
 	g_assert(NULL == pm->array);
 	g_assert(0 == pm->pages);
 
-	mutex_init(&pm->lock);
+	rwlock_init(&pm->lock);
 	pm->array = alloc_pages(kernel_pagesize, FALSE, NULL);
 	pm->pages = 1;
 	pm->count = 0;
@@ -1321,7 +1372,7 @@ pmap_extend(struct pmap *pm)
 	size_t old_generation;
 	bool was_extending = pm->extending;
 
-	assert_mutex_is_owned(&pm->lock);
+	assert_rwlock_is_owned(&pm->lock);
 
 retry:
 
@@ -1446,7 +1497,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
 	g_assert(pm->count <= pm->size);
 	g_assert(ptr_cmp(start, end) < 0);
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 
 	while (pm->count == pm->size)
 		pmap_extend(pm);
@@ -1481,7 +1532,7 @@ pmap_add(struct pmap *pm, const void *start, const void *end, vmf_type_t type)
 	vmf->mtime = tm_time();
 
 done:
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1500,7 +1551,7 @@ pmap_insert_region(struct pmap *pm,
 	g_assert(ptr_cmp(start, end) < 0);
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 
 	g_assert(pm->count < pm->size);
 
@@ -1625,7 +1676,7 @@ done:
 		}
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -1966,8 +2017,9 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 {
 	struct vm_fragment *vmf;
 	bool within;
-	
-	mutex_lock_const(&pm->lock);
+	struct pmap *wpm = deconstify_pointer(pm);
+
+	rwlock_rlock(&wpm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -1978,7 +2030,7 @@ pmap_is_within_region(const struct pmap *pm, const void *p, size_t size)
 
 	within = p != vmf->start && vmf->end != const_ptr_add_offset(p, size);
 
-	mutex_unlock_const(&pm->lock);
+	rwlock_runlock(&wpm->lock);
 	return within;
 }
 
@@ -1997,14 +2049,15 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 	const void *middle;
 	size_t distance_to_start;
 	size_t distance_to_end;
+	struct pmap *wpm = deconstify_pointer(pm);
 
-	mutex_lock_const(&pm->lock);
+	rwlock_rlock(&wpm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
 	if (NULL == vmf) {
 		pmap_log_missing(pm, p, size);
-		mutex_unlock_const(&pm->lock);
+		rwlock_runlock(&wpm->lock);
 		return 0;
 	}
 
@@ -2012,7 +2065,7 @@ pmap_nesting_within_region(const struct pmap *pm, const void *p, size_t size)
 	distance_to_start = ptr_diff(middle, vmf->start);
 	distance_to_end = ptr_diff(vmf->end, middle);
 
-	mutex_unlock_const(&pm->lock);
+	rwlock_runlock(&wpm->lock);
 	return MIN(distance_to_start, distance_to_end);
 }
 
@@ -2025,7 +2078,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	struct vm_fragment *vmf;
 	bool fragment;
 
-	assert_mutex_is_owned(&pm->lock);
+	g_assert(rwlock_is_used(&pm->lock));	/* needs at least the read lock */
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -2046,11 +2099,12 @@ static bool
 pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 {
 	size_t idx;
+	struct pmap *wpm = deconstify_pointer(pm);
 
-	mutex_lock_const(&pm->lock);
+	rwlock_rlock(&wpm->lock);
 
 	if (pmap_lookup(pm, p, &idx)) {
-		mutex_unlock_const(&pm->lock);
+		rwlock_runlock(&wpm->lock);
 		return FALSE;
 	}
 
@@ -2062,11 +2116,11 @@ pmap_is_available(const struct pmap *pm, const void *p, size_t size)
 		bool ret;
 
 		ret = ptr_cmp(end, vmf->start) <= 0;
-		mutex_unlock_const(&pm->lock);
+		rwlock_runlock(&wpm->lock);
 		return ret;
 	}
 
-	mutex_unlock_const(&pm->lock);
+	rwlock_runlock(&wpm->lock);
 	return TRUE;
 }
 
@@ -2093,10 +2147,10 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 		 * be able to run it.
 		 */
 
-		if (!mutex_trylock(&pm->lock))
+		if (!rwlock_rlock_try(&pm->lock))
 			return;
 	} else {
-		mutex_lock(&pm->lock);
+		rwlock_rlock(&pm->lock);
 	}
 
 	vmf = pmap_lookup(vmm_pmap(), base, NULL);
@@ -2116,7 +2170,7 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 
 	g_assert(vmf->type == type);
 
-	mutex_unlock(&pm->lock);
+	rwlock_runlock(&pm->lock);
 }
 
 /**
@@ -2165,13 +2219,13 @@ vmm_is_native_pointer(const void *p)
 	bool native;
 	struct pmap *pm = vmm_pmap();
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 
 	vmf = pmap_lookup(pm, page_start(p), NULL);
 
 	native = vmf != NULL && VMF_NATIVE == vmf->type;
 
-	mutex_unlock(&pm->lock);
+	rwlock_runlock(&pm->lock);
 	return native;
 }
 
@@ -2188,9 +2242,9 @@ vmm_is_fragment(const void *base, size_t size)
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 	is_fragment = pmap_is_fragment(pm, base, pagecount_fast(size));
-	mutex_unlock(&pm->lock);
+	rwlock_runlock(&pm->lock);
 
 	return is_fragment;
 }
@@ -2245,7 +2299,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -2262,7 +2316,7 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 			(pm->count - idx) * sizeof pm->array[0]);
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -2275,7 +2329,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 
 	g_assert(round_pagesize_fast(size) == size);
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 
 	vmf = pmap_lookup(pm, p, NULL);
 
@@ -2323,7 +2377,7 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 		}
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -2382,7 +2436,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 	const void *base = p;
 	size_t remain = size;
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 
 	while (size_is_positive(remain)) {
 		size_t idx;
@@ -2403,7 +2457,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 			vmf = &pm->array[idx];
 
 			if (ptr_cmp(end, vmf->start) <= 0) {
-				mutex_unlock(&pm->lock);
+				rwlock_wunlock(&pm->lock);
 				return;		/* Next region starts after our target */
 			}
 
@@ -2454,7 +2508,7 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		}
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -2479,7 +2533,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 	 * does when asked to update the pmap.
 	 */
 
-	mutex_lock(&pm->lock);
+	rwlock_wlock(&pm->lock);
 	free_pages_intern(p, size, FALSE);
 
 	/*
@@ -2493,7 +2547,7 @@ free_pages_forced(void *p, size_t size, bool fragment)
 		pmap_remove(vmm_pmap(), p, size);
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_wunlock(&pm->lock);
 }
 
 /**
@@ -3142,6 +3196,7 @@ page_cache_insert_pages(void *base, size_t n)
 	size_t pages = n;
 	void *p = base;
 	struct pmap *pm = vmm_pmap();
+	bool wlock = FALSE;
 
 	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE, FALSE);
 
@@ -3152,19 +3207,43 @@ page_cache_insert_pages(void *base, size_t n)
 	 * Identified memory fragments are immediately freed and not put
 	 * back into the cache, in order to reduce fragmentation of the
 	 * memory space.
+	 *
+	 * Start with a read lock on the pmap, which only needs to be upgraded
+	 * to a write lock if the area ends up being a fragment.
 	 */
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 
-	if (pmap_is_fragment(pm, base, n)) {
+retry:
+	if G_UNLIKELY(pmap_is_fragment(pm, base, n)) {
+		/*
+		 * Upgrade to write lock.
+		 *
+		 * If we cannot atomically upgrade, we need to release the read lock
+		 * and re-acquire the write lock, after which we need to retry the
+		 * evaluation to see whether the pages are still a fragment.
+		 */
+
+		if (!wlock && !rwlock_upgrade(&pm->lock)) {
+			rwlock_runlock(&pm->lock);
+			rwlock_wlock(&pm->lock);
+			wlock = TRUE;
+			goto retry;
+		}
+
+		/* We have the write lock */
+
 		free_pages_forced(base, n * kernel_pagesize, TRUE);
+		rwlock_wunlock(&pm->lock);
 		vmm_stats.forced_freed++;
 		vmm_stats.forced_freed_pages += n;
-		mutex_unlock(&pm->lock);
 		return FALSE;
 	}
 
-	mutex_unlock(&pm->lock);
+	if G_UNLIKELY(wlock)
+		rwlock_wunlock(&pm->lock);
+	else
+		rwlock_runlock(&pm->lock);
 
 	/*
 	 * If releasing more than what we can store in the largest cache line,
@@ -4094,7 +4173,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 * Compute the amount of known native / mapped pages.
 	 */
 
-	mutex_lock(&pm->lock);
+	rwlock_rlock(&pm->lock);
 
 	for (i = 0; i < pm->count; i++) {
 		struct vm_fragment *vmf = &pm->array[i];
@@ -4106,7 +4185,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 		}
 	}
 
-	mutex_unlock(&pm->lock);
+	rwlock_runlock(&pm->lock);
 
 #define DUMP(v,x)	log_info(la, "VMM %s = %s", (v),	\
 	(options & DUMP_OPT_PRETTY) ?						\
@@ -4741,10 +4820,10 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		 * all the overlapping cases we can encounter.
 		 */
 
-		mutex_lock(&pm->lock);
+		rwlock_wlock(&pm->lock);
 		pmap_overrule(pm, p, size, VMF_MAPPED);
 		pmap_insert_mapped(pm, p, size);
-		mutex_unlock(&pm->lock);
+		rwlock_wunlock(&pm->lock);
 
 		assert_vmm_is_allocated(p, length, VMF_MAPPED, FALSE);
 
