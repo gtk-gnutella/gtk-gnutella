@@ -46,6 +46,7 @@
 #include "rwlock.h"
 #include "semaphore.h"
 #include "spinlock.h"
+#include "stacktrace.h"
 #include "str.h"
 #include "thread.h"
 #include "tm.h"
@@ -62,7 +63,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACFIMNQRS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACFIMNPQRS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -75,6 +76,7 @@ usage(void)
 		"  -I : test inter-thread waiter signaling\n"
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
+		"  -P : add direct POSIX threads along with thread creation test\n"
 		"  -Q : test asynchronous queue\n"
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
@@ -187,9 +189,78 @@ test_create_one(bool repeat, bool join)
 }
 
 static void
-test_create(unsigned repeat, bool join)
+posix_thread_create(thread_main_t routine, void *arg)
+{
+	int error;
+	pthread_attr_t attr;
+	pthread_t t;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_setstacksize(&attr, 32768);
+	error = pthread_create(&t, &attr, routine, arg);
+	pthread_attr_destroy(&attr);
+
+	if (error != 0) {
+		errno = error;
+		s_error("cannot create POSIX thread: %m");
+	}
+}
+
+static void *
+posix_worker(void *unused_arg)
+{
+	unsigned stid = thread_small_id();
+	(void) unused_arg;
+
+	printf("POSIX thread worker starting...\n");
+	fflush(stdout);
+
+	for (;;) {
+		void *p;
+
+		g_assert_log(thread_small_id() == stid,
+			"current STID=%u, prev=%u", thread_small_id(), stid);
+
+		p = xmalloc(100);
+		compat_sleep_ms(100);
+		xfree(p);
+
+		g_assert_log(thread_small_id() == stid,
+			"current STID=%u, prev=%u", thread_small_id(), stid);
+	}
+
+	return NULL;
+}
+
+static void *
+posix_threads(void *unused_arg)
 {
 	unsigned i;
+
+	(void) unused_arg;
+
+	printf("POSIX thread launcher starting...\n");
+	fflush(stdout);
+
+	for (i = 0; i < 6; i++) {
+		posix_thread_create(posix_worker, NULL);
+	}
+
+	printf("POSIX thread launch done, mutating to worker...\n");
+	fflush(stdout);
+
+	return posix_worker(NULL);
+}
+
+static void
+test_create(unsigned repeat, bool join, bool posix)
+{
+	unsigned i;
+
+	if (posix) {
+		posix_thread_create(posix_threads, NULL);
+	}
 
 	for (i = 0; i < repeat; i++) {
 		test_create_one(repeat > 1, join);
@@ -899,17 +970,18 @@ main(int argc, char **argv)
 	extern char *optarg;
 	int c;
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
-	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE;
+	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
+	stacktrace_init(argv[0], FALSE);
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACFIMNQRST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACFIMNPQRST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -928,6 +1000,9 @@ main(int argc, char **argv)
 			break;
 		case 'N':			/* add cond_broadcast() noise */
 			noise = TRUE;
+			break;
+		case 'P':			/* add extra POSIX threads */
+			posix = TRUE;
 			break;
 		case 'Q':			/* test asynchronous queue */
 			aqueue = TRUE;
@@ -983,7 +1058,7 @@ main(int argc, char **argv)
 		test_condition(play_time, emulated, monitor, noise);
 
 	if (create)
-		test_create(repeat, join);
+		test_create(repeat, join, posix);
 
 	if (inter)
 		test_inter();
