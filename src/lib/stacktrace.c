@@ -1453,6 +1453,9 @@ stacktrace_routine_name(const void *pc, bool offset)
 const void *
 stacktrace_routine_start(const void *pc)
 {
+	if (!signal_in_handler())
+		stacktrace_load_symbols();
+
 	return symbols_addr(symbols, pc);
 }
 
