@@ -40,7 +40,7 @@
  *
  * The thread creation interface allows tracking of the threads we launch
  * plus provides the necessary hooks to cleanup the malloc()ed objects, the
- * thread-private data and make sure no locks are held.
+ * thread-private data and makes sure no locks are held at strategic places.
  *
  * @author Raphael Manfredi
  * @date 2011-2013
@@ -164,9 +164,7 @@ struct thread_element {
 	thread_qid_t high_qid;			/**< The highest possible QID */
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
-	const void *stack_base;			/**< Plausible stack base */
-	const void *stack_highest;		/**< Highest stack address seen */
-	const void *stack_lock;			/**< First lock seen here */
+	const void *stack_lock;			/**< First lock seen at this SP */
 	const char *name;				/**< Thread name, explicitly set */
 	size_t stack_size;				/**< For created threads, 0 otherwise */
 	func_ptr_t entry;				/**< Thread entry point (created threads) */
@@ -180,11 +178,11 @@ struct thread_element {
 	thread_exit_t exit_cb;			/**< Optional exit callback */
 	void *exit_arg;					/**< Exit callback argument */
 	tm_t exit_time;					/**< When thread exited or was joined */
-	uint stamp;						/**< Creation stamp */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	uint valid:1;					/**< Whether thread is valid */
+	uint creating:1;				/**< Whether thread is being created */
 	uint suspended:1;				/**< Whether thread is suspended */
 	uint blocked:1;					/**< Whether thread is blocked */
 	uint unblocked:1;				/**< Whether unblocking was requested */
@@ -229,10 +227,10 @@ static struct thread_stats {
 	uint discovered;				/* Amount of discovered threads */
 	U64(qid_lookup);				/* Amount of QID lookups in the cache */
 	U64(qid_hit);					/* Amount of QID hits */
-	U64(qid_stale);					/* Amount of QID stale entries ignored */
 	U64(qid_clash);					/* Amount of QID clashes */
 	U64(qid_miss);					/* Amount of QID lookup misses */
-	U64(ght_lookup);				/* Thread lookups in global hash */
+	U64(lookup_by_qid);				/* Amount of thread lookups by QID */
+	U64(lookup_by_tid);				/* Amount of thread lookups by TID */
 	U64(locks_tracked);				/* Amount of locks tracked */
 } thread_stats;
 
@@ -272,7 +270,6 @@ static struct thread_element *threads[THREAD_MAX];
  * by mere linear probing.
  */
 static thread_t tstid[THREAD_MAX];		/* Maps STID -> thread_t */
-static uint tstamp[THREAD_MAX];			/* Maps STID -> thread_stamp */
 
 /**
  * QID cache.
@@ -286,28 +283,18 @@ static uint tstamp[THREAD_MAX];			/* Maps STID -> thread_stamp */
  * matches, then we found the item we were looking for.
  *
  * Otherwise (no entry in the cache or the last_qid does not match), a full
- * lookup through the global hash table is performed to locate the item, and
- * it is inserted in the cache.
+ * lookup is done based on the known QIDs seen so far, to locate the thread
+ * element using that QID range.
  *
  * Because a QID is unique only given a fixed set of threads, it is necessary
- * to associate a "stamp" to each entry in the cache to forget about obsolete
- * ones.  This stamp changes each time a new thread is created or is discovered.
+ * to clear the cache when a new thread is created or discovered to remove
+ * potentially conflicting entries.
  *
  * To minimize the size of the cache in memory and make it more cache-friendly
  * from the CPU side, we do not point to thread elements but to thread IDs,
  * which can be stored with less bits.
  */
-static struct thread_qid_cache {
-	uint stid:8;						/* Small thread ID */
-	uint busy:1;						/* Flag used when auto-discovering */
-	uint stamp:23;						/* Entry stamp */
-} thread_qid_cache[THREAD_QID_CACHE];
-static spinlock_t thread_qid_slk[THREAD_QID_CACHE];
-
-#define THREAD_QID_LOCK(i)		spinlock_hidden(&thread_qid_slk[i])
-#define THREAD_QID_UNLOCK(i)	spinunlock_hidden(&thread_qid_slk[i])
-
-#define THREAD_STAMP_MASK	((1U << 23) - 1)
+static uint8 thread_qid_cache[THREAD_QID_CACHE];
 
 static bool thread_inited;
 static int thread_pageshift = 12;		/* Safe default: 4K pages */
@@ -316,13 +303,11 @@ static bool thread_panic_mode;			/* STID overflow, most probably */
 static size_t thread_reused;			/* Counts reused thread elements */
 static uint thread_main_stid = -1U;		/* STID of the main thread */
 static bool thread_main_can_block;		/* Can the main thread block? */
-static uint thread_stamp;				/* Thread creation / discovery count */
 static uint thread_pending_reuse;		/* Threads marked for pending reuse */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
 
-static spinlock_t thread_private_slk = SPINLOCK_INIT;
-static spinlock_t thread_insert_slk = SPINLOCK_INIT;
+static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
@@ -382,29 +367,11 @@ thread_pvalue_free(struct thread_pvalue *pv)
  *
  * We count threads as they are seen, starting with 0.
  *
- * Given that, as of 2012-04-14, we are mostly mono-threaded or do not create
- * many threads dynamically, there is no need to manage the IDs in a reusable
- * way.  A simple incrementing counter will do.
+ * This variable holds the index in threads[] of the next entry that we
+ * should use if we cannot reuse an earlier entry.  It is the number of
+ * valid thread_element structures we have present.
  */
 static unsigned thread_next_stid;
-
-static unsigned
-thread_hash(const void *key)
-{
-	const thread_t *t = key;
-
-	STATIC_ASSERT(sizeof(long) == sizeof(*t));
-
-	return integer_hash(* (ulong *) t);
-}
-
-static bool
-thread_equal(const void *a, const void *b)
-{
-	const thread_t *ta = a, *tb = b;
-
-	return thread_eq(*ta, *tb);
-}
 
 /**
  * Initialize global configuration.
@@ -417,34 +384,13 @@ thread_init(void)
 	spinlock_hidden(&thread_init_slk);
 
 	if G_LIKELY(!thread_inited) {
-		unsigned i;
-
 		thread_pageshift = ctz(compat_pagesize());
 		thread_sp_direction = alloca_stack_direction();
-
-		for (i = 0; i < G_N_ELEMENTS(thread_qid_slk); i++) {
-			spinlock_init(&thread_qid_slk[i]);
-		}
 
 		thread_inited = TRUE;
 	}
 
 	spinunlock_hidden(&thread_init_slk);
-}
-
-/**
- * Initialize the thread stack shape for the thread element.
- */
-static void
-thread_stack_init_shape(struct thread_element *te, const void *sp)
-{
-	te->stack_base = vmm_page_start(sp);
-	te->stack_highest = sp;
-
-	if (thread_sp_direction < 0) {
-		te->stack_base = const_ptr_add_offset(te->stack_base,
-			compat_pagesize() - sizeof(void *));
-	}
 }
 
 /**
@@ -494,16 +440,18 @@ thread_quasi_id(void)
 static inline uint
 thread_qid_hash(thread_qid_t qid)
 {
-	return integer_hash(qid) >> (sizeof(unsigned) * 8 - THREAD_QID_BITS);
+	return integer_hash_fast(qid) >> (sizeof(unsigned) * 8 - THREAD_QID_BITS);
 }
 
 /**
- * Is lock the address of the QID cache index?
+ * Initialize the thread stack shape for the thread element.
  */
-static inline bool
-thread_qid_cache_is_lock(unsigned idx, const volatile void *lock)
+static void
+thread_stack_init_shape(struct thread_element *te, const void *sp)
 {
-	return lock == &thread_qid_slk[idx];
+	thread_qid_t qid = thread_quasi_id_fast(sp);
+
+	te->low_qid = te->high_qid = qid;
 }
 
 /**
@@ -512,57 +460,19 @@ thread_qid_cache_is_lock(unsigned idx, const volatile void *lock)
 static inline struct thread_element *
 thread_qid_cache_get(unsigned idx)
 {
-	const struct thread_qid_cache *tc = &thread_qid_cache[idx];
-	struct thread_element *te;
+	uint8 id;
 
 	THREAD_STATS_INCX(qid_lookup);
 
 	/*
-	 * The global thread_stamp variable is our QID cache validity control.
-	 *
-	 * Whenever it is updated (incremented atomically), it immediately
-	 * invalidates all the cached QID entries: because QIDs are only unique
-	 * among a set of running threads, each time a thread is created or
-	 * discovered we update that variable to implicitly discard all the
-	 * existing entries (becoming "stale").
+	 * We do not care whether this memory location is atomically read or not.
+	 * On a given CPU, it will be consistent: a thread will run on the same
+	 * CPU for some time, and what matters are that cached information on that
+	 * CPU will be used for later cache hits.
 	 */
 
-	THREAD_QID_LOCK(idx);
-	if ((thread_stamp & THREAD_STAMP_MASK) != tc->stamp) {
-		THREAD_STATS_INCX(qid_stale);
-		te = NULL;
-	} else {
-		te = threads[tc->stid];
-	}
-	THREAD_QID_UNLOCK(idx);
-
-	return te;
-}
-
-/**
- * Set the QID cache busy status.
- */
-static inline void
-thread_qid_cache_set_busy(unsigned idx, bool busy)
-{
-	THREAD_QID_LOCK(idx);
-	thread_qid_cache[idx].busy = booleanize(busy);
-	THREAD_QID_UNLOCK(idx);
-}
-
-/**
- * Is QID cache index busy?
- */
-static inline bool
-thread_qid_cache_is_busy(unsigned idx)
-{
-	bool busy;
-
-	THREAD_QID_LOCK(idx);
-	busy = thread_qid_cache[idx].busy;
-	THREAD_QID_UNLOCK(idx);
-
-	return busy;
+	id = thread_qid_cache[idx];
+	return threads[id];
 }
 
 /**
@@ -571,17 +481,20 @@ thread_qid_cache_is_busy(unsigned idx)
 static inline void
 thread_qid_cache_set(unsigned idx, struct thread_element *te, thread_qid_t qid)
 {
-	struct thread_qid_cache *tc = &thread_qid_cache[idx];
-
 	g_assert_log(qid >= te->low_qid && qid <= te->high_qid,
 		"qid=%zu, te->low_qid=%zu, te->high_qid=%zu, te->stid=%u",
 		qid, te->low_qid, te->high_qid, te->stid);
 
-	THREAD_QID_LOCK(idx);
-	te->last_qid = qid;
-	tc->stid = te->stid;
-	tc->stamp = thread_stamp & THREAD_STAMP_MASK;
-	THREAD_QID_UNLOCK(idx);
+	te->last_qid = qid;					/* This is thread-private data */
+	thread_qid_cache[idx] = te->stid;	/* This is global data being updated */
+
+	/*
+	 * We do not need any memory barrier here because we do not care whether
+	 * this cached entry will be globally visible on other CPUs.  Even if it
+	 * gets superseded by another thread on another CPU, it means there is
+	 * already a hashing clash anyway so why bother paying the price of a
+	 * memory barrier?
+	 */
 }
 
 /**
@@ -605,21 +518,15 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 	g_assert(low <= high);
 
 	for (i = 0; i < G_N_ELEMENTS(thread_qid_cache); i++) {
-		struct thread_qid_cache *tc = &thread_qid_cache[i];
-		struct thread_element *te;
-		unsigned cstid;
-
-		cstid = tc->stid;
-		te = threads[cstid];
+		uint8 id = thread_qid_cache[i];
+		struct thread_element *te = threads[id];
 
 		if (
-			te != NULL && cstid != stid &&
+			te != NULL && id != stid &&
 			te->last_qid >= low && te->last_qid <= high
 		) {
-			THREAD_QID_LOCK(i);
-			if (tc->stid == cstid)
-				tc->stid = stid;
-			THREAD_QID_UNLOCK(i);
+			thread_qid_cache[i] = stid;
+			atomic_mb();		/* Cached entry was stale, must purge it */
 		}
 	}
 }
@@ -635,16 +542,7 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		return FALSE;
 	}
 
-	/*
-	 * Whenever the tstamp[] array is updated, it immediately invalidates
-	 * the cached entry for the thread, even if it hits properly and if
-	 * the global `thread_stamp' matches the one in the cache.
-	 *
-	 * This extra level of safety is necessary when we are about to reuse
-	 * a thread element and we have not yet updated the global `thread_stamp'.
-	 */
-
-	if G_LIKELY(te->last_qid == qid && tstamp[te->stid] == te->stamp) {
+	if G_LIKELY(te->last_qid == qid) {
 		THREAD_STATS_INCX(qid_hit);
 		return TRUE;
 	}
@@ -698,27 +596,33 @@ thread_element_name(const struct thread_element *te)
 }
 
 /**
- * Get the main hash table.
+ * Update QID range for thread element, if needed.
  *
- * This hash table is indexed by thread_t and holds a thread element which
- * is therefore thread-private and can be used to store thread-private
- * information.
+ * This is only needed for discovered thread given that we know the stack
+ * shape for created threads.
  */
-static hash_table_t *
-thread_get_global_hash(void)
+static inline void
+thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 {
-	static hash_table_t *ht;
+	/*
+	 * Need to lock the thread element since created threads can adjust the
+	 * QID ranges of any discovered thread that would be overlapping with
+	 * their own (definitely known) QID range.
+	 */
 
-	if G_UNLIKELY(NULL == ht) {
-		spinlock(&thread_private_slk);
-		if (NULL == ht) {
-			ht = hash_table_once_new_full_real(thread_hash, thread_equal);
-			hash_table_thread_safe(ht);
-		}
-		spinunlock(&thread_private_slk);
-	}
+	THREAD_LOCK(te);
+	if (qid < te->low_qid)
+		te->low_qid = qid;
+	else if (qid > te->high_qid)
+		te->high_qid = qid;
+	THREAD_UNLOCK(te);
 
-	return ht;
+	/*
+	 * Purge QID cache to make sure no other thread is claiming
+	 * that range in the cache, which would lead to improper lookups.
+	 */
+
+	thread_qid_cache_force(te->stid, te->low_qid, te->high_qid);
 }
 
 /**
@@ -820,6 +724,38 @@ thread_private_clear_warn(struct thread_element *te)
 }
 
 /**
+ * Flag element as reusable.
+ */
+static void
+thread_element_mark_reusable(struct thread_element *te)
+{
+	g_assert(0 == te->locks.count);
+
+	THREAD_LOCK(te);
+	te->reusable = TRUE;	/* Allow reuse */
+	THREAD_UNLOCK(te);
+}
+
+/**
+ * A created thread has definitively ended and we can reuse its thread element.
+ */
+static void
+thread_ended(struct thread_element *te)
+{
+	g_assert(te->created);
+
+	/*
+	 * Need to signal xmalloc() that any thread-specific allocated chunk
+	 * can now be forcefully dismissed if they are empty and pending
+	 * cross-thread freeing for the dead chunk can be processed.
+	 */
+
+	atomic_uint_dec(&thread_pending_reuse);
+	xmalloc_thread_ended(te->stid);
+	thread_element_mark_reusable(te);
+}
+
+/**
  * Cleanup a terminated thread.
  */
 static void
@@ -840,6 +776,8 @@ static void
 thread_exiting(struct thread_element *te)
 {
 	tm_t now;
+
+	g_assert(te->created);
 
 	thread_cleanup(te);
 
@@ -871,9 +809,10 @@ thread_element_reset(struct thread_element *te)
 
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
-	te->low_qid = 0;
-	te->high_qid = (thread_qid_t) -1;
-	te->valid = TRUE;		/* Flags a correctly instantiated element */
+	te->low_qid = (thread_qid_t) -1;
+	te->high_qid = 0;
+	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
+	te->creating = FALSE;
 	te->stack_lock = NULL;	/* Stack position when first lock recorded */
 	te->name = NULL;
 	te->blocked = FALSE;
@@ -889,11 +828,12 @@ thread_element_reset(struct thread_element *te)
 	te->stack_size = 0;
 	te->entry = NULL;
 	te->argument = NULL;
+	te->main_thread = FALSE;
 }
 
 /**
  * Make sure we have only one item in the tstid[] array that maps to
- * the thread_t, and with the proper thread creation stamp.
+ * the thread_t.
  *
  * This is necessary because thread_t values can be reused after some time
  * when threads are created and disappear on a regular basis and since we
@@ -915,11 +855,14 @@ thread_stid_tie(unsigned stid, thread_t t)
 		if G_UNLIKELY(i >= thread_next_stid)
 			break;
 		if G_UNLIKELY(i == stid) {
-			g_assert(thread_eq(t, tstid[i]));
+			tstid[i] = t;
+			atomic_mb();
 			continue;
 		}
-		if G_UNLIKELY(thread_eq(t, tstid[i]))
+		if G_UNLIKELY(thread_eq(t, tstid[i])) {
 			thread_set(tstid[i], THREAD_INVALID);
+			atomic_mb();
+		}
 	}
 }
 
@@ -927,26 +870,175 @@ thread_stid_tie(unsigned stid, thread_t t)
  * Common initialization sequence between a created and a discovered thread.
  */
 static void
-thread_element_common_init(struct thread_element *te, void *sp, thread_t t)
+thread_element_common_init(struct thread_element *te, thread_t t)
 {
-	thread_stack_init_shape(te, sp);
-	te->tid = t;
+	unsigned i;
+
+	assert_mutex_is_owned(&thread_insert_mtx);
+
+	te->creating = FALSE;
+	te->valid = TRUE;
 	thread_stid_tie(te->stid, t);
-	tstamp[te->stid] = te->stamp;
 	thread_private_clear_warn(te);
+
+	/*
+	 * Make sure no other thread element bears that thread_t.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if G_LIKELY(te != xte) {
+			if G_UNLIKELY(thread_eq(t, xte->tid)) {
+				/*
+				 * When we have a TID match, the thread element is
+				 * necessary defunct.  Since we're holding a spinlock
+				 * here, we do not collect the thread immediately.
+				 */
+
+				THREAD_LOCK(xte);
+				if G_LIKELY(thread_eq(t, xte->tid)) {
+					thread_set(xte->tid, THREAD_INVALID);
+					thread_set(tstid[i], THREAD_INVALID);
+				}
+				THREAD_UNLOCK(xte);
+			}
+		}
+	}
 }
 
 /**
  * Tie a thread element to its created thread.
  */
 static void
-thread_element_tie(struct thread_element *te, thread_t t)
+thread_element_tie(struct thread_element *te, thread_t t, const void *sp)
 {
-	g_assert(spinlock_is_held(&thread_insert_slk));
+	const void *base = vmm_page_start(sp);
+	thread_qid_t qid;
+	unsigned i;
+	uint8 cleanup[THREAD_MAX];
 
+	ZERO(&cleanup);
 	THREAD_STATS_INC(created);
-	te->stamp = atomic_uint_inc(&thread_stamp);
-	thread_element_common_init(te, &te, t);
+
+	qid = thread_quasi_id_fast(base);
+
+	/*
+	 * We asssume the stack is aligned on pages.  Even if this assumption is
+	 * false, the stack must be large enough so that two running threads end up
+	 * having different QID sets for their stack.
+	 *
+	 * When we create our threads, we know the stack size and therefore we
+	 * know the range of QIDs that it is going to occupy.  We can then purge
+	 * the QID cache out of stale QID values.
+	 */
+
+	if (thread_sp_direction < 0) {
+		te->high_qid = qid;
+		te->low_qid = 1 + thread_quasi_id_fast(
+			const_ptr_add_offset(base, -te->stack_size + 1));
+	} else {
+		te->low_qid = qid;
+		te->high_qid = thread_quasi_id_fast(
+			const_ptr_add_offset(base, te->stack_size - 1));
+	}
+
+	g_assert((te->high_qid - te->low_qid + 1) * compat_pagesize()
+		== te->stack_size);
+
+	/*
+	 * Once the TID and the QID ranges have been set for the thread we're
+	 * creating, we can flag the record as valid so as to allow its finding.
+	 */
+
+	thread_set(te->tid, t);
+	thread_qid_cache_force(te->stid, te->low_qid, te->high_qid);
+	te->valid = TRUE;
+
+	/*
+	 * Need to enter critical section now since we're updating global thread
+	 * contextual information and this needs to happen atomically.
+	 */
+
+	mutex_lock_fast(&thread_insert_mtx);
+
+	thread_element_common_init(te, t);
+
+	/*
+	 * Make sure no other running threads can cover our QID range.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+
+		if G_UNLIKELY(!xte->valid || xte == te)
+			continue;
+
+		/*
+		 * Skip items marked as THREAD_INVALID in tstid[].
+		 * This means the thread is under construction and therefore we
+		 * won't find what we're looking for there.
+		 */
+
+		if G_UNLIKELY(THREAD_INVALID == tstid[xte->stid])
+			continue;
+
+		if G_UNLIKELY(
+			te->high_qid >= xte->low_qid &&
+			te->low_qid <= xte->high_qid
+		) {
+			bool discovered = FALSE;
+
+			/*
+			 * This old thread is necessarily dead if it overlaps our QID range
+			 * and it was a created thread.  For discovered threads, we can
+			 * never know what their QID range is for sure but we can exclude
+			 * the overlapping range.
+			 */
+
+			THREAD_LOCK(xte);
+			if (xte->discovered) {
+				if (xte->low_qid <= te->low_qid)
+					xte->high_qid = MIN(xte->high_qid, te->low_qid);
+				if (te->low_qid <= xte->low_qid)
+					xte->low_qid = MAX(xte->low_qid, te->high_qid);
+				if G_UNLIKELY(xte->high_qid < xte->low_qid) {
+					/* This thread is dead */
+					thread_set(tstid[xte->stid], THREAD_INVALID);
+					xte->discovered = FALSE;
+					discovered = TRUE;
+				}
+			} else if (xte->pending_reuse) {
+				xte->pending_reuse = FALSE;
+				xte->reusable = FALSE;			/* Precaution */
+				cleanup[xte->stid] = TRUE;
+			} else {
+				s_minierror("conflicting QID range between created thread #%u "
+					"[%zu, %zu] and %s thread #%u [%zu, %zu]",
+					te->stid, te->low_qid, te->high_qid,
+					xte->created ? "created" :
+					xte->discovered ? "discovered" : "unknown",
+					xte->stid, xte->low_qid, xte->high_qid);
+			}
+			THREAD_UNLOCK(xte);
+
+			if G_UNLIKELY(discovered)
+				atomic_uint_dec(&thread_discovered);
+		}
+	}
+
+	mutex_unlock_fast(&thread_insert_mtx);
+
+	/*
+	 * Threads we marked for cleanup can now be "ended" outside of the critical
+	 * section.  We know they cannot be reused because they are not yet flagged
+	 * as reusable.
+	 */
+
+	for (i = 0; i < thread_next_stid; i++) {
+		if G_UNLIKELY(cleanup[i])
+			thread_ended(threads[i]);
+	}
 }
 
 /**
@@ -956,17 +1048,18 @@ thread_element_tie(struct thread_element *te, thread_t t)
 static void
 thread_instantiate(struct thread_element *te, thread_t t)
 {
-	g_assert(spinlock_is_held(&thread_insert_slk));
+	assert_mutex_is_owned(&thread_insert_mtx);
 	g_assert_log(0 == te->locks.count,
 		"discovered thread #%u already holds %zu lock%s",
 		te->stid, te->locks.count, 1 == te->locks.count ? "" : "s");
 
 	THREAD_STATS_INC(discovered);
-	te->stamp = atomic_uint_inc(&thread_stamp);
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
-	thread_element_common_init(te, &te, t);
+	thread_set(te->tid, t);
+	thread_stack_init_shape(te, &te);
+	thread_element_common_init(te, t);
 }
 
 /**
@@ -980,20 +1073,32 @@ thread_new_element(unsigned stid)
 {
 	struct thread_element *te;
 
-	g_assert(spinlock_is_held(&thread_insert_slk));
-	g_assert(NULL == threads[stid]);
+	assert_mutex_is_owned(&thread_insert_mtx);
+
+	if G_UNLIKELY(threads[stid] != NULL) {
+		/* Could happen in case of assertion failure in discovered thread */
+		te = threads[stid];
+		if (THREAD_ELEMENT_MAGIC == te->magic)
+			goto allocated;
+		g_assert_not_reached();
+	}
 
 	te = omalloc0(sizeof *te);				/* Never freed! */
 	te->magic = THREAD_ELEMENT_MAGIC;
+	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
-	te->pht = hash_table_once_new_real();	/* Never freed! */
 	te->stid = stid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	spinlock_init(&te->lock);
+	thread_stack_init_shape(te, &te);
+	te->valid = TRUE;						/* Minimally ready */
+	te->discovered = TRUE;					/* Assume it was discovered */
 
+	threads[stid] = te;				/* Record, but do not make visible yet */
+
+allocated:
 	thread_lock_stack_init(te);
-
-	threads[stid] = te;		/* Record, but do not make visible yet */
+	te->pht = hash_table_once_new_real();	/* Never freed! */
 
 	return te;
 }
@@ -1003,8 +1108,8 @@ thread_new_element(unsigned stid)
  *
  * This is used to reserve STID=0 to the main thread, when possible.
  *
- * This routine MUST be called with the "thread_insert_slk" held, in
- * hidden mode.  It will be released upon return.
+ * This routine MUST be called with the "thread_insert_mtx" held, in
+ * fast mode.  It will be released upon return.
  */
 static struct thread_element *
 thread_main_element(thread_t t)
@@ -1013,10 +1118,9 @@ thread_main_element(thread_t t)
 	static struct thread_lock locks_arena_main[THREAD_LOCK_MAX];
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
-	hash_table_t *ght;
-	bool ok;
+	thread_qid_t qid;
 
-	g_assert(spinlock_is_held(&thread_insert_slk));
+	assert_mutex_is_owned(&thread_insert_mtx);
 	g_assert(NULL == threads[0]);
 
 	THREAD_STATS_INC(discovered);
@@ -1031,17 +1135,17 @@ thread_main_element(thread_t t)
 	 * if the main thread is recorded blockable via thread_set_main().
 	 */
 
+	qid = thread_quasi_id_fast(&t);
 	te = &te_main;
 	te->magic = THREAD_ELEMENT_MAGIC;
-	te->last_qid = (thread_qid_t) -1;
+	te->last_qid = qid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	te->discovered = TRUE;
 	te->valid = TRUE;
-	te->tid = t;
-	te->low_qid = 0;
-	te->high_qid = (thread_qid_t) -1;
+	thread_set(te->tid, t);
+	te->low_qid = qid - 1;		/* Assume stack guard page before */
+	te->high_qid = qid + 1;		/* Assume stack guard page after */
 	te->main_thread = TRUE;
-	te->stamp = atomic_uint_inc(&thread_stamp);
 	te->name = "main";
 	spinlock_init(&te->lock);
 
@@ -1053,8 +1157,7 @@ thread_main_element(thread_t t)
 	thread_stack_init_shape(te, &te);
 
 	threads[0] = te;
-	tstid[0] = te->tid;
-	tstamp[0] = te->stamp;
+	thread_set(tstid[0], te->tid);
 	thread_next_stid++;
 
 	/*
@@ -1066,11 +1169,7 @@ thread_main_element(thread_t t)
 	 * callout queue.
 	 */
 
-	spinunlock_hidden(&thread_insert_slk);
-
-	ght = thread_get_global_hash();
-	ok = hash_table_insert(ght, &te->tid, te);
-	g_assert(ok);
+	mutex_unlock_fast(&thread_insert_mtx);
 
 	te->pht = hash_table_once_new_real();	/* Never freed! */
 
@@ -1085,29 +1184,13 @@ thread_main_element(thread_t t)
 static struct thread_element *
 thread_get_main_if_first(void)
 {
-	spinlock_hidden(&thread_insert_slk);
+	mutex_lock_fast(&thread_insert_mtx);
 	if (NULL == threads[0]) {
 		return thread_main_element(thread_self());	 /* Lock was released */
 	} else {
-		spinunlock_hidden(&thread_insert_slk);
+		mutex_unlock_fast(&thread_insert_mtx);
 		return NULL;
 	}
-}
-
-/**
- * Flag element as reusable, and make sure no QID matches are possible.
- */
-static void
-thread_element_mark_reusable(struct thread_element *te)
-{
-	g_assert(0 == te->locks.count);
-
-	tstamp[te->stid] = 0;	/* No QID match possible any more */
-
-	THREAD_LOCK(te);
-	te->reusable = TRUE;	/* Allow reuse */
-	te->stamp = -1U;
-	THREAD_UNLOCK(te);
 }
 
 /**
@@ -1119,7 +1202,7 @@ thread_collect_elements(void)
 	tm_t now;
 	unsigned i;
 
-	if (0 == thread_pending_reuse)
+	if (0 == atomic_uint_get(&thread_pending_reuse))
 		return;
 
 	tm_now_exact(&now);
@@ -1133,27 +1216,30 @@ thread_collect_elements(void)
 			tm_elapsed_ms(&now, &te->exit_time) >= THREAD_HOLD_TIME
 		) {
 			THREAD_LOCK(te);
-			if (
-				te->pending_reuse &&
-				tm_elapsed_ms(&now, &te->exit_time) >= THREAD_HOLD_TIME
-			) {
-				te->pending_reuse = FALSE;
-				cleanup = TRUE;
+			if (te->pending_reuse) {
+				/*
+				 * HACK ALERT:
+				 * Because we are using a hack to determine whether the thread
+				 * is gone, we cannot be truly sure that THREAD_HOLD_TIME will
+				 * be enough time for pthread_exit() to cleanup.  Therefore, as
+				 * a secondary precaution, make sure there are currently no
+				 * locks held by the thread -- it could not have any at exit
+				 * time hence having some now means it is still busy.
+				 */
+
+				if G_LIKELY(0 == te->locks.count) {
+					te->pending_reuse = FALSE;
+					cleanup = TRUE;
+					thread_set(tstid[te->stid], THREAD_INVALID);
+				} else {
+					/* Still busy in the pthread layer, give it more time */
+					te->exit_time = now;		/* Struct copy */
+				}
 			}
 			THREAD_UNLOCK(te);
 
-			/*
-			 * Need to signal xmalloc() that any thread-specific allocated chunk
-			 * can now be forcefully dismissed if they are empty and pending
-			 * cross-thread freeing for the dead chunk can be processed.
-			 */
-
-			if (cleanup) {
-				atomic_uint_dec(&thread_running);
-				atomic_uint_dec(&thread_pending_reuse);
-				xmalloc_thread_ended(te->stid);
-				thread_element_mark_reusable(te);
-			}
+			if (cleanup)
+				thread_ended(te);
 		}
 	}
 }
@@ -1169,7 +1255,7 @@ thread_reuse_element(void)
 	struct thread_element *te = NULL;
 	unsigned i;
 
-	g_assert(spinlock_is_held(&thread_insert_slk));
+	assert_mutex_is_owned(&thread_insert_mtx);
 
 	/*
 	 * Because the amount of thread slots (small IDs) is limited, we reuse
@@ -1186,13 +1272,11 @@ thread_reuse_element(void)
 			if (t->reusable) {
 				te = t;					/* Thread elemeent to reuse */
 				t->reusable = FALSE;	/* Prevents further reuse */
+				te->valid = FALSE;		/* Not valid: contains stale values */
 			}
 			THREAD_UNLOCK(t);
-			if (te != NULL) {
-				hash_table_t *ght = thread_get_global_hash();
-				hash_table_remove_no_resize(ght, &te->tid);
+			if (te != NULL)
 				break;
-			}
 		}
 	}
 
@@ -1214,7 +1298,8 @@ thread_find_element(void)
 	 * with the POSIX thread cleanup code.
 	 */
 
-	thread_collect_elements();
+	if G_UNLIKELY(0 != thread_pending_reuse)
+		thread_collect_elements();
 
 	/*
 	 * We must synchronize with thread_get_element() to avoid concurrent
@@ -1226,7 +1311,7 @@ thread_find_element(void)
 	 * once it has been launched.
 	 */
 
-	spinlock_hidden(&thread_insert_slk);
+	mutex_lock_fast(&thread_insert_mtx);
 
 	/*
 	 * If we cannot find a reusable slot, allocate a new thread element.
@@ -1245,7 +1330,10 @@ thread_find_element(void)
 	if (NULL == te) {
 		unsigned stid = thread_next_stid;
 
-		if G_LIKELY(stid < THREAD_MAX && thread_running < THREAD_CREATABLE) {
+		if G_LIKELY(
+			stid < THREAD_MAX &&
+			(thread_running + thread_pending_reuse) < THREAD_CREATABLE
+		) {
 			te = thread_new_element(stid);
 			thread_next_stid++;
 		}
@@ -1255,7 +1343,7 @@ thread_find_element(void)
 	 * Mark the slot as used, but put an invalid thread since we do not know
 	 * which thread_t will be allocated by the thread creation logic yet.
 	 *
-	 * Do that whilst still holding the spinlock to synchronize nicely with
+	 * Do that whilst still holding the mutex to synchronize nicely with
 	 * thread_get_element().
 	 */
 
@@ -1264,7 +1352,7 @@ thread_find_element(void)
 		thread_set(tstid[te->stid], THREAD_INVALID);
 	}
 
-	spinunlock_hidden(&thread_insert_slk);
+	mutex_unlock_fast(&thread_insert_mtx);
 
 	if (te != NULL)
 		thread_element_reset(te);
@@ -1380,105 +1468,193 @@ thread_suspend_self(struct thread_element *te)
 }
 
 /**
- * Find existing thread element whose stack encompasses the given stack pointer.
+ * Find existing thread element whose stack encompasses the given QID.
  */
 static struct thread_element *
-thread_stack_match(const void *sp)
+thread_qid_match(thread_qid_t qid)
 {
 	unsigned i;
-	const void *spage;
-
-	spage = vmm_page_start(sp);
 
 	for (i = 0; i < thread_next_stid; i++) {
 		struct thread_element *te = threads[i];
-		const void *bpage;
 
 		if G_UNLIKELY(!te->valid)
 			continue;
 
 		/*
-		 * This is only done for threads we discover on-the-fly, to see if
-		 * a thread we thought was there is now gone and was replaced by
-		 * another in the same stack range.
-		 *
-		 * Therefore, we skip slots for threads we created and which have
-		 * not been joined yet, meaning they are still "alive" until their
-		 * exit status is fetched or the holding time is elapsed.
-		 */
-
-		if G_UNLIKELY(te->created && !te->reusable)
-			continue;
-
-		/*
 		 * Skip items marked as THREAD_INVALID in tstid[].
 		 * This means the thread is under construction and therefore we
-		 * won't find what we're look for there.
+		 * won't find what we're looking for there.
 		 */
 
 		if G_UNLIKELY(thread_eq(THREAD_INVALID, tstid[te->stid]))
 			continue;
 
-		/*
-		 * Acount for the fact we may not have an accurate knowledge of the
-		 * base or the highest stack address -- also compare pages.
-		 */
-
-		if (thread_stack_ptr_cmp(sp, te->stack_base) > 0) {
-			const void *hpage;
-
-			if (thread_stack_ptr_cmp(sp, te->stack_highest) <= 0)
-				return te;		/* Obvious match -- within known boundaries */
-
-			hpage = vmm_page_start(te->stack_highest);
-
-			if (hpage == spage)
-				return te;		/* Highest stack page identical */
-		}
-
-		bpage = vmm_page_start(te->stack_base);
-
-		if (bpage == spage)
-			return te;			/* Lowest stack page identical */
+		if G_UNLIKELY(qid >= te->low_qid && qid <= te->high_qid)
+			return te;
 	}
 
 	return NULL;		/* Not found */
 }
 
 /**
- * Find existing thread based on the supplied stack pointer.
+ * Find existing thread element by matching thread_t values.
+ */
+static struct thread_element *
+thread_find_tid(thread_t t)
+{
+	unsigned i;
+	struct thread_element *te = NULL;
+
+	THREAD_STATS_INCX(lookup_by_tid);
+
+	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+		/* Allow look-ahead of to-be-created slot, hence the ">" */
+		if G_UNLIKELY(i > thread_next_stid)
+			break;
+
+		/*
+		 * Skip items marked as THREAD_INVALID in tstid[].
+		 * This means the thread is under construction and therefore we
+		 * won't find what we're looking for there.
+		 */
+
+		if G_UNLIKELY(thread_eq(THREAD_INVALID, tstid[i]))
+			continue;
+
+		if G_UNLIKELY(thread_eq(tstid[i], t)) {
+			te = threads[i];
+			if (NULL == te)
+				continue;
+			if (te->reusable) {
+				te = NULL;
+				continue;
+			}
+			break;
+		}
+	}
+
+	return te;
+}
+
+/**
+ * Find existing thread based on the known QID of the thread.
  *
  * This routine is called on lock paths, with thread_element structures
  * possibly locked, hence we need to be careful to not deadlock.
  *
- * @param sp		a pointer to the stack (NULL to use TIDs to locate thread)
- * @param lock		lock we must not take
+ * @param qid		known thread QID
  *
- * @return the likely thread element to which the stack pointer could relate,
- * NULL if we cannot determine the thread.
+ * @return the likely thread element to which the QID could relate, NULL if we
+ * cannot determine the thread.
  */
 static struct thread_element *
-thread_find(const void *sp, const volatile void *lock)
+thread_find_qid(thread_qid_t qid)
 {
-	size_t i;
-	struct thread_element *te;
-	thread_qid_t qid;
-	unsigned idx;
+	unsigned i;
+	struct thread_element *te = NULL;
+	uint smallest = -1U;
+
+	THREAD_STATS_INCX(lookup_by_qid);
 
 	/*
-	 * Since we have a stack pointer belonging to the thread we're looking,
-	 * check whether we have it cached by its QID.
+	 * Perform linear lookup, looking for a matching thread:
+	 *
+	 * - For created threads, we known the QID boundaries since we known the
+	 *   requested stack size, hence we can perform perfect matches.
+	 *
+	 * - For discovered threads, we can never be sure of the stack range, since
+	 *   we do not know beforehand where in the possible stack range for the
+	 *   thread we first learnt about it: the stack pointer could be higher or
+	 *   lower the next time we see it.  Therefore, we look for the smallest
+	 *   distance to the QID segment, hoping that it will indeed correspond to
+	 *   that thread.
 	 */
 
-	qid = thread_quasi_id_fast(NULL == sp ? &i : sp);
-	idx = thread_qid_hash(qid);
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *xte = threads[i];
+		uint distance;
 
-	if G_LIKELY(!thread_qid_cache_is_lock(idx, lock)) {
-		te = thread_qid_cache_get(idx);
+		/*
+		 * Skip items marked as THREAD_INVALID in tstid[].
+		 * This means the thread is under construction and therefore we
+		 * won't find what we're looking for there.
+		 */
 
-		if (thread_element_matches(te, qid))
-			return te;
+		if G_UNLIKELY(THREAD_INVALID == tstid[i])
+			continue;
+
+		if G_UNLIKELY(!xte->valid || xte->reusable)
+			continue;
+
+		/*
+		 * If the thread was created and the QID falls within the known range,
+		 * then we have an exact match.  Don't attempt approximate matches
+		 * with a created thread!
+		 *
+		 * For a discovered thread, if we fall within the range we have no
+		 * reason to doubt it's the same thread as before here.
+		 */
+
+		if G_UNLIKELY(qid >= xte->low_qid && qid <= xte->high_qid)
+			return xte;
+
+		if (xte->created || xte->creating)
+			continue;
+
+		/*
+		 * In a discovered thread, and no exact match so far.  Compute the
+		 * distance to the QID range (we know the QID does not fall within
+		 * the range).
+		 */
+
+		if (qid < xte->low_qid)
+			distance = xte->low_qid - qid;
+		else
+			distance = qid - xte->high_qid;		/* qid > xte->high_qid */
+
+		if G_UNLIKELY(distance == smallest) {
+			/* Favor moves in the stack growth direction */
+			if (thread_sp_direction > 0 && qid > xte->high_qid)
+				te = xte;
+			else if (thread_sp_direction < 0 && qid < xte->low_qid)
+				te = xte;
+		} else if (distance < smallest) {
+			smallest = distance;
+			te = xte;
+		}
 	}
+
+	/*
+	 * Refuse match if the distance is too large.
+	 *
+	 * We use our minimum stack size as a measure of what "too large" is: we
+	 * retain half the stack size minus one page.  Anything further than that
+	 * will not be returned as a match.
+	 */
+
+	if (smallest > (UNSIGNED(THREAD_STACK_MIN >> (1 + thread_pageshift))) - 1)
+		return NULL;
+
+	return te;		/* No exact match, returns closest match */
+}
+
+/**
+ * Find existing thread based on the known QID of the thread, updating
+ * the QID cache at the end.
+ *
+ * This routine is called on lock paths, with thread_element structures
+ * possibly locked, hence we need to be careful to not deadlock.
+ *
+ * @param qid		known thread QID
+ *
+ * @return the likely thread element to which the QID could relate, NULL if we
+ * cannot determine the thread.
+ */
+static struct thread_element *
+thread_find_via_qid(thread_qid_t qid)
+{
+	struct thread_element *te;
 
 	/*
 	 * Watch out when we are in the middle of the thread creation process:
@@ -1491,74 +1667,18 @@ thread_find(const void *sp, const volatile void *lock)
 	 * thread it belongs.
 	 */
 
-	te = NULL;
+	te = thread_find_qid(qid);
 
-	if G_LIKELY(NULL == sp) {
+	/*
+	 * If we found a discovered thread (and it is not the main thread), we
+	 * have to check the thread ID as well because the original thread
+	 * could have disappeared and been replaced by another.
+	 */
+
+	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
 		thread_t t = thread_self();
-		uint max_stamp = 0;
-
-		/*
-		 * We have to compare TIDs.
-		 *
-		 * However, TIDs are reused when a thread disappears: the thread_t
-		 * is only guaranteed to be unique among all the existing threads
-		 * at a given time.
-		 *
-		 * Therefore, we only retain the matching TID associated with the
-		 * highest creation stamp for the thread element.
-		 */
-
-		for (i = 0; i < thread_next_stid; i++) {
-			struct thread_element *xte = threads[i];
-			uint stamp = xte->stamp;
-
-			if (xte->valid && thread_eq(xte->tid, t)) {
-				if (tstamp[xte->stid] != stamp)
-					continue;
-				if (stamp >= max_stamp) {
-					te = xte;
-					max_stamp = stamp;
-				}
-			}
-		}
-	} else {
-		size_t smallest = (size_t) -1;
-		uint max_stamp = 0;
-
-		/*
-		 * Perform linear lookup, looking for the thread for which the stack
-		 * pointer is "above" the base of the stack and for which the distance
-		 * to that base is the smallest.
-		 *
-		 * Because stacks can be reused when threads disappear, we only keep
-		 * the thread that also has the largest stamp in case several threads
-		 * have the same smallest distance.
-		 */
-
-		for (i = 0; i < thread_next_stid; i++) {
-			struct thread_element *xte = threads[i];
-			uint stamp = xte->stamp;
-
-			if G_UNLIKELY(!xte->valid || xte->reusable)
-				continue;
-
-			if (thread_stack_ptr_cmp(sp, xte->stack_base) > 0) {
-				size_t offset;
-
-				/*
-				 * Pointer is "above" the stack base, track the thread with
-				 * the smallest offset relative to the stack base.
-				 */
-
-				offset = thread_stack_ptr_offset(xte->stack_base, sp);
-				if (offset <= smallest) {
-					smallest = offset;
-					if (stamp >= max_stamp) {
-						te = xte;
-						max_stamp = stamp;
-					}
-				}
-			}
+		if (!thread_eq(te->tid, t)) {
+			te = thread_find_tid(t);		/* Find proper TID instead */
 		}
 	}
 
@@ -1566,14 +1686,75 @@ thread_find(const void *sp, const volatile void *lock)
 	 * Cache result.
 	 */
 
-	if G_LIKELY(
-		te != NULL && !thread_qid_cache_is_lock(idx, lock)
-		&& qid >= te->low_qid && qid <= te->high_qid
-	) {
+	if G_LIKELY(te != NULL) {
+		unsigned idx = thread_qid_hash(qid);
+
+		/*
+		 * Update the QID range if this is a discovered thread.
+		 *
+		 * If it is a created thread, we know the stack size so we know
+		 * the QID range of our threads as soon as they are launched.
+		 */
+
+		if G_UNLIKELY(
+			te->discovered &&
+			(qid < te->low_qid || qid > te->high_qid)
+		) {
+			thread_element_update_qid_range(te, qid);
+		}
+
 		thread_qid_cache_set(idx, te, qid);
 	}
 
 	return te;
+}
+
+/**
+ * Find existing thread based on the supplied stack pointer.
+ *
+ * This routine is called on lock paths, with thread_element structures
+ * possibly locked, hence we need to be careful to not deadlock.
+ *
+ * @param sp		a pointer to the thread's stack
+ *
+ * @return the likely thread element to which the stack pointer could relate,
+ * NULL if we cannot determine the thread.
+ */
+static inline struct thread_element *
+thread_find(const void *sp)
+{
+	struct thread_element *te;
+	thread_qid_t qid;
+	unsigned idx;
+
+	/*
+	 * Since we have a stack pointer belonging to the thread we're looking,
+	 * check whether we have it cached by its QID.
+	 */
+
+	qid = thread_quasi_id_fast(sp);
+	idx = thread_qid_hash(qid);
+
+	te = thread_qid_cache_get(idx);
+	if G_LIKELY(thread_element_matches(te, qid))
+		return te;
+
+	te = thread_find_via_qid(qid);
+	if G_LIKELY(te != NULL)
+		return te;
+
+	/*
+	 * We can only come here for discovered threads since created threads
+	 * have a known QID range.
+	 */
+
+	te = thread_find_tid(thread_self());
+	if G_LIKELY(te != NULL) {
+		thread_element_update_qid_range(te, qid);
+		return te;
+	}
+
+	return NULL;		/* Thread completely unknown */
 }
 
 /**
@@ -1587,29 +1768,36 @@ thread_find(const void *sp, const volatile void *lock)
 static struct thread_element *
 thread_get_element(void)
 {
+	unsigned stid, idx;
 	thread_qid_t qid;
 	thread_t t;
-	hash_table_t *ght;
 	struct thread_element *te;
-	unsigned idx;
 
 	/*
-	 * Look whether we already determined the thread-private element table
-	 * for this thread earlier by looking in the cache, indexed by QID.
+	 * First look for thread via the QID cache
 	 */
 
 	qid = thread_quasi_id_fast(&qid);
 	idx = thread_qid_hash(qid);
-	te = thread_qid_cache_get(idx);
 
-	if (thread_element_matches(te, qid))
+	te = thread_qid_cache_get(idx);
+	if G_LIKELY(thread_element_matches(te, qid))
+		return te;
+
+	/*
+	 * Not in cache, look for a match by comparing known QID ranges.
+	 */
+
+	te = thread_find_via_qid(qid);
+	if G_LIKELY(te != NULL)
 		return te;
 
 	/*
 	 * Reserve STID=0 for the main thread if we can, since this is
-	 * the implicit ID that logging routines know implicitly as the
-	 * "main" thread.
+	 * the implicit ID that logging routines know as the "main" thread.
 	 */
+
+	t = thread_self();
 
 	if G_UNLIKELY(NULL == threads[0]) {
 		te = thread_get_main_if_first();
@@ -1623,147 +1811,113 @@ thread_get_element(void)
 	 * to collect.
 	 */
 
-	thread_collect_elements();
+	if G_UNLIKELY(0 != thread_pending_reuse)
+		thread_collect_elements();
 
 	/*
-	 * No matching element was found in the cache, perform the slow lookup
-	 * in the global hash table then.
-	 *
-	 * There's no need to grab the thread_insert_slk spinlock at this stage
-	 * since the lookup is non-destructive: although the lookup will call
-	 * thread_current() again during the mutex grabbing, we will either get
-	 * the same QID, in which case it will be flagged busy so thread_current()
-	 * will return thread_self(), or the different QID will cause a recursion
-	 * here and we may use the above fast-path successfully, or fall back here.
-	 *
-	 * Recursion will stop at some point since the stack will not grow by one
-	 * full page in these call chains, necessarily causing the same QID to be
-	 * reused.  When unwinding the recursion, the item for thread_self() will
-	 * be seen in the table so we won't re-create a thread element for the
-	 * current thread.
+	 * Enter critical section to make sure only one thread at a time
+	 * can manipulate the threads[] and tstid[] arrays.
 	 */
 
-	ght = thread_get_global_hash();
-	t = thread_self();
-	te = hash_table_lookup(ght, &t);
-
-	THREAD_STATS_INCX(ght_lookup);
+	mutex_lock_fast(&thread_insert_mtx);	/* Don't record */
 
 	/*
-	 * There's no need to lock the hash table as this call can be made only
-	 * once at a time per thread (the global hash table is already protected
-	 * against concurrent accesses).
+	 * Before allocating a new thread element, check whether the current
+	 * stack pointer lies within the boundaries of a known thread.  If it
+	 * does, it means the thread terminated and a new one was allocated.
+	 * Re-use the existing slot.
 	 */
 
-	if G_UNLIKELY(NULL == te) {
-		unsigned stid;
-		bool ok;
+	te = thread_qid_match(qid);
 
+	if (te != NULL) {
+		thread_reused++;
+	} else {
 		/*
-		 * Maybe this is a thread in the process of being created, which
-		 * is still at its thread_launch_register() stage and therefore
-		 * is not yet present in the global hash...  Probe for it via
-		 * linear lookup in tstid[] since this is the first thing we
-		 * initialize when we get crontrol of the thread.
+		 * For discovered threads, we need to be smarter and look at whether
+		 * the thread ID is not being one of a known thread.  If it is, then
+		 * we can extend the QID range for next time.
 		 */
 
-		te = thread_find(NULL, NULL);
-		if (te != NULL)
-			goto found;
-
-		/*
-		 * It is the first time we're seeing this thread, record a new
-		 * element in the global hash table.
-		 *
-		 * The reason we're surrounding hash_table_insert() with spinlocks
-		 * is that the global hash table is synchronized and will grab a
-		 * mutex before inserting, which will again call thread_current().
-		 * In case the QID then would be different, we could come back here
-		 * and create a second thread element for the same thread!
-		 *
-		 * The thread_current() routine checks whether the spinlock is held
-		 * before deciding to call us to create a new element, thereby
-		 * protecting against this race condition against ourselves, due to
-		 * the fact that QIDs are not unique within a thread.
-		 */
-
-		spinlock_hidden(&thread_insert_slk);	/* Don't record */
-
-		/*
-		 * Before allocating a new thread element, check whether the current
-		 * stack pointer lies within the boundaries of a known thread.  If it
-		 * does, it means the thread terminated and a new one was allocated.
-		 * Re-use the existing slot.
-		 */
-
-		te = thread_stack_match(&qid);
-
+		te = thread_find_tid(t);
 		if (te != NULL) {
-			thread_reused++;
-			hash_table_remove_no_resize(ght, &te->tid);
-		} else {
-			te = thread_reuse_element();
-		}
-
-		if (te != NULL) {
-			if (!te->discovered)
-				thread_discovered++;
-			tstid[te->stid] = t;
-			thread_instantiate(te, t);
-			goto created;
+			if (te->discovered) {
+				thread_set(te->tid, t);
+				thread_element_update_qid_range(te, qid);
+				goto created;
+			}
+			g_assert(!thread_eq(THREAD_INVALID, te->tid));
 		}
 
 		/*
-		 * OK, we have an additional thread.
+		 * We found no thread bearing that ID, we've discovered a new thread.
 		 */
 
-		stid = thread_next_stid;
-
-		if G_UNLIKELY(thread_next_stid >= THREAD_MAX) {
-			thread_panic_mode = TRUE;
-			s_minierror("discovered thread #%u but can only track %d threads",
-				stid, THREAD_MAX);
-		}
-
-		/*
-		 * Recording the current thread in the tstid[] array allows us to be
-		 * able to return the new thread small ID from thread_small_id() before
-		 * the allocation of the thread element is completed.
-		 *
-		 * It also allows us to translate a TID back to a thread small ID
-		 * when inspecting mutexes, mostly during crashing dumps.
-		 */
-
-		tstid[stid] = t;
-		tstamp[stid] = thread_stamp;
-
-		/*
-		 * We decouple the creation of thread elements and their instantiation
-		 * for the current thread to be able to reuse thread elements (and
-		 * their small ID) when we detect that a thread has exited or when
-		 * we create our own threads.
-		 */
-
-		te = thread_new_element(stid);
-		thread_instantiate(te, t);
-		thread_next_stid++;		/* Created and initialized, make it visible */
-		thread_discovered++;	/* Discovered thread not reusing an element */
-
-	created:
-		/*
-		 * At this stage, the thread has been correctly initialized and it
-		 * will be correctly located by thread_find().  Any spinlock or mutex
-		 * we'll be tacking from now on will be correctly attributed to the
-		 * new thread.
-		 */
-
-		ok = hash_table_insert(ght, &te->tid, te);
-		g_assert(ok);
-
-		spinunlock_hidden(&thread_insert_slk);
+		te = thread_reuse_element();
 	}
 
+	if (te != NULL) {
+		if (!te->discovered)
+			atomic_uint_inc(&thread_discovered);
+		tstid[te->stid] = t;
+		thread_instantiate(te, t);
+		goto created;
+	}
+
+	/*
+	 * OK, we have an additional thread.
+	 */
+
+	stid = thread_next_stid;
+
+	if G_UNLIKELY(thread_next_stid >= THREAD_MAX) {
+		thread_panic_mode = TRUE;
+		s_minierror("discovered thread #%u but can only track %d threads",
+			stid, THREAD_MAX);
+	}
+
+	/*
+	 * Recording the current thread in the tstid[] array allows us to be
+	 * able to return the new thread small ID from thread_small_id() before
+	 * the allocation of the thread element is completed.
+	 *
+	 * It also allows us to translate a TID back to a thread small ID
+	 * when inspecting mutexes, mostly during crashing dumps.
+	 */
+
+	tstid[stid] = t;
+
+	/*
+	 * We decouple the creation of thread elements and their instantiation
+	 * for the current thread to be able to reuse thread elements (and
+	 * their small ID) when we detect that a thread has exited or when
+	 * we create our own threads.
+	 */
+
+	atomic_uint_inc(&thread_discovered);
+	te = thread_new_element(stid);
+	thread_instantiate(te, t);
+	thread_next_stid++;		/* Created and initialized, make it visible */
+
+	/* FALL THROUGH */
+
+created:
+	/*
+	 * At this stage, the thread has been correctly initialized and it
+	 * will be correctly located by thread_find().  Any spinlock or mutex
+	 * we'll be tacking from now on will be correctly attributed to the
+	 * new thread.
+	 */
+
+	mutex_unlock_fast(&thread_insert_mtx);
+
 found:
+	/*
+	 * Maintain lowest and highest stack addresses for thread.
+	 */
+
+	thread_element_update_qid_range(te, qid);
+
 	/*
 	 * Cache result to speed-up things next time if we come back for the
 	 * same thread with the same QID.
@@ -1772,15 +1926,6 @@ found:
 	g_assert(thread_eq(t, te->tid));
 
 	thread_qid_cache_set(idx, te, qid);
-
-	/*
-	 * Maintain lowest and highest stack addresses for thread.
-	 */
-
-	if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_base) < 0)
-		thread_stack_init_shape(te, &qid);
-	else if G_UNLIKELY(thread_stack_ptr_cmp(&qid, te->stack_highest) > 0)
-		te->stack_highest = &qid;
 
 	return te;
 }
@@ -1825,7 +1970,6 @@ unsigned
 thread_small_id(void)
 {
 	struct thread_element *te;
-	unsigned retries = 0;
 	int stid;
 
 	/*
@@ -1837,19 +1981,16 @@ thread_small_id(void)
 		 * Reserve STID=0 for the main thread if we can.
 		 */
 
-		if (!spinlock_hidden_try(&thread_insert_slk))
-			return 0;
+		mutex_lock_fast(&thread_insert_mtx);
 
 		if (NULL == threads[0]) {
 			(void) thread_main_element(thread_self());
 			/* Lock was released */
 		} else {
-			spinunlock_hidden(&thread_insert_slk);
+			mutex_unlock_fast(&thread_insert_mtx);
 		}
 		return 0;
 	}
-
-retry:
 
 	/*
 	 * This call is used by logging routines, so we must be very careful
@@ -1857,9 +1998,6 @@ retry:
 	 * to register the current calling thread if not already done, so try
 	 * to call thread_get_element() when it is safe.
 	 */
-
-	if G_UNLIKELY(spinlock_is_held(&thread_private_slk))
-		return 0;		/* Creating global hash, must be the first thread */
 
 	/*
 	 * Look in the QID cache for a match.
@@ -1869,7 +2007,7 @@ retry:
 	if G_LIKELY(NULL != te)
 		return te->stid;
 
-	if G_LIKELY(!spinlock_is_held(&thread_insert_slk))
+	if G_LIKELY(!mutex_is_owned(&thread_insert_mtx))
 		return thread_get_element()->stid;
 
 	/*
@@ -1891,23 +2029,6 @@ retry:
 		return -1U == thread_main_stid ? 0 : thread_main_stid;
 	}
 
-	/*
-	 * The current thread is not registered, the insertion lock is busy which
-	 * means we are in the process of adding a new one but we cannot determine
-	 * the exact thread ID: several threads could be requesting a small ID at
-	 * the same time.
-	 *
-	 * We are certainly multi-threaded at this point, so wait a little bit to
-	 * let other threads release the locks and retry.  After roughly 1 second
-	 * we abandon all hopes and abort the execution.
-	 */
-
-	if (retries++ < 200) {
-		/* Thread is unknown, we should not be holding any locks */
-		compat_sleep_ms(5);
-		goto retry;
-	}
-
 	thread_panic_mode = TRUE;
 	s_error("cannot compute thread small ID");
 }
@@ -1922,23 +2043,20 @@ thread_stid_from_thread(const thread_t t)
 {
 	unsigned i;
 	int selected = -1;
-	uint max_stamp = 0;
+
+	if G_UNLIKELY(thread_eq(THREAD_INVALID, t))
+		return -1;
 
 	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
-		uint stamp;
-
 		/* Allow look-ahead of to-be-created slot, hence the ">" */
 		if G_UNLIKELY(i > thread_next_stid)
 			break;
-		stamp = tstamp[i];
 		if G_UNLIKELY(thread_eq(t, tstid[i])) {
 			struct thread_element *te = threads[i];
-			if (!te->valid || te->reusable || te->stamp != stamp)
+			if (te != NULL && te->reusable)
 				continue;
-			if (stamp >= max_stamp) {
-				selected = i;
-				max_stamp = stamp;
-			}
+			selected = i;
+			break;
 		}
 	}
 
@@ -1990,11 +2108,14 @@ thread_id_name(unsigned id)
 	}
 
 	te = threads[id];
-	if (NULL == te || !te->valid) {
+	if G_UNLIKELY(NULL == te) {
 		str_bprintf(b, sizeof buf[0], "<unknown thread ID %u>", id);
 		return b;
-	} else if (te->reusable) {
+	} else if G_UNLIKELY(te->reusable) {
 		str_bprintf(b, sizeof buf[0], "<terminated thread ID %u>", id);
+		return b;
+	} else if G_UNLIKELY(!te->valid && !te->creating) {
+		str_bprintf(b, sizeof buf[0], "<invalid thread ID %u>", id);
 		return b;
 	}
 
@@ -2065,7 +2186,9 @@ thread_check_suspended(void)
 	if G_UNLIKELY(thread_running + thread_discovered <= 1)
 		return;		/* Mono-threaded, most likely */
 
-	te = thread_get_element();
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return;
 
 	if G_UNLIKELY(te->suspend && 0 == te->locks.count)
 		thread_suspend_self(te);
@@ -2102,10 +2225,10 @@ thread_suspend_others(bool lockwait)
 	 * these locks).
 	 */
 
-	te = thread_find(NULL, NULL);	/* Ourselves */
+	te = thread_find(&te);			/* Ourselves */
 	if (NULL == te) {
 		(void) thread_current();	/* Register ourselves then */
-		te = thread_find(NULL, NULL);
+		te = thread_find(&te);
 	}
 
 	g_assert_log(te != NULL, "%s() called from unknown thread", G_STRFUNC);
@@ -2193,7 +2316,7 @@ thread_unsuspend_others(void)
 	size_t i, n = 0;
 	struct thread_element *te;
 
-	te = thread_find(NULL, NULL);		/* Ourselves */
+	te = thread_find(&te);		/* Ourselves */
 	if (NULL == te)
 		return 0;
 
@@ -2278,6 +2401,15 @@ thread_current(void)
 	return thread_current_element(NULL);
 }
 
+static inline thread_t
+thread_element_set(struct thread_element *te, const void **element)
+{
+	if (element != NULL)
+		*element = te;
+
+	return te->tid;
+}
+
 /**
  * Get current thread plus a pointer to the thread element (opaque).
  *
@@ -2295,61 +2427,49 @@ thread_current(void)
 thread_t
 thread_current_element(const void **element)
 {
+	struct thread_element *te;
 	thread_qid_t qid;
 	unsigned idx;
-	struct thread_element *te;
 
 	if G_UNLIKELY(!thread_inited)
 		thread_init();
 
 	/*
-	 * We must be careful because thread_current() is what is used by mutexes
-	 * to record the current thread, so we can't blindly rely on
-	 * thread_get_element(), which will cause a lookup on a synchronized hash
-	 * table -- that would deadly recurse.
-	 *
-	 * We first begin like thread_get_element() would by using the QID to fetch
-	 * the current thread record: this is our fast path that is most likely
-	 * to succeed and should be faster than pthread_self() + a hash table
-	 * lookup to get the thread element object.
+	 * Since we have a stack pointer belonging to the thread we're looking,
+	 * check whether we have it cached by its QID.
 	 */
 
-	qid = thread_quasi_id_fast(&qid);
+	qid = thread_quasi_id_fast(&te);
 	idx = thread_qid_hash(qid);
-	te = thread_qid_cache_get(idx);
 
-	if (thread_element_matches(te, qid))
-		goto done;
+	te = thread_qid_cache_get(idx);
+	if G_LIKELY(thread_element_matches(te, qid))
+		return thread_element_set(te, element);
 
 	/*
-	 * There is no current thread record.  If this QID is marked busy, or if
-	 * someone is currently creating the global hash table, then immediately
-	 * return the current thread.
+	 * We must be careful because thread_current() is what is used by mutexes
+	 * to record the current thread: we can't rely on thread_get_element(),
+	 * especially when the VMM layer is not up yet.
+	 */
+
+	te = thread_find_via_qid(qid);
+
+	if G_LIKELY(te != NULL)
+		return thread_element_set(te, element);
+
+	/*
+	 * There is no current thread record.
 	 *
-	 * Special care must be taken when the VMM layer is not fully inited yet,
+	 * Special care must be taken when the VMM layer is not fully inited yet
 	 * since it uses mutexes and therefore will call thread_current() as well.
 	 */
 
-	if (
-		thread_qid_cache_is_busy(idx) ||
-		spinlock_is_held(&thread_private_slk) ||
-		spinlock_is_held(&thread_insert_slk) ||
-		!vmm_is_inited()
-	) {
+	if G_UNLIKELY(!vmm_is_inited()) {
 		if (element != NULL)
 			*element = NULL;
+
 		return thread_self();
 	}
-
-	/*
-	 * Mark the QID busy so that we use a short path on further recursions
-	 * until we can establish a thread element.
-	 *
-	 * This is the part allowing us to count the running threads, since the
-	 * creation of a thread element will account for the thread.
-	 */
-
-	thread_qid_cache_set_busy(idx, TRUE);
 
 	/*
 	 * Calling thread_get_element() will redo part of the work we've been
@@ -2359,22 +2479,9 @@ thread_current_element(const void **element)
 
 	te = thread_get_element();
 
-	/*
-	 * We re-cache the thread element for this QID, which may be different
-	 * from the one used by thread_get_element() since it is based on the
-	 * current stack pointer, and we may be near a page boundary.
-	 */
-
-	thread_qid_cache_set(idx, te, qid);
-	thread_qid_cache_set_busy(idx, FALSE);
-
-done:
-	if (element != NULL)
-		*element = te;
-
 	g_assert(!thread_eq(THREAD_INVALID, te->tid));
 
-	return te->tid;
+	return thread_element_set(te, element);
 }
 
 /**
@@ -2406,17 +2513,20 @@ thread_count(void)
 bool
 thread_is_single(void)
 {
-	if (spinlock_is_held(&thread_insert_slk)) {
-		/* In the middle of a thread creation, probably */
-		return 1 == thread_count();
-	} else if (thread_eq(THREAD_NONE, tstid[0])) {
-		return TRUE;					/* First thread not created yet */
+	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0])) {
+		return TRUE;			/* First thread not created yet */
 	} else {
 		unsigned count = thread_count();
-		if (count > 1)
+		if (count > 1) {
 			return FALSE;
-		(void) thread_current();		/* Count current thread */
-		return 1 == thread_count();
+		} else {
+			struct thread_element *te = thread_find(&te);
+
+			if (NULL == te || te->stid != 0)
+				return FALSE;
+
+			return 0 == thread_pending_reuse;
+		}
 	}
 }
 
@@ -2437,13 +2547,21 @@ bool
 thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 {
 	struct thread_element *te;
+	thread_qid_t qid, pqid;
+	unsigned idx;
 
 	if G_UNLIKELY(NULL == p)
 		return FALSE;
 
-	te = thread_find(p, NULL);
-	if (NULL == te)
-		return FALSE;
+	qid = thread_quasi_id_fast(p);
+	idx = thread_qid_hash(qid);
+
+	te = thread_qid_cache_get(idx);
+	if G_UNLIKELY(!thread_element_matches(te, qid)) {
+		te = thread_find_qid(qid);
+		if G_UNLIKELY(NULL == te)
+			return FALSE;
+	}
 
 	if (NULL == top) {
 		if (!thread_eq(te->tid, thread_self()))
@@ -2454,16 +2572,19 @@ thread_is_stack_pointer(const void *p, const void *top, unsigned *stid)
 	if (stid != NULL)
 		*stid = te->stid;
 
+	qid = thread_quasi_id_fast(top);
+	pqid = thread_quasi_id_fast(p);
+
 	if (thread_sp_direction < 0) {
-		/* Stack growing down, stack_base is its highest address */
-		if (ptr_cmp(te->stack_base, top) <= 0)
+		/* Stack growing down, base is high_qid */
+		if (te->high_qid < qid)
 			return FALSE;		/* top is invalid for this thread */
-		return ptr_cmp(p, top) >= 0 && ptr_cmp(p, te->stack_base) < 0;
+		return pqid >= qid && pqid <= te->high_qid;
 	} else {
-		/* Stack growing up, stack_base is its lowest address */
-		if (ptr_cmp(te->stack_base, top) >= 0)
+		/* Stack growing up, base is low_qid */
+		if (te->low_qid > qid)
 			return FALSE;		/* top is invalid for this thread */
-		return ptr_cmp(p, top) <= 0 && ptr_cmp(p, te->stack_base) >= 0;
+		return pqid <= qid && pqid >= te->low_qid;
 	}
 }
 
@@ -2674,7 +2795,7 @@ thread_pending_add(int increment)
 {
 	struct thread_element *te;
 
-	te = thread_find(NULL, NULL);
+	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return;
 
@@ -3012,7 +3133,7 @@ thread_lock_got_extended(const void *lock, enum thread_lock_kind kind,
 	 */
 
 	if (NULL == te) {
-		te = thread_find(NULL, lock);
+		te = thread_find(&te);
 	} else {
 		thread_element_check(te);
 	}
@@ -3040,6 +3161,10 @@ found:
 	if G_UNLIKELY(tls->capacity == tls->count) {
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
+		if (0 == tls->capacity) {
+			g_assert(NULL == tls->arena);
+			return;				/* Stack not created yet */
+		}
 		tls->overflow = TRUE;
 		s_miniwarn("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
@@ -3114,7 +3239,7 @@ thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
 	 */
 
 	if (NULL == te) {
-		te = thread_find(NULL, lock);
+		te = thread_find(&te);
 	} else {
 		thread_element_check(te);
 	}
@@ -3193,12 +3318,15 @@ thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
 /**
  * Check whether current thread already holds a lock.
  *
- * @param lock		the address of a mutex of a spinlock
+ * If no locks were recorded yet in the thread, returns "default".
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param dflt		value to return when no locks were recorded yet
  *
  * @return TRUE if lock was registered in the current thread.
  */
 bool
-thread_lock_holds(const volatile void *lock)
+thread_lock_holds_default(const volatile void *lock, bool dflt)
 {
 	struct thread_element *te;
 	struct thread_lock_stack *tls;
@@ -3210,7 +3338,83 @@ thread_lock_holds(const volatile void *lock)
 	 * thread element at lock time but are able to get one now.
 	 */
 
-	te = thread_find(NULL, lock);
+	te = thread_find(&te);
+	if G_UNLIKELY(NULL == te)
+		return dflt;
+
+	tls = &te->locks;
+
+	/*
+	 * When there are no locks recorded, check whether we had the opportunity
+	 * to record any lock:
+	 *
+	 * - if te->stack_lock is NULL, then we never recorded any lock, so we
+	 *   have to return the default value.
+	 *
+	 * - if we are at some point in the execution stack below the point where
+	 *   we first recorded a lock, the we probably could not record the lock
+	 *   at the time hence we also return the default value.
+	 */
+
+	if G_UNLIKELY(0 == tls->count) {
+		if (NULL == te->stack_lock)
+			return dflt;
+		if (thread_stack_ptr_cmp(&te, te->stack_lock) <= 0)
+			return dflt;
+		return FALSE;
+	}
+
+	for (i = 0; i < tls->count; i++) {
+		const struct thread_lock *l = &tls->arena[i];
+
+		if (l->lock == lock)
+			return TRUE;
+	}
+
+	/*
+	 * If we went back to a place on the execution stack before the first
+	 * recorded lock, we cannot decide.  Note that this does not mean we cannot
+	 * have locks recorded for the thread: it's a matter of when exactly we
+	 * were able to figure out the thread element structure in the execution.
+	 */
+
+	if (thread_stack_ptr_cmp(&te, te->stack_lock) <= 0)
+		return dflt;
+
+	return FALSE;
+}
+
+/**
+ * Check whether current thread already holds a lock.
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ *
+ * @return TRUE if lock was registered in the current thread.
+ */
+bool
+thread_lock_holds(const volatile void *lock)
+{
+	return thread_lock_holds_default(lock, FALSE);
+}
+
+/**
+ * @return amount of times a lock is held by the current thread.
+ */
+size_t
+thread_lock_held_count(const void *lock)
+{
+	struct thread_element *te;
+	struct thread_lock_stack *tls;
+	unsigned i;
+	size_t count = 0;
+
+	/*
+	 * For the same reasons as in thread_lock_add(), lazily grab the thread
+	 * element.  Note that we may be in a situation where we did not get a
+	 * thread element at lock time but are able to get one now.
+	 */
+
+	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return FALSE;
 
@@ -3222,11 +3426,11 @@ thread_lock_holds(const volatile void *lock)
 	for (i = 0; i < tls->count; i++) {
 		const struct thread_lock *l = &tls->arena[i];
 
-		if (l->lock == lock)
-			return TRUE;
+		if G_UNLIKELY(l->lock == lock)
+			count++;
 	}
 
-	return FALSE;
+	return count;
 }
 
 /**
@@ -3237,7 +3441,7 @@ thread_lock_count(void)
 {
 	struct thread_element *te;
 
-	te = thread_find(NULL, NULL);
+	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return 0;
 
@@ -3328,7 +3532,7 @@ thread_lock_deadlock(const volatile void *lock)
 	deadlocked = TRUE;
 	atomic_mb();
 
-	te = thread_find(NULL, lock);
+	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te) {
 		s_miniinfo("no thread to list owned locks");
 		return;
@@ -3551,11 +3755,10 @@ thread_fork(bool safe)
 void
 thread_forked(void)
 {
-	hash_table_t *ght;
 	struct thread_element *te;
 	unsigned i;
 
-	te = thread_find(&te, NULL);
+	te = thread_find(&te);
 	if (NULL == te) {
 		char time_buf[18];
 		DECLARE_STR(4);
@@ -3574,7 +3777,6 @@ thread_forked(void)
 	 */
 
 	thread_main_stid = te->stid;
-	thread_stamp++;
 	thread_running = 0;
 	thread_discovered = 1;		/* We're discovering ourselves */
 	te->created = FALSE;
@@ -3615,14 +3817,7 @@ thread_forked(void)
 		xte->main_thread = FALSE;
 	}
 
-	/*
-	 * Re-insert ourselves in the global hash.
-	 */
-
-	ght = thread_get_global_hash();
-	hash_table_clear(ght);
 	thread_set(te->tid, thread_self());	/* May have changed after fork() */
-	hash_table_insert(ght, &te->tid, te);
 	te->main_thread = TRUE;
 
 	/*
@@ -3892,7 +4087,7 @@ thread_get_element_by_id(unsigned id)
 		return NULL;
 	}
 	te = threads[id];
-	if (!te->valid) {
+	if (!te->valid && !te->creating) {
 		errno = ESRCH;
 		return NULL;
 	}
@@ -3936,14 +4131,10 @@ struct thread_launch_context {
 static void
 thread_launch_register(struct thread_element *te, const void *sp)
 {
-	hash_table_t *ght;
 	thread_t t;
 	thread_qid_t qid;
 	unsigned idx;
-	struct thread_element *old_te;
-	bool ok;
 
-	ght = thread_get_global_hash();
 	qid = thread_quasi_id_fast(sp);
 	idx = thread_qid_hash(qid);
 
@@ -3958,80 +4149,12 @@ thread_launch_register(struct thread_element *te, const void *sp)
 
 	t = thread_self();
 
-	spinlock_hidden(&thread_insert_slk);
-
 	tstid[te->stid] = t;
-	thread_element_tie(te, t);
+	thread_element_tie(te, t, sp);
 	thread_qid_cache_set(idx, te, qid);
 
-	/*
-	 * We asssume the stack is aligned on pages.  Even if this assumption is
-	 * false, the stack must be large enough so that two running threads end up
-	 * having different QID sets for their stack.
-	 *
-	 * When we create our threads, we know the stack size and therefore we
-	 * know the range of QIDs that it is going to occupy.  We can then purge
-	 * the QID cache out of stale QID values.
-	 */
-
-	{
-		const void *base = vmm_page_start(sp);
-
-		if (thread_sp_direction < 0) {
-			te->high_qid = thread_quasi_id_fast(base);
-			te->low_qid = 1 + thread_quasi_id_fast(
-				const_ptr_add_offset(base, -te->stack_size + 1));
-		} else {
-			te->low_qid = thread_quasi_id_fast(base);
-			te->high_qid = thread_quasi_id_fast(
-				const_ptr_add_offset(base, te->stack_size - 1));
-		}
-
-		g_assert((te->high_qid - te->low_qid + 1) * compat_pagesize()
-			== te->stack_size);
-
-		thread_qid_cache_force(te->stid, te->low_qid, te->high_qid);
-	}
-
-	spinunlock_hidden(&thread_insert_slk);
-
-	/*
-	 * We can safely remove the entry for the thread, since we're about to
-	 * supersed it below and the thread subsystem (POSIX threads) guarantees
-	 * that no two running threads can yield the same identifier.
-	 *
-	 * There is really no safe way to remove this association earlier, for
-	 * instance when a thread terminates.  First, because we do not catch
-	 * all the threads (others may be created by some library, using the
-	 * POSIX threads layer directly), we can have old thread IDs being reused.
-	 *
-	 * Second, even after pthread_exit() is called, it is possible for the
-	 * POSIX layer to call malloc(), and if that is routed to xmalloc(), then
-	 * it will need the thread small ID to be able to handle thread-specific
-	 * blocks.  That would necessarily recreate the entry for the thread.
-	 *
-	 * FIXME:
-	 * This means we need to garbage-collect the global hash table from time
-	 * to time to prune entries for threads that are long gone and whose
-	 * thread_t was never reused.
-	 *		--RAM, 2012-12-23
-	 */
-
-	hash_table_lock(ght);		/* Begin critical section */
-
-	old_te = hash_table_lookup(ght, &t);
-
-	if (old_te != NULL && te != old_te) {
-		hash_table_remove_no_resize(ght, &t);
-		old_te->last_qid = (thread_qid_t) -1;
-	}
-
-	ok = hash_table_insert(ght, &te->tid, te);
-
-	hash_table_unlock(ght);		/* End critical section */
-
-	g_assert(ok);
 	g_assert(0 == te->locks.count);
+	g_assert(qid >= te->low_qid && qid <= te->high_qid);
 }
 
 /**
@@ -4117,7 +4240,8 @@ thread_launch(struct thread_element *te,
 	te->detached = booleanize(flags & THREAD_F_DETACH);
 	te->async_exit = booleanize(flags & THREAD_F_ASYNC_EXIT);
 
-	te->created = TRUE;			/* This is a thread we created */
+	te->created = TRUE;				/* This is a thread we created */
+	te->creating = TRUE;			/* Still in the process of being created */
 	te->stack_size = stacksize;
 	te->argument = arg;
 	te->entry = (func_ptr_t) routine;
@@ -4342,6 +4466,7 @@ thread_exit(void *value)
 
 	/* Finished */
 
+	atomic_uint_dec(&thread_running);
 	pthread_exit(value);
 	s_minierror("back from pthread_exit()");
 }

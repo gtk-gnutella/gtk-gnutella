@@ -137,6 +137,8 @@ void thread_lock_released_extended(const void *lock, enum thread_lock_kind kind,
 	const void *element);
 size_t thread_lock_count(void);
 bool thread_lock_holds(const volatile void *lock);
+bool thread_lock_holds_default(const volatile void *lock, bool dflt);
+size_t thread_lock_held_count(const void *lock);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
 void thread_assert_no_locks(const char *routine);
