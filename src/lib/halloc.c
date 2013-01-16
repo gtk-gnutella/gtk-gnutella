@@ -45,19 +45,20 @@
 #include "halloc.h"
 #include "concat.h"
 #include "dump_options.h"
+#include "glib-missing.h"
 #include "hashtable.h"
 #include "malloc.h"
 #include "mempcpy.h"
 #include "misc.h"
 #include "once.h"
 #include "pagetable.h"
+#include "spinlock.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
-#include "glib-missing.h"
 #include "override.h"		/* Must be the last header included */
 
 /*
@@ -73,7 +74,7 @@
 /**
  * Internal statistics collected.
  */
-static struct {
+static struct hstats {
 	uint64 allocations;					/**< Total # of allocations */
 	uint64 allocations_zeroed;			/**< Total # of zeroed allocations */
 	uint64 alloc_via_xpmalloc;			/**< Allocations from xpmalloc */
@@ -89,6 +90,10 @@ static struct {
 	size_t memory;						/**< Amount of bytes allocated */
 	size_t blocks;						/**< Amount of blocks allocated */
 } hstats;
+static spinlock_t hstats_slk = SPINLOCK_INIT;
+
+#define HSTATS_LOCK			spinlock_hidden(&hstats_slk)
+#define HSTATS_UNLOCK		spinunlock_hidden(&hstats_slk)
 
 enum halloc_type {
 	HALLOC_XMALLOC,
@@ -216,12 +221,17 @@ halloc(size_t size)
 	if G_UNLIKELY(0 == xpmalloc_threshold)
 		halloc_init(TRUE);
 
+	HSTATS_LOCK;
 	hstats.allocations++;
+	HSTATS_UNLOCK;
 
 	if (size < xpmalloc_threshold) {
 		p = xpmalloc(size);
 		allocated = xallocated(p);
+
+		HSTATS_LOCK;
 		hstats.alloc_via_xpmalloc++;
+		HSTATS_UNLOCK;
 	} else {
 		int inserted;
 
@@ -232,10 +242,17 @@ halloc(size_t size)
 		p = vmm_alloc(allocated);
 		inserted = page_insert(p, allocated);
 		g_assert(inserted);
+
+		HSTATS_LOCK;
 		hstats.alloc_via_vmm++;
+		HSTATS_UNLOCK;
 	}
+
+	HSTATS_LOCK;
 	hstats.memory += allocated;
 	hstats.blocks++;
+	HSTATS_UNLOCK;
+
 	return p;
 }
 
@@ -258,7 +275,11 @@ halloc0(size_t size)
 	if (p) {
 		memset(p, 0, size);
 	}
+
+	HSTATS_LOCK;
 	hstats.allocations_zeroed++;
+	HSTATS_UNLOCK;
+
 	return p;
 }
 
@@ -274,7 +295,9 @@ hfree(void *p)
 	if (NULL == p)
 		return;
 
+	HSTATS_LOCK;
 	hstats.freeings++;
+	HSTATS_UNLOCK;
 
 	allocated = halloc_get_size(p, &type);
 	g_assert(size_is_positive(allocated));
@@ -285,8 +308,11 @@ hfree(void *p)
 		page_remove(p);
 		vmm_free(p, allocated);
 	}
+
+	HSTATS_LOCK;
 	hstats.memory -= allocated;
 	hstats.blocks--;
+	HSTATS_UNLOCK;
 }
 
 /**
@@ -317,35 +343,53 @@ hrealloc(void *old, size_t new_size)
 	 * This is our chance to move a virtual memory fragment out of the way.
 	 */
 
+	HSTATS_LOCK;
 	hstats.reallocs++;
+	HSTATS_UNLOCK;
+
 	rounded_new_size = round_pagesize(new_size);
 
 	if (HALLOC_VMM == type) {
 		if (vmm_is_relocatable(old, rounded_new_size)) {
+			HSTATS_LOCK;
 			hstats.realloc_relocatable++;
+			HSTATS_UNLOCK;
+
 			goto relocate;
 		}
 		if (new_size >= xpmalloc_threshold) {
 			if (rounded_new_size == old_size) {
+				HSTATS_LOCK;
 				hstats.realloc_noop++;
 				hstats.realloc_noop_same_vmm++;
+				HSTATS_UNLOCK;
+
 				return old;
 			}
 			if (old_size > rounded_new_size) {
 				vmm_shrink(old, old_size, rounded_new_size);
 				page_replace(old, rounded_new_size);
+				HSTATS_LOCK;
 				hstats.memory += rounded_new_size - old_size;
 				hstats.realloc_via_vmm_shrink++;
+				HSTATS_UNLOCK;
+
 				return old;
 			}
 		}
 	} else if (new_size < xpmalloc_threshold) {
+		HSTATS_LOCK;
 		hstats.realloc_via_xrealloc++;
+		HSTATS_UNLOCK;
+
 		return xrealloc(old, new_size);
 	}
 
 	if (old_size >= new_size && old_size / 2 < new_size) {
+		HSTATS_LOCK;
 		hstats.realloc_noop++;
+		HSTATS_UNLOCK;
+
 		return old;
 	}
 
@@ -355,7 +399,10 @@ relocate:
 
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
+
+	HSTATS_LOCK;
 	hstats.realloc_via_vmm++;
+	HSTATS_UNLOCK;
 
 	return p;
 }
@@ -845,14 +892,19 @@ h_strdup_printf(const char *format, ...)
 G_GNUC_COLD void
 halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+	struct hstats stats;
+
 #define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
-		 uint64_to_gstring(hstats.x) : uint64_to_string(hstats.x))
+		 uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
 
 #define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?						\
-		 size_t_to_gstring(hstats.x) : size_t_to_string(hstats.x))
+		 size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
 
+	HSTATS_LOCK;
+	stats = hstats;			/* struct copy under lock protection */
+	HSTATS_UNLOCK;
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);

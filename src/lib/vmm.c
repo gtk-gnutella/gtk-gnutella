@@ -241,7 +241,7 @@ struct pmap {
 /**
  * Internal statistics collected.
  */
-static struct {
+static struct vmm_stats {
 	uint64 allocations;				/**< Total number of allocations */
 	uint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
 	uint64 freeings;				/**< Total number of freeings */
@@ -278,6 +278,10 @@ static struct {
 	memusage_t *user_mem;			/**< User memory usage statistics */
 	memusage_t *core_mem;			/**< Core usage statistics */
 } vmm_stats;
+static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
+
+#define VMM_STATS_LOCK		spinlock_hidden(&vmm_stats_slk)
+#define VMM_STATS_UNLOCK	spinunlock_hidden(&vmm_stats_slk)
 
 /**
  * The kernel version of the pmap and our own version.
@@ -719,22 +723,26 @@ done:
 static void
 pmap_discard_index(struct pmap *pm, size_t idx)
 {
+	struct vm_fragment *vmf;
+
 	g_assert(pm != NULL);
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
 	assert_rwlock_is_owned(&pm->lock);
 
+	vmf = &pm->array[idx];
+
+	g_assert_log(vmf_is_foreign(vmf), "vmf={%s}", vmf_to_string(vmf));
+
 	if (vmm_debugging(0)) {
-		struct vm_fragment *vmf = &pm->array[idx];
-
-		g_assert_log(vmf_is_foreign(vmf), "vmf={%s}", vmf_to_string(vmf));
-
 		s_minidbg("VMM discarding %s region at %p (%zuKiB) updated %us ago",
 			vmf_type_str(vmf->type), vmf->start,
 			vmf_size(vmf) / 1024, (unsigned) delta_time(tm_time(), vmf->mtime));
-
-		vmm_stats.pmap_foreign_discards++;
-		vmm_stats.pmap_foreign_discarded_pages += pagecount_fast(vmf_size(vmf));
 	}
+
+	VMM_STATS_LOCK;
+	vmm_stats.pmap_foreign_discards++;
+	vmm_stats.pmap_foreign_discarded_pages += pagecount_fast(vmf_size(vmf));
+	VMM_STATS_UNLOCK;
 
 	if G_LIKELY(idx != pm->count - 1) {
 		memmove(&pm->array[idx], &pm->array[idx + 1],
@@ -1014,7 +1022,9 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					hint, size / 1024, p, (size_t) hint_followed,
 					hint_followed == 1 ? "" : "s");
 			}
+			VMM_STATS_LOCK;
 			vmm_stats.hints_ignored++;
+			VMM_STATS_UNLOCK;
 		}
 
 		/*
@@ -1130,8 +1140,10 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					hint, size / 1024, (size_t) hint_followed);
 			}
 		}
+		VMM_STATS_LOCK;
 		hint_followed++;
 		vmm_stats.hints_followed++;
+		VMM_STATS_UNLOCK;
 	}
 done:
 	return p;
@@ -2487,7 +2499,9 @@ pmap_overrule(struct pmap *pm, const void *p, size_t size, vmf_type_t type)
 		 * We have to remove ``remain'' bytes starting at ``base''.
 		 */
 
+		VMM_STATS_LOCK;
 		vmm_stats.pmap_overruled++;
+		VMM_STATS_UNLOCK;
 		len = ptr_diff(vmf->end, base);		/* From base to end of region */
 
 		g_assert_log(size_is_positive(len), "len = %zu", len);
@@ -2754,7 +2768,9 @@ vpc_insert(struct page_cache *pc, void *p)
 		}
 		spinunlock(&pc->lock);
 		page_cache_insert_pages(base, pages);
+		VMM_STATS_LOCK;
 		vmm_stats.cache_line_coalescing++;
+		VMM_STATS_UNLOCK;
 		return;
 	}
 
@@ -2790,7 +2806,9 @@ insert:
 
 		if (idx > kidx)
 			idx--;
+		VMM_STATS_LOCK;
 		vmm_stats.cache_evictions++;
+		VMM_STATS_UNLOCK;
 	}
 
 	g_assert(size_is_non_negative(pc->current) && pc->current < VMM_CACHE_SIZE);
@@ -3137,8 +3155,11 @@ page_cache_find_pages(size_t n)
 		 * Count when we coalesce large blocks from the higher cache line.
 		 */
 
-		if (p != NULL && n > VMM_CACHE_LINES)
+		if (p != NULL && n > VMM_CACHE_LINES) {
+			VMM_STATS_LOCK;
 			vmm_stats.high_order_coalescing++;
+			VMM_STATS_UNLOCK;
+		}
 
 		if (vmm_debugging(3)) {
 			s_minidbg("VMM lookup for large area (%zu pages) returned %p", n, p);
@@ -3236,8 +3257,12 @@ retry:
 
 		free_pages_forced(base, n * kernel_pagesize, TRUE);
 		rwlock_wunlock(&pm->lock);
+
+		VMM_STATS_LOCK;
 		vmm_stats.forced_freed++;
 		vmm_stats.forced_freed_pages += n;
+		VMM_STATS_UNLOCK;
+
 		return FALSE;
 	}
 
@@ -3489,7 +3514,9 @@ done:
 
 		*base_ptr = base;
 		*pages_ptr = pages;
+		VMM_STATS_LOCK;
 		vmm_stats.cache_coalescing++;
+		VMM_STATS_UNLOCK;
 
 		return TRUE;
 	}
@@ -3602,9 +3629,11 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 		return vmm_valloc(NULL, size);	/* Memory always zeroed by kernel */
 
 	n = pagecount_fast(size);
+	VMM_STATS_LOCK;
 	vmm_stats.allocations++;
 	if G_UNLIKELY(zero_mem)
 		vmm_stats.allocations_zeroed++;
+	VMM_STATS_UNLOCK;
 
 	/*
 	 * First look in the page cache to avoid requesting a new memory
@@ -3619,6 +3648,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
+		VMM_STATS_LOCK;
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
 		goto update_stats;
@@ -3631,6 +3661,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	/* Memory allocated by the kernel is already zero-ed */
 
 	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
+	VMM_STATS_LOCK;
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
 
@@ -3648,6 +3679,7 @@ update_stats:
 		vmm_stats.core_pages += n;
 		memusage_add(vmm_stats.core_mem, size);
 	}
+	VMM_STATS_UNLOCK;
 
 	return p;
 }
@@ -3713,7 +3745,9 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 		size = round_pagesize_fast(size);
 		n = pagecount_fast(size);
+		VMM_STATS_LOCK;
 		vmm_stats.freeings++;
+		VMM_STATS_UNLOCK;
 
 		g_assert(n >= 1);			/* Asserts that size != 0 */
 
@@ -3732,27 +3766,35 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			vmm_invalidate_pages(p, size);
 			page_cache_coalesce_pages(&p, &m);
 			if (page_cache_insert_pages(p, m)) {
+				VMM_STATS_LOCK;
 				vmm_stats.free_to_cache++;
 				vmm_stats.free_to_cache_pages += n;
+				VMM_STATS_UNLOCK;
 			}
 		} else {
 			free_pages(p, size, TRUE);
+			VMM_STATS_LOCK;
 			vmm_stats.free_to_system++;
 			vmm_stats.free_to_system_pages += n;
+			VMM_STATS_UNLOCK;
 		}
 
 		if (user_mem) {
+			VMM_STATS_LOCK;
 			vmm_stats.user_memory -= size;
 			vmm_stats.user_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.user_pages));
 			g_assert(size_is_non_negative(vmm_stats.user_memory));
 			vmm_stats.user_blocks--;
+			VMM_STATS_UNLOCK;
 			memusage_remove(vmm_stats.user_mem, size);
 		} else {
+			VMM_STATS_LOCK;
 			vmm_stats.core_memory -= size;
 			vmm_stats.core_pages -= n;
 			g_assert(size_is_non_negative(vmm_stats.core_pages));
 			g_assert(size_is_non_negative(vmm_stats.core_memory));
+			VMM_STATS_UNLOCK;
 			memusage_remove(vmm_stats.core_mem, size);
 		}
 	}
@@ -3825,33 +3867,43 @@ vmm_shrink_internal(void *p, size_t size, size_t new_size, bool user_mem)
 			 * kernel to find a large consecutive virtual memory region.
 			 */
 
+			VMM_STATS_LOCK;
 			vmm_stats.shrinkings++;
+			VMM_STATS_UNLOCK;
 
 			if (n <= VMM_CACHE_LINES) {
 				size_t m = n;
 				vmm_invalidate_pages(q, delta);
 				page_cache_coalesce_pages(&q, &m);
 				if (page_cache_insert_pages(q, m)) {
+					VMM_STATS_LOCK;
 					vmm_stats.free_to_cache++;
 					vmm_stats.free_to_cache_pages += n;
+					VMM_STATS_UNLOCK;
 				}
 			} else {
 				free_pages(q, delta, TRUE);
+				VMM_STATS_LOCK;
 				vmm_stats.free_to_system++;
 				vmm_stats.free_to_system_pages += n;
+				VMM_STATS_UNLOCK;
 			}
 
 			if (user_mem) {
+				VMM_STATS_LOCK;
 				vmm_stats.user_memory -= delta;
 				vmm_stats.user_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.user_pages));
 				g_assert(size_is_non_negative(vmm_stats.user_memory));
+				VMM_STATS_UNLOCK;
 				memusage_remove(vmm_stats.user_mem, delta);
 			} else {
+				VMM_STATS_LOCK;
 				vmm_stats.core_memory -= delta;
 				vmm_stats.core_pages -= n;
 				g_assert(size_is_non_negative(vmm_stats.core_pages));
 				g_assert(size_is_non_negative(vmm_stats.core_memory));
+				VMM_STATS_UNLOCK;
 				memusage_remove(vmm_stats.core_mem, delta);
 			}
 		}
@@ -3976,8 +4028,10 @@ page_cache_timer(void *unused_udata)
 		) {
 			vpc_free(pc, i);
 			expired++;
+			VMM_STATS_LOCK;
 			vmm_stats.cache_expired++;
 			vmm_stats.cache_expired_pages += pagecount_fast(pc->chunksize);
+			VMM_STATS_UNLOCK;
 		} else {
 			i++;
 		}
@@ -4032,9 +4086,11 @@ vmm_trap_page(void)
 		trap_page = p;
 
 		/* The trap page is accounted as user memory */
+		VMM_STATS_LOCK;
 		vmm_stats.user_memory += kernel_pagesize;
 		vmm_stats.user_pages++;
 		vmm_stats.user_blocks++;
+		VMM_STATS_UNLOCK;
 		memusage_add(vmm_stats.user_mem, kernel_pagesize);
 	}
 	return trap_page;
@@ -4080,10 +4136,15 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	struct pmap *pm = vmm_pmap();
 	size_t cached_pages = 0, mapped_pages = 0, native_pages = 0;
 	size_t i;
+	struct vmm_stats stats;
+
+	VMM_STATS_LOCK;
+	stats = vmm_stats;		/* struct copy under lock protection */
+	VMM_STATS_UNLOCK;
 
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?					\
-		uint64_to_gstring(vmm_stats.x) : uint64_to_string(vmm_stats.x))
+		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
@@ -4116,17 +4177,29 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 #undef DUMP
 #define DUMP(x) log_info(la, "VMM pmap_%s = %s", #x,	\
 	(options & DUMP_OPT_PRETTY) ?						\
-		size_t_to_gstring(pm->x) : size_t_to_string(pm->x))
+		size_t_to_gstring(x) : size_t_to_string(x))
 
-	DUMP(count);
-	DUMP(size);
-	DUMP(pages);
-	DUMP(generation);
+	{
+		size_t count, size, pages, generation;
+
+		rwlock_rlock(&pm->lock);
+		count = pm->count;
+		size = pm->size;
+		pages = pm->pages;
+		generation = pm->generation;
+		rwlock_runlock(&pm->lock);
+
+		DUMP(count);
+		DUMP(size);
+		DUMP(pages);
+		DUMP(generation);
+	}
+
 
 #undef DUMP
 #define DUMP(x)	log_info(la, "VMM %s = %s", #x,		\
 	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(vmm_stats.x) : size_t_to_string(vmm_stats.x))
+		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
 
 	DUMP(user_memory);
 	DUMP(user_pages);
@@ -4181,7 +4254,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	 */
 
 	DUMP("computed_native_pages",
-		cached_pages + vmm_stats.user_pages + vmm_stats.core_pages +
+		cached_pages + stats.user_pages + stats.core_pages +
 		local_pmap.pages + kernel_pmap.pages);
 
 #undef DUMP
@@ -4359,16 +4432,27 @@ vm_setup:
 }
 
 /**
- * Enable memory usage statistics collection.
+ * Turn on memory usage statistics.
  */
-G_GNUC_COLD void
-vmm_memusage_init(void)
+static G_GNUC_COLD void
+vmm_memusage_init_once(void)
 {
 	g_assert(NULL == vmm_stats.user_mem);
 	g_assert(NULL == vmm_stats.core_mem);
 
 	vmm_stats.user_mem = memusage_alloc("VMM user", 0);
 	vmm_stats.core_mem = memusage_alloc("VMM core", 0);
+}
+
+/**
+ * Enable memory usage statistics collection.
+ */
+G_GNUC_COLD void
+vmm_memusage_init(void)
+{
+	static once_flag_t memusage_inited;
+
+	ONCE_FLAG_RUN(memusage_inited, vmm_memusage_init_once);
 }
 
 /**
@@ -4786,7 +4870,9 @@ vmm_mmap(void *addr, size_t length, int prot, int flags,
 		size_t size = round_pagesize_fast(length);
 		struct pmap *pm = vmm_pmap();
 
+		VMM_STATS_LOCK;
 		vmm_stats.mmaps++;
+		VMM_STATS_UNLOCK;
 
 		/*
 		 * The mapped memory region is "foreign" memory as far as we are
@@ -4844,7 +4930,9 @@ vmm_munmap(void *addr, size_t length)
 
 	if G_LIKELY(0 == ret) {
 		pmap_remove(vmm_pmap(), addr, round_pagesize_fast(length));
+		VMM_STATS_LOCK;
 		vmm_stats.munmaps++;
+		VMM_STATS_UNLOCK;
 
 		if (vmm_debugging(5)) {
 			s_minidbg("VMM unmapped %zuKiB region at %p", length / 1024, addr);
