@@ -3403,7 +3403,8 @@ mingw_init(void)
 }
 
 #ifdef MINGW_BACKTRACE_DEBUG
-#define BACKTRACE_DEBUG(...)	s_minidbg(__VA_ARGS__)
+#define BACKTRACE_DEBUG(lvl, ...)	\
+	if ((lvl) & MINGW_BACKTRACE_FLAGS) s_minidbg(__VA_ARGS__)
 #define mingw_backtrace_debug()	1
 #else
 #define BACKTRACE_DEBUG(...)
@@ -3415,6 +3416,21 @@ mingw_init(void)
 #define MINGW_SP_ALIGN				4
 #define MINGW_SP_MASK				(MINGW_SP_ALIGN - 1)
 #define MINGW_EMPTY_STACKFRAME		((void *) 1)
+
+/* Debug flags for BACKTRACE_DEBUG */
+#define BACK_F_NAME			(1 << 0)
+#define BACK_F_PROLOGUE		(1 << 1)
+#define BACK_F_RA			(1 << 2)
+#define BACK_F_DRIVER		(1 << 3)
+#define BACK_F_OTHER		(1 << 4)
+#define BACK_F_DUMP			(1 << 5)
+#define BACK_F_RESULT		(1 << 6)
+
+#define BACK_F_ALL \
+	(BACK_F_NAME | BACK_F_PROLOGUE | BACK_F_RA | BACK_F_DRIVER | \
+		BACK_F_OTHER | BACK_F_DUMP | BACK_F_RESULT)
+
+#define MINGW_BACKTRACE_FLAGS	(BACK_F_DRIVER | BACK_F_RESULT | BACK_F_NAME)
 
 static inline bool
 valid_ptr(const void * const p)
@@ -3598,7 +3614,8 @@ mingw_opcode_is_sub_esp(const uint8 *op)
 	const uint8 *p = op;
 	uint8 mbyte = p[1];
 
-	BACKTRACE_DEBUG("%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
+	BACKTRACE_DEBUG(BACK_F_OTHER,
+		"%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
 
 	switch (*op) {
 	case OPCODE_SUB_1:
@@ -3650,7 +3667,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 	if (ptr_cmp(maxscan, max) > 0)
 		maxscan = max;
 
-	if (mingw_backtrace_debug()) {
+	if (mingw_backtrace_debug() && (BACK_F_DUMP & MINGW_BACKTRACE_FLAGS)) {
 		s_minidbg("%s: next %zu bytes after pc=%p%s",
 			G_STRFUNC, 1 + ptr_diff(maxscan, p),
 			p, at_start ? " (known start)" : "");
@@ -3832,7 +3849,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		 * counting filling instructions.
 		 */
 
-		BACKTRACE_DEBUG("%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
+		BACKTRACE_DEBUG(BACK_F_OTHER,
+			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
 			mingw_opcode_name(op), fill, 1 == fill ? "" : "s", p);
 
 		first_opcode = p + fill;
@@ -3870,14 +3888,16 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
 
 	if (MINGW_EMPTY_STACKFRAME == sub) {
-		BACKTRACE_DEBUG("%s: no SUB operation at pc=%p, %s frame",
+		BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+			"%s: no SUB operation at pc=%p, %s frame",
 			G_STRFUNC, pc, *has_frame ? "with" : "no");
 		*offset = 0;
 		return TRUE;
 	} else if (sub != NULL) {
 		uint8 op;
 
-		BACKTRACE_DEBUG("%s: found SUB operation at "
+		BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+			"%s: found SUB operation at "
 			"pc=%p, opcode=0x%x, mod=0x%x, %s frame",
 			G_STRFUNC, sub, sub[0], sub[1], *has_frame ? "with" : "no");
 
@@ -3952,7 +3972,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	bool has_frame = FALSE;
 	size_t savings = 0;
 
-	BACKTRACE_DEBUG("%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
+	BACKTRACE_DEBUG(BACK_F_RA, "%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
 
 	/*
 	 * If we can determine the start of the routine, get there first.
@@ -3966,16 +3986,19 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	p = stacktrace_routine_start(pc - 1);
 
 	if (p != NULL && valid_ptr(p)) {
-		BACKTRACE_DEBUG("%s: known routine start for pc=%p is %p (%s)",
+		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
+			"%s: known routine start for pc=%p is %p (%s)",
 			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
 
 		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset))
 			goto found_offset;
 
-		BACKTRACE_DEBUG("%s: %p does not seem to be a valid prologue, scanning",
+		BACKTRACE_DEBUG(BACK_F_RA,
+			"%s: %p does not seem to be a valid prologue, scanning",
 			G_STRFUNC, p);
 	} else {
-		BACKTRACE_DEBUG("%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
+		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
+			"%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
 			stacktrace_routine_name(pc, TRUE), dl_util_get_path(pc));
 	}
 
@@ -4010,7 +4033,8 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			goto next;
 		}
 
-		BACKTRACE_DEBUG("%s: found %s operation at pc=%p, opcode=0x%x",
+		BACKTRACE_DEBUG(BACK_F_RA,
+			"%s: found %s operation at pc=%p, opcode=0x%x",
 			G_STRFUNC, mingw_opcode_name(op), p, op);
 
 		/*
@@ -4035,7 +4059,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
-	BACKTRACE_DEBUG("%s: offset = %u, %zu leading push%s",
+	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
 		G_STRFUNC, offset, savings, 1 == savings ? "" : "es");
 
 	/*
@@ -4069,12 +4093,12 @@ found_offset:
 		sf = const_ptr_add_offset(sp, -4);
 		fp = ulong_to_pointer(peek_le32(sf));
 		if (ptr_cmp(fp, sp) <= 0) {
-			BACKTRACE_DEBUG("%s: inconsistent fp %p (\"above\" sp %p)",
-				G_STRFUNC, fp, sp);
+			BACKTRACE_DEBUG(BACK_F_RA,
+				"%s: inconsistent fp %p (\"above\" sp %p)", G_STRFUNC, fp, sp);
 			has_frame = FALSE;
 		} else if (!vmm_is_stack_pointer(fp, sf)) {
-			BACKTRACE_DEBUG("%s: invalid fp %p (not a stack pointer)",
-				G_STRFUNC, fp);
+			BACKTRACE_DEBUG(BACK_F_RA,
+				"%s: invalid fp %p (not a stack pointer)", G_STRFUNC, fp);
 			has_frame = FALSE;
 		}
 		*next_sf = has_frame ? sf : NULL;
@@ -4089,7 +4113,11 @@ found_offset:
 
 	*next_sp = const_ptr_add_offset(sp, 4);	/* After popping return address */
 
-	if (mingw_backtrace_debug() && has_frame) {
+	if (
+		mingw_backtrace_debug() &&
+		(BACK_F_RA & MINGW_BACKTRACE_FLAGS) &&
+		has_frame
+	) {
 		const struct stackframe *sf = *next_sf;
 		s_minidbg("%s: next frame at %p "
 			"(contains next=%p, ra=%p), computed ra=%p",
@@ -4160,11 +4188,15 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	sp = ulong_to_pointer(c->Esp);
 	pc = ulong_to_pointer(c->Eip);
 
-	BACKTRACE_DEBUG("%s: pc=%p, sf=%p, sp=%p [skip %d] (current SP=%p)",
+	BACKTRACE_DEBUG(BACK_F_DRIVER,
+		"%s: pc=%p, sf=%p, sp=%p [skip %d] (current SP=%p)",
 		G_STRFUNC, pc, sf, sp, skip, &i);
 
-	if (0 == skip--)
+	if (0 == skip--) {
+		BACKTRACE_DEBUG(BACK_F_RESULT,
+			"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
 		buffer[i++] = deconstify_pointer(pc);
+	}
 
 	if (!valid_stack_ptr(sp, sp))
 		goto done;
@@ -4174,8 +4206,8 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	while (i < size) {
 		const void *next = NULL;
 
-		BACKTRACE_DEBUG("%s: i=%d, sp=%p, sf=%p, pc=%p",
-			G_STRFUNC, i, sp, sf, pc);
+		BACKTRACE_DEBUG(BACK_F_DRIVER,
+			"%s: i=%d, sp=%p, sf=%p, pc=%p", G_STRFUNC, i, sp, sf, pc);
 
 		if (!valid_ptr(pc) || !valid_stack_ptr(sp, top))
 			break;
@@ -4185,30 +4217,31 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 
 		if (!mingw_get_return_address(&pc, &sp, &next)) {
 			if (sf != NULL) {
-				BACKTRACE_DEBUG("%s: trying to follow sf=%p", G_STRFUNC, sf);
-				next = sf->next;
+				BACKTRACE_DEBUG(BACK_F_DRIVER,
+					"%s: trying to follow sf=%p", G_STRFUNC, sf);
 
+				next = sf->next;
 				if (!valid_ptr(sf->ret))
 					break;
 
 				pc = sf->ret;
 				sp = &sf[1];	/* After popping returned value */
 
-				BACKTRACE_DEBUG("%s: following frame: "
-					"next sf=%p, pc=%p, rebuilt sp=%p",
+				BACKTRACE_DEBUG(BACK_F_DRIVER,
+					"%s: following frame: next sf=%p, pc=%p, rebuilt sp=%p",
 					G_STRFUNC, next, pc, sp);
 
 				if (!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
 					next = NULL;
 			} else {
-				BACKTRACE_DEBUG("%s: out of frames", G_STRFUNC);
+				BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: out of frames", G_STRFUNC);
 				break;
 			}
 		} else {
 			int d;
 
-			BACKTRACE_DEBUG("%s: intuited next pc=%p, sp=%p, "
-				"rebuilt sf=%p [old sf=%p]",
+			BACKTRACE_DEBUG(BACK_F_DRIVER,
+				"%s: intuited next pc=%p, sp=%p, rebuilt sf=%p [old sf=%p]",
 				G_STRFUNC, pc, sp, next, sf);
 
 			/*
@@ -4222,13 +4255,13 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 			d = (NULL == sf) ? 0 : ptr_cmp(sp, sf);
 
 			if (d < 0) {
-				BACKTRACE_DEBUG("%s: keeping old sf=%p, since sp=%p",
-					G_STRFUNC, sf, sp);
+				BACKTRACE_DEBUG(BACK_F_DRIVER,
+					"%s: keeping old sf=%p, since sp=%p", G_STRFUNC, sf, sp);
 				next = sf;
 			} else if (d > 0) {
 				if (sp == &sf[1]) {
-					BACKTRACE_DEBUG("%s: reached sf=%p at sp=%p, "
-						"next sf=%p, current ra=%p",
+					BACKTRACE_DEBUG(BACK_F_DRIVER,
+						"%s: reached sf=%p at sp=%p, next sf=%p, current ra=%p",
 						G_STRFUNC, sf, sp, sf->next, sf->ret);
 					if (NULL == next && valid_stack_ptr(sf->next, top))
 						next = sf->next;
@@ -4236,14 +4269,17 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 			}
 		}
 
-		if (skip-- <= 0)
+		if (skip-- <= 0) {
+			BACKTRACE_DEBUG(BACK_F_RESULT,
+				"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
 			buffer[i++] = deconstify_pointer(pc);
+		}
 
 		sf = next;
 	}
 
 done:
-	BACKTRACE_DEBUG("%s: returning %d", G_STRFUNC, i);
+	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: returning %d", G_STRFUNC, i);
 
 	return i;
 }
