@@ -40,7 +40,7 @@
 typedef void (*adns_callback_t)(const host_addr_t *, size_t, void *);
 typedef void (*adns_reverse_callback_t)(const char *, void *);
 
-pid_t adns_init(void);
+void adns_init(void);
 bool adns_resolve(const char *, enum net_type net,
 	adns_callback_t, void *);
 bool adns_reverse_lookup(const host_addr_t,

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004, Christian Biere
+ * Copyright (c) 2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,22 +30,28 @@
  *
  * @author Christian Biere
  * @date 2004
+ * @author Raphael Manfredi
+ * @date 2013
  */
 
 #include "common.h"
 
 #include "adns.h"
-#include "adns_msg.h"
 
+#include "aq.h"
 #include "ascii.h"
 #include "atoms.h"
 #include "debug.h"
 #include "fd.h"
 #include "glib-missing.h"
 #include "hikset.h"
+#include "host_addr.h"
 #include "inputevt.h"
+#include "once.h"
 #include "signal.h"
+#include "thread.h"
 #include "tm.h"
+#include "waiter.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -52,12 +59,49 @@
 
 /* private data types */
 
-typedef struct adns_async_write {
-	struct adns_request req;	/**< The original ADNS request */
-	char *buf;					/**< Remaining data to write; walloc()ed */
-	size_t pos;					/**< Read position */
-	size_t size;				/**< Size of the buffer */
-} adns_async_write_t;
+enum adns_magic { ADNS_COMMON_MAGIC = 0x05dc21cb };
+
+struct adns_common {
+	enum adns_magic magic;
+	void (*user_callback)(void);
+	void *user_data;
+	bool reverse;
+};
+
+struct adns_reverse_query {
+	host_addr_t addr;
+};
+
+struct adns_query {
+	enum net_type net;
+	char hostname[MAX_HOSTLEN + 1];
+};
+
+struct adns_reply {
+	char hostname[MAX_HOSTLEN + 1];
+	host_addr_t addrs[10];
+};
+
+struct adns_reverse_reply {
+	char hostname[MAX_HOSTLEN + 1];
+	host_addr_t addr;
+};
+
+struct adns_request {
+	struct adns_common common;
+	union {
+		struct adns_query by_addr;
+		struct adns_reverse_query reverse;
+	} query;
+};
+
+struct adns_response {
+	struct adns_common common;
+	union {
+		struct adns_reply by_addr;
+		struct adns_reverse_reply reverse;
+	} reply;
+};
 
 typedef struct adns_cache_entry {
 	const char *hostname;		/**< atom */
@@ -92,13 +136,12 @@ count_addrs(const host_addr_t *addrs, size_t m)
 /**
  * Cache entries will expire after ADNS_CACHE_TIMEOUT seconds.
  */
-#define ADNS_CACHE_TIMEOUT (60)
+#define ADNS_CACHE_TIMEOUT 60
+
 /**
  * Cache max. ADNS_CACHE_SIZE of adns_cache_entry_t entries.
  */
-#define ADNS_CACHE_MAX_SIZE (1024)
-
-static const char adns_process_title[] = "DNS helper for gtk-gnutella";
+#define ADNS_CACHE_MAX_SIZE 1024
 
 typedef struct adns_cache_struct {
 	hikset_t *ht;
@@ -111,12 +154,10 @@ static adns_cache_t *adns_cache = NULL;
 
 /* private variables */
 
-#ifndef MINGW32
-static int adns_query_fd = -1;
-static unsigned adns_query_event_id;
-#endif	/* !MINGW32 */
 static unsigned adns_reply_event_id;
-static bool is_helper;		/**< Are we the DNS helper process? */
+static aqueue_t *adns_req;
+static aqueue_t *adns_ans;
+static int adns_id = -1;
 
 /**
  * Private functions.
@@ -203,7 +244,6 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	XFREE_NULL(cache);
 }
 
-#ifndef MINGW32
 /**
  * Adds ``hostname'' and ``addr'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
@@ -246,7 +286,6 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= G_N_ELEMENTS(cache->entries);
 }
-#endif	/* !MINGW32 */
 
 /**
  * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
@@ -301,76 +340,6 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 }
 
 /**
- * Transfers the data in `buf' of size `len' through `fd'. If `do_write' is
- * FALSE the buffer will be filled from `fd'. Otherwise, the data from the
- * buffer will be written to `fd'. The function returns only if all data
- * has been transferred or if an unrecoverable error occurs. This function
- * should only be used with a blocking `fd'.
- */
-static bool
-adns_do_transfer(int fd, void *buf, size_t len, bool do_write)
-{
-	ssize_t ret;
-	size_t n = len;
-
-	while (n > 0) {
-		if (common_dbg > 2)
-			g_debug("%s (%s): n=%zu", G_STRFUNC,
-				do_write ? "write" : "read", n);
-
-		if (do_write)
-			ret = write(fd, buf, n);
-		else
-			ret = read(fd, buf, n);
-
-		if ((ssize_t) -1 == ret && !is_temporary_error(errno)) {
-            /* Ignore the failure, if the parent process is gone.
-               This prevents an unnecessary warning when quitting. */
-            if (!is_helper || getppid() != 1)
-			    g_warning("%s (%s): %m",
-					G_STRFUNC, do_write ? "write" : "read");
-			return FALSE;
-		} else if (0 == ret) {
-			/*
-			 * Don't warn on EOF if this is the child process and the
-			 * parent is gone.
-			 */
-			if (!do_write && !(is_helper && getppid() == 1))
-				g_warning("%s (%s): EOF",
-					G_STRFUNC, do_write ? "write" : "read");
-			return FALSE;
-		} else if (ret > 0) {
-			n -= ret;
-			buf = (char *) buf + ret;
-		}
-	}
-
-	return TRUE;
-}
-
-/**
- * Read the complete buffer ``buf'' of size ``len'' from file descriptor ``fd''
- *
- * @return TRUE on success, FALSE if the operation failed
- */
-static inline bool
-adns_do_read(int fd, void *buf, size_t len)
-{
-	return adns_do_transfer(fd, buf, len, FALSE);
-}
-
-/**
- * Write the complete buffer ``buf'' of size ``len'' to file descriptor ``fd''
- *
- * @return TRUE on success, FALSE if the operation failed
- */
-static inline bool
-adns_do_write(int fd, void *buf, size_t len)
-{
-	return adns_do_transfer(fd, buf, len, TRUE);
-}
-
-/**
  * Copies user_callback and user_data from the query buffer to the
  * reply buffer. This function won't fail. However, if gethostbyname()
  * fails ``reply->addr'' will be set to zero.
@@ -389,7 +358,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (common_dbg > 1) {
-			g_debug("%s: resolving \"%s\" ...",
+			t_debug("%s: reverse-resolving \"%s\" ...",
 					G_STRFUNC, host_addr_to_string(query->addr));
 		}
 
@@ -403,7 +372,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (common_dbg > 1) {
-			g_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
+			t_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
@@ -424,71 +393,55 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 	}
 }
 
-#ifndef MINGW32
+struct adns_helper_args {
+	aqueue_t *requests;		/* Where helper receives requests from */
+	aqueue_t *answers;		/* Where helper sends answers to */
+};
+
+#define ADNS_HELPER_STACK	(48*1024)
+
 /**
- * The ``main'' function of the adns helper process (server).
+ * The ``main'' function of the adns helper thread (server).
  *
- * Simply reads requests (queries) from fd_in, performs a DNS lookup for it
- * and writes the result to fd_out. All operations should be blocking. Exits
- * in case of non-recoverable error during read or write.
+ * Simply reads requests (queries) from the queue, performs a DNS lookup for it
+ * and writes the result back to the output queue. All operations should be
+ * blocking.
  */
-static void
-adns_helper(int fd_in, int fd_out)
+static void *
+adns_helper(void *p)
 {
-	g_set_prgname(adns_process_title);
-	gm_setproctitle(g_get_prgname());
+	struct adns_helper_args *args = p;
+	aqueue_t *rq = aq_refcnt_inc(args->requests);
+	aqueue_t *aq = aq_refcnt_inc(args->answers);
+	
+	thread_set_name("ADNS");
+	WFREE(args);
 
-#ifdef SIGQUIT 
-	signal_set(SIGQUIT, SIG_IGN);	/* Avoid core dumps on SIGQUIT */
-#endif
-
-	is_helper = TRUE;
+	t_debug("ADNS thread started");
 
 	for (;;) {
-		struct adns_request req;
-		struct adns_response ans;
-		size_t size;
-		void *buf;
+		struct adns_request *req;
+		struct adns_response *ans;
 
-		if (!adns_do_read(fd_in, &req.common, sizeof req.common))
+		req = aq_remove(rq);
+		if G_UNLIKELY(NULL == req)
 			break;
 
-		if (ADNS_COMMON_MAGIC != req.common.magic)
-			break;
+		g_assert(ADNS_COMMON_MAGIC == req->common.magic);
 	
-		if (req.common.reverse) {	
-			size = sizeof req.query.reverse;
-			buf = &req.query.reverse;
-		} else {
-			size = sizeof req.query.by_addr;
-			buf = &req.query.by_addr;
-		}
-
-		if (!adns_do_read(fd_in, buf, size))
-			break;
-
-		adns_gethostbyname(&req, &ans);
-
-		if (!adns_do_write(fd_out, &ans.common, sizeof ans.common))
-			break;
-
-		if (ans.common.reverse) {	
-			size = sizeof ans.reply.reverse;
-			buf = &ans.reply.reverse;
-		} else {
-			size = sizeof ans.reply.by_addr;
-			buf = &ans.reply.by_addr;
-		}
-
-		if (!adns_do_write(fd_out, buf, size))
-			break;
+		WALLOC(ans);
+		adns_gethostbyname(req, ans);
+		WFREE(req);
+		aq_put(aq, ans);
 	}
 
-	fd_close(&fd_in);
-	fd_close(&fd_out);
-	_exit(EXIT_SUCCESS);
+	t_debug("ADNS thread exiting");
+
+	aq_refcnt_dec(rq);
+	aq_refcnt_dec(aq);
+
+	return NULL;
 }
-#endif	/* !MINGW32 */
 
 static inline void
 adns_invoke_user_callback(const struct adns_response *ans)
@@ -527,7 +480,6 @@ adns_fallback(const struct adns_request *req)
 	adns_invoke_user_callback(&ans);
 }
 
-#ifndef MINGW32
 static void
 adns_reply_ready(const struct adns_response *ans)
 {
@@ -570,296 +522,96 @@ adns_reply_ready(const struct adns_response *ans)
 
 /**
  * Callback function for inputevt_add(). This function invokes the callback
- * function given in DNS query on the client-side i.e., gtk-gnutella itself.
- * It handles partial reads if necessary. In case of an unrecoverable error
- * the reply pipe will be closed and the callback will be lost.
+ * function given in DNS query on the client-side i.e., the main thread itself.
  */
 static void
 adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 {
-	static struct adns_response ans;
-	static void *buf;
-	static size_t size, pos;
+	struct adns_response *ans;
+	waiter_t *w = data;
 
-	g_assert(NULL == data);
 	g_assert(condition & INPUT_EVENT_RX);
 
+	(void) source;
+
+	waiter_ack(w);		/* Acknowledge reception of event */
+
 	/*
-	 * Consume all the data available in the pipe, potentially handling
+	 * Consume all the data available in the queue, potentially handling
 	 * several pending replies.
 	 */
 
-	for (;;) {
-		ssize_t ret;
-		size_t n;
-
-		if (pos == size) {
-
-			pos = 0;
-			if (cast_to_pointer(&ans.common) == buf) {
-				/*
-				 * Finished reading the generic reply header, now read
-				 * the specific part.
-				 */
-
-				g_assert(ADNS_COMMON_MAGIC == ans.common.magic);
-
-				if (ans.common.reverse) {
-					buf = &ans.reply.reverse;
-					size = sizeof ans.reply.reverse;
-				} else {
-					buf = &ans.reply.by_addr;
-					size = sizeof ans.reply.by_addr;
-				}
-			} else {
-				if (buf) {
-					/*
-					 * Completed reading the specific part of the reply.
-					 * Inform issuer of request by invoking the user callback.
-					 */
-
-					adns_reply_ready(&ans);
-				}
-
-				/*
-				 * Continue reading the next reply, if any, which will start
-				 * by the generic header.
-				 */
-
-				buf = &ans.common;
-				size = sizeof ans.common;
-				ans.common.magic = 0;
-			}
-		}
-
-		g_assert(buf);
-		g_assert(size > 0);
-		g_assert(pos < size);
-
-		n = size - pos;
-		ret = read(source, cast_to_gchar_ptr(buf) + pos, n);
-		if ((ssize_t) -1 == ret) {
-		   	if (!is_temporary_error(errno)) {
-				g_warning("%s: read() failed: %m", G_STRFUNC);
-				goto error;
-			}
-			break;
-		} else if (0 == ret) {
-			g_warning("%s: read() failed: EOF", G_STRFUNC);
-			goto error;
-		} else {
-			g_assert(ret > 0);
-			g_assert(UNSIGNED(ret) <= n);
-			pos += (size_t) ret;
-		}
-	}
-	return;
-	
-error:
-	inputevt_remove(&adns_reply_event_id);
-	g_warning("%s: removed myself", G_STRFUNC);
-	fd_close(&source);
-}
-
-/**
- * Allocate a "spill" buffer of size `size'.
- */
-static adns_async_write_t *
-adns_async_write_alloc(const struct adns_request *req,
-	const void *buf, size_t size)
-{
-	adns_async_write_t *remain;
-
-	g_assert(req);
-	g_assert(buf);
-	g_assert(size > 0);
-	
-	WALLOC(remain);
-	remain->req = *req;
-	remain->size = size;
-	remain->buf = wcopy(buf, remain->size);
-	remain->pos = 0;
-
-	return remain;
-}
-
-/**
- * Dispose of the "spill" buffer.
- */
-static void
-adns_async_write_free(adns_async_write_t *remain)
-{
-	g_assert(remain);
-	g_assert(remain->buf);
-	g_assert(remain->size > 0);
-	
-	wfree(remain->buf, remain->size);
-	WFREE(remain);
-}
-
-/**
- * Callback function for inputevt_add(). This function pipes the query to
- * the server using the pipe in non-blocking mode, partial writes are handled
- * appropriately. In case of an unrecoverable error the query pipe will be
- * closed and the blocking adns_fallback() will be invoked.
- */
-static void
-adns_query_callback(void *data, int dest, inputevt_cond_t condition)
-{
-	adns_async_write_t *remain = data;
-
-	g_assert(NULL != remain);
-	g_assert(NULL != remain->buf);
-	g_assert(remain->pos < remain->size);
-	g_assert(dest == adns_query_fd);
-	g_assert(0 != adns_query_event_id);
-
-	if (condition & INPUT_EVENT_EXCEPTION) {
-		g_warning("%s: write exception", G_STRFUNC);
-		goto abort;
-	}
-
-	while (remain->pos < remain->size) {
-		ssize_t ret;
-		size_t n;
-
-		n = remain->size - remain->pos;
-		ret = write(dest, &remain->buf[remain->pos], n);
-
-		if (0 == ret) {
-			errno = ECONNRESET;
-			ret = (ssize_t) -1;
-		}
-		/* FALL THROUGH */
-		if ((ssize_t) -1 == ret) {
-			if (!is_temporary_error(errno))
-				goto error;
-			return;
-		}
-
-		g_assert(ret > 0);
-		g_assert(UNSIGNED(ret) <= n);
-		remain->pos += (size_t) ret;
-	}
-	g_assert(remain->pos == remain->size);
-
-	inputevt_remove(&adns_query_event_id);
-
-	goto done;	
-
-
-error:
-	g_warning("%s: write() failed: %m", G_STRFUNC);
-abort:
-	g_warning("%s: removed myself", G_STRFUNC);
-	inputevt_remove(&adns_query_event_id);
-	fd_close(&adns_query_fd);
-	g_warning("%s: using fallback", G_STRFUNC);
-	adns_fallback(&remain->req);
-done:
-	adns_async_write_free(remain);
-	return;
-}
-#endif	/* !MINGW32 */
-
-static pid_t
-adns_helper_init(void)
-#ifdef MINGW32
-{
-	mingw_adns_init();
-	return -1;
-}
-#else
-{
-	int fd_query[2] = {-1, -1};
-	int fd_reply[2] = {-1, -1};
-	pid_t pid = -1;
-
-	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
-		g_warning("%s: pipe() failed: %m", G_STRFUNC);
-		goto prefork_failure;
-	}
-	
-	pid = fork();
-	if ((pid_t) -1 == pid) {
-		g_warning("%s: fork() failed: %m", G_STRFUNC);
-		goto prefork_failure;
-	}
-	if (0 == pid) {
-		/* child process */
-
-		/**
-		 * Close all standard FILEs so that they don't keep a reference
-		 * to the log files when they are reopened by the main process
-		 * on SIGHUP. This means there will be no visible messages from
-		 * ADNS at all.
+	while (NULL != (ans = aq_remove_try(adns_ans))) {
+		/*
+		 * Inform issuer of request by invoking the user callback.
 		 */
 
-		if (!freopen("/dev/null", "r", stdin))
-			g_error("%s: freopen(\"/dev/null\", \"r\", stdin) failed: %m",
-				G_STRFUNC);
-
-		if (!freopen("/dev/null", "a", stdout))
-			g_error("%s: freopen(\"/dev/null\", \"a\", stdout) failed: %m",
-				G_STRFUNC);
-
-		if (!freopen("/dev/null", "a", stderr))
-			g_error("%s: freopen(\"/dev/null\", \"a\", stderr) failed: %m",
-				G_STRFUNC);
-
-		fd_close(&fd_query[1]);
-		fd_close(&fd_reply[0]);
-
-		set_close_on_exec(fd_query[0]);
-		set_close_on_exec(fd_reply[1]);
-
-		adns_helper(fd_query[0], fd_reply[1]);
-		g_assert_not_reached();
-		_exit(EXIT_SUCCESS);
+		adns_reply_ready(ans);
+		WFREE(ans);
 	}
-
-	/* parent process */
-	fd_close(&fd_query[0]);
-	fd_close(&fd_reply[1]);
-	
-	fd_query[1] = get_non_stdio_fd(fd_query[1]);
-	fd_reply[0] = get_non_stdio_fd(fd_reply[0]);
-	
-	adns_query_fd = fd_query[1];
-
-	set_close_on_exec(adns_query_fd);
-	set_close_on_exec(fd_reply[0]);
-	fd_set_nonblocking(adns_query_fd);
-	fd_set_nonblocking(fd_reply[0]);
-	
-	adns_reply_event_id = inputevt_add(fd_reply[0], INPUT_EVENT_RX,
-							adns_reply_callback, NULL);
-	/* FALL THROUGH */
-prefork_failure:
-
-	if (!adns_reply_event_id) {
-		g_warning("cannot use ADNS; DNS lookups may cause stalling");
-		fd_close(&fd_query[0]);
-		fd_close(&fd_query[1]);
-		fd_close(&fd_reply[0]);
-		fd_close(&fd_reply[1]);
-	}
-	
-	return pid;
 }
-#endif	/* MINGW32 */
+
+static void
+adns_helper_init(void)
+{
+	waiter_t *waiter;
+	struct adns_helper_args *args;
+	int r;
+
+	/*
+	 * The ADNS thread talks to the main thread via a pair of asynchronous
+	 * queues: requests are written to the adns_req queue and replies read
+	 * from the adns_ans queue.
+	 *
+	 * Each side allocates the memory for the data structures put in the queue
+	 * and the other side frees these data after processing them.
+	 *
+	 * In order for the main thread to know when there are data to read from
+	 * the answer queue, we add a waiter object to the asynchronous queue,
+	 * and insert its file descriptor to the main I/O event set.
+	 */
+
+	waiter = waiter_make(NULL);
+	adns_req = aq_make();
+	adns_ans = aq_make();
+	aq_waiter_add(adns_ans, waiter);
+	adns_reply_event_id = inputevt_add(waiter_fd(waiter), INPUT_EVENT_RX,
+			adns_reply_callback, waiter);
+	waiter_destroy_null(&waiter);	/* Is now referenced by the queue */
+
+	WALLOC(args);
+	args->requests = adns_req;
+	args->answers = adns_ans;
+
+	r = thread_create(adns_helper, args, 0, ADNS_HELPER_STACK);
+	if (-1 == r)
+		g_error("cannot launch ADNS thread: %m");
+
+	adns_id = r;
+}
+
+/**
+ * One-time initialization.
+ */
+static void
+adns_init_once(void)
+{
+	adns_cache = adns_cache_init();
+	adns_helper_init();
+}
 
 /* public functions */
 
 /**
- * Initializes the adns helper i.e., fork()s a child process which will
- * be used to resolve hostnames asynchronously.
+ * Initializes the adns helper running in a dedicated therad to resolve
+ * hostnames asynchronously.
  */
-pid_t
+void
 adns_init(void)
 {
-	adns_cache = adns_cache_init();
-	return adns_helper_init();
+	static once_flag_t inited;
+
+	ONCE_FLAG_RUN(inited, adns_init_once);
 }
 
 /**
@@ -867,74 +619,19 @@ adns_init(void)
  */
 static bool
 adns_send_request(const struct adns_request *req)
-#ifdef MINGW32
 {
-	return mingw_adns_send_request(req);
-}
-#else
-{
-	char buf[sizeof *req];
-	size_t size;
-	ssize_t written;
+	struct adns_request *r;
 
-	g_assert(req);
+	g_assert(req != NULL);
 
-	if (!adns_reply_event_id || 0 != adns_query_event_id)
+	if (0 == adns_reply_event_id)
 		return FALSE;
 
-	g_assert(adns_query_fd >= 0);
-	
-	memcpy(buf, &req->common, sizeof req->common);
-	size = sizeof req->common;
-	{
-		const void *p;
-		size_t n;
-		
-		if (req->common.reverse) {
-			n = sizeof req->query.reverse;
-			p = &req->query.reverse;
-		} else {
-			n = sizeof req->query.by_addr;
-			p = &req->query.by_addr;
-		}
-		memcpy(&buf[size], p, n);
-		size += n;
-	}
-
-	/*
-	 * Try to write the query atomically into the pipe.
-	 */
-
-	written = write(adns_query_fd, buf, size);
-	if (written == (ssize_t) -1) {
-		if (!is_temporary_error(errno)) {
-			g_warning("%s: write() failed: %m", G_STRFUNC);
-			inputevt_remove(&adns_reply_event_id);
-			fd_close(&adns_query_fd);
-			return FALSE;
-		}
-		written = 0;
-	}
-
-	g_assert(0 == adns_query_event_id);
-
-	/*
-	 * If not written fully, allocate a spill buffer and record
-	 * callback that will write the remaining data when the pipe
-	 * can absorb new data.
-	 */
-
-	if (UNSIGNED(written) < size) {
-		adns_async_write_t *aq;
-	   
-		aq = adns_async_write_alloc(req, &buf[written], size - written);
-		adns_query_event_id = inputevt_add(adns_query_fd, INPUT_EVENT_WX,
-								adns_query_callback, aq);
-	}
+	r = WCOPY(req);
+	aq_put(adns_req, r);
 
 	return TRUE;
 }
-#endif	/* MINGW32 */
 
 /**
  * Creates a DNS resolve query for ``hostname''.
@@ -1006,7 +703,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	if (adns_reply_event_id) {
+	if (common_dbg) {
 		g_warning("%s: using synchronous resolution for \"%s\"",
 			G_STRFUNC, query->hostname);
 	}
@@ -1059,14 +756,25 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
-#ifdef MINGW32
-	mingw_adns_close();
-#else
+	aq_put(adns_req, NULL);		/* Signals: end of processing */
+	aq_destroy_null(&adns_req);
+	aq_destroy_null(&adns_ans);
 	inputevt_remove(&adns_reply_event_id);
-	inputevt_remove(&adns_query_event_id);
-#endif	/* MINGW32 */
-
 	adns_cache_free(&adns_cache);
+
+	/*
+	 * Wait for the ADNS to exit before continuing since we're shutdowning
+	 * and all the important subsystems on which the thread layer relies upon
+	 * are also going to be shutdowned (e.g. the callout queue).
+	 *
+	 * Therefore, having a deterministic destruction is important.
+	 */
+
+	if (-1 != adns_id) {
+		if (-1 == thread_join(adns_id, NULL))
+			g_warning("%s: cannot join with ADNS thread: %m", G_STRFUNC);
+		adns_id = -1;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -573,7 +573,6 @@ src/lib/Jmakefile
 src/lib/Makefile.SH
 src/lib/adns.c
 src/lib/adns.h
-src/lib/adns_msg.h
 src/lib/aging.c
 src/lib/aging.h
 src/lib/alloca.c
