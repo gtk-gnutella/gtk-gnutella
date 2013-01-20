@@ -639,12 +639,21 @@ stacktrace_close(void)
 G_GNUC_COLD void
 stacktrace_load_symbols(void)
 {
+	static spinlock_t sym_load_slk = SPINLOCK_INIT;
 	bool stale = FALSE;
 
-	if G_UNLIKELY(symbols_loaded)
-		return;
+	/*
+	 * Don't use the once_flag_run() mechanism here since this can be used
+	 * on the assertion failure path, and maybe called recursively.
+	 */
 
+	spinlock_hidden(&sym_load_slk);
+	if G_LIKELY(symbols_loaded) {
+		spinunlock_hidden(&sym_load_slk);
+		return;
+	}
 	symbols_loaded = TRUE;		/* Whatever happens, don't try again */
+	spinunlock_hidden(&sym_load_slk);
 
 	/*
 	 * If we are being called before stacktrace_init(), then derive a proper
