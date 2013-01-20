@@ -96,7 +96,7 @@ spinlock_crash_mode(void)
 {
 	unsigned count = thread_count();
 
-	if (count > 1) {
+	if (count > 1 && !spinlock_pass_through) {
 		s_minicrit("disabling locks, now in thread-unsafe mode (%u threads)",
 			count);
 	}
