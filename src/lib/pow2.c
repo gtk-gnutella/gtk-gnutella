@@ -122,6 +122,25 @@ next_pow2(uint32 n)
 }
 
 /**
+ * @returns the closest power of two greater or equal to `n'.
+ * next_pow2_64(0) and next_pow2_64(0x8...............) return 0.
+ */
+uint64
+next_pow2_64(uint64 n)
+{
+	n--;
+
+	n |= n >> 32;
+	n |= n >> 16;
+	n |= n >> 8;
+	n |= n >> 4;
+	n |= n >> 2;
+	n |= n >> 1;
+
+	return n + 1;
+}
+
+/**
  * Determine the highest bit set in `n', -1 if value was 0.
  */
 int

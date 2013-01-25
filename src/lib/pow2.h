@@ -37,6 +37,7 @@
 #define IS_POWER_OF_2(x) ((x) && 0 == ((x) & ((x) - 1)))
 
 uint32 next_pow2(uint32 n) G_GNUC_CONST;
+uint64 next_pow2_64(uint64 n) G_GNUC_CONST;
 int highest_bit_set(uint32 n) G_GNUC_PURE;
 int highest_bit_set64(uint64 n) G_GNUC_PURE;
 int bits_set(uint8 b) G_GNUC_PURE;
