@@ -202,6 +202,22 @@ eslist_data(const eslist_t *list, const slink_t * const lk)
 		deconstify_pointer(const_ptr_add_offset(lk, -list->offset));
 }
 
+/**
+ * @return the data associated with the next item, NULL if none.
+ */
+static inline void *
+eslist_next_data(const eslist_t *list, const void *p)
+{
+	const slink_t *lk;
+
+	eslist_check(list);
+	g_assert(p != NULL);
+
+	lk = const_ptr_add_offset(p, list->offset);
+	return NULL == lk->next ? NULL :
+		deconstify_pointer(const_ptr_add_offset(lk->next, -list->offset));
+}
+
 void eslist_init(eslist_t *list, size_t offset);
 void eslist_discard(eslist_t *list);
 void eslist_clear(eslist_t *list);
@@ -231,6 +247,9 @@ void eslist_shuffle(eslist_t *list);
 
 #define ESLIST_FOREACH(slist, l) \
 	for ((l) = eslist_first(slist); NULL != (l); (l) = eslist_next(l))
+
+#define ESLIST_FOREACH_DATA(ls, d) \
+	for ((d) = eslist_head(ls); NULL != (d); (d) = eslist_next_data((ls), (d)))
 
 #endif /* _eslist_h_ */
 
