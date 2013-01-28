@@ -217,7 +217,7 @@ bool mutex_is_owned(const mutex_t *m);
 bool mutex_is_owned_by(const mutex_t *m, const thread_t t);
 size_t mutex_held_depth(const mutex_t *m);
 
-NON_NULL_PARAM((1, 2)) G_GNUC_NORETURN
+NON_NULL_PARAM((1, 2))
 void mutex_not_owned(const mutex_t *m, const char *file, unsigned line);
 
 #define assert_mutex_is_owned(mtx) G_STMT_START {	\
