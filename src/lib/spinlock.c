@@ -102,14 +102,25 @@ spinlock_source_string(enum spinlock_source src)
 G_GNUC_COLD void
 spinlock_crash_mode(void)
 {
-	unsigned count = thread_count();
+	atomic_mb();	/* Get accurate reading of ``spinlock_pass_through'' */
 
-	if (count > 1 && !spinlock_pass_through) {
-		s_minicrit("disabling locks, now in thread-unsafe mode (%u threads)",
-			count);
+	if (!spinlock_pass_through) {
+		unsigned count;
+
+		/*
+		 * We must set ``spinlock_pass_through'' immediately since s_miniwarn()
+		 * could call routines requiring mutexes...
+		 */
+
+		spinlock_pass_through = TRUE;
+		atomic_mb();
+		count = thread_count();
+
+		if (count != 1) {
+			s_miniwarn("disabling locks, "
+				"now in thread-unsafe mode (%u threads)", count);
+		}
 	}
-
-	spinlock_pass_through = TRUE;
 }
 
 /**
