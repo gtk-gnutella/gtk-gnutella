@@ -62,6 +62,15 @@ assertion_message(const assertion_data * const data, int fatal)
 	crash_time(time_buf, sizeof time_buf);
 	stid = thread_small_id();
 
+	/*
+	 * When an assertion failed in some thread, things are likely to break in
+	 * all the other threads and we want to avoid a cascade of failures being
+	 * reported.  We suspend after computing the crash time, in case we were
+	 * not suspended due to a fatal error.
+	 */
+
+	thread_check_suspended();
+
 	print_str(time_buf);
 	if (0 == stid) {
 		print_str(fatal ? " (FATAL): " : " (WARNING): ");
