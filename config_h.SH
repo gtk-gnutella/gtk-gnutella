@@ -522,6 +522,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_preadv HAS_PREADV		/**/
 
+/* HAS_PTHREAD_ATTR_SETSTACK:
+ *	This symbol is defined when pthread_attr_setstack() can be used to set
+ *	the thread stack.  Otherwise, use obsoleted pthread_attr_setstackaddr().
+ */
+#$d_ptattr_setstack HAS_PTHREAD_ATTR_SETSTACK
+
 /* HAS_PWRITE:
  *	This symbol, if defined, indicates that the pwrite routine is
  *	available to perform writes on a file descriptor at a given offset.

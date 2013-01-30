@@ -90,18 +90,9 @@
 #define THREAD_CREATABLE	(THREAD_MAX - THREAD_FOREIGN)
 
 /**
- * HACK ALERT:
- * In order to avoid a race condition with the POSIX cleanup code (whatever
- * happens when pthread_exit() is called) we need to defer the reuse of a
- * thread element by some amount of time, enough to let the cleanup code be
- * scheduled in the context of the dying thread.
- *
- * Since we have no hooks to know when that cleanup is performed (we would
- * need to create threads as joinable and have a "reaper thread" collect the
- * dead threads by joining with them), we wait "long enough" after a thread
- * is dead.  The amount of 20 ms is pure guesstimate and may be too optimistic
- * on busy or slow systems, in case the thread becomes preempted by the kernel
- * during pthread_exit().
+ * This is the time we wait after a "detached" thread we created has exited
+ * before attempting to join with it in the callout queue thread and free
+ * its stack.
  */
 #define THREAD_HOLD_TIME	20		/**< in ms, keep dead thread before reuse */
 
@@ -162,11 +153,14 @@ struct thread_element {
 	thread_qid_t last_qid;			/**< The last QID used to access record */
 	thread_qid_t low_qid;			/**< The lowest possible QID */
 	thread_qid_t high_qid;			/**< The highest possible QID */
+	thread_qid_t top_qid;			/**< The topmost QID seen on the stack */
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_lock;			/**< First lock seen at this SP */
 	const char *name;				/**< Thread name, explicitly set */
 	size_t stack_size;				/**< For created threads, 0 otherwise */
+	void *stack;					/**< Allocated stack (including guard) */
+	void *stack_base;				/**< Base of the stack (computed) */
 	func_ptr_t entry;				/**< Thread entry point (created threads) */
 	const void *argument;			/**< Initial thread argument, for logging */
 	int suspend;					/**< Suspension request(s) */
@@ -177,12 +171,12 @@ struct thread_element {
 	void *exit_value;				/**< Final thread exit value */
 	thread_exit_t exit_cb;			/**< Optional exit callback */
 	void *exit_arg;					/**< Exit callback argument */
-	tm_t exit_time;					/**< When thread exited or was joined */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
 	uint valid:1;					/**< Whether thread is valid */
 	uint creating:1;				/**< Whether thread is being created */
+	uint exiting:1;					/**< Whether thread is exiting */
 	uint suspended:1;				/**< Whether thread is suspended */
 	uint blocked:1;					/**< Whether thread is blocked */
 	uint unblocked:1;				/**< Whether unblocking was requested */
@@ -190,7 +184,6 @@ struct thread_element {
 	uint join_requested:1;			/**< Whether thread_join() was requested */
 	uint join_pending:1;			/**< Whether thread exited, pending join */
 	uint reusable:1;				/**< Whether element is reusable */
-	uint pending_reuse:1;			/**< Whether thread element kept aside */
 	uint async_exit:1;				/**< Whether exit callback done in main */
 	uint main_thread:1;				/**< Whether this is the main thread */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
@@ -297,15 +290,17 @@ static thread_t tstid[THREAD_MAX];		/* Maps STID -> thread_t */
 static uint8 thread_qid_cache[THREAD_QID_CACHE];
 
 static bool thread_inited;
+static int thread_pagesize = 4096;		/* Safe default: 4K pages */
 static int thread_pageshift = 12;		/* Safe default: 4K pages */
 static int thread_sp_direction;			/* Stack growth direction */
 static bool thread_panic_mode;			/* STID overflow, most probably */
 static size_t thread_reused;			/* Counts reused thread elements */
 static uint thread_main_stid = -1U;		/* STID of the main thread */
 static bool thread_main_can_block;		/* Can the main thread block? */
-static uint thread_pending_reuse;		/* Threads marked for pending reuse */
+static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
+static bool thread_stack_noinit;		/* Whether to skip stack allocation */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -384,7 +379,8 @@ thread_init(void)
 	spinlock_hidden(&thread_init_slk);
 
 	if G_LIKELY(!thread_inited) {
-		thread_pageshift = ctz(compat_pagesize());
+		thread_pagesize = compat_pagesize();
+		thread_pageshift = ctz(thread_pagesize);
 		thread_sp_direction = alloca_stack_direction();
 
 		thread_inited = TRUE;
@@ -724,6 +720,74 @@ thread_private_clear_warn(struct thread_element *te)
 }
 
 /**
+ * Allocate the stack for a created thread.
+ */
+static void
+thread_stack_allocate(struct thread_element *te, size_t stacksize)
+{
+	size_t len;
+
+	if G_UNLIKELY(!thread_inited)
+		thread_init();
+
+	/*
+	 * To trap thread overflows, we add one extra page to the stack on which
+	 * we will remove all access to make sure the process faults if it
+	 * attempts to access that page.
+	 */
+
+	len = stacksize + thread_pagesize;
+	te->stack = vmm_alloc(len);
+
+	if (thread_sp_direction < 0) {
+		/*
+		 * Normally when the stack grows in that direction, the stack pointer
+		 * is pre-decremented (it points to the last pushed item).
+		 */
+
+		te->stack_base = ptr_add_offset(te->stack, len);
+		mprotect(te->stack, thread_pagesize, PROT_NONE);	/* Red zone */
+	} else {
+		/*
+		 * When the stack grows forward, the stack pointer is usually post-
+		 * incremented (it points to the next usable item).
+		 */
+
+		te->stack_base = te->stack;
+		mprotect(ptr_add_offset(te->stack, stacksize),
+			thread_pagesize, PROT_NONE);					/* Red zone */
+	}
+}
+
+/**
+ * Free up the allocated stack.
+ */
+static void
+thread_stack_free(struct thread_element *te)
+{
+	size_t len;
+
+	g_assert(te->stack != NULL);
+
+	len = te->stack_size + thread_pagesize;
+
+	/*
+	 * Restore read-write protection on the red-zone guard page before
+	 * freeing the whole memory region.
+	 */
+
+	if (thread_sp_direction < 0) {
+		mprotect(te->stack, thread_pagesize, PROT_READ | PROT_WRITE);
+	} else {
+		mprotect(ptr_add_offset(te->stack, te->stack_size),
+			thread_pagesize, PROT_READ | PROT_WRITE);
+	}
+
+	vmm_free(te->stack, len);
+	te->stack = NULL;
+}
+
+/**
  * Flag element as reusable.
  */
 static void
@@ -733,6 +797,7 @@ thread_element_mark_reusable(struct thread_element *te)
 
 	THREAD_LOCK(te);
 	te->reusable = TRUE;	/* Allow reuse */
+	te->valid = FALSE;		/* Holds stale values now */
 	THREAD_UNLOCK(te);
 }
 
@@ -750,9 +815,11 @@ thread_ended(struct thread_element *te)
 	 * cross-thread freeing for the dead chunk can be processed.
 	 */
 
-	atomic_uint_dec(&thread_pending_reuse);
+	if (te->stack != NULL)
+		thread_stack_free(te);
 	xmalloc_thread_ended(te->stid);
 	thread_element_mark_reusable(te);
+	atomic_uint_dec(&thread_pending_reuse);
 }
 
 /**
@@ -769,34 +836,126 @@ thread_cleanup(struct thread_element *te)
 	thread_block_close(te);
 }
 
+/*
+ * Join at the POSIX thread level with a known-to-be-terminated thread.
+ */
+static void
+thread_pjoin(struct thread_element *te)
+{
+	int error;
+
+	error = pthread_join(te->ptid, NULL);
+	if (error != 0) {
+		errno = error;
+		s_minierror("%s(): pthread_join() failed on %s: %m",
+			G_STRFUNC, thread_element_name(te));
+	}
+}
+
+/**
+ * Callout queue callback to reclaim thread element.
+ */
+static void
+thread_element_reclaim(cqueue_t *unused_cq, void *data)
+{
+	struct thread_element *te = data;
+
+	thread_element_check(te);
+	g_assert(te->detached);
+
+	(void) unused_cq;
+
+	/*
+	 * Join with the thread, which should be completely terminated by now
+	 * (hence we should not block) and then mark it ended.
+	 */
+
+	thread_pjoin(te);
+	thread_ended(te);
+}
+
+/**
+ * Emit mandatory warning about possible race condition for discovered threads.
+ */
+static inline void
+thread_stack_race_warn(void)
+{
+	/*
+	 * Symptoms of the race condition are multiple: typically, this will lead
+	 * to complains about locks not being owned by the proper threads, but
+	 * it can also cause silent memory corruption (lock believed to be
+	 * wrongly owned), spurious deadlock conditions, etc...
+	 *
+	 * These will only occur when threads are created outside of our control
+	 * and we discover them dynamically when they attempt to grab a lock in
+	 * our code.  For the race to happen, a thread we created must exit
+	 * in an about 20 ms time window before we are discovering the thread,
+	 * which would be using precisely the same stack range.
+	 */
+
+	s_warning("race condition possible with discovered threads");
+}
+
 /**
  * Thread is exiting.
  */
 static void
 thread_exiting(struct thread_element *te)
 {
-	tm_t now;
-
 	g_assert(te->created);
 
 	thread_cleanup(te);
 
 	/*
-	 * We defer reuse of the thread element to make sure thread_small_id()
-	 * can still work in the context of the dead thread: we don't know how
-	 * much internal cleanup pthread_exit() has to do, and it could malloc()
-	 * or free() items allocated before the thread actually starts, whilst
-	 * still running on the now defunct thread...
+	 * Updating bitfield atomically, just in case.
 	 */
 
-	tm_now_exact(&now);
-
 	THREAD_LOCK(te);
-	te->exit_time = now;			/* struct copy */
-	te->pending_reuse = TRUE;
+	te->exiting = TRUE;
 	THREAD_UNLOCK(te);
 
-	atomic_uint_inc(&thread_pending_reuse);
+	/*
+	 * If the thread is detached, we record the cleanup of its stack to some
+	 * time in the future.  Otherwise, it was just joined so we can reclaim
+	 * it immediately.
+	 */
+
+	if (te->detached) {
+		cq_main_insert(THREAD_HOLD_TIME, thread_element_reclaim, te);
+		if (NULL == te->stack) {
+			if (is_running_on_mingw()) {
+				/*
+				 * If we do not allocate the stack and we're running on Windows,
+				 * we're safe because the stack is not created using malloc()
+				 * so pthread_exit() will not need to compute the STID.
+				 * Reset the QID range so that no other thread can think it is
+				 * running in that space.
+				 */
+
+				te->last_qid = te->low_qid = -1;
+				te->high_qid = 0;
+			} else {
+				static once_flag_t race_warning;
+
+				/*
+				 * A race condition is possible: the thread exits, but its
+				 * stack space is allocated via malloc() or maybe pthread_exit()
+				 * will use free().  Hence we cannot reset the QID space for
+				 * the thread, which means any discovered thread that would
+				 * happen to run in that space would be mistaken with the
+				 * exiting thread, which we shall clean up later, causing
+				 * havoc.
+				 *
+				 * There's nothing to do to close this race, so we warn when
+				 * it can happen.
+				 */
+
+				ONCE_FLAG_RUN(race_warning, thread_stack_race_warn);
+			}
+		}
+	} else {
+		thread_ended(te);
+	}
 }
 
 /**
@@ -813,14 +972,15 @@ thread_element_reset(struct thread_element *te)
 	te->high_qid = 0;
 	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
 	te->creating = FALSE;
+	te->exiting = FALSE;
 	te->stack_lock = NULL;	/* Stack position when first lock recorded */
+	te->stack = NULL;
 	te->name = NULL;
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	te->join_requested = FALSE;
 	te->join_pending = FALSE;
 	te->reusable = FALSE;
-	te->pending_reuse = FALSE;
 	te->detached = FALSE;
 	te->created = FALSE;
 	te->discovered = FALSE;
@@ -911,39 +1071,29 @@ thread_element_common_init(struct thread_element *te, thread_t t)
  * Tie a thread element to its created thread.
  */
 static void
-thread_element_tie(struct thread_element *te, thread_t t, const void *sp)
+thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 {
-	const void *base = vmm_page_start(sp);
 	thread_qid_t qid;
 	unsigned i;
-	uint8 cleanup[THREAD_MAX];
 
-	ZERO(&cleanup);
 	THREAD_STATS_INC(created);
+
+	if (thread_sp_direction < 0)
+		base = const_ptr_add_offset(base, thread_pagesize);
 
 	qid = thread_quasi_id_fast(base);
 
 	/*
-	 * We asssume the stack is aligned on pages.  Even if this assumption is
-	 * false, the stack must be large enough so that two running threads end up
-	 * having different QID sets for their stack.
-	 *
-	 * When we create our threads, we know the stack size and therefore we
+	 * When we create our threads, we allocate the stack and therefore we
 	 * know the range of QIDs that it is going to occupy.  We can then purge
 	 * the QID cache out of stale QID values.
 	 */
 
-	if (thread_sp_direction < 0) {
-		te->high_qid = qid;
-		te->low_qid = 1 + thread_quasi_id_fast(
-			const_ptr_add_offset(base, -te->stack_size + 1));
-	} else {
-		te->low_qid = qid;
-		te->high_qid = thread_quasi_id_fast(
-			const_ptr_add_offset(base, te->stack_size - 1));
-	}
-
-	g_assert((te->high_qid - te->low_qid + 1) * compat_pagesize()
+	te->low_qid = qid;
+	te->high_qid = thread_quasi_id_fast(
+		const_ptr_add_offset(base, te->stack_size - 1));
+ 
+	g_assert((te->high_qid - te->low_qid + 1) * thread_pagesize
 		== te->stack_size);
 
 	/*
@@ -997,7 +1147,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *sp)
 			 */
 
 			THREAD_LOCK(xte);
-			if (xte->discovered) {
+			if (xte->discovered || xte->exiting) {
 				if (xte->low_qid <= te->low_qid)
 					xte->high_qid = MIN(xte->high_qid, te->low_qid);
 				if (te->low_qid <= xte->low_qid)
@@ -1005,13 +1155,11 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *sp)
 				if G_UNLIKELY(xte->high_qid < xte->low_qid) {
 					/* This thread is dead */
 					thread_set(tstid[xte->stid], THREAD_INVALID);
-					xte->discovered = FALSE;
-					discovered = TRUE;
+					if (xte->discovered) {
+						xte->discovered = FALSE;
+						discovered = TRUE;
+					}
 				}
-			} else if (xte->pending_reuse) {
-				xte->pending_reuse = FALSE;
-				xte->reusable = FALSE;			/* Precaution */
-				cleanup[xte->stid] = TRUE;
 			} else {
 				s_minierror("conflicting QID range between created thread #%u "
 					"[%zu, %zu] and %s thread #%u [%zu, %zu]",
@@ -1028,17 +1176,6 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *sp)
 	}
 
 	mutex_unlock_fast(&thread_insert_mtx);
-
-	/*
-	 * Threads we marked for cleanup can now be "ended" outside of the critical
-	 * section.  We know they cannot be reused because they are not yet flagged
-	 * as reusable.
-	 */
-
-	for (i = 0; i < thread_next_stid; i++) {
-		if G_UNLIKELY(cleanup[i])
-			thread_ended(threads[i]);
-	}
 }
 
 /**
@@ -1194,57 +1331,6 @@ thread_get_main_if_first(void)
 }
 
 /**
- * Find threads marked for pending reuse.
- */
-static void
-thread_collect_elements(void)
-{
-	tm_t now;
-	unsigned i;
-
-	if (0 == atomic_uint_get(&thread_pending_reuse))
-		return;
-
-	tm_now_exact(&now);
-
-	for (i = 0; i < thread_next_stid; i++) {
-		struct thread_element *te = threads[i];
-		bool cleanup = FALSE;
-
-		if (
-			te->pending_reuse &&
-			tm_elapsed_ms(&now, &te->exit_time) >= THREAD_HOLD_TIME
-		) {
-			THREAD_LOCK(te);
-			if (te->pending_reuse) {
-				/*
-				 * HACK ALERT:
-				 * Because we are using a hack to determine whether the thread
-				 * is gone, we cannot be truly sure that THREAD_HOLD_TIME will
-				 * be enough time for pthread_exit() to cleanup.  Therefore, as
-				 * a secondary precaution, make sure there are currently no
-				 * locks held by the thread -- it could not have any at exit
-				 * time hence having some now means it is still busy.
-				 */
-
-				if G_LIKELY(0 == te->locks.count) {
-					te->pending_reuse = FALSE;
-					cleanup = TRUE;
-					thread_set(tstid[te->stid], THREAD_INVALID);
-				} else {
-					/* Still busy in the pthread layer, give it more time */
-					te->exit_time = now;		/* Struct copy */
-				}
-			}
-			THREAD_UNLOCK(te);
-
-			if (cleanup)
-				thread_ended(te);
-		}
-	}
-}
-
-/**
  * Attempt to reuse a thread element, from a created thread that is now gone.
  *
  * @return reused thread element if one can be reused, NULL otherwise.
@@ -1272,7 +1358,6 @@ thread_reuse_element(void)
 			if (t->reusable) {
 				te = t;					/* Thread elemeent to reuse */
 				t->reusable = FALSE;	/* Prevents further reuse */
-				te->valid = FALSE;		/* Not valid: contains stale values */
 			}
 			THREAD_UNLOCK(t);
 			if (te != NULL)
@@ -1292,14 +1377,6 @@ static struct thread_element *
 thread_find_element(void)
 {
 	struct thread_element *te = NULL;
-
-	/*
-	 * Reuse dead elements that were held up for reuse to avoid race conditions
-	 * with the POSIX thread cleanup code.
-	 */
-
-	if G_UNLIKELY(0 != thread_pending_reuse)
-		thread_collect_elements();
 
 	/*
 	 * We must synchronize with thread_get_element() to avoid concurrent
@@ -1804,15 +1881,6 @@ thread_get_element(void)
 		if (te != NULL)
 			goto found;
 	}
-
-	/*
-	 * Because we do not release thread elements immediately when a thread
-	 * exits, we need to check periodically whether there are pending items
-	 * to collect.
-	 */
-
-	if G_UNLIKELY(0 != thread_pending_reuse)
-		thread_collect_elements();
 
 	/*
 	 * Enter critical section to make sure only one thread at a time
@@ -3579,6 +3647,9 @@ thread_lock_deadlock(const volatile void *lock)
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
 }
 
+/**
+ * Forcefully clear all the locks registered by the thread.
+ */
 static void
 thread_element_clear_locks(struct thread_element *te)
 {
@@ -3802,6 +3873,7 @@ thread_forked(void)
 		xmalloc_thread_ended(xte->stid);
 		thread_element_reset(xte);
 		xte->reusable = TRUE;
+		xte->valid = FALSE;
 		xte->main_thread = FALSE;
 	}
 
@@ -4117,14 +4189,80 @@ struct thread_launch_context {
  * @param sp		the current stack pointer at the entry point
  */
 static void
-thread_launch_register(struct thread_element *te, const void *sp)
+thread_launch_register(struct thread_element *te)
 {
 	thread_t t;
 	thread_qid_t qid;
 	unsigned idx;
+	const void *stack;
+	size_t stack_len;
+	bool free_old_stack = FALSE;
 
-	qid = thread_quasi_id_fast(sp);
+	qid = thread_quasi_id_fast(&t);
 	idx = thread_qid_hash(qid);
+
+	/*
+	 * Check whether stack allocation works.
+	 *
+	 * When it does not, we set the global ``thread_stack_noinit'' to
+	 * prevent further attempts.
+	 */
+
+	stack = te->stack;
+	stack_len = te->stack_size + thread_pagesize;	/* Include red-zone page */
+
+	if (stack != NULL) {
+		const void *end = const_ptr_add_offset(stack, stack_len);
+
+		if G_UNLIKELY(ptr_cmp(&t, stack) < 0 || ptr_cmp(&t, end) >= 0) {
+			thread_stack_noinit = TRUE;
+			atomic_mb();
+			stack = NULL;
+
+			/*
+			 * We must free the  allocated stack if we initialized it but it
+			 * is not supported (ignored!) by the POSIX thread layer.
+			 *
+			 * This will be done later when we have setup the thread context
+			 * properly so that vmm_free() can safely find the thread when
+			 * running thread_small_id().
+			 */
+
+			free_old_stack = TRUE;
+		}
+	}
+
+	/*
+	 * Initialize stack shape.
+	 */
+
+	if (NULL == stack) {
+		stack = vmm_page_start(&t);
+
+		/*
+		 * The stack was not allocated by thread_launch(), or the allocation
+		 * was ignored by the system (typical of Windows).
+		 *
+		 * Adjust stack base if stack is decreasing.  Because ``stack''
+		 * is the base of the page, we need to substract te->stack_size,
+		 * to reach the base of the red-zone page.  The correct base will
+		 * be computed in thread_element_tie() by adding one page to account
+		 * for that red-zone page when the stack grows by decreasing addresses.
+		 *
+		 * At the same time, we need to update te->stack_base as well, since
+		 * the current value was determined following our allocated range, and
+		 * it was not used.
+		 */
+
+		if (thread_sp_direction < 0) {
+			/* Top address */
+			te->stack_base = deconstify_pointer(vmm_page_next(stack));
+			stack = const_ptr_add_offset(stack, -te->stack_size);
+		} else {
+			/* Bottom address */
+			te->stack_base = deconstify_pointer(stack);
+		}
+	}
 
 	/*
 	 * Immediately position tstid[] so that we can run thread_small_id()
@@ -4138,11 +4276,37 @@ thread_launch_register(struct thread_element *te, const void *sp)
 	t = thread_self();
 
 	tstid[te->stid] = t;
-	thread_element_tie(te, t, sp);
+	te->ptid = pthread_self();
+	thread_element_tie(te, t, stack);
 	thread_qid_cache_set(idx, te, qid);
 
 	g_assert(0 == te->locks.count);
 	g_assert(qid >= te->low_qid && qid <= te->high_qid);
+
+	/*
+	 * If needed, we can now free the old stack since the thread element
+	 * is properly initialized.
+	 */
+
+	if G_UNLIKELY(free_old_stack)
+		thread_stack_free(te);
+}
+
+/**
+ * @return current thread stack pointer.
+ */
+static void * NO_INLINE
+thread_sp(void)
+{
+	int sp;
+
+	/*
+	 * The cast_to_pointer() is of course unnecessary but is there to
+	 * prevent the "function returns address of local variable" warning
+	 * from gcc.
+	 */
+
+	return cast_to_pointer(&sp);
 }
 
 /**
@@ -4166,7 +4330,15 @@ thread_launch_trampoline(void *arg)
 	 */
 
 	u.ctx = arg;
-	thread_launch_register(u.ctx->te, &u);
+	thread_launch_register(u.ctx->te);
+
+	/*
+	 * Because we know the stack shape, we'll be able to record locks on it
+	 * immediately, hence we can set the "first lock point" to the current
+	 * stack position.
+	 */
+
+	u.ctx->te->stack_lock = thread_sp();
 
 	/*
 	 * Save away the values we need from the context before releasing it.
@@ -4218,7 +4390,6 @@ thread_launch(struct thread_element *te,
 		stacksize = stack;
 #endif
 		stacksize = MAX(stacksize, THREAD_STACK_MIN);
-		pthread_attr_setstacksize(&attr, stacksize);
 	} else {
 		stacksize = MAX(THREAD_STACK_DFLT, PTHREAD_STACK_MIN);
 	}
@@ -4235,12 +4406,70 @@ thread_launch(struct thread_element *te,
 	te->entry = (func_ptr_t) routine;
 
 	/*
-	 * We always create detached threads because we provide our own exit
-	 * value capturing logic and joining logic, therefore we will never
-	 * call pthread_join() on the new thread.
+	 * On Windows, stack allocation does not work with the current
+	 * pthread implementation, but things may change in the future.
+	 *
+	 * Note that this is only a deficiency of the Windows system, which
+	 * does not provide any interface to hand an already allocated stack.
+	 * As the system API may evolve with time, we dynamically figure out
+	 * that we cannot allocate the stack.
 	 */
 
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	if (!thread_stack_noinit) {
+		thread_stack_allocate(te, stacksize);
+
+#ifdef HAS_PTHREAD_ATTR_SETSTACK
+		/*
+		 * Modern POSIX threads include this call which knows about the
+		 * stack growth direction.  Therefore, callers need to specify
+		 * the start of the allocated memory region and the length of that
+		 * memory region.
+		 */
+
+		error = pthread_attr_setstack(&attr, te->stack,
+			stacksize + thread_pagesize);
+#else
+		/*
+		 * Older POSIX threads: need to manually set the stack length we
+		 * want to allocate, without including the guard page.  The default
+		 * guard size defined by POSIX is one system page size.
+		 *
+		 * POSIX requires that the guard page be allocated additionally, not
+		 * stolen from the supplied stack size.  However, since we're
+		 * allocating our own stack here and protecting the red-zone page
+		 * ourseleves, we need to include that additional page in the call
+		 * to pthread_attr_setstacksize().
+		 *
+		 * The pthread_attr_setstackaddr() must take the actual stack base,
+		 * taking into account the direction of the stack growth (i.e. on
+		 * systems where the stack grows down, this needs to be the first
+		 * address above the allocated region).
+		 */
+
+		pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+		error = pthread_attr_setstackaddr(&attr, te->stack_base);
+#endif	/* HAS_PTHREAD_ATTR_SETSTACK */
+
+		if G_UNLIKELY(error != 0) {
+			if (ENOSYS == error) {
+				/* Routine not implemented, disable thread stack creation */
+				thread_stack_noinit = TRUE;
+				atomic_mb();
+				thread_stack_free(te);
+			} else {
+				errno = error;
+				s_minierror("%s(): cannot configure stack: %m", G_STRFUNC);
+			}
+		}
+	}
+
+	/*
+	 * We always create joinable threads to be able to cleanup the allocated
+	 * stack, hence we will always need to call pthread_join() at some point
+	 * to make sure the thread is terminated before destroying its stack.
+	 */
+
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
 	WALLOC(ctx);
 	ctx->te = te;
@@ -4254,6 +4483,8 @@ thread_launch(struct thread_element *te,
 	if (error != 0) {
 		atomic_uint_dec(&thread_running);	/* Could not launch it */
 		xmalloc_thread_ended(te->stid);
+		if (te->stack != NULL)
+			thread_stack_free(te);
 		thread_element_mark_reusable(te);
 		WFREE(ctx);
 		errno = error;
@@ -4443,6 +4674,19 @@ thread_exit(void *value)
 
 		if (join_requested)
 			thread_unblock(te->joining_id);
+
+		if (is_running_on_mingw()) {
+			/*
+			 * If we do not allocate the stack and we're running on Windows,
+			 * we're safe because the stack is not created using malloc()
+			 * so pthread_exit() will not need to compute the STID.
+			 * Reset the QID range so that no other thread can think it is
+			 * running in that space.
+			 */
+
+			te->last_qid = te->low_qid = -1;
+			te->high_qid = te->top_qid = 0;
+		}
 	} else {
 		/*
 		 * Since pthread_exit() can malloc, we need to let thread_small_id()
@@ -4454,6 +4698,7 @@ thread_exit(void *value)
 
 	/* Finished */
 
+	atomic_uint_inc(&thread_pending_reuse);
 	atomic_uint_dec(&thread_running);
 	pthread_exit(value);
 	s_minierror("back from pthread_exit()");
@@ -4494,7 +4739,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 		return -1;
 	}
 
-	if (te->pending_reuse || te->reusable) {
+	if (te->reusable) {
 		errno = ESRCH;				/* Was already joined, is a zombie */
 		return -1;
 	}
@@ -4573,6 +4818,13 @@ joinable:
 
 	if (result != NULL)
 		*result = te->exit_value;
+
+	/*
+	 * We can now join with the thread at the POSIX layer: we know it has
+	 * terminated hence we cannot block.
+	 */
+
+	thread_pjoin(te);
 	thread_exiting(te);
 	return 0;					/* OK, successfuly joined */
 }
@@ -4629,7 +4881,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
 	info->discovered = te->discovered;
-	info->exited = te->join_pending || te->pending_reuse;
+	info->exited = te->join_pending || te->reusable || te->exiting;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked;
 	info->main_thread = te->main_thread;
