@@ -211,23 +211,36 @@ static void *
 posix_worker(void *unused_arg)
 {
 	unsigned stid = thread_small_id();
+	char name[120];
+	thread_info_t info;
+
 	(void) unused_arg;
 
+	thread_current_info(&info);
+	thread_info_to_string_buf(&info, name, sizeof name);
+
 	printf("POSIX thread worker starting...\n");
+	printf("POSIX worker: %s\n", name);
 	fflush(stdout);
 
 	for (;;) {
 		void *p;
 
+		thread_current_info(&info);
+
 		g_assert_log(thread_small_id() == stid,
-			"current STID=%u, prev=%u", thread_small_id(), stid);
+			"current STID=%u, prev=%u %s", thread_small_id(), stid,
+			thread_info_to_string_buf(&info, name, sizeof name));
 
 		p = xmalloc(100);
 		compat_sleep_ms(100);
 		xfree(p);
 
+		thread_current_info(&info);
+
 		g_assert_log(thread_small_id() == stid,
-			"current STID=%u, prev=%u", thread_small_id(), stid);
+			"current STID=%u, prev=%u %s", thread_small_id(), stid,
+			thread_info_to_string_buf(&info, name, sizeof name));
 	}
 
 	return NULL;
