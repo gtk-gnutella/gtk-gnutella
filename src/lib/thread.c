@@ -1891,6 +1891,7 @@ thread_get_element(void)
 	thread_qid_t qid;
 	thread_t t;
 	struct thread_element *te;
+	int retries;
 
 	/*
 	 * First look for thread via the QID cache
@@ -1924,11 +1925,14 @@ thread_get_element(void)
 			goto found;
 	}
 
+	retries = 0;
+
 	/*
 	 * Enter critical section to make sure only one thread at a time
 	 * can manipulate the threads[] and tstid[] arrays.
 	 */
 
+retry:
 	mutex_lock_fast(&thread_insert_mtx);	/* Don't record */
 
 	/*
@@ -1981,6 +1985,21 @@ thread_get_element(void)
 	stid = atomic_uint_inc(&thread_allocated_stid);
 
 	if G_UNLIKELY(stid >= THREAD_MAX) {
+		/*
+		 * When the amount of running threads is less than THREAD_MAX, it
+		 * means we created a lot of threads which have now exited but which
+		 * have not been joined yet.
+		 *
+		 * Try to wait if there are threads pending reuse.
+		 */
+
+		mutex_unlock_fast(&thread_insert_mtx);
+
+		if (thread_pending_reuse != 0 && retries++ < 200) {
+			compat_sleep_ms(5);
+			goto retry;
+		}
+
 		thread_panic_mode = TRUE;
 		s_minierror("discovered thread #%u but can only track %d threads",
 			stid, THREAD_MAX);
