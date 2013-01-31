@@ -189,16 +189,20 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed)
  * @param src_object	the lock object containing the spinlock
  * @param deadlock		callback to invoke when we detect a possible deadlock
  * @param deadlocked	callback to invoke when we decide we deadlocked
+ * @param file			file where lock is being grabbed from
+ * @param line			line where lock is being grabbed from
  */
 void
 spinlock_loop(volatile spinlock_t *s,
-	enum spinlock_source src, const volatile void *src_object,
-	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked)
+	enum spinlock_source src, const void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked,
+	const char *file, unsigned line)
 {
 	static long cpus;
 	unsigned i;
 	time_t start = 0;
 	int loops = SPINLOCK_LOOP;
+	const void *element = NULL;
 
 	spinlock_check(s);
 
@@ -262,6 +266,8 @@ spinlock_loop(volatile spinlock_t *s,
 						spinlock_source_string(src), src_object, i);
 				}
 #endif	/* SPINLOCK_DEBUG */
+				if G_UNLIKELY(element != NULL)
+					thread_lock_waiting_done(element);
 				return;
 			}
 #ifdef HAS_SCHED_YIELD
@@ -281,8 +287,13 @@ spinlock_loop(volatile spinlock_t *s,
 		if G_UNLIKELY(0 == (i & SPINLOCK_DEADMASK))
 			(*deadlock)(src_object, i / SPINLOCK_DEAD);
 
-		if G_UNLIKELY(0 == start)
+		if G_UNLIKELY(0 == start) {
+			enum thread_lock_kind kind = THREAD_LOCK_SPINLOCK;
 			start = tm_time_exact();
+			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
+				kind = THREAD_LOCK_MUTEX;
+			element = thread_lock_waiting_element(src_object, kind, file, line);
+		}
 
 		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT)
 			(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start));
@@ -371,7 +382,7 @@ spinlock_grab_from(spinlock_t *s, bool hidden, const char *file, unsigned line)
 
 	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
 		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-			spinlock_deadlock, spinlock_deadlocked);
+			spinlock_deadlock, spinlock_deadlocked, file, line);
 	}
 
 	s->file = file;
@@ -417,7 +428,7 @@ spinlock_grab_swap_from(spinlock_t *s, const void *plock,
 
 	if G_UNLIKELY(!atomic_acquire(&s->lock)) {
 		spinlock_loop(s, SPINLOCK_SRC_SPINLOCK, s,
-			spinlock_deadlock, spinlock_deadlocked);
+			spinlock_deadlock, spinlock_deadlocked, file, line);
 	}
 
 	s->file = file;

@@ -191,6 +191,7 @@ struct thread_element {
 	uint async_exit:1;				/**< Whether exit callback done in main */
 	uint main_thread:1;				/**< Whether this is the main thread */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
+	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	spinlock_t lock;				/**< Protects concurrent updates */
 };
 
@@ -979,6 +980,7 @@ static void
 thread_element_reset(struct thread_element *te)
 {
 	te->locks.count = 0;
+	ZERO(&te->waiting);
 
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
@@ -2962,6 +2964,108 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 	return "UNKNOWN";
 }
 
+/**
+ * Show the lock that the thread is actively waiting on, if any, by logging
+ * it to the specified file descriptor.
+ *
+ * Nothing is printed if the thread waits for nothing.
+ *
+ * This routine is called during critical conditions and therefore it must
+ * use as little resources as possible and be as safe as possible.
+ */
+static void
+thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
+{
+	char buf[POINTER_BUFLEN + 2];
+	DECLARE_STR(10);
+	const char *type;
+	const struct thread_lock *l = &te->waiting;
+
+	if G_UNLIKELY(NULL == l->lock)
+		return;
+
+	print_str(thread_element_name(te));	/* 0 */
+	print_str(" waiting for ");			/* 1 */
+
+	buf[0] = '0';
+	buf[1] = 'x';
+	pointer_to_string_buf(l->lock, &buf[2], sizeof buf - 2);
+	type = thread_lock_kind_to_string(l->kind);
+
+	print_str(type);					/* 2 */
+	print_str(" ");						/* 3 */
+	print_str(buf);						/* 4 */
+	{
+		const char *lnum;
+		char lbuf[UINT_DEC_BUFLEN];
+
+		lnum = print_number(lbuf, sizeof lbuf, l->line);
+		print_str(" from ");			/* 5 */
+		print_str(l->file);				/* 6 */
+		print_str(":");					/* 7 */
+		print_str(lnum);				/* 8 */
+	}
+	print_str("\n");					/* 9 */
+	flush_str(fd);
+}
+
+/*
+ * Slowly check whether a lock is waited for by a thread.
+ *
+ * @return TRUE if lock is wanted by any of the running threads.
+ */
+static bool
+thread_lock_waited_for(const void *lock)
+{
+	unsigned i;
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+	
+		if G_UNLIKELY(!te->valid || te->reusable)
+			continue;
+
+		if G_UNLIKELY(lock == te->waiting.lock)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * Slowly check whether a lock is owned by a thread.
+ *
+ * @return TRUE if lock is owned by any of the running threads.
+ */
+static bool
+thread_lock_is_busy(const void *lock)
+{
+	unsigned i;
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		struct thread_lock_stack *tls;
+		unsigned j;
+
+		if G_UNLIKELY(!te->valid || te->reusable)
+			continue;
+
+		tls = &te->locks;
+
+		if G_LIKELY(0 == tls->count)
+			continue;
+
+		for (j = 0; j < tls->count; j++) {
+			const struct thread_lock *l = &tls->arena[j];
+
+			if G_UNLIKELY(l->lock == lock)
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
 /*
  * Dump list of locks held by thread to specified file descriptor.
  *
@@ -2994,6 +3098,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		char line[UINT_DEC_BUFLEN];
 		char pos[UINT_DEC_BUFLEN];
 		const char *lnum, *lpos;
+		bool waited_for;
 
 		type = thread_lock_kind_to_string(l->kind);
 		buf[0] = '0';
@@ -3004,12 +3109,23 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 
 		print_str("\t");		/* 0 */
 		lpos = print_number(pos, sizeof pos, i - 1);
+
+		/*
+		 * Let locks that are waited for by another thread stand out.
+		 * This is an O(n^2) lookup, but we may be crashing due to a deadlock,
+		 * and it is important to let those locks that are the source of
+		 * the deadlock be immediately spotted.
+		 */
+
+		waited_for = thread_lock_waited_for(l->lock);
+
 		if (i <= 10)
-			print_str("  #");	/* 1 */
+			print_str(waited_for ? "  >" : "  #");	/* 1 */
 		else if (i <= 100)
-			print_str(" #");	/* 1 */
+			print_str(waited_for ? " >" : " #");	/* 1 */
 		else
-			print_str("#");		/* 1 */
+			print_str(waited_for ? ">" : "#");		/* 1 */
+
 		print_str(lpos);		/* 2 */
 		print_str(" ");			/* 3 */
 		print_str(buf);			/* 4 */
@@ -3164,10 +3280,14 @@ thread_lock_dump_all(int fd)
 			continue;
 
 		locked = THREAD_TRY_LOCK(te);
-		if (te->reusable || 0 == tls->count)
+		if (te->reusable)
 			goto next;
 
-		thread_lock_dump_fd(fd, te);
+		if (0 != tls->count)
+			thread_lock_dump_fd(fd, te);
+
+		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
+			thread_lock_waiting_dump_fd(fd, te);
 
 	next:
 		if (locked)
@@ -3176,9 +3296,9 @@ thread_lock_dump_all(int fd)
 }
 
 /**
- * Dump locks held by current thread to specified file descriptor, if any.
+ * Dump locks held or waited for by current thread to specified file descriptor.
  *
- * If the thread holds no locks, nothing is printed.
+ * If the thread holds no locks or is not waiting, nothing is printed.
  */
 void
 thread_lock_dump_self_if_any(int fd)
@@ -3194,8 +3314,13 @@ thread_lock_dump_self_if_any(int fd)
 	stid = thread_small_id();
 	te = threads[stid];
 
-	if (te != NULL && te->valid && 0 != te->locks.count)
-		thread_lock_dump_fd(fd, te);
+	if (te != NULL && te->valid) {
+		if (0 != te->locks.count)
+			thread_lock_dump_fd(fd, te);
+
+		if (NULL != te->waiting.lock && thread_lock_is_busy(te->waiting.lock))
+			thread_lock_waiting_dump_fd(fd, te);
+	}
 }
 
 /**
@@ -3246,33 +3371,64 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 }
 
 /**
+ * Record a waiting condition on the current thread for the specified lock.
+ *
+ * This is used in case of deadlocks to be able to figure out where the
+ * cycle was and who is the culprit.
+ *
+ * @return the thread element as an opaque pointer that can be given back
+ * to thread_lock_waiting_done() to skip the thread lookup.
+ */
+const void *
+thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
+	const char *file, unsigned line)
+{
+	struct thread_element *te;
+
+	te = thread_find(&te);
+
+	if G_LIKELY(te != NULL) {
+		te->waiting.lock = lock;
+		te->waiting.kind = kind;
+		te->waiting.file = file;
+		te->waiting.line = line;
+	}
+
+	return te;
+}
+
+/**
+ * Clear waiting condition on the thread identified by its thread element,
+ * as returned previously by thread_lock_waiting_element().
+ */
+void
+thread_lock_waiting_done(const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
+
+	thread_element_check(te);
+	te->waiting.lock = NULL;		/* Clear waiting condition */
+}
+
+/**
  * Re-acquire a lock after suspension.
  */
 static void
 thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
-#ifndef SPINLOCK_DEBUG
-	(void) file;
-	(void) line;
-#endif
-
 	switch (kind) {
 	case THREAD_LOCK_SPINLOCK:
 		{
 			spinlock_t *s = deconstify_pointer(lock);
 
-			spinlock_hidden(s);
-#ifdef SPINLOCK_DEBUG
-			s->file = file;
-			s->line = line;
-#endif
+			spinlock_grab_from(s, TRUE, file, line);
 		}
 		return;
 	case THREAD_LOCK_RLOCK:
 		{
 			rwlock_t *r = deconstify_pointer(lock);
-			rwlock_rgrab(r);
+			rwlock_rgrab(r, file, line);
 		}
 		return;
 	case THREAD_LOCK_WLOCK:
@@ -3285,13 +3441,8 @@ thread_lock_reacquire(const void *lock, enum thread_lock_kind kind,
 		{
 			mutex_t *m = deconstify_pointer(lock);
 
-			mutex_lock_hidden(m);
+			mutex_grab_from(m, MUTEX_MODE_HIDDEN, file, line);
 			g_assert(1 == m->depth);
-
-#ifdef SPINLOCK_DEBUG
-			m->lock.file = file;
-			m->lock.line = line;
-#endif
 		}
 		return;
 	}
@@ -3339,6 +3490,15 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	}
 
 found:
+	/*
+	 * Clear the "waiting" condition on the lock.
+	 */
+
+	te->waiting.lock = NULL;		/* Signals that lock was granted */
+
+	/*
+	 * Make sure we have room to record the lock in our tracking stack.
+	 */
 
 	THREAD_STATS_INCX(locks_tracked);
 

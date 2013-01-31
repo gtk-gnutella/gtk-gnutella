@@ -217,8 +217,9 @@ typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned);
 typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned);
 
 void spinlock_loop(volatile spinlock_t *s,
-	enum spinlock_source src, const volatile void *src_object,
-	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked);
+	enum spinlock_source src, const void *src_object,
+	spinlock_deadlock_cb_t deadlock, spinlock_deadlocked_cb_t deadlocked,
+	const char *file, unsigned line);
 
 #endif /* SPINLOCK_SOURCE || MUTEX_SOURCE */
 

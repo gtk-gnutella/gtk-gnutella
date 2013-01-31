@@ -1596,7 +1596,7 @@ parent_process:
 
 		if (could_fork) {
 			static const char commands[] =
-				"thread\nbt\nbt full\nthread apply bt\nquit\n";
+				"thread\nbt\nbt full\nthread apply all bt\nquit\n";
 			const size_t n = CONST_STRLEN(commands);
 			ssize_t ret;
 

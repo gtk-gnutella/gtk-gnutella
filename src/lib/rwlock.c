@@ -334,14 +334,17 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed)
  * @param reading		whether we're read or write locking (for logging)
  * @param predicate		the predicate function to test
  * @param arg			the predicate argument to pass
+ * @param file			file where lock is being grabbed from
+ * @param line			line where lock is being grabbed from
  */
 static void
 rwlock_wait(const rwlock_t *rw, bool reading,
-	bool (*predicate)(void *), void *arg)
+	bool (*predicate)(void *), void *arg, const char *file, unsigned line)
 {
 	unsigned i;
 	time_t start = 0;
 	int loops = RWLOCK_LOOP;
+	const void *element = NULL;
 
 	rwlock_check(rw);
 
@@ -392,6 +395,8 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 						reading ? 'R' : 'W', rw, i);
 				}
 #endif	/* SPINLOCK_DEBUG */
+				if G_UNLIKELY(element != NULL)
+					thread_lock_waiting_done(element);
 				return;
 			}
 #ifdef HAS_SCHED_YIELD
@@ -426,8 +431,12 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		if G_UNLIKELY(0 == (i & RWLOCK_DEADMASK))
 			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD);
 
-		if G_UNLIKELY(0 == start)
+		if G_UNLIKELY(0 == start) {
 			start = tm_time_exact();
+			element = thread_lock_waiting_element(rw,
+				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
+				file, line);
+		}
 
 		if (delta_time(tm_time_exact(), start) > RWLOCK_TIMEOUT)
 			rwlock_deadlocked(rw, reading, (uint) delta_time(tm_time(), start));
@@ -466,11 +475,15 @@ rwlock_lock_granted(void *p)
  * Wait until the lock can serve our waiting ticket.
  *
  * @param rw			the read-write lock we're trying to acquire
+ * @param wc			the waiting context
+ * @param file			file where lock is being grabbed from
+ * @param line			line where lock is being grabbed from
  */
 static inline void
-rwlock_wait_grant(const rwlock_t *rw, struct rwlock_waiting *wc)
+rwlock_wait_grant(const rwlock_t *rw, struct rwlock_waiting *wc,
+	const char *file, unsigned line)
 {
-	rwlock_wait(rw, wc->reading, rwlock_lock_granted, wc);
+	rwlock_wait(rw, wc->reading, rwlock_lock_granted, wc, file, line);
 }
 
 struct rwlock_readers_wait {
@@ -507,14 +520,15 @@ rwlock_readers_downto(void *p)
  * Wait until the readers count reaches the specified amount.
  */
 static void
-rwlock_wait_readers(const rwlock_t *rw, uint16 count)
+rwlock_wait_readers(const rwlock_t *rw, uint16 count,
+	const char *file, unsigned line)
 {
 	struct rwlock_readers_wait args;
 
 	args.rw = rw;
 	args.count = count;
 
-	rwlock_wait(rw, FALSE, rwlock_readers_downto, &args);
+	rwlock_wait(rw, FALSE, rwlock_readers_downto, &args, file, line);
 }
 
 /**
@@ -616,9 +630,11 @@ rwlock_is_free(const rwlock_t *rw)
  * Grab a read lock.
  *
  * @param rw		the read-write lock
+ * @param file		file where the lock is being grabbed from
+ * @param line		line where the lock is being grabbed from
  */
 void
-rwlock_rgrab(rwlock_t *rw)
+rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line)
 {
 	struct rwlock_waiting wc;
 	bool got;
@@ -657,7 +673,7 @@ rwlock_rgrab(rwlock_t *rw)
 	RWLOCK_UNLOCK(rw);
 
 	if G_UNLIKELY(!got)
-		rwlock_wait_grant(rw, &wc);
+		rwlock_wait_grant(rw, &wc, file, line);
 
 	/* Ensure there are no overflows */
 
@@ -689,6 +705,8 @@ rwlock_rungrab(rwlock_t *rw)
  * Grab a write lock.
  *
  * @param rw		the read-write lock
+ * @param file		file where the lock is being grabbed from
+ * @param line		line where the lock is being grabbed from
  */
 void
 rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line)
@@ -750,7 +768,7 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line)
 		 * Wait for the write lock.
 		 */
 
-		rwlock_wait_grant(rw, &wc);
+		rwlock_wait_grant(rw, &wc, file, line);
 
 		g_assert(1 == rw->writers || rwlock_pass_through);
 	}
@@ -796,7 +814,7 @@ rwlock_wungrab(rwlock_t *rw)
 void
 rwlock_rgrab_from(rwlock_t *rw, const char *file, unsigned line)
 {
-	rwlock_rgrab(rw);
+	rwlock_rgrab(rw, file, line);
 	rwlock_read_account(rw, file, line);
 }
 
@@ -1036,7 +1054,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	 */
 
 	if G_UNLIKELY(count != rw->readers)
-		rwlock_wait_readers(rw, count);
+		rwlock_wait_readers(rw, count, file, line);
 
 	/*
 	 * Upgrading means the last instance of the lock on the stack now becomes

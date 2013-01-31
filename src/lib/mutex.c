@@ -312,7 +312,7 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 		m->lock.line = line;								\
 	} else {												\
 		spinlock_loop(&m->lock, SPINLOCK_SRC_MUTEX, m,		\
-			mutex_deadlock, mutex_deadlocked);				\
+			mutex_deadlock, mutex_deadlocked, file, line);	\
 		thread_set(m->owner, t);							\
 		m->depth = 1;										\
 		m->lock.file = file;								\

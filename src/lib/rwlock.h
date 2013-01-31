@@ -98,7 +98,7 @@ typedef struct rwlock {
  */
 
 #ifdef THREAD_SOURCE
-void rwlock_rgrab(rwlock_t *rw);
+void rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line);
 void rwlock_rungrab(rwlock_t *rw);
 void rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line);
 void rwlock_wungrab(rwlock_t *rw);
