@@ -6044,8 +6044,8 @@ xgc(void)
 	ZERO(&processed);
 
 	/*
-	 * Pass 1a: lock buckets with items, expand buckets that were flagged too
-	 * small for coalescing, shrink buckets that are too large.
+	 * Pass 1a: expand buckets that were flagged too small for coalescing,
+	 * shrink buckets that are too large.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -6055,12 +6055,20 @@ xgc(void)
 		G_PREFETCH_R(&xfreelist[i + 1].lock);
 		G_PREFETCH_W(&xgctx.locked[i + 1]);
 
-		if (!mutex_trylock(&fl->lock))
-			continue;
-
-		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
+		/*
+		 * We do not keep buckets locked during this phase since extension
+		 * or shrinking will cause further locks to be taken. Given other
+		 * threads could be holding these locks and attempt to also grab one
+		 * of the buckets we locked earlier in the sequence, that could lead
+		 * to a deadlock.
+		 */
 
 		if G_UNLIKELY(fl->expand) {
+			mutex_lock(&fl->lock);
+			if G_UNLIKELY(fl->expand) {
+				mutex_unlock(&fl->lock);
+				continue;
+			}
 			if (xmalloc_debugging(1)) {
 				t_debug("XM GC resizing freelist #%zu (cap=%zu, cnt=%zu)",
 					xfl_index(fl), fl->capacity, fl->count);
@@ -6069,6 +6077,7 @@ xgc(void)
 			XSTATS_LOCK;
 			xstats.xgc_bucket_expansions++;
 			XSTATS_UNLOCK;
+			mutex_unlock(&fl->lock);
 		} else if (
 			fl->capacity > XM_BUCKET_MINSIZE &&
 			delta_time(now, fl->last_shrink) > XMALLOC_XGC_SHRINK_PERIOD &&
@@ -6078,6 +6087,15 @@ xgc(void)
 				fl->capacity / fl->count >= 2
 			)
 		) {
+			mutex_lock(&fl->lock);
+			if G_UNLIKELY(
+				fl->count != 0 &&
+				fl->capacity - fl->count < XM_BUCKET_INCREMENT &&
+				fl->capacity / fl->count < 2
+			) {
+				mutex_unlock(&fl->lock);
+				continue;
+			}
 			fl->shrinking = TRUE;
 			if (xfl_shrink(fl)) {
 				XSTATS_LOCK;
@@ -6085,12 +6103,13 @@ xgc(void)
 				XSTATS_UNLOCK;
 			}
 			fl->shrinking = FALSE;
+			mutex_unlock(&fl->lock);
 		}
 	}
 
 	/*
-	 * Pass 1b: compute largest bucket usage and record the available room
-	 * in each bucket.
+	 * Pass 1b: lock all buckets, compute largest bucket usage and record
+	 * the available room in each bucket.
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
@@ -6101,8 +6120,10 @@ xgc(void)
 		G_PREFETCH_W(&xgctx.available[i + 1]);
 		G_PREFETCH_W(&xgctx.count[i + 1]);
 
-		if (!xgctx.locked[i])
+		if (!mutex_trylock(&fl->lock))
 			continue;
+
+		xgctx.locked[i] = TRUE;			/* Will keep bucket locked */
 
 		if G_UNLIKELY(fl->count > xgctx.largest)
 			xgctx.largest = fl->count;
