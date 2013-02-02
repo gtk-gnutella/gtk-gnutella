@@ -50,6 +50,7 @@
 #include "str.h"
 #include "thread.h"
 #include "tm.h"
+#include "tsig.h"
 #include "waiter.h"
 #include "xmalloc.h"
 
@@ -63,7 +64,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACFIMNPQRS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsACEFIMNPQRS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -72,6 +73,7 @@ usage(void)
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -C : test thread creation\n"
+		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
 		"  -I : test inter-thread waiter signaling\n"
 		"  -M : monitors tennis match via waiters\n"
@@ -960,6 +962,89 @@ test_rwlock(void)
 	fflush(stdout);
 }
 
+static bool test_signals_done;
+
+static void
+test_sighandler(int sig)
+{
+	printf("%s received signal #%d\n", thread_name(), sig);
+	fflush(stdout);
+}
+
+static void
+test_sigdone(int sig)
+{
+	printf("%s got signal #%d, will exit\n", thread_name(), sig);
+	fflush(stdout);
+
+	test_signals_done = TRUE;
+}
+
+static void *
+signalled_thread(void *unused_arg)
+{
+	tsigset_t set, oset;
+	int count = 0;
+
+	(void) unused_arg;
+
+	thread_signal(TSIG_1, test_sighandler);
+	thread_signal(TSIG_2, test_sighandler);
+	thread_signal(TSIG_3, test_sigdone);
+	thread_signal(TSIG_4, test_sighandler);
+
+	tsig_emptyset(&set);
+	tsig_addset(&set, TSIG_4);
+	thread_sigmask(TSIG_BLOCK, &set, &oset);
+
+	while (!test_signals_done) {
+		if (!thread_pause())
+			s_error("thread was not unblocked by signal");
+		if (3 == count++) {
+			printf("%s() will now get signal #4\n", G_STRFUNC);
+			fflush(stdout);
+			thread_sigmask(TSIG_SETMASK, &oset, NULL);
+		}
+	}
+
+	printf("%s() exiting\n", G_STRFUNC);
+	fflush(stdout);
+
+	return NULL;
+}
+
+static void
+test_signals(void)
+{
+	int r, i;
+
+	if (-1 != thread_kill(12, TSIG_0))		/* 12 is random constant */
+		s_error("thread #12 already exists?");
+
+	r = thread_create(signalled_thread, NULL, 0, 0);
+	for (i = 0; i < 10; i++) {
+		sleep(1);
+		if (-1 == thread_kill(r, TSIG_0))
+			s_error("thread #%d cannot be signalled: %m", r);
+		if (-1 == thread_kill(r, TSIG_4))
+			s_error("thread #%d cannot be signalled: %m", r);
+		if (-1 == thread_kill(r, (i & 0x1) ? TSIG_2 : TSIG_1))
+			s_error("thread #%d cannot be signalled: %m", r);
+	}
+
+	printf("%s() emitting each signal 100 times\n", G_STRFUNC);
+	fflush(stdout);
+
+	for (i = 0; i < 100; i++) {
+		thread_kill(r, TSIG_1);
+		thread_kill(r, TSIG_2);
+		thread_kill(r, TSIG_4);
+	}
+
+	thread_kill(r, TSIG_3);
+	thread_join(r, NULL);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -985,6 +1070,7 @@ main(int argc, char **argv)
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
+	bool signals = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -994,13 +1080,16 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACFIMNPQRST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ACEFIMNPQRST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
+			break;
+		case 'E':			/* test thread signals ("events") */
+			signals = TRUE;
 			break;
 		case 'F':			/* test thread_fork() */
 			forking = TRUE;
@@ -1080,6 +1169,9 @@ main(int argc, char **argv)
 		test_fork(TRUE);
 		test_fork(FALSE);
 	}
+
+	if (signals)
+		test_signals();
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }

@@ -43,6 +43,14 @@
  * plus provides the necessary hooks to cleanup the malloc()ed objects, the
  * thread-private data and makes sure no locks are held at strategic places.
  *
+ * It is possible to use inter-thread signals via thread_kill() and process
+ * them via handlers installed via thread_signal(), with full thread signal
+ * mask support. These inter-thread signals are implemented without relying
+ * on the underlying kernel signal support, which makes them fully portable.
+ * They are "safe" in that signals are only dispatched to threads which are
+ * not in a critical section, as delimited by locks; hence we are certain to
+ * never interrupt another thread within a critical section.
+ *
  * @author Raphael Manfredi
  * @date 2011-2013
  */
@@ -175,6 +183,10 @@ struct thread_element {
 	void *exit_value;				/**< Final thread exit value */
 	thread_exit_t exit_cb;			/**< Optional exit callback */
 	void *exit_arg;					/**< Exit callback argument */
+	tsigset_t sig_mask;				/**< Signal mask */
+	tsigset_t sig_pending;			/**< Signals pending delivery */
+	unsigned signalled;				/**< Unblocking signal events sent */
+	int in_signal_handler;			/**< Counts signal handler nesting */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint deadlocked:1;				/**< Whether thread reported deadlock */
@@ -193,6 +205,7 @@ struct thread_element {
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	spinlock_t lock;				/**< Protects concurrent updates */
+	tsighandler_t sigh[TSIG_COUNT - 1];	/**< Signal handlers */
 };
 
 static inline void
@@ -332,6 +345,24 @@ static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
 static void thread_lock_dump(const struct thread_element *te);
+
+/**
+ * Are there signals present for the thread?
+ */
+static inline bool
+thread_sig_present(const struct thread_element *te)
+{
+	return 0 != (~te->sig_mask & te->sig_pending);
+}
+
+/**
+ * Are there signals pending for the thread that can be delivered?
+ */
+static inline bool
+thread_sig_pending(const struct thread_element *te)
+{
+	return 0 == te->locks.count && thread_sig_present(te);
+}
 
 /**
  * Compare two stack pointers according to the stack growth direction.
@@ -1005,6 +1036,9 @@ thread_element_reset(struct thread_element *te)
 	te->entry = NULL;
 	te->argument = NULL;
 	te->main_thread = FALSE;
+	tsig_emptyset(&te->sig_mask);
+	tsig_emptyset(&te->sig_pending);
+	ZERO(&te->sigh);
 }
 
 /**
@@ -2298,7 +2332,88 @@ thread_wait_others(const struct thread_element *te)
 }
 
 /**
- * Check whether thread is suspended and can be suspended right now.
+ * Handle pending signals.
+ */
+static void
+thread_sig_handle(struct thread_element *te)
+{
+	tsigset_t pending;
+	int s;
+
+recheck:
+
+	/*
+	 * Load unblocked signals we have to process and clear the pending set.
+	 */
+
+	THREAD_LOCK(te);
+	pending = ~te->sig_mask & te->sig_pending;
+	te->sig_pending &= te->sig_mask;		/* Only clears unblocked signals */
+	THREAD_UNLOCK(te);
+
+	if G_UNLIKELY(0 == pending)
+		return;
+
+	/*
+	 * Signal 0 is not a signal and is used to verify whether a thread ID
+	 * is valid via thread_kill().
+	 */
+
+	for (s = 1; s < TSIG_COUNT; s++) {
+		tsighandler_t handler;
+
+		if G_LIKELY(0 == (tsig_mask(s) & pending))
+			continue;
+
+		handler = te->sigh[s - 1];
+		if G_UNLIKELY(TSIG_IGN == handler || TSIG_DFL == handler)
+			continue;
+
+		/*
+		 * Deliver signal, masking it whilst we process it to prevent
+		 * further occurrences.
+		 *
+		 * Since only the thread can manipulate its signal mask or the
+		 * in_signal_handler field, there is no need to lock the element.
+		 */
+
+		te->sig_mask |= tsig_mask(s);
+		te->in_signal_handler++;
+		(*handler)(s);
+		te->in_signal_handler--;
+		te->sig_mask &= ~tsig_mask(s);
+
+		g_assert(te->in_signal_handler >= 0);
+	}
+
+	if (thread_sig_present(te))
+		goto recheck;		/* More signals have arrived */
+}
+
+/**
+ * Check whether the current thread is within a signal handler.
+ *
+ * @return the signal handler nesting level, 0 meaning the current thread is
+ * not currently processing a signal.
+ */
+int
+thread_sighandler_level(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * Use this opportunity to check for pending signals.
+	 */
+
+	if (thread_sig_pending(te))
+		thread_sig_handle(te);
+
+	return te->in_signal_handler;
+}
+
+/**
+ * Check whether thread is suspended and can be suspended right now, or
+ * whether there are pending signals to deliver.
  */
 void
 thread_check_suspended(void)
@@ -2308,6 +2423,9 @@ thread_check_suspended(void)
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return;
+
+	if G_UNLIKELY(thread_sig_pending(te))
+		thread_sig_handle(te);
 
 	if G_UNLIKELY(te->suspend && 0 == te->locks.count)
 		thread_suspend_self(te);
@@ -3519,6 +3637,15 @@ found:
 	}
 
 	/*
+	 * If there are pending signals for the thread, handle them.
+	 */
+
+	if G_UNLIKELY(thread_sig_pending(te) && thread_lock_release(lock, kind)) {
+		thread_sig_handle(te);
+		thread_lock_reacquire(lock, kind, file, line);
+	}
+
+	/*
 	 * If the thread was not holding any locks and it has to be suspended,
 	 * now is a good (and safe) time to do it provided the lock is single
 	 * (i.e. either a spinlock or a mutex at depth one).
@@ -3785,6 +3912,13 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			thread_lock_kind_to_string(l->kind), te->stid);
 
 		tls->count--;
+
+		/*
+		 * Handle signals if any are pending and can be delivered.
+		 */
+
+		if G_UNLIKELY(thread_sig_pending(te))
+			thread_sig_handle(te);
 
 		/*
 		 * If the thread no longer holds any locks and it has to be suspended,
@@ -4451,6 +4585,7 @@ thread_element_block_until(struct thread_element *te,
 	 * If we have a time limit, poll the file descriptor first before reading.
 	 */
 
+retry:
 	if (end != NULL) {
 		long remain = tm_remaining_ms(end);
 		struct pollfd fds;
@@ -4480,7 +4615,22 @@ thread_element_block_until(struct thread_element *te,
 			G_STRFUNC, thread_element_name(te));
 	}
 
+	/*
+	 * Check whether we've been signalled.
+	 *
+	 * When a blocked thread is receiving a signal, the signal dispatching
+	 * code sets te->signalled before unblocking us.  However, this is not
+	 * a true unblocking and we need to go back waiting after processing
+	 * the signal.
+	 */
+
 	THREAD_LOCK(te);
+	if G_UNLIKELY(te->signalled != 0) {
+		te->signalled--;		/* Consumed one signaling byte */
+		THREAD_UNLOCK(te);
+		thread_sig_handle(te);
+		goto retry;
+	}
 	te->blocked = FALSE;
 	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
@@ -4657,6 +4807,7 @@ struct thread_launch_context {
 	struct thread_element *te;
 	thread_main_t routine;
 	void *arg;
+	tsigset_t sig_mask;
 };
 
 /**
@@ -4808,6 +4959,7 @@ thread_launch_trampoline(void *arg)
 
 	u.ctx = arg;
 	thread_launch_register(u.ctx->te);
+	u.ctx->te->sig_mask = u.ctx->sig_mask;	/* Inherit parent's signal mask */
 
 	/*
 	 * Because we know the stack shape, we'll be able to record locks on it
@@ -4855,6 +5007,7 @@ thread_launch(struct thread_element *te,
 	pthread_attr_t attr;
 	pthread_t t;
 	struct thread_launch_context *ctx;
+	const struct thread_element *tself;
 	size_t stacksize;
 
 	pthread_attr_init(&attr);
@@ -4948,10 +5101,13 @@ thread_launch(struct thread_element *te,
 
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+	tself = thread_get_element();
+
 	WALLOC(ctx);
 	ctx->te = te;
 	ctx->routine = routine;
 	ctx->arg = arg;
+	ctx->sig_mask = tself->sig_mask;		/* Inherit signal mask */
 
 	xmalloc_thread_starting(te->stid);
 	error = pthread_create(&t, &attr, thread_launch_trampoline, ctx);
@@ -5079,6 +5235,7 @@ void
 thread_exit(void *value)
 {
 	struct thread_element *te = thread_get_element();
+	tsigset_t set;
 
 	g_assert(pthread_equal(te->ptid, pthread_self()));
 	g_assert(thread_eq(te->tid, thread_self()));
@@ -5108,6 +5265,13 @@ thread_exit(void *value)
 	 */
 
 	thread_private_clear(te);
+
+	/*
+	 * Thread is exiting, block all signals now.
+	 */
+
+	tsig_fillset(&set);
+	te->sig_mask = set;
 
 	/*
 	 * Invoke any registered exit notification callback.
@@ -5338,6 +5502,238 @@ thread_join_try(unsigned id, void **result)
 }
 
 /**
+ * Install thread-specific signal handler for our signals.
+ *
+ * If the handler is TSIG_IGN, then the signal will be ignored.
+ * If the handler is TSIG_DFL, then the default behaviour is used.
+ *
+ * Currently, no signal has any architected meaning, so TSIG_DFL will simply
+ * cause the signal to be ignored.
+ *
+ * Signals are not delivered immediately but only when the thread is calling
+ * thread_check_suspended(), is taking/releasing locks, is blocked -- either
+ * in thread_pause() or other routines that call thread_block_self().
+ *
+ * @param signum		one of the TSIG_xxx signals
+ * @param handler		new signal handler to install
+ *
+ * @return previous signal handler, or TSIG_ERR with errno set.
+ */
+tsighandler_t
+thread_signal(int signum, tsighandler_t handler)
+{
+	struct thread_element *te = thread_get_element();
+	tsighandler_t old;
+
+	if G_UNLIKELY(signum <= 0 || signum >= TSIG_COUNT) {
+		errno = EINVAL;
+		return TSIG_ERR;
+	}
+
+	/*
+	 * Signal 0 is not a real signal and is not present in sigh[].
+	 */
+
+	old = te->sigh[signum - 1];
+	te->sigh[signum - 1] = handler;
+
+	if G_UNLIKELY(thread_sig_pending(te))
+		thread_sig_handle(te);
+
+	return old;
+}
+
+/**
+ * Send signal to specified thread.
+ *
+ * The signal will be processed when the target thread does not hold any lock,
+ * hence the signal handler cannot deadlock.
+ *
+ * @param id		the small thread ID of the target (can be self)
+ * @param signum	the signal to send
+ *
+ * @return 0 if OK, -1 with errno set otherwise.
+ */
+int
+thread_kill(unsigned id, int signum)
+{
+	struct thread_element *te;
+
+	if G_UNLIKELY(signum < 0 || signum >= TSIG_COUNT) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	te = thread_get_element_by_id(id);
+	if (NULL == te)
+		return -1;		/* errno set by thread_get_element_by_id() */
+
+	if G_LIKELY(TSIG_0 != signum) {
+		bool unblock = FALSE;
+
+		THREAD_LOCK(te);
+		te->sig_pending |= tsig_mask(signum);
+
+		/*
+		 * If the thread is blocked and has pending signals, then unblock it.
+		 */
+
+		if G_UNLIKELY(te->blocked && thread_sig_present(te)) {
+			/*
+			 * Only send one "signal pending" unblocking byte.
+			 */
+
+			if (0 == te->signalled) {
+				te->signalled++;		/* About to send an unblocking byte */
+				unblock = TRUE;
+			}
+		}
+		THREAD_UNLOCK(te);
+
+		/*
+		 * The unblocking byte is sent outside the critical section, but
+		 * we already increment the te->signalled field.  Therefore, regardless
+		 * of whether somebody already unblocked the thread since we checked,
+		 * the unblocked thread will go back to sleep, until we resend an
+		 * unblocking byte, and no event will be lost.
+		 *
+		 * See the critical section in thread_block_self() after calling read().
+		 */
+
+		if G_UNLIKELY(unblock) {
+			char c = '\0';
+			if (-1 == s_write(te->wfd[1], &c, 1)) {
+				s_minicarp("%s(): cannot unblock %s to send signal: %m",
+					G_STRFUNC, thread_element_name(te));
+			}
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Manipulate the current thread's signal mask.
+ *
+ * There are four operations defined, as specified by ``how'':
+ *
+ * TSIG_GETMASK		returns current mask in ``os'', ``s'' is ignored.
+ * TSIG_SETMASK		sets mask to ``s''
+ * TSIG_BLOCK		block signals specified in ``s''
+ * TSIG_UNBLOCK		unblock signals specified in ``s''
+ *
+ * @param how		the operation to perform
+ * @param s			the set operand
+ * @param os		if non-NULL, always positionned with the previous mask
+ */
+void
+thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (os != NULL)
+		*os = te->sig_mask;
+
+	switch (how) {
+	case TSIG_GETMASK:
+		goto done;
+	case TSIG_SETMASK:
+		g_assert(s != NULL);
+		te->sig_mask = *s;
+		goto done;
+	case TSIG_BLOCK:
+		g_assert(s != NULL);
+		te->sig_mask |= *s & (tsig_mask(TSIG_COUNT) - 1);
+		goto done;
+	case TSIG_UNBLOCK:
+		g_assert(s != NULL);
+		te->sig_mask &= ~(*s & (tsig_mask(TSIG_COUNT) - 1));
+		goto done;
+	}
+
+	g_assert_not_reached();
+
+done:
+	if G_UNLIKELY(thread_sig_pending(te))
+		thread_sig_handle(te);
+}
+
+/**
+ * Block thread until a signal is received or until we are explicitly unblocked.
+ *
+ * @return TRUE if we were unblocked by a signal.
+ */
+bool
+thread_pause(void)
+{
+	struct thread_element *te = thread_get_element();
+	bool signalled;
+	char c;
+
+	g_assert(!te->blocked);
+
+	/*
+	 * If the thread has any registered lock, panic with the list of locks.
+	 */
+
+	if (0 != te->locks.count) {
+		s_miniwarn("%s(): %s currently holds %zu lock%s",
+			G_STRFUNC, thread_element_name(te), te->locks.count,
+			1 == te->locks.count ? "" : "s");
+		thread_lock_dump(te);
+		s_minierror("attempt to pause thread whilst holding locks");
+	}
+
+	/*
+	 * Make sure the main thread never attempts to block itself if it
+	 * has not explicitly told us it can block.
+	 */
+
+	if (thread_main_stid == te->stid && !thread_main_can_block)
+		s_minierror("%s() called from non-blockable main thread", G_STRFUNC);
+
+	/*
+	 * This is mostly the same logic as thread_block_self() although we
+	 * do not care about the unblock event count.
+	 */
+
+	thread_block_init(te);
+
+	THREAD_LOCK(te);
+	te->blocked = TRUE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
+	if (-1 == s_read(te->wfd[0], &c, 1)) {
+		s_minierror("%s(): %s could not block itself: %m",
+			G_STRFUNC, thread_element_name(te));
+	}
+
+	/*
+	 * Check whether we've been signalled.
+	 *
+	 * When a blocked thread is receiving a signal, the signal dispatching
+	 * code sets te->signalled before unblocking us.
+	 */
+
+	THREAD_LOCK(te);
+	te->blocked = FALSE;
+	te->unblocked = FALSE;
+	if G_UNLIKELY(te->signalled != 0) {
+		te->signalled--;		/* Consumed one signaling byte */
+		signalled = TRUE;
+	} else {
+		signalled = FALSE;
+	}
+	THREAD_UNLOCK(te);
+
+	if (signalled)
+		thread_sig_handle(te);
+
+	return signalled;
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
@@ -5362,6 +5758,8 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->suspended = te->suspended;
 	info->blocked = te->blocked;
 	info->main_thread = te->main_thread;
+	info->sig_mask = te->sig_mask;
+	info->sig_pending = te->sig_pending;
 }
 
 /**

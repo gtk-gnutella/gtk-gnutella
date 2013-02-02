@@ -34,6 +34,8 @@
 #ifndef _thread_h_
 #define _thread_h_
 
+#include "tsig.h"		/* For tsigset_t */
+
 /**
  * Free routine for thread-private values.
  */
@@ -117,12 +119,24 @@ typedef struct thread_info {
 	size_t locks;				/**< Amount of locks registered */
 	func_ptr_t entry;			/**< Thread entry point, NULL if discovered */
 	void *exit_value;			/**< Exit value, if exited, NULL otherwise */
+	tsigset_t sig_mask;			/**< Signal mask */
+	tsigset_t sig_pending;		/**< Signals pending delivery */
 	uint discovered:1;			/**< Was thread discovered or created? */
 	uint exited:1;				/**< Whether thread has exited */
 	uint suspended:1;			/**< Whether thread is suspended */
 	uint blocked:1;				/**< Whether thread is (voluntarily) blocked */
 	uint main_thread:1;			/**< Whether this is the main thread */
 } thread_info_t;
+
+/**
+ * Thread signal mask handling.
+ */
+enum thread_sighow {
+	TSIG_GETMASK,				/**< Get current signal mask */
+	TSIG_BLOCK,					/**< Add signals to the thread's signal mask */
+	TSIG_UNBLOCK,				/**< Remove signals from the thread's mask */
+	TSIG_SETMASK				/**< Set thread's signal mask explicitly */
+};
 
 /*
  * Public interface.
@@ -203,6 +217,12 @@ int thread_get_info(unsigned stid, thread_info_t *info);
 void thread_current_info(thread_info_t *info);
 const char *thread_info_to_string_buf(
 	const thread_info_t *info, char buf[], size_t len);
+
+void thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os);
+int thread_kill(unsigned id, int signum);
+tsighandler_t thread_signal(int signum, tsighandler_t handler);
+int thread_sighandler_level(void);
+bool thread_pause(void);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 
