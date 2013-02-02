@@ -34,6 +34,7 @@
 
 #include "aq.h"
 #include "atomic.h"
+#include "barrier.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "cond.h"
@@ -52,6 +53,7 @@
 #include "tm.h"
 #include "tsig.h"
 #include "waiter.h"
+#include "walloc.h"
 #include "xmalloc.h"
 
 const char *progname;
@@ -64,7 +66,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsACEFIMNPQRS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsABCEFIMNPQRS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -72,6 +74,7 @@ usage(void)
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -t : timeout value (ms) for condition waits\n"
 		"  -A : use asynchronous exit callbacks\n"
+		"  -B : test synchronization barriers\n"
 		"  -C : test thread creation\n"
 		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
@@ -1045,6 +1048,113 @@ test_signals(void)
 	thread_join(r, NULL);
 }
 
+static int counter;
+
+struct computer_arg {
+	int n;
+	barrier_t *b;
+};
+
+static void *
+computer_thread(void *arg)
+{
+	struct computer_arg *ca = arg;
+	int n = ca->n;
+	barrier_t *cb = ca->b;
+
+	barrier_refcnt_inc(cb);
+	g_assert(0 == counter);
+
+	printf("%s(%d) started as %s\n", G_STRFUNC, n, thread_name());
+	fflush(stdout);
+
+	thread_signal(TSIG_1, test_sighandler);
+	WFREE(ca);
+	barrier_wait(cb);
+
+	printf("%s(%d) incrementing counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&counter));
+	fflush(stdout);
+	atomic_int_inc(&counter);
+
+	barrier_wait(cb);
+
+	printf("%s(%d) reincrementing counter=%d\n", G_STRFUNC, n,
+		atomic_int_get(&counter));
+	fflush(stdout);
+	atomic_int_inc(&counter);
+
+	barrier_wait(cb);
+	barrier_free_null(&cb);
+
+	printf("%s(%d) exiting\n", G_STRFUNC, n);
+	fflush(stdout);
+
+	return NULL;
+}
+
+static void
+test_barrier_one(bool emulated)
+{
+	int t[2], i, n;
+	barrier_t *cb;
+
+	n = (int) G_N_ELEMENTS(t);
+	cb = barrier_new_full(n + 1, emulated);
+	counter = 0;
+
+	for (i = 0; i < n; i++) {
+		struct computer_arg *ca;
+		WALLOC(ca);
+		ca->n = i;
+		ca->b = cb;
+		t[i] = thread_create(computer_thread, ca, THREAD_F_DETACH, 0);
+		if (-1 == t[i])
+			s_error("cannot create processor thread %u: %m", i);
+	}
+
+	sleep(1);					/* Wait until threads have started */
+	g_assert(0 == counter);		/* Nobody can change that before the barrier */
+
+	barrier_wait(cb);
+	printf("%s() reached barrier the first time: threads started\n", G_STRFUNC);
+	fflush(stdout);
+
+	barrier_master_wait(cb);
+	printf("%s() reached barrier the second time as master\n", G_STRFUNC);
+	fflush(stdout);
+
+	for (i = 0; i < n; i++) {
+		if (-1 == thread_kill(t[i], TSIG_1))
+			s_error("cannot signal processor thread %u: %m", i);
+	}
+
+	g_assert(n == counter);		/* We're the master thread */
+	sleep(1);					/* and we're the only thread running */
+	atomic_int_inc(&counter);
+	g_assert(n + 1 == counter);	/* We're the master thread */
+
+	printf("%s() releasing threads, counter=%d\n", G_STRFUNC, counter);
+	fflush(stdout);
+	barrier_release(cb);
+
+	barrier_wait(cb);
+	barrier_free_null(&cb);
+	printf("%s() computation done, counter=%d (expected is %d)\n",
+		G_STRFUNC, counter, 2 * n  + 1);
+	g_assert(2 * n + 1 == counter);
+}
+
+static void
+test_barrier(unsigned repeat, bool emulated)
+{
+	unsigned i;
+
+	for (i = 0; i < repeat; i++) {
+		test_barrier_one(emulated);
+	}
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -1070,7 +1180,7 @@ main(int argc, char **argv)
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
-	bool signals = FALSE;
+	bool signals = FALSE, barrier = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -1080,10 +1190,13 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ACEFIMNPQRST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNPQRST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
+			break;
+		case 'B':			/* test synchronization barriers */
+			barrier = TRUE;
 			break;
 		case 'C':			/* test thread creation */
 			create = TRUE;
@@ -1172,6 +1285,9 @@ main(int argc, char **argv)
 
 	if (signals)
 		test_signals();
+
+	if (barrier)
+		test_barrier(repeat, emulated);
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }

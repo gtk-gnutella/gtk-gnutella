@@ -587,6 +587,8 @@ src/lib/ascii.h
 src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
+src/lib/barrier.c
+src/lib/barrier.h
 src/lib/base16.c
 src/lib/base16.h
 src/lib/base32.c

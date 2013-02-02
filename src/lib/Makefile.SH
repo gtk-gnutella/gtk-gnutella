@@ -123,6 +123,7 @@ LSRC = \
 	arc4random.c \
 	ascii.c \
 	atoms.c \
+	barrier.c \
 	base16.c \
 	base32.c \
 	base64.c \
@@ -285,6 +286,7 @@ LOBJ = \
 	arc4random.o \
 	ascii.o \
 	atoms.o \
+	barrier.o \
 	base16.o \
 	base32.o \
 	base64.o \

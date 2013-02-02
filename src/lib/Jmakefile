@@ -66,6 +66,7 @@ LSRC = \
 	arc4random.c \
 	ascii.c \
 	atoms.c \
+	barrier.c \
 	base16.c \
 	base32.c \
 	base64.c \
