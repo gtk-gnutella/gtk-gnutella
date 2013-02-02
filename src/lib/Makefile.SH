@@ -257,6 +257,7 @@ LSRC = \
 	tigertree.c \
 	timestamp.c \
 	tm.c \
+	tsig.c \
 	url.c \
 	url_factory.c \
 	urn.c \
@@ -418,6 +419,7 @@ LOBJ = \
 	tigertree.o \
 	timestamp.o \
 	tm.o \
+	tsig.o \
 	url.o \
 	url_factory.o \
 	urn.o \
