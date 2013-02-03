@@ -37,11 +37,6 @@
 #include "tsig.h"		/* For tsigset_t */
 
 /**
- * Free routine for thread-private values.
- */
-typedef void (*thread_pvalue_free_t)(void *value, void *arg);
-
-/**
  * Main entry point for thread_create().
  */
 typedef void *(*thread_main_t)(void *arg);
@@ -54,16 +49,29 @@ typedef void (*thread_exit_t)(void *result, void *earg);
 
 typedef unsigned long thread_t;
 typedef size_t thread_qid_t;		/* Quasi Thread ID */
+typedef unsigned int thread_key_t;	/* Local thread storage key */
 
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
 #define THREAD_STACK_MIN	32768	/**< Minimum stack requested (32 KiB) */
 #define THREAD_STACK_DFLT	524288	/**< Default stack requested (512 KiB) */
+#define THREAD_LOCAL_MAX	1024	/**< Max amount of thread-local keys */
 
 /**
  * Thread creation flags.
  */
 #define THREAD_F_DETACH		(1U << 0)	/**< Create a detached thread */
 #define THREAD_F_ASYNC_EXIT	(1U << 1)	/**< Exit callback delivered by main */
+
+/**
+ * Special free routine for thread-local value which indicates that the
+ * thread-local entry must not be reclaimed when the thread exists.
+ */
+#define THREAD_LOCAL_KEEP	((free_fn_t) 1)
+
+/**
+ * Invalid key, for static initialization.
+ */
+#define THREAD_KEY_INIT		((thread_key_t) -1)
 
 #ifdef I_PTHREAD
 #include <pthread.h>
@@ -168,7 +176,17 @@ bool thread_private_remove(const void *key);
 void thread_private_add(const void *key, const void *value);
 void thread_private_add_permanent(const void *key, const void *value);
 void thread_private_add_extended(const void *key, const void *value,
-	thread_pvalue_free_t p_free, void *p_arg);
+	free_data_fn_t p_free, void *p_arg);
+void thread_private_update_extended(const void *key, const void *value,
+	free_data_fn_t p_free, void *p_arg, bool existing);
+void thread_private_set(const void *key, const void *value);
+void thread_private_set_extended(const void *key, const void *value,
+	free_data_fn_t p_free, void *p_arg);
+
+int thread_local_key_create(thread_key_t *key, free_fn_t freecb);
+void thread_local_key_delete(thread_key_t key);
+void thread_local_set(thread_key_t key, const void *value);
+void *thread_local_get(thread_key_t key);
 
 void thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line, const void *element);

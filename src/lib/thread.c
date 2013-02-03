@@ -51,6 +51,20 @@
  * not in a critical section, as delimited by locks; hence we are certain to
  * never interrupt another thread within a critical section.
  *
+ * We support two APIs for thread-private data:
+ *
+ * - via thread_private_xxx() routines (unlimited amount, flexible, slower)
+ * - via thread_local_xxx() routines (limited amount, rigid, faster)
+ *
+ * The thread_private_xxx() flavour is implemented as a hash table and does
+ * not require pre-declaration of keys.  Each value can also be given a
+ * dedicated free routine, with an additional contextual argument that can vary.
+ *
+ * The thread_local_xxx() flavour is implemented as a sparse array and requires
+ * pre-declaration of keys,  All the values associated to a given key must share
+ * the same free routine and there is no provision for an additional contextual
+ * argument.
+ *
  * @author Raphael Manfredi
  * @date 2011-2013
  */
@@ -144,15 +158,41 @@ struct thread_lock_stack {
  */
 struct thread_pvalue {
 	void *value;					/**< The actual value */
-	thread_pvalue_free_t p_free;	/**< Optional free routine */
+	free_data_fn_t p_free;			/**< Optional free routine */
 	void *p_arg;					/**< Optional argument to free routine */
+};
+
+/**
+ * A thread-local key slot.
+ */
+struct thread_lkey {
+	bool used;						/**< Is key slot used? */
+	free_fn_t freecb;				/**< Optional free routine */
 };
 
 /**
  * Special free routine for thread-private value which indicates that the
  * thread-private entry must not be reclaimed when the thread exists.
  */
-#define THREAD_PRIVATE_KEEP		((thread_pvalue_free_t) 1)
+#define THREAD_PRIVATE_KEEP		((free_data_fn_t) 1)
+
+/**
+ * Thread local storage is organized as a sparse array with 1 level of
+ * indirection, so as to not waste memory when only a fraction of the
+ * whole key space is used.
+ *
+ * For instance, if L1_SIZE=8 and L2_SIZE=8, we can store 8*8 = 64 values
+ * max per thread.  Keys 0..7 are in the page referenced at slot=0 in the L1
+ * page.  Keys 8..15 are in the page referenced at slot=1, etc...
+ */
+#define THREAD_LOCAL_L2_SIZE	32
+#define THREAD_LOCAL_L1_SIZE \
+	((THREAD_LOCAL_MAX + THREAD_LOCAL_L2_SIZE - 1) / THREAD_LOCAL_L2_SIZE)
+
+#define THREAD_LOCAL_INVALID	((free_fn_t) 2)
+
+static struct thread_lkey thread_lkeys[THREAD_LOCAL_MAX];
+static spinlock_t thread_local_slk = SPINLOCK_INIT;
 
 enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
 
@@ -207,7 +247,9 @@ struct thread_element {
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
 	cond_t *cond;					/**< Condition on which thread waits */
 	spinlock_t lock;				/**< Protects concurrent updates */
-	tsighandler_t sigh[TSIG_COUNT - 1];	/**< Signal handlers */
+	spinlock_t local_slk;			/**< Protects concurrent updates */
+	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
+	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
 };
 
 static inline void
@@ -768,6 +810,79 @@ thread_private_clear_warn(struct thread_element *te)
 }
 
 /**
+ * Clear all the thread-local variables in the specified thread.
+ *
+ * @return the amount of thread-local variables that were cleared.
+ */
+static size_t
+thread_local_clear(struct thread_element *te)
+{
+	unsigned l1;
+	size_t cleared = 0;
+
+	spinlock_hidden(&te->local_slk);
+
+	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
+		void **l2page = te->locals[l1];
+
+		if G_UNLIKELY(l2page != NULL) {
+			int l2;
+
+			for (l2 = 0; l2 < THREAD_LOCAL_L2_SIZE; l2++) {
+				void *val = l2page[l2];
+
+				if G_UNLIKELY(val != NULL) {
+					thread_key_t k = l1 * THREAD_LOCAL_L1_SIZE + l2;
+					free_fn_t freecb = NULL;
+
+					/*
+					 * Always get the ``thread_local_slk'' lock before
+					 * reading the thread_lkeys[] array to prevent any
+					 * race since two values must be atomically fetched.
+					 */
+
+					spinlock_hidden(&thread_local_slk);
+					if G_LIKELY(thread_lkeys[k].used)
+						freecb = thread_lkeys[k].freecb;
+					spinunlock_hidden(&thread_local_slk);
+
+					if G_LIKELY(freecb != THREAD_LOCAL_KEEP) {
+						l2page[l2] = NULL;
+						cleared++;
+
+						if G_LIKELY(freecb != NULL)
+							(*freecb)(val);
+					}
+				}
+			}
+		}
+	}
+
+	spinunlock_hidden(&te->local_slk);
+
+	return cleared;
+}
+
+/**
+ * Clear all the thread-local variables in the specified thread,
+ * warning if we have any.
+ */
+static void
+thread_local_clear_warn(struct thread_element *te)
+{
+	size_t cnt;
+
+	cnt = thread_local_clear(te);
+
+	if G_UNLIKELY(cnt != 0) {
+		s_miniwarn("cleared %zu thread-local variable%s in %s thread #%u",
+			cnt, 1 == cnt ? "" : "s",
+			te->created ? "created" : te->discovered ? "discovered" : "bad",
+			te->stid);
+	}
+}
+
+/**
  * Allocate the stack for a created thread.
  */
 static void
@@ -1093,6 +1208,7 @@ thread_element_common_init(struct thread_element *te, thread_t t)
 	te->valid = TRUE;
 	thread_stid_tie(te->stid, t);
 	thread_private_clear_warn(te);
+	thread_local_clear_warn(te);
 
 	/*
 	 * Make sure no other thread element bears that thread_t.
@@ -1280,6 +1396,7 @@ thread_new_element(unsigned stid)
 	te->stid = stid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	spinlock_init(&te->lock);
+	spinlock_init(&te->local_slk);
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;						/* Minimally ready */
 	te->discovered = TRUE;					/* Assume it was discovered */
@@ -1363,6 +1480,7 @@ thread_main_element(thread_t t)
 	te->main_thread = TRUE;
 	te->name = "main";
 	spinlock_init(&te->lock);
+	spinlock_init(&te->local_slk);
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
@@ -2895,7 +3013,7 @@ thread_private_remove(const void *key)
  */
 void
 thread_private_update_extended(const void *key, const void *value,
-	thread_pvalue_free_t p_free, void *p_arg, bool existing)
+	free_data_fn_t p_free, void *p_arg, bool existing)
 {
 	hash_table_t *pht;
 	struct thread_pvalue *pv;
@@ -2946,7 +3064,7 @@ thread_private_update_extended(const void *key, const void *value,
  */
 void
 thread_private_add_extended(const void *key, const void *value,
-	thread_pvalue_free_t p_free, void *p_arg)
+	free_data_fn_t p_free, void *p_arg)
 {
 	thread_private_update_extended(key, value, p_free, p_arg, FALSE);
 }
@@ -2984,7 +3102,7 @@ thread_private_add_permanent(const void *key, const void *value)
  */
 void
 thread_private_set_extended(const void *key, const void *value,
-	thread_pvalue_free_t p_free, void *p_arg)
+	free_data_fn_t p_free, void *p_arg)
 {
 	thread_private_update_extended(key, value, p_free, p_arg, TRUE);
 }
@@ -3009,6 +3127,226 @@ void
 thread_private_set(const void *key, const void *value)
 {
 	thread_private_update_extended(key, value, NULL, NULL, TRUE);
+}
+
+/**
+ * Create a new key for thread-local storage.
+ *
+ * If the free-routine is THREAD_LOCAL_KEEP, then the value will not be
+ * reclaimed when the thread exits and the value not reset to NULL, until
+ * the key is destroyed (at which time the value will leak since it does not
+ * have a valid free-routine)..
+ *
+ * @param key		the key to initialize
+ * @param freecb	the free-routine to invoke for values stored under key
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+thread_local_key_create(thread_key_t *key, free_fn_t freecb)
+{
+	unsigned i;
+
+	STATIC_ASSERT(THREAD_LOCAL_KEEP != NULL);
+	STATIC_ASSERT(THREAD_LOCAL_KEEP != THREAD_LOCAL_INVALID);
+
+	spinlock(&thread_local_slk);
+
+	for (i = 0; i < THREAD_LOCAL_MAX; i++) {
+		if (!thread_lkeys[i].used) {
+			thread_lkeys[i].used = TRUE;
+			thread_lkeys[i].freecb = freecb;
+			spinunlock(&thread_local_slk);
+			*key = i;
+			return 0;
+		}
+	}
+
+	spinunlock(&thread_local_slk);
+	errno = EAGAIN;
+	return -1;
+}
+
+/**
+ * Delete a key used for thread-local storage.
+ *
+ * @param key		the key to delete
+ */
+void
+thread_local_key_delete(thread_key_t key)
+{
+	int l1, l2;
+	unsigned i;
+	free_fn_t freecb;
+
+	g_assert(key < THREAD_LOCAL_MAX);
+
+	spinlock(&thread_local_slk);
+
+	if G_UNLIKELY(!thread_lkeys[key].used) {
+		spinunlock(&thread_local_slk);
+		return;
+	}
+
+	freecb = thread_lkeys[key].freecb;
+
+	/*
+	 * Compute the index of the key on the L1 and L2 pages.
+	 */
+
+	l1 = key / THREAD_LOCAL_L2_SIZE;
+	l2 = key % THREAD_LOCAL_L2_SIZE;
+
+	/*
+	 * Go through all the known running threads and delete the key in the
+	 * thread if present, then reset the slot to NULL.
+	 *
+	 * This procedure is necessary because should the key be reassigned, all
+	 * the running threads will now have a default NULL value.
+	 *
+	 * We're grabbing a second lock to ensure nobody registers a new thread,
+	 * but no deadlock can occur because the thread registering code is never
+	 * going to grab the ``thread_local_slk'' lock.
+	 */
+
+	mutex_lock(&thread_insert_mtx);
+
+	for (i = 0; i < thread_next_stid; i++) {
+		struct thread_element *te = threads[i];
+		void **l2page;
+
+		THREAD_LOCK(te);
+
+		if G_UNLIKELY(!te->valid || te->reusable) {
+			THREAD_UNLOCK(te);
+			continue;
+		}
+
+		l2page = te->locals[l1];
+		THREAD_UNLOCK(te);
+
+		if G_LIKELY(l2page != NULL) {
+			void *val;
+
+			spinlock_hidden(&te->local_slk);
+			val = l2page[l2];
+			l2page[l2] = NULL;
+			spinunlock_hidden(&te->local_slk);
+
+			if G_LIKELY(
+				val != NULL &&
+				freecb != NULL && freecb != THREAD_LOCAL_KEEP
+			)
+				(*freecb)(val);
+		}
+	}
+
+	mutex_unlock(&thread_insert_mtx);
+
+	/*
+	 * Reset the key.
+	 */
+
+	thread_lkeys[key].used = FALSE;
+	thread_lkeys[key].freecb = NULL;
+
+	spinunlock(&thread_local_slk);
+}
+
+/**
+ * Set the value for a key.
+ *
+ * If the new value is different than the old and there is a free routine
+ * registered for the key, it is invoked on the old value before setting
+ * the new value.
+ */
+void
+thread_local_set(thread_key_t key, const void *value)
+{
+	struct thread_element *te = thread_get_element();
+	int l1, l2;
+	void **l2page;
+	void *val;
+	free_fn_t freecb;
+
+	g_assert(key < THREAD_LOCAL_MAX);
+	g_assert_log(thread_lkeys[key].used,
+		"%s() called with unused key %u", G_STRFUNC, key);
+
+	/*
+	 * Compute the index of the key on the L1 and L2 pages.
+	 */
+
+	l1 = key / THREAD_LOCAL_L2_SIZE;
+	l2 = key % THREAD_LOCAL_L2_SIZE;
+
+	/*
+	 * Allocate the L2 page if needed (never freed).
+	 */
+
+	l2page = te->locals[l1];
+
+	if G_UNLIKELY(NULL == l2page) {
+		OMALLOC0_ARRAY(l2page, THREAD_LOCAL_L2_SIZE);
+		te->locals[l1] = l2page;
+	}
+
+	/*
+	 * Make sure nobody is concurrently deleting the key, now that we checked
+	 * it existed when we entered.
+	 */
+
+	spinlock_hidden(&thread_local_slk);
+
+	if G_LIKELY(thread_lkeys[key].used) {
+		spinlock_hidden(&te->local_slk);
+		val = l2page[l2];
+		l2page[l2] = deconstify_pointer(value);
+		spinunlock_hidden(&te->local_slk);
+
+		freecb = thread_lkeys[key].freecb;
+	} else {
+		freecb = THREAD_LOCAL_INVALID;
+	}
+
+	spinunlock_hidden(&thread_local_slk);
+
+	if G_UNLIKELY(THREAD_LOCAL_INVALID == freecb)
+		s_minierror("%s(): key %u was concurrently deleted", G_STRFUNC, key);
+
+	if G_UNLIKELY(
+		val != NULL && val != value &&
+		freecb != NULL && freecb != THREAD_LOCAL_KEEP
+	)
+		(*freecb)(val);
+}
+
+/**
+ * Get thread-local value for key.
+ *
+ * @return the key value or NULL if the key does not exist.
+ */
+void *
+thread_local_get(thread_key_t key)
+{
+	struct thread_element *te = thread_get_element();
+	int l1, l2;
+	void **l2page;
+
+	g_assert(key < THREAD_LOCAL_MAX);
+
+	/*
+	 * Fetch the L2 page in the sparse array.
+	 */
+
+	l1 = key / THREAD_LOCAL_L2_SIZE;
+	l2 = key % THREAD_LOCAL_L2_SIZE;
+	l2page = te->locals[l1];
+
+	if G_UNLIKELY(NULL == l2page || !thread_lkeys[key].used)
+		return NULL;
+
+	return l2page[l2];
 }
 
 /**
@@ -5319,14 +5657,16 @@ thread_exit(void *value)
 	}
 
 	/*
-	 * When a thread exits, all its thread-private variables are reclaimed.
+	 * When a thread exits, all its thread-private and thread-local variables
+	 * are reclaimed.
 	 *
-	 * The keys are constants (static strings, pointers to static objects)
-	 * but values are dynamically allocated and can have a free routine
-	 * attached.
+	 * The keys are constants (static strings, pointers to static objects for
+	 * thread-private, opaque constants for thread-local) but values are
+	 * dynamically allocated and can have a free routine attached.
 	 */
 
 	thread_private_clear(te);
+	thread_local_clear(te);
 
 	/*
 	 * Thread is exiting, block all signals now.
