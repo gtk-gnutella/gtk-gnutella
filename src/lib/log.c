@@ -60,6 +60,7 @@
 #include "common.h"
 
 #include "log.h"
+#include "atio.h"
 #include "atomic.h"
 #include "atoms.h"
 #include "ckalloc.h"
@@ -92,6 +93,8 @@ static bool log_inited;
 static str_t *log_str;
 static thread_key_t log_okey = THREAD_KEY_INIT;
 static once_flag_t log_okey_inited;
+static thread_key_t log_strkey = THREAD_KEY_INIT;
+static once_flag_t log_strkey_inited;
 
 /**
  * A Log file we manage.
@@ -445,7 +448,7 @@ log_okey_init(void)
 }
 
 /**
- * Get suitable thread-private logging data descriptor.
+ * Get suitable thread-local logging data descriptor.
  *
  * @param once		if TRUE, don't record the object as it will be used once
  *
@@ -468,6 +471,52 @@ logthread_object(bool once)
 
 	logthread_check(lt);
 	return lt;
+}
+
+/**
+ * Allocate local log formatting string object.
+ */
+static str_t *
+log_string_alloc(void)
+{
+	/*
+	 * We set a reasonable initial size, but this string can dynamically
+	 * grow and has no upper limit.
+	 */
+
+	return str_new_not_leaking(LOG_MSG_MAXLEN);
+}
+
+/**
+ * Create the log string key, once.
+ */
+static void
+log_strkey_init(void)
+{
+	if (-1 == thread_local_key_create(&log_strkey, THREAD_LOCAL_KEEP))
+		s_minierror("cannot initialize logstring object key: %m");
+}
+
+/**
+ * Get suitable thread-local logging string.
+ *
+ * @return valid logging string object for the current thread.
+ */
+static str_t *
+logstring_object(void)
+{
+	str_t *s;
+
+	ONCE_FLAG_RUN(log_strkey_inited, log_strkey_init);
+
+	s = thread_local_get(log_strkey);
+
+	if G_UNLIKELY(NULL == s) {
+		s = log_string_alloc();
+		thread_local_set(log_strkey, s);
+	}
+
+	return s;
 }
 
 /**
@@ -520,6 +569,8 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	struct logfile *lf;
 	char buf[32];
 	const char *tprefix;
+	str_t *ls;
+	ssize_t w;
 
 #define FORMAT_STR	"%02d-%02d-%02d %.2d:%.2d:%.2d (%s)%s%s: %s\n"
 
@@ -543,50 +594,42 @@ log_fprint(enum log_file which, const struct tm *ct, GLogLevelFlags level,
 	 * allocation and stdio.
 	 */
 
-	if G_UNLIKELY(log_str != NULL) {
-		ssize_t w;
+	if G_UNLIKELY(log_str != NULL)
+		ls = log_str;
+	else
+		ls = logstring_object();
 
-		str_printf(log_str, FORMAT_STR,
-			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
-			ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
-			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-			msg);
+	str_printf(ls, FORMAT_STR,
+		(TM_YEAR_ORIGIN + ct->tm_year) % 100,
+		ct->tm_mon + 1, ct->tm_mday,
+		ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
+		(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
+		(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
+		msg);
 
-		w = write(fileno(lf->f), str_2c(log_str), str_len(log_str));
+	/*
+	 * Unfortunately, output made by two threads can intermix, i.e. the
+	 * write() system call is not atomically flushing all the bytes to
+	 * the file.  Hence use our own atio_write() routine.
+	 */
 
-		if G_UNLIKELY((ssize_t) -1 == w) {
-			lf->ioerror = TRUE;
-			lf->etime = tm_time();
-		}
+	w = atio_write(fileno(lf->f), str_2c(ls), str_len(ls));
 
-		/*
-		 * When duplication is configured, write a copy of the message
-		 * without any timestamp and debug level tagging.
-		 */
+	if G_UNLIKELY((ssize_t) -1 == w) {
+		lf->ioerror = TRUE;
+		lf->etime = tm_time();
+	}
 
-		if (lf->duplicate) {
-			iovec_t iov[2];
-			iovec_set(&iov[0], msg, strlen(msg));
-			iovec_set(&iov[1], "\n", 1);
-			IGNORE_RESULT(writev(lf->crash_fd, iov, G_N_ELEMENTS(iov)));
-		}
-	} else {
-		bool ioerr;
+	/*
+	 * When duplication is configured, write a copy of the message
+	 * without any timestamp and debug level tagging.
+	 */
 
-		ioerr = 0 > fprintf(lf->f, FORMAT_STR,
-			(TM_YEAR_ORIGIN + ct->tm_year) % 100,
-			ct->tm_mon + 1, ct->tm_mday,
-			ct->tm_hour, ct->tm_min, ct->tm_sec, tprefix,
-			(level & G_LOG_FLAG_RECURSION) ? " [RECURSIVE]" : "",
-			(level & G_LOG_FLAG_FATAL) ? " [FATAL]" : "",
-			msg);
-
-		if G_UNLIKELY(ioerr) {
-			lf->ioerror = TRUE;
-			lf->etime = tm_time();
-		}
+	if (lf->duplicate) {
+		iovec_t iov[2];
+		iovec_set(&iov[0], msg, strlen(msg));
+		iovec_set(&iov[1], "\n", 1);
+		atio_writev(lf->crash_fd, iov, G_N_ELEMENTS(iov));
 	}
 
 #undef FORMAT_STR
@@ -811,7 +854,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * Detect recursion, but don't make it fatal.
 	 */
 
-	if (G_UNLIKELY(lt != NULL)) {
+	if G_UNLIKELY(NULL == lt && 0 == (level & G_LOG_FLAG_FATAL))
+		lt = logthread_object(FALSE);
+
+	if G_LIKELY(lt != NULL) {
 		recursing = lt->in_log_handler;
 	} else {
 		recursing = in_safe_handler;
@@ -852,17 +898,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 
 	/*
 	 * OK, no recursion so far.  Emit log.
-	 */
-
-	if (G_LIKELY(NULL == lt)) {
-		in_safe_handler = TRUE;
-		stid = thread_small_id();
-	} else {
-		lt->in_log_handler = TRUE;
-		stid = lt->stid;
-	}
-
-	/*
+	 *
 	 * Within a signal handler, we can safely allocate memory to be
 	 * able to format the log message by using the pre-allocated signal
 	 * chunk and creating a string object out of it.
@@ -871,8 +907,16 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * chunk, as supplied through the log-thread object.
 	 */
 
-	ck = (lt != NULL) ? lt->ck :
-		in_signal_handler ? signal_chunk() : log_chunk();
+	if G_UNLIKELY(NULL == lt) {
+		in_safe_handler = TRUE;
+		stid = thread_small_id();
+		ck = in_signal_handler ? signal_chunk() : log_chunk();
+	} else {
+		lt->in_log_handler = TRUE;
+		stid = lt->stid;
+		ck = lt->ck;
+	}
+
 	saved = ck_save(ck);
 	msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
 
@@ -952,7 +996,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			iovec_t iov[2];
 			iovec_set(&iov[0], str_2c(msg), str_len(msg));
 			iovec_set(&iov[1], "\n", 1);
-			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+			atio_writev(fd, iov, G_N_ELEMENTS(iov));
 		}
 	}
 
@@ -1049,7 +1093,7 @@ s_critical(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_CRITICAL, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
 	va_end(args);
 }
 
@@ -1068,7 +1112,7 @@ s_error(const char *format, ...)
 	if (log_check_recursive(format, acopy)) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
 	} else {
-		s_logv(NULL, flags, format, args);
+		s_logv(NULL /* take no risk */, flags, format, args);
 	}
 
 	va_end(acopy);
@@ -1090,7 +1134,8 @@ s_error_expr(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
+	s_logv(NULL /* take no risk */,
+		G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL, format, args);
 	va_end(args);
 
 	log_abort();
@@ -1114,7 +1159,7 @@ s_error_from(const char *file, const char *format, ...)
 	if (log_check_recursive(format, acopy)) {
 		s_minilogv(flags | G_LOG_FLAG_RECURSION, TRUE, format, args);
 	} else {
-		s_logv(NULL, flags, format, args);
+		s_logv(NULL /* take no risk */, flags, format, args);
 	}
 
 	va_end(acopy);
@@ -1135,7 +1180,7 @@ s_carp(const char *format, ...)
 	thread_pending_add(+1);
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
 	if (in_signal_handler)
@@ -1165,7 +1210,7 @@ s_carp_once(const char *format, ...)
 		 */
 
 		va_start(args, format);
-		s_logv(NULL, G_LOG_LEVEL_CRITICAL, format, args);
+		s_logv(logthread_object(FALSE), G_LOG_LEVEL_CRITICAL, format, args);
 		va_end(args);
 	}
 }
@@ -1358,7 +1403,7 @@ s_warning(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_WARNING, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 }
 
@@ -1371,7 +1416,7 @@ s_message(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_MESSAGE, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_MESSAGE, format, args);
 	va_end(args);
 }
 
@@ -1384,7 +1429,7 @@ s_info(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_INFO, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_INFO, format, args);
 	va_end(args);
 }
 
@@ -1397,7 +1442,7 @@ s_debug(const char *format, ...)
 	va_list args;
 
 	va_start(args, format);
-	s_logv(NULL, G_LOG_LEVEL_DEBUG, format, args);
+	s_logv(logthread_object(FALSE), G_LOG_LEVEL_DEBUG, format, args);
 	va_end(args);
 }
 

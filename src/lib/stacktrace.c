@@ -34,6 +34,7 @@
 #include "common.h"		/* For RCSID */
 
 #include "stacktrace.h"
+#include "atio.h"
 #include "bfd_util.h"
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
@@ -1238,10 +1239,10 @@ stack_print_decorated_to(struct sxfile *xf,
 		if (NULL == trace) {
 			switch (xf->type) {
 			case SXFILE_STDIO:
-				fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
+				atio_fwrite(str_2c(&s), str_len(&s), 1, xf->u.f);
 				break;
 			case SXFILE_FD:
-				IGNORE_RESULT(write(xf->u.fd, str_2c(&s), str_len(&s)));
+				atio_write(xf->u.fd, str_2c(&s), str_len(&s));
 				break;
 			}
 		} else {
@@ -1257,10 +1258,10 @@ stack_print_decorated_to(struct sxfile *xf,
 	if (trace != NULL) {
 		switch (xf->type) {
 		case SXFILE_STDIO:
-			fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
+			atio_fwrite(str_2c(trace), str_len(trace), 1, xf->u.f);
 			break;
 		case SXFILE_FD:
-			IGNORE_RESULT(write(xf->u.fd, str_2c(trace), str_len(trace)));
+			atio_write(xf->u.fd, str_2c(trace), str_len(trace));
 			break;
 		}
 		mutex_unlock_fast(&stacktrace_buffer.lock);

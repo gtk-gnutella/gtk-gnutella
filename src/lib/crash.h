@@ -96,6 +96,12 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
+/*
+ * Do not use atio_writev() here, on purpose.
+ *
+ * These routines are called during exceptional circumstances and we need
+ * to limit the amout of resources required.
+ */
 #define flush_str(fd) \
 	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
 
