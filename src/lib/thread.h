@@ -142,6 +142,8 @@ enum thread_sighow {
  * Public interface.
  */
 
+struct cond;
+
 thread_t thread_current(void);
 thread_t thread_current_element(const void **element);
 thread_qid_t thread_quasi_id(void);
@@ -188,6 +190,9 @@ void thread_assert_no_locks(const char *routine);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
 void thread_lock_waiting_done(const void *element);
+
+const void *thread_cond_waiting_element(struct cond **c);
+void thread_cond_waiting_done(const void *element);
 
 void thread_pending_add(int increment);
 size_t thread_pending_count(void);

@@ -45,6 +45,7 @@
 #include "semaphore.h"
 #include "slist.h"
 #include "spinlock.h"
+#include "thread.h"
 #include "tm.h"
 #include "waiter.h"
 #include "walloc.h"
@@ -193,9 +194,9 @@ cond_waiter_release(void *p)
 }
 
 /**
- * Free a condition when its reference count drops to zero.
+ * Free a condition variable object when its reference count drops to zero.
  *
- * @param c			the condition variable
+ * @param cv		the condition variable object
  * @param locked	whether c->lock is already taken
  */
 static void
@@ -232,7 +233,7 @@ cond_free(struct cond *cv, bool locked)
 /**
  * Extend an already allocated condition.
  *
- * @param cd		the regular condition to extend
+ * @param cd		the regular condition variable object to extend
  *
  * @return pointer to the new (extended) condition
  */
@@ -717,6 +718,7 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 	const char *file;
 	unsigned line;
 	semaphore_t *sem;
+	const void *element;
 
 	g_assert(c != NULL);
 	assert_mutex_is_owned(m);
@@ -767,6 +769,14 @@ cond_wait_until(cond_t *c, mutex_t *m, const tm_t *end)
 
 	file = mutex_get_lock_source(m, &line);
 	mutex_unlock(m);
+
+	/*
+	 * Tell the thread layer we're waiting on a condition variable so that
+	 * we may process incoming signals even if we're not using the emulated
+	 * semaphores, at the cost of spurious wakeups for all waiting threads.
+	 */
+
+	element = thread_cond_waiting_element(c);
 
 retry:
 	/*
@@ -896,6 +906,7 @@ signaled:
 	spinunlock(&cv->lock);
 
 	cond_free(cv, FALSE);
+	thread_cond_waiting_done(element);
 
 	/*
 	 * Reacquire the mutex before returning to the application.
@@ -1000,25 +1011,23 @@ cond_notify(struct cond_ext *cve, bool all)
 /**
  * Wake up one or all threads waiting on a condition.
  *
- * @param c		the condition variable
- * @param m		the mutex protecting the predicate (locked)
+ * The condition variable object is freed at the end of the routine.
+ *
+ * @param cv	the condition variable object
+ * @param m		the mutex protecting the predicate (possibly locked)
  * @param all	if TRUE, all waiters are awakened, otherwise just one
  */
 static void
-cond_wakeup(cond_t *c, const mutex_t *m, bool all)
+cond_unblock(struct cond *cv, const mutex_t *m, bool all)
 {
-	struct cond *cv;
 	int signals = 0;		/* Amount of signals to send */
 
-	g_assert(c != NULL);
-	assert_mutex_is_owned(m);
-
-	cv = cond_get_init(c, m, FALSE);
+	g_assert(cv != NULL);
 
 	/*
-	 * Even though we own the mutex, we need to protect the condition variable
-	 * with its lock because we have to be atomic with the corresponding
-	 * critical section in cond_timed_wait().
+	 * Even though we may own the mutex, we need to protect the condition
+	 * variable with its lock because we have to be atomic with the
+	 * corresponding critical section in cond_timed_wait().
 	 *
 	 * If we have already sent more signals than there are waiting parties,
 	 * we further limit the signals to avoid system calls in cond_timed_wait()
@@ -1032,8 +1041,8 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
 		cv->mutex = m;
 
 	g_assert_log(cv->mutex == m,
-		"%s(): attempting to wakeup %p with different mutex (used %p, now %p)",
-		G_STRFUNC, c, cv->mutex, m);
+		"%s(): attempting to wakeup with different mutex (used %p, now %p)",
+		G_STRFUNC, cv->mutex, m);
 
 	g_assert(cv->waiting >= 0);
 
@@ -1054,9 +1063,8 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
 	 * consume them any more.
 	 */
 
-	if (signals != 0) {
+	if (signals != 0)
 		semaphore_release(cv->sem, signals);
-	}
 
 	/*
 	 * If the condition is extended, notify waiters that a signal was posted
@@ -1074,6 +1082,25 @@ cond_wakeup(cond_t *c, const mutex_t *m, bool all)
 		cond_notify(cast_to_cond_ext(cv), all);
 
 	cond_free(cv, FALSE);
+}
+
+/**
+ * Wake up one or all threads waiting on a condition.
+ *
+ * @param c		the condition variable
+ * @param m		the mutex protecting the predicate (locked)
+ * @param all	if TRUE, all waiters are awakened, otherwise just one
+ */
+static void
+cond_wakeup(cond_t *c, const mutex_t *m, bool all)
+{
+	struct cond *cv;
+
+	g_assert(c != NULL);
+	assert_mutex_is_owned(m);
+
+	cv = cond_get_init(c, m, FALSE);
+	cond_unblock(cv, m, all);
 }
 
 /**
@@ -1124,6 +1151,53 @@ void
 cond_broadcast(cond_t *c, const mutex_t *m)
 {
 	cond_wakeup(c, m, TRUE);
+}
+
+/**
+ * Signal all waiting threads that they can wake up and re-evalute the
+ * predicate.
+ *
+ * This is used when attempting to wakeup all the waiting threads regardless
+ * of what the predicate value is, and may therefore cause spurious wakeups.
+ * The intend is to allow threads to process pending thread signals received
+ * whilst they are blocked waiting on the condition.
+ *
+ * This call should not be used when the predicate is changed, it is reserved
+ * to "outsiders".
+ *
+ * @param cv	the condition variable
+ */
+void
+cond_wakeup_all(cond_t cv)
+{
+	cond_check(cv);
+
+	atomic_int_inc(&cv->refcnt);			/* Counter cond_free() */
+	cond_unblock(cv, cv->mutex, TRUE);		/* Will issue a cond_free() */
+}
+
+/**
+ * Increase reference count on condition variable.
+ *
+ * @param c		the condition variable
+ *
+ * @returns the ref-counter condition variable value, NULL on error.
+ */
+cond_t
+cond_refcnt_inc(cond_t *c)
+{
+	return cond_get(c);
+}
+
+/**
+ * Decrease reference count on condition variable value.
+ */
+void
+cond_refcnt_dec(cond_t cv)
+{
+	cond_check(cv);
+
+	cond_free(cv, FALSE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

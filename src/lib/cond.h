@@ -104,6 +104,17 @@ typedef struct cond * cond_t;
 #define COND_DESTROYED	((cond_t) -1)	/**< Destroyed, cannot be used */
 
 /*
+ * Internal.
+ */
+
+#ifdef THREAD_SOURCE
+cond_t cond_refcnt_inc(cond_t *c);
+void cond_refcnt_dec(cond_t cv);
+void cond_wakeup_all(cond_t cv);
+#endif /* THREAD_SOURCE */
+
+
+/*
  * Public interface.
  */
 

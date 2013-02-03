@@ -64,6 +64,7 @@
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
+#include "cond.h"
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
 #include "fd.h"					/* For fd_close() */
@@ -204,6 +205,7 @@ struct thread_element {
 	uint main_thread:1;				/**< Whether this is the main thread */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock waiting;		/**< Lock on which thread is waiting */
+	cond_t *cond;					/**< Condition on which thread waits */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	tsighandler_t sigh[TSIG_COUNT - 1];	/**< Signal handlers */
 };
@@ -1035,6 +1037,7 @@ thread_element_reset(struct thread_element *te)
 	te->stack_size = 0;
 	te->entry = NULL;
 	te->argument = NULL;
+	te->cond = NULL;
 	te->main_thread = FALSE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
@@ -3529,6 +3532,65 @@ thread_lock_waiting_done(const void *element)
 }
 
 /**
+ * Record that current thread is waiting on the specified condition variable.
+ *
+ * This is used to allow signals to be delivered to threads whilst they
+ * are aslept, waiting in the condition variable.
+ *
+ * @return the thread element as an opaque pointer that can be given back
+ * to thread_cond_waiting_done() to skip the thread lookup.
+ */
+const void *
+thread_cond_waiting_element(cond_t *c)
+{
+	struct thread_element *te;
+
+	g_assert(c != NULL);
+
+	te = thread_find(&te);
+
+	/*
+	 * Because the te->cond field can be accessed by other threads (in the
+	 * thread_kill() routine), we need to lock the thread element to modify
+	 * it, even though we can only be called here in the context of the
+	 * current thread: this ensures we always read a consistent value.
+	 */
+
+	if G_LIKELY(te != NULL) {
+		g_assert_log(NULL == te->cond,
+			"%s(): detected recursive condition waiting", G_STRFUNC);
+
+		THREAD_LOCK(te);
+		te->cond = c;
+		THREAD_UNLOCK(te);
+	}
+
+	return te;
+}
+
+/**
+ * Clear waiting condition on the thread identified by its thread element,
+ * as returned previously by thread_cond_waiting_element().
+ */
+void
+thread_cond_waiting_done(const void *element)
+{
+	struct thread_element *te = deconstify_pointer(element);
+
+	thread_element_check(te);
+	g_assert_log(te->cond != NULL,
+		"%s(): had no prior knowledge of any condition waiting", G_STRFUNC);
+
+	/*
+	 * Need locking, see thread_cond_waiting_element() and thread_kill().
+	 */
+
+	THREAD_LOCK(te);
+	te->cond = NULL;			/* Clear waiting condition */
+	THREAD_UNLOCK(te);
+}
+
+/**
  * Re-acquire a lock after suspension.
  */
 static void
@@ -5568,17 +5630,37 @@ thread_kill(unsigned id, int signum)
 	if (NULL == te)
 		return -1;		/* errno set by thread_get_element_by_id() */
 
+	/*
+	 * Deliver signal
+	 */
+
 	if G_LIKELY(TSIG_0 != signum) {
-		bool unblock = FALSE;
+		bool unblock = FALSE, process;
+		cond_t cv = NULL;
+		uint stid = thread_small_id();
 
 		THREAD_LOCK(te);
+
 		te->sig_pending |= tsig_mask(signum);
+		process = thread_sig_present(te);	/* Unblocked signals present? */
+
+		/*
+		 * If posting a signal to the current thread, handle pending signals.
+		 */
+
+		if G_UNLIKELY(stid == id) {
+			THREAD_UNLOCK(te);
+			if (0 == te->locks.count && process)
+				thread_sig_handle(te);
+			return 0;
+		}
 
 		/*
 		 * If the thread is blocked and has pending signals, then unblock it.
+		 * If the thread is waiting on a condition variable, wake it up.
 		 */
 
-		if G_UNLIKELY(te->blocked && thread_sig_present(te)) {
+		if G_UNLIKELY(te->blocked && process) {
 			/*
 			 * Only send one "signal pending" unblocking byte.
 			 */
@@ -5587,6 +5669,18 @@ thread_kill(unsigned id, int signum)
 				te->signalled++;		/* About to send an unblocking byte */
 				unblock = TRUE;
 			}
+		} else if G_UNLIKELY(te->cond != NULL && process) {
+			/*
+			 * Avoid any race condition: whilst we hold the thread lock, nobody
+			 * can change the te->cond value, but as soon as we release it,
+			 * the thread could be awoken concurrently and reset the te->cond
+			 * field, then possibly destroy the condition variable.
+			 *
+			 * By taking a reference, we get the underlying condition variable
+			 * value and ensure nobody can free up that object.
+			 */
+
+			cv = cond_refcnt_inc(te->cond);
 		}
 		THREAD_UNLOCK(te);
 
@@ -5598,6 +5692,12 @@ thread_kill(unsigned id, int signum)
 		 * unblocking byte, and no event will be lost.
 		 *
 		 * See the critical section in thread_block_self() after calling read().
+		 *
+		 * For condition variables, we systematically wakeup all parties
+		 * waiting on the variable, even if the thread to which the signal
+		 * is targeted is not yet blocked on the condition variable (since
+		 * there is a time window between the registration of the waiting
+		 * and the actual blocking on the condition variable).
 		 */
 
 		if G_UNLIKELY(unblock) {
@@ -5606,6 +5706,9 @@ thread_kill(unsigned id, int signum)
 				s_minicarp("%s(): cannot unblock %s to send signal: %m",
 					G_STRFUNC, thread_element_name(te));
 			}
+		} else if G_UNLIKELY(cv != NULL) {
+			cond_wakeup_all(cv);
+			cond_refcnt_dec(cv);
 		}
 	}
 
@@ -5756,7 +5859,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->discovered = te->discovered;
 	info->exited = te->join_pending || te->reusable || te->exiting;
 	info->suspended = te->suspended;
-	info->blocked = te->blocked;
+	info->blocked = te->blocked || te->cond != NULL;
 	info->main_thread = te->main_thread;
 	info->sig_mask = te->sig_mask;
 	info->sig_pending = te->sig_pending;
