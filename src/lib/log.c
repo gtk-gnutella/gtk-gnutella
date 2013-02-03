@@ -64,10 +64,11 @@
 #include "atoms.h"
 #include "ckalloc.h"
 #include "crash.h"
-#include "halloc.h"
 #include "fd.h"				/* For is_valid_fd() */
 #include "glog.h"
+#include "halloc.h"
 #include "offtime.h"
+#include "once.h"
 #include "signal.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -89,6 +90,8 @@ static const char * const log_domains[] = {
 static bool atoms_are_inited;
 static bool log_inited;
 static str_t *log_str;
+static thread_key_t log_okey = THREAD_KEY_INIT;
+static once_flag_t log_okey_inited;
 
 /**
  * A Log file we manage.
@@ -432,6 +435,16 @@ log_thread_alloc(void)
 }
 
 /**
+ * Create the log object key, once.
+ */
+static void
+log_okey_init(void)
+{
+	if (-1 == thread_local_key_create(&log_okey, THREAD_LOCAL_KEEP))
+		s_minierror("cannot initialize logthread object key: %m");
+}
+
+/**
  * Get suitable thread-private logging data descriptor.
  *
  * @param once		if TRUE, don't record the object as it will be used once
@@ -443,16 +456,17 @@ logthread_object(bool once)
 {
 	logthread_t *lt;
 
-	lt = thread_private_get(func_to_pointer(logthread_object));
+	ONCE_FLAG_RUN(log_okey_inited, log_okey_init);
+
+	lt = thread_local_get(log_okey);
 
 	if G_UNLIKELY(NULL == lt) {
 		lt = log_thread_alloc();
 		if (!once)
-			thread_private_add_permanent(func_to_pointer(logthread_object), lt);
+			thread_local_set(log_okey, lt);
 	}
 
 	logthread_check(lt);
-
 	return lt;
 }
 
