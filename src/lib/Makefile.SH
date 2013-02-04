@@ -122,6 +122,7 @@ LSRC = \
 	aq.c \
 	arc4random.c \
 	ascii.c \
+	atio.c \
 	atoms.c \
 	barrier.c \
 	base16.c \
@@ -285,6 +286,7 @@ LOBJ = \
 	aq.o \
 	arc4random.o \
 	ascii.o \
+	atio.o \
 	atoms.o \
 	barrier.o \
 	base16.o \

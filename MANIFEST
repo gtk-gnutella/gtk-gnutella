@@ -584,6 +584,8 @@ src/lib/arc4random.h
 src/lib/array.h
 src/lib/ascii.c
 src/lib/ascii.h
+src/lib/atio.c
+src/lib/atio.h
 src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
