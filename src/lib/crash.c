@@ -307,7 +307,7 @@ crash_time(char *buf, size_t size)
 
 	gmtoff = (vars != NULL) ? vars->gmtoff : 0;
 
-	if (!off_time(time(NULL) + gmtoff, 0, &tm)) {
+	if (!off_time(tm_time_exact() + gmtoff, 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
