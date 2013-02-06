@@ -932,6 +932,17 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
 #endif	/* alloca */
 #endif	/* HAS_GCC(3, 0) */
 
+/**
+ * Let the program use sigprocmask() but remap it to pthread_sigmask()
+ * to ensure that we manipulate the thread's signal mask only.
+ *
+ * On linux, sigprocmask() always manipulates the thread's signal mask, but
+ * this is not guaranteed by POSIX.
+ */
+#if defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
+#define sigprocmask(h,s,o)	pthread_sigmask((h), (s), (o))
+#endif
+
 /*
  * Common inclusions, likely to be needed by most files.
  */
