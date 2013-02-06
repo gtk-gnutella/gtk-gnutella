@@ -410,11 +410,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		 * lock during our earlier spinning.  We can therefore afford more
 		 * expensive checks now, and in particular look at whether we should
 		 * not suspend ourselves.
-		 */
-
-		thread_check_suspended();
-
-		/*
+		 *
 		 * We were not able to exit successfully after a few busy loops, we
 		 * are now going to further delay the process by relinquishing the
 		 * CPU for that thread and letting the kernel handle other threads.
@@ -426,6 +422,8 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		 *
 		 * Since there is no signal sent to indicate that we need to re-
 		 * evaluate the predicate, polling is the only option.
+		 *
+		 * Note that tm_time_exact() will do a thread_check_suspended().
 		 */
 
 		if G_UNLIKELY(0 == (i & RWLOCK_DEADMASK))

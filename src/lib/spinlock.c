@@ -280,9 +280,9 @@ spinlock_loop(volatile spinlock_t *s,
 		 * We're about to sleep, hence we were not able to quickly grab the
 		 * lock during our earlier spinning.  We can therefore afford more
 		 * expensive checks now.
+		 *
+		 * Note that tm_time_exact() will do a thread_check_suspended().
 		 */
-
-		thread_check_suspended();
 
 		if G_UNLIKELY(0 == (i & SPINLOCK_DEADMASK))
 			(*deadlock)(src_object, i / SPINLOCK_DEAD);

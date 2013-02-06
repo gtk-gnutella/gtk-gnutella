@@ -1733,12 +1733,16 @@ thread_suspend_self(struct thread_element *te)
 		/*
 		 * Make sure we don't stay suspended indefinitely: funnelling from
 		 * other threads should occur only for a short period of time.
+		 *
+		 * Do not call tm_time_exact() here since that routine will call
+		 * thread_check_suspended() which will again call us since we're
+		 * flagged as suspended now, causing endless recursion.
 		 */
 
 		if G_UNLIKELY(0 == (i & THREAD_SUSPEND_CHECK)) {
 			if (0 == start)
-				start = tm_time_exact();
-			if (delta_time(tm_time_exact(), start) > THREAD_SUSPEND_TIMEOUT)
+				start = time(NULL);
+			if (delta_time(time(NULL), start) > THREAD_SUSPEND_TIMEOUT)
 				thread_timeout(te);
 		}
 	}
@@ -2448,12 +2452,16 @@ thread_wait_others(const struct thread_element *te)
 
 		/*
 		 * Make sure we don't wait indefinitely.
+		 *
+		 * Avoid tm_time_exact() and use raw time(NULL) since the former
+		 * will now call thread_check_suspended() and we want to avoid any
+		 * possible endless recursion problem.
 		 */
 
 		if G_UNLIKELY(0 == (i & THREAD_SUSPEND_CHECK)) {
 			if (0 == start)
-				start = tm_time_exact();
-			if (delta_time(tm_time_exact(), start) > THREAD_SUSPEND_TIMEOUT)
+				start = time(NULL);
+			if (delta_time(time(NULL), start) > THREAD_SUSPEND_TIMEOUT)
 				thread_timeout(te);
 		}
 	}

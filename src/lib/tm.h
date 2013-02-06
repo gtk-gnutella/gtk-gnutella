@@ -35,6 +35,7 @@
 #define _tm_h_
 
 #include "common.h"
+#include "thread.h"		/* For thread_check_suspended() */
 
 /*
  * We use the direct difference of time_t values instead of difftime()
@@ -246,6 +247,7 @@ extern tm_t tm_cached_now;			/* Currently cached time */
 static inline time_t G_GNUC_PURE
 tm_time(void)
 {
+	thread_check_suspended();
 	return (time_t) tm_cached_now.tv_sec;
 }
 

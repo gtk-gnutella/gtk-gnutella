@@ -41,10 +41,16 @@
 #endif
 
 #include "tm.h"
+#include "spinlock.h"
+#include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
 tm_t tm_cached_now;			/* Currently cached time */
+static spinlock_t tm_slk = SPINLOCK_INIT;
+
+#define TM_LOCK		spinlock_hidden(&tm_slk)
+#define TM_UNLOCK	spinunlock_hidden(&tm_slk)
 
 /**
  * Get current time for the system, filling the supplied tm_t structure.
@@ -169,7 +175,11 @@ tm_remaining_ms(const tm_t *end)
 void
 tm_now(tm_t *tm)
 {
+	TM_LOCK;
 	*tm = tm_cached_now;		/* Struct copy */
+	TM_UNLOCK;
+
+	thread_check_suspended();
 }
 
 /**
@@ -180,8 +190,10 @@ tm_now(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	const tm_t past = tm_cached_now;
-	
+	tm_t past;
+
+	TM_LOCK;
+	past = tm_cached_now;
 	tm_current_time(&tm_cached_now);
 
 	if (tm_cached_now.tv_sec < past.tv_sec) {
@@ -190,8 +202,11 @@ tm_now_exact(tm_t *tm)
 		if (tm_cached_now.tv_usec < past.tv_usec)
 			tm_cached_now.tv_usec = past.tv_usec;
 	}
-	if (tm)
+	if G_LIKELY(tm != NULL)
 		*tm = tm_cached_now;
+	TM_UNLOCK;
+
+	thread_check_suspended();
 }
 
 /**
