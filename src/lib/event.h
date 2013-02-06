@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,11 +22,24 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Event mangement & dispatching logic.
+ *
+ * @author Richard Eckart
+ * @date 2002-2003
+ * @author Raphael Manfredi
+ * @date 2013
+ */
+
 #ifndef _event_h_
 #define _event_h_
 
 #include "common.h"
 
+#include "spinlock.h"
 #include "tm.h"
 
 typedef enum frequency_type {
@@ -34,7 +48,7 @@ typedef enum frequency_type {
 } frequency_t;
 
 struct subscriber {
-    GCallback           cb;
+    callback_fn_t       cb;
     enum frequency_type f_type;
     uint32              f_interval;
     time_t              last_call;
@@ -44,20 +58,16 @@ typedef struct event {
     const char *name;
     uint32      triggered_count;
     GSList     *subscribers;
+	spinlock_t lock;
+	bool       destroyed;
 } event_t;
 
 struct event *event_new(const char *name);
 
-#define event_destroy(evt) G_STMT_START {                          \
-    real_event_destroy(evt);                                       \
-	/* Event not freed, allocated via omalloc() */                 \
-} G_STMT_END
-
-void real_event_destroy(struct event *evt);
-
+void event_destroy(struct event *evt);
 void event_add_subscriber(
-    struct event *evt, GCallback cb, frequency_t t, uint32 interval);
-void event_remove_subscriber(struct event *evt, GCallback cb);
+    struct event *evt, callback_fn_t cb, frequency_t t, uint32 interval);
+void event_remove_subscriber(struct event *evt, callback_fn_t cb);
 
 uint event_subscriber_count(struct event *evt);
 bool event_subscriber_active(struct event *evt);
@@ -81,6 +91,7 @@ bool event_subscriber_active(struct event *evt);
 		bool t;																\
 	} vars_;																\
 																			\
+	spinlock(&(ev)->lock);													\
 	vars_.evt = (ev);														\
 	vars_.now = (time_t) -1;												\
 	vars_.sl = vars_.evt->subscribers;										\
@@ -113,21 +124,19 @@ bool event_subscriber_active(struct event *evt);
 		}																	\
 	}																		\
 	vars_.evt->triggered_count++;											\
+	spinunlock(&(ev)->lock);												\
 } G_STMT_END
 
 struct hikset;
 
 struct event_table {
     struct hikset *events;
+	spinlock_t lock;
 };
 
 struct event_table *event_table_new(void);
 
-#define event_table_destroy(t) G_STMT_START {                      \
-    real_event_table_destroy(t);                                   \
-    WFREE_NULL(t, sizeof *t);                                      \
-} G_STMT_END
-void real_event_table_destroy(struct event_table *t, bool cleanup);
+void event_table_destroy(struct event_table *t, bool cleanup);
 
 
 void event_table_add_event(struct event_table *t, struct event *evt);

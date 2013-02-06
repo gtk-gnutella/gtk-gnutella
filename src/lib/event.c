@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2002-2003, Richard Eckart
+ * Copyright (c) 2002-2003 Richard Eckart
+ * Copyright (c) 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,8 +26,12 @@
  * @ingroup lib
  * @file
  *
+ * Event mangement & dispatching logic.
+ *
  * @author Richard Eckart
  * @date 2002-2003
+ * @author Raphael Manfredi
+ * @date 2013
  */
 
 #include "common.h"
@@ -35,11 +40,14 @@
 #include "hikset.h"
 #include "misc.h"
 #include "omalloc.h"
+#include "spinlock.h"
+#include "stacktrace.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static inline struct subscriber *
-subscriber_new(GCallback cb, enum frequency_type t, uint32 interval)
+subscriber_new(callback_fn_t cb, enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 
@@ -73,6 +81,7 @@ event_new(const char *name)
 
     evt = omalloc0(sizeof *evt);
     evt->name = name;
+	spinlock_init(&evt->lock);
 
     return evt;		/* Allocated once, never freed */
 }
@@ -82,15 +91,26 @@ event_new(const char *name)
  * event will be NULL after this call.
  */
 void
-real_event_destroy(struct event *evt)
+event_destroy(struct event *evt)
 {
     GSList *sl;
+
+	spinlock(&evt->lock);
+
     for (sl = evt->subscribers; sl; sl = g_slist_next(sl))
         subscriber_destroy(sl->data);
+
+	g_slist_free(evt->subscribers);
+	evt->subscribers = NULL;
+	evt->destroyed = TRUE;
+
+	spinunlock(&evt->lock);
+
+	/* Event not freed, allocated via omalloc() */
 }
 
 void
-event_add_subscriber(struct event *evt, GCallback cb,
+event_add_subscriber(struct event *evt, callback_fn_t cb,
 	enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
@@ -98,18 +118,26 @@ event_add_subscriber(struct event *evt, GCallback cb,
 
     g_assert(evt != NULL);
     g_assert(cb != NULL);
-
-	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
-		s = sl->data;
-		g_assert(s->cb != cb);
-	}
+	g_assert(!evt->destroyed);
 
     s = subscriber_new(cb, t, interval);
-    evt->subscribers = g_slist_append(evt->subscribers, s);
+
+	spinlock(&evt->lock);
+	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
+		struct subscriber *sb = sl->data;
+		g_assert(sb != NULL);
+
+		g_assert_log(sb->cb != cb,
+			"%s(): attempt to add callback %s() twice",
+			G_STRFUNC, stacktrace_function_name(cb));
+	}
+
+    evt->subscribers = g_slist_prepend(evt->subscribers, s);
+	spinunlock(&evt->lock);
 }
 
 void
-event_remove_subscriber(struct event *evt, GCallback cb)
+event_remove_subscriber(struct event *evt, callback_fn_t cb)
 {
     GSList *sl;
 	struct subscriber *s = NULL;
@@ -117,30 +145,52 @@ event_remove_subscriber(struct event *evt, GCallback cb)
     g_assert(evt != NULL);
     g_assert(cb != NULL);
 
-	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
-			s = sl->data;
-			if (s->cb == cb)
-				break;
+	spinlock(&evt->lock);
+
+	if G_UNLIKELY(evt->destroyed) {
+		/*
+		 * Event was destroyed, all subcribers were already removed.
+		 */
+
+		spinunlock(&evt->lock);
+		return;	
 	}
 
-	g_assert(sl != NULL);
-    g_assert(s != NULL);
+	for (sl = evt->subscribers; sl; sl = g_slist_next(sl)) {
+			s = sl->data;
+			g_assert(s != NULL);
+			if G_UNLIKELY(s->cb == cb)
+				goto found;
+	}
+
+	g_error("%s(): attempt to remove unknown callback %s()",
+		G_STRFUNC, stacktrace_function_name(cb));
+
+found:
 	g_assert(s->cb == cb);
 
     evt->subscribers = g_slist_remove(evt->subscribers, s);
+	spinunlock(&evt->lock);
+
 	subscriber_destroy(s);
 }
 
 uint
 event_subscriber_count(struct event *evt)
 {
-  return g_slist_length(evt->subscribers);
+	uint len;
+
+	spinlock(&evt->lock);
+	len = g_slist_length(evt->subscribers);
+	spinunlock(&evt->lock);
+
+	return len;
 }
 
 bool
 event_subscriber_active(struct event *evt)
 {
-  return NULL != evt->subscribers;
+	return NULL != evt->subscribers;
 }
 
 struct event_table *
@@ -150,17 +200,22 @@ event_table_new(void)
 
 	WALLOC0(t);
 	t->events = hikset_create(offsetof(struct event, name), HASH_KEY_STRING, 0);
+	spinlock_init(&t->lock);
 
 	return t;
 }
 
 void
-real_event_table_destroy(struct event_table *t, bool cleanup)
+event_table_destroy(struct event_table *t, bool cleanup)
 {
+	spinlock(&t->lock);
+
     if (cleanup)
         event_table_remove_all(t);
 
     hikset_free_null(&t->events);
+	spinlock_destroy(&t->lock);
+	WFREE(t);
 }
 
 void
@@ -172,7 +227,9 @@ event_table_add_event(struct event_table *t, struct event *evt)
     g_assert(t->events != NULL);
     g_assert(!hikset_contains(t->events, evt->name));
 
+	spinlock(&t->lock);
     hikset_insert_key(t->events, &evt->name);
+	spinunlock(&t->lock);
 }
 
 void
@@ -184,7 +241,9 @@ event_table_remove_event(struct event_table *t, struct event *evt)
     g_assert(t->events != NULL);
     g_assert(hikset_contains(t->events, evt->name));
 
+	spinlock(&t->lock);
     hikset_remove(t->events, evt->name);
+	spinunlock(&t->lock);
 }
 
 static void
@@ -200,8 +259,10 @@ event_table_remove_all(struct event_table *t)
     g_assert(t != NULL);
     g_assert(t->events != NULL);
 
+	spinlock(&t->lock);
     hikset_foreach(t->events, clear_helper, NULL);
 	hikset_clear(t->events);
+	spinunlock(&t->lock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

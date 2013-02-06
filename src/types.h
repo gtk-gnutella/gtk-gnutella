@@ -143,6 +143,10 @@ typedef void (*free_data_fn_t)(void *data, void *user_data);
 typedef void (*notify_fn_t)(void *data);
 typedef void (*notify_data_fn_t)(void *data, void *user_data);
 
+/* Generic callback */
+
+typedef void (*callback_fn_t)(void);
+
 /* Generic stringifiers */
 
 typedef const char *(*stringify_fn_t)(const void *data);
