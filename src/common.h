@@ -340,10 +340,6 @@ typedef int socket_fd_t;
 #include "lib/regex.h"
 #endif	/* HAS_REGCOMP */
 
-#ifdef USE_GLIB1
-typedef void (*GCallback) (void);
-#endif	/* USE_GLIB1 */
-
 #ifdef USE_GLIB2
 #undef G_STRLOC			/* Want our version */
 #undef G_STRFUNC		/* Version from glib uses __PRETTY_FUNCTION__ */

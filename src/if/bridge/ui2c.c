@@ -498,14 +498,14 @@ guc_hsep_get_non_hsep_triple(hsep_triple *tripledest)
 
 
 void
-guc_hsep_add_global_table_listener(GCallback cb,
+guc_hsep_add_global_table_listener(callback_fn_t cb,
 	frequency_t t, uint32 interval)
 {
 	hsep_add_global_table_listener(cb, t, interval);
 }
 
 void
-guc_hsep_remove_global_table_listener(GCallback cb)
+guc_hsep_remove_global_table_listener(callback_fn_t cb)
 {
 	hsep_remove_global_table_listener(cb);
 }

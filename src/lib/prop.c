@@ -525,7 +525,7 @@ prop_add_prop_changed_listener_full(
 	g_assert(prop_in_range(ps, prop));
 
 	event_add_subscriber(
-		PROP(ps,prop).ev_changed, (GCallback) l, freq, interval);
+		PROP(ps,prop).ev_changed, (callback_fn_t) l, freq, interval);
 
 	if (init)
 		(*l)(prop);
@@ -538,7 +538,7 @@ prop_remove_prop_changed_listener(
 	g_assert(ps != NULL);
 	g_assert(prop_in_range(ps, prop));
 
-	event_remove_subscriber(PROP(ps,prop).ev_changed, (GCallback) l);
+	event_remove_subscriber(PROP(ps,prop).ev_changed, (callback_fn_t) l);
 }
 
 static void

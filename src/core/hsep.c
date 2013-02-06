@@ -342,7 +342,7 @@ hsep_init(void)
  */
 
 void
-hsep_add_global_table_listener(GCallback cb, frequency_t t, uint32 interval)
+hsep_add_global_table_listener(callback_fn_t cb, frequency_t t, uint32 interval)
 {
 	hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
 	hsep_global_listener_t func = (hsep_global_listener_t) cb;
@@ -363,7 +363,7 @@ hsep_add_global_table_listener(GCallback cb, frequency_t t, uint32 interval)
 }
 
 void
-hsep_remove_global_table_listener(GCallback cb)
+hsep_remove_global_table_listener(callback_fn_t cb)
 {
 	event_remove_subscriber(hsep_global_table_changed_event, cb);
 }

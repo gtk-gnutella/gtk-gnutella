@@ -165,8 +165,8 @@ void guc_hcache_get_stats(hcache_stats_t *);
 int guc_hsep_get_table_size(void);
 void guc_hsep_get_non_hsep_triple(hsep_triple *);
 const char *guc_hsep_get_static_str(int row, int column);
-void guc_hsep_add_global_table_listener(GCallback, frequency_t, uint32);
-void guc_hsep_remove_global_table_listener(GCallback);
+void guc_hsep_add_global_table_listener(callback_fn_t, frequency_t, uint32);
+void guc_hsep_remove_global_table_listener(callback_fn_t);
 
 /* node interface functions */
 void guc_node_add_node_added_listener(node_added_listener_t);

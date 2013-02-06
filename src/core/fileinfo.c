@@ -6158,7 +6158,7 @@ fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
 {
     g_assert(ev < EV_FI_EVENTS);
 
-    event_add_subscriber(fi_events[ev], (GCallback) cb, t, interval);
+    event_add_subscriber(fi_events[ev], (callback_fn_t) cb, t, interval);
 }
 
 void
@@ -6166,7 +6166,7 @@ fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev)
 {
     g_assert(ev < EV_FI_EVENTS);
 
-    event_remove_subscriber(fi_events[ev], (GCallback) cb);
+    event_remove_subscriber(fi_events[ev], (callback_fn_t) cb);
 }
 
 void
@@ -6175,7 +6175,7 @@ src_add_listener(src_listener_t cb, gnet_src_ev_t ev,
 {
     g_assert(UNSIGNED(ev) < EV_SRC_EVENTS);
 
-    event_add_subscriber(src_events[ev], (GCallback) cb, t, interval);
+    event_add_subscriber(src_events[ev], (callback_fn_t) cb, t, interval);
 }
 
 void
@@ -6183,7 +6183,7 @@ src_remove_listener(src_listener_t cb, gnet_src_ev_t ev)
 {
     g_assert(UNSIGNED(ev) < EV_SRC_EVENTS);
 
-    event_remove_subscriber(src_events[ev], (GCallback) cb);
+    event_remove_subscriber(src_events[ev], (callback_fn_t) cb);
 }
 
 /**
