@@ -1773,6 +1773,20 @@ main(int argc, char **argv)
 	handle_arguments();		/* Returning from here means we're good to go */
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
+	/*
+	 * Before using glib-1.2 routines, we absolutely need to tell the library
+	 * that we are going to run multi-threaded.
+	 */
+
+#ifdef USE_GLIB1
+	if (!g_thread_supported())
+		g_thread_init(NULL);
+#endif
+
+	/*
+	 * Continue with initializations.
+	 */
+
 	product_set_interface(running_topless ? "Topless" : GTA_INTERFACE);
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
