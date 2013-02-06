@@ -753,6 +753,7 @@ src/lib/leak.c
 src/lib/leak.h
 src/lib/list.c
 src/lib/list.h
+src/lib/listener.c
 src/lib/listener.h
 src/lib/log.c
 src/lib/log.h

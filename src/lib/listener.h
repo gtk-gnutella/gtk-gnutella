@@ -25,7 +25,7 @@
  * @ingroup lib
  * @file
  *
- * Needs brief description here.
+ * Event listening interface.
  *
  * @author Richard Eckart
  * @date 2001-2003
@@ -35,6 +35,8 @@
 #define _listener_h_
 
 #include "common.h"
+
+#include "spinlock.h"
 
 /**
  * OVERVIEW
@@ -141,29 +143,40 @@
 
 typedef GSList *listeners_t;
 
+spinlock_t *listener_get_lock(const char *name);
+
 #define LISTENER_ADD(signal, callback) 										\
 G_STMT_START {																\
 	void *p = func_to_pointer(callback);									\
+	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
 	g_assert(NULL != p);				 									\
+	spinlock(lock);															\
 	CAT2(signal,_listeners) = g_slist_append(CAT2(signal,_listeners), p);	\
+	spinunlock(lock);														\
 } G_STMT_END
 
 #define LISTENER_REMOVE(signal, callback)									\
 G_STMT_START {																\
 	void *p = func_to_pointer(callback);									\
+	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
 	g_assert(NULL != p);													\
+	spinlock(lock);															\
 	CAT2(signal,_listeners) = g_slist_remove(CAT2(signal,_listeners), p);	\
+	spinunlock(lock);														\
 } G_STMT_END
 
 #define LISTENER_EMIT(signal, params)										\
 G_STMT_START {																\
 	GSList *sl;													 			\
+	spinlock_t *lock = listener_get_lock(STRINGIFY(signal));				\
+	spinlock(lock);															\
 	for (sl = CAT2(signal,_listeners); sl != NULL; sl = g_slist_next(sl)) { \
 		CAT2(signal,_listener_t) fn;										\
 		g_assert(NULL != sl->data);	  										\
-		fn = (CAT2(signal,_listener_t)) cast_pointer_to_func(sl->data);	\
+		fn = (CAT2(signal,_listener_t)) cast_pointer_to_func(sl->data);		\
 		fn params;															\
 	}																		\
+	spinunlock(lock);														\
 } G_STMT_END
 
 #endif /* _listener_h_ */

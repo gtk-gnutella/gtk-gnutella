@@ -201,6 +201,7 @@ LSRC = \
 	iso3166.c \
 	leak.c \
 	list.c \
+	listener.c \
 	log.c \
 	magnet.c \
 	malloc.c \
@@ -365,6 +366,7 @@ LOBJ = \
 	iso3166.o \
 	leak.o \
 	list.o \
+	listener.o \
 	log.o \
 	magnet.o \
 	malloc.o \

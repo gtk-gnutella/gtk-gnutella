@@ -144,6 +144,7 @@ LSRC = \
 	iso3166.c \
 	leak.c \
 	list.c \
+	listener.c \
 	log.c \
 	magnet.c \
 	malloc.c \
