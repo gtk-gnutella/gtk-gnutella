@@ -50,7 +50,6 @@
 #include "common.h"
 
 #include "fs_free_space.h"
-#include "tm.h"
 #include "vmm.h"
 
 #define SIZE_FIELD_MAX		64	/**< Max size of sprintf-ed size quantity */

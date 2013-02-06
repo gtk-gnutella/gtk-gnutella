@@ -139,7 +139,6 @@ struct crash_vars {
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
 	pid_t pid;				/**< Initial process ID */
-	time_delta_t gmtoff;	/**< Offset to GMT, supposed to be fixed */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
 	str_t *logstr;			/**< String to build and hold error message */
@@ -291,7 +290,6 @@ crash_time(char *buf, size_t size)
 	const size_t num_reserved = 1;
 	struct tm tm;
 	cursor_t cursor;
-	time_delta_t gmtoff;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -300,14 +298,7 @@ crash_time(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	/*
-	 * If called very early from the logging layer, crash_init() may not have
-	 * been invoked yet, so vars would still be NULL.
-	 */
-
-	gmtoff = (vars != NULL) ? vars->gmtoff : 0;
-
-	if (!off_time(tm_time_exact() + gmtoff, 0, &tm)) {
+	if (!off_time(tm_localtime_exact(), 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -350,7 +341,7 @@ crash_time_iso(char *buf, size_t size)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if (!off_time(time(NULL) + vars->gmtoff, 0, &tm)) {
+	if (!off_time(tm_localtime_exact(), 0, &tm)) {
 		buf[0] = '\0';
 		return;
 	}
@@ -2444,12 +2435,6 @@ crash_init(const char *argv0, const char *progname,
 
 	ZERO(&iv);
 
-	/*
-	 * Must set this early in case we have to call crash_time(), since
-	 * vars->gtmoff must be set.
-	 */
-
-	iv.gmtoff = timestamp_gmt_offset(time(NULL), NULL);
 	vars = &iv;
 
 	if (NULL == getcwd(dir, sizeof dir)) {

@@ -46,8 +46,14 @@
 
 #include "override.h"		/* Must be the last header included */
 
+#define TM_GMT_PERIOD		86400	/* Recompute GMT offset every hour */
+
 tm_t tm_cached_now;			/* Currently cached time */
 static spinlock_t tm_slk = SPINLOCK_INIT;
+static struct {
+	time_delta_t offset;
+	time_t computed;
+} tm_gmt;
 
 #define TM_LOCK		spinlock_hidden(&tm_slk)
 #define TM_UNLOCK	spinunlock_hidden(&tm_slk)
@@ -175,38 +181,64 @@ tm_remaining_ms(const tm_t *end)
 void
 tm_now(tm_t *tm)
 {
-	TM_LOCK;
-	*tm = tm_cached_now;		/* Struct copy */
-	TM_UNLOCK;
-
-	thread_check_suspended();
+	if G_UNLIKELY(thread_check_suspended()) {
+		tm_now_exact(tm);
+	} else {
+		TM_LOCK;
+		*tm = tm_cached_now;	/* Struct copy */
+		TM_UNLOCK;
+	}
 }
 
 /**
  * Fill supplied structure with current time (recomputed).
- * If the time jumps backward the previously recorded timestamp
- * is used instead to enforce a monotonic flow of time.
  */
 void
 tm_now_exact(tm_t *tm)
 {
-	tm_t past;
+	tm_t now;
 
-	TM_LOCK;
-	past = tm_cached_now;
-	tm_current_time(&tm_cached_now);
-
-	if (tm_cached_now.tv_sec < past.tv_sec) {
-		tm_cached_now = past;
-	} else if (tm_cached_now.tv_sec == past.tv_sec) {
-		if (tm_cached_now.tv_usec < past.tv_usec)
-			tm_cached_now.tv_usec = past.tv_usec;
-	}
-	if G_LIKELY(tm != NULL)
-		*tm = tm_cached_now;
-	TM_UNLOCK;
+	G_PREFETCH_HI_W(&tm_cached_now);
+	G_PREFETCH_HI_R(&tm_gmt.computed);
+	G_PREFETCH_HI_W(&tm_slk);
 
 	thread_check_suspended();
+
+	TM_LOCK;
+	tm_current_time(&tm_cached_now);
+	now = tm_cached_now;
+	TM_UNLOCK;
+
+	if G_LIKELY(tm != NULL)
+		*tm = now;
+
+	/*
+	 * Periodically update the GMT offset.
+	 */
+
+	if G_UNLIKELY(delta_time(now.tv_sec, tm_gmt.computed) > TM_GMT_PERIOD) {
+		time_delta_t gmtoff = timestamp_gmt_offset(now.tv_sec, NULL);
+		TM_LOCK;
+		if G_LIKELY(delta_time(now.tv_sec, tm_gmt.computed) > TM_GMT_PERIOD) {
+			tm_gmt.computed = now.tv_sec;
+			tm_gmt.offset = gmtoff;
+		}
+		TM_UNLOCK;
+	}
+
+	/*
+	 * When time is shifting suddenly (system-wide time adjustment, either
+	 * from the super-user or from NTP), and especially when it is moving
+	 * backwards, we need to react to avoid problems:
+	 *
+	 * - Code waiting on condition variables with a timeout need to recompute
+	 *   the proper time to avoid being stuck for longer than necessary if
+	 *   time is moving backwards.
+	 *
+	 * - Code monitoring the time spent, such as spinlocks, need to be warned
+	 *   so that they do not trigger the timeout condition when time jumps
+	 *   forward.
+	 */
 }
 
 /**
@@ -217,6 +249,32 @@ tm_time_exact(void)
 {
 	tm_now_exact(NULL);
 	return (time_t) tm_cached_now.tv_sec;
+}
+
+/**
+ * Get current local time, at the second granularity (cached).
+ */
+time_t
+tm_localtime(void)
+{
+	G_PREFETCH_HI_R(&tm_cached_now);
+	G_PREFETCH_HI_R(&tm_gmt.offset);
+
+	if G_UNLIKELY(thread_check_suspended()) {
+		return tm_localtime_exact();
+	} else {
+		return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
+	}
+}
+
+/**
+ * Get current local time, at the second granularity (recomputed).
+ */
+time_t
+tm_localtime_exact(void)
+{
+	tm_now_exact(NULL);
+	return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
 }
 
 /**
@@ -245,7 +303,7 @@ tm_equal(const void *a, const void *b)
  *** CPU time computation.
  ***/
 
-#if defined(HAS_TIMES)
+#ifdef HAS_TIMES
 /**
  * Return amount of clock ticks per second.
  */
@@ -254,7 +312,7 @@ clock_hz(void)
 {
 	static long freq = 0;	/* Cached amount of clock ticks per second */
 
-	if (freq <= 0) {
+	if G_UNLIKELY(freq <= 0) {
 #ifdef _SC_CLK_TCK
 		errno = ENOTSUP;
 		freq = sysconf(_SC_CLK_TCK);
@@ -263,7 +321,7 @@ clock_hz(void)
 #endif
 	}
 
-	if (freq <= 0) {
+	if G_UNLIKELY(freq <= 0) {
 #if defined(CLK_TCK)
 		freq = CLK_TCK;			/* From <time.h> */
 #elif defined(HZ)
