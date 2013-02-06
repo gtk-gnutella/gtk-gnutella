@@ -2174,18 +2174,6 @@ thread_check_suspended(void)
 {
 	struct thread_element *te;
 
-	/*
-	 * It is not critical to be in a thread that has not been seen yet, and
-	 * we don't want this call to be too expensive, so detect mono-threaded
-	 * conditions using a fast-path shortcut that should be correct 99.9% of
-	 * the time.
-	 */
-
-	atomic_mb();
-
-	if G_UNLIKELY(thread_running + thread_discovered <= 1)
-		return;		/* Mono-threaded, most likely */
-
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
 		return;
