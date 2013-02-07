@@ -1681,10 +1681,13 @@ thread_timeout(const struct thread_element *te)
 /**
  * Voluntarily suspend execution of the current thread, as described by the
  * supplied thread element, if it is flagged as being suspended.
+ *
+ * @return TRUE if we suspended.
  */
-static void
+static bool
 thread_suspend_self(struct thread_element *te)
 {
+	bool suspended = FALSE;
 	time_t start = 0;
 	unsigned i;
 
@@ -1707,7 +1710,7 @@ thread_suspend_self(struct thread_element *te)
 	THREAD_LOCK(te);
 	if G_UNLIKELY(!te->suspend) {
 		THREAD_UNLOCK(te);
-		return;
+		return FALSE;
 	}
 	te->suspended = TRUE;
 	THREAD_UNLOCK(te);
@@ -1725,6 +1728,8 @@ thread_suspend_self(struct thread_element *te)
 		else
 			compat_sleep_ms(THREAD_SUSPEND_DELAY);
 
+		suspended = TRUE;
+
 		/*
 		 * Make sure we don't stay suspended indefinitely: funnelling from
 		 * other threads should occur only for a short period of time.
@@ -1741,6 +1746,8 @@ thread_suspend_self(struct thread_element *te)
 	THREAD_LOCK(te);
 	te->suspended = FALSE;
 	THREAD_UNLOCK(te);
+
+	return suspended;
 }
 
 /**
@@ -2454,10 +2461,13 @@ thread_wait_others(const struct thread_element *te)
 
 /**
  * Handle pending signals.
+ *
+ * @return TRUE if we handled something.
  */
-static void
+static bool
 thread_sig_handle(struct thread_element *te)
 {
+	bool handled = FALSE;
 	tsigset_t pending;
 	int s;
 
@@ -2473,7 +2483,7 @@ recheck:
 	THREAD_UNLOCK(te);
 
 	if G_UNLIKELY(0 == pending)
-		return;
+		return handled;
 
 	/*
 	 * Signal 0 is not a signal and is used to verify whether a thread ID
@@ -2505,10 +2515,14 @@ recheck:
 		te->sig_mask &= ~tsig_mask(s);
 
 		g_assert(te->in_signal_handler >= 0);
+
+		handled = TRUE;
 	}
 
 	if (thread_sig_present(te))
 		goto recheck;		/* More signals have arrived */
+
+	return handled;
 }
 
 /**
@@ -2535,21 +2549,26 @@ thread_sighandler_level(void)
 /**
  * Check whether thread is suspended and can be suspended right now, or
  * whether there are pending signals to deliver.
+ *
+ * @return TRUE if we suspended or handled signals.
  */
-void
+bool
 thread_check_suspended(void)
 {
+	bool delayed = FALSE;
 	struct thread_element *te;
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
-		return;
+		return FALSE;
 
 	if G_UNLIKELY(thread_sig_pending(te))
-		thread_sig_handle(te);
+		delayed = thread_sig_handle(te);
 
 	if G_UNLIKELY(te->suspend && 0 == te->locks.count)
-		thread_suspend_self(te);
+		delayed |= thread_suspend_self(te);
+
+	return delayed;
 }
 
 /**

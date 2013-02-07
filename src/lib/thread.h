@@ -169,7 +169,7 @@ void thread_crash_mode(void);
 
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
-void thread_check_suspended(void);
+bool thread_check_suspended(void);
 
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
