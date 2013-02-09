@@ -675,6 +675,13 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0) || signal_received || shutdown_requested)
 		g_info("running final shutdown sequence...");
 
+	/*
+	 * The main thread may now have to perform thread_join(), so we
+	 * tell the management layer that it is OK to block.
+	 */
+
+	thread_set_main(TRUE);				/* Main thread can now block */
+
 	DO(settings_terminate);	/* Entering the final sequence */
 	DO(cq_halt);			/* No more callbacks, with everything shutdown */
 	DO(search_shutdown);	/* Disable now, since we can get queries above */
@@ -1637,6 +1644,7 @@ main(int argc, char **argv)
 	product_set_interface(GTA_INTERFACE);
 
 	mingw_early_init();
+	thread_set_main(FALSE);				/* Main thread cannot block! */
 	gm_savemain(argc, argv, environ);	/* For gm_setproctitle() */
 	tm_init();
 
