@@ -60,6 +60,10 @@
      ${prefix}/lib/${gtkdir}/modules/*.so
   </binary>
 
+ <binary>
+    ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/*.so
+  </binary>
+  
   <!-- Copy in GTK+ theme engines. Note the use of the
        "${pkg:module:variable}" macro, which evaluates to a pkg-config
        variable in the specified module. Note that any libraries that
