@@ -3606,6 +3606,76 @@ mingw_opcode_name(uint8 opcode)
 #endif /* MINGW_BACKTRACE_DEBUG */
 
 /**
+ * Computes the length taken by the versatile LEA instruction.
+ *
+ * @param op		pointer to the LEA opcode
+ */
+static unsigned
+mingw_opcode_lea_length(const uint8 *op)
+{
+	uint8 mode, reg;
+
+	g_assert(OPCODE_LEA == *op);
+
+	mode = mingw_op_mod_code(op[1]);
+	reg = mingw_op_dst_register(op[1]);
+
+	switch (mode) {
+	case 0:
+		/*
+		 * ``reg'' encodes the following:
+		 *
+		 * 4 = [sib] (32-bit SIB Byte follows)
+		 * 5 = disp32
+		 * others = register
+		 */
+
+		if (4 == reg) {
+			return 3;
+		} if (5 == reg) {
+			return 6;
+		} else {
+			return 2;
+		}
+		g_assert_not_reached();
+	case 1:
+		/*
+		 * ``reg'' encodes the following:
+		 *
+		 * 4 = [sib] + disp8
+		 * others = register + disp8
+		 */
+
+		if (4 == reg) {
+			return 4;
+		} else {
+			return 3;
+		}
+		g_assert_not_reached();
+	case 2:
+		/*
+		 * ``reg'' encodes the following:
+		 *
+		 * 4 = [sib] + disp32
+		 * others = register + disp32
+		 */
+		if (4 == reg) {
+			return 7;
+		} else {
+			return 6;
+		}
+		g_assert_not_reached();
+	case 3:
+		return 2;
+	default:
+		break;
+	}
+
+	g_assert_not_reached();
+	return 0;
+}
+
+/**
  * Is the SUB opcode pointed at by ``op'' targetting ESP?
  */
 static bool
@@ -3696,62 +3766,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 * Need to decode further to know how many bytes are taken
 			 * by this versatile instruction.
 			 */
-			{
-				uint8 mode = mingw_op_mod_code(p[1]);
-				uint8 reg = mingw_op_dst_register(p[1]);
-				switch (mode) {
-				case 0:
-					/*
-					 * ``reg'' encodes the following:
-					 *
-					 * 4 = [sib] (32-bit SIB Byte follows)
-					 * 5 = disp32
-					 * others = register
-					 */
-
-					if (4 == reg) {
-						fill = 3;
-					} if (5 == reg) {
-						fill = 6;
-					} else {
-						fill = 2;
-					}
-					goto filler;
-				case 1:
-					/*
-					 * ``reg'' encodes the following:
-					 *
-					 * 4 = [sib] + disp8
-					 * others = register + disp8
-					 */
-
-					if (4 == reg) {
-						fill = 4;
-					} else {
-						fill = 3;
-					}
-					goto filler;
-				case 2:
-					/*
-					 * ``reg'' encodes the following:
-					 *
-					 * 4 = [sib] + disp32
-					 * others = register + disp32
-					 */
-					if (4 == reg) {
-						fill = 7;
-					} else {
-						fill = 6;
-					}
-					goto filler;
-				case 3:
-					fill = 2;
-					goto filler;
-				default:
-					g_assert_not_reached();
-				}
-			}
-			break;
+			fill = mingw_opcode_lea_length(p);
+			goto filler;
 		case OPCODE_PUSH_EBP:
 			/*
 			 * The frame pointer is saved if the routine begins with (Intel
@@ -4003,18 +4019,37 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	}
 
 	/*
-	 * Scan backwards to find a previous RET / JMP instruction.
+	 * Scan backwards to find a previous RET / JMP / NOP / LEA instruction.
 	 */
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
-		uint8 op;
+		uint8 op, pop;
 		
 		const uint8 *next;
 
 		if (!valid_ptr(p))
 			return FALSE;
 
+		/*
+		 * Because this is a CISC processor, single-byte opcodes could actually
+		 * be part of a longer 2-byte instruction.  A likely candidate we want
+		 * to avoid is a MOV between registers, where the second byte would
+		 * encode the registers.
+		 */
+
+		pop = *(p - 1);
+		if (OPCODE_MOV_REG == pop) {
+			BACKTRACE_DEBUG(BACK_F_RA,
+				"%s: skipping %s operation at pc=%p, opcode=0x%x (after a MOV)",
+				G_STRFUNC, mingw_opcode_name(*p), p, *p);
+			goto next;
+		}
+
 		switch ((op = *p)) {
+		case OPCODE_LEA:
+			next = p + mingw_opcode_lea_length(p);
+			break;
+		case OPCODE_NOP:
 		case OPCODE_RET_NEAR:
 		case OPCODE_RET_FAR:
 			next = p + 1;
