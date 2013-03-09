@@ -57,7 +57,9 @@ typedef volatile uint8 atomic_lock_t;
 
 static inline ALWAYS_INLINE void
 atomic_release(atomic_lock_t *p) {
-	__sync_lock_release(p);
+	/* Prefer this to __sync_lock_release(p) which is obscurely documented */
+	*p = 0;
+	atomic_mb();
 }
 
 static inline ALWAYS_INLINE bool
