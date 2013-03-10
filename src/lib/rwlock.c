@@ -282,17 +282,48 @@ rwlock_waiters_for_read(const rwlock_t *rw)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void
-rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count)
+rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
+	const char *file, unsigned line)
 {
 	rwlock_check(rw);
 
-	s_minicarp("possible deadlock #%u on rwlock (%c) %p (r:%u w:%u q:%u+%u)",
+	s_minicarp("possible deadlock #%u on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
+		" at %s:%u",
 		count, reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-		rw->waiters - rw->write_waiters, rw->write_waiters);
+		rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
 }
 
 #define RWLOCK_LOCK(rw)		spinlock_hidden(&(rw)->lock)
 #define RWLOCK_UNLOCK(rw)	spinunlock_hidden(&(rw)->lock)
+
+/*
+ * Dump the lock's waiting queue.
+ */
+static void
+rwlock_wait_queue_dump(const rwlock_t *rw)
+{
+	const struct rwlock_waiting *wc = rw->wait_head;
+
+	if (wc != NULL) {
+		s_miniinfo("waiting queue for rwlock %p (%u item%s):",
+			rw, rw->waiters, 1 == rw->waiters ? "" : "s");
+	} else {
+		s_miniwarn("waiting queue for rwlock %p is empty?", rw);
+	}
+
+	if (RWLOCK_WFREE != rw->owner) {
+		s_miniinfo("(rwlock %p write-locked by %s)",
+			rw, thread_id_name(rw->owner));
+	}
+
+	while (wc != NULL) {
+		s_miniinfo("%s %s %s-lock %p",
+			thread_id_name(wc->stid),
+			wc->ok ? "was granted" : "waiting for",
+			wc->reading ? "read" : "write", rw);
+		wc = wc->next;
+	}
+}
 
 /**
  * Abort on deadlock condition.
@@ -300,16 +331,20 @@ rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
-rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed)
+rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
+	const char *file, unsigned line)
 {
 	static int deadlocked;
 
 	if (deadlocked != 0) {
-		if (1 == deadlocked)
+		if (1 == deadlocked) {
 			thread_lock_deadlock(rw);
-		s_minierror("recursive deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u)",
+			rwlock_wait_queue_dump(rw);
+		}
+		s_minierror("recursive deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
+			" at %s:%u",
 			reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-			rw->waiters - rw->write_waiters, rw->write_waiters);
+			rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
 	}
 
 	deadlocked++;
@@ -318,8 +353,10 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed)
 	rwlock_check(rw);
 
 	thread_lock_deadlock(rw);
-	s_error("deadlocked on rwlock (%c) %p (after %u secs)",
-		reading ? 'R' : 'W', rw, elapsed);
+	rwlock_wait_queue_dump(rw);
+
+	s_error("deadlocked on rwlock (%c) %p (after %u secs) at %s:%u",
+		reading ? 'R' : 'W', rw, elapsed, file, line);
 }
 
 /**
@@ -363,7 +400,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	 */
 
 	if (thread_is_single())
-		rwlock_deadlocked(rw, reading, 0);
+		rwlock_deadlocked(rw, reading, 0, file, line);
 
 #ifdef HAS_SCHED_YIELD
 	if (1 == rwlock_cpus)
@@ -427,7 +464,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		 */
 
 		if G_UNLIKELY(0 == (i & RWLOCK_DEADMASK))
-			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD);
+			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD, file, line);
 
 		if G_UNLIKELY(0 == start) {
 			start = tm_time_exact();
@@ -437,7 +474,8 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		}
 
 		if (delta_time(tm_time_exact(), start) > RWLOCK_TIMEOUT)
-			rwlock_deadlocked(rw, reading, (uint) delta_time(tm_time(), start));
+			rwlock_deadlocked(rw, reading, (uint) delta_time(tm_time(), start),
+				file, line);
 
 		/*
 		 * During the early loops, simply relinquish the CPU without imposing

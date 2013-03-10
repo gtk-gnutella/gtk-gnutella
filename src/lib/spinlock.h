@@ -220,12 +220,14 @@ const char *spinlock_source_string(enum spinlock_source src);
 /**
  * Callback to signal possible deadlocking condition.
  */
-typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned);
+typedef void (spinlock_deadlock_cb_t)(const volatile void *, unsigned,
+	const char *file, unsigned line);
 
 /**
  * Callback to abort on definitive deadlocking condition.
  */
-typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned);
+typedef void (spinlock_deadlocked_cb_t)(const volatile void *, unsigned,
+	const char *file, unsigned line);
 
 void spinlock_loop(volatile spinlock_t *s,
 	enum spinlock_source src, const void *src_object,

@@ -87,7 +87,8 @@ mutex_crash_mode(void)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void
-mutex_deadlock(const volatile void *obj, unsigned count)
+mutex_deadlock(const volatile void *obj, unsigned count,
+	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
 
@@ -98,7 +99,8 @@ mutex_deadlock(const volatile void *obj, unsigned count)
 		obj, m->depth, m->lock.file, m->lock.line);
 #endif
 
-	s_minicarp("possible mutex deadlock #%u on %p", count, obj);
+	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
+		count, obj, file, line);
 }
 
 /**
@@ -107,7 +109,8 @@ mutex_deadlock(const volatile void *obj, unsigned count)
  * Don't inline to provide a suitable breakpoint.
  */
 static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
-mutex_deadlocked(const volatile void *obj, unsigned elapsed)
+mutex_deadlocked(const volatile void *obj, unsigned elapsed,
+	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
 	static int deadlocked;
@@ -116,8 +119,8 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 	if (deadlocked != 0) {
 		if (1 == deadlocked)
 			thread_lock_deadlock(obj);
-		s_minierror("recursive deadlock on mutex %p (depth %zu)",
-			obj, m->depth);
+		s_minierror("recursive deadlock on mutex %p (depth %zu) at %s:%u",
+			obj, m->depth, file, line);
 	}
 
 	deadlocked++;
@@ -125,18 +128,19 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed)
 
 	mutex_check(m);
 
+	stid = thread_stid_from_thread(m->owner);
+
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p still held (depth %zu) by %s:%u",
-		obj, m->depth, m->lock.file, m->lock.line);
+	s_miniwarn("mutex %p still held (depth %zu, thread #%d) by %s:%u",
+		obj, m->depth, stid, m->lock.file, m->lock.line);
 #endif
 
-	stid = thread_stid_from_thread(m->owner);
 	if (-1 == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
 	thread_lock_deadlock(obj);
-	s_error("deadlocked on mutex %p (depth %zu, after %u secs), "
-		"owned by thread #%d", obj, m->depth, elapsed, stid);
+	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
+		"owned by thread #%d", obj, m->depth, elapsed, file, line, stid);
 }
 
 /**
