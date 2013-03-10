@@ -1860,15 +1860,7 @@ crash_mode(void)
 	 */
 
 	thread_suspend_others(FALSE);
-
-	/*
-	 * Locks that can be "hidden" need to become pass-through since suspension
-	 * can cause threads holding these hidden locks to not be released, causing
-	 * deadlocks during the crash sequence.
-	 */
-
-	spinlock_crash_mode();
-	mutex_crash_mode();
+	thread_crash_mode();
 
 	/*
 	 * Activate crash mode.

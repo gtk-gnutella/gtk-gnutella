@@ -3693,6 +3693,31 @@ thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 }
 
 /**
+ * Enter thread crashing mode.
+ */
+void
+thread_crash_mode(void)
+{
+	/*
+	 * Disable all locks: spinlocks and mutexes will be granted immediately,
+	 * preventing further deadlocks at the cost of a possible crash.  However,
+	 * this allows us to maybe collect information that we couldn't otherwise
+	 * get at, so it's worth the risk.
+	 */
+
+	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
+	mutex_crash_mode();		/* Allow release of all mutexes */
+
+	/*
+	 * Suspend the other threads now that we are running with all locks
+	 * disabled, to prevent concurrency errors whilst we are collecting
+	 * information.
+	 */
+
+	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
+}
+
+/**
  * Report a deadlock condition whilst attempting to get a lock.
  *
  * This is only executed once per thread, since a deadlock is an issue that
@@ -3759,14 +3784,12 @@ thread_lock_deadlock(const volatile void *lock)
 	}
 
 	/*
-	 * Disable all locks: spinlocks and mutexes will be granted immediately,
-	 * preventing further deadlocks at the cost of a possible crash.  However,
-	 * this allows us to maybe collect information that we couldn't otherwise
-	 * get at, so it's worth the risk.
+	 * We're about to crash anyway since there is a deadlock condition, so
+	 * our aim now is to be able to collect as much information as possible
+	 * to possibly allow forensic analysis.
 	 */
 
-	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
-	mutex_crash_mode();		/* Allow release of all mutexes */
+	thread_crash_mode();
 
 	s_miniinfo("attempting to unwind current stack:");
 	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
