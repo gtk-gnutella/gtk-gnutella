@@ -94,6 +94,10 @@
 #if 1
 #define SPINLOCK_DEBUG			/* Tracks where we take the lock */
 #endif
+#if 0
+#define SPINLOCK_OWNER_DEBUG	/* Tracks who takes the lock */
+#include "thread.h"				/* For thread_small_id() */
+#endif
 
 enum spinlock_magic {
 	SPINLOCK_MAGIC = 0x3918493e,
@@ -109,6 +113,9 @@ enum spinlock_magic {
 typedef struct spinlock {
 	enum spinlock_magic magic;
 	atomic_lock_t lock;
+#ifdef SPINLOCK_OWNER_DEBUG
+	uint8 stid;					/* Locking thread, for assertions & debug */
+#endif
 #ifdef SPINLOCK_DEBUG
 	const char *file;
 	unsigned line;
@@ -119,7 +126,11 @@ typedef struct spinlock {
  * Static initialization value for a spinlock structure.
  */
 #ifdef SPINLOCK_DEBUG
+#ifdef SPINLOCK_OWNER_DEBUG
+#define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0, -1, NULL, 0 }
+#else
 #define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0, NULL, 0 }
+#endif
 #else
 #define SPINLOCK_INIT	{ SPINLOCK_MAGIC, 0 }
 #endif
@@ -232,6 +243,22 @@ void spinlock_reset(spinlock_t *s);
  */
 static inline bool NON_NULL_PARAM((1))
 spinlock_is_held(const spinlock_t *s)
+{
+#ifdef SPINLOCK_OWNER_DEBUG
+	if (thread_small_id() != s->stid)
+		return FALSE;
+#endif
+
+	/* Make this fast, no assertion on the spinlock validity */
+	return s->lock != 0;
+}
+
+/**
+ * Fast version of spinlock_is_held() to be used when we do not want to
+ * check the spinlock ownership, even with compiled with SPINLOCK_OWNER_DEBUG.
+ */
+static inline bool NON_NULL_PARAM((1))
+spinlock_is_held_fast(const spinlock_t *s)
 {
 	/* Make this fast, no assertion on the spinlock validity */
 	return s->lock != 0;

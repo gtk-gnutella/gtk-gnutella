@@ -2262,6 +2262,57 @@ thread_qid_lookup(const void *sp)
 }
 
 /**
+ * Safely (but slowly) get the thread small ID.
+ *
+ * This routine is intended to be used only by low-level debugging code
+ * since it can fail to locate a discovered thread.
+ *
+ * @return found thread ID, -2 on error (leaving -1 to mean "invalid").
+ */
+unsigned
+thread_safe_small_id(void)
+{
+	struct thread_element *te;
+	thread_qid_t qid;
+	int stid;
+
+	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0]))
+		return 0;
+
+	/*
+	 * Look in the QID cache for a match.
+	 */
+
+	te = thread_qid_lookup(&te);
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	/*
+	 * A light version of thread_find_via_qid() which does not update the QID
+	 * cache to avoid taking locks, since this code is invoked from spinlock().
+	 */
+
+	qid = thread_quasi_id_fast(&te);
+	te = thread_find_qid(qid);
+
+	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
+		thread_t t = thread_self();
+		if (!thread_eq(te->tid, t)) {
+			te = thread_find_tid(t);		/* Find proper TID instead */
+		}
+	}
+
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	stid = thread_stid_from_thread(thread_self());
+	if G_LIKELY(-1 != stid)
+		return stid;
+
+	return -2;		/* Error, could not determine small thread ID */
+}
+
+/**
  * Get thread small ID.
  */
 unsigned

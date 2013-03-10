@@ -174,7 +174,7 @@ mutex_reset(mutex_t *m)
 static inline ALWAYS_INLINE bool
 mutex_is_owned_by_fast(const mutex_t *m, const thread_t t)
 {
-	return spinlock_is_held(&m->lock) && thread_eq(t, m->owner);
+	return spinlock_is_held_fast(&m->lock) && thread_eq(t, m->owner);
 }
 
 /**

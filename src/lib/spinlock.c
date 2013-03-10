@@ -76,6 +76,30 @@ spinunlock_account(const spinlock_t *s)
 	thread_lock_released(s, THREAD_LOCK_SPINLOCK, NULL);
 }
 
+static inline void ALWAYS_INLINE
+spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+{
+	(void) s;
+	(void) file;
+	(void) line;
+#ifdef SPINLOCK_OWNER_DEBUG
+	s->stid = thread_safe_small_id();
+#endif
+#ifdef SPINLOCK_DEBUG
+	s->file = file;
+	s->line = line;
+#endif
+}
+
+static inline void ALWAYS_INLINE
+spinlock_clear_owner(spinlock_t *s)
+{
+	(void) s;
+#ifdef SPINLOCK_OWNER_DEBUG
+	s->stid = -1;
+#endif
+}
+
 static inline void
 spinlock_check(const volatile struct spinlock * const slock)
 {
@@ -312,6 +336,7 @@ spinlock_init(spinlock_t *s)
 
 	s->magic = SPINLOCK_MAGIC;
 	s->lock = 0;
+	spinlock_clear_owner(s);
 #ifdef SPINLOCK_DEBUG
 	s->file = NULL;
 	s->line = 0;
@@ -385,8 +410,7 @@ spinlock_grab_from(spinlock_t *s, bool hidden, const char *file, unsigned line)
 			spinlock_deadlock, spinlock_deadlocked, file, line);
 	}
 
-	s->file = file;
-	s->line = line;
+	spinlock_set_owner(s, file, line);
 
 	if G_LIKELY(!hidden)
 		spinlock_account(s, file, line);
@@ -404,8 +428,7 @@ spinlock_grab_try_from(spinlock_t *s,
 	spinlock_check(s);
 
 	if (atomic_acquire(&s->lock)) {
-		s->file = file;
-		s->line = line;
+		spinlock_set_owner(s, file, line);
 		if G_LIKELY(!hidden)
 			spinlock_account(s, file, line);
 		return TRUE;
@@ -431,9 +454,7 @@ spinlock_grab_swap_from(spinlock_t *s, const void *plock,
 			spinlock_deadlock, spinlock_deadlocked, file, line);
 	}
 
-	s->file = file;
-	s->line = line;
-
+	spinlock_set_owner(s, file, line);
 	spinlock_account_swap(s, file, line, plock);
 }
 
@@ -450,8 +471,7 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 	spinlock_check(s);
 
 	if (atomic_acquire(&s->lock)) {
-		s->file = file;
-		s->line = line;
+		spinlock_set_owner(s, file, line);
 		spinlock_account_swap(s, file, line, plock);
 		return TRUE;
 	}
@@ -470,6 +490,8 @@ spinlock_release(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
 	g_assert(s->lock != 0 || spinlock_pass_through);
+
+	spinlock_clear_owner(s);
 
 	/*
 	 * The release acts as a "release barrier", ensuring that all previous
