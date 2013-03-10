@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "once.h"
+#include "atomic.h"
 #include "mutex.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -54,23 +55,39 @@ bool
 once_flag_run(once_flag_t *flag, once_fn_t routine)
 {
 	static mutex_t once_flag_mtx = MUTEX_INIT;
+	static int recursion;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return FALSE;
 
 	mutex_lock(&once_flag_mtx);
 
-	if (ONCE_F_DONE == *flag) {
+	if G_UNLIKELY(ONCE_F_DONE == *flag) {
 		mutex_unlock(&once_flag_mtx);
 		return FALSE;
 	}
 
-	g_assert_log(ONCE_F_PROGRESS != *flag,
-		"%s(): recursive attempt to initialize routine", G_STRFUNC);
+	if G_UNLIKELY(ONCE_F_PROGRESS == *flag) {
+		if (recursion++ > 2)
+			s_minierror("%s(): endless recursive attempt to initialize "
+				"routine %p", G_STRFUNC, routine);
+
+		if (1 == recursion)
+			s_miniwarn("%s(): recursive attempt to initialize %s()",
+				G_STRFUNC, stacktrace_function_name(routine));
+
+		/* Cheat, mark it done since we're recursing */
+
+		*flag = ONCE_F_DONE;
+		mutex_unlock(&once_flag_mtx);
+		return FALSE;
+	}
 
 	*flag = ONCE_F_PROGRESS;
+	atomic_mb();
 	(*routine)();
 	*flag = ONCE_F_DONE;
+	recursion = 0;
 	mutex_unlock(&once_flag_mtx);
 
 	return TRUE;
