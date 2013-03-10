@@ -739,10 +739,10 @@ thread_block_init(struct thread_element *te)
 	if G_UNLIKELY(INVALID_FD == te->wfd[0]) {
 #ifdef HAS_SOCKETPAIR
 		if (-1 == socketpair(AF_LOCAL, SOCK_STREAM, 0, te->wfd))
-			s_minierror("%s(): socketpair() failed: %m", G_STRFUNC);
+			s_error("%s(): socketpair() failed: %m", G_STRFUNC);
 #else
 		if (-1 == pipe(te->wfd))
-			s_minierror("%s(): pipe() failed: %m", G_STRFUNC);
+			s_error("%s(): pipe() failed: %m", G_STRFUNC);
 #endif
 	}
 }
@@ -1012,7 +1012,7 @@ thread_pjoin(struct thread_element *te)
 	error = pthread_join(te->ptid, NULL);
 	if (error != 0) {
 		errno = error;
-		s_minierror("%s(): pthread_join() failed on %s: %m",
+		s_error("%s(): pthread_join() failed on %s: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
 }
@@ -3123,7 +3123,7 @@ thread_private_update_extended(const void *key, const void *value,
 		struct thread_pvalue *opv = v;
 
 		if (!existing)
-			s_minierror("attempt to add already existing thread-private key");
+			s_error("attempt to add already existing thread-private key");
 
 		if (opv->value != value) {
 			thread_private_remove_value(pht, key, opv);
@@ -3408,7 +3408,7 @@ thread_local_set(thread_key_t key, const void *value)
 	spinunlock_hidden(&thread_local_slk);
 
 	if G_UNLIKELY(THREAD_LOCAL_INVALID == freecb)
-		s_minierror("%s(): key %u was concurrently deleted", G_STRFUNC, key);
+		s_error("%s(): key %u was concurrently deleted", G_STRFUNC, key);
 
 	if G_UNLIKELY(
 		val != NULL && val != value &&
@@ -4618,11 +4618,11 @@ thread_assert_no_locks(const char *routine)
 	struct thread_element *te = thread_get_element();
 
 	if G_UNLIKELY(0 != te->locks.count) {
-		s_miniwarn("%s(): %s currently holds %zu lock%s",
+		s_warning("%s(): %s currently holds %zu lock%s",
 			routine, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
-		s_minierror("%s() expected no locks, found %zu held",
+		s_error("%s() expected no locks, found %zu held",
 			routine, te->locks.count);
 	}
 }
@@ -5065,7 +5065,7 @@ thread_element_block_until(struct thread_element *te,
 	 */
 
 	if (thread_main_stid == te->stid && !thread_main_can_block)
-		s_minierror("%s() called from non-blockable main thread", G_STRFUNC);
+		s_error("%s() called from non-blockable main thread", G_STRFUNC);
 
 	/*
 	 * Blocking works thusly: the thread attempts to read one byte out of its
@@ -5119,7 +5119,7 @@ retry:
 		r = compat_poll(&fds, 1, remain);
 
 		if (-1 == r)
-			s_minierror("%s(): %s could not block itself on poll(): %m",
+			s_error("%s(): %s could not block itself on poll(): %m",
 				G_STRFUNC, thread_element_name(te));
 
 		if (0 == r)
@@ -5129,7 +5129,7 @@ retry:
 	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_minierror("%s(): %s could not block itself on read(): %m",
+		s_error("%s(): %s could not block itself on read(): %m",
 			G_STRFUNC, thread_element_name(te));
 	}
 
@@ -5606,7 +5606,7 @@ thread_launch(struct thread_element *te,
 				thread_stack_free(te);
 			} else {
 				errno = error;
-				s_minierror("%s(): cannot configure stack: %m", G_STRFUNC);
+				s_error("%s(): cannot configure stack: %m", G_STRFUNC);
 			}
 		}
 	}
@@ -5762,19 +5762,19 @@ thread_exit(void *value)
 	g_assert(thread_eq(te->tid, thread_self()));
 
 	if (thread_main_stid == te->stid)
-		s_minierror("%s() called by the main thread", G_STRFUNC);
+		s_error("%s() called by the main thread", G_STRFUNC);
 
 	if (!te->created) {
-		s_minierror("%s() called by foreigner %s",
+		s_error("%s() called by foreigner %s",
 			G_STRFUNC, thread_element_name(te));
 	}
 
 	if (0 != te->locks.count) {
-		s_miniwarn("%s() called by %s with %zu lock%s still held",
+		s_warning("%s() called by %s with %zu lock%s still held",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
-		s_minierror("thread exiting without clearing its locks");
+		s_error("thread exiting without clearing its locks");
 	}
 
 	/*
@@ -5865,7 +5865,7 @@ thread_exit(void *value)
 	atomic_uint_inc(&thread_pending_reuse);
 	atomic_uint_dec(&thread_running);
 	pthread_exit(value);
-	s_minierror("back from pthread_exit()");
+	s_error("back from pthread_exit()");
 }
 
 /**
@@ -5969,7 +5969,7 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 
 	THREAD_LOCK(te);
 	if (!te->join_pending) {
-		s_minierror("%s(): %s has not terminated yet, spurious wakeup?",
+		s_error("%s(): %s has not terminated yet, spurious wakeup?",
 			G_STRFUNC, thread_element_name(te));
 	}
 
@@ -6241,11 +6241,11 @@ thread_pause(void)
 	 */
 
 	if (0 != te->locks.count) {
-		s_miniwarn("%s(): %s currently holds %zu lock%s",
+		s_warning("%s(): %s currently holds %zu lock%s",
 			G_STRFUNC, thread_element_name(te), te->locks.count,
 			1 == te->locks.count ? "" : "s");
 		thread_lock_dump(te);
-		s_minierror("attempt to pause thread whilst holding locks");
+		s_error("attempt to pause thread whilst holding locks");
 	}
 
 	/*
@@ -6254,7 +6254,7 @@ thread_pause(void)
 	 */
 
 	if (thread_main_stid == te->stid && !thread_main_can_block)
-		s_minierror("%s() called from non-blockable main thread", G_STRFUNC);
+		s_error("%s() called from non-blockable main thread", G_STRFUNC);
 
 	/*
 	 * This is mostly the same logic as thread_block_self() although we
@@ -6269,7 +6269,7 @@ thread_pause(void)
 	THREAD_UNLOCK(te);
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
-		s_minierror("%s(): %s could not block itself: %m",
+		s_error("%s(): %s could not block itself: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
 
