@@ -4643,10 +4643,14 @@ thread_lock_deadlock(const volatile void *lock)
 			NULL == towner ? "" : " ",
 			lock, NULL == towner ? "nobody" : "itself");
 	} else {
+		char buf[128];
+		const char *name = thread_element_name(towner);
+
+		g_strlcpy(buf, name, sizeof buf);
+
 		s_miniwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name(te),
-			thread_lock_kind_to_string(kind), lock,
-			thread_element_name(towner));
+			thread_lock_kind_to_string(kind), lock, buf);
 	}
 
 	thread_lock_dump(te);
