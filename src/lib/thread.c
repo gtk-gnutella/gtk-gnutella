@@ -5525,6 +5525,9 @@ thread_launch(struct thread_element *te,
 		}
 	}
 
+	if (thread_stack_noinit)
+		pthread_attr_setstacksize(&attr, stacksize + thread_pagesize);
+
 	/*
 	 * We always create joinable threads to be able to cleanup the allocated
 	 * stack, hence we will always need to call pthread_join() at some point
