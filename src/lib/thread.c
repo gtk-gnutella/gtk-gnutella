@@ -676,9 +676,10 @@ thread_element_name_to_buf(const struct thread_element *te,
 static const char *
 thread_element_name(const struct thread_element *te)
 {
-	static char buf[128];
+	static char buf[THREAD_MAX][128];
+	char *b = &buf[te->stid][0];
 
-	return thread_element_name_to_buf(te, buf, sizeof buf);
+	return thread_element_name_to_buf(te, b, sizeof buf[0]);
 }
 
 /**
