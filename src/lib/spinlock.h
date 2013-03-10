@@ -153,6 +153,7 @@ void spinlock_grab_swap_from(spinlock_t *s, const void *plock,
 	const char *file, unsigned line);
 bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
 	const char *file, unsigned line);
+void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 
 #define spinlock(x)		spinlock_grab_from((x), FALSE, _WHERE_, __LINE__)
 #define spinlock_try(x)	spinlock_grab_try_from((x), FALSE, _WHERE_, __LINE__)
@@ -169,8 +170,11 @@ bool spinlock_grab_swap_try(spinlock_t *s, const void *plock,
 #define spinlock_swap_try(x,y) \
 	spinlock_grab_swap_try_from((x), (y), _WHERE_, __LINE__)
 
+#define spinlock_raw(x)			spinlock_raw_from((x), _WHERE_, __LINE__)
+
 #define spinunlock(x)			spinlock_release((x), FALSE)
 #define spinunlock_hidden(x)	spinlock_release((x), TRUE)
+#define spinunlock_raw(x)		spinlock_release((x), TRUE)
 
 #ifdef SPINLOCK_DEBUG
 /*

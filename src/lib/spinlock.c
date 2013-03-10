@@ -538,4 +538,26 @@ spinlock_release(spinlock_t *s, bool hidden)
 		spinunlock_account(s);
 }
 
+/**
+ * Grab a hidden spinlock from said location, using custom loop and no timeout.
+ *
+ * This is reserved to code that is called from spinlock_loop() and which still
+ * needs to get some lock to protect shared resources.
+ */
+void
+spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
+{
+	spinlock_check(s);
+
+	while (!atomic_acquire(&s->lock)) {
+		if G_UNLIKELY(spinlock_pass_through) {
+			spinlock_direct(s);
+			break;
+		}
+		do_sched_yield();		/* See lib/mingw32.h */
+	}
+
+	spinlock_set_owner(s, file, line);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
