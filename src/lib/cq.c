@@ -1622,6 +1622,8 @@ cq_thread_main(void *unused_arg)
 {
 	(void) unused_arg;
 
+	thread_set_name("callout queue");
+
 	while (callout_thread) {
 		cq_heartbeat(callout_queue);
 		compat_sleep_ms(CALLOUT_PERIOD);
@@ -1640,6 +1642,19 @@ static void
 cq_global_init(void)
 {
 	static uint32 zero;
+
+	/*
+	 * To cut auto-initialization dependencies, we need to intialize the
+	 * time thread first.  Calling tm_now_exact() will do.
+	 *
+	 * The reason for that is because hash table routines need to compute the
+	 * random hash offset and will call the entropy collection layer, which in
+	 * turn needs to get the time.  If the time thread is not started at the
+	 * time, we could get recursion when the code attempts to auto-initialize
+	 * the callout queue again.
+	 */
+
+	(void) tm_now_exact(NULL);
 
 	cq_debug_ptr = &zero;
 	callout_queue = cq_make("main", 0, CALLOUT_PERIOD);
