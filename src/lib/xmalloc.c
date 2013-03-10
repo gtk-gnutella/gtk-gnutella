@@ -3652,8 +3652,8 @@ xmalloc_thread_free_deferred(unsigned stid)
 	spinlock(&xcr->lock);
 
 	if (xmalloc_debugging(0)) {
-		s_minidbg("XM starting handling deferred %zu block%s for thread #%u",
-			xcr->count, 1 == xcr->count ? "" : "s", stid);
+		s_minidbg("XM starting handling deferred %zu block%s for %s",
+			xcr->count, 1 == xcr->count ? "" : "s", thread_id_name(stid));
 	}
 
 	for (n = 0, p = xcr->head; p != NULL; p = next) {
@@ -3693,8 +3693,8 @@ xmalloc_thread_free_deferred(unsigned stid)
 	spinunlock(&xcr->lock);
 
 	if (xmalloc_debugging(0)) {
-		t_debug("XM handled delayed free of %zu block%s in thread #%u",
-			n, 1 == n ? "" : "s", stid);
+		t_debug("XM handled delayed free of %zu block%s in %s",
+			n, 1 == n ? "" : "s", thread_id_name(stid));
 	}
 }
 
