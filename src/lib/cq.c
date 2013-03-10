@@ -639,10 +639,10 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
 	cevent_t *ev;
 
 	cqueue_check(cq);
-	assert_mutex_is_owned(&cq->cq_lock);
 	g_assert(ev_ptr != NULL);
 
 	ev = *ev_ptr;
+	CQ_LOCK(cq);
 
 	/*
 	 * One nice side effect of calling cq_zero() is that we can assert that
@@ -673,6 +673,8 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
 	if G_LIKELY(!cq->cq_call_extended) {
 		*ev_ptr = NULL;
 	}
+
+	CQ_UNLOCK(cq);
 }
 
 /**
@@ -844,7 +846,9 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 
 	g_assert(fn != NULL);
 
-	(*fn)(cq, arg);
+	CQ_UNLOCK(cq);
+	(*fn)(cq, arg);		/* Callback invoked with queue unlocked */
+	CQ_LOCK(cq);
 
 	/*
 	 * If the event was extended and they did not call cq_zero(),
@@ -1047,7 +1051,7 @@ done:
 			cq->cq_items, 1 == cq->cq_items ? "" : "s");
 	}
 
-	mutex_unlock(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 
 	/*
 	 * Run idle callbacks if nothing was processed.
@@ -1094,7 +1098,7 @@ cq_heartbeat(cqueue_t *cq)
 	 * How much milliseconds elapsed since last heart beat?
 	 */
 
-	mutex_lock(&cq->cq_lock);
+	CQ_LOCK(cq);
 
 	tm_now_exact(&tv);
 	delay = tm_elapsed_ms(&tv, &cq->cq_last_heartbeat);
