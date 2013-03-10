@@ -82,6 +82,7 @@
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
 #include "fd.h"					/* For fd_close() */
+#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "mem.h"
