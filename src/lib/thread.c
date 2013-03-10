@@ -2238,6 +2238,22 @@ thread_get_private_hash(void)
 }
 
 /**
+ * @return current thread stack usage.
+ */
+size_t
+thread_stack_used(void)
+{
+	struct thread_element *te = thread_get_element();
+	static void *base;
+
+	base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	if (thread_sp_direction < 0)
+		base = ptr_add_offset(base, (1 << thread_pageshift));
+
+	return thread_stack_ptr_offset(base, &te);
+}
+
+/**
  * Lookup thread by its QID.
  *
  * @param sp		stack pointer from caller frame
@@ -4561,6 +4577,24 @@ thread_lock_count(void)
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
+		return 0;
+
+	return te->locks.count;
+}
+
+/**
+ * @return amount of locks held by specified thread ID.
+ */
+size_t
+thread_id_lock_count(unsigned id)
+{
+	struct thread_element *te;
+
+	if G_UNLIKELY(id >= THREAD_MAX)
+		return 0;
+
+	te = threads[id];
+	if G_UNLIKELY(NULL == te || te->reusable)
 		return 0;
 
 	return te->locks.count;

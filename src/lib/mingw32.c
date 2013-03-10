@@ -4899,12 +4899,67 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		 * far, so log the fact as soon as possible.
 		 */
 		{
-			DECLARE_STR(1);
+			char buf[ULONG_DEC_BUFLEN];
+			char lbuf[ULONG_DEC_BUFLEN];
+			char sbuf[ULONG_DEC_BUFLEN];
+			const char *s, *ss;
+			int stid;
+			size_t locks;
+			DECLARE_STR(12);
+
+			/*
+			 * Windows detects stack overflows by using a guard page at the
+			 * end of each thread stack.  Before invoking the exception handler,
+			 * it resets the guard page as read-write to give room to the thread
+			 * to process it.  However, if we overflow that page, we have no
+			 * protection and will overwrite memory belonging to... someone!
+			 *
+			 * This gives us enough room for our basic processing below.
+			 */
 
 			print_str("Got stack overflow -- crashing.\n");
 			flush_err_str();
 			if (log_stdout_is_distinct())
 				flush_str(STDOUT_FILENO);
+
+			stid = thread_safe_small_id();
+			if (stid < 0)
+				stid += 256;
+			s = print_number(buf, sizeof buf, stid);
+			locks = thread_id_lock_count(stid);
+
+			rewind_str(0);
+			print_str("(overflow in thread #");			/* 0 */
+			print_str(s);								/* 1 */
+			print_str(" at PC=0x");						/* 2 */
+			print_str(pointer_to_string(er->ExceptionAddress));	/* 3 */
+			if (locks != 0) {
+				const char *ls = print_number(lbuf, sizeof lbuf, locks);
+				print_str(", holds ");						/* 4 */
+				print_str(ls);								/* 5 */
+				print_str(1 == locks ? " lock" : "locks");	/* 6 */
+			}
+			ss = print_number(sbuf, sizeof sbuf, thread_stack_used());
+			print_str(", stack is ");					/* 7 */
+			print_str(ss);								/* 8 */
+			print_str(" bytes");						/* 9 */
+			if (0 != stid)
+				print_str(", killing it");				/* 10 */
+			print_str(")\n");							/* 11 */
+			flush_err_str();
+			if (log_stdout_is_distinct())
+				flush_str(STDOUT_FILENO);
+
+			/*
+			 * Forcefully killing the thread is the least we can do.
+			 *
+			 * If it is holding locks, deadlocks are likely to occur
+			 * afterwards, but this is panic...
+			 */
+
+			if (0 != stid) {
+				thread_exit(NULL);
+			}
 		}
 		signo = SIGSEGV;
 		break;

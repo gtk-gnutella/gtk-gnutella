@@ -167,6 +167,7 @@ unsigned thread_count();
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_crash_mode(void);
+size_t thread_stack_used(void);
 
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
@@ -199,6 +200,7 @@ void thread_lock_changed(const void *lock, enum thread_lock_kind okind,
 void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 	const void *element);
 size_t thread_lock_count(void);
+size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
 bool thread_lock_holds_default(const volatile void *lock, bool dflt);
 size_t thread_lock_held_count(const void *lock);
