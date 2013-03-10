@@ -3643,7 +3643,7 @@ xmalloc_thread_free_deferred(unsigned stid)
 	struct xchunk *xck;
 	struct xcross *xcr;
 	void *p, *next = NULL;
-	size_t n;
+	size_t n, size = 0;
 
 	g_assert(size_is_non_negative(stid));
 	g_assert(stid < G_N_ELEMENTS(xcross));
@@ -3682,6 +3682,7 @@ xmalloc_thread_free_deferred(unsigned stid)
 				n, p, xck, xck->xc_count, xck->xc_capacity);
 		}
 
+		size += xck->xc_size;
 		xmalloc_chunk_return(xck, p);
 	}
 
@@ -3693,8 +3694,8 @@ xmalloc_thread_free_deferred(unsigned stid)
 	spinunlock(&xcr->lock);
 
 	if (xmalloc_debugging(0)) {
-		t_debug("XM handled delayed free of %zu block%s in %s",
-			n, 1 == n ? "" : "s", thread_id_name(stid));
+		t_debug("XM handled delayed free of %zu block%s (%zu bytes) in %s",
+			n, 1 == n ? "" : "s", size, thread_id_name(stid));
 	}
 }
 
