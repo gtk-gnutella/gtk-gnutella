@@ -115,6 +115,7 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	gentime.c \
 	getcpucount.c \
 	getdate.c \
 	getgateway.c \

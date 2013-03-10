@@ -172,6 +172,7 @@ LSRC = \
 	float.c \
 	fragcheck.c \
 	fs_free_space.c \
+	gentime.c \
 	getcpucount.c \
 	getdate.c \
 	getgateway.c \
@@ -337,6 +338,7 @@ LOBJ = \
 	float.o \
 	fragcheck.o \
 	fs_free_space.o \
+	gentime.o \
 	getcpucount.o \
 	getdate.o \
 	getgateway.o \

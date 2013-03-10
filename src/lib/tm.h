@@ -199,6 +199,15 @@ tm_fill_ms(tm_t *tm, ulong ms)
 	tm->tv_usec = (ms - 1000 * tm->tv_sec) * 1000;
 }
 
+/**
+ * Notifications for clock changes.
+ */
+
+typedef void (*tm_event_listener_t)(int delta);
+
+void tm_event_listener_add(tm_event_listener_t);
+void tm_event_listener_remove(tm_event_listener_t);
+
 #endif /* _tm_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

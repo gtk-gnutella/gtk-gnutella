@@ -42,10 +42,10 @@
 #include "spinlock.h"
 #include "atomic.h"
 #include "compat_sleep_ms.h"
+#include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
 #include "thread.h"
-#include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -244,9 +244,10 @@ spinlock_loop(volatile spinlock_t *s,
 {
 	static long cpus;
 	unsigned i;
-	time_t start = 0;
+	gentime_t start = GENTIME_ZERO;
 	int loops = SPINLOCK_LOOP;
 	const void *element = NULL;
+	time_delta_t d;
 
 	spinlock_check(s);
 
@@ -327,23 +328,23 @@ spinlock_loop(volatile spinlock_t *s,
 		 * lock during our earlier spinning.  We can therefore afford more
 		 * expensive checks now.
 		 *
-		 * Note that tm_time_exact() will do a thread_check_suspended().
+		 * Note that gentime_now_exact() will do a thread_check_suspended().
 		 */
 
 		if G_UNLIKELY(0 == (i & SPINLOCK_DEADMASK))
 			(*deadlock)(src_object, i / SPINLOCK_DEAD, file, line);
 
-		if G_UNLIKELY(0 == start) {
+		if G_UNLIKELY(gentime_is_zero(start)) {
 			enum thread_lock_kind kind = THREAD_LOCK_SPINLOCK;
-			start = tm_time_exact();
+			start = gentime_now_exact();
 			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
 				kind = THREAD_LOCK_MUTEX;
 			element = thread_lock_waiting_element(src_object, kind, file, line);
 		}
 
-		if (delta_time(tm_time_exact(), start) > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) delta_time(tm_time(), start),
-				file, line);
+		d = gentime_diff(gentime_now_exact(), start);
+		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+			(*deadlocked)(src_object, (unsigned) d, file, line);
 
 		compat_sleep_ms(SPINLOCK_DELAY);
 

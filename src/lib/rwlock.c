@@ -63,11 +63,11 @@
 
 #include "rwlock.h"
 #include "compat_sleep_ms.h"
+#include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
 #include "spinlock.h"
 #include "thread.h"
-#include "tm.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -379,9 +379,10 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	bool (*predicate)(void *), void *arg, const char *file, unsigned line)
 {
 	unsigned i;
-	time_t start = 0;
+	gentime_t start = GENTIME_ZERO;
 	int loops = RWLOCK_LOOP;
 	const void *element = NULL;
+	time_delta_t d;
 
 	rwlock_check(rw);
 
@@ -466,16 +467,16 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		if G_UNLIKELY(0 == (i & RWLOCK_DEADMASK))
 			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD, file, line);
 
-		if G_UNLIKELY(0 == start) {
-			start = tm_time_exact();
+		if G_UNLIKELY(gentime_is_zero(start)) {
+			start = gentime_now_exact();
 			element = thread_lock_waiting_element(rw,
 				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
 				file, line);
 		}
 
-		if (delta_time(tm_time_exact(), start) > RWLOCK_TIMEOUT)
-			rwlock_deadlocked(rw, reading, (uint) delta_time(tm_time(), start),
-				file, line);
+		d = gentime_diff(gentime_now_exact(), start);
+		if G_UNLIKELY(d > RWLOCK_TIMEOUT)
+			rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
 
 		/*
 		 * During the early loops, simply relinquish the CPU without imposing

@@ -694,6 +694,8 @@ src/lib/fragcheck.c
 src/lib/fragcheck.h
 src/lib/fs_free_space.c
 src/lib/fs_free_space.h
+src/lib/gentime.c
+src/lib/gentime.h
 src/lib/getcpucount.c
 src/lib/getcpucount.h
 src/lib/getdate.c

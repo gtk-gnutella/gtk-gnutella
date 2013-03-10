@@ -115,13 +115,14 @@
 #include "lib/debug.h"
 #include "lib/dbus_util.h"
 #include "lib/eval.h"
+#include "lib/exit.h"
 #include "lib/fd.h"
+#include "lib/gentime.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
-#include "lib/exit.h"
-#include "lib/htable.h"
 #include "lib/log.h"
 #include "lib/map.h"
 #include "lib/mime_type.h"
@@ -743,6 +744,7 @@ gtk_gnutella_exit(int exit_code)
 	DO(cq_close);
 	DO(wq_close);
 	DO(log_close);		/* Does not disable logging */
+	DO(gentime_close);
 
 	/*
 	 * Memory shutdown must come last.

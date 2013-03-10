@@ -41,22 +41,53 @@
 #endif
 
 #include "tm.h"
+#include "atomic.h"
+#include "compat_sleep_ms.h"
+#include "listener.h"
+#include "offtime.h"
 #include "spinlock.h"
 #include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
 
-#define TM_GMT_PERIOD		86400	/* Recompute GMT offset every hour */
+#define TM_GMT_PERIOD		(30*60)	/* Recompute GMT offset every half hour */
+#define TM_THREAD_STACK		THREAD_STACK_MIN
+#define TM_THREAD_PERIOD	1000	/* ms, 1 second */
 
 tm_t tm_cached_now;			/* Currently cached time */
 static spinlock_t tm_slk = SPINLOCK_INIT;
+
 static struct {
 	time_delta_t offset;
 	time_t computed;
 } tm_gmt;
 
-#define TM_LOCK		spinlock_hidden(&tm_slk)
-#define TM_UNLOCK	spinunlock_hidden(&tm_slk)
+static bool tm_thread_started;
+
+#define TM_LOCK			spinlock_raw(&tm_slk)
+#define TM_UNLOCK		spinunlock_raw(&tm_slk)
+
+/**
+ * Clock update listerners.
+ */
+
+static listeners_t tm_event_listeners;
+
+void tm_event_listener_add(tm_event_listener_t l)
+{
+	LISTENER_ADD(tm_event, l);
+}
+
+void tm_event_listener_remove(tm_event_listener_t l)
+{
+	LISTENER_REMOVE(tm_event, l);
+}
+
+static void
+tm_event_fire(int delta)
+{
+	LISTENER_EMIT(tm_event, (delta));
+}
 
 /**
  * Get current time for the system, filling the supplied tm_t structure.
@@ -69,6 +100,145 @@ tm_current_time(tm_t *tm)
 	gettimeofday(&tv, NULL);
 	tm->tv_sec = tv.tv_sec;
 	tm->tv_usec = tv.tv_usec;
+}
+
+/*
+ * Recompute the GMT offset.
+ */
+static void
+tm_update_gmt_offset(const time_t now)
+{
+	time_delta_t gmtoff;
+	struct tm tp;
+	
+	/*
+	 * The ``tm_gmt'' variable is only updated from the time thread, hence
+	 * there is no need to lock it.
+	 */
+
+	gmtoff = timestamp_gmt_offset(now, NULL);
+	tm_gmt.offset = gmtoff;
+	atomic_mb();				/* Make all threads aware of the change */
+
+	/*
+	 * Recompute the time at which we'll need to check for a DST change.
+	 * Daylight Saving Time changes only occur at the hour or half hour,
+	 * local time.  Hence we force the date at which we computed the GMT
+	 * offset to the beginning of the hour or of the half-hour.
+	 */
+
+	off_time(now, gmtoff, &tp);
+	tp.tm_min = (tp.tm_min >= 30) ? 30 : 0;		/* Last start or half hour */
+	tm_gmt.computed = mktime(&tp);
+}
+
+/**
+ * Called when time has been updated by the time thread, normally every second.
+ *
+ * @return whether time variation occurred.
+ */
+static bool
+tm_updated(const tm_t *prev, const tm_t *now)
+{
+	time_delta_t delta;
+
+	/*
+	 * Periodically update the GMT offset.
+	 */
+
+	if G_UNLIKELY(delta_time(now->tv_sec, tm_gmt.computed) > TM_GMT_PERIOD)
+		tm_update_gmt_offset((time_t) now->tv_sec);
+
+	/*
+	 * When time is shifting suddenly (system-wide time adjustment, either
+	 * from the super-user or from NTP), and especially when it is moving
+	 * backwards, we need to react to avoid problems:
+	 *
+	 * - Code waiting on condition variables with a timeout need to recompute
+	 *   the proper time to avoid being stuck for longer than necessary if
+	 *   time is moving backwards.
+	 *
+	 * - Code monitoring the time spent, such as spinlocks, need to be warned
+	 *   so that they do not trigger the timeout condition when time jumps
+	 *   forward.  These should use gentime_difftime() to make sure the delta
+	 *   remains accurate in that case and gentime_now() to get the current
+	 *   time.
+	 *
+	 * Code is responsible for registering the appropriate listeners to react
+	 * when we detect a variation in the system's clock.
+	 */
+
+	if G_UNLIKELY(0 == prev->tv_sec)
+		return FALSE;
+
+	delta = tm_elapsed_ms(now, prev) - TM_THREAD_PERIOD;
+
+	if G_LIKELY(delta >= -TM_THREAD_PERIOD/4 && delta <= TM_THREAD_PERIOD/4)
+		return FALSE;
+
+	tm_update_gmt_offset((time_t) now->tv_sec);
+	tm_event_fire(delta);
+
+	return TRUE;
+}
+
+/**
+ * Time thread.
+ *
+ * This is launched to update the time every second, check whether the
+ * system clock is moving ahead/backwards and update our GMT offset
+ * regularily.
+ */
+static void *
+tm_thread_main(void *unused_arg)
+{
+	tm_t prev;
+
+	(void) unused_arg;
+	ZERO(&prev);
+
+	thread_set_name("time");
+
+	for (;;) {
+		tm_t now;
+
+		G_PREFETCH_HI_R(&tm_gmt.computed);
+
+		TM_LOCK;
+		tm_current_time(&tm_cached_now);
+		now = tm_cached_now;
+		TM_UNLOCK;
+
+		if G_UNLIKELY(tm_updated(&prev, &now)) {
+			/*
+			 * Updating could take some time, so we need to refresh the
+			 * previous time.  If the system clock is updated whilst
+			 * being in tm_updated() and we detected a time shift already,
+			 * then we won't be able to see this second update but the
+			 * chances of that happening are slim.
+			 */
+			tm_current_time(&prev);
+		} else {
+			prev = now;
+		}
+		compat_sleep_ms(TM_THREAD_PERIOD);
+	}
+
+	g_assert_not_reached();
+	return NULL;
+}
+
+/**
+ * Start time thread, once.
+ */
+static void
+tm_thread_start(void)
+{
+	int r;
+
+	r = thread_create(tm_thread_main, NULL, THREAD_F_DETACH, TM_THREAD_STACK);
+	if G_UNLIKELY(-1 == r)
+		s_minierror("%s(): cannot launch time thread: %m", G_STRFUNC);
 }
 
 /**
@@ -196,49 +366,30 @@ tm_now(tm_t *tm)
 void
 tm_now_exact(tm_t *tm)
 {
-	tm_t now;
-
 	G_PREFETCH_HI_W(&tm_cached_now);
-	G_PREFETCH_HI_R(&tm_gmt.computed);
 	G_PREFETCH_HI_W(&tm_slk);
+
+	/*
+	 * This routine is too low-level to be able to use once_run_flag().
+	 */
+
+	if G_UNLIKELY(!tm_thread_started) {
+		bool start = FALSE;
+		TM_LOCK;
+		if (!tm_thread_started)
+			start = tm_thread_started = TRUE;
+		TM_UNLOCK;
+		if (start)
+			tm_thread_start();
+	}
 
 	thread_check_suspended();
 
 	TM_LOCK;
 	tm_current_time(&tm_cached_now);
-	now = tm_cached_now;
-	TM_UNLOCK;
-
 	if G_LIKELY(tm != NULL)
-		*tm = now;
-
-	/*
-	 * Periodically update the GMT offset.
-	 */
-
-	if G_UNLIKELY(delta_time(now.tv_sec, tm_gmt.computed) > TM_GMT_PERIOD) {
-		time_delta_t gmtoff = timestamp_gmt_offset(now.tv_sec, NULL);
-		TM_LOCK;
-		if G_LIKELY(delta_time(now.tv_sec, tm_gmt.computed) > TM_GMT_PERIOD) {
-			tm_gmt.computed = now.tv_sec;
-			tm_gmt.offset = gmtoff;
-		}
-		TM_UNLOCK;
-	}
-
-	/*
-	 * When time is shifting suddenly (system-wide time adjustment, either
-	 * from the super-user or from NTP), and especially when it is moving
-	 * backwards, we need to react to avoid problems:
-	 *
-	 * - Code waiting on condition variables with a timeout need to recompute
-	 *   the proper time to avoid being stuck for longer than necessary if
-	 *   time is moving backwards.
-	 *
-	 * - Code monitoring the time spent, such as spinlocks, need to be warned
-	 *   so that they do not trigger the timeout condition when time jumps
-	 *   forward.
-	 */
+		*tm = tm_cached_now;
+	TM_UNLOCK;
 }
 
 /**
