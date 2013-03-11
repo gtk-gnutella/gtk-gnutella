@@ -1075,6 +1075,8 @@ guint32  gnet_property_variable_upnp_mapping_lease_time     = UPNP_MAPPING_LIFE;
 static const guint32  gnet_property_variable_upnp_mapping_lease_time_default = UPNP_MAPPING_LIFE;
 gboolean gnet_property_variable_user_auto_restart     = FALSE;
 static const gboolean gnet_property_variable_user_auto_restart_default = FALSE;
+guint32  gnet_property_variable_tm_debug     = 0;
+static const guint32  gnet_property_variable_tm_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -9961,6 +9963,26 @@ gnet_prop_init(void) {
     gnet_property->props[465].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[465].data.boolean.def   = (void *) &gnet_property_variable_user_auto_restart_default;
     gnet_property->props[465].data.boolean.value = (void *) &gnet_property_variable_user_auto_restart;
+
+
+    /*
+     * PROP_TM_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[466].name = "tm_debug";
+    gnet_property->props[466].desc = _("Debug level for time management.");
+    gnet_property->props[466].ev_changed = event_new("tm_debug_changed");
+    gnet_property->props[466].save = TRUE;
+    gnet_property->props[466].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[466].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[466].data.guint32.def   = (void *) &gnet_property_variable_tm_debug_default;
+    gnet_property->props[466].data.guint32.value = (void *) &gnet_property_variable_tm_debug;
+    gnet_property->props[466].data.guint32.choices = NULL;
+    gnet_property->props[466].data.guint32.max   = 20;
+    gnet_property->props[466].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

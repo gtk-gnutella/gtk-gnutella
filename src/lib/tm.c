@@ -47,6 +47,7 @@
 #include "offtime.h"
 #include "spinlock.h"
 #include "thread.h"
+#include "timestamp.h"		/* For timestamp_to_string() */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -63,9 +64,30 @@ static struct {
 } tm_gmt;
 
 static bool tm_thread_started;
+static uint32 tm_debug;
 
 #define TM_LOCK			spinlock_raw(&tm_slk)
 #define TM_UNLOCK		spinunlock_raw(&tm_slk)
+
+#define tm_debugging(lvl)	G_UNLIKELY(tm_debug > (lvl))
+
+/**
+ * Set time debug level.
+ */
+void
+set_tm_debug(uint32 level)
+{
+	tm_debug = level;
+}
+
+/**
+ * Get the configured time debug level.
+ */
+uint32
+tm_debug_level(void)
+{
+	return tm_debug;
+}
 
 /**
  * Clock update listerners.
@@ -117,6 +139,12 @@ tm_update_gmt_offset(const time_t now)
 	 */
 
 	gmtoff = timestamp_gmt_offset(now, NULL);
+
+	if (tm_debugging(0)) {
+		s_info("TM computed GMT offset is %ld (was %ld)",
+			(long) gmtoff, (long) tm_gmt.offset);
+	}
+
 	tm_gmt.offset = gmtoff;
 	atomic_mb();				/* Make all threads aware of the change */
 
@@ -130,6 +158,14 @@ tm_update_gmt_offset(const time_t now)
 	off_time(now, gmtoff, &tp);
 	tp.tm_min = (tp.tm_min >= 30) ? 30 : 0;		/* Last start or half hour */
 	tm_gmt.computed = mktime(&tp);
+
+	if (tm_debugging(4)) {
+		s_info("TM GMT computation time set to %s (%02d:%02d:%02d) "
+			"computed=%d, now=%d, gmtoff=%ld",
+			timestamp_to_string(tm_gmt.computed),
+			tp.tm_hour, tp.tm_min, tp.tm_sec,
+			(int) tm_gmt.computed, (int) now, (long) gmtoff);
+	}
 }
 
 /**
@@ -176,8 +212,17 @@ tm_updated(const tm_t *prev, const tm_t *now)
 	if G_LIKELY(delta >= -TM_THREAD_PERIOD/4 && delta <= TM_THREAD_PERIOD/4)
 		return FALSE;
 
+	if (tm_debugging(1)) {
+		s_message("TM system clock changed, delta=%+ld ms", (long) delta);
+	}
+
 	tm_update_gmt_offset((time_t) now->tv_sec);
 	tm_event_fire(delta);
+
+	if (tm_debugging(2)) {
+		s_message("TM clock change notifications done (delta=%+ld ms)",
+			(long) delta);
+	}
 
 	return TRUE;
 }

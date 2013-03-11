@@ -115,6 +115,9 @@ double tm_cputime(double *user, double *sys);
 uint tm_hash(const void *key) G_GNUC_PURE;
 int tm_equal(const void *a, const void *b) G_GNUC_PURE;
 
+void set_tm_debug(uint32 level);
+uint32 tm_debug_level(void) G_GNUC_PURE;
+
 /*
  * Convenience routines.
  */

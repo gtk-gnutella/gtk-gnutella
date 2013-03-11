@@ -2555,6 +2555,17 @@ palloc_debug_changed(property_t prop)
 }
 
 static bool
+tm_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_tm_debug(val);
+
+    return FALSE;
+}
+
+static bool
 vmm_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3041,6 +3052,11 @@ static prop_map_t property_map[] = {
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
 	},
+    {
+        PROP_TM_DEBUG,
+        tm_debug_changed,
+        TRUE
+    },
     {
         PROP_VXML_DEBUG,
         vxml_debug_changed,
