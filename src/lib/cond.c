@@ -39,8 +39,10 @@
 #include "common.h"
 
 #include "cond.h"
+#include "elist.h"
 #include "hashing.h"
 #include "mutex.h"
+#include "once.h"
 #include "pow2.h"
 #include "semaphore.h"
 #include "slist.h"
@@ -69,6 +71,7 @@ struct cond {
 	semaphore_t *sem;			/* Semaphore grabbed to wait on condition */
 	const mutex_t *mutex;		/* Guarding mutex for condition */
 	spinlock_t lock;			/* Thread-safe lock for updating condition */
+	link_t lnk;					/* Links all active condition variables */
 };
 
 /**
@@ -102,6 +105,25 @@ cast_to_cond_ext(const struct cond * const cd)
 
 	return (struct cond_ext *) cd;
 }
+
+/**
+ * All the condition variables created are inserted in a list so that we can
+ * force a wakeup on all the conditions each time the system clock is updated
+ * significantly (for instance after a daylight saving change).
+ *
+ * This is a global list, protected by its dedicated lock.
+ *
+ * A listener routine (cond_time_adjust) is installed to iterate on all the
+ * known condition variables and broadcast a signal to all waiters, each time
+ * the system clock is adjusted.  This will cause spurious wakeups, but all
+ * application code using condition variables must prepare for these anyway.
+ */
+static elist_t cond_vars;
+static spinlock_t cond_vars_slk = SPINLOCK_INIT;
+static once_flag_t cond_vars_inited;
+
+#define COND_VARS_LOCK		spinlock(&cond_vars_slk)
+#define COND_VARS_UNLOCK	spinunlock(&cond_vars_slk)
 
 /*
  * Our design for condition variables uses an initial indirection to fetch
@@ -140,6 +162,8 @@ static spinlock_t cond_access[] = {
 
 #define COND_HASH_MASK	(G_N_ELEMENTS(cond_access) - 1)
 
+static void cond_time_adjust(int delta);
+
 /*
  * Get spinlock to use based on condition address.
  */
@@ -149,6 +173,75 @@ cond_get_lock(const cond_t * const c)
 	STATIC_ASSERT(IS_POWER_OF_2(COND_HASH_MASK + 1));
 
 	return &cond_access[pointer_hash_fast(c) & COND_HASH_MASK];
+}
+
+/**
+ * Initialize the condition variable list, once.
+ */
+static void
+cond_vars_init(void)
+{
+	elist_init(&cond_vars, offsetof(struct cond, lnk));
+}
+
+/**
+ * Install time event listener to react in case the system clock is adjusted.
+ */
+static void
+cond_vars_install_listener(void)
+{
+	tm_event_listener_add(cond_time_adjust);
+}
+
+/**
+ * Add condition variable to the list.
+ */
+static void
+cond_vars_add(struct cond *cv)
+{
+	static once_flag_t done;
+
+	once_flag_run(&cond_vars_inited, cond_vars_init);
+
+	/*
+	 * We install the listener the first time we add a condition variable.
+	 * There is no need to remove the listener, since it can safely be
+	 * called even where there are no more active condition variables.
+	 */
+
+	once_flag_run(&done, cond_vars_install_listener);
+
+	COND_VARS_LOCK;
+	elist_append(&cond_vars, cv);
+	COND_VARS_UNLOCK;
+}
+
+/**
+ * Remove condition variable from the list.
+ */
+static void
+cond_vars_remove(struct cond *cv)
+{
+	COND_VARS_LOCK;
+	elist_remove(&cond_vars, cv);
+	COND_VARS_UNLOCK;
+}
+
+/**
+ * @return amount of allocated condition variables.
+ */
+size_t
+cond_vars_count(void)
+{
+	size_t n;
+
+	once_flag_run(&cond_vars_inited, cond_vars_init);
+
+	COND_VARS_LOCK;
+	n = elist_count(&cond_vars);
+	COND_VARS_UNLOCK;
+
+	return n;
 }
 
 /**
@@ -183,6 +276,7 @@ cond_create(const mutex_t *m, bool emulated, bool extended)
 	cd->mutex = m;
 	cd->refcnt = 1;
 	spinlock_init(&cd->lock);
+	cond_vars_add(cd);
 
 	return cd;
 }
@@ -209,6 +303,8 @@ cond_free(struct cond *cv, bool locked)
 			spinunlock(&cv->lock);
 		return;
 	}
+
+	cond_vars_remove(cv);
 
 	if (!locked)
 		spinlock(&cv->lock);
@@ -249,6 +345,7 @@ cond_extend(const struct cond *cd)
 	cde->cond = *cd;		/* Struct copy */
 	cde->cond.magic = COND_EXT_MAGIC;
 	cde->waiters = slist_new();
+	cond_vars_add(&cde->cond);
 
 	return &cde->cond;
 }
@@ -1199,5 +1296,41 @@ cond_refcnt_dec(cond_t cv)
 
 	cond_free(cv, FALSE);
 }
+
+/**
+ * List iterator callback to wakeup all waiting parties on the condition.
+ */
+static void
+cond_vars_wakeup(void *item, void *unused_data)
+{
+	struct cond *cv = item;
+
+	cond_check(cv);
+	(void) unused_data;
+
+	/*
+	 * Must increase the reference count since cond_unblock() is going
+	 * to call cond_free() before returning.
+	 */
+
+	atomic_int_inc(&cv->refcnt);
+	cond_unblock(cv, cv->mutex, TRUE);
+}
+
+/**
+ * Callback invoked when a time adjustment has been detected.
+ *
+ * @param unused_delta		delta, in ms
+ */
+static void
+cond_time_adjust(int unused_delta)
+{
+	(void) unused_delta;
+
+	COND_VARS_LOCK;
+	elist_foreach(&cond_vars, cond_vars_wakeup, NULL);
+	COND_VARS_UNLOCK;
+}
+
 
 /* vi: set ts=4 sw=4 cindent: */

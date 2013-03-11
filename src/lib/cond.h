@@ -132,6 +132,8 @@ void cond_wait(cond_t *c, struct mutex *m);
 void cond_signal(cond_t *c, const struct mutex *m);
 void cond_broadcast(cond_t *c, const struct mutex *m);
 
+size_t cond_vars_count(void);
+
 size_t cond_waiting_count(const cond_t const *c);
 size_t cond_signal_count(const cond_t const *c);
 size_t cond_pending_count(const cond_t const *c);
