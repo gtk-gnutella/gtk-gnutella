@@ -46,7 +46,6 @@
 
 #include <math.h>		/* For frexp() and isfinite() */
 
-#include "str.h"
 #include "ascii.h"
 #include "ckalloc.h"
 #include "float.h"
@@ -56,7 +55,9 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
+#include "str.h"
 #include "stringify.h"		/* For logging */
+#include "thread.h"
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -2813,15 +2814,16 @@ str_msg(const char *fmt, ...)
 char *
 str_vcmsg(const char *fmt, va_list args)
 {
-	static str_t *str;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	static str_t *str[THREAD_MAX];
+	int stid = thread_small_id();
 
-	str->s_len = 0;
-	str_vncatf(str, INT_MAX, fmt, args);
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
 
-	return str_dup(str);
+	str[stid]->s_len = 0;
+	str_vncatf(str[stid], INT_MAX, fmt, args);
+
+	return str_dup(str[stid]);
 }
 
 /**
@@ -2831,18 +2833,19 @@ str_vcmsg(const char *fmt, va_list args)
 char *
 str_cmsg(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_dup(str);
+	return str_dup(str[stid]);
 }
 
 /**
@@ -2855,18 +2858,19 @@ str_cmsg(const char *fmt, ...)
 const char *
 str_smsg(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_2c(str);
+	return str_2c(str[stid]);
 }
 
 /**
@@ -2875,18 +2879,19 @@ str_smsg(const char *fmt, ...)
 const char *
 str_smsg2(const char *fmt, ...)
 {
-	static str_t *str;
+	static str_t *str[THREAD_MAX];
 	va_list args;
-	
-	if G_UNLIKELY(NULL == str)
-		str = str_new_not_leaking(0);
+	int stid = thread_small_id();
 
-	str->s_len = 0;
+	if G_UNLIKELY(NULL == str[stid])
+		str[stid] = str_new_not_leaking(0);
+
+	str[stid]->s_len = 0;
 	va_start(args, fmt);
-	str_vncatf(str, INT_MAX, fmt, args);
+	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
 
-	return str_2c(str);
+	return str_2c(str[stid]);
 }
 
 /**
