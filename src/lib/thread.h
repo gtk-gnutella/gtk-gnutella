@@ -120,6 +120,7 @@ typedef struct thread_info {
 	thread_qid_t last_qid;		/**< Last QID used by thread */
 	thread_qid_t low_qid;		/**< Lowest QID */
 	thread_qid_t high_qid;		/**< Highest QID */
+	thread_qid_t top_qid;		/**< Topmost QID seen on the stack */
 	unsigned stid;				/**< Small thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
 	const char *name;			/**< Thread name, NULL if none set */

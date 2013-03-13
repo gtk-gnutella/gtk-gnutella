@@ -538,7 +538,7 @@ thread_stack_init_shape(struct thread_element *te, const void *sp)
 {
 	thread_qid_t qid = thread_quasi_id_fast(sp);
 
-	te->low_qid = te->high_qid = qid;
+	te->low_qid = te->high_qid = te->top_qid = qid;
 }
 
 /**
@@ -582,6 +582,20 @@ thread_qid_cache_set(unsigned idx, struct thread_element *te, thread_qid_t qid)
 	 * already a hashing clash anyway so why bother paying the price of a
 	 * memory barrier?
 	 */
+
+	/*
+	 * Updated "highest" QID seen, to measure how much stack the thread is
+	 * using, to be able to monitor stack overflow potential.  This is
+	 * in the direction of the stack growth, of course.
+	 */
+
+	if (thread_sp_direction > 0) {
+		if G_UNLIKELY(qid > te->top_qid)
+			te->top_qid = qid;
+	} else {
+		if G_UNLIKELY(qid < te->top_qid)
+			te->top_qid = qid;
+	}
 }
 
 /**
@@ -1098,7 +1112,7 @@ thread_exiting(struct thread_element *te)
 				 */
 
 				te->last_qid = te->low_qid = -1;
-				te->high_qid = 0;
+				te->high_qid = te->top_qid = 0;
 			} else {
 				static once_flag_t race_warning;
 
@@ -1136,6 +1150,7 @@ thread_element_reset(struct thread_element *te)
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = (thread_qid_t) -1;
 	te->high_qid = 0;
+	te->top_qid = 0;
 	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
 	te->creating = FALSE;
 	te->exiting = FALSE;
@@ -1263,6 +1278,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 	te->low_qid = qid;
 	te->high_qid = thread_quasi_id_fast(
 		const_ptr_add_offset(base, te->stack_size - 1));
+	te->top_qid = thread_sp_direction > 0 ? te->low_qid : te->high_qid;
  
 	g_assert((te->high_qid - te->low_qid + 1) * thread_pagesize
 		== te->stack_size);
@@ -1319,10 +1335,16 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 
 			THREAD_LOCK(xte);
 			if (xte->discovered || xte->exiting) {
-				if (xte->low_qid <= te->low_qid)
+				if (xte->low_qid <= te->low_qid) {
 					xte->high_qid = MIN(xte->high_qid, te->low_qid);
-				if (te->low_qid <= xte->low_qid)
+					if (thread_sp_direction > 0)
+						xte->top_qid = MIN(xte->top_qid, xte->high_qid);
+				}
+				if (te->low_qid <= xte->low_qid) {
 					xte->low_qid = MAX(xte->low_qid, te->high_qid);
+					if (thread_sp_direction < 0)
+						xte->top_qid = MAX(xte->top_qid, xte->low_qid);
+				}
 				if G_UNLIKELY(xte->high_qid < xte->low_qid) {
 					/* This thread is dead */
 					thread_set(tstid[xte->stid], THREAD_INVALID);
@@ -1479,6 +1501,7 @@ thread_main_element(thread_t t)
 	thread_set(te->tid, t);
 	te->low_qid = qid - 1;		/* Assume stack guard page before */
 	te->high_qid = qid + 1;		/* Assume stack guard page after */
+	te->top_qid = qid;
 	te->main_thread = TRUE;
 	te->name = "main";
 	spinlock_init(&te->lock);
@@ -6310,6 +6333,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->last_qid = te->last_qid;
 	info->low_qid = te->low_qid;
 	info->high_qid = te->high_qid;
+	info->top_qid = te->top_qid;
 	info->stid = te->stid;
 	info->join_id = te->join_requested ? te->joining_id : THREAD_INVALID;
 	info->name = te->name;
