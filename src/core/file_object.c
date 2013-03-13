@@ -114,95 +114,6 @@ struct file_object {
 };
 
 /**
- * @todo
- * TODO: fd_is_*() and accmode_is_valid() are generic functions which should
- * 		 be moved elsewhere.
- */
-
-/**
- * Checks whether the given file descriptor is opened for write operations.
- *
- * @param fd A valid file descriptor.
- * @return TRUE if the file descriptor is opened with O_WRONLY or O_RDWR.
- */
-static inline bool
-fd_is_writable(const int fd)
-{
-	int flags;
-
-	g_return_val_if_fail(fd >= 0, FALSE);
-
-	flags = fcntl(fd, F_GETFL);
-	g_return_val_if_fail(-1 != flags, FALSE);
-
-	flags &= O_ACCMODE;
-	return O_WRONLY == flags || O_RDWR == flags;
-}
-
-/**
- * Checks whether the given file descriptor is opened for read operations.
- *
- * @param fd A valid file descriptor.
- * @return TRUE if the file descriptor is opened with O_RDONLY or O_RDWR.
- */
-static inline bool
-fd_is_readable(const int fd)
-{
-	int flags;
-
-	g_return_val_if_fail(fd >= 0, FALSE);
-
-	flags = fcntl(fd, F_GETFL);
-	g_return_val_if_fail(-1 != flags, FALSE);
-
-	flags &= O_ACCMODE;
-	return O_RDONLY == flags || O_RDWR == flags;
-}
-
-/**
- * Checks whether the given file descriptor is opened for read and write
- * operations.
- *
- * @param fd A valid file descriptor.
- * @return TRUE if the file descriptor is opened with O_RDWR.
- */
-static inline bool
-fd_is_readable_and_writable(const int fd)
-{
-	int flags;
-
-	g_return_val_if_fail(fd >= 0, FALSE);
-
-	flags = fcntl(fd, F_GETFL);
-	g_return_val_if_fail(-1 != flags, FALSE);
-
-	flags &= O_ACCMODE;
-	return O_RDWR == flags;
-}
-
-/**
- * Checks whether the given file descriptor is compatible with given
- * access mode. For example, if fd has access mode O_RDONLY but
- * accmode is O_WRONLY or O_RDWR FALSE is returned, because the
- * file descriptor is not writable.
- *
- * @param fd A valid file descriptor.
- * @return TRUE if the file descriptor is compatible with the access mode.
- */
-static inline bool
-accmode_is_valid(const int fd, const int accmode)
-{
-	g_return_val_if_fail(fd >= 0, FALSE);
-
-	switch (accmode) {
-	case O_RDONLY: return fd_is_readable(fd);
-	case O_WRONLY: return fd_is_writable(fd);
-	case O_RDWR:   return fd_is_readable_and_writable(fd);
-	}
-	return FALSE;
-}
-
-/**
  * Applies some basic and fast consistency checks to a file object and
  * causes an assertion failure if a check fails.
  */
@@ -270,7 +181,7 @@ file_object_find(const char * const pathname, int accmode)
 		file_object_check(fo);
 		g_assert(is_valid_fd(fo->fd));
 		g_assert(0 == strcmp(pathname, fo->pathname));
-		g_assert(accmode_is_valid(fo->fd, accmode));
+		g_assert(fd_accmode_is_valid(fo->fd, accmode));
 		g_assert(!fo->removed);
 	}
 
@@ -381,7 +292,7 @@ struct file_object *
 file_object_new(const int fd, const char * const pathname, int accmode)
 {
 	g_return_val_if_fail(fd >= 0, NULL);
-	g_return_val_if_fail(accmode_is_valid(fd, accmode), NULL);
+	g_return_val_if_fail(fd_accmode_is_valid(fd, accmode), NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 	g_return_val_if_fail(!file_object_find(pathname, accmode), NULL);
