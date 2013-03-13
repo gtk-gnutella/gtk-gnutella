@@ -53,6 +53,7 @@ SRC = \
 	shutdown.c \
 	stats.c \
 	status.c \
+	thread.c \
 	uploads.c \
 	version.c \
 	whatis.c

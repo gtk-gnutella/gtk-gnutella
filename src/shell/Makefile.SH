@@ -106,6 +106,7 @@ SRC = \
 	shutdown.c \
 	stats.c \
 	status.c \
+	thread.c \
 	uploads.c \
 	version.c \
 	whatis.c
@@ -136,6 +137,7 @@ OBJ = \
 	shutdown.o \
 	stats.o \
 	status.o \
+	thread.o \
 	uploads.o \
 	version.o \
 	whatis.o 
