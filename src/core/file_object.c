@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2006 Christian Biere
+ * Copyright (c) 2013 Raphael Manfredi
+ *
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,6 +31,8 @@
  *
  * @author Christian Biere
  * @date 2006
+ * @author Raphael Manfredi
+ * @date 2013
  */
 
 /**
@@ -67,6 +71,7 @@
  *      if (fd >= 0) {
  *      	file = file_object_new(fd, pathname, mode);
  *      }
+ *      // Do not use fd directly, could have been closed/reused already
  *  }
  *  if (!file) {
  *     // Error handling
@@ -86,6 +91,7 @@
 
 #include "file_object.h"
 
+#include "lib/atomic.h"
 #include "lib/atoms.h"
 #include "lib/compat_pio.h"
 #include "lib/fd.h"
@@ -93,6 +99,8 @@
 #include "lib/glib-missing.h"
 #include "lib/hikset.h"
 #include "lib/iovec.h"
+#include "lib/mutex.h"
+#include "lib/once.h"
 #include "lib/path.h"
 #include "lib/walloc.h"
 
@@ -102,6 +110,11 @@ static hikset_t *ht_file_objects_rdonly;	/* read-only file objects */
 static hikset_t *ht_file_objects_wronly;	/* write-only file objects */
 static hikset_t *ht_file_objects_rdwr;		/* read+write-able file objects */
 
+static mutex_t ht_file_objects_mtx = MUTEX_INIT;
+
+#define FILE_OBJECTS_LOCK	mutex_lock(&ht_file_objects_mtx)
+#define FILE_OBJECTS_UNLOCK	mutex_unlock(&ht_file_objects_mtx)
+
 enum file_object_magic { FILE_OBJECT_MAGIC = 0x6b084325 };	/**< Magic number */
 
 struct file_object {
@@ -110,8 +123,20 @@ struct file_object {
 	int ref_count;
 	int fd;
 	int accmode;	/* O_RDONLY, O_WRONLY, O_RDWR */
-	int removed;
+	int revoked;
 };
+
+/**
+ * Applies some basic and fast consistency checks to a file object and
+ * causes an assertion failure if a check fails.
+ */
+static inline void
+file_object_check_minimal(const struct file_object * const fo)
+{
+	g_assert(fo);
+	g_assert(FILE_OBJECT_MAGIC == fo->magic);
+	g_assert(fo->pathname != NULL);
+}
 
 /**
  * Applies some basic and fast consistency checks to a file object and
@@ -120,11 +145,9 @@ struct file_object {
 static inline void
 file_object_check(const struct file_object * const fo)
 {
-	g_assert(fo);
-	g_assert(FILE_OBJECT_MAGIC == fo->magic);
+	file_object_check_minimal(fo);
 	g_assert(fo->ref_count > 0);
 	g_assert(fo->ref_count < INT_MAX);
-	g_assert(fo->pathname);
 }
 
 /**
@@ -144,6 +167,54 @@ file_object_mode_get_table(const int accmode)
 }
 
 /**
+ * Lookup file object in the table handling specified access mode.
+ *
+ * @param pathname		path to file for which we want a file object
+ * @param accmode		access mode to the file
+ *
+ * @return found file object, NULL if not found
+ */
+static inline struct file_object *
+file_object_lookup(const char * const pathname, const int accmode)
+{
+	struct file_object *fo;
+
+	FILE_OBJECTS_LOCK;
+	fo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
+	FILE_OBJECTS_UNLOCK;
+
+	return fo;
+}
+
+/**
+ * Insert file object in the table handling specified access mode.
+ *
+ * @param fo		the file object to insert
+ * @param accmode		access mode to the file
+ */
+static inline void
+file_object_insert(const struct file_object *fo, const int accmode)
+{
+	FILE_OBJECTS_LOCK;
+	hikset_insert(file_object_mode_get_table(accmode), fo);
+	FILE_OBJECTS_UNLOCK;
+}
+
+/**
+ * Remove file object from the table handling specified access mode.
+ *
+ * @param fo		the file object to insert
+ * @param accmode		access mode to the file
+ */
+static inline void
+file_object_remove(const struct file_object *fo, const int accmode)
+{
+	FILE_OBJECTS_LOCK;
+	hikset_remove(file_object_mode_get_table(accmode), fo->pathname);
+	FILE_OBJECTS_UNLOCK;
+}
+
+/**
  * Find an existing file object associated with the given pathname
  * for the given access mode.
  *
@@ -154,14 +225,14 @@ static struct file_object *
 file_object_find(const char * const pathname, int accmode)
 {
 	struct file_object *fo;
-	
+
 	g_return_val_if_fail(ht_file_objects_rdonly, NULL);
 	g_return_val_if_fail(ht_file_objects_wronly, NULL);
 	g_return_val_if_fail(ht_file_objects_rdwr, NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-	fo = hikset_lookup(file_object_mode_get_table(O_RDWR), pathname);
+	fo = file_object_lookup(pathname, O_RDWR);
 
 	/*
 	 * We need to find a more specific file object if looking for O_WRONLY
@@ -170,7 +241,7 @@ file_object_find(const char * const pathname, int accmode)
 
 	if (O_RDWR != accmode) {
 		struct file_object *xfo;
-		xfo = hikset_lookup(file_object_mode_get_table(accmode), pathname);
+		xfo = file_object_lookup(pathname, accmode);
 		if (xfo != NULL) {
 			g_assert(xfo->accmode == accmode);
 			fo = xfo;
@@ -178,11 +249,11 @@ file_object_find(const char * const pathname, int accmode)
 	}
 
 	if (fo) {
-		file_object_check(fo);
+		file_object_check_minimal(fo);
 		g_assert(is_valid_fd(fo->fd));
 		g_assert(0 == strcmp(pathname, fo->pathname));
 		g_assert(fd_accmode_is_valid(fo->fd, accmode));
-		g_assert(!fo->removed);
+		g_assert(!fo->revoked);
 	}
 
 	return fo;
@@ -193,15 +264,11 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 {
 	static const struct file_object zero_fo;
 	struct file_object *fo;
-	hikset_t *ht;
 
 	g_return_val_if_fail(fd >= 0, NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 	g_return_val_if_fail(!file_object_find(pathname, accmode), NULL);
-
-	ht = file_object_mode_get_table(accmode);
-	g_return_val_if_fail(ht, NULL);
 
 	WALLOC(fo);
 	*fo = zero_fo;
@@ -213,41 +280,39 @@ file_object_alloc(const int fd, const char * const pathname, int accmode)
 
 	file_object_check(fo);
 	g_assert(is_valid_fd(fo->fd));
-	hikset_insert(ht, fo);
+	file_object_insert(fo, accmode);
 
 	return fo;
 }
 
 static void
-file_object_remove(struct file_object * const fo)
+file_object_revoke(struct file_object * const fo)
 {
 	const struct file_object *xfo;
 	
-	file_object_check(fo);
-	g_return_if_fail(!fo->removed);
+	file_object_check_minimal(fo);
+	g_return_if_fail(!fo->revoked);
 
 	xfo = file_object_find(fo->pathname, fo->accmode);
 	g_assert(xfo == fo);
 
-	hikset_remove(file_object_mode_get_table(fo->accmode), fo->pathname);
-	fo->removed = TRUE;
+	file_object_remove(fo, fo->accmode);
+	fo->revoked = TRUE;
 }
 
 static void
 file_object_free(struct file_object * const fo)
 {
-	g_return_if_fail(fo);
-	file_object_check(fo);
-	g_return_if_fail(1 == fo->ref_count);
+	file_object_check_minimal(fo);
+	g_return_if_fail(0 == atomic_int_get(&fo->ref_count));
 
-	if (fo->removed) {
+	if (fo->revoked) {
 		const struct file_object *xfo;
 
-		xfo = hikset_lookup(file_object_mode_get_table(fo->accmode),
-				fo->pathname);
+		xfo = file_object_lookup(fo->pathname, fo->accmode);
 		g_assert(xfo != fo);
 	} else {
-		file_object_remove(fo);
+		file_object_revoke(fo);
 	}
 
 	fd_close(&fo->fd);
@@ -272,32 +337,57 @@ file_object_open(const char * const pathname, int accmode)
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
+	file_object_init();
+
 	fo = file_object_find(pathname, accmode);
 	if (fo) {
-		fo->ref_count++;
+		atomic_int_inc(&fo->ref_count);
 		g_assert(is_valid_fd(fo->fd));
 	}
 	return fo;
 }
 
 /**
- * Acquires a new file object for a given pathname. There must not be any
- * file object registered for this pathname already.
+ * Acquires a new file object for a given pathname.
  *
- * @param pathname An absolute pathname.
- * @return	On failure NULL is returned. On success a file object is
- *			returned.
+ * If there is a file object registered for this pathname already, the supplied
+ * file descriptor is closed.
+ *
+ * @param fd		an existing descriptor to pathname, with right access mode
+ * @param pathname	absolute pathname to file
+ * @param accmode	access mode wanted for the file
+ * 
+ * @return a file object enabling I/O operations on success, NULL on error.
  */
 struct file_object *
 file_object_new(const int fd, const char * const pathname, int accmode)
 {
+	struct file_object *fo;
+
+	file_object_init();
+
 	g_return_val_if_fail(fd >= 0, NULL);
 	g_return_val_if_fail(fd_accmode_is_valid(fd, accmode), NULL);
 	g_return_val_if_fail(pathname, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
-	g_return_val_if_fail(!file_object_find(pathname, accmode), NULL);
 
-	return file_object_alloc(fd, pathname, accmode);
+	/*
+	 * Handle concurrent calls to file_object_new().
+	 */
+
+	FILE_OBJECTS_LOCK;
+
+	fo = file_object_find(pathname, accmode);
+	if G_LIKELY(NULL == fo) {
+		fo = file_object_alloc(fd, pathname, accmode);
+	} else {
+		if (-1 == close(fd))
+			g_warning("%s: cannot close(%d): %m", G_STRFUNC, fd);
+	}
+
+	FILE_OBJECTS_UNLOCK;
+
+	return fo;
 }
 
 /**
@@ -318,11 +408,8 @@ file_object_release(struct file_object **fo_ptr)
 
 		file_object_check(fo);
 
-		if (1 == fo->ref_count) {
+		if (atomic_int_dec_is_zero(&fo->ref_count))
 			file_object_free(fo);
-		} else {
-			fo->ref_count--;
-		}
 
 		*fo_ptr = NULL;
 	}
@@ -398,6 +485,16 @@ file_object_special_op(enum file_object_op op,
 	}
 
 	/*
+	 * By taking this global lock, we ensure we can safely access all the
+	 * file objects stored in any of the tables and manipulate them directly.
+	 *
+	 * This is a recursive lock, because we'll call file_object_find() which
+	 * also needs to take the same lock to access the tables.
+	 */
+
+	FILE_OBJECTS_LOCK;
+
+	/*
 	 * Identify all the file objects currently active for the old name.
 	 */
 
@@ -453,6 +550,10 @@ file_object_special_op(enum file_object_op op,
 
 		/*
 		 * Re-index the file objects with their new name.
+		 *
+		 * Because we hold the global lock, we can safely update the pathname
+		 * of the file object: nobody can access that value from the outside
+		 * without first taking the lock.
 		 */
 
 		GM_SLIST_FOREACH(objects, sl) {
@@ -478,7 +579,7 @@ file_object_special_op(enum file_object_op op,
 		GM_SLIST_FOREACH(objects, sl) {
 			struct file_object *fo = sl->data;
 
-			file_object_remove(fo);
+			file_object_revoke(fo);
 		}
 
 		goto done;		/* No re-opening required with unlink */
@@ -517,6 +618,7 @@ reopen:
 	/* FALL THROUGH */
 
 done:
+	FILE_OBJECTS_UNLOCK;
 
 	gm_slist_free_null(&objects);
 
@@ -712,8 +814,57 @@ file_object_get_fd(const struct file_object * const fo)
 const char *
 file_object_get_pathname(const struct file_object * const fo)
 {
+	const char *pathname;
+
 	file_object_check(fo);
-	return fo->pathname;
+
+	/*
+	 * Is is necessary to take the lock to access the value because it can
+	 * be changed from file_object_special_op().
+	 *
+	 * FIXME
+	 * There is a possible race because the atom could be freed from
+	 * within file_object_special_op() if the file is concurrently renamed
+	 * or moved whislt this routine is called.  The lock only guarantees that
+	 * we'll read a consistent value, but does not protect from concurrent
+	 * freeing that could happen once the lock was released.
+	 *
+	 * Unfortunately, fixing this transparently for the caller is non-trivial.
+	 * Fortunately, the current usage pattern in the application makes it
+	 * impossible to exercise the race condition (look at who calls that
+	 * routine: moving the file means nobody can write into the file
+	 * concurrently and that the file was already verified).
+	 *
+	 *		--RAM, 2013-03-16
+	 */
+
+	FILE_OBJECTS_LOCK;
+	pathname = fo->pathname;
+	FILE_OBJECTS_UNLOCK;
+
+	return pathname;
+}
+
+/**
+ * Initialize module, once.
+ */
+static void
+file_object_init_once(void)
+{
+	size_t offset = offsetof(struct file_object, pathname);
+
+	g_return_if_fail(!ht_file_objects_rdonly);
+	g_return_if_fail(!ht_file_objects_wronly);
+	g_return_if_fail(!ht_file_objects_rdwr);
+
+	/*
+	 * Each of these sets is indexed by the "pathname" field of the file object,
+	 * as indicated by the "offset" variable (Hashed Internal Key SET).
+	 */
+
+	ht_file_objects_rdonly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_wronly = hikset_create(offset, HASH_KEY_STRING, 0);
+	ht_file_objects_rdwr   = hikset_create(offset, HASH_KEY_STRING, 0);
 }
 
 /**
@@ -723,15 +874,9 @@ file_object_get_pathname(const struct file_object * const fo)
 void
 file_object_init(void)
 {
-	size_t offset = offsetof(struct file_object, pathname);
+	static once_flag_t inited;
 
-	g_return_if_fail(!ht_file_objects_rdonly);
-	g_return_if_fail(!ht_file_objects_wronly);
-	g_return_if_fail(!ht_file_objects_rdwr);
-
-	ht_file_objects_rdonly = hikset_create(offset, HASH_KEY_STRING, 0);
-	ht_file_objects_wronly = hikset_create(offset, HASH_KEY_STRING, 0);
-	ht_file_objects_rdwr   = hikset_create(offset, HASH_KEY_STRING, 0);
+	ONCE_FLAG_RUN(inited, file_object_init_once);
 }
 
 static void
