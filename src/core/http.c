@@ -260,13 +260,16 @@ http_send_status(
 	if (body) {
 		rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
 	}
-	if (rw >= header_size && (hev || body)) {
+	if (rw >= header_size - 1 && (hev || body)) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, status_msg);
 
 		rw = minimal_rw;
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 		g_assert(rw < header_size);
+		if (body) {
+			rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
+		}
 	}
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, header, rw);
