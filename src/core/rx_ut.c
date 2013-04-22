@@ -71,6 +71,7 @@
  */
 
 #define RX_UT_EXPIRE_MS	(70*1000)	/* Expiration time for RX messages, in ms */
+#define RX_UT_ALMOST_MS	(40*1000)	/* Early expiration for RX messages (ms) */
 #define RX_UT_DELAY_MS	500			/* ACK delay: 500 ms -- must be << 5 s */
 
 #define RX_UT_DBG_MSG		(1U << 0)	/* Messages */
@@ -146,6 +147,8 @@ ut_rmsg_check(const struct ut_rmsg * const um)
 	g_assert(um != NULL);
 	g_assert(UT_RMSG_MAGIC == um->magic);
 }
+
+static void ut_rmsg_reack(struct ut_rmsg *um);
 
 /**
  * Primary hashing routine for ut_mid structs.
@@ -258,6 +261,49 @@ ut_rmsg_expired(cqueue_t *unused_cq, void *obj)
 }
 
 /**
+ * Callout queue callback invoked when the whole packet is about to expire.
+ */
+static void
+ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
+{
+	struct ut_rmsg *um = obj;
+
+	ut_rmsg_check(um);
+	g_assert(um->expire_ev != NULL);
+
+	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
+
+	/*
+	 * This is an advance notice that the message could expire.  Probably our
+	 * last acknowledgement was lost, so we resend it, hoping that the remote
+	 * side will resume sending the missing parts.
+	 *
+	 * The rationale is that it is better to send an extra ACK (which the TX
+	 * side will discard) than to let the remote side timeout because it is
+	 * not getting any of our ACKs.  This early expiration notice is another
+	 * chance to prevent reception timeout.  It is not necessary in the
+	 * protocol and is just added for increased robustness.
+	 *
+	 * Then, if nothing happens within the remaining time window, the message
+	 * will truly expire.
+	 */
+
+	um->expire_ev = cq_main_insert(RX_UT_EXPIRE_MS - RX_UT_ALMOST_MS,
+		ut_rmsg_expired, um);
+
+	if (rx_ut_debugging(RX_UT_DBG_TIMEOUT | RX_UT_DBG_ACK, um->id.from)) {
+		g_debug("RX UT[%s]: %s: message from %s could timeout "
+			"(seq=0x%04x, got %u/%u fragment%s so far)",
+			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			gnet_host_to_string(um->id.from),
+			um->id.seqno, um->fragrecv, um->fragcnt,
+			1 == um->fragcnt ? "" : "s");
+	}
+
+	ut_rmsg_reack(um);
+}
+
+/**
  * Callout queue callback invoked when the packet has finished lingering.
  */
 static void
@@ -341,7 +387,7 @@ ut_rmsg_create(struct attr *attr, const struct ut_header *header,
 	 * expiration period.
 	 */
 
-	um->expire_ev = cq_main_insert(RX_UT_EXPIRE_MS, ut_rmsg_expired, um);
+	um->expire_ev = cq_main_insert(RX_UT_ALMOST_MS, ut_rmsg_almost_expired, um);
 
 	return um;
 }
@@ -1002,6 +1048,42 @@ send_ack:
 }
 
 /**
+ * Re-acknowledge the message completely, stating everything we got so far.
+ *
+ * @param um		the message being received
+ */
+static void
+ut_rmsg_reack(struct ut_rmsg *um)
+{
+	struct ut_ack rack;
+
+	ut_rmsg_check(um);
+
+	/*
+	 * If we had pending ACKs to send, cancel them as we're about to re-ack
+	 * everything we got.
+	 */
+
+	cq_cancel(&um->acks_ev);
+	ut_build_extra_ack(um, &rack);
+	ut_rmsg_clear_acks(um);
+
+	if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
+		g_debug("RX UT[%s]: %s: sending extra %s%sACK back to %s "
+			"(seq=0x%04x, fragment #%u, got %u/%u fragment%s, "
+			"missing=0x%x)",
+			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			rack.cumulative ? "cumulative " : "",
+			rack.missing != 0 ? "extended " : "",
+			gnet_host_to_string(um->id.from), rack.seqno,
+			rack.fragno + 1, um->fragrecv, um->fragcnt,
+			1 == um->fragcnt ? "" : "s", rack.missing);
+	}
+
+	ut_send_ack(um->attr->tx, um->id.from, &rack);	/* Sent by the TX layer */
+}
+
+/**
  * Handle reception of an EAR (Extra Acknowledgment Request).
  */
 static void
@@ -1048,6 +1130,8 @@ ut_handle_ear(const struct attr *attr,
 				udp_tag_to_string(attr->tag), G_STRFUNC,
 				gnet_host_to_string(from), ack->seqno);
 		}
+
+		ut_send_ack(attr->tx, from, &rack);	/* Sent by the TX layer */
 	} else {
 		/*
 		 * We know this sequence ID, hence the remote TX side probably did not
@@ -1055,27 +1139,11 @@ ut_handle_ear(const struct attr *attr,
 		 * delayed ACK and immediately resend an ACK for what we got so far.
 		 */
 
-		cq_cancel(&um->acks_ev);
-		ut_build_extra_ack(um, &rack);
-		ut_rmsg_clear_acks(um);
-
 		if (um->lingering)
 			gnet_stats_inc_general(GNR_UDP_SR_RX_EARS_FOR_LINGERING_MESSAGE);
 
-		if (rx_ut_debugging(RX_UT_DBG_ACK, from)) {
-			g_debug("RX UT[%s]: %s: sending extra %s%sACK back to %s "
-				"(seq=0x%04x, fragment #%u, got %u/%u fragment%s, "
-				"missing=0x%x)",
-				udp_tag_to_string(um->attr->tag), G_STRFUNC,
-				rack.cumulative ? "cumulative " : "",
-				rack.missing != 0 ? "extended " : "",
-				gnet_host_to_string(from), rack.seqno,
-				rack.fragno + 1, um->fragrecv, um->fragcnt,
-				1 == um->fragcnt ? "" : "s", rack.missing);
-		}
+		ut_rmsg_reack(um);
 	}
-
-	ut_send_ack(attr->tx, from, &rack);	/* Sent by the TX layer */
 }
 
 /***
