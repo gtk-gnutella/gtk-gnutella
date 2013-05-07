@@ -99,7 +99,7 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "uhc.shacknet.nu:19104" },
+	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "uhc.gtk-gnutella.nl:15749" },
 #endif	/* USE_LOCAL_UHC */
 };
