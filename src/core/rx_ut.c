@@ -271,7 +271,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
-	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
+	um->expire_ev = NULL;	/* Callback has fired */
 
 	/*
 	 * This is an advance notice that the message could expire.  Probably our
