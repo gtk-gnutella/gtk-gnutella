@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2009-03-27 00:04+0100\n"
 "Last-Translator: Larry Nieves <lnieves@315-web.com>\n"
 "Language-Team: Spanish <lanieves@gmail.com>\n"
@@ -364,6 +364,9 @@ msgstr ", entrante"
 msgid ", outbound"
 msgstr ", saliente"
 
+msgid ", no-pipeline"
+msgstr ""
+
 msgid ", banning"
 msgstr ", excluyendo"
 
@@ -502,6 +505,10 @@ msgstr "Muy grande"
 
 msgid "Way too large"
 msgstr "Demasiado grande"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Herramientas"
 
 msgid "Unknown message type"
 msgstr "Tipo de mensaje desconocido"
@@ -953,10 +960,6 @@ msgstr ", saliente"
 msgid "File was modified"
 msgstr ""
 
-#, fuzzy
-msgid "Library being rebuilt"
-msgstr "Tamaño de la biblioteca"
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -970,6 +973,10 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "Detectado distinto SHA1"
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Tamaño de la biblioteca"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -3716,6 +3723,30 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "Nivel de depuración para el manejo de malla de descargas."
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "Nivel de depuración para el manejo de malla de descargas."
+
+#, fuzzy
+msgid "ID of the current process."
+msgstr "La ID de sesión actual."
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Nivel de depurado para la caché de pongs."
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -4285,7 +4316,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4299,7 +4330,7 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Descartar resultados de búsqueda que son considerados como spam."
 
 #, fuzzy
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr "Si se debe mostrar el conteo de query hits transmitidos."
 
 msgid ""
@@ -6026,6 +6057,24 @@ msgstr "Llamadas QUEUE recibidas"
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE descartadas al no encontrar bajadas apropiadas"
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -6044,6 +6093,10 @@ msgstr "'Push' enviado"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Mensajes UDP con IP de origen erróneo"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "Mensaje DHT  malformado"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr "Mensajes UDP alienígenas (externos a Gnutella)"
@@ -8612,7 +8665,7 @@ msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Mostrar uso del ancho de banda del tráfico HTTP saliente."
 
 #, fuzzy
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr "Mostrar promedio del ancho de banda para el tráfico HTTP saliente."
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8643,7 +8696,7 @@ msgid "Pipelining max chunk size"
 msgstr "Tamaño de bloque mínimo"
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "Permitir la subida de archivos _parcialmente descargados"
 
 msgid "Enable GUESS (additional querying)"
@@ -8752,6 +8805,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "Mostrar estadísticas de subidas en la barra lateral."
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr "No está en la base de datos"
 
@@ -8832,10 +8888,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "Subido"
-
-#, fuzzy
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Mostrar promedio del ancho de banda para el tráfico HTTP saliente."
 
 msgid "Connect to"
 msgstr "Conectar a"
@@ -8973,10 +9025,6 @@ msgstr ""
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Porcentaje máximo de las conexiones que cada aplicación puede ocupar."
 
-#, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "Tráfico _saliente"
-
 msgid "attempts"
 msgstr "intentos"
 
@@ -8986,10 +9034,6 @@ msgstr "Tamaño de bloque mínimo"
 
 msgid "_Remove directory"
 msgstr "_Eliminar directorio"
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "Permitir la subida de archivos _parcialmente descargados"
 
 msgid "Minimum chunk _size"
 msgstr "Tamaño de bloque mí_nimo"
@@ -9666,6 +9710,22 @@ msgstr "Enviando QUEUE, reconectando..."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
 
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "Nivel de depuración para el manejo de malla de descargas."
+
+#, fuzzy
+#~ msgid "Splitting ougoing HTTP bandwidth evenly."
+#~ msgstr "Mostrar promedio del ancho de banda para el tráfico HTTP saliente."
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "Permitir la subida de archivos _parcialmente descargados"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "Tráfico _saliente"
+
 #~ msgid ""
 #~ "Maximum number of Query MUIDs to track. This allows mapping MUIDs of "
 #~ "Query Hits to the original search term. In the worst case this causes "
@@ -9692,9 +9752,6 @@ msgstr "QUEUE enviado, esperando las cabeceras"
 
 #~ msgid "Banned for %s"
 #~ msgstr "Baneado por %s"
-
-#~ msgid "The current Session ID."
-#~ msgstr "La ID de sesión actual."
 
 #~ msgid "ShareMonkey URL"
 #~ msgstr "URL Sharemonkey"

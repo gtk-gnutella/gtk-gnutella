@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2009-03-31 23:39+0200\n"
 "Last-Translator: Alexander Nicolaysen Sørnes <alex@thehandofagony.com>\n"
 "Language-Team: Norsk (bokmål) <nb@li.org>\n"
@@ -362,6 +362,9 @@ msgstr ", innkommende"
 msgid ", outbound"
 msgstr ", utgående"
 
+msgid ", no-pipeline"
+msgstr ""
+
 msgid ", banning"
 msgstr ", bannlysing"
 
@@ -500,6 +503,10 @@ msgstr "For stor"
 
 msgid "Way too large"
 msgstr "Altfor stor"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Verktøy"
 
 msgid "Unknown message type"
 msgstr "Ukjent meldingstype"
@@ -950,10 +957,6 @@ msgstr ", utgående"
 msgid "File was modified"
 msgstr ""
 
-#, fuzzy
-msgid "Library being rebuilt"
-msgstr "Bibliotekstørrelse"
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -967,6 +970,10 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "Fant upassende SHA1"
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Bibliotekstørrelse"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -3645,6 +3652,30 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
+
+#, fuzzy
+msgid "ID of the current process."
+msgstr "Gjeldende økt-ID:"
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Feilsøkingsnivå for pong-minnelagring."
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr "slå av"
 
@@ -4194,7 +4225,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4208,7 +4239,7 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Ignorer søkeresultater som vurderes som falske."
 
 #, fuzzy
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr "Hvorvidt antall sende spørringstreff skal vises."
 
 msgid ""
@@ -5933,6 +5964,24 @@ msgstr "Mottok KØ-tilbakekall"
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE forkastet grunnet upassende nedlasting"
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -5951,6 +6000,10 @@ msgstr "Dytt sendt"
 
 msgid "UDP messages with bogus source IP"
 msgstr "UDP-meldinger med svindelkilde-IP"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "DHT: Feilformet kommando"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr "Fremmede UDP-meldinger (ikke Gnutella)"
@@ -8516,7 +8569,7 @@ msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Vis båndbreddebruk for utgående HTTP-trafikk."
 
 #, fuzzy
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr "Vis gjennomsnittlig båndbreddebruk for utgående HTTP-trafikk."
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8547,7 +8600,7 @@ msgid "Pipelining max chunk size"
 msgstr "Minste bitstørrelse"
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "Slå på opplasting av _delvis nedlastede filer"
 
 msgid "Enable GUESS (additional querying)"
@@ -8656,6 +8709,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "Vis opplastingsstatistikk i sidelinjen."
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr "Ikke i databasen"
 
@@ -8736,10 +8792,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "Lastet opp"
-
-#, fuzzy
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Vis gjennomsnittlig båndbreddebruk for utgående HTTP-trafikk."
 
 msgid "Connect to"
 msgstr "Koble til"
@@ -8876,10 +8928,6 @@ msgstr "Feilsøkingsnivå for distribuert kontrollnøkkeltabell (DHT)-koden"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Høyeste prosentdel av tilkoblingsplasser ett program kan bruke."
 
-#, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "_Utgående trafikk"
-
 msgid "attempts"
 msgstr "forsøk"
 
@@ -8889,10 +8937,6 @@ msgstr "Minste bitstørrelse"
 
 msgid "_Remove directory"
 msgstr "Fje_rn katalog"
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "Slå på opplasting av _delvis nedlastede filer"
 
 msgid "Minimum chunk _size"
 msgstr "Minste bit_størrelse"
@@ -9565,6 +9609,22 @@ msgstr "Sender KØ, kobler tilbake . . ."
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
 
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "Feilsøkingsnivå for behandling av nedlastingsmaske."
+
+#, fuzzy
+#~ msgid "Splitting ougoing HTTP bandwidth evenly."
+#~ msgstr "Vis gjennomsnittlig båndbreddebruk for utgående HTTP-trafikk."
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "Slå på opplasting av _delvis nedlastede filer"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "_Utgående trafikk"
+
 #~ msgid ""
 #~ "Maximum number of Query MUIDs to track. This allows mapping MUIDs of "
 #~ "Query Hits to the original search term. In the worst case this causes "
@@ -9590,9 +9650,6 @@ msgstr "Sendte KØ, venter på hoder . . ."
 
 #~ msgid "Banned for %s"
 #~ msgstr "Bannlyst for %s"
-
-#~ msgid "The current Session ID."
-#~ msgstr "Gjeldende økt-ID:"
 
 #~ msgid "ShareMonkey URL"
 #~ msgstr "ShareMonkey-URL"

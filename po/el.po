@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2005-11-16 18:07+0900\n"
 "Last-Translator: Bouklis Panos <panos@echidna-band.com>\n"
 "Language-Team: Greek <i18ngr@lists.hellug.gr>\n"
@@ -390,6 +390,9 @@ msgstr ""
 msgid ", outbound"
 msgstr ""
 
+msgid ", no-pipeline"
+msgstr ""
+
 #, fuzzy
 msgid ", banning"
 msgstr "Απαγορεύσεις"
@@ -537,6 +540,10 @@ msgstr "Πολύ μεγάλο"
 
 msgid "Way too large"
 msgstr "Πάρα πολύ μεγάλο"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Πολύ μικρό"
 
 msgid "Unknown message type"
 msgstr "Άγνωστος τύπος μηνύματος"
@@ -996,10 +1003,6 @@ msgstr ""
 msgid "File was modified"
 msgstr ""
 
-#, fuzzy
-msgid "Library being rebuilt"
-msgstr "Μέγεθος βιβλιοθήκης"
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -1013,6 +1016,10 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "Εντοπίστηκαν αταίριαστα SHA1"
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Μέγεθος βιβλιοθήκης"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -3619,6 +3626,29 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+
+msgid "ID of the current process."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Επίπεδο αποσφαλμάτωσης κώδικα HTTP."
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -4184,7 +4214,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4197,7 +4227,7 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
 #, fuzzy
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr ""
 "Αν πρέπει να εμφανίζεται η μέτρηση των χτυπημάτων των μεταφερόμενων "
 "ερωτημάτων."
@@ -6015,6 +6045,24 @@ msgstr "Ελήφθησαν πίσω κλήσεις ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -6033,6 +6081,10 @@ msgstr "Ώθηση εστάλη"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Μηνύματα UDP με ψεύτικη πηγαία IP"
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "Παραμορφωμένη εντολή"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr "Ξένα μηνύματα UDP (όχι Gnutella)"
@@ -8647,7 +8699,7 @@ msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Εμφάνιση χρήσης εύρους εξερχόμενης κυκλοφορίας HTTP."
 
 #, fuzzy
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8678,7 +8730,7 @@ msgid "Pipelining max chunk size"
 msgstr "Ελάχιστο μέγεθος κομματιού"
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "Ενεργοποίηση αποστολής ανολοκλήρωτων αρχείων"
 
 msgid "Enable GUESS (additional querying)"
@@ -8786,6 +8838,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "Εμφάνιση στατιστικών αποστολής στον πλαϊνό πίνακα."
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr "Όχι στη βάση δεδομένων"
 
@@ -8874,10 +8929,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "Στάλθηκαν:"
-
-#, fuzzy
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
 
 msgid "Connect to"
 msgstr "Σύνδεση σε"
@@ -9019,10 +9070,6 @@ msgstr ""
 "Μέγιστο ποσοστό υποδοχών σύνδεσης που μπορεί να απασχολεί ένας κατασκευαστής."
 
 #, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "Ε_ξερχόμενη κυκλοφορία"
-
-#, fuzzy
 msgid "attempts"
 msgstr "Προσπάθειες"
 
@@ -9032,10 +9079,6 @@ msgstr "Ελάχιστο μέγεθος κομματιού"
 
 msgid "_Remove directory"
 msgstr "_Αφαίρεση καταλόγου"
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "Ενεργοποίηση αποστολής ανολοκλήρωτων αρχείων"
 
 msgid "Minimum chunk _size"
 msgstr "Ελά_χιστο μέγεθος κομματιού"
@@ -9727,6 +9770,22 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "Επίπεδο αποσφαλμάτωσης διαχείρισης πλέγματος λήψεων."
+
+#, fuzzy
+#~ msgid "Splitting ougoing HTTP bandwidth evenly."
+#~ msgstr "Εμφάνιση μέσου εύρους εξερχόμενης κυκλοφορίας HTTP."
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "Ενεργοποίηση αποστολής ανολοκλήρωτων αρχείων"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "Ε_ξερχόμενη κυκλοφορία"
 
 #, fuzzy
 #~ msgid "Linux archives"
