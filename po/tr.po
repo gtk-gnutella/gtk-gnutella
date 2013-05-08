@@ -116,16 +116,19 @@ msgstr "İtme bayrağı görmezden geliniyor"
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
 msgstr[0] "Henüz doğrudan bağlantı yok (%u yeni teşebbüs)"
+msgstr[1] "Henüz doğrudan bağlantı yok (%u yeni teşebbüs)"
 
 #, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
 msgstr[0] "Zaman aşımı (%u teşebbüs)"
+msgstr[1] "Zaman aşımı (%u teşebbüs)"
 
 #, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
 msgstr[0] "Bağlantı reddedildi (%u teşebbüs)"
+msgstr[1] "Bağlantı reddedildi (%u teşebbüs)"
 
 msgid "Dup SHA1 during creation"
 msgstr "Oluşturma sırasında çift SHA1"
@@ -461,16 +464,19 @@ msgstr "DHT sorgusu bekleniyor"
 msgid "%u/%u successful DHT lookup"
 msgid_plural "%u/%u successful DHT lookups"
 msgstr[0] "%u/%u başarılı DHT araması"
+msgstr[1] "%u/%u başarılı DHT araması"
 
 #, c-format
 msgid "%u DHT lookup"
 msgid_plural "%u DHT lookups"
 msgstr[0] "%u DHT araması"
+msgstr[1] "%u DHT araması"
 
 #, c-format
 msgid "Got %d host from %s"
 msgid_plural "Got %d hosts from %s"
 msgstr[0] "%d makine %s bilgisayar arabelleğinden alındı"
+msgstr[1] "%d makine %s bilgisayar arabelleğinden alındı"
 
 #, c-format
 msgid "Bootstrapping from %s"
@@ -622,6 +628,7 @@ msgstr "Kapanıyor (%s)"
 msgid "Got %d connection pong"
 msgid_plural "Got %d connection pongs"
 msgstr[0] "%d bağlantı pong'u alındı"
+msgstr[1] "%d bağlantı pong'u alındı"
 
 msgid "Sent crawling info"
 msgstr "Tarayıcıya bilgi gönderildi"
@@ -875,6 +882,7 @@ msgstr "UDP makine arabelleğine ping gönderildi %s:%u"
 msgid "Got %d host from UDP host cache %s"
 msgid_plural "Got %d hosts from UDP host cache %s"
 msgstr[0] "%d makine %s UDP bilgisayar arabelleğinden alındı"
+msgstr[1] "%d makine %s UDP bilgisayar arabelleğinden alındı"
 
 msgid "Connect back timeout"
 msgstr "Geri bağlanım zaman aşımına uğradı"
@@ -5141,11 +5149,13 @@ msgstr ""
 msgid "%u Byte"
 msgid_plural "%u Bytes"
 msgstr[0] "%u Bayt"
+msgstr[1] "%u Bayt"
 
 #, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
 msgstr[0] "%u&nbsp;Bayt"
+msgstr[1] "%u&nbsp;Bayt"
 
 #, c-format
 msgid "%s (%s bytes)"
@@ -5271,6 +5281,7 @@ msgstr "Geçersiz port"
 msgid "Removed %u node"
 msgid_plural "Removed %u nodes"
 msgstr[0] "%u düğümü kaldırıldı"
+msgstr[1] "%u düğümü kaldırıldı"
 
 msgid "Property missing"
 msgstr "Özellik eksik"
@@ -5573,6 +5584,7 @@ msgstr "Atılıyor (%s bayt kaldı)"
 msgid "Forgot %u download"
 msgid_plural "Forgot %u downloads"
 msgstr[0] "%u indirim unutuldu"
+msgstr[1] "%u indirim unutuldu"
 
 msgid "Filename (filtered)"
 msgstr "Dosya adı (filtrelendi)"
@@ -5615,6 +5627,8 @@ msgstr "Düzenli ifade hatası: %s"
 msgid "Selected %u of %u download matching \"%s\"."
 msgid_plural "Selected %u of %u downloads matching \"%s\"."
 msgstr[0] ""
+"%u indirme (toplam %u üzerinden) \"%s\" değerine denk geldiğinden seçildi."
+msgstr[1] ""
 "%u indirme (toplam %u üzerinden) \"%s\" değerine denk geldiğinden seçildi."
 
 msgid "starts with"
@@ -6660,10 +6674,12 @@ msgstr "DHT öksüz indirmelerin tekrar sunumu"
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "düğüm"
+msgstr[1] "düğüm"
 
 msgid "file"
 msgid_plural "files"
 msgstr[0] "dosya"
+msgstr[1] "dosya"
 
 msgid "Please choose a directory to share"
 msgstr "Lütfen paylaşılacak klasörü seçin"
@@ -8725,11 +8741,13 @@ msgstr "paylaşılıyor"
 msgid "Created %u download"
 msgid_plural "Created %u downloads"
 msgstr[0] "%u indirme oluşturuldu"
+msgstr[1] "%u indirme oluşturuldu"
 
 #, c-format
 msgid "Discarded %u result"
 msgid_plural "Discarded %u results"
 msgstr[0] "%u sonuç atıldı"
+msgstr[1] "%u sonuç atıldı"
 
 msgid "Query queued..."
 msgstr "Sorgu kuyruğa eklendi..."
@@ -8738,6 +8756,7 @@ msgstr "Sorgu kuyruğa eklendi..."
 msgid "%u term counted"
 msgid_plural "%u terms counted"
 msgstr[0] "%u terim sayıldı"
+msgstr[1] "%u terim sayıldı"
 
 #, c-format
 msgid "Couldn't find pixmap file: %s"
@@ -9044,6 +9063,7 @@ msgstr "Türkçe tercüme: Uğur Çetin, Berki Yenigün."
 msgid "%d second"
 msgid_plural "%d seconds"
 msgstr[0] "%d saniye"
+msgstr[1] "%d saniye"
 
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
@@ -9059,6 +9079,7 @@ msgstr ""
 msgid "%lu file shared (%s)"
 msgid_plural "%lu files shared (%s)"
 msgstr[0] "%lu paylaşılan dosya (%s)"
+msgstr[1] "%lu paylaşılan dosya (%s)"
 
 msgid "(avg)"
 msgstr "(vasati)"
@@ -9130,6 +9151,7 @@ msgstr "Bu oturumla beraber sona erecektir"
 msgid " [%u download]"
 msgid_plural " [%u downloads]"
 msgstr[0] " [%u indirme]"
+msgstr[1] " [%u indirme]"
 
 #, c-format
 msgid ""
@@ -9142,10 +9164,12 @@ msgstr ""
 msgid "item"
 msgid_plural "items"
 msgstr[0] "öğe"
+msgstr[1] "öğe"
 
 msgid "dupe"
 msgid_plural "dupes"
 msgstr[0] "çift"
+msgstr[1] "çift"
 
 msgid "No GUESS queries run yet"
 msgstr "Henüz hiçbir GUESS sorgusu kullanılmamıştır"
@@ -9157,10 +9181,12 @@ msgstr " önceki %s aldı sorgulanan %zu %s ile %zu %s tutuldu"
 msgid "host"
 msgid_plural "hosts"
 msgstr[0] "makine"
+msgstr[1] "makine"
 
 msgid "hit"
 msgid_plural "hits"
 msgstr[0] "eşleşme"
+msgstr[1] "eşleşme"
 
 #, c-format
 msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
@@ -9173,6 +9199,7 @@ msgstr "aylak"
 msgid "query"
 msgid_plural "queries"
 msgstr[0] "sorgu"
+msgstr[1] "sorgu"
 
 #, c-format
 msgid ""
@@ -9191,10 +9218,12 @@ msgstr "kısıtlı"
 msgid "ack"
 msgid_plural "acks"
 msgstr[0] "acks"
+msgstr[1] "acks"
 
 msgid "hop"
 msgid_plural "hops"
 msgstr[0] "hops"
+msgstr[1] "hops"
 
 msgid " (load pending)"
 msgstr " (yükleme bekleniyor)"
@@ -9233,11 +9262,13 @@ msgstr "gözatılabilir"
 msgid "%u download"
 msgid_plural "%u downloads"
 msgstr[0] "%u indirme"
+msgstr[1] "%u indirme"
 
 #, c-format
 msgid "%u search"
 msgid_plural "%u searches"
 msgstr[0] "%u arama"
+msgstr[1] "%u arama"
 
 #, c-format
 msgid "Handled magnet link (%s, %s)."
@@ -9430,6 +9461,7 @@ msgstr "Hiçbir zaman"
 msgid "%u/%u host (%u%%)"
 msgid_plural "%u/%u hosts (%u%%)"
 msgstr[0] "%u/%u makine (%u%%)"
+msgstr[1] "%u/%u makine (%u%%)"
 
 msgid "loading..."
 msgstr "yükleniyor..."
@@ -9476,6 +9508,7 @@ msgstr "*** Lütfen gtk-gnutella'yı güncelleyiniz ***"
 msgid "*** VERSION WILL BECOME OLD IN %d DAY! ***"
 msgid_plural "*** VERSION WILL BECOME OLD IN %d DAYS! ***"
 msgstr[0] "*** BU SÜRÜM %d GÜN SONRA ESKİ SAYILACAKTIR! ***"
+msgstr[1] "*** BU SÜRÜM %d GÜN SONRA ESKİ SAYILACAKTIR! ***"
 
 #, c-format
 msgid "Address/port changed to: %s"
@@ -9488,6 +9521,7 @@ msgstr "kaynak yok"
 msgid "%u source"
 msgid_plural "%u sources"
 msgstr[0] "%u kaynak"
+msgstr[1] "%u kaynak"
 
 #, c-format
 msgid "%u active"
@@ -9501,16 +9535,19 @@ msgstr "%u kuyrukta"
 msgid "%u/%u connection"
 msgid_plural "%u/%u connections"
 msgstr[0] "%u/%u bağlantı"
+msgstr[1] "%u/%u bağlantı"
 
 #, c-format
 msgid "%u/%u upload"
 msgid_plural "%u/%u uploads"
 msgstr[0] "%u/%u gönderme"
+msgstr[1] "%u/%u gönderme"
 
 #, c-format
 msgid "%u/%u download"
 msgid_plural "%u/%u downloads"
 msgstr[0] "%u/%u indirme"
+msgstr[1] "%u/%u indirme"
 
 msgid "Queue frozen"
 msgstr "Kuyruk donduruldu"
