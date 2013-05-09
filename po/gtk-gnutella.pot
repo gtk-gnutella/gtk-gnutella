@@ -1,6 +1,7 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Raphael Manfredi
-# This file is distributed under the same license as the PACKAGE package.
+# Translations for gtk-gnutella package.
+# Copyright (C) 2000-2001 Yann Grossel.
+# Copyright (C) 2001-2013 Raphaël Manfredi.
+# This file is distributed under the same license as the gtk-gnutella package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
