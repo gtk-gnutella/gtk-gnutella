@@ -4277,7 +4277,7 @@ dht_get_size_estimate(void)
 	static kuid_t size_estimate;
 	bigint_t size;
 
-	if (stats.average.computed == 0)
+	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
 	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
@@ -4293,7 +4293,7 @@ dht_get_size_estimate(void)
 int
 dht_get_kball_furthest(void)
 {
-	if (stats.average.computed == 0)
+	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
 	return stats.kball_furthest;
