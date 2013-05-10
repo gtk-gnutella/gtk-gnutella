@@ -63,11 +63,12 @@
 #include "common.h"
 
 #include "values.h"
-#include "kuid.h"
-#include "knode.h"
 #include "acct.h"
 #include "keys.h"
 #include "kmsg.h"
+#include "knode.h"
+#include "kuid.h"
+#include "routing.h"
 #include "stable.h"
 
 #include "if/gnet_property.h"
@@ -106,9 +107,18 @@
  * However, we must understand that due to caching, we may very well be
  * handed out values that fall well outside our k-ball.  So we must keep
  * the thresholds high enough to not limit useful STORE requests.
+ *
+ * Moreover, the threshold cannot be static: the size of the DHT can shrink
+ * or expand dynamically and the thresholds must follow this expansion.
+ * Therefore, we define the limits for a theoretical kball of 10.  If the
+ * kball expands to 12, it means the size of the network quadrupled and we can
+ * safely lower the limits by 4, down to a minimum.
  */
-#define MAX_VALUES_IP	128		/**< Max # of values allowed per IP address */
-#define MAX_VALUES_NET	1024	/**< Max # of values allowed per class C net */
+#define MAX_VALUES_IP	64		/**< Max # of values allowed per IP address */
+#define MIN_VALUES_IP	2		/**< Min # of values allowed per IP address */
+#define MAX_VALUES_NET	512		/**< Max # of values allowed per class C net */
+#define MIN_VALUES_NET	16		/**< Min # of values allowed per class C net */
+#define VALUES_KBALL	10		/**< Theoretical k-ball for max thresholds */
 
 #define MAX_VALUES		262144	/**< Max # of values we accept to manage */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
@@ -218,6 +228,54 @@ values_count(void)
 	g_assert(values_managed >= 0);
 
 	return (size_t) values_managed;
+}
+
+/**
+ * @return max amount of values we can accept per IP address.
+ */
+static size_t
+values_max_per_ip(void)
+{
+	int kball = dht_get_kball_furthest();
+	uint result = MAX_VALUES_IP;
+
+	/*
+	 * The larger the network, the less values we store per IP address.
+	 */
+
+	if (kball < VALUES_KBALL) {
+		int delta = VALUES_KBALL - kball;
+		result *= 1U << delta;
+	} else if (kball > VALUES_KBALL) {
+		int delta = kball - VALUES_KBALL;
+		result /= 1U << delta;
+	}
+
+	return MAX(result, MIN_VALUES_IP);
+}
+
+/**
+ * @return max amount of values we can accept per class C network.
+ */
+static size_t
+values_max_per_net(void)
+{
+	int kball = dht_get_kball_furthest();
+	uint result = MAX_VALUES_NET;
+
+	/*
+	 * The larger the network, the less values we store per class C network.
+	 */
+
+	if (kball < VALUES_KBALL) {
+		int delta = VALUES_KBALL - kball;
+		result *= 1U << delta;
+	} else if (kball > VALUES_KBALL) {
+		int delta = kball - VALUES_KBALL;
+		result /= 1U << delta;
+	}
+
+	return MAX(result, MIN_VALUES_NET);
 }
 
 #define VALUES_DATA_VERSION	1		/* Serialization version number */
@@ -1171,8 +1229,10 @@ validate_load(const dht_value_t *v)
 static uint16
 validate_quotas(const dht_value_t *v)
 {
-	int count;
+	uint count;
 	const knode_t *c = v->creator;
+	size_t max_ip = values_max_per_ip();
+	size_t max_net = values_max_per_net();
 
 	/* Specifications say: creator address must be IPv4 */
 	if (!host_addr_is_ipv4(c->addr))
@@ -1183,19 +1243,19 @@ validate_quotas(const dht_value_t *v)
 	if (GNET_PROPERTY(dht_storage_debug) > 2) {
 		uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
-		g_debug("DHT STORE has %d/%d value%s for class C network %s",
-			count, MAX_VALUES_NET, 1 == count ? "" : "s",
+		g_debug("DHT STORE has %u/%zu value%s for class C network %s",
+			count, max_net, 1 == count ? "" : "s",
 			host_addr_to_string(host_addr_get_ipv4(net)));
 	}
 
-	if (count >= MAX_VALUES_NET) {
+	if (count >= max_net) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
 			g_debug("DHT STORE rejecting \"%s\": "
-				"has %d/%d value%s for class C network %s",
+				"has %u/%zu value%s for class C network %s",
 				dht_value_to_string(v),
-				count, MAX_VALUES_NET, 1 == count ? "" : "s",
+				count, max_net, 1 == count ? "" : "s",
 				host_addr_to_string(host_addr_get_ipv4(net)));
 		}
 		goto reject;
@@ -1204,16 +1264,15 @@ validate_quotas(const dht_value_t *v)
 	count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_debug("DHT STORE has %d/%d value%s for IP %s",
-			count, MAX_VALUES_IP, 1 == count ? "" : "s",
+		g_debug("DHT STORE has %u/%zu value%s for IP %s",
+			count, max_ip, 1 == count ? "" : "s",
 			host_addr_to_string(c->addr));
 
-	if (count >= MAX_VALUES_IP) {
+	if (count >= max_ip) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
-			g_debug("DHT STORE rejecting \"%s\": "
-				"has %d/%d value%s for IP %s",
+			g_debug("DHT STORE rejecting \"%s\": has %u/%zu value%s for IP %s",
 				dht_value_to_string(v),
-				count, MAX_VALUES_IP, 1 == count ? "" : "s",
+				count, max_ip, 1 == count ? "" : "s",
 				host_addr_to_string(c->addr));
 		}
 		goto reject;
