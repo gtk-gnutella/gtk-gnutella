@@ -864,6 +864,7 @@ string_to_port_host_addr(const char *str, const char **endptr,
 	return ret;
 }
 
+#ifndef HAS_GETNAMEINFO
 static void
 gethostbyname_error(const char *host)
 {
@@ -876,6 +877,7 @@ gethostbyname_error(const char *host)
 		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
 #endif /* defined(HAS_HSTRERROR) */
 }
+#endif	/* !HAS_GETNAMEINFO */
 
 /**
  * Initializes sa_ptr from a host address and a port number.
