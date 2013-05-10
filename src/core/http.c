@@ -123,6 +123,7 @@ http_send_status(
 	const char *date;
 	const char *token;
 	const char *body = NULL;
+	size_t body_length = 0;
 	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
 	int cb_flags = 0;
 
@@ -251,8 +252,9 @@ http_send_status(
 	}
 
 	if (body) {
+		body_length = strlen(body);
 		rw += str_bprintf(&header[rw], header_size - rw,
-						"Content-Length: %zu\r\n", strlen(body));
+						"Content-Length: %zu\r\n", body_length);
 	}
 	if (rw < header_size) {
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
@@ -268,7 +270,15 @@ http_send_status(
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 		g_assert(rw < header_size);
 		if (body) {
-			rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
+			size_t w;
+
+			rw += (w = str_bprintf(&header[rw], header_size - rw, "%s", body));
+
+			if (rw >= header_size - 1) {
+				g_carp("HTTP status %d (%s) too big, "
+					"can only send %zu/%zu body bytes",
+					code, status_msg, w, body_length);
+			}
 		}
 	}
 
