@@ -278,7 +278,8 @@ retry:
 			 * bytes, which we know can fit.
 			 */
 
-			clamp_strncpy(&header[rw], header_size - rw, body, body_length);
+			rw += clamp_strncpy(&header[rw], header_size - rw,
+					body, body_length);
 		}
 	}
 	if (rw >= header_size - 1 && (hev || body)) {
