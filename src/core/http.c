@@ -126,10 +126,18 @@ http_send_status(
 	size_t body_length = 0;
 	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
 	int cb_flags = 0;
+	bool retried = FALSE;
 
 	va_start(args, reason);
 	str_vbprintf(status_msg, sizeof status_msg - 1, reason, args);
 	va_end(args);
+
+	/*
+	 * When the connection is kept alive and we are unable to send
+	 * back the whole body, we come back here with ``body_length''
+	 * adjusted to the amount we can safely emit.
+	 */
+retry:
 
 	/*
 	 * Prepare flags for callbacks.
@@ -252,7 +260,8 @@ http_send_status(
 	}
 
 	if (body) {
-		body_length = strlen(body);
+		if (0 == body_length)
+			body_length = strlen(body);
 		rw += str_bprintf(&header[rw], header_size - rw,
 						"Content-Length: %zu\r\n", body_length);
 	}
@@ -260,11 +269,22 @@ http_send_status(
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 	}
 	if (body) {
-		rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
+		if (!retried) {
+			rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
+		} else {
+			/*
+			 * Since we're retrying, it means the whole body did not fit
+			 * earlier and we decided to only limit it to ``body_length''
+			 * bytes, which we know can fit.
+			 */
+
+			clamp_strncpy(&header[rw], header_size - rw, body, body_length);
+		}
 	}
 	if (rw >= header_size - 1 && (hev || body)) {
-		g_warning("HTTP status %d (%s) too big, ignoring extra information",
-			code, status_msg);
+		g_warning("HTTP status %d (%s) too big, "
+			"ignoring extra information (%s)",
+			code, status_msg, host_addr_port_to_string(s->addr, s->port));
 
 		rw = minimal_rw;
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
@@ -274,10 +294,27 @@ http_send_status(
 
 			rw += (w = str_bprintf(&header[rw], header_size - rw, "%s", body));
 
+			/*
+			 * If we cannot send back everything and the connection is
+			 * going to be kept alive, we need to limit the body to the amount
+			 * we can really send back.
+			 */
+
 			if (rw >= header_size - 1) {
 				g_carp("HTTP status %d (%s) too big, "
-					"can only send %zu/%zu body bytes",
-					code, status_msg, w, body_length);
+					"can only send %zu/%zu body bytes to %s",
+					code, status_msg, w, body_length,
+					host_addr_port_to_string(s->addr, s->port));
+
+				if (keep_alive) {
+					g_assert(!retried);		/* No deadly endless loops */
+					body_length = w;
+					retried = TRUE;
+					g_warning("HTTP status sent on kept-alive, "
+						"retrying with stripped %zu-byte body for %s",
+						w, host_addr_port_to_string(s->addr, s->port));
+					goto retry;
+				}
 			}
 		}
 	}
