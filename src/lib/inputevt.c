@@ -115,6 +115,7 @@ typedef struct {
 #include "inputevt.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
+#include "mutex.h"
 #include "tm.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -188,6 +189,7 @@ static const inputevt_handler_t zero_handler;
 static int (*default_poll_func)(GPollFD *, unsigned, int);
 
 struct poll_ctx {
+	mutex_t lock;				/**< Thread-safe lock */
 	inputevt_relay_t **relay;	/**< The relay contexts */
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
@@ -224,6 +226,15 @@ struct poll_ctx {
 			inputevt_cond_t, inputevt_cond_t);
 };
 
+/*
+ * The lock used by the context must be recursive since inputevt_remove()
+ * can be called in the middle of inputevt_timer().
+ */
+
+#define CTX_LOCK(c)			mutex_lock(&c->lock)
+#define CTX_UNLOCK(c)		mutex_unlock(&c->lock)
+#define CTX_IS_LOCKED(c)	mutex_is_owned(&c->lock)
+
 static unsigned data_available;
 /**
  * @return A positive value indicates how much data is available for reading.
@@ -247,6 +258,7 @@ inputevt_poll_idx_new(struct poll_ctx *ctx, int fd)
 {
 	unsigned idx;
 
+	g_assert(CTX_IS_LOCKED(ctx));
 	g_assert(is_valid_fd(fd));
 
 	if (ctx->num_poll_idx > 0)
@@ -288,6 +300,7 @@ inputevt_poll_idx_free(struct poll_ctx *ctx, unsigned *idx_ptr)
 {
 	const unsigned idx = *idx_ptr;
 
+	g_assert(CTX_IS_LOCKED(ctx));
 	g_assert(!ctx->dispatching);
 	g_assert((unsigned) -1 != idx);
 	g_assert(idx < ctx->num_poll_idx);
@@ -337,6 +350,8 @@ event_get_with_kqueue(const struct poll_ctx *ctx, unsigned idx)
 	const struct kevent *ev = &ctx->kev_arr[idx];
 	struct event event;
 
+	g_assert(CTX_IS_LOCKED(ctx));
+
 	event.fd = pointer_to_uint(KEVENT_UDATA_TO_PTR(ev->udata));
 	event.condition = EV_ERROR & ev->flags ? INPUT_EVENT_EXCEPTION : 0;
 	switch (ev->filter) {
@@ -363,6 +378,8 @@ event_set_mask_with_kqueue(struct poll_ctx *ctx, int fd,
 	size_t i;
 	void *udata;
 	int ret;
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	if ((INPUT_EVENT_RW & old) == (INPUT_EVENT_RW & cur))
 		return 0;
@@ -397,6 +414,7 @@ event_check_all_with_kqueue(struct poll_ctx *ctx)
 	
 	g_assert(ctx);
 	g_assert(ctx->initialized);
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	return kevent(ctx->master_fd, NULL, 0, ctx->kev_arr, ctx->num_ev, &zero_ts);
 }
@@ -409,6 +427,8 @@ event_get_with_epoll(const struct poll_ctx *ctx, unsigned idx)
 {
 	const struct epoll_event *ev = &ctx->ep_arr[idx];
 	struct event event;
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	event.fd = GPOINTER_TO_INT(ev->data.ptr);
 	event.condition =
@@ -426,6 +446,8 @@ event_set_mask_with_epoll(struct poll_ctx *ctx, int fd,
 	static const struct epoll_event zero_ev;
 	struct epoll_event ev;
 	int op;
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	old &= INPUT_EVENT_RW;
 	cur &= INPUT_EVENT_RW;
@@ -455,6 +477,7 @@ event_check_all_with_epoll(struct poll_ctx *ctx)
 {
 	g_assert(ctx);
 	g_assert(ctx->initialized);
+	g_assert(CTX_IS_LOCKED(ctx));
 	
 	return epoll_wait(ctx->master_fd, ctx->ep_arr, ctx->num_ev, 0);
 }
@@ -465,8 +488,11 @@ static int
 event_set_mask_with_dev_poll(struct poll_ctx *ctx, int fd,
 	inputevt_cond_t old, inputevt_cond_t cur)
 {
+	g_assert(CTX_IS_LOCKED(ctx));
+
 	old &= INPUT_EVENT_RW;
 	cur &= INPUT_EVENT_RW;
+
 	if (cur != old) {
 		static const struct pollfd zero_pfd;
 		struct pollfd pfd[2];
@@ -505,6 +531,7 @@ collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 	int ret;
 
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	dvp.dp_timeout = timeout_ms;
 	dvp.dp_nfds = ctx->num_ev;
@@ -526,6 +553,7 @@ event_set_mask_with_poll(struct poll_ctx *ctx, int fd,
 	struct pollfd *pfd;
 	relay_list_t *rl;
 
+	g_assert(CTX_IS_LOCKED(ctx));
 	g_assert(is_valid_fd(fd));
 
 	old &= INPUT_EVENT_RW;
@@ -560,6 +588,7 @@ get_poll_idx(const struct poll_ctx *ctx, int fd)
 
 	safety_assert(is_valid_fd(fd));
 	safety_assert(is_open_fd(fd));
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
 	g_assert(NULL != rl);
@@ -575,6 +604,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 	int ret;
 
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	/* FD_ZERO() */
 	r.fd_count = 0;
@@ -654,6 +684,7 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 	int ret;
 
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	ret = compat_poll(ctx->pfd_arr, ctx->max_poll_idx, timeout_ms);
 	if (-1 == ret && !is_temporary_error(errno)) {
@@ -665,7 +696,11 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 static int
 event_check_all_with_poll(struct poll_ctx *ctx)
 {
-	int ret = ctx->num_ready;
+	int ret;
+
+	g_assert(CTX_IS_LOCKED(ctx));
+
+	ret = ctx->num_ready;
 	ctx->num_ready = 0;
 	return ret;
 }
@@ -675,6 +710,8 @@ event_get_with_poll(const struct poll_ctx *ctx, unsigned idx)
 {
 	const struct pollfd *pfd = &ctx->pfd_arr[idx];
 	struct event event;
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	event.fd = pfd->fd;
 	event.data_available = 0;
@@ -692,6 +729,7 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	int ret, timeout_ms;
 
 	g_assert(ctx);
+	g_assert(CTX_IS_LOCKED(ctx));
 	g_assert(timeout_ms_ptr);
 	g_assert(0 == ctx->num_ready);
 
@@ -732,6 +770,8 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 void
 inputevt_poll_idx_compact(struct poll_ctx *ctx)
 {
+	CTX_LOCK(ctx);
+
 	if (inputevt_debug > 9) {
 		str_t *str = str_new_from("pollfd[] = {");
 		unsigned num_unused = 0;
@@ -764,6 +804,8 @@ inputevt_poll_idx_compact(struct poll_ctx *ctx)
 			g_assert(!bit_array_get(ctx->used_poll_idx, i));
 		}
 	}
+
+	CTX_UNLOCK(ctx);
 }
 
 static void
@@ -774,6 +816,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 
 	g_assert(id > 0);
 	g_assert(id < ctx->num_ev);
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	relay = ctx->relay[id];
 	g_assert(relay);
@@ -801,6 +844,8 @@ static void
 inputevt_purge_removed(struct poll_ctx *ctx)
 {
 	GSList *sl;
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	for (sl = ctx->removed; NULL != sl; sl = g_slist_next(sl)) {
 		inputevt_relay_t *relay;
@@ -952,10 +997,15 @@ static bool
 dispatch_poll(GIOChannel *unused_source,
 	GIOCondition unused_cond, void *udata)
 {
+	struct poll_ctx *ctx = udata;
+
 	(void) unused_cond;
 	(void) unused_source;
 
-	inputevt_timer(udata);
+	CTX_LOCK(ctx);
+	inputevt_timer(ctx);
+	CTX_UNLOCK(ctx);
+
 	return TRUE;
 }
 
@@ -964,16 +1014,23 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 {
 	struct poll_ctx *ctx;
 	int r;
+	bool dispatching;
 
 	ctx = get_global_poll_ctx();
 	g_assert(ctx);
 	g_assert(ctx->initialized);
 
+	CTX_LOCK(ctx);
+
 	if (0 == ctx->num_ready) {
 		check_for_events(ctx, &timeout_ms);
 	}
 
-	if (ctx->num_ready > 0) {
+	dispatching = ctx->num_ready > 0;
+
+	CTX_UNLOCK(ctx);
+
+	if (dispatching) {
 		dispatch_poll(NULL, 0, ctx);
 	}
 
@@ -1026,6 +1083,8 @@ inputevt_remove(unsigned *id_ptr)
 	g_assert(id < ctx->num_ev);
 	g_assert(0 != bit_array_get(ctx->used_event_id, id));
 
+	CTX_LOCK(ctx);
+
 	relay = ctx->relay[id];
 	g_assert(NULL != relay);
 	g_assert(zero_handler != relay->handler);
@@ -1072,11 +1131,15 @@ inputevt_remove(unsigned *id_ptr)
 		bit_array_clear(ctx->used_event_id, id);
 	}
 	*id_ptr = 0;
+
+	CTX_UNLOCK(ctx);
 }
 
 static inline unsigned
 inputevt_get_free_id(const struct poll_ctx *ctx)
 {
+	g_assert(CTX_IS_LOCKED(ctx));
+
 	if (0 == ctx->num_ev)
 		return (unsigned) -1;
 	
@@ -1090,10 +1153,13 @@ inputevt_add_source(inputevt_relay_t *relay)
 	inputevt_cond_t old;
 	unsigned f, id;
 
-	ctx = get_global_poll_ctx();
-	g_assert(ctx->initialized);
 	g_assert(is_valid_fd(relay->fd));
 
+	ctx = get_global_poll_ctx();
+
+	CTX_LOCK(ctx);
+
+	g_assert(ctx->initialized);
 	g_assert(ctx->ht);
 
 	f = inputevt_get_free_id(ctx);
@@ -1211,6 +1277,8 @@ inputevt_add_source(inputevt_relay_t *relay)
 			ctx->master_fd, relay->fd);
 	}
 
+	CTX_UNLOCK(ctx);
+
 	g_assert(0 != id);	
 	return id;
 }
@@ -1226,12 +1294,16 @@ inputevt_set_readable(int fd)
 	}
 	g_assert(is_valid_fd(fd));
 
+	CTX_LOCK(ctx);
+
 	if (
 		htable_contains(ctx->ht, key) &&
 		!hash_list_contains(ctx->readable, key)
 	) {
 		hash_list_append(ctx->readable, key);
 	}
+
+	CTX_UNLOCK(ctx);
 }
 
 static int
@@ -1239,11 +1311,13 @@ init_with_kqueue(struct poll_ctx *ctx)
 #ifdef HAS_KQUEUE
 {
 	const int fd = kqueue();
-	
+
 	if (!is_valid_fd(fd)) {
 		g_warning("kqueue() failed: %m");
 		return -1;
 	}
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	g_main_context_set_poll_func(NULL, default_poll_func);
 	ctx->master_fd = fd;
@@ -1273,6 +1347,8 @@ init_with_devpoll(struct poll_ctx *ctx)
 		return -1;
 	}
 
+	g_assert(CTX_IS_LOCKED(ctx));
+
 	g_main_context_set_poll_func(NULL, default_poll_func);
 	ctx->master_fd = fd;
 	ctx->polling_method = "/dev/poll";
@@ -1301,6 +1377,8 @@ init_with_epoll(struct poll_ctx *ctx)
 		return -1;
 	}
 
+	g_assert(CTX_IS_LOCKED(ctx));
+
 	g_main_context_set_poll_func(NULL, default_poll_func);
 	ctx->master_fd = fd;
 	ctx->polling_method = "epoll()";
@@ -1322,6 +1400,8 @@ static int
 init_with_poll(struct poll_ctx *ctx)
 {
 	default_poll_func = g_main_context_get_poll_func(NULL);
+
+	g_assert(CTX_IS_LOCKED(ctx));
 
 	g_main_context_set_poll_func(NULL, poll_func);
 	ctx->master_fd = -1;
@@ -1351,11 +1431,14 @@ inputevt_init(int use_poll)
 	struct poll_ctx *ctx;
 
 	ctx = get_global_poll_ctx();
+
 	g_assert(!ctx->initialized);
-	
 	ctx->initialized = TRUE;
 	ctx->ht = htable_create(HASH_KEY_SELF, 0);
 	ctx->readable = hash_list_new(NULL, NULL);
+	mutex_init(&ctx->lock);
+
+	CTX_LOCK(ctx);
 
 	init_with_poll(ctx); /* Must be called first and provides the default */
 
@@ -1366,6 +1449,8 @@ inputevt_init(int use_poll)
 			}
 		}
 	}
+
+	CTX_UNLOCK(ctx);
 
 	if (is_valid_fd(ctx->master_fd)) {
 		GIOChannel *ch;
@@ -1438,7 +1523,11 @@ cond_is_okay:
 void
 inputevt_dispatch(void)
 {
-	inputevt_timer(get_global_poll_ctx());
+	struct poll_ctx *ctx = get_global_poll_ctx();
+
+	CTX_LOCK(ctx);
+	inputevt_timer(ctx);
+	CTX_UNLOCK(ctx);
 }
 
 /**
@@ -1450,6 +1539,9 @@ inputevt_close(void)
 	struct poll_ctx *ctx;
 	
 	ctx = get_global_poll_ctx();
+
+	CTX_LOCK(ctx);
+
 	inputevt_purge_removed(ctx);
 	htable_free_null(&ctx->ht);
 	hash_list_free(&ctx->readable);
@@ -1459,6 +1551,9 @@ inputevt_close(void)
 	G_FREE_NULL(ctx->pfd_arr);
 	fd_close(&ctx->master_fd);
 	ctx->initialized = FALSE;
+
+	CTX_UNLOCK(ctx);
+	mutex_destroy(&ctx->lock);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
