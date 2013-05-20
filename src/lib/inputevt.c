@@ -109,14 +109,16 @@ typedef struct {
 #include "bit_array.h"
 #include "compat_poll.h"
 #include "fd.h"
-#include "hashlist.h"
-#include "inputevt.h"
 #include "glib-missing.h"
+#include "hashlist.h"
 #include "htable.h"
+#include "inputevt.h"
 #include "log.h"			/* For s_error() */
 #include "misc.h"
 #include "tm.h"
 #include "walloc.h"
+#include "xmalloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 static unsigned inputevt_debug;
@@ -1112,20 +1114,20 @@ inputevt_add_source(inputevt_relay_t *relay)
 #ifdef HAS_KQUEUE
 		{
 			size_t size = ctx->num_ev * sizeof ctx->kev_arr[0];
-			ctx->kev_arr = g_realloc(ctx->kev_arr, size);
+			ctx->kev_arr = xrealloc(ctx->kev_arr, size);
 		}
 #endif	/* HAS_KQUEUE */
 
 #ifdef HAS_EPOLL
 		{
 			size_t size = ctx->num_ev * sizeof ctx->ep_arr[0];
-			ctx->ep_arr = g_realloc(ctx->ep_arr, size);
+			ctx->ep_arr = xrealloc(ctx->ep_arr, size);
 		}
 #endif	/* HAS_EPOLL */
 
 		{
 			size_t size = ctx->num_ev * sizeof ctx->pfd_arr[0];
-			ctx->pfd_arr = g_realloc(ctx->pfd_arr, size);
+			ctx->pfd_arr = xrealloc(ctx->pfd_arr, size);
 		}
 
 		for (i = n; i < ctx->num_ev; i++) {
@@ -1147,7 +1149,7 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 		{
 			size_t size = ctx->num_ev * sizeof ctx->relay[0];
-			ctx->relay = g_realloc(ctx->relay, size);
+			ctx->relay = xrealloc(ctx->relay, size);
 			for (i = n; i < ctx->num_ev; i++)
 				ctx->relay[i] = NULL;
 		}
