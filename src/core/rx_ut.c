@@ -268,6 +268,8 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 {
 	struct ut_rmsg *um = obj;
 
+	(void) cq;
+
 	ut_rmsg_check(um);
 	g_assert(um->expire_ev != NULL);
 
