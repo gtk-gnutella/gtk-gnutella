@@ -48,6 +48,8 @@
 
 #include "common.h"
 
+#define XMALLOC_SOURCE
+
 #include "xmalloc.h"
 #include "bit_array.h"
 #include "cq.h"
@@ -7014,8 +7016,19 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		goto done;
 	}
 
+	/*
+	 * To be able to perform posix_memalign() calls before the VMM is fully up,
+	 * use vmm_early_init() to launch the VM layer without notifying xmalloc()
+	 * that the VMM is up, so that we do not start to register the garbage
+	 * collector yet.
+	 *
+	 * Until vmm_init() is called, every call to posix_memalign() will cause
+	 * this branch to be taken, but this is only a transient state, until
+	 * it is safe to call vmm_init() to mark everything as fully initialized.
+	 */
+
 	if G_UNLIKELY(!xmalloc_vmm_is_up)
-		return ENOMEM;		/* Cannot allocate without the VMM layer */
+		vmm_early_init();
 
 	/*
 	 * If they want to align on some boundary, they better be allocating

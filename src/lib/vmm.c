@@ -168,6 +168,7 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
+static bool vmm_early_inited;
 static bool vmm_inited;
 static bool vmm_fully_inited;
 static bool vmm_crashing;
@@ -4451,7 +4452,7 @@ vmm_post_init(void)
  * Initialize the VMM layer, once.
  */
 static G_GNUC_COLD void
-vmm_init_once(void)
+vmm_early_init_once(void)
 {
 	int i;
 
@@ -4514,6 +4515,14 @@ vmm_init_once(void)
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif
+}
+
+/**
+ * Mark the VMM layer as initialized, once.
+ */
+static G_GNUC_COLD void
+vmm_init_once(void)
+{
 	vmm_fully_inited = TRUE;
 
 	/*
@@ -4521,6 +4530,19 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
+}
+
+/**
+ * Emergency initialization of the VMM layer very early in the process, when
+ * it's too soon to be able to call xmalloc_vmm_inited().
+ *
+ * This is only visible from the xmalloc() layer to be able to perform
+ * posix_memalign() calls very early in the process startup.
+ */
+G_GNUC_COLD void
+vmm_early_init(void)
+{
+	once_run(&vmm_early_inited, vmm_early_init_once);
 }
 
 /**
@@ -4533,6 +4555,7 @@ vmm_init_once(void)
 G_GNUC_COLD void
 vmm_init(void)
 {
+	vmm_early_init();
 	once_run(&vmm_inited, vmm_init_once);
 }
 
