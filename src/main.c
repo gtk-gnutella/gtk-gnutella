@@ -195,6 +195,8 @@ static volatile const char *exit_step = "gtk_gnutella_exit";
 
 static bool main_timer(void *);
 
+pid_t adns_pid;
+
 #ifdef SIGALRM
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -225,7 +227,7 @@ sig_chld(int n)
 {
 	int saved_errno = errno;
 	(void) n;
-	while (waitpid(-1, NULL, WNOHANG) > 0)
+	while (waitpid(adns_pid, NULL, WNOHANG) > 0)
 		continue;
 	errno = saved_errno;
 }
@@ -1825,7 +1827,7 @@ main(int argc, char **argv)
 	patricia_test();
 	strtok_test();
 	locale_init();
-	adns_init();
+	adns_pid = adns_init();
 	file_object_init();
 	socket_init();
 	gnet_stats_init();
