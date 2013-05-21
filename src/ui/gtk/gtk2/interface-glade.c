@@ -555,7 +555,7 @@ create_dlg_filters (void)
   if (dlg_filters_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_filters), dlg_filters_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_filters_icon_pixbuf);
+      g_object_unref (dlg_filters_icon_pixbuf);
     }
 
   vbox_filter_main = gtk_vbox_new (FALSE, 0);
@@ -902,7 +902,7 @@ create_shutdown_window (void)
   if (shutdown_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (shutdown_window), shutdown_window_icon_pixbuf);
-      gdk_pixbuf_unref (shutdown_window_icon_pixbuf);
+      g_object_unref (shutdown_window_icon_pixbuf);
     }
 
   frame30 = gtk_frame_new (NULL);
@@ -1040,7 +1040,7 @@ create_dlg_about (void)
   if (dlg_about_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_about), dlg_about_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_about_icon_pixbuf);
+      g_object_unref (dlg_about_icon_pixbuf);
     }
 
   vbox67 = gtk_vbox_new (FALSE, 0);
@@ -1579,7 +1579,7 @@ create_main_window (void)
   if (main_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (main_window), main_window_icon_pixbuf);
-      gdk_pixbuf_unref (main_window_icon_pixbuf);
+      g_object_unref (main_window_icon_pixbuf);
     }
 
   vbox12 = gtk_vbox_new (FALSE, 0);
@@ -3120,7 +3120,7 @@ create_dlg_quit (void)
   if (dlg_quit_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_quit), dlg_quit_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_quit_icon_pixbuf);
+      g_object_unref (dlg_quit_icon_pixbuf);
     }
   gtk_window_set_type_hint (GTK_WINDOW (dlg_quit), GDK_WINDOW_TYPE_HINT_DIALOG);
 
@@ -16923,7 +16923,7 @@ create_dlg_faq (void)
   if (dlg_faq_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_faq), dlg_faq_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_faq_icon_pixbuf);
+      g_object_unref (dlg_faq_icon_pixbuf);
     }
 
   scrolledwindow80 = gtk_scrolled_window_new (NULL, NULL);
@@ -16970,7 +16970,7 @@ create_dlg_ancient (void)
   if (dlg_ancient_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_ancient), dlg_ancient_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_ancient_icon_pixbuf);
+      g_object_unref (dlg_ancient_icon_pixbuf);
     }
 
   scrolledwindow81 = gtk_scrolled_window_new (NULL, NULL);
