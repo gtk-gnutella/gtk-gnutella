@@ -2784,10 +2784,12 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	struct message *m;
 	bool duplicate = FALSE;
 	struct route_log route_log;
-	const struct guid *mangled = NULL;
+	const guid_t *mangled = NULL;
+	const guid_t *muid = NULL;
 	uint8 function;
 
 	function = gnutella_header_get_function(&sender->header);
+	muid = gnutella_header_get_muid(&sender->header);
 
 	/* Ensure we never get something bearing our special GUID route marker */
 	g_assert(function != QUERY_HIT_ROUTE_SAVE);
@@ -2796,8 +2798,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	dest->duplicate = FALSE;
 
 	routing_log_init(&route_log, sender,
-		gnutella_header_get_muid(&sender->header),
-		function,
+		muid, function,
 		gnutella_header_get_hops(&sender->header),
 		gnutella_header_get_ttl(&sender->header));
 
@@ -2810,8 +2811,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		GTA_MSG_SEARCH == function &&
 		gmsg_split_is_oob_query(&sender->header, sender->data)
 	) {
-		mangled = route_mangled_oob_muid(
-						gnutella_header_get_muid(&sender->header));
+		mangled = route_mangled_oob_muid(muid);
 		gnet_stats_inc_general(GNR_OOB_QUERIES);
 		routing_log_extra(&route_log, "OOB");
 	}
@@ -2841,8 +2841,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		if (function != GTA_MSG_PUSH_REQUEST || !NODE_IS_UDP(sender)) {
-			message_add(gnutella_header_get_muid(&sender->header),
-				gnutella_header_get_function(&sender->header), sender);
+			message_add(muid, function, sender);
 		}
 
 		/*
@@ -2854,8 +2853,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		if (mangled) {
-			message_add(mangled,
-				gnutella_header_get_function(&sender->header), sender);
+			message_add(mangled, function, sender);
 		}
 
 		if (!route_it)
@@ -2870,7 +2868,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	 * Compute the route, determine if we should handle the message.
 	 */
 
-	switch (gnutella_header_get_function(&sender->header)) {
+	switch (function) {
 	case GTA_MSG_PUSH_REQUEST:
 		handle_it = route_push(&route_log, node, dest);
 		break;
