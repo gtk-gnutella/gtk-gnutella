@@ -1849,6 +1849,34 @@ check_hops_ttl(struct route_log *route_log, struct gnutella_node *sender)
 }
 
 /**
+ * Calculates the TTL that should be used when the message is forwarded.
+ *
+ * @returns the TTL used when forwarding the message.
+ */
+static int
+route_max_forward_ttl(gnutella_node_t sender)
+{
+	int ttl_forward = gnutella_header_get_ttl(&sender.header);
+
+	if (
+		(uint) gnutella_header_get_hops(&sender.header) +
+			gnutella_header_get_ttl(&sender.header)
+				> GNET_PROPERTY(max_ttl)
+	) {
+		int ttl_max;
+
+		/* Trim down */
+		ttl_max = GNET_PROPERTY(max_ttl);
+		ttl_max -= gnutella_header_get_hops(&sender.header);
+		ttl_max = MAX(ttl_max, 1);
+
+		ttl_forward = ttl_max;
+	}
+
+	return ttl_forward;
+}
+
+/**
  * Forwards message to one node if `target' is non-NULL, or to all nodes but
  * the sender otherwise.  If we kick the node, then *node is set to NULL.
  * The message is not physically sent yet, but the `dest' structure is filled
@@ -1995,12 +2023,9 @@ forward_message(
 					gnutella_header_get_ttl(&sender->header)
 						> GNET_PROPERTY(max_ttl)
 			) {
-				int ttl_max;
+				int ttl_max = route_max_forward_ttl(*sender);
 			   
 				/* Trim down */
-				ttl_max = GNET_PROPERTY(max_ttl);
-				ttl_max -= gnutella_header_get_hops(&sender->header);
-				ttl_max = MAX(ttl_max, 1);
 
 				gnutella_header_set_ttl(&sender->header, ttl_max);
 
@@ -2038,6 +2063,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 {
 	gnutella_node_t *sender = *node;
 	bool forward = FALSE;
+	int ttl_forward = route_max_forward_ttl(*sender);
 
 	node_check(sender);
 	g_assert(m != NULL);
@@ -2057,7 +2083,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 
 	routing_log_extra(route_log, oob ? "dup OOB GUID" : "dup message");
 
-	if (gnutella_header_get_ttl(&sender->header) > m->ttl) {
+	if (ttl_forward > m->ttl) {
 		routing_log_extra(route_log, "higher TTL");
 
 		gnet_stats_inc_general(GNR_DUPS_WITH_HIGHER_TTL);
