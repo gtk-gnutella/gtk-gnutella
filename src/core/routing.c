@@ -2081,7 +2081,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 	routing_log_extra(route_log, oob ? "dup OOB GUID" : "dup message");
 
 	if (ttl_forward > m->ttl) {
-		routing_log_extra(route_log, "higher TTL");
+		routing_log_extra(route_log, "higher TTL (%d>%u)", ttl_forward, m->ttl);
 
 		gnet_stats_inc_general(GNR_DUPS_WITH_HIGHER_TTL);
 
