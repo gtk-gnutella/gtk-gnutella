@@ -527,13 +527,10 @@ routing_log_set_new(struct route_log *route_log)
 	route_log->new = TRUE;
 }
 
-static void routing_log_extra(struct route_log *route_log,
-	const char *fmt, ...) G_GNUC_PRINTF(2, 3);
-
 /**
  * Record extra logging information, appending to existing information.
  */
-static void
+static void G_GNUC_PRINTF(2, 3)
 routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 {
 	va_list args;
