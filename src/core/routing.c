@@ -2095,10 +2095,9 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 				node_infostr(sender), oob ? "OOB, " : "", m->ttl);
 		}
 
-		/* Remember highest TTL */
-		m->ttl = gnutella_header_get_ttl(&sender->header);
+		m->ttl = ttl_forward;   /* Remember highest TTL */
 
-		forward = TRUE;			/* Forward but don't handle */
+		forward = TRUE;         /* Forward but don't handle */
 	}
 
 	if (!forward)
