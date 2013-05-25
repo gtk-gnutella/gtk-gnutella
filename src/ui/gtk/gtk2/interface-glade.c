@@ -14048,6 +14048,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (scrolledwindow79, "scrolledwindow79");
   gtk_widget_show (scrolledwindow79);
   gtk_box_pack_start (GTK_BOX (hbox9299), scrolledwindow79, TRUE, TRUE, 0);
+  gtk_widget_set_size_request (scrolledwindow79, -1, 100);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow79), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow79), GTK_SHADOW_ETCHED_IN);
 
