@@ -110,7 +110,7 @@ http_send_status(
 	http_extra_desc_t *hev, int hevcnt,
 	const char *reason, ...)
 {
-	char header[2560];			/* 2.5 K max */
+	char header[3072];			/* 3 KiB max */
 	char status_msg[512];
 	size_t rw, minimal_rw;
 	size_t header_size = sizeof(header);
