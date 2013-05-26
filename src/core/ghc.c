@@ -64,7 +64,7 @@
  */
 static const char * const boot_url[] = {
 	/* Uses DNS round-robin and serves freshly crawled data */
-	"http://dl.frostwire.com/frostwire/gnutella.net",
+	"http://ghc4.gtkgnutella.com/list4",
 };
 
 static bool ghc_connecting;
