@@ -1615,7 +1615,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	elist_init(&um->resend, offsetof(struct ut_frag, lk));
 
 	um->fragcnt = pdulen / TX_UT_MTU;
-	if (pdulen != um->fragcnt * TX_UT_MTU)
+	if (pdulen != UNSIGNED(um->fragcnt * TX_UT_MTU))
 		um->fragcnt++;
 	WALLOC_ARRAY(um->fragments, um->fragcnt);
 
