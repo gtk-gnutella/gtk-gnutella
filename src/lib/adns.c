@@ -773,7 +773,7 @@ adns_helper_init(void)
 {
 	int fd_query[2] = {-1, -1};
 	int fd_reply[2] = {-1, -1};
-	pid_t pid;
+	pid_t pid = -1;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
 		g_warning("%s: pipe() failed: %m", G_STRFUNC);
