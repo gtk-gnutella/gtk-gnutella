@@ -756,7 +756,7 @@ typedef void (*GCallback) (void);
  * warnings on a wrong __asm__ statement with glib 1.2.  This version
  * should be as efficient as the one defined by glib.
  */
-#if HAS_GCC(4, 0)
+#ifdef HAS_BUILTIN_BSWAP32
 #define UINT32_SWAP(x_) \
 	(IS_CONSTANT(x_) ? UINT32_SWAP_CONSTANT(x_) : __builtin_bswap32(x_))
 #else
