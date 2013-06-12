@@ -58,7 +58,19 @@ struct rbtree {
 	size_t refcnt;				/* Iterator reference count */
 	size_t stamp;				/* Modification stamp */
 	cmp_fn_t cmp;				/* Item comparison routine */
-	erbtree_ext_t tree;			/* The (extended) tree */
+	union {
+		/*
+		 * Structural equivalence guarantees that we can access the "tree"
+		 * part of the "etree" variable by using u.tree.  We actually store
+		 * an extended tree here in this union.
+		 *
+		 * This representation avoids breaking strict-aliasing rules which
+		 * would occur if we were to cast a pointer to the "etree" field in
+		 * the structure directly into an erbtree_t *.
+		 */
+		erbtree_t tree;			/* The normal part of a tree, for reading */
+		erbtree_ext_t etree;	/* The (extended) tree, actual data stored */
+	} u;
 };
 
 static inline void
@@ -99,7 +111,7 @@ rbtree_iter_check(const struct rbtree_iter * const ri)
 	rbtree_check(ri->tree);
 }
 
-#define ERBTREE(x)	((erbtree_t *) &(x)->tree)
+#define ERBTREE(x)	(&(x)->u.tree)
 
 /**
  * Internal data comparison routine trampoline.
@@ -130,7 +142,7 @@ rbtree_create(cmp_fn_t cmp)
 	WALLOC0(rbt);
 	rbt->magic = RBTREE_MAGIC;
 	rbt->cmp = cmp;
-	erbtree_init_data(&rbt->tree, rbtree_cmp, rbt,
+	erbtree_init_data(&rbt->u.etree, rbtree_cmp, rbt,
 		offsetof(struct rbdata, node));
 
 	return rbt;
@@ -801,7 +813,7 @@ rbtree_iter_remove(rbtree_iter_t *ri)
 	 */
 
 	key = ri->item->data;
-	erbtree_remove(ERBTREE(ri->tree), &ri->item->node);
+	erbtree_remove(deconstify_pointer(ERBTREE(ri->tree)), &ri->item->node);
 	WFREE_TYPE_NULL(ri->item);
 	ri->removed++;
 
