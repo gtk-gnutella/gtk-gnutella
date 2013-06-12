@@ -188,7 +188,8 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 	}
 
 	if (min_period > count / 2) {
-		warning("Capping minimum period from %u to %u", min_period, count / 2);
+		warning("Capping minimum period from %u to %u", min_period,
+			(unsigned) count / 2);
 		min_period = count / 2;
 	}
 
@@ -196,7 +197,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 		unsigned val = (*fn)() & mask;
 		values[idx] = val;
 		if (0 == (n & 0xfff)) {
-			printf("Fill %u\r", n);
+			printf("Fill %u\r", (unsigned) n);
 			fflush(stdout);
 		}
 	}
@@ -243,7 +244,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 			}
 		}
 		if (0 == (n & 0xfff)) {
-			printf("Period %u\r", n);
+			printf("Period %u\r", (unsigned) n);
 			fflush(stdout);
 		}
 	}
@@ -389,7 +390,7 @@ retry:
 		s = str_new(0);
 		str_printf(s, "%5u o=%.6f (%u/%u),", i, o, values[i], n);
 		if (str_len(s) < middle)
-			str_catf(s, "%*s", middle - str_len(s), " ");
+			str_catf(s, "%*s", (int) (middle - str_len(s)), " ");
 		str_catf(s, "e=%g (%u/%u)\n", e, expected, n);
 		printf("%s", str_2c(s));
 		str_destroy_null(&s);
