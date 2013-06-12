@@ -290,6 +290,8 @@ arc4random64(void)
 }
 #else	/* HAS_ARC4RANDOM */
 
+#include "once.h"
+
 /**
  * Perform random initialization if not already done.
  *
