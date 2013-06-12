@@ -1048,7 +1048,7 @@ http_range_parser_add_range(const char *where,
 	case HTTP_RANGE_OVERLAP:
 		if (http_range_debugging(0)) {
 			g_warning("%s(): weird %s header from <%s>, offset %zu "
-				"(overlapping range #%d %s-%s): %s",
+				"(overlapping range #%zu %s-%s): %s",
 				where, field, vendor, offset, count,
 				filesize_to_string(start), filesize_to_string(end),
 				value);
@@ -1057,7 +1057,7 @@ http_range_parser_add_range(const char *where,
 	case HTTP_RANGE_DUPLICATE:
 		if (http_range_debugging(0)) {
 			g_warning("%s(): weird %s header from <%s>, offset %zu "
-				"(duplicate range #%d %s-%s): %s",
+				"(duplicate range #%zu %s-%s): %s",
 				where, field, vendor, offset, count,
 				filesize_to_string(start), filesize_to_string(end),
 				value);
