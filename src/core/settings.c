@@ -327,10 +327,21 @@ ensure_unicity(const char *file, int *fd_ptr)
 				fl.l_type = F_WRLCK;
 				fl.l_whence = SEEK_SET;
 
+				/*
+				 * If we're crashing and restarting automatically, we'll have
+				 * the same PID as the lock and that is OK.
+				 */
+
 				if (-1 != fcntl(fd, F_GETLK, &fl)) {
-					g_warning("another gtk-gnutella process seems to "
-							"be using \"%s\" (pid=%lu)",
-							file, (ulong) fl.l_pid);
+					if (getpid() == fl.l_pid) {
+						s_info("current process (PID=%lu) already holds the "
+							"lock on \"%s\"", (ulong) fl.l_pid, file);
+						locked = TRUE;
+					} else {
+						g_warning("another gtk-gnutella process seems to "
+								"be using \"%s\" (PID=%lu)",
+								file, (ulong) fl.l_pid);
+					}
 				} else {
 					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
 						fd, file);
