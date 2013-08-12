@@ -323,6 +323,8 @@ int mingw_getrusage(int who, struct rusage *usage);
 #define HAS_FSYNC				/* We emulate it */
 #define EMULATE_FSYNC
 #define fsync mingw_fsync
+
+int mingw_fsync(int fd);
 #endif	/* !HAS_FSYNC */
 
 /*
