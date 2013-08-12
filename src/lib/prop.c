@@ -1791,9 +1791,13 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 	/*
 	 * Rename saved configuration file on success.
+	 *
+	 * We are extra careful and sync data blocks to disk before closing the
+	 * file, to protect against crashes when running on a filesytem with
+	 * delayed block allocation strategy.  See alos file_config_close().
 	 */
 
-	if (0 == fclose(config)) {
+	if (0 == file_sync_fclose(config)) {
 		ps->dirty = FALSE;
 		if (-1 == rename(newfile, pathname))
 			g_warning("could not rename %s as %s: %s",

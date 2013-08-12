@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Wed Jun 12 09:25:04 CEST 2013 [metaconfig 3.5-168]
+# Generated on Mon Aug 12 19:14:15 CEST 2013 [metaconfig 3.5-168]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -335,7 +335,9 @@ d_end_symbol=''
 d_epoll=''
 d_etext_symbol=''
 d_fast_assert=''
+d_fdatasync=''
 d_fork=''
+d_fsync=''
 d_ftime=''
 d_gettimeod=''
 d_getaddrinfo=''
@@ -5375,6 +5377,24 @@ EOC
 ;;
 esac
 
+: see if fdatasync exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static int ret, fd;
+	ret |= fdatasync(fd);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=fdatasync
+set d_fdatasync
+eval $trylink
+
 : see if fork exists
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -5391,6 +5411,24 @@ int main(void)
 EOC
 cyn=fork
 set d_fork
+eval $trylink
+
+: see if fsync exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static int ret, fd;
+	ret |= fsync(fd);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=fsync
+set d_fsync
 eval $trylink
 
 : see if arpa/inet.h has to be included
@@ -10826,7 +10864,9 @@ d_epoll='$d_epoll'
 d_etext_symbol='$d_etext_symbol'
 d_eunice='$d_eunice'
 d_fast_assert='$d_fast_assert'
+d_fdatasync='$d_fdatasync'
 d_fork='$d_fork'
+d_fsync='$d_fsync'
 d_ftime='$d_ftime'
 d_getaddrinfo='$d_getaddrinfo'
 d_geteuid='$d_geteuid'

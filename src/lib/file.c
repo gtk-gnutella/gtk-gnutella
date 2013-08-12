@@ -377,7 +377,18 @@ file_config_close(FILE *out, const file_path_t *fv)
 	char *path_new = NULL;
 	bool success = FALSE;
 
-	if (0 != fclose(out)) {
+	/*
+	 * Be extra careful when operating on filesystems with delayed disk block
+	 * allocation, such as "ext4".  If there is a crash and the data was not
+	 * properly allocated to disk, we could lose both the old and new file data!
+	 *
+	 * To fight against that, make sure we sync the new data to disk before
+	 * renaming the new file into the old, as the rename operation is likely
+	 * to be stored on disk before allocation of the new data blocks is made.
+	 *		--RAM, 2013-08-12
+	 */
+
+	if (0 != file_sync_fclose(out)) {
 		g_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
@@ -657,6 +668,31 @@ FILE *
 file_fopen_missing(const char *path, const char *mode)
 {
 	return do_fopen(path, mode, TRUE);
+}
+
+/**
+ * Close a stream, flushing data to disk.
+ *
+ * This is needed on "ext4" filesystems or any other filesystem which delays
+ * the allocation of data blocks, in case there is a crash between the close
+ * and the moment the data is written physically to the disk.
+ *
+ * @return the fclose() status.
+ */
+int
+file_sync_fclose(FILE *f)
+{
+	int fd, ret;
+
+	g_assert(f != NULL);
+
+	ret = fflush(f);			/* Send all buffered data to kernel first */
+	fd = fileno(f);
+
+	if (-1 == fd_fdatasync(fd))
+		g_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
+
+	return fclose(f) | ret;		/* Report error if fflush() failed */
 }
 
 /**

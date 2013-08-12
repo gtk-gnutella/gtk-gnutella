@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2009, Raphael Manfredi
- * Copyright (c) 2006-2008, Christian Biere
+ * Copyright (c) 2009-2013 Raphael Manfredi
+ * Copyright (c) 2006-2008 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,7 +29,7 @@
  * File descriptor functions.
  *
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2013
  * @author Christian Biere
  * @date 2006-2008
  */
@@ -301,6 +301,43 @@ fd_forget_and_close(int *fd_ptr)
 		compat_fadvise_dontneed(*fd_ptr, 0, 0);
 	}
 	return fd_close(fd_ptr);
+}
+
+/**
+ * Synchronize a file's in-core state with the storage device.
+ */
+int
+fd_fsync(int fd)
+{
+	g_assert(fd >= -1);
+
+#if defined(HAS_FSYNC)
+	return fsync(fd);
+#elif defined(HAS_FDATASYNC)
+	return fdatasync(fd);
+#else
+	(void) fd;
+	return 0;		/* Silently ignore request if no fsync() nor fdatasync() */
+#endif
+}
+
+/**
+ * Synchronize a file's in-core state with the storage device, but not the
+ * metadata if they do not help in recovering the data blocks.
+ */
+int
+fd_fdatasync(int fd)
+{
+	g_assert(fd >= -1);
+
+#if defined(HAS_FDATASYNC)
+	return fdatasync(fd);
+#elif defined(HAS_FSYNC)
+	return fsync(fd);
+#else
+	(void) fd;
+	return 0;		/* Silently ignore request if no fdatasync() nor fsync() */
+#endif
 }
 
 /**

@@ -42,6 +42,8 @@ int fd_first_available(void);
 int reserve_standard_file_descriptors(void);
 void set_close_on_exec(int fd);
 void fd_set_nonblocking(int fd);
+int fd_fsync(int fd);
+int fd_fdatasync(int fd);
 int fd_forget_and_close(int *fd_ptr);
 int fd_close(int *fd_ptr);
 int get_non_stdio_fd(int fd);

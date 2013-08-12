@@ -61,6 +61,7 @@ FILE *file_config_open_read_norename_chosen(
 	const char *what, const file_path_t *fv, int fvcnt, int *chosen);
 FILE *file_config_open_write(const char *what, const file_path_t *fv);
 bool file_config_close(FILE *out, const file_path_t *fv);
+int file_sync_fclose(FILE *f);
 
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);

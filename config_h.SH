@@ -267,11 +267,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_fast_assert FAST_ASSERTIONS	/**/
 
+/* HAS_FDATASYNC:
+ *	This symbol, if defined, indicates that the fdatasync routine is available
+ *	to synchronize a file's in-core data with the storage device.
+ */
+#$d_fdatasync HAS_FDATASYNC		/**/
+
 /* HAS_FORK:
  *	This symbol, if defined, indicates that the fork routine is
  *	available.
  */
 #$d_fork HAS_FORK		/**/
+
+/* HAS_FSYNC:
+ *	This symbol, if defined, indicates that the fsync routine is available
+ *	to synchronize a file's in-core state with the storage device.
+ */
+#$d_fsync HAS_FSYNC		/**/
 
 /* HAS_GETTIMEOFDAY:
  *	This symbol, if defined, indicates that the gettimeofday() system
