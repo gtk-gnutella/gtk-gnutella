@@ -2438,7 +2438,7 @@ xfl_select(struct xfreelist *fl)
  * @attention
  * The block is not removed from the freelist and the address returned is not
  * the user address but the physical start of the block.
- * If the block is found, the corresponding bucket is spin-locked.
+ * If the block is found, the corresponding bucket is mutex-locked.
  */
 static void *
 xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
