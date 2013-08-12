@@ -317,6 +317,15 @@ int mingw_getrusage(int who, struct rusage *usage);
 #endif	/* !HAS_GETRUSAGE */
 
 /*
+ * fsync() emulation.
+ */
+#ifndef HAS_FSYNC
+#define HAS_FSYNC				/* We emulate it */
+#define EMULATE_FSYNC
+#define fsync mingw_fsync
+#endif	/* !HAS_FSYNC */
+
+/*
  * uname() emulation.
  */
 #ifndef HAS_UNAME

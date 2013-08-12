@@ -120,6 +120,7 @@
 #undef remove
 #undef lseek
 #undef dup2
+#undef fsync
 #undef unlink
 #undef opendir
 #undef readdir
@@ -703,6 +704,30 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 
 	return res;
 }
+
+#ifdef EMULATE_FSYNC
+/**
+ * Synchronize the file's in-core data with the storage device by making sure
+ * all the kernel-buffered data is written.
+ */
+int
+mingw_fsync(int fd)
+{
+	HANDLE h = (HANDLE) _get_osfhandle(fd);
+
+	if G_UNLIKELY(INVALID_HANDLE_VALUE == h) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if (!FlushFileBuffers(h)) {
+		errno = mingw_last_error();
+		return -1;
+	}
+
+	return 0;
+}
+#endif	/* EMULATE_FSYNC */
 
 /**
  * Computes the memory necessary to include the string into quotes and escape
