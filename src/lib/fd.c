@@ -303,6 +303,19 @@ fd_forget_and_close(int *fd_ptr)
 	return fd_close(fd_ptr);
 }
 
+#if !defined(HAS_FSYNC) && !defined(HAS_FDATASYNC)
+static void
+fd_warn_no_fsync(void)
+{
+	static bool warned;
+
+	if (!warned) {
+		warned = TRUE;
+		g_warning("no fsync(), assuming no delayed disk block allocation");
+	}
+}
+#endif	/* !HAS_FSYNC && !HAS_FDATASYNC */
+
 /**
  * Synchronize a file's in-core state with the storage device.
  */
@@ -317,6 +330,7 @@ fd_fsync(int fd)
 	return fdatasync(fd);
 #else
 	(void) fd;
+	fd_warn_no_fsync();
 	return 0;		/* Silently ignore request if no fsync() nor fdatasync() */
 #endif
 }
@@ -336,6 +350,7 @@ fd_fdatasync(int fd)
 	return fsync(fd);
 #else
 	(void) fd;
+	fd_warn_no_fsync();
 	return 0;		/* Silently ignore request if no fdatasync() nor fsync() */
 #endif
 }
