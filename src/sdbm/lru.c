@@ -20,6 +20,7 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/fd.h"
 #include "lib/hashlist.h"
 #include "lib/htable.h"
 #include "lib/slist.h"
@@ -407,8 +408,15 @@ dirtypag(DBM *db, bool force)
 		return TRUE;
 	}
 
+	/*
+	 * Flush current page to the kernel.  If they are forcing the flush,
+	 * make sure we ask the kernel to synchronize the data as well.
+	 */
+
 	if (flushpag(db, db->pagbuf, db->pagbno)) {
 		cache->dirty[n] = FALSE;
+		if G_UNLIKELY(force)
+			fd_fdatasync(db->pagf);
 		return TRUE;
 	}
 

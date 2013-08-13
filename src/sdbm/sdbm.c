@@ -559,9 +559,15 @@ flush_dirbuf(DBM *db)
 	db->dirwrite++;
 	w = compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(db->dirbno));
 
+	/*
+	 * The bitmap forest is a critical part, make sure the kernel flushes
+	 * it immediately to disk.
+	 */
+
 #ifdef LRU
 	if (DBM_DBLKSIZ == w) {
 		db->dirbuf_dirty = FALSE;
+		fd_fdatasync(db->dirf);
 		return TRUE;
 	}
 #endif

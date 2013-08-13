@@ -358,8 +358,14 @@ flush_bitbuf(DBM *db)
 	dbg->bitwrite++;
 	w = compat_pwrite(dbg->fd, dbg->bitbuf, BIG_BLKSIZE, OFF_DAT(dbg->bitbno));
 
+	/*
+	 * The bitmap is a critical part hence request immediate flushing of the
+	 * data to the disk, in case a system crash occurs.
+	 */
+
 	if (BIG_BLKSIZE == w) {
 		dbg->bitbuf_dirty = FALSE;
+		fd_fdatasync(dbg->fd);
 		return TRUE;
 	}
 
