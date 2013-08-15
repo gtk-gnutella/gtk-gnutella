@@ -633,8 +633,8 @@ guint32  gnet_property_variable_qhits_browse_served     = 0;
 static const guint32  gnet_property_variable_qhits_browse_served_default = 0;
 gboolean gnet_property_variable_overloaded_cpu     = FALSE;
 static const gboolean gnet_property_variable_overloaded_cpu_default = FALSE;
-guint32  gnet_property_variable_download_buffer_size     = 32768;
-static const guint32  gnet_property_variable_download_buffer_size_default = 32768;
+guint32  gnet_property_variable_download_buffer_size     = 131072;
+static const guint32  gnet_property_variable_download_buffer_size_default = 131072;
 gboolean gnet_property_variable_browse_copied_to_passive     = FALSE;
 static const gboolean gnet_property_variable_browse_copied_to_passive_default = FALSE;
 gboolean gnet_property_variable_display_metric_units     = FALSE;
@@ -6434,7 +6434,7 @@ gnet_prop_init(void) {
     gnet_property->props[280].data.guint32.def   = (void *) &gnet_property_variable_download_buffer_size_default;
     gnet_property->props[280].data.guint32.value = (void *) &gnet_property_variable_download_buffer_size;
     gnet_property->props[280].data.guint32.choices = NULL;
-    gnet_property->props[280].data.guint32.max   = 131072;
+    gnet_property->props[280].data.guint32.max   = 1048576;
     gnet_property->props[280].data.guint32.min   = 0;
 
 

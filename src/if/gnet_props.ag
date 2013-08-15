@@ -3259,9 +3259,9 @@ prop = {
 		"receives some data. Increase to maximum value if you have RAM.";
     type = guint32;
     data = {
-        default = 32768;
+        default = 131072;
         min = 0;
-        max = 131072;
+        max = 1048576;
     };
 };
 
