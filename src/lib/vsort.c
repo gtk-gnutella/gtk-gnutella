@@ -72,6 +72,7 @@
 #define VSORT_ATTEMPTS		5		/* Max retry attempts made when doubling */
 #define VSORT_ITEMS			16384	/* A rather large amount of items */
 #define VSORT_SMALL_ITEMS	128		/* Upper limit for small arrays */
+#define VSORT_MIN_SECS		0.05	/* Lowest CPU time we want to spend */
 
 struct vsort_timing {
 	void *data;				/* The data to sort */
@@ -173,7 +174,11 @@ vsort_loops(size_t items)
 /**
  * Time sorting routine.
  *
- * @return real clock-time in seconds.
+ * @param f		the function we call and compute the average execution time for
+ * @param vt	describes the data we're sorting, given as input to ``f''
+ * @param loops	amount of loops to perform, possibly updated (increased)
+ *
+ * @return real clock-time in seconds for one single iteration.
  */
 static double
 vsort_timeit(vsort_timer_t f, struct vsort_timing *vt, size_t *loops)
@@ -194,7 +199,7 @@ retry:
 			"either CPU is too fast or kernel clock resultion too low: "
 			"elapsed time is %F secs after %zu loops",
 			G_STRFUNC, elapsed, n);
-		return elapsed;
+		goto done;
 	}
 
 	/*
@@ -214,12 +219,13 @@ retry:
 	 * double the amount of items and retry.
 	 */
 
-	if (elapsed < 0.01) {
+	if (elapsed < VSORT_MIN_SECS) {
 		*loops = n = n * 2;
 		goto retry;
 	}
 
-	return elapsed;
+done:
+	return elapsed / n;
 }
 
 /**
@@ -280,20 +286,30 @@ struct vsort_testing {
 	vsort_timer_t v_timer;
 	vsort_t v_routine;
 	double v_elapsed;
+	int v_weight;
 	char *v_name;
 };
 
 static int
 vsort_testing_cmp(const void *a, const void *b)
 {
+	int c;
 	const struct vsort_testing * const va = a, * const vb = b;
 
-	return CMP(va->v_elapsed, vb->v_elapsed);
+	/*
+	 * If the two items being compared have the same execution time,
+	 * prefer the one with the highest weight.
+	 */
+
+	c = CMP(va->v_elapsed, vb->v_elapsed);
+	return 0 == c ? CMP(vb->v_weight, va->v_weight) : c;
 }
 
 /**
- * Check which of qsort() or xqsort() is best for sorting aligned arrays with
- * a native item size of OPSIZ.
+ * Check which of qsort(), xqsort(), xsort() or smsort() is best for sorting
+ * aligned arrays with a native item size of OPSIZ.  At identical performance
+ * level, we prefer our own sorting algorithms instead of libc's qsort() for
+ * memory allocation purposes.
  *
  * @param items		amount of items to use in the sorted array
  * @param idx		index of the virtual routine to update
@@ -304,14 +320,14 @@ static void
 vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 {
 	struct vsort_testing tests[] = {
-		{ vsort_qsort,	qsort,	0.0, "qsort" },
-		{ vsort_xqsort,	xqsort,	0.0, "xqsort" },
-		{ vsort_xsort,	xsort,	0.0, "xsort" },
-		{ vsort_smsort,	smsort,	0.0, "smsort" },	/* Only for almost sorted */
+		{ vsort_qsort,	qsort,	0.0, 0, "qsort" },
+		{ vsort_xqsort,	xqsort,	0.0, 2, "xqsort" },
+		{ vsort_xsort,	xsort,	0.0, 1, "xsort" },
+		{ vsort_smsort,	smsort,	0.0, 1, "smsort" },	/* Only for almost sorted */
 	};
 	size_t len = VSORT_ITEMS * OPSIZ;
 	struct vsort_timing vt;
-	size_t loops;
+	size_t loops, highest_loops;
 	unsigned i;
 
 	g_assert(uint_is_non_negative(idx));
@@ -324,16 +340,25 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 	vt.len = len;
 	random_bytes(vt.data, len);
 
-	loops = vsort_loops(items);
+	highest_loops = loops = vsort_loops(items);
 
 	/* The -1 below is to avoid benchmarking smsort() for the general case */
 
+retry_random:
 	for (i = 0; i < G_N_ELEMENTS(tests) - 1; i++) {
 		tests[i].v_elapsed = vsort_timeit(tests[i].v_timer, &vt, &loops);
 
-		if (verbose > 1)
-			s_debug("%s() took %.4f secs for %s array",
-				tests[i].v_name, tests[i].v_elapsed, which);
+		if (verbose > 1) {
+			s_debug("%s() took %.4f secs for %s array (%zu loops)",
+				tests[i].v_name, tests[i].v_elapsed * loops, which, loops);
+		}
+
+		if (loops != highest_loops) {
+			highest_loops = loops;
+			/* Redo all the tests if the number of timing loops changes */
+			if (i != 0)
+				goto retry_random;
+		}
 	}
 
 	xqsort(tests, G_N_ELEMENTS(tests) - 1, sizeof tests[0], vsort_testing_cmp);
@@ -353,12 +378,22 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 	xqsort(vt.data, vt.items, vt.isize, vsort_long_cmp);
 	vsort_perturb_sorted_array(vt.data, vt.items, vt.isize);
 
+retry_sorted:
 	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
 		tests[i].v_elapsed = vsort_timeit(tests[i].v_timer, &vt, &loops);
 
-		if (verbose > 1)
-			s_debug("%s() on almost-sorted took %.4f secs for %s array",
-				tests[i].v_name, tests[i].v_elapsed, which);
+		if (verbose > 1) {
+			s_debug("%s() on almost-sorted took %.4f secs "
+				"for %s array (%zu loops)",
+				tests[i].v_name, tests[i].v_elapsed * loops, which, loops);
+		}
+
+		if (loops != highest_loops) {
+			highest_loops = loops;
+			/* Redo all the tests if the number of timing loops changes */
+			if (i != 0)
+				goto retry_sorted;
+		}
 	}
 
 	xqsort(tests, G_N_ELEMENTS(tests), sizeof tests[0], vsort_testing_cmp);
