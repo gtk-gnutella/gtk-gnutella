@@ -1110,7 +1110,7 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	const record_t *rc1 = a, *rc2 = b;
 
-	/* Must compare same fields as search_hash_func() --RAM */
+	/* Must compare same fields as search_gui_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
 		&& rc1->results_set->port == rc2->results_set->port
