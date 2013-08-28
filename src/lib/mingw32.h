@@ -40,7 +40,7 @@
 #define FD_SETSIZE      4096
 
 #ifndef WINVER
-#define WINVER 0x0501
+#define WINVER 0x0501	/* Windows XP */
 #endif
 
 #include <ws2tcpip.h>
@@ -161,6 +161,8 @@
 #define getaddrinfo mingw_getaddrinfo
 #define freeaddrinfo mingw_freeaddrinfo
 
+#undef stat
+#undef fstat
 #define stat(path, buf) mingw_stat((path), (buf))
 #define fstat(fd, buf) mingw_fstat((fd), (buf))
 #define unlink(path) mingw_unlink((path))
