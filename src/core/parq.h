@@ -44,6 +44,7 @@
 
 #define PARQ_MAX_UL_RETRY_DELAY 1200	/**< 20 minutes retry rate max. */
 #define PARQ_GRACE_TIME			90		/**< Grace period after life expired */
+#define PARQ_QUEUE_GRACE_TIME	60		/**< Extra grace if QUEUE pending */
 
 /*
  * Public interface.

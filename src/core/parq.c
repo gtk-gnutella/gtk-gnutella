@@ -2516,6 +2516,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 
 	while (hash_list_iter_has_next(iter)) {
 		struct parq_ul_queued *puq = hash_list_iter_next(iter);
+		time_delta_t grace;
 
 		g_assert(puq != NULL);
 
@@ -2531,11 +2532,30 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, GSList **rlp)
 		)
 			parq_upload_register_send_queue(puq);
 
+		/*
+		 * Even if the upload is flagged with PARQ_UL_QUEUE to indicate that
+		 * we are planning to send it a QUEUE callback at some point, it is
+		 * possible that we may be waiting a very long time before being able
+		 * to send the QUEUE message back, due to outgoing bandwidth shortage,
+		 * or because there are many uploads from the same host and we throttle
+		 * QUEUE sending to avoid hammering the remote host.
+		 *
+		 * To free up the slot they are using, we let them expire nonetheless,
+		 * after PARQ_QUEUE_GRACE_TIME extra time.  They will be moved to the
+		 * "dead" queue, where we will continue to schedule QUEUE callbacks.
+		 * However, they can be dropped from the "dead" queue as soon as we
+		 * run out of PARQ slots.
+		 *
+		 *		--RAM, 2013-08-30
+		 */
+
+		grace = PARQ_GRACE_TIME +
+			((puq->flags & PARQ_UL_QUEUE) ? PARQ_QUEUE_GRACE_TIME : 0);
+
 		if (
 			puq->is_alive &&
-			delta_time(now, puq->expire) > PARQ_GRACE_TIME &&
-			!puq->has_slot &&
-			!(puq->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
+			delta_time(now, puq->expire) > grace &&
+			!puq->has_slot
 		) {
 			if (GNET_PROPERTY(parq_debug) > 3)
 				g_debug("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
