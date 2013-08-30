@@ -39,10 +39,6 @@
 
 #define FD_SETSIZE      4096
 
-#ifndef WINVER
-#define WINVER 0x0501	/* Windows XP */
-#endif
-
 #include <ws2tcpip.h>
 
 #ifdef I_WINSOCK2

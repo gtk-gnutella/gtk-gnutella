@@ -36,6 +36,18 @@
 
 #include "config.h"
 
+#ifdef MINGW32
+/*
+ * Must set WINVER before including ANY include on recent MinGW installations
+ * because otherwise <sdkddkver.h> is going to redefine the values improperly.
+ * We want to state Windows XP support and set WINVER, deriving _WIN32_WINNT
+ * from that value.
+ */
+#ifndef WINVER
+#define WINVER 0x0501	/* Windows XP */
+#endif
+#endif
+
 /*
  * Main includes
  */
