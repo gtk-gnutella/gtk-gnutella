@@ -597,6 +597,8 @@ bool mingw_adns_send_request(const struct adns_request *req);
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 
+extern bool mingw_c_runtime_is_up;		/* Is the C runtime up? */
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
@@ -621,6 +623,7 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_get_windows_path()		"/"
 
 #define mingw_in_exception()		0
+#define mingw_c_runtime_is_up		1
 
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */

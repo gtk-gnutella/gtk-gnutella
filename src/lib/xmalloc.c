@@ -4371,6 +4371,24 @@ xfree(void *p)
 	if G_UNLIKELY(xmalloc_no_wfree)
 		return;
 
+	/*
+	 * HACK ALERT:
+	 *
+	 * This is a workaround for a bug in the C startup code on MinGW.
+	 * We do not allow free() calls to proceed until we know we're out of
+	 * the C startup code.
+	 *
+	 * See mingw_early_init() for details.
+	 *
+	 * On UNIX platforms, mingw_c_runtime_is_up is a macro hardwired to 1,
+	 * so there is no runtime penalty as the check is optimized out.
+	 *
+	 *		--RAM, 2013-08-31
+	 */
+
+	if G_UNLIKELY(!mingw_c_runtime_is_up)
+		return;
+
 	xstats.freeings++;
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
 	G_PREFETCH_R(&xh->length);
