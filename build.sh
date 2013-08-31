@@ -304,7 +304,8 @@ if [ "X$build_configure_only" != X ]; then
 	exit
 fi
 
-${MAKE} depend || { echo; echo 'ERROR: make depend failed.'; exit 1; }
+# No need to run "make depend" as Configure already runs it for us
+
 ${MAKE} || { echo; echo 'ERROR: Compiling failed.'; exit 1; }
 
 if [ "X$build_osxbundle" = Xtrue ]
