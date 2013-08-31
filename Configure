@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Fri Aug 30 18:48:19 CEST 2013 [metaconfig 3.5-170]
+# Generated on Sat Aug 31 16:12:14 CEST 2013 [metaconfig 3.5-170]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4364,11 +4364,12 @@ case "$d_headless" in
 	$cat <<'EOM'
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
 The GTK1 frontend will use much less CPU than the GTK2 one, so if you
-have a slow CPU, you are encouraged to choose GTK1.
+have a slow 32-bit CPU, you are encouraged to choose GTK1.
+On 64-bit platforms, you need to choose GTK2 since GTK1 is not 64-bit safe.
 
 EOM
 	case "$gtkversion" in
-	'') dflt=1;;
+	'') dflt=2;;
 	2) dflt=2;;
 	*) dflt=1;;
 	esac

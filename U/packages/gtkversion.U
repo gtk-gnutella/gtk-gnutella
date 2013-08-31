@@ -41,11 +41,12 @@ case "$d_headless" in
 	$cat <<'EOM'
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
 The GTK1 frontend will use much less CPU than the GTK2 one, so if you
-have a slow CPU, you are encouraged to choose GTK1.
+have a slow 32-bit CPU, you are encouraged to choose GTK1.
+On 64-bit platforms, you need to choose GTK2 since GTK1 is not 64-bit safe.
 
 EOM
 	case "$gtkversion" in
-	'') dflt=1;;
+	'') dflt=2;;
 	2) dflt=2;;
 	*) dflt=1;;
 	esac
