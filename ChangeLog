@@ -1,3 +1,84 @@
+# v 1.0.0   2013-09-01  [stable]
+
+This is a major release correcting a few bugs and adding small but interesting
+features such as the ability to limit dropping of received UDP messages,
+making the DHT keys and values persistent across sessions, SDBM file
+auto-compaction at startup, and last but not least, rarest-chunk downloading
+to optimize download efficiency when facing partial sources.
+
+New Features:
+- Let users define a maximum lease time for UPnP and NAT-PMP mappings.
+- Made DHT keys and values persistent across sessions.
+- When there are partial sources for a file, download the rarest chunks first.
+
+Improvements:
+- [GTK1] Optimize massive updating of the download source list.
+- [GTK] Dynamically update the list of available chunks in the file (blue line).
+- Files used to persist information across sessions are now auto-compacted.
+- The UPnP layer can now monitor more types of Internet Gateway Devices.
+- After unclean shutdown, rename existing core file in crash directory.
+- Detect servers that choke when receiving pipelined HTTP requests.
+- Added the Mersenne Twister Pseudo-Random Number Generator.
+- Remember when user requests an auto-restart, to keep the same session going.
+- Increased maximum download buffer size to 1 MiB and default to 128 KiB.
+
+Bug Fixes:
+- [GTK2] Set height of the pref/upload window (paths to files) to 100 pixels.
+- [GTK1] Fixed wrong enum value usage (c_fi_sources instead of c_src_num).
+- [GTK] Download source details were incorrect sometimes for queued downloads.
+- [GTK] Reserve display of partial file indication (PFS) to partial sources.
+- DHT traffic accounting was broken when semi-reliable UDP was introduced.
+- Was wrongly keeping orphan DHT contacts and removing alive ones!
+- Fixed wrong restarting DB key computation for DHT values (preventing crashes).
+- Fixed improper "good" alt-loc flagging from uploaders, leading to wrong mesh.
+- Fixed English typos in comments and user-visible messages.
+- Avoid selecting the magic fw-fw file index for partial files in query hits.
+- Fixed wrong propagation of duplicate messages with higher TTL.
+
+Under the Hood:
+- Fixed posix_memalign() so that we can now run with glib 2.36 and upwards.
+- [GTK] Update available ranges when the core sends a "range changed" event.
+- Added UDP datagram read-ahead to minimize local kernel drops (RX queue full).
+- Added UDP read-ahead statistics.
+- Ensure "DHT values" and "DHT raw data" SDBM files are consistently reloaded.
+- Fixed omalloc() memory usage accounting.
+- str_at(): fixed harmful typo causing it to seg-fault with negative offsets.
+- Do not send X-Features / X-Token on follow-up HTTP requests.
+- upnp_dscv_probed(): plugged memory leak.
+- UPNP: extract the Service Control Protocol Definition (SCPD) URL.
+- UPNP: monitor gateway with GetStatusInfo() if no GetTotalPacketsReceived().
+- Some UPnP devices can advertize an API and yet return 401 (action invalid).
+- bigkey_hash(): more robust in case we encounter a big key and support is off.
+- udp_sched_write_error(): don't panic if we get an unexpected UDP write error.
+- Jumbo patch: replaced most gm_[v]snprintf() with str_[v]bprintf() calls.
+- Count truncated incoming UDP messages.
+- http_got_header(): fixed harmful typo causing mishandling of chunked output.
+- After 3 X-Nalt reports, move source from download mesh to the banned mesh.
+- Leave banned entries in the bad mesh for at least 5 minutes.
+- cq_free(): release mutex to prevent loud warning a shutdown time.
+- When the the crash handler child fails, append decorated stack from parent.
+- download_data_received(): extend fileinfo when file size is unknown.
+- Moved HTTP range parsing / handling from core to library (re-architectured).
+- Benchmark sorting routines at startup and select the most efficient.
+- socket_udp_flush_timer(): do not process queued datagrams during shutdown.
+- Make rand31() more random, especially on the low-order bits.
+- Added computation of chi-squared cumulative distributions.
+- Made entropy_random() 5 times faster on average.
+- Prefer random_value() over random_u32() followed by bit masking.
+- The random layer now uses the Mersenne Twister, excepted for random_bytes().
+- hash_keyset_lookup(): was not always spotting first tomb correctly.
+- Let small hash tables be denser than larger ones.
+- Tweaked hash tables and derivatives for smaller memory footprint.
+- guess_pmsg_free(): make sure pool does not contain host before adding it back.
+- http_send_status(): was not properly detecting too large HTTP headers.
+- Semi-reliable RX UDP: re-ack everything well before the whole message expires.
+- Adjust maximum DHT value count per IP/network dynamically with DHT size.
+- Be careful when truncating body on an HTTP kept-alive connection.
+- ensure_unicity(): assume pidfile is locked when lock owner bears our PID.
+- Added protection when writing important files on filesystems like "ext4".
+- PARQ: accept to move an upload to the "dead" queue even if we wait for QUEUE.
+- Made GTK2 the default GTK version since GTK1 is not 64-bit safe.
+
 # v 0.98.4   2012-11-04  [stable]
 
 This is an important release correcting severe bugs affecting the overall
