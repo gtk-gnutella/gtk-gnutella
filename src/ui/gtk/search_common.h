@@ -190,8 +190,6 @@ void search_gui_new_search_entered(void);
 void search_gui_browse_selected(void);
 bool search_gui_insert_query(const char *);
 
-char *search_xml_indent(const char *);
-
 const char *search_gui_column_title(int column);
 bool search_gui_column_justify_right(int column);
 

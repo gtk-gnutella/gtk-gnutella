@@ -53,11 +53,13 @@
 #include "if/core/sockets.h"
 
 #include "lib/cq.h"
-#include "lib/glib-missing.h"
-#include "lib/iso3166.h"
 #include "lib/halloc.h"
+#include "lib/iso3166.h"
+#include "lib/misc.h"			/* For xml_indent() */
+#include "lib/str.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 void
@@ -87,7 +89,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	} else {
 		gchar text[4096];
 
-		gm_snprintf(text, sizeof text,
+		str_bprintf(text, sizeof text,
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %.64s\n"
@@ -146,7 +148,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	 */
 	if (xml) {
 		char *s = unknown_to_utf8_normalized(xml, UNI_NORM_GUI, NULL);
-		xml_txt = search_xml_indent(s);
+		xml_txt = xml_indent(s);
 		if (xml != s) {
 			G_FREE_NULL(s);
 		}

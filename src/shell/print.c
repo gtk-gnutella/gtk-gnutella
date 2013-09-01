@@ -36,6 +36,7 @@
 #include "cmd.h"
 
 #include "if/gnet_property.h"
+#include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -56,7 +57,7 @@ shell_exec_print(struct gnutella_shell *sh, int argc, const char *argv[])
 	prop = gnet_prop_get_by_name(argv[1]);
 	if (prop == NO_PROP) {
 		char buf[120];
-		gm_snprintf(buf, sizeof buf, _("Unknown property \"%s\""), argv[1]);
+		str_bprintf(buf, sizeof buf, _("Unknown property \"%s\""), argv[1]);
 		shell_set_msg(sh, buf);
 		goto error;
 	}

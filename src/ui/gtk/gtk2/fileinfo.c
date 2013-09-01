@@ -298,6 +298,13 @@ fi_gui_show_aliases(const char * const *aliases)
 }
 
 void
+fi_gui_source_massive_update(bool starting)
+{
+	(void) starting;
+	/* Nothing to do */
+}
+
+void
 fi_gui_source_show(struct download *d)
 {
 	GtkTreeIter *iter;

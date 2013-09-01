@@ -33,9 +33,10 @@
 #include "if/core/gnutella.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
-#include "lib/glib-missing.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkTreeView *treeview_gnet_stats_messages;
@@ -107,7 +108,7 @@ pkt_stat_str(gchar *dst, size_t size, const guint64 *val_tbl,
 		if (!perc)
 			uint64_to_string_buf(val_tbl[type], dst, size);
 		else
-			gm_snprintf(dst, size, "%.2f%%",
+			str_bprintf(dst, size, "%.2f%%",
 			    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 	}
 
@@ -124,7 +125,7 @@ byte_stat_str(gchar *dst, gulong n, const guint64 *val_tbl,
 	else if (!perc)
 		g_strlcpy(dst, compact_size(val_tbl[type], show_metric_units()), n);
 	else
-		gm_snprintf(dst, n, "%.2f%%",
+		str_bprintf(dst, n, "%.2f%%",
 		    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 
 	return dst;
@@ -436,7 +437,7 @@ gnet_stats_gui_flowc_init(void)
 	for (n = 0; n < G_N_ELEMENTS(width); n++) {
 		gchar buf[16];
 
-		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
+		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
 				n + 1 < STATS_FLOWC_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? _("Type") : buf);
@@ -603,7 +604,7 @@ gnet_stats_gui_recv_init(void)
 	for (n = 0; n < G_N_ELEMENTS(width); n++) {
 		gchar buf[16];
 
-		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
+		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
 				n + 1 < STATS_RECV_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? _("Type") : buf);

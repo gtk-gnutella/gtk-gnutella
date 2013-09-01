@@ -627,7 +627,8 @@ cache_finish_traversal(void *key, void *value, void *data)
 
 	if (!entry->dirty && !fctx->warned_clean_key) {
 		fctx->warned_clean_key = TRUE;
-		g_carp("%s(): DBMW \"%s\" iterating via %s over a clean key in cache",
+		g_critical("%s(): DBMW \"%s\" "
+			"iterating via %s over a clean key in cache",
 			G_STRFUNC, dw->name,
 			stacktrace_routine_name(fctx->foreach->u.any, FALSE));
 	}
@@ -736,6 +737,8 @@ dbmw_sync(dbmw_t *dw, int which)
 	size_t pages = 0, values = 0;
 	bool error = FALSE;
 
+	dbmw_check(dw);
+
 	if (which & DBMW_SYNC_CACHE) {
 		struct flush_context ctx;
 
@@ -801,6 +804,25 @@ bool
 dbmw_shrink(dbmw_t *dw)
 {
 	return dbmap_shrink(dw->dm);
+}
+
+/**
+ * Attempt to rebuild the DB on disk.
+ *
+ * @return TRUE if successful.
+ */
+bool
+dbmw_rebuild(dbmw_t *dw)
+{
+	/*
+	 * We're going to work at the SDBM level, so we need to flush the cache
+	 * to make sure SDBM knows the latest database state: cached data pending
+	 * writing need to be flushed, including deleted data.
+	 */
+
+	dbmw_sync(dw, DBMW_SYNC_CACHE);
+
+	return dbmap_rebuild(dw->dm);
 }
 
 /**
@@ -1019,7 +1041,7 @@ dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 		bstr_reset(dw->bs, dval.data, dval.len, BSTR_F_ERROR);
 
 		if (!dbmw_deserialize(dw, dw->bs, entry->data, dw->value_size)) {
-			g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+			g_critical("DBMW \"%s\" deserialization error in %s(): %s",
 				dw->name, stacktrace_function_name(dw->unpack),
 				bstr_error(dw->bs));
 			/* Not calling value free routine on deserialization failures */
@@ -1397,7 +1419,7 @@ dbmw_foreach_common(bool removing, void *key, dbmap_datum_t *d, void *arg)
 			bstr_reset(dw->bs, d->data, d->len, BSTR_F_ERROR);
 
 			if (!dbmw_deserialize(dw, dw->bs, data, len)) {
-				g_carp("DBMW \"%s\" deserialization error in %s(): %s",
+				g_critical("DBMW \"%s\" deserialization error in %s(): %s",
 					dw->name,
 					stacktrace_function_name(dw->unpack),
 					bstr_error(dw->bs));

@@ -72,7 +72,8 @@ enum {
 	SOCK_F_OMIT_TOKEN	= (1UL << 8),  /**< If set X-Token header is omitted */
 	SOCK_F_PREPARED		= (1UL << 9),  /**< Prepared (known address) */
 	SOCK_F_SINGLE		= (1UL << 10), /**< Read one single datagram */
-	SOCK_F_CONNRESET	= (1UL << 11), /**< Got an connection reset event */
+	SOCK_F_CONNRESET	= (1UL << 11), /**< Got a connection reset event */
+	SOCK_F_OLD			= (1UL << 12), /**< Processing an "old" UDP datagram */
 	SOCK_F_LOCAL		= (1UL << 28), /**< Is a local socket */
 	SOCK_F_UDP			= (1UL << 29), /**< Is a UDP socket */
 	SOCK_F_TCP			= (1UL << 30)  /**< Is a TCP socket */

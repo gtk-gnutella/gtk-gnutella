@@ -2252,6 +2252,16 @@ pcache_udp_ping_received(struct gnutella_node *n)
 	}
 
 	/*
+	 * Don't answer to "old" pings (we're catching up with incoming UDP
+	 * traffic).
+	 */
+
+	if (node_udp_is_old(n)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TOO_OLD);
+		return;
+	}
+
+	/*
 	 * Don't answer to pings from bad nodes (includes "alien" hosts).
 	 */
 

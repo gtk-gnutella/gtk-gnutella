@@ -195,12 +195,50 @@ mutex_destroy(mutex_t *m)
 	} else if (mutex_is_owned(m)) {
 		g_assert(MUTEX_MAGIC == m->magic);
 		was_locked = TRUE;
+
+		/*
+		 * If the locking depth is not 1, we may have a problem when going back
+		 * to the code that intially locked the mutex, because when it attempts
+		 * to unlock it, the mutex will have been destroyed already.
+		 */
+
+		if (1 != m->depth) {
+			s_minicrit("%s(): destroying owned mutex %p at depth=%zu",
+				G_STRFUNC, m, m->depth);
+#ifdef SPINLOCK_DEBUG
+			s_miniwarn("%s(): mutex %p was initially locked by %s:%u",
+				G_STRFUNC, m, m->lock.file, m->lock.line);
+#endif
+		}
 	} else {
 		was_locked = FALSE;
+
+		/*
+		 * Due to race condition, the following may provide a wrong thread ID
+		 * if mutex was released since we entered this routine.  That's OK,
+		 * it's a sign that something is wrong since no mutex should be
+		 * destroyed if it can be held by another thread.
+		 */
+
+		s_minicrit("%s(): destroying locked mutex %p (depth %zu) "
+			"belonging to thread #%d",
+			G_STRFUNC, m, m->depth, thread_stid_from_thread(m->owner));
+#ifdef SPINLOCK_DEBUG
+		s_miniwarn("%s(): mutex %p was initially locked by %s:%u",
+			G_STRFUNC, m, m->lock.file, m->lock.line);
+#endif
 	}
 
 	m->magic = MUTEX_DESTROYED;		/* Now invalid */
 	m->owner = 0;
+
+	/*
+	 * Given we internally grab the spinlock in "hidden" mode but
+	 * spinlock_destroy() expects the lock to be recorded, we forcefully
+	 * record it to avoid a warning.
+	 */
+
+	thread_lock_got(&m->lock, THREAD_LOCK_SPINLOCK);
 	spinlock_destroy(&m->lock);		/* Issues the memory barrier */
 
 	if (was_locked)

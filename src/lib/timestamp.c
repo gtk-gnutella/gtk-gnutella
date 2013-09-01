@@ -40,8 +40,9 @@
 #include "ascii.h"
 #include "offtime.h"
 #include "parse.h"
+#include "str.h"
 #include "stringify.h"
-#include "glib-missing.h"
+
 #include "override.h"			/* Must be the last header included */
 
 /**
@@ -232,7 +233,7 @@ timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 	} else
 		sign = '+';
 
-	return gm_snprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
+	return str_bprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec,
 		sign, gmt_off / 60 * 100 + gmt_off % 60);
@@ -281,7 +282,7 @@ timestamp_rfc1123_to_string_buf(time_t date, char *buf, size_t size)
 
 	g_assert(size > 0);
 	tm = gmtime(&date);
-	return gm_snprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+	return str_bprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d GMT",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

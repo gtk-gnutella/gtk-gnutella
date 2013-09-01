@@ -44,7 +44,9 @@
 #include "halloc.h"
 #include "pmsg.h"
 #include "slist.h"
+#include "str.h"
 #include "walloc.h"
+
 #include "override.h"	/* Must be the last header included */
 
 /**
@@ -357,7 +359,7 @@ ostream_printf(ostream_t *os, const char *fmt, ...)
 	va_start(args, fmt);
 
 	VA_COPY(args2, args);
-	len = gm_vsnprintf(buf, sizeof buf, fmt, args2);
+	len = str_vbprintf(buf, sizeof buf, fmt, args2);
 	va_end(args2);
 
 	if (len >= sizeof buf - 1) {

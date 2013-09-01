@@ -560,25 +560,23 @@ hashing_fold(unsigned hash, size_t bits)
 	v ^= h;			\
 	h >>= bits;
 
+#define FOLD_STEP_TEST \
+	FOLD_STEP	\
+	if G_UNLIKELY(0 == h) break;
+
 	while (h != 0) {
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
-		FOLD_STEP
-		if G_UNLIKELY(0 == h) break;
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
+		FOLD_STEP_TEST
 		FOLD_STEP
 	}
 
 #undef FOLD_STEP
+#undef FOLD_STEP_TEST
 
 	return v & ((1 << bits) - 1);
 }

@@ -64,9 +64,9 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/hikset.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
@@ -478,7 +478,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 		if (pe->last_publish) {
 			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
 
-			gm_snprintf(after, sizeof after,
+			str_bprintf(after, sizeof after,
 				" after %s", compact_time(elapsed));
 
 			if (pd != NULL) {
@@ -489,7 +489,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			}
 		}
 
-		gm_snprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
 
 		g_debug("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
@@ -910,7 +910,7 @@ publisher_trim_pubdata(void)
 			(unsigned) count, 1 == count ? "" : "s");
 	}
 
-	dbstore_shrink(db_pubdata);
+	dbstore_compact(db_pubdata);
 }
 
 /**
@@ -927,9 +927,6 @@ publisher_init(void)
 	publish_cq = cq_main_submake("publisher", PUBLISHER_CALLOUT);
 	publisher_sha1 = hikset_create(
 		offsetof(struct publisher_entry, sha1), HASH_KEY_FIXED, SHA1_RAW_SIZE);
-
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_pubdata_base);
 
 	db_pubdata = dbstore_open(db_pubdata_what, settings_dht_db_dir(),
 		db_pubdata_base, kv, packing, PUBLISH_DB_CACHE_SIZE,

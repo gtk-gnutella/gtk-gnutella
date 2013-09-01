@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * UPnP service control.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2012
  */
 
 #ifndef _upnp_control_h_
@@ -40,6 +40,7 @@
 
 #include "lib/host_addr.h"
 #include "lib/nv.h"
+#include "lib/tm.h"			/* For time_delta_t */
 
 /**
  * Control completion callback.
@@ -57,6 +58,14 @@ typedef void (*upnp_ctrl_cb_t)(
  */
 struct upnp_GetExternalIPAddress {
 	host_addr_t external_ip;		/**< External IP address */
+};
+
+/**
+ * Returned values for upnp_ctrl_GetStatusInfo().
+ */
+struct upnp_GetStatusInfo {
+	time_delta_t uptime;			/**< Connection uptime */
+	const char *connection_status;	/**< Current connection status */
 };
 
 /**
@@ -112,6 +121,8 @@ upnp_ctrl_t *upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	enum upnp_map_proto proto, uint16 port,
 	upnp_ctrl_cb_t cb, void *arg);
 upnp_ctrl_t *upnp_ctrl_GetTotalPacketsReceived(const upnp_service_t *usd,
+	upnp_ctrl_cb_t cb, void *arg);
+upnp_ctrl_t *upnp_ctrl_GetStatusInfo(const upnp_service_t *usd,
 	upnp_ctrl_cb_t cb, void *arg);
 
 #endif /* _upnp_control_h_ */

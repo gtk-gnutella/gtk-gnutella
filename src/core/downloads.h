@@ -134,6 +134,7 @@ void download_maybe_finished(struct download *d);
 bool download_handle_http(const char *url);
 bool download_is_stalled(const struct download *);
 bool download_is_alive(const struct download *);
+bool download_is_active(const struct download *);
 bool download_is_completed_filename(const char *name);
 
 bool download_sha1_is_rare(const struct sha1 *sha1);
@@ -145,6 +146,7 @@ void download_got_fw_node_info(const struct guid *guid,
 	host_addr_t addr, uint16 port, const char *fwinfo);
 
 const char *server_host_info(const struct dl_server *server);
+const char *download_status_to_string(const struct download *d);
 
 static inline const char *
 download_host_info(const struct download *d)

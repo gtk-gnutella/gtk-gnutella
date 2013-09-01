@@ -10,14 +10,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2005-09-11 17:19+0900\n"
 "Last-Translator: Sulyok Péter <sp@elte.hu>\n"
 "Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
+"Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: hu\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #, c-format
@@ -387,6 +387,9 @@ msgstr ""
 msgid ", outbound"
 msgstr ""
 
+msgid ", no-pipeline"
+msgstr ""
+
 #, fuzzy
 msgid ", banning"
 msgstr "Foglalás"
@@ -531,6 +534,10 @@ msgstr "Túl nagy"
 
 msgid "Way too large"
 msgstr "Túlontúl nagy"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Túl kicsi"
 
 msgid "Unknown message type"
 msgstr "Ismeretlen üzenetfajta"
@@ -1000,10 +1007,6 @@ msgstr ""
 msgid "File was modified"
 msgstr ""
 
-#, fuzzy
-msgid "Library being rebuilt"
-msgstr "Könyvtárméret"
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -1017,6 +1020,10 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "SHA1 eltérés érzékelve"
+
+#, fuzzy
+msgid "Library being rebuilt"
+msgstr "Könyvtárméret"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -3705,6 +3712,29 @@ msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
 #, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "A gui hibajavítási szintje"
+
+msgid "ID of the current process."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "A gui hibajavítási szintje"
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
+#, fuzzy
 msgid "disable"
 msgstr "biztos"
 
@@ -4325,7 +4355,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4338,7 +4368,7 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
 #, fuzzy
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr "Küldött találatok számának kijelzése."
 
 msgid ""
@@ -6131,6 +6161,24 @@ msgstr ""
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -6149,6 +6197,10 @@ msgstr "Nyomás elküldve"
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "A gui hibajavítási szintje"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
@@ -8834,7 +8886,7 @@ msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Kimenő HTTPforgalom sávszélesség-használatát mutatja"
 
 #, fuzzy
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr "HTTPforgalom átlagos sávszélesség-használatát mutatja"
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8865,7 +8917,7 @@ msgid "Pipelining max chunk size"
 msgstr "Leg_kisebb darabméret"
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "Letöltött fájlok kézi eltávolítása"
 
 msgid "Enable GUESS (additional querying)"
@@ -8971,6 +9023,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "Feltöltési satisztikákat mutat az oldalpanelen"
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr ""
 
@@ -9059,10 +9114,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "Feltöltve"
-
-#, fuzzy
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "HTTPforgalom átlagos sávszélesség-használatát mutatja"
 
 msgid "Connect to"
 msgstr "Kapcsolódás"
@@ -9213,10 +9264,6 @@ msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Az egy adó által foglalható legnagyobb nyílásszázalék."
 
 #, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "kimenő HTTP forgalom"
-
-#, fuzzy
 msgid "attempts"
 msgstr "Próbálkozás"
 
@@ -9227,10 +9274,6 @@ msgstr "Leg_kisebb darabméret"
 #, fuzzy
 msgid "_Remove directory"
 msgstr " Mappa hozzáadása "
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "Letöltött fájlok kézi eltávolítása"
 
 #, fuzzy
 msgid "Minimum chunk _size"
@@ -9904,6 +9947,22 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
+
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "A gui hibajavítási szintje"
+
+#, fuzzy
+#~ msgid "Splitting ougoing HTTP bandwidth evenly."
+#~ msgstr "HTTPforgalom átlagos sávszélesség-használatát mutatja"
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "Letöltött fájlok kézi eltávolítása"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "kimenő HTTP forgalom"
 
 #, fuzzy
 #~ msgid "Linux archives"

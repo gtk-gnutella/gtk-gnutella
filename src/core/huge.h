@@ -41,6 +41,7 @@
 #include "common.h"
 
 struct gnutella_node;
+struct gnutella_host;
 struct shared_file;
 struct header;
 struct sha1;
@@ -67,7 +68,8 @@ bool huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 bool huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	const struct gnutella_node *n);
 void huge_collect_locations(
-	const struct sha1 *sha1, const struct header *header);
+	const struct sha1 *sha1, const struct header *header,
+	const struct gnutella_host *origin);
 
 #endif	/* _core_huge_h_ */
 

@@ -38,11 +38,11 @@
 #include "core/nodes.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
-#include "lib/iso3166.h"
 #include "lib/halloc.h"
-#include "lib/stringify.h"
+#include "lib/iso3166.h"
 #include "lib/options.h"
+#include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/tm.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -83,7 +83,7 @@ print_node_info(struct gnutella_shell *sh, const struct gnutella_node *n)
 	clamp_strcpy(contime_buf, sizeof contime_buf,
 		con > 0 ? compact_time(con) : "?");
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		"%-21.45s %s %2.2s %6.6s %6.6s %.56s",
 		node_gnet_addr(n),
 		node_flags_to_string(&flags),

@@ -296,7 +296,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 			
 			value = html_get_attribute(tag, HTML_ATTR_ALT);
 			if (value.data) {
-				gm_snprintf(alt, sizeof alt, "\n[image alt=\"%.*s\"]\n",
+				str_bprintf(alt, sizeof alt, "\n[image alt=\"%.*s\"]\n",
 					(int)value.size, value.data);
 				text = alt;
 			}
@@ -313,7 +313,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
 				} else {
 					static gchar msg[1024];
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"\n[Image not found (\"%s\")]\n", filename);
 					text = msg;
 				}

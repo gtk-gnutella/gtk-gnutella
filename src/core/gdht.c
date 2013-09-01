@@ -52,11 +52,12 @@
 #include "lib/base32.h"
 #include "lib/bstr.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/hikset.h"
 #include "lib/sha1.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define MAX_PROXIES		32		/**< Max push-proxies we collect from a PROX */
@@ -207,7 +208,7 @@ value_infostr(const lookup_val_rc_t *rc)
 {
 	static char info[64];
 
-	gm_snprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
+	str_bprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
 		(ulong) rc->length, 1 == rc->length ? "" : "s",
 		vendor_to_string(rc->vcode));

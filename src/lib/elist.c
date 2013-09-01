@@ -317,35 +317,41 @@ elist_link_insert_before_internal(elist_t *list, link_t *siblk, link_t *lk)
  * Insert link before another one in list.
  *
  * The sibling must already be part of the list, the new link must not.
+ * If the sibling is NULL, insertion is made at the tail of the list.
  */
 void
 elist_link_insert_before(elist_t *list, link_t *sibling_lk, link_t *lk)
 {
 	elist_check(list);
-	g_assert(sibling_lk != NULL);
 	g_assert(lk != NULL);
 
-	elist_link_insert_before_internal(list, sibling_lk, lk);
+	if (NULL == sibling_lk)
+		elist_link_append_internal(list, lk);
+	else
+		elist_link_insert_before_internal(list, sibling_lk, lk);
 }
 
 /**
  * Insert item before another one in list.
  *
  * The sibling item must already be part of the list, the data item must not.
+ * If the sibling is NULL, insertion is made at the tail of the list.
  */
 void
 elist_insert_before(elist_t *list, void *sibling, void *data)
 {
-	link_t *lk, *siblk;
+	link_t *lk;
 
 	elist_check(list);
-	g_assert(sibling != NULL);
 	g_assert(data != NULL);
 
-	siblk = ptr_add_offset(sibling, list->offset);
 	lk = ptr_add_offset(data, list->offset);
-
-	elist_link_insert_before_internal(list, siblk, lk);
+	if (NULL == sibling) {
+		elist_link_append_internal(list, lk);
+	} else {
+		link_t *siblk = ptr_add_offset(sibling, list->offset);
+		elist_link_insert_before_internal(list, siblk, lk);
+	}
 }
 
 static void
@@ -373,35 +379,41 @@ elist_link_insert_after_internal(elist_t *list, link_t *siblk, link_t *lk)
  * Insert link after another one in list.
  *
  * The sibling must already be part of the list, the new link must not.
+ * If the sibling is NULL, insertion happens at the head of the list.
  */
 void
 elist_link_insert_after(elist_t *list, link_t *sibling_lk, link_t *lk)
 {
 	elist_check(list);
-	g_assert(sibling_lk != NULL);
 	g_assert(lk != NULL);
 
-	elist_link_insert_after_internal(list, sibling_lk, lk);
+	if (NULL == sibling_lk)
+		elist_link_prepend_internal(list, lk);
+	else
+		elist_link_insert_after_internal(list, sibling_lk, lk);
 }
 
 /**
  * Insert item after another one in list.
  *
  * The sibling item must already be part of the list, the data item must not.
+ * If the sibling is NULL, insertion happens at the head of the list.
  */
 void
 elist_insert_after(elist_t *list, void *sibling, void *data)
 {
-	link_t *lk, *siblk;
+	link_t *lk;
 
 	elist_check(list);
-	g_assert(sibling != NULL);
 	g_assert(data != NULL);
 
-	siblk = ptr_add_offset(sibling, list->offset);
 	lk = ptr_add_offset(data, list->offset);
-
-	elist_link_insert_after_internal(list, siblk, lk);
+	if (NULL == sibling) {
+		elist_link_prepend_internal(list, lk);
+	} else {
+		link_t *siblk = ptr_add_offset(sibling, list->offset);
+		elist_link_insert_after_internal(list, siblk, lk);
+	}
 }
 
 static inline void
@@ -870,7 +882,7 @@ elist_shuffle(elist_t *list)
 	 * array.
 	 */
 
-	array = xmalloc(list->count * sizeof array[0]);
+	XMALLOC_ARRAY(array, list->count);
 
 	for (i = 0, lk = list->head; lk != NULL; i++, lk = lk->next) {
 		array[i] = lk;

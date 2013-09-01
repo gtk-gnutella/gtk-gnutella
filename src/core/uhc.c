@@ -48,13 +48,13 @@
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -99,8 +99,10 @@ static const struct {
 #if defined(USE_LOCAL_UHC)
 	{ "localhost:6346" },
 #else	/* !USE_LOCAL_UHC */
-	{ "uhc.shacknet.nu:19104" },
+	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "uhc.gtk-gnutella.nl:15749" },
+	{ "g1.uswest.dyslexicfish.net:33558" },
+	{ "g1.uk.dyslexicfish.net:33558" },
 #endif	/* USE_LOCAL_UHC */
 };
 
@@ -293,7 +295,7 @@ uhc_pick(void)
 	{
 		char msg[256];
 
-		gm_snprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
+		str_bprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
 	}
 	success = TRUE;
@@ -378,7 +380,7 @@ uhc_send_ping(void)
 		{
 			char msg[256];
 
-			gm_snprintf(msg, sizeof msg,
+			str_bprintf(msg, sizeof msg,
 				_("Sent ping to UDP host cache %s:%u"),
 				uhc_ctx.host, uhc_ctx.port);
 			gcu_statusbar_message(msg);
@@ -572,7 +574,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 		cq_cancel(&uhc_ctx.timeout_ev);
 		uhc_connecting = FALSE;
 
-		gm_snprintf(msg, sizeof(msg),
+		str_bprintf(msg, sizeof(msg),
 			NG_("Got %d host from UDP host cache %s",
 				"Got %d hosts from UDP host cache %s",
 				cnt),

@@ -48,6 +48,7 @@
 #include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
 
@@ -265,14 +266,14 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		if (u->range_start == 0 && u->range_end == 0)
 			g_strlcpy(str, "...", sizeof str);
 		else {
-			range_len = gm_snprintf(str, sizeof str, "%s%s",
+			range_len = str_bprintf(str, sizeof str, "%s%s",
 				short_size(u->range_end - u->range_start + 1,
 					show_metric_units()),
 				u->partial ? _(" (partial)") : "");
 
 			if ((guint) range_len < sizeof str) {
 				if (u->range_start)
-					range_len += gm_snprintf(&str[range_len],
+					range_len += str_bprintf(&str[range_len],
 									sizeof str - range_len,
 									" @ %s", short_size(u->range_start,
 												show_metric_units()));
@@ -371,13 +372,13 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
     else {
 		static gchar range_tmp[256];	/* MUST be static! */
 
-        range_len = gm_snprintf(range_tmp, sizeof range_tmp, "%s%s",
+        range_len = str_bprintf(range_tmp, sizeof range_tmp, "%s%s",
             short_size(u->range_end - u->range_start + 1,
 				show_metric_units()),
 			u->partial ? _(" (partial)") : "");
 
         if (u->range_start)
-            range_len += gm_snprintf(
+            range_len += str_bprintf(
                 &range_tmp[range_len], sizeof range_tmp - range_len,
                 " @ %s", short_size(u->range_start, show_metric_units()));
 

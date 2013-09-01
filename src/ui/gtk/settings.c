@@ -54,10 +54,10 @@
 #include "if/dht/routing.h"
 
 #include "lib/concat.h"
-#include "lib/glib-missing.h"
 #include "lib/mempcpy.h"
 #include "lib/product.h"
 #include "lib/prop.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
 
@@ -1236,7 +1236,7 @@ set_host_progress(const gchar *w, guint32 cur, guint32 max)
     frac = MIN(cur, max) * 100;
 	frac = max ? (frac / max) : 0;
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		NG_("%u/%u host (%u%%)", "%u/%u hosts (%u%%)", max),
 		cur, max, frac);
 
@@ -2620,13 +2620,13 @@ gnet_connections_changed(property_t unused_prop)
     case NODE_P_NORMAL: /* normal */
         nodes = (peermode == NODE_P_NORMAL) ?
             max_connections : max_ultrapeers;
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			NG_("%u/%u connection", "%u/%u connections", cnodes),
 			cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
-        gm_snprintf(buf, sizeof buf,
+        str_bprintf(buf, sizeof buf,
             "%u/%uU |%u/%uN | %u/%uL",
             ultra_count,
 			max_connections < max_normal ? 0 : max_connections - max_normal,
@@ -2658,7 +2658,7 @@ uploads_count_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		NG_("%u/%u upload", "%u/%u uploads", registered),
 		running, registered);
 
@@ -2683,7 +2683,7 @@ downloads_count_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		NG_("%u/%u download", "%u/%u downloads", running),
 		active, running);
 
@@ -2703,7 +2703,7 @@ clock_skew_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 	sval = val;
-	gm_snprintf(buf, sizeof buf, "%c%s",
+	str_bprintf(buf, sizeof buf, "%c%s",
 		sval < 0 ? '-' : '+', short_time(ABS(sval)));
     gtk_label_set_text(GTK_LABEL(gui_dlg_prefs_lookup("label_clock_skew")),
 		buf);
@@ -5676,6 +5676,14 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_enable_upnp",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        gui_dlg_prefs,
+        PROP_UPNP_MAPPING_LEASE_TIME,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_upnp_mapping_lease_time",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

@@ -140,6 +140,7 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added sdbm_shrink() to truncate files if trailing parts are empty.
 * Added the "truncate" (aka "shrink") command to dbu and made "insert" work.
 
+
 Thu Oct 14 00:21:01 CEST 2010
 
 Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
@@ -155,6 +156,7 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   making sure all the keys belong to their page (i.e. that the .dir and .pag
   files are consistent), deleting all non-belonging keys.
 
+
 Wed Jun  1 18:49:58 CEST 2011
 
 Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
@@ -163,6 +165,7 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
   values: checking that the blocks are properly allocated in the .dat file
   and that no allocated block is leaking (i.e. is indeed referred by a key or
   value) nor is shared (i.e. referred by several big keys or values).
+
 
 Mon Nov 21 22:54:22 CET 2011
 
@@ -181,9 +184,37 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added detection of regular API usage to store/fetch/delete entries from
   within an iteration loop.
 
+
 Sun Oct 21 14:52:42 CEST 2012
 
 Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 
 * Fixed SDBM iteration in the presence of unflushed dirty LRU pages.
+
+
+Thu Nov 22 20:30:18 CET 2012
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Made sdbm_close() unlink files if database was marked volatile.
+* Added sdbm_unlink() to close and unlink database files.
+* Added sdbm_get_wdelay(), sdbm_get_cache() and sdbm_is_volatile().
+* Added sdbm_endkey() to abort key iteration early.
+* Added sdbm_rebuild() to reconstruct the whole database, hopefully compacting
+  its disk representation by filling low-order pages.
+* Added -f switch to "dba" to only print filled pages.
+
+
+Sat Nov 24 19:51:38 CET 2012
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Loudly warn when sdbm_deletekey() or sdbm_value() are called outside an
+  iteration loop.
+* Made sdbm_rebuild() more fault-tolerant for things we cannot fix, such
+  as unreadable big keys/values or duplicate keys.
+* Made sdbm_nextkey() fail with errno = ENOENT if called outside an iteration.
+* Inconsistencies in big keys / values are flagged with errno = EFAULT but
+  do not trigger an I/O error condition unless we actually get an error reading
+  or writing data to the disk.
 

@@ -521,7 +521,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 	cq_cancel(&um->iterate_ev);
 	cq_cancel(&um->ear_ev);
 	atom_host_free_null(&um->to);
-	wfree(um->fragments, um->fragcnt * sizeof um->fragments[0]);
+	WFREE_ARRAY(um->fragments, um->fragcnt);
 	hevset_remove(ut_mset, &um->mid);
 	pmsg_free_null(&um->mb);
 
@@ -1615,9 +1615,9 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	elist_init(&um->resend, offsetof(struct ut_frag, lk));
 
 	um->fragcnt = pdulen / TX_UT_MTU;
-	if (pdulen != um->fragcnt * TX_UT_MTU)
+	if (pdulen != UNSIGNED(um->fragcnt * TX_UT_MTU))
 		um->fragcnt++;
-	um->fragments = walloc(um->fragcnt * sizeof um->fragments[0]);
+	WALLOC_ARRAY(um->fragments, um->fragcnt);
 
 	/*
 	 * The sequence ID (seqno) is going to be echoed back by the receiving
@@ -2105,6 +2105,15 @@ tx_ut_destroy(txdrv_t *tx)
 	struct attr *attr = tx->opaque;
 
 	ut_attr_check(attr);
+
+	/*
+	 * Make sure we get rid of the per-message callbacks since we cannot
+	 * be sure that the owner of the TX stack is still around to process
+	 * the notifications correctly when we destroy pending messages.
+	 *		--RAM, 2012-12-14
+	 */
+
+	ZERO(attr->cb);
 
 	zlib_deflater_free(attr->zd, TRUE);
 	idtable_foreach(attr->seq, ut_destroy_msg, NULL);

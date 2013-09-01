@@ -25,7 +25,11 @@
 #define _if_core_fileinfo_h_
 
 #include "common.h"
+
+#include "lib/eslist.h"
+#include "lib/http_range.h"
 #include "lib/path.h"
+
 #include "if/core/downloads.h"	/* For gnet_srt_t */
 
 struct shared_file;
@@ -164,8 +168,9 @@ typedef struct dl_file_info {
 	filesize_t done;		/**< Total number of bytes completed (flushed) */
 	filesize_t buffered;	/**< Amount of buffered data (unflushed) */
 	filesize_t uploaded;	/**< Amount of bytes uploaded */
-	GSList *chunklist;		/**< List of ranges within file */
-	GSList *seen_on_network;  /**< List of ranges available on network */
+	eslist_t chunklist;		/**< List of ranges within file */
+	eslist_t available;		/**< List of ranges available, with source count */
+	http_rangeset_t *seen_on_network;  /**< Ranges available on network */
 	uint32 generation;		/**< Generation number, incremented on disk update */
 	struct shared_file *sf;	/**< When PFSP-server is enabled, share this file */
 	uint32 active_queued;	/**< Actively queued sources */

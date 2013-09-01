@@ -82,6 +82,12 @@
 #include "arc4random.h"
 #include "entropy.h"
 #include "misc.h"		/* For sha1_t */
+#include "spinlock.h"
+
+static spinlock_t arc4_lck = SPINLOCK_INIT;
+
+#define THREAD_LOCK		spinlock_hidden(&arc4_lck)
+#define THREAD_UNLOCK	spinunlock_hidden(&arc4_lck)
 
 struct arc4_stream {
 	uint8 i;
@@ -211,9 +217,9 @@ arc4_check_stir(void)
 void
 arc4random_stir(void)
 {
-	/* THREAD_LOCK(); */
+	THREAD_LOCK;
 	arc4_stir(&rs);
-	/* THREAD_UNLOCK(); */
+	THREAD_UNLOCK;
 }
 
 /**
@@ -222,7 +228,9 @@ arc4random_stir(void)
 G_GNUC_COLD void
 arc4random_stir_once(void)
 {
+	THREAD_LOCK;
 	arc4_check_stir();
+	THREAD_UNLOCK;
 }
 
 /**
@@ -242,10 +250,10 @@ arc4random_addrandom(const unsigned char *dat, int datlen)
 	g_assert(dat != NULL);
 	g_assert(datlen > 0);
 
-	/* THREAD_LOCK(); */
+	THREAD_LOCK;
 	arc4_check_stir();
 	arc4_addrandom(&rs, dat, datlen);
-	/* THREAD_UNLOCK(); */
+	THREAD_UNLOCK;
 }
 
 /**
@@ -256,15 +264,33 @@ arc4random(void)
 {
 	uint32 rnd;
 
-	/* THREAD_LOCK(); */
+	THREAD_LOCK;
 	arc4_check_stir();
 	rnd = arc4_getword(&rs);
-	/* THREAD_UNLOCK(); */
+	THREAD_UNLOCK;
 
 	return rnd;
 }
 
+/**
+ * @return 64-bit random number.
+ */
+uint64
+arc4random64(void)
+{
+	uint32 hi, lo;
+
+	THREAD_LOCK;
+	arc4_check_stir();
+	hi = arc4_getword(&rs);
+	lo = arc4_getword(&rs);
+	THREAD_UNLOCK;
+
+	return ((uint64) hi << 32) | (uint64) lo;
+}
 #else	/* HAS_ARC4RANDOM */
+
+#include "once.h"
 
 /**
  * Perform random initialization if not already done.
@@ -277,77 +303,17 @@ arc4random_stir_once(void)
 {
 	static int done;
 
-	if G_UNLIKELY(!done) {
-		arc4random_stir();
-		done = TRUE;
-	}
+	once_run(&done, arc4random_stir);
 }
-
-#endif	/* !HAS_ARC4RANDOM */
 
 /**
  * @return 64-bit random number.
  */
-static inline uint64
+uint64
 arc4random64(void)
 {
 	return ((uint64) arc4random() << 32) | (uint64) arc4random();
 }
-
-/**
- * @return uniformly distributed 64-bit random number in the [0, max] range.
- */
-uint64
-arc4random_upto64(uint64 max)
-{
-	uint64 range, min, value;
-
-	if G_UNLIKELY(0 == max)
-		return 0;
-
-	if G_UNLIKELY((uint64) -1 == max)
-		return arc4random64();
-
-	range = max + 1;
-
-	if (IS_POWER_OF_2(range))
-		return arc4random64() & max;	/* max = range - 1 */
-
-	/*
-	 * Same logic as random_upto() but in 64-bit arithmetic.
-	 */
-
-	if (range > ((uint64) 1U << 63)) {
-		min = ~range + 1;		/* 2^64 - range */
-	} else {
-		min = ((uint64) -1 - range + 1) % range;
-	}
-
-	value = arc4random64();
-
-	if G_UNLIKELY(value < min) {
-		size_t i;
-
-		for (i = 0; i < 100; i++) {
-#ifdef HAS_ARC4RANDOM
-			value = arc4random64();
-#else
-			/* THREAD_LOCK(); */
-			/* All bytes are random anyway, just drop the first one */
-			value = (value << 8) | (uint64) arc4_getbyte(&rs);
-			/* THREAD_UNLOCK(); */
-#endif	/* HAS_ARC4RANDOM */
-
-			if (value >= min)
-				goto done;
-		}
-
-		/* Will occur once every 10^30 attempts */
-		s_error("no luck with random number generator");
-	}
-
-done:
-	return value % range;
-}
+#endif	/* !HAS_ARC4RANDOM */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -2026,7 +2026,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		if (
 			ctx->map == NULL ||
 			start < ctx->map_start ||
-			start + amount > ctx->map_end
+			(fileoffset_t) (start + amount) > ctx->map_end
 		) {
 			static const size_t min_map_size = 64 * 1024;
 			size_t map_len, old_len;
@@ -2048,7 +2048,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 			if (
 				map_len < min_map_size &&
-				MAX_INT_VAL(fileoffset_t) - map_start >= min_map_size
+				(size_t) (MAX_INT_VAL(fileoffset_t) - map_start) >= min_map_size
 			) {
 				map_len = min_map_size;
 			}
@@ -2095,7 +2095,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		data = &data[start - ctx->map_start];
 		
 		g_assert(ctx->map_end > start);
-		amount = MIN(ctx->map_end - start, amount);
+		amount = MIN((size_t) (ctx->map_end - start), amount);
 
 		r = s_write(out_fd, data, amount);
 		switch (r) {

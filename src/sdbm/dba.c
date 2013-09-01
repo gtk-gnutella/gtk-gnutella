@@ -15,13 +15,15 @@ void sdump(int, long);
 void bdump(int);
 
 static bool summary_only;
+static bool filled_only;
 static bool on_tty;
 
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-s] dbname\n"
+		"Usage: %s [-fs] dbname\n"
+		"  -f : only print filled pages, skip empty ones\n"
 		"  -s : display summary info only\n"
 		, progname
 	);
@@ -47,13 +49,17 @@ main(int argc, char **argv)
 	char *p;
 	int c;
 
+	mingw_early_init();
 	progname = argv[0];
 	(void) argc;
 
 	on_tty = isatty(STDOUT_FILENO);
 
-	while ((c = getopt(argc, argv, "s")) != EOF) {
+	while ((c = getopt(argc, argv, "fs")) != EOF) {
 		switch (c) {
+		case 'f':			/* show filled pages only */
+			filled_only++;
+			break;
 		case 's':			/* summary info only */
 			summary_only++;
 			break;
@@ -129,7 +135,7 @@ pagestat(char *pag,
 	int keysize = 0, valsize = 0;
 
 	if (!(n = ino[0])) {
-		if (!summary_only)
+		if (!summary_only && !filled_only)
 			printf("no entries.\n");
 	} else {
 		unsigned i;
@@ -167,6 +173,13 @@ pagestat(char *pag,
 	return n / 2;
 }
 
+static inline bool
+page_is_empty(const char *pag)
+{
+	register unsigned short *ino = (unsigned short *) pag;
+	return 0 == ino[0];
+}
+
 void
 sdump(int pagf, long npag)
 {
@@ -184,13 +197,20 @@ sdump(int pagf, long npag)
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
 		unsigned ks, vs;
+		bool is_bad = !sdbm_internal_chkpage(pag);
+		bool is_empty = page_is_empty(pag);
+
 		if (summary_only && 0 == n % 1000) show_progress(n, npag);
-		if (!summary_only) printf("#%d: ", n);
-		if (!sdbm_internal_chkpage(pag)) {
+		if (
+			!summary_only &&
+			(is_bad || !filled_only || (filled_only && !is_empty))
+		)
+			printf("#%d: ", n);
+		if (is_bad) {
+			/* Bad pages are displayed when -f is given */
 			bad++;
 			if (!summary_only) printf("bad\n");
 		} else {
-			if (!summary_only) printf("ok. ");
 			if (!(e = pagestat(pag, &ks, &vs, &lk, &lv))) {
 			    o++;
 			} else {

@@ -48,6 +48,8 @@
 
 #include "common.h"
 
+#define XMALLOC_SOURCE
+
 #include "xmalloc.h"
 #include "bit_array.h"
 #include "cq.h"
@@ -2272,7 +2274,7 @@ xmalloc_freelist_setup(void)
 		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
 			struct xfreelist *fl = &xfreelist[i];
 
-			mutex_lock(&fl->lock);
+			mutex_lock_hidden(&fl->lock);
 
 			/* Sort with xqsort() to guarantee no memory allocation */
 
@@ -2282,7 +2284,7 @@ xmalloc_freelist_setup(void)
 				fl->sorted = fl->count;
 			}
 
-			mutex_unlock(&fl->lock);
+			mutex_unlock_hidden(&fl->lock);
 		}
 	}
 }
@@ -2436,7 +2438,7 @@ xfl_select(struct xfreelist *fl)
  * @attention
  * The block is not removed from the freelist and the address returned is not
  * the user address but the physical start of the block.
- * If the block is found, the corresponding bucket is spin-locked.
+ * If the block is found, the corresponding bucket is mutex-locked.
  */
 static void *
 xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
@@ -4291,6 +4293,21 @@ xpstrndup(const char *str, size_t n)
 }
 
 /**
+ * Free NULL-terminated array of strings, including the array itself.
+ */
+void
+xstrfreev(char **str)
+{
+	char *p;
+	char **vec = str;
+
+	while (NULL != (p = *vec++))
+		xfree(p);
+
+	xfree(str);
+}
+
+/**
  * Computes user size of allocated block, 0 if not allocated via xmalloc().
  */
 size_t
@@ -4352,6 +4369,24 @@ xfree(void *p)
 	 */
 
 	if G_UNLIKELY(xmalloc_no_wfree)
+		return;
+
+	/*
+	 * HACK ALERT:
+	 *
+	 * This is a workaround for a bug in the C startup code on MinGW.
+	 * We do not allow free() calls to proceed until we know we're out of
+	 * the C startup code.
+	 *
+	 * See mingw_early_init() for details.
+	 *
+	 * On UNIX platforms, mingw_c_runtime_is_up is a macro hardwired to 1,
+	 * so there is no runtime penalty as the check is optimized out.
+	 *
+	 *		--RAM, 2013-08-31
+	 */
+
+	if G_UNLIKELY(!mingw_c_runtime_is_up)
 		return;
 
 	xstats.freeings++;
@@ -6999,8 +7034,19 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		goto done;
 	}
 
+	/*
+	 * To be able to perform posix_memalign() calls before the VMM is fully up,
+	 * use vmm_early_init() to launch the VM layer without notifying xmalloc()
+	 * that the VMM is up, so that we do not start to register the garbage
+	 * collector yet.
+	 *
+	 * Until vmm_init() is called, every call to posix_memalign() will cause
+	 * this branch to be taken, but this is only a transient state, until
+	 * it is safe to call vmm_init() to mark everything as fully initialized.
+	 */
+
 	if G_UNLIKELY(!xmalloc_vmm_is_up)
-		return ENOMEM;		/* Cannot allocate without the VMM layer */
+		vmm_early_init();
 
 	/*
 	 * If they want to align on some boundary, they better be allocating

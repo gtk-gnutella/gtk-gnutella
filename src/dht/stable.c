@@ -457,7 +457,7 @@ stable_prune_old(void)
 			dbmw_count(db_lifedata));
 	}
 
-	dbstore_shrink(db_lifedata);
+	dbstore_compact(db_lifedata);
 }
 
 /**
@@ -525,9 +525,6 @@ stable_init(void)
 	g_assert(NULL == db_lifedata);
 	g_assert(NULL == stable_sync_ev);
 	g_assert(NULL == stable_prune_ev);
-
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_stable_base);
 
 	db_lifedata = dbstore_open(db_stable_what, settings_dht_db_dir(),
 		db_stable_base, kv, packing, STABLE_DB_CACHE_SIZE, kuid_hash, kuid_eq,

@@ -48,12 +48,12 @@
 #include "sdbm/sdbm.h"
 
 #include "dbmap.h"
-#include "atoms.h"
 #include "bstr.h"
 #include "debug.h"
 #include "map.h"
 #include "pmsg.h"
 #include "stringify.h"			/* For compact_time() */
+#include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -73,7 +73,6 @@ struct dbmap {
 		} m;
 		struct {
 			DBM *sdbm;
-			const char *path;		/**< SDBM file path (atom), if known */
 			time_t last_check;		/**< When we last checked keys */
 			unsigned is_volatile:1;	/**< Whether DB can be discarded */
 		} s;
@@ -354,8 +353,12 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 	}
 
 check_db:
-	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm))
+	for (key = sdbm_firstkey_safe(sdbm); key.dptr; key = sdbm_nextkey(sdbm)) {
+		datum value = sdbm_value(sdbm);
+		if (NULL == value.dptr)
+			continue;				/* Invalid value, do not count key */
 		count++;
+	}
 
 	dm->validated = TRUE;
 	dm->u.s.last_check = tm_time();
@@ -514,7 +517,6 @@ dbmap_create_sdbm(size_t ksize, dbmap_keylen_t klen,
 	}
 
 	dm->magic = DBMAP_MAGIC;
-	dm->u.s.path = atom_str_get(path);
 	if (flags & O_TRUNC)
 		dm->u.s.last_check = tm_time();
 
@@ -735,7 +737,7 @@ dbmap_remove(dbmap_t *dm, const void *key)
 			} else {
 				if G_UNLIKELY(0 == dm->count) {
 					if (dm->validated) {
-						g_carp("DBMAP on sdbm \"%s\": BUG: "
+						g_critical("DBMAP on sdbm \"%s\": BUG: "
 							"sdbm_delete() worked but we had no key tracked",
 							sdbm_name(dm->u.s.sdbm));
 					} else {
@@ -875,10 +877,6 @@ dbmap_release(dbmap_t *dm)
 
 	implementation = dbmap_implementation(dm);
 
-	if (DBMAP_SDBM == dm->type) {
-		atom_str_free_null(&dm->u.s.path);
-	}
-
 	dm->type = DBMAP_MAXTYPE;
 	dm->magic = 0;
 	WFREE(dm);
@@ -905,7 +903,7 @@ free_kv(void *key, void *value, void *u)
  * Destroy a DB map.
  *
  * A memory-backed map is lost.
- * An SDBM-backed map is lost if marked volatile, provided its path is known.
+ * An SDBM-backed map is lost if marked volatile.
  */
 void
 dbmap_destroy(dbmap_t *dm)
@@ -919,9 +917,6 @@ dbmap_destroy(dbmap_t *dm)
 		break;
 	case DBMAP_SDBM:
 		sdbm_close(dm->u.s.sdbm);
-		if (dm->u.s.is_volatile && dm->u.s.path != NULL)
-			dbmap_unlink_sdbm(dm->u.s.path);
-		atom_str_free_null(&dm->u.s.path);
 		break;
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
@@ -1107,8 +1102,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 		{
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0;
-			size_t invalid = 0;
+			size_t count = 0, invalid = 0, unreadable = 0;
 
 			errno = 0;
 			for (
@@ -1121,6 +1115,7 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 				count++;
 
 				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
+					count--;
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1131,13 +1126,18 @@ dbmap_foreach(const dbmap_t *dm, dbmap_cb_t cb, void *arg)
 					d.data = value.dptr;
 					d.len = value.dsize;
 					(*cb)(key.dptr, &d, arg);
+				} else {
+					unreadable++;
+					count--;		/* Value is invalid, key is missing! */
 				}
 			}
 			if (!dbmap_sdbm_error_check(dm))
 				dbmap_reset_count(dm, count);
-			if (invalid) {
-				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s",
-					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s");
+			if (invalid || unreadable) {
+				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s and "
+					"%zu unreadable",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
+					unreadable);
 			}
 		}
 		break;
@@ -1177,9 +1177,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 		{
 			datum key;
 			DBM *sdbm = dm->u.s.sdbm;
-			size_t count = 0;
-			size_t invalid = 0;
-			size_t errors = 0;
+			size_t count = 0, invalid = 0, unreadable = 0, errors = 0;
 
 			errno = 0;
 			for (
@@ -1192,6 +1190,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 				count++;
 
 				if (dbmap_keylen(dm, key.dptr) != key.dsize) {
+					count--;
 					invalid++;
 					continue;		/* Invalid key, corrupted file? */
 				}
@@ -1211,15 +1210,18 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 								"key deletion error: %m", sdbm_name(sdbm));
 						}
 					}
+				} else {
+					unreadable++;
+					count--;		/* Value is invalid, key is missing! */
 				}
 			}
 			dbmap_sdbm_error_check(dm);
 			dbmap_reset_count(dm, count);
-			if (invalid || errors) {
+			if (invalid || errors || unreadable) {
 				g_warning("DBMAP on sdbm \"%s\": found %zu invalid key%s, "
-					"%zu key deletion error%s", sdbm_name(sdbm),
-					invalid, 1 == invalid ? "" : "s",
-					errors, 1 == errors ? "" : "s");
+					"%zu key deletion error%s, %zu unreadable",
+					sdbm_name(sdbm), invalid, 1 == invalid ? "" : "s",
+					errors, 1 == errors ? "" : "s", unreadable);
 			}
 		}
 		break;
@@ -1228,32 +1230,6 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 	}
 
 	return deleted;
-}
-
-static void
-unlink_sdbm(const char *file)
-{
-	if (-1 == unlink(file) && errno != ENOENT)
-		g_warning("cannot unlink SDBM file %s: %m", file);
-}
-
-/**
- * Helper routine to remove SDBM files under specified basename.
- */
-void
-dbmap_unlink_sdbm(const char *base)
-{
-	char *dir_file;
-	char *pag_file;
-
-	dir_file = g_strconcat(base, DBM_DIRFEXT, NULL);
-	pag_file = g_strconcat(base, DBM_PAGFEXT, NULL);
-
-	unlink_sdbm(dir_file);
-	unlink_sdbm(pag_file);
-
-	G_FREE_NULL(dir_file);
-	G_FREE_NULL(pag_file);
 }
 
 static void
@@ -1406,6 +1382,27 @@ dbmap_shrink(dbmap_t *dm)
 		return TRUE;
 	case DBMAP_SDBM:
 		return sdbm_shrink(dm->u.s.sdbm);
+	case DBMAP_MAXTYPE:
+		g_assert_not_reached();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Attempt to rebuild the database (to compact it on disk).
+ * @return TRUE if no error occurred.
+ */
+bool
+dbmap_rebuild(dbmap_t *dm)
+{
+	dbmap_check(dm);
+
+	switch (dm->type) {
+	case DBMAP_MAP:
+		return TRUE;
+	case DBMAP_SDBM:
+		return 0 == sdbm_rebuild(dm->u.s.sdbm);
 	case DBMAP_MAXTYPE:
 		g_assert_not_reached();
 	}

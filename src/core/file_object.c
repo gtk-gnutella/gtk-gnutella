@@ -429,7 +429,7 @@ file_object_release(struct file_object **fo_ptr)
  * - FO_OP_UNLINK unlinks the file, denying further access to the file
  *   even if it was already opened.
  *
- * - FO_OP_RENAME renames the file, making it transparent for users whith
+ * - FO_OP_RENAME renames the file, making it transparent for users with
  *   current accesses on the file being renamed.
  *
  * - FO_OP_MOVED notifies that the file was moved around (accross file

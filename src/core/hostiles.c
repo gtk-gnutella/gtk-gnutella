@@ -51,13 +51,13 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
-#include "lib/iprange.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
+#include "lib/iprange.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/walloc.h"
@@ -311,7 +311,7 @@ hostiles_changed(const char *filename, void *udata)
 	count = hostiles_load(f, which);
 	fclose(f);
 
-	gm_snprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
+	str_bprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
 
 	node_kill_hostiles();

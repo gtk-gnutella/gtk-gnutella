@@ -71,8 +71,8 @@
 
 #include "xml/vxml.h"
 
-#include "lib/bit_array.h"
 #include "lib/bg.h"
+#include "lib/bit_array.h"
 #include "lib/compat_misc.h"
 #include "lib/cpufreq.h"
 #include "lib/cq.h"
@@ -88,12 +88,14 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/http_range.h"
 #include "lib/log.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/vmm.h"
 #include "lib/xmalloc.h"
@@ -325,10 +327,21 @@ ensure_unicity(const char *file, int *fd_ptr)
 				fl.l_type = F_WRLCK;
 				fl.l_whence = SEEK_SET;
 
+				/*
+				 * If we're crashing and restarting automatically, we'll have
+				 * the same PID as the lock and that is OK.
+				 */
+
 				if (-1 != fcntl(fd, F_GETLK, &fl)) {
-					g_warning("another gtk-gnutella process seems to "
-							"be using \"%s\" (pid=%lu)",
-							file, (ulong) fl.l_pid);
+					if (getpid() == fl.l_pid) {
+						s_info("current process (PID=%lu) already holds the "
+							"lock on \"%s\"", (ulong) fl.l_pid, file);
+						locked = TRUE;
+					} else {
+						g_warning("another gtk-gnutella process seems to "
+								"be using \"%s\" (PID=%lu)",
+								file, (ulong) fl.l_pid);
+					}
 				} else {
 					s_warning("fcntl(%d, F_GETLK, ...) failed for \"%s\": %m",
 						fd, file);
@@ -436,7 +449,7 @@ save_pid(int fd, const char *path)
 
 	g_assert(fd >= 0);
 
-	len = gm_snprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
+	len = str_bprintf(buf, sizeof buf, "%lu\n", (ulong) getpid());
 
 	if (GNET_PROPERTY(lockfile_debug)) {
 		g_debug("file \"%s\" about to be written with PID %lu on fd #%d",
@@ -633,7 +646,7 @@ settings_update_firewalled(void)
 {
 	/*
 	 * The determination of the UDP firewalled status is not 100% safe,
-	 * since any datagram received from a host whith whom we recently
+	 * since any datagram received from a host with whom we recently
 	 * communicated could lead us into believing we are receiving usolicited
 	 * traffic.
 	 *
@@ -737,13 +750,27 @@ settings_init(void)
 	 */
 
 	if (GNET_PROPERTY(clean_shutdown)) {
-		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, TRUE);
+		bool auto_restart = GNET_PROPERTY(user_auto_restart);
+		/*
+		 * An (explicit) auto-restart is an implicit continuation of the
+		 * previous session, therefore we unset "clean_restart" to signal that.
+		 * In effect, this keeps the same GUID and KUID regardless of whether
+		 * they are sticky, and it lets "session-only" searches restart.
+		 *		--RAM, 2012-12-28
+		 */
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, !auto_restart);
+		if (auto_restart)
+			g_info("restarting session as requested");
 	} else {
-		g_warning("restarting after abnormal termination");
+		uint32 pid = GNET_PROPERTY(pid);
+		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		crash_exited(pid);
 		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
+	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
+	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
 
 	/*
 	 * Emit configuration / system information, but only if debugging.
@@ -2495,6 +2522,17 @@ inputevt_debug_changed(property_t prop)
 }
 
 static bool
+http_range_debug_changed(property_t prop)
+{
+	uint32 val;
+
+	gnet_prop_get_guint32_val(prop, &val);
+	set_http_range_debug(val);
+
+    return FALSE;
+}
+
+static bool
 omalloc_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3037,6 +3075,11 @@ static prop_map_t property_map[] = {
     {
         PROP_INPUTEVT_DEBUG,
         inputevt_debug_changed,
+        TRUE
+    },
+    {
+        PROP_HTTP_RANGE_DEBUG,
+        http_range_debug_changed,
         TRUE
     },
     {

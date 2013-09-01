@@ -72,6 +72,7 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	chi2.c \
 	ckalloc.c \
 	cobs.c \
 	compat_misc.c \
@@ -131,6 +132,7 @@ LSRC = \
 	hset.c \
 	htable.c \
 	html.c \
+	http_range.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
@@ -148,6 +150,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	mtwist.c \
 	mutex.c \
 	nid.c \
 	nv.c \
@@ -169,6 +172,7 @@ LSRC = \
 	prop.c \
 	rand31.c \
 	random.c \
+	rbtree.c \
 	regex.c \
 	sectoken.c \
 	sequence.c \
@@ -199,6 +203,7 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
+	vsort.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
@@ -286,4 +291,5 @@ local_clean::
 
 NormalProgramLibTarget(float-test, float-test.c, float-test.o, libshared.a)
 NormalProgramLibTarget(sort-test, sort-test.c, sort-test.o, libshared.a)
+NormalProgramLibTarget(random-test, random-test.c, random-test.o, libshared.a)
 

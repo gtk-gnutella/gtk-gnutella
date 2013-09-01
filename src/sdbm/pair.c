@@ -11,6 +11,7 @@
 #include "casts.h"
 
 #include "sdbm.h"
+#include "private.h"		/* We access DBM * for logging */
 #include "tune.h"
 #include "pair.h"
 #include "big.h"
@@ -44,10 +45,12 @@ is_big(unsigned short off)
 	return booleanize(off & BIG_FLAG);
 }
 static inline ALWAYS_INLINE long
-exhash_big(DBM *db, const datum item, bool big)
+exhash_big(DBM *db, const datum item, bool big, bool *failed)
 {
-	return big ? bigkey_hash(db, item.dptr, item.dsize) :
-		sdbm_hash(item.dptr, item.dsize);
+	if (big)
+		return bigkey_hash(db, item.dptr, item.dsize, failed);
+
+	return sdbm_hash(item.dptr, item.dsize);
 }
 #else	/* !BIGDATA */
 static inline ALWAYS_INLINE unsigned short
@@ -63,10 +66,11 @@ is_big(unsigned short off)
 	return FALSE;
 }
 static inline ALWAYS_INLINE long
-exhash_big(DBM *db, const datum item, bool big)
+exhash_big(DBM *db, const datum item, bool big, bool *failed)
 {
 	(void) db;
 	(void) big;
+	(void) failed;
 	return sdbm_hash(item.dptr, item.dsize);
 }
 #endif	/* BIGDATA */
@@ -437,6 +441,34 @@ getnkey(DBM *db, char *pag, int num)
 	return key;
 }
 
+#ifdef BIGDATA
+/**
+ * Reclaim the blocks used by big key/values at position i on the page.
+ *
+ * @return TRUE if OK.
+ */
+static bool
+delipair_big(DBM *db, char *pag, int i)
+{
+	unsigned short *ino = (unsigned short *) pag;
+	unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
+	unsigned koff = offset(ino[i]);
+	unsigned voff = offset(ino[i+1]);
+	bool status = TRUE;
+
+	g_assert(0x1 == (i & 0x1));		/* Odd position in page */
+
+	/* Free space used by large keys and values */
+
+	if (is_big(ino[i]) && !bigkey_free(db, pag + koff, end - koff))
+		status = FALSE;
+	if (is_big(ino[i+1]) && !bigval_free(db, pag + voff, koff - voff))
+		status = FALSE;
+
+	return status;
+}
+#endif	/* BIGDATA */
+
 /**
  * Delete pair from the page whose key starts at position i.
  *
@@ -447,6 +479,7 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 {
 	int n;
 	unsigned short *ino = (unsigned short *) pag;
+	bool status = TRUE;
 
 	n = ino[0];
 
@@ -455,6 +488,13 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	if G_UNLIKELY(0 == n || i >= n || !(i & 0x1))
 		return FALSE;
 
+#ifdef BIGDATA
+	if (free_bigdata)
+		status = delipair_big(db, pag, i);
+#else
+	(void) db;		/* Unused parameter unless BIGDATA */
+#endif
+
 	/*
 	 * found the key. if it is the last entry
 	 * [i.e. i == n - 1] we just adjust the entry count.
@@ -462,23 +502,6 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	 * shift offsets onto deleted offsets, and adjust them.
 	 * [note: 0 < i < n]
 	 */
-
-#ifdef BIGDATA
-	if (free_bigdata) {
-		unsigned end = (i > 1) ? offset(ino[i - 1]) : DBM_PBLKSIZ;
-		unsigned koff = offset(ino[i]);
-		unsigned voff = offset(ino[i+1]);
-
-		/* Free space used by large keys and values */
-
-		if (is_big(ino[i]) && !bigkey_free(db, pag + koff, end - koff))
-			return FALSE;
-		if (is_big(ino[i+1]) && !bigval_free(db, pag + voff, koff - voff))
-			return FALSE;
-	}
-#else
-	(void) db;		/* Unused parameter unless BIGDATA */
-#endif
 
 	if (i < n - 1) {
 		int m;
@@ -530,7 +553,7 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 	}
 	ino[0] -= 2;
 
-	return TRUE;
+	return status;
 }
 
 /**
@@ -694,12 +717,11 @@ pagcount(const char *pag)
 void
 splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 {
-	datum key;
-	datum val;
-
+	datum key, val;
 	int n;
 	int off = DBM_PBLKSIZ;
 	const unsigned short *ino = (const unsigned short *) pag;
+	int removed = 0;
 
 	memset(pagzero, 0, DBM_PBLKSIZ);
 	memset(pagone, 0, DBM_PBLKSIZ);
@@ -713,6 +735,19 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		val.dptr = (char *) pag + voff;
 		val.dsize = koff - voff;
 		bool bk = is_big(ino[0]);
+		bool failed;
+		long hash = exhash_big(db, key, bk, &failed);
+
+		/*
+		 * If we cannot hash a big key, then remove it from the page since
+		 * we cannot split it correctly.
+		 */
+
+		if (bk && failed) {
+			delipair_big(db, pag, ino - (unsigned short *) pag);
+			removed++;
+			goto next;
+		}
 
 		/*
 		 * With big data, we're moving around the indirection blocks only,
@@ -722,14 +757,22 @@ splpage(DBM *db, char *pag, char *pagzero, char *pagone, long int sbit)
 		 * Select the page pointer (by looking at sbit) and insert
 		 */
 
-		putpair_ext((exhash_big(db, key, bk) & sbit) ? pagone : pagzero,
+		putpair_ext((hash & sbit) ? pagone : pagzero,
 			key, bk, val, is_big(ino[1]));
 
+	next:
 		off = voff;
 		n -= 2;
 	}
 
-	g_assert(pagcount(pag) == pagcount(pagzero) + pagcount(pagone));
+	g_assert(pagcount(pag) == pagcount(pagzero) + pagcount(pagone) + removed);
+
+	if G_UNLIKELY(removed != 0) {
+		db->removed_keys += removed;
+		g_warning("sdbm: \"%s\": removed %d/%d key%s (unreadable, big) "
+			"on page #%ld", sdbm_name(db),
+			removed, pagcount(pag) / 2, 1 == removed ? "" : "s", db->pagbno);
+	}
 
 	debug(("%d split %d/%d\n", ((unsigned short *) pag)[0] / 2, 
 	       ((unsigned short *) pagone)[0] / 2,

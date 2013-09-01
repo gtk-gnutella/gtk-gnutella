@@ -65,8 +65,8 @@
 #include "if/ui/gtk/upload_stats.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
 #include "lib/htable.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/utf8.h"
@@ -138,7 +138,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 		text = uint64_to_string(data->us->attempts);
 		break;
 	case c_us_norm:
-		gm_snprintf(buf, sizeof buf, "%1.3f", data->us->norm);
+		str_bprintf(buf, sizeof buf, "%1.3f", data->us->norm);
 		text = buf;
 		break;
 	case c_us_rtime:

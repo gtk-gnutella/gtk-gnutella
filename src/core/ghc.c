@@ -45,6 +45,7 @@
 #include "lib/halloc.h"
 #include "lib/list.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -63,7 +64,7 @@
  */
 static const char * const boot_url[] = {
 	/* Uses DNS round-robin and serves freshly crawled data */
-	"http://dl.frostwire.com/frostwire/gnutella.net",
+	"http://ghc4.gtkgnutella.com/list4",
 };
 
 static bool ghc_connecting;
@@ -349,7 +350,7 @@ ghc_host_eof(struct parse_context *ctx)
 	 * Provide GUI feedback.
 	 */
 
-	gm_snprintf(msg, sizeof(msg),
+	str_bprintf(msg, sizeof(msg),
 		NG_("Got %d host from %s", "Got %d hosts from %s", ctx->processed),
 		ctx->processed, http_async_info(ghc_ctx.ha, NULL, NULL, NULL, NULL));
 
@@ -412,7 +413,7 @@ ghc_pick(void)
 	{
 		char msg[256];
 
-		gm_snprintf(msg, sizeof msg, _("Bootstrapping from %s"), url);
+		str_bprintf(msg, sizeof msg, _("Bootstrapping from %s"), url);
 		gcu_statusbar_message(msg);
 	}
 

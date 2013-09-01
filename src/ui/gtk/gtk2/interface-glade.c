@@ -555,7 +555,7 @@ create_dlg_filters (void)
   if (dlg_filters_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_filters), dlg_filters_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_filters_icon_pixbuf);
+      g_object_unref (dlg_filters_icon_pixbuf);
     }
 
   vbox_filter_main = gtk_vbox_new (FALSE, 0);
@@ -902,7 +902,7 @@ create_shutdown_window (void)
   if (shutdown_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (shutdown_window), shutdown_window_icon_pixbuf);
-      gdk_pixbuf_unref (shutdown_window_icon_pixbuf);
+      g_object_unref (shutdown_window_icon_pixbuf);
     }
 
   frame30 = gtk_frame_new (NULL);
@@ -1040,7 +1040,7 @@ create_dlg_about (void)
   if (dlg_about_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_about), dlg_about_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_about_icon_pixbuf);
+      g_object_unref (dlg_about_icon_pixbuf);
     }
 
   vbox67 = gtk_vbox_new (FALSE, 0);
@@ -1579,7 +1579,7 @@ create_main_window (void)
   if (main_window_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (main_window), main_window_icon_pixbuf);
-      gdk_pixbuf_unref (main_window_icon_pixbuf);
+      g_object_unref (main_window_icon_pixbuf);
     }
 
   vbox12 = gtk_vbox_new (FALSE, 0);
@@ -3120,7 +3120,7 @@ create_dlg_quit (void)
   if (dlg_quit_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_quit), dlg_quit_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_quit_icon_pixbuf);
+      g_object_unref (dlg_quit_icon_pixbuf);
     }
   gtk_window_set_type_hint (GTK_WINDOW (dlg_quit), GDK_WINDOW_TYPE_HINT_DIALOG);
 
@@ -9196,6 +9196,9 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *table118;
   GtkWidget *checkbutton_enable_natpmp;
   GtkWidget *checkbutton_enable_upnp;
+  GtkWidget *label1077;
+  GtkObject *spinbutton_config_upnp_mapping_lease_time_adj;
+  GtkWidget *spinbutton_config_upnp_mapping_lease_time;
   GtkWidget *label1054;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
@@ -9523,7 +9526,7 @@ create_dlg_prefs_net_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_port_mapping, TRUE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_port_mapping), 4);
 
-  table118 = gtk_table_new (1, 2, FALSE);
+  table118 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table118, "table118");
   gtk_widget_show (table118);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_port_mapping), table118);
@@ -9543,6 +9546,22 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (checkbutton_enable_upnp);
   gtk_table_attach (GTK_TABLE (table118), checkbutton_enable_upnp, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label1077 = gtk_label_new (_("Mapping lease time"));
+  gtk_widget_set_name (label1077, "label1077");
+  gtk_widget_show (label1077);
+  gtk_table_attach (GTK_TABLE (table118), label1077, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label1077), 0, 0.5);
+
+  spinbutton_config_upnp_mapping_lease_time_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_upnp_mapping_lease_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upnp_mapping_lease_time_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
+  gtk_widget_show (spinbutton_config_upnp_mapping_lease_time);
+  gtk_table_attach (GTK_TABLE (table118), spinbutton_config_upnp_mapping_lease_time, 1, 2, 1, 2,
+                    (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
 
   label1054 = gtk_label_new (_("Port Mapping"));
@@ -10082,6 +10101,8 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table118, "table118");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_upnp, "checkbutton_enable_upnp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1077, "label1077");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label1054, "label1054");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");
@@ -12484,7 +12505,7 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_dht_out), TRUE);
 
-  checkbutton_config_bws_dht_out = gtk_check_button_new_with_mnemonic (_("Global DHT ougoing traffic"));
+  checkbutton_config_bws_dht_out = gtk_check_button_new_with_mnemonic (_("Global DHT outgoing traffic"));
   gtk_widget_set_name (checkbutton_config_bws_dht_out, "checkbutton_config_bws_dht_out");
   gtk_widget_show (checkbutton_config_bws_dht_out);
   gtk_table_attach (GTK_TABLE (table116), checkbutton_config_bws_dht_out, 0, 1, 0, 1,
@@ -14027,6 +14048,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (scrolledwindow79, "scrolledwindow79");
   gtk_widget_show (scrolledwindow79);
   gtk_box_pack_start (GTK_BOX (hbox9299), scrolledwindow79, TRUE, TRUE, 0);
+  gtk_widget_set_size_request (scrolledwindow79, -1, 100);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow79), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow79), GTK_SHADOW_ETCHED_IN);
 
@@ -16902,7 +16924,7 @@ create_dlg_faq (void)
   if (dlg_faq_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_faq), dlg_faq_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_faq_icon_pixbuf);
+      g_object_unref (dlg_faq_icon_pixbuf);
     }
 
   scrolledwindow80 = gtk_scrolled_window_new (NULL, NULL);
@@ -16949,7 +16971,7 @@ create_dlg_ancient (void)
   if (dlg_ancient_icon_pixbuf)
     {
       gtk_window_set_icon (GTK_WINDOW (dlg_ancient), dlg_ancient_icon_pixbuf);
-      gdk_pixbuf_unref (dlg_ancient_icon_pixbuf);
+      g_object_unref (dlg_ancient_icon_pixbuf);
     }
 
   scrolledwindow81 = gtk_scrolled_window_new (NULL, NULL);

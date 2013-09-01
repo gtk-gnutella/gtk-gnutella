@@ -41,7 +41,7 @@ iov_alloc_n(size_t n)
 		g_assert_not_reached(); /* We don't want to handle failed allocations */
 		return NULL;
 	}
-	iov = xmalloc0(n * sizeof *iov);
+	XMALLOC0_ARRAY(iov, n);
 	return iov;
 }
 

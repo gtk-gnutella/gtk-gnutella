@@ -87,11 +87,11 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
@@ -506,7 +506,8 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
 		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, FALSE);
 		if (GNET_PROPERTY(upload_debug)) {
-			g_warning("UL switched back to non-uniform HTTP ougoing bandwidth");
+			g_warning("UL switched back to non-uniform HTTP "
+				"outgoing bandwidth");
 		}
 	}
 
@@ -586,7 +587,7 @@ upload_early_stall(void)
 		if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
 			gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, TRUE);
 			if (GNET_PROPERTY(upload_debug)) {
-				g_warning("UL switching to uniform HTTP ougoing bandwidth");
+				g_warning("UL switching to uniform HTTP outgoing bandwidth");
 			}
 		}
 	}
@@ -2014,7 +2015,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	if (msg && no_reason != msg) {
-		gm_vsnprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(reason, sizeof reason, msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -2095,9 +2096,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					HFREE_NULL(uri);
 			}
 
-			gm_snprintf(index_href, sizeof index_href,
+			str_bprintf(index_href, sizeof index_href,
 				"/get/%lu/", (ulong) u->file_index);
-			gm_snprintf(buf, sizeof buf,
+			str_bprintf(buf, sizeof buf,
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
@@ -2256,11 +2257,11 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	VA_COPY(apcopy, ap);
 
 	if (reason != NULL && no_reason != reason) {
-		gm_vsnprintf(errbuf, sizeof errbuf, reason, ap);
+		str_vbprintf(errbuf, sizeof errbuf, reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			gm_snprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			str_bprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -2336,7 +2337,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	 */
 
 	if (reason != NULL && no_reason != reason) {
-		gm_vsnprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		str_vbprintf(errbuf, sizeof errbuf, _(reason), apcopy);
 		logreason = errbuf;
 	} else {
 		logreason = NULL;
@@ -2526,7 +2527,15 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 
 	upload_check(u);
 	g_assert(header);
-	
+
+	/*
+	 * We remember the first User-Agent we see for a given upload, so
+	 * follow-up requests simply ignore the field.
+	 */
+
+	if (u->user_agent != NULL)
+		return;
+
 	user_agent = header_get(header, "User-Agent");
 	if (user_agent == NULL) {
 		/* Maybe they sent a Server: line, thinking they're a server? */
@@ -2536,7 +2545,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		socket_disable_token(u->socket);
 	}
 
-	if (u->user_agent == NULL && user_agent != NULL) {
+	if (user_agent != NULL) {
 		const char *token;
 		bool faked;
 
@@ -2784,7 +2793,7 @@ upload_connect_conf(struct upload *u)
 	 * Send the GIV string, using our servent GUID.
 	 */
 
-	rw = gm_snprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+	rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
 			(ulong) u->file_index,
 			guid_hex_str(cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid))));
 
@@ -2942,15 +2951,24 @@ upload_collect_locations(struct upload *u,
 
 	if (shared_file_by_sha1(sha1) || file_info_by_sha1(sha1)) {
 		char *buf;
+		gnet_host_t host;
+		gnet_host_t *origin = NULL;
 
-		huge_collect_locations(sha1, header);
 		if (host_is_valid(u->gnet_addr, u->gnet_port)) {
 			/*
-			 * The uploader is only an alt-loc if it lists itself in the
-			 * X-Alt: header. If it didn't the following has no effect.
+			 * The downloader is only an alt-loc if it lists itself in the
+			 * X-Alt: header.  To determine this, we propagate the origin
+			 * of the X-Alt header and if we find that address listed, we'll
+			 * be able to flag the alt-loc as good since we're talking
+			 * to the server that can provide it.
+			 *		--RAM, 2012-12-03
 			 */
-			dmesh_good_mark(sha1, u->gnet_addr, u->gnet_port, TRUE);
+
+			gnet_host_set(&host, u->gnet_addr, u->gnet_port);
+			origin = &host;
 		}
+
+		huge_collect_locations(sha1, header, origin);
 
 		buf = header_get(header, "X-Nalt");
 		if (buf)
@@ -2989,11 +3007,8 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 	sf = shared_file(idx);
 
-	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
-		return -1;
-	}
+	if (SHARE_REBUILDING == sf)
+		goto library_rebuilt;
 
     atom_str_change(&u->name, uri);
 
@@ -3058,7 +3073,16 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 		sfn = shared_file_by_sha1(&sha1);
 
-		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
+		/*
+		 * Since shared_file(idx) and shared_file_by_sha1(sha1) use different
+		 * logics to determine whether the library is being rebuilt, we cannot
+		 * blindly assert that shared_file_by_sha1() will not report a
+		 * SHARE_REBUILDING condition when shared_file() did not above...
+		 *		--RAM, 2012-11-12
+		 */
+
+		if (SHARE_REBUILDING == sfn)
+			goto library_rebuilt;
 
 		if (sfn && sf != sfn) {
 			char location[1024];
@@ -3108,7 +3132,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
-			gm_snprintf(location, sizeof(location),
+			str_bprintf(location, sizeof(location),
 				"Location: /get/%lu/%s\r\n",
 				(ulong) shared_file_index(sfn), escaped);
 
@@ -3194,6 +3218,11 @@ sha1_recomputed:
 
 not_found:
 	upload_error_not_found(u, uri);
+	return -1;
+
+library_rebuilt:
+	/* Retry-able by user, hence 503 */
+	upload_error_remove(u, 503, N_("Library being rebuilt"));
 	return -1;
 }
 
@@ -3532,6 +3561,9 @@ select_encoding(const header_t *header)
 
 /**
  * Extract X-Downloaded from header, returning 0 if none.
+ *
+ * The X-Downloaded header lets us better estimate the time an upload request
+ * can take if we are the only source for the file.
  */
 static filesize_t
 extract_downloaded(const struct upload *u, const header_t *header)
@@ -3763,7 +3795,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		static const char fmt[] = "Location: http://%s:%u/\r\n";
 		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		gm_snprintf(location, sizeof location, fmt,
+		str_bprintf(location, sizeof location, fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, "Redirecting");
@@ -3795,7 +3827,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	{
 		static char lm_buf[64];
 
-		gm_snprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
+		str_bprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
 		upload_http_extra_line_add(u, lm_buf);
 	}
@@ -3977,13 +4009,13 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	buf = header_get(header, "Range");
 	if (buf && shared_file_size(u->sf) > 0) {
-		http_range_t *r;
-		GSList *ranges;
+		enum http_range_extract_status rs;
 
-		ranges = http_range_parse("Range", buf,
-					shared_file_size(u->sf), u->user_agent);
+		rs = http_range_extract_first("Range", buf,
+			shared_file_size(u->sf), u->user_agent,
+			&range_skip, &range_end);
 
-		if (ranges == NULL) {
+		if (HTTP_RANGE_NONE == rs) {
 			if (GNET_PROPERTY(upload_debug)) {
 				g_warning("cannot parse Range \"%s\" sent by %s",
 					buf, upload_host_info(u));
@@ -3999,23 +4031,15 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		 *		--RAM, 27/01/2003
 		 */
 
-		if (g_slist_next(ranges) != NULL) {
+		if (HTTP_RANGE_MULTI == rs) {
 			if (GNET_PROPERTY(upload_debug)) {
 				g_warning("%s requested several ranges for \"%s\": %s",
-					upload_host_info(u), shared_file_name_nfc(u->sf),
-					http_range_to_string(ranges));
+					upload_host_info(u), shared_file_name_nfc(u->sf), buf);
 			}
 		}
 
-		r = ranges->data;
-
-		g_assert(r->start <= r->end);
-		g_assert(r->end < shared_file_size(u->sf));
-
-		range_skip = r->start;
-		range_end = r->end;
-
-		http_range_free(ranges);
+		g_assert(range_skip <= range_end);
+		g_assert(range_end < shared_file_size(u->sf));
 	} else {
 		range_end = u->file_size - 1;
 	}
@@ -4148,7 +4172,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
-			gm_snprintf(retry_after, sizeof(retry_after),
+			str_bprintf(retry_after, sizeof(retry_after),
 				"Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
@@ -4648,7 +4672,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			upload_http_extra_line_add(u, content_encoding);
 		}
 
-		gm_snprintf(name, sizeof name,
+		str_bprintf(name, sizeof name,
 				_("<Browse Host Request> [%s%s%s]"),
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
 				(flags & BH_F_DEFLATE) ? _(", deflate") :
@@ -4806,7 +4830,7 @@ upload_request(struct upload *u, header_t *header)
 	u->socket->getline = NULL;
 
 	if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_IN) {
-		g_debug("----%s Request%s #%u from %s%s%s:\n%s",
+		g_debug("----%s HTTP Request%s #%u from %s%s%s:\n%s",
 			u->is_followup ? "Follow-up" : "Incoming",
 			u->last_was_error ? " (after error)" : "",
 			u->reqnum,

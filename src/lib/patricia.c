@@ -147,9 +147,11 @@
 #include "endian.h"
 #include "glib-missing.h"
 #include "misc.h"
-#include "random.h"
 #include "pow2.h"
+#include "random.h"
 #include "walloc.h"
+#include "xmalloc.h"
+
 #include "override.h"			/* Must be the last header included */
 
 /**
@@ -2630,10 +2632,13 @@ static G_GNUC_COLD void
 test_keys(uint32 keys[], size_t nkeys)
 {
 	size_t i;
-	uint32 *data = g_malloc(nkeys * sizeof(uint32));
+	uint32 *data;
 	patricia_t *pt = patricia_create(32);
-	uint32 *p = data;
+	uint32 *p;
 	size_t even;
+
+	XMALLOC_ARRAY(data, nkeys);
+	p = data;
 
 	/* count even keys... */
 
@@ -2851,7 +2856,7 @@ test_keys(uint32 keys[], size_t nkeys)
 	g_assert(pt->nodes == 0);
 	g_assert(pt->embedded == 0);
 
-	G_FREE_NULL(data);
+	XFREE_NULL(data);
 	patricia_destroy(pt);
 }
 

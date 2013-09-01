@@ -91,10 +91,11 @@ word_vec_close(void)
 static word_vec_t *
 word_vec_zrealloc(word_vec_t *wv, int ncount)
 {
-	word_vec_t *nwv = halloc(ncount * sizeof(word_vec_t));
-
+	word_vec_t *nwv;
+	
 	g_assert(ncount > WOVEC_DFLT);
 
+	HALLOC_ARRAY(nwv, ncount);
 	memcpy(nwv, wv, WOVEC_DFLT * sizeof(word_vec_t));
 	zfree(wovec_zone, wv);
 
@@ -171,7 +172,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 				if (n == nv) {				/* Filled all the slots */
 					nv *= 2;
 					if (n > WOVEC_DFLT)
-						wv = hrealloc(wv, nv * sizeof(word_vec_t));
+						HREALLOC_ARRAY(wv, nv);
 					else
 						wv = word_vec_zrealloc(wv, nv);
 				}

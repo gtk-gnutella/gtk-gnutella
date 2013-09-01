@@ -5784,7 +5784,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_early_stall_2);
   gtk_box_pack_start (GTK_BOX (hbox2110), eventbox_early_stall_2, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting ougoing HTTP bandwidth evenly."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting outgoing HTTP bandwidth evenly."), NULL);
 
   image_early_stall_2 = create_pixmap (main_window, "upload-yellow.xpm");
   gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
@@ -10365,6 +10365,9 @@ create_dlg_prefs (void)
   GtkWidget *table102;
   GtkWidget *checkbutton_enable_natpmp;
   GtkWidget *checkbutton_enable_upnp;
+  GtkWidget *label8034;
+  GtkObject *spinbutton_config_upnp_mapping_lease_time_adj;
+  GtkWidget *spinbutton_config_upnp_mapping_lease_time;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -11454,13 +11457,15 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_nw_port_mapping);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_port_mapping, TRUE, TRUE, 0);
 
-  table102 = gtk_table_new (1, 2, FALSE);
+  table102 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table102, "table102");
   gtk_widget_ref (table102);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table102", table102,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table102);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_port_mapping), table102);
+  gtk_container_set_border_width (GTK_CONTAINER (table102), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table102), 4);
 
   checkbutton_enable_natpmp = gtk_check_button_new_with_label (_("Enable NAT-PMP"));
   gtk_widget_set_name (checkbutton_enable_natpmp, "checkbutton_enable_natpmp");
@@ -11481,6 +11486,30 @@ create_dlg_prefs (void)
   gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_upnp, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label8034 = gtk_label_new (_("Mapping lease time"));
+  gtk_widget_set_name (label8034, "label8034");
+  gtk_widget_ref (label8034);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label8034", label8034,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8034);
+  gtk_table_attach (GTK_TABLE (table102), label8034, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label8034), 0, 0.5);
+
+  spinbutton_config_upnp_mapping_lease_time_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_upnp_mapping_lease_time = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upnp_mapping_lease_time_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upnp_mapping_lease_time, "spinbutton_config_upnp_mapping_lease_time");
+  gtk_widget_ref (spinbutton_config_upnp_mapping_lease_time);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_upnp_mapping_lease_time", spinbutton_config_upnp_mapping_lease_time,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_upnp_mapping_lease_time);
+  gtk_table_attach (GTK_TABLE (table102), spinbutton_config_upnp_mapping_lease_time, 1, 2, 1, 2,
+                    (GtkAttachOptions) (0),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_upnp_mapping_lease_time, 64, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upnp_mapping_lease_time), TRUE);
 
   frame_proxy_settings = gtk_frame_new (_("Proxy settings"));
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
@@ -15990,7 +16019,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_pfsp_rare_server = gtk_check_button_new_with_label (_("Enable upload of patial files deemed rare"));
+  checkbutton_pfsp_rare_server = gtk_check_button_new_with_label (_("Enable upload of partial files deemed rare"));
   gtk_widget_set_name (checkbutton_pfsp_rare_server, "checkbutton_pfsp_rare_server");
   gtk_widget_ref (checkbutton_pfsp_rare_server);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_pfsp_rare_server", checkbutton_pfsp_rare_server,

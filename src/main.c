@@ -141,13 +141,14 @@
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/tea.h"
+#include "lib/thread.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
-#include "lib/thread.h"
 #include "lib/tm.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/vmm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 #include "lib/wordvec.h"
@@ -194,6 +195,8 @@ static volatile const char *exit_step = "gtk_gnutella_exit";
 
 static bool main_timer(void *);
 
+pid_t adns_pid;
+
 #ifdef SIGALRM
 /**
  * Force immediate shutdown of SIGALRM reception.
@@ -224,7 +227,7 @@ sig_chld(int n)
 {
 	int saved_errno = errno;
 	(void) n;
-	while (waitpid(-1, NULL, WNOHANG) > 0)
+	while (waitpid(adns_pid, NULL, WNOHANG) > 0)
 		continue;
 	errno = saved_errno;
 }
@@ -339,7 +342,7 @@ gtk_gnutella_atexit(void)
 	 */
 
 	if (!exiting) {
-		g_warning("trapped foreign exit(), cleaning up...");
+		g_critical("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
 #ifndef USE_TOPLESS
 		running_topless = TRUE;		/* X connection may be broken, avoid GUI */
@@ -612,6 +615,15 @@ gtk_gnutella_exit(int exit_code)
 	DO(oob_shutdown);		/* No longer deliver outstanding OOB hits */
 	DO(socket_shutdown);
 	DO(bsched_shutdown);
+
+	/*
+	 * If auto-restart was requested, flag that in the properties so that
+	 * we'll know about that request when we restart.
+	 */
+
+	if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
+	}
 
 	if (!running_topless)
 		DO(settings_gui_shutdown);
@@ -1805,6 +1817,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
 	random_init();
+	vsort_init(1);
 	htable_test();
 	wq_init();
 	inputevt_init(options[main_arg_use_poll].used);
@@ -1814,7 +1827,7 @@ main(int argc, char **argv)
 	patricia_test();
 	strtok_test();
 	locale_init();
-	adns_init();
+	adns_pid = adns_init();
 	file_object_init();
 	socket_init();
 	gnet_stats_init();

@@ -39,9 +39,10 @@
 #include "if/core/main.h"
 
 #include "lib/ascii.h"
-#include "lib/header.h"
 #include "lib/glib-missing.h"
+#include "lib/header.h"
 #include "lib/parse.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -206,7 +207,7 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 		if (item->guardfn && !(*item->guardfn)())
 			continue;
 
-		gm_snprintf(buf, sizeof buf, "%s/%d.%d",
+		str_bprintf(buf, sizeof buf, "%s/%d.%d",
 			item->name, item->major, item->minor);
 
 		header_fmt_append_value(fmt, buf);

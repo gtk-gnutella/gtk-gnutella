@@ -43,7 +43,6 @@
 #include "if/gui_property_priv.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/parse.h"
 #include "lib/str.h"
@@ -332,14 +331,14 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
         ruleset = f->ruleset;
 
     titles[0] = lazy_utf8_to_ui_string(f->name);
-    gm_snprintf(buf[1], sizeof buf[1], "%d", g_list_length(ruleset));
+    str_bprintf(buf[1], sizeof buf[1], "%d", g_list_length(ruleset));
     titles[1] = buf[1];
     count = f->match_count + f->fail_count;
     if (count != 0) {
         if (filter_is_builtin(f)) {
-            gm_snprintf(buf[2], sizeof buf[2], "%d", f->match_count);
+            str_bprintf(buf[2], sizeof buf[2], "%d", f->match_count);
         } else {
-            gm_snprintf(buf[2], sizeof buf[2], "%d/%d (%d%%)",
+            str_bprintf(buf[2], sizeof buf[2], "%d/%d (%d%%)",
                 f->match_count, count,
 				f->match_count * 100 / count);
         }
@@ -394,9 +393,9 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
     count = f->match_count + f->fail_count;
     if (count != 0) {
         if (filter_is_builtin(f)) {
-            gm_snprintf(buf, sizeof buf, "%d", f->match_count);
+            str_bprintf(buf, sizeof buf, "%d", f->match_count);
         } else {
-            gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
+            str_bprintf(buf, sizeof buf, "%d/%d (%d%%)",
                 f->match_count, count,
 				f->match_count * 100 / count);
         }
@@ -441,7 +440,7 @@ filter_gui_update_rule_count(filter_t *f, GList *ruleset)
     if (node != NULL) {
 		gchar buf[32];
 		
-        gm_snprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
+        str_bprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
         gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters),
 			node, 1, buf);
     }
@@ -471,7 +470,7 @@ filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 	if (tree_find_iter_by_data(model, 0, f, &iter)) {
 		gchar buf[32];
 		
-        gm_snprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
+        str_bprintf(buf, sizeof buf, "%d", g_list_length(ruleset));
 		gtk_tree_store_set(GTK_TREE_STORE(model), &iter, 2, buf, (-1));
 	}
 }
@@ -746,9 +745,9 @@ filter_get_filter_stats(const filter_t *filter)
 		n = filter->match_count + filter->fail_count;
 		if (n != 0) {
 			if (filter_is_builtin(filter)) {
-				gm_snprintf(buf, sizeof buf, "%d", filter->match_count);
+				str_bprintf(buf, sizeof buf, "%d", filter->match_count);
 			} else {
-				gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
+				str_bprintf(buf, sizeof buf, "%d/%d (%d%%)",
 					filter->match_count, n,
 					filter->match_count * 100 / n);
 			}
@@ -848,7 +847,7 @@ filter_get_rule_stats(const rule_t *rule)
 
 		n = rule->match_count + rule->fail_count;
 		if (n != 0) {
-			gm_snprintf(buf, sizeof buf, "%d/%d (%d%%)",
+			str_bprintf(buf, sizeof buf, "%d/%d (%d%%)",
 				rule->match_count, n,
 				rule->match_count * 100 / n);
 			title = buf;

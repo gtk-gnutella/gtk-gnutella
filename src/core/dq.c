@@ -66,6 +66,7 @@
 #include "lib/nid.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		   /* Must be the last header included */
@@ -706,7 +707,7 @@ dq_free_next_up(dquery_t *dq)
 		for (i = 0; i < dq->nv_found; i++) {
 			nid_unref(dq->nv[i].node_id);
 		}
-		wfree(dq->nv, dq->nv_count * sizeof dq->nv[0]);
+		WFREE_ARRAY(dq->nv, dq->nv_count);
 		dq->nv = NULL;
 		dq->nv_count = 0;
 		dq->nv_found = 0;
@@ -1486,7 +1487,7 @@ dq_send_next(dquery_t *dq)
 		return;
 	}
 
-	nv = walloc(ncount * sizeof nv[0]);
+	WALLOC_ARRAY(nv, ncount);
 	found = dq_fill_next_up(dq, nv, ncount);
 
 	g_assert(dq->nv == nv);		/* Saved for next time */
@@ -1505,7 +1506,7 @@ dq_send_next(dquery_t *dq)
 	 * with a QRP match.
 	 */
 
-	qsort(nv, found, sizeof nv[0], node_mq_qrp_cmp);
+	vsort(nv, found, sizeof nv[0], node_mq_qrp_cmp);
 
 	/*
 	 * Select the first node, and compute the proper TTL for the query.
@@ -1627,7 +1628,7 @@ dq_send_probe(dquery_t *dq)
 	g_assert(dq->results_ev == NULL);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 
-	nv = walloc(ncount * sizeof nv[0]);
+	WALLOC_ARRAY(nv, ncount);
 	found = dq_fill_probe_up(dq, nv, ncount);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
@@ -1663,7 +1664,7 @@ dq_send_probe(dquery_t *dq)
 	 * the less pending data are listed first.
 	 */
 
-	qsort(nv, found, sizeof nv[0], node_mq_cmp);
+	vsort(nv, found, sizeof nv[0], node_mq_cmp);
 
 	/*
 	 * Send the probe query to the first DQ_PROBE_UP nodes.
@@ -1685,7 +1686,7 @@ dq_send_probe(dquery_t *dq)
 		dq_results_expired, dq);
 
 cleanup:
-	wfree(nv, ncount * sizeof nv[0]);
+	WFREE_ARRAY(nv, ncount);
 }
 
 static struct nid

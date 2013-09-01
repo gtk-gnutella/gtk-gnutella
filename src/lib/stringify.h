@@ -81,6 +81,7 @@
 #define USHRT_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned short)
 #define UINT_DEC_BUFLEN		TYPE_DEC_BUFLEN(unsigned int)
 #define ULONG_DEC_BUFLEN	TYPE_DEC_BUFLEN(unsigned long)
+#define FILESIZE_DEC_BUFLEN	TYPE_DEC_BUFLEN(filesize_t)
 
 #define INT_DEC_BUFLEN		TYPE_DEC_BUFLEN(int)
 #define LONG_DEC_BUFLEN		TYPE_DEC_BUFLEN(long)
@@ -122,6 +123,7 @@ const char *size_t_to_string(size_t);
 const char *pointer_to_string(const void *);
 const char *filesize_to_string(filesize_t);
 const char *filesize_to_string2(filesize_t);
+const char *filesize_to_string3(filesize_t);
 const char *ipv6_to_string(const uint8 *ipv6);
 const char *ipv6_to_string2(const uint8 *ipv6);
 size_t ipv6_to_string_buf(const uint8 *ipv6, char *dst, size_t size);

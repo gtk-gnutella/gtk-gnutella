@@ -401,6 +401,38 @@ static const char *keys_098_4[] = {
 	"aeed 4f98 40ca 8dfa 3488 d8c4 6b70 92c7",
 };
 
+static const char *keys_100_0[] = {
+	"b6e8 a799 db61 cbe8 ce60 1438 a3c0 31ab",
+	"6f8c 91be f9df b352 cce4 a837 ce3b 73a2",
+	"2c61 cb7b e7c7 613f b020 17ac cad1 899f",
+	"bda1 e42e 8d26 f98a bb37 8b3a fe33 9de2",
+	"612a 8eea af18 3792 aec1 42dd d242 53c7",
+	"7ebf 027a c5a3 8cf2 19d7 17ae 1ac3 4d48",
+	"de52 5dc9 1130 059e a7e3 5994 bd17 99a4",
+	"f27e 75d7 b23f 20b7 ba72 bde7 6b05 6513",
+	"377f 9f2a 049e 8410 57fb edf9 e67e 80e0",
+	"48cc 202c eaf1 a7eb 0ae9 d2b1 1f40 a333",
+	"05b4 e02f 8369 8712 e31a 3a2f 8f9b 8a65",
+	"0290 e4a5 bcb8 795e 31e7 5cd3 e73a 3a0b",
+	"7781 c375 0d49 d4d5 175a 7c69 fcf6 d345",
+	"c2be 1fb2 1056 6ea7 0299 d8f7 8cfa bdd8",
+	"91b1 e043 eb64 4ed4 b195 0967 623c 5532",
+	"cf11 65f8 2688 9e26 b0b4 c75a 2eec 4ca9",
+	"e9a3 ec87 e160 2783 0de9 df46 b1b5 952f",
+	"ce27 deba 3d8b a62f 1940 77b7 4a54 e281",
+	"30ac 305f 1ec6 cf78 8e76 d47b 4a1b d291",
+	"4b4e 899d c18c 4b71 c621 a6e3 6740 4993",
+	"0094 fcab 5cd6 5b5f 91e9 9829 5fdd 930b",
+	"3d6f 2ec5 f111 f18b fe59 1aa8 7cd6 b444",
+	"b88f 9d67 d687 3355 0ada 0631 3b6d 6a3d",
+	"41f2 d33f d88a f371 6c11 feaa 83c2 f964",
+	"a525 93a8 ade7 49fa 3e76 bcf2 ccc8 f043",
+	"df6d b945 a6ff 14f6 2963 1795 ea92 266d",
+	"7271 5313 f59d f0da 343d b348 2089 c717",
+	"0ce6 7dd0 5a41 7f37 a7fd 1a81 c77e 2f89",
+	"c14b 2928 a554 d0db d921 45ce 91b7 7dd8",
+};
+
 /**
  * Describes the keys to use depending on the version.
  */
@@ -458,6 +490,10 @@ struct tokkey {
 	{
 		{ 0, 98, 4, '\0', 0, 0, 1352588400 },		/* 2012-11-11 */
 		keys_098_4, G_N_ELEMENTS(keys_098_4),
+	},
+	{
+		{ 1, 0, 0, '\0', 0, 0, 1377986400 },		/* 2013-09-01 */
+		keys_100_0, G_N_ELEMENTS(keys_100_0),
 	},
 };
 

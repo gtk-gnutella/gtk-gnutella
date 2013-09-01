@@ -4,26 +4,30 @@
 # Copyright (C) 2000-2001 Yann Grossel.
 # Copyright (C) 2001-2010 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# Vitaliy Buyar <vetal17@gmail.com>, 2005.
 #
+# Vitaliy Buyar <vetal17@gmail.com>, 2005.
+# Yuri Chornoivan <yurchor@ukr.net>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2012-11-09 16:26+0100\n"
-"PO-Revision-Date: 2006-07-13 22:09-0400\n"
-"Last-Translator: Vitalik\n"
-"Language-Team:  <uk@li.org>\n"
+"PO-Revision-Date: 2012-12-31 15:21+0000\n"
+"Last-Translator: yurchor <Unknown>\n"
+"Language-Team: Ukrainian <kde-i18n-uk@kde.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: \n"
-"Plural-Forms: nplurals=2; plural=(n%10==1 && n%100!=11 ? 0 : 1);\n"
-"X-Generator: KBabel 1.11.1\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Launchpad-Export-Date: 2013-05-08 19:08+0000\n"
+"X-Generator: Launchpad (build 16598)\n"
+"Language: uk\n"
+"X-Poedit-Language: Ukrainian\n"
 
 #, c-format
 msgid "%s%s%s%s%s fps, %s kbps"
-msgstr ""
+msgstr "%s%s%s%s%s кд/с, %s кбіт/с"
 
 msgid "times|x"
 msgstr ""
@@ -36,24 +40,21 @@ msgstr ""
 msgid "Stopped (%s)"
 msgstr "Зупинено (%s)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Too many attempts (%u times)"
-msgstr "Забагато спроб (%d раз(а)(ів))"
+msgstr ""
 
-#, fuzzy
 msgid "Requeued due to no push-proxy"
-msgstr "Поставлено в чергу через зміну інформації про файл"
+msgstr ""
 
-#, fuzzy
 msgid "Requeued due to file removal"
-msgstr "Поставлено в чергу через зміну інформації про файл"
+msgstr ""
 
 msgid "Requeued by file info change"
 msgstr "Поставлено в чергу через зміну інформації про файл"
 
-#, fuzzy
 msgid "Duplicate download"
-msgstr "показувати _Звантаження"
+msgstr ""
 
 msgid "Nothing else to switch to"
 msgstr ""
@@ -74,24 +75,22 @@ msgid "Ignoring requested (%s)"
 msgstr ""
 
 msgid "Paused"
-msgstr ""
+msgstr "Призупинено"
 
 msgid "Nothing more to get"
 msgstr ""
 
 msgid "Waiting for a free chunk"
-msgstr "Чекаєм на вільний кусок (chunk)"
+msgstr "Очікуємо на вільний шматок"
 
 msgid "No more gaps to fill"
 msgstr ""
 
-#, fuzzy
 msgid "Download queue is frozen"
-msgstr "Черга затримана"
+msgstr ""
 
-#, fuzzy
 msgid "No download slot (start)"
-msgstr "Немає слоту для скачування"
+msgstr ""
 
 msgid "Connection failed (Out of file descriptors?)"
 msgstr "З'єднання провалилось (більше немає описів файла)"
@@ -105,34 +104,32 @@ msgstr ""
 msgid "Waiting for server PROX publishing"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for push route"
-msgstr "Чекаєм на вільний кусок (chunk)"
+msgstr ""
 
-#, fuzzy
 msgid "Push route lost"
-msgstr "Шлях втрачено"
+msgstr ""
 
 msgid "Ignoring Push flag"
-msgstr "Ігноруєм Push прапорець"
+msgstr "Ігноруємо прапорець Push"
 
-#, fuzzy, c-format
+#, c-format
 msgid "No direct connection yet (%u retry)"
 msgid_plural "No direct connection yet (%u retries)"
-msgstr[0] "Прямого з'єднання поки що немає (%d спроба)"
-msgstr[1] "Прямого з'єднання поки що немає (%d спроб)"
+msgstr[0] ""
+msgstr[1] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Timeout (%u retry)"
 msgid_plural "Timeout (%u retries)"
-msgstr[0] "Тайм-аут (%d спроба)"
-msgstr[1] "Тайм-аут (%d спроб)"
+msgstr[0] ""
+msgstr[1] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Connection refused (%u retry)"
 msgid_plural "Connection refused (%u retries)"
-msgstr[0] "У з'єднанні відмовленно (%d спроба)"
-msgstr[1] "У з'єднанні відмовленно (%d спроб)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Dup SHA1 during creation"
 msgstr "Dup SHA1 during creation"
@@ -155,13 +152,12 @@ msgstr "Зупинено (Індекс змінився)"
 msgid "Explicitly requeued"
 msgstr "Потрібне роз'яснення"
 
-#, fuzzy
 msgid "Failed (Header line too large)"
-msgstr "Провалилось (Помилка: %s)"
+msgstr ""
 
 #, c-format
 msgid "Failed (%s)"
-msgstr ""
+msgstr "Помилка (%s)"
 
 msgid "Failed (Input buffer full)"
 msgstr ""
@@ -172,20 +168,20 @@ msgstr "З'єднання не підтримувалось (not kept-alive) (EO
 msgid "Stopped (EOF) <err_header_read_eof>"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't check resume data: %s"
-msgstr "Не можливо зберегти дані: %s"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't stat opened file: %s"
-msgstr "Не можливо зберегти дані: %s"
+msgstr ""
 
 msgid "Stopped (Output file size changed)"
 msgstr "Зупинено (Змінився розмір кінцевого файла)"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Can't read resume data: %s"
-msgstr "Не можливо зберегти дані: %s"
+msgstr ""
 
 msgid "Short read on resume data"
 msgstr ""
@@ -205,7 +201,7 @@ msgid "Requeued after trimmed data"
 msgstr ""
 
 msgid "Chunk done, connection closed"
-msgstr "Кусок закінчено, з'єднання закрито"
+msgstr "Шматок отримано, з'єднання закрито"
 
 #, c-format
 msgid "Switching to \"%s\""
@@ -214,13 +210,11 @@ msgstr ""
 msgid "Requeued by competing download"
 msgstr ""
 
-#, fuzzy
 msgid "Weird HTTP status"
-msgstr "Незвичайний статус HTTP (protocol desync?)"
+msgstr ""
 
-#, fuzzy
 msgid "Download was a duplicate"
-msgstr "Скачано"
+msgstr ""
 
 msgid "Filesize mismatch"
 msgstr ""
@@ -249,13 +243,12 @@ msgstr ""
 msgid "More data to sink than expected"
 msgstr ""
 
-#, fuzzy
 msgid "Stopped data (EOF)"
-msgstr "Зупинено (%s)"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Stopped data (%s)"
-msgstr "Зупинено (%s)"
+msgstr ""
 
 #, c-format
 msgid "Failed (Read error: %s)"
@@ -292,7 +285,7 @@ msgid "%sRequested range unavailable yet"
 msgstr ""
 
 msgid "Queued"
-msgstr "Поставлено в чергу"
+msgstr "Поставлено до черги"
 
 #, c-format
 msgid " (slot %d"
@@ -300,7 +293,7 @@ msgstr ""
 
 #, c-format
 msgid ", ETA: %s"
-msgstr ""
+msgstr ", час: %s"
 
 msgid "Server did not supply identification"
 msgstr ""
@@ -329,20 +322,18 @@ msgstr ""
 msgid "No Content-Length header"
 msgstr ""
 
-#, fuzzy
 msgid "Search already closed"
-msgstr "Пошук додано"
+msgstr ""
 
-#, fuzzy
 msgid "THEX download aborted"
-msgstr "Скачано"
+msgstr ""
 
 msgid "Pipeline flow stopped"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open %s: %s"
-msgstr "Не можливо зберегти дані: %s"
+msgstr ""
 
 msgid "Cannot resume: file gone"
 msgstr ""
@@ -362,26 +353,25 @@ msgstr ""
 
 #, c-format
 msgid "Write failed: %s"
-msgstr ""
+msgstr "Помилка запису: %s"
 
 msgid "Malformed push reply"
 msgstr ""
 
 msgid ", inbound"
-msgstr ""
+msgstr ", вхідне"
 
 msgid ", outbound"
-msgstr ""
+msgstr ", вихідне"
 
 msgid ", banning"
-msgstr ""
+msgstr ", блокуємо"
 
 msgid ", g2"
-msgstr ""
+msgstr ", g2"
 
-#, fuzzy
 msgid ", vendor?"
-msgstr "Версія"
+msgstr ", виробник?"
 
 #, c-format
 msgid "<Browse Host %s>"
@@ -400,9 +390,8 @@ msgstr ""
 msgid "No longer connected"
 msgstr "Роз'єднано"
 
-#, fuzzy
 msgid "Too many data timeouts"
-msgstr "Забагато спроб (%d раз(а)(ів))"
+msgstr ""
 
 msgid "Timeout"
 msgstr "Тайм-аут"
@@ -421,7 +410,7 @@ msgid "Downloading (TR: %s)"
 msgstr ""
 
 msgid "Seeding"
-msgstr ""
+msgstr "Поширення"
 
 msgid "Computing TTH"
 msgstr ""
@@ -429,23 +418,20 @@ msgstr ""
 msgid "Computing SHA1"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for TTH check"
-msgstr "Чекаєм на вільний кусок (chunk)"
+msgstr ""
 
-#, fuzzy
 msgid "Waiting for SHA1 check"
-msgstr "Чекаєм на вільний кусок (chunk)"
+msgstr ""
 
 msgid "SHA1"
-msgstr ""
+msgstr "SHA1"
 
 msgid "OK"
-msgstr ""
+msgstr "Гаразд"
 
-#, fuzzy
 msgid "failed"
-msgstr "файл"
+msgstr "помилка"
 
 msgid "not computed yet"
 msgstr ""
@@ -454,20 +440,20 @@ msgid "Waiting for moving..."
 msgstr ""
 
 msgid "Moving"
-msgstr ""
+msgstr "Пересування"
 
 msgid "Finished"
-msgstr ""
+msgstr "Завершено"
 
 msgid "No sources"
-msgstr "Немає "
+msgstr "Немає джерел"
 
 #, c-format
 msgid "Queued (%u active, %u passive)"
-msgstr ""
+msgstr "У черзі (активних: %u, пасивних: %u)"
 
 msgid "Waiting"
-msgstr ""
+msgstr "Очікування"
 
 msgid "Querying DHT"
 msgstr ""
@@ -501,7 +487,7 @@ msgid "Bad size"
 msgstr "Неправильний розмір"
 
 msgid "Too small"
-msgstr "Замаленьке"
+msgstr "Замале"
 
 msgid "Too large"
 msgstr "Завелике"
@@ -522,14 +508,13 @@ msgid "Improper hops/ttl combination"
 msgstr ""
 
 msgid "Max TTL exceeded"
-msgstr "Досягнено кількість TTL"
+msgstr "Перевищено максимум TTL"
 
 msgid "Message throttle"
 msgstr ""
 
-#, fuzzy
 msgid "Message matched limits"
-msgstr "Загальна статистика"
+msgstr ""
 
 msgid "Transient node"
 msgstr ""
@@ -547,7 +532,7 @@ msgid "Route lost"
 msgstr "Шлях втрачено"
 
 msgid "No route"
-msgstr "Немає роуту"
+msgstr "Немає маршруту"
 
 msgid "Duplicate message"
 msgstr ""
@@ -592,18 +577,16 @@ msgid "Hostile IP address"
 msgstr ""
 
 msgid "Bogus result from Morpheus"
-msgstr ""
+msgstr "Непотрібний результат від Morpheus"
 
 msgid "Spam"
-msgstr "Спем"
+msgstr "Спам"
 
-#, fuzzy
 msgid "Evil filename"
-msgstr "Назва файла:"
+msgstr ""
 
-#, fuzzy
 msgid "Improper media type"
-msgstr "Пошук додано"
+msgstr ""
 
 msgid "Payload inflating error"
 msgstr ""
@@ -635,9 +618,8 @@ msgstr ""
 msgid "DHT Too many STORE requests"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Malformed message"
-msgstr "Спотворена команда"
+msgstr ""
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -674,7 +656,7 @@ msgid "Gnet connections disabled"
 msgstr ""
 
 msgid "Connection not compressed"
-msgstr "З'єднання не компресоване"
+msgstr "З'єднання без стискання"
 
 #, c-format
 msgid "Too many leaves (%d max)"
@@ -775,16 +757,14 @@ msgstr ""
 msgid "Pseudo UDP node"
 msgstr "Псевдо UDP вузол"
 
-#, fuzzy
 msgid "Pseudo semi-reliable UDP node"
-msgstr "Псевдо UDP вузол"
+msgstr ""
 
-#, fuzzy
 msgid "Pseudo DHT node"
-msgstr "Псевдо UDP вузол"
+msgstr ""
 
 msgid "Already connected"
-msgstr ""
+msgstr "Вже з'єднано"
 
 msgid "Limited connection"
 msgstr ""
@@ -808,25 +788,25 @@ msgid "Kicked: %s message too big (>= 64KiB limit)"
 msgstr ""
 
 msgid "Leaf"
-msgstr ""
+msgstr "Листок"
 
 msgid "Ultrapeer"
 msgstr ""
 
 msgid "Legacy"
-msgstr ""
+msgstr "Застаріле"
 
 msgid "Crawler"
 msgstr ""
 
 msgid "UDP"
-msgstr ""
+msgstr "UDP"
 
 msgid "DHT"
-msgstr ""
+msgstr "DHT"
 
 msgid "Unknown"
-msgstr ""
+msgstr "Невідомо"
 
 msgid "Read failed (Input Exception)"
 msgstr ""
@@ -882,7 +862,7 @@ msgid "Read error"
 msgstr "Помилка зчитування"
 
 msgid "Got EOF"
-msgstr ""
+msgstr "Отримано EOF"
 
 msgid "TLS handshake failed"
 msgstr ""
@@ -908,7 +888,7 @@ msgid "Connect back timeout"
 msgstr ""
 
 msgid "Request timeout"
-msgstr ""
+msgstr "Час очікування запиту"
 
 msgid "Timeout waiting for follow-up"
 msgstr ""
@@ -917,25 +897,23 @@ msgid "Lifetime expired"
 msgstr ""
 
 msgid "Unauthorized"
-msgstr ""
+msgstr "Не уповноважено"
 
 #, c-format
 msgid "Limiting connections from %s"
 msgstr ""
 
 msgid "No reason given"
-msgstr ""
+msgstr "Причину не вказано"
 
 msgid "Bad Request"
+msgstr "Некоректний запит"
+
+msgid "Header too large"
 msgstr ""
 
-#, fuzzy
-msgid "Header too large"
-msgstr "Провалилось (Помилка: %s)"
-
-#, fuzzy
 msgid "Input buffer full"
-msgstr "Зупинено (Буфер зчитування заповнений)"
+msgstr ""
 
 msgid "Extra data after HTTP header"
 msgstr ""
@@ -944,7 +922,7 @@ msgid "Unable to send GIV"
 msgstr ""
 
 msgid "Not Found"
-msgstr ""
+msgstr "Не знайдено"
 
 msgid "File was modified"
 msgstr ""
@@ -984,7 +962,7 @@ msgid "Redirected to %s:%u"
 msgstr ""
 
 msgid "Not Modified"
-msgstr ""
+msgstr "Не змінено"
 
 msgid "Stalling upload replaced"
 msgstr ""
@@ -992,9 +970,8 @@ msgstr ""
 msgid "Already downloading this file"
 msgstr ""
 
-#, fuzzy
 msgid "Malformed Range request"
-msgstr "Спотворена команда"
+msgstr ""
 
 msgid "Requested range not satisfiable"
 msgstr ""
@@ -1002,9 +979,8 @@ msgstr ""
 msgid "Requested range not available yet"
 msgstr ""
 
-#, fuzzy
 msgid "Queue full"
-msgstr "Черга затримана"
+msgstr ""
 
 msgid "Another connection is still active"
 msgstr ""
@@ -1024,20 +1000,20 @@ msgid "Cannot send whole HTTP status"
 msgstr ""
 
 msgid "Not Acceptable"
-msgstr ""
+msgstr "Дані не прийнято"
 
 #, c-format
 msgid "<Browse Host Request> [%s%s%s]"
 msgstr ""
 
 msgid "query hits"
-msgstr ""
+msgstr "спроб запиту"
 
 msgid ", deflate"
-msgstr ""
+msgstr ", deflate"
 
 msgid ", gzip"
-msgstr ""
+msgstr ", gzip"
 
 msgid ", chunked"
 msgstr ""
@@ -1048,15 +1024,14 @@ msgstr ""
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
 
-#, fuzzy
 msgid "Not Implemented"
-msgstr "Завершено"
+msgstr "Не реалізовано"
 
 msgid "No Content Allowed"
 msgstr ""
 
 msgid "Bad URI"
-msgstr ""
+msgstr "Помилкова адреса"
 
 msgid "Bad Path"
 msgstr ""
@@ -1145,41 +1120,38 @@ msgstr "ультра вузол"
 msgid "leaf node"
 msgstr "гілка вузол"
 
-#, fuzzy
 msgid "none"
-msgstr "вузол"
+msgstr "немає"
 
 msgid "input only"
-msgstr ""
+msgstr "лише вхід"
 
 msgid "output only"
-msgstr ""
+msgstr "лише вихід"
 
 msgid "input & output"
-msgstr ""
+msgstr "вхід і вихід"
 
 msgid "seeded"
-msgstr ""
+msgstr "поширено"
 
 msgid "own KUID lookup"
 msgstr ""
 
-#, fuzzy
 msgid "completing"
-msgstr "Завершено"
+msgstr "виконуємо"
 
-#, fuzzy
 msgid "completed"
-msgstr "Завершено"
+msgstr "виконано"
 
 msgid "shutdown"
-msgstr ""
+msgstr "завершення роботи"
 
 msgid "active (recommended)"
-msgstr ""
+msgstr "активний (рекомендовано)"
 
 msgid "passive"
-msgstr ""
+msgstr "пасивний"
 
 msgid "Indicates whether the hostcache file is being read."
 msgstr ""
@@ -1281,7 +1253,8 @@ msgid ""
 "is not used to guard against undue censorship."
 msgstr ""
 
-msgid "Use this IP address as source address if 'force local ip' is activated."
+msgid ""
+"Use this IP address as source address if 'force local ip' is activated."
 msgstr ""
 
 msgid ""
@@ -1668,7 +1641,8 @@ msgstr ""
 msgid "Network protocols to use."
 msgstr ""
 
-msgid "Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
+msgid ""
+"Use an IPv6-to-IPv4 Transport Relay Translator asspecified by RFC 3142."
 msgstr ""
 
 msgid ""
@@ -1793,7 +1767,8 @@ msgstr ""
 msgid "Ignore symbolically linked directories when scanning files to share."
 msgstr ""
 
-msgid "Ignore symbolically linked regular files when scanning files to share."
+msgid ""
+"Ignore symbolically linked regular files when scanning files to share."
 msgstr ""
 
 msgid "Store incomplete files in this directory."
@@ -1801,8 +1776,8 @@ msgstr ""
 
 msgid ""
 "Move complete files to this directory. If this is set to the SAME directory "
-"as the incomplete or corrupted files, files will be renamed with a trailing ."
-"OK"
+"as the incomplete or corrupted files, files will be renamed with a trailing "
+".OK"
 msgstr ""
 
 msgid ""
@@ -2015,8 +1990,8 @@ msgid ""
 "download chunks in a random order, to maximize the spreading of the file in "
 "the network.  However, this makes auditing (file type, pre-viewing, etc...) "
 "of the file impossible. This field sets the size in bytes of the first chunk "
-"of data that should be continuously downloaded at the beginning of the "
-"file.  Don't set it too large."
+"of data that should be continuously downloaded at the beginning of the file. "
+" Don't set it too large."
 msgstr ""
 
 msgid ""
@@ -2053,8 +2028,8 @@ msgstr ""
 
 msgid ""
 "Whether gtk-gnutella should determine the servent types (as identified by "
-"their vendor string) that are unstable, preventing further connections to/"
-"from them.  This only works when gtk-gnutella already keeps track of "
+"their vendor string) that are unstable, preventing further connections "
+"to/from them.  This only works when gtk-gnutella already keeps track of "
 "unstable IP addresses."
 msgstr ""
 
@@ -2137,7 +2112,8 @@ msgid ""
 "node."
 msgstr ""
 
-msgid "Whether we meet the non-firewalled requirement to become an Ultra node."
+msgid ""
+"Whether we meet the non-firewalled requirement to become an Ultra node."
 msgstr ""
 
 msgid ""
@@ -2255,7 +2231,8 @@ msgstr ""
 msgid "Percentage of slots filled within our QRP table."
 msgstr ""
 
-msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
+msgid ""
+"Percentage of hashing conflicts whilst inserting data in our QRP table."
 msgstr ""
 
 msgid "Amount of hashed keywords in our QRP table."
@@ -2428,8 +2405,8 @@ msgid "Don't start more than this number of parallel downloads per file."
 msgstr ""
 
 msgid ""
-"If enabled, all received packets are dumped to $GTK_GNUTELLA_DIR/packets_rx."
-"dump."
+"If enabled, all received packets are dumped to "
+"$GTK_GNUTELLA_DIR/packets_rx.dump."
 msgstr ""
 
 msgid ""
@@ -2697,9 +2674,8 @@ msgstr ""
 msgid "Debug level for final shutdown."
 msgstr ""
 
-#, fuzzy
 msgid "Country preferences"
-msgstr "Вподобання"
+msgstr ""
 
 msgid "Debug level for country limits."
 msgstr ""
@@ -2755,9 +2731,8 @@ msgstr ""
 msgid "Maximum CPU frequency, in Hz."
 msgstr ""
 
-#, fuzzy
 msgid "DHT bootstrap status."
-msgstr "статистика HTTP трафіка"
+msgstr ""
 
 msgid ""
 "The DHT running mode. An active node will be able to store values and is a "
@@ -3102,7 +3077,7 @@ msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
 msgid "disable"
-msgstr ""
+msgstr "вимкнути"
 
 msgid "by words"
 msgstr ""
@@ -3132,13 +3107,13 @@ msgid "Bye"
 msgstr "Бувай"
 
 msgid "QRP"
-msgstr ""
+msgstr "QRP"
 
 msgid "HSEP"
-msgstr ""
+msgstr "HSEP"
 
 msgid "RUDP"
-msgstr ""
+msgstr "RUDP"
 
 msgid "Vendor spec."
 msgstr ""
@@ -3147,25 +3122,22 @@ msgid "Vendor std."
 msgstr ""
 
 msgid "Push"
-msgstr ""
+msgstr "Надіслати"
 
 msgid "Query"
-msgstr ""
+msgstr "Запит"
 
 msgid "Query Hit"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Ping"
-msgstr "Пінг"
+msgstr ""
 
-#, fuzzy
 msgid "DHT Pong"
-msgstr "Понг"
+msgstr ""
 
-#, fuzzy
 msgid "DHT Store"
-msgstr "HTTP трафік"
+msgstr ""
 
 msgid "DHT Store Ack"
 msgstr ""
@@ -3179,12 +3151,11 @@ msgstr ""
 msgid "DHT Find Value"
 msgstr ""
 
-#, fuzzy
 msgid "DHT Value"
-msgstr "Значення"
+msgstr ""
 
 msgid "Total"
-msgstr ""
+msgstr "Загалом"
 
 msgid "Icons"
 msgstr "Іконки"
@@ -3199,7 +3170,7 @@ msgid "Both (horizontal)"
 msgstr ""
 
 msgid "This session"
-msgstr ""
+msgstr "Цей сеанс роботи"
 
 msgid "1 hour"
 msgstr "1 година"
@@ -3323,16 +3294,14 @@ msgstr ""
 msgid "Show tabs or search list."
 msgstr ""
 
-#, fuzzy
 msgid "Display Searchbar."
-msgstr "показувати _Панель статусу"
+msgstr ""
 
 msgid "Display Sidebar."
 msgstr ""
 
-#, fuzzy
 msgid "Display Menu."
-msgstr "показувати _Панель статусу"
+msgstr ""
 
 msgid "Display statusbar."
 msgstr ""
@@ -3635,804 +3604,797 @@ msgid ""
 msgstr ""
 
 msgid "Anonymizing proxies"
-msgstr ""
+msgstr "Анонімні проксі-сервери"
 
 msgid "Satellite providers"
-msgstr ""
+msgstr "Супутникові провайдери"
 
 msgid "Andorra"
-msgstr ""
+msgstr "Андорра"
 
 msgid "United Arab Emirates"
-msgstr ""
+msgstr "Об’єднані Арабські Емірати"
 
 msgid "Afghanistan"
-msgstr ""
+msgstr "Афганістан"
 
 msgid "Antigua and Barbuda"
-msgstr ""
+msgstr "Антигуа і Барбуда"
 
 msgid "Anguilla"
-msgstr ""
+msgstr "Ангілья"
 
 msgid "Albania"
-msgstr ""
+msgstr "Албанія"
 
 msgid "Armenia"
-msgstr ""
+msgstr "Вірменія"
 
 msgid "Netherlands Antilles"
-msgstr ""
+msgstr "Нідерландські Антильські Острови"
 
 msgid "Angola"
-msgstr ""
+msgstr "Ангола"
 
 msgid "Asia/Pacific Region"
-msgstr ""
+msgstr "Азійсько-тихоокеанський регіон"
 
 msgid "Antarctica"
-msgstr ""
+msgstr "Антарктида"
 
 msgid "Argentina"
-msgstr ""
+msgstr "Аргентина"
 
 msgid "American Samoa"
-msgstr ""
+msgstr "Американське Самоа"
 
 msgid "Austria"
-msgstr ""
+msgstr "Австрія"
 
 msgid "Australia"
-msgstr ""
+msgstr "Австралія"
 
 msgid "Aruba"
-msgstr ""
+msgstr "Аруба"
 
 msgid "Åland Islands"
-msgstr ""
+msgstr "Аландські острови"
 
 msgid "Azerbaijan"
-msgstr ""
+msgstr "Азербайджан"
 
 msgid "Bosnia and Herzegovina"
-msgstr ""
+msgstr "Боснія та Герцеговина"
 
 msgid "Barbados"
-msgstr ""
+msgstr "Барбадос"
 
 msgid "Bangladesh"
-msgstr ""
+msgstr "Бангладеш"
 
 msgid "Belgium"
-msgstr ""
+msgstr "Бельгія"
 
 msgid "Burkina Faso"
-msgstr ""
+msgstr "Буркіна-Фасо"
 
 msgid "Bulgaria"
-msgstr ""
+msgstr "Болгарія"
 
 msgid "Bahrain"
-msgstr ""
+msgstr "Бахрейн"
 
 msgid "Burundi"
-msgstr ""
+msgstr "Бурунді"
 
 msgid "Benin"
-msgstr ""
+msgstr "Бенін"
 
 msgid "Saint Barthelemy"
-msgstr ""
+msgstr "Сен-Бартельмі"
 
 msgid "Bermuda"
-msgstr ""
+msgstr "Бермуди"
 
 msgid "Brunei Darussalam"
-msgstr ""
+msgstr "Бруней"
 
 msgid "Bolivia"
-msgstr ""
+msgstr "Болівія"
 
 msgid "Bonaire, Sint Eustatius and Saba"
-msgstr ""
+msgstr "Бонайре, Сінт-Естатіус і Саба"
 
 msgid "Brazil"
-msgstr ""
+msgstr "Бразилія"
 
 msgid "Bahamas"
-msgstr ""
+msgstr "Багамські острови"
 
 msgid "Bhutan"
-msgstr ""
+msgstr "Бутан"
 
 msgid "Burma"
-msgstr ""
+msgstr "Бірма"
 
 msgid "Bouvet Island"
-msgstr ""
+msgstr "Острів Буве"
 
 msgid "Botswana"
-msgstr ""
+msgstr "Ботсвана"
 
 msgid "Belarus"
-msgstr ""
+msgstr "Білорусь"
 
 msgid "Belize"
-msgstr ""
+msgstr "Беліз"
 
 msgid "Canada"
-msgstr ""
+msgstr "Канада"
 
 msgid "Cocos (Keeling) Islands"
-msgstr ""
+msgstr "Кокосові (Кілінг) острови"
 
 msgid "Congo (Democratic Republic)"
-msgstr ""
+msgstr "Конго (Демократична республіка)"
 
 msgid "Central African Republic"
-msgstr ""
+msgstr "Центральноафриканська Республіка"
 
-#, fuzzy
 msgid "Congo"
-msgstr "Понг"
+msgstr "Конго"
 
 msgid "Switzerland"
-msgstr ""
+msgstr "Швейцарія"
 
 msgid "Cote d'Ivoire"
-msgstr ""
+msgstr "Кот-д'Івуар"
 
 msgid "Cook Islands"
-msgstr ""
+msgstr "Острови Кука"
 
-#, fuzzy
 msgid "Chile"
-msgstr "файл"
+msgstr "Чилі"
 
 msgid "Cameroon"
-msgstr ""
+msgstr "Камерун"
 
 msgid "China"
-msgstr ""
+msgstr "Китай"
 
 msgid "Colombia"
-msgstr ""
+msgstr "Колумбія"
 
 msgid "Costa Rica"
-msgstr ""
+msgstr "Коста-Рика"
 
 msgid "Serbia and Montenegro"
-msgstr ""
+msgstr "Сербія і Чорногорія"
 
 msgid "Cuba"
-msgstr ""
+msgstr "Куба"
 
 msgid "Cape Verde"
-msgstr ""
+msgstr "Кабо-Верде"
 
 msgid "Curacao"
-msgstr ""
+msgstr "Кюрасао"
 
 msgid "Christmas Island"
-msgstr ""
+msgstr "Острів Різдва"
 
 msgid "Cyprus"
-msgstr ""
+msgstr "Кіпр"
 
 msgid "Czech Republic"
-msgstr ""
+msgstr "Чеська республіка"
 
 msgid "Germany"
-msgstr ""
+msgstr "Німеччина"
 
 msgid "Djibouti"
-msgstr ""
+msgstr "Джибуті"
 
 msgid "Denmark"
-msgstr ""
+msgstr "Данія"
 
 msgid "Dominica"
-msgstr ""
+msgstr "Домініка"
 
 msgid "Dominican Republic"
-msgstr ""
+msgstr "Домініканська республіка"
 
 msgid "Algeria"
-msgstr ""
+msgstr "Алжир"
 
 msgid "Ecuador"
-msgstr ""
+msgstr "Еквадор"
 
 msgid "Estonia"
-msgstr ""
+msgstr "Естонія"
 
 msgid "Egypt"
-msgstr ""
+msgstr "Єгипет"
 
 msgid "Western Sahara"
-msgstr ""
+msgstr "Західна Сахара"
 
 msgid "Eritrea"
-msgstr ""
+msgstr "Еритрея"
 
-#, fuzzy
 msgid "Spain"
-msgstr "Спем"
+msgstr "Іспанія"
 
 msgid "Ethiopia"
-msgstr ""
+msgstr "Ефіопія"
 
 msgid "Europe"
-msgstr ""
+msgstr "Європа"
 
 msgid "Finland"
-msgstr ""
+msgstr "Фінляндія"
 
 msgid "Fiji"
-msgstr ""
+msgstr "Фіджі"
 
 msgid "Falkland Islands (Malvinas)"
-msgstr ""
+msgstr "Фолклендські острови (Британія)"
 
 msgid "Micronesia"
-msgstr ""
+msgstr "Мікронезія"
 
 msgid "Faroe Islands"
-msgstr ""
+msgstr "Фарерські острови"
 
-#, fuzzy
 msgid "France"
-msgstr "Україна"
+msgstr "Франція"
 
 msgid "Gabon"
-msgstr ""
+msgstr "Габон"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Великобританія"
 
 msgid "Grenada"
-msgstr ""
+msgstr "Гренада"
 
 msgid "Georgia"
-msgstr ""
+msgstr "Грузія"
 
 msgid "French Guiana"
-msgstr ""
+msgstr "Французька Гвіана"
 
 msgid "Guernsey"
-msgstr ""
+msgstr "Острів Гернсі"
 
 msgid "Ghana"
-msgstr ""
+msgstr "Гана"
 
 msgid "Gibraltar"
-msgstr ""
+msgstr "Гібралтар"
 
 msgid "Greenland"
-msgstr ""
+msgstr "Гренландія"
 
 msgid "Gambia"
-msgstr ""
+msgstr "Гамбія"
 
 msgid "Guinea"
-msgstr ""
+msgstr "Гвінея"
 
 msgid "Guadeloupe"
-msgstr ""
+msgstr "Гваделупа"
 
 msgid "Equatorial Guinea"
-msgstr ""
+msgstr "Екваторіальна Гвінея"
 
 msgid "Greece"
-msgstr ""
+msgstr "Греція"
 
 msgid "South Georgia and The South Sandwich Islands"
-msgstr ""
+msgstr "Південна Георгія і Південні Сандвічеві Острови"
 
 msgid "Guatemala"
-msgstr ""
+msgstr "Гватемала"
 
 msgid "Guam"
-msgstr ""
+msgstr "Гуам"
 
 msgid "Guinea-Bissau"
-msgstr ""
+msgstr "Гвінея-Бісау"
 
 msgid "Guyana"
-msgstr ""
+msgstr "Гайяна"
 
 msgid "Hong Kong"
-msgstr ""
+msgstr "Гонконг"
 
 msgid "Heard Island and McDonald Islands"
-msgstr ""
+msgstr "Острови Херд і Мак-Дональд"
 
 msgid "Honduras"
-msgstr ""
+msgstr "Гондурас"
 
 msgid "Croatia"
-msgstr ""
+msgstr "Хорватія"
 
-#, fuzzy
 msgid "Haiti"
-msgstr "Хіти"
+msgstr "Гаїті"
 
 msgid "Hungary"
-msgstr ""
+msgstr "Угорщина"
 
 msgid "Indonesia"
-msgstr ""
+msgstr "Індонезія"
 
 msgid "Ireland"
-msgstr ""
+msgstr "Ірландія"
 
 msgid "Israel"
-msgstr ""
+msgstr "Ізраїль"
 
 msgid "Isle of Man"
-msgstr ""
+msgstr "Острів Мен"
 
 msgid "India"
-msgstr ""
+msgstr "Індія"
 
 msgid "British Indian Ocean Territory"
-msgstr ""
+msgstr "Британські Території в Індійському океані"
 
 msgid "Iraq"
-msgstr ""
+msgstr "Ірак"
 
 msgid "Iran"
-msgstr ""
+msgstr "Іран"
 
 msgid "Iceland"
-msgstr ""
+msgstr "Ісландія"
 
 msgid "Italy"
-msgstr ""
+msgstr "Італія"
 
 msgid "Jersey"
-msgstr ""
+msgstr "Джерсі"
 
 msgid "Jamaica"
-msgstr ""
+msgstr "Ямайка"
 
 msgid "Jordan"
-msgstr ""
+msgstr "Йорданія"
 
 msgid "Japan"
-msgstr ""
+msgstr "Японія"
 
 msgid "Kenya"
-msgstr ""
+msgstr "Кенія"
 
 msgid "Kyrgyzstan"
-msgstr ""
+msgstr "Киргизстан"
 
 msgid "Cambodia"
-msgstr ""
+msgstr "Камбоджа"
 
 msgid "Kiribati"
-msgstr ""
+msgstr "Кірибаті"
 
 msgid "Comoros"
-msgstr ""
+msgstr "Коморські острови"
 
 msgid "Saint Kitts and Nevis"
-msgstr ""
+msgstr "Сент-Кітс і Невіс"
 
 msgid "North Korea"
-msgstr ""
+msgstr "Північна Корея"
 
 msgid "South Korea"
-msgstr ""
+msgstr "Південна Корея"
 
 msgid "Kuwait"
-msgstr ""
+msgstr "Кувейт"
 
 msgid "Cayman Islands"
-msgstr ""
+msgstr "Кайманові острови"
 
 msgid "Kazakhstan"
-msgstr ""
+msgstr "Казахстан"
 
 msgid "Laos"
-msgstr ""
+msgstr "Лаос"
 
-#, fuzzy
 msgid "Lebanon"
-msgstr "Причина"
+msgstr "Ліван"
 
 msgid "Saint Lucia"
-msgstr ""
+msgstr "Сент-Люсія"
 
 msgid "Liechtenstein"
-msgstr ""
+msgstr "Ліхтенштейн"
 
 msgid "Sri Lanka"
-msgstr ""
+msgstr "Шрі-Ланка"
 
 msgid "Liberia"
-msgstr ""
+msgstr "Ліберія"
 
 msgid "Lesotho"
-msgstr ""
+msgstr "Лесото"
 
 msgid "Lithuania"
-msgstr ""
+msgstr "Литва"
 
 msgid "Luxembourg"
-msgstr ""
+msgstr "Люксембург"
 
 msgid "Latvia"
-msgstr ""
+msgstr "Латвія"
 
 msgid "Libyan Arab Jamahiriya"
-msgstr ""
+msgstr "Лівійська Арабська Джамахірія"
 
 msgid "Morocco"
-msgstr ""
+msgstr "Марокко"
 
 msgid "Monaco"
-msgstr ""
+msgstr "Монако"
 
 msgid "Moldova"
-msgstr ""
+msgstr "Молдова"
 
 msgid "Montenegro"
-msgstr ""
+msgstr "Чорногорія"
 
 msgid "Saint Martin"
-msgstr ""
+msgstr "Сен-Мартен"
 
 msgid "Madagascar"
-msgstr ""
+msgstr "Мадагаскар"
 
 msgid "Marshall Islands"
-msgstr ""
+msgstr "Маршаллові острови"
 
 msgid "Macedonia"
-msgstr ""
+msgstr "Македонія"
 
 msgid "Mali"
-msgstr ""
+msgstr "Малі"
 
 msgid "Myanmar"
-msgstr ""
+msgstr "М’янма"
 
 msgid "Mongolia"
-msgstr ""
+msgstr "Монголія"
 
 msgid "Macao"
-msgstr ""
+msgstr "Макао"
 
 msgid "Northern Mariana Islands"
-msgstr ""
+msgstr "Північні Маріанські Острови"
 
 msgid "Martinique"
-msgstr ""
+msgstr "Мартиніка"
 
 msgid "Mauritania"
-msgstr ""
+msgstr "Мавританія"
 
 msgid "Montserrat"
-msgstr ""
+msgstr "Монтсеррат"
 
 msgid "Malta"
-msgstr ""
+msgstr "Мальта"
 
 msgid "Mauritius"
-msgstr ""
+msgstr "Маврикій"
 
 msgid "Maldives"
-msgstr ""
+msgstr "Мальдіви"
 
 msgid "Malawi"
-msgstr ""
+msgstr "Малаві"
 
 msgid "Mexico"
-msgstr ""
+msgstr "Мексика"
 
 msgid "Malaysia"
-msgstr ""
+msgstr "Малайзія"
 
 msgid "Mozambique"
-msgstr ""
+msgstr "Мозамбік"
 
 msgid "Namibia"
-msgstr ""
+msgstr "Намібія"
 
 msgid "New Caledonia"
-msgstr ""
+msgstr "Нова Каледонія"
 
 msgid "Niger"
-msgstr ""
+msgstr "Нігер"
 
 msgid "Norfolk Island"
-msgstr ""
+msgstr "Острів Норфолк"
 
 msgid "Nigeria"
-msgstr ""
+msgstr "Нігерія"
 
 msgid "Nicaragua"
-msgstr ""
+msgstr "Нікарагуа"
 
 msgid "Netherlands"
-msgstr ""
+msgstr "Нідерланди"
 
 msgid "Norway"
-msgstr ""
+msgstr "Норвегія"
 
 msgid "Nepal"
-msgstr ""
+msgstr "Непал"
 
 msgid "Nauru"
-msgstr ""
+msgstr "Науру"
 
 msgid "Niue"
-msgstr ""
+msgstr "Ніуе"
 
 msgid "New Zealand"
-msgstr ""
+msgstr "Нова Зеландія"
 
 msgid "Oman"
-msgstr ""
+msgstr "Оман"
 
 msgid "Panama"
-msgstr ""
+msgstr "Панама"
 
 msgid "Peru"
-msgstr ""
+msgstr "Перу"
 
 msgid "French Polynesia"
-msgstr ""
+msgstr "Французька Полінезія"
 
 msgid "Papua New Guinea"
-msgstr ""
+msgstr "Папуа-Нова Гвінея"
 
 msgid "Philippines"
-msgstr ""
+msgstr "Філіппіни"
 
 msgid "Pakistan"
-msgstr ""
+msgstr "Пакистан"
 
 msgid "Poland"
-msgstr ""
+msgstr "Польща"
 
 msgid "Saint Pierre and Miquelon"
-msgstr ""
+msgstr "Сен-П'єр і Мікелон"
 
 msgid "Pitcairn"
-msgstr ""
+msgstr "Піткерн"
 
 msgid "Puerto Rico"
-msgstr ""
+msgstr "Пуерто-Рико"
 
 msgid "Palestinian Territory"
-msgstr ""
+msgstr "Палестинська територія"
 
 msgid "Portugal"
-msgstr ""
+msgstr "Португалія"
 
 msgid "Palau"
-msgstr ""
+msgstr "Палау"
 
 msgid "Paraguay"
-msgstr ""
+msgstr "Парагвай"
 
 msgid "Qatar"
-msgstr ""
+msgstr "Катар"
 
 msgid "Reunion"
-msgstr ""
+msgstr "Реюньйон"
 
 msgid "Romania"
-msgstr ""
+msgstr "Румунія"
 
 msgid "Serbia"
-msgstr ""
+msgstr "Сербія"
 
 msgid "Russian Federation"
-msgstr "Кацапи"
+msgstr "Російська Федерація"
 
 msgid "Rwanda"
-msgstr ""
+msgstr "Руанда"
 
 msgid "Saudi Arabia"
-msgstr ""
+msgstr "Саудівська Аравія"
 
 msgid "Solomon Islands"
-msgstr ""
+msgstr "Соломонові Острови"
 
 msgid "Seychelles"
-msgstr ""
+msgstr "Сейшели"
 
 msgid "Sudan"
-msgstr ""
+msgstr "Судан"
 
 msgid "Sweden"
-msgstr ""
+msgstr "Швеція"
 
 msgid "Singapore"
-msgstr ""
+msgstr "Сінгапур"
 
 msgid "Saint Helena"
-msgstr ""
+msgstr "Острів Святої Єлени"
 
 msgid "Slovenia"
-msgstr ""
+msgstr "Словенія"
 
 msgid "Svalbard and Jan Mayen"
-msgstr ""
+msgstr "Острови Свальбард і Ян Маєн"
 
 msgid "Slovakia"
-msgstr ""
+msgstr "Словаччина"
 
 msgid "Sierra Leone"
-msgstr ""
+msgstr "Сьєрра-Леоне"
 
 msgid "San Marino"
-msgstr ""
+msgstr "Сан-Марино"
 
-#, fuzzy
 msgid "Senegal"
-msgstr "Загальна статистика"
+msgstr "Сенегал"
 
 msgid "Somalia"
-msgstr ""
+msgstr "Сомалі"
 
 msgid "Suriname"
-msgstr ""
+msgstr "Суринам"
 
 msgid "South Sudan"
-msgstr ""
+msgstr "Південний Судан"
 
 msgid "Sao Tome and Principe"
-msgstr ""
+msgstr "Сан-Томе і Принсипі"
 
 msgid "El Salvador"
-msgstr ""
+msgstr "Сальвадор"
 
 msgid "Sint Maarten"
-msgstr ""
+msgstr "Сінт-Мартен"
 
 msgid "Syrian Arab Republic"
-msgstr ""
+msgstr "Сирійська Арабська Республіка"
 
 msgid "Swaziland"
-msgstr ""
+msgstr "Свазіленд"
 
 msgid "Turks and Caicos Islands"
-msgstr ""
+msgstr "Острови Теркс і Кайкос"
 
 msgid "Chad"
-msgstr ""
+msgstr "Чад"
 
 msgid "French Southern Territories"
-msgstr ""
+msgstr "Французькі Південні Території"
 
 msgid "Togo"
-msgstr ""
+msgstr "Того"
 
 msgid "Thailand"
-msgstr ""
+msgstr "Таїланд"
 
 msgid "Tajikistan"
-msgstr ""
+msgstr "Таджикистан"
 
 msgid "Tokelau"
-msgstr ""
+msgstr "Токелау"
 
 msgid "Timor-leste"
-msgstr ""
+msgstr "Східний Тимор"
 
 msgid "Turkmenistan"
-msgstr ""
+msgstr "Туркменістан"
 
 msgid "Tunisia"
-msgstr ""
+msgstr "Туніс"
 
-#, fuzzy
 msgid "Tonga"
-msgstr "Понг"
+msgstr "Тонга"
 
 msgid "Turkey"
-msgstr ""
+msgstr "Туреччина"
 
 msgid "Trinidad and Tobago"
-msgstr ""
+msgstr "Тринідад та Тобаго"
 
 msgid "Tuvalu"
-msgstr ""
+msgstr "Тувалу"
 
 msgid "Taiwan"
-msgstr ""
+msgstr "Тайвань"
 
 msgid "Tanzania"
-msgstr ""
+msgstr "Танзанія"
 
 msgid "Ukraine"
 msgstr "Україна"
 
 msgid "Uganda"
-msgstr ""
+msgstr "Уганда"
 
 msgid "United States Minor Outlying Islands"
-msgstr ""
+msgstr "Американські Малі Віддалені Острови"
 
 msgid "United States"
-msgstr ""
+msgstr "США"
 
 msgid "Uruguay"
-msgstr ""
+msgstr "Уругвай"
 
 msgid "Uzbekistan"
-msgstr ""
+msgstr "Узбекистан"
 
 msgid "Holy See (Vatican City State)"
-msgstr ""
+msgstr "Святий Престол (Ватикан, Місто-Держава)"
 
 msgid "Saint Vincent and The Grenadines"
-msgstr ""
+msgstr "Сент-Вінсент і Гренадіни"
 
 msgid "Venezuela"
-msgstr ""
+msgstr "Венесуела"
 
 msgid "British Virgin Islands"
-msgstr ""
+msgstr "Віргінські острови (Британія)"
 
 msgid "U.S. Virgin Islands"
-msgstr ""
+msgstr "Американські Віргінські Острови (США)"
 
 msgid "Viet Nam"
-msgstr ""
+msgstr "В'єтнам"
 
 msgid "Vanuatu"
-msgstr ""
+msgstr "Вануату"
 
 msgid "Wallis and Futuna"
-msgstr ""
+msgstr "Уолліс і Футуна"
 
-#, fuzzy
 msgid "Samoa"
-msgstr "Спем"
+msgstr "Самоа"
 
 msgid "Yemen"
-msgstr ""
+msgstr "Ємен"
 
 msgid "Mayotte"
-msgstr ""
+msgstr "Майотта"
 
 msgid "South Africa"
-msgstr ""
+msgstr "Південна Африка"
 
 msgid "Zambia"
-msgstr ""
+msgstr "Замбія"
 
 msgid "Zimbabwe"
-msgstr ""
+msgstr "Зімбабве"
 
 msgid "MAGNET URI contained source URL for an unsupported protocol"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u Byte"
 msgid_plural "%u Bytes"
-msgstr[0] "%u Байтів"
-msgstr[1] "%u Байтів"
+msgstr[0] "%u байт"
+msgstr[1] "%u байти"
+msgstr[2] "%u байтів"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u&nbsp;Byte"
 msgid_plural "%u&nbsp;Bytes"
-msgstr[0] "%u&nbsp;Байтів"
-msgstr[1] "%u&nbsp;Байтів"
+msgstr[0] "%u&nbsp;байт"
+msgstr[1] "%u&nbsp;байти"
+msgstr[2] "%u&nbsp;байтів"
 
 #, c-format
 msgid "%s (%s bytes)"
-msgstr ""
+msgstr "%s (%s байтів)"
 
 #. TRANSLATORS: Don't translate 'B', just 's' is allowed.
 msgid "B/s"
-msgstr ""
+msgstr "Б/с"
 
 #, c-format
 msgid "%ud %uh"
@@ -4448,7 +4410,7 @@ msgstr ""
 
 #, c-format
 msgid "%us"
-msgstr ""
+msgstr "%uс"
 
 msgid "locale_get_language|en"
 msgstr "uk"
@@ -4459,22 +4421,20 @@ msgstr ""
 msgid "URL missing"
 msgstr ""
 
-#, fuzzy
 msgid "The download could not be created"
-msgstr "Немає слоту для скачування"
+msgstr ""
 
-#, fuzzy
 msgid "Download added"
-msgstr "Скачано"
+msgstr "Додано звантаження"
 
 msgid "Unknown operation"
 msgstr "Невідома операція"
 
 msgid "Unknown command"
-msgstr "НЕвідома команда"
+msgstr "Невідома команда"
 
 msgid "No help available"
-msgstr ""
+msgstr "Довідки не передбачено"
 
 msgid "Hops"
 msgstr ""
@@ -4502,13 +4462,12 @@ msgstr ""
 msgid "Interactive mode turned off."
 msgstr ""
 
-#, fuzzy
 msgid "Cannot determine current working directory"
-msgstr "Не можу знайти вашу домашню директорію"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown logfile name \"%s\""
-msgstr "Невідома властивість"
+msgstr ""
 
 msgid "Unable to reopen"
 msgstr ""
@@ -4517,25 +4476,25 @@ msgstr ""
 msgid "Could not rename logfile as \"%s\": %m"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"%s\""
-msgstr "Невідома операція"
+msgstr "Невідома дія «%s»"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"show %s\""
-msgstr "Невідома операція"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"stats %s\""
-msgstr "Невідома операція"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"check %s\""
-msgstr "Невідома операція"
+msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown operation \"usage %s\""
-msgstr "Невідома операція"
+msgstr ""
 
 msgid "Invalid IP/Port"
 msgstr "Неправильний IP/порт"
@@ -4543,13 +4502,11 @@ msgstr "Неправильний IP/порт"
 msgid "Node added"
 msgstr "Вузол додано"
 
-#, fuzzy
 msgid "Invalid IP"
-msgstr "Неправильний IP/порт"
+msgstr ""
 
-#, fuzzy
 msgid "Invalid port"
-msgstr "Неправильний IP/порт"
+msgstr "Некоректний порт"
 
 #, c-format
 msgid "Removed %u node"
@@ -4560,12 +4517,12 @@ msgstr[1] ""
 msgid "Property missing"
 msgstr "Властивість відсутня"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown property \"%s\""
-msgstr "Невідома властивість"
+msgstr "Невідома властивість «%s»"
 
 msgid "Value: "
-msgstr "Значення"
+msgstr "Значення "
 
 msgid "Value found and displayed"
 msgstr ""
@@ -4576,9 +4533,8 @@ msgstr ""
 msgid "Good bye"
 msgstr "До побачення"
 
-#, fuzzy
 msgid "Query string missing"
-msgstr "Властивість відсутня"
+msgstr ""
 
 msgid "Query string is not UTF-8 encoded"
 msgstr ""
@@ -4586,16 +4542,14 @@ msgstr ""
 msgid "Search added"
 msgstr "Пошук додано"
 
-#, fuzzy
 msgid "The search could not be created"
-msgstr "Немає слоту для скачування"
+msgstr ""
 
 msgid "Unknown property"
 msgstr "Невідома властивість"
 
-#, fuzzy
 msgid "Value missing"
-msgstr "Властивість відсутня"
+msgstr "Не вистачає значення"
 
 #, c-format
 msgid "Previous value was %s"
@@ -4630,12 +4584,12 @@ msgstr ""
 msgid "Malformed command"
 msgstr "Спотворена команда"
 
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown command: \"%s\""
-msgstr "НЕвідома команда"
+msgstr "Невідома команда: «%s»"
 
 msgid "Help: "
-msgstr "Допомога:"
+msgstr "Допомога: "
 
 msgid "Bitzi|Unknown"
 msgstr ""
@@ -4680,20 +4634,19 @@ msgid "No other data"
 msgstr ""
 
 msgid "Filename"
-msgstr ""
+msgstr "Назва файла"
 
-#, fuzzy
 msgid "Created"
-msgstr "З'єднано"
+msgstr "Створено"
 
 msgid "Modified"
-msgstr ""
+msgstr "Змінено"
 
 msgid "SHA-1"
-msgstr ""
+msgstr "SHA-1"
 
 msgid "Not available"
-msgstr ""
+msgstr "Недоступний"
 
 msgid "Bitprint"
 msgstr ""
@@ -4765,9 +4718,8 @@ msgstr ""
 msgid "Reading headers"
 msgstr ""
 
-#, fuzzy
 msgid "UDP push sent"
-msgstr "Push відіслано"
+msgstr ""
 
 msgid "Searching for new push-proxies"
 msgstr ""
@@ -4786,17 +4738,16 @@ msgid "Aborted (Server down)"
 msgstr ""
 
 msgid "Aborted"
-msgstr ""
+msgstr "Припинено"
 
 msgid "Completed"
-msgstr ""
+msgstr "Завершено"
 
 msgid "Chunk done"
 msgstr ""
 
-#, fuzzy
 msgid "Waiting for TTH checking..."
-msgstr "Чекаєм на вільний кусок (chunk)"
+msgstr ""
 
 msgid "Waiting for SHA1 checking..."
 msgstr ""
@@ -4832,11 +4783,10 @@ msgid "; Moved (%s) %s"
 msgstr ""
 
 msgid "(stalled)"
-msgstr ""
+msgstr "(застрягло)"
 
-#, fuzzy
 msgid "Receiving data"
-msgstr "Отримано"
+msgstr "Отримання даних…"
 
 msgid "ignoring"
 msgstr ""
@@ -4867,46 +4817,42 @@ msgid_plural "Forgot %u downloads"
 msgstr[0] ""
 msgstr[1] ""
 
-#, fuzzy
 msgid "Filename (filtered)"
-msgstr "Назва файла:"
+msgstr ""
 
 msgid "Progress"
 msgstr "Прогрес"
 
 msgid "RX"
-msgstr ""
+msgstr "RX"
 
-#, fuzzy
 msgid "Downloaded"
-msgstr "Скачано"
+msgstr "Звантажено"
 
-#, fuzzy
 msgid "Uploaded"
-msgstr "Завантажено"
+msgstr "Вивантажено"
 
 msgid "Sources"
 msgstr "Джерела"
 
 msgid "Status"
-msgstr ""
+msgstr "Стан"
 
 msgid "Active"
-msgstr ""
+msgstr "Активний"
 
-#, fuzzy
 msgid "Incomplete"
-msgstr "Завершено"
+msgstr "Не завершено"
 
 msgid "Orphaned"
-msgstr ""
+msgstr "Осиротілий"
 
 msgid "All"
-msgstr ""
+msgstr "Всі"
 
-#, fuzzy, c-format
+#, c-format
 msgid "regex error: %s"
-msgstr "Провалилось (Помилка: %s)"
+msgstr "помилка у формальному виразі: %s"
 
 #, c-format
 msgid "Selected %u of %u download matching \"%s\"."
@@ -4924,16 +4870,16 @@ msgid "ends with"
 msgstr "закінчується на"
 
 msgid "contains the substring"
-msgstr ""
+msgstr "містить підрядок"
 
 msgid "matches the regex pattern"
-msgstr ""
+msgstr "відповідає формальному виразу"
 
 msgid "is exactly"
-msgstr ""
+msgstr "дорівнює"
 
 msgid "Built-in targets"
-msgstr ""
+msgstr "Вбудовані цілі"
 
 msgid "Global filters"
 msgstr "Глобальні фільтри"
@@ -4963,19 +4909,19 @@ msgid "Rule"
 msgstr "Правило"
 
 msgid "Match"
-msgstr ""
+msgstr "Відповідність"
 
 msgid "!"
-msgstr ""
+msgstr "!"
 
 msgid "Condition"
 msgstr "Стан"
 
 msgid "Target"
-msgstr "Ціль"
+msgstr "Призначення"
 
 msgid "(case-sensitive)"
-msgstr ""
+msgstr "(з врахуванням регістру)"
 
 #, c-format
 msgid "If filename begins with \"%s\" %s"
@@ -5085,10 +5031,10 @@ msgid "(Negated) "
 msgstr ""
 
 msgid "(deactivated)"
-msgstr ""
+msgstr "(вимкнено)"
 
 msgid "(invalid)"
-msgstr ""
+msgstr "(некоректне)"
 
 msgid "<Archive>"
 msgstr ""
@@ -5354,9 +5300,8 @@ msgstr ""
 msgid "UDP UHC pings received"
 msgstr ""
 
-#, fuzzy
 msgid "UDP UHC pongs sent"
-msgstr "Push відіслано"
+msgstr ""
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
@@ -5682,9 +5627,8 @@ msgstr ""
 msgid "DHT forced bucket refreshes"
 msgstr ""
 
-#, fuzzy
 msgid "DHT forced bucket merges"
-msgstr "Спотворена команда"
+msgstr ""
 
 msgid "DHT denied non-splitable bucket refresh"
 msgstr ""
@@ -5764,9 +5708,8 @@ msgstr ""
 msgid "DHT cached security tokens hits"
 msgstr ""
 
-#, fuzzy
 msgid "DHT stable node information held"
-msgstr "Детальна інформація"
+msgstr ""
 
 msgid "DHT local hits on value lookups"
 msgstr ""
@@ -5846,9 +5789,8 @@ msgstr ""
 msgid "DHT values successfully offloaded"
 msgstr ""
 
-#, fuzzy
 msgid "DHT incoming messages"
-msgstr "Спотворена команда"
+msgstr ""
 
 msgid "DHT incoming messages with UDP-matching contact address"
 msgstr ""
@@ -5886,9 +5828,8 @@ msgstr ""
 msgid "DHT RPC recent nodes held"
 msgstr ""
 
-#, fuzzy
 msgid "DHT node verifications"
-msgstr "Детальна інформація"
+msgstr ""
 
 msgid "DHT publishing attempts"
 msgstr ""
@@ -5947,27 +5888,29 @@ msgstr ""
 msgid "node"
 msgid_plural "nodes"
 msgstr[0] "вузол"
-msgstr[1] "вузлів"
+msgstr[1] "вузли"
+msgstr[2] "вузлів"
 
 msgid "file"
 msgid_plural "files"
 msgstr[0] "файл"
-msgstr[1] "файлів"
+msgstr[1] "файли"
+msgstr[2] "файлів"
 
 msgid "Please choose a directory to share"
-msgstr ""
+msgstr "Будь ласка, вкажіть каталог для оприлюднення"
 
 msgid "Please choose where to move files after successful download"
-msgstr "Будь-ласка вкажіть куди класти файли після вдалого скачування файлів"
+msgstr "Будь ласка, вкажіть, куди пересувати файли після вдалого отримання"
 
 msgid "Please choose where to store files while downloading"
-msgstr "Будь-ласка вкажіть куди класти файли під час скачування"
+msgstr "Будь ласка, вкажіть, де зберігати файли під час отримання"
 
 msgid "Please choose where to move corrupted files"
-msgstr "Будь-ласка вкажіть куди класти пошкоджені файли"
+msgstr "Будь ласка, вкажіть, куди слід пересувати пошкоджені файли"
 
 msgid " Clear completed "
-msgstr ""
+msgstr " Спорожнення завершено "
 
 msgid " Gnutella browse requests"
 msgstr ""
@@ -5982,28 +5925,28 @@ msgid " alive with "
 msgstr ""
 
 msgid " passive)"
-msgstr ""
+msgstr " пасивний)"
 
 msgid " queued ("
-msgstr ""
+msgstr " у черзі ("
 
 msgid " registered, "
-msgstr ""
+msgstr " зареєстровано, "
 
 msgid " with sources"
 msgstr ""
 
 msgid "$Id$"
-msgstr ""
+msgstr "$Id$"
 
 msgid "%v/%u (%P%%)"
-msgstr ""
+msgstr "%v/%u (%P%%)"
 
 msgid "%v/%u Gnutella peers"
 msgstr ""
 
 msgid "%v/%u downloads"
-msgstr ""
+msgstr "%v/%u звантажень"
 
 msgid "%v/%u uploads"
 msgstr ""
@@ -6015,7 +5958,7 @@ msgid "(no search)"
 msgstr ""
 
 msgid "(not forwarded)"
-msgstr ""
+msgstr "(не переспрямовано)"
 
 msgid "0 terms counted"
 msgstr ""
@@ -6042,7 +5985,7 @@ msgid "Abort and remove all selected uploads"
 msgstr ""
 
 msgid "Abort"
-msgstr ""
+msgstr "Перервати"
 
 msgid "About gtk-gnutella"
 msgstr "про gtk-gnutella"
@@ -6050,35 +5993,36 @@ msgstr "про gtk-gnutella"
 msgid "Act as OOB proxy for leaves"
 msgstr ""
 
-msgid "Actual amount of file descriptors used -- cannot be changed at runtime"
+msgid ""
+"Actual amount of file descriptors used -- cannot be changed at runtime"
 msgstr ""
 
 msgid "Add IP rule"
-msgstr ""
+msgstr "Додати правило IP-адреси"
 
 msgid "Add as search"
-msgstr ""
+msgstr "Додати як пошук"
 
 msgid "Add flag rule"
-msgstr ""
+msgstr "Додати правило прапорця"
 
 msgid "Add jump rule"
-msgstr ""
+msgstr "Додати правило переходу"
 
 msgid "Add name rule"
-msgstr ""
+msgstr "Додати правило назви"
 
 msgid "Add size rule"
-msgstr ""
+msgstr "Додати правило розміру"
 
 msgid "Add state rule"
-msgstr ""
+msgstr "Додати правило стану"
 
 msgid "Add"
 msgstr "Додати"
 
 msgid "Aliases"
-msgstr ""
+msgstr "Псевдоніми"
 
 msgid "Allow connections from and to _LAN addresses"
 msgstr ""
@@ -6095,28 +6039,28 @@ msgid ""
 msgstr ""
 
 msgid "Apply"
-msgstr ""
+msgstr "Застосувати"
 
 msgid "Attempts"
-msgstr ""
+msgstr "Спроби"
 
 msgid "Auto clear completed uploads"
-msgstr ""
+msgstr "Автоматично вилучати завершені вивантаження"
 
 msgid "Auto clear failed uploads"
-msgstr ""
+msgstr "Автоматично вилучати вивантаження з помилками"
 
 msgid "Automatically clear finished files"
-msgstr ""
+msgstr "Автоматично вилучати завершені файли"
 
 msgid "Automatically clear sources when..."
-msgstr ""
+msgstr "Автоматично вилучати джерела, якщо…"
 
 msgid "Available bandwidth"
-msgstr ""
+msgstr "Доступна ширина каналу"
 
 msgid "Available physical memory:"
-msgstr ""
+msgstr "Доступна фізична пам’ять:"
 
 msgid "Avg. time between IP address changes:"
 msgstr ""
@@ -6128,7 +6072,7 @@ msgid "Avg. downtime of this servent:"
 msgstr ""
 
 msgid "Bad hosts"
-msgstr ""
+msgstr "Помилкові вузли"
 
 msgid "Bandwidth limits for Gnutella traffic"
 msgstr ""
@@ -6143,10 +6087,10 @@ msgid "Bandwidth targets for node lookups"
 msgstr ""
 
 msgid "Bandwidth"
-msgstr ""
+msgstr "Ширина каналу"
 
 msgid "Banning"
-msgstr ""
+msgstr "Блокування"
 
 msgid "Beautify filenames by removing needless underscores"
 msgstr ""
@@ -6167,22 +6111,22 @@ msgid "Browse host"
 msgstr ""
 
 msgid "Busy"
-msgstr ""
+msgstr "Зайнятий"
 
 msgid "Bytes to back off on mismatch"
 msgstr ""
 
 msgid "Cache"
-msgstr ""
+msgstr "Кеш"
 
 msgid "Cancel"
-msgstr ""
+msgstr "Скасувати"
 
 msgid "Case-sensitive sorting"
-msgstr ""
+msgstr "Впорядкування з урахуванням регістру"
 
 msgid "Chunks/Files:"
-msgstr "Кусків/Файлів:"
+msgstr "Шматків/Файлів:"
 
 msgid "Cl_ose search"
 msgstr ""
@@ -6191,7 +6135,7 @@ msgid "Clean up queries before processing"
 msgstr ""
 
 msgid "Clear all"
-msgstr ""
+msgstr "Вилучити все"
 
 msgid "Clear already completed uploads from list"
 msgstr ""
@@ -6203,13 +6147,13 @@ msgid "Clear non-existent files"
 msgstr ""
 
 msgid "Clear results"
-msgstr ""
+msgstr "Вилучити результати"
 
 msgid "Clear stopped"
 msgstr ""
 
 msgid "Clear"
-msgstr ""
+msgstr "Очистити"
 
 msgid "Click to toggle display."
 msgstr ""
@@ -6220,12 +6164,11 @@ msgstr ""
 msgid "Clock synchronization"
 msgstr ""
 
-#, fuzzy
 msgid "Close"
-msgstr "_Закрити"
+msgstr "Закрити"
 
 msgid "Collapse all"
-msgstr ""
+msgstr "Згорнути всі"
 
 msgid "Compressed length:"
 msgstr ""
@@ -6255,7 +6198,7 @@ msgid "Condition: always"
 msgstr ""
 
 msgid "Configure columns"
-msgstr ""
+msgstr "Налаштувати стовпчики"
 
 msgid "Configured peermode"
 msgstr ""
@@ -6267,20 +6210,19 @@ msgid "Connect to host"
 msgstr ""
 
 msgid "Connected time"
-msgstr "Час, скікльки з'єднаний"
+msgstr "Тривалість з’єднання"
 
 msgid "Connected time_out"
-msgstr ""
+msgstr "Час о_чікування з’єднання"
 
 msgid "Connectin_g timeout"
-msgstr ""
+msgstr "Час очі_кування на встановлення з’єднання"
 
-#, fuzzy
 msgid "Connection counters"
-msgstr "З'єднання не компресоване"
+msgstr "Лічильники з’єднання"
 
 msgid "Connection settings"
-msgstr ""
+msgstr "Параметри з’єднання"
 
 msgid "Connections reserved for gtk-gnutella nodes"
 msgstr ""
@@ -6300,7 +6242,7 @@ msgid "Copy Magnet to clipboard"
 msgstr ""
 
 msgid "Copy URL to clipboard"
-msgstr ""
+msgstr "Скопіювати адресу до буфера"
 
 msgid "Copy browse-host results to passive searches"
 msgstr ""
@@ -6309,16 +6251,16 @@ msgid "Copy magnet to clipboard"
 msgstr ""
 
 msgid "Copy rule"
-msgstr ""
+msgstr "Скопіювати правило"
 
 msgid "Core development:"
 msgstr "Розробка ядра:"
 
 msgid "Count"
-msgstr ""
+msgstr "Кількість"
 
 msgid "Country"
-msgstr ""
+msgstr "Країна"
 
 msgid "Cumulative _download rate"
 msgstr ""
@@ -6330,27 +6272,25 @@ msgid "Current IP settings (Address:Port):"
 msgstr "Поточні налаштування IP (Адреса:Порт):"
 
 msgid "Current search:"
-msgstr ""
+msgstr "Поточний пошук:"
 
 msgid "Currently used"
 msgstr ""
 
-#, fuzzy
 msgid "DHT traffic stats"
-msgstr "статистика HTTP трафіка"
+msgstr ""
 
-#, fuzzy
 msgid "DHT traffic"
-msgstr "HTTP трафік"
+msgstr ""
 
 msgid "Debugging"
-msgstr ""
+msgstr "Діагностика"
 
 msgid "Default search _reissue timeout"
 msgstr ""
 
 msgid "Default value:"
-msgstr ""
+msgstr "Типове значення:"
 
 msgid "Delay in seconds to wait after HTTP busy indication"
 msgstr ""
@@ -6377,7 +6317,7 @@ msgid "Detailed traffic information to display"
 msgstr ""
 
 msgid "Details"
-msgstr ""
+msgstr "Подробиці"
 
 msgid "Discard results without SHA-1 hashes"
 msgstr ""
@@ -6400,18 +6340,17 @@ msgstr ""
 msgid "Do you really want to quit?"
 msgstr "Ви справді хочете вийти?"
 
-#, fuzzy
 msgid "Download"
-msgstr "Скачано"
+msgstr "Звантажити"
 
 msgid "Downloaded:"
-msgstr "Скачано"
+msgstr "Отримано:"
 
 msgid "Downloading from multiple sources (swarming)"
 msgstr ""
 
 msgid "Downloads"
-msgstr ""
+msgstr "Звантаження"
 
 msgid "Dropped"
 msgstr ""
@@ -6428,9 +6367,8 @@ msgstr ""
 msgid "Enable \"_Browse Host\" feature"
 msgstr ""
 
-#, fuzzy
 msgid "Enable _DHT"
-msgstr "Включити _UDP"
+msgstr ""
 
 msgid "Enable _UDP"
 msgstr "Включити _UDP"
@@ -6469,13 +6407,13 @@ msgid ""
 msgstr ""
 
 msgid "Expand all"
-msgstr ""
+msgstr "Розгорнути всі"
 
 msgid "Expert mode"
-msgstr ""
+msgstr "Режим експерта"
 
 msgid "Expired"
-msgstr ""
+msgstr "Застаріло"
 
 msgid "FC/_TTL"
 msgstr ""
@@ -6486,9 +6424,8 @@ msgstr ""
 msgid "File scanning time:"
 msgstr ""
 
-#, fuzzy
 msgid "File transfers"
-msgstr "Даних перенесено"
+msgstr "Перенесення файлів"
 
 msgid "Files scanned"
 msgstr ""
@@ -6517,9 +6454,8 @@ msgstr ""
 msgid "Force push mode"
 msgstr ""
 
-#, fuzzy
 msgid "Forget"
-msgstr "Ціль"
+msgstr "Забути"
 
 msgid ""
 "Forwarded\n"
@@ -6530,7 +6466,7 @@ msgid "Freeze queue"
 msgstr ""
 
 msgid "Frequently Asked Questions"
-msgstr ""
+msgstr "Поширені запитання"
 
 msgid "Fully served "
 msgstr ""
@@ -6541,9 +6477,8 @@ msgstr "Розробка GUI:"
 msgid "GUID:"
 msgstr "GUID:"
 
-#, fuzzy
 msgid "KUID:"
-msgstr "GUID:"
+msgstr ""
 
 msgid "Gen. queued"
 msgstr ""
@@ -6555,50 +6490,43 @@ msgid "General search settings (affect all searches)"
 msgstr ""
 
 msgid "General"
-msgstr ""
+msgstr "Загальне"
 
 msgid "Generated queries"
 msgstr ""
 
 msgid "Generation:"
-msgstr ""
+msgstr "Створення:"
 
 msgid "Global DHT outgoing traffic"
 msgstr ""
 
-#, fuzzy
 msgid "Gnutella TTL settings"
-msgstr "Загальна статистика"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella _leaf traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella display"
-msgstr "Загальна статистика"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella message size limits"
-msgstr "Загальна статистика"
+msgstr ""
 
 msgid "Gnutella network mode"
 msgstr ""
 
-#, fuzzy
 msgid "Gnutella peers"
-msgstr "Загальна статистика"
+msgstr ""
 
 msgid "Gnutella timeouts (all values in seconds)"
 msgstr ""
 
-#, fuzzy
 msgid "Gnutella traffic"
-msgstr "GnutellaNet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella"
-msgstr "GnutellaNet трафік"
+msgstr ""
 
 msgid "HTTP traffic"
 msgstr "HTTP трафік"
@@ -6607,13 +6535,13 @@ msgid "H_ard TTL limit"
 msgstr ""
 
 msgid "H_ost:"
-msgstr "Х_ост"
+msgstr "В_узол:"
 
 msgid "Hard limit of _file descriptors used"
 msgstr ""
 
 msgid "Hits"
-msgstr "Хіти"
+msgstr "Спроб"
 
 msgid "Honor OOB flag in queries"
 msgstr ""
@@ -6628,7 +6556,7 @@ msgid "Host runs _NTP"
 msgstr ""
 
 msgid "Host"
-msgstr "Хост"
+msgstr "Вузол"
 
 msgid "Hostcache capacity"
 msgstr ""
@@ -6651,13 +6579,11 @@ msgstr "Налаштування IP"
 msgid "IP:Port:"
 msgstr "IP:порт"
 
-#, fuzzy
 msgid "IPv4 settings"
-msgstr "Налаштування IP"
+msgstr ""
 
-#, fuzzy
 msgid "IPv6 settings"
-msgstr "Налаштування IP"
+msgstr ""
 
 msgid "Ignore symbolically linked _directories"
 msgstr ""
@@ -6693,13 +6619,13 @@ msgid "Keep downloading/incomplete files in"
 msgstr ""
 
 msgid "Keywords:"
-msgstr ""
+msgstr "Ключові слова:"
 
 msgid "KiB"
-msgstr ""
+msgstr "КіБ"
 
 msgid "KiB/s"
-msgstr ""
+msgstr "КіБ/с"
 
 msgid "Large enough uptime"
 msgstr ""
@@ -6707,9 +6633,8 @@ msgstr ""
 msgid "Last Request"
 msgstr ""
 
-#, fuzzy
 msgid "Last Upload"
-msgstr "Завантажено"
+msgstr ""
 
 msgid "Last check"
 msgstr ""
@@ -6745,7 +6670,7 @@ msgid "Limit search _results to "
 msgstr ""
 
 msgid "Local networks"
-msgstr ""
+msgstr "Локальні мережі"
 
 msgid "Local node"
 msgstr "Локальний вузол"
@@ -6799,7 +6724,7 @@ msgid "Max. simultaneous downloads per file"
 msgstr ""
 
 msgid "Max. simultaneous downloads"
-msgstr ""
+msgstr "Максимальна кількість одночасних завантажень"
 
 msgid "Max. simultaneous uploads"
 msgstr ""
@@ -6820,7 +6745,7 @@ msgid "Maximum seconds to wait on auto-retry timeouts"
 msgstr ""
 
 msgid "Maximum size:"
-msgstr ""
+msgstr "Максимальний розмір:"
 
 msgid ""
 "Maximum size\n"
@@ -6849,7 +6774,7 @@ msgid "Minimum seconds to wait on auto-retry timeouts"
 msgstr ""
 
 msgid "Minimum size:"
-msgstr ""
+msgstr "Мінімальний розмір:"
 
 msgid "Minimum upload time"
 msgstr ""
@@ -6858,10 +6783,10 @@ msgid "Minimum"
 msgstr "Мінімум"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Інше"
 
 msgid "Misses"
-msgstr ""
+msgstr "Промахів"
 
 msgid "Monitor and auto-ban unstable servent types"
 msgstr ""
@@ -6882,16 +6807,16 @@ msgid "Network protocol:"
 msgstr ""
 
 msgid "Network"
-msgstr ""
+msgstr "Мережа"
 
 msgid "Never send a push request"
 msgstr ""
 
 msgid "New"
-msgstr "Новий"
+msgstr "Створити"
 
 msgid "Normalized"
-msgstr ""
+msgstr "Нормалізована"
 
 msgid "Not firewalled"
 msgstr ""
@@ -6909,7 +6834,7 @@ msgid "Number of tolerable _duplicate messages per node"
 msgstr ""
 
 msgid "Ok"
-msgstr ""
+msgstr "Гаразд"
 
 msgid "Optimistic first _chunk"
 msgstr ""
@@ -6921,7 +6846,7 @@ msgid "Originally obtained from"
 msgstr ""
 
 msgid "Other"
-msgstr ""
+msgstr "Інше"
 
 msgid "Out of Band Querying"
 msgstr ""
@@ -6939,7 +6864,7 @@ msgid "Partial File Sharing"
 msgstr ""
 
 msgid "Pass_word"
-msgstr ""
+msgstr "_Пароль:"
 
 msgid "Paste rule"
 msgstr ""
@@ -6948,7 +6873,7 @@ msgid "Patch generation started on:"
 msgstr ""
 
 msgid "Pause"
-msgstr ""
+msgstr "Пауза"
 
 msgid "Pending local queries"
 msgstr ""
@@ -6969,7 +6894,7 @@ msgid "Ping / Pong round trip"
 msgstr ""
 
 msgid "Please confirm:"
-msgstr "Будь-ласка, підтвердіть"
+msgstr "Будь ласка, підтвердіть:"
 
 msgid "Prefer _compressed connections"
 msgstr ""
@@ -6978,7 +6903,7 @@ msgid "Preferences"
 msgstr "Вподобання"
 
 msgid "Progress:"
-msgstr ""
+msgstr "Поступ:"
 
 msgid "Project leader:"
 msgstr "Голова проекту:"
@@ -6986,12 +6911,11 @@ msgstr "Голова проекту:"
 msgid "Property browser"
 msgstr ""
 
-#, fuzzy
 msgid "Property pattern:"
-msgstr "Голова проекту:"
+msgstr ""
 
 msgid "Property"
-msgstr ""
+msgstr "Властивість"
 
 msgid "Proxy _type:"
 msgstr "Тип _проксі"
@@ -7048,7 +6972,7 @@ msgid "RX wire bytes"
 msgstr ""
 
 msgid "Range"
-msgstr ""
+msgstr "Діапазон"
 
 msgid "Raphael Manfredi"
 msgstr ""
@@ -7080,11 +7004,10 @@ msgid ""
 msgstr ""
 
 msgid "Remove filter"
-msgstr ""
+msgstr "Вилучити фільтр"
 
-#, fuzzy
 msgid "Remove"
-msgstr "Видалити"
+msgstr "Вилучити"
 
 msgid "Report an upload connection _speed of"
 msgstr ""
@@ -7111,17 +7034,16 @@ msgid ""
 msgstr ""
 
 msgid "Restart"
-msgstr ""
+msgstr "Продовжити"
 
-#, fuzzy
 msgid "Resu_me"
-msgstr "Видалити"
+msgstr ""
 
 msgid "Resume and retry"
 msgstr ""
 
 msgid "Resume"
-msgstr ""
+msgstr "Продовжити"
 
 msgid "Retry busy delay"
 msgstr ""
@@ -7142,16 +7064,16 @@ msgid "Retry timeout min"
 msgstr ""
 
 msgid "Revert"
-msgstr ""
+msgstr "Відновити"
 
 msgid "Richard Eckart"
 msgstr ""
 
 msgid "Rules"
-msgstr ""
+msgstr "Правила"
 
 msgid "Ruleset editor"
-msgstr ""
+msgstr "Редактор наборів правил"
 
 msgid "Running in leaf mode."
 msgstr ""
@@ -7166,21 +7088,19 @@ msgid "SHA1 hash (not editable, add from search popup)"
 msgstr ""
 
 msgid "Save"
-msgstr ""
+msgstr "Зберегти"
 
 msgid "Saved"
+msgstr "Збережено"
+
+msgid "Search Monitor"
 msgstr ""
 
-#, fuzzy
-msgid "Search Monitor"
-msgstr "Пошукові фільтри"
-
-#, fuzzy
 msgid "Search Stats"
-msgstr "Пошукові фільтри"
+msgstr ""
 
 msgid "Search Term"
-msgstr ""
+msgstr "Ключ пошуку"
 
 msgid "Search _extensions"
 msgstr ""
@@ -7189,72 +7109,62 @@ msgid "Search _monitor enabled"
 msgstr ""
 
 msgid "Search queue"
-msgstr ""
+msgstr "Черга пошуків"
 
 msgid "Search"
 msgstr "Пошук"
 
 msgid "Searches"
-msgstr ""
+msgstr "Пошуки"
 
 msgid "Select files by regex"
-msgstr ""
+msgstr "Вибрати файли за формальним виразом"
 
 msgid "Selected property:"
-msgstr ""
+msgstr "Вибрана властивість:"
 
 msgid "Server"
-msgstr ""
+msgstr "Сервер"
 
-#, fuzzy
 msgid "Settings"
-msgstr "Налаштування IP"
+msgstr "Параметри"
 
-#, fuzzy
 msgid "Show Search_bar"
-msgstr "показувати _Панель статусу"
+msgstr "Показувати панель по_шуку"
 
-#, fuzzy
 msgid "Show Status_bar"
-msgstr "показувати _Панель статусу"
+msgstr "Показувати па_нель стану"
 
-#, fuzzy
 msgid "Show _Connections"
-msgstr "показувати _З'єднання"
+msgstr "Показувати _з’єднання"
 
-#, fuzzy
 msgid "Show _Downloads"
-msgstr "показувати _Звантаження"
+msgstr "Показувати з_вантаження"
 
-#, fuzzy
 msgid "Show _Menubar"
-msgstr "показувати _Панель статусу"
+msgstr "Показувати смужку _меню"
 
-#, fuzzy
 msgid "Show _Sidebar"
-msgstr "показувати _Панель статусу"
+msgstr "Показувати _бічну панель"
 
-#, fuzzy
 msgid "Show _Uploads"
-msgstr "показувати _Завантаження"
+msgstr "Показувати в_ивантаження"
 
 msgid "Show _bytes"
-msgstr ""
+msgstr "Показувати _байти"
 
 msgid "Show _confirmation dialog when leaving gtk-gnutella"
 msgstr ""
+"Показувати діалогове вікно пі_дтвердження під час виходу з gtk-gnutella"
 
-#, fuzzy
 msgid "Show _inbound Gnutella traffic"
-msgstr "GnutellaNet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Show _inbound HTTP traffic"
-msgstr "показувати вхідний Gnet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Show _inbound leaf traffic"
-msgstr "показувати вхідний Gnet трафік"
+msgstr ""
 
 msgid "Show _last"
 msgstr ""
@@ -7262,17 +7172,14 @@ msgstr ""
 msgid "Show _metric units"
 msgstr ""
 
-#, fuzzy
 msgid "Show _outbound Gnutella traffic"
-msgstr "GnutellaNet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Show _outbound HTTP traffic"
-msgstr "показувати вихідний Gnet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Show _outbound leaf traffic"
-msgstr "показувати вихідний Gnet трафік"
+msgstr ""
 
 msgid "Show _percentages"
 msgstr ""
@@ -7280,25 +7187,24 @@ msgstr ""
 msgid "Show _tooltips (does not affect all tooltips yet)"
 msgstr ""
 
-msgid "Show additional information and settings for advanced and _expert users"
+msgid ""
+"Show additional information and settings for advanced and _expert users"
 msgstr ""
 
-#, fuzzy
 msgid "Show inbound DHT traffic"
-msgstr "показувати вхідний Gnet трафік"
+msgstr ""
 
-#, fuzzy
 msgid "Show outbound DHT traffic"
-msgstr "показувати вихідний Gnet трафік"
+msgstr ""
 
 msgid "Show pr_otocol:"
-msgstr ""
+msgstr "Показувати п_ротокол:"
 
 msgid "Show r_easons for"
 msgstr ""
 
 msgid "Show tabs"
-msgstr ""
+msgstr "Показувати вкладки"
 
 msgid ""
 "Shows visual information on the download progress. Green chunks have been "
@@ -7317,7 +7223,7 @@ msgid ""
 msgstr ""
 
 msgid "Slots:"
-msgstr ""
+msgstr "Слоти:"
 
 msgid "Socket receive buffer size"
 msgstr ""
@@ -7329,23 +7235,22 @@ msgid "Source quality"
 msgstr ""
 
 msgid "Spacing"
-msgstr ""
+msgstr "Інтервал"
 
 msgid "Stable"
-msgstr ""
+msgstr "Стабільний"
 
 msgid "Start now"
-msgstr ""
+msgstr "Розпочати"
 
-#, fuzzy
 msgid "Statistics"
-msgstr "_Установки"
+msgstr "Статистика"
 
 msgid "Statistics:"
-msgstr ""
+msgstr "Статистика:"
 
 msgid "Stop"
-msgstr ""
+msgstr "Зупинити"
 
 msgid "Strict SHA_1 matching"
 msgstr ""
@@ -7398,7 +7303,7 @@ msgid ""
 msgstr ""
 
 msgid "This Interval"
-msgstr ""
+msgstr "Цей інтервал"
 
 msgid ""
 "This limits how many results gnutella returns to other people searching your "
@@ -7414,10 +7319,10 @@ msgid "Timeouts (all values in seconds)"
 msgstr ""
 
 msgid "Toolbar style"
-msgstr ""
+msgstr "Стиль панелі інструментів"
 
 msgid "Tools"
-msgstr ""
+msgstr "Інструменти"
 
 msgid "Total input bandwidth limit:"
 msgstr ""
@@ -7446,7 +7351,6 @@ msgstr ""
 msgid "Ultrapeer promotion statistics"
 msgstr ""
 
-# шо?
 msgid "Ultrapeers in leaf mode"
 msgstr ""
 
@@ -7461,18 +7365,17 @@ msgstr ""
 msgid "Update search results pane every"
 msgstr ""
 
-#, fuzzy
 msgid "Upload History"
-msgstr "показувати _Завантаження"
+msgstr ""
 
 msgid "Uploaded:"
 msgstr "Завантажено"
 
 msgid "Uploads"
-msgstr ""
+msgstr "Вивантаження"
 
 msgid "Uptime"
-msgstr ""
+msgstr "Час роботи"
 
 msgid "Use IP _Type of Service (TOS)"
 msgstr ""
@@ -7484,7 +7387,7 @@ msgid "Use _surplus bandwidth"
 msgstr ""
 
 msgid "Use global hostiles.txt"
-msgstr ""
+msgstr "Використовувати загальний hostiles.txt"
 
 msgid "Use realistic PARQ estimates"
 msgstr ""
@@ -7493,22 +7396,22 @@ msgid "Use username and password to _authenticate to proxy"
 msgstr ""
 
 msgid "User Interface"
-msgstr ""
+msgstr "Інтерфейс користувача"
 
 msgid "User-Agent"
 msgstr "Програма користувача"
 
 msgid "Value"
-msgstr ""
+msgstr "Значення"
 
 msgid "Version"
-msgstr ""
+msgstr "Версія"
 
 msgid "Vidar Madsen"
-msgstr ""
+msgstr "Vidar Madsen"
 
 msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr ""
+msgstr "Відвідайте http://gtk-gnutella.sourceforge.net/."
 
 msgid "Volume:"
 msgstr "Розмір:"
@@ -7523,13 +7426,13 @@ msgid "What other people see as your connection speed."
 msgstr ""
 
 msgid "Write buffer size"
-msgstr ""
+msgstr "Розмір буфера запису"
 
 msgid "XML Metadata"
-msgstr ""
+msgstr "Метадані XML"
 
 msgid "Yann Grossel"
-msgstr ""
+msgstr "Yann Grossel"
 
 msgid ""
 "You appear to be TCP-firewalled, i.e. others cannot connect to you to "
@@ -7572,20 +7475,19 @@ msgid "_About"
 msgstr "_Про"
 
 msgid "_Add directory"
-msgstr ""
+msgstr "_Додати каталог"
 
 msgid "_Browse"
-msgstr ""
+msgstr "Ви_брати"
 
-#, fuzzy
 msgid "_Cancel"
-msgstr "Україна"
+msgstr "_Скасувати"
 
 msgid "_Compute upload connection speed"
 msgstr ""
 
 msgid "_Create filter"
-msgstr ""
+msgstr "С_творити фільтр"
 
 msgid "_Deletion coeff. (0-100)"
 msgstr ""
@@ -7597,13 +7499,13 @@ msgid "_Download selected"
 msgstr ""
 
 msgid "_Duplicate"
-msgstr ""
+msgstr "_Дублювати"
 
 msgid "_Edit filters"
-msgstr ""
+msgstr "_Редагувати фільтри"
 
 msgid "_FAQ"
-msgstr ""
+msgstr "_ЧаП"
 
 msgid "_Feed mesh from hits"
 msgstr ""
@@ -7611,113 +7513,107 @@ msgstr ""
 msgid "_File"
 msgstr "_Файл"
 
-#, fuzzy
 msgid "_General"
-msgstr "Загальна статистика"
+msgstr "_Загальне"
 
 msgid "_Gnutella RX buffer:"
 msgstr ""
 
-#, fuzzy
 msgid "_Gnutella traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
-#, fuzzy
 msgid "_HTTP traffic stats"
-msgstr "статистика HTTP трафіка"
+msgstr ""
 
 msgid "_Help"
-msgstr ""
+msgstr "_Довідка"
 
 msgid "_Hide downloaded files"
-msgstr ""
+msgstr "П_риховати отримані файли"
 
 msgid "_Horizon"
 msgstr ""
 
 msgid "_Include headers"
-msgstr ""
+msgstr "В_ключити заголовки"
 
 msgid "_Incoming traffic"
-msgstr ""
+msgstr "В_хідний канал"
 
 msgid "_Listen port"
-msgstr ""
+msgstr "П_орт очікування"
 
 msgid "_Messages"
-msgstr ""
+msgstr "По_відомлення"
 
 msgid "_Outgoing traffic"
-msgstr ""
+msgstr "В_ихідний канал"
 
 msgid "_Overlap when resuming"
 msgstr ""
 
 msgid "_Passive"
-msgstr ""
+msgstr "_Пасивний"
 
 msgid "_Path(s) to files"
-msgstr ""
+msgstr "_Шлях до файлів"
 
 msgid "_Preferences"
-msgstr "_Вподобання"
+msgstr "_Параметри"
 
 msgid "_Push sent timeout"
 msgstr ""
 
 msgid "_Quit"
-msgstr "_Вийти"
+msgstr "Ви_йти"
 
 msgid "_Remove manually downloaded files"
-msgstr ""
+msgstr "Ви_лучити отримані вручну файли"
 
 msgid "_Rescan"
-msgstr ""
+msgstr "Перес_канувати"
 
 msgid "_Reset stats"
-msgstr ""
+msgstr "Ски_нути статистику"
 
-#, fuzzy
 msgid "_Restart"
-msgstr "Результати"
+msgstr "_Перезапустити"
 
 msgid "_Stop"
-msgstr ""
+msgstr "З_упинити"
 
 msgid "_Try to connect to local networks first"
-msgstr ""
+msgstr "_Намагатися спочатку встановити з’єднання з локальною мережею"
 
 msgid "_Update interval (sec)"
-msgstr ""
+msgstr "Інтервал _оновлення (у секундах)"
 
 msgid "_Username"
-msgstr ""
+msgstr "_Користувач"
 
 msgid "_View"
 msgstr "_Вигляд"
 
-#, fuzzy
 msgid "_auto-hide leaf traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
 msgid "active"
-msgstr ""
+msgstr "активний"
 
 msgid "and lasted"
 msgstr ""
 
-#, fuzzy
 msgid "auto-hide DHT traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
 msgid "bytes"
-msgstr ""
+msgstr "байтів"
 
 msgid "case sensitive"
-msgstr ""
+msgstr "з врахуванням регістру"
 
 msgid "case-sensitive"
-msgstr ""
+msgstr "з врахуванням регістру"
 
 msgid "do"
 msgstr ""
@@ -7729,22 +7625,17 @@ msgid "downloads"
 msgstr "звантаження"
 
 msgid "enabled"
-msgstr ""
+msgstr "увімкнено"
 
 msgid "from _nodes within a"
 msgstr ""
 
-#, fuzzy
 msgid ""
 "gtk-gnutella is shutting down.\n"
 "Sending bye messages to peers.\n"
 "\n"
 "Grace time remaining:"
 msgstr ""
-"gtk-gnutella закривається. \n"
-"Надсилаю 'бувай' до peers. \n"
-"\n"
-"Часу на 'відстрочку' залишилось:"
 
 msgid "gtk-gnutella shutdown"
 msgstr ""
@@ -7759,22 +7650,22 @@ msgid "hops radius"
 msgstr ""
 
 msgid "ignore"
-msgstr ""
+msgstr "ігнорувати"
 
 msgid "ignored"
-msgstr ""
+msgstr "ігнорується"
 
 msgid "in"
-msgstr ""
+msgstr "у"
 
 msgid "invert condition"
-msgstr ""
+msgstr "обернена умова"
 
 msgid "invert"
-msgstr ""
+msgstr "інвертувати"
 
 msgid "items"
-msgstr ""
+msgstr "об’єкти"
 
 msgid "kbps to peers"
 msgstr ""
@@ -7786,35 +7677,34 @@ msgid "not yet determined"
 msgstr "ще не визначено"
 
 msgid "out"
-msgstr ""
+msgstr "вих"
 
-#, fuzzy
 msgid "queued"
-msgstr "Поставлено в чергу"
+msgstr "у черзі"
 
 msgid "searches"
-msgstr ""
+msgstr "пошуки"
 
 msgid "seconds"
-msgstr ""
+msgstr "секунд"
 
 msgid "secs   "
-msgstr ""
+msgstr "секунд   "
 
 msgid "secs"
-msgstr ""
+msgstr "сек"
 
 msgid "set"
-msgstr ""
+msgstr "встановити"
 
 msgid "unavailable"
-msgstr ""
+msgstr "недоступне"
 
 msgid "undefined"
-msgstr ""
+msgstr "невизначено"
 
 msgid "unset"
-msgstr ""
+msgstr "зняти"
 
 msgid "uploads"
 msgstr "завантаження"
@@ -7861,13 +7751,11 @@ msgstr ""
 msgid "Port mapping configured through UPnP."
 msgstr ""
 
-#, fuzzy
 msgid "Enable UPnP"
-msgstr "Включити _UDP"
+msgstr ""
 
-#, fuzzy
 msgid "Enable NAT-PMP"
-msgstr "Включити _UDP"
+msgstr ""
 
 msgid "Enable HTTP request pipelining"
 msgstr ""
@@ -7890,9 +7778,8 @@ msgstr ""
 msgid "Output bandwidth hint"
 msgstr ""
 
-#, fuzzy
 msgid "Download queue is frozen."
-msgstr "Черга затримана"
+msgstr ""
 
 msgid "Allow TTH discovery"
 msgstr ""
@@ -7906,29 +7793,26 @@ msgstr ""
 msgid "Answer to what's-new? queries"
 msgstr ""
 
-#, fuzzy
 msgid "Search Media Type"
-msgstr "Пошук додано"
+msgstr ""
 
 msgid "Audio"
-msgstr ""
+msgstr "Звук"
 
-#, fuzzy
 msgid "Video"
-msgstr "_Вигляд"
+msgstr "Відео"
 
 msgid "Document"
-msgstr ""
+msgstr "Документ"
 
 msgid "Image"
-msgstr ""
+msgstr "Зображення"
 
 msgid "Archive"
-msgstr ""
+msgstr "Архів"
 
-#, fuzzy
 msgid "Search Configuration"
-msgstr "Пошукові фільтри"
+msgstr "Налаштування пошуку"
 
 msgid "Stop search when last download completes"
 msgstr ""
@@ -7937,10 +7821,10 @@ msgid "Look for newest files shared by nodes in the network vicinity"
 msgstr ""
 
 msgid "What's new?"
-msgstr ""
+msgstr "Що нового?"
 
 msgid "Unspecified"
-msgstr ""
+msgstr "Не вказано"
 
 msgid "Search filters to apply locally on newly created searches."
 msgstr ""
@@ -7973,17 +7857,16 @@ msgid "Display GUESS statistics"
 msgstr ""
 
 msgid "Not in database"
-msgstr ""
+msgstr "Немає у базі даних"
 
-#, fuzzy
 msgid "owned"
-msgstr "Виконано"
+msgstr ""
 
 msgid "partial"
-msgstr ""
+msgstr "частково"
 
 msgid "shared"
-msgstr ""
+msgstr "спільний"
 
 #, c-format
 msgid "Created %u download"
@@ -8008,62 +7891,56 @@ msgstr[1] ""
 
 #, c-format
 msgid "Couldn't find pixmap file: %s"
-msgstr ""
+msgstr "Не вдалося знайти файл зображення: %s"
 
 #, c-format
 msgid "Error loading pixmap file: %s"
-msgstr ""
+msgstr "Помилка під час завантаження файла зображення: %s"
 
 msgid " (partial)"
-msgstr ""
+msgstr " (частково)"
 
 msgid "Cache contains"
 msgstr ""
 
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "Скопіювати до буфера"
 
-#, fuzzy
 msgid "_Remove filter"
-msgstr "Назва файла:"
+msgstr ""
 
 msgid "_Close"
 msgstr "_Закрити"
 
-#, fuzzy
 msgid "Show _Statusbar"
-msgstr "показувати _Панель статусу"
+msgstr ""
 
-#, fuzzy
 msgid "Show _Peers"
-msgstr "показувати _Панель статусу"
+msgstr ""
 
-#, fuzzy
 msgid "Gnutella _traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
-#, fuzzy
 msgid "_Auto-hide leaf traffic stats"
-msgstr "статистика Gnet трафіка"
+msgstr ""
 
 msgid "_Search"
 msgstr "Пошук"
 
 msgid "What's New?"
-msgstr ""
+msgstr "Що нового?"
 
 msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
-#, fuzzy
 msgid "CPU overloaded"
-msgstr "Завантажено"
+msgstr ""
 
 msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
 
 msgid "Connect to"
-msgstr ""
+msgstr "З'єднатися з"
 
 msgid "ultrapeers"
 msgstr ""
@@ -8137,13 +8014,13 @@ msgid "_Columns show hops"
 msgstr ""
 
 msgid " "
-msgstr ""
+msgstr " "
 
 msgid "Show reasons _for"
 msgstr ""
 
 msgid "Delete"
-msgstr ""
+msgstr "Вилучити"
 
 msgid "You can use suffixes such as KB, KiB, MB, MiB, GB, GiB etc."
 msgstr ""
@@ -8157,16 +8034,14 @@ msgstr ""
 msgid "_Bind to this address"
 msgstr ""
 
-#, fuzzy
 msgid "IPv_4 settings"
-msgstr "Налаштування IP"
+msgstr ""
 
 msgid "Force external IPv6 address to"
 msgstr ""
 
-#, fuzzy
 msgid "IPv_6 settings"
-msgstr "Налаштування IP"
+msgstr ""
 
 msgid "Port Mapping"
 msgstr ""
@@ -8183,7 +8058,7 @@ msgid "seconds (0 - disable)"
 msgstr ""
 
 msgid "slots"
-msgstr ""
+msgstr "слоти"
 
 msgid "unit_of_time|s"
 msgstr ""
@@ -8198,7 +8073,7 @@ msgid "Global DHT ougoing traffic"
 msgstr ""
 
 msgid "attempts"
-msgstr ""
+msgstr "спроби"
 
 msgid "Pipelining maximum chunk size"
 msgstr ""
@@ -8225,25 +8100,25 @@ msgid "_Clear completed"
 msgstr ""
 
 msgid ", "
-msgstr ""
+msgstr ", "
 
 msgid "Peer:"
-msgstr ""
+msgstr "Вузол:"
 
 msgid "Peermode:"
 msgstr ""
 
 msgid "incoming"
-msgstr ""
+msgstr "вхідних"
 
 msgid "outgoing"
-msgstr ""
+msgstr "вихідних"
 
 msgid "Country:"
-msgstr ""
+msgstr "Країна:"
 
 msgid "Vendor:"
-msgstr ""
+msgstr "Виробник:"
 
 msgid "Move the cursor over a row to see details."
 msgstr ""
@@ -8283,10 +8158,10 @@ msgid "Valid IPv6 ultra"
 msgstr ""
 
 msgid "Unstable"
-msgstr ""
+msgstr "Нестабільна"
 
 msgid "Alien"
-msgstr ""
+msgstr "Чужинець"
 
 msgid "GUESS (IPv4 running)"
 msgstr ""
@@ -8301,7 +8176,7 @@ msgid "GUESS (IPv6 introductions)"
 msgstr ""
 
 msgid "gtk-gnutella: Click to minimize/restore"
-msgstr ""
+msgstr "gtk-gnutella: натисніть, щоб згорнути або розгорнути"
 
 #. TRANSLATORS: Translate this as "Translation provided by" or similar
 #. and append your name to the list.
@@ -8311,13 +8186,15 @@ msgstr ""
 #, c-format
 msgid "%d second"
 msgid_plural "%d seconds"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d секунда"
+msgstr[1] "%d секунди"
+msgstr[2] "%d секунд"
 
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
-"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
-"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+"document could not be loaded. Please read the <a href=\"http://gtk-"
+"gnutella.sourceforge.net/?page=faq\">FAQ online</a> "
+"instead.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -8327,79 +8204,76 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "(avg)"
-msgstr ""
+msgstr "(сер.)"
 
 msgid "Hello sent"
-msgstr ""
+msgstr "Надіслано вітання"
 
 msgid "Welcome sent"
-msgstr ""
+msgstr "Надіслано запрошення"
 
-#, fuzzy
 msgid "No UDP traffic yet"
-msgstr "HTTP трафік"
+msgstr ""
 
 #, c-format
 msgid "Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"
 msgstr ""
 
 msgid "Removing"
-msgstr ""
+msgstr "Вилучення"
 
 msgid "Receiving hello"
-msgstr ""
+msgstr "Отримуємо привітання"
 
 msgid "UNKNOWN STATUS"
-msgstr ""
+msgstr "НЕВІДОМИЙ СТАН"
 
 msgid "busy"
-msgstr ""
+msgstr "зайнято"
 
 msgid "stable"
-msgstr ""
+msgstr "стабільне"
 
 msgid "push"
 msgstr ""
 
 msgid "proxy"
-msgstr ""
+msgstr "проксі"
 
 msgid "bogus"
-msgstr ""
+msgstr "фіктивний"
 
-#, fuzzy
 msgid "alien"
-msgstr "Спем"
+msgstr "чужинець"
 
 msgid "media"
-msgstr ""
+msgstr "носій"
 
 msgid "No search"
-msgstr ""
+msgstr "Немає пошуку"
 
 #, c-format
 msgid "Flushing queue (%u results pending)"
 msgstr ""
 
-#, fuzzy
 msgid "The search has been stopped"
-msgstr "Немає слоту для скачування"
+msgstr "Пошук було зупинено"
 
 msgid "Passive search"
-msgstr ""
+msgstr "Пасивний пошук"
 
 #, c-format
 msgid "Expires in %s"
-msgstr ""
+msgstr "Застаріє за %s"
 
 msgid "Expires with this session"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid " [%u download]"
 msgid_plural " [%u downloads]"
-msgstr[0] "показувати _Звантаження"
-msgstr[1] "показувати _Звантаження"
+msgstr[0] ""
+msgstr[1] ""
 
 #, c-format
 msgid ""
@@ -8409,8 +8283,9 @@ msgstr ""
 
 msgid "item"
 msgid_plural "items"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "об’єкт"
+msgstr[1] "об’єкти"
+msgstr[2] "об’єкт"
 
 msgid "dupe"
 msgid_plural "dupes"
@@ -8424,11 +8299,11 @@ msgstr ""
 msgid " previous took %s querying %zu %s with %zu %s kept"
 msgstr ""
 
-#, fuzzy
 msgid "host"
 msgid_plural "hosts"
-msgstr[0] "Хост"
-msgstr[1] "Хост"
+msgstr[0] "вузол"
+msgstr[1] "вузли"
+msgstr[2] "вузлів"
 
 msgid "hit"
 msgid_plural "hits"
@@ -8439,14 +8314,14 @@ msgstr[1] ""
 msgid "GUESS %s [Total: %zu %s (%s %s, %s kept, %s queries, %s keys)%s]"
 msgstr ""
 
-#, fuzzy
 msgid "idle"
-msgstr "файл"
+msgstr "бездіяльний"
 
 msgid "query"
 msgid_plural "queries"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "черга"
+msgstr[1] "черги"
+msgstr[2] "черг"
 
 #, c-format
 msgid ""
@@ -8454,13 +8329,11 @@ msgid ""
 "queried, %zu %s (%.2f%%), %zu pending, %zu %s%s%s]"
 msgstr ""
 
-#, fuzzy
 msgid "loose"
-msgstr "_Закрити"
+msgstr "довільне"
 
-#, fuzzy
 msgid "bounded"
-msgstr "Виконано"
+msgstr "обмежене"
 
 msgid "ack"
 msgid_plural "acks"
@@ -8479,7 +8352,7 @@ msgid " (end if starving)"
 msgstr ""
 
 msgid "Passive"
-msgstr ""
+msgstr "Пасивний"
 
 #, c-format
 msgid ""
@@ -8500,17 +8373,17 @@ msgstr ""
 msgid "browsable"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u download"
 msgid_plural "%u downloads"
-msgstr[0] "показувати _Звантаження"
-msgstr[1] "показувати _Звантаження"
+msgstr[0] ""
+msgstr[1] ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "%u search"
 msgid_plural "%u searches"
-msgstr[0] "Пошук"
-msgstr[1] "Пошук"
+msgstr[0] ""
+msgstr[1] ""
 
 #, c-format
 msgid "Handled magnet link (%s, %s)."
@@ -8525,13 +8398,11 @@ msgstr ""
 msgid "Ignored unusable URL."
 msgstr ""
 
-#, fuzzy
 msgid "The given urn type is not supported."
-msgstr "Протокол не підтримується"
+msgstr ""
 
-#, fuzzy
 msgid "The given SHA-1 is not correctly encoded."
-msgstr "Протокол не підтримується"
+msgstr ""
 
 msgid "Still scanning for shared file, results may be inconclusive."
 msgstr ""
@@ -8560,33 +8431,31 @@ msgid "Show search list"
 msgstr ""
 
 msgid "Extension"
-msgstr ""
+msgstr "Суфікс назви"
 
 msgid "MIME type"
-msgstr ""
+msgstr "Тип MIME"
 
 msgid "TTH"
-msgstr ""
+msgstr "TTH"
 
 msgid "Owned"
-msgstr ""
+msgstr "Має власника"
 
 msgid "No"
-msgstr ""
+msgstr "Ні"
 
-#, fuzzy
 msgid "Tag"
-msgstr "Ціль"
+msgstr "Мітка"
 
 msgid "Yes"
 msgstr "Так"
 
 msgid "Maybe"
-msgstr ""
+msgstr "Можливо"
 
-#, fuzzy
 msgid "Source"
-msgstr "Джерела"
+msgstr "Джерело"
 
 msgid "Alien IP"
 msgstr ""
@@ -8595,75 +8464,65 @@ msgid "Alt-Locs"
 msgstr ""
 
 msgid "Partial"
-msgstr ""
+msgstr "Частково"
 
 #, c-format
 msgid "%s [%.2f%%]"
 msgstr ""
 
 msgid "Available"
-msgstr ""
+msgstr "Доступно"
 
-#, fuzzy
 msgid "Last modification"
-msgstr "Детальна інформація"
+msgstr "Час останньої зміни"
 
 msgid "Latinized"
 msgstr ""
 
-#, fuzzy
 msgid "Pathname"
-msgstr "Хост"
+msgstr "Назва шляху"
 
-#, fuzzy
 msgid "File URL"
-msgstr "Файл"
+msgstr "Адреса файла"
 
-#, fuzzy
 msgid "Host information"
-msgstr "Детальна інформація"
+msgstr ""
 
-#, fuzzy
 msgid "Hostname"
-msgstr "Хост"
+msgstr "Назва вузла"
 
-#, fuzzy
 msgid "banned"
-msgstr "Забанено: %s"
+msgstr "заблоковано"
 
 msgid "Servent ID"
 msgstr ""
 
-#, fuzzy
 msgid "Vendor"
-msgstr "Версія"
+msgstr "Виробник"
 
 msgid "Browsable"
 msgstr ""
 
-#, fuzzy
 msgid "Hostile"
-msgstr "Хост"
+msgstr ""
 
 msgid "Push-proxies"
 msgstr ""
 
-#, fuzzy
 msgid "Packet information"
-msgstr "Детальна інформація"
+msgstr ""
 
-#, fuzzy
 msgid "Route"
-msgstr "Немає роуту"
+msgstr "Маршрут"
 
 msgid "Protocol"
-msgstr ""
+msgstr "Протокол"
 
 msgid "TTL"
-msgstr ""
+msgstr "TTL"
 
 msgid "URLs"
-msgstr ""
+msgstr "Адреси"
 
 msgid "N2R URI"
 msgstr ""
@@ -8702,16 +8561,16 @@ msgid "Not in Bitzi database."
 msgstr ""
 
 msgid "Encoding"
-msgstr ""
+msgstr "Кодування"
 
 msgid "#"
-msgstr ""
+msgstr "№"
 
 msgid "Metadata"
-msgstr ""
+msgstr "Метадані"
 
 msgid "Never"
-msgstr ""
+msgstr "Ніколи"
 
 #, c-format
 msgid "%u/%u host (%u%%)"
@@ -8720,7 +8579,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "loading..."
-msgstr ""
+msgstr "завантаження…"
 
 msgid "Reading host cache..."
 msgstr ""
@@ -8729,11 +8588,11 @@ msgid "Reading ultra cache..."
 msgstr ""
 
 msgid ""
-"<html><head><title>Ancient version detected!</title></"
-"head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
-"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
-"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
-"body></html>"
+"<html><head><title>Ancient version "
+"detected!</title></head><body><h1>Warning</h1><p>This version of gtk-"
+"gnutella is pretty old. Please visit <a href=\"http://gtk-"
+"gnutella.sourceforge.net/\">http://gtk-gnutella.sourceforge.net/</a> and "
+"update your copy of gtk-gnutella.</p></body></html>"
 msgstr ""
 
 msgid "*** RUNNING AN OLD VERSION! ***"
@@ -8765,7 +8624,7 @@ msgid "Address/port changed to: %s"
 msgstr ""
 
 msgid "no sources"
-msgstr ""
+msgstr "без джерел"
 
 #, c-format
 msgid "%u source"
@@ -8816,10 +8675,10 @@ msgid "Got push, connecting back..."
 msgstr ""
 
 msgid "< 1s"
-msgstr ""
+msgstr "< 1 с"
 
 msgid "(quick) "
-msgstr ""
+msgstr "(швидко) "
 
 #, c-format
 msgid " E=%u"
@@ -8830,7 +8689,7 @@ msgid "%s(%s) TR: %s %s#%u"
 msgstr ""
 
 msgid "stalled"
-msgstr ""
+msgstr "застрягло"
 
 msgid "Waiting for headers..."
 msgstr ""
@@ -8846,7 +8705,7 @@ msgid "Reading follow-up request..."
 msgstr ""
 
 msgid "Transmission aborted"
-msgstr ""
+msgstr "Перенесення перервано"
 
 msgid "Transmission complete"
 msgstr ""
@@ -8856,7 +8715,7 @@ msgid "%s [%d] (slot %d/%d)%s %s %s"
 msgstr ""
 
 msgid "Frozen"
-msgstr ""
+msgstr "Заморожено"
 
 msgid "lifetime:"
 msgstr ""
@@ -8866,14 +8725,3 @@ msgstr ""
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr ""
-
-#, fuzzy
-#~ msgid "Index"
-#~ msgstr "вузол"
-
-#, fuzzy
-#~ msgid "Seaerch Media Type"
-#~ msgstr "Пошук додано"
-
-#~ msgid "Banned for %s"
-#~ msgstr "Забанено за %s"

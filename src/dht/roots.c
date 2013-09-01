@@ -1015,7 +1015,7 @@ remove_orphan(void *key, void *u_value, size_t u_len, void *data)
 	(void) u_value;
 	(void) u_len;
 
-	if (hset_contains(ctx->dbkeys, dbkey)) {
+	if (!hset_contains(ctx->dbkeys, dbkey)) {
 		ctx->orphans++;
 		return TRUE;
 	}
@@ -1091,8 +1091,8 @@ roots_init_rootinfo(void)
 		}
 	}
 
-	dbstore_shrink(db_rootdata);
-	dbstore_shrink(db_contact);
+	dbstore_compact(db_rootdata);
+	dbstore_compact(db_contact);
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS first allocated contact DB-key will be %s",
@@ -1121,10 +1121,6 @@ roots_init(void)
 
 	roots_cq = cq_main_submake("roots", ROOTS_CALLOUT);
 	roots = patricia_create(KUID_RAW_BITSIZE);
-
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rootdata_base);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_contact_base);
 
 	db_rootdata = dbstore_open(db_rootdata_what, settings_dht_db_dir(),
 		db_rootdata_base, root_kv, root_packing,

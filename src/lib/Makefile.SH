@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-147]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
 : $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
 
 case $CONFIG in
@@ -57,8 +57,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  float-test.c  sort-test.c
-OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o
+SOURCES =  \$(LSRC)  float-test.c  sort-test.c  random-test.c
+OBJECTS =  \$(LOBJ)  float-test.o  sort-test.o  random-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -129,6 +129,7 @@ LSRC = \
 	bg.c \
 	bigint.c \
 	bstr.c \
+	chi2.c \
 	ckalloc.c \
 	cobs.c \
 	compat_misc.c \
@@ -188,6 +189,7 @@ LSRC = \
 	hset.c \
 	htable.c \
 	html.c \
+	http_range.c \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
@@ -205,6 +207,7 @@ LSRC = \
 	mime_type.c \
 	mingw32.c \
 	misc.c \
+	mtwist.c \
 	mutex.c \
 	nid.c \
 	nv.c \
@@ -226,6 +229,7 @@ LSRC = \
 	prop.c \
 	rand31.c \
 	random.c \
+	rbtree.c \
 	regex.c \
 	sectoken.c \
 	sequence.c \
@@ -256,6 +260,7 @@ LSRC = \
 	vector.c \
 	vendors.c \
 	vmm.c \
+	vsort.c \
 	walloc.c \
 	watcher.c \
 	wd.c \
@@ -280,6 +285,7 @@ LOBJ = \
 	bg.o \
 	bigint.o \
 	bstr.o \
+	chi2.o \
 	ckalloc.o \
 	cobs.o \
 	compat_misc.o \
@@ -339,6 +345,7 @@ LOBJ = \
 	hset.o \
 	htable.o \
 	html.o \
+	http_range.o \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
@@ -356,6 +363,7 @@ LOBJ = \
 	mime_type.o \
 	mingw32.o \
 	misc.o \
+	mtwist.o \
 	mutex.o \
 	nid.o \
 	nv.o \
@@ -377,6 +385,7 @@ LOBJ = \
 	prop.o \
 	rand31.o \
 	random.o \
+	rbtree.o \
 	regex.o \
 	sectoken.o \
 	sequence.o \
@@ -407,6 +416,7 @@ LOBJ = \
 	vector.o \
 	vendors.o \
 	vmm.o \
+	vsort.o \
 	walloc.o \
 	watcher.o \
 	wd.o \
@@ -517,6 +527,17 @@ sort-test:  sort-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  sort-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: random-test
+
+local_realclean::
+	$(RM) random-test$(_EXE)
+
+random-test:  random-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

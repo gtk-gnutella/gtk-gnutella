@@ -32,9 +32,9 @@
 
 #include "common.h"
 
-#include "lib/tm.h"
-#include "lib/glib-missing.h"
 #include "lib/rand31.h"
+#include "lib/str.h"
+#include "lib/tm.h"
 
 #include "sdbm.h"
 
@@ -42,9 +42,10 @@ extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 char *progname;
 static bool progress;
-static bool shrink;
+static bool shrink, rebuild;
 static bool randomize;
 static unsigned rseed;
+static bool unlink_db;
 static bool large_keys, large_values, common_head_tail;
 
 #define WR_DELAY	(1 << 0)
@@ -56,7 +57,8 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-deiikprstvwDEKSV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiikprstvwBDEKSUV] [-R seed] [-c pages] dbname count\n"
+		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
 		"  -e : perform existence test\n"
@@ -68,11 +70,13 @@ usage(void)
 		"  -t : show timing results for each test\n"
 		"  -v : use large values\n"
 		"  -w : perform a write test\n"
+		"  -B : rebuild the database before testing\n"
 		"  -D : enable LRU cache write delay\n"
 		"  -E : empty existing database on write test\n"
 		"  -K : use large keys with common head/tail parts\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : shrink database before testing\n"
+		"  -U : unlink database at the end\n"
 		"  -V : consider database as volatile\n",
 		progname);
 	exit(EXIT_FAILURE);
@@ -84,7 +88,7 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 	DBM *db;
 	int flags = writeable ? (O_CREAT|O_RDWR) : O_RDONLY;
 
-	if (shrink && !writeable)
+	if ((shrink || rebuild) && !writeable)
 		flags = O_RDWR;
 
 	if (WR_EMPTY == (wflags & (WR_EMPTY|WR_DELETING)))
@@ -112,7 +116,26 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 	}
 	if (shrink)
 		sdbm_shrink(db);
+	if (rebuild) {
+		tm_t start, end;
+		printf("Rebuilding database...\n");
+		tm_now_exact(&start);
+		if (-1 == sdbm_rebuild(db)) {
+			oops("error rebuilding \"%s\"", name);
+		}
+		tm_now_exact(&end);
+		printf("Done in %.3f secs.\n", tm_elapsed_f(&end, &start));
+	}
 	return db;
+}
+
+static void
+unlink_database(const char *name)
+{
+	DBM *db;
+
+	db = open_db(name, TRUE, 0, 0);
+	sdbm_unlink(db);
 }
 
 static void
@@ -151,9 +174,9 @@ fill_key(char *buf, size_t len, long i)
 
 	if (randomize) {
 		int v = rand31();
-		w = gm_snprintf(&buf[offset], avail, "%06d%010ld", v, i);
+		w = str_bprintf(&buf[offset], avail, "%06d%010ld", v, i);
 	} else {
-		w = gm_snprintf(&buf[offset], avail, "%016ld", i);
+		w = str_bprintf(&buf[offset], avail, "%016ld", i);
 	}
 	if (large_keys) {
 		size_t off = len - LARGE_KEY_TAIL;
@@ -161,8 +184,31 @@ fill_key(char *buf, size_t len, long i)
 		g_assert(avail > LARGE_KEY_TAIL + COMMON_HEAD_TAIL);
 		if (common_head_tail)
 			off -= COMMON_HEAD_TAIL;
-		gm_snprintf(&buf[off], LARGE_KEY_TAIL, "%016ld", i);
+		str_bprintf(&buf[off], LARGE_KEY_TAIL, "%016ld", i);
 	}
+}
+
+static void
+rebuild_db(const char *name, long count, long cache, int wflags, tm_t *done)
+{
+	DBM *db = open_db(name, TRUE, cache, wflags);
+	long i;
+	long cpage = 0 == cache ? 64 : cache;
+
+	printf("Starting rebuild test (%ld time%s), cache=%ld page%s...\n",
+		count, 1 == count ? "" : "s", cpage, 1 == cpage ? "" : "s");
+
+	for (i = 0; i < count; i++) {
+		if (progress && 0 == i % 50)
+			show_progress(i, count);
+
+		if (0 != sdbm_rebuild(db))
+			oops("rebuild #%ld failed", i);
+	}
+
+	show_done(done);
+
+	sdbm_close(db);
 }
 
 static void
@@ -198,8 +244,6 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	show_done(done);
 
 	sdbm_close(db);
-	if (sdbm_error(db))
-		oops("error closing database \"%s\"", name);
 }
 
 static void
@@ -235,8 +279,6 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	show_done(done);
 
 	sdbm_close(db);
-	if (sdbm_error(db))
-		oops("error closing database \"%s\"", name);
 }
 
 static void
@@ -287,8 +329,6 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	show_done(done);
 
 	sdbm_close(db);
-	if (sdbm_error(db))
-		oops("error closing database \"%s\"", name);
 }
 
 static void
@@ -321,8 +361,6 @@ delete_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	show_done(done);
 
 	sdbm_close(db);
-	if (sdbm_error(db))
-		oops("error closing database \"%s\"", name);
 }
 
 static void
@@ -358,8 +396,6 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 	show_done(done);
 
 	sdbm_close(db);
-	if (sdbm_error(db))
-		oops("error closing database \"%s\"", name);
 }
 
 static void
@@ -390,17 +426,24 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	bool wflag = 0, rflag = 0, iflag = 0, tflag = 0, sflag = 0;
-	bool eflag = 0, dflag = 0;
+	bool eflag = 0, dflag = 0, bflag = 0;
 	int wflags = 0;
 	int c;
 	const char *name;
 	long count;
 	long cache = 0;
 
+	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "c:dDeEikKprR:sStvVw")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStUvVw")) != EOF) {
 		switch (c) {
+		case 'B':			/* rebuild before testing */
+			rebuild++;
+			break;
+		case 'b':			/* rebuild database test */
+			bflag++;
+			break;
 		case 'c':			/* cache pages */
 			cache = atol(optarg);
 			break;
@@ -445,6 +488,9 @@ main(int argc, char **argv)
 			break;
 		case 't':			/* timing report */
 			tflag++;
+			break;
+		case 'U':			/* unlink database */
+			unlink_db++;
 			break;
 		case 'v':			/* large values */
 			large_values++;
@@ -492,6 +538,9 @@ main(int argc, char **argv)
 	if (count < 0)
 		oops("count must be positive (is %ld)", count);
 
+	if (bflag)
+		timeit(rebuild_db, name, count, cache, tflag, wflags, "rebuild test");
+
 	if (wflag)
 		timeit(write_db, name, count, cache, tflag, wflags, "write test");
 
@@ -506,6 +555,11 @@ main(int argc, char **argv)
 
 	if (dflag)
 		timeit(delete_db, name, count, cache, tflag, wflags, "delete test");
+
+	if (unlink_db) {
+		printf("Unlinking database\n");
+		unlink_database(name);
+	}
 
 	return 0;
 }

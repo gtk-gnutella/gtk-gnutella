@@ -36,9 +36,10 @@
 
 #include "lib/concat.h"
 #include "lib/host_addr.h"
-#include "lib/glib-missing.h"	/* For gm_snprintf() */
-#include "lib/tm.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
+#include "lib/tm.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define IO_STALLED	60	/**< If nothing exchanged after that many secs */
@@ -109,7 +110,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 	        filesize_t requested = data->range_end - data->range_start + 1;
 			size_t rw;
 
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+			rw = str_bprintf(tmpstr, sizeof(tmpstr),
 				"%s (%s) %s %s#%u", _("Completed"),
 				d > 0 ? short_rate(requested / d, show_metric_units())
 						: _("< 1s"),
@@ -118,7 +119,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 				u->reqnum);
 
 			if (u->error_count)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" E=%u"), u->error_count);
 		}
         break;
@@ -133,8 +134,8 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gchar pbuf[32];
 			size_t rw;
 
-			gm_snprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			rw = gm_snprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s#%u"),
+			str_bprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
+			rw = str_bprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s#%u"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
@@ -143,7 +144,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 				u->reqnum);
 
 			if (u->error_count)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" E=%u"), u->error_count);
 		}
 		break;
@@ -153,11 +154,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
     case GTA_UL_EXPECTING:
 		if (u->error_count)
-			gm_snprintf(tmpstr, sizeof(tmpstr),
+			str_bprintf(tmpstr, sizeof(tmpstr),
 				_("%s %s#%u E=%u"), _("Waiting for further request..."),
 				u->parq_quick ? _("(quick) ") : "", u->reqnum, u->error_count);
 		else
-			gm_snprintf(tmpstr, sizeof(tmpstr),
+			str_bprintf(tmpstr, sizeof(tmpstr),
 				"%s %s#%u", _("Waiting for further request..."),
 				u->parq_quick ? _("(quick) ") : "", u->reqnum);
 		break;
@@ -196,13 +197,13 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			queued = u->parq_position > available;
 
 			if (u->parq_retry > 0) {
-				gm_snprintf(tbuf, sizeof tbuf,
+				str_bprintf(tbuf, sizeof tbuf,
 							" %s,", short_time(u->parq_retry));
 			} else {
 				tbuf[0] = '\0';
 			}
 
-			rw = gm_snprintf(tmpstr, sizeof tmpstr,
+			rw = str_bprintf(tmpstr, sizeof tmpstr,
 						_("%s [%d] (slot %d/%d)%s %s %s"),
 						u->parq_frozen ? _("Frozen") :
 						queued ? _("Queued") : _("Waiting"),
@@ -214,7 +215,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 						short_time(u->parq_lifetime));
 
 			if (u->error_count)
-				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					_(" E=%u"), u->error_count);
 		}
 		break;

@@ -38,11 +38,11 @@
 #include "debug.h"
 #include "fd.h"
 #include "file.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "log.h"			/* For s_carp() */
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"
+#include "str.h"
 #include "timestamp.h"
 #include "tm.h"
 
@@ -377,7 +377,18 @@ file_config_close(FILE *out, const file_path_t *fv)
 	char *path_new = NULL;
 	bool success = FALSE;
 
-	if (0 != fclose(out)) {
+	/*
+	 * Be extra careful when operating on filesystems with delayed disk block
+	 * allocation, such as "ext4".  If there is a crash and the data was not
+	 * properly allocated to disk, we could lose both the old and new file data!
+	 *
+	 * To fight against that, make sure we sync the new data to disk before
+	 * renaming the new file into the old, as the rename operation is likely
+	 * to be stored on disk before allocation of the new data blocks is made.
+	 *		--RAM, 2013-08-12
+	 */
+
+	if (0 != file_sync_fclose(out)) {
 		g_warning("could not flush \"%s\": %m", fv->name);
 		goto failed;
 	}
@@ -660,6 +671,31 @@ file_fopen_missing(const char *path, const char *mode)
 }
 
 /**
+ * Close a stream, flushing data to disk.
+ *
+ * This is needed on "ext4" filesystems or any other filesystem which delays
+ * the allocation of data blocks, in case there is a crash between the close
+ * and the moment the data is written physically to the disk.
+ *
+ * @return the fclose() status.
+ */
+int
+file_sync_fclose(FILE *f)
+{
+	int fd, ret;
+
+	g_assert(f != NULL);
+
+	ret = fflush(f);			/* Send all buffered data to kernel first */
+	fd = fileno(f);
+
+	if (-1 == fd_fdatasync(fd))
+		g_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
+
+	return fclose(f) | ret;		/* Report error if fflush() failed */
+}
+
+/**
  * Remove trailing white space from line held within buffer.
  *
  * This is meant to be used to validate the line returned by fgets() and to
@@ -695,6 +731,33 @@ file_line_chomp_tail(char *line, size_t size, size_t *lenptr)
 		*lenptr = p - line + ('\0' == *p ? 0 : 1);
 
 	return TRUE;
+}
+
+/**
+ * Convert open() flags to string, for debugging and logging purposes.
+ *
+ * @param flags		open() flags value
+ *
+ * @return pointer to static string.
+ */
+const char *
+file_oflags_to_string(int flags)
+{
+	static char buf[64];
+
+	/* We assume there will be at least one of O_RDWR, O_RDONLY or O_WRONLY */
+
+	str_bprintf(buf, sizeof buf, "%s%s%s%s%s",
+		(flags & O_RDWR) ? "O_RDWR"
+			: (flags & O_WRONLY) ? "O_WRONLY"
+			: (flags & O_RDONLY) ? "O_RDONLY"
+			: (0 == O_RDONLY) ? "O_RDONLY" : "",
+		(flags & O_APPEND)	? " | O_APPEND" : "",
+		(flags & O_CREAT)	? " | O_CREAT" : "",
+		(flags & O_TRUNC)	? " | O_TRUNC" : "",
+		(flags & O_EXCL)	? " | O_EXCL" : "");
+
+	return buf;
 }
 
 /* vi: set ts=4: */

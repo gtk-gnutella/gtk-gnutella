@@ -812,7 +812,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		port >= 6346 &&
 		port <= 6350 &&
 		!host_low_on_pongs &&
-		(random_u32() & 0xff) > 31
+		random_value(255) > 31
 	) {
 		return FALSE;		/* Did not pass port sanity checks */
 	}
@@ -1745,8 +1745,7 @@ hcache_alloc(hcache_type_t type, gnet_property_t catcher, const char *name)
 
 	g_assert((uint) type < HCACHE_MAX);
 
-	hc = g_malloc0(sizeof *hc);
-
+	WALLOC0(hc);
 	hc->hostlist = hash_list_new(NULL, NULL);
 	hc->name = name;
 	hc->type = type;
@@ -1761,13 +1760,16 @@ hcache_alloc(hcache_type_t type, gnet_property_t catcher, const char *name)
  * Dispose of the hostcache.
  */
 static void
-hcache_free(hostcache_t *hc)
+hcache_free_null(hostcache_t **hc_ptr)
 {
+	hostcache_t *hc = *hc_ptr;
+
     g_assert(hc != NULL);
     g_assert(hash_list_length(hc->hostlist) == 0);
 
 	hash_list_free(&hc->hostlist);
-	G_FREE_NULL(hc);
+	WFREE(hc);
+	*hc_ptr = NULL;
 }
 
 /**
@@ -2183,8 +2185,7 @@ hcache_close(void)
 	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		hcache_type_t type = types[i];
 
-		hcache_free(caches[type]);
-        caches[type] = NULL;
+		hcache_free_null(&caches[type]);
 	}
 
     g_assert(0 == htable_count(ht_known_hosts));

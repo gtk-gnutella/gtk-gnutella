@@ -42,6 +42,7 @@
 #include "lib/halloc.h"
 #include "lib/misc.h"
 #include "lib/product.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 
 #include "lib/override.h"	/* Must be the last header included */
@@ -114,7 +115,7 @@ statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
             gdk_beep();
 			/* FALL THRU */
         case SB_MESSAGE:
-            gm_vsnprintf(buf, sizeof(buf), format, args);
+            str_vbprintf(buf, sizeof(buf), format, args);
             break;
         }
     } else {
@@ -202,7 +203,7 @@ statusbar_gui_set_default(const char *format, ...)
     HFREE_NULL(statbar_botstr_new);
 
     if (format != NULL) {
-        gm_vsnprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(buf, sizeof(buf), format, args);
         statbar_botstr_new = h_strdup(buf);
     } else {
         statbar_botstr_new = h_strdup(product_get_website());

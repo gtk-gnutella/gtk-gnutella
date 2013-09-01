@@ -64,6 +64,7 @@
 #include "mq.h"
 #include "mq_tcp.h"
 #include "mq_udp.h"
+#include "oob_proxy.h"
 #include "pcache.h"
 #include "pdht.h"
 #include "pproxy.h"
@@ -131,6 +132,7 @@
 #include "lib/unsigned.h"
 #include "lib/utf8.h"
 #include "lib/vmm.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 #include "lib/wq.h"
 #include "lib/zlib_util.h"
@@ -2849,13 +2851,13 @@ node_bye_v(struct gnutella_node *n, int code, const char *reason, va_list ap)
 	 * Build the bye message.
 	 */
 
-	len = gm_snprintf(reason_base, sizeof reason_fmt - 3,
+	len = str_bprintf(reason_base, sizeof reason_fmt - 3,
 		"%s", n->error_str);
 
 	/* XXX Add X-Try and X-Try-Ultrapeers */
 
 	if (code != 200) {
-		len += gm_snprintf(reason_base + len, sizeof reason_fmt - len - 3,
+		len += str_bprintf(reason_base + len, sizeof reason_fmt - len - 3,
 			"\r\n"
 			"Server: %s\r\n"
 			"\r\n",
@@ -3217,9 +3219,9 @@ node_crawler_headers(struct gnutella_node *n)
 	 */
 
 	if (ux)
-		qsort(ultras, ux, sizeof(gnutella_node_t *), node_gtkg_cmp);
+		vsort(ultras, ux, sizeof(gnutella_node_t *), node_gtkg_cmp);
 	if (lx)
-		qsort(leaves, lx, sizeof(gnutella_node_t *), node_gtkg_cmp);
+		vsort(leaves, lx, sizeof(gnutella_node_t *), node_gtkg_cmp);
 
 	/*
 	 * Avoid sending an incomplete trailing IP address by roughly avoiding
@@ -3232,7 +3234,7 @@ node_crawler_headers(struct gnutella_node *n)
 	 * First, the peers.
 	 */
 
-	rw = gm_snprintf(buf, sizeof(buf), "Peers: ");
+	rw = str_bprintf(buf, sizeof(buf), "Peers: ");
 
 	for (count = 0; count < ux && rw < maxsize; count++) {
 		struct gnutella_node *cn = ultras[count];
@@ -3241,15 +3243,15 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (uw > 0)
-			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += str_bprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "%s",
 				host_addr_port_to_string(cn->gnet_addr, cn->gnet_port));
 
 		uw++;		/* One more ultra written */
 	}
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (!settings_is_ultra() || rw >= maxsize)
 		goto cleanup;
@@ -3258,7 +3260,7 @@ node_crawler_headers(struct gnutella_node *n)
 	 * We're an ultranode, list our leaves.
 	 */
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "Leaves: ");
 
 	for (count = 0; count < lx && rw < maxsize; count++) {
 		struct gnutella_node *cn = leaves[count];
@@ -3267,15 +3269,15 @@ node_crawler_headers(struct gnutella_node *n)
 			continue;
 
 		if (lw > 0)
-			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
+			rw += str_bprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
-		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
+		rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "%s",
 				host_addr_port_to_string(cn->gnet_addr, cn->gnet_port));
 
 		lw++;		/* One more leaf written */
 	}
 
-	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+	rw += str_bprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
 
 	if (GNET_PROPERTY(node_debug)) g_debug(
 		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
@@ -3335,14 +3337,14 @@ send_error(
 		version = version_short_string;
 		token = socket_omit_token(s) ? NULL : tok_short_version();
 	} else {
-		gm_snprintf(xlive, sizeof(xlive),
+		str_bprintf(xlive, sizeof(xlive),
 			"X-Live-Since: %s\r\n", start_rfc822_date);
 		version = version_string;
 		token = socket_omit_token(s) ? NULL : tok_version();
 	}
 
 	if (token)
-		gm_snprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
+		str_bprintf(xtoken, sizeof(xtoken), "X-Token: %s\r\n", token);
 	else
 		xtoken[0] = '\0';
 
@@ -3373,13 +3375,20 @@ send_error(
 		pongs = 0;
 
 	/*
+	 * Do no send pongs if node vendor is faked.
+	 */
+
+	if (n != NULL && NODE_HAS_FAKE_NAME(n))
+		pongs = 0;
+
+	/*
 	 * Do not send X-Ultrapeer on 4xx errors or 550.
 	 */
 
 	if (code == 550 || (code >= 400 && code < 500)) {
 		xultrapeer[0] = '\0';
 	} else {
-		gm_snprintf(xultrapeer, sizeof(xultrapeer), "X-Ultrapeer: %s\r\n",
+		str_bprintf(xultrapeer, sizeof(xultrapeer), "X-Ultrapeer: %s\r\n",
 			settings_is_leaf() ? "False" : "True");
 	}
 
@@ -3395,7 +3404,7 @@ send_error(
 			net = HOST_NET_BOTH;
 	}
 
-	rw = gm_snprintf(gnet_response, sizeof(gnet_response),
+	rw = str_bprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
 		"User-Agent: %s\r\n"
 		"Remote-IP: %s\r\n"
@@ -6221,7 +6230,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		g_assert(!mode_changed || settings_is_leaf());
 
-		rw = gm_snprintf(gnet_response, gnet_response_max,
+		rw = str_bprintf(gnet_response, gnet_response_max,
 			"GNUTELLA/0.6 200 OK\r\n"
 			"%s"			/* Content-Encoding */
 			"%s"			/* X-Ultrapeer */
@@ -6245,7 +6254,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			: 0;
 
 		if (n->flags & NODE_F_CRAWLER)
-			rw = gm_snprintf(gnet_response, gnet_response_max,
+			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"%s"		/* Peers & Leaves */
@@ -6279,7 +6288,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			 */
 
 			if (settings_is_ultra()) {
-				gm_snprintf(degree, sizeof(degree),
+				str_bprintf(degree, sizeof(degree),
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
 					(GNET_PROPERTY(up_connections)
@@ -6287,7 +6296,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 					 - GNET_PROPERTY(normal_connections)) / 2,
 					GNET_PROPERTY(max_ttl));
 			} else if (!is_strprefix(node_vendor(n), gtkg_vendor)) {
-				gm_snprintf(degree, sizeof(degree),
+				str_bprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
 					"X-Ultrapeer-Query-Routing: 0.1\r\n"
 					"X-Degree: 32\r\n"
@@ -6301,14 +6310,14 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				GNET_PROPERTY(enable_guess) &&
 				(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 			) {
-				gm_snprintf(guess, sizeof(guess),
+				str_bprintf(guess, sizeof(guess),
 					"X-Guess: %d.%d\r\n",
 					SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
 			} else {
 				guess[0] = '\0';
 			}
 
-			rw = gm_snprintf(gnet_response, gnet_response_max,
+			rw = str_bprintf(gnet_response, gnet_response_max,
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
 				"Pong-Caching: 0.1\r\n"
@@ -6359,7 +6368,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			header_features_generate(FEATURES_CONNECTIONS,
 				gnet_response, gnet_response_max, &rw);
 
-			rw += gm_snprintf(&gnet_response[rw],
+			rw += str_bprintf(&gnet_response[rw],
 					gnet_response_max - rw, "\r\n");
 		}
 	}
@@ -7027,22 +7036,19 @@ node_udp_disable(void)
  * Setup pseudo node after receiving data on its socket.
  */
 static void
-node_pseudo_setup(gnutella_node_t *n, struct gnutella_socket *s)
+node_pseudo_setup(gnutella_node_t *n, void *data, size_t len)
 {
 	gnutella_header_t *head;
 
 	node_check(n);
-	g_assert(n->socket == s);		/* Only one UDP socket */
 
-	head = cast_to_pointer(s->buf);
+	head = cast_to_pointer(data);
 	n->size = gmsg_size(head);
+	n->size = MIN(len, n->size);	/* Clamp size to physical size */
 	n->msg_flags = 0;
 
 	memcpy(n->header, head, sizeof n->header);
-	n->data = &s->buf[GTA_HEADER_SIZE];
-
-	n->addr = s->addr;
-	n->port = s->port;
+	n->data = ptr_add_offset(data, GTA_HEADER_SIZE);
 
 	n->attrs = NODE_A_UDP;			/* Clears NODE_A_CAN_INFLATE */
 }
@@ -8405,6 +8411,27 @@ node_drain_hello(void *data, int source, inputevt_cond_t cond)
 }
 
 /**
+ * Check whether datagram being process from a UDP host was received a "long"
+ * time ago (delayed processing from application-level RX UDP queue).
+ *
+ * This allows selective dropping of "old" datagrams to accelerate the flushing
+ * of the RX queue by not handling messages.  The advantage over letting the
+ * kernel blindly drop them is that we can pick which ones we want to discard!
+ *
+ * We can only get "old" messages from the unreliable UDP layer.  Indeed,
+ * messages received through the semi-reliable UDP layer take longer (there
+ * can be retransmissions at the lower level) and messages are delivered
+ * as soon as they have been fully re-assembled.
+ *
+ * @return TRUE if UDP datagram was received a while back.
+ */
+bool
+node_udp_is_old(const gnutella_node_t *n)
+{
+	return socket_udp_is_old(n->socket);
+}
+
+/**
  * Check whether message comes from an hostile UDP host.
  *
  * @return TRUE if message came from a hostile host and must be ignored.
@@ -8414,7 +8441,8 @@ node_hostile_udp(gnutella_node_t *n)
 {
 	if (hostiles_check(n->addr)) {
 		if (GNET_PROPERTY(udp_debug)) {
-			g_warning("UDP got %s from hostile %s -- dropped",
+			g_warning("UDP got %s%s from hostile %s -- dropped",
+				node_udp_is_old(n) ? "OLD " : "",
 				gmsg_infostr_full_split(&n->header, n->data, n->size),
 				node_infostr(n));
 		}
@@ -8521,7 +8549,8 @@ node_handle(gnutella_node_t *n)
 			goto proceed;	/* For now, until we know we are the target */
 
 		if (GNET_PROPERTY(udp_debug) || GNET_PROPERTY(ctl_debug) > 2) {
-			g_warning("CTL UDP got %s from %s [%s] -- dropped",
+			g_warning("CTL UDP got %s%s from %s [%s] -- dropped",
+				node_udp_is_old(n) ? "OLD " : "",
 				gmsg_infostr_full_split(n->header, n->data, n->size),
 				node_infostr(n), gip_country_cc(n->addr));
 		}
@@ -8545,10 +8574,14 @@ proceed:
 	g_assert(!(gnutella_header_get_ttl(&n->header) & GTA_UDP_DEFLATED));
 
 	if (GNET_PROPERTY(oob_proxy_debug) > 1) {
-		if (GTA_MSG_SEARCH_RESULTS == gnutella_header_get_function(&n->header))
-			g_debug("QUERY OOB (semi-reliable) results for %s from %s",
-				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				node_addr(n));
+		uint8 function = gnutella_header_get_function(&n->header);
+		if (GTA_MSG_SEARCH_RESULTS == function) {
+			const guid_t *muid = gnutella_header_get_muid(&n->header);
+			g_debug("QUERY OOB%s %sresults for %s from %s",
+				oob_proxy_muid_proxied(muid) ? "-proxied" : "",
+				NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "",
+				guid_hex_str(muid), node_addr(n));
+		}
 	}
 
 	node_parse(n);
@@ -8560,16 +8593,18 @@ proceed:
  * Process incoming UDP Gnutella datagram.
  */
 void
-node_udp_process(gnutella_node_t *n, struct gnutella_socket *s)
+node_udp_process(gnutella_node_t *n, const struct gnutella_socket *s,
+	const void *data, size_t len)
 {
-	node_pseudo_setup(n, s);
+	node_pseudo_setup(n, deconstify_pointer(data), len);
 
 	/*
 	 * DHT messages now leave the Gnutella processing path.
 	 */
 
 	if (NODE_IS_DHT(n)) {
-		kmsg_received(s->buf, s->pos, s->addr, s->port, n);
+		node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
+		kmsg_received(data, len, s->addr, s->port, n);
 		return;
 	}
 
@@ -8655,14 +8690,14 @@ node_init_outgoing(struct gnutella_node *n)
 		 */
 
 		if (settings_is_ultra()) {
-			gm_snprintf(degree, sizeof(degree),
+			str_bprintf(degree, sizeof(degree),
 				"X-Degree: %d\r\n"
 				"X-Max-TTL: %d\r\n",
 				(GNET_PROPERTY(up_connections) + GNET_PROPERTY(max_connections)
 				 	- GNET_PROPERTY(normal_connections)) / 2,
 				GNET_PROPERTY(max_ttl));
 		} else {
-			gm_snprintf(degree, sizeof(degree),
+			str_bprintf(degree, sizeof(degree),
 				"X-Dynamic-Querying: 0.1\r\n"
 				"X-Ultrapeer-Query-Routing: 0.1\r\n"
 				"X-Degree: 32\r\n"
@@ -8694,7 +8729,7 @@ node_init_outgoing(struct gnutella_node *n)
 			GNET_PROPERTY(enable_guess) &&
 			(settings_is_ultra() || GNET_PROPERTY(enable_guess_client))
 		) {
-			gm_snprintf(guess, sizeof(guess),
+			str_bprintf(guess, sizeof(guess),
 				"X-Guess: %d.%d\r\n",
 				SEARCH_GUESS_MAJOR, SEARCH_GUESS_MINOR);
 		} else {
@@ -8708,7 +8743,7 @@ node_init_outgoing(struct gnutella_node *n)
 
 		gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
 
-		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
+		n->hello.len = str_bprintf(n->hello.ptr, n->hello.size,
 			"%s%d.%d\r\n"
 			"Node: %s%s%s\r\n"
 			"Remote-IP: %s\r\n"
@@ -8750,7 +8785,7 @@ node_init_outgoing(struct gnutella_node *n)
 		header_features_generate(FEATURES_CONNECTIONS,
 			n->hello.ptr, n->hello.size, &n->hello.len);
 
-		n->hello.len += gm_snprintf(&n->hello.ptr[n->hello.len],
+		n->hello.len += str_bprintf(&n->hello.ptr[n->hello.len],
 							n->hello.size - n->hello.len, "\r\n");
 
 		g_assert(n->hello.len < n->hello.size);
@@ -9085,6 +9120,9 @@ node_bye_sent(struct gnutella_node *n)
 /**
  * Grow node data space to be able to fit the amount of requested bytes,
  * copying any data that was already present.
+ *
+ * @attention
+ * Caller must be careful: the n->data pointer may have changed upon return.
  */
 void
 node_grow_data(gnutella_node_t *n, size_t len)
@@ -9107,7 +9145,14 @@ node_grow_data(gnutella_node_t *n, size_t len)
 		g_assert(len <= UNSIGNED(payload_inflate_buffer_len));
 	} else if (n->data == &n->socket->buf[GTA_HEADER_SIZE]) {
 		/* There should be enough room */
-		g_assert(len <= sizeof n->socket->buf - GTA_HEADER_SIZE);
+		g_assert(len <= sizeof n->socket->buf_size - GTA_HEADER_SIZE);
+	} else if (NODE_USES_UDP(n)) {
+		/* UDP traffic not pointing to socket's buffer: delayed datagram */
+		g_assert(n->socket->buf_size >= n->size);
+		memmove(&n->socket->buf[0], n->data, n->size);
+		n->data = &n->socket->buf[0];
+		/* There should be enough room in the buffer! */
+		g_assert(len <= n->socket->buf_size);
 	} else {
 		/* This is a node where we go through node_read() -- TCP connection */
 		g_assert(0 != n->allocated);
@@ -10241,7 +10286,7 @@ node_set_guid(struct gnutella_node *n, const struct guid *guid, bool gnet)
 				char guid_buf[GUID_HEX_SIZE + 1];
 
 				if (gnet)
-					gm_snprintf(buf, sizeof buf, "[weird #%d] ", n->n_weird);
+					str_bprintf(buf, sizeof buf, "[weird #%d] ", n->n_weird);
 				else
 					buf[0] = '\0';
 
@@ -10810,13 +10855,13 @@ node_gnet_addr(const gnutella_node_t *n)
 const char *
 node_infostr(const gnutella_node_t *n)
 {
-	static char buf[128];
+	static char buf[160];
 
 	if (NODE_USES_UDP(n)) {
-		gm_snprintf(buf, sizeof buf, "UDP %snode %s",
+		str_bprintf(buf, sizeof buf, "UDP %snode %s",
 			NODE_CAN_SR_UDP(n) ? "(semi-reliable) " : "", node_addr(n));
 	} else {
-		gm_snprintf(buf, sizeof buf, "%s node %s <%s>",
+		str_bprintf(buf, sizeof buf, "%s node %s <%s>",
 			node_type(n), node_gnet_addr(n), node_vendor(n));
 	}
 
@@ -10841,7 +10886,7 @@ node_id_infostr(const struct nid *node_id)
 		return node_infostr(n);
 	} else {
 		static char buf[128];
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			"unknown node ID %s", nid_to_string(node_id));
 		return buf;
 	}
@@ -11794,9 +11839,9 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 
 	if (wants_ua) {
 		if (ux)
-			qsort(ultras, ux, sizeof(gnutella_node_t *), node_ua_cmp);
+			vsort(ultras, ux, sizeof(gnutella_node_t *), node_ua_cmp);
 		if (lx)
-			qsort(leaves, lx, sizeof(gnutella_node_t *), node_ua_cmp);
+			vsort(leaves, lx, sizeof(gnutella_node_t *), node_ua_cmp);
 	}
 
 	/*

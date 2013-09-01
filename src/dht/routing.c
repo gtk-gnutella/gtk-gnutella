@@ -89,7 +89,6 @@
 #include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
-#include "lib/glib-missing.h"
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
 #include "lib/host_addr.h"
@@ -99,6 +98,7 @@
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/stats.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/vendors.h"
@@ -806,7 +806,7 @@ kbucket_to_string(const struct kbucket *kb)
 
 	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
 
-	gm_snprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
+	str_bprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
 			" [good: %u, stale: %u, pending: %u]",
 		kuid, kb->frozen_depth ? "frozen " : "",
 		kb->depth, kb->ours ? ", ours" : "",
@@ -1620,7 +1620,6 @@ dht_initialize(bool post_init)
 	ulq_init();
 	token_init();
 	keys_init();
-	values_init();
 	publish_init();
 	roots_init();
 	tcache_init();
@@ -4214,7 +4213,7 @@ dht_update_size_estimate(void)
 	if (!dht_enabled())
 		return;
 
-	kvec = walloc(K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	WALLOC_ARRAY(kvec, K_LOCAL_ESTIMATE);
 	kcnt = dht_fill_closest(our_kuid, kvec, K_LOCAL_ESTIMATE, NULL, TRUE);
 	pt = patricia_create(KUID_RAW_BITSIZE);
 
@@ -4258,7 +4257,7 @@ dht_update_size_estimate(void)
 	stats.local.estimate = estimate;
 	stats.local.amount = K_LOCAL_ESTIMATE;
 
-	wfree(kvec, K_LOCAL_ESTIMATE * sizeof(knode_t *));
+	WFREE_ARRAY(kvec, K_LOCAL_ESTIMATE);
 	patricia_destroy(pt);
 
 	/*
@@ -4278,7 +4277,7 @@ dht_get_size_estimate(void)
 	static kuid_t size_estimate;
 	bigint_t size;
 
-	if (stats.average.computed == 0)
+	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
 	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
@@ -4294,7 +4293,7 @@ dht_get_size_estimate(void)
 int
 dht_get_kball_furthest(void)
 {
-	if (stats.average.computed == 0)
+	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
 	return stats.kball_furthest;
@@ -4869,7 +4868,6 @@ dht_close(bool exiting)
 	stable_close();
 	tcache_close();
 	roots_close();
-	values_close();
 	keys_close();
 	dht_rpc_close();
 	token_close();

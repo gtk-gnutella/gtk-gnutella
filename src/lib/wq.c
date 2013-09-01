@@ -223,7 +223,7 @@ wq_timed_out(cqueue_t *unused_cq, void *arg)
 		we->tm->timeout_ev = cq_main_insert(we->tm->delay, wq_timed_out, we);
 		return;
 	case WQ_EXCLUSIVE:
-		g_carp("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
+		g_critical("weird status WQ_EXCLUSIVE on timeout invocation of %s()",
 			stacktrace_function_name(we->cb));
 		/* FALL THROUGH */
 	case WQ_REMOVE:
@@ -286,10 +286,10 @@ wq_remove(wq_event_t *we)
 
 	hl = htable_lookup(waitqueue, we->key);
 	if (NULL == hl) {
-		g_carp("attempt to remove event %s() on unknown key %p",
+		g_critical("attempt to remove event %s() on unknown key %p",
 			stacktrace_function_name(we->cb), we->key);
 	} if (NULL == hash_list_remove(hl, we)) {
-		g_carp("attempt to remove unknown event %s() on %p",
+		g_critical("attempt to remove unknown event %s() on %p",
 			stacktrace_function_name(we->cb), we->key);
 	} else if (0 == hash_list_length(hl)) {
 		hash_list_free(&hl);
@@ -345,7 +345,7 @@ wq_notify(hash_list_t *hl, void *data)
 
 		if (i++ >= count) {
 			/* Something is odd, let them know about the calling stack */
-			g_carp("stopping after processing %zu item%s (list now has %u)",
+			g_critical("stopping after processing %zu item%s (list now has %u)",
 				count, 1 == count ? "" : "s", hash_list_length(hl));
 		}
 

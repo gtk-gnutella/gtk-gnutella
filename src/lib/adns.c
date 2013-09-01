@@ -762,17 +762,18 @@ done:
 }
 #endif	/* !MINGW32 */
 
-static void
+static pid_t
 adns_helper_init(void)
 #ifdef MINGW32
 {
 	mingw_adns_init();
+	return -1;
 }
 #else
 {
 	int fd_query[2] = {-1, -1};
 	int fd_reply[2] = {-1, -1};
-	pid_t pid;
+	pid_t pid = -1;
 
 	if (-1 == pipe(fd_query) || -1 == pipe(fd_reply)) {
 		g_warning("%s: pipe() failed: %m", G_STRFUNC);
@@ -843,6 +844,8 @@ prefork_failure:
 		fd_close(&fd_reply[0]);
 		fd_close(&fd_reply[1]);
 	}
+	
+	return pid;
 }
 #endif	/* MINGW32 */
 
@@ -852,11 +855,11 @@ prefork_failure:
  * Initializes the adns helper i.e., fork()s a child process which will
  * be used to resolve hostnames asynchronously.
  */
-void
+pid_t
 adns_init(void)
 {
 	adns_cache = adns_cache_init();
-	adns_helper_init();
+	return adns_helper_init();
 }
 
 /**

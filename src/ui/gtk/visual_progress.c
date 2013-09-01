@@ -43,15 +43,17 @@
 #include "gui.h"
 
 #include "visual_progress.h"
+#include "downloads_common.h"	/* For fi_gui_fi_status_changed() */
 
-#include "if/core/http.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
 #include "lib/htable.h"
+#include "lib/http_range.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"	/* Must be the last header included */
 
 /** The height of the indicator arrows in visual progress */
@@ -748,6 +750,8 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 	 */
 	guc_fi_free_ranges(v->ranges_list);
 	v->ranges_list = guc_fi_get_ranges(fih);
+
+	fi_gui_fi_status_changed(fih);		/* Enqueue re-drawing event */
 }
 
 

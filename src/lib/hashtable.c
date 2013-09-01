@@ -1131,10 +1131,11 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 	 * will be allocated using walloc().
 	 */
 
-	htl.array = xmalloc(htl.count * sizeof htl.array[0]);
+	XMALLOC_ARRAY(htl.array, htl.count);
+
 	while (hash_table_size(ht) != htl.count) {
 		htl.count = hash_table_size(ht);
-		htl.array = xrealloc(htl.array, htl.count * sizeof htl.array[0]);
+		XREALLOC_ARRAY(htl.array, htl.count);
 	}
 
 	hash_table_foreach(ht, hash_table_linearize_item, &htl);

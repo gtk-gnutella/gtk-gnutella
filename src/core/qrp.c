@@ -4448,7 +4448,7 @@ qhvec_alloc(uint size)
 	qhvec->count = 0;
 	qhvec->size = size;
 	qhvec->has_urn = FALSE;
-	qhvec->vec = walloc(size * sizeof qhvec->vec[0]);
+	WALLOC_ARRAY(qhvec->vec, size);
 
 	return qhvec;
 }
@@ -4459,7 +4459,7 @@ qhvec_alloc(uint size)
 void
 qhvec_free(query_hashvec_t *qhvec)
 {
-	wfree(qhvec->vec, qhvec->size * sizeof qhvec->vec[0]);
+	WFREE_ARRAY(qhvec->vec, qhvec->size);
 	WFREE(qhvec);
 }
 

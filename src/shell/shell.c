@@ -47,7 +47,6 @@
 #include "lib/ascii.h"
 #include "lib/file.h"
 #include "lib/getline.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"
@@ -425,7 +424,7 @@ shell_parse_command(struct gnutella_shell *sh,
 	for (start = line; /* empty */; /* empty */) {
 		if (argc >= n) {
 			n = 2 * MAX(16, n);
-			argv = hrealloc(argv, n * sizeof argv[0]);
+			HREALLOC_ARRAY(argv, n);
 		}
 		if (argc > SHELL_MAX_ARGS) {
 			argv[SHELL_MAX_ARGS] = NULL;
@@ -444,7 +443,7 @@ shell_parse_command(struct gnutella_shell *sh,
 		argc++;
 		if (';' == *start) {
 			if (argc >= n)
-				argv = hrealloc(argv, (argc + 1) * sizeof argv[0]);
+				HREALLOC_ARRAY(argv, argc + 1);
 			argv[argc] = NULL;
 			*endptr = ++start;
 			break;
@@ -500,7 +499,7 @@ shell_pending_flush(struct gnutella_shell *sh, bool last)
 	if (sh->pending.msg != NULL) {
 		char buf[5];
 
-		gm_snprintf(buf, sizeof buf, "%03d%c",
+		str_bprintf(buf, sizeof buf, "%03d%c",
 			sh->pending.code, last ? ' ' : '-');
 		shell_write(sh, buf);
 		shell_write(sh, sh->pending.msg);
@@ -557,7 +556,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 			}
 		} else {
 			char buf[80];
-			gm_snprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
+			str_bprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
 			shell_set_msg(sh, buf);
 			reply_code = REPLY_ERROR;
 		}

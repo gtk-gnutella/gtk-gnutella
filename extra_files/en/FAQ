@@ -336,8 +336,7 @@ See also,
 <p>
   It is important to upgrade versions of gtk-gnutella which are older than one
   year since they lack features that are important to the rapidly evolving
-  gnet's health and scalability.  In addition, unstable versions are banned 
-  after 90 days.
+  gnet's health and scalability.
 </p>
 
 <h3><a name="gnet7">Why doesn't my HTTP proxy work?</a></h3>

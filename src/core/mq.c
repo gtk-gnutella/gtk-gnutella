@@ -41,11 +41,13 @@
 #include "gnet_stats.h"
 
 #include "lib/cq.h"
-#include "lib/glib-missing.h"	/* For gm_snprintf() */
+#include "lib/glib-missing.h"	/* For gm_list_free_null() */
 #include "lib/halloc.h"
 #include "lib/htable.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/unsigned.h"		/* For size_saturate_add() */
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "if/gnet_property_priv.h"
@@ -192,12 +194,12 @@ mq_info(const mqueue_t *q)
 	static char buf[160];
 
 	if (q->magic != MQ_MAGIC) {
-		gm_snprintf(buf, sizeof(buf),
+		str_bprintf(buf, sizeof(buf),
 			"queue %p INVALID (bad magic)", (void *) q);
 	} else {
 		bool udp = NODE_USES_UDP(q->node);
 
-		gm_snprintf(buf, sizeof(buf),
+		str_bprintf(buf, sizeof(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
 			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :
@@ -237,7 +239,7 @@ mq_add_linkable(mqueue_t *q, GList *l)
 
 	owner = htable_lookup(qown, l);
 	if (owner) {
-		g_carp("BUG: added linkable %p already owned by %s%s",
+		g_critical("BUG: added linkable %p already owned by %s%s",
 			(void *) l, owner == q ? "ourselves" : "other", mq_info(owner));
 		if (owner != q)
 			g_warning("BUG: will make linkable %p belong to %s",
@@ -376,7 +378,7 @@ mq_free(mqueue_t *q)
 	pmsg_slist_free(&q->qwait);
 
 	q->magic = 0;
-	wfree(q, sizeof(*q));
+	WFREE(q);
 }
 
 /**
@@ -798,7 +800,7 @@ qlink_create(mqueue_t *q)
 
 	g_assert(q->qlink == NULL);
 
-	q->qlink = halloc(q->count * sizeof q->qlink[0]);
+	HALLOC_ARRAY(q->qlink, q->count);
 
 	/*
 	 * Prepare sorting of queued messages.
@@ -822,7 +824,7 @@ qlink_create(mqueue_t *q)
 	 */
 
 	q->qlink_count = n;
-	qsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
+	vsort(q->qlink, n, sizeof q->qlink[0], qlink_cmp);
 
 	mq_check(q, 0);
 }
@@ -866,7 +868,7 @@ qlink_insert_before(mqueue_t *q, int hint, GList *l)
 	 */
 
 	q->qlink_count++;
-	q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+	HREALLOC_ARRAY(q->qlink, q->qlink_count);
 
 	
 	/* Shift right */
@@ -897,7 +899,7 @@ qlink_insert(mqueue_t *q, GList *l)
 	if (high < 0) {
 		g_assert(q->count == 1);		/* `l' is already part of the queue */
 		q->qlink_count++;
-		q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+		HREALLOC_ARRAY(q->qlink, q->qlink_count);
 		q->qlink[0] = l;
 		return;
 	}
@@ -917,7 +919,7 @@ qlink_insert(mqueue_t *q, GList *l)
 
 	if (qlink[high] != NULL && qlink_cmp(&l, &qlink[high]) >= 0) {
 		q->qlink_count++;
-		q->qlink = hrealloc(q->qlink, q->qlink_count * sizeof q->qlink[0]);
+		HREALLOC_ARRAY(q->qlink, q->qlink_count);
 		q->qlink[q->qlink_count - 1] = l;
 		return;
 	}

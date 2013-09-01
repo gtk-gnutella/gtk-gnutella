@@ -864,6 +864,7 @@ string_to_port_host_addr(const char *str, const char **endptr,
 	return ret;
 }
 
+#ifndef HAS_GETNAMEINFO
 static void
 gethostbyname_error(const char *host)
 {
@@ -876,6 +877,7 @@ gethostbyname_error(const char *host)
 		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
 #endif /* defined(HAS_HSTRERROR) */
 }
+#endif	/* !HAS_GETNAMEINFO */
 
 /**
  * Initializes sa_ptr from a host address and a port number.
@@ -1017,6 +1019,54 @@ socket_addr_getpeername(socket_addr_t *p_addr, int fd)
 #endif	/* HAS_IPV6 */
 
 	return -1;
+}
+
+/**
+ * Mask out given address, clearing the trailing v4 or v6 bits, depending
+ * on the address type.
+ *
+ * @param addr		the address to mask out
+ * @param v4		amount of trailing bits to mask out for IPv4 address
+ * @param v6		amount of trailing bits to mask out for IPv6 address
+ *
+ * @return masked out address, possibly converted from IPv6 to IPv4.
+ */
+host_addr_t
+host_addr_mask_net(host_addr_t addr, int v4, int v6)
+{
+	host_addr_t masked = addr;
+
+	g_assert(v4 >= 0 && v4 <= 32);
+	g_assert(v6 >= 0 && v6 <= 128);
+
+	if (host_addr_can_convert(addr, NET_TYPE_IPV4))
+		(void) host_addr_convert(addr, &masked, NET_TYPE_IPV4);
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+		if (32 == v4)
+			masked.addr.ipv4 = 0;
+		else
+			masked.addr.ipv4 &= ~((1U << v4) - 1);
+		break;
+	case NET_TYPE_IPV6:
+		{
+			int bytes = v6 / 8;			/* Amount of trailing bytes to clear */
+			int bits = v6 % 8;			/* Trailing bits in upper byte */
+			int i;
+
+			for (i = 0; i < bytes; i++) {
+				masked.addr.ipv6[15 - i] = 0;
+			}
+			masked.addr.ipv6[15 - bytes] &= ~((1U << bits) - 1);
+		}
+		break;
+	case NET_TYPE_LOCAL:
+	case NET_TYPE_NONE:
+		break;
+	}
+
+	return masked;
 }
 
 /**

@@ -57,10 +57,11 @@
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/misc.h"
-#include "lib/glib-missing.h"
 #include "lib/htable.h"
+#include "lib/misc.h"
+#include "lib/str.h"
 #include "lib/wordvec.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /**
@@ -139,7 +140,7 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 	(void) unused_addr;
 	(void) unused_port;
 
-    gm_snprintf(buf, sizeof buf, QUERY_SHA1 == type ? "urn:sha1:%s" : "[%s]",
+    str_bprintf(buf, sizeof buf, QUERY_SHA1 == type ? "urn:sha1:%s" : "[%s]",
 		search);
 
 	wovec.word = buf;
@@ -222,8 +223,8 @@ stats_hash_to_clist(const void *key, void *value, void *unused_udata)
 	/* update the display */
 
     /* FIXME: make %8.8d %d and set up custom sort function */
-	gm_snprintf(period_tmp, sizeof period_tmp, "%8.8d", (int) val->period_cnt);
-	gm_snprintf(total_tmp, sizeof total_tmp, "%8.8d", (int) val->total_cnt);
+	str_bprintf(period_tmp, sizeof period_tmp, "%8.8d", (int) val->period_cnt);
+	str_bprintf(total_tmp, sizeof total_tmp, "%8.8d", (int) val->total_cnt);
 
 	text[0] = deconstify_pointer(key);
 	text[1] = period_tmp;

@@ -75,7 +75,6 @@
 #include "endian.h"
 #include "fd.h"					/* For is_open_fd() */
 #include "getphysmemsize.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
 #include "iovec.h"
@@ -90,6 +89,7 @@
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
 #include "unsigned.h"
 #include "utf8.h"
+#include "vmm.h"				/* For vmm_page_start() */
 #include "walloc.h"
 #include "xmalloc.h"
 
@@ -120,11 +120,13 @@
 #undef remove
 #undef lseek
 #undef dup2
+#undef fsync
 #undef unlink
 #undef opendir
 #undef readdir
 #undef closedir
 
+#undef gethostname
 #undef getaddrinfo
 #undef freeaddrinfo
 
@@ -160,6 +162,8 @@
 static HINSTANCE libws2_32;
 static bool mingw_inited;
 static bool mingw_vmm_inited;
+
+bool mingw_c_runtime_is_up;		/* TRUE when we're out of the C startup */
 
 typedef struct processor_power_information {
   ULONG Number;
@@ -703,15 +707,127 @@ mingw_fcntl(int fd, int cmd, ... /* arg */ )
 	return res;
 }
 
+#ifdef EMULATE_FSYNC
+/**
+ * Synchronize the file's in-core data with the storage device by making sure
+ * all the kernel-buffered data is written.
+ */
+int
+mingw_fsync(int fd)
+{
+	HANDLE h = (HANDLE) _get_osfhandle(fd);
+
+	if G_UNLIKELY(INVALID_HANDLE_VALUE == h) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if (!FlushFileBuffers(h)) {
+		errno = mingw_last_error();
+		return -1;
+	}
+
+	return 0;
+}
+#endif	/* EMULATE_FSYNC */
+
+/**
+ * Computes the memory necessary to include the string into quotes and escape
+ * embedded quotes, provided there are embedded spaces.
+ *
+ * @param str		the string where we want to protect embedded spaces / quotes
+ *
+ * @return 0 if no escaping is necessary (no embedded spaces or quotes), the
+ * size of the buffer required to hold the escaped string otherwise (including
+ * the trailing NUL).
+ */
+static size_t
+mingw_quotedlen(const char *str)
+{
+	const char *p = str;
+	char c;
+	size_t spaces = 0, quotes = 0;
+
+	g_assert(str != NULL);
+
+	while ('\0' != (c = *p++)) {
+		if (' ' == c)
+			spaces++;
+		else if ('"' == c)
+			quotes++;
+	}
+
+	/*
+	 * If there are spaces, we need 2 surrounding quotes, plus 1 extra
+	 * character per quote present (to escape them with a preceding "\").
+	 *
+	 * Any quote present needs also to be preserved.
+	 */
+
+	if (0 == spaces && 0 == quotes)
+		return 0;		/* No escaping required */
+
+	return 2 + quotes + ptr_diff(p, str);
+}
+
+/**
+ * Escape string into supplied buffer: two surrounding quotes are added, and
+ * each embedded quote is escaped.
+ *
+ * @param str		the string to escape
+ * @param dest		destination buffer
+ * @param len		length available in buffer
+ *
+ * @return a pointer to the next character following the escaped string.
+ */
+static char *
+mingw_quotestr(const char *str, char *dest, size_t len)
+{
+	char *end = ptr_add_offset(dest, len);
+	const char *p = str;
+	char *q;
+
+	g_assert(str != NULL);
+	g_assert(dest != NULL);
+	g_assert(size_is_positive(len));
+
+	dest[0] = '"';			/* Opening quote */
+	q = &dest[1];
+	
+	while (q < end) {
+		char c = *p++;
+
+		if ('"' == c) {
+			*q++ = '\\';	/* Escape following quote */
+			if (q >= end)
+				break;
+			*q++ = c;
+		} else if ('\0' == c) {
+			*q++ = '"';		/* Close opening quote */
+			if (q >= end)
+				break;
+			*q++ = c;		/* Final NUL */
+			break;
+		} else {
+			*q++ = c;
+		}
+	}
+
+	dest[len - 1] = '\0';	/* In case we jumped out of the loop above */
+
+	return q;
+}
+
 /**
  * Wrapper for execve().
  */
 int
 mingw_execve(const char *filename, char *const argv[], char *const envp[])
 {
-	static char buf[1024];		/* Better avoid the stack during crashes */
+	static char buf[4096];		/* Better avoid the stack during crashes */
 	const char *p;
-	char *q, *end;
+	size_t needed = 0;			/* Space needed in buf[] for escaping */
+	char * const *ap;
 
 	/*
 	 * Unfortunately, the C runtime on Windows is not parsing the argv[0]
@@ -730,47 +846,58 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 	 *
 	 * which of course is completely wrong.
 	 *
-	 * So, as a workaround, we surround the passed argv[0] into quotes before
+	 * So, as a workaround, we surround each argv[i] into quotes before
 	 * invoking execve(), well spawnve() actually.
 	 *
 	 * Complications arise because we are called from the crash handler most
 	 * probably and therefore we cannot allocate memory.  Furthermore, the
-	 * argv[] array can point to read-only memory.
-	 *
-	 * FIXME: we should really quote ALL the arguments, not just argv[0],
-	 * but this will do for now to enable correct auto-restart.
-	 *		--RAM, 2012-11-11
+	 * argv[] array can be held within read-only memory.
 	 */
 
-	end = &buf[sizeof buf];
-	p = argv[0];
-	buf[0] = '"';
-	q = &buf[1];
-	
-	while (q < end) {
-		char c = *p++;
-		if ('"' == c) {
-			*q++ = '\\';
-			if (q >= end)
-				break;
-			*q++ = c;
-		} else if ('\0' == c) {
-			*q++ = '"';		/* Close opening quote */
-			if (q >= end)
-				break;
-			*q++ = c;
-			break;
-		} else {
-			*q++ = c;
-		}
+	ap = argv;
+	while (NULL != (p = *ap++)) {
+		needed += mingw_quotedlen(p);
 	}
 
-	buf[sizeof buf - 1] = '\0';	/* In case we jumped out of the loop above */
+	if (needed != 0) {
+		char *q = &buf[0], *end = &buf[sizeof buf];
+		const void *argvnext, *argvpage = vmm_page_start(argv);
+		size_t span;
+		char **argpv;
+		unsigned i;
 
-	if (-1 == mprotect((void *) argv, 4096, PROT_READ | PROT_WRITE))
-		s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+		if (needed > sizeof buf) {
+			s_miniwarn("%s(): would need %zu bytes to escape all arguments, "
+				"has only %zu available", G_STRFUNC, needed, sizeof buf);
+		}
 
-	*(char **) argv = buf;		/* Changes argv[0] */
+		argvnext = vmm_page_next(ap - 1);
+		span = ptr_diff(argvnext, argvpage);
+
+		if (-1 == mprotect((void *) argvpage, span, PROT_READ | PROT_WRITE))
+			s_miniwarn("%s(): mprotect: %m", G_STRFUNC);
+
+		for (argpv = (char **) argv, i = 0; *argpv != NULL; argpv++, i++) {
+			char *str = *argpv;
+			size_t len = mingw_quotedlen(str);
+
+			/*
+			 * Only escape arguments that need protection and that we can
+			 * properly escape.
+			 */
+
+			if (len != 0) {
+				if (len <= ptr_diff(end, q)) {
+					*argpv = q;
+					q = mingw_quotestr(str, q, ptr_diff(end, q));
+				} else {
+					s_miniwarn("%s(): not escaping argv[%u] "
+						"(need %zu bytes, only has %zu left)",
+						G_STRFUNC, i, len, ptr_diff(end, q));
+				}
+			}
+		}
+	}
 
 	/*
 	 * Now perform the execve(), which we emulate through an asynchronous
@@ -783,7 +910,7 @@ mingw_execve(const char *filename, char *const argv[], char *const envp[])
 	spawnve(P_NOWAIT, filename, (const void *) argv, (const void *) envp);
 
 	if (0 == errno)
-		exit(0);
+		_exit(0);	/* We don't want any atexit() cleanup */
 
 	return -1;		/* Failed to launch process, errno is set */
 }
@@ -1521,19 +1648,48 @@ int
 mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout)
 {
-	int res = select(nfds, readfds, writefds, exceptfds, timeout);
+	int res;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	res = select(nfds, readfds, writefds, exceptfds, timeout);
 	
 	if (res < 0)
 		errno = mingw_wsa_last_error();
-		
+
 	return res;
+}
+
+int
+mingw_gethostname(char *name, size_t len)
+{
+	int result;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	result = gethostname(name, len);
+
+	if (result != 0)
+		errno = mingw_wsa_last_error();
+	return result;
 }
 
 int
 mingw_getaddrinfo(const char *node, const char *service,
 	const struct addrinfo *hints, struct addrinfo **res)
 {
-	int result = getaddrinfo(node, service, hints, res);
+	int result;
+
+	/* Initialize the socket layer */
+	if G_UNLIKELY(!mingw_inited)
+		mingw_init();
+
+	result = getaddrinfo(node, service, hints, res);
+
 	if (result != 0)
 		errno = mingw_wsa_last_error();
 	return result;
@@ -1950,7 +2106,7 @@ mingw_valloc(void *hint, size_t size)
 		n = mingw_getpagesize();
 		n = size_saturate_mult(n, mingw_vmm.hinted++);
 		if (n + size >= mingw_vmm.size) {
-			s_carp("%s(): out of reserved memory for %zu bytes",
+			s_minicrit("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
 			goto failed;
 		}
@@ -1965,7 +2121,8 @@ mingw_valloc(void *hint, size_t size)
 
 		if (p == NULL) {
 			errno = mingw_last_error();
-			s_carp("%s(): failed to allocate %zu bytes: %m", G_STRFUNC, size);
+			s_minicrit("%s(): failed to allocate %zu bytes: %m",
+				G_STRFUNC, size);
 			goto failed;
 		}
 		return p;
@@ -1978,7 +2135,7 @@ mingw_valloc(void *hint, size_t size)
 
 	if (p == NULL) {
 		errno = mingw_last_error();
-		s_carp("%s(): failed to commit %zu bytes at %p: %m",
+		s_minicrit("%s(): failed to commit %zu bytes at %p: %m",
 			G_STRFUNC, size, hint);
 		goto failed;
 	}
@@ -2042,7 +2199,7 @@ mingw_mprotect(void *addr, size_t len, int prot)
 		newProtect = PAGE_READWRITE;
 		break;
 	default:
-		g_carp("mingw_mprotect(): unsupported protection flags 0x%x", prot);
+		g_critical("mingw_mprotect(): unsupported protection flags 0x%x", prot);
 		res = EINVAL;
 		return -1;
 	}
@@ -2482,9 +2639,9 @@ mingw_uname(struct utsname *buf)
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
-		gm_snprintf(buf->release, sizeof buf->release, "%u.%u",
+		str_bprintf(buf->release, sizeof buf->release, "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		gm_snprintf(buf->version, sizeof buf->version, "%u %s",
+		str_bprintf(buf->version, sizeof buf->version, "%u %s",
 			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
@@ -4732,7 +4889,25 @@ G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
-	FILE *lf = getlog(TRUE);
+	FILE *lf;
+
+	/*
+	 * HACK ALERT:
+	 *
+	 * It is necessary to indicate that we're now past the C runtime startup
+	 * initialization.  Indeed, due to a bug somewhere, the C startup code
+	 * is calling free() on pointers that have not been allocated by malloc()
+	 * and therefore programs do not startup correctly!
+	 *
+	 * Therefore, we mark that we're out of the C startup code now, and know
+	 * that for every free() we issue, there must be a malloc() before.
+	 *
+	 *		--RAM, 2013-08-31
+	 */
+
+	mingw_c_runtime_is_up = TRUE;		/* Allows xfree() to process pointers */
+
+	lf = getlog(TRUE);
 
 	STARTUP_DEBUG("starting PID %d", getpid());
 	STARTUP_DEBUG("logging on fd=%d", fileno(lf));

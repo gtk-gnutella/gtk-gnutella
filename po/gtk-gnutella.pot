@@ -1,6 +1,7 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Raphael Manfredi
-# This file is distributed under the same license as the PACKAGE package.
+# Translations for gtk-gnutella package.
+# Copyright (C) 2000-2001 Yann Grossel.
+# Copyright (C) 2001-2013 Raphaël Manfredi.
+# This file is distributed under the same license as the gtk-gnutella package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
@@ -8,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -356,6 +357,9 @@ msgstr ""
 msgid ", outbound"
 msgstr ""
 
+msgid ", no-pipeline"
+msgstr ""
+
 msgid ", banning"
 msgstr ""
 
@@ -485,6 +489,9 @@ msgid "Too large"
 msgstr ""
 
 msgid "Way too large"
+msgstr ""
+
+msgid "Too old"
 msgstr ""
 
 msgid "Unknown message type"
@@ -919,9 +926,6 @@ msgstr ""
 msgid "File was modified"
 msgstr ""
 
-msgid "Library being rebuilt"
-msgstr ""
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -932,6 +936,9 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
+msgstr ""
+
+msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -3063,6 +3070,26 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+msgid "Debug level for DHT key management."
+msgstr ""
+
+msgid "Debug level for DHT value management."
+msgstr ""
+
+msgid "ID of the current process."
+msgstr ""
+
+msgid "Debug level for HTTP range parsing / handling."
+msgstr ""
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -3570,7 +3597,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -3582,7 +3609,7 @@ msgstr ""
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr ""
 
 msgid ""
@@ -5273,6 +5300,24 @@ msgstr ""
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -5289,6 +5334,9 @@ msgid "UDP UHC pongs sent"
 msgstr ""
 
 msgid "UDP messages with bogus source IP"
+msgstr ""
+
+msgid "UDP truncated incoming messages"
 msgstr ""
 
 msgid "Alien UDP messages (non-Gnutella)"
@@ -7716,7 +7764,7 @@ msgstr ""
 msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr ""
 
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -7743,7 +7791,7 @@ msgstr ""
 msgid "Pipelining max chunk size"
 msgstr ""
 
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr ""
 
 msgid "Enable GUESS (additional querying)"
@@ -7836,6 +7884,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr ""
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr ""
 
@@ -7914,9 +7965,6 @@ msgid "Do not specify any media type (will match any kind of files remotely)"
 msgstr ""
 
 msgid "CPU overloaded"
-msgstr ""
-
-msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
 
 msgid "Connect to"
@@ -8049,9 +8097,6 @@ msgstr ""
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
-msgid "Global DHT ougoing traffic"
-msgstr ""
-
 msgid "attempts"
 msgstr ""
 
@@ -8059,9 +8104,6 @@ msgid "Pipelining maximum chunk size"
 msgstr ""
 
 msgid "_Remove directory"
-msgstr ""
-
-msgid "Enable upload of partial files deemed rare"
 msgstr ""
 
 msgid "Minimum chunk _size"

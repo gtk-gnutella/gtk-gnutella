@@ -1,21 +1,17 @@
-# $Id$
-#
-# French translations for gtk-gnutella package.
+# Translations for gtk-gnutella package.
 # Copyright (C) 2000-2001 Yann Grossel.
-# Copyright (C) 2001-2010 Raphaël Manfredi.
+# Copyright (C) 2001-2013 Raphaël Manfredi.
 # This file is distributed under the same license as the gtk-gnutella package.
-# T'aZ <tazdev@punkass.com>, 2004-2005.
-# FlashCode <flashcode@flashtux.org>, 2006-2007.
-# Raphael Manfredi <raphael_manfredi@pobox.com>, 2011 [release 0.97].
 #
+# Translators:
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 0.98.4u\n"
+"Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
-"PO-Revision-Date: 2012-11-10 14:21+0100\n"
-"Last-Translator: \n"
-"Language-Team: French <gtk-gnutella-devel@lists.sourceforge.net>\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
+"PO-Revision-Date: 2013-05-12 20:14+0100\n"
+"Last-Translator: Raphael Manfredi <Raphael_Manfredi@pobox.com>\n"
+"Language-Team: French (http://www.transifex.com/projects/p/gtk-gnutella/language/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -28,7 +24,7 @@ msgid "%s%s%s%s%s fps, %s kbps"
 msgstr "%s%s%s%s%s fps, %s kbps"
 
 msgid "times|x"
-msgstr "x"
+msgstr "fois|x"
 
 #, c-format
 msgid "Stopped, will retry with TLS (%s)"
@@ -362,6 +358,10 @@ msgstr ", entrant"
 msgid ", outbound"
 msgstr ", sortant"
 
+#, fuzzy
+msgid ", no-pipeline"
+msgstr ", pas d'emboîtement"
+
 msgid ", banning"
 msgstr ", bannissement"
 
@@ -492,6 +492,9 @@ msgstr "Trop grand"
 
 msgid "Way too large"
 msgstr "Beaucoup trop grand"
+
+msgid "Too old"
+msgstr "Trop ancien"
 
 msgid "Unknown message type"
 msgstr "Type de message inconnu"
@@ -925,9 +928,6 @@ msgstr "Pas trouvé"
 msgid "File was modified"
 msgstr "Le fichier a été modifié"
 
-msgid "Library being rebuilt"
-msgstr "Bibliothèque en cours de reconstruction"
-
 msgid "Moved Permanently"
 msgstr "Déplacé de manière permanente"
 
@@ -939,6 +939,9 @@ msgstr "URN non trouvée (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "SHA1 en cours de calcul"
+
+msgid "Library being rebuilt"
+msgstr "Bibliothèque en cours de reconstruction"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr "URN mal formé dans la requête /uri-res/N2R"
@@ -2531,6 +2534,24 @@ msgstr "Indique si le logiciel s'était arrêté correctement."
 msgid "Whether the program restarted after a clean shutdown."
 msgstr "Indique si le logiciel a redémarré suite à un arrêt correct."
 
+msgid "Debug level for DHT key management."
+msgstr "Niveau de débogage pour la gestion des clefs DHT."
+
+msgid "Debug level for DHT value management."
+msgstr "Niveau de débogage pour la gestion des valeurs DHT."
+
+msgid "ID of the current process."
+msgstr "ID du processus en cours."
+
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Niveau de débogage pour l'analyse / gestion des plages HTTP."
+
+msgid "Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A value of 0 requests permanent mappings."
+msgstr "Durée en secondes du bail lors de l'installation de la redirection des ports via UPnP ou NAT-PMP. Une valeur de 0 demande une redirection permanente."
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr "Indique si le programme redémarre automatiquement à la demande de l'utilisateur."
+
 msgid "disable"
 msgstr "désactiver"
 
@@ -2990,8 +3011,8 @@ msgstr "Les noeuds distants qui supportent le filtrage par type de média ne von
 msgid "Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files."
 msgstr "Les noeuds distants qui supportent le filtrage par type de média ne vont appliquer la recherche que sur les fichiers de type archive / programme, comme les fichiers ZIP, 7z, tar, bz2, gz, dep, rpm et autres exe."
 
-msgid "Discard search results whith an alien IP address, not matching the one from which the results come from."
-msgstr "Ignore les résultats provenant d'une autre adresse IP que celle indiquée dans le message."
+msgid "Discard search results with an alien IP address, not matching the one from which the results come from."
+msgstr "Écarter les résultats portant une adresse IP étrangère, ne correspondant pas l'adresse qui a envoyé les résultats."
 
 msgid "Whether session-only searches which happen to have pending downloads should be restarted when gtk-gnutella is launched."
 msgstr "Indique si les recherches dont la durée de vie est la session et qui ont des téléchargements en instance doivent être relancées lorsque gtk-gnutella démarre."
@@ -2999,8 +3020,8 @@ msgstr "Indique si les recherches dont la durée de vie est la session et qui on
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr "Écarter les résultats de recherche venant d'hôtes avec un GUID banni."
 
-msgid "Whether a summary line with GUESS search stats should be dispayed."
-msgstr "Si une ligne de résumé de statistiques sur la recherche GUESS doit être affichée."
+msgid "Whether a summary line with GUESS search stats should be displayed."
+msgstr "Indique si une ligne de résumé avec les statistiques de recherche GUESS doit être affichée."
 
 msgid "Whether the GUESS summary line should show total statistics or ones pertaining to the current search only."
 msgstr "Si la ligne de résumé GUESS doit montrer un résumé ou les statistiques pour la recherche en cours."
@@ -3116,7 +3137,6 @@ msgstr "Bahamas"
 msgid "Bhutan"
 msgstr "Bhoutan"
 
-# Burma is probably the same as "Birmanie" or Myanmar, which makes this a dup.
 msgid "Burma"
 msgstr "Birmanie"
 
@@ -3745,7 +3765,7 @@ msgid "British Virgin Islands"
 msgstr "Îles Vierges britanniques"
 
 msgid "U.S. Virgin Islands"
-msgstr "Îles vierges américaines"
+msgstr "Îles Vierges américaines"
 
 msgid "Viet Nam"
 msgstr "Viêt Nam"
@@ -4689,6 +4709,24 @@ msgstr "Rappel de QUEUE reçus"
 msgid "QUEUE discarded due to no suitable download"
 msgstr "QUEUE ignorés pour cause d'absence de téléchargement adéquat"
 
+msgid "UDP read-ahead datagram running count"
+msgstr "UDP lecture anticipée datagramme, nombre total"
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr "UDP lecture anticipée datagramme, taille totale en octets"
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr "UDP lecture anticipée datagramme « ancien » traité"
+
+msgid "UDP read-ahead datagram max count"
+msgstr "UDP lecture anticipée datagramme décompte max"
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr "UDP lecture anticipée datagramme octets max"
+
+msgid "UDP read-ahead datagram max delay"
+msgstr "UDP lecture anticipée datagramme retard max"
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr "Messages UDP push reçus pour les connexions PF<->PF"
 
@@ -4706,6 +4744,9 @@ msgstr "Pongs UDP UDP envoyés"
 
 msgid "UDP messages with bogus source IP"
 msgstr "Messages UDP avec source IP invalide"
+
+msgid "UDP truncated incoming messages"
+msgstr "UDP messages entrants tronqués"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr "Messages UDP aliens (non-Gnutella)"
@@ -7103,8 +7144,8 @@ msgstr "DHT désactivée."
 msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Empêche tout vol de la bande passante HTTP sortante."
 
-msgid "Splitting ougoing HTTP bandwidth evenly."
-msgstr "Distribution régulière de la bande passante HTTP sortante."
+msgid "Splitting outgoing HTTP bandwidth evenly."
+msgstr "Bande passante HTTP sortante partagée également."
 
 msgid "Capping HTTP outgoing bandwidth."
 msgstr "Limitation de la bande passante HTTP sortante."
@@ -7130,8 +7171,8 @@ msgstr "Activer l'emboîtement des requêtes HTTP"
 msgid "Pipelining max chunk size"
 msgstr "Taille maximum des blocs avec emboîtement"
 
-msgid "Enable upload of patial files deemed rare"
-msgstr "Activer l'envoi des fichiers rares partiels"
+msgid "Enable upload of partial files deemed rare"
+msgstr "Activer l'envoi des fichiers rares _partiellement téléchargés"
 
 msgid "Enable GUESS (additional querying)"
 msgstr "Autoriser GUESS (recherches additionnelles)"
@@ -7223,6 +7264,9 @@ msgstr "Autoriser la bande passante Gnutella sortante à remplacer la suggestion
 msgid "Display GUESS statistics"
 msgstr "Afficher les statistiques GUESS"
 
+msgid "Mapping lease time"
+msgstr "Durée du bail de redirection"
+
 msgid "Not in database"
 msgstr "Pas dans la base de données"
 
@@ -7302,9 +7346,6 @@ msgstr "Ne préciser aucun type de fichier (tous les types de fichiers correspon
 
 msgid "CPU overloaded"
 msgstr "CPU surchargé"
-
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Bande passante HTTP sortante partagée également."
 
 msgid "Connect to"
 msgstr "Se connecter à"
@@ -7432,9 +7473,6 @@ msgstr "Table de hash distribuée de Gnutella"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Pourcentage maximum de créneaux de connexions qu'un vendeur peut prendre."
 
-msgid "Global DHT ougoing traffic"
-msgstr "Trafic DHT sortant"
-
 msgid "attempts"
 msgstr "tentatives"
 
@@ -7443,9 +7481,6 @@ msgstr "Taille maximum des blocs emboîtés"
 
 msgid "_Remove directory"
 msgstr "_Retirer un répertoire"
-
-msgid "Enable upload of partial files deemed rare"
-msgstr "Activer l'envoi des fichiers rares _partiellement téléchargés"
 
 msgid "Minimum chunk _size"
 msgstr "Taille minimum des _blocs"

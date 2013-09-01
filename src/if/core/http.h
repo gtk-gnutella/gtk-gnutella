@@ -42,27 +42,6 @@ typedef enum http_state {
 	HTTP_AS_REMOVED				/**< Removed, pending free */
 } http_state_t;
 
-/**
- * HTTP range description.
- */
-
-typedef struct http_range {
-	filesize_t start;
-	filesize_t end;				/**< HTTP_OFFSET_MAX if unbounded */
-} http_range_t;
-
-#define HTTP_OFFSET_MAX	((filesize_t) -1)
-
-/*
- * Public interface, visible from the bridge.
- */
-
-#ifdef CORE_SOURCES
-
-const char *http_range_to_string(const GSList *list);
-GSList *http_range_merge(GSList *list1, GSList *list2);
-
-#endif /* CORE_SOURCES */
-
 #endif /* _if_core_http_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

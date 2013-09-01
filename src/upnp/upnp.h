@@ -44,6 +44,11 @@
 #define UPNP_MAJOR	1
 #define UPNP_MINOR	0
 
+/**
+ * Default port mapping lease time.
+ */
+#define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
+
 #ifdef UPNP_SOURCES
 /*
  * The following definitions are only visible within the upnp/ directory,

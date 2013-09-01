@@ -1533,15 +1533,17 @@ thread_lock_dump(const struct thread_element *te)
 						print_str(" DESTROYED");	/* 4 */
 					else
 						print_str(" BAD_MAGIC");	/* 4 */
-				} else if (s->lock != 1) {
-					print_str(" BAD_LOCK");			/* 4 */
 				} else {
+					if (0 == s->lock)
+						print_str(" UNLOCKED");		/* 4 */
+					else if (1 != s->lock)
+						print_str(" BAD_LOCK");		/* 4 */
 #ifdef SPINLOCK_DEBUG
-					print_str(" from ");		/* 4 */
+					print_str(" from ");		/* 5 */
 					lnum = print_number(line, sizeof line, s->line);
-					print_str(s->file);			/* 5 */
-					print_str(":");				/* 6 */
-					print_str(lnum);			/* 7 */
+					print_str(s->file);			/* 6 */
+					print_str(":");				/* 7 */
+					print_str(lnum);			/* 8 */
 #endif	/* SPINLOCK_DEBUG */
 				}
 			}
@@ -1560,11 +1562,12 @@ thread_lock_dump(const struct thread_element *te)
 					if (SPINLOCK_MAGIC != s->magic) {
 						print_str(" BAD_SPINLOCK");	/* 4 */
 					} else {
-						if (s->lock != 1)
+						if (0 == s->lock)
+							print_str(" UNLOCKED");	/* 4 */
+						else if (s->lock != 1)
 							print_str(" BAD_LOCK");	/* 4 */
 						if (m->owner != te->tid)
 							print_str(" BAD_TID");	/* 5 */
-
 #ifdef SPINLOCK_DEBUG
 						print_str(" from ");		/* 6 */
 						lnum = print_number(line, sizeof line, s->line);
@@ -1709,7 +1712,7 @@ static void
 thread_lock_warn(const char *func,
 	const void *lock, enum thread_lock_kind kind, const char *message)
 {
-	s_miniwarn("%s(): cannot account for %s %p: %s",
+	s_minicarp("%s(): cannot account for %s %p: %s",
 		func, thread_lock_kind_to_string(kind), lock, message);
 }
 

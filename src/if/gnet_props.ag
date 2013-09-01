@@ -16,6 +16,7 @@ uses = "if/core/nodes.h";
 uses = "if/core/sockets.h";
 uses = "dht/kuid.h";
 uses = "if/dht/routing.h";
+uses = "upnp/upnp.h";
 
 prop = {
     name = "reading_hostfile";
@@ -3258,9 +3259,9 @@ prop = {
 		"receives some data. Increase to maximum value if you have RAM.";
     type = guint32;
     data = {
-        default = 32768;
+        default = 131072;
         min = 0;
-        max = 131072;
+        max = 1048576;
     };
 };
 
@@ -5320,6 +5321,63 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+    };
+};
+
+prop = {
+    name = "dht_keys_debug";
+    desc = "Debug level for DHT key management.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dht_values_debug";
+    desc = "Debug level for DHT value management.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "pid";
+    desc = "ID of the current process.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "http_range_debug";
+    desc = "Debug level for HTTP range parsing / handling.";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+	name = "upnp_mapping_lease_time";
+	desc = "Lease time when installing port mappings via UPnP or NAT-PMP, "
+		"in seconds.  A value of 0 requests permanent mappings.";
+    type = guint32;
+    data = {
+        default = UPNP_MAPPING_LIFE;
+        min     = 0;
+        max     = 31536000;	/* About a year */
+    };
+};
+
+prop = {
+	name = "user_auto_restart";
+	desc = "Whether the program is auto-restarting at the user's request.";
+    type = boolean;
+    data = {
+        default = FALSE;
     };
 };
 

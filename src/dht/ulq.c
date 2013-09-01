@@ -67,7 +67,9 @@
 #include "lib/cq.h"
 #include "lib/fifo.h"
 #include "lib/slist.h"
+#include "lib/str.h"
 #include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 #define ULQ_MAX_RUNNING		3		/**< Initial amount of concurrent reqs */
@@ -382,7 +384,7 @@ ulq_queue_status(void)
 	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
 		struct ulq *uq = ulq[i];
 
-		offset += gm_snprintf(&buf[offset], sizeof(buf) - offset,
+		offset += str_bprintf(&buf[offset], sizeof(buf) - offset,
 			"%s%s: %u/%u", offset > 0 ? ", " : "",
 			uq->name, uq->running, fifo_count(uq->q));
 	}

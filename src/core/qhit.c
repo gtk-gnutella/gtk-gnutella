@@ -43,6 +43,7 @@
 #include "ipp_cache.h"
 #include "ipv6-ready.h"
 #include "nodes.h"
+#include "search.h"		/* For QUERY_FW2FW_FILE_INDEX */
 #include "settings.h"	/* For listen_ip() */
 #include "share.h"
 #include "sockets.h"	/* For socket_listen_port() */
@@ -674,6 +675,9 @@ add_file(const shared_file_t *sf)
 
 		for (i = 0; i < 100; i++) {
 			file_index = 1 + random_value(INT_MAX - 1);
+
+			if (QUERY_FW2FW_FILE_INDEX == file_index)
+				continue;
 
 			if (!found_contains(uint_to_pointer(file_index)))
 				goto unique_file_index;

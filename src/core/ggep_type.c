@@ -697,12 +697,12 @@ ggept_ip_vec_extract(const extvec_t *exv,
 			if (vec->n_ipv4 != 0)
 				return GGEP_DUPLICATE;
 			vec->n_ipv4 = n;
-			vec->hvec_v4 = walloc(n * sizeof vec->hvec_v4[0]);
+			WALLOC_ARRAY(vec->hvec_v4, n);
 		} else {
 			if (vec->n_ipv6 != 0)
 				return GGEP_DUPLICATE;
 			vec->n_ipv6 = n;
-			vec->hvec_v6 = walloc(n * sizeof vec->hvec_v6[0]);
+			WALLOC_ARRAY(vec->hvec_v6, n);
 		}
 
 		p = ext_payload(exv);

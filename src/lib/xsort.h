@@ -34,14 +34,12 @@
 #ifndef _xsort_h_
 #define _xsort_h_
 
-typedef int (*xsort_cmp_t)(const void *, const void *);
-
 /*
  * Public interface.
  */
 
-void xsort(void *b, size_t n, size_t s, xsort_cmp_t cmp);
-void xqsort(void *b, size_t n, size_t s, xsort_cmp_t cmp);
+void xsort(void *b, size_t n, size_t s, cmp_fn_t cmp);
+void xqsort(void *b, size_t n, size_t s, cmp_fn_t cmp);
 
 #endif /* _xsort_h_ */
 

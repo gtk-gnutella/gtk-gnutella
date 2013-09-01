@@ -27,6 +27,36 @@
  *
  * Mutual thread exclusion locks.
  *
+ * Like spinlocks, mutexes can be "regular" or "hidden": either they are
+ * tracked on a per-thread basis (which allows checks such as out-of-order
+ * release and traces of which locks are held when a deadlock occurs), or they
+ * are "hidden".  See "spinlock.h" for more details on "hidden" versus
+ * "regular" locks.
+ *
+ * The basic API is straightforward:
+ *
+ *		mutex_lock()	-- takes the lock, blocking if busy
+ *		mutex_trylock()	-- try to take the lock, returns whether lock was taken
+ *		mutex_unlock()	-- releases the lock, which must be owned
+ *
+ * When a thread owns a mutex, it can perform as many mutex_lock() as it wants
+ * without blocking.  However, it must issue as many mutex_unlock() calls later
+ * to fully release the mutex and allow another thread to grab it.
+ *
+ * A mutex provides mutual exclusion between threads as well as recursive
+ * locking abilities.  However, a mutex is more costly than a spinlock because
+ * it needs to track the thread which grabbed it, and involves comparisons
+ * between thread descriptors to determine whether a grabbing thread already
+ * owns the mutex.
+ *
+ * The following extra routines are available:
+ *
+ *		mutex_is_owned()	-- is the thread owning the lock?
+ *		mutex_held_depth()	-- how many recursive locks were taken by thread?
+ *
+ * When SPINLOCK_DEBUG is defined, each mutex remembers the location that
+ * initially grabbed the lock, which can be useful when debugging deadlocks.
+ *
  * @author Raphael Manfredi
  * @date 2011
  */

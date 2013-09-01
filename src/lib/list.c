@@ -172,9 +172,9 @@ list_free(list_t **list_ptr)
 		list_regression(list);
 
 		if (--list->refcount != 0) {
-			g_carp("list_free: list is still referenced! "
-					"(list=%p, list->refcount=%d)",
-					cast_to_constpointer(list), list->refcount);
+			g_critical("%s(): list is still referenced! "
+				"(list=%p, list->refcount=%d)",
+				G_STRFUNC, cast_to_constpointer(list), list->refcount);
 		}
 
 		gm_list_free_null(&list->head);

@@ -419,9 +419,6 @@ tcache_init(void)
 	g_assert(NULL == db_tokdata);
 	g_assert(NULL == tcache_prune_ev);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_tcache_base);
-
 	db_tokdata = dbstore_create(db_tcache_what, settings_dht_db_dir(),
 		db_tcache_base, kv, packing, TOK_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));

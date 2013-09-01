@@ -214,9 +214,12 @@ void eslist_append(eslist_t *list, void *data);
 void eslist_link_prepend(eslist_t *list, slink_t *lk);
 void eslist_prepend(eslist_t *list, void *data);
 void *eslist_shift(eslist_t *list);
+void eslist_rotate_left(eslist_t *list);
 void eslist_link_insert_after(eslist_t *list, slink_t *sibling_lk, slink_t *lk);
 void eslist_insert_after(eslist_t *list, void *sibling, void *data);
 void eslist_reverse(eslist_t *list);
+void eslist_remove(eslist_t *list, void *data);
+void *eslist_remove_after(eslist_t *list, void *sibling);
 void *eslist_find(const eslist_t *list, const void *key, cmp_fn_t cmp);
 void eslist_sort_with_data(eslist_t *list, cmp_data_fn_t cmp, void *data);
 void eslist_sort(eslist_t *list, cmp_fn_t cmp);
@@ -225,6 +228,9 @@ void eslist_insert_sorted_with_data(eslist_t *list, void *item,
 void eslist_insert_sorted(eslist_t *list, void *item, cmp_fn_t cmp);
 void *eslist_nth_next_data(const eslist_t *list, const slink_t *lk, size_t n);
 void eslist_shuffle(eslist_t *list);
+
+#define ESLIST_FOREACH(slist, l) \
+	for ((l) = eslist_first(slist); NULL != (l); (l) = eslist_next(l))
 
 #endif /* _eslist_h_ */
 

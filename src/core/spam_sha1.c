@@ -41,14 +41,14 @@
 
 #include "spam.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/dbmw.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/path.h"
 #include "lib/sorted_array.h"
+#include "lib/str.h"
 #include "lib/watcher.h"
 
 #include "if/gnet_property.h"
@@ -273,7 +273,7 @@ spam_sha1_changed(const char *filename, void *unused_udata)
 		count = spam_sha1_load(f);
 		fclose(f);
 
-		gm_snprintf(buf, sizeof(buf), "Reloaded %lu spam SHA-1 items.", count);
+		str_bprintf(buf, sizeof(buf), "Reloaded %lu spam SHA-1 items.", count);
 		gcu_statusbar_message(buf);
 	}
 }

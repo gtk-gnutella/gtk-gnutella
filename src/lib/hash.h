@@ -62,7 +62,7 @@ enum hmagic {
 #define HASH_MAGIC_SHIFT		16		/* How many trailing unique bits */
 #define HASH_MAGIC_COMMON		0x7e62	/* Common leading magic for all types */
 
-#define HASH_MIN_BITS			3
+#define HASH_MIN_BITS			1
 #define HASH_MIN_SIZE			(1U << HASH_MIN_BITS)
 
 /**
@@ -71,7 +71,6 @@ enum hmagic {
 struct hkeys {
 	enum hash_key_type type;	/* Type of keys */
 	size_t size;				/* Size of table (power of 2) */
-	size_t bits;				/* log2(size) */
 	size_t items;				/* Number of items held */
 	size_t tombs;				/* Amount of deleted items (tombstones) */
 	const void **keys;			/* Array of keys */
@@ -91,6 +90,7 @@ struct hkeys {
 		eq_data_fn_t eq_data;	/* Key equality test with extra data */
 		size_t keysize;			/* Fixed-length of keys */
 	} uk;
+	unsigned bits:6;			/* log2(size) -- large enough to hold 63 */
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
 	unsigned has_values:1;		/* Whether keys have associated values */
 	unsigned raw_memory:1;		/* Don't use walloc(), use VMM and xpmalloc() */

@@ -70,6 +70,7 @@
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
+#include "lib/misc.h"			/* For xml_indent() */
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/slist.h"
@@ -1109,7 +1110,7 @@ search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	const record_t *rc1 = a, *rc2 = b;
 
-	/* Must compare same fields as search_hash_func() --RAM */
+	/* Must compare same fields as search_gui_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& host_addr_equal(rc1->results_set->addr, rc2->results_set->addr)
 		&& rc1->results_set->port == rc2->results_set->port
@@ -1239,23 +1240,23 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
 				info[0] != '\0' ? "; " : "", vinfo);
 	}
 
 	if (rc->flags & SR_PARTIAL_HIT) {
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
 			info[0] != '\0' ? ", " : "", _("partial"));
 	}
 
 	if (rc->alt_locs != NULL) {
 		guint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
-		rw += gm_snprintf(&info[rw], sizeof info - rw, "%salt",
+		rw += str_bprintf(&info[rw], sizeof info - rw, "%salt",
 			info[0] != '\0' ? ", " : "");
 		if (count > 1)
-			rw += gm_snprintf(&info[rw], sizeof info - rw, "(%u)", count);
+			rw += str_bprintf(&info[rw], sizeof info - rw, "(%u)", count);
 	}
 
 	return info[0] != '\0' ? atom_str_get(info) : NULL;
@@ -2324,7 +2325,7 @@ search_gui_switch_search(struct search *search)
 		gtk_widget_set_sensitive(tree, FALSE);
 		gtk_container_add(GTK_CONTAINER(sw), tree);
 		gtk_notebook_append_page(notebook_search_results, sw, NULL);
-		gm_snprintf(text, sizeof text, "(%s)", _("No search"));
+		str_bprintf(text, sizeof text, "(%s)", _("No search"));
 		gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
 		gtk_widget_show_all(sw);
 	}
@@ -2703,9 +2704,9 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		if (n_downloads > 0 || n_searches > 0) {
 			gchar msg_search[128], msg_download[128];
 
-			gm_snprintf(msg_download, sizeof msg_download,
+			str_bprintf(msg_download, sizeof msg_download,
 				NG_("%u download", "%u downloads", n_downloads), n_downloads);
-			gm_snprintf(msg_search, sizeof msg_search,
+			str_bprintf(msg_search, sizeof msg_search,
 				NG_("%u search", "%u searches", n_searches), n_searches);
 			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
 				msg_download, msg_search);
@@ -3236,128 +3237,6 @@ search_gui_synchronize_search_list(search_gui_synchronize_list_cb func,
 		g_assert(iter->data);
 	}
 	search_gui_option_menu_searches_update();
-}
-
-/**
- * Adds some indendation to XML-like text. The input text is assumed to be
- * "flat" and well-formed. If these assumptions fail, the output might look
- * worse than the input.
- *
- * @param s the string to format.
- * @return a newly allocated string.
- */
-gchar *
-search_xml_indent(const gchar *text)
-{
-	const gchar *p, *q;
-	gboolean quoted, is_special, is_end, is_start, is_singleton, has_cdata;
-	guint i, depth = 0;
-	str_t *s;
-
-	s = str_new(0);
-	q = text;
-
-	quoted = FALSE;
-	is_special = FALSE;
-	is_end = FALSE;
-	is_start = FALSE;
-	is_singleton = FALSE;
-	has_cdata = FALSE;
-
-	for (;;) {
-		gboolean had_cdata;
-
-		p = q;
-		/*
-		 * Find the start of the tag and append the text between the
-		 * previous and the current tag.
-		 */
-		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
-			if (is_ascii_space(*p) && is_ascii_space(p[1]))
-				continue;
-			if (has_cdata && '&' == *p) {
-				const char *endptr;
-				guint32 uc;
-
-				uc = html_decode_entity(p, &endptr);
-				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
-					str_putc(s, uc);
-					p = endptr - 1;
-					continue;
-				}
-			}
-			str_putc(s, is_ascii_space(*p) ? ' ' : *p);
-		}
-		if ('\0' == *p)
-			break;
-
-		/* Find the end of the tag */
-		q = strchr(p, '>');
-		if (!q)
-			q = strchr(p, '\0');
-
-		is_special = '?' == p[1] || '!' == p[1];
-		is_end = '/' == p[1];
-		is_start = !(is_special || is_end);
-		is_singleton = is_start && '>' == *q && '/' == q[-1];
-		had_cdata = has_cdata;
-		has_cdata = FALSE;
-
-		if (is_end && depth > 0) {
-			depth--;
-		}
-		if (p != text && !(is_end && had_cdata)) {
-			str_putc(s, '\n');
-			for (i = 0; i < depth; i++)
-				str_putc(s, '\t');
-		}
-
-		quoted = FALSE;
-		for (q = p; '\0' != *q; q++) {
-
-			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
-				continue;
-
-			if (is_ascii_space(*q)) {
-				if (quoted || is_special) {
-					str_putc(s, ' ');
-				} else {
-					str_putc(s, '\n');
-					for (i = 0; i < depth + 1; i++)
-						str_putc(s, '\t');
-				}
-				continue;
-			}
-
-			if (quoted && '&' == *q) {
-				const char *endptr;
-				guint32 uc;
-
-				uc = html_decode_entity(q, &endptr);
-				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
-					str_putc(s, uc);
-					q = endptr - 1;
-					continue;
-				}
-			}
-
-			str_putc(s, *q);
-			
-			if ('"' == *q) {
-				quoted ^= TRUE;
-			} else if ('>' == *q) {
-				q++;
-				break;
-			}
-		}
-		if (is_start && !is_singleton) {
-			const char *next = strchr(q, '<');
-			has_cdata = next && '/' == next[1];
-			depth++;
-		}
-	}
-
-	return str_s2c_null(&s);
 }
 
 /**
@@ -4518,7 +4397,7 @@ search_gui_set_bitzi_metadata(const record_t *rc)
 	}
 
 	/* This also decodes 8-bit entities */
-	tmp = search_xml_indent(ticket);
+	tmp = xml_indent(ticket);
 
 	/*
 	 * Bitzi converts all ticket data from ISO-8859-1 to UTF-8, therefore this

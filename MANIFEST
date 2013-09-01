@@ -598,6 +598,8 @@ src/lib/bit_field.ht
 src/lib/bit_generic.t
 src/lib/bstr.c
 src/lib/bstr.h
+src/lib/chi2.c
+src/lib/chi2.h
 src/lib/ckalloc.c
 src/lib/ckalloc.h
 src/lib/cobs.c
@@ -641,6 +643,7 @@ src/lib/dl_util.h
 src/lib/dualhash.c
 src/lib/dualhash.h
 src/lib/dump_options.h
+src/lib/eclist.h
 src/lib/elist.c
 src/lib/elist.h
 src/lib/endian.h
@@ -721,6 +724,8 @@ src/lib/host_addr.h
 src/lib/html.c
 src/lib/html.h
 src/lib/html_entities.h
+src/lib/http_range.c
+src/lib/http_range.h
 src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
@@ -758,6 +763,8 @@ src/lib/mingw32.c
 src/lib/mingw32.h
 src/lib/misc.c
 src/lib/misc.h
+src/lib/mtwist.c
+src/lib/mtwist.h
 src/lib/mutex.c
 src/lib/mutex.h
 src/lib/nid.c
@@ -800,8 +807,11 @@ src/lib/prop.c
 src/lib/prop.h
 src/lib/rand31.c
 src/lib/rand31.h
+src/lib/random-test.c
 src/lib/random.c
 src/lib/random.h
+src/lib/rbtree.c
+src/lib/rbtree.h
 src/lib/regex.c
 src/lib/regex.h
 src/lib/sbool.h
@@ -867,6 +877,8 @@ src/lib/vendors.c
 src/lib/vendors.h
 src/lib/vmm.c
 src/lib/vmm.h
+src/lib/vsort.c
+src/lib/vsort.h
 src/lib/walloc.c
 src/lib/walloc.h
 src/lib/watcher.c

@@ -23,13 +23,12 @@
 
 #include "common.h"
 
+#include "prop.h"
 #include "ascii.h"
 #include "concat.h"
-#include "getdate.h"
-#include "prop.h"
 #include "debug.h"
 #include "file.h"
-#include "glib-missing.h"
+#include "getdate.h"
 #include "halloc.h"
 #include "parse.h"
 #include "path.h"
@@ -40,6 +39,7 @@
 #include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define PROP_FILE_ID	"_id"
@@ -1383,11 +1383,11 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				n++;
 
 			if (PROP(ps, prop).data.guint32.choices[n].title != NULL)
-				gm_snprintf(s, sizeof s, "%u: %s",
+				str_bprintf(s, sizeof s, "%u: %s",
 						*(PROP(ps, prop).data.guint32.value),
 						PROP(ps,prop).data.guint32.choices[n].title);
 			else
-				gm_snprintf(s, sizeof s,
+				str_bprintf(s, sizeof s,
 						"%u: No descriptive string found for this value",
 						*(PROP(ps, prop).data.guint32.value));
 		}
@@ -1418,7 +1418,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	
 	switch (p->type) {
 	case PROP_TYPE_GUINT32:
-		gm_snprintf(s, sizeof s, "%u", (guint) p->data.guint32.def[0]);
+		str_bprintf(s, sizeof s, "%u", (guint) p->data.guint32.def[0]);
 		break;
 	case PROP_TYPE_GUINT64:
 		uint64_to_string_buf(p->data.guint64.def[0], s, sizeof s);
@@ -1446,10 +1446,10 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 				n++;
 
 			if (p->data.guint32.choices[n].title != NULL)
-				gm_snprintf(s, sizeof s, "%u: %s",
+				str_bprintf(s, sizeof s, "%u: %s",
 					*(p->data.guint32.def), p->data.guint32.choices[n].title);
 			else
-				gm_snprintf(s, sizeof s,
+				str_bprintf(s, sizeof s,
 					"%u: No descriptive string found for this value",
 					*(p->data.guint32.def));
 		}
@@ -1652,7 +1652,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		if (p->save == FALSE)
 			continue;
 
-		vbuf = halloc((p->vector_size + 1) * sizeof(char *));
+		HALLOC_ARRAY(vbuf, p->vector_size + 1);
 		vbuf[0] = NULL;
 
 		{
@@ -1684,7 +1684,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				v = p->data.guint32.value[i];
 				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
-				gm_snprintf(sbuf, sizeof(sbuf), "%u", v);
+				str_bprintf(sbuf, sizeof(sbuf), "%u", v);
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1791,9 +1791,13 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 	/*
 	 * Rename saved configuration file on success.
+	 *
+	 * We are extra careful and sync data blocks to disk before closing the
+	 * file, to protect against crashes when running on a filesytem with
+	 * delayed block allocation strategy.  See alos file_config_close().
 	 */
 
-	if (0 == fclose(config)) {
+	if (0 == file_sync_fclose(config)) {
 		ps->dirty = FALSE;
 		if (-1 == rename(newfile, pathname))
 			g_warning("could not rename %s as %s: %s",

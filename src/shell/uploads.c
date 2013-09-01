@@ -39,9 +39,9 @@
 
 #include "if/gnet_property_priv.h"
 
-#include "lib/glib-missing.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"
+#include "lib/str.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -54,7 +54,7 @@ print_upload_info(struct gnutella_shell *sh,
 	g_return_if_fail(sh);
 	g_return_if_fail(info);
 
-	gm_snprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
+	str_bprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
 		info->encrypted ? "(E)" : "",
 		host_addr_to_string(info->addr),
 		iso3166_country_cc(info->country),

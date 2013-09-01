@@ -61,14 +61,15 @@
 #include "lib/aging.h"
 #include "lib/bigint.h"
 #include "lib/bstr.h"
-#include "lib/glib-missing.h"
 #include "lib/host_addr.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -628,7 +629,7 @@ k_send_find_value_response(
 	 * know how large the values are).
 	 */
 
-	qsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
+	vsort(vvec, vlen, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vlen; i++) {
 		size_t secondary_size = (vlen - i) * KUID_RAW_SIZE + 1;
@@ -751,7 +752,7 @@ k_send_store_response(
 	uint16 *status;
 	int i;
 
-	status = walloc(vlen * sizeof(uint16));
+	WALLOC_ARRAY(status, vlen);
 
 	for (i = 0; i < vlen; i++)
 		status[i] = values_store(kn, vec[i], valid_token);
@@ -831,7 +832,7 @@ k_send_store_response(
 	 * Cleanup.
 	 */
 
-	wfree(status, vlen * sizeof(uint16));
+	WFREE_ARRAY(status, vlen);
 }
 
 /**
@@ -858,6 +859,13 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 
 	if (aging_lookup(kmsg_aging_pings, &kn->addr))
 		goto throttle;
+
+	/*
+	 * Ignore "old" PING requests: we're trying to catch up with a UDP burst.
+	 */
+
+	if (node_udp_is_old(n))
+		goto old;
 
 	/*
 	 * Firewalled nodes send us PINGs when they are listing us in their
@@ -893,13 +901,19 @@ k_handle_ping(knode_t *kn, struct gnutella_node *n,
 	k_send_pong(n, kademlia_header_get_muid(header));
 	return;
 
+old:
+	if (GNET_PROPERTY(dht_debug) > 2) {
+		g_debug("DHT ignoring OLD PING from %s", knode_to_string(kn));
+	}
+	gnet_dht_stats_count_dropped(n, KDA_MSG_PING_REQUEST, MSG_DROP_TOO_OLD);
+	return;
+
 drop:
 	if (GNET_PROPERTY(dht_debug) > 2) {
 		g_debug("DHT ignoring PING from %s: %s", knode_to_string(kn), msg);
 	}
 	gnet_dht_stats_count_dropped(n,
 		KDA_MSG_PING_REQUEST, MSG_DROP_FLOW_CONTROL);
-
 	return;
 
 throttle:
@@ -908,8 +922,7 @@ throttle:
 			knode_to_string(kn),
 			compact_time(aging_age(kmsg_aging_pings, &kn->addr)));
 	}
-	gnet_dht_stats_count_dropped(n,
-		KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
+	gnet_dht_stats_count_dropped(n, KDA_MSG_PING_REQUEST, MSG_DROP_THROTTLE);
 }
 
 /**
@@ -1054,6 +1067,23 @@ answer_find_node(struct gnutella_node *n,
 
 		aging_insert(kmsg_aging_finds,
 			wcopy(&kn->addr, sizeof kn->addr), GINT_TO_POINTER(1));
+	}
+
+	/*
+	 * Ignore "old" requests: we are trying to catch up with a UDP burst.
+	 *
+	 * Note that FIND_VALUE requests that get here are for keys we do not
+	 * know about: we do not ignore old requests for keys we hold!
+	 */
+
+	if (node_udp_is_old(n)) {
+		uint8 function = kademlia_header_get_function(header);
+		if (GNET_PROPERTY(dht_debug > 2)) {
+			g_debug("DHT ignoring OLD %s from %s",
+				kmsg_name(function), knode_to_string(kn));
+		}
+		gnet_dht_stats_count_dropped(n, function, MSG_DROP_TOO_OLD);
+		return;
 	}
 
 	/*
@@ -1382,13 +1412,13 @@ k_handle_store(knode_t *kn, struct gnutella_node *n,
 	 * Decompile remaining fields: values to store.
 	 */
 
-	vec = walloc(values * sizeof *vec);
+	WALLOC_ARRAY(vec, values);
 
 	for (i = 0; i < values; i++) {
 		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
-			gm_snprintf(msg, sizeof msg,
+			str_bprintf(msg, sizeof msg,
 				"could not read value #%d/%u", i, values);
 			reason = msg;
 			goto error;
@@ -1465,7 +1495,7 @@ cleanup:
 		for (j = 0; j < i; j++)
 			dht_value_free(vec[j], TRUE);
 
-		wfree(vec, values * sizeof *vec);
+		WFREE_ARRAY(vec, values);
 	}
 
 	bstr_free(&bs);
@@ -1559,13 +1589,13 @@ k_handle_find_value(knode_t *kn, struct gnutella_node *n,
 	if (count) {
 		int i;
 
-		secondary = walloc0(count * sizeof(secondary[0]));
+		WALLOC0_ARRAY(secondary, count);
 
 		for (i = 0; i < count; i++) {
 			kuid_t sec_id;
 
 			if (!bstr_read(bs, sec_id.v, KUID_RAW_SIZE)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"could not read secondary key #%d/%u", i, count);
 				reason = msg;
 				goto error;
@@ -1660,7 +1690,7 @@ cleanup:
 				break;
 			kuid_atom_free_null(&secondary[i]);
 		}
-		wfree(secondary, count * sizeof(secondary[0]));
+		WFREE_ARRAY(secondary, count);
 	}
 
 	if (vcnt) {
@@ -1886,7 +1916,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 	 * values as possible in the first messages.
 	 */
 
-	qsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
+	vsort(vvec, vcnt, sizeof vvec[0], dht_value_cmp);
 
 	for (i = 0; i < vcnt; i++) {
 		dht_value_t *v = vvec[i];
@@ -2529,8 +2559,9 @@ hostile_checked:
 
 drop:
 	if (GNET_PROPERTY(dht_debug)) {
-		g_warning("DHT got invalid Kademlia packet (%zu bytes) "
+		g_warning("DHT got invalid %sKademlia packet (%zu bytes) "
 			"\"%s\" from UDP (%s): %s",
+			node_udp_is_old(n) ? "OLD " : "",
 			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
 		if (len && GNET_PROPERTY(dht_debug) > 10)
@@ -2600,12 +2631,12 @@ kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 			host, sizeof host);
 
 	if (extlen != 0) {
-		gm_snprintf(ext, sizeof ext, "(+%u)", extlen);
+		str_bprintf(ext, sizeof ext, "(+%u)", extlen);
 	} else {
 		ext[0] = '\0';
 	}
 
-	return gm_snprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
+	return str_bprintf(buf, buf_size, "%s%s (%u byte%s) [%s v%u.%u @%s]",
 		kmsg_name(kademlia_header_get_function(msg)),
 		ext, size, size == 1 ? "" : "s",
 		vendor_code_to_string(kademlia_header_get_contact_vendor(msg)),

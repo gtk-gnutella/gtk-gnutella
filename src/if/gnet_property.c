@@ -42,6 +42,7 @@
 #include "if/core/sockets.h"
 #include "dht/kuid.h"
 #include "if/dht/routing.h"
+#include "upnp/upnp.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -632,8 +633,8 @@ guint32  gnet_property_variable_qhits_browse_served     = 0;
 static const guint32  gnet_property_variable_qhits_browse_served_default = 0;
 gboolean gnet_property_variable_overloaded_cpu     = FALSE;
 static const gboolean gnet_property_variable_overloaded_cpu_default = FALSE;
-guint32  gnet_property_variable_download_buffer_size     = 32768;
-static const guint32  gnet_property_variable_download_buffer_size_default = 32768;
+guint32  gnet_property_variable_download_buffer_size     = 131072;
+static const guint32  gnet_property_variable_download_buffer_size_default = 131072;
 gboolean gnet_property_variable_browse_copied_to_passive     = FALSE;
 static const gboolean gnet_property_variable_browse_copied_to_passive_default = FALSE;
 gboolean gnet_property_variable_display_metric_units     = FALSE;
@@ -1062,6 +1063,18 @@ gboolean gnet_property_variable_clean_shutdown     = TRUE;
 static const gboolean gnet_property_variable_clean_shutdown_default = TRUE;
 gboolean gnet_property_variable_clean_restart     = TRUE;
 static const gboolean gnet_property_variable_clean_restart_default = TRUE;
+guint32  gnet_property_variable_dht_keys_debug     = 0;
+static const guint32  gnet_property_variable_dht_keys_debug_default = 0;
+guint32  gnet_property_variable_dht_values_debug     = 0;
+static const guint32  gnet_property_variable_dht_values_debug_default = 0;
+guint32  gnet_property_variable_pid     = 0;
+static const guint32  gnet_property_variable_pid_default = 0;
+guint32  gnet_property_variable_http_range_debug     = 0;
+static const guint32  gnet_property_variable_http_range_debug_default = 0;
+guint32  gnet_property_variable_upnp_mapping_lease_time     = UPNP_MAPPING_LIFE;
+static const guint32  gnet_property_variable_upnp_mapping_lease_time_default = UPNP_MAPPING_LIFE;
+gboolean gnet_property_variable_user_auto_restart     = FALSE;
+static const gboolean gnet_property_variable_user_auto_restart_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -6421,7 +6434,7 @@ gnet_prop_init(void) {
     gnet_property->props[280].data.guint32.def   = (void *) &gnet_property_variable_download_buffer_size_default;
     gnet_property->props[280].data.guint32.value = (void *) &gnet_property_variable_download_buffer_size;
     gnet_property->props[280].data.guint32.choices = NULL;
-    gnet_property->props[280].data.guint32.max   = 131072;
+    gnet_property->props[280].data.guint32.max   = 1048576;
     gnet_property->props[280].data.guint32.min   = 0;
 
 
@@ -9831,6 +9844,123 @@ gnet_prop_init(void) {
     gnet_property->props[459].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[459].data.boolean.def   = (void *) &gnet_property_variable_clean_restart_default;
     gnet_property->props[459].data.boolean.value = (void *) &gnet_property_variable_clean_restart;
+
+
+    /*
+     * PROP_DHT_KEYS_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[460].name = "dht_keys_debug";
+    gnet_property->props[460].desc = _("Debug level for DHT key management.");
+    gnet_property->props[460].ev_changed = event_new("dht_keys_debug_changed");
+    gnet_property->props[460].save = TRUE;
+    gnet_property->props[460].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[460].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[460].data.guint32.def   = (void *) &gnet_property_variable_dht_keys_debug_default;
+    gnet_property->props[460].data.guint32.value = (void *) &gnet_property_variable_dht_keys_debug;
+    gnet_property->props[460].data.guint32.choices = NULL;
+    gnet_property->props[460].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[460].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DHT_VALUES_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[461].name = "dht_values_debug";
+    gnet_property->props[461].desc = _("Debug level for DHT value management.");
+    gnet_property->props[461].ev_changed = event_new("dht_values_debug_changed");
+    gnet_property->props[461].save = TRUE;
+    gnet_property->props[461].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[461].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[461].data.guint32.def   = (void *) &gnet_property_variable_dht_values_debug_default;
+    gnet_property->props[461].data.guint32.value = (void *) &gnet_property_variable_dht_values_debug;
+    gnet_property->props[461].data.guint32.choices = NULL;
+    gnet_property->props[461].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[461].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_PID:
+     *
+     * General data:
+     */
+    gnet_property->props[462].name = "pid";
+    gnet_property->props[462].desc = _("ID of the current process.");
+    gnet_property->props[462].ev_changed = event_new("pid_changed");
+    gnet_property->props[462].save = TRUE;
+    gnet_property->props[462].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[462].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[462].data.guint32.def   = (void *) &gnet_property_variable_pid_default;
+    gnet_property->props[462].data.guint32.value = (void *) &gnet_property_variable_pid;
+    gnet_property->props[462].data.guint32.choices = NULL;
+    gnet_property->props[462].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[462].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_HTTP_RANGE_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[463].name = "http_range_debug";
+    gnet_property->props[463].desc = _("Debug level for HTTP range parsing / handling.");
+    gnet_property->props[463].ev_changed = event_new("http_range_debug_changed");
+    gnet_property->props[463].save = TRUE;
+    gnet_property->props[463].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[463].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[463].data.guint32.def   = (void *) &gnet_property_variable_http_range_debug_default;
+    gnet_property->props[463].data.guint32.value = (void *) &gnet_property_variable_http_range_debug;
+    gnet_property->props[463].data.guint32.choices = NULL;
+    gnet_property->props[463].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[463].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_UPNP_MAPPING_LEASE_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[464].name = "upnp_mapping_lease_time";
+    gnet_property->props[464].desc = _("Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A value of 0 requests permanent mappings.");
+    gnet_property->props[464].ev_changed = event_new("upnp_mapping_lease_time_changed");
+    gnet_property->props[464].save = TRUE;
+    gnet_property->props[464].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[464].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[464].data.guint32.def   = (void *) &gnet_property_variable_upnp_mapping_lease_time_default;
+    gnet_property->props[464].data.guint32.value = (void *) &gnet_property_variable_upnp_mapping_lease_time;
+    gnet_property->props[464].data.guint32.choices = NULL;
+    gnet_property->props[464].data.guint32.max   = 31536000;
+    gnet_property->props[464].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_USER_AUTO_RESTART:
+     *
+     * General data:
+     */
+    gnet_property->props[465].name = "user_auto_restart";
+    gnet_property->props[465].desc = _("Whether the program is auto-restarting at the user's request.");
+    gnet_property->props[465].ev_changed = event_new("user_auto_restart_changed");
+    gnet_property->props[465].save = TRUE;
+    gnet_property->props[465].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[465].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[465].data.boolean.def   = (void *) &gnet_property_variable_user_auto_restart_default;
+    gnet_property->props[465].data.boolean.value = (void *) &gnet_property_variable_user_auto_restart;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

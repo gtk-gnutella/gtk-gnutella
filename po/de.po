@@ -11,14 +11,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2012-11-06 18:36+0100\n"
 "Last-Translator: Christian Biere <christianbiere@gmx.de>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: de\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Poedit-Language: German\n"
 
@@ -368,6 +368,9 @@ msgstr ", eingehend"
 msgid ", outbound"
 msgstr ", ausgehend"
 
+msgid ", no-pipeline"
+msgstr ""
+
 #, fuzzy
 msgid ", banning"
 msgstr "Verbannen"
@@ -508,6 +511,10 @@ msgstr "Zu groß"
 
 msgid "Way too large"
 msgstr "Viel zu groß"
+
+#, fuzzy
+msgid "Too old"
+msgstr "Zu klein"
 
 msgid "Unknown message type"
 msgstr "Unbekannter Pakettyp"
@@ -960,9 +967,6 @@ msgstr ", ausgehend"
 msgid "File was modified"
 msgstr ""
 
-msgid "Library being rebuilt"
-msgstr ""
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -976,6 +980,9 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "SHA1-Prüfsummenfehler"
+
+msgid "Library being rebuilt"
+msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -1921,8 +1928,8 @@ msgid ""
 "Random factor for the hops field in search packets we send (between 0 and 3 "
 "inclusive)."
 msgstr ""
-"Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen (0-"
-"3)"
+"Zufallsfaktor für das Hops-Feld in von uns gesendeten Suchanfragepaketen "
+"(0-3)"
 
 msgid ""
 "Whether or not to send push requests.  If you are firewalled, gtk-gnutella "
@@ -3569,6 +3576,29 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "Debug-Level für Download-Mesh-Management."
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "Debug-Level für Download-Mesh-Management."
+
+msgid "ID of the current process."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "Debug-Level für die Oberfläche"
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr "deaktiviert"
 
@@ -4134,7 +4164,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -4147,7 +4177,7 @@ msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
 #, fuzzy
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr "Gibt an, ob die übertragenen Suchtreffer angezeigt werden sollen."
 
 msgid ""
@@ -5870,6 +5900,24 @@ msgstr ""
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -5888,6 +5936,10 @@ msgstr "Push gesendet"
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "Fehlerhaftes Kommando"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
@@ -8448,7 +8500,7 @@ msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
 
 #, fuzzy
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8479,7 +8531,7 @@ msgid "Pipelining max chunk size"
 msgstr "Mindestblockgröße"
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "Erlaube das Hochladen von noch unvollständigen Dateien"
 
 msgid "Enable GUESS (additional querying)"
@@ -8586,6 +8638,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "Upload-Statistik in Seitenleiste anzeigen"
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr "Nicht in Datenbank"
 
@@ -8670,10 +8725,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "Hochgeladen"
-
-#, fuzzy
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
 
 msgid "Connect to"
 msgstr "Verbinden mit"
@@ -8813,10 +8864,6 @@ msgstr "Bandbreitenkontrolle für Gnet-Verkehr"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr "Max. Prozentsatz, den ein Client-Typ einnehmen kann."
 
-#, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "_Ausgehenden HTTP-Verkehr anzeigen"
-
 msgid "attempts"
 msgstr "Versuche"
 
@@ -8826,10 +8873,6 @@ msgstr "Mindestblockgröße"
 
 msgid "_Remove directory"
 msgstr "Verzeichnis _entfernen"
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "Erlaube das Hochladen von noch unvollständigen Dateien"
 
 msgid "Minimum chunk _size"
 msgstr "M_inimale Stückgröße"
@@ -9498,6 +9541,22 @@ msgstr "Sende QUEUE, verbinde zurück..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
+
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "Debug-Level für Download-Mesh-Management."
+
+#, fuzzy
+#~ msgid "Splitting ougoing HTTP bandwidth evenly."
+#~ msgstr "Mittlere Bandbreite für ausgehenden HTTP-Verkehr anzeigen"
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "Erlaube das Hochladen von noch unvollständigen Dateien"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "_Ausgehenden HTTP-Verkehr anzeigen"
 
 #, fuzzy
 #~ msgid "Linux archives"

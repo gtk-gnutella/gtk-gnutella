@@ -39,14 +39,14 @@
 #include "extensions.h"
 #include "ggep.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
-#include "lib/htable.h"
-#include "lib/mempcpy.h"
-#include "lib/stringify.h"
+#include "lib/atoms.h"
 #include "lib/halloc.h"
+#include "lib/htable.h"
 #include "lib/log.h"
+#include "lib/mempcpy.h"
+#include "lib/str.h"
+#include "lib/stringify.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -2052,7 +2052,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 	g_assert(buf != NULL);
 	g_assert(size_is_non_negative(len));
 
-	rw = gm_snprintf(buf, len, "%s ", extype[e->ext_type]);
+	rw = str_bprintf(buf, len, "%s ", extype[e->ext_type]);
 
 	switch (e->ext_type) {
 	case EXT_UNKNOWN:
@@ -2072,24 +2072,24 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 			case EXT_T_URN_BAD:			what = "bad URN"; break;
 			default:					what = "<unknown>"; break;
 			}
-			rw += gm_snprintf(&buf[rw], len - rw, "%s ", what);
+			rw += str_bprintf(&buf[rw], len - rw, "%s ", what);
 		}
 		break;
 	case EXT_GGEP:
 		{
 			extdesc_t *d = e->opaque;
-			rw += gm_snprintf(&buf[rw], len - rw, "\"%s\" ", d->ext_ggep_id);
+			rw += str_bprintf(&buf[rw], len - rw, "\"%s\" ", d->ext_ggep_id);
 			if (d->ext_ggep_cobs)
-				rw += gm_snprintf(&buf[rw], len - rw, "COBS ");
+				rw += str_bprintf(&buf[rw], len - rw, "COBS ");
 			if (d->ext_ggep_deflate)
-				rw += gm_snprintf(&buf[rw], len - rw, "deflated ");
+				rw += str_bprintf(&buf[rw], len - rw, "deflated ");
 		}
 		break;
 	case EXT_TYPE_COUNT:
 		g_assert_not_reached();
 	}
 
-	rw += gm_snprintf(&buf[rw], len - rw, "(%u byte%s)",
+	rw += str_bprintf(&buf[rw], len - rw, "(%u byte%s)",
 		ext_paylen(e), 1 == ext_paylen(e) ? "" : "s");
 
 	return rw;

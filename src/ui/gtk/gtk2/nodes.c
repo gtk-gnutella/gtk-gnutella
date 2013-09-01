@@ -49,11 +49,11 @@
 
 #include "lib/atoms.h"
 #include "lib/concat.h"
-#include "lib/glib-missing.h"
 #include "lib/hset.h"
 #include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/nid.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -342,7 +342,7 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 	g_assert(data->node_id == info->node_id);
 
     if (guc_node_get_status(info->node_id, &status)) {
-		gm_snprintf(data->version, sizeof data->version, "%u.%u",
+		str_bprintf(data->version, sizeof data->version, "%u.%u",
 				info->proto_major, info->proto_minor);
 		atom_str_free_null(&data->user_agent);
 		data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
@@ -400,7 +400,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		guc_node_fill_info(data->node_id, &info);
 		g_assert(info.node_id == data->node_id);
 
-		gm_snprintf(text, sizeof text,
+		str_bprintf(text, sizeof text,
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %s (%s)\n"
@@ -646,7 +646,7 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	data->host_size = w_concat_strings(&data->host,
 						host_addr_port_to_string(info->addr, info->port),
 						(void *) 0);
-	gm_snprintf(data->version, sizeof data->version, "%u.%u",
+	str_bprintf(data->version, sizeof data->version, "%u.%u",
 		info->proto_major, info->proto_minor);
 
 	guc_node_fill_flags(data->node_id, &flags);

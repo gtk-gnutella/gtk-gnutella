@@ -106,6 +106,10 @@ void vmm_core_shrink(void *p, size_t size, size_t new_size);
 void *vmm_resize(void *p, size_t size, size_t new_size) WARN_UNUSED_RESULT;
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
+#ifdef XMALLOC_SOURCE
+void vmm_early_init(void);
+#endif /* XMALLOC_SOURCE */
+
 struct logagent;
 
 size_t round_pagesize(size_t n) G_GNUC_PURE;

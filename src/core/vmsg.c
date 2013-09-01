@@ -68,7 +68,6 @@
 #include "lib/atoms.h"
 #include "lib/base16.h"
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
@@ -214,10 +213,10 @@ vmsg_infostr(const void *data, size_t size)
 	version = gnutella_vendor_get_version(data);
 
 	if (!find_message(&vmsg, vc, id, version))
-		gm_snprintf(msg, sizeof msg , "%s/%uv%u",
+		str_bprintf(msg, sizeof msg , "%s/%uv%u",
 			vendor_code_to_string(vc.u32), id, version);
 	else
-		gm_snprintf(msg, sizeof msg, "%s/%uv%u '%s'",
+		str_bprintf(msg, sizeof msg, "%s/%uv%u '%s'",
 			vendor_code_to_string(vc.u32), id, version, vmsg.name);
 
 	return msg;
@@ -1360,6 +1359,11 @@ handle_time_sync_req(struct gnutella_node *n,
 	if (VMSG_SHORT_SIZE(n, vmsg, size, 1))
 		return;
 
+	if (node_udp_is_old(n)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TOO_OLD);
+		return;
+	}
+
 	/*
 	 * We have received the message well before, but this is the first
 	 * time we can timestamp it really...  We're not NTP, so the precision
@@ -1689,6 +1693,11 @@ handle_node_info_req(struct gnutella_node *n,
 {
 	if (VMSG_SHORT_SIZE(n, vmsg, size, 4))
 		return;
+
+	if (node_udp_is_old(n)) {
+		gnet_stats_count_dropped(n, MSG_DROP_TOO_OLD);
+		return;
+	}
 
 	/* XXX */
 	(void) payload;
@@ -2670,6 +2679,11 @@ handle_head_ping(struct gnutella_node *n,
 	} else {
 		const shared_file_t *sf;
 		uint8 code;
+
+		if (node_udp_is_old(n)) {
+			gnet_stats_count_dropped(n, MSG_DROP_TOO_OLD);
+			return;
+		}
 
 		sf = shared_file_by_sha1(&sha1);
 		if (SHARE_REBUILDING == sf) {

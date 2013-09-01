@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2012 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -39,7 +39,7 @@
  * drivers to publish the mappings.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2012
  */
 
 #include "common.h"
@@ -64,6 +64,8 @@
 #include "lib/htable.h"
 #include "lib/product.h"		/* For product_get_build() */
 #include "lib/stacktrace.h"
+#include "lib/str.h"
+#include "lib/stringify.h"		/* For compact_time() */
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -71,7 +73,6 @@
 #define UPNP_DISCOVERY_TIMEOUT	3000	/**< Timeout in ms */
 #define UPNP_MONITOR_DELAY		300		/**< Every 5 minutes */
 #define UPNP_CHECK_DELAY		1800	/**< Every 30 minutes */
-#define UPNP_MAPPING_LIFE		3600	/**< 1 hour */
 #define UPNP_MAPPING_CAUTION	120		/**< 2 minutes */
 #define UPNP_PUBLISH_RETRY		2		/**< 2 seconds */
 
@@ -81,6 +82,12 @@
 
 #define UPNP_UNDEFINED_LEASE ((time_delta_t) -1)
 
+/*
+ * Monitoring calls we can use on the Internet Gateway Device.
+ */
+static const char UPNP_GET_TOTAL_RX_PACKETS[]	= "GetTotalPacketsReceived";
+static const char UPNP_GET_STATUS_INFO[]		= "GetStatusInfo";
+
 /**
  * The local Internet Gateway Device, for UPnP.
  */
@@ -89,9 +96,10 @@ static struct {
 	upnp_ctrl_t *monitor;		/**< Regular monitoring event */
 	uint32 rcvd_pkts;			/**< Amount of received packets */
 	unsigned delete_pending;	/**< Amount of pending mapping deletes */
-	time_delta_t lease_time;	/**< Lease time to request */
+	time_delta_t uptime;		/**< Connection uptime */
 	unsigned discover:1;		/**< Force discovery again */
 	unsigned discovery_done:1;	/**< Was discovery completed? */
+	unsigned only_permanent:1;	/**< Only permanent mappings supported */
 } igd;
 
 /**
@@ -184,7 +192,7 @@ upnp_mapping_description(void)
 	static char buf[32];
 
 	if ('\0' == buf[0])
-		gm_snprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
+		str_bprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_get_build());
 
 	return buf;
 }
@@ -350,7 +358,8 @@ upnp_record_igd(upnp_device_t *ud)
 	upnp_dev_free_null(&igd.dev);
 	igd.rcvd_pkts = 0;
 	igd.dev = ud;
-	igd.lease_time = UPNP_MAPPING_LIFE;
+	igd.uptime = 0;
+	igd.only_permanent = FALSE;
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_info("UPNP using Internet Gateway Device at \"%s\" (WAN IP: %s)",
@@ -620,6 +629,12 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 				"(error %d => \"%s\")",
 				igd.dev->desc_url, code, upnp_strerror(code));
 		}
+		if (UPNP_ERR_INVALID_ACTION == code) {
+			upnp_service_t *usd; /* They lied about supporting this action */
+			
+			usd = upnp_service_get_common_if(igd.dev->services);
+			upnp_service_cannot(usd, UPNP_GET_TOTAL_RX_PACKETS);
+		}
 	} else {
 		if (GNET_PROPERTY(upnp_debug) > 5) {
 			g_debug("UPNP device \"%s\" reports %u received packets",
@@ -640,6 +655,64 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 			upnp_map_publish_all();		/* Unconditionally publish mappings */
 		}
 		igd.rcvd_pkts = ret->value;
+	}
+}
+
+/**
+ * Completion callback for IGD connection status info requests.
+ *
+ * @param code		UPnP error code, 0 for OK
+ * @param value		returned value structure
+ * @param size		size of structure, for assertions
+ * @param arg		user-supplied callback argument
+ */
+static void
+upnp_status_igd_callback(int code, void *value, size_t size, void *unused_arg)
+{
+	struct upnp_GetStatusInfo *ret = value;
+
+	(void) unused_arg;
+
+	g_assert(NULL == value || size == sizeof *ret);
+
+	igd.monitor = NULL;		/* Mark request completed */
+
+	if (NULL == igd.dev)
+		return;				/* We lost our IGD */
+
+	if (NULL == ret) {
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP device \"%s\" reports no status information "
+				"(error %d => \"%s\")",
+				igd.dev->desc_url, code, upnp_strerror(code));
+		}
+		if (UPNP_ERR_INVALID_ACTION == code) {
+			upnp_service_t *usd; /* They lied about supporting this action */
+
+			usd = upnp_service_get_wan_connection(igd.dev->services);
+			upnp_service_cannot(usd, UPNP_GET_STATUS_INFO);
+		}
+	} else {
+		if (GNET_PROPERTY(upnp_debug) > 5) {
+			g_debug("UPNP device \"%s\" reports uptime of %s, status \"%s\"",
+				igd.dev->desc_url, compact_time(ret->uptime),
+				ret->connection_status);
+		}
+
+		/*
+		 * Treat uptime as a monotonically increasing value.
+		 * If it falls (including a possible roll-over once in a while),
+		 * assume the device rebooted.
+		 */
+
+		if (ret->uptime < igd.uptime) {
+			if (GNET_PROPERTY(upnp_debug)) {
+				g_warning("UPNP device \"%s\" may have been rebooted",
+					igd.dev->desc_url);
+			}
+			upnp_map_publish_all();		/* Unconditionally publish mappings */
+		}
+		igd.uptime = ret->uptime;
 	}
 }
 
@@ -782,7 +855,9 @@ upnp_monitor_igd_callback(int code, void *value, size_t size, void *unused_arg)
 	g_assert(igd.dev != NULL);
 
 	/*
-	 * Monitor total amount of packets received by the IGD.
+	 * Monitor total amount of packets received by the IGD, or the uptime
+	 * of the IGD connection if the former is not available (since it is
+	 * an optional feature).
 	 *
 	 * The idea is that if we find out the amount is suddenly less than the
 	 * previous amount, chances are that the device has been rebooted (or
@@ -793,12 +868,39 @@ upnp_monitor_igd_callback(int code, void *value, size_t size, void *unused_arg)
 	 */
 
 	{
-		upnp_service_t *usd = upnp_service_get_common_if(igd.dev->services);
+		upnp_service_t *usd;
 
-		igd.monitor = upnp_ctrl_GetTotalPacketsReceived(usd,
-				upnp_packets_igd_callback, NULL);
+		/*
+		 * We prefer to monitor the amount of RX packets as opposed to the
+		 * connection uptime because we're interested in detecting device
+		 * reboots.  The connection uptime may fluctuate if the WAN signal
+		 * is lost but the device not otherwise rebooted, in which case the
+		 * UPnP mappings should stay active.
+		 */
+
+		usd = upnp_service_get_common_if(igd.dev->services);
+		if (upnp_service_can(usd, UPNP_GET_TOTAL_RX_PACKETS)) {
+			igd.monitor = upnp_ctrl_GetTotalPacketsReceived(usd,
+					upnp_packets_igd_callback, NULL);
+			goto done;
+		}
+
+		usd = upnp_service_get_wan_connection(igd.dev->services);
+		if (upnp_service_can(usd, UPNP_GET_STATUS_INFO)) {
+			igd.monitor = upnp_ctrl_GetStatusInfo(usd,
+					upnp_status_igd_callback, NULL);
+			goto done;
+		}
+
+		if (GNET_PROPERTY(upnp_debug)) {
+			g_warning("UPNP cannot monitor device \"%s\", republishing",
+				igd.dev->desc_url);
+		}
+
+		upnp_map_publish_all();		/* Unconditionally publish mappings */
 	}
 
+done:
 	return;
 
 rediscover:
@@ -1046,7 +1148,7 @@ upnp_map_publish_reply(int code, void *value, size_t size, void *arg)
 		 */
 
 		if (UPNP_ERR_ONLY_PERMANENT_LEASE == code && 0 != um->lease_time) {
-			igd.lease_time = 0;
+			igd.only_permanent = TRUE;
 			um->lease_time = 0;
 			cq_resched(um->install_ev, 1);	/* Re-publish immediately */
 		} else {
@@ -1182,8 +1284,12 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 	 */
 
 	if (gw.gateway != NULL && GNET_PROPERTY(enable_natpmp)) {
-		if (UPNP_UNDEFINED_LEASE == um->lease_time)
-			um->lease_time = UPNP_MAPPING_LIFE;
+		/*
+		 * No permanent mappings with NAT-PMP.
+		 */
+
+		um->lease_time = GNET_PROPERTY(upnp_mapping_lease_time);
+		um->lease_time = MAX(UPNP_MAPPING_CAUTION, um->lease_time);
 
 		natpmp_map(gw.gateway, um->proto, um->port, um->lease_time,
 			upnp_map_natpmp_publish_reply, um);
@@ -1193,8 +1299,17 @@ upnp_map_publish(cqueue_t *unused_cq, void *obj)
 		usd = upnp_service_get_wan_connection(igd.dev->services);
 		upnp_ctrl_cancel_null(&um->rpc, TRUE);
 
-		if (UPNP_UNDEFINED_LEASE == um->lease_time)
-			um->lease_time = igd.lease_time;
+		/*
+		 * Impose minimal UPNP_MAPPING_CAUTION lease time if not permanent.
+		 * When the IGD only supports permanent mappings, there is no need
+		 * to request anything else!
+		 */
+
+		um->lease_time = igd.only_permanent ? 0 :
+			GNET_PROPERTY(upnp_mapping_lease_time);
+
+		if (um->lease_time != 0)
+			um->lease_time = MAX(UPNP_MAPPING_CAUTION, um->lease_time);
 
 		um->rpc = upnp_ctrl_AddPortMapping(usd, um->proto, um->port,
 			upnp_get_local_addr(), um->port,

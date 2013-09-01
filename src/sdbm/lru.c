@@ -20,6 +20,7 @@
 
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
+#include "lib/fd.h"
 #include "lib/hashlist.h"
 #include "lib/htable.h"
 #include "lib/slist.h"
@@ -75,7 +76,7 @@ setup_cache(struct lru_cache *cache, long pages, bool wdelay)
 	cache->next = 0;
 	cache->write_deferred = wdelay;
 	cache->dirty = walloc(cache->pages);
-	cache->numpag = walloc(cache->pages * sizeof(long));
+	WALLOC_ARRAY(cache->numpag, cache->pages);
 
 	return 0;
 }
@@ -90,7 +91,7 @@ free_cache(struct lru_cache *cache)
 	slist_free(&cache->available);
 	htable_free_null(&cache->pagnum);
 	VMM_FREE_NULL(cache->arena, cache->pages * DBM_PBLKSIZ);
-	WFREE_NULL(cache->numpag, cache->pages * sizeof(long));
+	WFREE_ARRAY_NULL(cache->numpag, cache->pages);
 	WFREE_NULL(cache->dirty, cache->pages);
 	cache->pages = cache->next = 0;
 }
@@ -205,6 +206,20 @@ flush_dirtypag(DBM *db)
 	}
 
 	return amount;
+}
+
+/*
+ * @return the page cache size, 0 for no cache.
+ */
+long
+getcache(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+
+	if (NULL == cache)
+		return 0;
+
+	return cache->pages;
 }
 
 /**
@@ -330,16 +345,28 @@ setwdelay(DBM *db, bool on)
 }
 
 /**
+ * @return whether LRU deferred writes are enabled.
+ */
+bool
+getwdelay(const DBM *db)
+{
+	const struct lru_cache *cache = db->cache;
+
+	return cache != NULL && cache->write_deferred;
+}
+
+/**
  * Close the LRU page cache.
  */
-void lru_close(DBM *db)
+void
+lru_close(DBM *db)
 {
 	struct lru_cache *cache = db->cache;
 
 	if (cache) {
 		sdbm_lru_check(cache);
 
-		if (!db->is_volatile)
+		if (!db->is_volatile && !(db->flags & DBM_BROKEN))
 			flush_dirtypag(db);
 
 		if (common_stats)
@@ -381,8 +408,15 @@ dirtypag(DBM *db, bool force)
 		return TRUE;
 	}
 
+	/*
+	 * Flush current page to the kernel.  If they are forcing the flush,
+	 * make sure we ask the kernel to synchronize the data as well.
+	 */
+
 	if (flushpag(db, db->pagbuf, db->pagbno)) {
 		cache->dirty[n] = FALSE;
+		if G_UNLIKELY(force)
+			fd_fdatasync(db->pagf);
 		return TRUE;
 	}
 

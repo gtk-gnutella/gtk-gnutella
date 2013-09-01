@@ -36,7 +36,6 @@
 
 #include "cq.h"
 #include "atoms.h"
-#include "halloc.h"
 #include "hset.h"
 #include "log.h"
 #include "mutex.h"
@@ -44,6 +43,7 @@
 #include "stringify.h"
 #include "tm.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -145,6 +145,15 @@ cqueue_check(const struct cqueue * const cq)
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
 
+/**
+ * Locking of the callout queue for short period of time, in sections that
+ * do not encompass memory allocation or do not call other routines that may
+ * take other locks.  These locks can be "hidden" and therefore faster because
+ * they do not involve the lock tracking logic.
+ */
+#define CQ_LOCK(q)		mutex_lock_hidden(&(q)->cq_lock)
+#define CQ_UNLOCK(q)	mutex_unlock_hidden(&(q)->cq_lock)
+
 static cqueue_t *callout_queue;			/**< The main callout queue */
 static bool cq_global_inited;			/**< Records global initialization */
 static void cq_global_init(void);
@@ -184,7 +193,7 @@ cq_initialize(cqueue_t *cq, const char *name, cq_time_t now, int period)
 
 	cq->cq_magic = CQUEUE_MAGIC;
 	cq->cq_name = atom_str_get(name);
-	cq->cq_hash = halloc0(HASH_SIZE * sizeof *cq->cq_hash);
+	XMALLOC0_ARRAY(cq->cq_hash, HASH_SIZE);
 	cq->cq_items = 0;
 	cq->cq_ticks = 0;
 	cq->cq_time = now;
@@ -411,9 +420,9 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 	 * routine is not going to take locks, so it is safe.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	ev_link(ev);
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 
 	return ev;
 }
@@ -447,9 +456,9 @@ cq_cancel(cevent_t **handle_ptr)
 		 * routine is not using locks so there is no potential for deadlocks.
 		 */
 
-		mutex_lock_hidden(&cq->cq_lock);
+		CQ_LOCK(cq);
 		ev_unlink(ev);
-		mutex_unlock_hidden(&cq->cq_lock);
+		CQ_UNLOCK(cq);
 		ev->ce_magic = 0;			/* Prevent further use as a valid event */
 		WFREE(ev);
 		*handle_ptr = NULL;
@@ -492,11 +501,11 @@ cq_resched(cevent_t *ev, int delay)
 	 * ev_unlink() routines are not going to take locks, so it is safe.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	ev_unlink(ev);
 	ev->ce_time = cq->cq_time + delay;
 	ev_link(ev);
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 }
 
 /**
@@ -538,11 +547,11 @@ cq_expire(cevent_t *ev)
 	 * critical section, so no opportunity to ever deadlock.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
-	cevent_check(ev);		/* Not triggered in between */
+	CQ_LOCK(cq);
+	cevent_check(ev);		/* Not triggered since routine start */
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 
 	g_assert(fn);
 
@@ -576,11 +585,11 @@ cq_replace(cevent_t *ev, cq_service_t fn, void *arg)
 	 * critical section, so no opportunity to ever deadlock.
 	 */
 
-	mutex_lock_hidden(&cq->cq_lock);
+	CQ_LOCK(cq);
 	cevent_check(ev);		/* Not triggered in between */
 	ev->ce_fn = fn;
 	ev->ce_arg = arg;
-	mutex_unlock_hidden(&cq->cq_lock);
+	CQ_UNLOCK(cq);
 }
 
 /**
@@ -1380,8 +1389,28 @@ cq_free(cqueue_t *cq)
 		hset_free_null(&cq->cq_idle);
 	}
 
-	HFREE_NULL(cq->cq_hash);
+	XFREE_NULL(cq->cq_hash);
 	atom_str_free_null(&cq->cq_name);
+
+	/*
+	 * Unlocking the cq->cq_lock mutex (taken above) prevents a loud warning in
+	 * mutex_destroy() in case the mutex was already locked by our thread,
+	 * meaning we were already in cq_clock().  In that situation however,
+	 * we already warned upon entry, and therefore there is no need for a
+	 * second warning.
+	 *
+	 * If the mutex was not taken and someone else attempts to grab it at that
+	 * stage, there will be a slight window which fortunately will be loudly
+	 * detected by mutex_destroy(), as a case of a mutex being destroyed
+	 * whilst owned by another thread.
+	 *
+	 * No valid application code should attempt to sneak in at this stage to
+	 * grab that mutex anyway, so our logic is safe and we will be copiously
+	 * warned if something unexpected happens.
+	 *		--RAM, 2012-12-04.
+	 */
+
+	mutex_unlock(&cq->cq_lock);
 	mutex_destroy(&cq->cq_lock);
 	mutex_destroy(&cq->cq_idle_lock);
 

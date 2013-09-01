@@ -67,11 +67,17 @@ once_run(volatile bool *flag, once_fn_t routine)
 
 	/*
 	 * Set flag BEFORE running so that recursive calls are not re-attempted.
+	 *
+	 * As soon as the flag is positionned, we release the lock: since it is
+	 * a global lock used to funnel the flag-positioning logic, it would
+	 * be sub-optimal to keep it when the routine is run because that would
+	 * unduly block other once_run() calls from other threads.
 	 */
 
 	*flag = TRUE;
-	(*routine)();
 	mutex_unlock(&once_mtx);
+
+	(*routine)();
 
 	return TRUE;
 }

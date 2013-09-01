@@ -1006,7 +1006,7 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 			rbuf[1] = ' ';
 			off = 2;
 		}
-		gm_vsnprintf(&rbuf[off], sizeof rbuf - off, reason, args);
+		str_vbprintf(&rbuf[off], sizeof rbuf - off, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -3770,7 +3770,7 @@ search_whats_new_can_reissue(void)
 		char buf[80];
 		time_delta_t grace = WHATS_NEW_DELAY - elapsed + 1;
 
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			_("Must wait %u more seconds before resending \"What's New\""),
 			(unsigned) grace);
 		gcu_statusbar_warning(buf);
@@ -7371,11 +7371,11 @@ search_request_preprocess(struct gnutella_node *n,
 		 */
 
 		if (last_sha1_digest == NULL)
-			gm_snprintf(stmp_1, sizeof(stmp_1), "%u/%u%s",
+			str_bprintf(stmp_1, sizeof(stmp_1), "%u/%u%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header), search);
 		else
-			gm_snprintf(stmp_1, sizeof(stmp_1), "%u/%uurn:sha1:%s",
+			str_bprintf(stmp_1, sizeof(stmp_1), "%u/%uurn:sha1:%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sha1_base32(last_sha1_digest));
@@ -7457,7 +7457,7 @@ skip_throttling:
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
 				if (sri->oob) {
-					gm_snprintf(origin, sizeof origin, " from %s",
+					str_bprintf(origin, sizeof origin, " from %s",
 						host_addr_port_to_string(sri->addr, sri->port));
 				}
 				g_debug("GTKG %s%squery from %d.%d%s #%s%s",

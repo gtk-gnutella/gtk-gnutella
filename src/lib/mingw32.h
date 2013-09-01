@@ -39,10 +39,6 @@
 
 #define FD_SETSIZE      4096
 
-#ifndef WINVER
-#define WINVER 0x0501
-#endif
-
 #include <ws2tcpip.h>
 
 #ifdef I_WINSOCK2
@@ -157,9 +153,12 @@
 #define s_writev mingw_s_writev
 #define s_readv mingw_s_readv
 
+#define gethostname mingw_gethostname
 #define getaddrinfo mingw_getaddrinfo
 #define freeaddrinfo mingw_freeaddrinfo
 
+#undef stat
+#undef fstat
 #define stat(path, buf) mingw_stat((path), (buf))
 #define fstat(fd, buf) mingw_fstat((fd), (buf))
 #define unlink(path) mingw_unlink((path))
@@ -314,6 +313,17 @@ struct rusage {
 
 int mingw_getrusage(int who, struct rusage *usage);
 #endif	/* !HAS_GETRUSAGE */
+
+/*
+ * fsync() emulation.
+ */
+#ifndef HAS_FSYNC
+#define HAS_FSYNC				/* We emulate it */
+#define EMULATE_FSYNC
+#define fsync mingw_fsync
+
+int mingw_fsync(int fd);
+#endif	/* !HAS_FSYNC */
 
 /*
  * uname() emulation.
@@ -494,6 +504,7 @@ const char *dlerror(void);
 int mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout);
 
+int mingw_gethostname(char *name, size_t len);
 int mingw_getaddrinfo(const char *node, const char *service,
 		const struct addrinfo *hints, struct addrinfo **res);
 void mingw_freeaddrinfo(struct addrinfo *res);
@@ -586,6 +597,8 @@ bool mingw_adns_send_request(const struct adns_request *req);
 char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 
+extern bool mingw_c_runtime_is_up;		/* Is the C runtime up? */
+
 #else	/* !MINGW32 */
 
 #define mingw_early_init();
@@ -610,6 +623,7 @@ const char *mingw_native_path(const char *pathname);
 #define mingw_get_windows_path()		"/"
 
 #define mingw_in_exception()		0
+#define mingw_c_runtime_is_up		1
 
 #endif	/* MINGW32 */
 #endif /* _mingw32_h_ */

@@ -37,7 +37,6 @@
 #include "ascii.h"
 #include "atoms.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */
-#include "glib-missing.h"
 #include "halloc.h"
 #include "htable.h"
 #include "log.h"			/* For log_file_printable() */
@@ -243,7 +242,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 			const char *p = s;
 			int c;
 			size_t len = strlen(s);
-			gm_snprintf(buf, sizeof buf, "<%u non-printable byte%s>",
+			str_bprintf(buf, sizeof buf, "<%u non-printable byte%s>",
 				(unsigned) len, 1 == len ? "" : "s");
 			fputs(buf, out);
 			while ((c = *p++)) {

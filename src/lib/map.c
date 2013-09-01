@@ -42,6 +42,7 @@
 #include "random.h"
 #include "tm.h"					/* For tests */
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -679,7 +680,7 @@ map_test(void)
 	if (common_stats <= 0)
 		return;
 
-	keys = g_malloc(ITEM_COUNT * sizeof *keys);
+	XMALLOC_ARRAY(keys, ITEM_COUNT);
 
 	for (i = 0; i < ITEM_COUNT; i++)
 		random_bytes(keys[i].data, SHA1_RAW_SIZE);
@@ -759,7 +760,7 @@ map_test(void)
 		g_info("PATRICIA remove was faster than hash in %d out of %d tests",
 			faster.removal, tests);
 
-	G_FREE_NULL(keys);
+	XFREE_NULL(keys);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

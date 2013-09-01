@@ -47,9 +47,10 @@
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 enum gnet_stats_nb_page {
@@ -78,7 +79,7 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
     if (GUI_PROPERTY(gnet_stats_perc))
-        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
+        str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
         uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
@@ -103,7 +104,7 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 		guint64 total_size = val_tbl[MSG_TOTAL];
 		if (!GUI_PROPERTY(gnet_stats_with_headers))
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
-        gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
+        str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) size / total_size * 100.0);
         return strbuf;
     } else
@@ -142,7 +143,7 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
 	if (GUI_PROPERTY(gnet_stats_perc)) {
-		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
+		str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
@@ -160,7 +161,7 @@ flowc_stat_str_byte(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
 	if (GUI_PROPERTY(gnet_stats_perc)) {
-		gm_snprintf(strbuf, sizeof strbuf, "%.2f%%",
+		str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	return compact_size(val_tbl[type], show_metric_units());

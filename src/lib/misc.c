@@ -45,17 +45,18 @@
 #include "concat.h"
 #include "endian.h"
 #include "entropy.h"
-#include "glib-missing.h"
 #include "halloc.h"
 #include "htable.h"
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */
 #include "mempcpy.h"
+#include "once.h"
 #include "parse.h"
 #include "path.h"
 #include "pow2.h"
 #include "random.h"
 #include "sha1.h"
+#include "str.h"
 #include "stringify.h"
 #include "tm.h"
 #include "unsigned.h"
@@ -408,7 +409,7 @@ filesize_t
 get_random_file_offset(const filesize_t size)
 {
 	if (sizeof(size) == sizeof(uint64)) {
-		return random_value64(size - 1);
+		return random64_value(size - 1);
 	} else {
 		return random_value(size - 1);
 	}
@@ -526,14 +527,14 @@ kib_size_scale(uint64 v, uint *q, uint *r, bool metric)
  * @param dst		where to write the string
  * @param len		the size of ``dst'' in bytes.
  *
- * @return The length of the resulting string assuming ``size'' is sufficient.
+ * @return The length of the resulting string.
  */
 size_t
 short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 {
 	if (size < kilo(metric)) {
 		uint n = size;
-		return gm_snprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
+		return str_bprintf(dst, len, NG_("%u Byte", "%u Bytes", n), n);
 	} else {
 		uint q, r;
 		char c;
@@ -541,7 +542,7 @@ short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
 		return
-			gm_snprintf(dst, len, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
+			str_bprintf(dst, len, "%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 }
 
@@ -570,14 +571,14 @@ short_frequency(uint64 freq)
 
 	if (freq < kilo(TRUE)) {
 		uint n = freq;
-		gm_snprintf(b, sizeof b, "%u Hz", n);
+		str_bprintf(b, sizeof b, "%u Hz", n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(freq, &q, &r, TRUE);
 		r = (r * 100) / kilo(TRUE);
-		gm_snprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
+		str_bprintf(b, sizeof b, "%u.%02u %cHz", q, r, c);
 	}
 
 	return b;
@@ -593,14 +594,14 @@ short_html_size(uint64 size, bool metric)
 
 	if (size < kilo(metric)) {
 		uint n = size;
-		gm_snprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
+		str_bprintf(b, sizeof b, NG_("%u&nbsp;Byte", "%u&nbsp;Bytes", n), n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
+		str_bprintf(b, sizeof b, "%u.%02u&nbsp;%c%s", q, r, c,
 			byte_suffix(metric));
 	}
 
@@ -614,14 +615,14 @@ short_byte_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 
 	if (size < kilo(metric)) {
 		uint n = size;
-		w = gm_snprintf(buf, buflen, "%u B", n);
+		w = str_bprintf(buf, buflen, "%u B", n);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
@@ -656,7 +657,7 @@ short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 	size_t w;
 
 	if (size < kilo(metric)) {
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u %s", (uint) size, metric ? "kB" : "KiB");
 	} else {
 		uint q, r;
@@ -664,7 +665,7 @@ short_kb_size_to_buf(uint64 size, bool metric, char *buf, size_t buflen)
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		w = gm_snprintf(buf, buflen,
+		w = str_bprintf(buf, buflen,
 				"%u.%02u %c%s", q, r, c, byte_suffix(metric));
 	}
 
@@ -702,14 +703,14 @@ compact_kb_size(uint32 size, bool metric)
 	static char b[SIZE_FIELD_MAX];
 
 	if (size < kilo(metric)) {
-		gm_snprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
+		str_bprintf(b, sizeof b, "%u%s", (uint) size, metric ? "kB" : "KiB");
 	} else {
 		uint q, r;
 		char c;
 
 		c = kib_size_scale(size, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
-		gm_snprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
+		str_bprintf(b, sizeof b, "%u.%u%c%s", q, r, c, byte_suffix(metric));
 	}
 
 	return b;
@@ -722,7 +723,7 @@ nice_size(uint64 size, bool metric)
 	char bytes[UINT64_DEC_BUFLEN];
 
 	uint64_to_string_buf(size, bytes, sizeof bytes);
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		_("%s (%s bytes)"), short_size(size, metric), bytes);
 	return buf;
 }
@@ -731,14 +732,14 @@ char *
 compact_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u", (uint) v);
+		str_bprintf(buf, size, "%u", (uint) v);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 10) / kilo(metric);
-		gm_snprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
+		str_bprintf(buf, size, "%u.%u%c%s", q, r, c, metric ? "" : "i");
 	}
 
 	return buf;
@@ -748,14 +749,14 @@ char *
 short_value(char *buf, size_t size, uint64 v, bool metric)
 {
 	if (v < kilo(metric)) {
-		gm_snprintf(buf, size, "%u ", (uint) v);
+		str_bprintf(buf, size, "%u ", (uint) v);
 	} else {
 		uint q, r;
 		char c;
 
 		c = norm_size_scale(v, &q, &r, metric);
 		r = (r * 100) / kilo(metric);
-		gm_snprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
+		str_bprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	}
 	
 	return buf;
@@ -1526,7 +1527,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 
 	fprintf(out, "----------------- %s:\n", title);
 
-	xiov = wcopy(iov, iovcnt * sizeof iov[0]);	/* Don't modify argument */
+	xiov = WCOPY_ARRAY(iov, iovcnt);	/* Don't modify argument */
 
 	for (i = 0; i < iovcnt; /* empty */) {
 		iovec_t *v = &xiov[i];
@@ -1568,7 +1569,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 		length += dumping;
 	}
 
-	wfree(xiov, iovcnt * sizeof iov[0]);
+	WFREE_ARRAY(xiov, iovcnt);
 
 	fprintf(out, "----------------- (%u byte%s).\n",
 		(unsigned) length, 1 == length ? "" : "s");
@@ -1587,7 +1588,7 @@ dump_hex(FILE *out, const char *title, const void *data, int length)
 	iovec_t iov;
 
 	if (length < 0 || data == NULL) {
-		g_carp("%s: value out of range [data=%p, length=%d] for %s",
+		g_critical("%s(): value out of range [data=%p, length=%d] for %s",
 			G_STRFUNC, data, length, title);
 		return;
 	}
@@ -2227,10 +2228,139 @@ symbolic_errno(int errnum)
 }
 
 /**
- * Initialize miscellaneous data structures.
+ * Adds some lexical indendation to XML-like text.
+ *
+ * The input text is assumed to be "flat" and well-formed. If these assumptions
+ * fail, the output might look worse than the input.
+ *
+ * @param text		the string to format.
+ *
+ * @return a newly allocated string which must be freed via hfree().
  */
-G_GNUC_COLD void
-misc_init(void)
+char *
+xml_indent(const char *text)
+{
+	const char *p, *q;
+	bool quoted, is_special, is_end, is_start, is_singleton, has_cdata;
+	guint i, depth = 0;
+	str_t *s;
+
+	s = str_new(0);
+	q = text;
+
+	quoted = FALSE;
+	is_special = FALSE;
+	is_end = FALSE;
+	is_start = FALSE;
+	is_singleton = FALSE;
+	has_cdata = FALSE;
+
+	for (;;) {
+		bool had_cdata;
+
+		p = q;
+		/*
+		 * Find the start of the tag and append the text between the
+		 * previous and the current tag.
+		 */
+		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
+			if (is_ascii_space(*p) && is_ascii_space(p[1]))
+				continue;
+			if (has_cdata && '&' == *p) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(p, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
+					str_putc(s, uc);
+					p = endptr - 1;
+					continue;
+				}
+			}
+			str_putc(s, is_ascii_space(*p) ? ' ' : *p);
+		}
+		if ('\0' == *p)
+			break;
+
+		/* Find the end of the tag */
+		q = strchr(p, '>');
+		if (!q)
+			q = strchr(p, '\0');
+
+		is_special = '?' == p[1] || '!' == p[1];
+		is_end = '/' == p[1];
+		is_start = !(is_special || is_end);
+		is_singleton = is_start && '>' == *q && '/' == q[-1];
+		had_cdata = has_cdata;
+		has_cdata = FALSE;
+
+		if (is_end && depth > 0) {
+			depth--;
+		}
+		if (p != text && !(is_end && had_cdata)) {
+			str_putc(s, '\n');
+			for (i = 0; i < depth; i++)
+				str_putc(s, '\t');
+		}
+
+		quoted = FALSE;
+		for (q = p; '\0' != *q; q++) {
+
+			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
+				continue;
+
+			if (is_ascii_space(*q)) {
+				if (quoted || is_special) {
+					str_putc(s, ' ');
+				} else {
+					str_putc(s, '\n');
+					for (i = 0; i < depth + 1; i++)
+						str_putc(s, '\t');
+				}
+				continue;
+			}
+
+			if (quoted && '&' == *q) {
+				const char *endptr;
+				guint32 uc;
+
+				uc = html_decode_entity(q, &endptr);
+				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
+					str_putc(s, uc);
+					q = endptr - 1;
+					continue;
+				}
+			}
+
+			str_putc(s, *q);
+			
+			if ('"' == *q) {
+				quoted ^= TRUE;
+			} else if ('>' == *q) {
+				q++;
+				break;
+			}
+		}
+		if (is_start && !is_singleton) {
+			const char *next = strchr(q, '<');
+			has_cdata = next && '/' == next[1];
+			depth++;
+		}
+	}
+
+	/* Ensure there is a final "\n" in the string */
+
+	if ('\n' != str_at(s, -1))
+		str_putc(s, '\n');
+
+	return str_s2c_null(&s);
+}
+
+/**
+ * Initialize miscellaneous data structures, once.
+ */
+static G_GNUC_COLD void
+misc_init_once(void)
 {
 	hex2int_init();
 	dec2int_init();
@@ -2306,6 +2436,17 @@ misc_init(void)
 		}
 	}
 
+}
+
+/**
+ * Initialize miscellaneous data structures.
+ */
+G_GNUC_COLD void
+misc_init(void)
+{
+	static bool done;
+
+	once_run(&done, misc_init_once);
 }
 
 /**

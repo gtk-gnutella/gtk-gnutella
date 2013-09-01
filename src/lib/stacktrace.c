@@ -965,6 +965,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	str_t s, *trace = NULL;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
+	int saved_errno = errno;
 
 	/*
 	 * The BFD environment is only opened once.
@@ -1257,6 +1258,13 @@ stack_print_decorated_to(struct sxfile *xf,
 	}
 
 	/*
+	 * Flush output if we were writing via stdio.
+	 */
+
+	if (SXFILE_STDIO == xf->type)
+		fflush(xf->u.f);
+
+	/*
 	 * Don't call
 	 *
 	 * 		bfd_util_close_null(&be);
@@ -1267,6 +1275,8 @@ stack_print_decorated_to(struct sxfile *xf,
 	 *
 	 * Hence the strategy is to keep the BFD environment opened.
 	 */
+
+	errno = saved_errno;
 }
 
 /**

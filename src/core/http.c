@@ -49,18 +49,20 @@
 #include "rx_inflate.h"
 #include "rx_chunk.h"
 
-#include "lib/atoms.h"
 #include "lib/ascii.h"
+#include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/getline.h"
 #include "lib/glib-missing.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/http_range.h"			/* For http_range_test() */
 #include "lib/log.h"				/* For log_printable() */
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -108,7 +110,7 @@ http_send_status(
 	http_extra_desc_t *hev, int hevcnt,
 	const char *reason, ...)
 {
-	char header[2560];			/* 2.5 K max */
+	char header[3072];			/* 3 KiB max */
 	char status_msg[512];
 	size_t rw, minimal_rw;
 	size_t header_size = sizeof(header);
@@ -121,12 +123,21 @@ http_send_status(
 	const char *date;
 	const char *token;
 	const char *body = NULL;
+	size_t body_length = 0;
 	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
 	int cb_flags = 0;
+	bool retried = FALSE;
 
 	va_start(args, reason);
-	gm_vsnprintf(status_msg, sizeof(status_msg)-1, reason, args);
+	str_vbprintf(status_msg, sizeof status_msg - 1, reason, args);
 	va_end(args);
+
+	/*
+	 * When the connection is kept alive and we are unable to send
+	 * back the whole body, we come back here with ``body_length''
+	 * adjusted to the amount we can safely emit.
+	 */
+retry:
 
 	/*
 	 * Prepare flags for callbacks.
@@ -195,7 +206,7 @@ http_send_status(
 	g_assert(header_size <= sizeof header);
 
 	date = timestamp_rfc1123_to_string(clock_loc2gmt(tm_time()));
-	rw = gm_snprintf(header, header_size,
+	rw = str_bprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
 		"Date: %s\r\n"
@@ -233,7 +244,7 @@ http_send_status(
 		case HTTP_EXTRA_LINE:
 			if (size > strlen(he->he_msg)) {
 				/* Don't emit truncated lines */
-				rw += gm_snprintf(&header[rw], size, "%s", he->he_msg);
+				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
 			}
 			break;
 		case HTTP_EXTRA_CALLBACK:
@@ -249,22 +260,64 @@ http_send_status(
 	}
 
 	if (body) {
-		rw += gm_snprintf(&header[rw], header_size - rw,
-						"Content-Length: %zu\r\n", strlen(body));
+		if (0 == body_length)
+			body_length = strlen(body);
+		rw += str_bprintf(&header[rw], header_size - rw,
+						"Content-Length: %zu\r\n", body_length);
 	}
 	if (rw < header_size) {
-		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
+		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 	}
 	if (body) {
-		rw += gm_snprintf(&header[rw], header_size - rw, "%s", body);
+		if (!retried) {
+			rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
+		} else {
+			/*
+			 * Since we're retrying, it means the whole body did not fit
+			 * earlier and we decided to only limit it to ``body_length''
+			 * bytes, which we know can fit.
+			 */
+
+			rw += clamp_strncpy(&header[rw], header_size - rw,
+					body, body_length);
+		}
 	}
-	if (rw >= header_size && (hev || body)) {
-		g_warning("HTTP status %d (%s) too big, ignoring extra information",
-			code, status_msg);
+	if (rw >= header_size - 1 && (hev || body)) {
+		g_warning("HTTP status %d (%s) too big, "
+			"ignoring extra information (%s)",
+			code, status_msg, host_addr_port_to_string(s->addr, s->port));
 
 		rw = minimal_rw;
-		rw += gm_snprintf(&header[rw], header_size - rw, "\r\n");
+		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
 		g_assert(rw < header_size);
+		if (body) {
+			size_t w;
+
+			rw += (w = str_bprintf(&header[rw], header_size - rw, "%s", body));
+
+			/*
+			 * If we cannot send back everything and the connection is
+			 * going to be kept alive, we need to limit the body to the amount
+			 * we can really send back.
+			 */
+
+			if (rw >= header_size - 1) {
+				g_carp("HTTP status %d (%s) too big, "
+					"can only send %zu/%zu body bytes to %s",
+					code, status_msg, w, body_length,
+					host_addr_port_to_string(s->addr, s->port));
+
+				if (keep_alive) {
+					g_assert(!retried);		/* No deadly endless loops */
+					body_length = w;
+					retried = TRUE;
+					g_warning("HTTP status sent on kept-alive, "
+						"retrying with stripped %zu-byte body for %s",
+						w, host_addr_port_to_string(s->addr, s->port));
+					goto retry;
+				}
+			}
+		}
 	}
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, header, rw);
@@ -833,7 +886,7 @@ http_url_strerror(http_url_error_t errnum)
 {
 	if (UNSIGNED(errnum) >= G_N_ELEMENTS(parse_errstr)) {
 		static char buf[40];
-		gm_snprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
+		str_bprintf(buf, sizeof buf, "Invalid URL error code: %u", errnum);
 		return buf;
 	}
 
@@ -1048,671 +1101,6 @@ http_content_range_parse(const char *buf,
 }
 
 /***
- *** HTTP range parsing.
- ***/
-
-/**
- * Add a new http_range_t object within the sorted list.
- *
- * Refuse to add the range if it is overlapping existing ranges.
- *
- * @param `list' must be sorted if not NULL.
- * @param `start' the start of the range to add
- * @param `end' the end of the range to add
- * @param `field' arguments are only there to log errors, if any.
- * @param `vendor' is same as `field'.
- * @param `ignored' is set to TRUE if range was ignored.
- *
- * @return the new head of the list.
- */
-static GSList *
-http_range_add(GSList *list, filesize_t start, filesize_t end,
-	const char *field, const char *vendor, bool *ignored)
-{
-	GSList *l;
-	GSList *prev;
-	http_range_t *item;
-
-	g_assert(start <= end);		/* 0-0 is a 1-byte range containing byte 0 */
-
-	WALLOC(item);
-	item->start = start;
-	item->end = end;
-
-	*ignored = FALSE;
-
-	for (l = list, prev = NULL; l; prev = l, l = g_slist_next(l)) {
-		http_range_t *r = (http_range_t *) l->data;
-
-		/*
-		 * The list is sorted and there should be no overlapping between
-		 * the items, so as soon as we find a range that starts after "end",
-		 * we know we have to insert before.
-		 */
-
-		if (r->start > end) {
-			GSList *next;
-
-			/* Ensure range is not overlapping with previous */
-			if (prev != NULL) {
-				http_range_t *pr = (http_range_t *) prev->data;
-
-				if (pr->end >= start) {
-					char start_buf[UINT64_DEC_BUFLEN];
-					char end_buf[UINT64_DEC_BUFLEN];
-
-					uint64_to_string_buf(start, start_buf, sizeof start_buf);
-					uint64_to_string_buf(end, end_buf, sizeof end_buf);
-
-					g_warning("vendor <%s> sent us overlapping range %s-%s "
-						"(with previous %s-%s) in the %s header -- ignoring",
-						vendor, start_buf, end_buf,
-						uint64_to_string(pr->start),
-						uint64_to_string2(pr->end),
-						field);
-					goto ignored;
-				}
-			}
-
-			/* Ensure range is not overlapping with next, if any */
-			next = g_slist_next(l);
-			if (next != NULL) {
-				http_range_t *nr = (http_range_t *) next->data;
-				if (nr->start <= end) {
-					char start_buf[UINT64_DEC_BUFLEN];
-				   	char end_buf[UINT64_DEC_BUFLEN];
-
-					uint64_to_string_buf(start, start_buf, sizeof start_buf);
-					uint64_to_string_buf(end, end_buf, sizeof end_buf);
-
-					g_warning("vendor <%s> sent us overlapping range %s-%s "
-						"(with next %s-%s) in the %s header -- ignoring",
-						vendor, start_buf, end_buf,
-						uint64_to_string(nr->start),
-						uint64_to_string2(nr->end),
-						field);
-					goto ignored;
-				}
-			}
-
-			/* Insert after `prev' (which may be NULL) */
-			return gm_slist_insert_after(list, prev, item);
-		}
-
-		if (r->end >= start) {
-			char start_buf[UINT64_DEC_BUFLEN];
-			char end_buf[UINT64_DEC_BUFLEN];
-
-			uint64_to_string_buf(start, start_buf, sizeof start_buf);
-			uint64_to_string_buf(end, end_buf, sizeof end_buf);
-
-			g_warning("vendor <%s> sent us overlapping range %s-%s "
-				"(with %s-%s) in the %s header -- ignoring",
-				vendor, start_buf, end_buf, uint64_to_string(r->start),
-				uint64_to_string2(r->end), field);
-			goto ignored;
-		}
-	}
-
-	/*
-	 * Insert at the tail of the list.
-	 *
-	 * NB: the following call works as expected is list == NULL, because
-	 * then prev == NULL and we insert `item' as the first and only entry.
-	 */
-
-	return gm_slist_insert_after(list, prev, item);
-
-ignored:
-	*ignored = TRUE;
-	WFREE(item);					/* Item was not inserted */
-	return list;					/* No change in list */
-}
-
-/**
- * Parse a Range: header in the request, returning the list of ranges
- * that are enumerated.  Invalid ranges are ignored.
- *
- * Only "bytes" ranges are supported.
- *
- * When parsing a "bytes=" style, it means it's a request, so we allow
- * negative ranges.  Otherwise, for "bytes " specifications, it's a reply
- * and we ignore negative ranges.
- *
- * `size' gives the length of the resource, to resolve negative ranges and
- * make sure we don't have ranges that extend past that size.
- *
- * The `field' and `vendor' arguments are only there to log errors, if any.
- *
- * @returns a sorted list of http_range_t objects.
- */
-GSList *
-http_range_parse(
-	const char *field, const char *value, filesize_t size,
-	const char *vendor)
-{
-	static const char unit[] = "bytes";
-	GSList *ranges = NULL;
-	const char *str = value;
-	uchar c;
-	filesize_t start;
-	filesize_t end;
-	bool request = FALSE;		/* True if 'bytes=' is seen */
-	bool has_start;
-	bool has_end;
-	bool skipping;
-	bool minus_seen;
-	bool ignored;
-	int count = 0;
-
-	g_assert(size > 0);
-	vendor = vendor ? vendor : "unknown";
-
-	if (NULL != (str = is_strprefix(str, unit))) {
-		c = *str;
-		if (!is_ascii_space(c) && c != '=') {
-			if (GNET_PROPERTY(http_debug)) g_warning(
-				"improper %s header from <%s>: %s", field, vendor, value);
-			return NULL;
-		}
-	} else {
-		if (GNET_PROPERTY(http_debug)) g_warning(
-			"improper %s header from <%s> (not bytes?): %s",
-			field, vendor, value);
-		return NULL;
-	}
-
-	/*
-	 * Move to the first non-space char.
-	 * Meanwhile, if we see a '=', we know it's a request-type range header.
-	 */
-
-	while ((c = *str)) {
-		if (c == '=') {
-			if (request) {
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"improper %s header from <%s> (multiple '='): %s",
-					field, vendor, value);
-				return NULL;
-			}
-			request = TRUE;
-			str++;
-			continue;
-		}
-		if (is_ascii_space(c)) {
-			str++;
-			continue;
-		}
-		break;
-	}
-
-	start = 0;
-	has_start = FALSE;
-	has_end = FALSE;
-	end = size - 1;
-	skipping = FALSE;
-	minus_seen = FALSE;
-
-	while ((c = *str++)) {
-		if (is_ascii_space(c))
-			continue;
-
-		if (c == ',') {
-			if (skipping) {
-				skipping = FALSE;		/* ',' is a resynch point */
-				continue;
-			}
-
-			if (!minus_seen) {
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %zu (no range?): "
-					"%s", field, vendor, (str - value) - 1, value);
-				goto reset;
-			}
-
-			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %zu "
-					"(incomplete negative range): %s",
-					field, vendor, (str - value) - 1, value);
-				goto reset;
-			}
-
-			if (start > end) {
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %zu "
-					"(swapped range?): %s", field, vendor,
-					(str - value) - 1, value);
-				goto reset;
-			}
-
-			ranges = http_range_add(ranges,
-				start, end, field, vendor, &ignored);
-			count++;
-
-			if (ignored) {
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %zu "
-					"(ignored range #%d): %s",
-					field, vendor, (str - value) - 1, count, value);
-			}
-
-			goto reset;
-		}
-
-		if (skipping)				/* Waiting for a ',' */
-			continue;
-
-		if (c == '-') {
-			if (minus_seen) {
-				if (GNET_PROPERTY(http_debug)) g_warning(
-					"weird %s header from <%s>, offset %zu (spurious '-'): %s",
-					field, vendor, (str - value) - 1, value);
-				goto resync;
-			}
-			minus_seen = TRUE;
-			if (!has_start) {		/* Negative range */
-				if (!request) {
-					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %zu "
-							"(negative range in reply): %s",
-							field, vendor, (str - value) - 1, value);
-					goto resync;
-				}
-				start = HTTP_OFFSET_MAX;	/* Indicates negative range */
-				has_start = TRUE;
-			}
-			continue;
-		}
-
-		if (is_ascii_digit(c)) {
-			int error;
-			const char *dend;
-			uint64 val = parse_uint64(str - 1, &dend, 10, &error);
-
-			/* Started with digit! */
-			g_assert(dend != (str - 1));
-
-			str = dend;		/* Skip number */
-
-			if (has_end) {
-				if (GNET_PROPERTY(http_debug))
-					g_warning("weird %s header from <%s>, offset %zu "
-						"(spurious boundary %s): %s",
-						field, vendor, (str - value) - 1,
-						uint64_to_string(val), value);
-				goto resync;
-			}
-
-			if (val >= size) {
-				/* ``last-byte-pos'' may extend beyond the actual
-				 * filesize. It's more a response limit than an exact
-				 * range end specifier.
-				 */
-				val = size - 1;
-			}
-
-			if (has_start) {
-				if (!minus_seen) {
-					if (GNET_PROPERTY(http_debug))
-						g_warning("weird %s header from <%s>, offset %zu "
-							"(no '-' before boundary %s): %s",
-							field, vendor, (str - value) - 1,
-							uint64_to_string(val), value);
-					goto resync;
-				}
-				if (start == HTTP_OFFSET_MAX) {			/* Negative range */
-					start = (val > size) ? 0 : size - val;	/* Last bytes */
-					end = size - 1;
-				} else {
-					end = val;
-				}
-				has_end = TRUE;
-			} else {
-				start = val;
-				has_start = TRUE;
-			}
-			continue;
-		}
-
-		if (GNET_PROPERTY(http_debug))
-			g_warning("weird %s header from <%s>, offset %d "
-			"(unexpected char '%c'): %s",
-			field, vendor, (int) (str - value) - 1, c, value);
-
-		/* FALL THROUGH */
-
-	resync:
-		skipping = TRUE;
-	reset:
-		start = 0;
-		has_start = FALSE;
-		has_end = FALSE;
-		minus_seen = FALSE;
-		end = size - 1;
-	}
-
-	/*
-	 * Handle trailing range, if needed.
-	 */
-
-	if (minus_seen) {
-		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-			if (GNET_PROPERTY(http_debug))
-				g_warning("weird %s header from <%s>, offset %d "
-				"(incomplete trailing negative range): %s",
-				field, vendor, (int) (str - value) - 1, value);
-			goto final;
-		}
-
-		if (start > end) {
-			if (GNET_PROPERTY(http_debug))
-				g_warning("weird %s header from <%s>, offset %d "
-				"(swapped trailing range?): %s", field, vendor,
-				(int) (str - value) - 1, value);
-			goto final;
-		}
-
-		ranges = http_range_add(ranges, start, end, field, vendor, &ignored);
-		count++;
-
-		if (ignored)
-			if (GNET_PROPERTY(http_debug))
-				g_warning("weird %s header from <%s>, offset %d "
-				"(ignored final range #%d): %s",
-				field, vendor, (int) (str - value) - 1, count,
-				value);
-	}
-
-final:
-
-	if (GNET_PROPERTY(http_debug) > 4) {
-		GSList *l;
-
-		g_debug("Saw %d ranges in %s %s: %s",
-			count, request ? "request" : "reply", field, value);
-		if (ranges)
-			g_debug("...retained:");
-		for (l = ranges; l; l = g_slist_next(l)) {
-			http_range_t *r = (http_range_t *) l->data;
-			g_debug("...  %s-%s",
-				uint64_to_string(r->start), uint64_to_string2(r->end));
-		}
-	}
-
-	if (ranges == NULL && GNET_PROPERTY(http_debug))
-		g_warning("retained no ranges in %s header from <%s>: %s",
-			field, vendor, value);
-
-	return ranges;
-}
-
-/**
- * Free list of http_range_t objects.
- */
-void
-http_range_free(GSList *list)
-{
-	GSList *l;
-
-	for (l = list; l; l = g_slist_next(l))
-		wfree(l->data, sizeof(http_range_t));
-
-	g_slist_free(list);
-}
-
-/**
- * @returns total size of all the ranges.
- */
-filesize_t
-http_range_size(const GSList *list)
-{
-	const GSList *l;
-	filesize_t size = 0;
-
-	for (l = list; l; l = g_slist_next(l)) {
-		http_range_t *r = l->data;
-		size += r->end - r->start + 1;
-	}
-
-	return size;
-}
-
-/**
- * @returns a pointer to static data, containing the available ranges.
- */
-const char *
-http_range_to_string(const GSList *list)
-{
-	static char str[4096];
-	const GSList *sl = list;
-	size_t rw;
-
-	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
-		const http_range_t *r = (const http_range_t *) sl->data;
-		char start_buf[UINT64_DEC_BUFLEN], end_buf[UINT64_DEC_BUFLEN];
-
-		uint64_to_string_buf(r->start, start_buf, sizeof start_buf);
-		uint64_to_string_buf(r->end, end_buf, sizeof end_buf);
-		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%s-%s",
-				start_buf, end_buf);
-
-		if (g_slist_next(sl) != NULL)
-			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
-	}
-
-	return str;
-}
-
-/**
- * Checks whether range contains the contiguous [from, to] interval.
- */
-bool
-http_range_contains(GSList *ranges, filesize_t from, filesize_t to)
-{
-	GSList *l;
-
-	/*
-	 * The following relies on the fact that the `ranges' list is sorted
-	 * and that it contains disjoint intervals.
-	 */
-
-	for (l = ranges; l; l = g_slist_next(l)) {
-		http_range_t *r = (http_range_t *) l->data;
-
-		if (from > r->end)
-			continue;
-
-		if (from < r->start)
-			break;			/* `from' outside of any following interval */
-
-		/* `from' is within `r' */
-
-		if (to <= r->end)
-			return TRUE;
-
-		break;				/* No other interval can contain `from' */
-	}
-
-	return FALSE;
-}
-
-/**
- * @returns a new copy of the given HTTP range.
- */
-static http_range_t *
-http_range_clone(http_range_t *range)
-{
-	http_range_t *r;
-
-	WALLOC(r);
-	r->start = range->start;
-	r->end = range->end;
-
-	return r;
-}
-
-/**
- * @returns a new list based on the merged ranges in the other lists given.
- */
-GSList *
-http_range_merge(GSList *old_list, GSList *new_list)
-{
-	http_range_t *old_range, *new_range, *r;
-	GSList *new = new_list, *old = old_list;
-	GSList *result_list = NULL;
-	filesize_t highest = 0;
-
-	/*
-	 * Build a result list based on the data in the old and new
-	 * lists.
-	 */
-
-	while (old || new) {
-		if (old && new) {
-			old_range = old->data;
-			new_range = new->data;
-
-			/*
-			 * If ranges are identical just copy one.
-			 */
-
-			if (new_range->start == old_range->start
-				&& new_range->end == old_range->end) {
-				highest = old_range->end;
-				result_list = g_slist_prepend(result_list,
-								http_range_clone(old_range));
-				old = g_slist_next(old);
-				new = g_slist_next(new);
-				continue;
-			}
-
-			/*
-			 * Skip over any ranges now below the highest mark, they
-			 * are no longer relevant.
-			 */
-
-			if (old_range->end < highest) {
-				old = g_slist_next(old);
-				continue;
-			}
-			if (new_range->end < highest) {
-				new = g_slist_next(new);
-				continue;
-			}
-
-			/*
-			 * If we encounter a range ending at the same spot as the
-			 * latest entry but which starts earlier, correct the starting
-			 * point of the latest range.
-			 */
-
-			if (result_list != NULL) {
-				if (old_range->end == highest) {
-					http_range_t *latest = result_list->data;
-					g_assert(latest->end == highest);
-					if (latest->start > old_range->start)
-						latest->start = old_range->start;
-					old = g_slist_next(old);
-					continue;
-				}
-				if (new_range->end == highest) {
-					http_range_t *latest = result_list->data;
-					g_assert(latest->end == highest);
-					if (latest->start > new_range->start)
-						latest->start = new_range->start;
-					new = g_slist_next(new);
-					continue;
-				}
-			}
-
-			/*
-			 * First handle the non-overlapping case. Copy the first
-			 * non-overlapping range, and move to the next range in
-			 * that list.
-			 */
-
-			if (new_range->end < old_range->start) {
-				highest = new_range->end;
-				result_list = g_slist_prepend(result_list,
-									http_range_clone(new_range));
-				new = g_slist_next(new);
-				continue;
-			}
-			if (old_range->end < new_range->start) {
-				highest = old_range->end;
-				result_list = g_slist_prepend(result_list,
-									http_range_clone(old_range));
-
-				old = g_slist_next(old);
-				continue;
-			}
-
-			/*
-			 * Handle overlapping case. Define a new range based on
-			 * boundaries of both ranges, add it, and then move to
-			 * next on both lists. We don't need to worry about
-			 * non-overlapping case here because we handled that just
-			 * before.
-			 */
-
-			if (new_range->start > old_range->start) {
-				WALLOC(r);
-				r->start = old_range->start;
-				if (new_range->end > old_range->end)
-					r->end = new_range->end;
-				else
-					r->end = old_range->end;
-				highest = r->end;
-				result_list = g_slist_prepend(result_list, r);
-				old = g_slist_next(old);
-				new = g_slist_next(new);
-				continue;
-			}
-			if (new_range->start <= old_range->start) {
-				WALLOC(r);
-				r->start = new_range->start;
-				if (new_range->end > old_range->end)
-					r->end = new_range->end;
-				else
-					r->end = old_range->end;
-				highest = r->end;
-				result_list = g_slist_prepend(result_list, r);
-				old = g_slist_next(old);
-				new = g_slist_next(new);
-				continue;
-			}
-
-		} else {
-
-			/*
-			 * If there are no chunks left in one of the lists we just
-			 * copy the other ones unless they are below the highest mark.
-			 */
-
-			if (old) {
-				old_range = old->data;
-				if (old_range->end > highest)
-					result_list = g_slist_prepend(result_list,
-									http_range_clone(old_range));
-				old = g_slist_next(old);
-			}
-			if (new) {
-				new_range = new->data;
-				if (new_range->end > highest)
-					result_list = g_slist_prepend(result_list,
-								  	http_range_clone(new_range));
-				new = g_slist_next(new);
-			}
-		}
-	}
-
-	return g_slist_reverse(result_list);
-}
-
-
-
-/***
  *** Asynchronous HTTP error code management.
  ***/
 
@@ -1748,7 +1136,7 @@ http_async_strerror(uint errnum)
 {
 	if (errnum >= G_N_ELEMENTS(error_str)) {
 		static char buf[50];
-		gm_snprintf(buf, sizeof buf,
+		str_bprintf(buf, sizeof buf,
 			"Invalid HTTP async error code: %u", errnum);
 		return buf;
 	}
@@ -2216,7 +1604,7 @@ http_async_remote_host_port(const http_async_t *ha)
 
 	if (ha->host) {
 		if (s->port != HTTP_PORT)
-			gm_snprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
+			str_bprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
 		else
 			g_strlcpy(buf, ha->host, sizeof buf);
 	} else {
@@ -2250,7 +1638,7 @@ http_async_build_get_request(const http_async_t *ha,
 	http_async_check(ha);
 	g_assert(len <= INT_MAX);
 
-	rw = gm_snprintf(buf, len,
+	rw = str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
@@ -2286,7 +1674,7 @@ http_async_build_post_request(const http_async_t *ha,
 	http_async_check(ha);
 	g_assert(len <= INT_MAX);
 
-	rw = gm_snprintf(buf, len,
+	rw = str_bprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
@@ -2900,7 +2288,7 @@ http_async_rx_error(void *o, const char *reason, ...)
 		char buf[128];
 
 		va_start(args, reason);
-		gm_vsnprintf(buf, sizeof buf, reason, args);
+		str_vbprintf(buf, sizeof buf, reason, args);
 		va_end(args);
 		g_warning("HTTP RX error from %s for \"%s\": %s",
 			http_async_host(ha), ha->url, buf);
@@ -3135,11 +2523,11 @@ http_got_header(http_async_t *ha, header_t *header)
 
 	/*
 	 * Transport encoding: the dechunking layer is right above the
-	 * link level and removed chunk marks, providing a stream of bytes
+	 * link level and removes chunk marks, providing a stream of bytes
 	 * to upper level.
 	 */
 
-	buf = header_get(header, "Transport-Encoding");
+	buf = header_get(header, "Transfer-Encoding");
 	if (buf != NULL && 0 == strcmp(buf, "chunked")) {
 		struct rx_chunk_args args;
 
@@ -4110,8 +3498,8 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 	}
 }
 
-G_GNUC_COLD void
-http_test(void)
+static G_GNUC_COLD void
+http_async_test(void)
 {
 	void *ha;
 	char *url = "http://www.perl.com/index.html";
@@ -4127,11 +3515,18 @@ http_test(void)
 	}
 }
 #else	/* !HTTP_TESTING */
-void
-http_test(void)
+static G_GNUC_COLD void
+http_async_test(void)
 {
 	/* Nothing */
 }
 #endif	/* HTTP_TESTING */
+
+G_GNUC_COLD void
+http_test(void)
+{
+	http_async_test();
+	http_range_test();
+}
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -10,14 +10,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.96.7u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2012-11-09 16:26+0100\n"
+"POT-Creation-Date: 2013-05-08 11:12+0200\n"
 "PO-Revision-Date: 2009-12-05 16:18+0800\n"
 "Last-Translator: Aron Xu <happyaron.xu@gmail.com>\n"
 "Language-Team: Chinese (Simplified) <i18n-zh@googlegroups.com>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: \n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #, c-format
@@ -366,6 +366,9 @@ msgstr ""
 msgid ", outbound"
 msgstr ""
 
+msgid ", no-pipeline"
+msgstr ""
+
 msgid ", banning"
 msgstr "，禁止中"
 
@@ -503,6 +506,10 @@ msgstr "太大"
 #, fuzzy
 msgid "Way too large"
 msgstr "Way过大"
+
+#, fuzzy
+msgid "Too old"
+msgstr "工具"
 
 msgid "Unknown message type"
 msgstr "未知的消息类型"
@@ -954,9 +961,6 @@ msgstr ""
 msgid "File was modified"
 msgstr ""
 
-msgid "Library being rebuilt"
-msgstr ""
-
 msgid "Moved Permanently"
 msgstr ""
 
@@ -970,6 +974,9 @@ msgstr ""
 #, fuzzy
 msgid "SHA1 is being recomputed"
 msgstr "检测到SHA不匹配"
+
+msgid "Library being rebuilt"
+msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -3305,6 +3312,29 @@ msgstr ""
 msgid "Whether the program restarted after a clean shutdown."
 msgstr ""
 
+#, fuzzy
+msgid "Debug level for DHT key management."
+msgstr "用于下载的debug级别。"
+
+#, fuzzy
+msgid "Debug level for DHT value management."
+msgstr "用于下载的debug级别。"
+
+msgid "ID of the current process."
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for HTTP range parsing / handling."
+msgstr "pong缓存的debug级别。"
+
+msgid ""
+"Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
+"value of 0 requests permanent mappings."
+msgstr ""
+
+msgid "Whether the program is auto-restarting at the user's request."
+msgstr ""
+
 msgid "disable"
 msgstr "禁用"
 
@@ -3816,7 +3846,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Discard search results whith an alien IP address, not matching the one from "
+"Discard search results with an alien IP address, not matching the one from "
 "which the results come from."
 msgstr ""
 
@@ -3828,7 +3858,7 @@ msgstr ""
 msgid "Discard search results coming from servents with a banned GUID."
 msgstr ""
 
-msgid "Whether a summary line with GUESS search stats should be dispayed."
+msgid "Whether a summary line with GUESS search stats should be displayed."
 msgstr ""
 
 msgid ""
@@ -5551,6 +5581,24 @@ msgstr ""
 msgid "QUEUE discarded due to no suitable download"
 msgstr ""
 
+msgid "UDP read-ahead datagram running count"
+msgstr ""
+
+msgid "UDP read-ahead datagram running bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram \"old\" processed"
+msgstr ""
+
+msgid "UDP read-ahead datagram max count"
+msgstr ""
+
+msgid "UDP read-ahead datagram max bytes"
+msgstr ""
+
+msgid "UDP read-ahead datagram max delay"
+msgstr ""
+
 msgid "UDP push messages received for FW<->FW connections"
 msgstr ""
 
@@ -5568,6 +5616,10 @@ msgstr ""
 
 msgid "UDP messages with bogus source IP"
 msgstr ""
+
+#, fuzzy
+msgid "UDP truncated incoming messages"
+msgstr "DHT 消息格式错误"
 
 msgid "Alien UDP messages (non-Gnutella)"
 msgstr ""
@@ -8043,7 +8095,7 @@ msgstr "%u 个活动"
 msgid "Disabled stealing of outgoing HTTP bandwidth."
 msgstr "对出去的HTTP流量进行带宽限制。"
 
-msgid "Splitting ougoing HTTP bandwidth evenly."
+msgid "Splitting outgoing HTTP bandwidth evenly."
 msgstr ""
 
 msgid "Capping HTTP outgoing bandwidth."
@@ -8074,7 +8126,7 @@ msgid "Pipelining max chunk size"
 msgstr "最小体积："
 
 #, fuzzy
-msgid "Enable upload of patial files deemed rare"
+msgid "Enable upload of partial files deemed rare"
 msgstr "启用对部分下载文件的上传(_P)"
 
 msgid "Enable GUESS (additional querying)"
@@ -8182,6 +8234,9 @@ msgstr ""
 msgid "Display GUESS statistics"
 msgstr "显示状态栏。"
 
+msgid "Mapping lease time"
+msgstr ""
+
 msgid "Not in database"
 msgstr "不在数据库中"
 
@@ -8259,9 +8314,6 @@ msgstr ""
 #, fuzzy
 msgid "CPU overloaded"
 msgstr "已上传"
-
-msgid "Splitting outgoing HTTP bandwidth evenly."
-msgstr ""
 
 msgid "Connect to"
 msgstr "连接到"
@@ -8395,10 +8447,6 @@ msgstr "用于上传的debug级别。"
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
 
-#, fuzzy
-msgid "Global DHT ougoing traffic"
-msgstr "出站流量(_O)"
-
 msgid "attempts"
 msgstr "尝试 "
 
@@ -8408,10 +8456,6 @@ msgstr "最小体积："
 
 msgid "_Remove directory"
 msgstr "删除目录(_R)"
-
-#, fuzzy
-msgid "Enable upload of partial files deemed rare"
-msgstr "启用对部分下载文件的上传(_P)"
 
 #, fuzzy
 msgid "Minimum chunk _size"
@@ -9057,6 +9101,18 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#, fuzzy
+#~ msgid "Debug level for time management."
+#~ msgstr "用于下载的debug级别。"
+
+#, fuzzy
+#~ msgid "Enable upload of patial files deemed rare"
+#~ msgstr "启用对部分下载文件的上传(_P)"
+
+#, fuzzy
+#~ msgid "Global DHT ougoing traffic"
+#~ msgstr "出站流量(_O)"
 
 #, fuzzy
 #~ msgid "Linux archives"

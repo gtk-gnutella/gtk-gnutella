@@ -113,16 +113,12 @@ size_t dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg);
 GSList * dbmap_all_keys(const dbmap_t *dm);
 void dbmap_free_all_keys(const dbmap_t *dm, GSList *keys);
 
-/**
- * Other helper routines.
- */
-void dbmap_unlink_sdbm(const char *base);
-
 struct dbg_config;
 
 bool dbmap_store(dbmap_t *dm, const char *base, bool inplace);
 bool dbmap_copy(dbmap_t *from, dbmap_t *to);
 bool dbmap_shrink(dbmap_t *dm);
+bool dbmap_rebuild(dbmap_t *dm);
 bool dbmap_clear(dbmap_t *dm);
 ssize_t dbmap_sync(dbmap_t *dm);
 int dbmap_set_cachesize(dbmap_t *dm, long pages);

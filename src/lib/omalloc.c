@@ -149,13 +149,14 @@ static struct {
 	size_t memory_rw;		/**< Total amount of rw memory allocated */
 	size_t chunks_rw;		/**< Total amount of rw chunks still present */
 	size_t align_rw;		/**< Space wasted in rw chunks for alignment */
+	size_t wasted_rw;		/**< Space wasted at tail of rw chunks */
 	size_t pages_ro;		/**< Total amount of ro pages allocated */
 	size_t objects_ro;		/**< Total amount of ro objects allocated */
 	size_t memory_ro;		/**< Total amount of ro memory allocated */
 	size_t chunks_ro;		/**< Total amount of ro chunks still present */
 	size_t align_ro;		/**< Space wasted in ro chunks for alignment */
+	size_t wasted_ro;		/**< Space wasted at tail of ro chunks */
 	size_t zeroed;			/**< Zeroed objects at allocation time */
-	size_t wasted;			/**< Wasted memory at the tail of chunks */
 } ostats;
 
 /**
@@ -532,17 +533,22 @@ omalloc_chunk_allocate_from(struct ochunk *ck,
 		omalloc_chunk_unlink(ck, mode);
 		used = ptr_diff(ptr_add_offset(ck, OMALLOC_HEADER_SIZE), first);
 
-		if (OMALLOC_RW == mode)
+		if (OMALLOC_RW == mode) {
 			ostats.chunks_rw--;
-		else
+		} else {
 			ostats.chunks_ro--;
+		}
 
 		if (omalloc_debug > 2) {
 			s_debug("OMALLOC dissolving chunk header on %zu-byte allocation",
 				size);
 			if (csize != size) {
 				s_debug("OMALLOC %zu trailing bytes lost", csize - size);
-				ostats.wasted += csize - size;
+				if (OMALLOC_RW == mode) {
+					ostats.wasted_rw += csize - size;
+				} else {
+					ostats.wasted_ro += csize - size;
+				}
 			}
 		}
 	}
@@ -589,10 +595,12 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * to funnel all the core allocation decisions to avoid extra allocations.
 	 *
 	 * This is the sole entry point for all omalloc()-based operations since
-	 * there is no reallocation nor freeing.
+	 * there is no reallocation nor freeing.  We use hidden spinlocks because
+	 * we do not hold the lock outside of this file so there is little to
+	 * gain into tracking them.
 	 */
 
-	spinlock(&omalloc_slk);
+	spinlock_hidden(&omalloc_slk);
 
 	if (OMALLOC_RW == mode) {
 		ostats.objects_rw++;
@@ -612,7 +620,14 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 
 	/*
 	 * Request new "core" memory.
+	 *
+	 * We need to relinquish the spinlock because the VMM layer can recurse
+	 * to omalloc() through lock recording in the thread-private structures.
+	 * It's OK since we're not in a critical section at this stage and do not
+	 * need to hold the lock.
 	 */
+
+	spinunlock_hidden(&omalloc_slk);
 
 	p = vmm_core_alloc(size);
 	allocated = round_pagesize(size);
@@ -628,10 +643,18 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 			1 == count ? "" : "s");
 	}
 
-	if (OMALLOC_RW == mode)
+	/*
+	 * Now that we need to possibly manipulate omalloc() internal chunk list,
+	 * re-grab the lock.
+	 */
+
+	spinlock_hidden(&omalloc_slk);
+
+	if (OMALLOC_RW == mode) {
 		ostats.pages_rw += allocated / omalloc_pagesize;
-	else
+	} else {
 		ostats.pages_ro += allocated / omalloc_pagesize;
+	}
 
 	/*
 	 * If we have enough memory at the tail to create a new chunk, do so.
@@ -646,10 +669,14 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		ck = ptr_add_offset(end, -OMALLOC_HEADER_SIZE);
 		ck->first = ptr_add_offset(p, size);
 		omalloc_chunk_link(ck, mode);
-		if (OMALLOC_RW == mode)
+
+		if (OMALLOC_RW == mode) {
 			ostats.chunks_rw++;
-		else
+			ostats.memory_rw += size;
+		} else {
 			ostats.chunks_ro++;
+			ostats.memory_ro += size;
+		}
 
 		if (omalloc_debug > 2) {
 			size_t count = OMALLOC_RW == mode ?
@@ -659,16 +686,33 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 				count, OMALLOC_RW == mode ? "read-write" : "read-only",
 				1 == count ? "" : "s");
 		}
-	} else if (allocated != size) {
-		if (omalloc_debug > 2) {
-			s_debug("OMALLOC %zu trailing bytes lost on %zu-byte allocation",
-				allocated - size, size);
+	} else {
+		/*
+		 * There is not enough room at the tail of the allocated memory
+		 * to create a chunk.
+		 */
+
+		if (OMALLOC_RW == mode) {
+			ostats.memory_rw += allocated;
+		} else {
+			ostats.memory_ro += allocated;
 		}
-		ostats.wasted += allocated - size;
+
+		if (allocated != size) {
+			if (omalloc_debug > 2) {
+				s_debug("OMALLOC %zu trailing bytes lost on "
+					"%zu-byte allocation", allocated - size, size);
+			}
+			if (OMALLOC_RW == mode) {
+				ostats.wasted_rw += allocated - size;
+			} else {
+				ostats.wasted_ro += allocated - size;
+			}
+		}
 	}
 
 done:
-	spinunlock(&omalloc_slk);
+	spinunlock_hidden(&omalloc_slk);
 
 	if (init != NULL)
 		memcpy(p, init, size);
@@ -868,7 +912,7 @@ omalloc_close(void)
 G_GNUC_COLD void
 omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
-	size_t pages, objects, memory, chunks, align;
+	size_t pages, objects, memory, chunks, align, wasted;
 
 #define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
 	(options & DUMP_OPT_PRETTY) ?					\
@@ -885,24 +929,27 @@ omalloc_dump_stats_log(logagent_t *la, unsigned options)
 	CONSOLIDATE(memory);
 	CONSOLIDATE(chunks);
 	CONSOLIDATE(align);
+	CONSOLIDATE(wasted);
 
 	DUMP(pages_rw);
 	DUMP(objects_rw);
 	DUMP(memory_rw);
 	DUMP(chunks_rw);
 	DUMP(align_rw);
+	DUMP(wasted_rw);
 	DUMP(pages_ro);
 	DUMP(objects_ro);
 	DUMP(memory_ro);
 	DUMP(chunks_ro);
 	DUMP(align_ro);
+	DUMP(wasted_ro);
 	DUMP_VAR(pages);
 	DUMP_VAR(objects);
 	DUMP_VAR(memory);
 	DUMP_VAR(chunks);
 	DUMP_VAR(align);
+	DUMP_VAR(wasted);
 	DUMP(zeroed);
-	DUMP(wasted);
 
 #undef DUMP
 #undef DUMP_VAR

@@ -72,6 +72,7 @@
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/random.h"
+#include "lib/str.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
@@ -115,8 +116,9 @@ struct dmesh_entry {
 #define MAX_LIBLIFETIME	3600		/**< 1 hour for shared/seeded files */
 #define MAX_ENTRIES		256			/**< Max amount of entries kept per SHA1 */
 
-#define MIN_BAD_REPORT	2			/**< Don't ban before that many X-Nalt */
+#define MIN_BAD_REPORT	3			/**< Don't ban before that many X-Nalt */
 #define DMESH_CALLOUT	5000		/**< Callout heartbeat every 5 seconds */
+#define DMESH_BAN_VETO	300			/**< 5 minutes, to keep banned entry */
 #define EXPIRE_DELAY	600			/**< 10 minutes after last update */
 
 #define FW_MAX_PROXIES	4			/**< At most 4 push-proxies */
@@ -325,7 +327,8 @@ dmesh_ban_expire(cqueue_t *unused_cq, void *obj)
  * If stamp is 0, the current timestamp is used.
  */
 static void
-dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
+dmesh_ban_add(const struct sha1 *sha1,
+	const dmesh_urlinfo_t *info, time_t stamp)
 {
 	time_t now = tm_time();
 	struct dmesh_banned *dmb;
@@ -402,9 +405,12 @@ dmesh_ban_add(const struct sha1 *sha1, dmesh_urlinfo_t *info, time_t stamp)
 }
 
 /**
- * Forcefully remove an entry from the banned mesh.
+ * Conditionally remove an entry from the banned mesh provided it has not
+ * been updated in the last DMESH_BAN_VETO seconds.
+ *
+ * @return TRUE if ban was lifted, FALSE otherwise.
  */
-static void
+static bool
 dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 {
 	dmesh_urlinfo_t info;
@@ -413,10 +419,13 @@ dmesh_ban_remove(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 	dmesh_fill_info(&info, sha1, addr, port, URN_INDEX, NULL);
 	dmb = hikset_lookup(ban_mesh, &info);
 
-	if (dmb) {
+	if (dmb != NULL && delta_time(tm_time(), dmb->created) > DMESH_BAN_VETO) {
 		cq_cancel(&dmb->cq_ev);
 		dmesh_ban_remove_entry(dmb);
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
 /**
@@ -914,8 +923,8 @@ dmesh_get(const struct sha1 *sha1)
  * If `idx' is URN_INDEX, then we can access this file only through an
  * /uri-res request, the URN being given as `name'.
  *
- * @return whether the entry was added in the mesh, or was discarded because
- * it was the oldest record and we have enough already.
+ * @return TRUE if the entry was added in the mesh, FALSE if it was discarded
+ * because it was the oldest record and we have enough already.
  */
 static bool
 dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
@@ -1285,7 +1294,8 @@ dmesh_remove_alternate(const struct sha1 *sha1, host_addr_t addr, uint16 port)
 /**
  * Record that addr:port was signalled negatively as an alternate location
  * for given sha1.  The reporter's address is also given so that we can wait
- * until we have sufficient evidence from at least 2 different parties.
+ * until we have sufficient evidence from at least MIN_BAD_REPORT different
+ * parties from different networks to mitigate local collusion.
  *
  * When there is sufficient evidence, the entry is evicted from the mesh
  * and placed into the banned mesh.
@@ -1297,6 +1307,7 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	struct dmesh *dm;
 	struct packed_host packed;
 	struct dmesh_entry *dme;
+	host_addr_t net;
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
@@ -1320,10 +1331,13 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 		dme->bad = hash_list_new(host_addr_hash_func, host_addr_eq_func);
 
 	/*
-	 * If this host already reported this addr:port as being bad, ignore.
+	 * If this host already reported this network as being bad, ignore.
+	 * We define "network" as CIDR/16 for IPv4 and CIDR/64 for IPv6.
 	 */
 
-	if (hash_list_contains(dme->bad, &reporter))
+	net = host_addr_mask_net(reporter, 16, 64);
+
+	if (hash_list_contains(dme->bad, &net))
 		return;
 
 	/*
@@ -1331,13 +1345,15 @@ dmesh_negative_alt(const struct sha1 *sha1, host_addr_t reporter,
 	 */
 
 	if (hash_list_length(dme->bad) + 1 < MIN_BAD_REPORT) {
-		host_addr_t *raddr;
+		hash_list_append(dme->bad, WCOPY(&net));
+	} else {
+		/* Add entry to the banned mesh if not a firewalled source */
 
-		WALLOC(raddr);
-		*raddr = reporter;
-		hash_list_append(dme->bad, raddr);
-	} else
+		if (!dme->fw_entry)
+			dmesh_ban_add(sha1, &dme->e.url, 0);
+
 		dm_remove_entry(dm, dme);
+	}
 }
 
 /**
@@ -1375,7 +1391,8 @@ retry:
 		}
 
 		if (good) {
-			dmesh_ban_remove(sha1, addr, port);
+			if (!dmesh_ban_remove(sha1, addr, port))
+				return;		/* Entry too recent to lift ban yet */
 			dmesh_add_alternate(sha1, addr, port);
 			retried = TRUE;
 			goto retry;
@@ -1518,11 +1535,11 @@ dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 		return (size_t) -1;
 
 	if (info->idx == URN_INDEX) {
-		rw += gm_snprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
+		rw += str_bprintf(&buf[rw], len - rw, "/uri-res/N2R?%s", info->name);
 		if (quoting != NULL)
 			*quoting = FALSE;			/* No "," in the generated URL */
 	} else {
-		rw += gm_snprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
+		rw += str_bprintf(&buf[rw], len - rw, "/get/%u/", info->idx);
 
 		/*
 		 * Write filename, URL-escaping it directly into the buffer.
@@ -1583,7 +1600,7 @@ dmesh_fwinfo_to_string_buf(const dmesh_fwinfo_t *info, char *buf, size_t len)
 	g_assert(len <= INT_MAX);
 	g_assert(info->guid != NULL);
 
-	rw = gm_snprintf(buf, len, "%s", guid_hex_str(info->guid));
+	rw = str_bprintf(buf, len, "%s", guid_hex_str(info->guid));
 	if (rw >= maxslen)
 		goto done;
 
@@ -1595,7 +1612,7 @@ dmesh_fwinfo_to_string_buf(const dmesh_fwinfo_t *info, char *buf, size_t len)
 	while (hash_list_iter_has_next(iter) && rw < maxslen) {
 		gnet_host_t *host = hash_list_iter_next(iter);
 
-		rw += gm_snprintf(&buf[rw], len - rw, ";%s",
+		rw += str_bprintf(&buf[rw], len - rw, ";%s",
 				host_addr_port_to_string(
 					gnet_host_get_addr(host), gnet_host_get_port(host)));
 	}
@@ -1885,15 +1902,15 @@ dmesh_fwalt_string(char *buf, size_t size,
 {
 	size_t rw;
 
-	rw = gm_snprintf(buf, size, "%s", guid_to_string(guid));
+	rw = str_bprintf(buf, size, "%s", guid_to_string(guid));
 
 #if 0
 	/* No FWT support yet */
-	rw += gm_snprintf(&buf[rw], size - rw, ";fwt/1");
+	rw += str_bprintf(&buf[rw], size - rw, ";fwt/1");
 #endif
 
 	if (host_is_valid(addr, port)) {
-		rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+		rw += str_bprintf(&buf[rw], size - rw, ";%s",
 			port_host_addr_to_string(port, addr));
 	}
 
@@ -1909,7 +1926,7 @@ dmesh_fwalt_string(char *buf, size_t size,
 			if (!hcache_addr_within_net(haddr, net))
 				continue;
 
-			rw += gm_snprintf(&buf[rw], size - rw, ";%s",
+			rw += str_bprintf(&buf[rw], size - rw, ";%s",
 				host_addr_port_to_string(haddr, gnet_host_get_port(host)));
 		}
 		sequence_iterator_release(&iter);
@@ -2503,22 +2520,47 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 
 static void
 dmesh_collect_compact_locations_cback(
-	const struct sha1 *sha1, host_addr_t addr, uint16 port,
-	void *unused_udata)
+	const sha1_t *sha1, host_addr_t addr, uint16 port, void *udata)
 {
-	(void) unused_udata;
-	(void) dmesh_add_alternate(sha1, addr, port);
+	const gnet_host_t *origin = udata;
+
+	dmesh_add_alternate(sha1, addr, port);
+
+	/*
+	 * If entering an alt-loc in the mesh for an URN located on the
+	 * origin, then we know it is a good one since it is being advertised
+	 * by the server itself.
+	 *		--RAM, 2012-12-03
+	 */
+
+	if (
+		origin != NULL &&
+		port == gnet_host_get_port(origin) &&
+		host_addr_equal(addr, gnet_host_get_addr(origin))
+	) {
+		dmesh_good_mark(sha1, addr, port, TRUE);
+
+		if (GNET_PROPERTY(dmesh_debug) > 3) {
+			g_debug("MESH %s: good self alt-loc from %s",
+				 sha1_base32(sha1), gnet_host_to_string(origin));
+		}
+	}
 }
 
 /**
  * Parse the value of the "X-Alt" header to extract alternate sources
  * for a given SHA1 key given in the new compact form.
+ *
+ * @param sha1		the SHA1 for which we're collecting alt-locs
+ * @param value		the value of the header field we're parsing
+ * @param origin	if not-NULL, the host supplying us with the alt-locs
  */
 void
-dmesh_collect_compact_locations(const struct sha1 *sha1, const char *value)
+dmesh_collect_compact_locations(const sha1_t *sha1, const char *value,
+	const gnet_host_t *origin)
 {
 	dmesh_parse_addr_port_list(sha1, value,
-		dmesh_collect_compact_locations_cback, NULL);
+		dmesh_collect_compact_locations_cback, deconstify_pointer(origin));
 }
 
 static void
@@ -2539,7 +2581,7 @@ dmesh_collect_negative_locations_cback(
  */
 void
 dmesh_collect_negative_locations(
-	const struct sha1 *sha1, const char *value, host_addr_t reporter)
+	const sha1_t *sha1, const char *value, host_addr_t reporter)
 {
 	dmesh_parse_addr_port_list(sha1, value,
 		dmesh_collect_negative_locations_cback, &reporter);
@@ -2548,9 +2590,14 @@ dmesh_collect_negative_locations(
 /**
  * Parse value of the "X-Gnutella-Alternate-Location" to extract alternate
  * sources for a given SHA1 key.
+ *
+ * @param sha1		the SHA1 for which we're collecting alt-locs
+ * @param value		the value of the header field we're parsing
+ * @param origin	if not-NULL, the host supplying us with the alt-locs
  */
 void
-dmesh_collect_locations(const struct sha1 *sha1, const char *value)
+dmesh_collect_locations(const sha1_t *sha1, const char *value,
+	const gnet_host_t *origin)
 {
 	const char *p = value;
 	uchar c;
@@ -2766,6 +2813,27 @@ dmesh_collect_locations(const struct sha1 *sha1, const char *value)
 
 		}
 		ok = dmesh_raw_add(sha1, &info, stamp, TRUE);
+
+		/*
+		 * If entering an alt-loc in the mesh for an URN located on the
+		 * origin, then we know it is a good one since it is being advertised
+		 * by the server itself.
+		 *		--RAM, 2012-12-03
+		 */
+
+		if (
+			URN_INDEX == info.idx &&
+			origin != NULL &&
+			info.port == gnet_host_get_port(origin) &&
+			host_addr_equal(info.addr, gnet_host_get_addr(origin))
+		) {
+			dmesh_good_mark(sha1, info.addr, info.port, TRUE);
+
+			if (GNET_PROPERTY(dmesh_debug) > 3) {
+				g_debug("MESH %s: good self alt-loc from %s",
+					 sha1_base32(sha1), gnet_host_to_string(origin));
+			}
+		}
 
 	skip_add:
 		if (GNET_PROPERTY(dmesh_debug) > 4)
@@ -3218,7 +3286,7 @@ dmesh_retrieve(void)
 			if (GNET_PROPERTY(dmesh_debug))
 				g_debug("%s(): parsing %s", G_STRFUNC, tmp);
 			if (is_strprefix(tmp, "http://")) {
-				dmesh_collect_locations(&sha1, tmp);
+				dmesh_collect_locations(&sha1, tmp, NULL);
 			} else {
 				dmesh_collect_fw_hosts(&sha1, tmp);
 			}

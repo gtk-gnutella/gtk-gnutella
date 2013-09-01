@@ -97,10 +97,6 @@
 #include "xmalloc.h"
 #include "xsort.h"
 
-#ifdef MALLOC_TIME
-#include "glib-missing.h"	/* For gm_snprintf() */
-#endif
-
 #include "override.h"		/* Must be the last header included */
 
 #define equiv(p,q)		(!(p) == !(q))
@@ -557,15 +553,15 @@ zprepare(zone_t *zone, char **blk)
 
 /**
  * Lock zone.
+ *
+ * Don't inline to get proper lock location with SPINLOCK_DEBUG
  */
-static inline void ALWAYS_INLINE
-zlock(zone_t *zone)
-{
-	if (zone->private)
-		spinlock_direct(&zone->lock);
-	else
-		spinlock(&zone->lock);
-}
+#define zlock(zone) G_STMT_START {		\
+	if (zone->private)					\
+		spinlock_direct(&zone->lock);	\
+	else								\
+		spinlock(&zone->lock);			\
+} G_STMT_END
 
 /**
  * Try to lock zone.
@@ -714,7 +710,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 #ifdef MALLOC_TIME
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
-		gm_snprintf(ago, sizeof ago, " [%s]",
+		str_bprintf(ago, sizeof ago, " [%s]",
 			short_time(delta_time(tm_time(), *t)));
 	}
 #else
@@ -1265,7 +1261,7 @@ zcreate(size_t size, unsigned hint, bool embedded)
 
 #ifndef REMAP_ZALLOC
 	if (zgc_always(zone)) {
-		spinlock(&zone->lock);
+		zlock(zone);
 		if (NULL == zone->zn_gc)
 			zgc_allocate(zone);
 		zunlock(zone);
@@ -1290,7 +1286,7 @@ zdestroy(zone_t *zone)
 	g_assert(zone != NULL);
 	g_assert(uint_is_positive(zone->zn_refcnt));
 
-	spinlock(&zone->lock);
+	zlock(zone);
 
 	if (!atomic_uint_dec_is_zero(&zone->zn_refcnt)) {
 		zunlock(zone);
@@ -3005,10 +3001,10 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 
 	hash_table_lock(zt);
 	zcount = hash_table_size(zt);
-	fill->array = xmalloc(zcount * sizeof fill->array[0]);
+	XMALLOC_ARRAY(fill->array, zcount);
 	while (hash_table_size(zt) != zcount) {
 		zcount = hash_table_size(zt);
-		fill->array = xrealloc(fill->array, zcount * sizeof fill->array[0]);
+		XREALLOC_ARRAY(fill->array, zcount);
 	}
 	fill->capacity = zcount;
 	fill->count = 0;

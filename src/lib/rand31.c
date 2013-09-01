@@ -59,6 +59,7 @@
 #include "mempcpy.h"
 #include "pow2.h"
 #include "random.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "tm.h"
 
@@ -67,6 +68,11 @@
 static bool rand31_seeded;			/**< Whether PRNG was seeded */
 static unsigned rand31_seed;		/**< The current seed */
 static unsigned rand31_first_seed;	/**< The initial seed */
+
+static spinlock_t rand31_lck = SPINLOCK_INIT;
+
+#define THREAD_LOCK		spinlock_hidden(&rand31_lck)
+#define THREAD_UNLOCK	spinunlock_hidden(&rand31_lck)
 
 /**
  * @return next random number following given seed.
@@ -128,37 +134,90 @@ rand31_random_seed(void)
 }
 
 /**
+ * Internal version of random seed initializer.
+ *
+ * Using a seed of 0 computes a new random seed.
+ */
+static void
+rand31_do_seed(unsigned seed)
+{
+	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
+	rand31_seeded = TRUE;
+}
+
+/**
+ * Seed the PRNG engine if not already done.
+ */
+static inline void ALWAYS_INLINE
+rand31_check_seeded(void)
+{
+	if G_UNLIKELY(!rand31_seeded)
+		rand31_do_seed(0);
+}
+
+/**
 * Linear congruential pseudo-random number generation (PRNG).
 *
 * This PRNG is not used directly but rather through rand31().
 *
 * @return a 31-bit random number.
 */
-static unsigned
+static inline unsigned
 rand31_prng(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
-
 	return rand31_seed = rand31_prng_next(rand31_seed);
 }
 
 /**
- * Minimal pseudo-random number generation, combining a simple PRNG with
- * past-collected entropy.
+ * Internal 31-bit random number generator.
+ *
+ * @return a 31-bit (positive) random number.
+ */
+static int
+rand31_gen(void)
+{
+	unsigned lo, hi, r1, r2;
+
+	/*
+	 * The low-order bits of the PRNG are less random than the upper ones,
+	 * and they have a smaller period.
+	 *
+	 * Discarding some of the bits produced by the random generator is bad
+	 * however because this can unexpectedly reduce the PRNG period or alter
+	 * the distribution of returned numbers.
+	 *
+	 * Therefore, we're mixing bits from two consecutive random numbers,
+	 * byte-swapping one of them so that the less random bits mix with more
+	 * random ones.  We also fold the first mixed number to 16 bits and the
+	 * second mixed one to 15 bits before concatening them to produce the
+	 * 31-bit value, thereby accounting for all the bits produced by the PRNG.
+	 */
+
+	r1 = rand31_prng();
+	r2 = rand31_prng();
+
+	lo = hashing_fold(r1 + (UINT32_SWAP(r2) & 0xffff), 16);
+	hi = hashing_fold(r2 - (UINT32_SWAP(r1) & 0x7fff), 15);
+
+	return lo | (hi << 16);
+}
+
+/**
+ * Minimal pseudo-random number generation.
  *
  * @return a 31-bit (positive) random number.
  */
 int
 rand31(void)
 {
-	/*
-	 * The low-order bits of the PRNG are less random than the upper ones,
-	 * and they have a smaller period.  Keep only the leading 16 bits of the
-	 * first value and the leading 15 bits of the second value.
-	 */
+	int rn;
 
-	return (rand31_prng() >> 15) | (rand31_prng() & 0x7fff0000);
+	THREAD_LOCK;
+	rand31_check_seeded();
+	rn = rand31_gen();
+	THREAD_UNLOCK;
+
+	return rn;
 }
 
 /**
@@ -169,8 +228,9 @@ rand31(void)
 void
 rand31_set_seed(unsigned seed)
 {
-	rand31_first_seed = rand31_seed = 0 == seed ? rand31_random_seed() : seed;
-	rand31_seeded = TRUE;
+	THREAD_LOCK;
+	rand31_do_seed(seed);
+	THREAD_UNLOCK;
 }
 
 /**
@@ -179,10 +239,14 @@ rand31_set_seed(unsigned seed)
 unsigned
 rand31_initial_seed(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
+	unsigned rs;
 
-	return rand31_first_seed;
+	THREAD_LOCK;
+	rand31_check_seeded();
+	rs = rand31_first_seed;
+	THREAD_UNLOCK;
+
+	return rs;
 }
 
 /**
@@ -191,10 +255,14 @@ rand31_initial_seed(void)
 unsigned
 rand31_current_seed(void)
 {
-	if G_UNLIKELY(!rand31_seeded)
-		rand31_set_seed(0);
+	unsigned rs;
 
-	return rand31_seed;
+	THREAD_LOCK;
+	rand31_check_seeded();
+	rs = rand31_seed;
+	THREAD_UNLOCK;
+
+	return rs;
 }
 
 /**
@@ -214,12 +282,20 @@ rand31_value(unsigned max)
 }
 
 /**
- * Build a 32-bit random number from a 31-bit number generator.
+ * Build a 32-bit random number using a 31-bit number generator.
  */
 uint32
 rand31_u32(void)
 {
-	return (rand31() << 5) + (rand31_prng() >> 15);
+	unsigned rn, rx;
+
+	THREAD_LOCK;
+	rand31_check_seeded();
+	rx = rand31_prng();
+	rn = UINT32_SWAP(rx) + rand31_gen();
+	THREAD_UNLOCK;
+
+	return rn;
 }
 
 /**

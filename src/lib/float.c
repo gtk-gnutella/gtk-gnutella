@@ -58,6 +58,7 @@
 
 #include "common.h"
 #include "float.h"
+#include "mutex.h"
 #include "unsigned.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -118,6 +119,10 @@ static struct float_context {
 static bignum_t five[MAX_FIVE];
 static int recursion_level = -1;
 static bool float_inited;
+static mutex_t float_lock = MUTEX_INIT;
+
+#define THREAD_FUNNEL		mutex_lock_hidden(&float_lock)
+#define THREAD_UNFUNNEL		mutex_unlock_hidden(&float_lock)
 
 #define R			float_context[recursion_level].c_R
 #define S			float_context[recursion_level].c_S
@@ -504,6 +509,11 @@ float_init(void)
 	bignum_t *b;
 	uint64 *xp, *zp, k;
 
+	/*
+	 * No need to grab mutex: if called externally, we're in tests and so
+	 * we know we are single-threaded.
+	 */
+
 	five[0].l = l = 0;
 	five[0].d[0] = 5;
 	for (n = MAX_FIVE-1, b = &five[0]; n > 0; n--) {
@@ -624,6 +634,14 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 	int use_mp;
 	char *bp = dest;
 	size_t remain = len;
+
+	/*
+	 * This code is not thread-safe because it uses global variables.
+	 * Hence we need to funnel execution to limit access to one thread
+	 * only, not counting recursion which we handle.
+	 */
+
+	THREAD_FUNNEL;
 
 	if G_UNLIKELY(!float_inited)
 		float_init();
@@ -799,6 +817,8 @@ done:
 	recursion_level--;
 	g_assert(recursion_level >= -1);
 
+	THREAD_UNFUNNEL;
+
 	return ptr_diff(bp, dest);
 }
 
@@ -835,6 +855,14 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 	g_assert(exponent != NULL);
 	g_assert(size_is_positive(len));
 	g_assert(prec >= 0);
+
+	/*
+	 * This code is not thread-safe because it uses global variables.
+	 * Hence we need to funnel execution to limit access to one thread
+	 * only, not counting recursion which we handle.
+	 */
+
+	THREAD_FUNNEL;
 
 	if G_UNLIKELY(!float_inited)
 		float_init();
@@ -993,6 +1021,8 @@ done:
 
 	recursion_level--;
 	g_assert(recursion_level >= -1);
+
+	THREAD_UNFUNNEL;
 
 	return flen;
 }

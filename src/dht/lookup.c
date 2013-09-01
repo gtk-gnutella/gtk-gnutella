@@ -57,17 +57,19 @@
 #include "lib/cq.h"
 #include "lib/glib-missing.h"
 #include "lib/hashlist.h"
-#include "lib/htable.h"
 #include "lib/host_addr.h"
+#include "lib/htable.h"
 #include "lib/map.h"
 #include "lib/nid.h"
 #include "lib/patricia.h"
 #include "lib/pmsg.h"
 #include "lib/random.h"
 #include "lib/sectoken.h"
+#include "lib/str.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
 #include "lib/vendors.h"
+#include "lib/vsort.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -354,7 +356,7 @@ lookup_type_to_string(const nlookup_t *nl)
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	case LOOKUP_TOKEN:		what = "token"; break;
 	case LOOKUP_VALUE:
-		gm_snprintf(buf, sizeof buf, "\"%s\" value",
+		str_bprintf(buf, sizeof buf, "\"%s\" value",
 			dht_value_type_to_string(nl->u.fv.vtype));
 		return buf;
 	}
@@ -485,7 +487,7 @@ lookup_create_results(nlookup_t *nl)
 	rs->magic = LOOKUP_RESULT_MAGIC;
 	rs->refcnt = 1;
 	len = patricia_count(nl->path);
-	rs->path = walloc(len * sizeof(lookup_rc_t));
+	WALLOC_ARRAY(rs->path, len);
 	rs->path_len = len;
 
 	iter = patricia_metric_iterator_lazy(nl->path, nl->kuid, TRUE);
@@ -571,7 +573,7 @@ lookup_free_results(lookup_rs_t *rs)
 		rc->token = NULL;
 	}
 
-	wfree(rs->path, rs->path_len * sizeof(lookup_rc_t));
+	WFREE_ARRAY(rs->path, rs->path_len);
 	WFREE(rs);
 }
 
@@ -613,7 +615,7 @@ lookup_create_value_results(float load, dht_value_t **vvec, int vcnt)
 
 	WALLOC(rs);
 	rs->load = load;
-	rs->records = walloc(vcnt * sizeof(lookup_val_rc_t));
+	WALLOC_ARRAY(rs->records, vcnt);
 	rs->count = (size_t) vcnt;
 
 	for (i = 0; i < vcnt; i++) {
@@ -646,7 +648,7 @@ lookup_free_value_results(const lookup_val_rs_t *results)
 			wfree(deconstify_pointer(rc->data), rc->length);
 	}
 
-	wfree(rs->records, rs->count * sizeof(lookup_val_rc_t));
+	WFREE_ARRAY(rs->records, rs->count);
 	WFREE(rs);
 }
 
@@ -993,7 +995,7 @@ cleanup:
 	 */
 
 	if (!local)
-		wfree(vvec, vsize * sizeof *vvec);
+		WFREE_ARRAY(vvec, vsize);
 }
 
 /**
@@ -1033,7 +1035,7 @@ seckeys_free(struct seckeys *sk)
 	}
 
 	knode_free(sk->kn);
-	wfree(sk->skeys, sk->scnt * sizeof sk->skeys[0]);
+	WFREE_ARRAY(sk->skeys, sk->scnt);
 	WFREE(sk);
 }
 
@@ -1078,11 +1080,8 @@ lookup_value_create(nlookup_t *nl, float load,
 	g_assert(vsize == 0 || vvec);
 	g_assert(expected > 0);
 
-	if (expected > vsize) {
-		vvec = vvec ?
-			wrealloc(vvec, vsize * sizeof *vvec, expected * sizeof *vvec) :
-			walloc(expected * sizeof *vvec);
-	}
+	if (expected > vsize)
+		WREALLOC_ARRAY(vvec, vsize, expected);
 
 	WALLOC0(fv);
 	nl->u.fv.fv = fv;
@@ -1215,8 +1214,7 @@ lookup_value_append(nlookup_t *nl, float load,
 	g_assert(remain <= fv->vsize - fv->vcnt);
 
 	if (needed > fv->vsize) {
-		fv->vvec = wrealloc(fv->vvec,
-			fv->vsize * sizeof fv->vvec[0], needed * sizeof fv->vvec[0]);
+		WREALLOC_ARRAY(fv->vvec, fv->vsize, needed);
 		fv->vsize = needed;
 	}
 
@@ -1288,7 +1286,7 @@ lookup_value_append(nlookup_t *nl, float load,
 	}
 
 	if (vvec)
-		wfree(vvec, vsize * sizeof vvec[0]);
+		WFREE_ARRAY(vvec, vsize);
 
 	/*
 	 * If there are secondary keys to grab, record the vector and the
@@ -1338,7 +1336,7 @@ lookup_value_free(nlookup_t *nl, bool free_vvec)
 		for (i = 0; i < fv->vcnt; i++)
 			dht_value_free(fv->vvec[i], TRUE);
 
-		wfree(fv->vvec, fv->vsize * sizeof fv->vvec[0]);
+		WFREE_ARRAY(fv->vvec, fv->vsize);
 	}
 
 	GM_SLIST_FOREACH(fv->seckeys, sl) {
@@ -1544,14 +1542,14 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (expanded)
-		vvec = walloc(expanded * sizeof vvec[0]);
+		WALLOC_ARRAY(vvec, expanded);
 
 	for (i = 0; i < expanded; i++) {
 		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+				str_bprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
 					i + 1, expanded);
 			}
 			reason = msg;
@@ -1606,14 +1604,14 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	}
 
 	if (seckeys)
-		skeys = walloc(seckeys * sizeof skeys[0]);
+		WALLOC_ARRAY(skeys, seckeys);
 
 	for (i = 0; i < seckeys; i++) {
 		kuid_t tmp;
 
 		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+				str_bprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
 					i + 1, seckeys);
 			}
 			reason = msg;
@@ -1752,13 +1750,13 @@ ignore:
 	if (vvec) {
 		for (i = 0; i < vcnt; i++)
 			dht_value_free(vvec[i], TRUE);
-		wfree(vvec, expanded * sizeof *vvec);
+		WFREE_ARRAY(vvec, expanded);
 	}
 
 	if (skeys) {
 		for (i = 0; i < scnt; i++)
 			kuid_atom_free(skeys[i]);
-		wfree(skeys, seckeys * sizeof *skeys);
+		WFREE_ARRAY(skeys, seckeys);
 	}
 
 	bstr_free(&bs);
@@ -2446,7 +2444,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 			items[i].contrib /= prefix[i];
 	}
 
-	qsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
+	vsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %zu-bit prefix",
@@ -2810,7 +2808,7 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 		UNSIGNED(nl->max_common_bits) < kuid_common_prefix(kn->id, nl->kuid)
 	) {
 		if (len != 0) {
-			gm_snprintf(buf, len, "suspiciously close to target %s",
+			str_bprintf(buf, len, "suspiciously close to target %s",
 				kuid_to_hex_string(nl->kuid));
 		}
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_PROXIMITY;
@@ -3049,7 +3047,7 @@ lookup_handle_reply(
 
 		if (NULL == cn) {
 			if (GNET_PROPERTY(dht_lookup_debug))
-				gm_snprintf(msg, sizeof msg, "cannot parse contact #%d", n);
+				str_bprintf(msg, sizeof msg, "cannot parse contact #%d", n);
 			reason = msg;
 			goto bad;
 		}
@@ -3068,7 +3066,7 @@ lookup_handle_reply(
 
 		if (kuid_eq(get_our_kuid(), cn->id)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"%s bears our KUID", knode_to_string(cn));
 			}
 			goto skip;
@@ -3081,7 +3079,7 @@ lookup_handle_reply(
 
 		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg, "unsafe %s: %s",
+				str_bprintf(msg, sizeof msg, "unsafe %s: %s",
 					knode_to_string(cn), unsafe);
 			}
 			goto skip;
@@ -3108,7 +3106,7 @@ lookup_handle_reply(
 
 		if (!knode_is_usable(cn)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				gm_snprintf(msg, sizeof msg,
+				str_bprintf(msg, sizeof msg,
 					"%s has unusable address", knode_to_string(cn));
 			}
 			goto skip;
@@ -3168,7 +3166,7 @@ lookup_handle_reply(
 					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						gm_snprintf(msg, sizeof msg,
+						str_bprintf(msg, sizeof msg,
 							"%s already queried, RPC pending, alternate IP %s",
 							knode_to_string(xn),
 							host_addr_port_to_string(cn->addr, cn->port));
@@ -3177,14 +3175,14 @@ lookup_handle_reply(
 					lookup_fix_contact(nl, xn, cn);
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						gm_snprintf(msg, sizeof msg,
+						str_bprintf(msg, sizeof msg,
 							"for now, fixed as %s and re-added to shortlist",
 							host_addr_port_to_string(cn->addr, cn->port));
 					}
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s was already queried", knode_to_string(xn));
 				}
 			}
@@ -3227,14 +3225,14 @@ lookup_handle_reply(
 				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s still in our shorlist, recorded alternate IP %s",
 						knode_to_string(cn),
 						host_addr_port_to_string(cn->addr, cn->port));
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					gm_snprintf(msg, sizeof msg,
+					str_bprintf(msg, sizeof msg,
 						"%s is still in our shortlist", knode_to_string(cn));
 				}
 			}
@@ -4191,7 +4189,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	 * Start with nodes from the routing table.
 	 */
 
-	kvec = walloc(KDA_K * sizeof(knode_t *));
+	WALLOC_ARRAY(kvec, KDA_K);
 	kcnt = dht_fill_closest(nl->kuid, kvec, KDA_K, NULL, FALSE);
 
 	for (i = 0; i < kcnt; i++) {
@@ -4223,7 +4221,7 @@ lookup_load_shortlist(nlookup_t *nl)
 	nl->closest = patricia_closest(nl->shortlist, nl->kuid);
 	nl->initial_contactable = contactable;
 
-	wfree(kvec, KDA_K * sizeof(knode_t *));
+	WFREE_ARRAY(kvec, KDA_K);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
 		log_patricia_dump(nl, nl->shortlist, "initial shortlist", 3);
@@ -4670,7 +4668,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 
 	if (expanded != 1) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			gm_snprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
+			str_bprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
 		reason = msg;
 		goto bad;
 	}

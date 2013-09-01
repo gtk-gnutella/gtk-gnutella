@@ -75,6 +75,7 @@
 #include "misc.h"
 #include "path.h"
 #include "random.h"
+#include "str.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -683,43 +684,43 @@ malformed:
 
 	switch (warning) {
 	case UTF8_WARN_EMPTY:
-		gm_snprintf(msg, sizeof(msg), "empty string");
+		str_bprintf(msg, sizeof(msg), "empty string");
 		break;
 	case UTF8_WARN_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
+		str_bprintf(msg, sizeof(msg),
 			"unexpected continuation byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_NON_CONTINUATION:
-		gm_snprintf(msg, sizeof(msg),
+		str_bprintf(msg, sizeof(msg),
 			"unexpected non-continuation byte 0x%02lx "
 			"after start byte 0x%02lx", (ulong) s[1], (ulong) v);
 		break;
 	case UTF8_WARN_FE_FF:
-		gm_snprintf(msg, sizeof(msg), "byte 0x%02lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			len, len == 1 ? "" : "s", expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
-		gm_snprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
+		str_bprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
 			(ulong) ov, (ulong) *s);
 		break;
 	case UTF8_WARN_SURROGATE:
-		gm_snprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
 		break;
 	case UTF8_WARN_BOM:
-		gm_snprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (ulong) v);
 		break;
 	case UTF8_WARN_LONG:
-		gm_snprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
 			expectlen, expectlen == 1 ? "" : "s", uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
-		gm_snprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
+		str_bprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
 		break;
 	default:
-		gm_snprintf(msg, sizeof(msg), "unknown reason");
+		str_bprintf(msg, sizeof(msg), "unknown reason");
 		break;
 	}
 
@@ -2097,7 +2098,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 
 	if ((iconv_t) -1 == cd) {
 		if (common_dbg > 1)
-			g_carp("complete_iconv: bad cd");
+			g_critical("%s(): bad cd", G_STRFUNC);
 		errno = EBADF;
 		goto error;
 	}
@@ -2105,7 +2106,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 	/* reset state */
 	if ((size_t) -1 == iconv(cd, NULL, NULL, NULL, NULL)) {
 		if (common_dbg > 1)
-			g_warning("complete_iconv: iconv() reset failed");
+			g_warning("%s(): iconv() reset failed", G_STRFUNC);
 		goto error;
 	}
 
@@ -2139,7 +2140,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 			int e = errno;
 
 			if (common_dbg > 1)
-				g_warning("complete_iconv: iconv() failed: %m");
+				g_warning("%s(): iconv() failed: %m", G_STRFUNC);
 
 			g_assert(E2BIG != e);
 			g_assert(EINVAL == e || EILSEQ == e);
@@ -3322,7 +3323,7 @@ utf8_to_utf16_string(const char *in)
 	uint16 *out;
 
 	n = 1 + utf8_to_utf16(in, NULL, 0);
-	out = halloc(n * sizeof *out);
+	HALLOC_ARRAY(out, n);
 	utf8_to_utf16(in, out, n);
 	return out;
 }
@@ -3440,7 +3441,7 @@ utf16_to_utf8_string(const uint16 *in)
 	char *out;
 
 	n = 1 + utf16_to_utf8(in, NULL, 0);
-	out = halloc(n * sizeof *out);
+	HALLOC_ARRAY(out, n);
 	utf16_to_utf8(in, out, n);
 	return out;
 }
@@ -5599,13 +5600,13 @@ utf32_canonize(const uint32 *src0)
 
 	/* Convert to NFC */
 	size = utf32_strlen(src0) + 1;
-	src = hcopy(src0, size * sizeof *src);
+	src = HCOPY_ARRAY(src0, size);
 	(void) utf32_compose(src);
 
 	/* Apply simple and special folding */
 	n = utf32_case_fold(src, NULL, 0);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_case_fold(src, dst, size);
 	HFREE_NULL(src);
 	src = dst;
@@ -5613,7 +5614,7 @@ utf32_canonize(const uint32 *src0)
 	/* Convert to NFKD */
 	n = utf32_decompose(src, NULL, 0, TRUE);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_decompose(src, dst, size, TRUE);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5627,7 +5628,7 @@ utf32_canonize(const uint32 *src0)
 	 * operations did not destroy the NFKD */
 	n = utf32_decompose(src, NULL, 0, FALSE);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_decompose(src, dst, size, FALSE);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5640,7 +5641,7 @@ utf32_canonize(const uint32 *src0)
 	/* Insert an ASCII space at block changes, this keeps NFC */
 	n = utf32_split_blocks(src, NULL, 0);
 	size = n + 1;
-	dst = halloc(size * sizeof *dst);
+	HALLOC_ARRAY(dst, size);
 	n = utf32_split_blocks(src, dst, size);
 	g_assert(size - 1 == n);
 	HFREE_NULL(src);
@@ -5669,7 +5670,7 @@ utf8_canonize(const char *src)
 		} else {
 			size_t size = n + 1;
 
-			s = halloc(size * sizeof *s);
+			HALLOC_ARRAY(s, size);
 			n = utf8_to_utf32(src, s, size);
 			g_assert(size - 1 == n);
 		}

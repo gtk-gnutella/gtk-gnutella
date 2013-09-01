@@ -62,7 +62,7 @@ void file_info_set_discard(fileinfo_t *fi, bool state);
 enum dl_chunk_status file_info_find_hole(
 	const struct download *d, filesize_t *from, filesize_t *to);
 bool file_info_find_available_hole(const struct download *d,
-	GSList *ranges, filesize_t *from, filesize_t *to);
+	http_rangeset_t *ranges, filesize_t *from, filesize_t *to);
 void file_info_merge_adjacent(fileinfo_t *fi);
 void file_info_clear_download(struct download *d, bool lifecount);
 enum dl_chunk_status file_info_chunk_status(
@@ -79,6 +79,7 @@ void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
 		const struct tth *leaves, size_t num_leaves, bool mark_dirty);
 void file_info_size_known(struct download *d, filesize_t size);
+void file_info_size_unknown(fileinfo_t *fi);
 void file_info_update(const struct download *d, filesize_t from, filesize_t to,
 	enum dl_chunk_status status);
 void file_info_new_chunk_owner(const struct download *d,
@@ -97,6 +98,8 @@ void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
 void file_info_remove_source(
     fileinfo_t *fi, struct download *dl, bool discard);
+void file_info_cloned_source(fileinfo_t *fi,
+	struct download *d, struct download *cd);
 void file_info_timer(void);
 void file_info_slow_timer(void);
 void file_info_unlink(fileinfo_t *fi);
@@ -126,6 +129,7 @@ void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const char *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
 bool file_info_rename(fileinfo_t *fi, const char *filename);
+void file_info_resize(fileinfo_t *fi, filesize_t size);
 
 typedef void (*file_info_foreach_cb)(gnet_fi_t fi_handle, void *udata);
 void file_info_foreach(file_info_foreach_cb callback, void *udata);

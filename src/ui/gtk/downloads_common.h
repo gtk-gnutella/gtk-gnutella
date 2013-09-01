@@ -110,6 +110,7 @@ void fi_gui_common_shutdown(void);
 const char *fi_gui_file_column_text(const struct fileinfo_data *, int column);
 const char *fi_gui_source_column_text(const struct download *, int column);
 
+void fi_gui_fi_status_changed(gnet_fi_t handle);
 void fi_gui_files_cursor_update(void);
 gboolean fi_gui_filter_active(void);
 
@@ -151,6 +152,7 @@ void fi_gui_clear_aliases(void);
 void fi_gui_clear_sources(void);
 void fi_gui_clear_details(void);
 
+void fi_gui_source_massive_update(bool starting);
 void fi_gui_source_show(struct download *);
 void fi_gui_source_update(struct download *);
 void fi_gui_source_hide(struct download *);

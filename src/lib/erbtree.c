@@ -38,11 +38,15 @@
  *
  * The most radical change is that the comparison routine compares items, not
  * embedded nodes, and lookups are done by passing pointers to items, not nodes
- * and return pointers to items.  This requires the offset of the embedded
- * node pointer to be given to the erbtree_init() routine.
+ * and lookups return pointers to items.  This requires the offset of the
+ * embedded node pointer to be given to the erbtree_init() routine.
  *
  * Additions were made to introduce generic iterators that handle all the
- * items through callbacks: erbtree_foreach() and erbtree_foreach_remove().
+ * items through callbacks: erbtree_foreach() and erbtree_foreach_remove(),
+ * efficient tree disposal erbtree_discard() and erbtree_discard_with_data()
+ * and extensions to have a comparison callback take one additional argument
+ * to suppply context (to allow implementation of red-black trees that can
+ * store arbitrary data not embedding the rbnode_t structure).
  *
  * Inspired by the README of libtree:
  *
@@ -50,7 +54,7 @@
  *
  * Here's a list of the major points:
  *
- * - Nodes of the tree aims to be embedded inside your own structure.
+ * - Nodes of the tree aim to be embedded inside your own structure.
  *   This removes the need to do some malloc/free during insertion/removal
  *   operations and saves some space since no allocation infrastructure
  *   (such as object descriptors or object alignment) is required.
@@ -112,13 +116,13 @@
  * with the ones inside the tree.
  *
  * The lookup routine takes a key as parameter, and returns a pointer to
- * the item, or NULL if the key does not exist.  It is possible to get
+ * the item, or NULL if the key does not exist.  It is then possible to get
  * the node directly, which is more convenient for traversing.
  *
  * 4. INSERTION
  *
  * Trees don't store duplicate keys, since rotations don't preserve the
- * binary search tree property in this case. If the user needs to do so,
+ * binary search tree property in that case. If the user needs to do so,
  * then he can keep a separate list of all records having the same key.
  *
  * This is the reason why the insertion functions do insert a key only if
@@ -152,7 +156,7 @@
  *
  * For that, you can retrieve the next or the previous of any inserted node.
  * You can also get the first (leftmost) and the last (rightmost) node of
- * a tree.
+ * a tree in O(1) because these values are maintained..
  * 
  * @author Franck Bui-Huu <fbuihuu@gmail.com>
  * @date 2010
@@ -212,11 +216,12 @@ enum rbcolor {
 
 #define RB_COLOR_MASK	3UL		/* Last 2 bits of parent pointer hold color */
 
-static inline void
-erbtree_check(const erbtree_t * const t)
+#define ERBTREE_E(x)	((erbtree_ext_t *) (x))
+
+static inline bool
+erbtree_is_extended(const erbtree_t * const t)
 {
-	g_assert(t != NULL);
-	g_assert(ERBTREE_MAGIC == t->magic);
+	return t->magic & 0x1;
 }
 
 static inline enum rbcolor
@@ -389,7 +394,7 @@ do_lookup(const erbtree_t *tree, const void *key,
 	while (node != NULL) {
 		int res;
 		const void *nbase = const_ptr_add_offset(node, -tree->offset);
-		res = (*tree->cmp)(nbase, key);
+		res = (*tree->u.cmp)(nbase, key);
 		if (0 == res)
 			return node;
 		*pparent = node;
@@ -401,6 +406,38 @@ do_lookup(const erbtree_t *tree, const void *key,
 
 	return NULL;
 }
+
+/**
+ * Lookup key in the (extended) tree.
+ *
+ * 'pparent' and 'is_left' are only used for insertions. Normally GCC
+ * will notice this and get rid of them for lookups.
+ */
+static inline rbnode_t *
+do_lookup_ext(const erbtree_ext_t *tree, const void *key,
+	rbnode_t **pparent, bool *is_left)
+{
+	rbnode_t *node = tree->root;
+
+	*pparent = NULL;
+	*is_left = FALSE;
+
+	while (node != NULL) {
+		int res;
+		const void *nbase = const_ptr_add_offset(node, -tree->offset);
+		res = (*tree->u.dcmp)(nbase, key, tree->data);
+		if (0 == res)
+			return node;
+		*pparent = node;
+		if ((*is_left = res > 0))
+			node = node->left;
+		else
+			node = node->right;
+	}
+
+	return NULL;
+}
+
 
 /*
  * Rotate operations (they preserve the binary search tree property,
@@ -472,7 +509,11 @@ erbtree_contains(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	return NULL != do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		return NULL != do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		return NULL != do_lookup(tree, key, &parent, &is_left);
+	}
 }
 
 /**
@@ -493,7 +534,12 @@ erbtree_lookup(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	rn = do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		rn = do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		rn = do_lookup(tree, key, &parent, &is_left);
+	}
+
 	return NULL == rn ? NULL : ptr_add_offset(rn, -tree->offset);
 }
 
@@ -540,7 +586,11 @@ erbtree_getnode(const erbtree_t *tree, const void *key)
 	erbtree_check(tree);
 	g_assert(key != NULL);
 
-	return do_lookup(tree, key, &parent, &is_left);
+	if (erbtree_is_extended(tree)) {
+		return do_lookup_ext(ERBTREE_E(tree), key, &parent, &is_left);
+	} else {
+		return do_lookup(tree, key, &parent, &is_left);
+	}
 }
 
 static void
@@ -569,7 +619,12 @@ erbtree_insert(erbtree_t *tree, rbnode_t *node)
 	g_assert(node != NULL);
 
 	kbase = const_ptr_add_offset(node, -tree->offset);
-	key = do_lookup(tree, kbase, &parent, &is_left);
+
+	if (erbtree_is_extended(tree)) {
+		key = do_lookup_ext(ERBTREE_E(tree), kbase, &parent, &is_left);
+	} else {
+		key = do_lookup(tree, kbase, &parent, &is_left);
+	}
 
 	if (key != NULL)
 		return ptr_add_offset(key, -tree->offset);
@@ -812,7 +867,12 @@ erbtree_cmp(erbtree_t *tree, rbnode_t *a, rbnode_t *b)
 	const void *p = const_ptr_add_offset(a, -tree->offset);
 	const void *q = const_ptr_add_offset(b, -tree->offset);
 
-	return (*tree->cmp)(p, q);
+	if (erbtree_is_extended(tree)) {
+		erbtree_ext_t *etree = ERBTREE_E(tree);
+		return (*etree->u.dcmp)(p, q, etree->data);
+	} else {
+		return (*tree->u.cmp)(p, q);
+	}
 }
 
 static inline void
@@ -892,7 +952,7 @@ size_t
 erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 {
 	rbnode_t *rn, *next;
-	size_t removed = 0;
+	size_t removed = 0, visited = 0;
 
 	erbtree_check(tree);
 
@@ -911,6 +971,7 @@ erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 		 */
 
 		node = *rn;					/* Struct copy */
+		visited++;
 
 		if ((*cbr)(key, data)) {
 			/* Tweak tree to remove all references to freed address ``rn'' */
@@ -920,7 +981,114 @@ erbtree_foreach_remove(erbtree_t *tree, data_rm_fn_t cbr, void *data)
 		}
 	}
 
+	/*
+	 * Due to rebalancing of tree during removals, it might be possible we do
+	 * not visit all the items due to a traversal bug, so only do a soft assert
+	 * to get a loud trace when that happens.  This will not detect duplicate
+	 * node visits negating unvisited nodes, but we're not asserting correctness
+	 * here, just trying to spot obvious misbehaviour.
+	 */
+
+	g_soft_assert_log(tree->count + removed == visited,
+		"%s(): count=%zu, visited=%zu (removed=%zu)",
+		G_STRFUNC, tree->count, visited, removed);
+
 	return removed;
+}
+
+/**
+ * Recursively free items in the tree via application of given free routine.
+ */
+static void
+erbtree_discard_recursive(erbtree_t *tree, rbnode_t *node, free_fn_t fcb)
+{
+	void *item;
+
+	if (node->left != NULL)
+		erbtree_discard_recursive(tree, node->left, fcb);
+	if (node->right != NULL)
+		erbtree_discard_recursive(tree, node->right, fcb);
+
+	item = ptr_add_offset(node, -tree->offset);
+	(*fcb)(item);
+}
+
+/**
+ * Recursively free items in the tree via application of given free routine
+ * which takes an additional context argument.
+ */
+static void
+erbtree_discard_recursive_data(erbtree_t *tree, rbnode_t *node,
+	free_data_fn_t fcb, void *data)
+{
+	void *item;
+
+	if (node->left != NULL)
+		erbtree_discard_recursive_data(tree, node->left, fcb, data);
+	if (node->right != NULL)
+		erbtree_discard_recursive_data(tree, node->right, fcb, data);
+
+	item = ptr_add_offset(node, -tree->offset);
+	(*fcb)(item, data);
+}
+
+/**
+ * Reset tree to the empty state.
+ */
+static inline void
+erbtree_reset(erbtree_t *tree)
+{
+	tree->root = NULL;
+	tree->first = NULL;
+	tree->last = NULL;
+	tree->count = 0;
+}
+
+/**
+ * Free all items in the tree with supplied callback routine.
+ *
+ * This is more efficient than running erbtree_foreach_remove() on the
+ * tree because there is no need to rebalance the tree after each item
+ * removal.
+ *
+ * @param tree		the tree where we want to free all the items
+ * @param fcb		free routine invoked on each item
+ *
+ * Upon return, the tree is completely empty.
+ */
+void
+erbtree_discard(erbtree_t *tree, free_fn_t fcb)
+{
+	erbtree_check(tree);
+
+	if (tree->root != NULL)
+		erbtree_discard_recursive(tree, tree->root, fcb);
+
+	erbtree_reset(tree);
+}
+
+/**
+ * Free all items in the tree with supplied callback routine.
+ *
+ * This is more efficient than running erbtree_foreach_remove() on the
+ * tree because there is no need to rebalance the tree after each item
+ * removal.
+ *
+ * @param tree		the tree where we want to free all the items
+ * @param fcb		free routine invoked on each item
+ * @param data		allocation context passed to the free routine
+ *
+ * Upon return, the tree is completely empty.
+ */
+void
+erbtree_discard_with_data(erbtree_t *tree, free_data_fn_t fcb, void *data)
+{
+	erbtree_check(tree);
+
+	if (tree->root != NULL)
+		erbtree_discard_recursive_data(tree, tree->root, fcb, data);
+
+	erbtree_reset(tree);
 }
 
 /**
@@ -952,12 +1120,34 @@ erbtree_init(erbtree_t *tree, cmp_fn_t cmp, size_t offset)
 	g_assert(size_is_non_negative(offset));
 
 	tree->magic = ERBTREE_MAGIC;
-	tree->root = NULL;
-	tree->cmp = cmp;
-	tree->first = NULL;
-	tree->last = NULL;
-	tree->count = 0;
+	tree->u.cmp = cmp;
 	tree->offset = offset;
+	erbtree_reset(tree);
+}
+
+/**
+ * Initialize embedded tree with extended comparison function.
+ *
+ * This is used for red-black tree containers which can store any data
+ * and therefore need an additinal argument passed to the comparison routine.
+ *
+ * @param tree		the tree structure to initialize
+ * @param cmp		the item comparison routine
+ * @param data		the additional argument for the item comparison routine
+ * @param offset	the offset of the embedded node field within items
+ */
+void erbtree_init_data(erbtree_ext_t *tree,
+	cmp_data_fn_t cmp, void *data, size_t offset)
+{
+	g_assert(tree != NULL);
+	g_assert(cmp != NULL);
+	g_assert(size_is_non_negative(offset));
+
+	tree->magic = ERBTREE_EXT_MAGIC;
+	tree->u.dcmp = cmp;
+	tree->data = data;
+	tree->offset = offset;
+	erbtree_reset((erbtree_t *) tree);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

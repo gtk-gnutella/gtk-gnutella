@@ -51,11 +51,12 @@
 #include "if/dht/kademlia.h"
 
 #include "lib/endian.h"
-#include "lib/glib-missing.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/unsigned.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static const char *msg_name[256];
@@ -1074,7 +1075,7 @@ gmsg_infostr_split_to_buf(
 		return kmsg_infostr_to_buf(head, buf, buf_size);
 	}
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
+	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
 		guid_hex_str(gnutella_header_get_muid(head)),
@@ -1098,7 +1099,7 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 	 * we can't go and probe DHT messages.
 	 */
 
-	return gm_snprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
+	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
 		size, size == 1 ? "" : "s",
 		guid_hex_str(gnutella_header_get_muid(msg)),
@@ -1127,7 +1128,7 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 			uint16 size = data_len & GTA_SIZE_MASK;
 			uint8 ttl = gnutella_header_get_ttl(head);
 
-			rw = gm_snprintf(buf, buf_size,
+			rw = str_bprintf(buf, buf_size,
 				"%s %s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
@@ -1223,7 +1224,7 @@ gmsg_node_infostr(const gnutella_node_t *n)
 	w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
 
 	if (gnutella_header_get_hops(n->header) <= 1) {
-		gm_snprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
+		str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
 	}
 
 	return buf;
@@ -1247,7 +1248,7 @@ gmsg_log_split_dropped(
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1274,7 +1275,7 @@ gmsg_log_split_duplicate(
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1300,7 +1301,7 @@ gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1326,7 +1327,7 @@ gmsg_log_bad(const struct gnutella_node *n, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		gm_vsnprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';

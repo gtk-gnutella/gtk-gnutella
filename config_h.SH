@@ -31,7 +31,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * that running config_h.SH again will wipe out any changes you've made.
  * For a more permanent change edit $CONFIG_SH and rerun config_h.SH.
  *
- * \$Id: Config_h.U 1 2006-08-24 12:32:52Z rmanfredi $
+ * \$Id: Config_h.U 167 2013-05-08 17:58:00Z rmanfredi $
  */
 
 /*
@@ -172,6 +172,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BUILTIN_BSWAP32:
+ *	This symbol, if defined, indicates that __builtin_bswap32 routine is
+ *	available to byte-swap a 32-bit value (little <-> big endian).
+ */
+#$d_built_bswap32 HAS_BUILTIN_BSWAP32	/**/
+
 /* HAS_BUILTIN_CLZ:
  *	This symbol, if defined, indicates that the __builtin_clz routine is
  *	available to count leading zeroes in a word.
@@ -217,6 +223,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dev_poll HAS_DEV_POLL
 
+/* USE_DIFFTIME:
+ *	This symbol, if defined, indicates that the difftime routine should
+ *	really be used to compare times.
+ */
+#$use_difftime USE_DIFFTIME		/**/
+
 /* HAS_DIRENT_D_TYPE:
  *	This symbol, if defined, indicates that struct dirent has an
  *	integer member d_type.
@@ -255,11 +267,23 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_fast_assert FAST_ASSERTIONS	/**/
 
+/* HAS_FDATASYNC:
+ *	This symbol, if defined, indicates that the fdatasync routine is available
+ *	to synchronize a file's in-core data with the storage device.
+ */
+#$d_fdatasync HAS_FDATASYNC		/**/
+
 /* HAS_FORK:
  *	This symbol, if defined, indicates that the fork routine is
  *	available.
  */
 #$d_fork HAS_FORK		/**/
+
+/* HAS_FSYNC:
+ *	This symbol, if defined, indicates that the fsync routine is available
+ *	to synchronize a file's in-core state with the storage device.
+ */
+#$d_fsync HAS_FSYNC		/**/
 
 /* HAS_GETTIMEOFDAY:
  *	This symbol, if defined, indicates that the gettimeofday() system
@@ -305,6 +329,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available to get the login name.
  */
 #$d_getlogin HAS_GETLOGIN		/**/
+
+/* HAS_GETNAMEINFO:
+ *	This symbol is defined when getnameinfo() can be used.
+ */
+#$d_getnameinfo HAS_GETNAMEINFO
 
 /* HAS_GETPPID:
  *	This symbol, if defined, indicates that the getppid routine is

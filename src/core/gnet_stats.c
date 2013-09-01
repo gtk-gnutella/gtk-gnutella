@@ -66,6 +66,7 @@ gnet_stats_drop_reason_to_string(msg_drop_reason_t reason)
 		N_("Too small"),					 /**< MSG_DROP_TOO_SMALL */
 		N_("Too large"),					 /**< MSG_DROP_TOO_LARGE */
 		N_("Way too large"),				 /**< MSG_DROP_WAY_TOO_LARGE */
+		N_("Too old"),					 	 /**< MSG_DROP_TOO_OLD */
 		N_("Unknown message type"),			 /**< MSG_DROP_UNKNOWN_TYPE */
 		N_("Unexpected message"),			 /**< MSG_DROP_UNEXPECTED */
 		N_("Message sent with TTL = 0"),	 /**< MSG_DROP_TTL0 */
@@ -196,12 +197,19 @@ gnet_stats_general_to_string(gnr_stats_t type)
 		"giv_discarded",
 		"queue_callbacks",
 		"queue_discarded",
+		"udp_read_ahead_count_sum",
+		"udp_read_ahead_bytes_sum",
+		"udp_read_ahead_old_sum",
+		"udp_read_ahead_count_max",
+		"udp_read_ahead_bytes_max",
+		"udp_read_ahead_delay_max",
 		"udp_fw2fw_pushes",
 		"udp_fw2fw_pushes_to_self",
 		"udp_fw2fw_pushes_patched",
 		"udp_uhc_pings",
 		"udp_uhc_pongs",
 		"udp_bogus_source_ip",
+		"udp_rx_truncated",
 		"udp_alien_message",
 		"udp_unprocessed_message",
 		"udp_tx_compressed",
@@ -864,6 +872,19 @@ gnet_stats_dec_general(gnr_stats_t type)
 
 	g_assert(i < GNR_TYPE_COUNT);
     gnet_stats.general[i]--;
+}
+
+/**
+ * Update the general stats counter to keep the maximum value.
+ */
+void
+gnet_stats_max_general(gnr_stats_t type, uint64 value)
+{
+	size_t i = type;
+
+	g_assert(i < GNR_TYPE_COUNT);
+	if (value > gnet_stats.general[i])
+		gnet_stats.general[i] = value;
 }
 
 /**

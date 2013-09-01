@@ -63,11 +63,12 @@
 #include "common.h"
 
 #include "values.h"
-#include "kuid.h"
-#include "knode.h"
 #include "acct.h"
 #include "keys.h"
 #include "kmsg.h"
+#include "knode.h"
+#include "kuid.h"
+#include "routing.h"
 #include "stable.h"
 
 #include "if/gnet_property.h"
@@ -82,7 +83,6 @@
 #include "lib/cq.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
-#include "lib/glib-missing.h"
 #include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/hset.h"
@@ -90,6 +90,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/pmsg.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
 #include "lib/unsigned.h"
@@ -106,9 +107,18 @@
  * However, we must understand that due to caching, we may very well be
  * handed out values that fall well outside our k-ball.  So we must keep
  * the thresholds high enough to not limit useful STORE requests.
+ *
+ * Moreover, the threshold cannot be static: the size of the DHT can shrink
+ * or expand dynamically and the thresholds must follow this expansion.
+ * Therefore, we define the limits for a theoretical kball of 10.  If the
+ * kball expands to 12, it means the size of the network quadrupled and we can
+ * safely lower the limits by 4, down to a minimum.
  */
-#define MAX_VALUES_IP	128		/**< Max # of values allowed per IP address */
-#define MAX_VALUES_NET	1024	/**< Max # of values allowed per class C net */
+#define MAX_VALUES_IP	64		/**< Max # of values allowed per IP address */
+#define MIN_VALUES_IP	2		/**< Min # of values allowed per IP address */
+#define MAX_VALUES_NET	512		/**< Max # of values allowed per class C net */
+#define MIN_VALUES_NET	16		/**< Min # of values allowed per class C net */
+#define VALUES_KBALL	10		/**< Theoretical k-ball for max thresholds */
 
 #define MAX_VALUES		262144	/**< Max # of values we accept to manage */
 #define EXPIRE_PERIOD	30		/**< Asynchronous expire period: 30 secs */
@@ -221,6 +231,56 @@ values_count(void)
 }
 
 /**
+ * @return max amount of values we can accept per IP address.
+ */
+static size_t
+values_max_per_ip(void)
+{
+	int kball = dht_get_kball_furthest();
+	uint result = MAX_VALUES_IP;
+
+	/*
+	 * The larger the network, the less values we store per IP address.
+	 */
+
+	if (kball < VALUES_KBALL) {
+		int delta = VALUES_KBALL - kball;
+		result *= 1U << delta;
+	} else if (kball > VALUES_KBALL) {
+		int delta = kball - VALUES_KBALL;
+		result /= 1U << delta;
+	}
+
+	return MAX(result, MIN_VALUES_IP);
+}
+
+/**
+ * @return max amount of values we can accept per class C network.
+ */
+static size_t
+values_max_per_net(void)
+{
+	int kball = dht_get_kball_furthest();
+	uint result = MAX_VALUES_NET;
+
+	/*
+	 * The larger the network, the less values we store per class C network.
+	 */
+
+	if (kball < VALUES_KBALL) {
+		int delta = VALUES_KBALL - kball;
+		result *= 1U << delta;
+	} else if (kball > VALUES_KBALL) {
+		int delta = kball - VALUES_KBALL;
+		result /= 1U << delta;
+	}
+
+	return MAX(result, MIN_VALUES_NET);
+}
+
+#define VALUES_DATA_VERSION	1		/* Serialization version number */
+
+/**
  * Serialization routine for valuedata.
  */
 static void
@@ -228,6 +288,7 @@ serialize_valuedata(pmsg_t *mb, const void *data)
 {
 	const struct valuedata *vd = data;
 
+	pmsg_write_u8(mb, VALUES_DATA_VERSION);
 	pmsg_write(mb, vd->id.v, KUID_RAW_SIZE);
 	pmsg_write_time(mb, vd->publish);
 	pmsg_write_time(mb, vd->replicated);
@@ -261,9 +322,11 @@ static void
 deserialize_valuedata(bstr_t *bs, void *valptr, size_t len)
 {
 	struct valuedata *vd = valptr;
+	uint8 version;
 
 	g_assert(sizeof *vd == len);
 
+	bstr_read_u8(bs, &version);
 	bstr_read(bs, vd->id.v, KUID_RAW_SIZE);
 	bstr_read_time(bs, &vd->publish);
 	bstr_read_time(bs, &vd->replicated);
@@ -610,7 +673,7 @@ dht_value_to_string(const dht_value_t *v)
 	knode_to_string_buf(v->creator, knode, sizeof knode);
 	dht_value_type_to_string_buf(v->type, type, sizeof type);
 
-	gm_snprintf(buf, sizeof buf,
+	str_bprintf(buf, sizeof buf,
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
 		kuid, type, v->major, v->minor, v->length, 1 == v->length ? "" : "s",
 		knode);
@@ -1052,8 +1115,8 @@ values_unexpire(uint64 dbkey)
  * If it has, mark it for deletion.
  *
  * @return TRUE if value has expired and will be reclaimed the next time
- * values_reclaim_expired() is called.  If FALSE is returned, the
- * actual expiration time is returned through `expire', if not NULL.
+ * values_reclaim_expired() is called.
+ * The actual expiration time is returned through `expire', if not NULL.
  */
 bool
 values_has_expired(uint64 dbkey, time_t now, time_t *expire)
@@ -1061,16 +1124,17 @@ values_has_expired(uint64 dbkey, time_t now, time_t *expire)
 	struct valuedata *vd;
 
 	vd = get_valuedata(dbkey);
+
+	if (expire != NULL)
+		*expire = NULL == vd ? 0 : vd->expire;
+
 	if (NULL == vd)
 		return FALSE;		/* I/O error or corrupted database */
 
-	if (now >= vd->expire)  {
+	if (delta_time(now, vd->expire) >= 0)  {
 		values_expire(dbkey, vd);
 		return TRUE;
 	}
-
-	if (expire)
-		*expire = vd->expire;
 
 	return FALSE;
 }
@@ -1165,8 +1229,10 @@ validate_load(const dht_value_t *v)
 static uint16
 validate_quotas(const dht_value_t *v)
 {
-	int count;
+	uint count;
 	const knode_t *c = v->creator;
+	size_t max_ip = values_max_per_ip();
+	size_t max_net = values_max_per_net();
 
 	/* Specifications say: creator address must be IPv4 */
 	if (!host_addr_is_ipv4(c->addr))
@@ -1177,19 +1243,19 @@ validate_quotas(const dht_value_t *v)
 	if (GNET_PROPERTY(dht_storage_debug) > 2) {
 		uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
-		g_debug("DHT STORE has %d/%d value%s for class C network %s",
-			count, MAX_VALUES_NET, 1 == count ? "" : "s",
+		g_debug("DHT STORE has %u/%zu value%s for class C network %s",
+			count, max_net, 1 == count ? "" : "s",
 			host_addr_to_string(host_addr_get_ipv4(net)));
 	}
 
-	if (count >= MAX_VALUES_NET) {
+	if (count >= max_net) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
 			uint32 net = host_addr_ipv4(c->addr) & NET_CLASS_C_MASK;
 
 			g_debug("DHT STORE rejecting \"%s\": "
-				"has %d/%d value%s for class C network %s",
+				"has %u/%zu value%s for class C network %s",
 				dht_value_to_string(v),
-				count, MAX_VALUES_NET, 1 == count ? "" : "s",
+				count, max_net, 1 == count ? "" : "s",
 				host_addr_to_string(host_addr_get_ipv4(net)));
 		}
 		goto reject;
@@ -1198,16 +1264,15 @@ validate_quotas(const dht_value_t *v)
 	count = acct_net_get(values_per_ip, c->addr, NET_IPv4_MASK);
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
-		g_debug("DHT STORE has %d/%d value%s for IP %s",
-			count, MAX_VALUES_IP, 1 == count ? "" : "s",
+		g_debug("DHT STORE has %u/%zu value%s for IP %s",
+			count, max_ip, 1 == count ? "" : "s",
 			host_addr_to_string(c->addr));
 
-	if (count >= MAX_VALUES_IP) {
+	if (count >= max_ip) {
 		if (GNET_PROPERTY(dht_storage_debug)) {
-			g_debug("DHT STORE rejecting \"%s\": "
-				"has %d/%d value%s for IP %s",
+			g_debug("DHT STORE rejecting \"%s\": has %u/%zu value%s for IP %s",
 				dht_value_to_string(v),
-				count, MAX_VALUES_IP, 1 == count ? "" : "s",
+				count, max_ip, 1 == count ? "" : "s",
 				host_addr_to_string(c->addr));
 		}
 		goto reject;
@@ -1623,7 +1688,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 
 			values_unexpire(dbkey);
 			kuid_pair_was_republished(&vd->id, &vd->cid);
-			keys_update_value(&vd->id, vd->expire);
+			keys_update_value(&vd->id, &vd->cid, vd->expire);
 		}
 	}
 
@@ -1859,6 +1924,142 @@ values_get(uint64 dbkey, dht_value_type_t type)
 }
 
 /**
+ * DBMW iterator callback to reload the values from the sepcified DB keys.
+ *
+ * @return TRUE if entry must be deleted.
+ */
+static G_GNUC_COLD bool
+values_reload(void *key, void *value, size_t u_len, void *data)
+{
+	const uint64 *dbk = key;
+	const struct valuedata *vd = value;
+	const hset_t *dbkeys = data;
+	uint64 vk;
+	bool full, loaded;
+
+	(void) u_len;
+
+	/*
+	 * If the DB key is not in the set to keep, delete it and remove any
+	 * raw data associated with it (same DB key between the two databases).
+	 */
+
+	if (!hset_contains(dbkeys, dbk))
+		goto delete_value;
+
+	/*
+	 * If the raw data does not exist for this value, then we have a corrupted
+	 * value or raw SDBM file.  Delete the value.
+	 */
+
+	if (!dbmw_exists(db_rawdata, dbk)) {
+		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: lost data",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		return TRUE;
+	}
+
+	/*
+	 * Normally, keys must be unique in the database, but if the file was
+	 * corrupted then we may find ourselves with duplicates.  So be careful.
+	 */
+
+	vk = keys_has(&vd->id, &vd->cid, FALSE);
+
+	if (0 != vk) {
+		g_warning("DHT VALUE ignoring duplicate persisted value pk=%s, sk=%s",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		goto delete_value;
+	}
+
+	/*
+	 * Check that value has not expired.
+	 */
+
+	if (delta_time(tm_time(), vd->expire) >= 0)
+		goto delete_value;
+
+	/*
+	 * Ensure key is not full.  If the database is corrupted, then we may
+	 * attempt to load more values than the key can hold.
+	 */
+
+	keys_get_status(&vd->id, &full, &loaded);
+
+	if (full) {
+		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: full key!",
+			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid));
+		goto delete_value;
+	}
+
+	/*
+	 * New values we will store in the session must not supersede any existing
+	 * value from the older session.  Therefore, make sure the starting point
+	 * for newly allocated DB keys is one higher than the largest DB key we
+	 * are keeping in the database.
+	 */
+
+	if (*dbk >= valueid)
+		valueid = *dbk + 1;		/* Update next allocated DB key */
+
+	/*
+	 * Add the value to the key and update quota statistics as we would when
+	 * receiving a DHT publish request.
+	 */
+
+	keys_add_value(&vd->id, &vd->cid, *dbk, vd->expire);
+	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, +1);
+	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, +1);
+
+	return FALSE;		/* Keep value entry */
+
+delete_value:
+	dbmw_delete(db_rawdata, dbk);
+	return TRUE;
+}
+
+/**
+ * DBMW iterator callback to purge raw data not bearing the sepcified DB keys.
+ *
+ * @return TRUE if entry must be deleted.
+ */
+static G_GNUC_COLD bool
+values_raw_purge(void *key, void *u_value, size_t u_len, void *data)
+{
+	const uint64 *dbk = key;
+	const hset_t *dbkeys = data;		/* Contains the DB keys to keep */
+
+	(void) u_value;
+	(void) u_len;
+
+	if (!hset_contains(dbkeys, dbk))
+		return TRUE;
+
+	/*
+	 * Just because a DB key is present in the "raw database" and is among
+	 * the specified keys to reload does not mean that DB key was present
+	 * in the "value database".
+	 */
+
+	if (!dbmw_exists(db_valuedata, dbk)) {
+		g_warning("DHT VALUE missing value information for DB key %s",
+			uint64_to_string(*dbk));
+		return TRUE;
+	}
+
+	return FALSE;	/* Keep the entry: in the set, and value exists */
+}
+
+/**
+ * Periodic DB synchronization.
+ */
+void
+values_sync(void)
+{
+	dbstore_sync_flush(db_valuedata);
+	dbstore_sync_flush(db_rawdata);
+}
+
+/**
  * Initialize values management.
  */
 G_GNUC_COLD void
@@ -1880,17 +2081,12 @@ values_init(void)
 	g_assert(NULL == expired);
 	g_assert(NULL == values_expire_ev);
 
-	/* Legacy: remove after 0.97 -- RAM, 2011-05-03 */
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_valbase);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_rawbase);
-	dbstore_move(settings_config_dir(), settings_dht_db_dir(), db_expbase);
-
-	db_valuedata = dbstore_create(db_valwhat, settings_dht_db_dir(),
+	db_valuedata = dbstore_open(db_valwhat, settings_dht_db_dir(),
 		db_valbase, value_kv, value_packing, VALUES_DB_CACHE_SIZE,
 		uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	db_rawdata = dbstore_create(db_rawwhat, settings_dht_db_dir(), db_rawbase,
+	db_rawdata = dbstore_open(db_rawwhat, settings_dht_db_dir(), db_rawbase,
 		raw_kv, no_packing, RAW_DB_CACHE_SIZE, uint64_mem_hash, uint64_mem_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
@@ -1904,6 +2100,70 @@ values_init(void)
 
 	values_expire_ev = cq_periodic_main_add(EXPIRE_PERIOD * 1000,
 		values_periodic_expire, NULL);
+}
+
+/**
+ * Reload values whose DB keys are supplied in the set, and discard others.
+ *
+ * @param dbkeys		set of DB keys to reload
+ */
+G_GNUC_COLD void
+values_init_data(const hset_t *dbkeys)
+{
+	g_assert(dbkeys != NULL);
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
+			hset_count(dbkeys), 1 == hset_count(dbkeys) ? "" : "s",
+			dbmw_count(db_valuedata));
+	}
+
+	/*
+	 * When we are called, the keys have been reloaded from the database
+	 * and we now have to insert the values in the keys by looking only at
+	 * the specified DB keys.
+	 */
+
+	dbmw_foreach_remove(db_valuedata, values_reload,
+		deconstify_pointer(dbkeys));
+
+	/*
+	 * Purge any raw data that should not be there any longer.
+	 */
+
+	dbmw_foreach_remove(db_rawdata, values_raw_purge,
+		deconstify_pointer(dbkeys));
+
+	/*
+	 * Update statistics, perform sanity checks.
+	 */
+
+	values_managed = dbmw_count(db_rawdata);
+	gnet_stats_set_general(GNR_DHT_VALUES_HELD, values_managed);
+
+	g_soft_assert_log(dbmw_count(db_rawdata) == dbmw_count(db_valuedata),
+		"raw data count: %zu, value count: %zu",
+		dbmw_count(db_rawdata), dbmw_count(db_valuedata));
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
+			1 == dbmw_count(db_valuedata) ? "" : "s");
+	}
+
+	/*
+	 * Adjust database size.
+	 */
+
+	if (0 == values_managed)
+		valueid = 1;
+
+	dbstore_compact(db_rawdata);
+	dbstore_compact(db_valuedata);
+
+	if (GNET_PROPERTY(dht_values_debug)) {
+		g_debug("DHT VALUES first allocated value DB-key will be %s",
+			uint64_to_string(valueid));
+	}
 }
 
 static void
@@ -1922,8 +2182,8 @@ expired_free_k(const void *key, void *u_data)
 G_GNUC_COLD void
 values_close(void)
 {
-	dbstore_delete(db_valuedata);
-	dbstore_delete(db_rawdata);
+	dbstore_close(db_valuedata, settings_dht_db_dir(), db_valbase);
+	dbstore_close(db_rawdata, settings_dht_db_dir(), db_rawbase);
 	dbstore_delete(db_expired);
 	db_valuedata = db_rawdata = db_expired = NULL;
 	acct_net_free_null(&values_per_ip);
