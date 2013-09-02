@@ -163,8 +163,6 @@ static HINSTANCE libws2_32;
 static bool mingw_inited;
 static bool mingw_vmm_inited;
 
-bool mingw_c_runtime_is_up;		/* TRUE when we're out of the C startup */
-
 typedef struct processor_power_information {
   ULONG Number;
   ULONG MaxMhz;
@@ -4889,25 +4887,7 @@ G_GNUC_COLD void
 mingw_early_init(void)
 {
 	int console_err;
-	FILE *lf;
-
-	/*
-	 * HACK ALERT:
-	 *
-	 * It is necessary to indicate that we're now past the C runtime startup
-	 * initialization.  Indeed, due to a bug somewhere, the C startup code
-	 * is calling free() on pointers that have not been allocated by malloc()
-	 * and therefore programs do not startup correctly!
-	 *
-	 * Therefore, we mark that we're out of the C startup code now, and know
-	 * that for every free() we issue, there must be a malloc() before.
-	 *
-	 *		--RAM, 2013-08-31
-	 */
-
-	mingw_c_runtime_is_up = TRUE;		/* Allows xfree() to process pointers */
-
-	lf = getlog(TRUE);
+	FILE *lf = getlog(TRUE);
 
 	STARTUP_DEBUG("starting PID %d", getpid());
 	STARTUP_DEBUG("logging on fd=%d", fileno(lf));

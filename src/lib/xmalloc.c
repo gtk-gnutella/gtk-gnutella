@@ -4371,24 +4371,6 @@ xfree(void *p)
 	if G_UNLIKELY(xmalloc_no_wfree)
 		return;
 
-	/*
-	 * HACK ALERT:
-	 *
-	 * This is a workaround for a bug in the C startup code on MinGW.
-	 * We do not allow free() calls to proceed until we know we're out of
-	 * the C startup code.
-	 *
-	 * See mingw_early_init() for details.
-	 *
-	 * On UNIX platforms, mingw_c_runtime_is_up is a macro hardwired to 1,
-	 * so there is no runtime penalty as the check is optimized out.
-	 *
-	 *		--RAM, 2013-08-31
-	 */
-
-	if G_UNLIKELY(!mingw_c_runtime_is_up)
-		return;
-
 	xstats.freeings++;
 	xh = ptr_add_offset(p, -XHEADER_SIZE);
 	G_PREFETCH_R(&xh->length);
@@ -7724,6 +7706,29 @@ xrealloc(void *p, size_t size)
 {
 	return realloc(p, size);
 }
+
+/*
+ * For recent MinGW startup, we need to remap strdup() as well to make sure
+ * it calls our malloc().  If we let it resolve by Microsoft's C runtime, it
+ * will call their malloc(), and we don't want that anyway.
+ *
+ * This fixed the problem encountered with recent MinGW startup which performed
+ * strdup() calls, then called free() on the result.  Because our malloc() was
+ * not called by strdup(), free() was raising a panic, letting the application
+ * crash before entering main().
+ *
+ * In any case, on Windows it is better to remap strdup() as well when we supply
+ * our own malloc() otherwise memory allocation will be done by Microsoft's
+ * routines.
+ */
+#ifdef MINGW32
+char *
+strdup(const char *s)
+{
+	return xstrdup(s);
+}
+#endif	/* MINGW32 */
+
 #endif	/* XMALLOC_IS_MALLOC */
 
 /* vi: set ts=4 sw=4 cindent:  */
