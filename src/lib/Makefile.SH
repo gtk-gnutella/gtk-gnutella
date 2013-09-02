@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-155]
-: $X-Id: Jmake.tmpl 69 2011-01-09 13:57:07Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -40,9 +40,9 @@ AR = ar rc
 CC = $cc
 CTAGS = ctags
 _EXE = $_exe
-JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+JCFLAGS = \$(CFLAGS) $optimize $pthread $ccflags $large
 JCPPFLAGS = $cppflags
-JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
+JLDFLAGS = \$(LDFLAGS) $optimize $pthread $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
 LIBS = $libs
 MKDEP = $mkdep \$(DPFLAGS) \$(JCPPFLAGS) --

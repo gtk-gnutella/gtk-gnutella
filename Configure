@@ -397,6 +397,10 @@ d_rusage=''
 d_sbrk=''
 d_sched_yield=''
 d_select=''
+d_semctl=''
+d_semget=''
+d_semop=''
+d_semtimedop=''
 d_sendfile=''
 d_setproctitle=''
 d_setsid=''
@@ -505,12 +509,14 @@ i_stdlib=''
 i_string=''
 strings=''
 i_sysfile=''
+i_sysipc=''
 i_sysmman=''
 i_sysmount=''
 i_sysparam=''
 i_syspoll=''
 i_sysresrc=''
 i_sysselct=''
+i_syssem=''
 i_syssendfile=''
 i_syssock=''
 i_sysstat=''
@@ -7427,6 +7433,96 @@ cyn=select
 set d_select '-lWs2_32'
 eval $trylink
 
+: see if semctl exists
+$cat >try.c <<EOC
+#include <sys/sem.h>
+int main(void)
+{
+	static int ret, id, num;
+	static union semun {
+		int val;
+		struct semid_ds *buf;
+		unsigned short  *array;
+	} arg;
+	ret |= semctl(id, num, GETVAL, &arg);
+	ret |= semctl(id, num, SETVAL, &arg);
+	ret |= semctl(id, num, GETPID, &arg);
+	ret |= semctl(id, num, GETNCNT, &arg);
+	ret |= semctl(id, num, GETZCNT, &arg);
+	ret |= semctl(id, num, GETALL, &arg);
+	ret |= semctl(id, num, SETALL, &arg);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=semctl
+set d_semctl
+eval $trylink
+
+: see if semget exists
+$cat >try.c <<EOC
+#include <sys/ipc.h>
+#include <sys/sem.h>
+int main(void)
+{
+	static int ret, n, flags;
+	static key_t key;
+	key = IPC_PRIVATE;
+	flags |= IPC_CREAT;
+	flags |= IPC_EXCL;
+	ret |= semget(key, n, flags);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=semget
+set d_semget
+eval $trylink
+
+: see if semop exists
+$cat >try.c <<EOC
+#include <sys/ipc.h>
+#include <sys/sem.h>
+int main(void)
+{
+	static int ret, id;
+	static size_t n;
+	static struct sembuf buf;
+	
+	buf.sem_num |= 1;
+	buf.sem_op |= 1;
+	buf.sem_flg |= SEM_UNDO;
+	buf.sem_flg |= IPC_NOWAIT;
+	ret |= semop(id, &buf, n);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=semop
+set d_semop
+eval $trylink
+
+: see if semtimedop exists
+$cat >try.c <<EOC
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+int main(void)
+{
+	static int ret, id;
+	static size_t n;
+	static struct sembuf buf;
+
+	
+	buf.sem_num |= 1;
+	buf.sem_op |= 1;
+	buf.sem_flg |= SEM_UNDO;
+	buf.sem_flg |= IPC_NOWAIT;
+	ret |= semtimedop(id, &buf, n, (struct timespec *) 0);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=semtimedop
+set d_semtimedop
+eval $trylink
+
 : see if sendfile exists
 $cat >try.c <<EOC
 #include <sys/types.h>
@@ -10405,6 +10501,14 @@ case "$i_string" in
 *)	  strings=`./findhdr string.h`;;
 esac
 
+: see if this is a sys/ipc system
+set sys/ipc.h i_sysipc
+eval $inhdr
+
+: see if this is a sys/sem system
+set sys/sem.h i_syssem
+eval $inhdr
+
 : see if this is a sys/sendfile system
 set sys/sendfile.h i_syssendfile
 eval $inhdr
@@ -10944,6 +11048,10 @@ d_rusage='$d_rusage'
 d_sbrk='$d_sbrk'
 d_sched_yield='$d_sched_yield'
 d_select='$d_select'
+d_semctl='$d_semctl'
+d_semget='$d_semget'
+d_semop='$d_semop'
+d_semtimedop='$d_semtimedop'
 d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_setsid='$d_setsid'
@@ -11062,12 +11170,14 @@ i_string='$i_string'
 i_sys_ucontext='$i_sys_ucontext'
 i_sysfile='$i_sysfile'
 i_sysin='$i_sysin'
+i_sysipc='$i_sysipc'
 i_sysmman='$i_sysmman'
 i_sysmount='$i_sysmount'
 i_sysparam='$i_sysparam'
 i_syspoll='$i_syspoll'
 i_sysresrc='$i_sysresrc'
 i_sysselct='$i_sysselct'
+i_syssem='$i_syssem'
 i_syssendfile='$i_syssendfile'
 i_syssock='$i_syssock'
 i_sysstat='$i_sysstat'

@@ -581,6 +581,29 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_select HAS_SELECT	/**/
 
+/* HAS_SEMCTL:
+ *	This symbol, if defined, indicates that the semctl() routine is
+ *	available to perform semaphore control operations.
+ */
+#$d_semctl HAS_SEMCTL	/**/
+
+/* HAS_SEMGET:
+ *	This symbol, if defined, indicates that the semget() routine is
+ *	available to get a set of semaphores.
+ */
+#$d_semget HAS_SEMGET	/**/
+
+/* HAS_SEMOP:
+ *	This symbol, if defined, indicates that the semop() routine is
+ *	available to execute semaphore operations.
+ */
+/* HAS_SEMTIMEDOP:
+ *	This symbol, if defined, indicates that the semtimedop() routine is
+ *	available to execute semaphore operations with a timeout.
+ */
+#$d_semop HAS_SEMOP		/**/
+#$d_semtimedop HAS_SEMTIMEDOP		/**/
+
 /* HAS_SENDFILE:
  *	This symbol, if defined, indicates that the sendfile routine is
  *	available.
@@ -942,6 +965,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$i_sysfile I_SYS_FILE		/**/
 
+/* I_SYS_IPC:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/ipc.h> to get the defines for SysV IPCs.
+ */
+#$i_sysipc I_SYS_IPC		/**/
+
 /* I_SYS_MMAN:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/mman.h>.
@@ -979,6 +1008,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	include <sys/select.h> in order to get definition of struct timeval.
  */
 #$i_sysselct I_SYS_SELECT	/**/
+
+/* I_SYS_SEM:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sem.h> to use SysV semaphores.
+ */
+#$i_syssem I_SYS_SEM		/**/
 
 /* I_SYS_SENDFILE:
  *	This symbol, if defined, indicates to the C program that it should
