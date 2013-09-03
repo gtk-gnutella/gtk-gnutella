@@ -885,7 +885,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		if (extended > 1) {
 			if (2 == extended) {
 				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
-				s_minicrit("%s", data);
+				s_rawwarn("%s", data);
 				crash_set_error(data);
 				crash_abort();
 			} else if (3 == extended) {
@@ -895,7 +895,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 			}
 		} else {
 			sig_exception_format(data, sizeof data, signo, si, u, FALSE);
-			s_critical("%s", data);
+			s_rawwarn("%s", data);
 			crash_set_error(data);
 		}
 	}

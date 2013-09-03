@@ -141,7 +141,7 @@ spinlock_crash_mode(void)
 		count = thread_count();
 
 		if (count != 1) {
-			s_miniwarn("disabling locks, "
+			s_rawwarn("disabling locks, "
 				"now in thread-unsafe mode (%u threads)", count);
 		}
 	}

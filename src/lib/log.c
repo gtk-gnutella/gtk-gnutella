@@ -732,24 +732,31 @@ log_abort(void)
 }
 
 /**
- * Minimal logging service, in case of recursion or other drastic conditions.
+ * Raw logging service, in case of recursion or other drastic conditions.
  *
- * This routine never allocates memory and by-passes stdio.
+ * This routine never allocates memory, by-passes stdio and does NOT save
+ * errno (since accessing errno in multi-threaded programs needs to access
+ * some pthread-data that may not be accessible if we corrupted memory).
+ *
+ * It is suitable to be called (directly or through its wrappers) when we are
+ * about to terminate the process anyway, so preserving errno is not critical.
  *
  * @param level		glib-compatible log level flags
  * @param copy		whether to copy message to stdout as well
  * @param fmt		formatting string
  * @param args		variable argument list to format
+ *
+ * @attention
+ * This routine will clobber "errno" if an error occurs.
  */
 void
-s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
+s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(11);
 	char time_buf[18];
 	const char *prefix;
 	unsigned stid;
-	int saved_errno;
 
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
@@ -767,8 +774,6 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 
 	if (!copy && !log_printable(LOG_STDERR))
 		return;
-
-	saved_errno = errno;
 
 	prefix = log_prefix(level);
 	stid = thread_small_id();
@@ -801,7 +806,25 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	log_flush_err();
 	if (copy && log_stdout_is_distinct())
 		log_flush_out();
+}
 
+/**
+ * Minimal logging service, in case of recursion or other drastic conditions.
+ *
+ * This routine never allocates memory and by-passes stdio.
+ *
+ * @param level		glib-compatible log level flags
+ * @param copy		whether to copy message to stdout as well
+ * @param fmt		formatting string
+ * @param args		variable argument list to format
+ */
+void
+s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
+{
+	int saved_errno;
+
+	saved_errno = errno;
+	s_rawlogv(level, copy, fmt, args);
 	errno = saved_errno;
 }
 
@@ -1316,6 +1339,47 @@ s_minierror(const char *format, ...)
 		s_stacktrace(TRUE, 1);
 
 	abort();
+}
+
+/**
+ * Safe logging of critical message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ *
+ * @attention
+ * This routine can clobber "errno" if an error occurs.
+ */
+void
+s_rawcrit(const char *format, ...)
+{
+	bool in_signal_handler = signal_in_handler();
+	va_list args;
+
+	va_start(args, format);
+	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
+	va_end(args);
+
+	s_stacktrace(in_signal_handler, 1);
+}
+
+/**
+ * Safe logging of warning message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ *
+ * @attention
+ * This routine can clobber "errno" if an error occurs.
+ */
+void
+s_rawwarn(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_rawlogv(G_LOG_LEVEL_WARNING, FALSE, format, args);
+	va_end(args);
 }
 
 /**

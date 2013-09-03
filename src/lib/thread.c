@@ -1693,10 +1693,10 @@ thread_timeout(const struct thread_element *te)
 
 	spinunlock_raw(&thread_timeout_slk);
 
-	s_miniwarn("%s suspended for too long", thread_element_name(te));
+	s_rawwarn("%s suspended for too long", thread_element_name(te));
 
 	if (ostid != (unsigned) -1 && (multiple || ostid != te->stid)) {
-		s_miniwarn("%ssuspending thread was %s",
+		s_rawwarn("%ssuspending thread was %s",
 			multiple ? "first " : "", thread_element_name(threads[ostid]));
 	}
 
@@ -4148,7 +4148,7 @@ found:
 			return;				/* Stack not created yet */
 		}
 		tls->overflow = TRUE;
-		s_miniwarn("%s overflowing its lock stack at %s:%u",
+		s_rawwarn("%s overflowing its lock stack at %s:%u",
 			thread_element_name(te), file, line);
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
@@ -4264,7 +4264,7 @@ found:
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_miniwarn("%s overflowing its lock stack", thread_element_name(te));
+		s_rawwarn("%s overflowing its lock stack", thread_element_name(te));
 		thread_lock_dump(te);
 		s_error("too many locks grabbed simultaneously");
 	}
@@ -4462,7 +4462,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 
 		if (ol->lock == lock) {
 			tls->overflow = TRUE;	/* Avoid any overflow problems now */
-			s_miniwarn("%s releases %s %p at inner position %u/%zu",
+			s_rawwarn("%s releases %s %p at inner position %u/%zu",
 				thread_element_name(te), thread_lock_kind_to_string(kind),
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
@@ -4746,7 +4746,7 @@ thread_lock_deadlock(const volatile void *lock)
 	towner = thread_lock_owner(lock, &kind);
 
 	if (NULL == towner || towner == te) {
-		s_miniwarn("%s deadlocked whilst waiting on %s%s%p, owned by %s",
+		s_rawwarn("%s deadlocked whilst waiting on %s%s%p, owned by %s",
 			thread_element_name(te),
 			NULL == towner ? "" : thread_lock_kind_to_string(kind),
 			NULL == towner ? "" : " ",
@@ -4757,7 +4757,7 @@ thread_lock_deadlock(const volatile void *lock)
 
 		g_strlcpy(buf, name, sizeof buf);
 
-		s_miniwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
+		s_rawwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name(te),
 			thread_lock_kind_to_string(kind), lock, buf);
 	}
