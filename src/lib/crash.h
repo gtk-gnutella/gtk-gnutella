@@ -42,6 +42,7 @@
 #define _crash_h_
 
 #include "common.h"
+#include "atio.h"
 
 /**
  * The following macros are intended for use in signal handlers, or wherever it
@@ -106,6 +107,13 @@ G_STMT_START { \
 	IGNORE_RESULT(writev((fd), print_str_iov_, print_str_iov_cnt_))
 
 #define flush_err_str() flush_str(STDERR_FILENO)
+
+/*
+ * This one uses atio_writev() and should be used for "regular" message, where
+ * it's OK to use extra resources because we're likely not on an error path.
+ */
+#define flush_str_atomic(fd) \
+	IGNORE_RESULT(atio_writev((fd), print_str_iov_, print_str_iov_cnt_))
 
 #define rewind_str(i) \
 G_STMT_START { \

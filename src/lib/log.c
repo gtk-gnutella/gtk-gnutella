@@ -200,6 +200,14 @@ static struct logfile logfile[LOG_MAX_FILES];
 #define log_flush_err()	\
 	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
+#define log_flush_out_atomic()	\
+	flush_str_atomic(			\
+		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
+
+#define log_flush_err_atomic()	\
+	flush_str_atomic(			\
+		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
+
 
 /**
  * This is used to detect recurstions.
@@ -973,14 +981,14 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str(": ");		/* 8 */
 		print_str(str_2c(msg));	/* 9 */
 		print_str("\n");		/* 10 */
-		log_flush_err();
+		log_flush_err_atomic();
 
 		if G_UNLIKELY(
 			level &
 				(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR)
 		) {
 			if (log_stdout_is_distinct())
-				log_flush_out();
+				log_flush_out_atomic();
 			if (level & G_LOG_FLAG_FATAL)
 				crash_set_error(str_2c(msg));
 		}
