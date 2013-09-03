@@ -778,7 +778,7 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	print_str(prefix);			/* 2 */
 	if (stid != 0) {
 		char stid_buf[ULONG_DEC_BUFLEN];
-		const char *stid_str = print_number(stid_buf, sizeof stid_buf, stid);
+		const char *stid_str = PRINT_NUMBER(stid_buf, stid);
 		print_str("-");			/* 3 */
 		print_str(stid_str);	/* 4 */
 	}
@@ -961,8 +961,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str(prefix);		/* 2 */
 		if (stid != 0) {
 			char stid_buf[ULONG_DEC_BUFLEN];
-			const char *stid_str =
-				print_number(stid_buf, sizeof stid_buf, stid);
+			const char *stid_str = PRINT_NUMBER(stid_buf, stid);
 			print_str("-");			/* 3 */
 			print_str(stid_str);	/* 4 */
 		}

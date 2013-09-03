@@ -86,7 +86,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	}
 	print_str(data->file);
 	print_str(":");
-	print_str(print_number(line_buf, sizeof line_buf, data->line));
+	print_str(PRINT_NUMBER(line_buf, data->line));
 	if (data->expr) {
 		print_str(": \"");
 		print_str(data->expr);

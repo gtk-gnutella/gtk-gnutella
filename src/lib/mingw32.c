@@ -4925,7 +4925,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			stid = thread_safe_small_id();
 			if (stid < 0)
 				stid += 256;
-			s = print_number(buf, sizeof buf, stid);
+			s = PRINT_NUMBER(buf, stid);
 			locks = thread_id_lock_count(stid);
 
 			rewind_str(0);
@@ -4934,12 +4934,12 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			print_str(" at PC=0x");						/* 2 */
 			print_str(pointer_to_string(er->ExceptionAddress));	/* 3 */
 			if (locks != 0) {
-				const char *ls = print_number(lbuf, sizeof lbuf, locks);
+				const char *ls = PRINT_NUMBER(lbuf, locks);
 				print_str(", holds ");						/* 4 */
 				print_str(ls);								/* 5 */
 				print_str(1 == locks ? " lock" : "locks");	/* 6 */
 			}
-			ss = print_number(sbuf, sizeof sbuf, thread_stack_used());
+			ss = PRINT_NUMBER(sbuf, thread_stack_used());
 			print_str(", stack is ");					/* 7 */
 			print_str(ss);								/* 8 */
 			print_str(" bytes");						/* 9 */
@@ -5005,7 +5005,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			const char *s;
 			DECLARE_STR(3);
 
-			s = print_number(buf, sizeof buf, er->ExceptionCode);
+			s = PRINT_NUMBER(buf, er->ExceptionCode);
 			print_str("Got unknown exception #");		/* 0 */
 			print_str(s);								/* 1 */
 			print_str(" -- crashing.\n");				/* 2 */

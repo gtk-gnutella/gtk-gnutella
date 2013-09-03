@@ -263,7 +263,7 @@ signal_name(int signo)
 	 * need to construct the final string accordingly.
 	 */
 
-	start = deconstify_char(print_number(sig_buf, sizeof sig_buf, signo));
+	start = deconstify_char(PRINT_NUMBER(sig_buf, signo));
 	offset = start - sig_buf;
 
 	g_assert(size_is_positive(offset));

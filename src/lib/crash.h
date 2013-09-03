@@ -145,6 +145,13 @@ print_number(char *dst, size_t size, unsigned long value)
 }
 
 /**
+ * Convenience macro to make sure we're passing the 2nd parameter correctly
+ * and do not mistakenly use another buffer length, inconsistent with the
+ * actual buffer.
+ */
+#define PRINT_NUMBER(buf_, val_)	print_number(buf_, sizeof buf_, val_)
+
+/**
  * Print an "unsigned long" as hexadecimal NUL-terminated string into supplied
  * buffer and returns the address within that buffer where the printed string
  * starts (value is generated backwards from the end of the buffer).

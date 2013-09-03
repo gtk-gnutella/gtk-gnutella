@@ -254,7 +254,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	const char *s;
 	size_t len;
 
-	s = print_number(buf, sizeof buf, v);
+	s = PRINT_NUMBER(buf, v);
 	len = strlen(s);
 
 	if (cursor->size < len)
@@ -482,7 +482,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str(" invoking crash hook \"");	/* 4 */
 	print_str(routine);						/* 5 */
@@ -528,7 +528,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str("done with hook \"");			/* 4 */
 	print_str(routine);						/* 5 */
@@ -574,7 +574,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 	/* The following precedes each line */
 	print_str(time_buf);				/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");					/* 3 */
 	iov_prolog = getpos_str();
 
@@ -585,7 +585,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 		print_str(vars->progname);		/* 5 */
 		if (0 != vars->build) {
 			print_str(" build #");		/* 6 */
-			print_str(print_number(build_buf, sizeof build_buf, vars->build));
+			print_str(PRINT_NUMBER(build_buf, vars->build));	/* 7 */
 		}
 	}
 	print_str("\n");					/* 8, at most */
@@ -627,7 +627,7 @@ crash_decorating_stack(void)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	print_str("attempting to dump a decorated stack trace:\n");	/* 4 */
 	flush_err_str();
@@ -652,7 +652,7 @@ crash_end_of_line(bool forced)
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(print_number(pid_buf, sizeof pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	if (forced) {
 		print_str("recursively crashing -- end of line.");	/* 4 */
@@ -688,13 +688,13 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char num_buf[ULONG_DEC_BUFLEN + 2];
 		const char *num_str;
 
-		num_str = print_number(num_buf, sizeof num_buf, vars->major);
+		num_str = PRINT_NUMBER(num_buf, vars->major);
 		clamp_strcat(buf, len, "-");
 		clamp_strcat(buf, len, num_str);
-		num_str = print_number(num_buf, sizeof num_buf, vars->minor);
+		num_str = PRINT_NUMBER(num_buf, vars->minor);
 		clamp_strcat(buf, len, ".");
 		clamp_strcat(buf, len, num_str);
-		num_str = print_number(num_buf, sizeof num_buf, vars->patchlevel);
+		num_str = PRINT_NUMBER(num_buf, vars->patchlevel);
 		clamp_strcat(buf, len, ".");
 		clamp_strcat(buf, len, num_str);
 	}
@@ -708,7 +708,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char build_buf[ULONG_DEC_BUFLEN + 2];
 		const char *build_str;
 
-		build_str = print_number(build_buf, sizeof build_buf, vars->build);
+		build_str = PRINT_NUMBER(build_buf, vars->build);
 		clamp_strcat(buf, len, "-r");
 		clamp_strcat(buf, len, build_str);
 	}
@@ -1054,10 +1054,10 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	if (cpucount > 1) {
 		print_str(" * ");				/* 9 */
-		print_str(print_number(sbuf, sizeof sbuf, cpucount)); /* 10 */
+		print_str(PRINT_NUMBER(sbuf, cpucount)); /* 10 */
 	}
 	print_str(", ");					/* 11 */
-	print_str(print_number(nbuf, sizeof nbuf, PTRSIZE * 8)); /* 12 */
+	print_str(PRINT_NUMBER(nbuf, PTRSIZE * 8)); /* 12 */
 	print_str(" bits\n");				/* 13 */
 	flush_str(clf);
 	rewind_str(0);
@@ -1074,7 +1074,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str(rbuf);					/* 7 */
 	print_str("\n");					/* 8 */
 	print_str("Run-Seconds: ");			/* 9 */
-	print_str(print_number(sbuf, sizeof sbuf, MAX(t, 0)));	/* 10 */
+	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 10 */
 	print_str("\n");					/* 11 */
 	print_str("Crash-Signal: ");		/* 12 */
 	print_str(signal_name(signo));		/* 13 */
@@ -1116,7 +1116,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		}
 		print_str(failure->file);			/* 4 */
 		print_str(":");						/* 5 */
-		print_str(print_number(lbuf, sizeof lbuf, failure->line));
+		print_str(PRINT_NUMBER(lbuf, failure->line));
 		print_str("\n");					/* 6 */
 		if (failure->expr != NULL) {
 			print_str("Assertion-Expr: ");	/* 7 */
@@ -1147,7 +1147,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	if (t <= CRASH_MIN_ALIVE) {
 		char rtbuf[ULONG_DEC_BUFLEN];
 		print_str("; run time threshold of ");	/* 2 */
-		print_str(print_number(rtbuf, sizeof rtbuf, CRASH_MIN_ALIVE));
+		print_str(PRINT_NUMBER(rtbuf, CRASH_MIN_ALIVE));
 		print_str("s not reached");				/* 4 */
 	} else {
 		print_str("; ");				/* 2 */
@@ -1211,7 +1211,7 @@ crash_generate_crashlog(int signo)
 	const mode_t mode = S_IRUSR | S_IWUSR;
 	int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(crashlog, sizeof crashlog,
@@ -1257,7 +1257,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
 
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 
 #ifdef HAS_WAITPID
 retry_child:
@@ -1631,7 +1631,7 @@ parent_process:
 		if ((pid_t) -1 == waitpid(pid, &status, 0)) {
 			char buf[ULONG_DEC_BUFLEN];
 			print_str("could not wait for child (errno = ");	/* 4 */
-			print_str(print_number(buf, sizeof buf, errno));	/* 5 */
+			print_str(PRINT_NUMBER(buf, errno));				/* 5 */
 			print_str(")\n");									/* 6 */
 			flush_err_str();
 		} else if (WIFEXITED(status)) {
@@ -1641,8 +1641,7 @@ parent_process:
 				char buf[ULONG_DEC_BUFLEN];
 
 				print_str("child exited with status ");	/* 4 */
-				print_str(print_number(buf, sizeof buf,
-					WEXITSTATUS(status)));				/* 5 */
+				print_str(PRINT_NUMBER(buf, WEXITSTATUS(status)));	/* 5 */
 				print_str("\n");						/* 6 */
 				flush_err_str();
 				if (log_stdout_is_distinct())
@@ -2599,8 +2598,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	char filename[80];
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
-	/* @BUG: The ADNS helper process has a different PID.  */
-	pid_str = print_number(pid_buf, sizeof pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 
 	if (NULL == dst) {

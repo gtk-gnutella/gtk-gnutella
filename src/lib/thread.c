@@ -3577,7 +3577,7 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 		const char *lnum;
 		char lbuf[UINT_DEC_BUFLEN];
 
-		lnum = print_number(lbuf, sizeof lbuf, l->line);
+		lnum = PRINT_NUMBER(lbuf, l->line);
 		print_str(" from ");			/* 5 */
 		print_str(l->file);				/* 6 */
 		print_str(":");					/* 7 */
@@ -3686,7 +3686,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		rewind_str(0);
 
 		print_str("\t");		/* 0 */
-		lpos = print_number(pos, sizeof pos, i - 1);
+		lpos = PRINT_NUMBER(pos, i - 1);
 
 		/*
 		 * Let locks that are waited for by another thread stand out.
@@ -3726,7 +3726,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 					else if (1 != s->lock)
 						print_str(" BAD_LOCK");		/* 7 */
 					print_str(" from ");		/* 8 */
-					lnum = print_number(line, sizeof line, l->line);
+					lnum = PRINT_NUMBER(line, l->line);
 					print_str(l->file);			/* 9 */
 					print_str(":");				/* 10 */
 					print_str(lnum);			/* 11 */
@@ -3759,16 +3759,15 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 						print_str(" write");		/* 7 */
 
 					print_str(" from ");		/* 8 */
-					lnum = print_number(line, sizeof line, l->line);
+					lnum = PRINT_NUMBER(line, l->line);
 					print_str(l->file);			/* 9 */
 					print_str(":");				/* 10 */
 					print_str(lnum);			/* 11 */
 
-					r = print_number(rdbuf, sizeof rdbuf, rw->readers);
-					w = print_number(wrbuf, sizeof wrbuf, rw->writers);
-					qr = print_number(qrbuf, sizeof qrbuf,
-							rw->waiters - rw->write_waiters);
-					qw = print_number(qwbuf, sizeof qwbuf, rw->write_waiters);
+					r = PRINT_NUMBER(rdbuf, rw->readers);
+					w = PRINT_NUMBER(wrbuf, rw->writers);
+					qr = PRINT_NUMBER(qrbuf, rw->waiters - rw->write_waiters);
+					qw = PRINT_NUMBER(qwbuf, rw->write_waiters);
 
 					print_str(" (r:");			/* 12 */
 					print_str(r);				/* 13 */
@@ -3805,7 +3804,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 						if (!thread_eq(m->owner, te->tid))
 							print_str(" BAD_TID");	/* 8 */
 						print_str(" from ");		/* 9 */
-						lnum = print_number(line, sizeof line, l->line);
+						lnum = PRINT_NUMBER(line, l->line);
 						print_str(l->file);			/* 10 */
 						print_str(":");				/* 11 */
 						print_str(lnum);			/* 12 */
@@ -3816,7 +3815,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 							char depth[ULONG_DEC_BUFLEN];
 							const char *dnum;
 
-							dnum = print_number(depth, sizeof depth, m->depth);
+							dnum = PRINT_NUMBER(depth, m->depth);
 							print_str(" (depth=");		/* 13 */
 							print_str(dnum);			/* 14 */
 							print_str(")");				/* 15 */
@@ -4876,7 +4875,7 @@ thread_element_clear_locks(struct thread_element *te)
 				const char *lnum;
 				char lbuf[UINT_DEC_BUFLEN];
 
-				lnum = print_number(lbuf, sizeof lbuf, l->line);
+				lnum = PRINT_NUMBER(lbuf, l->line);
 				print_str(" from ");			/* 5 */
 				print_str(l->file);				/* 6 */
 				print_str(":");					/* 7 */
