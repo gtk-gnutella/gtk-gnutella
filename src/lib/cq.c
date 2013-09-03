@@ -1607,7 +1607,7 @@ cq_time_to_string(cq_time_t t)
  ***/
 
 #define CALLOUT_PERIOD			25	/* milliseconds */
-#define CALLOUT_THREAD_STACK	(256 * 1024)
+#define CALLOUT_THREAD_STACK	(32 * PTRSIZE * 1024)
 
 static uint callout_timer_id;
 static bool callout_thread;

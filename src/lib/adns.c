@@ -398,7 +398,7 @@ struct adns_helper_args {
 	aqueue_t *answers;		/* Where helper sends answers to */
 };
 
-#define ADNS_HELPER_STACK	(48*1024)
+#define ADNS_HELPER_STACK	THREAD_STACK_MIN
 
 /**
  * The ``main'' function of the adns helper thread (server).
