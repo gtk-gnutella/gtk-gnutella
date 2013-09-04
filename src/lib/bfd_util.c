@@ -53,8 +53,28 @@
 #include "common.h"
 
 #ifdef HAS_BFD_LIBRARY
+/*
+ * Starting with binutils 2.23, we need to define two symbols to be able
+ * to compile with <bfd.h>.  It is a shame to have to go through contorsions
+ * like that, but the BFD folks wish to keep their library unsuitable for
+ * the general use.
+ *
+ * See https://sourceware.org/bugzilla/show_bug.cgi?id=15920
+ *
+ * Their mindset being what it is, let's be smarter and adapt.  There is no
+ * way we are going to bloat our source tree by including a version of the BFD
+ * sources, just to workaround a library design bug!
+ *		--RAM, 2013-09-94
+ *
+ * There's no need to define the PACKAGE symbol: since it is present in a
+ * comment, that metaconfig symbol will be automatically defined in config.h.
+ */
+#define PACKAGE_VERSION		/* PACKAGE is already a metaconfig symbol */
+
 #include <bfd.h>
-#endif
+
+#undef PACKAGE_VERSION
+#endif	/* HAS_BFD_LIBRARY */
 
 #include "bfd_util.h"
 #include "concat.h"

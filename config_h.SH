@@ -160,9 +160,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_bcopy HAS_BCOPY	/**/
 
 /* HAS_BFD_LIBRARY:
- *	This symbol, if defined, indicates that the bfd library is available
+ *	This symbol, if defined, indicates that the BFD library is available
  *	to inspect symbols and debugging information.  You can safely include
- *	the <bfd.h> file when this symbol is defined.
+ *	the <bfd.h> file when this symbol is defined, making sure to define
+ *	the PACKAGE and PACKAGE_VERSION symbols, just in case we're facing
+ *	binutils 2.23 or higher.
  */
 #$d_bfd_lib HAS_BFD_LIBRARY		/**/
 

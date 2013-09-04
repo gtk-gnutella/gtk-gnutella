@@ -53,7 +53,6 @@
 #include <conio.h>				/* For _kbhit() */
 #include <imagehlp.h>			/* For backtrace() emulation */
 #include <iphlpapi.h>			/* For GetBestRoute() */
-#include <bfd.h>				/* For access to debugging information */
 
 #include <glib.h>
 #include <glib/gprintf.h>
