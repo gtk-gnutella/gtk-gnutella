@@ -634,6 +634,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sigaction HAS_SIGACTION	/**/
 
+/* HAS_SIGALTSTACK:
+ *	This symbol, if defined, indicates that the sigaltstack() routine
+ *	is available to define an alternate signal stack.
+ */
+#$d_sigaltstack HAS_SIGALTSTACK	/**/
+
 /* HAS_SIGPROCMASK:
  *	This symbol, if defined, indicates that the sigprocmask() routine is
  *	available to examine and change blocked signals.

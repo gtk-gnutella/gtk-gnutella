@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Wed Sep  4 19:50:17 CEST 2013 [metaconfig 3.5-171]
+# Generated on Fri Sep  6 14:01:38 CEST 2013 [metaconfig 3.5-171]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -406,6 +406,7 @@ d_sendfile=''
 d_setproctitle=''
 d_setsid=''
 d_sigaction=''
+d_sigaltstack=''
 d_sigprocmask=''
 d_sigsetjmp=''
 d_sockaddr_in_sin_len=''
@@ -5626,6 +5627,19 @@ $cat >try.c <<EOC
 #ifdef WINDOWS_SYSTEM
 #define WINVER 0x0501
 #endif
+#include <sys/types.h>
+#ifdef I_SYS_SOCKET
+#include <sys/socket.h>
+#endif
+#ifdef I_NETINET_IN
+#include <netinet/in.h>
+#endif
+#ifdef I_ARPA_INET
+#include <arpa/inet.h>
+#endif
+#ifdef I_NETDB
+#include <netdb.h>
+#endif
 #ifdef I_WINSOCK2
 #include <Winsock2.h>
 #endif
@@ -7605,6 +7619,25 @@ int main(void)
 EOC
 cyn=sigaction
 set d_sigaction
+eval $trylink
+
+: see if we have sigaltstack
+$cat >try.c <<EOC
+#include <stdio.h>
+#include <signal.h>
+int main(void)
+{
+	stack_t ss;
+	static int ret;
+	ss.ss_sp = NULL;
+	ss.ss_flags |= SS_ONSTACK | SS_DISABLE;
+	ss.ss_size = SIGSTKSZ + MINSIGSTKSZ;
+	ret |= sigaltstack(&ss, NULL);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=sigaltstack
+set d_sigaltstack
 eval $trylink
 
 : see if sigprocmask exists
@@ -11138,6 +11171,7 @@ d_sendfile='$d_sendfile'
 d_setproctitle='$d_setproctitle'
 d_setsid='$d_setsid'
 d_sigaction='$d_sigaction'
+d_sigaltstack='$d_sigaltstack'
 d_sigprocmask='$d_sigprocmask'
 d_sigsetjmp='$d_sigsetjmp'
 d_sockaddr_in_sin_len='$d_sockaddr_in_sin_len'

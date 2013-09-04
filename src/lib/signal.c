@@ -49,12 +49,37 @@
 
 #include "override.h"	/* Must be the last header included */
 
+#if 0
+#define SIGNAL_HANDLER_TRACE		/* Trace install of signal handlers */
+#endif
+
 #ifndef SIG_ERR
 #define SIG_ERR ((signal_handler_t) -1)
 #endif
 
 #define SIGNAL_CHUNK_SIZE		4000	/**< Safety allocation pool */
 #define SIGNAL_CHUNK_RESERVE	512		/**< Critical amount reserved */
+
+/**
+ * A signal stack is configured for each thread to be able to process SIGSEGV
+ * in order to detect stack overflows.
+ *
+ * This only works if the kernel supports sigaction() with the SA_ONSTACK flag.
+ *
+ * We need to leave enough room to be able to process, on that stack, the
+ * execution of the crash handler, possibly with a stack backtrace (which needs
+ * to allocate the backtracing buffer on the stack itself).
+ *
+ * Therefore, we need more stack requirements than the typical stack size
+ * which is defined to SIGSTKSZ.  Experiments on a 64-bit linux kernel shows
+ * that SIGSTKSZ is too small (i.e. the signal stack overflows during the
+ * stack dump process, which corrupts memory since we don't trap signal stack
+ * overflows).
+ *
+ * Adding two additional pages (8K) is enough to cover the current needs.
+ *		--RAM, 2013-09-10
+ */
+#define SIGNAL_STACK_SIZE		(SIGSTKSZ + 8192)
 
 /**
  * Table mapping a signal number with a symbolic name.
@@ -137,6 +162,7 @@ static const char SIG_PREFIX[] = "SIG";
 
 static volatile sig_atomic_t in_signal_handler;
 static once_flag_t signal_inited;
+static bool signal_catch_segv;
 
 static void signal_uncaught(int signo);
 
@@ -584,11 +610,124 @@ signal_uncaught(int signo)
 	/*
 	 * Restore default signal handler, since it was originally uncaught,
 	 * unblock it and raise it again to get the default behaviour.
+	 *
+	 * We must reset signal_catch_segv to FALSE otherwise signal_trap_with()
+	 * will force signal_uncaught() as the handler for SIGSEGV.  To avoid
+	 * race conditions with a concurrent thread creation that would reset
+	 * the signal_catch_segv variable to TRUE, we take the mutex.
 	 */
+
+	if (SIGSEGV == signo) {
+		mutex_lock(&signal_lock);
+		signal_catch_segv = FALSE;
+	}
 
 	signal_catch(signo, SIG_DFL);
 	signal_unblock(signo);
+
+	if (SIGSEGV == signo)
+		mutex_unlock(&signal_lock);
+
 	raise(signo);
+}
+
+#ifdef HAS_SIGALTSTACK
+/*
+ * Ensure the SIGSEGV signal is minimally trapped to catch up thread stack
+ * overflows and properly log them when they occur.
+ *
+ * Called the first time a new thread is created.
+ */
+static void
+signal_thread_init(void)
+{
+	mutex_lock(&signal_lock);
+
+	/*
+	 * Going through signal_set() ensures we'll properly use sigaction()
+	 * to setup the signal handler, and further make sure we are configuring
+	 * an alternate stack to process SIGSEGV when they occur, provided the
+	 * kernel supports these features.
+	 */
+
+	if (SIG_DFL == signal_handler[SIGSEGV])
+		signal_set(SIGSEGV, signal_uncaught);
+
+	signal_catch_segv = TRUE;
+	mutex_unlock(&signal_lock);
+}
+#endif	/* HAS_SIGALTSTACK */
+
+/**
+ * Create the signal stack used for SIGSEGV handlers called by the thread,
+ * if supported.
+ *
+ * The allocated stack must be freed with signal_stack_free() when the thread
+ * is terminated.
+ *
+ * @param len		if non-NULL, written with length of allocated stack
+ *
+ * @return the address of the signal stack if OK, NULL otherwise.
+ * The length of the allocated stack is written to ``len'' when successful.
+ */
+void *
+signal_stack_allocate(size_t *len)
+{
+#ifdef HAS_SIGALTSTACK
+	stack_t ss;
+	void *p;
+	size_t size;
+
+	ss.ss_sp = p = vmm_alloc(SIGNAL_STACK_SIZE);
+	ss.ss_size = size = round_pagesize(SIGNAL_STACK_SIZE);
+	ss.ss_flags = 0;
+
+	/*
+	 * It is the job of sigaltstack() to configure the stack properly
+	 * depending on the growth direction of stacks on the system, using
+	 * the supplied buffer.
+	 */
+
+	if (-1 == sigaltstack(&ss, NULL)) {
+		s_warning("unable to allocate signal stack: %m");
+		p = NULL;
+	}
+
+	signal_thread_init();
+
+	if (len != NULL)
+		*len = size;
+
+	return p;
+#else
+	(void) len;
+	return NULL;
+#endif
+}
+
+/**
+ * Free the allocated signal stack.
+ *
+ * @param p		the base address of the stack
+ */
+void
+signal_stack_free(void *p)
+{
+#ifdef HAS_SIGALTSTACK
+	stack_t ss;
+
+	ss.ss_sp = NULL;
+	ss.ss_size = 0;
+	ss.ss_flags = SS_DISABLE;
+
+	if (-1 == sigaltstack(&ss, NULL))
+		s_warning("unable to deallocate signal stack: %m");
+
+	vmm_free(p, SIGNAL_STACK_SIZE);
+#else
+	(void) p;
+	g_assert_not_reached();		/* Can't be called! */
+#endif
 }
 
 /**
@@ -840,6 +979,15 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 	static volatile sig_atomic_t extended;
 	sigset_t set;
 
+	/*
+	 * First check whether we're getting a segmentation violation due to a
+	 * stack overflow.  If we do, we won't be able to go very far anyway hence
+	 * it's best to abort as early as possible.
+	 */
+
+	if (SIGSEGV == signo)
+		thread_stack_check_overflow(si->si_addr);
+
 	in_signal_handler++;
 	extended++;
 
@@ -941,9 +1089,6 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	g_assert(old_handler != SIG_ERR);
 
-	trampoline = (SIG_DFL == handler || SIG_IGN == handler) ?
-		handler : signal_trampoline;
-
 	/*
 	 * If they restore the default handler for a signal and we have cleanup
 	 * to perform, redirect them to signal_uncaught().
@@ -953,6 +1098,23 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	if (sig_cleanup_count != 0 && SIG_DFL == handler && signal_is_fatal(signo))
 		handler = signal_uncaught;
+
+	/*
+	 * Likewise, if we created a thread, we need to catch SIGSEGV to never let
+	 * the default handler run, so that we can trap stack overflows.
+	 */
+
+	if (SIGSEGV == signo && SIG_DFL == handler && signal_catch_segv)
+		handler = signal_uncaught;
+
+	/*
+	 * When not using SIG_DFL or SIG_IGN, make sure we go through the
+	 * signal trampoline to perform some checks before invoking the
+	 * user handler.
+	 */
+
+	trampoline = (SIG_DFL == handler || SIG_IGN == handler) ?
+		handler : signal_trampoline;
 
 #ifdef HAS_SIGACTION
 	{
@@ -983,6 +1145,11 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #else
 			sa.sa_handler = trampoline;
 #endif
+#ifdef SA_ONSTACK
+			if (SIGSEGV == signo) {
+				sa.sa_flags |= SA_ONSTACK;
+			}
+#endif
 #ifdef SA_NODEFER
 			sa.sa_flags |= SA_NODEFER;
 #endif
@@ -995,6 +1162,23 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 			break;
 		}
 
+#ifdef SIGNAL_HANDLER_TRACE
+		{
+			str_t *s = str_new(120);
+
+			str_printf(s, "%s(): installing %s() trampoline ",
+				G_STRFUNC, stacktrace_function_name(
+				(sa.sa_flags & SA_SIGINFO) ?
+					(signal_handler_t) sa.sa_sigaction : sa.sa_handler));
+			str_catf(s, "going to %s() handler for %s",
+				stacktrace_function_name(handler), signal_name(signo));
+			str_catf(s, ": old handler was %s()",
+				stacktrace_function_name(old_handler));
+			s_debug("%s", str_2c(s));
+			str_destroy_null(&s);
+		}
+#endif	/* SIGNAL_HANDLER_TRACE */
+
 		ret = sigaction(signo, &sa, &osa) ? SIG_ERR :
 #ifdef SA_SIGINFO
 			(osa.sa_flags & SA_SIGINFO) ?
@@ -1004,7 +1188,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif
 		;
 	}
-#else
+#else	/* !HAS_SIGACTION */
 	(void) extra;
 	ret = signal(signo, trampoline);
 #endif	/* HAS_SIGACTION */

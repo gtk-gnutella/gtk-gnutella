@@ -91,6 +91,7 @@
 #include "once.h"
 #include "pow2.h"
 #include "rwlock.h"
+#include "signal.h"				/* For signal_stack_allocate() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -208,6 +209,8 @@ struct thread_element {
 	thread_qid_t low_qid;			/**< The lowest possible QID */
 	thread_qid_t high_qid;			/**< The highest possible QID */
 	thread_qid_t top_qid;			/**< The topmost QID seen on the stack */
+	thread_qid_t low_sig_qid;		/**< The lowest possible QID on sigstack */
+	thread_qid_t high_sig_qid;		/**< The highest possible QID on sigstack*/
 	hash_table_t *pht;				/**< Private hash table */
 	unsigned stid;					/**< Small thread ID */
 	const void *stack_lock;			/**< First lock seen at this SP */
@@ -215,6 +218,7 @@ struct thread_element {
 	size_t stack_size;				/**< For created threads, 0 otherwise */
 	void *stack;					/**< Allocated stack (including guard) */
 	void *stack_base;				/**< Base of the stack (computed) */
+	void *sig_stack;				/**< Alternate signal stack */
 	func_ptr_t entry;				/**< Thread entry point (created threads) */
 	const void *argument;			/**< Initial thread argument, for logging */
 	int suspend;					/**< Suspension request(s) */
@@ -568,9 +572,13 @@ thread_qid_cache_get(unsigned idx)
 static inline void
 thread_qid_cache_set(unsigned idx, struct thread_element *te, thread_qid_t qid)
 {
-	g_assert_log(qid >= te->low_qid && qid <= te->high_qid,
-		"qid=%zu, te->low_qid=%zu, te->high_qid=%zu, te->stid=%u",
-		qid, te->low_qid, te->high_qid, te->stid);
+	g_assert_log(
+		(qid >= te->low_qid && qid <= te->high_qid) ||
+		(qid >= te->low_sig_qid && qid <= te->high_sig_qid),
+		"qid=%zu, te->low_qid=%zu, te->high_qid=%zu, "
+			"te->low_sig_qid=%zu, te->high_sig_qid=%zu, te->stid=%u",
+		qid, te->low_qid, te->high_qid, te->low_sig_qid, te->high_sig_qid,
+		te->stid);
 
 	te->last_qid = qid;					/* This is thread-private data */
 	thread_qid_cache[idx] = te->stid;	/* This is global data being updated */
@@ -1148,8 +1156,8 @@ thread_element_reset(struct thread_element *te)
 
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
-	te->low_qid = (thread_qid_t) -1;
-	te->high_qid = 0;
+	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
+	te->high_qid = te->high_sig_qid = 0;
 	te->top_qid = 0;
 	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
 	te->creating = FALSE;
@@ -1390,6 +1398,31 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_set(te->tid, t);
 	thread_stack_init_shape(te, &te);
 	thread_element_common_init(te, t);
+}
+
+/**
+ * Allocate a signal stack for the created thread.
+ */
+static void
+thread_sigstack_allocate(struct thread_element *te)
+{
+	thread_qid_t qid;
+	size_t len;
+
+	g_assert(te->created);
+
+	te->sig_stack = signal_stack_allocate(&len);
+
+	if (NULL == te->sig_stack)
+		return;
+
+	qid = thread_quasi_id_fast(te->sig_stack);
+
+	te->low_sig_qid = qid;
+	te->high_sig_qid = thread_quasi_id_fast(
+		const_ptr_add_offset(te->sig_stack, len - 1));
+
+	g_assert((te->high_sig_qid - te->low_sig_qid + 1) * thread_pagesize == len);
 }
 
 /**
@@ -1911,6 +1944,13 @@ thread_find_qid(thread_qid_t qid)
 		if G_UNLIKELY(qid >= xte->low_qid && qid <= xte->high_qid)
 			return xte;
 
+		/*
+		 * If there is a signal stack, check whether we're running on it.
+		 */
+
+		if G_UNLIKELY(qid >= xte->low_sig_qid && qid <= xte->high_sig_qid)
+			return xte;
+
 		if (xte->created || xte->creating)
 			continue;
 
@@ -2275,6 +2315,101 @@ thread_stack_used(void)
 		base = ptr_add_offset(base, (1 << thread_pageshift));
 
 	return thread_stack_ptr_offset(base, &te);
+}
+
+/**
+ * Check whether current thread is overflowing its stack by hitting the
+ * red-zone guard page at the end of its allocated stack.
+ * When it does, we panic immediately.
+ *
+ * This routine is meant to be called when we receive a SEGV signal to do the
+ * actual stack overflowing check.
+ *
+ * @param va		virtual address where the fault occured (NULL if unknown)
+ */
+void
+thread_stack_check_overflow(const void *va)
+{
+	static const char overflow[] = "thread stack overflow\n";
+	struct thread_element *te = thread_get_element();
+	thread_qid_t qva;
+	bool extra_stack = FALSE;
+
+	/*
+	 * If we do not have a signal stack we cannot really process a stack
+	 * overflow anyway.
+	 *
+	 * Moreover, without a known faulting virtual address, we will not be able
+	 * to detect that the fault happened in the red-zone page.
+	 */
+
+	if (NULL == te->sig_stack || NULL == va)
+		return;
+
+	/*
+	 * Check whether we're nearing the top of the stack: if the QID lies in the
+	 * last page of the stack, assume we're overflowing or about to.
+	 */
+
+	qva = thread_quasi_id_fast(va);
+
+	if (thread_sp_direction < 0) {
+		/* Stack growing down, base is high_qid */
+		if (qva + 1 != te->low_qid)
+			return;		/* Not faulting in the red-zone page */
+	} else {
+		/* Stack growing up, base is low_qid */
+		if (qva - 1 != te->high_qid)
+			return;		/* Not faulting in the red-zone page */
+	}
+
+	/*
+	 * Check whether we're running on the signal stack.  If we do, we have
+	 * extra stack space because we know SIGSEGV will always be delivered
+	 * on the signal stack.
+	 */
+
+	if (te->sig_stack != NULL) {
+		thread_qid_t qid = thread_quasi_id();
+
+		if (qid >= te->low_sig_qid && qid <= te->high_sig_qid)
+			extra_stack = TRUE;
+	}
+
+	/*
+	 * If we allocated the stack through thread_stack_allocate(), undo the
+	 * red-zone protection to let us use the extra page as stack space.
+	 *
+	 * This is only necessary when we're detecting that we are not running
+	 * on the signal stack.  This is possible on systems with no support for
+	 * alternate signal stacks and for which we managed to get this far after
+	 * a fault in the red-zone page (highly unlikely, but one day we may enter
+	 * this routine outside of SIGSEGV handling).
+	 */
+
+	if (te->stack != NULL && !extra_stack) {
+		if (thread_sp_direction < 0) {
+			mprotect(te->stack, thread_pagesize, PROT_READ | PROT_WRITE);
+		} else {
+			mprotect(ptr_add_offset(te->stack, te->stack_size),
+				thread_pagesize, PROT_READ | PROT_WRITE);
+		}
+		extra_stack = TRUE;
+	}
+
+	/*
+	 * If we have extra stack space, emit a detailed message about what is
+	 * happening, otherwise emit a minimal panic message.
+	 */
+
+	if (extra_stack) {
+		s_rawcrit("stack (%zu bytes) overflowing for %s",
+			te->stack_size, thread_id_name(te->stid));
+	} else {
+		IGNORE_RESULT(write(STDERR_FILENO, overflow, CONST_STRLEN(overflow)));
+	}
+
+	crash_abort();
 }
 
 /**
@@ -5510,6 +5645,17 @@ thread_launch_trampoline(void *arg)
 	u.ctx->te->stack_lock = thread_sp();
 
 	/*
+	 * Make sure we can correctly process SIGSEGV happening because stack
+	 * growth reaches the red zone page, so that we can report a stack
+	 * overflow.
+	 *
+	 * This works by creating an alternate signal stack for the thread and
+	 * making sure we minimally trap the signal.
+	 */
+
+	thread_sigstack_allocate(u.ctx->te);
+
+	/*
 	 * Save away the values we need from the context before releasing it.
 	 */
 
@@ -5834,6 +5980,25 @@ thread_exit(void *value)
 		} else {
 			(*te->exit_cb)(value, te->exit_arg);
 		}
+	}
+
+	/*
+	 * The alternate signal stack, if allocated, can now be freed since we
+	 * are no longer expecting a stack overflow.
+	 */
+
+	if (te->sig_stack != NULL) {
+		/*
+		 * Reset the signal stack range before freeing it so that
+		 * thread_find_qid() can no longer return this thread should
+		 * another thread be created with a stack lying where the old
+		 * signal stack was.
+		 */
+
+		te->low_sig_qid = (thread_qid_t) -1;
+		te->high_sig_qid = 0;
+
+		signal_stack_free(te->sig_stack);
 	}
 
 	/*

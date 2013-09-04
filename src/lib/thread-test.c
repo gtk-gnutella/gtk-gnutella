@@ -39,6 +39,7 @@
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
+#include "signal.h"
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"
@@ -66,7 +67,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsABCEFIMNPQRS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsABCEFIMNOPQRS] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -81,6 +82,7 @@ usage(void)
 		"  -I : test inter-thread waiter signaling\n"
 		"  -M : monitors tennis match via waiters\n"
 		"  -N : add broadcast noise during tennis session\n"
+		"  -O : test thread stack overflow\n"
 		"  -P : add direct POSIX threads along with thread creation test\n"
 		"  -Q : test asynchronous queue\n"
 		"  -R : test the read-write lock layer\n"
@@ -790,6 +792,41 @@ test_fork(bool safe)
 	printf("--- test of thread_fork(%s) done!\n", safe ? "TRUE" : "FALSE");
 }
 
+static int
+overflow_routine(void *arg)
+{
+	int x = pointer_to_int(arg);
+	int c[128];
+
+	ZERO(c);
+	c[0] = x;
+	c[1] = overflow_routine(&c[1]);
+
+	if (NULL == arg)
+		return c[0] + c[1];
+
+	return overflow_routine(c) + c[1];
+}
+
+static void *
+overflow_thread(void *arg)
+{
+	return int_to_pointer(overflow_routine(arg));
+}
+
+static void
+test_overflow(void)
+{
+	int t, r;
+
+	t = thread_create(overflow_thread, int_to_pointer(0), 0, 8192);
+	if (-1 == t)
+		s_error("%s() could not create thread", G_STRFUNC);
+	r = thread_join(t, NULL);
+	if (-1 == r)
+		s_error("%s(): thread_join() failed: %m", G_STRFUNC);
+}
+
 struct aqt_arg { 
 	aqueue_t *r, *a;
 };
@@ -1180,7 +1217,7 @@ main(int argc, char **argv)
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
-	bool signals = FALSE, barrier = FALSE;
+	bool signals = FALSE, barrier = FALSE, overflow = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -1190,7 +1227,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNPQRST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNOPQRST:")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -1215,6 +1252,9 @@ main(int argc, char **argv)
 			break;
 		case 'N':			/* add cond_broadcast() noise */
 			noise = TRUE;
+			break;
+		case 'O':			/* test stack overflow */
+			overflow = TRUE;
 			break;
 		case 'P':			/* add extra POSIX threads */
 			posix = TRUE;
@@ -1282,6 +1322,9 @@ main(int argc, char **argv)
 		test_fork(TRUE);
 		test_fork(FALSE);
 	}
+
+	if (overflow)
+		test_overflow();
 
 	if (signals)
 		test_signals();
