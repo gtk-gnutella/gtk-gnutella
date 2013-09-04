@@ -755,7 +755,7 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
-static Sigjmp_buf crash_safe_env;
+static Sigjmp_buf crash_safe_env[THREAD_MAX];
 
 /**
  * Invoked on a fatal signal during decorated stack building.
@@ -763,8 +763,10 @@ static Sigjmp_buf crash_safe_env;
 static G_GNUC_COLD void
 crash_decorated_got_signal(int signo)
 {
+	int stid = thread_small_id();
+
 	s_miniwarn("got %s during stack dump generation", signal_name(signo));
-	Siglongjmp(crash_safe_env, signo);
+	Siglongjmp(crash_safe_env[stid], signo);
 }
 
 /**
@@ -775,6 +777,7 @@ crash_decorated_got_signal(int signo)
 static G_GNUC_COLD NO_INLINE bool
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
+	int stid = thread_small_id();
 	const uint flags = STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE |
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
@@ -797,7 +800,7 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 	old_sigbus = signal_catch(SIGBUS, crash_decorated_got_signal);
 #endif
 
-	if (Sigsetjmp(crash_safe_env, TRUE)) {
+	if (Sigsetjmp(crash_safe_env[stid], TRUE)) {
 		success = FALSE;
 		goto done;
 	}

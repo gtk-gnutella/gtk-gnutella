@@ -329,7 +329,7 @@ done:
 }
 #endif	/* HAS_BACKTRACE */
 
-static Sigjmp_buf stacktrace_safe_env;
+static Sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 
 /**
  * Invoked when a fatal signal is received during stack unwinding.
@@ -337,7 +337,14 @@ static Sigjmp_buf stacktrace_safe_env;
 static G_GNUC_COLD void
 stacktrace_safe_got_signal(int signo)
 {
-	Siglongjmp(stacktrace_safe_env, signo);
+	int stid = thread_small_id();
+
+	/*
+	 * Big assumption here is that the harmful signal is delivered to the
+	 * thread that caused it.
+	 */
+
+	Siglongjmp(stacktrace_safe_env[stid], signo);
 }
 
 /**
@@ -355,6 +362,7 @@ NO_INLINE size_t
 stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 {
 	volatile size_t n;
+	int stid;
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
@@ -374,7 +382,9 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 	old_sigbus = signal_catch(SIGBUS, stacktrace_safe_got_signal);
 #endif
 
-	if (Sigsetjmp(stacktrace_safe_env, TRUE)) {
+	stid = thread_small_id();
+
+	if (Sigsetjmp(stacktrace_safe_env[stid], TRUE)) {
 		/*
 		 * Because we zeroed the stack[] array before attempting the
 		 * unwinding we can now go back and count the amount of items that
@@ -1628,7 +1638,7 @@ static struct {
 	int fd;
 	Sigjmp_buf env;
 	unsigned done:1;
-} print_context;
+} print_context[THREAD_MAX];
 
 /*
  * Was a cautious stacktrace already logged?
@@ -1636,7 +1646,9 @@ static struct {
 bool
 stacktrace_cautious_was_logged(void)
 {
-	return print_context.done;
+	int stid = thread_small_id();
+
+	return print_context[stid].done;
 }
 
 /**
@@ -1646,16 +1658,19 @@ static G_GNUC_COLD void
 stacktrace_got_signal(int signo)
 {
 	char time_buf[18];
+	int stid;
 	DECLARE_STR(4);
+
+	stid = thread_small_id();
 
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);
 	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
 	print_str(" during stack printing\n");
-	flush_str(print_context.fd);
+	flush_str(print_context[stid].fd);
 
-	Siglongjmp(print_context.env, signo);
+	Siglongjmp(print_context[stid].env, signo);
 }
 
 /**
@@ -1674,13 +1689,16 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
 	size_t count;
-	static volatile sig_atomic_t printing;
+	int stid;
+	static volatile sig_atomic_t printing[THREAD_MAX];
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
 #endif
 
-	if (printing) {
+	stid = thread_small_id();
+
+	if (printing[stid]) {
 		char time_buf[18];
 		DECLARE_STR(5);
 
@@ -1694,8 +1712,8 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		return;
 	}
 
-	printing = TRUE;
-	print_context.fd = fd;
+	printing[stid] = TRUE;
+	print_context[stid].fd = fd;
 
 	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
@@ -1711,7 +1729,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	old_sigbus = signal_catch(SIGBUS, stacktrace_got_signal);
 #endif
 
-	if (Sigsetjmp(print_context.env, TRUE)) {
+	if (Sigsetjmp(print_context[stid].env, TRUE)) {
 		char time_buf[18];
 		DECLARE_STR(2);
 
@@ -1734,10 +1752,10 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		stacktrace_stack_safe_print(fd, stack, count);
 	}
 
-	print_context.done = TRUE;
+	print_context[stid].done = TRUE;
 
 restore:
-	printing = FALSE;
+	printing[stid] = FALSE;
 
 	signal_set(SIGSEGV, old_sigsegv);
 #ifdef SIGBUS
