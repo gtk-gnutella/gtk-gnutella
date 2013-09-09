@@ -527,15 +527,22 @@ stacktrace_auto_tune(void)
 static void G_GNUC_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
+	static spinlock_t sym_get_slk = SPINLOCK_INIT;
+
 	/*
 	 * In case we're crashing so early that stacktrace_init() has not been
 	 * called, initialize properly.
 	 */
 
+	spinlock(&sym_get_slk);
+
 	if (NULL == symbols)
 		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
 	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
+
+	spinunlock(&sym_get_slk);
+
 	if (stale)
 		symbols_mark_stale(symbols);
 }
