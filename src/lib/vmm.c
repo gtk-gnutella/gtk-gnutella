@@ -2104,7 +2104,7 @@ pmap_is_fragment(const struct pmap *pm, const void *p, size_t npages)
 	vmf = pmap_lookup(pm, p, NULL);
 
 	if (NULL == vmf) {
-		pmap_log_missing(pm, p, npages * kernel_pagesize);
+		pmap_log_missing(pm, p, npages << kernel_pageshift);
 		return FALSE;
 	}
 
@@ -2695,7 +2695,9 @@ vpc_insert(struct page_cache *pc, void *p)
 	spinlock(&pc->lock);
 
 	if G_UNLIKELY((size_t ) -1 != vpc_lookup(pc, p, &idx)) {
-		s_error_from(_WHERE_, "memory chunk at %p already present in cache", p);
+		s_error_from(_WHERE_,
+			"memory chunk at %p already present in %zu page-long VMM cache",
+			p, pc->pages);
 	}
 
 	g_assert(size_is_non_negative(idx) && idx <= pc->current);
@@ -3079,10 +3081,10 @@ found:
 
 	if (total > n) {
 		if (kernel_mapaddr_increasing) {
-			void *start = ptr_add_offset(base, n * kernel_pagesize);
+			void *start = ptr_add_offset(base, n << kernel_pageshift);
 			page_cache_insert_pages(start, total - n);	/* Strip trailing */
 		} else {
-			void *start = ptr_add_offset(end, -n * kernel_pagesize);
+			void *start = ptr_add_offset(end, -n << kernel_pageshift);
 			page_cache_insert_pages(base, total - n);	/* Strip leading */
 			base = start;
 		}
@@ -3220,7 +3222,7 @@ page_cache_insert_pages(void *base, size_t n)
 	struct pmap *pm = vmm_pmap();
 	bool wlock = FALSE;
 
-	assert_vmm_is_allocated(base, n * kernel_pagesize, VMF_NATIVE, FALSE);
+	assert_vmm_is_allocated(base, n << kernel_pageshift, VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
@@ -3255,7 +3257,7 @@ retry:
 
 		/* We have the write lock */
 
-		free_pages_forced(base, n * kernel_pagesize, TRUE);
+		free_pages_forced(base, n << kernel_pageshift, TRUE);
 		rwlock_wunlock(&pm->lock);
 
 		VMM_STATS_LOCK;
@@ -3309,7 +3311,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	const size_t old_pages = pages;
 	void *end;
 
-	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE, FALSE);
+	assert_vmm_is_allocated(base, pages << kernel_pageshift, VMF_NATIVE, FALSE);
 
 	if G_UNLIKELY(stop_freeing)
 		return FALSE;
@@ -3317,7 +3319,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	if (pages >= VMM_CACHE_LINES)
 		return FALSE;
 
-	end = ptr_add_offset(base, pages * kernel_pagesize);
+	end = ptr_add_offset(base, pages << kernel_pageshift);
 
 	/*
 	 * Look in low-order caches whether we can find chunks before.
@@ -3351,7 +3353,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						ptr_add_offset(base, pages * kernel_pagesize - 1));
 				}
 				assert_vmm_is_allocated(before,
-					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
+					(pages + lopc->pages) << kernel_pageshift,
+					VMF_NATIVE, TRUE);
 				base = before;
 				pages += lopc->pages;
 				vpc_remove_at(lopc, before, loidx);
@@ -3398,7 +3401,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					base, ptr_add_offset(base, pages * kernel_pagesize - 1));
 			}
 			assert_vmm_is_allocated(before,
-				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
+				(pages + hopc->pages) << kernel_pageshift, VMF_NATIVE, TRUE);
 			base = before;
 			pages += hopc->pages;
 			vpc_remove_at(hopc, before, hoidx);
@@ -3414,7 +3417,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	 * Look in low-order caches whether we can find chunks after.
 	 */
 
-	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
+	g_assert(ptr_add_offset(base, pages << kernel_pageshift) == end);
 
 	for (i = 0; /* empty */; i++) {
 		bool coalesced = FALSE;
@@ -3441,7 +3444,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 						lopc->pages - 1, base, ptr_add_offset(end, -1));
 				}
 				assert_vmm_is_allocated(base,
-					(pages + lopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
+					(pages + lopc->pages) << kernel_pageshift,
+					VMF_NATIVE, TRUE);
 				pages += lopc->pages;
 				vpc_remove_at(lopc, end, loidx);
 				end = ptr_add_offset(end, lopc->chunksize);
@@ -3486,7 +3490,7 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 					hopc->pages - 1, base, ptr_add_offset(end, -1));
 			}
 			assert_vmm_is_allocated(base,
-				(pages + hopc->pages) * kernel_pagesize, VMF_NATIVE, TRUE);
+				(pages + hopc->pages) << kernel_pageshift, VMF_NATIVE, TRUE);
 			pages += hopc->pages;
 			vpc_remove_at(hopc, end, hoidx);
 			end = ptr_add_offset(end, hopc->chunksize);
@@ -3499,8 +3503,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 	}
 
 done:
-	assert_vmm_is_allocated(base, pages * kernel_pagesize, VMF_NATIVE, FALSE);
-	g_assert(ptr_add_offset(base, pages * kernel_pagesize) == end);
+	assert_vmm_is_allocated(base, pages << kernel_pageshift, VMF_NATIVE, FALSE);
+	g_assert(ptr_add_offset(base, pages << kernel_pageshift) == end);
 
 	if G_UNLIKELY(pages != old_pages) {
 		if (vmm_debugging(2)) {
@@ -4598,7 +4602,7 @@ vmm_early_init_once(void)
 		struct page_cache *pc = &page_cache[i];
 		size_t pages = i + 1;
 		pc->pages = pages;
-		pc->chunksize = pages * kernel_pagesize;
+		pc->chunksize = pages << kernel_pageshift;
 		spinlock_init(&pc->lock);
 	}
 
