@@ -81,14 +81,13 @@
 /**
  * Deferred loading support.
  */
-static char *local_path;		/**< Path before a chdir() */
-static char *program_path;		/**< Absolute program path */
-static time_t program_mtime;	/**< Last modification time of executable */
+static const char *local_path;		/**< Path before a chdir() (ro string) */
+static const char *program_path;	/**< Absolute program path (ro string) */
+static time_t program_mtime;		/**< Last modification time of executable */
 static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
 
-static const char *executable_absolute_path;	/* Read-only string */
 static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
 static once_flag_t stacktrace_atom_inited;
 
@@ -452,7 +451,7 @@ static G_GNUC_COLD char *
 program_path_allocate(const char *argv0)
 {
 	filestat_t buf;
-	const char *file = argv0;
+	char *file = deconstify_char(argv0);
 	char filepath[MAX_PATH_LEN + 1];
 
 	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
@@ -473,13 +472,13 @@ program_path_allocate(const char *argv0)
 	}
 
 	if (file != NULL && file != argv0)
-		return deconstify_pointer(file);
+		return file;
 
 	return h_strdup(filepath);
 
 error:
 	if (file != NULL && file != argv0)
-		hfree(deconstify_pointer(file));
+		hfree(file);
 
 	return NULL;
 }
@@ -573,7 +572,7 @@ stacktrace_buffer_init(void)
 G_GNUC_COLD void
 stacktrace_init(const char *argv0, bool deferred)
 {
-	char *path;
+	char *path, *apath;
 	filestat_t buf;
 
 	g_assert(argv0 != NULL);
@@ -596,12 +595,13 @@ stacktrace_init(const char *argv0, bool deferred)
 		goto done;
 	}
 
-	program_path = absolute_pathname(path);
-	executable_absolute_path = ostrdup_readonly(program_path);
+	apath = absolute_pathname(path);
+	program_path = ostrdup_readonly(apath);
+	HFREE_NULL(apath);
 
 	if (deferred) {
 		program_mtime = buf.st_mtime;
-		local_path = path;
+		local_path = ostrdup_readonly(path);
 		goto tune;
 	}
 
@@ -610,7 +610,6 @@ stacktrace_init(const char *argv0, bool deferred)
 	/* FALL THROUGH */
 
 done:
-	HFREE_NULL(program_path);
 	HFREE_NULL(path);
 	symbols_loaded = TRUE;		/* Don't attempt again */
 
@@ -642,8 +641,6 @@ stacktrace_memory_used(void)
 G_GNUC_COLD void
 stacktrace_close(void)
 {
-	HFREE_NULL(local_path);
-	HFREE_NULL(program_path);
 	symbols_free_null(&symbols);
 	if (stack_atoms != NULL) {
 		hash_table_destroy_real(stack_atoms);	/* Does not free keys/values */
@@ -680,7 +677,7 @@ stacktrace_load_symbols(void)
 
 	if G_UNLIKELY(NULL == program_path) {
 		const char *path = dl_util_get_path(func_to_pointer(stacktrace_init));
-		program_path = h_strdup(path);
+		program_path = ostrdup_readonly(path);
 	}
 
 	/*
@@ -713,18 +710,12 @@ stacktrace_load_symbols(void)
 		stacktrace_get_symbols(program_path, local_path, stale);
 	}
 
-	goto done;
+	return;
 
 error:
 	if (program_path != NULL) {
 		s_warning("cannot load symbols for %s", program_path);
 	}
-
-	/* FALL THROUGH */
-
-done:
-	HFREE_NULL(program_path);
-	HFREE_NULL(local_path);
 }
 
 /**
@@ -1074,7 +1065,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			if (pathname != NULL) {
 				if (!is_absolute_path(pathname) && stack_is_our_text(pc)) {
 					if (!file_exists(pathname))
-						pathname = executable_absolute_path;
+						pathname = program_path;
 				}
 			}
 
