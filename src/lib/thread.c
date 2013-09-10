@@ -811,7 +811,8 @@ thread_private_drop_value(const void *u_key, void *value, void *u_data)
 static void
 thread_private_clear(struct thread_element *te)
 {
-	hash_table_foreach_remove(te->pht, thread_private_drop_value, NULL);
+	if (te->pht != NULL)
+		hash_table_foreach_remove(te->pht, thread_private_drop_value, NULL);
 }
 
 /**
@@ -822,6 +823,9 @@ static void
 thread_private_clear_warn(struct thread_element *te)
 {
 	size_t cnt;
+
+	if (NULL == te->pht)
+		return;
 
 	cnt = hash_table_foreach_remove(te->pht, thread_private_drop_value, NULL);
 
@@ -1462,7 +1466,6 @@ thread_new_element(unsigned stid)
 
 allocated:
 	thread_lock_stack_init(te);
-	te->pht = hash_table_once_new_real();	/* Never freed! */
 
 	return te;
 }
@@ -1561,8 +1564,6 @@ thread_main_element(thread_t t)
 	 */
 
 	mutex_unlock_fast(&thread_insert_mtx);
-
-	te->pht = hash_table_once_new_real();	/* Never freed! */
 
 	return te;
 }
@@ -2298,7 +2299,19 @@ found:
 static hash_table_t *
 thread_get_private_hash(void)
 {
-	return thread_get_element()->pht;
+	struct thread_element *te = thread_get_element();
+
+	/*
+	 * The private hash table is lazily created because not all the threads
+	 * are going to require usage of thread-private data.  Since this data
+	 * structure is never freed, even when the thread dies, it pays to be
+	 * lazy, especially if there are many "discovered" threads in the process.
+	 */
+
+	if G_UNLIKELY(NULL == te->pht)
+		te->pht = hash_table_once_new_real();	/* Never freed! */
+
+	return te->pht;
 }
 
 /**
