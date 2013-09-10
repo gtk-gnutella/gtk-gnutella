@@ -411,11 +411,6 @@ mingw_win2posix(int error)
 {
 	static hset_t *warned;
 
-	if (NULL == warned && mingw_vmm_inited) {
-		/* Only allocate once VMM layer has been initialized */
-		warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
-	}
-
 	/*
 	 * This is required when using non-POSIX routines, for instance
 	 * _wmkdir() instead of mkdir(), so that regular errno procesing
@@ -520,6 +515,15 @@ mingw_win2posix(int error)
 		/* Got this error writing to a closed stdio fd, opened via pipe() */
 		return EBADF;
 	default:
+		/* Only allocate once VMM layer has been initialized */
+		if (NULL == warned && mingw_vmm_inited) {
+			static spinlock_t warned_slk = SPINLOCK_INIT;
+
+			spinlock(&warned_slk);
+			if (NULL == warned)
+				warned = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
+			spinunlock(&warned_slk);
+		}
 		if (warned != NULL && !hset_contains(warned, int_to_pointer(error))) {
 			s_warning("Windows error code %d (%s) not remapped to a POSIX one",
 				error, g_strerror(error));
