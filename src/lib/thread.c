@@ -2839,6 +2839,7 @@ thread_check_suspended(void)
 size_t
 thread_suspend_others(bool lockwait)
 {
+	static bool suspending[THREAD_MAX];
 	struct thread_element *te;
 	size_t i, n = 0;
 	unsigned busy = 0;
@@ -2857,6 +2858,41 @@ thread_suspend_others(bool lockwait)
 	}
 
 	g_assert_log(te != NULL, "%s() called from unknown thread", G_STRFUNC);
+
+	/*
+	 * Avoid recursion from the same thread, which means something is going
+	 * wrong during the suspension.
+	 */
+
+	if G_UNLIKELY(suspending[te->stid]) {
+		s_rawwarn("%s(): recursive call detected from thread #%u",
+			G_STRFUNC, te->stid);
+
+		/*
+		 * Minimal suspension, to guarantee proper semantics from the caller.
+		 * We most likely hold the mutex, unless there was a problem grabbing
+		 * that mutex, at which point correctness no longer matters.
+		 */
+
+		for (i = 0; i < thread_next_stid; i++) {
+			struct thread_element *xte = threads[i];
+
+			if G_UNLIKELY(xte == te)
+				continue;
+
+			atomic_int_inc(&xte->suspend);
+			n++;
+		}
+
+		return n;
+	}
+
+	/*
+	 * Set the recursion flag before taking the mutex, just in case there is
+	 * a problem with getting the mutex which would trigger recursion here.
+	 */
+
+	suspending[te->stid] = TRUE;
 
 	mutex_lock(&thread_suspend_mtx);
 
@@ -2914,6 +2950,8 @@ thread_suspend_others(bool lockwait)
 		}
 		thread_wait_others(te);
 	}
+
+	suspending[te->stid] = FALSE;
 
 	return n;
 }
