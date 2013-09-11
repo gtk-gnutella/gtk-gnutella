@@ -837,6 +837,22 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 static void NO_INLINE
 s_stacktrace(bool no_stdio, unsigned offset)
 {
+	static bool tracing[THREAD_MAX];
+	unsigned stid = thread_small_id();
+
+	/*
+	 * Protect thread, in case any of the tracing causes a recursion.
+	 * Indeed, recursion would probably be fatal (endless) and would prevent
+	 * further important debugging messages to be emitted by the thread.
+	 */
+
+	if (tracing[stid]) {
+		s_rawwarn("skipping trace for thread #%u (already in progress)", stid);
+		return;
+	}
+
+	tracing[stid] = TRUE;
+
 	if (no_stdio) {
 		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
 		if (log_stdout_is_distinct())
@@ -852,6 +868,8 @@ s_stacktrace(bool no_stdio, unsigned offset)
 			fflush(stdout);
 		}
 	}
+
+	tracing[stid] = FALSE;
 }
 
 /**
