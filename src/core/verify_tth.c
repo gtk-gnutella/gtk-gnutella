@@ -34,7 +34,6 @@
 #include "common.h"
 
 #include "downloads.h"
-#include "file_object.h"
 #include "guid.h"
 #include "huge.h"
 #include "sockets.h"
@@ -47,11 +46,12 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/bg.h"
+#include "lib/file.h"
+#include "lib/file_object.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
-#include "lib/file.h"
-#include "lib/tigertree.h"
 #include "lib/tiger.h"
+#include "lib/tigertree.h"
 #include "lib/tm.h"
 
 #include "lib/override.h"		/* Must be the last inclusion */

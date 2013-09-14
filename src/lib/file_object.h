@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2006 Christian Biere
+ * Copyright (c) 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,8 +22,20 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef _core_file_object_h_
-#define _core_file_object_h_
+/**
+ * @ingroup lib
+ * @file
+ *
+ * Sharing of file descriptors through file objects.
+ *
+ * @author Christian Biere
+ * @date 2006
+ * @author Raphael Manfredi
+ * @date 2013
+ */
+
+#ifndef _file_object_h_
+#define _file_object_h_
 
 #include "common.h"
 
@@ -50,5 +63,6 @@ bool file_object_unlink(const char * const path);
 bool file_object_moved(const char * const o, const char * const n);
 int file_object_fstat(const struct file_object * const fo, filestat_t *b);
 
-#endif /* _core_file_object_h_ */
+#endif /* _file_object_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

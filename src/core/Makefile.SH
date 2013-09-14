@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -98,7 +98,6 @@ SRC = \
 	dump.c \
 	extensions.c \
 	features.c \
-	file_object.c \
 	fileinfo.c \
 	gdht.c \
 	geo_ip.c \
@@ -197,7 +196,6 @@ OBJ = \
 	dump.o \
 	extensions.o \
 	features.o \
-	file_object.o \
 	fileinfo.o \
 	gdht.o \
 	geo_ip.o \

@@ -111,6 +111,7 @@ LSRC = \
 	fd.c \
 	fifo.c \
 	file.c \
+	file_object.c \
 	filehead.c \
 	filename.c \
 	float.c \

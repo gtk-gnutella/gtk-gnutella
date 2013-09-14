@@ -307,8 +307,6 @@ src/core/extensions.c
 src/core/extensions.h
 src/core/features.c
 src/core/features.h
-src/core/file_object.c
-src/core/file_object.h
 src/core/fileinfo.c
 src/core/fileinfo.h
 src/core/gdht.c
@@ -683,6 +681,8 @@ src/lib/fifo.c
 src/lib/fifo.h
 src/lib/file.c
 src/lib/file.h
+src/lib/file_object.c
+src/lib/file_object.h
 src/lib/filehead.c
 src/lib/filehead.h
 src/lib/filename.c

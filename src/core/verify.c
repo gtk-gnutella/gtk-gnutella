@@ -33,7 +33,6 @@
 
 #include "common.h"
 
-#include "file_object.h"
 #include "verify.h"
 
 #include "if/gnet_property.h"
@@ -43,6 +42,7 @@
 #include "lib/bg.h"
 #include "lib/compat_misc.h"
 #include "lib/file.h"
+#include "lib/file_object.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"

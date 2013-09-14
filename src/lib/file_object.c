@@ -24,7 +24,7 @@
  */
 
 /**
- * @ingroup core
+ * @ingroup lib
  * @file
  *
  * Sharing of file descriptors through file objects.
@@ -51,9 +51,8 @@
  *
  * The current offset is shared that means, you should always use pread()
  * instead of read(), pwrite() instead of write() etc. The replacement
- * functions do not restore the original file offset and they are NOT
- * thread-safe. As gtk-gnutella is mono-threaded this should never be a
- * problem.
+ * functions -- compat_pread() and compat_pwrite() -- do not restore the
+ * original file offset.
  *
  * The file objects created with O_RDWR are returned for all
  * file_object_open() requests. That means the caller must take care to not
@@ -91,20 +90,20 @@
 
 #include "file_object.h"
 
-#include "lib/atomic.h"
-#include "lib/atoms.h"
-#include "lib/compat_pio.h"
-#include "lib/fd.h"
-#include "lib/file.h"
-#include "lib/glib-missing.h"
-#include "lib/hikset.h"
-#include "lib/iovec.h"
-#include "lib/mutex.h"
-#include "lib/once.h"
-#include "lib/path.h"
-#include "lib/walloc.h"
+#include "atomic.h"
+#include "atoms.h"
+#include "compat_pio.h"
+#include "fd.h"
+#include "file.h"
+#include "glib-missing.h"
+#include "hikset.h"
+#include "iovec.h"
+#include "mutex.h"
+#include "once.h"
+#include "path.h"
+#include "walloc.h"
 
-#include "lib/override.h"       /* Must be the last header included */
+#include "override.h"       /* Must be the last header included */
 
 static hikset_t *ht_file_objects_rdonly;	/* read-only file objects */
 static hikset_t *ht_file_objects_wronly;	/* write-only file objects */
@@ -823,9 +822,9 @@ file_object_get_pathname(const struct file_object * const fo)
 	 * be changed from file_object_special_op().
 	 *
 	 * FIXME
-	 * There is a possible race because the atom could be freed from
+	 * There is a possible race because the pathname atom could be freed from
 	 * within file_object_special_op() if the file is concurrently renamed
-	 * or moved whislt this routine is called.  The lock only guarantees that
+	 * or moved whilst this routine is called.  The lock only guarantees that
 	 * we'll read a consistent value, but does not protect from concurrent
 	 * freeing that could happen once the lock was released.
 	 *

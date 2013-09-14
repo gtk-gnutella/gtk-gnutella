@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-171]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-172]
 : $X-Id: Jmake.tmpl 156 2012-12-19 16:44:39Z rmanfredi $
 
 case $CONFIG in
@@ -168,6 +168,7 @@ LSRC = \
 	fd.c \
 	fifo.c \
 	file.c \
+	file_object.c \
 	filehead.c \
 	filename.c \
 	float.c \
@@ -335,6 +336,7 @@ LOBJ = \
 	fd.o \
 	fifo.o \
 	file.o \
+	file_object.o \
 	filehead.o \
 	filename.o \
 	float.o \
