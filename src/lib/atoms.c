@@ -153,13 +153,12 @@ static struct mem_pool *
 mem_pool_new(size_t size, size_t hold)
 {
   struct mem_pool *mp;
-  size_t len, ps;
+  size_t len;
   
   g_assert(size >= sizeof mp->chunks[0]);
   g_assert(0 == size % sizeof mp->chunks[0]);
   g_assert(hold > 0);
   
-  ps = compat_pagesize();
   len = hold * size;
   
   mp = vmm_core_alloc(len);
@@ -284,7 +283,7 @@ mem_protect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ))
-		s_warning("mem_protect: mprotect(%p, %u, PROT_READ) failed: %m",
+		s_warning("mem_protect: mprotect(%p, %zu, PROT_READ) failed: %m",
 			p, size);
 }
 
@@ -303,7 +302,7 @@ mem_unprotect(void *ptr, size_t size)
 	size = round_size(ps, size);
 
 	if (-1 == mprotect(p, size, PROT_READ | PROT_WRITE))
-		s_warning("mem_unprotect: mprotect(%p, %u, PROT_RDWR) failed: %m",
+		s_warning("mem_unprotect: mprotect(%p, %zu, PROT_RDWR) failed: %m",
 			p, size);
 }
 
