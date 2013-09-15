@@ -31,7 +31,9 @@
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
+
 #include "gui_property.h"
 
 /*
@@ -357,10 +359,11 @@ gui_prop_init(void) {
     gui_property->size   = GUI_PROPERTY_NUM;
     gui_property->offset = 1000;
     gui_property->mtime  = 0;
-    gui_property->props  = omalloc(sizeof(prop_def_t) * GUI_PROPERTY_NUM);
+    OMALLOC_ARRAY(gui_property->props, GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
     gui_property->dirty = FALSE;
     gui_property->by_name = NULL;
+	spinlock_init(&gui_property->lock);
 
 
     /*
@@ -373,6 +376,7 @@ gui_prop_init(void) {
     gui_property->props[0].ev_changed = event_new("monitor_enabled_changed");
     gui_property->props[0].save = FALSE;
     gui_property->props[0].vector_size = 1;
+	mutex_init(&gui_property->props[0].lock);
 
     /* Type specific data: */
     gui_property->props[0].type               = PROP_TYPE_BOOLEAN;
@@ -390,6 +394,7 @@ gui_prop_init(void) {
     gui_property->props[1].ev_changed = event_new("monitor_max_items_changed");
     gui_property->props[1].save = TRUE;
     gui_property->props[1].vector_size = 1;
+	mutex_init(&gui_property->props[1].lock);
 
     /* Type specific data: */
     gui_property->props[1].type               = PROP_TYPE_GUINT32;
@@ -410,6 +415,7 @@ gui_prop_init(void) {
     gui_property->props[2].ev_changed = event_new("search_hide_downloaded_changed");
     gui_property->props[2].save = TRUE;
     gui_property->props[2].vector_size = 1;
+	mutex_init(&gui_property->props[2].lock);
 
     /* Type specific data: */
     gui_property->props[2].type               = PROP_TYPE_BOOLEAN;
@@ -427,6 +433,7 @@ gui_prop_init(void) {
     gui_property->props[3].ev_changed = event_new("nodes_col_widths_changed");
     gui_property->props[3].save = TRUE;
     gui_property->props[3].vector_size = NODES_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[3].lock);
 
     /* Type specific data: */
     gui_property->props[3].type               = PROP_TYPE_GUINT32;
@@ -447,6 +454,7 @@ gui_prop_init(void) {
     gui_property->props[4].ev_changed = event_new("nodes_col_visible_changed");
     gui_property->props[4].save = TRUE;
     gui_property->props[4].vector_size = NODES_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[4].lock);
 
     /* Type specific data: */
     gui_property->props[4].type               = PROP_TYPE_BOOLEAN;
@@ -464,6 +472,7 @@ gui_prop_init(void) {
     gui_property->props[5].ev_changed = event_new("file_info_col_widths_changed");
     gui_property->props[5].save = TRUE;
     gui_property->props[5].vector_size = FILEINFO_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[5].lock);
 
     /* Type specific data: */
     gui_property->props[5].type               = PROP_TYPE_GUINT32;
@@ -484,6 +493,7 @@ gui_prop_init(void) {
     gui_property->props[6].ev_changed = event_new("file_info_col_visible_changed");
     gui_property->props[6].save = TRUE;
     gui_property->props[6].vector_size = FILEINFO_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[6].lock);
 
     /* Type specific data: */
     gui_property->props[6].type               = PROP_TYPE_BOOLEAN;
@@ -501,6 +511,7 @@ gui_prop_init(void) {
     gui_property->props[7].ev_changed = event_new("sources_col_widths_changed");
     gui_property->props[7].save = TRUE;
     gui_property->props[7].vector_size = SOURCES_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[7].lock);
 
     /* Type specific data: */
     gui_property->props[7].type               = PROP_TYPE_GUINT32;
@@ -521,6 +532,7 @@ gui_prop_init(void) {
     gui_property->props[8].ev_changed = event_new("search_list_col_widths_changed");
     gui_property->props[8].save = TRUE;
     gui_property->props[8].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[8].lock);
 
     /* Type specific data: */
     gui_property->props[8].type               = PROP_TYPE_GUINT32;
@@ -541,6 +553,7 @@ gui_prop_init(void) {
     gui_property->props[9].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[9].save = TRUE;
     gui_property->props[9].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[9].lock);
 
     /* Type specific data: */
     gui_property->props[9].type               = PROP_TYPE_BOOLEAN;
@@ -558,6 +571,7 @@ gui_prop_init(void) {
     gui_property->props[10].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[10].save = TRUE;
     gui_property->props[10].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[10].lock);
 
     /* Type specific data: */
     gui_property->props[10].type               = PROP_TYPE_GUINT32;
@@ -578,6 +592,7 @@ gui_prop_init(void) {
     gui_property->props[11].ev_changed = event_new("search_stats_col_widths_changed");
     gui_property->props[11].save = TRUE;
     gui_property->props[11].vector_size = 3;
+	mutex_init(&gui_property->props[11].lock);
 
     /* Type specific data: */
     gui_property->props[11].type               = PROP_TYPE_GUINT32;
@@ -598,6 +613,7 @@ gui_prop_init(void) {
     gui_property->props[12].ev_changed = event_new("ul_stats_col_widths_changed");
     gui_property->props[12].save = TRUE;
     gui_property->props[12].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[12].lock);
 
     /* Type specific data: */
     gui_property->props[12].type               = PROP_TYPE_GUINT32;
@@ -618,6 +634,7 @@ gui_prop_init(void) {
     gui_property->props[13].ev_changed = event_new("ul_stats_col_visible_changed");
     gui_property->props[13].save = TRUE;
     gui_property->props[13].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[13].lock);
 
     /* Type specific data: */
     gui_property->props[13].type               = PROP_TYPE_BOOLEAN;
@@ -635,6 +652,7 @@ gui_prop_init(void) {
     gui_property->props[14].ev_changed = event_new("uploads_col_widths_changed");
     gui_property->props[14].save = TRUE;
     gui_property->props[14].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[14].lock);
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;
@@ -655,6 +673,7 @@ gui_prop_init(void) {
     gui_property->props[15].ev_changed = event_new("uploads_col_visible_changed");
     gui_property->props[15].save = TRUE;
     gui_property->props[15].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
+	mutex_init(&gui_property->props[15].lock);
 
     /* Type specific data: */
     gui_property->props[15].type               = PROP_TYPE_BOOLEAN;
@@ -672,6 +691,7 @@ gui_prop_init(void) {
     gui_property->props[16].ev_changed = event_new("filter_rules_col_widths_changed");
     gui_property->props[16].save = TRUE;
     gui_property->props[16].vector_size = 4;
+	mutex_init(&gui_property->props[16].lock);
 
     /* Type specific data: */
     gui_property->props[16].type               = PROP_TYPE_GUINT32;
@@ -692,6 +712,7 @@ gui_prop_init(void) {
     gui_property->props[17].ev_changed = event_new("filter_filters_col_widths_changed");
     gui_property->props[17].save = TRUE;
     gui_property->props[17].vector_size = 3;
+	mutex_init(&gui_property->props[17].lock);
 
     /* Type specific data: */
     gui_property->props[17].type               = PROP_TYPE_GUINT32;
@@ -712,6 +733,7 @@ gui_prop_init(void) {
     gui_property->props[18].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
     gui_property->props[18].save = TRUE;
     gui_property->props[18].vector_size = 8;
+	mutex_init(&gui_property->props[18].lock);
 
     /* Type specific data: */
     gui_property->props[18].type               = PROP_TYPE_GUINT32;
@@ -732,6 +754,7 @@ gui_prop_init(void) {
     gui_property->props[19].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
     gui_property->props[19].save = TRUE;
     gui_property->props[19].vector_size = 10;
+	mutex_init(&gui_property->props[19].lock);
 
     /* Type specific data: */
     gui_property->props[19].type               = PROP_TYPE_GUINT32;
@@ -752,6 +775,7 @@ gui_prop_init(void) {
     gui_property->props[20].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
     gui_property->props[20].save = TRUE;
     gui_property->props[20].vector_size = 10;
+	mutex_init(&gui_property->props[20].lock);
 
     /* Type specific data: */
     gui_property->props[20].type               = PROP_TYPE_GUINT32;
@@ -772,6 +796,7 @@ gui_prop_init(void) {
     gui_property->props[21].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
     gui_property->props[21].save = TRUE;
     gui_property->props[21].vector_size = 10;
+	mutex_init(&gui_property->props[21].lock);
 
     /* Type specific data: */
     gui_property->props[21].type               = PROP_TYPE_GUINT32;
@@ -792,6 +817,7 @@ gui_prop_init(void) {
     gui_property->props[22].ev_changed = event_new("gnet_stats_horizon_col_widths_changed");
     gui_property->props[22].save = TRUE;
     gui_property->props[22].vector_size = 4;
+	mutex_init(&gui_property->props[22].lock);
 
     /* Type specific data: */
     gui_property->props[22].type               = PROP_TYPE_GUINT32;
@@ -812,6 +838,7 @@ gui_prop_init(void) {
     gui_property->props[23].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
     gui_property->props[23].save = TRUE;
     gui_property->props[23].vector_size = 2;
+	mutex_init(&gui_property->props[23].lock);
 
     /* Type specific data: */
     gui_property->props[23].type               = PROP_TYPE_GUINT32;
@@ -832,6 +859,7 @@ gui_prop_init(void) {
     gui_property->props[24].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
     gui_property->props[24].save = TRUE;
     gui_property->props[24].vector_size = 10;
+	mutex_init(&gui_property->props[24].lock);
 
     /* Type specific data: */
     gui_property->props[24].type               = PROP_TYPE_GUINT32;
@@ -852,6 +880,7 @@ gui_prop_init(void) {
     gui_property->props[25].ev_changed = event_new("hcache_col_widths_changed");
     gui_property->props[25].save = TRUE;
     gui_property->props[25].vector_size = 4;
+	mutex_init(&gui_property->props[25].lock);
 
     /* Type specific data: */
     gui_property->props[25].type               = PROP_TYPE_GUINT32;
@@ -872,6 +901,7 @@ gui_prop_init(void) {
     gui_property->props[26].ev_changed = event_new("window_coords_changed");
     gui_property->props[26].save = TRUE;
     gui_property->props[26].vector_size = 4;
+	mutex_init(&gui_property->props[26].lock);
 
     /* Type specific data: */
     gui_property->props[26].type               = PROP_TYPE_GUINT32;
@@ -892,6 +922,7 @@ gui_prop_init(void) {
     gui_property->props[27].ev_changed = event_new("filter_dlg_coords_changed");
     gui_property->props[27].save = TRUE;
     gui_property->props[27].vector_size = 4;
+	mutex_init(&gui_property->props[27].lock);
 
     /* Type specific data: */
     gui_property->props[27].type               = PROP_TYPE_GUINT32;
@@ -912,6 +943,7 @@ gui_prop_init(void) {
     gui_property->props[28].ev_changed = event_new("prefs_dlg_coords_changed");
     gui_property->props[28].save = TRUE;
     gui_property->props[28].vector_size = 4;
+	mutex_init(&gui_property->props[28].lock);
 
     /* Type specific data: */
     gui_property->props[28].type               = PROP_TYPE_GUINT32;
@@ -932,6 +964,7 @@ gui_prop_init(void) {
     gui_property->props[29].ev_changed = event_new("fileinfo_divider_pos_changed");
     gui_property->props[29].save = TRUE;
     gui_property->props[29].vector_size = 1;
+	mutex_init(&gui_property->props[29].lock);
 
     /* Type specific data: */
     gui_property->props[29].type               = PROP_TYPE_GUINT32;
@@ -952,6 +985,7 @@ gui_prop_init(void) {
     gui_property->props[30].ev_changed = event_new("main_divider_pos_changed");
     gui_property->props[30].save = TRUE;
     gui_property->props[30].vector_size = 1;
+	mutex_init(&gui_property->props[30].lock);
 
     /* Type specific data: */
     gui_property->props[30].type               = PROP_TYPE_GUINT32;
@@ -972,6 +1006,7 @@ gui_prop_init(void) {
     gui_property->props[31].ev_changed = event_new("gnet_stats_divider_pos_changed");
     gui_property->props[31].save = TRUE;
     gui_property->props[31].vector_size = 1;
+	mutex_init(&gui_property->props[31].lock);
 
     /* Type specific data: */
     gui_property->props[31].type               = PROP_TYPE_GUINT32;
@@ -992,6 +1027,7 @@ gui_prop_init(void) {
     gui_property->props[32].ev_changed = event_new("results_divider_pos_changed");
     gui_property->props[32].save = TRUE;
     gui_property->props[32].vector_size = 1;
+	mutex_init(&gui_property->props[32].lock);
 
     /* Type specific data: */
     gui_property->props[32].type               = PROP_TYPE_GUINT32;
@@ -1012,6 +1048,7 @@ gui_prop_init(void) {
     gui_property->props[33].ev_changed = event_new("gui_debug_changed");
     gui_property->props[33].save = TRUE;
     gui_property->props[33].vector_size = 1;
+	mutex_init(&gui_property->props[33].lock);
 
     /* Type specific data: */
     gui_property->props[33].type               = PROP_TYPE_GUINT32;
@@ -1032,6 +1069,7 @@ gui_prop_init(void) {
     gui_property->props[34].ev_changed = event_new("filter_main_divider_pos_changed");
     gui_property->props[34].save = TRUE;
     gui_property->props[34].vector_size = 1;
+	mutex_init(&gui_property->props[34].lock);
 
     /* Type specific data: */
     gui_property->props[34].type               = PROP_TYPE_GUINT32;
@@ -1052,6 +1090,7 @@ gui_prop_init(void) {
     gui_property->props[35].ev_changed = event_new("search_results_show_tabs_changed");
     gui_property->props[35].save = TRUE;
     gui_property->props[35].vector_size = 1;
+	mutex_init(&gui_property->props[35].lock);
 
     /* Type specific data: */
     gui_property->props[35].type               = PROP_TYPE_BOOLEAN;
@@ -1069,6 +1108,7 @@ gui_prop_init(void) {
     gui_property->props[36].ev_changed = event_new("searchbar_visible_changed");
     gui_property->props[36].save = TRUE;
     gui_property->props[36].vector_size = 1;
+	mutex_init(&gui_property->props[36].lock);
 
     /* Type specific data: */
     gui_property->props[36].type               = PROP_TYPE_BOOLEAN;
@@ -1086,6 +1126,7 @@ gui_prop_init(void) {
     gui_property->props[37].ev_changed = event_new("sidebar_visible_changed");
     gui_property->props[37].save = TRUE;
     gui_property->props[37].vector_size = 1;
+	mutex_init(&gui_property->props[37].lock);
 
     /* Type specific data: */
     gui_property->props[37].type               = PROP_TYPE_BOOLEAN;
@@ -1103,6 +1144,7 @@ gui_prop_init(void) {
     gui_property->props[38].ev_changed = event_new("menubar_visible_changed");
     gui_property->props[38].save = FALSE;
     gui_property->props[38].vector_size = 1;
+	mutex_init(&gui_property->props[38].lock);
 
     /* Type specific data: */
     gui_property->props[38].type               = PROP_TYPE_BOOLEAN;
@@ -1120,6 +1162,7 @@ gui_prop_init(void) {
     gui_property->props[39].ev_changed = event_new("statusbar_visible_changed");
     gui_property->props[39].save = TRUE;
     gui_property->props[39].vector_size = 1;
+	mutex_init(&gui_property->props[39].lock);
 
     /* Type specific data: */
     gui_property->props[39].type               = PROP_TYPE_BOOLEAN;
@@ -1137,6 +1180,7 @@ gui_prop_init(void) {
     gui_property->props[40].ev_changed = event_new("progressbar_uploads_visible_changed");
     gui_property->props[40].save = TRUE;
     gui_property->props[40].vector_size = 1;
+	mutex_init(&gui_property->props[40].lock);
 
     /* Type specific data: */
     gui_property->props[40].type               = PROP_TYPE_BOOLEAN;
@@ -1154,6 +1198,7 @@ gui_prop_init(void) {
     gui_property->props[41].ev_changed = event_new("progressbar_downloads_visible_changed");
     gui_property->props[41].save = TRUE;
     gui_property->props[41].vector_size = 1;
+	mutex_init(&gui_property->props[41].lock);
 
     /* Type specific data: */
     gui_property->props[41].type               = PROP_TYPE_BOOLEAN;
@@ -1171,6 +1216,7 @@ gui_prop_init(void) {
     gui_property->props[42].ev_changed = event_new("progressbar_connections_visible_changed");
     gui_property->props[42].save = TRUE;
     gui_property->props[42].vector_size = 1;
+	mutex_init(&gui_property->props[42].lock);
 
     /* Type specific data: */
     gui_property->props[42].type               = PROP_TYPE_BOOLEAN;
@@ -1188,6 +1234,7 @@ gui_prop_init(void) {
     gui_property->props[43].ev_changed = event_new("progressbar_bws_in_visible_changed");
     gui_property->props[43].save = TRUE;
     gui_property->props[43].vector_size = 1;
+	mutex_init(&gui_property->props[43].lock);
 
     /* Type specific data: */
     gui_property->props[43].type               = PROP_TYPE_BOOLEAN;
@@ -1205,6 +1252,7 @@ gui_prop_init(void) {
     gui_property->props[44].ev_changed = event_new("progressbar_bws_out_visible_changed");
     gui_property->props[44].save = TRUE;
     gui_property->props[44].vector_size = 1;
+	mutex_init(&gui_property->props[44].lock);
 
     /* Type specific data: */
     gui_property->props[44].type               = PROP_TYPE_BOOLEAN;
@@ -1222,6 +1270,7 @@ gui_prop_init(void) {
     gui_property->props[45].ev_changed = event_new("progressbar_bws_gin_visible_changed");
     gui_property->props[45].save = TRUE;
     gui_property->props[45].vector_size = 1;
+	mutex_init(&gui_property->props[45].lock);
 
     /* Type specific data: */
     gui_property->props[45].type               = PROP_TYPE_BOOLEAN;
@@ -1239,6 +1288,7 @@ gui_prop_init(void) {
     gui_property->props[46].ev_changed = event_new("progressbar_bws_gout_visible_changed");
     gui_property->props[46].save = TRUE;
     gui_property->props[46].vector_size = 1;
+	mutex_init(&gui_property->props[46].lock);
 
     /* Type specific data: */
     gui_property->props[46].type               = PROP_TYPE_BOOLEAN;
@@ -1256,6 +1306,7 @@ gui_prop_init(void) {
     gui_property->props[47].ev_changed = event_new("progressbar_bws_glin_visible_changed");
     gui_property->props[47].save = TRUE;
     gui_property->props[47].vector_size = 1;
+	mutex_init(&gui_property->props[47].lock);
 
     /* Type specific data: */
     gui_property->props[47].type               = PROP_TYPE_BOOLEAN;
@@ -1273,6 +1324,7 @@ gui_prop_init(void) {
     gui_property->props[48].ev_changed = event_new("progressbar_bws_glout_visible_changed");
     gui_property->props[48].save = TRUE;
     gui_property->props[48].vector_size = 1;
+	mutex_init(&gui_property->props[48].lock);
 
     /* Type specific data: */
     gui_property->props[48].type               = PROP_TYPE_BOOLEAN;
@@ -1290,6 +1342,7 @@ gui_prop_init(void) {
     gui_property->props[49].ev_changed = event_new("autohide_bws_gleaf_changed");
     gui_property->props[49].save = TRUE;
     gui_property->props[49].vector_size = 1;
+	mutex_init(&gui_property->props[49].lock);
 
     /* Type specific data: */
     gui_property->props[49].type               = PROP_TYPE_BOOLEAN;
@@ -1307,6 +1360,7 @@ gui_prop_init(void) {
     gui_property->props[50].ev_changed = event_new("progressbar_bws_in_avg_changed");
     gui_property->props[50].save = TRUE;
     gui_property->props[50].vector_size = 1;
+	mutex_init(&gui_property->props[50].lock);
 
     /* Type specific data: */
     gui_property->props[50].type               = PROP_TYPE_BOOLEAN;
@@ -1324,6 +1378,7 @@ gui_prop_init(void) {
     gui_property->props[51].ev_changed = event_new("progressbar_bws_out_avg_changed");
     gui_property->props[51].save = TRUE;
     gui_property->props[51].vector_size = 1;
+	mutex_init(&gui_property->props[51].lock);
 
     /* Type specific data: */
     gui_property->props[51].type               = PROP_TYPE_BOOLEAN;
@@ -1341,6 +1396,7 @@ gui_prop_init(void) {
     gui_property->props[52].ev_changed = event_new("progressbar_bws_gin_avg_changed");
     gui_property->props[52].save = TRUE;
     gui_property->props[52].vector_size = 1;
+	mutex_init(&gui_property->props[52].lock);
 
     /* Type specific data: */
     gui_property->props[52].type               = PROP_TYPE_BOOLEAN;
@@ -1358,6 +1414,7 @@ gui_prop_init(void) {
     gui_property->props[53].ev_changed = event_new("progressbar_bws_gout_avg_changed");
     gui_property->props[53].save = TRUE;
     gui_property->props[53].vector_size = 1;
+	mutex_init(&gui_property->props[53].lock);
 
     /* Type specific data: */
     gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
@@ -1375,6 +1432,7 @@ gui_prop_init(void) {
     gui_property->props[54].ev_changed = event_new("progressbar_bws_glin_avg_changed");
     gui_property->props[54].save = TRUE;
     gui_property->props[54].vector_size = 1;
+	mutex_init(&gui_property->props[54].lock);
 
     /* Type specific data: */
     gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
@@ -1392,6 +1450,7 @@ gui_prop_init(void) {
     gui_property->props[55].ev_changed = event_new("progressbar_bws_glout_avg_changed");
     gui_property->props[55].save = TRUE;
     gui_property->props[55].vector_size = 1;
+	mutex_init(&gui_property->props[55].lock);
 
     /* Type specific data: */
     gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
@@ -1409,6 +1468,7 @@ gui_prop_init(void) {
     gui_property->props[56].ev_changed = event_new("search_sort_casesense_changed");
     gui_property->props[56].save = TRUE;
     gui_property->props[56].vector_size = 1;
+	mutex_init(&gui_property->props[56].lock);
 
     /* Type specific data: */
     gui_property->props[56].type               = PROP_TYPE_BOOLEAN;
@@ -1426,6 +1486,7 @@ gui_prop_init(void) {
     gui_property->props[57].ev_changed = event_new("search_sort_default_order_changed");
     gui_property->props[57].save = TRUE;
     gui_property->props[57].vector_size = 1;
+	mutex_init(&gui_property->props[57].lock);
 
     /* Type specific data: */
     gui_property->props[57].type               = PROP_TYPE_GUINT32;
@@ -1446,6 +1507,7 @@ gui_prop_init(void) {
     gui_property->props[58].ev_changed = event_new("search_sort_default_column_changed");
     gui_property->props[58].save = TRUE;
     gui_property->props[58].vector_size = 1;
+	mutex_init(&gui_property->props[58].lock);
 
     /* Type specific data: */
     gui_property->props[58].type               = PROP_TYPE_GUINT32;
@@ -1466,6 +1528,7 @@ gui_prop_init(void) {
     gui_property->props[59].ev_changed = event_new("search_discard_spam_changed");
     gui_property->props[59].save = TRUE;
     gui_property->props[59].vector_size = 1;
+	mutex_init(&gui_property->props[59].lock);
 
     /* Type specific data: */
     gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
@@ -1483,6 +1546,7 @@ gui_prop_init(void) {
     gui_property->props[60].ev_changed = event_new("search_discard_hashless_changed");
     gui_property->props[60].save = TRUE;
     gui_property->props[60].vector_size = 1;
+	mutex_init(&gui_property->props[60].lock);
 
     /* Type specific data: */
     gui_property->props[60].type               = PROP_TYPE_BOOLEAN;
@@ -1500,6 +1564,7 @@ gui_prop_init(void) {
     gui_property->props[61].ev_changed = event_new("search_jump_to_created_changed");
     gui_property->props[61].save = TRUE;
     gui_property->props[61].vector_size = 1;
+	mutex_init(&gui_property->props[61].lock);
 
     /* Type specific data: */
     gui_property->props[61].type               = PROP_TYPE_BOOLEAN;
@@ -1517,6 +1582,7 @@ gui_prop_init(void) {
     gui_property->props[62].ev_changed = event_new("search_stats_mode_changed");
     gui_property->props[62].save = TRUE;
     gui_property->props[62].vector_size = 1;
+	mutex_init(&gui_property->props[62].lock);
 
     /* Type specific data: */
     gui_property->props[62].type               = PROP_TYPE_MULTICHOICE;
@@ -1537,6 +1603,7 @@ gui_prop_init(void) {
     gui_property->props[63].ev_changed = event_new("search_stats_update_interval_changed");
     gui_property->props[63].save = TRUE;
     gui_property->props[63].vector_size = 1;
+	mutex_init(&gui_property->props[63].lock);
 
     /* Type specific data: */
     gui_property->props[63].type               = PROP_TYPE_GUINT32;
@@ -1557,6 +1624,7 @@ gui_prop_init(void) {
     gui_property->props[64].ev_changed = event_new("search_stats_delcoef_changed");
     gui_property->props[64].save = TRUE;
     gui_property->props[64].vector_size = 1;
+	mutex_init(&gui_property->props[64].lock);
 
     /* Type specific data: */
     gui_property->props[64].type               = PROP_TYPE_GUINT32;
@@ -1577,6 +1645,7 @@ gui_prop_init(void) {
     gui_property->props[65].ev_changed = event_new("confirm_quit_changed");
     gui_property->props[65].save = TRUE;
     gui_property->props[65].vector_size = 1;
+	mutex_init(&gui_property->props[65].lock);
 
     /* Type specific data: */
     gui_property->props[65].type               = PROP_TYPE_BOOLEAN;
@@ -1594,6 +1663,7 @@ gui_prop_init(void) {
     gui_property->props[66].ev_changed = event_new("show_tooltips_changed");
     gui_property->props[66].save = TRUE;
     gui_property->props[66].vector_size = 1;
+	mutex_init(&gui_property->props[66].lock);
 
     /* Type specific data: */
     gui_property->props[66].type               = PROP_TYPE_BOOLEAN;
@@ -1611,6 +1681,7 @@ gui_prop_init(void) {
     gui_property->props[67].ev_changed = event_new("expert_mode_changed");
     gui_property->props[67].save = TRUE;
     gui_property->props[67].vector_size = 1;
+	mutex_init(&gui_property->props[67].lock);
 
     /* Type specific data: */
     gui_property->props[67].type               = PROP_TYPE_BOOLEAN;
@@ -1628,6 +1699,7 @@ gui_prop_init(void) {
     gui_property->props[68].ev_changed = event_new("gnet_stats_perc_changed");
     gui_property->props[68].save = TRUE;
     gui_property->props[68].vector_size = 1;
+	mutex_init(&gui_property->props[68].lock);
 
     /* Type specific data: */
     gui_property->props[68].type               = PROP_TYPE_BOOLEAN;
@@ -1645,6 +1717,7 @@ gui_prop_init(void) {
     gui_property->props[69].ev_changed = event_new("gnet_stats_bytes_changed");
     gui_property->props[69].save = TRUE;
     gui_property->props[69].vector_size = 1;
+	mutex_init(&gui_property->props[69].lock);
 
     /* Type specific data: */
     gui_property->props[69].type               = PROP_TYPE_BOOLEAN;
@@ -1662,6 +1735,7 @@ gui_prop_init(void) {
     gui_property->props[70].ev_changed = event_new("gnet_stats_hops_changed");
     gui_property->props[70].save = TRUE;
     gui_property->props[70].vector_size = 1;
+	mutex_init(&gui_property->props[70].lock);
 
     /* Type specific data: */
     gui_property->props[70].type               = PROP_TYPE_BOOLEAN;
@@ -1679,6 +1753,7 @@ gui_prop_init(void) {
     gui_property->props[71].ev_changed = event_new("gnet_stats_source_changed");
     gui_property->props[71].save = TRUE;
     gui_property->props[71].vector_size = 1;
+	mutex_init(&gui_property->props[71].lock);
 
     /* Type specific data: */
     gui_property->props[71].type               = PROP_TYPE_MULTICHOICE;
@@ -1699,6 +1774,7 @@ gui_prop_init(void) {
     gui_property->props[72].ev_changed = event_new("gnet_stats_drop_reasons_type_changed");
     gui_property->props[72].save = TRUE;
     gui_property->props[72].vector_size = 1;
+	mutex_init(&gui_property->props[72].lock);
 
     /* Type specific data: */
     gui_property->props[72].type               = PROP_TYPE_MULTICHOICE;
@@ -1719,6 +1795,7 @@ gui_prop_init(void) {
     gui_property->props[73].ev_changed = event_new("gnet_stats_with_headers_changed");
     gui_property->props[73].save = TRUE;
     gui_property->props[73].vector_size = 1;
+	mutex_init(&gui_property->props[73].lock);
 
     /* Type specific data: */
     gui_property->props[73].type               = PROP_TYPE_BOOLEAN;
@@ -1736,6 +1813,7 @@ gui_prop_init(void) {
     gui_property->props[74].ev_changed = event_new("gnet_stats_drop_perc_changed");
     gui_property->props[74].save = TRUE;
     gui_property->props[74].vector_size = 1;
+	mutex_init(&gui_property->props[74].lock);
 
     /* Type specific data: */
     gui_property->props[74].type               = PROP_TYPE_BOOLEAN;
@@ -1753,6 +1831,7 @@ gui_prop_init(void) {
     gui_property->props[75].ev_changed = event_new("gnet_stats_general_col_widths_changed");
     gui_property->props[75].save = TRUE;
     gui_property->props[75].vector_size = 2;
+	mutex_init(&gui_property->props[75].lock);
 
     /* Type specific data: */
     gui_property->props[75].type               = PROP_TYPE_GUINT32;
@@ -1773,6 +1852,7 @@ gui_prop_init(void) {
     gui_property->props[76].ev_changed = event_new("autoclear_completed_uploads_changed");
     gui_property->props[76].save = TRUE;
     gui_property->props[76].vector_size = 1;
+	mutex_init(&gui_property->props[76].lock);
 
     /* Type specific data: */
     gui_property->props[76].type               = PROP_TYPE_BOOLEAN;
@@ -1790,6 +1870,7 @@ gui_prop_init(void) {
     gui_property->props[77].ev_changed = event_new("autoclear_failed_uploads_changed");
     gui_property->props[77].save = TRUE;
     gui_property->props[77].vector_size = 1;
+	mutex_init(&gui_property->props[77].lock);
 
     /* Type specific data: */
     gui_property->props[77].type               = PROP_TYPE_BOOLEAN;
@@ -1807,6 +1888,7 @@ gui_prop_init(void) {
     gui_property->props[78].ev_changed = event_new("node_show_uptime_changed");
     gui_property->props[78].save = TRUE;
     gui_property->props[78].vector_size = 1;
+	mutex_init(&gui_property->props[78].lock);
 
     /* Type specific data: */
     gui_property->props[78].type               = PROP_TYPE_BOOLEAN;
@@ -1824,6 +1906,7 @@ gui_prop_init(void) {
     gui_property->props[79].ev_changed = event_new("node_show_handshake_version_changed");
     gui_property->props[79].save = TRUE;
     gui_property->props[79].vector_size = 1;
+	mutex_init(&gui_property->props[79].lock);
 
     /* Type specific data: */
     gui_property->props[79].type               = PROP_TYPE_BOOLEAN;
@@ -1841,6 +1924,7 @@ gui_prop_init(void) {
     gui_property->props[80].ev_changed = event_new("node_show_detailed_info_changed");
     gui_property->props[80].save = TRUE;
     gui_property->props[80].vector_size = 1;
+	mutex_init(&gui_property->props[80].lock);
 
     /* Type specific data: */
     gui_property->props[80].type               = PROP_TYPE_BOOLEAN;
@@ -1858,6 +1942,7 @@ gui_prop_init(void) {
     gui_property->props[81].ev_changed = event_new("show_gnet_info_txc_changed");
     gui_property->props[81].save = TRUE;
     gui_property->props[81].vector_size = 1;
+	mutex_init(&gui_property->props[81].lock);
 
     /* Type specific data: */
     gui_property->props[81].type               = PROP_TYPE_BOOLEAN;
@@ -1875,6 +1960,7 @@ gui_prop_init(void) {
     gui_property->props[82].ev_changed = event_new("show_gnet_info_rxc_changed");
     gui_property->props[82].save = TRUE;
     gui_property->props[82].vector_size = 1;
+	mutex_init(&gui_property->props[82].lock);
 
     /* Type specific data: */
     gui_property->props[82].type               = PROP_TYPE_BOOLEAN;
@@ -1892,6 +1978,7 @@ gui_prop_init(void) {
     gui_property->props[83].ev_changed = event_new("show_gnet_info_tx_wire_changed");
     gui_property->props[83].save = TRUE;
     gui_property->props[83].vector_size = 1;
+	mutex_init(&gui_property->props[83].lock);
 
     /* Type specific data: */
     gui_property->props[83].type               = PROP_TYPE_BOOLEAN;
@@ -1909,6 +1996,7 @@ gui_prop_init(void) {
     gui_property->props[84].ev_changed = event_new("show_gnet_info_rx_wire_changed");
     gui_property->props[84].save = TRUE;
     gui_property->props[84].vector_size = 1;
+	mutex_init(&gui_property->props[84].lock);
 
     /* Type specific data: */
     gui_property->props[84].type               = PROP_TYPE_BOOLEAN;
@@ -1926,6 +2014,7 @@ gui_prop_init(void) {
     gui_property->props[85].ev_changed = event_new("show_gnet_info_tx_speed_changed");
     gui_property->props[85].save = TRUE;
     gui_property->props[85].vector_size = 1;
+	mutex_init(&gui_property->props[85].lock);
 
     /* Type specific data: */
     gui_property->props[85].type               = PROP_TYPE_BOOLEAN;
@@ -1943,6 +2032,7 @@ gui_prop_init(void) {
     gui_property->props[86].ev_changed = event_new("show_gnet_info_rx_speed_changed");
     gui_property->props[86].save = TRUE;
     gui_property->props[86].vector_size = 1;
+	mutex_init(&gui_property->props[86].lock);
 
     /* Type specific data: */
     gui_property->props[86].type               = PROP_TYPE_BOOLEAN;
@@ -1960,6 +2050,7 @@ gui_prop_init(void) {
     gui_property->props[87].ev_changed = event_new("show_gnet_info_tx_queries_changed");
     gui_property->props[87].save = TRUE;
     gui_property->props[87].vector_size = 1;
+	mutex_init(&gui_property->props[87].lock);
 
     /* Type specific data: */
     gui_property->props[87].type               = PROP_TYPE_BOOLEAN;
@@ -1977,6 +2068,7 @@ gui_prop_init(void) {
     gui_property->props[88].ev_changed = event_new("show_gnet_info_rx_queries_changed");
     gui_property->props[88].save = TRUE;
     gui_property->props[88].vector_size = 1;
+	mutex_init(&gui_property->props[88].lock);
 
     /* Type specific data: */
     gui_property->props[88].type               = PROP_TYPE_BOOLEAN;
@@ -1994,6 +2086,7 @@ gui_prop_init(void) {
     gui_property->props[89].ev_changed = event_new("show_gnet_info_tx_hits_changed");
     gui_property->props[89].save = TRUE;
     gui_property->props[89].vector_size = 1;
+	mutex_init(&gui_property->props[89].lock);
 
     /* Type specific data: */
     gui_property->props[89].type               = PROP_TYPE_BOOLEAN;
@@ -2011,6 +2104,7 @@ gui_prop_init(void) {
     gui_property->props[90].ev_changed = event_new("show_gnet_info_rx_hits_changed");
     gui_property->props[90].save = TRUE;
     gui_property->props[90].vector_size = 1;
+	mutex_init(&gui_property->props[90].lock);
 
     /* Type specific data: */
     gui_property->props[90].type               = PROP_TYPE_BOOLEAN;
@@ -2028,6 +2122,7 @@ gui_prop_init(void) {
     gui_property->props[91].ev_changed = event_new("show_gnet_info_gen_queries_changed");
     gui_property->props[91].save = TRUE;
     gui_property->props[91].vector_size = 1;
+	mutex_init(&gui_property->props[91].lock);
 
     /* Type specific data: */
     gui_property->props[91].type               = PROP_TYPE_BOOLEAN;
@@ -2045,6 +2140,7 @@ gui_prop_init(void) {
     gui_property->props[92].ev_changed = event_new("show_gnet_info_sq_queries_changed");
     gui_property->props[92].save = TRUE;
     gui_property->props[92].vector_size = 1;
+	mutex_init(&gui_property->props[92].lock);
 
     /* Type specific data: */
     gui_property->props[92].type               = PROP_TYPE_BOOLEAN;
@@ -2062,6 +2158,7 @@ gui_prop_init(void) {
     gui_property->props[93].ev_changed = event_new("show_gnet_info_tx_dropped_changed");
     gui_property->props[93].save = TRUE;
     gui_property->props[93].vector_size = 1;
+	mutex_init(&gui_property->props[93].lock);
 
     /* Type specific data: */
     gui_property->props[93].type               = PROP_TYPE_BOOLEAN;
@@ -2079,6 +2176,7 @@ gui_prop_init(void) {
     gui_property->props[94].ev_changed = event_new("show_gnet_info_rx_dropped_changed");
     gui_property->props[94].save = TRUE;
     gui_property->props[94].vector_size = 1;
+	mutex_init(&gui_property->props[94].lock);
 
     /* Type specific data: */
     gui_property->props[94].type               = PROP_TYPE_BOOLEAN;
@@ -2096,6 +2194,7 @@ gui_prop_init(void) {
     gui_property->props[95].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
     gui_property->props[95].save = TRUE;
     gui_property->props[95].vector_size = 1;
+	mutex_init(&gui_property->props[95].lock);
 
     /* Type specific data: */
     gui_property->props[95].type               = PROP_TYPE_BOOLEAN;
@@ -2113,6 +2212,7 @@ gui_prop_init(void) {
     gui_property->props[96].ev_changed = event_new("show_gnet_info_dbw_changed");
     gui_property->props[96].save = TRUE;
     gui_property->props[96].vector_size = 1;
+	mutex_init(&gui_property->props[96].lock);
 
     /* Type specific data: */
     gui_property->props[96].type               = PROP_TYPE_BOOLEAN;
@@ -2130,6 +2230,7 @@ gui_prop_init(void) {
     gui_property->props[97].ev_changed = event_new("show_gnet_info_rt_changed");
     gui_property->props[97].save = TRUE;
     gui_property->props[97].vector_size = 1;
+	mutex_init(&gui_property->props[97].lock);
 
     /* Type specific data: */
     gui_property->props[97].type               = PROP_TYPE_BOOLEAN;
@@ -2147,6 +2248,7 @@ gui_prop_init(void) {
     gui_property->props[98].ev_changed = event_new("show_gnet_info_shared_size_changed");
     gui_property->props[98].save = TRUE;
     gui_property->props[98].vector_size = 1;
+	mutex_init(&gui_property->props[98].lock);
 
     /* Type specific data: */
     gui_property->props[98].type               = PROP_TYPE_BOOLEAN;
@@ -2164,6 +2266,7 @@ gui_prop_init(void) {
     gui_property->props[99].ev_changed = event_new("show_gnet_info_shared_files_changed");
     gui_property->props[99].save = TRUE;
     gui_property->props[99].vector_size = 1;
+	mutex_init(&gui_property->props[99].lock);
 
     /* Type specific data: */
     gui_property->props[99].type               = PROP_TYPE_BOOLEAN;
@@ -2181,6 +2284,7 @@ gui_prop_init(void) {
     gui_property->props[100].ev_changed = event_new("search_accumulation_period_changed");
     gui_property->props[100].save = TRUE;
     gui_property->props[100].vector_size = 1;
+	mutex_init(&gui_property->props[100].lock);
 
     /* Type specific data: */
     gui_property->props[100].type               = PROP_TYPE_GUINT32;
@@ -2201,6 +2305,7 @@ gui_prop_init(void) {
     gui_property->props[101].ev_changed = event_new("treemenu_nodes_expanded_changed");
     gui_property->props[101].save = TRUE;
     gui_property->props[101].vector_size = nb_main_page_num;
+	mutex_init(&gui_property->props[101].lock);
 
     /* Type specific data: */
     gui_property->props[101].type               = PROP_TYPE_GUINT32;
@@ -2221,6 +2326,7 @@ gui_prop_init(void) {
     gui_property->props[102].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[102].save = TRUE;
     gui_property->props[102].vector_size = 6;
+	mutex_init(&gui_property->props[102].lock);
 
     /* Type specific data: */
     gui_property->props[102].type               = PROP_TYPE_GUINT32;
@@ -2241,6 +2347,7 @@ gui_prop_init(void) {
     gui_property->props[103].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
     gui_property->props[103].save = TRUE;
     gui_property->props[103].vector_size = 6;
+	mutex_init(&gui_property->props[103].lock);
 
     /* Type specific data: */
     gui_property->props[103].type               = PROP_TYPE_GUINT32;
@@ -2261,6 +2368,7 @@ gui_prop_init(void) {
     gui_property->props[104].ev_changed = event_new("config_toolbar_style_changed");
     gui_property->props[104].save = TRUE;
     gui_property->props[104].vector_size = 1;
+	mutex_init(&gui_property->props[104].lock);
 
     /* Type specific data: */
     gui_property->props[104].type               = PROP_TYPE_MULTICHOICE;
@@ -2281,6 +2389,7 @@ gui_prop_init(void) {
     gui_property->props[105].ev_changed = event_new("search_lifetime_changed");
     gui_property->props[105].save = FALSE;
     gui_property->props[105].vector_size = 1;
+	mutex_init(&gui_property->props[105].lock);
 
     /* Type specific data: */
     gui_property->props[105].type               = PROP_TYPE_MULTICHOICE;
@@ -2301,6 +2410,7 @@ gui_prop_init(void) {
     gui_property->props[106].ev_changed = event_new("status_icon_enabled_changed");
     gui_property->props[106].save = TRUE;
     gui_property->props[106].vector_size = 1;
+	mutex_init(&gui_property->props[106].lock);
 
     /* Type specific data: */
     gui_property->props[106].type               = PROP_TYPE_BOOLEAN;
@@ -2318,6 +2428,7 @@ gui_prop_init(void) {
     gui_property->props[107].ev_changed = event_new("autohide_bws_dht_changed");
     gui_property->props[107].save = TRUE;
     gui_property->props[107].vector_size = 1;
+	mutex_init(&gui_property->props[107].lock);
 
     /* Type specific data: */
     gui_property->props[107].type               = PROP_TYPE_BOOLEAN;
@@ -2335,6 +2446,7 @@ gui_prop_init(void) {
     gui_property->props[108].ev_changed = event_new("progressbar_bws_dht_in_visible_changed");
     gui_property->props[108].save = TRUE;
     gui_property->props[108].vector_size = 1;
+	mutex_init(&gui_property->props[108].lock);
 
     /* Type specific data: */
     gui_property->props[108].type               = PROP_TYPE_BOOLEAN;
@@ -2352,6 +2464,7 @@ gui_prop_init(void) {
     gui_property->props[109].ev_changed = event_new("progressbar_bws_dht_out_visible_changed");
     gui_property->props[109].save = TRUE;
     gui_property->props[109].vector_size = 1;
+	mutex_init(&gui_property->props[109].lock);
 
     /* Type specific data: */
     gui_property->props[109].type               = PROP_TYPE_BOOLEAN;
@@ -2369,6 +2482,7 @@ gui_prop_init(void) {
     gui_property->props[110].ev_changed = event_new("progressbar_bws_dht_in_avg_changed");
     gui_property->props[110].save = TRUE;
     gui_property->props[110].vector_size = 1;
+	mutex_init(&gui_property->props[110].lock);
 
     /* Type specific data: */
     gui_property->props[110].type               = PROP_TYPE_BOOLEAN;
@@ -2386,6 +2500,7 @@ gui_prop_init(void) {
     gui_property->props[111].ev_changed = event_new("progressbar_bws_dht_out_avg_changed");
     gui_property->props[111].save = TRUE;
     gui_property->props[111].vector_size = 1;
+	mutex_init(&gui_property->props[111].lock);
 
     /* Type specific data: */
     gui_property->props[111].type               = PROP_TYPE_BOOLEAN;
@@ -2403,6 +2518,7 @@ gui_prop_init(void) {
     gui_property->props[112].ev_changed = event_new("search_media_type_audio_changed");
     gui_property->props[112].save = TRUE;
     gui_property->props[112].vector_size = 1;
+	mutex_init(&gui_property->props[112].lock);
 
     /* Type specific data: */
     gui_property->props[112].type               = PROP_TYPE_BOOLEAN;
@@ -2420,6 +2536,7 @@ gui_prop_init(void) {
     gui_property->props[113].ev_changed = event_new("search_media_type_video_changed");
     gui_property->props[113].save = TRUE;
     gui_property->props[113].vector_size = 1;
+	mutex_init(&gui_property->props[113].lock);
 
     /* Type specific data: */
     gui_property->props[113].type               = PROP_TYPE_BOOLEAN;
@@ -2437,6 +2554,7 @@ gui_prop_init(void) {
     gui_property->props[114].ev_changed = event_new("search_media_type_document_changed");
     gui_property->props[114].save = TRUE;
     gui_property->props[114].vector_size = 1;
+	mutex_init(&gui_property->props[114].lock);
 
     /* Type specific data: */
     gui_property->props[114].type               = PROP_TYPE_BOOLEAN;
@@ -2454,6 +2572,7 @@ gui_prop_init(void) {
     gui_property->props[115].ev_changed = event_new("search_media_type_image_changed");
     gui_property->props[115].save = TRUE;
     gui_property->props[115].vector_size = 1;
+	mutex_init(&gui_property->props[115].lock);
 
     /* Type specific data: */
     gui_property->props[115].type               = PROP_TYPE_BOOLEAN;
@@ -2471,6 +2590,7 @@ gui_prop_init(void) {
     gui_property->props[116].ev_changed = event_new("search_media_type_archive_changed");
     gui_property->props[116].save = TRUE;
     gui_property->props[116].vector_size = 1;
+	mutex_init(&gui_property->props[116].lock);
 
     /* Type specific data: */
     gui_property->props[116].type               = PROP_TYPE_BOOLEAN;
@@ -2488,6 +2608,7 @@ gui_prop_init(void) {
     gui_property->props[117].ev_changed = event_new("search_discard_alien_ip_changed");
     gui_property->props[117].save = TRUE;
     gui_property->props[117].vector_size = 1;
+	mutex_init(&gui_property->props[117].lock);
 
     /* Type specific data: */
     gui_property->props[117].type               = PROP_TYPE_BOOLEAN;
@@ -2505,6 +2626,7 @@ gui_prop_init(void) {
     gui_property->props[118].ev_changed = event_new("search_restart_when_pending_changed");
     gui_property->props[118].save = TRUE;
     gui_property->props[118].vector_size = 1;
+	mutex_init(&gui_property->props[118].lock);
 
     /* Type specific data: */
     gui_property->props[118].type               = PROP_TYPE_BOOLEAN;
@@ -2522,6 +2644,7 @@ gui_prop_init(void) {
     gui_property->props[119].ev_changed = event_new("search_discard_banned_guid_changed");
     gui_property->props[119].save = TRUE;
     gui_property->props[119].vector_size = 1;
+	mutex_init(&gui_property->props[119].lock);
 
     /* Type specific data: */
     gui_property->props[119].type               = PROP_TYPE_BOOLEAN;
@@ -2539,6 +2662,7 @@ gui_prop_init(void) {
     gui_property->props[120].ev_changed = event_new("search_display_guess_stats_changed");
     gui_property->props[120].save = TRUE;
     gui_property->props[120].vector_size = 1;
+	mutex_init(&gui_property->props[120].lock);
 
     /* Type specific data: */
     gui_property->props[120].type               = PROP_TYPE_BOOLEAN;
@@ -2556,6 +2680,7 @@ gui_prop_init(void) {
     gui_property->props[121].ev_changed = event_new("guess_stats_show_total_changed");
     gui_property->props[121].save = TRUE;
     gui_property->props[121].vector_size = 1;
+	mutex_init(&gui_property->props[121].lock);
 
     /* Type specific data: */
     gui_property->props[121].type               = PROP_TYPE_BOOLEAN;
@@ -2604,6 +2729,24 @@ prop_def_t *
 gui_prop_get_def(property_t p)
 {
     return prop_get_def(gui_property, p);
+}
+
+/**
+ * Lock property.
+ */
+void
+gui_prop_lock(property_t p)
+{
+    prop_lock(gui_property, p);
+}
+
+/**
+ * Unlock property.
+ */
+void
+gui_prop_unlock(property_t p)
+{
+    prop_unlock(gui_property, p);
 }
 
 /**

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Richard Eckart
+ * Copyright (c) 2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,6 +31,7 @@
 #include "file.h"
 #include "getdate.h"
 #include "halloc.h"
+#include "mutex.h"
 #include "parse.h"
 #include "path.h"
 #include "product.h"
@@ -39,6 +41,7 @@
 #include "timestamp.h"
 #include "tm.h"
 #include "walloc.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -46,6 +49,12 @@
 
 #define debug track_props
 static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
+
+#define PROP_SET_LOCK(s)	spinlock_hidden(&s->lock)
+#define PROP_SET_UNLOCK(s)	spinunlock_hidden(&s->lock)
+
+#define PROP_DEF_LOCK(d)	mutex_lock(&d->lock)
+#define PROP_DEF_UNLOCK(d)	mutex_unlock(&d->lock)
 
 const struct {
 	const char *name; 
@@ -65,12 +74,7 @@ const struct {
  ***/
 
 #define prop_assert(ps, prop, x)									\
-G_STMT_START {														\
-	if (!(x)) {														\
-		g_error("assertion failed for property \"%s\": %s",			\
-			PROP(ps, prop).name, #x);								\
-	}																\
-} G_STMT_END
+	g_assert_log(x, "property \"%s\"", PROP(ps, prop).name)
 
 typedef int (* prop_parse_func_t)(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i);
@@ -81,11 +85,10 @@ prop_parse_guint64(const char *name,
 {
 	int error;
 	guint64 u;
-	
+
 	u = parse_uint64(str, endptr, 10, &error);
 	if (error) {
-		g_warning("prop_parse_guint64: (prop=\"%s\") "
-			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	} else if (vec) {
 		((guint64 *) vec)[i] = u;
 	}
@@ -104,8 +107,7 @@ prop_parse_timestamp(const char *name,
 
 	u = parse_uint64(str, &ep, 10, &error);
 	if (error) {
-		g_warning("prop_parse_timestamp: (prop=\"%s\") "
-			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	}
 	if (*ep != '-') {
 		t = MIN(u + (time_t) 0, TIME_T_MAX + (guint64) 0);
@@ -135,11 +137,10 @@ prop_parse_guint32(const char *name,
 {
 	int error;
 	guint32 u;
-	
+
 	u = parse_uint32(str, endptr, 10, &error);
 	if (error) {
-		g_warning("prop_parse_guint32: (prop=\"%s\") "
-			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	} else if (vec) {
 		((guint32 *) vec)[i] = u;
 	}
@@ -154,7 +155,7 @@ prop_parse_ip(const char *name,
 	host_addr_t addr;
 	int error;
 	const char *ep;
-	
+
 	g_assert(name);
 	g_assert(str);
 
@@ -169,8 +170,7 @@ prop_parse_ip(const char *name,
 		error = string_to_host_addr(str, endptr, &addr) ? 0 : EINVAL;
 	}
 	if (error) {
-		g_warning("prop_parse_ip: (prop=\"%s\") "
-			"str=\"%s\": \"%s\"", name, str, g_strerror(error));
+		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	} else if (vec) {
 		((host_addr_t *) vec)[i] = addr;
 	}
@@ -198,7 +198,7 @@ prop_parse_boolean(const char *name,
 	const char *p = NULL;
 	guint j;
 	int error = 0;
-	
+
 	g_assert(name);
 	g_assert(str);
 
@@ -215,7 +215,8 @@ prop_parse_boolean(const char *name,
 	}
 
 	if (error) {
-		g_warning("Not a boolean value (prop=\"%s\"): \"%s\"", name, str);
+		s_warning("%s(): (prop=\"%s\") "
+			"str=\"%s\": \"%s\"", G_STRFUNC, name, str, "Not a boolean value");
 	} else if (vec) {
 		((gboolean *) vec)[i] = b;
 	}
@@ -253,8 +254,7 @@ prop_parse_vector(const char *name, const char *str,
 			error = ('\0' != *endptr && ',' != *endptr) ? EINVAL : 0;
 
 		if (error)
-			g_warning("prop_parse_vector: (prop=\"%s\") "
-				"str=\"%s\": \"%s\"", name, p, g_strerror(error));
+			s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, p);
 
 		p = strchr(endptr, ',');
 		if (p)
@@ -262,8 +262,8 @@ prop_parse_vector(const char *name, const char *str,
 	}
 
 	if (i < size)
-		g_warning("prop_parse_vector: (prop=\"%s\") "
-			"target initialization incomplete!", name);
+		s_warning("%s(): (prop=\"%s\") "
+			"target initialization incomplete!", G_STRFUNC, name);
 }
 
 static void
@@ -315,8 +315,9 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 
 	g_assert(size > 0);
 	if (size * 2 != strlen(str)) {
-		g_warning("prop_parse_storage: (prop=\"%s\") "
-			"storage does not match requested size", name);
+		s_warning("%s(): (prop=\"%s\") %s (length=%zu, expected %zu): \"%s\"",
+			G_STRFUNC, name, "storage does not match requested size",
+			strlen(str), size * 2, str);
 		return FALSE;
 	}
 
@@ -327,8 +328,8 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 		l = str[i * 2 + 1];
 		if (!is_ascii_xdigit(h) || !is_ascii_xdigit(l)) {
 			t[i] = '\0';
-			g_warning("prop_parse_storage: (prop=\"%s\") "
-				"storage is damaged: \"%s\"", name, str);
+			s_warning("%s(): (prop=\"%s\") "
+				"storage is damaged: \"%s\"", G_STRFUNC, name, str);
 			return FALSE;
 		}
 		t[i] = (hex2int(h) << 4) + hex2int(l);
@@ -343,6 +344,45 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
  ***/
 
 /**
+ * Lock property.
+ */
+void
+prop_lock(prop_set_t *ps, property_t p)
+{
+	prop_def_t *d;
+
+	g_assert(ps != NULL);
+
+	if (!prop_in_range(ps, p))
+		g_error("%s(): unknown property %u", G_STRFUNC, p);
+
+	d = &PROP(ps, p);
+
+	mutex_lock(&d->lock);
+}
+
+/**
+ * Unlock property.
+ */
+void
+prop_unlock(prop_set_t *ps, property_t p)
+{
+	prop_def_t *d;
+
+	g_assert(ps != NULL);
+
+	if (!prop_in_range(ps, p))
+		g_error("%s(): unknown property %u", G_STRFUNC, p);
+
+	d = &PROP(ps, p);
+
+	g_assert_log(mutex_is_owned(&d->lock),
+		"%s(): attempt to unlock property %u which is not owned", G_STRFUNC, p);
+
+	mutex_unlock(&d->lock);
+}
+
+/**
  * Copy the property definition from the property set and return it.
  * Use the prop_free_def call to free the memory again. A simple hfree
  * won't do, since there are lot's of pointers to allocated memory
@@ -353,97 +393,95 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 prop_def_t *
 prop_get_def(prop_set_t *ps, property_t p)
 {
-	prop_def_t *buf;
+	prop_def_t *d, *buf;
 
 	g_assert(ps != NULL);
 
 	if (!prop_in_range(ps, p))
-		g_error("prop_get_def: unknown property %d", p);
+		g_error("%s(): unknown property %u", G_STRFUNC, p);
 
-	buf = wcopy(&PROP(ps, p), sizeof(prop_def_t));
-	buf->name = h_strdup(PROP(ps, p).name);
-	buf->desc = h_strdup(PROP(ps, p).desc);
+	d = &PROP(ps, p);
+
+	PROP_DEF_LOCK(d);
+
+	buf = WCOPY(d);
+	buf->name = h_strdup(d->name);
+	buf->desc = h_strdup(d->desc);
 	buf->ev_changed = NULL;
+	mutex_init(&buf->lock);
 
 	switch (buf->type) {
 	case PROP_TYPE_BOOLEAN:
 		buf->data.boolean.def = hcopy(
-			PROP(ps,p).data.boolean.def,
-			sizeof(gboolean) * PROP(ps,p).vector_size);
+			d->data.boolean.def, sizeof(gboolean) * d->vector_size);
 		buf->data.boolean.value = hcopy(
-			PROP(ps,p).data.boolean.value,
-			sizeof(gboolean) * PROP(ps,p).vector_size);
+			d->data.boolean.value, sizeof(gboolean) * d->vector_size);
 		break;
 	case PROP_TYPE_MULTICHOICE: {
 		guint n = 0;
 
-		while (PROP(ps,p).data.guint32.choices[n].title != NULL)
+		while (d->data.guint32.choices[n].title != NULL)
 			n++;
 
 		n ++; /* Keep space for terminating {NULL, 0} field */
 
 		buf->data.guint32.choices = hcopy(
-			PROP(ps,p).data.guint32.choices,
+			d->data.guint32.choices,
 			sizeof(prop_def_choice_t) * n);
 
 		buf->data.guint32.choices[n-1].title = NULL;
 		buf->data.guint32.choices[n-1].value = 0;
 
 		n = 0;
-		while (PROP(ps,p).data.guint32.choices[n].title != NULL) {
+		while (d->data.guint32.choices[n].title != NULL) {
 			buf->data.guint32.choices[n].title =
-				h_strdup(PROP(ps,p).data.guint32.choices[n].title);
+				h_strdup(d->data.guint32.choices[n].title);
 			n++;
 		}
 		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
 	case PROP_TYPE_GUINT32:
 		buf->data.guint32.def = hcopy(
-			PROP(ps,p).data.guint32.def,
-			sizeof(guint32) * PROP(ps,p).vector_size);
+			d->data.guint32.def, sizeof(guint32) * d->vector_size);
 		buf->data.guint32.value = hcopy(
-			PROP(ps,p).data.guint32.value,
-			sizeof(guint32) * PROP(ps,p).vector_size);
+			d->data.guint32.value, sizeof(guint32) * d->vector_size);
 		break;
 
 	case PROP_TYPE_GUINT64:
 		buf->data.guint64.def = hcopy(
-			PROP(ps,p).data.guint64.def,
-			sizeof(guint64) * PROP(ps,p).vector_size);
+			d->data.guint64.def, sizeof(guint64) * d->vector_size);
 		buf->data.guint64.value = hcopy(
-			PROP(ps,p).data.guint64.value,
-			sizeof(guint64) * PROP(ps,p).vector_size);
+			d->data.guint64.value, sizeof(guint64) * d->vector_size);
 		break;
 
 	case PROP_TYPE_TIMESTAMP:
 		buf->data.timestamp.def = hcopy(
-			PROP(ps,p).data.timestamp.def,
-			sizeof(time_t) * PROP(ps,p).vector_size);
+			d->data.timestamp.def, sizeof(time_t) * d->vector_size);
 		buf->data.timestamp.value = hcopy(
-			PROP(ps,p).data.timestamp.value,
-			sizeof(time_t) * PROP(ps,p).vector_size);
+			d->data.timestamp.value, sizeof(time_t) * d->vector_size);
 		break;
 
 	case PROP_TYPE_IP:
-		buf->data.ip.value = hcopy(PROP(ps,p).data.ip.value,
-			sizeof buf->data.ip.value * PROP(ps,p).vector_size);
+		buf->data.ip.value = hcopy(
+			d->data.ip.value, sizeof buf->data.ip.value * d->vector_size);
 		break;
 
 	case PROP_TYPE_STRING:
 		buf->data.string.def	= walloc(sizeof(char *));
-		*buf->data.string.def   = h_strdup(*PROP(ps,p).data.string.def);
+		*buf->data.string.def   = h_strdup(*d->data.string.def);
 		buf->data.string.value  = walloc(sizeof(char *));
-		*buf->data.string.value = h_strdup(*PROP(ps,p).data.string.value);
+		*buf->data.string.value = h_strdup(*d->data.string.value);
 		break;
 
 	case PROP_TYPE_STORAGE:
-		buf->data.storage.value = hcopy(
-			PROP(ps,p).data.storage.value, PROP(ps,p).vector_size);
+		buf->data.storage.value = hcopy(d->data.storage.value, d->vector_size);
 		break;
 		
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
+
+	PROP_DEF_UNLOCK(d);
 
 	return buf;
 }
@@ -452,6 +490,8 @@ void
 prop_free_def(prop_def_t *d)
 {
 	g_assert(d != NULL);
+
+	mutex_destroy(&d->lock);
 
 	switch (d->type) {
 	case PROP_TYPE_BOOLEAN:
@@ -521,120 +561,154 @@ prop_add_prop_changed_listener_full(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l,
 	gboolean init, enum frequency_type freq, guint32 interval)
 {
-	g_assert(ps != NULL);
-	g_assert(prop_in_range(ps, prop));
+	prop_def_t *d;
 
-	event_add_subscriber(
-		PROP(ps,prop).ev_changed, (callback_fn_t) l, freq, interval);
+	d = &PROP(ps, prop);
 
+	PROP_DEF_LOCK(d);
+	event_add_subscriber(d->ev_changed, (callback_fn_t) l, freq, interval);
 	if (init)
-		(*l)(prop);
+		(*l)(prop);		/* Listener always called with the property locked */
+
+	PROP_DEF_UNLOCK(d);
 }
 
 void
 prop_remove_prop_changed_listener(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l)
 {
-	g_assert(ps != NULL);
-	g_assert(prop_in_range(ps, prop));
+	prop_def_t *d;
 
-	event_remove_subscriber(PROP(ps,prop).ev_changed, (callback_fn_t) l);
+	d = &PROP(ps, prop);
+
+	PROP_DEF_LOCK(d);
+	event_remove_subscriber(d->ev_changed, (callback_fn_t) l);
+	PROP_DEF_UNLOCK(d);
+}
+
+/*
+ * Invoke registered callbacks that trigger when the property is changed.
+ */
+static void
+prop_emit_prop_changed(const prop_def_t *d, prop_set_t *ps, property_t prop)
+{
+	assert_mutex_is_owned(&d->lock);
+
+	/*
+	 * Triggering of callbacks happen with the property definition locked
+	 * by the thread.  The callback does not need to bother with locking.
+	 */
+
+	event_trigger(d->ev_changed, T_VETO(prop_changed_listener_t, (prop)));
+
+	if (d->save) {
+		PROP_SET_LOCK(ps);
+		ps->dirty = TRUE;
+		PROP_SET_UNLOCK(ps);
+	}
 }
 
 static void
-prop_emit_prop_changed(prop_set_t *ps, property_t prop)
+prop_check_type(const prop_def_t *d, prop_type_t t, bool setting)
 {
-	g_assert(ps != NULL);
+	/*
+	 * For uint32 values, we can also have multi-choice (enum) properties.
+	 */
 
-	event_trigger(PROP(ps,prop).ev_changed,
-		T_VETO(prop_changed_listener_t, (prop)));
+	if (PROP_TYPE_GUINT32 == t) {
+		if G_UNLIKELY(PROP_TYPE_MULTICHOICE == d->type)
+			return;
+	}
 
-	if (PROP(ps,prop).save)
-		ps->dirty = TRUE;
+	if G_UNLIKELY(d->type != t) {
+		g_error("type mismatch %s value for property \"%s\": requesting "
+			" %s when actual property type is %s%s",
+			setting ? "setting" : "getting",
+			d->name, prop_type_str[t].name,
+			PROP_TYPE_MULTICHOICE == d->type ? "(multichoice) " : "",
+			PROP_TYPE_MULTICHOICE == d->type ?
+				prop_type_str[PROP_TYPE_GUINT32].name :
+				prop_type_str[d->type].name);
+	}
 }
 
 void
 prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 	size_t offset, size_t length)
 {
-	gboolean old;
-	gboolean new;
-	gboolean differ = FALSE;
+	prop_def_t *d;
+	gboolean old, new, differ = FALSE;
 	size_t n;
 
-	g_assert(ps != NULL);
 	g_assert(src != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_boolean: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_BOOLEAN].name);
+	prop_check_type(d, PROP_TYPE_BOOLEAN, TRUE);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
+
+	PROP_DEF_LOCK(d);
 
 	for (n = 0; (n < length) && !differ; n++) {
-		old = PROP(ps,prop).data.boolean.value[n + offset] ? 1 : 0;
+		old = d->data.boolean.value[n + offset] ? 1 : 0;
 		new = src[n] ? 1 : 0;
 
 		if (old != new)
 			differ = TRUE;
 	}
 
-	if (!differ)
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
-
-	memcpy(&PROP(ps,prop).data.boolean.value[offset], src,
-		length * sizeof *src);
-
-	if (debug >= 5) {
-		size_t i;
-
-		printf("updated property [%s] = ( ", PROP(ps,prop).name);
-
-		for (i = 0; i < PROP(ps,prop).vector_size; i++)
-			printf("%s%s ",
-				PROP(ps,prop).data.boolean.value[i] ? "TRUE" : "FALSE",
-				(i < (PROP(ps,prop).vector_size-1)) ? "," : "");
-
-		printf(")\n");
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	memcpy(&d->data.boolean.value[offset], src, length * sizeof *src);
+
+	if G_UNLIKELY(debug >= 5) {
+		size_t i;
+		str_t *s = str_new(120);
+
+		str_printf(s, "updated property [%s] = ( ", d->name);
+
+		for (i = 0; i < d->vector_size; i++)
+			str_catf(s, "%s%s ",
+				d->data.boolean.value[i] ? "TRUE" : "FALSE",
+				i < d->vector_size - 1 ? "," : "");
+
+		str_putc(s, ')');
+		s_debug("PROP %s", str_2c(s));
+		str_destroy_null(&s);
+	}
+
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 gboolean *
 prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	gboolean *target;
 	size_t n;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_boolean: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_BOOLEAN)
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_BOOLEAN].name);
+	prop_check_type(d, PROP_TYPE_BOOLEAN, FALSE);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
-	memcpy(target, &PROP(ps,prop).data.boolean.value[offset], n);
+	PROP_DEF_LOCK(d);
+	memcpy(target, &d->data.boolean.value[offset], n);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -643,112 +717,104 @@ void
 prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	gboolean differ = FALSE;
 
-	g_assert(ps != NULL);
-	g_assert(src != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_guint64: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_GUINT64) )
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_GUINT64].name);
+	prop_check_type(d, PROP_TYPE_GUINT64, TRUE);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
-	differ = 0 != memcmp(&PROP(ps,prop).data.guint64.value[offset], src,
+	PROP_DEF_LOCK(d);
+
+	differ = 0 != memcmp(&d->data.guint64.value[offset], src,
 					length * sizeof *src);
 
-	if (!differ)
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
+	}
 
 	/*
 	 * Only do bounds-checking on non-vector properties.
 	 */
-	if (PROP(ps,prop).vector_size == 1) {
-		/*
-		 * Either check multiple choices or min/max.
-		 */
-			prop_assert(ps, prop, PROP(ps,prop).data.guint64.choices == NULL);
 
-			if (
-				(PROP(ps,prop).data.guint64.min <= *src) &&
-				(PROP(ps,prop).data.guint64.max >= *src)
-			) {
-				*PROP(ps,prop).data.guint64.value = *src;
-			} else {
-				char buf[64];
-				guint64 newval = *src;
+	if (1 == d->vector_size) {
+		prop_assert(ps, prop, d->data.guint64.choices == NULL);
 
-				if (newval > PROP(ps,prop).data.guint64.max)
-					newval = PROP(ps,prop).data.guint64.max;
-				if (newval < PROP(ps,prop).data.guint64.min)
-					newval = PROP(ps,prop).data.guint64.min;
+		if (d->data.guint64.min <= *src && d->data.guint64.max >= *src) {
+			*d->data.guint64.value = *src;
+		} else {
+			char buf[64];
+			guint64 newval = *src;
 
-				concat_strings(buf, sizeof buf,
-					uint64_to_string(PROP(ps,prop).data.guint64.min), "/",
-					uint64_to_string2(PROP(ps,prop).data.guint64.max),
-					(void *) 0);
-				g_warning("prop_set_guint64: [%s] new value out of bounds "
-					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
-					uint64_to_string(*src), uint64_to_string2(newval));
+			if (newval > d->data.guint64.max)
+				newval = d->data.guint64.max;
+			if (newval < d->data.guint64.min)
+				newval = d->data.guint64.min;
 
-				*PROP(ps,prop).data.guint64.value = newval;
-			}
+			concat_strings(buf, sizeof buf,
+				uint64_to_string(d->data.guint64.min), "/",
+				uint64_to_string2(d->data.guint64.max),
+				(void *) 0);
+
+			g_carp("%s(): [%s] new value out of bounds "
+				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
+				uint64_to_string(*src), uint64_to_string2(newval));
+
+			*d->data.guint64.value = newval;
+		}
 	} else {
-		memcpy(&PROP(ps,prop).data.guint64.value[offset], src,
-			length * sizeof *src);
+		memcpy(&d->data.guint64.value[offset], src, length * sizeof *src);
 	}
 
 	if (debug >= 5) {
 		size_t n;
+		str_t *s = str_new(120);
 
-		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+		str_printf(s, "updated property [%s] = ( ", d->name);
 
-		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			printf("%s%s ",
-				uint64_to_string(PROP(ps,prop).data.guint64.value[n]),
-				n < (PROP(ps,prop).vector_size-1) ? "," : "");
+		for (n = 0; n < d->vector_size; n++) {
+			str_catf(s, "%s%s ",
+				uint64_to_string(d->data.guint64.value[n]),
+				n < d->vector_size - 1 ? "," : "");
 		}
 
-		printf(")\n");
+		str_putc(s, ')');
+		s_debug("PROP %s", str_2c(s));
+		str_destroy_null(&s);
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 guint64 *
 prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	guint64 *target;
 	size_t n;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_guint64: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_GUINT64))
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_GUINT64].name);
+	prop_check_type(d, PROP_TYPE_GUINT64, FALSE);
 
-   if (length == 0)
-		length = PROP(ps,prop).vector_size;
+   if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
-	memcpy(target, &PROP(ps,prop).data.guint64.value[offset], n);
+	PROP_DEF_LOCK(d);
+	memcpy(target, &d->data.guint64.value[offset], n);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -757,108 +823,104 @@ void
 prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	gboolean differ = FALSE;
 
-	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_guint32: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s or %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_GUINT32].name,
-			prop_type_str[PROP_TYPE_MULTICHOICE].name);
+	d = &PROP(ps, prop);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	prop_check_type(d, PROP_TYPE_GUINT32, TRUE);
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	if (0 == length)
+		length = d->vector_size;
 
-	differ = 0 != memcmp(&PROP(ps,prop).data.guint32.value[offset], src,
+	prop_assert(ps, prop, offset + length <= d->vector_size);
+
+	PROP_DEF_LOCK(d);
+
+	differ = 0 != memcmp(&d->data.guint32.value[offset], src,
 					length * sizeof *src);
 
-	if (!differ)
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
+	}
 
 	/*
 	 * Only do bounds-checking on non-vector properties.
 	 */
-	if (PROP(ps,prop).vector_size == 1) {
+
+	if (1 == d->vector_size) {
 		/*
 		 * Either check multiple choices or min/max.
 		 */
-		if (PROP(ps,prop).type == PROP_TYPE_MULTICHOICE) {
+
+		if (PROP_TYPE_MULTICHOICE == d->type) {
 			guint n;
 			gboolean invalid = TRUE;
 			guint32 newval = *src;
 
-			prop_assert(ps, prop, PROP(ps,prop).data.guint32.choices != NULL);
+			prop_assert(ps, prop, d->data.guint32.choices != NULL);
 
-			for (n = 0; PROP(ps,prop).data.guint32.choices[n].title; n++) {
-				if (PROP(ps,prop).data.guint32.choices[n].value == newval) {
+			for (n = 0; d->data.guint32.choices[n].title; n++) {
+				if (d->data.guint32.choices[n].value == newval) {
 					invalid = FALSE;
 					break;
 				}
 			}
 
 			if (invalid) {
-				g_warning("prop_set_guint32: [%s] new value is invalid choice "
+				s_warning("%s(): [%s] new value is invalid choice "
 					"%u (leaving at %u)",
-					PROP(ps,prop).name, newval,
-					*PROP(ps,prop).data.guint32.value);
+					G_STRFUNC, d->name, newval, *d->data.guint32.value);
 			} else {
-				*PROP(ps,prop).data.guint32.value = newval;
+				*d->data.guint32.value = newval;
 			}
 		} else {
+			prop_assert(ps, prop, d->data.guint32.choices == NULL);
 
-			prop_assert(ps, prop, PROP(ps,prop).data.guint32.choices == NULL);
-
-			if (
-				(PROP(ps,prop).data.guint32.min <= *src) &&
-				(PROP(ps,prop).data.guint32.max >= *src)
-			) {
-				*PROP(ps,prop).data.guint32.value = *src;
+			if (d->data.guint32.min <= *src && d->data.guint32.max >= *src) {
+				*d->data.guint32.value = *src;
 			} else {
 				guint32 newval = *src;
 
-				if (newval > PROP(ps,prop).data.guint32.max)
-					newval = PROP(ps,prop).data.guint32.max;
-				if (newval < PROP(ps,prop).data.guint32.min)
-					newval = PROP(ps,prop).data.guint32.min;
+				if (newval > d->data.guint32.max)
+					newval = d->data.guint32.max;
+				if (newval < d->data.guint32.min)
+					newval = d->data.guint32.min;
 
-				g_warning("prop_set_guint32: [%s] new value out of bounds "
+				g_carp("%s(): [%s] new value out of bounds "
 					"(%u/%u): %u (adjusting to %u)",
-					PROP(ps,prop).name,
-					PROP(ps,prop).data.guint32.min,
-					PROP(ps,prop).data.guint32.max,
-					*src, newval );
+					G_STRFUNC, d->name,
+					d->data.guint32.min, d->data.guint32.max,
+					*src, newval);
 
-				*PROP(ps,prop).data.guint32.value = newval;
+				*d->data.guint32.value = newval;
 			}
 		}
 	} else {
-		memcpy(&PROP(ps,prop).data.guint32.value[offset], src,
-			length * sizeof *src);
+		memcpy(&d->data.guint32.value[offset], src, length * sizeof *src);
 	}
 
 	if (debug >= 5) {
 		size_t n;
+		str_t *s = str_new(120);
 
-		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+		str_printf(s, "updated property [%s] = ( ", d->name);
 
-		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			printf("%u%s ", PROP(ps,prop).data.guint32.value[n],
-					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+		for (n = 0; n < d->vector_size; n++) {
+			str_catf(s, "%u%s ", d->data.guint32.value[n],
+				n < d->vector_size - 1 ? "," : "");
 		}
 
-		printf(")\n");
+		str_putc(s, ')');
+		s_debug("PROP %s", str_2c(s));
+		str_destroy_null(&s);
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 guint32 *
@@ -867,28 +929,22 @@ prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 {
 	guint32 *target;
 	size_t n;
+	prop_def_t *d;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_guint32: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-	   (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s or %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_GUINT32].name,
-			prop_type_str[PROP_TYPE_MULTICHOICE].name);
+	prop_check_type(d, PROP_TYPE_GUINT32, FALSE);
 
-   	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+   	if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
-	memcpy(target, &PROP(ps,prop).data.guint32.value[offset], n);
+	PROP_DEF_LOCK(d);
+	memcpy(target, &d->data.guint32.value[offset], n);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -897,84 +953,82 @@ void
 prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	gboolean differ = FALSE;
 
-	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_timestamp: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_TIMESTAMP) )
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_TIMESTAMP].name);
+	d = &PROP(ps, prop);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	prop_check_type(d, PROP_TYPE_TIMESTAMP, TRUE);
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	if (0 == length)
+		length = d->vector_size;
 
-	differ = 0 != memcmp(&PROP(ps,prop).data.timestamp.value[offset], src,
+	prop_assert(ps, prop, offset + length <= d->vector_size);
+
+	PROP_DEF_LOCK(d);
+
+	differ = 0 != memcmp(&d->data.timestamp.value[offset], src,
 					length * sizeof *src);
 
-	if (!differ)
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
+	}
 
 	/*
 	 * Only do bounds-checking on non-vector properties.
 	 */
-	if (PROP(ps,prop).vector_size == 1) {
-		/*
-		 * Either check multiple choices or min/max.
-		 */
-			prop_assert(ps, prop, PROP(ps,prop).data.timestamp.choices == NULL);
 
-			if (
-				(PROP(ps,prop).data.timestamp.min <= *src) &&
-				(PROP(ps,prop).data.timestamp.max >= *src)
-			) {
-				*PROP(ps,prop).data.timestamp.value = *src;
-			} else {
-				char buf[64];
-				time_t newval = *src;
+	if (1 == d->vector_size) {
+		prop_assert(ps, prop, d->data.timestamp.choices == NULL);
 
-				if (newval > PROP(ps,prop).data.timestamp.max)
-					newval = PROP(ps,prop).data.timestamp.max;
-				if (newval < PROP(ps,prop).data.timestamp.min)
-					newval = PROP(ps,prop).data.timestamp.min;
+		if (d->data.timestamp.min <= *src && d->data.timestamp.max >= *src) {
+			*d->data.timestamp.value = *src;
+		} else {
+			char buf[64];
+			time_t newval = *src;
 
-				concat_strings(buf, sizeof buf,
-					uint64_to_string(PROP(ps,prop).data.timestamp.min), "/",
-					uint64_to_string2(PROP(ps,prop).data.timestamp.max),
-					(void *) 0);
-				g_warning("prop_set_timestamp: [%s] new value out of bounds "
-					"(%s): %s (adjusting to %s)", PROP(ps,prop).name, buf,
-					uint64_to_string(*src), uint64_to_string2(newval));
+			if (newval > d->data.timestamp.max)
+				newval = d->data.timestamp.max;
+			if (newval < d->data.timestamp.min)
+				newval = d->data.timestamp.min;
 
-				*PROP(ps,prop).data.timestamp.value = newval;
-			}
+			concat_strings(buf, sizeof buf,
+				timestamp_to_string(d->data.timestamp.min), "/",
+				timestamp_to_string2(d->data.timestamp.max),
+				(void *) 0);
+
+			g_carp("%s(): [%s] new value out of bounds "
+				"(%s): %s (adjusting to %s)", G_STRFUNC, d->name, buf,
+				timestamp_to_string(*src), timestamp_to_string2(newval));
+
+			*d->data.timestamp.value = newval;
+		}
 	} else {
-		memcpy(&PROP(ps,prop).data.timestamp.value[offset], src,
-			length * sizeof *src);
+		memcpy(&d->data.timestamp.value[offset], src, length * sizeof *src);
 	}
 
 	if (debug >= 5) {
 		size_t n;
+		str_t *s = str_new(120);
 
-		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+		str_printf(s, "updated property [%s] = ( ", d->name);
 
-		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			printf("%s%s ",
-				uint64_to_string(PROP(ps,prop).data.timestamp.value[n]),
-				n < (PROP(ps,prop).vector_size-1) ? "," : "");
+		for (n = 0; n < d->vector_size; n++) {
+			str_catf(s, "%s%s ",
+				timestamp_to_string(d->data.timestamp.value[n]),
+				n < d->vector_size - 1 ? "," : "");
 		}
 
-		printf(")\n");
+		str_putc(s, ')');
+		s_debug("PROP %s", str_2c(s));
+		str_destroy_null(&s);
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 time_t *
@@ -983,26 +1037,22 @@ prop_get_timestamp(prop_set_t *ps, property_t prop, time_t *t,
 {
 	time_t *target;
 	size_t n;
+	prop_def_t *d;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_timestamp: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_TIMESTAMP))
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_TIMESTAMP].name);
+	prop_check_type(d, PROP_TYPE_TIMESTAMP, FALSE);
 
-   if (length == 0)
-		length = PROP(ps,prop).vector_size;
+   if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
-	memcpy(target, &PROP(ps,prop).data.timestamp.value[offset], n);
+	PROP_DEF_LOCK(d);
+	memcpy(target, &d->data.timestamp.value[offset], n);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -1012,50 +1062,49 @@ prop_set_ip(prop_set_t *ps, property_t prop, const host_addr_t *src,
 	size_t offset, size_t length)
 {
 	gboolean differ = FALSE;
+	prop_def_t *d;
 
-	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_ip: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_IP) )
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_IP].name);
+	d = &PROP(ps, prop);
 
-	if (length == 0)
-		length = PROP(ps,prop).vector_size;
+	prop_check_type(d, PROP_TYPE_IP, TRUE);
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	if (0 == length)
+		length = d->vector_size;
 
-	differ = 0 != memcmp(&PROP(ps,prop).data.ip.value[offset], src,
-					length * sizeof *src);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
-	if (!differ)
+	PROP_DEF_LOCK(d);
+
+	differ = 0 != memcmp(&d->data.ip.value[offset], src, length * sizeof *src);
+
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
+	}
 
-	/*
-	 * Only do bounds-checking on non-vector properties.
-	 */
-	memcpy(&PROP(ps,prop).data.ip.value[offset], src, length * sizeof *src);
+	memcpy(&d->data.ip.value[offset], src, length * sizeof *src);
 
 	if (debug >= 5) {
 		size_t n;
+		str_t *s = str_new(120);
 
-		printf("updated property [%s] = ( ", PROP(ps,prop).name);
+		str_printf(s, "updated property [%s] = ( ", d->name);
 
-		for (n = 0; n < PROP(ps,prop).vector_size; n++) {
-			printf("%s%s ",
-				host_addr_to_string(PROP(ps,prop).data.ip.value[n]),
-				n < (PROP(ps,prop).vector_size-1) ? "," : "");
+		for (n = 0; n < d->vector_size; n++) {
+			str_catf(s, "%s%s ",
+				host_addr_to_string(d->data.ip.value[n]),
+				n < d->vector_size - 1 ? "," : "");
 		}
 
-		printf(")\n");
+		str_putc(s, ')');
+		s_debug("PROP %s", str_2c(s));
+		str_destroy_null(&s);
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 
@@ -1063,28 +1112,24 @@ host_addr_t *
 prop_get_ip(prop_set_t *ps, property_t prop, host_addr_t *t,
 	size_t offset, size_t length)
 {
+	prop_def_t *d;
 	host_addr_t *target;
 	size_t n;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_ip: unknown property %d", prop);
-	if ((PROP(ps,prop).type != PROP_TYPE_IP))
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_IP].name);
+	prop_check_type(d, PROP_TYPE_IP, FALSE);
 
-   if (length == 0)
-		length = PROP(ps,prop).vector_size;
+   if (0 == length)
+		length = d->vector_size;
 
-	prop_assert(ps, prop, offset + length <= PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
 	target = t != NULL ? (gpointer) t : g_malloc(n);
-	memcpy(target, &PROP(ps,prop).data.ip.value[offset], n);
+	PROP_DEF_LOCK(d);
+	memcpy(target, &d->data.ip.value[offset], n);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -1094,59 +1139,54 @@ void
 prop_set_storage(prop_set_t *ps, property_t prop, const char *src,
 	size_t length)
 {
+	prop_def_t *d;
 	gboolean differ = FALSE;
 
-	g_assert(ps != NULL);
 	g_assert(src != NULL);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_set_storage: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_STORAGE)
-		g_error("Type mismatch setting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_STORAGE].name);
+	d = &PROP(ps, prop);
 
-	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
+	prop_check_type(d, PROP_TYPE_STORAGE, TRUE);
 
-	differ = 0 != memcmp(PROP(ps,prop).data.storage.value, src, length);
+	prop_assert(ps, prop, length == d->vector_size);
 
-	if (!differ)
+	PROP_DEF_LOCK(d);
+
+	differ = 0 != memcmp(d->data.storage.value, src, length);
+
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
 		return;
-
-	memcpy(PROP(ps,prop).data.storage.value, src, length);
-
-	if (debug >= 5) {
-		printf("updated property [%s] (binary)\n", PROP(ps,prop).name);
-		dump_hex(stderr, PROP(ps,prop).name,
-			(const char *) PROP(ps,prop).data.storage.value,
-			PROP(ps,prop).vector_size);
 	}
 
-	prop_emit_prop_changed(ps, prop);
+	memcpy(d->data.storage.value, src, length);
+
+	if (debug >= 5) {
+		s_debug("PROP updated property [%s] (binary):", d->name);
+		dump_hex(stderr, d->name,
+			(const char *) d->data.storage.value, d->vector_size);
+	}
+
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 char *
 prop_get_storage(prop_set_t *ps, property_t prop, char *t, size_t length)
 {
+	prop_def_t *d;
 	gpointer target;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_storage: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_STORAGE)
-		g_error("Type mismatch getting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_STORAGE].name);
+	prop_check_type(d, PROP_TYPE_STORAGE, FALSE);
 
-	prop_assert(ps, prop, length == PROP(ps,prop).vector_size);
+	prop_assert(ps, prop, length == d->vector_size);
 
 	target = t != NULL ? (gpointer) t : g_malloc(length);
-	memcpy(target, PROP(ps,prop).data.storage.value, length);
+	PROP_DEF_LOCK(d);
+	memcpy(target, d->data.storage.value, length);
+	PROP_DEF_UNLOCK(d);
 
 	return target;
 }
@@ -1154,55 +1194,51 @@ prop_get_storage(prop_set_t *ps, property_t prop, char *t, size_t length)
 const char *
 prop_get_storage_const(prop_set_t *ps, property_t prop)
 {
-	g_assert(ps != NULL);
+	prop_def_t *d;
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_storage: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_STORAGE)
-		g_error("Type mismatch getting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_STORAGE].name);
+	d = &PROP(ps, prop);
 
-	return PROP(ps,prop).data.storage.value;
+	prop_check_type(d, PROP_TYPE_STORAGE, FALSE);
+
+	return d->data.storage.value;
 }
 
 void
 prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 {
+	prop_def_t *d;
 	char *old;
 	gboolean differ = FALSE;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_gchar: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_STRING)
-		g_error("Type mismatch getting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_STRING].name);
+	prop_check_type(d, PROP_TYPE_STRING, TRUE);
 
-	prop_assert(ps, prop, PROP(ps,prop).vector_size == 1);
+	prop_assert(ps, prop, d->vector_size == 1);
 
-	old = *PROP(ps,prop).data.string.value;
+	PROP_DEF_LOCK(d);
+
+	old = *d->data.string.value;
 	if (old && val) {
 		differ = 0 != strcmp(old, val);
 	} else {
 		differ = old != val;
 	}
-	*PROP(ps,prop).data.string.value = g_strdup(val);
+
+	if (!differ) {
+		PROP_DEF_UNLOCK(d);
+		return;
+	}
+
+	*d->data.string.value = g_strdup(val);
 	G_FREE_NULL(old);
 
-	if (differ && debug >= 5)
-		printf("updated property [%s] = \"%s\"\n",
-			PROP(ps,prop).name,
-			NULL_STRING(*PROP(ps,prop).data.string.value));
+	if (debug >= 5)
+		s_debug("PROP updated property [%s] = \"%s\"",
+			d->name, NULL_STRING(*d->data.string.value));
 
-	if (differ)
-		prop_emit_prop_changed(ps, prop);
+	prop_emit_prop_changed(d, ps, prop);
+	PROP_DEF_UNLOCK(d);
 }
 
 /**
@@ -1218,22 +1254,19 @@ prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 char *
 prop_get_string(prop_set_t *ps, property_t prop, char *t, size_t size)
 {
+	prop_def_t *d;
 	char *target;
 	char *s;
 
-	g_assert(ps != NULL);
 	g_assert(NULL == t || size > 0);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_gchar: unknown property %d", prop);
-	if (PROP(ps,prop).type != PROP_TYPE_STRING)
-		g_error("Type mismatch getting value for [%s] of type"
-			" %s when %s was expected",
-			PROP(ps,prop).name,
-			prop_type_str[PROP(ps,prop).type].name,
-			prop_type_str[PROP_TYPE_STRING].name);
+	d = &PROP(ps, prop);
 
-	s = *PROP(ps,prop).data.string.value;
+	prop_check_type(d, PROP_TYPE_STRING, FALSE);
+
+	PROP_DEF_LOCK(d);
+
+	s = *d->data.string.value;
 
 	target = t;
 	if (target == NULL) {
@@ -1253,7 +1286,31 @@ prop_get_string(prop_set_t *ps, property_t prop, char *t, size_t size)
 		}
 	}
 
+	PROP_DEF_UNLOCK(d);
 	return target;
+}
+
+/**
+ * Copy string property to supplied str_t.
+ */
+static void
+prop_string_copy(prop_set_t *ps, property_t prop, str_t *s)
+{
+	prop_def_t *d;
+	char *v;
+
+	str_check(s);
+
+	d = &PROP(ps, prop);
+
+	prop_check_type(d, PROP_TYPE_STRING, FALSE);
+
+	PROP_DEF_LOCK(d);
+
+	v = *d->data.string.value;
+	str_cpy(s, v != NULL ? v : "");
+
+	PROP_DEF_UNLOCK(d);
 }
 
 /**
@@ -1320,91 +1377,152 @@ prop_is_saved(prop_set_t *ps, property_t prop)
 const char *
 prop_to_string(prop_set_t *ps, property_t prop)
 {
-	static char s[4096];
+	prop_def_t *d;
+	str_t *s = str_private(G_STRFUNC, 128);
+	size_t n;
 
-	g_assert(ps != NULL);
+	d = &PROP(ps, prop);
 
-	if (!prop_in_range(ps, prop))
-		g_error("prop_get_gchar: unknown property %u", prop);
-
-	switch (PROP(ps,prop).type) {
+	switch (d->type) {
 	case PROP_TYPE_GUINT32:
-		{
-			guint32 val;
+		str_reset(s);
+		if (d->vector_size != 1)
+			str_putc(s, '[');
 
-			prop_get_guint32(ps, prop, &val, 0, 1);
-			uint32_to_string_buf(val, s, sizeof s);
+		for (n = 0; n < d->vector_size; n++) {
+			char buf[UINT32_DEC_BUFLEN];
+			uint32 val;
+
+			if (n != 0)
+				str_cat(s, ", ");
+
+			prop_get_guint32(ps, prop, &val, n, 1);
+			uint32_to_string_buf(val, buf, sizeof buf);
+			str_cat(s, buf);
 		}
-		break;
+
+		if (d->vector_size != 1)
+			str_putc(s, ']');
+		goto done;
 	case PROP_TYPE_GUINT64:
-		{
-			guint64 val;
+		str_reset(s);
+		if (d->vector_size != 1)
+			str_putc(s, '[');
 
-			prop_get_guint64(ps, prop, &val, 0, 1);
-			uint64_to_string_buf(val, s, sizeof s);
+		for (n = 0; n < d->vector_size; n++) {
+			char buf[UINT64_DEC_BUFLEN];
+			uint64 val;
+
+			if (n != 0)
+				str_cat(s, ", ");
+
+			prop_get_guint64(ps, prop, &val, n, 1);
+			uint64_to_string_buf(val, buf, sizeof buf);
+			str_cat(s, buf);
 		}
-		break;
+
+		if (d->vector_size != 1)
+			str_putc(s, ']');
+		goto done;
 	case PROP_TYPE_TIMESTAMP:
-		{
+		str_reset(s);
+		if (d->vector_size != 1)
+			str_putc(s, '[');
+
+		for (n = 0; n < d->vector_size; n++) {
+			char buf[TIMESTAMP_BUFLEN];
 			time_t val;
 
-			prop_get_timestamp(ps, prop, &val, 0, 1);
-			timestamp_to_string_buf(val, s, sizeof s);
+			if (n != 0)
+				str_cat(s, ", ");
+
+			prop_get_timestamp(ps, prop, &val, n, 1);
+			timestamp_to_string_buf(val, buf, sizeof buf);
+			str_cat(s, buf);
 		}
-		break;
+
+		if (d->vector_size != 1)
+			str_putc(s, ']');
+		goto done;
 	case PROP_TYPE_STRING:
-		prop_get_string(ps, prop, s, sizeof s);
-		break;
+		prop_string_copy(ps, prop, s);
+		goto done;
 	case PROP_TYPE_IP:
-		{
+		str_reset(s);
+		if (d->vector_size != 1)
+			str_putc(s, '[');
+
+		for (n = 0; n < d->vector_size; n++) {
+			char buf[IPV6_ADDR_BUFLEN];		/* Assume the longest (IPv6) */
 			host_addr_t addr;
 
-			prop_get_ip(ps, prop, &addr, 0, 1);
-			host_addr_to_string_buf(addr, s, sizeof s);
+			if (n != 0)
+				str_cat(s, ", ");
+
+			prop_get_ip(ps, prop, &addr, n, 1);
+			host_addr_to_string_buf(addr, buf, sizeof buf);
+			str_cat(s, buf);
 		}
-		break;
+
+		if (d->vector_size != 1)
+			str_putc(s, ']');
+		goto done;
 	case PROP_TYPE_BOOLEAN:
-		{
+		str_reset(s);
+		if (d->vector_size != 1)
+			str_putc(s, '[');
+
+		for (n = 0; n < d->vector_size; n++) {
 			gboolean val;
 
-			prop_get_boolean(ps, prop, &val, 0, 1);
-			clamp_strcpy(s, sizeof s, val ? "TRUE" : "FALSE");
+			if (n != 0)
+				str_cat(s, ", ");
+
+			prop_get_boolean(ps, prop, &val, n, 1);
+			str_cat(s, val ? "TRUE" : "FALSE");
 		}
-		break;
+
+		if (d->vector_size != 1)
+			str_putc(s, ']');
+		goto done;
 	case PROP_TYPE_MULTICHOICE:
 		{
-			guint n = 0;
+			uint i = 0;
 
 			while (
-				(PROP(ps, prop).data.guint32.choices[n].title != NULL) &&
-				(PROP(ps, prop).data.guint32.choices[n].value !=
-				 *(PROP(ps, prop).data.guint32.value))
+				d->data.guint32.choices[i].title != NULL &&
+				d->data.guint32.choices[i].value != *d->data.guint32.value
 			  )
-				n++;
+				i++;		/* There is a { NULL, 0 } sentinel at the end */
 
-			if (PROP(ps, prop).data.guint32.choices[n].title != NULL)
-				str_bprintf(s, sizeof s, "%u: %s",
-						*(PROP(ps, prop).data.guint32.value),
-						PROP(ps,prop).data.guint32.choices[n].title);
+			if (d->data.guint32.choices[i].title != NULL)
+				str_printf(s, "%u: %s",
+						*d->data.guint32.value,
+						d->data.guint32.choices[i].title);
 			else
-				str_bprintf(s, sizeof s,
-						"%u: No descriptive string found for this value",
-						*(PROP(ps, prop).data.guint32.value));
+				str_printf(s, "%u: No descriptive string found for this value",
+						*d->data.guint32.value);
 		}
-		break;
+		goto done;
 	case PROP_TYPE_STORAGE:
 		{
+			size_t len = d->vector_size * 2 + 1;
+			char *buf = xmalloc(len);
+
 			bin_to_hex_buf(prop_get_storage_const(ps, prop),
-				PROP(ps,prop).vector_size, s, sizeof s);
+				d->vector_size, buf, len);
+			str_cpy(s, buf);
+			XFREE_NULL(buf);
 		}
+		goto done;
+	case NUM_PROP_TYPES:
 		break;
-	default:
-		s[0] = '\0';
-		g_error("update_entry_gnet: incompatible type %s",
-			prop_type_str[PROP(ps,prop).type].name);
 	}
 
-	return s;
+	s_error("%s(): unknown type %d", G_STRFUNC, d->type);
+
+done:
+	return str_2c(s);
 }
 
 /**
@@ -1413,28 +1531,39 @@ prop_to_string(prop_set_t *ps, property_t prop)
 const char *
 prop_default_to_string(prop_set_t *ps, property_t prop)
 {
-	static char s[4096];
+	str_t *s = str_private(G_STRFUNC, 128);
 	const prop_def_t *p = &PROP(ps, prop);
+
+	/* Default value is a constant, no need to lock */
 	
 	switch (p->type) {
 	case PROP_TYPE_GUINT32:
-		str_bprintf(s, sizeof s, "%u", (guint) p->data.guint32.def[0]);
-		break;
+		str_printf(s, "%u", (guint) p->data.guint32.def[0]);
+		goto done;
 	case PROP_TYPE_GUINT64:
-		uint64_to_string_buf(p->data.guint64.def[0], s, sizeof s);
-		break;
+		{
+			char buf[UINT64_DEC_BUFLEN];
+			uint64_to_string_buf(p->data.guint64.def[0], buf, sizeof buf);
+			str_cpy(s, buf);
+		}
+		goto done;
 	case PROP_TYPE_TIMESTAMP:
-		uint64_to_string_buf(p->data.timestamp.def[0], s, sizeof s);
-		break;
+		{
+			char buf[UINT64_DEC_BUFLEN];
+			uint64_to_string_buf(p->data.timestamp.def[0], buf, sizeof buf);
+			str_cpy(s, buf);
+		}
+		goto done;
 	case PROP_TYPE_STRING:
-		clamp_strcpy(s, sizeof s, *p->data.string.def ? *p->data.string.def : "");
-		break;
+		str_cpy(s, *p->data.string.def ? *p->data.string.def : "");
+		goto done;
 	case PROP_TYPE_IP:
-		clamp_strcpy(s, sizeof s, "");
-		break;
+	case PROP_TYPE_STORAGE:
+		str_reset(s);		/* No default value for these types */
+		goto done;
 	case PROP_TYPE_BOOLEAN:
-		clamp_strcpy(s, sizeof s, p->data.boolean.def[0] ? "TRUE" : "FALSE");
-		break;
+		str_cpy(s, p->data.boolean.def[0] ? "TRUE" : "FALSE");
+		goto done;
 	case PROP_TYPE_MULTICHOICE:
 		{
 			guint n = 0;
@@ -1446,33 +1575,27 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 				n++;
 
 			if (p->data.guint32.choices[n].title != NULL)
-				str_bprintf(s, sizeof s, "%u: %s",
+				str_printf(s, "%u: %s",
 					*(p->data.guint32.def), p->data.guint32.choices[n].title);
 			else
-				str_bprintf(s, sizeof s,
-					"%u: No descriptive string found for this value",
+				str_printf(s, "%u: No descriptive string found for this value",
 					*(p->data.guint32.def));
 		}
+		goto done;
+	case NUM_PROP_TYPES:
 		break;
-	case PROP_TYPE_STORAGE:
-		{
-			bin_to_hex_buf(prop_get_storage_const(ps, prop),
-				PROP(ps,prop).vector_size, s, sizeof s);
-		}
-		break;
-	default:
-		s[0] = '\0';
-		g_error("update_entry_gnet: incompatible type %s",
-			prop_type_str[PROP(ps,prop).type].name);
 	}
 
-	return s;
+	s_error("%s(): unknown type %d", G_STRFUNC, p->type);
+
+done:
+	return str_2c(s);
 }
 
 /**
  * @return "TRUE" or "FALSE" depending on the given boolean value.
  */
-static const char *
+static inline const char *
 config_boolean(gboolean b)
 {
 	static const char b_true[] = "TRUE", b_false[] = "FALSE";
@@ -1534,7 +1657,8 @@ config_comment(const char *s)
 static const char *
 unique_file_token(const filestat_t *st)
 {
-	static char buf[SHA1_BASE16_SIZE + 1];		/* Hexadecimal format */
+	char buf[SHA1_BASE16_SIZE + 1];		/* Hexadecimal format */
+	str_t *s = str_private(G_STRFUNC, sizeof buf);
 	SHA1Context ctx;
 	struct sha1 digest;
 
@@ -1546,7 +1670,8 @@ unique_file_token(const filestat_t *st)
 	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
 	buf[SHA1_BASE16_SIZE] = '\0';
 
-	return buf;
+	str_cpy(s, buf);
+	return str_2c(s);
 }
 
 /**
@@ -1557,6 +1682,8 @@ void
 prop_save_to_file_if_dirty(prop_set_t *ps, const char *dir,
 	const char *filename)
 {
+	/* NB: we don't take the lock to read the `dirty' flag */
+
 	if (!ps->dirty)
 		return;
 
@@ -1582,16 +1709,17 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	g_assert(filename != NULL);
 	g_assert(ps != NULL);
 
-	if (debug >= 2)
-		printf("saving %s to %s%s%s\n", ps->name,
+	if (debug >= 2) {
+		s_debug("PROP saving %s to %s%s%s", ps->name,
 			dir, G_DIR_SEPARATOR_S, filename);
+	}
 
 	if (!is_directory(dir))
 		return;
 
 	pathname = make_pathname(dir, filename);
 	if (-1 == stat(pathname, &sb)) {
-		g_warning("could not stat \"%s\": %s", pathname, g_strerror(errno));
+		s_warning("%s(): could not stat \"%s\": %m", G_STRFUNC, pathname);
 	} else {
 		/*
 		 * Rename old config file if they changed it whilst we were running.
@@ -1599,13 +1727,13 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		if (ps->mtime && delta_time(sb.st_mtime, ps->mtime) > 0) {
 			char *old = h_strconcat(pathname, ".old", (void *) 0);
-			g_warning("config file \"%s\" changed whilst I was running",
-				pathname);
+			s_warning("%s(): config file \"%s\" changed whilst I was running",
+				G_STRFUNC, pathname);
 			if (-1 == rename(pathname, old))
-				g_warning("unable to rename as \"%s\": %s",
-					old, g_strerror(errno));
+				s_warning("%s(): unable to rename \"%s\" as \"%s\": %m",
+					G_STRFUNC, pathname, old);
 			else
-				g_warning("renamed old copy as \"%s\"", old);
+				s_warning("%s(): renamed old copy as \"%s\"", G_STRFUNC, old);
 			HFREE_NULL(old);
 		}
 	}
@@ -1640,6 +1768,17 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		HFREE_NULL(comment);
 	}
 
+	/*
+	 * We're about to save the properties.
+	 * Because some properties could be changed during saving by other
+	 * threads, we need to clear the dirty indication before starting to
+	 * iterate on the properties.
+	 */
+
+	PROP_SET_LOCK(ps);
+	ps->dirty = FALSE;
+	PROP_SET_UNLOCK(ps);
+
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
 		char **vbuf;
@@ -1651,6 +1790,8 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 		if (p->save == FALSE)
 			continue;
+
+		PROP_DEF_LOCK(p);
 
 		HALLOC_ARRAY(vbuf, p->vector_size + 1);
 		vbuf[0] = NULL;
@@ -1767,6 +1908,8 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			g_assert_not_reached();
 		}
 
+		PROP_DEF_UNLOCK(p);
+
 		g_assert(val != NULL);
 
 		fprintf(config, "%s%s = %s%s%s\n\n", defaultvalue ? "#" : "",
@@ -1798,13 +1941,15 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 */
 
 	if (0 == file_sync_fclose(config)) {
-		ps->dirty = FALSE;
 		if (-1 == rename(newfile, pathname))
-			g_warning("could not rename %s as %s: %s",
-				newfile, pathname, g_strerror(errno));
+			s_warning("%s(): could not rename \"%s\" as \"%s\": %m",
+				G_STRFUNC, newfile, pathname);
+		PROP_SET_LOCK(ps);
 		ps->mtime = tm_time_exact();
-	} else
-		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
+		PROP_SET_UNLOCK(ps);
+	} else {
+		s_warning("%s(): could not flush \"%s\": %m", G_STRFUNC, newfile);
+	}
 
 end:
 	HFREE_NULL(newfile);
@@ -1836,11 +1981,14 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	g_return_if_fail(NULL != p);
 
 	if (!p->save && saved_only) {
-		g_warning("Refusing to load run-time only property \"%s\"", p->name);
+		s_warning("%s(): refusing to load runtime-only property \"%s\"",
+			G_STRFUNC, p->name);
 		return;
 	}
 
 	stub = ps->get_stub();
+
+	PROP_DEF_LOCK(p);
 
 	switch (p->type) {
 	case PROP_TYPE_BOOLEAN:
@@ -1915,6 +2063,8 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
+
+	PROP_DEF_UNLOCK(p);
 }
 
 /**
@@ -1940,7 +2090,7 @@ load_helper(prop_set_t *ps, property_t prop, const char *val)
 gboolean
 prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 {
-	static const char fmt[] = "Bad line %u in config file, ignored";
+	static const char fmt[] = "bad line %u in config file \"%s\", ignored";
 	static char prop_tmp[4096];
 	FILE *config;
 	char *path;
@@ -1949,6 +2099,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	gboolean truncated = FALSE;
 	gboolean good_id = FALSE;
 	const char *file_id;
+	static spinlock_t prop_load_slk = SPINLOCK_INIT;
 
 	g_assert(dir != NULL);
 	g_assert(filename != NULL);
@@ -1965,15 +2116,19 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	}
 
 	if (-1 == fstat(fileno(config), &buf)) {
-		g_warning("could open but not fstat \"%s\" (fd #%d): %s",
-			path, fileno(config), g_strerror(errno));
+		s_warning("%s(): could open but not fstat \"%s\" (fd #%d): %m",
+			G_STRFUNC, path, fileno(config));
 		file_id = "";
 	} else {
+		PROP_SET_LOCK(ps);
 		ps->mtime = buf.st_mtime;
+		PROP_SET_UNLOCK(ps);
 		file_id = unique_file_token(&buf);
 	}
 
 	HFREE_NULL(path);
+
+	spinlock(&prop_load_slk);		/* Using global prop_tmp[] */
 
 	/*
 	 * Lines should match the following expression:
@@ -1997,8 +2152,8 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		property_t prop;
 
 		if (!file_line_chomp_tail(prop_tmp, sizeof prop_tmp, NULL)) {
-			g_warning("config file \"%s\", line %u: too long a line, ignored",
-				filename, n);
+			s_warning("%s(): config file \"%s\", line %u: "
+				"too long a line, ignored", G_STRFUNC, filename, n);
 			truncated = TRUE;
 			continue;
 		}
@@ -2030,7 +2185,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		}
 		if (c != '=') {
 			/* <keyword> must be followed by a '=' and optional blanks */
-			g_warning(fmt, n);
+			s_warning(fmt, n, path);
 			continue;
 		}
 
@@ -2050,7 +2205,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			/* Check for proper quote termination */
 			if (!s) {
 				/* Missing terminating double-quote '"' */
-				g_warning(fmt, n);
+				s_warning(fmt, n, path);
 				continue;
 			}
 			g_assert(*s == '"');
@@ -2065,8 +2220,8 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		g_assert(*s == '\0' || *s == '"' || is_ascii_space(c));
 		*s = '\0'; /* Terminate value in case of trailing characters */
 
-		if (common_dbg > 5)
-			g_debug("k=\"%s\", v=\"%s\"", k, v);
+		if (debug > 5)
+			s_debug("%s(): k=\"%s\", v=\"%s\"", G_STRFUNC, k, v);
 
 		prop = prop_get_by_name(ps, k);
 		if (NO_PROP != prop) {
@@ -2075,11 +2230,12 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			if (0 == strcmp(file_id, v))
 				good_id = TRUE;
 		} else {
-			g_warning("\"%s%c%s\", line %u: unknown property '%s' -- ignored",
+			s_warning("\"%s%c%s\", line %u: unknown property '%s' -- ignored",
 				dir, G_DIR_SEPARATOR, filename, n, k);
 		}
 	}
 
+	spinunlock(&prop_load_slk);
 	fclose(config);
 
 	return good_id;

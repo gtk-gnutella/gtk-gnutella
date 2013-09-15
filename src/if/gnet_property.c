@@ -29,7 +29,9 @@
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
+
 #include "gnet_property.h"
 
 /*
@@ -1090,10 +1092,11 @@ gnet_prop_init(void) {
     gnet_property->size   = GNET_PROPERTY_NUM;
     gnet_property->offset = (NO_PROP+1);
     gnet_property->mtime  = 0;
-    gnet_property->props  = omalloc(sizeof(prop_def_t) * GNET_PROPERTY_NUM);
+    OMALLOC_ARRAY(gnet_property->props, GNET_PROPERTY_NUM);
     gnet_property->get_stub = gnet_prop_get_stub;
     gnet_property->dirty = FALSE;
     gnet_property->by_name = NULL;
+	spinlock_init(&gnet_property->lock);
 
 
     /*
@@ -1106,6 +1109,7 @@ gnet_prop_init(void) {
     gnet_property->props[0].ev_changed = event_new("reading_hostfile_changed");
     gnet_property->props[0].save = FALSE;
     gnet_property->props[0].vector_size = 1;
+	mutex_init(&gnet_property->props[0].lock);
 
     /* Type specific data: */
     gnet_property->props[0].type               = PROP_TYPE_BOOLEAN;
@@ -1123,6 +1127,7 @@ gnet_prop_init(void) {
     gnet_property->props[1].ev_changed = event_new("reading_ultrafile_changed");
     gnet_property->props[1].save = FALSE;
     gnet_property->props[1].vector_size = 1;
+	mutex_init(&gnet_property->props[1].lock);
 
     /* Type specific data: */
     gnet_property->props[1].type               = PROP_TYPE_BOOLEAN;
@@ -1140,6 +1145,7 @@ gnet_prop_init(void) {
     gnet_property->props[2].ev_changed = event_new("ancient_version_changed");
     gnet_property->props[2].save = FALSE;
     gnet_property->props[2].vector_size = 1;
+	mutex_init(&gnet_property->props[2].lock);
 
     /* Type specific data: */
     gnet_property->props[2].type               = PROP_TYPE_BOOLEAN;
@@ -1157,6 +1163,7 @@ gnet_prop_init(void) {
     gnet_property->props[3].ev_changed = event_new("new_version_str_changed");
     gnet_property->props[3].save = FALSE;
     gnet_property->props[3].vector_size = 1;
+	mutex_init(&gnet_property->props[3].lock);
 
     /* Type specific data: */
     gnet_property->props[3].type               = PROP_TYPE_STRING;
@@ -1178,6 +1185,7 @@ gnet_prop_init(void) {
     gnet_property->props[4].ev_changed = event_new("up_connections_changed");
     gnet_property->props[4].save = TRUE;
     gnet_property->props[4].vector_size = 1;
+	mutex_init(&gnet_property->props[4].lock);
 
     /* Type specific data: */
     gnet_property->props[4].type               = PROP_TYPE_GUINT32;
@@ -1198,6 +1206,7 @@ gnet_prop_init(void) {
     gnet_property->props[5].ev_changed = event_new("normal_connections_changed");
     gnet_property->props[5].save = TRUE;
     gnet_property->props[5].vector_size = 1;
+	mutex_init(&gnet_property->props[5].lock);
 
     /* Type specific data: */
     gnet_property->props[5].type               = PROP_TYPE_GUINT32;
@@ -1218,6 +1227,7 @@ gnet_prop_init(void) {
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
+	mutex_init(&gnet_property->props[6].lock);
 
     /* Type specific data: */
     gnet_property->props[6].type               = PROP_TYPE_GUINT32;
@@ -1238,6 +1248,7 @@ gnet_prop_init(void) {
     gnet_property->props[7].ev_changed = event_new("node_leaf_count_changed");
     gnet_property->props[7].save = FALSE;
     gnet_property->props[7].vector_size = 1;
+	mutex_init(&gnet_property->props[7].lock);
 
     /* Type specific data: */
     gnet_property->props[7].type               = PROP_TYPE_GUINT32;
@@ -1258,6 +1269,7 @@ gnet_prop_init(void) {
     gnet_property->props[8].ev_changed = event_new("node_normal_count_changed");
     gnet_property->props[8].save = FALSE;
     gnet_property->props[8].vector_size = 1;
+	mutex_init(&gnet_property->props[8].lock);
 
     /* Type specific data: */
     gnet_property->props[8].type               = PROP_TYPE_GUINT32;
@@ -1278,6 +1290,7 @@ gnet_prop_init(void) {
     gnet_property->props[9].ev_changed = event_new("node_ultra_count_changed");
     gnet_property->props[9].save = FALSE;
     gnet_property->props[9].vector_size = 1;
+	mutex_init(&gnet_property->props[9].lock);
 
     /* Type specific data: */
     gnet_property->props[9].type               = PROP_TYPE_GUINT32;
@@ -1298,6 +1311,7 @@ gnet_prop_init(void) {
     gnet_property->props[10].ev_changed = event_new("max_downloads_changed");
     gnet_property->props[10].save = TRUE;
     gnet_property->props[10].vector_size = 1;
+	mutex_init(&gnet_property->props[10].lock);
 
     /* Type specific data: */
     gnet_property->props[10].type               = PROP_TYPE_GUINT32;
@@ -1318,6 +1332,7 @@ gnet_prop_init(void) {
     gnet_property->props[11].ev_changed = event_new("max_host_downloads_changed");
     gnet_property->props[11].save = TRUE;
     gnet_property->props[11].vector_size = 1;
+	mutex_init(&gnet_property->props[11].lock);
 
     /* Type specific data: */
     gnet_property->props[11].type               = PROP_TYPE_GUINT32;
@@ -1338,6 +1353,7 @@ gnet_prop_init(void) {
     gnet_property->props[12].ev_changed = event_new("max_uploads_changed");
     gnet_property->props[12].save = TRUE;
     gnet_property->props[12].vector_size = 1;
+	mutex_init(&gnet_property->props[12].lock);
 
     /* Type specific data: */
     gnet_property->props[12].type               = PROP_TYPE_GUINT32;
@@ -1358,6 +1374,7 @@ gnet_prop_init(void) {
     gnet_property->props[13].ev_changed = event_new("max_uploads_ip_changed");
     gnet_property->props[13].save = TRUE;
     gnet_property->props[13].vector_size = 1;
+	mutex_init(&gnet_property->props[13].lock);
 
     /* Type specific data: */
     gnet_property->props[13].type               = PROP_TYPE_GUINT32;
@@ -1378,6 +1395,7 @@ gnet_prop_init(void) {
     gnet_property->props[14].ev_changed = event_new("local_ip_changed");
     gnet_property->props[14].save = TRUE;
     gnet_property->props[14].vector_size = 1;
+	mutex_init(&gnet_property->props[14].lock);
 
     /* Type specific data: */
     gnet_property->props[14].type               = PROP_TYPE_IP;
@@ -1394,6 +1412,7 @@ gnet_prop_init(void) {
     gnet_property->props[15].ev_changed = event_new("local_ip6_changed");
     gnet_property->props[15].save = TRUE;
     gnet_property->props[15].vector_size = 1;
+	mutex_init(&gnet_property->props[15].lock);
 
     /* Type specific data: */
     gnet_property->props[15].type               = PROP_TYPE_IP;
@@ -1410,6 +1429,7 @@ gnet_prop_init(void) {
     gnet_property->props[16].ev_changed = event_new("current_ip_stamp_changed");
     gnet_property->props[16].save = TRUE;
     gnet_property->props[16].vector_size = 1;
+	mutex_init(&gnet_property->props[16].lock);
 
     /* Type specific data: */
     gnet_property->props[16].type               = PROP_TYPE_TIMESTAMP;
@@ -1430,6 +1450,7 @@ gnet_prop_init(void) {
     gnet_property->props[17].ev_changed = event_new("current_ip6_stamp_changed");
     gnet_property->props[17].save = TRUE;
     gnet_property->props[17].vector_size = 1;
+	mutex_init(&gnet_property->props[17].lock);
 
     /* Type specific data: */
     gnet_property->props[17].type               = PROP_TYPE_TIMESTAMP;
@@ -1450,6 +1471,7 @@ gnet_prop_init(void) {
     gnet_property->props[18].ev_changed = event_new("average_ip_uptime_changed");
     gnet_property->props[18].save = TRUE;
     gnet_property->props[18].vector_size = 1;
+	mutex_init(&gnet_property->props[18].lock);
 
     /* Type specific data: */
     gnet_property->props[18].type               = PROP_TYPE_GUINT32;
@@ -1470,6 +1492,7 @@ gnet_prop_init(void) {
     gnet_property->props[19].ev_changed = event_new("average_ip6_uptime_changed");
     gnet_property->props[19].save = TRUE;
     gnet_property->props[19].vector_size = 1;
+	mutex_init(&gnet_property->props[19].lock);
 
     /* Type specific data: */
     gnet_property->props[19].type               = PROP_TYPE_GUINT32;
@@ -1490,6 +1513,7 @@ gnet_prop_init(void) {
     gnet_property->props[20].ev_changed = event_new("start_stamp_changed");
     gnet_property->props[20].save = FALSE;
     gnet_property->props[20].vector_size = 1;
+	mutex_init(&gnet_property->props[20].lock);
 
     /* Type specific data: */
     gnet_property->props[20].type               = PROP_TYPE_TIMESTAMP;
@@ -1510,6 +1534,7 @@ gnet_prop_init(void) {
     gnet_property->props[21].ev_changed = event_new("average_servent_uptime_changed");
     gnet_property->props[21].save = TRUE;
     gnet_property->props[21].vector_size = 1;
+	mutex_init(&gnet_property->props[21].lock);
 
     /* Type specific data: */
     gnet_property->props[21].type               = PROP_TYPE_GUINT32;
@@ -1530,6 +1555,7 @@ gnet_prop_init(void) {
     gnet_property->props[22].ev_changed = event_new("listen_port_changed");
     gnet_property->props[22].save = TRUE;
     gnet_property->props[22].vector_size = 1;
+	mutex_init(&gnet_property->props[22].lock);
 
     /* Type specific data: */
     gnet_property->props[22].type               = PROP_TYPE_GUINT32;
@@ -1550,6 +1576,7 @@ gnet_prop_init(void) {
     gnet_property->props[23].ev_changed = event_new("forced_local_ip_changed");
     gnet_property->props[23].save = TRUE;
     gnet_property->props[23].vector_size = 1;
+	mutex_init(&gnet_property->props[23].lock);
 
     /* Type specific data: */
     gnet_property->props[23].type               = PROP_TYPE_IP;
@@ -1566,6 +1593,7 @@ gnet_prop_init(void) {
     gnet_property->props[24].ev_changed = event_new("forced_local_ip6_changed");
     gnet_property->props[24].save = TRUE;
     gnet_property->props[24].vector_size = 1;
+	mutex_init(&gnet_property->props[24].lock);
 
     /* Type specific data: */
     gnet_property->props[24].type               = PROP_TYPE_IP;
@@ -1582,6 +1610,7 @@ gnet_prop_init(void) {
     gnet_property->props[25].ev_changed = event_new("connection_speed_changed");
     gnet_property->props[25].save = TRUE;
     gnet_property->props[25].vector_size = 1;
+	mutex_init(&gnet_property->props[25].lock);
 
     /* Type specific data: */
     gnet_property->props[25].type               = PROP_TYPE_GUINT32;
@@ -1602,6 +1631,7 @@ gnet_prop_init(void) {
     gnet_property->props[26].ev_changed = event_new("compute_connection_speed_changed");
     gnet_property->props[26].save = TRUE;
     gnet_property->props[26].vector_size = 1;
+	mutex_init(&gnet_property->props[26].lock);
 
     /* Type specific data: */
     gnet_property->props[26].type               = PROP_TYPE_BOOLEAN;
@@ -1619,6 +1649,7 @@ gnet_prop_init(void) {
     gnet_property->props[27].ev_changed = event_new("query_response_max_items_changed");
     gnet_property->props[27].save = TRUE;
     gnet_property->props[27].vector_size = 1;
+	mutex_init(&gnet_property->props[27].lock);
 
     /* Type specific data: */
     gnet_property->props[27].type               = PROP_TYPE_GUINT32;
@@ -1639,6 +1670,7 @@ gnet_prop_init(void) {
     gnet_property->props[28].ev_changed = event_new("ul_usage_min_percentage_changed");
     gnet_property->props[28].save = TRUE;
     gnet_property->props[28].vector_size = 1;
+	mutex_init(&gnet_property->props[28].lock);
 
     /* Type specific data: */
     gnet_property->props[28].type               = PROP_TYPE_GUINT32;
@@ -1659,6 +1691,7 @@ gnet_prop_init(void) {
     gnet_property->props[29].ev_changed = event_new("download_connecting_timeout_changed");
     gnet_property->props[29].save = TRUE;
     gnet_property->props[29].vector_size = 1;
+	mutex_init(&gnet_property->props[29].lock);
 
     /* Type specific data: */
     gnet_property->props[29].type               = PROP_TYPE_GUINT32;
@@ -1679,6 +1712,7 @@ gnet_prop_init(void) {
     gnet_property->props[30].ev_changed = event_new("download_push_sent_timeout_changed");
     gnet_property->props[30].save = TRUE;
     gnet_property->props[30].vector_size = 1;
+	mutex_init(&gnet_property->props[30].lock);
 
     /* Type specific data: */
     gnet_property->props[30].type               = PROP_TYPE_GUINT32;
@@ -1699,6 +1733,7 @@ gnet_prop_init(void) {
     gnet_property->props[31].ev_changed = event_new("download_connected_timeout_changed");
     gnet_property->props[31].save = TRUE;
     gnet_property->props[31].vector_size = 1;
+	mutex_init(&gnet_property->props[31].lock);
 
     /* Type specific data: */
     gnet_property->props[31].type               = PROP_TYPE_GUINT32;
@@ -1719,6 +1754,7 @@ gnet_prop_init(void) {
     gnet_property->props[32].ev_changed = event_new("download_retry_timeout_min_changed");
     gnet_property->props[32].save = TRUE;
     gnet_property->props[32].vector_size = 1;
+	mutex_init(&gnet_property->props[32].lock);
 
     /* Type specific data: */
     gnet_property->props[32].type               = PROP_TYPE_GUINT32;
@@ -1739,6 +1775,7 @@ gnet_prop_init(void) {
     gnet_property->props[33].ev_changed = event_new("download_retry_timeout_max_changed");
     gnet_property->props[33].save = TRUE;
     gnet_property->props[33].vector_size = 1;
+	mutex_init(&gnet_property->props[33].lock);
 
     /* Type specific data: */
     gnet_property->props[33].type               = PROP_TYPE_GUINT32;
@@ -1759,6 +1796,7 @@ gnet_prop_init(void) {
     gnet_property->props[34].ev_changed = event_new("download_max_retries_changed");
     gnet_property->props[34].save = TRUE;
     gnet_property->props[34].vector_size = 1;
+	mutex_init(&gnet_property->props[34].lock);
 
     /* Type specific data: */
     gnet_property->props[34].type               = PROP_TYPE_GUINT32;
@@ -1779,6 +1817,7 @@ gnet_prop_init(void) {
     gnet_property->props[35].ev_changed = event_new("download_retry_timeout_delay_changed");
     gnet_property->props[35].save = TRUE;
     gnet_property->props[35].vector_size = 1;
+	mutex_init(&gnet_property->props[35].lock);
 
     /* Type specific data: */
     gnet_property->props[35].type               = PROP_TYPE_GUINT32;
@@ -1799,6 +1838,7 @@ gnet_prop_init(void) {
     gnet_property->props[36].ev_changed = event_new("download_retry_busy_delay_changed");
     gnet_property->props[36].save = TRUE;
     gnet_property->props[36].vector_size = 1;
+	mutex_init(&gnet_property->props[36].lock);
 
     /* Type specific data: */
     gnet_property->props[36].type               = PROP_TYPE_GUINT32;
@@ -1819,6 +1859,7 @@ gnet_prop_init(void) {
     gnet_property->props[37].ev_changed = event_new("download_retry_refused_delay_changed");
     gnet_property->props[37].save = TRUE;
     gnet_property->props[37].vector_size = 1;
+	mutex_init(&gnet_property->props[37].lock);
 
     /* Type specific data: */
     gnet_property->props[37].type               = PROP_TYPE_GUINT32;
@@ -1839,6 +1880,7 @@ gnet_prop_init(void) {
     gnet_property->props[38].ev_changed = event_new("download_retry_stopped_delay_changed");
     gnet_property->props[38].save = TRUE;
     gnet_property->props[38].vector_size = 1;
+	mutex_init(&gnet_property->props[38].lock);
 
     /* Type specific data: */
     gnet_property->props[38].type               = PROP_TYPE_GUINT32;
@@ -1859,6 +1901,7 @@ gnet_prop_init(void) {
     gnet_property->props[39].ev_changed = event_new("download_overlap_range_changed");
     gnet_property->props[39].save = TRUE;
     gnet_property->props[39].vector_size = 1;
+	mutex_init(&gnet_property->props[39].lock);
 
     /* Type specific data: */
     gnet_property->props[39].type               = PROP_TYPE_GUINT32;
@@ -1879,6 +1922,7 @@ gnet_prop_init(void) {
     gnet_property->props[40].ev_changed = event_new("upload_connecting_timeout_changed");
     gnet_property->props[40].save = TRUE;
     gnet_property->props[40].vector_size = 1;
+	mutex_init(&gnet_property->props[40].lock);
 
     /* Type specific data: */
     gnet_property->props[40].type               = PROP_TYPE_GUINT32;
@@ -1899,6 +1943,7 @@ gnet_prop_init(void) {
     gnet_property->props[41].ev_changed = event_new("upload_connected_timeout_changed");
     gnet_property->props[41].save = TRUE;
     gnet_property->props[41].vector_size = 1;
+	mutex_init(&gnet_property->props[41].lock);
 
     /* Type specific data: */
     gnet_property->props[41].type               = PROP_TYPE_GUINT32;
@@ -1919,6 +1964,7 @@ gnet_prop_init(void) {
     gnet_property->props[42].ev_changed = event_new("search_reissue_timeout_changed");
     gnet_property->props[42].save = TRUE;
     gnet_property->props[42].vector_size = 1;
+	mutex_init(&gnet_property->props[42].lock);
 
     /* Type specific data: */
     gnet_property->props[42].type               = PROP_TYPE_GUINT32;
@@ -1939,6 +1985,7 @@ gnet_prop_init(void) {
     gnet_property->props[43].ev_changed = event_new("ban_ratio_fds_changed");
     gnet_property->props[43].save = TRUE;
     gnet_property->props[43].vector_size = 1;
+	mutex_init(&gnet_property->props[43].lock);
 
     /* Type specific data: */
     gnet_property->props[43].type               = PROP_TYPE_GUINT32;
@@ -1959,6 +2006,7 @@ gnet_prop_init(void) {
     gnet_property->props[44].ev_changed = event_new("ban_max_fds_changed");
     gnet_property->props[44].save = TRUE;
     gnet_property->props[44].vector_size = 1;
+	mutex_init(&gnet_property->props[44].lock);
 
     /* Type specific data: */
     gnet_property->props[44].type               = PROP_TYPE_GUINT32;
@@ -1979,6 +2027,7 @@ gnet_prop_init(void) {
     gnet_property->props[45].ev_changed = event_new("banned_count_changed");
     gnet_property->props[45].save = FALSE;
     gnet_property->props[45].vector_size = 1;
+	mutex_init(&gnet_property->props[45].lock);
 
     /* Type specific data: */
     gnet_property->props[45].type               = PROP_TYPE_GUINT32;
@@ -1999,6 +2048,7 @@ gnet_prop_init(void) {
     gnet_property->props[46].ev_changed = event_new("max_banned_fd_changed");
     gnet_property->props[46].save = FALSE;
     gnet_property->props[46].vector_size = 1;
+	mutex_init(&gnet_property->props[46].lock);
 
     /* Type specific data: */
     gnet_property->props[46].type               = PROP_TYPE_GUINT32;
@@ -2019,6 +2069,7 @@ gnet_prop_init(void) {
     gnet_property->props[47].ev_changed = event_new("incoming_connecting_timeout_changed");
     gnet_property->props[47].save = TRUE;
     gnet_property->props[47].vector_size = 1;
+	mutex_init(&gnet_property->props[47].lock);
 
     /* Type specific data: */
     gnet_property->props[47].type               = PROP_TYPE_GUINT32;
@@ -2039,6 +2090,7 @@ gnet_prop_init(void) {
     gnet_property->props[48].ev_changed = event_new("node_connecting_timeout_changed");
     gnet_property->props[48].save = TRUE;
     gnet_property->props[48].vector_size = 1;
+	mutex_init(&gnet_property->props[48].lock);
 
     /* Type specific data: */
     gnet_property->props[48].type               = PROP_TYPE_GUINT32;
@@ -2059,6 +2111,7 @@ gnet_prop_init(void) {
     gnet_property->props[49].ev_changed = event_new("node_connected_timeout_changed");
     gnet_property->props[49].save = TRUE;
     gnet_property->props[49].vector_size = 1;
+	mutex_init(&gnet_property->props[49].lock);
 
     /* Type specific data: */
     gnet_property->props[49].type               = PROP_TYPE_GUINT32;
@@ -2079,6 +2132,7 @@ gnet_prop_init(void) {
     gnet_property->props[50].ev_changed = event_new("node_sendqueue_size_changed");
     gnet_property->props[50].save = TRUE;
     gnet_property->props[50].vector_size = 1;
+	mutex_init(&gnet_property->props[50].lock);
 
     /* Type specific data: */
     gnet_property->props[50].type               = PROP_TYPE_GUINT32;
@@ -2099,6 +2153,7 @@ gnet_prop_init(void) {
     gnet_property->props[51].ev_changed = event_new("node_tx_flowc_timeout_changed");
     gnet_property->props[51].save = TRUE;
     gnet_property->props[51].vector_size = 1;
+	mutex_init(&gnet_property->props[51].lock);
 
     /* Type specific data: */
     gnet_property->props[51].type               = PROP_TYPE_GUINT32;
@@ -2119,6 +2174,7 @@ gnet_prop_init(void) {
     gnet_property->props[52].ev_changed = event_new("node_rx_flowc_ratio_changed");
     gnet_property->props[52].save = TRUE;
     gnet_property->props[52].vector_size = 1;
+	mutex_init(&gnet_property->props[52].lock);
 
     /* Type specific data: */
     gnet_property->props[52].type               = PROP_TYPE_GUINT32;
@@ -2139,6 +2195,7 @@ gnet_prop_init(void) {
     gnet_property->props[53].ev_changed = event_new("max_ttl_changed");
     gnet_property->props[53].save = TRUE;
     gnet_property->props[53].vector_size = 1;
+	mutex_init(&gnet_property->props[53].lock);
 
     /* Type specific data: */
     gnet_property->props[53].type               = PROP_TYPE_GUINT32;
@@ -2159,6 +2216,7 @@ gnet_prop_init(void) {
     gnet_property->props[54].ev_changed = event_new("my_ttl_changed");
     gnet_property->props[54].save = TRUE;
     gnet_property->props[54].vector_size = 1;
+	mutex_init(&gnet_property->props[54].lock);
 
     /* Type specific data: */
     gnet_property->props[54].type               = PROP_TYPE_GUINT32;
@@ -2179,6 +2237,7 @@ gnet_prop_init(void) {
     gnet_property->props[55].ev_changed = event_new("hard_ttl_limit_changed");
     gnet_property->props[55].save = TRUE;
     gnet_property->props[55].vector_size = 1;
+	mutex_init(&gnet_property->props[55].lock);
 
     /* Type specific data: */
     gnet_property->props[55].type               = PROP_TYPE_GUINT32;
@@ -2199,6 +2258,7 @@ gnet_prop_init(void) {
     gnet_property->props[56].ev_changed = event_new("dbg_changed");
     gnet_property->props[56].save = TRUE;
     gnet_property->props[56].vector_size = 1;
+	mutex_init(&gnet_property->props[56].lock);
 
     /* Type specific data: */
     gnet_property->props[56].type               = PROP_TYPE_GUINT32;
@@ -2219,6 +2279,7 @@ gnet_prop_init(void) {
     gnet_property->props[57].ev_changed = event_new("ban_debug_changed");
     gnet_property->props[57].save = TRUE;
     gnet_property->props[57].vector_size = 1;
+	mutex_init(&gnet_property->props[57].lock);
 
     /* Type specific data: */
     gnet_property->props[57].type               = PROP_TYPE_GUINT32;
@@ -2239,6 +2300,7 @@ gnet_prop_init(void) {
     gnet_property->props[58].ev_changed = event_new("cpu_debug_changed");
     gnet_property->props[58].save = TRUE;
     gnet_property->props[58].vector_size = 1;
+	mutex_init(&gnet_property->props[58].lock);
 
     /* Type specific data: */
     gnet_property->props[58].type               = PROP_TYPE_GUINT32;
@@ -2259,6 +2321,7 @@ gnet_prop_init(void) {
     gnet_property->props[59].ev_changed = event_new("dmesh_debug_changed");
     gnet_property->props[59].save = TRUE;
     gnet_property->props[59].vector_size = 1;
+	mutex_init(&gnet_property->props[59].lock);
 
     /* Type specific data: */
     gnet_property->props[59].type               = PROP_TYPE_GUINT32;
@@ -2279,6 +2342,7 @@ gnet_prop_init(void) {
     gnet_property->props[60].ev_changed = event_new("gmsg_debug_changed");
     gnet_property->props[60].save = TRUE;
     gnet_property->props[60].vector_size = 1;
+	mutex_init(&gnet_property->props[60].lock);
 
     /* Type specific data: */
     gnet_property->props[60].type               = PROP_TYPE_GUINT32;
@@ -2299,6 +2363,7 @@ gnet_prop_init(void) {
     gnet_property->props[61].ev_changed = event_new("share_debug_changed");
     gnet_property->props[61].save = TRUE;
     gnet_property->props[61].vector_size = 1;
+	mutex_init(&gnet_property->props[61].lock);
 
     /* Type specific data: */
     gnet_property->props[61].type               = PROP_TYPE_GUINT32;
@@ -2319,6 +2384,7 @@ gnet_prop_init(void) {
     gnet_property->props[62].ev_changed = event_new("node_debug_changed");
     gnet_property->props[62].save = TRUE;
     gnet_property->props[62].vector_size = 1;
+	mutex_init(&gnet_property->props[62].lock);
 
     /* Type specific data: */
     gnet_property->props[62].type               = PROP_TYPE_GUINT32;
@@ -2339,6 +2405,7 @@ gnet_prop_init(void) {
     gnet_property->props[63].ev_changed = event_new("socket_debug_changed");
     gnet_property->props[63].save = TRUE;
     gnet_property->props[63].vector_size = 1;
+	mutex_init(&gnet_property->props[63].lock);
 
     /* Type specific data: */
     gnet_property->props[63].type               = PROP_TYPE_GUINT32;
@@ -2359,6 +2426,7 @@ gnet_prop_init(void) {
     gnet_property->props[64].ev_changed = event_new("bootstrap_debug_changed");
     gnet_property->props[64].save = TRUE;
     gnet_property->props[64].vector_size = 1;
+	mutex_init(&gnet_property->props[64].lock);
 
     /* Type specific data: */
     gnet_property->props[64].type               = PROP_TYPE_GUINT32;
@@ -2379,6 +2447,7 @@ gnet_prop_init(void) {
     gnet_property->props[65].ev_changed = event_new("http_debug_changed");
     gnet_property->props[65].save = TRUE;
     gnet_property->props[65].vector_size = 1;
+	mutex_init(&gnet_property->props[65].lock);
 
     /* Type specific data: */
     gnet_property->props[65].type               = PROP_TYPE_GUINT32;
@@ -2399,6 +2468,7 @@ gnet_prop_init(void) {
     gnet_property->props[66].ev_changed = event_new("download_debug_changed");
     gnet_property->props[66].save = TRUE;
     gnet_property->props[66].vector_size = 1;
+	mutex_init(&gnet_property->props[66].lock);
 
     /* Type specific data: */
     gnet_property->props[66].type               = PROP_TYPE_GUINT32;
@@ -2419,6 +2489,7 @@ gnet_prop_init(void) {
     gnet_property->props[67].ev_changed = event_new("fileinfo_debug_changed");
     gnet_property->props[67].save = TRUE;
     gnet_property->props[67].vector_size = 1;
+	mutex_init(&gnet_property->props[67].lock);
 
     /* Type specific data: */
     gnet_property->props[67].type               = PROP_TYPE_GUINT32;
@@ -2439,6 +2510,7 @@ gnet_prop_init(void) {
     gnet_property->props[68].ev_changed = event_new("upload_debug_changed");
     gnet_property->props[68].save = TRUE;
     gnet_property->props[68].vector_size = 1;
+	mutex_init(&gnet_property->props[68].lock);
 
     /* Type specific data: */
     gnet_property->props[68].type               = PROP_TYPE_GUINT32;
@@ -2459,6 +2531,7 @@ gnet_prop_init(void) {
     gnet_property->props[69].ev_changed = event_new("lib_debug_changed");
     gnet_property->props[69].save = TRUE;
     gnet_property->props[69].vector_size = 1;
+	mutex_init(&gnet_property->props[69].lock);
 
     /* Type specific data: */
     gnet_property->props[69].type               = PROP_TYPE_GUINT32;
@@ -2479,6 +2552,7 @@ gnet_prop_init(void) {
     gnet_property->props[70].ev_changed = event_new("bitzi_debug_changed");
     gnet_property->props[70].save = TRUE;
     gnet_property->props[70].vector_size = 1;
+	mutex_init(&gnet_property->props[70].lock);
 
     /* Type specific data: */
     gnet_property->props[70].type               = PROP_TYPE_GUINT32;
@@ -2499,6 +2573,7 @@ gnet_prop_init(void) {
     gnet_property->props[71].ev_changed = event_new("url_debug_changed");
     gnet_property->props[71].save = TRUE;
     gnet_property->props[71].vector_size = 1;
+	mutex_init(&gnet_property->props[71].lock);
 
     /* Type specific data: */
     gnet_property->props[71].type               = PROP_TYPE_GUINT32;
@@ -2519,6 +2594,7 @@ gnet_prop_init(void) {
     gnet_property->props[72].ev_changed = event_new("dh_debug_changed");
     gnet_property->props[72].save = TRUE;
     gnet_property->props[72].vector_size = 1;
+	mutex_init(&gnet_property->props[72].lock);
 
     /* Type specific data: */
     gnet_property->props[72].type               = PROP_TYPE_GUINT32;
@@ -2539,6 +2615,7 @@ gnet_prop_init(void) {
     gnet_property->props[73].ev_changed = event_new("dq_debug_changed");
     gnet_property->props[73].save = TRUE;
     gnet_property->props[73].vector_size = 1;
+	mutex_init(&gnet_property->props[73].lock);
 
     /* Type specific data: */
     gnet_property->props[73].type               = PROP_TYPE_GUINT32;
@@ -2559,6 +2636,7 @@ gnet_prop_init(void) {
     gnet_property->props[74].ev_changed = event_new("vmsg_debug_changed");
     gnet_property->props[74].save = TRUE;
     gnet_property->props[74].vector_size = 1;
+	mutex_init(&gnet_property->props[74].lock);
 
     /* Type specific data: */
     gnet_property->props[74].type               = PROP_TYPE_GUINT32;
@@ -2579,6 +2657,7 @@ gnet_prop_init(void) {
     gnet_property->props[75].ev_changed = event_new("query_debug_changed");
     gnet_property->props[75].save = TRUE;
     gnet_property->props[75].vector_size = 1;
+	mutex_init(&gnet_property->props[75].lock);
 
     /* Type specific data: */
     gnet_property->props[75].type               = PROP_TYPE_GUINT32;
@@ -2599,6 +2678,7 @@ gnet_prop_init(void) {
     gnet_property->props[76].ev_changed = event_new("search_debug_changed");
     gnet_property->props[76].save = TRUE;
     gnet_property->props[76].vector_size = 1;
+	mutex_init(&gnet_property->props[76].lock);
 
     /* Type specific data: */
     gnet_property->props[76].type               = PROP_TYPE_GUINT32;
@@ -2619,6 +2699,7 @@ gnet_prop_init(void) {
     gnet_property->props[77].ev_changed = event_new("udp_debug_changed");
     gnet_property->props[77].save = TRUE;
     gnet_property->props[77].vector_size = 1;
+	mutex_init(&gnet_property->props[77].lock);
 
     /* Type specific data: */
     gnet_property->props[77].type               = PROP_TYPE_GUINT32;
@@ -2639,6 +2720,7 @@ gnet_prop_init(void) {
     gnet_property->props[78].ev_changed = event_new("qrp_debug_changed");
     gnet_property->props[78].save = TRUE;
     gnet_property->props[78].vector_size = 1;
+	mutex_init(&gnet_property->props[78].lock);
 
     /* Type specific data: */
     gnet_property->props[78].type               = PROP_TYPE_GUINT32;
@@ -2659,6 +2741,7 @@ gnet_prop_init(void) {
     gnet_property->props[79].ev_changed = event_new("routing_debug_changed");
     gnet_property->props[79].save = TRUE;
     gnet_property->props[79].vector_size = 1;
+	mutex_init(&gnet_property->props[79].lock);
 
     /* Type specific data: */
     gnet_property->props[79].type               = PROP_TYPE_GUINT32;
@@ -2679,6 +2762,7 @@ gnet_prop_init(void) {
     gnet_property->props[80].ev_changed = event_new("ggep_debug_changed");
     gnet_property->props[80].save = TRUE;
     gnet_property->props[80].vector_size = 1;
+	mutex_init(&gnet_property->props[80].lock);
 
     /* Type specific data: */
     gnet_property->props[80].type               = PROP_TYPE_GUINT32;
@@ -2699,6 +2783,7 @@ gnet_prop_init(void) {
     gnet_property->props[81].ev_changed = event_new("pcache_debug_changed");
     gnet_property->props[81].save = TRUE;
     gnet_property->props[81].vector_size = 1;
+	mutex_init(&gnet_property->props[81].lock);
 
     /* Type specific data: */
     gnet_property->props[81].type               = PROP_TYPE_GUINT32;
@@ -2719,6 +2804,7 @@ gnet_prop_init(void) {
     gnet_property->props[82].ev_changed = event_new("hsep_debug_changed");
     gnet_property->props[82].save = TRUE;
     gnet_property->props[82].vector_size = 1;
+	mutex_init(&gnet_property->props[82].lock);
 
     /* Type specific data: */
     gnet_property->props[82].type               = PROP_TYPE_GUINT32;
@@ -2739,6 +2825,7 @@ gnet_prop_init(void) {
     gnet_property->props[83].ev_changed = event_new("tls_debug_changed");
     gnet_property->props[83].save = TRUE;
     gnet_property->props[83].vector_size = 1;
+	mutex_init(&gnet_property->props[83].lock);
 
     /* Type specific data: */
     gnet_property->props[83].type               = PROP_TYPE_GUINT32;
@@ -2759,6 +2846,7 @@ gnet_prop_init(void) {
     gnet_property->props[84].ev_changed = event_new("parq_debug_changed");
     gnet_property->props[84].save = TRUE;
     gnet_property->props[84].vector_size = 1;
+	mutex_init(&gnet_property->props[84].lock);
 
     /* Type specific data: */
     gnet_property->props[84].type               = PROP_TYPE_GUINT32;
@@ -2779,6 +2867,7 @@ gnet_prop_init(void) {
     gnet_property->props[85].ev_changed = event_new("parq_optimistic_changed");
     gnet_property->props[85].save = TRUE;
     gnet_property->props[85].vector_size = 1;
+	mutex_init(&gnet_property->props[85].lock);
 
     /* Type specific data: */
     gnet_property->props[85].type               = PROP_TYPE_BOOLEAN;
@@ -2796,6 +2885,7 @@ gnet_prop_init(void) {
     gnet_property->props[86].ev_changed = event_new("parq_size_always_continue_changed");
     gnet_property->props[86].save = TRUE;
     gnet_property->props[86].vector_size = 1;
+	mutex_init(&gnet_property->props[86].lock);
 
     /* Type specific data: */
     gnet_property->props[86].type               = PROP_TYPE_GUINT32;
@@ -2816,6 +2906,7 @@ gnet_prop_init(void) {
     gnet_property->props[87].ev_changed = event_new("parq_time_always_continue_changed");
     gnet_property->props[87].save = TRUE;
     gnet_property->props[87].vector_size = 1;
+	mutex_init(&gnet_property->props[87].lock);
 
     /* Type specific data: */
     gnet_property->props[87].type               = PROP_TYPE_GUINT32;
@@ -2836,6 +2927,7 @@ gnet_prop_init(void) {
     gnet_property->props[88].ev_changed = event_new("parq_ban_bad_maxcountwait_changed");
     gnet_property->props[88].save = TRUE;
     gnet_property->props[88].vector_size = 1;
+	mutex_init(&gnet_property->props[88].lock);
 
     /* Type specific data: */
     gnet_property->props[88].type               = PROP_TYPE_GUINT32;
@@ -2856,6 +2948,7 @@ gnet_prop_init(void) {
     gnet_property->props[89].ev_changed = event_new("track_props_changed");
     gnet_property->props[89].save = TRUE;
     gnet_property->props[89].vector_size = 1;
+	mutex_init(&gnet_property->props[89].lock);
 
     /* Type specific data: */
     gnet_property->props[89].type               = PROP_TYPE_GUINT32;
@@ -2876,6 +2969,7 @@ gnet_prop_init(void) {
     gnet_property->props[90].ev_changed = event_new("stop_host_get_changed");
     gnet_property->props[90].save = TRUE;
     gnet_property->props[90].vector_size = 1;
+	mutex_init(&gnet_property->props[90].lock);
 
     /* Type specific data: */
     gnet_property->props[90].type               = PROP_TYPE_BOOLEAN;
@@ -2893,6 +2987,7 @@ gnet_prop_init(void) {
     gnet_property->props[91].ev_changed = event_new("bw_http_in_enabled_changed");
     gnet_property->props[91].save = TRUE;
     gnet_property->props[91].vector_size = 1;
+	mutex_init(&gnet_property->props[91].lock);
 
     /* Type specific data: */
     gnet_property->props[91].type               = PROP_TYPE_BOOLEAN;
@@ -2910,6 +3005,7 @@ gnet_prop_init(void) {
     gnet_property->props[92].ev_changed = event_new("bw_http_out_enabled_changed");
     gnet_property->props[92].save = TRUE;
     gnet_property->props[92].vector_size = 1;
+	mutex_init(&gnet_property->props[92].lock);
 
     /* Type specific data: */
     gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
@@ -2927,6 +3023,7 @@ gnet_prop_init(void) {
     gnet_property->props[93].ev_changed = event_new("bw_gnet_in_enabled_changed");
     gnet_property->props[93].save = TRUE;
     gnet_property->props[93].vector_size = 1;
+	mutex_init(&gnet_property->props[93].lock);
 
     /* Type specific data: */
     gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
@@ -2944,6 +3041,7 @@ gnet_prop_init(void) {
     gnet_property->props[94].ev_changed = event_new("bw_gnet_leaf_in_enabled_changed");
     gnet_property->props[94].save = TRUE;
     gnet_property->props[94].vector_size = 1;
+	mutex_init(&gnet_property->props[94].lock);
 
     /* Type specific data: */
     gnet_property->props[94].type               = PROP_TYPE_BOOLEAN;
@@ -2961,6 +3059,7 @@ gnet_prop_init(void) {
     gnet_property->props[95].ev_changed = event_new("bw_gnet_out_enabled_changed");
     gnet_property->props[95].save = TRUE;
     gnet_property->props[95].vector_size = 1;
+	mutex_init(&gnet_property->props[95].lock);
 
     /* Type specific data: */
     gnet_property->props[95].type               = PROP_TYPE_BOOLEAN;
@@ -2978,6 +3077,7 @@ gnet_prop_init(void) {
     gnet_property->props[96].ev_changed = event_new("bw_gnet_leaf_out_enabled_changed");
     gnet_property->props[96].save = TRUE;
     gnet_property->props[96].vector_size = 1;
+	mutex_init(&gnet_property->props[96].lock);
 
     /* Type specific data: */
     gnet_property->props[96].type               = PROP_TYPE_BOOLEAN;
@@ -2995,6 +3095,7 @@ gnet_prop_init(void) {
     gnet_property->props[97].ev_changed = event_new("bw_ul_usage_enabled_changed");
     gnet_property->props[97].save = TRUE;
     gnet_property->props[97].vector_size = 1;
+	mutex_init(&gnet_property->props[97].lock);
 
     /* Type specific data: */
     gnet_property->props[97].type               = PROP_TYPE_BOOLEAN;
@@ -3012,6 +3113,7 @@ gnet_prop_init(void) {
     gnet_property->props[98].ev_changed = event_new("bw_allow_stealing_changed");
     gnet_property->props[98].save = TRUE;
     gnet_property->props[98].vector_size = 1;
+	mutex_init(&gnet_property->props[98].lock);
 
     /* Type specific data: */
     gnet_property->props[98].type               = PROP_TYPE_BOOLEAN;
@@ -3029,6 +3131,7 @@ gnet_prop_init(void) {
     gnet_property->props[99].ev_changed = event_new("autoclear_completed_downloads_changed");
     gnet_property->props[99].save = TRUE;
     gnet_property->props[99].vector_size = 1;
+	mutex_init(&gnet_property->props[99].lock);
 
     /* Type specific data: */
     gnet_property->props[99].type               = PROP_TYPE_BOOLEAN;
@@ -3046,6 +3149,7 @@ gnet_prop_init(void) {
     gnet_property->props[100].ev_changed = event_new("autoclear_failed_downloads_changed");
     gnet_property->props[100].save = TRUE;
     gnet_property->props[100].vector_size = 1;
+	mutex_init(&gnet_property->props[100].lock);
 
     /* Type specific data: */
     gnet_property->props[100].type               = PROP_TYPE_BOOLEAN;
@@ -3063,6 +3167,7 @@ gnet_prop_init(void) {
     gnet_property->props[101].ev_changed = event_new("autoclear_unavailable_downloads_changed");
     gnet_property->props[101].save = TRUE;
     gnet_property->props[101].vector_size = 1;
+	mutex_init(&gnet_property->props[101].lock);
 
     /* Type specific data: */
     gnet_property->props[101].type               = PROP_TYPE_BOOLEAN;
@@ -3080,6 +3185,7 @@ gnet_prop_init(void) {
     gnet_property->props[102].ev_changed = event_new("autoclear_finished_downloads_changed");
     gnet_property->props[102].save = TRUE;
     gnet_property->props[102].vector_size = 1;
+	mutex_init(&gnet_property->props[102].lock);
 
     /* Type specific data: */
     gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
@@ -3097,6 +3203,7 @@ gnet_prop_init(void) {
     gnet_property->props[103].ev_changed = event_new("search_remove_downloaded_changed");
     gnet_property->props[103].save = TRUE;
     gnet_property->props[103].vector_size = 1;
+	mutex_init(&gnet_property->props[103].lock);
 
     /* Type specific data: */
     gnet_property->props[103].type               = PROP_TYPE_BOOLEAN;
@@ -3114,6 +3221,7 @@ gnet_prop_init(void) {
     gnet_property->props[104].ev_changed = event_new("force_local_ip_changed");
     gnet_property->props[104].save = TRUE;
     gnet_property->props[104].vector_size = 1;
+	mutex_init(&gnet_property->props[104].lock);
 
     /* Type specific data: */
     gnet_property->props[104].type               = PROP_TYPE_BOOLEAN;
@@ -3131,6 +3239,7 @@ gnet_prop_init(void) {
     gnet_property->props[105].ev_changed = event_new("force_local_ip6_changed");
     gnet_property->props[105].save = TRUE;
     gnet_property->props[105].vector_size = 1;
+	mutex_init(&gnet_property->props[105].lock);
 
     /* Type specific data: */
     gnet_property->props[105].type               = PROP_TYPE_BOOLEAN;
@@ -3148,6 +3257,7 @@ gnet_prop_init(void) {
     gnet_property->props[106].ev_changed = event_new("bind_to_forced_local_ip_changed");
     gnet_property->props[106].save = TRUE;
     gnet_property->props[106].vector_size = 1;
+	mutex_init(&gnet_property->props[106].lock);
 
     /* Type specific data: */
     gnet_property->props[106].type               = PROP_TYPE_BOOLEAN;
@@ -3165,6 +3275,7 @@ gnet_prop_init(void) {
     gnet_property->props[107].ev_changed = event_new("bind_to_forced_local_ip6_changed");
     gnet_property->props[107].save = TRUE;
     gnet_property->props[107].vector_size = 1;
+	mutex_init(&gnet_property->props[107].lock);
 
     /* Type specific data: */
     gnet_property->props[107].type               = PROP_TYPE_BOOLEAN;
@@ -3182,6 +3293,7 @@ gnet_prop_init(void) {
     gnet_property->props[108].ev_changed = event_new("use_netmasks_changed");
     gnet_property->props[108].save = TRUE;
     gnet_property->props[108].vector_size = 1;
+	mutex_init(&gnet_property->props[108].lock);
 
     /* Type specific data: */
     gnet_property->props[108].type               = PROP_TYPE_BOOLEAN;
@@ -3199,6 +3311,7 @@ gnet_prop_init(void) {
     gnet_property->props[109].ev_changed = event_new("allow_private_network_connection_changed");
     gnet_property->props[109].save = TRUE;
     gnet_property->props[109].vector_size = 1;
+	mutex_init(&gnet_property->props[109].lock);
 
     /* Type specific data: */
     gnet_property->props[109].type               = PROP_TYPE_BOOLEAN;
@@ -3216,6 +3329,7 @@ gnet_prop_init(void) {
     gnet_property->props[110].ev_changed = event_new("use_ip_tos_changed");
     gnet_property->props[110].save = TRUE;
     gnet_property->props[110].vector_size = 1;
+	mutex_init(&gnet_property->props[110].lock);
 
     /* Type specific data: */
     gnet_property->props[110].type               = PROP_TYPE_BOOLEAN;
@@ -3233,6 +3347,7 @@ gnet_prop_init(void) {
     gnet_property->props[111].ev_changed = event_new("download_delete_aborted_changed");
     gnet_property->props[111].save = TRUE;
     gnet_property->props[111].vector_size = 1;
+	mutex_init(&gnet_property->props[111].lock);
 
     /* Type specific data: */
     gnet_property->props[111].type               = PROP_TYPE_BOOLEAN;
@@ -3250,6 +3365,7 @@ gnet_prop_init(void) {
     gnet_property->props[112].ev_changed = event_new("proxy_auth_changed");
     gnet_property->props[112].save = TRUE;
     gnet_property->props[112].vector_size = 1;
+	mutex_init(&gnet_property->props[112].lock);
 
     /* Type specific data: */
     gnet_property->props[112].type               = PROP_TYPE_BOOLEAN;
@@ -3267,6 +3383,7 @@ gnet_prop_init(void) {
     gnet_property->props[113].ev_changed = event_new("socks_user_changed");
     gnet_property->props[113].save = TRUE;
     gnet_property->props[113].vector_size = 1;
+	mutex_init(&gnet_property->props[113].lock);
 
     /* Type specific data: */
     gnet_property->props[113].type               = PROP_TYPE_STRING;
@@ -3288,6 +3405,7 @@ gnet_prop_init(void) {
     gnet_property->props[114].ev_changed = event_new("socks_pass_changed");
     gnet_property->props[114].save = TRUE;
     gnet_property->props[114].vector_size = 1;
+	mutex_init(&gnet_property->props[114].lock);
 
     /* Type specific data: */
     gnet_property->props[114].type               = PROP_TYPE_STRING;
@@ -3309,6 +3427,7 @@ gnet_prop_init(void) {
     gnet_property->props[115].ev_changed = event_new("proxy_addr_changed");
     gnet_property->props[115].save = FALSE;
     gnet_property->props[115].vector_size = 1;
+	mutex_init(&gnet_property->props[115].lock);
 
     /* Type specific data: */
     gnet_property->props[115].type               = PROP_TYPE_IP;
@@ -3325,6 +3444,7 @@ gnet_prop_init(void) {
     gnet_property->props[116].ev_changed = event_new("proxy_hostname_changed");
     gnet_property->props[116].save = TRUE;
     gnet_property->props[116].vector_size = 1;
+	mutex_init(&gnet_property->props[116].lock);
 
     /* Type specific data: */
     gnet_property->props[116].type               = PROP_TYPE_STRING;
@@ -3346,6 +3466,7 @@ gnet_prop_init(void) {
     gnet_property->props[117].ev_changed = event_new("proxy_port_changed");
     gnet_property->props[117].save = TRUE;
     gnet_property->props[117].vector_size = 1;
+	mutex_init(&gnet_property->props[117].lock);
 
     /* Type specific data: */
     gnet_property->props[117].type               = PROP_TYPE_GUINT32;
@@ -3366,6 +3487,7 @@ gnet_prop_init(void) {
     gnet_property->props[118].ev_changed = event_new("proxy_protocol_changed");
     gnet_property->props[118].save = TRUE;
     gnet_property->props[118].vector_size = 1;
+	mutex_init(&gnet_property->props[118].lock);
 
     /* Type specific data: */
     gnet_property->props[118].type               = PROP_TYPE_MULTICHOICE;
@@ -3386,6 +3508,7 @@ gnet_prop_init(void) {
     gnet_property->props[119].ev_changed = event_new("network_protocol_changed");
     gnet_property->props[119].save = TRUE;
     gnet_property->props[119].vector_size = 1;
+	mutex_init(&gnet_property->props[119].lock);
 
     /* Type specific data: */
     gnet_property->props[119].type               = PROP_TYPE_MULTICHOICE;
@@ -3406,6 +3529,7 @@ gnet_prop_init(void) {
     gnet_property->props[120].ev_changed = event_new("use_ipv6_trt_changed");
     gnet_property->props[120].save = TRUE;
     gnet_property->props[120].vector_size = 1;
+	mutex_init(&gnet_property->props[120].lock);
 
     /* Type specific data: */
     gnet_property->props[120].type               = PROP_TYPE_BOOLEAN;
@@ -3423,6 +3547,7 @@ gnet_prop_init(void) {
     gnet_property->props[121].ev_changed = event_new("ipv6_trt_prefix_changed");
     gnet_property->props[121].save = TRUE;
     gnet_property->props[121].vector_size = 1;
+	mutex_init(&gnet_property->props[121].lock);
 
     /* Type specific data: */
     gnet_property->props[121].type               = PROP_TYPE_IP;
@@ -3439,6 +3564,7 @@ gnet_prop_init(void) {
     gnet_property->props[122].ev_changed = event_new("hosts_in_catcher_changed");
     gnet_property->props[122].save = FALSE;
     gnet_property->props[122].vector_size = 1;
+	mutex_init(&gnet_property->props[122].lock);
 
     /* Type specific data: */
     gnet_property->props[122].type               = PROP_TYPE_GUINT32;
@@ -3459,6 +3585,7 @@ gnet_prop_init(void) {
     gnet_property->props[123].ev_changed = event_new("hosts_in_ultra_catcher_changed");
     gnet_property->props[123].save = FALSE;
     gnet_property->props[123].vector_size = 1;
+	mutex_init(&gnet_property->props[123].lock);
 
     /* Type specific data: */
     gnet_property->props[123].type               = PROP_TYPE_GUINT32;
@@ -3479,6 +3606,7 @@ gnet_prop_init(void) {
     gnet_property->props[124].ev_changed = event_new("hosts_in_bad_catcher_changed");
     gnet_property->props[124].save = FALSE;
     gnet_property->props[124].vector_size = 1;
+	mutex_init(&gnet_property->props[124].lock);
 
     /* Type specific data: */
     gnet_property->props[124].type               = PROP_TYPE_GUINT32;
@@ -3499,6 +3627,7 @@ gnet_prop_init(void) {
     gnet_property->props[125].ev_changed = event_new("max_hosts_cached_changed");
     gnet_property->props[125].save = TRUE;
     gnet_property->props[125].vector_size = 1;
+	mutex_init(&gnet_property->props[125].lock);
 
     /* Type specific data: */
     gnet_property->props[125].type               = PROP_TYPE_GUINT32;
@@ -3519,6 +3648,7 @@ gnet_prop_init(void) {
     gnet_property->props[126].ev_changed = event_new("max_ultra_hosts_cached_changed");
     gnet_property->props[126].save = TRUE;
     gnet_property->props[126].vector_size = 1;
+	mutex_init(&gnet_property->props[126].lock);
 
     /* Type specific data: */
     gnet_property->props[126].type               = PROP_TYPE_GUINT32;
@@ -3539,6 +3669,7 @@ gnet_prop_init(void) {
     gnet_property->props[127].ev_changed = event_new("max_bad_hosts_cached_changed");
     gnet_property->props[127].save = TRUE;
     gnet_property->props[127].vector_size = 1;
+	mutex_init(&gnet_property->props[127].lock);
 
     /* Type specific data: */
     gnet_property->props[127].type               = PROP_TYPE_GUINT32;
@@ -3559,6 +3690,7 @@ gnet_prop_init(void) {
     gnet_property->props[128].ev_changed = event_new("max_high_ttl_msg_changed");
     gnet_property->props[128].save = TRUE;
     gnet_property->props[128].vector_size = 1;
+	mutex_init(&gnet_property->props[128].lock);
 
     /* Type specific data: */
     gnet_property->props[128].type               = PROP_TYPE_GUINT32;
@@ -3579,6 +3711,7 @@ gnet_prop_init(void) {
     gnet_property->props[129].ev_changed = event_new("max_high_ttl_radius_changed");
     gnet_property->props[129].save = TRUE;
     gnet_property->props[129].vector_size = 1;
+	mutex_init(&gnet_property->props[129].lock);
 
     /* Type specific data: */
     gnet_property->props[129].type               = PROP_TYPE_GUINT32;
@@ -3599,6 +3732,7 @@ gnet_prop_init(void) {
     gnet_property->props[130].ev_changed = event_new("bw_http_in_changed");
     gnet_property->props[130].save = TRUE;
     gnet_property->props[130].vector_size = 1;
+	mutex_init(&gnet_property->props[130].lock);
 
     /* Type specific data: */
     gnet_property->props[130].type               = PROP_TYPE_GUINT32;
@@ -3619,6 +3753,7 @@ gnet_prop_init(void) {
     gnet_property->props[131].ev_changed = event_new("bw_http_out_changed");
     gnet_property->props[131].save = TRUE;
     gnet_property->props[131].vector_size = 1;
+	mutex_init(&gnet_property->props[131].lock);
 
     /* Type specific data: */
     gnet_property->props[131].type               = PROP_TYPE_GUINT32;
@@ -3639,6 +3774,7 @@ gnet_prop_init(void) {
     gnet_property->props[132].ev_changed = event_new("bw_gnet_in_changed");
     gnet_property->props[132].save = TRUE;
     gnet_property->props[132].vector_size = 1;
+	mutex_init(&gnet_property->props[132].lock);
 
     /* Type specific data: */
     gnet_property->props[132].type               = PROP_TYPE_GUINT32;
@@ -3659,6 +3795,7 @@ gnet_prop_init(void) {
     gnet_property->props[133].ev_changed = event_new("bw_gnet_out_changed");
     gnet_property->props[133].save = TRUE;
     gnet_property->props[133].vector_size = 1;
+	mutex_init(&gnet_property->props[133].lock);
 
     /* Type specific data: */
     gnet_property->props[133].type               = PROP_TYPE_GUINT32;
@@ -3679,6 +3816,7 @@ gnet_prop_init(void) {
     gnet_property->props[134].ev_changed = event_new("bw_gnet_lin_changed");
     gnet_property->props[134].save = TRUE;
     gnet_property->props[134].vector_size = 1;
+	mutex_init(&gnet_property->props[134].lock);
 
     /* Type specific data: */
     gnet_property->props[134].type               = PROP_TYPE_GUINT32;
@@ -3699,6 +3837,7 @@ gnet_prop_init(void) {
     gnet_property->props[135].ev_changed = event_new("bw_gnet_lout_changed");
     gnet_property->props[135].save = TRUE;
     gnet_property->props[135].vector_size = 1;
+	mutex_init(&gnet_property->props[135].lock);
 
     /* Type specific data: */
     gnet_property->props[135].type               = PROP_TYPE_GUINT32;
@@ -3719,6 +3858,7 @@ gnet_prop_init(void) {
     gnet_property->props[136].ev_changed = event_new("search_queries_forward_size_changed");
     gnet_property->props[136].save = TRUE;
     gnet_property->props[136].vector_size = 1;
+	mutex_init(&gnet_property->props[136].lock);
 
     /* Type specific data: */
     gnet_property->props[136].type               = PROP_TYPE_GUINT32;
@@ -3739,6 +3879,7 @@ gnet_prop_init(void) {
     gnet_property->props[137].ev_changed = event_new("search_queries_kick_size_changed");
     gnet_property->props[137].save = TRUE;
     gnet_property->props[137].vector_size = 1;
+	mutex_init(&gnet_property->props[137].lock);
 
     /* Type specific data: */
     gnet_property->props[137].type               = PROP_TYPE_GUINT32;
@@ -3759,6 +3900,7 @@ gnet_prop_init(void) {
     gnet_property->props[138].ev_changed = event_new("search_answers_forward_size_changed");
     gnet_property->props[138].save = TRUE;
     gnet_property->props[138].vector_size = 1;
+	mutex_init(&gnet_property->props[138].lock);
 
     /* Type specific data: */
     gnet_property->props[138].type               = PROP_TYPE_GUINT32;
@@ -3779,6 +3921,7 @@ gnet_prop_init(void) {
     gnet_property->props[139].ev_changed = event_new("search_answers_kick_size_changed");
     gnet_property->props[139].save = TRUE;
     gnet_property->props[139].vector_size = 1;
+	mutex_init(&gnet_property->props[139].lock);
 
     /* Type specific data: */
     gnet_property->props[139].type               = PROP_TYPE_GUINT32;
@@ -3799,6 +3942,7 @@ gnet_prop_init(void) {
     gnet_property->props[140].ev_changed = event_new("search_muid_track_amount_changed");
     gnet_property->props[140].save = TRUE;
     gnet_property->props[140].vector_size = 1;
+	mutex_init(&gnet_property->props[140].lock);
 
     /* Type specific data: */
     gnet_property->props[140].type               = PROP_TYPE_GUINT32;
@@ -3819,6 +3963,7 @@ gnet_prop_init(void) {
     gnet_property->props[141].ev_changed = event_new("other_messages_kick_size_changed");
     gnet_property->props[141].save = TRUE;
     gnet_property->props[141].vector_size = 1;
+	mutex_init(&gnet_property->props[141].lock);
 
     /* Type specific data: */
     gnet_property->props[141].type               = PROP_TYPE_GUINT32;
@@ -3839,6 +3984,7 @@ gnet_prop_init(void) {
     gnet_property->props[142].ev_changed = event_new("hops_random_factor_changed");
     gnet_property->props[142].save = TRUE;
     gnet_property->props[142].vector_size = 1;
+	mutex_init(&gnet_property->props[142].lock);
 
     /* Type specific data: */
     gnet_property->props[142].type               = PROP_TYPE_GUINT32;
@@ -3859,6 +4005,7 @@ gnet_prop_init(void) {
     gnet_property->props[143].ev_changed = event_new("send_pushes_changed");
     gnet_property->props[143].save = TRUE;
     gnet_property->props[143].vector_size = 1;
+	mutex_init(&gnet_property->props[143].lock);
 
     /* Type specific data: */
     gnet_property->props[143].type               = PROP_TYPE_BOOLEAN;
@@ -3876,6 +4023,7 @@ gnet_prop_init(void) {
     gnet_property->props[144].ev_changed = event_new("min_dup_msg_changed");
     gnet_property->props[144].save = TRUE;
     gnet_property->props[144].vector_size = 1;
+	mutex_init(&gnet_property->props[144].lock);
 
     /* Type specific data: */
     gnet_property->props[144].type               = PROP_TYPE_GUINT32;
@@ -3896,6 +4044,7 @@ gnet_prop_init(void) {
     gnet_property->props[145].ev_changed = event_new("min_dup_ratio_changed");
     gnet_property->props[145].save = TRUE;
     gnet_property->props[145].vector_size = 1;
+	mutex_init(&gnet_property->props[145].lock);
 
     /* Type specific data: */
     gnet_property->props[145].type               = PROP_TYPE_GUINT32;
@@ -3916,6 +4065,7 @@ gnet_prop_init(void) {
     gnet_property->props[146].ev_changed = event_new("scan_extensions_changed");
     gnet_property->props[146].save = TRUE;
     gnet_property->props[146].vector_size = 1;
+	mutex_init(&gnet_property->props[146].lock);
 
     /* Type specific data: */
     gnet_property->props[146].type               = PROP_TYPE_STRING;
@@ -3937,6 +4087,7 @@ gnet_prop_init(void) {
     gnet_property->props[147].ev_changed = event_new("scan_ignore_symlink_dirs_changed");
     gnet_property->props[147].save = TRUE;
     gnet_property->props[147].vector_size = 1;
+	mutex_init(&gnet_property->props[147].lock);
 
     /* Type specific data: */
     gnet_property->props[147].type               = PROP_TYPE_BOOLEAN;
@@ -3954,6 +4105,7 @@ gnet_prop_init(void) {
     gnet_property->props[148].ev_changed = event_new("scan_ignore_symlink_regfiles_changed");
     gnet_property->props[148].save = TRUE;
     gnet_property->props[148].vector_size = 1;
+	mutex_init(&gnet_property->props[148].lock);
 
     /* Type specific data: */
     gnet_property->props[148].type               = PROP_TYPE_BOOLEAN;
@@ -3971,6 +4123,7 @@ gnet_prop_init(void) {
     gnet_property->props[149].ev_changed = event_new("save_file_path_changed");
     gnet_property->props[149].save = TRUE;
     gnet_property->props[149].vector_size = 1;
+	mutex_init(&gnet_property->props[149].lock);
 
     /* Type specific data: */
     gnet_property->props[149].type               = PROP_TYPE_STRING;
@@ -3992,6 +4145,7 @@ gnet_prop_init(void) {
     gnet_property->props[150].ev_changed = event_new("move_file_path_changed");
     gnet_property->props[150].save = TRUE;
     gnet_property->props[150].vector_size = 1;
+	mutex_init(&gnet_property->props[150].lock);
 
     /* Type specific data: */
     gnet_property->props[150].type               = PROP_TYPE_STRING;
@@ -4013,6 +4167,7 @@ gnet_prop_init(void) {
     gnet_property->props[151].ev_changed = event_new("bad_file_path_changed");
     gnet_property->props[151].save = TRUE;
     gnet_property->props[151].vector_size = 1;
+	mutex_init(&gnet_property->props[151].lock);
 
     /* Type specific data: */
     gnet_property->props[151].type               = PROP_TYPE_STRING;
@@ -4034,6 +4189,7 @@ gnet_prop_init(void) {
     gnet_property->props[152].ev_changed = event_new("shared_dirs_paths_changed");
     gnet_property->props[152].save = TRUE;
     gnet_property->props[152].vector_size = 1;
+	mutex_init(&gnet_property->props[152].lock);
 
     /* Type specific data: */
     gnet_property->props[152].type               = PROP_TYPE_STRING;
@@ -4055,6 +4211,7 @@ gnet_prop_init(void) {
     gnet_property->props[153].ev_changed = event_new("local_netmasks_string_changed");
     gnet_property->props[153].save = TRUE;
     gnet_property->props[153].vector_size = 1;
+	mutex_init(&gnet_property->props[153].lock);
 
     /* Type specific data: */
     gnet_property->props[153].type               = PROP_TYPE_STRING;
@@ -4076,6 +4233,7 @@ gnet_prop_init(void) {
     gnet_property->props[154].ev_changed = event_new("total_downloads_changed");
     gnet_property->props[154].save = FALSE;
     gnet_property->props[154].vector_size = 1;
+	mutex_init(&gnet_property->props[154].lock);
 
     /* Type specific data: */
     gnet_property->props[154].type               = PROP_TYPE_GUINT32;
@@ -4096,6 +4254,7 @@ gnet_prop_init(void) {
     gnet_property->props[155].ev_changed = event_new("ul_running_changed");
     gnet_property->props[155].save = FALSE;
     gnet_property->props[155].vector_size = 1;
+	mutex_init(&gnet_property->props[155].lock);
 
     /* Type specific data: */
     gnet_property->props[155].type               = PROP_TYPE_GUINT32;
@@ -4116,6 +4275,7 @@ gnet_prop_init(void) {
     gnet_property->props[156].ev_changed = event_new("ul_quick_running_changed");
     gnet_property->props[156].save = FALSE;
     gnet_property->props[156].vector_size = 1;
+	mutex_init(&gnet_property->props[156].lock);
 
     /* Type specific data: */
     gnet_property->props[156].type               = PROP_TYPE_GUINT32;
@@ -4136,6 +4296,7 @@ gnet_prop_init(void) {
     gnet_property->props[157].ev_changed = event_new("ul_registered_changed");
     gnet_property->props[157].save = FALSE;
     gnet_property->props[157].vector_size = 1;
+	mutex_init(&gnet_property->props[157].lock);
 
     /* Type specific data: */
     gnet_property->props[157].type               = PROP_TYPE_GUINT32;
@@ -4156,6 +4317,7 @@ gnet_prop_init(void) {
     gnet_property->props[158].ev_changed = event_new("total_uploads_changed");
     gnet_property->props[158].save = FALSE;
     gnet_property->props[158].vector_size = 1;
+	mutex_init(&gnet_property->props[158].lock);
 
     /* Type specific data: */
     gnet_property->props[158].type               = PROP_TYPE_GUINT32;
@@ -4176,6 +4338,7 @@ gnet_prop_init(void) {
     gnet_property->props[159].ev_changed = event_new("servent_guid_changed");
     gnet_property->props[159].save = TRUE;
     gnet_property->props[159].vector_size = GUID_RAW_SIZE;
+	mutex_init(&gnet_property->props[159].lock);
 
     /* Type specific data: */
     gnet_property->props[159].type               = PROP_TYPE_STORAGE;
@@ -4192,6 +4355,7 @@ gnet_prop_init(void) {
     gnet_property->props[160].ev_changed = event_new("kuid_changed");
     gnet_property->props[160].save = TRUE;
     gnet_property->props[160].vector_size = KUID_RAW_SIZE;
+	mutex_init(&gnet_property->props[160].lock);
 
     /* Type specific data: */
     gnet_property->props[160].type               = PROP_TYPE_STORAGE;
@@ -4208,6 +4372,7 @@ gnet_prop_init(void) {
     gnet_property->props[161].ev_changed = event_new("use_swarming_changed");
     gnet_property->props[161].save = TRUE;
     gnet_property->props[161].vector_size = 1;
+	mutex_init(&gnet_property->props[161].lock);
 
     /* Type specific data: */
     gnet_property->props[161].type               = PROP_TYPE_BOOLEAN;
@@ -4225,6 +4390,7 @@ gnet_prop_init(void) {
     gnet_property->props[162].ev_changed = event_new("use_aggressive_swarming_changed");
     gnet_property->props[162].save = TRUE;
     gnet_property->props[162].vector_size = 1;
+	mutex_init(&gnet_property->props[162].lock);
 
     /* Type specific data: */
     gnet_property->props[162].type               = PROP_TYPE_BOOLEAN;
@@ -4242,6 +4408,7 @@ gnet_prop_init(void) {
     gnet_property->props[163].ev_changed = event_new("dl_minchunksize_changed");
     gnet_property->props[163].save = TRUE;
     gnet_property->props[163].vector_size = 1;
+	mutex_init(&gnet_property->props[163].lock);
 
     /* Type specific data: */
     gnet_property->props[163].type               = PROP_TYPE_GUINT32;
@@ -4262,6 +4429,7 @@ gnet_prop_init(void) {
     gnet_property->props[164].ev_changed = event_new("dl_maxchunksize_changed");
     gnet_property->props[164].save = TRUE;
     gnet_property->props[164].vector_size = 1;
+	mutex_init(&gnet_property->props[164].lock);
 
     /* Type specific data: */
     gnet_property->props[164].type               = PROP_TYPE_GUINT32;
@@ -4282,6 +4450,7 @@ gnet_prop_init(void) {
     gnet_property->props[165].ev_changed = event_new("auto_download_identical_changed");
     gnet_property->props[165].save = TRUE;
     gnet_property->props[165].vector_size = 1;
+	mutex_init(&gnet_property->props[165].lock);
 
     /* Type specific data: */
     gnet_property->props[165].type               = PROP_TYPE_BOOLEAN;
@@ -4299,6 +4468,7 @@ gnet_prop_init(void) {
     gnet_property->props[166].ev_changed = event_new("auto_feed_download_mesh_changed");
     gnet_property->props[166].save = TRUE;
     gnet_property->props[166].vector_size = 1;
+	mutex_init(&gnet_property->props[166].lock);
 
     /* Type specific data: */
     gnet_property->props[166].type               = PROP_TYPE_BOOLEAN;
@@ -4316,6 +4486,7 @@ gnet_prop_init(void) {
     gnet_property->props[167].ev_changed = event_new("strict_sha1_matching_changed");
     gnet_property->props[167].save = TRUE;
     gnet_property->props[167].vector_size = 1;
+	mutex_init(&gnet_property->props[167].lock);
 
     /* Type specific data: */
     gnet_property->props[167].type               = PROP_TYPE_BOOLEAN;
@@ -4333,6 +4504,7 @@ gnet_prop_init(void) {
     gnet_property->props[168].ev_changed = event_new("is_firewalled_changed");
     gnet_property->props[168].save = TRUE;
     gnet_property->props[168].vector_size = 1;
+	mutex_init(&gnet_property->props[168].lock);
 
     /* Type specific data: */
     gnet_property->props[168].type               = PROP_TYPE_BOOLEAN;
@@ -4350,6 +4522,7 @@ gnet_prop_init(void) {
     gnet_property->props[169].ev_changed = event_new("is_inet_connected_changed");
     gnet_property->props[169].save = FALSE;
     gnet_property->props[169].vector_size = 1;
+	mutex_init(&gnet_property->props[169].lock);
 
     /* Type specific data: */
     gnet_property->props[169].type               = PROP_TYPE_BOOLEAN;
@@ -4367,6 +4540,7 @@ gnet_prop_init(void) {
     gnet_property->props[170].ev_changed = event_new("is_udp_firewalled_changed");
     gnet_property->props[170].save = TRUE;
     gnet_property->props[170].vector_size = 1;
+	mutex_init(&gnet_property->props[170].lock);
 
     /* Type specific data: */
     gnet_property->props[170].type               = PROP_TYPE_BOOLEAN;
@@ -4384,6 +4558,7 @@ gnet_prop_init(void) {
     gnet_property->props[171].ev_changed = event_new("recv_solicited_udp_changed");
     gnet_property->props[171].save = TRUE;
     gnet_property->props[171].vector_size = 1;
+	mutex_init(&gnet_property->props[171].lock);
 
     /* Type specific data: */
     gnet_property->props[171].type               = PROP_TYPE_BOOLEAN;
@@ -4401,6 +4576,7 @@ gnet_prop_init(void) {
     gnet_property->props[172].ev_changed = event_new("gnet_compact_query_changed");
     gnet_property->props[172].save = TRUE;
     gnet_property->props[172].vector_size = 1;
+	mutex_init(&gnet_property->props[172].lock);
 
     /* Type specific data: */
     gnet_property->props[172].type               = PROP_TYPE_BOOLEAN;
@@ -4418,6 +4594,7 @@ gnet_prop_init(void) {
     gnet_property->props[173].ev_changed = event_new("download_optimistic_start_changed");
     gnet_property->props[173].save = TRUE;
     gnet_property->props[173].vector_size = 1;
+	mutex_init(&gnet_property->props[173].lock);
 
     /* Type specific data: */
     gnet_property->props[173].type               = PROP_TYPE_BOOLEAN;
@@ -4435,6 +4612,7 @@ gnet_prop_init(void) {
     gnet_property->props[174].ev_changed = event_new("library_rebuilding_changed");
     gnet_property->props[174].save = FALSE;
     gnet_property->props[174].vector_size = 1;
+	mutex_init(&gnet_property->props[174].lock);
 
     /* Type specific data: */
     gnet_property->props[174].type               = PROP_TYPE_BOOLEAN;
@@ -4452,6 +4630,7 @@ gnet_prop_init(void) {
     gnet_property->props[175].ev_changed = event_new("sha1_rebuilding_changed");
     gnet_property->props[175].save = FALSE;
     gnet_property->props[175].vector_size = 1;
+	mutex_init(&gnet_property->props[175].lock);
 
     /* Type specific data: */
     gnet_property->props[175].type               = PROP_TYPE_BOOLEAN;
@@ -4469,6 +4648,7 @@ gnet_prop_init(void) {
     gnet_property->props[176].ev_changed = event_new("sha1_verifying_changed");
     gnet_property->props[176].save = FALSE;
     gnet_property->props[176].vector_size = 1;
+	mutex_init(&gnet_property->props[176].lock);
 
     /* Type specific data: */
     gnet_property->props[176].type               = PROP_TYPE_BOOLEAN;
@@ -4486,6 +4666,7 @@ gnet_prop_init(void) {
     gnet_property->props[177].ev_changed = event_new("file_moving_changed");
     gnet_property->props[177].save = FALSE;
     gnet_property->props[177].vector_size = 1;
+	mutex_init(&gnet_property->props[177].lock);
 
     /* Type specific data: */
     gnet_property->props[177].type               = PROP_TYPE_BOOLEAN;
@@ -4503,6 +4684,7 @@ gnet_prop_init(void) {
     gnet_property->props[178].ev_changed = event_new("prefer_compressed_gnet_changed");
     gnet_property->props[178].save = TRUE;
     gnet_property->props[178].vector_size = 1;
+	mutex_init(&gnet_property->props[178].lock);
 
     /* Type specific data: */
     gnet_property->props[178].type               = PROP_TYPE_BOOLEAN;
@@ -4520,6 +4702,7 @@ gnet_prop_init(void) {
     gnet_property->props[179].ev_changed = event_new("online_mode_changed");
     gnet_property->props[179].save = TRUE;
     gnet_property->props[179].vector_size = 1;
+	mutex_init(&gnet_property->props[179].lock);
 
     /* Type specific data: */
     gnet_property->props[179].type               = PROP_TYPE_BOOLEAN;
@@ -4537,6 +4720,7 @@ gnet_prop_init(void) {
     gnet_property->props[180].ev_changed = event_new("download_require_urn_changed");
     gnet_property->props[180].save = TRUE;
     gnet_property->props[180].vector_size = 1;
+	mutex_init(&gnet_property->props[180].lock);
 
     /* Type specific data: */
     gnet_property->props[180].type               = PROP_TYPE_BOOLEAN;
@@ -4554,6 +4738,7 @@ gnet_prop_init(void) {
     gnet_property->props[181].ev_changed = event_new("download_require_server_name_changed");
     gnet_property->props[181].save = TRUE;
     gnet_property->props[181].vector_size = 1;
+	mutex_init(&gnet_property->props[181].lock);
 
     /* Type specific data: */
     gnet_property->props[181].type               = PROP_TYPE_BOOLEAN;
@@ -4571,6 +4756,7 @@ gnet_prop_init(void) {
     gnet_property->props[182].ev_changed = event_new("max_ultrapeers_changed");
     gnet_property->props[182].save = TRUE;
     gnet_property->props[182].vector_size = 1;
+	mutex_init(&gnet_property->props[182].lock);
 
     /* Type specific data: */
     gnet_property->props[182].type               = PROP_TYPE_GUINT32;
@@ -4591,6 +4777,7 @@ gnet_prop_init(void) {
     gnet_property->props[183].ev_changed = event_new("quick_connect_pool_size_changed");
     gnet_property->props[183].save = TRUE;
     gnet_property->props[183].vector_size = 1;
+	mutex_init(&gnet_property->props[183].lock);
 
     /* Type specific data: */
     gnet_property->props[183].type               = PROP_TYPE_GUINT32;
@@ -4611,6 +4798,7 @@ gnet_prop_init(void) {
     gnet_property->props[184].ev_changed = event_new("max_leaves_changed");
     gnet_property->props[184].save = TRUE;
     gnet_property->props[184].vector_size = 1;
+	mutex_init(&gnet_property->props[184].lock);
 
     /* Type specific data: */
     gnet_property->props[184].type               = PROP_TYPE_GUINT32;
@@ -4631,6 +4819,7 @@ gnet_prop_init(void) {
     gnet_property->props[185].ev_changed = event_new("search_handle_ignored_files_changed");
     gnet_property->props[185].save = TRUE;
     gnet_property->props[185].vector_size = 1;
+	mutex_init(&gnet_property->props[185].lock);
 
     /* Type specific data: */
     gnet_property->props[185].type               = PROP_TYPE_MULTICHOICE;
@@ -4651,6 +4840,7 @@ gnet_prop_init(void) {
     gnet_property->props[186].ev_changed = event_new("configured_peermode_changed");
     gnet_property->props[186].save = TRUE;
     gnet_property->props[186].vector_size = 1;
+	mutex_init(&gnet_property->props[186].lock);
 
     /* Type specific data: */
     gnet_property->props[186].type               = PROP_TYPE_MULTICHOICE;
@@ -4671,6 +4861,7 @@ gnet_prop_init(void) {
     gnet_property->props[187].ev_changed = event_new("current_peermode_changed");
     gnet_property->props[187].save = FALSE;
     gnet_property->props[187].vector_size = 1;
+	mutex_init(&gnet_property->props[187].lock);
 
     /* Type specific data: */
     gnet_property->props[187].type               = PROP_TYPE_MULTICHOICE;
@@ -4691,6 +4882,7 @@ gnet_prop_init(void) {
     gnet_property->props[188].ev_changed = event_new("sys_nofile_changed");
     gnet_property->props[188].save = FALSE;
     gnet_property->props[188].vector_size = 1;
+	mutex_init(&gnet_property->props[188].lock);
 
     /* Type specific data: */
     gnet_property->props[188].type               = PROP_TYPE_GUINT32;
@@ -4711,6 +4903,7 @@ gnet_prop_init(void) {
     gnet_property->props[189].ev_changed = event_new("sys_physmem_changed");
     gnet_property->props[189].save = FALSE;
     gnet_property->props[189].vector_size = 1;
+	mutex_init(&gnet_property->props[189].lock);
 
     /* Type specific data: */
     gnet_property->props[189].type               = PROP_TYPE_GUINT64;
@@ -4731,6 +4924,7 @@ gnet_prop_init(void) {
     gnet_property->props[190].ev_changed = event_new("dl_queue_count_changed");
     gnet_property->props[190].save = FALSE;
     gnet_property->props[190].vector_size = 1;
+	mutex_init(&gnet_property->props[190].lock);
 
     /* Type specific data: */
     gnet_property->props[190].type               = PROP_TYPE_GUINT32;
@@ -4751,6 +4945,7 @@ gnet_prop_init(void) {
     gnet_property->props[191].ev_changed = event_new("dl_running_count_changed");
     gnet_property->props[191].save = FALSE;
     gnet_property->props[191].vector_size = 1;
+	mutex_init(&gnet_property->props[191].lock);
 
     /* Type specific data: */
     gnet_property->props[191].type               = PROP_TYPE_GUINT32;
@@ -4771,6 +4966,7 @@ gnet_prop_init(void) {
     gnet_property->props[192].ev_changed = event_new("dl_active_count_changed");
     gnet_property->props[192].save = FALSE;
     gnet_property->props[192].vector_size = 1;
+	mutex_init(&gnet_property->props[192].lock);
 
     /* Type specific data: */
     gnet_property->props[192].type               = PROP_TYPE_GUINT32;
@@ -4791,6 +4987,7 @@ gnet_prop_init(void) {
     gnet_property->props[193].ev_changed = event_new("dl_aqueued_count_changed");
     gnet_property->props[193].save = FALSE;
     gnet_property->props[193].vector_size = 1;
+	mutex_init(&gnet_property->props[193].lock);
 
     /* Type specific data: */
     gnet_property->props[193].type               = PROP_TYPE_GUINT32;
@@ -4811,6 +5008,7 @@ gnet_prop_init(void) {
     gnet_property->props[194].ev_changed = event_new("dl_pqueued_count_changed");
     gnet_property->props[194].save = FALSE;
     gnet_property->props[194].vector_size = 1;
+	mutex_init(&gnet_property->props[194].lock);
 
     /* Type specific data: */
     gnet_property->props[194].type               = PROP_TYPE_GUINT32;
@@ -4831,6 +5029,7 @@ gnet_prop_init(void) {
     gnet_property->props[195].ev_changed = event_new("fi_all_count_changed");
     gnet_property->props[195].save = FALSE;
     gnet_property->props[195].vector_size = 1;
+	mutex_init(&gnet_property->props[195].lock);
 
     /* Type specific data: */
     gnet_property->props[195].type               = PROP_TYPE_GUINT32;
@@ -4851,6 +5050,7 @@ gnet_prop_init(void) {
     gnet_property->props[196].ev_changed = event_new("fi_with_source_count_changed");
     gnet_property->props[196].save = FALSE;
     gnet_property->props[196].vector_size = 1;
+	mutex_init(&gnet_property->props[196].lock);
 
     /* Type specific data: */
     gnet_property->props[196].type               = PROP_TYPE_GUINT32;
@@ -4871,6 +5071,7 @@ gnet_prop_init(void) {
     gnet_property->props[197].ev_changed = event_new("dl_qalive_count_changed");
     gnet_property->props[197].save = FALSE;
     gnet_property->props[197].vector_size = 1;
+	mutex_init(&gnet_property->props[197].lock);
 
     /* Type specific data: */
     gnet_property->props[197].type               = PROP_TYPE_GUINT32;
@@ -4891,6 +5092,7 @@ gnet_prop_init(void) {
     gnet_property->props[198].ev_changed = event_new("dl_byte_count_changed");
     gnet_property->props[198].save = FALSE;
     gnet_property->props[198].vector_size = 1;
+	mutex_init(&gnet_property->props[198].lock);
 
     /* Type specific data: */
     gnet_property->props[198].type               = PROP_TYPE_GUINT64;
@@ -4911,6 +5113,7 @@ gnet_prop_init(void) {
     gnet_property->props[199].ev_changed = event_new("ul_byte_count_changed");
     gnet_property->props[199].save = FALSE;
     gnet_property->props[199].vector_size = 1;
+	mutex_init(&gnet_property->props[199].lock);
 
     /* Type specific data: */
     gnet_property->props[199].type               = PROP_TYPE_GUINT64;
@@ -4931,6 +5134,7 @@ gnet_prop_init(void) {
     gnet_property->props[200].ev_changed = event_new("pfsp_server_changed");
     gnet_property->props[200].save = TRUE;
     gnet_property->props[200].vector_size = 1;
+	mutex_init(&gnet_property->props[200].lock);
 
     /* Type specific data: */
     gnet_property->props[200].type               = PROP_TYPE_BOOLEAN;
@@ -4948,6 +5152,7 @@ gnet_prop_init(void) {
     gnet_property->props[201].ev_changed = event_new("pfsp_first_chunk_changed");
     gnet_property->props[201].save = TRUE;
     gnet_property->props[201].vector_size = 1;
+	mutex_init(&gnet_property->props[201].lock);
 
     /* Type specific data: */
     gnet_property->props[201].type               = PROP_TYPE_GUINT32;
@@ -4968,6 +5173,7 @@ gnet_prop_init(void) {
     gnet_property->props[202].ev_changed = event_new("pfsp_minimum_filesize_changed");
     gnet_property->props[202].save = TRUE;
     gnet_property->props[202].vector_size = 1;
+	mutex_init(&gnet_property->props[202].lock);
 
     /* Type specific data: */
     gnet_property->props[202].type               = PROP_TYPE_GUINT32;
@@ -4988,6 +5194,7 @@ gnet_prop_init(void) {
     gnet_property->props[203].ev_changed = event_new("crawler_visit_count_changed");
     gnet_property->props[203].save = FALSE;
     gnet_property->props[203].vector_size = 1;
+	mutex_init(&gnet_property->props[203].lock);
 
     /* Type specific data: */
     gnet_property->props[203].type               = PROP_TYPE_GUINT32;
@@ -5008,6 +5215,7 @@ gnet_prop_init(void) {
     gnet_property->props[204].ev_changed = event_new("udp_crawler_visit_count_changed");
     gnet_property->props[204].save = FALSE;
     gnet_property->props[204].vector_size = 1;
+	mutex_init(&gnet_property->props[204].lock);
 
     /* Type specific data: */
     gnet_property->props[204].type               = PROP_TYPE_GUINT32;
@@ -5028,6 +5236,7 @@ gnet_prop_init(void) {
     gnet_property->props[205].ev_changed = event_new("host_runs_ntp_changed");
     gnet_property->props[205].save = TRUE;
     gnet_property->props[205].vector_size = 1;
+	mutex_init(&gnet_property->props[205].lock);
 
     /* Type specific data: */
     gnet_property->props[205].type               = PROP_TYPE_BOOLEAN;
@@ -5045,6 +5254,7 @@ gnet_prop_init(void) {
     gnet_property->props[206].ev_changed = event_new("ntp_detected_changed");
     gnet_property->props[206].save = FALSE;
     gnet_property->props[206].vector_size = 1;
+	mutex_init(&gnet_property->props[206].lock);
 
     /* Type specific data: */
     gnet_property->props[206].type               = PROP_TYPE_BOOLEAN;
@@ -5062,6 +5272,7 @@ gnet_prop_init(void) {
     gnet_property->props[207].ev_changed = event_new("clock_skew_changed");
     gnet_property->props[207].save = TRUE;
     gnet_property->props[207].vector_size = 1;
+	mutex_init(&gnet_property->props[207].lock);
 
     /* Type specific data: */
     gnet_property->props[207].type               = PROP_TYPE_GUINT32;
@@ -5082,6 +5293,7 @@ gnet_prop_init(void) {
     gnet_property->props[208].ev_changed = event_new("node_monitor_unstable_ip_changed");
     gnet_property->props[208].save = TRUE;
     gnet_property->props[208].vector_size = 1;
+	mutex_init(&gnet_property->props[208].lock);
 
     /* Type specific data: */
     gnet_property->props[208].type               = PROP_TYPE_BOOLEAN;
@@ -5099,6 +5311,7 @@ gnet_prop_init(void) {
     gnet_property->props[209].ev_changed = event_new("node_monitor_unstable_servents_changed");
     gnet_property->props[209].save = TRUE;
     gnet_property->props[209].vector_size = 1;
+	mutex_init(&gnet_property->props[209].lock);
 
     /* Type specific data: */
     gnet_property->props[209].type               = PROP_TYPE_BOOLEAN;
@@ -5116,6 +5329,7 @@ gnet_prop_init(void) {
     gnet_property->props[210].ev_changed = event_new("dl_remove_file_on_mismatch_changed");
     gnet_property->props[210].save = TRUE;
     gnet_property->props[210].vector_size = 1;
+	mutex_init(&gnet_property->props[210].lock);
 
     /* Type specific data: */
     gnet_property->props[210].type               = PROP_TYPE_BOOLEAN;
@@ -5133,6 +5347,7 @@ gnet_prop_init(void) {
     gnet_property->props[211].ev_changed = event_new("dl_mismatch_backout_changed");
     gnet_property->props[211].save = TRUE;
     gnet_property->props[211].vector_size = 1;
+	mutex_init(&gnet_property->props[211].lock);
 
     /* Type specific data: */
     gnet_property->props[211].type               = PROP_TYPE_GUINT32;
@@ -5153,6 +5368,7 @@ gnet_prop_init(void) {
     gnet_property->props[212].ev_changed = event_new("server_hostname_changed");
     gnet_property->props[212].save = TRUE;
     gnet_property->props[212].vector_size = 1;
+	mutex_init(&gnet_property->props[212].lock);
 
     /* Type specific data: */
     gnet_property->props[212].type               = PROP_TYPE_STRING;
@@ -5174,6 +5390,7 @@ gnet_prop_init(void) {
     gnet_property->props[213].ev_changed = event_new("give_server_hostname_changed");
     gnet_property->props[213].save = TRUE;
     gnet_property->props[213].vector_size = 1;
+	mutex_init(&gnet_property->props[213].lock);
 
     /* Type specific data: */
     gnet_property->props[213].type               = PROP_TYPE_BOOLEAN;
@@ -5191,6 +5408,7 @@ gnet_prop_init(void) {
     gnet_property->props[214].ev_changed = event_new("reserve_gtkg_nodes_changed");
     gnet_property->props[214].save = TRUE;
     gnet_property->props[214].vector_size = 1;
+	mutex_init(&gnet_property->props[214].lock);
 
     /* Type specific data: */
     gnet_property->props[214].type               = PROP_TYPE_GUINT32;
@@ -5211,6 +5429,7 @@ gnet_prop_init(void) {
     gnet_property->props[215].ev_changed = event_new("unique_nodes_changed");
     gnet_property->props[215].save = TRUE;
     gnet_property->props[215].vector_size = 1;
+	mutex_init(&gnet_property->props[215].lock);
 
     /* Type specific data: */
     gnet_property->props[215].type               = PROP_TYPE_GUINT32;
@@ -5231,6 +5450,7 @@ gnet_prop_init(void) {
     gnet_property->props[216].ev_changed = event_new("download_rx_size_changed");
     gnet_property->props[216].save = TRUE;
     gnet_property->props[216].vector_size = 1;
+	mutex_init(&gnet_property->props[216].lock);
 
     /* Type specific data: */
     gnet_property->props[216].type               = PROP_TYPE_GUINT32;
@@ -5251,6 +5471,7 @@ gnet_prop_init(void) {
     gnet_property->props[217].ev_changed = event_new("node_rx_size_changed");
     gnet_property->props[217].save = TRUE;
     gnet_property->props[217].vector_size = 1;
+	mutex_init(&gnet_property->props[217].lock);
 
     /* Type specific data: */
     gnet_property->props[217].type               = PROP_TYPE_GUINT32;
@@ -5271,6 +5492,7 @@ gnet_prop_init(void) {
     gnet_property->props[218].ev_changed = event_new("upload_tx_size_changed");
     gnet_property->props[218].save = TRUE;
     gnet_property->props[218].vector_size = 1;
+	mutex_init(&gnet_property->props[218].lock);
 
     /* Type specific data: */
     gnet_property->props[218].type               = PROP_TYPE_GUINT32;
@@ -5291,6 +5513,7 @@ gnet_prop_init(void) {
     gnet_property->props[219].ev_changed = event_new("dl_http_latency_changed");
     gnet_property->props[219].save = FALSE;
     gnet_property->props[219].vector_size = 1;
+	mutex_init(&gnet_property->props[219].lock);
 
     /* Type specific data: */
     gnet_property->props[219].type               = PROP_TYPE_GUINT32;
@@ -5311,6 +5534,7 @@ gnet_prop_init(void) {
     gnet_property->props[220].ev_changed = event_new("node_last_ultra_check_changed");
     gnet_property->props[220].save = TRUE;
     gnet_property->props[220].vector_size = 1;
+	mutex_init(&gnet_property->props[220].lock);
 
     /* Type specific data: */
     gnet_property->props[220].type               = PROP_TYPE_TIMESTAMP;
@@ -5331,6 +5555,7 @@ gnet_prop_init(void) {
     gnet_property->props[221].ev_changed = event_new("node_last_ultra_leaf_switch_changed");
     gnet_property->props[221].save = FALSE;
     gnet_property->props[221].vector_size = 1;
+	mutex_init(&gnet_property->props[221].lock);
 
     /* Type specific data: */
     gnet_property->props[221].type               = PROP_TYPE_TIMESTAMP;
@@ -5351,6 +5576,7 @@ gnet_prop_init(void) {
     gnet_property->props[222].ev_changed = event_new("up_req_avg_servent_uptime_changed");
     gnet_property->props[222].save = FALSE;
     gnet_property->props[222].vector_size = 1;
+	mutex_init(&gnet_property->props[222].lock);
 
     /* Type specific data: */
     gnet_property->props[222].type               = PROP_TYPE_BOOLEAN;
@@ -5368,6 +5594,7 @@ gnet_prop_init(void) {
     gnet_property->props[223].ev_changed = event_new("up_req_avg_ip_uptime_changed");
     gnet_property->props[223].save = FALSE;
     gnet_property->props[223].vector_size = 1;
+	mutex_init(&gnet_property->props[223].lock);
 
     /* Type specific data: */
     gnet_property->props[223].type               = PROP_TYPE_BOOLEAN;
@@ -5385,6 +5612,7 @@ gnet_prop_init(void) {
     gnet_property->props[224].ev_changed = event_new("up_req_node_uptime_changed");
     gnet_property->props[224].save = FALSE;
     gnet_property->props[224].vector_size = 1;
+	mutex_init(&gnet_property->props[224].lock);
 
     /* Type specific data: */
     gnet_property->props[224].type               = PROP_TYPE_BOOLEAN;
@@ -5402,6 +5630,7 @@ gnet_prop_init(void) {
     gnet_property->props[225].ev_changed = event_new("up_req_not_firewalled_changed");
     gnet_property->props[225].save = FALSE;
     gnet_property->props[225].vector_size = 1;
+	mutex_init(&gnet_property->props[225].lock);
 
     /* Type specific data: */
     gnet_property->props[225].type               = PROP_TYPE_BOOLEAN;
@@ -5419,6 +5648,7 @@ gnet_prop_init(void) {
     gnet_property->props[226].ev_changed = event_new("up_req_enough_conn_changed");
     gnet_property->props[226].save = FALSE;
     gnet_property->props[226].vector_size = 1;
+	mutex_init(&gnet_property->props[226].lock);
 
     /* Type specific data: */
     gnet_property->props[226].type               = PROP_TYPE_BOOLEAN;
@@ -5436,6 +5666,7 @@ gnet_prop_init(void) {
     gnet_property->props[227].ev_changed = event_new("up_req_enough_fd_changed");
     gnet_property->props[227].save = FALSE;
     gnet_property->props[227].vector_size = 1;
+	mutex_init(&gnet_property->props[227].lock);
 
     /* Type specific data: */
     gnet_property->props[227].type               = PROP_TYPE_BOOLEAN;
@@ -5453,6 +5684,7 @@ gnet_prop_init(void) {
     gnet_property->props[228].ev_changed = event_new("up_req_enough_mem_changed");
     gnet_property->props[228].save = FALSE;
     gnet_property->props[228].vector_size = 1;
+	mutex_init(&gnet_property->props[228].lock);
 
     /* Type specific data: */
     gnet_property->props[228].type               = PROP_TYPE_BOOLEAN;
@@ -5470,6 +5702,7 @@ gnet_prop_init(void) {
     gnet_property->props[229].ev_changed = event_new("up_req_enough_bw_changed");
     gnet_property->props[229].save = FALSE;
     gnet_property->props[229].vector_size = 1;
+	mutex_init(&gnet_property->props[229].lock);
 
     /* Type specific data: */
     gnet_property->props[229].type               = PROP_TYPE_BOOLEAN;
@@ -5487,6 +5720,7 @@ gnet_prop_init(void) {
     gnet_property->props[230].ev_changed = event_new("up_req_good_udp_changed");
     gnet_property->props[230].save = FALSE;
     gnet_property->props[230].vector_size = 1;
+	mutex_init(&gnet_property->props[230].lock);
 
     /* Type specific data: */
     gnet_property->props[230].type               = PROP_TYPE_BOOLEAN;
@@ -5504,6 +5738,7 @@ gnet_prop_init(void) {
     gnet_property->props[231].ev_changed = event_new("search_queue_size_changed");
     gnet_property->props[231].save = TRUE;
     gnet_property->props[231].vector_size = 1;
+	mutex_init(&gnet_property->props[231].lock);
 
     /* Type specific data: */
     gnet_property->props[231].type               = PROP_TYPE_GUINT32;
@@ -5524,6 +5759,7 @@ gnet_prop_init(void) {
     gnet_property->props[232].ev_changed = event_new("search_queue_spacing_changed");
     gnet_property->props[232].save = TRUE;
     gnet_property->props[232].vector_size = 1;
+	mutex_init(&gnet_property->props[232].lock);
 
     /* Type specific data: */
     gnet_property->props[232].type               = PROP_TYPE_GUINT32;
@@ -5544,6 +5780,7 @@ gnet_prop_init(void) {
     gnet_property->props[233].ev_changed = event_new("enable_shell_changed");
     gnet_property->props[233].save = TRUE;
     gnet_property->props[233].vector_size = 1;
+	mutex_init(&gnet_property->props[233].lock);
 
     /* Type specific data: */
     gnet_property->props[233].type               = PROP_TYPE_BOOLEAN;
@@ -5561,6 +5798,7 @@ gnet_prop_init(void) {
     gnet_property->props[234].ev_changed = event_new("remote_shell_timeout_changed");
     gnet_property->props[234].save = TRUE;
     gnet_property->props[234].vector_size = 1;
+	mutex_init(&gnet_property->props[234].lock);
 
     /* Type specific data: */
     gnet_property->props[234].type               = PROP_TYPE_GUINT32;
@@ -5581,6 +5819,7 @@ gnet_prop_init(void) {
     gnet_property->props[235].ev_changed = event_new("entry_removal_timeout_changed");
     gnet_property->props[235].save = TRUE;
     gnet_property->props[235].vector_size = 1;
+	mutex_init(&gnet_property->props[235].lock);
 
     /* Type specific data: */
     gnet_property->props[235].type               = PROP_TYPE_GUINT32;
@@ -5601,6 +5840,7 @@ gnet_prop_init(void) {
     gnet_property->props[236].ev_changed = event_new("node_watch_similar_queries_changed");
     gnet_property->props[236].save = TRUE;
     gnet_property->props[236].vector_size = 1;
+	mutex_init(&gnet_property->props[236].lock);
 
     /* Type specific data: */
     gnet_property->props[236].type               = PROP_TYPE_BOOLEAN;
@@ -5618,6 +5858,7 @@ gnet_prop_init(void) {
     gnet_property->props[237].ev_changed = event_new("node_queries_half_life_changed");
     gnet_property->props[237].save = TRUE;
     gnet_property->props[237].vector_size = 1;
+	mutex_init(&gnet_property->props[237].lock);
 
     /* Type specific data: */
     gnet_property->props[237].type               = PROP_TYPE_GUINT32;
@@ -5638,6 +5879,7 @@ gnet_prop_init(void) {
     gnet_property->props[238].ev_changed = event_new("node_requery_threshold_changed");
     gnet_property->props[238].save = TRUE;
     gnet_property->props[238].vector_size = 1;
+	mutex_init(&gnet_property->props[238].lock);
 
     /* Type specific data: */
     gnet_property->props[238].type               = PROP_TYPE_GUINT32;
@@ -5658,6 +5900,7 @@ gnet_prop_init(void) {
     gnet_property->props[239].ev_changed = event_new("library_rescan_started_changed");
     gnet_property->props[239].save = FALSE;
     gnet_property->props[239].vector_size = 1;
+	mutex_init(&gnet_property->props[239].lock);
 
     /* Type specific data: */
     gnet_property->props[239].type               = PROP_TYPE_TIMESTAMP;
@@ -5678,6 +5921,7 @@ gnet_prop_init(void) {
     gnet_property->props[240].ev_changed = event_new("library_rescan_finished_changed");
     gnet_property->props[240].save = FALSE;
     gnet_property->props[240].vector_size = 1;
+	mutex_init(&gnet_property->props[240].lock);
 
     /* Type specific data: */
     gnet_property->props[240].type               = PROP_TYPE_TIMESTAMP;
@@ -5698,6 +5942,7 @@ gnet_prop_init(void) {
     gnet_property->props[241].ev_changed = event_new("library_rescan_duration_changed");
     gnet_property->props[241].save = FALSE;
     gnet_property->props[241].vector_size = 1;
+	mutex_init(&gnet_property->props[241].lock);
 
     /* Type specific data: */
     gnet_property->props[241].type               = PROP_TYPE_GUINT32;
@@ -5718,6 +5963,7 @@ gnet_prop_init(void) {
     gnet_property->props[242].ev_changed = event_new("qrp_indexing_started_changed");
     gnet_property->props[242].save = FALSE;
     gnet_property->props[242].vector_size = 1;
+	mutex_init(&gnet_property->props[242].lock);
 
     /* Type specific data: */
     gnet_property->props[242].type               = PROP_TYPE_TIMESTAMP;
@@ -5738,6 +5984,7 @@ gnet_prop_init(void) {
     gnet_property->props[243].ev_changed = event_new("qrp_indexing_duration_changed");
     gnet_property->props[243].save = FALSE;
     gnet_property->props[243].vector_size = 1;
+	mutex_init(&gnet_property->props[243].lock);
 
     /* Type specific data: */
     gnet_property->props[243].type               = PROP_TYPE_GUINT32;
@@ -5758,6 +6005,7 @@ gnet_prop_init(void) {
     gnet_property->props[244].ev_changed = event_new("qrp_memory_changed");
     gnet_property->props[244].save = FALSE;
     gnet_property->props[244].vector_size = 1;
+	mutex_init(&gnet_property->props[244].lock);
 
     /* Type specific data: */
     gnet_property->props[244].type               = PROP_TYPE_GUINT32;
@@ -5778,6 +6026,7 @@ gnet_prop_init(void) {
     gnet_property->props[245].ev_changed = event_new("qrp_timestamp_changed");
     gnet_property->props[245].save = FALSE;
     gnet_property->props[245].vector_size = 1;
+	mutex_init(&gnet_property->props[245].lock);
 
     /* Type specific data: */
     gnet_property->props[245].type               = PROP_TYPE_TIMESTAMP;
@@ -5798,6 +6047,7 @@ gnet_prop_init(void) {
     gnet_property->props[246].ev_changed = event_new("qrp_computation_time_changed");
     gnet_property->props[246].save = FALSE;
     gnet_property->props[246].vector_size = 1;
+	mutex_init(&gnet_property->props[246].lock);
 
     /* Type specific data: */
     gnet_property->props[246].type               = PROP_TYPE_GUINT32;
@@ -5818,6 +6068,7 @@ gnet_prop_init(void) {
     gnet_property->props[247].ev_changed = event_new("qrp_patch_timestamp_changed");
     gnet_property->props[247].save = FALSE;
     gnet_property->props[247].vector_size = 1;
+	mutex_init(&gnet_property->props[247].lock);
 
     /* Type specific data: */
     gnet_property->props[247].type               = PROP_TYPE_TIMESTAMP;
@@ -5838,6 +6089,7 @@ gnet_prop_init(void) {
     gnet_property->props[248].ev_changed = event_new("qrp_patch_computation_time_changed");
     gnet_property->props[248].save = FALSE;
     gnet_property->props[248].vector_size = 1;
+	mutex_init(&gnet_property->props[248].lock);
 
     /* Type specific data: */
     gnet_property->props[248].type               = PROP_TYPE_GUINT32;
@@ -5858,6 +6110,7 @@ gnet_prop_init(void) {
     gnet_property->props[249].ev_changed = event_new("qrp_generation_changed");
     gnet_property->props[249].save = FALSE;
     gnet_property->props[249].vector_size = 1;
+	mutex_init(&gnet_property->props[249].lock);
 
     /* Type specific data: */
     gnet_property->props[249].type               = PROP_TYPE_GUINT32;
@@ -5878,6 +6131,7 @@ gnet_prop_init(void) {
     gnet_property->props[250].ev_changed = event_new("qrp_slots_changed");
     gnet_property->props[250].save = FALSE;
     gnet_property->props[250].vector_size = 1;
+	mutex_init(&gnet_property->props[250].lock);
 
     /* Type specific data: */
     gnet_property->props[250].type               = PROP_TYPE_GUINT32;
@@ -5898,6 +6152,7 @@ gnet_prop_init(void) {
     gnet_property->props[251].ev_changed = event_new("qrp_slots_filled_changed");
     gnet_property->props[251].save = FALSE;
     gnet_property->props[251].vector_size = 1;
+	mutex_init(&gnet_property->props[251].lock);
 
     /* Type specific data: */
     gnet_property->props[251].type               = PROP_TYPE_GUINT32;
@@ -5918,6 +6173,7 @@ gnet_prop_init(void) {
     gnet_property->props[252].ev_changed = event_new("qrp_fill_ratio_changed");
     gnet_property->props[252].save = FALSE;
     gnet_property->props[252].vector_size = 1;
+	mutex_init(&gnet_property->props[252].lock);
 
     /* Type specific data: */
     gnet_property->props[252].type               = PROP_TYPE_GUINT32;
@@ -5938,6 +6194,7 @@ gnet_prop_init(void) {
     gnet_property->props[253].ev_changed = event_new("qrp_conflict_ratio_changed");
     gnet_property->props[253].save = FALSE;
     gnet_property->props[253].vector_size = 1;
+	mutex_init(&gnet_property->props[253].lock);
 
     /* Type specific data: */
     gnet_property->props[253].type               = PROP_TYPE_GUINT32;
@@ -5958,6 +6215,7 @@ gnet_prop_init(void) {
     gnet_property->props[254].ev_changed = event_new("qrp_hashed_keywords_changed");
     gnet_property->props[254].save = FALSE;
     gnet_property->props[254].vector_size = 1;
+	mutex_init(&gnet_property->props[254].lock);
 
     /* Type specific data: */
     gnet_property->props[254].type               = PROP_TYPE_GUINT32;
@@ -5978,6 +6236,7 @@ gnet_prop_init(void) {
     gnet_property->props[255].ev_changed = event_new("qrp_patch_raw_length_changed");
     gnet_property->props[255].save = FALSE;
     gnet_property->props[255].vector_size = 1;
+	mutex_init(&gnet_property->props[255].lock);
 
     /* Type specific data: */
     gnet_property->props[255].type               = PROP_TYPE_GUINT32;
@@ -5998,6 +6257,7 @@ gnet_prop_init(void) {
     gnet_property->props[256].ev_changed = event_new("qrp_patch_length_changed");
     gnet_property->props[256].save = FALSE;
     gnet_property->props[256].vector_size = 1;
+	mutex_init(&gnet_property->props[256].lock);
 
     /* Type specific data: */
     gnet_property->props[256].type               = PROP_TYPE_GUINT32;
@@ -6018,6 +6278,7 @@ gnet_prop_init(void) {
     gnet_property->props[257].ev_changed = event_new("qrp_patch_comp_ratio_changed");
     gnet_property->props[257].save = FALSE;
     gnet_property->props[257].vector_size = 1;
+	mutex_init(&gnet_property->props[257].lock);
 
     /* Type specific data: */
     gnet_property->props[257].type               = PROP_TYPE_GUINT32;
@@ -6038,6 +6299,7 @@ gnet_prop_init(void) {
     gnet_property->props[258].ev_changed = event_new("ancient_version_left_days_changed");
     gnet_property->props[258].save = FALSE;
     gnet_property->props[258].vector_size = 1;
+	mutex_init(&gnet_property->props[258].lock);
 
     /* Type specific data: */
     gnet_property->props[258].type               = PROP_TYPE_GUINT32;
@@ -6058,6 +6320,7 @@ gnet_prop_init(void) {
     gnet_property->props[259].ev_changed = event_new("file_descriptor_shortage_changed");
     gnet_property->props[259].save = FALSE;
     gnet_property->props[259].vector_size = 1;
+	mutex_init(&gnet_property->props[259].lock);
 
     /* Type specific data: */
     gnet_property->props[259].type               = PROP_TYPE_BOOLEAN;
@@ -6075,6 +6338,7 @@ gnet_prop_init(void) {
     gnet_property->props[260].ev_changed = event_new("file_descriptor_runout_changed");
     gnet_property->props[260].save = FALSE;
     gnet_property->props[260].vector_size = 1;
+	mutex_init(&gnet_property->props[260].lock);
 
     /* Type specific data: */
     gnet_property->props[260].type               = PROP_TYPE_BOOLEAN;
@@ -6092,6 +6356,7 @@ gnet_prop_init(void) {
     gnet_property->props[261].ev_changed = event_new("convert_spaces_changed");
     gnet_property->props[261].save = TRUE;
     gnet_property->props[261].vector_size = 1;
+	mutex_init(&gnet_property->props[261].lock);
 
     /* Type specific data: */
     gnet_property->props[261].type               = PROP_TYPE_BOOLEAN;
@@ -6109,6 +6374,7 @@ gnet_prop_init(void) {
     gnet_property->props[262].ev_changed = event_new("convert_evil_chars_changed");
     gnet_property->props[262].save = TRUE;
     gnet_property->props[262].vector_size = 1;
+	mutex_init(&gnet_property->props[262].lock);
 
     /* Type specific data: */
     gnet_property->props[262].type               = PROP_TYPE_BOOLEAN;
@@ -6126,6 +6392,7 @@ gnet_prop_init(void) {
     gnet_property->props[263].ev_changed = event_new("convert_old_filenames_changed");
     gnet_property->props[263].save = TRUE;
     gnet_property->props[263].vector_size = 1;
+	mutex_init(&gnet_property->props[263].lock);
 
     /* Type specific data: */
     gnet_property->props[263].type               = PROP_TYPE_BOOLEAN;
@@ -6143,6 +6410,7 @@ gnet_prop_init(void) {
     gnet_property->props[264].ev_changed = event_new("tls_enforce_changed");
     gnet_property->props[264].save = TRUE;
     gnet_property->props[264].vector_size = 1;
+	mutex_init(&gnet_property->props[264].lock);
 
     /* Type specific data: */
     gnet_property->props[264].type               = PROP_TYPE_BOOLEAN;
@@ -6160,6 +6428,7 @@ gnet_prop_init(void) {
     gnet_property->props[265].ev_changed = event_new("gnet_deflate_enabled_changed");
     gnet_property->props[265].save = TRUE;
     gnet_property->props[265].vector_size = 1;
+	mutex_init(&gnet_property->props[265].lock);
 
     /* Type specific data: */
     gnet_property->props[265].type               = PROP_TYPE_BOOLEAN;
@@ -6177,6 +6446,7 @@ gnet_prop_init(void) {
     gnet_property->props[266].ev_changed = event_new("enable_udp_changed");
     gnet_property->props[266].save = TRUE;
     gnet_property->props[266].vector_size = 1;
+	mutex_init(&gnet_property->props[266].lock);
 
     /* Type specific data: */
     gnet_property->props[266].type               = PROP_TYPE_BOOLEAN;
@@ -6194,6 +6464,7 @@ gnet_prop_init(void) {
     gnet_property->props[267].ev_changed = event_new("process_oob_queries_changed");
     gnet_property->props[267].save = TRUE;
     gnet_property->props[267].vector_size = 1;
+	mutex_init(&gnet_property->props[267].lock);
 
     /* Type specific data: */
     gnet_property->props[267].type               = PROP_TYPE_BOOLEAN;
@@ -6211,6 +6482,7 @@ gnet_prop_init(void) {
     gnet_property->props[268].ev_changed = event_new("send_oob_queries_changed");
     gnet_property->props[268].save = TRUE;
     gnet_property->props[268].vector_size = 1;
+	mutex_init(&gnet_property->props[268].lock);
 
     /* Type specific data: */
     gnet_property->props[268].type               = PROP_TYPE_BOOLEAN;
@@ -6228,6 +6500,7 @@ gnet_prop_init(void) {
     gnet_property->props[269].ev_changed = event_new("proxy_oob_queries_changed");
     gnet_property->props[269].save = TRUE;
     gnet_property->props[269].vector_size = 1;
+	mutex_init(&gnet_property->props[269].lock);
 
     /* Type specific data: */
     gnet_property->props[269].type               = PROP_TYPE_BOOLEAN;
@@ -6245,6 +6518,7 @@ gnet_prop_init(void) {
     gnet_property->props[270].ev_changed = event_new("uploads_stalling_changed");
     gnet_property->props[270].save = FALSE;
     gnet_property->props[270].vector_size = 1;
+	mutex_init(&gnet_property->props[270].lock);
 
     /* Type specific data: */
     gnet_property->props[270].type               = PROP_TYPE_BOOLEAN;
@@ -6262,6 +6536,7 @@ gnet_prop_init(void) {
     gnet_property->props[271].ev_changed = event_new("use_global_hostiles_txt_changed");
     gnet_property->props[271].save = TRUE;
     gnet_property->props[271].vector_size = 1;
+	mutex_init(&gnet_property->props[271].lock);
 
     /* Type specific data: */
     gnet_property->props[271].type               = PROP_TYPE_BOOLEAN;
@@ -6279,6 +6554,7 @@ gnet_prop_init(void) {
     gnet_property->props[272].ev_changed = event_new("use_so_linger_changed");
     gnet_property->props[272].save = TRUE;
     gnet_property->props[272].vector_size = 1;
+	mutex_init(&gnet_property->props[272].lock);
 
     /* Type specific data: */
     gnet_property->props[272].type               = PROP_TYPE_BOOLEAN;
@@ -6296,6 +6572,7 @@ gnet_prop_init(void) {
     gnet_property->props[273].ev_changed = event_new("tcp_defer_accept_timeout_changed");
     gnet_property->props[273].save = TRUE;
     gnet_property->props[273].vector_size = 1;
+	mutex_init(&gnet_property->props[273].lock);
 
     /* Type specific data: */
     gnet_property->props[273].type               = PROP_TYPE_GUINT32;
@@ -6316,6 +6593,7 @@ gnet_prop_init(void) {
     gnet_property->props[274].ev_changed = event_new("browse_host_enabled_changed");
     gnet_property->props[274].save = TRUE;
     gnet_property->props[274].vector_size = 1;
+	mutex_init(&gnet_property->props[274].lock);
 
     /* Type specific data: */
     gnet_property->props[274].type               = PROP_TYPE_BOOLEAN;
@@ -6333,6 +6611,7 @@ gnet_prop_init(void) {
     gnet_property->props[275].ev_changed = event_new("html_browse_count_changed");
     gnet_property->props[275].save = FALSE;
     gnet_property->props[275].vector_size = 1;
+	mutex_init(&gnet_property->props[275].lock);
 
     /* Type specific data: */
     gnet_property->props[275].type               = PROP_TYPE_GUINT32;
@@ -6353,6 +6632,7 @@ gnet_prop_init(void) {
     gnet_property->props[276].ev_changed = event_new("html_browse_served_changed");
     gnet_property->props[276].save = FALSE;
     gnet_property->props[276].vector_size = 1;
+	mutex_init(&gnet_property->props[276].lock);
 
     /* Type specific data: */
     gnet_property->props[276].type               = PROP_TYPE_GUINT32;
@@ -6373,6 +6653,7 @@ gnet_prop_init(void) {
     gnet_property->props[277].ev_changed = event_new("qhits_browse_count_changed");
     gnet_property->props[277].save = FALSE;
     gnet_property->props[277].vector_size = 1;
+	mutex_init(&gnet_property->props[277].lock);
 
     /* Type specific data: */
     gnet_property->props[277].type               = PROP_TYPE_GUINT32;
@@ -6393,6 +6674,7 @@ gnet_prop_init(void) {
     gnet_property->props[278].ev_changed = event_new("qhits_browse_served_changed");
     gnet_property->props[278].save = FALSE;
     gnet_property->props[278].vector_size = 1;
+	mutex_init(&gnet_property->props[278].lock);
 
     /* Type specific data: */
     gnet_property->props[278].type               = PROP_TYPE_GUINT32;
@@ -6413,6 +6695,7 @@ gnet_prop_init(void) {
     gnet_property->props[279].ev_changed = event_new("overloaded_cpu_changed");
     gnet_property->props[279].save = FALSE;
     gnet_property->props[279].vector_size = 1;
+	mutex_init(&gnet_property->props[279].lock);
 
     /* Type specific data: */
     gnet_property->props[279].type               = PROP_TYPE_BOOLEAN;
@@ -6430,6 +6713,7 @@ gnet_prop_init(void) {
     gnet_property->props[280].ev_changed = event_new("download_buffer_size_changed");
     gnet_property->props[280].save = TRUE;
     gnet_property->props[280].vector_size = 1;
+	mutex_init(&gnet_property->props[280].lock);
 
     /* Type specific data: */
     gnet_property->props[280].type               = PROP_TYPE_GUINT32;
@@ -6450,6 +6734,7 @@ gnet_prop_init(void) {
     gnet_property->props[281].ev_changed = event_new("browse_copied_to_passive_changed");
     gnet_property->props[281].save = TRUE;
     gnet_property->props[281].vector_size = 1;
+	mutex_init(&gnet_property->props[281].lock);
 
     /* Type specific data: */
     gnet_property->props[281].type               = PROP_TYPE_BOOLEAN;
@@ -6467,6 +6752,7 @@ gnet_prop_init(void) {
     gnet_property->props[282].ev_changed = event_new("display_metric_units_changed");
     gnet_property->props[282].save = TRUE;
     gnet_property->props[282].vector_size = 1;
+	mutex_init(&gnet_property->props[282].lock);
 
     /* Type specific data: */
     gnet_property->props[282].type               = PROP_TYPE_BOOLEAN;
@@ -6484,6 +6770,7 @@ gnet_prop_init(void) {
     gnet_property->props[283].ev_changed = event_new("rudp_debug_changed");
     gnet_property->props[283].save = TRUE;
     gnet_property->props[283].vector_size = 1;
+	mutex_init(&gnet_property->props[283].lock);
 
     /* Type specific data: */
     gnet_property->props[283].type               = PROP_TYPE_GUINT32;
@@ -6504,6 +6791,7 @@ gnet_prop_init(void) {
     gnet_property->props[284].ev_changed = event_new("dht_debug_changed");
     gnet_property->props[284].save = TRUE;
     gnet_property->props[284].vector_size = 1;
+	mutex_init(&gnet_property->props[284].lock);
 
     /* Type specific data: */
     gnet_property->props[284].type               = PROP_TYPE_GUINT32;
@@ -6524,6 +6812,7 @@ gnet_prop_init(void) {
     gnet_property->props[285].ev_changed = event_new("oob_proxy_debug_changed");
     gnet_property->props[285].save = TRUE;
     gnet_property->props[285].vector_size = 1;
+	mutex_init(&gnet_property->props[285].lock);
 
     /* Type specific data: */
     gnet_property->props[285].type               = PROP_TYPE_GUINT32;
@@ -6544,6 +6833,7 @@ gnet_prop_init(void) {
     gnet_property->props[286].ev_changed = event_new("enable_local_socket_changed");
     gnet_property->props[286].save = TRUE;
     gnet_property->props[286].vector_size = 1;
+	mutex_init(&gnet_property->props[286].lock);
 
     /* Type specific data: */
     gnet_property->props[286].type               = PROP_TYPE_BOOLEAN;
@@ -6561,6 +6851,7 @@ gnet_prop_init(void) {
     gnet_property->props[287].ev_changed = event_new("max_simultaneous_downloads_per_file_changed");
     gnet_property->props[287].save = TRUE;
     gnet_property->props[287].vector_size = 1;
+	mutex_init(&gnet_property->props[287].lock);
 
     /* Type specific data: */
     gnet_property->props[287].type               = PROP_TYPE_GUINT32;
@@ -6581,6 +6872,7 @@ gnet_prop_init(void) {
     gnet_property->props[288].ev_changed = event_new("dump_received_gnutella_packets_changed");
     gnet_property->props[288].save = FALSE;
     gnet_property->props[288].vector_size = 1;
+	mutex_init(&gnet_property->props[288].lock);
 
     /* Type specific data: */
     gnet_property->props[288].type               = PROP_TYPE_BOOLEAN;
@@ -6598,6 +6890,7 @@ gnet_prop_init(void) {
     gnet_property->props[289].ev_changed = event_new("search_results_expose_relative_paths_changed");
     gnet_property->props[289].save = TRUE;
     gnet_property->props[289].vector_size = 1;
+	mutex_init(&gnet_property->props[289].lock);
 
     /* Type specific data: */
     gnet_property->props[289].type               = PROP_TYPE_BOOLEAN;
@@ -6615,6 +6908,7 @@ gnet_prop_init(void) {
     gnet_property->props[290].ev_changed = event_new("shell_debug_changed");
     gnet_property->props[290].save = TRUE;
     gnet_property->props[290].vector_size = 1;
+	mutex_init(&gnet_property->props[290].lock);
 
     /* Type specific data: */
     gnet_property->props[290].type               = PROP_TYPE_GUINT32;
@@ -6635,6 +6929,7 @@ gnet_prop_init(void) {
     gnet_property->props[291].ev_changed = event_new("download_queue_frozen_changed");
     gnet_property->props[291].save = FALSE;
     gnet_property->props[291].vector_size = 1;
+	mutex_init(&gnet_property->props[291].lock);
 
     /* Type specific data: */
     gnet_property->props[291].type               = PROP_TYPE_GUINT32;
@@ -6655,6 +6950,7 @@ gnet_prop_init(void) {
     gnet_property->props[292].ev_changed = event_new("sq_debug_changed");
     gnet_property->props[292].save = TRUE;
     gnet_property->props[292].vector_size = 1;
+	mutex_init(&gnet_property->props[292].lock);
 
     /* Type specific data: */
     gnet_property->props[292].type               = PROP_TYPE_GUINT32;
@@ -6675,6 +6971,7 @@ gnet_prop_init(void) {
     gnet_property->props[293].ev_changed = event_new("push_proxy_debug_changed");
     gnet_property->props[293].save = TRUE;
     gnet_property->props[293].vector_size = 1;
+	mutex_init(&gnet_property->props[293].lock);
 
     /* Type specific data: */
     gnet_property->props[293].type               = PROP_TYPE_GUINT32;
@@ -6695,6 +6992,7 @@ gnet_prop_init(void) {
     gnet_property->props[294].ev_changed = event_new("thex_files_requested_changed");
     gnet_property->props[294].save = FALSE;
     gnet_property->props[294].vector_size = 1;
+	mutex_init(&gnet_property->props[294].lock);
 
     /* Type specific data: */
     gnet_property->props[294].type               = PROP_TYPE_GUINT32;
@@ -6715,6 +7013,7 @@ gnet_prop_init(void) {
     gnet_property->props[295].ev_changed = event_new("thex_files_served_changed");
     gnet_property->props[295].save = FALSE;
     gnet_property->props[295].vector_size = 1;
+	mutex_init(&gnet_property->props[295].lock);
 
     /* Type specific data: */
     gnet_property->props[295].type               = PROP_TYPE_GUINT32;
@@ -6735,6 +7034,7 @@ gnet_prop_init(void) {
     gnet_property->props[296].ev_changed = event_new("tigertree_debug_changed");
     gnet_property->props[296].save = TRUE;
     gnet_property->props[296].vector_size = 1;
+	mutex_init(&gnet_property->props[296].lock);
 
     /* Type specific data: */
     gnet_property->props[296].type               = PROP_TYPE_GUINT32;
@@ -6755,6 +7055,7 @@ gnet_prop_init(void) {
     gnet_property->props[297].ev_changed = event_new("tth_rebuilding_changed");
     gnet_property->props[297].save = FALSE;
     gnet_property->props[297].vector_size = 1;
+	mutex_init(&gnet_property->props[297].lock);
 
     /* Type specific data: */
     gnet_property->props[297].type               = PROP_TYPE_BOOLEAN;
@@ -6772,6 +7073,7 @@ gnet_prop_init(void) {
     gnet_property->props[298].ev_changed = event_new("tth_verifying_changed");
     gnet_property->props[298].save = FALSE;
     gnet_property->props[298].vector_size = 1;
+	mutex_init(&gnet_property->props[298].lock);
 
     /* Type specific data: */
     gnet_property->props[298].type               = PROP_TYPE_BOOLEAN;
@@ -6789,6 +7091,7 @@ gnet_prop_init(void) {
     gnet_property->props[299].ev_changed = event_new("search_max_results_changed");
     gnet_property->props[299].save = TRUE;
     gnet_property->props[299].vector_size = 1;
+	mutex_init(&gnet_property->props[299].lock);
 
     /* Type specific data: */
     gnet_property->props[299].type               = PROP_TYPE_GUINT32;
@@ -6809,6 +7112,7 @@ gnet_prop_init(void) {
     gnet_property->props[300].ev_changed = event_new("browse_host_max_results_changed");
     gnet_property->props[300].save = TRUE;
     gnet_property->props[300].vector_size = 1;
+	mutex_init(&gnet_property->props[300].lock);
 
     /* Type specific data: */
     gnet_property->props[300].type               = PROP_TYPE_GUINT32;
@@ -6829,6 +7133,7 @@ gnet_prop_init(void) {
     gnet_property->props[301].ev_changed = event_new("latest_svn_release_date_changed");
     gnet_property->props[301].save = TRUE;
     gnet_property->props[301].vector_size = 1;
+	mutex_init(&gnet_property->props[301].lock);
 
     /* Type specific data: */
     gnet_property->props[301].type               = PROP_TYPE_TIMESTAMP;
@@ -6849,6 +7154,7 @@ gnet_prop_init(void) {
     gnet_property->props[302].ev_changed = event_new("latest_svn_release_revision_changed");
     gnet_property->props[302].save = TRUE;
     gnet_property->props[302].vector_size = 1;
+	mutex_init(&gnet_property->props[302].lock);
 
     /* Type specific data: */
     gnet_property->props[302].type               = PROP_TYPE_GUINT32;
@@ -6869,6 +7175,7 @@ gnet_prop_init(void) {
     gnet_property->props[303].ev_changed = event_new("latest_svn_release_signature_changed");
     gnet_property->props[303].save = TRUE;
     gnet_property->props[303].vector_size = 1;
+	mutex_init(&gnet_property->props[303].lock);
 
     /* Type specific data: */
     gnet_property->props[303].type               = PROP_TYPE_STRING;
@@ -6890,6 +7197,7 @@ gnet_prop_init(void) {
     gnet_property->props[304].ev_changed = event_new("tls_cache_max_hosts_changed");
     gnet_property->props[304].save = TRUE;
     gnet_property->props[304].vector_size = 1;
+	mutex_init(&gnet_property->props[304].lock);
 
     /* Type specific data: */
     gnet_property->props[304].type               = PROP_TYPE_GUINT32;
@@ -6910,6 +7218,7 @@ gnet_prop_init(void) {
     gnet_property->props[305].ev_changed = event_new("tls_cache_max_time_changed");
     gnet_property->props[305].save = TRUE;
     gnet_property->props[305].vector_size = 1;
+	mutex_init(&gnet_property->props[305].lock);
 
     /* Type specific data: */
     gnet_property->props[305].type               = PROP_TYPE_GUINT32;
@@ -6930,6 +7239,7 @@ gnet_prop_init(void) {
     gnet_property->props[306].ev_changed = event_new("tth_auto_discovery_changed");
     gnet_property->props[306].save = TRUE;
     gnet_property->props[306].vector_size = 1;
+	mutex_init(&gnet_property->props[306].lock);
 
     /* Type specific data: */
     gnet_property->props[306].type               = PROP_TYPE_BOOLEAN;
@@ -6947,6 +7257,7 @@ gnet_prop_init(void) {
     gnet_property->props[307].ev_changed = event_new("enable_hackarounds_changed");
     gnet_property->props[307].save = TRUE;
     gnet_property->props[307].vector_size = 1;
+	mutex_init(&gnet_property->props[307].lock);
 
     /* Type specific data: */
     gnet_property->props[307].type               = PROP_TYPE_BOOLEAN;
@@ -6964,6 +7275,7 @@ gnet_prop_init(void) {
     gnet_property->props[308].ev_changed = event_new("g2_cache_max_hosts_changed");
     gnet_property->props[308].save = TRUE;
     gnet_property->props[308].vector_size = 1;
+	mutex_init(&gnet_property->props[308].lock);
 
     /* Type specific data: */
     gnet_property->props[308].type               = PROP_TYPE_GUINT32;
@@ -6984,6 +7296,7 @@ gnet_prop_init(void) {
     gnet_property->props[309].ev_changed = event_new("g2_cache_max_time_changed");
     gnet_property->props[309].save = TRUE;
     gnet_property->props[309].vector_size = 1;
+	mutex_init(&gnet_property->props[309].lock);
 
     /* Type specific data: */
     gnet_property->props[309].type               = PROP_TYPE_GUINT32;
@@ -7004,6 +7317,7 @@ gnet_prop_init(void) {
     gnet_property->props[310].ev_changed = event_new("g2_debug_changed");
     gnet_property->props[310].save = TRUE;
     gnet_property->props[310].vector_size = 1;
+	mutex_init(&gnet_property->props[310].lock);
 
     /* Type specific data: */
     gnet_property->props[310].type               = PROP_TYPE_GUINT32;
@@ -7024,6 +7338,7 @@ gnet_prop_init(void) {
     gnet_property->props[311].ev_changed = event_new("dl_resource_switching_changed");
     gnet_property->props[311].save = TRUE;
     gnet_property->props[311].vector_size = 1;
+	mutex_init(&gnet_property->props[311].lock);
 
     /* Type specific data: */
     gnet_property->props[311].type               = PROP_TYPE_BOOLEAN;
@@ -7041,6 +7356,7 @@ gnet_prop_init(void) {
     gnet_property->props[312].ev_changed = event_new("parq_enabled_changed");
     gnet_property->props[312].save = TRUE;
     gnet_property->props[312].vector_size = 1;
+	mutex_init(&gnet_property->props[312].lock);
 
     /* Type specific data: */
     gnet_property->props[312].type               = PROP_TYPE_BOOLEAN;
@@ -7058,6 +7374,7 @@ gnet_prop_init(void) {
     gnet_property->props[313].ev_changed = event_new("pfsp_last_chunk_changed");
     gnet_property->props[313].save = TRUE;
     gnet_property->props[313].vector_size = 1;
+	mutex_init(&gnet_property->props[313].lock);
 
     /* Type specific data: */
     gnet_property->props[313].type               = PROP_TYPE_GUINT32;
@@ -7078,6 +7395,7 @@ gnet_prop_init(void) {
     gnet_property->props[314].ev_changed = event_new("beautify_filenames_changed");
     gnet_property->props[314].save = TRUE;
     gnet_property->props[314].vector_size = 1;
+	mutex_init(&gnet_property->props[314].lock);
 
     /* Type specific data: */
     gnet_property->props[314].type               = PROP_TYPE_BOOLEAN;
@@ -7095,6 +7413,7 @@ gnet_prop_init(void) {
     gnet_property->props[315].ev_changed = event_new("enable_dht_changed");
     gnet_property->props[315].save = TRUE;
     gnet_property->props[315].vector_size = 1;
+	mutex_init(&gnet_property->props[315].lock);
 
     /* Type specific data: */
     gnet_property->props[315].type               = PROP_TYPE_BOOLEAN;
@@ -7112,6 +7431,7 @@ gnet_prop_init(void) {
     gnet_property->props[316].ev_changed = event_new("cq_debug_changed");
     gnet_property->props[316].save = TRUE;
     gnet_property->props[316].vector_size = 1;
+	mutex_init(&gnet_property->props[316].lock);
 
     /* Type specific data: */
     gnet_property->props[316].type               = PROP_TYPE_GUINT32;
@@ -7132,6 +7452,7 @@ gnet_prop_init(void) {
     gnet_property->props[317].ev_changed = event_new("dht_lookup_debug_changed");
     gnet_property->props[317].save = TRUE;
     gnet_property->props[317].vector_size = 1;
+	mutex_init(&gnet_property->props[317].lock);
 
     /* Type specific data: */
     gnet_property->props[317].type               = PROP_TYPE_GUINT32;
@@ -7152,6 +7473,7 @@ gnet_prop_init(void) {
     gnet_property->props[318].ev_changed = event_new("dht_storage_debug_changed");
     gnet_property->props[318].save = TRUE;
     gnet_property->props[318].vector_size = 1;
+	mutex_init(&gnet_property->props[318].lock);
 
     /* Type specific data: */
     gnet_property->props[318].type               = PROP_TYPE_GUINT32;
@@ -7172,6 +7494,7 @@ gnet_prop_init(void) {
     gnet_property->props[319].ev_changed = event_new("dht_publish_debug_changed");
     gnet_property->props[319].save = TRUE;
     gnet_property->props[319].vector_size = 1;
+	mutex_init(&gnet_property->props[319].lock);
 
     /* Type specific data: */
     gnet_property->props[319].type               = PROP_TYPE_GUINT32;
@@ -7192,6 +7515,7 @@ gnet_prop_init(void) {
     gnet_property->props[320].ev_changed = event_new("bw_dht_lookup_out_changed");
     gnet_property->props[320].save = TRUE;
     gnet_property->props[320].vector_size = 1;
+	mutex_init(&gnet_property->props[320].lock);
 
     /* Type specific data: */
     gnet_property->props[320].type               = PROP_TYPE_GUINT32;
@@ -7212,6 +7536,7 @@ gnet_prop_init(void) {
     gnet_property->props[321].ev_changed = event_new("bw_dht_lookup_in_changed");
     gnet_property->props[321].save = TRUE;
     gnet_property->props[321].vector_size = 1;
+	mutex_init(&gnet_property->props[321].lock);
 
     /* Type specific data: */
     gnet_property->props[321].type               = PROP_TYPE_GUINT32;
@@ -7232,6 +7557,7 @@ gnet_prop_init(void) {
     gnet_property->props[322].ev_changed = event_new("sticky_guid_changed");
     gnet_property->props[322].save = TRUE;
     gnet_property->props[322].vector_size = 1;
+	mutex_init(&gnet_property->props[322].lock);
 
     /* Type specific data: */
     gnet_property->props[322].type               = PROP_TYPE_BOOLEAN;
@@ -7249,6 +7575,7 @@ gnet_prop_init(void) {
     gnet_property->props[323].ev_changed = event_new("sticky_kuid_changed");
     gnet_property->props[323].save = TRUE;
     gnet_property->props[323].vector_size = 1;
+	mutex_init(&gnet_property->props[323].lock);
 
     /* Type specific data: */
     gnet_property->props[323].type               = PROP_TYPE_BOOLEAN;
@@ -7266,6 +7593,7 @@ gnet_prop_init(void) {
     gnet_property->props[324].ev_changed = event_new("dht_ulq_debug_changed");
     gnet_property->props[324].save = TRUE;
     gnet_property->props[324].vector_size = 1;
+	mutex_init(&gnet_property->props[324].lock);
 
     /* Type specific data: */
     gnet_property->props[324].type               = PROP_TYPE_GUINT32;
@@ -7286,6 +7614,7 @@ gnet_prop_init(void) {
     gnet_property->props[325].ev_changed = event_new("dht_storage_in_memory_changed");
     gnet_property->props[325].save = TRUE;
     gnet_property->props[325].vector_size = 1;
+	mutex_init(&gnet_property->props[325].lock);
 
     /* Type specific data: */
     gnet_property->props[325].type               = PROP_TYPE_BOOLEAN;
@@ -7303,6 +7632,7 @@ gnet_prop_init(void) {
     gnet_property->props[326].ev_changed = event_new("download_trace_changed");
     gnet_property->props[326].save = TRUE;
     gnet_property->props[326].vector_size = 1;
+	mutex_init(&gnet_property->props[326].lock);
 
     /* Type specific data: */
     gnet_property->props[326].type               = PROP_TYPE_MULTICHOICE;
@@ -7323,6 +7653,7 @@ gnet_prop_init(void) {
     gnet_property->props[327].ev_changed = event_new("upload_trace_changed");
     gnet_property->props[327].save = TRUE;
     gnet_property->props[327].vector_size = 1;
+	mutex_init(&gnet_property->props[327].lock);
 
     /* Type specific data: */
     gnet_property->props[327].type               = PROP_TYPE_MULTICHOICE;
@@ -7343,6 +7674,7 @@ gnet_prop_init(void) {
     gnet_property->props[328].ev_changed = event_new("gnet_trace_changed");
     gnet_property->props[328].save = TRUE;
     gnet_property->props[328].vector_size = 1;
+	mutex_init(&gnet_property->props[328].lock);
 
     /* Type specific data: */
     gnet_property->props[328].type               = PROP_TYPE_MULTICHOICE;
@@ -7363,6 +7695,7 @@ gnet_prop_init(void) {
     gnet_property->props[329].ev_changed = event_new("push_proxy_trace_changed");
     gnet_property->props[329].save = TRUE;
     gnet_property->props[329].vector_size = 1;
+	mutex_init(&gnet_property->props[329].lock);
 
     /* Type specific data: */
     gnet_property->props[329].type               = PROP_TYPE_MULTICHOICE;
@@ -7383,6 +7716,7 @@ gnet_prop_init(void) {
     gnet_property->props[330].ev_changed = event_new("http_trace_changed");
     gnet_property->props[330].save = TRUE;
     gnet_property->props[330].vector_size = 1;
+	mutex_init(&gnet_property->props[330].lock);
 
     /* Type specific data: */
     gnet_property->props[330].type               = PROP_TYPE_MULTICHOICE;
@@ -7403,6 +7737,7 @@ gnet_prop_init(void) {
     gnet_property->props[331].ev_changed = event_new("verify_debug_changed");
     gnet_property->props[331].save = TRUE;
     gnet_property->props[331].vector_size = 1;
+	mutex_init(&gnet_property->props[331].lock);
 
     /* Type specific data: */
     gnet_property->props[331].type               = PROP_TYPE_GUINT32;
@@ -7423,6 +7758,7 @@ gnet_prop_init(void) {
     gnet_property->props[332].ev_changed = event_new("local_addr_cache_max_hosts_changed");
     gnet_property->props[332].save = TRUE;
     gnet_property->props[332].vector_size = 1;
+	mutex_init(&gnet_property->props[332].lock);
 
     /* Type specific data: */
     gnet_property->props[332].type               = PROP_TYPE_GUINT32;
@@ -7443,6 +7779,7 @@ gnet_prop_init(void) {
     gnet_property->props[333].ev_changed = event_new("local_addr_cache_max_time_changed");
     gnet_property->props[333].save = TRUE;
     gnet_property->props[333].vector_size = 1;
+	mutex_init(&gnet_property->props[333].lock);
 
     /* Type specific data: */
     gnet_property->props[333].type               = PROP_TYPE_GUINT32;
@@ -7463,6 +7800,7 @@ gnet_prop_init(void) {
     gnet_property->props[334].ev_changed = event_new("local_addr_debug_changed");
     gnet_property->props[334].save = TRUE;
     gnet_property->props[334].vector_size = 1;
+	mutex_init(&gnet_property->props[334].lock);
 
     /* Type specific data: */
     gnet_property->props[334].type               = PROP_TYPE_GUINT32;
@@ -7483,6 +7821,7 @@ gnet_prop_init(void) {
     gnet_property->props[335].ev_changed = event_new("dump_transmitted_gnutella_packets_changed");
     gnet_property->props[335].save = FALSE;
     gnet_property->props[335].vector_size = 1;
+	mutex_init(&gnet_property->props[335].lock);
 
     /* Type specific data: */
     gnet_property->props[335].type               = PROP_TYPE_BOOLEAN;
@@ -7500,6 +7839,7 @@ gnet_prop_init(void) {
     gnet_property->props[336].ev_changed = event_new("mq_tcp_debug_changed");
     gnet_property->props[336].save = TRUE;
     gnet_property->props[336].vector_size = 1;
+	mutex_init(&gnet_property->props[336].lock);
 
     /* Type specific data: */
     gnet_property->props[336].type               = PROP_TYPE_GUINT32;
@@ -7520,6 +7860,7 @@ gnet_prop_init(void) {
     gnet_property->props[337].ev_changed = event_new("mq_udp_debug_changed");
     gnet_property->props[337].save = TRUE;
     gnet_property->props[337].vector_size = 1;
+	mutex_init(&gnet_property->props[337].lock);
 
     /* Type specific data: */
     gnet_property->props[337].type               = PROP_TYPE_GUINT32;
@@ -7540,6 +7881,7 @@ gnet_prop_init(void) {
     gnet_property->props[338].ev_changed = event_new("node_udp_sendqueue_size_changed");
     gnet_property->props[338].save = TRUE;
     gnet_property->props[338].vector_size = 1;
+	mutex_init(&gnet_property->props[338].lock);
 
     /* Type specific data: */
     gnet_property->props[338].type               = PROP_TYPE_GUINT32;
@@ -7560,6 +7902,7 @@ gnet_prop_init(void) {
     gnet_property->props[339].ev_changed = event_new("clock_debug_changed");
     gnet_property->props[339].save = TRUE;
     gnet_property->props[339].vector_size = 1;
+	mutex_init(&gnet_property->props[339].lock);
 
     /* Type specific data: */
     gnet_property->props[339].type               = PROP_TYPE_GUINT32;
@@ -7580,6 +7923,7 @@ gnet_prop_init(void) {
     gnet_property->props[340].ev_changed = event_new("fw_debug_changed");
     gnet_property->props[340].save = TRUE;
     gnet_property->props[340].vector_size = 1;
+	mutex_init(&gnet_property->props[340].lock);
 
     /* Type specific data: */
     gnet_property->props[340].type               = PROP_TYPE_GUINT32;
@@ -7600,6 +7944,7 @@ gnet_prop_init(void) {
     gnet_property->props[341].ev_changed = event_new("host_debug_changed");
     gnet_property->props[341].save = TRUE;
     gnet_property->props[341].vector_size = 1;
+	mutex_init(&gnet_property->props[341].lock);
 
     /* Type specific data: */
     gnet_property->props[341].type               = PROP_TYPE_GUINT32;
@@ -7620,6 +7965,7 @@ gnet_prop_init(void) {
     gnet_property->props[342].ev_changed = event_new("dht_roots_debug_changed");
     gnet_property->props[342].save = TRUE;
     gnet_property->props[342].vector_size = 1;
+	mutex_init(&gnet_property->props[342].lock);
 
     /* Type specific data: */
     gnet_property->props[342].type               = PROP_TYPE_GUINT32;
@@ -7640,6 +7986,7 @@ gnet_prop_init(void) {
     gnet_property->props[343].ev_changed = event_new("lib_stats_changed");
     gnet_property->props[343].save = TRUE;
     gnet_property->props[343].vector_size = 1;
+	mutex_init(&gnet_property->props[343].lock);
 
     /* Type specific data: */
     gnet_property->props[343].type               = PROP_TYPE_GUINT32;
@@ -7660,6 +8007,7 @@ gnet_prop_init(void) {
     gnet_property->props[344].ev_changed = event_new("spam_lut_in_memory_changed");
     gnet_property->props[344].save = TRUE;
     gnet_property->props[344].vector_size = 1;
+	mutex_init(&gnet_property->props[344].lock);
 
     /* Type specific data: */
     gnet_property->props[344].type               = PROP_TYPE_BOOLEAN;
@@ -7677,6 +8025,7 @@ gnet_prop_init(void) {
     gnet_property->props[345].ev_changed = event_new("spam_debug_changed");
     gnet_property->props[345].save = TRUE;
     gnet_property->props[345].vector_size = 1;
+	mutex_init(&gnet_property->props[345].lock);
 
     /* Type specific data: */
     gnet_property->props[345].type               = PROP_TYPE_GUINT32;
@@ -7697,6 +8046,7 @@ gnet_prop_init(void) {
     gnet_property->props[346].ev_changed = event_new("lockfile_debug_changed");
     gnet_property->props[346].save = TRUE;
     gnet_property->props[346].vector_size = 1;
+	mutex_init(&gnet_property->props[346].lock);
 
     /* Type specific data: */
     gnet_property->props[346].type               = PROP_TYPE_GUINT32;
@@ -7717,6 +8067,7 @@ gnet_prop_init(void) {
     gnet_property->props[347].ev_changed = event_new("zalloc_debug_changed");
     gnet_property->props[347].save = TRUE;
     gnet_property->props[347].vector_size = 1;
+	mutex_init(&gnet_property->props[347].lock);
 
     /* Type specific data: */
     gnet_property->props[347].type               = PROP_TYPE_GUINT32;
@@ -7737,6 +8088,7 @@ gnet_prop_init(void) {
     gnet_property->props[348].ev_changed = event_new("palloc_debug_changed");
     gnet_property->props[348].save = TRUE;
     gnet_property->props[348].vector_size = 1;
+	mutex_init(&gnet_property->props[348].lock);
 
     /* Type specific data: */
     gnet_property->props[348].type               = PROP_TYPE_GUINT32;
@@ -7757,6 +8109,7 @@ gnet_prop_init(void) {
     gnet_property->props[349].ev_changed = event_new("rxbuf_debug_changed");
     gnet_property->props[349].save = TRUE;
     gnet_property->props[349].vector_size = 1;
+	mutex_init(&gnet_property->props[349].lock);
 
     /* Type specific data: */
     gnet_property->props[349].type               = PROP_TYPE_GUINT32;
@@ -7777,6 +8130,7 @@ gnet_prop_init(void) {
     gnet_property->props[350].ev_changed = event_new("zalloc_always_gc_changed");
     gnet_property->props[350].save = TRUE;
     gnet_property->props[350].vector_size = 1;
+	mutex_init(&gnet_property->props[350].lock);
 
     /* Type specific data: */
     gnet_property->props[350].type               = PROP_TYPE_BOOLEAN;
@@ -7794,6 +8148,7 @@ gnet_prop_init(void) {
     gnet_property->props[351].ev_changed = event_new("vmm_debug_changed");
     gnet_property->props[351].save = TRUE;
     gnet_property->props[351].vector_size = 1;
+	mutex_init(&gnet_property->props[351].lock);
 
     /* Type specific data: */
     gnet_property->props[351].type               = PROP_TYPE_GUINT32;
@@ -7814,6 +8169,7 @@ gnet_prop_init(void) {
     gnet_property->props[352].ev_changed = event_new("shutdown_debug_changed");
     gnet_property->props[352].save = TRUE;
     gnet_property->props[352].vector_size = 1;
+	mutex_init(&gnet_property->props[352].lock);
 
     /* Type specific data: */
     gnet_property->props[352].type               = PROP_TYPE_GUINT32;
@@ -7834,6 +8190,7 @@ gnet_prop_init(void) {
     gnet_property->props[353].ev_changed = event_new("country_limits_changed");
     gnet_property->props[353].save = TRUE;
     gnet_property->props[353].vector_size = 1;
+	mutex_init(&gnet_property->props[353].lock);
 
     /* Type specific data: */
     gnet_property->props[353].type               = PROP_TYPE_STRING;
@@ -7855,6 +8212,7 @@ gnet_prop_init(void) {
     gnet_property->props[354].ev_changed = event_new("ctl_debug_changed");
     gnet_property->props[354].save = TRUE;
     gnet_property->props[354].vector_size = 1;
+	mutex_init(&gnet_property->props[354].lock);
 
     /* Type specific data: */
     gnet_property->props[354].type               = PROP_TYPE_GUINT32;
@@ -7875,6 +8233,7 @@ gnet_prop_init(void) {
     gnet_property->props[355].ev_changed = event_new("log_dropped_gnutella_changed");
     gnet_property->props[355].save = TRUE;
     gnet_property->props[355].vector_size = 1;
+	mutex_init(&gnet_property->props[355].lock);
 
     /* Type specific data: */
     gnet_property->props[355].type               = PROP_TYPE_BOOLEAN;
@@ -7892,6 +8251,7 @@ gnet_prop_init(void) {
     gnet_property->props[356].ev_changed = event_new("whitelist_debug_changed");
     gnet_property->props[356].save = TRUE;
     gnet_property->props[356].vector_size = 1;
+	mutex_init(&gnet_property->props[356].lock);
 
     /* Type specific data: */
     gnet_property->props[356].type               = PROP_TYPE_GUINT32;
@@ -7912,6 +8272,7 @@ gnet_prop_init(void) {
     gnet_property->props[357].ev_changed = event_new("dht_tcache_debug_changed");
     gnet_property->props[357].save = TRUE;
     gnet_property->props[357].vector_size = 1;
+	mutex_init(&gnet_property->props[357].lock);
 
     /* Type specific data: */
     gnet_property->props[357].type               = PROP_TYPE_GUINT32;
@@ -7932,6 +8293,7 @@ gnet_prop_init(void) {
     gnet_property->props[358].ev_changed = event_new("publisher_debug_changed");
     gnet_property->props[358].save = TRUE;
     gnet_property->props[358].vector_size = 1;
+	mutex_init(&gnet_property->props[358].lock);
 
     /* Type specific data: */
     gnet_property->props[358].type               = PROP_TYPE_GUINT32;
@@ -7952,6 +8314,7 @@ gnet_prop_init(void) {
     gnet_property->props[359].ev_changed = event_new("dht_trace_changed");
     gnet_property->props[359].save = TRUE;
     gnet_property->props[359].vector_size = 1;
+	mutex_init(&gnet_property->props[359].lock);
 
     /* Type specific data: */
     gnet_property->props[359].type               = PROP_TYPE_MULTICHOICE;
@@ -7972,6 +8335,7 @@ gnet_prop_init(void) {
     gnet_property->props[360].ev_changed = event_new("bw_dht_out_enabled_changed");
     gnet_property->props[360].save = TRUE;
     gnet_property->props[360].vector_size = 1;
+	mutex_init(&gnet_property->props[360].lock);
 
     /* Type specific data: */
     gnet_property->props[360].type               = PROP_TYPE_BOOLEAN;
@@ -7989,6 +8353,7 @@ gnet_prop_init(void) {
     gnet_property->props[361].ev_changed = event_new("bw_dht_out_changed");
     gnet_property->props[361].save = TRUE;
     gnet_property->props[361].vector_size = 1;
+	mutex_init(&gnet_property->props[361].lock);
 
     /* Type specific data: */
     gnet_property->props[361].type               = PROP_TYPE_GUINT32;
@@ -8009,6 +8374,7 @@ gnet_prop_init(void) {
     gnet_property->props[362].ev_changed = event_new("node_dht_sendqueue_size_changed");
     gnet_property->props[362].save = TRUE;
     gnet_property->props[362].vector_size = 1;
+	mutex_init(&gnet_property->props[362].lock);
 
     /* Type specific data: */
     gnet_property->props[362].type               = PROP_TYPE_GUINT32;
@@ -8029,6 +8395,7 @@ gnet_prop_init(void) {
     gnet_property->props[363].ev_changed = event_new("bsched_debug_changed");
     gnet_property->props[363].save = TRUE;
     gnet_property->props[363].vector_size = 1;
+	mutex_init(&gnet_property->props[363].lock);
 
     /* Type specific data: */
     gnet_property->props[363].type               = PROP_TYPE_GUINT32;
@@ -8049,6 +8416,7 @@ gnet_prop_init(void) {
     gnet_property->props[364].ev_changed = event_new("dht_stable_debug_changed");
     gnet_property->props[364].save = TRUE;
     gnet_property->props[364].vector_size = 1;
+	mutex_init(&gnet_property->props[364].lock);
 
     /* Type specific data: */
     gnet_property->props[364].type               = PROP_TYPE_GUINT32;
@@ -8069,6 +8437,7 @@ gnet_prop_init(void) {
     gnet_property->props[365].ev_changed = event_new("reload_debug_changed");
     gnet_property->props[365].save = TRUE;
     gnet_property->props[365].vector_size = 1;
+	mutex_init(&gnet_property->props[365].lock);
 
     /* Type specific data: */
     gnet_property->props[365].type               = PROP_TYPE_GUINT32;
@@ -8089,6 +8458,7 @@ gnet_prop_init(void) {
     gnet_property->props[366].ev_changed = event_new("move_debug_changed");
     gnet_property->props[366].save = TRUE;
     gnet_property->props[366].vector_size = 1;
+	mutex_init(&gnet_property->props[366].lock);
 
     /* Type specific data: */
     gnet_property->props[366].type               = PROP_TYPE_GUINT32;
@@ -8109,6 +8479,7 @@ gnet_prop_init(void) {
     gnet_property->props[367].ev_changed = event_new("qhit_debug_changed");
     gnet_property->props[367].save = TRUE;
     gnet_property->props[367].vector_size = 1;
+	mutex_init(&gnet_property->props[367].lock);
 
     /* Type specific data: */
     gnet_property->props[367].type               = PROP_TYPE_GUINT32;
@@ -8129,6 +8500,7 @@ gnet_prop_init(void) {
     gnet_property->props[368].ev_changed = event_new("version_debug_changed");
     gnet_property->props[368].save = TRUE;
     gnet_property->props[368].vector_size = 1;
+	mutex_init(&gnet_property->props[368].lock);
 
     /* Type specific data: */
     gnet_property->props[368].type               = PROP_TYPE_GUINT32;
@@ -8149,6 +8521,7 @@ gnet_prop_init(void) {
     gnet_property->props[369].ev_changed = event_new("cpu_freq_min_changed");
     gnet_property->props[369].save = FALSE;
     gnet_property->props[369].vector_size = 1;
+	mutex_init(&gnet_property->props[369].lock);
 
     /* Type specific data: */
     gnet_property->props[369].type               = PROP_TYPE_GUINT64;
@@ -8169,6 +8542,7 @@ gnet_prop_init(void) {
     gnet_property->props[370].ev_changed = event_new("cpu_freq_max_changed");
     gnet_property->props[370].save = FALSE;
     gnet_property->props[370].vector_size = 1;
+	mutex_init(&gnet_property->props[370].lock);
 
     /* Type specific data: */
     gnet_property->props[370].type               = PROP_TYPE_GUINT64;
@@ -8189,6 +8563,7 @@ gnet_prop_init(void) {
     gnet_property->props[371].ev_changed = event_new("dht_boot_status_changed");
     gnet_property->props[371].save = FALSE;
     gnet_property->props[371].vector_size = 1;
+	mutex_init(&gnet_property->props[371].lock);
 
     /* Type specific data: */
     gnet_property->props[371].type               = PROP_TYPE_MULTICHOICE;
@@ -8209,6 +8584,7 @@ gnet_prop_init(void) {
     gnet_property->props[372].ev_changed = event_new("dht_configured_mode_changed");
     gnet_property->props[372].save = TRUE;
     gnet_property->props[372].vector_size = 1;
+	mutex_init(&gnet_property->props[372].lock);
 
     /* Type specific data: */
     gnet_property->props[372].type               = PROP_TYPE_MULTICHOICE;
@@ -8229,6 +8605,7 @@ gnet_prop_init(void) {
     gnet_property->props[373].ev_changed = event_new("dht_current_mode_changed");
     gnet_property->props[373].save = FALSE;
     gnet_property->props[373].vector_size = 1;
+	mutex_init(&gnet_property->props[373].lock);
 
     /* Type specific data: */
     gnet_property->props[373].type               = PROP_TYPE_MULTICHOICE;
@@ -8249,6 +8626,7 @@ gnet_prop_init(void) {
     gnet_property->props[374].ev_changed = event_new("omalloc_debug_changed");
     gnet_property->props[374].save = TRUE;
     gnet_property->props[374].vector_size = 1;
+	mutex_init(&gnet_property->props[374].lock);
 
     /* Type specific data: */
     gnet_property->props[374].type               = PROP_TYPE_GUINT32;
@@ -8269,6 +8647,7 @@ gnet_prop_init(void) {
     gnet_property->props[375].ev_changed = event_new("hcache_debug_changed");
     gnet_property->props[375].save = TRUE;
     gnet_property->props[375].vector_size = 1;
+	mutex_init(&gnet_property->props[375].lock);
 
     /* Type specific data: */
     gnet_property->props[375].type               = PROP_TYPE_GUINT32;
@@ -8289,6 +8668,7 @@ gnet_prop_init(void) {
     gnet_property->props[376].ev_changed = event_new("randomness_changed");
     gnet_property->props[376].save = TRUE;
     gnet_property->props[376].vector_size = KUID_RAW_SIZE;
+	mutex_init(&gnet_property->props[376].lock);
 
     /* Type specific data: */
     gnet_property->props[376].type               = PROP_TYPE_STORAGE;
@@ -8305,6 +8685,7 @@ gnet_prop_init(void) {
     gnet_property->props[377].ev_changed = event_new("average_servent_downtime_changed");
     gnet_property->props[377].save = TRUE;
     gnet_property->props[377].vector_size = 1;
+	mutex_init(&gnet_property->props[377].lock);
 
     /* Type specific data: */
     gnet_property->props[377].type               = PROP_TYPE_GUINT32;
@@ -8325,6 +8706,7 @@ gnet_prop_init(void) {
     gnet_property->props[378].ev_changed = event_new("shutdown_time_changed");
     gnet_property->props[378].save = TRUE;
     gnet_property->props[378].vector_size = 1;
+	mutex_init(&gnet_property->props[378].lock);
 
     /* Type specific data: */
     gnet_property->props[378].type               = PROP_TYPE_TIMESTAMP;
@@ -8345,6 +8727,7 @@ gnet_prop_init(void) {
     gnet_property->props[379].ev_changed = event_new("alive_debug_changed");
     gnet_property->props[379].save = TRUE;
     gnet_property->props[379].vector_size = 1;
+	mutex_init(&gnet_property->props[379].lock);
 
     /* Type specific data: */
     gnet_property->props[379].type               = PROP_TYPE_GUINT32;
@@ -8365,6 +8748,7 @@ gnet_prop_init(void) {
     gnet_property->props[380].ev_changed = event_new("vxml_debug_changed");
     gnet_property->props[380].save = TRUE;
     gnet_property->props[380].vector_size = 1;
+	mutex_init(&gnet_property->props[380].lock);
 
     /* Type specific data: */
     gnet_property->props[380].type               = PROP_TYPE_GUINT32;
@@ -8385,6 +8769,7 @@ gnet_prop_init(void) {
     gnet_property->props[381].ev_changed = event_new("upnp_debug_changed");
     gnet_property->props[381].save = TRUE;
     gnet_property->props[381].vector_size = 1;
+	mutex_init(&gnet_property->props[381].lock);
 
     /* Type specific data: */
     gnet_property->props[381].type               = PROP_TYPE_GUINT32;
@@ -8405,6 +8790,7 @@ gnet_prop_init(void) {
     gnet_property->props[382].ev_changed = event_new("soap_debug_changed");
     gnet_property->props[382].save = TRUE;
     gnet_property->props[382].vector_size = 1;
+	mutex_init(&gnet_property->props[382].lock);
 
     /* Type specific data: */
     gnet_property->props[382].type               = PROP_TYPE_GUINT32;
@@ -8425,6 +8811,7 @@ gnet_prop_init(void) {
     gnet_property->props[383].ev_changed = event_new("soap_trace_changed");
     gnet_property->props[383].save = TRUE;
     gnet_property->props[383].vector_size = 1;
+	mutex_init(&gnet_property->props[383].lock);
 
     /* Type specific data: */
     gnet_property->props[383].type               = PROP_TYPE_MULTICHOICE;
@@ -8445,6 +8832,7 @@ gnet_prop_init(void) {
     gnet_property->props[384].ev_changed = event_new("allow_firewalled_ultra_changed");
     gnet_property->props[384].save = TRUE;
     gnet_property->props[384].vector_size = 1;
+	mutex_init(&gnet_property->props[384].lock);
 
     /* Type specific data: */
     gnet_property->props[384].type               = PROP_TYPE_BOOLEAN;
@@ -8462,6 +8850,7 @@ gnet_prop_init(void) {
     gnet_property->props[385].ev_changed = event_new("enable_upnp_changed");
     gnet_property->props[385].save = TRUE;
     gnet_property->props[385].vector_size = 1;
+	mutex_init(&gnet_property->props[385].lock);
 
     /* Type specific data: */
     gnet_property->props[385].type               = PROP_TYPE_BOOLEAN;
@@ -8479,6 +8868,7 @@ gnet_prop_init(void) {
     gnet_property->props[386].ev_changed = event_new("upnp_possible_changed");
     gnet_property->props[386].save = FALSE;
     gnet_property->props[386].vector_size = 1;
+	mutex_init(&gnet_property->props[386].lock);
 
     /* Type specific data: */
     gnet_property->props[386].type               = PROP_TYPE_BOOLEAN;
@@ -8496,6 +8886,7 @@ gnet_prop_init(void) {
     gnet_property->props[387].ev_changed = event_new("port_mapping_required_changed");
     gnet_property->props[387].save = TRUE;
     gnet_property->props[387].vector_size = 1;
+	mutex_init(&gnet_property->props[387].lock);
 
     /* Type specific data: */
     gnet_property->props[387].type               = PROP_TYPE_BOOLEAN;
@@ -8513,6 +8904,7 @@ gnet_prop_init(void) {
     gnet_property->props[388].ev_changed = event_new("port_mapping_possible_changed");
     gnet_property->props[388].save = FALSE;
     gnet_property->props[388].vector_size = 1;
+	mutex_init(&gnet_property->props[388].lock);
 
     /* Type specific data: */
     gnet_property->props[388].type               = PROP_TYPE_BOOLEAN;
@@ -8530,6 +8922,7 @@ gnet_prop_init(void) {
     gnet_property->props[389].ev_changed = event_new("natpmp_debug_changed");
     gnet_property->props[389].save = TRUE;
     gnet_property->props[389].vector_size = 1;
+	mutex_init(&gnet_property->props[389].lock);
 
     /* Type specific data: */
     gnet_property->props[389].type               = PROP_TYPE_GUINT32;
@@ -8550,6 +8943,7 @@ gnet_prop_init(void) {
     gnet_property->props[390].ev_changed = event_new("enable_natpmp_changed");
     gnet_property->props[390].save = TRUE;
     gnet_property->props[390].vector_size = 1;
+	mutex_init(&gnet_property->props[390].lock);
 
     /* Type specific data: */
     gnet_property->props[390].type               = PROP_TYPE_BOOLEAN;
@@ -8567,6 +8961,7 @@ gnet_prop_init(void) {
     gnet_property->props[391].ev_changed = event_new("natpmp_possible_changed");
     gnet_property->props[391].save = FALSE;
     gnet_property->props[391].vector_size = 1;
+	mutex_init(&gnet_property->props[391].lock);
 
     /* Type specific data: */
     gnet_property->props[391].type               = PROP_TYPE_BOOLEAN;
@@ -8584,6 +8979,7 @@ gnet_prop_init(void) {
     gnet_property->props[392].ev_changed = event_new("tx_debug_changed");
     gnet_property->props[392].save = TRUE;
     gnet_property->props[392].vector_size = 1;
+	mutex_init(&gnet_property->props[392].lock);
 
     /* Type specific data: */
     gnet_property->props[392].type               = PROP_TYPE_GUINT32;
@@ -8604,6 +9000,7 @@ gnet_prop_init(void) {
     gnet_property->props[393].ev_changed = event_new("rx_debug_changed");
     gnet_property->props[393].save = TRUE;
     gnet_property->props[393].vector_size = 1;
+	mutex_init(&gnet_property->props[393].lock);
 
     /* Type specific data: */
     gnet_property->props[393].type               = PROP_TYPE_GUINT32;
@@ -8624,6 +9021,7 @@ gnet_prop_init(void) {
     gnet_property->props[394].ev_changed = event_new("inputevt_debug_changed");
     gnet_property->props[394].save = TRUE;
     gnet_property->props[394].vector_size = 1;
+	mutex_init(&gnet_property->props[394].lock);
 
     /* Type specific data: */
     gnet_property->props[394].type               = PROP_TYPE_GUINT32;
@@ -8644,6 +9042,7 @@ gnet_prop_init(void) {
     gnet_property->props[395].ev_changed = event_new("bg_debug_changed");
     gnet_property->props[395].save = TRUE;
     gnet_property->props[395].vector_size = 1;
+	mutex_init(&gnet_property->props[395].lock);
 
     /* Type specific data: */
     gnet_property->props[395].type               = PROP_TYPE_GUINT32;
@@ -8664,6 +9063,7 @@ gnet_prop_init(void) {
     gnet_property->props[396].ev_changed = event_new("port_mapping_successful_changed");
     gnet_property->props[396].save = FALSE;
     gnet_property->props[396].vector_size = 1;
+	mutex_init(&gnet_property->props[396].lock);
 
     /* Type specific data: */
     gnet_property->props[396].type               = PROP_TYPE_BOOLEAN;
@@ -8681,6 +9081,7 @@ gnet_prop_init(void) {
     gnet_property->props[397].ev_changed = event_new("uploads_bw_no_stealing_changed");
     gnet_property->props[397].save = FALSE;
     gnet_property->props[397].vector_size = 1;
+	mutex_init(&gnet_property->props[397].lock);
 
     /* Type specific data: */
     gnet_property->props[397].type               = PROP_TYPE_BOOLEAN;
@@ -8698,6 +9099,7 @@ gnet_prop_init(void) {
     gnet_property->props[398].ev_changed = event_new("uploads_bw_ignore_stolen_changed");
     gnet_property->props[398].save = FALSE;
     gnet_property->props[398].vector_size = 1;
+	mutex_init(&gnet_property->props[398].lock);
 
     /* Type specific data: */
     gnet_property->props[398].type               = PROP_TYPE_BOOLEAN;
@@ -8715,6 +9117,7 @@ gnet_prop_init(void) {
     gnet_property->props[399].ev_changed = event_new("uploads_bw_uniform_changed");
     gnet_property->props[399].save = FALSE;
     gnet_property->props[399].vector_size = 1;
+	mutex_init(&gnet_property->props[399].lock);
 
     /* Type specific data: */
     gnet_property->props[399].type               = PROP_TYPE_BOOLEAN;
@@ -8732,6 +9135,7 @@ gnet_prop_init(void) {
     gnet_property->props[400].ev_changed = event_new("enable_http_pipelining_changed");
     gnet_property->props[400].save = TRUE;
     gnet_property->props[400].vector_size = 1;
+	mutex_init(&gnet_property->props[400].lock);
 
     /* Type specific data: */
     gnet_property->props[400].type               = PROP_TYPE_BOOLEAN;
@@ -8749,6 +9153,7 @@ gnet_prop_init(void) {
     gnet_property->props[401].ev_changed = event_new("dl_pipeline_maxchunksize_changed");
     gnet_property->props[401].save = TRUE;
     gnet_property->props[401].vector_size = 1;
+	mutex_init(&gnet_property->props[401].lock);
 
     /* Type specific data: */
     gnet_property->props[401].type               = PROP_TYPE_GUINT32;
@@ -8769,6 +9174,7 @@ gnet_prop_init(void) {
     gnet_property->props[402].ev_changed = event_new("enable_guess_changed");
     gnet_property->props[402].save = TRUE;
     gnet_property->props[402].vector_size = 1;
+	mutex_init(&gnet_property->props[402].lock);
 
     /* Type specific data: */
     gnet_property->props[402].type               = PROP_TYPE_BOOLEAN;
@@ -8786,6 +9192,7 @@ gnet_prop_init(void) {
     gnet_property->props[403].ev_changed = event_new("guess_server_debug_changed");
     gnet_property->props[403].save = TRUE;
     gnet_property->props[403].vector_size = 1;
+	mutex_init(&gnet_property->props[403].lock);
 
     /* Type specific data: */
     gnet_property->props[403].type               = PROP_TYPE_GUINT32;
@@ -8806,6 +9213,7 @@ gnet_prop_init(void) {
     gnet_property->props[404].ev_changed = event_new("guess_client_debug_changed");
     gnet_property->props[404].save = TRUE;
     gnet_property->props[404].vector_size = 1;
+	mutex_init(&gnet_property->props[404].lock);
 
     /* Type specific data: */
     gnet_property->props[404].type               = PROP_TYPE_GUINT32;
@@ -8826,6 +9234,7 @@ gnet_prop_init(void) {
     gnet_property->props[405].ev_changed = event_new("max_guess_hosts_cached_changed");
     gnet_property->props[405].save = TRUE;
     gnet_property->props[405].vector_size = 1;
+	mutex_init(&gnet_property->props[405].lock);
 
     /* Type specific data: */
     gnet_property->props[405].type               = PROP_TYPE_GUINT32;
@@ -8846,6 +9255,7 @@ gnet_prop_init(void) {
     gnet_property->props[406].ev_changed = event_new("hosts_in_guess_catcher_changed");
     gnet_property->props[406].save = FALSE;
     gnet_property->props[406].vector_size = 1;
+	mutex_init(&gnet_property->props[406].lock);
 
     /* Type specific data: */
     gnet_property->props[406].type               = PROP_TYPE_GUINT32;
@@ -8866,6 +9276,7 @@ gnet_prop_init(void) {
     gnet_property->props[407].ev_changed = event_new("max_guess_intro_hosts_cached_changed");
     gnet_property->props[407].save = TRUE;
     gnet_property->props[407].vector_size = 1;
+	mutex_init(&gnet_property->props[407].lock);
 
     /* Type specific data: */
     gnet_property->props[407].type               = PROP_TYPE_GUINT32;
@@ -8886,6 +9297,7 @@ gnet_prop_init(void) {
     gnet_property->props[408].ev_changed = event_new("hosts_in_guess_intro_catcher_changed");
     gnet_property->props[408].save = FALSE;
     gnet_property->props[408].vector_size = 1;
+	mutex_init(&gnet_property->props[408].lock);
 
     /* Type specific data: */
     gnet_property->props[408].type               = PROP_TYPE_GUINT32;
@@ -8906,6 +9318,7 @@ gnet_prop_init(void) {
     gnet_property->props[409].ev_changed = event_new("dbstore_debug_changed");
     gnet_property->props[409].save = TRUE;
     gnet_property->props[409].vector_size = 1;
+	mutex_init(&gnet_property->props[409].lock);
 
     /* Type specific data: */
     gnet_property->props[409].type               = PROP_TYPE_GUINT32;
@@ -8926,6 +9339,7 @@ gnet_prop_init(void) {
     gnet_property->props[410].ev_changed = event_new("session_id_changed");
     gnet_property->props[410].save = FALSE;
     gnet_property->props[410].vector_size = GUID_RAW_SIZE;
+	mutex_init(&gnet_property->props[410].lock);
 
     /* Type specific data: */
     gnet_property->props[410].type               = PROP_TYPE_STORAGE;
@@ -8942,6 +9356,7 @@ gnet_prop_init(void) {
     gnet_property->props[411].ev_changed = event_new("pfsp_rare_server_changed");
     gnet_property->props[411].save = TRUE;
     gnet_property->props[411].vector_size = 1;
+	mutex_init(&gnet_property->props[411].lock);
 
     /* Type specific data: */
     gnet_property->props[411].type               = PROP_TYPE_BOOLEAN;
@@ -8959,6 +9374,7 @@ gnet_prop_init(void) {
     gnet_property->props[412].ev_changed = event_new("enable_guess_client_changed");
     gnet_property->props[412].save = TRUE;
     gnet_property->props[412].vector_size = 1;
+	mutex_init(&gnet_property->props[412].lock);
 
     /* Type specific data: */
     gnet_property->props[412].type               = PROP_TYPE_BOOLEAN;
@@ -8976,6 +9392,7 @@ gnet_prop_init(void) {
     gnet_property->props[413].ev_changed = event_new("bw_guess_out_changed");
     gnet_property->props[413].save = TRUE;
     gnet_property->props[413].vector_size = 1;
+	mutex_init(&gnet_property->props[413].lock);
 
     /* Type specific data: */
     gnet_property->props[413].type               = PROP_TYPE_GUINT32;
@@ -8996,6 +9413,7 @@ gnet_prop_init(void) {
     gnet_property->props[414].ev_changed = event_new("matching_debug_changed");
     gnet_property->props[414].save = TRUE;
     gnet_property->props[414].vector_size = 1;
+	mutex_init(&gnet_property->props[414].lock);
 
     /* Type specific data: */
     gnet_property->props[414].type               = PROP_TYPE_GUINT32;
@@ -9016,6 +9434,7 @@ gnet_prop_init(void) {
     gnet_property->props[415].ev_changed = event_new("tsync_debug_changed");
     gnet_property->props[415].save = TRUE;
     gnet_property->props[415].vector_size = 1;
+	mutex_init(&gnet_property->props[415].lock);
 
     /* Type specific data: */
     gnet_property->props[415].type               = PROP_TYPE_GUINT32;
@@ -9036,6 +9455,7 @@ gnet_prop_init(void) {
     gnet_property->props[416].ev_changed = event_new("query_request_partials_changed");
     gnet_property->props[416].save = TRUE;
     gnet_property->props[416].vector_size = 1;
+	mutex_init(&gnet_property->props[416].lock);
 
     /* Type specific data: */
     gnet_property->props[416].type               = PROP_TYPE_BOOLEAN;
@@ -9053,6 +9473,7 @@ gnet_prop_init(void) {
     gnet_property->props[417].ev_changed = event_new("query_answer_partials_changed");
     gnet_property->props[417].save = TRUE;
     gnet_property->props[417].vector_size = 1;
+	mutex_init(&gnet_property->props[417].lock);
 
     /* Type specific data: */
     gnet_property->props[417].type               = PROP_TYPE_BOOLEAN;
@@ -9070,6 +9491,7 @@ gnet_prop_init(void) {
     gnet_property->props[418].ev_changed = event_new("query_answer_whats_new_changed");
     gnet_property->props[418].save = TRUE;
     gnet_property->props[418].vector_size = 1;
+	mutex_init(&gnet_property->props[418].lock);
 
     /* Type specific data: */
     gnet_property->props[418].type               = PROP_TYPE_BOOLEAN;
@@ -9087,6 +9509,7 @@ gnet_prop_init(void) {
     gnet_property->props[419].ev_changed = event_new("search_smart_stop_changed");
     gnet_property->props[419].save = TRUE;
     gnet_property->props[419].vector_size = 1;
+	mutex_init(&gnet_property->props[419].lock);
 
     /* Type specific data: */
     gnet_property->props[419].type               = PROP_TYPE_BOOLEAN;
@@ -9104,6 +9527,7 @@ gnet_prop_init(void) {
     gnet_property->props[420].ev_changed = event_new("whats_new_search_max_results_changed");
     gnet_property->props[420].save = TRUE;
     gnet_property->props[420].vector_size = 1;
+	mutex_init(&gnet_property->props[420].lock);
 
     /* Type specific data: */
     gnet_property->props[420].type               = PROP_TYPE_GUINT32;
@@ -9124,6 +9548,7 @@ gnet_prop_init(void) {
     gnet_property->props[421].ev_changed = event_new("passive_search_max_results_changed");
     gnet_property->props[421].save = TRUE;
     gnet_property->props[421].vector_size = 1;
+	mutex_init(&gnet_property->props[421].lock);
 
     /* Type specific data: */
     gnet_property->props[421].type               = PROP_TYPE_GUINT32;
@@ -9144,6 +9569,7 @@ gnet_prop_init(void) {
     gnet_property->props[422].ev_changed = event_new("log_dup_gnutella_same_node_changed");
     gnet_property->props[422].save = TRUE;
     gnet_property->props[422].vector_size = 1;
+	mutex_init(&gnet_property->props[422].lock);
 
     /* Type specific data: */
     gnet_property->props[422].type               = PROP_TYPE_BOOLEAN;
@@ -9161,6 +9587,7 @@ gnet_prop_init(void) {
     gnet_property->props[423].ev_changed = event_new("log_dup_gnutella_higher_ttl_changed");
     gnet_property->props[423].save = TRUE;
     gnet_property->props[423].vector_size = 1;
+	mutex_init(&gnet_property->props[423].lock);
 
     /* Type specific data: */
     gnet_property->props[423].type               = PROP_TYPE_BOOLEAN;
@@ -9178,6 +9605,7 @@ gnet_prop_init(void) {
     gnet_property->props[424].ev_changed = event_new("log_dup_gnutella_other_node_changed");
     gnet_property->props[424].save = TRUE;
     gnet_property->props[424].vector_size = 1;
+	mutex_init(&gnet_property->props[424].lock);
 
     /* Type specific data: */
     gnet_property->props[424].type               = PROP_TYPE_BOOLEAN;
@@ -9195,6 +9623,7 @@ gnet_prop_init(void) {
     gnet_property->props[425].ev_changed = event_new("log_new_gnutella_changed");
     gnet_property->props[425].save = TRUE;
     gnet_property->props[425].vector_size = 1;
+	mutex_init(&gnet_property->props[425].lock);
 
     /* Type specific data: */
     gnet_property->props[425].type               = PROP_TYPE_BOOLEAN;
@@ -9212,6 +9641,7 @@ gnet_prop_init(void) {
     gnet_property->props[426].ev_changed = event_new("log_gnutella_routing_changed");
     gnet_property->props[426].save = TRUE;
     gnet_property->props[426].vector_size = 1;
+	mutex_init(&gnet_property->props[426].lock);
 
     /* Type specific data: */
     gnet_property->props[426].type               = PROP_TYPE_BOOLEAN;
@@ -9229,6 +9659,7 @@ gnet_prop_init(void) {
     gnet_property->props[427].ev_changed = event_new("log_bad_gnutella_changed");
     gnet_property->props[427].save = TRUE;
     gnet_property->props[427].vector_size = 1;
+	mutex_init(&gnet_property->props[427].lock);
 
     /* Type specific data: */
     gnet_property->props[427].type               = PROP_TYPE_BOOLEAN;
@@ -9246,6 +9677,7 @@ gnet_prop_init(void) {
     gnet_property->props[428].ev_changed = event_new("log_spam_query_hit_changed");
     gnet_property->props[428].save = TRUE;
     gnet_property->props[428].vector_size = 1;
+	mutex_init(&gnet_property->props[428].lock);
 
     /* Type specific data: */
     gnet_property->props[428].type               = PROP_TYPE_BOOLEAN;
@@ -9263,6 +9695,7 @@ gnet_prop_init(void) {
     gnet_property->props[429].ev_changed = event_new("max_ultra6_hosts_cached_changed");
     gnet_property->props[429].save = TRUE;
     gnet_property->props[429].vector_size = 1;
+	mutex_init(&gnet_property->props[429].lock);
 
     /* Type specific data: */
     gnet_property->props[429].type               = PROP_TYPE_GUINT32;
@@ -9283,6 +9716,7 @@ gnet_prop_init(void) {
     gnet_property->props[430].ev_changed = event_new("hosts_in_ultra6_catcher_changed");
     gnet_property->props[430].save = FALSE;
     gnet_property->props[430].vector_size = 1;
+	mutex_init(&gnet_property->props[430].lock);
 
     /* Type specific data: */
     gnet_property->props[430].type               = PROP_TYPE_GUINT32;
@@ -9303,6 +9737,7 @@ gnet_prop_init(void) {
     gnet_property->props[431].ev_changed = event_new("hosts_in_guess6_catcher_changed");
     gnet_property->props[431].save = FALSE;
     gnet_property->props[431].vector_size = 1;
+	mutex_init(&gnet_property->props[431].lock);
 
     /* Type specific data: */
     gnet_property->props[431].type               = PROP_TYPE_GUINT32;
@@ -9323,6 +9758,7 @@ gnet_prop_init(void) {
     gnet_property->props[432].ev_changed = event_new("hosts_in_guess6_intro_catcher_changed");
     gnet_property->props[432].save = FALSE;
     gnet_property->props[432].vector_size = 1;
+	mutex_init(&gnet_property->props[432].lock);
 
     /* Type specific data: */
     gnet_property->props[432].type               = PROP_TYPE_GUINT32;
@@ -9343,6 +9779,7 @@ gnet_prop_init(void) {
     gnet_property->props[433].ev_changed = event_new("max_guess6_hosts_cached_changed");
     gnet_property->props[433].save = TRUE;
     gnet_property->props[433].vector_size = 1;
+	mutex_init(&gnet_property->props[433].lock);
 
     /* Type specific data: */
     gnet_property->props[433].type               = PROP_TYPE_GUINT32;
@@ -9363,6 +9800,7 @@ gnet_prop_init(void) {
     gnet_property->props[434].ev_changed = event_new("max_guess6_intro_hosts_cached_changed");
     gnet_property->props[434].save = TRUE;
     gnet_property->props[434].vector_size = 1;
+	mutex_init(&gnet_property->props[434].lock);
 
     /* Type specific data: */
     gnet_property->props[434].type               = PROP_TYPE_GUINT32;
@@ -9383,6 +9821,7 @@ gnet_prop_init(void) {
     gnet_property->props[435].ev_changed = event_new("xmalloc_debug_changed");
     gnet_property->props[435].save = TRUE;
     gnet_property->props[435].vector_size = 1;
+	mutex_init(&gnet_property->props[435].lock);
 
     /* Type specific data: */
     gnet_property->props[435].type               = PROP_TYPE_GUINT32;
@@ -9403,6 +9842,7 @@ gnet_prop_init(void) {
     gnet_property->props[436].ev_changed = event_new("qhit_bad_debug_changed");
     gnet_property->props[436].save = TRUE;
     gnet_property->props[436].vector_size = 1;
+	mutex_init(&gnet_property->props[436].lock);
 
     /* Type specific data: */
     gnet_property->props[436].type               = PROP_TYPE_GUINT32;
@@ -9423,6 +9863,7 @@ gnet_prop_init(void) {
     gnet_property->props[437].ev_changed = event_new("guid_debug_changed");
     gnet_property->props[437].save = TRUE;
     gnet_property->props[437].vector_size = 1;
+	mutex_init(&gnet_property->props[437].lock);
 
     /* Type specific data: */
     gnet_property->props[437].type               = PROP_TYPE_GUINT32;
@@ -9443,6 +9884,7 @@ gnet_prop_init(void) {
     gnet_property->props[438].ev_changed = event_new("tx_deflate_debug_changed");
     gnet_property->props[438].save = TRUE;
     gnet_property->props[438].vector_size = 1;
+	mutex_init(&gnet_property->props[438].lock);
 
     /* Type specific data: */
     gnet_property->props[438].type               = PROP_TYPE_GUINT32;
@@ -9463,6 +9905,7 @@ gnet_prop_init(void) {
     gnet_property->props[439].ev_changed = event_new("tx_debug_addrs_changed");
     gnet_property->props[439].save = TRUE;
     gnet_property->props[439].vector_size = 1;
+	mutex_init(&gnet_property->props[439].lock);
 
     /* Type specific data: */
     gnet_property->props[439].type               = PROP_TYPE_STRING;
@@ -9484,6 +9927,7 @@ gnet_prop_init(void) {
     gnet_property->props[440].ev_changed = event_new("dump_rx_addrs_changed");
     gnet_property->props[440].save = TRUE;
     gnet_property->props[440].vector_size = 1;
+	mutex_init(&gnet_property->props[440].lock);
 
     /* Type specific data: */
     gnet_property->props[440].type               = PROP_TYPE_STRING;
@@ -9505,6 +9949,7 @@ gnet_prop_init(void) {
     gnet_property->props[441].ev_changed = event_new("dump_tx_from_addrs_changed");
     gnet_property->props[441].save = TRUE;
     gnet_property->props[441].vector_size = 1;
+	mutex_init(&gnet_property->props[441].lock);
 
     /* Type specific data: */
     gnet_property->props[441].type               = PROP_TYPE_STRING;
@@ -9526,6 +9971,7 @@ gnet_prop_init(void) {
     gnet_property->props[442].ev_changed = event_new("dump_tx_to_addrs_changed");
     gnet_property->props[442].save = TRUE;
     gnet_property->props[442].vector_size = 1;
+	mutex_init(&gnet_property->props[442].lock);
 
     /* Type specific data: */
     gnet_property->props[442].type               = PROP_TYPE_STRING;
@@ -9547,6 +9993,7 @@ gnet_prop_init(void) {
     gnet_property->props[443].ev_changed = event_new("guess_maximize_bw_changed");
     gnet_property->props[443].save = TRUE;
     gnet_property->props[443].vector_size = 1;
+	mutex_init(&gnet_property->props[443].lock);
 
     /* Type specific data: */
     gnet_property->props[443].type               = PROP_TYPE_BOOLEAN;
@@ -9564,6 +10011,7 @@ gnet_prop_init(void) {
     gnet_property->props[444].ev_changed = event_new("udp_sched_debug_changed");
     gnet_property->props[444].save = TRUE;
     gnet_property->props[444].vector_size = 1;
+	mutex_init(&gnet_property->props[444].lock);
 
     /* Type specific data: */
     gnet_property->props[444].type               = PROP_TYPE_GUINT32;
@@ -9584,6 +10032,7 @@ gnet_prop_init(void) {
     gnet_property->props[445].ev_changed = event_new("tx_ut_debug_flags_changed");
     gnet_property->props[445].save = TRUE;
     gnet_property->props[445].vector_size = 1;
+	mutex_init(&gnet_property->props[445].lock);
 
     /* Type specific data: */
     gnet_property->props[445].type               = PROP_TYPE_GUINT32;
@@ -9604,6 +10053,7 @@ gnet_prop_init(void) {
     gnet_property->props[446].ev_changed = event_new("rx_debug_addrs_changed");
     gnet_property->props[446].save = TRUE;
     gnet_property->props[446].vector_size = 1;
+	mutex_init(&gnet_property->props[446].lock);
 
     /* Type specific data: */
     gnet_property->props[446].type               = PROP_TYPE_STRING;
@@ -9625,6 +10075,7 @@ gnet_prop_init(void) {
     gnet_property->props[447].ev_changed = event_new("rx_ut_debug_flags_changed");
     gnet_property->props[447].save = TRUE;
     gnet_property->props[447].vector_size = 1;
+	mutex_init(&gnet_property->props[447].lock);
 
     /* Type specific data: */
     gnet_property->props[447].type               = PROP_TYPE_GUINT32;
@@ -9645,6 +10096,7 @@ gnet_prop_init(void) {
     gnet_property->props[448].ev_changed = event_new("log_sr_udp_tx_changed");
     gnet_property->props[448].save = TRUE;
     gnet_property->props[448].vector_size = 1;
+	mutex_init(&gnet_property->props[448].lock);
 
     /* Type specific data: */
     gnet_property->props[448].type               = PROP_TYPE_BOOLEAN;
@@ -9662,6 +10114,7 @@ gnet_prop_init(void) {
     gnet_property->props[449].ev_changed = event_new("log_sr_udp_rx_changed");
     gnet_property->props[449].save = TRUE;
     gnet_property->props[449].vector_size = 1;
+	mutex_init(&gnet_property->props[449].lock);
 
     /* Type specific data: */
     gnet_property->props[449].type               = PROP_TYPE_BOOLEAN;
@@ -9679,6 +10132,7 @@ gnet_prop_init(void) {
     gnet_property->props[450].ev_changed = event_new("secure_oob_debug_changed");
     gnet_property->props[450].save = TRUE;
     gnet_property->props[450].vector_size = 1;
+	mutex_init(&gnet_property->props[450].lock);
 
     /* Type specific data: */
     gnet_property->props[450].type               = PROP_TYPE_GUINT32;
@@ -9699,6 +10153,7 @@ gnet_prop_init(void) {
     gnet_property->props[451].ev_changed = event_new("log_vmsg_tx_changed");
     gnet_property->props[451].save = TRUE;
     gnet_property->props[451].vector_size = 1;
+	mutex_init(&gnet_property->props[451].lock);
 
     /* Type specific data: */
     gnet_property->props[451].type               = PROP_TYPE_BOOLEAN;
@@ -9716,6 +10171,7 @@ gnet_prop_init(void) {
     gnet_property->props[452].ev_changed = event_new("log_vmsg_rx_changed");
     gnet_property->props[452].save = TRUE;
     gnet_property->props[452].vector_size = 1;
+	mutex_init(&gnet_property->props[452].lock);
 
     /* Type specific data: */
     gnet_property->props[452].type               = PROP_TYPE_BOOLEAN;
@@ -9733,6 +10189,7 @@ gnet_prop_init(void) {
     gnet_property->props[453].ev_changed = event_new("dht_tcache_debug_flags_changed");
     gnet_property->props[453].save = TRUE;
     gnet_property->props[453].vector_size = 1;
+	mutex_init(&gnet_property->props[453].lock);
 
     /* Type specific data: */
     gnet_property->props[453].type               = PROP_TYPE_GUINT32;
@@ -9753,6 +10210,7 @@ gnet_prop_init(void) {
     gnet_property->props[454].ev_changed = event_new("log_weird_dht_headers_changed");
     gnet_property->props[454].save = TRUE;
     gnet_property->props[454].vector_size = 1;
+	mutex_init(&gnet_property->props[454].lock);
 
     /* Type specific data: */
     gnet_property->props[454].type               = PROP_TYPE_BOOLEAN;
@@ -9770,6 +10228,7 @@ gnet_prop_init(void) {
     gnet_property->props[455].ev_changed = event_new("dht_rpc_debug_changed");
     gnet_property->props[455].save = TRUE;
     gnet_property->props[455].vector_size = 1;
+	mutex_init(&gnet_property->props[455].lock);
 
     /* Type specific data: */
     gnet_property->props[455].type               = PROP_TYPE_GUINT32;
@@ -9790,6 +10249,7 @@ gnet_prop_init(void) {
     gnet_property->props[456].ev_changed = event_new("log_uhc_pings_rx_changed");
     gnet_property->props[456].save = TRUE;
     gnet_property->props[456].vector_size = 1;
+	mutex_init(&gnet_property->props[456].lock);
 
     /* Type specific data: */
     gnet_property->props[456].type               = PROP_TYPE_BOOLEAN;
@@ -9807,6 +10267,7 @@ gnet_prop_init(void) {
     gnet_property->props[457].ev_changed = event_new("log_uhc_pings_tx_changed");
     gnet_property->props[457].save = TRUE;
     gnet_property->props[457].vector_size = 1;
+	mutex_init(&gnet_property->props[457].lock);
 
     /* Type specific data: */
     gnet_property->props[457].type               = PROP_TYPE_BOOLEAN;
@@ -9824,6 +10285,7 @@ gnet_prop_init(void) {
     gnet_property->props[458].ev_changed = event_new("clean_shutdown_changed");
     gnet_property->props[458].save = TRUE;
     gnet_property->props[458].vector_size = 1;
+	mutex_init(&gnet_property->props[458].lock);
 
     /* Type specific data: */
     gnet_property->props[458].type               = PROP_TYPE_BOOLEAN;
@@ -9841,6 +10303,7 @@ gnet_prop_init(void) {
     gnet_property->props[459].ev_changed = event_new("clean_restart_changed");
     gnet_property->props[459].save = FALSE;
     gnet_property->props[459].vector_size = 1;
+	mutex_init(&gnet_property->props[459].lock);
 
     /* Type specific data: */
     gnet_property->props[459].type               = PROP_TYPE_BOOLEAN;
@@ -9858,6 +10321,7 @@ gnet_prop_init(void) {
     gnet_property->props[460].ev_changed = event_new("dht_keys_debug_changed");
     gnet_property->props[460].save = TRUE;
     gnet_property->props[460].vector_size = 1;
+	mutex_init(&gnet_property->props[460].lock);
 
     /* Type specific data: */
     gnet_property->props[460].type               = PROP_TYPE_GUINT32;
@@ -9878,6 +10342,7 @@ gnet_prop_init(void) {
     gnet_property->props[461].ev_changed = event_new("dht_values_debug_changed");
     gnet_property->props[461].save = TRUE;
     gnet_property->props[461].vector_size = 1;
+	mutex_init(&gnet_property->props[461].lock);
 
     /* Type specific data: */
     gnet_property->props[461].type               = PROP_TYPE_GUINT32;
@@ -9898,6 +10363,7 @@ gnet_prop_init(void) {
     gnet_property->props[462].ev_changed = event_new("pid_changed");
     gnet_property->props[462].save = TRUE;
     gnet_property->props[462].vector_size = 1;
+	mutex_init(&gnet_property->props[462].lock);
 
     /* Type specific data: */
     gnet_property->props[462].type               = PROP_TYPE_GUINT32;
@@ -9918,6 +10384,7 @@ gnet_prop_init(void) {
     gnet_property->props[463].ev_changed = event_new("http_range_debug_changed");
     gnet_property->props[463].save = TRUE;
     gnet_property->props[463].vector_size = 1;
+	mutex_init(&gnet_property->props[463].lock);
 
     /* Type specific data: */
     gnet_property->props[463].type               = PROP_TYPE_GUINT32;
@@ -9938,6 +10405,7 @@ gnet_prop_init(void) {
     gnet_property->props[464].ev_changed = event_new("upnp_mapping_lease_time_changed");
     gnet_property->props[464].save = TRUE;
     gnet_property->props[464].vector_size = 1;
+	mutex_init(&gnet_property->props[464].lock);
 
     /* Type specific data: */
     gnet_property->props[464].type               = PROP_TYPE_GUINT32;
@@ -9958,6 +10426,7 @@ gnet_prop_init(void) {
     gnet_property->props[465].ev_changed = event_new("user_auto_restart_changed");
     gnet_property->props[465].save = TRUE;
     gnet_property->props[465].vector_size = 1;
+	mutex_init(&gnet_property->props[465].lock);
 
     /* Type specific data: */
     gnet_property->props[465].type               = PROP_TYPE_BOOLEAN;
@@ -9975,6 +10444,7 @@ gnet_prop_init(void) {
     gnet_property->props[466].ev_changed = event_new("tm_debug_changed");
     gnet_property->props[466].save = TRUE;
     gnet_property->props[466].vector_size = 1;
+	mutex_init(&gnet_property->props[466].lock);
 
     /* Type specific data: */
     gnet_property->props[466].type               = PROP_TYPE_GUINT32;
@@ -10026,6 +10496,24 @@ prop_def_t *
 gnet_prop_get_def(property_t p)
 {
     return prop_get_def(gnet_property, p);
+}
+
+/**
+ * Lock property.
+ */
+void
+gnet_prop_lock(property_t p)
+{
+    prop_lock(gnet_property, p);
+}
+
+/**
+ * Unlock property.
+ */
+void
+gnet_prop_unlock(property_t p)
+{
+    prop_unlock(gnet_property, p);
 }
 
 /**

@@ -526,6 +526,9 @@ gboolean gnet_prop_is_saved(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
 
+void gnet_prop_lock(property_t);
+void gnet_prop_unlock(property_t);
+
 /*
  * Property-change listeners
  */
@@ -581,18 +584,22 @@ static inline void
 gnet_prop_incr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
 	value++;
 	gnet_prop_set_guint32_val(p, value);
+	gnet_prop_unlock(p);
 }
 
 static inline void
 gnet_prop_decr_guint32(property_t p)
 {
 	guint32 value;
+	gnet_prop_lock(p);
 	gnet_prop_get_guint32_val(p, &value);
 	value--;
 	gnet_prop_set_guint32_val(p, value);
+	gnet_prop_unlock(p);
 }
 
 void gnet_prop_set_guint64(

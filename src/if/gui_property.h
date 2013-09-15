@@ -181,6 +181,9 @@ gboolean gui_prop_is_saved(property_t);
 prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
 
+void gui_prop_lock(property_t);
+void gui_prop_unlock(property_t);
+
 /*
  * Property-change listeners
  */
@@ -236,18 +239,22 @@ static inline void
 gui_prop_incr_guint32(property_t p)
 {
 	guint32 value;
+	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
 	value++;
 	gui_prop_set_guint32_val(p, value);
+	gui_prop_unlock(p);
 }
 
 static inline void
 gui_prop_decr_guint32(property_t p)
 {
 	guint32 value;
+	gui_prop_lock(p);
 	gui_prop_get_guint32_val(p, &value);
 	value--;
 	gui_prop_set_guint32_val(p, value);
+	gui_prop_unlock(p);
 }
 
 void gui_prop_set_guint64(

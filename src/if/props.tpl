@@ -1,6 +1,9 @@
 [= AutoGen5 Template =][=
 #
-# $Id$
+# Autogen template file to generate the property files.
+#
+# Copyright (c) 2001-2003, Richard Eckart
+# Copyright (c) 2013, Raphael Manfredi
 #
 =][=
 (define license (sprintf
@@ -111,6 +114,9 @@ gboolean [=(. func-prefix)=]_is_saved(property_t);
 prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
+void [=(. func-prefix)=]_lock(property_t);
+void [=(. func-prefix)=]_unlock(property_t);
+
 /*
  * Property-change listeners
  */
@@ -166,18 +172,22 @@ static inline void
 [=(. func-prefix)=]_incr_guint32(property_t p)
 {
 	guint32 value;
+	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
 	value++;
 	[=(. func-prefix)=]_set_guint32_val(p, value);
+	[=(. func-prefix)=]_unlock(p);
 }
 
 static inline void
 [=(. func-prefix)=]_decr_guint32(property_t p)
 {
 	guint32 value;
+	[=(. func-prefix)=]_lock(p);
 	[=(. func-prefix)=]_get_guint32_val(p, &value);
 	value--;
 	[=(. func-prefix)=]_set_guint32_val(p, value);
+	[=(. func-prefix)=]_unlock(p);
 }
 
 void [=(. func-prefix)=]_set_guint64(
@@ -300,7 +310,9 @@ void [=(. func-prefix)=]_shutdown(void);
 
 #include "lib/prop.h"
 #include "lib/eval.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
+
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
 /*
@@ -378,10 +390,11 @@ G_GNUC_COLD prop_set_t *
     [=(. prop-set)=]->size   = [=(. prop-num)=];
     [=(. prop-set)=]->offset = [=offset=];
     [=(. prop-set)=]->mtime  = 0;
-    [=(. prop-set)=]->props  = omalloc(sizeof(prop_def_t) * [=(. prop-num)=]);
+    OMALLOC_ARRAY([=(. prop-set)=]->props, [=(. prop-num)=]);
     [=(. prop-set)=]->get_stub = [=(. func-prefix)=]_get_stub;
     [=(. prop-set)=]->dirty = FALSE;
-    [=(. prop-set)=]->by_name = NULL;[=
+    [=(. prop-set)=]->by_name = NULL;
+	spinlock_init(&[=(. prop-set)=]->lock);[=
 
 FOR prop =][=
     (define current-prop (sprintf "%s[%u]"
@@ -437,6 +450,7 @@ FOR prop =][=
 					(. prop-set) (. prop-var-name)))
 	(define prop-def-var	(sprintf "%s_default" (. prop-var)))
     =][= ENDIF =]
+	mutex_init(&[=  (. current-prop) =].lock);
 
     /* Type specific data: */[=
     CASE type =][=
@@ -567,6 +581,24 @@ prop_def_t *
 [=(. func-prefix)=]_get_def(property_t p)
 {
     return prop_get_def([=(. prop-set)=], p);
+}
+
+/**
+ * Lock property.
+ */
+void
+[=(. func-prefix)=]_lock(property_t p)
+{
+    prop_lock([=(. prop-set)=], p);
+}
+
+/**
+ * Unlock property.
+ */
+void
+[=(. func-prefix)=]_unlock(property_t p)
+{
+    prop_unlock([=(. prop-set)=], p);
 }
 
 /**

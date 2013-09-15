@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Richard Eckart
+ * Copyright (c) 2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,6 +29,8 @@
 #include "event.h"
 #include "host_addr.h"
 #include "htable.h"
+#include "mutex.h"
+#include "spinlock.h"
 
 #define NO_PROP (0)
 
@@ -64,7 +67,8 @@ typedef gboolean (*prop_changed_listener_t) (property_t);
 typedef void (*prop_add_prop_changed_listener_t)
     (property_t, prop_changed_listener_t, gboolean);
 typedef void (*prop_add_prop_changed_listener_full_t)
-    (property_t, prop_changed_listener_t, gboolean, enum frequency_type, guint32);
+    (property_t, prop_changed_listener_t, gboolean,
+		enum frequency_type, guint32);
 typedef void (*prop_remove_prop_changed_listener_t)
     (property_t, prop_changed_listener_t);
 
@@ -169,7 +173,8 @@ typedef struct prop_def {
         prop_def_timestamp_t  timestamp;
         prop_def_ip_t  ip;
     } data;
-    gboolean save; /* persist across sessions */
+	mutex_t lock;		/* thread-safe access */
+    gboolean save; 		/* persist across sessions */
     size_t vector_size; /* number of items in array, 1 for non-vector */
     struct event *ev_changed;
 } prop_def_t;
@@ -227,14 +232,15 @@ typedef const prop_set_stub_t *(*prop_set_get_stub_t)(void);
  * Property set definition.
  */
 typedef struct prop_set {
-    char *name;		/**< name of the property set */
-    char *desc;		/**< description of what the set contains */
+    char *name;			/**< name of the property set */
+    char *desc;			/**< description of what the set contains */
     size_t size;		/**< number of properties in the set */
     size_t offset;		/**< properties start numbering from here */
-    prop_def_t *props;	/**< Pointer to first item in array of prop_def_t */
+    prop_def_t *props;	/**< Array of prop_def_t, one entry per property */
     htable_t *by_name;	/**< hashtable to quickly look up props by name */
     time_t mtime;		/**< modification time of the associated file */
 	gboolean dirty;		/**< property set needs flushing to disk */
+	spinlock_t lock;	/**< thread-safe access to structure */
     prop_set_get_stub_t get_stub;
 } prop_set_t;
 
@@ -252,6 +258,9 @@ const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
 prop_type_t prop_type(prop_set_t *ps, property_t prop);
 gboolean prop_is_saved(prop_set_t *ps, property_t prop);
+
+void prop_lock(prop_set_t *ps, property_t p);
+void prop_unlock(prop_set_t *ps, property_t p);
 
 void prop_add_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t, gboolean);
