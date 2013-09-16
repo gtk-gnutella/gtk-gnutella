@@ -81,9 +81,11 @@ typedef enum {
 
 #define ATOM_MAGIC_CHECK(a) g_assert(ATOM_MAGIC == (a)->magic)
 #define ATOM_SET_MAGIC(a) G_STMT_START { (a)->magic = ATOM_MAGIC; } G_STMT_END
+#define ATOM_CLEAR_MAGIC(a) G_STMT_START { (a)->magic = 0; } G_STMT_END
 #else
 #define ATOM_MAGIC_CHECK(a)
 #define ATOM_SET_MAGIC(a)
+#define ATOM_CLEAR_MAGIC(a)
 #endif	/* ATOMS_HAVE_MAGIC */
 
 union mem_chunk {
@@ -102,10 +104,10 @@ typedef struct atom {
 #ifdef ATOMS_HAVE_MAGIC
 	atom_prot_magic_t magic;	/**< Magic should be at the beginning */
 #endif /* ATOM_HAVE_MAGIC */
-	int refcnt;				/**< Amount of references */
+	int refcnt;					/**< Amount of references */
 #ifdef TRACK_ATOMS
-	htable_t *get;			/**< Allocation spots */
-	htable_t *free;			/**< Free spots */
+	htable_t *get;				/**< Allocation spots */
+	htable_t *free;				/**< Free spots */
 #endif
 } atom_t;
 
@@ -382,21 +384,24 @@ atom_dealloc(atom_t *a, size_t size)
 		VMM_FREE_NULL(a, size);
 	}
 }
-#else
+#else	/* !PROTECT_ATOMS */
 
-#define atom_protect(a, size)
-#define atom_unprotect(a, size)
+#define atom_protect(a, size)		ATOM_MAGIC_CHECK(a)
+#define atom_unprotect(a, size)		ATOM_MAGIC_CHECK(a)
 
 static inline atom_t *
 atom_alloc(size_t size)
 {
 	atom_t *a = walloc(size);
+	ATOM_SET_MAGIC(a);
 	return a;	
 }
 
 static inline void
 atom_dealloc(atom_t *a, size_t size)
 {
+	atom_check(a);
+	ATOM_CLEAR_MAGIC(a);
 	wfree(a, size);
 }
 
