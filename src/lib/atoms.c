@@ -826,7 +826,7 @@ atoms_init_once(void)
 #endif
 
 	if (has_setting) {
-		g_message("atom settings: %s%s%s",
+		s_message("atom settings: %s%s%s",
 			settings.track_atoms ? "TRACK_ATOMS " : "",
 			settings.protect_atoms ? "PROTECT_ATOMS " : "",
 			settings.atoms_have_magic ? "ATOMS_HAVE_MAGIC " : "");
