@@ -45,7 +45,9 @@
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
+#include "omalloc.h"
 #include "once.h"
+#include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
 #include "walloc.h"
@@ -96,7 +98,6 @@ union mem_chunk {
 /**
  * Atoms are ref-counted.
  *
- * The reference count is held at the beginning of the data arena.
  * What we return to the outside is the value of atom_arena(), not a
  * pointer to the atom structure.
  */
@@ -108,6 +109,7 @@ typedef struct atom {
 #ifdef TRACK_ATOMS
 	htable_t *get;				/**< Allocation spots */
 	htable_t *free;				/**< Free spots */
+	spinlock_t lock;			/**< Thread-safety lock */
 #endif
 } atom_t;
 
@@ -141,7 +143,11 @@ struct mem_pool {
 	union mem_chunk chunks[1];
 };
 
+#define MEM_CACHE_LOCK(m)		spinlock(&(m)->lock)
+#define MEM_CACHE_UNLOCK(m)		spinunlock(&(m)->lock)
+
 struct mem_cache {
+	spinlock_t lock;         /**< Thread safety */
 	struct mem_pool **pools; /**< Dynamic array */
 	union mem_chunk *avail;	 /**< First available chunk */
 	size_t num_pools;		 /**< Element count of ``pools''. */
@@ -154,27 +160,25 @@ static struct mem_cache *mem_cache[9];
 static struct mem_pool *
 mem_pool_new(size_t size, size_t hold)
 {
-  struct mem_pool *mp;
-  size_t len;
-  
-  g_assert(size >= sizeof mp->chunks[0]);
-  g_assert(0 == size % sizeof mp->chunks[0]);
-  g_assert(hold > 0);
-  
-  len = hold * size;
-  
-  mp = vmm_core_alloc(len);
-  if (mp) {
-    size_t i, step = size / sizeof mp->chunks[0];
-    
+	struct mem_pool *mp;
+	size_t len;
+	size_t i, step = size / sizeof mp->chunks[0];
+
+	g_assert(size >= sizeof mp->chunks[0]);
+	g_assert(0 == size % sizeof mp->chunks[0]);
+	g_assert(hold > 0);
+
+	len = hold * size;
+
+	mp = vmm_core_alloc(len);
+
 	for (i = 0; hold-- > 1; i += step) {
-      mp->chunks[i].next = &mp->chunks[i + step];
+		mp->chunks[i].next = &mp->chunks[i + step];
 	}
 
-    mp->chunks[i].next = NULL;
-  }
+	mp->chunks[i].next = NULL;
 
-  return mp;
+	return mp;
 }
 
 /**
@@ -185,21 +189,19 @@ mem_pool_new(size_t size, size_t hold)
 static struct mem_cache *
 mem_new(size_t size)
 {
-  struct mem_cache *mc;
+	struct mem_cache *mc;
 
-  g_assert(size > 0);
-  
-  mc = xpmalloc(sizeof *mc);
-  if (mc) {
-    union mem_chunk chunk;
-    
-    mc->size = round_size(sizeof chunk, size);
-    mc->hold = MAX(1, compat_pagesize() / mc->size);
-    mc->num_pools = 0;
-    mc->avail = NULL;
-    mc->pools = NULL;
-  }
-  return mc;
+	g_assert(size > 0);
+
+	OMALLOC(mc);
+	spinlock_init(&mc->lock);
+	mc->size = round_size(sizeof(union mem_chunk), size);
+	mc->hold = MAX(1, compat_pagesize() / mc->size);
+	mc->num_pools = 0;
+	mc->avail = NULL;
+	mc->pools = NULL;
+
+	return mc;
 }
 
 /**
@@ -208,34 +210,28 @@ mem_new(size_t size)
 static void *
 mem_alloc(struct mem_cache *mc)
 {
-  void *p;
+	void *p;
 
-  g_assert(mc);
-  
-  if (NULL != (p = mc->avail)) {
-    mc->avail = mc->avail->next;
-  } else {
-    struct mem_pool *mp;
-    
-    mp = mem_pool_new(mc->size, mc->hold);
-    if (mp) {
-      void *q;
-      
-      q = xprealloc(mc->pools, (1 + mc->num_pools) * sizeof mc->pools[0]);
-      if (q) {
-        mc->pools = q;
-        mc->pools[mc->num_pools++] = mp;
-      
-        mc->avail = &mp->chunks[0];
-        p = mc->avail;
-        mc->avail = mc->avail->next;
-      } else {
-        vmm_core_free(mp, compat_pagesize() * mc->hold);
-      }
-    }
-  }
+	g_assert(mc);
 
-  return p;
+	MEM_CACHE_LOCK(mc);
+
+	if (NULL != (p = mc->avail)) {
+		mc->avail = mc->avail->next;
+	} else {
+		struct mem_pool *mp;
+
+		mp = mem_pool_new(mc->size, mc->hold);
+		XREALLOC_ARRAY(mc->pools, 1 + mc->num_pools);
+		mc->pools[mc->num_pools++] = mp;
+		mc->avail = &mp->chunks[0];
+		p = mc->avail;
+		mc->avail = mc->avail->next;
+	}
+
+	MEM_CACHE_UNLOCK(mc);
+
+	return p;
 }
 
 /**
@@ -245,14 +241,16 @@ mem_alloc(struct mem_cache *mc)
 static void
 mem_free(struct mem_cache *mc, void *p)
 {
-  g_assert(mc);
+	g_assert(mc);
 
-  if (p) {
-    union mem_chunk *c = p;
-   
-    c->next = mc->avail;
-    mc->avail = c;
-  }
+	if (p) {
+		union mem_chunk *c = p;
+
+		MEM_CACHE_LOCK(mc);
+		c->next = mc->avail;
+		mc->avail = c;
+		MEM_CACHE_UNLOCK(mc);
+	}
 }
 
 /**
@@ -414,6 +412,7 @@ typedef const char *(*str_func_t)(const void *v);
  * Description of atom types.
  */
 typedef struct table_desc {
+	spinlock_t lock;			/**< Lock protecting the hash table */
 	const char *type;			/**< Type of atoms */
 	htable_t *table;			/**< Table of atoms: "atom value" -> size */
 	hash_fn_t hash_func;		/**< Hashing function for atoms */
@@ -421,6 +420,9 @@ typedef struct table_desc {
 	len_func_t len_func;		/**< Atom length function */
 	str_func_t str_func;		/**< Atom to human-readable string */
 } table_desc_t;
+
+#define ATOM_TABLE_LOCK(t)		spinlock(&(t)->lock)
+#define ATOM_TABLE_UNLOCK(t)	spinunlock(&(t)->lock)
 
 static size_t str_xlen(const void *v);
 static const char *str_str(const void *v);
@@ -448,19 +450,21 @@ static const char *gnet_host_str(const void *v);
 #define gnh_eq		gnet_host_eq
 #define gnh_len		gnet_host_length
 #define gnh_str		gnet_host_str
+#define S			SPINLOCK_INIT
+#define N			NULL
 
 /**
  * The set of all atom types we know about.
  */
 static table_desc_t atoms[] = {
-	{ "String",	NULL, str_hash,    str_eq,      str_xlen,   str_str  },	/* 0 */
-	{ "GUID",	NULL, guid_hash,   guid_eq,	    guid_len,   guid_str },	/* 1 */
-	{ "SHA1",	NULL, sha1_hash,   sha1_eq,	    sha1_len,   sha1_str },	/* 2 */
-	{ "TTH",	NULL, tth_hash,    tth_eq,	    tth_len,    tth_str },	/* 3 */
-	{ "uint64",	NULL, uint64_hash, uint64_eq,   uint64_len, uint64_str},/* 4 */
-	{ "filesize", NULL, fs_hash,   fs_eq,       fs_len,     fs_str },	/* 5 */
-	{ "uint32",	NULL, uint32_hash, uint32_eq,   uint32_len, uint32_str},/* 6 */
-	{ "host",   NULL, gnh_hash,    gnh_eq,      gnh_len,    gnh_str },	/* 7 */
+	{ S, "String", N, str_hash,    str_eq,     str_xlen,   str_str  }, /* 0 */
+	{ S, "GUID",   N, guid_hash,   guid_eq,    guid_len,   guid_str }, /* 1 */
+	{ S, "SHA1",   N, sha1_hash,   sha1_eq,	   sha1_len,   sha1_str }, /* 2 */
+	{ S, "TTH",    N, tth_hash,    tth_eq,	   tth_len,    tth_str },  /* 3 */
+	{ S, "uint64", N, uint64_hash, uint64_eq,  uint64_len, uint64_str},/* 4 */
+	{ S, "filesize", N, fs_hash,   fs_eq,      fs_len,     fs_str },   /* 5 */
+	{ S, "uint32", N, uint32_hash, uint32_eq,  uint32_len, uint32_str},/* 6 */
+	{ S, "host",   N, gnh_hash,    gnh_eq,     gnh_len,    gnh_str },  /* 7 */
 };
 
 #undef str_hash
@@ -473,6 +477,8 @@ static table_desc_t atoms[] = {
 #undef gnh_eq
 #undef gnh_len
 #undef gnh_str
+#undef S
+#undef N
 
 /**
  * @return length of string + trailing NUL.
@@ -855,7 +861,7 @@ atom_exists(enum atom_type type, const void *key)
 	g_assert(key != NULL);
 
 	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
-		return 0;
+		return FALSE;
 
 	return htable_contains(atoms[type].table, key);
 }
@@ -884,6 +890,7 @@ atom_get(enum atom_type type, const void *key)
 		atoms_init();
 
 	td = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(td);
 
 	if (htable_lookup_extended(td->table, key, &orig_key, &value)) {
 		size = pointer_to_size(value);
@@ -905,6 +912,7 @@ atom_get(enum atom_type type, const void *key)
 		atom_unprotect(a, size);
 		a->refcnt++;
 		atom_protect(a, size);
+		ATOM_TABLE_UNLOCK(td);
 		return orig_key;
 	} else {
 		size_t len;
@@ -929,6 +937,7 @@ atom_get(enum atom_type type, const void *key)
 
 		htable_insert(td->table, atom_arena(a), size_to_pointer(size));
 
+		ATOM_TABLE_UNLOCK(td);
 		return atom_arena(a);
 	}
 }
@@ -940,11 +949,15 @@ atom_get(enum atom_type type, const void *key)
 void
 atom_free(enum atom_type type, const void *key)
 {
+	table_desc_t *td;
 	size_t size;
 	atom_t *a;
 
     g_assert(key != NULL);
 	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+
+	td = &atoms[type];		/* Where atoms of this type are held */
+	ATOM_TABLE_LOCK(td);
 
 	size = pointer_to_size(htable_lookup(atoms[type].table, key));
 	g_assert(size >= ARENA_OFFSET);
@@ -963,6 +976,8 @@ atom_free(enum atom_type type, const void *key)
 	} else {
 		atom_protect(a, size);
 	}
+
+	ATOM_TABLE_UNLOCK(td);
 }
 
 #ifdef TRACK_ATOMS
@@ -971,6 +986,11 @@ atom_free(enum atom_type type, const void *key)
 struct spot {
 	int count;			/**< Amount of allocation/free performed at spot */
 };
+
+static spinlock_t atom_track_slk = SPINLOCK_INIT;
+
+#define ATOM_TRACK_LOCK		spinlock_hidden(&atom_track_slk)
+#define ATOM_TRACK_UNLOCK	spinunlock_hidden(&atom_track_slk)
 
 /**
  * The tracking version of atom_get().
@@ -986,6 +1006,9 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	const void *k;
 	void *v;
 	struct spot *sp;
+	bool init;
+
+	ATOM_TRACK_LOCK;
 
 	atom = atom_get(type, key);
 	a = atom_from_arena(atom);
@@ -994,7 +1017,16 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 	 * Initialize tracking tables on first allocation.
 	 */
 
-	if (a->refcnt == 1) {
+	init = 1 == a->refcnt;
+
+	if G_UNLIKELY(init)
+		spinlock_init(&a->lock);
+
+	spinlock(&a->lock);
+
+	ATOM_TRACK_UNLOCK;
+
+	if G_UNLIKELY(init) {
 		a->get = htable_create(HASH_KEY_STRING, 0);
 		a->free = htable_create(HASH_KEY_STRING, 0);
 	}
@@ -1009,6 +1041,8 @@ atom_get_track(enum atom_type type, const void *key, char *file, int line)
 		sp->count = 1;
 		htable_insert(a->get, constant_str(buf), sp);
 	}
+
+	spinunlock(&a->lock);
 
 	return atom;
 }
@@ -1056,9 +1090,12 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 	 * If we're going to free the atom, dispose of the tracking tables.
 	 */
 
+	spinlock(&a->lock);
+
 	if (1 == a->refcnt) {
 		destroy_tracking_table(a->get);
 		destroy_tracking_table(a->free);
+		spinlock_destroy(&a->lock);
 	} else {
 		str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
 
@@ -1070,6 +1107,7 @@ atom_free_track(enum atom_type type, const void *key, char *file, int line)
 			sp->count = 1;
 			htable_insert(a->free, constant_str(buf), sp);
 		}
+		spinunlock(&a->lock);
 	}
 
 	atom_free(type, key);
@@ -1119,10 +1157,12 @@ atom_warn_free(const void *key, void *unused_value, void *udata)
 		td->type, key, a->refcnt, (*td->str_func)(key));
 
 #ifdef TRACK_ATOMS
+	spinlock(&a->lock);
 	dump_tracking_table(key, a->get, "get");
 	dump_tracking_table(key, a->free, "free");
 	destroy_tracking_table(a->get);
 	destroy_tracking_table(a->free);
+	spinlock_destroy(&a->lock);
 #endif
 
 	/*
@@ -1142,8 +1182,10 @@ atoms_close(void)
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
+		ATOM_TABLE_LOCK(td);
 		htable_foreach(td->table, atom_warn_free, td);
 		htable_free_null(&td->table);
+		ATOM_TABLE_UNLOCK(td);
 	}
 }
 
