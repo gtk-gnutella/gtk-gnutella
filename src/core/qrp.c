@@ -829,7 +829,7 @@ qrt_patch_compress(
 
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (uint32) rp->len);
 
-	task = bg_task_create("QRP patch compression",
+	task = bg_task_create(NULL, "QRP patch compression",
 		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
 
 	if (task != NULL)
@@ -1357,7 +1357,7 @@ mrg_compute(bgdone_cb_t done_cb)
 	ctx->magic = MERGE_MAGIC;
 	merge_ctx = ctx;
 
-	merge_comp = bg_task_create("Leaf QRT merging",
+	merge_comp = bg_task_create(NULL, "Leaf QRT merging",
 		merge_steps, G_N_ELEMENTS(merge_steps),
 		ctx, merge_context_free,
 		done_cb, NULL);
@@ -2202,7 +2202,7 @@ qrp_finalize_computation(htable_t *words)
 
 	gnet_prop_set_timestamp_val(PROP_QRP_TIMESTAMP, tm_time());
 
-	qrp_comp = bg_task_create("QRP computation",
+	qrp_comp = bg_task_create(NULL, "QRP computation",
 		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
 		NULL, NULL);
@@ -2229,7 +2229,7 @@ qrp_update_routing_table(void)
 	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
 	ctx->rpp = &routing_patch;
 
-	qrp_merge = bg_task_create("QRP merging",
+	qrp_merge = bg_task_create(NULL, "QRP merging",
 		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
 		ctx, qrp_merge_context_free,
 		NULL, NULL);

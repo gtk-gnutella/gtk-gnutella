@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2003, Raphael Manfredi
+ * Copyright (c) 2002-2003, 2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Background task management.
  *
  * @author Raphael Manfredi
- * @date 2002-2003
+ * @date 2002-2003, 2013
  */
 
 #ifndef _bg_h_
@@ -52,7 +52,8 @@ typedef enum {
 typedef enum {
 	BGS_OK = 0,						/**< OK, terminated normally */
 	BGS_ERROR,						/**< Terminated with error */
-	BGS_KILLED						/**< Was killed by signal */
+	BGS_KILLED,						/**< Was killed by signal */
+	BGS_CANCELLED					/**< Was cancelled */
 } bgstatus_t;
 
 /*
@@ -68,6 +69,7 @@ typedef enum {
 } bgsig_t;
 
 struct bgtask;
+typedef struct bgsched bgsched_t;
 
 /*
  * Signatures.
@@ -98,7 +100,15 @@ void bg_init(void);
 void bg_set_debug(unsigned level);
 void bg_close(void);
 
+bgsched_t *bg_sched_create(const char *name, ulong max_life);
+void bg_sched_destroy_null(bgsched_t **bs_ptr);
+int bg_sched_run(bgsched_t *bs);
+int bg_sched_runcount(const bgsched_t *bs);
+
+const char *bgstatus_to_string(bgstatus_t status);
+
 struct bgtask *bg_task_create(
+	bgsched_t *bs,
 	const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
 	void *ucontext,
@@ -107,6 +117,7 @@ struct bgtask *bg_task_create(
 	void *done_arg);
 
 struct bgtask *bg_daemon_create(
+	bgsched_t *bs,
 	const char *name,
 	const bgstep_cb_t *steps, int stepcnt,
 	void *ucontext,
@@ -119,12 +130,20 @@ struct bgtask *bg_daemon_create(
 void bg_daemon_enqueue(struct bgtask *h, void *item);
 
 void bg_task_cancel(struct bgtask *h);
+void bg_task_cancel_test(struct bgtask *bt);
 void bg_task_exit(struct bgtask *h, int code) G_GNUC_NORETURN;
 void bg_task_ticks_used(struct bgtask *h, int used);
 bgsig_cb_t bg_task_signal(struct bgtask *h, bgsig_t sig, bgsig_cb_t handler);
 
+int bg_task_step(const struct bgtask *bt);
 int bg_task_seqno(const struct bgtask *h);
 void *bg_task_context(const struct bgtask *h);
+const char *bg_task_name(const struct bgtask *h);
+unsigned long bg_task_wtime(const struct bgtask *h);
+const char *bg_task_step_name(struct bgtask *bt);
+int bg_task_exitcode(struct bgtask *bt);
+
+void *bg_task_set_context(struct bgtask *bt, void *ucontext);
 
 #endif	/* _bg_h_ */
 

@@ -465,7 +465,7 @@ move_init(void)
 	md->buffer = halloc(COPY_BUF_SIZE);
 	md->target = NULL;
 
-	move_daemon = bg_daemon_create("file moving",
+	move_daemon = bg_daemon_create(NULL, "file moving",
 		&step, 1,
 		md, d_free,
 		d_start, d_end, we_free,

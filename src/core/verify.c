@@ -534,7 +534,7 @@ verify_create_task(struct verify *ctx)
 				verify_hash_name(ctx));
 		}
 
-		ctx->task = bg_task_create(verify_hash_name(ctx),
+		ctx->task = bg_task_create(NULL, verify_hash_name(ctx),
 							step, G_N_ELEMENTS(step),
 			  				ctx, verify_context_free,
 							NULL, NULL);

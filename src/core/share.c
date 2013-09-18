@@ -2153,7 +2153,7 @@ recursive_scan_create_task(struct recursive_scan *ctx)
 			recursive_scan_step_finalize,
 		};
 
-		ctx->task = bg_task_create("recursive scan",
+		ctx->task = bg_task_create(NULL, "recursive scan",
 							steps, G_N_ELEMENTS(steps),
 			  				ctx, recursive_scan_context_free,
 							NULL, NULL);
@@ -2175,7 +2175,7 @@ share_update_qrp_create_task(struct recursive_scan *ctx)
 			recursive_scan_step_finalize,
 		};
 
-		ctx->task = bg_task_create("QRP update",
+		ctx->task = bg_task_create(NULL, "QRP update",
 							steps, G_N_ELEMENTS(steps),
 			  				ctx, recursive_scan_context_free,
 							NULL, NULL);
