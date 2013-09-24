@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -35,14 +35,18 @@
  * same complexity for insertions and removals, at the price of more space
  * used than with a sorted array.
  *
+ * Each red-black tree object can be made thread-safe, optionally, so that
+ * concurrent access to it be possible.
+ *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "rbtree.h"
 #include "erbtree.h"
+#include "mutex.h"
 #include "unsigned.h"
 #include "walloc.h"
 
@@ -58,6 +62,7 @@ struct rbtree {
 	size_t refcnt;				/* Iterator reference count */
 	size_t stamp;				/* Modification stamp */
 	cmp_fn_t cmp;				/* Item comparison routine */
+	mutex_t *lock;				/* Optional thread-safe lock */
 	union {
 		/*
 		 * Structural equivalence guarantees that we can access the "tree"
@@ -113,6 +118,37 @@ rbtree_iter_check(const struct rbtree_iter * const ri)
 
 #define ERBTREE(x)	(&(x)->u.tree)
 
+/*
+ * Thread-safe synchronization support.
+ */
+
+#define rbtree_synchronize(t) G_STMT_START {		\
+	if G_UNLIKELY((t)->lock != NULL) 				\
+		mutex_lock((t)->lock);						\
+} G_STMT_END
+
+#define rbtree_unsynchronize(t) G_STMT_START {		\
+	if G_UNLIKELY((t)->lock != NULL) 				\
+		mutex_unlock((t)->lock);					\
+} G_STMT_END
+
+#define rbtree_return(t, v) G_STMT_START {			\
+	if G_UNLIKELY((t)->lock != NULL) 				\
+		mutex_unlock((t)->lock);					\
+	return v;										\
+} G_STMT_END
+
+#define rbtree_return_void(t) G_STMT_START {		\
+	if G_UNLIKELY((t)->lock != NULL) 				\
+		mutex_unlock((t)->lock);					\
+	return;											\
+} G_STMT_END
+
+#define assert_rbtree_locked(t) G_STMT_START {		\
+	if G_UNLIKELY((t)->lock != NULL) 				\
+		assert_mutex_is_owned((t)->lock);			\
+} G_STMT_END
+
 /**
  * Internal data comparison routine trampoline.
  */
@@ -149,14 +185,66 @@ rbtree_create(cmp_fn_t cmp)
 }
 
 /**
+ * Mark red-black tree as thread-safe.
+ */
+void
+rbtree_thread_safe(rbtree_t *rbt)
+{
+	rbtree_check(rbt);
+	g_assert(NULL == rbt->lock);
+
+	WALLOC0(rbt->lock);
+	mutex_init(rbt->lock);
+}
+
+/**
+ * Lock the red-black tree to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the tree several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The treee must have been marked thread-safe already.
+ */
+void
+rbtree_lock(rbtree_t *rbt)
+{
+	rbtree_check(rbt);
+	g_assert_log(rbt->lock != NULL,
+		"%s(): red-black tree %p not marked thread-safe", G_STRFUNC, rbt);
+
+	mutex_lock(rbt->lock);
+}
+
+/*
+ * Release lock on red-black tree.
+ *
+ * The tree must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+rbtree_unlock(rbtree_t *rbt)
+{
+	rbtree_check(rbt);
+	g_assert_log(rbt->lock != NULL,
+		"%s(): red-black tree %p not marked thread-safe", G_STRFUNC, rbt);
+
+	mutex_unlock(rbt->lock);
+}
+
+/**
  * @return amount of items held in tree.
  */ 
 size_t
 rbtree_count(const rbtree_t *rbt)
 {
+	size_t count;
+
 	rbtree_check(rbt);
 
-	return erbtree_count(ERBTREE(rbt));
+	rbtree_synchronize(rbt);
+	count = erbtree_count(ERBTREE(rbt));
+	rbtree_return(rbt, count);
 }
 
 /**
@@ -171,12 +259,17 @@ bool
 rbtree_contains(const rbtree_t *rbt, const void *key)
 {
 	struct rbdata item;
+	bool contains;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
 
+	rbtree_synchronize(rbt);
+
 	item.data = deconstify_pointer(key);
-	return erbtree_contains(ERBTREE(rbt), &item);
+	contains = erbtree_contains(ERBTREE(rbt), &item);
+
+	rbtree_return(rbt, contains);
 }
 
 /**
@@ -197,14 +290,18 @@ rbtree_lookup(const rbtree_t *rbt, const void *key)
 {
 	struct rbdata *rd;
 	struct rbdata item;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
 
+	rbtree_synchronize(rbt);
+
 	item.data = deconstify_pointer(key);
 	rd = erbtree_lookup(ERBTREE(rbt), &item);
+	data = NULL == rd ? NULL : rd->data;
 
-	return NULL == rd ? NULL : rd->data;
+	rbtree_return(rbt, data);
 }
 
 /**
@@ -216,8 +313,8 @@ rbtree_lookup(const rbtree_t *rbt, const void *key)
  * @param key		the item key to look up
  * @param node		where the node cursor is written
  *
- * @return the data associate with the key, or NULL if the key is not present.
- * When the key is found, `node' is update to the internal cursor in the
+ * @return the data associated with the key, or NULL if the key is not present.
+ * When the key is found, `node' is updated to the internal cursor in the
  * tree.  Its lifespan is that of the tree or of the item (if removed).
  */
 void *
@@ -225,20 +322,24 @@ rbtree_lookup_node(const rbtree_t *rbt, const void *key, rbnode_t **node)
 {
 	struct rbdata *rd;
 	struct rbdata item;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
+
+	rbtree_synchronize(rbt);
 
 	item.data = deconstify_pointer(key);
 	rd = erbtree_lookup(ERBTREE(rbt), &item);
 
 	if (NULL == rd)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	if (node != NULL)
 		*node = &rd->node;
 
-	return rd->data;
+	data = rd->data;
+	rbtree_return(rbt, data);
 }
 
 /**
@@ -261,10 +362,14 @@ rbtree_insert_try(rbtree_t *rbt, const void *item)
 	WALLOC0(rd);
 	rd->data = deconstify_pointer(item);
 
+	rbtree_synchronize(rbt);
+
 	if (NULL == erbtree_insert(ERBTREE(rbt), &rd->node)) {
 		rbt->stamp++;
-		return TRUE;
+		rbtree_return(rbt, TRUE);
 	}
+
+	rbtree_unsynchronize(rbt);
 
 	WFREE(rd);
 	return FALSE;
@@ -291,10 +396,14 @@ rbtree_insert(rbtree_t *rbt, const void *item)
 	WALLOC0(rd);
 	rd->data = deconstify_pointer(item);
 
+	rbtree_synchronize(rbt);
+
 	if (NULL == erbtree_insert(ERBTREE(rbt), &rd->node)) {
 		rbt->stamp++;
-		return;
+		rbtree_return_void(rbt);
 	}
+
+	rbtree_unsynchronize(rbt);
 
 	g_error("%s(): duplicate key already exists", G_STRFUNC);
 }
@@ -320,13 +429,15 @@ rbtree_replace(rbtree_t *rbt, const void *item, void **old_item)
 	WALLOC0(rd);
 	rd->data = deconstify_pointer(item);
 
+	rbtree_synchronize(rbt);
+
 	old = erbtree_lookup(ERBTREE(rbt), rd);
 
 	if (NULL == old) {
 		void *ok = erbtree_insert(ERBTREE(rbt), &rd->node);
 		g_assert(NULL == ok);
 		rbt->stamp++;
-		return FALSE;		/* Not a replacement */
+		rbtree_return(rbt, FALSE);	/* Not a replacement */
 	}
 
 	/*
@@ -337,6 +448,8 @@ rbtree_replace(rbtree_t *rbt, const void *item, void **old_item)
 
 	if (old_item != NULL)
 		*old_item = old->data;
+
+	rbtree_unsynchronize(rbt);
 	WFREE(old);
 
 	return TRUE;			/* Replaced item */
@@ -361,17 +474,21 @@ rbtree_remove(rbtree_t *rbt, const void *key, void **old_item)
 	rbtree_check(rbt);
 	g_assert(key != NULL);
 
+	rbtree_synchronize(rbt);
+
 	item.data = deconstify_pointer(key);
 	rd = erbtree_lookup(ERBTREE(rbt), &item);
 
 	if (NULL == rd)
-		return FALSE;
+		rbtree_return(rbt, FALSE);
 
 	erbtree_remove(ERBTREE(rbt), &rd->node);
 	rbt->stamp++;
 
 	if (old_item != NULL)
 		*old_item = rd->data;
+
+	rbtree_unsynchronize(rbt);
 	WFREE(rd);
 
 	return TRUE;
@@ -394,23 +511,27 @@ rbtree_next(const rbtree_t *rbt, const void *key)
 	struct rbdata *rd;
 	struct rbdata item;
 	rbnode_t *rn;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
+
+	rbtree_synchronize(rbt);
 
 	item.data = deconstify_pointer(key);
 	rd = erbtree_lookup(ERBTREE(rbt), &item);
 
 	if G_UNLIKELY(NULL == rd)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rn = erbtree_next(&rd->node);
 	if (NULL == rn)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rd = erbtree_data(ERBTREE(rbt), rn);
+	data = rd->data;
 
-	return rd->data;
+	rbtree_return(rbt, data);
 }
 
 /**
@@ -427,18 +548,22 @@ rbtree_next_node(const rbtree_t *rbt, rbnode_t **key)
 {
 	struct rbdata *rd;
 	rbnode_t *rn;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
 
+	rbtree_synchronize(rbt);
+
 	rn = erbtree_next(*key);
 	if (NULL == rn)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rd = erbtree_data(ERBTREE(rbt), rn);
 	*key = rn;
+	data = rd->data;
 
-	return rd->data;
+	rbtree_return(rbt, data);
 }
 
 /**
@@ -458,23 +583,27 @@ rbtree_prev(const rbtree_t *rbt, const void *key)
 	struct rbdata *rd;
 	struct rbdata item;
 	rbnode_t *rn;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
+
+	rbtree_synchronize(rbt);
 
 	item.data = deconstify_pointer(key);
 	rd = erbtree_lookup(ERBTREE(rbt), &item);
 
 	if G_UNLIKELY(NULL == rd)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rn = erbtree_prev(&rd->node);
 	if (NULL == rn)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rd = erbtree_data(ERBTREE(rbt), rn);
+	data = rd->data;
 
-	return rd->data;
+	rbtree_return(rbt, data);
 }
 
 /**
@@ -491,18 +620,22 @@ rbtree_prev_node(const rbtree_t *rbt, rbnode_t **key)
 {
 	struct rbdata *rd;
 	rbnode_t *rn;
+	void *data;
 
 	rbtree_check(rbt);
 	g_assert(key != NULL);
 
+	rbtree_synchronize(rbt);
+
 	rn = erbtree_prev(*key);
 	if (NULL == rn)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	rd = erbtree_data(ERBTREE(rbt), rn);
 	*key = rn;
+	data = rd->data;
 
-	return rd->data;
+	rbtree_return(rbt, data);
 }
 
 struct rbtree_foreach_ctx {
@@ -534,7 +667,10 @@ rbtree_foreach(rbtree_t *rbt, data_fn_t cb, void *data)
 
 	ctx.cb = cb;
 	ctx.data = data;
+
+	rbtree_synchronize(rbt);
 	erbtree_foreach(ERBTREE(rbt), rbtree_foreach_trampoline, &ctx);
+	rbtree_unsynchronize(rbt);
 }
 
 struct rbtree_foreach_remove_ctx {
@@ -571,6 +707,7 @@ size_t
 rbtree_foreach_remove(rbtree_t *rbt, data_rm_fn_t cbr, void *data)
 {
 	struct rbtree_foreach_remove_ctx ctx;
+	size_t removed;
 
 	rbtree_check(rbt);
 	g_assert(0 == rbt->refcnt);		/* No iteration pending */
@@ -579,8 +716,12 @@ rbtree_foreach_remove(rbtree_t *rbt, data_rm_fn_t cbr, void *data)
 	ctx.data = data;
 	ctx.rbt = rbt;
 
-	return erbtree_foreach_remove(ERBTREE(rbt),
+	rbtree_synchronize(rbt);
+
+	removed = erbtree_foreach_remove(ERBTREE(rbt),
 		rbtree_foreach_rm_trampoline, &ctx);
+
+	rbtree_return(rbt, removed);
 }
 
 static void
@@ -606,8 +747,12 @@ rbtree_clear(rbtree_t *rbt)
 	 * We don't free the items but we have to free the nodes.
 	 */
 
+	rbtree_synchronize(rbt);
+
 	erbtree_discard(ERBTREE(rbt), rbtree_free_node);
 	rbt->stamp++;
+
+	rbtree_unsynchronize(rbt);
 }
 
 /**
@@ -626,7 +771,15 @@ rbtree_free_null(rbtree_t **tree_ptr)
 		rbtree_check(rbt);
 		g_assert(0 == rbt->refcnt);		/* No iteration pending */
 
+		rbtree_synchronize(rbt);
+
 		rbtree_clear(rbt);
+
+		if (rbt->lock != NULL) {
+			mutex_destroy(rbt->lock);
+			WFREE(rbt->lock);
+		}
+
 		rbt->magic = 0;
 		WFREE(rbt);
 		*tree_ptr = NULL;
@@ -662,8 +815,12 @@ rbtree_discard(rbtree_t *rbt, free_fn_t fcb)
 
 	ctx.fcb = fcb;
 
+	rbtree_synchronize(rbt);
+
 	erbtree_discard_with_data(ERBTREE(rbt), rbtree_discard_trampoline, &ctx);
 	rbt->stamp++;
+
+	rbtree_unsynchronize(rbt);
 }
 
 struct rbtree_discard_data_ctx {
@@ -699,10 +856,14 @@ rbtree_discard_with_data(rbtree_t *rbt, free_data_fn_t fcb, void *data)
 	ctx.fcb = fcb;
 	ctx.data = data;
 
+	rbtree_synchronize(rbt);
+
 	erbtree_discard_with_data(ERBTREE(rbt),
 		rbtree_discard_data_trampoline, &ctx);
 
 	rbt->stamp++;
+
+	rbtree_unsynchronize(rbt);
 }
 
 /**
@@ -712,19 +873,21 @@ rbtree_iter_t *
 rbtree_iter_new(const rbtree_t *rbt)
 {
 	rbtree_iter_t *ri;
+	rbtree_t *wrbt = deconstify_pointer(rbt);
 
 	rbtree_check(rbt);
 
 	WALLOC0(ri);
 	ri->magic = RBTREE_ITER_MAGIC;
 	ri->tree = rbt;
+
+	rbtree_synchronize(wrbt);
+
 	ri->next = erbtree_first(ERBTREE(rbt));
 	ri->stamp = rbt->stamp;
+	wrbt->refcnt++;		/* Internal state, OK to change */
 
-	{
-		rbtree_t *wrbt = deconstify_pointer(rbt);
-		wrbt->refcnt++;		/* Internal state, OK to change */
-	}
+	rbtree_unsynchronize(wrbt);
 
 	return ri;
 }
@@ -744,7 +907,10 @@ rbtree_iter_release(rbtree_iter_t **iter_ptr)
 
 		rbt = deconstify_pointer(ri->tree);
 		g_assert(size_is_positive(rbt->refcnt));
+
+		rbtree_synchronize(rbt);
 		rbt->refcnt--;
+		rbtree_unsynchronize(rbt);
 
 		ri->magic = 0;
 		WFREE(ri);
@@ -763,9 +929,15 @@ rbtree_iter_release(rbtree_iter_t **iter_ptr)
 bool
 rbtree_iter_next(rbtree_iter_t *ri, const void **keyptr)
 {
+	rbtree_t *rbt;
+
 	rbtree_iter_check(ri);
-	g_assert(ri->stamp == ri->tree->stamp);		/* No modification done */
 	g_assert(keyptr != NULL);
+
+	rbt = deconstify_pointer(ri->tree);
+	rbtree_synchronize(rbt);
+
+	g_assert(ri->stamp == ri->tree->stamp);		/* No modification done */
 
 	/*
 	 * If traversal is completed, return FALSE.
@@ -775,15 +947,15 @@ rbtree_iter_next(rbtree_iter_t *ri, const void **keyptr)
 		g_soft_assert_log(rbtree_count(ri->tree) + ri->removed == ri->visited,
 			"%s(): count=%zu, visited=%zu (removed=%zu)",
 			G_STRFUNC, rbtree_count(ri->tree), ri->visited, ri->removed);
-		return FALSE;
+		rbtree_return(rbt, FALSE);
 	}
 
 	ri->item = erbtree_data(ERBTREE(ri->tree), ri->next);
 	ri->next = erbtree_next(ri->next);
 	ri->visited++;
-
 	*keyptr = ri->item->data;
-	return TRUE;
+
+	rbtree_return(rbt, TRUE);
 }
 
 /**
@@ -794,9 +966,14 @@ rbtree_iter_next(rbtree_iter_t *ri, const void **keyptr)
 void *
 rbtree_iter_remove(rbtree_iter_t *ri)
 {
+	rbtree_t *rbt;
 	void *key;
 
 	rbtree_iter_check(ri);
+
+	rbt = deconstify_pointer(ri->tree);
+	rbtree_synchronize(rbt);
+
 	g_assert(ri->stamp == ri->tree->stamp);		/* No modification done */
 
 	/*
@@ -804,7 +981,7 @@ rbtree_iter_remove(rbtree_iter_t *ri)
 	 */
 
 	if (NULL == ri->item)
-		return NULL;
+		rbtree_return(rbt, NULL);
 
 	/*
 	 * We do not update the tree stamp here because this deletion is authorized
@@ -814,10 +991,11 @@ rbtree_iter_remove(rbtree_iter_t *ri)
 
 	key = ri->item->data;
 	erbtree_remove(deconstify_pointer(ERBTREE(ri->tree)), &ri->item->node);
+
 	WFREE_TYPE_NULL(ri->item);
 	ri->removed++;
 
-	return key;
+	rbtree_return(rbt, key);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
