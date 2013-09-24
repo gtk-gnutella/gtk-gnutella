@@ -63,6 +63,10 @@ int sdbm_pagfno(\s-1DBM\s0 *db)
 int sdbm_datfno(\s-1DBM\s0 *db)
 .sp
 bool sdbm_is_storable(size_t key, size_t value)
+.sp
+void sdbm_thread_safe(\s-1DBM\s0 *db)
+void sdbm_lock(\s-1DBM\s0 *db)
+void sdbm_unlock(\s-1DBM\s0 *db)
 .ft R
 .fi
 .SH DESCRIPTION
@@ -355,6 +359,35 @@ but with the new filenames explicitly given.
 .BR sdbm_rebuild (\|)
 rebuilds the database, hopefully leading to a more compact on-disk
 representation. It returns -1 on failure.
+.SH THREAD SAFETY
+By default, the database handles can only be used by the thread that created
+them.  However, invoking
+.BR sdbm_thread_safe (\|)
+on a newly created database will allow safe concurrent accesses to the
+database: this locks the database handle for the duration of the call and
+routines which return a
+.B datum
+will make sure that the data returned are thread-private, making the necessary
+copy to allow concurrent updates to the database after the value was returned.
+.LP
+For multiple operations that need to be performed consistently over the
+database without interruptions by other threads, one may call
+.BR sdbm_lock (\|)
+to begin the critical section and
+.BR sdbm_unlock (\|)
+to end the critical section.  Calls can nest as long as they are paired
+correctly.  It is forbidden to use these routines on a database that was
+not marked as being concurrent via
+.BR sdbm_thread_safe (\|)
+beforehand.
+.LP
+Concurrent iterations on the database are forbidden, and this is enforced by
+having the iterators return
+.B nullitem
+and set
+.B errno
+to
+.BR \s-1EPERM\s0 .
 .SH PAGE CACHING
 This
 .B sdbm
@@ -544,6 +577,9 @@ The
 data item, and the
 .BR sdbm_prep (\|),
 .BR sdbm_hash (\|),
+.BR sdbm_thread_safe (\|),
+.BR sdbm_lock (\|),
+.BR sdbm_unlock (\|),
 .BR sdbm_rdonly (\|),
 .BR sdbm_dirfno (\|),
 and
@@ -569,7 +605,7 @@ The following functions:
 .br
 .BR sdbm_sync (\|)
 .br
-.BR sdbm_srink (\|)
+.BR sdbm_shrink (\|)
 .br
 .BR sdbm_clear (\|)
 .br
@@ -608,3 +644,5 @@ that is backward compatible (i.e. databases not requiring this feature
 should see no difference).  When activated (as needed), a third file is
 created to store the larger keys and values, ending with the extension
 .BR \.dat .
+.LP
+The API was also made thread-safe by Raphael Manfredi.

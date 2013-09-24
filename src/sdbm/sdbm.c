@@ -23,10 +23,14 @@
 #include "lib/halloc.h"
 #include "lib/log.h"
 #include "lib/misc.h"
+#include "lib/mutex.h"
 #include "lib/pow2.h"
 #include "lib/random.h"
 #include "lib/str.h"
+#include "lib/thread.h"
+#include "lib/vmm.h"
 #include "lib/walloc.h"
+#include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -41,6 +45,63 @@ static bool getpage(DBM *, long);
 static datum getnext(DBM *);
 static bool makroom(DBM *, long, size_t);
 static void validpage(DBM *, long);
+
+/*
+ * Thread-safety macros.
+ */
+
+#ifdef THREADS
+
+#define sdbm_synchronize(s) G_STMT_START {		\
+	if G_UNLIKELY((s)->lock != NULL) { 			\
+		DBM *ws = deconstify_pointer(s);	\
+		mutex_lock(ws->lock);					\
+	}											\
+} G_STMT_END
+
+#define sdbm_unsynchronize(s) G_STMT_START {	\
+	if G_UNLIKELY((s)->lock != NULL) { 			\
+		DBM *ws = deconstify_pointer(s);	\
+		mutex_unlock(ws->lock);					\
+	}											\
+} G_STMT_END
+
+#define sdbm_return(s, v) G_STMT_START {		\
+	if G_UNLIKELY((s)->lock != NULL) 			\
+		mutex_unlock((s)->lock);				\
+	return v;									\
+} G_STMT_END
+
+#define sdbm_return_datum(s, v) G_STMT_START {	\
+	datum *rv = &(v);							\
+	if G_UNLIKELY((s)->lock != NULL) { 			\
+		rv = sdbm_thread_datum((s), &(v));		\
+		mutex_unlock((s)->lock);				\
+	}											\
+	return *rv;									\
+} G_STMT_END
+
+#define sdbm_return_void(s) G_STMT_START {		\
+	if G_UNLIKELY((s)->lock != NULL) 			\
+		mutex_unlock((s)->lock);				\
+	return;										\
+} G_STMT_END
+
+#define assert_sdbm_locked(s) G_STMT_START {	\
+	if G_UNLIKELY((s)->lock != NULL) 			\
+		assert_mutex_is_owned((s)->lock);		\
+} G_STMT_END
+
+#else	/* !THREADS */
+
+#define sdbm_synchronize(s)
+#define sdbm_unsynchronize(s)
+#define sdbm_return(s, v)			return v
+#define sdbm_return_datum(s, v)		return v
+#define sdbm_return_void(s)			return
+#define assert_sdbm_locked(s)
+
+#endif	/* THREADS */
 
 static inline int
 bad(const datum item)
@@ -218,6 +279,11 @@ sdbm_alloc(void)
 	db->magic = SDBM_MAGIC;
 	db->pagf = -1;
 	db->dirf = -1;
+
+#ifdef THREADS
+	db->iterid = THREAD_INVALID_ID;
+#endif
+
 	return db;
 }
 
@@ -225,6 +291,22 @@ static void
 sdbm_free(DBM *db)
 {
 	sdbm_check(db);
+
+#ifdef THREADS
+	if (db->returned != NULL) {
+		int i;
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			datum *r = &db->returned[i];
+
+			if (r->dsize != 0)
+				XFREE_NULL(r->dptr);	/* Free thread-private data copy */
+		}
+
+		XFREE_NULL(db->returned);
+	}
+#endif
+
 	db->magic = 0;
 	WFREE(db);
 }
@@ -383,6 +465,108 @@ success:
 	return db;
 }
 
+#ifdef THREADS
+/**
+ * Mark newly created database as being thread-safe.
+ *
+ * This will make all external operations on the database thread-safe.
+ */
+void
+sdbm_thread_safe(DBM *db)
+{
+	sdbm_check(db);
+	g_assert(NULL == db->lock);
+
+	WALLOC0(db->lock);
+	mutex_init(db->lock);
+	XMALLOC0_ARRAY(db->returned, THREAD_MAX);
+}
+
+/**
+ * Lock the database to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the database several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The database must have been marked thread-safe already.
+ */
+void
+sdbm_lock(DBM *db)
+{
+	sdbm_check(db);
+	g_assert_log(db->lock != NULL,
+		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
+
+	mutex_lock(db->lock);
+}
+
+/*
+ * Release lock on database.
+ *
+ * The database must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+sdbm_unlock(DBM *db)
+{
+	sdbm_check(db);
+	g_assert_log(db->lock != NULL,
+		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
+
+	mutex_unlock(db->lock);
+}
+
+/**
+ * Allocate a thread-private datum to be returned to the thread.
+ *
+ * Although the value returned is thread-private, its lifespan is limited to
+ * the next call made to the SDBM API by the thread.
+ *
+ * A thread-private datum contains a copy of the data returned to the thread,
+ * since we cannot point into the internal SDBM data structures like the LRU
+ * page cache: any concurrent access could make the data stale.
+ *
+ * @param v		a pointer to the datum returned by the function
+ *
+ * @return a pointer to the thread-private datum with data from ``d'' copied.
+ */
+static datum *
+sdbm_thread_datum(DBM *db, datum *v)
+{
+	datum *r;
+	uint stid = thread_small_id();
+
+	sdbm_check(db);
+	g_assert(stid < THREAD_MAX);
+	g_assert(db->returned != NULL);
+
+	r = &db->returned[stid];
+
+	if (r->dsize != 0)
+		xfree(r->dptr);						/* Free old value */
+
+	if (v->dsize != 0) {
+		r->dptr = xcopy(v->dptr, v->dsize);	/* Copy value to be returned */
+		r->dsize = v->dsize;
+	} else if (NULL == v->dptr) {
+		*r = nullitem;
+	} else {
+		/*
+		 * It's possible to have a zero-sized value stored, and if we come
+		 * here then v->dsize = 0 and v->dptr != NULL.
+		 *
+		 * To prevent any reference to the pointer, we use the VMM trap page.
+		 */
+
+		r->dptr = deconstify_pointer(vmm_trap_page());
+		r->dsize = 0;
+	}
+
+	return r;
+}
+#endif	/* THREADS */
+
 static void
 log_sdbmstats(DBM *db)
 {
@@ -448,6 +632,8 @@ log_sdbm_warnings(DBM *db)
 static bool
 fetch_pagbuf(DBM *db, long pagnum)
 {
+	assert_sdbm_locked(db);
+
 	db->pagfetch++;
 
 #ifdef LRU
@@ -526,6 +712,8 @@ fetch_pagbuf(DBM *db, long pagnum)
 static bool
 flush_pagbuf(DBM *db)
 {
+	assert_sdbm_locked(db);
+
 #ifdef LRU
 	return dirtypag(db, FALSE);	/* Current (cached) page buffer is dirty */
 #else
@@ -541,6 +729,8 @@ flush_pagbuf(DBM *db)
 static bool
 force_flush_pagbuf(DBM *db, bool force)
 {
+	assert_sdbm_locked(db);
+
 	if (force)
 		db->pagwforced++;
 	return dirtypag(db, force);	/* Current (cached) page buffer is dirty */
@@ -555,6 +745,8 @@ static bool
 flush_dirbuf(DBM *db)
 {
 	ssize_t w;
+
+	assert_sdbm_locked(db);
 
 	db->dirwrite++;
 	w = compat_pwrite(db->dirf, db->dirbuf, DBM_DBLKSIZ, OFF_DIR(db->dirbno));
@@ -604,6 +796,7 @@ static void
 sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 {
 	sdbm_check(db);
+	assert_sdbm_locked(db);
 
 #ifdef LRU
 	if (!clearfiles && db->dirbuf_dirty && !(db->flags & DBM_BROKEN))
@@ -639,8 +832,13 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 	HFREE_NULL(db->datname);
 #endif
 
-	if (destroy)
+	if (destroy) {
+		if (db->lock != NULL) {
+			mutex_destroy(db->lock);
+			WFREE(db->lock);
+		}
 		sdbm_free(db);
+	}
 }
 
 /**
@@ -652,6 +850,7 @@ sdbm_unlink(DBM *db)
 	if G_UNLIKELY(db == NULL)
 		return;
 
+	sdbm_synchronize(db);
 	sdbm_close_internal(db, TRUE, TRUE);
 }
 
@@ -669,6 +868,8 @@ sdbm_close(DBM *db)
 		return;
 
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
 
 #ifdef LRU
 	clearfiles = db->is_volatile;
@@ -695,16 +896,24 @@ sdbm_fetch(DBM *db, datum key)
 		return nullitem;
 	}
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return nullitem;
+		goto null;
 	}
+
 	SDBM_WARN_ITERATING(db);
-	if (getpage(db, exhash(key)))
-		return getpair(db, db->pagbuf, key);
+
+	if (getpage(db, exhash(key))) {
+		datum value = getpair(db, db->pagbuf, key);
+		sdbm_return_datum(db, value);
+	}
 
 	ioerr(db, FALSE);
-	return nullitem;
+null:
+	sdbm_return(db, nullitem);
 }
 
 /**
@@ -720,16 +929,22 @@ sdbm_exists(DBM *db, datum key)
 		return -1;
 	}
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto error;
 	}
 	SDBM_WARN_ITERATING(db);
-	if (getpage(db, exhash(key)))
-		return exipair(db, db->pagbuf, key);
+	if (getpage(db, exhash(key))) {
+		int exists = exipair(db, db->pagbuf, key);
+		sdbm_return(db, exists);
+	}
 
 	ioerr(db, FALSE);
-	return -1;
+error:
+	sdbm_return(db, -1);
 }
 
 /**
@@ -740,31 +955,36 @@ sdbm_exists(DBM *db, datum key)
 int
 sdbm_delete(DBM *db, datum key)
 {
+	int status = -1;
+
 	if G_UNLIKELY(db == NULL || bad(key)) {
 		errno = EINVAL;
 		return -1;
 	}
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
-		return -1;
+		goto done;
 	}
 	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
-		return -1;
+		goto done;
 	}
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto done;
 	}
 	SDBM_WARN_ITERATING(db);
 	if G_UNLIKELY(!getpage(db, exhash(key))) {
 		ioerr(db, FALSE);
-		return -1;
+		goto done;
 	}
 	if (!delpair(db, db->pagbuf, key)) {
 		errno = 0;
-		return -1;
+		goto done;
 	}
 
 	/*
@@ -772,9 +992,12 @@ sdbm_delete(DBM *db, datum key)
 	 */
 
 	if G_UNLIKELY(!flush_pagbuf(db))
-		return -1;
+		goto done;
 
-	return 0;
+	status = 0;
+
+done:
+	sdbm_return(db, status);
 }
 
 /**
@@ -796,6 +1019,8 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	long hash;
 	bool need_split = FALSE;
 	int result = 0;
+
+	assert_sdbm_locked(db);
 
 	if G_UNLIKELY(0 == val.dsize) {
 		val.dptr = "";
@@ -924,9 +1149,16 @@ inserted:
 int
 sdbm_store(DBM *db, datum key, datum val, int flags)
 {
+	int r;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	SDBM_WARN_ITERATING(db);
-	return storepair(db, key, val, flags, NULL);
+	r = storepair(db, key, val, flags, NULL);
+
+	sdbm_return(db, r);
 }
 
 /**
@@ -941,9 +1173,16 @@ sdbm_store(DBM *db, datum key, datum val, int flags)
 int
 sdbm_replace(DBM *db, datum key, datum val, bool *existed)
 {
+	int r;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	SDBM_WARN_ITERATING(db);
-	return storepair(db, key, val, DBM_REPLACE, existed);
+	r = storepair(db, key, val, DBM_REPLACE, existed);
+
+	sdbm_return(db, r);
 }
 
 /*
@@ -961,6 +1200,8 @@ makroom(DBM *db, long int hash, size_t need)
 	long curbno;
 	char *New = (char *) twin;
 	int smax = DBM_SPLTMAX;
+
+	assert_sdbm_locked(db);
 
 	do {
 		bool fits;		/* Can we fit new pair in the split page? */
@@ -1270,6 +1511,7 @@ static datum
 iteration_done(DBM *db, bool completed)
 {
 	g_assert(db != NULL);
+	assert_sdbm_locked(db);
 
 #ifdef BIGDATA
 	if (db->flags & DBM_KEYCHECK) {
@@ -1282,7 +1524,12 @@ iteration_done(DBM *db, bool completed)
 	}
 #endif
 
+#ifdef THREADS
+	db->iterid = THREAD_INVALID_ID;
+#endif
+
 	db->flags &= ~(DBM_KEYCHECK | DBM_ITERATING);	/* Iteration done */
+
 	return nullitem;
 }
 
@@ -1294,21 +1541,44 @@ iteration_done(DBM *db, bool completed)
 datum
 sdbm_firstkey(DBM *db)
 {
+	datum value;
+
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return iteration_done(db, FALSE);
+		return nullitem;
 	}
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return nullitem;
+		value = nullitem;
+		goto done;
 	}
 
 	if G_UNLIKELY(db->flags & DBM_ITERATING) {
 		g_critical("recursive iteration on SDBM database \"%s\"",
 			sdbm_name(db));
 	}
+
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		if G_UNLIKELY(db->iterid != THREAD_INVALID_ID && db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				G_STRFUNC, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			errno = EPERM;
+			value = nullitem;
+			goto done;
+		}
+
+		db->iterid = stid;
+	}
+#endif	/* THREADS */
 
 	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
@@ -1330,8 +1600,10 @@ sdbm_firstkey(DBM *db)
 	}
 #endif	/* LRU */
 
-	if G_UNLIKELY(db->pagtail < 0)
-		return iteration_done(db, FALSE);
+	if G_UNLIKELY(db->pagtail < 0) {
+		value = iteration_done(db, FALSE);
+		goto done;
+	}
 
 	/*
 	 * Start at page 0, skipping any page we can't read.
@@ -1347,7 +1619,10 @@ sdbm_firstkey(DBM *db)
 		/* Skip faulty page */
 	}
 
-	return getnext(db);
+	value = getnext(db);
+
+done:
+	sdbm_return_datum(db, value);
 }
 
 /**
@@ -1358,6 +1633,8 @@ sdbm_firstkey_safe(DBM *db)
 {
 	if (db != NULL) {
 		sdbm_check(db);
+
+		sdbm_synchronize(db);
 		db->flags |= DBM_KEYCHECK;
 
 		/*
@@ -1369,6 +1646,7 @@ sdbm_firstkey_safe(DBM *db)
 			g_critical("%s() called on read-only SDBM database \"%s\"",
 				G_STRFUNC, sdbm_name(db));
 		}
+		sdbm_unsynchronize(db);
 	}
 	return sdbm_firstkey(db);
 }
@@ -1376,6 +1654,8 @@ sdbm_firstkey_safe(DBM *db)
 datum
 sdbm_nextkey(DBM *db)
 {
+	datum value;
+
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return nullitem;
@@ -1383,19 +1663,45 @@ sdbm_nextkey(DBM *db)
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return nullitem;
+		value = nullitem;
+		goto done;
 	}
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
 		g_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		errno = ENOENT;
-		return nullitem;
+		value = nullitem;
+		goto done;
 	}
 
-	return getnext(db);
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING is set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				G_STRFUNC, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			errno = EPERM;
+			value = nullitem;
+			goto done;
+		}
+	}
+#endif	/* THREADS */
+
+	value = getnext(db);
+
+done:
+	sdbm_return_datum(db, value);
 }
 
 /**
@@ -1406,6 +1712,8 @@ sdbm_endkey(DBM *db)
 {
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	/*
 	 * Loudly warn if this is called outside of an iteration.
 	 */
@@ -1415,6 +1723,23 @@ sdbm_endkey(DBM *db)
 			G_STRFUNC, sdbm_name(db));
 	}
 
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING is set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				G_STRFUNC, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			goto done;
+		}
+	}
+#endif	/* THREADS */
+
 	/*
 	 * When starting an iteration with sdbm_firstkey_safe() and encountering
 	 * big keys or values, a checking context is allocated and it is only freed
@@ -1422,6 +1747,9 @@ sdbm_endkey(DBM *db)
 	 */
 
 	(void) iteration_done(db, FALSE);		/* Iteration was interrupted */
+
+done:
+	sdbm_return_void(db);
 }
 
 /**
@@ -1492,6 +1820,8 @@ validpage(DBM *db, long pagb)
 	int removed = 0;
 	int corrupted = 0;
 
+	assert_sdbm_locked(db);
+
 	n = ino[0];
 
 	for (i = n - 1; i > 0; i -= 2) {
@@ -1549,6 +1879,8 @@ validpage(DBM *db, long pagb)
 static bool
 fetch_dirbuf(DBM *db, long dirb)
 {
+	assert_sdbm_locked(db);
+
 	db->dirfetch++;
 
 	if (dirb != db->dirbno) {
@@ -1601,6 +1933,8 @@ setdbit(DBM *db, long int dbit)
 	long c;
 	long dirb;
 
+	assert_sdbm_locked(db);
+
 	c = dbit / BYTESIZ;
 	dirb = c / DBM_DBLKSIZ;
 
@@ -1637,6 +1971,8 @@ static datum
 getnext(DBM *db)
 {
 	datum key;
+
+	assert_sdbm_locked(db);
 
 	/*
 	 * During a traversal, no modification should be done on the database,
@@ -1685,22 +2021,27 @@ getnext(DBM *db)
 int
 sdbm_deletekey(DBM *db)
 {
+	int status = -1;
+
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
-		return -1;
+		goto done;
 	}
 	if G_UNLIKELY(db->flags & DBM_IOERR_W) {
 		errno = EIO;
-		return -1;
+		goto done;
 	}
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto done;
 	}
 
 	/*
@@ -1713,13 +2054,31 @@ sdbm_deletekey(DBM *db)
 		goto no_entry;
 	}
 
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING is set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				G_STRFUNC, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			errno = EPERM;
+			goto done;
+		}
+	}
+#endif	/* THREADS */
+
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
 	if G_UNLIKELY(0 == db->keyptr)
 		goto no_entry;
 
 	if G_UNLIKELY(!delnpair(db, db->pagbuf, db->keyptr))
-		return -1;
+		goto done;
 
 	db->keyptr--;
 
@@ -1728,13 +2087,16 @@ sdbm_deletekey(DBM *db)
 	 */
 
 	if G_UNLIKELY(!flush_pagbuf(db))
-		return -1;
+		goto done;
 
-	return 0;
+	status = 0;
+
+done:
+	sdbm_return(db, status);
 
 no_entry:
 	errno = ENOENT;
-	return -1;
+	goto done;
 }
 
 /**
@@ -1753,6 +2115,8 @@ sdbm_value(DBM *db)
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	/*
 	 * Loudly warn if this is called outside of an iteration.
 	 */
@@ -1763,6 +2127,25 @@ sdbm_value(DBM *db)
 		goto no_entry;
 	}
 
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING is set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				G_STRFUNC, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			errno = EPERM;
+			val = nullitem;
+			goto done;
+		}
+	}
+#endif	/* THREADS */
+
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
 	if G_UNLIKELY(0 == db->keyptr)
@@ -1772,11 +2155,13 @@ sdbm_value(DBM *db)
 	if G_UNLIKELY(NULL == val.dptr)
 		goto no_entry;
 
-	return val;
+done:
+	sdbm_return_datum(db, val);
 
 no_entry:
 	errno = ENOENT;
-	return nullitem;
+	val = nullitem;
+	goto done;
 }
 
 /**
@@ -1793,19 +2178,26 @@ sdbm_sync(DBM *db)
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		npag = (ssize_t) -1;
+		goto done;
 	}
 
 #ifdef LRU
 	npag = flush_dirtypag(db);
-	if G_UNLIKELY(-1 == npag)
-		return -1;
+	if G_UNLIKELY(-1 == npag) {
+		npag = (ssize_t) -1;
+		goto done;
+	}
 
 	if (db->dirbuf_dirty) {
-		if G_UNLIKELY(!flush_dirbuf(db))
-			return -1;
+		if G_UNLIKELY(!flush_dirbuf(db)) {
+			npag = (ssize_t) -1;
+			goto done;
+		}
 		npag++;
 	}
 #else
@@ -1817,7 +2209,8 @@ sdbm_sync(DBM *db)
 		npag++;
 #endif
 
-	return npag;
+done:
+	sdbm_return(db, npag);
 }
 
 /**
@@ -1833,16 +2226,19 @@ sdbm_shrink(DBM *db)
 	filesize_t paglen;
 	filestat_t buf;
 	filesize_t offset;
+	bool status;
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto error;
 	}
 
 	if G_UNLIKELY(-1 == fstat(db->pagf, &buf))
-		return FALSE;
+		goto error;
 
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		g_critical("%s() called on read-only SDBM database \"%s\"",
@@ -1899,7 +2295,7 @@ sdbm_shrink(DBM *db)
 
 	if (offset < paglen) {
 		if (-1 == ftruncate(db->pagf, offset))
-			return FALSE;
+			goto error;
 #ifdef LRU
 		lru_discard(db, truncate_bno);
 #endif
@@ -1927,7 +2323,7 @@ sdbm_shrink(DBM *db)
 		filesize = MAX(filesize, DBM_DBLKSIZ);	/* Ensure 1 block at least */
 
 		if G_UNLIKELY(-1 == fstat(db->dirf, &buf))
-			return FALSE;
+			goto error;
 
 		/*
 		 * Try to not change the mtime of the index if we don't have to.
@@ -1938,7 +2334,7 @@ sdbm_shrink(DBM *db)
 
 		if (filesize < buf.st_size) {
 			if G_UNLIKELY(-1 == ftruncate(db->dirf, filesize))
-				return FALSE;
+				goto error;
 			db->maxbno = filesize * BYTESIZ;
 		}
 
@@ -1952,7 +2348,7 @@ sdbm_shrink(DBM *db)
 			db->dirbno = -1;	/* Discard since after our truncation point */
 
 		if G_UNLIKELY(!fetch_dirbuf(db, dirb))
-			return FALSE;
+			goto error;
 
 		g_assert(filesize - maxsize < DBM_DBLKSIZ);
 
@@ -1990,16 +2386,23 @@ sdbm_shrink(DBM *db)
 	} else
 #endif
 	if G_UNLIKELY(!flush_dirbuf(db))
-		return FALSE;
+		goto error;
 
 no_idx_change:
 
 #ifdef BIGDATA
 	if G_UNLIKELY(!big_shrink(db))
-		return FALSE;
+		goto error;
 #endif
 
-	return TRUE;
+	status = TRUE;
+
+done:
+	sdbm_return(db, status);
+
+error:
+	status = FALSE;
+	goto done;
 }
 
 /**
@@ -2021,7 +2424,7 @@ int
 sdbm_rename_files(DBM *db,
 	const char *dirname, const char *pagname, const char *datname)
 {
-	int openflags, error = 0;
+	int openflags, error = 0, status;
 	bool dat_opened, dat_reopened;
 
 	if G_UNLIKELY(db == NULL) {
@@ -2030,15 +2433,17 @@ sdbm_rename_files(DBM *db,
 	}
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto error;
 	}
 
 #ifdef BIGDATA
 	if (NULL == datname && NULL != db->datname) {
 		errno = EINVAL;
-		return -1;
+		goto error;
 	}
 #endif
 
@@ -2155,10 +2560,17 @@ done:
 		g_carp("sdbm: \"%s\": renaming operation %s: %m",
 			sdbm_name(db),
 			(db->flags & DBM_BROKEN) ? "broke database" : "failed");
-		return -1;
+		status = -1;
+	} else {
+		status = 0;
 	}
 
-	return 0;
+finished:
+	sdbm_return(db, status);
+
+error:
+	status = -1;
+	goto finished;
 }
 
 /**
@@ -2182,19 +2594,21 @@ sdbm_rename(DBM *db, const char *base)
 
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		goto error;
+		return -1;
 	}
 
 	if (base == NULL || '\0' == base[0]) {
 		errno = EINVAL;
-		goto error;
+		return -1;
 	}
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto error;
 	}
 
 #ifdef BIGDATA
@@ -2237,7 +2651,7 @@ error:
 			sdbm_name(db));
 	}
 
-	return result;
+	sdbm_return(db, result);
 }
 
 /**
@@ -2252,28 +2666,30 @@ sdbm_rebuild(DBM *db)
 	DBM *ndb;
 	char ext[10];
 	char *dirname, *pagname, *datname;
-	int error = 0;
+	int error = 0, result;
 	long cache;
 	datum key;
 	unsigned items = 0, skipped = 0, duplicate = 0;
 
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if (sdbm_rdonly(db)) {
 		errno = EPERM;
-		return -1;
+		goto failed;
 	}
 	if (sdbm_error(db)) {
 		errno = EIO;		/* Already got an error reported */
-		return -1;
+		goto failed;
 	}
 	if (db->flags & DBM_ITERATING) {
 		errno = EBUSY;		/* Already iterating */
-		return -1;
+		goto failed;
 	}
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;		/* Already broken handle */
-		return -1;
+		goto failed;
 	}
 
 	str_bprintf(ext, sizeof ext, ".%08x", random_u32());
@@ -2348,8 +2764,14 @@ sdbm_rebuild(DBM *db)
 	pagname = h_strdup(db->pagname);
 	datname = h_strdup(db->datname);
 
+#ifdef THREADS
+	ndb->lock = db->lock;
+#endif
 	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
 	*db = *ndb;									/* struct copy */
+#ifdef THREADS
+	ndb->lock = NULL;							/* was copied over */
+#endif
 	sdbm_free_null(&ndb);
 
 	/*
@@ -2373,7 +2795,7 @@ error:
 
 	if (0 != error) {
 		errno = error;
-		return -1;
+		goto failed;
 	}
 
 	/*
@@ -2391,7 +2813,14 @@ error:
 			duplicate, 1 == duplicate ? "" : "s");
 	}
 
-	return 0;		/* OK, we rebuilt the database */
+	result = 0;		/* OK, we rebuilt the database */
+
+done:
+	sdbm_return(db, result);
+
+failed:
+	result = -1;
+	goto done;
 }
 
 /**
@@ -2402,25 +2831,30 @@ error:
 int
 sdbm_clear(DBM *db)
 {
+	int result;
+
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
 		return -1;
 	}
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
-		return -1;
+		goto error;
 	}
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		return -1;
+		goto error;
 	}
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
-		return -1;
+		goto error;
 	db->pagbno = -1;
 	db->pagtail = 0L;
 	if G_UNLIKELY(-1 == ftruncate(db->dirf, 0))
-		return -1;
+		goto error;
 	db->dirbno = -1;
 	db->maxbno = 0;
 	db->curbit = 0;
@@ -2433,9 +2867,16 @@ sdbm_clear(DBM *db)
 	sdbm_clearerr(db);
 #ifdef BIGDATA
 	if G_UNLIKELY(!big_clear(db))
-		return -1;
+		goto error;
 #endif
-	return 0;
+	result = 0;
+
+done:
+	sdbm_return(db, result);
+
+error:
+	result = -1;
+	goto done;
 }
 
 /**
@@ -2444,12 +2885,19 @@ sdbm_clear(DBM *db)
 long
 sdbm_get_cache(const DBM *db)
 {
+	long pages;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 #ifdef LRU
-	return getcache(db);
+	pages = getcache(db);
 #else
-	return 0;
+	pages = 0;
 #endif
+
+	sdbm_return(db, pages);
 }
 
 /**
@@ -2458,16 +2906,23 @@ sdbm_get_cache(const DBM *db)
 int
 sdbm_set_cache(DBM *db, long pages)
 {
+	int result;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 #ifdef LRU
 	if G_UNLIKELY(NULL == db->cache)
 		lru_init(db);
-	return setcache(db, pages);
+	result = setcache(db, pages);
 #else
 	(void) pages;
 	errno = ENOTSUP;
-	return -1;
+	result = -1;
 #endif
+
+	sdbm_return(db, result);
 }
 
 /**
@@ -2476,13 +2931,19 @@ sdbm_set_cache(DBM *db, long pages)
 bool
 sdbm_get_wdelay(const DBM *db)
 {
+	bool delayed;
+
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 #ifdef LRU
-	return getwdelay(db);
+	delayed = getwdelay(db);
 #else
-	return FALSE;
+	delayed = FALSE;
 #endif
+
+	sdbm_return(db, delayed);
 }
 
 /**
@@ -2491,14 +2952,21 @@ sdbm_get_wdelay(const DBM *db)
 int
 sdbm_set_wdelay(DBM *db, bool on)
 {
+	int result;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 #ifdef LRU
-	return setwdelay(db, on);
+	result = setwdelay(db, on);
 #else
 	(void) on;
 	errno = ENOTSUP;
-	return -1;
+	result = -1;
 #endif
+
+	sdbm_return(db, result);
 }
 
 /**
@@ -2507,12 +2975,19 @@ sdbm_set_wdelay(DBM *db, bool on)
 bool
 sdbm_is_volatile(const DBM *db)
 {
+	bool result;
+
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
 #ifdef LRU
-	return db->is_volatile;
+	result = db->is_volatile;
 #else
-	return FALSE;
+	result = FALSE;
 #endif
+
+	sdbm_return(db, result);
 }
 
 /**
@@ -2523,73 +2998,108 @@ sdbm_is_volatile(const DBM *db)
 int
 sdbm_set_volatile(DBM *db, bool yes)
 {
+	int result;
+
 	sdbm_check(db);
+
 #ifdef LRU
 	db->is_volatile = yes;
-	if (yes)
-		return setwdelay(db, TRUE);
+	result = yes ? setwdelay(db, TRUE) : 0;
 #else
 	(void) yes;
+	result = 0;
 #endif
-	return 0;
+
+	sdbm_return(db, result);
 }
 
 bool
 sdbm_rdonly(DBM *db)
 {
+	bool rdonly;
+
 	sdbm_check(db);
-	return 0 != (db->flags & DBM_RDONLY);
+
+	sdbm_synchronize(db);
+	rdonly = 0 != (db->flags & DBM_RDONLY);
+	sdbm_return(db, rdonly);
 }
 
 bool
 sdbm_error(DBM *db)
 {
+	bool error;
+
 	sdbm_check(db);
-	return 0 != (db->flags & (DBM_IOERR | DBM_IOERR_W));
+
+	sdbm_synchronize(db);
+	error = 0 != (db->flags & (DBM_IOERR | DBM_IOERR_W));
+	sdbm_return(db, error);
 }
 
 void
 sdbm_clearerr(DBM *db)
 {
 	sdbm_check(db);
+
+	sdbm_synchronize(db);
 	db->flags &= ~(DBM_IOERR | DBM_IOERR_W);
+	sdbm_unsynchronize(db);
 }
 
 int
 sdbm_dirfno(DBM *db)
 {
+	int fno;
+
 	sdbm_check(db);
 
-	if G_UNLIKELY(db->flags & DBM_BROKEN)
-		return -1;
+	sdbm_synchronize(db);
 
-	return db->dirf;
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		fno = -1;
+	else
+		fno = db->dirf;
+
+	sdbm_return(db, fno);
 }
 
 int
 sdbm_pagfno(DBM *db)
 {
+	int fno;
+
 	sdbm_check(db);
 
-	if G_UNLIKELY(db->flags & DBM_BROKEN)
-		return -1;
+	sdbm_synchronize(db);
 
-	return db->pagf;
+	if G_UNLIKELY(db->flags & DBM_BROKEN)
+		fno = -1;
+	else
+		fno = db->pagf;
+
+	sdbm_return(db, fno);
 }
 
 int
 sdbm_datfno(DBM *db)
 {
+	int fno;
+
 	sdbm_check(db);
 
+	sdbm_synchronize(db);
+
 	if G_UNLIKELY(db->flags & DBM_BROKEN)
-		return -1;
+		fno = -1;
 
 #ifdef BIGDATA
-	return big_datfno(db);
+	fno = big_datfno(db);
 #else
-	return -1;
+	fno = -1;
 #endif
+
+	sdbm_return(db, fno);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

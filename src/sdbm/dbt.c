@@ -42,7 +42,7 @@ extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
 
 char *progname;
 static bool progress;
-static bool shrink, rebuild;
+static bool shrink, rebuild, thread_safe;
 static bool randomize;
 static unsigned rseed;
 static bool unlink_db;
@@ -57,7 +57,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-bdeiikprstvwBDEKSUV] [-R seed] [-c pages] dbname count\n"
+		"Usage: %s [-bdeiikprstvwBDEKSTUV] [-R seed] [-c pages] dbname count\n"
 		"  -b : rebuild the database\n"
 		"  -c : set LRU cache size\n"
 		"  -d : perform delete test\n"
@@ -76,6 +76,7 @@ usage(void)
 		"  -K : use large keys with common head/tail parts\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : shrink database before testing\n"
+		"  -T : make database handle thread-safe\n"
 		"  -U : unlink database at the end\n"
 		"  -V : consider database as volatile\n",
 		progname);
@@ -99,6 +100,8 @@ open_db(const char *name, bool writeable, long cache, int wflags)
 		oops("error opening database \"%s\" in %s mode",
 			name, writeable ? "writing" : "reading");
 	}
+	if (thread_safe)
+		sdbm_thread_safe(db);
 	if (cache != 0) {
 		if (-1 == sdbm_set_cache(db, cache)) {
 			oops("error configuring LRU cache for \"%s\"", name);
@@ -436,7 +439,7 @@ main(int argc, char **argv)
 	mingw_early_init();
 	progname = argv[0];
 
-	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStUvVw")) != EOF) {
+	while ((c = getopt(argc, argv, "bBc:dDeEikKprR:sStTUvVw")) != EOF) {
 		switch (c) {
 		case 'B':			/* rebuild before testing */
 			rebuild++;
@@ -489,6 +492,9 @@ main(int argc, char **argv)
 		case 't':			/* timing report */
 			tflag++;
 			break;
+		case 'T':			/* thread safe */
+			thread_safe++;
+			break;
 		case 'U':			/* unlink database */
 			unlink_db++;
 			break;
@@ -524,6 +530,9 @@ main(int argc, char **argv)
 
 	if (shrink)
 		printf("Database will shrunk before each test.\n");
+
+	if (thread_safe)
+		printf("Database handle will be opened in thread-safe mode.\n");
 
 	if (large_keys)
 		printf("Will be using large keys%s.\n",
