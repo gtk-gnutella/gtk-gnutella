@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2010, 2012 Raphael Manfredi
+ * Copyright (c) 2001-2010, 2012-2013 Raphael Manfredi
  * Copyright (c) 2003-2008, Christian Biere
  *
  *----------------------------------------------------------------------
@@ -51,7 +51,7 @@
  * the generated random IDs.
  *
  * @author Raphael Manfredi
- * @date 2001-2010, 2012
+ * @date 2001-2010, 2012-2013
  * @author Christian Biere
  * @date 2003-2008
  */
@@ -68,6 +68,7 @@
 #include "mtwist.h"
 #include "pow2.h"
 #include "sha1.h"
+#include "spinlock.h"
 #include "tm.h"
 #include "unsigned.h"
 
@@ -331,7 +332,9 @@ random_cpu_noise(void)
 	struct sha1 digest;
 	SHA1Context ctx;
 	uint32 r, i;
-	
+
+	/* No need to make this routine thread-safe as we want noise anyway */
+
 	r = random_u32();
 	i = r % G_N_ELEMENTS(data);
 	data[i] = r;
@@ -357,9 +360,12 @@ random_add_pool(void *buf, size_t len)
 {
 	static uchar data[256];
 	static size_t idx;
+	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
 	size_t n;
 	bool flushed = FALSE;
+
+	spinlock(&pool_slk);
 
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < G_N_ELEMENTS(data));
@@ -377,6 +383,8 @@ random_add_pool(void *buf, size_t len)
 			flushed = TRUE;
 		}
 	}
+
+	spinunlock(&pool_slk);
 
 	return flushed;
 }
@@ -397,12 +405,16 @@ random_collect(void (*cb)(void))
 	static time_delta_t prev;
 	static time_delta_t running;
 	static unsigned sum;
+	static spinlock_t collect_slk = SPINLOCK_INIT;
 	tm_t now;
 	time_delta_t d;
 	unsigned r, m, a;
 	uchar rbyte;
 
 	tm_now_exact(&now);
+
+	spinlock(&collect_slk);
+
 	d = tm_elapsed_ms(&now, &last);
 	m = tm2us(&now);
 
@@ -446,6 +458,8 @@ random_collect(void (*cb)(void))
 
 	sum += r;
 	rbyte = sum & 0xff;
+
+	spinunlock(&collect_slk);
 
 	random_pool_append(&rbyte, sizeof rbyte, cb);
 }
