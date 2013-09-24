@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2003, Christian Biere
+ * Copyright (c) 2009-2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -30,6 +31,9 @@ typedef struct hash_list_iter hash_list_iter_t;
 typedef struct hash_list hash_list_t;
 
 hash_list_t *hash_list_new(hash_fn_t, eq_fn_t);
+void hash_list_thread_safe(hash_list_t *);
+void hash_list_lock(hash_list_t *);
+void hash_list_unlock(hash_list_t *);
 void hash_list_free(hash_list_t **);
 void hash_list_free_all(hash_list_t **hl_ptr, free_fn_t freecb);
 void *hash_list_remove(hash_list_t *, const void *key);
