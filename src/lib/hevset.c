@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -49,8 +49,11 @@
  *
  * The API is closer to hash sets than to hash tables.
  *
+ * Each hash set object can be made thread-safe, optionally, so that
+ * concurrent access to it be possible.
+ *
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
@@ -284,6 +287,52 @@ hevset_free_null(hevset_t **hx_ptr)
 }
 
 /**
+ * Mark hash set as thread-safe.
+ */
+void
+hevset_thread_safe(hevset_t *ht)
+{
+	hevset_check(ht);
+
+	hash_thread_safe(HASH(ht));
+}
+
+/**
+ * Lock the hash set to allow a sequence of operations to be atomically
+ * conducted.
+ *
+ * It is possible to lock the set several times as long as each locking
+ * is paired with a corresponding unlocking in the execution flow.
+ *
+ * The set must have been marked thread-safe already.
+ */
+void
+hevset_lock(hevset_t *hx)
+{
+	hevset_check(hx);
+	g_assert_log(hx->lock != NULL,
+		"%s(): hash set %p not marked thread-safe", G_STRFUNC, hx);
+
+	mutex_lock(hx->lock);
+}
+
+/*
+ * Release lock on hash set.
+ *
+ * The set must have been marked thread-safe already and locked by the
+ * calling thread.
+ */
+void
+hevset_unlock(hevset_t *hx)
+{
+	hevset_check(hx);
+	g_assert_log(hx->lock != NULL,
+		"%s(): hash set %p not marked thread-safe", G_STRFUNC, hx);
+
+	mutex_unlock(hx->lock);
+}
+
+/**
  * Insert item in hash set.
  *
  * Any previously existing value for the key is replaced by the new one.
@@ -303,8 +352,12 @@ hevset_insert_key(hevset_t *ht, const void *key)
 	hevset_check(ht);
 	g_assert(key != NULL);
 
+	hash_synchronize(HASH(ht));
+
 	hash_insert_key(HASH(ht), key);
 	ht->stamp++;
+
+	hash_return_void(HASH(ht));
 }
 
 /**
@@ -327,8 +380,12 @@ hevset_insert(hevset_t *ht, const void *value)
 	g_assert(value != NULL);
 
 	key = const_ptr_add_offset(value, ht->offset);
+	hash_synchronize(HASH(ht));
+
 	hash_insert_key(HASH(ht), key);
 	ht->stamp++;
+
+	hash_return_void(HASH(ht));
 }
 
 /**
@@ -342,10 +399,14 @@ hevset_insert(hevset_t *ht, const void *value)
 bool
 hevset_contains(const hevset_t *hx, const void *key)
 {
+	bool found;
+
 	hevset_check(hx);
 	g_assert(key != NULL);
 
-	return (size_t) -1 != hash_lookup_key(HASH(hx), key);
+	hash_synchronize(HASH(hx));
+	found = (size_t) -1 != hash_lookup_key(HASH(hx), key);
+	hash_return(HASH(hx), found);
 }
 
 /**
@@ -360,18 +421,19 @@ void *
 hevset_lookup(const hevset_t *ht, const void *key)
 {
 	size_t idx;
-	void *kptr;
+	void *value;
 
 	hevset_check(ht);
 	g_assert(key != NULL);
 
+	hash_synchronize(HASH(ht));
 	idx = hash_lookup_key(HASH(ht), key);
 
 	if ((size_t) -1 == idx)
-		return NULL;
+		hash_return(HASH(ht), NULL);
 
-	kptr = deconstify_pointer(ht->kset.keys[idx]);
-	return ptr_add_offset(kptr, -ht->offset);
+	value = ptr_add_offset(deconstify_pointer(ht->kset.keys[idx]), -ht->offset);
+	hash_return(HASH(ht), value);
 }
 
 /**
@@ -391,17 +453,18 @@ hevset_lookup_extended(const hevset_t *ht, const void *key, void **valptr)
 
 	hevset_check(ht);
 
+	hash_synchronize(HASH(ht));
 	idx = hash_lookup_key(HASH(ht), key);
 
 	if ((size_t) -1 == idx)
-		return FALSE;
+		hash_return(HASH(ht), FALSE);
 
 	if (valptr != NULL) {
 		void *kptr = deconstify_pointer(ht->kset.keys[idx]);
 		*valptr = ptr_add_offset(kptr, -ht->offset);
 	}
 
-	return TRUE;
+	hash_return(HASH(ht), TRUE);
 }
 
 /**
@@ -412,10 +475,16 @@ hevset_lookup_extended(const hevset_t *ht, const void *key, void **valptr)
 bool
 hevset_remove(hevset_t *hx, const void *key)
 {
+	bool present;
+
 	hevset_check(hx);
 
+	hash_synchronize(HASH(hx));
+
 	hx->stamp++;
-	return hash_delete_key(HASH(hx), key);
+	present = hash_delete_key(HASH(hx), key);
+
+	hash_return(HASH(hx), present);
 }
 
 /**
@@ -424,9 +493,13 @@ hevset_remove(hevset_t *hx, const void *key)
 size_t
 hevset_count(const hevset_t *hx)
 {
+	size_t count;
+
 	hevset_check(hx);
 
-	return hx->kset.items;
+	hash_synchronize(HASH(hx));
+	count = hx->kset.items;
+	hash_return(HASH(hx), count);
 }
 
 /**
@@ -454,6 +527,8 @@ hevset_foreach(const hevset_t *hx, data_fn_t fn, void *data)
 
 	hevset_check(hx);
 
+	hash_synchronize(HASH(hx));
+
 	end = &hx->kset.hashes[hx->kset.size];
 	hash_refcnt_inc(HASH(hx));		/* Prevent any key relocation */
 
@@ -468,6 +543,7 @@ hevset_foreach(const hevset_t *hx, data_fn_t fn, void *data)
 	g_assert(n == hx->kset.items);
 
 	hash_refcnt_dec(HASH(hx));
+	hash_return_void(HASH(hx));
 }
 
 /**
@@ -501,6 +577,8 @@ hevset_foreach_remove(hevset_t *hx, data_rm_fn_t fn, void *data)
 
 	hevset_check(hx);
 
+	hash_synchronize(HASH(hx));
+
 	end = &hx->kset.hashes[hx->kset.size];
 	hash_refcnt_inc(HASH(hx));		/* Prevent any key relocation */
 
@@ -511,7 +589,7 @@ hevset_foreach_remove(hevset_t *hx, data_rm_fn_t fn, void *data)
 			n++;
 			if (r) {
 				nr++;
-				hash_keyset_erect_tombstone(&hx->kset, i);
+				hash_erect_tombstone(HASH(hx), i);
 				hx->stamp++;
 			}
 		}
@@ -527,7 +605,7 @@ hevset_foreach_remove(hevset_t *hx, data_rm_fn_t fn, void *data)
 	if (nr != 0)
 		hash_resize_as_needed(HASH(hx));
 
-	return nr;
+	hash_return(HASH(hx), nr);
 }
 
 /**
@@ -543,8 +621,13 @@ hevset_iter_new(const hevset_t *hx)
 	WALLOC0(hxi);
 	hxi->magic = HEVSET_ITER_MAGIC;
 	hxi->hx = hx;
+
+	hash_synchronize(HASH(hx));
+
 	hxi->stamp = hx->stamp;
 	hash_refcnt_inc(HASH(hx));
+
+	hash_unsynchronize(HASH(hx));
 
 	return hxi;
 }
@@ -559,9 +642,15 @@ hevset_iter_release(hevset_iter_t **hxi_ptr)
 
 	if (hxi != NULL) {
 		hevset_iter_check(hxi);
+
+		hash_synchronize(HASH(hxi->hx));
+
 		hash_refcnt_dec(HASH(hxi->hx));
 		if (hxi->deleted && 0 == hxi->hx->refcnt)
 			hash_resize_as_needed(HASH(hxi->hx));
+
+		hash_unsynchronize(HASH(hxi->hx));
+
 		hxi->magic = 0;
 		WFREE(hxi);
 		*hxi_ptr = NULL;
@@ -584,17 +673,20 @@ hevset_iter_next(hevset_iter_t *hxi, void **vp)
 	hevset_iter_check(hxi);
 
 	hx = hxi->hx;
+	hash_synchronize(HASH(hx));
 
 	while (hxi->pos < hx->kset.size && !HASH_IS_REAL(hx->kset.hashes[hxi->pos]))
 		hxi->pos++;
 
 	if (hxi->pos >= hx->kset.size)
-		return FALSE;
+		hash_return(HASH(hx), FALSE);
 
 	if (vp != NULL) {
 		void *kptr = deconstify_pointer(hx->kset.keys[hxi->pos]);
 		*vp = ptr_add_offset(kptr, -hx->offset);
 	}
+
+	hash_unsynchronize(HASH(hx));
 
 	hxi->pos++;
 	return TRUE;
@@ -614,9 +706,13 @@ hevset_iter_remove(hevset_iter_t *hxi)
 	g_assert(hxi->pos <= hxi->hx->kset.size);
 
 	hx = deconstify_pointer(hxi->hx);
+	hash_synchronize(HASH(hx));
+
 	idx = hxi->pos - 1;		/* Current item */
-	if (hash_keyset_erect_tombstone(&hx->kset, idx))
+	if (hash_erect_tombstone(HASH(hx), idx))
 		hx->kset.items--;
+
+	hash_unsynchronize(HASH(hx));
 	hxi->deleted = TRUE;
 }
 

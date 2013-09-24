@@ -80,6 +80,9 @@ hikset_t *hikset_create_any(size_t offset, hash_fn_t primary, eq_fn_t eq);
 hikset_t *hikset_create_any_real(size_t offset, hash_fn_t primary, eq_fn_t eq);
 void hikset_free_null(hikset_t **);
 void hikset_clear(hikset_t *);
+void hikset_thread_safe(hikset_t *);
+void hikset_lock(hikset_t *);
+void hikset_unlock(hikset_t *);
 
 bool hikset_contains(const hikset_t *, const void *key);
 void hikset_insert_key(hikset_t *hik, const void *keyptr);

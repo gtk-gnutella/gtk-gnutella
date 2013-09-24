@@ -82,6 +82,9 @@ hevset_t *hevset_create_any_real(size_t offset, hash_fn_t primary,
 	hash_fn_t secondary, eq_fn_t eq);
 void hevset_free_null(hevset_t **);
 void hevset_clear(hevset_t *);
+void hevset_thread_safe(hevset_t *);
+void hevset_lock(hevset_t *);
+void hevset_unlock(hevset_t *);
 
 bool hevset_contains(const hevset_t *, const void *key);
 void hevset_insert_key(hevset_t *ht, const void *key);

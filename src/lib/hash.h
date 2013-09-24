@@ -34,6 +34,8 @@
 #ifndef _hash_h_
 #define _hash_h_
 
+#include "mutex.h"
+
 enum hash_key_type {
 	HASH_KEY_SELF,		/* Self-representing value */
 	HASH_KEY_STRING,	/* Strings, NUL-terminated buffer of variable length */
@@ -134,6 +136,7 @@ struct hash_ops {
 	size_t refcnt;				/* Iterator reference count */ \
 	size_t stamp;				/* Modification stamp */ \
 	struct hkeys kset;			/* Set of keys */	\
+	mutex_t *lock;				/* Thread-safe lock (optional) */ \
 	const struct hash_ops *ops;	/* Polymorphism */
 
 /**
@@ -142,6 +145,39 @@ struct hash_ops {
 struct hash {
 	HASH_COMMON_ATTRIBUTES
 };
+
+/*
+ * Thread-safe synchronization support.
+ */
+
+void hash_thread_safe(struct hash *h);
+
+#define hash_synchronize(h) G_STMT_START {			\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_lock((h)->lock);						\
+} G_STMT_END
+
+#define hash_unsynchronize(h) G_STMT_START {		\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_unlock((h)->lock);					\
+} G_STMT_END
+
+#define hash_return(h, v) G_STMT_START {			\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_unlock((h)->lock);					\
+	return v;										\
+} G_STMT_END
+
+#define hash_return_void(h) G_STMT_START {			\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		mutex_unlock((h)->lock);					\
+	return;											\
+} G_STMT_END
+
+#define assert_hash_locked(h) G_STMT_START {		\
+	if G_UNLIKELY((h)->lock != NULL) 				\
+		assert_mutex_is_owned((h)->lock);			\
+} G_STMT_END
 
 /*
  * Protected interface.
@@ -157,7 +193,6 @@ void hash_keyhash_any_setup(struct hkeys *hk,
 	hash_fn_t primary, hash_fn_t secondary, eq_fn_t eq);
 void hash_keyhash_data_setup(struct hkeys *hk,
 	hash_data_fn_t hash, void *data, eq_data_fn_t eq);
-bool hash_keyset_erect_tombstone(struct hkeys *hk, size_t idx);
 
 /*
  * Routines with a hash parameter also handle values, if any, when resizing.
@@ -169,6 +204,7 @@ bool hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
 bool hash_delete_key(struct hash *h, const void *key);
+bool hash_erect_tombstone(struct hash *h, size_t idx);
 
 void hash_refcnt_inc(const struct hash *h);
 void hash_refcnt_dec(const struct hash *h);
