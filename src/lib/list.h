@@ -44,8 +44,9 @@ void *list_shift(list_t *list);
 void *list_head(const list_t *list);
 void *list_tail(const list_t *list);
 uint list_length(const list_t *list);
-bool list_contains(list_t *list, const void *key,
+bool list_contains(const list_t *list, const void *key,
 		GEqualFunc func, void **orig_key);
+bool list_contains_identical(const list_t *list, const void *key);
 void list_foreach(const list_t *list, GFunc func, void *user_data);
 void list_free_all(list_t **list_ptr, list_destroy_cb freecb);
 

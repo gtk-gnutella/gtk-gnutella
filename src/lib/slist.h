@@ -32,6 +32,9 @@ typedef struct slist slist_t;
 
 slist_t *slist_new(void);
 void slist_free(slist_t **slist_ptr);
+void slist_thread_safe(slist_t *sl);
+void slist_lock(slist_t *sl);
+void slist_unlock(slist_t *sl);
 bool slist_remove(slist_t *slist, void *key);
 void *slist_shift(slist_t *slist);
 void slist_append(slist_t *slist, void *key);
