@@ -266,6 +266,15 @@ tm_thread_main(void *unused_arg)
 		} else {
 			prev = now;
 		}
+
+		/*
+		 * Do NOT use thread_sleep_ms() here since we do not expect any
+		 * signal in this thread.  It could also be dangerous because the
+		 * thread_sleep_ms() routine uses condition variables, and we would
+		 * not be protected against a sudden system clock adjustment, making
+		 * us wait for a long time...
+		 */
+
 		compat_sleep_ms(TM_THREAD_PERIOD);
 	}
 

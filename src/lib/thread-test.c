@@ -1003,6 +1003,9 @@ test_rwlock(void)
 }
 
 static bool test_signals_done;
+static int test_signals_count;
+
+#define TEST_SIGNALS_COUNT	3
 
 static void
 test_sighandler(int sig)
@@ -1018,6 +1021,14 @@ test_sigdone(int sig)
 	fflush(stdout);
 
 	test_signals_done = TRUE;
+}
+
+static void
+test_sigcount(int sig)
+{
+	printf("%s got signal #%d (count = %u)\n", thread_name(), sig,
+		++test_signals_count);
+	fflush(stdout);
 }
 
 static void *
@@ -1053,6 +1064,27 @@ signalled_thread(void *unused_arg)
 	return NULL;
 }
 
+static void *
+sleeping_thread(void *unused_arg)
+{
+	tm_t start, end;
+
+	(void) unused_arg;
+
+	thread_signal(TSIG_1, test_sigcount);
+	tm_now_exact(&start);
+	thread_sleep_ms(2000);
+	tm_now_exact(&end);
+
+	printf("%s() slept %u ms (expected 2000 ms)\n", G_STRFUNC,
+		(uint) tm_elapsed_ms(&end, &start));
+	fflush(stdout);
+
+	g_assert(TEST_SIGNALS_COUNT == test_signals_count);
+
+	return NULL;
+}
+
 static void
 test_signals(void)
 {
@@ -1082,6 +1114,18 @@ test_signals(void)
 	}
 
 	thread_kill(r, TSIG_3);
+	thread_join(r, NULL);
+
+	printf("%s() now checking thread_sleep_ms()\n", G_STRFUNC);
+	fflush(stdout);
+
+	r = thread_create(sleeping_thread, NULL, 0, 0);
+	thread_sleep_ms(500);		/* Give it time to setup */
+	for (i = 0; i < TEST_SIGNALS_COUNT; i++) {
+		if (-1 == thread_kill(r, TSIG_1))
+			s_error("thread #%d cannot be signalled: %m", r);
+		thread_sleep_ms(500);	/* Give it time to process signal */
+	}
 	thread_join(r, NULL);
 }
 

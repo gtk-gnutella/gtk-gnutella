@@ -82,6 +82,7 @@
 #include "cq.h"
 #include "crash.h"				/* For print_str() et al. */
 #include "fd.h"					/* For fd_close() */
+#include "gentime.h"
 #include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
@@ -96,6 +97,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
 #include "walloc.h"
@@ -6533,6 +6535,83 @@ thread_pause(void)
 		thread_sig_handle(te);
 
 	return signalled;
+}
+
+/**
+ * Suspend thread execution for a specified amount of milliseconds.
+ *
+ * This is also a thread signal handling point and therefore it should be
+ * used instead of compat_sleep_ms() when a thread wishes to suspend its
+ * execution for some time and yet be able to receive signals as well.
+ *
+ * A thread suspending its execution voluntarily must not be holding any
+ * locks, as this is a high-level sleep routine: the calling thread must
+ * really be done with its processing and simply wishes to be unscheduled
+ * for some time.
+ *
+ * During the suspension, the thread is able to process signals that would
+ * be directed to it and for which a handler has been configured.
+ *
+ * @param ms		amount of milliseconds to sleep
+ */
+void
+thread_sleep_ms(unsigned int ms)
+{
+	static mutex_t sleep_mtx = MUTEX_INIT;
+	tm_t start, now;
+	gentime_t gstart, gnow;
+	unsigned int elapsed, gs;
+	time_delta_t gelapsed;
+
+	thread_assert_no_locks(G_STRFUNC);
+
+	/*
+	 * The initial tm_now_exact() call is done before grabbing the mutex
+	 * to allow for pending signal handling from within tm_now_exact(), given
+	 * that we do not hold any lock presently.
+	 */
+
+	tm_now_exact(&start);			/* Will also check for suspension */
+	gstart = gentime_now();			/* In case of sudden clock adjustment */
+	gs = (ms + 999) / 1000;			/* Waiting time in seconds, rounded up */
+	mutex_lock(&sleep_mtx);			/* Necessary for condition variable */
+
+retry:
+	/*
+	 * To protect against the system clock being updated whilst we are waiting,
+	 * we account for the overall time spent "sleeping" ourselves.  The
+	 * gentime computation is a safeguard against clock adjustments, but has
+	 * only a second accurary.  However, it is not important because its
+	 * purpose is to avoid us being stuck here for much longer than 1 second.
+	 */
+
+	tm_now_exact(&now);
+	gnow = gentime_now();			/* Accurate because of tm_now_exact() */
+	elapsed = tm_elapsed_ms(&now, &start);
+	gelapsed = gentime_diff(gnow, gstart);
+
+	if (elapsed < ms && UNSIGNED(gelapsed) <= gs) {
+		static cond_t sleep_cond = COND_INIT;
+		unsigned int remain = ms - elapsed;
+		tm_t timeout;
+
+		tm_fill_ms(&timeout, remain);
+
+		/*
+		 * To give the sleeping thread the ability to quickly process incoming
+		 * signals, we use a condition variable with a timeout.
+		 * See thread_kill() to see how waking-up is handled.
+		 *
+		 * Since nobody is waking us up but signal processing and system
+		 * clock adjustments (as detected and signalled by the "time" thread)
+		 * we know that a wake up is abnormal and we need to retry.
+		 */
+
+		if (cond_timed_wait(&sleep_cond, &sleep_mtx, &timeout))
+			goto retry;
+	}
+
+	mutex_unlock(&sleep_mtx);
 }
 
 /**
