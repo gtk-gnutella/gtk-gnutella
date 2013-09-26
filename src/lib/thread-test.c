@@ -39,14 +39,17 @@
 #include "compat_sleep_ms.h"
 #include "cond.h"
 #include "cq.h"
-#include "signal.h"
+#include "getcpucount.h"
+#include "halloc.h"
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"
 #include "parse.h"
 #include "path.h"
+#include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
@@ -67,7 +70,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsABCEFIMNOPQRS] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsABCEFIMNOPQRSX] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
@@ -88,6 +91,7 @@ usage(void)
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
 		"  -T : test condition layer via tennis session for specified secs\n"
+		"  -X : exercise concurrent memory allocation\n"
 		"Values given as decimal, hexadecimal (0x), octal (0) or binary (0b)\n"
 		, progname);
 	exit(EXIT_FAILURE);
@@ -1236,6 +1240,147 @@ test_barrier(unsigned repeat, bool emulated)
 	}
 }
 
+enum memory_alloc {
+	MEMORY_XMALLOC = 0,
+	MEMORY_HALLOC = 1,
+	MEMORY_WALLOC = 2,
+	MEMORY_VMM = 3,
+};
+
+struct memory {
+	enum memory_alloc type;
+	size_t size;
+	void *p;
+};
+
+#define MEMORY_VMM_MIN			4096
+#define MEMORY_VMM_MAX			16384
+#define MEMORY_VMM_PROPORTION	20
+
+#define MEMORY_MIN	8
+#define MEMORY_MAX	8192
+
+#define MEMORY_ALLOCATIONS	4096
+
+static void *
+exercise_memory(void *arg)
+{
+	struct memory *mem;
+	int i;
+
+	(void) arg;
+
+	XMALLOC_ARRAY(mem, MEMORY_ALLOCATIONS);
+
+	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+		struct memory *m = &mem[i];
+
+		if (random_value(99) < MEMORY_VMM_PROPORTION) {
+			m->type = MEMORY_VMM;
+			m->size = MEMORY_VMM_MIN +
+				random_value(MEMORY_VMM_MAX - MEMORY_VMM_MIN);
+		} else {
+			m->type = random_value(2);
+			m->size = MEMORY_MIN + random_value(MEMORY_MAX - MEMORY_MIN);
+		}
+	}
+
+	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+		struct memory *m = &mem[i];
+
+		switch (m->type) {
+		case MEMORY_XMALLOC:
+			m->p = xmalloc(m->size);
+			break;
+		case MEMORY_HALLOC:
+			m->p = halloc(m->size);
+			break;
+		case MEMORY_WALLOC:
+			m->p = walloc(m->size);
+			break;
+		case MEMORY_VMM:
+			m->p = vmm_alloc(m->size);
+			break;
+		default:
+			g_assert_not_reached();
+		}
+	}
+
+	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
+		struct memory *m = &mem[i];
+
+		switch (m->type) {
+		case MEMORY_XMALLOC:
+			xfree(m->p);
+			break;
+		case MEMORY_HALLOC:
+			hfree(m->p);
+			break;
+		case MEMORY_WALLOC:
+			wfree(m->p, m->size);
+			break;
+		case MEMORY_VMM:
+			vmm_free(m->p, m->size);
+			break;
+		default:
+			g_assert_not_reached();
+		}
+	}
+
+	XFREE_NULL(mem);
+
+	return NULL;
+}
+
+static void
+test_memory_one(void)
+{
+	long cpus = getcpucount();
+	int *t, i, n;
+
+	n = cpus + 1;
+
+	WALLOC_ARRAY(t, n);
+
+	for (i = 0; i < n; i++) {
+		int r = thread_create(exercise_memory, NULL, 0, THREAD_STACK_MIN);
+		if (-1 == r)
+			s_error("cannot create thread: %m");
+		t[i] = r;
+	}
+
+	for (i = 0; i < n; i++) {
+		thread_join(t[i], NULL);
+	}
+
+	WFREE_ARRAY(t, n);
+}
+
+static void
+test_memory(unsigned repeat)
+{
+	long cpus = getcpucount();
+	unsigned i;
+
+	printf("%s() detected %ld CPU%s\n", G_STRFUNC, cpus, 1 == cpus ? "" : "s");
+
+	for (i = 0; i < repeat; i++) {
+		tm_t start, end, elapsed;
+
+		tm_now_exact(&start);
+		test_memory_one();
+		tm_now_exact(&end);
+
+		tm_elapsed(&elapsed, &end, &start);
+
+		printf("%s() #%d finished! (%f secs)\n", G_STRFUNC, i, tm2f(&elapsed));
+		fflush(stdout);
+	}
+
+	printf("%s() done!\n", G_STRFUNC);
+	fflush(stdout);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -1261,7 +1406,7 @@ main(int argc, char **argv)
 	bool create = FALSE, join = FALSE, sem = FALSE, emulated = FALSE;
 	bool play_tennis = FALSE, monitor = FALSE, noise = FALSE, posix = FALSE;
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
-	bool signals = FALSE, barrier = FALSE, overflow = FALSE;
+	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	unsigned repeat = 1, play_time = 0;
 
 	mingw_early_init();
@@ -1271,7 +1416,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNOPQRST:")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNOPQRST:X")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -1315,6 +1460,9 @@ main(int argc, char **argv)
 		case 'T':			/* test condition layer */
 			play_time = get_number(optarg, c);
 			play_tennis = TRUE;
+			break;
+		case 'X':			/* exercise memory allocation */
+			memory = TRUE;
 			break;
 		case 'e':			/* use emulated semaphores */
 			emulated = TRUE;
@@ -1375,6 +1523,9 @@ main(int argc, char **argv)
 
 	if (barrier)
 		test_barrier(repeat, emulated);
+
+	if (memory)
+		test_memory(repeat);
 
 	exit(EXIT_SUCCESS);	/* Required to cleanup semaphores if not destroyed */
 }
