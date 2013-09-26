@@ -113,44 +113,73 @@ union align {
   char		bytes[MEM_ALIGNBYTES];
 };
 
+static spinlock_t hpage_slk = SPINLOCK_INIT;
+
+#define HPAGE_LOCK			spinlock(&hpage_slk)
+#define HPAGE_UNLOCK		spinunlock(&hpage_slk)
+
 static inline size_t
 page_lookup(const void *p)
 {
+	size_t result;
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_lookup(pt_pages, p);
+		result = page_table_lookup(pt_pages, p);
 	} else {
-		return (size_t) hash_table_lookup(ht_pages, p);
+		result = (size_t) hash_table_lookup(ht_pages, p);
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static inline int
 page_insert(const void *p, size_t size)
 {
+	int result;
+
+	g_assert(size != 0);
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_insert(pt_pages, p, size);
+		result = page_table_insert(pt_pages, p, size);
 	} else {
-		return hash_table_insert(ht_pages, p, size_to_pointer(size));
+		result = hash_table_insert(ht_pages, p, size_to_pointer(size));
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static inline void
 page_replace(const void *p, size_t size)
 {
+	g_assert(size != 0);
+
+	HPAGE_LOCK;
 	if (use_page_table) {
 		page_table_replace(pt_pages, p, size);
 	} else {
 		hash_table_replace(ht_pages, p, size_to_pointer(size));
 	}
+	HPAGE_UNLOCK;
 }
 
 static inline int
 page_remove(const void *p)
 {
+	int result;
+
+	HPAGE_LOCK;
 	if (use_page_table) {
-		return page_table_remove(pt_pages, p);
+		result = page_table_remove(pt_pages, p);
 	} else {
-		return hash_table_remove(ht_pages, p);
+		result = hash_table_remove(ht_pages, p);
 	}
+	HPAGE_UNLOCK;
+
+	return result;
 }
 
 static void
@@ -158,7 +187,7 @@ hdestroy_page_table_item(void *key, size_t size, void *unused_udata)
 {
 	(void) unused_udata;
 	g_assert(size > 0);
-	hfree(key);
+	vmm_free(key, size);
 }
 
 static void
@@ -166,12 +195,13 @@ hdestroy_hash_table_item(const void *key, void *value, void *unused_udata)
 {
 	(void) unused_udata;
 	g_assert((size_t) value > 0);
-	hfree(deconstify_pointer(key));
+	vmm_free(deconstify_pointer(key), pointer_to_size(value));
 }
 
 static inline void
 page_destroy(void)
 {
+	HPAGE_LOCK;
 	if (use_page_table) {
 		page_table_foreach(pt_pages, hdestroy_page_table_item, NULL);
 		page_table_destroy(pt_pages);
@@ -181,6 +211,7 @@ page_destroy(void)
 		hash_table_destroy(ht_pages);
 		ht_pages = NULL;
 	}
+	HPAGE_UNLOCK;
 }
 
 static inline size_t
@@ -550,11 +581,13 @@ halloc_init_once(void)
 	use_page_table = (size_t) -1 == (uint32) -1 && 4096 == halloc_pagesize;
 	xpmalloc_threshold = halloc_pagesize - MAX(8, MEM_ALIGNBYTES);	/* XXX */
 
+	HPAGE_LOCK;
 	if (use_page_table) {
 		pt_pages = page_table_new();
 	} else {
 		ht_pages = hash_table_new();
 	}
+	HPAGE_UNLOCK;
 }
 
 void
