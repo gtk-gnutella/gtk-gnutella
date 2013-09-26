@@ -6066,7 +6066,7 @@ xgc(void)
 
 		if G_UNLIKELY(fl->expand) {
 			mutex_lock(&fl->lock);
-			if G_UNLIKELY(fl->expand) {
+			if G_UNLIKELY(!fl->expand) {
 				mutex_unlock(&fl->lock);
 				continue;
 			}
