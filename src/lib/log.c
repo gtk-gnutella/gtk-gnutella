@@ -195,11 +195,6 @@ logagent_check(const struct logagent * const la)
  */
 static struct logfile logfile[LOG_MAX_FILES];
 
-#define log_flush_out()	\
-	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
-#define log_flush_err()	\
-	flush_str(G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
-
 #define log_flush_out_atomic()	\
 	flush_str_atomic(			\
 		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
@@ -207,7 +202,6 @@ static struct logfile logfile[LOG_MAX_FILES];
 #define log_flush_err_atomic()	\
 	flush_str_atomic(			\
 		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
-
 
 /**
  * This is used to detect recurstions.
@@ -706,9 +700,9 @@ log_abort(void)
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 		print_str(" -- invoking crash_handler()\n");		/* 2 */
-		log_flush_err();
+		log_flush_err_atomic();
 		if (log_stdout_is_distinct())
-			log_flush_out();
+			log_flush_out_atomic();
 
 		crash_handler(SIGABRT);
 
@@ -723,9 +717,9 @@ log_abort(void)
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 		print_str(" -- exiting\n");		/* 2 */
-		log_flush_err();
+		log_flush_err_atomic();
 		if (log_stdout_is_distinct())
-			log_flush_out();
+			log_flush_out_atomic();
 
 		_exit(EXIT_FAILURE);	/* Immediate exit */
 	}
@@ -803,9 +797,9 @@ s_rawlogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	print_str(": ");			/* 8 */
 	print_str(data);			/* 9 */
 	print_str("\n");			/* 10 */
-	log_flush_err();
+	log_flush_err_atomic();
 	if (copy && log_stdout_is_distinct())
-		log_flush_out();
+		log_flush_out_atomic();
 }
 
 /**
@@ -927,7 +921,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str("\" from ");	/* 3 */
 		print_str(caller);		/* 4 */
 		print_str("\n");		/* 5 */
-		log_flush_err();
+		log_flush_err_atomic();
 
 		/*
 		 * A recursion with an error message is always fatal.
@@ -980,7 +974,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str("\" from ");	/* 3 */
 		print_str(stacktrace_caller_name(2));	/* 4 */
 		print_str("\n");		/* 5 */
-		log_flush_err();
+		log_flush_err_atomic();
 		ck_restore(ck, saved);
 		goto done;
 	}
@@ -1349,9 +1343,9 @@ s_minierror(const char *format, ...)
 	print_str(": ");						/* 3 */
 	print_str(data);						/* 4 */
 	print_str("\n");						/* 5 */
-	flush_err_str();
+	log_flush_err_atomic();
 	if (log_stdout_is_distinct())
-		log_flush_out();
+		log_flush_out_atomic();
 
 	if (1 == recursion)
 		s_stacktrace(TRUE, 1);
@@ -1706,7 +1700,7 @@ log_stdout_logv(const char *format, va_list args)
 
 	print_str(data);			/* 0 */
 	print_str("\n");			/* 1 */
-	log_flush_out();
+	log_flush_out_atomic();
 }
 
 /**
@@ -1969,8 +1963,8 @@ log_reopen(enum log_file which)
 			print_str(" (");		/* 5 */
 			print_str(g_strerror(errno));		/* 6 */
 			print_str(")\n");		/* 7 */
-			flush_str(fd);
-			log_flush_out();
+			flush_str_atomic(fd);
+			log_flush_out_atomic();
 		} else {
 			s_critical("freopen(\"%s\", \"a\", ...) failed: %m", lf->path);
 		}
