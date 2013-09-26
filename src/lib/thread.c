@@ -4096,7 +4096,7 @@ thread_lock_dump_self_if_any(int fd)
  * critical section protected by the lock as long as the lock is released
  * first and re-grabbed later on when the thread can resume its activities.
  *
- * @return TRUE if we were about to release the lock.
+ * @return TRUE if we were able to release the lock.
  */
 static bool
 thread_lock_release(const void *lock, enum thread_lock_kind kind)
