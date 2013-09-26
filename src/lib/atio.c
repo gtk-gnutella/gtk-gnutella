@@ -87,9 +87,18 @@ atio_write(int fd, const void *buf, size_t count)
 	ssize_t w;
 	spinlock_t *l = atio_get_lock(fd);
 
-	spinlock_hidden(l);
+	/*
+	 * We use raw spinlocks here to avoid any complication with spinlock_loop().
+	 * Indeed, atomic write operations are conducted from the logging layer
+	 * during critical messages, and we know by design that no deadlock can
+	 * occur on these locks.  Therefore, even if the lock operation was
+	 * delayed for some reason, we don't want to pollute the output with more
+	 * messages about a possible deadlock that we know cannot be.
+	 */
+
+	spinlock_raw(l);
 	w = write(fd, buf, count);
-	spinunlock_hidden(l);
+	spinunlock_raw(l);
 
 	return w;
 }
@@ -103,9 +112,9 @@ atio_writev(int fd, const iovec_t *iov, int iovcnt)
 	ssize_t w;
 	spinlock_t *l = atio_get_lock(fd);
 
-	spinlock_hidden(l);
+	spinlock_raw(l);
 	w = writev(fd, iov, iovcnt);
-	spinunlock_hidden(l);
+	spinunlock_raw(l);
 
 	return w;
 }
@@ -119,9 +128,9 @@ atio_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *f)
 	size_t w;
 	spinlock_t *l = atio_get_lock(fileno(f));
 
-	spinlock_hidden(l);
+	spinlock_raw(l);
 	w = fwrite(ptr, size, nmemb, f);
-	spinunlock_hidden(l);
+	spinunlock_raw(l);
 
 	return w;
 }
