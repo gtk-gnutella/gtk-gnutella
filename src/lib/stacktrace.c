@@ -39,6 +39,7 @@
 #include "concat.h"
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "dl_util.h"
+#include "eslist.h"
 #include "file.h"
 #include "halloc.h"
 #include "hashing.h"	/* For binary_hash() */
@@ -70,6 +71,7 @@
 
 #define STACKTRACE_DLFT_SYMBOLS	8192	/* Pre-sizing of symbol table */
 #define STACKTRACE_BUFFER_SIZE	8192	/* Amount reserved for stack tracing */
+#define STACKTRACE_BUFFER_COUNT	3		/* Amount of pre-allocated buffers */
 
 /**
  * Default stacktrace decoration flags we're using here.
@@ -92,14 +94,22 @@ static spinlock_t stacktrace_atom_slk = SPINLOCK_INIT;
 static once_flag_t stacktrace_atom_inited;
 
 /**
- * This buffer is allocated to construct the stack trace atomically to make
+ * The buffers are allocated to construct the stack trace atomically to make
  * sure it can be logged as a whole.
  */
-struct {
-	void *arena;
-	mutex_t lock;
-	bool inited;
+struct stackbuf {
+	str_t *s;				/**< String buffer, allocated once */
+	slink_t lnk;			/**< List of buffers */
+};
+
+static struct {
+	spinlock_t lock;		/**< Thread-safe lock */
+	eslist_t buffers;		/**< List of allocated string buffers */
+	bool inited;			/**< Whether it was inited */
 } stacktrace_buffer;
+
+#define STACKTRACE_BUFFER_LOCK		spinlock_hidden(&stacktrace_buffer.lock)
+#define STACKTRACE_BUFFER_UNLOCK	spinunlock_hidden(&stacktrace_buffer.lock)
 
 /**
  * Auto-tuning stack trace offset.
@@ -552,12 +562,74 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 static G_GNUC_COLD void
 stacktrace_buffer_init(void)
 {
+	static spinlock_t buffer_lck = SPINLOCK_INIT;
+	int i;
+
 	if G_UNLIKELY(stacktrace_buffer.inited)
 		return;		/* Avoid recursions */
 
+	spinlock(&buffer_lck);
+
+	if (stacktrace_buffer.inited) {
+		spinunlock(&buffer_lck);
+		return;
+	}
+
+	spinlock_init(&stacktrace_buffer.lock);
+	eslist_init(&stacktrace_buffer.buffers, offsetof(struct stackbuf, lnk));
 	stacktrace_buffer.inited = TRUE;
-	mutex_init(&stacktrace_buffer.lock);
-	stacktrace_buffer.arena = vmm_alloc_not_leaking(STACKTRACE_BUFFER_SIZE);
+
+	spinunlock(&buffer_lck);
+
+	/*
+	 * Populate some stacktrace buffer strings.
+	 */
+
+	for (i = 0; i < STACKTRACE_BUFFER_COUNT; i++) {
+		struct stackbuf *sb = vmm_alloc_not_leaking(STACKTRACE_BUFFER_SIZE);
+
+		/*
+		 * The stackbuf structure is at the top of the buffer, followed by
+		 * the str_t object, followed by the string arena.
+		 */
+
+		sb->s = str_new_in_buffer(&sb[1],
+			STACKTRACE_BUFFER_SIZE - ptr_diff(&sb[1], sb));
+
+		STACKTRACE_BUFFER_LOCK;
+		eslist_append(&stacktrace_buffer.buffers, sb);
+		STACKTRACE_BUFFER_UNLOCK;
+	}
+}
+
+/**
+ * Attempt to get a free stacktrace buffer string.
+ *
+ * @return a new stacktrace buffer string, NULL if none is available.
+ */
+static struct stackbuf *
+stacktrace_buffer_get(void)
+{
+	struct stackbuf *sb;
+
+	stacktrace_buffer_init();
+
+	STACKTRACE_BUFFER_LOCK;
+	sb = eslist_shift(&stacktrace_buffer.buffers);
+	STACKTRACE_BUFFER_UNLOCK;
+
+	return sb;
+}
+
+/**
+ * Put stacktrace buffer string back to the pool.
+ */
+static void
+stacktrace_buffer_release(struct stackbuf *sb)
+{
+	STACKTRACE_BUFFER_LOCK;
+	eslist_append(&stacktrace_buffer.buffers, sb);
+	STACKTRACE_BUFFER_UNLOCK;
 }
 
 /**
@@ -981,6 +1053,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	static char name[256];
 	static char tid[32];
 	str_t s, *trace = NULL;
+	struct stackbuf *sb = NULL;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
 	bool reached_main = FALSE;
 	int saved_errno = errno;
@@ -996,23 +1069,17 @@ stack_print_decorated_to(struct sxfile *xf,
 	str_new_buffer(&s, buf, 0, sizeof buf);
 
 	/*
-	 * If we have a pre-allocated buffer, use it to construct the stack
+	 * If we can grab a pre-allocated buffer, use it to construct the stack
 	 * trace so that we can atomically emit it in the logs without possible
 	 * output from other threads being intermixed.
 	 */
 
-	stacktrace_buffer_init();
+	sb = stacktrace_buffer_get();
 
-	if (NULL != stacktrace_buffer.arena) {
-		mutex_lock_fast(&stacktrace_buffer.lock);
-		if (1 == mutex_held_depth(&stacktrace_buffer.lock)) {
-			void *arena = stacktrace_buffer.arena;
-			trace = str_new_in_buffer(arena, STACKTRACE_BUFFER_SIZE);
-			g_assert(trace != NULL);
-			/* Keep mutex, since we hold the buffer */
-		} else {
-			mutex_unlock_fast(&stacktrace_buffer.lock);
-		}
+	if (NULL != sb) {
+		trace = sb->s;
+		g_assert(trace != NULL);
+		str_reset(trace);
 	}
 
 	/*
@@ -1272,7 +1339,8 @@ stack_print_decorated_to(struct sxfile *xf,
 			atio_write(xf->u.fd, str_2c(trace), str_len(trace));
 			break;
 		}
-		mutex_unlock_fast(&stacktrace_buffer.lock);
+		g_assert(sb != NULL);
+		stacktrace_buffer_release(sb);
 	}
 
 	/*
