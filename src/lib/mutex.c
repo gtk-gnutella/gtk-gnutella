@@ -91,12 +91,15 @@ mutex_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
+	unsigned stid;
 
 	mutex_check(m);
 
+	stid = thread_stid_from_thread(m->owner);
+
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p already held (depth %zu) by %s:%u",
-		obj, m->depth, m->lock.file, m->lock.line);
+	s_miniwarn("mutex %p already held (depth %zu) by %s:%u (%s)",
+		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid));
 #endif
 
 	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
@@ -114,7 +117,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 {
 	const volatile mutex_t *m = obj;
 	static int deadlocked;
-	int stid;
+	unsigned stid;
 
 	if (deadlocked != 0) {
 		if (1 == deadlocked)
@@ -131,16 +134,17 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	stid = thread_stid_from_thread(m->owner);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p still held (depth %zu, thread #%d) by %s:%u",
-		obj, m->depth, stid, m->lock.file, m->lock.line);
+	s_miniwarn("mutex %p still held (depth %zu) by %s:%u (%s)",
+		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid));
 #endif
 
-	if (-1 == stid)
+	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
-		"owned by thread #%d", obj, m->depth, elapsed, file, line, stid);
+		"owned by %s", obj, m->depth, elapsed, file, line,
+		thread_id_name(stid));
 }
 
 /**
@@ -240,8 +244,9 @@ mutex_destroy(mutex_t *m)
 		 */
 
 		if (1 != m->depth) {
-			s_minicrit("%s(): destroying owned mutex %p at depth=%zu",
-				G_STRFUNC, m, m->depth);
+			s_minicrit("%s(): destroying owned mutex %p at depth=%zu by %s",
+				G_STRFUNC, m, m->depth,
+				thread_id_name(thread_stid_from_thread(m->owner)));
 #ifdef SPINLOCK_DEBUG
 			s_miniwarn("%s(): mutex %p was initially locked by %s:%u",
 				G_STRFUNC, m, m->lock.file, m->lock.line);
@@ -258,8 +263,9 @@ mutex_destroy(mutex_t *m)
 		 */
 
 		s_minicrit("%s(): destroying locked mutex %p (depth %zu) "
-			"belonging to thread #%d",
-			G_STRFUNC, m, m->depth, thread_stid_from_thread(m->owner));
+			"belonging to %s",
+			G_STRFUNC, m, m->depth,
+			thread_id_name(thread_stid_from_thread(m->owner)));
 #ifdef SPINLOCK_DEBUG
 		s_miniwarn("%s(): mutex %p was initially locked by %s:%u",
 			G_STRFUNC, m, m->lock.file, m->lock.line);
