@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011-2013, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -43,7 +43,7 @@
  * on some platforms, unbeknown to us!
  *
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011-2013
  */
 
 #include "common.h"
@@ -356,6 +356,16 @@ xchunk_check(const struct xchunk * const xck)
 }
 
 /**
+ * Per-bucket temporary list of blocks whose insertion to the bucket was
+ * deferred due to the bucket being already locked by another thread.
+ */
+struct xdefer {
+	spinlock_t lock;		/**< Thread-safe lock */
+	size_t count;			/**< Amount of blocks chained */
+	void *head;				/**< Head of block list to return to bucker */
+};
+
+/**
  * Free list data structure.
  *
  * This is an array of structures pointing to allocated sorted arrays
@@ -372,6 +382,7 @@ xchunk_check(const struct xchunk * const xck)
  * The above function is linear by chunk and continuous.
  */
 static struct xfreelist {
+	struct xdefer deferred;	/**< Deferred blocks */
 	void **pointers;		/**< Sorted array of pointers */
 	size_t count;			/**< Amount of pointers held */
 	size_t capacity;		/**< Maximum amount of pointers that can be held */
@@ -470,6 +481,8 @@ static struct xstats {
 	uint64 realloc_promoted_to_walloc;		/**< Promoted to walloc() */
 	uint64 freelist_insertions;				/**< Insertions in freelist */
 	uint64 freelist_insertions_no_coalescing;	/**< Coalescing forbidden */
+	uint64 freelist_insertions_deferred;	/**< Deferred insertions */
+	uint64 freelist_deferred_processed;		/**< Deferred blocks processed */
 	uint64 freelist_bursts;					/**< Burst detection events */
 	uint64 freelist_burst_insertions;		/**< Burst insertions in freelist */
 	uint64 freelist_plain_insertions;		/**< Plain appending in freelist */
@@ -541,6 +554,13 @@ static void xmalloc_freelist_insert(void *p, size_t len,
 static void *xfl_bucket_alloc(const struct xfreelist *flb,
 	size_t size, bool core, size_t *allocated);
 static void xmalloc_crash_hook(void);
+static void xfl_process_deferred(struct xfreelist *fl);
+
+static inline bool
+xfl_has_deferred(const struct xfreelist * const fl)
+{
+	return 0 != fl->deferred.count;
+}
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
 
@@ -1253,12 +1273,18 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	 * release the old bucket even if it ends up being put in the same bucket
 	 * we just extended / shrunk.
 	 *
-	 * TODO: make sure there is no deadlock possible.  Inserting in the bucket
+	 * Make sure there is no deadlock possible.  Inserting in the bucket
 	 * will require grabing its mutex, and if another thread has it whilst
 	 * it is waiting for the mutex we're holding for this bucket we're
 	 * presently extending or shrinking, boom!.  Deadlock...
 	 * We'll need to defer insertion in the freelist until after we released
-	 * our fl->lock mutex.	--RAM, 2012-11-04
+	 * our fl->lock mutex.
+	 *		--RAM, 2012-11-04
+	 *
+	 * Added xfl_insert_careful() to make sure there are no deadlocks, which
+	 * can occur anytime we attempt to lock two freelist buckets in the same
+	 * execution thread.
+	 *		--RAM, 2013-09-27
 	 */
 
 	if (ptr != NULL)
@@ -1339,6 +1365,7 @@ xfl_shrink(struct xfreelist *fl)
 		}
 
 		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+
 		return FALSE;
 	}
 
@@ -1360,6 +1387,7 @@ xfl_shrink(struct xfreelist *fl)
 				new_ptr, allocated_size, xfl_index(fl));
 		}
 		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+
 		return FALSE;
 	}
 
@@ -1422,6 +1450,9 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 	if (
 		may_shrink && !fl->shrinking &&
 		fl->capacity - fl->count >= XM_BUCKET_INCREMENT &&
+		fl->capacity > (fl->count + fl->deferred.count) &&
+		fl->capacity - (fl->count + fl->deferred.count) >=
+			XM_BUCKET_INCREMENT &&
 		delta_time(tm_time(), fl->last_shrink) > XMALLOC_SHRINK_PERIOD
 	) {
 		/*
@@ -1764,6 +1795,7 @@ xfl_extend(struct xfreelist *fl)
 		}
 
 		xmalloc_freelist_add(new_ptr, allocated_size, XM_COALESCE_ALL);
+
 		return;
 	}
 
@@ -2022,6 +2054,15 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 
 	assert_mutex_is_owned(&fl->lock);
 
+	/*
+	 * We only process deferred blocks (reintegrating them in the bucket)
+	 * when we're not trying to insert into the bucket.  We know we're
+	 * about to insert when the caller is supplying a non-NULL low_ptr.
+	 */
+
+	if G_UNLIKELY(NULL == low_ptr && xfl_has_deferred(fl))
+		xfl_process_deferred(fl);
+
 	if G_UNLIKELY(0 == fl->count) {
 		if (low_ptr != NULL)
 			*low_ptr = 0;
@@ -2128,13 +2169,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	size_t idx;
 	bool sorted;
 
-	/*
-	 * We use a mutex and not a plain spinlock because we can recurse here
-	 * through freelist bucket allocations.  A mutex allows us to relock
-	 * an object we already locked in the same thread.
-	 */
-
-	mutex_lock(&fl->lock);
+	assert_mutex_is_owned(&fl->lock);
 
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->count <= fl->capacity);
@@ -2189,7 +2224,6 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 		 */
 
 		if G_UNLIKELY((size_t ) -1 != xfl_lookup(fl, p, &idx)) {
-			mutex_unlock(&fl->lock);
 			t_error_from(_WHERE_,
 				"block %p already in free list #%zu (%zu bytes)",
 				p, xfl_index(fl), fl->blocksize);
@@ -2215,6 +2249,9 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	}
 
 plain_insert:
+
+	g_assert_log(fl->count < fl->capacity,
+		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
 	G_PREFETCH_W(p);
 	G_PREFETCH_W(&fl->lock);
@@ -2269,8 +2306,144 @@ plain_insert:
 			p, fl->sorted != fl->count ? "unsorted " : "",
 			xfl_index(fl), fl->blocksize);
 	}
+}
 
-	mutex_unlock(&fl->lock);	/* Issues final memory barrier */
+/**
+ * Process deferred blocks in freelist.
+ */
+static void
+xfl_process_deferred(struct xfreelist *fl)
+{
+	struct xdefer *xdf = &fl->deferred;
+	size_t n = 0;
+
+	assert_mutex_is_owned(&fl->lock);
+
+	for (;;) {
+		spinlock(&xdf->lock);
+		if (0 != xdf->count) {
+			void *p;
+
+			p = xdf->head;
+			xdf->head = *(void **) p;	/* Next block in list, or NULL */
+			xdf->count--;
+			spinunlock(&xdf->lock);
+
+			if (xmalloc_debugging(5)) {
+				s_minidbg("XM %s() handling deferred block %p "
+					"in free list #%zu (%zu bytes), with %zu more",
+					G_STRFUNC, p, xfl_index(fl), fl->blocksize, xdf->count);
+			}
+
+			g_assert(p != NULL);
+
+			xfl_insert(fl, p, TRUE);
+			n++;
+
+			XSTATS_LOCK;
+			xstats.freelist_deferred_processed++;
+			XSTATS_UNLOCK;
+		} else {
+			spinunlock(&xdf->lock);
+			break;
+		}
+	}
+
+	if (n != 0 && xmalloc_debugging(0)) {
+		s_minidbg("XM %s() handled %zu deferred block%s "
+			"in free list #%zu (%zu bytes)",
+			G_STRFUNC, n, 1 == n ? "" : "s", xfl_index(fl), fl->blocksize);
+	}
+}
+
+/**
+ * Defer insertion of the block in the specified freelist.
+ *
+ * This is called when we were unable to lock the freelist bucket prior to
+ * calling xlf_insert() and we need to put the block in a temporary list
+ * which will be processed when it is safe to do so.
+ *
+ * @param fl		the freelist bucket
+ * @param p			address of the block to insert
+ */
+static void
+xfl_defer(struct xfreelist *fl, void *p)
+{
+	struct xdefer *xdf = &fl->deferred;
+
+	if (xmalloc_debugging(5)) {
+		s_minidbg("XM %s() enqueuing deferred block %p "
+			"in free list #%zu (%zu bytes), with %zu already present",
+			G_STRFUNC, p, xfl_index(fl), fl->blocksize, xdf->count);
+	}
+
+	/*
+	 * We cannot deadlock because we're only grabbing the lock on the
+	 * deferred list, which is kept for a short period of time, without
+	 * calling any other routine.
+	 *
+	 * The list structure is kept using the first pointer of the block,
+	 * since we cannot allocate any memory here.
+	 */
+
+	spinlock(&xdf->lock);
+	g_assert(xdf->count != 0 || NULL == xdf->head);
+	*(void **) p = xdf->head;
+	xdf->head = p;
+	xdf->count++;
+	spinunlock(&xdf->lock);
+
+	XSTATS_LOCK;
+	xstats.freelist_insertions_deferred++;
+	XSTATS_UNLOCK;
+}
+
+/**
+ * Carefully insert address in the free list.
+ *
+ * We're careful to prevent deadlocks here: we attempt to lock the bucket and
+ * if we can't, we put the block in a temporary list where it will be picked
+ * later.
+ *
+ * @param fl		the freelist bucket
+ * @param p			address of the block to insert
+ * @param burst		whether we're in a burst insertion mode
+ */
+static void
+xfl_insert_careful(struct xfreelist *fl, void *p, bool burst)
+{
+	bool locked;
+
+	/*
+	 * We use a mutex and not a plain spinlock because we can recurse here
+	 * through freelist bucket allocations.  A mutex allows us to relock
+	 * an object we already locked in the same thread.
+	 */
+
+	locked = mutex_trylock(&fl->lock);
+
+	/*
+	 * If we could lock the bucket, then we can safely insert the block.
+	 *
+	 * If we cannot lock the bucket, the block is inserted into the
+	 * deferred list.
+	 */
+
+	if (locked) {
+		xfl_insert(fl, p, burst);
+
+		/*
+		 * Since we have the lock on the bucket, we can safely process
+		 * deferred blocks.
+		 */
+
+		if (xfl_has_deferred(fl))
+			xfl_process_deferred(fl);
+
+		mutex_unlock(&fl->lock);		/* Issues final memory barrier */
+	} else {
+		xfl_defer(fl, p);
+	}
 }
 
 /**
@@ -2286,6 +2459,7 @@ xmalloc_freelist_init_once(void)
 
 		fl->blocksize = xfl_block_size_idx(i);
 		mutex_init(&fl->lock);
+		spinlock_init(&fl->deferred.lock);
 
 		g_assert_log(xfl_find_freelist_index(fl->blocksize) == i,
 			"i=%zu, blocksize=%zu, inverted_index=%zu",
@@ -2532,6 +2706,9 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 
 		if (0 == fl->count || !mutex_trylock(&fl->lock))
 			continue;
+
+		if G_UNLIKELY(xfl_has_deferred(fl))
+			xfl_process_deferred(fl);
 
 		if (0 == fl->count) {
 			mutex_unlock(&fl->lock);
@@ -2865,7 +3042,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	xstats.freelist_insertions++;
 	XSTATS_UNLOCK;
 
-	if (coalesce) {
+	if (coalesce & XM_COALESCE_ALL) {
 		xmalloc_freelist_coalesce(&p, &len, burst, coalesce);
 	} else {
 		XSTATS_LOCK;
@@ -2898,7 +3075,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 				fl = &xfreelist[XMALLOC_FREELIST_COUNT - 2];
 			}
 
-			xfl_insert(fl, p, burst);
+			xfl_insert_careful(fl, p, burst);
 			p = ptr_add_offset(p, fl->blocksize);
 			len -= fl->blocksize;
 		}
@@ -2928,7 +3105,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 
 		if (0 != xs->smaller) {
 			fl = xfl_find_freelist(xs->smaller);
-			xfl_insert(fl, p, burst);
+			xfl_insert_careful(fl, p, burst);
 			p = ptr_add_offset(p, xs->smaller);
 			len -= xs->smaller;
 		}
@@ -2937,7 +3114,7 @@ xmalloc_freelist_insert(void *p, size_t len, bool burst, uint32 coalesce)
 	}
 
 	fl = xfl_find_freelist(len);
-	xfl_insert(fl, p, burst);
+	xfl_insert_careful(fl, p, burst);
 }
 
 /**
@@ -2996,7 +3173,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	if G_UNLIKELY(is_heap)
 		coalesce &= ~XM_COALESCE_SMART;		/* Force coalescing within heap */
 
-	if (coalesce) {
+	if (coalesce & XM_COALESCE_ALL) {
 		if (
 			vmm_page_start(p) != p ||
 			round_pagesize(len) != len ||
@@ -3075,12 +3252,13 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 				}
 				if (coalesce & XM_COALESCE_BEFORE) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(head, head_len,
-						in_burst, XM_COALESCE_NONE);
+					uint32 flags = coalesced & ~XM_COALESCE_ALL;
+					xmalloc_freelist_insert(head, head_len, in_burst, flags);
 				} else {
 					/* Maybe there is enough before to free core again? */
 					calls--;	/* Self-recursion, does not count */
-					xmalloc_freelist_add(head, head_len, XM_COALESCE_BEFORE);
+					xmalloc_freelist_add(head, head_len,
+						(coalesce & ~XM_COALESCE_AFTER) | XM_COALESCE_BEFORE);
 				}
 			}
 			if (tail_len != 0) {
@@ -3092,12 +3270,13 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 				}
 				if (coalesce & XM_COALESCE_AFTER) {
 					/* Already coalesced */
-					xmalloc_freelist_insert(tail, tail_len,
-						in_burst, XM_COALESCE_NONE);
+					uint32 flags = coalesced & ~XM_COALESCE_ALL;
+					xmalloc_freelist_insert(tail, tail_len, in_burst, flags);
 				} else {
 					/* Maybe there is enough after to free core again? */
 					calls--;	/* Self-recursion, does not count */
-					xmalloc_freelist_add(tail, tail_len, XM_COALESCE_AFTER);
+					xmalloc_freelist_add(tail, tail_len,
+						(coalesce & ~XM_COALESCE_BEFORE) | XM_COALESCE_AFTER);
 				}
 			}
 			return;
@@ -3112,7 +3291,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 	 * as much as possible.
 	 */
 
-	xmalloc_freelist_insert(p, len, in_burst, XM_COALESCE_NONE);
+	xmalloc_freelist_insert(p, len, in_burst, coalesce & ~XM_COALESCE_ALL);
 }
 
 /**
@@ -3237,6 +3416,9 @@ xmalloc_one_freelist_alloc(struct xfreelist *fl, size_t len, size_t *allocated)
 		return NULL;
 
 	mutex_lock(&fl->lock);
+
+	if G_UNLIKELY(xfl_has_deferred(fl))
+		xfl_process_deferred(fl);
 
 	if (0 == fl->count) {
 		mutex_unlock(&fl->lock);
@@ -6469,6 +6651,8 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(realloc_promoted_to_walloc);
 	DUMP(freelist_insertions);
 	DUMP(freelist_insertions_no_coalescing);
+	DUMP(freelist_insertions_deferred);
+	DUMP(freelist_deferred_processed);
 	DUMP(freelist_bursts);
 	DUMP(freelist_burst_insertions);
 	DUMP(freelist_plain_insertions);
@@ -6540,14 +6724,14 @@ xmalloc_dump_freelist_log(logagent_t *la)
 
 		if (fl->sorted == fl->count) {
 			log_info(la, "XM freelist #%zu (%zu bytes): cap=%zu, "
-				"cnt=%zu, lck=%zu",
+				"cnt=%zu, def=%zu, lck=%zu",
 				i, fl->blocksize, fl->capacity, fl->count,
-				mutex_held_depth(&fl->lock));
+				fl->deferred.count, mutex_held_depth(&fl->lock));
 		} else {
 			log_info(la, "XM freelist #%zu (%zu bytes): cap=%zu, "
-				"sort=%zu/%zu, lck=%zu",
+				"sort=%zu/%zu, def=%zu, lck=%zu",
 				i, fl->blocksize, fl->capacity, fl->sorted, fl->count,
-				mutex_held_depth(&fl->lock));
+				fl->deferred.count, mutex_held_depth(&fl->lock));
 		}
 	}
 
