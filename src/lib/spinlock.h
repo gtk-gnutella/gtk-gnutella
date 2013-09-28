@@ -244,6 +244,15 @@ void spinlock_loop(volatile spinlock_t *s,
 void spinlock_reset(spinlock_t *s);
 #endif	/* THREAD_SOURCE */
 
+extern int spinlock_pass_through;
+
+static inline bool
+spinlock_in_crash_mode(void)
+{
+	return 0 != atomic_int_get(&spinlock_pass_through);
+}
+
+
 /**
  * Check that spinlock is held, for assertions.
  */
@@ -256,7 +265,7 @@ spinlock_is_held(const spinlock_t *s)
 #endif
 
 	/* Make this fast, no assertion on the spinlock validity */
-	return s->lock != 0;
+	return s->lock != 0 || spinlock_in_crash_mode();
 }
 
 /**
@@ -267,7 +276,7 @@ static inline bool NON_NULL_PARAM((1))
 spinlock_is_held_fast(const spinlock_t *s)
 {
 	/* Make this fast, no assertion on the spinlock validity */
-	return s->lock != 0;
+	return s->lock != 0 || spinlock_in_crash_mode();
 }
 
 #endif /* _spinlock_h_ */

@@ -55,7 +55,7 @@
 #define SPINLOCK_DEADMASK	(SPINLOCK_DEAD - 1)
 #define SPINLOCK_TIMEOUT	20		/* Crash after 20 seconds */
 
-static bool spinlock_pass_through;
+int spinlock_pass_through;
 
 static inline void
 spinlock_account(const spinlock_t *s, const char *file, unsigned line)
@@ -126,9 +126,7 @@ spinlock_source_string(enum spinlock_source src)
 G_GNUC_COLD void
 spinlock_crash_mode(void)
 {
-	atomic_mb();	/* Get accurate reading of ``spinlock_pass_through'' */
-
-	if (!spinlock_pass_through) {
+	if (!atomic_int_get(&spinlock_pass_through)) {
 		unsigned count;
 
 		/*
@@ -136,8 +134,7 @@ spinlock_crash_mode(void)
 		 * could call routines requiring mutexes...
 		 */
 
-		spinlock_pass_through = TRUE;
-		atomic_mb();
+		atomic_int_inc(&spinlock_pass_through);
 		count = thread_count();
 
 		if (count != 1) {
@@ -264,7 +261,7 @@ spinlock_loop(volatile spinlock_t *s,
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
 	 */
 
-	if G_UNLIKELY(spinlock_pass_through) {
+	if G_UNLIKELY(spinlock_in_crash_mode()) {
 		spinlock_direct(s);
 		return;
 	}
@@ -353,7 +350,7 @@ spinlock_loop(volatile spinlock_t *s,
 		 * immediately, faking success.
 		 */
 
-		if G_UNLIKELY(spinlock_pass_through) {
+		if G_UNLIKELY(spinlock_in_crash_mode()) {
 			spinlock_direct(s);
 			return;
 		}
@@ -469,7 +466,7 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_pass_through)
+	if G_UNLIKELY(spinlock_in_crash_mode())
 		return TRUE;		/* Crashing */
 
 	return FALSE;
@@ -511,7 +508,7 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_pass_through)
+	if G_UNLIKELY(spinlock_in_crash_mode())
 		return TRUE;		/* Crashing */
 
 	return FALSE;
@@ -524,7 +521,7 @@ void
 spinlock_release(spinlock_t *s, bool hidden)
 {
 	spinlock_check(s);
-	g_assert(s->lock != 0 || spinlock_pass_through);
+	g_assert(s->lock != 0 || spinlock_in_crash_mode());
 
 	spinlock_clear_owner(s);
 
@@ -551,7 +548,7 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 	spinlock_check(s);
 
 	while (!atomic_acquire(&s->lock)) {
-		if G_UNLIKELY(spinlock_pass_through) {
+		if G_UNLIKELY(spinlock_in_crash_mode()) {
 			spinlock_direct(s);
 			break;
 		}
