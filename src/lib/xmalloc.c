@@ -390,7 +390,9 @@ static struct xfreelist {
 	size_t sorted;			/**< Amount of leading sorted pointers */
 	time_t last_shrink;		/**< Last shrinking attempt */
 	mutex_t lock;			/**< Bucket locking */
+	uint extending:1;		/**< Is being extended */
 	uint shrinking:1;		/**< Is being shrinked */
+	uint retrofiting:1;		/**< Are we retrofiting deferred blocks? */
 	uint expand:1;			/**< Asked to expand by xgc() */
 } xfreelist[XMALLOC_FREELIST_COUNT];
 
@@ -556,10 +558,13 @@ static void *xfl_bucket_alloc(const struct xfreelist *flb,
 static void xmalloc_crash_hook(void);
 static void xfl_process_deferred(struct xfreelist *fl);
 
+/*
+ * Do we have deferred blocks that we can process right now?
+ */
 static inline bool
 xfl_has_deferred(const struct xfreelist * const fl)
 {
-	return 0 != fl->deferred.count;
+	return 0 != fl->deferred.count && !fl->extending && !fl->retrofiting;
 }
 
 #define xmalloc_debugging(lvl)	G_UNLIKELY(xmalloc_debug > (lvl) && safe_to_log)
@@ -1312,6 +1317,7 @@ xfl_shrink(struct xfreelist *fl)
 
 	g_assert(fl->count < fl->capacity);
 	g_assert(size_is_non_negative(fl->count));
+	g_assert(fl->shrinking);
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1735,6 +1741,7 @@ xfl_extend(struct xfreelist *fl)
 
 	assert_mutex_is_owned(&fl->lock);
 
+	g_assert(fl->extending);
 	g_assert_log(fl->count == fl->capacity || fl->expand,
 		"count=%zu, capacity=%zu, expand=%s",
 		fl->count, fl->capacity, bool_to_string(fl->expand));
@@ -2197,8 +2204,12 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	 * index for the block.
 	 */
 
-	while (fl->count >= fl->capacity)
+	while (fl->count >= fl->capacity) {
+		g_assert(!fl->extending);
+		fl->extending = TRUE;
 		xfl_extend(fl);
+		fl->extending = FALSE;
+	}
 
 	sorted = fl->count == fl->sorted;
 
@@ -2335,6 +2346,17 @@ xfl_process_deferred(struct xfreelist *fl)
 
 	assert_mutex_is_owned(&fl->lock);
 
+	/*
+	 * By flagging that we are processing deferred blocks, we prevent any
+	 * other routine from calling us again because we have more than one
+	 * pending block: that would needlessly cause recursion and consume
+	 * stack space, without control.
+	 */
+
+	g_assert(!fl->retrofiting);
+
+	fl->retrofiting = TRUE;
+
 	for (;;) {
 		spinlock(&xdf->lock);
 		if (0 != xdf->count) {
@@ -2364,6 +2386,8 @@ xfl_process_deferred(struct xfreelist *fl)
 			break;
 		}
 	}
+
+	fl->retrofiting = FALSE;
 
 	if (n != 0 && xmalloc_debugging(0)) {
 		s_minidbg("XM %s() handled %zu deferred block%s "
@@ -2446,17 +2470,28 @@ xfl_insert_careful(struct xfreelist *fl, void *p, bool burst)
 	 */
 
 	if (locked) {
-		xfl_insert(fl, p, burst);
-
 		/*
-		 * Since we have the lock on the bucket, we can safely process
-		 * deferred blocks.
+		 * If the bucket is already in the process of being extended, do not
+		 * attempt to re-insert anything inside, as we may not have any room
+		 * in it.  Better to defer the block in that case.
 		 */
 
-		if (xfl_has_deferred(fl))
-			xfl_process_deferred(fl);
+		if G_UNLIKELY(fl->extending) {
+			mutex_unlock(&fl->lock);	/* Do not hold the bucket's lock */
+			xfl_defer(fl, p);
+		} else {
+			xfl_insert(fl, p, burst);
 
-		mutex_unlock(&fl->lock);		/* Issues final memory barrier */
+			/*
+			 * Since we have the lock on the bucket, we can safely process
+			 * deferred blocks.
+			 */
+
+			if (xfl_has_deferred(fl))
+				xfl_process_deferred(fl);
+
+			mutex_unlock(&fl->lock);	/* Issues final memory barrier */
+		}
 	} else {
 		xfl_defer(fl, p);
 	}
@@ -6266,6 +6301,7 @@ xgc(void)
 
 		if G_UNLIKELY(fl->expand) {
 			mutex_lock(&fl->lock);
+
 			if G_UNLIKELY(!fl->expand) {
 				mutex_unlock(&fl->lock);
 				continue;
@@ -6274,10 +6310,16 @@ xgc(void)
 				t_debug("XM GC resizing freelist #%zu (cap=%zu, cnt=%zu)",
 					xfl_index(fl), fl->capacity, fl->count);
 			}
+
+			g_assert(!fl->extending);
+			fl->extending = TRUE;
 			xfl_extend(fl);
+			fl->extending = FALSE;
+
 			XSTATS_LOCK;
 			xstats.xgc_bucket_expansions++;
 			XSTATS_UNLOCK;
+
 			mutex_unlock(&fl->lock);
 		} else if (
 			fl->capacity > XM_BUCKET_MINSIZE &&
@@ -6289,6 +6331,7 @@ xgc(void)
 			)
 		) {
 			mutex_lock(&fl->lock);
+
 			if G_UNLIKELY(
 				fl->count != 0 &&
 				fl->capacity - fl->count < XM_BUCKET_INCREMENT &&
@@ -6297,6 +6340,8 @@ xgc(void)
 				mutex_unlock(&fl->lock);
 				continue;
 			}
+
+			g_assert(!fl->shrinking);
 			fl->shrinking = TRUE;
 			if (xfl_shrink(fl)) {
 				XSTATS_LOCK;
@@ -6304,6 +6349,7 @@ xgc(void)
 				XSTATS_UNLOCK;
 			}
 			fl->shrinking = FALSE;
+
 			mutex_unlock(&fl->lock);
 		}
 	}
