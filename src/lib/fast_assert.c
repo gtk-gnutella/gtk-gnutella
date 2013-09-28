@@ -106,7 +106,6 @@ assertion_abort(void)
 {
 	static volatile sig_atomic_t seen_fatal;
 
-	
 #define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
 
 	/*
@@ -121,6 +120,19 @@ assertion_abort(void)
 	if (!seen_fatal) {
 		seen_fatal = TRUE;
 		atomic_mb();
+
+		/*
+		 * If the thread holds any locks, dump them.
+		 */
+
+		thread_lock_dump_self_if_any(STDERR_FILENO);
+		if (log_stdout_is_distinct())
+			thread_lock_dump_self_if_any(STDOUT_FILENO);
+
+		/*
+		 * Dump stacktrace.
+		 */
+
 		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
 		if (log_stdout_is_distinct())
 			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
@@ -267,14 +279,6 @@ assertion_failure_log(const assertion_data * const data,
 	va_start(args, fmt);
 	msg = crash_assert_logv(fmt, args);
 	va_end(args);
-
-	/*
-	 * If the thread holds any locks, dump them.
-	 */
-
-	thread_lock_dump_self_if_any(STDERR_FILENO);
-	if (log_stdout_is_distinct())
-		thread_lock_dump_self_if_any(STDOUT_FILENO);
 
 	/*
 	 * Log additional message.
