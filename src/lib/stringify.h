@@ -166,6 +166,44 @@ size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
 const char *time_t_to_string(time_t);
 
+/*
+ * Miscellaneous stringifications.
+ */
+
+static inline const char *
+bool_to_string(const bool v)
+{
+	return v ? "TRUE" : "FALSE";
+}
+
+/* Plural of most words */
+static inline const char *
+plural(const unsigned long v)
+{
+	return 1 == v ? "" : "s";
+}
+
+/* Plural of words finishing in "y" like "entry" */
+static inline const char *
+plural_y(const unsigned long v)
+{
+	return 1 == v ? "y" : "ies";
+}
+
+/* Plural of words finishing in "ch" like "match" */
+static inline const char *
+plural_es(const unsigned long v)
+{
+	return 1 == v ? "" : "es";
+}
+
+/* Plural of words finishing in "f" like "leaf" */
+static inline const char *
+plural_f(const unsigned long v)
+{
+	return 1 == v ? "f" : "ves";
+}
+
 #endif /* _stringify_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
