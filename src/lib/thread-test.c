@@ -49,10 +49,12 @@
 #include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
+#include "shuffle.h"
 #include "signal.h"
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
+#include "stringify.h"
 #include "thread.h"
 #include "tm.h"
 #include "tsig.h"
@@ -64,19 +66,21 @@ const char *progname;
 
 static bool sleep_before_exit;
 static bool async_exit;
+static bool randomize_free;
 static unsigned cond_timeout;
 
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsABCEFIMNOPQRSX] [-n count] [-t ms] [-T secs]"
+		"Usage: %s [-hejsxABCEFIMNOPQRSX] [-n count] [-t ms] [-T secs]"
 		"  -h : prints this help message\n"
 		"  -e : use emulated semaphores\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
 		"  -t : timeout value (ms) for condition waits\n"
+		"  -x : free memory allocated by -X in random order\n"
 		"  -A : use asynchronous exit callbacks\n"
 		"  -B : test synchronization barriers\n"
 		"  -C : test thread creation\n"
@@ -557,8 +561,8 @@ player_stats(int n)
 	stats = &game_stats[n];
 
 	printf("%s played %d times (%d spurious event%s, %d timeout%s)\n",
-		name[n], stats->play, stats->spurious, 1 == stats->spurious ? "" : "s",
-		stats->timeout, 1 == stats->timeout ? "" : "s");
+		name[n], stats->play, stats->spurious, plural(stats->spurious),
+		stats->timeout, plural(stats->timeout));
 }
 
 static void
@@ -674,7 +678,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	}
 	if (monitor) {
 		printf("main got %u notification%s\n",
-			notifications, 1 == notifications ? "" : "s");
+			notifications, plural(notifications));
 	}
 }
 
@@ -728,7 +732,7 @@ fork_forker(void *arg)
 
 	running = thread_count();
 	printf("%s() forking with %u running thread%s, STID=%u\n", G_STRFUNC,
-		running, 1 == running ? "" : "s", thread_small_id());
+		running, plural(running), thread_small_id());
 	fflush(stdout);
 
 	thread_lock_dump_all(STDOUT_FILENO);
@@ -770,7 +774,7 @@ test_fork(bool safe)
 
 	running = thread_count();
 	printf("starting with %u running thread%s\n",
-		running, 1 == running ? "" : "s");
+		running, plural(running));
 
 	l1 = thread_create(fork_locker, int_to_pointer(0), 0, 8192);
 	l2 = thread_create(fork_locker, int_to_pointer(1), 0, 8192);
@@ -791,7 +795,7 @@ test_fork(bool safe)
 
 	running = thread_count();
 	printf("ending with %u running thread%s\n",
-		running, 1 == running ? "" : "s");
+		running, plural(running));
 
 	printf("--- test of thread_fork(%s) done!\n", safe ? "TRUE" : "FALSE");
 }
@@ -1306,6 +1310,9 @@ exercise_memory(void *arg)
 		}
 	}
 
+	if (randomize_free)
+		shuffle(mem, MEMORY_ALLOCATIONS, sizeof mem[0]);
+
 	for (i = 0; i < MEMORY_ALLOCATIONS; i++) {
 		struct memory *m = &mem[i];
 
@@ -1362,7 +1369,10 @@ test_memory(unsigned repeat)
 	long cpus = getcpucount();
 	unsigned i;
 
-	printf("%s() detected %ld CPU%s\n", G_STRFUNC, cpus, 1 == cpus ? "" : "s");
+	printf("%s() detected %ld CPU%s\n", G_STRFUNC, cpus, plural(cpus));
+	if (randomize_free)
+		printf("%s() will free blocks in random order\n", G_STRFUNC);
+	fflush(stdout);
 
 	for (i = 0; i < repeat; i++) {
 		tm_t start, end, elapsed;
@@ -1416,7 +1426,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:ABCEFIMNOPQRST:X")) != EOF) {
+	while ((c = getopt(argc, argv, "hejn:st:xABCEFIMNOPQRST:X")) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -1478,6 +1488,9 @@ main(int argc, char **argv)
 			break;
 		case 's':			/* threads sleep for 1 second before ending */
 			sleep_before_exit = TRUE;
+			break;
+		case 'x':			/* free allocated memory by -X tests randomly */
+			randomize_free = TRUE;
 			break;
 		case 'h':			/* show help */
 		default:
