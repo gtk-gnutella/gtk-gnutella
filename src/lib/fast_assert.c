@@ -93,9 +93,9 @@ assertion_message(const assertion_data * const data, int fatal)
 		print_str("\"");
 	}
 	print_str("\n");
-	flush_err_str();
+	flush_err_str_atomic();
 	if (log_stdout_is_distinct())
-		flush_str(STDOUT_FILENO);
+		flush_str_atomic(STDOUT_FILENO);
 }
 
 /**
@@ -234,9 +234,9 @@ assertion_warning_log(const assertion_data * const data,
 		}
 		print_str(str_2c(str));
 		print_str("\n");
-		flush_err_str();
+		flush_err_str_atomic();
 		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+			flush_str_atomic(STDOUT_FILENO);
 	}
 
 	assertion_stacktrace();
@@ -301,9 +301,9 @@ assertion_failure_log(const assertion_data * const data,
 		}
 		print_str(msg);
 		print_str("\n");
-		flush_err_str();
+		flush_err_str_atomic();
 		if (log_stdout_is_distinct())
-			flush_str(STDOUT_FILENO);
+			flush_str_atomic(STDOUT_FILENO);
 	}
 
 	assertion_abort();

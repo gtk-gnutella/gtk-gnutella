@@ -115,6 +115,8 @@ G_STMT_START { \
 #define flush_str_atomic(fd) \
 	IGNORE_RESULT(atio_writev((fd), print_str_iov_, print_str_iov_cnt_))
 
+#define flush_err_str_atomic()	flush_str_atomic(STDERR_FILENO)
+
 #define rewind_str(i) \
 G_STMT_START { \
 	unsigned rewind_str_i_ = (i); \
