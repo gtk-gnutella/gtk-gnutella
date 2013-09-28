@@ -1243,9 +1243,10 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	size_t used, size, capacity, i;
 	void *ptr;
 
+	assert_mutex_is_owned(&fl->lock);
+
 	g_assert(array != NULL);
 	g_assert(size_is_non_negative(len));
-	assert_mutex_is_owned(&fl->lock);
 	g_assert(size_is_non_negative(fl->count));
 
 	ptr = fl->pointers;							/* Can be NULL */
@@ -1303,9 +1304,10 @@ xfl_shrink(struct xfreelist *fl)
 	void *old_ptr;
 	size_t old_size, old_used, new_size, allocated_size;
 
+	assert_mutex_is_owned(&fl->lock);
+
 	g_assert(fl->count < fl->capacity);
 	g_assert(size_is_non_negative(fl->count));
-	assert_mutex_is_owned(&fl->lock);
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1549,9 +1551,12 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 {
 	size_t i;
 
+	assert_mutex_is_owned(&fl->lock);
+
 	g_assert(size_is_positive(fl->count));
 	g_assert(fl->count >= fl->sorted);
-	assert_mutex_is_owned(&fl->lock);
+	g_assert_log(fl->count <= fl->capacity,
+		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
 	XSTATS_LOCK;
 	xstats.freelist_blocks--;
@@ -1725,7 +1730,10 @@ xfl_extend(struct xfreelist *fl)
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
 	assert_mutex_is_owned(&fl->lock);
-	g_assert(fl->count >= fl->capacity || fl->expand);
+
+	g_assert_log(fl->count == fl->capacity || fl->expand,
+		"count=%zu, capacity=%zu, expand=%s",
+		fl->count, fl->capacity, bool_to_string(fl->expand));
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -2128,10 +2136,13 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 static void
 xfl_delete_slot(struct xfreelist *fl, size_t idx)
 {
+	assert_mutex_is_owned(&fl->lock);
+
 	g_assert(size_is_positive(fl->count));
 	g_assert(size_is_non_negative(idx) && idx < fl->count);
 	g_assert(fl->count >= fl->sorted);
-	assert_mutex_is_owned(&fl->lock);
+	g_assert_log(fl->count <= fl->capacity,
+		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
 	fl->count--;
 	if (idx < fl->sorted)
@@ -2172,7 +2183,8 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 	assert_mutex_is_owned(&fl->lock);
 
 	g_assert(size_is_non_negative(fl->count));
-	g_assert(fl->count <= fl->capacity);
+	g_assert_log(fl->count <= fl->capacity,
+		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
 	/*
 	 * Since the extension can use the freelist's own blocks, it could
@@ -2352,7 +2364,7 @@ xfl_process_deferred(struct xfreelist *fl)
 	if (n != 0 && xmalloc_debugging(0)) {
 		s_minidbg("XM %s() handled %zu deferred block%s "
 			"in free list #%zu (%zu bytes)",
-			G_STRFUNC, n, 1 == n ? "" : "s", xfl_index(fl), fl->blocksize);
+			G_STRFUNC, n, plural(n), xfl_index(fl), fl->blocksize);
 	}
 }
 
@@ -2613,7 +2625,10 @@ xfl_select(struct xfreelist *fl)
 	void *p;
 
 	assert_mutex_is_owned(&fl->lock);
+
 	g_assert(fl->count != 0);
+	g_assert_log(fl->count <= fl->capacity,
+		"count=%zu, capacity=%zu", fl->count, fl->capacity);
 
 	/*
 	 * Depending on the way the virtual memory grows, we pick the largest
@@ -2820,7 +2835,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 			if (xmalloc_debugging(6)) {
 				t_debug("XM ignoring coalescing request for %zu-byte %p:"
 					" target free list #%zu has only %zu item%s",
-					len, base, idx, fl->count, 1 == fl->count ? "" : "s");
+					len, base, idx, fl->count, plural(fl->count));
 			}
 			XSTATS_LOCK;
 			xstats.freelist_coalescing_ignored++;
@@ -3224,7 +3239,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 					t_debug("XM freed %sembedded %zu page%s, "
 						"%s head, %s tail",
 						coalesced ? "coalesced " : "",
-						npages, 1 == npages ? "" : "s",
+						npages, plural(npages),
 						head_len != 0 ? "has" : "no",
 						tail_len != 0 ? "has" : "no");
 				} else {
@@ -3670,7 +3685,7 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 					"currently has %zu chunk%s",
 					ch->blocksize, stid, (double) overhead / capacity,
 					capacity, elist_count(&ch->list),
-					1 == elist_count(&ch->list) ? "" : "s");
+					plural(elist_count(&ch->list)));
 			}
 			return NULL;
 		}
@@ -3835,7 +3850,7 @@ xmalloc_thread_free_deferred(unsigned stid)
 
 	if (xmalloc_debugging(0)) {
 		s_minidbg("XM starting handling deferred %zu block%s for %s",
-			xcr->count, 1 == xcr->count ? "" : "s", thread_id_name(stid));
+			xcr->count, plural(xcr->count), thread_id_name(stid));
 	}
 
 	for (n = 0, p = xcr->head; p != NULL; p = next) {
@@ -3877,7 +3892,7 @@ xmalloc_thread_free_deferred(unsigned stid)
 
 	if (xmalloc_debugging(0)) {
 		t_debug("XM handled delayed free of %zu block%s (%zu bytes) in %s",
-			n, 1 == n ? "" : "s", size, thread_id_name(stid));
+			n, plural(n), size, thread_id_name(stid));
 	}
 }
 
@@ -3984,7 +3999,7 @@ xmalloc_thread_ended(unsigned stid)
 
 		if (n != 0) {
 			t_info("XM dead thread #%u still holds %zu thread-private chunk%s",
-				stid, n , 1 == n ? "" : "s");
+				stid, n , plural(n));
 		}
 	}
 }
@@ -5811,7 +5826,7 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		g_assert_log(NULL == old,		/* Was not already present in tree */
 			"xr=[%p, %p[, old=[%p, %p[ (%u block%s)",
 			start, end, old->start, old->end,
-			old->blocks, 1 == old->blocks ? "" : "s");
+			old->blocks, plural(old->blocks));
 	}
 }
 
@@ -6313,6 +6328,10 @@ xgc(void)
 
 		xgctx.available[i] = fl->capacity - fl->count;
 		xgctx.count[i] = fl->count;
+
+		g_assert_log(fl->count <= fl->capacity,
+			"count=%zu, capacity=%zu in freelist #%zu (%zu-byte block)",
+			fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
 	}
 
 	/*
@@ -6347,7 +6366,7 @@ xgc(void)
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
 		t_debug("XM GC freelist holds %zu block%s defining %zu range%s",
-			blocks, 1 == blocks ? "" : "s", ranges, 1 == ranges ? "" : "s");
+			blocks, plural(blocks), ranges, plural(ranges));
 	}
 
 	/*
@@ -6359,7 +6378,7 @@ xgc(void)
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
 		t_debug("XM GC left with %zu range%s to process",
-			ranges, 1 == ranges ? "" : "s");
+			ranges, plural(ranges));
 	}
 
 	if (0 == erbtree_count(&rbt))
@@ -6435,6 +6454,9 @@ xgc(void)
 			g_assert(size_is_non_negative(fl->sorted));
 			g_assert(fl->count >= fl->sorted);
 			g_assert(fl->count < xgctx.largest);
+			g_assert_log(fl->count <= fl->capacity,
+				"count=%zu, capacity=%zu in freelist #%zu (%zu-byte block)",
+				fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
 
 			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
 		}
@@ -6492,7 +6514,7 @@ unlock:
 				"coalesced-blocks=%zu, freed-pages=%zu, next in %d sec%s",
 				(uint) real_elapsed, (uint) cpu_elapsed,
 				processed.coalesced, processed.pages,
-				increment, 1 == increment ? "" : "s");
+				increment, plural(increment));
 		}
 	}
 
@@ -6769,7 +6791,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
-		blocks, 1 == blocks ? "" : "s");
+		blocks, plural(blocks));
 
 	log_info(la, "XM freelist largest block is %zu bytes", largest);
 
@@ -6783,17 +6805,17 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			"among %zu block%s", j,
 			uint64_to_string(tstats[j].freebytes),
 			short_size(tstats[j].freebytes, FALSE),
-			tstats[j].freeblocks, 1 == tstats[j].freeblocks ? "" : "s");
+			tstats[j].freeblocks, plural(tstats[j].freeblocks));
 
 		pool = size_saturate_mult(tstats[j].chunks, xmalloc_pagesize);
 
 		log_info(la, "XM thread #%zu uses a pool of %zu bytes (%s, %zu page%s)",
 			j, pool, short_size(pool, FALSE),
-			tstats[j].chunks, 1 == tstats[j].chunks ? "" : "s");
+			tstats[j].chunks, plural(tstats[j].chunks));
 
 		if (0 != tstats[j].shared) {
 			log_warning(la, "XM thread #%zu has %zu size%s requiring locking",
-				j, tstats[j].shared, 1 == tstats[j].shared ? "" : "s");
+				j, tstats[j].shared, plural(tstats[j].shared));
 		}
 	}
 }
@@ -8197,12 +8219,12 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 						if (fl->count == fl->sorted) {
 							log_info(la,
 								"XM freelist #%u has %zu item%s fully sorted",
-								i, fl->count, 1 == fl->count ? "" : "s");
+								i, fl->count, plural(fl->count));
 						} else {
 							log_info(la,
 								"XM freelist #%u has %zu/%zu item%s sorted",
 								i, fl->sorted, fl->count,
-								1 == fl->sorted ? "" : "s");
+								plural(fl->sorted));
 						}
 					}
 				}
