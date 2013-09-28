@@ -825,6 +825,10 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round(len) == len);
 
+	XSTATS_LOCK;
+	xstats.alloc_via_sbrk++;
+	XSTATS_UNLOCK;
+
 	/*
 	 * Initialize the heap break point if not done so already.
 	 */
@@ -4511,7 +4515,6 @@ xallocate(size_t size, bool can_walloc, bool can_vmm)
 		G_PREFETCH_HI_W(p);			/* User is going to write in block */
 
 		XSTATS_LOCK;
-		xstats.alloc_via_sbrk++;
 		xstats.user_blocks++;
 		xstats.user_memory += len;
 		XSTATS_UNLOCK;
