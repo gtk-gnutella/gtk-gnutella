@@ -1740,6 +1740,59 @@ thread_timeout(const struct thread_element *te)
 }
 
 /**
+ * Forcefully suspend current thread, known as the supplied thread element,
+ * until it is flagged as no longer being suspended, or until the suspsension
+ * times out, at which time we panic.
+ *
+ * @return TRUE if we suspended.
+ */
+static bool
+thread_suspend_loop(struct thread_element *te)
+{
+	bool suspended = FALSE;
+	unsigned i;
+	time_t start = 0;
+
+	/*
+	 * Suspension loop.
+	 */
+
+	for (i = 1; /* empty */; i++) {
+		if G_UNLIKELY(!te->suspend)
+			break;
+
+		if (i < THREAD_SUSPEND_LOOP)
+			do_sched_yield();
+		else
+			compat_sleep_ms(THREAD_SUSPEND_DELAY);
+
+		suspended = TRUE;
+
+		/*
+		 * Make sure we don't stay suspended indefinitely: funnelling from
+		 * other threads should occur only for a short period of time.
+		 *
+		 * Do not call tm_time_exact() here since that routine will call
+		 * thread_check_suspended() which will again call us since we're
+		 * flagged as suspended now, causing endless recursion.
+		 *
+		 * FIXME:
+		 * The above means we cannot use gentime_now() either, and therefore
+		 * we are vulnerable to a sudden sytem clock change during suspension.
+		 */
+
+		if G_UNLIKELY(0 == (i & THREAD_SUSPEND_CHECK)) {
+			if (0 == start)
+				start = time(NULL);
+			if (delta_time(time(NULL), start) > THREAD_SUSPEND_TIMEOUT)
+				thread_timeout(te);
+		}
+	}
+
+	return suspended;
+}
+
+/**
  * Voluntarily suspend execution of the current thread, as described by the
  * supplied thread element, if it is flagged as being suspended.
  *
@@ -1748,9 +1801,7 @@ thread_timeout(const struct thread_element *te)
 static bool
 thread_suspend_self(struct thread_element *te)
 {
-	bool suspended = FALSE;
-	time_t start = 0;
-	unsigned i;
+	bool suspended;
 
 	/*
 	 * We cannot let a thread holding spinlocks or mutexes to suspend itself
@@ -1776,37 +1827,7 @@ thread_suspend_self(struct thread_element *te)
 	te->suspended = TRUE;
 	THREAD_UNLOCK(te);
 
-	/*
-	 * Suspension loop.
-	 */
-
-	for (i = 1; /* empty */; i++) {
-		if G_UNLIKELY(!te->suspend)
-			break;
-
-		if (i < THREAD_SUSPEND_LOOP)
-			do_sched_yield();
-		else
-			compat_sleep_ms(THREAD_SUSPEND_DELAY);
-
-		suspended = TRUE;
-
-		/*
-		 * Make sure we don't stay suspended indefinitely: funnelling from
-		 * other threads should occur only for a short period of time.
-		 *
-		 * Do not call tm_time_exact() here since that routine will call
-		 * thread_check_suspended() which will again call us since we're
-		 * flagged as suspended now, causing endless recursion.
-		 */
-
-		if G_UNLIKELY(0 == (i & THREAD_SUSPEND_CHECK)) {
-			if (0 == start)
-				start = time(NULL);
-			if (delta_time(time(NULL), start) > THREAD_SUSPEND_TIMEOUT)
-				thread_timeout(te);
-		}
-	}
+	suspended = thread_suspend_loop(te);
 
 	THREAD_LOCK(te);
 	te->suspended = FALSE;
@@ -2899,13 +2920,15 @@ thread_suspend_others(bool lockwait)
 	mutex_lock(&thread_suspend_mtx);
 
 	/*
-	 * If we were concurrently asked to suspend ourselves, warn loudly.
+	 * If we were concurrently asked to suspend ourselves, warn loudly
+	 * and then forcefully suspend it.
 	 */
 
 	if G_UNLIKELY(te->suspend) {
 		mutex_unlock(&thread_suspend_mtx);
 		s_carp("%s(): suspending %s was supposed to be already suspended",
 			G_STRFUNC, thread_element_name(te));
+		thread_suspend_loop(te);
 		return 0;
 	}
 
