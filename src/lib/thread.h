@@ -168,6 +168,8 @@ unsigned thread_count();
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_crash_mode(void);
+bool thread_is_crashing(void);
+bool thread_in_crash_mode(void);
 size_t thread_stack_used(void);
 void thread_stack_check_overflow(const void *va);
 

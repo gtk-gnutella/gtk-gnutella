@@ -391,6 +391,8 @@ static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
 static bool thread_stack_noinit;		/* Whether to skip stack allocation */
+static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
+static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -2833,11 +2835,15 @@ thread_check_suspended(void)
 	if G_UNLIKELY(NULL == te)
 		return FALSE;
 
-	if G_UNLIKELY(thread_sig_pending(te))
-		delayed = thread_sig_handle(te);
+	/*
+	 * Suspension is critical, especially in crash mode, so check this first.
+	 */
 
 	if G_UNLIKELY(te->suspend && 0 == te->locks.count)
 		delayed |= thread_suspend_self(te);
+
+	if G_UNLIKELY(thread_sig_pending(te))
+		delayed = thread_sig_handle(te);
 
 	return delayed;
 }
@@ -4898,11 +4904,48 @@ thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 }
 
 /**
+ * Was crash mode activated?
+ */
+bool
+thread_in_crash_mode(void)
+{
+	return 0 != atomic_int_get(&thread_crash_mode_enabled);
+}
+
+/**
+ * Is current thread the crashing thread (the one that entered crash mode)?
+ */
+bool
+thread_is_crashing(void)
+{
+	return (int) thread_small_id() == atomic_int_get(&thread_crash_mode_stid);
+}
+
+/**
  * Enter thread crashing mode.
  */
 void
 thread_crash_mode(void)
 {
+	if (0 == atomic_int_inc(&thread_crash_mode_enabled)) {
+		/*
+		 * First thread to crash, record its ID so that we allow stacktrace
+		 * dumping for this crashing thread (other threads should be suspended).
+		 * Given we do not know where we are called from, it's safer to
+		 * use the thread_safe_small_id() which will not take any locks.
+		 */
+
+		atomic_int_set(&thread_crash_mode_stid, thread_safe_small_id());
+
+		/*
+		 * Suspend the other threads: we are going to run with all locks
+		 * disabled, hence it is best to prevent concurrency errors whilst
+		 * we are collecting debugging information.
+		 */
+
+		thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
+	}
+
 	/*
 	 * Disable all locks: spinlocks and mutexes will be granted immediately,
 	 * preventing further deadlocks at the cost of a possible crash.  However,
@@ -4913,14 +4956,6 @@ thread_crash_mode(void)
 	spinlock_crash_mode();	/* Allow all mutexes and spinlocks to be grabbed */
 	mutex_crash_mode();		/* Allow release of all mutexes */
 	rwlock_crash_mode();
-
-	/*
-	 * Suspend the other threads now that we are running with all locks
-	 * disabled, to prevent concurrency errors whilst we are collecting
-	 * information.
-	 */
-
-	thread_suspend_others(FALSE);	/* Advisory, do not wait for others */
 }
 
 /**

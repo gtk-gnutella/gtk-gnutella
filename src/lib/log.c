@@ -841,7 +841,20 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	 */
 
 	if (tracing[stid]) {
-		s_rawwarn("skipping trace for thread #%u (already in progress)", stid);
+		s_rawwarn("skipping trace for %s (already in progress)",
+			thread_id_name(stid));
+		return;
+	}
+
+	/*
+	 * If the process has entered "crash mode", then it is unsafe to emit
+	 * a stacktrace here because memory allocation could do weird things
+	 * with locks being disabled...  Only let the crashing thread continue.
+	 */
+
+	if (thread_in_crash_mode() && !thread_is_crashing()) {
+		s_rawwarn("skipping trace for %s (crash mode)", thread_id_name(stid));
+		thread_check_suspended();		/* Probably was already suspended? */
 		return;
 	}
 
@@ -1225,10 +1238,7 @@ s_carp(const char *format, ...)
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
-	if (in_signal_handler)
-		stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
-	else
-		stacktrace_where_sym_print_offset(stderr, 1);
+	s_stacktrace(in_signal_handler, 1);
 
 	thread_pending_add(-1);
 }
@@ -1606,7 +1616,7 @@ t_carp(const char *format, ...)
 	s_logv(logthread_object(FALSE), G_LOG_LEVEL_WARNING, format, args);
 	va_end(args);
 
-	stacktrace_where_safe_print_offset(STDERR_FILENO, 1);
+	s_stacktrace(FALSE, 1);
 
 	thread_pending_add(-1);
 }
@@ -1872,12 +1882,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 			G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR
 		)
 	) {
-		stacktrace_where_sym_print_offset(stderr, 3);
-		if (log_stdout_is_distinct()) {
-			stacktrace_where_sym_print_offset(stdout, 3);
-			if (is_running_on_mingw())
-				fflush(stdout);		/* Unbuffering does not work on Windows */
-		}
+		s_stacktrace(FALSE, 3);
 	}
 
 	if G_UNLIKELY(safer != message) {
