@@ -358,7 +358,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (common_dbg > 1) {
-			t_debug("%s: reverse-resolving \"%s\" ...",
+			s_debug("%s: reverse-resolving \"%s\" ...",
 					G_STRFUNC, host_addr_to_string(query->addr));
 		}
 
@@ -372,7 +372,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (common_dbg > 1) {
-			t_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
+			s_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
 
@@ -417,7 +417,7 @@ adns_helper(void *p)
 	thread_set_name("ADNS");
 	WFREE(args);
 
-	t_debug("ADNS thread started");
+	s_debug("ADNS thread started");
 
 	for (;;) {
 		struct adns_request *req;
@@ -435,7 +435,7 @@ adns_helper(void *p)
 		aq_put(aq, ans);
 	}
 
-	t_debug("ADNS thread exiting");
+	s_debug("ADNS thread exiting");
 
 	aq_refcnt_dec(rq);
 	aq_refcnt_dec(aq);

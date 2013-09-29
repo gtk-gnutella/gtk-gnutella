@@ -2883,7 +2883,7 @@ found:
 
 		if (NULL == t) {
 			atomic_release(&tt->lock);
-			t_carp("unable to create waitable timer, ignoring nanosleep()");
+			s_carp("unable to create waitable timer, ignoring nanosleep()");
 			errno = ENOMEM;		/* System problem anyway */
 			return -1;
 		}
@@ -2905,14 +2905,14 @@ found:
 	if (0 == SetWaitableTimer(t, &dueTime, 0, NULL, NULL, FALSE)) {
 		atomic_release(&tt->lock);
 		errno = mingw_last_error();
-		t_carp("could not set timer, unable to nanosleep(): %m");
+		s_carp("could not set timer, unable to nanosleep(): %m");
 		return -1;
 	}
 
 	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
 		atomic_release(&tt->lock);
 		errno = mingw_last_error();
-		t_carp("timer returned an unexpected value, nanosleep() failed: %m");
+		s_carp("timer returned an unexpected value, nanosleep() failed: %m");
 		errno = EINTR;
 		return -1;
 	}

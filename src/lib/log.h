@@ -115,22 +115,6 @@ void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
 void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
 
 /*
- * Thread-safe logging interface.
- */
-
-void t_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_error(const char *format, ...)
-	G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
-void t_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void t_error_from(const char *file, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
-
-/*
  * Polymorphic logging interface.
  */
 

@@ -846,7 +846,7 @@ aqt_processor(void *arg)
 	aqueue_t *r = aq_refcnt_inc(aa->r);
 	aqueue_t *a = aq_refcnt_inc(aa->a);
 
-	t_message("%s starting", thread_name());
+	s_message("%s starting", thread_name());
 
 	for (;;) {
 		void *msg = aq_remove(r);
@@ -860,7 +860,7 @@ aqt_processor(void *arg)
 		aq_put(a, ulong_to_pointer(len));
 	}
 
-	t_message("%s exiting", thread_name());
+	s_message("%s exiting", thread_name());
 
 	aq_refcnt_dec(a);
 	aq_refcnt_dec(r);
@@ -920,35 +920,35 @@ test_rwthreads(void *unused_arg)
 
 	(void) unused_arg;
 
-	t_info("%s - starting concurrent read tests", tname);
+	s_info("%s - starting concurrent read tests", tname);
 	rwlock_rlock(&rwsync);
 
-	t_info("%s - has read lock", tname);
+	s_info("%s - has read lock", tname);
 	compat_sleep_ms(100);
-	t_info("%s - and now trying to upgrade it", tname);
+	s_info("%s - and now trying to upgrade it", tname);
 
 	if (rwlock_upgrade(&rwsync)) {
-		t_info("%s - could upgrade to write lock, pausing 1 second", tname);
+		s_info("%s - could upgrade to write lock, pausing 1 second", tname);
 		sleep(1);
-		t_info("%s - downgrading back to read lock, pausing 1 second", tname);
+		s_info("%s - downgrading back to read lock, pausing 1 second", tname);
 		rwlock_downgrade(&rwsync);
 		sleep(1);
-		t_info("%s - releasing read lock, re-getting write lock", tname);
+		s_info("%s - releasing read lock, re-getting write lock", tname);
 		rwlock_runlock(&rwsync);
 		rwlock_wlock(&rwsync);
-		t_info("%s - ok, got write lock back", tname);
+		s_info("%s - ok, got write lock back", tname);
 	} else {
-		t_info("%s - could not upgrade, releasing read lock", tname);
+		s_info("%s - could not upgrade, releasing read lock", tname);
 		rwlock_runlock(&rwsync);
-		t_info("%s - waiting for write lock", tname);
+		s_info("%s - waiting for write lock", tname);
 		rwlock_wlock(&rwsync);
-		t_info("%s - ok, got write lock, sleeping 1 second", tname);
+		s_info("%s - ok, got write lock, sleeping 1 second", tname);
 		sleep(1);
 	}
 
-	t_info("%s - releasing write lock", tname);
+	s_info("%s - releasing write lock", tname);
 	rwlock_wunlock(&rwsync);
-	t_info("%s - exiting", tname);
+	s_info("%s - exiting", tname);
 
 	return NULL;
 }
@@ -960,7 +960,7 @@ test_rwlock(void)
 	rwlock_t rw = RWLOCK_INIT;
 	unsigned i;
 
-	t_info("%s starting, will be launching %s()", thread_name(),
+	s_info("%s starting, will be launching %s()", thread_name(),
 		stacktrace_function_name(test_rwthreads));
 
 	/* The mono-threaded "cannot fail" sequence */
