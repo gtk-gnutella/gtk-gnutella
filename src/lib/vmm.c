@@ -649,21 +649,22 @@ vmm_dump_pmap(void)
 #if defined(HAS_MMAP) || defined(MINGW32)
 /**
  * Find a hole in the virtual memory map where we could allocate "size" bytes.
+ *
+ * This routine must be called with the pmap write-locked.
  */
 static const void *
 vmm_find_hole(size_t size)
 {
 	struct pmap *pm = vmm_pmap();
 	size_t i;
-	const void *result = NULL;
+
+	assert_rwlock_is_owned(&pm->lock);
 
 	if G_UNLIKELY(!vmm_fully_inited)
 		return NULL;
 
-	rwlock_rlock(&pm->lock);
-
 	if G_UNLIKELY(0 == pm->count || pm->loading)
-		goto done;
+		return NULL;
 
 	if (kernel_mapaddr_increasing) {
 		for (i = 0; i < pm->count; i++) {
@@ -674,15 +675,12 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(i == pm->count - 1) {
-				result = end;
-				goto done;
+				return end;
 			} else {
 				struct vm_fragment *next = &pm->array[i + 1];
 
-				if (ptr_diff(next->start, end) >= size) {
-					result = end;
-					goto done;
-				}
+				if (ptr_diff(next->start, end) >= size)
+					return end;
 			}
 		}
 	} else {
@@ -694,15 +692,12 @@ vmm_find_hole(size_t size)
 				continue;
 
 			if G_UNLIKELY(1 == i) {
-				result = page_start(const_ptr_add_offset(start, -size));
-				goto done;
+				return page_start(const_ptr_add_offset(start, -size));
 			} else {
 				struct vm_fragment *prev = &pm->array[i - 2];
 
-				if (ptr_diff(start, prev->end) >= size) {
-					result = page_start(const_ptr_add_offset(start, -size));
-					goto done;
-				}
+				if (ptr_diff(start, prev->end) >= size)
+					return page_start(const_ptr_add_offset(start, -size));
 			}
 		}
 	}
@@ -711,9 +706,7 @@ vmm_find_hole(size_t size)
 		s_miniwarn("VMM no %zuKiB hole found in pmap", size / 1024);
 	}
 
-done:
-	rwlock_runlock(&pm->lock);
-	return result;
+	return NULL;
 }
 
 /**
