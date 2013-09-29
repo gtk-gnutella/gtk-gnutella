@@ -93,9 +93,13 @@ shuffle(void *b, size_t n, size_t s)
 	 * After benchmarking, mt_rand() is faster than arc4random() hence
 	 * we now use the former as the default random function.
 	 *		--RAM, 2012-12-15
+	 *
+	 * For shuffling, we need many random numbers and it pays to use the
+	 * mtp_rand() routine, which relies on a thread-private pool.
+	 *		--RAM, 2013-09-29
 	 */
 
-	shuffle_with(mt_rand, b, n, s);
+	shuffle_with(mtp_rand, b, n, s);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

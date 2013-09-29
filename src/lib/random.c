@@ -235,7 +235,7 @@ done:
 uint32
 random_u32(void)
 {
-	return mt_rand();
+	return mtp_rand();
 }
 
 /**
@@ -244,7 +244,7 @@ random_u32(void)
 uint64
 random_u64(void)
 {
-	return mt_rand64();
+	return mtp_rand64();
 }
 
 /**
@@ -265,9 +265,10 @@ random_value(uint32 max)
 	 * distribution of the random numbers, using integer-only arithmetic.
 	 *
 	 * We also switched to mt_rand() because it is faster than arc4random().
+	 * And mtp_rand() is a lock-free path, even faster than mt_rand().
 	 */
 
-	return random_upto(mt_rand, max);
+	return random_upto(mtp_rand, max);
 }
 
 /**
@@ -276,7 +277,7 @@ random_value(uint32 max)
 uint64
 random64_value(uint64 max)
 {
-	return random64_upto(mt_rand64, max);
+	return random64_upto(mtp_rand64, max);
 }
 
 /**
@@ -580,7 +581,7 @@ random_double_generate(random_fn_t rf)
 double
 random_double(void)
 {
-	return random_double_generate(mt_rand);
+	return random_double_generate(mtp_rand);
 }
 
 /**

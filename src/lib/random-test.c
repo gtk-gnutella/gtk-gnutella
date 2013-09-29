@@ -69,7 +69,7 @@ static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-4ehuwBP] [-b mask] [-c items] [-m min] [-p period]\n"
+		"Usage: %s [-4ehuwyBP] [-b mask] [-c items] [-m min] [-p period]\n"
 		"       [-s skip] [-t amount] [-C val] [-D count] [-F upper]\n"
 		"       [-R seed] [-U upper] [-X upper]\n"
 		"  -4 : test arc4random() instead of rand31()\n"
@@ -83,6 +83,7 @@ usage(void)
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
 		"  -w : test mt_rand(), the Mersenne Twister, instead of rand31()\n"
+		"  -y : test mtp_rand(), the thread-local Mersenne Twister\n"
 		"  -B : count '1' occurrences of each bit\n"
 		"  -C : count how many times the random value occurs (after -b)\n"
 		"  -D : dump specified amount of random numbers (after -b)\n"
@@ -500,6 +501,7 @@ main(int argc, char **argv)
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	const char *fnname = "rand31";
+	const char options[] = "4b:c:ehm:p:s:t:uwyBC:D:F:PR:U:X:";
 
 #define SET_RANDOM(x)	\
 	fn = x;				\
@@ -509,7 +511,7 @@ main(int argc, char **argv)
 	progname = filepath_basename(argv[0]);
 	misc_init();
 
-	while ((c = getopt(argc, argv, "4b:c:ehm:p:s:t:uwBC:D:F:PR:U:X:")) != EOF) {
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case '4':			/* test arc4random() */
 			SET_RANDOM(arc4random);
@@ -540,6 +542,9 @@ main(int argc, char **argv)
 			break;
 		case 'w':			/* check mt_rand() instead */
 			SET_RANDOM(mt_rand);
+			break;
+		case 'y':			/* check mtp_rand() instead */
+			SET_RANDOM(mtp_rand);
 			break;
 		case 'B':			/* count occurrences of each bit */
 			countbits = TRUE;

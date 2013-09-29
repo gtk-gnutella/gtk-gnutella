@@ -2,7 +2,7 @@
  * Copyright (c) 2001 Geoff Kuenning
  *
  * Adaptated and enhanced for inclusion in gtk-gnutella by Raphael Manfredi.
- * Copyright (c) 2012 Raphael Manfredi
+ * Copyright (c) 2012-2013 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -76,6 +76,10 @@
  * The mt_xxx() functions are thread-safe already, as a lock is always
  * taken before accessing the built-in default state.
  *
+ * The mtp_xxx() functions are thread-safe and use a lock-free path, which
+ * results in an even greater throughput.  They rely on a thread-local
+ * random pool.
+ *
  * For the curious, a Mersenne number is an integer that is one less than
  * a power-of-two.  For instance 2^32 - 1 is a Mersenne number.  This
  * implementation of the Mersenne Twister has a period of 2^19937 - 1,
@@ -88,17 +92,19 @@
  * @author Geoff Kuenning
  * @date 2001
  * @author Raphael Manfredi
- * @date 2012
+ * @date 2012-2013
  */
 
 #include "common.h"
 
 #include "mtwist.h"
 #include "arc4random.h"
+#include "omalloc.h"
 #include "once.h"
 #include "random.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "thread.h"
 #include "walloc.h"
 
 /*
@@ -709,6 +715,72 @@ mt_state_free_null(mt_state_t **mts_ptr)
 	}
 }
 
+static once_flag_t mtp_key_inited;
+static thread_key_t mtp_key = THREAD_KEY_INIT;
+
+/**
+ * Create the thread-local random pool key, once.
+ */
+static void
+mtp_key_init(void)
+{
+	if (-1 == thread_local_key_create(&mtp_key, THREAD_LOCAL_KEEP))
+		s_error("cannot initialize Mersenne Twister random pool key: %m");
+}
+
+/**
+ * Get suitable thread-local random pool.
+ */
+static mt_state_t *
+mtp_pool(void)
+{
+	mt_state_t *mts;
+
+	ONCE_FLAG_RUN(mtp_key_inited, mtp_key_init);
+
+	mts = thread_local_get(mtp_key);
+
+	if G_UNLIKELY(NULL == mts) {
+		/*
+		 * The random pool is kept for each created thread, never freed.
+		 */
+
+		OMALLOC0(mts);
+		thread_local_set(mtp_key, mts);
+	}
+
+	return mts;
+}
+
+/**
+ * Generate a random number in the range 0 to 2^32-1, inclusive.
+ *
+ * This routine uses a thread-private random pool and is mostly a
+ * lock-free execution path, resulting in a 40% increased throughput
+ * compared to mt_rand(), the version using a locked default pool.
+ *
+ * @return a 32-bit random number
+ */
+uint32
+mtp_rand(void)
+{
+	return mts_rand_internal(mtp_pool());
+}
+
+/**
+ * Generate a random number in the range 0 to 2^64-1, inclusive.
+ *
+ * This routine uses a thread-private random pool and is mostly a
+ * lock-free execution path.
+ *
+ * @return a 64-bit random number
+ */
+uint64
+mtp_rand64(void)
+{
+	return mts_rand64_internal(mtp_pool());
+}
+
 /**
  * Initialize built-in default state, once.
  */
@@ -730,6 +802,7 @@ mt_init(void)
 	static once_flag_t inited;
 
 	once_flag_run(&inited, mt_init_once);
+	once_flag_run(&mtp_key_inited, mtp_key_init);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
