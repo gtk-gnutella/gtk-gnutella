@@ -68,14 +68,16 @@ static bool sleep_before_exit;
 static bool async_exit;
 static bool randomize_free;
 static unsigned cond_timeout;
+static long cpu_count;
 
 static void G_GNUC_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsxABCEFIMNOPQRSX] [-n count] [-t ms] [-T secs]"
-		"  -h : prints this help message\n"
+		"Usage: %s [-hejsxABCEFIMNOPQRSX] [-c CPU] [-n count] [-t ms] [-T secs]"
+		"  -c : override amount of CPUs, driving thread count for mem tests\n"
 		"  -e : use emulated semaphores\n"
+		"  -h : prints this help message\n"
 		"  -j : join created threads\n"
 		"  -n : amount of times to repeat tests\n"
 		"  -s : let each created thread sleep for 1 second before ending\n"
@@ -1342,7 +1344,7 @@ exercise_memory(void *arg)
 static void
 test_memory_one(void)
 {
-	long cpus = getcpucount();
+	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	int *t, i, n;
 
 	n = cpus + 1;
@@ -1366,12 +1368,15 @@ test_memory_one(void)
 static void
 test_memory(unsigned repeat)
 {
-	long cpus = getcpucount();
+	long cpus = 0 == cpu_count ? getcpucount() : cpu_count;
 	unsigned i;
 
-	printf("%s() detected %ld CPU%s\n", G_STRFUNC, cpus, plural(cpus));
+	printf("%s() detected %ld CPU%s%s\n", G_STRFUNC, cpus, plural(cpus),
+		0 == cpu_count ? "" : " (forced by -c)");
+
 	if (randomize_free)
 		printf("%s() will free blocks in random order\n", G_STRFUNC);
+
 	fflush(stdout);
 
 	for (i = 0; i < repeat; i++) {
@@ -1418,6 +1423,7 @@ main(int argc, char **argv)
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	unsigned repeat = 1, play_time = 0;
+	const char options[] = "c:ehjn:st:xABCEFIMNOPQRST:X";
 
 	mingw_early_init();
 	progname = filepath_basename(argv[0]);
@@ -1426,7 +1432,7 @@ main(int argc, char **argv)
 
 	misc_init();
 
-	while ((c = getopt(argc, argv, "hejn:st:xABCEFIMNOPQRST:X")) != EOF) {
+	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */
 			async_exit = TRUE;
@@ -1473,6 +1479,9 @@ main(int argc, char **argv)
 			break;
 		case 'X':			/* exercise memory allocation */
 			memory = TRUE;
+			break;
+		case 'c':			/* override CPU count */
+			cpu_count = get_number(optarg, c);
 			break;
 		case 'e':			/* use emulated semaphores */
 			emulated = TRUE;
