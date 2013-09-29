@@ -65,7 +65,7 @@
 #include "adns_msg.h"
 
 #include "ascii.h"				/* For is_ascii_alpha() */
-#include "bfd_util.h"
+#include "atomic.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
@@ -83,6 +83,7 @@
 #include "misc.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
+#include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For ULONG_DEC_BUFLEN */
@@ -1995,7 +1996,10 @@ mingw_valloc(void *hint, size_t size)
 	void *p = NULL;
 
 	if (NULL == hint && mingw_vmm.hinted >= 0) {
+		static spinlock_t valloc_slk = SPINLOCK_INIT;
 		size_t n;
+
+		spinlock(&valloc_slk);
 
 		if G_UNLIKELY(NULL == mingw_vmm.reserved) {
 			SYSTEM_INFO system_info;
@@ -2070,7 +2074,7 @@ mingw_valloc(void *hint, size_t size)
 				while (
 					NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
 				) {
-					mingw_vmm.reserved = p = VirtualAlloc(
+					mingw_vmm.reserved = VirtualAlloc(
 						NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
 
 					if (NULL == mingw_vmm.reserved)
@@ -2089,6 +2093,7 @@ mingw_valloc(void *hint, size_t size)
 			);
 
 			if (NULL == mingw_vmm.reserved) {
+				spinunlock(&valloc_slk);
 				s_error("could not reserve additional %s of memory "
 					"on top of the %s put aside",
 					compact_size(mingw_vmm.size, FALSE),
@@ -2106,11 +2111,13 @@ mingw_valloc(void *hint, size_t size)
 		n = mingw_getpagesize();
 		n = size_saturate_mult(n, mingw_vmm.hinted++);
 		if (n + size >= mingw_vmm.size) {
+			spinunlock(&valloc_slk);
 			s_minicrit("%s(): out of reserved memory for %zu bytes",
 				G_STRFUNC, size);
 			goto failed;
 		}
 		p = ptr_add_offset(mingw_vmm.reserved, n);
+		spinunlock(&valloc_slk);
 	} else if (NULL == hint && mingw_vmm.hinted < 0) {
 		/*
 		 * Non-hinted request after hinted requests have been used.
@@ -2128,6 +2135,7 @@ mingw_valloc(void *hint, size_t size)
 		return p;
 	} else {
 		mingw_vmm.hinted = -1;	/* Can now handle non-hinted allocs */
+		atomic_mb();
 		p = hint;
 	}
 
